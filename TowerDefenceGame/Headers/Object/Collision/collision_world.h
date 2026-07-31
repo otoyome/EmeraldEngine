@@ -1,0 +1,50 @@
+#pragma once
+
+#include "Collision/collision.h"
+#include "collision_object.h"
+
+using collision_object_ptr = std::shared_ptr<collision_object>;
+
+//	è’ìÀîªíËÉèÅ[ÉãÉh
+class collision_world
+{
+public:
+	struct ray_cast_descs
+	{
+		DirectX::XMFLOAT3 start;
+		DirectX::XMFLOAT3 end;
+		collision_filter_ptr filter;
+		std::vector<collision_object_ptr> exclude_objects;
+	};
+
+public:
+	collision_world();
+	~collision_world();
+
+public:
+	void step(float elapsed_time, int substep_count = 10, float fixed_time_stamp = system_units::convert_fps_to_sec(0.1f));
+
+	void finalize();
+
+#if defined(USE_IMGUI)
+	void debug_primitive_draw();
+	void imgui_render();
+#endif // defined(USE_IMGUI)
+
+public:
+	bool register_object(collision_object_ptr object);
+	bool unregister_object(collision_object_ptr object);
+
+private:
+	void inner_step_simulation(float elapsed_time);
+	void add_objects();
+	void remove_objects();
+
+public:
+	bool ray_cast(const ray_cast_descs& desc, collision::intersect_data& intersect_data, collision_object_ptr& out_collision);
+
+private:
+	std::vector<collision_object_ptr> collision_objects;
+	std::vector<collision_object_ptr> collision_objects_add;
+	std::vector<collision_object_ptr> collision_objects_remove;
+};
