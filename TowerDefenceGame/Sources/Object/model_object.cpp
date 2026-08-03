@@ -263,15 +263,15 @@ void model_object::fixed_update(float elapsed_time)
 					if (left_hit)
 					{
 						left_hit_data[0].point.x += foot_ik_direction.x * foot_data.foot_offset;
-						left_hit_data[0].point.y += foot_ik_direction.x * foot_data.foot_offset;
-						left_hit_data[0].point.z += foot_ik_direction.x * foot_data.foot_offset;
+						left_hit_data[0].point.y += foot_ik_direction.y * foot_data.foot_offset;
+						left_hit_data[0].point.z += foot_ik_direction.z * foot_data.foot_offset;
 						ik_solver->solve(behavior_data.solve_ids[0], left_hit_data[0].point);
 					}
 					if (right_hit)
 					{
 						right_hit_data[0].point.x += foot_ik_direction.x * foot_data.foot_offset;
-						right_hit_data[0].point.y += foot_ik_direction.x * foot_data.foot_offset;
-						right_hit_data[0].point.z += foot_ik_direction.x * foot_data.foot_offset;
+						right_hit_data[0].point.y += foot_ik_direction.y * foot_data.foot_offset;
+						right_hit_data[0].point.z += foot_ik_direction.z * foot_data.foot_offset;
 						ik_solver->solve(behavior_data.solve_ids[1], right_hit_data[0].point);
 					}
 					break;
