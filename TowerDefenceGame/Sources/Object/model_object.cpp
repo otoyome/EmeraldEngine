@@ -15,6 +15,9 @@ void model_object::set_ik_resource(ik_resource_ptr ik_resource)
 {
 	this->ik_resource = ik_resource;
 	ik_solver = std::make_shared<::ik_solver>(model_instance, ik_resource);
+
+	ik_datas.clear();
+	ik_datas.resize(ik_resource->get_behavior_data_list().size());
 }
 
 const DirectX::XMFLOAT3& model_object::get_scale() const
@@ -85,8 +88,7 @@ model_object::model_object(std::string_view name, std::string_view file_path)
 			ik_resource_ptr resource;
 			if (ik_resource_manager::instance()->load(resource, path.string()))
 			{
-				ik_resource = resource;
-				ik_solver = std::make_shared<::ik_solver>(model_instance, ik_resource);
+				set_ik_resource(resource);
 			}
 		}
 	}
@@ -115,8 +117,7 @@ model_object::model_object(std::string_view name, model_resource_ptr resource)
 			ik_resource_ptr resource;
 			if (ik_resource_manager::instance()->load(resource, path.string()))
 			{
-				ik_resource = resource;
-				ik_solver = std::make_shared<::ik_solver>(model_instance, ik_resource);
+				set_ik_resource(resource);
 			}
 		}
 	}
@@ -155,10 +156,13 @@ void model_object::fixed_update(float elapsed_time)
 	//	IK処理
 	if (ik_solver)
 	{
+		update_transform();
+
 		auto& model_instance_nodes = model_instance->get_nodes();
 		auto& behavior_data_list = ik_resource->get_behavior_data_list();
+		auto WorldMatrix = DirectX::XMLoadFloat4x4(&model_instance->get_world_transform());
 
-		if (behavior_data_list.size() != ik_datas.size())
+		if (ik_datas.size() != behavior_data_list.size())
 		{
 			ik_datas.resize(behavior_data_list.size());
 		}
@@ -174,71 +178,101 @@ void model_object::fixed_update(float elapsed_time)
 			{
 				case ::ik_resource::behavior_mode::foot:
 				{
+					if (behavior_data.solve_ids.empty() ||
+						behavior_data.solve_ids.size() < 2 ||
+						behavior_data.solve_ids[0] == ik_resource::invalid_id ||
+						behavior_data.solve_ids[1] == ik_resource::invalid_id)
+						continue;
+
+					auto& left_solve_data = ik_solver->get_solve_data()[behavior_data.solve_ids[0]];
+					auto& right_solve_data = ik_solver->get_solve_data()[behavior_data.solve_ids[1]];
+					auto& left_node_data = ik_resource->get_node_list()[left_solve_data.target_node_index];
+					auto& right_node_data = ik_resource->get_node_list()[right_solve_data.target_node_index];
+					auto& left_node = model_instance_nodes[model_instance->get_node_index_by_name(left_node_data.source_node_name)];
+					auto& right_node = model_instance_nodes[model_instance->get_node_index_by_name(right_node_data.source_node_name)];
+					auto& foot_data = std::get<ik_resource::foot_data>(behavior_data.data);
+
+					//	
+					DirectX::XMFLOAT4X4 left_world_matrix, right_world_matrix;
+					DirectX::XMStoreFloat4x4(&left_world_matrix, DirectX::XMLoadFloat4x4(&left_node.global_transform) * WorldMatrix);
+					DirectX::XMStoreFloat4x4(&right_world_matrix, DirectX::XMLoadFloat4x4(&right_node.global_transform) * WorldMatrix);
+
+					static constexpr DirectX::XMFLOAT3 foot_ik_direction = {0, -1, 0};
+
+					//	各足が埋まるかを確認
+					bool left_hit, right_hit;
+					collision::intersect_data left_hit_data, right_hit_data;
 					{
-						auto& left_solve_data = ik_solver->get_solve_data()[behavior_data.solve_ids[0]];
-						auto& right_solve_data = ik_solver->get_solve_data()[behavior_data.solve_ids[1]];
-						auto& left_node_data = ik_resource->get_node_list()[left_solve_data.target_node_index];
-						auto& right_node_data = ik_resource->get_node_list()[right_solve_data.target_node_index];
-						auto& left_node = model_instance_nodes[model_instance->get_node_index_by_name(left_node_data.source_node_name)];
-						auto& right_node = model_instance_nodes[model_instance->get_node_index_by_name(right_node_data.source_node_name)];
-						auto& foot_data = std::get<ik_resource::foot_data>(behavior_data.data);
+						collision_world::ray_cast_descs left_ray_data, right_ray_data;
+						left_ray_data.filter = 
+						right_ray_data.filter = collision_filter_manager::instance()->search_filter("ik");
 
-						//	
-						DirectX::XMMATRIX WorldMatrix = DirectX::XMLoadFloat4x4(&model_instance->get_world_transform());
-						DirectX::XMFLOAT4X4 left_world_matrix, right_world_matrix;
-						DirectX::XMStoreFloat4x4(&left_world_matrix, DirectX::XMLoadFloat4x4(&left_node.global_transform) * WorldMatrix);
-						DirectX::XMStoreFloat4x4(&right_world_matrix, DirectX::XMLoadFloat4x4(&right_node.global_transform) * WorldMatrix);
+						left_ray_data.start =
+						left_ray_data.end = DirectX::XMFLOAT3(left_world_matrix._41 + foot_data.ray_origin_offsets[0].x,
+															  left_world_matrix._42 + foot_data.ray_origin_offsets[0].y,
+															  left_world_matrix._43 + foot_data.ray_origin_offsets[0].z);
+						left_ray_data.end.x += foot_ik_direction.x * foot_data.ray_length;
+						left_ray_data.end.y += foot_ik_direction.y * foot_data.ray_length;
+						left_ray_data.end.z += foot_ik_direction.z * foot_data.ray_length;
 
-						static constexpr DirectX::XMFLOAT3 foot_ik_direction = {0, -1, 0};
+						right_ray_data.start =
+						right_ray_data.end = DirectX::XMFLOAT3(right_world_matrix._41 + foot_data.ray_origin_offsets[1].x,
+															   right_world_matrix._42 + foot_data.ray_origin_offsets[1].y,
+															   right_world_matrix._43 + foot_data.ray_origin_offsets[1].z);
+						right_ray_data.end.x += foot_ik_direction.x * foot_data.ray_length;
+						right_ray_data.end.y += foot_ik_direction.y * foot_data.ray_length;
+						right_ray_data.end.z += foot_ik_direction.z * foot_data.ray_length;
 
-						//	各足が埋まるかを確認
-						bool left_hit, right_hit;
-						collision::intersect_data left_hit_data, right_hit_data;
-						{
-							collision_world::ray_cast_descs left_ray_data, right_ray_data;
-							left_ray_data.filter = 
-							right_ray_data.filter = collision_filter_manager::instance()->search_filter("ik");
-							left_ray_data.start = DirectX::XMFLOAT3(left_world_matrix._41, left_world_matrix._42, left_world_matrix._43);
-							right_ray_data.start = DirectX::XMFLOAT3(right_world_matrix._41, right_world_matrix._42, right_world_matrix._43);
-							left_ray_data.end = left_ray_data.start;
-							left_ray_data.end.x += foot_ik_direction.x * foot_data.ray_length;
-							left_ray_data.end.y += foot_ik_direction.y * foot_data.ray_length;
-							left_ray_data.end.z += foot_ik_direction.z * foot_data.ray_length;
-							right_ray_data.end = right_ray_data.start;
-							right_ray_data.end.x += foot_ik_direction.x * foot_data.ray_length;
-							right_ray_data.end.y += foot_ik_direction.y * foot_data.ray_length;
-							right_ray_data.end.z += foot_ik_direction.z * foot_data.ray_length;
-							collision_object_ptr obj;
-							left_hit = object_manager::instance()->get_world().ray_cast(left_ray_data, left_hit_data, obj);
-							right_hit = object_manager::instance()->get_world().ray_cast(right_ray_data, right_hit_data, obj);
-						}
+						collision_object_ptr obj;
+						left_hit = object_manager::instance()->get_world().ray_cast(left_ray_data, left_hit_data, obj);
+						right_hit = object_manager::instance()->get_world().ray_cast(right_ray_data, right_hit_data, obj);
+					}
 
-						//	腰位置を下げる
-						if (left_hit && right_hit)
-						{
-							float length = std::max(left_hit_data[0].length, right_hit_data[0].length);
-							auto PelvisOffset = DirectX::XMVectorSet(0, -length, 0, 0);
-							for (auto& node_index : foot_data.adjust_node_indices)
-							{
-								auto& pelvis_node_data = ik_resource->get_node_list()[node_index];
-								auto& pelvis_node = model_instance_nodes[model_instance->get_node_index_by_name(pelvis_node_data.source_node_name)];
-
-								DirectX::XMFLOAT3 local_direction;
-								DirectX::XMMATRIX PelvisWorldMatrix = DirectX::XMLoadFloat4x4(&pelvis_node.global_transform) * WorldMatrix;
-								DirectX::XMMATRIX InversePelvisWorldMatrix = DirectX::XMMatrixInverse(nullptr, PelvisWorldMatrix);
-								DirectX::XMStoreFloat3(&local_direction, DirectX::XMVector3TransformNormal(PelvisOffset, InversePelvisWorldMatrix));
-								pelvis_node.local_transform._41 += local_direction.x;
-								pelvis_node.local_transform._42 += local_direction.y;
-								pelvis_node.local_transform._43 += local_direction.z;
-							}
-							model_instance->update_transform(model_instance->get_world_transform());
-						}
-
-						//	ヒット位置に足を補正
+					//	腰位置を下げる
+					{
+						float length = FLT_MIN;
 						if (left_hit)
-							ik_solver->solve(behavior_data.solve_ids[0], left_hit_data[0].point);
+							length = foot_data.ray_length - left_hit_data[0].length;
 						if (right_hit)
-							ik_solver->solve(behavior_data.solve_ids[1], right_hit_data[0].point);
+							length = std::max(length, foot_data.ray_length - right_hit_data[0].length);
+
+						auto PelvisOffset = DirectX::XMVectorSet(0, -length, 0, 0);
+						for (auto& node_index : foot_data.adjust_node_indices)
+						{
+							auto& pelvis_node_data = ik_resource->get_node_list()[node_index];
+							auto& pelvis_node = model_instance_nodes[model_instance->get_node_index_by_name(pelvis_node_data.source_node_name)];
+
+							DirectX::XMMATRIX ParentPelvisWorldMatrix = WorldMatrix;
+							if (pelvis_node.parent_index != ik_resource::invalid_id)
+							{
+								auto& parent_node_data = model_instance_nodes[pelvis_node.parent_index];
+								ParentPelvisWorldMatrix = DirectX::XMLoadFloat4x4(&parent_node_data.global_transform) * WorldMatrix;
+							}
+							DirectX::XMMATRIX InversePelvisWorldMatrix = DirectX::XMMatrixInverse(nullptr, ParentPelvisWorldMatrix);
+
+							DirectX::XMFLOAT3 local_direction;
+							DirectX::XMStoreFloat3(&local_direction, DirectX::XMVector3TransformNormal(PelvisOffset, InversePelvisWorldMatrix));
+							pelvis_node.local_transform._41 += local_direction.x;
+							pelvis_node.local_transform._42 += local_direction.y;
+							pelvis_node.local_transform._43 += local_direction.z;
+						}
+						model_instance->update_transform(model_instance->get_world_transform());
+					}
+
+					//	ヒット位置に足を補正
+					if (left_hit)
+					{
+						left_hit_data[0].point.x += foot_ik_direction.x * foot_data.foot_offset;
+						left_hit_data[0].point.y += foot_ik_direction.x * foot_data.foot_offset;
+						left_hit_data[0].point.z += foot_ik_direction.x * foot_data.foot_offset;
+						ik_solver->solve(behavior_data.solve_ids[0], left_hit_data[0].point);
+					}
+					if (right_hit)
+					{
+						right_hit_data[0].point.x += foot_ik_direction.x * foot_data.foot_offset;
+						right_hit_data[0].point.y += foot_ik_direction.x * foot_data.foot_offset;
+						right_hit_data[0].point.z += foot_ik_direction.x * foot_data.foot_offset;
+						ik_solver->solve(behavior_data.solve_ids[1], right_hit_data[0].point);
 					}
 					break;
 				}
@@ -246,7 +280,7 @@ void model_object::fixed_update(float elapsed_time)
 				{
 					for (auto& solve_id : behavior_data.solve_ids)
 					{
-						ik_solver->solve(solve_id, ik_data.target_position);
+						ik_solver->solve(solve_id, ik_data.aim_target_position);
 					}
 					break;
 				}
@@ -412,22 +446,33 @@ void model_object::set_animation_loop(bool flag)
 	animation_loop = flag;
 }
 
-bool model_object::set_ik_datas(std::string_view ik_data_name, const ik_data& data)
+bool model_object::set_ik_behavior_datas(std::string_view name, const ik_data& data)
 {
-	std::string data_name = std::string(ik_data_name);
-	auto& data_list = ik_resource->get_solve_data_list();
-	auto	it	= std::find_if( data_list.begin(),
-								data_list.end(),
-								[data_name](const ik_resource::solve_data& r)
-								{
-									return data_name == r.name;
-								} );
-	if (it == data_list.end())
+	std::string data_name = std::string(name);
+	auto& data_list = ik_resource->get_behavior_data_list();
+	auto it = std::find_if(data_list.begin(),
+						   data_list.end(),
+						   [data_name](const ik_resource::behavior_data& r) {return data_name == r.name;});
+	return it != data_list.end() ? set_ik_behavior_datas(std::distance(data_list.begin(), it), data) : false;
+}
+
+bool model_object::set_ik_behavior_datas(size_t index, const ik_data& data)
+{
+	if (index >= ik_datas.size())
 		return false;
 
-	auto index = std::distance(data_list.begin(), it);
 	ik_datas[index] = data;
 	return true;
+}
+
+size_t model_object::search_ik_behavior_index(std::string_view name) const
+{
+	std::string data_name = std::string(name);
+	auto& data_list = ik_resource->get_behavior_data_list();
+	auto it = std::find_if(data_list.begin(),
+						   data_list.end(),
+						   [data_name](const ik_resource::behavior_data& r) {return data_name == r.name;});
+	return it != data_list.end() ? std::distance(data_list.begin(), it) : ik_resource::invalid_id;
 }
 
 void model_object::on_active()
@@ -735,15 +780,15 @@ void model_object::imgui_render_core()
 	if (ImGui::TreeNode("ik list"))
 	{
 		UINT ik_node_index = 0;
-		auto& datas = ik_solver->get_solve_data();
+		auto& datas = ik_resource->get_behavior_data_list();
 		for (auto& ik_data : ik_datas)
 		{
-			if (!ImGui::TreeNode(system_utility::convert_utf8(ik_resource->get_solve_data_list()[ik_node_index++].name).data()))
+			if (!ImGui::TreeNode(system_utility::convert_utf8(ik_resource->get_behavior_data_list()[ik_node_index++].name).data()))
 				continue;
 
 			ImGui::Checkbox("visible", &ik_data.visible);
 			ImGui::BeginDisabled();
-			ImGui::DragFloat3("target_position", &ik_data.target_position.x, 0.01f);
+			ImGui::DragFloat3("target_position", &ik_data.aim_target_position.x, 0.01f);
 			ImGui::EndDisabled();
 			ImGui::TreePop();
 		}

@@ -275,26 +275,27 @@ namespace
 					{
 						case ik_resource::behavior_mode::foot:
 						{
-							//	IK ソルバーサイズ指定
-							if (ik_behavior_data.solve_ids.size() < 2)
-								ik_behavior_data.solve_ids.resize(2);
+							auto& foot_data = std::get<ik_resource::foot_data>(ik_behavior_data.data);
 
 							//	ソルバー指定
 							{
+								if (ik_behavior_data.solve_ids.size() < 2)
+									ik_behavior_data.solve_ids.resize(2);
+
 								std::string solver_name = search_ik_solver_name(ik_behavior_data.solve_ids[0]);
 								if (ImGui::Combo("0", solver_name, solver_names))
 									ik_behavior_data.solve_ids[0] = search_ik_solve_data(solver_name);
+								ImGui::DragFloat3("foot_offset0", &foot_data.ray_origin_offsets[0].x, 0.001f, -system_units::convert_cm_to_unit(100.0f), system_units::convert_cm_to_unit(100.0f));
 								edited |= ImGui::IsItemEdited();
 
 								solver_name = search_ik_solver_name(ik_behavior_data.solve_ids[1]);
 								if (ImGui::Combo("1", solver_name, solver_names))
 									ik_behavior_data.solve_ids[1] = search_ik_solve_data(solver_name);
+								ImGui::DragFloat3("foot_offset1", &foot_data.ray_origin_offsets[1].x, 0.001f, -system_units::convert_cm_to_unit(100.0f), system_units::convert_cm_to_unit(100.0f));
 
 								edited |= ImGui::IsItemEdited();
 							}
 							{
-								auto& foot_data = std::get<ik_resource::foot_data>(ik_behavior_data.data);
-
 								//	腰設定
 								{
 									//	IK ソルバーサイズ指定
@@ -320,11 +321,10 @@ namespace
 								}
 
 								ImGui::DragFloat("ray_length", &foot_data.ray_length, 0.001f, 0.0f, system_units::convert_cm_to_unit(100.0f));
+								ImGui::DragFloat("foot_offset", &foot_data.foot_offset, 0.001f, -system_units::convert_cm_to_unit(100.0f), system_units::convert_cm_to_unit(100.0f));
 								edited |= ImGui::IsItemEdited();
 								//ImGui::Checkbox("align_to_normal", &foot_data.align_to_normal
 								//edited |= ImGui::IsItemEdited();
-
-								foot_data.foot_offset;
 							}
 							break;
 						}
@@ -715,6 +715,12 @@ namespace
 				{
 					case ::ik_resource::behavior_mode::foot:
 					{
+						if (behavior_data.solve_ids.empty() ||
+							behavior_data.solve_ids.size() < 2 ||
+							behavior_data.solve_ids[0] == ik_resource::invalid_id ||
+							behavior_data.solve_ids[1] == ik_resource::invalid_id)
+							continue;
+
 						DirectX::XMFLOAT3 s = {10, 10, 10};
 						DirectX::XMFLOAT4 q;
 						DirectX::XMStoreFloat4(&q, DirectX::XMQuaternionRotationRollPitchYaw(test_ik.rotation.x, test_ik.rotation.y, test_ik.rotation.z));
@@ -741,18 +747,34 @@ namespace
 							collision::intersect_data left_hit_data, right_hit_data;
 							bool left_hit, right_hit;
 							{
-								DirectX::XMFLOAT3 left_start = DirectX::XMFLOAT3(left_world_matrix._41, left_world_matrix._42, left_world_matrix._43);
-								DirectX::XMFLOAT3 right_start = DirectX::XMFLOAT3(right_world_matrix._41, right_world_matrix._42, right_world_matrix._43);
-								DirectX::XMFLOAT3 left_end = DirectX::XMFLOAT3(left_start.x, left_start.y - foot_data.ray_length, left_start.z);
-								DirectX::XMFLOAT3 right_end = DirectX::XMFLOAT3(right_start.x, right_start.y - foot_data.ray_length, right_start.z);
+								DirectX::XMFLOAT3 left_start, right_start, left_end, right_end;
+
+								left_start = DirectX::XMFLOAT3(left_world_matrix._41 + foot_data.ray_origin_offsets[0].x,
+															   left_world_matrix._42 + foot_data.ray_origin_offsets[0].y,
+															   left_world_matrix._43 + foot_data.ray_origin_offsets[0].z);
+								right_start = DirectX::XMFLOAT3(right_world_matrix._41 + foot_data.ray_origin_offsets[1].x,
+															    right_world_matrix._42 + foot_data.ray_origin_offsets[1].y,
+															    right_world_matrix._43 + foot_data.ray_origin_offsets[1].z);
+
+								left_end = DirectX::XMFLOAT3(left_start.x,
+															 left_start.y - foot_data.ray_length,
+														     left_start.z);
+								right_end = DirectX::XMFLOAT3(right_start.x,
+															  right_start.y - foot_data.ray_length,
+															  right_start.z);
+
 								left_hit = box.intersect_segment(left_start, left_end, &left_hit_data);
 								right_hit = box.intersect_segment(right_start, right_end, &right_hit_data);
 							}
 
 							//	腰位置を下げる
-							if (left_hit && right_hit)
 							{
-								float length = std::max(left_hit_data[0].length, right_hit_data[0].length);
+								float length = FLT_MIN;
+								if (left_hit)
+									length = foot_data.ray_length - left_hit_data[0].length;
+								if (right_hit)
+									length = std::max(length, foot_data.ray_length - right_hit_data[0].length);
+
 								auto PelvisOffset = DirectX::XMVectorSet(0, -length, 0, 0);
 								for (auto& node_index : foot_data.adjust_node_indices)
 								{
@@ -772,9 +794,15 @@ namespace
 
 							//	ヒット位置に足を補正
 							if (left_hit)
+							{
+								left_hit_data[0].point.y -= foot_data.foot_offset;
 								ik_solver->solve(behavior_data.solve_ids[0], left_hit_data[0].point);
+							}
 							if (right_hit)
+							{
+								right_hit_data[0].point.y -= foot_data.foot_offset;
 								ik_solver->solve(behavior_data.solve_ids[1], right_hit_data[0].point);
+							}
 						}
 
 						PUSH_DEBUG_PRIMITIVE_BOX(s, q, t, DirectX::XMFLOAT4(1, 1, 1, 1), true);

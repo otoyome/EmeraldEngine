@@ -7,9 +7,10 @@
 #include "cereal/types/vector.hpp"
 #include "cereal/types/unordered_map.hpp"
 #include "cereal/types/variant.hpp"
+#include "cereal/types/array.hpp"
 
 // CEREALバージョン定義
-CEREAL_CLASS_VERSION(ik_resource::foot_data, 2)
+CEREAL_CLASS_VERSION(ik_resource::foot_data, 3)
 CEREAL_CLASS_VERSION(ik_resource::hand_data, 1)
 CEREAL_CLASS_VERSION(ik_resource::look_at_data, 1)
 CEREAL_CLASS_VERSION(ik_resource::node, 2)
@@ -33,6 +34,15 @@ void ik_resource::foot_data::serialize(Archive& archive, int version)
 		case 2:
 		{
 			archive(CEREAL_NVP(ray_length),
+					CEREAL_NVP(foot_offset),
+					CEREAL_NVP(adjust_node_indices),
+					CEREAL_NVP(align_to_normal));
+			break;
+		}
+		case 3:
+		{
+			archive(CEREAL_NVP(ray_length),
+					CEREAL_NVP(ray_origin_offsets),
 					CEREAL_NVP(foot_offset),
 					CEREAL_NVP(adjust_node_indices),
 					CEREAL_NVP(align_to_normal));

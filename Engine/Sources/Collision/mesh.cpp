@@ -144,11 +144,13 @@ namespace
 		{
 			p.x = (point.x - area_min.x) / area_unit.x;
 			UINT index_x = static_cast<UINT>(p.x);
+			float reserve_y = point.y;
 			for (UINT y = 0; y < axis_count.y; ++y)
 			{
 				p.y = (point.y - area_min.y) / area_unit.y;
 				UINT index_y = static_cast<UINT>(p.y);
 				UINT index_xy = index_x + index_y * separate_count.x;
+				float reserve_z = point.z;
 				for (UINT z = 0; z < axis_count.z; ++z)
 				{
 					p.z = (point.z - area_min.z) / area_unit.z;
@@ -161,8 +163,10 @@ namespace
 					point.z += area_unit.z;
 				}
 				point.y += area_unit.y;
+				point.z = reserve_z;
 			}
 			point.x += area_unit.x;
+			point.y = reserve_y;
 		}
 
 		return order_list;

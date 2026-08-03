@@ -538,6 +538,15 @@ std::string system_utility::convert_to_relative_path(std::string_view absolute_p
 	return system_utility::replace(relative_path.string(), "\\\\", "/");
 }
 
+void system_utility::fit_string_to_null_terminated(std::string& str)
+{
+	const auto pos = str.find('\0');
+	if (pos != std::string::npos)
+	{
+		str.resize(pos);
+	}
+};
+
 std::string	system_utility::replace(std::string_view text, std::string_view target_text, std::string_view replace_text)
 {
 	return	std::regex_replace(text.data(), std::regex(target_text.data()), replace_text.data());

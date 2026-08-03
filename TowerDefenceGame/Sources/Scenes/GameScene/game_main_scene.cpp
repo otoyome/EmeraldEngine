@@ -10,13 +10,20 @@ game_main_scene::game_main_scene()
 	std::shared_ptr<camera_object> main_camera;
 	{
 		main_camera = std::make_shared<camera_object>("メインカメラ");
+		main_camera->set_position({0, 10, 40});
 		register_object(main_camera);
 	}
 
 	//	主人公モデル生成
 	{
-		//	モデルオブジェクト生成
 		auto model = std::make_shared<model_object>("プレイヤー", "Assets/Resources/Models/Kuroko/Kuroko.emo");
+		size_t ik_behavior_index = model->search_ik_behavior_index("FootIK");
+		if (ik_behavior_index != ik_resource::invalid_id)
+		{
+			model_object::ik_data ik_data = model->get_ik_behavior_datas()[ik_behavior_index];
+			ik_data.visible = true;
+			model->set_ik_behavior_datas(ik_behavior_index, ik_data);
+		}
 
 		register_object(model);
 	}

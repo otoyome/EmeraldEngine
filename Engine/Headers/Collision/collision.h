@@ -107,4 +107,6 @@ namespace collision
 	};
 	bool ray_cast(const DirectX::XMFLOAT3& start, const DirectX::XMFLOAT3& end, const triangles& triangles, intersect_data* result);
 	bool ray_cast(const DirectX::XMVECTOR& start, const DirectX::XMVECTOR& end, const triangles& triangles, intersect_data* result);
+	bool ray_cast_16(const DirectX::XMVECTOR& start, const DirectX::XMVECTOR& end, const triangles& triangles, intersect_data* result);
+	bool ray_cast_32(const DirectX::XMVECTOR& start, const DirectX::XMVECTOR& end, const triangles& triangles, intersect_data* result);
 }	//	namespace collision

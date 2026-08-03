@@ -3,6 +3,7 @@
 #include "custom_pipeline_state.h"
 
 #include "scenes/editscene/edit_model_scene.h"
+#include "scenes/gamescene/game_main_scene.h"
 
 load_shader_scene::load_shader_scene()
 : scene_base()
@@ -1036,7 +1037,8 @@ bool load_shader_scene::uninitialize_core()
 void load_shader_scene::update_core(float elapsed_time)
 {
 #if defined(USE_IMGUI)
-	scene_manager::instance()->change_scene<edit_model_scene>();
+	//scene_manager::instance()->change_scene<edit_model_scene>();
+	scene_manager::instance()->change_scene<game_main_scene>();
 #endif	//	defined(USE_IMGUI)
 }
 

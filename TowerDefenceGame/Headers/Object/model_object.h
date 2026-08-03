@@ -20,8 +20,10 @@ public:
 	using call_back_root_animation_rotation = std::function<void(const DirectX::XMFLOAT4&)>;
 	struct ik_data
 	{
-		bool visible = true;
-		DirectX::XMFLOAT3 target_position;
+		bool visible = false;
+
+		//	aimIK—p
+		DirectX::XMFLOAT3 aim_target_position;
 	};
 
 public:
@@ -81,8 +83,11 @@ public:
 	void set_animation_loop(bool flag);
 
 public:
-	const std::vector<ik_data>& get_ik_datas() const { return ik_datas; }
-	bool set_ik_datas(std::string_view ik_data_name, const ik_data& data);
+	size_t search_ik_behavior_index(std::string_view name) const;
+
+	const std::vector<ik_data>& get_ik_behavior_datas() const { return ik_datas; }
+	bool set_ik_behavior_datas(std::string_view name, const ik_data& data);
+	bool set_ik_behavior_datas(size_t index, const ik_data& data);
 
 private:
 	void on_active() override;

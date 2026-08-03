@@ -148,40 +148,132 @@ bool bounding_object::intersection(const bounding_object* object, intersect_data
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//	もう少し早くするなら
+//	・軸毎のレイキャスト
+//	　例えばY軸専用にすると、内積回数が減るので早いよ
+//	・静的メッシュ
+//	　動かないオブジェクト専用であれば、事前に法線計算などを行えるので早い。
+//	　※モデルに記録されている法線情報は編集されている可能性があるので使えないです。
 bool collision::ray_cast(const DirectX::XMFLOAT3& start, const DirectX::XMFLOAT3& end, const triangles& triangles, intersect_data* result)
 {
 	DirectX::XMVECTOR Start	= DirectX::XMLoadFloat3(&start);
 	DirectX::XMVECTOR End = DirectX::XMLoadFloat3(&end);
-	return ray_cast(Start, End, triangles, result);
+	if (triangles.indices_stride_16)
+		return ray_cast_16(Start, End, triangles, result);
+
+	return ray_cast_32(Start, End, triangles, result);
 }
 
 bool collision::ray_cast(const DirectX::XMVECTOR& Start, const DirectX::XMVECTOR& End, const triangles& triangles, intersect_data* result)
+{
+	if (triangles.indices_stride_16)
+		return ray_cast_16(Start, End, triangles, result);
+
+	return ray_cast_32(Start, End, triangles, result);
+}
+
+bool collision::ray_cast_16(const DirectX::XMVECTOR& Start, const DirectX::XMVECTOR& End, const triangles& triangles, intersect_data* result)
 {
 	DirectX::XMVECTOR Vec = DirectX::XMVectorSubtract(End, Start);
 	DirectX::XMVECTOR Dir = DirectX::XMVector3Normalize(Vec);
 	DirectX::XMVECTOR Length = DirectX::XMVector3Length(Vec);
 
 	float neart = DirectX::XMVectorGetX(Length);
-	const USHORT* indices_16 = reinterpret_cast<const USHORT*>(triangles.indices);
-	const UINT* indices_32 = reinterpret_cast<const UINT*>(triangles.indices);
+	const USHORT* indices = reinterpret_cast<const USHORT*>(triangles.indices);
+	const size_t offsets[] =
+	{
+		triangles.reverse_index ? 0u : 2u,
+		1u,
+		triangles.reverse_index ? 2u : 0u,
+	};
 
 	bool hit = false;
 	DirectX::XMVECTOR HitPosition, HitNormal;
 	for (size_t index = triangles.index_start; index < triangles.index_count; index += 3)
 	{
-		UINT ai, bi, ci;
-		if (triangles.indices_stride_16)
-		{
-			ai = indices_16[index + (triangles.reverse_index ? 0 : 2)];
-			bi = indices_16[index + (triangles.reverse_index ? 1 : 1)];
-			ci = indices_16[index + (triangles.reverse_index ? 2 : 0)];
-		}
-		else
-		{
-			ai = indices_32[index + (triangles.reverse_index ? 0 : 2)];
-			bi = indices_32[index + (triangles.reverse_index ? 1 : 1)];
-			ci = indices_32[index + (triangles.reverse_index ? 2 : 0)];
-		}
+		USHORT ai = indices[index + offsets[0]];
+		USHORT bi = indices[index + offsets[1]];
+		USHORT ci = indices[index + offsets[2]];
+
+		DirectX::XMVECTOR A = DirectX::XMLoadFloat3(triangles.positions + ai);
+		DirectX::XMVECTOR B = DirectX::XMLoadFloat3(triangles.positions + bi);
+		DirectX::XMVECTOR C = DirectX::XMLoadFloat3(triangles.positions + ci);
+
+		DirectX::XMVECTOR AB = DirectX::XMVectorSubtract(B, A);
+		DirectX::XMVECTOR BC = DirectX::XMVectorSubtract(C, B);
+		DirectX::XMVECTOR CA = DirectX::XMVectorSubtract(A, C);
+
+		DirectX::XMVECTOR Normal = DirectX::XMVector3Cross(AB, BC);
+		DirectX::XMVECTOR Dot = DirectX::XMVector3Dot(Normal, Dir);
+		if (DirectX::XMVectorGetX(Dot) >= 0)
+			continue;
+
+		DirectX::XMVECTOR V = DirectX::XMVectorSubtract(A, Start);
+		DirectX::XMVECTOR T = DirectX::XMVectorDivide( DirectX::XMVector3Dot(Normal, V), Dot);
+
+		float t = DirectX::XMVectorGetX(T);
+		if (t < 0 || t > neart)
+			continue;
+
+		DirectX::XMVECTOR Position = DirectX::XMVectorAdd(DirectX::XMVectorMultiply(Dir, T), Start);
+
+		DirectX::XMVECTOR Cross;
+		V = DirectX::XMVectorSubtract(A, Position);
+		Cross = DirectX::XMVector3Cross(V, AB);
+		Dot = DirectX::XMVector3Dot(Cross, Normal);
+		if (DirectX::XMVectorGetX(Dot) < 0)
+			continue;
+
+		V = DirectX::XMVectorSubtract(B, Position);
+		Cross = DirectX::XMVector3Cross(V, BC);
+		Dot = DirectX::XMVector3Dot(Cross, Normal);
+		if (DirectX::XMVectorGetX(Dot) < 0)
+			continue;
+
+		V = DirectX::XMVectorSubtract(C, Position);
+		Cross = DirectX::XMVector3Cross(V, CA);
+		Dot = DirectX::XMVector3Dot(Cross, Normal);
+		if (DirectX::XMVectorGetX(Dot) < 0)
+			continue;
+
+		neart = t;
+		HitPosition = Position;
+		HitNormal = Normal;
+		hit = true;
+	}
+	if (hit && result)
+	{
+		intersect_data::infomation infomation;
+		DirectX::XMStoreFloat3(&infomation.point, HitPosition);
+		DirectX::XMStoreFloat3(&infomation.normal, HitNormal);
+		infomation.length = neart;
+		result->add(infomation);
+	}
+	return	hit;
+}
+
+bool collision::ray_cast_32(const DirectX::XMVECTOR& Start, const DirectX::XMVECTOR& End, const triangles& triangles, intersect_data* result)
+{
+	DirectX::XMVECTOR Vec = DirectX::XMVectorSubtract(End, Start);
+	DirectX::XMVECTOR Dir = DirectX::XMVector3Normalize(Vec);
+	DirectX::XMVECTOR Length = DirectX::XMVector3Length(Vec);
+
+	float neart = DirectX::XMVectorGetX(Length);
+	const UINT* indices = reinterpret_cast<const UINT*>(triangles.indices);
+	const UINT offsets[] =
+	{
+		triangles.reverse_index ? 2u : 0u,
+		1u,
+		triangles.reverse_index ? 0u : 2u,
+	};
+
+	bool hit = false;
+	DirectX::XMVECTOR HitPosition, HitNormal;
+	for (size_t index = triangles.index_start; index < triangles.index_count; index += 3)
+	{
+		UINT ai = indices[index + offsets[0]];
+		UINT bi = indices[index + offsets[1]];
+		UINT ci = indices[index + offsets[2]];
 
 		DirectX::XMVECTOR A = DirectX::XMLoadFloat3(triangles.positions + ai);
 		DirectX::XMVECTOR B = DirectX::XMLoadFloat3(triangles.positions + bi);

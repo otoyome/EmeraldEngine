@@ -131,6 +131,9 @@ namespace	system_utility
 		return	std::string(&vBuf[0], &vBuf[0] + sLength);
 	}
 
+	//	std::string用の終端文字でフィットさせる関数
+	void fit_string_to_null_terminated(std::string& str);
+
 	//	文字列変換
 	std::string	replace(std::string_view text, std::string_view target_text, std::string_view replace_text);
 
