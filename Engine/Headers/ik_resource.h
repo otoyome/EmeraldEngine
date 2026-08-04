@@ -137,8 +137,8 @@ public:
 #endif	//	defined(USE_IMGUI)
 
 public:
-	ik_resource() {}
-	~ik_resource() {}
+	ik_resource();
+	~ik_resource();
 
 	std::size_t search_index_by_name(std::string_view data_name);
 

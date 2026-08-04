@@ -100,6 +100,7 @@ namespace collision
 	{
 		const DirectX::XMFLOAT3* positions = nullptr;
 		const unsigned int* indices = nullptr;
+		const DirectX::XMFLOAT3* polygon_normal = nullptr;
 		size_t index_start = 0;
 		size_t index_count = 0;
 		bool reverse_index = false;

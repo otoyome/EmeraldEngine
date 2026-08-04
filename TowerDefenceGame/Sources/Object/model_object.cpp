@@ -8,12 +8,11 @@ model_instance_ptr model_object::get_model_instance()
 
 ik_resource_ptr model_object::get_ik_resource()
 {
-	return ik_resource;
+	return ik_solver->get_resource();
 }
 
 void model_object::set_ik_resource(ik_resource_ptr ik_resource)
 {
-	this->ik_resource = ik_resource;
 	ik_solver = std::make_shared<::ik_solver>(model_instance, ik_resource);
 
 	ik_datas.clear();
@@ -159,7 +158,7 @@ void model_object::fixed_update(float elapsed_time)
 		update_transform();
 
 		auto& model_instance_nodes = model_instance->get_nodes();
-		auto& behavior_data_list = ik_resource->get_behavior_data_list();
+		auto& behavior_data_list = ik_solver->get_behavior_data_list();
 		auto WorldMatrix = DirectX::XMLoadFloat4x4(&model_instance->get_world_transform());
 
 		if (ik_datas.size() != behavior_data_list.size())
@@ -186,8 +185,8 @@ void model_object::fixed_update(float elapsed_time)
 
 					auto& left_solve_data = ik_solver->get_solve_data()[behavior_data.solve_ids[0]];
 					auto& right_solve_data = ik_solver->get_solve_data()[behavior_data.solve_ids[1]];
-					auto& left_node_data = ik_resource->get_node_list()[left_solve_data.target_node_index];
-					auto& right_node_data = ik_resource->get_node_list()[right_solve_data.target_node_index];
+					auto& left_node_data = ik_solver->get_resource()->get_node_list()[left_solve_data.target_node_index];
+					auto& right_node_data = ik_solver->get_resource()->get_node_list()[right_solve_data.target_node_index];
 					auto& left_node = model_instance_nodes[model_instance->get_node_index_by_name(left_node_data.source_node_name)];
 					auto& right_node = model_instance_nodes[model_instance->get_node_index_by_name(right_node_data.source_node_name)];
 					auto& foot_data = std::get<ik_resource::foot_data>(behavior_data.data);
@@ -239,7 +238,7 @@ void model_object::fixed_update(float elapsed_time)
 						auto PelvisOffset = DirectX::XMVectorSet(0, -length, 0, 0);
 						for (auto& node_index : foot_data.adjust_node_indices)
 						{
-							auto& pelvis_node_data = ik_resource->get_node_list()[node_index];
+							auto& pelvis_node_data = ik_solver->get_resource()->get_node_list()[node_index];
 							auto& pelvis_node = model_instance_nodes[model_instance->get_node_index_by_name(pelvis_node_data.source_node_name)];
 
 							DirectX::XMMATRIX ParentPelvisWorldMatrix = WorldMatrix;
@@ -449,7 +448,7 @@ void model_object::set_animation_loop(bool flag)
 bool model_object::set_ik_behavior_datas(std::string_view name, const ik_data& data)
 {
 	std::string data_name = std::string(name);
-	auto& data_list = ik_resource->get_behavior_data_list();
+	auto& data_list = ik_solver->get_behavior_data_list();
 	auto it = std::find_if(data_list.begin(),
 						   data_list.end(),
 						   [data_name](const ik_resource::behavior_data& r) {return data_name == r.name;});
@@ -468,7 +467,7 @@ bool model_object::set_ik_behavior_datas(size_t index, const ik_data& data)
 size_t model_object::search_ik_behavior_index(std::string_view name) const
 {
 	std::string data_name = std::string(name);
-	auto& data_list = ik_resource->get_behavior_data_list();
+	auto& data_list = ik_solver->get_behavior_data_list();
 	auto it = std::find_if(data_list.begin(),
 						   data_list.end(),
 						   [data_name](const ik_resource::behavior_data& r) {return data_name == r.name;});
@@ -780,10 +779,10 @@ void model_object::imgui_render_core()
 	if (ImGui::TreeNode("ik list"))
 	{
 		UINT ik_node_index = 0;
-		auto& datas = ik_resource->get_behavior_data_list();
+		auto& datas = ik_solver->get_resource()->get_behavior_data_list();
 		for (auto& ik_data : ik_datas)
 		{
-			if (!ImGui::TreeNode(system_utility::convert_utf8(ik_resource->get_behavior_data_list()[ik_node_index++].name).data()))
+			if (!ImGui::TreeNode(system_utility::convert_utf8(ik_solver->get_resource()->get_behavior_data_list()[ik_node_index++].name).data()))
 				continue;
 
 			ImGui::Checkbox("visible", &ik_data.visible);

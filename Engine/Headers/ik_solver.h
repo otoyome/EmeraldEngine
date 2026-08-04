@@ -8,6 +8,7 @@ class ik_solver
 	using axis = ik_resource::axis;
 	using constraint_mode = ik_resource::constraint_mode;
 	using solve_mode = ik_resource::solve_mode;
+	using behavior_data = ik_resource::behavior_data;
 
 	enum class constraint_plane_lock
 	{
@@ -50,11 +51,15 @@ public:
 	};
 
 public:
-	const std::vector<solve_data>& get_solve_data() const { return solve_datas; }
+	const ik_resource_ptr get_resource() const;
+	const std::vector<behavior_data>& get_behavior_data_list() const;
+
+	const std::vector<solve_data>& get_solve_data() const;
 	size_t search_index_by_name(std::string_view data_name);
 
 public:
 	ik_solver(model_instance_ptr instance, ik_resource_ptr resource);
+	~ik_solver();
 
 	void solve(size_t index, DirectX::XMFLOAT3 ik_target_position);
 	void solves(std::vector<DirectX::XMFLOAT3> ik_target_positions);

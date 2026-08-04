@@ -57,8 +57,8 @@ bool stage_00_scene::initialize_core()
 		register_object(sky_light);
 	}
 
-	//	モデル
-	//	モデル関係は当たり判定の事もあるので原点ベースで作成しておく
+	//	ステージ
+	//	動かさない事前提
 	{
 		auto file_path = "Assets/Resources/Models/人里ver0.77/人里.emo";
 		UINT separate_level = 6;
@@ -122,7 +122,12 @@ void stage_00_scene::generate_model_collision(model_resource_ptr resource, Direc
 		if (!(std::filesystem::exists(collision_mesh_path) &&
 			mesh->deserialize(collision_mesh_path.string())))
 		{
-			collision::generate_bounding_mesh(*mesh, resource, mesh_index, transform, true, separate_level);
+			//	存在しない場合は生成
+			collision::generate_bounding_mesh_data data;
+			data.WorldMatrix = transform;
+			data.reverse_flag = true;
+			data.separate_level = separate_level;
+			collision::generate_bounding_mesh(*mesh, resource, mesh_index, data);
 			mesh->serialize(collision_mesh_path.string());
 		}
 		collision_object_ptr collision = std::make_shared<collision_object>();

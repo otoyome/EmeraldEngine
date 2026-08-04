@@ -10,11 +10,18 @@ namespace collision
 	class bounding_mesh : public bounding_object
 	{
 	public:
+		struct triangle
+		{
+			UINT a, b, c;
+			DirectX::XMFLOAT3 n;
+			template<class Archive>
+			void serialize(Archive& archive, int version);
+		};
+
 		struct block_data
 		{
 			DirectX::XMFLOAT3 center;
-			DirectX::XMFLOAT3 local_scale;
-			std::vector<UINT> indices;
+			std::vector<size_t> triangles;
 
 			inner::axis_aligned_bounding_box bounds;
 			template<class Archive>
@@ -28,13 +35,14 @@ namespace collision
 		void set_local_scale(const DirectX::XMFLOAT3& scale) override;
 
 		const std::vector<DirectX::XMFLOAT3>& get_positions() const {return positions;}
-		const std::vector<UINT>& get_indices() const {return indices;}
+		const std::vector<triangle>& get_triangles() const {return triangles;}
 		const std::vector<block_data>& get_block_datas() const {return block_datas;}
+		const DirectX::XMFLOAT3& get_area_unit() const {return area_unit;}
 		const DirectX::XMUINT3& get_separate_count() const {return separate_count;}
 
 	public:
 		bounding_mesh();
-		bounding_mesh(std::vector<DirectX::XMFLOAT3>& positions, std::vector<UINT>& indices, UINT separate_level = 4);
+		bounding_mesh(std::vector<DirectX::XMFLOAT3>& positions, std::vector<triangle>& triangles, UINT separate_level = 4);
 		~bounding_mesh() override;
 
 		bool serialize(std::string_view file_path);
@@ -51,18 +59,19 @@ namespace collision
 		void include_corner(DirectX::XMFLOAT3& min, DirectX::XMFLOAT3& max) const override;
 
 	private:
-		bool intersect_point_inner(const DirectX::XMFLOAT3& point, float& nearlest, const std::vector<UINT>& indices) const;
-		bool intersect_sphere_inner(const DirectX::XMFLOAT3& point, float radius, const std::vector<UINT>& indices, intersect_data* intersect = nullptr) const;
-		bool intersect_capsule_inner(const bounding_capsule& capsule, const std::vector<UINT>& indices, intersect_data* intersect = nullptr) const;
+		bool intersect_point_inner(const DirectX::XMFLOAT3& point, float& nearlest, const std::vector<size_t>& triangle_indices) const;
+		bool intersect_segment_inner(const DirectX::XMFLOAT3& start, const DirectX::XMFLOAT3& end, const std::vector<size_t>& triangle_indices, intersect_data* intersect = nullptr) const;
+		bool intersect_sphere_inner(const DirectX::XMFLOAT3& point, float radius, const std::vector<size_t>& triangle_indices, intersect_data* intersect = nullptr) const;
+		bool intersect_capsule_inner(const bounding_capsule& capsule, const std::vector<size_t>& triangle_indices, intersect_data* intersect = nullptr) const;
 
 	private:
 		bool calculate_nearlest_point(const DirectX::XMVECTOR& P, const DirectX::XMVECTOR& A, const DirectX::XMVECTOR& B, const DirectX::XMVECTOR& C, DirectX::XMVECTOR& NearlestPoint) const;
 		bool intersect_ray(const DirectX::XMVECTOR& Start, const DirectX::XMVECTOR& Direction, const DirectX::XMVECTOR& A, const DirectX::XMVECTOR& B, const DirectX::XMVECTOR& C, const DirectX::XMVECTOR& Normal, DirectX::XMVECTOR& InsertPoint, float& distance) const;
-		float calculate_segment_distance(const collision::line& line, const DirectX::XMFLOAT3& a, const DirectX::XMFLOAT3& b, const DirectX::XMFLOAT3& c, DirectX::XMFLOAT3& nearlest_point_segment, DirectX::XMFLOAT3& nearlest_point_triangle, bool& nearlest_point_edghFlg) const;
+		float calculate_segment_distance(const collision::line& line, const DirectX::XMFLOAT3& a, const DirectX::XMFLOAT3& b, const DirectX::XMFLOAT3& c, const DirectX::XMFLOAT3& n, DirectX::XMFLOAT3& nearlest_point_segment, DirectX::XMFLOAT3& nearlest_point_triangle, bool& nearlest_point_edghFlg) const;
 
 	private:
 		std::vector<DirectX::XMFLOAT3> positions;
-		std::vector<UINT> indices;
+		std::vector<triangle> triangles;
 
 		DirectX::XMFLOAT3 area_min;
 		DirectX::XMFLOAT3 area_max;
@@ -72,5 +81,11 @@ namespace collision
 		std::vector<block_data> block_datas;
 	};
 
-	bool generate_bounding_mesh(bounding_mesh& out_mesh, model_resource_ptr resource, size_t index, DirectX::XMMATRIX WorldMatrix, bool reverse_flag = true, UINT separate_level = 4);
+	struct generate_bounding_mesh_data
+	{
+		DirectX::XMMATRIX WorldMatrix;	// ワールド行列
+		bool reverse_flag = true;		// ポリゴン反転処理フラグ
+		UINT separate_level = 4;		// 空間分割数
+	};
+	bool generate_bounding_mesh(bounding_mesh& out_mesh, model_resource_ptr resource, size_t index, generate_bounding_mesh_data data);
 }	//	namespace collision

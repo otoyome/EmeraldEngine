@@ -360,19 +360,24 @@ void collision_object::debug_draw()
 			INT draw_mesh_collision_index = draw_mesh_collision_x_index +
 				draw_mesh_collision_y_index * object->get_separate_count().x +
 				draw_mesh_collision_z_index * object->get_separate_count().x * object->get_separate_count().y;
+			DirectX::XMFLOAT3 extent = object->get_area_unit();
+			extent.x *= 0.5f;
+			extent.y *= 0.5f;
+			extent.z *= 0.5f;
 			for (UINT index = 0; index < object->get_block_datas().size(); ++index)
 			{
 				auto& block = object->get_block_datas()[index];
 
 				DirectX::XMFLOAT4 draw_color = index == draw_mesh_collision_index ? draw_hit_color : draw_normal_color;
-				PUSH_DEBUG_PRIMITIVE_BOX(block.local_scale, rotation, block.center, draw_color, true);
-				const UINT* indices = block.indices.data();
-				std::size_t size = block.indices.size();
-				for (UINT index = 0;index < size; index += 3)
+				PUSH_DEBUG_PRIMITIVE_BOX(extent, rotation, block.center, draw_color, true);
+				auto ti = block.triangles.data();
+				auto t = object->get_triangles().data();
+				for (UINT index = 0;index < block.triangles.size(); ++index)
 				{
-					auto a = *(positions + *(indices + index + 0));
-					auto b = *(positions + *(indices + index + 1));
-					auto c = *(positions + *(indices + index + 2));
+					auto triangle = t + ti[index];
+					auto a = *(positions + triangle->a);
+					auto b = *(positions + triangle->b);
+					auto c = *(positions + triangle->c);
 					PUSH_DEBUG_PRIMITIVE_LINE(a, b, draw_color, true);
 					PUSH_DEBUG_PRIMITIVE_LINE(c, b, draw_color, true);
 					PUSH_DEBUG_PRIMITIVE_LINE(a, c, draw_color, true);

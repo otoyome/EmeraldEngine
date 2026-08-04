@@ -139,6 +139,14 @@ void ik_resource::behavior_data::serialize(Archive& archive, int version)
 			CEREAL_NVP(data));
 }
 
+ik_resource::ik_resource()
+{
+}
+
+ik_resource::~ik_resource()
+{
+}
+
 std::size_t ik_resource::search_index_by_name(std::string_view data_name)
 {
 	std::string name = std::string(data_name);

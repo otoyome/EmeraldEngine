@@ -200,6 +200,25 @@ ik_solver::ik_solver(model_instance_ptr instance, ik_resource_ptr resource)
 	build();
 }
 
+ik_solver::~ik_solver()
+{
+}
+
+const ik_resource_ptr ik_solver::get_resource() const
+{
+	return resource;
+}
+
+const std::vector<ik_solver::behavior_data>& ik_solver::get_behavior_data_list() const
+{
+	return resource->get_behavior_data_list();
+}
+
+const std::vector<ik_solver::solve_data>& ik_solver::get_solve_data() const
+{
+	return solve_datas;
+}
+
 size_t ik_solver::search_index_by_name(std::string_view data_name)
 {
 	return resource->search_index_by_name(data_name);

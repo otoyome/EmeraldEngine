@@ -117,7 +117,6 @@ private:
 	std::vector<model_instance::node_animation> previous_node_animations;
 
 	//	IKî•ñ
-	ik_resource_ptr ik_resource;
 	ik_solver_ptr ik_solver;
 	std::vector<ik_data> ik_datas;
 
