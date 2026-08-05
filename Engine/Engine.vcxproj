@@ -76,13 +76,21 @@
     <ClInclude Include="Headers\shader.h" />
     <ClInclude Include="Headers\sprite.h" />
     <ClInclude Include="Headers\stdafx_engine.h" />
+    <ClInclude Include="Headers\System\BehaviorTree\action_interface.h" />
+    <ClInclude Include="Headers\System\BehaviorTree\behavior_data.h" />
+    <ClInclude Include="Headers\System\BehaviorTree\judgment_interface.h" />
+    <ClInclude Include="Headers\System\BehaviorTree\node_base.h" />
+    <ClInclude Include="Headers\System\BehaviorTree\select_rule.h" />
+    <ClInclude Include="Headers\System\behavior_tree.h" />
     <ClInclude Include="Headers\System\cpu_timer.h" />
     <ClInclude Include="Headers\System\engine_config_data.h" />
     <ClInclude Include="Headers\System\enum_class_attribute.h" />
+    <ClInclude Include="Headers\System\finite_state_machine.h" />
     <ClInclude Include="Headers\System\high_resolution_timer.h" />
     <ClInclude Include="Headers\System\logger.h" />
     <ClInclude Include="Headers\System\math_utility.h" />
     <ClInclude Include="Headers\System\misc.h" />
+    <ClInclude Include="Headers\System\simple_helper.h" />
     <ClInclude Include="Headers\System\singleton.h" />
     <ClInclude Include="Headers\System\system_units.h" />
     <ClInclude Include="Headers\System\system_utility.h" />
@@ -139,10 +147,15 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="Sources\System\BehaviorTree\behavior_data.cpp" />
+    <ClCompile Include="Sources\System\BehaviorTree\node_base.cpp" />
+    <ClCompile Include="Sources\System\behavior_tree.cpp" />
     <ClCompile Include="Sources\System\cpu_timer.cpp" />
     <ClCompile Include="Sources\System\engine_config_data.cpp" />
+    <ClCompile Include="Sources\System\finite_state_machine.cpp" />
     <ClCompile Include="Sources\System\logger.cpp" />
     <ClCompile Include="Sources\System\math_utility.cpp" />
+    <ClCompile Include="Sources\System\simple_helper.cpp" />
     <ClCompile Include="Sources\System\system_units.cpp" />
     <ClCompile Include="Sources\System\system_utility.cpp" />
     <ClCompile Include="Sources\texture.cpp" />

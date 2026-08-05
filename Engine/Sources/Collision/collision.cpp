@@ -148,12 +148,6 @@ bool bounding_object::intersection(const bounding_object* object, intersect_data
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//	もう少し早くするなら
-//	・軸毎のレイキャスト
-//	　例えばY軸専用にすると、計算回数が減るので早いよ
-//	・静的メッシュ
-//	　動かないオブジェクト専用であれば、事前に法線計算などを行えるので早い。
-//	　※モデルに記録されている法線情報は編集されている可能性があるので使えないです。
 bool collision::ray_cast(const DirectX::XMFLOAT3& start, const DirectX::XMFLOAT3& end, const triangles& triangles, intersect_data* result)
 {
 	DirectX::XMVECTOR Start	= DirectX::XMLoadFloat3(&start);

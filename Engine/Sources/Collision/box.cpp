@@ -131,9 +131,10 @@ bool inner::axis_aligned_bounding_box::intersect_sphere(const DirectX::XMFLOAT3&
 	DirectX::XMVECTOR Point = DirectX::XMLoadFloat3(&point);
 	DirectX::XMVECTOR ClosestPoint = DirectX::XMLoadFloat3(&closest_point);
 	DirectX::XMVECTOR VectorC_P = DirectX::XMVectorSubtract(ClosestPoint, Point);
-	float length = DirectX::XMVectorGetX(DirectX::XMVector3Length(VectorC_P));
-	if (length < radius)
+	float length_sq = DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(VectorC_P));
+	if (length_sq < radius * radius)
 	{
+		float length = sqrtf(length_sq);
 		if (intersect)
 		{
 			DirectX::XMVECTOR Radius = DirectX::XMVectorSet(radius, radius, radius, radius);
@@ -432,9 +433,21 @@ bool inner::axis_aligned_bounding_box::intersect_box(const bounding_box& box, in
 
 bool inner::axis_aligned_bounding_box::intersect_box(const axis_aligned_bounding_box& box) const
 {
-	DirectX::BoundingBox self_aabb = DirectX::BoundingBox(get_position(), get_local_scale());
-	DirectX::BoundingBox box_aabb = DirectX::BoundingBox(box.get_position(), box.get_local_scale());
-	return self_aabb.Intersects(box_aabb);
+	DirectX::XMVECTOR CenterA = DirectX::XMLoadFloat3(&get_position());
+	DirectX::XMVECTOR ExtentsA = DirectX::XMLoadFloat3(&get_local_scale());
+
+	DirectX::XMVECTOR CenterB = DirectX::XMLoadFloat3(&box.get_position());
+	DirectX::XMVECTOR ExtentsB = DirectX::XMLoadFloat3(&box.get_local_scale());
+
+	DirectX::XMVECTOR MinA = DirectX::XMVectorSubtract(CenterA, ExtentsA);
+	DirectX::XMVECTOR MaxA = DirectX::XMVectorAdd(CenterA, ExtentsA);
+
+	DirectX::XMVECTOR MinB = DirectX::XMVectorSubtract(CenterB, ExtentsB);
+	DirectX::XMVECTOR MaxB = DirectX::XMVectorAdd(CenterB, ExtentsB);
+
+	DirectX::XMVECTOR Disjoint = DirectX::XMVectorOrInt(DirectX::XMVectorGreater(MinA, MaxB),
+														DirectX::XMVectorGreater(MinB, MaxA));
+	return !DirectX::Internal::XMVector3AnyTrue(Disjoint);
 }
 
 bool inner::axis_aligned_bounding_box::intersect_mesh(const bounding_mesh& mesh, intersect_data* intersect) const

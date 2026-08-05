@@ -37,6 +37,12 @@
     <Filter Include="Sources\System">
       <UniqueIdentifier>{e9ad7f50-3ef2-4dce-a355-5b19730d07e5}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Sources\System\BehaviorTree">
+      <UniqueIdentifier>{0b2fe897-678e-4b66-9782-633f45365d3b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Headers\System\BehaviorTree">
+      <UniqueIdentifier>{16213654-ea52-427f-b93d-0078ad90f3b5}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Headers\geometric_primitive.h">
@@ -222,6 +228,30 @@
     <ClInclude Include="Headers\ik_resource.h">
       <Filter>Headers</Filter>
     </ClInclude>
+    <ClInclude Include="Headers\System\behavior_tree.h">
+      <Filter>Headers\System</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\System\finite_state_machine.h">
+      <Filter>Headers\System</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\System\BehaviorTree\action_interface.h">
+      <Filter>Headers\System\BehaviorTree</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\System\BehaviorTree\behavior_data.h">
+      <Filter>Headers\System\BehaviorTree</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\System\BehaviorTree\judgment_interface.h">
+      <Filter>Headers\System\BehaviorTree</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\System\BehaviorTree\node_base.h">
+      <Filter>Headers\System\BehaviorTree</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\System\BehaviorTree\select_rule.h">
+      <Filter>Headers\System\BehaviorTree</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\System\simple_helper.h">
+      <Filter>Headers\System</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Sources\geometric_primitive.cpp">
@@ -379,6 +409,21 @@
     </ClCompile>
     <ClCompile Include="Sources\ik_solver.cpp">
       <Filter>Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\System\finite_state_machine.cpp">
+      <Filter>Sources\System</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\System\behavior_tree.cpp">
+      <Filter>Sources\System</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\System\BehaviorTree\behavior_data.cpp">
+      <Filter>Sources\System\BehaviorTree</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\System\BehaviorTree\node_base.cpp">
+      <Filter>Sources\System\BehaviorTree</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\System\simple_helper.cpp">
+      <Filter>Sources\System</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

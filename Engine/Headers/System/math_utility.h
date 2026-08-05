@@ -226,41 +226,6 @@ namespace math
 		float y;
 		float z;
 	};
-
-	//	簡易的なフェード係数計算用構造体
-	namespace compute_fade
-	{
-		struct time_pair
-		{
-			float start;
-			float end;
-			math::ease::type ease_type = math::ease::type::lerp;
-		};
-
-		struct out_calculator
-		{
-			time_pair fade_out;
-			out_calculator(time_pair fade_out);
-			float compute(float time);
-		};
-
-		struct in_calculator
-		{
-			time_pair fade_in;
-			in_calculator(time_pair fade_in);
-			float compute(float time);
-		};
-
-		struct calculator
-		{
-			time_pair fade_in;
-			time_pair fade_out;
-			calculator(time_pair fade_out, time_pair fade_in);
-			float compute(float time, bool* end_flag);
-		};
-	}	//	namespace compute_fade
-
-
 }	//	namespace math
 
 

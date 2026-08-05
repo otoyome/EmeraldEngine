@@ -334,6 +334,14 @@ xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y</Command>
     <ClCompile Include="Sources\Object\Collision\collision_filter.cpp" />
     <ClCompile Include="Sources\Object\Collision\collision_world.cpp" />
     <ClCompile Include="Sources\Object\Collision\collision_object.cpp" />
+    <ClCompile Include="Sources\Object\GameObjects\Character\character_object.cpp" />
+    <ClCompile Include="Sources\Object\GameObjects\Character\character_object_resource.cpp" />
+    <ClCompile Include="Sources\Object\GameObjects\Character\character_object_state.cpp" />
+    <ClCompile Include="Sources\Object\GameObjects\Character\Person\kuroko_object.cpp" />
+    <ClCompile Include="Sources\Object\GameObjects\Character\Person\kuroko_object_resource_setup.cpp" />
+    <ClCompile Include="Sources\Object\GameObjects\Character\Player\player_camera_controller_object.cpp" />
+    <ClCompile Include="Sources\Object\GameObjects\Character\Player\player_camera_controller_object_animation_states.cpp" />
+    <ClCompile Include="Sources\Object\GameObjects\Character\Player\player_controller_object.cpp" />
     <ClCompile Include="Sources\Object\GameObjects\stage_object.cpp" />
     <ClCompile Include="Sources\Object\messenger.cpp" />
     <ClCompile Include="Sources\Object\model_object.cpp" />
@@ -402,6 +410,10 @@ xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y</Command>
     <ClInclude Include="Headers\Object\Collision\collision_filter.h" />
     <ClInclude Include="Headers\Object\Collision\collision_world.h" />
     <ClInclude Include="Headers\Object\Collision\collision_object.h" />
+    <ClInclude Include="Headers\Object\GameObjects\Character\character_object.h" />
+    <ClInclude Include="Headers\Object\GameObjects\Character\Person\kuroko_object.h" />
+    <ClInclude Include="Headers\Object\GameObjects\Character\Player\player_camera_controller_object.h" />
+    <ClInclude Include="Headers\Object\GameObjects\Character\Player\player_controller_object.h" />
     <ClInclude Include="Headers\Object\GameObjects\stage_object.h" />
     <ClInclude Include="Headers\Object\game_constant.h" />
     <ClInclude Include="Headers\Object\messenger.h" />

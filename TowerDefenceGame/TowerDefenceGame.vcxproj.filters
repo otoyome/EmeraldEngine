@@ -171,6 +171,24 @@
     <Filter Include="Sources\Object\GameObjects">
       <UniqueIdentifier>{1bf887b8-cc7e-4f33-b9b3-767bfef94ecb}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Sources\Object\GameObjects\Character">
+      <UniqueIdentifier>{eabd3e71-6217-4562-8589-f1b4f77735ff}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Headers\Object\GameObjects\Character">
+      <UniqueIdentifier>{cf63aead-bb39-4659-b06e-e019cd065cd0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Headers\Object\GameObjects\Character\Person">
+      <UniqueIdentifier>{7d872142-99bd-4053-9747-201102535e7e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Headers\Object\GameObjects\Character\Player">
+      <UniqueIdentifier>{850a7695-2489-4518-9cf2-a88fec47a393}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Sources\Object\GameObjects\Character\Player">
+      <UniqueIdentifier>{f77f04db-8040-400e-b08e-4cb47d159593}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Sources\Object\GameObjects\Character\Person">
+      <UniqueIdentifier>{6d657d7e-0f45-42ad-b1f8-77b959522c7a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\External\imgui\imgui.cpp">
@@ -343,6 +361,30 @@
     </ClCompile>
     <ClCompile Include="Sources\Object\GameObjects\stage_object.cpp">
       <Filter>Sources\Object\GameObjects</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Object\GameObjects\Character\character_object_resource.cpp">
+      <Filter>Sources\Object\GameObjects\Character</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Object\GameObjects\Character\character_object_state.cpp">
+      <Filter>Sources\Object\GameObjects\Character</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Object\GameObjects\Character\character_object.cpp">
+      <Filter>Sources\Object\GameObjects\Character</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Object\GameObjects\Character\Player\player_camera_controller_object.cpp">
+      <Filter>Sources\Object\GameObjects\Character\Player</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Object\GameObjects\Character\Player\player_camera_controller_object_animation_states.cpp">
+      <Filter>Sources\Object\GameObjects\Character\Player</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Object\GameObjects\Character\Player\player_controller_object.cpp">
+      <Filter>Sources\Object\GameObjects\Character\Player</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Object\GameObjects\Character\Person\kuroko_object_resource_setup.cpp">
+      <Filter>Sources\Object\GameObjects\Character\Person</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Object\GameObjects\Character\Person\kuroko_object.cpp">
+      <Filter>Sources\Object\GameObjects\Character\Person</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -528,6 +570,18 @@
     </ClInclude>
     <ClInclude Include="Headers\Object\GameObjects\stage_object.h">
       <Filter>Headers\Object\GameObjects</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Object\GameObjects\Character\Player\player_camera_controller_object.h">
+      <Filter>Headers\Object\GameObjects\Character\Player</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Object\GameObjects\Character\Player\player_controller_object.h">
+      <Filter>Headers\Object\GameObjects\Character\Player</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Object\GameObjects\Character\Person\kuroko_object.h">
+      <Filter>Headers\Object\GameObjects\Character\Person</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Object\GameObjects\Character\character_object.h">
+      <Filter>Headers\Object\GameObjects\Character</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

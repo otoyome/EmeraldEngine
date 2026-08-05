@@ -231,6 +231,7 @@ bool collision_world::unregister_object(collision_object_ptr object)
 
 bool collision_world::ray_cast(const ray_cast_descs& desc, collision::intersect_data& intersect_data, collision_object_ptr& out_collision)
 {
+	collision::intersect_data data;
 	for (auto& object : collision_objects)
 	{
 		if (!object->is_flag(collision_object::flags::active) ||
@@ -242,22 +243,17 @@ bool collision_world::ray_cast(const ray_cast_descs& desc, collision::intersect_
 			continue;
 
 		//	除外オブジェクトチェック
+		bool find = false;
+		for (auto& exclude_object : desc.exclude_objects)
 		{
-			bool find = false;
-			for (auto& exclude_object : desc.exclude_objects)
+			if (exclude_object == object)
 			{
-				if (exclude_object == object)
-				{
-					find = true;
-					break;
-				}
+				find = true;
+				break;
 			}
-			if (find)
-				continue;
 		}
 
-		collision::intersect_data data;
-		if (object->get_bounding_object()->intersect_segment(desc.start, desc.end, &data))
+		if (!find && object->get_bounding_object()->intersect_segment(desc.start, desc.end, &data))
 		{
 			if (intersect_data.size() == 0)
 			{
@@ -269,6 +265,7 @@ bool collision_world::ray_cast(const ray_cast_descs& desc, collision::intersect_
 				intersect_data = data;
 				out_collision = object;
 			}
+			data.clear();
 		}
 	}
 	return intersect_data.size() > 0;

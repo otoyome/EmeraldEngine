@@ -116,15 +116,15 @@ void mouse::update_state()
 				if (window_center_lock)
 				{
 					//	マウス座標を中心点に固定化
-					::SetCursorPos(screen_width / 2, screen_height / 2);
+					::SetCursorPos(rc.left + screen_width / 2, rc.top + screen_height / 2);
 					move_vector.x = cursor.x - screen_width / 2;
 					move_vector.y = cursor.y - screen_height / 2;
 				}
 
 				//	座標算出
 				::ScreenToClient(hwnd, &cursor);
-				new_position_state.position.x = static_cast<LONG>(cursor.x / static_cast<float>(viewport_size.x) * static_cast<float>(screen_width));
-				new_position_state.position.y = static_cast<LONG>(cursor.y / static_cast<float>(viewport_size.y) * static_cast<float>(screen_height));
+				new_position_state.position.x = rc.left + static_cast<LONG>(cursor.x / static_cast<float>(viewport_size.x) * static_cast<float>(screen_width));
+				new_position_state.position.y = rc.top + static_cast<LONG>(cursor.y / static_cast<float>(viewport_size.y) * static_cast<float>(screen_height));
 				if (!window_center_lock)
 				{
 					move_vector.x = new_position_state.position.x - position_state.position.x;

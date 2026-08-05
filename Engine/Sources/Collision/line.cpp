@@ -159,21 +159,22 @@ float line::calculate_line_distance(DirectX::XMFLOAT3& horizon1, float& delta1, 
 
 float line::calculate_segment_distamce(DirectX::XMFLOAT3& horizon1, float& delta1, DirectX::XMFLOAT3& horizon2, float& delta2, const line& line) const
 {
-	DirectX::XMVECTOR PointA[2] = {DirectX::XMLoadFloat3(&point[0]), DirectX::XMLoadFloat3(&point[1])};
-	DirectX::XMVECTOR PointB[2] = {DirectX::XMLoadFloat3(&line.point[0]), DirectX::XMLoadFloat3(&line.point[1])};
-	DirectX::XMVECTOR LineA2_A1 = DirectX::XMVectorSubtract(PointA[1], PointA[0]);
-	DirectX::XMVECTOR LineB2_B1 = DirectX::XMVectorSubtract(PointB[1], PointB[0]);
-	DirectX::XMVECTOR LineA1_B1 = DirectX::XMVectorSubtract(PointA[0], PointB[0]);
+	DirectX::XMVECTOR PointA0 = DirectX::XMLoadFloat3(&point[0]);
+	DirectX::XMVECTOR PointA1 = DirectX::XMLoadFloat3(&point[1]);
+	DirectX::XMVECTOR PointB0 = DirectX::XMLoadFloat3(&line.point[0]);
+	DirectX::XMVECTOR PointB1 = DirectX::XMLoadFloat3(&line.point[1]);
+	DirectX::XMVECTOR LineA2_A1 = DirectX::XMVectorSubtract(PointA1, PointA0);
+	DirectX::XMVECTOR LineB2_B1 = DirectX::XMVectorSubtract(PointB1, PointB0);
+	DirectX::XMVECTOR LineA1_B1 = DirectX::XMVectorSubtract(PointA0, PointB0);
 
 	float square_length1 = DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(LineA2_A1));
 	float square_length2 = DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(LineB2_B1));
-	float dotLB2B1_LA1B1 = DirectX::XMVectorGetX(DirectX::XMVector3Dot(LineB2_B1, LineA1_B1));
 
 	//	S1が縮退している？
-	if( square_length1 <= FLT_EPSILON )
+	if (square_length1 <= FLT_EPSILON)
 	{
 		//	S2も縮退？
-		if( square_length2 < FLT_EPSILON )
+		if (square_length2 < FLT_EPSILON)
 		{
 			//	点と点の距離の問題に帰着
 			delta1 = 0.0f;
@@ -187,6 +188,7 @@ float line::calculate_segment_distamce(DirectX::XMFLOAT3& horizon1, float& delta
 		else
 		{
 			//	S1の始点とS2の最短問題に帰着
+			float dotLB2B1_LA1B1 = DirectX::XMVectorGetX(DirectX::XMVector3Dot(LineB2_B1, LineA1_B1));
 			delta1 = 0.0f;
 			delta2 = math::saturate(dotLB2B1_LA1B1 / square_length2);
 		}
@@ -194,7 +196,7 @@ float line::calculate_segment_distamce(DirectX::XMFLOAT3& horizon1, float& delta
 	else
 	{
 		float dotLA2A1_LA1B1 = DirectX::XMVectorGetX(DirectX::XMVector3Dot(LineA2_A1, LineA1_B1));
-		if( square_length2 <= FLT_EPSILON )
+		if (square_length2 <= FLT_EPSILON)
 		{
 			//	S2が縮退している場合は
 			//	S2の始点とS1の最短問題に帰着
@@ -203,26 +205,27 @@ float line::calculate_segment_distamce(DirectX::XMFLOAT3& horizon1, float& delta
 		}
 		else
 		{
+			float dotLB2B1_LA1B1 = DirectX::XMVectorGetX(DirectX::XMVector3Dot(LineB2_B1, LineA1_B1));
 			float dotLA2A1_LB2B1 = DirectX::XMVectorGetX(DirectX::XMVector3Dot(LineA2_A1, LineB2_B1));
-			float deNormal = square_length1 * square_length2 - dotLA2A1_LB2B1 * dotLA2A1_LB2B1;
-			if( deNormal != 0.0f )
+			float de_normal = square_length1 * square_length2 - dotLA2A1_LB2B1 * dotLA2A1_LB2B1;
+			if (de_normal != 0.0f)
 			{
-				delta1 = math::saturate((dotLA2A1_LB2B1 * dotLB2B1_LA1B1 - dotLA2A1_LA1B1 * square_length2) / deNormal);
+				delta1 = math::saturate((dotLA2A1_LB2B1 * dotLB2B1_LA1B1 - dotLA2A1_LA1B1 * square_length2) / de_normal);
 			}
 			else
 			{
 				delta1 = 0.0f;
 			}
 
-			delta2 = ( dotLA2A1_LB2B1 * delta1 + dotLB2B1_LA1B1 ) / square_length2;
+			delta2 = (dotLA2A1_LB2B1 * delta1 + dotLB2B1_LA1B1) / square_length2;
 			
 			//	S2側が外の場合
-			if( delta2 < 0.0f )
+			if (delta2 < 0.0f)
 			{
 				delta2 = 0.0f;
 				delta1 = math::saturate(-dotLA2A1_LA1B1 / square_length1);
 			}
-			else	if( delta2 > 1.0f )
+			else if (delta2 > 1.0f)
 			{
 				delta2 = 1.0f;
 				delta1 = math::saturate((dotLA2A1_LB2B1 - dotLA2A1_LA1B1) / square_length1);
@@ -230,11 +233,10 @@ float line::calculate_segment_distamce(DirectX::XMFLOAT3& horizon1, float& delta
 		}
 	}
 
-	DirectX::XMVECTOR Horizon1 = DirectX::XMVectorMultiplyAdd(LineA2_A1, DirectX::XMVectorSet(delta1, delta1, delta1, delta1), PointA[0]);
-	DirectX::XMVECTOR Horizon2 = DirectX::XMVectorMultiplyAdd(LineB2_B1, DirectX::XMVectorSet(delta2, delta2, delta2, delta2), PointB[0]);
-	float length =  DirectX::XMVectorGetX(DirectX::XMVector3Length(DirectX::XMVectorSubtract(Horizon2, Horizon1)));
+	DirectX::XMVECTOR Horizon1 = DirectX::XMVectorMultiplyAdd(LineA2_A1, DirectX::XMVectorReplicate(delta1), PointA0);
+	DirectX::XMVECTOR Horizon2 = DirectX::XMVectorMultiplyAdd(LineB2_B1, DirectX::XMVectorReplicate(delta2), PointB0);
 	DirectX::XMStoreFloat3(&horizon1, Horizon1);
 	DirectX::XMStoreFloat3(&horizon2, Horizon2);
-	return length;
+	return DirectX::XMVectorGetX(DirectX::XMVector3Length(DirectX::XMVectorSubtract(Horizon2, Horizon1)));
 }
 

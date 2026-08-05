@@ -12,8 +12,12 @@ namespace collision
 	public:
 		struct triangle
 		{
-			UINT a, b, c;
-			DirectX::XMFLOAT3 n;
+			UINT a, b, c;	//	ç¿ïWî‘çÜ
+
+			//	åvéZëŒè€
+			DirectX::XMFLOAT3 normal;		//	ñ@ê¸
+			DirectX::XMFLOAT3 ab, bc, ca;	//	ï”
+			DirectX::XMFLOAT3 min, max;		//	ç≈è¨ç≈ëÂ
 			template<class Archive>
 			void serialize(Archive& archive, int version);
 		};
@@ -62,12 +66,18 @@ namespace collision
 		bool intersect_point_inner(const DirectX::XMFLOAT3& point, float& nearlest, const std::vector<size_t>& triangle_indices) const;
 		bool intersect_segment_inner(const DirectX::XMFLOAT3& start, const DirectX::XMFLOAT3& end, const std::vector<size_t>& triangle_indices, intersect_data* intersect = nullptr) const;
 		bool intersect_sphere_inner(const DirectX::XMFLOAT3& point, float radius, const std::vector<size_t>& triangle_indices, intersect_data* intersect = nullptr) const;
-		bool intersect_capsule_inner(const bounding_capsule& capsule, const std::vector<size_t>& triangle_indices, intersect_data* intersect = nullptr) const;
+		bool intersect_capsule_inner(const bounding_capsule& local_capsule, DirectX::XMVECTOR CapsuleMin, DirectX::XMVECTOR CapsuleMax, DirectX::XMMATRIX TransformMatrix, const std::vector<size_t>& triangle_indices, intersect_data* intersect = nullptr) const;
 
 	private:
-		bool calculate_nearlest_point(const DirectX::XMVECTOR& P, const DirectX::XMVECTOR& A, const DirectX::XMVECTOR& B, const DirectX::XMVECTOR& C, DirectX::XMVECTOR& NearlestPoint) const;
-		bool intersect_ray(const DirectX::XMVECTOR& Start, const DirectX::XMVECTOR& Direction, const DirectX::XMVECTOR& A, const DirectX::XMVECTOR& B, const DirectX::XMVECTOR& C, const DirectX::XMVECTOR& Normal, DirectX::XMVECTOR& InsertPoint, float& distance) const;
-		float calculate_segment_distance(const collision::line& line, const DirectX::XMFLOAT3& a, const DirectX::XMFLOAT3& b, const DirectX::XMFLOAT3& c, const DirectX::XMFLOAT3& n, DirectX::XMFLOAT3& nearlest_point_segment, DirectX::XMFLOAT3& nearlest_point_triangle, bool& nearlest_point_edghFlg) const;
+		bool XM_CALLCONV calculate_nearlest_point(DirectX::XMVECTOR P,
+									  DirectX::XMVECTOR A, DirectX::XMVECTOR B, DirectX::XMVECTOR C,
+									  DirectX::XMVECTOR EdgeAB, DirectX::XMVECTOR EdgeBC, DirectX::XMVECTOR EdgeAC,
+									  DirectX::XMVECTOR& NearlestPoint) const;
+		bool XM_CALLCONV intersect_ray(DirectX::XMVECTOR Start, DirectX::XMVECTOR Direction,
+						   DirectX::XMVECTOR A, DirectX::XMVECTOR B, DirectX::XMVECTOR C,
+						   DirectX::XMVECTOR EdgeAB, DirectX::XMVECTOR EdgeBC, DirectX::XMVECTOR EdgeCA, DirectX::XMVECTOR Normal,
+						   DirectX::XMVECTOR& InsertPoint, float& distance) const;
+		float calculate_segment_distance(const collision::line& line, const triangle& triangle, DirectX::XMFLOAT3& nearlest_point_segment, DirectX::XMFLOAT3& nearlest_point_triangle, bool& nearlest_point_edghFlg) const;
 
 	private:
 		std::vector<DirectX::XMFLOAT3> positions;
