@@ -95,6 +95,7 @@ private:
 
 	void update_node_animation(const animation::data& animation_data, float current_time, float previous_time);
 	void update_morph_animation(const animation::data& animation_data, float current_time, float previous_time);
+	void update_ik();
 
 private:
 	model_instance_ptr model_instance;

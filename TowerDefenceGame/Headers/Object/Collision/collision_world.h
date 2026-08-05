@@ -22,7 +22,7 @@ public:
 	~collision_world();
 
 public:
-	void step(float elapsed_time, int substep_count = 10, float fixed_time_stamp = system_units::convert_fps_to_sec(0.1f));
+	void step(float elapsed_time, int max_substep = 10, float fixed_time_stamp = system_units::convert_fps_to_sec(0.1f));
 
 	void finalize();
 

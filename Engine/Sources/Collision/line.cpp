@@ -28,13 +28,13 @@ void line::initialize(types type, const DirectX::XMFLOAT3& start, const DirectX:
 float line::calculate_distance(DirectX::XMFLOAT3& horizon, float& delta, const DirectX::XMFLOAT3& point) const
 {
 	return (type == types::line) ? calculate_line_distance(horizon, delta, point)
-								 : calculate_segment_distamce(horizon, delta, point);
+								 : calculate_segment_distance(horizon, delta, point);
 }
 
 float line::calculate_distance(DirectX::XMFLOAT3& horizon1, float& delta1, DirectX::XMFLOAT3& horizon2, float& delta2, const line& line) const
 {
 	return (type == types::line) ? calculate_line_distance(horizon1, delta1, horizon2, delta2, line)
-								 : calculate_segment_distamce(horizon1, delta1, horizon2, delta2, line);
+								 : calculate_segment_distance(horizon1, delta1, horizon2, delta2, line);
 }
 
 bool line::is_parallel(const line& line) const
@@ -98,7 +98,7 @@ float line::calculate_line_distance(DirectX::XMFLOAT3& horizon, float& delta, co
 	return DirectX::XMVectorGetX(DirectX::XMVector3Length(DirectX::XMVectorSubtract(Horizon, PointB)));
 }
 
-float line::calculate_segment_distamce(DirectX::XMFLOAT3& horizon, float& delta, const DirectX::XMFLOAT3& point) const
+float line::calculate_segment_distance(DirectX::XMFLOAT3& horizon, float& delta, const DirectX::XMFLOAT3& point) const
 {
 	DirectX::XMVECTOR PointA[2] = {DirectX::XMLoadFloat3(&this->point[0]), DirectX::XMLoadFloat3(&this->point[1])};
 	DirectX::XMVECTOR Point = DirectX::XMLoadFloat3(&point);
@@ -157,7 +157,7 @@ float line::calculate_line_distance(DirectX::XMFLOAT3& horizon1, float& delta1, 
 	return DirectX::XMVectorGetX(DirectX::XMVector3Length(DirectX::XMVectorSubtract(Horizon2, Horizon1)));
 }
 
-float line::calculate_segment_distamce(DirectX::XMFLOAT3& horizon1, float& delta1, DirectX::XMFLOAT3& horizon2, float& delta2, const line& line) const
+float line::calculate_segment_distance(DirectX::XMFLOAT3& horizon1, float& delta1, DirectX::XMFLOAT3& horizon2, float& delta2, const line& line) const
 {
 	DirectX::XMVECTOR PointA0 = DirectX::XMLoadFloat3(&point[0]);
 	DirectX::XMVECTOR PointA1 = DirectX::XMLoadFloat3(&point[1]);

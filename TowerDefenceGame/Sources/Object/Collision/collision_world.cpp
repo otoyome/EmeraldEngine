@@ -77,7 +77,7 @@ void collision_world::inner_step_simulation(float elapsed_time)
 							rate1 = object2->get_mass() / total_mass;
 						}
 
-						bool is_pushing = false;
+						bool is_inner_pushing = false;
 						for (size_t index = 0; index < intersect_data.size(); ++index)
 						{
 							auto data = intersect_data[index];
@@ -93,11 +93,11 @@ void collision_world::inner_step_simulation(float elapsed_time)
 							temp.normal.z = -data.normal.z;
 							temp.length = data.length * rate2 * pushing_factor;
 							data2.add(temp);
-							is_pushing = true;
+							is_inner_pushing = true;
 						}
 						object1->solve_pushing_objects(data1);
 						object2->solve_pushing_objects(data2);
-						if (is_pushing)
+						if (is_inner_pushing)
 							is_pushing = true;
 					}
 					else
@@ -127,7 +127,7 @@ void collision_world::inner_step_simulation(float elapsed_time)
 	} while (1.0f <= pushing_factor && 1.0f <= addjust_pushing_factor * 10);
 }
 
-void collision_world::step(float elapsed_time, int substep_count, float fixed_time_stamp)
+void collision_world::step(float elapsed_time, int max_substep, float fixed_time_stamp)
 {
 	remove_objects();
 	add_objects();
@@ -145,8 +145,9 @@ void collision_world::step(float elapsed_time, int substep_count, float fixed_ti
 	{
 		//	ç◊ï™âªâÒêî
 		int loop_count = static_cast<int>(elapsed_time / fixed_time_stamp);
-		int limit_loop_count = std::min(loop_count, static_cast<int>(1.0f / fixed_time_stamp + 0.0001f));
-		for (int count = 0; count < limit_loop_count - 1; ++count)
+		int limit_loop_count = std::min(loop_count, max_substep);
+
+		for (int count = 0; count < limit_loop_count; ++count)
 		{
 			inner_step_simulation(fixed_time_stamp);
 
@@ -154,7 +155,8 @@ void collision_world::step(float elapsed_time, int substep_count, float fixed_ti
 		}
 
 		//	àÍãCÇ…çsÇ§
-		inner_step_simulation(elapsed_time);
+		if (elapsed_time > 0.0f)
+			inner_step_simulation(elapsed_time);
 	}
 
 	//	éñå„èàóù

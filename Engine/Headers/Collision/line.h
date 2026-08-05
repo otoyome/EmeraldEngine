@@ -33,9 +33,9 @@ namespace collision
 
 	private:
 		float calculate_line_distance(DirectX::XMFLOAT3& horizon, float& delta, const DirectX::XMFLOAT3& point) const;
-		float calculate_segment_distamce(DirectX::XMFLOAT3& horizon, float& delta, const DirectX::XMFLOAT3& point) const;
+		float calculate_segment_distance(DirectX::XMFLOAT3& horizon, float& delta, const DirectX::XMFLOAT3& point) const;
 		float calculate_line_distance(DirectX::XMFLOAT3& horizon1, float& delta1, DirectX::XMFLOAT3& horizon2, float& delta2, const line& line) const;
-		float calculate_segment_distamce(DirectX::XMFLOAT3& horizon1, float& delta1, DirectX::XMFLOAT3& horizon2, float& delta2, const line& line) const;
+		float calculate_segment_distance(DirectX::XMFLOAT3& horizon1, float& delta1, DirectX::XMFLOAT3& horizon2, float& delta2, const line& line) const;
 
 	private:
 		types type;

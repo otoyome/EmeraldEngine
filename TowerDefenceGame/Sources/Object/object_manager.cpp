@@ -67,7 +67,7 @@ void object_manager::updates(float elapsed_time)
 #endif // defined(USE_IMGUI)
 		int limit_loop_count = std::min(loop_count, static_cast<int>(1.0f / fixed_per_second + 0.0001f));
 		temporary_elapsed_time -= (loop_count - limit_loop_count) * fixed_per_second;
-		if (loop_count >= limit_loop_count)
+		if (loop_count > limit_loop_count)
 			elapsed_time = temporary_elapsed_time;
 
 		//	ŒÅ’èXVˆ—
@@ -84,7 +84,7 @@ void object_manager::updates(float elapsed_time)
 			add_objects();
 
 			//	“–‚½‚è”»’è
-			world.step(fixed_per_second);
+			world.step(fixed_per_second, 4, system_units::convert_fps_to_sec(0.1f));
 
 			temporary_elapsed_time -= fixed_per_second;
 		}

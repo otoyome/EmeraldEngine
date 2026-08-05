@@ -24,20 +24,6 @@ game_main_scene::game_main_scene()
 	}
 
 	//	主人公モデル生成
-	{
-		auto model = std::make_shared<model_object>("プレイヤー", "Assets/Resources/Models/Kuroko/Kuroko.emo");
-		size_t ik_behavior_index = model->search_ik_behavior_index("FootIK");
-		if (ik_behavior_index != ik_resource::invalid_id)
-		{
-			model_object::ik_data ik_data = model->get_ik_behavior_datas()[ik_behavior_index];
-			ik_data.visible = true;
-			model->set_ik_behavior_datas(ik_behavior_index, ik_data);
-		}
-
-		register_object(model);
-	}
-
-	//	主人公モデル生成
 	std::shared_ptr<player_camera_controller_object> player_camera_controller;
 	{
 		//	モデルオブジェクト生成
@@ -45,6 +31,15 @@ game_main_scene::game_main_scene()
 		std::shared_ptr<model_object> weapon_model = kuroko_object::generate_weapon_model_object();
 		register_object(hero_model);
 		register_object(weapon_model);
+
+		//	足IKはONにしておく(アニメーション側で制御できるに越したことはない)
+		size_t ik_behavior_index = hero_model->search_ik_behavior_index("FootIK");
+		if (ik_behavior_index != ik_resource::invalid_id)
+		{
+			model_object::ik_data ik_data = hero_model->get_ik_behavior_datas()[ik_behavior_index];
+			ik_data.visible = true;
+			hero_model->set_ik_behavior_datas(ik_behavior_index, ik_data);
+		}
 
 		auto player1 = std::make_shared<kuroko_object>(hero_model, weapon_model, "player");
 		player1->set_position(system_units::convert_m_to_unit({0, 0, -50}));

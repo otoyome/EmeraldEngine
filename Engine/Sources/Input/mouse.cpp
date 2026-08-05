@@ -115,10 +115,15 @@ void mouse::update_state()
 				//	移動ベクトルを算出
 				if (window_center_lock)
 				{
+					//	クライアント中心をスクリーン座標に変換
+					POINT center{ static_cast<LONG>(screen_width / 2), static_cast<LONG>(screen_height / 2) };
+					::ClientToScreen(hwnd, &center);
+
 					//	マウス座標を中心点に固定化
-					::SetCursorPos(rc.left + screen_width / 2, rc.top + screen_height / 2);
-					move_vector.x = cursor.x - screen_width / 2;
-					move_vector.y = cursor.y - screen_height / 2;
+					move_vector.x = cursor.x - center.x;
+					move_vector.y = cursor.y - center.y;
+
+					::SetCursorPos(center.x, center.y);
 				}
 
 				//	座標算出
@@ -183,13 +188,17 @@ void mouse::update_state()
 	}
 
 	//	カーソル非表示化
-	static int cursol_hide_oneshot = 0x10000000;
-	static bool cursol_hide_inner = false;
-	if (cursol_hide_oneshot == 0x10000000 || cursol_hide_inner != cursol_hide)
+	static bool cursol_hide_inner = !cursol_hide;
+	if (cursol_hide_inner != cursol_hide)
 	{
-		cursol_hide_oneshot = 0;
 		cursol_hide_inner = cursol_hide;
-		::ShowCursor(!cursol_hide);
+
+		int count;
+		do
+		{
+			count = ::ShowCursor(!cursol_hide);
+		}
+		while ((cursol_hide && count >= 0) || (!cursol_hide && count < 0));
 	}
 
 	position_state = new_position_state;
