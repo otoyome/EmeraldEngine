@@ -798,8 +798,6 @@ bool bounding_mesh::intersect_segment(const DirectX::XMFLOAT3& start, const Dire
 	if (list.empty())
 		return false;
 
-	inner::axis_aligned_bounding_box line_box = inner::axis_aligned_bounding_box(max, min);
-
 	bool hit = false;
 	intersect_data data;
 	for (auto node_index : list)
@@ -808,8 +806,7 @@ bool bounding_mesh::intersect_segment(const DirectX::XMFLOAT3& start, const Dire
 		if (node.triangles.empty())
 			continue;
 
-		//if (!node.bounds.intersect_segment(start, end))
-		if (!node.bounds.intersect_box(line_box))
+		if (!node.bounds.intersect_segment(start, end))
 			continue;
 
 		if (intersect)
@@ -1088,8 +1085,7 @@ bool bounding_mesh::intersect_capsule(const bounding_capsule& capsule, intersect
 		if (node.triangles.empty())
 			continue;
 
-		//if (!node.bounds.intersect_capsule(capsule))	‘e‚¢”»’è‚Å‚à–â‘è‚È‚¢
-		if (!node.bounds.intersect_box(capsule_box))
+		if (!node.bounds.intersect_capsule(capsule))
 			continue;
 
 		if (intersect)

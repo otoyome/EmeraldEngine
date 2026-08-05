@@ -507,11 +507,7 @@ bool character_object::calculate_position(DirectX::XMFLOAT3 velocity, bool verti
 				if (is_flag(flags::on_ground))
 					hit_distance -= step_offset;
 			}
-			else
-			{
-				int ii = 0;
-				++ii;
-			}
+
 			DirectX::XMVECTOR RemainVelocity = DirectX::XMVectorScale(NormalizedVelocity, hit_distance);
 			DirectX::XMVECTOR Normal = DirectX::XMVector3Normalize(DirectX::XMLoadFloat3(&intersect_data[0].normal));
 			DirectX::XMVECTOR Position = DirectX::XMLoadFloat3(&out_position);
