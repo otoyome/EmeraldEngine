@@ -50,7 +50,7 @@ game_main_scene::game_main_scene()
 		register_object(controller_object);
 
 		player_camera_controller = std::make_shared<player_camera_controller_object>("プレイヤーカメラ", controller_object, main_camera);
-		player_camera_controller->set_input_purmit_flag(false);
+		//player_camera_controller->set_input_purmit_flag(false);
 		register_object(player_camera_controller);
 
 		//auto shadow_light = std::make_shared<shadow_light_object>("影ライト：クロコ");
