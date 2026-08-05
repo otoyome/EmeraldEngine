@@ -45,7 +45,6 @@ namespace
 		v[2].y = u2.y - box.get_position().y;
 		v[2].z = u2.z - box.get_position().z;
 
-#if 0
 		// 1. 三角形のAABBとAABBの交差判定
 		DirectX::XMFLOAT3 bmin, bmax;
 		bmin.x = -box.get_local_scale().x;
@@ -54,7 +53,8 @@ namespace
 		bmax = box.get_local_scale();
 		
 		DirectX::XMFLOAT3 tmin = v[0], tmax = v[0];
-		for(int j = 1; j < 3; ++j){
+		for(int j = 1; j < 3; ++j)
+		{
 			if(v[j].x < tmin.x) tmin.x = v[j].x;
 			if(v[j].x > tmax.x) tmax.x = v[j].x;
 			if(v[j].y < tmin.y) tmin.y = v[j].y;
@@ -76,19 +76,16 @@ namespace
 		// 2. AABBと三角形を含む平面との交差判定
 		if(!plane_aabb(n, -(n.x * v[0].x + n.y * v[0].y + n.z * v[0].z), {0.0f, 0.0f, 0.0f}, box.get_local_scale()))
 			return false;
-#endif
+
 		// 3. AABBの各軸方向とエッジのテスト
-		DirectX::XMFLOAT3 e[3] = { {0, 0, 0}, {0, 0, 0}, {0, 0, 0} }; // AABBの各軸方向ベクトル
-		DirectX::XMFLOAT3 f[3] = {}; // 三角形のエッジベクトル
-		e[0].x = 1.0f;
+		DirectX::XMFLOAT3 e[3] = { {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 1.0f} };
+		DirectX::XMFLOAT3 f[3] = {};
 		f[0].x = v[1].x - v[0].x;
 		f[0].y = v[1].y - v[0].y;
 		f[0].z = v[1].z - v[0].z;
-		e[1].x = 1.0f;
 		f[1].x = v[2].x - v[1].x;
 		f[1].y = v[2].y - v[1].y;
 		f[1].z = v[2].z - v[1].z;
-		e[2].x = 1.0f;
 		f[2].x = v[0].x - v[2].x;
 		f[2].y = v[0].y - v[2].y;
 		f[2].z = v[0].z - v[2].z;
@@ -139,6 +136,7 @@ namespace
 		std::vector<UINT> order_list;
 		order_list.reserve(axis_count.x * axis_count.y * axis_count.z);
 
+	#if 01
 		const UINT base_index_x = static_cast<UINT>((min.x - area_min.x) / area_unit.x);
 		const UINT base_index_y = static_cast<UINT>((min.y - area_min.y) / area_unit.y);
 		const UINT base_index_z = static_cast<UINT>((min.z - area_min.z) / area_unit.z);
@@ -160,6 +158,37 @@ namespace
 				}
 			}
 		}
+	#else
+		DirectX::XMFLOAT3 point = min, p;
+		for (UINT x = 0; x < axis_count.x; ++x)
+		{
+			p.x = (point.x - area_min.x) / area_unit.x;
+			UINT index_x = static_cast<UINT>(p.x);
+			float reserve_y = point.y;
+			for (UINT y = 0; y < axis_count.y; ++y)
+			{
+				p.y = (point.y - area_min.y) / area_unit.y;
+				UINT index_y = static_cast<UINT>(p.y);
+				UINT index_xy = index_x + index_y * separate_count.x;
+				float reserve_z = point.z;
+				for (UINT z = 0; z < axis_count.z; ++z)
+				{
+					p.z = (point.z - area_min.z) / area_unit.z;
+					UINT index_z = static_cast<UINT>(p.z);
+					UINT index = index_xy + index_z * square_separate_count;
+					if (index < cube_separate_count)
+					{
+						order_list.emplace_back(index);
+					}
+					point.z += area_unit.z;
+				}
+				point.y += area_unit.y;
+				point.z = reserve_z;
+			}
+			point.x += area_unit.x;
+			point.y = reserve_y;
+		}
+	#endif
 		return order_list;
 	}
 }
@@ -197,6 +226,7 @@ bounding_mesh::bounding_mesh()
 : bounding_object({ 1, 1, 1 }, { 0, 0, 0, 1 }, { 0, 0, 0 })
 {
 }
+
 bounding_mesh::bounding_mesh(std::vector<DirectX::XMFLOAT3>& positions, std::vector<triangle>& triangles, UINT separate_level)
 	: bounding_object({1, 1, 1}, {0, 0, 0, 1}, {0, 0, 0})
 	, positions(positions)
@@ -242,23 +272,6 @@ bounding_mesh::bounding_mesh(std::vector<DirectX::XMFLOAT3>& positions, std::vec
 
 	//	ブロック本体を先に全部構築（AABBだけ。三角形リストは後で埋める）
 	block_datas.resize(static_cast<size_t>(separate_count.x) * separate_count.y * separate_count.z);
-	{
-		DirectX::XMFLOAT3 extent = area_unit;
-		extent.x *= 0.5f; extent.y *= 0.5f; extent.z *= 0.5f;
-
-		for (UINT z = 0; z < separate_count.z; ++z)
-		for (UINT y = 0; y < separate_count.y; ++y)
-		for (UINT x = 0; x < separate_count.x; ++x)
-		{
-			UINT block_index = x + y * separate_count.x + z * separate_count.x * separate_count.y;
-			block_data& data = block_datas[block_index];
-			data.center = area_min;
-			data.center.x += area_unit.x * (static_cast<float>(x) + 0.5f);
-			data.center.y += area_unit.y * (static_cast<float>(y) + 0.5f);
-			data.center.z += area_unit.z * (static_cast<float>(z) + 0.5f);
-			data.bounds = inner::axis_aligned_bounding_box(extent, data.center);
-		}
-	}
 
 	//	三角形の事前計算
 	struct triangle_cache
@@ -282,6 +295,108 @@ bounding_mesh::bounding_mesh(std::vector<DirectX::XMFLOAT3>& positions, std::vec
 			auto C = DirectX::XMLoadFloat3(&tc.c);
 			tc.triangle_min = DirectX::XMVectorMin(DirectX::XMVectorMin(A, B), C);
 			tc.triangle_max = DirectX::XMVectorMax(DirectX::XMVectorMax(A, B), C);
+		}
+	}
+
+#if 0
+	//	ブロック構築関数
+	auto calculate_boxes = [&](DirectX::XMUINT3 start_index, DirectX::XMUINT3 end_index)
+	{
+		DirectX::XMFLOAT3 extent = area_unit;
+		extent.x *= 0.5f;
+		extent.y *= 0.5f;
+		extent.z *= 0.5f;
+		for (UINT x = start_index.x; x < end_index.x; ++x)
+		{
+			for (UINT y = start_index.y; y < end_index.y; ++y)
+			{
+				for (UINT z = start_index.z; z < end_index.z; ++z)
+				{
+					UINT block_index = x +
+									   y * separate_count.x +
+									   z * separate_count.x * separate_count.y;
+
+					block_data& data = block_datas[block_index];
+					data.center = area_min;
+					data.center.x += area_unit.x * (static_cast<float>(x) + 0.5f);
+					data.center.y += area_unit.y * (static_cast<float>(y) + 0.5f);
+					data.center.z += area_unit.z * (static_cast<float>(z) + 0.5f);
+					data.bounds = inner::axis_aligned_bounding_box(extent, data.center);
+
+					DirectX::XMVECTOR BoxMin, BoxMax;
+					data.bounds.include_corner(BoxMin, BoxMax);
+
+					auto tc = triangle_caches.data();
+					auto t = triangles.data();
+					for (size_t index = 0; index < triangle_caches.size(); ++index)
+					{
+						auto triangle_cache = tc + index;
+						auto Disjoint = DirectX::XMVectorOrInt(DirectX::XMVectorGreater(tc->triangle_min, BoxMax),
+															   DirectX::XMVectorGreater(BoxMin, tc->triangle_max));
+						if (DirectX::Internal::XMVector3AnyTrue(Disjoint))
+							continue;
+
+						auto triangle = t + index;
+						if (triangle_aabb(tc->a, tc->b, tc->c, triangle->normal, data.bounds))
+						{
+							data.triangles.emplace_back(index);
+						}
+					}
+				}
+			}
+		}
+	};
+
+	//	構築
+	if (separate_level == 0)
+	{
+		calculate_boxes({0, 0, 0}, {1, 1, 1});
+	}
+	else
+	{
+		std::vector<std::thread> thread_functions;
+		UINT X = static_cast<UINT>(ceilf(static_cast<float>(separate_count.x) / separate_level));
+		UINT Y = static_cast<UINT>(ceilf(static_cast<float>(separate_count.y) / separate_level));
+		UINT Z = static_cast<UINT>(ceilf(static_cast<float>(separate_count.z) / separate_level));
+		for (UINT x = 0; x < X; ++x)
+		{
+			for (UINT y = 0; y < Y; ++y)
+			{
+				for (UINT z = 0; z < Z; ++z)
+				{
+					DirectX::XMUINT3 s = {(x + 0) * separate_level, (y + 0) * separate_level, (z + 0) * separate_level};
+					DirectX::XMUINT3 e = {(x + 1) * separate_level, (y + 1) * separate_level, (z + 1) * separate_level};
+					e = {std::min(separate_count.x, e.x), std::min(separate_count.y, e.y), std::min(separate_count.z, e.z)};
+					thread_functions.emplace_back(calculate_boxes, s, e);
+				}
+			}
+		}
+
+		for (auto& thread : thread_functions)
+		{
+			thread.join();
+		}
+	}
+#else
+	{
+		DirectX::XMFLOAT3 extent = area_unit;
+		extent.x *= 0.5f; extent.y *= 0.5f; extent.z *= 0.5f;
+
+		for (UINT z = 0; z < separate_count.z; ++z)
+		{
+			for (UINT y = 0; y < separate_count.y; ++y)
+			{
+				for (UINT x = 0; x < separate_count.x; ++x)
+				{
+					UINT block_index = x + y * separate_count.x + z * separate_count.x * separate_count.y;
+					block_data& data = block_datas[block_index];
+					data.center = area_min;
+					data.center.x += area_unit.x * (static_cast<float>(x) + 0.5f);
+					data.center.y += area_unit.y * (static_cast<float>(y) + 0.5f);
+					data.center.z += area_unit.z * (static_cast<float>(z) + 0.5f);
+					data.bounds = inner::axis_aligned_bounding_box(extent, data.center);
+				}
+			}
 		}
 	}
 
@@ -381,7 +496,9 @@ bounding_mesh::bounding_mesh(std::vector<DirectX::XMFLOAT3>& positions, std::vec
 			block_datas[p.first].triangles.emplace_back(p.second);
 		}
 	}
+#endif
 }
+
 bounding_mesh::~bounding_mesh()
 {
 }
