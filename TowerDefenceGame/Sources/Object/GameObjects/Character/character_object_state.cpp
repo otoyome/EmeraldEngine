@@ -442,15 +442,16 @@ bool character_object::calculate_position(DirectX::XMFLOAT3 velocity, bool verti
 	auto collision_object = get_push_box();
 	auto bounding_object = std::static_pointer_cast<collision::bounding_capsule>(collision_object->get_bounding_object());
 
-	//	オフセット位置を算出
-	float height = bounding_object->get_radius() + bounding_object->get_length() * 0.5f;
-	DirectX::XMVECTOR Offset = DirectX::XMVectorSet(0.0f, height + step_offset * is_flag(flags::on_ground), 0.0f, 0.0f);
-
 	//	初期座標
 //	out_position = collision_object->get_position();
 	out_position = get_position();
 
-	collision_world::ray_cast_descs desc;
+	//	オフセット位置を算出
+	float height = bounding_object->get_radius() + bounding_object->get_length() * 0.5f;
+	DirectX::XMVECTOR Offset = DirectX::XMVectorSet(0.0f, height + step_offset * is_flag(flags::on_ground), 0.0f, 0.0f);
+
+	collision_world::sphere_cast_descs desc;
+	desc.radius = bounding_object->get_radius();
 	if (is_flag(flags::invisible))
 	{
 		desc.filter = collision_filter_manager::instance()->search_filter("invisible");
@@ -481,11 +482,12 @@ bool character_object::calculate_position(DirectX::XMFLOAT3 velocity, bool verti
 		DirectX::XMVECTOR NormalizedVelocity = DirectX::XMVector3Normalize(Velocity);
 		DirectX::XMVECTOR MoveVector = DirectX::XMVectorScale(NormalizedVelocity, distance);
 		DirectX::XMVECTOR From, To;
-		From = DirectX::XMVectorAdd(DirectX::XMLoadFloat3(&out_position), Offset);
+		From = DirectX::XMLoadFloat3(&out_position);
+		From = DirectX::XMVectorAdd(From, Offset);
 		To = DirectX::XMVectorAdd(From, MoveVector);
-		if (vertical)	//	レイキャスト用対応
+		if (vertical)
 		{
-			if (velocity.y < 0)
+			if (DirectX::XMVectorGetY(Velocity) < 0)
 				To = DirectX::XMVectorSubtract(To, Offset);
 			else
 				To = DirectX::XMVectorAdd(To, Offset);
@@ -497,22 +499,28 @@ bool character_object::calculate_position(DirectX::XMFLOAT3 velocity, bool verti
 		//	ヒット処理
 		collision::intersect_data intersect_data;
 		collision_object_ptr hit_collision_object;
-		if (object_manager::instance()->get_world().ray_cast(desc, intersect_data, hit_collision_object))
+		if (object_manager::instance()->get_world().sphere_cast(desc, intersect_data, hit_collision_object))
 		{
 			hit_flag = true;
 			float hit_distance = intersect_data[0].length - SkinStep;
 
 			if (vertical)
 			{
+				hit_distance += desc.radius;
 				if (is_flag(flags::on_ground))
 					hit_distance -= step_offset;
 			}
+			hit_distance = std::max(hit_distance, 0.0f);
 
 			DirectX::XMVECTOR RemainVelocity = DirectX::XMVectorScale(NormalizedVelocity, hit_distance);
-			DirectX::XMVECTOR Normal = DirectX::XMVector3Normalize(DirectX::XMLoadFloat3(&intersect_data[0].normal));
-			DirectX::XMVECTOR Position = DirectX::XMLoadFloat3(&out_position);
-			Position = DirectX::XMVectorAdd(From, RemainVelocity);
+			DirectX::XMVECTOR Position = DirectX::XMVectorAdd(From, RemainVelocity);
+			if (!vertical)
+			{
+				Position = DirectX::XMVectorSubtract(Position, Offset);
+			}
 			DirectX::XMStoreFloat3(&out_position, Position);
+
+			DirectX::XMVECTOR Normal = DirectX::XMVector3Normalize(DirectX::XMLoadFloat3(&intersect_data[0].normal));
 			DirectX::XMStoreFloat3(&out_normal, Normal);
 
 			//	摩擦係数を物理マテリアルから取得してくる
@@ -531,7 +539,7 @@ bool character_object::calculate_position(DirectX::XMFLOAT3 velocity, bool verti
 
 			MoveVector = DirectX::XMVectorSubtract(To, From);
 			float remain_distance = DirectX::XMVectorGetX(DirectX::XMVector3Length(MoveVector)) - hit_distance;
-			MoveVector = DirectX::XMVectorScale(DirectX::XMVector3Normalize(MoveVector), std::min(remain_distance, 0.0f));
+			MoveVector = DirectX::XMVectorScale(DirectX::XMVector3Normalize(MoveVector), std::max(remain_distance, 0.0f));
 
 			//	壁ずりベクトル算出
 			DirectX::XMVECTOR Dot = DirectX::XMVector3Dot(MoveVector, Normal);
@@ -545,6 +553,5 @@ bool character_object::calculate_position(DirectX::XMFLOAT3 velocity, bool verti
 			break;
 		}
 	}
-	DirectX::XMStoreFloat3(&velocity, Velocity);
 	return hit_flag;
 }

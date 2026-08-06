@@ -78,11 +78,11 @@ namespace math
 		return saturate((value - min) / (max - min));
 	}
 
-	float normalize_angle(float radians);
+	float normalize_angle(float radians);	//	-π～+π
+	float normalize_angle_0_2pi(float angle);	//	0～+2π
+	float difference_angle(float a, float b);
 
 	float rand_range(float min, float max);
-
-	void catmull_rom_spline(const float* key, int num, int dim, float t, float* v);
 
 	namespace ease
 	{
@@ -173,14 +173,15 @@ namespace math
 	DirectX::XMFLOAT3 convert_rotation_matrix_to_euler(DirectX::XMFLOAT4X4 rotation);
 	DirectX::XMFLOAT3 convert_quaternion_to_euler(DirectX::XMFLOAT4 quaternion);
 
+	//	クォータニオン<>オイラー角変換
 	enum class euler_order
 	{
-		XYZ,
-		XZY,
-		YXZ,
-		YZX,
-		ZXY,
-		ZYX
+		xyz,
+		xzy,
+		yxz,
+		yzx,
+		zxy,
+		zyx
 	};
 	DirectX::XMFLOAT3 quaternion_to_euler(DirectX::XMFLOAT4 q, euler_order order);
 	DirectX::XMFLOAT4 euler_to_quaternion(DirectX::XMFLOAT3 e, euler_order order);

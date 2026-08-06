@@ -8,6 +8,26 @@
 
 using namespace collision;
 
+namespace
+{
+	//	AABBの頂点座標を、u/v（ボロノイ領域を示すビットマスク）から求める
+	//	bit 0:x, bit 1:y, bit 2:z　各軸が立っていればmin側、立っていなければmax側の頂点
+	static DirectX::XMVECTOR XM_CALLCONV get_aabb_corner(DirectX::XMVECTOR position, DirectX::XMVECTOR extents, int corner_mask)
+	{
+		DirectX::XMVECTOR Min = DirectX::XMVectorSubtract(position, extents);
+		DirectX::XMVECTOR Max = DirectX::XMVectorAdd(position, extents);
+		DirectX::XMFLOAT3 min_pos, max_pos;
+		DirectX::XMStoreFloat3(&min_pos, Min);
+		DirectX::XMStoreFloat3(&max_pos, Max);
+
+		DirectX::XMFLOAT3 corner;
+		corner.x = (corner_mask & (1 << 0)) ? min_pos.x : max_pos.x;
+		corner.y = (corner_mask & (1 << 1)) ? min_pos.y : max_pos.y;
+		corner.z = (corner_mask & (1 << 2)) ? min_pos.z : max_pos.z;
+		return DirectX::XMLoadFloat3(&corner);
+	}
+}
+
 DirectX::XMMATRIX inner::axis_aligned_bounding_box::get_transeform_matrix() const
 {
 	DirectX::XMVECTOR Scale = DirectX::XMLoadFloat3(&get_local_scale());
@@ -456,6 +476,205 @@ bool inner::axis_aligned_bounding_box::intersect_mesh(const bounding_mesh& mesh,
 	return false;
 }
 
+bool inner::axis_aligned_bounding_box::intersect_sphere_cast(const DirectX::XMFLOAT3& start, const DirectX::XMFLOAT3& end, float radius, intersect_data* intersect) const
+{
+	DirectX::XMVECTOR Start = DirectX::XMLoadFloat3(&start);
+	DirectX::XMVECTOR End = DirectX::XMLoadFloat3(&end);
+
+	return intersect_sphere_cast(Start, End, radius, intersect);
+}
+
+bool inner::axis_aligned_bounding_box::intersect_sphere_cast(DirectX::XMVECTOR Start, DirectX::XMVECTOR End, float radius, intersect_data* intersect) const
+{
+	DirectX::XMVECTOR Position = DirectX::XMLoadFloat3(&get_position());
+	DirectX::XMVECTOR Extents = DirectX::XMLoadFloat3(&get_local_scale());
+
+	//	スフィアキャストの始端、AABBの中心、AABBとスフィアキャスト半径のボロノイ領域の半径を
+	//	ループ処理するため、xyz成分を配列に代入する
+	float start_pos_array[3] = { DirectX::XMVectorGetX(Start), DirectX::XMVectorGetY(Start), DirectX::XMVectorGetZ(Start) };
+	float aabb_pos_array[3] = { DirectX::XMVectorGetX(Position), DirectX::XMVectorGetY(Position), DirectX::XMVectorGetZ(Position) };
+	float aabb_voronoi_rad_array[3] =
+	{
+		DirectX::XMVectorGetX(Extents) + radius,
+		DirectX::XMVectorGetY(Extents) + radius,
+		DirectX::XMVectorGetZ(Extents) + radius
+	};
+
+	//	スフィアキャストのベクトルを作り、距離を変数にバックアップしたうえで正規化し、
+	//	こちらもループ処理するため、xyz成分を配列に代入
+	DirectX::XMVECTOR DVec = DirectX::XMVectorSubtract(End, Start);
+	float ray_length = DirectX::XMVectorGetX(DirectX::XMVector3Length(DVec));
+	if (ray_length <= 1e-6f)
+		return false;
+	DVec = DirectX::XMVector3Normalize(DVec);
+	float d_array[3] = { DirectX::XMVectorGetX(DVec), DirectX::XMVectorGetY(DVec), DirectX::XMVectorGetZ(DVec) };
+
+	//	直線とスラブの２交点までの距離をtminとtmaxと定義
+	float tmin = 0.0f;
+	float tmax = FLT_MAX;
+
+	//	スラブとの距離を算出し交差しているかの確認と最近点の算出を行う
+	for (int i = 0; i < 3; i++)
+	{
+		//	xyz軸との平行確認
+		if (fabsf(d_array[i]) < FLT_EPSILON)
+		{
+			//	平行の場合、位置関係の比較を行い、範囲内になければ交差なしでreturn false
+			if (start_pos_array[i] < aabb_pos_array[i] - aabb_voronoi_rad_array[i] ||
+				start_pos_array[i] > aabb_pos_array[i] + aabb_voronoi_rad_array[i])
+			{
+				return false;
+			}
+		}
+		else
+		{
+			//	t1が近スラブ、t2が遠スラブとの距離
+			float ood = 1.0f / d_array[i];
+			float t1 = (aabb_pos_array[i] - aabb_voronoi_rad_array[i] - start_pos_array[i]) * ood;
+			float t2 = (aabb_pos_array[i] + aabb_voronoi_rad_array[i] - start_pos_array[i]) * ood;
+
+			//	遠近が逆転している場合があるので、その場合入れ替えておく
+			if (t1 > t2)
+			{
+				float tmp = t1;
+				t1 = t2;
+				t2 = tmp;
+			}
+
+			//	t1がtminよりも大きい場合、tminをt1で更新する
+			if (t1 > tmin) tmin = t1;
+
+			//	t2がtmaxよりも小さい場合、tmaxをt2で更新する
+			if (t2 < tmax) tmax = t2;
+
+			//	tminとtmaxの大小関係が逆転するのは、交差していない場合のみなので、その場合はreturn false
+			if (tmin > tmax) return false;
+		}
+	}
+
+	//	スラブとの交点がレイの外側にある
+	if (ray_length < tmin) return false;
+
+	//	ここまで来たらスフィアキャストと拡大したAABB（ボロノイ領域）との交差が確定
+	//	交点を割り出す。
+	DirectX::XMFLOAT3 point =
+	{
+		start_pos_array[0] + d_array[0] * tmin,
+		start_pos_array[1] + d_array[1] * tmin,
+		start_pos_array[2] + d_array[2] * tmin,
+	};
+
+	//	求めた交点から、頂点・面・辺のボロノイ領域のチェックを行う
+	//	u をマイナス、v をプラスとし、ビットでxyzの向きを管理している
+	int u = 0, v = 0;
+	if (point.x <= aabb_pos_array[0] - DirectX::XMVectorGetX(Extents)) u |= (1 << 0);
+	else if (point.x >= aabb_pos_array[0] + DirectX::XMVectorGetX(Extents)) v |= (1 << 0);
+	if (point.y <= aabb_pos_array[1] - DirectX::XMVectorGetY(Extents)) u |= (1 << 1);
+	else if (point.y >= aabb_pos_array[1] + DirectX::XMVectorGetY(Extents)) v |= (1 << 1);
+	if (point.z <= aabb_pos_array[2] - DirectX::XMVectorGetZ(Extents)) u |= (1 << 2);
+	else if (point.z >= aabb_pos_array[2] + DirectX::XMVectorGetZ(Extents)) v |= (1 << 2);
+
+	int mask = u | v;
+
+	if ((mask & (mask - 1)) == 0)	//	ボロノイ面領域の場合
+	{
+		DirectX::XMVECTOR Normal = DirectX::XMVectorSet(
+			(float)(((u & 1) - (v & 1)) >> 0),
+			(float)(((u & 2) - (v & 2)) >> 1),
+			(float)(((u & 4) - (v & 4)) >> 2),
+			0.0f);
+
+		if (intersect)
+		{
+			DirectX::XMVECTOR HitPos = DirectX::XMVectorAdd(DirectX::XMLoadFloat3(&point), DirectX::XMVectorScale(Normal, radius));
+			DirectX::XMFLOAT3 out_point, out_normal;
+			DirectX::XMStoreFloat3(&out_point, HitPos);
+			DirectX::XMStoreFloat3(&out_normal, Normal);
+			intersect->add(out_point, out_normal, tmin);
+		}
+		return true;
+	}
+	else	//	ボロノイ頂点＆辺領域の場合
+	{
+		DirectX::XMVECTOR NearPos = {};
+		float near_dist = FLT_MAX;
+		bool ret = false;
+
+		DirectX::XMVECTOR StartVertex = get_aabb_corner(Position, Extents, v);
+		DirectX::XMVECTOR EndVertex = get_aabb_corner(Position, Extents, u ^ 7);
+
+		//	ボロノイ頂点領域での交差の場合endVertexが生成されない（startVertexと同じものが出来てしまう）が、
+		//	頂点の球に交差せずに隣接する辺領域に交差する場合が存在するためスフィアキャストの向きから最適なendVertexを生成
+		if (mask == 7)
+		{
+			float max_value = std::max(std::max(fabsf(d_array[0]), fabsf(d_array[1])), fabsf(d_array[2]));
+			for (int i = 0; i < 3; i++)
+			{
+				if (fabsf(d_array[i]) == max_value)
+				{
+					int p = u ^ (1 << i);
+					EndVertex = get_aabb_corner(Position, Extents, p ^ 7);
+					break;
+				}
+			}
+		}
+
+		//	以降はスフィアキャストVsカプセルと同じ処理
+
+		DirectX::XMVECTOR HitPosition;
+		float hit_distance;
+
+		//	頂点に球を配置してレイと交差判定
+		if (collision::intersect_ray_vs_sphere(Start, End, StartVertex, radius, HitPosition, hit_distance) && hit_distance > 0.0f)
+		{
+			NearPos = StartVertex;
+			near_dist = hit_distance;
+			ret = true;
+		}
+		if (collision::intersect_ray_vs_sphere(Start, End, EndVertex, radius, HitPosition, hit_distance) && hit_distance > 0.0f)
+		{
+			if (near_dist > hit_distance)
+			{
+				NearPos = EndVertex;
+				near_dist = hit_distance;
+				ret = true;
+			}
+		}
+		//	辺に円柱を配置してレイと交差判定
+		if (collision::intersect_ray_vs_cylinder(Start, End, StartVertex, EndVertex, radius, HitPosition, hit_distance) && hit_distance > 0.0f)
+		{
+			if (near_dist > hit_distance)
+			{
+				DirectX::XMVECTOR Vec = DirectX::XMVectorSubtract(HitPosition, StartVertex);
+				DirectX::XMVECTOR CapsuleVec = DirectX::XMVector3Normalize(DirectX::XMVectorSubtract(EndVertex, StartVertex));
+				NearPos = DirectX::XMVectorMultiplyAdd(DirectX::XMVector3Dot(Vec, CapsuleVec), CapsuleVec, StartVertex);
+				near_dist = hit_distance;
+				ret = true;
+			}
+		}
+
+		if (ret)
+		{
+			if (intersect)
+			{
+				//	接触点（AABB側の頂点/辺上の最近点）から、実際に球が接触した位置へ法線を求める
+				DirectX::XMVECTOR Center = DirectX::XMVectorMultiplyAdd(DVec, DirectX::XMVectorReplicate(near_dist), Start);
+				DirectX::XMVECTOR Delta = DirectX::XMVectorSubtract(Center, NearPos);
+				float delta_length = DirectX::XMVectorGetX(DirectX::XMVector3Length(Delta));
+				DirectX::XMVECTOR Normal = (delta_length > 1e-6f) ? DirectX::XMVectorScale(Delta, 1.0f / delta_length) : DirectX::XMVectorNegate(DVec);
+
+				DirectX::XMFLOAT3 out_point, out_normal;
+				DirectX::XMStoreFloat3(&out_point, NearPos);
+				DirectX::XMStoreFloat3(&out_normal, Normal);
+				intersect->add(out_point, out_normal, near_dist);
+			}
+			return true;
+		}
+	}
+
+	return false;
+}
+
 void inner::axis_aligned_bounding_box::include_corner(DirectX::XMFLOAT3& min, DirectX::XMFLOAT3& max) const
 {
 	DirectX::XMVECTOR Min, Max;
@@ -496,6 +715,7 @@ void inner::axis_aligned_bounding_box::calculate_vertex(DirectX::XMFLOAT3* verti
 	DirectX::XMStoreFloat3(&vertices[7], DirectX::XMVectorSubtract(AddPpX, AddYpZ));
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 namespace
 {
 	static constexpr size_t TriFace[3 * 2 * 6] =
@@ -1279,6 +1499,31 @@ bool bounding_box::intersect_box(const bounding_box& box, intersect_data* inters
 bool bounding_box::intersect_mesh(const bounding_mesh& mesh, intersect_data* intersect) const
 {
 	return	mesh.intersect_box(*this, intersect);
+}
+
+bool bounding_box::intersect_sphere_cast(const DirectX::XMFLOAT3& start, const DirectX::XMFLOAT3& end, float radius, intersect_data* intersect) const
+{
+	DirectX::XMMATRIX TransformMatrix = get_transeform_matrix();
+	DirectX::XMMATRIX InverseTransformMatrix = DirectX::XMMatrixInverse(nullptr, TransformMatrix);
+
+	DirectX::XMVECTOR LocalStart = DirectX::XMVector3TransformCoord(DirectX::XMLoadFloat3(&start), InverseTransformMatrix);
+	DirectX::XMVECTOR LocalEnd = DirectX::XMVector3TransformCoord(DirectX::XMLoadFloat3(&end), InverseTransformMatrix);
+
+	DirectX::XMFLOAT3 local_start, local_end;
+	DirectX::XMStoreFloat3(&local_start, LocalStart);
+	DirectX::XMStoreFloat3(&local_end, LocalEnd);
+
+	inner::axis_aligned_bounding_box aabb(get_local_scale(), DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f));
+	bool contact = aabb.intersect_sphere_cast(local_start, local_end, radius, intersect);
+	if (contact && intersect)
+	{
+		for (size_t index = 0; index < intersect->size(); ++index)
+		{
+			intersect->multiply_matrix(index, TransformMatrix);
+		}
+	}
+
+	return contact;
 }
 
 void bounding_box::include_corner(DirectX::XMFLOAT3& min, DirectX::XMFLOAT3& max) const

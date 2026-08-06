@@ -273,6 +273,48 @@ bool collision_world::ray_cast(const ray_cast_descs& desc, collision::intersect_
 	return intersect_data.size() > 0;
 }
 
+bool collision_world::sphere_cast(const sphere_cast_descs& desc, collision::intersect_data& intersect_data, collision_object_ptr& out_collision)
+{
+	collision::intersect_data data;
+	for (auto& object : collision_objects)
+	{
+		if (!object->is_flag(collision_object::flags::active) ||
+			object->is_flag(collision_object::flags::detect_only))
+			continue;
+
+		//	カテゴリーチェック
+		if (!desc.filter->is_flag(object->get_filter()->get_category()))
+			continue;
+
+		//	除外オブジェクトチェック
+		bool find = false;
+		for (auto& exclude_object : desc.exclude_objects)
+		{
+			if (exclude_object == object)
+			{
+				find = true;
+				break;
+			}
+		}
+
+		if (!find && object->get_bounding_object()->intersect_sphere_cast(desc.start, desc.end, desc.radius, &data))
+		{
+			if (intersect_data.size() == 0)
+			{
+				intersect_data = data;
+				out_collision = object;
+			}
+			else if (data[0].length < intersect_data[0].length)
+			{
+				intersect_data = data;
+				out_collision = object;
+			}
+			data.clear();
+		}
+	}
+	return intersect_data.size() > 0;
+}
+
 void collision_world::add_objects()
 {
 	for (auto& object : collision_objects_add)

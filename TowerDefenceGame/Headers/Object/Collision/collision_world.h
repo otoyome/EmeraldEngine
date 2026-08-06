@@ -17,6 +17,11 @@ public:
 		std::vector<collision_object_ptr> exclude_objects;
 	};
 
+	struct sphere_cast_descs : public ray_cast_descs
+	{
+		float radius;
+	};
+
 public:
 	collision_world();
 	~collision_world();
@@ -42,6 +47,7 @@ private:
 
 public:
 	bool ray_cast(const ray_cast_descs& desc, collision::intersect_data& intersect_data, collision_object_ptr& out_collision);
+	bool sphere_cast(const sphere_cast_descs& desc, collision::intersect_data& intersect_data, collision_object_ptr& out_collision);
 
 private:
 	std::vector<collision_object_ptr> collision_objects;

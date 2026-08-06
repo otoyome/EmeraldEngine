@@ -84,6 +84,8 @@ namespace collision
 		virtual bool intersect_box(const bounding_box& box, intersect_data* intersect = nullptr) const = 0;
 		virtual bool intersect_mesh(const bounding_mesh& mesh, intersect_data* intersect = nullptr) const = 0;
 
+		virtual bool intersect_sphere_cast(const DirectX::XMFLOAT3& start, const DirectX::XMFLOAT3& end, float radius, intersect_data* intersect = nullptr) const = 0;
+
 		virtual void include_corner(DirectX::XMFLOAT3& min, DirectX::XMFLOAT3& max) const = 0;
 
 	protected:
@@ -107,7 +109,15 @@ namespace collision
 		bool indices_stride_16 = false;
 	};
 	bool ray_cast(const DirectX::XMFLOAT3& start, const DirectX::XMFLOAT3& end, const triangles& triangles, intersect_data* result);
-	bool ray_cast(const DirectX::XMVECTOR& start, const DirectX::XMVECTOR& end, const triangles& triangles, intersect_data* result);
-	bool ray_cast_16(const DirectX::XMVECTOR& start, const DirectX::XMVECTOR& end, const triangles& triangles, intersect_data* result);
-	bool ray_cast_32(const DirectX::XMVECTOR& start, const DirectX::XMVECTOR& end, const triangles& triangles, intersect_data* result);
+	bool ray_cast(DirectX::XMVECTOR start, DirectX::XMVECTOR end, const triangles& triangles, intersect_data* result);
+	bool ray_cast_16(DirectX::XMVECTOR start, DirectX::XMVECTOR end, const triangles& triangles, intersect_data* result);
+	bool ray_cast_32(DirectX::XMVECTOR start, DirectX::XMVECTOR end, const triangles& triangles, intersect_data* result);
+
+	bool XM_CALLCONV intersect_ray_vs_sphere(DirectX::XMVECTOR start, DirectX::XMVECTOR end,
+											 DirectX::XMVECTOR sphere_pos, float radius,
+											 DirectX::XMVECTOR& hit_pos, float& hit_distance);
+
+	bool XM_CALLCONV intersect_ray_vs_cylinder(DirectX::XMVECTOR start, DirectX::XMVECTOR end,
+											   DirectX::XMVECTOR start_cylinder, DirectX::XMVECTOR end_cylinder,
+											   float radius, DirectX::XMVECTOR& hit_pos, float& hit_distance);
 }	//	namespace collision

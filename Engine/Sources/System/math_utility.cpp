@@ -77,7 +77,31 @@ bool math::equal(DirectX::XMFLOAT4 a, DirectX::XMFLOAT4 b, float epsilon)
 
 float math::normalize_angle(float radians)
 {
-	return atan2f(sinf(radians), cosf(radians));
+	radians = std::fmod(radians, DirectX::XM_2PI);
+	if (radians > DirectX::XM_PI)
+	{
+		radians -= DirectX::XM_2PI;
+	}
+	else if (radians < -DirectX::XM_PI)
+	{
+		radians += DirectX::XM_2PI;
+	}
+	return radians;
+}
+
+float math::normalize_angle_0_2pi(float angle)
+{
+	float ret = angle;
+	while (ret >= DirectX::XM_2PI)
+	{
+		ret -= DirectX::XM_2PI;
+	}
+	while (ret < 0)
+	{
+		ret += DirectX::XM_2PI;
+	}
+
+	return ret;
 }
 
 float math::rand_range(float min, float max)
@@ -85,51 +109,6 @@ float math::rand_range(float min, float max)
 	float value = max - min;
 	float v = static_cast<float>(rand() % 100000) * 0.00001f;
 	return v * value + min;
-}
-
-// http://iquilezles.org/www/articles/minispline/minispline.htm
-// key format (for dim == 1) is (t0,x0,t1,x1 ...)
-// key format (for dim == 2) is (t0,x0,y0,t1,x1,y1 ...)
-// key format (for dim == 3) is (t0,x0,y0,z0,t1,x1,y1,z1 ...)
-void math::catmull_rom_spline(const float* key, int num, int dim, float t, float* v)
-{
-	static signed char coefs[16] = { -1, 2, -1, 0, 3, -5, 0, 2, -3, 4, 1, 0, 1, -1, 0, 0 };
-	const int size = dim + 1;
-	// find key
-	int k = 0;
-
-	while (key[k * size] < t)
-	{
-		k++;
-	}
-
-	// interpolant
-	const float h = (t - key[(k - 1) * size]) / (key[k * size] - key[(k - 1) * size]);
-
-	// init result
-	for (int i = 0; i < dim; i++)
-	{
-		v[i] = 0.0f;
-	}
-
-	// add basis functions
-	for (int i = 0; i < 4; i++)
-	{
-		int kn = k + i - 2;
-		kn = std::clamp(kn, 0, num - 1);
-
-		const signed char* co = coefs + 4 * i;
-		const float b = 0.5f * (((co[0] * h + co[1]) * h + co[2]) * h + co[3]);
-
-		for (int j = 0; j < dim; j++)
-		{
-			int index = kn * size + j + 1;
-			if (index >= num)
-				break;
-
-			v[j] += b * key[index];
-		}
-	}
 }
 
 float math::ease::in_sine(float time)
@@ -401,6 +380,7 @@ bool math::is_sharp_angle(const DirectX::XMFLOAT3& pointA, const DirectX::XMFLOA
 //	クォータニオンからオイラー角に変換
 DirectX::XMFLOAT3 math::convert_rotation_matrix_to_euler(DirectX::XMFLOAT4X4 rotation)
 {
+#if 0
 	//	ZXY回転
 	DirectX::XMFLOAT3 euler;
 	if (1.0f - fabs(rotation.m[2][1]) < 1.0e-6f)
@@ -416,6 +396,13 @@ DirectX::XMFLOAT3 math::convert_rotation_matrix_to_euler(DirectX::XMFLOAT4X4 rot
 		euler.z = atan2f(rotation.m[0][1], rotation.m[1][1]);
 	}
 	return euler;
+#else
+    DirectX::XMVECTOR q = DirectX::XMQuaternionRotationMatrix(DirectX::XMLoadFloat4x4(&rotation));
+
+    DirectX::XMFLOAT4 quaternion;
+    DirectX::XMStoreFloat4(&quaternion, q);
+    return quaternion_to_euler(quaternion, euler_order::zxy);
+#endif
 }
 
 DirectX::XMFLOAT3 math::calculate_right(DirectX::XMFLOAT4 quaternion)
@@ -543,10 +530,14 @@ DirectX::XMFLOAT4 math::convert_quaternion(DirectX::XMFLOAT3 log_quaternion)
 
 DirectX::XMFLOAT3 math::convert_quaternion_to_euler(DirectX::XMFLOAT4 quaternion)
 {
+#if 0
 	DirectX::XMMATRIX Rotation = DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&quaternion));
 	DirectX::XMFLOAT4X4 rotation;
 	DirectX::XMStoreFloat4x4(&rotation, Rotation);
 	return math::convert_rotation_matrix_to_euler(rotation);
+#else
+	return quaternion_to_euler(quaternion, euler_order::zxy);
+#endif
 }
 
 DirectX::XMFLOAT3 math::quaternion_to_euler(DirectX::XMFLOAT4 q, euler_order order)
@@ -557,11 +548,12 @@ DirectX::XMFLOAT3 math::quaternion_to_euler(DirectX::XMFLOAT4 q, euler_order ord
 	const float z = q.z;
 	const float w = q.w;
 	DirectX::XMFLOAT3 result{};
+
 	switch (order)
 	{
-		case euler_order::XYZ:
+		case euler_order::zyx:
 		{
-			float ty = asinf(2 * x * z + 2 * y * w);
+			float ty = asinf(std::clamp(2 * x * z + 2 * y * w, -1.0f, 1.0f));
 			float cy = cosf(ty);
 			if (fabsf(cy) > EPSILON)
 			{
@@ -577,10 +569,10 @@ DirectX::XMFLOAT3 math::quaternion_to_euler(DirectX::XMFLOAT4 q, euler_order ord
 			}
 			break;
 		}
-		case euler_order::XZY:
+		case euler_order::yzx:
 		{
-			float tz = asinf(-(2 * x * y - 2 * z * w));
-			float cz = cos(tz);
+			float tz = asinf(std::clamp(-(2 * x * y - 2 * z * w), -1.0f, 1.0f));
+			float cz = cosf(tz);
 			if (fabsf(cz) > EPSILON)
 			{
 				result.x = atan2f(2 * y * z + 2 * x * w, 2 * w * w + 2 * y * y - 1.0f);
@@ -589,15 +581,15 @@ DirectX::XMFLOAT3 math::quaternion_to_euler(DirectX::XMFLOAT4 q, euler_order ord
 			}
 			else
 			{
-				result.x = atan2f(-(2 * x * z - 2 * x * w), 2 * w * w + 2 * z * z - 1.0f);
+				result.x = atan2f(-(2 * x * z - 2 * y * w), 2 * w * w + 2 * z * z - 1.0f);
 				result.y = 0;
 				result.z = cz < 0 ? DirectX::XM_PIDIV2 : -DirectX::XM_PIDIV2;	//	tz
 			}
 			break;
 		}
-		case euler_order::YXZ:
+		case euler_order::zxy:
 		{
-			float tx = asinf(-(2 * y * z - 2 * x * w));
+			float tx = asinf(std::clamp(-(2 * y * z - 2 * x * w), -1.0f, 1.0f));
 			float cx = cos(tx);
 			if (fabsf(cx) > EPSILON)
 			{
@@ -608,14 +600,14 @@ DirectX::XMFLOAT3 math::quaternion_to_euler(DirectX::XMFLOAT4 q, euler_order ord
 			else
 			{
 				result.x = cx < 0 ? DirectX::XM_PIDIV2 : -DirectX::XM_PIDIV2;	//	tx
-				result.y = atan2f(-(2 * x * z - 2 * y * w), 2 * 2 + x * x - 1.0f);
+				result.y = atan2f(-(2 * x * z - 2 * y * w), 2 * w * w + 2 * x * x - 1.0f);
 				result.z = 0;
 			}
 			break;
 		}
-		case euler_order::YZX:
+		case euler_order::xzy:
 		{
-			float tz = asinf(2 * x * y + 2 * z * w);
+			float tz = asinf(std::clamp(2 * x * y + 2 * z * w, -1.0f, 1.0f));
 			float cz = cosf(tz);
 			if (fabsf(cz) > EPSILON)
 			{
@@ -631,9 +623,9 @@ DirectX::XMFLOAT3 math::quaternion_to_euler(DirectX::XMFLOAT4 q, euler_order ord
 			}
 			break;
 		}
-		case euler_order::ZXY:
+		case euler_order::yxz:
 		{
-			float tx = asinf(2 * y * z + 2 * x * w);
+			float tx = asinf(std::clamp(2 * y * z + 2 * x * w, -1.0f, 1.0f));
 			float cx = cosf(tx);
 			if (fabsf(cx) > EPSILON)
 			{
@@ -649,9 +641,9 @@ DirectX::XMFLOAT3 math::quaternion_to_euler(DirectX::XMFLOAT4 q, euler_order ord
 			}
 			break;
 		}
-		case euler_order::ZYX:
+		case euler_order::xyz:
 		{
-			float ty = asinf(-(2 * x * z - 2 * y * w));
+			float ty = asinf(std::clamp(-(2 * x * z - 2 * y * w), -1.0f, 1.0f));
 			float cy = cosf(ty);
 			if (fabsf(cy) > EPSILON)
 			{
@@ -685,37 +677,37 @@ DirectX::XMFLOAT4 math::euler_to_quaternion(DirectX::XMFLOAT3 e, euler_order ord
 	DirectX::XMFLOAT4 r;
 	switch (order)
 	{
-		case euler_order::XYZ:
+		case euler_order::xyz:
 			r.x	=  cx * sy * sz + sx * cy * cz;
 			r.y	= -sx * cy * sz + cx * sy * cz;
 			r.z	=  cx * cy * sz + sx * sy * cz;
 			r.w	= -sx * sy * sz + cx * cy * cz;
 			break;
-		case euler_order::XZY:
+		case euler_order::xzy:
 			r.x	= -cx * sy * sz + sx * cy * cz;
 			r.y	=  cx * sy * cz - sx * cy * sz;
 			r.z	=  sx * sy * cz + cx * cy * sz;
 			r.w	=  sx * sy * sz + cx * cy * cz;
 			break;
-		case euler_order::YXZ:
+		case euler_order::yxz:
 			r.x	=  cx * sy * sz + sx * cy * cz;
 			r.y	= -sx * cy * sz + cx * sy * cz;
 			r.z	=  cx * cy * sz - sx * sy * cz;
 			r.w	=  sx * sy * sz + cx * cy * cz;
 			break;
-		case euler_order::YZX:
+		case euler_order::yzx:
 			r.x	=  sx * cy * cz + cx * sy * sz;
 			r.y	=  sx * cy * sz + cx * sy * cz;
 			r.z	= -sx * sy * cz + cx * cy * sz;
 			r.w	= -sx * sy * sz + cx * cy * cz;
 			break;
-		case euler_order::ZXY:
+		case euler_order::zxy:
 			r.x	= -cx * sy * sz + sx * cy * cz;
 			r.y	=  cx * sy * cz + sx * cy * sz;
 			r.z	=  sx * sy * cz + cx * cy * sz;
 			r.w	= -sx * sy * sz + cx * cy * cz;
 			break;
-		case euler_order::ZYX:
+		case euler_order::zyx:
 			r.x	=  sx * cy * cz - cx * sy * sz;
 			r.y	=  sx * cy * sz + cx * sy * cz;
 			r.z	= -sx * sy * cz + cx * cy * sz;
@@ -723,14 +715,6 @@ DirectX::XMFLOAT4 math::euler_to_quaternion(DirectX::XMFLOAT3 e, euler_order ord
 			break;
 	}
 
-	//	w < 0以下の場合は反転しておく
-	if (r.w < 0)
-	{
-		r.x	= -r.x;
-		r.y	= -r.y;
-		r.z	= -r.z;
-		r.w	= -r.w;
-	}
 	return r;
 }
 

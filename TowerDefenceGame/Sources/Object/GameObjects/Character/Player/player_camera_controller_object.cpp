@@ -316,15 +316,16 @@ void player_camera_controller_object::fixed_update_default(float elapsed_time)
 		camera_position.y += min_y_offset * focus_y_min_offset + max_y_offset * focus_y_max_offset;
 		//	•¨‘Ì‚Æ“–‚½‚è”»’è
 		{
-			collision_world::ray_cast_descs desc;
+			collision_world::sphere_cast_descs desc;
 			desc.filter = collision_filter_manager::instance()->search_filter("camera");
 			desc.start = focus;
 			desc.end = camera_position;
+			desc.radius = 1.0f;
 
 			//	ƒqƒbƒgˆ—
 			collision::intersect_data intersect_data;
 			collision_object_ptr hit_collision_object;
-			if (object_manager::instance()->get_world().ray_cast(desc, intersect_data, hit_collision_object))
+			if (object_manager::instance()->get_world().sphere_cast(desc, intersect_data, hit_collision_object))
 			{
 				float length = intersect_data[0].length;
 				DirectX::XMFLOAT3 vector;

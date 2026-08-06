@@ -60,6 +60,8 @@ namespace collision
 		bool intersect_box(const bounding_box& box, intersect_data* intersect = nullptr) const override;
 		bool intersect_mesh(const bounding_mesh& mesh, intersect_data* intersect = nullptr) const override;
 
+		bool intersect_sphere_cast(const DirectX::XMFLOAT3& start, const DirectX::XMFLOAT3& end, float radius, intersect_data* intersect = nullptr) const override;
+
 		void include_corner(DirectX::XMFLOAT3& min, DirectX::XMFLOAT3& max) const override;
 
 	private:
@@ -68,21 +70,12 @@ namespace collision
 		bool intersect_segment_inner_moller(const DirectX::XMFLOAT3& start, const DirectX::XMFLOAT3& end, const std::vector<size_t>& triangle_indices, intersect_data* intersect = nullptr) const;
 		bool intersect_sphere_inner(const DirectX::XMFLOAT3& point, float radius, const std::vector<size_t>& triangle_indices, intersect_data* intersect = nullptr) const;
 		bool intersect_capsule_inner(const bounding_capsule& local_capsule, DirectX::XMVECTOR CapsuleMin, DirectX::XMVECTOR CapsuleMax, DirectX::XMMATRIX TransformMatrix, const std::vector<size_t>& triangle_indices, intersect_data* intersect = nullptr) const;
+		bool intersect_box_inner(DirectX::XMVECTOR Center, DirectX::XMVECTOR AxisX, DirectX::XMVECTOR AxisY, DirectX::XMVECTOR AxisZ, const DirectX::XMFLOAT3& half_extent, DirectX::XMVECTOR BoxMin, DirectX::XMVECTOR BoxMax, const std::vector<size_t>& triangle_indices, intersect_data* intersect = nullptr) const;
+		bool intersect_sphere_cast_inner(const collision::line& sweep_line, float radius, const std::vector<size_t>& triangle_indices, intersect_data* intersect = nullptr) const;
 
 	private:
-		bool XM_CALLCONV calculate_nearlest_point(DirectX::XMVECTOR P,
-									  DirectX::XMVECTOR A, DirectX::XMVECTOR B, DirectX::XMVECTOR C,
-									  DirectX::XMVECTOR EdgeAB, DirectX::XMVECTOR EdgeBC, DirectX::XMVECTOR EdgeAC,
-									  DirectX::XMVECTOR& NearlestPoint) const;
-		bool XM_CALLCONV intersect_ray(DirectX::XMVECTOR Start, DirectX::XMVECTOR Direction,
-						   DirectX::XMVECTOR A, DirectX::XMVECTOR B, DirectX::XMVECTOR C,
-						   DirectX::XMVECTOR EdgeAB, DirectX::XMVECTOR EdgeBC, DirectX::XMVECTOR EdgeCA, DirectX::XMVECTOR Normal,
-						   DirectX::XMVECTOR& InsertPoint, float& distance, float max_delta = 1.0f) const;
-		bool XM_CALLCONV intersect_ray_moller(DirectX::XMVECTOR Start, DirectX::XMVECTOR Direction,
-											  DirectX::XMVECTOR A, DirectX::XMVECTOR B, DirectX::XMVECTOR C,
-											  DirectX::XMVECTOR EdgeAB, DirectX::XMVECTOR EdgeCA,
-											  DirectX::XMVECTOR& InsertPoint, float& distance, float max_delta = 1.0f) const;
-		float calculate_segment_distance(const collision::line& line, const triangle& triangle, DirectX::XMFLOAT3& nearlest_point_segment, DirectX::XMFLOAT3& nearlest_point_triangle, bool& nearlest_point_edghFlg) const;
+		float calculate_segment_distance(const collision::line& line, const triangle& triangle,
+										 DirectX::XMFLOAT3& nearlest_point_segment, DirectX::XMFLOAT3& nearlest_point_triangle, bool& nearlest_point_edghFlg) const;
 
 	private:
 		std::vector<DirectX::XMFLOAT3> positions;

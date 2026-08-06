@@ -50,7 +50,7 @@ bool bounding_sphere::intersect_segment(const DirectX::XMFLOAT3& start, const Di
 	return intersect_segment(Start, End, intersect);
 }
 
-bool bounding_sphere::intersect_segment(const DirectX::XMVECTOR& Start, const DirectX::XMVECTOR& End, intersect_data* intersect) const
+bool bounding_sphere::intersect_segment(DirectX::XMVECTOR Start, DirectX::XMVECTOR End, intersect_data* intersect) const
 {
 	DirectX::XMVECTOR Direction = DirectX::XMVectorSubtract(End, Start);
 	float distance = DirectX::XMVectorGetX(DirectX::XMVector3Length(Direction));
@@ -111,6 +111,29 @@ bool bounding_sphere::intersect_box(const bounding_box& box, intersect_data* int
 bool bounding_sphere::intersect_mesh(const bounding_mesh& mesh, intersect_data* intersect) const
 {
 	return	mesh.intersect_sphere(*this, intersect);
+}
+
+
+bool bounding_sphere::intersect_sphere_cast(const DirectX::XMFLOAT3& start, const DirectX::XMFLOAT3& end, float radius, intersect_data* intersect) const
+{
+	DirectX::XMVECTOR Start = DirectX::XMLoadFloat3(&start);
+	DirectX::XMVECTOR End = DirectX::XMLoadFloat3(&end);
+	DirectX::XMVECTOR SphereCenter = DirectX::XMLoadFloat3(&get_position());
+ 
+	DirectX::XMVECTOR HitPosition;
+	float hit_distance;
+	if (intersect_ray_vs_sphere(Start, End, SphereCenter, get_radius() + radius, HitPosition, hit_distance) && hit_distance > 0.0f)
+	{
+		DirectX::XMVECTOR Vec = DirectX::XMVector3Normalize(DirectX::XMVectorSubtract(SphereCenter, HitPosition));
+		HitPosition = DirectX::XMVectorAdd(HitPosition, DirectX::XMVectorScale(Vec, radius));
+		DirectX::XMFLOAT3 point, normal;
+		DirectX::XMStoreFloat3(&point, HitPosition);
+		DirectX::XMStoreFloat3(&normal, Vec);
+		intersect->add(point, normal, hit_distance);
+		return true;
+	}
+
+	return false;
 }
 
 void bounding_sphere::include_corner(DirectX::XMFLOAT3& min, DirectX::XMFLOAT3& max) const

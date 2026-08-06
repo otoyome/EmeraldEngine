@@ -1,6 +1,6 @@
 #pragma	once
 
-#include "math.h"
+#include "math_utility.h"
 
 //	簡易的なアニメーション計算用構造体
 namespace common_animation

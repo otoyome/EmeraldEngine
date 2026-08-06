@@ -28,6 +28,9 @@ namespace collision
 		bool intersect_box(const bounding_box& box, intersect_data* intersect = nullptr) const override;
 		bool intersect_mesh(const bounding_mesh& mesh, intersect_data* intersect = nullptr) const override;
 
+		bool intersect_sphere_cast(const DirectX::XMFLOAT3& start, const DirectX::XMFLOAT3& end, float radius, intersect_data* intersect = nullptr) const override;
+		bool intersect_sphere_cast(DirectX::XMVECTOR Start, DirectX::XMVECTOR End, float radius, intersect_data* intersect = nullptr) const;
+
 		void include_corner(DirectX::XMFLOAT3& min, DirectX::XMFLOAT3& max) const override;
 
 	public:
@@ -56,20 +59,17 @@ namespace collision
 
 			float calculate_point_to_length(const DirectX::XMFLOAT3& point) const;
 			bool intersect_point(const DirectX::XMFLOAT3& point) const override;
-
 			bool intersect_segment(const DirectX::XMFLOAT3& start, const DirectX::XMFLOAT3& end, intersect_data* intersect = nullptr) const override;
-
 			bool intersect_sphere(const DirectX::XMFLOAT3& point, float radius, intersect_data* intersect = nullptr) const;
-
 			bool intersect_sphere(const bounding_sphere& sphere, intersect_data* intersect = nullptr) const override;
-
 			bool intersect_capsule(const bounding_capsule& capsule, intersect_data* intersect = nullptr) const override;
-
 			bool intersect_box(const bounding_box& box, intersect_data* intersect = nullptr) const override;
-
 			bool intersect_box(const axis_aligned_bounding_box& box) const;
-
 			bool intersect_mesh(const bounding_mesh& mesh, intersect_data* intersect = nullptr) const override;
+
+			//	@remainder	ñ¢åüèÿ
+			bool intersect_sphere_cast(const DirectX::XMFLOAT3& start, const DirectX::XMFLOAT3& end, float radius, intersect_data* intersect = nullptr) const override;
+			bool intersect_sphere_cast(DirectX::XMVECTOR Start, DirectX::XMVECTOR End, float radius, intersect_data* intersect = nullptr) const;
 
 			void include_corner(DirectX::XMFLOAT3& min, DirectX::XMFLOAT3& max) const;
 			void include_corner(DirectX::XMVECTOR& Min, DirectX::XMVECTOR& Max) const;

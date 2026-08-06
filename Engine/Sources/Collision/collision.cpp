@@ -158,7 +158,7 @@ bool collision::ray_cast(const DirectX::XMFLOAT3& start, const DirectX::XMFLOAT3
 	return ray_cast_32(Start, End, triangles, result);
 }
 
-bool collision::ray_cast(const DirectX::XMVECTOR& Start, const DirectX::XMVECTOR& End, const triangles& triangles, intersect_data* result)
+bool collision::ray_cast(DirectX::XMVECTOR Start, DirectX::XMVECTOR End, const triangles& triangles, intersect_data* result)
 {
 	if (triangles.indices_stride_16)
 		return ray_cast_16(Start, End, triangles, result);
@@ -166,7 +166,7 @@ bool collision::ray_cast(const DirectX::XMVECTOR& Start, const DirectX::XMVECTOR
 	return ray_cast_32(Start, End, triangles, result);
 }
 
-bool collision::ray_cast_16(const DirectX::XMVECTOR& Start, const DirectX::XMVECTOR& End, const triangles& triangles, intersect_data* result)
+bool collision::ray_cast_16(DirectX::XMVECTOR Start, DirectX::XMVECTOR End, const triangles& triangles, intersect_data* result)
 {
 	DirectX::XMVECTOR Vec = DirectX::XMVectorSubtract(End, Start);
 	DirectX::XMVECTOR Dir = DirectX::XMVector3Normalize(Vec);
@@ -246,7 +246,7 @@ bool collision::ray_cast_16(const DirectX::XMVECTOR& Start, const DirectX::XMVEC
 	return	hit;
 }
 
-bool collision::ray_cast_32(const DirectX::XMVECTOR& Start, const DirectX::XMVECTOR& End, const triangles& triangles, intersect_data* result)
+bool collision::ray_cast_32(DirectX::XMVECTOR Start, DirectX::XMVECTOR End, const triangles& triangles, intersect_data* result)
 {
 	DirectX::XMVECTOR Vec = DirectX::XMVectorSubtract(End, Start);
 	DirectX::XMVECTOR Dir = DirectX::XMVector3Normalize(Vec);
@@ -324,4 +324,116 @@ bool collision::ray_cast_32(const DirectX::XMVECTOR& Start, const DirectX::XMVEC
 		result->add(infomation);
 	}
 	return	hit;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+bool XM_CALLCONV collision::intersect_ray_vs_sphere(DirectX::XMVECTOR start, DirectX::XMVECTOR end,
+													DirectX::XMVECTOR sphere_pos, float radius,
+													DirectX::XMVECTOR& hit_pos, float& hit_distance)
+{
+	DirectX::XMVECTOR direction = DirectX::XMVectorSubtract(end, start);
+	DirectX::XMVECTOR direction_normalize = DirectX::XMVector3Normalize(direction);
+	DirectX::XMVECTOR ray2sphere = DirectX::XMVectorSubtract(sphere_pos, start);
+	float projection = DirectX::XMVectorGetX(DirectX::XMVector3Dot(ray2sphere, direction_normalize));
+
+	float dist_sq = DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(ray2sphere)) - projection * projection;
+	if (dist_sq < radius * radius)
+	{
+		hit_distance = projection - sqrtf(radius * radius - dist_sq);
+		if (hit_distance > 0.0f)
+		{
+			if (hit_distance < DirectX::XMVectorGetX(DirectX::XMVector3Length(direction)))
+			{
+				hit_pos = DirectX::XMVectorAdd(start, DirectX::XMVectorScale(direction_normalize, hit_distance));
+				return true;
+			}
+		}
+	}
+
+	hit_distance = 0.0f;
+	hit_pos = DirectX::XMVectorZero();
+	return false;
+}
+
+bool XM_CALLCONV collision::intersect_ray_vs_cylinder(DirectX::XMVECTOR start, DirectX::XMVECTOR end,
+													  DirectX::XMVECTOR start_cylinder, DirectX::XMVECTOR end_cylinder,
+													  float radius, DirectX::XMVECTOR& hit_pos, float& hit_distance)
+{
+	DirectX::XMVECTOR d = DirectX::XMVectorSubtract(end_cylinder, start_cylinder);
+	DirectX::XMVECTOR m = DirectX::XMVectorSubtract(start, start_cylinder);
+	DirectX::XMVECTOR n = DirectX::XMVectorSubtract(end, start);
+
+	float md = DirectX::XMVectorGetX(DirectX::XMVector3Dot(m, d));
+	float nd = DirectX::XMVectorGetX(DirectX::XMVector3Dot(n, d));
+	float dd = DirectX::XMVectorGetX(DirectX::XMVector3Dot(d, d));
+
+	//	線分が円柱のどちらかの底面に対して完全に外側にあるかどうかを判定
+	if (md < 0.0f && md + nd < 0.0f)
+		return false;	//	線分が円柱のstart_cylinderの外側にある
+
+	if (md > dd && md + nd > dd)
+		return false;	//	線分が円柱のend_cylinderの外側にある
+
+	float nn = DirectX::XMVectorGetX(DirectX::XMVector3Dot(n, n));
+	float a = dd * nn - nd * nd;
+	float k = DirectX::XMVectorGetX(DirectX::XMVector3Dot(m, m)) - radius * radius;
+	float c = dd * k - md * md;
+
+	//	線分が円柱の軸に対して平行
+	if (fabsf(a) < 0.0001f)		//	誤差が出やすい計算なので閾値は大きめ（0.0001f）
+	{
+		if (c > 0.0f)
+			return false;	//	線分は円柱の外側
+		return true;
+	}
+
+	//	線分が円柱の軸に対して平行でない
+	//	円柱の表面を表す陰関数方程式と直線の方程式の解を求めて交差判定を行う。
+	float mn = DirectX::XMVectorGetX(DirectX::XMVector3Dot(m, n));
+	float b = dd * mn - nd * md;
+	float D = b * b - a * c;	//	判別式
+
+	if (D < 0.0f)
+		return false;	//	実数解がないので交差していない
+
+	hit_distance = (-b - sqrtf(D)) / a;
+	if (hit_distance < 0.0f)
+	{
+		hit_distance = (-b + sqrtf(D)) / a;
+		if (hit_distance < 0.0f)
+			return false;	//	交点が線分の外側にあり交差していない
+	}
+	else if (hit_distance > 1.0f)
+	{
+		hit_distance = (-b + sqrtf(D)) / a;
+		if (hit_distance > 1.0f)
+			return false;	//	交点が線分の外側にあり交差していない
+	}
+
+	if (md + hit_distance * nd < 0.0f)
+	{
+		//	円柱のstart_cylinder側の底面の外で交差
+		float t = -md / nd;
+		if (k + t * (2.0f * mn + t * nn) > 0.0f)
+			return false;
+		hit_distance = t;
+	}
+	else if (md + hit_distance * nd > dd)
+	{
+		//	円柱のend_cylinder側の底面の外で交差
+		float t = (dd - md) / nd;
+		if (k + dd - 2.0f * md + t * (2.0f * (mn - nd) + t * nn) > 0.0f)
+			return false;
+		hit_distance = t;
+	}
+
+	//	線分が円柱の底面と底面の間で交差している
+	if (hit_distance >= 0.0f && hit_distance <= 1.0f)
+	{
+		hit_pos = DirectX::XMVectorAdd(start, DirectX::XMVectorScale(n, hit_distance));
+		hit_distance *= DirectX::XMVectorGetX(DirectX::XMVector3Length(n));
+		return true;
+	}
+
+	return false;
 }
