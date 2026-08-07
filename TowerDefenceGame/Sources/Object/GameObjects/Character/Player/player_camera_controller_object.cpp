@@ -320,7 +320,7 @@ void player_camera_controller_object::fixed_update_default(float elapsed_time)
 			desc.filter = collision_filter_manager::instance()->search_filter("camera");
 			desc.start = focus;
 			desc.end = camera_position;
-			desc.radius = 1.0f;
+			desc.radius = system_units::convert_m_to_unit(0.5f);
 
 			//	ƒqƒbƒgˆ—
 			collision::intersect_data intersect_data;

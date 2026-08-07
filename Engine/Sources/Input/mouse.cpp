@@ -93,6 +93,7 @@ void mouse::set_viewport_size(const DirectX::XMINT2& size)
 
 void mouse::update_state()
 {
+	bool current_cursol_hide = cursol_hide;
 	position_states new_position_state;
 	{
 		RECT rc;
@@ -107,34 +108,33 @@ void mouse::update_state()
 			{
 				input_key_state[index] = ::GetAsyncKeyState(KeyMap[index]) & 0x8000;
 			}
+
 			//	カーソル座標
+			POINT cursor;
+			::GetCursorPos(&cursor);
+
+			//	移動ベクトルを算出
+			if (window_center_lock)
 			{
-				POINT cursor;
-				::GetCursorPos(&cursor);
+				//	クライアント中心をスクリーン座標に変換
+				POINT center{ static_cast<LONG>(screen_width / 2), static_cast<LONG>(screen_height / 2) };
+				::ClientToScreen(hwnd, &center);
 
-				//	移動ベクトルを算出
-				if (window_center_lock)
-				{
-					//	クライアント中心をスクリーン座標に変換
-					POINT center{ static_cast<LONG>(screen_width / 2), static_cast<LONG>(screen_height / 2) };
-					::ClientToScreen(hwnd, &center);
+				//	マウス座標を中心点に固定化
+				move_vector.x = cursor.x - center.x;
+				move_vector.y = cursor.y - center.y;
 
-					//	マウス座標を中心点に固定化
-					move_vector.x = cursor.x - center.x;
-					move_vector.y = cursor.y - center.y;
+				::SetCursorPos(center.x, center.y);
+			}
 
-					::SetCursorPos(center.x, center.y);
-				}
-
-				//	座標算出
-				::ScreenToClient(hwnd, &cursor);
-				new_position_state.position.x = rc.left + static_cast<LONG>(cursor.x / static_cast<float>(viewport_size.x) * static_cast<float>(screen_width));
-				new_position_state.position.y = rc.top + static_cast<LONG>(cursor.y / static_cast<float>(viewport_size.y) * static_cast<float>(screen_height));
-				if (!window_center_lock)
-				{
-					move_vector.x = new_position_state.position.x - position_state.position.x;
-					move_vector.y = new_position_state.position.y - position_state.position.y;
-				}
+			//	座標算出
+			::ScreenToClient(hwnd, &cursor);
+			new_position_state.position.x = rc.left + static_cast<LONG>(cursor.x / static_cast<float>(viewport_size.x) * static_cast<float>(screen_width));
+			new_position_state.position.y = rc.top + static_cast<LONG>(cursor.y / static_cast<float>(viewport_size.y) * static_cast<float>(screen_height));
+			if (!window_center_lock)
+			{
+				move_vector.x = new_position_state.position.x - position_state.position.x;
+				move_vector.y = new_position_state.position.y - position_state.position.y;
 			}
 
 			//	ホイール
@@ -156,6 +156,9 @@ void mouse::update_state()
 			::ScreenToClient(hwnd, &cursor);
 			new_position_state.position.x = static_cast<LONG>(cursor.x / static_cast<float>(viewport_size.x) * static_cast<float>(screen_width));
 			new_position_state.position.y = static_cast<LONG>(cursor.y / static_cast<float>(viewport_size.y) * static_cast<float>(screen_height));
+
+			//	カーソル表示化
+			current_cursol_hide = false;
 		}
 
 		//	入力状況を保存
@@ -187,18 +190,18 @@ void mouse::update_state()
 		}
 	}
 
-	//	カーソル非表示化
+	//	カーソル表示/非表示処理
 	static bool cursol_hide_inner = !cursol_hide;
-	if (cursol_hide_inner != cursol_hide)
+	if (cursol_hide_inner != current_cursol_hide)
 	{
-		cursol_hide_inner = cursol_hide;
+		cursol_hide_inner = current_cursol_hide;
 
 		int count;
 		do
 		{
-			count = ::ShowCursor(!cursol_hide);
+			count = ::ShowCursor(!current_cursol_hide);
 		}
-		while ((cursol_hide && count >= 0) || (!cursol_hide && count < 0));
+		while ((current_cursol_hide && count >= 0) || (!current_cursol_hide && count < 0));
 	}
 
 	position_state = new_position_state;

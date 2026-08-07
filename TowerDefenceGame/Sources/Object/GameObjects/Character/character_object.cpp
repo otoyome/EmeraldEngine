@@ -62,6 +62,7 @@ character_object::character_object(std::string_view name, std::shared_ptr<model_
 , move_vector(0.0f, 0.0f)
 , turn_front_vector(0.0f, 0.0f)
 , velocity(0.0f, 0.0f, 0.0f)
+, root_motion_velocity(0.0f, 0.0f, 0.0f)
 , accelaration(system_units::convert_m_to_unit(6.0f))
 , breaking_deceleration(system_units::convert_m_to_unit(6.0f))
 , max_move_speed(system_units::convert_m_to_unit(15.0f))
@@ -87,8 +88,8 @@ character_object::character_object(std::string_view name, std::shared_ptr<model_
 
 	//	ルートモーション情報の受け取り
 	model->set_apply_root_animation_transform(false);
-	model->register_root_animation_translation_callback([this](const DirectX::XMFLOAT3& translation) {on_root_animation_translation(translation);});
-	model->register_root_animation_rotation_callback([this](const DirectX::XMFLOAT4& rotation) {on_root_animation_rotation(rotation);});
+	model->register_root_animation_translation_callback([this](const DirectX::XMFLOAT3& translation, float delta_time) {on_root_animation_translation(translation, delta_time);});
+	model->register_root_animation_rotation_callback([this](const DirectX::XMFLOAT4& rotation, float delta_time) {on_root_animation_rotation(rotation, delta_time);});
 
 	set_elapsed_time_scale(1.0f);
 
@@ -1082,24 +1083,21 @@ void character_object::on_push_box_stay(collision_object::data data)
 		set_position(push_box->get_position());
 }
 
-void character_object::on_root_animation_translation(const DirectX::XMFLOAT3& translation)
+void character_object::on_root_animation_translation(const DirectX::XMFLOAT3& translation, float delta_time)
 {
-	//	Y方向は直接設定する
-	DirectX::XMFLOAT3 position = get_position();
-	position.y += translation.y;
-
-	position.x += translation.x;
-	position.z += translation.z;
-
-	set_position(position);
+	float normalized_value = (system_units::convert_fps_to_sec(1.0f) / std::max(delta_time, 0.000001f));
+	root_motion_velocity.x = translation.x * normalized_value;
+	root_motion_velocity.y = translation.y * normalized_value;
+	root_motion_velocity.z = translation.z * normalized_value;
 }
 
-void character_object::on_root_animation_rotation(const DirectX::XMFLOAT4& rotation)
+void character_object::on_root_animation_rotation(const DirectX::XMFLOAT4& rotation, float delta_time)
 {
+	float normalized_value = (system_units::convert_fps_to_sec(1.0f) / std::max(delta_time, 0.000001f));
 	math::rotator rotator = rotation;
-	rotator.x = get_rotation().x + rotator.x;
-	rotator.y = get_rotation().y + rotator.y;
-	rotator.z = get_rotation().z + rotator.z;
+	rotator.x = get_rotation().x + rotator.x * normalized_value;
+	rotator.y = get_rotation().y + rotator.y * normalized_value;
+	rotator.z = get_rotation().z + rotator.z * normalized_value;
 	set_rotation(rotator);
 }
 

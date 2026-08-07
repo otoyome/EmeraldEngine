@@ -460,7 +460,7 @@ void model_object::update_node_animation(const animation::data& animation_data, 
 
 				//	コールバック呼び出し
 				if (on_root_animation_translation)
-					on_root_animation_translation(world_translation);
+					on_root_animation_translation(world_translation, current_time - previous_time);
 			}
 
 			if (animation_data.root_rotation)
@@ -508,7 +508,7 @@ void model_object::update_node_animation(const animation::data& animation_data, 
 				}
 				//	コールバック呼び出し
 				if (on_root_animation_rotation)
-					on_root_animation_rotation(local_rotation);
+					on_root_animation_rotation(local_rotation, current_time - previous_time);
 			}
 		}
 	}

@@ -299,12 +299,7 @@ bool collision_world::sphere_cast(const sphere_cast_descs& desc, collision::inte
 
 		if (!find && object->get_bounding_object()->intersect_sphere_cast(desc.start, desc.end, desc.radius, &data))
 		{
-			if (intersect_data.size() == 0)
-			{
-				intersect_data = data;
-				out_collision = object;
-			}
-			else if (data[0].length < intersect_data[0].length)
+			if (intersect_data.size() == 0 || data[0].length < intersect_data[0].length)
 			{
 				intersect_data = data;
 				out_collision = object;

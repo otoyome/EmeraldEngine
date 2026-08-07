@@ -84,8 +84,8 @@ void object_manager::updates(float elapsed_time)
 			add_objects();
 
 			//	“–‚½‚è”»’è
-			world.step(fixed_per_second, 1, system_units::convert_fps_to_sec(1.0f));
-			//world.step(fixed_per_second, 4, system_units::convert_fps_to_sec(0.25f));
+			//world.step(fixed_per_second, 1, system_units::convert_fps_to_sec(1.0f));
+			world.step(fixed_per_second);
 
 			temporary_elapsed_time -= fixed_per_second;
 		}

@@ -24,7 +24,6 @@ bool stage_00_scene::initialize_core()
 	register_object(std::make_shared<directional_light_object>("平行光源"));
 
 	//	その他光源設定
-	if (0)
 	{
 		auto point = std::make_shared<point_light_object>("点光源");
 		point->set_flag(light::flags::use_shadow, false);
@@ -65,23 +64,22 @@ bool stage_00_scene::initialize_core()
 		std::filesystem::path path(file_path);
 		assert (std::filesystem::exists(path));
 
-		//	モデル準備
-		{
-			auto model = std::make_shared<model_object>("ステージ", path.string());
-			model->get_model_instance()->set_flag(model_instance::flags::culling, true);
-			model->get_model_instance()->set_flag(model_instance::flags::shadow_caster, true);
-			register_object(model);
+		//	ステージ
+		auto model = std::make_shared<model_object>("ステージ", path.string());
+		model->get_model_instance()->set_flag(model_instance::flags::culling, true);
+		model->get_model_instance()->set_flag(model_instance::flags::shadow_caster, true);
 
-			auto stage = std::make_shared<stage_object>("ステージ制御", model);
-			register_object(stage);
+		auto stage = std::make_shared<stage_object>("ステージ制御", model);
 
-			//	メッシュ分当たり判定生成
-			DirectX::XMMATRIX transform;
-			transform = DirectX::XMMatrixScalingFromVector(DirectX::XMLoadFloat3(&stage->get_scale()))
-					  * DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&stage->get_rotation().convert_quaternion()))
-					  * DirectX::XMMatrixTranslationFromVector(DirectX::XMLoadFloat3(&stage->get_position()));
-			generate_model_collision(model->get_model_instance()->get_resource(), transform, separate_level);
-		}
+		//	メッシュ分当たり判定生成
+		DirectX::XMMATRIX transform;
+		transform = DirectX::XMMatrixScalingFromVector(DirectX::XMLoadFloat3(&stage->get_scale()))
+					* DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&stage->get_rotation().convert_quaternion()))
+					* DirectX::XMMatrixTranslationFromVector(DirectX::XMLoadFloat3(&stage->get_position()));
+		generate_model_collision(model->get_model_instance()->get_resource(), transform, separate_level);
+
+		register_object(model);
+		register_object(stage);
 	}
 
 	return true;

@@ -380,10 +380,33 @@ bool XM_CALLCONV collision::intersect_ray_vs_cylinder(DirectX::XMVECTOR start, D
 	float c = dd * k - md * md;
 
 	//	線分が円柱の軸に対して平行
-	if (fabsf(a) < 0.0001f)		//	誤差が出やすい計算なので閾値は大きめ（0.0001f）
+	if (fabsf(a) < 0.0001f)
 	{
 		if (c > 0.0f)
 			return false;	//	線分は円柱の外側
+
+		float t = 0.0f;
+		if (md < 0.0f)
+		{
+			//	start_cylinder側の底面より手前から始まっている
+			if (nd <= 0.0f)
+				return false;	//	底面に向かって進んでいない（ここには来ないはず）
+			t = -md / nd;
+		}
+		else if (md > dd)
+		{
+			//	end_cylinder側の底面より先から始まっている
+			if (nd >= 0.0f)
+				return false;	//	底面に向かって進んでいない（ここには来ないはず）
+			t = (dd - md) / nd;
+		}
+
+		//	交点が線分の範囲外
+		if (t < 0.0f || t > 1.0f)
+			return false;
+
+		hit_pos = DirectX::XMVectorAdd(start, DirectX::XMVectorScale(n, t));
+		hit_distance = t * DirectX::XMVectorGetX(DirectX::XMVector3Length(n));
 		return true;
 	}
 

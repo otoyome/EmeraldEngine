@@ -430,8 +430,8 @@ protected:
 	virtual void on_push_box_enter(collision_object::data data);
 	virtual void on_push_box_stay(collision_object::data data);
 
-	virtual void on_root_animation_translation(const DirectX::XMFLOAT3& translation);
-	virtual void on_root_animation_rotation(const DirectX::XMFLOAT4& rotation);
+	virtual void on_root_animation_translation(const DirectX::XMFLOAT3& translation, float delta_time);
+	virtual void on_root_animation_rotation(const DirectX::XMFLOAT4& rotation, float delta_time);
 
 	virtual void on_change_camera_translucent(bool flag) {}
 
@@ -593,6 +593,7 @@ private:
 	DirectX::XMFLOAT2 move_vector; // 移動方向
 	DirectX::XMFLOAT2 turn_front_vector; // 回転方向
 	DirectX::XMFLOAT3 velocity; // 速度(m/s)
+	DirectX::XMFLOAT3 root_motion_velocity; // ルートモーションの移動量(m/s)
 	float accelaration; // 加速量(m/s2)
 	float breaking_deceleration; // 減速量(m/s2)
 	float max_move_speed; // 最大速度(m/s)

@@ -56,6 +56,13 @@ void character_object::fixed_update(float elapsed_time)
 	update_horizontal_move(elapsed_time);
 	update_vertical_move(elapsed_time);
 
+	//	ルートモーションの速度リセット
+	{
+		root_motion_velocity.x =
+		root_motion_velocity.y =
+		root_motion_velocity.z = 0.0f;
+	}
+
 	//	傾き適応
 	{
 		set_rotation({get_rotation().x, get_rotation().y, roll_value});
@@ -231,13 +238,8 @@ void character_object::update_rotation(float elapsed_time)
 
 void character_object::update_vertical_velocity(float elapsed_time)
 {
-	//	今回の更新での重力加速度
-	frame_gravity.x = world_gravity.x * gravity_scale * elapsed_time;
 	frame_gravity.y = world_gravity.y * gravity_scale * elapsed_time;
-	frame_gravity.z = world_gravity.z * gravity_scale * elapsed_time;
-	velocity.x += frame_gravity.x;
 	velocity.y += frame_gravity.y;
-	velocity.z += frame_gravity.z;
 }
 
 void character_object::update_vertical_move(float elapsed_time)
@@ -247,19 +249,17 @@ void character_object::update_vertical_move(float elapsed_time)
 	slope_rate = 1.0f;
 	ground_normal = {};
 
-	//	ステップオフセット
-	float step_offset = 0.0f;
-	if (is_flag(flags::on_ground))
-		step_offset = -step_offset * 0.5f;
-
 	set_flag(flags::on_ground, false);
+
+	//	ルートモーションの速度加算
+	DirectX::XMFLOAT3 vel = DirectX::XMFLOAT3(0.0f, velocity.y * elapsed_time + root_motion_velocity.y, 0.0f);
 
 	//	座標算出
 	DirectX::XMFLOAT3 position, normal;
 	float fricition = 0;
-	if (calculate_position(DirectX::XMFLOAT3(0.0f, velocity.y * elapsed_time + step_offset, 0.0f), true, position, normal, &fricition))
+	if (calculate_position(vel, true, position, normal, &fricition))
 	{
-		if (velocity.y < 0)
+		if (vel.y < 0)
 		{
 			set_flag(flags::on_ground, true);
 			ground_normal = normal;
@@ -365,11 +365,14 @@ void character_object::update_horizontal_velocity(float elapsed_time)
 
 void character_object::update_horizontal_move(float elapsed_time)
 {
-	if (velocity.x * velocity.x + velocity.z * velocity.z <= 0.001f * 0.001f)
+	//	ルートモーションの速度加算
+	DirectX::XMFLOAT3 vel = DirectX::XMFLOAT3(velocity.x * elapsed_time + root_motion_velocity.x, 0.0f, velocity.z * elapsed_time + root_motion_velocity.z);
+	if (vel.x * vel.x + vel.z * vel.z <= 0.001f * 0.001f)
 		return;
 
+	//	座標算出
 	DirectX::XMFLOAT3 new_position, normal;
-	calculate_position(DirectX::XMFLOAT3(velocity.x * elapsed_time, 0.0f, velocity.z * elapsed_time), false, new_position, normal);
+	calculate_position(vel, false, new_position, normal);
 	set_position(new_position);
 }
 
@@ -448,7 +451,7 @@ bool character_object::calculate_position(DirectX::XMFLOAT3 velocity, bool verti
 
 	//	オフセット位置を算出
 	float height = bounding_object->get_radius() + bounding_object->get_length() * 0.5f;
-	DirectX::XMVECTOR Offset = DirectX::XMVectorSet(0.0f, height + step_offset * is_flag(flags::on_ground), 0.0f, 0.0f);
+	DirectX::XMVECTOR Offset = DirectX::XMVectorSet(0.0f, height, 0.0f, 0.0f);
 
 	collision_world::sphere_cast_descs desc;
 	desc.radius = bounding_object->get_radius();
@@ -472,11 +475,6 @@ bool character_object::calculate_position(DirectX::XMFLOAT3 velocity, bool verti
 
 		static constexpr float SkinStep = 0.01f;
 		distance = sqrtf(distance) + SkinStep;
-		if (vertical)
-		{
-			if (is_flag(flags::on_ground))
-				distance += step_offset;
-		}
 
 		//	進行ベクトル補正
 		DirectX::XMVECTOR NormalizedVelocity = DirectX::XMVector3Normalize(Velocity);
@@ -507,17 +505,12 @@ bool character_object::calculate_position(DirectX::XMFLOAT3 velocity, bool verti
 			if (vertical)
 			{
 				hit_distance += desc.radius;
-				if (is_flag(flags::on_ground))
-					hit_distance -= step_offset;
 			}
-			hit_distance = std::max(hit_distance, 0.0f);
 
 			DirectX::XMVECTOR RemainVelocity = DirectX::XMVectorScale(NormalizedVelocity, hit_distance);
 			DirectX::XMVECTOR Position = DirectX::XMVectorAdd(From, RemainVelocity);
 			if (!vertical)
-			{
 				Position = DirectX::XMVectorSubtract(Position, Offset);
-			}
 			DirectX::XMStoreFloat3(&out_position, Position);
 
 			DirectX::XMVECTOR Normal = DirectX::XMVector3Normalize(DirectX::XMLoadFloat3(&intersect_data[0].normal));
@@ -539,19 +532,33 @@ bool character_object::calculate_position(DirectX::XMFLOAT3 velocity, bool verti
 
 			MoveVector = DirectX::XMVectorSubtract(To, From);
 			float remain_distance = DirectX::XMVectorGetX(DirectX::XMVector3Length(MoveVector)) - hit_distance;
-			MoveVector = DirectX::XMVectorScale(DirectX::XMVector3Normalize(MoveVector), std::max(remain_distance, 0.0f));
+			MoveVector = DirectX::XMVectorScale(DirectX::XMVector3Normalize(MoveVector), math::clamp(remain_distance, 0.0f, distance));
 
 			//	壁ずりベクトル算出
 			DirectX::XMVECTOR Dot = DirectX::XMVector3Dot(MoveVector, Normal);
 			Normal = DirectX::XMVectorScale(Normal, DirectX::XMVectorGetX(Dot) * 1.005f);
 			Velocity = DirectX::XMVectorSubtract(MoveVector, Normal);
+
+			if (vertical &&
+				((velocity.y < 0 && DirectX::XMVectorGetY(Velocity) > velocity.y) || (velocity.y > 0 && DirectX::XMVectorGetY(Velocity) < velocity.y)))
+				break;
 		}
 		else
 		{
-			DirectX::XMStoreFloat3(&out_position, DirectX::XMVectorAdd(DirectX::XMLoadFloat3(&out_position), Velocity));
+			DirectX::XMVECTOR Position = DirectX::XMVectorAdd(From, Velocity);
+			DirectX::XMStoreFloat3(&out_position, DirectX::XMVectorSubtract(Position, Offset));
 			hit_flag = false;
 			break;
 		}
 	}
+
+	auto A = DirectX::XMLoadFloat3(&get_position());
+	auto B = DirectX::XMLoadFloat3(&out_position);
+	if (DirectX::XMVectorGetX(DirectX::XMVector3Length(DirectX::XMVectorSubtract(A, B))) >= 100.0f)
+	{
+		int ii = 0;
+		++ii;
+	}
+
 	return hit_flag;
 }

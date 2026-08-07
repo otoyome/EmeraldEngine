@@ -16,8 +16,8 @@ class model_object : public game_object
 	GAME_OBJECT_DECRLEAR(model_object, game_object)
 
 public:
-	using call_back_root_animation_translation = std::function<void(const DirectX::XMFLOAT3&)>;
-	using call_back_root_animation_rotation = std::function<void(const DirectX::XMFLOAT4&)>;
+	using call_back_root_animation_translation = std::function<void(const DirectX::XMFLOAT3&, float)>;
+	using call_back_root_animation_rotation = std::function<void(const DirectX::XMFLOAT4&, float)>;
 	struct ik_data
 	{
 		bool visible = false;

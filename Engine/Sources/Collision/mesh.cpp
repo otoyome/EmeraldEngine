@@ -136,7 +136,6 @@ namespace
 		std::vector<UINT> order_list;
 		order_list.reserve(axis_count.x * axis_count.y * axis_count.z);
 
-	#if 01
 		const UINT base_index_x = static_cast<UINT>((min.x - area_min.x) / area_unit.x);
 		const UINT base_index_y = static_cast<UINT>((min.y - area_min.y) / area_unit.y);
 		const UINT base_index_z = static_cast<UINT>((min.z - area_min.z) / area_unit.z);
@@ -158,37 +157,6 @@ namespace
 				}
 			}
 		}
-	#else
-		DirectX::XMFLOAT3 point = min, p;
-		for (UINT x = 0; x < axis_count.x; ++x)
-		{
-			p.x = (point.x - area_min.x) / area_unit.x;
-			UINT index_x = static_cast<UINT>(p.x);
-			float reserve_y = point.y;
-			for (UINT y = 0; y < axis_count.y; ++y)
-			{
-				p.y = (point.y - area_min.y) / area_unit.y;
-				UINT index_y = static_cast<UINT>(p.y);
-				UINT index_xy = index_x + index_y * separate_count.x;
-				float reserve_z = point.z;
-				for (UINT z = 0; z < axis_count.z; ++z)
-				{
-					p.z = (point.z - area_min.z) / area_unit.z;
-					UINT index_z = static_cast<UINT>(p.z);
-					UINT index = index_xy + index_z * square_separate_count;
-					if (index < cube_separate_count)
-					{
-						order_list.emplace_back(index);
-					}
-					point.z += area_unit.z;
-				}
-				point.y += area_unit.y;
-				point.z = reserve_z;
-			}
-			point.x += area_unit.x;
-			point.y = reserve_y;
-		}
-	#endif
 		return order_list;
 	}
 
@@ -1398,30 +1366,31 @@ bool bounding_mesh::intersect_sphere_cast_inner(const collision::line& sweep_lin
 		//	三角形の法線（正規化しない：後続の平面判定のスケールに用いるため）
 		DirectX::XMVECTOR Norm = DirectX::XMVector3Cross(EdgeAB, EdgeAC);
 		float d = DirectX::XMVectorGetX(DirectX::XMVector3Dot(Norm, qp));
-		if (d < 0.0f)
-			continue;	//	表側から接近している場合のみ判定する
 
 		bool triangle_hit = false;
 		float hit_distance = 0.0f;
 		DirectX::XMVECTOR hit_position = {};
 
-		//	面領域の判定（球半径分オフセットした三角形との交差）
-		DirectX::XMVECTOR fix_vec = DirectX::XMVectorScale(DirectX::XMVector3Normalize(Norm), radius);
-		DirectX::XMVECTOR ap = DirectX::XMVectorSubtract(Start, DirectX::XMVectorAdd(TriangleA, fix_vec));
-		float plane_t = DirectX::XMVectorGetX(DirectX::XMVector3Dot(Norm, ap));
-		if (plane_t >= 0.0f && plane_t < d)
+		if (d >= 0.0f)	//	表側から接近している場合のみ判定する
 		{
-			DirectX::XMVECTOR e = DirectX::XMVector3Cross(qp, ap);
-			float v = DirectX::XMVectorGetX(DirectX::XMVector3Dot(EdgeAC, e));
-			if (v >= 0.0f && v <= d)
+			//	面領域の判定（球半径分オフセットした三角形との交差）
+			DirectX::XMVECTOR fix_vec = DirectX::XMVectorScale(DirectX::XMVector3Normalize(Norm), radius);
+			DirectX::XMVECTOR ap = DirectX::XMVectorSubtract(Start, DirectX::XMVectorAdd(TriangleA, fix_vec));
+			float plane_t = DirectX::XMVectorGetX(DirectX::XMVector3Dot(Norm, ap));
+			if (plane_t >= 0.0f && plane_t < d)
 			{
-				float w = -DirectX::XMVectorGetX(DirectX::XMVector3Dot(EdgeAB, e));
-				if (w > 0.0f && v + w <= d)
+				DirectX::XMVECTOR e = DirectX::XMVector3Cross(qp, ap);
+				float v = DirectX::XMVectorGetX(DirectX::XMVector3Dot(EdgeAC, e));
+				if (v >= 0.0f && v <= d)
 				{
-					DirectX::XMVECTOR cross_pos = DirectX::XMVectorAdd(Start, DirectX::XMVectorScale(qp, -plane_t / d));
-					hit_distance = DirectX::XMVectorGetX(DirectX::XMVector3Length(DirectX::XMVectorSubtract(cross_pos, Start)));
-					hit_position = DirectX::XMVectorSubtract(cross_pos, fix_vec);
-					triangle_hit = true;
+					float w = -DirectX::XMVectorGetX(DirectX::XMVector3Dot(EdgeAB, e));
+					if (w > 0.0f && v + w <= d)
+					{
+						DirectX::XMVECTOR cross_pos = DirectX::XMVectorAdd(Start, DirectX::XMVectorScale(qp, -plane_t / d));
+						hit_distance = DirectX::XMVectorGetX(DirectX::XMVector3Length(DirectX::XMVectorSubtract(cross_pos, Start)));
+						hit_position = DirectX::XMVectorSubtract(cross_pos, fix_vec);
+						triangle_hit = true;
+					}
 				}
 			}
 		}
@@ -1443,7 +1412,7 @@ bool bounding_mesh::intersect_sphere_cast_inner(const collision::line& sweep_lin
 				if (dist_sq < radius * radius)
 				{
 					float dist = projection - sqrtf(radius * radius - dist_sq);
-					if (bound_distance > dist)
+					if (bound_distance > dist && dist >= 0)
 					{
 						bound_distance = dist;
 						hit_distance = dist;
@@ -1487,8 +1456,8 @@ bool bounding_mesh::intersect_sphere_cast_inner(const collision::line& sweep_lin
 		{
 			nearlest_distance = hit_distance;
 			nearlest_triangle_pos = hit_position;
-			nearlest_normal = DirectX::XMLoadFloat3(&triangle->normal);
-			//nearlest_normal = DirectX::XMVector3Normalize(Norm);
+			//nearlest_normal = DirectX::XMLoadFloat3(&triangle->normal);
+			nearlest_normal = DirectX::XMVector3Normalize(Norm);
 			hit_flag = true;
 		}
 	}
@@ -1537,16 +1506,9 @@ bool bounding_mesh::intersect_sphere_cast(const DirectX::XMFLOAT3& start, const 
 			intersect_data data;
 			if (intersect_sphere_cast_inner(sweep_line, radius, node.triangles, &data))
 			{
-				if (intersect->size() == 0)
+				if (intersect->size() == 0 || data[0].length < (*intersect)[0].length)
 				{
 					*intersect = data;
-				}
-				else
-				{
-					if (data[0].length < (*intersect)[0].length)
-					{
-						*intersect = data;
-					}
 				}
 				hit = true;
 			}
