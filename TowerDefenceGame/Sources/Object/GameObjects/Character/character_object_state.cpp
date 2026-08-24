@@ -395,15 +395,15 @@ void character_object::update_horizontal_velocity(float elapsed_time)
 	}
 
 	//	坂道補正処理
-	//if (is_flag(flags::on_ground) && slope_rate > 0.0f)
-	//{
-	//	float speed_sq = velocity.x * velocity.x + velocity.z * velocity.z;
-	//	if (speed_sq > FLT_EPSILON)
-	//	{
-	//		float speed = sqrtf(speed_sq);
-	//		velocity.y -= speed * slope_rate * elapsed_time;
-	//	}
-	//}
+	if (is_flag(flags::on_ground) && slope_rate > 0.0f)
+	{
+		float speed_sq = velocity.x * velocity.x + velocity.z * velocity.z;
+		if (speed_sq > FLT_EPSILON)
+		{
+			float speed = sqrtf(speed_sq);
+			velocity.y -= speed * slope_rate * elapsed_time;
+		}
+	}
 }
 
 void character_object::update_horizontal_move(float elapsed_time)
@@ -562,30 +562,21 @@ bool character_object::calculate_position(DirectX::XMFLOAT3 velocity, bool verti
 			DirectX::XMVECTOR OffsetNormal = Normal;
 			if (!vertical)
 			{
-				//	水平パス時は壁刷り法線調整
 				OffsetNormal = DirectX::XMVectorSetY(OffsetNormal, 0.0f);
-				if (DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(OffsetNormal)) > 1e-6f)
-					OffsetNormal = DirectX::XMVector3Normalize(OffsetNormal);
-				else
-					OffsetNormal = DirectX::XMVectorZero();
 			}
 			else
 			{
-				//	垂直パス時は壁刷り法線調整
 				OffsetNormal = DirectX::XMVectorSetX(OffsetNormal, 0.0f);
 				OffsetNormal = DirectX::XMVectorSetZ(OffsetNormal, 0.0f);
-				if (DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(OffsetNormal)) > 1e-6f)
-					OffsetNormal = DirectX::XMVector3Normalize(OffsetNormal);
-				else
-					OffsetNormal = DirectX::XMVectorZero();
 			}
+			OffsetNormal = (DirectX::XMVectorGetX(OffsetNormal) > 1e-6f) ? DirectX::XMVector3Normalize(OffsetNormal) : DirectX::XMVectorZero();
 			Position = DirectX::XMVectorAdd(Position, DirectX::XMVectorScale(OffsetNormal, SkinStep));
 			Position = DirectX::XMVectorSubtract(Position, PositionOffset);
 			DirectX::XMStoreFloat3(&out_position, Position);
 
-			//	摩擦係数を物理マテリアルから取得してくる
 			if (out_friction)
 			{
+				//	摩擦係数を物理マテリアルから取得してくる
 				*out_friction = hit_collision_object->get_physical_data().friction;
 			}
 
@@ -609,15 +600,12 @@ bool character_object::calculate_position(DirectX::XMFLOAT3 velocity, bool verti
 			{
 				//	水平パス時は法線調整
 				Normal = DirectX::XMVectorSetY(Normal, 0.0f);
-				DirectX::XMVECTOR length_sq = DirectX::XMVector3LengthSq(Normal);
-				if (DirectX::XMVectorGetX(length_sq) > 1e-6f)
-					Normal = DirectX::XMVector3Normalize(Normal);
-				else
-					Normal = DirectX::XMVectorZero();
+				DirectX::XMVECTOR LengthSq = DirectX::XMVector3LengthSq(Normal);
+				Normal = (DirectX::XMVectorGetX(LengthSq) > 1e-6f) ? DirectX::XMVector3Normalize(Normal) : DirectX::XMVectorZero();
 			}
 			MoveVector = DirectX::XMVectorScale(DirectX::XMVector3Normalize(MoveVector), distance);
 			DirectX::XMVECTOR Dot = DirectX::XMVector3Dot(MoveVector, Normal);
-			DirectX::XMVECTOR NormalComponent = DirectX::XMVectorScale(Normal, DirectX::XMVectorGetX(Dot) * 1.0005f);
+			DirectX::XMVECTOR NormalComponent = DirectX::XMVectorScale(Normal, DirectX::XMVectorGetX(Dot) * 1.005f);
 			Velocity = DirectX::XMVectorSubtract(MoveVector, NormalComponent);
 		}
 		else

@@ -8,6 +8,9 @@ model_instance_ptr model_object::get_model_instance()
 
 ik_resource_ptr model_object::get_ik_resource()
 {
+	if (!ik_solver)
+		return nullptr;
+
 	return ik_solver->get_resource();
 }
 
@@ -315,6 +318,9 @@ void model_object::set_animation_loop(bool flag)
 
 bool model_object::set_ik_behavior_datas(std::string_view name, const ik_data& data)
 {
+	if (!ik_solver)
+		return false;
+
 	std::string data_name = std::string(name);
 	auto& data_list = ik_solver->get_behavior_data_list();
 	auto it = std::find_if(data_list.begin(),
@@ -334,6 +340,8 @@ bool model_object::set_ik_behavior_datas(size_t index, const ik_data& data)
 
 size_t model_object::search_ik_behavior_index(std::string_view name) const
 {
+	if (!ik_solver)
+		return ik_resource::invalid_id;
 	std::string data_name = std::string(name);
 	auto& data_list = ik_solver->get_behavior_data_list();
 	auto it = std::find_if(data_list.begin(),
@@ -352,6 +360,11 @@ void model_object::on_deactive()
 {
 	if (model_instance)
 		model_instance->set_flag(model_instance::flags::active, false);
+}
+
+void model_object::on_finalize()
+{
+	ik_solver.reset();
 }
 
 void model_object::update_node_animation(const animation::data& animation_data, float current_time, float previous_time)
@@ -781,7 +794,7 @@ void model_object::imgui_render_core()
 	}
 
 	//	IK
-	if (ImGui::TreeNode("ik list"))
+	if (ik_solver && ImGui::TreeNode("ik list"))
 	{
 		UINT ik_node_index = 0;
 		auto& datas = ik_solver->get_resource()->get_behavior_data_list();

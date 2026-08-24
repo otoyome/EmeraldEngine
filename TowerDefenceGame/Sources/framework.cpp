@@ -45,7 +45,7 @@ int framework::run()
 
 	if (!initialize())
 	{
-		return 0;
+		return uninitialize();
 	}
 
 	imgui_initialize();
@@ -206,7 +206,7 @@ bool framework::initialize()
 
 		scene_renderers.emplace_back(std::make_unique<depth_prepass_renderer>(render_executor, render_targets));
 		scene_renderers.emplace_back(std::make_unique<gbuffer_renderer>(render_executor, render_targets));
-		//	ÉfÉJÅ[Éã
+		scene_renderers.emplace_back(std::make_unique<gbuffer_decal_renderer>(render_executor, render_targets));
 		//	SSAO
 		scene_renderers.emplace_back(std::make_unique<deffered_lighting_renderer>(render_executor, render_targets));
 		scene_renderers.emplace_back(std::make_unique<screen_space_reflection_renderer>(render_executor, render_targets));
@@ -724,6 +724,8 @@ bool framework::uninitialize()
 		object_manager::instance()->finalize();
 		object_manager::delete_instance();
 	}
+	collision_filter_manager::delete_instance();
+
 #if defined(USE_IMGUI)
 	editor_items::terminate();
 #endif // defined(USE_IMGUI)

@@ -208,6 +208,174 @@ void gbuffer_renderer::resize_buffer(int width, int height)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+gbuffer_decal_renderer::gbuffer_decal_renderer(std::shared_ptr<scene_render_targets> render_targets)
+: renderer(job_executor)
+, render_targets(render_targets)
+, viewport({ 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f })
+{
+	//	バッファ生成
+	texture2d_ptr texture = std::static_pointer_cast<texture2d>(render_targets->scene_color_texture);
+	if (texture)
+	{
+		resize_buffer(texture->get_desc().Width, texture->get_desc().Height);
+	}
+
+	//	書き込み用デフォルトプリミティブ
+	cube = std::make_unique<geometric_cube>(render_data::instance()->get_device().Get());
+}
+
+gbuffer_decal_renderer::~gbuffer_decal_renderer()
+{
+}
+
+void gbuffer_decal_renderer::render(renderer_context& renderer_context)
+{
+	job_executor.execute([this, renderer_context](graphics_context& context)
+	{
+		//	法線/深度コピー
+		{
+			Microsoft::WRL::ComPtr<ID3D11Resource> destination, source;
+			render_targets->work_buffer_rgba32float_texture->get_shader_resource_view()->GetResource(destination.ReleaseAndGetAddressOf());
+			render_targets->g_buffer_textures[static_cast<UINT>(common_pipeline_states::gbuffer_id::normal_depth)]->get_shader_resource_view()->GetResource(source.ReleaseAndGetAddressOf());
+			context.device_context->CopyResource(destination.Get(), source.Get());
+		}
+
+		//	描画先設定
+		rendering_pass.activate(context.device_context);
+
+		//	デカール
+		{
+			//	ビューポートの設定
+			context.device_context->RSSetViewports(1, &viewport);
+
+			//	カメラ球体
+			collision::bounding_sphere sphere;
+			{
+				DirectX::XMFLOAT3 center;
+				center.x = context.scene_constant.camera_position.x;
+				center.y = context.scene_constant.camera_position.y;
+				center.z = context.scene_constant.camera_position.z;
+				sphere = collision::bounding_sphere(center, context.scene_constant.camera_clip_distance.x * 1.01f);
+			}
+
+			//	必要なテクスチャを設定
+			{
+				context.g_buffer_textures[static_cast<UINT>(common_pipeline_states::gbuffer_id::normal_depth)] = render_targets->work_buffer_rgba32float_texture;
+				context.g_buffer_textures[static_cast<UINT>(common_pipeline_states::gbuffer_id::unique_data)] = render_targets->g_buffer_textures[static_cast<UINT>(common_pipeline_states::gbuffer_id::unique_data)];
+			}
+
+			//	デカール描画
+			for (auto& decal : context.render_data->decal_container.decal_datas)
+			{
+				//	バッファ情報生成
+				buffer_datas data;
+				{
+					auto& mesh = data.color_meshs.emplace_back();
+					mesh.vertex_buffer_views = &cube->get_vertex_buffer_views();
+					mesh.index_buffer_view = &cube->get_index_buffer_view();
+					DirectX::XMMATRIX W = DirectX::XMMatrixScaling(decal.scale.x, decal.scale.y, decal.scale.z)
+						* DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&decal.rotation.convert_quaternion()))
+						* DirectX::XMMatrixTranslation(decal.position.x, decal.position.y, decal.position.z);
+					data.transform_matrices[0].emplace_back();
+					DirectX::XMStoreFloat4x4(&data.transform_matrices[0].back(), W);
+				}
+
+				//	ステンシル書き込み
+				if (auto pipeline_state = decal.material.material->get_pipeline_state(material::surface_paths::depth_write_pass))
+				{
+					pipeline_state->begin(context);
+					pipeline_state->update_parameters(context, *decal.material.material, &data);
+					scene_renderer_commons::draw_indexed(context, 0.0f, data, pipeline_state);
+					pipeline_state->end(context);
+				}
+
+				//	デカール書き込み
+				collision::bounding_box box = collision::bounding_box(decal.scale, decal.rotation, decal.position);
+				if (sphere.intersection(&box))
+				{
+					if (auto pipeline_state = decal.material.material->get_pipeline_state(material::surface_paths::shadow_write_pass))
+					{
+						pipeline_state->begin(context);
+						pipeline_state->update_parameters(context, *decal.material.material, &data);
+						scene_renderer_commons::draw_indexed(context, 0.0f, data, pipeline_state);
+						pipeline_state->end(context);
+					}
+				}
+				else
+				{
+					if (auto pipeline_state = decal.material.material->get_pipeline_state(material::surface_paths::g_buffer_pass))
+					{
+						pipeline_state->begin(context);
+						pipeline_state->update_parameters(context, *decal.material.material, &data);
+						scene_renderer_commons::draw_indexed(context, 0.0f, data, pipeline_state);
+						pipeline_state->end(context);
+					}
+				}
+			}
+
+			rendering_pass.deactivate(context.device_context);
+		}
+
+		context.g_buffer_textures[static_cast<UINT>(common_pipeline_states::gbuffer_id::normal_depth)] = render_targets->g_buffer_textures[static_cast<UINT>(common_pipeline_states::gbuffer_id::normal_depth)];
+	}, "gbuffer_pass", renderer_context, get_render_basis_sort_order());
+}
+
+void gbuffer_decal_renderer::resize_buffer(int width, int height)
+{
+	if (viewport.Width == static_cast<float>(width) && viewport.Height == static_cast<float>(height))
+		return;
+
+	//	GBufferパス生成
+	{
+#if 01
+		{
+			rendering_pass.render_targets.emplace_back(render_targets->g_buffer_textures[static_cast<int>(common_pipeline_states::gbuffer_id::base_color)]);
+			auto& rtv = rendering_pass.render_targets.back();
+			rtv.clear_color = false;
+		}
+		{
+			rendering_pass.render_targets.emplace_back(render_targets->g_buffer_textures[static_cast<int>(common_pipeline_states::gbuffer_id::normal_depth)]);
+			auto& rtv = rendering_pass.render_targets.back();
+			rtv.clear_color = false;
+		}
+#else
+		FLOAT clear_color[][4] =
+		{
+			{ 0.0f, 0.0f, 0.0f, 0.0f },
+			{ 0.0f, 0.0f, 0.0f, 0.0f },
+			{ 0.0f, 0.0f, 0.0f, 1.0f },
+			{ 0.0f, 0.0f, 0.0f, 0.0f },
+			{ 0.0f, 0.0f, 0.0f, 0.0f },
+			{ 0.0f, 0.0f, 0.0f, 0.0f },
+
+			{ 0.0f, 0.0f, 0.0f, 0.0f },
+		};
+		for (int i = 0; i < static_cast<int>(common_pipeline_states::gbuffer_id::max); ++i)
+		{
+			rendering_pass.render_targets.emplace_back(render_targets->g_buffer_textures[i]);
+			auto& rtv = rendering_pass.render_targets.back();
+			rtv.clear_color = false;
+		}
+#endif
+		D3D11_DEPTH_STENCIL_VIEW_DESC depth_stencil_view_desc{};
+		depth_stencil_view_desc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+		depth_stencil_view_desc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+		depth_stencil_view_desc.Texture2D.MipSlice = 0;
+		rendering_pass.depth_stencil = depth_stencil_view(render_targets->scene_depth_stencil_texture, &depth_stencil_view_desc);
+		rendering_pass.depth_stencil.clear_depth = false;
+		rendering_pass.depth_stencil.clear_stencil = true;
+	}
+
+	// ビューポートの設定
+	viewport.TopLeftX = 0.0f;
+	viewport.TopLeftY = 0.0f;
+	viewport.Width = static_cast<float>(width);
+	viewport.Height = static_cast<float>(height);
+	viewport.MinDepth = 0.0f;
+	viewport.MaxDepth = 1.0f;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 deffered_lighting_renderer::deffered_lighting_renderer(render_job_registrar job_executor, std::shared_ptr<scene_render_targets> render_targets)
 : renderer(job_executor)
 , render_targets(render_targets)

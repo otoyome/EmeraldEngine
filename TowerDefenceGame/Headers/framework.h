@@ -17,8 +17,6 @@ extern ImWchar glyphRangesJapanese[];
 #include "Renderer/renderer.h"
 #include "Renderer/scene_render_targets.h"
 
-#include "graphics/compute_particle_system.h"
-
 class framework
 {
 public:
@@ -66,9 +64,6 @@ private:
 
 	//	描画用の一部情報
 	render_pass back_buffer_clear_rendering_pass;
-
-	//	コンピュートパーティクル
-	std::shared_ptr<compute_particle_system> particle_system;
 
 #if defined(USE_IMGUI)
 	//	ImGui用

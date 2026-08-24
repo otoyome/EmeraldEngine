@@ -128,6 +128,23 @@ struct effect_container
 	}
 };
 
+//	デカール情報
+struct decal_datas
+{
+	DirectX::XMFLOAT3 scale;
+	math::rotator rotation;
+	DirectX::XMFLOAT3 position;
+	material_datas material;
+};
+struct decal_container
+{
+	std::vector<decal_datas> decal_datas;
+	void clear()
+	{
+		decal_datas.clear();
+	}
+};
+
 #if defined(USE_IMGUI)
 //	デバッグ描画情報コンテナ
 struct debug_draw_primitive_container
@@ -151,6 +168,7 @@ struct render_data_context
 	mesh_container mesh_container;
 	sprite_container sprite_container;
 	effect_container effect_container;
+	decal_container decal_container;
 #if defined(USE_IMGUI)
 	debug_draw_primitive_container debug_draw_container;
 #endif // defined(USE_IMGUI)

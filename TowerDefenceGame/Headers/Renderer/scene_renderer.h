@@ -56,6 +56,30 @@ private:
 };
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
+//	GBufferデカール
+class gbuffer_decal_renderer : public renderer
+{
+public:
+	renderer_domain get_domain() const override { return renderer_domain::g_buffer_decal_pass; }
+
+public:
+	gbuffer_decal_renderer(std::shared_ptr<scene_render_targets> render_targets);
+	~gbuffer_decal_renderer() override;
+
+	void render(renderer_context& context) override;
+
+	void resize_buffer(int width, int height) override;
+
+private:
+	std::shared_ptr<scene_render_targets> render_targets;
+	render_pass normal_depth_copy_rendering_pass;
+	render_pass rendering_pass;
+	D3D11_VIEWPORT viewport;
+
+	std::unique_ptr<geometric_cube> cube;
+};
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////
 //	ディファードライティング
 class deffered_lighting_renderer : public renderer
 {
