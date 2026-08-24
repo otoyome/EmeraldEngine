@@ -18,6 +18,7 @@ namespace collision
 			DirectX::XMFLOAT3 normal;		//	–@ü
 			DirectX::XMFLOAT3 ab, bc, ca;	//	•Ó
 			DirectX::XMFLOAT3 min, max;		//	Å¬Å‘å
+			collision::line lab, lbc, lca;	//	ü•ª
 			template<class Archive>
 			void serialize(Archive& archive, int version);
 		};

@@ -166,7 +166,6 @@ void mouse::update_state()
 		{
 			if (input_key_state[index])
 			{
-					
 				if (key_state[index] == input::state::none || key_state[index] == input::state::release)
 				{
 					key_state[index] = input::state::down;

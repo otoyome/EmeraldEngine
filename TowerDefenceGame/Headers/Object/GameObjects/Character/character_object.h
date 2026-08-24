@@ -541,6 +541,8 @@ protected:
 #undef DECLEAR_STATE
 
 private:
+	float get_air_drag_coefficient() const;
+
 	void update_rotation(float elapsed_time);
 	void update_vertical_velocity(float elapsed_time);
 	void update_vertical_move(float elapsed_time);

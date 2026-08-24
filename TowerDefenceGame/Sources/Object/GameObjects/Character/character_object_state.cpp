@@ -235,10 +235,30 @@ void character_object::update_rotation(float elapsed_time)
 	set_rotation(rotator);
 }
 
+float character_object::get_air_drag_coefficient() const
+{
+	//	空気抵抗係数
+	static constexpr float air_drag_coefficient = 0.02f;
+	return air_drag_coefficient;
+}
+
 void character_object::update_vertical_velocity(float elapsed_time)
 {
 	frame_gravity.y = world_gravity.y * gravity_scale * elapsed_time;
 	velocity.y += frame_gravity.y;
+
+	//	空気抵抗
+	float speed_sq = velocity.y * velocity.y;
+	if (speed_sq > FLT_EPSILON)
+	{
+		float speed = sqrtf(speed_sq);
+		float drag_force = get_air_drag_coefficient() * speed_sq;
+		float drag_deceleration = (drag_force / get_push_box()->get_mass()) * elapsed_time;
+		drag_deceleration = std::min(drag_deceleration, speed);
+
+		float scale = (speed - drag_deceleration) / speed;
+		velocity.y *= scale;
+	}
 }
 
 void character_object::update_vertical_move(float elapsed_time)
@@ -325,41 +345,65 @@ void character_object::update_horizontal_velocity(float elapsed_time)
 		}
 	}
 
-	//	空気抵抗 fluid
+	//	空気抵抗
 	{
-		//	未対応
+		float speed_sq = velocity.x * velocity.x + velocity.z * velocity.z;
+		if (speed_sq > FLT_EPSILON)
+		{
+			float speed = sqrtf(speed_sq);
+			float drag_force = get_air_drag_coefficient() * speed_sq;
+			float drag_deceleration = (drag_force / get_push_box()->get_mass()) * elapsed_time;
+			drag_deceleration = std::min(drag_deceleration, speed);
+
+			float scale = (speed - drag_deceleration) / speed;
+			velocity.x *= scale;
+			velocity.z *= scale;
+		}
 	}
 
-	//	最大速度を超える時に追加減速
-	float length = velocity.x * velocity.x + velocity.z * velocity.z;
-	if (length > max_move_speed * max_move_speed || !input_move)
+	//	ブレーキング処理
+	if (!input_move)
 	{
-		float acceleration_force = breaking_deceleration * elapsed_time;
-		float frame_acceleration = acceleration_force / get_push_box()->get_mass();
-		float move_vector_x = velocity.x;
-		float move_vector_z = velocity.z;
-		move_length = velocity.x * velocity.x + velocity.z * velocity.z;
-		if (move_length <= frame_acceleration * frame_acceleration)
+		float breaking_force = breaking_deceleration * elapsed_time;
+		float breaking_acceleration = breaking_force / get_push_box()->get_mass();
+
+		float speed_sq = velocity.x * velocity.x + velocity.z * velocity.z;
+
+		if (speed_sq <= breaking_acceleration * breaking_acceleration)
 		{
 			velocity.x = 0.0f;
 			velocity.z = 0.0f;
 		}
-		else
+		else if (speed_sq > breaking_acceleration * breaking_acceleration)
 		{
-			move_length = sqrtf(move_length);
-			move_vector_x /= move_length;
-			move_vector_z /= move_length;
-			float new_length = move_length - frame_acceleration;
-			move_length = input_move ? std::max(max_move_speed, new_length) : new_length;
-			velocity.x = move_vector_x * move_length;
-			velocity.z = move_vector_z * move_length;
+			float speed = sqrtf(speed_sq);
+			float scale = (speed - breaking_acceleration) / speed;
+			velocity.x *= scale;
+			velocity.z *= scale;
 		}
 	}
 
-	if (is_flag(flags::on_ground) && slope_rate > 0.0f)
+	//	最大速度制限
 	{
-		velocity.y -= length * slope_rate;
+		float speed_sq = velocity.x * velocity.x + velocity.z * velocity.z;
+		if (speed_sq > max_move_speed * max_move_speed)
+		{
+			float scale = max_move_speed / sqrtf(speed_sq);
+			velocity.x *= scale;
+			velocity.z *= scale;
+		}
 	}
+
+	//	坂道補正処理
+	//if (is_flag(flags::on_ground) && slope_rate > 0.0f)
+	//{
+	//	float speed_sq = velocity.x * velocity.x + velocity.z * velocity.z;
+	//	if (speed_sq > FLT_EPSILON)
+	//	{
+	//		float speed = sqrtf(speed_sq);
+	//		velocity.y -= speed * slope_rate * elapsed_time;
+	//	}
+	//}
 }
 
 void character_object::update_horizontal_move(float elapsed_time)
@@ -464,15 +508,18 @@ bool character_object::calculate_position(DirectX::XMFLOAT3 velocity, bool verti
 	}
 	desc.exclude_objects.emplace_back(get_push_box());
 
+	static constexpr float StopFactor = system_units::convert_cm_to_unit(0.01f);
+	static constexpr float StopFactorSq = StopFactor * StopFactor;
+	static constexpr float SkinStep = system_units::convert_cm_to_unit(0.1f);
+
 	bool hit_flag = false;
 	DirectX::XMVECTOR Velocity = DirectX::XMLoadFloat3(&velocity);
-	for (size_t index = 0; index < 3; ++index)
+	for (size_t index = 0; index < 2; ++index)
 	{
 		float distance = DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(Velocity));
-		if (distance < 0.001f * 0.001f)
+		if (distance < StopFactorSq)
 			break;
 
-		static constexpr float SkinStep = 0.01f;
 		distance = sqrtf(distance) + SkinStep;
 
 		//	進行ベクトル補正
@@ -499,21 +546,42 @@ bool character_object::calculate_position(DirectX::XMFLOAT3 velocity, bool verti
 		if (object_manager::instance()->get_world().sphere_cast(desc, intersect_data, hit_collision_object))
 		{
 			hit_flag = true;
-			float hit_distance = intersect_data[0].length - SkinStep;
-
-			if (vertical)
-			{
-				hit_distance += desc.radius;
-			}
-
-			DirectX::XMVECTOR RemainVelocity = DirectX::XMVectorScale(NormalizedVelocity, hit_distance);
-			DirectX::XMVECTOR Position = DirectX::XMVectorAdd(From, RemainVelocity);
-			if (!vertical)
-				Position = DirectX::XMVectorSubtract(Position, Offset);
-			DirectX::XMStoreFloat3(&out_position, Position);
 
 			DirectX::XMVECTOR Normal = DirectX::XMVector3Normalize(DirectX::XMLoadFloat3(&intersect_data[0].normal));
 			DirectX::XMStoreFloat3(&out_normal, Normal);
+
+			DirectX::XMVECTOR PositionOffset = Offset;
+			if (vertical)
+			{
+				PositionOffset = (DirectX::XMVectorGetY(Velocity) < 0)
+					? DirectX::XMVectorSet(0.0f, desc.radius, 0.0f, 0.0f)
+					: DirectX::XMVectorSet(0.0f, 2.0f * height - desc.radius, 0.0f, 0.0f);
+			}
+
+			DirectX::XMVECTOR Position = DirectX::XMLoadFloat3(&intersect_data[0].point);
+			DirectX::XMVECTOR OffsetNormal = Normal;
+			if (!vertical)
+			{
+				//	水平パス時は壁刷り法線調整
+				OffsetNormal = DirectX::XMVectorSetY(OffsetNormal, 0.0f);
+				if (DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(OffsetNormal)) > 1e-6f)
+					OffsetNormal = DirectX::XMVector3Normalize(OffsetNormal);
+				else
+					OffsetNormal = DirectX::XMVectorZero();
+			}
+			else
+			{
+				//	垂直パス時は壁刷り法線調整
+				OffsetNormal = DirectX::XMVectorSetX(OffsetNormal, 0.0f);
+				OffsetNormal = DirectX::XMVectorSetZ(OffsetNormal, 0.0f);
+				if (DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(OffsetNormal)) > 1e-6f)
+					OffsetNormal = DirectX::XMVector3Normalize(OffsetNormal);
+				else
+					OffsetNormal = DirectX::XMVectorZero();
+			}
+			Position = DirectX::XMVectorAdd(Position, DirectX::XMVectorScale(OffsetNormal, SkinStep));
+			Position = DirectX::XMVectorSubtract(Position, PositionOffset);
+			DirectX::XMStoreFloat3(&out_position, Position);
 
 			//	摩擦係数を物理マテリアルから取得してくる
 			if (out_friction)
@@ -525,22 +593,32 @@ bool character_object::calculate_position(DirectX::XMFLOAT3 velocity, bool verti
 			{
 				float dot = DirectX::XMVectorGetX(DirectX::XMVector3Dot(Normal, DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f)));
 				float slope_angle = acosf(math::clamp(dot, -1.0f, 1.0f));
-				if (slope_angle >= slope_limit)
+				if (slope_angle < slope_limit)
 					break;
 			}
 
+			float hit_distance = intersect_data[0].length - SkinStep;
 			MoveVector = DirectX::XMVectorSubtract(To, From);
 			float remain_distance = DirectX::XMVectorGetX(DirectX::XMVector3Length(MoveVector)) - hit_distance;
-			MoveVector = DirectX::XMVectorScale(DirectX::XMVector3Normalize(MoveVector), math::clamp(remain_distance, 0.0f, distance));
+			distance = math::clamp(remain_distance, 0.0f, distance);
+			if (distance <= StopFactor)
+				break;
 
 			//	壁ずりベクトル算出
+			if (!vertical)
+			{
+				//	水平パス時は法線調整
+				Normal = DirectX::XMVectorSetY(Normal, 0.0f);
+				DirectX::XMVECTOR length_sq = DirectX::XMVector3LengthSq(Normal);
+				if (DirectX::XMVectorGetX(length_sq) > 1e-6f)
+					Normal = DirectX::XMVector3Normalize(Normal);
+				else
+					Normal = DirectX::XMVectorZero();
+			}
+			MoveVector = DirectX::XMVectorScale(DirectX::XMVector3Normalize(MoveVector), distance);
 			DirectX::XMVECTOR Dot = DirectX::XMVector3Dot(MoveVector, Normal);
-			Normal = DirectX::XMVectorScale(Normal, DirectX::XMVectorGetX(Dot) * 1.005f);
-			Velocity = DirectX::XMVectorSubtract(MoveVector, Normal);
-
-			if (vertical &&
-				((velocity.y < 0 && DirectX::XMVectorGetY(Velocity) > velocity.y) || (velocity.y > 0 && DirectX::XMVectorGetY(Velocity) < velocity.y)))
-				break;
+			DirectX::XMVECTOR NormalComponent = DirectX::XMVectorScale(Normal, DirectX::XMVectorGetX(Dot) * 1.0005f);
+			Velocity = DirectX::XMVectorSubtract(MoveVector, NormalComponent);
 		}
 		else
 		{

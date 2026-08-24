@@ -612,6 +612,9 @@ bool bounding_mesh::deserialize(std::string_view file_path)
 			auto Max = DirectX::XMVectorMax(A, DirectX::XMVectorMax(B, C));
 			DirectX::XMStoreFloat3(&triangle.min, Min);
 			DirectX::XMStoreFloat3(&triangle.max, Max);
+			triangle.lab = collision::line(collision::line::types::segment, *(p  + triangle.a), *(p  + triangle.b));
+			triangle.lbc = collision::line(collision::line::types::segment, *(p  + triangle.b), *(p  + triangle.c));
+			triangle.lca = collision::line(collision::line::types::segment, *(p  + triangle.c), *(p  + triangle.a));
 		}
 		return true;
 	}
@@ -1468,10 +1471,10 @@ bool bounding_mesh::intersect_sphere_cast_inner(const collision::line& sweep_lin
 		DirectX::XMVECTOR SphereCenterAtHit = DirectX::XMVectorAdd(Start, DirectX::XMVectorScale(SweepDirectionNormalize, nearlest_distance));
 
 		collision::intersect_data::infomation infomation;
-		DirectX::XMStoreFloat3(&infomation.point, SphereCenterAtHit);		//	ÚGŽž“_‚Ì‹…i‘|ˆø‘¤j‚Ì’†SˆÊ’u
+		DirectX::XMStoreFloat3(&infomation.point, SphereCenterAtHit);		//	ÚGŽž“_‚Ì‹…‚Ì’†SˆÊ’u
 		DirectX::XMStoreFloat3(&infomation.point2, nearlest_triangle_pos);	//	ŽOŠpŒ`‘¤‚ÌÚG“_
 		infomation.length = nearlest_distance;								//	ÚG‚Ü‚Å‚ÌˆÚ“®‹——£
-		DirectX::XMStoreFloat3(&infomation.normal, nearlest_normal);		//	ÚG–Ê‚Ì–@üiŽOŠpŒ`•\‘¤‚ðŒü‚­j
+		DirectX::XMStoreFloat3(&infomation.normal, nearlest_normal);		//	ÚG–Ê‚Ì–@ü
 		intersect->add(infomation);
 	}
 	return hit_flag;
@@ -1634,8 +1637,7 @@ float bounding_mesh::calculate_segment_distance(const collision::line& line,
 	DirectX::XMFLOAT3 horizon1, horizon2;
 	float delta1, delta2;
 
-	collision::line ab = collision::line(collision::line::types::segment, a, b);
-	float distance_edge = line.calculate_distance(horizon1, delta1, horizon2, delta2, ab);
+	float distance_edge = line.calculate_distance(horizon1, delta1, horizon2, delta2, triangle.lab);
 	if (distance_edge < nearlest_distance)
 	{
 		nearlest_distance = distance_edge;
@@ -1643,8 +1645,7 @@ float bounding_mesh::calculate_segment_distance(const collision::line& line,
 		DirectX::XMStoreFloat3(&nearlest_point_triangle, DirectX::XMVectorScale(DirectX::XMLoadFloat3(&horizon2), delta2));
 	}
 
-	collision::line bc = collision::line(collision::line::types::segment, b, c);
-	distance_edge = line.calculate_distance(horizon1, delta1, horizon2, delta2, bc);
+	distance_edge = line.calculate_distance(horizon1, delta1, horizon2, delta2, triangle.lbc);
 	if (distance_edge < nearlest_distance)
 	{
 		nearlest_distance = distance_edge;
@@ -1652,8 +1653,7 @@ float bounding_mesh::calculate_segment_distance(const collision::line& line,
 		DirectX::XMStoreFloat3(&nearlest_point_triangle, DirectX::XMVectorScale(DirectX::XMLoadFloat3(&horizon2), delta2));
 	}
 
-	collision::line ca = collision::line(collision::line::types::segment, c, a);
-	distance_edge = line.calculate_distance(horizon1, delta1, horizon2, delta2, ca);
+	distance_edge = line.calculate_distance(horizon1, delta1, horizon2, delta2, triangle.lca);
 	if (distance_edge < nearlest_distance)
 	{
 		nearlest_distance = distance_edge;
@@ -1732,6 +1732,9 @@ bool collision::generate_bounding_mesh(bounding_mesh& out_mesh, model_resource_p
 			auto Max = DirectX::XMVectorMax(A, DirectX::XMVectorMax(B, C));
 			DirectX::XMStoreFloat3(&triangle.min, Min);
 			DirectX::XMStoreFloat3(&triangle.max, Max);
+			triangle.lab = collision::line(collision::line::types::segment, *(p  + triangle.a), *(p  + triangle.b));
+			triangle.lbc = collision::line(collision::line::types::segment, *(p  + triangle.b), *(p  + triangle.c));
+			triangle.lca = collision::line(collision::line::types::segment, *(p  + triangle.c), *(p  + triangle.a));
 		}
 	}
 
