@@ -25,6 +25,7 @@ namespace particle_system_item
 	//	パーティクルの型は存在せず、
 	//	エミッターの構築情報から構成される
 	//	シェーダー側でもこれらを用いて情報設定して行く。
+	//	@remainder	これを一々CPP/HLSL両方で定義するのはめんどくさいよね～( ;∀;)
 	namespace particle
 	{
 		//	パーティクル共通情報
@@ -41,7 +42,6 @@ namespace particle_system_item
 		struct trail_header
 		{
 			UINT counter;
-			UINT max;
 		};
 		struct trail_body
 		{
@@ -55,75 +55,104 @@ namespace particle_system_item
 			DirectX::XMFLOAT3 velocity;
 		};
 	}
+
+	//	@remainder	これを一々CPP/HLSL両方で定義するのはめんどくさいよね～( ;∀;)
 	namespace emitter
 	{
 		//	エミッター基礎情報
 		struct common
 		{
+			//	エミッターステートフラグ類
+			//	@remainder	今の所未使用
+			enum class state
+			{
+				active = 1 << 0,	//	アクティブフラグ
+			};
+
 			//	エミッター情報
 			UINT emitter_state = 0; // エミッターステート
-			UINT active_items = 0; // アクティブアイテムフラグ
+			UINT active_items = 0; // アイテムアクティブフラグ
+
+			// パーティクル発生情報
+			DirectX::XMFLOAT2 spawn_life_time_range; // 生存時間範囲
+			DirectX::XMFLOAT2 spawn_scale_range; // 拡縮範囲
+			DirectX::XMFLOAT3 spawn_area_min; // 生成範囲最小
+			DirectX::XMFLOAT3 spawn_area_max; // 生成範囲最大
+			UINT spawn_count = 0; // 生成数
 
 			//	エミッター姿勢情報
 			DirectX::XMFLOAT3 scale; // 拡縮情報
 			DirectX::XMFLOAT4 rotation; // 回転情報
 			DirectX::XMFLOAT3 translation; // 移動情報
-
-			//	パーティクル発生情報
-			DirectX::XMFLOAT2 spawn_life_time_range; // 生存時間範囲
-			DirectX::XMFLOAT2 spawn_scale_range; // 拡縮範囲
-			UINT spawn_count; // 生成数
-			DirectX::XMFLOAT3 spawn_area_min; // 生成範囲最小
-			DirectX::XMFLOAT3 spawn_area_max; // 生成範囲最大
-
-			//	更新時に使用する汎用値
-			DirectX::XMFLOAT3 gravity; // 重力
 		};
 
 		//	軌跡アイテム
 		struct trail
 		{
-			static constexpr UINT data_id = 0;	//	軌跡アイテムは基本的に一番最後にあるのが望ましい
+			static constexpr UINT data_id = 0;
 
 			UINT max = 0; // 軌跡総数
 		};
 
-		//	スプライトアニメーションアイテム
-		//	テクスチャの分割的なものとしても利用する
-		struct sprite_animation
+		//	UVアイテム
+		struct uv
 		{
-			static constexpr UINT data_id = 1;	//	軌跡アイテムは基本的に一番最後にあるのが望ましい
+			static constexpr UINT data_id = 1;
 
+			enum class state
+			{
+				direct = 1 << 0,	//	UV座標を直接指定
+				animation = 1 << 1,	//	アニメーション使用フラグ
+			};
+
+			UINT state = 0; // ステート
+			UINT index = 0;	// スプリット数に応じた番号
+			float time = 0.0f;	//	アニメーションで使用する
 			DirectX::XMUINT2 split_count = {1, 1};	//	分割数
-			float	increment_time = -1;	//	次のスプライトに移動するタイミング
+			DirectX::XMFLOAT4 rect = {0, 0, 1, 1};	//	UV矩形
 		};
 
 		//	速度アイテム
 		struct velocity
 		{
-			static constexpr UINT data_id = 5;
+			static constexpr UINT data_id = 2;
 
+			enum class states
+			{
+				random_direction = 1 << 0,		//	directionを元に、angle_rangeの範囲でランダムに変更
+				random_power = 1 << 1,			//	power_rangeの範囲でランダムに変更
+				random_acceleration = 1 << 2,	//	加速をランダムに変更
+				random_deceleration = 1 << 3,	//	減速をランダムに変更
+			};
+
+			UINT state = 0;
 			DirectX::XMFLOAT3 direction; // 初期方向
 			DirectX::XMFLOAT2 angle_range; // 初期角度範囲
 			DirectX::XMFLOAT2 power_range; // 初速威力範囲
-			DirectX::XMFLOAT3 acceleration; // 加速度
+
+			DirectX::XMFLOAT3 acceleration_min; // 最低加速
+			DirectX::XMFLOAT3 acceleration_max; // 最大加速
+
+			DirectX::XMFLOAT3 deceleration_min; // 最低減速
+			DirectX::XMFLOAT3 deceleration_max; // 最大減速
+
+			DirectX::XMFLOAT3 gravity; // 重力
 		};
 	}
+
 	//	エミッター基礎情報リソース
 	struct emitter_system_resource
 	{
-		UINT particle_type_size;	//	パーティクル型サイズ(ツール等で自動算出&登録できていると良い)
-		UINT total_particle_count;	//	パーティクル生成最大数
-		UINT max_update_item_size;	//	更新用アイテム最大サイズ(ツール等で自動算出&登録できていると良い)
+		UINT particle_type_size = 0;	//	パーティクル型サイズ(ツール等で自動算出&登録できていると良い)
+		UINT total_particle_count = 0;	//	パーティクル生成最大数
+		UINT max_update_item_size = 0;	//	更新用アイテム最大サイズ(ツール等で自動算出&登録できていると良い)
 	};
 
 	//	エミッター描画情報リソース
 	struct emitter_render_resource
 	{
-		renderer_types renderer_type;	//	描画タイプ
+		renderer_types renderer_type = renderer_types::sprite;	//	描画タイプ
 		UINT trail_count = 0;	//	軌跡数
-		texture_ptr texture;	//	テクスチャ
-		Microsoft::WRL::ComPtr<ID3D11SamplerState> sampler_state;	//	サンプラーステート
 	};
 
 	//	エミッターリソース
@@ -141,7 +170,7 @@ class compute_particle_system
 {
 public:
 	//	実行スレッド数
-	static constexpr UINT NumDispatchThread = 256;
+	static constexpr UINT NumDispatchThread = 64;
 
 	//	エミッターテーブル
 	//	エミッターヘッダーのインデックスの指し先
@@ -192,7 +221,7 @@ public:
 	using particle_binary = UINT;
 
 	//  パーティクルステートビット
-	static const UINT particle_binary_state_bit_spawn_frame = 1 << 31;
+	static const UINT particle_binary_state_bit_spawn_frame = 1 << 0;
 
 	//	エミッター更新情報
 	struct update_emitter_data
@@ -239,7 +268,7 @@ public:
 	~compute_particle_system();
 
 	void update(graphics_context& context, float elapsed_time);
-	void render(graphics_context& context);
+	void generate_render_data(UINT emitter_id, effect_container::sprite_trail& data);
 
 	UINT register_emitter(ID3D11Device* device, const particle_system_item::emitter_resource& emitter_resource);
 	bool unregister_emitter(UINT emitter_id);
@@ -251,6 +280,7 @@ private:
 	UINT total_particle_count;
 	UINT particle_binary_buffer_size;
 	bool one_shot_initialize;
+	bool update_stop = false;
 	UINT current_buffer_index = 0;
 	variable_position_allocator emitter_binary_allocator;
 	variable_position_allocator particle_binary_allocator;
@@ -316,7 +346,7 @@ private:
 		spawn_particles,
 		initialize_particles,
 
-		update_particles,
+		update_particles,	//	カメラ位置を考えると深度計算位置を変更したほうが良い
 
 		sort_b2,
 		sort_c2,
@@ -324,14 +354,12 @@ private:
 		range_particles,
 		terminate_particles,
 
+		end_update,
+
 		build_emitter_draw_arguments,
 		build_primitive,
 
 		max,
 	};
 	std::shared_ptr<compute_shader> compute_shaderes[static_cast<int>(dispatch_shaderes::max)];
-
-	//	スプライト描画
-	std::shared_ptr<vertex_shader> default_draw_vertex_shader;
-	std::shared_ptr<pixel_shader> default_draw_pixel_shader;
 };

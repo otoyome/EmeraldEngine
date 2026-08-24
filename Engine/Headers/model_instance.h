@@ -123,9 +123,9 @@ private:
 using model_instance_ptr = std::shared_ptr<model_instance>;
 
 //	モデルインスタンスマネージャー
-class model_instance_maanger
+class model_instance_manger
 {
-	SINGLETON(model_instance_maanger)
+	SINGLETON(model_instance_manger)
 
 	using	model_instances	= std::vector<std::weak_ptr<model_instance>>;
 
@@ -138,8 +138,8 @@ public:
 #endif	//	defined(USE_IMGUI)
 
 private:
-	model_instance_maanger();
-	~model_instance_maanger();
+	model_instance_manger();
+	~model_instance_manger();
 
 	void generate_constant_bufferes();
 

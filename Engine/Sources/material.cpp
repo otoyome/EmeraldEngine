@@ -114,6 +114,11 @@ material::material()
 		failed_post_process_pso = instance->search("postprocess_failed");
 		//	UI用
 		failed_user_interface_pso = instance->search("default_ui");
+		//	パーティクル用
+		failed_particle_psos[static_cast<UINT>(surface_paths::depth_write_pass)] = instance->search("particle_failed_depth");
+		failed_particle_psos[static_cast<UINT>(surface_paths::shadow_write_pass)] = instance->search("particle_failed_shadowmap");
+		failed_particle_psos[static_cast<UINT>(surface_paths::g_buffer_pass)] = instance->search("particle_failed_gbuffer");
+		failed_particle_psos[static_cast<UINT>(surface_paths::forward_pass)] = instance->search("particle_failed_forward");
 	}
 #endif	//	defined(USE_IMGUI)
 }
@@ -507,13 +512,23 @@ void material::set_domain(material::domains domain)
 	std::size_t size = 0; 
 	switch (domain)
 	{
-		case material::domains::surface: size = magic_enum::enum_count<surface_paths>() + 1; break;
-		case material::domains::post_process: size = 1; break;
-		case material::domains::deferred_decal: size = 1; break;
-		case material::domains::user_interface: size = 1; break;
+		case material::domains::surface:
+		case material::domains::particle:
+			size = magic_enum::enum_count<surface_paths>() + 1;
+			break;
 
-		case material::domains::system: size = magic_enum::enum_count<system_paths>() + 1; break;
-		default: assert(!L"Not Compatible."); break;
+		case material::domains::post_process:
+		case material::domains::deferred_decal:
+		case material::domains::user_interface:
+			size = 1;
+			break;
+
+		case material::domains::system:
+			size = magic_enum::enum_count<system_paths>() + 1;
+			break;
+		default:
+			assert(!L"Not Compatible.");
+			break;
 	}
 
 	pipeline_states.resize(size);
@@ -551,7 +566,8 @@ void material::set_blendable_location(blendable_locations location)
 
 material::translucency_paths material::get_translucency_path() const
 {
-	if (domain == domains::surface && blend_mode == blend_modes::translucent)
+	if (domain == domains::surface && blend_mode == blend_modes::translucent ||
+		domain == domains::particle && blend_mode == blend_modes::translucent)
 		return translucency_path;
 
 	return translucency_paths::unknown;
@@ -559,7 +575,8 @@ material::translucency_paths material::get_translucency_path() const
 
 void material::set_translucency_path(translucency_paths pass)
 {
-	if (domain == domains::surface && blend_mode == blend_modes::translucent)
+	if (domain == domains::surface && blend_mode == blend_modes::translucent ||
+		domain == domains::particle && blend_mode == blend_modes::translucent)
 		translucency_path = pass;
 }
 
@@ -588,14 +605,9 @@ material::shader_resource_map& material::get_shader_resources_for_editor()
 bool material::set_pipeline_state(const set_surface_pipeline_states_desc* descs, UINT size)
 {
 	//	ドメインが違えば登録させない
-	if (this->domain != domains::surface)
+	if (domain != domains::surface && domain != domains::particle)
 		return false;
 
-	struct set_surface_pipeline_states_desc
-	{
-		surface_paths type;
-		std::string_view pipeline_state_name;
-	};
 	bool registered = false;
 	for (UINT desc_index = 0; desc_index < size; ++desc_index)
 	{
@@ -693,13 +705,14 @@ bool material::set_pipeline_state(system_paths type, std::string_view pipeline_s
 
 bool material::set_pipeline_state(std::string_view pipeline_state_name)
 {
-	assert(domain != domains::surface || domain != domains::system);
+	assert(domain != domains::surface || domain != domains::particle || domain != domains::system);
 	return set_pipeline_state(domain, 0, pipeline_state_name);
 }
 
 std::string_view material::get_pipeline_state_name(surface_paths type) const
 {
-	return get_pipeline_state_name(domains::surface, static_cast<UINT>(type));
+	assert(domain != domains::surface || domain != domains::particle);
+	return get_pipeline_state_name(domain, static_cast<UINT>(type));
 }
 
 std::string_view material::get_pipeline_state_name(system_paths type) const
@@ -709,23 +722,25 @@ std::string_view material::get_pipeline_state_name(system_paths type) const
 
 std::string_view material::get_pipeline_state_name() const
 {
-	assert(domain == domains::surface || domain == domains::system);
+	assert(domain == domains::surface || domain == domains::particle || domain == domains::system);
 	return get_pipeline_state_name(domain, 0);
 }
 
 graphics_pipeline_state_ptr material::get_pipeline_state(surface_paths value) const
 {
-	return get_pipeline_state(domains::surface, static_cast<UINT>(value));
+	assert(domain == domains::surface || domain == domains::particle);
+	return get_pipeline_state(domain, static_cast<UINT>(value));
 }
 
 graphics_pipeline_state_ptr material::get_pipeline_state(system_paths value) const
 {
+	assert(domain == domains::system);
 	return get_pipeline_state(domains::system, static_cast<UINT>(value));
 }
 
 graphics_pipeline_state_ptr material::get_pipeline_state() const
 {
-	assert(domain != domains::surface || domain != domains::system);
+	assert(domain != domains::surface || domain != domains::particle || domain != domains::system);
 	return get_pipeline_state(domain, 0);
 }
 
@@ -751,6 +766,7 @@ graphics_pipeline_state_ptr material::get_pipeline_state(domains domain, UINT in
 			case domains::deferred_decal: return failed_deferred_decal_pso;
 			case domains::post_process: return failed_post_process_pso;
 			case domains::user_interface: return failed_user_interface_pso;
+			case domains::particle: return failed_particle_psos[index];
 		}
 	}
 #endif	//	defined(USE_IMGUI)
@@ -924,6 +940,7 @@ bool material::is_error() const
 		case material::domains::post_process: size = 1; break;
 		case material::domains::deferred_decal: size = 1; break;
 		case material::domains::user_interface: size = 1; break;
+		case material::domains::particle: size = magic_enum::enum_count<surface_paths>(); break;
 
 		case material::domains::system: size = magic_enum::enum_count<system_paths>(); break;
 		default: assert(!L"Not Compatible."); break;

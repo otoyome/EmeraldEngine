@@ -1,0 +1,225 @@
+#include "Renderer/scene_renderer_common.h"
+
+float scene_renderer_commons::convert_linear_depth_to_projection_depth(float depth, float z_buffer_parameteres_y)
+{
+	float z_buffer_parameteres_x = 1.0f - z_buffer_parameteres_y;
+	return (1.0f / depth - z_buffer_parameteres_y) / z_buffer_parameteres_x;
+}
+
+void scene_renderer_commons::draw(const graphics_context& context,
+			graphics_pipeline_state_ptr pipeline_state,
+			UINT vertex_count,
+			D3D_PRIMITIVE_TOPOLOGY primitive_topology,
+			UINT vertex_offset)
+{
+	buffer_datas buffer_data;
+	buffer_data.vertex_count = vertex_count;
+	context.device_context->IASetIndexBuffer(nullptr, DXGI_FORMAT_UNKNOWN, 0);
+	context.device_context->IASetPrimitiveTopology(primitive_topology);
+	context.device_context->Draw(vertex_count, vertex_offset);
+}
+
+void scene_renderer_commons::draw_indexed(const graphics_context& context,
+					float mesh_length,
+					const buffer_datas& buffer_data,
+					graphics_pipeline_state_ptr pipeline_state)
+{
+	const std::unordered_map<semantic, buffer_view>* vertex_buffer_views = nullptr;
+	const buffer_view* index_buffer_view = nullptr;
+	D3D_PRIMITIVE_TOPOLOGY primitive_topology = D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
+	ID3D11ShaderResourceView* morph_positions[common_pipeline_states::morph_max] = {};
+	ID3D11ShaderResourceView* morph_normals[common_pipeline_states::morph_max] = {};
+	ID3D11ShaderResourceView* morph_texcoords[common_pipeline_states::morph_max] = {};
+	if (context.is_shadow_rendering)
+	{
+		//	シャドウメッシュ対応
+		vertex_buffer_views = buffer_data.shadow_mesh.vertex_buffer_views;
+		index_buffer_view = buffer_data.shadow_mesh.index_buffer_view;
+		primitive_topology = buffer_data.shadow_mesh.primitive_topology;
+	}
+	else
+	{
+		//	LOD対応
+		UINT lod_level = static_cast<UINT>(buffer_data.color_meshs.size());
+		float lod_range_min = buffer_data.lod_range_rate.x * context.scene_constant.camera_clip_distance.x;
+		float lod_range_max = buffer_data.lod_range_rate.y * context.scene_constant.camera_clip_distance.y;
+		float lod_rate = math::saturate((mesh_length - lod_range_min) / (lod_range_max - lod_range_min));
+		auto lod_mesh_index = math::lerp(0u, lod_level - 1, lod_rate);
+		auto* draw_mesh = &buffer_data.color_meshs[lod_mesh_index];
+		vertex_buffer_views = draw_mesh->vertex_buffer_views;
+		index_buffer_view = draw_mesh->index_buffer_view;
+		primitive_topology = draw_mesh->primitive_topology;
+
+		//	モーフィング対応
+		if (!draw_mesh->morph_meshes.empty())
+		{
+			int position_count = 0, normal_count = 0;
+			for (auto& morph_mesh : draw_mesh->morph_meshes)
+			{
+				auto& vbv = morph_mesh.vertex_buffer_views;
+
+				auto it_positions = vbv->find(semantic("POSITION", 0));
+				auto it_normals = vbv->find(semantic("NORMAL", 0));
+				if (it_positions != vbv->end())
+					morph_positions[position_count++] = it_positions->second.srv.Get();
+				if (it_normals != vbv->end())
+					morph_normals[normal_count++] = it_normals->second.srv.Get();
+			}
+		}
+	}
+	//	モーフィングバッファ設定
+	context.device_context->VSSetShaderResources(common_pipeline_states::morph_srv_position_index,
+													common_pipeline_states::morph_max, morph_positions);
+	context.device_context->VSSetShaderResources(common_pipeline_states::morph_srv_normal_index,
+													common_pipeline_states::morph_max, morph_normals);
+
+	//	頂点ストリーム更新
+	UINT stream_index = 0;
+	for (auto& semantic : pipeline_state->get_semantic_list())
+	{
+		auto it = vertex_buffer_views->find(semantic.first);
+		if (it != vertex_buffer_views->end())
+		{
+			auto& buffer_data = it->second;
+			UINT offset = static_cast<UINT>(buffer_data.offset());
+			UINT stride = static_cast<UINT>(buffer_data.stride_in_bytes);
+			context.device_context->IASetVertexBuffers(stream_index, 1, buffer_data.buffer.GetAddressOf(), &stride, &offset);
+		}
+		else
+		{
+			//	空のオブジェクトを納入しておく
+			UINT offset = 0;
+			UINT stride = 0;
+			ID3D11Buffer* buffer = nullptr;
+			context.device_context->IASetVertexBuffers(stream_index, 1, &buffer, &stride, &offset);
+		}
+		++stream_index;
+	}
+
+	//	描画
+	context.device_context->IASetIndexBuffer(index_buffer_view->buffer.Get(), index_buffer_view->format,
+												static_cast<UINT>(index_buffer_view->offset()));
+	context.device_context->IASetPrimitiveTopology(primitive_topology);
+	context.device_context->DrawIndexed(static_cast<UINT>(index_buffer_view->count()), 0, 0);
+}
+
+void scene_renderer_commons::model_render(graphics_context& context,
+					const std::vector<std::size_t>& mesh_indices,
+					const std::vector<float>& mesh_lengths,
+					material::surface_paths surface_path)
+{
+	auto draw_data_ptr = context.render_data->mesh_container.draw_datas.data();
+	auto material_data_ptr = context.render_data->mesh_container.material_datas.data();
+	auto buffer_data_ptr = context.render_data->mesh_container.buffer_datas.data();
+
+	//	モデル類描画
+	graphics_pipeline_state_ptr current_pipeline_state;
+	for (auto& draw_index : mesh_indices)
+	{
+		auto draw_data = draw_data_ptr + draw_index;
+		auto material_data = material_data_ptr + draw_data->material_index;
+
+		if (auto pipeline_state = material_data->material->get_pipeline_state(surface_path))
+		{
+			if (pipeline_state != current_pipeline_state)
+			{
+				if (current_pipeline_state)
+					current_pipeline_state->end(context);
+
+				current_pipeline_state = pipeline_state;
+				current_pipeline_state->begin(context);
+			}
+
+			auto buffer_data = buffer_data_ptr + draw_data->buffer_index;
+
+			material_data->material->update_parameters(context);
+			current_pipeline_state->update_parameters(context, *material_data->material, buffer_data);
+			draw_indexed(context, mesh_lengths[draw_index], *buffer_data, current_pipeline_state);
+		}
+	}
+	if (current_pipeline_state)
+		current_pipeline_state->end(context);
+}
+
+void scene_renderer_commons::model_render(graphics_context& context,
+					const std::vector<std::size_t>& mesh_indices,
+					const collision::frustum_culling& frustum_culling,
+					material::surface_paths surface_path)
+{
+	auto draw_data_ptr = context.render_data->mesh_container.draw_datas.data();
+	auto material_data_ptr = context.render_data->mesh_container.material_datas.data();
+	auto buffer_data_ptr = context.render_data->mesh_container.buffer_datas.data();
+
+	//	モデル類描画
+	graphics_pipeline_state_ptr current_pipeline_state;
+	for (auto& draw_index : mesh_indices)
+	{
+		auto draw_data = draw_data_ptr + draw_index;
+		auto material_data = material_data_ptr + draw_data->material_index;
+
+		//	AABB判定
+		auto buffer_data = buffer_data_ptr + draw_data->buffer_index;
+		if (!frustum_culling.to_aabb(buffer_data->bounds_min, buffer_data->bounds_max))
+			continue;
+
+		if (auto pipeline_state = material_data->material->get_pipeline_state(surface_path))
+		{
+			if (pipeline_state != current_pipeline_state)
+			{
+				if (current_pipeline_state)
+					current_pipeline_state->end(context);
+
+				current_pipeline_state = pipeline_state;
+				current_pipeline_state->begin(context);
+			}
+
+			material_data->material->update_parameters(context);
+			current_pipeline_state->update_parameters(context, *material_data->material, buffer_data);
+			draw_indexed(context, 0.0f, *buffer_data, current_pipeline_state);
+		}
+	}
+	if (current_pipeline_state)
+		current_pipeline_state->end(context);
+}
+
+void scene_renderer_commons::particle_render(graphics_context& context,
+					const std::vector<std::size_t>& draw_indices,
+					material::surface_paths surface_path)
+{
+	//	スプライト/軌跡パーティクル
+	auto draw_data_ptr = context.render_data->effect_container.sprite_trail_draw_datas.data();
+
+	//	パーティクル類描画
+	graphics_pipeline_state_ptr current_pipeline_state;
+	for (auto& draw_index : draw_indices)
+	{
+		auto draw_data = draw_data_ptr + draw_index;
+
+		if (auto pipeline_state = draw_data->material_data.material->get_pipeline_state(surface_path))
+		{
+			if (pipeline_state != current_pipeline_state)
+			{
+				if (current_pipeline_state)
+					current_pipeline_state->end(context);
+
+				current_pipeline_state = pipeline_state;
+				current_pipeline_state->begin(context);
+			}
+
+			draw_data->material_data.material->update_parameters(context);
+			current_pipeline_state->update_parameters(context, *draw_data->material_data.material, nullptr);
+
+			auto vertex_buffer = draw_data->vertex_buffer_view.vertex_buffer;
+			auto strides = draw_data->vertex_buffer_view.strides_for_vertex.data();
+			auto offsets = draw_data->vertex_buffer_view.offsets_for_vertex.data();
+			auto indirect_buffer = draw_data->vertex_buffer_view.indirect_buffer;
+			auto offset_for_args = draw_data->vertex_buffer_view.offset_for_args;
+
+			context.device_context->IASetVertexBuffers(0, 1, vertex_buffer.GetAddressOf(), strides, offsets);
+			context.device_context->IASetPrimitiveTopology(draw_data->primitive_topology);
+			context.device_context->DrawInstancedIndirect(indirect_buffer.Get(), offset_for_args);
+		}
+	}
+	if (current_pipeline_state)
+		current_pipeline_state->end(context);
+}

@@ -6,6 +6,8 @@
 #include "camera.h"
 #include "model_resource.h"
 #include "model_instance.h"
+#include "effect_resource.h"
+#include "effect_instance.h"
 
 #include "ik_resource.h"
 
@@ -174,7 +176,9 @@ bool framework::initialize()
 	post_process_volume_manager::create_instance();
 	camera_manager::create_instance();
 	model_resource_manager::create_instance();
-	model_instance_maanger::create_instance();
+	model_instance_manger::create_instance();
+	effect_resource_manager::create_instance();
+	effect_manager::create_instance();
 	ik_resource_manager::create_instance();
 #if defined(USE_IMGUI)
 	debug_primitive_manager::create_instance();
@@ -223,9 +227,6 @@ bool framework::initialize()
 
 		scene_renderers.emplace_back(std::make_unique<anti_alias_post_process_renderer>(render_executor, render_targets));
 		scene_renderers.emplace_back(std::make_unique<finalpass_renderer>(render_executor, render_targets));
-
-		//
-		scene_renderers.emplace_back(std::make_unique<particle_effect_renderer>(render_executor, render_targets));
 
 #if defined(USE_IMGUI)
 		scene_renderers.emplace_back(std::make_unique<debug_draw_pass_renderer>(render_executor, render_targets));
@@ -281,15 +282,28 @@ void framework::update(float elapsed_time/*Elapsed seconds from last frame*/)
 #if defined(USE_IMGUI)
 	//	CPU側の更新時間計測開始
 	stationed_cpu_timer.begin();
-#endif //	defined(USE_IMGUI)
 
 	//	各種データの更新チェック
-	shader_manager::instance()->check_shader_update_and_recompile();
-	texture_manager::instance()->check_update_and_reload();
+	if (shader_manager::is_valid())
+	{
+		shader_manager::instance()->check_shader_update_and_recompile();
+	}
+	if (texture_manager::is_valid())
+	{
+		texture_manager::instance()->check_update_and_reload();
+	}
+
+#endif //	defined(USE_IMGUI)
 
 	//	入力関係の更新
-	mouse::instance()->update_state();
-	keyboard::instance()->update_state();
+	if (mouse::is_valid())
+	{
+		mouse::instance()->update_state();
+	}
+	if (keyboard::is_valid())
+	{
+		keyboard::instance()->update_state();
+	}
 
 	//	シーン内の更新
 	if (scene_manager::is_valid())
@@ -301,6 +315,12 @@ void framework::update(float elapsed_time/*Elapsed seconds from last frame*/)
 	if (object_manager::is_valid())
 	{
 		object_manager::instance()->updates(elapsed_time);
+	}
+
+	//	エフェクト関係更新
+	if (effect_manager::is_valid())
+	{
+		effect_manager::instance()->update(elapsed_time);
 	}
 
 #if defined(USE_IMGUI)
@@ -412,7 +432,10 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 		post_process_volume_manager::instance()->get_container(render_data->post_process_volume_container);
 
 		//	メッシュ取得
-		model_instance_maanger::instance()->get_container(render_data->mesh_container);
+		model_instance_manger::instance()->get_container(render_data->mesh_container);
+
+		//	エフェクトコンテナ取得
+		effect_manager::instance()->get_container(render_data->effect_container);
 	}
 
 	//	バッファ描画
@@ -629,7 +652,13 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 				render_executor->execute([this, context](graphics_context& context)
 				{
 					context.device_context->UpdateSubresource(context.scene_constant_buffer.Get(), 0, 0, &context.scene_constant, 0, 0);
-				}, "scene_constantract_pass", context, static_cast<UINT>(renderer_domain::scene_constantract_pass));
+
+					//	エフェクト類のGPU側の更新
+					context.debug_begin_event(L"update_effect_gpu");
+					effect_manager::instance()->update_gpu(context, context.scene_constant.time_data.x - context.scene_constant.time_data.y);
+					context.debug_end_event();
+
+				}, "scene_constantract_pass", context, static_cast<UINT>(renderer_domain::scene_constantract_pass), true);
 			}
 
 			//	描画
@@ -702,7 +731,9 @@ bool framework::uninitialize()
 	debug_primitive_manager::delete_instance();
 #endif // defined(USE_IMGUI)
 	ik_resource_manager::delete_instance();
-	model_instance_maanger::delete_instance();
+	effect_manager::delete_instance();
+	effect_resource_manager::delete_instance();
+	model_instance_manger::delete_instance();
 	model_resource_manager::delete_instance();
 	camera_manager::delete_instance();
 	post_process_volume_manager::delete_instance();
@@ -739,6 +770,7 @@ void framework::calculate_frame_stats()
 
 bool framework::create_buffers()
 {
+	render_targets = std::make_shared<scene_render_targets>();
 	int scene_width = SCREEN_WIDTH;
 	int scene_height = SCREEN_HEIGHT;
 

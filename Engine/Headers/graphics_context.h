@@ -91,6 +91,43 @@ struct sprite_container
 	std::vector<sprite_datas> sprite_datas;
 };
 
+//	エフェクト情報コンテナ
+struct effect_container
+{
+	//	パーティクルバッファ情報
+	struct sprite_trail
+	{
+		//	バッファビュー
+		struct buffer_view
+		{
+			Microsoft::WRL::ComPtr<ID3D11Buffer> vertex_buffer;
+			std::vector<UINT> strides_for_vertex;
+			std::vector<UINT> offsets_for_vertex;
+
+			Microsoft::WRL::ComPtr<ID3D11Buffer> indirect_buffer;
+			UINT offset_for_args = 0;
+
+			buffer_view() = default;
+			~buffer_view() {}
+		};
+
+		buffer_view vertex_buffer_view;	//	頂点バッファビュー
+		material_datas material_data;	//	マテリアル情報
+		D3D_PRIMITIVE_TOPOLOGY primitive_topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+	};
+
+	std::vector<sprite_trail> sprite_trail_draw_datas;
+	std::vector<std::size_t> sprite_trail_color_datas;
+	std::vector<std::size_t> sprite_trail_shadow_datas;
+
+	void clear()
+	{
+		sprite_trail_draw_datas.clear();
+		sprite_trail_color_datas.clear();
+		sprite_trail_shadow_datas.clear();
+	}
+};
+
 #if defined(USE_IMGUI)
 //	デバッグ描画情報コンテナ
 struct debug_draw_primitive_container
@@ -113,6 +150,7 @@ struct render_data_context
 	post_process_volume_container post_process_volume_container;
 	mesh_container mesh_container;
 	sprite_container sprite_container;
+	effect_container effect_container;
 #if defined(USE_IMGUI)
 	debug_draw_primitive_container debug_draw_container;
 #endif // defined(USE_IMGUI)

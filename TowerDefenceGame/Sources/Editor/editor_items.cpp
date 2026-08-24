@@ -11,6 +11,8 @@ namespace
 		"surface",			//	モデル
 		"deferred_decal",	//	遅延デカール
 		"postprocess",		//	ポストプロセス
+		"user_interface",	//	UI
+		"particle",			//	パーティクル
 	};
 
 	constexpr std::string_view blend_mode_texts[] =
@@ -389,11 +391,12 @@ bool editor_items::edit_material(std::shared_ptr<context>& context, material& ma
 	switch (material.get_domain())
 	{
 		case material::domains::surface:
+		case material::domains::particle:
 		{
 			//	適応タイミング毎のシェーダーの設定
 			if (ImGui::TreeNode("shaders"))
 			{
-				auto pso_list = pipeline_state_manager::instance()->get_domain_lists(material::domains::surface);
+				auto pso_list = pipeline_state_manager::instance()->get_domain_lists(material.get_domain());
 				std::vector<const char*> combo_texts;
 				combo_texts.reserve(pso_list.size());
 				combo_texts.emplace_back("[BLANK]");
@@ -726,6 +729,57 @@ bool editor_items::edit_texture_item(std::shared_ptr<context>& context, texture_
 	return edit_flag;
 }
 
+bool editor_items::edit_model_resource_item(std::shared_ptr<context>& context, model_resource_ptr& resource, std::string* selected_file_path)
+{
+	bool edit_flag = false;
+	if (ImGui::Button(resource ? resource->get_file_path().data() : "[BLANK]"))
+	{
+		//	ファイルのオープンダイアログシステム
+		bool is_selected = false;
+		std::string file_path;
+		model_resource_ptr selected_model;
+		if (open_file_dialog(model_file_dialog_filter, file_path) &&
+			model_resource_manager::instance()->load(selected_model, file_path))
+		{
+			context->reserve_model_resource = resource;
+			resource = selected_model;
+			edit_flag = true;
+		}
+	}
+
+#if 0
+	ImGui::SameLine();
+	//	ファイル名
+	{
+		if (resource)
+		{
+			ImGui::Text(resource->get_file_path_or_key().data());
+		}
+		else
+		{
+			ImGui::Text(context->blank_texture->get_file_path_or_key().data());
+		}
+	}
+#endif
+
+	//	空選択
+	if (resource)
+	{
+		ImGui::PushID(context->get_item_id());
+		ImGui::SameLine();
+		auto srv = context->cross_texture->get_shader_resource_view().Get();
+		if (ImGui::ImageButton("", (const ImTextureID)srv, icon_size_srv))
+		{
+			context->reserve_model_resource = resource;
+			resource = nullptr;
+			edit_flag = true;
+		}
+		ImGui::PopID();
+	}
+
+	return edit_flag;
+}
+
 bool editor_items::open_file_dialog(TCHAR* text, std::string& out_selected_file_path)
 {
 	OPENFILENAME open_file_name; // 構造体
@@ -741,6 +795,30 @@ bool editor_items::open_file_dialog(TCHAR* text, std::string& out_selected_file_
 
 	bool opened = false;
 	if (GetOpenFileName(&open_file_name))
+	{
+		std::string file_path = system_utility::convert_shift_jis(selected_file_path);
+		out_selected_file_path = system_utility::convert_to_relative_path(file_path);
+		opened = true;
+	}
+	return opened;
+}
+
+bool editor_items::save_file_dialog(TCHAR* text, std::string& out_selected_file_path, const TCHAR* default_extension)
+{
+	OPENFILENAME open_file_name; // 構造体
+	TCHAR selected_file_path[MAX_PATH] = { 0 };
+
+	ZeroMemory(&open_file_name, sizeof(open_file_name));
+	open_file_name.lStructSize = sizeof(open_file_name);
+	open_file_name.hwndOwner = GetForegroundWindow();
+	open_file_name.lpstrFilter = text;
+	open_file_name.lpstrFile = selected_file_path;
+	open_file_name.nMaxFile = MAX_PATH;
+	open_file_name.lpstrDefExt = default_extension;
+	open_file_name.Flags = OFN_EXPLORER | OFN_NOCHANGEDIR | OFN_OVERWRITEPROMPT | OFN_PATHMUSTEXIST;
+
+	bool opened = false;
+	if (GetSaveFileName(&open_file_name))
 	{
 		std::string file_path = system_utility::convert_shift_jis(selected_file_path);
 		out_selected_file_path = system_utility::convert_to_relative_path(file_path);

@@ -24,6 +24,7 @@ public:
 		deferred_decal,	//	遅延デカール
 		post_process,	//	ポストプロセス
 		user_interface,	//	UI
+		particle,		//	パーティクル
 
 		unknown,
 

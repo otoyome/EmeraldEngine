@@ -40,7 +40,6 @@ namespace
 	{
 		spawn_emitter_data data;
 		data.emitter_binary_size = system.max_update_item_size;
-		//	CopyResourceの関係で4の倍数に変換しておく
 		data.total_particle_count = system.total_particle_count + system.total_particle_count % 4;
 		data.particle_size = system.particle_type_size;
 		data.particle_binary_size = data.total_particle_count * data.particle_size;
@@ -117,6 +116,8 @@ namespace
 
 		"Shaders/ComputeParticle/System/compute_particle_range_particles_cs.hlsl",
 		"Shaders/ComputeParticle/System/compute_particle_terminate_particles_cs.hlsl",
+
+		"Shaders/ComputeParticle/System/compute_particle_end_update_cs.hlsl",
 
 		"Shaders/ComputeParticle/System/compute_particle_build_emitter_draw_arguments_cs.hlsl",
 		"Shaders/ComputeParticle/System/compute_particle_build_primitive_cs.hlsl",
@@ -288,7 +289,7 @@ compute_particle_system::compute_particle_system(ID3D11Device* device,
 	}
 
 	//	パーティクルテーブルバッファ生成
-	for (UINT index = 0; index < ARRAYSIZE(emitter_binary_buffer); ++index)
+	for (UINT index = 0; index < ARRAYSIZE(particle_index_buffer); ++index)
 	{
 		D3D11_BUFFER_DESC desc = {};
 		desc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
@@ -296,6 +297,7 @@ compute_particle_system::compute_particle_system(ID3D11Device* device,
 		desc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
 		desc.StructureByteStride = sizeof(UINT);
 		desc.Usage = D3D11_USAGE_DEFAULT;
+
 		D3D11_SUBRESOURCE_DATA initialize_data = {};
 		std::vector<UINT>	initialize_buffer(total_particle_count);
 		for (UINT index = 0; index < initialize_buffer.size(); ++index)
@@ -304,9 +306,9 @@ compute_particle_system::compute_particle_system(ID3D11Device* device,
 		}
 		initialize_data.pSysMem = initialize_buffer.data();
 		initialize_data.SysMemPitch = desc.ByteWidth;
+
 		hr = device->CreateBuffer(&desc, &initialize_data, particle_index_buffer[index].GetAddressOf());
 		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
-
 		hr = device->CreateShaderResourceView(particle_index_buffer[index].Get(), nullptr, particle_index_shader_resource_view[index].GetAddressOf());
 		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
 		hr = device->CreateUnorderedAccessView(particle_index_buffer[index].Get(), nullptr, particle_index_unordered_access_view[index].GetAddressOf());
@@ -331,7 +333,7 @@ compute_particle_system::compute_particle_system(ID3D11Device* device,
 	}
 
 	//	パーティクルバイナリーバッファ生成
-	for (UINT index = 0; index < ARRAYSIZE(emitter_binary_buffer); ++index)
+	for (UINT index = 0; index < ARRAYSIZE(particle_binary_buffer); ++index)
 	{
 		D3D11_BUFFER_DESC desc = {};
 		desc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
@@ -398,38 +400,6 @@ compute_particle_system::compute_particle_system(ID3D11Device* device,
 		}
 	}
 
-	//	基本的な描画シェーダー
-	//	ここは別途パーティクル用マテリアルに変換するか？
-	{
-		//	頂点シェーダー読み込み
-		{
-			load_shader_file desc;
-			desc.file_path = "Shaders/ComputeParticle/Renderer/compute_particle_default_render_vs.hlsl";
-			desc.input_element_desc.push_back({ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 });
-			desc.input_element_desc.push_back({ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 });
-			desc.input_element_desc.push_back({ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 });
-
-#if defined(_DEBUG)
-			system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
-			system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
-#endif	//	defined(_DEBUG)
-
-			shader_manager::instance()->load_shader<vertex_shader>(default_draw_vertex_shader, desc);
-		}
-
-		//	ピクセルシェーダー読み込み
-		{
-			load_shader_file desc;
-			desc.file_path = "Shaders/ComputeParticle/Renderer/compute_particle_default_render_ps.hlsl";
-#if defined(_DEBUG)
-			system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
-			system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
-#endif	//	defined(_DEBUG)
-
-			shader_manager::instance()->load_shader<pixel_shader>(default_draw_pixel_shader, desc);
-		}
-	}
-
 	//	エミッター管理情報関係初期化
 	{
 		emitter_headers.resize(total_emitter_count);
@@ -457,6 +427,11 @@ compute_particle_system::~compute_particle_system()
 UINT compute_particle_system::register_emitter(ID3D11Device* device, const particle_system_item::emitter_resource& emitter_resource)
 {
 	if (emitter_id_stack.empty())
+		return invalid_emitter_id;
+
+	//	生成できません
+	if (emitter_resource.render.renderer_type == particle_system_item::renderer_types::ribon &&
+		emitter_resource.render.trail_count == 0)
 		return invalid_emitter_id;
 
 	//	各種バッファ確保
@@ -528,10 +503,12 @@ bool compute_particle_system::unregister_emitter(UINT emitter_id)
 		return false;
 	}
 
-	//	登録済みなら除外
-	if (std::find_if(remove_emitter_ids.begin(),
-		remove_emitter_ids.end(),
-		[emitter_id](UINT a) {return a == emitter_id; }) == remove_emitter_ids.end())
+	//	二重に積まない
+	bool already_requested = std::find_if(remove_emitter_ids.begin(), remove_emitter_ids.end(),
+			[emitter_id](UINT a) {return a == emitter_id; }) != remove_emitter_ids.end() ||
+		std::find_if(garbage_correct_emitter_ids.begin(), garbage_correct_emitter_ids.end(),
+			[emitter_id](UINT a) {return a == emitter_id; }) != garbage_correct_emitter_ids.end();
+	if (!already_requested)
 	{
 		remove_emitter_ids.push_back(emitter_id);
 	}
@@ -582,16 +559,22 @@ void compute_particle_system::update(graphics_context& context, float elapsed_ti
 				emitter_id_table.end(),
 				[remove_emitter_id](UINT a) {return a == remove_emitter_id; });
 			emitter_id_table.erase(it_table);
-			emitter_id_stack.push(remove_emitter_id);
 
 			//	データ初期化
-			auto& emitter_resource = emitter_resources[remove_emitter_id];
-			auto& emitter_header = emitter_headers[remove_emitter_id];
-			emitter_resource = {};
-			emitter_header = {};
+			emitter_resources[remove_emitter_id] = {};
+			emitter_headers[remove_emitter_id] = {};
+
+			emitter_id_stack.push(remove_emitter_id);
 		}
 
-		//	@remainder	残っているIdをサイズ順にソートしておかないといけない、emitter_id_table
+		//	フラグメンテーション対策として、残っているIdをパーティクルバイナリーサイズの降順でソートしてから割り当て直す
+		std::sort(emitter_id_table.begin(), emitter_id_table.end(),
+			[this](UINT lhs, UINT rhs)
+			{
+				UINT lhs_size = calculate_spawn_emitter_data(emitter_resources[lhs].resource.system).particle_binary_size;
+				UINT rhs_size = calculate_spawn_emitter_data(emitter_resources[rhs].resource.system).particle_binary_size;
+				return lhs_size > rhs_size;
+			});
 
 		//	バッファの詰め直しを行う
 		UINT new_buffer_index = (current_buffer_index + 1) % ARRAYSIZE(emitter_binary_buffer);
@@ -627,7 +610,7 @@ void compute_particle_system::update(graphics_context& context, float elapsed_ti
 				D3D11_BOX box = { emitter_header.particle_index_head * sizeof(UINT), 0, 0,
 					(emitter_header.particle_index_head + data.total_particle_count) * sizeof(UINT), 1, 1};
 				context.device_context->CopySubresourceRegion(
-					particle_index_buffer[new_buffer_index].Get(), 0, particle_index_position, 0, 0,
+					particle_index_buffer[new_buffer_index].Get(), 0, particle_index_position * sizeof(UINT), 0, 0,
 					particle_index_buffer[old_buffer_index].Get(), 0, &box);
 			}
 			//	エミッターヘッダー更新
@@ -716,13 +699,22 @@ void compute_particle_system::update(graphics_context& context, float elapsed_ti
 			0);
 	}
 
+	//	更新判断
+	if (emitter_id_table.empty())
+	{
+		if (update_stop)
+			return;
+		update_stop = true;
+	}
+	update_stop = false;
+
 	//	共用の定数バッファ設定
 	{
 		common_constants constant;
 		constant.elapsed_time = elapsed_time;
-		constant.x_of_shift_seed.x = rand();
-		constant.x_of_shift_seed.y = rand();
-		constant.x_of_shift_seed.z = rand();
+		constant.x_of_shift_seed.x = rand() ^ (rand() << 15) ^ (rand() << 30);
+		constant.x_of_shift_seed.y = rand() ^ (rand() << 15) ^ (rand() << 30);
+		constant.x_of_shift_seed.z = rand() ^ (rand() << 15) ^ (rand() << 30);
 		constant.total_emitter_count = total_emitter_count;	//	emitter_id_table.size();
 		constant.total_particle_count = total_particle_count;
 		constant.total_cpu_spawn_count = total_spawn_cpu_particle_count;
@@ -741,6 +733,7 @@ void compute_particle_system::update(graphics_context& context, float elapsed_ti
 		//	システム初期化
 		{
 			context.device_context->CSSetUnorderedAccessViews(0, 1, indirect_data_unordered_access_view.GetAddressOf(), nullptr);
+			context.device_context->CSSetUnorderedAccessViews(1, 1, emitter_data_unordered_access_view.GetAddressOf(), nullptr);
 			context.device_context->CSSetShader(compute_shaderes[static_cast<int>(dispatch_shaderes::clear_system_shader)]->get_shader().Get(), nullptr, 0);
 			context.device_context->Dispatch(1, 1, 1);
 			clear_resources(context.device_context);
@@ -774,13 +767,17 @@ void compute_particle_system::update(graphics_context& context, float elapsed_ti
 			initialize_buffer.data(),
 			sizeof(UINT) * static_cast<UINT>(initialize_buffer.size()),
 			0);
+		context.device_context->UpdateSubresource(emitter_table_buffer.Get(),
+			0,
+			nullptr,
+			initialize_buffer.data(),
+			sizeof(UINT) * static_cast<UINT>(initialize_buffer.size()),
+			0);
 	}
 
 	//	更新開始処理
 	{
 		context.device_context->CSSetUnorderedAccessViews(0, 1, indirect_data_unordered_access_view.GetAddressOf(), nullptr);
-		context.device_context->CSSetShaderResources(0, 1, emitter_table_shader_resource_view.GetAddressOf());
-		context.device_context->CSSetShaderResources(1, 1, emitter_data_shader_resource_view.GetAddressOf());
 		context.device_context->CSSetShader(compute_shaderes[static_cast<int>(dispatch_shaderes::begin_update)]->get_shader().Get(), nullptr, 0);
 		context.device_context->Dispatch(1, 1, 1);
 		clear_resources(context.device_context);
@@ -974,6 +971,16 @@ void compute_particle_system::update(graphics_context& context, float elapsed_ti
 		clear_resources(context.device_context);
 	}
 
+	//	更新終了処理
+	{
+		context.device_context->CSSetUnorderedAccessViews(0, 1, indirect_data_unordered_access_view.GetAddressOf(), nullptr);
+		context.device_context->CSSetShaderResources(0, 1, emitter_table_shader_resource_view.GetAddressOf());
+		context.device_context->CSSetShaderResources(1, 1, emitter_data_shader_resource_view.GetAddressOf());
+		context.device_context->CSSetShader(compute_shaderes[static_cast<int>(dispatch_shaderes::end_update)]->get_shader().Get(), nullptr, 0);
+		context.device_context->Dispatch(1, 1, 1);
+		clear_resources(context.device_context);
+	}
+
 	//	エミッター毎の描画情報を構築していく
 	{
 		context.device_context->CSSetUnorderedAccessViews(0, 1, particle_index_unordered_access_view[current_buffer_index].GetAddressOf(), nullptr);
@@ -1005,8 +1012,12 @@ void compute_particle_system::update(graphics_context& context, float elapsed_ti
 		{
 			//	UAVと定数バッファ設定
 			build_primitive_constants constant;
+			for (UINT id = 0; id < vertex_buffer_uav_max; ++id)
+			{
+				(&constant.emitter_ids[0].x)[id] = invalid_emitter_id;
+			}
 			ID3D11UnorderedAccessView* uavs[vertex_buffer_uav_max] = {};
-			for (UINT id = 0; id < vertex_buffer_uav_max && id < emitter_id_table.size(); ++id)
+			for (UINT id = 0; id < vertex_buffer_uav_max && (index + id) < emitter_id_table.size(); ++id)
 			{
 				UINT emitter_id = emitter_id_table[index + id];
 				if (emitter_id == invalid_tag)
@@ -1026,396 +1037,17 @@ void compute_particle_system::update(graphics_context& context, float elapsed_ti
 	}
 }
 
-void compute_particle_system::render(graphics_context& context)
+void compute_particle_system::generate_render_data(UINT emitter_id, effect_container::sprite_trail& data)
 {
-	context.clear_index_buffer();
-
+	emitter_id;
 	UINT strides[] = { sizeof(vertex_data) };
 	UINT offsets[] = { 0 };
 
-	//	定数バッファ設定
-	context.device_context->VSSetConstantBuffers(common_pipeline_states::scene_cbv_index, 1, context.scene_constant_buffer.GetAddressOf());
-	context.device_context->PSSetConstantBuffers(common_pipeline_states::scene_cbv_index, 1, context.scene_constant_buffer.GetAddressOf());
+	auto& emitter_resource = emitter_resources[emitter_id];
+	data.vertex_buffer_view.vertex_buffer = emitter_resource.buffer;
+	data.vertex_buffer_view.strides_for_vertex.emplace_back(static_cast<UINT>(sizeof(vertex_data)));
+	data.vertex_buffer_view.offsets_for_vertex.emplace_back(0);
 
-	//	図形設定
-	context.device_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-	//	エミッター毎に処理する
-	for (UINT index = 0; index < emitter_id_table.size(); ++index)
-	{
-		UINT emitter_id = emitter_id_table[index];
-		if (emitter_id == invalid_tag)
-			continue;
-
-		auto& emitter_resource = emitter_resources[emitter_id];
-
-		//	バッファ設定
-		context.device_context->IASetVertexBuffers(0, 1, emitter_resource.buffer.GetAddressOf(), strides, offsets);
-
-		//	シェーダー設定(場合によっては変更する)
-		context.device_context->VSSetShader(default_draw_vertex_shader->get_shader().Get(), nullptr, 0);
-		context.device_context->IASetInputLayout(default_draw_vertex_shader->get_input_layout().Get());
-		context.device_context->PSSetShader(default_draw_pixel_shader->get_shader().Get(), nullptr, 0);
-
-		//	リソース設定
-		context.device_context->PSSetShaderResources(0, 1, emitter_resource.resource.render.texture->get_shader_resource_view().GetAddressOf());
-		context.device_context->PSSetSamplers(0, 1, emitter_resource.resource.render.sampler_state.GetAddressOf());
-
-		//	描画
-		context.device_context->DrawInstancedIndirect(indirect_data_buffer.Get(),
-			FixedIndirectDataSize + sizeof(draw_indirect) * emitter_id);
-	}
-
-	//	リソースクリア
-	context.clear_shader_slots();
-	context.clear_constant_buffers();
-	context.clear_shader_resorce_views();
-	context.clear_unordered_access_views();
+	data.vertex_buffer_view.indirect_buffer = indirect_data_buffer;
+	data.vertex_buffer_view.offset_for_args = FixedIndirectDataSize + sizeof(draw_indirect) * emitter_id;
 }
-
-
-
-#if 0
-
-
-
-{
-	//	リソース設定
-	set_scene_constant(common_pipeline_states::scene_cbv_index);
-
-	//	破棄テスト
-	if (::GetAsyncKeyState('A') & 0x8000 && emitter_datas[Trail].emitter_index != 0xFFFFFFFF)
-	{
-		compute_particle->unregister_emitter(emitter_datas[Trail].emitter_index);
-		emitter_datas[Trail].emitter_index = 0xFFFFFFFF;
-	}
-	if (::GetAsyncKeyState('S') & 0x8000 && emitter_datas[Bomb].emitter_index != 0xFFFFFFFF)
-	{
-		compute_particle->unregister_emitter(emitter_datas[Bomb].emitter_index);
-		emitter_datas[Bomb].emitter_index = 0xFFFFFFFF;
-	}
-
-	//	更新回数を算出
-	static float accumulate_time = 0;
-	accumulate_time += elapsed_time;
-	UINT loop_max = 0;
-	if (particle_update_limit_fps60)
-	{
-		if (accumulate_time >= 1 / 60.0f)
-		{
-			loop_max = static_cast<UINT>(accumulate_time * 60);
-			accumulate_time -= loop_max / 60.0f;
-		}
-	}
-	else
-	{
-		accumulate_time = 0;
-		loop_max = 1;
-	}
-
-	//	パーティクル更新
-	for (UINT index = 0; index < loop_max; ++index)
-	{
-		//	経過時間
-		if (particle_update_limit_fps60)
-			elapsed_time = 1 / 60.0f;
-#if 01
-		//	爆発処理
-		if (emitter_datas[Bomb].emitter_index != 0xFFFFFFFF)
-		{
-			auto& emitter_data = emitter_datas[Bomb];
-			particle_system_item::emitter::common common_data;
-			{
-				//	パーティクル生成情報
-				common_data.emitter_state;
-
-				//	エミッター姿勢情報
-				common_data.scale = emitter_data.scale;
-				DirectX::XMStoreFloat4(&common_data.rotation,
-					DirectX::XMQuaternionRotationRollPitchYaw(emitter_data.rotation.x, emitter_data.rotation.y, emitter_data.rotation.z));
-				common_data.translation = emitter_data.translation;
-
-				//	パーティクル発生情報
-				common_data.spawn_life_time_range = { 1.5f, 2.5f };
-				common_data.spawn_scale_range = { 3.0f, 6.0f };
-				if ((::GetAsyncKeyState('X') & 0x8000))
-					common_data.spawn_count = 40;
-				else
-					common_data.spawn_count = 0;
-
-				common_data.spawn_area_min = { -40, 0, -40 };
-				common_data.spawn_area_max = { +40, 0, +40 };
-				common_data.gravity = { 0.0f, -9.8f, 0.0f };
-				common_data.gravity = { 0.0f, 0.0f, 0.0f };
-			}
-
-			//	エミッター更新情報登録
-			compute_particle_system::update_emitter_data data;
-
-			//	各種アイテム登録
-			{
-				UINT offset = 0;
-				//	スプライトアニメーションアイテム登録
-				{
-					particle_system_item::emitter::sprite_animation sprite_animation;
-					sprite_animation.split_count = { 5, 5 };
-					sprite_animation.increment_time = 1.0f / 25;
-					UINT write_position = static_cast<UINT>(data.item_binary.size());
-					UINT write_size = sizeof(particle_system_item::emitter::sprite_animation);
-					data.item_binary.resize(write_position + write_size);
-					memcpy_s(data.item_binary.data() + write_position, data.item_binary.size() - write_position,
-						&sprite_animation, sizeof(sprite_animation));
-					common_data.active_items |= 1 << particle_system_item::emitter::sprite_animation::data_id;
-				}
-
-				//	速度アイテム登録
-				{
-					particle_system_item::emitter::velocity velocity;
-					velocity.angle_range = { 0.5f, 1.5f };
-					velocity.direction.x = static_cast<float>(rand() % 100 - 50) * 0.01f;
-					velocity.direction.y = static_cast<float>(rand() % 100 - 50) * 0.01f;
-					velocity.direction.z = static_cast<float>(rand() % 100 - 50) * 0.01f;
-					float length = 0;
-					length = sqrtf(velocity.direction.x * velocity.direction.x +
-						velocity.direction.y * velocity.direction.y +
-						velocity.direction.z * velocity.direction.z);
-					velocity.direction.x /= length;
-					velocity.direction.y /= length;
-					velocity.direction.z /= length;
-					velocity.power_range = { 2.5f, 5.0f };
-					velocity.acceleration.x = static_cast<float>(rand() % 100 - 50) * 0.1f;
-					velocity.acceleration.y = static_cast<float>(rand() % 100 - 50) * 0.1f;
-					velocity.acceleration.z = static_cast<float>(rand() % 100 - 50) * 0.1f;
-					length = sqrtf(velocity.acceleration.x * velocity.acceleration.x +
-						velocity.acceleration.y * velocity.acceleration.y +
-						velocity.acceleration.z * velocity.acceleration.z);
-					velocity.acceleration.x /= length;
-					velocity.acceleration.y /= length;
-					velocity.acceleration.z /= length;
-					if (emitter_data.emitter_index == 0)
-					{
-						velocity.angle_range = { 0.0f, 0.5f };
-						velocity.power_range = { 0, 0.1f };
-					}
-
-					UINT write_position = static_cast<UINT>(data.item_binary.size());
-					UINT write_size = sizeof(particle_system_item::emitter::velocity);
-					data.item_binary.resize(write_position + write_size);
-					memcpy_s(data.item_binary.data() + write_position, data.item_binary.size() - write_position,
-						&velocity, sizeof(velocity));
-					common_data.active_items |= 1 << particle_system_item::emitter::velocity::data_id;
-				}
-			}
-			data.common = common_data;
-
-			//	エミッター更新アイテム登録
-			compute_particle->update_emitter(emitter_data.emitter_index, data);
-		}
-
-		//	軌跡処理
-		if (emitter_datas[Trail].emitter_index != 0xFFFFFFFF)
-		{
-			auto& emitter_data = emitter_datas[Trail];
-			particle_system_item::emitter::common common_data;
-			{
-				//	パーティクル生成情報
-				common_data.emitter_state;
-
-				//	エミッター姿勢情報
-				common_data.scale = emitter_data.scale;
-				DirectX::XMStoreFloat4(&common_data.rotation,
-					DirectX::XMQuaternionRotationRollPitchYaw(emitter_data.rotation.x, emitter_data.rotation.y, emitter_data.rotation.z));
-				common_data.translation = emitter_data.translation;
-
-				//	パーティクル発生情報
-				common_data.spawn_life_time_range = { 1.5f, 2.5f };
-				common_data.spawn_scale_range = { 0.15f, 0.5f };
-				if ((::GetAsyncKeyState('Z') & 0x8000))
-					common_data.spawn_count = 40;
-				else
-					common_data.spawn_count = 0;
-
-				common_data.spawn_area_min = { -40, 0, -40 };
-				common_data.spawn_area_max = { +40, 0, +40 };
-				common_data.gravity = { 0.0f, -9.8f, 0.0f };
-			}
-
-			//	エミッター更新情報登録
-			compute_particle_system::update_emitter_data data;
-
-			//	各種アイテム登録
-			{
-				UINT offset = 0;
-				//	軌跡アイテム登録
-				{
-					particle_system_item::emitter::trail trail;
-					trail.max = TRAIL_BODY_MAX;
-
-					UINT write_position = static_cast<UINT>(data.item_binary.size());
-					UINT write_size = sizeof(particle_system_item::emitter::trail);
-					data.item_binary.resize(write_position + write_size);
-					memcpy_s(data.item_binary.data() + write_position, data.item_binary.size() - write_position,
-						&trail, sizeof(trail));
-					common_data.active_items |= 1 << particle_system_item::emitter::trail::data_id;
-				}
-
-				//	速度アイテム登録
-				{
-					particle_system_item::emitter::velocity velocity;
-					velocity.angle_range = { 0.5f, 1.5f };
-					velocity.direction.x = static_cast<float>(rand() % 100 - 50) * 0.01f;
-					velocity.direction.y = static_cast<float>(rand() % 100 - 50) * 0.01f;
-					velocity.direction.z = static_cast<float>(rand() % 100 - 50) * 0.01f;
-					float length = 0;
-					length = sqrtf(velocity.direction.x * velocity.direction.x +
-						velocity.direction.y * velocity.direction.y +
-						velocity.direction.z * velocity.direction.z);
-					velocity.direction.x /= length;
-					velocity.direction.y /= length;
-					velocity.direction.z /= length;
-					velocity.power_range = { 2.5f, 5.0f };
-					velocity.acceleration.x = static_cast<float>(rand() % 100 - 50) * 0.1f;
-					velocity.acceleration.y = static_cast<float>(rand() % 100 - 50) * 0.1f;
-					velocity.acceleration.z = static_cast<float>(rand() % 100 - 50) * 0.1f;
-					length = sqrtf(velocity.acceleration.x * velocity.acceleration.x +
-						velocity.acceleration.y * velocity.acceleration.y +
-						velocity.acceleration.z * velocity.acceleration.z);
-					velocity.acceleration.x /= length;
-					velocity.acceleration.y /= length;
-					velocity.acceleration.z /= length;
-					if (emitter_data.emitter_index == 0)
-					{
-						velocity.angle_range = { 0.0f, 0.5f };
-						velocity.power_range = { 0, 0.1f };
-					}
-
-					UINT write_position = static_cast<UINT>(data.item_binary.size());
-					UINT write_size = sizeof(particle_system_item::emitter::velocity);
-					data.item_binary.resize(write_position + write_size);
-					memcpy_s(data.item_binary.data() + write_position, data.item_binary.size() - write_position,
-						&velocity, sizeof(velocity));
-					common_data.active_items |= 1 << particle_system_item::emitter::velocity::data_id;
-				}
-			}
-			data.common = common_data;
-
-			//	エミッター更新アイテム登録
-			compute_particle->update_emitter(emitter_data.emitter_index, data);
-		}
-#else
-		//	エミッター情報更新
-		for (UINT emitter_index = 0; emitter_index < Max; ++emitter_index)
-		{
-			auto& emitter_data = emitter_datas[emitter_index];
-			particle_system_item::emitter::common common_data;
-			{
-				//	パーティクル生成情報
-				common_data.emitter_state;
-
-				//	エミッター姿勢情報
-				common_data.scale = emitter_data.scale;
-				DirectX::XMStoreFloat4(&common_data.rotation,
-					DirectX::XMQuaternionRotationRollPitchYaw(emitter_data.rotation.x, emitter_data.rotation.y, emitter_data.rotation.z));
-				common_data.translation = emitter_data.translation;
-
-				//	パーティクル発生情報
-				common_data.spawn_life_time_range = { 2.5f - 0.001f, 2.5f };
-				common_data.spawn_scale_range = { 0.15f, 0.5f };
-				common_data.spawn_count = 40;
-
-				common_data.spawn_area_min = { -40, 0, -40 };
-				common_data.spawn_area_max = { +40, 0, +40 };
-				common_data.gravity = { 0.0f, -9.8f, 0.0f };
-				if (emitter_data.emitter_index == 0)
-				{
-					common_data.gravity = { 0.0f, 0.0f, 0.0f };
-					common_data.spawn_scale_range = { 3.0f, 6.0f };
-				}
-			}
-
-			//	エミッター更新情報登録
-			compute_particle_system::update_emitter_data data;
-
-			//	各種アイテム登録
-			{
-				UINT offset = 0;
-
-				//	軌跡アイテム登録
-				if (emitter_index == Trail)
-				{
-					particle_system_item::emitter::trail trail;
-					trail.max = TRAIL_BODY_MAX;
-
-					UINT write_position = data.item_binary.size();
-					UINT write_size = sizeof(particle_system_item::emitter::trail);
-					data.item_binary.resize(write_position + write_size);
-					memcpy_s(data.item_binary.data() + write_position, data.item_binary.size() - write_position,
-						&trail, sizeof(trail));
-					common_data.active_items |= 1 << particle_system_item::emitter::trail::data_id;
-				}
-
-				//	スプライトアニメーションアイテム登録
-				if (emitter_index == Bomb)
-				{
-					particle_system_item::emitter::sprite_animation sprite_animation;
-					sprite_animation.split_count = {5, 5};
-					sprite_animation.increment_time = 1.0f / 25;
-					UINT write_position = data.item_binary.size();
-					UINT write_size = sizeof(particle_system_item::emitter::sprite_animation);
-					data.item_binary.resize(write_position + write_size);
-					memcpy_s(data.item_binary.data() + write_position, data.item_binary.size() - write_position,
-						&sprite_animation, sizeof(sprite_animation));
-					common_data.active_items |= 1 << particle_system_item::emitter::sprite_animation::data_id;
-				}
-
-				//	速度アイテム登録
-				{
-					particle_system_item::emitter::velocity velocity;
-					velocity.angle_range = { 0.5f, 1.5f };
-					velocity.direction.x = static_cast<float>(rand() % 100 - 50) * 0.01f;
-					velocity.direction.y = static_cast<float>(rand() % 100 - 50) * 0.01f;
-					velocity.direction.z = static_cast<float>(rand() % 100 - 50) * 0.01f;
-					float length = 0;
-					length = sqrtf(velocity.direction.x * velocity.direction.x +
-						velocity.direction.y * velocity.direction.y +
-						velocity.direction.z * velocity.direction.z);
-					velocity.direction.x /= length;
-					velocity.direction.y /= length;
-					velocity.direction.z /= length;
-					velocity.power_range = { 2.5f, 5.0f };
-					velocity.acceleration.x = static_cast<float>(rand() % 100 - 50) * 0.1f;
-					velocity.acceleration.y = static_cast<float>(rand() % 100 - 50) * 0.1f;
-					velocity.acceleration.z = static_cast<float>(rand() % 100 - 50) * 0.1f;
-					length = sqrtf(velocity.acceleration.x * velocity.acceleration.x +
-						velocity.acceleration.y * velocity.acceleration.y +
-						velocity.acceleration.z * velocity.acceleration.z);
-					velocity.acceleration.x /= length;
-					velocity.acceleration.y /= length;
-					velocity.acceleration.z /= length;
-					if (emitter_data.emitter_index == 0)
-					{
-						velocity.angle_range = { 0.0f, 0.5f };
-						velocity.power_range = { 0, 0.1f };
-					}
-
-					UINT write_position = data.item_binary.size();
-					UINT write_size = sizeof(particle_system_item::emitter::velocity);
-					data.item_binary.resize(write_position + write_size);
-					memcpy_s(data.item_binary.data() + write_position, data.item_binary.size() - write_position,
-						&velocity, sizeof(velocity));
-					common_data.active_items |= 1 << particle_system_item::emitter::velocity::data_id;
-				}
-			}
-			data.common = common_data;
-
-			//	エミッター更新アイテム登録
-			compute_particle->update_emitter(emitter_data.emitter_index, data);
-		}
-#endif
-		//	パーティクルシステム更新
-		get_renderdata()->debug_begin_event(L"Update Particle");
-		compute_particle->update(get_renderdata()->context.device_context.Get(), elapsed_time);
-		get_renderdata()->debug_end_event();
-	}
-}
-#endif

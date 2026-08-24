@@ -5,7 +5,7 @@ RWStructuredBuffer<particle_header> particle_header_buffer : register(u0); //  ƒ
 [numthreads(NumDispatchThread, 1, 1)]
 void main(uint3 dispatch_thread_id : SV_DispatchThreadID)
 {
-    int index = dispatch_thread_id.x;
+    uint index = dispatch_thread_id.x;
     if (total_particle_count < index)
         return;
 

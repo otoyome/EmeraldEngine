@@ -326,6 +326,7 @@ xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y</Command>
     <ClCompile Include="Sources\Editor\editor_items.cpp" />
     <ClCompile Include="Sources\Editor\editor_items_animation.cpp" />
     <ClCompile Include="Sources\Editor\editor_items_display.cpp" />
+    <ClCompile Include="Sources\Editor\editor_items_effect.cpp" />
     <ClCompile Include="Sources\Editor\editor_items_ik.cpp" />
     <ClCompile Include="Sources\framework.cpp" />
     <ClCompile Include="Sources\framework_imgui.cpp" />
@@ -357,12 +358,14 @@ xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y</Command>
     <ClCompile Include="Sources\Renderer\renderer.cpp" />
     <ClCompile Include="Sources\Renderer\render_job_executor.cpp" />
     <ClCompile Include="Sources\Renderer\scene_renderer.cpp" />
+    <ClCompile Include="Sources\Renderer\scene_renderer_common.cpp" />
     <ClCompile Include="Sources\Renderer\scene_renderer_forward.cpp" />
     <ClCompile Include="Sources\Renderer\scene_renderer_postprocess.cpp" />
     <ClCompile Include="Sources\Scenes\DummyScene\dummy_scene.cpp" />
     <ClCompile Include="Sources\Scenes\EditScene\edit_model_scene.cpp" />
     <ClCompile Include="Sources\Scenes\EditScene\edit_model_scene_edit_window.cpp" />
     <ClCompile Include="Sources\Scenes\EditScene\edit_model_scene_edit_animation_window.cpp" />
+    <ClCompile Include="Sources\Scenes\EditScene\edit_particle_scene.cpp" />
     <ClCompile Include="Sources\Scenes\GameScene\game_main_scene.cpp" />
     <ClCompile Include="Sources\Scenes\scene_base.cpp" />
     <ClCompile Include="Sources\Scenes\load_shader_scene.cpp" />
@@ -430,6 +433,7 @@ xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y</Command>
     <ClInclude Include="Headers\Renderer\renderer_context.h" />
     <ClInclude Include="Headers\Renderer\renderer_domain.h" />
     <ClInclude Include="Headers\Renderer\render_job_executor.h" />
+    <ClInclude Include="Headers\Renderer\scene_renderer_common.h" />
     <ClInclude Include="Headers\Renderer\scene_renderer_forward.h" />
     <ClInclude Include="Headers\Renderer\scene_renderer_postprocess.h" />
     <ClInclude Include="Headers\Renderer\scene_render_targets.h" />
@@ -437,6 +441,7 @@ xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y</Command>
     <ClInclude Include="Headers\Renderer\scene_renderer.h" />
     <ClInclude Include="Headers\Scenes\DummyScene\dummy_scene.h" />
     <ClInclude Include="Headers\Scenes\EditScene\edit_model_scene.h" />
+    <ClInclude Include="Headers\Scenes\EditScene\edit_particle_scene.h" />
     <ClInclude Include="Headers\Scenes\GameScene\game_main_scene.h" />
     <ClInclude Include="Headers\Scenes\scene_base.h" />
     <ClInclude Include="Headers\Scenes\load_shader_scene.h" />
@@ -454,15 +459,40 @@ xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y</Command>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compute</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Compute</ShaderType>
     </FxCompile>
-    <FxCompile Include="..\Shaders\ComputeParticle\Renderer\compute_particle_default_render_ps.hlsl">
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">Pixel</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+    <FxCompile Include="..\Shaders\ComputeParticle\Renderer\Default\compute_particle_default_csm_gs.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </FxCompile>
-    <FxCompile Include="..\Shaders\ComputeParticle\Renderer\compute_particle_default_render_vs.hlsl">
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">Vertex</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
+    <FxCompile Include="..\Shaders\ComputeParticle\Renderer\Default\compute_particle_default_csm_vs.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </FxCompile>
+    <FxCompile Include="..\Shaders\ComputeParticle\Renderer\Default\compute_particle_default_depth_write_ps.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </FxCompile>
+    <FxCompile Include="..\Shaders\ComputeParticle\Renderer\Default\compute_particle_default_depth_write_vs.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </FxCompile>
+    <FxCompile Include="..\Shaders\ComputeParticle\Renderer\Default\compute_particle_default_g_buffer_ps.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </FxCompile>
+    <FxCompile Include="..\Shaders\ComputeParticle\Renderer\Default\compute_particle_default_ps.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </FxCompile>
+    <FxCompile Include="..\Shaders\ComputeParticle\Renderer\Default\compute_particle_default_vs.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </FxCompile>
     <FxCompile Include="..\Shaders\ComputeParticle\System\compute_particle_begin_update_cs.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compute</ShaderType>
@@ -495,6 +525,11 @@ xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y</Command>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Compute</ShaderType>
     </FxCompile>
     <FxCompile Include="..\Shaders\ComputeParticle\System\compute_particle_clear_system_cs.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compute</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">Compute</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Compute</ShaderType>
+    </FxCompile>
+    <FxCompile Include="..\Shaders\ComputeParticle\System\compute_particle_end_update_cs.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compute</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">Compute</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Compute</ShaderType>
@@ -605,6 +640,12 @@ xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y</Command>
     <None Include="..\Shaders\ComputeParticle\compute_particle_system_item_emitter.hlsli" />
     <None Include="..\Shaders\ComputeParticle\compute_particle_system_item_particle.hlsli" />
     <None Include="..\Shaders\ComputeParticle\compute_particle_update_items.hlsli" />
+    <None Include="..\Shaders\ComputeParticle\Renderer\compute_particle_csm.hlsli" />
+    <None Include="..\Shaders\ComputeParticle\Renderer\compute_particle_renderer.hlsli" />
+    <None Include="..\Shaders\ComputeParticle\Renderer\compute_particle_renderer_csm_gs.hlsli" />
+    <None Include="..\Shaders\ComputeParticle\Renderer\compute_particle_renderer_csm_vs.hlsli" />
+    <None Include="..\Shaders\ComputeParticle\Renderer\compute_particle_renderer_vs.hlsli" />
+    <None Include="..\Shaders\ComputeParticle\Renderer\Default\compute_particle_default.hlsli" />
     <None Include="..\Shaders\ComputeParticle\System\compute_particle.hlsli" />
     <None Include="..\Shaders\ComputeParticle\System\compute_particle_base_stream_item.hlsli" />
     <None Include="..\Shaders\ComputeParticle\System\compute_particle_bitonic_sort.hlsli" />

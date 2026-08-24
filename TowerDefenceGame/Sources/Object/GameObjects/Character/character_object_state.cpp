@@ -97,10 +97,10 @@ void character_object::post_update(float elapsed_time)
 	{
 		camera_distance_translucent_inner_flag = is_flag(flags::camera_distance_translucent);
 		bool flag = is_flag(flags::camera_distance_translucent);
-		for (auto& material : get_model_object()->get_model_instance()->get_materials())
-		{
-			material.set_flag(material::flags::camera_distance_translucent, flag);
-		}
+		//for (auto& material : get_model_object()->get_model_instance()->get_materials())
+		//{
+		//	material.set_flag(material::flags::camera_distance_translucent, flag);
+		//}
 		on_change_camera_translucent(flag);
 	}
 }
@@ -115,7 +115,6 @@ std::string_view character_object::get_current_state() const
 bool character_object::check_same_state(std::string_view state_name) const
 {
 	return get_current_state() == state_name;
-//	if (get_current_state() == character_object::state_names[character_object::state_damage])
 }
 
 bool character_object::change_state(std::string_view state_id)
@@ -524,7 +523,7 @@ bool character_object::calculate_position(DirectX::XMFLOAT3 velocity, bool verti
 
 			if (vertical)
 			{
-				float dot = DirectX::XMVectorGetX(DirectX::XMVector3Dot(DirectX::XMLoadFloat3(&out_normal), DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f)));
+				float dot = DirectX::XMVectorGetX(DirectX::XMVector3Dot(Normal, DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f)));
 				float slope_angle = acosf(math::clamp(dot, -1.0f, 1.0f));
 				if (slope_angle >= slope_limit)
 					break;
@@ -550,14 +549,6 @@ bool character_object::calculate_position(DirectX::XMFLOAT3 velocity, bool verti
 			hit_flag = false;
 			break;
 		}
-	}
-
-	auto A = DirectX::XMLoadFloat3(&get_position());
-	auto B = DirectX::XMLoadFloat3(&out_position);
-	if (DirectX::XMVectorGetX(DirectX::XMVector3Length(DirectX::XMVectorSubtract(A, B))) >= 100.0f)
-	{
-		int ii = 0;
-		++ii;
 	}
 
 	return hit_flag;

@@ -1075,10 +1075,10 @@ void kuroko_object::on_stagger(const stagger_datas& data)
 
 void kuroko_object::on_change_camera_translucent(bool flag)
 {
-	for (auto& material : weapon_model->get_model_instance()->get_materials())
-	{
-		material.set_flag(material::flags::camera_distance_translucent, true);
-	}
+	//for (auto& material : weapon_model->get_model_instance()->get_materials())
+	//{
+	//	material.set_flag(material::flags::camera_distance_translucent, true);
+	//}
 }
 
 void kuroko_object::on_hit_while_dodging(const damage_datas& data)

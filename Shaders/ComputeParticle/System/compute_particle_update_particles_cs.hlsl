@@ -15,6 +15,8 @@ void main(uint3 dispatch_thread_id : SV_DispatchThreadID)
     bool alive;
     uint emitter_id, particle_index;
     get_particle_header_parameter(header, alive, emitter_id, particle_index);
+    if (!alive)
+        return;
 
     //  破棄Idリスト
     [loop]
@@ -45,7 +47,7 @@ void main(uint3 dispatch_thread_id : SV_DispatchThreadID)
     //  アイテム更新処理
     {
         update_particle_trail_item(em_context, pt_common, emitter_binary_offset, particle_binary_offset);
-        update_sprite_animation_item(em_context, pt_common, emitter_binary_offset, particle_binary_offset);
+        update_uv_item(em_context, pt_common, emitter_binary_offset, particle_binary_offset);
         update_particle_velocity_item(em_context, pt_common, emitter_binary_offset, particle_binary_offset);
 
         //  生存時間更新
@@ -53,7 +55,7 @@ void main(uint3 dispatch_thread_id : SV_DispatchThreadID)
         {
             pt_common.life_time -= elapsed_time;
             alive = pt_common.life_time > 0;
-            pt_common.state &= ~particle_binary_state_bit_spawn_frame; //  生成フレームフラグを落とす
+            clear_flag(pt_common.state, particle_binary_state_bit_spawn_frame);  //  生成フレームフラグを落とす
         }
     }
 

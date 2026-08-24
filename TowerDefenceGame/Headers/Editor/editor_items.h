@@ -5,6 +5,7 @@
 #include "animation_resource.h"
 #include "ik_resource.h"
 #include "model_instance.h"
+#include "effect_instance.h"
 
 #include "ImGuizmo/ImCurveEdit.h"
 #include "ImGuizmo/ImSequencer.h"
@@ -18,6 +19,11 @@ public:
 	//	取り扱いテクスチャの読み込み用
 	static constexpr TCHAR* texture_file_dialog_filter =
 		L"テクスチャ (*.bmp, *.png, *.jpg, *.tga, *.dds, *.hdr)\0*.bmp;*.png;*.jpg;*.tga;*.dds;*.hdr\0\
+		すべてのファイル (*.*)\0*.*\0";
+
+	//	取り扱いテクスチャの読み込み用
+	static constexpr TCHAR* model_file_dialog_filter =
+		L"テクスチャ (*.emo)\0*.emo\0\
 		すべてのファイル (*.*)\0*.*\0";
 
 	//	アイコンの基本サイズ
@@ -38,12 +44,14 @@ public:
 		texture_ptr blank_texture; // 空テクスチャ
 		texture_ptr cross_texture; // ×テクスチャ
 		texture_ptr reserve_texture; // 内部で一時的に保持しておきたいテクスチャ
+		model_resource_ptr reserve_model_resource; // 内部で一時的に保持しておきたい
 
 	private:	//	アニメーション関係
 		system_utility::hash_key animation_data_hash_key = system_utility::hash_key(-1);
 		std::unique_ptr<ibase_editor> interpolation_editor;
 		std::unique_ptr<ibase_editor> timeline_editor;
 		std::unique_ptr<ibase_editor> ik_editor;
+		std::unique_ptr<ibase_editor> effect_editor;
 	};
 
 	//	内部で利用するエディターアイテムのインターフェース
@@ -75,11 +83,16 @@ public:	//	表示系
 public:	//	編集アイテム系
 	static bool edit_material(std::shared_ptr<context>& context, material& material);
 	static bool edit_texture_item(std::shared_ptr<context>& context, texture_ptr& resource, bool* selected_file = nullptr);
+	static bool edit_model_resource_item(std::shared_ptr<context>& context, model_resource_ptr& resource, std::string* selected_file_path = nullptr);
+
 	static bool edit_animation_data(std::shared_ptr<context>& context, animation::data& animation_data);
 	static bool edit_ik(std::shared_ptr<context>& context, model_instance_ptr& model_instance, ik_resource_ptr& ik_resource);
 
+	static bool edit_effect(std::shared_ptr<context>& context, effect_resource_ptr& effect_resource);
+
 public:	//	汎用
 	static bool open_file_dialog(TCHAR* text, std::string& out_selected_file_path);
+	static bool save_file_dialog(TCHAR* text, std::string& out_selected_file_path, const TCHAR* default_extension = nullptr);
 	static bool copy_to_clipboard(const char* text);
 
 private:

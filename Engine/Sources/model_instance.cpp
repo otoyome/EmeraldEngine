@@ -167,15 +167,15 @@ size_t model_instance::get_node_index_by_name(std::string_view node_name) const
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-model_instance_maanger::model_instance_maanger()
+model_instance_manger::model_instance_manger()
 {
 }
 
-model_instance_maanger::~model_instance_maanger()
+model_instance_manger::~model_instance_manger()
 {
 }
 
-void model_instance_maanger::registered(std::weak_ptr<model_instance> instance)
+void model_instance_manger::registered(std::weak_ptr<model_instance> instance)
 {
 	//	ìoò^çœÇ›Ç≈Ç†ÇÍÇŒìoò^ÇµÇ»Ç¢
 	auto it  = std::find_if(instances.begin(),
@@ -190,7 +190,7 @@ void model_instance_maanger::registered(std::weak_ptr<model_instance> instance)
 	instances.emplace_back(instance);
 }
 
-void model_instance_maanger::get_container(mesh_container& container)
+void model_instance_manger::get_container(mesh_container& container)
 {
 	container.clear();
 
@@ -487,7 +487,7 @@ void model_instance_maanger::get_container(mesh_container& container)
 	container.material_datas.resize(material_count);
 }
 
-void model_instance_maanger::generate_constant_bufferes()
+void model_instance_manger::generate_constant_bufferes()
 {
 	auto render_data = render_data::instance();
 	auto device = render_data->get_device();

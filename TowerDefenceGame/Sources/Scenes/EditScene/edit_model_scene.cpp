@@ -9,6 +9,8 @@
 
 #include "custom_pipeline_state.h"
 
+#include "effect_instance.h"
+
 #if defined(USE_IMGUI)
 
 edit_model_scene::edit_model_scene()

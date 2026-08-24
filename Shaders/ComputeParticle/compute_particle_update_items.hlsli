@@ -30,7 +30,6 @@ emitter_context build_emitter_context(inout uint emitter_binary_offset, uint emi
     em_context.scale = em_common.scale;
     em_context.rotation = em_common.rotation;
     em_context.translation = em_common.translation;
-    em_context.gravity = em_common.gravity;
 
     return em_context;
 }
@@ -39,7 +38,7 @@ emitter_context build_emitter_context(inout uint emitter_binary_offset, uint emi
 //  軌跡更新アイテム
 void update_particle_trail_item(inout emitter_context em_context, inout pt_common_item pt_common, inout uint emitter_binary_offset, inout uint particle_binary_offset)
 {
-    if (em_context.active_items & emitter_active_trail_item_bit_flag)
+    if (has_flag(em_context.active_items, emitter_active_trail_item_bit_flag))
     {
         //  軌跡のヘッダーを取得
         pt_trail_header trail_header;
@@ -49,7 +48,7 @@ void update_particle_trail_item(inout emitter_context em_context, inout pt_commo
         {
             em_trail_item trail_item;
             stream_trail_item(rw_read_only, emitter_binary_offset, trail_item);
-            if (pt_common.state & particle_binary_state_bit_spawn_frame)
+            if (has_flag(pt_common.state, particle_binary_state_bit_spawn_frame))
             {
                 //  最初のフレームは特に何もしない
                 trail_header.counter = 1;
@@ -101,13 +100,13 @@ void update_particle_trail_item(inout emitter_context em_context, inout pt_commo
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 //  スプライトアニメーション更新アイテム
-void update_sprite_animation_item(inout emitter_context em_context, inout pt_common_item pt_common, inout uint emitter_binary_offset, inout uint particle_binary_offset)
+void update_uv_item(inout emitter_context em_context, inout pt_common_item pt_common, inout uint emitter_binary_offset, inout uint particle_binary_offset)
 {
-    if (em_context.active_items & emitter_active_sprite_animation_item_bit_flag)
+    if (has_flag(em_context.active_items, emitter_active_uv_item_bit_flag))
     {
         //  表示用の物なのでエミッター分オフセットしておく
-        em_sprite_animation_item em_sprite_animation;
-        stream_sprite_animation_item(rw_read_only, emitter_binary_offset, em_sprite_animation);
+        em_uv_item em_uv;
+        stream_uv_item(rw_read_only, emitter_binary_offset, em_uv);
     }
 }
 
@@ -115,7 +114,7 @@ void update_sprite_animation_item(inout emitter_context em_context, inout pt_com
 //  速度更新アイテム
 void update_particle_velocity_item(inout emitter_context em_context, inout pt_common_item pt_common, inout uint emitter_binary_offset, inout uint particle_binary_offset)
 {
-    if (em_context.active_items & emitter_active_veloctiy_item_bit_flag)
+    if (has_flag(em_context.active_items, emitter_active_veloctiy_item_bit_flag))
     {
         pt_velocity_item pt_velocity;
         uint write_offset = particle_binary_offset;
@@ -124,19 +123,59 @@ void update_particle_velocity_item(inout emitter_context em_context, inout pt_co
         {
             em_veloctiy_item velocity;
             stream_veloctiy_item(rw_read_only, emitter_binary_offset, velocity);
-            if (pt_common.state & particle_binary_state_bit_spawn_frame)
+            if (has_flag(pt_common.state, particle_binary_state_bit_spawn_frame))
             {
-                //  初回更新なのでランダムな方向に送る
-                float power = lerp(velocity.power_range.x, velocity.power_range.y, x_or_shift_random(em_context.random_seed));
-                pt_velocity.velocity = velocity.direction * power;
+                //  強さを乱数で
+                float power = velocity.power_range.x;
+                if (has_flag(velocity.state, emitter_veloctiy_item_state_random_power))
+                    power = lerp(power, velocity.power_range.y, x_or_shift_random(em_context.random_seed));
+
+                //  射出方向をランダムに
+                float3 spread_dir = velocity.direction;
+                if (has_flag(velocity.state, emitter_veloctiy_item_state_random_direction))
+                {
+                    float theta = lerp(velocity.angle_range.x, velocity.angle_range.y, x_or_shift_random(em_context.random_seed));
+                    float phi = x_or_shift_random(em_context.random_seed) * PI;
+
+                    float3 base_dir = normalize(velocity.direction);
+                    float3 up = (abs(base_dir.y) < 0.99f) ? float3(0, 1, 0) : float3(1, 0, 0);
+                    float3 tangent = normalize(cross(up, base_dir));
+                    float3 bitangent = cross(base_dir, tangent);
+
+                    float sin_theta, cos_theta;
+                    sincos(theta, sin_theta, cos_theta);
+                    float sin_phi, cos_phi;
+                    sincos(phi, sin_phi, cos_phi);
+
+                    spread_dir = base_dir * cos_theta + (tangent * cos_phi + bitangent * sin_phi) * sin_theta;
+                }
+                pt_velocity.velocity = spread_dir * power;
             }
             else
             {
                 //  加速処理
-                pt_velocity.velocity += (em_context.gravity + velocity.acceleration) * em_context.elapsed_time;
+                float acceleration = velocity.acceleration_min;
+                if (has_flag(velocity.state, emitter_veloctiy_item_state_random_acceleration))
+                {
+                    acceleration = lerp(velocity.acceleration_min,
+                                        velocity.acceleration_max,
+                                        x_or_shift_random(em_context.random_seed));
+                }
+                pt_velocity.velocity += (velocity.gravity + acceleration) * em_context.elapsed_time;
+
+                //  減速処理
+                float deceleration = velocity.deceleration_min;
+                if (has_flag(velocity.state, emitter_veloctiy_item_state_random_deceleration))
+                {
+                    deceleration = lerp(velocity.deceleration_min,
+                                        velocity.deceleration_max,
+                                        x_or_shift_random(em_context.random_seed));
+                }
+                float3 decel_step = min(abs(pt_velocity.velocity), deceleration * em_context.elapsed_time);
+                pt_velocity.velocity -= sign(pt_velocity.velocity) * decel_step;
+
                 //  移動
                 pt_common.translation += pt_velocity.velocity * em_context.elapsed_time;
-
             }
         }
         stream_velocity_item(rw_write, write_offset, pt_velocity);

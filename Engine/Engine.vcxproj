@@ -43,6 +43,8 @@
     <ClInclude Include="Headers\common_pipeline_states.h" />
     <ClInclude Include="Headers\custom_pipeline_state.h" />
     <ClInclude Include="Headers\data_converter.h" />
+    <ClInclude Include="Headers\effect_instance.h" />
+    <ClInclude Include="Headers\effect_resource.h" />
     <ClInclude Include="Headers\font_data.h" />
     <ClInclude Include="Headers\geometric_primitive.h" />
     <ClInclude Include="Headers\Graphics\compute_particle_system.h" />
@@ -50,6 +52,7 @@
     <ClInclude Include="Headers\Graphics\direct_x_helper.h" />
     <ClInclude Include="Headers\Graphics\fast_fourier_transform.h" />
     <ClInclude Include="Headers\Graphics\gpu_timer.h" />
+    <ClInclude Include="Headers\Graphics\particle_resource.h" />
     <ClInclude Include="Headers\graphics_context.h" />
     <ClInclude Include="Headers\graphics_utility.h" />
     <ClInclude Include="Headers\ik_resource.h" />
@@ -113,12 +116,15 @@
     <ClCompile Include="Sources\data_converter.cpp" />
     <ClCompile Include="Sources\data_converter_gltf.cpp" />
     <ClCompile Include="Sources\data_converter_mmd.cpp" />
+    <ClCompile Include="Sources\effect_instance.cpp" />
+    <ClCompile Include="Sources\effect_resource.cpp" />
     <ClCompile Include="Sources\font_data.cpp" />
     <ClCompile Include="Sources\geometric_primitive.cpp" />
     <ClCompile Include="Sources\Graphics\compute_particle_system.cpp" />
     <ClCompile Include="Sources\Graphics\debug_primitive_collector.cpp" />
     <ClCompile Include="Sources\Graphics\fast_fourier_transform.cpp" />
     <ClCompile Include="Sources\Graphics\gpu_timer.cpp" />
+    <ClCompile Include="Sources\Graphics\particle_resource.cpp" />
     <ClCompile Include="Sources\Graphics\variable_position_allocator.cpp" />
     <ClCompile Include="Sources\graphics_context.cpp" />
     <ClCompile Include="Sources\ik_resource.cpp" />

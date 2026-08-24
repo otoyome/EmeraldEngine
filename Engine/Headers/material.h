@@ -167,7 +167,6 @@ public:
 
 		//	シェーダー側との連携用フラグは最大32個まで
 		//	追加する場合はシェーダーとの連携用コードがあるので修正必要
-		camera_distance_translucent,	//	カメラからの距離に応じた透過処理の適応
 	};
 
 	//	物理マテリアル
@@ -342,5 +341,6 @@ private:
 	graphics_pipeline_state_ptr failed_deferred_decal_pso;
 	graphics_pipeline_state_ptr failed_post_process_pso;
 	graphics_pipeline_state_ptr failed_user_interface_pso;
+	graphics_pipeline_state_ptr failed_particle_psos[magic_enum::enum_count<surface_paths>()];
 #endif	//	defined(USE_IMGUI)
 };

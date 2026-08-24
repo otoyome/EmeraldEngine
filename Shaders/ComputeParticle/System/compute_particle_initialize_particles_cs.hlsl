@@ -44,7 +44,6 @@ void main(uint3 dispatch_thread_id : SV_DispatchThreadID)
     x_or_shift_128_state x_or_shift_random_seed = generate_random_seed(dispatch_thread_id);
     
     //  パーティクルヘッダー情報設定
-    uint index_buffer_counter = em_data.particle_num;
     [loop] for (uint index = 0; index < em_data.spawn_num; ++index)
     {
         //  ヘッダーとして利用する番号を取得
@@ -56,8 +55,7 @@ void main(uint3 dispatch_thread_id : SV_DispatchThreadID)
         //  取得したパーティクル番号が違反タグならパーティクルインデックス生成
         if (particle_index == invalid_tag)
         {
-            particle_index = index_buffer_counter;
-            ++index_buffer_counter;
+            particle_index = em_data.particle_num + index;
         }
 
         //  パーティクルの共通情報初期化
@@ -65,9 +63,10 @@ void main(uint3 dispatch_thread_id : SV_DispatchThreadID)
             uint seed = particle_index;
             pt_common_item pt_common;
             pt_common.state = particle_binary_state_bit_spawn_frame;
-            pt_common.life_time = lerp(em_common.spawn_life_time_range.x, em_common.spawn_life_time_range.y, x_or_shift_random3(x_or_shift_random_seed));
+            pt_common.life_time = lerp(em_common.spawn_life_time_range.x, em_common.spawn_life_time_range.y, x_or_shift_random(x_or_shift_random_seed));
             pt_common.life_time_max = pt_common.life_time;
-            pt_common.scale = em_common.scale * lerp(em_common.spawn_scale_range.xxx, em_common.spawn_scale_range.yyy, x_or_shift_random3(x_or_shift_random_seed));
+            float scale_value = lerp(em_common.spawn_scale_range.x, em_common.spawn_scale_range.y, x_or_shift_random(x_or_shift_random_seed));
+            pt_common.scale = em_common.scale * scale_value.xxx;
             pt_common.rotation = em_common.rotation;
             float3 min = em_common.translation + em_common.spawn_area_min;
             float3 max = em_common.translation + em_common.spawn_area_max;

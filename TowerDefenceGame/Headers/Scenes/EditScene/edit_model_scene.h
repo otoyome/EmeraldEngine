@@ -15,6 +15,8 @@
 
 #include "Editor/editor_items.h"
 
+#include "effect_instance.h"
+
 class edit_model_scene : public scene_base
 {
 	SCENE_DECRLEAR(edit_model_scene, scene_base);

@@ -87,4 +87,13 @@ float4 TextureCubeSample(TextureCube srv, uint resource_id, SamplerState samp, f
 static const uint GET_SHADER_RESOURCE_VIEW_INDEX(NAME) = INDEX; \
 TYPE NAME : register(t##INDEX);
 
+//  サンプラーステート名前構築
+#define GET_SAMPLER_STATE_INDEX(NAME) NAME##State
+
+//  テクスチャ登録用マクロ
+#define REGISTER_TEXTURE_DATA(SRV_TYPE, SAMPLER_TYPE, NAME, INDEX) \
+static const uint GET_SHADER_RESOURCE_VIEW_INDEX(NAME) = INDEX; \
+SRV_TYPE NAME : register(t##INDEX); \
+SAMPLER_TYPE GET_SAMPLER_STATE_INDEX(NAME) : register(s##INDEX);
+
 #endif  //  __MATERIAL_PARAMETER_CONSTANT_BUFFER_HLSLI__

@@ -28,7 +28,7 @@ public:
 	void push_line(const DirectX::XMFLOAT3 start, const DirectX::XMFLOAT3 end, const DirectX::XMFLOAT4 color, bool depth_write = true);
 	void push_sphere(const DirectX::XMFLOAT3 center, float radius, const DirectX::XMFLOAT4 color, bool depth_write = true);
 	void push_capsule(const DirectX::XMFLOAT3 center, const DirectX::XMFLOAT4 rotation, float radius, float length, const DirectX::XMFLOAT4& color, bool depth_write = true);
-	void push_box(const DirectX::XMFLOAT3 scale, const DirectX::XMFLOAT4 rotation, const DirectX::XMFLOAT3 position, const DirectX::XMFLOAT4& color, bool depth_write = true);
+	void push_box(const DirectX::XMFLOAT3 position, const DirectX::XMFLOAT4 rotation, const DirectX::XMFLOAT3 scale, const DirectX::XMFLOAT4& color, bool depth_write = true);
 
 private:
 	std::vector<vertex> vertices[static_cast<int>(debug_draw_primitive_container::line_buffer_id::max)];
@@ -38,13 +38,13 @@ private:
 #define PUSH_DEBUG_PRIMITIVE_LINE(START, END, COLOR, DEPTH_TEST) debug_primitive_manager::instance()->push_line(START, END, COLOR, DEPTH_TEST)
 #define PUSH_DEBUG_PRIMITIVE_SPHERE(CENTER, RADIUS, COLOR, DEPTH_TEST) debug_primitive_manager::instance()->push_sphere(CENTER, RADIUS, COLOR, DEPTH_TEST)
 #define PUSH_DEBUG_PRIMITIVE_CAPSULE(CENTER, ROTATION, RADIUS, LENGTH, COLOR, DEPTH_TEST) debug_primitive_manager::instance()->push_capsule(CENTER, ROTATION, RADIUS, LENGTH, COLOR, DEPTH_TEST)
-#define PUSH_DEBUG_PRIMITIVE_BOX(SCALE, ROTATION, POSITION, COLOR, DEPTH_TEST) debug_primitive_manager::instance()->push_box(SCALE, ROTATION, POSITION, COLOR, DEPTH_TEST)
+#define PUSH_DEBUG_PRIMITIVE_BOX(POSITION, ROTATION, SCALE, COLOR, DEPTH_TEST) debug_primitive_manager::instance()->push_box(SCALE, ROTATION, POSITION, COLOR, DEPTH_TEST)
 
 #else // defined(USE_IMGUI)
 
 #define PUSH_DEBUG_PRIMITIVE_LINE(START, END, COLOR, DEPTH_TEST)
 #define PUSH_DEBUG_PRIMITIVE_SPHERE(CENTER, RADIUS, COLOR, DEPTH_TEST)
 #define PUSH_DEBUG_PRIMITIVE_CAPSULE(CENTER, RADIUS, LENGTH, COLOR, DEPTH_TEST)
-#define PUSH_DEBUG_PRIMITIVE_BOX(SCALE, ROTATION, POSITION, COLOR, DEPTH_TEST)
+#define PUSH_DEBUG_PRIMITIVE_BOX(POSITION, ROTATION, SCALE, COLOR, DEPTH_TEST)
 
 #endif // defined(USE_IMGUI)

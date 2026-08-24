@@ -88,6 +88,50 @@ float block_noise(float2 seeds)
     return random(floor(seeds));
 }
 
+float repeat(float _max, float _value)
+{
+    float t = fmod(_value, _max);
+    return t < 0.0f ? _max + t : t;
+}
+ 
+float2 repeat(float2 _max, float2 _value)
+{
+    float2 t = fmod(_value, _max);
+    return t < 0.0f ? _max + t : t; // componentwise ternary (SM4+)
+}
+ 
+float3 repeat(float3 _max, float3 _value)
+{
+    float3 t = fmod(_value, _max);
+    return t < 0.0f ? _max + t : t;
+}
+ 
+float4 repeat(float4 _max, float4 _value)
+{
+    float4 t = fmod(_value, _max);
+    return t < 0.0f ? _max + t : t;
+}
+
+float wrap(float _min, float _max, float _value)
+{
+    return repeat(_max - _min, _value - _min) + _min;
+}
+ 
+float2 wrap(float2 _min, float2 _max, float2 _value)
+{
+    return repeat(_max - _min, _value - _min) + _min;
+}
+ 
+float3 wrap(float3 _min, float3 _max, float3 _value)
+{
+    return repeat(_max - _min, _value - _min) + _min;
+}
+ 
+float4 wrap(float4 _min, float4 _max, float4 _value)
+{
+    return repeat(_max - _min, _value - _min) + _min;
+}
+
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //	‹——£’PˆÊ
 static const int length_units_micro_meter = 0;

@@ -14,6 +14,9 @@ static const uint ThreadsCount = 1024;
 [numthreads(ThreadsCount, 1, 1)]
 void main(uint3 dispatch_thread_id : SV_DispatchThreadID)
 {
+    if (dispatch_thread_id.x >= total_emitter_count)
+        return;
+
     uint emitter_index = emitter_table_buffer.Load(dispatch_thread_id.x);
     if (emitter_index == invalid_tag)
         return;
@@ -34,7 +37,6 @@ void main(uint3 dispatch_thread_id : SV_DispatchThreadID)
     bool alive;
     uint emitter_id, particle_index;
 
-#if 01  //  ‹l‚ß‚Ä‚¢‚­
     //  ¶‘¶Ò‚Ì”Ô†‚ğ‹l‚ß‚Ä‚¢‚­
     uint index, index_buffer_counter = particle_index_head;
     for (index = range.alive_head; index < range.alive_end; ++index)
@@ -57,19 +59,4 @@ void main(uint3 dispatch_thread_id : SV_DispatchThreadID)
         particle_header_buffer[index] = dead_header;
         ++index_buffer_counter;
     }
-#else
-    uint index_buffer_counter = emitter_data_buffer[emitter_index].particle_num;
-    for (uint index = range.dead_head; index < range.dead_end; ++index)
-    {
-        particle_header header = particle_header_buffer[index];
-        get_particle_header_parameter(header, alive, emitter_id, particle_index);
-
-        if (header.tag != invalid_tag)
-        {
-            particle_index_buffer[particle_index_head + index_buffer_counter] = particle_index;
-            particle_header_buffer[index] = dead_header;
-            ++index_buffer_counter;
-        }
-    }
-#endif
 }

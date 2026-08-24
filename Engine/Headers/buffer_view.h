@@ -108,11 +108,11 @@ struct buffer_datas
 
 		max,
 	};
-	UINT vertex_count;					//	Drawで使用する際の頂点数
-	UINT system_flags = 0;				//	モデルフラグ類
-	std::vector<sub_mesh> color_meshs;	//	色描画メッシュ
-	sub_mesh shadow_mesh;				//	影用描画メッシュ
-	DirectX::XMFLOAT2 lod_range_rate;	//	LOD距離範囲
+	UINT vertex_count;										//	Drawで使用する際の頂点数
+	UINT system_flags = 0;									//	モデルフラグ類
+	std::vector<sub_mesh> color_meshs;						//	色描画メッシュ
+	sub_mesh shadow_mesh;									//	影用描画メッシュ
+	DirectX::XMFLOAT2 lod_range_rate = {0.0f, 10000.0f};	//	LOD距離範囲
 
 	DirectX::XMFLOAT3 bounds_min, bounds_max;
 

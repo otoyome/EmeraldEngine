@@ -2,6 +2,10 @@
 #define __COMPUND_COMPUTE_PARTICLE_HLSLI_
 
 #include "scene_constant_buffer.hlsli"
+#include "compute_particle_structs.hlsli"
+
+static const float PI  = 3.1415926f;
+static const float PI2 = 6.28318530718f;
 
 //  パーティクルスレッド数
 static const int NumDispatchThread = 256;
@@ -84,23 +88,6 @@ cbuffer COMMON_CONSTANTS : register(b10)
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-struct VS_IN
-{
-    float3 position : POSITION;
-    float4 color : COLOR;
-    float2 texcoord : TEXCOORD;
-};
-static const uint index_size = 6;
-static const uint vertex_size = 4 * 9;
-
-struct PS_IN
-{
-    float4 position : SV_POSITION;
-    float4 color : COLOR;
-    float2 texcoord : TEXCOORD;
-};
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////
 uint set_particle_header_tag(bool alive, uint emitter_id, uint particle_index)
 {
     uint tag = 0;
@@ -141,6 +128,22 @@ void get_particle_header_parameter(in particle_header header, out bool alive, ou
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 //  その他汎用関数群
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
+//  フラグ操作
+bool has_flag(uint state, uint flag)
+{
+    return (state & flag) != 0u;
+}
+
+void set_flag(inout uint state, uint flag)
+{
+    state |= flag;
+}
+
+void clear_flag(inout uint state, uint flag)
+{
+    state &= ~flag;
+}
+
 //  乱数生成関数
 struct x_or_shift_128_state
 {
@@ -164,9 +167,9 @@ x_or_shift_128_state generate_random_seed(uint3 dispatch_thread_id)
 {
     x_or_shift_128_state state;
     state.x = x_of_shift_seed.x + dispatch_thread_id.x * 123456789u;
-    state.y = x_of_shift_seed.y + dispatch_thread_id.y * 362436069u;
-    state.z = x_of_shift_seed.z + dispatch_thread_id.z * 521288629u;
-    state.w = 88675123u;
+    state.y = x_of_shift_seed.y + dispatch_thread_id.y * 362436069u + dispatch_thread_id.y * 2654435761u;
+    state.z = x_of_shift_seed.z + dispatch_thread_id.z * 521288629u + dispatch_thread_id.z * 2246822519u;
+    state.w = 88675123u ^ (dispatch_thread_id.x * 3266489917u);
     return state;
 }
 

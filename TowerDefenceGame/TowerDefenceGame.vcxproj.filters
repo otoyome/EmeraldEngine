@@ -171,6 +171,9 @@
     <Filter Include="Sources\Object\GameObjects">
       <UniqueIdentifier>{1bf887b8-cc7e-4f33-b9b3-767bfef94ecb}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shaders\ComputeParticle\Renderer\Default">
+      <UniqueIdentifier>{3a4c412d-a29d-4e26-a852-96acf384340e}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Sources\Object\GameObjects\Character">
       <UniqueIdentifier>{eabd3e71-6217-4562-8589-f1b4f77735ff}</UniqueIdentifier>
     </Filter>
@@ -361,6 +364,15 @@
     </ClCompile>
     <ClCompile Include="Sources\Object\GameObjects\stage_object.cpp">
       <Filter>Sources\Object\GameObjects</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Renderer\scene_renderer_common.cpp">
+      <Filter>Sources\Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Editor\editor_items_effect.cpp">
+      <Filter>Sources\Editor</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Scenes\EditScene\edit_particle_scene.cpp">
+      <Filter>Sources\Scenes\EditScene</Filter>
     </ClCompile>
     <ClCompile Include="Sources\Object\GameObjects\Character\character_object_resource.cpp">
       <Filter>Sources\Object\GameObjects\Character</Filter>
@@ -571,6 +583,12 @@
     <ClInclude Include="Headers\Object\GameObjects\stage_object.h">
       <Filter>Headers\Object\GameObjects</Filter>
     </ClInclude>
+    <ClInclude Include="Headers\Renderer\scene_renderer_common.h">
+      <Filter>Headers\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Scenes\EditScene\edit_particle_scene.h">
+      <Filter>Headers\Scenes\EditScene</Filter>
+    </ClInclude>
     <ClInclude Include="Headers\Object\GameObjects\Character\Player\player_camera_controller_object.h">
       <Filter>Headers\Object\GameObjects\Character\Player</Filter>
     </ClInclude>
@@ -774,12 +792,6 @@
     <FxCompile Include="..\Shaders\Postprocess\Antialias\fast_approximate_anti_aliasing_ps.hlsl">
       <Filter>Shaders\Postprocess\Antialias</Filter>
     </FxCompile>
-    <FxCompile Include="..\Shaders\ComputeParticle\Renderer\compute_particle_default_render_ps.hlsl">
-      <Filter>Shaders\ComputeParticle\Renderer</Filter>
-    </FxCompile>
-    <FxCompile Include="..\Shaders\ComputeParticle\Renderer\compute_particle_default_render_vs.hlsl">
-      <Filter>Shaders\ComputeParticle\Renderer</Filter>
-    </FxCompile>
     <FxCompile Include="..\Shaders\ComputeParticle\System\compute_particle_bitonic_sort_b2_cs.hlsl">
       <Filter>Shaders\ComputeParticle\System</Filter>
     </FxCompile>
@@ -817,6 +829,30 @@
       <Filter>Shaders\ComputeParticle\System</Filter>
     </FxCompile>
     <FxCompile Include="..\Shaders\ComputeParticle\System\compute_particle_begin_update_cs.hlsl">
+      <Filter>Shaders\ComputeParticle\System</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shaders\ComputeParticle\Renderer\Default\compute_particle_default_g_buffer_ps.hlsl">
+      <Filter>Shaders\ComputeParticle\Renderer\Default</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shaders\ComputeParticle\Renderer\Default\compute_particle_default_ps.hlsl">
+      <Filter>Shaders\ComputeParticle\Renderer\Default</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shaders\ComputeParticle\Renderer\Default\compute_particle_default_vs.hlsl">
+      <Filter>Shaders\ComputeParticle\Renderer\Default</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shaders\ComputeParticle\Renderer\Default\compute_particle_default_csm_gs.hlsl">
+      <Filter>Shaders\ComputeParticle\Renderer\Default</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shaders\ComputeParticle\Renderer\Default\compute_particle_default_csm_vs.hlsl">
+      <Filter>Shaders\ComputeParticle\Renderer\Default</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shaders\ComputeParticle\Renderer\Default\compute_particle_default_depth_write_ps.hlsl">
+      <Filter>Shaders\ComputeParticle\Renderer\Default</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shaders\ComputeParticle\Renderer\Default\compute_particle_default_depth_write_vs.hlsl">
+      <Filter>Shaders\ComputeParticle\Renderer\Default</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shaders\ComputeParticle\System\compute_particle_end_update_cs.hlsl">
       <Filter>Shaders\ComputeParticle\System</Filter>
     </FxCompile>
   </ItemGroup>
@@ -991,6 +1027,24 @@
     </None>
     <None Include="..\Shaders\ComputeParticle\System\compute_particle_base_stream_item.hlsli">
       <Filter>Shaders\ComputeParticle\System</Filter>
+    </None>
+    <None Include="..\Shaders\ComputeParticle\Renderer\compute_particle_renderer_csm_gs.hlsli">
+      <Filter>Shaders\ComputeParticle\Renderer</Filter>
+    </None>
+    <None Include="..\Shaders\ComputeParticle\Renderer\compute_particle_renderer_csm_vs.hlsli">
+      <Filter>Shaders\ComputeParticle\Renderer</Filter>
+    </None>
+    <None Include="..\Shaders\ComputeParticle\Renderer\compute_particle_renderer_vs.hlsli">
+      <Filter>Shaders\ComputeParticle\Renderer</Filter>
+    </None>
+    <None Include="..\Shaders\ComputeParticle\Renderer\compute_particle_csm.hlsli">
+      <Filter>Shaders\ComputeParticle\Renderer</Filter>
+    </None>
+    <None Include="..\Shaders\ComputeParticle\Renderer\compute_particle_renderer.hlsli">
+      <Filter>Shaders\ComputeParticle\Renderer</Filter>
+    </None>
+    <None Include="..\Shaders\ComputeParticle\Renderer\Default\compute_particle_default.hlsli">
+      <Filter>Shaders\ComputeParticle\Renderer\Default</Filter>
     </None>
   </ItemGroup>
 </Project>

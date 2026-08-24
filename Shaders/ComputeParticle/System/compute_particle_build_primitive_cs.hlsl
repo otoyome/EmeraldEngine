@@ -1,5 +1,49 @@
 #include "compute_particle.hlsli"
 
+float repeat(float _max, float _value)
+{
+    float t = fmod(_value, _max);
+    return t < 0.0f ? _max + t : t;
+}
+ 
+float2 repeat(float2 _max, float2 _value)
+{
+    float2 t = fmod(_value, _max);
+    return t < 0.0f ? _max + t : t; // componentwise ternary (SM4+)
+}
+ 
+float3 repeat(float3 _max, float3 _value)
+{
+    float3 t = fmod(_value, _max);
+    return t < 0.0f ? _max + t : t;
+}
+ 
+float4 repeat(float4 _max, float4 _value)
+{
+    float4 t = fmod(_value, _max);
+    return t < 0.0f ? _max + t : t;
+}
+
+float wrap(float _min, float _max, float _value)
+{
+    return repeat(_max - _min, _value - _min) + _min;
+}
+ 
+float2 wrap(float2 _min, float2 _max, float2 _value)
+{
+    return repeat(_max - _min, _value - _min) + _min;
+}
+ 
+float3 wrap(float3 _min, float3 _max, float3 _value)
+{
+    return repeat(_max - _min, _value - _min) + _min;
+}
+ 
+float4 wrap(float4 _min, float4 _max, float4 _value)
+{
+    return repeat(_max - _min, _value - _min) + _min;
+}
+
 //	汎用情報定義
 static const uint vertex_buffer_max = 4;
 RWByteAddressBuffer vertex_buffer[vertex_buffer_max] : register(u0);
@@ -74,21 +118,47 @@ void register_vertex(uint vertex_buffer_index, inout uint vertex_buffer_byte_off
 }
 
 //  UV矩形生成
-float4 calculate_uv_rect(in pt_common_item pt_common, in em_sprite_animation_item em_sprite_animation)
+float4 calculate_uv_rect(in pt_common_item pt_common, in em_uv_item em_uv)
 {
-    float u = 1.0f / (float) max(em_sprite_animation.split_count.x, 1);
-    float v = 1.0f / (float) max(em_sprite_animation.split_count.y, 1);
-    //  アニメーション制御
-    int ui = 0, vi = 0;
-    if (em_sprite_animation.increment_time > 0)
+    float4 rect = em_uv.rect;
+    if (em_uv.state & emitter_uv_item_state_direct)
     {
-        int uv_index = (pt_common.life_time_max - pt_common.life_time) / em_sprite_animation.increment_time;
-        ui = uv_index % em_sprite_animation.split_count.x;
-        vi = uv_index / em_sprite_animation.split_count.y;
+        //  アニメーション制御
+        if (em_uv.state & emitter_uv_item_state_animation)
+        {
+            float speed = pt_common.life_time * em_uv.time;
+            rect.x += speed;
+            rect.y += speed;
+            rect.z += speed;
+            rect.w += speed;
+        }
     }
-    float4 rect = float4(u * (ui + 0), v * (vi + 0), u * (ui + 1), v * (vi + 1));
-    rect.z -= rect.x;
-    rect.w -= rect.y;
+    else
+    {
+        uint sx = max(em_uv.split_count.x, 1);
+        uint sy = max(em_uv.split_count.y, 1);
+
+        //  UV矩形設定
+        float w = rect.z - rect.x;
+        float h = rect.w - rect.y;
+        float u = w / sx;
+        float v = h / sy;
+
+        //  番号指定
+        int uv_index = em_uv.index;
+
+        //  アニメーション制御
+        if (em_uv.state & emitter_uv_item_state_animation)
+        {
+            uv_index += (sx * sy) * (pt_common.life_time_max - pt_common.life_time) / em_uv.time;
+        }
+        uv_index = repeat(sx * sy, uv_index);
+
+        rect.x += u * (uv_index % sx);
+        rect.y += v * (uv_index / sx);
+        rect.z = rect.x + u;
+        rect.w = rect.y + v;
+    }
     return rect;
 }
 
@@ -139,21 +209,23 @@ void main(uint3 dispatch_thread_id : SV_DispatchThreadID)
     //  エミッター情報取得
     em_common_item em_common;
     em_trail_item em_trail;
-    em_sprite_animation_item em_sprite_animation;
+    em_uv_item em_uv;
     {
         stream_common_item(rw_read_only, emitter_binary_offset, em_common);
         if (em_common.active_items & emitter_active_trail_item_bit_flag)
         {
             stream_trail_item(rw_read_only, emitter_binary_offset, em_trail);
         }
-        if (em_common.active_items & emitter_active_sprite_animation_item_bit_flag)
+        if (em_common.active_items & emitter_active_uv_item_bit_flag)
         {
-            stream_sprite_animation_item(rw_read_only, emitter_binary_offset, em_sprite_animation);
+            stream_uv_item(rw_read_only, emitter_binary_offset, em_uv);
         }
         else
         {
-            em_sprite_animation.split_count = uint2(1, 1); //	分割数
-            em_sprite_animation.increment_time = -1; //	次のスプライトに移動するタイミング
+            em_uv.state = 0;
+            em_uv.split_count = uint2(1, 1); //	分割数
+            em_uv.index = 0;
+            em_uv.time = -1; //	次のスプライトに移動するタイミング
         }
 
         //  以降は不要
@@ -168,7 +240,7 @@ void main(uint3 dispatch_thread_id : SV_DispatchThreadID)
         {
             stream_trail_header(rw_read_only, particle_binary_offset, pt_trail_header);
         }
-        //  pt_sprite_animation_item は存在しない
+        //  pt_uv_item は存在しない
 
         //  以降は不要
     }
@@ -187,8 +259,15 @@ void main(uint3 dispatch_thread_id : SV_DispatchThreadID)
             trail_body[0].scale = pt_common.scale;
             trail_body[0].rotation = pt_common.rotation;
             trail_body[0].translation = pt_common.translation;
-            read_offset = particle_binary_offset;
-            stream_trail_body(rw_read_only, read_offset, trail_body[1]);
+            if (pt_trail_header.counter >= 2)
+            {
+                read_offset = particle_binary_offset + pt_trail_body_size_of_bytes;
+                stream_trail_body(rw_read_only, read_offset, trail_body[1]);
+            }
+            else
+            {
+                trail_body[1] = trail_body[0];
+            }
 
             float3 x_axis = float3(1, 0, 0);
             float3 z_axis = trail_body[1].translation - trail_body[0].translation;
@@ -201,7 +280,7 @@ void main(uint3 dispatch_thread_id : SV_DispatchThreadID)
         }
         
         //  UV矩形
-        float4 uv_rect = calculate_uv_rect(pt_common, em_sprite_animation);
+        float4 uv_rect = calculate_uv_rect(pt_common, em_uv);
         
         //  頂点登録
         uint index = 0;
@@ -293,7 +372,7 @@ void main(uint3 dispatch_thread_id : SV_DispatchThreadID)
             vertex_color[1] = float4(1, 1, 1, 1);
             vertex_color[2] = float4(1, 1, 1, 1);
             vertex_color[3] = float4(1, 1, 1, 1);
-            float4 uv_rect = calculate_uv_rect(pt_common, em_sprite_animation);
+            float4 uv_rect = calculate_uv_rect(pt_common, em_uv);
             vertex_texcoord[0] = uv_rect.xy + uv_rect.zw * float2(0, 0);
             vertex_texcoord[1] = uv_rect.xy + uv_rect.zw * float2(1, 0);
             vertex_texcoord[2] = uv_rect.xy + uv_rect.zw * float2(0, 1);

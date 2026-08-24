@@ -3,6 +3,8 @@
 #include "imgui/imgui.h"
 #include "imgui/imgui_internal.h"
 
+#include <magic_enum.hpp>
+
 namespace ImGui
 {
     bool Combo(const char* label, int& current_item_index, const std::vector<std::string_view>& items);
@@ -69,4 +71,18 @@ namespace ImGui
     bool DragUInt2(const char* label, UINT v[2], float v_speed = 1.0f, UINT v_min = 0, UINT v_max = 0, ImGuiSliderFlags flags = 0);
     bool DragUInt3(const char* label, UINT v[3], float v_speed = 1.0f, UINT v_min = 0, UINT v_max = 0, ImGuiSliderFlags flags = 0);
     bool DragUInt4(const char* label, UINT v[4], float v_speed = 1.0f, UINT v_min = 0, UINT v_max = 0, ImGuiSliderFlags flags = 0);
+
+    template<class StatesEnum, class T>
+    void EditFlags(T& obj)
+    {
+        for (auto flag : magic_enum::enum_values<StatesEnum>())
+        {
+            bool checked = system_utility::is_bitflag(obj, flag);
+            std::string label(magic_enum::enum_name(flag));
+            if (Checkbox(label.c_str(), &checked))
+            {
+	            system_utility::set_bitflag(obj, flag, checked);
+            }
+        }
+    }
 }

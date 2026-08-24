@@ -228,6 +228,15 @@
     <ClInclude Include="Headers\ik_resource.h">
       <Filter>Headers</Filter>
     </ClInclude>
+    <ClInclude Include="Headers\effect_instance.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\effect_resource.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Graphics\particle_resource.h">
+      <Filter>Headers\Graphics</Filter>
+    </ClInclude>
     <ClInclude Include="Headers\System\behavior_tree.h">
       <Filter>Headers\System</Filter>
     </ClInclude>
@@ -409,6 +418,15 @@
     </ClCompile>
     <ClCompile Include="Sources\ik_solver.cpp">
       <Filter>Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\effect_resource.cpp">
+      <Filter>Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\effect_instance.cpp">
+      <Filter>Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Graphics\particle_resource.cpp">
+      <Filter>Sources\Graphics</Filter>
     </ClCompile>
     <ClCompile Include="Sources\System\finite_state_machine.cpp">
       <Filter>Sources\System</Filter>
