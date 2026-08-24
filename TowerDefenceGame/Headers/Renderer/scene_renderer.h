@@ -63,7 +63,7 @@ public:
 	renderer_domain get_domain() const override { return renderer_domain::g_buffer_decal_pass; }
 
 public:
-	gbuffer_decal_renderer(std::shared_ptr<scene_render_targets> render_targets);
+	gbuffer_decal_renderer(render_job_registrar job_executor, std::shared_ptr<scene_render_targets> render_targets);
 	~gbuffer_decal_renderer() override;
 
 	void render(renderer_context& context) override;

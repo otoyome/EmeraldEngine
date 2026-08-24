@@ -19,15 +19,12 @@ void main(uint3 dispatch_thread_id : SV_DispatchThreadID)
         return;
 
     //  破棄Idリスト
-    [loop]
-    for (uint index = 0; index < erase_id_count; ++index)
+    bool is_erased = false;
+    [loop] for (uint index = 0; index < erase_id_count; ++index)
     {
-        if (erase_id_list[index / 4][index % 4] == emitter_id)
-        {
-            alive = false;
-            break;
-        }
+        is_erased = is_erased || (erase_id_list[index / 4][index % 4] == emitter_id);
     }
+    alive = alive && !is_erased;
 
     //  エミッターバイナリ座標を特定
     uint emitter_binary_offset = emitter_header_buffer[emitter_id].emitter_binary_head;
@@ -53,8 +50,8 @@ void main(uint3 dispatch_thread_id : SV_DispatchThreadID)
         //  生存時間更新
         if (alive)
         {
-            pt_common.life_time -= elapsed_time;
-            alive = pt_common.life_time > 0;
+            pt_common.life_time += elapsed_time;
+            alive = pt_common.life_time < pt_common.life_time_max;
             clear_flag(pt_common.state, particle_binary_state_bit_spawn_frame);  //  生成フレームフラグを落とす
         }
     }

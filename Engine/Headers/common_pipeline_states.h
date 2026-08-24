@@ -165,6 +165,8 @@ namespace common_pipeline_states
 	constexpr UINT material_attribute_indirect_lighting_off = 1 << 0;  //  間接光の処理を適応させない
 	constexpr UINT material_attribute_shadow_receiver = 1 << 1;	//	影適応
 
+	constexpr UINT material_attribute_decal_off = 1 << 20;	//	デカールを適応させない
+
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////
 	//	シーン関係
 	constexpr std::string_view scene_color_map_name = "scene_color_map";

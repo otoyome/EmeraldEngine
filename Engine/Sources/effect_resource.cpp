@@ -6,6 +6,7 @@
 #include "texture.h"
 
 #include "cereal/cereal.hpp"
+#include "cereal/types/memory.hpp"
 #include "cereal/archives/binary.hpp"
 #include "cereal/archives/json.hpp"
 #include "cereal/types/string.hpp"
@@ -15,6 +16,8 @@
 #include "animation_data_version.h"
 
 // CEREALバージョン定義
+CEREAL_CLASS_VERSION(effect_resource::model_data, 1)
+CEREAL_CLASS_VERSION(effect_resource::decal_data, 1)
 CEREAL_CLASS_VERSION(effect_resource, 1)
 
 bool effect_resource::model_data::is_valid() const
@@ -31,6 +34,7 @@ void effect_resource::model_data::serialize(Archive& archive, int version)
 template<class Archive>
 void effect_resource::decal_data::serialize(Archive& archive, int version)
 {
+	archive(name, material, scale, rotation, position);
 }
 
 effect_resource::effect_resource()

@@ -161,16 +161,9 @@ void render_job_executor::end()
 void render_job_executor::render()
 {
 	//	全描画タスクが終了するまで待機
-	while (true)
 	{
-		std::lock_guard<std::mutex>	cUniqueLock(mutex);
-		if (tasks.empty())
-		{
-			if (running_threads <= 0)
-			{
-				break;
-			}
-		}
+		std::unique_lock<std::mutex> unique_lock(mutex);
+		completion_condition.wait(unique_lock, [&] { return tasks.empty() && running_threads <= 0; });
 	}
 
 	//	登録されている描画コマンドをソート
@@ -221,11 +214,13 @@ void render_job_executor::run(UINT context_index)
 			if (!running && tasks.empty())
 			{
 				--running_threads;
+				completion_condition.notify_all();
 				break;
 			}
 			if (tasks.empty())
 			{
 				--running_threads;
+				completion_condition.notify_all();
 				continue;;
 			}
 
@@ -235,7 +230,11 @@ void render_job_executor::run(UINT context_index)
 
 		task_function(deferred_context.Get());
 
-		--running_threads;
+		{
+			std::lock_guard<std::mutex> lock_guard(mutex);   // ★追加: running_threads--をmutex配下に統一
+			--running_threads;
+		}
+		completion_condition.notify_all(); 
 	}
 }
 

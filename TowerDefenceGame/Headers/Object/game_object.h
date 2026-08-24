@@ -19,7 +19,6 @@ public:
 	void set_name(std::string_view name);
 	bool is_active() const;
 	void set_active(bool active);
-	std::mutex& get_mutex();
 
 public:
 	game_object(std::string_view name);
@@ -58,8 +57,8 @@ private:
 #if defined(USE_IMGUI)
 	bool display_inspector = true;
 #endif	//	defined(USE_IMGUI)
-	std::mutex mutex;
-	inline static size_t id_counter;
+
+	inline static std::atomic<size_t> id_counter;
 };
 
 #define	GAME_OBJECT_DECRLEAR(ABSTRACT_TYPE, BASE_TYPE)	\

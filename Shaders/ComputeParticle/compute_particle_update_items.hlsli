@@ -41,7 +41,7 @@ void update_particle_trail_item(inout emitter_context em_context, inout pt_commo
     if (has_flag(em_context.active_items, emitter_active_trail_item_bit_flag))
     {
         //  軌跡のヘッダーを取得
-        pt_trail_header trail_header;
+        pt_trail_header_item trail_header;
         uint header_write_offset = particle_binary_offset;
         stream_trail_header(rw_read, particle_binary_offset, trail_header);
         //  エミッター側の情報を取得
@@ -54,7 +54,7 @@ void update_particle_trail_item(inout emitter_context em_context, inout pt_commo
                 trail_header.counter = 1;
                 stream_trail_header(rw_write, header_write_offset, trail_header);
                 //  ボディー初期化
-                pt_trail_body trail_body;
+                pt_trail_body_item trail_body;
                 trail_body.translation = (float3) 0;
                 trail_body.rotation = float4(0, 0, 0, 1);
                 trail_body.scale = (float3) 0;
@@ -73,7 +73,7 @@ void update_particle_trail_item(inout emitter_context em_context, inout pt_commo
                 //  ボディーに古い情報を書き込み
                 [loop] for (int index = (int) trail_header.counter - 1; index > 0; --index)
                 {
-                    pt_trail_body trail_body;
+                    pt_trail_body_item trail_body;
                     uint read_offset = particle_binary_offset + (index - 1) * pt_trail_body_size_of_bytes;
                     stream_trail_body(rw_read, read_offset, trail_body);
                     uint write_offset = particle_binary_offset + index * pt_trail_body_size_of_bytes;
@@ -83,7 +83,7 @@ void update_particle_trail_item(inout emitter_context em_context, inout pt_commo
 
             //  ボディーの先頭に現在座標等を登録
             {
-                pt_trail_body trail_body;
+                pt_trail_body_item trail_body;
                 trail_body.scale = pt_common.scale;
                 trail_body.rotation = pt_common.rotation;
                 trail_body.translation = pt_common.translation;
@@ -154,7 +154,7 @@ void update_particle_velocity_item(inout emitter_context em_context, inout pt_co
             else
             {
                 //  加速処理
-                float acceleration = velocity.acceleration_min;
+                float3 acceleration = velocity.acceleration_min;
                 if (has_flag(velocity.state, emitter_veloctiy_item_state_random_acceleration))
                 {
                     acceleration = lerp(velocity.acceleration_min,
@@ -164,7 +164,7 @@ void update_particle_velocity_item(inout emitter_context em_context, inout pt_co
                 pt_velocity.velocity += (velocity.gravity + acceleration) * em_context.elapsed_time;
 
                 //  減速処理
-                float deceleration = velocity.deceleration_min;
+                float3 deceleration = velocity.deceleration_min;
                 if (has_flag(velocity.state, emitter_veloctiy_item_state_random_deceleration))
                 {
                     deceleration = lerp(velocity.deceleration_min,

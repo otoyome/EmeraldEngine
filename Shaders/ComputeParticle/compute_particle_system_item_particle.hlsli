@@ -44,11 +44,11 @@ void stream_common_item(uint rw, inout uint offset, inout pt_common_item common)
 
 //////////////////////////////////////////////////////////////////////////
 //  ‹OÕƒAƒCƒeƒ€
-struct pt_trail_header
+struct pt_trail_header_item
 {
     uint counter;
 };
-struct pt_trail_body
+struct pt_trail_body_item
 {
     float3 scale;
     float4 rotation;
@@ -57,12 +57,12 @@ struct pt_trail_body
 
 static const uint pt_trail_body_size_of_bytes = (3 + 4 + 3) * 4;
 
-void stream_trail_header(uint rw, inout uint offset, inout pt_trail_header trail_header)
+void stream_trail_header(uint rw, inout uint offset, inout pt_trail_header_item trail_header)
 {
     pt_stream_ptr(rw, offset, trail_header.counter);
 }
 
-void stream_trail_body(uint rw, inout uint offset, inout pt_trail_body trail_body)
+void stream_trail_body(uint rw, inout uint offset, inout pt_trail_body_item trail_body)
 {
     pt_stream_ptr(rw, offset, trail_body.scale);
     pt_stream_ptr(rw, offset, trail_body.rotation);

@@ -1,0 +1,71 @@
+#include "compute_particle_update_items.hlsli"
+
+[numthreads(NumDispatchThread, 1, 1)]
+void main(uint3 dispatch_thread_id : SV_DispatchThreadID)
+{
+    if (dispatch_thread_id.x >= total_particle_count)
+        return;
+
+    //  パーティクルヘッダー取得
+    particle_header header = particle_header_buffer.Load(dispatch_thread_id.x);
+    if (header.tag == invalid_tag)
+        return;
+
+    //  パーティクルヘッダーから情報取得
+    bool alive;
+    uint emitter_id, particle_index;
+    get_particle_header_parameter(header, alive, emitter_id, particle_index);
+    if (!alive)
+        return;
+
+    //  破棄Idリスト
+    [loop]
+    for (uint index = 0; index < erase_id_count; ++index)
+    {
+        if (erase_id_list[index / 4][index % 4] == emitter_id)
+        {
+            alive = false;
+            break;
+        }
+    }
+
+    //  エミッターバイナリ座標を特定
+    uint emitter_binary_offset = emitter_header_buffer[emitter_id].emitter_binary_head;
+
+    //  パーティクルバイナリ座標を特定
+    uint particle_binary_offset = emitter_header_buffer[emitter_id].particle_size * particle_index;
+    particle_binary_offset += emitter_header_buffer[emitter_id].particle_binary_head;
+
+    //  エミッターコンテキスト構築
+    emitter_context em_context = build_emitter_context(emitter_binary_offset, emitter_id, dispatch_thread_id);
+
+    //  パーティクル毎の共通アイテム取得
+    pt_common_item pt_common;
+    uint particle_common_write_binary_offset = particle_binary_offset; //  書き込み座標を事前に保存しておく
+    stream_common_item(rw_read, particle_binary_offset, pt_common);
+
+    //  アイテム更新処理
+    {
+        update_particle_trail_item(em_context, pt_common, emitter_binary_offset, particle_binary_offset);
+        update_uv_item(em_context, pt_common, emitter_binary_offset, particle_binary_offset);
+        update_particle_velocity_item(em_context, pt_common, emitter_binary_offset, particle_binary_offset);
+
+        //  生存時間更新
+        if (alive)
+        {
+            pt_common.life_time -= elapsed_time;
+            alive = pt_common.life_time > 0;
+            clear_flag(pt_common.state, particle_binary_state_bit_spawn_frame);  //  生成フレームフラグを落とす
+        }
+    }
+
+    //  パーティクル毎の共通アイテム保存
+    stream_common_item(rw_write, particle_common_write_binary_offset, pt_common);
+
+    //  ヘッダー更新
+    {
+        header.tag = set_particle_header_tag(alive, emitter_id, particle_index);
+        header.depth = mul(float4(pt_common.translation, 1), view_transform).z;
+        particle_header_buffer[dispatch_thread_id.x] = header;
+    }
+}

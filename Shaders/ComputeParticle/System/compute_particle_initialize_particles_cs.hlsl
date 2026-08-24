@@ -63,8 +63,8 @@ void main(uint3 dispatch_thread_id : SV_DispatchThreadID)
             uint seed = particle_index;
             pt_common_item pt_common;
             pt_common.state = particle_binary_state_bit_spawn_frame;
-            pt_common.life_time = lerp(em_common.spawn_life_time_range.x, em_common.spawn_life_time_range.y, x_or_shift_random(x_or_shift_random_seed));
-            pt_common.life_time_max = pt_common.life_time;
+            pt_common.life_time = 0.0f;
+            pt_common.life_time_max = lerp(em_common.spawn_life_time_range.x, em_common.spawn_life_time_range.y, x_or_shift_random(x_or_shift_random_seed));
             float scale_value = lerp(em_common.spawn_scale_range.x, em_common.spawn_scale_range.y, x_or_shift_random(x_or_shift_random_seed));
             pt_common.scale = em_common.scale * scale_value.xxx;
             pt_common.rotation = em_common.rotation;

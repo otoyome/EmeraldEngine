@@ -352,6 +352,7 @@ xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y</Command>
     <ClCompile Include="Sources\Object\post_process_volume_object.cpp" />
     <ClCompile Include="Sources\PipelineState\anti_alias_pipeline_state.cpp" />
     <ClCompile Include="Sources\PipelineState\debug_draw_line_pipeline_state.cpp" />
+    <ClCompile Include="Sources\PipelineState\deferred_decal_pipeline_state.cpp" />
     <ClCompile Include="Sources\PipelineState\deferred_lighting_pipeline_state.cpp" />
     <ClCompile Include="Sources\PipelineState\fullscreen_quad_pipeline_state.cpp" />
     <ClCompile Include="Sources\PipelineState\post_process_pipeline_state.cpp" />
@@ -427,6 +428,7 @@ xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y</Command>
     <ClInclude Include="Headers\Object\post_process_volume_object.h" />
     <ClInclude Include="Headers\PipelineState\anti_alias_pipeline_state.h" />
     <ClInclude Include="Headers\PipelineState\debug_draw_line_pipeline_state.h" />
+    <ClInclude Include="Headers\PipelineState\deferred_decal_pipeline_state.h" />
     <ClInclude Include="Headers\PipelineState\deferred_lighting_pipeline_state.h" />
     <ClInclude Include="Headers\PipelineState\fullscreen_quad_pipeline_state.h" />
     <ClInclude Include="Headers\PipelineState\post_process_pipeline_state.h" />
@@ -564,6 +566,16 @@ xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y</Command>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">Compute</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Compute</ShaderType>
     </FxCompile>
+    <FxCompile Include="..\Shaders\DeferredDecal\gbuffer_decal_fullscreen_quad_ps.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="..\Shaders\DeferredDecal\gbuffer_decal_primitive_ps.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+    </FxCompile>
     <FxCompile Include="..\Shaders\DeferredRendering\convert_srgb_to_linear_ps.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
@@ -654,6 +666,9 @@ xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y</Command>
     <None Include="..\Shaders\ComputeParticle\System\compute_particle_srv_stream_item.hlsli" />
     <None Include="..\Shaders\ComputeParticle\System\compute_particle_type_generate_function_stream_item.hlsli" />
     <None Include="..\Shaders\ComputeParticle\System\compute_particle_uav_stream_item.hlsli" />
+    <None Include="..\Shaders\DeferredDecal\gbuffer_decal_constant_buffer.hlsli" />
+    <None Include="..\Shaders\DeferredDecal\gbuffer_decal_fullscreen_quad.hlsli" />
+    <None Include="..\Shaders\DeferredDecal\gbuffer_decal_primitive.hlsli" />
     <None Include="..\Shaders\DeferredRendering\common_gbuffer_loader.hlsli" />
     <None Include="..\Shaders\DeferredRendering\common_gbuffer_writer.hlsli" />
     <None Include="..\Shaders\DeferredRendering\gbuffer_decal_constant_buffer.hlsli" />

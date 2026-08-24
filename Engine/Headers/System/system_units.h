@@ -147,8 +147,8 @@ public:
 	static constexpr float convert_sec_to_minute(float value) { return value * 60.0f; }
 	static constexpr float convert_minute_to_sec(float value) { return value / 60.0f; }
 	//	•b <> •ÏŠ·
-	static constexpr float convert_sec_to_hour(float value) { return value * 360.0f; }
-	static constexpr float convert_hour_to_sec(float value) { return value / 360.0f; }
+	static constexpr float convert_sec_to_hour(float value) { return value * 3600.0f; }
+	static constexpr float convert_hour_to_sec(float value) { return value / 3600.0f; }
 
 	//	ƒtƒŒ[ƒ€ <> •b
 	static constexpr float convert_sec_to_fps(float value) { return value * frame_per_sec; }

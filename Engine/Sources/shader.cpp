@@ -270,7 +270,7 @@ namespace
 		fread(buffer.get(), size, 1, fp);
 		fclose(fp);
 		//	DXBC (FXC)
-		if (buffer[0] == L'D' || buffer[1] == L'X' || buffer[2] == L'B' || buffer[3] == L'C')
+		if (buffer[0] == L'D' && buffer[1] == L'X' && buffer[2] == L'B' && buffer[3] == L'C')
 		{
 			output_data.compiler_type = shader_compiler_type::fxc;
 
@@ -296,7 +296,7 @@ namespace
 		}
 
 		//	DXIL (DXC)
-		if (buffer[0] == L'D' || buffer[1] == L'X' || buffer[2] == L'I' || buffer[3] == L'L')
+		if (buffer[0] == L'D' && buffer[1] == L'X' && buffer[2] == L'I' && buffer[3] == L'L')
 		{
 			output_data.compiler_type = shader_compiler_type::dxc;
 

@@ -208,7 +208,7 @@ void gbuffer_renderer::resize_buffer(int width, int height)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-gbuffer_decal_renderer::gbuffer_decal_renderer(std::shared_ptr<scene_render_targets> render_targets)
+gbuffer_decal_renderer::gbuffer_decal_renderer(render_job_registrar job_executor, std::shared_ptr<scene_render_targets> render_targets)
 : renderer(job_executor)
 , render_targets(render_targets)
 , viewport({ 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f })

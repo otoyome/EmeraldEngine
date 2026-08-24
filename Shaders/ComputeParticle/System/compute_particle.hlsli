@@ -8,7 +8,7 @@ static const float PI  = 3.1415926f;
 static const float PI2 = 6.28318530718f;
 
 //  パーティクルスレッド数
-static const int NumDispatchThread = 256;
+static const int NumDispatchThread = 64;
 
 struct draw_indirect
 {

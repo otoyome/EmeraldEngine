@@ -9,6 +9,7 @@ namespace
 	{
 		{material::flags::indirect_lighting_off, common_pipeline_states::material_attribute_indirect_lighting_off},
 		{material::flags::shadow_receiver, common_pipeline_states::material_attribute_shadow_receiver},
+		{material::flags::decal_off, common_pipeline_states::material_attribute_decal_off},
 	};
 
 	//  テクスチャフラグの対応表

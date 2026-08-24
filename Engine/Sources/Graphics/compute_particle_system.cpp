@@ -706,7 +706,10 @@ void compute_particle_system::update(graphics_context& context, float elapsed_ti
 			return;
 		update_stop = true;
 	}
-	update_stop = false;
+	else
+	{
+		update_stop = false;
+	}
 
 	//	共用の定数バッファ設定
 	{
@@ -761,12 +764,6 @@ void compute_particle_system::update(graphics_context& context, float elapsed_ti
 		{
 			initialize_buffer[index] = invalid_tag;
 		}
-		context.device_context->UpdateSubresource(emitter_table_buffer.Get(),
-			0,
-			nullptr,
-			initialize_buffer.data(),
-			sizeof(UINT) * static_cast<UINT>(initialize_buffer.size()),
-			0);
 		context.device_context->UpdateSubresource(emitter_table_buffer.Get(),
 			0,
 			nullptr,

@@ -605,7 +605,7 @@ bool character_object::unregister_attack_hit_callback(std::string_view identifie
 {
 	std::string id = std::string(identifier);
 	auto it = on_attack_hits.find(id);
-	if (it != on_attack_hits.end())
+	if (it == on_attack_hits.end())
 		return false;
 
 	on_attack_hits.erase(it);
@@ -626,7 +626,7 @@ bool character_object::unregister_stagger_hit_callback(std::string_view identifi
 {
 	std::string id = std::string(identifier);
 	auto it = on_stagger_hits.find(id);
-	if (it != on_stagger_hits.end())
+	if (it == on_stagger_hits.end())
 		return false;
 
 	on_stagger_hits.erase(it);
@@ -647,7 +647,7 @@ bool character_object::unregister_stagger_callback(std::string_view identifier)
 {
 	std::string id = std::string(identifier);
 	auto it = on_staggers.find(id);
-	if (it != on_staggers.end())
+	if (it == on_staggers.end())
 		return false;
 
 	on_staggers.erase(it);
@@ -668,7 +668,7 @@ bool character_object::unregister_damage_callback(std::string_view identifier)
 {
 	std::string id = std::string(identifier);
 	auto it = on_damageds.find(id);
-	if (it != on_damageds.end())
+	if (it == on_damageds.end())
 		return false;
 
 	on_damageds.erase(it);
@@ -689,7 +689,7 @@ bool character_object::unregister_dead_callback(std::string_view identifier)
 {
 	std::string id = std::string(identifier);
 	auto it = on_deads.find(id);
-	if (it != on_deads.end())
+	if (it == on_deads.end())
 		return false;
 
 	on_deads.erase(it);
@@ -710,7 +710,7 @@ bool character_object::unregister_guard_hit_callback(std::string_view identifier
 {
 	std::string id = std::string(identifier);
 	auto it = on_guard_hits.find(id);
-	if (it != on_guard_hits.end())
+	if (it == on_guard_hits.end())
 		return false;
 
 	on_guard_hits.erase(it);
@@ -731,7 +731,7 @@ bool character_object::unregister_guarded_callback(std::string_view identifier)
 {
 	std::string id = std::string(identifier);
 	auto it = on_guardeds.find(id);
-	if (it != on_guardeds.end())
+	if (it == on_guardeds.end())
 		return false;
 
 	on_guardeds.erase(it);
@@ -752,7 +752,7 @@ bool character_object::unregister_camera_transform(std::string_view identifier)
 {
 	std::string id = std::string(identifier);
 	auto it = on_camera_transforms.find(id);
-	if (it != on_camera_transforms.end())
+	if (it == on_camera_transforms.end())
 		return false;
 
 	on_camera_transforms.erase(it);
@@ -773,7 +773,7 @@ bool character_object::unregister_time_controll(std::string_view identifier)
 {
 	std::string id = std::string(identifier);
 	auto it = on_time_controlls.find(id);
-	if (it != on_time_controlls.end())
+	if (it == on_time_controlls.end())
 		return false;
 
 	on_time_controlls.erase(it);

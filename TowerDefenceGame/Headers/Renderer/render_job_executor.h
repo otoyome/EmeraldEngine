@@ -75,6 +75,7 @@ private:
 	std::mutex mutex;
 	std::mutex command_mutex;
 	std::condition_variable condition;
+	std::condition_variable completion_condition;
 	std::vector<std::thread> worker_threads;
 	std::vector<Microsoft::WRL::ComPtr<ID3D11DeviceContext>> deferred_contexts;
 

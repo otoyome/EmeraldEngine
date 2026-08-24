@@ -15,6 +15,10 @@ static const uint material_attribute_shadow_receiver        = 1 <<  1;  //  影適
 
 //  空き
 
+static const uint material_attribute_decal_off              = 1 << 20;  //  デカールを適応させない
+
+//  空き
+
 static const uint material_attribute_lighting_face_adjustor = 1 << 31;  //  [エンジン改造:顔専用ライティング]
 
 //static const uint material_attribute_ = 1 << 31;
@@ -216,6 +220,17 @@ GBufferData DecodeGBuffer(GBufferTextures textures, float2 uv, matrix inverse_vi
     data.ilm_color = ilm_color;
 
     return data;
+}
+
+//  ステンシルのみデコード
+GBufferData DecodeGBufferStencilOnly(Texture2D<uint4> unique_data, float2 uv)
+{
+    GBufferData ret = (GBufferData) 0;
+    uint2 texture_size;
+    unique_data.GetDimensions(texture_size.x, texture_size.y);
+    uint4 unique = unique_data.Load(uint3((uint2) (uv * texture_size), 0));
+    ret.stencil = unique.x;
+    return ret;
 }
 
 //  GBufferステンシルのフラグが立っているか判定

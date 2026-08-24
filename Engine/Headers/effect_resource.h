@@ -37,6 +37,12 @@ public:
 
 	struct decal_data
 	{
+		std::string name;
+		std::shared_ptr<material> material;
+		DirectX::XMFLOAT3 scale = {1, 1, 1};
+		DirectX::XMFLOAT4 rotation = {0, 0, 0, 1};
+		DirectX::XMFLOAT3 position = {0, 0, 0};
+
 		template<class Archive>
 		void serialize(Archive& archive, int version);
 	};

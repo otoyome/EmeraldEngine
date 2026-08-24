@@ -65,9 +65,9 @@ struct em_uv_item
 {
     uint state;	// ステート
     uint index;	// スプリット数に応じた番号
-	float time;	// 次のスプライトに移動するタイミング
+    float time; // 次のスプライトに移動するタイミング
+    uint2 split_count; // 分割数
     float4 rect; // 矩形
-	uint2 split_count;	// 分割数
 };
 
 static const uint emitter_active_uv_item_bit_flag = 1 << 1;
@@ -76,14 +76,17 @@ static const uint emitter_active_uv_item_bit_flag = 1 << 1;
 static const uint emitter_uv_item_state_direct = 1 << 0;	//	UV座標を直接指定
 static const uint emitter_uv_item_state_animation = 1 << 1;	//	アニメーション使用フラグ
 
+//
+static const int2 emitter_uv_item_animation_direction_basis_value = uint2(5, 5);
+
 //  UVアイテム読み込み
 void stream_uv_item(uint rw, inout uint offset, inout em_uv_item value)
 {
     em_stream_ptr(rw, offset, value.state);
     em_stream_ptr(rw, offset, value.index);
     em_stream_ptr(rw, offset, value.time);
-    em_stream_ptr(rw, offset, value.rect);
     em_stream_ptr(rw, offset, value.split_count);
+    em_stream_ptr(rw, offset, value.rect);
 }
 
 //////////////////////////////////////////////////////////////////////////

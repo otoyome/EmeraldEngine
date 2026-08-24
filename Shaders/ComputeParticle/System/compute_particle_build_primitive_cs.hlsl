@@ -1,49 +1,5 @@
 #include "compute_particle.hlsli"
 
-float repeat(float _max, float _value)
-{
-    float t = fmod(_value, _max);
-    return t < 0.0f ? _max + t : t;
-}
- 
-float2 repeat(float2 _max, float2 _value)
-{
-    float2 t = fmod(_value, _max);
-    return t < 0.0f ? _max + t : t; // componentwise ternary (SM4+)
-}
- 
-float3 repeat(float3 _max, float3 _value)
-{
-    float3 t = fmod(_value, _max);
-    return t < 0.0f ? _max + t : t;
-}
- 
-float4 repeat(float4 _max, float4 _value)
-{
-    float4 t = fmod(_value, _max);
-    return t < 0.0f ? _max + t : t;
-}
-
-float wrap(float _min, float _max, float _value)
-{
-    return repeat(_max - _min, _value - _min) + _min;
-}
- 
-float2 wrap(float2 _min, float2 _max, float2 _value)
-{
-    return repeat(_max - _min, _value - _min) + _min;
-}
- 
-float3 wrap(float3 _min, float3 _max, float3 _value)
-{
-    return repeat(_max - _min, _value - _min) + _min;
-}
- 
-float4 wrap(float4 _min, float4 _max, float4 _value)
-{
-    return repeat(_max - _min, _value - _min) + _min;
-}
-
 //	汎用情報定義
 static const uint vertex_buffer_max = 4;
 RWByteAddressBuffer vertex_buffer[vertex_buffer_max] : register(u0);
@@ -65,7 +21,7 @@ cbuffer BUILD_PRIMITIVE_CONSTANTS : register(b11)
     uint4 emitter_ids[vertex_buffer_max / 4];
 };
 
-//  ShadeModel5.0ではこうしないとできないので……辛み
+//  ShaderModel5.0ではこうしないとできないので……辛み
 void store2(uint vertex_buffer_index, inout uint vertex_buffer_byte_offset, in uint2 value)
 {
     switch (vertex_buffer_index)
@@ -127,22 +83,26 @@ float4 calculate_uv_rect(in pt_common_item pt_common, in em_uv_item em_uv)
         if (em_uv.state & emitter_uv_item_state_animation)
         {
             float speed = pt_common.life_time * em_uv.time;
-            rect.x += speed;
-            rect.y += speed;
-            rect.z += speed;
-            rect.w += speed;
+            float2 direction = float2(em_uv.split_count.x, em_uv.split_count.y);
+            direction -= emitter_uv_item_animation_direction_basis_value;
+            direction = normalize(direction);
+            rect.x += direction.x * speed;
+            rect.y += direction.y * speed;
+            rect.z += direction.x * speed;
+            rect.w += direction.y * speed;
         }
     }
     else
     {
+        //  分割数
         uint sx = max(em_uv.split_count.x, 1);
         uint sy = max(em_uv.split_count.y, 1);
 
         //  UV矩形設定
         float w = rect.z - rect.x;
         float h = rect.w - rect.y;
-        float u = w / sx;
-        float v = h / sy;
+        float u = w / (float) sx;
+        float v = h / (float) sy;
 
         //  番号指定
         int uv_index = em_uv.index;
@@ -150,14 +110,17 @@ float4 calculate_uv_rect(in pt_common_item pt_common, in em_uv_item em_uv)
         //  アニメーション制御
         if (em_uv.state & emitter_uv_item_state_animation)
         {
-            uv_index += (sx * sy) * (pt_common.life_time_max - pt_common.life_time) / em_uv.time;
+            uv_index += (pt_common.life_time / em_uv.time);
         }
-        uv_index = repeat(sx * sy, uv_index);
+        
+        //  リピート
+        uv_index %= sx * sy;
 
+        //  UV算出
         rect.x += u * (uv_index % sx);
         rect.y += v * (uv_index / sx);
-        rect.z = rect.x + u;
-        rect.w = rect.y + v;
+        rect.z = u;
+        rect.w = v;
     }
     return rect;
 }
@@ -178,6 +141,7 @@ void main(uint3 dispatch_thread_id : SV_DispatchThreadID)
 
     //  エミッター処理範囲か判定
     uint target_vertex_buffer_index = -1;
+    [unroll]
     for (uint index = 0; index < vertex_buffer_max / 4; ++index)
     {
         if (emitter_ids[index].x == emitter_id)
@@ -207,9 +171,9 @@ void main(uint3 dispatch_thread_id : SV_DispatchThreadID)
     particle_binary_offset += emitter_header_buffer[emitter_id].particle_binary_head;
 
     //  エミッター情報取得
-    em_common_item em_common;
-    em_trail_item em_trail;
-    em_uv_item em_uv;
+    em_common_item em_common = (em_common_item)0;
+    em_trail_item em_trail = (em_trail_item) 0;
+    em_uv_item em_uv = (em_uv_item) 0;
     {
         stream_common_item(rw_read_only, emitter_binary_offset, em_common);
         if (em_common.active_items & emitter_active_trail_item_bit_flag)
@@ -232,8 +196,8 @@ void main(uint3 dispatch_thread_id : SV_DispatchThreadID)
     }
 
     //  パーティクル共通情報取得
-    pt_common_item pt_common;
-    pt_trail_header pt_trail_header;
+    pt_common_item pt_common = (pt_common_item) 0;
+    pt_trail_header_item pt_trail_header = (pt_trail_header_item) 0;
     {
         stream_common_item(rw_read_only, particle_binary_offset, pt_common);
         if (em_common.active_items & emitter_active_trail_item_bit_flag)
@@ -254,7 +218,7 @@ void main(uint3 dispatch_thread_id : SV_DispatchThreadID)
         uint read_offset = 0;
 
         //  初期値設定
-        pt_trail_body trail_body[2];
+        pt_trail_body_item trail_body[2];
         {
             trail_body[0].scale = pt_common.scale;
             trail_body[0].rotation = pt_common.rotation;

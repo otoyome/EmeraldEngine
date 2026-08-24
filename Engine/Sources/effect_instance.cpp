@@ -231,7 +231,6 @@ void effect_manager::update_gpu(graphics_context& context, float elapsed_time)
 
 				//	更新アイテム
 				compute_particle_system::update_emitter_data data;
-				//	data順に処理するのが重要
 
 				//	軌跡アイテム登録
 				if (renderer &&

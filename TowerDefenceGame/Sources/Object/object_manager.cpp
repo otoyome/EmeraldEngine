@@ -14,6 +14,13 @@ object_manager::object_manager()
 
 , total_time(0)
 , remain_time(0)
+
+#if defined(USE_IMGUI)
+, pause(false)
+, step(false)
+, fixed_update_count(0)
+, debug_stop_time(false)
+#endif // defined(USE_IMGUI)
 {
 }
 

@@ -164,9 +164,9 @@ float CalcNormalDistributionFunction(float NdotH, float roughness)
 //roughness : ‘e‚³
 float CalcGeometryFunction(float NdotL, float NdotV, float roughness)
 {
-    float r = roughness * 0.5f;
-    float shadowing = NdotL / (NdotL * (1.0 - r) + r);
-    float masking = NdotV / (NdotV * (1.0 - r) + r);
+    float k = (roughness + 1.0f) * (roughness + 1.0f) / 8.0f;
+    float shadowing = NdotL / (NdotL * (1.0f - k) + k);
+    float masking = NdotV / (NdotV * (1.0f - k) + k);
     return shadowing * masking;
 }
 

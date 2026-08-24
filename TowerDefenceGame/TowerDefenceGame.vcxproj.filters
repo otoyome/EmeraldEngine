@@ -192,6 +192,9 @@
     <Filter Include="Sources\Object\GameObjects\Character\Person">
       <UniqueIdentifier>{6d657d7e-0f45-42ad-b1f8-77b959522c7a}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shaders\DeferredDecal">
+      <UniqueIdentifier>{8d61a350-fb00-43f6-9fc7-ef0da761e29f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\External\imgui\imgui.cpp">
@@ -398,6 +401,9 @@
     <ClCompile Include="Sources\Object\GameObjects\Character\Person\kuroko_object.cpp">
       <Filter>Sources\Object\GameObjects\Character\Person</Filter>
     </ClCompile>
+    <ClCompile Include="Sources\PipelineState\deferred_decal_pipeline_state.cpp">
+      <Filter>Sources\PipelineState</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\External\imgui\imgui.h">
@@ -600,6 +606,9 @@
     </ClInclude>
     <ClInclude Include="Headers\Object\GameObjects\Character\character_object.h">
       <Filter>Headers\Object\GameObjects\Character</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\PipelineState\deferred_decal_pipeline_state.h">
+      <Filter>Headers\PipelineState</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -855,6 +864,12 @@
     <FxCompile Include="..\Shaders\ComputeParticle\System\compute_particle_end_update_cs.hlsl">
       <Filter>Shaders\ComputeParticle\System</Filter>
     </FxCompile>
+    <FxCompile Include="..\Shaders\DeferredDecal\gbuffer_decal_primitive_ps.hlsl">
+      <Filter>Shaders\DeferredDecal</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shaders\DeferredDecal\gbuffer_decal_fullscreen_quad_ps.hlsl">
+      <Filter>Shaders\DeferredDecal</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\Shaders\Common\lights.hlsli">
@@ -1045,6 +1060,15 @@
     </None>
     <None Include="..\Shaders\ComputeParticle\Renderer\Default\compute_particle_default.hlsli">
       <Filter>Shaders\ComputeParticle\Renderer\Default</Filter>
+    </None>
+    <None Include="..\Shaders\DeferredDecal\gbuffer_decal_constant_buffer.hlsli">
+      <Filter>Shaders\DeferredDecal</Filter>
+    </None>
+    <None Include="..\Shaders\DeferredDecal\gbuffer_decal_fullscreen_quad.hlsli">
+      <Filter>Shaders\DeferredDecal</Filter>
+    </None>
+    <None Include="..\Shaders\DeferredDecal\gbuffer_decal_primitive.hlsli">
+      <Filter>Shaders\DeferredDecal</Filter>
     </None>
   </ItemGroup>
 </Project>

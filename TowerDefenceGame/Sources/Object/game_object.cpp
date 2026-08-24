@@ -32,22 +32,12 @@ void game_object::set_active(bool active)
 	}
 }
 
-std::mutex& game_object::get_mutex()
-{
-	return mutex;
-}
-
 game_object::game_object(std::string_view name)
 : name(name)
 , active(true)
 {
-	//	Idİ’è‚¾‚¯‚Í”í‚ç‚È‚¢‚æ‚¤‚É‚µ‚Ä‚¨‚­
-	{
-		std::lock_guard<std::mutex> lock_guard(mutex);
-		id = ++id_counter;
-		assert(id != invalid_id);
-	}
-	on_active();
+	id = ++id_counter;
+	assert(id != invalid_id);
 }
 
 game_object::~game_object()
