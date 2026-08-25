@@ -218,7 +218,7 @@ bool player_controller_object::unregister_stagger_enter_callback(std::string_vie
 {
 	std::string id = std::string(identifier);
 	auto it = on_stagger_enters.find(id);
-	if (it != on_stagger_enters.end())
+	if (it == on_stagger_enters.end())
 		return false;
 
 	on_stagger_enters.erase(it);
@@ -239,7 +239,7 @@ bool player_controller_object::unregister_stagger_exit_callback(std::string_view
 {
 	std::string id = std::string(identifier);
 	auto it = on_stagger_exits.find(id);
-	if (it != on_stagger_exits.end())
+	if (it == on_stagger_exits.end())
 		return false;
 
 	on_stagger_exits.erase(it);
@@ -260,7 +260,7 @@ bool player_controller_object::unregister_dead_start_callback(std::string_view i
 {
 	std::string id = std::string(identifier);
 	auto it = on_dead_start.find(id);
-	if (it != on_dead_start.end())
+	if (it == on_dead_start.end())
 		return false;
 
 	on_dead_start.erase(it);
@@ -281,7 +281,7 @@ bool player_controller_object::unregister_select_dead_callback(std::string_view 
 {
 	std::string id = std::string(identifier);
 	auto it = on_select_dead.find(id);
-	if (it != on_select_dead.end())
+	if (it == on_select_dead.end())
 		return false;
 
 	on_select_dead.erase(it);
@@ -302,7 +302,7 @@ bool player_controller_object::unregister_select_regenerate_callback(std::string
 {
 	std::string id = std::string(identifier);
 	auto it = on_select_regenerate.find(id);
-	if (it != on_select_regenerate.end())
+	if (it == on_select_regenerate.end())
 		return false;
 
 	on_select_regenerate.erase(it);

@@ -2,7 +2,7 @@
 #define __SHADOW_MAP_HLSLI__
 
 static const uint shadow_map_max = 6;
-static const uint shadow_map_constant_bias = 0.0001f;
+static const float shadow_map_constant_bias = 0.0001f;
 
 //  シャドウマップ情報
 cbuffer SHADOW_MAP_CONSTANT_BUFFER : register(b4)

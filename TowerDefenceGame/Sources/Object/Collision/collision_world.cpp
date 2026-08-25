@@ -323,7 +323,11 @@ void collision_world::remove_objects()
 {
 	for (auto& object : collision_objects_remove)
 	{
-		collision_objects.erase(std::find(collision_objects.begin(), collision_objects.end(), object));
+		auto it = std::find(collision_objects.begin(), collision_objects.end(), object);
+		if (it != collision_objects.end())
+		{
+			collision_objects.erase(it);
+		}
 	}
 	system_utility::std_vector_swap_clear(collision_objects_remove);
 }

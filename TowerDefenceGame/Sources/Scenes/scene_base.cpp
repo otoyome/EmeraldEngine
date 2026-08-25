@@ -20,6 +20,11 @@ bool scene_base::uninitialize()
 		if (auto obj = object.lock())
 			object_manager::instance()->unregister_object(obj);
 	}
+	for (auto& object : collision_objects)
+	{
+		if (auto obj = object.lock())
+			object_manager::instance()->unregister_object(obj);
+	}
 	return uninitialize_core();
 }
 

@@ -323,11 +323,11 @@ float convert_minute_to_sec(float value)
 //	•b <> •ÏŠ·
 float convert_sec_to_hour(float value)
 {
-	return value * 360.0f;
+	return value * 3600.0f;
 }
 float convert_hour_to_sec(float value)
 {
-	return value / 360.0f;
+	return value / 3600.0f;
 }
 
 //	ƒtƒŒ[ƒ€ <> •b

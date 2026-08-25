@@ -174,7 +174,6 @@ void apply_morph_position(inout float3 position, uint vertex_id)
 
 void apply_morph_normal(inout float3 normal, uint vertex_id)
 {
-    return;
     [unroll] for (uint index = 0; index < morph_max; ++index)
     {
         if (index >= primitive_parameter.z)
