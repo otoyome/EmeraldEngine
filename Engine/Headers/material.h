@@ -24,6 +24,13 @@ public:
 		forward_pass,		//	フォワードレンダリングパス
 	};
 
+	//	デカール描画パス
+	enum class decal_paths : std::uint8_t
+	{
+		primitive,	//	プリミティブでの書き込み
+		fullscreen,	//	フルスクリーンでの書き込み
+	};
+
 	//	システムのマテリアルをホットリロードさせたいため追加。
 	//	本来は遅くなるのでリリース時は不要
 	enum class system_paths : std::uint8_t
@@ -164,10 +171,13 @@ public:
 		two_sided,				//	両面描画フラグ
 		wire,					//	ワイヤーフレームで表示するかどうか
 		indirect_lighting_off,	//	間接光の影響を強制的に受けなくさせる
+		decal_off,				//	デカールが書き込みされるマテリアルかどうか
 
+		//	[エンジン改造]
 		//	シェーダー側との連携用フラグは最大32個まで
 		//	追加する場合はシェーダーとの連携用コードがあるので修正必要
-		decal_off,				//	デカールが書き込みされるマテリアルかどうか
+		ligting_xz_plane,		//	[エンジン改造:ライティング計算時にXZ平面で適応]
+		//	[エンジン改造]
 	};
 
 	//	物理マテリアル
@@ -247,13 +257,16 @@ public:
 	//	パイプラインステート取得・設定
 	bool set_pipeline_state(const set_surface_pipeline_states_desc* descs, UINT size);
 	bool set_pipeline_state(surface_paths type, std::string_view pipeline_state_name);
+	bool set_pipeline_state(decal_paths type, std::string_view pipeline_state_name);
 	bool set_pipeline_state(system_paths type, std::string_view pipeline_state_name);
 	bool set_pipeline_state(std::string_view pipeline_state_name);
 
 	std::string_view get_pipeline_state_name(surface_paths type) const;
+	std::string_view get_pipeline_state_name(decal_paths type) const;
 	std::string_view get_pipeline_state_name(system_paths type) const;
 	std::string_view get_pipeline_state_name() const;
 	graphics_pipeline_state_ptr get_pipeline_state(surface_paths value) const;
+	graphics_pipeline_state_ptr get_pipeline_state(decal_paths value) const;
 	graphics_pipeline_state_ptr get_pipeline_state(system_paths value) const;
 	graphics_pipeline_state_ptr get_pipeline_state() const;
 
@@ -336,12 +349,4 @@ private:
 	pipeline_state_array pipeline_states;
 	shader_resource_map shader_resources;
 	constant_buffer_map constant_buffers;
-
-#if defined(USE_IMGUI)
-	graphics_pipeline_state_ptr failed_surface_psos[magic_enum::enum_count<surface_paths>()];
-	graphics_pipeline_state_ptr failed_deferred_decal_pso;
-	graphics_pipeline_state_ptr failed_post_process_pso;
-	graphics_pipeline_state_ptr failed_user_interface_pso;
-	graphics_pipeline_state_ptr failed_particle_psos[magic_enum::enum_count<surface_paths>()];
-#endif	//	defined(USE_IMGUI)
 };

@@ -20,6 +20,8 @@ class graphics_custom_pipeline_state : public graphics_pipeline_state
 		depth_write_only,
 		depth_off,
 
+		decal,
+
 		max,
 	};
 

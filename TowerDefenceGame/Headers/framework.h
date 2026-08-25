@@ -53,6 +53,10 @@ private:
 	std::vector<std::unique_ptr<renderer>> ui_renderers;
 	std::shared_ptr<render_job_executor> render_executor;
 
+	//	•`‰æ—p‚Ìˆê•”î•ñ
+	render_pass back_buffer_clear_rendering_pass;
+	std::shared_ptr<material> test_decal;
+
 	float wheel{ 0 };
 	high_resolution_timer tictoc;
 #if defined(_DEBUG) || defined(USE_IMGUI)
@@ -61,9 +65,6 @@ private:
 	float current_time{ 0.0f };
 	float previous_time{ 0.0f };
 #endif	//	defined(_DEBUG) || defined(USE_IMGUI)
-
-	//	•`‰æ—p‚Ìˆê•”î•ñ
-	render_pass back_buffer_clear_rendering_pass;
 
 #if defined(USE_IMGUI)
 	//	ImGui—p
@@ -114,6 +115,7 @@ private:
 	void imgui_textures_window();
 	void imgui_scene_change();
 
+	void plane_line_draw();
 	void gpu_snap_shot_begin();
 	void gpu_snap_shot_end();
 #endif // defined(USE_IMGUI)

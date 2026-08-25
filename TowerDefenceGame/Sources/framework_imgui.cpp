@@ -424,6 +424,36 @@ void framework::imgui_profiler_window(float elapsed_time)
 	}
 }
 
+void framework::plane_line_draw()
+{
+	if (!display_grid_xz && !display_grid_xy && !display_grid_yz)
+		return;
+
+	float grid_length = system_units::convert_m_to_unit(static_cast<float>(display_grid_length));
+	for (int index = -display_grid_length; index <= display_grid_length; ++index)
+	{
+		float len = system_units::convert_m_to_unit(static_cast<float>(index));
+		if (display_grid_xz)
+		{
+			DirectX::XMFLOAT4 line_color = DirectX::XMFLOAT4(1.0f, 0.0f, 1.0f, 1);
+			PUSH_DEBUG_PRIMITIVE_LINE(DirectX::XMFLOAT3(len, 0.0f, -grid_length), DirectX::XMFLOAT3(len, 0.0f, +grid_length), line_color, true);
+			PUSH_DEBUG_PRIMITIVE_LINE(DirectX::XMFLOAT3(-grid_length, 0.0f, len), DirectX::XMFLOAT3(+grid_length, 0.0f, len), line_color, true);
+		}
+		if (display_grid_xy)
+		{
+			DirectX::XMFLOAT4 line_color = DirectX::XMFLOAT4(1.0f, 1.0f, 0.0f, 1);
+			PUSH_DEBUG_PRIMITIVE_LINE(DirectX::XMFLOAT3(len, -grid_length, 0.0f), DirectX::XMFLOAT3(len, +grid_length, 0.0f), line_color, true);
+			PUSH_DEBUG_PRIMITIVE_LINE(DirectX::XMFLOAT3(-grid_length, len, 0.0f), DirectX::XMFLOAT3(+grid_length, len, 0.0f), line_color, true);
+		}
+		if (display_grid_yz)
+		{
+			DirectX::XMFLOAT4 line_color = DirectX::XMFLOAT4(0.0f, 1.0f, 1.0f, 1);
+			PUSH_DEBUG_PRIMITIVE_LINE(DirectX::XMFLOAT3(0.0f, len, -grid_length), DirectX::XMFLOAT3(0.0f, len, +grid_length), line_color, true);
+			PUSH_DEBUG_PRIMITIVE_LINE(DirectX::XMFLOAT3(0.0f, -grid_length, len), DirectX::XMFLOAT3(0.0f, +grid_length, len), line_color, true);
+		}
+	}
+}
+
 void framework::gpu_snap_shot_begin()
 {
 	if (!is_gpu_snap_shot)

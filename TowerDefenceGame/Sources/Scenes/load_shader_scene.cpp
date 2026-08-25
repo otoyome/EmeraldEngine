@@ -459,6 +459,86 @@ bool load_shader_scene::initialize_core()
 	}
 #pragma	endregion	//	頂点カラー編集用デフォルトパイプラインステート
 
+#pragma	region	GBufferDecalエラー用デフォルトパイプラインステート
+	{
+		//	ジオメトリックプリミティブ用
+		//	@remainder	TEXCOORDが無駄
+		//				自由にモデルを使う場合は色々と対応が必要
+		auto generate_input_elements = [](std::vector<D3D11_INPUT_ELEMENT_DESC>& ied)
+		{
+			ied.reserve(2);
+			ied.push_back({ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 });
+			ied.push_back({ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 });
+		};
+
+		//	プリミティブ
+		{
+			std::shared_ptr<graphics_custom_pipeline_state> pso;
+			instance->generate_pipeline_state<graphics_custom_pipeline_state>("deferred_decal_failed_primitive", &pso);
+			pso->set_domain(pipeline_state_base::domains::deferred_decal);
+			//	頂点シェーダー読み込み
+			{
+				load_shader_file desc;
+				desc.file_path = "Shaders/DeferredDecal/gbuffer_decal_primitive_vs.hlsl";
+				generate_input_elements(desc.input_element_desc);
+#if defined(_DEBUG)
+				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
+				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
+#endif	//	defined(_DEBUG)
+
+				std::shared_ptr<vertex_shader> shader;
+				shader_manager::instance()->load_shader<vertex_shader>(shader, desc);
+				pso->set_shader(shader);
+			}
+			//	ピクセルシェーダー読み込み
+			{
+				load_shader_file desc;
+				desc.file_path = "Shaders/DeferredDecal/Failed/failed_decal_primitive_ps.hlsl";
+#if defined(_DEBUG)
+				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
+				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
+#endif	//	defined(_DEBUG)
+
+				std::shared_ptr<pixel_shader> shader;
+				shader_manager::instance()->load_shader<pixel_shader>(shader, desc);
+				pso->set_shader(shader);
+			}
+		}
+		//	フルスクリーン
+		{
+			std::shared_ptr<graphics_custom_pipeline_state> pso;
+			instance->generate_pipeline_state<graphics_custom_pipeline_state>("deferred_decal_failed_fullscreen", &pso);
+			pso->set_domain(pipeline_state_base::domains::particle);
+			//	頂点シェーダー読み込み
+			{
+				load_shader_file desc;
+				desc.file_path = "Shaders/DeferredDecal/gbuffer_decal_fullscreen_vs.hlsl";
+				generate_input_elements(desc.input_element_desc);
+#if defined(_DEBUG)
+				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
+				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
+#endif	//	defined(_DEBUG)
+
+				std::shared_ptr<vertex_shader> shader;
+				shader_manager::instance()->load_shader<vertex_shader>(shader, desc);
+				pso->set_shader(shader);
+			}
+			//	ピクセルシェーダー読み込み
+			{
+				load_shader_file desc;
+				desc.file_path = "Shaders/DeferredDecal/Failed/failed_decal_fullscreen_ps.hlsl";
+#if defined(_DEBUG)
+				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
+				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
+#endif	//	defined(_DEBUG)
+
+				std::shared_ptr<pixel_shader> shader;
+				shader_manager::instance()->load_shader<pixel_shader>(shader, desc);
+				pso->set_shader(shader);
+			}
+		}
+	}
+#pragma	endregion	//	GBufferDecal用デフォルトパイプラインステート
 #endif	//	defined(USE_IMGUI)
 
 #pragma	region	UI用デフォルトパイプラインステート
@@ -1313,6 +1393,87 @@ bool load_shader_scene::initialize_core()
 		}
 	}
 #pragma	endregion	//	完品トゥーンシェーディング用パイプラインステート
+
+#pragma	region	GBufferDecal用デフォルトパイプラインステート
+	{
+		//	ジオメトリックプリミティブ用
+		//	@remainder	TEXCOORDが無駄
+		//				自由にモデルを使う場合は色々と対応が必要
+		auto generate_input_elements = [](std::vector<D3D11_INPUT_ELEMENT_DESC>& ied)
+		{
+			ied.reserve(2);
+			ied.push_back({ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 });
+			ied.push_back({ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 });
+		};
+
+		//	プリミティブ
+		{
+			std::shared_ptr<graphics_custom_pipeline_state> pso;
+			instance->generate_pipeline_state<graphics_custom_pipeline_state>("deferred_decal_default_primitive", &pso);
+			pso->set_domain(pipeline_state_base::domains::deferred_decal);
+			//	頂点シェーダー読み込み
+			{
+				load_shader_file desc;
+				desc.file_path = "Shaders/DeferredDecal/gbuffer_decal_primitive_vs.hlsl";
+				generate_input_elements(desc.input_element_desc);
+#if defined(_DEBUG)
+				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
+				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
+#endif	//	defined(_DEBUG)
+
+				std::shared_ptr<vertex_shader> shader;
+				shader_manager::instance()->load_shader<vertex_shader>(shader, desc);
+				pso->set_shader(shader);
+			}
+			//	ピクセルシェーダー読み込み
+			{
+				load_shader_file desc;
+				desc.file_path = "Shaders/DeferredDecal/Default/default_decal_primitive_ps.hlsl";
+#if defined(_DEBUG)
+				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
+				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
+#endif	//	defined(_DEBUG)
+
+				std::shared_ptr<pixel_shader> shader;
+				shader_manager::instance()->load_shader<pixel_shader>(shader, desc);
+				pso->set_shader(shader);
+			}
+		}
+		//	フルスクリーン
+		{
+			std::shared_ptr<graphics_custom_pipeline_state> pso;
+			instance->generate_pipeline_state<graphics_custom_pipeline_state>("deferred_decal_default_fullscreen", &pso);
+			pso->set_domain(pipeline_state_base::domains::particle);
+			//	頂点シェーダー読み込み
+			{
+				load_shader_file desc;
+				desc.file_path = "Shaders/DeferredDecal/gbuffer_decal_fullscreen_vs.hlsl";
+				generate_input_elements(desc.input_element_desc);
+#if defined(_DEBUG)
+				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
+				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
+#endif	//	defined(_DEBUG)
+
+				std::shared_ptr<vertex_shader> shader;
+				shader_manager::instance()->load_shader<vertex_shader>(shader, desc);
+				pso->set_shader(shader);
+			}
+			//	ジオメトリシェーダー読み込み
+			{
+				load_shader_file desc;
+				desc.file_path = "Shaders/DeferredDecal/Default/default_decal_fullscreen_ps.hlsl";
+#if defined(_DEBUG)
+				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
+				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
+#endif	//	defined(_DEBUG)
+
+				std::shared_ptr<pixel_shader> shader;
+				shader_manager::instance()->load_shader<pixel_shader>(shader, desc);
+				pso->set_shader(shader);
+			}
+		}
+	}
+#pragma	endregion	//	GBufferDecal用デフォルトパイプラインステート
 
 	return true;
 }

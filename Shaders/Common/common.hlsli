@@ -35,6 +35,11 @@ static const uint dither_pattern_16 = 0;
 static const uint dither_pattern_64 = 1;
 float calculate_alpha_dithering(float2 screen_position, uint dither_pattern_index = dither_pattern_64)
 {
+#if 01
+	//	Interleaved Gradient NoiseÅiJimenez 2014Åj
+    float3 magic = float3(0.06711056f, 0.00583715f, 52.9829189f);
+    return frac(magic.z * frac(dot(screen_position, magic.xy)));
+#else
     float dither = 0.0f;
     uint sx = (int) screen_position.x;
     uint sy = (int) screen_position.y;
@@ -76,6 +81,7 @@ float calculate_alpha_dithering(float2 screen_position, uint dither_pattern_inde
         }
     }
     return dither;
+#endif
 }
 
 float random(float2 seeds)

@@ -17,6 +17,47 @@
 
 #include "Renderer/scene_renderer_common.h"
 
+namespace
+{
+    void compute_frustum_bounding_sphere(float ndc_near, float ndc_far,
+                                          DirectX::CXMMATRIX inverse_view_projection_transform,
+                                          DirectX::XMVECTOR& out_center, float& out_radius)
+    {
+        DirectX::XMVECTOR corners[8] =
+        {
+            DirectX::XMVectorSet(-1.0f, -1.0f, ndc_near, 1.0f),
+            DirectX::XMVectorSet(+1.0f, -1.0f, ndc_near, 1.0f),
+            DirectX::XMVectorSet(+1.0f, +1.0f, ndc_near, 1.0f),
+            DirectX::XMVectorSet(-1.0f, +1.0f, ndc_near, 1.0f),
+            DirectX::XMVectorSet(-1.0f, -1.0f, ndc_far,  1.0f),
+            DirectX::XMVectorSet(+1.0f, -1.0f, ndc_far,  1.0f),
+            DirectX::XMVectorSet(+1.0f, +1.0f, ndc_far,  1.0f),
+            DirectX::XMVectorSet(-1.0f, +1.0f, ndc_far,  1.0f),
+        };
+
+        DirectX::XMVECTOR sum = DirectX::XMVectorZero();
+        for (auto& corner : corners)
+        {
+            corner = DirectX::XMVector3TransformCoord(corner, inverse_view_projection_transform);
+            sum = DirectX::XMVectorAdd(sum, corner);
+        }
+
+        //  重心を中心にする
+        DirectX::XMVECTOR center = DirectX::XMVectorScale(sum, 1.0f / 8.0f);
+
+        //  中心から最も遠い頂点までの距離を半径にする
+        float radius_sq = 0.0f;
+        for (auto& corner : corners)
+        {
+            float d_sq = DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(DirectX::XMVectorSubtract(corner, center)));
+            radius_sq = std::max(radius_sq, d_sq);
+        }
+
+        out_center = center;
+        out_radius = sqrtf(radius_sq);
+    }
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 depth_prepass_renderer::depth_prepass_renderer(render_job_registrar job_executor, std::shared_ptr<scene_render_targets> render_targets)
 : renderer(job_executor)
@@ -222,6 +263,25 @@ gbuffer_decal_renderer::gbuffer_decal_renderer(render_job_registrar job_executor
 
 	//	書き込み用デフォルトプリミティブ
 	cube = std::make_unique<geometric_cube>(render_data::instance()->get_device().Get());
+
+	//	定数バッファの生成
+	{
+		D3D11_BUFFER_DESC buffer_desc{};
+		buffer_desc.Usage = D3D11_USAGE_DEFAULT;
+		buffer_desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+		buffer_desc.CPUAccessFlags = 0;
+		buffer_desc.MiscFlags = 0;
+		buffer_desc.StructureByteStride = 0;
+		{
+			buffer_desc.ByteWidth = sizeof(common_pipeline_states::decal_primitive_constants);
+			HRESULT hr = render_data::instance()->get_device()->CreateBuffer(&buffer_desc, nullptr, decal_primitive_primitive_buffer.GetAddressOf());
+			_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+		}
+	}
+
+	//	ステンシル書き込みシェーダー取得
+	pipeline_state_manager* instance = pipeline_state_manager::instance();
+	instance->generate_pipeline_state<deferred_decal_stencil_write_pipeline_state>("deferred_decal_stencil_write", &stencil_write_pipeline_state);
 }
 
 gbuffer_decal_renderer::~gbuffer_decal_renderer()
@@ -243,11 +303,11 @@ void gbuffer_decal_renderer::render(renderer_context& renderer_context)
 		//	描画先設定
 		rendering_pass.activate(context.device_context);
 
+		//	ビューポートの設定
+		context.device_context->RSSetViewports(1, &viewport);
+
 		//	デカール
 		{
-			//	ビューポートの設定
-			context.device_context->RSSetViewports(1, &viewport);
-
 			//	カメラ球体
 			collision::bounding_sphere sphere;
 			{
@@ -267,49 +327,65 @@ void gbuffer_decal_renderer::render(renderer_context& renderer_context)
 			//	デカール描画
 			for (auto& decal : context.render_data->decal_container.decal_datas)
 			{
+				if (!decal.material.material)
+					continue;
+
 				//	バッファ情報生成
-				buffer_datas data;
+				buffer_datas buffer_data;
 				{
-					auto& mesh = data.color_meshs.emplace_back();
+					auto& mesh = buffer_data.color_meshs.emplace_back();
 					mesh.vertex_buffer_views = &cube->get_vertex_buffer_views();
 					mesh.index_buffer_view = &cube->get_index_buffer_view();
 					DirectX::XMMATRIX W = DirectX::XMMatrixScaling(decal.scale.x, decal.scale.y, decal.scale.z)
-						* DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&decal.rotation.convert_quaternion()))
-						* DirectX::XMMatrixTranslation(decal.position.x, decal.position.y, decal.position.z);
-					data.transform_matrices[0].emplace_back();
-					DirectX::XMStoreFloat4x4(&data.transform_matrices[0].back(), W);
+										* DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&decal.rotation.convert_quaternion()))
+										* DirectX::XMMatrixTranslation(decal.position.x, decal.position.y, decal.position.z);
+					DirectX::XMStoreFloat4x4(&buffer_data.transform_matrices[0].emplace_back(), W);
+
+					//	プリミティブバッファ更新
+					{
+						common_pipeline_states::decal_primitive_constants dpc;
+						dpc.decal_transform = buffer_data.transform_matrices[0].back();
+						auto front = decal.rotation.get_up();
+						dpc.decal_direction.x = front.x;
+						dpc.decal_direction.y = front.y;
+						dpc.decal_direction.z = front.z;
+						dpc.decal_direction.w = 0;
+						DirectX::XMStoreFloat4x4(&dpc.decal_inverse_transform, DirectX::XMMatrixInverse(nullptr, W));
+						context.device_context->UpdateSubresource(decal_primitive_primitive_buffer.Get(), 0, 0, &dpc, 0, 0);
+					}
+					buffer_data.primitive_buffer = decal_primitive_primitive_buffer;
 				}
 
+				//	マテリアル更新
+				decal.material.material->update_parameters(context);
+
 				//	ステンシル書き込み
-				if (auto pipeline_state = decal.material.material->get_pipeline_state(material::surface_paths::depth_write_pass))
 				{
-					pipeline_state->begin(context);
-					pipeline_state->update_parameters(context, *decal.material.material, &data);
-					scene_renderer_commons::draw_indexed(context, 0.0f, data, pipeline_state);
-					pipeline_state->end(context);
+					stencil_write_pipeline_state->begin(context);
+					stencil_write_pipeline_state->update_parameters(context, *decal.material.material, &buffer_data);
+					scene_renderer_commons::draw_indexed(context, 0.0f, buffer_data, stencil_write_pipeline_state);
+					stencil_write_pipeline_state->end(context);
 				}
 
 				//	デカール書き込み
 				collision::bounding_box box = collision::bounding_box(decal.scale, decal.rotation, decal.position);
-				if (sphere.intersection(&box))
+				auto pass = sphere.intersection(&box) ? material::decal_paths::fullscreen : material::decal_paths::primitive;
+				if (auto pipeline_state = decal.material.material->get_pipeline_state(pass))
 				{
-					if (auto pipeline_state = decal.material.material->get_pipeline_state(material::surface_paths::shadow_write_pass))
+					pipeline_state->begin(context);
+					if (pass == material::decal_paths::fullscreen)
 					{
-						pipeline_state->begin(context);
-						pipeline_state->update_parameters(context, *decal.material.material, &data);
-						scene_renderer_commons::draw_indexed(context, 0.0f, data, pipeline_state);
-						pipeline_state->end(context);
+						context.is_force_material_both_draw = true;
+						pipeline_state->update_parameters(context, *decal.material.material, &buffer_data);
+						scene_renderer_commons::draw(context, pipeline_state, 4);
+						context.is_force_material_both_draw = false;
 					}
-				}
-				else
-				{
-					if (auto pipeline_state = decal.material.material->get_pipeline_state(material::surface_paths::g_buffer_pass))
+					else
 					{
-						pipeline_state->begin(context);
-						pipeline_state->update_parameters(context, *decal.material.material, &data);
-						scene_renderer_commons::draw_indexed(context, 0.0f, data, pipeline_state);
-						pipeline_state->end(context);
+						pipeline_state->update_parameters(context, *decal.material.material, &buffer_data);
+						scene_renderer_commons::draw_indexed(context, 0.0f, buffer_data, pipeline_state);
 					}
+					pipeline_state->end(context);
 				}
 			}
 
@@ -317,7 +393,7 @@ void gbuffer_decal_renderer::render(renderer_context& renderer_context)
 		}
 
 		context.g_buffer_textures[static_cast<UINT>(common_pipeline_states::gbuffer_id::normal_depth)] = render_targets->g_buffer_textures[static_cast<UINT>(common_pipeline_states::gbuffer_id::normal_depth)];
-	}, "gbuffer_pass", renderer_context, get_render_basis_sort_order());
+	}, "gbuffer_decal_pass", renderer_context, get_render_basis_sort_order());
 }
 
 void gbuffer_decal_renderer::resize_buffer(int width, int height)
@@ -677,6 +753,7 @@ void deffered_lighting_renderer::render_directional_shadow_map(const light& ligh
 	LightUp = LightTransformMatrix.r[1];
 	LightFront = LightTransformMatrix.r[2];
 	LightPosition = LightTransformMatrix.r[3];
+	float camera_near_clip, camera_far_clip;
 
 	//	クリップ距離を算出
 	float near_clip, far_clip;
@@ -686,6 +763,8 @@ void deffered_lighting_renderer::render_directional_shadow_map(const light& ligh
 		FarPosition = DirectX::XMVector3TransformCoord(DirectX::XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f), InverseProjectionTransform);
 		near_clip = DirectX::XMVectorGetZ(NearPosition);
 		far_clip = DirectX::XMVectorGetX(DirectX::XMVector3Length(DirectX::XMVectorSubtract(FarPosition, NearPosition)));
+		camera_near_clip = near_clip;
+		camera_far_clip = far_clip;
 	}
 
 	//	CSM用に遠クリップ面に対して距離制限をかける
@@ -716,47 +795,15 @@ void deffered_lighting_renderer::render_directional_shadow_map(const light& ligh
 			//	AABBを囲む球体を算出
 			DirectX::XMVECTOR Center;
 			float radius;
-			{
-				DirectX::XMVECTOR FrustumPoints[] =
-				{
-					DirectX::XMVectorSet(-1.0f, -1.0f, projection_near_clip, 1.0f),
-					DirectX::XMVectorSet(+1.0f, -1.0f, projection_near_clip, 1.0f),
-					DirectX::XMVectorSet(+1.0f, +1.0f, projection_near_clip, 1.0f),
-					DirectX::XMVectorSet(-1.0f, +1.0f, projection_near_clip, 1.0f),
-
-					DirectX::XMVectorSet(-1.0f, -1.0f, projection_far_clip, 1.0f),
-					DirectX::XMVectorSet(+1.0f, -1.0f, projection_far_clip, 1.0f),
-					DirectX::XMVectorSet(+1.0f, +1.0f, projection_far_clip, 1.0f),
-					DirectX::XMVectorSet(-1.0f, +1.0f, projection_far_clip, 1.0f),
-				};
-
-				for (auto& Position : FrustumPoints)
-				{
-					Position = DirectX::XMVector3TransformCoord(Position, InverseViewProjectionTransform);
-				}
-				DirectX::XMVECTOR BoundsMin = DirectX::XMVectorSet(+FLT_MAX, +FLT_MAX, +FLT_MAX, 0),
-					BoundsMax = DirectX::XMVectorSet(-FLT_MAX, -FLT_MAX, -FLT_MAX, 0);
-				for (auto& Position : FrustumPoints)
-				{
-					BoundsMin = DirectX::XMVectorMin(BoundsMin, Position);
-					BoundsMax = DirectX::XMVectorMax(BoundsMax, Position);
-				}
-				DirectX::XMVECTOR Vector = DirectX::XMVectorScale(DirectX::XMVectorSubtract(BoundsMax, BoundsMin), 0.5f);
-				Center = DirectX::XMVectorAdd(BoundsMin, Vector);
-				radius = DirectX::XMVectorGetX(DirectX::XMVector3Length(Vector));
-			}
+			compute_frustum_bounding_sphere(projection_near_clip, projection_far_clip, InverseViewProjectionTransform, Center, radius);
 
 			//	視線行列算出
 			{
 				LightPosition = DirectX::XMVectorSubtract(Center, DirectX::XMVectorScale(LightFront, radius));
-				LightTransformMatrix.r[0] = LightRight;
-				LightTransformMatrix.r[1] = LightUp;
-				LightTransformMatrix.r[2] = LightFront;
-				LightTransformMatrix.r[3] = LightPosition;
-				LightTransformMatrix.r[0] = DirectX::XMVectorSetW(LightTransformMatrix.r[0], 0.0f);
-				LightTransformMatrix.r[1] = DirectX::XMVectorSetW(LightTransformMatrix.r[1], 0.0f);
-				LightTransformMatrix.r[2] = DirectX::XMVectorSetW(LightTransformMatrix.r[2], 0.0f);
-				LightTransformMatrix.r[3] = DirectX::XMVectorSetW(LightTransformMatrix.r[3], 1.0f);
+				LightTransformMatrix.r[0] = DirectX::XMVectorSetW(LightRight, 0.0f);
+				LightTransformMatrix.r[1] = DirectX::XMVectorSetW(LightUp, 0.0f);
+				LightTransformMatrix.r[2] = DirectX::XMVectorSetW(LightFront, 0.0f);
+				LightTransformMatrix.r[3] = DirectX::XMVectorSetW(LightPosition, 1.0f);
 				LightViewMatrix = DirectX::XMMatrixInverse(nullptr, LightTransformMatrix);
 			}
 
@@ -806,53 +853,20 @@ void deffered_lighting_renderer::render_directional_shadow_map(const light& ligh
 			//	AABBを囲む球体を算出
 			DirectX::XMVECTOR Center;
 			float radius;
-			{
-				//	分割距離単位での視錐台生成
-				float n_clip, f_clip;
-				n_clip = scene_renderer_commons::convert_linear_depth_to_projection_depth(split_distance[index + 0] / far_clip, far_clip / near_clip);
-				f_clip = scene_renderer_commons::convert_linear_depth_to_projection_depth(split_distance[index + 1] / far_clip, far_clip / near_clip);
-
-				DirectX::XMVECTOR FrustumPoints[8] =
-				{
-					DirectX::XMVectorSet(-1.0f, -1.0f, n_clip, 1.0f),
-					DirectX::XMVectorSet(+1.0f, -1.0f, n_clip, 1.0f),
-					DirectX::XMVectorSet(+1.0f, +1.0f, n_clip, 1.0f),
-					DirectX::XMVectorSet(-1.0f, +1.0f, n_clip, 1.0f),
-
-					DirectX::XMVectorSet(-1.0f, -1.0f, f_clip, 1.0f),
-					DirectX::XMVectorSet(+1.0f, -1.0f, f_clip, 1.0f),
-					DirectX::XMVectorSet(+1.0f, +1.0f, f_clip, 1.0f),
-					DirectX::XMVectorSet(-1.0f, +1.0f, f_clip, 1.0f),
-				};
-
-				for (auto& Position : FrustumPoints)
-				{
-					Position = DirectX::XMVector3TransformCoord(Position, InverseViewProjectionTransform);
-				}
-
-				DirectX::XMVECTOR	BoundsMin = DirectX::XMVectorSet(+FLT_MAX, +FLT_MAX, +FLT_MAX, 0),
-									BoundsMax = DirectX::XMVectorSet(-FLT_MAX, -FLT_MAX, -FLT_MAX, 0);
-				for (auto& Position : FrustumPoints)
-				{
-					BoundsMin = DirectX::XMVectorMin(BoundsMin, Position);
-					BoundsMax = DirectX::XMVectorMax(BoundsMax, Position);
-				}
-				DirectX::XMVECTOR Vector = DirectX::XMVectorScale(DirectX::XMVectorSubtract(BoundsMax, BoundsMin), 0.5f);
-				Center = DirectX::XMVectorAdd(BoundsMin, Vector);
-				radius = DirectX::XMVectorGetX(DirectX::XMVector3Length(Vector));
-			}
+			compute_frustum_bounding_sphere(scene_renderer_commons::convert_linear_depth_to_projection_depth(split_distance[index + 0] / far_clip, far_clip / near_clip),
+											scene_renderer_commons::convert_linear_depth_to_projection_depth(split_distance[index + 1] / far_clip, far_clip / near_clip),
+											InverseViewProjectionTransform, Center, radius);
 
 			//	各行列調整
 			{
-				float min_distance = top_min_distance;
-				float max_distance = top_max_distance;
-
 				float X = static_cast<float>(static_cast<int>(ceilf(DirectX::XMVectorGetX(DirectX::XMVector3Dot(Center, LightRight)) * shadow_map_pass_viewport.Width / radius ) * radius / shadow_map_pass_viewport.Width ) );
 				float Y = static_cast<float>(static_cast<int>(ceilf(DirectX::XMVectorGetX(DirectX::XMVector3Dot(Center,    LightUp)) * shadow_map_pass_viewport.Height / radius ) * radius / shadow_map_pass_viewport.Height ) );
 				float Z = DirectX::XMVectorGetX(DirectX::XMVector3Dot(Center, LightFront));
 				Center = DirectX::XMVectorAdd(DirectX::XMVectorAdd(DirectX::XMVectorScale(LightRight, X), DirectX::XMVectorScale(LightUp, Y)), DirectX::XMVectorScale(LightFront, Z));
 
-				DirectX::XMVECTOR Origin = DirectX::XMVectorSubtract(Center, DirectX::XMVectorScale(LightFront, (max_distance - min_distance) * 0.5f + radius));
+				//	@remainder	シーン全体のAABBの対角長
+				float caster_extension = std::min(camera_far_clip - camera_near_clip, top_max_distance - top_min_distance) * 0.5f;
+				DirectX::XMVECTOR Origin = DirectX::XMVectorSubtract(Center, DirectX::XMVectorScale(LightFront, radius + caster_extension));
 				LightTransformMatrix.r[0] = DirectX::XMVectorSetW(LightRight, 0.0f);
 				LightTransformMatrix.r[1] = DirectX::XMVectorSetW(LightUp, 0.0f);
 				LightTransformMatrix.r[2] = DirectX::XMVectorSetW(LightFront, 0.0f);
@@ -860,24 +874,24 @@ void deffered_lighting_renderer::render_directional_shadow_map(const light& ligh
 				DirectX::XMMATRIX LightViewMatrix = DirectX::XMMatrixInverse(nullptr, LightTransformMatrix);
 
 				//	投影行列調整
-				radius += 1.0f;
-				DirectX::XMMATRIX LightProjectionMatrix = DirectX::XMMatrixOrthographicOffCenterLH(-radius, +radius, -radius, +radius, min_distance, max_distance + radius);
+				float ortho_near = 0.0f;
+				float ortho_far  = radius * 2.0f + caster_extension;
+				DirectX::XMMATRIX LightProjectionMatrix = DirectX::XMMatrixOrthographicOffCenterLH(-radius, +radius, -radius, +radius, ortho_near, ortho_far);
 				DirectX::XMStoreFloat4x4(&shadow_map_constant.light_view_projection_transform[index], LightViewMatrix * LightProjectionMatrix);
 			}
 
 			{
-				float near_clip = split_distance[index + 0];
-				float far_clip = split_distance[index + 1];
-				shadow_map_constant.shadow_split_distance[index].x = near_clip;
-				shadow_map_constant.shadow_split_distance[index].y = near_clip;
-				shadow_map_constant.shadow_split_distance[index].z = far_clip;
-				shadow_map_constant.shadow_split_distance[index].w = far_clip;
+				float split_near_clip = split_distance[index + 0];
+				float split_far_clip = split_distance[index + 1];
+				shadow_map_constant.shadow_split_distance[index].x = split_near_clip;
+				shadow_map_constant.shadow_split_distance[index].y = split_near_clip;
+				shadow_map_constant.shadow_split_distance[index].z = split_far_clip;
+				shadow_map_constant.shadow_split_distance[index].w = split_far_clip;
 
 				//	バイアス納入
 				auto& bias_data = light.get_shadow_bias(index);
 				float depth_bias, slope_depth_bias;
-				depth_bias = bias_data.max_depth_bias / (far_clip - near_clip);
-				depth_bias *= (far_clip - near_clip) / directional_shadow_map_count;
+				depth_bias = bias_data.max_depth_bias / directional_shadow_map_count;
 				depth_bias *= 0.5f;
 				depth_bias *= bias_data.depth_bias;
 				slope_depth_bias	= bias_data.slope_depth_bias_scale * bias_data.slope_depth_bias;
@@ -1022,8 +1036,7 @@ void deffered_lighting_renderer::render_spot_shadow_map(const light& light, comm
 
 		auto& bias_data = light.get_shadow_bias(0);
 		float depth_bias, slope_depth_bias;
-		depth_bias = bias_data.max_depth_bias / (far_clip - near_clip);
-		depth_bias *= (far_clip - near_clip) / directional_shadow_map_count;
+		depth_bias = bias_data.max_depth_bias / directional_shadow_map_count;
 		depth_bias *= 0.5f;
 		depth_bias *= bias_data.depth_bias;
 		slope_depth_bias	= bias_data.slope_depth_bias_scale * bias_data.slope_depth_bias;

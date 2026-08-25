@@ -99,28 +99,6 @@ material::material()
 {
 	set_flag(flags::shadow_caster, true);
 	set_flag(flags::shadow_receiver, true);
-#if	defined(USE_IMGUI)
-	//	エラー表示用シェーダー読み込み
-	if (pipeline_state_manager* instance = pipeline_state_manager::instance())
-	{
-		//	surface用
-		failed_surface_psos[static_cast<UINT>(surface_paths::depth_write_pass)] = instance->search("3d_failed_depth");
-		failed_surface_psos[static_cast<UINT>(surface_paths::shadow_write_pass)] = instance->search("3d_failed_shadowmap");
-		failed_surface_psos[static_cast<UINT>(surface_paths::g_buffer_pass)] = instance->search("3d_failed_gbuffer");
-		failed_surface_psos[static_cast<UINT>(surface_paths::forward_pass)] = instance->search("3d_failed_forward");
-		//	デカール用
-		failed_deferred_decal_pso = instance->search("3d_failed_forward");
-		//	ポストプロセス用
-		failed_post_process_pso = instance->search("postprocess_failed");
-		//	UI用
-		failed_user_interface_pso = instance->search("default_ui");
-		//	パーティクル用
-		failed_particle_psos[static_cast<UINT>(surface_paths::depth_write_pass)] = instance->search("particle_failed_depth");
-		failed_particle_psos[static_cast<UINT>(surface_paths::shadow_write_pass)] = instance->search("particle_failed_shadowmap");
-		failed_particle_psos[static_cast<UINT>(surface_paths::g_buffer_pass)] = instance->search("particle_failed_gbuffer");
-		failed_particle_psos[static_cast<UINT>(surface_paths::forward_pass)] = instance->search("particle_failed_forward");
-	}
-#endif	//	defined(USE_IMGUI)
 }
 
 material::material(std::string_view name)
@@ -517,8 +495,11 @@ void material::set_domain(material::domains domain)
 			size = magic_enum::enum_count<surface_paths>() + 1;
 			break;
 
-		case material::domains::post_process:
 		case material::domains::deferred_decal:
+			size = magic_enum::enum_count<decal_paths>() + 1;
+			break;
+
+		case material::domains::post_process:
 		case material::domains::user_interface:
 			size = 1;
 			break;
@@ -698,6 +679,11 @@ bool material::set_pipeline_state(surface_paths type, std::string_view pipeline_
 	return set_pipeline_state(domains::surface, static_cast<UINT>(type), pipeline_state_name);
 }
 
+bool material::set_pipeline_state(decal_paths type, std::string_view pipeline_state_name)
+{
+	return set_pipeline_state(domains::deferred_decal, static_cast<UINT>(type), pipeline_state_name);
+}
+
 bool material::set_pipeline_state(system_paths type, std::string_view pipeline_state_name)
 {
 	return set_pipeline_state(domains::system, static_cast<UINT>(type), pipeline_state_name);
@@ -705,7 +691,10 @@ bool material::set_pipeline_state(system_paths type, std::string_view pipeline_s
 
 bool material::set_pipeline_state(std::string_view pipeline_state_name)
 {
-	assert(domain != domains::surface || domain != domains::particle || domain != domains::system);
+	assert(domain != domains::surface ||
+		   domain != domains::deferred_decal ||
+		   domain != domains::particle ||
+		   domain != domains::system);
 	return set_pipeline_state(domain, 0, pipeline_state_name);
 }
 
@@ -715,6 +704,11 @@ std::string_view material::get_pipeline_state_name(surface_paths type) const
 	return get_pipeline_state_name(domain, static_cast<UINT>(type));
 }
 
+std::string_view material::get_pipeline_state_name(decal_paths type) const
+{
+	return get_pipeline_state_name(domains::deferred_decal, static_cast<UINT>(type));
+}
+
 std::string_view material::get_pipeline_state_name(system_paths type) const
 {
 	return get_pipeline_state_name(domains::system, static_cast<UINT>(type));
@@ -722,7 +716,10 @@ std::string_view material::get_pipeline_state_name(system_paths type) const
 
 std::string_view material::get_pipeline_state_name() const
 {
-	assert(domain == domains::surface || domain == domains::particle || domain == domains::system);
+	assert(domain == domains::surface ||
+		   domain == domains::deferred_decal ||
+		   domain == domains::particle ||
+		   domain == domains::system);
 	return get_pipeline_state_name(domain, 0);
 }
 
@@ -730,6 +727,12 @@ graphics_pipeline_state_ptr material::get_pipeline_state(surface_paths value) co
 {
 	assert(domain == domains::surface || domain == domains::particle);
 	return get_pipeline_state(domain, static_cast<UINT>(value));
+}
+
+graphics_pipeline_state_ptr material::get_pipeline_state(decal_paths value) const
+{
+	assert(domain == domains::deferred_decal);
+	return get_pipeline_state(domains::deferred_decal, static_cast<UINT>(value));
 }
 
 graphics_pipeline_state_ptr material::get_pipeline_state(system_paths value) const
@@ -740,7 +743,10 @@ graphics_pipeline_state_ptr material::get_pipeline_state(system_paths value) con
 
 graphics_pipeline_state_ptr material::get_pipeline_state() const
 {
-	assert(domain != domains::surface || domain != domains::particle || domain != domains::system);
+	assert(domain != domains::surface ||
+		   domain != domains::deferred_decal ||
+		   domain != domains::particle ||
+		   domain != domains::system);
 	return get_pipeline_state(domain, 0);
 }
 
@@ -760,14 +766,50 @@ graphics_pipeline_state_ptr material::get_pipeline_state(domains domain, UINT in
 	//	エラーチェック
 	if (is_error())
 	{
+		pipeline_state_manager* instance = pipeline_state_manager::instance();
 		switch (this->domain)
 		{
-			case domains::surface: return failed_surface_psos[index];
-			case domains::deferred_decal: return failed_deferred_decal_pso;
-			case domains::post_process: return failed_post_process_pso;
-			case domains::user_interface: return failed_user_interface_pso;
-			case domains::particle: return failed_particle_psos[index];
+			case domains::surface:
+			{
+				switch (index)
+				{
+					case static_cast<UINT>(surface_paths::depth_write_pass): return instance->search("3d_failed_depth");
+					case static_cast<UINT>(surface_paths::shadow_write_pass): return instance->search("3d_failed_shadowmap");
+					case static_cast<UINT>(surface_paths::g_buffer_pass): return instance->search("3d_failed_gbuffer");
+					case static_cast<UINT>(surface_paths::forward_pass): return instance->search("3d_failed_forward");
+				}
+				break;
+			}
+			case domains::deferred_decal:
+			{
+				switch (index)
+				{
+					case static_cast<UINT>(decal_paths::primitive): return instance->search("deferred_decal_failed_primitive");
+					case static_cast<UINT>(decal_paths::fullscreen): return instance->search("deferred_decal_failed_fullscreen");
+				}
+				break;
+			}
+			case domains::post_process:
+			{
+				return instance->search("postprocess_failed");
+			}
+			case domains::user_interface:
+			{
+				return instance->search("default_ui");
+			}
+			case domains::particle:
+			{
+				switch (index)
+				{
+					case static_cast<UINT>(surface_paths::depth_write_pass): return instance->search("particle_failed_depth");
+					case static_cast<UINT>(surface_paths::shadow_write_pass): return instance->search("particle_failed_shadowmap");
+					case static_cast<UINT>(surface_paths::g_buffer_pass): return instance->search("particle_failed_gbuffer");
+					case static_cast<UINT>(surface_paths::forward_pass): return instance->search("particle_failed_forward");
+				}
+				break;
+			}
 		}
+		assert(!"Not Comaptible Failed Shader.");
 	}
 #endif	//	defined(USE_IMGUI)
 
@@ -938,7 +980,7 @@ bool material::is_error() const
 	{
 		case material::domains::surface: size = magic_enum::enum_count<surface_paths>(); break;
 		case material::domains::post_process: size = 1; break;
-		case material::domains::deferred_decal: size = 1; break;
+		case material::domains::deferred_decal: size = magic_enum::enum_count<decal_paths>(); break;
 		case material::domains::user_interface: size = 1; break;
 		case material::domains::particle: size = magic_enum::enum_count<surface_paths>(); break;
 

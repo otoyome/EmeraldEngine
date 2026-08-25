@@ -10,6 +10,9 @@ namespace
 		{material::flags::indirect_lighting_off, common_pipeline_states::material_attribute_indirect_lighting_off},
 		{material::flags::shadow_receiver, common_pipeline_states::material_attribute_shadow_receiver},
 		{material::flags::decal_off, common_pipeline_states::material_attribute_decal_off},
+		//	[エンジン改造]
+		{material::flags::ligting_xz_plane, common_pipeline_states::material_attribute_ligting_xz_plane},
+		//	[エンジン改造]
 	};
 
 	//  テクスチャフラグの対応表
@@ -176,6 +179,27 @@ graphics_custom_pipeline_state::graphics_custom_pipeline_state()
 		depth_stencil_desc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
 		hr = device->CreateDepthStencilState(&depth_stencil_desc, depth_stencil_states[static_cast<size_t>(depth_stencil_state::depth_off)].GetAddressOf());
 		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+
+		//	デカール用
+		{
+			D3D11_DEPTH_STENCIL_DESC depth_stencil_desc{};
+			depth_stencil_desc.DepthEnable = TRUE;
+			depth_stencil_desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+			depth_stencil_desc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
+			depth_stencil_desc.StencilEnable = TRUE;
+			depth_stencil_desc.StencilReadMask = 0xFF;
+			depth_stencil_desc.StencilWriteMask = 0xFF;
+			depth_stencil_desc.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+			depth_stencil_desc.BackFace.StencilPassOp = D3D11_STENCIL_OP_REPLACE;
+			depth_stencil_desc.BackFace.StencilFailOp = D3D11_STENCIL_OP_ZERO;
+			depth_stencil_desc.BackFace.StencilDepthFailOp = D3D11_STENCIL_OP_ZERO;
+			depth_stencil_desc.FrontFace.StencilFunc = D3D11_COMPARISON_EQUAL;
+			depth_stencil_desc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_ZERO;
+			depth_stencil_desc.FrontFace.StencilFailOp = D3D11_STENCIL_OP_ZERO;
+			depth_stencil_desc.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_ZERO;
+			hr = device->CreateDepthStencilState(&depth_stencil_desc, depth_stencil_states[static_cast<size_t>(depth_stencil_state::decal)].GetAddressOf());
+			_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+		}
 	}
 
 	// ブレンドステートの生成
@@ -305,8 +329,18 @@ void graphics_custom_pipeline_state::update_parameters(const graphics_context& c
 {
 	//	ラスタライザーステート設定
 	{
-		bool is_wire = material.is_flag(material::flags::wire);
 		bool is_two_sided = material.is_flag(material::flags::two_sided);
+		if (material.get_domain() == material::domains::user_interface || context.is_force_material_both_draw)
+		{
+			is_two_sided = true;
+		}
+
+		bool is_wire = material.is_flag(material::flags::wire);
+		if (context.is_force_material_wire_draw)
+		{
+			is_wire = true;
+		}
+
 		raster_state rs;
 		if (is_wire)
 		{
@@ -321,9 +355,25 @@ void graphics_custom_pipeline_state::update_parameters(const graphics_context& c
 
 	//	ブレンドステート&深度ステンシルステート設定
 	{
-		auto depth_stencil_state = depth_stencil_states[static_cast<int>(depth_stencil_state::depth_test_and_write)];
-		auto blend_state = blend_states[static_cast<int>(blend_state::opaque)];
-		if (!context.is_shadow_rendering)	//	@remainder	この判定処理は汚らわしい
+		auto depth_stencil_state = depth_stencil_state::depth_test_and_write;
+		auto blend_state = blend_state::opaque;
+		auto stencil_ref_value = stencil_ref;
+
+		if (context.is_shadow_rendering)
+		{
+			//	シャドウマップ生成時
+			depth_stencil_state = depth_stencil_state::depth_test_and_write;
+			blend_state = blend_state::opaque;
+			stencil_ref_value = 0;
+		}
+		else if (material.get_domain() == material::domains::deferred_decal)
+		{
+			//	デカール処理
+			depth_stencil_state = depth_stencil_state::decal;
+			blend_state = blend_state::opaque;
+			stencil_ref_value = 0;
+		}
+		else
 		{
 			switch (material.get_blend_mode())
 			{
@@ -334,25 +384,25 @@ void graphics_custom_pipeline_state::update_parameters(const graphics_context& c
 				}
 				case material::blend_modes::translucent:
 				{
-					blend_state = blend_states[static_cast<int>(blend_state::translucent)];
-					depth_stencil_state = depth_stencil_states[static_cast<int>(depth_stencil_state::depth_test_only)];
+					blend_state = blend_state::translucent;
+					depth_stencil_state = depth_stencil_state::depth_test_only;
 					break;
 				}
 				case material::blend_modes::addative:
 				{
-					blend_state = blend_states[static_cast<int>(blend_state::addative)];
-					depth_stencil_state = depth_stencil_states[static_cast<int>(depth_stencil_state::depth_test_only)];
+					blend_state = blend_state::addative;
+					depth_stencil_state = depth_stencil_state::depth_test_only;
 					break;
 				}
 				//case material::blend_modes::modulate:
 				//{
-				//	blend_state = blend_states[static_cast<int>(blend_state::multiply)];
+				//	blend_state = blend_state::multiply;
 				//	break;
 				//}
 			}
 		}
-		context.device_context->OMSetDepthStencilState(depth_stencil_state.Get(), stencil_ref);
-		context.device_context->OMSetBlendState(blend_state.Get(), nullptr, 0xFFFFFFFF);
+		context.device_context->OMSetDepthStencilState(depth_stencil_states[static_cast<int>(depth_stencil_state)].Get(), stencil_ref_value);
+		context.device_context->OMSetBlendState(blend_states[static_cast<int>(blend_state)].Get(), nullptr, 0xFFFFFFFF);
 	}
 
 	//	フラグ類リセット
@@ -433,7 +483,8 @@ void graphics_custom_pipeline_state::update_parameters(const graphics_context& c
 				forward_light_buffer_data.use = true;
 				constant_buffer = forward_light_buffer_data.buffer.Get();
 			}
-			else if (cbv_key == common_pipeline_states::primitive_constant_buffer_hash_key)
+			else if (cbv_key == common_pipeline_states::primitive_constant_buffer_hash_key ||
+					 cbv_key == common_pipeline_states::decal_primitive_constant_buffer_hash_key)
 			{
 				primitive_data.use = true;
 				for (UINT index = 0; index < static_cast<int>(arrangement::max); ++index)

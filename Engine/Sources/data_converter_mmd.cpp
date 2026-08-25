@@ -370,7 +370,7 @@ namespace
 			material.set_domain(material::domains::surface);
 			material.set_blend_mode(material::blend_modes::mask);
 			material.set_alpha_clip_threshold(0.5f);
-			material.set_shading_model(material::shading_models::toon_lit);
+			material.set_shading_model(material::shading_models::default_lit);
 			{
 				material::set_surface_pipeline_states_desc descs[] =
 				{

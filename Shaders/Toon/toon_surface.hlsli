@@ -73,7 +73,7 @@ SurfaceData surface(VS_OUT pin, bool is_front_face)
             face_right = normalize(bone_transforms[0]._11_12_13);
             face_front = normalize(bone_transforms[0]._31_32_33);
             //  顔専用ライティングを行うかどうか
-            SetGBufferFlags(data.stencil, material_attribute_lighting_face_adjustor, face_material_flag);
+            SetGBufferFlags(data.stencil, material_attribute_ligting_xz_plane, face_material_flag);
         }
 
         //  詳細情報

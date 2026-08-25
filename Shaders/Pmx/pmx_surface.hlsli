@@ -34,11 +34,12 @@ SurfaceData surface(VS_OUT pin, bool is_front_face)
     else
     {
         //  ベースカラー
-        data.emissive_color = base_color_factor;
+        float4 base_color = base_color_factor;
         if (HAS_RESOURCE(BaseMap))
         {
-            data.emissive_color *= TEXTURE2D_SAMPLE(BaseMap, linear_sampler_state, pin.texcoord[BaseTexcoord]);
+            base_color *= TEXTURE2D_SAMPLE(BaseMap, linear_sampler_state, pin.texcoord[BaseTexcoord]);
         }
+        data.base_color = base_color;
 
         //  平行光源を一つだけ処理してライティング
         if (1 >= forward_only_light_counts.x)
@@ -51,7 +52,7 @@ SurfaceData surface(VS_OUT pin, bool is_front_face)
             {
                 ramp_color = TEXTURE2D_SAMPLE(RampMap, linear_sampler_state, ramp_texcoord).rgb;
             }
-            data.emissive_color *= ramp_color;
+            data.base_color.rgb *= ramp_color;
         }
     }
     data.shading_model = material_shading_model;

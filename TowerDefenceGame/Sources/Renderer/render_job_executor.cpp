@@ -85,11 +85,12 @@ void render_job_executor::execute(std::function<render_job_function> task, std::
 				task(g_context);
 				g_context.debug_end_event();
 			} );
+
 		register_command(command_data);
 	}
 	else
 	{
-		std::lock_guard<std::mutex>	cLockGuard(mutex);
+		std::lock_guard<std::mutex> lock_guard(mutex);
 		auto task_function = std::make_shared<std::function<void(ID3D11DeviceContext*)>>(
 			[task, name_text, context, sort_order, this](ID3D11DeviceContext* deferred_context)
 			{
@@ -160,26 +161,25 @@ void render_job_executor::end()
 
 void render_job_executor::render()
 {
-	//	全描画タスクが終了するまで待機
+	std::vector<render_command_data> local_command_list;
 	{
 		std::unique_lock<std::mutex> unique_lock(mutex);
 		completion_condition.wait(unique_lock, [&] { return tasks.empty() && running_threads <= 0; });
+		local_command_list = std::move(render_command_list);   // ロック保持中に取り出す
+		render_command_list.clear();
 	}
 
-	//	登録されている描画コマンドをソート
-	std::sort(render_command_list.begin(), render_command_list.end(),
+	std::sort(local_command_list.begin(), local_command_list.end(),
 		[](const render_command_data& l, const render_command_data& r)
 		{
 			return l.sort_order < r.sort_order;
 		}
 	);
 
-	//	積み込まれたコマンドを実行
 	ID3D11DeviceContext* immediate_context = render_data::instance()->get_immediate_context().Get();
-	for (auto& command : render_command_list)
+	for (auto& command : local_command_list)
 	{
 		begin_snap_shot();
-
 		if (command.command_list)
 		{
 			immediate_context->ExecuteCommandList(command.command_list.Get(), false);
@@ -188,14 +188,13 @@ void render_job_executor::render()
 		{
 			command.task();
 		}
-
 		end_snap_shot(command.name);
 	}
 }
 
 void render_job_executor::register_command(render_command_data& command_data)
 {
-	std::unique_lock<std::mutex> unique_lock(command_mutex);
+	std::unique_lock<std::mutex> unique_lock(mutex);
 
 	render_command_list.emplace_back(command_data);
 }
@@ -231,10 +230,10 @@ void render_job_executor::run(UINT context_index)
 		task_function(deferred_context.Get());
 
 		{
-			std::lock_guard<std::mutex> lock_guard(mutex);   // ★追加: running_threads--をmutex配下に統一
+			std::lock_guard<std::mutex> lock_guard(mutex);
 			--running_threads;
+			completion_condition.notify_all(); 
 		}
-		completion_condition.notify_all(); 
 	}
 }
 

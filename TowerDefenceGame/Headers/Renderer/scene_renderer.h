@@ -5,6 +5,8 @@
 #include "scene_render_targets.h"
 #include "geometric_primitive.h"
 
+#include "PipelineState/deferred_decal_pipeline_state.h"
+
 #include "collision/frustum_culling.h"
 
 #if defined(USE_IMGUI)
@@ -77,6 +79,8 @@ private:
 	D3D11_VIEWPORT viewport;
 
 	std::unique_ptr<geometric_cube> cube;
+	Microsoft::WRL::ComPtr<ID3D11Buffer> decal_primitive_primitive_buffer;
+	graphics_pipeline_state_ptr stencil_write_pipeline_state;
 };
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////

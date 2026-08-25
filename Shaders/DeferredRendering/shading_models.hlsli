@@ -71,7 +71,7 @@ DirectLighting integrate_bxdf(in GBufferData gbuffer_data, in LightingData light
             float4 ilm_color = gbuffer_data.ilm_color;
             float3 normal = normalize(gbuffer_data.w_normal);
             float3 lighting_direction = -normalize(lighting_data.direction);
-            if (IsGBufferFlags(gbuffer_data, material_attribute_lighting_face_adjustor))
+            if (IsGBufferFlags(gbuffer_data, material_attribute_ligting_xz_plane))
             {
                 //  ライトの方向をXZ平面に射影
                 float3 face_right = UnpackNormal(gbuffer_data.unique_data.y);
@@ -133,14 +133,14 @@ DirectLighting integrate_bxdf(in GBufferData gbuffer_data, in LightingData light
             float3  base_and_specular_color = 0.0f;
             {
                 float specular_size = 0.2f;
-                float   factor  = (modified_n_dot_h >= saturate(1.0f - specular_size));
+                float factor = (modified_n_dot_h >= saturate(1.0f - specular_size));
                 base_and_specular_color = lerp(base_color.rgb, specular_color, factor);
             }
 
             //	シェーディング判定
-            float shading_factor    = min(vertex_r >= shading_threshold, modified_n_dot_l >= shading_threshold);
-            
-            result.diffuse  = lerp(shade_color, base_and_specular_color, shading_factor);
+            float shading_factor = min(vertex_r >= shading_threshold, modified_n_dot_l >= shading_threshold);
+
+            result.diffuse = lerp(shade_color, base_and_specular_color, lighting_data.shadowing_attenuation * shading_factor);
 
             break;
         }

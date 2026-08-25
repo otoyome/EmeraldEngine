@@ -2,5 +2,5 @@
 
 float4 main(VS_OUT pin) : SV_TARGET
 {
-    return base_color;
+    return float4(1, 1, 1, 1);
 }

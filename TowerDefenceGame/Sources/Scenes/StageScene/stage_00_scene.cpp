@@ -21,7 +21,11 @@ stage_00_scene::~stage_00_scene()
 bool stage_00_scene::initialize_core()
 {
 	//	•½sŒõŒ¹¶¬
-	register_object(std::make_shared<directional_light_object>("•½sŒõŒ¹"));
+	{
+		auto directional = std::make_shared<directional_light_object>("•½sŒõŒ¹");
+		directional->get_light()->set_csm_distance_factor(0.25f);
+		register_object(directional);
+	}
 
 	//	‚»‚Ì‘¼ŒõŒ¹İ’è
 	{

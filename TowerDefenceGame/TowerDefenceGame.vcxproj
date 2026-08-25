@@ -198,7 +198,7 @@
     <FxCompile>
       <ShaderModel>5.0</ShaderModel>
       <ObjectFileOutput>$(SolutionDir)Assets\CSO\%(Filename).cso</ObjectFileOutput>
-      <AdditionalIncludeDirectories>$(SolutionDir)Shaders;$(SolutionDir)Shaders\Common;$(SolutionDir)Shaders\ComputeParticle;$(SolutionDir)Shaders\ComputeParticle\Renderer;$(SolutionDir)Shaders\ComputeParticle\System;$(SolutionDir)Shaders\DeferredRendering;$(SolutionDir)Shaders\FullscreenQuad;$(SolutionDir)Shaders\GeometricPrimitive;$(SolutionDir)Shaders\Gltf;$(SolutionDir)Shaders\Model;$(SolutionDir)Shaders\SkyBox;$(SolutionDir)Shaders\Sprite;$(SolutionDir)Shaders\StaticMesh;$(SolutionDir)Shaders\Toon;$(SolutionDir)Shaders\Decal;$(SolutionDir)External</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Shaders;$(SolutionDir)Shaders\Common;$(SolutionDir)Shaders\ComputeParticle;$(SolutionDir)Shaders\ComputeParticle\Renderer;$(SolutionDir)Shaders\ComputeParticle\System;$(SolutionDir)Shaders\DeferredRendering;$(SolutionDir)Shaders\FullscreenQuad;$(SolutionDir)Shaders\GeometricPrimitive;$(SolutionDir)Shaders\Gltf;$(SolutionDir)Shaders\Model;$(SolutionDir)Shaders\SkyBox;$(SolutionDir)Shaders\Sprite;$(SolutionDir)Shaders\StaticMesh;$(SolutionDir)Shaders\Toon;$(SolutionDir)Shaders\DeferredDecal;$(SolutionDir)External</AdditionalIncludeDirectories>
     </FxCompile>
     <PostBuildEvent>
       <Command>xcopy "$(SolutionDir)External\DirectXShaderCompiler\bin\x64\dxcompiler.dll" "$(OutDir)" /y
@@ -232,7 +232,7 @@ xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y</Command>
     <FxCompile>
       <ShaderModel>5.0</ShaderModel>
       <ObjectFileOutput>$(SolutionDir)Assets\CSO\%(Filename).cso</ObjectFileOutput>
-      <AdditionalIncludeDirectories>$(SolutionDir)Shaders;$(SolutionDir)Shaders\Common;$(SolutionDir)Shaders\ComputeParticle;$(SolutionDir)Shaders\ComputeParticle\Renderer;$(SolutionDir)Shaders\ComputeParticle\System;$(SolutionDir)Shaders\DeferredRendering;$(SolutionDir)Shaders\FullscreenQuad;$(SolutionDir)Shaders\GeometricPrimitive;$(SolutionDir)Shaders\Gltf;$(SolutionDir)Shaders\Model;$(SolutionDir)Shaders\SkyBox;$(SolutionDir)Shaders\Sprite;$(SolutionDir)Shaders\StaticMesh;$(SolutionDir)Shaders\Toon;$(SolutionDir)Shaders\Decal;$(SolutionDir)External</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Shaders;$(SolutionDir)Shaders\Common;$(SolutionDir)Shaders\ComputeParticle;$(SolutionDir)Shaders\ComputeParticle\Renderer;$(SolutionDir)Shaders\ComputeParticle\System;$(SolutionDir)Shaders\DeferredRendering;$(SolutionDir)Shaders\FullscreenQuad;$(SolutionDir)Shaders\GeometricPrimitive;$(SolutionDir)Shaders\Gltf;$(SolutionDir)Shaders\Model;$(SolutionDir)Shaders\SkyBox;$(SolutionDir)Shaders\Sprite;$(SolutionDir)Shaders\StaticMesh;$(SolutionDir)Shaders\Toon;$(SolutionDir)Shaders\DeferredDecal;$(SolutionDir)External</AdditionalIncludeDirectories>
     </FxCompile>
     <PostBuildEvent>
       <Command>xcopy "$(SolutionDir)External\DirectXShaderCompiler\bin\x64\dxcompiler.dll" "$(OutDir)" /y
@@ -294,7 +294,7 @@ xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y</Command>
     <FxCompile>
       <ShaderModel>5.0</ShaderModel>
       <ObjectFileOutput>$(SolutionDir)Assets\CSO\%(Filename).cso</ObjectFileOutput>
-      <AdditionalIncludeDirectories>$(SolutionDir)Shaders;$(SolutionDir)Shaders\Common;$(SolutionDir)Shaders\ComputeParticle;$(SolutionDir)Shaders\ComputeParticle\Renderer;$(SolutionDir)Shaders\ComputeParticle\System;$(SolutionDir)Shaders\DeferredRendering;$(SolutionDir)Shaders\FullscreenQuad;$(SolutionDir)Shaders\GeometricPrimitive;$(SolutionDir)Shaders\Gltf;$(SolutionDir)Shaders\Model;$(SolutionDir)Shaders\SkyBox;$(SolutionDir)Shaders\Sprite;$(SolutionDir)Shaders\StaticMesh;$(SolutionDir)Shaders\Toon;$(SolutionDir)Shaders\Decal;$(SolutionDir)External</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Shaders;$(SolutionDir)Shaders\Common;$(SolutionDir)Shaders\ComputeParticle;$(SolutionDir)Shaders\ComputeParticle\Renderer;$(SolutionDir)Shaders\ComputeParticle\System;$(SolutionDir)Shaders\DeferredRendering;$(SolutionDir)Shaders\FullscreenQuad;$(SolutionDir)Shaders\GeometricPrimitive;$(SolutionDir)Shaders\Gltf;$(SolutionDir)Shaders\Model;$(SolutionDir)Shaders\SkyBox;$(SolutionDir)Shaders\Sprite;$(SolutionDir)Shaders\StaticMesh;$(SolutionDir)Shaders\Toon;$(SolutionDir)Shaders\DeferredDecal;$(SolutionDir)External</AdditionalIncludeDirectories>
     </FxCompile>
     <PostBuildEvent>
       <Command>xcopy "$(SolutionDir)External\DirectXShaderCompiler\bin\x64\dxcompiler.dll" "$(OutDir)" /y
@@ -566,15 +566,66 @@ xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y</Command>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">Compute</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Compute</ShaderType>
     </FxCompile>
-    <FxCompile Include="..\Shaders\DeferredDecal\gbuffer_decal_fullscreen_quad_ps.hlsl">
+    <FxCompile Include="..\Shaders\DeferredDecal\Default\default_decal_fullscreen_ps.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </FxCompile>
-    <FxCompile Include="..\Shaders\DeferredDecal\gbuffer_decal_primitive_ps.hlsl">
+    <FxCompile Include="..\Shaders\DeferredDecal\Default\default_decal_primitive_ps.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </FxCompile>
+    <None Include="..\Shaders\DeferredDecal\Failed\failed_decal_data_ps.hlsli">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </None>
+    <None Include="..\Shaders\DeferredDecal\Failed\failed_decal_rendering.hlsli">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </None>
+    <None Include="..\Shaders\DeferredDecal\gbuffer_decal_fullscreen_ps.hlsli">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+      <FileType>Document</FileType>
+    </None>
+    <None Include="..\Shaders\DeferredDecal\gbuffer_decal_primitive_ps.hlsli">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">
+      </ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+      </ShaderType>
+      <FileType>Document</FileType>
+    </None>
+    <FxCompile Include="..\Shaders\DeferredDecal\Failed\failed_decal_fullscreen_ps.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </FxCompile>
+    <FxCompile Include="..\Shaders\DeferredDecal\Failed\failed_decal_primitive_ps.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </FxCompile>
+    <FxCompile Include="..\Shaders\DeferredDecal\gbuffer_decal_fullscreen_vs.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
+    </FxCompile>
+    <FxCompile Include="..\Shaders\DeferredDecal\gbuffer_decal_primitive_vs.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
     </FxCompile>
     <FxCompile Include="..\Shaders\DeferredRendering\convert_srgb_to_linear_ps.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
@@ -666,12 +717,19 @@ xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y</Command>
     <None Include="..\Shaders\ComputeParticle\System\compute_particle_srv_stream_item.hlsli" />
     <None Include="..\Shaders\ComputeParticle\System\compute_particle_type_generate_function_stream_item.hlsli" />
     <None Include="..\Shaders\ComputeParticle\System\compute_particle_uav_stream_item.hlsli" />
-    <None Include="..\Shaders\DeferredDecal\gbuffer_decal_constant_buffer.hlsli" />
-    <None Include="..\Shaders\DeferredDecal\gbuffer_decal_fullscreen_quad.hlsli" />
-    <None Include="..\Shaders\DeferredDecal\gbuffer_decal_primitive.hlsli" />
+    <None Include="..\Shaders\DeferredDecal\Default\default_decal_data_ps.hlsli">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </None>
+    <None Include="..\Shaders\DeferredDecal\Default\default_decal_rendering.hlsli">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </None>
+    <None Include="..\Shaders\DeferredDecal\gbuffer_decal.hlsli" />
     <None Include="..\Shaders\DeferredRendering\common_gbuffer_loader.hlsli" />
     <None Include="..\Shaders\DeferredRendering\common_gbuffer_writer.hlsli" />
-    <None Include="..\Shaders\DeferredRendering\gbuffer_decal_constant_buffer.hlsli" />
     <None Include="..\Shaders\GeometricPrimitive\debug_draw_line.hlsli" />
     <None Include="..\Shaders\Ggst\ggst_rendering.hlsli" />
     <None Include="..\Shaders\Ggst\ggst_surface.hlsli" />

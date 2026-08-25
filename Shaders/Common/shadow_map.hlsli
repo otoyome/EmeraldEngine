@@ -30,42 +30,45 @@ float3 shadowmap_fetch(int index, float3 texcoord)
 }
 
 //  PCFフィルタリングシャドウサンプル関数
-float3 shadowmap_fetch_pcf(int index, float3 texcoord, float radius = 3.0f)
+float3 shadowmap_fetch_pcf(int index, float3 texcoord, float2x2 rotation_matrix, float radius = 3.0f)
 {
     float3 tex_size;
     shadow_maps.GetDimensions(tex_size.x, tex_size.y, tex_size.z);
 
     //  PCFノイズ
-    static const float2 noise[16] =
+    static const uint poisson_disk_size = 16;
+    static const float2 poisson_disk[poisson_disk_size] =
     {
-        { 0.772417068, -0.423055708 },
-        { -0.714291692, 0.509235382 },
-        { -0.780199528, -0.183640003 },
-        { 0.472295880, 0.162610054 },
-        { -0.442540765, -0.263137937 },
-        { -0.960392714, -0.472289205 },
-        { -0.347602427, 0.830676079 },
-        { -0.573735476, -0.472531378 },
-        { -0.629811406, -0.642059684 },
-        { -0.352298439, -0.320050240 },
-        { 0.599728346, 0.426071405 },
-        { -0.173549354, 0.653944254 },
-        { -0.287484705, -0.0727353096 },
-        { 0.324079156, 0.534158945 },
-        { 0.968484163, -0.229418755 },
-        { -0.377048135, 0.338529825 },
+        float2(-0.94201624, -0.39906216),
+        float2(0.94558609, -0.76890725),
+        float2(-0.09418410, -0.92938870),
+        float2(0.34495938, 0.29387760),
+        float2(-0.91588581, 0.45771432),
+        float2(-0.81544232, -0.87912464),
+        float2(-0.38277543, 0.27676845),
+        float2(0.97484398, 0.75648379),
+        float2(0.44323325, -0.97511554),
+        float2(0.53742981, -0.47373420),
+        float2(-0.26496911, -0.41893023),
+        float2(0.79197514, 0.19090188),
+        float2(-0.24188840, 0.99706507),
+        float2(-0.81409955, 0.91437590),
+        float2(0.19984126, 0.78641367),
+        float2(0.14383161, -0.14100790)
     };
-    static const uint noise_size = 16;
 
     float3 attenuation = (float3) 0.0f;
-    [unroll(noise_size)] for (uint pcf_index = 0; pcf_index < noise_size; ++pcf_index)
+    [unroll]
+    for (uint poisson_index = 0; poisson_index < poisson_disk_size; ++poisson_index)
     {
-        float3 texcoordUVW = float3(texcoord.xy + radius.xx * (noise[pcf_index] / tex_size.xy), index);
-        float depth = shadow_maps.Sample(shadow_maps_sampler_state, texcoordUVW).r;
+        float2 offset = (mul(rotation_matrix, poisson_disk[poisson_index]) / tex_size.xy) * radius;
+
+        float3 texcoordUVW = float3(texcoord.xy + offset, index);
+        float depth = shadow_maps.SampleLevel(shadow_maps_sampler_state, texcoordUVW, 0).r;
         float value = step(texcoord.z, depth + shadow_map_constant_bias);
         attenuation += value.xxx;
     }
-    return lerp(shadow_attenuation, float3(1.0f, 1.0f, 1.0f), attenuation / noise_size);
+    return lerp(shadow_attenuation, float3(1.0f, 1.0f, 1.0f), attenuation / poisson_disk_size);
 }
 
 //	シャドウサンプル
@@ -73,6 +76,9 @@ float4 shadowing_process(float3 world_position, float4x4 view_matrix)
 {
     float4 view_position = mul(float4(world_position, 1.0f), view_matrix);
     float view_depth = view_position.z / view_position.w;
+
+    float angle = frac(sin(dot(world_position.xy, float2(12.9898f, 78.233f))) * 43758.5453f) * 3.14159265f * 2;
+    float2x2 rot = { cos(angle), -sin(angle), sin(angle), cos(angle) };
 
     float3 light_attenuation = float3(1.0f, 1.0f, 1.0f);
     uint sm_index = shadow_map_max;
@@ -95,7 +101,7 @@ float4 shadowing_process(float3 world_position, float4x4 view_matrix)
             continue;
 
         //light_attenuation = shadowmap_fetch(index, texcoord);
-        light_attenuation = shadowmap_fetch_pcf(index, texcoord, shadow_bias[index].w);
+        light_attenuation = shadowmap_fetch_pcf(index, texcoord, rot, shadow_bias[index].w);
         sm_index = index;
         break;
     }

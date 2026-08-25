@@ -195,6 +195,12 @@
     <Filter Include="Shaders\DeferredDecal">
       <UniqueIdentifier>{8d61a350-fb00-43f6-9fc7-ef0da761e29f}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shaders\DeferredDecal\Default">
+      <UniqueIdentifier>{7de9d741-f87a-4353-9e8d-e19609455e0e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\DeferredDecal\Failed">
+      <UniqueIdentifier>{ed245d8f-8e3f-4b79-998f-75274babb866}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\External\imgui\imgui.cpp">
@@ -864,10 +870,22 @@
     <FxCompile Include="..\Shaders\ComputeParticle\System\compute_particle_end_update_cs.hlsl">
       <Filter>Shaders\ComputeParticle\System</Filter>
     </FxCompile>
-    <FxCompile Include="..\Shaders\DeferredDecal\gbuffer_decal_primitive_ps.hlsl">
+    <FxCompile Include="..\Shaders\DeferredDecal\Default\default_decal_fullscreen_ps.hlsl">
+      <Filter>Shaders\DeferredDecal\Default</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shaders\DeferredDecal\Default\default_decal_primitive_ps.hlsl">
+      <Filter>Shaders\DeferredDecal\Default</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shaders\DeferredDecal\Failed\failed_decal_fullscreen_ps.hlsl">
+      <Filter>Shaders\DeferredDecal\Failed</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shaders\DeferredDecal\Failed\failed_decal_primitive_ps.hlsl">
+      <Filter>Shaders\DeferredDecal\Failed</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shaders\DeferredDecal\gbuffer_decal_primitive_vs.hlsl">
       <Filter>Shaders\DeferredDecal</Filter>
     </FxCompile>
-    <FxCompile Include="..\Shaders\DeferredDecal\gbuffer_decal_fullscreen_quad_ps.hlsl">
+    <FxCompile Include="..\Shaders\DeferredDecal\gbuffer_decal_fullscreen_vs.hlsl">
       <Filter>Shaders\DeferredDecal</Filter>
     </FxCompile>
   </ItemGroup>
@@ -937,9 +955,6 @@
     </None>
     <None Include="..\Shaders\Common\shadow_map.hlsli">
       <Filter>Shaders\Common</Filter>
-    </None>
-    <None Include="..\Shaders\DeferredRendering\gbuffer_decal_constant_buffer.hlsli">
-      <Filter>Shaders\DeferredRendering</Filter>
     </None>
     <None Include="..\Shaders\Common\common_post_process.hlsli">
       <Filter>Shaders\Common</Filter>
@@ -1061,14 +1076,26 @@
     <None Include="..\Shaders\ComputeParticle\Renderer\Default\compute_particle_default.hlsli">
       <Filter>Shaders\ComputeParticle\Renderer\Default</Filter>
     </None>
-    <None Include="..\Shaders\DeferredDecal\gbuffer_decal_constant_buffer.hlsli">
+    <None Include="..\Shaders\DeferredDecal\gbuffer_decal.hlsli">
       <Filter>Shaders\DeferredDecal</Filter>
     </None>
-    <None Include="..\Shaders\DeferredDecal\gbuffer_decal_fullscreen_quad.hlsli">
+    <None Include="..\Shaders\DeferredDecal\Default\default_decal_data_ps.hlsli">
+      <Filter>Shaders\DeferredDecal\Default</Filter>
+    </None>
+    <None Include="..\Shaders\DeferredDecal\Default\default_decal_rendering.hlsli">
+      <Filter>Shaders\DeferredDecal\Default</Filter>
+    </None>
+    <None Include="..\Shaders\DeferredDecal\gbuffer_decal_fullscreen_ps.hlsli">
       <Filter>Shaders\DeferredDecal</Filter>
     </None>
-    <None Include="..\Shaders\DeferredDecal\gbuffer_decal_primitive.hlsli">
+    <None Include="..\Shaders\DeferredDecal\gbuffer_decal_primitive_ps.hlsli">
       <Filter>Shaders\DeferredDecal</Filter>
+    </None>
+    <None Include="..\Shaders\DeferredDecal\Failed\failed_decal_rendering.hlsli">
+      <Filter>Shaders\DeferredDecal\Failed</Filter>
+    </None>
+    <None Include="..\Shaders\DeferredDecal\Failed\failed_decal_data_ps.hlsli">
+      <Filter>Shaders\DeferredDecal\Failed</Filter>
     </None>
   </ItemGroup>
 </Project>

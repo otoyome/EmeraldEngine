@@ -7,10 +7,9 @@ struct VS_OUT
     float2 texcoord : TEXCOORD;
 };
 
-cbuffer OBJECT_CONSTANT_BUFFER : register(b1)
+cbuffer GEOMETRIC_PRIMITIVE_CONSTANT_BUFFER : register(b1)
 {
     row_major float4x4 world;
-    float4 base_color;
 };
 
 #endif // __GEOMETRIC_PRIMITIVE_OBJECT_DATA_HLSLI__

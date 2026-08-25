@@ -131,9 +131,9 @@ struct effect_container
 //	デカール情報
 struct decal_datas
 {
-	DirectX::XMFLOAT3 scale;
-	math::rotator rotation;
-	DirectX::XMFLOAT3 position;
+	DirectX::XMFLOAT3 scale = {1, 1, 1};
+	math::rotator rotation = {0, 0, 0};
+	DirectX::XMFLOAT3 position = {0, 0, 0};
 	material_datas material;
 };
 struct decal_container
@@ -202,6 +202,10 @@ struct graphics_context
 	bool is_shadow_rendering = false;	//	影生成描画処理中判定
 	common_pipeline_states::shadow_map_constants shadow_map_constant;
 	texture_ptr shadow_map_texture;
+
+	//	強制設定フラグ
+	bool is_force_material_wire_draw = false;
+	bool is_force_material_both_draw = false;
 
 	//	スクリーン空間反射用情報
 	common_pipeline_states::screen_space_reflection_constants screen_space_reflection_constant;

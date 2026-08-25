@@ -21,58 +21,15 @@ public:
 	void update_parameters(const graphics_context& context, const material& material, const buffer_datas* buffer_data) override;
 	void end(const graphics_context& context) override;
 
+	const std::vector<std::pair<semantic, UINT>>& get_semantic_list() const {return semantic_list;}
+
 private:
 	std::shared_ptr<vertex_shader> vs;
+	std::vector<std::pair<semantic, UINT>> semantic_list;
 
 	Microsoft::WRL::ComPtr<ID3D11DepthStencilState> depth_stencil_states;
 	Microsoft::WRL::ComPtr<ID3D11BlendState> blend_states;
 	Microsoft::WRL::ComPtr<ID3D11RasterizerState> rasterizer_states;
 
 	Microsoft::WRL::ComPtr<ID3D11Buffer> ocbv;
-};
-
-//	遅延デカールプリミティブパス
-class deferred_decal_primitive_pipeline_state : public graphics_pipeline_state
-{
-public:
-	deferred_decal_primitive_pipeline_state();
-	~deferred_decal_primitive_pipeline_state() override;
-
-	void begin(const graphics_context& context) override;
-	void update_parameters(const graphics_context& context, const material& material, const buffer_datas* buffer_data) override;
-	void end(const graphics_context& context) override;
-
-private:
-	std::shared_ptr<vertex_shader> vs;
-	std::shared_ptr<pixel_shader> ps;
-
-	Microsoft::WRL::ComPtr<ID3D11DepthStencilState> depth_stencil_states;
-	Microsoft::WRL::ComPtr<ID3D11BlendState> blend_states;
-	Microsoft::WRL::ComPtr<ID3D11RasterizerState> rasterizer_states;
-
-	Microsoft::WRL::ComPtr<ID3D11Buffer> ocbv;
-	Microsoft::WRL::ComPtr<ID3D11Buffer> gbdcbv;
-};
-
-//	遅延デカールプリミティブパス
-class deferred_decal_fullscreen_pipeline_state : public graphics_pipeline_state
-{
-public:
-	deferred_decal_fullscreen_pipeline_state();
-	~deferred_decal_fullscreen_pipeline_state() override;
-
-	void begin(const graphics_context& context) override;
-	void update_parameters(const graphics_context& context, const material& material, const buffer_datas* buffer_data) override;
-	void end(const graphics_context& context) override;
-
-private:
-	std::shared_ptr<vertex_shader> vs;
-	std::shared_ptr<pixel_shader> ps;
-
-	Microsoft::WRL::ComPtr<ID3D11DepthStencilState> depth_stencil_states;
-	Microsoft::WRL::ComPtr<ID3D11BlendState> blend_states;
-	Microsoft::WRL::ComPtr<ID3D11RasterizerState> rasterizer_states;
-
-	Microsoft::WRL::ComPtr<ID3D11Buffer> lcbv;
-	Microsoft::WRL::ComPtr<ID3D11Buffer> gbdcbv;
 };

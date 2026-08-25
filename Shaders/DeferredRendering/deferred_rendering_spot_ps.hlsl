@@ -28,7 +28,7 @@ float4 main(VS_OUT pin) : SV_TARGET
             {
                 if (light_attribute & light_flag_use_shadow)
                 {
-                    shadowing_attenuation = shadowing_process(data.w_position, view_transform);
+                    shadowing_attenuation = shadowing_process(data.w_position, view_transform).rgb;
                 }
             }
             

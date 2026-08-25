@@ -399,32 +399,7 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 
 #if defined(USE_IMGUI)
 		//	デバッグ情報取得
-		if (display_grid_xz || display_grid_xy || display_grid_yz)
-		{
-			float grid_length = system_units::convert_m_to_unit(static_cast<float>(display_grid_length));
-			for (int index = -display_grid_length; index <= display_grid_length; ++index)
-			{
-				float len = system_units::convert_m_to_unit(static_cast<float>(index));
-				if (display_grid_xz)
-				{
-					DirectX::XMFLOAT4 line_color = DirectX::XMFLOAT4(1.0f, 0.0f, 1.0f, 1);
-					PUSH_DEBUG_PRIMITIVE_LINE(DirectX::XMFLOAT3(len, 0.0f, -grid_length), DirectX::XMFLOAT3(len, 0.0f, +grid_length), line_color, true);
-					PUSH_DEBUG_PRIMITIVE_LINE(DirectX::XMFLOAT3(-grid_length, 0.0f, len), DirectX::XMFLOAT3(+grid_length, 0.0f, len), line_color, true);
-				}
-				if (display_grid_xy)
-				{
-					DirectX::XMFLOAT4 line_color = DirectX::XMFLOAT4(1.0f, 1.0f, 0.0f, 1);
-					PUSH_DEBUG_PRIMITIVE_LINE(DirectX::XMFLOAT3(len, -grid_length, 0.0f), DirectX::XMFLOAT3(len, +grid_length, 0.0f), line_color, true);
-					PUSH_DEBUG_PRIMITIVE_LINE(DirectX::XMFLOAT3(-grid_length, len, 0.0f), DirectX::XMFLOAT3(+grid_length, len, 0.0f), line_color, true);
-				}
-				if (display_grid_yz)
-				{
-					DirectX::XMFLOAT4 line_color = DirectX::XMFLOAT4(0.0f, 1.0f, 1.0f, 1);
-					PUSH_DEBUG_PRIMITIVE_LINE(DirectX::XMFLOAT3(0.0f, len, -grid_length), DirectX::XMFLOAT3(0.0f, len, +grid_length), line_color, true);
-					PUSH_DEBUG_PRIMITIVE_LINE(DirectX::XMFLOAT3(0.0f, -grid_length, len), DirectX::XMFLOAT3(0.0f, +grid_length, len), line_color, true);
-				}
-			}
-		}
+		plane_line_draw();
 		debug_primitive_manager::instance()->get_container(render_data->debug_draw_container);
 #endif // defined(USE_IMGUI)
 
@@ -436,6 +411,46 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 
 		//	エフェクトコンテナ取得
 		effect_manager::instance()->get_container(render_data->effect_container);
+
+		{
+			if (!test_decal)
+			{
+				test_decal = std::make_shared<material>("default");
+				test_decal->set_domain(material::domains::deferred_decal);
+				test_decal->set_alpha_clip_threshold(0.01f);
+				test_decal->set_shading_model(material::shading_models::toon_lit);
+				test_decal->set_blend_mode(material::blend_modes::mask);
+
+				//	フラグ類設定
+				test_decal->set_flag(material::flags::indirect_lighting_off, true);
+
+				//	デフォルトシェーダー設定
+				test_decal->set_pipeline_state(material::decal_paths::primitive, "deferred_decal_default_primitive");
+				test_decal->set_pipeline_state(material::decal_paths::fullscreen, "deferred_decal_default_fullscreen");
+
+				//	パラメーター設定
+				test_decal->set_float4("base_color_factor", DirectX::XMFLOAT4(1, 1, 1, 1));
+				test_decal->set_float("normal_map_scale", 1.0f);
+				{
+					texture_ptr texture;
+					std::filesystem::path file_path = "Assets/Resources/Textures/ground_crack.png";
+					if (texture_manager::instance()->load_texture_from_file(texture, file_path.string()))
+					{
+						texture->set_flag(texture::flags::srgb, true);
+						test_decal->set_texture("BaseColorMap", texture);
+						texture_manager::instance()->save_texture(texture);
+					}
+
+					//	法線マップがあれば
+				}
+			}
+		
+			auto& d = render_data->decal_container.decal_datas.emplace_back();
+			d.material.material = test_decal.get();
+			d.scale = {100,100,100};
+			d.rotation = {-DirectX::XM_PIDIV2, 0, 0};
+			d.position = {0, 0, -500};
+		}
 	}
 
 	//	バッファ描画
@@ -852,8 +867,8 @@ bool framework::create_buffers()
 	{
 		Microsoft::WRL::ComPtr<ID3D11Texture2D> depth_buffer{};
 		D3D11_TEXTURE2D_DESC texture2d_desc{};
-		texture2d_desc.Width = 2048;
-		texture2d_desc.Height = 2048;
+		texture2d_desc.Width = 4096;
+		texture2d_desc.Height = 4096;
 		texture2d_desc.MipLevels = 1;
 		texture2d_desc.ArraySize = 6;
 		texture2d_desc.Format = DXGI_FORMAT_R32_TYPELESS;

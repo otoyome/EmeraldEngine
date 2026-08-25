@@ -276,6 +276,9 @@ void pipeline_state_base::generate_input_resource_desc(input_resource_desc& out_
 
 	HRESULT hr;
 	auto reflection_ptr = std::static_pointer_cast<Microsoft::WRL::ComPtr<ID3D11ShaderReflection>>(shader->get_reflection());
+	if (!reflection_ptr)
+		return;
+
 	auto reflection = (*reflection_ptr);
 
 	D3D11_SHADER_DESC shader_desc;

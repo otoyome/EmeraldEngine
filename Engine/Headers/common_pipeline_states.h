@@ -13,13 +13,17 @@ namespace common_pipeline_states
 	constexpr UINT unordered_access_view_max = 8;//	FEATURELEVEL11.1 : D3D11_1_UAV_SLOT_COUNT
 
 	//	共通CBV/SRV/Samplerインデックス
-	constexpr UINT scene_cbv_index = 0;				//	シーン定数バッファ番号
-	constexpr UINT primitive_cbv_index = 1;			//	プリミティブ定数バッファ番号
-	constexpr UINT parameter_cbv_index = 2;			//	パラメーター定数バッファ番号
-	constexpr UINT light_cbv_index = 3;				//	ライトの定数バッファ番号
-	constexpr UINT shadowmap_cbv_index = 4;			//	シャドウマップの定数バッファ番号
-	constexpr UINT shadowmap_srv_index = 10;		//	シャドウマップのSRV番号
-	constexpr UINT shadowmap_sampler_index = 10;	//	シャドウマップのSampler番号
+	constexpr UINT scene_cbv_index = 0;					//	シーン定数バッファ番号
+	constexpr UINT primitive_cbv_index = 1;				//	プリミティブ定数バッファ番号
+	constexpr UINT geometric_primitive_cbv_index = 1;	//	ジオメトリックプリミティブ定数バッファ番号
+	constexpr UINT parameter_cbv_index = 2;				//	パラメーター定数バッファ番号
+	constexpr UINT light_cbv_index = 3;					//	ライトの定数バッファ番号
+	constexpr UINT shadowmap_cbv_index = 4;				//	シャドウマップの定数バッファ番号
+	constexpr UINT shadowmap_srv_index = 10;			//	シャドウマップのSRV番号
+	constexpr UINT shadowmap_sampler_index = 10;		//	シャドウマップのSampler番号
+
+	//	デカールステンシルID
+	constexpr UINT decal_stencil_ref = 0x80;
 
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////
 	//	シーン情報
@@ -164,8 +168,22 @@ namespace common_pipeline_states
 	//  マテリアルアトリビュート
 	constexpr UINT material_attribute_indirect_lighting_off = 1 << 0;  //  間接光の処理を適応させない
 	constexpr UINT material_attribute_shadow_receiver = 1 << 1;	//	影適応
+	constexpr UINT material_attribute_decal_off = 1 << 2;	//	デカールを適応させない
 
-	constexpr UINT material_attribute_decal_off = 1 << 20;	//	デカールを適応させない
+	//	[エンジン改造]
+	constexpr UINT material_attribute_ligting_xz_plane = 1 << 31;	//	[エンジン改造:ライティング計算時にXZ平面で適応]
+	//	[エンジン改造]
+
+	///////////////////////////////////////////////////////////////////////////////////////////////////////////
+	//	デカール用定数バッファ構造体
+	constexpr std::string_view decal_primitive_constant_buffer_name = "DECAL_PRIMITIVE_CONSTANT_BUFFER";
+	constexpr system_utility::hash_key decal_primitive_constant_buffer_hash_key = system_utility::generate_hash(decal_primitive_constant_buffer_name);
+	struct decal_primitive_constants
+	{
+		DirectX::XMFLOAT4X4 decal_transform;
+		DirectX::XMFLOAT4X4 decal_inverse_transform;
+		DirectX::XMFLOAT4 decal_direction;
+	};
 
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////
 	//	シーン関係
@@ -248,6 +266,8 @@ namespace common_pipeline_states
 		deferred_light_constant_buffer_name,
 		forward_light_constant_buffer_name,
 		parameter_constant_buffer_name,
+
+		decal_primitive_constant_buffer_name,
 	};
 
 	//	システム側で利用するシェーダーリソース名前リスト
