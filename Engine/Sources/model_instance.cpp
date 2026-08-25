@@ -125,13 +125,20 @@ void model_instance::build_model()
 		node instance_node;
 		instance_node.name = resource_node.name;
 		instance_node.parent_index = resource_node.parent_index;
-		DirectX::XMStoreFloat4x4(&instance_node.local_transform,
-								DirectX::XMMatrixScalingFromVector(DirectX::XMLoadFloat3(&resource_node.scale)) *
-								DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&resource_node.rotation)) *
-								DirectX::XMMatrixTranslationFromVector(DirectX::XMLoadFloat3(&resource_node.translation))
-		);
-		instance_node.global_transform = instance_node.local_transform;
-		instance_node.previous_global_transform = instance_node.local_transform;
+		DirectX::XMMATRIX LocalTransform = DirectX::XMMatrixScalingFromVector(DirectX::XMLoadFloat3(&resource_node.scale)) *
+																			  DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&resource_node.rotation)) *
+																			  DirectX::XMMatrixTranslationFromVector(DirectX::XMLoadFloat3(&resource_node.translation));
+		DirectX::XMStoreFloat4x4(&instance_node.local_transform, LocalTransform);
+		if (instance_node.parent_index != model_resource::invalid_id)
+		{
+			DirectX::XMMATRIX GlobalTransform = DirectX::XMLoadFloat4x4(&nodes[instance_node.parent_index].global_transform);
+			DirectX::XMStoreFloat4x4(&instance_node.global_transform, LocalTransform * GlobalTransform);
+		}
+		else
+		{
+			instance_node.global_transform = instance_node.local_transform;
+		}
+		instance_node.previous_global_transform = instance_node.global_transform;
 		nodes.emplace_back(instance_node);
 	}
 

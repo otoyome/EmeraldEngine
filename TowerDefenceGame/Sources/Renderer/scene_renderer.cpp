@@ -926,7 +926,7 @@ void deffered_lighting_renderer::render_directional_shadow_map(const light& ligh
 		context.is_shadow_rendering = false;
 
 		shadow_map_pass.deactivate(context.device_context);
-	}, "render_directional_shadow_map_pass", context, get_render_basis_sort_order() + register_index++);
+	}, "render_directional_shadow_map_pass", context, get_render_basis_sort_order() + register_index++, true);
 }
 
 void deffered_lighting_renderer::render_point(const light& light, common_pipeline_states::shadow_map_constants& shadow_map_constant, renderer_context& context)
@@ -972,7 +972,7 @@ void deffered_lighting_renderer::render_point_shadow_map(const light& light, com
 {
 	job_executor.execute([this](graphics_context& context)
 	{
-	}, "render_point_shadow_map_pass", context, get_render_basis_sort_order() + register_index++);
+	}, "render_point_shadow_map_pass", context, get_render_basis_sort_order() + register_index++, true);
 }
 
 void deffered_lighting_renderer::render_spot(const light& light, common_pipeline_states::shadow_map_constants& shadow_map_constant, renderer_context& context)
@@ -1071,7 +1071,7 @@ void deffered_lighting_renderer::render_spot_shadow_map(const light& light, comm
 		context.is_shadow_rendering = false;
 
 		shadow_map_pass.deactivate(context.device_context);
-	}, "render_spot_shadow_map_pass", context, get_render_basis_sort_order() + register_index++);
+	}, "render_spot_shadow_map_pass", context, get_render_basis_sort_order() + register_index++, true);
 	context.scene_constant = reserve_scene_constant;
 }
 
