@@ -21,6 +21,62 @@ bool editor_items::edit_effect(std::shared_ptr<context>& context, effect_resourc
 	bool edit_flag = false;
 	ImGui::PushID(context->get_item_id());
 
+	//	モデル情報
+	if (ImGui::TreeNode("model"))
+	{
+		auto& models = effect_resource->get_models_for_editor();
+		UINT model_size = static_cast<UINT>(models.size());
+		if (ImGui::DragUInt("model size", &model_size, 0.1f))
+		{
+			models.resize(model_size);
+		}
+		for (auto& model : models)
+		{
+			ImGui::Separator();
+			ImGui::PushID(context->get_item_id());
+			ImGui::InputTextUtf8("name", model.name);
+
+			if (ImGui::DragFloat3("scale", &model.scale.x, 0.01f, 0.0f, 100.0f))
+				edit_flag = true;
+			math::rotator rot = model.rotation;
+			if (ImGui::DragFloat3("rotation", &rot.x, 0.01f, 0.0f, 100.0f))
+			{
+				model.rotation = rot.convert_quaternion();
+				edit_flag = true;
+			}
+			if (ImGui::DragFloat3("position", &model.position.x, 0.01f))
+				edit_flag = true;
+
+			//	モデル関係
+			{
+				model_resource_ptr resource = model.resource;
+				std::string file_path = model.file_path;
+				if (edit_model_resource_item(context, resource, &file_path))
+				{
+					model.resource = resource;
+					model.file_path = file_path;
+					edit_flag = true;
+				}
+			}
+
+			ImGui::Separator();
+			ImGui::PopID();
+		}
+		ImGui::TreePop();
+	}
+
+	//	デカール情報
+	edit_effect_decal(context, effect_resource);
+
+	//	パーティクル情報
+	edit_effect_particle(context, effect_resource);
+
+	ImGui::PopID();
+	return edit_flag;
+}
+
+bool editor_items::edit_effect_particle(std::shared_ptr<context>& context, effect_resource_ptr& effect_resource)
+{
 	auto generate_material = [&]()
 	{
 		auto material_ptr = std::make_shared<material>("default");
@@ -54,39 +110,7 @@ bool editor_items::edit_effect(std::shared_ptr<context>& context, effect_resourc
 		return material_ptr;
 	};
 
-	//	モデル情報
-	if (ImGui::TreeNode("model"))
-	{
-		auto& models = effect_resource->get_models_for_editor();
-		UINT model_size = static_cast<UINT>(models.size());
-		if (ImGui::DragUInt("model size", &model_size, 0.1f))
-		{
-			models.resize(model_size);
-		}
-		for (auto& model : models)
-		{
-			ImGui::Separator();
-			ImGui::PushID(context->get_item_id());
-			ImGui::InputTextUtf8("name", model.name);
-
-			//	モデル関係
-			{
-				model_resource_ptr resource = model.resource;
-				std::string file_path = model.file_path;
-				if (edit_model_resource_item(context, resource, &file_path))
-				{
-					model.resource = resource;
-					model.file_path = file_path;
-					edit_flag = true;
-				}
-			}
-
-			ImGui::Separator();
-			ImGui::PopID();
-		}
-		ImGui::TreePop();
-	}
-
+	bool edit_flag = false;
 	if (ImGui::TreeNode("particle"))
 	{
 		auto& particles = effect_resource->get_particles_for_editor();
@@ -406,8 +430,91 @@ bool editor_items::edit_effect(std::shared_ptr<context>& context, effect_resourc
 		}
 		ImGui::TreePop();
 	}
+	return edit_flag;
+}
 
-	ImGui::PopID();
+bool editor_items::edit_effect_decal(std::shared_ptr<context>& context, effect_resource_ptr& effect_resource)
+{
+	auto generate_material = [&]()
+	{
+		auto material_ptr = std::make_shared<material>("default");
+		auto material = material_ptr;
+		material->set_domain(material::domains::deferred_decal);
+		material->set_alpha_clip_threshold(0.01f);
+		material->set_shading_model(material::shading_models::unlit);
+		material->set_blend_mode(material::blend_modes::mask);
+
+		//	フラグ類設定
+		//material->set_flag(material::flags::two_sided, true);
+		material->set_flag(material::flags::indirect_lighting_off, true);
+
+		//	デフォルトシェーダー設定
+		material->set_pipeline_state(material::decal_paths::primitive, "deferred_decal_default_primitive");
+		material->set_pipeline_state(material::decal_paths::fullscreen, "deferred_decal_default_fullscreen");
+
+		//	パラメーター設定
+		material->set_float4("base_color_factor", DirectX::XMFLOAT4(1, 1, 1, 1));
+		material->set_float("normal_map_scale", 1.0f);
+		{
+			texture_ptr texture;
+			std::filesystem::path file_path = "Assets/Resources/Textures/ground_crack.png";
+			if (texture_manager::instance()->load_texture_from_file(texture, file_path.string()))
+			{
+				texture->set_flag(texture::flags::srgb, true);
+				material->set_texture("BaseColorMap", texture);
+				texture_manager::instance()->save_texture(texture);
+			}
+
+			//	法線マップがあれば
+		}
+
+		return material_ptr;
+	};
+
+	bool edit_flag = false;
+	if (ImGui::TreeNode("decal"))
+	{
+		auto& decals = effect_resource->get_decals_for_editor();
+		UINT decal_size = static_cast<UINT>(decals.size());
+		if (ImGui::DragUInt("decal size", &decal_size, 0.1f))
+		{
+			decals.resize(decal_size);
+			edit_flag = true;
+		}
+		for (auto& decal : decals)
+		{
+			ImGui::Separator();
+			ImGui::PushID(context->get_item_id());
+			ImGui::InputTextUtf8("name", decal.name);
+
+			if (ImGui::DragFloat3("scale", &decal.scale.x, 0.01f, 0.0f, 100.0f))
+				edit_flag = true;
+			math::rotator rot = decal.rotation;
+			if (ImGui::DragFloat3("rotation", &rot.x, 0.01f, 0.0f, 100.0f))
+			{
+				decal.rotation = rot.convert_quaternion();
+				edit_flag = true;
+			}
+			if (ImGui::DragFloat3("position", &decal.position.x, 0.01f))
+				edit_flag = true;
+
+			//	マテリアル
+			if (!decal.material)
+			{
+				decal.material = generate_material();
+			}
+			if (ImGui::TreeNode("material"))
+			{
+				if (editor_items::edit_material(context, *decal.material))
+				{
+					edit_flag = true;
+				}
+				ImGui::TreePop();
+			}
+			ImGui::PopID();
+		}
+		ImGui::TreePop();
+	}
 	return edit_flag;
 }
 

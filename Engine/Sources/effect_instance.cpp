@@ -324,12 +324,13 @@ void effect_manager::update_gpu(graphics_context& context, float elapsed_time)
 	}
 }
 
-void effect_manager::get_container(effect_container& container)
+void effect_manager::get_container(effect_container& effects, decal_container& decals)
 {
-	container.clear();
+	effects.clear();
+	decals.clear();
 
 	//	ƒoƒbƒtƒ@/ƒ}ƒeƒŠƒAƒ‹‚Ì”z—ñ¶¬
-	container.sprite_trail_draw_datas.reserve(256);
+	effects.sprite_trail_draw_datas.reserve(256);
 
 	//	ƒRƒ“ƒeƒi¶¬
 	for (auto& item : items)
@@ -354,24 +355,24 @@ void effect_manager::get_container(effect_container& container)
 			auto renderer = particle_data.get_item<particle::item::renderer>();
 			if (renderer && renderer->material)
 			{
-				UINT data_index = static_cast<UINT>(container.sprite_trail_draw_datas.size());
+				UINT data_index = static_cast<UINT>(effects.sprite_trail_draw_datas.size());
 
 				//	î•ñ\’z
-				auto& data = container.sprite_trail_draw_datas.emplace_back();
+				auto& data = effects.sprite_trail_draw_datas.emplace_back();
 				particle_system->generate_render_data(emitter_item.system_index, data);
 				data.material_data.material = renderer->material.get();
 
 				//	F•`‰æ“o˜^
 				if (instance->is_flag(effect_instance::flags::color_render))
 				{
-					container.sprite_trail_color_datas.emplace_back(data_index);
+					effects.sprite_trail_color_datas.emplace_back(data_index);
 				}
 
 				//	‰e•`‰æ“o˜^
 				if (instance->is_flag(effect_instance::flags::shadow_caster) &&
 					data.material_data.material->is_flag(material::flags::shadow_caster))
 				{
-					container.sprite_trail_shadow_datas.emplace_back(data_index);
+					effects.sprite_trail_shadow_datas.emplace_back(data_index);
 				}
 			}
 		}

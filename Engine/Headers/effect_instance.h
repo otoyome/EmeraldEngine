@@ -113,7 +113,7 @@ public:
 	bool register_instance(effect_instance_ptr instance);
 	bool unregister_instance(effect_instance_ptr instance);
 
-	void get_container(effect_container& container);
+	void get_container(effect_container& effects, decal_container& decals);
 
 private:
 	void add_instances();

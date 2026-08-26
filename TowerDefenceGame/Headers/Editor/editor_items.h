@@ -89,6 +89,8 @@ public:	//	編集アイテム系
 	static bool edit_ik(std::shared_ptr<context>& context, model_instance_ptr& model_instance, ik_resource_ptr& ik_resource);
 
 	static bool edit_effect(std::shared_ptr<context>& context, effect_resource_ptr& effect_resource);
+	static bool edit_effect_particle(std::shared_ptr<context>& context, effect_resource_ptr& effect_resource);
+	static bool edit_effect_decal(std::shared_ptr<context>& context, effect_resource_ptr& effect_resource);
 
 public:	//	汎用
 	static bool open_file_dialog(TCHAR* text, std::string& out_selected_file_path);

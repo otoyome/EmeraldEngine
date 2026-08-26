@@ -411,7 +411,7 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 		model_instance_manger::instance()->get_container(render_data->mesh_container);
 
 		//	エフェクトコンテナ取得
-		effect_manager::instance()->get_container(render_data->effect_container);
+		effect_manager::instance()->get_container(render_data->effect_container, render_data->decal_container);
 
 		//	パーティクルの描画振り分け
 		for (auto& particle_index : render_data->effect_container.sprite_trail_color_datas)
@@ -440,13 +440,14 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 				}
 			}
 		}
+
 		{
 			if (!test_decal)
 			{
 				test_decal = std::make_shared<material>("default");
 				test_decal->set_domain(material::domains::deferred_decal);
 				test_decal->set_alpha_clip_threshold(0.01f);
-				test_decal->set_shading_model(material::shading_models::toon_lit);
+				test_decal->set_shading_model(material::shading_models::default_lit);
 				test_decal->set_blend_mode(material::blend_modes::mask);
 
 				//	フラグ類設定
