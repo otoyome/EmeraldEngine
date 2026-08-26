@@ -55,7 +55,6 @@ private:
 
 	//	•`‰æ—p‚Ìˆê•”î•ñ
 	render_pass back_buffer_clear_rendering_pass;
-	std::shared_ptr<material> test_decal;
 
 	float wheel{ 0 };
 	high_resolution_timer tictoc;

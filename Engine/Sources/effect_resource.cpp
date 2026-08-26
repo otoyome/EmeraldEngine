@@ -12,6 +12,7 @@
 #include "cereal/types/string.hpp"
 #include "cereal/types/vector.hpp"
 #include "cereal/types/unordered_map.hpp"
+#include "cereal/types/variant.hpp"
 
 #include "animation_data_version.h"
 
@@ -29,6 +30,11 @@ template<class Archive>
 void effect_resource::model_data::serialize(Archive& archive, int version)
 {
 	archive(name, file_path, scale, rotation, position);
+}
+
+bool effect_resource::decal_data::is_valid() const
+{
+	return material != nullptr;
 }
 
 template<class Archive>
@@ -111,6 +117,14 @@ void effect_resource::build()
 	for (auto& model_data : models)
 	{
 		model_resource_manager::instance()->load(model_data.resource, model_data.file_path);
+	}
+
+	//	デカール情報の構築
+	for (auto& decal_data : decals)
+	{
+		//	マテリアル構築
+		if (decal_data.material)
+			decal_data.material->build();
 	}
 
 	//	パーティクル情報の構築

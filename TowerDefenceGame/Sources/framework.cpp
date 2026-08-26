@@ -440,46 +440,6 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 				}
 			}
 		}
-
-		{
-			if (!test_decal)
-			{
-				test_decal = std::make_shared<material>("default");
-				test_decal->set_domain(material::domains::deferred_decal);
-				test_decal->set_alpha_clip_threshold(0.01f);
-				test_decal->set_shading_model(material::shading_models::default_lit);
-				test_decal->set_blend_mode(material::blend_modes::mask);
-
-				//	フラグ類設定
-				test_decal->set_flag(material::flags::indirect_lighting_off, true);
-
-				//	デフォルトシェーダー設定
-				test_decal->set_pipeline_state(material::decal_paths::primitive, "deferred_decal_default_primitive");
-				test_decal->set_pipeline_state(material::decal_paths::fullscreen, "deferred_decal_default_fullscreen");
-
-				//	パラメーター設定
-				test_decal->set_float4("base_color_factor", DirectX::XMFLOAT4(1, 1, 1, 1));
-				test_decal->set_float("normal_map_scale", 1.0f);
-				{
-					texture_ptr texture;
-					std::filesystem::path file_path = "Assets/Resources/Textures/ground_crack.png";
-					if (texture_manager::instance()->load_texture_from_file(texture, file_path.string()))
-					{
-						texture->set_flag(texture::flags::srgb, true);
-						test_decal->set_texture("BaseColorMap", texture);
-						texture_manager::instance()->save_texture(texture);
-					}
-
-					//	法線マップがあれば
-				}
-			}
-		
-			auto& d = render_data->decal_container.decal_datas.emplace_back();
-			d.material.material = test_decal.get();
-			d.scale = {100,100,100};
-			d.rotation = {-DirectX::XM_PIDIV2, 0, 0};
-			d.position = {0, 0, -500};
-		}
 	}
 
 	//	バッファ描画

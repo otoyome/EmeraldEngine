@@ -43,6 +43,8 @@ public:
 		DirectX::XMFLOAT4 rotation = {0, 0, 0, 1};
 		DirectX::XMFLOAT3 position = {0, 0, 0};
 
+		bool is_valid() const;
+
 		template<class Archive>
 		void serialize(Archive& archive, int version);
 	};

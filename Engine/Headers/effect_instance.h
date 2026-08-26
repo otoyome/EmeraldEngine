@@ -26,6 +26,14 @@ public:
 		model_instance_ptr instance;
 	};
 
+	struct decal_data
+	{
+		DirectX::XMFLOAT3 scale = {1, 1, 1};
+		DirectX::XMFLOAT4 rotation = {0, 0, 0, 1};
+		DirectX::XMFLOAT3 position = {0, 0, 0};
+		std::shared_ptr<material> material;
+	};
+
 	using node_animation = animation::node;
 
 public:
@@ -47,6 +55,7 @@ public:
 	void set_position(const DirectX::XMFLOAT3& position);
 
 	inline std::vector<model_data>& get_model_datas() { return model_datas; }
+	inline std::vector<decal_data>& get_decal_datas() { return decal_datas; }
 	inline std::vector<particle::data>& get_particle_datas() { return particle_datas; }
 
 	inline const DirectX::XMFLOAT4X4& get_previous_world_transform() const { return previous_world_transform; }
@@ -69,6 +78,7 @@ private:
 
 	std::vector<model_data> model_datas;
 	std::vector<particle::data> particle_datas;
+	std::vector<decal_data> decal_datas;
 
 	//	épê®èÓïÒ
 	DirectX::XMFLOAT3 scale = {1, 1, 1};

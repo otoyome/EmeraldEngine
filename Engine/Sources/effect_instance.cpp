@@ -100,6 +100,19 @@ void effect_instance::update(float elapsed_time)
 
 		model.instance->update_transform(WorldMatrix);
 	}
+
+	//	デカール情報構築
+	for (auto& decal : decal_datas)
+	{
+		S = DirectX::XMMatrixScaling(decal.scale.x, decal.scale.y, decal.scale.z);
+		R = DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&decal.rotation));
+		T = DirectX::XMMatrixTranslation(decal.position.x, decal.position.y, decal.position.z);
+		auto WorldMatrix = S * R * T * W;
+		DirectX::XMMatrixDecompose(&S.r[0], &R.r[1], &T.r[2], W);
+		DirectX::XMStoreFloat3(&decal.scale, S.r[0]);
+		DirectX::XMStoreFloat4(&decal.rotation, S.r[1]);
+		DirectX::XMStoreFloat3(&decal.position, S.r[2]);
+	}
 }
 
 void effect_instance::build()
@@ -127,6 +140,20 @@ void effect_instance::build()
 			continue;
 
 		particle_datas.emplace_back(particle_data);
+	}
+
+	//	デカール構築
+	for (auto& decal : resource->get_decals())
+	{
+		if (!decal.is_valid())
+			continue;
+
+		auto& decal_data = decal_datas.emplace_back();
+		decal_data.scale = decal.scale;
+		decal_data.rotation = decal.rotation;
+		decal_data.position = decal.position;
+		decal_data.material = std::make_shared<material>();
+		decal.material->duplicate(*decal_data.material);
 	}
 }
 
@@ -342,6 +369,17 @@ void effect_manager::get_container(effect_container& effects, decal_container& d
 		if (!instance->is_flag(effect_instance::flags::color_render) &&
 			!instance->is_flag(effect_instance::flags::shadow_caster))
 			continue;
+
+		//	デカール情報構築
+		for (UINT index = 0; index < item.effect_instance->get_resource()->get_decals().size(); ++index)
+		{
+			auto& decal_data = item.effect_instance->get_resource()->get_decals()[index];
+			auto& decal = decals.decal_datas.emplace_back();
+			decal.scale = decal_data.scale;
+			decal.rotation = decal_data.rotation;
+			decal.position = decal_data.position;
+			decal.material.material = decal_data.material.get();
+		}
 
 		//	パーティクル描画情報構築
 		for (UINT index = 0; index < item.effect_instance->get_particle_datas().size(); ++index)

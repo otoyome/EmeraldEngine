@@ -66,10 +66,12 @@ bool editor_items::edit_effect(std::shared_ptr<context>& context, effect_resourc
 	}
 
 	//	デカール情報
-	edit_effect_decal(context, effect_resource);
+	if (edit_effect_decal(context, effect_resource))
+		edit_flag = true;
 
 	//	パーティクル情報
-	edit_effect_particle(context, effect_resource);
+	if (edit_effect_particle(context, effect_resource))
+		edit_flag = true;
 
 	ImGui::PopID();
 	return edit_flag;
