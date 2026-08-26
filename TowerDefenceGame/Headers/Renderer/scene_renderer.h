@@ -87,7 +87,7 @@ private:
 //	ディファードライティング
 class deffered_lighting_renderer : public renderer
 {
-	static constexpr UINT directional_shadow_map_count = 4;
+	static constexpr UINT directional_shadow_map_count = 6;
 
 public:
 	renderer_domain get_domain() const override { return renderer_domain::deffered_lighting_pass; }

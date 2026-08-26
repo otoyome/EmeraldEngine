@@ -51,13 +51,13 @@ void update_particle_trail_item(inout emitter_context em_context, inout pt_commo
             if (has_flag(pt_common.state, particle_binary_state_bit_spawn_frame))
             {
                 //  最初のフレームは特に何もしない
-                trail_header.counter = 1;
+                trail_header.counter = 2;
                 stream_trail_header(rw_write, header_write_offset, trail_header);
                 //  ボディー初期化
                 pt_trail_body_item trail_body;
-                trail_body.translation = (float3) 0;
-                trail_body.rotation = float4(0, 0, 0, 1);
-                trail_body.scale = (float3) 0;
+                trail_body.scale = pt_common.scale;
+                trail_body.rotation = pt_common.rotation;
+                trail_body.translation = pt_common.translation;
                 uint write_offset = particle_binary_offset;
                 [loop] for (uint index = 0; index < trail_item.max; ++index)
                 {
@@ -79,17 +79,17 @@ void update_particle_trail_item(inout emitter_context em_context, inout pt_commo
                     uint write_offset = particle_binary_offset + index * pt_trail_body_size_of_bytes;
                     stream_trail_body(rw_write, write_offset, trail_body);
                 }
-            }
 
-            //  ボディーの先頭に現在座標等を登録
-            {
-                pt_trail_body_item trail_body;
-                trail_body.scale = pt_common.scale;
-                trail_body.rotation = pt_common.rotation;
-                trail_body.translation = pt_common.translation;
+                //  ボディーの先頭に現在座標等を登録
+                {
+                    pt_trail_body_item trail_body;
+                    trail_body.scale = pt_common.scale;
+                    trail_body.rotation = pt_common.rotation;
+                    trail_body.translation = pt_common.translation;
 
-                uint write_offset = particle_binary_offset;
-                stream_trail_body(rw_write, write_offset, trail_body);
+                    uint write_offset = particle_binary_offset;
+                    stream_trail_body(rw_write, write_offset, trail_body);
+                }
             }
                 
             //  最大サイズ分オフセット
@@ -99,7 +99,7 @@ void update_particle_trail_item(inout emitter_context em_context, inout pt_commo
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-//  スプライトアニメーション更新アイテム
+//  UV更新アイテム
 void update_uv_item(inout emitter_context em_context, inout pt_common_item pt_common, inout uint emitter_binary_offset, inout uint particle_binary_offset)
 {
     if (has_flag(em_context.active_items, emitter_active_uv_item_bit_flag))
@@ -107,6 +107,18 @@ void update_uv_item(inout emitter_context em_context, inout pt_common_item pt_co
         //  表示用の物なのでエミッター分オフセットしておく
         em_uv_item em_uv;
         stream_uv_item(rw_read_only, emitter_binary_offset, em_uv);
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+//  色更新アイテム
+void update_color_item(inout emitter_context em_context, inout pt_common_item pt_common, inout uint emitter_binary_offset, inout uint particle_binary_offset)
+{
+    if (has_flag(em_context.active_items, emitter_active_color_item_bit_flag))
+    {
+        //  表示用の物なのでエミッター分オフセットしておく
+        em_color_item em_uv;
+        stream_color_item(rw_read_only, emitter_binary_offset, em_uv);
     }
 }
 

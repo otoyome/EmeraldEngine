@@ -37,6 +37,7 @@ namespace particle_system_item
 			DirectX::XMFLOAT3 scale; // 拡縮情報
 			DirectX::XMFLOAT4 rotation; // 回転情報
 			DirectX::XMFLOAT3 translation; // 移動情報
+			DirectX::XMFLOAT4 color; // 色情報
 		};
 		//  軌跡アイテム
 		struct trail_header
@@ -91,7 +92,15 @@ namespace particle_system_item
 		{
 			static constexpr UINT data_id = 0;
 
+			enum class states
+			{
+				use_fade = 1 << 0,	//	軌跡終端フェード
+				use_time_fade = 1 << 1,	//	時間フェード
+			};
+
+			UINT state = 0;
 			UINT max = 0; // 軌跡総数
+			DirectX::XMFLOAT2 fade_rate = {0.2f, 0.8f};	//	フェード
 		};
 
 		//	UVアイテム
@@ -112,10 +121,25 @@ namespace particle_system_item
 			DirectX::XMFLOAT4 rect = {0, 0, 1, 1};	//	UV矩形
 		};
 
+		//	色アイテム
+		struct color
+		{
+			static constexpr UINT data_id = 2;
+
+			enum class states
+			{
+				random = 1 << 0,		//	ランダム設定
+			};
+
+			UINT state = 0;
+			DirectX::XMFLOAT4 color_min; // 色の範囲
+			DirectX::XMFLOAT4 color_max; // 色の範囲
+		};
+
 		//	速度アイテム
 		struct velocity
 		{
-			static constexpr UINT data_id = 2;
+			static constexpr UINT data_id = 3;
 
 			enum class states
 			{

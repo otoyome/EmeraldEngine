@@ -45,7 +45,10 @@ SurfaceData surface(VS_OUT pin, bool is_front_face)
         if (1 >= forward_only_light_counts.x)
         {
             directional_lights directional_light = forward_only_directional_light_data[0];
-            float3 L = normalize(directional_light.direction.xyz);
+            float3 L = directional_light.direction.xyz;
+            if (material_flags & material_attribute_ligting_xz_plane)
+                L.y = 0.0f;
+            L = normalize(L);
             float2 ramp_texcoord = float2(0.5f, saturate(dot(L, data.w_normal.xyz) * 0.5f + threshold_offset));
             float3 ramp_color = 1.0f;
             if (HAS_RESOURCE(RampMap))

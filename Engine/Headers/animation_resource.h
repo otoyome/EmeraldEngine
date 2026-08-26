@@ -132,11 +132,16 @@ namespace animation
 	{
 		std::string name;
 		float end_time;
+		interpolation time_curve;
+
 		bool root_motion_xz = false;
 		bool root_motion_y = false;
 		bool root_rotation = false;
 		std::string root_motion_node_name;
-		interpolation time_curve;
+
+		bool foot_ik = false;
+		bool hand_ik = false;
+		bool aim_ik = false;
 
 		std::vector<node_data> nodes;
 		std::vector<camera_spherical> camera_sphericals;

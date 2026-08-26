@@ -34,8 +34,18 @@ namespace particle
 			//	軌跡
 			struct trails
 			{
-				UINT max = 30; 
+				enum class states
+				{
+					use_fade = 1 << 0,	//	軌跡終端フェード
+					use_time_fade = 1 << 1,	//	時間フェード
+				};
 
+				UINT state = 0;
+				UINT max = 30; // 軌跡総数
+				DirectX::XMFLOAT2 time_fade_rate = {0.2f, 0.8f};	//	フェード
+
+				bool is_state(states flag) const;
+				void set_state(states flag, bool value);
 				template<class Archive>
 				void serialize(Archive& archive, int version);
 			};
@@ -64,18 +74,20 @@ namespace particle
 				void serialize(Archive& archive, int version);
 			};
 
-			//	軌跡
+			//	色
 			struct colors
 			{
 				enum class states
 				{
-					random = 1 << 0,	//	UV座標を直接指定
+					random = 1 << 0,		//	ランダム設定
 				};
 
 				UINT state = 0; // ステート
-				DirectX::XMFLOAT4 color_min;	//	色の最小
-				DirectX::XMFLOAT4 color_max;	//	色の最大
+				DirectX::XMFLOAT4 color_min = {1, 1, 1, 1};	//	色の最小
+				DirectX::XMFLOAT4 color_max = {1, 1, 1, 1};	//	色の最大
 
+				bool is_state(states flag) const;
+				void set_state(states flag, bool value);
 				template<class Archive>
 				void serialize(Archive& archive, int version);
 			};
@@ -87,7 +99,7 @@ namespace particle
 
 			trails trail;	//	軌跡
 			texcoords uv;	//	UV
-			colors color;
+			colors color;	//	色情報
 
 			bool is_state(states flag) const;
 			void set_state(states flag, bool value);

@@ -17,7 +17,7 @@
 #include "animation_data_version.h"
 
 // CEREALバージョン定義
-CEREAL_CLASS_VERSION(particle::item::renderer::trails, 1)
+CEREAL_CLASS_VERSION(particle::item::renderer::trails, 2)
 CEREAL_CLASS_VERSION(particle::item::renderer::texcoords, 1)
 CEREAL_CLASS_VERSION(particle::item::renderer::colors, 1)
 CEREAL_CLASS_VERSION(particle::item::renderer, 1)
@@ -26,10 +26,30 @@ CEREAL_CLASS_VERSION(particle::item::spawn, 1)
 
 CEREAL_CLASS_VERSION(particle::data, 1);
 
+bool particle::item::renderer::trails::is_state(states flag) const
+{
+	return system_utility::is_bitflag(state, flag);
+}
+void particle::item::renderer::trails::set_state(states flag, bool value)
+{
+	system_utility::set_bitflag(state, flag, value);
+}
 template<class Archive>
 void particle::item::renderer::trails::serialize(Archive& archive, int version)
 {
-	archive(max);
+	switch (version)
+	{
+		case 1:
+		{
+			archive(max);
+			break;
+		}
+		case 2:
+		{
+			archive(state, max, time_fade_rate);
+			break;
+		}
+	}
 }
 
 bool particle::item::renderer::texcoords::is_state(states flag) const
@@ -46,6 +66,14 @@ void particle::item::renderer::texcoords::serialize(Archive& archive, int versio
 	archive(state, index, time, rect, splits);
 }
 
+bool particle::item::renderer::colors::is_state(states flag) const
+{
+	return system_utility::is_bitflag(state, flag);
+}
+void particle::item::renderer::colors::set_state(states flag, bool value)
+{
+	system_utility::set_bitflag(state, flag, value);
+}
 template<class Archive>
 void particle::item::renderer::colors::serialize(Archive& archive, int version)
 {
@@ -142,8 +170,13 @@ particle_system_item::emitter_resource particle::data::constract_system_resource
 		//	UV指定アイテム
 		emitter_system.max_update_item_size += sizeof(particle_system_item::emitter::uv);
 		//emitter_system.particle_type_size += sizeof(particle_system_item::particle::uv);
+
+		//	色指定アイテム
+		emitter_system.max_update_item_size += sizeof(particle_system_item::emitter::color);
+		//emitter_system.particle_type_size += sizeof(particle_system_item::particle::color);
 	}
 
+	//	速度情報の設定
 	if (auto velocity = get_item<particle::item::velocity>())
 	{
 		emitter_system.max_update_item_size += sizeof(particle_system_item::emitter::velocity);

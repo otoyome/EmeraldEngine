@@ -175,32 +175,53 @@ void animation::data::serialize(Archive& archive, int version)
 		case 1:
 		{
 			archive(CEREAL_NVP(name),
-				CEREAL_NVP(end_time),
-				CEREAL_NVP(root_motion_xz),
-				CEREAL_NVP(root_motion_y),
-				CEREAL_NVP(root_rotation),
-				CEREAL_NVP(root_motion_node_name),
-				CEREAL_NVP(time_curve),
-				CEREAL_NVP(nodes),
-				CEREAL_NVP(camera_sphericals),
-				CEREAL_NVP(events),
-				CEREAL_NVP(variables),
-				CEREAL_NVP(morphs));
+					CEREAL_NVP(end_time),
+					CEREAL_NVP(root_motion_xz),
+					CEREAL_NVP(root_motion_y),
+					CEREAL_NVP(root_rotation),
+					CEREAL_NVP(root_motion_node_name),
+					CEREAL_NVP(time_curve),
+					CEREAL_NVP(nodes),
+					CEREAL_NVP(camera_sphericals),
+					CEREAL_NVP(events),
+					CEREAL_NVP(variables),
+					CEREAL_NVP(morphs));
 			break;
 		}
 		case 2:
 		{
 			archive(CEREAL_NVP(name),
-				CEREAL_NVP(end_time),
-				CEREAL_NVP(root_motion_xz),
-				CEREAL_NVP(root_motion_y),
-				CEREAL_NVP(root_rotation),
-				CEREAL_NVP(root_motion_node_name),
-				CEREAL_NVP(time_curve),
-				CEREAL_NVP(nodes),
-				CEREAL_NVP(camera_sphericals),
-				CEREAL_NVP(events),
-				CEREAL_NVP(variables));
+					CEREAL_NVP(end_time),
+					CEREAL_NVP(root_motion_xz),
+					CEREAL_NVP(root_motion_y),
+					CEREAL_NVP(root_rotation),
+					CEREAL_NVP(root_motion_node_name),
+					CEREAL_NVP(time_curve),
+					CEREAL_NVP(nodes),
+					CEREAL_NVP(camera_sphericals),
+					CEREAL_NVP(events),
+					CEREAL_NVP(variables));
+			break;
+		}
+		case 3:
+		{
+			archive(CEREAL_NVP(name),
+					CEREAL_NVP(end_time),
+					CEREAL_NVP(time_curve),
+
+					CEREAL_NVP(root_motion_xz),
+					CEREAL_NVP(root_motion_y),
+					CEREAL_NVP(root_rotation),
+					CEREAL_NVP(root_motion_node_name),
+
+					CEREAL_NVP(foot_ik),
+					CEREAL_NVP(hand_ik),
+					CEREAL_NVP(aim_ik),
+
+					CEREAL_NVP(nodes),
+					CEREAL_NVP(camera_sphericals),
+					CEREAL_NVP(events),
+					CEREAL_NVP(variables));
 			break;
 		}
 	}

@@ -27,6 +27,7 @@ struct pt_common_item
     float3 scale;
     float4 rotation;
     float3 translation;
+    float4 color;
 };
 
 //  パーティクルステートビット
@@ -40,6 +41,7 @@ void stream_common_item(uint rw, inout uint offset, inout pt_common_item common)
     pt_stream_ptr(rw, offset, common.scale);
     pt_stream_ptr(rw, offset, common.rotation);
     pt_stream_ptr(rw, offset, common.translation);
+    pt_stream_ptr(rw, offset, common.color);
 }
 
 //////////////////////////////////////////////////////////////////////////

@@ -393,6 +393,7 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 
 	//	描画用の情報収集
 	auto render_data = std::make_shared<render_data_context>();
+	auto render_particle_indices = std::make_shared<::render_particle_indices>();
 	{
 		//	ライト情報収集
 		light_manager::instance()->get_container(render_data->light_container);
@@ -412,6 +413,33 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 		//	エフェクトコンテナ取得
 		effect_manager::instance()->get_container(render_data->effect_container);
 
+		//	パーティクルの描画振り分け
+		for (auto& particle_index : render_data->effect_container.sprite_trail_color_datas)
+		{
+			auto& material = render_data->effect_container.sprite_trail_draw_datas[particle_index].material_data.material;
+
+			//	番号登録
+			switch (material->get_blend_mode())
+			{
+				case material::blend_modes::opaque:
+				{
+					render_particle_indices->opaque.push_back(particle_index);
+					break;
+				}
+				case material::blend_modes::mask:
+				{
+					render_particle_indices->mask.push_back(particle_index);
+					break;
+				}
+				case material::blend_modes::translucent:
+				case material::blend_modes::addative:
+				{
+					int index = static_cast<int>(material->get_translucency_path());
+					render_particle_indices->forward[index].push_back(particle_index);
+					break;
+				}
+			}
+		}
 		{
 			if (!test_decal)
 			{
@@ -530,6 +558,7 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 			context.scene_constant_buffer = camera.constant_buffer;
 			context.render_data = render_data;
 			context.render_mesh_indices = std::make_shared<render_mesh_indices>();
+			context.render_particle_indices = render_particle_indices;
 			//	シーン定数バッファ設定
 			{
 				context.scene_constant.time_data.x = total_time + elapsed_time;

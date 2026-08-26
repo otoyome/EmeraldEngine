@@ -46,7 +46,7 @@ public:
 	struct foot_data
 	{
 		float ray_length = system_units::convert_cm_to_unit(30.0f);
-		std::array<DirectX::XMFLOAT3, 2> ray_origin_offsets;
+		float ray_origin_offsets[2] = {0, 0};
 		float foot_offset = 0.0f;
 		std::vector<size_t> adjust_node_indices;
 		bool align_to_normal = true;

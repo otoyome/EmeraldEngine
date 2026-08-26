@@ -237,7 +237,9 @@ void effect_manager::update_gpu(graphics_context& context, float elapsed_time)
 					renderer->type == particle::item::renderer::types::ribon)
 				{
 					particle_system_item::emitter::trail trail;
+					trail.state = renderer->trail.state;
 					trail.max = renderer->trail.max;
+					trail.fade_rate = renderer->trail.time_fade_rate;
 
 					UINT write_position = static_cast<UINT>(data.item_binary.size());
 					UINT write_size = sizeof(particle_system_item::emitter::trail);
@@ -264,6 +266,23 @@ void effect_manager::update_gpu(graphics_context& context, float elapsed_time)
 						&uv, sizeof(uv));
 
 					common_data.active_items |= 1 << particle_system_item::emitter::uv::data_id;
+				}
+
+				//	Fî•ñÝ’è
+				if (renderer)
+				{
+					particle_system_item::emitter::color color_item;
+					color_item.state = renderer->color.state;
+					color_item.color_min = renderer->color.color_min;
+					color_item.color_max = renderer->color.color_max;
+
+					UINT write_position = static_cast<UINT>(data.item_binary.size());
+					UINT write_size = sizeof(particle_system_item::emitter::color);
+					data.item_binary.resize(write_position + write_size);
+					memcpy_s(data.item_binary.data() + write_position, data.item_binary.size() - write_position,
+						&color_item, sizeof(color_item));
+
+					common_data.active_items |= 1 << particle_system_item::emitter::color::data_id;
 				}
 
 				//	‘¬“xî•ñÝ’è
@@ -327,6 +346,9 @@ void effect_manager::get_container(effect_container& container)
 		for (UINT index = 0; index < item.effect_instance->get_particle_datas().size(); ++index)
 		{
 			auto& emitter_item = item.emitter_items[index];
+			if (emitter_item.system_index == invalid_emitter_id)
+				continue;
+
 			auto& particle_data = item.effect_instance->get_particle_datas()[index];
 
 			auto renderer = particle_data.get_item<particle::item::renderer>();

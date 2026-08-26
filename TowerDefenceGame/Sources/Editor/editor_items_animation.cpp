@@ -669,6 +669,8 @@ bool editor_items::edit_animation_data(std::shared_ptr<context>& context, animat
 {
 	auto data_hash_key = system_utility::fnv1a_hash(sizeof(animation_data), reinterpret_cast<char*>(&animation_data));
 	ImGui::InputTextUtf8("name", animation_data.name);
+
+	//	ルートモーション関係
 	ImGui::Text("root_motion");
 	ImGui::SameLine();
 	ImGui::Checkbox("xz", &animation_data.root_motion_xz);
@@ -680,6 +682,14 @@ bool editor_items::edit_animation_data(std::shared_ptr<context>& context, animat
 	{
 		ImGui::InputTextUtf8("root_motion_node_name", animation_data.root_motion_node_name);
 	}
+	ImGui::Separator();
+
+	//	IK関係
+	ImGui::Checkbox("foot_ik", &animation_data.foot_ik);
+	ImGui::SameLine();
+	ImGui::Checkbox("hand_ik", &animation_data.hand_ik);
+	ImGui::SameLine();
+	ImGui::Checkbox("aim_ik", &animation_data.aim_ik);
 	ImGui::Separator();
 
 	//	アニメーションカーブエディター

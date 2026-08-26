@@ -14,12 +14,43 @@ namespace math
 	inline Type step(Type y, Type x) {return x >= y;}
 
 	template<typename Type>
+	inline Type min(Type a, Type b)
+	{
+		return  std::min(a, b);
+	}
+	template<> inline DirectX::XMFLOAT2 min<DirectX::XMFLOAT2>(DirectX::XMFLOAT2 a, DirectX::XMFLOAT2 b) {return {min(a.x, b.x), min(a.y, b.y)};}
+	template<> inline DirectX::XMFLOAT3 min<DirectX::XMFLOAT3>(DirectX::XMFLOAT3 a, DirectX::XMFLOAT3 b) {return {min(a.x, b.x), min(a.y, b.y), min(a.z, b.z)};}
+	template<> inline DirectX::XMFLOAT4 min<DirectX::XMFLOAT4>(DirectX::XMFLOAT4 a, DirectX::XMFLOAT4 b) {return {min(a.x, b.x), min(a.y, b.y), min(a.z, b.z), min(a.w, b.w)};}
+	template<> inline DirectX::XMINT2 min<DirectX::XMINT2>(DirectX::XMINT2 a, DirectX::XMINT2 b) {return {min(a.x, b.x), min(a.y, b.y)};}
+	template<> inline DirectX::XMINT3 min<DirectX::XMINT3>(DirectX::XMINT3 a, DirectX::XMINT3 b) {return {min(a.x, b.x), min(a.y, b.y), min(a.z, b.z)};}
+	template<> inline DirectX::XMINT4 min<DirectX::XMINT4>(DirectX::XMINT4 a, DirectX::XMINT4 b) {return {min(a.x, b.x), min(a.y, b.y), min(a.z, b.z), min(a.w, b.w)};}
+	template<> inline DirectX::XMUINT2 min<DirectX::XMUINT2>(DirectX::XMUINT2 a, DirectX::XMUINT2 b) {return {min(a.x, b.x), min(a.y, b.y)};}
+	template<> inline DirectX::XMUINT3 min<DirectX::XMUINT3>(DirectX::XMUINT3 a, DirectX::XMUINT3 b) {return {min(a.x, b.x), min(a.y, b.y), min(a.z, b.z)};}
+	template<> inline DirectX::XMUINT4 min<DirectX::XMUINT4>(DirectX::XMUINT4 a, DirectX::XMUINT4 b) {return {min(a.x, b.x), min(a.y, b.y), min(a.z, b.z), min(a.w, b.w)};}
+
+	template<typename Type>
+	inline Type max(Type a, Type b)
+	{
+		return  std::max(a, b);
+	}
+	template<> inline DirectX::XMFLOAT2 max<DirectX::XMFLOAT2>(DirectX::XMFLOAT2 a, DirectX::XMFLOAT2 b) {return {max(a.x, b.x), max(a.y, b.y)};}
+	template<> inline DirectX::XMFLOAT3 max<DirectX::XMFLOAT3>(DirectX::XMFLOAT3 a, DirectX::XMFLOAT3 b) {return {max(a.x, b.x), max(a.y, b.y), max(a.z, b.z)};}
+	template<> inline DirectX::XMFLOAT4 max<DirectX::XMFLOAT4>(DirectX::XMFLOAT4 a, DirectX::XMFLOAT4 b) {return {max(a.x, b.x), max(a.y, b.y), max(a.z, b.z), max(a.w, b.w)};}
+	template<> inline DirectX::XMINT2 max<DirectX::XMINT2>(DirectX::XMINT2 a, DirectX::XMINT2 b) {return {max(a.x, b.x), max(a.y, b.y)};}
+	template<> inline DirectX::XMINT3 max<DirectX::XMINT3>(DirectX::XMINT3 a, DirectX::XMINT3 b) {return {max(a.x, b.x), max(a.y, b.y), max(a.z, b.z)};}
+	template<> inline DirectX::XMINT4 max<DirectX::XMINT4>(DirectX::XMINT4 a, DirectX::XMINT4 b) {return {max(a.x, b.x), max(a.y, b.y), max(a.z, b.z), max(a.w, b.w)};}
+	template<> inline DirectX::XMUINT2 max<DirectX::XMUINT2>(DirectX::XMUINT2 a, DirectX::XMUINT2 b) {return {max(a.x, b.x), max(a.y, b.y)};}
+	template<> inline DirectX::XMUINT3 max<DirectX::XMUINT3>(DirectX::XMUINT3 a, DirectX::XMUINT3 b) {return {max(a.x, b.x), max(a.y, b.y), max(a.z, b.z)};}
+	template<> inline DirectX::XMUINT4 max<DirectX::XMUINT4>(DirectX::XMUINT4 a, DirectX::XMUINT4 b) {return {max(a.x, b.x), max(a.y, b.y), max(a.z, b.z), max(a.w, b.w)};}
+
+	template<typename Type>
 	inline Type clamp(Type value, Type min, Type max)
 	{
 		if (value > max) return max;
 		if (value < min) return min;
 		return  value;
 	}
+
 	template<> inline DirectX::XMFLOAT2 clamp<DirectX::XMFLOAT2>(DirectX::XMFLOAT2 value, DirectX::XMFLOAT2 min, DirectX::XMFLOAT2 max) {return {clamp(value.x, min.x, max.x), clamp(value.y, min.y, max.y)};}
 	template<> inline DirectX::XMFLOAT3 clamp<DirectX::XMFLOAT3>(DirectX::XMFLOAT3 value, DirectX::XMFLOAT3 min, DirectX::XMFLOAT3 max) {return {clamp(value.x, min.x, max.x), clamp(value.y, min.y, max.y), clamp(value.z, min.z, max.z)};}
 	template<> inline DirectX::XMFLOAT4 clamp<DirectX::XMFLOAT4>(DirectX::XMFLOAT4 value, DirectX::XMFLOAT4 min, DirectX::XMFLOAT4 max) {return {clamp(value.x, min.x, max.x), clamp(value.y, min.y, max.y), clamp(value.z, min.z, max.z), clamp(value.w, min.w, max.w)};}

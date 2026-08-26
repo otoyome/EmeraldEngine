@@ -32,7 +32,8 @@ before_dof_forward_renderer::~before_dof_forward_renderer()
 void before_dof_forward_renderer::render(renderer_context& renderer_context)
 {
 	static constexpr int  forward_index = static_cast<int>(material::translucency_paths::before_dof);
-	if (renderer_context.render_mesh_indices->forward[forward_index].empty())
+	if (renderer_context.render_mesh_indices->forward[forward_index].empty() &&
+		renderer_context.render_particle_indices->forward[forward_index].empty())
 		return;
 
 	job_executor.execute([this, renderer_context](graphics_context& context)
@@ -49,7 +50,7 @@ void before_dof_forward_renderer::render(renderer_context& renderer_context)
 					 renderer_context.render_mesh_indices->lengths,
 					 material::surface_paths::forward_pass);
 		scene_renderer_commons::particle_render(context,
-					 context.render_data->effect_container.sprite_trail_color_datas,
+					 renderer_context.render_particle_indices->forward[forward_index],
 					 material::surface_paths::forward_pass);
 
 		rendering_pass.deactivate(context.device_context);
@@ -104,7 +105,8 @@ after_dof_forward_renderer::~after_dof_forward_renderer()
 void after_dof_forward_renderer::render(renderer_context& renderer_context)
 {
 	static constexpr int  forward_index = static_cast<int>(material::translucency_paths::after_dof);
-	if (renderer_context.render_mesh_indices->forward[forward_index].empty())
+	if (renderer_context.render_mesh_indices->forward[forward_index].empty() &&
+		renderer_context.render_particle_indices->forward[forward_index].empty())
 		return;
 
 	job_executor.execute([this, renderer_context](graphics_context& context)
@@ -121,7 +123,7 @@ void after_dof_forward_renderer::render(renderer_context& renderer_context)
 					 renderer_context.render_mesh_indices->lengths,
 					material::surface_paths::forward_pass);
 		scene_renderer_commons::particle_render(context,
-					 context.render_data->effect_container.sprite_trail_color_datas,
+					 renderer_context.render_particle_indices->forward[forward_index],
 					 material::surface_paths::forward_pass);
 
 		rendering_pass.deactivate(context.device_context);
@@ -176,7 +178,8 @@ after_motion_blur_forward_renderer::~after_motion_blur_forward_renderer()
 void after_motion_blur_forward_renderer::render(renderer_context& renderer_context)
 {
 	static constexpr int  forward_index = static_cast<int>(material::translucency_paths::after_motion_blur);
-	if (renderer_context.render_mesh_indices->forward[forward_index].empty())
+	if (renderer_context.render_mesh_indices->forward[forward_index].empty() &&
+		renderer_context.render_particle_indices->forward[forward_index].empty())
 		return;
 
 	job_executor.execute([this, renderer_context](graphics_context& context)
@@ -193,7 +196,7 @@ void after_motion_blur_forward_renderer::render(renderer_context& renderer_conte
 					 renderer_context.render_mesh_indices->lengths,
 					 material::surface_paths::forward_pass);
 		scene_renderer_commons::particle_render(context,
-					 context.render_data->effect_container.sprite_trail_color_datas,
+					 renderer_context.render_particle_indices->forward[forward_index],
 					 material::surface_paths::forward_pass);
 
 		rendering_pass.deactivate(context.device_context);

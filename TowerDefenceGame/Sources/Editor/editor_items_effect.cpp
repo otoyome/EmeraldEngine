@@ -181,8 +181,13 @@ bool editor_items::edit_effect(std::shared_ptr<context>& context, effect_resourc
 
 								//	‹OÕ
 								if (ImGui::DragUInt("max", &renderer->trail.max, 0.1f))
-								{
 									edit_flag = true;
+								if (ImGui::EditFlags<particle::item::renderer::trails::states>(renderer->trail.state))
+									edit_flag = true;
+								if (renderer->trail.is_state(particle::item::renderer::trails::states::use_time_fade))
+								{
+									if (ImGui::DragFloat2("time_fade_rate", &renderer->trail.time_fade_rate.x, 0.001f))
+										edit_flag = true;
 								}
 								break;
 							}
@@ -204,8 +209,9 @@ bool editor_items::edit_effect(std::shared_ptr<context>& context, effect_resourc
 
 							//	UV‚Ìˆ—‚ÌŽd•û
 							bool checked = renderer->uv.is_state(particle::item::renderer::texcoords::states::direct);
-							if (ImGui::Checkbox(checked ? "uv split" : "direct", &checked))
+							if (ImGui::Button(checked ? "uv split" : "direct"))
 							{
+								checked = !checked;
 								renderer->uv.set_state(particle::item::renderer::texcoords::states::direct, checked);
 
 								//	•ûŒü‚ðŽw’è‚·‚é
@@ -214,6 +220,7 @@ bool editor_items::edit_effect(std::shared_ptr<context>& context, effect_resourc
 									renderer->uv.splits.x = particle::item::renderer::texcoords::animation_direction_basis_value.x + 1;
 									renderer->uv.splits.y = particle::item::renderer::texcoords::animation_direction_basis_value.y;
 								}
+								edit_flag = true;
 							}
 							if (checked)
 							{
@@ -268,6 +275,39 @@ bool editor_items::edit_effect(std::shared_ptr<context>& context, effect_resourc
 
 							ImGui::TreePop();
 						}
+
+						//	F
+						if (ImGui::TreeNode("color"))
+						{
+							bool checked = renderer->color.is_state(particle::item::renderer::colors::states::random);
+							if (ImGui::Button(checked ? "direct" : "random"))
+							{
+								checked = !checked;
+								renderer->color.set_state(particle::item::renderer::colors::states::random, checked);
+								edit_flag = true;
+							}
+
+							if (checked)
+							{
+								if (ImGui::ColorEdit4("color_min", &renderer->color.color_min.x))
+								{
+									edit_flag = true;
+								}
+								if (ImGui::ColorEdit4("color_max", &renderer->color.color_max.x))
+								{
+									edit_flag = true;
+								}
+							}
+							else
+							{
+								if (ImGui::ColorEdit4("color", &renderer->color.color_min.x))
+								{
+									edit_flag = true;
+								}
+							}
+
+							ImGui::TreePop();
+						}
 					}
 
 					ImGui::TreePop();
@@ -292,7 +332,8 @@ bool editor_items::edit_effect(std::shared_ptr<context>& context, effect_resourc
 					}
 					if (spawn)
 					{
-						ImGui::EditFlags<particle::item::spawn::states>(spawn->state);
+						if (ImGui::EditFlags<particle::item::spawn::states>(spawn->state))
+							edit_flag = true;
 
 						if (ImGui::DragFloat2("life_time_range", &spawn->life_time_range.x, 0.01f, 0.01f, 1000.0f))
 							edit_flag = true;
@@ -328,7 +369,8 @@ bool editor_items::edit_effect(std::shared_ptr<context>& context, effect_resourc
 					}
 					if (velocity)
 					{
-						ImGui::EditFlags<particle::item::velocity::states>(velocity->state);
+						if (ImGui::EditFlags<particle::item::velocity::states>(velocity->state))
+							edit_flag = true;
 
 						if (ImGui::SliderFloat3("life_time_range", &velocity->direction.x, -1.0f, 1.0f))
 						{
@@ -354,7 +396,7 @@ bool editor_items::edit_effect(std::shared_ptr<context>& context, effect_resourc
 							edit_flag = true;
 						if (ImGui::DragFloat3("deceleration_max", &velocity->deceleration_max.x, 0.01f, 0.01f, 1000.0f))
 							edit_flag = true;
-						if (ImGui::DragFloat2("gravity_scale", &velocity->gravity_scale.x, 0.01f, 0.0f, 1000.0f))
+						if (ImGui::DragFloat3("gravity_scale", &velocity->gravity_scale.x, 0.01f, 0.0f, 1000.0f))
 							edit_flag = true;
 					}
 					ImGui::TreePop();

@@ -21,8 +21,16 @@ public:
 	struct ik_data
 	{
 		bool visible = false;
+		bool initialized = false;	//	初回フレーム判定
 
-		//	aimIK用
+		//	FootIK用
+		float  smoothed_pelvis_length = 0.0f;	//	腰の沈み込み量
+
+		//	HandIK用
+		DirectX::XMFLOAT3 left_hand_target_position = {0, 0, 0};
+		DirectX::XMFLOAT3 right_hand_target_position = {0, 0, 0};
+
+		//	AimIK用
 		DirectX::XMFLOAT3 aim_target_position;
 	};
 
@@ -120,6 +128,9 @@ private:
 	std::vector<model_instance::node_animation> previous_node_animations;
 
 	//	IK情報
+	bool animation_foot_ik = false;	//	アニメーション側でのIKの制御フラグ
+	bool animation_hand_ik = false;	//	アニメーション側でのIKの制御フラグ
+	bool animation_aim_ik = false;	//	アニメーション側でのIKの制御フラグ
 	ik_solver_ptr ik_solver;
 	std::vector<ik_data> ik_datas;
 

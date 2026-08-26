@@ -35,6 +35,21 @@ void main(uint3 dispatch_thread_id : SV_DispatchThreadID)
     //  エミッター共通情報取得
     em_common_item em_common;
     stream_common_item(rw_read_only, emitter_binary_offset, em_common);
+    if (has_flag(em_common.active_items, emitter_active_trail_item_bit_flag))
+    {
+        em_trail_item em_trail = (em_trail_item) 0;
+        stream_trail_item(rw_read_only, emitter_binary_offset, em_trail);
+    }
+    if (has_flag(em_common.active_items, emitter_active_uv_item_bit_flag))
+    {
+        em_uv_item em_uv = (em_uv_item) 0;
+        stream_uv_item(rw_read_only, emitter_binary_offset, em_uv);
+    }
+    em_color_item em_color = (em_color_item) 0;
+    if (has_flag(em_common.active_items, emitter_active_color_item_bit_flag))
+    {
+        stream_color_item(rw_read_only, emitter_binary_offset, em_color);
+    }
 
     //  パーティクルインデックスのヘッダー
     uint particle_index_head = em_header.particle_index_head;
@@ -71,6 +86,19 @@ void main(uint3 dispatch_thread_id : SV_DispatchThreadID)
             float3 min = em_common.translation + em_common.spawn_area_min;
             float3 max = em_common.translation + em_common.spawn_area_max;
             pt_common.translation = lerp(min, max, x_or_shift_random3(x_or_shift_random_seed));
+            pt_common.color = 1;
+            if (has_flag(em_common.active_items, emitter_active_color_item_bit_flag))
+            {
+                //  色のランダム生成
+                if (has_flag(em_color.state, emitter_color_item_state_random))
+                {
+                    pt_common.color = lerp(em_color.color_min, em_color.color_max, x_or_shift_random4(x_or_shift_random_seed));
+                }
+                else
+                {
+                    pt_common.color = em_color.color_min;
+                }
+            }
             uint particle_binary_offset = em_header.particle_binary_head + em_header.particle_size * particle_index;
             stream_common_item(rw_write, particle_binary_offset, pt_common);
         }

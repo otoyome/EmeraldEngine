@@ -10,7 +10,7 @@
 #include "cereal/types/array.hpp"
 
 // CEREALバージョン定義
-CEREAL_CLASS_VERSION(ik_resource::foot_data, 3)
+CEREAL_CLASS_VERSION(ik_resource::foot_data, 4)
 CEREAL_CLASS_VERSION(ik_resource::hand_data, 1)
 CEREAL_CLASS_VERSION(ik_resource::look_at_data, 1)
 CEREAL_CLASS_VERSION(ik_resource::node, 2)
@@ -40,6 +40,16 @@ void ik_resource::foot_data::serialize(Archive& archive, int version)
 			break;
 		}
 		case 3:
+		{
+			std::array<DirectX::XMFLOAT3, 2> ray_origin_offsets;
+			archive(CEREAL_NVP(ray_length),
+					CEREAL_NVP(ray_origin_offsets),
+					CEREAL_NVP(foot_offset),
+					CEREAL_NVP(adjust_node_indices),
+					CEREAL_NVP(align_to_normal));
+			break;
+		}
+		case 4:
 		{
 			archive(CEREAL_NVP(ray_length),
 					CEREAL_NVP(ray_origin_offsets),

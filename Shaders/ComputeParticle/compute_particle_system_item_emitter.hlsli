@@ -48,15 +48,22 @@ void stream_common_item(uint rw, inout uint offset, inout em_common_item value)
 //  軌跡アイテム
 struct em_trail_item
 {
+    uint state;
     uint max; // 軌跡総数
+    float2 time_fade_rate; //	フェード
 };
 
 static const uint emitter_active_trail_item_bit_flag = 1 << 0;
 
+static const uint em_trail_item_state_use_fade = 1 << 0; //	軌跡描画時にフェードさせる
+static const uint em_trail_item_state_use_time_fade = 1 << 1; //	軌跡描画時にフェードさせる
+
 //  軌跡アイテム読み込み
 void stream_trail_item(uint rw, inout uint offset, inout em_trail_item value)
 {
+    em_stream_ptr(rw, offset, value.state);
     em_stream_ptr(rw, offset, value.max);
+    em_stream_ptr(rw, offset, value.time_fade_rate);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -76,7 +83,7 @@ static const uint emitter_active_uv_item_bit_flag = 1 << 1;
 static const uint emitter_uv_item_state_direct = 1 << 0;	//	UV座標を直接指定
 static const uint emitter_uv_item_state_animation = 1 << 1;	//	アニメーション使用フラグ
 
-//
+//  UVスクロールの方向制御用
 static const int2 emitter_uv_item_animation_direction_basis_value = uint2(5, 5);
 
 //  UVアイテム読み込み
@@ -87,6 +94,27 @@ void stream_uv_item(uint rw, inout uint offset, inout em_uv_item value)
     em_stream_ptr(rw, offset, value.time);
     em_stream_ptr(rw, offset, value.split_count);
     em_stream_ptr(rw, offset, value.rect);
+}
+
+//////////////////////////////////////////////////////////////////////////
+//  色アイテム
+struct em_color_item
+{
+    uint state; //  ステート
+    float4 color_min; // 色の範囲
+    float4 color_max; // 色の範囲
+};
+
+static const uint emitter_active_color_item_bit_flag = 1 << 2;
+
+static const uint emitter_color_item_state_random = 1 << 0; //	ランダム設定
+
+//  色アイテム読み込み
+void stream_color_item(uint rw, inout uint offset, inout em_color_item value)
+{
+    em_stream_ptr(rw, offset, value.state);
+    em_stream_ptr(rw, offset, value.color_min);
+    em_stream_ptr(rw, offset, value.color_max);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -107,7 +135,7 @@ struct em_veloctiy_item
     float3 gravity; // 重力
 };
 
-static const uint emitter_active_veloctiy_item_bit_flag = 1 << 2;
+static const uint emitter_active_veloctiy_item_bit_flag = 1 << 3;
 
 static const uint emitter_veloctiy_item_state_random_direction = 1 << 0;
 static const uint emitter_veloctiy_item_state_random_power = 1 << 1;

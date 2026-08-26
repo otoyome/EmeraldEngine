@@ -285,13 +285,13 @@ namespace
 								std::string solver_name = search_ik_solver_name(ik_behavior_data.solve_ids[0]);
 								if (ImGui::Combo("0", solver_name, solver_names))
 									ik_behavior_data.solve_ids[0] = search_ik_solve_data(solver_name);
-								ImGui::DragFloat3("foot_offset0", &foot_data.ray_origin_offsets[0].x, 0.001f, -system_units::convert_cm_to_unit(100.0f), system_units::convert_cm_to_unit(100.0f));
+								ImGui::DragFloat("foot_offset0", &foot_data.ray_origin_offsets[0], 0.001f, -system_units::convert_cm_to_unit(100.0f), system_units::convert_cm_to_unit(100.0f));
 								edited |= ImGui::IsItemEdited();
 
 								solver_name = search_ik_solver_name(ik_behavior_data.solve_ids[1]);
 								if (ImGui::Combo("1", solver_name, solver_names))
 									ik_behavior_data.solve_ids[1] = search_ik_solve_data(solver_name);
-								ImGui::DragFloat3("foot_offset1", &foot_data.ray_origin_offsets[1].x, 0.001f, -system_units::convert_cm_to_unit(100.0f), system_units::convert_cm_to_unit(100.0f));
+								ImGui::DragFloat("foot_offset1", &foot_data.ray_origin_offsets[1], 0.001f, -system_units::convert_cm_to_unit(100.0f), system_units::convert_cm_to_unit(100.0f));
 
 								edited |= ImGui::IsItemEdited();
 							}
@@ -749,19 +749,19 @@ namespace
 							{
 								DirectX::XMFLOAT3 left_start, right_start, left_end, right_end;
 
-								left_start = DirectX::XMFLOAT3(left_world_matrix._41 + foot_data.ray_origin_offsets[0].x,
-															   left_world_matrix._42 + foot_data.ray_origin_offsets[0].y,
-															   left_world_matrix._43 + foot_data.ray_origin_offsets[0].z);
-								right_start = DirectX::XMFLOAT3(right_world_matrix._41 + foot_data.ray_origin_offsets[1].x,
-															    right_world_matrix._42 + foot_data.ray_origin_offsets[1].y,
-															    right_world_matrix._43 + foot_data.ray_origin_offsets[1].z);
+								left_start = DirectX::XMFLOAT3(left_world_matrix._41,
+															   left_world_matrix._42 + foot_data.ray_origin_offsets[0],
+															   left_world_matrix._43);
+								right_start = DirectX::XMFLOAT3(right_world_matrix._41,
+															    right_world_matrix._42 + foot_data.ray_origin_offsets[1],
+															    right_world_matrix._43);
 
-								left_end = DirectX::XMFLOAT3(left_start.x,
-															 left_start.y - foot_data.ray_length,
-														     left_start.z);
-								right_end = DirectX::XMFLOAT3(right_start.x,
-															  right_start.y - foot_data.ray_length,
-															  right_start.z);
+								left_end = DirectX::XMFLOAT3(left_world_matrix._41,
+															 left_world_matrix._42 - (foot_data.ray_origin_offsets[0] + foot_data.ray_length),
+														     left_world_matrix._43);
+								right_end = DirectX::XMFLOAT3(right_world_matrix._41,
+															  right_world_matrix._42 - (foot_data.ray_origin_offsets[1] + foot_data.ray_length),
+															  right_world_matrix._43);
 
 								left_hit = box.intersect_segment(left_start, left_end, &left_hit_data);
 								right_hit = box.intersect_segment(right_start, right_end, &right_hit_data);

@@ -125,6 +125,28 @@ float4 calculate_uv_rect(in pt_common_item pt_common, in em_uv_item em_uv)
     return rect;
 }
 
+//  2点間のセグメント方向とカメラ方向から、リボンの幅方向(x_axis)を求める
+float3 calculate_trail_axis(float3 pos0, float3 pos1)
+{
+    float3 axis = float3(-1, 0, 0);
+    float3 segment = pos1 - pos0;
+    if (length(segment) > 0.001f)
+    {
+        axis = cross(normalize(segment), normalize(-camera_direction.xyz));
+    }
+    return axis;
+}
+
+//  経過時間によるフェードイン・フェードアウト係数を求める
+float calculate_trail_time_fade(float life_time, float life_time_max, float2 time_fade_rate)
+{
+    float time_rate = saturate(life_time / life_time_max);
+    float fade_in = smoothstep(0.0f, time_fade_rate.x, time_rate);
+    float fade_out = 1.0f - smoothstep(time_fade_rate.y, 1.0f, time_rate);
+    return fade_in * fade_out;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 [numthreads(NumDispatchThread, 1, 1)]
 void main(uint3 dispatch_thread_id : SV_DispatchThreadID)
 {
@@ -174,6 +196,7 @@ void main(uint3 dispatch_thread_id : SV_DispatchThreadID)
     em_common_item em_common = (em_common_item)0;
     em_trail_item em_trail = (em_trail_item) 0;
     em_uv_item em_uv = (em_uv_item) 0;
+    em_color_item em_color = (em_color_item) 0;
     {
         stream_common_item(rw_read_only, emitter_binary_offset, em_common);
         if (em_common.active_items & emitter_active_trail_item_bit_flag)
@@ -184,12 +207,9 @@ void main(uint3 dispatch_thread_id : SV_DispatchThreadID)
         {
             stream_uv_item(rw_read_only, emitter_binary_offset, em_uv);
         }
-        else
+        if (em_common.active_items & emitter_active_color_item_bit_flag)
         {
-            em_uv.state = 0;
-            em_uv.split_count = uint2(1, 1); //	分割数
-            em_uv.index = 0;
-            em_uv.time = -1; //	次のスプライトに移動するタイミング
+            stream_color_item(rw_read_only, emitter_binary_offset, em_color);
         }
 
         //  以降は不要
@@ -204,7 +224,6 @@ void main(uint3 dispatch_thread_id : SV_DispatchThreadID)
         {
             stream_trail_header(rw_read_only, particle_binary_offset, pt_trail_header);
         }
-        //  pt_uv_item は存在しない
 
         //  以降は不要
     }
@@ -220,31 +239,21 @@ void main(uint3 dispatch_thread_id : SV_DispatchThreadID)
         //  初期値設定
         pt_trail_body_item trail_body[2];
         {
-            trail_body[0].scale = pt_common.scale;
-            trail_body[0].rotation = pt_common.rotation;
-            trail_body[0].translation = pt_common.translation;
-            if (pt_trail_header.counter >= 2)
-            {
-                read_offset = particle_binary_offset + pt_trail_body_size_of_bytes;
-                stream_trail_body(rw_read_only, read_offset, trail_body[1]);
-            }
-            else
-            {
-                trail_body[1] = trail_body[0];
-            }
+            read_offset = particle_binary_offset + pt_trail_body_size_of_bytes;
+            stream_trail_body(rw_read_only, read_offset, trail_body[0]);
+            stream_trail_body(rw_read_only, read_offset, trail_body[1]);
 
-            float3 x_axis = float3(1, 0, 0);
-            float3 z_axis = trail_body[1].translation - trail_body[0].translation;
-            if (length(z_axis) > 0.001f)
-            {
-                x_axis = cross(normalize(z_axis), normalize(-camera_direction.xyz));
-            }
+            float3 x_axis = calculate_trail_axis(trail_body[0].translation, trail_body[1].translation);
             vertex_positions[2] = float4(trail_body[0].translation + x_axis * trail_body[0].scale, 1);
             vertex_positions[3] = float4(trail_body[0].translation - x_axis * trail_body[0].scale, 1);
         }
         
         //  UV矩形
-        float4 uv_rect = calculate_uv_rect(pt_common, em_uv);
+        float4 uv_rect = float4(0, 0, 1, 1);
+        if (em_common.active_items & emitter_active_uv_item_bit_flag)
+        {
+            uv_rect = calculate_uv_rect(pt_common, em_uv);
+        }
         
         //  頂点登録
         uint index = 0;
@@ -253,26 +262,46 @@ void main(uint3 dispatch_thread_id : SV_DispatchThreadID)
             vertex_positions[0] = vertex_positions[2];
             vertex_positions[1] = vertex_positions[3];
 
+            //  次の軌跡点を先読みしてから、その点でのリング(輪切り)を計算する
+            //  (配列末尾を超えないようクランプ)
+            uint next_index = min(index + 1, em_trail.max - 1);
+            uint next_next_index = min(index + 2, em_trail.max - 1);
+            read_offset = particle_binary_offset + next_index * pt_trail_body_size_of_bytes;
+            stream_trail_body(rw_read_only, read_offset, trail_body[0]);
+            read_offset = particle_binary_offset + next_next_index * pt_trail_body_size_of_bytes;
+            stream_trail_body(rw_read_only, read_offset, trail_body[1]);
+
             //  座標計算
-            float3 x_axis = float3(1, 0, 0);
-            float3 z_axis = trail_body[1].translation - trail_body[0].translation;
-            if (length(z_axis) > 0.001f)
-            {
-                x_axis = cross(normalize(z_axis), normalize(-camera_direction.xyz));
-            }
+            float3 x_axis = calculate_trail_axis(trail_body[0].translation, trail_body[1].translation);
             vertex_positions[2] = float4(trail_body[0].translation + x_axis * trail_body[0].scale, 1);
             vertex_positions[3] = float4(trail_body[0].translation - x_axis * trail_body[0].scale, 1);
             vertex_positions[2] = (vertex_positions[0] + vertex_positions[2]) * 0.5f;
             vertex_positions[3] = (vertex_positions[1] + vertex_positions[3]) * 0.5f;
 
-            //  スプライトの形状生成
             {
-                //  スプライトは4頂点
                 float rate[2] = { saturate((float) (index + 0) / em_trail.max), saturate((float) (index + 1) / em_trail.max) };
-                vertex_color[0] = float4(1, 1, 1, rate[0]);
-                vertex_color[1] = float4(1, 1, 1, rate[0]);
-                vertex_color[2] = float4(1, 1, 1, rate[1]);
-                vertex_color[3] = float4(1, 1, 1, rate[1]);
+                vertex_color[0] = pt_common.color;
+                vertex_color[1] = pt_common.color;
+                vertex_color[2] = pt_common.color;
+                vertex_color[3] = pt_common.color;
+
+                //  末尾に行くほどフェード
+                if (em_trail.state & em_trail_item_state_use_fade)
+                {
+                    vertex_color[0].a *= 1.0f - rate[0];
+                    vertex_color[1].a *= 1.0f - rate[0];
+                    vertex_color[2].a *= 1.0f - rate[1];
+                    vertex_color[3].a *= 1.0f - rate[1];
+                }
+                //  時間経過によるフェード
+                if (em_trail.state & em_trail_item_state_use_time_fade)
+                {
+                    float fade = calculate_trail_time_fade(pt_common.life_time, pt_common.life_time_max, em_trail.time_fade_rate);
+                    vertex_color[0].a *= fade;
+                    vertex_color[1].a *= fade;
+                    vertex_color[2].a *= fade;
+                    vertex_color[3].a *= fade;
+                }
                 vertex_texcoord[0] = uv_rect.xy + uv_rect.zw * float2(0, rate[0]);
                 vertex_texcoord[1] = uv_rect.xy + uv_rect.zw * float2(1, rate[0]);
                 vertex_texcoord[2] = uv_rect.xy + uv_rect.zw * float2(0, rate[1]);
@@ -282,26 +311,15 @@ void main(uint3 dispatch_thread_id : SV_DispatchThreadID)
             //  頂点座標
             uint vertex_buffer_byte_offset = ((particle_header_offset * em_trail.max + index) * index_size) * vertex_size;
             register_vertex(target_vertex_buffer_index, vertex_buffer_byte_offset, vertex_positions, vertex_color, vertex_texcoord);
-
-            //  次の軌跡の情報取得
-            read_offset = particle_binary_offset + (index + 0) * pt_trail_body_size_of_bytes;
-            stream_trail_body(rw_read_only, read_offset, trail_body[0]);
-            read_offset = particle_binary_offset + (index + 1) * pt_trail_body_size_of_bytes;
-            stream_trail_body(rw_read_only, read_offset, trail_body[1]);
         }
 
-        vertex_positions[0] = float4(0, 0, 0, 1);
-        vertex_positions[1] = float4(0, 0, 0, 1);
-        vertex_positions[2] = float4(0, 0, 0, 1);
-        vertex_positions[3] = float4(0, 0, 0, 1);
-        vertex_color[0] = float4(0, 0, 0, 0);
-        vertex_color[1] = float4(0, 0, 0, 0);
-        vertex_color[2] = float4(0, 0, 0, 0);
-        vertex_color[3] = float4(0, 0, 0, 0);
-        vertex_texcoord[0] = float2(0, 0);
-        vertex_texcoord[1] = float2(0, 0);
-        vertex_texcoord[2] = float2(0, 0);
-        vertex_texcoord[3] = float2(0, 0);
+        //  残りは初期化しておく
+        vertex_positions[0] = vertex_positions[2];
+        vertex_positions[1] = vertex_positions[3];
+        vertex_color[0] = vertex_color[2];
+        vertex_color[1] = vertex_color[3];
+        vertex_texcoord[0] = vertex_texcoord[2];
+        vertex_texcoord[1] = vertex_texcoord[3];
         [loop] for (index = pt_trail_header.counter; index < em_trail.max; ++index)
         {
             //  頂点座標
@@ -332,11 +350,15 @@ void main(uint3 dispatch_thread_id : SV_DispatchThreadID)
             vertex_positions[1] = mul(float4(+0.5f, -0.5f, 0, 1), world_matrix);
             vertex_positions[2] = mul(float4(-0.5f, +0.5f, 0, 1), world_matrix);
             vertex_positions[3] = mul(float4(+0.5f, +0.5f, 0, 1), world_matrix);
-            vertex_color[0] = float4(1, 1, 1, 1);
-            vertex_color[1] = float4(1, 1, 1, 1);
-            vertex_color[2] = float4(1, 1, 1, 1);
-            vertex_color[3] = float4(1, 1, 1, 1);
-            float4 uv_rect = calculate_uv_rect(pt_common, em_uv);
+            vertex_color[0] = pt_common.color;
+            vertex_color[1] = pt_common.color;
+            vertex_color[2] = pt_common.color;
+            vertex_color[3] = pt_common.color;
+            float4 uv_rect = float4(0, 0, 1, 1);
+            if (em_common.active_items & emitter_active_uv_item_bit_flag)
+            {
+                uv_rect = calculate_uv_rect(pt_common, em_uv);
+            }
             vertex_texcoord[0] = uv_rect.xy + uv_rect.zw * float2(0, 0);
             vertex_texcoord[1] = uv_rect.xy + uv_rect.zw * float2(1, 0);
             vertex_texcoord[2] = uv_rect.xy + uv_rect.zw * float2(0, 1);

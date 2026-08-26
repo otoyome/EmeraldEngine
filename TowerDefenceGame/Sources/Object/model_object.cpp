@@ -549,6 +549,11 @@ void model_object::update_node_animation(const animation::data& animation_data, 
 		}
 	}
 
+	//	IK制御用の情報を保存
+	animation_foot_ik = animation_data.foot_ik;
+	animation_hand_ik = animation_data.hand_ik;
+	animation_aim_ik = animation_data.aim_ik;
+
 	//	ノード姿勢設定
 	model_instance->set_node_poses(current_node_animations);
 	dirty = true;
@@ -577,17 +582,35 @@ void model_object::update_ik()
 		ik_datas.resize(behavior_data_list.size());
 	}
 
+	constexpr float k_pelvis_smooth_speed = 25.0f;
+	const float dt = 0.01666f; // 既存のdt取得関数に置き換えてください
+
+	auto ExpLerp = [](float current, float target, float speed, float dt) -> float
+	{
+		float t = 1.0f - std::expf(-speed * dt);
+		return current + (target - current) * t;
+	};
+
 	for (UINT index = 0; index < behavior_data_list.size(); ++index)
 	{
 		auto& ik_data = ik_datas[index];
 		if (!ik_data.visible)
+		{
+			ik_data.initialized = false;
 			continue;
+		}
 
 		auto& behavior_data = behavior_data_list[index];
 		switch (behavior_data.mode)
 		{
 			case ::ik_resource::behavior_mode::foot:
 			{
+				if (!animation_foot_ik)
+				{
+					ik_data.initialized = false;
+					continue;
+				}
+
 				if (behavior_data.solve_ids.empty() ||
 					behavior_data.solve_ids.size() < 2 ||
 					behavior_data.solve_ids[0] == ik_resource::invalid_id ||
@@ -602,11 +625,14 @@ void model_object::update_ik()
 				auto& right_node = model_instance_nodes[model_instance->get_node_index_by_name(right_node_data.source_node_name)];
 				auto& foot_data = std::get<ik_resource::foot_data>(behavior_data.data);
 
-				//	
+				//	各足の座標を算出
 				DirectX::XMFLOAT4X4 left_world_matrix, right_world_matrix;
 				DirectX::XMStoreFloat4x4(&left_world_matrix, DirectX::XMLoadFloat4x4(&left_node.global_transform) * WorldMatrix);
 				DirectX::XMStoreFloat4x4(&right_world_matrix, DirectX::XMLoadFloat4x4(&right_node.global_transform) * WorldMatrix);
+				const DirectX::XMFLOAT3 left_foot_position(left_world_matrix._41, left_world_matrix._42, left_world_matrix._43);
+				const DirectX::XMFLOAT3 right_foot_position(right_world_matrix._41, right_world_matrix._42, right_world_matrix._43);
 
+				//	重力方向
 				static constexpr DirectX::XMFLOAT3 foot_ik_direction = {0, -1, 0};
 
 				//	各足が埋まるかを確認
@@ -618,35 +644,50 @@ void model_object::update_ik()
 					right_ray_data.filter = collision_filter_manager::instance()->search_filter("ik");
 
 					left_ray_data.start =
-					left_ray_data.end = DirectX::XMFLOAT3(left_world_matrix._41 + foot_data.ray_origin_offsets[0].x,
-															left_world_matrix._42 + foot_data.ray_origin_offsets[0].y,
-															left_world_matrix._43 + foot_data.ray_origin_offsets[0].z);
-					left_ray_data.end.x += foot_ik_direction.x * foot_data.ray_length;
-					left_ray_data.end.y += foot_ik_direction.y * foot_data.ray_length;
-					left_ray_data.end.z += foot_ik_direction.z * foot_data.ray_length;
+					left_ray_data.end = DirectX::XMFLOAT3(left_world_matrix._41, left_world_matrix._42, left_world_matrix._43);
+					left_ray_data.start.x -= foot_ik_direction.x * foot_data.ray_origin_offsets[0];
+					left_ray_data.start.y -= foot_ik_direction.y * foot_data.ray_origin_offsets[0];
+					left_ray_data.start.z -= foot_ik_direction.z * foot_data.ray_origin_offsets[0];
+					left_ray_data.end.x += foot_ik_direction.x * (foot_data.ray_origin_offsets[0] + foot_data.ray_length);
+					left_ray_data.end.y += foot_ik_direction.y * (foot_data.ray_origin_offsets[0] + foot_data.ray_length);
+					left_ray_data.end.z += foot_ik_direction.z * (foot_data.ray_origin_offsets[0] + foot_data.ray_length);
 
 					right_ray_data.start =
-					right_ray_data.end = DirectX::XMFLOAT3(right_world_matrix._41 + foot_data.ray_origin_offsets[1].x,
-															right_world_matrix._42 + foot_data.ray_origin_offsets[1].y,
-															right_world_matrix._43 + foot_data.ray_origin_offsets[1].z);
-					right_ray_data.end.x += foot_ik_direction.x * foot_data.ray_length;
-					right_ray_data.end.y += foot_ik_direction.y * foot_data.ray_length;
-					right_ray_data.end.z += foot_ik_direction.z * foot_data.ray_length;
+					right_ray_data.end = DirectX::XMFLOAT3(right_world_matrix._41, right_world_matrix._42, right_world_matrix._43);
+					right_ray_data.start.x -= foot_ik_direction.x * foot_data.ray_origin_offsets[1];
+					right_ray_data.start.y -= foot_ik_direction.y * foot_data.ray_origin_offsets[1];
+					right_ray_data.start.z -= foot_ik_direction.z * foot_data.ray_origin_offsets[1];
+					right_ray_data.end.x += foot_ik_direction.x * (foot_data.ray_origin_offsets[1] + foot_data.ray_length);
+					right_ray_data.end.y += foot_ik_direction.y * (foot_data.ray_origin_offsets[1] + foot_data.ray_length);
+					right_ray_data.end.z += foot_ik_direction.z * (foot_data.ray_origin_offsets[1] + foot_data.ray_length);
 
 					collision_object_ptr obj;
 					left_hit = object_manager::instance()->get_world().ray_cast(left_ray_data, left_hit_data, obj);
 					right_hit = object_manager::instance()->get_world().ray_cast(right_ray_data, right_hit_data, obj);
 				}
 
+				//	接地距離
+				const float left_baseline  = foot_data.ray_origin_offsets[0] - foot_data.foot_offset;
+				const float right_baseline = foot_data.ray_origin_offsets[1] - foot_data.foot_offset;
+
 				//	腰位置を下げる
 				{
-					float length = FLT_MIN;
+					float length = 0.0f;
 					if (left_hit)
-						length = foot_data.ray_length - left_hit_data[0].length;
+						length = left_hit_data[0].length - left_baseline;
 					if (right_hit)
-						length = std::max(length, foot_data.ray_length - right_hit_data[0].length);
+						length = std::max(length, right_hit_data[0].length - right_baseline);
+					length = std::max(length, 0.0f);
 
-					auto PelvisOffset = DirectX::XMVectorSet(0, -length, 0, 0);
+					if (!ik_data.initialized)
+						ik_data.smoothed_pelvis_length = length;
+					else
+						ik_data.smoothed_pelvis_length = ExpLerp(ik_data.smoothed_pelvis_length, length, k_pelvis_smooth_speed, dt);
+
+					//	ワールド空間でのオフセット位置を算出
+					auto PelvisOffset = DirectX::XMVectorScale(DirectX::XMLoadFloat3(&foot_ik_direction), ik_data.smoothed_pelvis_length);
+
+					//	該当ノード全体に適応
 					for (auto& node_index : foot_data.adjust_node_indices)
 					{
 						auto& pelvis_node_data = ik_solver->get_resource()->get_node_list()[node_index];
@@ -672,22 +713,68 @@ void model_object::update_ik()
 				//	ヒット位置に足を補正
 				if (left_hit)
 				{
-					left_hit_data[0].point.x += foot_ik_direction.x * foot_data.foot_offset;
-					left_hit_data[0].point.y += foot_ik_direction.y * foot_data.foot_offset;
-					left_hit_data[0].point.z += foot_ik_direction.z * foot_data.foot_offset;
-					ik_solver->solve(behavior_data.solve_ids[0], left_hit_data[0].point);
+					DirectX::XMFLOAT3 ik_pos = left_hit_data[0].point;
+					ik_pos.x += foot_ik_direction.x * foot_data.foot_offset;
+					ik_pos.y += foot_ik_direction.y * foot_data.foot_offset;
+					ik_pos.z += foot_ik_direction.z * foot_data.foot_offset;
+					ik_solver->solve(behavior_data.solve_ids[0], ik_pos);
 				}
 				if (right_hit)
 				{
-					right_hit_data[0].point.x += foot_ik_direction.x * foot_data.foot_offset;
-					right_hit_data[0].point.y += foot_ik_direction.y * foot_data.foot_offset;
-					right_hit_data[0].point.z += foot_ik_direction.z * foot_data.foot_offset;
-					ik_solver->solve(behavior_data.solve_ids[1], right_hit_data[0].point);
+					DirectX::XMFLOAT3 ik_pos = right_hit_data[0].point;
+					ik_pos.x += foot_ik_direction.x * foot_data.foot_offset;
+					ik_pos.y += foot_ik_direction.y * foot_data.foot_offset;
+					ik_pos.z += foot_ik_direction.z * foot_data.foot_offset;
+					ik_solver->solve(behavior_data.solve_ids[1], ik_pos);
+				}
+
+				ik_data.initialized = true;
+				break;
+			}
+			case ::ik_resource::behavior_mode::hand:
+			{
+				if (!animation_hand_ik)
+				{
+					ik_data.initialized = false;
+					continue;
+				}
+				auto& hand_data = std::get<ik_resource::hand_data>(behavior_data.data);
+
+				// 左手のIKターゲットをワールド座標へ変換して適用
+				//if (hand_data.enable_left)
+				{
+					DirectX::XMFLOAT3 left_target_pos;
+					DirectX::XMStoreFloat3(
+						&left_target_pos,
+						DirectX::XMVector3Transform(
+							DirectX::XMLoadFloat3(&ik_data.left_hand_target_position),
+							WorldMatrix));
+
+					ik_solver->solve(behavior_data.solve_ids[0], left_target_pos);
+				}
+
+				// 右手のIKターゲットをワールド座標へ変換して適用
+				//if (hand_data.enable_right)
+				{
+					DirectX::XMFLOAT3 right_target_pos;
+					DirectX::XMStoreFloat3(
+						&right_target_pos,
+						DirectX::XMVector3Transform(
+							DirectX::XMLoadFloat3(&ik_data.right_hand_target_position),
+							WorldMatrix));
+
+					ik_solver->solve(behavior_data.solve_ids[1], right_target_pos);
 				}
 				break;
 			}
 			case ::ik_resource::behavior_mode::lookat:
 			{
+				if (!animation_aim_ik)
+				{
+					ik_data.initialized = false;
+					continue;
+				}
+
 				for (auto& solve_id : behavior_data.solve_ids)
 				{
 					ik_solver->solve(solve_id, ik_data.aim_target_position);

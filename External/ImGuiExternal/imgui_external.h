@@ -73,8 +73,9 @@ namespace ImGui
     bool DragUInt4(const char* label, UINT v[4], float v_speed = 1.0f, UINT v_min = 0, UINT v_max = 0, ImGuiSliderFlags flags = 0);
 
     template<class StatesEnum, class T>
-    void EditFlags(T& obj)
+    bool EditFlags(T& obj)
     {
+        bool edited_flag = false;
         for (auto flag : magic_enum::enum_values<StatesEnum>())
         {
             bool checked = system_utility::is_bitflag(obj, flag);
@@ -82,7 +83,10 @@ namespace ImGui
             if (Checkbox(label.c_str(), &checked))
             {
 	            system_utility::set_bitflag(obj, flag, checked);
+                edited_flag = true;
             }
         }
+
+        return edited_flag;
     }
 }

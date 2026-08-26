@@ -34,7 +34,7 @@ void main(uint3 dispatch_thread_id : SV_DispatchThreadID)
     stream_common_item(rw_read_only, emitter_binary_offset, common);
 
     //  パーティクルヘッダーを割り当てる
-    //  これをbeginFrame側でやれば高速化出来るかも？
+    //  @remainder  これをbeginFrame側でやれば高速化出来るかも？
     emitter_data em_data = emitter_data_buffer[emitter_index];
     em_data.spawn_num = em_data.spawn_head = 0;
     if (common.spawn_count > 0)

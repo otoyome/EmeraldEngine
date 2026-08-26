@@ -547,8 +547,7 @@ void material::set_blendable_location(blendable_locations location)
 
 material::translucency_paths material::get_translucency_path() const
 {
-	if (domain == domains::surface && blend_mode == blend_modes::translucent ||
-		domain == domains::particle && blend_mode == blend_modes::translucent)
+	if ((domain == domains::surface || domain == domains::particle) && (blend_mode == blend_modes::translucent || blend_mode == blend_modes::addative))
 		return translucency_path;
 
 	return translucency_paths::unknown;
