@@ -28,8 +28,6 @@ bool edit_model_scene::initialize_core()
 	{
 		main_camera = std::make_shared<camera_object>("ƒƒCƒ“ƒJƒƒ‰");
 		main_camera->get_camera()->set_fov_y(DirectX::XMConvertToRadians(15.0f));
-	//	main_camera->get_camera()->set_flag(camera::flags::hybrid_projection, true);
-	//	main_camera->get_camera()->set_hybrid_rate(0.3f);	//	“§Ž‹“Š‰e
 		register_object(main_camera);
 		mouse::instance()->set_center_lock(false);
 		mouse::instance()->set_cursol_hide(false);

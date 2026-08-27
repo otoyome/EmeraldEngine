@@ -54,6 +54,26 @@ void effect_instance::set_position(const DirectX::XMFLOAT3& position)
 	this->position = position;
 }
 
+float effect_instance::get_animation_time() const
+{
+	return animation_time;
+}
+
+void effect_instance::set_animation_time(float animation_time)
+{
+	this->animation_time = animation_time;
+}
+
+float effect_instance::get_animation_speed() const
+{
+	return animation_speed;
+}
+
+void effect_instance::set_animation_speed(float animation_speed)
+{
+	this->animation_speed = animation_speed;
+}
+
 effect_instance::effect_instance()
 : system_flags(0)
 , resource()
@@ -80,38 +100,56 @@ void effect_instance::update(float elapsed_time)
 	if (!resource)
 		return;
 
-	//	アニメーション関係での更新かな？
+	//	アニメーション更新
+	auto& animations = resource->get_animations();
+	if (!animations.empty())
+	{
+		//	アニメーション時間更新
+		animation_time += elapsed_time;
+
+		//	アニメーションノード計算
+		static constexpr int animation_index = 0;	//	0番のみなので
+		if (resource->compute_animation_nodes(node_animations, animation_index, animation_time))
+		{
+			auto instance_node_ptr = nodes.data();
+			auto animation_node_ptr = node_animations.data();
+			for (size_t index = 0; index < node_animations.size(); ++index)
+			{
+				auto& in = *(instance_node_ptr + index);
+				auto& an = *(animation_node_ptr + index);
+				DirectX::XMMATRIX Scale = DirectX::XMMatrixScaling(an.scale.x, an.scale.y, an.scale.z);
+				DirectX::XMMATRIX Rotation = DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&an.rotation));
+				DirectX::XMMATRIX Matrix = Scale * Rotation;
+				Matrix.r[3] = DirectX::XMVectorSet(an.translation.x, an.translation.y, an.translation.z, 1.0f);
+				DirectX::XMStoreFloat4x4(&in.local_transform, Matrix);
+			}
+		}
+	}
 
 	//	姿勢情報
 	auto rot = rotation.convert_quaternion();
 	auto S = DirectX::XMMatrixScaling(scale.x, scale.y, scale.z);
 	auto R = DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&rot));
 	auto T = DirectX::XMMatrixTranslation(position.x, position.y, position.z);
-	auto W = S * R * T;
+	auto WorldTransform = S * R * T;
 
-	//	モデルの姿勢更新
-	for (auto& model : model_datas)
+	//	ノード更新
+	for (auto& node : nodes)
 	{
-		//	ローカル姿勢を設定
-		S = DirectX::XMMatrixScaling(model.scale.x, model.scale.y, model.scale.z);
-		R = DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&model.rotation));
-		T = DirectX::XMMatrixTranslation(model.position.x, model.position.y, model.position.z);
-		auto WorldMatrix = S * R * T * W;
-
-		model.instance->update_transform(WorldMatrix);
+		DirectX::XMMATRIX GlobalTransform = DirectX::XMLoadFloat4x4(&node.local_transform);
+		if (node.parent_index != invalid_id)
+		{
+			auto& parent_node = nodes[node.parent_index];
+			GlobalTransform *= DirectX::XMLoadFloat4x4(&parent_node.global_transform);
+		}
+		DirectX::XMStoreFloat4x4(&node.global_transform, GlobalTransform);
+		DirectX::XMStoreFloat4x4(&node.world_transform, GlobalTransform * WorldTransform);
 	}
 
-	//	デカール情報構築
-	for (auto& decal : decal_datas)
+	//	モデルの姿勢更新
+	for (auto& model : models)
 	{
-		S = DirectX::XMMatrixScaling(decal.scale.x, decal.scale.y, decal.scale.z);
-		R = DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&decal.rotation));
-		T = DirectX::XMMatrixTranslation(decal.position.x, decal.position.y, decal.position.z);
-		auto WorldMatrix = S * R * T * W;
-		DirectX::XMMatrixDecompose(&S.r[0], &R.r[1], &T.r[2], W);
-		DirectX::XMStoreFloat3(&decal.scale, S.r[0]);
-		DirectX::XMStoreFloat4(&decal.rotation, S.r[1]);
-		DirectX::XMStoreFloat3(&decal.position, S.r[2]);
+		model.instance->update_transform(nodes[model.node_index].world_transform);
 	}
 }
 
@@ -120,26 +158,37 @@ void effect_instance::build()
 	if(!resource)
 		return;
 
+	//	ノード構築
+	for (auto& node : resource->get_nodes())
+	{
+		auto& data = nodes.emplace_back();
+		data.name = node.name;
+		data.parent_index = node.parent_index;
+		data.scale = node.scale;
+		data.rotation = node.rotation;
+		data.position = node.position;
+	}
+
 	//	モデル構築
 	for (auto& model : resource->get_models())
 	{
 		if (!model.is_valid())
 			continue;
 
-		auto& model_data = model_datas.emplace_back();
-		model_data.scale = model.scale;
-		model_data.rotation = model.rotation;
-		model_data.position = model.position;
-		model_data.instance = std::make_shared<model_instance>(model.resource);
+		auto& data = models.emplace_back();
+		data.node_index = model.node_index;
+		data.instance = std::make_shared<model_instance>(model.resource);
 	}
 
 	//	パーティクル構築
-	for (auto& particle_data : resource->get_particles())
+	for (auto& particle : resource->get_particles())
 	{
-		if (!particle_data.is_valid())
+		if (!particle.is_valid())
 			continue;
 
-		particle_datas.emplace_back(particle_data);
+		auto& data = particles.emplace_back();
+		data.node_index = particle.node_index;
+		data.particle = particle.particle;
 	}
 
 	//	デカール構築
@@ -148,12 +197,9 @@ void effect_instance::build()
 		if (!decal.is_valid())
 			continue;
 
-		auto& decal_data = decal_datas.emplace_back();
-		decal_data.scale = decal.scale;
-		decal_data.rotation = decal.rotation;
-		decal_data.position = decal.position;
-		decal_data.material = std::make_shared<material>();
-		decal.material->duplicate(*decal_data.material);
+		auto& data = decals.emplace_back();
+		data.node_index = decal.node_index;
+		decal.material->duplicate(*data.material);
 	}
 }
 
@@ -207,23 +253,27 @@ void effect_manager::update_gpu(graphics_context& context, float elapsed_time)
 			if (!item.effect_instance)
 				continue;
 
-			for (UINT index = 0; index < item.effect_instance->get_particle_datas().size(); ++index)
+			for (UINT index = 0; index < item.effect_instance->get_particles().size(); ++index)
 			{
 				auto& emitter_item = item.emitter_items[index];
-				auto& particle_data = item.effect_instance->get_particle_datas()[index];
+				auto& particle_data = item.effect_instance->get_particles()[index];
+				auto& node_data = item.effect_instance->get_nodes()[particle_data.node_index];
 
-				auto renderer = particle_data.get_item<particle::item::renderer>();
-				auto spawn = particle_data.get_item<particle::item::spawn>();
-				auto velocity = particle_data.get_item<particle::item::velocity>();
+				auto renderer = particle_data.particle.get_item<::particle::item::renderer>();
+				auto spawn = particle_data.particle.get_item<::particle::item::spawn>();
+				auto velocity = particle_data.particle.get_item<::particle::item::velocity>();
 
 				//	共通データ
 				particle_system_item::emitter::common common_data;
 				{
 					common_data.emitter_state;
 
-					common_data.scale = item.effect_instance->get_scale();
-					common_data.rotation = item.effect_instance->get_rotation();
-					common_data.translation = item.effect_instance->get_position();
+					auto WorldMatrix = DirectX::XMLoadFloat4x4(&node_data.world_transform);
+					DirectX::XMVECTOR S, R, T;
+					DirectX::XMMatrixDecompose(&S, &R, &T, WorldMatrix);
+					DirectX::XMStoreFloat3(&common_data.scale, S);
+					DirectX::XMStoreFloat4(&common_data.rotation, R);
+					DirectX::XMStoreFloat3(&common_data.translation, T);
 
 					//	発生情報設定
 					if (spawn)
@@ -354,7 +404,6 @@ void effect_manager::update_gpu(graphics_context& context, float elapsed_time)
 void effect_manager::get_container(effect_container& effects, decal_container& decals)
 {
 	effects.clear();
-	decals.clear();
 
 	//	バッファ/マテリアルの配列生成
 	effects.sprite_trail_draw_datas.reserve(256);
@@ -374,23 +423,34 @@ void effect_manager::get_container(effect_container& effects, decal_container& d
 		for (UINT index = 0; index < item.effect_instance->get_resource()->get_decals().size(); ++index)
 		{
 			auto& decal_data = item.effect_instance->get_resource()->get_decals()[index];
+			if (!decal_data.is_valid())
+				continue;
+
+			auto& node_data = item.effect_instance->get_nodes()[decal_data.node_index];
+
 			auto& decal = decals.decal_datas.emplace_back();
-			decal.scale = decal_data.scale;
-			decal.rotation = decal_data.rotation;
-			decal.position = decal_data.position;
+			auto WorldMatrix = DirectX::XMLoadFloat4x4(&node_data.world_transform);
+			DirectX::XMVECTOR S, R, T;
+			DirectX::XMMatrixDecompose(&S, &R, &T, WorldMatrix);
+			DirectX::XMStoreFloat3(&decal.scale, S);
+			DirectX::XMStoreFloat3(&decal.position, T);
+			DirectX::XMFLOAT4 rotation;
+			DirectX::XMStoreFloat4(&rotation, R);
+			decal.rotation = rotation;
+			decal.box = collision::bounding_box(decal.scale, decal.rotation, decal.position);
 			decal.material.material = decal_data.material.get();
 		}
 
 		//	パーティクル描画情報構築
-		for (UINT index = 0; index < item.effect_instance->get_particle_datas().size(); ++index)
+		for (UINT index = 0; index < item.effect_instance->get_particles().size(); ++index)
 		{
 			auto& emitter_item = item.emitter_items[index];
 			if (emitter_item.system_index == invalid_emitter_id)
 				continue;
 
-			auto& particle_data = item.effect_instance->get_particle_datas()[index];
+			auto& particle_data = item.effect_instance->get_particles()[index];
 
-			auto renderer = particle_data.get_item<particle::item::renderer>();
+			auto renderer = particle_data.particle.get_item<particle::item::renderer>();
 			if (renderer && renderer->material)
 			{
 				UINT data_index = static_cast<UINT>(effects.sprite_trail_draw_datas.size());
@@ -465,21 +525,27 @@ void effect_manager::add_instances()
 		item.effect_instance = instance;
 
 		//	モデル登録
-		for (auto& model_data : item.effect_instance->get_model_datas())
+		for (auto& model_data : item.effect_instance->get_models())
 		{
 			model_instance_manger::instance()->registered(model_data.instance);
 		}
 
 		//	パーティクル情報生成
-		item.emitter_items.reserve(item.effect_instance->get_particle_datas().size());
-		for (auto& particle_data : item.effect_instance->get_particle_datas())
+		item.emitter_items.reserve(item.effect_instance->get_particles().size());
+		for (auto& particle_data : item.effect_instance->get_particles())
 		{
-			if (!particle_data.is_valid())
+			if (!particle_data.particle.is_valid())
 				continue;
 
+			auto renderer = particle_data.particle.get_item<particle::item::renderer>();
+			if (!renderer)
+				continue;
+
+			if (renderer->total_particle_count == 0)
+				continue;
+
+			auto emitter_resource = particle_data.particle.constract_system_resource();
 			auto& emitter_item = item.emitter_items.emplace_back();
-			//	パーティクルエミッター設定
-			auto emitter_resource = particle_data.constract_system_resource();
 			emitter_item.system_index = particle_system->register_emitter(render_data::instance()->get_device().Get(),
 																		  emitter_resource);
 		}
@@ -502,9 +568,9 @@ void effect_manager::remove_instances()
 			//	@remainer	自動破棄される
 
 			//	パーティクル情報解除
-			for (auto& particle_data : item.effect_instance->get_particle_datas())
+			for (auto& particle_data : item.effect_instance->get_particles())
 			{
-				if (!particle_data.is_valid())
+				if (!particle_data.particle.is_valid())
 					continue;
 
 				for (auto& emitter_item : item.emitter_items)

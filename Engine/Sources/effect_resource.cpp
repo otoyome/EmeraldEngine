@@ -17,34 +17,55 @@
 #include "animation_data_version.h"
 
 // CEREALバージョン定義
-CEREAL_CLASS_VERSION(effect_resource::model_data, 1)
-CEREAL_CLASS_VERSION(effect_resource::decal_data, 1)
+CEREAL_CLASS_VERSION(effect_resource::node, 1)
+CEREAL_CLASS_VERSION(effect_resource::model, 1)
+CEREAL_CLASS_VERSION(effect_resource::decal, 1)
+CEREAL_CLASS_VERSION(effect_resource::particle, 1)
 CEREAL_CLASS_VERSION(effect_resource, 1)
 
-bool effect_resource::model_data::is_valid() const
+template<class Archive>
+void effect_resource::node::serialize(Archive& archive, int version)
+{
+	archive(name, parent_index, scale, rotation, position);
+}
+
+bool effect_resource::model::is_valid() const
 {
 	return resource != nullptr;
 }
 
 template<class Archive>
-void effect_resource::model_data::serialize(Archive& archive, int version)
+void effect_resource::model::serialize(Archive& archive, int version)
 {
-	archive(name, file_path, scale, rotation, position);
+	archive(node_index, file_path);
 }
 
-bool effect_resource::decal_data::is_valid() const
+bool effect_resource::decal::is_valid() const
 {
 	return material != nullptr;
 }
 
 template<class Archive>
-void effect_resource::decal_data::serialize(Archive& archive, int version)
+void effect_resource::decal::serialize(Archive& archive, int version)
 {
-	archive(name, material, scale, rotation, position);
+	archive(node_index, material);
 }
 
+bool effect_resource::particle::is_valid() const
+{
+	return particle.is_valid();
+}
+
+template<class Archive>
+void effect_resource::particle::serialize(Archive& archive, int version)
+{
+	archive(node_index, particle);
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////
 effect_resource::effect_resource()
 : file_path()
+, nodes()
 , models()
 , particles()
 , decals()
@@ -54,6 +75,7 @@ effect_resource::effect_resource()
 
 effect_resource::effect_resource(std::string_view file_path)
 : file_path(file_path)
+, nodes()
 , models()
 , particles()
 , decals()
@@ -97,20 +119,6 @@ bool effect_resource::compute_animation_node(animation::node& node, size_t anima
 	return animation.compute_animation(node, node_index, calculate_time);
 }
 
-size_t effect_resource::get_animation_index_from_name(std::string_view name) const
-{
-	size_t index = 0;
-	for (auto& animation : animations)
-	{
-		if (animation.name == name)
-		{
-			return index;
-		}
-		++index;
-	}
-	return invalid_id;
-}
-
 void effect_resource::build()
 {
 	//	モデル情報の構築
@@ -134,7 +142,7 @@ void effect_resource::build()
 			continue;
 
 		//	パーティクル情報構築
-		if (auto renderer = particle_data.get_item<particle::item::renderer>())
+		if (auto renderer = particle_data.particle.get_item<::particle::item::renderer>())
 		{
 			//	マテリアル構築
 			if (renderer->material)
@@ -162,7 +170,8 @@ bool effect_resource::serialize(std::string_view file_path)
 
 		try
 		{
-			archive(CEREAL_NVP(models),
+			archive(CEREAL_NVP(nodes),
+					CEREAL_NVP(models),
 					CEREAL_NVP(particles),
 					CEREAL_NVP(decals),
 					CEREAL_NVP(animations));
@@ -190,7 +199,8 @@ bool effect_resource::deserialize(std::string_view file_path)
 
 		try
 		{
-			archive(CEREAL_NVP(models),
+			archive(CEREAL_NVP(nodes),
+					CEREAL_NVP(models),
 					CEREAL_NVP(particles),
 					CEREAL_NVP(decals),
 					CEREAL_NVP(animations));

@@ -805,7 +805,7 @@ namespace
 							}
 						}
 
-						PUSH_DEBUG_PRIMITIVE_BOX(s, q, t, DirectX::XMFLOAT4(1, 1, 1, 1), true);
+						PUSH_DEBUG_PRIMITIVE_BOX(t, q, s, DirectX::XMFLOAT4(1, 1, 1, 1), true);
 						break;
 					}
 					case ::ik_resource::behavior_mode::lookat:

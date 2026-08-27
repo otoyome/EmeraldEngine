@@ -4,8 +4,8 @@
 #include "camera.h"
 
 #include "object/light_object.h"
-
 #include "object/model_object.h"
+#include "object/post_process_volume_object.h"
 
 #include "custom_pipeline_state.h"
 
@@ -30,279 +30,83 @@ namespace
 	{
 		"Assets/Resources/Effects/BasicBomb.eme",
 		"Assets/Resources/Effects/BasicTrail.eme",
-		"Assets/Resources/Effects/BlowHitEffect.eme",
 	};
 
 	//	エフェクト
 	constexpr TCHAR* EffectFileDialogFilter =
 		L"エフェクトファイル (*.eme)\0*.eme;\0\
 		すべてのファイル (*.*)\0*.*\0";
+
+	//	ポストプロセスマテリアル
+	constexpr material::blendable_locations postprocess_material_path_list[] =
+	{
+		material::blendable_locations::before_dof,
+		material::blendable_locations::after_dof,
+		material::blendable_locations::after_dof_translucency,
+		material::blendable_locations::before_bloom,
+		material::blendable_locations::after_tone_mapping,
+	};
+	constexpr std::string_view postprocess_material_texts_list[ARRAYSIZE(postprocess_material_path_list)][4] =
+	{
+		{
+			"before_translucent_color_filter",
+			"Shaders/FullscreenQuad/fullscreen_quad_vs.hlsl",
+			"Shaders/Postprocess/color_filter_before_dof_ps.hlsl",
+			"被写界深度前ポストプロセスマテリアル",
+		},
+		{
+			"before_tonemapping_color_filter",
+			"Shaders/FullscreenQuad/fullscreen_quad_vs.hlsl",
+			"Shaders/Postprocess/color_filter_after_dof_ps.hlsl",
+			"被写界深度後ポストプロセスマテリアル",
+		},
+		{
+			"before_tonemapping_color_filter",
+			"Shaders/FullscreenQuad/fullscreen_quad_vs.hlsl",
+			"Shaders/Postprocess/color_filter_after_dof_translucency_ps.hlsl",
+			"被写界深度後半透明描画ポストプロセスマテリアル",
+		},
+		{
+			"after_tonemapping_color_filter",
+			"Shaders/FullscreenQuad/fullscreen_quad_vs.hlsl",
+			"Shaders/Postprocess/color_filter_before_bloom_ps.hlsl",
+			"ブルーム前ポストプロセスマテリアル",
+		},
+		{
+			"after_tonemapping_color_filter",
+			"Shaders/FullscreenQuad/fullscreen_quad_vs.hlsl",
+			"Shaders/Postprocess/color_filter_after_tone_mapping_ps.hlsl",
+			"トーンマッピング後ポストプロセスマテリアル",
+		}
+	};
+
+	void new_effect(effect_resource_ptr& resource)
+	{
+		resource = std::make_shared<effect_resource>();
+
+		auto& node_datas = resource->get_nodes_for_editor();
+		auto& animations = resource->get_animations_for_editor();
+
+		//	ルートノード生成
+		{
+			auto& node = node_datas.emplace_back();
+			node.name = "root";
+		}
+
+		//	アニメーション生成
+		{
+			auto& animation_data = animations.emplace_back();
+			animation_data.name = "default";
+			animation_data.end_time = 1.0f;
+			animation_data.nodes.emplace_back().node_name = node_datas.back().name;
+		}
+	}
 }
 
 edit_particle_scene::edit_particle_scene()
 : scene_base()
 {
-	//	テスト用にスプライトパーティクルエミッター登録
-	{
-		static constexpr DirectX::XMUINT2 split_count = { 5, 5 };
-		static constexpr float increment_time = system_units::convert_fps_to_sec(1.0f);
-
-		effect_resource_ptr resource;
-		if (!effect_resource_manager::instance()->load(resource, file_pathes[0]))
-		{
-			resource = std::make_shared<effect_resource>();
-
-			auto& particle_datas = resource->get_particles_for_editor();
-			auto& particle_data = particle_datas.emplace_back();
-			//	レンダラー設定
-			{
-				auto renderer = particle_data.register_item<particle::item::renderer>();
-
-				renderer->type = particle::item::renderer::types::sprite;
-				renderer->total_particle_count = 0x8FFF;
-
-				//	スプライトアニメーション
-				{
-					//renderer->uv.set_state(particle::item::renderer::texcoords::states::direct, true);
-					renderer->uv.set_state(particle::item::renderer::texcoords::states::animation, true);
-					renderer->uv.rect = {0, 0, 1, 1};
-					renderer->uv.index = 0;
-					renderer->uv.splits = split_count;
-					renderer->uv.time = increment_time;
-				}
-
-				//	マテリアル設定
-				{
-					renderer->material = std::make_shared<material>("default");
-					auto material = renderer->material;
-					material->set_domain(material::domains::particle);
-					material->set_alpha_clip_threshold(0.5f);
-					material->set_shading_model(material::shading_models::unlit);
-					material->set_blend_mode(material::blend_modes::mask);
-
-					//	フラグ類設定
-					material->set_flag(material::flags::two_sided, true);
-				//	material->set_flag(material::flags::shadow_caster, true);
-				//	material->set_flag(material::flags::shadow_receiver, true);
-					material->set_flag(material::flags::indirect_lighting_off, true);
-
-					//	デフォルトシェーダー設定
-					material->set_pipeline_state(pso_descs, ARRAYSIZE(pso_descs));
-
-					//	パラメーター設定
-					material->set_float4("base_color_factor", DirectX::XMFLOAT4(1, 1, 1, 1));
-					{
-						texture_ptr texture;
-						std::filesystem::path file_path = "Assets/Resources/Textures/Explosion01_5x5.png";
-						if (texture_manager::instance()->load_texture_from_file(texture, file_path.string()))
-						{
-							texture->set_flag(texture::flags::srgb, true);
-							material->set_texture("BaseColorMap", texture);
-							texture_manager::instance()->save_texture(texture);
-						}
-					}
-				}
-			}
-			//	発生設定
-			{
-				auto spawn = particle_data.register_item<particle::item::spawn>();
-				spawn->set_state(particle::item::spawn::states::burst, true);
-				spawn->set_state(particle::item::spawn::states::random, true);
-
-				spawn->life_time_range =
-				{
-					split_count.x * split_count.y * increment_time,
-					split_count.x * split_count.y * increment_time
-				};
-				spawn->scale_range =
-				{
-					3.0f,
-					15.0f
-				};
-				spawn->area_min =
-				{
-					system_units::convert_m_to_unit(-4.0f),
-					system_units::convert_m_to_unit(+0.0f),
-					system_units::convert_m_to_unit(-4.0f)
-				};
-				spawn->area_max =
-				{
-					system_units::convert_m_to_unit(+4.0f),
-					system_units::convert_m_to_unit(+0.0f),
-					system_units::convert_m_to_unit(+4.0f)
-				};
-				spawn->range =
-				{
-					10,
-					50,
-				};
-			}
-
-			//	ファイル保存
-			resource->serialize(file_pathes[0]);
-		}
-	}
-
-	//	テスト用にリボンパーティクルエミッター登録
-	{
-		static constexpr UINT TrailBodySize = 60;
-		effect_resource_ptr resource;
-		if (!effect_resource_manager::instance()->load(resource, file_pathes[1]))
-		{
-			resource = std::make_shared<effect_resource>();
-
-			auto& particle_datas = resource->get_particles_for_editor();
-
-			//	ラインパーティクル
-			auto& particle_data = particle_datas.emplace_back();
-
-			//	レンダラー設定
-			{
-				auto renderer = particle_data.register_item<particle::item::renderer>();
-
-				renderer->type = particle::item::renderer::types::ribon;
-				renderer->total_particle_count = 0x1FFF;
-				renderer->trail.max = TrailBodySize;
-
-				//	UV設定
-				{
-					static constexpr DirectX::XMUINT2 split_count = { 5, 5 };
-					static constexpr float increment_time = system_units::convert_fps_to_sec(1.0f);
-
-					renderer->uv.set_state(particle::item::renderer::texcoords::states::animation, true);
-					renderer->uv.rect = {0.001f, 0.001f, 0.999f, 0.999f};
-					renderer->uv.index = 0;
-					renderer->uv.splits = split_count;
-					renderer->uv.time = increment_time;
-				}
-
-				//	マテリアル設定
-				{
-					renderer->material = std::make_shared<material>("default");
-					auto material = renderer->material;
-					material->set_domain(material::domains::particle);
-					material->set_alpha_clip_threshold(0.01f);
-					material->set_shading_model(material::shading_models::unlit);
-					material->set_blend_mode(material::blend_modes::translucent);
-
-					//	フラグ類設定
-					material->set_flag(material::flags::two_sided, true);
-				//	material->set_flag(material::flags::shadow_caster, true);
-				//	material->set_flag(material::flags::shadow_receiver, true);
-					material->set_flag(material::flags::indirect_lighting_off, true);
-
-					//	デフォルトシェーダー設定
-					material->set_pipeline_state(pso_descs, ARRAYSIZE(pso_descs));
-
-					//	パラメーター設定
-					material->set_float4("base_color_factor", DirectX::XMFLOAT4(1, 1, 1, 1));
-					{
-						texture_ptr texture;
-						//std::filesystem::path file_path = "Assets/Resources/Textures/trail.png";
-						std::filesystem::path file_path = "Assets/Resources/Textures/Explosion01_5x5.png";
-						if (texture_manager::instance()->load_texture_from_file(texture, file_path.string()))
-						{
-							texture->set_flag(texture::flags::srgb, true);
-							material->set_texture("BaseColorMap", texture);
-							texture_manager::instance()->save_texture(texture);
-						}
-					}
-				}
-			}
-			//	発生設定
-			{
-				auto spawn = particle_data.register_item<particle::item::spawn>();
-				spawn->set_state(particle::item::spawn::states::random, true);
-
-				spawn->life_time_range =
-				{
-					10.0f,
-					20.0f
-				};
-				spawn->scale_range =
-				{
-					1.5f,
-					2.5f
-				};
-				spawn->area_min =
-				{
-					system_units::convert_m_to_unit(-4.0f),
-					system_units::convert_m_to_unit(+0.0f),
-					system_units::convert_m_to_unit(-4.0f)
-				};
-				spawn->area_max =
-				{
-					system_units::convert_m_to_unit(+4.0f),
-					system_units::convert_m_to_unit(+4.0f),
-					system_units::convert_m_to_unit(+4.0f)
-				};
-				spawn->range =
-				{
-					1,
-					5,
-				};
-			}
-
-			//	速度設定
-			{
-				auto velocity = particle_data.register_item<particle::item::velocity>();
-				velocity->set_state(particle::item::velocity::states::random_direction, true);
-				velocity->set_state(particle::item::velocity::states::random_power, true);
-				velocity->set_state(particle::item::velocity::states::random_acceleration, true);
-				velocity->set_state(particle::item::velocity::states::random_deceleration, true);
-				velocity->direction = { 0.0f, 1.0f, 0.0f };
-				velocity->angle_range = { -DirectX::XM_PI / 4, +DirectX::XM_PI / 4 };
-				velocity->power_range = { 100.0f, 200.0f };
-
-				{
-					velocity->acceleration_min.x = -10.0f;
-					velocity->acceleration_min.y = -10.0f;
-					velocity->acceleration_min.z = -10.0f;
-					velocity->acceleration_max.x = +10.0f;
-					velocity->acceleration_max.y = +10.0f;
-					velocity->acceleration_max.z = +10.0f;
-				}
-
-				{
-					velocity->deceleration_min.x = -10.0f;
-					velocity->deceleration_min.y = -10.0f;
-					velocity->deceleration_min.z = -10.0f;
-					velocity->deceleration_max.x = +10.0f;
-					velocity->deceleration_max.y = +10.0f;
-					velocity->deceleration_max.z = +10.0f;
-				}
-				velocity->gravity_scale = { 1.0f, 1.0f, 1.0f };
-			}
-
-			//	ファイル保存
-			resource->serialize(file_pathes[1]);
-		}
-	}
-
-	//	打撃エフェクト
-	{
-		effect_resource_ptr resource;
-		if (!effect_resource_manager::instance()->load(resource, file_pathes[2]))
-		{
-			resource = std::make_shared<effect_resource>();
-			
-			static constexpr DirectX::XMUINT2 split_count = { 5, 5 };
-			static constexpr float increment_time = system_units::convert_fps_to_sec(1.0f);
-
-			{
-				auto& models = resource->get_models_for_editor();
-				auto& model = models.emplace_back();
-				model.file_path = "Assets/Resources/Models/Effect/Blow/Blow.emo";
-			}
-			{
-				auto& particles = resource->get_particles_for_editor();
-				//auto& particle = particles.emplace_back();
-			}
-
-			//	ファイル保存
-			resource->serialize(file_pathes[2]);
-		}
-	}
+	generate_default_effect();
 }
 
 edit_particle_scene::~edit_particle_scene()
@@ -353,6 +157,80 @@ bool edit_particle_scene::initialize_core()
 		}
 	}
 
+	//	ポストプロセス生成
+	if (pipeline_state_manager* instance = pipeline_state_manager::instance())
+	{
+		auto post_process_volume = std::make_shared<post_process_volume_object>("ポストプロセスボリューム");
+		post_process_volume->set_flag(post_process_volume::flags::unbind, true);
+		{
+			auto bloom_constant = post_process_volume->get_volume()->get_bloom_constant();
+			auto lens_ghosts_constant = post_process_volume->get_volume()->get_lens_ghosts_constant();
+			auto depth_of_field_constant = post_process_volume->get_volume()->get_depth_of_field_constant();
+			auto screen_space_reflection_constant = post_process_volume->get_volume()->get_screen_space_reflection_constant();
+			auto motion_blur_constant = post_process_volume->get_volume()->get_motion_blur_constant();
+			auto exposure_compensation_constant = post_process_volume->get_volume()->get_exposure_compensation_constant();
+			bloom_constant.set_active(false);
+			lens_ghosts_constant.set_active(false);
+			depth_of_field_constant.set_active(false);
+			screen_space_reflection_constant.set_active(false);
+			motion_blur_constant.set_active(false);
+			exposure_compensation_constant.set_active(false);
+			post_process_volume->get_volume()->set_bloom_constant(bloom_constant);
+			post_process_volume->get_volume()->set_lens_ghosts_constant(lens_ghosts_constant);
+			post_process_volume->get_volume()->set_depth_of_field_constant(depth_of_field_constant);
+			post_process_volume->get_volume()->set_screen_space_reflection_constant(screen_space_reflection_constant);
+			post_process_volume->get_volume()->set_motion_blur_constant(motion_blur_constant);
+			post_process_volume->get_volume()->set_exposure_compensation_constant(exposure_compensation_constant);
+		}
+		register_object(post_process_volume);
+
+		for (UINT index = 0; index < ARRAYSIZE(postprocess_material_path_list); ++index)
+		{
+			std::shared_ptr<graphics_custom_pipeline_state> pso;
+			instance->generate_pipeline_state<graphics_custom_pipeline_state>(postprocess_material_texts_list[index][0], &pso);
+			pso->set_domain(pipeline_state_base::domains::post_process);
+
+			//	頂点シェーダー読み込み
+			{
+				load_shader_file desc;
+				desc.file_path = postprocess_material_texts_list[index][1];
+#if defined(_DEBUG)
+				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
+				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
+#endif	//	defined(_DEBUG)
+
+				std::shared_ptr<vertex_shader> shader;
+				shader_manager::instance()->load_shader<vertex_shader>(shader, desc);
+				pso->set_shader(shader);
+			}
+
+			//	ピクセルシェーダー読み込み
+			{
+				load_shader_file desc;
+				desc.file_path = postprocess_material_texts_list[index][2];
+#if defined(_DEBUG)
+				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
+				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
+#endif	//	defined(_DEBUG)
+
+				std::shared_ptr<pixel_shader> shader;
+				shader_manager::instance()->load_shader<pixel_shader>(shader, desc);
+				pso->set_shader(shader);
+			}
+
+			std::shared_ptr<material> post_process_material = std::make_shared<material>();
+			post_process_material->set_name(postprocess_material_texts_list[index][3]);
+			post_process_material->set_domain(material::domains::post_process);
+			post_process_material->set_flag(material::flags::two_sided, true);
+			post_process_material->set_blend_mode(material::blend_modes::opaque);
+			post_process_material->set_blendable_location(postprocess_material_path_list[index]);
+			post_process_material->set_pipeline_state(postprocess_material_texts_list[index][0]);
+
+			//	マテリアル登録
+			post_process_volume->get_volume()->register_postprocess_materials(post_process_material);
+		}
+	}
+
 	//	エディターカメラ生成
 	{
 		auto camera = std::make_shared<editor_camera>(main_camera);
@@ -377,6 +255,9 @@ bool edit_particle_scene::initialize_core()
 
 bool edit_particle_scene::uninitialize_core()
 {
+	if (edit_instance)
+		effect_manager::instance()->unregister_instance(edit_instance);
+
 	return true;
 }
 
@@ -407,7 +288,7 @@ void edit_particle_scene::imgui_render_core()
 			}
 		}
 
-		//	モデル保存
+		//	保存
 		if (edit_instance)
 		{
 			ImGui::SameLine();
@@ -421,7 +302,7 @@ void edit_particle_scene::imgui_render_core()
 			}
 		}
 
-		//	モデル保存
+		//	新規作成
 		if (edit_instance)
 		{
 			ImGui::SameLine();
@@ -432,12 +313,13 @@ void edit_particle_scene::imgui_render_core()
 		}
 	}
 
-	//	
+	//	エフェクト編集
 	if (edit_resource)
 	{
+		//	エフェクト編集
 		if (ImGui::Begin("Edit Effect"))
 		{
-			if (editor_items::edit_effect(editor_context, edit_resource))
+			if (editor_items::edit_effect(editor_context, edit_instance))
 			{
 				if (edit_instance)
 					effect_manager::instance()->unregister_instance(edit_instance);
@@ -448,13 +330,270 @@ void edit_particle_scene::imgui_render_core()
 		ImGui::End();
 	}
 }
+
 void edit_particle_scene::on_new()
 {
 	if (edit_instance)
 		effect_manager::instance()->unregister_instance(edit_instance);
 
-	edit_resource = std::make_shared<effect_resource>();
+	new_effect(edit_resource);
 	edit_instance = std::make_shared<effect_instance>(edit_resource);
 	effect_manager::instance()->register_instance(edit_instance);
+}
+
+void edit_particle_scene::generate_default_effect()
+{
+	//	テスト用にスプライトパーティクルエミッター登録
+	{
+		static constexpr DirectX::XMUINT2 split_count = { 5, 5 };
+		static constexpr float increment_time = system_units::convert_fps_to_sec(1.0f);
+
+		effect_resource_ptr resource;
+		if (!effect_resource_manager::instance()->load(resource, file_pathes[0]))
+		{
+			new_effect(resource);
+
+			auto& node_datas = resource->get_nodes_for_editor();
+			auto& particle_datas = resource->get_particles_for_editor();
+
+			//	パーティクル生成
+			{
+				auto& node = node_datas.emplace_back();
+				node.name = "bomb";
+				node.parent_index = 0;
+				auto& particle_data = particle_datas.emplace_back();
+				particle_data.node_index = node_datas.size() - 1;
+				//	レンダラー設定
+				{
+					auto renderer = particle_data.particle.register_item<particle::item::renderer>();
+
+					renderer->type = particle::item::renderer::types::sprite;
+					renderer->total_particle_count = 0x8FFF;
+
+					//	UV設定
+					{
+						//renderer->uv.set_state(particle::item::renderer::texcoords::states::direct, true);
+						renderer->uv.set_state(particle::item::renderer::texcoords::states::animation, true);
+						renderer->uv.rect = {0, 0, 1, 1};
+						renderer->uv.index = 0;
+						renderer->uv.splits = split_count;
+						renderer->uv.time = increment_time;
+					}
+
+					//	マテリアル設定
+					{
+						renderer->material = std::make_shared<material>("default");
+						auto material = renderer->material;
+						material->set_domain(material::domains::particle);
+						material->set_alpha_clip_threshold(0.5f);
+						material->set_shading_model(material::shading_models::unlit);
+						material->set_blend_mode(material::blend_modes::mask);
+
+						//	フラグ類設定
+						material->set_flag(material::flags::two_sided, true);
+					//	material->set_flag(material::flags::shadow_caster, true);
+					//	material->set_flag(material::flags::shadow_receiver, true);
+						material->set_flag(material::flags::indirect_lighting_off, true);
+
+						//	デフォルトシェーダー設定
+						material->set_pipeline_state(pso_descs, ARRAYSIZE(pso_descs));
+
+						//	パラメーター設定
+						material->set_float4("base_color_factor", DirectX::XMFLOAT4(1, 1, 1, 1));
+						{
+							texture_ptr texture;
+							std::filesystem::path file_path = "Assets/Resources/Textures/Explosion01_5x5.png";
+							if (texture_manager::instance()->load_texture_from_file(texture, file_path.string()))
+							{
+								texture->set_flag(texture::flags::srgb, true);
+								material->set_texture("BaseColorMap", texture);
+								texture_manager::instance()->save_texture(texture);
+							}
+						}
+					}
+				}
+				//	発生設定
+				{
+					auto spawn = particle_data.particle.register_item<particle::item::spawn>();
+					//spawn->set_state(particle::item::spawn::states::burst, true);
+					spawn->set_state(particle::item::spawn::states::random, true);
+
+					spawn->life_time_range =
+					{
+						split_count.x * split_count.y * increment_time,
+						split_count.x * split_count.y * increment_time
+					};
+					spawn->scale_range =
+					{
+						3.0f,
+						15.0f
+					};
+					spawn->area_min =
+					{
+						system_units::convert_m_to_unit(-4.0f),
+						system_units::convert_m_to_unit(+0.0f),
+						system_units::convert_m_to_unit(-4.0f)
+					};
+					spawn->area_max =
+					{
+						system_units::convert_m_to_unit(+4.0f),
+						system_units::convert_m_to_unit(+0.0f),
+						system_units::convert_m_to_unit(+4.0f)
+					};
+					spawn->range =
+					{
+						10,
+						50,
+					};
+				}
+			}
+			//	ファイル保存
+			resource->serialize(file_pathes[0]);
+		}
+	}
+
+	//	テスト用にリボンパーティクルエミッター登録
+	{
+		static constexpr UINT TrailBodySize = 60;
+		effect_resource_ptr resource;
+		if (!effect_resource_manager::instance()->load(resource, file_pathes[1]))
+		{
+			new_effect(resource);
+
+			auto& node_datas = resource->get_nodes_for_editor();
+			auto& particle_datas = resource->get_particles_for_editor();
+
+			//	パーティクル生成
+			{
+				auto& node = node_datas.emplace_back();
+				node.name = "line particle";
+				node.parent_index = 0;
+
+				auto& particle_data = particle_datas.emplace_back();
+				particle_data.node_index = node_datas.size() - 1;
+
+				//	レンダラー設定
+				{
+					auto renderer = particle_data.particle.register_item<particle::item::renderer>();
+
+					renderer->type = particle::item::renderer::types::ribon;
+					renderer->total_particle_count = 0x1FFF;
+					renderer->trail.max = TrailBodySize;
+
+					//	UV設定
+					{
+						static constexpr DirectX::XMUINT2 split_count = { 5, 5 };
+						static constexpr float increment_time = system_units::convert_fps_to_sec(1.0f);
+
+						renderer->uv.set_state(particle::item::renderer::texcoords::states::animation, true);
+						renderer->uv.rect = {0.001f, 0.001f, 0.999f, 0.999f};
+						renderer->uv.index = 0;
+						renderer->uv.splits = split_count;
+						renderer->uv.time = increment_time;
+					}
+
+					//	マテリアル設定
+					{
+						renderer->material = std::make_shared<material>("default");
+						auto material = renderer->material;
+						material->set_domain(material::domains::particle);
+						material->set_alpha_clip_threshold(0.01f);
+						material->set_shading_model(material::shading_models::unlit);
+						material->set_blend_mode(material::blend_modes::translucent);
+
+						//	フラグ類設定
+						material->set_flag(material::flags::two_sided, true);
+					//	material->set_flag(material::flags::shadow_caster, true);
+					//	material->set_flag(material::flags::shadow_receiver, true);
+						material->set_flag(material::flags::indirect_lighting_off, true);
+
+						//	デフォルトシェーダー設定
+						material->set_pipeline_state(pso_descs, ARRAYSIZE(pso_descs));
+
+						//	パラメーター設定
+						material->set_float4("base_color_factor", DirectX::XMFLOAT4(1, 1, 1, 1));
+						{
+							texture_ptr texture;
+							//std::filesystem::path file_path = "Assets/Resources/Textures/trail.png";
+							std::filesystem::path file_path = "Assets/Resources/Textures/Explosion01_5x5.png";
+							if (texture_manager::instance()->load_texture_from_file(texture, file_path.string()))
+							{
+								texture->set_flag(texture::flags::srgb, true);
+								material->set_texture("BaseColorMap", texture);
+								texture_manager::instance()->save_texture(texture);
+							}
+						}
+					}
+				}
+				//	発生設定
+				{
+					auto spawn = particle_data.particle.register_item<particle::item::spawn>();
+					spawn->set_state(particle::item::spawn::states::random, true);
+
+					spawn->life_time_range =
+					{
+						10.0f,
+						20.0f
+					};
+					spawn->scale_range =
+					{
+						1.5f,
+						2.5f
+					};
+					spawn->area_min =
+					{
+						system_units::convert_m_to_unit(-4.0f),
+						system_units::convert_m_to_unit(+0.0f),
+						system_units::convert_m_to_unit(-4.0f)
+					};
+					spawn->area_max =
+					{
+						system_units::convert_m_to_unit(+4.0f),
+						system_units::convert_m_to_unit(+4.0f),
+						system_units::convert_m_to_unit(+4.0f)
+					};
+					spawn->range =
+					{
+						1,
+						5,
+					};
+				}
+
+				//	速度設定
+				{
+					auto velocity = particle_data.particle.register_item<particle::item::velocity>();
+					velocity->set_state(particle::item::velocity::states::random_direction, true);
+					velocity->set_state(particle::item::velocity::states::random_power, true);
+					velocity->set_state(particle::item::velocity::states::random_acceleration, true);
+					velocity->set_state(particle::item::velocity::states::random_deceleration, true);
+					velocity->direction = { 0.0f, 1.0f, 0.0f };
+					velocity->angle_range = { -DirectX::XM_PI / 4, +DirectX::XM_PI / 4 };
+					velocity->power_range = { 100.0f, 200.0f };
+
+					{
+						velocity->acceleration_min.x = -10.0f;
+						velocity->acceleration_min.y = -10.0f;
+						velocity->acceleration_min.z = -10.0f;
+						velocity->acceleration_max.x = +10.0f;
+						velocity->acceleration_max.y = +10.0f;
+						velocity->acceleration_max.z = +10.0f;
+					}
+
+					{
+						velocity->deceleration_min.x = -10.0f;
+						velocity->deceleration_min.y = -10.0f;
+						velocity->deceleration_min.z = -10.0f;
+						velocity->deceleration_max.x = +10.0f;
+						velocity->deceleration_max.y = +10.0f;
+						velocity->deceleration_max.z = +10.0f;
+					}
+					velocity->gravity_scale = { 1.0f, 1.0f, 1.0f };
+				}
+			}
+
+			//	ファイル保存
+			resource->serialize(file_pathes[1]);
+		}
+	}
 }
 #endif	//	defined(USE_IMGUI)

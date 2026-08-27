@@ -293,6 +293,9 @@ gbuffer_decal_renderer::~gbuffer_decal_renderer()
 
 void gbuffer_decal_renderer::render(renderer_context& renderer_context)
 {
+	if (renderer_context.render_decal_indices->default.empty())
+		return;
+
 	job_executor.execute([this, renderer_context](graphics_context& context)
 	{
 		//	法線/深度コピー
@@ -328,10 +331,9 @@ void gbuffer_decal_renderer::render(renderer_context& renderer_context)
 			}
 
 			//	デカール描画
-			for (auto& decal : context.render_data->decal_container.decal_datas)
+			for (auto& decal_index : renderer_context.render_decal_indices->default)
 			{
-				if (!decal.material.material)
-					continue;
+				auto& decal = context.render_data->decal_container.decal_datas[decal_index];
 
 				//	バッファ情報生成
 				buffer_datas buffer_data;
@@ -371,8 +373,7 @@ void gbuffer_decal_renderer::render(renderer_context& renderer_context)
 				}
 
 				//	デカール書き込み
-				collision::bounding_box box = collision::bounding_box(decal.scale, decal.rotation, decal.position);
-				auto pass = sphere.intersection(&box) ? material::decal_paths::fullscreen : material::decal_paths::primitive;
+				auto pass = sphere.intersection(&decal.box) ? material::decal_paths::fullscreen : material::decal_paths::primitive;
 				if (auto pipeline_state = decal.material.material->get_pipeline_state(pass))
 				{
 					pipeline_state->begin(context);

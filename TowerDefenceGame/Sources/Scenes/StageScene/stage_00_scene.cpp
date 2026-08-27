@@ -28,6 +28,7 @@ bool stage_00_scene::initialize_core()
 	}
 
 	//	その他光源設定
+	if (0)
 	{
 		auto point = std::make_shared<point_light_object>("点光源");
 		point->set_flag(light::flags::use_shadow, false);
@@ -72,7 +73,6 @@ bool stage_00_scene::initialize_core()
 		auto model = std::make_shared<model_object>("ステージ", path.string());
 		model->get_model_instance()->set_flag(model_instance::flags::culling, true);
 		model->get_model_instance()->set_flag(model_instance::flags::shadow_caster, true);
-
 		auto stage = std::make_shared<stage_object>("ステージ制御", model);
 
 		//	メッシュ分当たり判定生成
@@ -132,6 +132,7 @@ void stage_00_scene::generate_model_collision(model_resource_ptr resource, Direc
 			collision::generate_bounding_mesh(*mesh, resource, mesh_index, data);
 			mesh->serialize(collision_mesh_path.string());
 		}
+
 		collision_object_ptr collision = std::make_shared<collision_object>();
 #if defined(USE_IMGUI)
 		collision->set_name(resource->get_materials()[resource->get_meshes()[mesh_index].material_index].get_name());

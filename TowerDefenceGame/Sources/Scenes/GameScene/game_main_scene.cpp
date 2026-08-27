@@ -1,12 +1,61 @@
 #include "Scenes/GameScene/game_main_scene.h"
 
+#include "custom_pipeline_state.h"
+
 #include "object/camera_object.h"
 #include "object/model_object.h"
+#include "object/post_process_volume_object.h"
 
 #include "object/gameobjects/character/person/kuroko_object.h"
 
 #include "object/gameobjects/character/player/player_controller_object.h"
 #include "object/gameobjects/character/player/player_camera_controller_object.h"
+
+namespace
+{
+	//	ポストプロセスマテリアル
+	constexpr material::blendable_locations postprocess_material_path_list[] =
+	{
+		material::blendable_locations::before_dof,
+		material::blendable_locations::after_dof,
+		material::blendable_locations::after_dof_translucency,
+		material::blendable_locations::before_bloom,
+		material::blendable_locations::after_tone_mapping,
+	};
+	constexpr std::string_view postprocess_material_texts_list[ARRAYSIZE(postprocess_material_path_list)][4] =
+	{
+		{
+			"before_translucent_color_filter",
+			"Shaders/FullscreenQuad/fullscreen_quad_vs.hlsl",
+			"Shaders/Postprocess/color_filter_before_dof_ps.hlsl",
+			"被写界深度前ポストプロセスマテリアル",
+		},
+		{
+			"before_tonemapping_color_filter",
+			"Shaders/FullscreenQuad/fullscreen_quad_vs.hlsl",
+			"Shaders/Postprocess/color_filter_after_dof_ps.hlsl",
+			"被写界深度後ポストプロセスマテリアル",
+		},
+		{
+			"before_tonemapping_color_filter",
+			"Shaders/FullscreenQuad/fullscreen_quad_vs.hlsl",
+			"Shaders/Postprocess/color_filter_after_dof_translucency_ps.hlsl",
+			"被写界深度後半透明描画ポストプロセスマテリアル",
+		},
+		{
+			"after_tonemapping_color_filter",
+			"Shaders/FullscreenQuad/fullscreen_quad_vs.hlsl",
+			"Shaders/Postprocess/color_filter_before_bloom_ps.hlsl",
+			"ブルーム前ポストプロセスマテリアル",
+		},
+		{
+			"after_tonemapping_color_filter",
+			"Shaders/FullscreenQuad/fullscreen_quad_vs.hlsl",
+			"Shaders/Postprocess/color_filter_after_tone_mapping_ps.hlsl",
+			"トーンマッピング後ポストプロセスマテリアル",
+		}
+	};
+}
 
 game_main_scene::game_main_scene()
 : scene_base()
@@ -19,8 +68,63 @@ game_main_scene::game_main_scene()
 	std::shared_ptr<camera_object> main_camera;
 	{
 		main_camera = std::make_shared<camera_object>("メインカメラ");
+		main_camera->get_camera()->set_fov_y(DirectX::XMConvertToRadians(15.0f));
 		main_camera->set_position({0, 10, 40});
 		register_object(main_camera);
+	}
+
+	//	ポストプロセス生成
+	if (pipeline_state_manager* instance = pipeline_state_manager::instance())
+	{
+		auto post_process_volume = std::make_shared<post_process_volume_object>("ポストプロセスボリューム");
+		post_process_volume->set_flag(post_process_volume::flags::unbind, true);
+		register_object(post_process_volume);
+
+		for (UINT index = 0; index < ARRAYSIZE(postprocess_material_path_list); ++index)
+		{
+			std::shared_ptr<graphics_custom_pipeline_state> pso;
+			instance->generate_pipeline_state<graphics_custom_pipeline_state>(postprocess_material_texts_list[index][0], &pso);
+			pso->set_domain(pipeline_state_base::domains::post_process);
+
+			//	頂点シェーダー読み込み
+			{
+				load_shader_file desc;
+				desc.file_path = postprocess_material_texts_list[index][1];
+#if defined(_DEBUG)
+				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
+				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
+#endif	//	defined(_DEBUG)
+
+				std::shared_ptr<vertex_shader> shader;
+				shader_manager::instance()->load_shader<vertex_shader>(shader, desc);
+				pso->set_shader(shader);
+			}
+
+			//	ピクセルシェーダー読み込み
+			{
+				load_shader_file desc;
+				desc.file_path = postprocess_material_texts_list[index][2];
+#if defined(_DEBUG)
+				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
+				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
+#endif	//	defined(_DEBUG)
+
+				std::shared_ptr<pixel_shader> shader;
+				shader_manager::instance()->load_shader<pixel_shader>(shader, desc);
+				pso->set_shader(shader);
+			}
+
+			std::shared_ptr<material> post_process_material = std::make_shared<material>();
+			post_process_material->set_name(postprocess_material_texts_list[index][3]);
+			post_process_material->set_domain(material::domains::post_process);
+			post_process_material->set_flag(material::flags::two_sided, true);
+			post_process_material->set_blend_mode(material::blend_modes::opaque);
+			post_process_material->set_blendable_location(postprocess_material_path_list[index]);
+			post_process_material->set_pipeline_state(postprocess_material_texts_list[index][0]);
+
+			//	マテリアル登録
+			post_process_volume->get_volume()->register_postprocess_materials(post_process_material);
+		}
 	}
 
 	//	主人公モデル生成
@@ -50,21 +154,7 @@ game_main_scene::game_main_scene()
 		register_object(controller_object);
 
 		player_camera_controller = std::make_shared<player_camera_controller_object>("プレイヤーカメラ", controller_object, main_camera);
-		//player_camera_controller->set_input_purmit_flag(false);
 		register_object(player_camera_controller);
-
-		//auto shadow_light = std::make_shared<shadow_light_object>("影ライト：クロコ");
-		//shadow_light->set_color({0.6f, 0.6f, 0.6f, 1.0f});
-		//shadow_light_to_model_connector_object::setup_datas setup_data;
-		//setup_data.shadow_light = shadow_light;
-		//setup_data.main_model = hero_model;
-		//setup_data.sub_models.emplace_back(weapon_model);
-		//setup_data.shadow_category = common_pipeline_states::shadow_category::mask_1;
-		//register_object(shadow_light);
-		//register_object(std::make_shared<shadow_light_to_model_connector_object>("影ライトコネクター：クロコ", setup_data));
-
-		//	演出オブジェクトに登録
-		//main_cinematics->register_effects_function(controller_object);
 	}
 }
 

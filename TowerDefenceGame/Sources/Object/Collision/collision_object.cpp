@@ -327,7 +327,7 @@ void collision_object::debug_draw()
 		case collision::bounding_object::types::box:
 		{
 			auto object = std::static_pointer_cast<collision::bounding_box>(bounding_object);
-			PUSH_DEBUG_PRIMITIVE_BOX(object->get_local_scale(), object->get_rotation(), object->get_position(), draw_color, true);
+			PUSH_DEBUG_PRIMITIVE_BOX(object->get_position(), object->get_rotation(), object->get_local_scale(), draw_color, true);
 			break;
 		}
 		case collision::bounding_object::types::mesh:
@@ -369,7 +369,7 @@ void collision_object::debug_draw()
 				auto& block = object->get_block_datas()[index];
 
 				DirectX::XMFLOAT4 draw_color = index == draw_mesh_collision_index ? draw_hit_color : draw_normal_color;
-				PUSH_DEBUG_PRIMITIVE_BOX(extent, rotation, block.center, draw_color, true);
+				PUSH_DEBUG_PRIMITIVE_BOX(block.center, rotation, extent, draw_color, true);
 				auto ti = block.triangles.data();
 				auto t = object->get_triangles().data();
 				for (UINT index = 0;index < block.triangles.size(); ++index)

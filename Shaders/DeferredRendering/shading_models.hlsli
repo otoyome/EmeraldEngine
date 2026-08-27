@@ -140,8 +140,11 @@ DirectLighting integrate_bxdf(in GBufferData gbuffer_data, in LightingData light
             //	シェーディング判定
             float shading_factor = min(vertex_r >= shading_threshold, modified_n_dot_l >= shading_threshold);
 
-            result.diffuse = lerp(shade_color, base_and_specular_color, lighting_data.shadowing_attenuation * shading_factor);
+            //  シャドウ判定
+            float3 shadow_factor = lighting_data.shadowing_attenuation * shading_factor;
 
+            //  拡散反射光
+            result.diffuse = lerp(shade_color, base_and_specular_color, shadow_factor);
             break;
         }
 //	[エンジン改造:シェーディング]

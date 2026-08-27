@@ -520,6 +520,7 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 			context.render_data = render_data;
 			context.render_mesh_indices = std::make_shared<render_mesh_indices>();
 			context.render_particle_indices = render_particle_indices;
+			context.render_decal_indices = std::make_shared<render_decal_indices>();
 			//	シーン定数バッファ設定
 			{
 				context.scene_constant.time_data.x = total_time + elapsed_time;
@@ -649,6 +650,19 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 						{
 							return context.render_mesh_indices->lengths[left_index] > context.render_mesh_indices->lengths[right_index];
 						});
+				}
+
+				//	デカールの描画振り分け
+				for (UINT decal_index = 0; decal_index < render_data->decal_container.decal_datas.size(); ++decal_index)
+				{
+					auto& decal_data = render_data->decal_container.decal_datas[decal_index];
+
+					//	フラスタムカリング
+					if (!frustum_culling.to_box(decal_data.box))
+						continue;
+
+					//	一律同じタイミングで
+					context.render_decal_indices->default.emplace_back(decal_index);
 				}
 			}
 

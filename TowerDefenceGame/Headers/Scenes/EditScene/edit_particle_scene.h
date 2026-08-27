@@ -27,6 +27,7 @@ protected:
 
 private:
 	void on_new();
+	void generate_default_effect();
 
 private:
 	std::shared_ptr<camera_object> main_camera;
@@ -37,5 +38,13 @@ private:
 
 	effect_resource_ptr edit_resource;
 	effect_instance_ptr edit_instance;
+
+	//	
+	struct animation_player_context
+	{
+		bool loop = true;
+		bool paused = false;
+	};
+	animation_player_context animation_player;
 };
 #endif // defined(USE_IMGUI)

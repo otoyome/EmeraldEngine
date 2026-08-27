@@ -19,14 +19,23 @@ public:
 public:
 	static constexpr size_t invalid_id = -1;
 
-	struct model_data
+	struct node
 	{
 		std::string name;
-		std::string file_path;
+		size_t parent_index = invalid_id;
+
 		DirectX::XMFLOAT3 scale = {1, 1, 1};
-		DirectX::XMFLOAT4 rotation = {0, 0, 0, 1};
+		DirectX::XMFLOAT3 rotation = {0, 0, 0};
 		DirectX::XMFLOAT3 position = {0, 0, 0};
 
+		template<class Archive>
+		void serialize(Archive& archive, int version);
+	};
+
+	struct model
+	{
+		size_t node_index = -1;
+		std::string file_path;
 		model_resource_ptr resource;
 
 		bool is_valid() const;
@@ -35,13 +44,21 @@ public:
 		void serialize(Archive& archive, int version);
 	};
 
-	struct decal_data
+	struct decal
 	{
-		std::string name;
+		size_t node_index = -1;
 		std::shared_ptr<material> material;
-		DirectX::XMFLOAT3 scale = {1, 1, 1};
-		DirectX::XMFLOAT4 rotation = {0, 0, 0, 1};
-		DirectX::XMFLOAT3 position = {0, 0, 0};
+
+		bool is_valid() const;
+
+		template<class Archive>
+		void serialize(Archive& archive, int version);
+	};
+
+	struct particle
+	{
+		size_t node_index = -1;
+		::particle::data particle;
 
 		bool is_valid() const;
 
@@ -53,15 +70,17 @@ public:
 	inline void set_file_path(std::string_view path) { file_path = path; }
 	inline std::string_view get_file_path() const {return file_path;}
 
-	inline const std::vector<model_data>& get_models() const {return models;}
-	inline const std::vector<particle::data>& get_particles() const {return particles;}
-	inline const std::vector<decal_data>& get_decals() const {return decals;}
+	inline const std::vector<node>& get_nodes() const {return nodes;}
+	inline const std::vector<model>& get_models() const {return models;}
+	inline const std::vector<particle>& get_particles() const {return particles;}
+	inline const std::vector<decal>& get_decals() const {return decals;}
 	inline const std::vector<animation::data>& get_animations() const {return animations;}
 
 #if defined(USE_IMGUI)
-	inline std::vector<model_data>& get_models_for_editor() {return models;}
-	inline std::vector<particle::data>& get_particles_for_editor() { return particles; }
-	inline std::vector<decal_data>& get_decals_for_editor() {return decals;}
+	inline std::vector<node>& get_nodes_for_editor() {return nodes;}
+	inline std::vector<model>& get_models_for_editor() {return models;}
+	inline std::vector<particle>& get_particles_for_editor() { return particles; }
+	inline std::vector<decal>& get_decals_for_editor() {return decals;}
 	inline std::vector<animation::data>& get_animations_for_editor() { return animations; }
 #endif	//	defined(USE_IMGUI)
 
@@ -72,8 +91,6 @@ public:
 
 	bool compute_animation_nodes(std::vector<animation::node>& nodes, size_t animation_index, float time) const;
 	bool compute_animation_node(animation::node& node, size_t animation_index, size_t node_index, float time) const;
-
-	size_t get_animation_index_from_name(std::string_view name) const;
 
 public:
 	bool serialize();
@@ -87,9 +104,10 @@ private:
 private:
 	std::string file_path;
 
-	std::vector<model_data> models;	//	モデル情報
-	std::vector<particle::data> particles;	//	パーティクル情報
-	std::vector<decal_data> decals;	//	デカール情報
+	std::vector<node> nodes;	//	ノード情報
+	std::vector<model> models;	//	モデル情報
+	std::vector<particle> particles;	//	パーティクル情報
+	std::vector<decal> decals;	//	デカール情報
 	std::vector<animation::data> animations;	//	アニメーション情報
 };
 

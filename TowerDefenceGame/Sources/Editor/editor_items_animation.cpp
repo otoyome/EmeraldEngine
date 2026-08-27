@@ -294,9 +294,8 @@ namespace
 					render_events(context);
 					if (is_open_nodes)
 						render_nodes(context);
+					ImGui::EndNeoSequencer();
 				}
-
-				ImGui::EndNeoSequencer();
 			}
 			ImGui::EndChild();
 			ImGui::SameLine();
@@ -307,8 +306,12 @@ namespace
 			}
 			ImGui::EndChild();
 		}
+
 		void render_events(std::shared_ptr<editor_items::context>& context)
 		{
+			if (animation_data->events.empty())
+				return;
+
 			ImGui::PushID("##Events");
 			if (ImGui::BeginNeoGroup(""))
 			{
@@ -343,6 +346,9 @@ namespace
 		}
 		void render_nodes(std::shared_ptr<editor_items::context>& context)
 		{
+			if (animation_data->nodes.empty())
+				return;
+
 			ImGui::PushID("##Nodes");
 			if (ImGui::BeginNeoGroup(""))
 			{
@@ -668,29 +674,40 @@ namespace
 bool editor_items::edit_animation_data(std::shared_ptr<context>& context, animation::data& animation_data)
 {
 	auto data_hash_key = system_utility::fnv1a_hash(sizeof(animation_data), reinterpret_cast<char*>(&animation_data));
-	ImGui::InputTextUtf8("name", animation_data.name);
+
+	//	名前編集
+	if (!context->flag_maps[context::EditAnimationHideName])
+	{
+		ImGui::InputTextUtf8("name", animation_data.name);
+	}
 
 	//	ルートモーション関係
-	ImGui::Text("root_motion");
-	ImGui::SameLine();
-	ImGui::Checkbox("xz", &animation_data.root_motion_xz);
-	ImGui::SameLine();
-	ImGui::Checkbox("y", &animation_data.root_motion_y);
-	ImGui::SameLine();
-	ImGui::Checkbox("rotation", &animation_data.root_rotation);
-	if (animation_data.root_motion_xz || animation_data.root_motion_y || animation_data.root_rotation)
+	if (!context->flag_maps[context::EditAnimationHideRootMotion])
 	{
-		ImGui::InputTextUtf8("root_motion_node_name", animation_data.root_motion_node_name);
+		ImGui::Text("root_motion");
+		ImGui::SameLine();
+		ImGui::Checkbox("xz", &animation_data.root_motion_xz);
+		ImGui::SameLine();
+		ImGui::Checkbox("y", &animation_data.root_motion_y);
+		ImGui::SameLine();
+		ImGui::Checkbox("rotation", &animation_data.root_rotation);
+		if (animation_data.root_motion_xz || animation_data.root_motion_y || animation_data.root_rotation)
+		{
+			ImGui::InputTextUtf8("root_motion_node_name", animation_data.root_motion_node_name);
+		}
+		ImGui::Separator();
 	}
-	ImGui::Separator();
 
 	//	IK関係
-	ImGui::Checkbox("foot_ik", &animation_data.foot_ik);
-	ImGui::SameLine();
-	ImGui::Checkbox("hand_ik", &animation_data.hand_ik);
-	ImGui::SameLine();
-	ImGui::Checkbox("aim_ik", &animation_data.aim_ik);
-	ImGui::Separator();
+	if (!context->flag_maps[context::EditAnimationHideIK])
+	{
+		ImGui::Checkbox("foot_ik", &animation_data.foot_ik);
+		ImGui::SameLine();
+		ImGui::Checkbox("hand_ik", &animation_data.hand_ik);
+		ImGui::SameLine();
+		ImGui::Checkbox("aim_ik", &animation_data.aim_ik);
+		ImGui::Separator();
+	}
 
 	//	アニメーションカーブエディター
 	//	フレーム間のカーブは取り扱っていない

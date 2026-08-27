@@ -45,13 +45,18 @@ public:
 		texture_ptr cross_texture; // ×テクスチャ
 		texture_ptr reserve_texture; // 内部で一時的に保持しておきたいテクスチャ
 		model_resource_ptr reserve_model_resource; // 内部で一時的に保持しておきたい
+		std::map<std::string, bool> flag_maps; // フラグ管理
 
 	private:	//	アニメーション関係
 		system_utility::hash_key animation_data_hash_key = system_utility::hash_key(-1);
 		std::unique_ptr<ibase_editor> interpolation_editor;
 		std::unique_ptr<ibase_editor> timeline_editor;
 		std::unique_ptr<ibase_editor> ik_editor;
-		std::unique_ptr<ibase_editor> effect_editor;
+
+		//	アニメーション編集時に表示したくないやつを指定するための物
+		inline static const std::string EditAnimationHideName = "__EditAnimationHideName__";
+		inline static const std::string EditAnimationHideRootMotion = "__EditAnimationHideRootMotion__";
+		inline static const std::string EditAnimationHideIK = "__EditAnimationHideIK__";
 	};
 
 	//	内部で利用するエディターアイテムのインターフェース
@@ -88,9 +93,10 @@ public:	//	編集アイテム系
 	static bool edit_animation_data(std::shared_ptr<context>& context, animation::data& animation_data);
 	static bool edit_ik(std::shared_ptr<context>& context, model_instance_ptr& model_instance, ik_resource_ptr& ik_resource);
 
-	static bool edit_effect(std::shared_ptr<context>& context, effect_resource_ptr& effect_resource);
-	static bool edit_effect_particle(std::shared_ptr<context>& context, effect_resource_ptr& effect_resource);
-	static bool edit_effect_decal(std::shared_ptr<context>& context, effect_resource_ptr& effect_resource);
+	static bool edit_effect(std::shared_ptr<context>& context, effect_instance_ptr& effect_instance);
+	static bool edit_effect_model(std::shared_ptr<context>& context, effect_resource_ptr& effect_resource, effect_resource::model& model);
+	static bool edit_effect_particle(std::shared_ptr<context>& context, effect_resource_ptr& effect_resource, effect_resource::particle& particle);
+	static bool edit_effect_decal(std::shared_ptr<context>& context, effect_resource_ptr& effect_resource, effect_resource::decal& decal);
 
 public:	//	汎用
 	static bool open_file_dialog(TCHAR* text, std::string& out_selected_file_path);

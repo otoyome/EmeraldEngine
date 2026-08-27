@@ -34,7 +34,7 @@ public:
 		DirectX::XMFLOAT4X4 local_transform = {1, 0, 0, 0,  0, 1, 0, 0,  0, 0, 1, 0,  0, 0, 0, 1};
 		DirectX::XMFLOAT4X4 global_transform = {1, 0, 0, 0,  0, 1, 0, 0,  0, 0, 1, 0,  0, 0, 0, 1};
 
-		DirectX::XMFLOAT4X4 previous_global_transform{1, 0, 0, 0,  0, 1, 0, 0,  0, 0, 1, 0,  0, 0, 0, 1};
+		DirectX::XMFLOAT4X4 previous_global_transform = {1, 0, 0, 0,  0, 1, 0, 0,  0, 0, 1, 0,  0, 0, 0, 1};
 	};
 
 	struct morph
@@ -111,8 +111,8 @@ private:
 	int lod_index;
 	DirectX::XMFLOAT2 lod_range_rate = {0.0f, 1.0f};
 	model_resource_ptr resource;
-	DirectX::XMFLOAT4X4 world_transform{ 1, 0, 0, 0,  0, 1, 0, 0,  0, 0, 1, 0,  0, 0, 0, 1 };
-	DirectX::XMFLOAT4X4 previous_world_transform{ 1, 0, 0, 0,  0, 1, 0, 0,  0, 0, 1, 0,  0, 0, 0, 1 };
+	DirectX::XMFLOAT4X4 world_transform = { 1, 0, 0, 0,  0, 1, 0, 0,  0, 0, 1, 0,  0, 0, 0, 1 };
+	DirectX::XMFLOAT4X4 previous_world_transform = { 1, 0, 0, 0,  0, 1, 0, 0,  0, 0, 1, 0,  0, 0, 0, 1 };
 
 	std::vector<material> materials;
 	std::vector<node> nodes;

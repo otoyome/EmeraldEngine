@@ -18,23 +18,39 @@ public:
 		bursted,		//	バースト生成処理
 	};
 
-	struct model_data
+	struct node
 	{
+		std::string name;
+		size_t parent_index = invalid_id;
+
 		DirectX::XMFLOAT3 scale = {1, 1, 1};
-		DirectX::XMFLOAT4 rotation = {0, 0, 0, 1};
+		DirectX::XMFLOAT3 rotation = {0, 0, 0};
 		DirectX::XMFLOAT3 position = {0, 0, 0};
+
+		DirectX::XMFLOAT4X4 local_transform = {1, 0, 0, 0,  0, 1, 0, 0,  0, 0, 1, 0,  0, 0, 0, 1};
+		DirectX::XMFLOAT4X4 global_transform = { 1, 0, 0, 0,  0, 1, 0, 0,  0, 0, 1, 0,  0, 0, 0, 1 };
+		DirectX::XMFLOAT4X4 world_transform = { 1, 0, 0, 0,  0, 1, 0, 0,  0, 0, 1, 0,  0, 0, 0, 1 };
+
+		DirectX::XMFLOAT4X4 previous_world_transform = { 1, 0, 0, 0,  0, 1, 0, 0,  0, 0, 1, 0,  0, 0, 0, 1 };
+	};
+
+	struct model
+	{
+		size_t node_index;
 		model_instance_ptr instance;
 	};
 
-	struct decal_data
+	struct decal
 	{
-		DirectX::XMFLOAT3 scale = {1, 1, 1};
-		DirectX::XMFLOAT4 rotation = {0, 0, 0, 1};
-		DirectX::XMFLOAT3 position = {0, 0, 0};
+		size_t node_index;
 		std::shared_ptr<material> material;
 	};
 
-	using node_animation = animation::node;
+	struct particle
+	{
+		size_t node_index;
+		::particle::data particle;
+	};
 
 public:
 	bool is_flag(flags flag) const { return system_utility::is_bitflag(system_flags, 1 << static_cast<UINT>(flag)); }
@@ -54,9 +70,16 @@ public:
 	const DirectX::XMFLOAT3& get_position() const;
 	void set_position(const DirectX::XMFLOAT3& position);
 
-	inline std::vector<model_data>& get_model_datas() { return model_datas; }
-	inline std::vector<decal_data>& get_decal_datas() { return decal_datas; }
-	inline std::vector<particle::data>& get_particle_datas() { return particle_datas; }
+	float get_animation_time() const;
+	void set_animation_time(float animation_time);
+
+	float get_animation_speed() const;
+	void set_animation_speed(float animation_speed);
+
+	inline std::vector<node>& get_nodes() { return nodes; }
+	inline std::vector<model>& get_models() { return models; }
+	inline std::vector<particle>& get_particles() { return particles; }
+	inline std::vector<decal>& get_decals() { return decals; }
 
 	inline const DirectX::XMFLOAT4X4& get_previous_world_transform() const { return previous_world_transform; }
 	inline void set_previous_world_transform(const DirectX::XMFLOAT4X4& transform){ previous_world_transform = transform; }
@@ -76,15 +99,21 @@ private:
 	UINT system_flags;
 	effect_resource_ptr resource;
 
-	std::vector<model_data> model_datas;
-	std::vector<particle::data> particle_datas;
-	std::vector<decal_data> decal_datas;
+	std::vector<node> nodes;
+	std::vector<model> models;
+	std::vector<particle> particles;
+	std::vector<decal> decals;
 
 	//	姿勢情報
 	DirectX::XMFLOAT3 scale = {1, 1, 1};
 	math::rotator rotation = {0, 0, 0};
 	DirectX::XMFLOAT3 position = {0, 0, 0};
-	DirectX::XMFLOAT4X4 previous_world_transform{ 1, 0, 0, 0,  0, 1, 0, 0,  0, 0, 1, 0,  0, 0, 0, 1 };
+	DirectX::XMFLOAT4X4 previous_world_transform = {1, 0, 0, 0,  0, 1, 0, 0,  0, 0, 1, 0,  0, 0, 0, 1};
+
+	//	アニメーション関連
+	float animation_time = 0.0f;
+	float animation_speed = 1.0f;
+	std::vector<animation::node> node_animations;
 };
 
 using effect_instance_ptr = std::shared_ptr<effect_instance>;

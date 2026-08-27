@@ -4,6 +4,7 @@
 #include "texture.h"
 #include "buffer_view.h"
 #include "collision/capsule.h"
+#include "collision/box.h"
 
 #include "post_process_volume.h"
 
@@ -129,11 +130,13 @@ struct effect_container
 };
 
 //	デカール情報
+//	@remaidner	時間が無いのでレンダラー側にモデルを持たせている
 struct decal_datas
 {
 	DirectX::XMFLOAT3 scale = {1, 1, 1};
 	math::rotator rotation = {0, 0, 0};
 	DirectX::XMFLOAT3 position = {0, 0, 0};
+	collision::bounding_box box;
 	material_datas material;
 };
 struct decal_container
