@@ -227,6 +227,54 @@ namespace
 			return system_units::convert_fps_to_sec(static_cast<float>(frame_index)) / animation_frame_scaler;
 		}
 
+		//	イベント/ノードキーフレームを時間順に再ソートする
+		void sort_animation_data()
+		{
+			std::sort(animation_data->events.begin(), animation_data->events.end(),
+				[](const animation::event& l, const animation::event& r) { return l.time < r.time; });
+
+			for (auto& track : animation_data->nodes)
+			{
+				std::sort(track.nodes.begin(), track.nodes.end(),
+					[](const animation::node& l, const animation::node& r) { return l.time < r.time; });
+			}
+		}
+
+		//	選択データ(複数可)を実データから削除する。
+		//	インデックスが大きい方から消していくことで、
+		//	「他の選択データのインデックスをずらす」処理そのものが不要になる。
+		//	※ selected 自体からの除去は呼び出し側で行うこと。
+		void delete_selected_data(const std::vector<selected_data>& targets)
+		{
+			std::vector<UINT> event_indices;
+			std::vector<std::pair<UINT, UINT>> node_key_indices; //	{node_index, time_index}
+
+			for (auto& data : targets)
+			{
+				if (data.category == timeline_category::event)
+					event_indices.push_back(data.indices[0]);
+				else if (data.category == timeline_category::node)
+					node_key_indices.push_back({ data.indices[0], data.indices[1] });
+			}
+
+			//	イベント: インデックスが大きい方から削除
+			std::sort(event_indices.begin(), event_indices.end(), std::greater<UINT>());
+			for (UINT index : event_indices)
+				animation_data->events.erase(animation_data->events.begin() + index);
+
+			//	ノードのキーフレーム: time_index が大きい方から削除
+			//	(node_index が違えば別の配列なので、time_index の降順だけで十分)
+			std::sort(node_key_indices.begin(), node_key_indices.end(),
+				[](auto& l, auto& r) { return l.second > r.second; });
+			for (auto& [node_index, time_index] : node_key_indices)
+			{
+				auto& track = animation_data->nodes[node_index];
+				track.nodes.erase(track.nodes.begin() + time_index);
+			}
+
+			sort_animation_data();
+		}
+
 	public:
 		animation_timeline_editor()
 		: editor_items::ibase_editor()
@@ -270,15 +318,52 @@ namespace
 			if (!animation_data)
 				return;
 
-			start_frame = std::max(start_frame, first_frame);
-			end_frame = std::min(end_frame, last_frame);
-
-			auto content_region_avail = ImGui::GetContentRegionAvail();
-			float region_avail_width = content_region_avail.x * 2.0f / 3.0f;
-			if (ImGui::BeginChild("##Sequencer", ImVec2(region_avail_width, 0), 0, ImGuiWindowFlags_NoMove))
+			if (ImGui::Begin("Animation Timeline"))
 			{
-				if (ImGui::Button(is_open_nodes ? "hide nodes" : "visible nodes"))
-					is_open_nodes = !is_open_nodes;
+				switch (selected_timeline)
+				{
+					case timeline_category::node:
+					{
+						if (selected_node_index >= animation_data->nodes.size())
+							break;
+
+						if (ImGui::Button("Add Keyframe"))
+						{
+							auto& track = animation_data->nodes[selected_node_index];
+							dummy_node.time = calcurate_second(current_frame);
+							current_frame = calcurate_frame_index(dummy_node.time);
+							track.nodes.push_back(dummy_node);
+							sort_animation_data();
+						}
+						break;
+					}
+					case timeline_category::event:
+					{
+						if (ImGui::Button("Add Event"))
+						{
+							dummy_event.time = calcurate_second(current_frame);
+							current_frame = calcurate_frame_index(dummy_event.time);
+							animation_data->events.push_back(dummy_event);
+							sort_animation_data();
+						}
+						break;
+					}
+					case timeline_category::none:
+					{
+						if (selected.empty())
+							break;
+
+						//	何かしらあれば AllDelete コマンドを表示する
+						if (ImGui::Button("Selected All Delete"))
+						{
+							delete_selected_data(selected);
+							clear_selected_selection_data();
+							clear_selected_timeline_data();
+						}
+						break;
+					}
+				}
+				ImGui::Separator();
 				if (ImGui::BeginNeoSequencer(SequencerName.data(), &current_frame, &start_frame, &end_frame, { 0, 0 },
 					ImGuiNeoSequencerFlags_AllowLengthChanging | ImGuiNeoSequencerFlags_EnableSelection |
 					ImGuiNeoSequencerFlags_AlwaysShowHeader | ImGuiNeoSequencerFlags_Selection_EnableDragging |
@@ -292,25 +377,20 @@ namespace
 					}
 					selected.clear();
 					render_events(context);
-					if (is_open_nodes)
-						render_nodes(context);
+					render_nodes(context);
 					ImGui::EndNeoSequencer();
 				}
 			}
-			ImGui::EndChild();
-			ImGui::SameLine();
-			region_avail_width = content_region_avail.x / 3.0f;
-			if (ImGui::BeginChild("##ValueItem", ImVec2(region_avail_width, 0), 0, ImGuiWindowFlags_NoMove))
-			{
-				render_inspector(context);
-			}
-			ImGui::EndChild();
+			ImGui::End();
+
+			render_inspector(context);
 		}
 
 		void render_events(std::shared_ptr<editor_items::context>& context)
 		{
-			if (animation_data->events.empty())
-				return;
+			//Eventsは必ず表示
+			//if (animation_data->events.empty())
+			//	return;
 
 			ImGui::PushID("##Events");
 			if (ImGui::BeginNeoGroup(""))
@@ -344,6 +424,7 @@ namespace
 			}
 			ImGui::PopID();
 		}
+
 		void render_nodes(std::shared_ptr<editor_items::context>& context)
 		{
 			if (animation_data->nodes.empty())
@@ -353,17 +434,17 @@ namespace
 			if (ImGui::BeginNeoGroup(""))
 			{
 				UINT node_index = 0;
-				for (auto& node : animation_data->nodes)
+				for (auto& track : animation_data->nodes)
 				{
-					auto text = system_utility::convert_utf8(node.node_name);
+					auto text = system_utility::convert_utf8(track.node_name);
 					if (ImGui::BeginNeoTimelineEx(text.data()))
 					{
 						UINT time_index = 0;
-						for (auto&& node : node.nodes)
+						for (auto& keyframe : track.nodes)
 						{
 							ImGui::PushID(context->get_item_id());
 
-							int frame = calcurate_frame_index(node.time);
+							int frame = calcurate_frame_index(keyframe.time);
 							ImGui::NeoKeyframe(&frame);
 
 							if (ImGui::IsNeoKeyframeSelected())
@@ -380,6 +461,7 @@ namespace
 						{
 							clear_selected_selection_data();
 							selected_timeline = timeline_category::node;
+							selected_node_index = node_index;
 						}
 						ImGui::EndNeoTimeLine();
 					}
@@ -397,8 +479,7 @@ namespace
 			{
 				ImGui::DragFloat("time", &node.time,
 					system_units::convert_fps_to_sec(1.0f),
-					static_cast<float>(first_frame),
-					static_cast<float>(last_frame),
+					0.0f, 0.0f,
 					"%.6f");
 				ImGui::DragFloat3("scale", &node.scale.x, 0.01f);
 				math::rotator rotator = node.rotation;
@@ -410,8 +491,7 @@ namespace
 			{
 				ImGui::DragFloat("time", &event.time,
 					system_units::convert_fps_to_sec(1.0f),
-					static_cast<float>(first_frame),
-					static_cast<float>(last_frame),
+					0.0f, 0.0f,
 					"%.6f");
 
 				ImGui::InputTextUtf8("Function Name", event.function_name);
@@ -454,112 +534,10 @@ namespace
 				}
 			};
 
-			auto content_region_avail = ImGui::GetContentRegionAvail();
-			float region_avail_hegiht = content_region_avail.y * 1.0f / 6.0f;
-			if (ImGui::BeginChild("##Category Item", ImVec2(0, region_avail_hegiht), 0, ImGuiWindowFlags_NoMove))
+			if (ImGui::Begin("Animation Inspector"))
 			{
-				switch (selected_timeline)
-				{
-					case timeline_category::node:
-					{
-						//	特になし
-						break;
-					}
-					case timeline_category::event:
-					{
-						//	ダミー情報設定
-						dummy_event.time = calcurate_second(current_frame);
-						event_edit(dummy_event);
-						current_frame = calcurate_frame_index(dummy_event.time);
-						if (ImGui::Button("Add Event"))
-						{
-							animation_data->events.push_back(dummy_event);
-							std::sort(
-								animation_data->events.begin(),
-								animation_data->events.end(),
-								[](const animation::event& l, const animation::event& r)
-								{
-									return l.time < r.time;
-								});
-						}
-						break;
-					}
-					case timeline_category::none:
-					{
-						if (selected.empty())
-							break;
-
-						//	何かしらあれば AllDelete コマンドを表示する
-						if (ImGui::Button("Selected All Delete"))
-						{
-							//	データ破棄
-							for (auto& data : selected)
-							{
-								if (data.category == timeline_category::event)
-								{
-									auto it = animation_data->events.begin() + data.indices[0];
-									//	後方の物をずらす
-									for (auto& data2 : selected)
-									{
-										if (data2.category != timeline_category::event)
-											continue;
-
-										if (data.indices[0] < data2.indices[0])
-											--data2.indices[0];
-									}
-									animation_data->events.erase(it);
-								}
-								else if (data.category == timeline_category::node)
-								{
-									auto& nodes = animation_data->nodes[data.indices[0]];
-									auto it = nodes.nodes.begin() + data.indices[1];
-									//	後方の物をずらす
-									for (auto& data2 : selected)
-									{
-										if (data2.category != timeline_category::node ||
-											data.indices[0] != data2.indices[0])
-											continue;
-
-										if (data.indices[1] < data2.indices[1])
-											--data2.indices[1];
-									}
-									nodes.nodes.erase(it);
-								}
-							}
-
-							//	各種ソート
-							std::sort(
-								animation_data->events.begin(),
-								animation_data->events.end(),
-								[](const animation::event& l, const animation::event& r)
-								{
-									return l.time < r.time;
-								});
-							for (auto& node : animation_data->nodes)
-							{
-								std::sort(
-									node.nodes.begin(),
-									node.nodes.end(),
-									[](const animation::node& l, const animation::node& r)
-									{
-										return l.time < r.time;
-									});
-							}
-
-							//	選択解除
-							clear_selected_selection_data();
-							clear_selected_timeline_data();
-						}
-						break;
-					}
-				}
-			}
-			ImGui::EndChild();
-			ImGui::Separator();
-			region_avail_hegiht = content_region_avail.y * 5.0f / 6.0f;
-			if (ImGui::BeginChild("##Selected Edit", ImVec2(0, region_avail_hegiht), 0, ImGuiWindowFlags_NoMove))
-			{
-				int data_index = 0, delete_data_index = -1;
+				int delete_data_index = -1;
+				int data_index = 0;
 				for (auto& data : selected)
 				{
 					ImGui::PushID(context->get_item_id());
@@ -570,9 +548,7 @@ namespace
 							ImGui::Text("Event[%d]", data.indices[0]);
 							ImGui::SameLine();
 							if (ImGui::Button("Delete"))
-							{
 								delete_data_index = data_index;
-							}
 							event_edit(animation_data->events[data.indices[0]]);
 							break;
 						}
@@ -582,9 +558,7 @@ namespace
 							ImGui::Text("%s[%d]", node_data.node_name.c_str(), data.indices[1]);
 							ImGui::SameLine();
 							if (ImGui::Button("Delete"))
-							{
 								delete_data_index = data_index;
-							}
 							node_edit(node_data.nodes[data.indices[1]]);
 							break;
 						}
@@ -595,64 +569,11 @@ namespace
 				}
 				if (delete_data_index >= 0)
 				{
-					auto& data = selected[delete_data_index];
-					switch (data.category)
-					{
-						case timeline_category::event:
-						{
-							auto it = animation_data->events.begin() + data.indices[0];
-							//	後方の物をずらす
-							for (auto& data2 : selected)
-							{
-								if (data2.category != timeline_category::event)
-									continue;
-
-								if (data.indices[0] < data2.indices[0])
-									--data2.indices[0];
-							}
-							animation_data->events.erase(it);
-							break;
-						}
-						case timeline_category::node:
-						{
-							delete_data_index = data_index;
-							auto& nodes = animation_data->nodes[data.indices[0]];
-							auto it = nodes.nodes.begin() + data.indices[1];
-							//	後方の物をずらす
-							for (auto& data2 : selected)
-							{
-								if (data2.category != timeline_category::node ||
-									data.indices[0] != data2.indices[0])
-									continue;
-
-								if (data.indices[1] < data2.indices[1])
-									--data2.indices[1];
-							}
-							nodes.nodes.erase(it);
-							break;
-						}
-					}
-					//	各種ソート
-					std::sort(
-						animation_data->events.begin(),
-						animation_data->events.end(),
-						[](const animation::event& l, const animation::event& r)
-						{
-							return l.time < r.time;
-						});
-					for (auto& node : animation_data->nodes)
-					{
-						std::sort(
-							node.nodes.begin(),
-							node.nodes.end(),
-							[](const animation::node& l, const animation::node& r)
-							{
-								return l.time < r.time;
-							});
-					}
+					delete_selected_data({ selected[delete_data_index] });
+					selected.erase(selected.begin() + delete_data_index);
 				}
 			}
-			ImGui::EndChild();
+			ImGui::End();
 		}
 
 	private:
@@ -664,7 +585,7 @@ namespace
 		int32_t start_frame, end_frame;
 		int32_t first_frame, last_frame;
 		std::vector<selected_data> selected;
-		bool is_open_nodes = false;
+		UINT selected_node_index = 0;
 
 		animation::event dummy_event;
 		animation::node dummy_node;
@@ -673,12 +594,15 @@ namespace
 
 bool editor_items::edit_animation_data(std::shared_ptr<context>& context, animation::data& animation_data)
 {
-	auto data_hash_key = system_utility::fnv1a_hash(sizeof(animation_data), reinterpret_cast<char*>(&animation_data));
-
 	//	名前編集
 	if (!context->flag_maps[context::EditAnimationHideName])
 	{
 		ImGui::InputTextUtf8("name", animation_data.name);
+	}
+
+	//	終端時間
+	{
+		ImGui::DragFloat("end time", &animation_data.end_time, system_units::convert_fps_to_sec(1.0f), system_units::convert_fps_to_sec(1.0f),FLT_MAX);
 	}
 
 	//	ルートモーション関係
@@ -722,7 +646,12 @@ bool editor_items::edit_animation_data(std::shared_ptr<context>& context, animat
 
 		ImGui::TreePop();
 	}
-	ImGui::Separator();
+	return true;
+}
+
+bool editor_items::edit_animation_data_timeline(std::shared_ptr<context>& context, animation::data& animation_data)
+{
+	auto data_hash_key = system_utility::fnv1a_hash(sizeof(animation_data), reinterpret_cast<char*>(&animation_data));
 
 	//	タイムラインエディター
 	{
@@ -733,9 +662,6 @@ bool editor_items::edit_animation_data(std::shared_ptr<context>& context, animat
 		editor->set_data(&animation_data);
 		editor->render(context);
 	}
-
-	//	データハッシュキー更新
-	context->animation_data_hash_key = data_hash_key;
 	return true;
 }
 

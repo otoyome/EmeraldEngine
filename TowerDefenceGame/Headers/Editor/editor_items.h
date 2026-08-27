@@ -48,7 +48,6 @@ public:
 		std::map<std::string, bool> flag_maps; // フラグ管理
 
 	private:	//	アニメーション関係
-		system_utility::hash_key animation_data_hash_key = system_utility::hash_key(-1);
 		std::unique_ptr<ibase_editor> interpolation_editor;
 		std::unique_ptr<ibase_editor> timeline_editor;
 		std::unique_ptr<ibase_editor> ik_editor;
@@ -91,6 +90,7 @@ public:	//	編集アイテム系
 	static bool edit_model_resource_item(std::shared_ptr<context>& context, model_resource_ptr& resource, std::string* selected_file_path = nullptr);
 
 	static bool edit_animation_data(std::shared_ptr<context>& context, animation::data& animation_data);
+	static bool edit_animation_data_timeline(std::shared_ptr<context>& context, animation::data& animation_data);
 	static bool edit_ik(std::shared_ptr<context>& context, model_instance_ptr& model_instance, ik_resource_ptr& ik_resource);
 
 	static bool edit_effect(std::shared_ptr<context>& context, effect_instance_ptr& effect_instance);

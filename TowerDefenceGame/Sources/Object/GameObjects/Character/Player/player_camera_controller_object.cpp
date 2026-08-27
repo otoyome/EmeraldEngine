@@ -9,7 +9,7 @@ namespace
 	//	±ピッチ制限角度
 	constexpr DirectX::XMFLOAT2 pitch_limit_angle = { DirectX::XMConvertToRadians(-10.0f), DirectX::XMConvertToRadians(45.0f) };
 	//	開始距離
-	constexpr float default_distance = system_units::convert_m_to_unit(5.0f);
+	constexpr float default_distance = system_units::convert_m_to_unit(7.0f);
 	//	角度によるフォーカス位置のオフセット
 	constexpr float focus_y_min_offset = -system_units::convert_m_to_unit(0.3f);
 	constexpr float focus_y_max_offset = +system_units::convert_m_to_unit(0.3f);

@@ -173,7 +173,12 @@ void edit_model_scene::imgui_render_animation()
 		if (current_animation_id > 0 && current_animation_id < animation_names.size())
 		{
 			auto& animation_datas = edit_model->get_model_instance()->get_resource()->get_animations_for_editor();
+
+			//	アニメーション情報編集
 			editor_items::edit_animation_data(editor_context, animation_datas[current_animation_id]);
+
+			//	アニメーションタイムライン情報編集
+			editor_items::edit_animation_data_timeline(editor_context, animation_datas[current_animation_id]);
 		}
 
 		if (is_delete)

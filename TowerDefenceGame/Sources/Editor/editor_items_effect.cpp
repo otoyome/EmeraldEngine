@@ -364,6 +364,9 @@ bool editor_items::edit_effect(std::shared_ptr<context>& context, effect_instanc
 		context->flag_maps[context::EditAnimationHideRootMotion] = true;
 		context->flag_maps[context::EditAnimationHideIK] = true;
 		editor_items::edit_animation_data(context, animation_data);
+
+		//	アニメーションタイムライン情報編集
+		editor_items::edit_animation_data_timeline(context, animation_data);
 	}
 	ImGui::End();
 	return edit_flag;

@@ -68,7 +68,7 @@ game_main_scene::game_main_scene()
 	std::shared_ptr<camera_object> main_camera;
 	{
 		main_camera = std::make_shared<camera_object>("ƒƒCƒ“ƒJƒƒ‰");
-		main_camera->get_camera()->set_fov_y(DirectX::XMConvertToRadians(15.0f));
+		main_camera->get_camera()->set_fov_y(DirectX::XMConvertToRadians(30.0f));
 		main_camera->set_position({0, 10, 40});
 		register_object(main_camera);
 	}
