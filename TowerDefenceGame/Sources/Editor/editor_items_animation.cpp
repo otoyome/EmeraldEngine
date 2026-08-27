@@ -224,6 +224,7 @@ namespace
 			current_frame = 0;
 			start_frame = 0;
 			end_frame = calculate_frame_index(animation_data->end_time);
+			keyframe_move_pending = false;
 			clear_selection();
 			clear_active_timeline();
 		}
@@ -253,7 +254,18 @@ namespace
 					selected.clear();
 					render_event_timeline(context);
 					render_node_timelines(context);
+
+					const bool dragging = ImGui::NeoIsDraggingSelection();
 					ImGui::EndNeoSequencer();
+
+					//	キーフレームのドラッグ移動が終わったら時間順に並べ直す。
+					//	（ドラッグ中に並べ替えると ImGui ID がずれて操作が壊れるため待つ）
+					if (keyframe_move_pending && !dragging)
+					{
+						sort_animation_data();
+						clear_selection();
+						keyframe_move_pending = false;
+					}
 				}
 			}
 			ImGui::End();
@@ -271,6 +283,31 @@ namespace
 		float calculate_second(int frame_index) const
 		{
 			return system_units::convert_fps_to_sec(static_cast<float>(frame_index)) / sequencer_time_scale;
+		}
+
+		//	NeoKeyframe がドラッグでフレーム値を変えていたら時刻へ書き戻す。
+		//	並べ替えはドラッグ完了後（render 内）にまとめて行う。
+		void write_back_dragged_time(float& time, int frame_before, int frame_after)
+		{
+			if (frame_after == frame_before)
+				return;
+
+			time = std::max(calculate_second(frame_after), 0.0f);
+			keyframe_move_pending = true;
+		}
+
+		//	track 内に frame と同じフレームのキーが既にあるか（exclude は判定から除外）。
+		//	ノードのキーは同一フレームに複数置けない（イベントは重複可）。
+		bool node_frame_occupied(const animation::node_data& track, int frame, const animation::node* exclude) const
+		{
+			for (const auto& key : track.nodes)
+			{
+				if (&key == exclude)
+					continue;
+				if (calculate_frame_index(key.time) == frame)
+					return true;
+			}
+			return false;
 		}
 
 		void clear_selection()
@@ -342,10 +379,14 @@ namespace
 		//	ボタンは常に表示し、対象を選択していないときは押せないようにする。
 		void render_toolbar()
 		{
-			const bool can_add_keyframe =
+			const bool node_selected =
 				active_timeline == timeline_category::node &&
 				selected_node_index < animation_data->nodes.size();
 			const bool can_add_event = active_timeline == timeline_category::event;
+
+			//	ノードは同じフレームに複数キーを置けないので、再生位置が空いているときだけ追加可
+			const bool can_add_keyframe = node_selected &&
+				!node_frame_occupied(animation_data->nodes[selected_node_index], current_frame, nullptr);
 
 			//	追加：ノード行 or イベント行を選択しているときだけ押せる
 			ImGui::BeginDisabled(!can_add_keyframe && !can_add_event);
@@ -396,7 +437,10 @@ namespace
 						ImGui::PushID(context->get_item_id());
 
 						int frame = calculate_frame_index(event.time);
+						const int frame_before = frame;
 						ImGui::NeoKeyframe(&frame);
+						write_back_dragged_time(event.time, frame_before, frame);
+
 						if (ImGui::IsNeoKeyframeSelected())
 						{
 							if (selected.empty())
@@ -441,7 +485,13 @@ namespace
 							ImGui::PushID(context->get_item_id());
 
 							int frame = calculate_frame_index(keyframe.time);
+							const int frame_before = frame;
 							ImGui::NeoKeyframe(&frame);
+
+							//	移動先フレームに別キーがあるなら移動を受け付けない（同一フレーム禁止）
+							if (!node_frame_occupied(track, frame, &keyframe))
+								write_back_dragged_time(keyframe.time, frame_before, frame);
+
 							if (ImGui::IsNeoKeyframeSelected())
 							{
 								if (selected.empty())
@@ -559,6 +609,7 @@ namespace
 
 		std::vector<selected_key> selected;
 		UINT selected_node_index = 0;
+		bool keyframe_move_pending = false;	//	ドラッグ移動があり、まだ並べ替えていない
 	};
 }
 
