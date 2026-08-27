@@ -27,7 +27,7 @@ bool edit_model_scene::initialize_core()
 	//	メインカメラ生成
 	{
 		main_camera = std::make_shared<camera_object>("メインカメラ");
-		main_camera->get_camera()->set_fov_y(DirectX::XMConvertToRadians(15.0f));
+		main_camera->get_camera()->set_fov_y(DirectX::XMConvertToRadians(30.0f));
 		register_object(main_camera);
 		mouse::instance()->set_center_lock(false);
 		mouse::instance()->set_cursol_hide(false);

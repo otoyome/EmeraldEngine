@@ -118,7 +118,7 @@ bool edit_particle_scene::initialize_core()
 	//	メインカメラ生成
 	{
 		main_camera = std::make_shared<camera_object>("メインカメラ");
-		main_camera->get_camera()->set_fov_y(DirectX::XMConvertToRadians(15.0f));
+		main_camera->get_camera()->set_fov_y(DirectX::XMConvertToRadians(30.0f));
 	//	main_camera->get_camera()->set_flag(camera::flags::hybrid_projection, true);
 	//	main_camera->get_camera()->set_hybrid_rate(0.3f);	//	透視投影
 		register_object(main_camera);
