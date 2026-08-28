@@ -78,6 +78,7 @@ effect_instance::effect_instance()
 : system_flags(0)
 , resource()
 {
+	animation_time = 0.0f;
 	set_flag(flags::active, true);
 	set_flag(flags::color_render, true);
 	set_flag(flags::shadow_caster, false);
@@ -105,7 +106,7 @@ void effect_instance::update(float elapsed_time)
 	if (!animations.empty())
 	{
 		//	アニメーション時間更新
-		animation_time += elapsed_time;
+		animation_time += elapsed_time * animation_speed;
 
 		//	アニメーションノード計算
 		static constexpr int animation_index = 0;	//	0番のみなので
@@ -151,6 +152,12 @@ void effect_instance::update(float elapsed_time)
 	{
 		model.instance->update_transform(nodes[model.node_index].world_transform);
 	}
+}
+
+void effect_instance::reset_to_initial_state()
+{
+	animation_time = 0.0f;
+	set_flag(effect_instance::flags::bursted, false);
 }
 
 void effect_instance::build()
@@ -392,10 +399,10 @@ void effect_manager::update_gpu(graphics_context& context, float elapsed_time)
 				//	エミッター更新情報登録
 				data.common = common_data;
 				particle_system->update_emitter(emitter_item.system_index, data);
-
-				//	フラグ修復
-				item.effect_instance->set_flag(effect_instance::flags::bursted, true);
 			}
+
+			//	フラグ修復
+			item.effect_instance->set_flag(effect_instance::flags::bursted, true);
 		}
 		particle_system->update(context, elapsed_time);
 	}

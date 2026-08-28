@@ -341,6 +341,12 @@ bool editor_items::edit_effect(std::shared_ptr<context>& context, effect_instanc
 			float animation_end_time = animation_data.end_time;
 			float animation_time = effect_instance->get_animation_time();
 
+			//	ŠJn‚Ìó‘Ô‚Ö–ß‚·
+			if (animation_time <= 1e-6f)
+			{
+				effect_instance->reset_to_initial_state();
+			}
+
 			//	‘€ìŒn
 			auto& loop_flag = context->flag_maps["__Effect_Animation_Player_Loop_Flag__"];
 			auto& pause_flag = context->flag_maps["__Effect_Animation_Player_Pause_Flag__"];
@@ -354,8 +360,9 @@ bool editor_items::edit_effect(std::shared_ptr<context>& context, effect_instanc
 			ImGui::SliderFloat("animation time", &animation_time, 0.0f, animation_end_time + 0.001f, "%.6f");
 			if (loop_flag && animation_time >= animation_end_time)
 				animation_time = 0.0f;
+
 			effect_instance->set_animation_time(animation_time);
-			effect_instance->set_animation_speed(pause_flag ? 1.0f : 0.0f);
+			effect_instance->set_animation_speed(pause_flag ? 0.0f : 1.0f);
 			ImGui::Separator();
 		}
 

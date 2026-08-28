@@ -91,6 +91,9 @@ public:
 
 	void update(float elapsed_time);
 
+	//	ŠJn‚Ìó‘Ô‚Ö–ß‚·
+	void reset_to_initial_state();
+
 private:
 	void build();
 

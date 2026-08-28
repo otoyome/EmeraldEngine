@@ -9,10 +9,7 @@
 
 namespace
 {
-	//------------------------------------------------------------------------------
 	//	context が保持する具象エディターを遅延生成して取得するヘルパー。
-	//	（edit_ik 等と同じ「context に unique_ptr を持たせる」方式のボイラープレート削減用）
-	//------------------------------------------------------------------------------
 	template<class editor_type>
 	editor_type& acquire_editor(std::unique_ptr<editor_items::ibase_editor>& holder)
 	{
@@ -22,16 +19,17 @@ namespace
 		return *static_cast<editor_type*>(holder.get());
 	}
 
-	//------------------------------------------------------------------------------
 	//	アニメーション時間補間カーブの編集
-	//	（animation::data::time_curve を ImCurveEdit で編集する）
-	//------------------------------------------------------------------------------
 	class animation_interpolation_editor final
 		: public ImCurveEdit::Delegate
 		, public editor_items::ibase_editor
 	{
+		static constexpr float curve_horizontal_margin = 40.0f;
+		static constexpr float curve_height = 300.0f;
+		static constexpr unsigned int curve_edit_id = 0xFFFF;
+		static constexpr uint32_t curve_color = 0xFF0000FF;
+
 	public:
-		//	編集対象を差し替える。同じ実体なら再構築しない。
 		void set_data(animation::data* data)
 		{
 			if (animation_data == data)
@@ -48,7 +46,7 @@ namespace
 
 			auto& curve = animation_data->time_curve;
 
-			//	ホイールズームには対応しないため、表示範囲は毎フレーム固定に戻す。
+			//	ズームには対応しない
 			range_min = ImVec2(0.0f, 0.0f);
 			range_max = ImVec2(0.0f, 1.0f);
 
@@ -68,7 +66,7 @@ namespace
 			ImVector<ImCurveEdit::EditPoint> selected_points;
 			ImCurveEdit::Edit(*this, ImVec2(width, curve_height), curve_edit_id, nullptr, &selected_points, &selection_lists);
 
-			//	右クリック中の選択点を削除（始点・終点は残す）
+			//	右クリック中の選択点を削除
 			if (!selected_points.empty() && ImGui::IsMouseDown(ImGuiMouseButton_Right))
 				remove_points(selected_points);
 
@@ -83,7 +81,7 @@ namespace
 		}
 
 	private:
-		//	--- ImCurveEdit::Delegate ------------------------------------------------
+		//	ImCurveEdit関係
 		size_t GetCurveCount() override { return 1; }
 		bool IsVisible(size_t /*curve_index*/) override { return true; }
 		size_t GetPointCount(size_t /*curve_index*/) override { return point_cache.size(); }
@@ -121,7 +119,6 @@ namespace
 			sync_to_data();
 		}
 
-		//	--- 内部ヘルパー ------------------------------------------------------
 		//	datas -> point_cache
 		void reload_points()
 		{
@@ -133,7 +130,7 @@ namespace
 				point_cache.emplace_back(d.x, d.y);
 		}
 
-		//	point_cache -> datas（x 昇順にソートしてから書き戻す）
+		//	point_cache -> datas
 		void sync_to_data()
 		{
 			std::sort(point_cache.begin(), point_cache.end(),
@@ -148,7 +145,6 @@ namespace
 				datas.emplace_back(p.x, p.y);
 		}
 
-		//	選択点を datas から削除する。始点・終点は必ず残す。
 		void remove_points(const ImVector<ImCurveEdit::EditPoint>& targets)
 		{
 			auto& datas = animation_data->time_curve.datas;
@@ -172,20 +168,13 @@ namespace
 	private:
 		animation::data* animation_data = nullptr;
 		std::set<ImCurveEdit::EditPoint> selection_lists;
-		std::vector<ImVec2> point_cache;			//	datas を ImCurveEdit 用に複製したもの
+		std::vector<ImVec2> point_cache;
 		ImVec2 range_min = ImVec2(0.0f, 0.0f);
 		ImVec2 range_max = ImVec2(0.0f, 1.0f);
-
-		static constexpr float curve_horizontal_margin = 40.0f;
-		static constexpr float curve_height = 300.0f;
-		static constexpr unsigned int curve_edit_id = 0xFFFF;
-		static constexpr uint32_t curve_color = 0xFF0000FF;
 	};
 
-	//------------------------------------------------------------------------------
-	//	アニメーションタイムライン編集
+//	アニメーションタイムライン編集
 	//	ﾃｷﾄｰ('ω')-ﾄｷﾃ
-	//------------------------------------------------------------------------------
 	class animation_timeline_editor final : public editor_items::ibase_editor
 	{
 		//	どのタイムライン行が編集対象として選択されているか
@@ -206,10 +195,8 @@ namespace
 
 		static constexpr std::string_view sequencer_name = "Sequencer";
 
-		//	サブフレーム表示倍率。
-		//	シーケンサーは整数フレームでしか扱えないため、fps にこの倍率を掛けて
-		//	1 フレーム未満のキー時刻も区別できるようにしている。
-		static constexpr float sequencer_time_scale = 10.0f;
+		//	FPSプリセット（ツールバーのショートカットボタン用）
+		static constexpr std::array<float, 4> fps_presets = { 24.0f, 30.0f, 60.0f, 120.0f };
 
 	public:
 		void set_data(animation::data* data)
@@ -225,6 +212,8 @@ namespace
 			start_frame = 0;
 			end_frame = calculate_frame_index(animation_data->end_time);
 			keyframe_move_pending = false;
+			selection_dragging = false;
+			sequencer_rect_valid = false;
 			clear_selection();
 			clear_active_timeline();
 		}
@@ -234,11 +223,35 @@ namespace
 			if (animation_data == nullptr)
 				return;
 
-			if (ImGui::Begin("Animation Timeline"))
+			//	NoMove: デフォルトだとウィンドウ本体の空白部分をドラッグしただけでも
+			//	ウィンドウが動いてしまい、ノードの範囲選択操作と競合する。
+			//	・selection_dragging: 前フレーム時点で選択ドラッグ中だった（継続中）か
+			//	・mouse_down_in_sequencer: 今フレームの「マウスが押された瞬間」の座標が、
+			//	  前フレームで記録したシーケンサー領域内かどうか（クリック1フレーム目の予測判定）
+			//	のどちらかが true のときだけ NoMove にすることで、通常時はタイトルバー等からの
+			//	ウィンドウ移動・ドッキングは維持しつつ、シーケンサー操作の開始フレームから
+			//	ウィンドウが動くのを防ぐ。
+			bool mouse_down_in_sequencer = false;
+			if (sequencer_rect_valid && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+			{
+				const ImVec2 mouse_pos = ImGui::GetMousePos();
+				mouse_down_in_sequencer =
+					mouse_pos.x >= sequencer_rect_min.x && mouse_pos.x <= sequencer_rect_max.x &&
+					mouse_pos.y >= sequencer_rect_min.y && mouse_pos.y <= sequencer_rect_max.y;
+			}
+
+			const ImGuiWindowFlags timeline_window_flags =
+				(selection_dragging || mouse_down_in_sequencer) ? ImGuiWindowFlags_NoMove : ImGuiWindowFlags_None;
+
+			if (ImGui::Begin("Animation Timeline", nullptr, timeline_window_flags))
 			{
 				render_toolbar();
 
 				ImGui::Separator();
+
+				//	今回描画するシーケンサー領域を記録しておく（次フレームの予測判定に使う）
+				const ImVec2 sequencer_pos = ImGui::GetCursorScreenPos();
+				const float sequencer_width = ImGui::GetContentRegionAvail().x;
 
 				if (ImGui::BeginNeoSequencer(sequencer_name.data(), &current_frame, &start_frame, &end_frame, { 0, 0 },
 					ImGuiNeoSequencerFlags_AllowLengthChanging | ImGuiNeoSequencerFlags_EnableSelection |
@@ -256,6 +269,7 @@ namespace
 					render_node_timelines(context);
 
 					const bool dragging = ImGui::NeoIsDraggingSelection();
+					selection_dragging = dragging;	//	次フレームの Begin で NoMove 判定に使う
 					ImGui::EndNeoSequencer();
 
 					//	キーフレームのドラッグ移動が終わったら時間順に並べ直す。
@@ -266,6 +280,14 @@ namespace
 						clear_selection();
 						keyframe_move_pending = false;
 					}
+
+					sequencer_rect_min = sequencer_pos;
+					sequencer_rect_max = ImVec2(sequencer_pos.x + sequencer_width, ImGui::GetCursorScreenPos().y);
+					sequencer_rect_valid = true;
+				}
+				else
+				{
+					sequencer_rect_valid = false;
 				}
 			}
 			ImGui::End();
@@ -274,18 +296,43 @@ namespace
 		}
 
 	private:
-		//	時間 -> サブフレーム番号
+		//	秒(node/event の time) -> シーケンサー表示用の整数フレーム番号
+		//	fps を掛けてフレーム値にし、丸めて整数化する。
 		int calculate_frame_index(float second) const
 		{
-			return static_cast<int>(system_units::convert_sec_to_fps(second * sequencer_time_scale));
+			return static_cast<int>(std::lround(second * fps));
 		}
-		//	サブフレーム番号 -> 時間
+		//	シーケンサー表示用の整数フレーム番号 -> 秒(node/event の time)
 		float calculate_second(int frame_index) const
 		{
-			return system_units::convert_fps_to_sec(static_cast<float>(frame_index)) / sequencer_time_scale;
+			return static_cast<float>(frame_index) / fps;
 		}
 
-		//	NeoKeyframe がドラッグでフレーム値を変えていたら時刻へ書き戻す。
+		//	サンプリングレート(FPS)を変更する。
+		//	current_frame / start_frame / end_frame は「fps で割ると秒になる」だけの値なので、
+		//	fps を変える前に一旦秒へ戻し、新しい fps でフレームへ変換し直すことで
+		//	見た目の時間がズレないようにする。
+		//	（各キーフレームの time は秒のまま保持しているので変換不要。
+		//	毎フレームの描画時に calculate_frame_index() で新しい fps に基づき再計算される）
+		void set_fps(float new_fps)
+		{
+			new_fps = std::max(new_fps, 1.0f);
+			if (new_fps == fps)
+				return;
+
+			const float current_time = calculate_second(current_frame);
+			const float start_time = calculate_second(start_frame);
+			const float end_time = calculate_second(end_frame);
+
+			fps = new_fps;
+			fps_input = fps;
+
+			current_frame = calculate_frame_index(current_time);
+			start_frame = calculate_frame_index(start_time);
+			end_frame = calculate_frame_index(end_time);
+		}
+
+		//	NeoKeyframe がドラッグでフレーム値を変えていたら time(秒) へ書き戻す。
 		//	並べ替えはドラッグ完了後（render 内）にまとめて行う。
 		void write_back_dragged_time(float& time, int frame_before, int frame_after)
 		{
@@ -375,10 +422,33 @@ namespace
 			sort_animation_data();
 		}
 
-		//	タイムライン操作ツールバー（追加 / 削除）。
-		//	ボタンは常に表示し、対象を選択していないときは押せないようにする。
+		//	サンプリングレート(FPS)の入力欄とプリセットボタン
+		void render_fps_controls()
+		{
+			ImGui::SetNextItemWidth(120.0f);
+			ImGui::InputFloat("Sampling Rate (FPS)", &fps_input, 1.0f, 10.0f, "%.2f");
+			if (ImGui::IsItemDeactivatedAfterEdit())
+				set_fps(fps_input);
+
+			for (float preset : fps_presets)
+			{
+				ImGui::SameLine();
+				ImGui::PushID(static_cast<int>(preset));
+				char label[16];
+				std::snprintf(label, sizeof(label), "%gfps", preset);
+				if (ImGui::Button(label))
+					set_fps(preset);
+				ImGui::PopID();
+			}
+		}
+
+		//	タイムライン操作ツールバー（FPS設定 / 追加 / 削除）。
+		//	追加・削除ボタンは常に表示し、対象を選択していないときは押せないようにする。
 		void render_toolbar()
 		{
+			render_fps_controls();
+			ImGui::Separator();
+
 			const bool node_selected =
 				active_timeline == timeline_category::node &&
 				selected_node_index < animation_data->nodes.size();
@@ -397,14 +467,12 @@ namespace
 					animation::event event;
 					event.type = animation::event::variable_type::None;
 					event.time = calculate_second(current_frame);
-					current_frame = calculate_frame_index(event.time);
 					animation_data->events.push_back(event);
 				}
 				else
 				{
 					animation::node key;
 					key.time = calculate_second(current_frame);
-					current_frame = calculate_frame_index(key.time);
 					animation_data->nodes[selected_node_index].nodes.push_back(key);
 				}
 				sort_animation_data();
@@ -521,7 +589,7 @@ namespace
 
 		void edit_node_inspector(animation::node& node)
 		{
-			ImGui::DragFloat("time", &node.time, system_units::convert_fps_to_sec(1.0f), 0.0f, 0.0f, "%.6f");
+			ImGui::DragFloat("time", &node.time, 1.0f / fps, 0.0f, 0.0f, "%.6f");
 			ImGui::DragFloat3("scale", &node.scale.x, 0.01f);
 
 			math::rotator rotator = node.rotation;
@@ -533,7 +601,7 @@ namespace
 
 		void edit_event_inspector(animation::event& event)
 		{
-			ImGui::DragFloat("time", &event.time, system_units::convert_fps_to_sec(1.0f), 0.0f, 0.0f, "%.6f");
+			ImGui::DragFloat("time", &event.time, 1.0f / fps, 0.0f, 0.0f, "%.6f");
 			ImGui::InputTextUtf8("Function Name", event.function_name);
 
 			ImGui::Combo<animation::event::variable_type>("variable_type", event.type);
@@ -602,6 +670,19 @@ namespace
 		animation::data* animation_data = nullptr;
 		ImGuiID sequencer_id = 0;
 		timeline_category active_timeline = timeline_category::none;
+		bool selection_dragging = false;	//	前フレームで選択ドラッグ中だったか（ウィンドウNoMove判定用）
+
+		//	前フレームで描画したシーケンサー領域（スクリーン座標）。
+		//	今フレームの「マウスダウン位置がシーケンサー内か」の予測判定に使う。
+		ImVec2 sequencer_rect_min = ImVec2(0.0f, 0.0f);
+		ImVec2 sequencer_rect_max = ImVec2(0.0f, 0.0f);
+		bool sequencer_rect_valid = false;
+
+		//	サンプリングレート(FPS)。秒⇔フレームの変換に使う。
+		//	実データ(event/node の time, animation_data->end_time)は常に秒のまま保持し、
+		//	fps はあくまで「シーケンサー上で何分割して表示・編集するか」を決めるだけの値。
+		float fps = 60.0f;
+		float fps_input = fps;	//	FPS入力欄の編集中バッファ（IsItemDeactivatedAfterEdit まで反映しない）
 
 		int32_t current_frame = 0;
 		int32_t start_frame = 0;
