@@ -64,10 +64,10 @@ namespace particle_system_item
 		struct common
 		{
 			//	エミッターステートフラグ類
-			//	@remainder	今の所未使用
 			enum class state
 			{
-				active = 1 << 0,	//	アクティブフラグ
+				active = 1 << 0,		//	アクティブフラグ
+				no_billboard = 1 << 1,	//	ビルボード無し
 			};
 
 			//	エミッター情報

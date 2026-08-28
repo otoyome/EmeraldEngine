@@ -125,14 +125,14 @@ float4 calculate_uv_rect(in pt_common_item pt_common, in em_uv_item em_uv)
     return rect;
 }
 
-//  2点間のセグメント方向とカメラ方向から、リボンの幅方向(x_axis)を求める
-float3 calculate_trail_axis(float3 pos0, float3 pos1)
+//  リボンの幅方向を求める
+float3 calculate_trail_axis(float3 pos0, float3 pos1, float3 face_dir)
 {
     float3 axis = float3(-1, 0, 0);
     float3 segment = pos1 - pos0;
     if (length(segment) > 0.001f)
     {
-        axis = cross(normalize(segment), normalize(-camera_direction.xyz));
+        axis = cross(normalize(segment), normalize(face_dir));
     }
     return axis;
 }
@@ -236,6 +236,13 @@ void main(uint3 dispatch_thread_id : SV_DispatchThreadID)
         //  プリミティブ生成
         uint read_offset = 0;
 
+        //  ビルボード無効時は軌跡の面をパーティクルの姿勢で決める
+        float3 trail_face_dir = -camera_direction.xyz;
+        if (has_flag(em_common.emitter_state, em_common_item_state_no_billboard))
+        {
+            trail_face_dir = rotate_vector_quaternion(float3(0, 1, 0), pt_common.rotation);
+        }
+
         //  初期値設定
         pt_trail_body_item trail_body[2];
         {
@@ -243,7 +250,7 @@ void main(uint3 dispatch_thread_id : SV_DispatchThreadID)
             stream_trail_body(rw_read_only, read_offset, trail_body[0]);
             stream_trail_body(rw_read_only, read_offset, trail_body[1]);
 
-            float3 x_axis = calculate_trail_axis(trail_body[0].translation, trail_body[1].translation);
+            float3 x_axis = calculate_trail_axis(trail_body[0].translation, trail_body[1].translation, trail_face_dir);
             vertex_positions[2] = float4(trail_body[0].translation + x_axis * trail_body[0].scale, 1);
             vertex_positions[3] = float4(trail_body[0].translation - x_axis * trail_body[0].scale, 1);
         }
@@ -262,8 +269,6 @@ void main(uint3 dispatch_thread_id : SV_DispatchThreadID)
             vertex_positions[0] = vertex_positions[2];
             vertex_positions[1] = vertex_positions[3];
 
-            //  次の軌跡点を先読みしてから、その点でのリング(輪切り)を計算する
-            //  (配列末尾を超えないようクランプ)
             uint next_index = min(index + 1, em_trail.max - 1);
             uint next_next_index = min(index + 2, em_trail.max - 1);
             read_offset = particle_binary_offset + next_index * pt_trail_body_size_of_bytes;
@@ -272,7 +277,7 @@ void main(uint3 dispatch_thread_id : SV_DispatchThreadID)
             stream_trail_body(rw_read_only, read_offset, trail_body[1]);
 
             //  座標計算
-            float3 x_axis = calculate_trail_axis(trail_body[0].translation, trail_body[1].translation);
+            float3 x_axis = calculate_trail_axis(trail_body[0].translation, trail_body[1].translation, trail_face_dir);
             vertex_positions[2] = float4(trail_body[0].translation + x_axis * trail_body[0].scale, 1);
             vertex_positions[3] = float4(trail_body[0].translation - x_axis * trail_body[0].scale, 1);
             vertex_positions[2] = (vertex_positions[0] + vertex_positions[2]) * 0.5f;
@@ -339,9 +344,14 @@ void main(uint3 dispatch_thread_id : SV_DispatchThreadID)
         {
     	    //  ワールド行列生成
             float4x4 scale_matrix = matrix_scaling(pt_common.scale);
-            float4x4 billboard_matrix = inverse_view_transform;
-            billboard_matrix._41_42_43_44 = float4(0, 0, 0, 1);
-            float4x4 rotation_matrix = mul(billboard_matrix, matrix_rotation_quaternion(pt_common.rotation));
+            float4x4 rotation_matrix = matrix_rotation_quaternion(pt_common.rotation);
+            if (!has_flag(em_common.emitter_state, em_common_item_state_no_billboard))
+            {
+                //  ビルボード（ビューの回転を打ち消す）
+                float4x4 billboard_matrix = inverse_view_transform;
+                billboard_matrix._41_42_43_44 = float4(0, 0, 0, 1);
+                rotation_matrix = mul(billboard_matrix, rotation_matrix);
+            }
             float4x4 translation_matrix = matrix_translation(pt_common.translation);
             float4x4 world_matrix = mul(mul(scale_matrix, rotation_matrix), translation_matrix);
 

@@ -20,7 +20,8 @@ namespace particle
 			//	ステート
 			enum class states
 			{
-				animation = 1 << 0,		//	スプライトアニメーション
+				animation = 1 << 0,		//	アニメーション
+				no_billboard = 1 << 1,	//	ビルボード無し
 			};
 
 			//	形状指定

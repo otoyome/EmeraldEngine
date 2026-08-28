@@ -472,6 +472,12 @@ bool editor_items::edit_effect_particle(std::shared_ptr<context>& context, effec
 					}
 				}
 
+				//	ƒtƒ‰ƒO—Şİ’è
+				if (ImGui::EditFlags<particle::item::renderer::states>(renderer->state))
+				{
+					edit_flag = true;
+				}
+
 				switch (renderer->type)
 				{
 					case particle::item::renderer::types::sprite:

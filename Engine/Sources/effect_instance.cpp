@@ -285,7 +285,13 @@ void effect_manager::update_gpu(graphics_context& context, float elapsed_time)
 				//	共通データ
 				particle_system_item::emitter::common common_data;
 				{
-					common_data.emitter_state;
+					if (renderer)
+					{
+						//	ビルボード無し
+						system_utility::set_bitflag(common_data.emitter_state,
+													particle_system_item::emitter::common::state::no_billboard,
+													renderer->is_state(particle::item::renderer::states::no_billboard));
+					}
 
 					auto WorldMatrix = DirectX::XMLoadFloat4x4(&node_data.world_transform);
 					DirectX::XMVECTOR S, R, T;

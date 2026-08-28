@@ -273,7 +273,6 @@ namespace
 					ImGui::EndNeoSequencer();
 
 					//	キーフレームのドラッグ移動が終わったら時間順に並べ直す。
-					//	（ドラッグ中に並べ替えると ImGui ID がずれて操作が壊れるため待つ）
 					if (keyframe_move_pending && !dragging)
 					{
 						sort_animation_data();
@@ -296,24 +295,15 @@ namespace
 		}
 
 	private:
-		//	秒(node/event の time) -> シーケンサー表示用の整数フレーム番号
-		//	fps を掛けてフレーム値にし、丸めて整数化する。
 		int calculate_frame_index(float second) const
 		{
 			return static_cast<int>(std::lround(second * fps));
 		}
-		//	シーケンサー表示用の整数フレーム番号 -> 秒(node/event の time)
 		float calculate_second(int frame_index) const
 		{
 			return static_cast<float>(frame_index) / fps;
 		}
 
-		//	サンプリングレート(FPS)を変更する。
-		//	current_frame / start_frame / end_frame は「fps で割ると秒になる」だけの値なので、
-		//	fps を変える前に一旦秒へ戻し、新しい fps でフレームへ変換し直すことで
-		//	見た目の時間がズレないようにする。
-		//	（各キーフレームの time は秒のまま保持しているので変換不要。
-		//	毎フレームの描画時に calculate_frame_index() で新しい fps に基づき再計算される）
 		void set_fps(float new_fps)
 		{
 			new_fps = std::max(new_fps, 1.0f);
@@ -332,8 +322,6 @@ namespace
 			end_frame = calculate_frame_index(end_time);
 		}
 
-		//	NeoKeyframe がドラッグでフレーム値を変えていたら time(秒) へ書き戻す。
-		//	並べ替えはドラッグ完了後（render 内）にまとめて行う。
 		void write_back_dragged_time(float& time, int frame_before, int frame_after)
 		{
 			if (frame_after == frame_before)
@@ -343,8 +331,7 @@ namespace
 			keyframe_move_pending = true;
 		}
 
-		//	track 内に frame と同じフレームのキーが既にあるか（exclude は判定から除外）。
-		//	ノードのキーは同一フレームに複数置けない（イベントは重複可）。
+		//	track 内に frame と同じフレームのキーが既にあるか
 		bool node_frame_occupied(const animation::node_data& track, int frame, const animation::node* exclude) const
 		{
 			for (const auto& key : track.nodes)
@@ -369,7 +356,6 @@ namespace
 			ImGui::SetSelectedTimeline(sequencer_id, "");
 		}
 
-		//	イベント/ノードのキーフレームを時間順にそろえ直す
 		void sort_animation_data()
 		{
 			if (animation_data == nullptr)
@@ -385,16 +371,13 @@ namespace
 			}
 		}
 
-		//	選択キー(複数可)を実データから削除する。
-		//	添字が大きい方から消していくことで「他の選択キーの添字をずらす」処理が不要になる。
-		//	※ selected 自体からの除去は呼び出し側で行うこと。
 		void delete_selected_data(const std::vector<selected_key>& targets)
 		{
 			if (animation_data == nullptr)
 				return;
 
 			std::vector<UINT> event_indices;
-			std::vector<std::pair<UINT, UINT>> node_key_indices;	//	{track_index, key_index}
+			std::vector<std::pair<UINT, UINT>> node_key_indices;
 
 			for (const auto& target : targets)
 			{
@@ -404,13 +387,12 @@ namespace
 					node_key_indices.emplace_back(target.track_index, target.key_index);
 			}
 
-			//	イベント: 添字が大きい方から削除
+			//	添字が大きい方から削除
 			std::sort(event_indices.begin(), event_indices.end(), std::greater<UINT>());
 			for (UINT index : event_indices)
 				animation_data->events.erase(animation_data->events.begin() + index);
 
 			//	ノードのキーフレーム: key_index が大きい方から削除
-			//	(track_index が違えば別配列なので key_index の降順だけで十分)
 			std::sort(node_key_indices.begin(), node_key_indices.end(),
 				[](const auto& l, const auto& r) { return l.second > r.second; });
 			for (const auto& [track_index, key_index] : node_key_indices)
@@ -422,7 +404,6 @@ namespace
 			sort_animation_data();
 		}
 
-		//	サンプリングレート(FPS)の入力欄とプリセットボタン
 		void render_fps_controls()
 		{
 			ImGui::SetNextItemWidth(120.0f);
@@ -442,8 +423,6 @@ namespace
 			}
 		}
 
-		//	タイムライン操作ツールバー（FPS設定 / 追加 / 削除）。
-		//	追加・削除ボタンは常に表示し、対象を選択していないときは押せないようにする。
 		void render_toolbar()
 		{
 			render_fps_controls();
@@ -670,19 +649,14 @@ namespace
 		animation::data* animation_data = nullptr;
 		ImGuiID sequencer_id = 0;
 		timeline_category active_timeline = timeline_category::none;
-		bool selection_dragging = false;	//	前フレームで選択ドラッグ中だったか（ウィンドウNoMove判定用）
+		bool selection_dragging = false;
 
-		//	前フレームで描画したシーケンサー領域（スクリーン座標）。
-		//	今フレームの「マウスダウン位置がシーケンサー内か」の予測判定に使う。
 		ImVec2 sequencer_rect_min = ImVec2(0.0f, 0.0f);
 		ImVec2 sequencer_rect_max = ImVec2(0.0f, 0.0f);
 		bool sequencer_rect_valid = false;
 
-		//	サンプリングレート(FPS)。秒⇔フレームの変換に使う。
-		//	実データ(event/node の time, animation_data->end_time)は常に秒のまま保持し、
-		//	fps はあくまで「シーケンサー上で何分割して表示・編集するか」を決めるだけの値。
 		float fps = 60.0f;
-		float fps_input = fps;	//	FPS入力欄の編集中バッファ（IsItemDeactivatedAfterEdit まで反映しない）
+		float fps_input = fps;
 
 		int32_t current_frame = 0;
 		int32_t start_frame = 0;
@@ -690,7 +664,7 @@ namespace
 
 		std::vector<selected_key> selected;
 		UINT selected_node_index = 0;
-		bool keyframe_move_pending = false;	//	ドラッグ移動があり、まだ並べ替えていない
+		bool keyframe_move_pending = false;
 	};
 }
 
