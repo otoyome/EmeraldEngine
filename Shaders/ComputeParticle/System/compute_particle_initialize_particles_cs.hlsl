@@ -83,9 +83,10 @@ void main(uint3 dispatch_thread_id : SV_DispatchThreadID)
             float scale_value = lerp(em_common.spawn_scale_range.x, em_common.spawn_scale_range.y, x_or_shift_random(x_or_shift_random_seed));
             pt_common.scale = em_common.scale * scale_value.xxx;
             pt_common.rotation = em_common.rotation;
-            float3 min = em_common.translation + em_common.spawn_area_min;
-            float3 max = em_common.translation + em_common.spawn_area_max;
-            pt_common.translation = lerp(min, max, x_or_shift_random3(x_or_shift_random_seed));
+            //  épê®ìKâû
+            float3 local_spawn_position = lerp(em_common.spawn_area_min, em_common.spawn_area_max, x_or_shift_random3(x_or_shift_random_seed));
+            local_spawn_position *= em_common.scale;
+            pt_common.translation = em_common.translation + rotate_vector_quaternion(local_spawn_position, em_common.rotation);
             pt_common.color = 1;
             if (has_flag(em_common.active_items, emitter_active_color_item_bit_flag))
             {

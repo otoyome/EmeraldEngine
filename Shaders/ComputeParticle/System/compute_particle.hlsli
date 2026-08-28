@@ -269,4 +269,10 @@ float4x4 matrix_translation(float3 translation)
     return m;
 }
 
+//  クォータニオンでベクトルを回転
+float3 rotate_vector_quaternion(float3 v, float4 quaternion)
+{
+    return mul(float4(v, 0.0f), matrix_rotation_quaternion(quaternion)).xyz;
+}
+
 #endif  //  __COMPUND_COMPUTE_PARTICLE_HLSLI_

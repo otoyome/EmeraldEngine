@@ -161,7 +161,8 @@ void update_particle_velocity_item(inout emitter_context em_context, inout pt_co
 
                     spread_dir = base_dir * cos_theta + (tangent * cos_phi + bitangent * sin_phi) * sin_theta;
                 }
-                pt_velocity.velocity = spread_dir * power;
+                //  ë¨ìxâÒì]
+                pt_velocity.velocity = rotate_vector_quaternion(spread_dir, em_context.rotation) * power;
             }
             else
             {
@@ -173,6 +174,8 @@ void update_particle_velocity_item(inout emitter_context em_context, inout pt_co
                                         velocity.acceleration_max,
                                         x_or_shift_random(em_context.random_seed));
                 }
+                //  â¡ë¨ï˚å¸âÒì]
+                acceleration = rotate_vector_quaternion(acceleration, em_context.rotation);
                 pt_velocity.velocity += (velocity.gravity + acceleration) * em_context.elapsed_time;
 
                 //  å∏ë¨èàóù

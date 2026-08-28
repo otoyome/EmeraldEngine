@@ -105,26 +105,37 @@ void effect_instance::update(float elapsed_time)
 	previous_animation_time = animation_time;
 	animation_time += elapsed_time * animation_speed;
 
+	//	初期姿勢に変換
+	for (auto& node : nodes)
+	{
+		DirectX::XMMATRIX Scale = DirectX::XMMatrixScaling(node.scale.x, node.scale.y, node.scale.z);
+		DirectX::XMFLOAT4 node_quaternion = math::rotator(node.rotation).convert_quaternion();
+		DirectX::XMMATRIX Rotation = DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&node_quaternion));
+		DirectX::XMMATRIX Translation = DirectX::XMMatrixTranslation(node.position.x, node.position.y, node.position.z);
+		DirectX::XMStoreFloat4x4(&node.local_transform, Scale * Rotation * Translation);
+	}
+
 	//	アニメーション更新
 	auto& animations = resource->get_animations();
 	if (!animations.empty())
 	{
-		//	アニメーションノード計算
-		static constexpr int animation_index = 0;	//	0番のみなので
-		if (resource->compute_animation_nodes(node_animations, animation_index, animation_time))
+		static constexpr int animation_index = 0;	//	0番を基本とする
+		size_t animation_node_count = animations[animation_index].nodes.size();
+		if (node_animations.size() < nodes.size())
+			node_animations.resize(nodes.size());
+		for (size_t index = 0; index < nodes.size() && index < animation_node_count; ++index)
 		{
-			auto instance_node_ptr = nodes.data();
-			auto animation_node_ptr = node_animations.data();
-			for (size_t index = 0; index < node_animations.size(); ++index)
-			{
-				auto& in = *(instance_node_ptr + index);
-				auto& an = *(animation_node_ptr + index);
-				DirectX::XMMATRIX Scale = DirectX::XMMatrixScaling(an.scale.x, an.scale.y, an.scale.z);
-				DirectX::XMMATRIX Rotation = DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&an.rotation));
-				DirectX::XMMATRIX Matrix = Scale * Rotation;
-				Matrix.r[3] = DirectX::XMVectorSet(an.translation.x, an.translation.y, an.translation.z, 1.0f);
-				DirectX::XMStoreFloat4x4(&in.local_transform, Matrix);
-			}
+			animation::node an;
+			if (!resource->compute_animation_node(an, animation_index, index, animation_time))
+				continue;
+
+			node_animations[index] = an;
+			auto& in = nodes[index];
+			DirectX::XMMATRIX Scale = DirectX::XMMatrixScaling(an.scale.x, an.scale.y, an.scale.z);
+			DirectX::XMMATRIX Rotation = DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&an.rotation));
+			DirectX::XMMATRIX Matrix = Scale * Rotation;
+			Matrix.r[3] = DirectX::XMVectorSet(an.translation.x, an.translation.y, an.translation.z, 1.0f);
+			DirectX::XMStoreFloat4x4(&in.local_transform, Matrix);
 		}
 	}
 
