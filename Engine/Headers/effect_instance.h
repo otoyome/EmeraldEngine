@@ -117,6 +117,7 @@ private:
 	float animation_time = 0.0f;
 	float animation_speed = 1.0f;
 	std::vector<animation::node> node_animations;
+	float previous_animation_time = 0.0f;
 };
 
 using effect_instance_ptr = std::shared_ptr<effect_instance>;

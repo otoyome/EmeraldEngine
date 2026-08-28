@@ -101,13 +101,14 @@ void effect_instance::update(float elapsed_time)
 	if (!resource)
 		return;
 
+	//	アニメーション時間更新
+	previous_animation_time = animation_time;
+	animation_time += elapsed_time * animation_speed;
+
 	//	アニメーション更新
 	auto& animations = resource->get_animations();
 	if (!animations.empty())
 	{
-		//	アニメーション時間更新
-		animation_time += elapsed_time * animation_speed;
-
 		//	アニメーションノード計算
 		static constexpr int animation_index = 0;	//	0番のみなので
 		if (resource->compute_animation_nodes(node_animations, animation_index, animation_time))
