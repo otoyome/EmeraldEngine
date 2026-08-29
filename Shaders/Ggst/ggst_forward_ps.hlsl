@@ -7,5 +7,5 @@
 #define VS_OUT VS_FORWARD_OUT
 #include "ggst_surface.hlsli"
 
-#include "model_forward_ps.hlsli"
+#include "surface_forward_ps.hlsli"
 

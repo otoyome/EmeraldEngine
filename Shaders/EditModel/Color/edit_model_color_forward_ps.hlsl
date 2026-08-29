@@ -5,5 +5,5 @@
 #define VS_OUT VS_FORWARD_OUT
 #include "edit_model_color_surface.hlsli"
 
-#include "model_forward_ps.hlsli"
+#include "surface_forward_ps.hlsli"
 

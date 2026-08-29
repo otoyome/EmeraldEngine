@@ -167,9 +167,9 @@ namespace particle_system_item
 	//	エミッター基礎情報リソース
 	struct emitter_system_resource
 	{
-		UINT particle_type_size = 0;	//	パーティクル型サイズ(ツール等で自動算出&登録できていると良い)
+		UINT particle_type_size = 0;	//	パーティクル型サイズ
 		UINT total_particle_count = 0;	//	パーティクル生成最大数
-		UINT max_update_item_size = 0;	//	更新用アイテム最大サイズ(ツール等で自動算出&登録できていると良い)
+		UINT max_update_item_size = 0;	//	更新用アイテム最大サイズ
 	};
 
 	//	エミッター描画情報リソース

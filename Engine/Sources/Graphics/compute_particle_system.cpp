@@ -124,9 +124,6 @@ namespace
 	};
 }
 
-//	ヘッダー側に範囲を追加
-//	ヘッダーに範囲を記録
-//	インデックス番号を元にジオメトリシェーダーを用いてプリミティブ生成
 compute_particle_system::compute_particle_system(ID3D11Device* device,
 	UINT num_emitter, UINT emitter_data_size,
 	UINT num_particle, UINT particle_data_size)
@@ -405,18 +402,11 @@ compute_particle_system::compute_particle_system(ID3D11Device* device,
 		emitter_headers.resize(total_emitter_count);
 		update_emitter_datas.resize(total_emitter_count);
 		emitter_resources.resize(total_emitter_count);
-#if 01
 		for (UINT index = total_emitter_count - 1; index > 0; --index)
 		{
 			emitter_id_stack.push(index);
 		}
 		emitter_id_stack.push(0);
-#else	//	テスト用
-		for (UINT index = 0; index < total_emitter_count; ++index)
-		{
-			emitter_id_stack.push(index);
-		}
-#endif
 	}
 }
 
@@ -567,7 +557,7 @@ void compute_particle_system::update(graphics_context& context, float elapsed_ti
 			emitter_id_stack.push(remove_emitter_id);
 		}
 
-		//	フラグメンテーション対策として、残っているIdをパーティクルバイナリーサイズの降順でソートしてから割り当て直す
+		//	断片化対策として、残っているIdをパーティクルバイナリーサイズの降順でソートしてから割り当て直す
 		std::sort(emitter_id_table.begin(), emitter_id_table.end(),
 			[this](UINT lhs, UINT rhs)
 			{

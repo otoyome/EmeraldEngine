@@ -1,13 +1,6 @@
-#include "compute_particle_default.hlsli"
+#include "compute_particle_default_rendering.hlsli"
 
-float4 main(PS_IN pin) : SV_TARGET0
-{
-    float4 color = pin.color;
-    if (HAS_RESOURCE(BaseColorMap))
-    {
-        float4 sampled = TEXTURE2D_SAMPLE(BaseColorMap, linear_sampler_state, pin.texcoord);
-        color *= sampled;
-    }
+#define VS_OUT PS_IN
+#include "compute_particle_default_surface.hlsli"
 
-    return color;
-}
+#include "surface_forward_ps.hlsli"
