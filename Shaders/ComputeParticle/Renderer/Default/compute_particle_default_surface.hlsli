@@ -19,6 +19,13 @@ SurfaceData surface(VS_OUT pin, bool is_front_face)
     data.base_color = color;
     data.emissive_color = (float3) 0;
 
+    //  Unlitの時は自己発光に色を送る
+    if (material_shading_model == shading_model_unlit)
+    {
+        data.emissive_color = data.base_color.rgb;
+        data.base_color.rgb = (float3) 0;
+    }
+
     //  ビルボードなので法線はカメラ方向を向ける
     data.w_normal = normalize(camera_position.xyz - pin.w_position.xyz);
     data.w_position = pin.w_position.xyz;

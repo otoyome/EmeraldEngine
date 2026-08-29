@@ -26,6 +26,7 @@ struct em_common_item
     float3 scale; // 拡縮情報
     float4 rotation; // 回転情報
     float3 translation; // 移動情報
+    float elapsed_time; // シミュレーション経過時間
 };
 
 static const uint em_common_item_state_no_billboard = 1 << 1;   //	ビルボード無し
@@ -44,6 +45,7 @@ void stream_common_item(uint rw, inout uint offset, inout em_common_item value)
     em_stream_ptr(rw, offset, value.scale);
     em_stream_ptr(rw, offset, value.rotation);
     em_stream_ptr(rw, offset, value.translation);
+    em_stream_ptr(rw, offset, value.elapsed_time);
 }
 
 //////////////////////////////////////////////////////////////////////////

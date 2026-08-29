@@ -51,7 +51,7 @@ void main(uint3 dispatch_thread_id : SV_DispatchThreadID)
         //  生存時間更新
         if (alive)
         {
-            pt_common.life_time += elapsed_time;
+            pt_common.life_time += em_context.elapsed_time;
             alive = pt_common.life_time < pt_common.life_time_max;
             clear_flag(pt_common.state, particle_binary_state_bit_spawn_frame);  //  生成フレームフラグを落とす
         }

@@ -7,6 +7,109 @@
 
 namespace
 {
+	//	エミッター更新バイナリ構築
+	compute_particle_system::update_emitter_data build_emitter_update_data(
+		effect_instance& instance,
+		::particle::data& particle_data,
+		const effect_instance::node& node_data,
+		float elapsed_time)
+	{
+		auto renderer = particle_data.get_item<::particle::item::renderer>();
+		auto spawn    = particle_data.get_item<::particle::item::spawn>();
+		auto velocity = particle_data.get_item<::particle::item::velocity>();
+
+		particle_system_item::emitter::common common_data;
+		{
+			common_data.elapsed_time = elapsed_time;
+
+			if (renderer)
+			{
+				system_utility::set_bitflag(common_data.emitter_state,
+					particle_system_item::emitter::common::state::no_billboard,
+					renderer->is_state(::particle::item::renderer::states::no_billboard));
+			}
+
+			auto WorldMatrix = DirectX::XMLoadFloat4x4(&node_data.world_transform);
+			DirectX::XMVECTOR S, R, T;
+			DirectX::XMMatrixDecompose(&S, &R, &T, WorldMatrix);
+			DirectX::XMStoreFloat3(&common_data.scale, S);
+			DirectX::XMStoreFloat4(&common_data.rotation, R);
+			DirectX::XMStoreFloat3(&common_data.translation, T);
+
+			if (spawn)
+			{
+				common_data.spawn_life_time_range = spawn->life_time_range;
+				common_data.spawn_scale_range = spawn->scale_range;
+				common_data.spawn_area_min = spawn->area_min;
+				common_data.spawn_area_max = spawn->area_max;
+				if (spawn->is_state(::particle::item::spawn::states::random))
+					common_data.spawn_count = math::lerp(spawn->range.x, spawn->range.y, math::rand_range(0.0f, 1.0f));
+				else
+					common_data.spawn_count = spawn->range.x;
+
+				if (instance.is_flag(effect_instance::flags::bursted) &&
+					spawn->is_state(::particle::item::spawn::states::burst))
+					common_data.spawn_count = 0;
+			}
+		}
+
+		compute_particle_system::update_emitter_data data;
+		auto append = [&](const void* p, size_t size)
+		{
+			size_t pos = data.item_binary.size();
+			data.item_binary.resize(pos + size);
+			memcpy_s(data.item_binary.data() + pos, data.item_binary.size() - pos, p, size);
+		};
+
+		if (renderer && renderer->type == ::particle::item::renderer::types::ribon)
+		{
+			particle_system_item::emitter::trail trail;
+			trail.state = renderer->trail.state;
+			trail.max = renderer->trail.max;
+			trail.fade_rate = renderer->trail.time_fade_rate;
+			append(&trail, sizeof(trail));
+			common_data.active_items |= 1 << particle_system_item::emitter::trail::data_id;
+		}
+		if (renderer)
+		{
+			particle_system_item::emitter::uv uv;
+			uv.rect = renderer->uv.rect;
+			uv.state = renderer->uv.state;
+			uv.split_count = renderer->uv.splits;
+			uv.index = renderer->uv.index;
+			uv.time = renderer->uv.time;
+			append(&uv, sizeof(uv));
+			common_data.active_items |= 1 << particle_system_item::emitter::uv::data_id;
+
+			particle_system_item::emitter::color color_item;
+			color_item.state = renderer->color.state;
+			color_item.color_min = renderer->color.color_min;
+			color_item.color_max = renderer->color.color_max;
+			append(&color_item, sizeof(color_item));
+			common_data.active_items |= 1 << particle_system_item::emitter::color::data_id;
+		}
+		if (velocity)
+		{
+			particle_system_item::emitter::velocity velocity_item;
+			velocity_item.state = velocity->state;
+			velocity_item.angle_range = velocity->angle_range;
+			velocity_item.power_range = velocity->power_range;
+			velocity_item.direction = velocity->direction;
+			velocity_item.acceleration_min = velocity->acceleration_min;
+			velocity_item.acceleration_max = velocity->acceleration_max;
+			velocity_item.deceleration_max = velocity->deceleration_max;
+			velocity_item.deceleration_min = velocity->deceleration_min;
+			velocity_item.gravity = { 0.0f, system_units::convert_m_to_unit(-9.8f), 0.0f };
+			velocity_item.gravity.x *= velocity->gravity_scale.x;
+			velocity_item.gravity.y *= velocity->gravity_scale.y;
+			velocity_item.gravity.z *= velocity->gravity_scale.z;
+			append(&velocity_item, sizeof(velocity_item));
+			common_data.active_items |= 1 << particle_system_item::emitter::velocity::data_id;
+		}
+
+		data.common = common_data;
+		return data;
+	}
 }
 
 std::string_view effect_instance::get_name() const
@@ -120,6 +223,8 @@ void effect_instance::update(float elapsed_time)
 	if (!animations.empty())
 	{
 		static constexpr int animation_index = 0;	//	0番を基本とする
+		animation_time = std::clamp(animation_time, 0.0f, animations[animation_index].end_time);
+
 		size_t animation_node_count = animations[animation_index].nodes.size();
 		if (node_animations.size() < nodes.size())
 			node_animations.resize(nodes.size());
@@ -170,6 +275,21 @@ void effect_instance::reset_to_initial_state()
 {
 	animation_time = 0.0f;
 	set_flag(effect_instance::flags::bursted, false);
+}
+
+float effect_instance::get_particle_simulation_time() const
+{
+	return particle_simulation_time;
+}
+
+void effect_instance::set_particle_simulation_time(float time)
+{
+	particle_simulation_time = time;
+}
+
+void effect_instance::reset_particle_simulation_time()
+{
+	particle_simulation_time = 0.0f;
 }
 
 void effect_instance::build()
@@ -264,165 +384,90 @@ void effect_manager::update(float elapsed_time)
 
 void effect_manager::update_gpu(graphics_context& context, float elapsed_time)
 {
-	if (particle_system)
+	if (!particle_system)
+		return;
+
+	//	時刻が巻き戻った場合リセット
+	bool need_reset = false;
+	for (auto& item : items)
 	{
-		//	パーティクル更新情報ビルド
+		if (!item.effect_instance)
+			continue;
+		if (item.effect_instance->get_animation_time() <
+			item.effect_instance->get_particle_simulation_time() - 1.0e-4f)
+		{
+			need_reset = true;
+			break;
+		}
+	}
+	if (need_reset)
+	{
+		particle_system->reset();
+		for (auto& item : items)
+		{
+			if (!item.effect_instance)
+				continue;
+			item.effect_instance->reset_particle_simulation_time();
+			item.effect_instance->set_flag(effect_instance::flags::bursted, false);
+		}
+	}
+
+	//	固定タイムステップでの更新
+	constexpr float fixed_step = 1.0f / 60.0f;
+	constexpr int   max_catchup_steps = 600;
+	bool update = true;
+	for (int step = 0; step < max_catchup_steps && update; ++step)
+	{
+		update = false;
+		for (auto& item : items)
+		{
+			if (!item.effect_instance)
+				continue;
+			if (item.effect_instance->get_animation_time()
+				- item.effect_instance->get_particle_simulation_time() > 1.0e-6f)
+			{
+				update = true;
+				break;
+			}
+		}
+
+		if (step > 0 && !update)
+			break;
+
 		for (auto& item : items)
 		{
 			if (!item.effect_instance)
 				continue;
 
+			//	ステップ時間
+			float remaining = item.effect_instance->get_animation_time()
+							- item.effect_instance->get_particle_simulation_time();
+			float step_elapsed = 0.0f;
+			if (remaining > 1.0e-6f)
+				step_elapsed = (remaining < fixed_step) ? remaining : fixed_step;
+
+			//	エミッターアイテム更新
 			for (UINT index = 0; index < item.effect_instance->get_particles().size(); ++index)
 			{
 				auto& emitter_item = item.emitter_items[index];
 				auto& particle_data = item.effect_instance->get_particles()[index];
 				auto& node_data = item.effect_instance->get_nodes()[particle_data.node_index];
 
-				auto renderer = particle_data.particle.get_item<::particle::item::renderer>();
-				auto spawn = particle_data.particle.get_item<::particle::item::spawn>();
-				auto velocity = particle_data.particle.get_item<::particle::item::velocity>();
-
-				//	共通データ
-				particle_system_item::emitter::common common_data;
-				{
-					if (renderer)
-					{
-						//	ビルボード無し
-						system_utility::set_bitflag(common_data.emitter_state,
-													particle_system_item::emitter::common::state::no_billboard,
-													renderer->is_state(particle::item::renderer::states::no_billboard));
-					}
-
-					auto WorldMatrix = DirectX::XMLoadFloat4x4(&node_data.world_transform);
-					DirectX::XMVECTOR S, R, T;
-					DirectX::XMMatrixDecompose(&S, &R, &T, WorldMatrix);
-					DirectX::XMStoreFloat3(&common_data.scale, S);
-					DirectX::XMStoreFloat4(&common_data.rotation, R);
-					DirectX::XMStoreFloat3(&common_data.translation, T);
-
-					//	発生情報設定
-					if (spawn)
-					{
-						common_data.spawn_life_time_range = spawn->life_time_range;
-						common_data.spawn_scale_range = spawn->scale_range;
-						common_data.spawn_area_min = spawn->area_min;
-						common_data.spawn_area_max = spawn->area_max;
-						if (spawn->is_state(particle::item::spawn::states::random))
-						{
-							common_data.spawn_count = math::lerp(spawn->range.x,
-																 spawn->range.y,
-																 math::rand_range(0.0f, 1.0f));
-						}
-						else if (spawn->is_state(particle::item::spawn::states::burst))
-						{
-							//	最初にのみ
-							common_data.spawn_count = spawn->range.x;
-						}
-						else
-						{
-							common_data.spawn_count = spawn->range.x;
-						}
-
-						if (item.effect_instance->is_flag(effect_instance::flags::bursted) &&
-							spawn->is_state(particle::item::spawn::states::burst))
-						{
-							common_data.spawn_count = 0;
-						}
-					}
-				}
-
-				//	更新アイテム
-				compute_particle_system::update_emitter_data data;
-
-				//	軌跡アイテム登録
-				if (renderer &&
-					renderer->type == particle::item::renderer::types::ribon)
-				{
-					particle_system_item::emitter::trail trail;
-					trail.state = renderer->trail.state;
-					trail.max = renderer->trail.max;
-					trail.fade_rate = renderer->trail.time_fade_rate;
-
-					UINT write_position = static_cast<UINT>(data.item_binary.size());
-					UINT write_size = sizeof(particle_system_item::emitter::trail);
-					data.item_binary.resize(write_position + write_size);
-					memcpy_s(data.item_binary.data() + write_position, data.item_binary.size() - write_position,
-						&trail, sizeof(trail));
-
-					common_data.active_items |= 1 << particle_system_item::emitter::trail::data_id;
-				}
-
-				//	UV設定
-				if (renderer)
-				{
-					particle_system_item::emitter::uv uv;
-					uv.rect = renderer->uv.rect;
-					uv.state = renderer->uv.state;
-					uv.split_count = renderer->uv.splits;
-					uv.index = renderer->uv.index;
-					uv.time = renderer->uv.time;
-					UINT write_position = static_cast<UINT>(data.item_binary.size());
-					UINT write_size = sizeof(particle_system_item::emitter::uv);
-					data.item_binary.resize(write_position + write_size);
-					memcpy_s(data.item_binary.data() + write_position, data.item_binary.size() - write_position,
-						&uv, sizeof(uv));
-
-					common_data.active_items |= 1 << particle_system_item::emitter::uv::data_id;
-				}
-
-				//	色情報設定
-				if (renderer)
-				{
-					particle_system_item::emitter::color color_item;
-					color_item.state = renderer->color.state;
-					color_item.color_min = renderer->color.color_min;
-					color_item.color_max = renderer->color.color_max;
-
-					UINT write_position = static_cast<UINT>(data.item_binary.size());
-					UINT write_size = sizeof(particle_system_item::emitter::color);
-					data.item_binary.resize(write_position + write_size);
-					memcpy_s(data.item_binary.data() + write_position, data.item_binary.size() - write_position,
-						&color_item, sizeof(color_item));
-
-					common_data.active_items |= 1 << particle_system_item::emitter::color::data_id;
-				}
-
-				//	速度情報設定
-				if (velocity)
-				{
-					particle_system_item::emitter::velocity velocity_item;
-					velocity_item.state = velocity->state;
-					velocity_item.angle_range = velocity->angle_range;
-					velocity_item.power_range = velocity->power_range;
-					velocity_item.direction = velocity->direction;
-					velocity_item.acceleration_min = velocity->acceleration_min;
-					velocity_item.acceleration_max = velocity->acceleration_max;
-					velocity_item.deceleration_max = velocity->deceleration_max;
-					velocity_item.deceleration_min = velocity->deceleration_min;
-
-					velocity_item.gravity = { 0.0f, system_units::convert_m_to_unit(-9.8f), 0.0f };
-					velocity_item.gravity.x *= velocity->gravity_scale.x;
-					velocity_item.gravity.y *= velocity->gravity_scale.y;
-					velocity_item.gravity.z *= velocity->gravity_scale.z;
-
-					UINT write_position = static_cast<UINT>(data.item_binary.size());
-					UINT write_size = sizeof(particle_system_item::emitter::velocity);
-					data.item_binary.resize(write_position + write_size);
-					memcpy_s(data.item_binary.data() + write_position, data.item_binary.size() - write_position,
-						&velocity_item, sizeof(velocity_item));
-
-					common_data.active_items |= 1 << particle_system_item::emitter::velocity::data_id;
-				}
-
-				//	エミッター更新情報登録
-				data.common = common_data;
+				auto data = build_emitter_update_data(*item.effect_instance,
+													 particle_data.particle,
+													 node_data,
+													 step_elapsed);
 				particle_system->update_emitter(emitter_item.system_index, data);
 			}
 
-			//	フラグ修復
-			item.effect_instance->set_flag(effect_instance::flags::bursted, true);
+			if (step_elapsed > 0.0f)
+				item.effect_instance->set_particle_simulation_time(item.effect_instance->get_particle_simulation_time() + step_elapsed);
+
+			if (step == 0)
+				item.effect_instance->set_flag(effect_instance::flags::bursted, true);
 		}
-		particle_system->update(context, elapsed_time);
+
+		particle_system->update(context, fixed_step);
 	}
 }
 

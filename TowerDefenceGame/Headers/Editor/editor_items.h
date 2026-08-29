@@ -89,11 +89,16 @@ public:	//	編集アイテム系
 	static bool edit_texture_item(std::shared_ptr<context>& context, texture_ptr& resource, bool* selected_file = nullptr);
 	static bool edit_model_resource_item(std::shared_ptr<context>& context, model_resource_ptr& resource, std::string* selected_file_path = nullptr);
 
+	//	アニメーション
 	static bool edit_animation_data(std::shared_ptr<context>& context, animation::data& animation_data);
 	static bool edit_animation_data_timeline(std::shared_ptr<context>& context, animation::data& animation_data);
 	static bool edit_ik(std::shared_ptr<context>& context, model_instance_ptr& model_instance, ik_resource_ptr& ik_resource);
 
-	static bool edit_effect(std::shared_ptr<context>& context, effect_instance_ptr& effect_instance);
+	//	エフェクト
+	static bool edit_effect_noeds(std::shared_ptr<context>& context, effect_instance_ptr& effect_instance);
+	static bool edit_effect_animation(std::shared_ptr<context>& context, effect_instance_ptr& effect_instance);
+
+private:	//	内部編集用関数
 	static bool edit_effect_model(std::shared_ptr<context>& context, effect_resource_ptr& effect_resource, effect_resource::model& model);
 	static bool edit_effect_particle(std::shared_ptr<context>& context, effect_resource_ptr& effect_resource, effect_resource::particle& particle);
 	static bool edit_effect_decal(std::shared_ptr<context>& context, effect_resource_ptr& effect_resource, effect_resource::decal& decal);

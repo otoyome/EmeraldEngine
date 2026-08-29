@@ -476,6 +476,9 @@ void graphics_custom_pipeline_state::update_parameters(const graphics_context& c
 			}
 			else if (cbv_key == common_pipeline_states::forward_light_constant_buffer_hash_key)
 			{
+				if (!buffer_data)
+					continue;
+
 				if (!forward_light_buffer_data.use)
 				{
 					forward_light_data = search_neighborhood_light(context, *buffer_data);

@@ -35,7 +35,7 @@ void main(triangle VS_IN input[3], inout TriangleStream<GS_CSM_OUT> output)
 
         //  微小ポリゴンはカリングする
         if (minimum_primitive_culling(positions))
-            break;	//	普通にカリングするならcontinueでも良いと思う
+            continue;
 
         //  シャドウマップ適応
         float4 offset_parameter = shadow_bias[k];

@@ -71,7 +71,7 @@ namespace
     }
 }
 
-bool editor_items::edit_effect(std::shared_ptr<context>& context, effect_instance_ptr& effect_instance)
+bool editor_items::edit_effect_noeds(std::shared_ptr<context>& context, effect_instance_ptr& effect_instance)
 {
 	bool edit_flag = false;
 
@@ -330,6 +330,16 @@ bool editor_items::edit_effect(std::shared_ptr<context>& context, effect_instanc
 		}
 	}
 
+	return edit_flag;
+}
+
+bool editor_items::edit_effect_animation(std::shared_ptr<context>& context, effect_instance_ptr& effect_instance)
+{
+	bool edit_flag = false;
+
+	auto& effect_resource = effect_instance->get_resource();
+	auto& animations = effect_resource->get_animations_for_editor();
+
 	//	アニメーション編集
 	if (ImGui::Begin("Effect Animation Window"))
 	{
@@ -358,8 +368,8 @@ bool editor_items::edit_effect(std::shared_ptr<context>& context, effect_instanc
 			}
 
 			ImGui::SliderFloat("animation time", &animation_time, 0.0f, animation_end_time + 0.001f, "%.6f");
-			if (loop_flag && animation_time >= animation_end_time)
-				animation_time = 0.0f;
+			if (animation_time >= animation_end_time)
+				animation_time = loop_flag ? 0.0f : animation_end_time;
 
 			effect_instance->set_animation_time(animation_time);
 			effect_instance->set_animation_speed(pause_flag ? 0.0f : 1.0f);

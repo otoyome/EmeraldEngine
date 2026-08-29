@@ -319,7 +319,8 @@ void edit_particle_scene::imgui_render_core()
 		//	エフェクト編集
 		if (ImGui::Begin("Edit Effect"))
 		{
-			if (editor_items::edit_effect(editor_context, edit_instance))
+			bool edit = editor_items::edit_effect_noeds(editor_context, edit_instance);
+			if (editor_items::edit_effect_animation(editor_context, edit_instance) || edit)
 			{
 				if (edit_instance)
 					effect_manager::instance()->unregister_instance(edit_instance);

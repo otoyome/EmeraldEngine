@@ -26,7 +26,7 @@ emitter_context build_emitter_context(inout uint emitter_binary_offset, uint emi
     stream_common_item(rw_read_only, emitter_binary_offset, em_common);
     em_context.active_items = em_common.active_items;
     em_context.random_seed = generate_random_seed(dispatch_thread_id);
-    em_context.elapsed_time = elapsed_time; //  とりあえずここで入れておく
+    em_context.elapsed_time = em_common.elapsed_time;  //  エミッター毎の経過時間を使う
     em_context.scale = em_common.scale;
     em_context.rotation = em_common.rotation;
     em_context.translation = em_common.translation;
@@ -64,7 +64,7 @@ void update_particle_trail_item(inout emitter_context em_context, inout pt_commo
                     stream_trail_body(rw_write, write_offset, trail_body);
                 }
             }
-            else
+            else if (em_context.elapsed_time > 0.0f)   //  移動中のみ処理
             {
                 //  ヘッダー書き込み
                 trail_header.counter = min(trail_header.counter + 1, trail_item.max);

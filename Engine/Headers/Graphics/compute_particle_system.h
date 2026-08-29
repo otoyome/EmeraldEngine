@@ -85,6 +85,7 @@ namespace particle_system_item
 			DirectX::XMFLOAT3 scale; // 拡縮情報
 			DirectX::XMFLOAT4 rotation; // 回転情報
 			DirectX::XMFLOAT3 translation; // 移動情報
+			float elapsed_time = 0.0f; // このエミッターのシミュレーション経過時間（エフェクトのアニメ時間差分）
 		};
 
 		//	軌跡アイテム
@@ -292,6 +293,9 @@ public:
 	~compute_particle_system();
 
 	void update(graphics_context& context, float elapsed_time);
+
+	//	全パーティクルをクリアして再初期化する（次回 update から反映）
+	void reset();
 	void generate_render_data(UINT emitter_id, effect_container::sprite_trail& data);
 
 	UINT register_emitter(ID3D11Device* device, const particle_system_item::emitter_resource& emitter_resource);
@@ -305,6 +309,8 @@ private:
 	UINT particle_binary_buffer_size;
 	bool one_shot_initialize;
 	bool update_stop = false;
+	UINT simulation_step = 0;
+	bool pending_reset = false;
 	UINT current_buffer_index = 0;
 	variable_position_allocator emitter_binary_allocator;
 	variable_position_allocator particle_binary_allocator;

@@ -76,6 +76,9 @@ public:
 	float get_animation_speed() const;
 	void set_animation_speed(float animation_speed);
 
+	float get_particle_simulation_time() const;
+	void set_particle_simulation_time(float time);
+
 	inline std::vector<node>& get_nodes() { return nodes; }
 	inline std::vector<model>& get_models() { return models; }
 	inline std::vector<particle>& get_particles() { return particles; }
@@ -93,6 +96,8 @@ public:
 
 	//	ŠJn‚Ìó‘Ô‚Ö–ß‚·
 	void reset_to_initial_state();
+
+	void reset_particle_simulation_time();
 
 private:
 	void build();
@@ -118,6 +123,8 @@ private:
 	float animation_speed = 1.0f;
 	std::vector<animation::node> node_animations;
 	float previous_animation_time = 0.0f;
+
+	float particle_simulation_time = 0.0f;
 };
 
 using effect_instance_ptr = std::shared_ptr<effect_instance>;

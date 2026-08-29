@@ -37,7 +37,7 @@ void main(uint3 dispatch_thread_id : SV_DispatchThreadID)
     //  @remainder  これをbeginFrame側でやれば高速化出来るかも？
     emitter_data em_data = emitter_data_buffer[emitter_index];
     em_data.spawn_num = em_data.spawn_head = 0;
-    if (common.spawn_count > 0)
+    if (common.spawn_count > 0 && common.elapsed_time > 0.0f)
     {
         //  発生数をクランプ
         uint spawn_max = em_data.particle_max - em_data.particle_num;

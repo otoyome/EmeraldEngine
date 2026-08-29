@@ -513,6 +513,11 @@ void compute_particle_system::update_emitter(UINT emitter_id, const update_emitt
 	update_emitter_datas[emitter_id] = data;
 }
 
+void compute_particle_system::reset()
+{
+	pending_reset = true;
+}
+
 void compute_particle_system::update(graphics_context& context, float elapsed_time)
 {
 	//	定数バッファ設定
@@ -705,9 +710,18 @@ void compute_particle_system::update(graphics_context& context, float elapsed_ti
 	{
 		common_constants constant;
 		constant.elapsed_time = elapsed_time;
-		constant.x_of_shift_seed.x = rand() ^ (rand() << 15) ^ (rand() << 30);
-		constant.x_of_shift_seed.y = rand() ^ (rand() << 15) ^ (rand() << 30);
-		constant.x_of_shift_seed.z = rand() ^ (rand() << 15) ^ (rand() << 30);
+		//	シミュレーションステップ数から決定論的にシードを作る（再シミュレートで再現するため）
+		auto step_hash = [](UINT v) -> UINT
+		{
+			v ^= v >> 16; v *= 0x7feb352dU;
+			v ^= v >> 15; v *= 0x846ca68bU;
+			v ^= v >> 16;
+			return v;
+		};
+		constant.x_of_shift_seed.x = step_hash(simulation_step * 3u + 0u);
+		constant.x_of_shift_seed.y = step_hash(simulation_step * 3u + 1u);
+		constant.x_of_shift_seed.z = step_hash(simulation_step * 3u + 2u);
+		++simulation_step;
 		constant.total_emitter_count = total_emitter_count;	//	emitter_id_table.size();
 		constant.total_particle_count = total_particle_count;
 		constant.total_cpu_spawn_count = total_spawn_cpu_particle_count;
@@ -738,6 +752,48 @@ void compute_particle_system::update(graphics_context& context, float elapsed_ti
 			context.device_context->CSSetShader(compute_shaderes[static_cast<int>(dispatch_shaderes::clear_particles)]->get_shader().Get(), nullptr, 0);
 			context.device_context->Dispatch(total_particle_count / NumDispatchThread, 1, 1);
 			clear_resources(context.device_context);
+		}
+	}
+	//	登録済みエミッターは維持したままリセット
+	if (pending_reset)
+	{
+		pending_reset = false;
+		simulation_step = 0;
+
+		//	システム情報クリア
+		{
+			context.device_context->CSSetUnorderedAccessViews(0, 1, indirect_data_unordered_access_view.GetAddressOf(), nullptr);
+			context.device_context->CSSetUnorderedAccessViews(1, 1, emitter_data_unordered_access_view.GetAddressOf(), nullptr);
+			context.device_context->CSSetShader(compute_shaderes[static_cast<int>(dispatch_shaderes::clear_system_shader)]->get_shader().Get(), nullptr, 0);
+			context.device_context->Dispatch(1, 1, 1);
+			clear_resources(context.device_context);
+		}
+
+		//	パーティクルリストクリア
+		{
+			context.device_context->CSSetUnorderedAccessViews(0, 1, particle_header_unordered_access_view.GetAddressOf(), nullptr);
+			context.device_context->CSSetShader(compute_shaderes[static_cast<int>(dispatch_shaderes::clear_particles)]->get_shader().Get(), nullptr, 0);
+			context.device_context->Dispatch(total_particle_count / NumDispatchThread, 1, 1);
+			clear_resources(context.device_context);
+		}
+
+		//	clear_system が particle_max も 0 にするので、登録済みエミッターへ particle_max を再設定する
+		for (UINT reset_emitter_id : emitter_id_table)
+		{
+			emitter_data em_data = {};
+			em_data.spawn_head = 0;
+			em_data.spawn_num = 0;
+			em_data.particle_num = 0;
+			em_data.particle_max = emitter_resources[reset_emitter_id].resource.system.total_particle_count;
+
+			D3D11_BOX write_box = {};
+			write_box.left = sizeof(emitter_data) * reset_emitter_id;
+			write_box.right = write_box.left + sizeof(emitter_data);
+			write_box.top = 0;
+			write_box.bottom = 1;
+			write_box.front = 0;
+			write_box.back = 1;
+			context.device_context->UpdateSubresource(emitter_data_buffer.Get(), 0, &write_box, &em_data, sizeof(em_data), 0);
 		}
 	}
 
