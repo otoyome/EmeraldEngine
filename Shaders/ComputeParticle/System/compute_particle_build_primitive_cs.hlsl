@@ -347,7 +347,7 @@ void main(uint3 dispatch_thread_id : SV_DispatchThreadID)
             float4x4 rotation_matrix = matrix_rotation_quaternion(pt_common.rotation);
             if (!has_flag(em_common.emitter_state, em_common_item_state_billboard_off))
             {
-                //  ビルボード（ビューの回転を打ち消す）
+                //  ビルボード処理
                 float4x4 billboard_matrix = inverse_view_transform;
                 billboard_matrix._41_42_43_44 = float4(0, 0, 0, 1);
                 rotation_matrix = mul(billboard_matrix, rotation_matrix);
