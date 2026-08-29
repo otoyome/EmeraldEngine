@@ -116,9 +116,16 @@ bool editor_items::edit_effect_noeds(std::shared_ptr<context>& context, effect_i
 					edit_flag = true;
 				if (ImGui::DragFloat3("position", &node.position.x, 0.01f))
 					edit_flag = true;
+
 				//	図形表示
-				DirectX::XMFLOAT4 draw_color = {1, 1, 1, 1};
-				PUSH_DEBUG_PRIMITIVE_SPHERE(node.position, 1.0f, draw_color, true);
+				{
+					DirectX::XMFLOAT4 draw_color = {1, 1, 1, 1};
+					DirectX::XMVECTOR S, R, T;
+					DirectX::XMMatrixDecompose(&S, &R, &T, DirectX::XMLoadFloat4x4(&effect_instance->get_nodes()[node_index].global_transform));
+					DirectX::XMFLOAT3 t;
+					DirectX::XMStoreFloat3(&t, T);
+					PUSH_DEBUG_PRIMITIVE_SPHERE(t, 1.0f, draw_color, true);
+				}
 
 				//	モデル
 				{
@@ -246,6 +253,19 @@ bool editor_items::edit_effect_noeds(std::shared_ptr<context>& context, effect_i
 							ImGui::Indent();
 							if (edit_effect_decal(context, effect_resource, decals[data_index]))
 								edit_flag = true;
+
+							//	図形表示
+							{
+								DirectX::XMFLOAT4 draw_color = {1, 1, 1, 1};
+								DirectX::XMVECTOR S, R, T;
+								DirectX::XMMatrixDecompose(&S, &R, &T, DirectX::XMLoadFloat4x4(&effect_instance->get_nodes()[node_index].global_transform));
+								DirectX::XMFLOAT3 s, t;
+								DirectX::XMFLOAT4 r;
+								DirectX::XMStoreFloat3(&s, S);
+								DirectX::XMStoreFloat4(&r, R);
+								DirectX::XMStoreFloat3(&t, T);
+								PUSH_DEBUG_PRIMITIVE_BOX(t, r, s, draw_color, true);
+							}
 							ImGui::Unindent();
 						}
 					}
@@ -797,11 +817,6 @@ bool editor_items::edit_effect_decal(std::shared_ptr<context>& context, effect_r
 	{
 		edit_flag = true;
 	}
-
-	//	図形表示
-	auto& node = effect_resource->get_nodes_for_editor()[decal.node_index];
-	DirectX::XMFLOAT4 draw_color = {1, 1, 1, 1};
-	PUSH_DEBUG_PRIMITIVE_BOX(node.position, math::rotator(node.rotation), node.scale, draw_color, true);
 	return edit_flag;
 }
 
