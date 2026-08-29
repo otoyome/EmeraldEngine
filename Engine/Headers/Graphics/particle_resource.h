@@ -166,6 +166,7 @@ namespace particle
 		{
 			float strength = 1.0f; // ‹zˆø—Í
 			float falloff = 1.0f; // ”ÍˆÍ“à‚Ì‰e‹¿—Í‚ğ’²®
+			float damping = 1.0f; // Œ¸Š
 			float radius = system_units::convert_m_to_unit(1.0f); // ‰e‹¿”ÍˆÍ
 			float kill_radius = system_units::convert_m_to_unit(0.5f); // Á–Å”ÍˆÍ
 

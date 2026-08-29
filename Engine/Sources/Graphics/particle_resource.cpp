@@ -133,6 +133,7 @@ void particle::item::attract::serialize(Archive& archive, int version)
 {
 	archive(strength,
 			falloff,
+			damping,
 			radius,
 			kill_radius);
 }
@@ -198,7 +199,7 @@ particle_system_item::emitter_resource particle::data::constract_system_resource
 	if (auto attract = get_item<particle::item::attract>())
 	{
 		emitter_system.max_update_item_size += sizeof(particle_system_item::emitter::attract);
-		//emitter_system.particle_type_size += sizeof(particle_system_item::particle::attract);
+		emitter_system.particle_type_size += sizeof(particle_system_item::particle::attract);
 	}
 
 	return resource;

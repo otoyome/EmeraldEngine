@@ -203,33 +203,48 @@ void update_particle_attract_item(inout emitter_context em_context, inout pt_com
 {
     if (has_flag(em_context.active_items, emitter_active_attract_item_bit_flag))
     {
+        //  粒子側の蓄積速度
+        pt_attract_item pt_attract;
+        uint write_offset = particle_binary_offset;
+        stream_attract_item(rw_read, particle_binary_offset, pt_attract);
+
         em_attract_item attract;
         stream_attract_item(rw_read_only, emitter_binary_offset, attract);
 
-        if (em_context.elapsed_time > 0.0f)
+        if (has_flag(pt_common.state, particle_binary_state_bit_spawn_frame))
         {
-            float3 to_target = attract.position - pt_common.translation;
-            float  dist = length(to_target);
+            //  最初のフレームは初期化
+            pt_attract.velocity = float3(0, 0, 0);
+        }
+        else if (em_context.elapsed_time > 0.0f)
+        {
+            float3 target_vector = attract.position - pt_common.translation;
+            float dist = length(target_vector);
 
-            if (dist <= attract.radius)
+            if (dist > 0.0001f)
             {
-                float3 dir = to_target / dist;
+                float3 dir = target_vector / dist;
 
                 //  影響範囲による減衰
-                float influence = saturate(1.0f - dist / max(0.0001f, attract.radius));
+                float influence = saturate(1.0f - dist / max(attract.radius, 0.0001f));
                 influence = pow(influence, max(attract.falloff, 0.0001f));
 
+                //  加速処理
+                pt_attract.velocity += dir * attract.strength * influence * em_context.elapsed_time;
+                //  減速処理
+                pt_attract.velocity *= max(1.0f - attract.damping * em_context.elapsed_time, 0.0f);
                 //  移動
-                float move = min(attract.strength * influence * em_context.elapsed_time, dist);
-                pt_common.translation += dir * max(move, 0.0f);
+                pt_common.translation += pt_attract.velocity * em_context.elapsed_time;
             }
 
-            //  消滅範囲に入ったら寿命切れ扱い
+            //  消滅範囲に入ったら寿命切れ扱いで消す
             if (dist <= attract.kill_radius)
             {
                 pt_common.life_time = pt_common.life_time_max;
             }
         }
+
+        stream_attract_item(rw_write, write_offset, pt_attract);
     }
 }
 #endif  //  __COMPUTE_PARTICLES_UPDATE_ITEMS_HLSLI__

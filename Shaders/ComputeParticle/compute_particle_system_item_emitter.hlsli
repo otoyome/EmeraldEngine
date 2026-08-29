@@ -174,6 +174,7 @@ struct em_attract_item
 	float radius; // ‰e‹¿”ÍˆÍ
 	float falloff; // ”ÍˆÍ“à‚Ì‰e‹¿—Í‚ğ’²®
 	float kill_radius; // Á–Å”ÍˆÍ
+	float damping; // Œ¸Š
 };
 
 static const uint emitter_active_attract_item_bit_flag = 1 << 4;
@@ -187,6 +188,7 @@ void stream_attract_item(uint rw, inout uint offset, inout em_attract_item value
     em_stream_ptr(rw, offset, value.radius);
     em_stream_ptr(rw, offset, value.falloff);
     em_stream_ptr(rw, offset, value.kill_radius);
+    em_stream_ptr(rw, offset, value.damping);
 }
 
 #endif  //  __COMPUTE_PARTICLES_SYSTEM_ITEM_EITTER_HLSLI__

@@ -788,11 +788,13 @@ bool editor_items::edit_effect_particle(std::shared_ptr<context>& context, effec
 			{
 				if (ImGui::DragFloat("radius", &attract->radius, 0.01f, 0.0f, 100000.0f))
 					edit_flag = true;
-				if (ImGui::DragFloat("kill_radius", &attract->kill_radius, 0.01f, 0.0f, 100000.0f))
-					edit_flag = true;
 				if (ImGui::DragFloat("strength", &attract->strength, 0.01f, 0.0f, 100000.0f))
 					edit_flag = true;
+				if (ImGui::DragFloat("damping", &attract->damping, 0.01f, 0.0f, 100000.0f))
+					edit_flag = true;
 				if (ImGui::DragFloat("falloff", &attract->falloff, 0.01f, 0.0f, 100000.0f))
+					edit_flag = true;
+				if (ImGui::DragFloat("kill_radius", &attract->kill_radius, 0.01f, 0.0f, 100000.0f))
 					edit_flag = true;
 			}
 			ImGui::TreePop();

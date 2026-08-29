@@ -127,9 +127,14 @@ namespace
 			attract_item.radius = attract->radius;
 			attract_item.falloff = attract->falloff;
 			attract_item.kill_radius = attract->kill_radius;
+			attract_item.damping = attract->damping;
 
-			attract_item.position = instance.get_attract_position();
-
+			{
+				auto W = DirectX::XMLoadFloat4x4(&node_data.world_transform);
+				auto AT = DirectX::XMLoadFloat3(&instance.get_attract_position());
+				W = DirectX::XMMatrixInverse(nullptr, W);
+				DirectX::XMStoreFloat3(&attract_item.position, DirectX::XMVector3TransformCoord(AT, W));
+			}
 			append(&attract_item, sizeof(attract_item));
 			common_data.active_items |= 1 << particle_system_item::emitter::attract::data_id;
 		}

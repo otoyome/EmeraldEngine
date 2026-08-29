@@ -82,4 +82,16 @@ void stream_velocity_item(uint rw, inout uint offset, inout pt_velocity_item vel
     pt_stream_ptr(rw, offset, velocity.velocity);
 }
 
+//////////////////////////////////////////////////////////////////////////
+//  ˆø‚«‚İƒAƒCƒeƒ€
+struct pt_attract_item
+{
+    float3 velocity;
+};
+
+void stream_attract_item(uint rw, inout uint offset, inout pt_attract_item attract)
+{
+    pt_stream_ptr(rw, offset, attract.velocity);
+}
+
 #endif  //  __COMPUTE_PARTICLES_SYSTEM_ITEM_PARTICLE_HLSLI__

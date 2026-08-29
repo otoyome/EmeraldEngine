@@ -53,6 +53,12 @@ namespace particle_system_item
 		//  速度アイテム
 		struct velocity
 		{
+			DirectX::XMFLOAT3 velocity; // 移動速度
+		};
+
+		//  引き込みアイテム
+		struct attract
+		{
 			DirectX::XMFLOAT3 velocity;
 		};
 	}
@@ -175,6 +181,7 @@ namespace particle_system_item
 			float radius; // 影響範囲
 			float falloff; // 範囲内の影響力を調整
 			float kill_radius; // 消滅範囲
+			float damping; // 減衰
 		};
 	}
 
