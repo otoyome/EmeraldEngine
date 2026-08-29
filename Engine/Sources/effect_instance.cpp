@@ -34,8 +34,8 @@ namespace
 			if (renderer)
 			{
 				system_utility::set_bitflag(common_data.emitter_state,
-					particle_system_item::emitter::common::state::no_billboard,
-					renderer->is_state(::particle::item::renderer::states::no_billboard));
+					particle_system_item::emitter::common::state::billboard_off,
+					renderer->is_state(::particle::item::renderer::states::billboard_off));
 			}
 
 			auto WorldMatrix = DirectX::XMLoadFloat4x4(&node_data.world_transform);

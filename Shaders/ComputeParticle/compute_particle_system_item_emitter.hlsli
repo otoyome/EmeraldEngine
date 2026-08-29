@@ -30,7 +30,7 @@ struct em_common_item
     uint random_seed; // 乱数シード
 };
 
-static const uint em_common_item_state_no_billboard = 1 << 1;   //	ビルボード無し
+static const uint em_common_item_state_billboard_off = 1 << 1;   //	ビルボード無し
 
 //  共通アイテム読み込み
 void stream_common_item(uint rw, inout uint offset, inout em_common_item value)

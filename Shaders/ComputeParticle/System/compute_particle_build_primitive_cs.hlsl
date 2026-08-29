@@ -238,7 +238,7 @@ void main(uint3 dispatch_thread_id : SV_DispatchThreadID)
 
         //  ビルボード無効時は軌跡の面をパーティクルの姿勢で決める
         float3 trail_face_dir = -camera_direction.xyz;
-        if (has_flag(em_common.emitter_state, em_common_item_state_no_billboard))
+        if (has_flag(em_common.emitter_state, em_common_item_state_billboard_off))
         {
             trail_face_dir = rotate_vector_quaternion(float3(0, 1, 0), pt_common.rotation);
         }
@@ -345,7 +345,7 @@ void main(uint3 dispatch_thread_id : SV_DispatchThreadID)
     	    //  ワールド行列生成
             float4x4 scale_matrix = matrix_scaling(pt_common.scale);
             float4x4 rotation_matrix = matrix_rotation_quaternion(pt_common.rotation);
-            if (!has_flag(em_common.emitter_state, em_common_item_state_no_billboard))
+            if (!has_flag(em_common.emitter_state, em_common_item_state_billboard_off))
             {
                 //  ビルボード（ビューの回転を打ち消す）
                 float4x4 billboard_matrix = inverse_view_transform;

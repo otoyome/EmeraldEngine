@@ -21,7 +21,7 @@ namespace particle
 			enum class states
 			{
 				animation = 1 << 0,		//	アニメーション
-				no_billboard = 1 << 1,	//	ビルボード無し
+				billboard_off = 1 << 1,	//	ビルボード無し
 			};
 
 			//	形状指定
@@ -166,7 +166,7 @@ namespace particle
 		{
 			float strength = 1.0f; // 吸引力
 			float falloff = 1.0f; // 範囲内の影響力を調整
-			float damping = 1.0f; // 減衰
+			float damping = 1.0f; // 吸引による速度の減衰
 			float radius = system_units::convert_m_to_unit(1.0f); // 影響範囲
 			float kill_radius = system_units::convert_m_to_unit(0.5f); // 消滅範囲
 
