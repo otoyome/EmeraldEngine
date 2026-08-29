@@ -154,6 +154,7 @@ void model_object::fixed_update(float elapsed_time)
 		update_node_animation(animation_data, current_time, previous_time);
 		update_morph_animation(animation_data, current_time, previous_time);
 	}
+	fixed_updated = true;
 }
 
 void model_object::pre_render()
@@ -561,9 +562,18 @@ void model_object::update_node_animation(const animation::data& animation_data, 
 
 void model_object::update_morph_animation(const animation::data& animation_data, float current_time, float previous_time)
 {
-	//animation_data.compute_animation
-	//auto& animation_data = animations[animation_index];
+	if (animation_data.morphs.empty())
+		return;
 
+	//	アニメーション算出
+	animation_data.compute_animation(current_morph_animations, current_time);
+
+	//	モーフ設定
+	const size_t morph_count = std::min(current_morph_animations.size(), animation_data.morphs.size());
+	for (size_t index = 0; index < morph_count; ++index)
+	{
+		model_instance->set_morph(animation_data.morphs[index].morph_name, current_morph_animations[index]);
+	}
 }
 
 void model_object::update_ik()
@@ -571,12 +581,13 @@ void model_object::update_ik()
 	if (!ik_solver)
 		return;
 
-	//	ガタつくのでIKの計算前に現在フレームの状態で更新しておく
-	if (!current_node_animations.empty())
+	//	固定更新せずに来た場合、IKの計算分ガタつくので更新
+	if (!fixed_updated && !current_node_animations.empty())
 	{
 		model_instance->set_node_poses(current_node_animations);
 		dirty = true;
 	}
+	fixed_updated = false;
 
 	update_transform();
 

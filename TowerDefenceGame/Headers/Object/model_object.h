@@ -128,8 +128,10 @@ private:
 	float animation_blend_time = 0.0f;
 	std::vector<model_instance::node_animation> current_node_animations;
 	std::vector<model_instance::node_animation> previous_node_animations;
+	std::vector<animation::morph> current_morph_animations;
 
 	//	IK情報
+	bool fixed_updated = false;
 	bool animation_foot_ik = false;	//	アニメーション側でのIKの制御フラグ
 	bool animation_hand_ik = false;	//	アニメーション側でのIKの制御フラグ
 	bool animation_aim_ik = false;	//	アニメーション側でのIKの制御フラグ

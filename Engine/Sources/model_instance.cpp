@@ -82,6 +82,19 @@ void model_instance::set_node_pose(size_t node_index, const node_animation& node
 	DirectX::XMStoreFloat4x4(&in.local_transform, Matrix);
 }
 
+bool model_instance::set_morph(std::string_view morph_name, const morph_animation& morph)
+{
+	for (auto& entry : morphes)
+	{
+		if (entry.morph && entry.morph->name == morph_name)
+		{
+			entry.weight = morph.weight;
+			return true;
+		}
+	}
+	return false;
+}
+
 void model_instance::update_transform(const DirectX::XMFLOAT4X4& world_transform)
 {
 	DirectX::XMMATRIX WorldTransform = DirectX::XMLoadFloat4x4(&world_transform);

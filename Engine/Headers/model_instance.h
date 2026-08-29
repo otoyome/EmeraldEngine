@@ -50,25 +50,17 @@ public:
 	};
 
 	using node_animation = animation::node;
+	using morph_animation = animation::morph;
 
 public:
 	bool is_flag(flags flag) const { return system_utility::is_bitflag(system_flags, 1 << static_cast<UINT>(flag)); }
 	void set_flag(flags flag, bool value) { system_utility::set_bitflag(system_flags, 1 << static_cast<UINT>(flag), value); }
 
 	int get_lod_index() const {return lod_index;}
-	void set_lod_index(int lod_index)
-	{
-		this->lod_index = lod_index;
-	}
-	//	
-	int get_lod_max() const
-	{
-		if (meshes.empty())
-			return 0;
-
-		return meshes.begin()->mesh ? static_cast<int>(meshes.begin()->mesh->lod_meshs.size()) : 0;
-	}
+	void set_lod_index(int lod_index) {this->lod_index = lod_index;}
+	int get_lod_max() const{return meshes.empty() ? 0 : meshes.begin()->mesh ? static_cast<int>(meshes.begin()->mesh->lod_meshs.size()) : 0;}
 	const DirectX::XMFLOAT2& get_lod_range_rate() const {return lod_range_rate;}
+
 	void set_lod_range_rate(DirectX::XMFLOAT2 rate) {lod_range_rate = math::saturate(rate);}
 
 	inline model_resource_ptr get_resource() const { return resource; }
@@ -100,6 +92,7 @@ public:
 	bool compute_animation_node(node_animation& node, size_t animation_index, size_t node_index, float time) const;
 	void set_node_poses(const std::vector<node_animation>& nodes);
 	void set_node_pose(size_t node_index, const node_animation& node);
+	bool set_morph(std::string_view morph_name, const morph_animation& morph);
 	void update_transform(const DirectX::XMFLOAT4X4& world_transform);
 	void update_transform(const DirectX::XMMATRIX& world_transform);
 
