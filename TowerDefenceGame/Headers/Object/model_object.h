@@ -18,13 +18,15 @@ class model_object : public game_object
 public:
 	using call_back_root_animation_translation = std::function<void(const DirectX::XMFLOAT3&, float)>;
 	using call_back_root_animation_rotation = std::function<void(const DirectX::XMFLOAT4&, float)>;
+
+	//	FootIK方向
+	static constexpr DirectX::XMFLOAT3 foot_ik_direction = {0, -1, 0};
+
+	//	IK情報
 	struct ik_data
 	{
 		bool visible = false;
 		bool initialized = false;	//	初回フレーム判定
-
-		//	FootIK用
-		float  smoothed_pelvis_length = 0.0f;	//	腰の沈み込み量
 
 		//	HandIK用
 		DirectX::XMFLOAT3 left_hand_target_position = {0, 0, 0};

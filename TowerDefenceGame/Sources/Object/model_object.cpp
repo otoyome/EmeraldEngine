@@ -571,6 +571,13 @@ void model_object::update_ik()
 	if (!ik_solver)
 		return;
 
+	//	ガタつくのでIKの計算前に現在フレームの状態で更新しておく
+	if (!current_node_animations.empty())
+	{
+		model_instance->set_node_poses(current_node_animations);
+		dirty = true;
+	}
+
 	update_transform();
 
 	auto& model_instance_nodes = model_instance->get_nodes();
@@ -581,15 +588,6 @@ void model_object::update_ik()
 	{
 		ik_datas.resize(behavior_data_list.size());
 	}
-
-	constexpr float k_pelvis_smooth_speed = 25.0f;
-	const float dt = 0.01666f; // 既存のdt取得関数に置き換えてください
-
-	auto ExpLerp = [](float current, float target, float speed, float dt) -> float
-	{
-		float t = 1.0f - std::expf(-speed * dt);
-		return current + (target - current) * t;
-	};
 
 	for (UINT index = 0; index < behavior_data_list.size(); ++index)
 	{
@@ -631,9 +629,6 @@ void model_object::update_ik()
 				DirectX::XMStoreFloat4x4(&right_world_matrix, DirectX::XMLoadFloat4x4(&right_node.global_transform) * WorldMatrix);
 				const DirectX::XMFLOAT3 left_foot_position(left_world_matrix._41, left_world_matrix._42, left_world_matrix._43);
 				const DirectX::XMFLOAT3 right_foot_position(right_world_matrix._41, right_world_matrix._42, right_world_matrix._43);
-
-				//	重力方向
-				static constexpr DirectX::XMFLOAT3 foot_ik_direction = {0, -1, 0};
 
 				//	各足が埋まるかを確認
 				bool left_hit, right_hit;
@@ -679,13 +674,8 @@ void model_object::update_ik()
 						length = std::max(length, right_hit_data[0].length - right_baseline);
 					length = std::max(length, 0.0f);
 
-					if (!ik_data.initialized)
-						ik_data.smoothed_pelvis_length = length;
-					else
-						ik_data.smoothed_pelvis_length = ExpLerp(ik_data.smoothed_pelvis_length, length, k_pelvis_smooth_speed, dt);
-
 					//	ワールド空間でのオフセット位置を算出
-					auto PelvisOffset = DirectX::XMVectorScale(DirectX::XMLoadFloat3(&foot_ik_direction), ik_data.smoothed_pelvis_length);
+					auto PelvisOffset = DirectX::XMVectorScale(DirectX::XMLoadFloat3(&foot_ik_direction), length);
 
 					//	該当ノード全体に適応
 					for (auto& node_index : foot_data.adjust_node_indices)
