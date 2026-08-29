@@ -162,6 +162,18 @@ float effect_instance::get_animation_time() const
 	return animation_time;
 }
 
+float effect_instance::get_curved_animation_time() const
+{
+	if (!resource)
+		return animation_time;
+
+	auto& animations = resource->get_animations();
+	if (animations.empty() || animations[0].end_time <= 1.0e-6f)
+		return animation_time;
+
+	return animations[0].calculate_time(animation_time);
+}
+
 void effect_instance::set_animation_time(float animation_time)
 {
 	this->animation_time = animation_time;
@@ -348,10 +360,10 @@ effect_manager::effect_manager()
 {
 	//	コンピュートパーティクルシステム生成
 	{
-		UINT emitter_max = 128;	//	エミッター最大数
-		UINT emitter_data_size = sizeof(DirectX::XMFLOAT4X4) * 6;	//	エミッター一つの最大データサイズ(中で制限は特にかけてないですが)
-		UINT particle_max = 100000;	//	パーティクル最大数(中で2の累乗に自動でアラインされます)
-		UINT particle_data_size = sizeof(DirectX::XMFLOAT4) * 32;	//	パーティクル一つに保存できる最大データサイズ(中で制限は特にかけてないですが)
+		UINT emitter_max = 512;
+		UINT emitter_data_size = sizeof(DirectX::XMFLOAT4X4) * 6;
+		UINT particle_max = 100000;
+		UINT particle_data_size = sizeof(DirectX::XMFLOAT4) * 32;
 		particle_system = std::make_unique<compute_particle_system>(render_data::instance()->get_device().Get(),
 			emitter_max,
 			emitter_data_size,
@@ -393,7 +405,7 @@ void effect_manager::update_gpu(graphics_context& context, float elapsed_time)
 	{
 		if (!item.effect_instance)
 			continue;
-		if (item.effect_instance->get_animation_time() <
+		if (item.effect_instance->get_curved_animation_time() <
 			item.effect_instance->get_particle_simulation_time() - 1.0e-4f)
 		{
 			need_reset = true;
@@ -423,7 +435,7 @@ void effect_manager::update_gpu(graphics_context& context, float elapsed_time)
 		{
 			if (!item.effect_instance)
 				continue;
-			if (item.effect_instance->get_animation_time()
+			if (item.effect_instance->get_curved_animation_time()
 				- item.effect_instance->get_particle_simulation_time() > 1.0e-6f)
 			{
 				update = true;
@@ -440,7 +452,7 @@ void effect_manager::update_gpu(graphics_context& context, float elapsed_time)
 				continue;
 
 			//	ステップ時間
-			float remaining = item.effect_instance->get_animation_time()
+			float remaining = item.effect_instance->get_curved_animation_time()
 							- item.effect_instance->get_particle_simulation_time();
 			float step_elapsed = 0.0f;
 			if (remaining > 1.0e-6f)

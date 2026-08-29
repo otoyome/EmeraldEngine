@@ -74,6 +74,7 @@ public:
 	void set_animation_time(float animation_time);
 
 	float get_animation_speed() const;
+	float get_curved_animation_time() const;
 	void set_animation_speed(float animation_speed);
 
 	float get_particle_simulation_time() const;
@@ -94,9 +95,7 @@ public:
 
 	void update(float elapsed_time);
 
-	//	ŠJn‚Ìó‘Ô‚Ö–ß‚·
 	void reset_to_initial_state();
-
 	void reset_particle_simulation_time();
 
 private:
