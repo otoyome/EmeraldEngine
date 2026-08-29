@@ -196,4 +196,40 @@ void update_particle_velocity_item(inout emitter_context em_context, inout pt_co
         stream_velocity_item(rw_write, write_offset, pt_velocity);
     }
 }
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+//  引き込み更新アイテム
+void update_particle_attract_item(inout emitter_context em_context, inout pt_common_item pt_common, inout uint emitter_binary_offset, inout uint particle_binary_offset)
+{
+    if (has_flag(em_context.active_items, emitter_active_attract_item_bit_flag))
+    {
+        em_attract_item attract;
+        stream_attract_item(rw_read_only, emitter_binary_offset, attract);
+
+        if (em_context.elapsed_time > 0.0f)
+        {
+            float3 to_target = attract.position - pt_common.translation;
+            float  dist = length(to_target);
+
+            if (dist <= attract.radius)
+            {
+                float3 dir = to_target / dist;
+
+                //  影響範囲による減衰
+                float influence = saturate(1.0f - dist / max(0.0001f, attract.radius));
+                influence = pow(influence, max(attract.falloff, 0.0001f));
+
+                //  移動
+                float move = min(attract.strength * influence * em_context.elapsed_time, dist);
+                pt_common.translation += dir * max(move, 0.0f);
+            }
+
+            //  消滅範囲に入ったら寿命切れ扱い
+            if (dist <= attract.kill_radius)
+            {
+                pt_common.life_time = pt_common.life_time_max;
+            }
+        }
+    }
+}
 #endif  //  __COMPUTE_PARTICLES_UPDATE_ITEMS_HLSLI__

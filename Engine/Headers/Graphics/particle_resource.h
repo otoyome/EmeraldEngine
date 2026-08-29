@@ -130,7 +130,7 @@ namespace particle
 			void serialize(Archive& archive, int version);
 		};
 
-		//	¶¬î•ñ
+		//	‘¬“xî•ñ
 		struct velocity
 		{
 			enum class states
@@ -161,8 +161,20 @@ namespace particle
 			void serialize(Archive& archive, int version);
 		};
 
+		//	ˆø‚«‚İî•ñ
+		struct attract
+		{
+			float strength = 1.0f; // ‹zˆø—Í
+			float falloff = 1.0f; // ”ÍˆÍ“à‚Ì‰e‹¿—Í‚ğ’²®
+			float radius = system_units::convert_m_to_unit(1.0f); // ‰e‹¿”ÍˆÍ
+			float kill_radius = system_units::convert_m_to_unit(0.5f); // Á–Å”ÍˆÍ
+
+			template<class Archive>
+			void serialize(Archive& archive, int version);
+		};
+
 		//	•Û‘¶Œ^
-		using variant = std::variant<renderer, spawn, velocity>; 
+		using variant = std::variant<renderer, spawn, velocity, attract>; 
 
 		//	”»’f—p
 		template<class Type, class Variant>

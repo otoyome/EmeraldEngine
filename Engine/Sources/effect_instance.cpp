@@ -25,7 +25,6 @@ namespace
 	{
 		auto renderer = particle_data.get_item<::particle::item::renderer>();
 		auto spawn    = particle_data.get_item<::particle::item::spawn>();
-		auto velocity = particle_data.get_item<::particle::item::velocity>();
 
 		particle_system_item::emitter::common common_data;
 		{
@@ -102,7 +101,7 @@ namespace
 			append(&color_item, sizeof(color_item));
 			common_data.active_items |= 1 << particle_system_item::emitter::color::data_id;
 		}
-		if (velocity)
+		if (auto velocity = particle_data.get_item<::particle::item::velocity>())
 		{
 			particle_system_item::emitter::velocity velocity_item;
 			velocity_item.state = velocity->state;
@@ -117,8 +116,22 @@ namespace
 			velocity_item.gravity.x *= velocity->gravity_scale.x;
 			velocity_item.gravity.y *= velocity->gravity_scale.y;
 			velocity_item.gravity.z *= velocity->gravity_scale.z;
+
 			append(&velocity_item, sizeof(velocity_item));
 			common_data.active_items |= 1 << particle_system_item::emitter::velocity::data_id;
+		}
+		if (auto attract = particle_data.get_item<::particle::item::attract>())
+		{
+			particle_system_item::emitter::attract attract_item;
+			attract_item.strength = attract->strength;
+			attract_item.radius = attract->radius;
+			attract_item.falloff = attract->falloff;
+			attract_item.kill_radius = attract->kill_radius;
+
+			attract_item.position = instance.get_attract_position();
+
+			append(&attract_item, sizeof(attract_item));
+			common_data.active_items |= 1 << particle_system_item::emitter::attract::data_id;
 		}
 
 		data.common = common_data;
@@ -169,6 +182,16 @@ const DirectX::XMFLOAT3& effect_instance::get_position() const
 void effect_instance::set_position(const DirectX::XMFLOAT3& position)
 {
 	this->position = position;
+}
+
+const DirectX::XMFLOAT3& effect_instance::get_attract_position() const
+{
+	return attract_position;
+}
+
+void effect_instance::set_attract_position(const DirectX::XMFLOAT3& position)
+{
+	this->attract_position = position;
 }
 
 float effect_instance::get_animation_time() const

@@ -736,7 +736,7 @@ bool editor_items::edit_effect_particle(std::shared_ptr<context>& context, effec
 				if (ImGui::EditFlags<particle::item::velocity::states>(velocity->state))
 					edit_flag = true;
 
-				if (ImGui::SliderFloat3("life_time_range", &velocity->direction.x, -1.0f, 1.0f))
+				if (ImGui::SliderFloat3("base direction", &velocity->direction.x, -1.0f, 1.0f))
 				{
 					float l = velocity->direction.x * velocity->direction.x + velocity->direction.y * velocity->direction.y + velocity->direction.z * velocity->direction.z;
 					if (l > 0.0001f)
@@ -761,6 +761,38 @@ bool editor_items::edit_effect_particle(std::shared_ptr<context>& context, effec
 				if (ImGui::DragFloat3("deceleration_max", &velocity->deceleration_max.x, 0.01f, 0.01f, 1000.0f))
 					edit_flag = true;
 				if (ImGui::DragFloat3("gravity_scale", &velocity->gravity_scale.x, 0.01f, 0.0f, 1000.0f))
+					edit_flag = true;
+			}
+			ImGui::TreePop();
+		}
+	}
+
+	{
+		auto attract = particle.particle.get_item<particle::item::attract>();
+		if (ImGui::TreeNode("attract"))
+		{
+			if (ImGui::Button(!attract ? "Add attract" : "Remove attract"))
+			{
+				if (attract)
+				{
+					particle.particle.unregister_item<particle::item::attract>();
+					attract = nullptr;
+				}
+				else
+				{
+					attract = particle.particle.register_item<particle::item::attract>();
+				}
+				edit_flag = true;
+			}
+			if (attract)
+			{
+				if (ImGui::DragFloat("radius", &attract->radius, 0.01f, 0.0f, 100000.0f))
+					edit_flag = true;
+				if (ImGui::DragFloat("kill_radius", &attract->kill_radius, 0.01f, 0.0f, 100000.0f))
+					edit_flag = true;
+				if (ImGui::DragFloat("strength", &attract->strength, 0.01f, 0.0f, 100000.0f))
+					edit_flag = true;
+				if (ImGui::DragFloat("falloff", &attract->falloff, 0.01f, 0.0f, 100000.0f))
 					edit_flag = true;
 			}
 			ImGui::TreePop();

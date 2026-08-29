@@ -23,6 +23,8 @@ CEREAL_CLASS_VERSION(particle::item::renderer::colors, 1)
 CEREAL_CLASS_VERSION(particle::item::renderer, 1)
 
 CEREAL_CLASS_VERSION(particle::item::spawn, 1)
+CEREAL_CLASS_VERSION(particle::item::velocity, 1)
+CEREAL_CLASS_VERSION(particle::item::attract, 1)
 
 CEREAL_CLASS_VERSION(particle::data, 1);
 
@@ -126,6 +128,15 @@ void particle::item::velocity::serialize(Archive& archive, int version)
 			gravity_scale);
 }
 
+template<class Archive>
+void particle::item::attract::serialize(Archive& archive, int version)
+{
+	archive(strength,
+			falloff,
+			radius,
+			kill_radius);
+}
+
 //////////////////////////////////////////////////////////////////////////////////////////////
 bool particle::data::is_valid() const
 {
@@ -181,6 +192,13 @@ particle_system_item::emitter_resource particle::data::constract_system_resource
 	{
 		emitter_system.max_update_item_size += sizeof(particle_system_item::emitter::velocity);
 		emitter_system.particle_type_size += sizeof(particle_system_item::particle::velocity);
+	}
+
+	//	à¯Ç´çûÇ›èÓïÒÇÃê›íË
+	if (auto attract = get_item<particle::item::attract>())
+	{
+		emitter_system.max_update_item_size += sizeof(particle_system_item::emitter::attract);
+		//emitter_system.particle_type_size += sizeof(particle_system_item::particle::attract);
 	}
 
 	return resource;

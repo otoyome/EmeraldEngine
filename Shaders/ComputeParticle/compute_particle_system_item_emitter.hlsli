@@ -165,4 +165,28 @@ void stream_veloctiy_item(uint rw, inout uint offset, inout em_veloctiy_item val
     em_stream_ptr(rw, offset, value.gravity);
 }
 
+//////////////////////////////////////////////////////////////////////////
+//  引き込みアイテム
+struct em_attract_item
+{
+	float3 position; // 位置
+	float strength; // 吸引力
+	float radius; // 影響範囲
+	float falloff; // 範囲内の影響力を調整
+	float kill_radius; // 消滅範囲
+};
+
+static const uint emitter_active_attract_item_bit_flag = 1 << 4;
+
+//  引き込みアイテム読み込み
+void stream_attract_item(uint rw, inout uint offset, inout em_attract_item value)
+{
+    em_stream_ptr(rw, offset, value.position);
+
+    em_stream_ptr(rw, offset, value.strength);
+    em_stream_ptr(rw, offset, value.radius);
+    em_stream_ptr(rw, offset, value.falloff);
+    em_stream_ptr(rw, offset, value.kill_radius);
+}
+
 #endif  //  __COMPUTE_PARTICLES_SYSTEM_ITEM_EITTER_HLSLI__

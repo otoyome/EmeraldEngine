@@ -164,6 +164,18 @@ namespace particle_system_item
 
 			DirectX::XMFLOAT3 gravity; // 重力
 		};
+
+		//	引き込み情報
+		struct attract
+		{
+			static constexpr UINT data_id = 4;
+
+			DirectX::XMFLOAT3 position; // 位置
+			float strength; // 吸引力
+			float radius; // 影響範囲
+			float falloff; // 範囲内の影響力を調整
+			float kill_radius; // 消滅範囲
+		};
 	}
 
 	//	エミッター基礎情報リソース

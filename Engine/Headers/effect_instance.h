@@ -71,6 +71,9 @@ public:
 	const DirectX::XMFLOAT3& get_position() const;
 	void set_position(const DirectX::XMFLOAT3& position);
 
+	const DirectX::XMFLOAT3& get_attract_position() const;
+	void set_attract_position(const DirectX::XMFLOAT3& position);
+
 	float get_animation_time() const;
 	void set_animation_time(float animation_time);
 
@@ -121,6 +124,9 @@ private:
 	math::rotator rotation = {0, 0, 0};
 	DirectX::XMFLOAT3 position = {0, 0, 0};
 	DirectX::XMFLOAT4X4 previous_world_transform = {1, 0, 0, 0,  0, 1, 0, 0,  0, 0, 1, 0,  0, 0, 0, 1};
+
+	//	吸引座標
+	DirectX::XMFLOAT3 attract_position = {0, 0, 0};
 
 	//	アニメーション関連
 	float animation_time = 0.0f;

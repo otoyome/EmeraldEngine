@@ -47,6 +47,7 @@ void main(uint3 dispatch_thread_id : SV_DispatchThreadID)
         update_uv_item(em_context, pt_common, emitter_binary_offset, particle_binary_offset);
         update_color_item(em_context, pt_common, emitter_binary_offset, particle_binary_offset);
         update_particle_velocity_item(em_context, pt_common, emitter_binary_offset, particle_binary_offset);
+        update_particle_attract_item(em_context, pt_common, emitter_binary_offset, particle_binary_offset);
 
         //  ¶‘¶ŠÔXV
         if (alive)
