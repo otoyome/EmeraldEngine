@@ -518,7 +518,12 @@ void compute_particle_system::reset()
 	pending_reset = true;
 }
 
-void compute_particle_system::update(graphics_context& context, float elapsed_time)
+void compute_particle_system::reset_emitter(UINT emitter_id)
+{
+	reset_emitter_ids.push_back(emitter_id);
+}
+
+void compute_particle_system::update(graphics_context& context, float elapsed_time, bool build_primitives)
 {
 	//	定数バッファ設定
 	context.device_context->CSSetConstantBuffers(common_pipeline_states::scene_cbv_index, 1, context.scene_constant_buffer.GetAddressOf());
@@ -655,6 +660,22 @@ void compute_particle_system::update(graphics_context& context, float elapsed_ti
 		erase_id_list[erase_id_count++] = remove_emitter_id;
 	}
 
+	// エミッターリセット処理
+	if (!reset_emitter_ids.empty())
+	{
+		for (UINT reset_id : reset_emitter_ids)
+		{
+			if (erase_id_count < max_erase_particle_list)
+				erase_id_list[erase_id_count++] = reset_id;
+
+			emitter_data em_data = {};
+			em_data.particle_max = emitter_resources[reset_id].resource.system.total_particle_count;
+			D3D11_BOX box = { sizeof(emitter_data) * reset_id, 0, 0, sizeof(emitter_data) * (reset_id + 1), 1, 1 };
+			context.device_context->UpdateSubresource(emitter_data_buffer.Get(), 0, &box, &em_data, sizeof(em_data), 0);
+		}
+		reset_emitter_ids.clear();
+	}
+
 	//	エミッターバイナリー更新
 	UINT total_spawn_cpu_particle_count = 0;
 	for (auto& emitter_id : emitter_id_table)
@@ -710,18 +731,7 @@ void compute_particle_system::update(graphics_context& context, float elapsed_ti
 	{
 		common_constants constant;
 		constant.elapsed_time = elapsed_time;
-		//	シミュレーションステップ数から決定論的にシードを作る（再シミュレートで再現するため）
-		auto step_hash = [](UINT v) -> UINT
-		{
-			v ^= v >> 16; v *= 0x7feb352dU;
-			v ^= v >> 15; v *= 0x846ca68bU;
-			v ^= v >> 16;
-			return v;
-		};
-		constant.x_of_shift_seed.x = step_hash(simulation_step * 3u + 0u);
-		constant.x_of_shift_seed.y = step_hash(simulation_step * 3u + 1u);
-		constant.x_of_shift_seed.z = step_hash(simulation_step * 3u + 2u);
-		++simulation_step;
+		constant.x_of_shift_seed = { 0u, 0u, 0u };
 		constant.total_emitter_count = total_emitter_count;	//	emitter_id_table.size();
 		constant.total_particle_count = total_particle_count;
 		constant.total_cpu_spawn_count = total_spawn_cpu_particle_count;
@@ -758,7 +768,6 @@ void compute_particle_system::update(graphics_context& context, float elapsed_ti
 	if (pending_reset)
 	{
 		pending_reset = false;
-		simulation_step = 0;
 
 		//	システム情報クリア
 		{
@@ -1023,6 +1032,9 @@ void compute_particle_system::update(graphics_context& context, float elapsed_ti
 		context.device_context->Dispatch(1, 1, 1);
 		clear_resources(context.device_context);
 	}
+
+	if (!build_primitives)
+		return;
 
 	//	エミッター毎の描画情報を構築していく
 	{

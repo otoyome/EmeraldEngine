@@ -258,7 +258,7 @@ namespace
 					ImGuiNeoSequencerFlags_AlwaysShowHeader | ImGuiNeoSequencerFlags_Selection_EnableDragging |
 					ImGuiNeoSequencerFlags_Selection_EnableDeletion))
 				{
-					//	シーケンサーのメモリリーク対策で ID を控えておく。
+					//	シーケンサーのメモリリーク対策で ID を控えておく
 					//	@remainder	選択中にモーションを差し替えるとリークする（時間のある時に修正）
 					ImGuiWindow* window = ImGui::GetCurrentWindow();
 					sequencer_id = window->IDStack[window->IDStack.size() - 1];
@@ -272,7 +272,7 @@ namespace
 					selection_dragging = dragging;	//	次フレームの Begin で NoMove 判定に使う
 					ImGui::EndNeoSequencer();
 
-					//	キーフレームのドラッグ移動が終わったら時間順に並べ直す。
+					//	キーフレームのドラッグ移動が終わったら時間順に並べ直す
 					if (keyframe_move_pending && !dragging)
 					{
 						sort_animation_data();

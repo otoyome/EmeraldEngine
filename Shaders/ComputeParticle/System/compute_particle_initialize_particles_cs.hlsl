@@ -56,7 +56,7 @@ void main(uint3 dispatch_thread_id : SV_DispatchThreadID)
     particle_index_head += em_data.particle_num;
 
     //  乱数の種を生成
-    x_or_shift_128_state x_or_shift_random_seed = generate_random_seed(dispatch_thread_id);
+    x_or_shift_128_state x_or_shift_random_seed = generate_random_seed(dispatch_thread_id, em_common.random_seed);
     
     //  パーティクルヘッダー情報設定
     [loop] for (uint index = 0; index < em_data.spawn_num; ++index)

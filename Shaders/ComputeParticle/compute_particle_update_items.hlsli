@@ -25,7 +25,7 @@ emitter_context build_emitter_context(inout uint emitter_binary_offset, uint emi
     em_common_item em_common;
     stream_common_item(rw_read_only, emitter_binary_offset, em_common);
     em_context.active_items = em_common.active_items;
-    em_context.random_seed = generate_random_seed(dispatch_thread_id);
+    em_context.random_seed = generate_random_seed(dispatch_thread_id, em_common.random_seed);
     em_context.elapsed_time = em_common.elapsed_time;  //  エミッター毎の経過時間を使う
     em_context.scale = em_common.scale;
     em_context.rotation = em_common.rotation;

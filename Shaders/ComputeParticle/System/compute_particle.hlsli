@@ -163,13 +163,30 @@ uint x_or_shift_128(inout x_or_shift_128_state state)
     return state.w;
 }
 
-x_or_shift_128_state generate_random_seed(uint3 dispatch_thread_id)
+//  32bitハッシュ
+uint mix_hash_uint(uint v)
 {
+    v ^= v >> 16;
+    v *= 0x7feb352du;
+    v ^= v >> 15;
+    v *= 0x846ca68bu;
+    v ^= v >> 16;
+    return v;
+}
+
+x_or_shift_128_state generate_random_seed(uint3 dispatch_thread_id, uint seed)
+{
+    //  スレッドID(y/zは0の事もある)とシードを畳んでからハッシュ展開
+    uint base = seed
+              ^ (dispatch_thread_id.x * 0x9e3779b9u)
+              ^ (dispatch_thread_id.y * 0x85ebca6bu)
+              ^ (dispatch_thread_id.z * 0xc2b2ae35u);
+
     x_or_shift_128_state state;
-    state.x = x_of_shift_seed.x + dispatch_thread_id.x * 123456789u;
-    state.y = x_of_shift_seed.y + dispatch_thread_id.y * 362436069u + dispatch_thread_id.y * 2654435761u;
-    state.z = x_of_shift_seed.z + dispatch_thread_id.z * 521288629u + dispatch_thread_id.z * 2246822519u;
-    state.w = 88675123u ^ (dispatch_thread_id.x * 3266489917u);
+    state.x = mix_hash_uint(base ^ 0x1b56c4e9u) | 1u;
+    state.y = mix_hash_uint(base ^ 0x2c1b3c6du) | 1u;
+    state.z = mix_hash_uint(base ^ 0x3f56a1c7u) | 1u;
+    state.w = mix_hash_uint(base ^ 0x4a1f9b1du) | 1u;
     return state;
 }
 

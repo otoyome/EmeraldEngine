@@ -14,6 +14,7 @@ public:
 		active,			//	表示フラグ
 		color_render,	//	色描画
 		shadow_caster,	//	影生成
+		animation_loop,	//	アニメーションループフラグ
 
 		bursted,		//	バースト生成処理
 	};
@@ -75,10 +76,13 @@ public:
 
 	float get_animation_speed() const;
 	float get_curved_animation_time() const;
+	float get_animation_end_time() const;
 	void set_animation_speed(float animation_speed);
 
 	float get_particle_simulation_time() const;
 	void set_particle_simulation_time(float time);
+	UINT get_particle_simulation_step() const;
+	void advance_particle_simulation_step();
 
 	inline std::vector<node>& get_nodes() { return nodes; }
 	inline std::vector<model>& get_models() { return models; }
@@ -97,6 +101,7 @@ public:
 
 	void reset_to_initial_state();
 	void reset_particle_simulation_time();
+	void reset_particle_simulation_step();
 
 private:
 	void build();
@@ -124,6 +129,7 @@ private:
 	float previous_animation_time = 0.0f;
 
 	float particle_simulation_time = 0.0f;
+	UINT particle_simulation_step = 0;
 };
 
 using effect_instance_ptr = std::shared_ptr<effect_instance>;

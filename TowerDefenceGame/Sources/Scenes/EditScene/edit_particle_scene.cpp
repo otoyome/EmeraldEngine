@@ -249,6 +249,16 @@ bool edit_particle_scene::initialize_core()
 	//	新規パーティクル生成
 	{
 		on_new();
+
+		//std::string file_path = std::string(file_pathes[0]);
+		//if (editor_items::open_file_dialog(EffectFileDialogFilter, file_path))
+		//{
+		//	effect_resource_ptr resource;
+		//	if (effect_resource_manager::instance()->load(resource, file_path))
+		//	{
+		//		effect_manager::instance()->register_instance(std::make_shared<effect_instance>(resource));
+		//	}
+		//}
 	}
 	return true;
 }

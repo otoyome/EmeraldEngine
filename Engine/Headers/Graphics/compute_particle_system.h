@@ -85,7 +85,8 @@ namespace particle_system_item
 			DirectX::XMFLOAT3 scale; // 拡縮情報
 			DirectX::XMFLOAT4 rotation; // 回転情報
 			DirectX::XMFLOAT3 translation; // 移動情報
-			float elapsed_time = 0.0f; // このエミッターのシミュレーション経過時間（エフェクトのアニメ時間差分）
+			float elapsed_time = 0.0f; // 経過時間
+			UINT random_seed = 0; // 乱数種
 		};
 
 		//	軌跡アイテム
@@ -292,10 +293,11 @@ public:
 		UINT num_particle, UINT particle_data_size);
 	~compute_particle_system();
 
-	void update(graphics_context& context, float elapsed_time);
+	void update(graphics_context& context, float elapsed_time, bool build_primitives = true);
 
 	//	全パーティクルをクリアして再初期化する（次回 update から反映）
 	void reset();
+	void reset_emitter(UINT emitter_id);
 	void generate_render_data(UINT emitter_id, effect_container::sprite_trail& data);
 
 	UINT register_emitter(ID3D11Device* device, const particle_system_item::emitter_resource& emitter_resource);
@@ -309,7 +311,6 @@ private:
 	UINT particle_binary_buffer_size;
 	bool one_shot_initialize;
 	bool update_stop = false;
-	UINT simulation_step = 0;
 	bool pending_reset = false;
 	UINT current_buffer_index = 0;
 	variable_position_allocator emitter_binary_allocator;
@@ -320,6 +321,7 @@ private:
 	std::stack<UINT> emitter_id_stack; // 空きエミッター番号リスト
 	std::vector<UINT> emitter_id_table; // 使用エミッター番号リスト
 	std::stack<UINT> additional_emitter_ids; // 現フレーム生成エミッターIDリスト
+	std::vector<UINT> reset_emitter_ids; // 現フレーム リセット要求エミッターIDリスト
 	std::vector<UINT> remove_emitter_ids; // 現フレーム破棄エミッターIDリスト
 	std::vector<UINT> garbage_correct_emitter_ids; // ガベージコレクション対応エミッターIDリスト
 	std::vector<emitter_header> emitter_headers; // エミッターヘッダーリスト

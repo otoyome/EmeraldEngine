@@ -7,12 +7,22 @@
 
 namespace
 {
+	//	決定論乱数
+	float deterministic_random01(UINT seed)
+	{
+		seed ^= seed >> 16; seed *= 0x7feb352dU;
+		seed ^= seed >> 15; seed *= 0x846ca68bU;
+		seed ^= seed >> 16;
+		return static_cast<float>(seed) / 4294967296.0f;
+	}
+
 	//	エミッター更新バイナリ構築
 	compute_particle_system::update_emitter_data build_emitter_update_data(
 		effect_instance& instance,
 		::particle::data& particle_data,
 		const effect_instance::node& node_data,
-		float elapsed_time)
+		float elapsed_time,
+		UINT deterministic_seed)
 	{
 		auto renderer = particle_data.get_item<::particle::item::renderer>();
 		auto spawn    = particle_data.get_item<::particle::item::spawn>();
@@ -21,6 +31,7 @@ namespace
 		particle_system_item::emitter::common common_data;
 		{
 			common_data.elapsed_time = elapsed_time;
+			common_data.random_seed = deterministic_seed;
 
 			if (renderer)
 			{
@@ -43,12 +54,16 @@ namespace
 				common_data.spawn_area_min = spawn->area_min;
 				common_data.spawn_area_max = spawn->area_max;
 				if (spawn->is_state(::particle::item::spawn::states::random))
-					common_data.spawn_count = math::lerp(spawn->range.x, spawn->range.y, math::rand_range(0.0f, 1.0f));
+					common_data.spawn_count = math::lerp(spawn->range.x, spawn->range.y, deterministic_random01(deterministic_seed));
 				else
 					common_data.spawn_count = spawn->range.x;
 
 				if (instance.is_flag(effect_instance::flags::bursted) &&
 					spawn->is_state(::particle::item::spawn::states::burst))
+					common_data.spawn_count = 0;
+
+				//	止まってるフレームでは生成しない
+				if (elapsed_time <= 0.0f)
 					common_data.spawn_count = 0;
 			}
 		}
@@ -174,6 +189,16 @@ float effect_instance::get_curved_animation_time() const
 	return animations[0].calculate_time(animation_time);
 }
 
+float effect_instance::get_animation_end_time() const
+{
+	if (!resource)
+		return 0.0f;
+
+	// 存在すればカーブ元アニメの終了時刻
+	auto& animations = resource->get_animations();
+	return animations.empty() ? 0.0f : animations[0].end_time;
+}
+
 void effect_instance::set_animation_time(float animation_time)
 {
 	this->animation_time = animation_time;
@@ -216,10 +241,6 @@ void effect_instance::update(float elapsed_time)
 	if (!resource)
 		return;
 
-	//	アニメーション時間更新
-	previous_animation_time = animation_time;
-	animation_time += elapsed_time * animation_speed;
-
 	//	初期姿勢に変換
 	for (auto& node : nodes)
 	{
@@ -231,11 +252,21 @@ void effect_instance::update(float elapsed_time)
 	}
 
 	//	アニメーション更新
+	previous_animation_time = animation_time;
+	animation_time += elapsed_time * animation_speed;
 	auto& animations = resource->get_animations();
 	if (!animations.empty())
 	{
-		static constexpr int animation_index = 0;	//	0番を基本とする
-		animation_time = std::clamp(animation_time, 0.0f, animations[animation_index].end_time);
+		static constexpr int animation_index = 0;	//	0番のみ
+
+		if (is_flag(effect_instance::flags::animation_loop))
+		{
+			animation_time = fmodf(animation_time, animations[animation_index].end_time);
+		}
+		else
+		{
+			animation_time = std::clamp(animation_time, 0.0f, animations[animation_index].end_time);
+		}
 
 		size_t animation_node_count = animations[animation_index].nodes.size();
 		if (node_animations.size() < nodes.size())
@@ -302,6 +333,21 @@ void effect_instance::set_particle_simulation_time(float time)
 void effect_instance::reset_particle_simulation_time()
 {
 	particle_simulation_time = 0.0f;
+}
+
+UINT effect_instance::get_particle_simulation_step() const
+{
+	return particle_simulation_step;
+}
+
+void effect_instance::advance_particle_simulation_step()
+{
+	++particle_simulation_step;
+}
+
+void effect_instance::reset_particle_simulation_step()
+{
+	particle_simulation_step = 0;
 }
 
 void effect_instance::build()
@@ -399,34 +445,58 @@ void effect_manager::update_gpu(graphics_context& context, float elapsed_time)
 	if (!particle_system)
 		return;
 
-	//	時刻が巻き戻った場合リセット
-	bool need_reset = false;
+	// 巻き戻ったエフェクトのエミッターをリセット
+	bool any_reset = false;
 	for (auto& item : items)
 	{
 		if (!item.effect_instance)
 			continue;
-		if (item.effect_instance->get_curved_animation_time() <
+		if (item.effect_instance->get_curved_animation_time() >=
 			item.effect_instance->get_particle_simulation_time() - 1.0e-4f)
+			continue;
+
+		for (auto& emitter_item : item.emitter_items)
 		{
-			need_reset = true;
-			break;
+			if (emitter_item.system_index != invalid_emitter_id)
+				particle_system->reset_emitter(emitter_item.system_index);
 		}
+		item.effect_instance->reset_particle_simulation_time();
+		item.effect_instance->reset_particle_simulation_step();
+		item.effect_instance->set_flag(effect_instance::flags::bursted, false);
+		any_reset = true;
 	}
-	if (need_reset)
+
+	constexpr float fixed_step = 1.0f / 60.0f;
+
+	// 再シミュを1フレームで完了させる上限（最長エフェクトぶん）
+	int max_catchup_steps = 120;
+	for (auto& item : items)
 	{
-		particle_system->reset();
+		if (!item.effect_instance)
+			continue;
+		int need = (int)std::ceil(item.effect_instance->get_animation_end_time() / fixed_step) + 8;
+		if (need > max_catchup_steps)
+			max_catchup_steps = need;
+	}
+
+	// リセット直後は消去だけ先に走らせる（再シミュ初回の生成が消えないように）
+	if (any_reset)
+	{
 		for (auto& item : items)
 		{
 			if (!item.effect_instance)
 				continue;
-			item.effect_instance->reset_particle_simulation_time();
-			item.effect_instance->set_flag(effect_instance::flags::bursted, false);
+			for (UINT index = 0; index < item.effect_instance->get_particles().size(); ++index)
+			{
+				auto& emitter_item = item.emitter_items[index];
+				auto& particle_data = item.effect_instance->get_particles()[index];
+				auto& node_data = item.effect_instance->get_nodes()[particle_data.node_index];
+				auto data = build_emitter_update_data(*item.effect_instance, particle_data.particle, node_data, 0.0f, 0u);
+				particle_system->update_emitter(emitter_item.system_index, data);
+			}
 		}
+		particle_system->update(context, 0.0f, false);
 	}
-
-	//	固定タイムステップでの更新
-	constexpr float fixed_step = 1.0f / 60.0f;
-	constexpr int   max_catchup_steps = 600;
 	bool update = true;
 	for (int step = 0; step < max_catchup_steps && update; ++step)
 	{
@@ -436,7 +506,7 @@ void effect_manager::update_gpu(graphics_context& context, float elapsed_time)
 			if (!item.effect_instance)
 				continue;
 			if (item.effect_instance->get_curved_animation_time()
-				- item.effect_instance->get_particle_simulation_time() > 1.0e-6f)
+				- item.effect_instance->get_particle_simulation_time() >= fixed_step)
 			{
 				update = true;
 				break;
@@ -454,9 +524,7 @@ void effect_manager::update_gpu(graphics_context& context, float elapsed_time)
 			//	ステップ時間
 			float remaining = item.effect_instance->get_curved_animation_time()
 							- item.effect_instance->get_particle_simulation_time();
-			float step_elapsed = 0.0f;
-			if (remaining > 1.0e-6f)
-				step_elapsed = (remaining < fixed_step) ? remaining : fixed_step;
+			float step_elapsed = (remaining >= fixed_step) ? fixed_step : 0.0f;
 
 			//	エミッターアイテム更新
 			for (UINT index = 0; index < item.effect_instance->get_particles().size(); ++index)
@@ -468,18 +536,39 @@ void effect_manager::update_gpu(graphics_context& context, float elapsed_time)
 				auto data = build_emitter_update_data(*item.effect_instance,
 													 particle_data.particle,
 													 node_data,
-													 step_elapsed);
+													 step_elapsed,
+													 item.effect_instance->get_particle_simulation_step() * 2654435761u + emitter_item.system_index);
 				particle_system->update_emitter(emitter_item.system_index, data);
 			}
 
 			if (step_elapsed > 0.0f)
+			{
 				item.effect_instance->set_particle_simulation_time(item.effect_instance->get_particle_simulation_time() + step_elapsed);
+				item.effect_instance->advance_particle_simulation_step();
+			}
 
 			if (step == 0)
 				item.effect_instance->set_flag(effect_instance::flags::bursted, true);
 		}
 
-		particle_system->update(context, fixed_step);
+		// まだ進めるステップが残っているか？
+		bool more_pending = false;
+		for (auto& item : items)
+		{
+			if (item.effect_instance &&
+				item.effect_instance->get_curved_animation_time()
+				- item.effect_instance->get_particle_simulation_time() >= fixed_step)
+			{
+				more_pending = true;
+				break;
+			}
+		}
+		bool last_step = !more_pending || (step + 1 >= max_catchup_steps);
+
+		particle_system->update(context, update ? fixed_step : 0.0f, last_step);
+
+		if (last_step)
+			break;
 	}
 }
 
