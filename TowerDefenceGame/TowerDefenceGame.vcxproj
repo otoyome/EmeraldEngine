@@ -1051,6 +1051,10 @@ xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y</Command>
     <None Include="..\Shaders\Postprocess\MotionBlur\motion_blur.hlsli" />
     <None Include="..\Shaders\Postprocess\ScreenSpaceReflection\screen_space_reflection.hlsli" />
     <None Include="..\Shaders\Postprocess\ScreenSpaceReflection\screen_space_reflection_denoise.hlsli" />
+    <None Include="..\Shaders\Surface\surface.hlsli" />
+    <None Include="..\Shaders\Surface\surface_depth_write_ps.hlsli" />
+    <None Include="..\Shaders\Surface\surface_forward_ps.hlsli" />
+    <None Include="..\Shaders\Surface\surface_gbuffer_ps.hlsli" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\Shaders\Common\common.hlsli" />

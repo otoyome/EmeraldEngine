@@ -201,6 +201,9 @@
     <Filter Include="Shaders\DeferredDecal\Failed">
       <UniqueIdentifier>{ed245d8f-8e3f-4b79-998f-75274babb866}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shaders\Surface">
+      <UniqueIdentifier>{07c7506c-d536-4cd4-81cc-dacaa9a569bd}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\External\imgui\imgui.cpp">
@@ -1096,6 +1099,18 @@
     </None>
     <None Include="..\Shaders\DeferredDecal\Failed\failed_decal_data_ps.hlsli">
       <Filter>Shaders\DeferredDecal\Failed</Filter>
+    </None>
+    <None Include="..\Shaders\Surface\surface_depth_write_ps.hlsli">
+      <Filter>Shaders\Surface</Filter>
+    </None>
+    <None Include="..\Shaders\Surface\surface_forward_ps.hlsli">
+      <Filter>Shaders\Surface</Filter>
+    </None>
+    <None Include="..\Shaders\Surface\surface_gbuffer_ps.hlsli">
+      <Filter>Shaders\Surface</Filter>
+    </None>
+    <None Include="..\Shaders\Surface\surface.hlsli">
+      <Filter>Shaders\Surface</Filter>
     </None>
   </ItemGroup>
 </Project>

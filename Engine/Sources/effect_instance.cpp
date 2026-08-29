@@ -7,8 +7,7 @@
 
 namespace
 {
-	//	Œˆ’è˜_—”
-	float deterministic_random01(UINT seed)
+	float random01(UINT seed)
 	{
 		seed ^= seed >> 16; seed *= 0x7feb352dU;
 		seed ^= seed >> 15; seed *= 0x846ca68bU;
@@ -54,7 +53,7 @@ namespace
 				common_data.spawn_area_min = spawn->area_min;
 				common_data.spawn_area_max = spawn->area_max;
 				if (spawn->is_state(::particle::item::spawn::states::random))
-					common_data.spawn_count = math::lerp(spawn->range.x, spawn->range.y, deterministic_random01(deterministic_seed));
+					common_data.spawn_count = math::lerp(spawn->range.x, spawn->range.y, random01(deterministic_seed));
 				else
 					common_data.spawn_count = spawn->range.x;
 

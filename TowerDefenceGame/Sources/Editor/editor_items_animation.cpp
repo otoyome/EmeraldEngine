@@ -211,6 +211,7 @@ namespace
 			current_frame = 0;
 			start_frame = 0;
 			end_frame = calculate_frame_index(animation_data->end_time);
+			cached_end_time = animation_data->end_time;
 			keyframe_move_pending = false;
 			selection_dragging = false;
 			sequencer_rect_valid = false;
@@ -223,14 +224,6 @@ namespace
 			if (animation_data == nullptr)
 				return;
 
-			//	NoMove: デフォルトだとウィンドウ本体の空白部分をドラッグしただけでも
-			//	ウィンドウが動いてしまい、ノードの範囲選択操作と競合する。
-			//	・selection_dragging: 前フレーム時点で選択ドラッグ中だった（継続中）か
-			//	・mouse_down_in_sequencer: 今フレームの「マウスが押された瞬間」の座標が、
-			//	  前フレームで記録したシーケンサー領域内かどうか（クリック1フレーム目の予測判定）
-			//	のどちらかが true のときだけ NoMove にすることで、通常時はタイトルバー等からの
-			//	ウィンドウ移動・ドッキングは維持しつつ、シーケンサー操作の開始フレームから
-			//	ウィンドウが動くのを防ぐ。
 			bool mouse_down_in_sequencer = false;
 			if (sequencer_rect_valid && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
 			{
@@ -243,6 +236,13 @@ namespace
 			const ImGuiWindowFlags timeline_window_flags =
 				(selection_dragging || mouse_down_in_sequencer) ? ImGuiWindowFlags_NoMove : ImGuiWindowFlags_None;
 
+			//	end time の変更をタイムラインへ反映
+			if (animation_data->end_time != cached_end_time)
+			{
+				end_frame = calculate_frame_index(animation_data->end_time);
+				cached_end_time = animation_data->end_time;
+			}
+
 			if (ImGui::Begin("Animation Timeline", nullptr, timeline_window_flags))
 			{
 				render_toolbar();
@@ -253,6 +253,7 @@ namespace
 				const ImVec2 sequencer_pos = ImGui::GetCursorScreenPos();
 				const float sequencer_width = ImGui::GetContentRegionAvail().x;
 
+				const int end_frame_before = end_frame;
 				if (ImGui::BeginNeoSequencer(sequencer_name.data(), &current_frame, &start_frame, &end_frame, { 0, 0 },
 					ImGuiNeoSequencerFlags_AllowLengthChanging | ImGuiNeoSequencerFlags_EnableSelection |
 					ImGuiNeoSequencerFlags_AlwaysShowHeader | ImGuiNeoSequencerFlags_Selection_EnableDragging |
@@ -264,13 +265,25 @@ namespace
 					sequencer_id = window->IDStack[window->IDStack.size() - 1];
 
 					//	選択情報は毎フレーム ImGui 側の状態から作り直す
+					const bool had_selection = !selected.empty();
 					selected.clear();
 					render_event_timeline(context);
 					render_node_timelines(context);
 
+					// キーフレーム選択が開始したフレームだけラインの選択を外す
+					if (!selected.empty() && !had_selection)
+						clear_active_timeline();
+
 					const bool dragging = ImGui::NeoIsDraggingSelection();
 					selection_dragging = dragging;	//	次フレームの Begin で NoMove 判定に使う
 					ImGui::EndNeoSequencer();
+
+					//	タイムラインで変えた長さを end time へ反映
+					if (end_frame != end_frame_before)
+					{
+						animation_data->end_time = calculate_second(end_frame);
+						cached_end_time = animation_data->end_time;
+					}
 
 					//	キーフレームのドラッグ移動が終わったら時間順に並べ直す
 					if (keyframe_move_pending && !dragging)
@@ -490,8 +503,6 @@ namespace
 
 						if (ImGui::IsNeoKeyframeSelected())
 						{
-							if (selected.empty())
-								clear_active_timeline();
 							selected.push_back({ timeline_category::event, event_index, 0 });
 						}
 
@@ -502,7 +513,8 @@ namespace
 					//	この行が選択中なら編集対象にする
 					if (ImGui::IsNeoTimelineSelected())
 					{
-						clear_selection();
+						if (active_timeline != timeline_category::event)
+							clear_selection();
 						active_timeline = timeline_category::event;
 					}
 					ImGui::EndNeoTimeLine();
@@ -541,8 +553,6 @@ namespace
 
 							if (ImGui::IsNeoKeyframeSelected())
 							{
-								if (selected.empty())
-									clear_active_timeline();
 								selected.push_back({ timeline_category::node, track_index, key_index });
 							}
 
@@ -553,7 +563,8 @@ namespace
 						//	この行が選択中なら編集対象にする
 						if (ImGui::IsNeoTimelineSelected())
 						{
-							clear_selection();
+							if (!(active_timeline == timeline_category::node && selected_node_index == track_index))
+								clear_selection();
 							active_timeline = timeline_category::node;
 							selected_node_index = track_index;
 						}
@@ -661,6 +672,7 @@ namespace
 		int32_t current_frame = 0;
 		int32_t start_frame = 0;
 		int32_t end_frame = 0;
+		float cached_end_time = 0.0f;
 
 		std::vector<selected_key> selected;
 		UINT selected_node_index = 0;

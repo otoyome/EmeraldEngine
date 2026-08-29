@@ -176,7 +176,6 @@ uint mix_hash_uint(uint v)
 
 x_or_shift_128_state generate_random_seed(uint3 dispatch_thread_id, uint seed)
 {
-    //  スレッドID(y/zは0の事もある)とシードを畳んでからハッシュ展開
     uint base = seed
               ^ (dispatch_thread_id.x * 0x9e3779b9u)
               ^ (dispatch_thread_id.y * 0x85ebca6bu)
