@@ -1,6 +1,8 @@
 #include "effect_instance.h"
 #include "texture.h"
 
+#include <unordered_map>
+
 #if defined(USE_IMGUI)
 #include "Graphics/debug_primitive_collector.h"
 #endif	//	defined(USE_IMGUI)
@@ -21,7 +23,8 @@ namespace
 		::particle::data& particle_data,
 		const effect_instance::node& node_data,
 		float elapsed_time,
-		UINT deterministic_seed)
+		UINT deterministic_seed,
+		UINT emit_target_system_index = invalid_emitter_id)
 	{
 		auto renderer = particle_data.get_item<::particle::item::renderer>();
 		auto spawn    = particle_data.get_item<::particle::item::spawn>();
@@ -72,6 +75,14 @@ namespace
 			size_t pos = data.item_binary.size();
 			data.item_binary.resize(pos + size);
 			memcpy_s(data.item_binary.data() + pos, data.item_binary.size() - pos, p, size);
+		};
+
+		auto IW = DirectX::XMMatrixInverse(nullptr, DirectX::XMLoadFloat4x4(&node_data.world_transform));
+		auto calculate_local_position = [&](DirectX::XMFLOAT3 position)
+		{
+			auto AT = DirectX::XMLoadFloat3(&position);
+			DirectX::XMStoreFloat3(&position, DirectX::XMVector3TransformCoord(AT, IW));
+			return position;
 		};
 
 		if (renderer && renderer->type == ::particle::item::renderer::types::ribon)
@@ -128,15 +139,30 @@ namespace
 			attract_item.falloff = attract->falloff;
 			attract_item.kill_radius = attract->kill_radius;
 			attract_item.damping = attract->damping;
+			attract_item.position = calculate_local_position(instance.get_attract_position());
 
-			{
-				auto W = DirectX::XMLoadFloat4x4(&node_data.world_transform);
-				auto AT = DirectX::XMLoadFloat3(&instance.get_attract_position());
-				W = DirectX::XMMatrixInverse(nullptr, W);
-				DirectX::XMStoreFloat3(&attract_item.position, DirectX::XMVector3TransformCoord(AT, W));
-			}
 			append(&attract_item, sizeof(attract_item));
 			common_data.active_items |= 1 << particle_system_item::emitter::attract::data_id;
+		}
+		if (auto event = particle_data.get_item<::particle::item::event>())
+		{
+			particle_system_item::emitter::event event_item;
+
+			//	中心ノードをローカル空間へ
+			{
+				size_t center_node = event->center_node_index;
+				const effect_instance::node& center = (center_node < instance.get_nodes().size())
+					? instance.get_nodes()[center_node] : node_data;
+				DirectX::XMVECTOR CS, CR, CT;
+				DirectX::XMMatrixDecompose(&CS, &CR, &CT, DirectX::XMLoadFloat4x4(&center.world_transform));
+				DirectX::XMStoreFloat3(&event_item.center, CT);
+			}
+
+			event_item.radius = event->radius;
+			event_item.target_emitter_id = emit_target_system_index;
+
+			append(&event_item, sizeof(event_item));
+			common_data.active_items |= 1 << particle_system_item::emitter::event::data_id;
 		}
 
 		data.common = common_data;
@@ -472,14 +498,17 @@ void effect_manager::update_gpu(graphics_context& context, float elapsed_time)
 	if (!particle_system)
 		return;
 
-	// 巻き戻ったエフェクトのエミッターをリセット
-	bool any_reset = false;
+	//	パーティクルイベントをGPU側から取得
+	std::vector<compute_particle_system::particle_event> particle_events;
+	particle_system->fetch_events(context, particle_events);
+
+	//	巻き戻ったエフェクトのエミッターをリセット
+	bool is_reset = false;
 	for (auto& item : items)
 	{
-		if (!item.effect_instance)
-			continue;
-		if (item.effect_instance->get_curved_animation_time() >=
-			item.effect_instance->get_particle_simulation_time() - 1.0e-4f)
+		auto& instance = item.effect_instance;
+		if (!instance ||
+			instance->get_curved_animation_time() >= instance->get_particle_simulation_time() - 1.0e-4f)
 			continue;
 
 		for (auto& emitter_item : item.emitter_items)
@@ -487,53 +516,58 @@ void effect_manager::update_gpu(graphics_context& context, float elapsed_time)
 			if (emitter_item.system_index != invalid_emitter_id)
 				particle_system->reset_emitter(emitter_item.system_index);
 		}
-		item.effect_instance->reset_particle_simulation_time();
-		item.effect_instance->reset_particle_simulation_step();
-		item.effect_instance->set_flag(effect_instance::flags::bursted, false);
-		any_reset = true;
+
+		instance->reset_particle_simulation_time();
+		instance->reset_particle_simulation_step();
+		instance->set_flag(effect_instance::flags::bursted, false);
+		is_reset = true;
 	}
 
 	constexpr float fixed_step = 1.0f / 60.0f;
 
-	// 再シミュを1フレームで完了させる上限（最長エフェクトぶん）
+	//	再シミュレーション
 	int max_catchup_steps = 120;
 	for (auto& item : items)
 	{
-		if (!item.effect_instance)
+		auto& instance = item.effect_instance;
+		if (!instance)
 			continue;
-		int need = (int)std::ceil(item.effect_instance->get_animation_end_time() / fixed_step) + 8;
+		int need = (int)std::ceil(instance->get_animation_end_time() / fixed_step) + 8;
 		if (need > max_catchup_steps)
 			max_catchup_steps = need;
 	}
 
-	// リセット直後は消去だけ先に走らせる（再シミュ初回の生成が消えないように）
-	if (any_reset)
+	// リセット直後は消去だけ先に走らせる
+	if (is_reset)
 	{
 		for (auto& item : items)
 		{
-			if (!item.effect_instance)
+			auto& instance = item.effect_instance;
+			if (!instance)
 				continue;
-			for (UINT index = 0; index < item.effect_instance->get_particles().size(); ++index)
+			for (UINT index = 0; index < instance->get_particles().size(); ++index)
 			{
 				auto& emitter_item = item.emitter_items[index];
-				auto& particle_data = item.effect_instance->get_particles()[index];
-				auto& node_data = item.effect_instance->get_nodes()[particle_data.node_index];
-				auto data = build_emitter_update_data(*item.effect_instance, particle_data.particle, node_data, 0.0f, 0u);
+				auto& particle_data = instance->get_particles()[index];
+				auto& node_data = instance->get_nodes()[particle_data.node_index];
+				auto data = build_emitter_update_data(*instance, particle_data.particle, node_data, 0.0f, 0u);
 				particle_system->update_emitter(emitter_item.system_index, data);
 			}
 		}
 		particle_system->update(context, 0.0f, false);
 	}
+
+	//	固定更新処理
 	bool update = true;
 	for (int step = 0; step < max_catchup_steps && update; ++step)
 	{
 		update = false;
 		for (auto& item : items)
 		{
-			if (!item.effect_instance)
+			auto& instance = item.effect_instance;
+			if (!instance)
 				continue;
-			if (item.effect_instance->get_curved_animation_time()
-				- item.effect_instance->get_particle_simulation_time() >= fixed_step)
+			if (instance->get_curved_animation_time() - instance->get_particle_simulation_time() >= fixed_step)
 			{
 				update = true;
 				break;
@@ -545,46 +579,63 @@ void effect_manager::update_gpu(graphics_context& context, float elapsed_time)
 
 		for (auto& item : items)
 		{
-			if (!item.effect_instance)
+			auto& instance = item.effect_instance;
+			if (!instance)
 				continue;
 
 			//	ステップ時間
-			float remaining = item.effect_instance->get_curved_animation_time()
-							- item.effect_instance->get_particle_simulation_time();
+			float remaining = instance->get_curved_animation_time()
+							- instance->get_particle_simulation_time();
 			float step_elapsed = (remaining >= fixed_step) ? fixed_step : 0.0f;
 
 			//	エミッターアイテム更新
-			for (UINT index = 0; index < item.effect_instance->get_particles().size(); ++index)
+			for (UINT index = 0; index < instance->get_particles().size(); ++index)
 			{
 				auto& emitter_item = item.emitter_items[index];
-				auto& particle_data = item.effect_instance->get_particles()[index];
-				auto& node_data = item.effect_instance->get_nodes()[particle_data.node_index];
+				auto& particle_data = instance->get_particles()[index];
+				auto& node_data = instance->get_nodes()[particle_data.node_index];
 
-				auto data = build_emitter_update_data(*item.effect_instance,
-													 particle_data.particle,
-													 node_data,
-													 step_elapsed,
-													 item.effect_instance->get_particle_simulation_step() * 2654435761u + emitter_item.system_index);
+				UINT emit_target = invalid_emitter_id;
+				if (auto emit = particle_data.particle.get_item<::particle::item::event>())
+				{
+					//	ノード名から生成先エミッターを解決
+					auto& sibling_particles = instance->get_particles();
+					auto& sibling_nodes = instance->get_nodes();
+					for (UINT k = 0; k < sibling_particles.size() && k < item.emitter_items.size(); ++k)
+					{
+						size_t node_index = sibling_particles[k].node_index;
+						if (node_index < sibling_nodes.size() && sibling_nodes[node_index].name == emit->node_name)
+						{
+							emit_target = item.emitter_items[k].system_index;
+							break;
+						}
+					}
+				}
+
+				UINT emitter_seed = instance->get_particle_simulation_step() * 2654435761u + emitter_item.system_index;
+				auto data = build_emitter_update_data(*instance, particle_data.particle, node_data, step_elapsed, emitter_seed, emit_target);
+
 				particle_system->update_emitter(emitter_item.system_index, data);
 			}
 
 			if (step_elapsed > 0.0f)
 			{
-				item.effect_instance->set_particle_simulation_time(item.effect_instance->get_particle_simulation_time() + step_elapsed);
-				item.effect_instance->advance_particle_simulation_step();
+				instance->set_particle_simulation_time(instance->get_particle_simulation_time() + step_elapsed);
+				instance->advance_particle_simulation_step();
 			}
 
 			if (step == 0)
-				item.effect_instance->set_flag(effect_instance::flags::bursted, true);
+				instance->set_flag(effect_instance::flags::bursted, true);
 		}
 
 		// まだ進めるステップが残っているか？
 		bool more_pending = false;
 		for (auto& item : items)
 		{
-			if (item.effect_instance &&
-				item.effect_instance->get_curved_animation_time()
-				- item.effect_instance->get_particle_simulation_time() >= fixed_step)
+			auto& instance = item.effect_instance;
+			if (instance &&
+				instance->get_curved_animation_time()
+				- instance->get_particle_simulation_time() >= fixed_step)
 			{
 				more_pending = true;
 				break;

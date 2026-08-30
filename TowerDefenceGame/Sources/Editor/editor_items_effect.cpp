@@ -801,6 +801,65 @@ bool editor_items::edit_effect_particle(std::shared_ptr<context>& context, effec
 		}
 	}
 
+	{
+		auto event = particle.particle.get_item<particle::item::event>();
+		if (ImGui::TreeNode("event"))
+		{
+			if (ImGui::Button(!event ? "Add event" : "Remove event"))
+			{
+				if (event)
+				{
+					particle.particle.unregister_item<particle::item::event>();
+					event = nullptr;
+				}
+				else
+				{
+					event = particle.particle.register_item<particle::item::event>();
+				}
+				edit_flag = true;
+			}
+			if (event)
+			{
+				//	対象パーティクルが付いているノード名の一覧
+				auto& effect_nodes = effect_resource->get_nodes_for_editor();
+				auto& effect_particles = effect_resource->get_particles_for_editor();
+				std::vector<std::string> target_node_names;
+				for (auto& target_particle : effect_particles)
+					if (target_particle.node_index < effect_nodes.size())
+						target_node_names.push_back(effect_nodes[target_particle.node_index].name);
+
+				std::vector<const char*> target_node_name_ptrs;
+				for (auto& target_node_name : target_node_names)
+					target_node_name_ptrs.push_back(target_node_name.c_str());
+
+				int target_node_current = -1;
+				for (int i = 0; i < static_cast<int>(target_node_names.size()); ++i)
+					if (target_node_names[i] == event->node_name)
+					{
+						target_node_current = i;
+						break;
+					}
+
+				if (ImGui::Combo("target node", &target_node_current, target_node_name_ptrs.data(), static_cast<int>(target_node_name_ptrs.size())))
+				{
+					if (target_node_current >= 0 && target_node_current < static_cast<int>(target_node_names.size()))
+					{
+						event->node_name = target_node_names[target_node_current];
+						edit_flag = true;
+					}
+				}
+				int center_node_index = static_cast<int>(event->center_node_index);
+				if (ImGui::DragInt("center node index (-1=self)", &center_node_index, 1.0f, -1, 4096))
+				{
+					event->center_node_index = static_cast<size_t>(center_node_index);
+					edit_flag = true;
+				}
+				if (ImGui::DragFloat("radius", &event->radius, 0.01f, 0.0f, 100000.0f))
+					edit_flag = true;
+			}
+			ImGui::TreePop();
+		}
+	}
 	return edit_flag;
 }
 

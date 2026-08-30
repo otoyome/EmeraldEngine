@@ -174,8 +174,18 @@ namespace particle
 			void serialize(Archive& archive, int version);
 		};
 
+		//	イベント情報
+		struct event
+		{
+			std::string node_name;	// イベント通知ノード
+			size_t center_node_index = -1;	// 反応ゾーンの中心ノード(-1で自ノード)
+			float radius = system_units::convert_m_to_unit(1.0f);	// 範囲
+			template<class Archive>
+			void serialize(Archive& archive, int version);
+		};
+
 		//	保存型
-		using variant = std::variant<renderer, spawn, velocity, attract>; 
+		using variant = std::variant<renderer, spawn, velocity, attract, event>; 
 
 		//	判断用
 		template<class Type, class Variant>

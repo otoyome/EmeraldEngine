@@ -22,15 +22,19 @@ namespace particle_system_item
 		ribon,
 	};
 
-	//	パーティクルの型は存在せず、
-	//	エミッターの構築情報から構成される
-	//	シェーダー側でもこれらを用いて情報設定して行く。
 	//	@remainder	これを一々CPP/HLSL両方で定義するのはめんどくさいよね～( ;∀;)
 	namespace particle
 	{
 		//	パーティクル共通情報
 		struct common
 		{
+			//  パーティクルステートビット
+			enum class state
+			{
+				bit_spawn_frame = 1 << 0,	//	生成フレームフラグ
+				bit_event_fired = 1 << 1,	//	イベント通知済みフラグ
+			};
+
 			UINT state;
 			float life_time;
 			float life_time_max;
@@ -81,10 +85,10 @@ namespace particle_system_item
 			UINT active_items = 0; // アイテムアクティブフラグ
 
 			// パーティクル発生情報
-			DirectX::XMFLOAT2 spawn_life_time_range; // 生存時間範囲
-			DirectX::XMFLOAT2 spawn_scale_range; // 拡縮範囲
-			DirectX::XMFLOAT3 spawn_area_min; // 生成範囲最小
-			DirectX::XMFLOAT3 spawn_area_max; // 生成範囲最大
+			DirectX::XMFLOAT2 spawn_life_time_range = {1.0f, 1.0f}; // 生存時間範囲
+			DirectX::XMFLOAT2 spawn_scale_range = {1.0f, 1.0f}; // 拡縮範囲
+			DirectX::XMFLOAT3 spawn_area_min = {0, 0, 0}; // 生成範囲最小
+			DirectX::XMFLOAT3 spawn_area_max = {0, 0, 0}; // 生成範囲最大
 			UINT spawn_count = 0; // 生成数
 
 			//	エミッター姿勢情報
@@ -171,7 +175,7 @@ namespace particle_system_item
 			DirectX::XMFLOAT3 gravity; // 重力
 		};
 
-		//	引き込み情報
+		//	引き込みアイテム
 		struct attract
 		{
 			static constexpr UINT data_id = 4;
@@ -182,6 +186,16 @@ namespace particle_system_item
 			float falloff; // 範囲内の影響力を調整
 			float kill_radius; // 消滅範囲
 			float damping; // 減衰
+		};
+
+		//	イベントアイテム
+		struct event
+		{
+			static constexpr UINT data_id = 5;
+
+			DirectX::XMFLOAT3 center; // 位置
+			float radius;	// 範囲
+			UINT target_emitter_id;
 		};
 	}
 
@@ -265,9 +279,6 @@ public:
 	//	パーティクルバイナリ
 	using particle_binary = UINT;
 
-	//  パーティクルステートビット
-	static const UINT particle_binary_state_bit_spawn_frame = 1 << 0;
-
 	//	エミッター更新情報
 	struct update_emitter_data
 	{
@@ -312,15 +323,29 @@ public:
 		UINT num_particle, UINT particle_data_size);
 	~compute_particle_system();
 
+	//	更新
 	void update(graphics_context& context, float elapsed_time, bool build_primitives = true);
 
-	//	全パーティクルをクリアして再初期化する（次回 update から反映）
-	void reset();
-	void reset_emitter(UINT emitter_id);
+	//	描画情報を構築
 	void generate_render_data(UINT emitter_id, effect_container::sprite_trail& data);
 
+	//	リセット処理
+	void reset();
+	void reset_emitter(UINT emitter_id);
+
+	//	パーティクルイベント
+	struct particle_event
+	{
+		DirectX::XMFLOAT3 position;
+		UINT target_emitter_id;
+	};
+	void fetch_events(graphics_context& context, std::vector<particle_event>& out_events);
+
+	//	エミッター登録/解除
 	UINT register_emitter(ID3D11Device* device, const particle_system_item::emitter_resource& emitter_resource);
 	bool unregister_emitter(UINT emitter_id);
+
+	//	登録エミッター更新
 	void update_emitter(UINT emitter_id, const update_emitter_data& data);
 
 private:
@@ -340,7 +365,7 @@ private:
 	std::stack<UINT> emitter_id_stack; // 空きエミッター番号リスト
 	std::vector<UINT> emitter_id_table; // 使用エミッター番号リスト
 	std::stack<UINT> additional_emitter_ids; // 現フレーム生成エミッターIDリスト
-	std::vector<UINT> reset_emitter_ids; // 現フレーム リセット要求エミッターIDリスト
+	std::vector<UINT> reset_emitter_ids; // 現フレームリセットエミッターIDリスト
 	std::vector<UINT> remove_emitter_ids; // 現フレーム破棄エミッターIDリスト
 	std::vector<UINT> garbage_correct_emitter_ids; // ガベージコレクション対応エミッターIDリスト
 	std::vector<emitter_header> emitter_headers; // エミッターヘッダーリスト
@@ -386,6 +411,16 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11Buffer> indirect_data_buffer;
 	Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> indirect_data_unordered_access_view;
 
+	//	イベント情報バッファ
+	Microsoft::WRL::ComPtr<ID3D11Buffer> particle_event_buffer;
+	Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> particle_event_append_uav;
+	Microsoft::WRL::ComPtr<ID3D11Buffer> particle_event_staging;
+	Microsoft::WRL::ComPtr<ID3D11Buffer> particle_event_count_staging;
+	bool particle_event_valid = false;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> particle_event_shader_resource_view;
+	Microsoft::WRL::ComPtr<ID3D11Buffer> particle_event_count_buffer;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> particle_event_count_shader_resource_view;
+
 	//	各種シェーダー
 	enum class dispatch_shaderes
 	{
@@ -396,8 +431,9 @@ private:
 		fill_unused_index,
 		spawn_particles,
 		initialize_particles,
+		spawn_from_events,
 
-		update_particles,	//	カメラ位置を考えると深度計算位置を変更したほうが良い
+		update_particles,	//	@remainder	複数カメラを考えると深度ソートを別に移動させるほうが良いか？
 
 		sort_b2,
 		sort_c2,

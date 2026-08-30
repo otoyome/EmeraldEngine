@@ -12,6 +12,7 @@ namespace
 	static constexpr UINT build_primitive_constant_buffer_index = 11;
 
 	static constexpr UINT max_erase_particle_list = 128;
+	static constexpr UINT max_particle_event = 1024;
 
 	//	その他定数
 	static constexpr UINT number_of_vertices_per_particle = 6;
@@ -108,6 +109,7 @@ namespace
 		"Shaders/ComputeParticle/System/compute_particle_fill_unused_index_cs.hlsl",
 		"Shaders/ComputeParticle/System/compute_particle_spawn_particles_cs.hlsl",
 		"Shaders/ComputeParticle/System/compute_particle_initialize_particles_cs.hlsl",
+		"Shaders/ComputeParticle/System/compute_particle_spawn_from_events_cs.hlsl",
 
 		"Shaders/ComputeParticle/System/compute_particle_update_particles_cs.hlsl",
 
@@ -381,6 +383,69 @@ compute_particle_system::compute_particle_system(ID3D11Device* device,
 		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
 	}
 
+	//	GPUイベントバッファ
+	{
+		D3D11_BUFFER_DESC desc = {};
+		desc.BindFlags = D3D11_BIND_UNORDERED_ACCESS | D3D11_BIND_SHADER_RESOURCE;
+		desc.ByteWidth = sizeof(particle_event) * max_particle_event;
+		desc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
+		desc.StructureByteStride = sizeof(particle_event);
+		desc.Usage = D3D11_USAGE_DEFAULT;
+		hr = device->CreateBuffer(&desc, nullptr, particle_event_buffer.GetAddressOf());
+		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+
+		D3D11_UNORDERED_ACCESS_VIEW_DESC uav_desc = {};
+		uav_desc.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
+		uav_desc.Format = DXGI_FORMAT_UNKNOWN;
+		uav_desc.Buffer.FirstElement = 0;
+		uav_desc.Buffer.NumElements = max_particle_event;
+		uav_desc.Buffer.Flags = D3D11_BUFFER_UAV_FLAG_APPEND;
+		hr = device->CreateUnorderedAccessView(particle_event_buffer.Get(), &uav_desc, particle_event_append_uav.GetAddressOf());
+		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+
+		D3D11_SHADER_RESOURCE_VIEW_DESC srv_desc = {};
+		srv_desc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
+		srv_desc.Format = DXGI_FORMAT_UNKNOWN;
+		srv_desc.Buffer.FirstElement = 0;
+		srv_desc.Buffer.NumElements = max_particle_event;
+		hr = device->CreateShaderResourceView(particle_event_buffer.Get(), &srv_desc, particle_event_shader_resource_view.GetAddressOf());
+		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+
+		//	イベント件数格納バッファ（CopyStructureCount の書き込み先）
+		UINT zero_count = 0;
+		D3D11_SUBRESOURCE_DATA count_init = {};
+		count_init.pSysMem = &zero_count;
+		D3D11_BUFFER_DESC count_buffer_desc = {};
+		count_buffer_desc.ByteWidth = sizeof(UINT);
+		count_buffer_desc.Usage = D3D11_USAGE_DEFAULT;
+		count_buffer_desc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
+		count_buffer_desc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_ALLOW_RAW_VIEWS;
+		hr = device->CreateBuffer(&count_buffer_desc, &count_init, particle_event_count_buffer.GetAddressOf());
+		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+
+		D3D11_SHADER_RESOURCE_VIEW_DESC count_srv_desc = {};
+		count_srv_desc.ViewDimension = D3D11_SRV_DIMENSION_BUFFEREX;
+		count_srv_desc.Format = DXGI_FORMAT_R32_TYPELESS;
+		count_srv_desc.BufferEx.FirstElement = 0;
+		count_srv_desc.BufferEx.NumElements = 1;
+		count_srv_desc.BufferEx.Flags = D3D11_BUFFEREX_SRV_FLAG_RAW;
+		hr = device->CreateShaderResourceView(particle_event_count_buffer.Get(), &count_srv_desc, particle_event_count_shader_resource_view.GetAddressOf());
+		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+
+		D3D11_BUFFER_DESC staging_desc = {};
+		staging_desc.ByteWidth = sizeof(particle_event) * max_particle_event;
+		staging_desc.Usage = D3D11_USAGE_STAGING;
+		staging_desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+		hr = device->CreateBuffer(&staging_desc, nullptr, particle_event_staging.GetAddressOf());
+		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+
+		D3D11_BUFFER_DESC count_desc = {};
+		count_desc.ByteWidth = sizeof(UINT);
+		count_desc.Usage = D3D11_USAGE_STAGING;
+		count_desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+		hr = device->CreateBuffer(&count_desc, nullptr, particle_event_count_staging.GetAddressOf());
+		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+	}
 	//	コンピュートシェーダー読み込み
 	for (int index = 0; index < static_cast<int>(dispatch_shaderes::max); ++index)
 	{
@@ -734,7 +799,7 @@ void compute_particle_system::update(graphics_context& context, float elapsed_ti
 		constant.x_of_shift_seed = { 0u, 0u, 0u };
 		constant.total_emitter_count = total_emitter_count;	//	emitter_id_table.size();
 		constant.total_particle_count = total_particle_count;
-		constant.total_cpu_spawn_count = total_spawn_cpu_particle_count;
+		constant.total_cpu_spawn_count = total_spawn_cpu_particle_count + max_particle_event;	//	GPUイベントスポーン用の空き枠
 		constant.erase_id_count = erase_id_count;
 		for (UINT index = 0; index < constant.erase_id_count; ++index)
 			(&constant.erase_id_list[0].x)[index] = erase_id_list[index];
@@ -764,7 +829,8 @@ void compute_particle_system::update(graphics_context& context, float elapsed_ti
 			clear_resources(context.device_context);
 		}
 	}
-	//	登録済みエミッターは維持したままリセット
+
+	//	登録済みエミッターを維持したままリセット
 	if (pending_reset)
 	{
 		pending_reset = false;
@@ -786,7 +852,6 @@ void compute_particle_system::update(graphics_context& context, float elapsed_ti
 			clear_resources(context.device_context);
 		}
 
-		//	clear_system が particle_max も 0 にするので、登録済みエミッターへ particle_max を再設定する
 		for (UINT reset_emitter_id : emitter_id_table)
 		{
 			emitter_data em_data = {};
@@ -924,7 +989,7 @@ void compute_particle_system::update(graphics_context& context, float elapsed_ti
 			clear_resources(context.device_context);
 		}
 
-		//	発生パーティクル初期化
+		//	生成したパーティクルの初期化
 		{
 			context.device_context->CSSetUnorderedAccessViews(0, 1, particle_header_unordered_access_view.GetAddressOf(), nullptr);
 			context.device_context->CSSetUnorderedAccessViews(1, 1, emitter_data_unordered_access_view.GetAddressOf(), nullptr);
@@ -939,12 +1004,32 @@ void compute_particle_system::update(graphics_context& context, float elapsed_ti
 			context.device_context->Dispatch(static_cast<UINT>(emitter_id_table.size()), 1, 1);
 			clear_resources(context.device_context);
 		}
+
+		//	前フレームのイベントからスポーン
+		{
+			context.device_context->CSSetUnorderedAccessViews(0, 1, particle_header_unordered_access_view.GetAddressOf(), nullptr);
+			context.device_context->CSSetUnorderedAccessViews(1, 1, emitter_data_unordered_access_view.GetAddressOf(), nullptr);
+			context.device_context->CSSetUnorderedAccessViews(2, 1, particle_index_unordered_access_view[current_buffer_index].GetAddressOf(), nullptr);
+			context.device_context->CSSetUnorderedAccessViews(3, 1, particle_binary_unordered_access_view[current_buffer_index].GetAddressOf(), nullptr);
+			context.device_context->CSSetUnorderedAccessViews(4, 1, indirect_data_unordered_access_view.GetAddressOf(), nullptr);
+
+			context.device_context->CSSetShaderResources(0, 1, emitter_header_shader_resource_view.GetAddressOf());
+			context.device_context->CSSetShaderResources(1, 1, emitter_binary_shader_resource_view[current_buffer_index].GetAddressOf());
+			context.device_context->CSSetShaderResources(2, 1, particle_event_shader_resource_view.GetAddressOf());
+			context.device_context->CSSetShaderResources(3, 1, particle_event_count_shader_resource_view.GetAddressOf());
+
+			context.device_context->CSSetShader(compute_shaderes[static_cast<int>(dispatch_shaderes::spawn_from_events)]->get_shader().Get(), nullptr, 0);
+			context.device_context->Dispatch(max_particle_event / NumDispatchThread, 1, 1);
+			clear_resources(context.device_context);
+		}
 	}
 
 	//	パーティクル更新処理
 	{
+		UINT event_initial_count = 0;
 		context.device_context->CSSetUnorderedAccessViews(0, 1, particle_header_unordered_access_view.GetAddressOf(), nullptr);
 		context.device_context->CSSetUnorderedAccessViews(1, 1, particle_binary_unordered_access_view[current_buffer_index].GetAddressOf(), nullptr);
+		context.device_context->CSSetUnorderedAccessViews(2, 1, particle_event_append_uav.GetAddressOf(), &event_initial_count);	//	毎フレームチェックするので
 
 		context.device_context->CSSetShaderResources(0, 1, emitter_header_shader_resource_view.GetAddressOf());
 		context.device_context->CSSetShaderResources(1, 1, emitter_binary_shader_resource_view[current_buffer_index].GetAddressOf());
@@ -952,6 +1037,12 @@ void compute_particle_system::update(graphics_context& context, float elapsed_ti
 		context.device_context->CSSetShader(compute_shaderes[static_cast<int>(dispatch_shaderes::update_particles)]->get_shader().Get(), nullptr, 0);
 		context.device_context->DispatchIndirect(indirect_data_buffer.Get(), UpdateParticleDispatchIndirect);
 		clear_resources(context.device_context);
+
+		//	CPUで読みだすためにコピー
+		context.device_context->CopyStructureCount(particle_event_count_staging.Get(), 0, particle_event_append_uav.Get());
+		context.device_context->CopyStructureCount(particle_event_count_buffer.Get(), 0, particle_event_append_uav.Get());
+		context.device_context->CopyResource(particle_event_staging.Get(), particle_event_buffer.Get());
+		particle_event_valid = true;
 	}
 
 	//	ソート処理
@@ -1105,4 +1196,35 @@ void compute_particle_system::generate_render_data(UINT emitter_id, effect_conta
 
 	data.vertex_buffer_view.indirect_buffer = indirect_data_buffer;
 	data.vertex_buffer_view.offset_for_args = FixedIndirectDataSize + sizeof(draw_indirect) * emitter_id;
+}
+
+//	前フレームのイベントを取得
+void compute_particle_system::fetch_events(graphics_context& context, std::vector<particle_event>& out_events)
+{
+	out_events.clear();
+	if (!particle_event_valid)
+		return;
+
+	auto* device_context = context.device_context;
+
+	UINT event_count = 0;
+	{
+		D3D11_MAPPED_SUBRESOURCE mapped = {};
+		if (SUCCEEDED(device_context->Map(particle_event_count_staging.Get(), 0, D3D11_MAP_READ, 0, &mapped)))
+		{
+			event_count = *reinterpret_cast<const UINT*>(mapped.pData);
+			device_context->Unmap(particle_event_count_staging.Get(), 0);
+		}
+	}
+	event_count = std::min(event_count, max_particle_event);
+	if (event_count == 0)
+		return;
+
+	D3D11_MAPPED_SUBRESOURCE mapped = {};
+	if (SUCCEEDED(device_context->Map(particle_event_staging.Get(), 0, D3D11_MAP_READ, 0, &mapped)))
+	{
+		const particle_event* src = reinterpret_cast<const particle_event*>(mapped.pData);
+		out_events.assign(src, src + event_count);
+		device_context->Unmap(particle_event_staging.Get(), 0);
+	}
 }

@@ -25,6 +25,7 @@ CEREAL_CLASS_VERSION(particle::item::renderer, 1)
 CEREAL_CLASS_VERSION(particle::item::spawn, 1)
 CEREAL_CLASS_VERSION(particle::item::velocity, 1)
 CEREAL_CLASS_VERSION(particle::item::attract, 1)
+CEREAL_CLASS_VERSION(particle::item::event, 1)
 
 CEREAL_CLASS_VERSION(particle::data, 1);
 
@@ -138,6 +139,12 @@ void particle::item::attract::serialize(Archive& archive, int version)
 			kill_radius);
 }
 
+template<class Archive>
+void particle::item::event::serialize(Archive& archive, int version)
+{
+	archive(node_name, center_node_index, radius);
+}
+
 //////////////////////////////////////////////////////////////////////////////////////////////
 bool particle::data::is_valid() const
 {
@@ -200,6 +207,12 @@ particle_system_item::emitter_resource particle::data::constract_system_resource
 	{
 		emitter_system.max_update_item_size += sizeof(particle_system_item::emitter::attract);
 		emitter_system.particle_type_size += sizeof(particle_system_item::particle::attract);
+	}
+
+	//	ÉCÉxÉìÉgèÓïÒÇÃê›íË
+	if (auto event = get_item<particle::item::event>())
+	{
+		emitter_system.max_update_item_size += sizeof(particle_system_item::emitter::event);
 	}
 
 	return resource;

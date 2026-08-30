@@ -191,4 +191,22 @@ void stream_attract_item(uint rw, inout uint offset, inout em_attract_item value
     em_stream_ptr(rw, offset, value.damping);
 }
 
+//////////////////////////////////////////////////////////////////////////
+//  イベントアイテム
+struct em_event_item
+{
+    float3 center;
+    float radius;
+    uint target_emitter_id;
+};
+
+static const uint emitter_active_event_item_bit_flag = 1 << 5;
+
+void stream_event_item(uint rw, inout uint offset, inout em_event_item value)
+{
+    em_stream_ptr(rw, offset, value.center);
+    em_stream_ptr(rw, offset, value.radius);
+    em_stream_ptr(rw, offset, value.target_emitter_id);
+}
+
 #endif  //  __COMPUTE_PARTICLES_SYSTEM_ITEM_EITTER_HLSLI__

@@ -891,6 +891,9 @@
     <FxCompile Include="..\Shaders\DeferredDecal\gbuffer_decal_fullscreen_vs.hlsl">
       <Filter>Shaders\DeferredDecal</Filter>
     </FxCompile>
+    <FxCompile Include="..\Shaders\ComputeParticle\System\compute_particle_spawn_from_events_cs.hlsl">
+      <Filter>Shaders\ComputeParticle\System</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\Shaders\Common\lights.hlsli">

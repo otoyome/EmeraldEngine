@@ -31,7 +31,8 @@ struct pt_common_item
 };
 
 //  パーティクルステートビット
-static const uint particle_binary_state_bit_spawn_frame = 1 << 0; //  生成フレームフラグ
+static const uint particle_binary_state_bit_spawn_frame = 1 << 0; // 生成フレームフラグ
+static const uint particle_binary_state_bit_event_fired = 1 << 1; // イベント通知済みフラグ
 
 void stream_common_item(uint rw, inout uint offset, inout pt_common_item common)
 {

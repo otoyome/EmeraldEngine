@@ -6,6 +6,7 @@
 //	汎用情報定義
 RWStructuredBuffer<particle_header> particle_header_buffer : register(u0);
 RWByteAddressBuffer particle_binary_buffer : register(u1);
+AppendStructuredBuffer<particle_event> particle_event_buffer : register(u2);
 
 StructuredBuffer<emitter_header> emitter_header_buffer : register(t0);
 ByteAddressBuffer emitter_binary_buffer : register(t1);
@@ -124,7 +125,7 @@ void update_color_item(inout emitter_context em_context, inout pt_common_item pt
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 //  速度更新アイテム
-void update_particle_velocity_item(inout emitter_context em_context, inout pt_common_item pt_common, inout uint emitter_binary_offset, inout uint particle_binary_offset)
+void update_velocity_item(inout emitter_context em_context, inout pt_common_item pt_common, inout uint emitter_binary_offset, inout uint particle_binary_offset)
 {
     if (has_flag(em_context.active_items, emitter_active_veloctiy_item_bit_flag))
     {
@@ -199,7 +200,7 @@ void update_particle_velocity_item(inout emitter_context em_context, inout pt_co
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 //  引き込み更新アイテム
-void update_particle_attract_item(inout emitter_context em_context, inout pt_common_item pt_common, inout uint emitter_binary_offset, inout uint particle_binary_offset)
+void update_attract_item(inout emitter_context em_context, inout pt_common_item pt_common, inout uint emitter_binary_offset, inout uint particle_binary_offset)
 {
     if (has_flag(em_context.active_items, emitter_active_attract_item_bit_flag))
     {
@@ -245,6 +246,35 @@ void update_particle_attract_item(inout emitter_context em_context, inout pt_com
         }
 
         stream_attract_item(rw_write, write_offset, pt_attract);
+    }
+}
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+//  イベント更新アイテム
+void update_event_item(inout emitter_context em_context, inout pt_common_item pt_common, inout uint emitter_binary_offset, inout uint particle_binary_offset)
+{
+    if (has_flag(em_context.active_items, emitter_active_event_item_bit_flag))
+    {
+        em_event_item emit;
+        stream_event_item(rw_read_only, emitter_binary_offset, emit);
+
+        //  範囲内かどうか
+        if (em_context.elapsed_time > 0.0f
+            && !has_flag(pt_common.state, particle_binary_state_bit_spawn_frame)
+            && !has_flag(pt_common.state, particle_binary_state_bit_event_fired))
+        {
+            float dist = length(emit.center - pt_common.translation);
+            if (dist < emit.radius)
+            {
+                //  イベントバッファに登録
+                particle_event ev;
+                ev.target_emitter_id = emit.target_emitter_id;
+                ev.position = pt_common.translation;
+                particle_event_buffer.Append(ev);
+
+                //  イベント通知済み判定
+                pt_common.state |= particle_binary_state_bit_event_fired;
+            }
+        }
     }
 }
 #endif  //  __COMPUTE_PARTICLES_UPDATE_ITEMS_HLSLI__
