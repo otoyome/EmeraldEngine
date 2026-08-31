@@ -142,7 +142,7 @@ void particle::item::attract::serialize(Archive& archive, int version)
 template<class Archive>
 void particle::item::event::serialize(Archive& archive, int version)
 {
-	archive(node_name, center_node_index, radius);
+	archive(node_name, radius);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////

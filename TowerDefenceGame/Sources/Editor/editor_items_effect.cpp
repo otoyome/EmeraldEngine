@@ -848,12 +848,6 @@ bool editor_items::edit_effect_particle(std::shared_ptr<context>& context, effec
 						edit_flag = true;
 					}
 				}
-				int center_node_index = static_cast<int>(event->center_node_index);
-				if (ImGui::DragInt("center node index (-1=self)", &center_node_index, 1.0f, -1, 4096))
-				{
-					event->center_node_index = static_cast<size_t>(center_node_index);
-					edit_flag = true;
-				}
 				if (ImGui::DragFloat("radius", &event->radius, 0.01f, 0.0f, 100000.0f))
 					edit_flag = true;
 			}

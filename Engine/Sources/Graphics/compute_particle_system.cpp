@@ -971,9 +971,9 @@ void compute_particle_system::update(graphics_context& context, float elapsed_ti
 		}
 	}
 
-	//	パーティクル発生処理
+	//	パーティクル初期化
 	{
-		//	発生パーティクル割り当て
+		//	初期パーティクル割り当て
 		{
 			context.device_context->CSSetUnorderedAccessViews(0, 1, particle_header_unordered_access_view.GetAddressOf(), nullptr);
 			context.device_context->CSSetUnorderedAccessViews(1, 1, emitter_range_unordered_access_view.GetAddressOf(), nullptr);
@@ -1005,7 +1005,7 @@ void compute_particle_system::update(graphics_context& context, float elapsed_ti
 			clear_resources(context.device_context);
 		}
 
-		//	前フレームのイベントからスポーン
+		//	イベントからスポーン
 		{
 			context.device_context->CSSetUnorderedAccessViews(0, 1, particle_header_unordered_access_view.GetAddressOf(), nullptr);
 			context.device_context->CSSetUnorderedAccessViews(1, 1, emitter_data_unordered_access_view.GetAddressOf(), nullptr);
@@ -1029,7 +1029,7 @@ void compute_particle_system::update(graphics_context& context, float elapsed_ti
 		UINT event_initial_count = 0;
 		context.device_context->CSSetUnorderedAccessViews(0, 1, particle_header_unordered_access_view.GetAddressOf(), nullptr);
 		context.device_context->CSSetUnorderedAccessViews(1, 1, particle_binary_unordered_access_view[current_buffer_index].GetAddressOf(), nullptr);
-		context.device_context->CSSetUnorderedAccessViews(2, 1, particle_event_append_uav.GetAddressOf(), &event_initial_count);	//	毎フレームチェックするので
+		context.device_context->CSSetUnorderedAccessViews(2, 1, particle_event_append_uav.GetAddressOf(), &event_initial_count);	//	毎フレームゼロリセットするので
 
 		context.device_context->CSSetShaderResources(0, 1, emitter_header_shader_resource_view.GetAddressOf());
 		context.device_context->CSSetShaderResources(1, 1, emitter_binary_shader_resource_view[current_buffer_index].GetAddressOf());
@@ -1038,7 +1038,7 @@ void compute_particle_system::update(graphics_context& context, float elapsed_ti
 		context.device_context->DispatchIndirect(indirect_data_buffer.Get(), UpdateParticleDispatchIndirect);
 		clear_resources(context.device_context);
 
-		//	CPUで読みだすためにコピー
+		//	CPUで読みだすためコピー
 		context.device_context->CopyStructureCount(particle_event_count_staging.Get(), 0, particle_event_append_uav.Get());
 		context.device_context->CopyStructureCount(particle_event_count_buffer.Get(), 0, particle_event_append_uav.Get());
 		context.device_context->CopyResource(particle_event_staging.Get(), particle_event_buffer.Get());

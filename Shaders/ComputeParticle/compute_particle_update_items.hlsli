@@ -250,6 +250,7 @@ void update_attract_item(inout emitter_context em_context, inout pt_common_item 
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 //  イベント更新アイテム
+//  @remainder  今の所ヒット位置イベントのみ取り扱っているが、寿命切れなどでエフェクト発生などしたり、色々考えられる。
 void update_event_item(inout emitter_context em_context, inout pt_common_item pt_common, inout uint emitter_binary_offset, inout uint particle_binary_offset)
 {
     if (has_flag(em_context.active_items, emitter_active_event_item_bit_flag))

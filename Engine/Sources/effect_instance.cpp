@@ -148,16 +148,7 @@ namespace
 		{
 			particle_system_item::emitter::event event_item;
 
-			//	中心ノードをローカル空間へ
-			{
-				size_t center_node = event->center_node_index;
-				const effect_instance::node& center = (center_node < instance.get_nodes().size())
-					? instance.get_nodes()[center_node] : node_data;
-				DirectX::XMVECTOR CS, CR, CT;
-				DirectX::XMMatrixDecompose(&CS, &CR, &CT, DirectX::XMLoadFloat4x4(&center.world_transform));
-				DirectX::XMStoreFloat3(&event_item.center, CT);
-			}
-
+			event_item.center = calculate_local_position(instance.get_event_position());
 			event_item.radius = event->radius;
 			event_item.target_emitter_id = emit_target_system_index;
 
@@ -223,6 +214,17 @@ const DirectX::XMFLOAT3& effect_instance::get_attract_position() const
 void effect_instance::set_attract_position(const DirectX::XMFLOAT3& position)
 {
 	this->attract_position = position;
+}
+
+//	イベント発火位置
+const DirectX::XMFLOAT3& effect_instance::get_event_position() const
+{
+	return event_position;
+}
+
+void effect_instance::set_event_position(const DirectX::XMFLOAT3& position)
+{
+	this->event_position = position;
 }
 
 float effect_instance::get_animation_time() const

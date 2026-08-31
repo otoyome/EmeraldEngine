@@ -178,8 +178,7 @@ namespace particle
 		struct event
 		{
 			std::string node_name;	// イベント通知ノード
-			size_t center_node_index = -1;	// 反応ゾーンの中心ノード(-1で自ノード)
-			float radius = system_units::convert_m_to_unit(1.0f);	// 範囲
+			float radius = system_units::convert_m_to_unit(1.0f);	// 反応範囲
 			template<class Archive>
 			void serialize(Archive& archive, int version);
 		};
