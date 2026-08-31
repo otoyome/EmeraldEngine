@@ -324,7 +324,8 @@ public:
 	~compute_particle_system();
 
 	//	XV
-	void update(graphics_context& context, float elapsed_time, bool build_primitives = true);
+	void update(graphics_context& context, float elapsed_time);
+	void build_primitives(graphics_context& context);
 
 	//	•`‰æî•ñ‚ğ\’z
 	void generate_render_data(UINT emitter_id, effect_container::sprite_trail& data);

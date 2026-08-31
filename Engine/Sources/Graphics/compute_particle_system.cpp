@@ -588,7 +588,7 @@ void compute_particle_system::reset_emitter(UINT emitter_id)
 	reset_emitter_ids.push_back(emitter_id);
 }
 
-void compute_particle_system::update(graphics_context& context, float elapsed_time, bool build_primitives)
+void compute_particle_system::update(graphics_context& context, float elapsed_time)
 {
 	//	定数バッファ設定
 	context.device_context->CSSetConstantBuffers(common_pipeline_states::scene_cbv_index, 1, context.scene_constant_buffer.GetAddressOf());
@@ -785,6 +785,7 @@ void compute_particle_system::update(graphics_context& context, float elapsed_ti
 	{
 		if (update_stop)
 			return;
+
 		update_stop = true;
 	}
 	else
@@ -830,7 +831,7 @@ void compute_particle_system::update(graphics_context& context, float elapsed_ti
 		}
 	}
 
-	//	登録済みエミッターを維持したままリセット
+	//	エミッターを維持してリセット処理
 	if (pending_reset)
 	{
 		pending_reset = false;
@@ -1124,9 +1125,10 @@ void compute_particle_system::update(graphics_context& context, float elapsed_ti
 		clear_resources(context.device_context);
 	}
 
-	if (!build_primitives)
-		return;
+}
 
+void compute_particle_system::build_primitives(graphics_context& context)
+{
 	//	エミッター毎の描画情報を構築していく
 	{
 		context.device_context->CSSetUnorderedAccessViews(0, 1, particle_index_unordered_access_view[current_buffer_index].GetAddressOf(), nullptr);

@@ -400,6 +400,7 @@ bool editor_items::edit_effect_animation(std::shared_ptr<context>& context, effe
 		context->flag_maps[context::EditAnimationHideName] = true;
 		context->flag_maps[context::EditAnimationHideRootMotion] = true;
 		context->flag_maps[context::EditAnimationHideIK] = true;
+		context->flag_maps[context::EditAnimationHideCurve] = true;
 		editor_items::edit_animation_data(context, animation_data);
 
 		//	アニメーションタイムライン情報編集

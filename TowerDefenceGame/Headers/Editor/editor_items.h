@@ -56,6 +56,7 @@ public:
 		inline static const std::string EditAnimationHideName = "__EditAnimationHideName__";
 		inline static const std::string EditAnimationHideRootMotion = "__EditAnimationHideRootMotion__";
 		inline static const std::string EditAnimationHideIK = "__EditAnimationHideIK__";
+		inline static const std::string EditAnimationHideCurve = "__EditAnimationHideCurve__";
 	};
 
 	//	内部で利用するエディターアイテムのインターフェース

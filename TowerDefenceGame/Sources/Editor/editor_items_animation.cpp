@@ -722,14 +722,16 @@ bool editor_items::edit_animation_data(std::shared_ptr<context>& context, animat
 	}
 
 	//	アニメーションカーブエディター
-	//	フレーム間のカーブは取り扱っていない
-	if (ImGui::TreeNode("Curve Editor"))
+	if (!context->flag_maps[context::EditAnimationHideCurve])
 	{
-		auto& editor = acquire_editor<animation_interpolation_editor>(context->interpolation_editor);
-		editor.set_data(&animation_data);
-		editor.render(context);
+		if (ImGui::TreeNode("Curve Editor"))
+		{
+			auto& editor = acquire_editor<animation_interpolation_editor>(context->interpolation_editor);
+			editor.set_data(&animation_data);
+			editor.render(context);
 
-		ImGui::TreePop();
+			ImGui::TreePop();
+		}
 	}
 	return true;
 }

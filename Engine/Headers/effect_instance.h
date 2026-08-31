@@ -81,14 +81,13 @@ public:
 	void set_animation_time(float animation_time);
 
 	float get_animation_speed() const;
-	float get_curved_animation_time() const;
 	float get_animation_end_time() const;
 	void set_animation_speed(float animation_speed);
 
 	float get_particle_simulation_time() const;
 	void set_particle_simulation_time(float time);
 	UINT get_particle_simulation_step() const;
-	void advance_particle_simulation_step();
+	void set_particle_simulation_step(UINT count);
 
 	inline std::vector<node>& get_nodes() { return nodes; }
 	inline std::vector<model>& get_models() { return models; }
