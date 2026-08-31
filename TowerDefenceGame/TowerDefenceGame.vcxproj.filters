@@ -368,6 +368,9 @@
     <ClCompile Include="Sources\Object\Collision\collision_object.cpp">
       <Filter>Sources\Object\Collision</Filter>
     </ClCompile>
+    <ClCompile Include="Sources\Object\Collision\collision_octree.cpp">
+      <Filter>Sources\Object\Collision</Filter>
+    </ClCompile>
     <ClCompile Include="Sources\Scenes\GameScene\game_main_scene.cpp">
       <Filter>Sources\Scenes\GameScene</Filter>
     </ClCompile>
@@ -587,6 +590,9 @@
       <Filter>Headers\Object\Collision</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Object\Collision\collision_object.h">
+      <Filter>Headers\Object\Collision</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Object\Collision\collision_octree.h">
       <Filter>Headers\Object\Collision</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Scenes\GameScene\game_main_scene.h">

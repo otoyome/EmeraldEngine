@@ -3,6 +3,80 @@
 namespace
 {
 	static constexpr float addjust_pushing_factor = 0.05f;
+
+	//	収束しない場合に当たり判定をやり直す回数の上限
+	static constexpr int max_pushing_iteration = 10;
+
+	//	ブロードフェーズ用パラメータ
+	static constexpr float broadphase_margin    = system_units::convert_m_to_unit(0.1f); //	AABBを少し膨らませる余白
+	static constexpr int   broadphase_max_depth = 6;                                     //	八分木の最大分割深度
+
+	//	八分木構築
+	void build_octree(const std::vector<collision_object_ptr>& objects, collision_octree& tree)
+	{
+		//	ルート領域を求める
+		bool has_any = false;
+		DirectX::XMFLOAT3 world_min{};
+		DirectX::XMFLOAT3 world_max{};
+		for (auto& object : objects)
+		{
+			if (!object->is_flag(collision_object::flags::active))
+				continue;
+
+			auto bounding = object->get_bounding_object();
+			if (!bounding)
+				continue;
+
+			DirectX::XMFLOAT3 min_corner;
+			DirectX::XMFLOAT3 max_corner;
+			bounding->include_corner(min_corner, max_corner);
+
+			if (!has_any)
+			{
+				world_min = min_corner;
+				world_max = max_corner;
+				has_any = true;
+			}
+			else
+			{
+				world_min.x = std::min(world_min.x, min_corner.x);
+				world_min.y = std::min(world_min.y, min_corner.y);
+				world_min.z = std::min(world_min.z, min_corner.z);
+				world_max.x = std::max(world_max.x, max_corner.x);
+				world_max.y = std::max(world_max.y, max_corner.y);
+				world_max.z = std::max(world_max.z, max_corner.z);
+			}
+		}
+
+		tree.clear();
+		if (!has_any)
+			return;
+
+		collision_octree::aabb root{};
+		root.min = { world_min.x - broadphase_margin, world_min.y - broadphase_margin, world_min.z - broadphase_margin };
+		root.max = { world_max.x + broadphase_margin, world_max.y + broadphase_margin, world_max.z + broadphase_margin };
+		tree.reset(root, broadphase_max_depth);
+
+		//	各オブジェクトをワールドAABBで登録する
+		for (auto& object : objects)
+		{
+			if (!object->is_flag(collision_object::flags::active))
+				continue;
+
+			auto bounding = object->get_bounding_object();
+			if (!bounding)
+				continue;
+
+			DirectX::XMFLOAT3 min_corner;
+			DirectX::XMFLOAT3 max_corner;
+			bounding->include_corner(min_corner, max_corner);
+
+			collision_octree::aabb bounds{};
+			bounds.min = { min_corner.x - broadphase_margin, min_corner.y - broadphase_margin, min_corner.z - broadphase_margin };
+			bounds.max = { max_corner.x + broadphase_margin, max_corner.y + broadphase_margin, max_corner.z + broadphase_margin };
+			tree.insert(object.get(), bounds);
+		}
+	}
 }
 
 collision_world::collision_world()
@@ -20,111 +94,115 @@ collision_world::~collision_world()
 
 void collision_world::inner_step_simulation(float elapsed_time)
 {
+	(void)elapsed_time;
+
 	//	ヒット処理
 	float pushing_factor = 1.0f + addjust_pushing_factor;
+	int   pushing_count  = 0;
+	bool  is_pushing     = false;
 	do
 	{
-		bool is_pushing = false;
-		auto* collision_array = collision_objects.data();
-		for (size_t index1 = 0; index1 < collision_objects.size(); ++index1)
+		is_pushing = false;
+
+		//	八分木で交差し得る組だけに絞り込む
+		build_octree(collision_objects, broadphase);
+
+		std::vector<collision_octree::object_pair> pairs;
+		broadphase.collect_pairs(pairs);
+
+		for (auto& candidate : pairs)
 		{
-			auto& object1 = collision_objects[index1];
-			if (!object1->is_flag(collision_object::flags::active))
+			collision_object_ptr object1 = candidate.first->shared_from_this();
+			collision_object_ptr object2 = candidate.second->shared_from_this();
+
+			//	両方staticなら対象外
+			bool is_static_object = object1->is_flag(collision_object::flags::static_object) &&
+									object2->is_flag(collision_object::flags::static_object);
+			if (is_static_object)
 				continue;
 
-			for (size_t index2 = index1 + 1; index2 < collision_objects.size(); ++index2)
+			//	カテゴリーチェック
+			if (!object1->get_filter()->is_flag(object2->get_filter()->get_category()))
+				continue;
+
+			collision::intersect_data intersect_data;
+			if (object1->intersect(object2, intersect_data))
 			{
-				auto& object2 = collision_objects[index2];
-				if (!object2->is_flag(collision_object::flags::active))
-					continue;
-
-				//	両方staticの場合は除外
-				bool is_static_object = object1->is_flag(collision_object::flags::static_object) &&
-										object2->is_flag(collision_object::flags::static_object);
-				if (is_static_object)
-					continue;
-
-				//	カテゴリーチェック
-				if (!object1->get_filter()->is_flag(object2->get_filter()->get_category()))
-					continue;
-
-				collision::intersect_data intersect_data;
-				if (object1->intersect(object2, intersect_data))
+				collision::intersect_data data1 = intersect_data;
+				collision::intersect_data data2 = intersect_data;
+				//	押し合い（押し戻し）を行うか判定
+				bool is_push = !object1->is_flag(collision_object::flags::detect_only) &&
+								!object2->is_flag(collision_object::flags::detect_only);
+				if (is_push && !is_static_object)
 				{
-					collision::intersect_data data1 = intersect_data;
-					collision::intersect_data data2 = intersect_data;
-					//	押し合い処理
-					bool is_push = !object1->is_flag(collision_object::flags::detect_only) &&
-									!object2->is_flag(collision_object::flags::detect_only);
-					if (is_push && !is_static_object)
+					data1.clear();
+					data2.clear();
+					//	押し戻し量の配分を決定
+					float rate1 = 0, rate2 = 0;
+					if (object1->is_flag(collision_object::flags::static_object))
 					{
-						data1.clear();
-						data2.clear();
-						//	押し合い係数生成
-						float rate1 = 0, rate2 = 0;
-						if (object1->is_flag(collision_object::flags::static_object))
-						{
-							rate2 = 1;
-						}
-						else if (object2->is_flag(collision_object::flags::static_object))
-						{
-							rate1 = 1;
-						}
-						else
-						{
-							float total_mass = object1->get_mass() + object2->get_mass();
-							rate2 = object1->get_mass() / total_mass;
-							rate1 = object2->get_mass() / total_mass;
-						}
-
-						bool is_inner_pushing = false;
-						for (size_t index = 0; index < intersect_data.size(); ++index)
-						{
-							auto data = intersect_data[index];
-							if (fabsf(data.length) <= FLT_EPSILON)
-								continue;
-
-							auto temp = data;
-							temp.length = temp.length * rate1 * pushing_factor;
-							data1.add(temp);
-
-							temp.normal.x = -data.normal.x;
-							temp.normal.y = -data.normal.y;
-							temp.normal.z = -data.normal.z;
-							temp.length = data.length * rate2 * pushing_factor;
-							data2.add(temp);
-							is_inner_pushing = true;
-						}
-						object1->solve_pushing_objects(data1);
-						object2->solve_pushing_objects(data2);
-						if (is_inner_pushing)
-							is_pushing = true;
+						rate2 = 1;
+					}
+					else if (object2->is_flag(collision_object::flags::static_object))
+					{
+						rate1 = 1;
 					}
 					else
 					{
-						//	法線を反転しておく
-						for (size_t index = 0; index < data2.size(); ++index)
-						{
-							auto& data = data2[index];
-							if (fabsf(data.length) <= FLT_EPSILON)
-								continue;
-
-							data.normal.x = -data.normal.x;
-							data.normal.y = -data.normal.y;
-							data.normal.z = -data.normal.z;
-						}
-
+						float total_mass = object1->get_mass() + object2->get_mass();
+						rate2 = object1->get_mass() / total_mass;
+						rate1 = object2->get_mass() / total_mass;
 					}
 
-					//	ヒットオブジェクトを記録
-					object1->update_hit_objects(data1, object2);
-					object2->update_hit_objects(data2, object1);
+					bool is_inner_pushing = false;
+					for (size_t index = 0; index < intersect_data.size(); ++index)
+					{
+						auto data = intersect_data[index];
+						if (fabsf(data.length) <= FLT_EPSILON)
+							continue;
+
+						auto temp = data;
+						temp.length = temp.length * rate1 * pushing_factor;
+						data1.add(temp);
+
+						temp.normal.x = -data.normal.x;
+						temp.normal.y = -data.normal.y;
+						temp.normal.z = -data.normal.z;
+						temp.length = data.length * rate2 * pushing_factor;
+						data2.add(temp);
+						is_inner_pushing = true;
+					}
+					object1->solve_pushing_objects(data1);
+					object2->solve_pushing_objects(data2);
+					if (is_inner_pushing)
+						is_pushing = true;
 				}
+				else
+				{
+					//	法線を反転しておく
+					for (size_t index = 0; index < data2.size(); ++index)
+					{
+						auto& data = data2[index];
+						if (fabsf(data.length) <= FLT_EPSILON)
+							continue;
+
+						data.normal.x = -data.normal.x;
+						data.normal.y = -data.normal.y;
+						data.normal.z = -data.normal.z;
+					}
+
+				}
+
+				//	ヒットオブジェクトを記録
+				object1->update_hit_objects(data1, object2);
+				object2->update_hit_objects(data2, object1);
 			}
 		}
-		//	係数更新
-		pushing_factor = is_pushing ? pushing_factor + addjust_pushing_factor : 0.0f;
-	} while (1.0f <= pushing_factor && 1.0f <= addjust_pushing_factor * 10);
+
+		//	収束していないなら次へ
+		pushing_factor += addjust_pushing_factor;
+		++pushing_count;
+	} while (is_pushing && pushing_count < max_pushing_iteration);
 }
 
 void collision_world::step(float elapsed_time, int max_substep, float fixed_time_stamp)
@@ -143,7 +221,7 @@ void collision_world::step(float elapsed_time, int max_substep, float fixed_time
 
 	//	衝突検知
 	{
-		//	細分化回数
+		//	細分化処理
 		int loop_count = static_cast<int>(elapsed_time / fixed_time_stamp);
 		int limit_loop_count = std::min(loop_count, max_substep);
 
@@ -154,7 +232,7 @@ void collision_world::step(float elapsed_time, int max_substep, float fixed_time
 			elapsed_time -= fixed_time_stamp;
 		}
 
-		//	一気に行う
+		//	残りを一気に処理
 		if (elapsed_time > 0.0f)
 			inner_step_simulation(elapsed_time);
 	}

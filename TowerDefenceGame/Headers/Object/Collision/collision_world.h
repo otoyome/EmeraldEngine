@@ -2,6 +2,7 @@
 
 #include "Collision/collision.h"
 #include "collision_object.h"
+#include "collision_octree.h"
 
 using collision_object_ptr = std::shared_ptr<collision_object>;
 
@@ -53,4 +54,5 @@ private:
 	std::vector<collision_object_ptr> collision_objects;
 	std::vector<collision_object_ptr> collision_objects_add;
 	std::vector<collision_object_ptr> collision_objects_remove;
+	collision_octree broadphase;
 };

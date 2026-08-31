@@ -489,9 +489,9 @@ void effect_manager::update_gpu(graphics_context& context, float elapsed_time)
 
 	//	固定ステップ処理
 	constexpr float fixed_step = system_units::convert_fps_to_sec(1.0f);
-	constexpr int step_max = 4;	//	最大ステップ数
+	constexpr int max_substep = 4;	//	最大ステップ数
 
-	//	event による生成 systen_id を検索
+	//	event による生成用に system_id を検索
 	auto search_event_target = [](item& target_item, ::particle::data& particle) -> UINT
 	{
 		auto event = particle.get_item<::particle::item::event>();
@@ -586,7 +586,7 @@ void effect_manager::update_gpu(graphics_context& context, float elapsed_time)
 			}
 		}
 
-		bool hit_forward_limit = !rewinding && (step + 1 >= step_max);
+		bool hit_forward_limit = !rewinding && (step + 1 >= max_substep);
 		bool last_step = !any_update || hit_forward_limit;	//	最終ステップだけ頂点バッファを作る
 
 		particle_system->update(context, any_update ? fixed_step : 0.0f);

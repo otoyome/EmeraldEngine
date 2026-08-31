@@ -335,6 +335,7 @@ xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y</Command>
     <ClCompile Include="Sources\Object\Collision\collision_filter.cpp" />
     <ClCompile Include="Sources\Object\Collision\collision_world.cpp" />
     <ClCompile Include="Sources\Object\Collision\collision_object.cpp" />
+    <ClCompile Include="Sources\Object\Collision\collision_octree.cpp" />
     <ClCompile Include="Sources\Object\GameObjects\Character\character_object.cpp" />
     <ClCompile Include="Sources\Object\GameObjects\Character\character_object_resource.cpp" />
     <ClCompile Include="Sources\Object\GameObjects\Character\character_object_state.cpp" />
@@ -414,6 +415,7 @@ xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y</Command>
     <ClInclude Include="Headers\Object\Collision\collision_filter.h" />
     <ClInclude Include="Headers\Object\Collision\collision_world.h" />
     <ClInclude Include="Headers\Object\Collision\collision_object.h" />
+    <ClInclude Include="Headers\Object\Collision\collision_octree.h" />
     <ClInclude Include="Headers\Object\GameObjects\Character\character_object.h" />
     <ClInclude Include="Headers\Object\GameObjects\Character\Person\kuroko_object.h" />
     <ClInclude Include="Headers\Object\GameObjects\Character\Player\player_camera_controller_object.h" />
