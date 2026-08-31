@@ -1129,6 +1129,9 @@ void compute_particle_system::update(graphics_context& context, float elapsed_ti
 
 void compute_particle_system::build_primitives(graphics_context& context)
 {
+	context.device_context->CSSetConstantBuffers(common_pipeline_states::scene_cbv_index, 1, context.scene_constant_buffer.GetAddressOf());
+	context.device_context->CSSetConstantBuffers(common_constant_buffer_index, 1, common_constant_buffer.GetAddressOf());
+
 	//	エミッター毎の描画情報を構築していく
 	{
 		context.device_context->CSSetUnorderedAccessViews(0, 1, particle_index_unordered_access_view[current_buffer_index].GetAddressOf(), nullptr);
