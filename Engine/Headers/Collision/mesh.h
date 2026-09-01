@@ -14,11 +14,12 @@ namespace collision
 		{
 			UINT a, b, c;	//	座標番号
 
-			//	計算対象
+			//	事前計算
 			DirectX::XMFLOAT3 normal;		//	法線
 			DirectX::XMFLOAT3 ab, bc, ca;	//	辺
 			DirectX::XMFLOAT3 min, max;		//	最小最大
 			collision::line lab, lbc, lca;	//	線分
+
 			template<class Archive>
 			void serialize(Archive& archive, int version);
 		};

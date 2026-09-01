@@ -1595,7 +1595,6 @@ bool bounding_mesh::intersect_sphere_cast(const DirectX::XMFLOAT3& start, const 
 
 void bounding_mesh::include_corner(DirectX::XMFLOAT3& min, DirectX::XMFLOAT3& max) const
 {
-	//	–‘OŒvZÏ‚İ‚Ì•¨‚ğ“n‚·
 	min = area_min;
 	max = area_max;
 }
