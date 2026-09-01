@@ -49,7 +49,6 @@ public:
 	std::size_t size() const { return entry_count; }
 
 private:
-	//	@tool children[] は size_t（符号なし）なので、未生成スロットの番兵は -1 ではなくこれを使う
 	static constexpr std::size_t invalid_node = static_cast<std::size_t>(-1);
 
 	//	木に登録された1オブジェクト

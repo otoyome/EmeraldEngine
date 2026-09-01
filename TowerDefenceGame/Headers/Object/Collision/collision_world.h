@@ -55,4 +55,12 @@ private:
 	std::vector<collision_object_ptr> collision_objects_add;
 	std::vector<collision_object_ptr> collision_objects_remove;
 	collision_octree broadphase;
+
+private:
+	std::vector<std::pair<collision_object*, collision_octree::aabb>> broadphase_entries;
+	std::vector<collision_octree::object_pair> candidate_pairs;
+	std::vector<collision::intersect_data> narrow_contacts;
+	std::vector<char> narrow_hits;
+	collision::intersect_data push_scratch1;
+	collision::intersect_data push_scratch2;
 };

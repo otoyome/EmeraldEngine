@@ -55,7 +55,6 @@ size_t collision_octree::allocate_node(const DirectX::XMFLOAT3& center, float ha
 	node created{};
 	created.center = center;
 	created.half_size = half_size;
-	//	@tool 未生成スロットは invalid_node（size_t なので -1 は使えない）
 	for (auto& child : created.children)
 		child = invalid_node;
 
@@ -84,7 +83,6 @@ void collision_octree::insert_recursive(std::size_t node_index, int depth, const
 		int octant = child_octant_containing(nodes[node_index], item.bounds);
 		if (octant >= 0)
 		{
-			//	@tool 未生成スロットの判定は invalid_node との比較（size_t なので < 0 は常に偽になる）
 			if (nodes[node_index].children[octant] == invalid_node)
 			{
 				DirectX::XMFLOAT3 child_center;
