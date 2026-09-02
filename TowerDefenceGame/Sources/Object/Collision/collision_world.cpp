@@ -1,5 +1,6 @@
 #include "Object/Collision/collision_world.h"
 
+#include "Collision/capsule.h"
 #include <thread>
 
 namespace

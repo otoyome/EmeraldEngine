@@ -25,9 +25,9 @@ public:
 
 	struct capsule_cast_descs : public ray_cast_descs
 	{
-		float radius = 0.0f;                          //	カプセル半径
-		float length = 0.0f;                          //	両端球中心間の距離（bounding_capsule の length と同義）
-		DirectX::XMFLOAT4 rotation = { 0, 0, 0, 1 };  //	カプセルの向き
+		float radius = 0.0f;
+		float length = 0.0f;
+		DirectX::XMFLOAT4 rotation = { 0, 0, 0, 1 };
 	};
 
 public:

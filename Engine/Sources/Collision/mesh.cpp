@@ -13,6 +13,7 @@
 
 #include <DirectXCollision.h>
 #include <thread>
+#include <algorithm>
 
 namespace
 {
@@ -112,48 +113,43 @@ namespace
 
 	inline UINT calculate_array_index_from_point(const DirectX::XMFLOAT3& point, const DirectX::XMFLOAT3& area_min, const DirectX::XMFLOAT3& area_unit, DirectX::XMUINT3 separate_count)
 	{
-		DirectX::XMFLOAT3 p;
-		p.x = (point.x - area_min.x) / area_unit.x;
-		p.y = (point.y - area_min.y) / area_unit.y;
-		p.z = (point.z - area_min.z) / area_unit.z;
-		return static_cast<UINT>(p.x) + static_cast<UINT>(separate_count.x * p.y) + static_cast<UINT>(separate_count.x * separate_count.y * p.z);
+		auto cell = [](float value, float amin, float unit, UINT count) -> int
+		{
+			int i = static_cast<int>(floorf((value - amin) / unit));
+			return std::clamp(i, 0, static_cast<int>(count) - 1);
+		};
+		const UINT ix = static_cast<UINT>(cell(point.x, area_min.x, area_unit.x, separate_count.x));
+		const UINT iy = static_cast<UINT>(cell(point.y, area_min.y, area_unit.y, separate_count.y));
+		const UINT iz = static_cast<UINT>(cell(point.z, area_min.z, area_unit.z, separate_count.z));
+		return ix + iy * separate_count.x + iz * separate_count.x * separate_count.y;
 	}
 
 	std::vector<UINT> calculate_check_order_list(const DirectX::XMFLOAT3& min, const DirectX::XMFLOAT3& max, const DirectX::XMFLOAT3& area_min, const DirectX::XMFLOAT3& area_unit, DirectX::XMUINT3 separate_count)
 	{
-		DirectX::XMFLOAT3 vector;
-		vector.x = max.x - min.x;
-		vector.y = max.y - min.y;
-		vector.z = max.z - min.z;
-
-		DirectX::XMUINT3 axis_count;
-		axis_count.x = static_cast<UINT>(ceilf((vector.x / area_unit.x + 0.001f)));
-		axis_count.y = static_cast<UINT>(ceilf((vector.y / area_unit.y + 0.001f)));
-		axis_count.z = static_cast<UINT>(ceilf((vector.z / area_unit.z + 0.001f)));
-
-		UINT square_separate_count = separate_count.x * separate_count.y;
-		UINT cube_separate_count = separate_count.x * separate_count.y * separate_count.z;
-		std::vector<UINT> order_list;
-		order_list.reserve(axis_count.x * axis_count.y * axis_count.z);
-
-		const UINT base_index_x = static_cast<UINT>((min.x - area_min.x) / area_unit.x);
-		const UINT base_index_y = static_cast<UINT>((min.y - area_min.y) / area_unit.y);
-		const UINT base_index_z = static_cast<UINT>((min.z - area_min.z) / area_unit.z);
-		for (UINT x = 0; x < axis_count.x; ++x)
+		auto cell = [](float value, float amin, float unit, UINT count) -> int
 		{
-			const UINT index_x = base_index_x + x;
-			for (UINT y = 0; y < axis_count.y; ++y)
+			int i = static_cast<int>(floorf((value - amin) / unit));
+			return std::clamp(i, 0, static_cast<int>(count) - 1);
+		};
+
+		const int x0 = cell(min.x, area_min.x, area_unit.x, separate_count.x);
+		const int x1 = cell(max.x, area_min.x, area_unit.x, separate_count.x);
+		const int y0 = cell(min.y, area_min.y, area_unit.y, separate_count.y);
+		const int y1 = cell(max.y, area_min.y, area_unit.y, separate_count.y);
+		const int z0 = cell(min.z, area_min.z, area_unit.z, separate_count.z);
+		const int z1 = cell(max.z, area_min.z, area_unit.z, separate_count.z);
+
+		std::vector<UINT> order_list;
+		order_list.reserve(static_cast<size_t>(x1 - x0 + 1) * (y1 - y0 + 1) * (z1 - z0 + 1));
+		for (int z = z0; z <= z1; ++z)
+		{
+			for (int y = y0; y <= y1; ++y)
 			{
-				const UINT index_y = base_index_y + y;
-				const UINT index_xy = index_x + index_y * separate_count.x;
-				for (UINT z = 0; z < axis_count.z; ++z)
+				for (int x = x0; x <= x1; ++x)
 				{
-					const UINT index_z = base_index_z + z;
-					const UINT index = index_xy + index_z * square_separate_count;
-					if (index < cube_separate_count)
-					{
-						order_list.emplace_back(index);
-					}
+					order_list.emplace_back(static_cast<UINT>(x)
+						+ static_cast<UINT>(y) * separate_count.x
+						+ static_cast<UINT>(z) * separate_count.x * separate_count.y);
 				}
 			}
 		}
