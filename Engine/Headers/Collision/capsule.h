@@ -35,6 +35,7 @@ namespace collision
 
 		//	@remainder	ñ¢åüèÿ
 		bool intersect_sphere_cast(const DirectX::XMFLOAT3& start, const DirectX::XMFLOAT3& end, float radius, intersect_data* intersect = nullptr) const override;
+		bool intersect_capsule_cast(const DirectX::XMFLOAT3& start, const DirectX::XMFLOAT3& end, float radius, float length, const DirectX::XMFLOAT4& rotation, intersect_data* intersect = nullptr) const override;
 
 		void include_corner(DirectX::XMFLOAT3& min, DirectX::XMFLOAT3& max) const override;
 

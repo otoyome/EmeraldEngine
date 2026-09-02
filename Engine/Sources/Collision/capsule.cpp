@@ -237,6 +237,14 @@ bool bounding_capsule::intersect_sphere_cast(const DirectX::XMFLOAT3& start, con
 	return ret;
 }
 
+bool bounding_capsule::intersect_capsule_cast(const DirectX::XMFLOAT3& start, const DirectX::XMFLOAT3& end,
+											  float radius, float length, const DirectX::XMFLOAT4& rotation,
+											  intersect_data* intersect) const
+{
+	DirectX::XMVECTOR axis = DirectX::XMVector3Rotate(DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f), DirectX::XMLoadFloat4(&rotation));
+	return intersect_capsule_cast_by_axis_spheres(start, end, radius, length, axis, intersect);
+}
+
 void bounding_capsule::include_corner(DirectX::XMFLOAT3& min, DirectX::XMFLOAT3& max) const
 {
 	DirectX::XMVECTOR LinePositionA = DirectX::XMLoadFloat3(&line[0]);

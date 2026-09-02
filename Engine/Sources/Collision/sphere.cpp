@@ -136,6 +136,71 @@ bool bounding_sphere::intersect_sphere_cast(const DirectX::XMFLOAT3& start, cons
 	return false;
 }
 
+bool bounding_sphere::intersect_capsule_cast(const DirectX::XMFLOAT3& start, const DirectX::XMFLOAT3& end,
+											 float radius, float length, const DirectX::XMFLOAT4& rotation,
+											 intersect_data* intersect) const
+{
+	using namespace DirectX;
+
+	XMVECTOR SphereCenter = XMLoadFloat3(&get_position());
+	XMVECTOR Start = XMLoadFloat3(&start);
+	XMVECTOR End = XMLoadFloat3(&end);
+
+	XMVECTOR Velocity = XMVectorSubtract(End, Start);
+	float velocity_length = XMVectorGetX(XMVector3Length(Velocity));
+	if (velocity_length < FLT_EPSILON)
+		return false;
+	XMVECTOR VelocityNormal = XMVectorScale(Velocity, 1.0f / velocity_length);
+
+	//	カプセルの軸端点
+	XMVECTOR Axis = XMVector3Normalize(XMVector3Rotate(XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f), XMLoadFloat4(&rotation)));
+	float half = length * 0.5f;
+	XMVECTOR Cap0 = XMVectorScale(Axis, -half);
+	XMVECTOR Cap1 = XMVectorScale(Axis, +half);
+
+	float combined_radius = get_radius() + radius;
+
+	//	移動カプセル基準フレームでの対象球の光線
+	XMVECTOR RayStart = XMVectorSubtract(SphereCenter, Start);
+	XMVECTOR RayEnd = XMVectorSubtract(SphereCenter, End);
+
+	XMVECTOR HitPosition;
+	float hit_distance;
+	float nearest = FLT_MAX;
+
+	if (intersect_ray_vs_sphere(RayStart, RayEnd, Cap0, combined_radius, HitPosition, hit_distance) && hit_distance > 0.0f)
+		if (hit_distance < nearest) nearest = hit_distance;
+	if (intersect_ray_vs_sphere(RayStart, RayEnd, Cap1, combined_radius, HitPosition, hit_distance) && hit_distance > 0.0f)
+		if (hit_distance < nearest) nearest = hit_distance;
+	if (intersect_ray_vs_cylinder(RayStart, RayEnd, Cap0, Cap1, combined_radius, HitPosition, hit_distance) && hit_distance > 0.0f)
+		if (hit_distance < nearest) nearest = hit_distance;
+
+	if (nearest == FLT_MAX)
+		return false;
+
+	if (intersect)
+	{
+		XMVECTOR CenterWorld = XMVectorAdd(Start, XMVectorScale(VelocityNormal, nearest));
+		XMVECTOR ToSphere = XMVectorSubtract(SphereCenter, CenterWorld);
+		float proj = XMVectorGetX(XMVector3Dot(ToSphere, Axis));
+		if (proj < -half) proj = -half;
+		if (proj > +half) proj = +half;
+		XMVECTOR AxisPointWorld = XMVectorAdd(CenterWorld, XMVectorScale(Axis, proj));
+
+		XMVECTOR Direction = XMVectorSubtract(SphereCenter, AxisPointWorld);
+		if (XMVectorGetX(XMVector3LengthSq(Direction)) < FLT_EPSILON)
+			Direction = VelocityNormal;
+		XMVECTOR Normal = XMVector3Normalize(Direction);
+		XMVECTOR ContactPoint = XMVectorAdd(AxisPointWorld, XMVectorScale(Normal, radius));
+
+		DirectX::XMFLOAT3 point, normal;
+		XMStoreFloat3(&point, ContactPoint);
+		XMStoreFloat3(&normal, Normal);
+		intersect->add(point, normal, nearest);
+	}
+	return true;
+}
+
 void bounding_sphere::include_corner(DirectX::XMFLOAT3& min, DirectX::XMFLOAT3& max) const
 {
 	DirectX::XMVECTOR Position = DirectX::XMLoadFloat3(&get_position());

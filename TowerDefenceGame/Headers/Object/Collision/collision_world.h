@@ -23,6 +23,13 @@ public:
 		float radius;
 	};
 
+	struct capsule_cast_descs : public ray_cast_descs
+	{
+		float radius = 0.0f;                          //	カプセル半径
+		float length = 0.0f;                          //	両端球中心間の距離（bounding_capsule の length と同義）
+		DirectX::XMFLOAT4 rotation = { 0, 0, 0, 1 };  //	カプセルの向き
+	};
+
 public:
 	collision_world();
 	~collision_world();
@@ -49,6 +56,7 @@ private:
 public:
 	bool ray_cast(const ray_cast_descs& desc, collision::intersect_data& intersect_data, collision_object_ptr& out_collision);
 	bool sphere_cast(const sphere_cast_descs& desc, collision::intersect_data& intersect_data, collision_object_ptr& out_collision);
+	bool capsule_cast(const capsule_cast_descs& desc, collision::intersect_data& intersect_data, collision_object_ptr& out_collision);
 
 private:
 	std::vector<collision_object_ptr> collision_objects;

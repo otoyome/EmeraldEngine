@@ -86,6 +86,12 @@ namespace collision
 
 		virtual bool intersect_sphere_cast(const DirectX::XMFLOAT3& start, const DirectX::XMFLOAT3& end, float radius, intersect_data* intersect = nullptr) const = 0;
 
+		virtual bool intersect_capsule_cast(const DirectX::XMFLOAT3& start, const DirectX::XMFLOAT3& end, float radius, float length, const DirectX::XMFLOAT4& rotation, intersect_data* intersect = nullptr) const = 0;
+
+		//	スフィアキャストを流用して軸毎にスフィアキャストを行う方式
+		bool intersect_capsule_cast_by_axis_spheres(const DirectX::XMFLOAT3& start, const DirectX::XMFLOAT3& end,
+			float radius, float length, DirectX::XMVECTOR axis, intersect_data* intersect = nullptr) const;
+
 		virtual void include_corner(DirectX::XMFLOAT3& min, DirectX::XMFLOAT3& max) const = 0;
 
 	protected:

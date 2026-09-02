@@ -675,6 +675,14 @@ bool inner::axis_aligned_bounding_box::intersect_sphere_cast(DirectX::XMVECTOR S
 	return false;
 }
 
+bool inner::axis_aligned_bounding_box::intersect_capsule_cast(const DirectX::XMFLOAT3& start, const DirectX::XMFLOAT3& end,
+															   float radius, float length, const DirectX::XMFLOAT4& rotation,
+															   intersect_data* intersect) const
+{
+	DirectX::XMVECTOR axis = DirectX::XMVector3Rotate(DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f), DirectX::XMLoadFloat4(&rotation));
+	return intersect_capsule_cast_by_axis_spheres(start, end, radius, length, axis, intersect);
+}
+
 void inner::axis_aligned_bounding_box::include_corner(DirectX::XMFLOAT3& min, DirectX::XMFLOAT3& max) const
 {
 	DirectX::XMVECTOR Min, Max;
@@ -1523,6 +1531,30 @@ bool bounding_box::intersect_sphere_cast(const DirectX::XMFLOAT3& start, const D
 		}
 	}
 
+	return contact;
+}
+
+bool bounding_box::intersect_capsule_cast(const DirectX::XMFLOAT3& start, const DirectX::XMFLOAT3& end,
+										  float radius, float length, const DirectX::XMFLOAT4& rotation,
+										  intersect_data* intersect) const
+{
+	DirectX::XMMATRIX TransformMatrix = get_transeform_matrix();
+	DirectX::XMMATRIX InverseTransformMatrix = DirectX::XMMatrixInverse(nullptr, TransformMatrix);
+
+	DirectX::XMFLOAT3 local_start, local_end;
+	DirectX::XMStoreFloat3(&local_start, DirectX::XMVector3TransformCoord(DirectX::XMLoadFloat3(&start), InverseTransformMatrix));
+	DirectX::XMStoreFloat3(&local_end,   DirectX::XMVector3TransformCoord(DirectX::XMLoadFloat3(&end),   InverseTransformMatrix));
+
+	DirectX::XMVECTOR WorldAxis = DirectX::XMVector3Normalize(DirectX::XMVector3Rotate(DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f), DirectX::XMLoadFloat4(&rotation)));
+	DirectX::XMVECTOR LocalAxis = DirectX::XMVector3Normalize(DirectX::XMVector3TransformNormal(WorldAxis, InverseTransformMatrix));
+
+	inner::axis_aligned_bounding_box aabb(get_local_scale(), DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f));
+	bool contact = aabb.intersect_capsule_cast_by_axis_spheres(local_start, local_end, radius, length, LocalAxis, intersect);
+	if (contact && intersect)
+	{
+		for (size_t index = 0; index < intersect->size(); ++index)
+			intersect->multiply_matrix(index, TransformMatrix);
+	}
 	return contact;
 }
 

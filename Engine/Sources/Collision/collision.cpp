@@ -147,6 +147,58 @@ bool bounding_object::intersection(const bounding_object* object, intersect_data
 	return	false;
 }
 
+bool bounding_object::intersect_capsule_cast_by_axis_spheres(const DirectX::XMFLOAT3& start, const DirectX::XMFLOAT3& end,
+															   float radius, float length, DirectX::XMVECTOR axis,
+															   intersect_data* intersect) const
+{
+	using namespace DirectX;
+
+	XMVECTOR Axis = XMVector3Normalize(axis);
+	float half = length * 0.5f;
+
+	int samples = 1;
+	if (length > FLT_EPSILON && radius > FLT_EPSILON)
+	{
+		samples = static_cast<int>(ceilf(length / radius)) + 1;
+		if (samples < 2)
+			samples = 2;
+	}
+
+	XMVECTOR Start = XMLoadFloat3(&start);
+	XMVECTOR End = XMLoadFloat3(&end);
+
+	bool hit = false;
+	float nearest_distance = FLT_MAX;
+	intersect_data nearest;
+	for (int index = 0; index < samples; ++index)
+	{
+		float s = (samples > 1)
+			? (-half + length * (static_cast<float>(index) / static_cast<float>(samples - 1)))
+			: 0.0f;
+		XMVECTOR Offset = XMVectorScale(Axis, s);
+
+		DirectX::XMFLOAT3 sample_start, sample_end;
+		XMStoreFloat3(&sample_start, XMVectorAdd(Start, Offset));
+		XMStoreFloat3(&sample_end, XMVectorAdd(End, Offset));
+
+		intersect_data sample;
+		if (intersect_sphere_cast(sample_start, sample_end, radius, &sample) && sample.size() > 0)
+		{
+			if (sample[0].length < nearest_distance)
+			{
+				nearest_distance = sample[0].length;
+				nearest = sample;
+				hit = true;
+			}
+		}
+	}
+
+	if (hit && intersect)
+		*intersect = nearest;
+	return hit;
+}
+
+
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 bool collision::ray_cast(const DirectX::XMFLOAT3& start, const DirectX::XMFLOAT3& end, const triangles& triangles, intersect_data* result)
 {
