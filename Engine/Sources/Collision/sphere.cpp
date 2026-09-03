@@ -89,7 +89,7 @@ bool bounding_sphere::intersect_sphere(const DirectX::XMFLOAT3& point, float rad
 		radius += distance;
 		Distance = DirectX::XMVectorSet(radius, radius, radius, radius);
 		DirectX::XMStoreFloat3(&point, DirectX::XMVectorMultiplyAdd(Vector, Distance, Point));
-		intersect->add(point, normal, distance);
+		intersect->add(point, normal, -distance);
 	}
 	return insert;
 }

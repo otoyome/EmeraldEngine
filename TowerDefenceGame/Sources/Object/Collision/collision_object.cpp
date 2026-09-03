@@ -259,7 +259,6 @@ void collision_object::post_intersect()
 		}
 		else
 		{
-			//	@tool aleady/added どちらでもない状態のガード（無限ループ防止）
 			++it;
 		}
 	}

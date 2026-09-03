@@ -102,7 +102,7 @@ bool bounding_capsule::intersect_sphere(const DirectX::XMFLOAT3& point, float ra
 		DirectX::XMFLOAT3 line;
 		DirectX::XMStoreFloat3(&line, Line);
 		DirectX::XMStoreFloat3(&horizon, DirectX::XMVectorMultiplyAdd(Line, Length, Point));
-		intersect->add(horizon, line, length);
+		intersect->add(horizon, line, -length);
 	}
 
 	return length <= 0.0f;

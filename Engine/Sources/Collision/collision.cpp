@@ -3,6 +3,7 @@
 #include	"collision/sphere.h"
 #include	"collision/capsule.h"
 #include	"collision/box.h"
+#include	"collision/mesh.h"
 
 using namespace collision;
 
@@ -147,7 +148,7 @@ bool bounding_object::intersection(const bounding_object* object, intersect_data
 		case types::sphere: return intersect_sphere(*static_cast<const bounding_sphere*>(object), intersect);
 		case types::capsule: return intersect_capsule(*static_cast<const bounding_capsule*>(object), intersect);
 		case types::box: return intersect_box(*static_cast<const bounding_box*>(object), intersect);
-		case types::mesh: return intersect_mesh(*reinterpret_cast<const bounding_mesh*>(object), intersect);
+		case types::mesh: return intersect_mesh(*static_cast<const bounding_mesh*>(object), intersect);
 	}
 	assert(!"Not Comaptible Collilsion.");
 	return	false;

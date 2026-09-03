@@ -1046,12 +1046,7 @@ namespace
 ////////////////////////////////////////////////////////////////////////////////////////////
 DirectX::XMMATRIX bounding_box::get_transeform_matrix() const
 {
-//	DirectX::XMVECTOR Scale = DirectX::XMLoadFloat3(&get_local_scale());
-	DirectX::XMVECTOR Rotation = DirectX::XMLoadFloat4(&get_rotation());
-	DirectX::XMVECTOR Position = DirectX::XMLoadFloat3(&get_position());
-	return	//DirectX::XMMatrixScalingFromVector(Scale) *
-			DirectX::XMMatrixRotationQuaternion(Rotation) *
-			DirectX::XMMatrixTranslationFromVector(Position);
+	return	get_transform_matrix();
 }
 
 DirectX::XMFLOAT4X4 bounding_box::get_transeform_float4x4() const
@@ -1161,11 +1156,8 @@ bool bounding_box::intersect_segment(const DirectX::XMFLOAT3& start, const Direc
 
 bool bounding_box::intersect_sphere(const DirectX::XMFLOAT3& point, float radius, intersect_data* intersect) const
 {
-	DirectX::XMMATRIX TransformMatrix = get_transeform_matrix();
-	DirectX::XMMATRIX InverseTransformMatrix = DirectX::XMMatrixInverse(nullptr, TransformMatrix);
-
 	DirectX::XMVECTOR LocalPoint;
-	LocalPoint = DirectX::XMVector3TransformCoord(DirectX::XMLoadFloat3(&point), InverseTransformMatrix);
+	LocalPoint = DirectX::XMVector3TransformCoord(DirectX::XMLoadFloat3(&point), get_inverse_transform_matrix());
 
 	DirectX::XMFLOAT3 new_point;
 	DirectX::XMStoreFloat3(&new_point, LocalPoint);
@@ -1176,7 +1168,7 @@ bool bounding_box::intersect_sphere(const DirectX::XMFLOAT3& point, float radius
 	{
 		for (size_t index = 0; index < intersect->size(); ++index)
 		{
-			intersect->multiply_matrix(index, TransformMatrix);
+			intersect->multiply_matrix(index, get_transeform_matrix());
 		}
 	}
 	return contact;
@@ -1189,12 +1181,8 @@ bool bounding_box::intersect_sphere(const bounding_sphere& sphere, intersect_dat
 
 bool bounding_box::intersect_capsule(const bounding_capsule& capsule, intersect_data* intersect) const
 {
-	DirectX::XMMATRIX TransformMatrix = get_transeform_matrix();
-	DirectX::XMMATRIX InverseTransformMatrix = DirectX::XMMatrixInverse(nullptr, TransformMatrix);
-	DirectX::XMMATRIX CapsuleTransformMatrix, InverseCapsuleRotationMatrix;
-	CapsuleTransformMatrix = DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&capsule.get_rotation()))
-						* DirectX::XMMatrixTranslationFromVector(DirectX::XMLoadFloat3(&capsule.get_position()));
-	InverseCapsuleRotationMatrix = DirectX::XMMatrixMultiply(CapsuleTransformMatrix, InverseTransformMatrix);
+	DirectX::XMMATRIX InverseCapsuleRotationMatrix;
+	InverseCapsuleRotationMatrix = DirectX::XMMatrixMultiply(capsule.get_transform_matrix(), get_inverse_transform_matrix());
 
 	DirectX::XMVECTOR Dummy, LocalCapsuleRotation, LocalCapsulePosition;
 	DirectX::XMMatrixDecompose(&Dummy , &LocalCapsuleRotation, &LocalCapsulePosition, InverseCapsuleRotationMatrix);
@@ -1210,7 +1198,7 @@ bool bounding_box::intersect_capsule(const bounding_capsule& capsule, intersect_
 	{
 		for (size_t index = 0; index < intersect->size(); ++index)
 		{
-			intersect->multiply_matrix(index, TransformMatrix);
+			intersect->multiply_matrix(index, get_transeform_matrix());
 		}
 	}
 	return contact;
@@ -1511,11 +1499,8 @@ bool bounding_box::intersect_mesh(const bounding_mesh& mesh, intersect_data* int
 
 bool bounding_box::intersect_sphere_cast(const DirectX::XMFLOAT3& start, const DirectX::XMFLOAT3& end, float radius, intersect_data* intersect) const
 {
-	DirectX::XMMATRIX TransformMatrix = get_transeform_matrix();
-	DirectX::XMMATRIX InverseTransformMatrix = DirectX::XMMatrixInverse(nullptr, TransformMatrix);
-
-	DirectX::XMVECTOR LocalStart = DirectX::XMVector3TransformCoord(DirectX::XMLoadFloat3(&start), InverseTransformMatrix);
-	DirectX::XMVECTOR LocalEnd = DirectX::XMVector3TransformCoord(DirectX::XMLoadFloat3(&end), InverseTransformMatrix);
+	DirectX::XMVECTOR LocalStart = DirectX::XMVector3TransformCoord(DirectX::XMLoadFloat3(&start), get_inverse_transform_matrix());
+	DirectX::XMVECTOR LocalEnd = DirectX::XMVector3TransformCoord(DirectX::XMLoadFloat3(&end), get_inverse_transform_matrix());
 
 	DirectX::XMFLOAT3 local_start, local_end;
 	DirectX::XMStoreFloat3(&local_start, LocalStart);
@@ -1527,7 +1512,7 @@ bool bounding_box::intersect_sphere_cast(const DirectX::XMFLOAT3& start, const D
 	{
 		for (size_t index = 0; index < intersect->size(); ++index)
 		{
-			intersect->multiply_matrix(index, TransformMatrix);
+			intersect->multiply_matrix(index, get_transeform_matrix());
 		}
 	}
 
@@ -1538,22 +1523,19 @@ bool bounding_box::intersect_capsule_cast(const DirectX::XMFLOAT3& start, const 
 										  float radius, float length, const DirectX::XMFLOAT4& rotation,
 										  intersect_data* intersect) const
 {
-	DirectX::XMMATRIX TransformMatrix = get_transeform_matrix();
-	DirectX::XMMATRIX InverseTransformMatrix = DirectX::XMMatrixInverse(nullptr, TransformMatrix);
-
 	DirectX::XMFLOAT3 local_start, local_end;
-	DirectX::XMStoreFloat3(&local_start, DirectX::XMVector3TransformCoord(DirectX::XMLoadFloat3(&start), InverseTransformMatrix));
-	DirectX::XMStoreFloat3(&local_end,   DirectX::XMVector3TransformCoord(DirectX::XMLoadFloat3(&end),   InverseTransformMatrix));
+	DirectX::XMStoreFloat3(&local_start, DirectX::XMVector3TransformCoord(DirectX::XMLoadFloat3(&start), get_inverse_transform_matrix()));
+	DirectX::XMStoreFloat3(&local_end,   DirectX::XMVector3TransformCoord(DirectX::XMLoadFloat3(&end),   get_inverse_transform_matrix()));
 
 	DirectX::XMVECTOR WorldAxis = DirectX::XMVector3Normalize(DirectX::XMVector3Rotate(DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f), DirectX::XMLoadFloat4(&rotation)));
-	DirectX::XMVECTOR LocalAxis = DirectX::XMVector3Normalize(DirectX::XMVector3TransformNormal(WorldAxis, InverseTransformMatrix));
+	DirectX::XMVECTOR LocalAxis = DirectX::XMVector3Normalize(DirectX::XMVector3TransformNormal(WorldAxis, get_inverse_transform_matrix()));
 
 	inner::axis_aligned_bounding_box aabb(get_local_scale(), DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f));
 	bool contact = aabb.intersect_capsule_cast_by_axis_spheres(local_start, local_end, radius, length, LocalAxis, intersect);
 	if (contact && intersect)
 	{
 		for (size_t index = 0; index < intersect->size(); ++index)
-			intersect->multiply_matrix(index, TransformMatrix);
+			intersect->multiply_matrix(index, get_transeform_matrix());
 	}
 	return contact;
 }
@@ -1577,8 +1559,7 @@ void bounding_box::include_corner(DirectX::XMFLOAT3& min, DirectX::XMFLOAT3& max
 
 bounding_box bounding_box::multiply_obb(const DirectX::XMMATRIX& matrix) const
 {
-	DirectX::XMMATRIX OBBTransformMatrix = DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&get_rotation()))
-										 * DirectX::XMMatrixTranslationFromVector(DirectX::XMLoadFloat3(&get_position()));
+	DirectX::XMMATRIX OBBTransformMatrix = get_transform_matrix();
 	DirectX::XMFLOAT4X4 rotation_matrix;
 	DirectX::XMVECTOR Work;
 	Work = InverseTransformPoint(OBBTransformMatrix.r[3], matrix);
