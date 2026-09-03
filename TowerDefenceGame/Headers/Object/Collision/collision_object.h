@@ -53,7 +53,7 @@ public:
 	bool is_flag(flags flag) const { return system_utility::is_bitflag(flag_data, 1 << static_cast<UINT>(flag)); }
 	void set_flag(flags flag, bool value) { system_utility::set_bitflag(flag_data, 1 << static_cast<UINT>(flag), value); }
 
-	user_datas get_user_data() const;
+	const user_datas& get_user_data() const;
 	void set_user_data(const user_datas& user_data);
 
 	float get_mass() const;
@@ -166,7 +166,4 @@ private:
 		void set_flag(flags flag, bool value) { system_utility::set_bitflag(flag_data, 1 << static_cast<UINT>(flag), value); }
 	};
 	std::vector<hit_object> hit_objects;
-
-	std::mutex mutex;
-	inline static size_t id_counter;
 };

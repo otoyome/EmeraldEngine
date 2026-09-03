@@ -270,6 +270,8 @@ void bounding_capsule::include_corner(DirectX::XMFLOAT3& min, DirectX::XMFLOAT3&
 
 void bounding_capsule::on_change_parameter()
 {
+	bounding_object::on_change_parameter();
+
 	DirectX::XMVECTOR Rotation = DirectX::XMLoadFloat4(&get_rotation());
 	DirectX::XMMATRIX Matrix = DirectX::XMMatrixRotationQuaternion(Rotation);
 

@@ -971,7 +971,7 @@ void character_object::on_attack_box_enter(collision_object::data data)
 	//	攻撃ボックス
 	if (from_user_data.identifier == attack_data_identifier)
 	{
-		damage_datas* damage_data = from_user_data.get_data<damage_datas>();
+		const damage_datas* damage_data = from_user_data.get_data<damage_datas>();
 
 		//	ヒットボックスである場合
 		if (to_user_data.identifier == hit_box_data_identifier)

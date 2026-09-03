@@ -374,6 +374,9 @@ bounding_mesh::bounding_mesh(std::vector<DirectX::XMFLOAT3>& positions, std::vec
 			float temp = area_size.z / static_cast<float>(separate_count.z);
 			if (temp >= separate_level) break;
 		}
+		if (separate_count.x < 1) separate_count.x = 1;
+		if (separate_count.y < 1) separate_count.y = 1;
+		if (separate_count.z < 1) separate_count.z = 1;
 		area_unit.x = area_size.x / static_cast<float>(separate_count.x);
 		area_unit.y = area_size.y / static_cast<float>(separate_count.y);
 		area_unit.z = area_size.z / static_cast<float>(separate_count.z);
@@ -663,10 +666,8 @@ bool bounding_mesh::intersect_point_inner(const DirectX::XMFLOAT3& point, float&
 
 bool bounding_mesh::intersect_point(const DirectX::XMFLOAT3& point) const
 {
-	DirectX::XMMATRIX InverseTransformMatrix = DirectX::XMMatrixInverse(nullptr, get_transform_matrix());
-
 	DirectX::XMFLOAT3 local_point;
-	DirectX::XMStoreFloat3(&local_point, DirectX::XMVector3TransformCoord(DirectX::XMLoadFloat3(&point), InverseTransformMatrix));
+	DirectX::XMStoreFloat3(&local_point, DirectX::XMVector3TransformCoord(DirectX::XMLoadFloat3(&point), get_inverse_transform_matrix()));
 
 	float nearlest = FLT_MAX;
 
@@ -826,12 +827,9 @@ bool bounding_mesh::intersect_segment_inner_moller(const DirectX::XMFLOAT3& star
 
 bool bounding_mesh::intersect_segment(const DirectX::XMFLOAT3& start, const DirectX::XMFLOAT3& end, intersect_data* intersect) const
 {
-	DirectX::XMMATRIX TransformMatrix = get_transform_matrix();
-	DirectX::XMMATRIX InverseTransformMatrix = DirectX::XMMatrixInverse(nullptr, TransformMatrix);
-
 	DirectX::XMFLOAT3 local_start, local_end;
-	DirectX::XMStoreFloat3(&local_start, DirectX::XMVector3TransformCoord(DirectX::XMLoadFloat3(&start), InverseTransformMatrix));
-	DirectX::XMStoreFloat3(&local_end,   DirectX::XMVector3TransformCoord(DirectX::XMLoadFloat3(&end),   InverseTransformMatrix));
+	DirectX::XMStoreFloat3(&local_start, DirectX::XMVector3TransformCoord(DirectX::XMLoadFloat3(&start), get_inverse_transform_matrix()));
+	DirectX::XMStoreFloat3(&local_end,   DirectX::XMVector3TransformCoord(DirectX::XMLoadFloat3(&end),   get_inverse_transform_matrix()));
 
 	DirectX::XMFLOAT3 min = local_start, max = local_start;
 	min.x = std::min(min.x, local_end.x);
@@ -888,9 +886,9 @@ bool bounding_mesh::intersect_segment(const DirectX::XMFLOAT3& start, const Dire
 		{
 			auto& info = (*intersect)[i];
 			DirectX::XMStoreFloat3(&info.point,
-				DirectX::XMVector3TransformCoord(DirectX::XMLoadFloat3(&info.point), TransformMatrix));
+				DirectX::XMVector3TransformCoord(DirectX::XMLoadFloat3(&info.point), get_transform_matrix()));
 			DirectX::XMStoreFloat3(&info.normal,
-				DirectX::XMVector3Normalize(DirectX::XMVector3TransformNormal(DirectX::XMLoadFloat3(&info.normal), TransformMatrix)));
+				DirectX::XMVector3Normalize(DirectX::XMVector3TransformNormal(DirectX::XMLoadFloat3(&info.normal), get_transform_matrix())));
 		}
 	}
 	return hit;
@@ -943,11 +941,8 @@ bool bounding_mesh::intersect_sphere_inner(const DirectX::XMFLOAT3& point, float
 
 bool bounding_mesh::intersect_sphere(const DirectX::XMFLOAT3& point, float radius, intersect_data* intersect) const
 {
-	DirectX::XMMATRIX TransformMatrix = get_transform_matrix();
-	DirectX::XMMATRIX InverseTransformMatrix = DirectX::XMMatrixInverse(nullptr, TransformMatrix);
-
 	DirectX::XMFLOAT3 local_point;
-	DirectX::XMStoreFloat3(&local_point, DirectX::XMVector3TransformCoord(DirectX::XMLoadFloat3(&point), InverseTransformMatrix));
+	DirectX::XMStoreFloat3(&local_point, DirectX::XMVector3TransformCoord(DirectX::XMLoadFloat3(&point), get_inverse_transform_matrix()));
 
 	DirectX::XMFLOAT3 min, max;
 	min.x = local_point.x - radius;
@@ -968,9 +963,9 @@ bool bounding_mesh::intersect_sphere(const DirectX::XMFLOAT3& point, float radiu
 				//	ワールドへ変換
 				auto& info = (*intersect)[intersect->size() - 1];
 				DirectX::XMStoreFloat3(&info.point,
-					DirectX::XMVector3TransformCoord(DirectX::XMLoadFloat3(&info.point), TransformMatrix));
+					DirectX::XMVector3TransformCoord(DirectX::XMLoadFloat3(&info.point), get_transform_matrix()));
 				DirectX::XMStoreFloat3(&info.normal,
-					DirectX::XMVector3Normalize(DirectX::XMVector3TransformNormal(DirectX::XMLoadFloat3(&info.normal), TransformMatrix)));
+					DirectX::XMVector3Normalize(DirectX::XMVector3TransformNormal(DirectX::XMLoadFloat3(&info.normal), get_transform_matrix())));
 			}
 			return true;
 		}
@@ -1120,12 +1115,10 @@ bool bounding_mesh::intersect_capsule(const bounding_capsule& capsule, intersect
 
 	//	ローカル空間に変換
 	bounding_capsule local_capsule = capsule;
-	DirectX::XMMATRIX TransformMatrix = get_transform_matrix();
 	{
 		DirectX::XMMATRIX CopyTransformMatrix = local_capsule.get_transform_matrix();
-		DirectX::XMMATRIX InverseTransformMatrix = DirectX::XMMatrixInverse(nullptr, TransformMatrix);
 		DirectX::XMVECTOR Scale, Rotation, Translation;
-		DirectX::XMMatrixDecompose(&Scale, &Rotation, &Translation, CopyTransformMatrix * InverseTransformMatrix);
+		DirectX::XMMatrixDecompose(&Scale, &Rotation, &Translation, CopyTransformMatrix * get_inverse_transform_matrix());
 		DirectX::XMFLOAT4 rotation;
 		DirectX::XMFLOAT3 translation;
 		DirectX::XMStoreFloat4(&rotation, Rotation);
@@ -1163,7 +1156,7 @@ bool bounding_mesh::intersect_capsule(const bounding_capsule& capsule, intersect
 		if (intersect)
 		{
 			intersect_data data;
-			if (intersect_capsule_inner(local_capsule, Min, Max, TransformMatrix, node.triangles, &data))
+			if (intersect_capsule_inner(local_capsule, Min, Max, get_transform_matrix(), node.triangles, &data))
 			{
 				if (intersect->size() == 0)
 				{
@@ -1181,7 +1174,7 @@ bool bounding_mesh::intersect_capsule(const bounding_capsule& capsule, intersect
 		}
 		else
 		{
-			if (intersect_capsule_inner(local_capsule, Min, Max, TransformMatrix, node.triangles, intersect))
+			if (intersect_capsule_inner(local_capsule, Min, Max, get_transform_matrix(), node.triangles, intersect))
 				return true;
 		}
 	}
@@ -1283,12 +1276,8 @@ bool bounding_mesh::intersect_box_inner(DirectX::XMVECTOR Center, DirectX::XMVEC
 
 bool bounding_mesh::intersect_box(const bounding_box& box, intersect_data* intersect) const
 {
-	//	@remainder	未検証
-	DirectX::XMMATRIX TransformMatrix = get_transform_matrix();
-	DirectX::XMMATRIX InverseTransformMatrix = DirectX::XMMatrixInverse(nullptr, TransformMatrix);
-
 	DirectX::XMVECTOR Scale, Rotation, Translation;
-	DirectX::XMMatrixDecompose(&Scale, &Rotation, &Translation, box.get_transform_matrix() * InverseTransformMatrix);
+	DirectX::XMMatrixDecompose(&Scale, &Rotation, &Translation, box.get_transform_matrix() * get_inverse_transform_matrix());
 
 	DirectX::XMMATRIX RotationMatrix = DirectX::XMMatrixRotationQuaternion(Rotation);
 	DirectX::XMVECTOR AxisX = DirectX::XMVector3Normalize(RotationMatrix.r[0]);
@@ -1374,7 +1363,7 @@ bool bounding_mesh::intersect_sphere_cast_inner(const collision::line& sweep_lin
 	DirectX::XMVECTOR SweepDirectionNormalize = DirectX::XMVector3Normalize(DirectX::XMVectorSubtract(End, Start));
 	DirectX::XMVECTOR qp = DirectX::XMVectorSubtract(Start, End);
 
-	//	掃引する球のAABB（三角形の粗い枝刈り用）
+	//	球のAABB
 	DirectX::XMVECTOR RadiusVec = DirectX::XMVectorReplicate(radius);
 	DirectX::XMVECTOR CastMin = DirectX::XMVectorSubtract(DirectX::XMVectorMin(Start, End), RadiusVec);
 	DirectX::XMVECTOR CastMax = DirectX::XMVectorAdd(DirectX::XMVectorMax(Start, End), RadiusVec);
@@ -1418,7 +1407,7 @@ bool bounding_mesh::intersect_sphere_cast_inner(const collision::line& sweep_lin
 
 		if (d >= 0.0f)	//	表側から接近している場合のみ判定する
 		{
-			//	面領域の判定（球半径分オフセットした三角形との交差）
+			//	面領域の判定
 			DirectX::XMVECTOR fix_vec = DirectX::XMVectorScale(DirectX::XMVector3Normalize(Norm), radius);
 			DirectX::XMVECTOR ap = DirectX::XMVectorSubtract(Start, DirectX::XMVectorAdd(TriangleA, fix_vec));
 			float plane_t = DirectX::XMVectorGetX(DirectX::XMVector3Dot(Norm, ap));
@@ -1524,12 +1513,9 @@ bool bounding_mesh::intersect_sphere_cast_inner(const collision::line& sweep_lin
 
 bool bounding_mesh::intersect_sphere_cast(const DirectX::XMFLOAT3& start, const DirectX::XMFLOAT3& end, float radius, intersect_data* intersect) const
 {
-	DirectX::XMMATRIX TransformMatrix = get_transform_matrix();
-	DirectX::XMMATRIX InverseTransformMatrix = DirectX::XMMatrixInverse(nullptr, TransformMatrix);
-
 	DirectX::XMFLOAT3 local_start, local_end;
-	DirectX::XMStoreFloat3(&local_start, DirectX::XMVector3TransformCoord(DirectX::XMLoadFloat3(&start), InverseTransformMatrix));
-	DirectX::XMStoreFloat3(&local_end,   DirectX::XMVector3TransformCoord(DirectX::XMLoadFloat3(&end),   InverseTransformMatrix));
+	DirectX::XMStoreFloat3(&local_start, DirectX::XMVector3TransformCoord(DirectX::XMLoadFloat3(&start), get_inverse_transform_matrix()));
+	DirectX::XMStoreFloat3(&local_end,   DirectX::XMVector3TransformCoord(DirectX::XMLoadFloat3(&end),   get_inverse_transform_matrix()));
 
 	DirectX::XMFLOAT3 min, max;
 	min.x = std::min(local_start.x, local_end.x) - radius;
@@ -1578,11 +1564,11 @@ bool bounding_mesh::intersect_sphere_cast(const DirectX::XMFLOAT3& start, const 
 		{
 			auto& info = (*intersect)[i];
 			DirectX::XMStoreFloat3(&info.point,
-				DirectX::XMVector3TransformCoord(DirectX::XMLoadFloat3(&info.point), TransformMatrix));
+				DirectX::XMVector3TransformCoord(DirectX::XMLoadFloat3(&info.point), get_transform_matrix()));
 			DirectX::XMStoreFloat3(&info.point2,
-				DirectX::XMVector3TransformCoord(DirectX::XMLoadFloat3(&info.point2), TransformMatrix));
+				DirectX::XMVector3TransformCoord(DirectX::XMLoadFloat3(&info.point2), get_transform_matrix()));
 			DirectX::XMStoreFloat3(&info.normal,
-				DirectX::XMVector3Normalize(DirectX::XMVector3TransformNormal(DirectX::XMLoadFloat3(&info.normal), TransformMatrix)));
+				DirectX::XMVector3Normalize(DirectX::XMVector3TransformNormal(DirectX::XMLoadFloat3(&info.normal), get_transform_matrix())));
 		}
 	}
 

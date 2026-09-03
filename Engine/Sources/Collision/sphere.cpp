@@ -55,9 +55,10 @@ bool bounding_sphere::intersect_segment(DirectX::XMVECTOR Start, DirectX::XMVECT
 	DirectX::XMVECTOR Direction = DirectX::XMVectorSubtract(End, Start);
 	float distance = DirectX::XMVectorGetX(DirectX::XMVector3Length(Direction));
 	Direction = DirectX::XMVector3Normalize(Direction);
+	const float segment_length = distance;
 
 	DirectX::BoundingSphere sphere = DirectX::BoundingSphere(get_position(), get_radius());
-	if (sphere.Intersects(Start, Direction, distance))
+	if (sphere.Intersects(Start, Direction, distance) && distance <= segment_length)
 	{
 		if (intersect)
 		{

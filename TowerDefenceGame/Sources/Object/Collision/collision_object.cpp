@@ -22,7 +22,7 @@ void collision_object::set_filter(std::string_view name)
 	}
 }
 
-collision_object::user_datas collision_object::get_user_data() const
+const collision_object::user_datas& collision_object::get_user_data() const
 {
 	return user_data;
 }
@@ -147,7 +147,9 @@ collision_object::collision_object()
 {
 	//	Id設定だけは被らないようにしておく
 	{
-		std::lock_guard<std::mutex> lock_guard(mutex);
+		static size_t id_counter = 0;
+		static std::mutex id_mutex;
+		std::lock_guard<std::mutex> lock_guard(id_mutex);
 		id = ++id_counter;
 		assert(id != invalid_id);
 	}
@@ -205,8 +207,8 @@ bool collision_object::intersect(std::shared_ptr<collision_object>& object, coll
 void collision_object::update_hit_objects(collision::intersect_data& intersect_data, std::weak_ptr<collision_object> to)
 {
 	//	ヒットオブジェクトを記録
-	auto& it = std::find_if(hit_objects.begin(), hit_objects.end(),
-							[to](hit_object& value) {return system_utility::equals(value.to, to);});
+	auto it = std::find_if(hit_objects.begin(), hit_objects.end(),
+						   [to](hit_object& value) {return system_utility::equals(value.to, to);});
 	if (it != hit_objects.end())
 	{
 		it->set_flag(hit_object::flags::added, true);
@@ -253,6 +255,11 @@ void collision_object::post_intersect()
 			//	新規追加
 			if (collision_enter)
 				collision_enter(data);
+			++it;
+		}
+		else
+		{
+			//	@tool aleady/added どちらでもない状態のガード（無限ループ防止）
 			++it;
 		}
 	}

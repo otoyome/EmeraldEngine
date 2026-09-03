@@ -102,16 +102,22 @@ void bounding_object::set_position(const DirectX::XMFLOAT3& position)
 
 DirectX::XMFLOAT4X4 bounding_object::get_transform_float4x4() const
 {
-	DirectX::XMFLOAT4X4 matrix;
-	DirectX::XMStoreFloat4x4(&matrix, get_transform_matrix());
-	return matrix;
+	return transform_matrix;
 }
 
 DirectX::XMMATRIX bounding_object::get_transform_matrix() const
 {
-	DirectX::XMMATRIX Rotation = DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&rotation));
-	DirectX::XMMATRIX Translation = DirectX::XMMatrixTranslation(position.x, position.y, position.z);
-	return	Rotation * Translation;
+	return	DirectX::XMLoadFloat4x4(&transform_matrix);
+}
+
+DirectX::XMFLOAT4X4 bounding_object::get_inverse_transform_float4x4() const
+{
+	return inverse_transform_matrix;
+}
+
+DirectX::XMMATRIX bounding_object::get_inverse_transform_matrix() const
+{
+	return	DirectX::XMLoadFloat4x4(&inverse_transform_matrix);
 }
 
 bounding_object::bounding_object()
@@ -198,6 +204,15 @@ bool bounding_object::intersect_capsule_cast_by_axis_spheres(const DirectX::XMFL
 	return hit;
 }
 
+void bounding_object::on_change_parameter()
+{
+	DirectX::XMMATRIX Rotation = DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&rotation));
+	DirectX::XMMATRIX Translation = DirectX::XMMatrixTranslation(position.x, position.y, position.z);
+
+	DirectX::XMMATRIX TransformMatrix = Rotation * Translation;
+	DirectX::XMStoreFloat4x4(&transform_matrix, TransformMatrix);
+	DirectX::XMStoreFloat4x4(&inverse_transform_matrix, DirectX::XMMatrixInverse(nullptr, TransformMatrix));
+}
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 bool collision::ray_cast(const DirectX::XMFLOAT3& start, const DirectX::XMFLOAT3& end, const triangles& triangles, intersect_data* result)

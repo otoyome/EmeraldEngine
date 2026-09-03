@@ -71,6 +71,9 @@ namespace collision
 		DirectX::XMFLOAT4X4 get_transform_float4x4() const;
 		DirectX::XMMATRIX get_transform_matrix() const;
 
+		DirectX::XMFLOAT4X4 get_inverse_transform_float4x4() const;
+		DirectX::XMMATRIX get_inverse_transform_matrix() const;
+
 	public:
 		bounding_object();
 		bounding_object(const DirectX::XMFLOAT3& local_scale, const DirectX::XMFLOAT4& rotation, const DirectX::XMFLOAT3& position);
@@ -95,12 +98,14 @@ namespace collision
 		virtual void include_corner(DirectX::XMFLOAT3& min, DirectX::XMFLOAT3& max) const = 0;
 
 	protected:
-		virtual	void	on_change_parameter(){}
+		virtual	void on_change_parameter();
 
 	private:
 		DirectX::XMFLOAT3 local_scale;
 		DirectX::XMFLOAT4 rotation;
 		DirectX::XMFLOAT3 position;
+		DirectX::XMFLOAT4X4 transform_matrix;
+		DirectX::XMFLOAT4X4 inverse_transform_matrix;
 	};
 
 	//	レイキャスト
