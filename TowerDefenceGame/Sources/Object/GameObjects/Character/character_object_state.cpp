@@ -419,7 +419,7 @@ void character_object::update_horizontal_move(float elapsed_time)
 	set_position(new_position);
 }
 
-void character_object::adjustment_velocity(DirectX::XMFLOAT2 move, float adjust_move_velocity_rate, bool* flip_flag)
+void character_object::adjustment_velocity(DirectX::XMFLOAT2& move, float adjust_move_velocity_rate, bool* flip_flag)
 {
 	if (move.x == 0 && move.y == 0)
 		return;
@@ -457,8 +457,8 @@ void character_object::adjustment_velocity(DirectX::XMFLOAT2 move, float adjust_
 				float angle = asinf(sin) * adjust_move_velocity_rate;
 				float mmx = move.x * cosf(angle) - move.y * sinf(angle);
 				float mmy = move.x * sinf(angle) + move.y * cosf(angle);
-				move.x = vx;
-				move.y = vy;
+				move.x = mmx;
+				move.y = mmy;
 			}
 
 			//	入力方向に合わせて速度ベクトルの修正

@@ -189,7 +189,7 @@ void character_object::imgui_render_core()
 #undef CHECK_BOX
 #endif	//	defined(USE_IMGUI)
 
-std::shared_ptr<model_object> character_object::get_model_object() const
+const std::shared_ptr<model_object>& character_object::get_model_object() const
 {
 	return model;
 }
@@ -219,7 +219,7 @@ void character_object::set_face_uv(DirectX::XMFLOAT4 face_uv)
 	this->face_uv = face_uv;
 }
 
-collision_object_ptr character_object::get_push_box() const
+const collision_object_ptr& character_object::get_push_box() const
 {
 	return push_box;
 }

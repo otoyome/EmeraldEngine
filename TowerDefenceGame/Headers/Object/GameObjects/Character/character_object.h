@@ -291,7 +291,7 @@ public:
 	void imgui_render_core() override;
 #endif	//	defined(USE_IMGUI)
 
-	std::shared_ptr<model_object> get_model_object() const;
+	const std::shared_ptr<model_object>& get_model_object() const;
 	void set_model_object(std::shared_ptr<model_object> model);
 
 	texture_ptr get_face_texture() const;
@@ -300,7 +300,7 @@ public:
 	DirectX::XMFLOAT4 get_face_uv() const;
 	void set_face_uv(DirectX::XMFLOAT4 face_uv);
 
-	collision_object_ptr get_push_box() const;
+	const collision_object_ptr& get_push_box() const;
 
 	const DirectX::XMFLOAT3& get_scale() const;
 	void set_scale(const DirectX::XMFLOAT3& scale);
@@ -503,7 +503,7 @@ protected:
 	call_back_time_controll_map& get_cb_time_controlls() { return on_time_controlls; }
 
 	virtual bool register_effect(size_t effect_id, std::string_view file_path);
-	virtual void adjustment_velocity(DirectX::XMFLOAT2 move, float adjust_move_velocity_rate, bool* flip_flag);
+	virtual void adjustment_velocity(DirectX::XMFLOAT2& move, float adjust_move_velocity_rate, bool* flip_flag);
 	virtual bool calculate_position(DirectX::XMFLOAT3 velocity, bool vertical, DirectX::XMFLOAT3& out_position, DirectX::XMFLOAT3& out_normal, float* out_friction = nullptr);
 #define DECLEAR_STATE(STATE) \
 	virtual void enter_##STATE(){}; \
