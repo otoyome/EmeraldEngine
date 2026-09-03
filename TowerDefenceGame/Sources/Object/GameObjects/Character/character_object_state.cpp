@@ -489,15 +489,15 @@ bool character_object::calculate_position(DirectX::XMFLOAT3 velocity, bool verti
 	auto bounding_object = std::static_pointer_cast<collision::bounding_capsule>(collision_object->get_bounding_object());
 
 	//	初期座標
-//	out_position = collision_object->get_position();
 	out_position = get_position();
 
 	//	オフセット位置を算出
 	float height = bounding_object->get_radius() + bounding_object->get_length() * 0.5f;
 	DirectX::XMVECTOR Offset = DirectX::XMVectorSet(0.0f, height, 0.0f, 0.0f);
 
-	collision_world::sphere_cast_descs desc;
+	collision_world::capsule_cast_descs desc;
 	desc.radius = bounding_object->get_radius();
+	desc.length = bounding_object->get_length();
 	if (is_flag(flags::invisible))
 	{
 		desc.filter = collision_filter_manager::instance()->search_filter("invisible");
@@ -529,13 +529,6 @@ bool character_object::calculate_position(DirectX::XMFLOAT3 velocity, bool verti
 		From = DirectX::XMLoadFloat3(&out_position);
 		From = DirectX::XMVectorAdd(From, Offset);
 		To = DirectX::XMVectorAdd(From, MoveVector);
-		if (vertical)
-		{
-			if (DirectX::XMVectorGetY(Velocity) < 0)
-				To = DirectX::XMVectorSubtract(To, Offset);
-			else
-				To = DirectX::XMVectorAdd(To, Offset);
-		}
 
 		DirectX::XMStoreFloat3(&desc.start, From);
 		DirectX::XMStoreFloat3(&desc.end, To);
@@ -543,7 +536,7 @@ bool character_object::calculate_position(DirectX::XMFLOAT3 velocity, bool verti
 		//	ヒット処理
 		collision::intersect_data intersect_data;
 		collision_object_ptr hit_collision_object;
-		if (object_manager::instance()->get_world().sphere_cast(desc, intersect_data, hit_collision_object))
+		if (object_manager::instance()->get_world().capsule_cast(desc, intersect_data, hit_collision_object))
 		{
 			hit_flag = true;
 
@@ -553,9 +546,7 @@ bool character_object::calculate_position(DirectX::XMFLOAT3 velocity, bool verti
 			DirectX::XMVECTOR PositionOffset = Offset;
 			if (vertical)
 			{
-				PositionOffset = (DirectX::XMVectorGetY(Velocity) < 0)
-					? DirectX::XMVectorSet(0.0f, desc.radius, 0.0f, 0.0f)
-					: DirectX::XMVectorSet(0.0f, 2.0f * height - desc.radius, 0.0f, 0.0f);
+				PositionOffset = DirectX::XMVectorSet(0.0f, desc.radius, 0.0f, 0.0f);
 			}
 
 			DirectX::XMVECTOR Position = DirectX::XMLoadFloat3(&intersect_data[0].point);

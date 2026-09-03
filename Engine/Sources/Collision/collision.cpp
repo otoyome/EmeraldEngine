@@ -174,6 +174,12 @@ bool bounding_object::intersect_capsule_cast_by_axis_spheres(const DirectX::XMFL
 	XMVECTOR Start = XMLoadFloat3(&start);
 	XMVECTOR End = XMLoadFloat3(&end);
 
+	XMVECTOR Move = XMVectorSubtract(End, Start);
+	float move_length = XMVectorGetX(XMVector3Length(Move));
+	XMVECTOR MoveDirection = (move_length > FLT_EPSILON) ? XMVectorScale(Move, 1.0f / move_length) : XMVectorZero();
+	const float probe_back = (move_length > FLT_EPSILON) ? radius * 1.5f : 0.0f;
+	XMVECTOR ProbeOffset = XMVectorScale(MoveDirection, -probe_back);
+
 	bool hit = false;
 	float nearest_distance = FLT_MAX;
 	intersect_data nearest;
@@ -185,16 +191,26 @@ bool bounding_object::intersect_capsule_cast_by_axis_spheres(const DirectX::XMFL
 		XMVECTOR Offset = XMVectorScale(Axis, s);
 
 		DirectX::XMFLOAT3 sample_start, sample_end;
-		XMStoreFloat3(&sample_start, XMVectorAdd(Start, Offset));
+		XMStoreFloat3(&sample_start, XMVectorAdd(XMVectorAdd(Start, Offset), ProbeOffset));
 		XMStoreFloat3(&sample_end, XMVectorAdd(End, Offset));
 
 		intersect_data sample;
 		if (intersect_sphere_cast(sample_start, sample_end, radius, &sample) && sample.size() > 0)
 		{
-			if (sample[0].length < nearest_distance)
+			float travel = sample[0].length - probe_back;
+			if (travel < 0.0f)
 			{
-				nearest_distance = sample[0].length;
+				XMVECTOR HitNormal = XMLoadFloat3(&sample[0].normal);
+				float facing = XMVectorGetX(XMVector3Dot(HitNormal, MoveDirection));
+				if (facing > -0.5f)
+					continue;
+				travel = 0.0f;
+			}
+			if (travel < nearest_distance)
+			{
+				nearest_distance = travel;
 				nearest = sample;
+				nearest[0].length = travel;
 				hit = true;
 			}
 		}

@@ -132,6 +132,14 @@ namespace
 			return std::clamp(i, 0, static_cast<int>(count) - 1);
 		};
 
+		const float grid_max_x = area_min.x + area_unit.x * static_cast<float>(separate_count.x);
+		const float grid_max_y = area_min.y + area_unit.y * static_cast<float>(separate_count.y);
+		const float grid_max_z = area_min.z + area_unit.z * static_cast<float>(separate_count.z);
+		if (max.x < area_min.x || min.x > grid_max_x ||
+			max.y < area_min.y || min.y > grid_max_y ||
+			max.z < area_min.z || min.z > grid_max_z)
+			return {};
+
 		const int x0 = cell(min.x, area_min.x, area_unit.x, separate_count.x);
 		const int x1 = cell(max.x, area_min.x, area_unit.x, separate_count.x);
 		const int y0 = cell(min.y, area_min.y, area_unit.y, separate_count.y);
