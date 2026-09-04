@@ -214,15 +214,6 @@ struct graphics_context
 	common_pipeline_states::screen_space_reflection_constants screen_space_reflection_constant;
 
 public:
-	//	定数バッファの設定
-	void set_constant_buffer(int start_slot, int num, ID3D11Buffer* const* constant_buffers) const;
-
-	//	シェーダーリソースビューの設定
-	void set_shader_resource(int start_slot, int num, ID3D11ShaderResourceView* const* shader_resources) const;
-
-	//	サンプラーステートの設定
-	void set_sampler(int start_slot, int num, ID3D11SamplerState* const* sampler_state) const;
-
 	//	設定していたシェーダーを全て解除する
 	void clear_shader_slots() const;
 

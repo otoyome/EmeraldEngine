@@ -73,5 +73,5 @@ void render_pass::deactivate(ID3D11DeviceContext* context)
 {
 	ID3D11RenderTargetView* rtvs[D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT] = {nullptr};
 	ID3D11DepthStencilView* dsv = nullptr;
-	context->OMSetRenderTargets(1, rtvs, dsv);
+	context->OMSetRenderTargets(D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT, rtvs, dsv);
 }

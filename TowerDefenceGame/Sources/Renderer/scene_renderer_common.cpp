@@ -12,8 +12,6 @@ void scene_renderer_commons::draw(const graphics_context& context,
 			D3D_PRIMITIVE_TOPOLOGY primitive_topology,
 			UINT vertex_offset)
 {
-	buffer_datas buffer_data;
-	buffer_data.vertex_count = vertex_count;
 	context.device_context->IASetIndexBuffer(nullptr, DXGI_FORMAT_UNKNOWN, 0);
 	context.device_context->IASetPrimitiveTopology(primitive_topology);
 	context.device_context->Draw(vertex_count, vertex_offset);
@@ -53,13 +51,15 @@ void scene_renderer_commons::draw_indexed(const graphics_context& context,
 		//	モーフィング対応
 		if (!draw_mesh->morph_meshes.empty())
 		{
+			static const semantic position_semantic("POSITION", 0);
+			static const semantic normal_semantic("NORMAL", 0);
 			int position_count = 0, normal_count = 0;
 			for (auto& morph_mesh : draw_mesh->morph_meshes)
 			{
 				auto& vbv = morph_mesh.vertex_buffer_views;
 
-				auto it_positions = vbv->find(semantic("POSITION", 0));
-				auto it_normals = vbv->find(semantic("NORMAL", 0));
+				auto it_positions = vbv->find(position_semantic);
+				auto it_normals = vbv->find(normal_semantic);
 				if (it_positions != vbv->end())
 					morph_positions[position_count++] = it_positions->second.srv.Get();
 				if (it_normals != vbv->end())
@@ -74,27 +74,26 @@ void scene_renderer_commons::draw_indexed(const graphics_context& context,
 													common_pipeline_states::morph_max, morph_normals);
 
 	//	頂点ストリーム更新
+	ID3D11Buffer* stream_buffers[D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT] = {};
+	UINT stream_strides[D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT] = {};
+	UINT stream_offsets[D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT] = {};
 	UINT stream_index = 0;
 	for (auto& semantic : pipeline_state->get_semantic_list())
 	{
+		if (stream_index >= D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT)
+			break;
 		auto it = vertex_buffer_views->find(semantic.first);
 		if (it != vertex_buffer_views->end())
 		{
-			auto& buffer_data = it->second;
-			UINT offset = static_cast<UINT>(buffer_data.offset());
-			UINT stride = static_cast<UINT>(buffer_data.stride_in_bytes);
-			context.device_context->IASetVertexBuffers(stream_index, 1, buffer_data.buffer.GetAddressOf(), &stride, &offset);
-		}
-		else
-		{
-			//	空のオブジェクトを納入しておく
-			UINT offset = 0;
-			UINT stride = 0;
-			ID3D11Buffer* buffer = nullptr;
-			context.device_context->IASetVertexBuffers(stream_index, 1, &buffer, &stride, &offset);
+			auto& view = it->second;
+			stream_buffers[stream_index] = view.buffer.Get();
+			stream_strides[stream_index] = static_cast<UINT>(view.stride_in_bytes);
+			stream_offsets[stream_index] = static_cast<UINT>(view.offset());
 		}
 		++stream_index;
 	}
+	if (stream_index > 0)
+		context.device_context->IASetVertexBuffers(0, stream_index, stream_buffers, stream_strides, stream_offsets);
 
 	//	描画
 	context.device_context->IASetIndexBuffer(index_buffer_view->buffer.Get(), index_buffer_view->format,

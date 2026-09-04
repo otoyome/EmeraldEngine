@@ -1,35 +1,5 @@
 #include "graphics_context.h"
 
-void graphics_context::set_constant_buffer(int start_slot, int num, ID3D11Buffer* const* constant_buffers) const
-{
-	device_context->VSSetConstantBuffers(start_slot, num, constant_buffers);
-	device_context->HSSetConstantBuffers(start_slot, num, constant_buffers);
-	device_context->DSSetConstantBuffers(start_slot, num, constant_buffers);
-	device_context->GSSetConstantBuffers(start_slot, num, constant_buffers);
-	device_context->PSSetConstantBuffers(start_slot, num, constant_buffers);
-	device_context->CSSetConstantBuffers(start_slot, num, constant_buffers);
-}
-
-void graphics_context::set_shader_resource(int start_slot, int num, ID3D11ShaderResourceView* const* shader_resources) const
-{
-	device_context->VSSetShaderResources(start_slot, num, shader_resources);
-	device_context->HSSetShaderResources(start_slot, num, shader_resources);
-	device_context->DSSetShaderResources(start_slot, num, shader_resources);
-	device_context->GSSetShaderResources(start_slot, num, shader_resources);
-	device_context->PSSetShaderResources(start_slot, num, shader_resources);
-	device_context->CSSetShaderResources(start_slot, num, shader_resources);
-}
-
-void graphics_context::set_sampler(int start_slot, int num, ID3D11SamplerState* const* sampler_state) const
-{
-	device_context->VSSetSamplers(start_slot, num, sampler_state);
-	device_context->HSSetSamplers(start_slot, num, sampler_state);
-	device_context->DSSetSamplers(start_slot, num, sampler_state);
-	device_context->GSSetSamplers(start_slot, num, sampler_state);
-	device_context->PSSetSamplers(start_slot, num, sampler_state);
-	device_context->CSSetSamplers(start_slot, num, sampler_state);
-}
-
 void graphics_context::clear_shader_slots() const
 {
 	device_context->VSSetShader(nullptr, nullptr, 0);
@@ -96,28 +66,41 @@ void graphics_context::clear_sampler(int start_slot, int num) const
 	device_context->CSSetSamplers(start_slot, num, clear_sampler);
 }
 
+#if defined(USE_IMGUI)
+namespace
+{
+	ID3DUserDefinedAnnotation* get_user_defined_annotation(ID3D11DeviceContext* device_context)
+	{
+		thread_local ID3D11DeviceContext* cached_context = nullptr;
+		thread_local Microsoft::WRL::ComPtr<ID3DUserDefinedAnnotation> cached_annotation;
+		if (cached_context != device_context)
+		{
+			cached_annotation.Reset();
+			if (FAILED(device_context->QueryInterface(__uuidof(ID3DUserDefinedAnnotation),
+				reinterpret_cast<void**>(cached_annotation.GetAddressOf()))))
+			{
+				cached_context = nullptr;
+				return nullptr;
+			}
+			cached_context = device_context;
+		}
+		return cached_annotation.Get();
+	}
+}
+#endif	//	defined(USE_IMGUI)
+
 void graphics_context::debug_begin_event(const wchar_t* event_name)
 {
 #if defined(USE_IMGUI)
-	Microsoft::WRL::ComPtr<ID3DUserDefinedAnnotation> p;
-	HRESULT hr = device_context->QueryInterface(__uuidof(ID3DUserDefinedAnnotation),
-		reinterpret_cast<void**>(p.GetAddressOf()));
-	if (FAILED(hr))
-		return;
-
-	p->BeginEvent(event_name);
+	if (ID3DUserDefinedAnnotation* annotation = get_user_defined_annotation(device_context))
+		annotation->BeginEvent(event_name);
 #endif	//	defined(USE_IMGUI)
 }
 
 void graphics_context::debug_end_event()
 {
 #if defined(USE_IMGUI)
-	Microsoft::WRL::ComPtr<ID3DUserDefinedAnnotation> p;
-	HRESULT hr = device_context->QueryInterface(__uuidof(ID3DUserDefinedAnnotation),
-		reinterpret_cast<void**>(p.GetAddressOf()));
-	if (FAILED(hr))
-		return;
-
-	p->EndEvent();
+	if (ID3DUserDefinedAnnotation* annotation = get_user_defined_annotation(device_context))
+		annotation->EndEvent();
 #endif	//	defined(USE_IMGUI)
 }
