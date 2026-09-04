@@ -2071,11 +2071,17 @@ void shader_manager::check_shader_update_and_recompile()
 {
 #if defined(USE_IMGUI)
 	static constexpr size_t check_file_max = 5;
-	//	ファイル日時更新チェック
-	size_t counter = 0;
-	auto it = shaderes.begin();
-	it = std::next(it, std::min(check_counter, shaderes.size()));
-	while (it != shaderes.end())
+	if (shaderes.empty())
+	{
+		check_counter = 0;
+		return;
+	}
+	if (check_counter >= shaderes.size())
+		check_counter = 0;
+
+	auto it = std::next(shaderes.begin(), check_counter);
+	size_t checked = 0;
+	while (it != shaderes.end() && checked < check_file_max)
 	{
 		auto ptr = it->second.lock();
 		if (!ptr)
@@ -2083,19 +2089,13 @@ void shader_manager::check_shader_update_and_recompile()
 			it = shaderes.erase(it);
 			continue;
 		}
-
 		if (ptr->is_reload())
-		{
 			ptr->reload();
-		}
 		++it;
-		if (++counter == check_file_max)
-			break;
+		++check_counter;
+		++checked;
 	}
-	check_counter += counter;
-	if (check_counter >= shaderes.size())
-	{
+	if (it == shaderes.end())
 		check_counter = 0;
-	}
 #endif	//	defined(USE_IMGUI)
 }

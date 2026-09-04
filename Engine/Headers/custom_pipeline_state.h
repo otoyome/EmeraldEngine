@@ -61,6 +61,7 @@ class graphics_custom_pipeline_state : public graphics_pipeline_state
 		struct indices
 		{
 			UINT ids[static_cast<int>(arrangement::max)];
+			system_utility::hash_key hash = -1;
 			indices()
 			{
 				for (auto& index : ids)
@@ -76,6 +77,7 @@ class graphics_custom_pipeline_state : public graphics_pipeline_state
 		{
 			cbv.clear();
 			srv.clear();
+			sampler.clear();
 		}
 	};
 

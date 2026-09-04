@@ -412,28 +412,30 @@ void graphics_custom_pipeline_state::update_parameters(const graphics_context& c
 	forward_light_buffer_data.use = false;
 	shadow_map_buffer_data.use = false;
 
-	set_constant_buffers set_constant_buffer_funcs[static_cast<int>(arrangement::max)];
-	set_shader_resources set_shader_resource_funcs[static_cast<int>(arrangement::max)];
-	set_sampplers set_samppler_funcs[static_cast<int>(arrangement::max)];
+	static const set_constant_buffers set_constant_buffer_funcs[static_cast<int>(arrangement::max)] =
 	{
-		set_constant_buffer_funcs[static_cast<int>(arrangement::vertex)] = &ID3D11DeviceContext::VSSetConstantBuffers;
-		set_constant_buffer_funcs[static_cast<int>(arrangement::hull)] = &ID3D11DeviceContext::HSSetConstantBuffers;
-		set_constant_buffer_funcs[static_cast<int>(arrangement::domain)] = &ID3D11DeviceContext::DSSetConstantBuffers;
-		set_constant_buffer_funcs[static_cast<int>(arrangement::geometry)] = &ID3D11DeviceContext::GSSetConstantBuffers;
-		set_constant_buffer_funcs[static_cast<int>(arrangement::pixel)] = &ID3D11DeviceContext::PSSetConstantBuffers;
-
-		set_shader_resource_funcs[static_cast<int>(arrangement::vertex)] = &ID3D11DeviceContext::VSSetShaderResources;
-		set_shader_resource_funcs[static_cast<int>(arrangement::hull)] = &ID3D11DeviceContext::HSSetShaderResources;
-		set_shader_resource_funcs[static_cast<int>(arrangement::domain)] = &ID3D11DeviceContext::DSSetShaderResources;
-		set_shader_resource_funcs[static_cast<int>(arrangement::geometry)] = &ID3D11DeviceContext::GSSetShaderResources;
-		set_shader_resource_funcs[static_cast<int>(arrangement::pixel)] = &ID3D11DeviceContext::PSSetShaderResources;
-
-		set_samppler_funcs[static_cast<int>(arrangement::vertex)] = &ID3D11DeviceContext::VSSetSamplers;
-		set_samppler_funcs[static_cast<int>(arrangement::hull)] = &ID3D11DeviceContext::HSSetSamplers;
-		set_samppler_funcs[static_cast<int>(arrangement::domain)] = &ID3D11DeviceContext::DSSetSamplers;
-		set_samppler_funcs[static_cast<int>(arrangement::geometry)] = &ID3D11DeviceContext::GSSetSamplers;
-		set_samppler_funcs[static_cast<int>(arrangement::pixel)] = &ID3D11DeviceContext::PSSetSamplers;
-	}
+		&ID3D11DeviceContext::VSSetConstantBuffers,
+		&ID3D11DeviceContext::HSSetConstantBuffers,
+		&ID3D11DeviceContext::DSSetConstantBuffers,
+		&ID3D11DeviceContext::GSSetConstantBuffers,
+		&ID3D11DeviceContext::PSSetConstantBuffers,
+	};
+	static const set_shader_resources set_shader_resource_funcs[static_cast<int>(arrangement::max)] =
+	{
+		&ID3D11DeviceContext::VSSetShaderResources,
+		&ID3D11DeviceContext::HSSetShaderResources,
+		&ID3D11DeviceContext::DSSetShaderResources,
+		&ID3D11DeviceContext::GSSetShaderResources,
+		&ID3D11DeviceContext::PSSetShaderResources,
+	};
+	static const set_sampplers set_samppler_funcs[static_cast<int>(arrangement::max)] =
+	{
+		&ID3D11DeviceContext::VSSetSamplers,
+		&ID3D11DeviceContext::HSSetSamplers,
+		&ID3D11DeviceContext::DSSetSamplers,
+		&ID3D11DeviceContext::GSSetSamplers,
+		&ID3D11DeviceContext::PSSetSamplers,
+	};
 
 	//	パラメーター設定
 	{
@@ -442,7 +444,7 @@ void graphics_custom_pipeline_state::update_parameters(const graphics_context& c
 		forward_light_data forward_light_data;
 		for (auto& cbv : index_map.cbv)
 		{
-			system_utility::hash_key cbv_key = system_utility::generate_hash(cbv.first);
+			system_utility::hash_key cbv_key = cbv.second.hash;
 			if (cbv_key == common_pipeline_states::parameter_constant_buffer_hash_key)
 			{
 				//	特定のアイテムはcontextから
@@ -521,7 +523,7 @@ void graphics_custom_pipeline_state::update_parameters(const graphics_context& c
 
 			for (auto& srv : index_map.srv)
 			{
-				system_utility::hash_key srv_key = system_utility::generate_hash(srv.first);
+				system_utility::hash_key srv_key = srv.second.hash;
 				//	登録用関数
 				auto register_srv_function = [&](const texture_ptr& srv_ptr)
 				{
@@ -863,6 +865,7 @@ void graphics_custom_pipeline_state::update_register_datas()
 				}
 
 				it->second.ids[index] = cbv.register_index;
+				it->second.hash = system_utility::generate_hash(cbv.name);
 			}
 			for (auto& rv : input_resource_desces[index].rvs)
 			{
@@ -880,6 +883,7 @@ void graphics_custom_pipeline_state::update_register_datas()
 						it = std::find_if(index_map.srv.begin(), index_map.srv.end(), search_func);
 					}
 					it->second.ids[index] = rv.register_index;
+					it->second.hash = system_utility::generate_hash(rv.name);
 				}
 				else if (rv.is_sampler())
 				{
