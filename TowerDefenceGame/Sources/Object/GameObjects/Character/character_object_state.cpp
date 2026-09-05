@@ -263,32 +263,92 @@ void character_object::update_vertical_velocity(float elapsed_time)
 
 void character_object::update_vertical_move(float elapsed_time)
 {
-	//	初期化
+	const bool was_grounded = is_flag(flags::on_ground);	//	@tool 直前フレームの接地状態（この後 false にクリアされる前に保持）
+
 	ground_friction	= 1.0f;
 	slope_rate = 1.0f;
 	ground_normal = {};
 
 	set_flag(flags::on_ground, false);
 
-	//	ルートモーションの速度加算
 	DirectX::XMFLOAT3 vel = DirectX::XMFLOAT3(0.0f, velocity.y * elapsed_time + root_motion_velocity.y, 0.0f);
 
-	//	座標算出
-	DirectX::XMFLOAT3 position, normal;
-	float fricition = 0;
-	if (calculate_position(vel, true, position, normal, &fricition))
+	DirectX::XMFLOAT3 position = get_position();
+	bool settled = false;
+
+	//	@tool 接地中は step_offset の範囲で settle を優先する（水平パスは Y を変更しないための追従。埋まり込んだ状態から真下へ通常の重力スイープを行うと「開始位置で既に接触している」ため距離0のヒットとして成立してしまい、高さが補正されないまま on_ground 扱いになる問題があったため、settle 側を先に試す）
+	if (was_grounded && vel.y <= 0.0f)
 	{
-		if (vel.y < 0)
+		auto collision_object = get_push_box();
+		auto bounding_object = std::static_pointer_cast<collision::bounding_capsule>(collision_object->get_bounding_object());
+		float capsule_height = bounding_object->get_radius() + bounding_object->get_length() * 0.5f;
+
+		collision_world::capsule_cast_descs settle_desc;
+		settle_desc.radius = bounding_object->get_radius();
+		settle_desc.length = bounding_object->get_length();
+		//	@tool 押し出し用カプセルと同じフィルタ設定
+		if (is_flag(flags::invisible))
 		{
-			set_flag(flags::on_ground, true);
-			ground_normal = normal;
-			footstep_position = position;
-			slope_rate = normal.y / ( sqrtf(normal.x * normal.x + normal.z * normal.z) + normal.y);
-			slope_rate = 1.0f - slope_rate;
-			ground_friction	= fricition;
+			settle_desc.filter = collision_filter_manager::instance()->search_filter("invisible");
 		}
-		velocity.y = 0.0f;
+		else
+		{
+			settle_desc.filter = collision_filter_manager::instance()->search_filter(collision_filter_name);
+		}
+		settle_desc.exclude_objects.emplace_back(get_push_box());
+
+		static constexpr float SkinStep = system_units::convert_cm_to_unit(0.1f);
+
+		DirectX::XMVECTOR Up = DirectX::XMVectorSet(0.0f, step_offset, 0.0f, 0.0f);
+		DirectX::XMVECTOR SettleFrom = DirectX::XMVectorAdd(DirectX::XMLoadFloat3(&position), DirectX::XMVectorSet(0.0f, capsule_height, 0.0f, 0.0f));
+		SettleFrom = DirectX::XMVectorAdd(SettleFrom, Up);
+		DirectX::XMVECTOR SettleTo = DirectX::XMVectorSubtract(SettleFrom, DirectX::XMVectorScale(Up, 2.0f));
+		DirectX::XMStoreFloat3(&settle_desc.start, SettleFrom);
+		DirectX::XMStoreFloat3(&settle_desc.end, SettleTo);
+
+		collision::intersect_data settle_data;
+		collision_object_ptr settle_object;
+		if (object_manager::instance()->get_world().capsule_cast(settle_desc, settle_data, settle_object))
+		{
+			DirectX::XMVECTOR SettleNormal = DirectX::XMVector3Normalize(DirectX::XMLoadFloat3(&settle_data[0].normal));
+			float settle_angle = acosf(math::clamp(DirectX::XMVectorGetY(SettleNormal), -1.0f, 1.0f));
+			if (settle_angle < slope_limit)
+			{
+				float ground_y = DirectX::XMVectorGetY(SettleFrom) - settle_data[0].length - capsule_height;
+				position.y = ground_y + SkinStep;
+
+				set_flag(flags::on_ground, true);
+				DirectX::XMStoreFloat3(&ground_normal, SettleNormal);
+				footstep_position = position;
+				slope_rate = ground_normal.y / ( sqrtf(ground_normal.x * ground_normal.x + ground_normal.z * ground_normal.z) + ground_normal.y);
+				slope_rate = 1.0f - slope_rate;
+				ground_friction = settle_object->get_physical_data().friction;
+				velocity.y = 0.0f;
+				settled = true;
+			}
+		}
 	}
+
+	//	@tool settle で見つからない場合（本物の落下・ジャンプなど）は通常の重力スイープ
+	if (!settled)
+	{
+		DirectX::XMFLOAT3 normal;
+		float fricition = 0;
+		if (calculate_position(vel, true, position, normal, &fricition))
+		{
+			if (vel.y < 0)
+			{
+				set_flag(flags::on_ground, true);
+				ground_normal = normal;
+				footstep_position = position;
+				slope_rate = normal.y / ( sqrtf(normal.x * normal.x + normal.z * normal.z) + normal.y);
+				slope_rate = 1.0f - slope_rate;
+				ground_friction	= fricition;
+			}
+			velocity.y = 0.0f;
+		}
+	}
+
 	set_position(position);
 }
 
@@ -514,7 +574,7 @@ bool character_object::calculate_position(DirectX::XMFLOAT3 velocity, bool verti
 
 	bool hit_flag = false;
 	DirectX::XMVECTOR Velocity = DirectX::XMLoadFloat3(&velocity);
-	for (size_t index = 0; index < 2; ++index)
+	for (size_t index = 0; index < 3; ++index)
 	{
 		float distance = DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(Velocity));
 		if (distance < StopFactorSq)
@@ -543,27 +603,63 @@ bool character_object::calculate_position(DirectX::XMFLOAT3 velocity, bool verti
 			DirectX::XMVECTOR Normal = DirectX::XMVector3Normalize(DirectX::XMLoadFloat3(&intersect_data[0].normal));
 			DirectX::XMStoreFloat3(&out_normal, Normal);
 
-			DirectX::XMVECTOR PositionOffset = Offset;
-			if (vertical)
-			{
-				PositionOffset = DirectX::XMVectorSet(0.0f, desc.radius, 0.0f, 0.0f);
-			}
-
-			DirectX::XMVECTOR Position = DirectX::XMLoadFloat3(&intersect_data[0].point);
-			DirectX::XMVECTOR OffsetNormal = Normal;
 			if (!vertical)
 			{
-				OffsetNormal = DirectX::XMVectorSetY(OffsetNormal, 0.0f);
+				//	@tool 水平パス: 段差/坂は「通すか壁として扱うか」の判定にだけ使い、Y はここでは変更しない（水平移動は水平だけ、垂直移動は垂直だけに責務を分離。高さの追従は update_vertical_move 側で行う）
+				const DirectX::XMVECTOR MoveDir = NormalizedVelocity;
+
+				//	@tool 段差の面の少し先まで探る前方距離。ヒット距離（カプセル中心→面まで）+ 半径 で面の向こう側、さらに SkinStep 余分に進んだ位置。固定値 radius だと手前の地面をサンプルしてしまい、ちょっとした段差の途中や階段の終わりで登れず詰まっていた
+				float probe_x = intersect_data[0].length + desc.radius + SkinStep;
+
+				bool climbable = false;
+
+				//	@tool 1) 段差の向こう側で立てる面を探す。細いプローブ（半径 SkinStep）を足元から step_offset+SkinStep 上を始点に下方向へ。太いカプセルのままだと段の天板と最初から重なって距離0ヒットになり誤判定するため細くする
+				collision_world::capsule_cast_descs probe_desc = desc;
+				probe_desc.radius = SkinStep;
+				probe_desc.length = 0.0f;
+				DirectX::XMVECTOR DownFrom = DirectX::XMVectorAdd(DirectX::XMLoadFloat3(&out_position), DirectX::XMVectorSet(0.0f, step_offset + SkinStep, 0.0f, 0.0f));
+				DownFrom = DirectX::XMVectorAdd(DownFrom, DirectX::XMVectorScale(MoveDir, probe_x));
+				DirectX::XMVECTOR DownTo = DirectX::XMVectorSubtract(DownFrom, DirectX::XMVectorSet(0.0f, step_offset + SkinStep * 3.0f, 0.0f, 0.0f));
+				DirectX::XMStoreFloat3(&probe_desc.start, DownFrom);
+				DirectX::XMStoreFloat3(&probe_desc.end, DownTo);
+				collision::intersect_data down_data;
+				collision_object_ptr down_object;
+				if (object_manager::instance()->get_world().capsule_cast(probe_desc, down_data, down_object))
+				{
+					DirectX::XMVECTOR DownNormal = DirectX::XMVector3Normalize(DirectX::XMLoadFloat3(&down_data[0].normal));
+					float down_slope = acosf(math::clamp(DirectX::XMVectorGetY(DownNormal), -1.0f, 1.0f));
+					//	@tool 立てる面の Y = 下キャスト開始 Y - 落下距離 - プローブ半径
+					float top_y = DirectX::XMVectorGetY(DownFrom) - down_data[0].length - probe_desc.radius;
+					float rise = top_y - out_position.y;
+					if (down_slope <= slope_limit && rise <= step_offset && rise > -SkinStep)
+					{
+						//	@tool 2) 実際に立つ高さ（step_offset の嵩上げ無し）で本来のカプセルを使い前方の空きを検証する。半径ぶん高い位置から probe_x 分掃引し、段の角にカプセルの丸い底面が触れて誤検知するのを防ぐ。薄い壁や本物の壁はここで弾く
+						float landing_y = (rise > SkinStep) ? (top_y + SkinStep) : out_position.y;
+						collision_world::capsule_cast_descs verify_desc = desc;
+						DirectX::XMVECTOR VerifyFrom = DirectX::XMVectorSetY(From, landing_y + desc.radius + height);
+						DirectX::XMVECTOR VerifyTo = DirectX::XMVectorAdd(VerifyFrom, DirectX::XMVectorScale(MoveDir, probe_x));
+						DirectX::XMStoreFloat3(&verify_desc.start, VerifyFrom);
+						DirectX::XMStoreFloat3(&verify_desc.end, VerifyTo);
+						collision::intersect_data verify_data;
+						collision_object_ptr verify_object;
+						climbable = !object_manager::instance()->get_world().capsule_cast(verify_desc, verify_data, verify_object);
+					}
+				}
+
+				if (climbable)
+				{
+					//	@tool 歩ける段差/坂と判断できたので壁扱いせず素通りさせる。Y はここでは変えず、水平移動をそのまま消費して終了（実際の高さ合わせは垂直パスに任せる）
+					DirectX::XMVECTOR FullMove = DirectX::XMVectorAdd(From, DirectX::XMVectorScale(NormalizedVelocity, distance));
+					DirectX::XMStoreFloat3(&out_position, DirectX::XMVectorSubtract(FullMove, Offset));
+					hit_flag = false;
+					break;
+				}
 			}
-			else
-			{
-				OffsetNormal = DirectX::XMVectorSetX(OffsetNormal, 0.0f);
-				OffsetNormal = DirectX::XMVectorSetZ(OffsetNormal, 0.0f);
-			}
-			OffsetNormal = (DirectX::XMVectorGetX(OffsetNormal) > 1e-6f) ? DirectX::XMVector3Normalize(OffsetNormal) : DirectX::XMVectorZero();
-			Position = DirectX::XMVectorAdd(Position, DirectX::XMVectorScale(OffsetNormal, SkinStep));
-			Position = DirectX::XMVectorSubtract(Position, PositionOffset);
-			DirectX::XMStoreFloat3(&out_position, Position);
+
+			//	@tool ヒット位置はサンプル非依存で算出：カプセル中心(From)を進行方向へ hit_distance 進めて Offset を引く。intersect_data[0].point は軸サンプル球（複数球のうち当たった1つ）の中心であり、カプセル中心ではないため、そこから直接 Offset を引くと Y がズレて埋まり込む原因になっていた
+			float hit_distance = math::clamp(intersect_data[0].length - SkinStep, 0.0f, distance);
+			DirectX::XMVECTOR Center = DirectX::XMVectorAdd(From, DirectX::XMVectorScale(NormalizedVelocity, hit_distance));
+			DirectX::XMStoreFloat3(&out_position, DirectX::XMVectorSubtract(Center, Offset));
 
 			if (out_friction)
 			{
@@ -579,7 +675,6 @@ bool character_object::calculate_position(DirectX::XMFLOAT3 velocity, bool verti
 					break;
 			}
 
-			float hit_distance = intersect_data[0].length - SkinStep;
 			MoveVector = DirectX::XMVectorSubtract(To, From);
 			float remain_distance = DirectX::XMVectorGetX(DirectX::XMVector3Length(MoveVector)) - hit_distance;
 			distance = math::clamp(remain_distance, 0.0f, distance);
