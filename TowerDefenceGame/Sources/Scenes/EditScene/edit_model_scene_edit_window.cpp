@@ -382,6 +382,28 @@ void edit_model_scene::imgui_model_loader_window()
 		}
 
 		ImGui::EndDisabled();
+
+		//	LOD ¶¬
+		if (edit_model)
+		{
+			ImGui::Separator();
+			ImGui::Text("LOD");
+			ImGui::SliderInt("lod_level", &generate_lod_level, 1, 8);
+			if (ImGui::Button("Generate LOD"))
+			{
+				generate_lod();
+			}
+
+			int lod_max = edit_model->get_model_instance()->get_lod_max();
+			if (lod_max > 0)
+			{
+				int lod_index = edit_model->get_model_instance()->get_lod_index();
+				if (ImGui::SliderInt("preview_lod", &lod_index, 0, lod_max))
+				{
+					edit_model->get_model_instance()->set_lod_index(lod_index);
+				}
+			}
+		}
 	}
 }
 

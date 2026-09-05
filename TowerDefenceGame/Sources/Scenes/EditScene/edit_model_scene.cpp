@@ -282,4 +282,18 @@ void edit_model_scene::save_model()
 	resource->serialize(resource->get_file_path());
 }
 
+void edit_model_scene::generate_lod()
+{
+	if (!edit_model)
+		return;
+
+	auto resource = edit_model->get_model_instance()->get_resource();
+	if (!resource)
+		return;
+
+	resource->generate_lod_meshs(generate_lod_level);
+
+	edit_model->get_model_instance()->set_lod_index(0);
+}
+
 #endif	//	defined(USE_IMGUI)

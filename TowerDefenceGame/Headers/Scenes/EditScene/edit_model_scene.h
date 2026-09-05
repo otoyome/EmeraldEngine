@@ -35,6 +35,7 @@ protected:
 
 private:
 	void save_model();
+	void generate_lod();
 
 private:	//	編集ウィンドウ纏め系
 	bool initialize_edit_core();
@@ -78,6 +79,8 @@ private:
 
 private:
 	std::shared_ptr<model_object> edit_model;
+
+	int generate_lod_level = 4;
 
 	std::string load_model_path;
 	struct convert_option_data

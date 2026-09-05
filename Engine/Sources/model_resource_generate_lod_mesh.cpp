@@ -272,6 +272,8 @@ void model_resource::generate_lod_meshs(int max_lod_level, bool regeneratge_buff
 				continue;
 
 			//	重複頂点最適化
+			mesh.lod_meshs.clear();
+
 			for (INT lod = 0; lod < max_lod_level; ++lod)
 			{
 				std::vector<UINT> lod_indicesLod(indices.size());
@@ -294,6 +296,18 @@ void model_resource::generate_lod_meshs(int max_lod_level, bool regeneratge_buff
 				sub_mesh.index_buffer_view.format = DXGI_FORMAT_R32_UINT;
 				sub_mesh.index_buffer_view.size_in_bytes = lod_indicesLod.size() * sizeof(UINT);
 				sub_mesh.index_buffer_view.stride_in_bytes = sizeof(UINT);
+				if (regeneratge_buffer && sub_mesh.index_buffer_view.size_in_bytes > 0)
+				{
+					//	再生成の場合はGPUリソース生成
+					D3D11_BUFFER_DESC buffer_desc{};
+					buffer_desc.ByteWidth = static_cast<UINT>(sub_mesh.index_buffer_view.size_in_bytes);
+					buffer_desc.Usage = D3D11_USAGE_DEFAULT;
+					buffer_desc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+					D3D11_SUBRESOURCE_DATA subresource_data{};
+					subresource_data.pSysMem = sub_mesh.index_buffer_view.row_data.data();
+					HRESULT hr = render_data::instance()->get_device()->CreateBuffer(&buffer_desc, &subresource_data, sub_mesh.index_buffer_view.buffer.ReleaseAndGetAddressOf());
+					_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+				}
 				mesh.lod_meshs.emplace_back(sub_mesh);
 			}
 		}
