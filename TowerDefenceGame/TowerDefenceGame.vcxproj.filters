@@ -204,6 +204,42 @@
     <Filter Include="Shaders\Surface">
       <UniqueIdentifier>{07c7506c-d536-4cd4-81cc-dacaa9a569bd}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Headers\Object\GameObjects\Character\Enemy">
+      <UniqueIdentifier>{85b813c9-9f28-46df-9654-c5e0d858e25a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Headers\Object\GameObjects\Character\BossSeraphim">
+      <UniqueIdentifier>{793487cc-ab84-4e9d-9393-ee33c23cae27}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Sources\Object\GameObjects\Character\Enemy">
+      <UniqueIdentifier>{a0a70d5c-ffc3-48ae-8355-6dd2f3da5712}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Sources\Object\GameObjects\Character\Enemy\BossSeraphim">
+      <UniqueIdentifier>{4b67ba2f-2932-456c-8a16-932af9bf2699}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Headers\Object\GameObjects\UI">
+      <UniqueIdentifier>{af0e756c-0ee5-4ab0-8389-b9ddf2bc0784}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Headers\Object\GameObjects\UI\Common">
+      <UniqueIdentifier>{1897ba30-1090-44da-95a9-2561cad9a309}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Headers\Object\GameObjects\UI\HUD">
+      <UniqueIdentifier>{be64279e-d83f-4344-a861-308f9cf34825}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Headers\Object\GameObjects\Cinematics">
+      <UniqueIdentifier>{d6e61d08-49f9-48ed-bb3c-71fa9162c0db}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Sources\Object\GameObjects\Cinematics">
+      <UniqueIdentifier>{35302188-f99f-458b-9dfe-64ebc2e330dc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Sources\Object\GameObjects\UI">
+      <UniqueIdentifier>{9fed639c-254a-4e70-8dd9-8016dfbf2916}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Sources\Object\GameObjects\UI\HUD">
+      <UniqueIdentifier>{8556d3c0-b7cc-4b25-93a4-2f8efd11a619}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Sources\Object\GameObjects\UI\Common">
+      <UniqueIdentifier>{451c5df4-4744-4a50-aae3-663fdd716827}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\External\imgui\imgui.cpp">
@@ -416,6 +452,72 @@
     <ClCompile Include="Sources\PipelineState\deferred_decal_pipeline_state.cpp">
       <Filter>Sources\PipelineState</Filter>
     </ClCompile>
+    <ClCompile Include="Sources\Object\GameObjects\Character\Person\boss_seraphim_object_resource_setup.cpp">
+      <Filter>Sources\Object\GameObjects\Character\Person</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Object\GameObjects\Character\Person\boss_seraphim_object.cpp">
+      <Filter>Sources\Object\GameObjects\Character\Person</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Object\GameObjects\Character\Enemy\enemy_controller_object.cpp">
+      <Filter>Sources\Object\GameObjects\Character\Enemy</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Object\GameObjects\Character\Enemy\BossSeraphim\boss_seraphim_controller_object.cpp">
+      <Filter>Sources\Object\GameObjects\Character\Enemy\BossSeraphim</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Object\GameObjects\Cinematics\cinematics_object.cpp">
+      <Filter>Sources\Object\GameObjects\Cinematics</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Object\GameObjects\UI\Common\fade_controller_object.cpp">
+      <Filter>Sources\Object\GameObjects\UI\Common</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Object\GameObjects\UI\Common\result_hud_controller.cpp">
+      <Filter>Sources\Object\GameObjects\UI\Common</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Object\GameObjects\UI\Common\transition_fade_controller.cpp">
+      <Filter>Sources\Object\GameObjects\UI\Common</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Object\GameObjects\UI\HUD\battle_hud_controller_object.cpp">
+      <Filter>Sources\Object\GameObjects\UI\HUD</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Object\GameObjects\UI\HUD\break_hud_controller_object.cpp">
+      <Filter>Sources\Object\GameObjects\UI\HUD</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Object\GameObjects\UI\HUD\face_image_controller_object.cpp">
+      <Filter>Sources\Object\GameObjects\UI\HUD</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Object\GameObjects\UI\HUD\hp_bar_controller_object.cpp">
+      <Filter>Sources\Object\GameObjects\UI\HUD</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Object\GameObjects\UI\HUD\hud_controller_object.cpp">
+      <Filter>Sources\Object\GameObjects\UI\HUD</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Object\GameObjects\UI\HUD\key_icon_controller_object.cpp">
+      <Filter>Sources\Object\GameObjects\UI\HUD</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Object\GameObjects\UI\HUD\retry_hud_controller_object.cpp">
+      <Filter>Sources\Object\GameObjects\UI\HUD</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Object\GameObjects\UI\HUD\sp_bar_controller_object.cpp">
+      <Filter>Sources\Object\GameObjects\UI\HUD</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Object\GameObjects\UI\HUD\timer_controller_object.cpp">
+      <Filter>Sources\Object\GameObjects\UI\HUD</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Object\GameObjects\UI\HUD\trunk_bar_controller_object.cpp">
+      <Filter>Sources\Object\GameObjects\UI\HUD</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Object\GameObjects\UI\ui_button.cpp">
+      <Filter>Sources\Object\GameObjects\UI</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Object\GameObjects\UI\ui_image.cpp">
+      <Filter>Sources\Object\GameObjects\UI</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Object\GameObjects\UI\ui_object.cpp">
+      <Filter>Sources\Object\GameObjects\UI</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Object\GameObjects\UI\ui_text.cpp">
+      <Filter>Sources\Object\GameObjects\UI</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\External\imgui\imgui.h">
@@ -624,6 +726,69 @@
     </ClInclude>
     <ClInclude Include="Headers\PipelineState\deferred_decal_pipeline_state.h">
       <Filter>Headers\PipelineState</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Object\GameObjects\Character\Person\boss_seraphim_object.h">
+      <Filter>Headers\Object\GameObjects\Character\Person</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Object\GameObjects\Character\Enemy\enemy_controller_object.h">
+      <Filter>Headers\Object\GameObjects\Character\Enemy</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Object\GameObjects\Character\Enemy\BossSeraphim\boss_seraphim_controller_object.h">
+      <Filter>Headers\Object\GameObjects\Character\BossSeraphim</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Object\GameObjects\UI\ui_image.h">
+      <Filter>Headers\Object\GameObjects\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Object\GameObjects\UI\ui_object.h">
+      <Filter>Headers\Object\GameObjects\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Object\GameObjects\UI\ui_text.h">
+      <Filter>Headers\Object\GameObjects\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Object\GameObjects\UI\ui_button.h">
+      <Filter>Headers\Object\GameObjects\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Object\GameObjects\UI\HUD\sp_bar_controller_object.h">
+      <Filter>Headers\Object\GameObjects\UI\HUD</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Object\GameObjects\UI\HUD\timer_controller_object.h">
+      <Filter>Headers\Object\GameObjects\UI\HUD</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Object\GameObjects\UI\HUD\trunk_bar_controller_object.h">
+      <Filter>Headers\Object\GameObjects\UI\HUD</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Object\GameObjects\UI\HUD\battle_hud_controller_object.h">
+      <Filter>Headers\Object\GameObjects\UI\HUD</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Object\GameObjects\UI\HUD\break_hud_controller_object.h">
+      <Filter>Headers\Object\GameObjects\UI\HUD</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Object\GameObjects\UI\HUD\face_image_controller_object.h">
+      <Filter>Headers\Object\GameObjects\UI\HUD</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Object\GameObjects\UI\HUD\hp_bar_controller_object.h">
+      <Filter>Headers\Object\GameObjects\UI\HUD</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Object\GameObjects\UI\HUD\hud_controller_object.h">
+      <Filter>Headers\Object\GameObjects\UI\HUD</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Object\GameObjects\UI\HUD\key_icon_controller_object.h">
+      <Filter>Headers\Object\GameObjects\UI\HUD</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Object\GameObjects\UI\HUD\retry_hud_controller_object.h">
+      <Filter>Headers\Object\GameObjects\UI\HUD</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Object\GameObjects\UI\Common\fade_controller_object.h">
+      <Filter>Headers\Object\GameObjects\UI\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Object\GameObjects\UI\Common\result_hud_controller.h">
+      <Filter>Headers\Object\GameObjects\UI\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Object\GameObjects\UI\Common\transition_fade_controller.h">
+      <Filter>Headers\Object\GameObjects\UI\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Object\GameObjects\Cinematics\cinematics_object.h">
+      <Filter>Headers\Object\GameObjects\Cinematics</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

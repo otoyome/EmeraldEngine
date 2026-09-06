@@ -1,7 +1,5 @@
 #include "object/gameobjects/character/person/kuroko_object.h"
 
-//#include "object/gameobjects/decal_object.h"
-
 #include "collision/capsule.h"
 
 #include "collision/sphere.h"

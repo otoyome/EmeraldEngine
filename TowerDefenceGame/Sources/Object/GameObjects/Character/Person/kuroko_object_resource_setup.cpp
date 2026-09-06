@@ -16,28 +16,23 @@ namespace setup_data
 
 std::shared_ptr<model_object> kuroko_object::generate_character_model_object()
 {
-	//	変換済みファイルがあるか？
 	std::filesystem::path path(setup_data::character_model_file_path);
-	if (!std::filesystem::exists(path))
-	{
-	}
-
+	assert (std::filesystem::exists(path));
 	return std::make_shared<model_object>(setup_data::character_model_object_name, path.string());
 }
 
 std::shared_ptr<model_object> kuroko_object::generate_weapon_model_object()
 {
-	//	変換済みファイルがあるか？
 	std::filesystem::path path(setup_data::weapon_model_file_path);
-	if (!std::filesystem::exists(path))
-	{
-	}
+	assert (std::filesystem::exists(path));
 	return std::make_shared<model_object>(setup_data::weapon_model_object_name, path.string());
 }
 
 
 void kuroko_object::register_effects()
 {
+	//	この辺りは今の所置いておく
+
 	//	エフェクトリソース読込
 	register_effect(static_cast<size_t>(custom_effect_id::grand_viper_frame), "Assets/Resources/effect/tktk02/grand_viperr_frame.efk");
 	register_effect(static_cast<size_t>(custom_effect_id::attack6_3), "Assets/Resources/effect/tktk02/attack6_3.efk");
@@ -47,5 +42,5 @@ void kuroko_object::register_effects()
 	register_effect(static_cast<size_t>(custom_effect_id::break_attack_impact), "Assets/Resources/effect/tktk01/Blow13.efk");
 
 	//	攻撃用デカールテクスチャ読込
-	texture_manager::instance()->load_texture_from_file(attack_6_decal, "Assets/Resources/ground_crack.png");
+//	texture_manager::instance()->load_texture_from_file(attack_6_decal, "Assets/Resources/ground_crack.png");
 }

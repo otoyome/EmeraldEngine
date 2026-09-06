@@ -1,6 +1,6 @@
 #include "object/gameobjects/character/player/player_camera_controller_object.h"
 
-//#include "object/cinematics/cinematics_object.h"
+#include "object/gameobjects/cinematics/cinematics_object.h"
 
 namespace
 {
