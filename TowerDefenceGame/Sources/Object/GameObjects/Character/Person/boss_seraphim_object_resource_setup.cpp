@@ -4,7 +4,7 @@
 
 namespace setup_data
 {
-	constexpr std::string_view character_model_file_path = "Assets/Resources/Seraphim/Seraphim.emo";
+	constexpr std::string_view character_model_file_path = "Assets/Resources/Models/Seraphim/Seraphim.emo";
 	constexpr std::string_view character_model_object_name = "セラフィム モデル";
 	constexpr std::string_view model_control_object_name = "セラフィム 制御";
 }

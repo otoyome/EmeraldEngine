@@ -64,7 +64,7 @@ bool stage_00_scene::initialize_core()
 	//	ステージ
 	//	動かさない事前提
 	{
-		auto file_path = "Assets/Resources/Models/人里ver0.77/人里.emo";
+		auto file_path = "Assets/Resources/Models/バーダス・コロシアム/バーダス・コロシアム.emo";
 		UINT separate_level = 6;
 		std::filesystem::path path(file_path);
 		assert (std::filesystem::exists(path));

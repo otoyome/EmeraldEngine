@@ -227,7 +227,7 @@ bool bounding_capsule::intersect_sphere_cast(const DirectX::XMFLOAT3& start, con
 			ret = true;
 		}
 	}
-	if (intersect)
+	if (ret && intersect)
 	{
 		DirectX::XMFLOAT3 insert_point, normal;
 		DirectX::XMStoreFloat3(&insert_point, NearPosition);

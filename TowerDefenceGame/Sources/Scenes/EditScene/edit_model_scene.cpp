@@ -68,16 +68,6 @@ bool edit_model_scene::initialize_core()
 		}
 	}
 
-	//	モデル生成
-	{
-		load_model_path = "Assets/Resources/Models/Umber/Umber.emo";
-		convert_option_data.kind = convert_option_data::kinds::emo;
-	//	load_model_path = "Assets/Resources/Models/Umber/Umber.glb";
-	//	convert_option_data.kind = convert_option_data::kinds::gltf;
-	//	load_model_path = "Assets/Resources/Models/Cartoon_City/Cartoon_City.emo";
-	//	convert_option_data.kind = convert_option_data::kinds::emo;
-	}
-
 	//	デフォルトでポストプロセスを適応する
 	if (pipeline_state_manager* instance = pipeline_state_manager::instance())
 	{

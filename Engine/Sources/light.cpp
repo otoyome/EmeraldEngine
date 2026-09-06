@@ -195,7 +195,7 @@ float light::get_csm_distance_factor() const
 
 void light::set_csm_distance_factor(float factor)
 {
-	this->csm_distance_factor = factor;
+	this->csm_distance_factor = math::max(factor, 0.0001f);
 }
 
 float light::get_pssm_split_weight() const

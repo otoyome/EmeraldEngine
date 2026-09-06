@@ -11,6 +11,11 @@
 #include "object/gameobjects/character/player/player_controller_object.h"
 #include "object/gameobjects/character/player/player_camera_controller_object.h"
 
+#include "object/gameobjects/character/person/boss_seraphim_object.h"
+#include "object/gameobjects/character/enemy/BossSeraphim/boss_seraphim_controller_object.h"
+
+#include "object/gameobjects/cinematics/cinematics_object.h"
+
 namespace
 {
 	//	ポストプロセスマテリアル
@@ -73,58 +78,11 @@ game_main_scene::game_main_scene()
 		register_object(main_camera);
 	}
 
-	//	ポストプロセス生成
-	if (pipeline_state_manager* instance = pipeline_state_manager::instance())
+	//	演出オブジェクト生成
+	std::shared_ptr<cinematics_object> main_cinematics;
 	{
-		auto post_process_volume = std::make_shared<post_process_volume_object>("ポストプロセスボリューム");
-		post_process_volume->set_flag(post_process_volume::flags::unbind, true);
-		register_object(post_process_volume);
-
-		for (UINT index = 0; index < ARRAYSIZE(postprocess_material_path_list); ++index)
-		{
-			std::shared_ptr<graphics_custom_pipeline_state> pso;
-			instance->generate_pipeline_state<graphics_custom_pipeline_state>(postprocess_material_texts_list[index][0], &pso);
-			pso->set_domain(pipeline_state_base::domains::post_process);
-
-			//	頂点シェーダー読み込み
-			{
-				load_shader_file desc;
-				desc.file_path = postprocess_material_texts_list[index][1];
-#if defined(_DEBUG)
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
-#endif	//	defined(_DEBUG)
-
-				std::shared_ptr<vertex_shader> shader;
-				shader_manager::instance()->load_shader<vertex_shader>(shader, desc);
-				pso->set_shader(shader);
-			}
-
-			//	ピクセルシェーダー読み込み
-			{
-				load_shader_file desc;
-				desc.file_path = postprocess_material_texts_list[index][2];
-#if defined(_DEBUG)
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
-#endif	//	defined(_DEBUG)
-
-				std::shared_ptr<pixel_shader> shader;
-				shader_manager::instance()->load_shader<pixel_shader>(shader, desc);
-				pso->set_shader(shader);
-			}
-
-			std::shared_ptr<material> post_process_material = std::make_shared<material>();
-			post_process_material->set_name(postprocess_material_texts_list[index][3]);
-			post_process_material->set_domain(material::domains::post_process);
-			post_process_material->set_flag(material::flags::two_sided, true);
-			post_process_material->set_blend_mode(material::blend_modes::opaque);
-			post_process_material->set_blendable_location(postprocess_material_path_list[index]);
-			post_process_material->set_pipeline_state(postprocess_material_texts_list[index][0]);
-
-			//	マテリアル登録
-			post_process_volume->get_volume()->register_postprocess_materials(post_process_material);
-		}
+		main_cinematics = std::make_shared<cinematics_object>("演出管理オブジェクト", main_camera);
+		register_object(main_cinematics);
 	}
 
 	//	主人公モデル生成
@@ -155,6 +113,27 @@ game_main_scene::game_main_scene()
 
 		player_camera_controller = std::make_shared<player_camera_controller_object>("プレイヤーカメラ", controller_object, main_camera);
 		register_object(player_camera_controller);
+	}
+
+	//	敵モデル生成
+	{
+		//	モデルオブジェクト生成
+		std::shared_ptr<model_object> boss_model = boss_seraphim_object::generate_character_model_object();
+		register_object(boss_model);
+
+		auto enemy1 = std::make_shared<boss_seraphim_object>(boss_model, "enemy");
+		enemy1->set_active(false);
+		enemy1->set_position(system_units::convert_m_to_unit({0, -1000, 0}));
+		enemy1->set_rotation({ 0.0f, DirectX::XM_PI, 0.0f });
+		register_object(enemy1);
+
+		auto controller = std::make_shared<boss_seraphim_controller_object>("ボスセラフィム制御用クラス", enemy1);
+		controller->set_active(false);
+
+		register_object(controller);
+
+		main_cinematics->register_effects_function(enemy1);
+		player_camera_controller->register_character_object(enemy1);
 	}
 }
 

@@ -14,7 +14,7 @@ camera::camera()
 
 , fov_y(DirectX::XMConvertToRadians(45))
 , screen_rect(0.0f, 0.0f, 1920.0f, 1080.0f)
-, clip_distance(0.1f, 10000.0f)
+, clip_distance(1.0f, 10000.0f)
 , hybrid_rate(0.3f)
 {
 	set_flag(flags::active, true);
