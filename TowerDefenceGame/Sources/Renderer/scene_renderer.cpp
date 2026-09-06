@@ -293,7 +293,7 @@ gbuffer_decal_renderer::~gbuffer_decal_renderer()
 
 void gbuffer_decal_renderer::render(renderer_context& renderer_context)
 {
-	if (renderer_context.render_decal_indices->default.empty())
+	if (renderer_context.render_decal_indices->draw_list.empty())
 		return;
 
 	job_executor.execute([this, renderer_context](graphics_context& context)
@@ -331,7 +331,7 @@ void gbuffer_decal_renderer::render(renderer_context& renderer_context)
 			}
 
 			//	ƒfƒJ[ƒ‹•`‰æ
-			for (auto& decal_index : renderer_context.render_decal_indices->default)
+			for (auto& decal_index : renderer_context.render_decal_indices->draw_list)
 			{
 				auto& decal = context.render_data->decal_container.decal_datas[decal_index];
 

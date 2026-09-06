@@ -1724,7 +1724,16 @@ float bounding_mesh::calculate_segment_distance(const collision::line& line,
 bool collision::generate_bounding_mesh(bounding_mesh& out_mesh, model_resource_ptr resource, size_t index, generate_bounding_mesh_data data)
 {
 	auto& mesh = resource->get_meshes()[index];
-	if (mesh.index_buffer_view.count() == 0)
+
+	//	使用するインデックスバッファを選択
+	const buffer_view* index_view = &mesh.index_buffer_view;
+	if (data.lod_level >= 0)
+	{
+		if (data.lod_level >= static_cast<int>(mesh.lod_meshs.size()))
+			return false;
+		index_view = &mesh.lod_meshs[data.lod_level].index_buffer_view;
+	}
+	if (index_view->count() == 0)
 		return false;
 
 	auto& nodes = resource->get_nodes();
@@ -1759,16 +1768,24 @@ bool collision::generate_bounding_mesh(bounding_mesh& out_mesh, model_resource_p
 			DirectX::XMVECTOR P = DirectX::XMLoadFloat3(p + index);
 			DirectX::XMStoreFloat3(&positions.emplace_back(), DirectX::XMVector3TransformCoord(P, local_transform_matrix));
 		}
-		auto i = reinterpret_cast<const UINT*>(mesh.index_buffer_view.row_data.data());
+
+		auto fetch_index = [&](UINT k) -> UINT
+		{
+			if (index_view->stride_in_bytes == 2)
+				return reinterpret_cast<const USHORT*>(index_view->row_data.data())[k];
+			if (index_view->stride_in_bytes == 1)
+				return reinterpret_cast<const UCHAR*>(index_view->row_data.data())[k];
+			return reinterpret_cast<const UINT*>(index_view->row_data.data())[k];
+		};
 		UINT index1 = data.reverse_flag ? 2 : 0;
 		UINT index2 = 1;
 		UINT index3 = data.reverse_flag ? 0 : 2;
-		for (UINT index = 0; index < mesh.index_buffer_view.count(); index += 3)
+		for (UINT index = 0; index < index_view->count(); index += 3)
 		{
 			bounding_mesh::triangle& triangle = triangles.emplace_back();
-			triangle.a = i[index + index1];
-			triangle.b = i[index + index2];
-			triangle.c = i[index + index3];
+			triangle.a = fetch_index(index + index1);
+			triangle.b = fetch_index(index + index2);
+			triangle.c = fetch_index(index + index3);
 
 			//	事前計算
 			auto A = DirectX::XMLoadFloat3(p  + triangle.a);

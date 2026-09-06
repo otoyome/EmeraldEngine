@@ -12,6 +12,7 @@ struct render_mesh_indices
 	{
 		opaque.clear();
 		mask.clear();
+		lengths.clear();
 		for (auto& indices : forward)
 			indices.clear();
 	}
@@ -37,10 +38,10 @@ struct render_particle_indices
 //	@remainder	ŠÔ‚ª–³‚¢‚Ì‚Å‚à‚¤ˆê—¥•`‰æ
 struct render_decal_indices
 {
-	std::vector<std::size_t> default;	//	•`‰æ‡ƒŠƒXƒg
+	std::vector<std::size_t> draw_list;	//	•`‰æ‡ƒŠƒXƒg
 	void clear()
 	{
-		default.clear();
+		draw_list.clear();
 	}
 };
 

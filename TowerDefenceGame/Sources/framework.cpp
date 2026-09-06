@@ -581,7 +581,7 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 				const auto& frustum_culling = camera.camera->get_frustum_culling();
 
 				//	必要な分だけ登録
-				context.render_mesh_indices->lengths.resize(render_data->mesh_container.buffer_datas.size());
+				context.render_mesh_indices->lengths.assign(render_data->mesh_container.buffer_datas.size(), 0.0f);
 				for (auto& mesh_index : render_data->mesh_container.color_datas)
 				{
 					const auto* draw_data = draw_data_ptr + mesh_index;
@@ -662,7 +662,7 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 						continue;
 
 					//	一律同じタイミングで
-					context.render_decal_indices->default.emplace_back(decal_index);
+					context.render_decal_indices->draw_list.emplace_back(decal_index);
 				}
 			}
 

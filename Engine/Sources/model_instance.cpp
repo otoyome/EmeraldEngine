@@ -243,7 +243,12 @@ void model_instance_manger::get_container(mesh_container& container)
 
 		if (!instance->is_flag(model_instance::flags::color_render) &&
 			!instance->is_flag(model_instance::flags::shadow_caster))
+		{
+			for (auto& node : instance->get_nodes())
+				node.previous_global_transform = node.global_transform;
+			instance->set_previous_world_transform(instance->get_world_transform());
 			continue;
+		}
 
 		//	ワールド行列等生成
 		DirectX::XMMATRIX WorldTransform = DirectX::XMLoadFloat4x4(&instance->get_world_transform());
@@ -339,6 +344,13 @@ void model_instance_manger::get_container(mesh_container& container)
 			buffer_data.system_flags = 0;
 			system_utility::set_bitflag(buffer_data.system_flags, buffer_datas::flags::culling, instance->is_flag(model_instance::flags::culling));
 
+			buffer_data.color_meshs.clear();
+			buffer_data.transform_matrices[static_cast<int>(buffer_datas::transform_matrix_index::current)].clear();
+			buffer_data.transform_matrices[static_cast<int>(buffer_datas::transform_matrix_index::previous)].clear();
+			buffer_data.shadow_mesh.vertex_buffer_views = nullptr;
+			buffer_data.shadow_mesh.index_buffer_view = nullptr;
+			buffer_data.shadow_mesh.morph_meshes.clear();
+
 			//	頂点バッファ系列登録
 			{
 				auto& main_mesh = buffer_data.color_meshs.emplace_back();
@@ -357,15 +369,15 @@ void model_instance_manger::get_container(mesh_container& container)
 							continue;
 
 						UINT part_count = static_cast<UINT>(morph.morph->parts.size());
-						for (UINT index = 0; index < part_count; ++index)
+						for (UINT part_index = 0; part_index < part_count; ++part_index)
 						{
-							auto& morph_part = morph.morph->parts[index];
-							auto it = mesh.morph_indices.find(morph_part.mesh_name);
-							if (it == mesh.morph_indices.end())
+							auto& morph_part = morph.morph->parts[part_index];
+							auto morph_it = mesh.morph_indices.find(morph_part.mesh_name);
+							if (morph_it == mesh.morph_indices.end())
 								continue;
 
 							auto& morph_mesh = main_mesh.morph_meshes.emplace_back();
-							morph_mesh.vertex_buffer_views = &mesh.morph_meshes[it->second].vertex_buffer_views;
+							morph_mesh.vertex_buffer_views = &mesh.morph_meshes[morph_it->second].vertex_buffer_views;
 							morph_mesh.weight = morph.weight;
 							break;
 						}
@@ -401,7 +413,7 @@ void model_instance_manger::get_container(mesh_container& container)
 				{
 					sub_mesh.vertex_buffer_views = &mesh.lod_meshs[index].vertex_buffer_views;
 				}
-				if (!mesh.lod_meshs[index].index_buffer_view.count() == 0)
+				if (mesh.lod_meshs[index].index_buffer_view.count() != 0)
 				{
 					sub_mesh.index_buffer_view = &mesh.lod_meshs[index].index_buffer_view;
 				}

@@ -38,11 +38,18 @@ void scene_renderer_commons::draw_indexed(const graphics_context& context,
 	else
 	{
 		//	LOD‘Î‰ž
-		UINT lod_level = static_cast<UINT>(buffer_data.color_meshs.size());
-		float lod_range_min = buffer_data.lod_range_rate.x * context.scene_constant.camera_clip_distance.x;
-		float lod_range_max = buffer_data.lod_range_rate.y * context.scene_constant.camera_clip_distance.y;
-		float lod_rate = math::saturate((mesh_length - lod_range_min) / (lod_range_max - lod_range_min));
-		auto lod_mesh_index = math::lerp(0u, lod_level - 1, lod_rate);
+		std::size_t lod_count = buffer_data.color_meshs.size();
+		std::size_t lod_mesh_index = 0;
+		if (lod_count > 1)
+		{
+			float lod_range_min = buffer_data.lod_range_rate.x * context.scene_constant.camera_clip_distance.x;
+			float lod_range_max = buffer_data.lod_range_rate.y * context.scene_constant.camera_clip_distance.y;
+			float lod_range = lod_range_max - lod_range_min;
+			float lod_rate = (lod_range > 1e-6f) ? math::saturate((mesh_length - lod_range_min) / lod_range) : 0.0f;
+			lod_mesh_index = static_cast<std::size_t>(lod_rate * static_cast<float>(lod_count - 1) + 0.5f);
+			if (lod_mesh_index >= lod_count)
+				lod_mesh_index = lod_count - 1;
+		}
 		auto* draw_mesh = &buffer_data.color_meshs[lod_mesh_index];
 		vertex_buffer_views = draw_mesh->vertex_buffer_views;
 		index_buffer_view = draw_mesh->index_buffer_view;
@@ -174,7 +181,14 @@ void scene_renderer_commons::model_render(graphics_context& context,
 
 			material_data->material->update_parameters(context);
 			current_pipeline_state->update_parameters(context, *material_data->material, buffer_data);
-			draw_indexed(context, 0.0f, *buffer_data, current_pipeline_state);
+			float lod_center_x = (buffer_data->bounds_min.x + buffer_data->bounds_max.x) * 0.5f;
+			float lod_center_y = (buffer_data->bounds_min.y + buffer_data->bounds_max.y) * 0.5f;
+			float lod_center_z = (buffer_data->bounds_min.z + buffer_data->bounds_max.z) * 0.5f;
+			float lod_diff_x = lod_center_x - context.scene_constant.camera_position.x;
+			float lod_diff_y = lod_center_y - context.scene_constant.camera_position.y;
+			float lod_diff_z = lod_center_z - context.scene_constant.camera_position.z;
+			float mesh_length = sqrtf(lod_diff_x * lod_diff_x + lod_diff_y * lod_diff_y + lod_diff_z * lod_diff_z);
+			draw_indexed(context, mesh_length, *buffer_data, current_pipeline_state);
 		}
 	}
 	if (current_pipeline_state)
