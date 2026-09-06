@@ -71,6 +71,7 @@
     <ClInclude Include="Headers\ModelFormat\vmd_loader.h" />
     <ClInclude Include="Headers\model_instance.h" />
     <ClInclude Include="Headers\model_resource.h" />
+    <ClInclude Include="Headers\model_resource_utility.h" />
     <ClInclude Include="Headers\pipeline_state.h" />
     <ClInclude Include="Headers\post_process_volume.h" />
     <ClInclude Include="Headers\render_data.h" />
@@ -140,7 +141,7 @@
     <ClCompile Include="Sources\ModelFormat\vmd_loader.cpp" />
     <ClCompile Include="Sources\model_instance.cpp" />
     <ClCompile Include="Sources\model_resource.cpp" />
-    <ClCompile Include="Sources\model_resource_generate_lod_mesh.cpp" />
+    <ClCompile Include="Sources\model_resource_utility.cpp" />
     <ClCompile Include="Sources\pipeline_state.cpp" />
     <ClCompile Include="Sources\post_process_volume.cpp" />
     <ClCompile Include="Sources\render_data.cpp" />

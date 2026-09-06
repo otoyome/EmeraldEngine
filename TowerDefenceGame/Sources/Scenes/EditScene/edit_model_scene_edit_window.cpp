@@ -393,6 +393,11 @@ void edit_model_scene::imgui_model_loader_window()
 			{
 				generate_lod();
 			}
+			ImGui::SameLine();
+			if (ImGui::Button("Discard LOD"))
+			{
+				discard_lod();
+			}
 
 			int lod_max = edit_model->get_model_instance()->get_lod_max();
 			if (lod_max > 0)
@@ -412,6 +417,21 @@ void edit_model_scene::imgui_model_loader_window()
 			if (ImGui::Button("Generate Shadow Mesh"))
 			{
 				generate_shadow_mesh_asset();
+			}
+			ImGui::SameLine();
+			if (ImGui::Button("Discard Shadow Mesh"))
+			{
+				discard_shadow_mesh();
+			}
+		}
+
+		if (edit_model)
+		{
+			ImGui::Separator();
+			ImGui::Text("Mesh");
+			if (ImGui::Button("Optimize Mesh"))
+			{
+				optimize_mesh_asset();
 			}
 		}
 

@@ -84,6 +84,9 @@
     <ClInclude Include="Headers\model_resource.h">
       <Filter>Headers</Filter>
     </ClInclude>
+    <ClInclude Include="Headers\model_resource_utility.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
     <ClInclude Include="Headers\pipeline_state.h">
       <Filter>Headers</Filter>
     </ClInclude>
@@ -386,7 +389,7 @@
     <ClCompile Include="Sources\Graphics\gpu_timer.cpp">
       <Filter>Sources\Graphics</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\model_resource_generate_lod_mesh.cpp">
+    <ClCompile Include="Sources\model_resource_utility.cpp">
       <Filter>Sources</Filter>
     </ClCompile>
     <ClCompile Include="Sources\System\cpu_timer.cpp">

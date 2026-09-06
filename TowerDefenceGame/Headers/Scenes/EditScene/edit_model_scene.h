@@ -38,6 +38,9 @@ private:
 	void generate_lod();
 	void generate_bounding_mesh_asset();
 	void generate_shadow_mesh_asset();
+	void discard_lod();
+	void discard_shadow_mesh();
+	void optimize_mesh_asset();
 
 private:	//	編集ウィンドウ纏め系
 	bool initialize_edit_core();

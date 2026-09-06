@@ -9,6 +9,8 @@
 
 #include "collision/mesh.h"
 
+#include "model_resource_utility.h"
+
 #include "custom_pipeline_state.h"
 
 #include "effect_instance.h"
@@ -293,7 +295,7 @@ void edit_model_scene::generate_lod()
 	if (!resource)
 		return;
 
-	resource->generate_lod_meshs(generate_lod_level);
+	model_resource_utility::generate_lod_meshs(*resource, generate_lod_level);
 
 	edit_model->get_model_instance()->set_lod_index(0);
 }
@@ -335,7 +337,44 @@ void edit_model_scene::generate_shadow_mesh_asset()
 	if (!resource)
 		return;
 
-	resource->generate_shadow_meshes();
+	model_resource_utility::generate_shadow_meshes(*resource);
+}
+
+void edit_model_scene::discard_lod()
+{
+	if (!edit_model)
+		return;
+
+	auto resource = edit_model->get_model_instance()->get_resource();
+	if (!resource)
+		return;
+
+	model_resource_utility::clear_lod_meshs(*resource);
+	edit_model->get_model_instance()->set_lod_index(0);
+}
+
+void edit_model_scene::discard_shadow_mesh()
+{
+	if (!edit_model)
+		return;
+
+	auto resource = edit_model->get_model_instance()->get_resource();
+	if (!resource)
+		return;
+
+	model_resource_utility::clear_shadow_meshes(*resource);
+}
+
+void edit_model_scene::optimize_mesh_asset()
+{
+	if (!edit_model)
+		return;
+
+	auto resource = edit_model->get_model_instance()->get_resource();
+	if (!resource)
+		return;
+
+	model_resource_utility::optimize_meshs(*resource);
 }
 
 #endif	//	defined(USE_IMGUI)

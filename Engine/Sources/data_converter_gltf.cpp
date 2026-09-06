@@ -6,6 +6,8 @@
 
 #include "animation_data_version.h"
 
+#include "model_resource_utility.h"
+
 #if defined(USE_IMGUI)
 
 #include "ModelFormat/gltf_loader.h"
@@ -460,18 +462,18 @@ namespace
 		}
 
 		//	メッシュ最適化
-		resource.optimized_meshs();
+		model_resource_utility::optimized_meshs(resource);
 		
 		//	シャドウメッシュ生成
 		if (convert_data.is_generate_shadow_mesh)
 		{
-			resource.generate_shadow_meshes(false);
+			model_resource_utility::generate_shadow_meshes(resource, false);
 		}
 		
 		//	LODメッシュ生成
 		if (convert_data.generate_lod_mesh_count > 0)
 		{
-			resource.generate_lod_meshs(convert_data.generate_lod_mesh_count, false);
+			model_resource_utility::generate_lod_meshs(resource, convert_data.generate_lod_mesh_count, false);
 		}
 
 		//	各種バッファを設定

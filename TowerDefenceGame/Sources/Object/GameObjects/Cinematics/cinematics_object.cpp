@@ -4,6 +4,8 @@
 
 #include "object/game_constant.h"
 
+#include "custom_pipeline_state.h"
+
 namespace
 {
 	constexpr std::string_view BreakTexturePath = "Assets/Resources/texture/Breaked.png";
@@ -51,6 +53,47 @@ cinematics_object::cinematics_object(std::string_view name, std::shared_ptr<came
 , previous_time_scale(1.0f)
 {
 	post_process_volume_manager::instance()->generate_post_process_volume(post_process_volume);
+
+	if (pipeline_state_manager* pipeline_instance = pipeline_state_manager::instance())
+	{
+		constexpr std::string_view PsoName = "cinematic_color_filter";
+		std::shared_ptr<graphics_custom_pipeline_state> pso;
+		pipeline_instance->generate_pipeline_state<graphics_custom_pipeline_state>(PsoName, &pso);
+		pso->set_domain(pipeline_state_base::domains::post_process);
+		{
+			load_shader_file desc;
+			desc.file_path = "Shaders/FullscreenQuad/fullscreen_quad_vs.hlsl";
+#if defined(_DEBUG)
+			system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
+			system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
+#endif
+			std::shared_ptr<vertex_shader> shader;
+			shader_manager::instance()->load_shader<vertex_shader>(shader, desc);
+			pso->set_shader(shader);
+		}
+		{
+			load_shader_file desc;
+			desc.file_path = "Shaders/Postprocess/color_filter_after_dof_ps.hlsl";
+#if defined(_DEBUG)
+			system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
+			system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
+#endif
+			std::shared_ptr<pixel_shader> shader;
+			shader_manager::instance()->load_shader<pixel_shader>(shader, desc);
+			pso->set_shader(shader);
+		}
+
+		cinematic_material = std::make_shared<material>();
+		cinematic_material->set_name("シネマティックポストプロセス");
+		cinematic_material->set_domain(material::domains::post_process);
+		cinematic_material->set_flag(material::flags::two_sided, true);
+		cinematic_material->set_blend_mode(material::blend_modes::opaque);
+		cinematic_material->set_blendable_location(material::blendable_locations::after_dof);
+		cinematic_material->set_pipeline_state(PsoName);
+		post_process_volume->register_postprocess_materials(cinematic_material);
+	}
+	post_process_volume->set_flag(post_process_volume::flags::unbind, true);
+	post_process_volume->set_flag(post_process_volume::flags::active, false);
 
 	//	時間遅延
 	{
@@ -208,7 +251,7 @@ void cinematics_object::pre_render()
 		}
 	}
 	//	適応
-	post_process_volume->set_post_process_data(post_process_data);
+	apply_post_process(post_process_data);
 }
 
 #if defined(USE_IMGUI)
@@ -323,7 +366,7 @@ void cinematics_object::update_scene(float elapsed_time)
 			auto character = std::static_pointer_cast<character_object>(object);
 			character->set_elapsed_time_scale(current_time_scale);
 		}
-		effect_manager::instance()->set_elapsed_time_scale(current_time_scale);
+		//effect_manager::instance()->set_elapsed_time_scale(current_time_scale);
 	}
 
 	//	時間スケール除外オブジェクトだけは別扱い
@@ -351,17 +394,70 @@ void cinematics_object::update_scene(float elapsed_time)
 			++it;
 		}
 	}
+
+	bool any_effect = (time_control_data.time > 0.0f) || (parry_data.time > 0.0f) || (break_data.time > 0.0f);
+	post_process_volume->set_flag(post_process_volume::flags::active, any_effect);
 }
 
 void cinematics_object::update_external(float elapsed_time)
 {
+	post_process_volume->set_flag(post_process_volume::flags::active, true);
 	auto objects = object_manager::instance()->search_game_objects<character_object>();
 	for (auto& object : objects)
 	{
 		auto character = std::static_pointer_cast<character_object>(object);
 		character->set_elapsed_time_scale(external_time_scale);
 	}
-	effect_manager::instance()->set_elapsed_time_scale(external_time_scale);
+	//effect_manager::instance()->set_elapsed_time_scale(external_time_scale);
+}
+
+void cinematics_object::apply_post_process(const post_process_datas& data)
+{
+	if (!cinematic_material)
+		return;
+
+	material& m = *cinematic_material;
+
+	//	色相補正
+	m.set_float("cg_intensity", data.color_grading.intensity);
+	m.set_float3("cg_hsv_weight", data.color_grading.stage_data.hsv_weight);
+	m.set_float3("cg_color_multiplyer", data.color_grading.stage_data.color_multiplyer);
+
+	//	ラジアルブラー
+	m.set_float("rb_radius", data.radial_blur.radius);
+	m.set_int("rb_sampling_count", data.radial_blur.sampling_count);
+	m.set_float2("rb_center", data.radial_blur.center);
+	m.set_float("rb_mask_radius", data.radial_blur.mask_radius);
+
+	//	色収差
+	m.set_float("sc_intensity", data.separate_color.intensity);
+	m.set_float3("sc_color_min", data.separate_color.color_min);
+	m.set_float("sc_threshold", data.separate_color.threshold);
+	m.set_float3("sc_color_max", data.separate_color.color_max);
+
+	//	テクスチャ上書き
+	m.set_float("ow_intensity", data.overwrite_text.intensity);
+	m.set_float("ow_texcoord_scale", data.overwrite_text.texcoord_scale);
+	m.set_float2("ow_texcoord_offset", data.overwrite_text.texcoord_offset);
+	m.set_float4("ow_color", data.overwrite_text.color);
+	if (data.overwrite_text_texture)
+		m.set_texture("text_texture", data.overwrite_text_texture);
+
+	//	集中線
+	m.set_float("cl_intensity", data.concentrated_line_work.intensity);
+	m.set_float("cl_use_animation", data.concentrated_line_work.use_animation);
+	m.set_float("cl_animation_speed", data.concentrated_line_work.animation_speed);
+	m.set_float("cl_pattern_seed", data.concentrated_line_work.pattern_seed);
+	m.set_float("cl_noise_scale", data.concentrated_line_work.noise_scale);
+	m.set_float3("cl_color", data.concentrated_line_work.color);
+	m.set_float2("cl_edge", data.concentrated_line_work.edge);
+
+	//	歪み
+	m.set_float("ds_power", data.distortion_data.power);
+	m.set_float("ds_speed", data.distortion_data.speed);
+	m.set_float("ds_amount", data.distortion_data.amount);
+	m.set_float4("sd0", DirectX::XMFLOAT4(data.sin_distortion_datas[0].height_amplitude, data.sin_distortion_datas[0].height_angular_frequency, static_cast<float>(data.sin_distortion_datas[0].height_postraize_count), data.sin_distortion_datas[0].amount));
+	m.set_float4("sd1", DirectX::XMFLOAT4(data.sin_distortion_datas[1].height_amplitude, data.sin_distortion_datas[1].height_angular_frequency, static_cast<float>(data.sin_distortion_datas[1].height_postraize_count), data.sin_distortion_datas[1].amount));
 }
 
 void cinematics_object::on_active()

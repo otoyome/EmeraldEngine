@@ -3,6 +3,7 @@
 #include "object/gameobjects/character/character_object.h"
 #include "object/gameobjects/character/player/player_controller_object.h"
 #include "object/camera_object.h"
+#include "object/gameobjects/cinematics/cinematic_post_process_params.h"
 
 //	演出管理クラス
 class cinematics_object : public game_object
@@ -68,6 +69,7 @@ public:
 private:
 	void update_scene(float elapsed_time);
 	void update_external(float elapsed_time);
+	void apply_post_process(const post_process_datas& data);
 
 private:
 	void on_slow(const character_object::time_controll_datas& data);
@@ -81,6 +83,7 @@ private:
 	states state;
 	int sub_state;
 	post_process_volume_ptr post_process_volume; // ポストプロセスボリューム
+	std::shared_ptr<material> cinematic_material;
 	time_control_datas time_control_data; // 時間系演出情報
 	std::vector<exclude_object_datas> exclude_objects;
 	std::shared_ptr<camera_object> camera; // カメラオブジェクト

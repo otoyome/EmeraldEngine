@@ -840,17 +840,8 @@
     <FxCompile Include="..\Shaders\GeometricPrimitive\debug_draw_line_ps.hlsl">
       <Filter>Shaders\GeometricPrimitive</Filter>
     </FxCompile>
-    <FxCompile Include="..\Shaders\Postprocess\color_filter_before_tone_mapping_ps.hlsl">
-      <Filter>Shaders\Postprocess</Filter>
-    </FxCompile>
     <FxCompile Include="..\Shaders\DeferredRendering\convert_srgb_to_linear_ps.hlsl">
       <Filter>Shaders\DeferredRendering</Filter>
-    </FxCompile>
-    <FxCompile Include="..\Shaders\Postprocess\color_filter_before_translucent_ps.hlsl">
-      <Filter>Shaders\Postprocess</Filter>
-    </FxCompile>
-    <FxCompile Include="..\Shaders\Postprocess\color_filter_after_tone_mapping_ps.hlsl">
-      <Filter>Shaders\Postprocess</Filter>
     </FxCompile>
     <FxCompile Include="..\Shaders\Gltf\gltf_csm_vs.hlsl">
       <Filter>Shaders\Gltf</Filter>

@@ -1,14 +1,33 @@
+#include "model_resource_utility.h"
+
 #include <cmath>
 
-#include "model_resource.h"
 #include "graphics_utility.h"
 #include "render_data.h"
-#include "texture.h"
 
 #include "meshoptimizer/meshoptimizer.h"
 
-void model_resource::optimized_meshs()
+#if defined(USE_IMGUI)
+namespace
 {
+	void rebuild_gpu_buffer(buffer_view& view, UINT bind_flag)
+	{
+		if (view.size_in_bytes == 0)
+			return;
+		D3D11_BUFFER_DESC buffer_desc{};
+		buffer_desc.ByteWidth = static_cast<UINT>(view.size_in_bytes);
+		buffer_desc.Usage = D3D11_USAGE_DEFAULT;
+		buffer_desc.BindFlags = bind_flag;
+		D3D11_SUBRESOURCE_DATA subresource_data{};
+		subresource_data.pSysMem = view.row_data.data();
+		HRESULT hr = render_data::instance()->get_device()->CreateBuffer(&buffer_desc, &subresource_data, view.buffer.ReleaseAndGetAddressOf());
+		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+	}
+}
+
+void model_resource_utility::optimized_meshs(model_resource& resource)
+{
+	auto& meshes = resource.get_meshes_for_editor();
 	int mesh_index = 0;
 	for (auto& mesh : meshes)
 	{
@@ -136,8 +155,9 @@ void model_resource::optimized_meshs()
 	}
 }
 
-void model_resource::generate_shadow_meshes(bool regenerate_buffer)
+void model_resource_utility::generate_shadow_meshes(model_resource& resource, bool regenerate_buffer)
 {
+	auto& meshes = resource.get_meshes_for_editor();
 	for (auto& mesh : meshes)
 	{
 		if (mesh.index_buffer_view.count() == 0)
@@ -223,8 +243,9 @@ void model_resource::generate_shadow_meshes(bool regenerate_buffer)
 	}
 }
 
-void model_resource::generate_lod_meshs(int max_lod_level, bool regeneratge_buffer)
+void model_resource_utility::generate_lod_meshs(model_resource& resource, int max_lod_level, bool regeneratge_buffer)
 {
+	auto& meshes = resource.get_meshes_for_editor();
 	for (auto& mesh : meshes)
 	{
 		if (mesh.index_buffer_view.count() == 0)
@@ -299,7 +320,7 @@ void model_resource::generate_lod_meshs(int max_lod_level, bool regeneratge_buff
 									 target_indices_count,
 									 target_error));
 
-				mesh::sub_mesh sub_mesh;
+				model_resource::mesh::sub_mesh sub_mesh;
 				sub_mesh.index_buffer_view.row_data.resize(lod_indicesLod.size() * sizeof(UINT));
 				memcpy_s(sub_mesh.index_buffer_view.row_data.data(),
 						 sub_mesh.index_buffer_view.row_data.size(),
@@ -324,3 +345,31 @@ void model_resource::generate_lod_meshs(int max_lod_level, bool regeneratge_buff
 		}
 	}
 }
+
+void model_resource_utility::clear_lod_meshs(model_resource& resource)
+{
+	for (auto& mesh : resource.get_meshes_for_editor())
+		mesh.lod_meshs.clear();
+}
+
+void model_resource_utility::clear_shadow_meshes(model_resource& resource)
+{
+	for (auto& mesh : resource.get_meshes_for_editor())
+		mesh.shadow_mesh = {};
+}
+
+void model_resource_utility::optimize_meshs(model_resource& resource)
+{
+	optimized_meshs(resource);
+
+	for (auto& mesh : resource.get_meshes_for_editor())
+	{
+		for (auto& vbv : mesh.vertex_buffer_views)
+			rebuild_gpu_buffer(vbv.second, D3D11_BIND_VERTEX_BUFFER);
+		rebuild_gpu_buffer(mesh.index_buffer_view, D3D11_BIND_INDEX_BUFFER);
+	}
+
+	clear_lod_meshs(resource);
+	clear_shadow_meshes(resource);
+}
+#endif	//	defined(USE_IMGUI)
