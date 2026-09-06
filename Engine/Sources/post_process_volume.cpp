@@ -382,6 +382,8 @@ void post_process_volume_manager::get_container(post_process_volume_container& c
 		for (; it != post_process_volumes.end(); ++it)
 		{
 			auto instance = it->lock();
+			if (!instance)
+				continue;
 
 			if (instance->is_flag(post_process_volume::flags::unbind) ||
 				(!instance->is_flag(post_process_volume::flags::active) &&

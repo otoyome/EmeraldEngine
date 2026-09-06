@@ -28,6 +28,10 @@ light::light(light_type type)
 			bias_data[2].sigma_factor = 20.0f;
 			bias_data[3].max_depth_bias = 0.1f;
 			bias_data[3].sigma_factor = 20.0f;
+			bias_data[4].max_depth_bias = 0.12f;
+			bias_data[4].sigma_factor = 20.0f;
+			bias_data[5].max_depth_bias = 0.15f;
+			bias_data[5].sigma_factor = 20.0f;
 			break;
 		}
 		case light_type::point:
@@ -206,11 +210,13 @@ void light::set_pssm_split_weight(float weight)
 
 const light::shadow_map_bias_data& light::get_shadow_bias(int index) const
 {
-	return bias_data[index];
+	return bias_data[math::clamp(index, 0, static_cast<int>(common_pipeline_states::shadow_map_max) - 1)];
 }
 
 void light::set_shadow_bias(int index, const shadow_map_bias_data& bias_data)
 {
+	if (index < 0 || index >= static_cast<int>(common_pipeline_states::shadow_map_max))
+		return;
 	this->bias_data[index] = bias_data;
 }
 

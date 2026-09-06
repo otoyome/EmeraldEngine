@@ -17,7 +17,6 @@ convert_linear_to_srgb_pipeline_state::convert_linear_to_srgb_pipeline_state()
 
 	load_shader_cso vs_desc;
 	vs_desc.file_path = "Assets/CSO/fullscreen_quad_vs.cso";
-	vs_desc.input_element_desc;
 	shader_manager::instance()->load_shader<vertex_shader>(vs, vs_desc);
 
 	load_shader_cso ps_desc;
@@ -46,6 +45,7 @@ convert_linear_to_srgb_pipeline_state::convert_linear_to_srgb_pipeline_state()
 		blend_desc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
 		blend_desc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 		hr = render_data::instance()->get_device()->CreateBlendState(&blend_desc, blend_states.GetAddressOf());
+		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
 	}
 
 	// ラスタライザーステートの生成
@@ -114,7 +114,6 @@ convert_srgb_to_linear_pipeline_state::convert_srgb_to_linear_pipeline_state()
 
 	load_shader_cso vs_desc;
 	vs_desc.file_path = "Assets/CSO/fullscreen_quad_vs.cso";
-	vs_desc.input_element_desc;
 	shader_manager::instance()->load_shader<vertex_shader>(vs, vs_desc);
 
 	load_shader_cso ps_desc;
@@ -143,6 +142,7 @@ convert_srgb_to_linear_pipeline_state::convert_srgb_to_linear_pipeline_state()
 		blend_desc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
 		blend_desc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 		hr = render_data::instance()->get_device()->CreateBlendState(&blend_desc, blend_states.GetAddressOf());
+		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
 	}
 
 	// ラスタライザーステートの生成

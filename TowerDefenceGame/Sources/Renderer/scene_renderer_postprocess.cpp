@@ -1894,6 +1894,7 @@ void finalpass_renderer::render(renderer_context& renderer_context)
 
 void finalpass_renderer::resize_buffer(int width, int height)
 {
+	rendering_pass.render_targets.clear();
 	rendering_pass.render_targets.emplace_back(render_data::instance()->get_swap_chain());
 
 	DXGI_SWAP_CHAIN_DESC desc;

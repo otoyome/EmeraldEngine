@@ -407,6 +407,7 @@ void gbuffer_decal_renderer::resize_buffer(int width, int height)
 
 	//	GBufferパス生成
 	{
+		rendering_pass.render_targets.clear();
 #if 01
 		{
 			rendering_pass.render_targets.emplace_back(render_targets->g_buffer_textures[static_cast<int>(common_pipeline_states::gbuffer_id::base_color)]);
@@ -582,7 +583,7 @@ void deffered_lighting_renderer::render(renderer_context& context)
 			case light_type::directional:
 			{
 				//	シャドウマップ生成
-				common_pipeline_states::shadow_map_constants shadow_map_constant;
+				common_pipeline_states::shadow_map_constants shadow_map_constant{};
 				if (light->is_flag(light::flags::use_shadow))
 				{
 					render_directional_shadow_map(*light, shadow_map_constant, context);
@@ -595,7 +596,7 @@ void deffered_lighting_renderer::render(renderer_context& context)
 			case light_type::point:
 			{
 				//	シャドウマップ生成
-				common_pipeline_states::shadow_map_constants shadow_map_constant;
+				common_pipeline_states::shadow_map_constants shadow_map_constant{};
 				if (light->is_flag(light::flags::use_shadow))
 				{
 					render_point_shadow_map(*light, shadow_map_constant, context);
@@ -608,7 +609,7 @@ void deffered_lighting_renderer::render(renderer_context& context)
 			case light_type::spot:
 			{
 				//	シャドウマップ生成
-				common_pipeline_states::shadow_map_constants shadow_map_constant;
+				common_pipeline_states::shadow_map_constants shadow_map_constant{};
 				if (light->is_flag(light::flags::use_shadow))
 				{
 					render_spot_shadow_map(*light, shadow_map_constant, context);
@@ -1253,6 +1254,7 @@ void debug_draw_pass_renderer::render(renderer_context& context)
 
 void debug_draw_pass_renderer::resize_buffer(int width, int height)
 {
+	rendering_pass.render_targets.clear();
 	rendering_pass.render_targets.emplace_back(render_data::instance()->get_swap_chain());
 	rendering_pass.render_targets.back().clear_color = false;
 	D3D11_DEPTH_STENCIL_VIEW_DESC depth_stencil_view_desc{};

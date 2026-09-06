@@ -151,6 +151,9 @@ namespace
 				//	メンバ名は取得できない時があるので、ここで取得しておく
 				v_desc.members.back().name = srt->GetMemberTypeName(member_index);
 			}
+			//	構造体サイズはメンバの最大到達オフセットで概算
+			for (auto& m : v_desc.members)
+				v_desc.size = std::max<UINT>(v_desc.size, m.start_offset + m.size);
 		}
 		return v_desc;
 	}

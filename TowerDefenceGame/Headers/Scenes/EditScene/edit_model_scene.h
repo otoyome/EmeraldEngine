@@ -37,6 +37,7 @@ private:
 	void save_model();
 	void generate_lod();
 	void generate_bounding_mesh_asset();
+	void generate_shadow_mesh_asset();
 
 private:	//	編集ウィンドウ纏め系
 	bool initialize_edit_core();

@@ -405,6 +405,16 @@ void edit_model_scene::imgui_model_loader_window()
 			}
 		}
 
+		if (edit_model)
+		{
+			ImGui::Separator();
+			ImGui::Text("Shadow Mesh");
+			if (ImGui::Button("Generate Shadow Mesh"))
+			{
+				generate_shadow_mesh_asset();
+			}
+		}
+
 		//	“–‚½‚è”»’èƒƒbƒVƒ…¶¬
 		if (edit_model)
 		{

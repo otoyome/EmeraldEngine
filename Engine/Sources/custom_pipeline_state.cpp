@@ -899,9 +899,12 @@ void graphics_custom_pipeline_state::update_register_datas()
 		}
 
 		semantic_list.clear();
-		for (auto& element_desc : vs->get_input_element_desc())
+		if (vs)
 		{
-			semantic_list.emplace_back(std::make_pair(semantic(element_desc.SemanticName, element_desc.SemanticIndex), graphics_utility::get_byte_offset_from_format(element_desc.Format)));
+			for (auto& element_desc : vs->get_input_element_desc())
+			{
+				semantic_list.emplace_back(std::make_pair(semantic(element_desc.SemanticName, element_desc.SemanticIndex), graphics_utility::get_byte_offset_from_format(element_desc.Format)));
+			}
 		}
 
 		//	必要な定数バッファを生成する

@@ -465,7 +465,7 @@ namespace
 		//	シャドウメッシュ生成
 		if (convert_data.is_generate_shadow_mesh)
 		{
-			resource.generate_shadow_meshes();
+			resource.generate_shadow_meshes(false);
 		}
 		
 		//	LODメッシュ生成

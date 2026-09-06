@@ -148,7 +148,7 @@ public:
 
 public:	//	ƒƒbƒVƒ…Å“K‰»
 	void optimized_meshs();
-	void generate_shadow_meshes();
+	void generate_shadow_meshes(bool regenerate_buffer = true);
 	void generate_lod_meshs(int max_lod_level, bool regeneratge_buffer = true);
 
 private:

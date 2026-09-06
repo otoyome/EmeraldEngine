@@ -82,6 +82,7 @@ deferred_decal_stencil_write_pipeline_state::deferred_decal_stencil_write_pipeli
 		blend_desc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
 		blend_desc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 		hr = render_data::instance()->get_device()->CreateBlendState(&blend_desc, blend_states.GetAddressOf());
+		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
 	}
 
 	// ラスタライザーステートの生成
@@ -128,6 +129,8 @@ void deferred_decal_stencil_write_pipeline_state::begin(const graphics_context& 
 
 void deferred_decal_stencil_write_pipeline_state::update_parameters(const graphics_context& context, const material& material, const buffer_datas* buffer_data)
 {
+	if (!buffer_data)
+		return;
 	context.device_context->VSSetConstantBuffers(common_pipeline_states::primitive_cbv_index, 1, buffer_data->primitive_buffer.GetAddressOf());
 }
 

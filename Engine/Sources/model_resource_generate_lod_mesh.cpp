@@ -136,7 +136,7 @@ void model_resource::optimized_meshs()
 	}
 }
 
-void model_resource::generate_shadow_meshes()
+void model_resource::generate_shadow_meshes(bool regenerate_buffer)
 {
 	for (auto& mesh : meshes)
 	{
@@ -207,6 +207,17 @@ void model_resource::generate_shadow_meshes()
 				mesh.shadow_mesh.index_buffer_view.format = DXGI_FORMAT_R32_UINT;
 				mesh.shadow_mesh.index_buffer_view.size_in_bytes = indices.size() * sizeof(UINT);
 				mesh.shadow_mesh.index_buffer_view.stride_in_bytes = sizeof(UINT);
+				if (regenerate_buffer && mesh.shadow_mesh.index_buffer_view.size_in_bytes > 0)
+				{
+					D3D11_BUFFER_DESC buffer_desc{};
+					buffer_desc.ByteWidth = static_cast<UINT>(mesh.shadow_mesh.index_buffer_view.size_in_bytes);
+					buffer_desc.Usage = D3D11_USAGE_DEFAULT;
+					buffer_desc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+					D3D11_SUBRESOURCE_DATA subresource_data{};
+					subresource_data.pSysMem = mesh.shadow_mesh.index_buffer_view.row_data.data();
+					HRESULT hr = render_data::instance()->get_device()->CreateBuffer(&buffer_desc, &subresource_data, mesh.shadow_mesh.index_buffer_view.buffer.ReleaseAndGetAddressOf());
+					_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+				}
 			}
 		}
 	}

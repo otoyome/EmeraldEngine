@@ -326,4 +326,16 @@ void edit_model_scene::generate_bounding_mesh_asset()
 	}
 }
 
+void edit_model_scene::generate_shadow_mesh_asset()
+{
+	if (!edit_model)
+		return;
+
+	auto resource = edit_model->get_model_instance()->get_resource();
+	if (!resource)
+		return;
+
+	resource->generate_shadow_meshes();
+}
+
 #endif	//	defined(USE_IMGUI)
