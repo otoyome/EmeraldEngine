@@ -404,6 +404,27 @@ void edit_model_scene::imgui_model_loader_window()
 				}
 			}
 		}
+
+		//	“–‚½‚è”»’èƒƒbƒVƒ…¶¬
+		if (edit_model)
+		{
+			ImGui::Separator();
+			ImGui::Text("Bounding Mesh");
+			ImGui::SliderInt("separate_level", &bounding_mesh_option.separate_level, 1, 8);
+			ImGui::Checkbox("cull_reverse_flag", &bounding_mesh_option.reverse_flag);
+			ImGui::Checkbox("use_lod", &bounding_mesh_option.use_lod);
+			if (bounding_mesh_option.use_lod)
+			{
+				int lod_max = edit_model->get_model_instance()->get_lod_max();
+				ImGui::BeginDisabled(lod_max <= 0);
+				ImGui::SliderInt("bm_lod_level", &bounding_mesh_option.lod_level, 0, lod_max > 0 ? lod_max - 1 : 0);
+				ImGui::EndDisabled();
+			}
+			if (ImGui::Button("Generate Bounding Mesh"))
+			{
+				generate_bounding_mesh_asset();
+			}
+		}
 	}
 }
 

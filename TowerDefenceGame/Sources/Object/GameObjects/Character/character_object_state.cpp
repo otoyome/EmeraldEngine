@@ -263,7 +263,7 @@ void character_object::update_vertical_velocity(float elapsed_time)
 
 void character_object::update_vertical_move(float elapsed_time)
 {
-	const bool was_grounded = is_flag(flags::on_ground);	//	@tool 直前フレームの接地状態（この後 false にクリアされる前に保持）
+	const bool was_grounded = is_flag(flags::on_ground);
 
 	ground_friction	= 1.0f;
 	slope_rate = 1.0f;
@@ -605,15 +605,11 @@ bool character_object::calculate_position(DirectX::XMFLOAT3 velocity, bool verti
 
 			if (!vertical)
 			{
-				//	@tool 水平パス: 段差/坂は「通すか壁として扱うか」の判定にだけ使い、Y はここでは変更しない（水平移動は水平だけ、垂直移動は垂直だけに責務を分離。高さの追従は update_vertical_move 側で行う）
 				const DirectX::XMVECTOR MoveDir = NormalizedVelocity;
-
-				//	@tool 段差の面の少し先まで探る前方距離。ヒット距離（カプセル中心→面まで）+ 半径 で面の向こう側、さらに SkinStep 余分に進んだ位置。固定値 radius だと手前の地面をサンプルしてしまい、ちょっとした段差の途中や階段の終わりで登れず詰まっていた
 				float probe_x = intersect_data[0].length + desc.radius + SkinStep;
 
 				bool climbable = false;
 
-				//	@tool 1) 段差の向こう側で立てる面を探す。細いプローブ（半径 SkinStep）を足元から step_offset+SkinStep 上を始点に下方向へ。太いカプセルのままだと段の天板と最初から重なって距離0ヒットになり誤判定するため細くする
 				collision_world::capsule_cast_descs probe_desc = desc;
 				probe_desc.radius = SkinStep;
 				probe_desc.length = 0.0f;
@@ -628,7 +624,6 @@ bool character_object::calculate_position(DirectX::XMFLOAT3 velocity, bool verti
 				{
 					DirectX::XMVECTOR DownNormal = DirectX::XMVector3Normalize(DirectX::XMLoadFloat3(&down_data[0].normal));
 					float down_slope = acosf(math::clamp(DirectX::XMVectorGetY(DownNormal), -1.0f, 1.0f));
-					//	@tool 立てる面の Y = 下キャスト開始 Y - 落下距離 - プローブ半径
 					float top_y = DirectX::XMVectorGetY(DownFrom) - down_data[0].length - probe_desc.radius;
 					float rise = top_y - out_position.y;
 					if (down_slope <= slope_limit && rise <= step_offset && rise > -SkinStep)

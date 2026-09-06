@@ -36,6 +36,7 @@ protected:
 private:
 	void save_model();
 	void generate_lod();
+	void generate_bounding_mesh_asset();
 
 private:	//	編集ウィンドウ纏め系
 	bool initialize_edit_core();
@@ -80,8 +81,19 @@ private:
 private:
 	std::shared_ptr<model_object> edit_model;
 
+	//	LOD生成レベル
 	int generate_lod_level = 4;
 
+	//	当たり判定メッシュ生成情報
+	struct bounding_mesh_option
+	{
+		int separate_level = 4;
+		bool reverse_flag = true;
+		bool use_lod = false;
+		int lod_level = 0;
+	} bounding_mesh_option;
+
+	//	変換情報
 	std::string load_model_path;
 	struct convert_option_data
 	{

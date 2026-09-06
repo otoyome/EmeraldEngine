@@ -7,6 +7,8 @@
 
 #include "object/model_object.h"
 
+#include "collision/mesh.h"
+
 #include "custom_pipeline_state.h"
 
 #include "effect_instance.h"
@@ -294,6 +296,34 @@ void edit_model_scene::generate_lod()
 	resource->generate_lod_meshs(generate_lod_level);
 
 	edit_model->get_model_instance()->set_lod_index(0);
+}
+
+void edit_model_scene::generate_bounding_mesh_asset()
+{
+	if (!edit_model)
+		return;
+
+	auto resource = edit_model->get_model_instance()->get_resource();
+	if (!resource)
+		return;
+
+	std::filesystem::path model_path{ std::string(resource->get_file_path()) };
+	for (size_t mesh_index = 0; mesh_index < resource->get_meshes().size(); ++mesh_index)
+	{
+		collision::generate_bounding_mesh_data data;
+		data.WorldMatrix = DirectX::XMMatrixIdentity();
+		data.reverse_flag = bounding_mesh_option.reverse_flag;
+		data.separate_level = static_cast<UINT>(bounding_mesh_option.separate_level);
+		data.lod_level = bounding_mesh_option.use_lod ? bounding_mesh_option.lod_level : -1;
+
+		collision::bounding_mesh out_mesh;
+		if (!collision::generate_bounding_mesh(out_mesh, resource, mesh_index, data))
+			continue;
+
+		std::filesystem::path out_path = model_path;
+		out_path.replace_extension(std::to_string(mesh_index) + ".ebmo");
+		out_mesh.serialize(out_path.string());
+	}
 }
 
 #endif	//	defined(USE_IMGUI)
