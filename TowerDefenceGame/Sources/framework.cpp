@@ -528,66 +528,7 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 		for (auto& camera : camera_container.cameras)
 		{
 			renderer_context context = {};
-			context.scene_constant_buffer = camera.constant_buffer;
-			context.render_data = render_data;
-			context.render_mesh_indices = std::make_shared<render_mesh_indices>();
-			context.render_particle_indices = render_particle_indices;
-			context.render_decal_indices = std::make_shared<render_decal_indices>();
-			//	シーン定数バッファ設定
-			{
-				context.scene_constant.time_data.x = total_time + elapsed_time;
-				context.scene_constant.time_data.y = total_time;
-
-				context.scene_constant.camera_position.x = camera.camera->get_position().x;
-				context.scene_constant.camera_position.y = camera.camera->get_position().y;
-				context.scene_constant.camera_position.z = camera.camera->get_position().z;
-				context.scene_constant.camera_position.w = camera.camera->get_fov_y();
-
-				context.scene_constant.camera_right.x = camera.camera->get_right().x;
-				context.scene_constant.camera_right.y = camera.camera->get_right().y;
-				context.scene_constant.camera_right.z = camera.camera->get_right().z;
-				context.scene_constant.camera_right.w = tanf(camera.camera->get_fov_y() * 0.5f);
-
-				context.scene_constant.camera_up.x = camera.camera->get_up().x;
-				context.scene_constant.camera_up.y = camera.camera->get_up().y;
-				context.scene_constant.camera_up.z = camera.camera->get_up().z;
-				context.scene_constant.camera_up.w = 0.0f;
-
-				context.scene_constant.camera_direction.x = camera.camera->get_front().x;
-				context.scene_constant.camera_direction.y = camera.camera->get_front().y;
-				context.scene_constant.camera_direction.z = camera.camera->get_front().z;
-				context.scene_constant.camera_direction.w = 0.0f;
-
-				context.scene_constant.viewport_rect = camera.camera->get_screen_rect();
-
-				context.scene_constant.camera_clip_distance.x = camera.camera->get_clip_distance().x;
-				context.scene_constant.camera_clip_distance.y = camera.camera->get_clip_distance().y;
-				context.scene_constant.camera_clip_distance.z = camera.camera->get_clip_distance().x * camera.camera->get_clip_distance().y;
-				context.scene_constant.camera_clip_distance.w = camera.camera->get_clip_distance().y - camera.camera->get_clip_distance().x;
-
-				context.scene_constant.z_buffer_parameteres.y = camera.camera->get_clip_distance().y / camera.camera->get_clip_distance().x;
-				context.scene_constant.z_buffer_parameteres.x = 1.0f - context.scene_constant.z_buffer_parameteres.y;
-				context.scene_constant.z_buffer_parameteres.z = context.scene_constant.z_buffer_parameteres.x / camera.camera->get_clip_distance().y;
-				context.scene_constant.z_buffer_parameteres.w = context.scene_constant.z_buffer_parameteres.y / camera.camera->get_clip_distance().y;
-
-				context.scene_constant.view_transform = camera.camera->get_view_matrix();
-				context.scene_constant.projection_transform = camera.camera->get_projection_matrix();
-				context.scene_constant.view_projection_transform = camera.camera->get_view_projection_matrix();
-
-				DirectX::XMMATRIX View, Projection, ViewProjection;
-				View = DirectX::XMLoadFloat4x4(&context.scene_constant.view_transform);
-				Projection = DirectX::XMLoadFloat4x4(&context.scene_constant.projection_transform);
-				ViewProjection = DirectX::XMLoadFloat4x4(&context.scene_constant.view_projection_transform);
-				DirectX::XMStoreFloat4x4(&context.scene_constant.inverse_view_transform, DirectX::XMMatrixInverse(nullptr, View));
-				DirectX::XMStoreFloat4x4(&context.scene_constant.inverse_projection_transform, DirectX::XMMatrixInverse(nullptr, Projection));
-				DirectX::XMStoreFloat4x4(&context.scene_constant.inverse_view_projection_transform, DirectX::XMMatrixInverse(nullptr, ViewProjection));
-
-				context.scene_constant.previous_view_projection_transform = camera.camera->get_previous_view_projection_matrix();
-			}
-
-			//	描画メッシュ／デカールのカリング・ソート
-			build_render_lists(*render_data, camera.camera->get_frustum_culling(), occlusion_visible,
-				*context.render_mesh_indices, *context.render_decal_indices);
+			prepare_render_context(context, camera, render_data, render_particle_indices, occlusion_visible, total_time, elapsed_time);
 
 			//	シーン構築
 			{
@@ -657,6 +598,78 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 	}
 #endif //	defined(USE_IMGUI)
 }
+
+void framework::prepare_render_context(
+	renderer_context& context,
+	const camera_container::camera_data& camera,
+	const std::shared_ptr<render_data_context>& render_data,
+	const std::shared_ptr<render_particle_indices>& particle_indices,
+	const std::unordered_map<UINT, uint8_t>& occlusion_visible,
+	float total_time, float elapsed_time)
+{
+	context.scene_constant_buffer = camera.constant_buffer;
+	context.render_data = render_data;
+	context.render_mesh_indices = std::make_shared<render_mesh_indices>();
+	context.render_particle_indices = particle_indices;
+	context.render_decal_indices = std::make_shared<render_decal_indices>();
+
+	//	シーン定数バッファ設定
+	{
+		context.scene_constant.time_data.x = total_time + elapsed_time;
+		context.scene_constant.time_data.y = total_time;
+
+		context.scene_constant.camera_position.x = camera.camera->get_position().x;
+		context.scene_constant.camera_position.y = camera.camera->get_position().y;
+		context.scene_constant.camera_position.z = camera.camera->get_position().z;
+		context.scene_constant.camera_position.w = camera.camera->get_fov_y();
+
+		context.scene_constant.camera_right.x = camera.camera->get_right().x;
+		context.scene_constant.camera_right.y = camera.camera->get_right().y;
+		context.scene_constant.camera_right.z = camera.camera->get_right().z;
+		context.scene_constant.camera_right.w = tanf(camera.camera->get_fov_y() * 0.5f);
+
+		context.scene_constant.camera_up.x = camera.camera->get_up().x;
+		context.scene_constant.camera_up.y = camera.camera->get_up().y;
+		context.scene_constant.camera_up.z = camera.camera->get_up().z;
+		context.scene_constant.camera_up.w = 0.0f;
+
+		context.scene_constant.camera_direction.x = camera.camera->get_front().x;
+		context.scene_constant.camera_direction.y = camera.camera->get_front().y;
+		context.scene_constant.camera_direction.z = camera.camera->get_front().z;
+		context.scene_constant.camera_direction.w = 0.0f;
+
+		context.scene_constant.viewport_rect = camera.camera->get_screen_rect();
+
+		context.scene_constant.camera_clip_distance.x = camera.camera->get_clip_distance().x;
+		context.scene_constant.camera_clip_distance.y = camera.camera->get_clip_distance().y;
+		context.scene_constant.camera_clip_distance.z = camera.camera->get_clip_distance().x * camera.camera->get_clip_distance().y;
+		context.scene_constant.camera_clip_distance.w = camera.camera->get_clip_distance().y - camera.camera->get_clip_distance().x;
+
+		context.scene_constant.z_buffer_parameteres.y = camera.camera->get_clip_distance().y / camera.camera->get_clip_distance().x;
+		context.scene_constant.z_buffer_parameteres.x = 1.0f - context.scene_constant.z_buffer_parameteres.y;
+		context.scene_constant.z_buffer_parameteres.z = context.scene_constant.z_buffer_parameteres.x / camera.camera->get_clip_distance().y;
+		context.scene_constant.z_buffer_parameteres.w = context.scene_constant.z_buffer_parameteres.y / camera.camera->get_clip_distance().y;
+
+		context.scene_constant.view_transform = camera.camera->get_view_matrix();
+		context.scene_constant.projection_transform = camera.camera->get_projection_matrix();
+		context.scene_constant.view_projection_transform = camera.camera->get_view_projection_matrix();
+
+		DirectX::XMMATRIX View, Projection, ViewProjection;
+		View = DirectX::XMLoadFloat4x4(&context.scene_constant.view_transform);
+		Projection = DirectX::XMLoadFloat4x4(&context.scene_constant.projection_transform);
+		ViewProjection = DirectX::XMLoadFloat4x4(&context.scene_constant.view_projection_transform);
+		DirectX::XMStoreFloat4x4(&context.scene_constant.inverse_view_transform, DirectX::XMMatrixInverse(nullptr, View));
+		DirectX::XMStoreFloat4x4(&context.scene_constant.inverse_projection_transform, DirectX::XMMatrixInverse(nullptr, Projection));
+		DirectX::XMStoreFloat4x4(&context.scene_constant.inverse_view_projection_transform, DirectX::XMMatrixInverse(nullptr, ViewProjection));
+
+		context.scene_constant.previous_view_projection_transform = camera.camera->get_previous_view_projection_matrix();
+	}
+
+	//	描画メッシュ／デカールのカリング・ソート
+	build_render_lists(*render_data, camera.camera->get_frustum_culling(), occlusion_visible,
+		*context.render_mesh_indices, *context.render_decal_indices);
+}
+
 void framework::build_render_lists(
 	const render_data_context& render_data,
 	const collision::frustum_culling& frustum_culling,
@@ -671,9 +684,10 @@ void framework::build_render_lists(
 	const auto& color_datas = mesh_container.color_datas;
 	const std::size_t count = color_datas.size();
 
+	//	ソート情報
 	auto& lengths = mesh_indices.lengths;
 	lengths.assign(mesh_container.buffer_datas.size(), 0.0f);
-
+	sort_pipeline_keys.assign(mesh_container.buffer_datas.size(), std::uintptr_t(0));
 	const auto& near_plane = frustum_culling.get_plane(collision::frustum_culling::surface_near);
 
 	auto classify = [&](std::size_t list_index, cull_bucket& bucket)
@@ -710,9 +724,11 @@ void framework::build_render_lists(
 		switch (material->get_blend_mode())
 		{
 			case material::blend_modes::opaque:
+				sort_pipeline_keys[mesh_index] = reinterpret_cast<std::uintptr_t>(material->get_pipeline_state(material::surface_paths::g_buffer_pass).get());
 				bucket.opaque.push_back(mesh_index);
 				break;
 			case material::blend_modes::mask:
+				sort_pipeline_keys[mesh_index] = reinterpret_cast<std::uintptr_t>(material->get_pipeline_state(material::surface_paths::g_buffer_pass).get());
 				bucket.mask.push_back(mesh_index);
 				break;
 			case material::blend_modes::translucent:
@@ -725,88 +741,61 @@ void framework::build_render_lists(
 		}
 	};
 
-	//	スレッド数決定（1 スレッドあたり最低件数を確保。少なければ直列）
 	constexpr std::size_t min_items_per_thread = 512;
-	std::size_t worker_count = 1;
-	if (count >= min_items_per_thread * 2)
-	{
-		unsigned hardware = std::thread::hardware_concurrency();
-		if (hardware == 0)
-			hardware = 4;
-		worker_count = (std::min)(static_cast<std::size_t>(hardware), count / min_items_per_thread);
-		if (worker_count == 0)
-			worker_count = 1;
-	}
+	const std::size_t worker_slots = parallel_executor.max_workers();
+	if (cull_buckets.size() < worker_slots)
+		cull_buckets.resize(worker_slots);
+	for (auto& bucket : cull_buckets)
+		bucket.clear();
 
-	if (cull_buckets.size() < worker_count)
-		cull_buckets.resize(worker_count);
-	for (std::size_t w = 0; w < worker_count; ++w)
-		cull_buckets[w].clear();
-
-	if (worker_count == 1)
+	if (count < min_items_per_thread * 2 || worker_slots <= 1)
 	{
 		for (std::size_t i = 0; i < count; ++i)
 			classify(i, cull_buckets[0]);
 	}
 	else
 	{
-		const std::size_t chunk = (count + worker_count - 1) / worker_count;
-		std::vector<std::future<void>> futures;
-		futures.reserve(worker_count - 1);
-		for (std::size_t w = 1; w < worker_count; ++w)
-		{
-			const std::size_t begin = w * chunk;
-			const std::size_t end = (std::min)(count, begin + chunk);
-			if (begin >= end)
-				break;
-			futures.emplace_back(std::async(std::launch::async, [&, begin, end, w]
+		parallel_executor.parallel_for(count, min_items_per_thread,
+			[&](std::size_t worker_index, std::size_t begin, std::size_t end)
 			{
-				cull_bucket& bucket = cull_buckets[w];
+				cull_bucket& bucket = cull_buckets[worker_index];
 				for (std::size_t i = begin; i < end; ++i)
 					classify(i, bucket);
-			}));
-		}
-		{
-			const std::size_t end = (std::min)(count, chunk);
-			cull_bucket& bucket = cull_buckets[0];
-			for (std::size_t i = 0; i < end; ++i)
-				classify(i, bucket);
-		}
-		for (auto& future : futures)
-			future.get();
+			});
 	}
 
-	//	各バケットを結合（合計数を数えてから 1 度だけ予約）
 	std::size_t total_opaque = 0;
 	std::size_t total_mask = 0;
 	std::size_t total_forward[render_mesh_indices::forward_size] = {};
-	for (std::size_t w = 0; w < worker_count; ++w)
+	for (auto& bucket : cull_buckets)
 	{
-		total_opaque += cull_buckets[w].opaque.size();
-		total_mask += cull_buckets[w].mask.size();
+		total_opaque += bucket.opaque.size();
+		total_mask += bucket.mask.size();
 		for (int path = 0; path < render_mesh_indices::forward_size; ++path)
-			total_forward[path] += cull_buckets[w].forward[path].size();
+			total_forward[path] += bucket.forward[path].size();
 	}
 	mesh_indices.opaque.reserve(total_opaque);
 	mesh_indices.mask.reserve(total_mask);
 	for (int path = 0; path < render_mesh_indices::forward_size; ++path)
 		mesh_indices.forward[path].reserve(total_forward[path]);
-	for (std::size_t w = 0; w < worker_count; ++w)
+	for (auto& bucket : cull_buckets)
 	{
-		auto& bucket = cull_buckets[w];
 		mesh_indices.opaque.insert(mesh_indices.opaque.end(), bucket.opaque.begin(), bucket.opaque.end());
 		mesh_indices.mask.insert(mesh_indices.mask.end(), bucket.mask.begin(), bucket.mask.end());
 		for (int path = 0; path < render_mesh_indices::forward_size; ++path)
 			mesh_indices.forward[path].insert(mesh_indices.forward[path].end(), bucket.forward[path].begin(), bucket.forward[path].end());
 	}
 
-	//	不透明・マスクは手前から距離ソート
-	auto near_to_far = [&lengths](std::size_t left_index, std::size_t right_index)
+	//	同一パイプラインステートで固まる用に優先しつつ、
+	//	不透明・マスク手前から距離でソート
+	auto pipeline_then_near = [this, &lengths](std::size_t left_index, std::size_t right_index)
 	{
+		if (sort_pipeline_keys[left_index] != sort_pipeline_keys[right_index])
+			return sort_pipeline_keys[left_index] < sort_pipeline_keys[right_index];
 		return lengths[left_index] < lengths[right_index];
 	};
-	std::sort(mesh_indices.opaque.begin(), mesh_indices.opaque.end(), near_to_far);
-	std::sort(mesh_indices.mask.begin(), mesh_indices.mask.end(), near_to_far);
+	std::sort(mesh_indices.opaque.begin(), mesh_indices.opaque.end(), pipeline_then_near);
+	std::sort(mesh_indices.mask.begin(), mesh_indices.mask.end(), pipeline_then_near);
 
 	//	半透明・加算は奥から距離ソート
 	auto far_to_near = [&lengths](std::size_t left_index, std::size_t right_index)
@@ -814,9 +803,7 @@ void framework::build_render_lists(
 		return lengths[left_index] > lengths[right_index];
 	};
 	for (auto& indices : mesh_indices.forward)
-	{
 		std::sort(indices.begin(), indices.end(), far_to_near);
-	}
 
 	//	デカール
 	const auto& decal_datas = render_data.decal_container.decal_datas;
@@ -827,7 +814,6 @@ void framework::build_render_lists(
 		if (!frustum_culling.to_box(decal_datas[decal_index].box))
 			continue;
 
-		//	一律同じタイミングで
 		decal_indices.draw_list.emplace_back(decal_index);
 	}
 }

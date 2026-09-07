@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <unordered_map>
+#include <cstdint>
 
 #if defined(USE_IMGUI)
 #include "imgui/imgui_impl_dx11.h"
@@ -21,6 +22,8 @@ extern ImWchar glyphRangesJapanese[];
 #include "Renderer/scene_render_targets.h"
 #include "Renderer/occlusion_culling_system.h"
 #include "Renderer/occlusion_culling_renderer.h"
+#include "camera.h"
+#include "parallel_for_executor.h"
 
 namespace collision { class frustum_culling; }
 struct render_data_context;
@@ -54,7 +57,6 @@ private:
 	bool create_buffers();
 	bool create_collision_filters();
 
-	//	@tool 描画メッシュ／デカールのカリングと距離ソート（メッシュ走査はマルチスレッド）
 	void build_render_lists(
 		const render_data_context& render_data,
 		const collision::frustum_culling& frustum_culling,
@@ -62,10 +64,28 @@ private:
 		render_mesh_indices& mesh_indices,
 		render_decal_indices& decal_indices);
 
+	void prepare_render_context(
+		renderer_context& context,
+		const camera_container::camera_data& camera,
+		const std::shared_ptr<render_data_context>& render_data,
+		const std::shared_ptr<render_particle_indices>& particle_indices,
+		const std::unordered_map<UINT, uint8_t>& occlusion_visible,
+		float total_time, float elapsed_time);
+
 private:
 	CONST HWND hwnd;
+	std::shared_ptr<scene_render_targets> render_targets;
+	std::vector<std::unique_ptr<renderer>> scene_renderers;
+	std::vector<std::unique_ptr<renderer>> ui_renderers;
+	std::shared_ptr<render_job_executor> render_executor;
 
-	//	@tool 描画リスト構築用のスレッドローカルバケット（フレーム跨ぎで再利用し再確保を避ける）
+	//	描画用の一部情報
+	render_pass back_buffer_clear_rendering_pass;
+
+	//	オクルージョンカリングシステム
+	std::shared_ptr<occlusion_culling_system> occlusion_culling;
+
+private:	//	描画情報振り分け
 	struct cull_bucket
 	{
 		std::vector<std::size_t> opaque;
@@ -80,17 +100,10 @@ private:
 		}
 	};
 	std::vector<cull_bucket> cull_buckets;
-	std::shared_ptr<scene_render_targets> render_targets;
-	std::vector<std::unique_ptr<renderer>> scene_renderers;
-	std::vector<std::unique_ptr<renderer>> ui_renderers;
-	std::shared_ptr<render_job_executor> render_executor;
+	std::vector<std::uintptr_t> sort_pipeline_keys;
+	parallel_for_executor parallel_executor;
 
-	//	描画用の一部情報
-	render_pass back_buffer_clear_rendering_pass;
-
-	//	オクルージョンカリングシステム
-	std::shared_ptr<occlusion_culling_system> occlusion_culling;
-
+private:	//	その他
 	float wheel{ 0 };
 	high_resolution_timer tictoc;
 #if defined(_DEBUG) || defined(USE_IMGUI)
