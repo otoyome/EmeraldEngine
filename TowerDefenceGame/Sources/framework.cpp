@@ -1,5 +1,9 @@
 #include "framework.h"
 
+#include <algorithm>
+#include <future>
+#include <thread>
+
 #include "shader.h"
 #include "texture.h"
 #include "font_data.h"
@@ -200,13 +204,15 @@ bool framework::initialize()
 	if (!create_collision_filters())
 		return false;
 
+	//	オクルージョンカリング生成
+	occlusion_culling = std::make_shared<occlusion_culling_system>();
+
 	//	シーンレンダラー登録
 	{
 		render_executor = std::make_shared<render_job_executor>(4);
 
 		scene_renderers.emplace_back(std::make_unique<depth_prepass_renderer>(render_executor, render_targets));
-		occlusion_culling = std::make_unique<occlusion_culling_system>();
-		scene_renderers.emplace_back(std::make_unique<occlusion_culling_renderer>(render_executor, occlusion_culling.get(), render_targets));
+		scene_renderers.emplace_back(std::make_unique<occlusion_culling_renderer>(render_executor, occlusion_culling, render_targets));
 		scene_renderers.emplace_back(std::make_unique<gbuffer_renderer>(render_executor, render_targets));
 		scene_renderers.emplace_back(std::make_unique<gbuffer_decal_renderer>(render_executor, render_targets));
 		//	SSAO
@@ -579,108 +585,9 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 				context.scene_constant.previous_view_projection_transform = camera.camera->get_previous_view_projection_matrix();
 			}
 
-			//	描画メッシュカリング&ソート
-			{
-				const auto* draw_data_ptr = render_data->mesh_container.draw_datas.data();
-				const auto* material_data_ptr = render_data->mesh_container.material_datas.data();
-				const auto* buffer_data_ptr = render_data->mesh_container.buffer_datas.data();
-				const auto& frustum_culling = camera.camera->get_frustum_culling();
-
-				//	必要な分だけ登録
-				context.render_mesh_indices->lengths.assign(render_data->mesh_container.buffer_datas.size(), 0.0f);
-				for (auto& mesh_index : render_data->mesh_container.color_datas)
-				{
-					const auto* draw_data = draw_data_ptr + mesh_index;
-					const auto* material = (material_data_ptr + draw_data->material_index)->material;
-					const auto* buffer_data = buffer_data_ptr + draw_data->buffer_index;
-
-					//	カリング処理
-					if (system_utility::is_bitflag(buffer_data->system_flags, buffer_datas::flags::culling))
-					{
-						//	フラスタムカリング
-						if (!frustum_culling.to_aabb(buffer_data->bounds_min, buffer_data->bounds_max))
-							continue;
-
-						//	オクルージョンカリング
-						if (system_utility::is_bitflag(buffer_data->system_flags, buffer_datas::flags::static_mesh))
-						{
-							//	1F前の結果を利用
-							auto it = occlusion_visible.find(buffer_data->unique_id);
-							if (it != occlusion_visible.end() && it->second == 0)
-								continue;
-						}
-					}
-
-					//	カメラからの距離算出
-					auto& near_plane = frustum_culling.get_plane(collision::frustum_culling::surface_near);
-					{
-						DirectX::XMFLOAT3 world_position = buffer_data->bounds_min;
-
-						world_position.x += (buffer_data->bounds_max.x - buffer_data->bounds_min.x) * 0.5f;
-						world_position.y += (buffer_data->bounds_max.y - buffer_data->bounds_min.y) * 0.5f;
-						world_position.z += (buffer_data->bounds_max.z - buffer_data->bounds_min.z) * 0.5f;
-						context.render_mesh_indices->lengths[mesh_index] = near_plane.calculate_distance(world_position);
-					}
-
-					//	番号登録
-					switch (material->get_blend_mode())
-					{
-						case material::blend_modes::opaque:
-						{
-							context.render_mesh_indices->opaque.push_back(mesh_index);
-							break;
-						}
-						case material::blend_modes::mask:
-						{
-							context.render_mesh_indices->mask.push_back(mesh_index);
-							break;
-						}
-						case material::blend_modes::translucent:
-						case material::blend_modes::addative:
-						{
-							int index = static_cast<int>(material->get_translucency_path());
-							context.render_mesh_indices->forward[index].push_back(mesh_index);
-							break;
-						}
-					}
-				}
-
-				//	不透明＆マスクは手前から
-				std::sort(context.render_mesh_indices->opaque.begin(),
-					context.render_mesh_indices->opaque.end(),
-					[&](std::size_t left_index, std::size_t right_index)
-					{
-						return context.render_mesh_indices->lengths[left_index] < context.render_mesh_indices->lengths[right_index];
-					});
-				std::sort(context.render_mesh_indices->mask.begin(),
-					context.render_mesh_indices->mask.end(),
-					[&](std::size_t left_index, std::size_t right_index)
-					{
-						return context.render_mesh_indices->lengths[left_index] < context.render_mesh_indices->lengths[right_index];
-					});
-				//	半透明・加算は奥から
-				for (auto& indices : context.render_mesh_indices->forward)
-				{
-					std::sort(indices.begin(), indices.end(),
-						[&](std::size_t left_index, std::size_t right_index)
-						{
-							return context.render_mesh_indices->lengths[left_index] > context.render_mesh_indices->lengths[right_index];
-						});
-				}
-
-				//	デカールの描画振り分け
-				for (UINT decal_index = 0; decal_index < render_data->decal_container.decal_datas.size(); ++decal_index)
-				{
-					auto& decal_data = render_data->decal_container.decal_datas[decal_index];
-
-					//	フラスタムカリング
-					if (!frustum_culling.to_box(decal_data.box))
-						continue;
-
-					//	一律同じタイミングで
-					context.render_decal_indices->draw_list.emplace_back(decal_index);
-				}
-			}
+			//	描画メッシュ／デカールのカリング・ソート
+			build_render_lists(*render_data, camera.camera->get_frustum_culling(), occlusion_visible,
+				*context.render_mesh_indices, *context.render_decal_indices);
 
 			//	シーン構築
 			{
@@ -750,6 +657,181 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 	}
 #endif //	defined(USE_IMGUI)
 }
+void framework::build_render_lists(
+	const render_data_context& render_data,
+	const collision::frustum_culling& frustum_culling,
+	const std::unordered_map<UINT, uint8_t>& occlusion_visible,
+	render_mesh_indices& mesh_indices,
+	render_decal_indices& decal_indices)
+{
+	const auto& mesh_container = render_data.mesh_container;
+	const auto* draw_data_ptr = mesh_container.draw_datas.data();
+	const auto* material_data_ptr = mesh_container.material_datas.data();
+	const auto* buffer_data_ptr = mesh_container.buffer_datas.data();
+	const auto& color_datas = mesh_container.color_datas;
+	const std::size_t count = color_datas.size();
+
+	auto& lengths = mesh_indices.lengths;
+	lengths.assign(mesh_container.buffer_datas.size(), 0.0f);
+
+	const auto& near_plane = frustum_culling.get_plane(collision::frustum_culling::surface_near);
+
+	auto classify = [&](std::size_t list_index, cull_bucket& bucket)
+	{
+		const std::size_t mesh_index = color_datas[list_index];
+		const auto* draw_data = draw_data_ptr + mesh_index;
+		const auto* material = (material_data_ptr + draw_data->material_index)->material;
+		const auto* buffer_data = buffer_data_ptr + draw_data->buffer_index;
+
+		//	カリング処理
+		if (system_utility::is_bitflag(buffer_data->system_flags, buffer_datas::flags::culling))
+		{
+			//	フラスタムカリング
+			if (!frustum_culling.to_aabb(buffer_data->bounds_min, buffer_data->bounds_max))
+				return;
+
+			//	オクルージョンカリング（1F前の結果を利用）
+			if (system_utility::is_bitflag(buffer_data->system_flags, buffer_datas::flags::static_mesh))
+			{
+				auto it = occlusion_visible.find(buffer_data->unique_id);
+				if (it != occlusion_visible.end() && it->second == 0)
+					return;
+			}
+		}
+
+		//	カメラからの距離算出（AABB 中心）
+		DirectX::XMFLOAT3 center;
+		center.x = (buffer_data->bounds_min.x + buffer_data->bounds_max.x) * 0.5f;
+		center.y = (buffer_data->bounds_min.y + buffer_data->bounds_max.y) * 0.5f;
+		center.z = (buffer_data->bounds_min.z + buffer_data->bounds_max.z) * 0.5f;
+		lengths[mesh_index] = near_plane.calculate_distance(center);
+
+		//	番号登録
+		switch (material->get_blend_mode())
+		{
+			case material::blend_modes::opaque:
+				bucket.opaque.push_back(mesh_index);
+				break;
+			case material::blend_modes::mask:
+				bucket.mask.push_back(mesh_index);
+				break;
+			case material::blend_modes::translucent:
+			case material::blend_modes::addative:
+			{
+				int path = static_cast<int>(material->get_translucency_path());
+				bucket.forward[path].push_back(mesh_index);
+				break;
+			}
+		}
+	};
+
+	//	スレッド数決定（1 スレッドあたり最低件数を確保。少なければ直列）
+	constexpr std::size_t min_items_per_thread = 512;
+	std::size_t worker_count = 1;
+	if (count >= min_items_per_thread * 2)
+	{
+		unsigned hardware = std::thread::hardware_concurrency();
+		if (hardware == 0)
+			hardware = 4;
+		worker_count = (std::min)(static_cast<std::size_t>(hardware), count / min_items_per_thread);
+		if (worker_count == 0)
+			worker_count = 1;
+	}
+
+	if (cull_buckets.size() < worker_count)
+		cull_buckets.resize(worker_count);
+	for (std::size_t w = 0; w < worker_count; ++w)
+		cull_buckets[w].clear();
+
+	if (worker_count == 1)
+	{
+		for (std::size_t i = 0; i < count; ++i)
+			classify(i, cull_buckets[0]);
+	}
+	else
+	{
+		const std::size_t chunk = (count + worker_count - 1) / worker_count;
+		std::vector<std::future<void>> futures;
+		futures.reserve(worker_count - 1);
+		for (std::size_t w = 1; w < worker_count; ++w)
+		{
+			const std::size_t begin = w * chunk;
+			const std::size_t end = (std::min)(count, begin + chunk);
+			if (begin >= end)
+				break;
+			futures.emplace_back(std::async(std::launch::async, [&, begin, end, w]
+			{
+				cull_bucket& bucket = cull_buckets[w];
+				for (std::size_t i = begin; i < end; ++i)
+					classify(i, bucket);
+			}));
+		}
+		{
+			const std::size_t end = (std::min)(count, chunk);
+			cull_bucket& bucket = cull_buckets[0];
+			for (std::size_t i = 0; i < end; ++i)
+				classify(i, bucket);
+		}
+		for (auto& future : futures)
+			future.get();
+	}
+
+	//	各バケットを結合（合計数を数えてから 1 度だけ予約）
+	std::size_t total_opaque = 0;
+	std::size_t total_mask = 0;
+	std::size_t total_forward[render_mesh_indices::forward_size] = {};
+	for (std::size_t w = 0; w < worker_count; ++w)
+	{
+		total_opaque += cull_buckets[w].opaque.size();
+		total_mask += cull_buckets[w].mask.size();
+		for (int path = 0; path < render_mesh_indices::forward_size; ++path)
+			total_forward[path] += cull_buckets[w].forward[path].size();
+	}
+	mesh_indices.opaque.reserve(total_opaque);
+	mesh_indices.mask.reserve(total_mask);
+	for (int path = 0; path < render_mesh_indices::forward_size; ++path)
+		mesh_indices.forward[path].reserve(total_forward[path]);
+	for (std::size_t w = 0; w < worker_count; ++w)
+	{
+		auto& bucket = cull_buckets[w];
+		mesh_indices.opaque.insert(mesh_indices.opaque.end(), bucket.opaque.begin(), bucket.opaque.end());
+		mesh_indices.mask.insert(mesh_indices.mask.end(), bucket.mask.begin(), bucket.mask.end());
+		for (int path = 0; path < render_mesh_indices::forward_size; ++path)
+			mesh_indices.forward[path].insert(mesh_indices.forward[path].end(), bucket.forward[path].begin(), bucket.forward[path].end());
+	}
+
+	//	不透明・マスクは手前から距離ソート
+	auto near_to_far = [&lengths](std::size_t left_index, std::size_t right_index)
+	{
+		return lengths[left_index] < lengths[right_index];
+	};
+	std::sort(mesh_indices.opaque.begin(), mesh_indices.opaque.end(), near_to_far);
+	std::sort(mesh_indices.mask.begin(), mesh_indices.mask.end(), near_to_far);
+
+	//	半透明・加算は奥から距離ソート
+	auto far_to_near = [&lengths](std::size_t left_index, std::size_t right_index)
+	{
+		return lengths[left_index] > lengths[right_index];
+	};
+	for (auto& indices : mesh_indices.forward)
+	{
+		std::sort(indices.begin(), indices.end(), far_to_near);
+	}
+
+	//	デカール
+	const auto& decal_datas = render_data.decal_container.decal_datas;
+	decal_indices.draw_list.reserve(decal_datas.size());
+	for (UINT decal_index = 0; decal_index < decal_datas.size(); ++decal_index)
+	{
+		//	フラスタムカリング
+		if (!frustum_culling.to_box(decal_datas[decal_index].box))
+			continue;
+
+		//	一律同じタイミングで
+		decal_indices.draw_list.emplace_back(decal_index);
+	}
+}
+
 
 bool framework::uninitialize()
 {

@@ -1,5 +1,8 @@
 #pragma once
 
+#include <vector>
+#include <unordered_map>
+
 #if defined(USE_IMGUI)
 #include "imgui/imgui_impl_dx11.h"
 #include "imgui/imgui_impl_win32.h"
@@ -19,6 +22,8 @@ extern ImWchar glyphRangesJapanese[];
 #include "Renderer/occlusion_culling_system.h"
 #include "Renderer/occlusion_culling_renderer.h"
 
+namespace collision { class frustum_culling; }
+struct render_data_context;
 
 class framework
 {
@@ -49,8 +54,32 @@ private:
 	bool create_buffers();
 	bool create_collision_filters();
 
+	//	@tool 描画メッシュ／デカールのカリングと距離ソート（メッシュ走査はマルチスレッド）
+	void build_render_lists(
+		const render_data_context& render_data,
+		const collision::frustum_culling& frustum_culling,
+		const std::unordered_map<UINT, uint8_t>& occlusion_visible,
+		render_mesh_indices& mesh_indices,
+		render_decal_indices& decal_indices);
+
 private:
 	CONST HWND hwnd;
+
+	//	@tool 描画リスト構築用のスレッドローカルバケット（フレーム跨ぎで再利用し再確保を避ける）
+	struct cull_bucket
+	{
+		std::vector<std::size_t> opaque;
+		std::vector<std::size_t> mask;
+		std::vector<std::size_t> forward[render_mesh_indices::forward_size];
+		void clear()
+		{
+			opaque.clear();
+			mask.clear();
+			for (auto& indices : forward)
+				indices.clear();
+		}
+	};
+	std::vector<cull_bucket> cull_buckets;
 	std::shared_ptr<scene_render_targets> render_targets;
 	std::vector<std::unique_ptr<renderer>> scene_renderers;
 	std::vector<std::unique_ptr<renderer>> ui_renderers;
@@ -60,7 +89,7 @@ private:
 	render_pass back_buffer_clear_rendering_pass;
 
 	//	オクルージョンカリングシステム
-	std::unique_ptr<occlusion_culling_system> occlusion_culling;
+	std::shared_ptr<occlusion_culling_system> occlusion_culling;
 
 	float wheel{ 0 };
 	high_resolution_timer tictoc;

@@ -21,7 +21,7 @@ public:
 	void resize_buffer(int width, int height);
 
 	//	GPU側でカリング処理
-	void update(graphics_context& context, ID3D11ShaderResourceView* scene_depth_srv);
+	void update(graphics_context& context);
 
 	//	前フレームの判定結果を読み出す
 	void read_last_frame(std::unordered_map<UINT, uint8_t>& out_visibility);

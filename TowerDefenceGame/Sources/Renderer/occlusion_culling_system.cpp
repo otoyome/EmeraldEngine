@@ -199,7 +199,7 @@ void occlusion_culling_system::generate_instance_buffers(UINT count)
 	}
 }
 
-void occlusion_culling_system::update(graphics_context& context, ID3D11ShaderResourceView* scene_depth_srv)
+void occlusion_culling_system::update(graphics_context& context)
 {
 	auto& buffer_datas = context.render_data->mesh_container.buffer_datas;
 	UINT count = static_cast<UINT>(buffer_datas.size());
@@ -246,7 +246,7 @@ void occlusion_culling_system::update(graphics_context& context, ID3D11ShaderRes
 		dc->UpdateSubresource(hiz_constant_buffer.Get(), 0, nullptr, &constant, 0, 0);
 		dc->CSSetConstantBuffers(0, 1, hiz_constant_buffer.GetAddressOf());
 		dc->CSSetShader(hiz_copy_cs->get_shader().Get(), nullptr, 0);
-		dc->CSSetShaderResources(0, 1, &scene_depth_srv);
+		dc->CSSetShaderResources(0, 1, context.scene_depth_texture->get_shader_resource_view().GetAddressOf());
 		dc->CSSetUnorderedAccessViews(0, 1, hiz_mip_uavs[0].GetAddressOf(), nullptr);
 		dc->Dispatch((hiz_mip_sizes[0].x + 7) / 8, (hiz_mip_sizes[0].y + 7) / 8, 1);
 		context.clear_unordered_access_views();
