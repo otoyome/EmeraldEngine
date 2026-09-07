@@ -37,29 +37,6 @@ bool edit_model_scene::initialize_edit_core()
 		editor_context = editor_items::generate_context();
 	}
 
-	//	ライトのプリセット情報を設定
-	{
-		preset_lights preset_light;
-		{
-			//	preset_light.direction.direction = { 1.0f, -1.0f, -1.0f, 0.0f };
-			preset_light.direction.color = { 255.0f / 255.0f, 255.0f / 255.0f, 255.0f / 255.0f, 1.0f };
-			preset_light.ambient_color = { 127.5f / 255.0f, 127.5f / 255.0f, 127.5f / 255.0f, 1.0f };
-			preset_light_list.emplace_back(preset_light);
-		}
-		{
-			//	preset_light.direction.direction = { -1.0f, -1.0f, 1.0f, 0.0f };
-			preset_light.direction.color = { 128.0f / 255.0f, 128.0f / 255.0f, 255.0f / 255.0f, 1.0f };
-			preset_light.ambient_color = { 64.0f / 255.0f, 64.0f / 255.0f, 128.0f / 255.0f, 1.0f };
-			preset_light_list.emplace_back(preset_light);
-		}
-		{
-			//	preset_light.direction.direction = { -0.5f, -1.0f, 0.0f, 0.0f };
-			preset_light.direction.color = { 255.0f / 255.0f, 176.0f / 255.0f, 172.0f / 255.0f, 1.0f };
-			preset_light.ambient_color = { 106.0f / 255.0f, 69.0f / 255.0f, 90.0f / 255.0f, 1.0f };
-			preset_light_list.emplace_back(preset_light);
-		}
-	}
-
 	if (!initialize_vertex_color_edit())
 		return false;
 
@@ -112,40 +89,6 @@ void edit_model_scene::imgui_render_edit_core()
 
 	//	IK編集系ウィンドウ
 	imgui_render_ik();
-}
-
-void edit_model_scene::imgui_render_preset_light()
-{
-	if (ImGui::Begin("Preset Ligt Window"))
-	{
-		bool edit_preset_light = ImGui::SliderInt("preset_light", &preset_light_index, 0, static_cast<INT>(preset_light_list.size() - 1));
-		preset_light_index = std::clamp(preset_light_index, 0, static_cast<int>(preset_light_list.size() - 1));
-		{
-			auto& data = preset_light_list[preset_light_index];
-			ImGui::BeginDisabled();
-		//	ImGui::SliderFloat3("directional_light_direction", &data.direction.direction.x, -1.0f, +1.0f);
-			ImGui::ColorEdit3("directional_light_color", &data.direction.color.x);
-			ImGui::DragFloat("directional_light_intensity", &data.direction.color.w, 0.0f, 1000.0f);
-			ImGui::ColorEdit3("ambient_light_color", &data.ambient_color.x);
-			ImGui::Separator();
-			ImGui::EndDisabled();
-
-			if (edit_model && edit_preset_light)
-			{
-				auto light = object_manager::instance()->search_object<light_object>("平行光源");
-				if (light)
-				{
-					auto dlo = std::static_pointer_cast<directional_light_object>(light);
-					dlo->set_color(data.direction.color);
-				}
-				for (auto& material : edit_model->get_model_instance()->get_materials())
-				{
-					material.set_float4("fake_ambient_color", data.ambient_color);
-				}
-			}
-		}
-	}
-	ImGui::End();
 }
 
 void edit_model_scene::imgui_render_mesh_list()

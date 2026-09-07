@@ -411,7 +411,7 @@ compute_particle_system::compute_particle_system(ID3D11Device* device,
 		hr = device->CreateShaderResourceView(particle_event_buffer.Get(), &srv_desc, particle_event_shader_resource_view.GetAddressOf());
 		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
 
-		//	イベント件数格納バッファ（CopyStructureCount の書き込み先）
+		//	イベント件数格納バッファ
 		UINT zero_count = 0;
 		D3D11_SUBRESOURCE_DATA count_init = {};
 		count_init.pSysMem = &zero_count;

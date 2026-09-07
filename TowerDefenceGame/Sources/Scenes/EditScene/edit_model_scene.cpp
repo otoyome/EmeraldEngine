@@ -246,9 +246,6 @@ void edit_model_scene::update_core(float elapsed_time)
 
 void edit_model_scene::imgui_render_core()
 {
-	//	ライトのプリセット設定
-	imgui_render_preset_light();
-
 	//	ロードウィンドウ
 	imgui_model_loader_window();
 

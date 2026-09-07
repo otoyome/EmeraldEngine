@@ -48,7 +48,6 @@ private:	//	編集ウィンドウ纏め系
 	void update_edit_core(float elapsed_time);
 	void imgui_render_edit_core();
 	void imgui_model_loader_window();
-	void imgui_render_preset_light();
 	void imgui_render_mesh_list();
 	void imgui_render_material_window();
 
@@ -129,16 +128,6 @@ private:	//	メッシュ情報リスト
 		std::vector<std::string> morphs;
 	};
 	std::vector<edit_model_mesh_data> edit_model_meshes;
-
-private:
-	//	プリセットライト情報
-	struct preset_lights
-	{
-		directional_lights direction;
-		DirectX::XMFLOAT4 ambient_color;
-	};
-	std::vector<preset_lights> preset_light_list;
-	int preset_light_index;
 
 private:
 	//	リターゲッティング情報

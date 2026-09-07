@@ -205,13 +205,8 @@ bool framework::initialize()
 		render_executor = std::make_shared<render_job_executor>(4);
 
 		scene_renderers.emplace_back(std::make_unique<depth_prepass_renderer>(render_executor, render_targets));
-		{
-			//	オクルージョンカリングのためにCPU側で処理
-			//	GPUのみは今から実装するのは中々厳しいのでやらない
-			auto occ = std::make_unique<occlusion_culling_renderer>(render_executor, render_targets);
-			occlusion_culling = occ.get();
-			scene_renderers.emplace_back(std::move(occ));
-		}
+		occlusion_culling = std::make_unique<occlusion_culling_system>();
+		scene_renderers.emplace_back(std::make_unique<occlusion_culling_renderer>(render_executor, occlusion_culling.get(), render_targets));
 		scene_renderers.emplace_back(std::make_unique<gbuffer_renderer>(render_executor, render_targets));
 		scene_renderers.emplace_back(std::make_unique<gbuffer_decal_renderer>(render_executor, render_targets));
 		//	SSAO
