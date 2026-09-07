@@ -57,20 +57,19 @@ private:
 	bool create_buffers();
 	bool create_collision_filters();
 
+	void prepare_render_context(
+		renderer_context& context,
+		const camera_container::camera_data& camera,
+		const std::shared_ptr<render_data_context>& render_data,
+		const std::shared_ptr<render_particle_indices>& particle_indices,
+		float previous_time, float current_time);
+
 	void build_render_lists(
 		const render_data_context& render_data,
 		const collision::frustum_culling& frustum_culling,
 		const std::unordered_map<UINT, uint8_t>& occlusion_visible,
 		render_mesh_indices& mesh_indices,
 		render_decal_indices& decal_indices);
-
-	void prepare_render_context(
-		renderer_context& context,
-		const camera_container::camera_data& camera,
-		const std::shared_ptr<render_data_context>& render_data,
-		const std::shared_ptr<render_particle_indices>& particle_indices,
-		const std::unordered_map<UINT, uint8_t>& occlusion_visible,
-		float total_time, float elapsed_time);
 
 private:
 	CONST HWND hwnd;

@@ -527,8 +527,17 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 		camera_manager::instance()->get_container(camera_container);
 		for (auto& camera : camera_container.cameras)
 		{
+			//	レンダラーコンテキスト準備
 			renderer_context context = {};
-			prepare_render_context(context, camera, render_data, render_particle_indices, occlusion_visible, total_time, elapsed_time);
+			context.render_data = render_data;
+			context.render_mesh_indices = std::make_shared<render_mesh_indices>();
+			context.render_particle_indices = render_particle_indices;
+			context.render_decal_indices = std::make_shared<render_decal_indices>();
+			prepare_render_context(context, camera, render_data, render_particle_indices, total_time, total_time + elapsed_time);
+
+			//	描画メッシュ／デカールのカリング・ソート
+			build_render_lists(*render_data, camera.camera->get_frustum_culling(), occlusion_visible,
+				*context.render_mesh_indices, *context.render_decal_indices);
 
 			//	シーン構築
 			{
@@ -604,19 +613,14 @@ void framework::prepare_render_context(
 	const camera_container::camera_data& camera,
 	const std::shared_ptr<render_data_context>& render_data,
 	const std::shared_ptr<render_particle_indices>& particle_indices,
-	const std::unordered_map<UINT, uint8_t>& occlusion_visible,
-	float total_time, float elapsed_time)
+	float previous_time, float current_time)
 {
 	context.scene_constant_buffer = camera.constant_buffer;
-	context.render_data = render_data;
-	context.render_mesh_indices = std::make_shared<render_mesh_indices>();
-	context.render_particle_indices = particle_indices;
-	context.render_decal_indices = std::make_shared<render_decal_indices>();
 
 	//	シーン定数バッファ設定
 	{
-		context.scene_constant.time_data.x = total_time + elapsed_time;
-		context.scene_constant.time_data.y = total_time;
+		context.scene_constant.time_data.x = current_time;
+		context.scene_constant.time_data.y = previous_time;
 
 		context.scene_constant.camera_position.x = camera.camera->get_position().x;
 		context.scene_constant.camera_position.y = camera.camera->get_position().y;
@@ -664,10 +668,6 @@ void framework::prepare_render_context(
 
 		context.scene_constant.previous_view_projection_transform = camera.camera->get_previous_view_projection_matrix();
 	}
-
-	//	描画メッシュ／デカールのカリング・ソート
-	build_render_lists(*render_data, camera.camera->get_frustum_culling(), occlusion_visible,
-		*context.render_mesh_indices, *context.render_decal_indices);
 }
 
 void framework::build_render_lists(
