@@ -205,6 +205,13 @@ bool framework::initialize()
 		render_executor = std::make_shared<render_job_executor>(4);
 
 		scene_renderers.emplace_back(std::make_unique<depth_prepass_renderer>(render_executor, render_targets));
+		{
+			//	オクルージョンカリングのためにCPU側で処理
+			//	GPUのみは今から実装するのは中々厳しいのでやらない
+			auto occ = std::make_unique<occlusion_culling_renderer>(render_executor, render_targets);
+			occlusion_culling = occ.get();
+			scene_renderers.emplace_back(std::move(occ));
+		}
 		scene_renderers.emplace_back(std::make_unique<gbuffer_renderer>(render_executor, render_targets));
 		scene_renderers.emplace_back(std::make_unique<gbuffer_decal_renderer>(render_executor, render_targets));
 		//	SSAO
@@ -511,6 +518,10 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 		static float total_time = 0;
 
 		//	カメラ分描画(仮)
+		std::unordered_map<UINT, uint8_t> occlusion_visible;
+		if (occlusion_culling)
+			occlusion_culling->read_last_frame(occlusion_visible);
+
 		camera_container camera_container;
 		camera_manager::instance()->get_container(camera_container);
 		for (auto& camera : camera_container.cameras)
@@ -588,11 +599,21 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 					const auto* material = (material_data_ptr + draw_data->material_index)->material;
 					const auto* buffer_data = buffer_data_ptr + draw_data->buffer_index;
 
-					//	フラスタムカリング
+					//	カリング処理
 					if (system_utility::is_bitflag(buffer_data->system_flags, buffer_datas::flags::culling))
 					{
+						//	フラスタムカリング
 						if (!frustum_culling.to_aabb(buffer_data->bounds_min, buffer_data->bounds_max))
 							continue;
+
+						//	オクルージョンカリング
+						if (system_utility::is_bitflag(buffer_data->system_flags, buffer_datas::flags::static_mesh))
+						{
+							//	1F前の結果を利用
+							auto it = occlusion_visible.find(buffer_data->unique_id);
+							if (it != occlusion_visible.end() && it->second == 0)
+								continue;
+						}
 					}
 
 					//	カメラからの距離算出

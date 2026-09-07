@@ -5,10 +5,6 @@
 #include "Graphics/debug_primitive_collector.h"
 #endif	//	defined(USE_IMGUI)
 
-namespace
-{
-}
-
 model_instance::model_instance()
 : system_flags(0)
 , lod_index(-1)
@@ -16,6 +12,9 @@ model_instance::model_instance()
 , materials()
 , nodes()
 {
+	unique_id = ++id_counter;
+	assert(unique_id != invalid_id);
+
 	set_flag(flags::active, true);
 	set_flag(flags::color_render, true);
 	set_flag(flags::shadow_caster, true);
@@ -343,6 +342,8 @@ void model_instance_manger::get_container(mesh_container& container)
 			buffer_data.bounds_max = bounds_max;
 			buffer_data.system_flags = 0;
 			system_utility::set_bitflag(buffer_data.system_flags, buffer_datas::flags::culling, instance->is_flag(model_instance::flags::culling));
+			system_utility::set_bitflag(buffer_data.system_flags, buffer_datas::flags::static_mesh, mesh.bones.empty());
+			buffer_data.unique_id = instance->get_unique_id();
 
 			buffer_data.color_meshs.clear();
 			buffer_data.transform_matrices[static_cast<int>(buffer_datas::transform_matrix_index::current)].clear();

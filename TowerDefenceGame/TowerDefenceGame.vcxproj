@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -381,6 +381,7 @@ xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y</Command>
     <ClCompile Include="Sources\PipelineState\post_process_pipeline_state.cpp" />
     <ClCompile Include="Sources\Renderer\renderer.cpp" />
     <ClCompile Include="Sources\Renderer\render_job_executor.cpp" />
+    <ClCompile Include="Sources\Renderer\occlusion_culling_renderer.cpp" />
     <ClCompile Include="Sources\Renderer\scene_renderer.cpp" />
     <ClCompile Include="Sources\Renderer\scene_renderer_common.cpp" />
     <ClCompile Include="Sources\Renderer\scene_renderer_forward.cpp" />
@@ -485,6 +486,7 @@ xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y</Command>
     <ClInclude Include="Headers\Renderer\scene_renderer_postprocess.h" />
     <ClInclude Include="Headers\Renderer\scene_render_targets.h" />
     <ClInclude Include="Headers\Renderer\renderer.h" />
+    <ClInclude Include="Headers\Renderer\occlusion_culling_renderer.h" />
     <ClInclude Include="Headers\Renderer\scene_renderer.h" />
     <ClInclude Include="Headers\Scenes\DummyScene\dummy_scene.h" />
     <ClInclude Include="Headers\Scenes\EditScene\edit_model_scene.h" />

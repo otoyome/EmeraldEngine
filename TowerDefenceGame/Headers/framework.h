@@ -16,6 +16,9 @@ extern ImWchar glyphRangesJapanese[];
 #include "Scenes/scene_base.h"
 #include "Renderer/renderer.h"
 #include "Renderer/scene_render_targets.h"
+#include "Renderer/occlusion_culling_renderer.h"
+
+class occlusion_cull_renderer;
 
 class framework
 {
@@ -55,6 +58,9 @@ private:
 
 	//	描画用の一部情報
 	render_pass back_buffer_clear_rendering_pass;
+
+	//	オクルージョンカリングレンダラー保持
+	occlusion_culling_renderer* occlusion_culling = nullptr;
 
 	float wheel{ 0 };
 	high_resolution_timer tictoc;

@@ -57,6 +57,7 @@ public:
 	void set_flag(flags flag, bool value) { system_utility::set_bitflag(system_flags, 1 << static_cast<UINT>(flag), value); }
 
 	int get_lod_index() const {return lod_index;}
+	UINT get_unique_id() const { return unique_id; }
 	void set_lod_index(int lod_index) {this->lod_index = lod_index;}
 	int get_lod_max() const{return meshes.empty() ? 0 : meshes.begin()->mesh ? static_cast<int>(meshes.begin()->mesh->lod_meshs.size()) : 0;}
 	const DirectX::XMFLOAT2& get_lod_range_rate() const {return lod_range_rate;}
@@ -102,6 +103,7 @@ private:
 private:
 	UINT system_flags;
 	int lod_index;
+	UINT unique_id = 0;
 	DirectX::XMFLOAT2 lod_range_rate = {0.0f, 1.0f};
 	model_resource_ptr resource;
 	DirectX::XMFLOAT4X4 world_transform = { 1, 0, 0, 0,  0, 1, 0, 0,  0, 0, 1, 0,  0, 0, 0, 1 };
@@ -111,6 +113,8 @@ private:
 	std::vector<node> nodes;
 	std::vector<mesh> meshes;
 	std::vector<morph> morphes;
+
+	inline static std::atomic<size_t> id_counter;
 };
 
 using model_instance_ptr = std::shared_ptr<model_instance>;

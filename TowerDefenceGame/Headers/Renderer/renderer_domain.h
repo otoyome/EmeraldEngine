@@ -8,8 +8,13 @@ enum class renderer_domain
 	//	シーン構築パス
 	scene_constantract_pass,
 
-	//	G-Buffer生成
+	//	深度プリパス
 	depth_prepass,
+
+	//	オクルージョンカリングパス
+	occlusion_culling_pass,
+
+	//	G-Buffer生成
 	g_buffer_pass,
 	g_buffer_decal_pass,
 	screen_space_ambient_occlusion_pass,

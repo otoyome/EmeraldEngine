@@ -86,7 +86,8 @@ struct buffer_datas
 {
 	enum class flags
 	{
-		culling = 1 << 0,	//	カリングを行うかどうか
+		culling = 1 << 0,		//	カリングを行うかどうか
+		static_mesh = 1 << 1,	//	アニメーションしないモデルかどうか
 	};
 	struct morph_mesh
 	{
@@ -113,6 +114,7 @@ struct buffer_datas
 	std::vector<sub_mesh> color_meshs;						//	色描画メッシュ
 	sub_mesh shadow_mesh;									//	影用描画メッシュ
 	DirectX::XMFLOAT2 lod_range_rate = {0.0f, 10000.0f};	//	LOD距離範囲
+	UINT unique_id = 0xFFFFFFFF;							//	ユニークID
 
 	DirectX::XMFLOAT3 bounds_min, bounds_max;
 
