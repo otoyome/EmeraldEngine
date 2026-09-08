@@ -1,5 +1,7 @@
 #pragma once
 
+#include <chrono>
+
 enum class texture_data_types
 {
 	color,	//	カラーマップ
@@ -58,6 +60,8 @@ public:
 public:
 	texture(D3D11_RESOURCE_DIMENSION dimension, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> shader_resource_view, Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> unordered_access_view);
 	virtual ~texture(){}
+
+	void update_last_write_time();
 
 #if defined(USE_IMGUI)
 	bool is_reload();
@@ -152,12 +156,19 @@ public:
 	texture_ptr	search(std::string_view name);
 	texture_map	get_textures() const;
 
+#if defined(USE_IMGUI)
+	bool decode_texture_from_file(texture_ptr& out_texture, std::string_view file_path);
+#endif	//	defined(USE_IMGUI)
+
+private:
+	bool load_texture_from_file_inner(texture_ptr& out_texture, std::string_view file_path);
+
 private:
 	texture_ptr	white_texture2d;
 	texture_ptr	black_texture2d;
 	texture_map	textures;
 #if defined(USE_IMGUI)
-	UINT check_counter = 0;
+	std::chrono::steady_clock::time_point last_check_time{};
 #endif	//	defined(USE_IMGUI)
 };
 

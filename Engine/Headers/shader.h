@@ -1,5 +1,8 @@
 #pragma once
 
+#include <chrono>
+#include <vector>
+
 enum class shader_load_type
 {
 	cso,
@@ -121,6 +124,7 @@ public:
 protected:
 	void claer_monitor_files();
 	void register_monitor_file(std::string_view file_path);
+	void touch_monitor_times();
 
 public:
 #endif	//	defined(USE_IMGUI)
@@ -334,6 +338,8 @@ private:
 private:
 	shader_map	shaderes;
 #if defined(USE_IMGUI)
-	size_t check_counter = 0;
+	std::chrono::steady_clock::time_point last_check_time{};
+	std::vector<std::weak_ptr<shader_base>> check_snapshot;
+	size_t check_cursor = 0;
 #endif	//	defined(USE_IMGUI)
 };

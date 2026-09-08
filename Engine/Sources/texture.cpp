@@ -6,6 +6,8 @@
 #include <iomanip>
 
 #include <filesystem>
+#include <chrono>
+#include <vector>
 #include "DirectXTex.h"
 
 #include <WICTextureLoader.h>
@@ -393,36 +395,49 @@ bool texture::is_reload()
 	if (!is_file)
 		return false;
 
-	bool flag = false;
+	std::error_code error;
 
 	//	ファイルが存在しない場合
-	if (!std::filesystem::exists(file_path_or_key))
-	{
+	if (!std::filesystem::exists(file_path_or_key, error) || error)
 		return false;
-	}
 
-	//	最終更新日時と違った場合は再コンパイルが必要か判定
-	file_time_type write_time = std::filesystem::last_write_time(file_path_or_key);
-	if (last_write_time != write_time)
-	{
-		return true;
-	}
+	//	最終更新日時と違う場合は再読み込みが必要
+	auto write_time = std::filesystem::last_write_time(file_path_or_key, error);
+	if (error)
+		return false;
 
-	return false;
+	return last_write_time != write_time;
 }
 
 void texture::reload()
 {
-	texture_ptr dummy_texture;
-	if (texture_manager::instance()->load_texture_from_file(dummy_texture, file_path_or_key, true))
+	texture_ptr fresh;
+	if (texture_manager::instance()->decode_texture_from_file(fresh, file_path_or_key))
 	{
-		//	シェーダーリソースビューを入れ替え
-		this->shader_resource_view = dummy_texture->shader_resource_view;
+		this->shader_resource_view = fresh->shader_resource_view;
+		this->unordered_access_view = fresh->unordered_access_view;
+		this->dimension = fresh->dimension;
+		this->type = fresh->type;
+		this->system_flags = fresh->system_flags;
 		on_reload();
-		this->last_write_time = std::filesystem::last_write_time(file_path_or_key);
+		update_last_write_time();
 	}
 }
+
 #endif	//	defined(USE_IMGUI)
+
+void texture::update_last_write_time()
+{
+#if defined(USE_IMGUI)
+	if (file_path_or_key.empty())
+		return;
+
+	std::error_code error;
+	auto write_time = std::filesystem::last_write_time(file_path_or_key, error);
+	if (!error)
+		last_write_time = write_time;
+#endif	//	defined(USE_IMGUI)
+}
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 texture_manager::texture_manager()
@@ -453,14 +468,15 @@ texture_manager::~texture_manager()
 void texture_manager::check_update_and_reload()
 {
 #if defined(USE_IMGUI)
-	//	テキトーに待機
-	if (++check_counter < 60)
+	//	時間基準で間引く
+	const auto now = std::chrono::steady_clock::now();
+	if (now - last_check_time < std::chrono::milliseconds(500))
 		return;
-	check_counter = 0;
+	last_check_time = now;
 
-	//	ファイル日時更新チェック
-	auto it = textures.begin();
-	while (it != textures.end())
+	std::vector<texture_ptr> alive;
+	alive.reserve(textures.size());
+	for (auto it = textures.begin(); it != textures.end(); )
 	{
 		auto ptr = it->second.lock();
 		if (!ptr)
@@ -468,12 +484,15 @@ void texture_manager::check_update_and_reload()
 			it = textures.erase(it);
 			continue;
 		}
-
-		if (ptr->is_reload())
-		{
-			ptr->reload();
-		}
+		alive.emplace_back(std::move(ptr));
 		++it;
+	}
+
+	//	ファイルの更新チェック
+	for (auto& ptr : alive)
+	{
+		if (ptr->is_reload())
+			ptr->reload();
 	}
 #endif	//	defined(USE_IMGUI)
 }
@@ -538,13 +557,22 @@ bool texture_manager::generate_texture2d(texture_ptr& out_texture, std::string_v
 
 bool texture_manager::load_texture_from_file(texture_ptr& out_texture, std::string_view file_path, bool force_load)
 {
-	//	存在すればそちらを渡す
+	//	存在すればそれを渡す
 	if (!force_load)
 	{
 		RETURN_SEARCH_FILE(file_path)
 	}
 	auto key_name = std::string(file_path);
 
+	if (!load_texture_from_file_inner(out_texture, file_path))
+		return false;
+
+	textures[key_name] = out_texture;
+	return true;
+}
+
+bool texture_manager::load_texture_from_file_inner(texture_ptr& out_texture, std::string_view file_path)
+{
 	HRESULT hr;
 	std::filesystem::path path(file_path);
 	DirectX::TexMetadata tex_meta_data;
@@ -563,7 +591,7 @@ bool texture_manager::load_texture_from_file(texture_ptr& out_texture, std::stri
 									  scratch_image.GetImageCount(),
 									  scratch_image.GetMetadata(),
 									  DirectX::TEX_FILTER_DEFAULT,
-									  0,	//	ミップマップをすべて作る
+									  0,	//	ミップマップを全て作る
 									  mip_chain);
 		if (SUCCEEDED(hr))
 		{
@@ -579,43 +607,36 @@ bool texture_manager::load_texture_from_file(texture_ptr& out_texture, std::stri
 											scratch_image.GetMetadata(),
 											shader_resource_view.ReleaseAndGetAddressOf());
 	_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
-	if(SUCCEEDED(hr))
-	{
-		Microsoft::WRL::ComPtr<ID3D11Resource> resource;
-		shader_resource_view->GetResource(resource.GetAddressOf());
-
-		D3D11_RESOURCE_DIMENSION dimension;
-		resource->GetType(&dimension);
-		switch(dimension)
-		{
-			case	D3D11_RESOURCE_DIMENSION_TEXTURE2D:
-			{
-				Microsoft::WRL::ComPtr<ID3D11Texture2D> resource_data;
-				hr	= resource.As<ID3D11Texture2D>(&resource_data);
-				_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
-				if(SUCCEEDED(hr))
-				{
-					out_texture	= std::make_shared<texture2d>(resource_data, shader_resource_view);
-					out_texture->set_file_path(file_path);
-				}
-				break;
-			}
-			//	とりあえず未対応
-			case	D3D11_RESOURCE_DIMENSION_TEXTURE1D:
-			case	D3D11_RESOURCE_DIMENSION_TEXTURE3D:
-			default:
-			{
-				hr = E_FAIL;
-				assert(!"[texture]unknown type.");
-			}
-		}
-	}
-
 	if (FAILED(hr))
 	{
 		out_texture = nullptr;
 		return false;
 	}
+
+	Microsoft::WRL::ComPtr<ID3D11Resource> resource;
+	shader_resource_view->GetResource(resource.GetAddressOf());
+
+	D3D11_RESOURCE_DIMENSION dimension;
+	resource->GetType(&dimension);
+	if (dimension != D3D11_RESOURCE_DIMENSION_TEXTURE2D)
+	{
+		assert(!"[texture]unknown type.");
+		out_texture = nullptr;
+		return false;
+	}
+
+	Microsoft::WRL::ComPtr<ID3D11Texture2D> resource_data;
+	hr = resource.As<ID3D11Texture2D>(&resource_data);
+	_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+	if (FAILED(hr))
+	{
+		out_texture = nullptr;
+		return false;
+	}
+
+	out_texture = std::make_shared<texture2d>(resource_data, shader_resource_view);
+	out_texture->set_file_path(file_path);
+	out_texture->update_last_write_time();
 
 	//	メタデータがあれば読み込み
 	{
@@ -630,9 +651,7 @@ bool texture_manager::load_texture_from_file(texture_ptr& out_texture, std::stri
 			}
 		}
 	}
-	//	テクスチャ保存
-	textures.insert(make_pair(key_name, out_texture));
-	return	true;
+	return true;
 }
 
 bool texture_manager::load_texture_from_memory(texture_ptr& out_texture, std::string_view key, const void* data, size_t size)
@@ -809,6 +828,13 @@ bool texture_manager::save_texture(const texture_ptr& texture, bool save_row_tex
 
 	return false;
 }
+
+#if defined(USE_IMGUI)
+bool texture_manager::decode_texture_from_file(texture_ptr& out_texture, std::string_view file_path)
+{
+	return load_texture_from_file_inner(out_texture, file_path);
+}
+#endif	//	defined(USE_IMGUI)
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 texture2d::texture2d(Microsoft::WRL::ComPtr<ID3D11Texture2D> texture, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> shader_resource_view, Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> unordered_access_view)

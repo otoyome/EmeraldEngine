@@ -2,6 +2,8 @@
 
 #include "render_data.h"
 
+#include <filesystem>
+
 #include "dxcapi.h"
 #include <d3dcompiler.h>
 
@@ -912,26 +914,24 @@ bool shader_base::is_failed()
 
 bool shader_base::is_reload()
 {
-	bool flag = false;
-
 	for (auto& file : monitor_files)
 	{
-		if (!std::filesystem::exists(file.file_path))
-		{
-			flag = true;
-			break;
-		}
+		std::error_code error;
 
-		//	最終更新日時と違った場合は再コンパイルが必要か判定
-		file_time_type write_time = std::filesystem::last_write_time(file.file_path);
+		//	監視ファイルが消えている場合は「変更なし」扱い
+		if (!std::filesystem::exists(file.file_path, error) || error)
+			continue;
+
+		//	最終更新日時と違う場合は再コンパイルが必要
+		auto write_time = std::filesystem::last_write_time(file.file_path, error);
+		if (error)
+			continue;
+
 		if (file.last_write_time != write_time)
-		{
-			flag = true;
-			break;
-		}
+			return true;
 	}
 
-	return flag;
+	return false;
 }
 
 void shader_base::reload()
@@ -946,15 +946,19 @@ void shader_base::reload()
 	}
 	else
 	{
-		//	エラーで何度もコンパイルされるのはまずいので、
-		//	モニターファイルの日時を更新しておく
-		for (auto& file : monitor_files)
-		{
-			if (!std::filesystem::exists(file.file_path))
-				continue;
+		//	エラーで再コンパイルできなかったものはまた見るので、日時だけ更新しておく
+		touch_monitor_times();
+	}
+}
 
-			file.last_write_time = std::filesystem::last_write_time(file.file_path);
-		}
+void shader_base::touch_monitor_times()
+{
+	for (auto& file : monitor_files)
+	{
+		std::error_code error;
+		auto write_time = std::filesystem::last_write_time(file.file_path, error);
+		if (!error)
+			file.last_write_time = write_time;
 	}
 }
 
@@ -984,12 +988,16 @@ void shader_base::claer_monitor_files()
 void shader_base::register_monitor_file(std::string_view file_path)
 {
 	auto path = std::filesystem::path(file_path);
-	if (!std::filesystem::exists(path))
+
+	//	存在しない/アクセス不可なら監視対象にしない
+	std::error_code error;
+	auto write_time = std::filesystem::last_write_time(path, error);
+	if (error)
 		return;
 
 	monitor_files.emplace_back();
 	monitor_files.back().file_path = path;
-	monitor_files.back().last_write_time = std::filesystem::last_write_time(path);
+	monitor_files.back().last_write_time = write_time;
 }
 #endif	//	defined(USE_IMGUI)
 
@@ -2070,32 +2078,38 @@ bool shader_manager::load_shader(shader_type type, shader_ptr& out_shader, load_
 void shader_manager::check_shader_update_and_recompile()
 {
 #if defined(USE_IMGUI)
-	static constexpr size_t check_file_max = 5;
-	if (shaderes.empty())
-	{
-		check_counter = 0;
-		return;
-	}
-	if (check_counter >= shaderes.size())
-		check_counter = 0;
+	static constexpr size_t check_per_tick = 32;
 
-	auto it = std::next(shaderes.begin(), check_counter);
-	size_t checked = 0;
-	while (it != shaderes.end() && checked < check_file_max)
+	//	時間基準で間引く
+	const auto now = std::chrono::steady_clock::now();
+	if (now - last_check_time < std::chrono::milliseconds(100))
+		return;
+	last_check_time = now;
+
+	if (check_cursor >= check_snapshot.size())
 	{
-		auto ptr = it->second.lock();
-		if (!ptr)
+		check_snapshot.clear();
+		check_snapshot.reserve(shaderes.size());
+		for (auto it = shaderes.begin(); it != shaderes.end(); )
 		{
-			it = shaderes.erase(it);
-			continue;
+			auto ptr = it->second.lock();
+			if (!ptr)
+			{
+				it = shaderes.erase(it);
+				continue;
+			}
+			check_snapshot.emplace_back(it->second);
+			++it;
 		}
-		if (ptr->is_reload())
-			ptr->reload();
-		++it;
-		++check_counter;
-		++checked;
+		check_cursor = 0;
 	}
-	if (it == shaderes.end())
-		check_counter = 0;
+
+	const size_t end = (std::min)(check_snapshot.size(), check_cursor + check_per_tick);
+	for (; check_cursor < end; ++check_cursor)
+	{
+		auto ptr = check_snapshot[check_cursor].lock();
+		if (ptr && ptr->is_reload())
+			ptr->reload();
+	}
 #endif	//	defined(USE_IMGUI)
 }

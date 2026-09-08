@@ -314,7 +314,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;USE_IMGUI;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;USE_IMGUI;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(SolutionDir)DirectXTK-master\Inc;$(SolutionDir)External;$(SolutionDir)External\tinygltf-master;$(SolutionDir)External\stb;$(SolutionDir)External\cereal\include;$(SolutionDir)External\magic_enum\include;$(SolutionDir)External\uchardet\src;$(SolutionDir)External\icu\include;$(ProjectDir)Headers</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
