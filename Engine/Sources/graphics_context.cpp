@@ -1,5 +1,38 @@
 #include "graphics_context.h"
 
+void graphics_context::set_rasterizer_state(ID3D11RasterizerState* state) const
+{
+	if (chache_rasterizer_state == state)
+		return;
+	device_context->RSSetState(state);
+	chache_rasterizer_state = state;
+}
+
+void graphics_context::set_depth_stencil_state(ID3D11DepthStencilState* state, UINT stencil_ref) const
+{
+	if (chache_depth_stencil_state == state && chache_stencil_ref == stencil_ref)
+		return;
+	device_context->OMSetDepthStencilState(state, stencil_ref);
+	chache_depth_stencil_state = state;
+	chache_stencil_ref = stencil_ref;
+}
+
+void graphics_context::set_blend_state(ID3D11BlendState* state) const
+{
+	if (chache_blend_state == state)
+		return;
+	device_context->OMSetBlendState(state, nullptr, 0xFFFFFFFF);
+	chache_blend_state = state;
+}
+
+void graphics_context::set_primitive_topology(D3D_PRIMITIVE_TOPOLOGY topology) const
+{
+	if (chache_primitive_topology == topology)
+		return;
+	device_context->IASetPrimitiveTopology(topology);
+	chache_primitive_topology = topology;
+}
+
 void graphics_context::clear_shader_slots() const
 {
 	device_context->VSSetShader(nullptr, nullptr, 0);

@@ -974,6 +974,9 @@ void material::deserialize_stream(std::stringstream& istream)
 #if defined(USE_IMGUI)
 bool material::is_error() const
 {
+	if (error_state_cached_)
+		return false;
+
 	std::size_t size = 0;
 	switch (domain)
 	{
@@ -997,10 +1000,12 @@ bool material::is_error() const
 			return true;
 	}
 
+	error_state_cached_ = true;
 	return false;
 }
 void material::on_updates(const pipeline_state_base* ps)
 {
+	error_state_cached_ = false;
 	//	パラメーター再生成
 	build_parameters();
 }

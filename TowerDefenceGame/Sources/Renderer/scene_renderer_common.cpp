@@ -13,7 +13,7 @@ void scene_renderer_commons::draw(const graphics_context& context,
 			UINT vertex_offset)
 {
 	context.device_context->IASetIndexBuffer(nullptr, DXGI_FORMAT_UNKNOWN, 0);
-	context.device_context->IASetPrimitiveTopology(primitive_topology);
+	context.set_primitive_topology(primitive_topology);
 	context.device_context->Draw(vertex_count, vertex_offset);
 }
 
@@ -105,7 +105,7 @@ void scene_renderer_commons::draw_indexed(const graphics_context& context,
 	//	•`‰æ
 	context.device_context->IASetIndexBuffer(index_buffer_view->buffer.Get(), index_buffer_view->format,
 												static_cast<UINT>(index_buffer_view->offset()));
-	context.device_context->IASetPrimitiveTopology(primitive_topology);
+	context.set_primitive_topology(primitive_topology);
 	context.device_context->DrawIndexed(static_cast<UINT>(index_buffer_view->count()), 0, 0);
 }
 

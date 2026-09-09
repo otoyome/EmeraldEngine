@@ -333,6 +333,7 @@ private:
 #if defined(USE_IMGUI)
 	bool is_error() const;
 	void on_updates(const pipeline_state_base* ps);
+	mutable bool error_state_cached_ = false;
 #endif	//	defined(USE_IMGUI)
 
 private:

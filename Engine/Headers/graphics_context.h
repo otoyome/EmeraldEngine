@@ -214,6 +214,18 @@ struct graphics_context
 	common_pipeline_states::screen_space_reflection_constants screen_space_reflection_constant;
 
 public:
+	//	ラスタライザーステート設定
+	void set_rasterizer_state(ID3D11RasterizerState* state) const;
+
+	//	深度ステンシルステート設定
+	void set_depth_stencil_state(ID3D11DepthStencilState* state, UINT stencil_ref) const;
+
+	//	ブレンドステート設定
+	void set_blend_state(ID3D11BlendState* state) const;
+
+	//	図形設定
+	void set_primitive_topology(D3D_PRIMITIVE_TOPOLOGY topology) const;
+
 	//	設定していたシェーダーを全て解除する
 	void clear_shader_slots() const;
 
@@ -244,4 +256,12 @@ public:
 
 	//	デバッグイベント終了
 	void debug_end_event();
+
+private:
+	//	キャッシュ情報
+	mutable ID3D11RasterizerState* chache_rasterizer_state = nullptr;
+	mutable ID3D11DepthStencilState* chache_depth_stencil_state = nullptr;
+	mutable ID3D11BlendState* chache_blend_state = nullptr;
+	mutable UINT chache_stencil_ref = 0xFFFFFFFF;
+	mutable D3D_PRIMITIVE_TOPOLOGY chache_primitive_topology = D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
 };

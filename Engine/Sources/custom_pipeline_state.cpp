@@ -147,6 +147,35 @@ typedef void(ID3D11DeviceContext::* set_sampplers)(
 	_In_range_(0, D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT - 1)  UINT StartSlot,
 	_In_range_(0, D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT - StartSlot)  UINT NumSamplers,
 	_In_reads_opt_(NumSamplers)  ID3D11SamplerState* const* ppSamplers);
+
+namespace
+{
+	constexpr int shader_stage_count = 5;
+	const set_constant_buffers set_constant_buffer_funcs[shader_stage_count] =
+	{
+		&ID3D11DeviceContext::VSSetConstantBuffers,
+		&ID3D11DeviceContext::HSSetConstantBuffers,
+		&ID3D11DeviceContext::DSSetConstantBuffers,
+		&ID3D11DeviceContext::GSSetConstantBuffers,
+		&ID3D11DeviceContext::PSSetConstantBuffers,
+	};
+	const set_shader_resources set_shader_resource_funcs[shader_stage_count] =
+	{
+		&ID3D11DeviceContext::VSSetShaderResources,
+		&ID3D11DeviceContext::HSSetShaderResources,
+		&ID3D11DeviceContext::DSSetShaderResources,
+		&ID3D11DeviceContext::GSSetShaderResources,
+		&ID3D11DeviceContext::PSSetShaderResources,
+	};
+	const set_sampplers set_samppler_funcs[shader_stage_count] =
+	{
+		&ID3D11DeviceContext::VSSetSamplers,
+		&ID3D11DeviceContext::HSSetSamplers,
+		&ID3D11DeviceContext::DSSetSamplers,
+		&ID3D11DeviceContext::GSSetSamplers,
+		&ID3D11DeviceContext::PSSetSamplers,
+	};
+}
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 graphics_custom_pipeline_state::graphics_custom_pipeline_state()
 : graphics_pipeline_state()
@@ -317,6 +346,34 @@ void graphics_custom_pipeline_state::begin(const graphics_context& context)
 	context.device_context->GSSetShader(gs ? gs->get_shader().Get() : nullptr, nullptr, 0);
 	context.device_context->PSSetShader(ps ? ps->get_shader().Get() : nullptr, nullptr, 0);
 
+
+	{
+		//	シーン定数バッファ（1 フレーム不変）
+		for (auto& cbv : index_map.cbv)
+		{
+			if (cbv.second.hash != common_pipeline_states::scene_constant_buffer_hash_key)
+				continue;
+			ID3D11Buffer* scene_cb = context.scene_constant_buffer.Get();
+			for (UINT stage = 0; stage < static_cast<int>(arrangement::max); ++stage)
+			{
+				if (cbv.second.ids[stage] == -1)
+					continue;
+				(context.device_context->*set_constant_buffer_funcs[stage])(cbv.second.ids[stage], 1, &scene_cb);
+			}
+		}
+		//	サンプラー（固定 LINEAR）
+		ID3D11SamplerState* sampler_state = render_data::instance()->get_sampler_states(render_data::SAMPLER_STATE::LINEAR).Get();
+		for (auto& sampler : index_map.sampler)
+		{
+			for (UINT stage = 0; stage < static_cast<int>(arrangement::max); ++stage)
+			{
+				if (sampler.second.ids[stage] == -1)
+					continue;
+				(context.device_context->*set_samppler_funcs[stage])(sampler.second.ids[stage], 1, &sampler_state);
+			}
+		}
+	}
+
 	//	フラグ類リセット
 	for (auto& data : parameter_buffer_data) data.use = false;
 	primitive_data.use = false;
@@ -350,7 +407,7 @@ void graphics_custom_pipeline_state::update_parameters(const graphics_context& c
 		{
 			rs = is_two_sided ? raster_state::two_sided : raster_state::solid;
 		}
-		context.device_context->RSSetState(rasterizer_states[static_cast<int>(rs)].Get());
+		context.set_rasterizer_state(rasterizer_states[static_cast<int>(rs)].Get());
 	}
 
 	//	ブレンドステート&深度ステンシルステート設定
@@ -401,8 +458,8 @@ void graphics_custom_pipeline_state::update_parameters(const graphics_context& c
 				//}
 			}
 		}
-		context.device_context->OMSetDepthStencilState(depth_stencil_states[static_cast<int>(depth_stencil_state)].Get(), stencil_ref_value);
-		context.device_context->OMSetBlendState(blend_states[static_cast<int>(blend_state)].Get(), nullptr, 0xFFFFFFFF);
+		context.set_depth_stencil_state(depth_stencil_states[static_cast<int>(depth_stencil_state)].Get(), stencil_ref_value);
+		context.set_blend_state(blend_states[static_cast<int>(blend_state)].Get());
 	}
 
 	//	フラグ類リセット
@@ -412,30 +469,6 @@ void graphics_custom_pipeline_state::update_parameters(const graphics_context& c
 	forward_light_buffer_data.use = false;
 	shadow_map_buffer_data.use = false;
 
-	static const set_constant_buffers set_constant_buffer_funcs[static_cast<int>(arrangement::max)] =
-	{
-		&ID3D11DeviceContext::VSSetConstantBuffers,
-		&ID3D11DeviceContext::HSSetConstantBuffers,
-		&ID3D11DeviceContext::DSSetConstantBuffers,
-		&ID3D11DeviceContext::GSSetConstantBuffers,
-		&ID3D11DeviceContext::PSSetConstantBuffers,
-	};
-	static const set_shader_resources set_shader_resource_funcs[static_cast<int>(arrangement::max)] =
-	{
-		&ID3D11DeviceContext::VSSetShaderResources,
-		&ID3D11DeviceContext::HSSetShaderResources,
-		&ID3D11DeviceContext::DSSetShaderResources,
-		&ID3D11DeviceContext::GSSetShaderResources,
-		&ID3D11DeviceContext::PSSetShaderResources,
-	};
-	static const set_sampplers set_samppler_funcs[static_cast<int>(arrangement::max)] =
-	{
-		&ID3D11DeviceContext::VSSetSamplers,
-		&ID3D11DeviceContext::HSSetSamplers,
-		&ID3D11DeviceContext::DSSetSamplers,
-		&ID3D11DeviceContext::GSSetSamplers,
-		&ID3D11DeviceContext::PSSetSamplers,
-	};
 
 	//	パラメーター設定
 	{
@@ -464,7 +497,7 @@ void graphics_custom_pipeline_state::update_parameters(const graphics_context& c
 			//	特定のアイテムはcontextから
 			if (cbv_key == common_pipeline_states::scene_constant_buffer_hash_key)
 			{
-				constant_buffer = context.scene_constant_buffer.Get();
+				continue;
 			}
 			else if (cbv_key == common_pipeline_states::shadow_map_constant_buffer_hash_key)
 			{
@@ -633,10 +666,7 @@ void graphics_custom_pipeline_state::update_parameters(const graphics_context& c
 			}
 		}
 
-		//	サンプラーステート設定
-		//	一旦は既定の物を入れておく。
-		//	必要であれば、マテリアルに持たせるなど、必要に応じて対応してください。
-		//	テクスチャ側にサンプラーの情報を設定
+		//	サンプラステート登録
 		ID3D11SamplerState* sampler_state = render_data::instance()->get_sampler_states(render_data::SAMPLER_STATE::LINEAR).Get();
 		for (auto& sampler : index_map.sampler)
 		{
