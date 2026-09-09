@@ -70,8 +70,8 @@ SurfaceData surface(VS_OUT pin, bool is_front_face)
         if (face_material_flag)
         {
             //  本当は顔の方向を設定するので対応するボーン番号を入れる事
-            face_right = normalize(bone_transforms[0]._11_12_13);
-            face_front = normalize(bone_transforms[0]._31_32_33);
+            face_right = normalize(get_bone_transform(0)._11_12_13);
+            face_front = normalize(get_bone_transform(0)._31_32_33);
             //  顔専用ライティングを行うかどうか
             SetGBufferFlags(data.stencil, material_attribute_ligting_xz_plane, face_material_flag);
         }

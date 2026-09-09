@@ -23,8 +23,8 @@ VS_SHADOW_MAP_OUT main(VS_SHADOW_MAP_IN vin
     {
         uint bone_index = vin.joints[index / 4][index % 4];
         float bone_weight = vin.weights[index / 4][index % 4];
-        position += mul(float4(vin.position, 1), bone_transforms[bone_index]).xyz * bone_weight;
-        normal += mul(float4(vin.normal, 0), bone_transforms[bone_index]).xyz * bone_weight;
+        position += mul(float4(vin.position, 1), get_bone_transform(bone_index)).xyz * bone_weight;
+        normal += mul(float4(vin.normal, 0), get_bone_transform(bone_index)).xyz * bone_weight;
     }
 #else  //  BONE_MAX > 0
     float3 position = vin.position;

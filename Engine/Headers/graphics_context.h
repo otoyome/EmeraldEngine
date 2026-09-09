@@ -172,6 +172,9 @@ struct render_data_context
 	sprite_container sprite_container;
 	effect_container effect_container;
 	decal_container decal_container;
+
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> primitive_header_srv;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> bone_matrix_srv;
 #if defined(USE_IMGUI)
 	debug_draw_primitive_container debug_draw_container;
 #endif // defined(USE_IMGUI)

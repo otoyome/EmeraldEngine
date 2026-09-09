@@ -145,20 +145,51 @@ struct VS_FORWARD_OUT
 //  ボーン対応する必要のあるモデルの計算
 static const uint mesh_bone_max = 500;	//	1メッシュ500本あれば大丈夫？
 static const uint morph_max = 8; // 8個もブレンドするかな？
+struct PrimitiveHeader
+{
+    uint4 header_primitive_parameter;	//	x : 接線有無, y : 位置モーフ数, z : 法線モーフ数, w : 未使用
+    uint  bone_offset;			//	bone_matrices 内の現在ボーン先頭
+    uint  previous_bone_offset;	//	bone_matrices 内の前フレームボーン先頭
+    uint  bone_count;			//	ボーン数
+    uint  primitive_padding;
+
+    float4 header_position_morph[morph_max / 4];
+    float4 header_normal_morph[morph_max / 4];
+};
+
+struct BoneMatrix
+{
+    row_major float4x4 transform;
+};
+
+StructuredBuffer<PrimitiveHeader> primitive_headers : register(t100);
+StructuredBuffer<BoneMatrix> bone_matrices : register(t101);
+
 cbuffer PRIMITIVE_CONSTANT_BUFFER
 {
-    uint4 primitive_parameter; //	x : 接線を所持しているかどうか, y : 座標モーフィング数, z : 法線モーフィング, w : 空き
-    row_major float4x4 bone_transforms[mesh_bone_max];
-    row_major float4x4 previous_bone_transforms[mesh_bone_max];
-
-	float4 position_morph[morph_max / 4];
-	float4 normal_morph[morph_max / 4];
+    uint primitive_index;
+    uint3 primitive_index_padding;
 };
+
+#define primitive_parameter (primitive_headers[primitive_index].header_primitive_parameter)
+
+float4x4 get_bone_transform(uint bone_index)
+{
+    return bone_matrices[primitive_headers[primitive_index].bone_offset + bone_index].transform;
+}
+
+float4x4 get_previous_bone_transform(uint bone_index)
+{
+    return bone_matrices[primitive_headers[primitive_index].previous_bone_offset + bone_index].transform;
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 #if defined(HAS_MORPH)
 StructuredBuffer<float3> morph_positions[morph_max] : register(t80);
 StructuredBuffer<float3> morph_normals[morph_max] : register(t88);
+
+#define position_morph      (primitive_headers[primitive_index].header_position_morph)
+#define normal_morph        (primitive_headers[primitive_index].header_normal_morph)
 
 void apply_morph_position(inout float3 position, uint vertex_id)
 {

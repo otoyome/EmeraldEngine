@@ -1,4 +1,5 @@
 #include "framework.h"
+#include "render_data.h"
 
 #include <algorithm>
 #include <future>
@@ -386,6 +387,176 @@ void framework::update(float elapsed_time/*Elapsed seconds from last frame*/)
 #endif // defined(USE_IMGUI)
 }
 
+namespace
+{
+	//	変形行列バッファを再生成
+	void regenerate_transform_structured_buffer(
+		Microsoft::WRL::ComPtr<ID3D11Buffer>& buffer,
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>& shader_resource_view,
+		UINT& capacity,
+		UINT stride,
+		std::size_t required_count)
+	{
+		UINT need = static_cast<UINT>(required_count);
+		if (buffer && capacity >= need)
+			return;
+
+		UINT new_capacity = capacity ? capacity : 256;
+		while (new_capacity < need)
+			new_capacity *= 2;
+
+		auto device = render_data::instance()->get_device();
+
+		D3D11_BUFFER_DESC buffer_desc = {};
+		buffer_desc.Usage = D3D11_USAGE_DEFAULT;
+		buffer_desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+		buffer_desc.ByteWidth = stride * new_capacity;
+		buffer_desc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
+		buffer_desc.StructureByteStride = stride;
+
+		Microsoft::WRL::ComPtr<ID3D11Buffer> new_buffer;
+		HRESULT hr = device->CreateBuffer(&buffer_desc, nullptr, new_buffer.GetAddressOf());
+		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+
+		D3D11_SHADER_RESOURCE_VIEW_DESC srv_desc = {};
+		srv_desc.Format = DXGI_FORMAT_UNKNOWN;
+		srv_desc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
+		srv_desc.Buffer.FirstElement = 0;
+		srv_desc.Buffer.NumElements = new_capacity;
+
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> new_srv;
+		hr = device->CreateShaderResourceView(new_buffer.Get(), &srv_desc, new_srv.GetAddressOf());
+		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+
+		buffer = new_buffer;
+		shader_resource_view = new_srv;
+		capacity = new_capacity;
+	}
+}
+
+void framework::build_particle_render_lists(const render_data_context& render_data, render_particle_indices& particle_indices)
+{
+	for (auto& particle_index : render_data.effect_container.sprite_trail_color_datas)
+	{
+		auto& material = render_data.effect_container.sprite_trail_draw_datas[particle_index].material_data.material;
+
+		//	番号登録
+		switch (material->get_blend_mode())
+		{
+			case material::blend_modes::opaque:
+			{
+				particle_indices.opaque.push_back(particle_index);
+				break;
+			}
+			case material::blend_modes::mask:
+			{
+				particle_indices.mask.push_back(particle_index);
+				break;
+			}
+			case material::blend_modes::translucent:
+			case material::blend_modes::addative:
+			{
+				int index = static_cast<int>(material->get_translucency_path());
+				particle_indices.forward[index].push_back(particle_index);
+				break;
+			}
+		}
+	}
+}
+
+void framework::build_primitive_transform_buffers(render_data_context& transform_render_data)
+{
+	auto& mesh_buffer_datas = transform_render_data.mesh_container.buffer_datas;
+	auto immediate_context = render_data::instance()->get_immediate_context();
+
+	primitive_header_scratch.clear();
+	bone_matrix_scratch.clear();
+	primitive_header_scratch.reserve(mesh_buffer_datas.size());
+
+	const semantic position_semantic("POSITION", 0);
+	const semantic normal_semantic("NORMAL", 0);
+	const semantic tangent_semantic("TANGENT", 0);
+
+	for (UINT mesh_index = 0; mesh_index < mesh_buffer_datas.size(); ++mesh_index)
+	{
+		auto& buffer_data = mesh_buffer_datas[mesh_index];
+		auto& current_matrices = buffer_data.transform_matrices[static_cast<int>(buffer_datas::transform_matrix_index::current)];
+		auto& previous_matrices = buffer_data.transform_matrices[static_cast<int>(buffer_datas::transform_matrix_index::previous)];
+
+		common_pipeline_states::primitive_constants header = {};
+
+		if (!buffer_data.color_meshs.empty())
+		{
+			//	接線の有無
+			header.primitive_parameter.x = buffer_data.color_meshs[0].vertex_buffer_views->find(tangent_semantic) != buffer_data.color_meshs[0].vertex_buffer_views->end();
+
+			//	モーフ重み
+			for (UINT index = 0; index < buffer_data.color_meshs[0].morph_meshes.size(); ++index)
+			{
+				auto& morph = buffer_data.color_meshs[0].morph_meshes[index];
+				if (morph.vertex_buffer_views->find(position_semantic) != morph.vertex_buffer_views->end())
+				{
+					float* weight = &header.position_morph[header.primitive_parameter.y / 4].x;
+					weight[header.primitive_parameter.y % 4] = morph.weight;
+					header.primitive_parameter.y++;
+				}
+				if (morph.vertex_buffer_views->find(normal_semantic) != morph.vertex_buffer_views->end())
+				{
+					float* weight = &header.normal_morph[header.primitive_parameter.z / 4].x;
+					weight[header.primitive_parameter.z % 4] = morph.weight;
+					header.primitive_parameter.z++;
+				}
+			}
+		}
+
+		//	ボーン行列をバッファにコピー
+		DEBUG_CHECK_WARNING_CATEGORY(common_pipeline_states::mesh_bone_max < previous_matrices.size() || common_pipeline_states::mesh_bone_max < current_matrices.size(),
+			logger::categorys::model, "primitive transform bone over.");
+		UINT current_count = std::min(common_pipeline_states::mesh_bone_max, static_cast<UINT>(current_matrices.size()));
+		UINT previous_count = std::min(common_pipeline_states::mesh_bone_max, static_cast<UINT>(previous_matrices.size()));
+
+		header.bone_offset = static_cast<UINT>(bone_matrix_scratch.size());
+		bone_matrix_scratch.insert(bone_matrix_scratch.end(), current_matrices.begin(), current_matrices.begin() + current_count);
+		header.previous_bone_offset = static_cast<UINT>(bone_matrix_scratch.size());
+		bone_matrix_scratch.insert(bone_matrix_scratch.end(), previous_matrices.begin(), previous_matrices.begin() + previous_count);
+		header.bone_count = current_count;
+
+		primitive_header_scratch.push_back(header);
+
+		common_pipeline_states::primitive_index_constants index_constant = {};
+		index_constant.primitive_index = mesh_index;
+		immediate_context->UpdateSubresource(buffer_data.primitive_buffer.Get(), 0, 0, &index_constant, 0, 0);
+	}
+
+	if (primitive_header_scratch.empty())
+		primitive_header_scratch.emplace_back();
+	if (bone_matrix_scratch.empty())
+		bone_matrix_scratch.emplace_back();
+
+	//	変形行列バッファを再生成
+	regenerate_transform_structured_buffer(primitive_header_buffer, primitive_header_srv, primitive_header_capacity,
+		sizeof(common_pipeline_states::primitive_constants), primitive_header_scratch.size());
+	regenerate_transform_structured_buffer(bone_matrix_buffer, bone_matrix_srv, bone_matrix_capacity,
+		sizeof(DirectX::XMFLOAT4X4), bone_matrix_scratch.size());
+
+	//	行列転送
+	auto upload_range = [&](ID3D11Buffer* buffer, const void* source, UINT byte_size)
+	{
+		D3D11_BOX box = {};
+		box.right = byte_size;
+		box.bottom = 1;
+		box.back = 1;
+		immediate_context->UpdateSubresource(buffer, 0, &box, source, 0, 0);
+	};
+	upload_range(primitive_header_buffer.Get(), primitive_header_scratch.data(),
+		static_cast<UINT>(primitive_header_scratch.size() * sizeof(common_pipeline_states::primitive_constants)));
+	upload_range(bone_matrix_buffer.Get(), bone_matrix_scratch.data(),
+		static_cast<UINT>(bone_matrix_scratch.size() * sizeof(DirectX::XMFLOAT4X4)));
+
+	transform_render_data.primitive_header_srv = primitive_header_srv;
+	transform_render_data.bone_matrix_srv = bone_matrix_srv;
+}
+
 void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 {
 #if defined(USE_IMGUI)
@@ -422,32 +593,10 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 		effect_manager::instance()->get_container(render_data->effect_container, render_data->decal_container);
 
 		//	パーティクルの描画振り分け
-		for (auto& particle_index : render_data->effect_container.sprite_trail_color_datas)
-		{
-			auto& material = render_data->effect_container.sprite_trail_draw_datas[particle_index].material_data.material;
+		build_particle_render_lists(*render_data, *render_particle_indices);
 
-			//	番号登録
-			switch (material->get_blend_mode())
-			{
-				case material::blend_modes::opaque:
-				{
-					render_particle_indices->opaque.push_back(particle_index);
-					break;
-				}
-				case material::blend_modes::mask:
-				{
-					render_particle_indices->mask.push_back(particle_index);
-					break;
-				}
-				case material::blend_modes::translucent:
-				case material::blend_modes::addative:
-				{
-					int index = static_cast<int>(material->get_translucency_path());
-					render_particle_indices->forward[index].push_back(particle_index);
-					break;
-				}
-			}
-		}
+		//	転送行列を纏める
+		build_primitive_transform_buffers(*render_data);
 	}
 
 	//	バッファ描画
@@ -466,51 +615,8 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 			context.render_data = render_data;
 			render_executor->execute([this, context](graphics_context& context)
 			{
+				//	画面クリア
 				back_buffer_clear_rendering_pass.activate(context.device_context);
-
-				//	各モデルの定数バッファを更新
-				auto position_semantic = semantic("POSITION", 0);
-				auto normal_semantic = semantic("NORMAL", 0);
-				auto tangent_semantic = semantic("TANGENT", 0);
-				for (auto& buffer_data : context.render_data->mesh_container.buffer_datas)
-				{
-					auto& current_matrices = buffer_data.transform_matrices[static_cast<int>(buffer_datas::transform_matrix_index::current)];
-					auto& previous_matrices = buffer_data.transform_matrices[static_cast<int>(buffer_datas::transform_matrix_index::previous)];
-
-					//	定数バッファ更新
-					ID3D11Buffer* constant_buffer = buffer_data.primitive_buffer.Get();
-					common_pipeline_states::primitive_constants pcb = {};
-					pcb.primitive_parameter.x = buffer_data.color_meshs[0].vertex_buffer_views->find(tangent_semantic) != buffer_data.color_meshs[0].vertex_buffer_views->end();
-					pcb.primitive_parameter.y = 0;
-					pcb.primitive_parameter.z = 0;
-					pcb.primitive_parameter.w = 0;
-					for (UINT index = 0; index < buffer_data.color_meshs[0].morph_meshes.size(); ++index)
-					{
-						auto& morph = buffer_data.color_meshs[0].morph_meshes[index];
-						if (morph.vertex_buffer_views->find(position_semantic) != morph.vertex_buffer_views->end())
-						{
-							float* weight = &pcb.position_morph[pcb.primitive_parameter.y / 4].x;
-							weight[pcb.primitive_parameter.y % 4] = morph.weight;
-							pcb.primitive_parameter.y++;
-						}
-						if (morph.vertex_buffer_views->find(normal_semantic) != morph.vertex_buffer_views->end())
-						{
-							float* weight = &pcb.normal_morph[pcb.primitive_parameter.z / 4].x;
-							weight[pcb.primitive_parameter.z % 4] = morph.weight;
-							pcb.primitive_parameter.z++;
-						}
-					}
-
-					DEBUG_CHECK_WARNING_CATEGORY(common_pipeline_states::mesh_bone_max < previous_matrices.size() || common_pipeline_states::mesh_bone_max < current_matrices.size(),
-						logger::categorys::model, "primitive_constant_buffer bone over.");
-					UINT max_current_transforms = std::min(common_pipeline_states::mesh_bone_max, static_cast<UINT>(current_matrices.size()));
-					UINT max_previous_transforms = std::min(common_pipeline_states::mesh_bone_max, static_cast<UINT>(previous_matrices.size()));
-					memcpy_s(pcb.bone_transforms, sizeof(pcb.bone_transforms),
-						current_matrices.data(), max_current_transforms * sizeof(DirectX::XMFLOAT4X4));
-					memcpy_s(pcb.previous_bone_transforms, sizeof(pcb.previous_bone_transforms),
-						previous_matrices.data(), max_previous_transforms * sizeof(DirectX::XMFLOAT4X4));
-					context.device_context->UpdateSubresource(constant_buffer, 0, 0, &pcb, 0, 0);
-				}
 
 				back_buffer_clear_rendering_pass.deactivate(context.device_context);
 			}, "begin_draw_pass", context, static_cast<UINT>(renderer_domain::begin_pass));

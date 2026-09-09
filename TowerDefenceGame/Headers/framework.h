@@ -16,6 +16,7 @@ extern ImWchar glyphRangesJapanese[];
 #endif
 
 #include "render_pass.h"
+#include "common_pipeline_states.h"
 
 #include "Scenes/scene_base.h"
 #include "Renderer/renderer.h"
@@ -71,6 +72,12 @@ private:
 		render_mesh_indices& mesh_indices,
 		render_decal_indices& decal_indices);
 
+	void build_particle_render_lists(
+		const render_data_context& render_data,
+		render_particle_indices& particle_indices);
+
+	void build_primitive_transform_buffers(render_data_context& transform_render_data);
+
 private:
 	CONST HWND hwnd;
 	std::shared_ptr<scene_render_targets> render_targets;
@@ -101,6 +108,16 @@ private:	//	•`‰æî•ñU‚è•ª‚¯
 	std::vector<cull_bucket> cull_buckets;
 	std::vector<std::uintptr_t> sort_pipeline_keys;
 	parallel_for_executor parallel_executor;
+
+private:
+	Microsoft::WRL::ComPtr<ID3D11Buffer> primitive_header_buffer;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> primitive_header_srv;
+	UINT primitive_header_capacity = 0;
+	Microsoft::WRL::ComPtr<ID3D11Buffer> bone_matrix_buffer;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> bone_matrix_srv;
+	UINT bone_matrix_capacity = 0;
+	std::vector<common_pipeline_states::primitive_constants> primitive_header_scratch;
+	std::vector<DirectX::XMFLOAT4X4> bone_matrix_scratch;
 
 private:	//	‚»‚Ì‘¼
 	float wheel{ 0 };

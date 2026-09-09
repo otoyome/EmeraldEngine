@@ -361,15 +361,32 @@ void graphics_custom_pipeline_state::begin(const graphics_context& context)
 				(context.device_context->*set_constant_buffer_funcs[stage])(cbv.second.ids[stage], 1, &scene_cb);
 			}
 		}
-		//	サンプラー（固定 LINEAR）
-		ID3D11SamplerState* sampler_state = render_data::instance()->get_sampler_states(render_data::SAMPLER_STATE::LINEAR).Get();
-		for (auto& sampler : index_map.sampler)
+
+		if (context.render_data)
 		{
-			for (UINT stage = 0; stage < static_cast<int>(arrangement::max); ++stage)
+			ID3D11ShaderResourceView* transform_views[2] =
 			{
-				if (sampler.second.ids[stage] == -1)
-					continue;
-				(context.device_context->*set_samppler_funcs[stage])(sampler.second.ids[stage], 1, &sampler_state);
+				context.render_data->primitive_header_srv.Get(),
+				context.render_data->bone_matrix_srv.Get(),
+			};
+			const system_utility::hash_key transform_keys[2] =
+			{
+				common_pipeline_states::primitive_headers_hash_key,
+				common_pipeline_states::bone_matrices_hash_key,
+			};
+			for (auto& srv : index_map.srv)
+			{
+				for (UINT slot = 0; slot < 2; ++slot)
+				{
+					if (srv.second.hash != transform_keys[slot])
+						continue;
+					for (UINT stage = 0; stage < static_cast<int>(arrangement::max); ++stage)
+					{
+						if (srv.second.ids[stage] == -1)
+							continue;
+						(context.device_context->*set_shader_resource_funcs[stage])(srv.second.ids[stage], 1, &transform_views[slot]);
+					}
+				}
 			}
 		}
 	}

@@ -533,7 +533,7 @@ void model_instance_manger::generate_constant_bufferes()
 	buffer_desc.MiscFlags = 0;
 	buffer_desc.StructureByteStride = 0;
 	auto& buffer = constant_bufferes.emplace_back();
-	buffer_desc.ByteWidth = sizeof(common_pipeline_states::primitive_constants);
+	buffer_desc.ByteWidth = sizeof(common_pipeline_states::primitive_index_constants);
 	hr = device->CreateBuffer(&buffer_desc, nullptr, buffer.ReleaseAndGetAddressOf());
 	_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
 }

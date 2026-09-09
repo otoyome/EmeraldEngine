@@ -124,11 +124,18 @@ namespace common_pipeline_states
 	{
 		DirectX::XMUINT4 primitive_parameter = {};	//	x : 接線を所持しているかどうか, yzw : 空き
 
-		DirectX::XMFLOAT4X4 bone_transforms[mesh_bone_max] = {};
-		DirectX::XMFLOAT4X4 previous_bone_transforms[mesh_bone_max] = {};
+		UINT bone_offset = 0;			//	bone_matrices 内の現在ボーン先頭位置
+		UINT previous_bone_offset = 0;	//	bone_matrices 内の前フレームボーン先頭位置
+		UINT bone_count = 0;			//	ボーン数
+		UINT primitive_padding = 0;
 
 		DirectX::XMFLOAT4 position_morph[morph_max / 4];
 		DirectX::XMFLOAT4 normal_morph[morph_max / 4];
+	};
+	struct primitive_index_constants
+	{
+		UINT primitive_index = 0;
+		UINT primitive_index_padding[3] = {};
 	};
 
 	constexpr UINT morph_srv_position_index = 80;	//	モーフィング用座標
@@ -137,6 +144,10 @@ namespace common_pipeline_states
 	constexpr system_utility::hash_key morph_positions_hash_key = system_utility::generate_hash(morph_positions_name);
 	constexpr std::string_view morph_normals_name = "morph_normals";
 	constexpr system_utility::hash_key morph_normals_hash_key = system_utility::generate_hash(morph_normals_name);
+	constexpr std::string_view primitive_headers_name = "primitive_headers";
+	constexpr system_utility::hash_key primitive_headers_hash_key = system_utility::generate_hash(primitive_headers_name);
+	constexpr std::string_view bone_matrices_name = "bone_matrices";
+	constexpr system_utility::hash_key bone_matrices_hash_key = system_utility::generate_hash(bone_matrices_name);
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////
 	//	パラメーター定数バッファ構造体
 	constexpr std::string_view parameter_constant_buffer_name = "PARAMETER_CONSTANT_BUFFER";

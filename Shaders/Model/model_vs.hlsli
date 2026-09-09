@@ -37,13 +37,13 @@ VS_OUT main(VS_IN vin
         uint col = index % 4u;
         uint bone_index = vin.joints[row][col];
         float bone_weight = vin.weights[row][col];
-        current_position += mul(float4(vin.position, 1), bone_transforms[bone_index]).xyz * bone_weight;
-        normal += mul(float4(vin.normal, 0), bone_transforms[bone_index]).xyz * bone_weight;
+        current_position += mul(float4(vin.position, 1), get_bone_transform(bone_index)).xyz * bone_weight;
+        normal += mul(float4(vin.normal, 0), get_bone_transform(bone_index)).xyz * bone_weight;
 #if defined(HAS_TANGENT)
-        tangent += mul(float4(vin.tangent.xyz, 0), bone_transforms[bone_index]).xyz * bone_weight;
+        tangent += mul(float4(vin.tangent.xyz, 0), get_bone_transform(bone_index)).xyz * bone_weight;
 #endif  //  defined(HAS_TANGENT)
 
-        previous_position += mul(float4(vin.position, 1), previous_bone_transforms[bone_index]).xyz * bone_weight;
+        previous_position += mul(float4(vin.position, 1), get_previous_bone_transform(bone_index)).xyz * bone_weight;
     }
     
 #else  //  BONE_MAX > 0

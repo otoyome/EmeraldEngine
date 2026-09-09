@@ -26,10 +26,10 @@ VS_DEPTH_OUT main(VS_DEPTH_IN vin
     {
         uint bone_index = vin.joints[index / 4][index % 4];
         float bone_weight = vin.weights[index / 4][index % 4];
-        position += mul(float4(vin.position, 1), bone_transforms[bone_index]).xyz * bone_weight;
-        normal += mul(float4(vin.normal, 0), bone_transforms[bone_index]).xyz * bone_weight;
+        position += mul(float4(vin.position, 1), get_bone_transform(bone_index)).xyz * bone_weight;
+        normal += mul(float4(vin.normal, 0), get_bone_transform(bone_index)).xyz * bone_weight;
 #if defined(HAS_TANGENT)
-        tangent += mul(float4(vin.tangent.xyz, 0), bone_transforms[bone_index]).xyz * bone_weight;
+        tangent += mul(float4(vin.tangent.xyz, 0), get_bone_transform(bone_index)).xyz * bone_weight;
 #endif  //  defined(HAS_TANGENT)
     }
 #else  //  BONE_MAX > 0
