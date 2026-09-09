@@ -1,5 +1,85 @@
 #include "graphics_context.h"
 
+#include "render_data.h"
+#include "System/misc.h"
+
+namespace
+{
+	//	StructuredBuffer Ç™ïKóvêîÇñûÇΩÇ≥Ç»ÇØÇÍÇŒ 2 ÇÃÇ◊Ç´èÊÇ≈ämï€ÇµíºÇ∑
+	void regenerate_structured_buffer(
+		Microsoft::WRL::ComPtr<ID3D11Buffer>& buffer,
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>& shader_resource_view,
+		UINT& capacity,
+		UINT stride,
+		std::size_t required_count)
+	{
+		UINT need = static_cast<UINT>(required_count);
+		if (buffer && capacity >= need)
+			return;
+
+		UINT new_capacity = capacity ? capacity : 256;
+		while (new_capacity < need)
+			new_capacity *= 2;
+
+		auto device = render_data::instance()->get_device();
+
+		D3D11_BUFFER_DESC buffer_desc = {};
+		buffer_desc.Usage = D3D11_USAGE_DEFAULT;
+		buffer_desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+		buffer_desc.ByteWidth = stride * new_capacity;
+		buffer_desc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
+		buffer_desc.StructureByteStride = stride;
+
+		Microsoft::WRL::ComPtr<ID3D11Buffer> new_buffer;
+		HRESULT hr = device->CreateBuffer(&buffer_desc, nullptr, new_buffer.GetAddressOf());
+		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+
+		D3D11_SHADER_RESOURCE_VIEW_DESC srv_desc = {};
+		srv_desc.Format = DXGI_FORMAT_UNKNOWN;
+		srv_desc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
+		srv_desc.Buffer.FirstElement = 0;
+		srv_desc.Buffer.NumElements = new_capacity;
+
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> new_srv;
+		hr = device->CreateShaderResourceView(new_buffer.Get(), &srv_desc, new_srv.GetAddressOf());
+		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+
+		buffer = new_buffer;
+		shader_resource_view = new_srv;
+		capacity = new_capacity;
+	}
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+void mesh_container::build_transform_buffers()
+{
+	if (primitive_header_scratch.empty())
+		primitive_header_scratch.emplace_back();
+	if (bone_matrix_scratch.empty())
+		bone_matrix_scratch.emplace_back();
+
+	regenerate_structured_buffer(primitive_header_buffer, primitive_header_srv, primitive_header_capacity,
+		sizeof(common_pipeline_states::primitive_constants), primitive_header_scratch.size());
+	regenerate_structured_buffer(bone_matrix_buffer, bone_matrix_srv, bone_matrix_capacity,
+		sizeof(DirectX::XMFLOAT4X4), bone_matrix_scratch.size());
+
+	auto immediate_context = render_data::instance()->get_immediate_context();
+
+	auto upload_range = [&](ID3D11Buffer* buffer, const void* source, UINT byte_size)
+	{
+		D3D11_BOX box = {};
+		box.right = byte_size;
+		box.bottom = 1;
+		box.back = 1;
+		immediate_context->UpdateSubresource(buffer, 0, &box, source, 0, 0);
+	};
+	upload_range(primitive_header_buffer.Get(), primitive_header_scratch.data(),
+		static_cast<UINT>(primitive_header_scratch.size() * sizeof(common_pipeline_states::primitive_constants)));
+	upload_range(bone_matrix_buffer.Get(), bone_matrix_scratch.data(),
+		static_cast<UINT>(bone_matrix_scratch.size() * sizeof(DirectX::XMFLOAT4X4)));
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void graphics_context::set_rasterizer_state(ID3D11RasterizerState* state) const
 {
 	if (chache_rasterizer_state == state)

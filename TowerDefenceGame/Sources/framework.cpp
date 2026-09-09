@@ -9,6 +9,7 @@
 #include "texture.h"
 #include "font_data.h"
 #include "camera.h"
+#include "occlusion_culling_system.h"
 #include "model_resource.h"
 #include "model_instance.h"
 #include "effect_resource.h"
@@ -205,15 +206,13 @@ bool framework::initialize()
 	if (!create_collision_filters())
 		return false;
 
-	//	オクルージョンカリング生成
-	occlusion_culling = std::make_shared<occlusion_culling_system>();
 
 	//	シーンレンダラー登録
 	{
 		render_executor = std::make_shared<render_job_executor>(4);
 
 		scene_renderers.emplace_back(std::make_unique<depth_prepass_renderer>(render_executor, render_targets));
-		scene_renderers.emplace_back(std::make_unique<occlusion_culling_renderer>(render_executor, occlusion_culling, render_targets));
+		scene_renderers.emplace_back(std::make_unique<occlusion_culling_renderer>(render_executor, render_targets));
 		scene_renderers.emplace_back(std::make_unique<gbuffer_renderer>(render_executor, render_targets));
 		scene_renderers.emplace_back(std::make_unique<gbuffer_decal_renderer>(render_executor, render_targets));
 		//	SSAO
@@ -387,52 +386,6 @@ void framework::update(float elapsed_time/*Elapsed seconds from last frame*/)
 #endif // defined(USE_IMGUI)
 }
 
-namespace
-{
-	//	変形行列バッファを再生成
-	void regenerate_transform_structured_buffer(
-		Microsoft::WRL::ComPtr<ID3D11Buffer>& buffer,
-		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>& shader_resource_view,
-		UINT& capacity,
-		UINT stride,
-		std::size_t required_count)
-	{
-		UINT need = static_cast<UINT>(required_count);
-		if (buffer && capacity >= need)
-			return;
-
-		UINT new_capacity = capacity ? capacity : 256;
-		while (new_capacity < need)
-			new_capacity *= 2;
-
-		auto device = render_data::instance()->get_device();
-
-		D3D11_BUFFER_DESC buffer_desc = {};
-		buffer_desc.Usage = D3D11_USAGE_DEFAULT;
-		buffer_desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-		buffer_desc.ByteWidth = stride * new_capacity;
-		buffer_desc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
-		buffer_desc.StructureByteStride = stride;
-
-		Microsoft::WRL::ComPtr<ID3D11Buffer> new_buffer;
-		HRESULT hr = device->CreateBuffer(&buffer_desc, nullptr, new_buffer.GetAddressOf());
-		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
-
-		D3D11_SHADER_RESOURCE_VIEW_DESC srv_desc = {};
-		srv_desc.Format = DXGI_FORMAT_UNKNOWN;
-		srv_desc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
-		srv_desc.Buffer.FirstElement = 0;
-		srv_desc.Buffer.NumElements = new_capacity;
-
-		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> new_srv;
-		hr = device->CreateShaderResourceView(new_buffer.Get(), &srv_desc, new_srv.GetAddressOf());
-		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
-
-		buffer = new_buffer;
-		shader_resource_view = new_srv;
-		capacity = new_capacity;
-	}
-}
 
 void framework::build_particle_render_lists(const render_data_context& render_data, render_particle_indices& particle_indices)
 {
@@ -464,98 +417,6 @@ void framework::build_particle_render_lists(const render_data_context& render_da
 	}
 }
 
-void framework::build_primitive_transform_buffers(render_data_context& transform_render_data)
-{
-	auto& mesh_buffer_datas = transform_render_data.mesh_container.buffer_datas;
-	auto immediate_context = render_data::instance()->get_immediate_context();
-
-	primitive_header_scratch.clear();
-	bone_matrix_scratch.clear();
-	primitive_header_scratch.reserve(mesh_buffer_datas.size());
-
-	const semantic position_semantic("POSITION", 0);
-	const semantic normal_semantic("NORMAL", 0);
-	const semantic tangent_semantic("TANGENT", 0);
-
-	for (UINT mesh_index = 0; mesh_index < mesh_buffer_datas.size(); ++mesh_index)
-	{
-		auto& buffer_data = mesh_buffer_datas[mesh_index];
-		auto& current_matrices = buffer_data.transform_matrices[static_cast<int>(buffer_datas::transform_matrix_index::current)];
-		auto& previous_matrices = buffer_data.transform_matrices[static_cast<int>(buffer_datas::transform_matrix_index::previous)];
-
-		common_pipeline_states::primitive_constants header = {};
-
-		if (!buffer_data.color_meshs.empty())
-		{
-			//	接線の有無
-			header.primitive_parameter.x = buffer_data.color_meshs[0].vertex_buffer_views->find(tangent_semantic) != buffer_data.color_meshs[0].vertex_buffer_views->end();
-
-			//	モーフ重み
-			for (UINT index = 0; index < buffer_data.color_meshs[0].morph_meshes.size(); ++index)
-			{
-				auto& morph = buffer_data.color_meshs[0].morph_meshes[index];
-				if (morph.vertex_buffer_views->find(position_semantic) != morph.vertex_buffer_views->end())
-				{
-					float* weight = &header.position_morph[header.primitive_parameter.y / 4].x;
-					weight[header.primitive_parameter.y % 4] = morph.weight;
-					header.primitive_parameter.y++;
-				}
-				if (morph.vertex_buffer_views->find(normal_semantic) != morph.vertex_buffer_views->end())
-				{
-					float* weight = &header.normal_morph[header.primitive_parameter.z / 4].x;
-					weight[header.primitive_parameter.z % 4] = morph.weight;
-					header.primitive_parameter.z++;
-				}
-			}
-		}
-
-		//	ボーン行列をバッファにコピー
-		DEBUG_CHECK_WARNING_CATEGORY(common_pipeline_states::mesh_bone_max < previous_matrices.size() || common_pipeline_states::mesh_bone_max < current_matrices.size(),
-			logger::categorys::model, "primitive transform bone over.");
-		UINT current_count = std::min(common_pipeline_states::mesh_bone_max, static_cast<UINT>(current_matrices.size()));
-		UINT previous_count = std::min(common_pipeline_states::mesh_bone_max, static_cast<UINT>(previous_matrices.size()));
-
-		header.bone_offset = static_cast<UINT>(bone_matrix_scratch.size());
-		bone_matrix_scratch.insert(bone_matrix_scratch.end(), current_matrices.begin(), current_matrices.begin() + current_count);
-		header.previous_bone_offset = static_cast<UINT>(bone_matrix_scratch.size());
-		bone_matrix_scratch.insert(bone_matrix_scratch.end(), previous_matrices.begin(), previous_matrices.begin() + previous_count);
-		header.bone_count = current_count;
-
-		primitive_header_scratch.push_back(header);
-
-		common_pipeline_states::primitive_index_constants index_constant = {};
-		index_constant.primitive_index = mesh_index;
-		immediate_context->UpdateSubresource(buffer_data.primitive_buffer.Get(), 0, 0, &index_constant, 0, 0);
-	}
-
-	if (primitive_header_scratch.empty())
-		primitive_header_scratch.emplace_back();
-	if (bone_matrix_scratch.empty())
-		bone_matrix_scratch.emplace_back();
-
-	//	変形行列バッファを再生成
-	regenerate_transform_structured_buffer(primitive_header_buffer, primitive_header_srv, primitive_header_capacity,
-		sizeof(common_pipeline_states::primitive_constants), primitive_header_scratch.size());
-	regenerate_transform_structured_buffer(bone_matrix_buffer, bone_matrix_srv, bone_matrix_capacity,
-		sizeof(DirectX::XMFLOAT4X4), bone_matrix_scratch.size());
-
-	//	行列転送
-	auto upload_range = [&](ID3D11Buffer* buffer, const void* source, UINT byte_size)
-	{
-		D3D11_BOX box = {};
-		box.right = byte_size;
-		box.bottom = 1;
-		box.back = 1;
-		immediate_context->UpdateSubresource(buffer, 0, &box, source, 0, 0);
-	};
-	upload_range(primitive_header_buffer.Get(), primitive_header_scratch.data(),
-		static_cast<UINT>(primitive_header_scratch.size() * sizeof(common_pipeline_states::primitive_constants)));
-	upload_range(bone_matrix_buffer.Get(), bone_matrix_scratch.data(),
-		static_cast<UINT>(bone_matrix_scratch.size() * sizeof(DirectX::XMFLOAT4X4)));
-
-	transform_render_data.primitive_header_srv = primitive_header_srv;
-	transform_render_data.bone_matrix_srv = bone_matrix_srv;
-}
 
 void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 {
@@ -595,8 +456,6 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 		//	パーティクルの描画振り分け
 		build_particle_render_lists(*render_data, *render_particle_indices);
 
-		//	転送行列を纏める
-		build_primitive_transform_buffers(*render_data);
 	}
 
 	//	バッファ描画
@@ -625,10 +484,6 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 		static float total_time = 0;
 
 		//	カメラ分描画(仮)
-		std::unordered_map<UINT, uint8_t> occlusion_visible;
-		if (occlusion_culling)
-			occlusion_culling->read_last_frame(occlusion_visible);
-
 		camera_container camera_container;
 		camera_manager::instance()->get_container(camera_container);
 		for (auto& camera : camera_container.cameras)
@@ -640,6 +495,11 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 			context.render_particle_indices = render_particle_indices;
 			context.render_decal_indices = std::make_shared<render_decal_indices>();
 			prepare_render_context(context, camera, render_data, render_particle_indices, total_time, total_time + elapsed_time);
+
+			//	オクルージョンカリング結果を読み出す
+			std::unordered_map<UINT, uint8_t> occlusion_visible;
+			if (auto* occlusion = camera.camera->get_occlusion_culling())
+				occlusion->read_last_frame(occlusion_visible);
 
 			//	描画メッシュ／デカールのカリング・ソート
 			build_render_lists(*render_data, camera.camera->get_frustum_culling(), occlusion_visible,
@@ -722,6 +582,7 @@ void framework::prepare_render_context(
 	float previous_time, float current_time)
 {
 	context.scene_constant_buffer = camera.constant_buffer;
+	context.render_camera = camera.camera.get();
 
 	//	シーン定数バッファ設定
 	{
@@ -810,13 +671,10 @@ void framework::build_render_lists(
 			if (!frustum_culling.to_aabb(buffer_data->bounds_min, buffer_data->bounds_max))
 				return;
 
-			//	オクルージョンカリング（1F前の結果を利用）
-			if (system_utility::is_bitflag(buffer_data->system_flags, buffer_datas::flags::static_mesh))
-			{
-				auto it = occlusion_visible.find(buffer_data->unique_id);
-				if (it != occlusion_visible.end() && it->second == 0)
-					return;
-			}
+			//	オクルージョンカリング（対象かどうかは update 内の testable 判定で決まる）
+			auto it = occlusion_visible.find(buffer_data->unique_id);
+			if (it != occlusion_visible.end() && it->second == 0)
+				return;
 		}
 
 		//	カメラからの距離算出（AABB 中心）

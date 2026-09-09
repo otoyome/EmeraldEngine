@@ -21,7 +21,7 @@ public:
 	void resize_buffer(int width, int height);
 
 	//	GPU側でカリング処理
-	void update(graphics_context& context);
+	void update(graphics_context& context, float animation_test_distance);
 
 	//	前フレームの判定結果を読み出す
 	void read_last_frame(std::unordered_map<UINT, uint8_t>& out_visibility);
@@ -50,6 +50,9 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> visibility_uav;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> visibility_staging;
 	UINT instance_capacity = 0;
+
+	int last_width = 0;
+	int last_height = 0;
 
 	std::vector<UINT> last_unique_ids;
 	UINT last_instance_count = 0;

@@ -366,8 +366,8 @@ void graphics_custom_pipeline_state::begin(const graphics_context& context)
 		{
 			ID3D11ShaderResourceView* transform_views[2] =
 			{
-				context.render_data->primitive_header_srv.Get(),
-				context.render_data->bone_matrix_srv.Get(),
+				context.render_data->mesh_container.primitive_header_srv.Get(),
+				context.render_data->mesh_container.bone_matrix_srv.Get(),
 			};
 			const system_utility::hash_key transform_keys[2] =
 			{

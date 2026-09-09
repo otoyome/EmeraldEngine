@@ -344,12 +344,10 @@ void gbuffer_decal_renderer::render(renderer_context& renderer_context)
 					DirectX::XMMATRIX W = DirectX::XMMatrixScaling(decal.scale.x, decal.scale.y, decal.scale.z)
 										* DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&decal.rotation.convert_quaternion()))
 										* DirectX::XMMatrixTranslation(decal.position.x, decal.position.y, decal.position.z);
-					DirectX::XMStoreFloat4x4(&buffer_data.transform_matrices[0].emplace_back(), W);
-
 					//	プリミティブバッファ更新
 					{
 						common_pipeline_states::decal_primitive_constants dpc;
-						dpc.decal_transform = buffer_data.transform_matrices[0].back();
+						DirectX::XMStoreFloat4x4(&dpc.decal_transform, W);
 						auto front = decal.rotation.get_up();
 						dpc.decal_direction.x = front.x;
 						dpc.decal_direction.y = front.y;

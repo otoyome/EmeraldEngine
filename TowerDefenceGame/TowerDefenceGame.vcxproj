@@ -381,7 +381,6 @@ xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y</Command>
     <ClCompile Include="Sources\PipelineState\post_process_pipeline_state.cpp" />
     <ClCompile Include="Sources\Renderer\renderer.cpp" />
     <ClCompile Include="Sources\Renderer\render_job_executor.cpp" />
-    <ClCompile Include="Sources\Renderer\occlusion_culling_system.cpp" />
     <ClCompile Include="Sources\Renderer\occlusion_culling_renderer.cpp" />
     <ClCompile Include="Sources\Renderer\scene_renderer.cpp" />
     <ClCompile Include="Sources\Renderer\scene_renderer_common.cpp" />
@@ -487,7 +486,6 @@ xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y</Command>
     <ClInclude Include="Headers\Renderer\scene_renderer_postprocess.h" />
     <ClInclude Include="Headers\Renderer\scene_render_targets.h" />
     <ClInclude Include="Headers\Renderer\renderer.h" />
-    <ClInclude Include="Headers\Renderer\occlusion_culling_system.h" />
     <ClInclude Include="Headers\Renderer\occlusion_culling_renderer.h" />
     <ClInclude Include="Headers\Renderer\scene_renderer.h" />
     <ClInclude Include="Headers\Scenes\DummyScene\dummy_scene.h" />

@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <Filter Include="Sources">
@@ -94,6 +94,9 @@
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="Headers\camera.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\occlusion_culling_system.h">
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Collision\frustum_culling.h">
@@ -306,6 +309,9 @@
       <Filter>Sources</Filter>
     </ClCompile>
     <ClCompile Include="Sources\camera.cpp">
+      <Filter>Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\occlusion_culling_system.cpp">
       <Filter>Sources</Filter>
     </ClCompile>
     <ClCompile Include="Sources\Collision\collision.cpp">

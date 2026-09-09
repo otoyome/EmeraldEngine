@@ -1,4 +1,4 @@
-#include "Renderer/occlusion_culling_system.h"
+#include "occlusion_culling_system.h"
 
 #include "render_data.h"
 
@@ -74,6 +74,10 @@ void occlusion_culling_system::resize_buffer(int width, int height)
 {
 	if (width <= 0 || height <= 0)
 		return;
+	if (width == last_width && height == last_height && hiz_texture)
+		return;
+	last_width = width;
+	last_height = height;
 
 	auto device = render_data::instance()->get_device();
 	HRESULT hr;
@@ -199,7 +203,7 @@ void occlusion_culling_system::generate_instance_buffers(UINT count)
 	}
 }
 
-void occlusion_culling_system::update(graphics_context& context)
+void occlusion_culling_system::update(graphics_context& context, float animation_test_distance)
 {
 	auto& buffer_datas = context.render_data->mesh_container.buffer_datas;
 	UINT count = static_cast<UINT>(buffer_datas.size());
@@ -220,7 +224,25 @@ void occlusion_culling_system::update(graphics_context& context)
 		instance_aabb_cpu a{};
 		a.bmin = bd.bounds_min;
 		a.bmax = bd.bounds_max;
-		a.testable = system_utility::is_bitflag(bd.system_flags, buffer_datas::flags::static_mesh) ? 1.0f : 0.0f;
+		if (system_utility::is_bitflag(bd.system_flags, buffer_datas::flags::static_mesh))
+		{
+			a.testable = 1.0f;
+		}
+		else if (animation_test_distance > 0.0f)
+		{
+			//	アニメーションモデルは一定距離外なら対象に
+			float cx = (bd.bounds_min.x + bd.bounds_max.x) * 0.5f;
+			float cy = (bd.bounds_min.y + bd.bounds_max.y) * 0.5f;
+			float cz = (bd.bounds_min.z + bd.bounds_max.z) * 0.5f;
+			float dx = cx - context.scene_constant.camera_position.x;
+			float dy = cy - context.scene_constant.camera_position.y;
+			float dz = cz - context.scene_constant.camera_position.z;
+			a.testable = (dx * dx + dy * dy + dz * dz) >= (animation_test_distance * animation_test_distance) ? 1.0f : 0.0f;
+		}
+		else
+		{
+			a.testable = 0.0f;
+		}
 		aabbs.emplace_back(a);
 		last_unique_ids.emplace_back(bd.unique_id);
 	}

@@ -71,11 +71,25 @@ struct mesh_container
 	std::vector<draw_datas> draw_datas;
 	std::vector<std::size_t> color_datas;
 	std::vector<std::size_t> shadow_datas;
+
+	Microsoft::WRL::ComPtr<ID3D11Buffer> primitive_header_buffer;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> primitive_header_srv;
+	UINT primitive_header_capacity = 0;
+	Microsoft::WRL::ComPtr<ID3D11Buffer> bone_matrix_buffer;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> bone_matrix_srv;
+	UINT bone_matrix_capacity = 0;
+	std::vector<common_pipeline_states::primitive_constants> primitive_header_scratch;
+	std::vector<DirectX::XMFLOAT4X4> bone_matrix_scratch;
+
+	void build_transform_buffers();
+
 	void clear()
 	{
 		draw_datas.clear();
 		shadow_datas.clear();
 		color_datas.clear();
+		primitive_header_scratch.clear();
+		bone_matrix_scratch.clear();
 	}
 };
 
@@ -172,9 +186,6 @@ struct render_data_context
 	sprite_container sprite_container;
 	effect_container effect_container;
 	decal_container decal_container;
-
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> primitive_header_srv;
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> bone_matrix_srv;
 #if defined(USE_IMGUI)
 	debug_draw_primitive_container debug_draw_container;
 #endif // defined(USE_IMGUI)

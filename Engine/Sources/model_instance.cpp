@@ -346,8 +346,6 @@ void model_instance_manger::get_container(mesh_container& container)
 			buffer_data.unique_id = instance->get_unique_id();
 
 			buffer_data.color_meshs.clear();
-			buffer_data.transform_matrices[static_cast<int>(buffer_datas::transform_matrix_index::current)].clear();
-			buffer_data.transform_matrices[static_cast<int>(buffer_datas::transform_matrix_index::previous)].clear();
 			buffer_data.shadow_mesh.vertex_buffer_views = nullptr;
 			buffer_data.shadow_mesh.index_buffer_view = nullptr;
 			buffer_data.shadow_mesh.morph_meshes.clear();
@@ -420,32 +418,68 @@ void model_instance_manger::get_container(mesh_container& container)
 				}
 			}
 
-			//	変換行列登録
+			//	変換行列・プリミティブヘッダを登録
 			{
-				auto& current_transform_matrices = buffer_data.transform_matrices[static_cast<int>(buffer_datas::transform_matrix_index::current)];
-				auto& previous_transform_matrices = buffer_data.transform_matrices[static_cast<int>(buffer_datas::transform_matrix_index::previous)];
-				current_transform_matrices.reserve(mesh.bones.size());
-				previous_transform_matrices.reserve(mesh.bones.size());
-				for (auto& bone : mesh.bones)
+				const semantic tangent_semantic("TANGENT", 0);
+				const semantic position_semantic("POSITION", 0);
+				const semantic normal_semantic("NORMAL", 0);
+
+				common_pipeline_states::primitive_constants& header = container.primitive_header_scratch.emplace_back();
+
+				//	接線の有無
+				if (!buffer_data.color_meshs.empty())
 				{
-					DirectX::XMMATRIX NodeOffsetTransform = DirectX::XMLoadFloat4x4(&bone.offset_matrix);
-					auto& node = instance->get_nodes()[bone.node_index];
-					current_transform_matrices.emplace_back();
-					previous_transform_matrices.emplace_back();
+					header.primitive_parameter.x = buffer_data.color_meshs[0].vertex_buffer_views->find(tangent_semantic) != buffer_data.color_meshs[0].vertex_buffer_views->end();
 
-					DirectX::XMMATRIX NodeWorldTransform = NodeWorldTransforms[bone.node_index];
-					DirectX::XMStoreFloat4x4(&current_transform_matrices.back(), NodeOffsetTransform * NodeWorldTransform);
-
-					NodeWorldTransform = PreviousNodeWorldTransforms[bone.node_index];
-					DirectX::XMStoreFloat4x4(&previous_transform_matrices.back(), NodeOffsetTransform * NodeWorldTransform);
+					//	モーフ重み
+					for (auto& morph_mesh : buffer_data.color_meshs[0].morph_meshes)
+					{
+						if (morph_mesh.vertex_buffer_views->find(position_semantic) != morph_mesh.vertex_buffer_views->end())
+						{
+							float* weight = &header.position_morph[header.primitive_parameter.y / 4].x;
+							weight[header.primitive_parameter.y % 4] = morph_mesh.weight;
+							header.primitive_parameter.y++;
+						}
+						if (morph_mesh.vertex_buffer_views->find(normal_semantic) != morph_mesh.vertex_buffer_views->end())
+						{
+							float* weight = &header.normal_morph[header.primitive_parameter.z / 4].x;
+							weight[header.primitive_parameter.z % 4] = morph_mesh.weight;
+							header.primitive_parameter.z++;
+						}
+					}
 				}
 
-				//	プリミティブ用定数バッファ登録
+				//	ボーン行列を mesh_container.bone_matrix_scratch へ連結
+				UINT bone_count = static_cast<UINT>(mesh.bones.size());
+				if (bone_count > common_pipeline_states::mesh_bone_max)
+					bone_count = common_pipeline_states::mesh_bone_max;
+
+				header.bone_offset = static_cast<UINT>(container.bone_matrix_scratch.size());
+				for (UINT bone_index = 0; bone_index < bone_count; ++bone_index)
+				{
+					auto& bone = mesh.bones[bone_index];
+					DirectX::XMMATRIX NodeOffsetTransform = DirectX::XMLoadFloat4x4(&bone.offset_matrix);
+					DirectX::XMStoreFloat4x4(&container.bone_matrix_scratch.emplace_back(), NodeOffsetTransform * NodeWorldTransforms[bone.node_index]);
+				}
+				header.previous_bone_offset = static_cast<UINT>(container.bone_matrix_scratch.size());
+				for (UINT bone_index = 0; bone_index < bone_count; ++bone_index)
+				{
+					auto& bone = mesh.bones[bone_index];
+					DirectX::XMMATRIX NodeOffsetTransform = DirectX::XMLoadFloat4x4(&bone.offset_matrix);
+					DirectX::XMStoreFloat4x4(&container.bone_matrix_scratch.emplace_back(), NodeOffsetTransform * PreviousNodeWorldTransforms[bone.node_index]);
+				}
+				header.bone_count = bone_count;
+
+				//	プリミティブ用インデックス定数バッファ取得
 				if (primitive_buffer_count + 1 >= constant_bufferes.size())
 				{
 					generate_constant_bufferes();
 				}
 				buffer_data.primitive_buffer = constant_bufferes[primitive_buffer_count++];
+
+				common_pipeline_states::primitive_index_constants index_constant{};
+				index_constant.primitive_index = static_cast<UINT>(buffer_count);
+				render_data::instance()->get_immediate_context()->UpdateSubresource(buffer_data.primitive_buffer.Get(), 0, 0, &index_constant, 0, 0);
 			}
 
 			//	マテリアル情報構築
@@ -518,7 +552,11 @@ void model_instance_manger::get_container(mesh_container& container)
 	//	バッファリサイズ
 	container.buffer_datas.resize(buffer_count);
 	container.material_datas.resize(material_count);
+
+	//	Transform 行列をGPUへ転送
+	container.build_transform_buffers();
 }
+
 
 void model_instance_manger::generate_constant_bufferes()
 {

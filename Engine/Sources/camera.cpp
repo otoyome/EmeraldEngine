@@ -1,5 +1,7 @@
 #include "camera.h"
 
+#include "occlusion_culling_system.h"
+
 camera::camera()
 : system_flags(0)
 , position(0.0f, 0.0f, 0.0f)
@@ -219,6 +221,13 @@ void camera::update_parameters()
 	DirectX::XMFLOAT4X4 inverse_view_projection;
 	DirectX::XMStoreFloat4x4(&inverse_view_projection, DirectX::XMMatrixInverse(nullptr, ViewProjection));
 	frustum_culling.create_frustum_corners(inverse_view_projection);
+}
+
+occlusion_culling_system* camera::get_occlusion_culling()
+{
+	if (!occlusion_culling)
+		occlusion_culling = std::make_unique<occlusion_culling_system>();
+	return occlusion_culling.get();
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
