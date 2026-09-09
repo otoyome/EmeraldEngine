@@ -551,6 +551,145 @@ bool character_object::calculate_position(DirectX::XMFLOAT3 velocity, bool verti
 	//	初期座標
 	out_position = get_position();
 
+#if 01
+	//	オフセット位置を算出
+	float height = bounding_object->get_radius() + bounding_object->get_length() * 0.5f;
+	DirectX::XMVECTOR Offset = DirectX::XMVectorSet(0.0f, height, 0.0f, 0.0f);
+
+	collision_world::sphere_cast_descs desc;
+	desc.radius = bounding_object->get_radius();
+	if (is_flag(flags::invisible))
+	{
+		desc.filter = collision_filter_manager::instance()->search_filter("invisible");
+	}
+	else
+	{
+		desc.filter = collision_filter_manager::instance()->search_filter(collision_filter_name);
+	}
+	desc.exclude_objects.emplace_back(get_push_box());
+
+	static constexpr float StopFactor = system_units::convert_cm_to_unit(0.01f);
+	static constexpr float StopFactorSq = StopFactor * StopFactor;
+	static constexpr float SkinStep = system_units::convert_cm_to_unit(0.1f);
+
+	bool hit_flag = false;
+	DirectX::XMVECTOR Velocity = DirectX::XMLoadFloat3(&velocity);
+	for (size_t index = 0; index < 2; ++index)
+	{
+		float distance = DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(Velocity));
+		if (distance < StopFactorSq)
+			break;
+
+		distance = sqrtf(distance) + SkinStep;
+
+		//	進行ベクトル補正
+		DirectX::XMVECTOR NormalizedVelocity = DirectX::XMVector3Normalize(Velocity);
+		DirectX::XMVECTOR MoveVector = DirectX::XMVectorScale(NormalizedVelocity, distance);
+		DirectX::XMVECTOR From, To;
+		From = DirectX::XMLoadFloat3(&out_position);
+		From = DirectX::XMVectorAdd(From, Offset);
+		To = DirectX::XMVectorAdd(From, MoveVector);
+		if (vertical)
+		{
+			if (DirectX::XMVectorGetY(Velocity) < 0)
+				To = DirectX::XMVectorSubtract(To, Offset);
+			else
+				To = DirectX::XMVectorAdd(To, Offset);
+		}
+
+		DirectX::XMStoreFloat3(&desc.start, From);
+		DirectX::XMStoreFloat3(&desc.end, To);
+
+		//	ヒット処理
+		collision::intersect_data intersect_data;
+		collision_object_ptr hit_collision_object;
+		if (object_manager::instance()->get_world().sphere_cast(desc, intersect_data, hit_collision_object))
+		{
+			hit_flag = true;
+
+			DirectX::XMVECTOR Normal = DirectX::XMVector3Normalize(DirectX::XMLoadFloat3(&intersect_data[0].normal));
+			DirectX::XMStoreFloat3(&out_normal, Normal);
+
+			DirectX::XMVECTOR PositionOffset = Offset;
+			if (vertical)
+			{
+				PositionOffset = (DirectX::XMVectorGetY(Velocity) < 0)
+					? DirectX::XMVectorSet(0.0f, desc.radius, 0.0f, 0.0f)
+					: DirectX::XMVectorSet(0.0f, 2.0f * height - desc.radius, 0.0f, 0.0f);
+			}
+
+			DirectX::XMVECTOR Position = DirectX::XMLoadFloat3(&intersect_data[0].point);
+			DirectX::XMVECTOR OffsetNormal = Normal;
+			if (!vertical)
+			{
+				//	水平パス時は壁刷り法線調整
+				OffsetNormal = DirectX::XMVectorSetY(OffsetNormal, 0.0f);
+				if (DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(OffsetNormal)) > 1e-6f)
+					OffsetNormal = DirectX::XMVector3Normalize(OffsetNormal);
+				else
+					OffsetNormal = DirectX::XMVectorZero();
+			}
+			else
+			{
+				//	垂直パス時は壁刷り法線調整
+				OffsetNormal = DirectX::XMVectorSetX(OffsetNormal, 0.0f);
+				OffsetNormal = DirectX::XMVectorSetZ(OffsetNormal, 0.0f);
+				if (DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(OffsetNormal)) > 1e-6f)
+					OffsetNormal = DirectX::XMVector3Normalize(OffsetNormal);
+				else
+					OffsetNormal = DirectX::XMVectorZero();
+			}
+			Position = DirectX::XMVectorAdd(Position, DirectX::XMVectorScale(OffsetNormal, SkinStep));
+			Position = DirectX::XMVectorSubtract(Position, PositionOffset);
+			DirectX::XMStoreFloat3(&out_position, Position);
+
+			//	摩擦係数を物理マテリアルから取得してくる
+			if (out_friction)
+			{
+				*out_friction = hit_collision_object->get_physical_data().friction;
+			}
+
+			if (vertical)
+			{
+				float dot = DirectX::XMVectorGetX(DirectX::XMVector3Dot(Normal, DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f)));
+				float slope_angle = acosf(math::clamp(dot, -1.0f, 1.0f));
+				if (slope_angle < slope_limit)
+					break;
+			}
+
+			float hit_distance = intersect_data[0].length - SkinStep;
+			MoveVector = DirectX::XMVectorSubtract(To, From);
+			float remain_distance = DirectX::XMVectorGetX(DirectX::XMVector3Length(MoveVector)) - hit_distance;
+			distance = math::clamp(remain_distance, 0.0f, distance);
+			if (distance <= StopFactor)
+				break;
+
+			//	壁ずりベクトル算出
+			if (!vertical)
+			{
+				//	水平パス時は法線調整
+				Normal = DirectX::XMVectorSetY(Normal, 0.0f);
+				DirectX::XMVECTOR length_sq = DirectX::XMVector3LengthSq(Normal);
+				if (DirectX::XMVectorGetX(length_sq) > 1e-6f)
+					Normal = DirectX::XMVector3Normalize(Normal);
+				else
+					Normal = DirectX::XMVectorZero();
+			}
+			MoveVector = DirectX::XMVectorScale(DirectX::XMVector3Normalize(MoveVector), distance);
+			DirectX::XMVECTOR Dot = DirectX::XMVector3Dot(MoveVector, Normal);
+			DirectX::XMVECTOR NormalComponent = DirectX::XMVectorScale(Normal, DirectX::XMVectorGetX(Dot) * 1.0005f);
+			Velocity = DirectX::XMVectorSubtract(MoveVector, NormalComponent);
+		}
+		else
+		{
+			DirectX::XMVECTOR Position = DirectX::XMVectorAdd(From, Velocity);
+			DirectX::XMStoreFloat3(&out_position, DirectX::XMVectorSubtract(Position, Offset));
+			hit_flag = false;
+			break;
+		}
+	}
+
+#else
 	//	オフセット位置を算出
 	float height = bounding_object->get_radius() + bounding_object->get_length() * 0.5f;
 	DirectX::XMVECTOR Offset = DirectX::XMVectorSet(0.0f, height, 0.0f, 0.0f);
@@ -697,6 +836,6 @@ bool character_object::calculate_position(DirectX::XMFLOAT3 velocity, bool verti
 			break;
 		}
 	}
-
+#endif
 	return hit_flag;
 }
