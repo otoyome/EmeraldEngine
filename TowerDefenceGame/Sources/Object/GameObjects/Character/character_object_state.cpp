@@ -263,6 +263,35 @@ void character_object::update_vertical_velocity(float elapsed_time)
 
 void character_object::update_vertical_move(float elapsed_time)
 {
+#if 01
+	//	初期化
+	ground_friction	= 1.0f;
+	slope_rate = 1.0f;
+	ground_normal = {};
+
+	set_flag(flags::on_ground, false);
+
+	//	ルートモーションの速度加算
+	DirectX::XMFLOAT3 vel = DirectX::XMFLOAT3(0.0f, velocity.y * elapsed_time + root_motion_velocity.y, 0.0f);
+
+	//	座標算出
+	DirectX::XMFLOAT3 position, normal;
+	float fricition = 0;
+	if (calculate_position(vel, true, position, normal, &fricition))
+	{
+		if (vel.y < 0)
+		{
+			set_flag(flags::on_ground, true);
+			ground_normal = normal;
+			footstep_position = position;
+			slope_rate = normal.y / ( sqrtf(normal.x * normal.x + normal.z * normal.z) + normal.y);
+			slope_rate = 1.0f - slope_rate;
+			ground_friction	= fricition;
+		}
+		velocity.y = 0.0f;
+	}
+	set_position(position);
+#else
 	const bool was_grounded = is_flag(flags::on_ground);
 
 	ground_friction	= 1.0f;
@@ -350,6 +379,7 @@ void character_object::update_vertical_move(float elapsed_time)
 	}
 
 	set_position(position);
+#endif
 }
 
 void character_object::update_horizontal_velocity(float elapsed_time)
