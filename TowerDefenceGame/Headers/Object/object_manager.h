@@ -1,8 +1,12 @@
 #pragma once
 
+#include <mutex>
+#include <functional>
+
 #include "game_object.h"
 #include "object/messenger.h"
 #include "Collision/collision_world.h"
+#include "system/parallel_for_executor.h"
 
 using game_object_ptr = std::shared_ptr<game_object>;
 
@@ -134,10 +138,15 @@ private:
 	void add_objects();
 	void remove_objects();
 
+	void for_each_parallel(const std::function<void(game_object*)>& body);
+
 private:
+	std::mutex mutex;
 	std::vector<game_object_ptr> game_objects;
 	std::vector<game_object_ptr> game_object_add;
 	std::vector<game_object_ptr> game_object_removes;
+	parallel_for_executor object_update_executor;
+
 	messenger messenger;
 	collision_world world;
 

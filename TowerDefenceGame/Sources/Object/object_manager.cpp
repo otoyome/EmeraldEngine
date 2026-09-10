@@ -80,12 +80,10 @@ void object_manager::updates(float elapsed_time)
 		//	固定更新処理
 		for (int count = 0; count < limit_loop_count; ++count)
 		{
-			for (auto& object : game_objects)
+			for_each_parallel([](game_object* object)
 			{
-				if (!object->is_active())
-					continue;
 				object->fixed_update(fixed_per_second);
-			}
+			});
 
 			remove_objects();
 			add_objects();
@@ -102,29 +100,26 @@ void object_manager::updates(float elapsed_time)
 		remain_time = temporary_elapsed_time;
 
 		//	更新処理
-		for (auto& object : game_objects)
+		for_each_parallel([elapsed_time](game_object* object)
 		{
-			if (!object->is_active())
-				continue;
 			object->update(elapsed_time);
-		}
+		});
 
 		remove_objects();
 		add_objects();
 
 		//	更新後処理
-		for (auto& object : game_objects)
+		for_each_parallel([elapsed_time](game_object* object)
 		{
-			if (!object->is_active())
-				continue;
 			object->post_update(elapsed_time);
-		}
+		});
 
 		remove_objects();
 		add_objects();
 
 #if defined(USE_IMGUI)
 		//	デバッグ更新
+		//	@tool ImGui 描画を含むため直列のまま
 		for (auto& object : game_objects)
 		{
 			if (!object->is_active())
@@ -147,19 +142,39 @@ void object_manager::updates(float elapsed_time)
 	}
 }
 
+void object_manager::for_each_parallel(const std::function<void(game_object*)>& body)
+{
+	const std::size_t count = game_objects.size();
+	if (count == 0)
+		return;
+
+	//	@tool 1 スレッドあたりの最小処理数。これ未満なら呼び出しスレッドで直列実行される
+	constexpr std::size_t grain = 8;
+
+	object_update_executor.parallel_for(count, grain,
+		[this, &body](std::size_t /*worker_index*/, std::size_t begin, std::size_t end)
+		{
+			for (std::size_t index = begin; index < end; ++index)
+			{
+				game_object* object = game_objects[index].get();
+				if (!object->is_active())
+					continue;
+				body(object);
+			}
+		});
+}
+
 void object_manager::pre_render()
 {
 	remove_objects();
 	add_objects();
 
 	//	描画前処理
-	for (auto& object : game_objects)
+	//	@tool transform 更新・IK を並列実行（ray_cast 等の当たり判定クエリは読み取り専用なので並列可）
+	for_each_parallel([](game_object* object)
 	{
-		if (!object->is_active())
-			continue;
-
 		object->pre_render();
-	}
+	});
 
 	remove_objects();
 	add_objects();
@@ -241,6 +256,9 @@ bool object_manager::register_object(game_object_ptr object)
 {
 	if (!object)
 		return false;
+
+	std::lock_guard<std::mutex> lock(mutex);
+
 	if (std::find(game_object_add.begin(), game_object_add.end(), object) != game_object_add.end())
 		return false;
 	if (std::find(game_objects.begin(), game_objects.end(), object) != game_objects.end())
@@ -259,6 +277,9 @@ bool object_manager::unregister_object(game_object_ptr object)
 {
 	if (!object)
 		return false;
+
+	std::lock_guard<std::mutex> lock(mutex);
+
 	if (std::find(game_object_removes.begin(), game_object_removes.end(), object) != game_object_removes.end())
 		return false;
 	if (std::find(game_objects.begin(), game_objects.end(), object) == game_objects.end())
@@ -275,11 +296,13 @@ bool object_manager::unregister_object(game_object_ptr object)
 
 bool object_manager::register_object(collision_object_ptr object)
 {
+	//	@tool 生成・破棄キューの排他は collision_world 側で行う
 	return world.register_object(object);
 }
 
 bool object_manager::unregister_object(collision_object_ptr object)
 {
+	//	@tool 生成・破棄キューの排他は collision_world 側で行う
 	return world.unregister_object(object);
 }
 

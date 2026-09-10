@@ -317,6 +317,9 @@ bool collision_world::register_object(collision_object_ptr object)
 {
 	if (!object)
 		return false;
+
+	std::lock_guard<std::mutex> lock(mutex);
+
 	if (std::find(collision_objects_add.begin(), collision_objects_add.end(), object) != collision_objects_add.end())
 		return false;
 	if (std::find(collision_objects.begin(), collision_objects.end(), object) != collision_objects.end())
@@ -335,6 +338,9 @@ bool collision_world::unregister_object(collision_object_ptr object)
 {
 	if (!object)
 		return false;
+
+	std::lock_guard<std::mutex> lock(mutex);
+
 	if (std::find(collision_objects_remove.begin(), collision_objects_remove.end(), object) != collision_objects_remove.end())
 		return false;
 	if (std::find(collision_objects.begin(), collision_objects.end(), object) == collision_objects.end())

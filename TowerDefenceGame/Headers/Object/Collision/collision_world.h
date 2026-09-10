@@ -1,5 +1,7 @@
 #pragma once
 
+#include <mutex>
+
 #include "Collision/collision.h"
 #include "collision_object.h"
 #include "collision_octree.h"
@@ -60,6 +62,7 @@ public:
 	bool capsule_cast(const capsule_cast_descs& desc, collision::intersect_data& intersect_data, collision_object_ptr& out_collision);
 
 private:
+	std::mutex mutex;
 	std::vector<collision_object_ptr> collision_objects;
 	std::vector<collision_object_ptr> collision_objects_add;
 	std::vector<collision_object_ptr> collision_objects_remove;
