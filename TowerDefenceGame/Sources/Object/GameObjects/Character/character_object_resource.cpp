@@ -19,31 +19,30 @@ void character_object::register_common_effects()
 
 bool character_object::register_effect(size_t effect_id, std::string_view file_path)
 {
-	//if (effect_resources.find(effect_id) != effect_resources.end())
-	//	return false;
-	//
-	//std::shared_ptr<effect_resource> resource;
-	//if (!effect_manager::instance()->load_resource(resource, file_path))
-	//{
-	//	assert(!"Not Found EffectResource");
-	//	return false;
-	//}
-	//effect_resources.insert_or_assign(effect_id, resource);
-	return true;
+	if (effect_resources.find(effect_id) != effect_resources.end())
+		return false;
+
+	effect_resource_ptr resource;
+	if (effect_resource_manager::instance()->load(resource, file_path))
+	{
+		effect_resources.insert_or_assign(effect_id, resource);
+		return true;
+	}
+	return false;
 }
 
-//effect_instance_ptr character_object::play_effect(const play_effect_descs& desc)
-//{
-//	int effect_id = static_cast<int>(desc.id);
-//	auto it = effect_resources.find(effect_id);
-//	if (it == effect_resources.end())
-//		return effect_instance_ptr();
-//
-//	auto effect_instance = it->second->play();
-//	effect_instance->set_scale(desc.scale);
-//	effect_instance->set_rotation(desc.rotation);
-//	effect_instance->set_position(desc.position);
-//	return effect_instance;
-//}
+std::weak_ptr<effect_instance> character_object::play_effect(size_t effect_id)
+{
+	auto it = effect_resources.find(effect_id);
+	if (it == effect_resources.end())
+		return std::weak_ptr<effect_instance>();
+
+	auto instance = std::make_shared<effect_instance>(it->second);
+	if (effect_manager::instance()->register_instance(instance))
+	{
+		effect_instances.emplace_back(instance);
+	}
+	return instance;
+}
 
 

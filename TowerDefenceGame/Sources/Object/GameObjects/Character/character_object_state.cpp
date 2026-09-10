@@ -103,6 +103,24 @@ void character_object::post_update(float elapsed_time)
 		//}
 		on_change_camera_translucent(flag);
 	}
+
+	//	エフェクトインスタンスを監視して破棄処理
+	{
+		auto it = effect_instances.begin();
+		while (it != effect_instances.end())
+		{
+			auto effect_instance = (*it);
+			if (effect_instance->get_animation_time() >= effect_instance->get_animation_end_time())
+			{
+				effect_manager::instance()->unregister_instance(effect_instance);
+				it = effect_instances.erase(it);
+			}
+			else
+			{
+				++it;
+			}
+		}
+	}
 }
 
 std::string_view character_object::get_current_state() const

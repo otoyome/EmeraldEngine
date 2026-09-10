@@ -632,7 +632,7 @@ void compute_particle_system::update(graphics_context& context, float elapsed_ti
 			emitter_id_stack.push(remove_emitter_id);
 		}
 
-		//	断片化対策として、残っているIdをパーティクルバイナリーサイズの降順でソートしてから割り当て直す
+		//	断片化対策として、残っているIdをパーティクルバイナリーサイズの降順でソート
 		std::sort(emitter_id_table.begin(), emitter_id_table.end(),
 			[this](UINT lhs, UINT rhs)
 			{

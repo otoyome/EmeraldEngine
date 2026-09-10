@@ -910,23 +910,30 @@ void kuroko_object::post_update(float elapsed_time)
 		if (parent_node_index != model_resource::invalid_id && attach_node_index != model_resource::invalid_id)
 		{
 			//	指定のノードの姿勢を取得
-		//	auto& parent_node = get_model_object()->get_model_instance()->get_nodes()[parent_node_index];
-		//	DirectX::XMMATRIX WorldTransform = DirectX::XMLoadFloat4x4(&parent_node.world_transform);
-		//	DirectX::XMVECTOR Scale, Rotation, Translation;
-		//	DirectX::XMMatrixDecompose(&Scale, &Rotation, &Translation, WorldTransform);
-		//	Rotation = DirectX::XMQuaternionMultiply(DirectX::XMQuaternionRotationRollPitchYaw(0.0f, 0.0f, DirectX::XM_PI), Rotation);
-		//
-		//	//	ノードに指定して更新
-		//	model_instance::node_animation node_animation;
-		//	DirectX::XMStoreFloat3(&node_animation.scale, Scale);
-		//	DirectX::XMStoreFloat4(&node_animation.rotation, Rotation);
-		//	DirectX::XMStoreFloat3(&node_animation.translation, Translation);
-		//	math::rotator rotation = node_animation.rotation;
-		//	node_animation.translation.x += rotation.get_right().x;
-		//	node_animation.translation.y += rotation.get_right().y;
-		//	node_animation.translation.z += rotation.get_right().z;
-		//	weapon_model->set_node_pose(attach_node_index, node_animation);
-		//	weapon_model->update_transform();
+			auto& parent_node = get_model_object()->get_model_instance()->get_nodes()[parent_node_index];
+			auto AttachTransform = DirectX::XMLoadFloat4x4(&parent_node.global_transform);
+
+			auto ScaleTransform = DirectX::XMMatrixScaling(get_scale().x, get_scale().y, get_scale().z);
+			auto rot = get_rotation().convert_quaternion();
+			auto RotationTransform = DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&rot));
+			auto TranslationTransform = DirectX::XMMatrixTranslation(get_position().x, get_position().y, get_position().z);
+			DirectX::XMMATRIX WorldTransform = AttachTransform * ScaleTransform * RotationTransform * TranslationTransform;
+
+			DirectX::XMVECTOR Scale, Rotation, Translation;
+			DirectX::XMMatrixDecompose(&Scale, &Rotation, &Translation, WorldTransform);
+			Rotation = DirectX::XMQuaternionMultiply(DirectX::XMQuaternionRotationRollPitchYaw(0.0f, 0.0f, DirectX::XM_PI), Rotation);
+		
+			//	ノードに指定して更新
+			model_instance::node_animation node_animation;
+			DirectX::XMStoreFloat3(&node_animation.scale, Scale);
+			DirectX::XMStoreFloat4(&node_animation.rotation, Rotation);
+			DirectX::XMStoreFloat3(&node_animation.translation, Translation);
+			math::rotator rotation = node_animation.rotation;
+			node_animation.translation.x += rotation.get_right().x;
+			node_animation.translation.y += rotation.get_right().y;
+			node_animation.translation.z += rotation.get_right().z;
+			weapon_model->set_node_pose(attach_node_index, node_animation);
+			weapon_model->update_transform();
 		}
 
 		for (auto& material : weapon_model->get_model_instance()->get_materials())
@@ -936,6 +943,22 @@ void kuroko_object::post_update(float elapsed_time)
 			color.w = weapon_alpha;
 			material.set_float4(weapon_material_color_name, color);
 		}
+	}
+
+	//	攻撃エフェクト再生テスト
+	if (keyboard::instance()->get_state().is_key_state(keyboard::key_states::z) == input::state::down)
+	{
+		auto effect_instance = play_effect(static_cast<size_t>(custom_effect_id::break_attack_impact)).lock();
+		auto effect_position = get_position();
+		auto effect_rotation = get_rotation();
+		auto effect_front = effect_rotation.get_front();
+		auto effect_up = effect_rotation.get_up();
+		effect_position.x += system_units::convert_m_to_unit(effect_front.x * 0.5f) + system_units::convert_m_to_unit(effect_up.x * 1.5f);
+		effect_position.y += system_units::convert_m_to_unit(effect_front.y * 0.5f) + system_units::convert_m_to_unit(effect_up.y * 1.5f);
+		effect_position.z += system_units::convert_m_to_unit(effect_front.z * 0.5f) + system_units::convert_m_to_unit(effect_up.z * 1.5f);
+		effect_instance->set_position(effect_position);
+		effect_instance->set_rotation(effect_rotation);
+		//effect_instance->set_scale
 	}
 }
 

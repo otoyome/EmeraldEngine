@@ -9,9 +9,8 @@
 
 #include "system/finite_state_machine.h"
 
-//#include "graphics/effect_resource.h"
-//#include "graphics/effect_instance.h"
-//#include "graphics/effect_manager.h"
+#include "effect_resource.h"
+#include "effect_instance.h"
 
 //	キャラクター制御用基底オブジェクト
 class character_object : public game_object
@@ -478,15 +477,7 @@ public: ////////////////////////////////////////////////////////////////////////
 	};
 	virtual void input_action_data(action_datas action_data) = 0;
 
-	//struct play_effect_descs
-	//{
-	//	size_t id;
-	//
-	//	DirectX::XMFLOAT3 scale = {1, 1, 1};
-	//	math::rotator rotation = {0, 0, 0};
-	//	DirectX::XMFLOAT3 position = { 0, 0, 0 };
-	//};
-	//virtual effect_instance_ptr play_effect(const play_effect_descs& desc);
+	virtual std::weak_ptr<effect_instance> play_effect(size_t effect_id);
 
 protected:
 	template<typename Type, typename ... Arguments>
@@ -613,5 +604,6 @@ private:
 	DirectX::XMFLOAT3 frame_gravity; // 1Fの重力(deltaの方が良いか？)
 	std::weak_ptr<character_object> lockon_taget_object; // ロックオンターゲット
 
-	//std::unordered_map<size_t, std::shared_ptr<effect_resource>> effect_resources; // エフェクトリソース
+	std::unordered_map<size_t, effect_resource_ptr> effect_resources; // エフェクトリソース
+	std::vector<effect_instance_ptr> effect_instances; // エフェクトインスタンス
 };

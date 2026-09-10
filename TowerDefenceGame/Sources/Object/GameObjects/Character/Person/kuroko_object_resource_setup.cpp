@@ -41,6 +41,7 @@ void kuroko_object::register_effects()
 //	register_effect(static_cast<size_t>(custom_effect_id::break_attack_impact), "Assets/Resources/effect/tktk02/break_attack2.efk");
 	register_effect(static_cast<size_t>(custom_effect_id::break_attack_impact), "Assets/Resources/effect/tktk01/Blow13.efk");
 
+	register_effect(static_cast<size_t>(custom_effect_id::break_attack_impact), "Assets/Resources/Effects/EventTest.eme");
 	//	攻撃用デカールテクスチャ読込
 //	texture_manager::instance()->load_texture_from_file(attack_6_decal, "Assets/Resources/ground_crack.png");
 }
