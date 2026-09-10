@@ -918,8 +918,8 @@ bool framework::create_buffers()
 	{
 		Microsoft::WRL::ComPtr<ID3D11Texture2D> depth_buffer{};
 		D3D11_TEXTURE2D_DESC texture2d_desc{};
-		texture2d_desc.Width = 4096;
-		texture2d_desc.Height = 4096;
+		texture2d_desc.Width = 2048;
+		texture2d_desc.Height = 2048;
 		texture2d_desc.MipLevels = 1;
 		texture2d_desc.ArraySize = 6;
 		texture2d_desc.Format = DXGI_FORMAT_R32_TYPELESS;
