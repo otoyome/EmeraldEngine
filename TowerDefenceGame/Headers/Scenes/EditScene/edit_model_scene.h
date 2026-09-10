@@ -42,6 +42,9 @@ private:
 	void discard_shadow_mesh();
 	void optimize_mesh_asset();
 
+	void combine_meshes();
+	void clear_combined_meshes();
+
 private:	//	編集ウィンドウ纏め系
 	bool initialize_edit_core();
 	bool uninitialize_edit_core();
@@ -86,6 +89,13 @@ private:
 
 	//	LOD生成レベル
 	int generate_lod_level = 4;
+
+	//	メッシュ結合のグリッド分割数（軸ごと）。{1,1,1} で全結合
+	DirectX::XMINT3 combine_grid_divisions = { 1, 1, 1 };
+	//	結合前の meshes / nodes 退避（結合解除で復元する）
+	std::vector<model_resource::mesh> combine_backup_meshes;
+	std::vector<model_resource::node> combine_backup_nodes;
+	bool has_combine_backup = false;
 
 	//	当たり判定メッシュ生成情報
 	struct bounding_mesh_option

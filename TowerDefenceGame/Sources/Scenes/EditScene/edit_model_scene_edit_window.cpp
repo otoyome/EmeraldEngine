@@ -258,7 +258,6 @@ void edit_model_scene::imgui_model_loader_window()
 			{
 				ImGui::Checkbox("compute_tangent", &convert_option_data.gltf.is_compute_tangent);
 				ImGui::Checkbox("populate_vertex_color", &convert_option_data.gltf.is_populate_vertex_color);
-				ImGui::Checkbox("combine_unskinned_meshes", &convert_option_data.gltf.is_combine_unskinned_meshes);
 				ImGui::Checkbox("normalize_weight", &convert_option_data.gltf.is_normalize_weight);
 
 				ImGui::Checkbox("change_coordinate_system", &convert_option_data.gltf.is_change_coordinate_system);
@@ -376,6 +375,28 @@ void edit_model_scene::imgui_model_loader_window()
 			{
 				optimize_mesh_asset();
 			}
+		}
+
+		//	スキンなしメッシュの空間グリッド結合
+		if (edit_model)
+		{
+			ImGui::Separator();
+			ImGui::Text("Combine Meshes");
+			ImGui::DragInt3("grid_divisions", &combine_grid_divisions.x, 0.1f, 1, 256);
+			combine_grid_divisions.x = std::max(1, combine_grid_divisions.x);
+			combine_grid_divisions.y = std::max(1, combine_grid_divisions.y);
+			combine_grid_divisions.z = std::max(1, combine_grid_divisions.z);
+			if (ImGui::Button("Combine Meshes"))
+			{
+				combine_meshes();
+			}
+			ImGui::SameLine();
+			ImGui::BeginDisabled(!has_combine_backup);
+			if (ImGui::Button("Clear Combine"))
+			{
+				clear_combined_meshes();
+			}
+			ImGui::EndDisabled();
 		}
 
 		//	当たり判定メッシュ生成

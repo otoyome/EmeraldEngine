@@ -119,7 +119,6 @@ void object_manager::updates(float elapsed_time)
 
 #if defined(USE_IMGUI)
 		//	デバッグ更新
-		//	@tool ImGui 描画を含むため直列のまま
 		for (auto& object : game_objects)
 		{
 			if (!object->is_active())
@@ -148,7 +147,6 @@ void object_manager::for_each_parallel(const std::function<void(game_object*)>& 
 	if (count == 0)
 		return;
 
-	//	@tool 1 スレッドあたりの最小処理数。これ未満なら呼び出しスレッドで直列実行される
 	constexpr std::size_t grain = 8;
 
 	object_update_executor.parallel_for(count, grain,
@@ -170,7 +168,6 @@ void object_manager::pre_render()
 	add_objects();
 
 	//	描画前処理
-	//	@tool transform 更新・IK を並列実行（ray_cast 等の当たり判定クエリは読み取り専用なので並列可）
 	for_each_parallel([](game_object* object)
 	{
 		object->pre_render();
@@ -296,13 +293,11 @@ bool object_manager::unregister_object(game_object_ptr object)
 
 bool object_manager::register_object(collision_object_ptr object)
 {
-	//	@tool 生成・破棄キューの排他は collision_world 側で行う
 	return world.register_object(object);
 }
 
 bool object_manager::unregister_object(collision_object_ptr object)
 {
-	//	@tool 生成・破棄キューの排他は collision_world 側で行う
 	return world.unregister_object(object);
 }
 

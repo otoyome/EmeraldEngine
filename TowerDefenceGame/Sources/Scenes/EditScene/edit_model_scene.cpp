@@ -198,6 +198,10 @@ void edit_model_scene::update_core(float elapsed_time)
 {
 	if (convert_option_data.kind != convert_option_data::kinds::none)
 	{
+		combine_backup_meshes.clear();
+		combine_backup_nodes.clear();
+		has_combine_backup = false;
+
 		if (edit_model)
 		{
 			on_model_release();
@@ -362,6 +366,56 @@ void edit_model_scene::optimize_mesh_asset()
 		return;
 
 	model_resource_utility::optimize_meshs(*resource);
+}
+
+void edit_model_scene::combine_meshes()
+{
+	if (!edit_model)
+		return;
+
+	auto resource = edit_model->get_model_instance()->get_resource();
+	if (!resource)
+		return;
+
+	if (!has_combine_backup)
+	{
+		combine_backup_meshes = resource->get_meshes();
+		combine_backup_nodes = resource->get_nodes();
+		has_combine_backup = true;
+	}
+	else
+	{
+		resource->get_meshes_for_editor() = combine_backup_meshes;
+		resource->get_nodes_for_editor() = combine_backup_nodes;
+	}
+
+	model_resource_utility::combine_unskinned_meshes(*resource, combine_grid_divisions);
+
+	std::string path(resource->get_file_path());
+	on_model_release();
+	edit_model = std::make_shared<model_object>(path, resource);
+	on_model_setup();
+}
+
+void edit_model_scene::clear_combined_meshes()
+{
+	if (!edit_model || !has_combine_backup)
+		return;
+
+	auto resource = edit_model->get_model_instance()->get_resource();
+	if (!resource)
+		return;
+
+	resource->get_meshes_for_editor() = combine_backup_meshes;
+	resource->get_nodes_for_editor() = combine_backup_nodes;
+	combine_backup_meshes.clear();
+	combine_backup_nodes.clear();
+	has_combine_backup = false;
+
+	std::string path(resource->get_file_path());
+	on_model_release();
+	edit_model = std::make_shared<model_object>(path, resource);
+	on_model_setup();
 }
 
 #endif	//	defined(USE_IMGUI)

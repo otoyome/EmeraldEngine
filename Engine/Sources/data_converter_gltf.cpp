@@ -269,12 +269,6 @@ namespace
 		}
 		//	[エンジン改造:接線に再計算法線を含める対応]
 
-		//	メッシュ結合
-		if (convert_data.is_combine_unskinned_meshes)
-		{
-			loader.combine_unskinned_meshes(gltf_meshes, gltf_nodes);
-		}
-
 		//	アニメーション読込
 		loader.load_animations(gltf_animations, gltf_nodes);
 

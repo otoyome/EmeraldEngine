@@ -169,9 +169,6 @@ public:
 	//	頂点バッファに存在しなければ情報登録
 	void populate_vertex_data(std::vector<mesh_data>& meshes, const semantic& semantic, const register_vertex_data& vertex_data);
 
-	//	テキトーにメッシュ結合
-	void combine_unskinned_meshes(std::vector<mesh_data>& meshes, std::vector<node_data>& nodes);
-
 	//	アニメーション読み込み
 	void load_animations(std::vector<animation_data>& animations, const std::vector<node_data>& nodes);
 

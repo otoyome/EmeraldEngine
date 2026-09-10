@@ -26,7 +26,6 @@ namespace data_converter
 			std::string_view file_path;							//	ファイルパス
 			bool is_compute_tangent = true;						//	接線の無いメッシュの場合に接戦を算出する
 			bool is_populate_vertex_color = true;				//	頂点色の無いメッシュに頂点色を含める
-			bool is_combine_unskinned_meshes = true;			//	スキンメッシュ以外のメッシュを結合
 			bool is_change_coordinate_system = true;			//	座標系変換
 			bool is_change_coordinate_system_indices = false;	//	座標系変換時にインデックスを反転
 			bool is_normalize_weight = true;					//	影響度の正規化
@@ -59,7 +58,6 @@ namespace data_converter
 			std::string_view file_path;							//	ファイルパス
 			bool is_compute_tangent = true;						//	接線の無いメッシュの場合に接戦を算出する
 			bool is_populate_vertex_color = true;				//	頂点色の無いメッシュに頂点色を含める
-			bool is_combine_unskinned_meshes = true;			//	スキンメッシュ以外のメッシュを結合
 			bool is_change_coordinate_system = true;			//	座標系変換
 			bool is_change_coordinate_system_indices = false;	//	座標系変換時にインデックスを反転
 			bool is_normalize_weight = true;					//	影響度の正規化
