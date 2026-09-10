@@ -455,7 +455,6 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 
 		//	パーティクルの描画振り分け
 		build_particle_render_lists(*render_data, *render_particle_indices);
-
 	}
 
 	//	バッファ描画

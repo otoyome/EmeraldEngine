@@ -1,7 +1,6 @@
 #include "Object/Collision/collision_world.h"
 
 #include "Collision/capsule.h"
-#include <thread>
 
 namespace
 {
@@ -106,13 +105,15 @@ void collision_world::inner_step_simulation(float elapsed_time)
 		candidate_pairs.clear();
 		broadphase.collect_pairs(candidate_pairs);
 
+		//	”»’èˆ—
 		const size_t pair_count = candidate_pairs.size();
 		narrow_hits.assign(pair_count, 0);
 		if (narrow_contacts.size() < pair_count)
 			narrow_contacts.resize(pair_count);
-
-		auto narrow_test = [&](size_t begin, size_t end)
+		auto narrow_test = [&](size_t worker_index, size_t begin, size_t end)
 		{
+			(void)worker_index;
+
 			for (size_t index = begin; index < end; ++index)
 			{
 				collision_object* raw1 = candidate_pairs[index].first;
@@ -132,6 +133,7 @@ void collision_world::inner_step_simulation(float elapsed_time)
 				if (!bounding1 || !bounding2)
 					continue;
 
+				//	AABB‚ğg‚Á‚Ä‘åG”c‚É”»’èˆ—
 				collision_octree::aabb box1{};
 				collision_octree::aabb box2{};
 				bounding1->include_corner(box1.min, box1.max);
@@ -140,37 +142,14 @@ void collision_world::inner_step_simulation(float elapsed_time)
 					continue;
 
 				narrow_contacts[index].clear();
+				//	Œ`ó‚É‡‚í‚¹‚Ä”»’èˆ—
 				if (bounding1->intersection(bounding2.get(), &narrow_contacts[index]))
 					narrow_hits[index] = 1;
 			}
 		};
+		narrow_phase_executor.parallel_for(pair_count, narrow_phase_parallel_min, narrow_test);
 
-		//	AABB‚ğg‚Á‚Ä”»’èˆ—
-		if (pair_count >= narrow_phase_parallel_min)
-		{
-			UINT thread_count = std::max(1u, std::min(std::thread::hardware_concurrency(), 16u));
-			thread_count = static_cast<UINT>(std::min<size_t>(thread_count, pair_count));
-
-			std::vector<std::thread> workers;
-			workers.reserve(thread_count);
-			size_t chunk = (pair_count + thread_count - 1) / thread_count;
-			for (UINT t = 0; t < thread_count; ++t)
-			{
-				size_t begin = t * chunk;
-				size_t end = std::min(pair_count, begin + chunk);
-				if (begin >= end)
-					continue;
-				workers.emplace_back(narrow_test, begin, end);
-			}
-			for (auto& worker : workers)
-				worker.join();
-		}
-		else
-		{
-			narrow_test(0, pair_count);
-		}
-
-		//	ÚG
+		//	‰Ÿ‚µ–ß‚µˆ—
 		for (size_t index = 0; index < pair_count; ++index)
 		{
 			if (!narrow_hits[index])

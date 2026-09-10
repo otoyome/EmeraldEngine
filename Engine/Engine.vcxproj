@@ -95,6 +95,7 @@
     <ClInclude Include="Headers\System\logger.h" />
     <ClInclude Include="Headers\System\math_utility.h" />
     <ClInclude Include="Headers\System\misc.h" />
+    <ClInclude Include="Headers\System\parallel_for_executor.h" />
     <ClInclude Include="Headers\System\simple_helper.h" />
     <ClInclude Include="Headers\System\singleton.h" />
     <ClInclude Include="Headers\System\system_units.h" />

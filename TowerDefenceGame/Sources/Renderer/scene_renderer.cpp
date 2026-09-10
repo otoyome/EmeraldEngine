@@ -1235,6 +1235,7 @@ void debug_draw_pass_renderer::render(renderer_context& context)
 		for (UINT index = 0; index < static_cast<int>(debug_draw_primitive_container::line_buffer_id::max); ++index)
 		{
 			debug_draw_line_pipeline_states[index]->begin(context);
+			if (!context.render_data->debug_draw_container.line_buffer_datas[index].color_meshs.empty())
 			{
 				auto& mesh = context.render_data->debug_draw_container.line_buffer_datas[index].color_meshs[0];
 				auto it = mesh.vertex_buffer_views->begin();

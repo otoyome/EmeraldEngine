@@ -15,6 +15,7 @@ extern ImWchar glyphRangesJapanese[];
 #include "System/cpu_timer.h"
 #endif
 
+#include "system/parallel_for_executor.h"
 #include "render_pass.h"
 
 #include "Scenes/scene_base.h"
@@ -22,7 +23,6 @@ extern ImWchar glyphRangesJapanese[];
 #include "Renderer/scene_render_targets.h"
 #include "Renderer/occlusion_culling_renderer.h"
 #include "camera.h"
-#include "parallel_for_executor.h"
 
 namespace collision { class frustum_culling; }
 struct render_data_context;

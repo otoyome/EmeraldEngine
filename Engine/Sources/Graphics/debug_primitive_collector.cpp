@@ -16,9 +16,9 @@ debug_primitive_manager::debug_primitive_manager()
 
 		D3D11_BUFFER_DESC buffer_desc{};
 		buffer_desc.ByteWidth = static_cast<UINT>(VertexCount * sizeof(vertex));
-		buffer_desc.Usage = D3D11_USAGE_DYNAMIC;
+		buffer_desc.Usage = D3D11_USAGE_DEFAULT;
 		buffer_desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-		buffer_desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+		buffer_desc.CPUAccessFlags = 0;
 		hr = device->CreateBuffer(&buffer_desc, nullptr, vertex_buffer.buffer.ReleaseAndGetAddressOf());
 		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
 
@@ -35,36 +35,28 @@ debug_primitive_manager::~debug_primitive_manager()
 
 void debug_primitive_manager::get_container(debug_draw_primitive_container& container)
 {
+	auto immediate_context = render_data::instance()->get_immediate_context();
 	//	•`‰æî•ñ“o˜^
 	HRESULT hr{ S_OK };
 	for (UINT index = 0; index < static_cast<int>(debug_draw_primitive_container::line_buffer_id::max); ++index)
 	{
+		container.line_buffer_datas[index].color_meshs.clear();
+		if (vertices[index].empty())
+			continue;
+
+		auto& main_mesh = container.line_buffer_datas[index].color_meshs.emplace_back();
 		auto& view = vertex_buffer_views[index].begin()->second;
 
-		D3D11_MAPPED_SUBRESOURCE mapped_subresource{};
-		hr = render_data::instance()->get_immediate_context()->Map(view.buffer.Get(),
-			0,
-			D3D11_MAP_WRITE_DISCARD,
-			0,
-			&mapped_subresource);
-		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
-		if (SUCCEEDED(hr))
-		{
-			vertex* map_vertices = reinterpret_cast<vertex*>(mapped_subresource.pData);
-			memcpy_s(map_vertices,
-				VertexCount * sizeof(vertex),
-				vertices[index].data(),
-				std::min(VertexCount, vertices[index].size()) * sizeof(vertex));
-
-			//	ƒAƒ“ƒ}ƒbƒv
-			render_data::instance()->get_immediate_context()->Unmap(view.buffer.Get(), 0);
-		}
+		const UINT copy_count = static_cast<UINT>(std::min<size_t>(VertexCount, vertices[index].size()));
+		const UINT copy_bytes = copy_count * sizeof(vertex);
+		D3D11_BOX dst_box = {0, 0, 0, copy_bytes, 1, 1};
+		immediate_context->UpdateSubresource(view.buffer.Get(), 0, &dst_box,
+											 vertices[index].data(), copy_bytes, 0);
 
 		//	’¸“_”‚Ìİ’è
 		view.size_in_bytes = view.stride_in_bytes * vertices[index].size();
 
 		//	ƒRƒ“ƒeƒi‚Éî•ñ“o˜^
-		auto& main_mesh = container.line_buffer_datas[index].color_meshs.emplace_back();
 		main_mesh.vertex_buffer_views = &vertex_buffer_views[index];
 		vertices[index].clear();
 	}

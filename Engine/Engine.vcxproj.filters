@@ -267,6 +267,9 @@
     <ClInclude Include="Headers\System\simple_helper.h">
       <Filter>Headers\System</Filter>
     </ClInclude>
+    <ClInclude Include="Headers\System\parallel_for_executor.h">
+      <Filter>Headers\System</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Sources\geometric_primitive.cpp">

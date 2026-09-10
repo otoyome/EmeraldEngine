@@ -13,7 +13,6 @@
 class parallel_for_executor
 {
 public:
-	//	worker_index … 0 は呼び出しスレッド、1.. は常駐ワーカー
 	using range_function = std::function<void(std::size_t worker_index, std::size_t begin, std::size_t end)>;
 
 	explicit parallel_for_executor(unsigned thread_count = 0)
@@ -22,7 +21,6 @@ public:
 		if (hardware == 0)
 			hardware = 4;
 
-		//	呼び出しスレッドで 1 枠使うので常駐ワーカーは hardware - 1
 		const unsigned worker_threads = (hardware > 1) ? (hardware - 1) : 0;
 		workers.reserve(worker_threads);
 		for (unsigned i = 0; i < worker_threads; ++i)
