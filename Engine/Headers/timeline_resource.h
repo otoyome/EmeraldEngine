@@ -11,63 +11,87 @@ struct timeline_resource
 	static constexpr std::string_view extension = "etl";
 
 public:
+	//	アニメーション
 	struct animation_entry
 	{
-		std::string animation_name;	//	再生するアニメーションクリップ名
-		int start_frame = 0;		//	タイムライン上の開始フレーム
-		int end_frame = 30;			//	タイムライン上の終了フレーム
-		bool loop = false;			//	区間内でループ再生するか
+		std::string animation_name;		//	アニメーション
+		float start_time = 0.0f;		//	開始時間
+		float end_time = 1.0f;			//	終了時間
+		bool loop = false;				//	ループ再生フラグ
 
 		template<class Archive>
 		void serialize(Archive& archive, int version);
 	};
 
+	//	アクター
 	struct actor_entry
 	{
+		struct transform_entry
+		{
+			struct parameter
+			{
+				DirectX::XMFLOAT3 position = { 0, 0, 0 };	//	座標
+				math::rotator rotation = { 0, 0, 0 };		//	オイラー角
+
+				template<class Archive>
+				void serialize(Archive& archive, int version);
+			};
+
+			float start_time = 0.0f;	//	区間開始
+			float end_time = 1.0f;		//	区間終了
+			parameter start;			//	開始パラメーター
+			parameter end;				//	終了パラメーター
+
+			template<class Archive>
+			void serialize(Archive& archive, int version);
+		};
+
 		std::string name;							//	表示名
-		std::string model_path;						//	モデルファイルパス(.emo)
-		std::vector<animation_entry> animations;
+		std::string model_path;						//	ファイルパス
+		std::vector<animation_entry> animations;	//	アニメーション
+		std::vector<transform_entry> transforms;	//	配置
 
 		template<class Archive>
 		void serialize(Archive& archive, int version);
 	};
 
+	//	エフェクト
 	struct effect_entry
 	{
-		int start_frame = 0;								//	発火フレーム
-		int end_frame = 30;									//	消滅フレーム（表示上の長さ）
+		float start_time = 0.0f;							//	開始時間
+		float end_time = 1.0f;								//	終了時間
 
-		std::string effect_path;							//	エフェクトファイルパス(.eme)
-		int actor_index = -1;								//	追従するアクターの添字。-1 ならワールド座標基準
-		DirectX::XMFLOAT3 offset_position = { 0, 0, 0 };	//	actor_index>=0: アクター座標からのオフセット / -1: ワールド座標そのもの
+		std::string effect_path;							//	エフェクトファイルパス
+		int actor_index = -1;								//	追従するアクターの番号。-1 ならワールド座標基準
+		DirectX::XMFLOAT3 offset_position = { 0, 0, 0 };	//	actor_index = -1 ワールド座標、それ以外はアクター座標からのオフセット
 
 		template<class Archive>
 		void serialize(Archive& archive, int version);
 	};
 
+	//	カメラ
 	struct camera_entry
 	{
 		struct parameter
 		{
 			DirectX::XMFLOAT3 position = { 0, 0, 0 };	//	座標
 			math::rotator rotation = { 0, 0, 0 };		//	オイラー角
-			float fov_y = 0.5235988f;					//	視野角
+			float fov_y = 0.5235988f;					//	画角
 
 			template<class Archive>
 			void serialize(Archive& archive, int version);
 		};
 
-		int start_frame = 0;	//	区間開始フレーム
-		int end_frame = 30;		//	区間終了フレーム
-		parameter start;		//	開始パラメーター
-		parameter end;			//	終了パラメーター
+		float start_time = 0.0f;	//	区間開始
+		float end_time = 1.0f;		//	区間終了
+		parameter start;			//	開始パラメーター
+		parameter end;				//	終了パラメーター
 
 		template<class Archive>
 		void serialize(Archive& archive, int version);
 	};
 
-	float fps = 30.0f;					//	フレームレート
-	int total_frame = 300;				//	タイムライン全体の長さ
+	float total_time = 10.0f;			//	タイムライン全体の長さ
 
 	std::vector<actor_entry> actors;
 	std::vector<effect_entry> effects;

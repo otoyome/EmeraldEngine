@@ -34,6 +34,11 @@ namespace
 		L"タイムラインファイル (*.etl)\0*.etl;\0\
 		すべてのファイル (*.*)\0*.*\0";
 
+	//	@tool ImSequencer は整数フレームの直接ポインタ(int**)でしか編集できないための内部変換専用の単位。
+	//	@tool 再生・保存データはすべて秒で、これは「1秒を何分割して編集するか」という表示上の解像度に過ぎない
+	//	@tool （fps という概念はここでは持たない。ユーザーに見せる値でも保存する値でもない）
+	constexpr float sequencer_units_per_second = 100.0f;
+
 	//	アクターごとのシーケンサー表示色
 	constexpr unsigned int actor_track_colors[] =
 	{
@@ -95,7 +100,9 @@ namespace
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 //	sequence_interface（ImSequencer 用）
-//	type の並び： [0..actors.size()-1] = 各アクターのアニメーション行 / actors.size() = エフェクト / actors.size()+1 = カメラ
+//	type の並び： [0,actors.size()) = 各アクターのアニメーション行 / [actors.size(),actors.size()*2) = 各アクターの配置(transform)行 /
+//	actors.size()*2 = エフェクト / actors.size()*2+1 = カメラ
+//	flat index の並び： アニメーション全体 -> 配置(transform)全体 -> エフェクト -> カメラ
 
 std::size_t edit_timeline_scene::sequence_interface::total_animation_count() const
 {
@@ -125,6 +132,130 @@ bool edit_timeline_scene::sequence_interface::resolve_animation(int flat_index, 
 	return false;
 }
 
+std::size_t edit_timeline_scene::sequence_interface::total_transform_count() const
+{
+	std::size_t total = 0;
+	for (auto& actor : owner->timeline.actors)
+		total += actor.transforms.size();
+	return total;
+}
+
+bool edit_timeline_scene::sequence_interface::resolve_transform(int flat_index, std::size_t& out_actor_index, std::size_t& out_entry_index) const
+{
+	//	@tool flat index は「アニメーション全体」の直後から始まる
+	const std::size_t animation_total = total_animation_count();
+	if (flat_index < 0 || static_cast<std::size_t>(flat_index) < animation_total)
+		return false;
+
+	std::size_t remaining = static_cast<std::size_t>(flat_index) - animation_total;
+	for (std::size_t actor_index = 0; actor_index < owner->timeline.actors.size(); ++actor_index)
+	{
+		auto& actor = owner->timeline.actors[actor_index];
+		if (remaining < actor.transforms.size())
+		{
+			out_actor_index = actor_index;
+			out_entry_index = remaining;
+			return true;
+		}
+		remaining -= actor.transforms.size();
+	}
+	return false;
+}
+
+void edit_timeline_scene::sequence_interface::sync_from_entries()
+{
+	const float fps = sequencer_units_per_second;
+	const int item_count = GetItemCount();
+	frame_cache.assign(item_count, { 0, 0 });
+
+	for (int index = 0; index < item_count; ++index)
+	{
+		float start_time = 0.0f, end_time = 0.0f;
+
+		std::size_t actor_index, entry_index;
+		if (resolve_animation(index, actor_index, entry_index))
+		{
+			auto& entry = owner->timeline.actors[actor_index].animations[entry_index];
+			start_time = entry.start_time;
+			end_time = entry.end_time;
+		}
+		else if (resolve_transform(index, actor_index, entry_index))
+		{
+			auto& entry = owner->timeline.actors[actor_index].transforms[entry_index];
+			start_time = entry.start_time;
+			end_time = entry.end_time;
+		}
+		else
+		{
+			const std::size_t entry_total = total_animation_count() + total_transform_count();
+			const std::size_t effect_count = owner->timeline.effects.size();
+			const std::size_t local = static_cast<std::size_t>(index) - entry_total;
+			if (local < effect_count)
+			{
+				auto& entry = owner->timeline.effects[local];
+				start_time = entry.start_time;
+				end_time = entry.end_time;
+			}
+			else
+			{
+				auto& entry = owner->timeline.cameras[local - effect_count];
+				start_time = entry.start_time;
+				end_time = entry.end_time;
+			}
+		}
+
+		frame_cache[index] =
+		{
+			static_cast<int>(std::lround(start_time * fps)),
+			static_cast<int>(std::lround(end_time * fps)),
+		};
+	}
+}
+
+void edit_timeline_scene::sequence_interface::sync_to_entries()
+{
+	const float fps = sequencer_units_per_second;
+	const int item_count = std::min(static_cast<int>(frame_cache.size()), GetItemCount());
+
+	for (int index = 0; index < item_count; ++index)
+	{
+		const float start_time = frame_cache[index].first / fps;
+		const float end_time = frame_cache[index].second / fps;
+
+		std::size_t actor_index, entry_index;
+		if (resolve_animation(index, actor_index, entry_index))
+		{
+			auto& entry = owner->timeline.actors[actor_index].animations[entry_index];
+			entry.start_time = start_time;
+			entry.end_time = end_time;
+			continue;
+		}
+		if (resolve_transform(index, actor_index, entry_index))
+		{
+			auto& entry = owner->timeline.actors[actor_index].transforms[entry_index];
+			entry.start_time = start_time;
+			entry.end_time = end_time;
+			continue;
+		}
+
+		const std::size_t entry_total = total_animation_count() + total_transform_count();
+		const std::size_t effect_count = owner->timeline.effects.size();
+		const std::size_t local = static_cast<std::size_t>(index) - entry_total;
+		if (local < effect_count)
+		{
+			auto& entry = owner->timeline.effects[local];
+			entry.start_time = start_time;
+			entry.end_time = end_time;
+		}
+		else
+		{
+			auto& entry = owner->timeline.cameras[local - effect_count];
+			entry.start_time = start_time;
+			entry.end_time = end_time;
+		}
+	}
+}
+
 int edit_timeline_scene::sequence_interface::GetFrameMin() const
 {
 	return 0;
@@ -132,17 +263,18 @@ int edit_timeline_scene::sequence_interface::GetFrameMin() const
 
 int edit_timeline_scene::sequence_interface::GetFrameMax() const
 {
-	return owner->timeline.total_frame;
+	const float fps = sequencer_units_per_second;
+	return static_cast<int>(std::lround(owner->timeline.total_time * fps));
 }
 
 int edit_timeline_scene::sequence_interface::GetItemCount() const
 {
-	return static_cast<int>(total_animation_count() + owner->timeline.effects.size() + owner->timeline.cameras.size());
+	return static_cast<int>(total_animation_count() + total_transform_count() + owner->timeline.effects.size() + owner->timeline.cameras.size());
 }
 
 int edit_timeline_scene::sequence_interface::GetItemTypeCount() const
 {
-	return static_cast<int>(owner->timeline.actors.size()) + 2;
+	return static_cast<int>(owner->timeline.actors.size()) * 2 + 2;
 }
 
 const char* edit_timeline_scene::sequence_interface::GetItemTypeName(int type_index) const
@@ -153,7 +285,12 @@ const char* edit_timeline_scene::sequence_interface::GetItemTypeName(int type_in
 		type_name_cache = owner->timeline.actors[type_index].name + " (Animation)";
 		return type_name_cache.c_str();
 	}
-	if (type_index == actor_count)
+	if (type_index < actor_count * 2)
+	{
+		type_name_cache = owner->timeline.actors[type_index - actor_count].name + " (Transform)";
+		return type_name_cache.c_str();
+	}
+	if (type_index == actor_count * 2)
 		return "Effect";
 	return "Camera";
 }
@@ -168,10 +305,16 @@ const char* edit_timeline_scene::sequence_interface::GetItemLabel(int index) con
 		label_cache = "[" + actor.name + "] " + (entry.animation_name.empty() ? std::string("(none)") : entry.animation_name);
 		return label_cache.c_str();
 	}
+	if (resolve_transform(index, actor_index, entry_index))
+	{
+		auto& actor = owner->timeline.actors[actor_index];
+		label_cache = "[" + actor.name + "] transform " + std::to_string(entry_index);
+		return label_cache.c_str();
+	}
 
-	const std::size_t animation_total = total_animation_count();
+	const std::size_t entry_total = total_animation_count() + total_transform_count();
 	const std::size_t effect_count = owner->timeline.effects.size();
-	const std::size_t local = static_cast<std::size_t>(index) - animation_total;
+	const std::size_t local = static_cast<std::size_t>(index) - entry_total;
 	if (local < effect_count)
 	{
 		auto& entry = owner->timeline.effects[local];
@@ -186,34 +329,38 @@ const char* edit_timeline_scene::sequence_interface::GetItemLabel(int index) con
 
 void edit_timeline_scene::sequence_interface::Get(int index, int** start, int** end, int* type, unsigned int* color)
 {
+	//	@tool Add() などでアイテムがこのフレーム中に増えた場合の保険（次フレームの sync_from_entries で追従する）
+	if (static_cast<std::size_t>(index) >= frame_cache.size())
+		frame_cache.resize(index + 1, { 0, 0 });
+
+	if (start) *start = &frame_cache[index].first;
+	if (end) *end = &frame_cache[index].second;
+
 	std::size_t actor_index, entry_index;
 	if (resolve_animation(index, actor_index, entry_index))
 	{
-		auto& entry = owner->timeline.actors[actor_index].animations[entry_index];
-		if (start) *start = &entry.start_frame;
-		if (end) *end = &entry.end_frame;
 		if (type) *type = static_cast<int>(actor_index);
 		if (color) *color = actor_track_color(actor_index);
 		return;
 	}
+	if (resolve_transform(index, actor_index, entry_index))
+	{
+		if (type) *type = static_cast<int>(owner->timeline.actors.size()) + static_cast<int>(actor_index);
+		if (color) *color = actor_track_color(actor_index) ^ 0x00404040;	//	@tool アニメーション行と見分けやすいよう色味を少しずらす
+		return;
+	}
 
-	const std::size_t animation_total = total_animation_count();
+	const std::size_t entry_total = total_animation_count() + total_transform_count();
 	const std::size_t effect_count = owner->timeline.effects.size();
-	const std::size_t local = static_cast<std::size_t>(index) - animation_total;
+	const std::size_t local = static_cast<std::size_t>(index) - entry_total;
 	if (local < effect_count)
 	{
-		auto& entry = owner->timeline.effects[local];
-		if (start) *start = &entry.start_frame;
-		if (end) *end = &entry.end_frame;
-		if (type) *type = static_cast<int>(owner->timeline.actors.size());
+		if (type) *type = static_cast<int>(owner->timeline.actors.size()) * 2;
 		if (color) *color = 0xFF4FBF6F;
 	}
 	else
 	{
-		auto& entry = owner->timeline.cameras[local - effect_count];
-		if (start) *start = &entry.start_frame;
-		if (end) *end = &entry.end_frame;
-		if (type) *type = static_cast<int>(owner->timeline.actors.size()) + 1;
+		if (type) *type = static_cast<int>(owner->timeline.actors.size()) * 2 + 1;
 		if (color) *color = 0xFFC0708F;
 	}
 }
@@ -221,14 +368,14 @@ void edit_timeline_scene::sequence_interface::Get(int index, int** start, int** 
 void edit_timeline_scene::sequence_interface::Add(int type)
 {
 	const int actor_count = static_cast<int>(owner->timeline.actors.size());
-	const int default_length = static_cast<int>(owner->timeline.fps);
+	constexpr float default_length = 1.0f;	//	@tool 追加時の初期区間長（秒）
 
 	if (type < actor_count)
 	{
 		auto& actor = owner->timeline.actors[type];
 		auto& entry = actor.animations.emplace_back();
-		entry.start_frame = owner->current_frame;
-		entry.end_frame = std::min(owner->timeline.total_frame, owner->current_frame + default_length);
+		entry.start_time = owner->current_time;
+		entry.end_time = std::min(owner->timeline.total_time, owner->current_time + default_length);
 		if (static_cast<std::size_t>(type) < owner->actor_models.size() && owner->actor_models[type])
 		{
 			auto names = owner->actor_models[type]->get_animation_names();
@@ -236,17 +383,34 @@ void edit_timeline_scene::sequence_interface::Add(int type)
 				entry.animation_name = std::string(names.front());
 		}
 	}
-	else if (type == actor_count)
+	else if (type < actor_count * 2)
+	{
+		const int actor_index = type - actor_count;
+		auto& actor = owner->timeline.actors[actor_index];
+		auto& entry = actor.transforms.emplace_back();
+		entry.start_time = owner->current_time;
+		entry.end_time = std::min(owner->timeline.total_time, owner->current_time + default_length);
+		//	@tool 追加時点のアクターの現在位置を開始・終了双方の初期値にしておく（その場から動かないショットから開始）
+		if (static_cast<std::size_t>(actor_index) < owner->actor_models.size() && owner->actor_models[actor_index])
+		{
+			entry.start.position = owner->actor_models[actor_index]->get_position();
+			entry.end.position = entry.start.position;
+			entry.start.rotation = owner->actor_models[actor_index]->get_rotation();
+			entry.end.rotation = entry.start.rotation;
+		}
+	}
+	else if (type == actor_count * 2)
 	{
 		auto& entry = owner->timeline.effects.emplace_back();
-		entry.start_frame = owner->current_frame;
-		entry.end_frame = std::min(owner->timeline.total_frame, owner->current_frame + default_length);
+		entry.start_time = owner->current_time;
+		entry.end_time = std::min(owner->timeline.total_time, owner->current_time + default_length);
 	}
 	else
 	{
 		auto& entry = owner->timeline.cameras.emplace_back();
-		entry.start_frame = owner->current_frame;
-		entry.end_frame = std::min(owner->timeline.total_frame, owner->current_frame + default_length);
+		entry.start_time = owner->current_time;
+		entry.end_time = std::min(owner->timeline.total_time, owner->current_time + default_length);
+		//	@tool 追加時点の現在のカメラ姿勢を開始・終了双方の初期値にしておく（静止ショットからスタート）
 		if (owner->main_camera)
 		{
 			entry.start.position = owner->main_camera->get_position();
@@ -269,10 +433,17 @@ void edit_timeline_scene::sequence_interface::Del(int index)
 		owner->selected_entry = -1;
 		return;
 	}
+	if (resolve_transform(index, actor_index, entry_index))
+	{
+		auto& transforms = owner->timeline.actors[actor_index].transforms;
+		transforms.erase(transforms.begin() + entry_index);
+		owner->selected_entry = -1;
+		return;
+	}
 
-	const std::size_t animation_total = total_animation_count();
+	const std::size_t entry_total = total_animation_count() + total_transform_count();
 	const std::size_t effect_count = owner->timeline.effects.size();
-	const std::size_t local = static_cast<std::size_t>(index) - animation_total;
+	const std::size_t local = static_cast<std::size_t>(index) - entry_total;
 	if (local < effect_count)
 		owner->timeline.effects.erase(owner->timeline.effects.begin() + local);
 	else
@@ -289,10 +460,16 @@ void edit_timeline_scene::sequence_interface::Duplicate(int index)
 		animations.push_back(animations[entry_index]);
 		return;
 	}
+	if (resolve_transform(index, actor_index, entry_index))
+	{
+		auto& transforms = owner->timeline.actors[actor_index].transforms;
+		transforms.push_back(transforms[entry_index]);
+		return;
+	}
 
-	const std::size_t animation_total = total_animation_count();
+	const std::size_t entry_total = total_animation_count() + total_transform_count();
 	const std::size_t effect_count = owner->timeline.effects.size();
-	const std::size_t local = static_cast<std::size_t>(index) - animation_total;
+	const std::size_t local = static_cast<std::size_t>(index) - entry_total;
 	if (local < effect_count)
 		owner->timeline.effects.push_back(owner->timeline.effects[local]);
 	else
@@ -447,9 +624,12 @@ void edit_timeline_scene::imgui_render_core()
 	if (ImGui::Begin("Timeline"))
 	{
 		imgui_render_actors();
+	}
+	ImGui::End();
 
-		ImGui::Separator();
-
+	//	@tool シーケンサー本体・タイムラインファイル操作・再生コントロールは Timeline とは別ウィンドウに分離
+	if (ImGui::Begin("Timeline Sequencer"))
+	{
 		//	タイムラインファイル
 		if (ImGui::Button("New Timeline"))
 			new_timeline();
@@ -465,8 +645,12 @@ void edit_timeline_scene::imgui_render_core()
 
 		ImGui::Separator();
 		imgui_render_sequencer();
+	}
+	ImGui::End();
 
-		ImGui::Separator();
+	//	@tool エントリのパラメーター編集は Timeline とは別ウィンドウに分離
+	if (ImGui::Begin("Timeline Parameters"))
+	{
 		imgui_render_selected_entry();
 	}
 	ImGui::End();
@@ -480,6 +664,7 @@ void edit_timeline_scene::add_actor()
 	if (!editor_items::open_file_dialog(ModelFileDialogFilter, file_path))
 		return;
 
+	//	@tool 同じパスが既にどこかで読み込まれていれば model_resource_manager 側のキャッシュで再利用される
 	model_resource_ptr resource;
 	if (!model_resource_manager::instance()->load(resource, file_path))
 		return;
@@ -508,6 +693,7 @@ void edit_timeline_scene::remove_actor(std::size_t actor_index)
 	actor_models.erase(actor_models.begin() + actor_index);
 	last_active_animation_per_actor.erase(last_active_animation_per_actor.begin() + actor_index);
 
+	//	@tool このアクターを追従していたエフェクトはワールド基準に戻し、後続アクターを指すものは添字を詰める
 	for (auto& effect : timeline.effects)
 	{
 		if (effect.actor_index == static_cast<int>(actor_index))
@@ -528,6 +714,7 @@ void edit_timeline_scene::rebuild_actor_models()
 
 	for (auto& actor : timeline.actors)
 	{
+		//	@tool 同じパスが既にどこかで読み込まれていれば model_resource_manager 側のキャッシュで再利用される
 		model_resource_ptr resource;
 		model_resource_manager::instance()->load(resource, actor.model_path);
 		std::shared_ptr<model_object> model;
@@ -558,8 +745,8 @@ void edit_timeline_scene::new_timeline()
 
 	timeline = timeline_resource();
 	is_playing = false;
+	current_time = 0.0f;
 	current_frame = 0;
-	current_frame_float = 0.0f;
 	selected_entry = -1;
 }
 
@@ -576,8 +763,8 @@ void edit_timeline_scene::load_timeline()
 	clear_active_effects();
 	timeline = loaded;
 	is_playing = false;
+	current_time = 0.0f;
 	current_frame = 0;
-	current_frame_float = 0.0f;
 	selected_entry = -1;
 
 	rebuild_actor_models();
@@ -598,26 +785,24 @@ void edit_timeline_scene::advance_playback(float elapsed_time)
 	if (!is_playing)
 		return;
 
-	current_frame_float += elapsed_time * timeline.fps;
+	current_time += elapsed_time;
 
-	const float total = static_cast<float>(std::max(1, timeline.total_frame));
-	if (current_frame_float >= total)
+	const float total = std::max(0.01f, timeline.total_time);
+	if (current_time >= total)
 	{
 		if (loop_playback)
-			current_frame_float = std::fmod(current_frame_float, total);
+			current_time = std::fmod(current_time, total);
 		else
 		{
-			current_frame_float = total;
+			current_time = total;
 			is_playing = false;
 		}
 	}
-
-	current_frame = static_cast<int>(current_frame_float);
 }
 
 void edit_timeline_scene::apply_timeline_state()
 {
-	//	アクター
+	//	アニメーション
 	for (std::size_t actor_index = 0; actor_index < timeline.actors.size(); ++actor_index)
 	{
 		auto& actor = timeline.actors[actor_index];
@@ -627,7 +812,7 @@ void edit_timeline_scene::apply_timeline_state()
 		for (std::size_t entry_index = 0; entry_index < actor.animations.size(); ++entry_index)
 		{
 			auto& entry = actor.animations[entry_index];
-			if (current_frame >= entry.start_frame && current_frame < entry.end_frame)
+			if (current_time >= entry.start_time && current_time < entry.end_time)
 			{
 				active_index = static_cast<int>(entry_index);
 				break;
@@ -647,19 +832,50 @@ void edit_timeline_scene::apply_timeline_state()
 
 					model->set_animation_loop(entry.loop);
 
-					const float local_time = static_cast<float>(current_frame - entry.start_frame) / std::max(1.0f, timeline.fps);
+					const float local_time = current_time - entry.start_time;
 					model->set_animation_time(local_time);
 				}
 			}
 		}
 		last_active_animation_per_actor[actor_index] = active_index;
+
+		//	@tool 配置(transform)：カメラと同じく再生中(is_playing)のときだけ区間内を補間して直接配置する。
+		//	@tool 停止・スクラブ中は補間を適用せず、その場のモデル位置を Set Start/End で拾えるようにする
+		if (model && is_playing)
+		{
+			for (std::size_t entry_index = 0; entry_index < actor.transforms.size(); ++entry_index)
+			{
+				auto& entry = actor.transforms[entry_index];
+				if (current_time < entry.start_time || current_time >= entry.end_time)
+					continue;
+
+				const float denom = std::max(0.0001f, entry.end_time - entry.start_time);
+				const float t = math::saturate((current_time - entry.start_time) / denom);
+
+				const DirectX::XMFLOAT3 position =
+				{
+					entry.start.position.x + (entry.end.position.x - entry.start.position.x) * t,
+					entry.start.position.y + (entry.end.position.y - entry.start.position.y) * t,
+					entry.start.position.z + (entry.end.position.z - entry.start.position.z) * t,
+				};
+
+				const DirectX::XMVECTOR quaternion_start = DirectX::XMLoadFloat4(&math::rotator(entry.start.rotation).convert_quaternion());
+				const DirectX::XMVECTOR quaternion_end = DirectX::XMLoadFloat4(&math::rotator(entry.end.rotation).convert_quaternion());
+				DirectX::XMFLOAT4 quaternion;
+				DirectX::XMStoreFloat4(&quaternion, DirectX::XMQuaternionSlerp(quaternion_start, quaternion_end, t));
+
+				model->set_position(position);
+				model->set_rotation(math::rotator(quaternion));
+				break;
+			}
+		}
 	}
 
 	//	エフェクト
 	for (std::size_t index = 0; index < timeline.effects.size(); ++index)
 	{
 		auto& entry = timeline.effects[index];
-		const bool should_be_active = current_frame >= entry.start_frame && current_frame <= entry.end_frame;
+		const bool should_be_active = current_time >= entry.start_time && current_time <= entry.end_time;
 		auto it = active_effects.find(index);
 		const bool currently_active = (it != active_effects.end());
 
@@ -699,10 +915,10 @@ void edit_timeline_scene::apply_timeline_state()
 		}
 		else if (should_be_active && currently_active)
 		{
-			const float local_time = static_cast<float>(current_frame - entry.start_frame) / std::max(1.0f, timeline.fps);
+			const float local_time = current_time - entry.start_time;
 			it->second->set_animation_time(local_time);
 
-			//	アクター追従
+			//	アクター追従：毎フレーム座標を更新
 			const DirectX::XMFLOAT3 base_position = resolve_base_position();
 			it->second->set_position({
 				base_position.x + entry.offset_position.x,
@@ -711,15 +927,20 @@ void edit_timeline_scene::apply_timeline_state()
 		}
 	}
 
-	//	区間内なら開始姿勢→終了姿勢へ補間してタイムライン側が直接カメラを制御する。
+	//	カメラ
+	//	@tool 再生中(is_playing)以外はフリーカメラを常に有効にしておく。そうしないと区間内をスクラブしている間
+	//	@tool フリーカメラが動かせず、「Set Start/End = Current Camera」でその場の姿勢を拾えなくなるため
 	int active_camera_index = -1;
-	for (std::size_t index = 0; index < timeline.cameras.size(); ++index)
+	if (is_playing)
 	{
-		auto& entry = timeline.cameras[index];
-		if (current_frame >= entry.start_frame && current_frame < entry.end_frame)
+		for (std::size_t index = 0; index < timeline.cameras.size(); ++index)
 		{
-			active_camera_index = static_cast<int>(index);
-			break;
+			auto& entry = timeline.cameras[index];
+			if (current_time >= entry.start_time && current_time < entry.end_time)
+			{
+				active_camera_index = static_cast<int>(index);
+				break;
+			}
 		}
 	}
 
@@ -730,8 +951,8 @@ void edit_timeline_scene::apply_timeline_state()
 		if (editor_camera_object && editor_camera_object->is_active())
 			editor_camera_object->set_active(false);
 
-		const float denom = static_cast<float>(std::max(1, entry.end_frame - entry.start_frame));
-		const float t = math::saturate(static_cast<float>(current_frame - entry.start_frame) / denom);
+		const float denom = std::max(0.0001f, entry.end_time - entry.start_time);
+		const float t = math::saturate((current_time - entry.start_time) / denom);
 
 		const DirectX::XMFLOAT3 position =
 		{
@@ -783,6 +1004,13 @@ void edit_timeline_scene::imgui_render_actors()
 		ImGui::PushID(static_cast<int>(index));
 		ImGui::BulletText("%s : %s", timeline.actors[index].name.c_str(), timeline.actors[index].model_path.c_str());
 		ImGui::SameLine();
+		//	@tool ImSequencer は登録数0の間は「+」自体が描画されないため、最初の1件はここから追加する
+		if (ImGui::SmallButton("+Anim"))
+			add_entry_and_select(static_cast<int>(index));
+		ImGui::SameLine();
+		if (ImGui::SmallButton("+Transform"))
+			add_entry_and_select(static_cast<int>(timeline.actors.size()) + static_cast<int>(index));
+		ImGui::SameLine();
 		if (ImGui::SmallButton("Remove"))
 			remove_index = static_cast<int>(index);
 		ImGui::PopID();
@@ -790,6 +1018,49 @@ void edit_timeline_scene::imgui_render_actors()
 
 	if (remove_index >= 0)
 		remove_actor(static_cast<std::size_t>(remove_index));
+
+	//	@tool エフェクト／カメラも同じ理由で専用ボタンから追加できるようにしておく
+	const int actor_count = static_cast<int>(timeline.actors.size());
+	if (ImGui::SmallButton("+Effect"))
+		add_entry_and_select(actor_count * 2);
+	ImGui::SameLine();
+	if (ImGui::SmallButton("+Camera"))
+		add_entry_and_select(actor_count * 2 + 1);
+}
+
+void edit_timeline_scene::add_entry_and_select(int type)
+{
+	sequencer_interface.Add(type);
+
+	//	@tool Add() は各エントリを対応する配列の末尾に追加するだけなので、
+	//	@tool シーケンサーの flat index（アニメーション全体→配置(transform)全体→エフェクト→カメラの順）を自前で算出する
+	const int actor_count = static_cast<int>(timeline.actors.size());
+	int flat_index = 0;
+	if (type < actor_count)
+	{
+		for (int actor_index = 0; actor_index < type; ++actor_index)
+			flat_index += static_cast<int>(timeline.actors[actor_index].animations.size());
+		flat_index += static_cast<int>(timeline.actors[type].animations.size()) - 1;
+	}
+	else if (type < actor_count * 2)
+	{
+		const int actor_index = type - actor_count;
+		flat_index = static_cast<int>(sequencer_interface.total_animation_count());
+		for (int i = 0; i < actor_index; ++i)
+			flat_index += static_cast<int>(timeline.actors[i].transforms.size());
+		flat_index += static_cast<int>(timeline.actors[actor_index].transforms.size()) - 1;
+	}
+	else if (type == actor_count * 2)
+	{
+		flat_index = static_cast<int>(sequencer_interface.total_animation_count()) + static_cast<int>(sequencer_interface.total_transform_count())
+			+ static_cast<int>(timeline.effects.size()) - 1;
+	}
+	else
+	{
+		flat_index = static_cast<int>(sequencer_interface.total_animation_count()) + static_cast<int>(sequencer_interface.total_transform_count())
+			+ static_cast<int>(timeline.effects.size()) + static_cast<int>(timeline.cameras.size()) - 1;
+	}
+	selected_entry = flat_index;
 }
 
 void edit_timeline_scene::imgui_render_transport()
@@ -801,29 +1072,31 @@ void edit_timeline_scene::imgui_render_transport()
 	if (ImGui::Button("Stop"))
 	{
 		is_playing = false;
-		current_frame = 0;
-		current_frame_float = 0.0f;
+		current_time = 0.0f;
 	}
 
 	ImGui::SameLine();
 	ImGui::Checkbox("Loop", &loop_playback);
 
-	ImGui::DragFloat("fps", &timeline.fps, 0.1f, 1.0f, 240.0f);
+	if (ImGui::DragFloat("total_time(sec)", &timeline.total_time, 0.05f, 0.01f, 100000.0f))
+		timeline.total_time = std::max(0.01f, timeline.total_time);
 
-	if (ImGui::DragInt("total_frame", &timeline.total_frame, 1.0f, 1, 100000))
-		timeline.total_frame = std::max(1, timeline.total_frame);
-
-	if (ImGui::SliderInt("frame", &current_frame, 0, timeline.total_frame))
-		current_frame_float = static_cast<float>(current_frame);
+	ImGui::SliderFloat("time(sec)", &current_time, 0.0f, timeline.total_time);
 }
 
 void edit_timeline_scene::imgui_render_sequencer()
 {
+	const float fps = sequencer_units_per_second;
+	current_frame = static_cast<int>(std::lround(current_time * fps));
+
+	sequencer_interface.sync_from_entries();
+
 	ImSequencer::Sequencer(&sequencer_interface, &current_frame, &sequencer_expanded, &selected_entry, &sequencer_first_frame,
 		ImSequencer::SEQUENCER_EDIT_STARTEND | ImSequencer::SEQUENCER_CHANGE_FRAME |
 		ImSequencer::SEQUENCER_ADD | ImSequencer::SEQUENCER_DEL | ImSequencer::SEQUENCER_COPYPASTE);
 
-	current_frame_float = static_cast<float>(current_frame);
+	sequencer_interface.sync_to_entries();
+	current_time = static_cast<float>(current_frame) / fps;
 }
 
 void edit_timeline_scene::imgui_render_selected_entry()
@@ -857,11 +1130,54 @@ void edit_timeline_scene::imgui_render_selected_entry()
 				ImGui::EndCombo();
 			}
 			ImGui::Checkbox("loop", &entry.loop);
-			ImGui::DragInt("start_frame", &entry.start_frame, 1.0f, 0, timeline.total_frame);
-			ImGui::DragInt("end_frame", &entry.end_frame, 1.0f, 0, timeline.total_frame);
+			ImGui::DragFloat("start_time(sec)", &entry.start_time, 0.01f, 0.0f, timeline.total_time);
+			ImGui::DragFloat("end_time(sec)", &entry.end_time, 0.01f, 0.0f, timeline.total_time);
 			return;
 		}
 		remaining -= actor.animations.size();
+	}
+
+	//	@tool 配置(transform)。カメラエントリの編集パネルと同じ構成
+	for (std::size_t actor_index = 0; actor_index < timeline.actors.size(); ++actor_index)
+	{
+		auto& actor = timeline.actors[actor_index];
+		if (remaining < actor.transforms.size())
+		{
+			auto& entry = actor.transforms[remaining];
+			auto model = (actor_index < actor_models.size()) ? actor_models[actor_index] : nullptr;
+			ImGui::Text("Transform Entry (%s)", actor.name.c_str());
+
+			ImGui::Text("Start");
+			ImGui::DragFloat3("start_position", &entry.start.position.x, 0.01f);
+			ImGui::DragFloat3("start_rotation(rad)", &entry.start.rotation.x, 0.01f);
+			if (ImGui::Button("Set Start = Current Position"))
+			{
+				if (model)
+				{
+					entry.start.position = model->get_position();
+					entry.start.rotation = model->get_rotation();
+				}
+			}
+
+			ImGui::Separator();
+			ImGui::Text("End");
+			ImGui::DragFloat3("end_position", &entry.end.position.x, 0.01f);
+			ImGui::DragFloat3("end_rotation(rad)", &entry.end.rotation.x, 0.01f);
+			if (ImGui::Button("Set End = Current Position"))
+			{
+				if (model)
+				{
+					entry.end.position = model->get_position();
+					entry.end.rotation = model->get_rotation();
+				}
+			}
+
+			ImGui::Separator();
+			ImGui::DragFloat("start_time(sec)##transform", &entry.start_time, 0.01f, 0.0f, timeline.total_time);
+			ImGui::DragFloat("end_time(sec)##transform", &entry.end_time, 0.01f, 0.0f, timeline.total_time);
+			return;
+		}
+		remaining -= actor.transforms.size();
 	}
 
 	//	エフェクト
@@ -878,7 +1194,7 @@ void edit_timeline_scene::imgui_render_selected_entry()
 				entry.effect_path = file_path;
 		}
 
-		//	追従先アクター
+		//	追従アクター
 		{
 			const std::string preview = (entry.actor_index >= 0 && static_cast<std::size_t>(entry.actor_index) < timeline.actors.size())
 				? timeline.actors[entry.actor_index].name
@@ -898,8 +1214,8 @@ void edit_timeline_scene::imgui_render_selected_entry()
 		}
 
 		ImGui::DragFloat3(entry.actor_index < 0 ? "world_position" : "offset_position", &entry.offset_position.x, 0.01f);
-		ImGui::DragInt("start_frame##effect", &entry.start_frame, 1.0f, 0, timeline.total_frame);
-		ImGui::DragInt("end_frame##effect", &entry.end_frame, 1.0f, 0, timeline.total_frame);
+		ImGui::DragFloat("start_time(sec)##effect", &entry.start_time, 0.01f, 0.0f, timeline.total_time);
+		ImGui::DragFloat("end_time(sec)##effect", &entry.end_time, 0.01f, 0.0f, timeline.total_time);
 		return;
 	}
 	remaining -= timeline.effects.size();
@@ -940,8 +1256,8 @@ void edit_timeline_scene::imgui_render_selected_entry()
 		}
 
 		ImGui::Separator();
-		ImGui::DragInt("start_frame##camera", &entry.start_frame, 1.0f, 0, timeline.total_frame);
-		ImGui::DragInt("end_frame##camera", &entry.end_frame, 1.0f, 0, timeline.total_frame);
+		ImGui::DragFloat("start_time(sec)##camera", &entry.start_time, 0.01f, 0.0f, timeline.total_time);
+		ImGui::DragFloat("end_time(sec)##camera", &entry.end_time, 0.01f, 0.0f, timeline.total_time);
 	}
 }
 #endif	//	defined(USE_IMGUI)
