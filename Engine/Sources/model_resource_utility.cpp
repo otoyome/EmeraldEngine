@@ -77,7 +77,7 @@ void model_resource_utility::combine_unskinned_meshes(model_resource& resource, 
 	struct combinable_info { size_t mesh_index; XMFLOAT3 center; };
 	std::vector<combinable_info> combinables;
 	std::vector<size_t> passthrough;
-	XMFLOAT3 world_min = { FLT_MAX, FLT_MAX, FLT_MAX };
+	XMFLOAT3 world_min = { +FLT_MAX, +FLT_MAX, +FLT_MAX };
 	XMFLOAT3 world_max = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
 	for (size_t mesh_index = 0; mesh_index < meshes.size(); ++mesh_index)
 	{
@@ -90,7 +90,7 @@ void model_resource_utility::combine_unskinned_meshes(model_resource& resource, 
 		XMMATRIX gm = global_matrix(meshes[mesh_index].node_index);
 		const XMFLOAT3 lmin = meshes[mesh_index].bounds_min;
 		const XMFLOAT3 lmax = meshes[mesh_index].bounds_max;
-		XMFLOAT3 wmin = { FLT_MAX, FLT_MAX, FLT_MAX };
+		XMFLOAT3 wmin = { +FLT_MAX, +FLT_MAX, +FLT_MAX };
 		XMFLOAT3 wmax = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
 		for (int corner = 0; corner < 8; ++corner)
 		{

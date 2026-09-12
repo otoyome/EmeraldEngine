@@ -541,7 +541,7 @@ namespace
 		}
 
 		//	EMOに変換したのでファイルパスを改めて設定
-		path.replace_extension(model_resource::default_exteision);
+		path.replace_extension(model_resource::extension);
 		resource.set_file_path(path.string());
 		return true;
 	}

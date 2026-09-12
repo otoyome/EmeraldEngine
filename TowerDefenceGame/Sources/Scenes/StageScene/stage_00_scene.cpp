@@ -118,7 +118,7 @@ void stage_00_scene::generate_model_collision(model_resource_ptr resource, Direc
 		std::shared_ptr<collision::bounding_mesh> mesh = std::make_shared<collision::bounding_mesh>();
 
 		//	シリアライズ済みファイルがあるか確認
-		std::string extension = std::to_string(mesh_index) + ".ebmo";
+		std::string extension = std::to_string(mesh_index) + "." + std::string(collision::bounding_mesh::extension);
 		collision_mesh_path = file_path;
 		collision_mesh_path.replace_extension(extension);
 		if (!(std::filesystem::exists(collision_mesh_path) &&

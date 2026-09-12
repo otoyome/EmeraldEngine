@@ -1,5 +1,7 @@
 #pragma once
 
+#include <unordered_map>
+
 #include "texture.h"
 #include "material.h"
 #include "animation_resource.h"
@@ -12,7 +14,7 @@
 class model_resource
 {
 public:
-	static constexpr std::string_view default_exteision = "emo";
+	static constexpr std::string_view extension = "emo";
 
 public:
 	static constexpr size_t invalid_id = -1;
@@ -166,11 +168,15 @@ class model_resource_manager
 {
 	SINGLETON(model_resource_manager)
 
+	using model_resource_map = std::unordered_map<std::string, std::weak_ptr<model_resource>>;
+
 private:
 	model_resource_manager();
 	~model_resource_manager();
 
 public:
-	bool load(model_resource_ptr& resource, std::string_view file_path);
+	bool load(model_resource_ptr& resource, std::string_view file_path, bool force_load = false);
 
+private:
+	model_resource_map resources;
 };

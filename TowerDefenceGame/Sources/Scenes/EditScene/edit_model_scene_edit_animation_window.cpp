@@ -210,7 +210,7 @@ void edit_model_scene::imgui_render_ik()
 				auto ik_resource = std::make_shared<::ik_resource>();
 				auto file_path = edit_model->get_model_instance()->get_resource()->get_file_path();
 				std::filesystem::path path = file_path;
-				path.replace_extension(ik_resource::default_exteision);
+				path.replace_extension(ik_resource::extension);
 				ik_resource->serialize(path.string());
 				edit_model->set_ik_resource(ik_resource);
 			}
@@ -227,7 +227,7 @@ void edit_model_scene::imgui_render_ik()
 				auto ik_resource = std::make_shared<::ik_resource>();
 				auto file_path = edit_model->get_model_instance()->get_resource()->get_file_path();
 				std::filesystem::path path = file_path;
-				path.replace_extension(ik_resource::default_exteision);
+				path.replace_extension(ik_resource::extension);
 				ik_resource->deserialize(path.string());
 				edit_model->set_ik_resource(ik_resource);
 			}

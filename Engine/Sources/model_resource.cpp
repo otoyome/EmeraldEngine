@@ -359,8 +359,29 @@ model_resource_manager::~model_resource_manager()
 {
 }
 
-bool model_resource_manager::load(model_resource_ptr& resource, std::string_view file_path)
+bool model_resource_manager::load(model_resource_ptr& resource, std::string_view file_path, bool force_load)
 {
-	resource = std::make_shared<model_resource>();
-	return resource->deserialize(file_path);
+	std::string key(file_path);
+
+	if (!force_load)
+	{
+		auto it = resources.find(key);
+		if (it != resources.end())
+		{
+			if (model_resource_ptr cached = it->second.lock())
+			{
+				resource = cached;
+				return true;
+			}
+			resources.erase(it);
+		}
+	}
+
+	auto new_resource = std::make_shared<model_resource>();
+	if (!new_resource->deserialize(file_path))
+		return false;
+
+	resource = new_resource;
+	resources[key] = resource;
+	return true;
 }

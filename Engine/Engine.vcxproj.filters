@@ -219,6 +219,9 @@
     <ClInclude Include="Headers\retarget_profile.h">
       <Filter>Headers</Filter>
     </ClInclude>
+    <ClInclude Include="Headers\timeline_resource.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
     <ClInclude Include="Headers\data_converter.h">
       <Filter>Headers</Filter>
     </ClInclude>
@@ -405,6 +408,9 @@
       <Filter>Sources\System</Filter>
     </ClCompile>
     <ClCompile Include="Sources\retarget_profile.cpp">
+      <Filter>Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\timeline_resource.cpp">
       <Filter>Sources</Filter>
     </ClCompile>
     <ClCompile Include="Sources\data_converter_gltf.cpp">

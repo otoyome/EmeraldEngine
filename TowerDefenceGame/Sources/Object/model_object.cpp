@@ -84,7 +84,7 @@ model_object::model_object(std::string_view name, std::string_view file_path)
 	//	IK情報チェック
 	if (model_instance)
 	{
-		path.replace_extension(ik_resource::default_exteision);
+		path.replace_extension(ik_resource::extension);
 		if (std::filesystem::exists(path))
 		{
 			ik_resource_ptr resource;
@@ -113,7 +113,7 @@ model_object::model_object(std::string_view name, model_resource_ptr resource)
 	if (model_instance)
 	{
 		std::filesystem::path path(model_instance->get_resource()->get_file_path());
-		path.replace_extension(ik_resource::default_exteision);
+		path.replace_extension(ik_resource::extension);
 		if (std::filesystem::exists(path))
 		{
 			ik_resource_ptr resource;

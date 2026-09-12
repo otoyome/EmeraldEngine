@@ -314,7 +314,7 @@ void edit_model_scene::generate_bounding_mesh_asset()
 			continue;
 
 		std::filesystem::path out_path = model_path;
-		out_path.replace_extension(std::to_string(mesh_index) + ".ebmo");
+		out_path.replace_extension(std::to_string(mesh_index) + "." + std::string(collision::bounding_mesh::extension));
 		out_mesh.serialize(out_path.string());
 	}
 }

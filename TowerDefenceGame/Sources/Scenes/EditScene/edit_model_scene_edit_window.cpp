@@ -284,7 +284,7 @@ void edit_model_scene::imgui_model_loader_window()
 				load_model_path.clear();
 			}
 		}
-		else if (extension == std::filesystem::path(".emo"))
+		else if (extension == std::filesystem::path("." + std::string(model_resource::extension)))
 		{
 			convert_option_data.kind = convert_option_data::kinds::emo;
 		}

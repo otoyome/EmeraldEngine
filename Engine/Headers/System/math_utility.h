@@ -258,6 +258,16 @@ namespace math
 		float y;
 		float z;
 	};
+
+	template<class Archive>
+	void serialize(Archive& archive, rotator& v)
+	{
+		archive(
+			cereal::make_nvp("x", v.x),
+			cereal::make_nvp("y", v.y),
+			cereal::make_nvp("z", v.z)
+		);
+	}
 }	//	namespace math
 
 

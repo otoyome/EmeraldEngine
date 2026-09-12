@@ -10,6 +10,8 @@ namespace collision
 	class bounding_mesh : public bounding_object
 	{
 	public:
+		static constexpr std::string_view extension = "ebmo";
+
 		struct triangle
 		{
 			UINT a, b, c;	//	À•W”Ô†

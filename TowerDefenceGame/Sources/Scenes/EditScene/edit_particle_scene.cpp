@@ -295,7 +295,8 @@ void edit_particle_scene::imgui_render_core()
 			if (ImGui::Button("Save"))
 			{
 				std::string file_path;
-				if (editor_items::save_file_dialog(EffectFileDialogFilter, file_path, L".eme"))
+				const std::wstring default_extension = L"." + std::wstring(effect_resource::extension.begin(), effect_resource::extension.end());
+				if (editor_items::save_file_dialog(EffectFileDialogFilter, file_path, default_extension.c_str()))
 				{
 					edit_resource->serialize(file_path);
 				}

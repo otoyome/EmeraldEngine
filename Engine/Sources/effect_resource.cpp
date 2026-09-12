@@ -231,8 +231,30 @@ effect_resource_manager::~effect_resource_manager()
 {
 }
 
-bool effect_resource_manager::load(effect_resource_ptr& resource, std::string_view file_path)
+bool effect_resource_manager::load(effect_resource_ptr& resource, std::string_view file_path, bool force_load)
 {
-	resource = std::make_shared<effect_resource>();
-	return resource->deserialize(file_path);
+	std::string key(file_path);
+
+	if (!force_load)
+	{
+		auto it = resources.find(key);
+		if (it != resources.end())
+		{
+			if (effect_resource_ptr cached = it->second.lock())
+			{
+				resource = cached;
+				return true;
+			}
+
+			resources.erase(it);
+		}
+	}
+
+	auto new_resource = std::make_shared<effect_resource>();
+	if (!new_resource->deserialize(file_path))
+		return false;
+
+	resource = new_resource;
+	resources[key] = resource;
+	return true;
 }

@@ -428,6 +428,9 @@
     <ClCompile Include="Sources\Scenes\EditScene\edit_particle_scene.cpp">
       <Filter>Sources\Scenes\EditScene</Filter>
     </ClCompile>
+    <ClCompile Include="Sources\Scenes\EditScene\edit_timeline_scene.cpp">
+      <Filter>Sources\Scenes\EditScene</Filter>
+    </ClCompile>
     <ClCompile Include="Sources\Object\GameObjects\Character\character_object_resource.cpp">
       <Filter>Sources\Object\GameObjects\Character</Filter>
     </ClCompile>
@@ -713,6 +716,9 @@
       <Filter>Headers\Renderer</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Scenes\EditScene\edit_particle_scene.h">
+      <Filter>Headers\Scenes\EditScene</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Scenes\EditScene\edit_timeline_scene.h">
       <Filter>Headers\Scenes\EditScene</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Object\GameObjects\Character\Player\player_camera_controller_object.h">

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <unordered_map>
+
 #include "texture.h"
 #include "material.h"
 
@@ -14,7 +16,7 @@
 class effect_resource
 {
 public:
-	static constexpr std::string_view default_exteision = "eme";
+	static constexpr std::string_view extension = "eme";
 
 public:
 	static constexpr size_t invalid_id = -1;
@@ -117,10 +119,15 @@ class effect_resource_manager
 {
 	SINGLETON(effect_resource_manager)
 
+	using effect_resource_map = std::unordered_map<std::string, std::weak_ptr<effect_resource>>;
+
 private:
 	effect_resource_manager();
 	~effect_resource_manager();
 
 public:
-	bool load(effect_resource_ptr& resource, std::string_view file_path);
+	bool load(effect_resource_ptr& resource, std::string_view file_path, bool force_load = false);
+
+private:
+	effect_resource_map resources;
 };

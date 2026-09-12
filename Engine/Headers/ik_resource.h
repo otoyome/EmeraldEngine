@@ -5,7 +5,7 @@
 class ik_resource
 {
 public:
-	static constexpr std::string_view default_exteision = "eik";
+	static constexpr std::string_view extension = "eik";
 	static constexpr std::size_t invalid_id = -1;
 
 public:
