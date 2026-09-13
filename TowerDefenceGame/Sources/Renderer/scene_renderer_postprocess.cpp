@@ -53,7 +53,7 @@ namespace
 	{
 		buffer_datas buffer_data;
 		buffer_data.vertex_count = vertex_count;
-		context.device_context->IASetIndexBuffer(nullptr, DXGI_FORMAT_UNKNOWN, 0);
+		context.set_index_buffer(nullptr, DXGI_FORMAT_UNKNOWN, 0);
 		context.device_context->IASetPrimitiveTopology(primitive_topology);
 		context.device_context->Draw(vertex_count, vertex_offset);
 	}

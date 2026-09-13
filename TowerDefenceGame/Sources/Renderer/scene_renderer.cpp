@@ -1241,7 +1241,7 @@ void debug_draw_pass_renderer::render(renderer_context& context)
 				auto it = mesh.vertex_buffer_views->begin();
 				UINT stride = static_cast<UINT>(it->second.stride_in_bytes);
 				UINT offset = static_cast<UINT>(it->second.offset());
-				context.device_context->IASetVertexBuffers(0, 1, it->second.buffer.GetAddressOf(), &stride, &offset);
+				context.set_vertex_buffers(0, 1, it->second.buffer.GetAddressOf(), &stride, &offset);
 
 				context.device_context->Draw(static_cast<UINT>(it->second.count()), 0);
 			}

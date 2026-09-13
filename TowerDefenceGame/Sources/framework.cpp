@@ -11,6 +11,7 @@
 #include "camera.h"
 #include "occlusion_culling_system.h"
 #include "model_resource.h"
+#include "model_buffer_pool.h"
 #include "model_instance.h"
 #include "effect_resource.h"
 #include "effect_instance.h"
@@ -181,6 +182,7 @@ bool framework::initialize()
 	light_manager::create_instance();
 	post_process_volume_manager::create_instance();
 	camera_manager::create_instance();
+	model_buffer_pool_manager::create_instance();
 	model_resource_manager::create_instance();
 	model_instance_manger::create_instance();
 	effect_resource_manager::create_instance();
@@ -455,6 +457,9 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 
 		//	パーティクルの描画振り分け
 		build_particle_render_lists(*render_data, *render_particle_indices);
+
+		//	モデルの頂点/インデックスバッファ確保分をGPUへ転送
+		model_buffer_pool_manager::instance()->flush_uploads();
 	}
 
 	//	バッファ描画
@@ -803,6 +808,7 @@ bool framework::uninitialize()
 	effect_resource_manager::delete_instance();
 	model_instance_manger::delete_instance();
 	model_resource_manager::delete_instance();
+	model_buffer_pool_manager::delete_instance();
 	camera_manager::delete_instance();
 	post_process_volume_manager::delete_instance();
 	light_manager::delete_instance();

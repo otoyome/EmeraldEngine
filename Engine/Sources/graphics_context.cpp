@@ -113,6 +113,43 @@ void graphics_context::set_primitive_topology(D3D_PRIMITIVE_TOPOLOGY topology) c
 	chache_primitive_topology = topology;
 }
 
+void graphics_context::set_vertex_buffers(UINT start_slot, UINT num_buffers, ID3D11Buffer* const* buffers, const UINT* strides, const UINT* offsets) const
+{
+	bool is_same = (chache_vertex_buffer_start_slot == start_slot) && (chache_vertex_buffer_count == num_buffers);
+	for (UINT index = 0; is_same && index < num_buffers; ++index)
+	{
+		if (chache_vertex_buffers[index] != buffers[index] ||
+			chache_vertex_buffer_strides[index] != strides[index] ||
+			chache_vertex_buffer_offsets[index] != offsets[index])
+		{
+			is_same = false;
+		}
+	}
+	if (is_same)
+		return;
+
+	device_context->IASetVertexBuffers(start_slot, num_buffers, buffers, strides, offsets);
+
+	chache_vertex_buffer_start_slot = start_slot;
+	chache_vertex_buffer_count = num_buffers;
+	for (UINT index = 0; index < num_buffers; ++index)
+	{
+		chache_vertex_buffers[index] = buffers[index];
+		chache_vertex_buffer_strides[index] = strides[index];
+		chache_vertex_buffer_offsets[index] = offsets[index];
+	}
+}
+
+void graphics_context::set_index_buffer(ID3D11Buffer* buffer, DXGI_FORMAT format, UINT offset) const
+{
+	if (chache_index_buffer == buffer && chache_index_buffer_format == format && chache_index_buffer_offset == offset)
+		return;
+	device_context->IASetIndexBuffer(buffer, format, offset);
+	chache_index_buffer = buffer;
+	chache_index_buffer_format = format;
+	chache_index_buffer_offset = offset;
+}
+
 void graphics_context::clear_shader_slots() const
 {
 	device_context->VSSetShader(nullptr, nullptr, 0);
@@ -127,12 +164,12 @@ void graphics_context::clear_vertex_buffer() const
 {
 	ID3D11Buffer* vbs[D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT] = {};
 	UINT dummy[D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT] = {};
-	device_context->IASetVertexBuffers(0, D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT, vbs, dummy, dummy);
+	set_vertex_buffers(0, D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT, vbs, dummy, dummy);
 }
 
 void graphics_context::clear_index_buffer() const
 {
-	device_context->IASetIndexBuffer(nullptr, DXGI_FORMAT_UNKNOWN, 0);
+	set_index_buffer(nullptr, DXGI_FORMAT_UNKNOWN, 0);
 }
 
 void graphics_context::clear_render_target_slots() const

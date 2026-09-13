@@ -1,4 +1,5 @@
 #include "Renderer/scene_renderer_common.h"
+#include "model_buffer_pool.h"
 
 float scene_renderer_commons::convert_linear_depth_to_projection_depth(float depth, float z_buffer_parameteres_y)
 {
@@ -12,7 +13,7 @@ void scene_renderer_commons::draw(const graphics_context& context,
 			D3D_PRIMITIVE_TOPOLOGY primitive_topology,
 			UINT vertex_offset)
 {
-	context.device_context->IASetIndexBuffer(nullptr, DXGI_FORMAT_UNKNOWN, 0);
+	context.set_index_buffer(nullptr, DXGI_FORMAT_UNKNOWN, 0);
 	context.set_primitive_topology(primitive_topology);
 	context.device_context->Draw(vertex_count, vertex_offset);
 }
@@ -93,18 +94,18 @@ void scene_renderer_commons::draw_indexed(const graphics_context& context,
 		if (it != vertex_buffer_views->end())
 		{
 			auto& view = it->second;
-			stream_buffers[stream_index] = view.buffer.Get();
+			stream_buffers[stream_index] = model_buffer_pool_manager::instance()->get_vertex_buffer(it->first);
 			stream_strides[stream_index] = static_cast<UINT>(view.stride_in_bytes);
-			stream_offsets[stream_index] = static_cast<UINT>(view.offset());
+			stream_offsets[stream_index] = static_cast<UINT>(view.offset_in_bytes);
 		}
 		++stream_index;
 	}
 	if (stream_index > 0)
-		context.device_context->IASetVertexBuffers(0, stream_index, stream_buffers, stream_strides, stream_offsets);
+		context.set_vertex_buffers(0, stream_index, stream_buffers, stream_strides, stream_offsets);
 
 	//	•`‰æ
-	context.device_context->IASetIndexBuffer(index_buffer_view->buffer.Get(), index_buffer_view->format,
-												static_cast<UINT>(index_buffer_view->offset()));
+	context.set_index_buffer(model_buffer_pool_manager::instance()->get_index_buffer(), index_buffer_view->format,
+												static_cast<UINT>(index_buffer_view->offset_in_bytes));
 	context.set_primitive_topology(primitive_topology);
 	context.device_context->DrawIndexed(static_cast<UINT>(index_buffer_view->count()), 0, 0);
 }

@@ -240,6 +240,12 @@ public:
 	//	図形設定
 	void set_primitive_topology(D3D_PRIMITIVE_TOPOLOGY topology) const;
 
+	//	頂点バッファ設定
+	void set_vertex_buffers(UINT start_slot, UINT num_buffers, ID3D11Buffer* const* buffers, const UINT* strides, const UINT* offsets) const;
+
+	//	インデックスバッファ設定
+	void set_index_buffer(ID3D11Buffer* buffer, DXGI_FORMAT format, UINT offset) const;
+
 	//	設定していたシェーダーを全て解除する
 	void clear_shader_slots() const;
 
@@ -278,4 +284,12 @@ private:
 	mutable ID3D11BlendState* chache_blend_state = nullptr;
 	mutable UINT chache_stencil_ref = 0xFFFFFFFF;
 	mutable D3D_PRIMITIVE_TOPOLOGY chache_primitive_topology = D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
+	mutable UINT chache_vertex_buffer_start_slot = 0xFFFFFFFF;
+	mutable UINT chache_vertex_buffer_count = 0;
+	mutable ID3D11Buffer* chache_vertex_buffers[D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT] = {};
+	mutable UINT chache_vertex_buffer_strides[D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT] = {};
+	mutable UINT chache_vertex_buffer_offsets[D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT] = {};
+	mutable ID3D11Buffer* chache_index_buffer = nullptr;
+	mutable DXGI_FORMAT chache_index_buffer_format = DXGI_FORMAT_UNKNOWN;
+	mutable UINT chache_index_buffer_offset = 0xFFFFFFFF;
 };

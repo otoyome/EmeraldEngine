@@ -34,12 +34,9 @@ namespace
 		L"タイムラインファイル (*.etl)\0*.etl;\0\
 		すべてのファイル (*.*)\0*.*\0";
 
-	//	@tool ImSequencer は整数フレームの直接ポインタ(int**)でしか編集できないための内部変換専用の単位。
-	//	@tool 再生・保存データはすべて秒で、これは「1秒を何分割して編集するか」という表示上の解像度に過ぎない
-	//	@tool （fps という概念はここでは持たない。ユーザーに見せる値でも保存する値でもない）
 	constexpr float sequencer_units_per_second = 100.0f;
 
-	//	@tool オブジェクトごとのシーケンサー表示色
+	//	オブジェクトごとのシーケンサー表示色
 	constexpr unsigned int object_track_colors[] =
 	{
 		0xFF3F8AE0,
@@ -54,7 +51,7 @@ namespace
 		return object_track_colors[object_index % ARRAYSIZE(object_track_colors)];
 	}
 
-	//	@tool Objects パネルの種類コンボ用。timeline_resource::object_entry::kind の並びと対応させること
+	//	Objects パネルの種類コンボ用
 	constexpr const char* object_kind_names[] = { "Actor", "Camera", "Effect", "Event" };
 
 	//	ポストプロセスマテリアル
@@ -102,14 +99,6 @@ namespace
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
-//	sequence_interface（ImSequencer 用）
-//	@tool オブジェクトは data（std::variant）が保持している型そのものが種類(kind)を表す
-//	@tool （object_entry::object_kind() 参照）。kind::actor のみアニメーション・配置(transform)を複数持てる子リストで、
-//	@tool kind::camera / kind::effect / kind::event はオブジェクト自身が1行ぶんのデータを直接持つ
-//	@tool type の並び： [0,objects.size()) = アニメーション行 / [objects.size(),objects.size()*2) = 配置(transform)行 /
-//	@tool [objects.size()*2,objects.size()*3) = カメラ行 / [objects.size()*3,objects.size()*4) = エフェクト行 / [objects.size()*4,objects.size()*5) = イベント行
-//	@tool flat index の並び： アニメーション全体 -> 配置(transform)全体 -> カメラ全体 -> エフェクト全体 -> イベント全体
-
 std::size_t edit_timeline_scene::sequence_interface::total_animation_count() const
 {
 	std::size_t total = 0;
@@ -156,7 +145,6 @@ std::size_t edit_timeline_scene::sequence_interface::total_transform_count() con
 
 bool edit_timeline_scene::sequence_interface::resolve_transform(int flat_index, std::size_t& out_object_index, std::size_t& out_entry_index) const
 {
-	//	@tool flat index は「アニメーション全体」の直後から始まる
 	const std::size_t animation_total = total_animation_count();
 	if (flat_index < 0 || static_cast<std::size_t>(flat_index) < animation_total)
 		return false;
@@ -178,8 +166,6 @@ bool edit_timeline_scene::sequence_interface::resolve_transform(int flat_index, 
 	return false;
 }
 
-//	@tool kind::camera / kind::effect / kind::event はオブジェクト自身が1行のため、該当する型を保持しているオブジェクトを数えるだけでよい
-
 std::size_t edit_timeline_scene::sequence_interface::total_camera_count() const
 {
 	std::size_t total = 0;
@@ -193,7 +179,6 @@ std::size_t edit_timeline_scene::sequence_interface::total_camera_count() const
 
 bool edit_timeline_scene::sequence_interface::resolve_camera(int flat_index, std::size_t& out_object_index) const
 {
-	//	@tool flat index は「アニメーション全体・配置(transform)全体」の直後から始まる
 	const std::size_t entry_total = total_animation_count() + total_transform_count();
 	if (flat_index < 0 || static_cast<std::size_t>(flat_index) < entry_total)
 		return false;
@@ -226,7 +211,6 @@ std::size_t edit_timeline_scene::sequence_interface::total_effect_count() const
 
 bool edit_timeline_scene::sequence_interface::resolve_effect(int flat_index, std::size_t& out_object_index) const
 {
-	//	@tool flat index は「アニメーション全体・配置(transform)全体・カメラ全体」の直後から始まる
 	const std::size_t entry_total = total_animation_count() + total_transform_count() + total_camera_count();
 	if (flat_index < 0 || static_cast<std::size_t>(flat_index) < entry_total)
 		return false;
@@ -259,7 +243,6 @@ std::size_t edit_timeline_scene::sequence_interface::total_event_count() const
 
 bool edit_timeline_scene::sequence_interface::resolve_event(int flat_index, std::size_t& out_object_index) const
 {
-	//	@tool flat index は「アニメーション全体・配置(transform)全体・カメラ全体・エフェクト全体」の直後から始まる
 	const std::size_t entry_total = total_animation_count() + total_transform_count() + total_camera_count() + total_effect_count();
 	if (flat_index < 0 || static_cast<std::size_t>(flat_index) < entry_total)
 		return false;
@@ -319,7 +302,6 @@ void edit_timeline_scene::sequence_interface::sync_from_entries()
 		else if (resolve_event(index, object_index))
 		{
 			auto* entry = std::get_if<timeline_resource::object_entry::event_data>(&owner->timeline.objects[object_index].data);
-			//	@tool イベントは時刻の点データなので start/end とも同じ値にしておく
 			start_time = entry->time;
 			end_time = entry->time;
 		}
@@ -376,7 +358,6 @@ void edit_timeline_scene::sequence_interface::sync_to_entries()
 		if (resolve_event(index, object_index))
 		{
 			auto* entry = std::get_if<timeline_resource::object_entry::event_data>(&owner->timeline.objects[object_index].data);
-			//	@tool イベントは時刻の点データなので start 側のみを採用する
 			entry->time = start_time;
 		}
 	}
@@ -470,7 +451,6 @@ const char* edit_timeline_scene::sequence_interface::GetItemLabel(int index) con
 
 void edit_timeline_scene::sequence_interface::Get(int index, int** start, int** end, int* type, unsigned int* color)
 {
-	//	@tool Add() などでアイテムがこのフレーム中に増えた場合の保険（次フレームの sync_from_entries で追従する）
 	if (static_cast<std::size_t>(index) >= frame_cache.size())
 		frame_cache.resize(index + 1, { 0, 0 });
 
@@ -489,7 +469,7 @@ void edit_timeline_scene::sequence_interface::Get(int index, int** start, int** 
 	if (resolve_transform(index, object_index, entry_index))
 	{
 		if (type) *type = object_count + static_cast<int>(object_index);
-		if (color) *color = object_track_color(object_index) ^ 0x00404040;	//	@tool アニメーション行と見分けやすいよう色味を少しずらす
+		if (color) *color = object_track_color(object_index) ^ 0x00404040;
 		return;
 	}
 	if (resolve_camera(index, object_index))
@@ -514,7 +494,7 @@ void edit_timeline_scene::sequence_interface::Get(int index, int** start, int** 
 void edit_timeline_scene::sequence_interface::Add(int type)
 {
 	const int object_count = static_cast<int>(owner->timeline.objects.size());
-	constexpr float default_length = 1.0f;	//	@tool 追加時の初期区間長（秒）
+	constexpr float default_length = 1.0f;
 
 	if (type < object_count)
 	{
@@ -542,7 +522,6 @@ void edit_timeline_scene::sequence_interface::Add(int type)
 		auto& transform = actor->transforms.emplace_back();
 		transform.start_time = owner->current_time;
 		transform.end_time = std::min(owner->timeline.total_time, owner->current_time + default_length);
-		//	@tool 追加時点のオブジェクトの現在位置を開始・終了双方の初期値にしておく（その場から動かないショットから開始）
 		if (static_cast<std::size_t>(object_index) < owner->object_models.size() && owner->object_models[object_index])
 		{
 			transform.start.position = owner->object_models[object_index]->get_position();
@@ -551,7 +530,6 @@ void edit_timeline_scene::sequence_interface::Add(int type)
 			transform.end.rotation = transform.start.rotation;
 		}
 	}
-	//	@tool カメラ・エフェクト・イベントは object_kind を切り替えた時点で1行ぶん存在しているため、ここでは追加しない
 }
 
 void edit_timeline_scene::sequence_interface::Del(int index)
@@ -571,8 +549,6 @@ void edit_timeline_scene::sequence_interface::Del(int index)
 		owner->selected_entry = -1;
 		return;
 	}
-	//	@tool カメラ・エフェクト・イベントの行は object_kind そのものの現れなので、シーケンサーからは削除できない
-	//	@tool （削除したい場合は Objects パネルの Remove、または kind の切り替えで対応する）
 }
 
 void edit_timeline_scene::sequence_interface::Duplicate(int index)
@@ -589,7 +565,6 @@ void edit_timeline_scene::sequence_interface::Duplicate(int index)
 		auto* actor = std::get_if<timeline_resource::object_entry::actor_data>(&owner->timeline.objects[object_index].data);
 		actor->transforms.push_back(actor->transforms[entry_index]);
 	}
-	//	@tool カメラ・エフェクト・イベントの行は複製できない（object_kind ごとに単一のため）
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -743,7 +718,6 @@ void edit_timeline_scene::imgui_render_core()
 	}
 	ImGui::End();
 
-	//	@tool シーケンサー本体・タイムラインファイル操作・再生コントロールは Timeline とは別ウィンドウに分離
 	if (ImGui::Begin("Timeline Sequencer"))
 	{
 		//	タイムラインファイル
@@ -764,7 +738,6 @@ void edit_timeline_scene::imgui_render_core()
 	}
 	ImGui::End();
 
-	//	@tool エントリのパラメーター編集は Timeline とは別ウィンドウに分離
 	if (ImGui::Begin("Timeline Parameters"))
 	{
 		imgui_render_selected_entry();
@@ -776,7 +749,6 @@ void edit_timeline_scene::imgui_render_core()
 
 void edit_timeline_scene::add_object()
 {
-	//	@tool ここではファイルを選ばせず空のオブジェクトを追加するだけにし、種類(kind)や中身は Objects パネルで設定する
 	timeline_resource::object_entry entry;
 	entry.name = "Object " + std::to_string(timeline.objects.size());
 
@@ -793,7 +765,6 @@ void edit_timeline_scene::remove_object(std::size_t object_index)
 	if (object_models[object_index])
 		object_manager::instance()->unregister_object(object_models[object_index]);
 
-	//	@tool 削除するオブジェクトの再生中エフェクトを停止し、後続オブジェクトの添字ずれに合わせて active_effects のキーを詰め直す
 	std::unordered_map<size_t, effect_instance_ptr> shifted;
 	for (auto iterator = active_effects.begin(); iterator != active_effects.end();)
 	{
@@ -823,7 +794,6 @@ void edit_timeline_scene::remove_object(std::size_t object_index)
 
 void edit_timeline_scene::on_object_kind_changed(std::size_t object_index, timeline_resource::object_entry::kind previous_kind)
 {
-	//	@tool kind::actor から離れる場合はシーン上のモデルを片付ける（保存データ自体は data の切り替えで既に失われている）
 	if (previous_kind == timeline_resource::object_entry::kind::actor &&
 		object_index < object_models.size() && object_models[object_index])
 	{
@@ -833,7 +803,6 @@ void edit_timeline_scene::on_object_kind_changed(std::size_t object_index, timel
 			last_active_animation_per_object[object_index] = -1;
 	}
 
-	//	@tool kind::effect から離れる場合は再生中のエフェクトインスタンスを停止する
 	if (previous_kind == timeline_resource::object_entry::kind::effect)
 	{
 		auto it = active_effects.find(object_index);
@@ -861,7 +830,6 @@ void edit_timeline_scene::rebuild_object_models()
 		{
 			if (!actor->model_path.empty())
 			{
-				//	@tool 同じパスが既にどこかで読み込まれていれば model_resource_manager 側のキャッシュで再利用される
 				model_resource_ptr resource;
 				model_resource_manager::instance()->load(resource, actor->model_path);
 				if (resource)
@@ -930,7 +898,6 @@ void edit_timeline_scene::save_timeline()
 
 void edit_timeline_scene::advance_playback(float elapsed_time)
 {
-	//	@tool イベント通過判定（apply_timeline_state）のため、更新前の再生位置を控えておく
 	previous_time = current_time;
 
 	if (!is_playing)
@@ -953,7 +920,6 @@ void edit_timeline_scene::advance_playback(float elapsed_time)
 
 void edit_timeline_scene::apply_timeline_state()
 {
-	//	アニメーション・配置(transform)：kind::actor のオブジェクトのみ対象
 	for (std::size_t object_index = 0; object_index < timeline.objects.size(); ++object_index)
 	{
 		auto* actor = std::get_if<timeline_resource::object_entry::actor_data>(&timeline.objects[object_index].data);
@@ -993,8 +959,6 @@ void edit_timeline_scene::apply_timeline_state()
 		}
 		last_active_animation_per_object[object_index] = active_index;
 
-		//	@tool 配置(transform)：カメラと同じく再生中(is_playing)のときだけ区間内を補間して直接配置する。
-		//	@tool 停止・スクラブ中は補間を適用せず、その場のモデル位置を Set Start/End で拾えるようにする
 		if (model && is_playing)
 		{
 			for (auto& transform : actor->transforms)
@@ -1024,7 +988,6 @@ void edit_timeline_scene::apply_timeline_state()
 		}
 	}
 
-	//	@tool エフェクト：kind::effect のオブジェクトのみ対象。位置はワールド座標そのもの
 	for (std::size_t object_index = 0; object_index < timeline.objects.size(); ++object_index)
 	{
 		auto* effect_entry = std::get_if<timeline_resource::object_entry::effect_data>(&timeline.objects[object_index].data);
@@ -1062,9 +1025,6 @@ void edit_timeline_scene::apply_timeline_state()
 		}
 	}
 
-	//	カメラ：kind::camera のオブジェクトのみ対象
-	//	@tool 再生中(is_playing)以外はフリーカメラを常に有効にしておく。そうしないと区間内をスクラブしている間
-	//	@tool フリーカメラが動かせず、「Set Start/End = Current Camera」でその場の姿勢を拾えなくなるため
 	timeline_resource::object_entry::camera_data* active_camera_entry = nullptr;
 	if (is_playing)
 	{
@@ -1120,7 +1080,6 @@ void edit_timeline_scene::apply_timeline_state()
 		editor_camera_object->set_active(true);
 	}
 
-	//	@tool イベント：kind::event のオブジェクトのみ対象。時刻を通過した瞬間に一度だけ messenger 経由で関数を呼び出す
 	if (is_playing)
 	{
 		for (auto& entry : timeline.objects)
@@ -1131,13 +1090,12 @@ void edit_timeline_scene::apply_timeline_state()
 
 			const bool crossed = (previous_time <= current_time)
 				? (event->time > previous_time && event->time <= current_time)
-				: (event->time > previous_time || event->time <= current_time);	//	@tool ループで時刻が巻き戻った場合
+				: (event->time > previous_time || event->time <= current_time);
 			if (crossed)
 				object_manager::instance()->get_messenger().send_data(event->identifier, nullptr);
 		}
 	}
 
-	//	@tool apply_timeline_state は1フレームに複数回呼ばれるため、イベントの二重発火を防ぐためにここで区間を閉じる
 	previous_time = current_time;
 }
 
@@ -1171,7 +1129,6 @@ void edit_timeline_scene::imgui_render_objects()
 			const auto new_kind = static_cast<timeline_resource::object_entry::kind>(kind_index);
 			if (new_kind != previous_kind)
 			{
-				//	@tool std::variant にデータを保持しているため、種類を切り替えると以前のデータは失われる
 				switch (new_kind)
 				{
 					case timeline_resource::object_entry::kind::actor:
@@ -1203,7 +1160,6 @@ void edit_timeline_scene::imgui_render_objects()
 				std::string file_path;
 				if (editor_items::open_file_dialog(ModelFileDialogFilter, file_path))
 				{
-					//	@tool 同じパスが既にどこかで読み込まれていれば model_resource_manager 側のキャッシュで再利用される
 					model_resource_ptr resource;
 					if (model_resource_manager::instance()->load(resource, file_path))
 					{
@@ -1221,7 +1177,6 @@ void edit_timeline_scene::imgui_render_objects()
 				}
 			}
 
-			//	@tool ImSequencer は登録数0の間は「+」自体が描画されないため、最初の1件はここから追加する
 			if (ImGui::SmallButton("+Anim"))
 				add_entry_and_select(static_cast<int>(index));
 			ImGui::SameLine();
@@ -1243,8 +1198,6 @@ void edit_timeline_scene::add_entry_and_select(int type)
 {
 	sequencer_interface.Add(type);
 
-	//	@tool Add() は各エントリを対応する配列の末尾に追加するだけなので、
-	//	@tool シーケンサーの flat index（アニメーション全体→配置(transform)全体→カメラ全体→エフェクト全体→イベント全体の順）を自前で算出する
 	const int object_count = static_cast<int>(timeline.objects.size());
 	int flat_index = 0;
 	if (type < object_count)
@@ -1349,7 +1302,6 @@ void edit_timeline_scene::imgui_render_selected_entry()
 		remaining -= actor->animations.size();
 	}
 
-	//	@tool 配置(transform)。カメラエントリの編集パネルと同じ構成
 	for (std::size_t object_index = 0; object_index < timeline.objects.size(); ++object_index)
 	{
 		auto& object = timeline.objects[object_index];
@@ -1470,7 +1422,6 @@ void edit_timeline_scene::imgui_render_selected_entry()
 		--remaining;
 	}
 
-	//	@tool イベント：指定時刻で messenger::send_data(identifier) を呼び出す
 	for (std::size_t object_index = 0; object_index < timeline.objects.size(); ++object_index)
 	{
 		auto& object = timeline.objects[object_index];

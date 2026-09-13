@@ -84,6 +84,9 @@
     <ClInclude Include="Headers\model_resource.h">
       <Filter>Headers</Filter>
     </ClInclude>
+    <ClInclude Include="Headers\model_buffer_pool.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
     <ClInclude Include="Headers\model_resource_utility.h">
       <Filter>Headers</Filter>
     </ClInclude>
@@ -300,6 +303,9 @@
       <Filter>Sources</Filter>
     </ClCompile>
     <ClCompile Include="Sources\model_resource.cpp">
+      <Filter>Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\model_buffer_pool.cpp">
       <Filter>Sources</Filter>
     </ClCompile>
     <ClCompile Include="Sources\model_instance.cpp">

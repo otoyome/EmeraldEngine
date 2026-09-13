@@ -1,6 +1,7 @@
 #include <cmath>
 
 #include "model_resource.h"
+#include "model_buffer_pool.h"
 #include "graphics_utility.h"
 #include "render_data.h"
 #include "texture.h"
@@ -136,6 +137,20 @@ model_resource::model_resource(std::string_view file_path)
 
 model_resource::~model_resource()
 {
+	for (auto& mesh : meshes)
+	{
+		for (auto& view : mesh.vertex_buffer_views)
+		{
+			if (view.second.size_in_bytes > 0)
+			{
+				model_buffer_pool_manager::instance()->free_vertex(view.first, static_cast<UINT>(view.second.offset_in_bytes), static_cast<UINT>(view.second.size_in_bytes));
+			}
+		}
+		if (mesh.index_buffer_view.size_in_bytes > 0)
+		{
+			model_buffer_pool_manager::instance()->free_index(static_cast<UINT>(mesh.index_buffer_view.offset_in_bytes), static_cast<UINT>(mesh.index_buffer_view.size_in_bytes));
+		}
+	}
 }
 
 bool model_resource::compute_animation_nodes(std::vector<animation::node>& nodes, size_t animation_index, float time) const
@@ -301,30 +316,16 @@ void model_resource::build_model()
 		//	頂点バッファビュー生成
 		for (auto& view : mesh.vertex_buffer_views)
 		{
-			D3D11_BUFFER_DESC buffer_desc{};
-			buffer_desc.ByteWidth = static_cast<UINT>(view.second.size_in_bytes);
-			buffer_desc.Usage = D3D11_USAGE_DEFAULT;
-			buffer_desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-
-			D3D11_SUBRESOURCE_DATA subresource_data{};
-			subresource_data.pSysMem = view.second.row_data.data();
-			hr = render_data::instance()->get_device()->CreateBuffer(&buffer_desc, &subresource_data, view.second.buffer.ReleaseAndGetAddressOf());
-			_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+			view.second.offset_in_bytes = model_buffer_pool_manager::instance()->allocate_vertex(view.first, static_cast<UINT>(view.second.size_in_bytes));
+			model_buffer_pool_manager::instance()->queue_vertex_upload(view.first, static_cast<UINT>(view.second.offset_in_bytes), view.second.row_data.data(), static_cast<UINT>(view.second.size_in_bytes));
 		}
 
 		//	インデックスバッファビュー生成
 		{
 			auto& view = mesh.index_buffer_view;
 
-			D3D11_BUFFER_DESC buffer_desc{};
-			buffer_desc.ByteWidth = static_cast<UINT>(view.size_in_bytes);
-			buffer_desc.Usage = D3D11_USAGE_DEFAULT;
-			buffer_desc.BindFlags = D3D11_BIND_INDEX_BUFFER;
-
-			D3D11_SUBRESOURCE_DATA subresource_data{};
-			subresource_data.pSysMem = view.row_data.data();
-			hr = render_data::instance()->get_device()->CreateBuffer(&buffer_desc, &subresource_data, view.buffer.ReleaseAndGetAddressOf());
-			_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+			view.offset_in_bytes = model_buffer_pool_manager::instance()->allocate_index(static_cast<UINT>(view.size_in_bytes));
+			model_buffer_pool_manager::instance()->queue_index_upload(static_cast<UINT>(view.offset_in_bytes), view.row_data.data(), static_cast<UINT>(view.size_in_bytes));
 		}
 
 		//	モーフバッファビュー生成

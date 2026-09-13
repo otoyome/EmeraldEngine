@@ -2,6 +2,7 @@
 
 #if defined(USE_IMGUI)
 #include "System/engine_config_data.h"
+#include "model_buffer_pool.h"
 
 #include "imgui.h"
 #include "imgui_internal.h"
@@ -327,6 +328,24 @@ void framework::imgui_profiler_window(float elapsed_time)
 			ImGui::Text("FPS : %d ", static_cast<int>(display_frame));
 		}
 #endif	//	defined(_DEBUG) || defined(USE_IMGUI)
+
+		//	モデル頂点/インデックスバッファプールの使用量表示
+		if (model_buffer_pool_manager::is_valid())
+		{
+			if (ImGui::TreeNode("Model Buffer Pool"))
+			{
+				ImGui::BeginDisabled();
+				for (auto& usage : model_buffer_pool_manager::instance()->get_pool_usages())
+				{
+					std::string text = std::to_string(usage.used_in_bytes / 1024);
+					text += " / ";
+					text += std::to_string(usage.capacity_in_bytes / 1024);
+					text += " [KB]";
+				}
+				ImGui::EndDisabled();
+				ImGui::TreePop();
+			}
+		}
 
 		//	スタンプ表示
 		ImPlot::SetNextAxisLimits(ImAxis_X1, 0.0f, stationed_stamp_size * 0.01f, ImGuiCond_Always);

@@ -9,6 +9,7 @@
 
 struct timeline_resource
 {
+public:
 	static constexpr std::string_view extension = "etl";
 
 public:
@@ -42,17 +43,17 @@ public:
 			{
 				struct parameter
 				{
-					DirectX::XMFLOAT3 position = { 0, 0, 0 };	//	@tool 座標
-					math::rotator rotation = { 0, 0, 0 };		//	@tool オイラー角
+					DirectX::XMFLOAT3 position = { 0, 0, 0 };
+					math::rotator rotation = { 0, 0, 0 };
 
 					template<class Archive>
 					void serialize(Archive& archive, int version);
 				};
 
-				float start_time = 0.0f;	//	@tool 区間開始
-				float end_time = 1.0f;		//	@tool 区間終了
-				parameter start;			//	@tool 開始パラメーター
-				parameter end;				//	@tool 終了パラメーター
+				float start_time = 0.0f;
+				float end_time = 1.0f;
+				parameter start;
+				parameter end;
 
 				template<class Archive>
 				void serialize(Archive& archive, int version);
@@ -71,9 +72,9 @@ public:
 		{
 			struct parameter
 			{
-				DirectX::XMFLOAT3 position = { 0, 0, 0 };	//	座標
-				math::rotator rotation = { 0, 0, 0 };		//	オイラー角
-				float fov_y = 0.5235988f;					//	画角
+				DirectX::XMFLOAT3 position = { 0, 0, 0 };
+				math::rotator rotation = { 0, 0, 0 };
+				float fov_y = 0.5235988f;
 
 				template<class Archive>
 				void serialize(Archive& archive, int version);
@@ -112,8 +113,8 @@ public:
 		//	データ
 		using data_variant = std::variant<actor_data, camera_data, effect_data, event_data>;
 
-		std::string name;	//	表示名
-		data_variant data;	//	種類ごとのデータ本体。保持している型がそのまま種類を表す
+		std::string name;
+		data_variant data;
 
 		kind object_kind() const { return static_cast<kind>(data.index()); }
 
@@ -121,9 +122,11 @@ public:
 		void serialize(Archive& archive, int version);
 	};
 
+public:
 	float total_time = 10.0f;			//	タイムライン全体の長さ
 	std::vector<object_entry> objects;	//	オブジェクトリスト
 
+public:
 	bool serialize(std::string_view file_path);
 	bool deserialize(std::string_view file_path);
 };
