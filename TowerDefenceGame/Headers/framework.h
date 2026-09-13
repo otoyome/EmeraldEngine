@@ -159,6 +159,7 @@ private:	//	‚»‚Ì‘¼
 	void imgui_profiler_window(float elapsed_time);
 	void imgui_render_infos_window();
 	void imgui_model_buffer_pool_window();
+	void imgui_memory_allocator_window();
 	void imgui_textures_window();
 	void imgui_scene_change();
 

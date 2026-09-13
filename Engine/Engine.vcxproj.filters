@@ -186,6 +186,9 @@
     <ClInclude Include="Headers\System\math_utility.h">
       <Filter>Headers\System</Filter>
     </ClInclude>
+    <ClInclude Include="Headers\System\memory_allocator.h">
+      <Filter>Headers\System</Filter>
+    </ClInclude>
     <ClInclude Include="Headers\System\misc.h">
       <Filter>Headers\System</Filter>
     </ClInclude>
@@ -253,6 +256,9 @@
       <Filter>Headers\System</Filter>
     </ClInclude>
     <ClInclude Include="Headers\System\finite_state_machine.h">
+      <Filter>Headers\System</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\System\fixed_size_pool.h">
       <Filter>Headers\System</Filter>
     </ClInclude>
     <ClInclude Include="Headers\System\BehaviorTree\action_interface.h">
@@ -395,6 +401,9 @@
     <ClCompile Include="Sources\System\math_utility.cpp">
       <Filter>Sources\System</Filter>
     </ClCompile>
+    <ClCompile Include="Sources\System\memory_allocator.cpp">
+      <Filter>Sources\System</Filter>
+    </ClCompile>
     <ClCompile Include="Sources\ModelFormat\gltf_loader.cpp">
       <Filter>Sources\ModelFormat</Filter>
     </ClCompile>
@@ -453,6 +462,9 @@
       <Filter>Sources\Graphics</Filter>
     </ClCompile>
     <ClCompile Include="Sources\System\finite_state_machine.cpp">
+      <Filter>Sources\System</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\System\fixed_size_pool.cpp">
       <Filter>Sources\System</Filter>
     </ClCompile>
     <ClCompile Include="Sources\System\behavior_tree.cpp">

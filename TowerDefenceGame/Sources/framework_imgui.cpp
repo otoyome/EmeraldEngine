@@ -3,6 +3,7 @@
 #if defined(USE_IMGUI)
 #include "System/engine_config_data.h"
 #include "model_buffer_pool.h"
+#include "System/memory_allocator.h"
 
 #include "imgui.h"
 #include "imgui_internal.h"
@@ -245,6 +246,44 @@ void framework::imgui_model_buffer_pool_window()
 				ImGui::ProgressBar(fraction, ImVec2(-1, 0), text.c_str());
 			}
 		}
+	}
+	ImGui::End();
+}
+
+void framework::imgui_memory_allocator_window()
+{
+	if (ImGui::Begin("memory_allocator"))
+	{
+		//	固定長プール
+		for (auto& usage : memory_allocator::get_size_class_usages())
+		{
+			float fraction = usage.pooled_piece_count > 0 ?
+				static_cast<float>(usage.used_piece_count) / static_cast<float>(usage.pooled_piece_count) : 0.0f;
+
+			std::string text = std::to_string(usage.used_piece_count);
+			text += " / ";
+			text += std::to_string(usage.pooled_piece_count);
+			text += " pieces";
+
+			std::string label = std::to_string(usage.block_size_in_bytes) + " bytes";
+			ImGui::Text("%s", label.c_str());
+			ImGui::ProgressBar(fraction, ImVec2(-1, 0), text.c_str());
+		}
+
+		ImGui::Separator();
+
+		//	可変長プール
+		memory_allocator::large_pool_usage large_usage = memory_allocator::get_large_pool_usage();
+		float large_fraction = large_usage.segment_capacity_bytes > 0 ?
+			static_cast<float>(large_usage.used_bytes) / static_cast<float>(large_usage.segment_capacity_bytes) : 0.0f;
+
+		std::string large_text = std::to_string(large_usage.used_bytes / 1024);
+		large_text += " / ";
+		large_text += std::to_string(large_usage.segment_capacity_bytes / 1024);
+		large_text += " [KB]";
+
+		ImGui::Text("large pool (segments : %zu)", large_usage.segment_count);
+		ImGui::ProgressBar(large_fraction, ImVec2(-1, 0), large_text.c_str());
 	}
 	ImGui::End();
 }

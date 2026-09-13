@@ -383,6 +383,9 @@ void framework::update(float elapsed_time/*Elapsed seconds from last frame*/)
 	//	モデルバッファプール使用量表示
 	imgui_model_buffer_pool_window();
 
+	//	メモリアロケータ使用量表示
+	imgui_memory_allocator_window();
+
 	//	テクスチャリスト情報
 	imgui_textures_window();
 
