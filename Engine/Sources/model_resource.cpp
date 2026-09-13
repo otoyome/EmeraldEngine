@@ -139,8 +139,8 @@ model_resource::~model_resource()
 {
 	for (auto& mesh : meshes)
 	{
-		model_gpu_buffer_builder::free_vertex_buffers(mesh.vertex_buffer_views);
-		model_gpu_buffer_builder::free_index_buffer(mesh.index_buffer_view);
+		model_buffer_pool_manager::instance()->free_vertex_buffers(mesh.vertex_buffer_views);
+		model_buffer_pool_manager::instance()->free_index_buffer(mesh.index_buffer_view);
 	}
 }
 
@@ -304,9 +304,8 @@ void model_resource::build_model()
 	//	頂点・インデックスバッファ
 	for (auto& mesh : meshes)
 	{
-		//	頂点/インデックスバッファ登録(共有プール経由。詳細は model_gpu_buffer_builder を参照)
-		model_gpu_buffer_builder::build_vertex_buffers(mesh.vertex_buffer_views);
-		model_gpu_buffer_builder::build_index_buffer(mesh.index_buffer_view);
+		model_buffer_pool_manager::instance()->build_vertex_buffers(mesh.vertex_buffer_views);
+		model_buffer_pool_manager::instance()->build_index_buffer(mesh.index_buffer_view);
 
 		//	モーフバッファビュー生成
 		for (auto& morph_mesh : mesh.morph_meshes)

@@ -263,7 +263,7 @@ namespace
 				{
 					mesh.vertex_buffer_views.insert(std::make_pair(format_datas[index].s, views[index]));
 				}
-				model_gpu_buffer_builder::build_vertex_buffers(mesh.vertex_buffer_views);
+				model_buffer_pool_manager::instance()->build_vertex_buffers(mesh.vertex_buffer_views);
 
 				//	モーフィング
 				for (auto& morph : loader.get_morphs())
@@ -340,7 +340,7 @@ namespace
 				memcpy_s(view.row_data.data(), view.row_data.size() * view.stride_in_bytes,
 						 pmx_indices.data(), pmx_indices.size() * view.stride_in_bytes);
 
-				model_gpu_buffer_builder::build_index_buffer(view);
+				model_buffer_pool_manager::instance()->build_index_buffer(view);
 			}
 		}
 

@@ -306,8 +306,8 @@ void model_resource_utility::combine_unskinned_meshes(model_resource& resource, 
 			}
 
 			//	GPU バッファ生成(共有プール経由)
-			model_gpu_buffer_builder::build_vertex_buffers(dst.vertex_buffer_views);
-			model_gpu_buffer_builder::build_index_buffer(dst.index_buffer_view);
+			model_buffer_pool_manager::instance()->build_vertex_buffers(dst.vertex_buffer_views);
+			model_buffer_pool_manager::instance()->build_index_buffer(dst.index_buffer_view);
 		}
 	}
 
@@ -513,7 +513,7 @@ void model_resource_utility::generate_shadow_meshes(model_resource& resource, bo
 
 			//	影のインデックスバッファ書き戻し
 			{
-				model_gpu_buffer_builder::free_index_buffer(mesh.shadow_mesh.index_buffer_view);
+				model_buffer_pool_manager::instance()->free_index_buffer(mesh.shadow_mesh.index_buffer_view);
 
 				mesh.shadow_mesh.index_buffer_view.row_data.resize(indices.size() * sizeof(UINT));
 				memcpy_s(mesh.shadow_mesh.index_buffer_view.row_data.data(),
@@ -524,7 +524,7 @@ void model_resource_utility::generate_shadow_meshes(model_resource& resource, bo
 				mesh.shadow_mesh.index_buffer_view.stride_in_bytes = sizeof(UINT);
 				if (regenerate_buffer)
 				{
-					model_gpu_buffer_builder::build_index_buffer(mesh.shadow_mesh.index_buffer_view);
+					model_buffer_pool_manager::instance()->build_index_buffer(mesh.shadow_mesh.index_buffer_view);
 				}
 			}
 		}
@@ -593,7 +593,7 @@ void model_resource_utility::generate_lod_meshs(model_resource& resource, int ma
 
 			//	重複頂点最適化
 			for (auto& old_lod_mesh : mesh.lod_meshs)
-				model_gpu_buffer_builder::free_index_buffer(old_lod_mesh.index_buffer_view);
+				model_buffer_pool_manager::instance()->free_index_buffer(old_lod_mesh.index_buffer_view);
 			mesh.lod_meshs.clear();
 
 			for (INT lod = 0; lod < max_lod_level; ++lod)
@@ -620,7 +620,7 @@ void model_resource_utility::generate_lod_meshs(model_resource& resource, int ma
 				sub_mesh.index_buffer_view.stride_in_bytes = sizeof(UINT);
 				if (regeneratge_buffer)
 				{
-					model_gpu_buffer_builder::build_index_buffer(sub_mesh.index_buffer_view);
+					model_buffer_pool_manager::instance()->build_index_buffer(sub_mesh.index_buffer_view);
 				}
 				mesh.lod_meshs.emplace_back(sub_mesh);
 			}
@@ -633,7 +633,7 @@ void model_resource_utility::clear_lod_meshs(model_resource& resource)
 	for (auto& mesh : resource.get_meshes_for_editor())
 	{
 		for (auto& lod_mesh : mesh.lod_meshs)
-			model_gpu_buffer_builder::free_index_buffer(lod_mesh.index_buffer_view);
+			model_buffer_pool_manager::instance()->free_index_buffer(lod_mesh.index_buffer_view);
 		mesh.lod_meshs.clear();
 	}
 }
@@ -642,7 +642,7 @@ void model_resource_utility::clear_shadow_meshes(model_resource& resource)
 {
 	for (auto& mesh : resource.get_meshes_for_editor())
 	{
-		model_gpu_buffer_builder::free_index_buffer(mesh.shadow_mesh.index_buffer_view);
+		model_buffer_pool_manager::instance()->free_index_buffer(mesh.shadow_mesh.index_buffer_view);
 		mesh.shadow_mesh = {};
 	}
 }
@@ -651,16 +651,16 @@ void model_resource_utility::optimize_meshs(model_resource& resource)
 {
 	for (auto& mesh : resource.get_meshes_for_editor())
 	{
-		model_gpu_buffer_builder::free_vertex_buffers(mesh.vertex_buffer_views);
-		model_gpu_buffer_builder::free_index_buffer(mesh.index_buffer_view);
+		model_buffer_pool_manager::instance()->free_vertex_buffers(mesh.vertex_buffer_views);
+		model_buffer_pool_manager::instance()->free_index_buffer(mesh.index_buffer_view);
 	}
 
 	optimized_meshs(resource);
 
 	for (auto& mesh : resource.get_meshes_for_editor())
 	{
-		model_gpu_buffer_builder::build_vertex_buffers(mesh.vertex_buffer_views);
-		model_gpu_buffer_builder::build_index_buffer(mesh.index_buffer_view);
+		model_buffer_pool_manager::instance()->build_vertex_buffers(mesh.vertex_buffer_views);
+		model_buffer_pool_manager::instance()->build_index_buffer(mesh.index_buffer_view);
 	}
 
 	clear_lod_meshs(resource);

@@ -70,6 +70,12 @@ public:
 
 	std::vector<pool_usage> get_pool_usages() const;
 
+	void build_vertex_buffers(std::unordered_map<semantic, buffer_view>& vertex_buffer_views);
+	void free_vertex_buffers(const std::unordered_map<semantic, buffer_view>& vertex_buffer_views);
+
+	void build_index_buffer(buffer_view& index_buffer_view);
+	void free_index_buffer(const buffer_view& index_buffer_view);
+
 private:
 	model_gpu_buffer& get_vertex_buffer_pool(const semantic& target_semantic, UINT stride_in_bytes);
 
@@ -79,12 +85,3 @@ private:
 	variable_position_allocator index_position_allocator;
 	std::unique_ptr<model_gpu_buffer> index_buffer;
 };
-
-namespace model_gpu_buffer_builder
-{
-	void build_vertex_buffers(std::unordered_map<semantic, buffer_view>& vertex_buffer_views);
-	void free_vertex_buffers(const std::unordered_map<semantic, buffer_view>& vertex_buffer_views);
-
-	void build_index_buffer(buffer_view& index_buffer_view);
-	void free_index_buffer(const buffer_view& index_buffer_view);
-}

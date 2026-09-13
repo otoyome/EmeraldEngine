@@ -2,34 +2,33 @@
 
 namespace
 {
-	//	32バイト目は生存フラグで使用
-	static constexpr UINT alive = 1 << 31;
+	//	sizeの上位1bitをalive(確保済み)フラグとして使用する
+	constexpr UINT alive_flag = 1u << 31;
 
-	bool is_flag(UINT value, UINT flag)
+	bool is_alive(UINT size_with_flag)
 	{
-		return value & flag;
+		return (size_with_flag & alive_flag) != 0;
 	}
 
-	UINT flag_set(UINT value, UINT flag)
+	UINT pack_alive(UINT size)
 	{
-		return value | flag;
+		return size | alive_flag;
 	}
 
-	UINT flag_erase(UINT value, UINT flag)
+	UINT unpack_size(UINT size_with_flag)
 	{
-		return value & ~flag;
+		return size_with_flag & ~alive_flag;
 	}
 }
 
 //	pool_size = 2,147,483,647バイトまで
 bool variable_position_allocator::initialize(UINT pool_size)
 {
-	if (pool_size >= flag_erase(0xFFFFFFFF, alive))
+	if (pool_size >= alive_flag)
 		return false;
 
-	node_list.clear();
-	pool_size = flag_erase(pool_size, alive);
-	node_list.emplace_back(pool_size);
+	nodes.clear();
+	nodes.push_back({ 0, pool_size });
 	capacity = pool_size;
 	used_size = 0;
 	return true;
@@ -37,33 +36,26 @@ bool variable_position_allocator::initialize(UINT pool_size)
 
 UINT variable_position_allocator::allocate(UINT size)
 {
-	auto it = node_list.begin();
-
-	UINT position = 0;
-	while (it != node_list.end())
+	for (size_t index = 0; index < nodes.size(); ++index)
 	{
-		if (!is_flag(*it, alive))
-		{
-			UINT pool_size = *it;
-			if (size == pool_size)
-			{
-				*it = flag_set(size, alive);
-				used_size += size;
-				return position;
-			}
-			if (size < pool_size)
-			{
-				pool_size -= size;
-				*it = flag_set(size, alive);
-				node_list.insert(++it, pool_size);
-				used_size += size;
+		if (is_alive(nodes[index].size))
+			continue;
 
-				return position;
-			}
+		UINT node_size = unpack_size(nodes[index].size);
+		if (node_size < size)
+			continue;
+
+		UINT offset = nodes[index].offset;
+
+		if (node_size > size)
+		{
+			node remaining{ nodes[index].offset + size, node_size - size };
+			nodes.insert(nodes.begin() + index + 1, remaining);
 		}
-		//	座標に加算
-		position += flag_erase(*it, alive);
-		++it;
+		nodes[index].size = pack_alive(size);
+
+		used_size += size;
+		return offset;
 	}
 
 	return allocate_failed_code;
@@ -74,40 +66,27 @@ bool variable_position_allocator::deallocate(UINT deallocate_position)
 	if (deallocate_position == allocate_failed_code)
 		return false;
 
-	auto it = node_list.begin();
-	auto it_prev = node_list.end();
-
-	UINT position = 0;
-	while (it != node_list.end())
+	for (size_t index = 0; index < nodes.size(); ++index)
 	{
-		if (deallocate_position == position && is_flag(*it, alive))
+		if (nodes[index].offset != deallocate_position || !is_alive(nodes[index].size))
+			continue;
+
+		UINT freed_size = unpack_size(nodes[index].size);
+		nodes[index].size = freed_size;
+
+		if (index + 1 < nodes.size() && !is_alive(nodes[index + 1].size))
 		{
-			UINT freed_size = flag_erase(*it, alive);
-			*it = freed_size;
-
-			auto it_next = ++it;
-			--it;
-
-			//	一つ前と一つ後ろを合成できるなら合成する
-			if (it_prev != node_list.end() && !is_flag(*it_prev, alive))
-			{
-				*it_prev += *it;
-				node_list.erase(it);
-				it = it_prev;
-			}
-			if (it_next != node_list.end() && !is_flag(*it_next, alive))
-			{
-				*it += *it_next;
-				it = node_list.erase(it_next);
-			}
-
-			used_size -= freed_size;
-			return true;
+			nodes[index].size += nodes[index + 1].size;
+			nodes.erase(nodes.begin() + index + 1);
 		}
-		//	座標に加算
-		position += flag_erase(*it, alive);
-		it_prev = it;
-		++it;
+		if (index > 0 && !is_alive(nodes[index - 1].size))
+		{
+			nodes[index - 1].size += nodes[index].size;
+			nodes.erase(nodes.begin() + index);
+		}
+
+		used_size -= freed_size;
+		return true;
 	}
 
 	return false;

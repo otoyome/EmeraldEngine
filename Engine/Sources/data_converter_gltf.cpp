@@ -477,18 +477,18 @@ namespace
 				return;
 
 			//	インデックスバッファ書き戻し
-			model_gpu_buffer_builder::build_index_buffer(mesh.index_buffer_view);
+			model_buffer_pool_manager::instance()->build_index_buffer(mesh.index_buffer_view);
 
 			//	頂点バッファ書き戻し
-			model_gpu_buffer_builder::build_vertex_buffers(mesh.vertex_buffer_views);
+			model_buffer_pool_manager::instance()->build_vertex_buffers(mesh.vertex_buffer_views);
 		};
 		for (auto& mesh : meshes)
 		{
 			//	インデックスバッファ書き戻し
-			model_gpu_buffer_builder::build_index_buffer(mesh.index_buffer_view);
+			model_buffer_pool_manager::instance()->build_index_buffer(mesh.index_buffer_view);
 
 			//	頂点バッファ書き戻し
-			model_gpu_buffer_builder::build_vertex_buffers(mesh.vertex_buffer_views);
+			model_buffer_pool_manager::instance()->build_vertex_buffers(mesh.vertex_buffer_views);
 
 			//	影メッシュ生成
 			if (mesh.shadow_mesh.is_valid())

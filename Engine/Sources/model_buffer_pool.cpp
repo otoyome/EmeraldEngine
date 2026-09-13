@@ -69,7 +69,7 @@ model_buffer_pool_manager::~model_buffer_pool_manager()
 UINT model_buffer_pool_manager::allocate_vertex_slots(UINT vertex_count)
 {
 	UINT base_vertex = vertex_slot_allocator.allocate(vertex_count);
-	_ASSERT_EXPR(base_vertex != variable_position_allocator::allocate_failed_code, L"model_buffer_pool_manager: 頂点番号空間が枯渇しました");
+	_ASSERT_EXPR(base_vertex != variable_position_allocator::allocate_failed_code, L"model_buffer_pool_manager allocate failed");
 	return base_vertex;
 }
 
@@ -97,14 +97,14 @@ void model_buffer_pool_manager::queue_vertex_upload(const semantic& target_seman
 ID3D11Buffer* model_buffer_pool_manager::get_vertex_buffer(const semantic& target_semantic)
 {
 	auto it = vertex_buffers.find(target_semantic);
-	_ASSERT_EXPR(it != vertex_buffers.end(), L"model_buffer_pool_manager: 未確保のセマンティクスです");
+	_ASSERT_EXPR(it != vertex_buffers.end(), L"model_buffer_pool_manager unmanaged semantics");
 	return it->second->get_buffer();
 }
 
 UINT model_buffer_pool_manager::allocate_index(UINT size_in_bytes)
 {
 	UINT offset_in_bytes = index_position_allocator.allocate(size_in_bytes);
-	_ASSERT_EXPR(offset_in_bytes != variable_position_allocator::allocate_failed_code, L"model_buffer_pool_manager: インデックスバッファ容量が枯渇しました");
+	_ASSERT_EXPR(offset_in_bytes != variable_position_allocator::allocate_failed_code, L"model_buffer_pool_manager allocate failed");
 	return offset_in_bytes;
 }
 
@@ -156,51 +156,47 @@ std::vector<model_buffer_pool_manager::pool_usage> model_buffer_pool_manager::ge
 	return usages;
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
-namespace model_gpu_buffer_builder
+void model_buffer_pool_manager::build_vertex_buffers(std::unordered_map<semantic, buffer_view>& vertex_buffer_views)
 {
-	void build_vertex_buffers(std::unordered_map<semantic, buffer_view>& vertex_buffer_views)
+	if (vertex_buffer_views.empty())
+		return;
+
+	auto& first_view = vertex_buffer_views.begin()->second;
+	UINT vertex_count = static_cast<UINT>(first_view.count());
+	UINT base_vertex = allocate_vertex_slots(vertex_count);
+
+	for (auto& view : vertex_buffer_views)
 	{
-		if (vertex_buffer_views.empty())
-			return;
-
-		auto& first_view = vertex_buffer_views.begin()->second;
-		UINT vertex_count = static_cast<UINT>(first_view.count());
-		UINT base_vertex = model_buffer_pool_manager::instance()->allocate_vertex_slots(vertex_count);
-
-		for (auto& view : vertex_buffer_views)
-		{
-			UINT stride_in_bytes = static_cast<UINT>(view.second.stride_in_bytes);
-			view.second.offset_in_bytes = static_cast<size_t>(base_vertex) * stride_in_bytes;
-			model_buffer_pool_manager::instance()->queue_vertex_upload(view.first, static_cast<UINT>(view.second.offset_in_bytes),
-				view.second.row_data.data(), static_cast<UINT>(view.second.size_in_bytes), stride_in_bytes);
-		}
+		UINT stride_in_bytes = static_cast<UINT>(view.second.stride_in_bytes);
+		view.second.offset_in_bytes = static_cast<size_t>(base_vertex) * stride_in_bytes;
+		queue_vertex_upload(view.first, static_cast<UINT>(view.second.offset_in_bytes),
+			view.second.row_data.data(), static_cast<UINT>(view.second.size_in_bytes), stride_in_bytes);
 	}
+}
 
-	void free_vertex_buffers(const std::unordered_map<semantic, buffer_view>& vertex_buffer_views)
-	{
-		if (vertex_buffer_views.empty())
-			return;
+void model_buffer_pool_manager::free_vertex_buffers(const std::unordered_map<semantic, buffer_view>& vertex_buffer_views)
+{
+	if (vertex_buffer_views.empty())
+		return;
 
-		UINT base_vertex = static_cast<UINT>(vertex_buffer_views.begin()->second.offset());
-		model_buffer_pool_manager::instance()->free_vertex_slots(base_vertex);
-	}
+	UINT base_vertex = static_cast<UINT>(vertex_buffer_views.begin()->second.offset());
+	free_vertex_slots(base_vertex);
+}
 
-	void build_index_buffer(buffer_view& index_buffer_view)
-	{
-		if (index_buffer_view.size_in_bytes == 0)
-			return;
+void model_buffer_pool_manager::build_index_buffer(buffer_view& index_buffer_view)
+{
+	if (index_buffer_view.size_in_bytes == 0)
+		return;
 
-		index_buffer_view.offset_in_bytes = model_buffer_pool_manager::instance()->allocate_index(static_cast<UINT>(index_buffer_view.size_in_bytes));
-		model_buffer_pool_manager::instance()->queue_index_upload(static_cast<UINT>(index_buffer_view.offset_in_bytes),
-			index_buffer_view.row_data.data(), static_cast<UINT>(index_buffer_view.size_in_bytes));
-	}
+	index_buffer_view.offset_in_bytes = allocate_index(static_cast<UINT>(index_buffer_view.size_in_bytes));
+	queue_index_upload(static_cast<UINT>(index_buffer_view.offset_in_bytes),
+		index_buffer_view.row_data.data(), static_cast<UINT>(index_buffer_view.size_in_bytes));
+}
 
-	void free_index_buffer(const buffer_view& index_buffer_view)
-	{
-		if (index_buffer_view.size_in_bytes == 0)
-			return;
+void model_buffer_pool_manager::free_index_buffer(const buffer_view& index_buffer_view)
+{
+	if (index_buffer_view.size_in_bytes == 0)
+		return;
 
-		model_buffer_pool_manager::instance()->free_index(static_cast<UINT>(index_buffer_view.offset_in_bytes));
-	}
+	free_index(static_cast<UINT>(index_buffer_view.offset_in_bytes));
 }

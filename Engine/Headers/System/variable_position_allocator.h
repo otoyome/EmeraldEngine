@@ -1,7 +1,7 @@
 #pragma once
 
 #include <wrl.h>
-#include <list>
+#include <vector>
 
 //	可変長アロケーション座標だけ管理クラス
 class variable_position_allocator
@@ -22,12 +22,17 @@ public:
 	//	プール全体のサイズ
 	UINT get_capacity() const { return capacity; }
 
-	//	現在確保されている合計サイズ(allocate/deallocateで自動更新される)
+	//	現在のサイズ
 	UINT get_used_size() const { return used_size; }
 
 private:
-	//	座標ノード
-	std::list<UINT> node_list;
+	struct node
+	{
+		UINT offset;
+		UINT size;
+	};
+
+	std::vector<node> nodes;
 	UINT capacity = 0;
 	UINT used_size = 0;
 };
