@@ -15,6 +15,9 @@ public:
 
 	static void* validate_placement(void* target, size_t size);
 
+	//	プロセス終了時にスラブ/セグメントを全解放する(CRTのリーク検出誤検知対策。自動的にatexit登録される)
+	static void shutdown();
+
 	//	デバッグ表示用の使用量情報
 	struct size_class_usage
 	{

@@ -8,11 +8,15 @@
 
 namespace
 {
+	//	@tool サイズクラス一覧。すべて16の倍数にすることで、fixed_size_pool側のストライドが常に16バイト境界になる
 	constexpr size_t size_classes[] = { 16, 32, 64, 128, 256, 512, 1024 };
 	constexpr size_t size_class_count = sizeof(size_classes) / sizeof(size_classes[0]);
-	constexpr uint32_t large_pool_class_index = 0xFFFFFFFFu;
+	//	@tool ヘッダ末尾4バイトのタグに使う値。size_class_count未満ならfixed_size_pool側、これ以上なら可変長プール側
+	constexpr uint32_t large_pool_tag = 0xFFFFFFFFu;
 
+	//	@tool 可変長プールが新しいセグメントを確保する際の最低バイト数
 	constexpr size_t large_pool_default_segment_bytes = 1 * 1024 * 1024;
+	//	@tool 可変長プールの分割後、端数がこれ未満なら分割せずノード全体をそのまま使う
 	constexpr size_t variable_node_min_split_payload = 32;
 
 #if defined(_DEBUG)
@@ -24,8 +28,8 @@ namespace
 		return (value + alignment - 1) & ~(alignment - 1);
 	}
 
-	//	排他制御クラス
-	//	@remainder	std::mutexが使えないので実装
+	//	@tool std::mutexはMSVC実装だと初回ロック時に内部でヒープ確保を行うことがあり、operator new内で
+	//	@tool 使うと無限再帰(スタックオーバーフロー)を起こすため、確保を伴わないSRWLOCKを直接使う
 	struct srw_exclusive_lock
 	{
 		explicit srw_exclusive_lock(SRWLOCK& target) : target(target) { AcquireSRWLockExclusive(&target); }
@@ -36,18 +40,28 @@ namespace
 		SRWLOCK& target;
 	};
 
-	//	可変長ノード
+	////////////////////////////////////////////////////////////////////////////////////////////////////
+	//	可変長プール(EMEのCMemoryManagerの可変長フリーリストを踏襲。前後の空きノードと結合しながら使い回す)
+	//	@tool サイズクラス上限(1024バイト)を超える確保、またはfixed_size_poolでは対応できない
+	//	@tool 16バイト超のアライメント要求はすべてこちらへ回す
+
+	struct variable_segment;
+
+	//	@tool owner_segmentを直接持つことで、deallocate時にセグメントを総当たりせずO(1)で
+	//	@tool 対象セグメントへ辿り着ける。large_pool_tagは必ず構造体の末尾(payloadの直前)に置き、
+	//	@tool fixed_size_pool側のclass_indexと同じ「payload-4バイトを読めば判定できる」位置関係にする
 	struct variable_node
 	{
 		variable_node* next;
 		variable_node* prev;
-		size_t size;		//	サイズ
+		variable_segment* owner_segment;
+		size_t size;		//	ペイロードバイト数(ヘッダは含まない)
 		uint32_t used;		//	0 = 空き, 1 = 使用中
 #if defined(_DEBUG)
 		uint32_t canary;
-#else	//	defined(_DEBUG)
-		uint32_t reserved;
+		uint32_t reserved;	//	@tool large_pool_tagが構造体末尾(=8バイト境界)に来るよう詰め物する
 #endif	//	defined(_DEBUG)
+		uint32_t large_pool_tag;	//	@tool 末尾固定。常にlarge_pool_tag定数を入れる
 	};
 	constexpr size_t variable_node_header_size = sizeof(variable_node);
 
@@ -67,10 +81,13 @@ namespace
 		size_t segment_capacity_bytes = 0;
 	};
 
-	bool variable_segment_owns(const variable_segment* segment, const void* payload)
+	void init_variable_node_tail(variable_node* node)
 	{
-		const uint8_t* p = static_cast<const uint8_t*>(payload);
-		return segment->base + variable_node_header_size <= p && p < segment->end;
+		node->used = 0;
+#if defined(_DEBUG)
+		node->canary = canary_pattern;
+#endif
+		node->large_pool_tag = large_pool_tag;
 	}
 
 	variable_segment* create_variable_segment(size_t min_bytes)
@@ -95,23 +112,21 @@ namespace
 		variable_node* node = reinterpret_cast<variable_node*>(base);
 		node->next = nullptr;
 		node->prev = nullptr;
+		node->owner_segment = segment;
 		node->size = segment_bytes - variable_node_header_size;
-		node->used = 0;
-#if defined(_DEBUG)
-		node->canary = canary_pattern;
-#endif	//	defined(_DEBUG)
+		init_variable_node_tail(node);
 		return segment;
 	}
 
+	//	@tool ノードの先頭から厳密にexact_sizeバイトだけ切り出し、残りを新しい空きノードにする(端数マージ判定なし)
+	//	@tool アライメント調整用のパディング切り出しに使う。切り出す残りは呼び出し元が既にサイズを検証済みの前提
 	void split_variable_node_exact(variable_node* node, size_t exact_size)
 	{
 		variable_node* remainder = reinterpret_cast<variable_node*>(
 			reinterpret_cast<uint8_t*>(node + 1) + exact_size);
 		remainder->size = node->size - exact_size - variable_node_header_size;
-		remainder->used = 0;
-#if defined(_DEBUG)
-		remainder->canary = canary_pattern;
-#endif	//	defined(_DEBUG)
+		remainder->owner_segment = node->owner_segment;
+		init_variable_node_tail(remainder);
 		remainder->next = node->next;
 		remainder->prev = node;
 		if (remainder->next)
@@ -121,6 +136,8 @@ namespace
 		node->next = remainder;
 	}
 
+	//	@tool ノードをrequested_size分だけ切り出す。余りが小さすぎる時は分割せずノード全体を使う
+	//	@tool (EME版はこの「端数が小さい」ケースのサイズ判定が抜けており、ちょうど収まる空きノードを見逃していた)
 	void split_variable_node(variable_node* node, size_t requested_size)
 	{
 		size_t remaining = node->size - requested_size;
@@ -130,6 +147,9 @@ namespace
 		split_variable_node_exact(node, requested_size);
 	}
 
+	//	@tool ノード内で実際にalignmentを満たす位置を探し、確保できればペイロードのポインタを返す。
+	//	@tool EME版は「アライメント値が16の倍数だと剰余が0になり調整処理ごとスキップされる」バグがあったため、
+	//	@tool 剰余では判定せず、実アドレスから必要なパディング量を直接計算するように修正している
 	void* try_allocate_from_node(variable_node** io_node, size_t requested_size, size_t alignment)
 	{
 		variable_node* node = *io_node;
@@ -139,6 +159,9 @@ namespace
 
 		if (padding != 0)
 		{
+			//	@tool パディング部分を独立ノードとして切り出せるだけの余白(ヘッダ1つ分)を確保する。
+			//	@tool 足りなければアライメント境界単位で切り上げる(paddingはalignmentの倍数のままなので、
+			//	@tool 最終的なペイロードアドレスのアライメントは崩れない)
 			if (padding < variable_node_header_size)
 				padding += align_up(variable_node_header_size - padding, alignment);
 
@@ -155,9 +178,6 @@ namespace
 
 		split_variable_node(node, requested_size);
 		node->used = 1;
-#if defined(_DEBUG)
-		node->canary = canary_pattern;
-#endif	//	defined(_DEBUG)
 		return node + 1;
 	}
 
@@ -181,6 +201,7 @@ namespace
 			}
 		}
 
+		//	@tool 収まる空きノードが無かったので新しいセグメントを追加する
 		size_t min_bytes = variable_node_header_size * 2 + requested + alignment;
 		variable_segment* segment = create_variable_segment(min_bytes);
 		if (!segment)
@@ -199,65 +220,64 @@ namespace
 		return payload;
 	}
 
-	bool large_pool_deallocate(large_pool_state& state, void* payload)
+	//	@tool 呼び出し元がヘッダ末尾のタグを見て、可変長プールが払い出したポインタだと確定した上で呼んでいる。
+	//	@tool owner_segmentにより、対象セグメントを総当たりせずO(1)で特定できる
+	void large_pool_deallocate(large_pool_state& state, void* payload)
 	{
-		for (variable_segment* segment = state.first_segment; segment; segment = segment->next_segment)
-		{
-			if (!variable_segment_owns(segment, payload))
-				continue;
-
-			variable_node* node = reinterpret_cast<variable_node*>(payload) - 1;
+		variable_node* node = reinterpret_cast<variable_node*>(payload) - 1;
 #if defined(_DEBUG)
-			_ASSERT_EXPR(node->canary == canary_pattern,
-				L"memory_allocator: large pool header canary corrupted (buffer overrun?)");
-#endif	//	defined(_DEBUG)
-			_ASSERT_EXPR(node->used == 1, L"memory_allocator: double free detected (large allocation)");
+		_ASSERT_EXPR(node->canary == canary_pattern,
+			L"memory_allocator: large pool header canary corrupted (buffer overrun?)");
+#endif
+		variable_segment* segment = node->owner_segment;
+		_ASSERT_EXPR(segment->base <= reinterpret_cast<uint8_t*>(node) && reinterpret_cast<uint8_t*>(payload) <= segment->end,
+			L"memory_allocator: header corrupted (owner_segment out of range)");
 
-			state.used_bytes -= node->size;
-			node->used = 0;
+		srw_exclusive_lock lock(state.lock);
 
-			//	後ろの空きノードと結合
-			if (node->next && !node->next->used)
-			{
-				node->size += node->next->size + variable_node_header_size;
-				node->next = node->next->next;
-				if (node->next)
-					node->next->prev = node;
-			}
-			//	前の空きノードと結合
-			if (node->prev && !node->prev->used)
-			{
-				node->prev->size += node->size + variable_node_header_size;
-				node->prev->next = node->next;
-				if (node->next)
-					node->next->prev = node->prev;
-			}
-			return true;
+		//	@tool EME版はシグネチャしか見ておらず二重解放を検出できなかったため、使用中フラグを明示的にチェックする
+		_ASSERT_EXPR(node->used == 1, L"memory_allocator: double free detected (large allocation)");
+
+		state.used_bytes -= node->size;
+		node->used = 0;
+
+		//	@tool 後ろの空きノードと結合
+		if (node->next && !node->next->used)
+		{
+			node->size += node->next->size + variable_node_header_size;
+			node->next = node->next->next;
+			if (node->next)
+				node->next->prev = node;
 		}
-		return false;
+		//	@tool 前の空きノードと結合
+		if (node->prev && !node->prev->used)
+		{
+			node->prev->size += node->size + variable_node_header_size;
+			node->prev->next = node->next;
+			if (node->next)
+				node->next->prev = node->prev;
+		}
 	}
 
-	bool large_pool_validate_placement(const large_pool_state& state, const void* payload, size_t size)
+	bool large_pool_validate_placement(const void* payload, size_t size)
 	{
-		for (variable_segment* segment = state.first_segment; segment; segment = segment->next_segment)
-		{
-			if (!variable_segment_owns(segment, payload))
-				continue;
-
-			const variable_node* node = reinterpret_cast<const variable_node*>(payload) - 1;
+		const variable_node* node = reinterpret_cast<const variable_node*>(payload) - 1;
 #if defined(_DEBUG)
-			if (node->canary != canary_pattern)
-				return false;
-#endif	//	defined(_DEBUG)
-			if (!node->used)
-				return false;
+		if (node->canary != canary_pattern)
+			return false;
+#endif
+		if (!node->used)
+			return false;
 
-			return node->size >= size;
-		}
-		return false;
+		return node->size >= size;
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	void shutdown_at_exit();
+
+	//	@tool アロケータの内部状態。static local変数として保持することで、
+	//	@tool 他の静的オブジェクトの初期化順に関係なく初回使用時に安全に構築される
 	struct allocator_state
 	{
 		fixed_size_pool classes[size_class_count];
@@ -266,7 +286,13 @@ namespace
 		allocator_state()
 		{
 			for (uint32_t index = 0; index < size_class_count; ++index)
-				classes[index].initialize(size_classes[index]);
+				classes[index].initialize(index, size_classes[index]);
+
+			//	atexitはLIFOで実行されるため、ここ(初回使用=ほぼ確実に他のどの静的オブジェクトより先)で
+			//	登録しておけば、他の静的オブジェクト/シングルトンの解放が全て終わった後に実行される。
+			//	これでCRTのリーク検出(_CRTDBG_LEAK_CHECK_DF)が、まだ使い回し中のスラブ/セグメントを
+			//	誤って「リーク」と報告するのを防ぐ
+			std::atexit(&shutdown_at_exit);
 		}
 	};
 
@@ -276,6 +302,11 @@ namespace
 		return state;
 	}
 
+	void shutdown_at_exit()
+	{
+		memory_allocator::shutdown();
+	}
+
 	uint32_t find_size_class_index(size_t size)
 	{
 		for (uint32_t index = 0; index < size_class_count; ++index)
@@ -283,7 +314,15 @@ namespace
 			if (size_classes[index] >= size)
 				return index;
 		}
-		return large_pool_class_index;
+		return large_pool_tag;
+	}
+
+	//	@tool 確保済みポインタのペイロード直前4バイトには、必ずどちらかのタグが入っている
+	//	@tool (fixed_size_poolのclass_index、または可変長プールのlarge_pool_tag)。
+	//	@tool これを読むだけで、全クラス・全セグメントを総当たりせずO(1)でどちらの経路か判定できる
+	uint32_t read_tag(void* payload)
+	{
+		return *(reinterpret_cast<uint32_t*>(payload) - 1);
 	}
 }
 
@@ -292,10 +331,12 @@ void* memory_allocator::allocate(size_t requested_size, size_t alignment)
 	size_t actual_size = requested_size == 0 ? 1 : requested_size;
 	allocator_state& state = get_state();
 
-	uint32_t class_index = alignment <= 16 ? find_size_class_index(actual_size) : large_pool_class_index;
+	//	@tool fixed_size_poolのペイロードは常に16バイトアライメントしか保証していないため、
+	//	@tool それを超えるアライメントが必要な場合はパディング調整ができる可変長プールへ直接回す
+	uint32_t class_index = alignment <= 16 ? find_size_class_index(actual_size) : large_pool_tag;
 
 	void* payload = nullptr;
-	if (class_index != large_pool_class_index)
+	if (class_index != large_pool_tag)
 	{
 		payload = state.classes[class_index].allocate(alignment);
 	}
@@ -308,7 +349,7 @@ void* memory_allocator::allocate(size_t requested_size, size_t alignment)
 #if defined(_DEBUG)
 	_ASSERT_EXPR(!payload || reinterpret_cast<size_t>(payload) % alignment == 0,
 		L"memory_allocator: returned pointer does not satisfy the requested alignment");
-#endif	//	defined(_DEBUG)
+#endif
 	return payload;
 }
 
@@ -318,16 +359,16 @@ void memory_allocator::deallocate(void* payload_ptr)
 		return;
 
 	allocator_state& state = get_state();
+	uint32_t tag = read_tag(payload_ptr);
 
-	for (uint32_t class_index = 0; class_index < size_class_count; ++class_index)
+	if (tag < size_class_count)
 	{
-		if (state.classes[class_index].deallocate(payload_ptr))
-			return;
+		state.classes[tag].deallocate(payload_ptr);
+		return;
 	}
 
-	srw_exclusive_lock lock(state.large_pool.lock);
-	bool freed = large_pool_deallocate(state.large_pool, payload_ptr);
-	_ASSERT_EXPR(freed, L"memory_allocator: deallocate() received a pointer that was not allocated by this allocator");
+	_ASSERT_EXPR(tag == large_pool_tag, L"memory_allocator: deallocate() received a pointer that was not allocated by this allocator");
+	large_pool_deallocate(state.large_pool, payload_ptr);
 }
 
 void* memory_allocator::validate_placement(void* target, size_t size)
@@ -336,15 +377,16 @@ void* memory_allocator::validate_placement(void* target, size_t size)
 		return nullptr;
 
 	allocator_state& state = get_state();
+	uint32_t tag = read_tag(target);
 
-	for (uint32_t class_index = 0; class_index < size_class_count; ++class_index)
-	{
-		if (state.classes[class_index].validate_placement(target, size))
-			return target;
-	}
+	if (tag < size_class_count)
+		return state.classes[tag].validate_placement(target, size) ? target : nullptr;
+
+	if (tag != large_pool_tag)
+		return nullptr;
 
 	srw_exclusive_lock lock(state.large_pool.lock);
-	return large_pool_validate_placement(state.large_pool, target, size) ? target : nullptr;
+	return large_pool_validate_placement(target, size) ? target : nullptr;
 }
 
 std::vector<memory_allocator::size_class_usage> memory_allocator::get_size_class_usages()
@@ -378,14 +420,36 @@ memory_allocator::large_pool_usage memory_allocator::get_large_pool_usage()
 	return usage;
 }
 
+void memory_allocator::shutdown()
+{
+	allocator_state& state = get_state();
+	for (uint32_t index = 0; index < size_class_count; ++index)
+		state.classes[index].release_all();
+
+	variable_segment* segment = state.large_pool.first_segment;
+	while (segment)
+	{
+		variable_segment* next = segment->next_segment;
+		std::free(segment->base);
+		std::free(segment);
+		segment = next;
+	}
+	state.large_pool.first_segment = nullptr;
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
+//	@tool operator new/deleteのグローバル差し替え。USE_CUSTOM_ALLOCATORが0の場合はmalloc/freeへ素通しする
+//	@tool Engineは静的ライブラリだが、new/deleteはコードベース全体から参照される記号のため、
+//	@tool ここで定義するだけで確実にリンクされる(明示的な参照や強制リンクの仕掛けは不要)
+//	@tool (placement newオペレータは標準のまま差し替えていない。理由はヘッダのコメントを参照)
+
 void* operator new(size_t size)
 {
 #if defined(USE_CUSTOM_ALLOCATOR)
 	void* ptr = memory_allocator::allocate(size);
-#else	//	defined(USE_CUSTOM_ALLOCATOR)
+#else
 	void* ptr = std::malloc(size);
-#endif	//	defined(USE_CUSTOM_ALLOCATOR)
+#endif
 	if (!ptr)
 		throw std::bad_alloc();
 	return ptr;
@@ -402,9 +466,9 @@ void operator delete(void* ptr) noexcept
 		return;
 #if defined(USE_CUSTOM_ALLOCATOR)
 	memory_allocator::deallocate(ptr);
-#else	//	defined(USE_CUSTOM_ALLOCATOR)
+#else
 	std::free(ptr);
-#endif	//	defined(USE_CUSTOM_ALLOCATOR)
+#endif
 }
 
 void operator delete[](void* ptr) noexcept
