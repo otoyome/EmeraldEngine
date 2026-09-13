@@ -30,6 +30,8 @@ bool variable_position_allocator::initialize(UINT pool_size)
 	node_list.clear();
 	pool_size = flag_erase(pool_size, alive);
 	node_list.emplace_back(pool_size);
+	capacity = pool_size;
+	used_size = 0;
 	return true;
 }
 
@@ -46,6 +48,7 @@ UINT variable_position_allocator::allocate(UINT size)
 			if (size == pool_size)
 			{
 				*it = flag_set(size, alive);
+				used_size += size;
 				return position;
 			}
 			if (size < pool_size)
@@ -53,6 +56,7 @@ UINT variable_position_allocator::allocate(UINT size)
 				pool_size -= size;
 				*it = flag_set(size, alive);
 				node_list.insert(++it, pool_size);
+				used_size += size;
 
 				return position;
 			}
@@ -78,7 +82,8 @@ bool variable_position_allocator::deallocate(UINT deallocate_position)
 	{
 		if (deallocate_position == position && is_flag(*it, alive))
 		{
-			*it = flag_erase(*it, alive);
+			UINT freed_size = flag_erase(*it, alive);
+			*it = freed_size;
 
 			auto it_next = ++it;
 			--it;
@@ -96,6 +101,7 @@ bool variable_position_allocator::deallocate(UINT deallocate_position)
 				it = node_list.erase(it_next);
 			}
 
+			used_size -= freed_size;
 			return true;
 		}
 		//	À•W‚É‰ÁŽZ

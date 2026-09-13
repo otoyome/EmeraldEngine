@@ -8,38 +8,33 @@
 #include "buffer_view.h"
 #include "System/variable_position_allocator.h"
 
-//	バッファプール
-class model_buffer_pool
+//	GPUバッファの実体とアップロードキューだけを持つクラス
+class model_gpu_buffer
 {
 public:
-	model_buffer_pool(UINT bind_flag, UINT capacity_in_bytes);
-	~model_buffer_pool();
+	model_gpu_buffer(UINT bind_flag, UINT capacity_in_bytes, UINT stride_in_bytes = 0);
+	~model_gpu_buffer();
 
-	UINT allocate(UINT size_in_bytes);
-	void free(UINT offset_in_bytes, UINT size_in_bytes);
 	void queue_upload(UINT offset_in_bytes, const void* data, UINT size_in_bytes);
 	void flush_uploads();
 
 	ID3D11Buffer* get_buffer() const { return buffer.Get(); }
-	UINT get_used_in_bytes() const { return used_in_bytes; }
 	UINT get_capacity_in_bytes() const { return capacity_in_bytes; }
-
-	void add_used_bytes(UINT size_in_bytes) { used_in_bytes += size_in_bytes; }
-	void remove_used_bytes(UINT size_in_bytes) { used_in_bytes -= size_in_bytes; }
+	UINT get_stride_in_bytes() const { return stride_in_bytes; }
 
 private:
+	//	アップロードバッファ
 	struct pending_upload
 	{
 		UINT offset_in_bytes;
 		const void* data;
-		UINT size_in_byes;
+		UINT size_in_bytes;
 	};
 
-	variable_position_allocator allocator;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> buffer;
 	std::vector<pending_upload> pending_uploads;
 	UINT capacity_in_bytes = 0;
-	UINT used_in_bytes = 0;
+	UINT stride_in_bytes = 0;
 };
 
 //	モデルの頂点/インデックスバッファ管理クラス
@@ -67,22 +62,22 @@ public:
 	ID3D11Buffer* get_vertex_buffer(const semantic& target_semantic);
 
 	UINT allocate_index(UINT size_in_bytes);
-	void free_index(UINT offset_in_bytes, UINT size_in_bytes);
+	void free_index(UINT offset_in_bytes);
 	void queue_index_upload(UINT offset_in_bytes, const void* data, UINT size_in_bytes);
 	ID3D11Buffer* get_index_buffer();
-
-	void free_vertex_usage(const semantic& target_semantic, UINT size_in_bytes);
 
 	void flush_uploads();
 
 	std::vector<pool_usage> get_pool_usages() const;
 
 private:
-	model_buffer_pool& get_vertex_pool(const semantic& target_semantic, UINT stride_in_bytes);
+	model_gpu_buffer& get_vertex_buffer_pool(const semantic& target_semantic, UINT stride_in_bytes);
 
 	variable_position_allocator vertex_slot_allocator;
-	std::unordered_map<semantic, std::unique_ptr<model_buffer_pool>> vertex_pools;
-	std::unique_ptr<model_buffer_pool> index_pool;
+	std::unordered_map<semantic, std::unique_ptr<model_gpu_buffer>> vertex_buffers;
+
+	variable_position_allocator index_position_allocator;
+	std::unique_ptr<model_gpu_buffer> index_buffer;
 };
 
 namespace model_gpu_buffer_builder
