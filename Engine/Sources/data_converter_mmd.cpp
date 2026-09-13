@@ -1,4 +1,5 @@
 #include "data_converter.h"
+#include "model_buffer_pool.h"
 
 #include "graphics_utility.h"
 #include "render_data.h"
@@ -260,20 +261,9 @@ namespace
 				}
 				for (size_t index = 0; index < views.size(); ++index)
 				{
-					auto& view = views[index];
-
-					D3D11_BUFFER_DESC buffer_desc{};
-					buffer_desc.ByteWidth = static_cast<UINT>(view.size_in_bytes);
-					buffer_desc.Usage = D3D11_USAGE_DEFAULT;
-					buffer_desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-
-					D3D11_SUBRESOURCE_DATA subresource_data{};
-					subresource_data.pSysMem = view.row_data.data();
-					hr = render_data::instance()->get_device()->CreateBuffer(&buffer_desc, &subresource_data, view.buffer.ReleaseAndGetAddressOf());
-
-					_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
 					mesh.vertex_buffer_views.insert(std::make_pair(format_datas[index].s, views[index]));
 				}
+				model_gpu_buffer_builder::build_vertex_buffers(mesh.vertex_buffer_views);
 
 				//	モーフィング
 				for (auto& morph : loader.get_morphs())
@@ -350,15 +340,7 @@ namespace
 				memcpy_s(view.row_data.data(), view.row_data.size() * view.stride_in_bytes,
 						 pmx_indices.data(), pmx_indices.size() * view.stride_in_bytes);
 
-				D3D11_BUFFER_DESC buffer_desc{};
-				buffer_desc.ByteWidth = static_cast<UINT>(view.size_in_bytes);
-				buffer_desc.Usage = D3D11_USAGE_DEFAULT;
-				buffer_desc.BindFlags = D3D11_BIND_INDEX_BUFFER;
-
-				D3D11_SUBRESOURCE_DATA subresource_data{};
-				subresource_data.pSysMem = view.row_data.data();
-				hr = render_data::instance()->get_device()->CreateBuffer(&buffer_desc, &subresource_data, view.buffer.ReleaseAndGetAddressOf());
-				_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+				model_gpu_buffer_builder::build_index_buffer(view);
 			}
 		}
 

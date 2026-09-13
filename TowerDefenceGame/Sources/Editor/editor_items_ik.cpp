@@ -690,14 +690,14 @@ namespace
 						DirectX::XMVECTOR GlobalPosition = DirectX::XMVector3TransformCoord(PoleOffset, MiddleGlobalTransform);
 						DirectX::XMFLOAT3 position;
 						DirectX::XMStoreFloat3(&position, GlobalPosition);
-						PUSH_DEBUG_PRIMITIVE_SPHERE(position, 0.1f, DirectX::XMFLOAT4(1, 1, 1, 1), true);
+						QUEUE_DEBUG_PRIMITIVE_SPHERE(position, 0.1f, DirectX::XMFLOAT4(1, 1, 1, 1), true);
 					}
 				}
 
 				ik_solver->solve(index, test_ik.position);
 
 				//	ポイント座標表示
-				PUSH_DEBUG_PRIMITIVE_SPHERE(test_ik.position, 0.1f, DirectX::XMFLOAT4(1, 1, 1, 1), true);
+				QUEUE_DEBUG_PRIMITIVE_SPHERE(test_ik.position, 0.1f, DirectX::XMFLOAT4(1, 1, 1, 1), true);
 			}
 		}
 
@@ -805,7 +805,7 @@ namespace
 							}
 						}
 
-						PUSH_DEBUG_PRIMITIVE_BOX(t, q, s, DirectX::XMFLOAT4(1, 1, 1, 1), true);
+						QUEUE_DEBUG_PRIMITIVE_BOX(t, q, s, DirectX::XMFLOAT4(1, 1, 1, 1), true);
 						break;
 					}
 					case ::ik_resource::behavior_mode::lookat:
@@ -814,7 +814,7 @@ namespace
 						{
 							ik_solver->solve(solve_id, test_ik.position);
 						}
-						PUSH_DEBUG_PRIMITIVE_SPHERE(test_ik.position, 0.1f, DirectX::XMFLOAT4(1, 1, 1, 1), true);
+						QUEUE_DEBUG_PRIMITIVE_SPHERE(test_ik.position, 0.1f, DirectX::XMFLOAT4(1, 1, 1, 1), true);
 						break;
 					}
 				}

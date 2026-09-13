@@ -124,7 +124,7 @@ bool editor_items::edit_effect_noeds(std::shared_ptr<context>& context, effect_i
 					DirectX::XMMatrixDecompose(&S, &R, &T, DirectX::XMLoadFloat4x4(&effect_instance->get_nodes()[node_index].global_transform));
 					DirectX::XMFLOAT3 t;
 					DirectX::XMStoreFloat3(&t, T);
-					PUSH_DEBUG_PRIMITIVE_SPHERE(t, 1.0f, draw_color, true);
+					QUEUE_DEBUG_PRIMITIVE_SPHERE(t, 1.0f, draw_color, true);
 				}
 
 				//	ƒ‚ƒfƒ‹
@@ -264,7 +264,7 @@ bool editor_items::edit_effect_noeds(std::shared_ptr<context>& context, effect_i
 								DirectX::XMStoreFloat3(&s, S);
 								DirectX::XMStoreFloat4(&r, R);
 								DirectX::XMStoreFloat3(&t, T);
-								PUSH_DEBUG_PRIMITIVE_BOX(t, r, s, draw_color, true);
+								QUEUE_DEBUG_PRIMITIVE_BOX(t, r, s, draw_color, true);
 							}
 							ImGui::Unindent();
 						}

@@ -394,8 +394,8 @@ void post_process_volume_manager::get_container(post_process_volume_container& c
 
 			DirectX::XMFLOAT4 rotation = { 0.0f, 0.0f, 0.0f, 1.0f };
 			DirectX::XMFLOAT4 color = { 0.0f, 1.0f, 0.0f, 1.0f };
-			PUSH_DEBUG_PRIMITIVE_BOX(instance->get_position(), rotation, instance->get_outer_range(), color, true);
-			PUSH_DEBUG_PRIMITIVE_BOX(instance->get_position(), rotation, instance->get_inner_range(), color, true);
+			QUEUE_DEBUG_PRIMITIVE_BOX(instance->get_position(), rotation, instance->get_outer_range(), color, true);
+			QUEUE_DEBUG_PRIMITIVE_BOX(instance->get_position(), rotation, instance->get_inner_range(), color, true);
 		}
 	}
 #endif	//	defined(USE_IMGUI)

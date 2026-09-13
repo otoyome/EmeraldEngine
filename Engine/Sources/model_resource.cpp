@@ -139,17 +139,8 @@ model_resource::~model_resource()
 {
 	for (auto& mesh : meshes)
 	{
-		for (auto& view : mesh.vertex_buffer_views)
-		{
-			if (view.second.size_in_bytes > 0)
-			{
-				model_buffer_pool_manager::instance()->free_vertex(view.first, static_cast<UINT>(view.second.offset_in_bytes), static_cast<UINT>(view.second.size_in_bytes));
-			}
-		}
-		if (mesh.index_buffer_view.size_in_bytes > 0)
-		{
-			model_buffer_pool_manager::instance()->free_index(static_cast<UINT>(mesh.index_buffer_view.offset_in_bytes), static_cast<UINT>(mesh.index_buffer_view.size_in_bytes));
-		}
+		model_gpu_buffer_builder::free_vertex_buffers(mesh.vertex_buffer_views);
+		model_gpu_buffer_builder::free_index_buffer(mesh.index_buffer_view);
 	}
 }
 
@@ -313,20 +304,9 @@ void model_resource::build_model()
 	//	頂点・インデックスバッファ
 	for (auto& mesh : meshes)
 	{
-		//	頂点バッファビュー生成
-		for (auto& view : mesh.vertex_buffer_views)
-		{
-			view.second.offset_in_bytes = model_buffer_pool_manager::instance()->allocate_vertex(view.first, static_cast<UINT>(view.second.size_in_bytes));
-			model_buffer_pool_manager::instance()->queue_vertex_upload(view.first, static_cast<UINT>(view.second.offset_in_bytes), view.second.row_data.data(), static_cast<UINT>(view.second.size_in_bytes));
-		}
-
-		//	インデックスバッファビュー生成
-		{
-			auto& view = mesh.index_buffer_view;
-
-			view.offset_in_bytes = model_buffer_pool_manager::instance()->allocate_index(static_cast<UINT>(view.size_in_bytes));
-			model_buffer_pool_manager::instance()->queue_index_upload(static_cast<UINT>(view.offset_in_bytes), view.row_data.data(), static_cast<UINT>(view.size_in_bytes));
-		}
+		//	頂点/インデックスバッファ登録(共有プール経由。詳細は model_gpu_buffer_builder を参照)
+		model_gpu_buffer_builder::build_vertex_buffers(mesh.vertex_buffer_views);
+		model_gpu_buffer_builder::build_index_buffer(mesh.index_buffer_view);
 
 		//	モーフバッファビュー生成
 		for (auto& morph_mesh : mesh.morph_meshes)

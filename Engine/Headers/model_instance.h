@@ -21,8 +21,6 @@ public:
 		culling,					//	カリング
 		self_shadow_off,			//	セルフシャドウオフ
 		use_capsule_shadow,			//	カプセルシャドウ使用
-
-		debug_draw_culling_object,	//	カリングオブジェクトの表示フラグ
 	};
 
 	struct node
@@ -130,8 +128,8 @@ public:
 	inline const model_instances& get_instances() const { return instances; }
 
 #if defined(USE_IMGUI)
-	bool get_draw_culling_mesh_aabb() const {return draw_culling_mesh_aabb;}
-	void set_draw_culling_mesh_aabb(bool flag){draw_culling_mesh_aabb = flag;}
+	bool get_draw_mesh_aabb() const {return draw_mesh_aabb;}
+	void set_draw_mesh_aabb(bool flag){draw_mesh_aabb = flag;}
 #endif	//	defined(USE_IMGUI)
 
 private:
@@ -150,6 +148,6 @@ private:
 	std::vector<Microsoft::WRL::ComPtr<ID3D11Buffer>> constant_bufferes;
 
 #if defined(USE_IMGUI)
-	bool draw_culling_mesh_aabb = true;
+	bool draw_mesh_aabb = false;
 #endif	//	defined(USE_IMGUI)
 };

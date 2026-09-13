@@ -321,19 +321,19 @@ void collision_object::debug_draw()
 		case collision::bounding_object::types::sphere:
 		{
 			auto object = std::static_pointer_cast<collision::bounding_sphere>(bounding_object);
-			PUSH_DEBUG_PRIMITIVE_SPHERE(object->get_position(), object->get_radius(), draw_color, true);
+			QUEUE_DEBUG_PRIMITIVE_SPHERE(object->get_position(), object->get_radius(), draw_color, true);
 			break;
 		}
 		case collision::bounding_object::types::capsule:
 		{
 			auto object = std::static_pointer_cast<collision::bounding_capsule>(bounding_object);
-			PUSH_DEBUG_PRIMITIVE_CAPSULE(object->get_position(), object->get_rotation(), object->get_radius(), object->get_length(), draw_color, true);
+			QUEUE_DEBUG_PRIMITIVE_CAPSULE(object->get_position(), object->get_rotation(), object->get_radius(), object->get_length(), draw_color, true);
 			break;
 		}
 		case collision::bounding_object::types::box:
 		{
 			auto object = std::static_pointer_cast<collision::bounding_box>(bounding_object);
-			PUSH_DEBUG_PRIMITIVE_BOX(object->get_position(), object->get_rotation(), object->get_local_scale(), draw_color, true);
+			QUEUE_DEBUG_PRIMITIVE_BOX(object->get_position(), object->get_rotation(), object->get_local_scale(), draw_color, true);
 			break;
 		}
 		case collision::bounding_object::types::mesh:
@@ -375,7 +375,7 @@ void collision_object::debug_draw()
 				auto& block = object->get_block_datas()[index];
 
 				DirectX::XMFLOAT4 draw_color = index == draw_mesh_collision_index ? draw_hit_color : draw_normal_color;
-				PUSH_DEBUG_PRIMITIVE_BOX(block.center, rotation, extent, draw_color, true);
+				QUEUE_DEBUG_PRIMITIVE_BOX(block.center, rotation, extent, draw_color, true);
 				auto ti = block.triangles.data();
 				auto t = object->get_triangles().data();
 				for (UINT index = 0;index < block.triangles.size(); ++index)
@@ -384,9 +384,9 @@ void collision_object::debug_draw()
 					auto a = *(positions + triangle->a);
 					auto b = *(positions + triangle->b);
 					auto c = *(positions + triangle->c);
-					PUSH_DEBUG_PRIMITIVE_LINE(a, b, draw_color, true);
-					PUSH_DEBUG_PRIMITIVE_LINE(c, b, draw_color, true);
-					PUSH_DEBUG_PRIMITIVE_LINE(a, c, draw_color, true);
+					QUEUE_DEBUG_PRIMITIVE_LINE(a, b, draw_color, true);
+					QUEUE_DEBUG_PRIMITIVE_LINE(c, b, draw_color, true);
+					QUEUE_DEBUG_PRIMITIVE_LINE(a, c, draw_color, true);
 				}
 			}
 			break;

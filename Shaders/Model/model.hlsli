@@ -151,7 +151,7 @@ struct PrimitiveHeader
     uint  bone_offset;			//	bone_matrices 内の現在ボーン先頭
     uint  previous_bone_offset;	//	bone_matrices 内の前フレームボーン先頭
     uint  bone_count;			//	ボーン数
-    uint  primitive_padding;
+    uint  base_vertex;
 
     float4 header_position_morph[morph_max / 4];
     float4 header_normal_morph[morph_max / 4];
@@ -193,25 +193,27 @@ StructuredBuffer<float3> morph_normals[morph_max] : register(t88);
 
 void apply_morph_position(inout float3 position, uint vertex_id)
 {
+    uint local_vertex_id = vertex_id - primitive_headers[primitive_index].base_vertex;
     [unroll] for (uint index = 0; index < morph_max; ++index)
     {
         if (index >= primitive_parameter.y)
             break;
 
         float weight = position_morph[index / 4][index % 4];
-        position += morph_positions[index][vertex_id] * weight;
+        position += morph_positions[index][local_vertex_id] * weight;
     }
 }
 
 void apply_morph_normal(inout float3 normal, uint vertex_id)
 {
+    uint local_vertex_id = vertex_id - primitive_headers[primitive_index].base_vertex;
     [unroll] for (uint index = 0; index < morph_max; ++index)
     {
         if (index >= primitive_parameter.z)
             break;
 
         float weight = normal_morph[index / 4][index % 4];
-        normal = lerp(normal, morph_normals[index][vertex_id], weight);
+        normal = lerp(normal, morph_normals[index][local_vertex_id], weight);
     }
 }
 #endif  //  defined(HAS_MORPH)

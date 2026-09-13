@@ -124,10 +124,10 @@ namespace common_pipeline_states
 	{
 		DirectX::XMUINT4 primitive_parameter = {};	//	x : 接線を所持しているかどうか, yzw : 空き
 
-		UINT bone_offset = 0;			//	bone_matrices 内の現在ボーン先頭位置
-		UINT previous_bone_offset = 0;	//	bone_matrices 内の前フレームボーン先頭位置
+		UINT bone_offset = 0;			//	現在ボーン先頭位置
+		UINT previous_bone_offset = 0;	//	前フレームボーン先頭位置
 		UINT bone_count = 0;			//	ボーン数
-		UINT primitive_padding = 0;
+		UINT base_vertex = 0;			//	先頭頂点番号
 
 		DirectX::XMFLOAT4 position_morph[morph_max / 4];
 		DirectX::XMFLOAT4 normal_morph[morph_max / 4];

@@ -62,7 +62,7 @@ void debug_primitive_manager::get_container(debug_draw_primitive_container& cont
 	}
 }
 
-void debug_primitive_manager::push_line(const DirectX::XMFLOAT3 start, const DirectX::XMFLOAT3 end, const DirectX::XMFLOAT4 color, bool depth_write)
+void debug_primitive_manager::queue_line(const DirectX::XMFLOAT3 start, const DirectX::XMFLOAT3 end, const DirectX::XMFLOAT4 color, bool depth_write)
 {
 	int index = depth_write ? 0 : 1;
 	if (vertices[index].size() + 2 >= VertexCount)
@@ -77,7 +77,7 @@ void debug_primitive_manager::push_line(const DirectX::XMFLOAT3 start, const Dir
 	vertices[index].emplace_back(vertex);
 }
 
-void debug_primitive_manager::push_sphere(const DirectX::XMFLOAT3 center, float radius, const DirectX::XMFLOAT4 color, bool depth_write)
+void debug_primitive_manager::queue_sphere(const DirectX::XMFLOAT3 center, float radius, const DirectX::XMFLOAT4 color, bool depth_write)
 {
 	//	ãÖÇÃå`èÛÇ≈ìoò^
 	std::vector<DirectX::XMFLOAT3> vertices;
@@ -104,8 +104,8 @@ void debug_primitive_manager::push_sphere(const DirectX::XMFLOAT3 center, float 
 
 	for (uint32_t i = 1; i <= slices; ++i)
 	{
-		push_line(vertices[0], vertices[i], color, depth_write);
-		push_line(vertices[i], vertices[i + 1], color, depth_write);
+		queue_line(vertices[0], vertices[i], color, depth_write);
+		queue_line(vertices[i], vertices[i + 1], color, depth_write);
 	}
 
 	uint32_t base_index{ 1 };
@@ -124,22 +124,22 @@ void debug_primitive_manager::push_sphere(const DirectX::XMFLOAT3 center, float 
 				{base_index + (i + 1) * ring_vertex_count + j + 1},
 				{base_index + i * ring_vertex_count + j + 1},
 			};
-			push_line(vertices[index[0]], vertices[index[1]], color, depth_write);
-			push_line(vertices[index[2]], vertices[index[0]], color, depth_write);
-			push_line(vertices[index[3]], vertices[index[4]], color, depth_write);
-			push_line(vertices[index[4]], vertices[index[5]], color, depth_write);
+			queue_line(vertices[index[0]], vertices[index[1]], color, depth_write);
+			queue_line(vertices[index[2]], vertices[index[0]], color, depth_write);
+			queue_line(vertices[index[3]], vertices[index[4]], color, depth_write);
+			queue_line(vertices[index[4]], vertices[index[5]], color, depth_write);
 		}
 	}
 	uint32_t south_pole_index{ static_cast<uint32_t>(vertices.size() - 1) };
 	base_index = south_pole_index - ring_vertex_count;
 	for (uint32_t i = 0; i < slices; ++i)
 	{
-		push_line(vertices[base_index + i + 1], vertices[base_index + i], color, depth_write);
-		push_line(vertices[south_pole_index], vertices[base_index + i], color, depth_write);
+		queue_line(vertices[base_index + i + 1], vertices[base_index + i], color, depth_write);
+		queue_line(vertices[south_pole_index], vertices[base_index + i], color, depth_write);
 	}
 }
 
-void debug_primitive_manager::push_capsule(const DirectX::XMFLOAT3 center, const DirectX::XMFLOAT4 rotation, float radius, float length, const DirectX::XMFLOAT4& color, bool depth_write)
+void debug_primitive_manager::queue_capsule(const DirectX::XMFLOAT3 center, const DirectX::XMFLOAT4 rotation, float radius, float length, const DirectX::XMFLOAT4& color, bool depth_write)
 {
 	//	√∑ƒ∞('É÷')∞ƒ∑√
 	math::rotator rotator(rotation);
@@ -156,65 +156,65 @@ void debug_primitive_manager::push_capsule(const DirectX::XMFLOAT3 center, const
 
 	DirectX::XMFLOAT3 position, position2;
 	DirectX::XMStoreFloat3(&position, Botom);
-	push_sphere(position, radius, color, depth_write);
+	queue_sphere(position, radius, color, depth_write);
 	DirectX::XMStoreFloat3(&position, Top);
-	push_sphere(position, radius, color, depth_write);
+	queue_sphere(position, radius, color, depth_write);
 
 	DirectX::XMStoreFloat3(&position, DirectX::XMVectorAdd(Botom, DirectX::XMVectorScale(Right, radius)));
 	DirectX::XMStoreFloat3(&position2, DirectX::XMVectorAdd(Top, DirectX::XMVectorScale(Right, radius)));
-	push_line(position, position2, color, depth_write);
+	queue_line(position, position2, color, depth_write);
 
 	DirectX::XMStoreFloat3(&position, DirectX::XMVectorAdd(Botom, DirectX::XMVectorScale(Right, -radius)));
 	DirectX::XMStoreFloat3(&position2, DirectX::XMVectorAdd(Top, DirectX::XMVectorScale(Right, -radius)));
-	push_line(position, position2, color, depth_write);
+	queue_line(position, position2, color, depth_write);
 
 	DirectX::XMStoreFloat3(&position, DirectX::XMVectorAdd(Botom, DirectX::XMVectorScale(Front, radius)));
 	DirectX::XMStoreFloat3(&position2, DirectX::XMVectorAdd(Top, DirectX::XMVectorScale(Front, radius)));
-	push_line(position, position2, color, depth_write);
+	queue_line(position, position2, color, depth_write);
 
 	DirectX::XMStoreFloat3(&position, DirectX::XMVectorAdd(Botom, DirectX::XMVectorScale(Front, -radius)));
 	DirectX::XMStoreFloat3(&position2, DirectX::XMVectorAdd(Top, DirectX::XMVectorScale(Front, -radius)));
-	push_line(position, position2, color, depth_write);
+	queue_line(position, position2, color, depth_write);
 
 	DirectX::XMVECTOR Direction1 = DirectX::XMVector3Normalize(DirectX::XMVectorAdd(Right, Front));
 	DirectX::XMVECTOR Direction2 = DirectX::XMVector3Normalize(DirectX::XMVectorSubtract(Right, Front));
 
 	DirectX::XMStoreFloat3(&position, DirectX::XMVectorAdd(Botom, DirectX::XMVectorScale(Direction1, radius)));
 	DirectX::XMStoreFloat3(&position2, DirectX::XMVectorAdd(Top, DirectX::XMVectorScale(Direction1, radius)));
-	push_line(position, position2, color, depth_write);
+	queue_line(position, position2, color, depth_write);
 
 	DirectX::XMStoreFloat3(&position, DirectX::XMVectorAdd(Botom, DirectX::XMVectorScale(Direction1, -radius)));
 	DirectX::XMStoreFloat3(&position2, DirectX::XMVectorAdd(Top, DirectX::XMVectorScale(Direction1, -radius)));
-	push_line(position, position2, color, depth_write);
+	queue_line(position, position2, color, depth_write);
 
 	DirectX::XMStoreFloat3(&position, DirectX::XMVectorAdd(Botom, DirectX::XMVectorScale(Direction2, radius)));
 	DirectX::XMStoreFloat3(&position2, DirectX::XMVectorAdd(Top, DirectX::XMVectorScale(Direction2, radius)));
-	push_line(position, position2, color, depth_write);
+	queue_line(position, position2, color, depth_write);
 
 	DirectX::XMStoreFloat3(&position, DirectX::XMVectorAdd(Botom, DirectX::XMVectorScale(Direction2, -radius)));
 	DirectX::XMStoreFloat3(&position2, DirectX::XMVectorAdd(Top, DirectX::XMVectorScale(Direction2, -radius)));
-	push_line(position, position2, color, depth_write);
+	queue_line(position, position2, color, depth_write);
 }
 
-void debug_primitive_manager::push_box(const DirectX::XMFLOAT3 scale, const DirectX::XMFLOAT4 rotation, const DirectX::XMFLOAT3 position, const DirectX::XMFLOAT4& color, bool depth_write)
+void debug_primitive_manager::queue_box(const DirectX::XMFLOAT3 scale, const DirectX::XMFLOAT4 rotation, const DirectX::XMFLOAT3 position, const DirectX::XMFLOAT4& color, bool depth_write)
 {
 	collision::bounding_box box(scale, rotation, position);
 	DirectX::XMFLOAT3 vertices[8];
 	box.calculate_vertex(vertices, 8);
-	push_line(vertices[0], vertices[1], color, depth_write);
-	push_line(vertices[1], vertices[2], color, depth_write);
-	push_line(vertices[2], vertices[3], color, depth_write);
-	push_line(vertices[3], vertices[0], color, depth_write);
+	queue_line(vertices[0], vertices[1], color, depth_write);
+	queue_line(vertices[1], vertices[2], color, depth_write);
+	queue_line(vertices[2], vertices[3], color, depth_write);
+	queue_line(vertices[3], vertices[0], color, depth_write);
 
-	push_line(vertices[4], vertices[5], color, depth_write);
-	push_line(vertices[5], vertices[6], color, depth_write);
-	push_line(vertices[6], vertices[7], color, depth_write);
-	push_line(vertices[7], vertices[4], color, depth_write);
+	queue_line(vertices[4], vertices[5], color, depth_write);
+	queue_line(vertices[5], vertices[6], color, depth_write);
+	queue_line(vertices[6], vertices[7], color, depth_write);
+	queue_line(vertices[7], vertices[4], color, depth_write);
 
-	push_line(vertices[0], vertices[4], color, depth_write);
-	push_line(vertices[1], vertices[5], color, depth_write);
-	push_line(vertices[2], vertices[6], color, depth_write);
-	push_line(vertices[3], vertices[7], color, depth_write);
+	queue_line(vertices[0], vertices[4], color, depth_write);
+	queue_line(vertices[1], vertices[5], color, depth_write);
+	queue_line(vertices[2], vertices[6], color, depth_write);
+	queue_line(vertices[3], vertices[7], color, depth_write);
 }
 
 #endif	//	defined(USE_IMGUI)

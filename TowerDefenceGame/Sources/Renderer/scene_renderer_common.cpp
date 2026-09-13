@@ -86,6 +86,8 @@ void scene_renderer_commons::draw_indexed(const graphics_context& context,
 	UINT stream_strides[D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT] = {};
 	UINT stream_offsets[D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT] = {};
 	UINT stream_index = 0;
+	UINT base_vertex_location = 0;
+	static const semantic base_vertex_semantic("POSITION", 0);
 	for (auto& semantic : pipeline_state->get_semantic_list())
 	{
 		if (stream_index >= D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT)
@@ -96,7 +98,9 @@ void scene_renderer_commons::draw_indexed(const graphics_context& context,
 			auto& view = it->second;
 			stream_buffers[stream_index] = model_buffer_pool_manager::instance()->get_vertex_buffer(it->first);
 			stream_strides[stream_index] = static_cast<UINT>(view.stride_in_bytes);
-			stream_offsets[stream_index] = static_cast<UINT>(view.offset_in_bytes);
+			stream_offsets[stream_index] = 0;
+			if (it->first == base_vertex_semantic)
+				base_vertex_location = static_cast<UINT>(view.offset());
 		}
 		++stream_index;
 	}
@@ -104,10 +108,10 @@ void scene_renderer_commons::draw_indexed(const graphics_context& context,
 		context.set_vertex_buffers(0, stream_index, stream_buffers, stream_strides, stream_offsets);
 
 	//	•`‰æ
-	context.set_index_buffer(model_buffer_pool_manager::instance()->get_index_buffer(), index_buffer_view->format,
-												static_cast<UINT>(index_buffer_view->offset_in_bytes));
+	context.set_index_buffer(model_buffer_pool_manager::instance()->get_index_buffer(), index_buffer_view->format, 0);
 	context.set_primitive_topology(primitive_topology);
-	context.device_context->DrawIndexed(static_cast<UINT>(index_buffer_view->count()), 0, 0);
+	context.device_context->DrawIndexed(static_cast<UINT>(index_buffer_view->count()),
+										static_cast<UINT>(index_buffer_view->offset()), base_vertex_location);
 }
 
 void scene_renderer_commons::model_render(graphics_context& context,

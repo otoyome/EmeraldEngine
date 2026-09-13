@@ -19,7 +19,6 @@ model_instance::model_instance()
 	set_flag(flags::color_render, true);
 	set_flag(flags::shadow_caster, true);
 	set_flag(flags::culling, true);
-	set_flag(flags::debug_draw_culling_object, false);
 }
 
 model_instance::model_instance(std::shared_ptr<model_resource> resource)
@@ -321,15 +320,16 @@ void model_instance_manger::get_container(mesh_container& container)
 
 #if defined(USE_IMGUI)
 			//	カリングオブジェクトの表示
-			if (draw_culling_mesh_aabb && instance->is_flag(model_instance::flags::debug_draw_culling_object))
+			if (draw_mesh_aabb)
 			{
 				DirectX::XMFLOAT3 scale((bounds_max.x - bounds_min.x) * 0.5f, (bounds_max.y - bounds_min.y) * 0.5f, (bounds_max.z - bounds_min.z) * 0.5f);
 				DirectX::XMFLOAT4 rotation = {0.0f, 0.0f, 0.0f, 1.0f};
 				DirectX::XMFLOAT3 center(bounds_min.x + scale.x, bounds_min.y + scale.y, bounds_min.z + scale.z);
 				DirectX::XMFLOAT4 color = {1.0f, 0.0f, 0.0f, 1.0f};
-				PUSH_DEBUG_PRIMITIVE_BOX(scale, rotation, center, color, true);
+				QUEUE_DEBUG_PRIMITIVE_BOX(scale, rotation, center, color, true);
 			}
 #endif	//	defined(USE_IMGUI)
+
 
 			//	バッファ情報構築
 			if (buffer_count >= container.buffer_datas.size())
@@ -469,6 +469,15 @@ void model_instance_manger::get_container(mesh_container& container)
 					DirectX::XMStoreFloat4x4(&container.bone_matrix_scratch.emplace_back(), NodeOffsetTransform * PreviousNodeWorldTransforms[bone.node_index]);
 				}
 				header.bone_count = bone_count;
+
+				//	先頭頂点番号取得
+				{
+					auto it = mesh.vertex_buffer_views.find(position_semantic);
+					if (it != mesh.vertex_buffer_views.end())
+					{
+						header.base_vertex = static_cast<UINT>(it->second.offset());
+					}
+				}
 
 				//	プリミティブ用インデックス定数バッファ取得
 				if (primitive_buffer_count + 1 >= constant_bufferes.size())

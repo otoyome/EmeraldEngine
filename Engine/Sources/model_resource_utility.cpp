@@ -1,4 +1,5 @@
 #include "model_resource_utility.h"
+#include "model_buffer_pool.h"
 
 #include <cmath>
 #include <cstring>
@@ -14,22 +15,6 @@
 #include "meshoptimizer/meshoptimizer.h"
 
 #if defined(USE_IMGUI)
-namespace
-{
-	void rebuild_gpu_buffer(buffer_view& view, UINT bind_flag)
-	{
-		if (view.size_in_bytes == 0)
-			return;
-		D3D11_BUFFER_DESC buffer_desc{};
-		buffer_desc.ByteWidth = static_cast<UINT>(view.size_in_bytes);
-		buffer_desc.Usage = D3D11_USAGE_DEFAULT;
-		buffer_desc.BindFlags = bind_flag;
-		D3D11_SUBRESOURCE_DATA subresource_data{};
-		subresource_data.pSysMem = view.row_data.data();
-		HRESULT hr = render_data::instance()->get_device()->CreateBuffer(&buffer_desc, &subresource_data, view.buffer.ReleaseAndGetAddressOf());
-		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
-	}
-}
 
 void model_resource_utility::combine_unskinned_meshes(model_resource& resource, DirectX::XMINT3 grid_divisions)
 {
@@ -320,10 +305,9 @@ void model_resource_utility::combine_unskinned_meshes(model_resource& resource, 
 				dst.bounds_max = bounds_max;
 			}
 
-			//	GPU バッファ生成
-			for (auto& vbv : dst.vertex_buffer_views)
-				rebuild_gpu_buffer(vbv.second, D3D11_BIND_VERTEX_BUFFER);
-			rebuild_gpu_buffer(dst.index_buffer_view, D3D11_BIND_INDEX_BUFFER);
+			//	GPU バッファ生成(共有プール経由)
+			model_gpu_buffer_builder::build_vertex_buffers(dst.vertex_buffer_views);
+			model_gpu_buffer_builder::build_index_buffer(dst.index_buffer_view);
 		}
 	}
 
@@ -529,6 +513,8 @@ void model_resource_utility::generate_shadow_meshes(model_resource& resource, bo
 
 			//	影のインデックスバッファ書き戻し
 			{
+				model_gpu_buffer_builder::free_index_buffer(mesh.shadow_mesh.index_buffer_view);
+
 				mesh.shadow_mesh.index_buffer_view.row_data.resize(indices.size() * sizeof(UINT));
 				memcpy_s(mesh.shadow_mesh.index_buffer_view.row_data.data(),
 						 mesh.shadow_mesh.index_buffer_view.row_data.size(),
@@ -536,16 +522,9 @@ void model_resource_utility::generate_shadow_meshes(model_resource& resource, bo
 				mesh.shadow_mesh.index_buffer_view.format = DXGI_FORMAT_R32_UINT;
 				mesh.shadow_mesh.index_buffer_view.size_in_bytes = indices.size() * sizeof(UINT);
 				mesh.shadow_mesh.index_buffer_view.stride_in_bytes = sizeof(UINT);
-				if (regenerate_buffer && mesh.shadow_mesh.index_buffer_view.size_in_bytes > 0)
+				if (regenerate_buffer)
 				{
-					D3D11_BUFFER_DESC buffer_desc{};
-					buffer_desc.ByteWidth = static_cast<UINT>(mesh.shadow_mesh.index_buffer_view.size_in_bytes);
-					buffer_desc.Usage = D3D11_USAGE_DEFAULT;
-					buffer_desc.BindFlags = D3D11_BIND_INDEX_BUFFER;
-					D3D11_SUBRESOURCE_DATA subresource_data{};
-					subresource_data.pSysMem = mesh.shadow_mesh.index_buffer_view.row_data.data();
-					HRESULT hr = render_data::instance()->get_device()->CreateBuffer(&buffer_desc, &subresource_data, mesh.shadow_mesh.index_buffer_view.buffer.ReleaseAndGetAddressOf());
-					_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+					model_gpu_buffer_builder::build_index_buffer(mesh.shadow_mesh.index_buffer_view);
 				}
 			}
 		}
@@ -613,6 +592,8 @@ void model_resource_utility::generate_lod_meshs(model_resource& resource, int ma
 				continue;
 
 			//	重複頂点最適化
+			for (auto& old_lod_mesh : mesh.lod_meshs)
+				model_gpu_buffer_builder::free_index_buffer(old_lod_mesh.index_buffer_view);
 			mesh.lod_meshs.clear();
 
 			for (INT lod = 0; lod < max_lod_level; ++lod)
@@ -637,17 +618,9 @@ void model_resource_utility::generate_lod_meshs(model_resource& resource, int ma
 				sub_mesh.index_buffer_view.format = DXGI_FORMAT_R32_UINT;
 				sub_mesh.index_buffer_view.size_in_bytes = lod_indicesLod.size() * sizeof(UINT);
 				sub_mesh.index_buffer_view.stride_in_bytes = sizeof(UINT);
-				if (regeneratge_buffer && sub_mesh.index_buffer_view.size_in_bytes > 0)
+				if (regeneratge_buffer)
 				{
-					//	再生成の場合はGPUリソース生成
-					D3D11_BUFFER_DESC buffer_desc{};
-					buffer_desc.ByteWidth = static_cast<UINT>(sub_mesh.index_buffer_view.size_in_bytes);
-					buffer_desc.Usage = D3D11_USAGE_DEFAULT;
-					buffer_desc.BindFlags = D3D11_BIND_INDEX_BUFFER;
-					D3D11_SUBRESOURCE_DATA subresource_data{};
-					subresource_data.pSysMem = sub_mesh.index_buffer_view.row_data.data();
-					HRESULT hr = render_data::instance()->get_device()->CreateBuffer(&buffer_desc, &subresource_data, sub_mesh.index_buffer_view.buffer.ReleaseAndGetAddressOf());
-					_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+					model_gpu_buffer_builder::build_index_buffer(sub_mesh.index_buffer_view);
 				}
 				mesh.lod_meshs.emplace_back(sub_mesh);
 			}
@@ -658,24 +631,36 @@ void model_resource_utility::generate_lod_meshs(model_resource& resource, int ma
 void model_resource_utility::clear_lod_meshs(model_resource& resource)
 {
 	for (auto& mesh : resource.get_meshes_for_editor())
+	{
+		for (auto& lod_mesh : mesh.lod_meshs)
+			model_gpu_buffer_builder::free_index_buffer(lod_mesh.index_buffer_view);
 		mesh.lod_meshs.clear();
+	}
 }
 
 void model_resource_utility::clear_shadow_meshes(model_resource& resource)
 {
 	for (auto& mesh : resource.get_meshes_for_editor())
+	{
+		model_gpu_buffer_builder::free_index_buffer(mesh.shadow_mesh.index_buffer_view);
 		mesh.shadow_mesh = {};
+	}
 }
 
 void model_resource_utility::optimize_meshs(model_resource& resource)
 {
+	for (auto& mesh : resource.get_meshes_for_editor())
+	{
+		model_gpu_buffer_builder::free_vertex_buffers(mesh.vertex_buffer_views);
+		model_gpu_buffer_builder::free_index_buffer(mesh.index_buffer_view);
+	}
+
 	optimized_meshs(resource);
 
 	for (auto& mesh : resource.get_meshes_for_editor())
 	{
-		for (auto& vbv : mesh.vertex_buffer_views)
-			rebuild_gpu_buffer(vbv.second, D3D11_BIND_VERTEX_BUFFER);
-		rebuild_gpu_buffer(mesh.index_buffer_view, D3D11_BIND_INDEX_BUFFER);
+		model_gpu_buffer_builder::build_vertex_buffers(mesh.vertex_buffer_views);
+		model_gpu_buffer_builder::build_index_buffer(mesh.index_buffer_view);
 	}
 
 	clear_lod_meshs(resource);

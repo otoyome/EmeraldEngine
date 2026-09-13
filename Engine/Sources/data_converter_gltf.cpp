@@ -1,4 +1,5 @@
 #include "data_converter.h"
+#include "model_buffer_pool.h"
 
 #include "graphics_utility.h"
 #include "render_data.h"
@@ -159,7 +160,6 @@ namespace
 	//	GLTF > EMOに変換
 	bool convert(model_resource& resource, gltf_loader& loader, const data_converter::gltf::convert_model_data& convert_data)
 	{
-		HRESULT	hr;
 		std::filesystem::path path(convert_data.file_path);
 		std::vector<gltf_loader::node_data> gltf_nodes;
 		std::vector<gltf_loader::mesh_data> gltf_meshes;
@@ -477,63 +477,18 @@ namespace
 				return;
 
 			//	インデックスバッファ書き戻し
-			{
-				D3D11_BUFFER_DESC buffer_desc{};
-				buffer_desc.ByteWidth = static_cast<UINT>(mesh.index_buffer_view.size_in_bytes);
-				buffer_desc.Usage = D3D11_USAGE_DEFAULT;
-				buffer_desc.BindFlags = D3D11_BIND_INDEX_BUFFER;
-				D3D11_SUBRESOURCE_DATA subresource_data{};
-				subresource_data.pSysMem = mesh.index_buffer_view.row_data.data();
-				hr = render_data::instance()->get_device()->CreateBuffer(&buffer_desc,
-					&subresource_data, mesh.index_buffer_view.buffer.ReleaseAndGetAddressOf());
-				_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
-			}
+			model_gpu_buffer_builder::build_index_buffer(mesh.index_buffer_view);
 
 			//	頂点バッファ書き戻し
-			if (mesh.vertex_buffer_views.size() > 0)
-			{
-				for (auto& vbv : mesh.vertex_buffer_views)
-				{
-					D3D11_BUFFER_DESC buffer_desc{};
-					buffer_desc.ByteWidth = static_cast<UINT>(vbv.second.size_in_bytes);
-					buffer_desc.Usage = D3D11_USAGE_DEFAULT;
-					buffer_desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-					D3D11_SUBRESOURCE_DATA subresource_data{};
-					subresource_data.pSysMem = vbv.second.row_data.data();
-					hr = render_data::instance()->get_device()->CreateBuffer(&buffer_desc,
-						&subresource_data, vbv.second.buffer.ReleaseAndGetAddressOf());
-					_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
-				}
-			}
+			model_gpu_buffer_builder::build_vertex_buffers(mesh.vertex_buffer_views);
 		};
 		for (auto& mesh : meshes)
 		{
 			//	インデックスバッファ書き戻し
-			{
-				D3D11_BUFFER_DESC buffer_desc{};
-				buffer_desc.ByteWidth = static_cast<UINT>(mesh.index_buffer_view.size_in_bytes);
-				buffer_desc.Usage = D3D11_USAGE_DEFAULT;
-				buffer_desc.BindFlags = D3D11_BIND_INDEX_BUFFER;
-				D3D11_SUBRESOURCE_DATA subresource_data{};
-				subresource_data.pSysMem = mesh.index_buffer_view.row_data.data();
-				hr = render_data::instance()->get_device()->CreateBuffer(&buffer_desc,
-					&subresource_data, mesh.index_buffer_view.buffer.ReleaseAndGetAddressOf());
-				_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
-			}
+			model_gpu_buffer_builder::build_index_buffer(mesh.index_buffer_view);
 
 			//	頂点バッファ書き戻し
-			for (auto& vbv : mesh.vertex_buffer_views)
-			{
-				D3D11_BUFFER_DESC buffer_desc{};
-				buffer_desc.ByteWidth = static_cast<UINT>(vbv.second.size_in_bytes);
-				buffer_desc.Usage = D3D11_USAGE_DEFAULT;
-				buffer_desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-				D3D11_SUBRESOURCE_DATA subresource_data{};
-				subresource_data.pSysMem = vbv.second.row_data.data();
-				hr = render_data::instance()->get_device()->CreateBuffer(&buffer_desc,
-					&subresource_data, vbv.second.buffer.ReleaseAndGetAddressOf());
-				_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
-			}
+			model_gpu_buffer_builder::build_vertex_buffers(mesh.vertex_buffer_views);
 
 			//	影メッシュ生成
 			if (mesh.shadow_mesh.is_valid())

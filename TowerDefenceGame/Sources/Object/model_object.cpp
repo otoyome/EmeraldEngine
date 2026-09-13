@@ -805,7 +805,6 @@ void model_object::imgui_render_core()
 	CHECK_BOX(culling);
 	CHECK_BOX(self_shadow_off);
 	CHECK_BOX(use_capsule_shadow);
-	CHECK_BOX(debug_draw_culling_object);
 
 	ImGui::DragFloat3("scale", &scale.x, 0.01f);
 	ImGui::DragAngle3("rotation", &rotator.x, 0.01f);

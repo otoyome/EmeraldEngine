@@ -210,6 +210,41 @@ void framework::imgui_render_infos_window()
 		ImGui::Checkbox("xy", &display_grid_xy); ImGui::SameLine();
 		ImGui::Checkbox("yz", &display_grid_yz);
 		ImGui::DragInt("display_grid_length", &display_grid_length, 1.0f, 0, 1000);
+
+		//	メッシュ毎のAABB表示ON/OFF
+		if (model_instance_manger::is_valid())
+		{
+			bool draw_mesh_aabb = model_instance_manger::instance()->get_draw_mesh_aabb();
+			if (ImGui::Checkbox("draw_mesh_aabb", &draw_mesh_aabb))
+			{
+				model_instance_manger::instance()->set_draw_mesh_aabb(draw_mesh_aabb);
+			}
+		}
+	}
+	ImGui::End();
+}
+
+void framework::imgui_model_buffer_pool_window()
+{
+	if (ImGui::Begin("model_buffer_pool"))
+	{
+		//	モデル頂点/インデックスバッファプールの使用量表示
+		if (model_buffer_pool_manager::is_valid())
+		{
+			for (auto& usage : model_buffer_pool_manager::instance()->get_pool_usages())
+			{
+				float fraction = usage.capacity_in_bytes > 0 ?
+					static_cast<float>(usage.used_in_bytes) / static_cast<float>(usage.capacity_in_bytes) : 0.0f;
+
+				std::string text = std::to_string(usage.used_in_bytes / 1024);
+				text += " / ";
+				text += std::to_string(usage.capacity_in_bytes / 1024);
+				text += " [KB]";
+
+				ImGui::Text("%s", usage.label.c_str());
+				ImGui::ProgressBar(fraction, ImVec2(-1, 0), text.c_str());
+			}
+		}
 	}
 	ImGui::End();
 }
@@ -329,24 +364,6 @@ void framework::imgui_profiler_window(float elapsed_time)
 		}
 #endif	//	defined(_DEBUG) || defined(USE_IMGUI)
 
-		//	モデル頂点/インデックスバッファプールの使用量表示
-		if (model_buffer_pool_manager::is_valid())
-		{
-			if (ImGui::TreeNode("Model Buffer Pool"))
-			{
-				ImGui::BeginDisabled();
-				for (auto& usage : model_buffer_pool_manager::instance()->get_pool_usages())
-				{
-					std::string text = std::to_string(usage.used_in_bytes / 1024);
-					text += " / ";
-					text += std::to_string(usage.capacity_in_bytes / 1024);
-					text += " [KB]";
-				}
-				ImGui::EndDisabled();
-				ImGui::TreePop();
-			}
-		}
-
 		//	スタンプ表示
 		ImPlot::SetNextAxisLimits(ImAxis_X1, 0.0f, stationed_stamp_size * 0.01f, ImGuiCond_Always);
 		ImPlot::SetNextAxisLimits(ImAxis_Y1, 0.0f, 16.666f, ImGuiCond_Always);
@@ -457,20 +474,20 @@ void framework::plane_line_draw()
 		if (display_grid_xz)
 		{
 			DirectX::XMFLOAT4 line_color = DirectX::XMFLOAT4(1.0f, 0.0f, 1.0f, 1);
-			PUSH_DEBUG_PRIMITIVE_LINE(DirectX::XMFLOAT3(len, 0.0f, -grid_length), DirectX::XMFLOAT3(len, 0.0f, +grid_length), line_color, true);
-			PUSH_DEBUG_PRIMITIVE_LINE(DirectX::XMFLOAT3(-grid_length, 0.0f, len), DirectX::XMFLOAT3(+grid_length, 0.0f, len), line_color, true);
+			QUEUE_DEBUG_PRIMITIVE_LINE(DirectX::XMFLOAT3(len, 0.0f, -grid_length), DirectX::XMFLOAT3(len, 0.0f, +grid_length), line_color, true);
+			QUEUE_DEBUG_PRIMITIVE_LINE(DirectX::XMFLOAT3(-grid_length, 0.0f, len), DirectX::XMFLOAT3(+grid_length, 0.0f, len), line_color, true);
 		}
 		if (display_grid_xy)
 		{
 			DirectX::XMFLOAT4 line_color = DirectX::XMFLOAT4(1.0f, 1.0f, 0.0f, 1);
-			PUSH_DEBUG_PRIMITIVE_LINE(DirectX::XMFLOAT3(len, -grid_length, 0.0f), DirectX::XMFLOAT3(len, +grid_length, 0.0f), line_color, true);
-			PUSH_DEBUG_PRIMITIVE_LINE(DirectX::XMFLOAT3(-grid_length, len, 0.0f), DirectX::XMFLOAT3(+grid_length, len, 0.0f), line_color, true);
+			QUEUE_DEBUG_PRIMITIVE_LINE(DirectX::XMFLOAT3(len, -grid_length, 0.0f), DirectX::XMFLOAT3(len, +grid_length, 0.0f), line_color, true);
+			QUEUE_DEBUG_PRIMITIVE_LINE(DirectX::XMFLOAT3(-grid_length, len, 0.0f), DirectX::XMFLOAT3(+grid_length, len, 0.0f), line_color, true);
 		}
 		if (display_grid_yz)
 		{
 			DirectX::XMFLOAT4 line_color = DirectX::XMFLOAT4(0.0f, 1.0f, 1.0f, 1);
-			PUSH_DEBUG_PRIMITIVE_LINE(DirectX::XMFLOAT3(0.0f, len, -grid_length), DirectX::XMFLOAT3(0.0f, len, +grid_length), line_color, true);
-			PUSH_DEBUG_PRIMITIVE_LINE(DirectX::XMFLOAT3(0.0f, -grid_length, len), DirectX::XMFLOAT3(0.0f, +grid_length, len), line_color, true);
+			QUEUE_DEBUG_PRIMITIVE_LINE(DirectX::XMFLOAT3(0.0f, len, -grid_length), DirectX::XMFLOAT3(0.0f, len, +grid_length), line_color, true);
+			QUEUE_DEBUG_PRIMITIVE_LINE(DirectX::XMFLOAT3(0.0f, -grid_length, len), DirectX::XMFLOAT3(0.0f, +grid_length, len), line_color, true);
 		}
 	}
 }
