@@ -291,22 +291,6 @@ public:
 
 using graphics_pipeline_state_ptr = std::shared_ptr<graphics_pipeline_state>;
 
-#if 0
-//	コンピュート用パイプラインステート
-class compute_pipeline_state : public pipeline_state_base
-{
-public:
-	compute_pipeline_state(){}
-	virtual ~compute_pipeline_state() {}
-
-	virtual	void begin(const graphics_context& context) = 0;
-	virtual	void dispatch(UINT index) = 0;
-	virtual	void end(const graphics_context& context) = 0;
-};
-
-using compute_pipeline_state_ptr = std::shared_ptr<compute_pipeline_state>;
-#endif
-
 //	パイプラインステート管理クラス
 class pipeline_state_manager
 {

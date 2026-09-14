@@ -7,7 +7,7 @@
 class sprite
 {
 public:
-	static constexpr std::string_view base_texture_name = "base_texture";
+	static constexpr std::string_view base_texture_name = "color_map";
 
 public:
 	const std::vector<DirectX::XMFLOAT3>& get_positions() const { return positions; }

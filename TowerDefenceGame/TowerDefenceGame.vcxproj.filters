@@ -275,6 +275,9 @@
     <ClCompile Include="Sources\Renderer\occlusion_culling_renderer.cpp">
       <Filter>Sources\Renderer</Filter>
     </ClCompile>
+    <ClCompile Include="Sources\Renderer\ui_renderer.cpp">
+      <Filter>Sources\Renderer</Filter>
+    </ClCompile>
     <ClCompile Include="Sources\Renderer\scene_renderer.cpp">
       <Filter>Sources\Renderer</Filter>
     </ClCompile>
@@ -801,6 +804,9 @@
     </ClInclude>
     <ClInclude Include="Headers\Renderer\occlusion_culling_renderer.h">
       <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Renderer\ui_renderer.h">
+      <Filter>Headers\Renderer</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -9,7 +9,7 @@ debug_primitive_manager::debug_primitive_manager()
 	HRESULT hr;
 	auto device = render_data::instance()->get_device();
 
-	//	’¸“_ƒoƒbƒtƒ@
+	//	ï¿½ï¿½ï¿½_ï¿½oï¿½bï¿½tï¿½@
 	for (auto& vertex_buffer_view : vertex_buffer_views)
 	{
 		buffer_view vertex_buffer;
@@ -36,7 +36,7 @@ debug_primitive_manager::~debug_primitive_manager()
 void debug_primitive_manager::get_container(debug_draw_primitive_container& container)
 {
 	auto immediate_context = render_data::instance()->get_immediate_context();
-	//	•`‰æî•ñ“o˜^
+	//	ï¿½`ï¿½ï¿½ï¿½ï¿½oï¿½^
 	HRESULT hr{ S_OK };
 	for (UINT index = 0; index < static_cast<int>(debug_draw_primitive_container::line_buffer_id::max); ++index)
 	{
@@ -53,10 +53,10 @@ void debug_primitive_manager::get_container(debug_draw_primitive_container& cont
 		immediate_context->UpdateSubresource(view.buffer.Get(), 0, &dst_box,
 											 vertices[index].data(), copy_bytes, 0);
 
-		//	’¸“_”‚Ìİ’è
+		//	ï¿½ï¿½ï¿½_ï¿½ï¿½ï¿½Ìİ’ï¿½
 		view.size_in_bytes = view.stride_in_bytes * vertices[index].size();
 
-		//	ƒRƒ“ƒeƒi‚Éî•ñ“o˜^
+		//	ï¿½Rï¿½ï¿½ï¿½eï¿½iï¿½Éï¿½ï¿½oï¿½^
 		main_mesh.vertex_buffer_views = &vertex_buffer_views[index];
 		vertices[index].clear();
 	}
@@ -79,7 +79,7 @@ void debug_primitive_manager::queue_line(const DirectX::XMFLOAT3 start, const Di
 
 void debug_primitive_manager::queue_sphere(const DirectX::XMFLOAT3 center, float radius, const DirectX::XMFLOAT4 color, bool depth_write)
 {
-	//	‹…‚ÌŒ`ó‚Å“o˜^
+	//	ï¿½ï¿½ï¿½ÌŒ`ï¿½ï¿½Å“oï¿½^
 	std::vector<DirectX::XMFLOAT3> vertices;
 	vertices.emplace_back(center.x, center.y + radius, center.z);
 
@@ -141,7 +141,7 @@ void debug_primitive_manager::queue_sphere(const DirectX::XMFLOAT3 center, float
 
 void debug_primitive_manager::queue_capsule(const DirectX::XMFLOAT3 center, const DirectX::XMFLOAT4 rotation, float radius, float length, const DirectX::XMFLOAT4& color, bool depth_write)
 {
-	//	Ã·Ä°('ƒÖ')°Ä·Ã
+	//	Ã·Ä°('ï¿½ï¿½')ï¿½Ä·ï¿½
 	math::rotator rotator(rotation);
 	DirectX::XMVECTOR Center = DirectX::XMLoadFloat3(&center);
 	DirectX::XMFLOAT3 work = rotator.get_up();
@@ -196,7 +196,7 @@ void debug_primitive_manager::queue_capsule(const DirectX::XMFLOAT3 center, cons
 	queue_line(position, position2, color, depth_write);
 }
 
-void debug_primitive_manager::queue_box(const DirectX::XMFLOAT3 scale, const DirectX::XMFLOAT4 rotation, const DirectX::XMFLOAT3 position, const DirectX::XMFLOAT4& color, bool depth_write)
+void debug_primitive_manager::queue_box(const DirectX::XMFLOAT3 position, const DirectX::XMFLOAT4 rotation, const DirectX::XMFLOAT3 scale, const DirectX::XMFLOAT4& color, bool depth_write)
 {
 	collision::bounding_box box(scale, rotation, position);
 	DirectX::XMFLOAT3 vertices[8];

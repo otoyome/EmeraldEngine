@@ -65,6 +65,7 @@ private:
 
 	void build_render_lists(
 		const render_data_context& render_data,
+		camera& target_camera,
 		const collision::frustum_culling& frustum_culling,
 		const std::unordered_map<UINT, uint8_t>& occlusion_visible,
 		render_mesh_indices& mesh_indices,
@@ -83,6 +84,9 @@ private:
 
 	//	描画用の一部情報
 	render_pass back_buffer_clear_rendering_pass;
+
+	//	UI描画用のシーン定数バッファ(viewport_rectのみ使用)
+	Microsoft::WRL::ComPtr<ID3D11Buffer> ui_scene_constant_buffer;
 
 private:	//	描画情報振り分け
 	struct cull_bucket

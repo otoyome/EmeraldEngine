@@ -215,6 +215,22 @@ void framework::imgui_render_infos_window()
 		ImGui::Checkbox("draw_mesh_aabb", &draw_mesh_aabb);
 
 		ImGui::Checkbox("draw_collision", &draw_collision);
+
+		//	カリングのデバッグ表示(unique_id単位で判定結果を過去のもので固定する)
+		if (camera_manager::is_valid())
+		{
+			camera_container container;
+			camera_manager::instance()->get_container(container);
+			int index = 0;
+			for (auto& camera_data : container.cameras)
+			{
+				ImGui::PushID(index++);
+				bool freeze_culling = camera_data.camera->is_freeze_culling();
+				if (ImGui::Checkbox("freeze_culling", &freeze_culling))
+					camera_data.camera->set_freeze_culling(freeze_culling);
+				ImGui::PopID();
+			}
+		}
 	}
 	ImGui::End();
 }

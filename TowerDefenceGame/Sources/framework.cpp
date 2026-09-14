@@ -23,8 +23,10 @@
 #include "Renderer/scene_renderer.h"
 #include "Renderer/scene_renderer_forward.h"
 #include "Renderer/scene_renderer_postprocess.h"
+#include "Renderer/ui_renderer.h"
 
 #include "Object/object_manager.h"
+#include "Object/GameObjects/UI/ui_object.h"
 
 #include "System/engine_config_data.h"
 
@@ -252,7 +254,7 @@ bool framework::initialize()
 
 	//	UIレンダラーの追加
 	{
-		//ui_renderers.emplace_back(std::make_unique<imgui_draw_pass_renderer>(render_executor, render_targets));
+		ui_renderers.emplace_back(std::make_unique<ui_renderer>(render_executor, render_targets));
 	}
 
 	//	全描画コマンド処理後に呼び出される関数登録
@@ -455,6 +457,52 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 		//	エフェクトコンテナ取得
 		effect_manager::instance()->get_container(render_data->effect_container, render_data->decal_container);
 
+		//	UIオブジェクトコンテナ収集
+		{
+			render_data->sprite_container.sprite_datas.clear();
+
+			int sort_key = 0;
+			auto ui_object_list = object_manager::instance()->search_objects<ui_object>();
+			for (auto& ui_object : ui_object_list)
+			{
+				if (!ui_object->is_active())
+					continue;
+
+				sprite_datas sprite_data;
+				sprite_data.sort_key = sort_key;
+				sprite_data.sort_order = ui_object->get_sort_order();
+				sprite_data.sprite = &ui_object->get_sprite();
+				render_data->sprite_container.sprite_datas.emplace_back(sprite_data);
+				++sort_key;
+			}
+
+			auto ui_objects_list = object_manager::instance()->search_objects<ui_objects>();
+			for (auto& ui_object : ui_objects_list)
+			{
+				if (!ui_object->is_active())
+					continue;
+
+				for (auto& sprite : ui_object->get_sprites())
+				{
+					sprite_datas sprite_data;
+					sprite_data.sort_key = sort_key;
+					sprite_data.sort_order = ui_object->get_sort_order();
+					sprite_data.sprite = &sprite;
+					render_data->sprite_container.sprite_datas.emplace_back(sprite_data);
+				}
+				++sort_key;
+			}
+
+			//	ソート
+			std::sort(render_data->sprite_container.sprite_datas.begin(), render_data->sprite_container.sprite_datas.end(),
+				[](const sprite_datas& l, const sprite_datas& r)
+				{
+					if (l.sort_order < r.sort_order)
+						return l.sort_key != r.sort_key;
+					return false;
+				});
+		}
+
 		//	パーティクルの描画振り分け
 		build_particle_render_lists(*render_data, *render_particle_indices);
 
@@ -514,7 +562,7 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 				occlusion->read_last_frame(occlusion_visible);
 
 			//	描画メッシュ／デカールのカリング・ソート
-			build_render_lists(*render_data, camera.camera->get_frustum_culling(), occlusion_visible,
+			build_render_lists(*render_data, *camera.camera, camera.camera->get_frustum_culling(), occlusion_visible,
 				*context.render_mesh_indices, *context.render_decal_indices);
 
 			//	シーン構築
@@ -542,7 +590,7 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 		//	UI描画
 		{
 			renderer_context context = {};
-			context.scene_constant_buffer = nullptr;
+			context.scene_constant_buffer = ui_scene_constant_buffer;
 			context.render_data = render_data;
 			context.render_mesh_indices = std::make_shared<render_mesh_indices>();
 			for (auto& render : ui_renderers)
@@ -656,6 +704,7 @@ void framework::prepare_renderer_context(
 
 void framework::build_render_lists(
 	const render_data_context& render_data,
+	camera& target_camera,
 	const collision::frustum_culling& frustum_culling,
 	const std::unordered_map<UINT, uint8_t>& occlusion_visible,
 	render_mesh_indices& mesh_indices,
@@ -686,15 +735,22 @@ void framework::build_render_lists(
 		if (system_utility::is_bitflag(buffer_data->system_flags, buffer_datas::flags::culling))
 		{
 			//	フラスタムカリング
-			if (!frustum_culling.to_aabb(buffer_data->bounds_min, buffer_data->bounds_max))
-				return;
+			bool visible = frustum_culling.to_aabb(buffer_data->bounds_min, buffer_data->bounds_max);
 
 			//	オクルージョンカリング
-			auto it = occlusion_visible.find(buffer_data->unique_id);
-			if (it != occlusion_visible.end() && it->second == 0)
+			if (visible)
+			{
+				auto it = occlusion_visible.find(buffer_data->unique_id);
+				if (it != occlusion_visible.end() && it->second == 0)
+					visible = false;
+			}
+
+			//	デバッグ用:判定結果を過去のもので固定
+			visible = target_camera.resolve_debug_visible(buffer_data->unique_id, visible);
+
+			if (!visible)
 				return;
 		}
-
 		//	カメラからの距離算出
 		DirectX::XMFLOAT3 center;
 		center.x = (buffer_data->bounds_min.x + buffer_data->bounds_max.x) * 0.5f;
@@ -870,6 +926,21 @@ bool framework::create_buffers()
 		back_buffer_clear_rendering_pass.render_targets.emplace_back(render_data::instance()->get_swap_chain());
 	}
 
+	//	UI描画用のシーン定数バッファ生成(viewport_rectのみ使用するため他の項目は未使用)
+	{
+		HRESULT hr;
+		D3D11_BUFFER_DESC buffer_desc{};
+		buffer_desc.Usage = D3D11_USAGE_DEFAULT;
+		buffer_desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+		buffer_desc.CPUAccessFlags = 0;
+		buffer_desc.ByteWidth = sizeof(common_pipeline_states::scene_constants);
+		hr = render_data::instance()->get_device()->CreateBuffer(&buffer_desc, nullptr, ui_scene_constant_buffer.ReleaseAndGetAddressOf());
+		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+		//	viewport_rectは変化しないので初回のみアップロードしておく
+		common_pipeline_states::scene_constants ui_scene_constant{};
+		ui_scene_constant.viewport_rect = { 0.0f, 0.0f, static_cast<float>(scene_width), static_cast<float>(scene_height) };
+		render_data::instance()->get_immediate_context()->UpdateSubresource(ui_scene_constant_buffer.Get(), 0, 0, &ui_scene_constant, 0, 0);
+	}
 	{
 		D3D11_TEXTURE2D_DESC texture2d_desc{};
 		texture2d_desc.Width = scene_width;

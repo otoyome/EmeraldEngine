@@ -230,6 +230,25 @@ std::shared_ptr<occlusion_culling_system> camera::get_occlusion_culling()
 	return occlusion_culling;
 }
 
+#if defined(USE_IMGUI)
+bool camera::resolve_debug_visible(UINT unique_id, bool current_visible)
+{
+	if (!freeze_culling)
+	{
+		frozen_visibilities[unique_id] = current_visible;
+		return current_visible;
+	}
+
+	auto it = frozen_visibilities.find(unique_id);
+	if (it == frozen_visibilities.end())
+	{
+		//	固定開始後に現れた新規IDは現在の判定をそのまま使う
+		frozen_visibilities.emplace(unique_id, current_visible);
+		return current_visible;
+	}
+	return it->second;
+}
+#endif	//	defined(USE_IMGUI)
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 camera_manager::camera_manager()
 {

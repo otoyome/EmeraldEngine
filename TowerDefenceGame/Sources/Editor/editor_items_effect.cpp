@@ -86,6 +86,7 @@ bool editor_items::edit_effect_noeds(std::shared_ptr<context>& context, effect_i
 	{
 		size_t add_node_index = effect_resource::invalid_id;
 		size_t delete_node_index = effect_resource::invalid_id;
+		std::vector<std::pair<std::string, std::string>> renamed_nodes;
 		std::function<bool(effect_resource::node&, size_t)> node_func = [&](effect_resource::node& node, size_t node_index)
 		{
 			ImGui::PushID(context->get_item_id());
@@ -97,8 +98,13 @@ bool editor_items::edit_effect_noeds(std::shared_ptr<context>& context, effect_i
 			if (ImGui::Button(system_utility::convert_shift_jis_to_utf8(flag ? "↓" : "→").c_str()))
 				flag = !flag;
 			ImGui::SameLine();
+			std::string old_node_name = node.name;
 			if (ImGui::InputTextUtf8("name", node.name))
+			{
 				edit_flag = true;
+				if (old_node_name != node.name)
+					renamed_nodes.emplace_back(old_node_name, node.name);
+			}
 			ImGui::SameLine();
 			if (ImGui::Button("Delete"))
 			{
@@ -336,6 +342,17 @@ bool editor_items::edit_effect_noeds(std::shared_ptr<context>& context, effect_i
 		{
 			//	アニメーションノードの編集
 			auto& animation_nodes = animations.back().nodes;
+
+			//	リネームされたノードはアニメーションノードの名前も追従させる(新規追加ではなく更新にする)
+			for (auto& renamed_node : renamed_nodes)
+			{
+				auto it = std::find_if(animation_nodes.begin(),
+						 animation_nodes.end(),
+						 [&](animation::node_data& n) {return n.node_name == renamed_node.first;});
+				if (it != animation_nodes.end())
+					it->node_name = renamed_node.second;
+			}
+
 			for (auto& node : nodes)
 			{
 				auto it = std::find_if(animation_nodes.begin(),

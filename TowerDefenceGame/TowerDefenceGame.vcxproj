@@ -382,6 +382,7 @@ xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y</Command>
     <ClCompile Include="Sources\Renderer\renderer.cpp" />
     <ClCompile Include="Sources\Renderer\render_job_executor.cpp" />
     <ClCompile Include="Sources\Renderer\occlusion_culling_renderer.cpp" />
+    <ClCompile Include="Sources\Renderer\ui_renderer.cpp" />
     <ClCompile Include="Sources\Renderer\scene_renderer.cpp" />
     <ClCompile Include="Sources\Renderer\scene_renderer_common.cpp" />
     <ClCompile Include="Sources\Renderer\scene_renderer_forward.cpp" />
@@ -488,6 +489,7 @@ xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y</Command>
     <ClInclude Include="Headers\Renderer\scene_render_targets.h" />
     <ClInclude Include="Headers\Renderer\renderer.h" />
     <ClInclude Include="Headers\Renderer\occlusion_culling_renderer.h" />
+    <ClInclude Include="Headers\Renderer\ui_renderer.h" />
     <ClInclude Include="Headers\Renderer\scene_renderer.h" />
     <ClInclude Include="Headers\Scenes\DummyScene\dummy_scene.h" />
     <ClInclude Include="Headers\Scenes\EditScene\edit_model_scene.h" />

@@ -273,6 +273,7 @@ namespace common_pipeline_states
 	{
 		scene_constant_buffer_name,
 		primitive_constant_buffer_name,
+		primitive_headers_name,
 		shadow_map_constant_buffer_name,
 		deferred_light_constant_buffer_name,
 		forward_light_constant_buffer_name,

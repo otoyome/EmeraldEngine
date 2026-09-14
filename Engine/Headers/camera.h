@@ -3,6 +3,7 @@
 #include "collision/frustum_culling.h"
 
 #include <memory>
+#include <unordered_map>
 
 class occlusion_culling_system;
 
@@ -55,6 +56,13 @@ public:
 	float get_occlusion_animation_distance() const { return occlusion_animation_distance; }
 	void set_occlusion_animation_distance(float distance) { occlusion_animation_distance = distance; }
 
+#if defined(USE_IMGUI)
+	//	デバッグ用:フラスタム/オクルージョンカリングの判定結果をunique_id単位で過去のもので固定する
+	bool is_freeze_culling() const { return freeze_culling; }
+	void set_freeze_culling(bool flag) { freeze_culling = flag; }
+	bool resolve_debug_visible(UINT unique_id, bool current_visible);
+#endif	//	defined(USE_IMGUI)
+
 	void cache_previous_view_projection_matrix();
 
 public:
@@ -85,6 +93,11 @@ private:
 
 	std::shared_ptr<occlusion_culling_system> occlusion_culling;
 	float occlusion_animation_distance = 0.0f;
+
+#if defined(USE_IMGUI)
+	bool freeze_culling = false;
+	std::unordered_map<UINT, bool> frozen_visibilities;
+#endif	//	defined(USE_IMGUI)
 };
 
 using camera_ptr = std::shared_ptr<camera>;

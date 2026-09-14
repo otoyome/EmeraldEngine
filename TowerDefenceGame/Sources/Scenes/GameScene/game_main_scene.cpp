@@ -16,6 +16,8 @@
 
 #include "object/gameobjects/cinematics/cinematics_object.h"
 
+#include "object/gameobjects/ui/ui_object.h"
+
 namespace
 {
 	//	ポストプロセスマテリアル
@@ -134,6 +136,15 @@ game_main_scene::game_main_scene()
 
 		main_cinematics->register_effects_function(enemy1);
 		player_camera_controller->register_character_object(enemy1);
+	}
+
+	//	UIオブジェクト設置(UIレンダリングの確認用)
+	{
+		auto test_ui = std::make_shared<ui_object>("UI表示確認用オブジェクト");
+		test_ui->set_screen_rect({ 40, 40, 180, 50 });
+		test_ui->set_color({ 1, 0, 0, 1 });
+		test_ui->set_sort_order(0);
+		register_object(test_ui);
 	}
 }
 
