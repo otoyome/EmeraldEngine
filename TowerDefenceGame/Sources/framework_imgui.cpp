@@ -212,15 +212,7 @@ void framework::imgui_render_infos_window()
 		ImGui::Checkbox("yz", &display_grid_yz);
 		ImGui::DragInt("display_grid_length", &display_grid_length, 1.0f, 0, 1000);
 
-		//	メッシュ毎のAABB表示ON/OFF
-		if (model_instance_manger::is_valid())
-		{
-			bool draw_mesh_aabb = model_instance_manger::instance()->get_draw_mesh_aabb();
-			if (ImGui::Checkbox("draw_mesh_aabb", &draw_mesh_aabb))
-			{
-				model_instance_manger::instance()->set_draw_mesh_aabb(draw_mesh_aabb);
-			}
-		}
+		ImGui::Checkbox("draw_mesh_aabb", &draw_mesh_aabb);
 
 		ImGui::Checkbox("draw_collision", &draw_collision);
 	}
@@ -503,12 +495,25 @@ void framework::imgui_profiler_window(float elapsed_time)
 	}
 }
 
-void framework::build_debug_primitives()
+void framework::build_debug_primitives(const render_data_context& render_data)
 {
 	//	衝突判定のデバッグ表示
 	if (draw_collision && object_manager::is_valid())
 	{
 		object_manager::instance()->get_world().debug_primitive_draw();
+	}
+
+	//	モデルAABBのデバッグ表示
+	if (draw_mesh_aabb)
+	{
+		DirectX::XMFLOAT4 rotation = {0.0f, 0.0f, 0.0f, 1.0f};
+		DirectX::XMFLOAT4 color = {1.0f, 0.0f, 0.0f, 1.0f};
+		for (auto& buffer_data : render_data.mesh_container.buffer_datas)
+		{
+			DirectX::XMFLOAT3 scale((buffer_data.bounds_max.x - buffer_data.bounds_min.x) * 0.5f, (buffer_data.bounds_max.y - buffer_data.bounds_min.y) * 0.5f, (buffer_data.bounds_max.z - buffer_data.bounds_min.z) * 0.5f);
+			DirectX::XMFLOAT3 center(buffer_data.bounds_min.x + scale.x, buffer_data.bounds_min.y + scale.y, buffer_data.bounds_min.z + scale.z);
+			QUEUE_DEBUG_PRIMITIVE_BOX(center, rotation, scale, color, true);
+		}
 	}
 
 	if (!display_grid_xz && !display_grid_xy && !display_grid_yz)

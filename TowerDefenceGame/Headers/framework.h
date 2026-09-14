@@ -122,6 +122,7 @@ private:	//	ÇªÇÃëº
 	bool display_grid_xy{ false };
 	bool display_grid_yz{ false };
 	int display_grid_length{ 100 };
+	bool draw_mesh_aabb{ false };
 	bool draw_collision{ false };
 
 	//	ÉçÉOån
@@ -164,7 +165,7 @@ private:	//	ÇªÇÃëº
 	void imgui_textures_window();
 	void imgui_scene_change();
 
-	void build_debug_primitives();
+	void build_debug_primitives(const render_data_context& render_data);
 	void gpu_snap_shot_begin();
 	void gpu_snap_shot_end();
 #endif // defined(USE_IMGUI)

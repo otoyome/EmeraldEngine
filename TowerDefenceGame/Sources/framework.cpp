@@ -463,7 +463,7 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 
 #if defined(USE_IMGUI)
 		//	デバッグ情報取得
-		build_debug_primitives();
+		build_debug_primitives(*render_data);
 		debug_primitive_manager::instance()->get_container(render_data->debug_draw_container);
 #endif // defined(USE_IMGUI)
 	}
@@ -521,6 +521,7 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 			{
 				render_executor->execute([this, context](graphics_context& context)
 				{
+					//	シーン定数バッファ更新
 					context.device_context->UpdateSubresource(context.scene_constant_buffer.Get(), 0, 0, &context.scene_constant, 0, 0);
 
 					//	エフェクト類のGPU側の更新
@@ -673,7 +674,8 @@ void framework::build_render_lists(
 	sort_pipeline_keys.assign(mesh_container.buffer_datas.size(), std::uintptr_t(0));
 	const auto& near_plane = frustum_culling.get_plane(collision::frustum_culling::surface_near);
 
-	auto classify = [&](std::size_t list_index, cull_bucket& bucket)
+	//	描画判定
+	auto draw_classify = [&](std::size_t list_index, cull_bucket& bucket)
 	{
 		const std::size_t mesh_index = color_datas[list_index];
 		const auto* draw_data = draw_data_ptr + mesh_index;
@@ -687,13 +689,13 @@ void framework::build_render_lists(
 			if (!frustum_culling.to_aabb(buffer_data->bounds_min, buffer_data->bounds_max))
 				return;
 
-			//	オクルージョンカリング（対象かどうかは update 内の testable 判定で決まる）
+			//	オクルージョンカリング
 			auto it = occlusion_visible.find(buffer_data->unique_id);
 			if (it != occlusion_visible.end() && it->second == 0)
 				return;
 		}
 
-		//	カメラからの距離算出（AABB 中心）
+		//	カメラからの距離算出
 		DirectX::XMFLOAT3 center;
 		center.x = (buffer_data->bounds_min.x + buffer_data->bounds_max.x) * 0.5f;
 		center.y = (buffer_data->bounds_min.y + buffer_data->bounds_max.y) * 0.5f;
@@ -721,27 +723,30 @@ void framework::build_render_lists(
 		}
 	};
 
-	constexpr std::size_t min_items_per_thread = 512;
-	const std::size_t worker_slots = parallel_executor.max_workers();
-	if (cull_buckets.size() < worker_slots)
-		cull_buckets.resize(worker_slots);
-	for (auto& bucket : cull_buckets)
-		bucket.clear();
+	//	仕分け
+	{
+		constexpr std::size_t min_items_per_thread = 512;
+		const std::size_t worker_slots = parallel_executor.max_workers();
+		if (cull_buckets.size() < worker_slots)
+			cull_buckets.resize(worker_slots);
+		for (auto& bucket : cull_buckets)
+			bucket.clear();
 
-	if (count < min_items_per_thread * 2 || worker_slots <= 1)
-	{
-		for (std::size_t i = 0; i < count; ++i)
-			classify(i, cull_buckets[0]);
-	}
-	else
-	{
-		parallel_executor.parallel_for(count, min_items_per_thread,
-			[&](std::size_t worker_index, std::size_t begin, std::size_t end)
-			{
-				cull_bucket& bucket = cull_buckets[worker_index];
-				for (std::size_t i = begin; i < end; ++i)
-					classify(i, bucket);
-			});
+		if (count < min_items_per_thread * 2 || worker_slots <= 1)
+		{
+			for (std::size_t i = 0; i < count; ++i)
+				draw_classify(i, cull_buckets[0]);
+		}
+		else
+		{
+			parallel_executor.parallel_for(count, min_items_per_thread,
+				[&](std::size_t worker_index, std::size_t begin, std::size_t end)
+				{
+					cull_bucket& bucket = cull_buckets[worker_index];
+					for (std::size_t i = begin; i < end; ++i)
+						draw_classify(i, bucket);
+				});
+		}
 	}
 
 	std::size_t total_opaque = 0;

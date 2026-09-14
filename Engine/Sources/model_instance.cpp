@@ -318,19 +318,6 @@ void model_instance_manger::get_container(mesh_container& container)
 				}
 			}
 
-#if defined(USE_IMGUI)
-			//	カリングオブジェクトの表示
-			if (draw_mesh_aabb)
-			{
-				DirectX::XMFLOAT3 scale((bounds_max.x - bounds_min.x) * 0.5f, (bounds_max.y - bounds_min.y) * 0.5f, (bounds_max.z - bounds_min.z) * 0.5f);
-				DirectX::XMFLOAT4 rotation = {0.0f, 0.0f, 0.0f, 1.0f};
-				DirectX::XMFLOAT3 center(bounds_min.x + scale.x, bounds_min.y + scale.y, bounds_min.z + scale.z);
-				DirectX::XMFLOAT4 color = {1.0f, 0.0f, 0.0f, 1.0f};
-				QUEUE_DEBUG_PRIMITIVE_BOX(center, rotation, scale, color, true);
-			}
-#endif	//	defined(USE_IMGUI)
-
-
 			//	バッファ情報構築
 			if (buffer_count >= container.buffer_datas.size())
 			{
@@ -565,7 +552,6 @@ void model_instance_manger::get_container(mesh_container& container)
 	//	Transform 行列をGPUへ転送
 	container.build_transform_buffers();
 }
-
 
 void model_instance_manger::generate_constant_bufferes()
 {
