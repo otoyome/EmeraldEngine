@@ -56,7 +56,7 @@ private:
 	bool create_buffers();
 	bool create_collision_filters();
 
-	void prepare_render_context(
+	void prepare_renderer_context(
 		renderer_context& context,
 		const camera_container::camera_data& camera,
 		const std::shared_ptr<render_data_context>& render_data,
@@ -122,6 +122,7 @@ private:	//	ÇªÇÃëº
 	bool display_grid_xy{ false };
 	bool display_grid_yz{ false };
 	int display_grid_length{ 100 };
+	bool draw_collision{ false };
 
 	//	ÉçÉOån
 	logger::categorys display_log_category = logger::categorys::max;
@@ -163,7 +164,7 @@ private:	//	ÇªÇÃëº
 	void imgui_textures_window();
 	void imgui_scene_change();
 
-	void plane_line_draw();
+	void build_debug_primitives();
 	void gpu_snap_shot_begin();
 	void gpu_snap_shot_end();
 #endif // defined(USE_IMGUI)

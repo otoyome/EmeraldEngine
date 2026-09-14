@@ -446,12 +446,6 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 		//	ライト情報収集
 		light_manager::instance()->get_container(render_data->light_container);
 
-#if defined(USE_IMGUI)
-		//	デバッグ情報取得
-		plane_line_draw();
-		debug_primitive_manager::instance()->get_container(render_data->debug_draw_container);
-#endif // defined(USE_IMGUI)
-
 		//	ポストプロセスボリューム取得
 		post_process_volume_manager::instance()->get_container(render_data->post_process_volume_container);
 
@@ -466,6 +460,12 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 
 		//	モデルの頂点/インデックスバッファ確保分をGPUへ転送
 		model_buffer_pool_manager::instance()->flush_uploads();
+
+#if defined(USE_IMGUI)
+		//	デバッグ情報取得
+		build_debug_primitives();
+		debug_primitive_manager::instance()->get_container(render_data->debug_draw_container);
+#endif // defined(USE_IMGUI)
 	}
 
 	//	バッファ描画
@@ -500,15 +500,17 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 		{
 			//	レンダラーコンテキスト準備
 			renderer_context context = {};
-			context.render_data = render_data;
-			context.render_mesh_indices = std::make_shared<render_mesh_indices>();
-			context.render_particle_indices = render_particle_indices;
-			context.render_decal_indices = std::make_shared<render_decal_indices>();
-			prepare_render_context(context, camera, render_data, render_particle_indices, total_time, total_time + elapsed_time);
+			{
+				context.render_data = render_data;
+				context.render_mesh_indices = std::make_shared<render_mesh_indices>();
+				context.render_particle_indices = render_particle_indices;
+				context.render_decal_indices = std::make_shared<render_decal_indices>();
+				prepare_renderer_context(context, camera, render_data, render_particle_indices, total_time, total_time + elapsed_time);
+			}
 
 			//	オクルージョンカリング結果を読み出す
 			std::unordered_map<UINT, uint8_t> occlusion_visible;
-			if (auto* occlusion = camera.camera->get_occlusion_culling())
+			if (auto occlusion = camera.camera->get_occlusion_culling())
 				occlusion->read_last_frame(occlusion_visible);
 
 			//	描画メッシュ／デカールのカリング・ソート
@@ -584,18 +586,16 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 #endif //	defined(USE_IMGUI)
 }
 
-void framework::prepare_render_context(
+void framework::prepare_renderer_context(
 	renderer_context& context,
 	const camera_container::camera_data& camera,
 	const std::shared_ptr<render_data_context>& render_data,
 	const std::shared_ptr<render_particle_indices>& particle_indices,
 	float previous_time, float current_time)
 {
-	context.scene_constant_buffer = camera.constant_buffer;
-	context.render_camera = camera.camera.get();
-
 	//	シーン定数バッファ設定
 	{
+		context.scene_constant_buffer = camera.constant_buffer;
 		context.scene_constant.time_data.x = current_time;
 		context.scene_constant.time_data.y = previous_time;
 
@@ -644,6 +644,12 @@ void framework::prepare_render_context(
 		DirectX::XMStoreFloat4x4(&context.scene_constant.inverse_view_projection_transform, DirectX::XMMatrixInverse(nullptr, ViewProjection));
 
 		context.scene_constant.previous_view_projection_transform = camera.camera->get_previous_view_projection_matrix();
+	}
+
+	//	オクルージョンカリング情報設定
+	{
+		context.occlusion_culling_system = camera.camera->get_occlusion_culling();
+		context.occlusion_animation_distance = camera.camera->get_occlusion_animation_distance();
 	}
 }
 

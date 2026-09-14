@@ -50,9 +50,8 @@ public:
 
 	const collision::frustum_culling& get_frustum_culling();
 
-	occlusion_culling_system* get_occlusion_culling();
+	std::shared_ptr<occlusion_culling_system> get_occlusion_culling();
 
-	//	アニメーションするモデルのオクルージョンカリング閾値
 	float get_occlusion_animation_distance() const { return occlusion_animation_distance; }
 	void set_occlusion_animation_distance(float distance) { occlusion_animation_distance = distance; }
 
@@ -84,7 +83,7 @@ private:
 
 	collision::frustum_culling frustum_culling;
 
-	std::unique_ptr<occlusion_culling_system> occlusion_culling;
+	std::shared_ptr<occlusion_culling_system> occlusion_culling;
 	float occlusion_animation_distance = 0.0f;
 };
 

@@ -221,6 +221,8 @@ void framework::imgui_render_infos_window()
 				model_instance_manger::instance()->set_draw_mesh_aabb(draw_mesh_aabb);
 			}
 		}
+
+		ImGui::Checkbox("draw_collision", &draw_collision);
 	}
 	ImGui::End();
 }
@@ -501,8 +503,14 @@ void framework::imgui_profiler_window(float elapsed_time)
 	}
 }
 
-void framework::plane_line_draw()
+void framework::build_debug_primitives()
 {
+	//	衝突判定のデバッグ表示
+	if (draw_collision && object_manager::is_valid())
+	{
+		object_manager::instance()->get_world().debug_primitive_draw();
+	}
+
 	if (!display_grid_xz && !display_grid_xy && !display_grid_yz)
 		return;
 

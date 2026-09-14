@@ -1,5 +1,7 @@
 #pragma once
 
+#include "occlusion_culling_system.h"
+
 //	メッシュ描画順リスト
 struct render_mesh_indices
 {
@@ -47,8 +49,6 @@ struct render_decal_indices
 
 //	レンダラー用コンテキスト
 //	ﾃｷﾄｰ('ω')ｰﾄｷﾃ
-class camera;
-
 struct renderer_context
 {
 	common_pipeline_states::scene_constants scene_constant;				//	シーン情報
@@ -57,7 +57,8 @@ struct renderer_context
 
 	std::shared_ptr<render_mesh_indices> render_mesh_indices;			//	メッシュ描画データ
 	std::shared_ptr<render_particle_indices> render_particle_indices;	//	パーティクル描画データ
-	std::shared_ptr<render_decal_indices> render_decal_indices;
+	std::shared_ptr<render_decal_indices> render_decal_indices;			//	デカール描画データ
 
-	camera* render_camera = nullptr;
+	std::shared_ptr<occlusion_culling_system> occlusion_culling_system;	//	オクルージョンカリング情報
+	float occlusion_animation_distance;									//	オクルージョンカリングをアニメーションモデルも対象にする
 };

@@ -38,7 +38,7 @@ private:
 #define QUEUE_DEBUG_PRIMITIVE_LINE(START, END, COLOR, DEPTH_TEST) debug_primitive_manager::instance()->queue_line(START, END, COLOR, DEPTH_TEST)
 #define QUEUE_DEBUG_PRIMITIVE_SPHERE(CENTER, RADIUS, COLOR, DEPTH_TEST) debug_primitive_manager::instance()->queue_sphere(CENTER, RADIUS, COLOR, DEPTH_TEST)
 #define QUEUE_DEBUG_PRIMITIVE_CAPSULE(CENTER, ROTATION, RADIUS, LENGTH, COLOR, DEPTH_TEST) debug_primitive_manager::instance()->queue_capsule(CENTER, ROTATION, RADIUS, LENGTH, COLOR, DEPTH_TEST)
-#define QUEUE_DEBUG_PRIMITIVE_BOX(POSITION, ROTATION, SCALE, COLOR, DEPTH_TEST) debug_primitive_manager::instance()->queue_box(SCALE, ROTATION, POSITION, COLOR, DEPTH_TEST)
+#define QUEUE_DEBUG_PRIMITIVE_BOX(POSITION, ROTATION, SCALE, COLOR, DEPTH_TEST) debug_primitive_manager::instance()->queue_box(POSITION, ROTATION, SCALE, COLOR, DEPTH_TEST)
 
 #else // defined(USE_IMGUI)
 

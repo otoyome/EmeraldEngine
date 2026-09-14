@@ -223,11 +223,11 @@ void camera::update_parameters()
 	frustum_culling.create_frustum_corners(inverse_view_projection);
 }
 
-occlusion_culling_system* camera::get_occlusion_culling()
+std::shared_ptr<occlusion_culling_system> camera::get_occlusion_culling()
 {
 	if (!occlusion_culling)
-		occlusion_culling = std::make_unique<occlusion_culling_system>();
-	return occlusion_culling.get();
+		occlusion_culling = std::make_shared<occlusion_culling_system>();
+	return occlusion_culling;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////

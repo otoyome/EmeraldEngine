@@ -326,7 +326,7 @@ void model_instance_manger::get_container(mesh_container& container)
 				DirectX::XMFLOAT4 rotation = {0.0f, 0.0f, 0.0f, 1.0f};
 				DirectX::XMFLOAT3 center(bounds_min.x + scale.x, bounds_min.y + scale.y, bounds_min.z + scale.z);
 				DirectX::XMFLOAT4 color = {1.0f, 0.0f, 0.0f, 1.0f};
-				QUEUE_DEBUG_PRIMITIVE_BOX(scale, rotation, center, color, true);
+				QUEUE_DEBUG_PRIMITIVE_BOX(center, rotation, scale, color, true);
 			}
 #endif	//	defined(USE_IMGUI)
 

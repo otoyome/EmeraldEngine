@@ -16,11 +16,11 @@ occlusion_culling_renderer::~occlusion_culling_renderer()
 
 void occlusion_culling_renderer::render(renderer_context& context)
 {
-	if (!render_targets || !context.render_camera)
+	if (!render_targets || !context.occlusion_culling_system)
 		return;
 
 	//	ƒJƒƒ‰–ˆ‚Ì occlusion_culling_system ‚ðŽg‚¤
-	occlusion_culling_system* occlusion = context.render_camera->get_occlusion_culling();
+	auto occlusion = context.occlusion_culling_system;
 	if (!occlusion)
 		return;
 
@@ -29,7 +29,7 @@ void occlusion_culling_renderer::render(renderer_context& context)
 	if (depth_texture)
 		occlusion->resize_buffer(static_cast<int>(depth_texture->get_desc().Width), static_cast<int>(depth_texture->get_desc().Height));
 
-	float animation_test_distance = context.render_camera->get_occlusion_animation_distance();
+	float animation_test_distance = context.occlusion_animation_distance;
 
 	job_executor.execute([this, occlusion, animation_test_distance](graphics_context& context)
 	{
