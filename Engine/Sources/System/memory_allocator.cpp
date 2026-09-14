@@ -32,20 +32,19 @@ void memory_allocator::init_variable_node_tail(variable_node* node)
 	node->large_pool_tag_value = large_pool_tag;
 }
 
+//	segment構造体自身とバッファを1回のVirtualAllocでまとめて確保する。VirtualAllocした領域は
+//	CRTのデバッグヒープに追跡されないため、意図的に一切解放しなくてもリーク検出には引っかからない
 memory_allocator::variable_segment* memory_allocator::create_variable_segment(size_t min_bytes)
 {
 	size_t segment_bytes = min_bytes > large_pool_default_segment_bytes ? min_bytes : large_pool_default_segment_bytes;
+	size_t total_bytes = sizeof(variable_segment) + segment_bytes;
 
-	variable_segment* segment = static_cast<variable_segment*>(std::malloc(sizeof(variable_segment)));
-	if (!segment)
+	void* block = VirtualAlloc(nullptr, total_bytes, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+	if (!block)
 		return nullptr;
 
-	uint8_t* base = static_cast<uint8_t*>(std::malloc(segment_bytes));
-	if (!base)
-	{
-		std::free(segment);
-		return nullptr;
-	}
+	variable_segment* segment = static_cast<variable_segment*>(block);
+	uint8_t* base = static_cast<uint8_t*>(block) + sizeof(variable_segment);
 
 	segment->next_segment = nullptr;
 	segment->base = base;
@@ -203,8 +202,6 @@ memory_allocator::allocator_state::allocator_state()
 {
 	for (uint32_t index = 0; index < size_class_count; ++index)
 		classes[index].initialize(index, size_classes[index]);
-
-	std::atexit(&memory_allocator::shutdown_at_exit);
 }
 
 memory_allocator::allocator_state& memory_allocator::get_state()
@@ -226,11 +223,6 @@ uint32_t memory_allocator::find_size_class_index(size_t size)
 uint32_t memory_allocator::read_tag(void* payload)
 {
 	return *(reinterpret_cast<uint32_t*>(payload) - 1);
-}
-
-void memory_allocator::shutdown_at_exit()
-{
-	memory_allocator::shutdown();
 }
 
 void* memory_allocator::allocate(size_t requested_size, size_t alignment)
@@ -292,23 +284,6 @@ void* memory_allocator::validate_placement(void* target, size_t size)
 
 	srw_exclusive_lock lock(state.large_pool.lock);
 	return large_pool_validate_placement(target, size) ? target : nullptr;
-}
-
-void memory_allocator::shutdown()
-{
-	allocator_state& state = get_state();
-	for (uint32_t index = 0; index < size_class_count; ++index)
-		state.classes[index].release_all();
-
-	variable_segment* segment = state.large_pool.first_segment;
-	while (segment)
-	{
-		variable_segment* next = segment->next_segment;
-		std::free(segment->base);
-		std::free(segment);
-		segment = next;
-	}
-	state.large_pool.first_segment = nullptr;
 }
 
 std::vector<memory_allocator::size_class_usage> memory_allocator::get_size_class_usages()

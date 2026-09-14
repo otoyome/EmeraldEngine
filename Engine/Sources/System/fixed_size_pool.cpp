@@ -32,7 +32,9 @@ struct fixed_size_pool::piece_header
 };
 
 //	固定長プールの1スラブ。満杯になったら(呼び出し側が)新しいスラブを連結する形にして、
-//	起動時に指定した個数を超えると確保できなくなる、という制約を無くしている
+//	起動時に指定した個数を超えると確保できなくなる、という制約を無くしている。
+//	arena構造体自身もVirtualAllocした領域の先頭に埋め込むため、reservedでサイズを16バイト境界に揃えている
+//	(こうしないと直後に続くピース列の先頭が16バイトアライメントからズレる)
 struct fixed_size_pool::arena
 {
 	arena* next_arena;
@@ -42,6 +44,7 @@ struct fixed_size_pool::arena
 	size_t used_count;
 	size_t piece_count;
 	size_t next_free_hint;		//	空きがあるかもしれない最小オフセット
+	size_t reserved;
 };
 
 const size_t fixed_size_pool::arena_slab_bytes = 64 * 1024;
@@ -57,9 +60,12 @@ size_t fixed_size_pool::align_up(size_t value, size_t alignment)
 
 fixed_size_pool::~fixed_size_pool()
 {
-	//	プログラム終了までスラブは使い回すため、通常のデストラクタでは解放しない
-	//	(他のグローバルオブジェクトのデストラクタがこのプール経由の解放を呼ぶ可能性があり、
-	//	先にスラブを解放してしまうとそちらがクラッシュする。実際の解放はrelease_all()で行う)
+	//	スラブはVirtualAllocでプロセスに直接確保しており、意図的に一切解放しない。
+	//	以前はプロセス終了時にatexitで明示的に解放していたが、静的初期化順序次第では
+	//	このプールより後に構築された(=先に破棄される)静的オブジェクトが、このプール由来の
+	//	メモリを解放しようとする前にスラブを消してしまい、解放済み領域への書き込みでクラッシュする
+	//	不具合があった。VirtualAllocで確保した領域はCRTのデバッグヒープに追跡されないため、
+	//	そもそも「未解放」としてリーク検出に引っかからない。解放せず放置する方が安全
 }
 
 void fixed_size_pool::initialize(uint32_t new_class_index, size_t new_piece_size)
@@ -75,16 +81,14 @@ fixed_size_pool::arena* fixed_size_pool::create_arena()
 	if (piece_count == 0)
 		piece_count = 1;
 
-	arena* new_arena = static_cast<arena*>(std::malloc(sizeof(arena)));
-	if (!new_arena)
+	//	arena構造体自身とピース列を1回のVirtualAllocでまとめて確保する
+	size_t total_bytes = sizeof(arena) + stride * piece_count;
+	void* block = VirtualAlloc(nullptr, total_bytes, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+	if (!block)
 		return nullptr;
 
-	uint8_t* pool = static_cast<uint8_t*>(std::malloc(stride * piece_count));
-	if (!pool)
-	{
-		std::free(new_arena);
-		return nullptr;
-	}
+	arena* new_arena = static_cast<arena*>(block);
+	uint8_t* pool = static_cast<uint8_t*>(block) + sizeof(arena);
 
 	new_arena->next_arena = nullptr;
 	new_arena->pool = pool;
@@ -210,20 +214,6 @@ bool fixed_size_pool::validate_placement(void* payload, size_t size) const
 
 	const arena* target = header->owner_arena;
 	return target->stride - piece_header_size >= size;
-}
-
-void fixed_size_pool::release_all()
-{
-	//	プロセス終了間際に一度だけ呼ばれる想定のため、ロックは取らない
-	arena* target = first_arena;
-	while (target)
-	{
-		arena* next = target->next_arena;
-		std::free(target->pool);
-		std::free(target);
-		target = next;
-	}
-	first_arena = nullptr;
 }
 
 fixed_size_pool::usage fixed_size_pool::get_usage() const

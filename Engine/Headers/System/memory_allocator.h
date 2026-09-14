@@ -35,6 +35,7 @@ public:
 		variable_segment* next_segment;
 		uint8_t* base;
 		uint8_t* end;
+		size_t reserved;
 	};
 
 	struct variable_node
@@ -98,8 +99,6 @@ public:
 
 	static void* validate_placement(void* target, size_t size);
 
-	static void shutdown();
-
 	static std::vector<size_class_usage> get_size_class_usages();
 
 	static large_pool_usage get_large_pool_usage();
@@ -109,7 +108,6 @@ private:
 	static size_t align_up(size_t value, size_t alignment);
 	static uint32_t find_size_class_index(size_t size);
 	static uint32_t read_tag(void* payload);
-	static void shutdown_at_exit();
 
 	static void init_variable_node_tail(variable_node* node);
 	static variable_segment* create_variable_segment(size_t min_bytes);

@@ -22,9 +22,6 @@ public:
 
 	bool validate_placement(void* payload, size_t size) const;
 
-	//	プロセス終了直前(memory_allocatorのatexitフック)専用
-	void release_all();
-
 	struct usage
 	{
 		size_t block_size_in_bytes;
