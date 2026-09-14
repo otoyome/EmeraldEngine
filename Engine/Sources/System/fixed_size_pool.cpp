@@ -17,13 +17,6 @@ namespace
 		return (value + alignment - 1) & ~(alignment - 1);
 	}
 
-	//	@tool 1ピース分のヘッダ。owner_arenaを直接持つことで、deallocate時にアリーナを
-	//	@tool 総当たりせずO(1)で対象アリーナへ辿り着ける(以前はポインタの範囲チェックで全アリーナを
-	//	@tool 走査しており、これがdeallocateの主な遅さの原因だった)。
-	//	@tool class_indexは必ず構造体の末尾(payloadの直前)に置く。memory_allocator側がpayload-4バイトを
-	//	@tool 読むだけで「どのサイズクラスのプールが払い出したポインタか」をO(1)で判定するために使う。
-	//	@tool 全サイズクラスでヘッダサイズを16バイト(デバッグ時32バイト)固定にし、ペイロードの
-	//	@tool 16バイトアライメントを保証している
 	struct piece_header
 	{
 		fixed_size_pool::arena* owner_arena;
@@ -32,13 +25,12 @@ namespace
 		uint32_t canary;
 		uint32_t reserved[3];
 #endif	//	defined(_DEBUG)
-		uint32_t class_index;	//	@tool 末尾固定。payloadの直前4バイト
+		uint32_t class_index;
 	};
 	constexpr size_t piece_header_size = sizeof(piece_header);
 	enum piece_state : uint32_t { piece_state_free = 0, piece_state_used = 1 };
 
-	//	@tool std::mutexはMSVC実装だと初回ロック時に内部でヒープ確保を行うことがあり、operator new内で
-	//	@tool 使うと無限再帰(スタックオーバーフロー)を起こすため、確保を伴わないSRWLOCKを直接使う
+	//	排他制御クラス
 	struct srw_exclusive_lock
 	{
 		explicit srw_exclusive_lock(SRWLOCK& target) : target(target) { AcquireSRWLockExclusive(&target); }
@@ -50,8 +42,6 @@ namespace
 	};
 }
 
-//	@tool 固定長プールの1スラブ。満杯になったら(呼び出し側が)新しいスラブを連結する形にして、
-//	@tool EME版にあった「起動時に指定した個数を超えると確保できなくなる」制約を無くしている
 struct fixed_size_pool::arena
 {
 	arena* next_arena;
@@ -60,14 +50,11 @@ struct fixed_size_pool::arena
 	size_t stride;
 	size_t used_count;
 	size_t piece_count;
-	size_t next_free_hint;		//	@tool 空きがあるかもしれない最小オフセット(EME版のm_uNextFree相当)
+	size_t next_free_hint;
 };
 
 fixed_size_pool::~fixed_size_pool()
 {
-	//	@tool プログラム終了までスラブは使い回すため、ここでは意図的に解放しない
-	//	@tool (他のグローバルオブジェクトのデストラクタがこのプール経由の解放を呼ぶ可能性があり、
-	//	@tool 先にスラブを解放してしまうとそちらがクラッシュする)
 }
 
 void fixed_size_pool::initialize(uint32_t new_class_index, size_t new_piece_size)
@@ -169,9 +156,6 @@ void* fixed_size_pool::allocate(size_t alignment)
 
 void fixed_size_pool::deallocate(void* payload)
 {
-	//	@tool 呼び出し元(memory_allocator)がヘッダ末尾のclass_indexタグを見て、既にこのプールが
-	//	@tool 払い出したポインタだと確定した上で呼んでいる。owner_arenaにより対象アリーナを
-	//	@tool 総当たりせずO(1)で特定できる
 	uint8_t* piece = static_cast<uint8_t*>(payload) - piece_header_size;
 	piece_header* header = reinterpret_cast<piece_header*>(piece);
 
@@ -189,7 +173,6 @@ void fixed_size_pool::deallocate(void* payload)
 
 	srw_exclusive_lock scoped_lock(lock);
 
-	//	@tool EME版はシグネチャしか見ておらず二重解放を検出できなかったため、使用中フラグを明示的にチェックする
 	_ASSERT_EXPR(header->state == piece_state_used, L"fixed_size_pool: double free detected");
 	header->state = piece_state_free;
 	--target->used_count;
@@ -221,7 +204,6 @@ bool fixed_size_pool::validate_placement(void* payload, size_t size) const
 
 void fixed_size_pool::release_all()
 {
-	//	@tool プロセス終了間際に一度だけ呼ばれる想定のため、ロックは取らない
 	arena* target = first_arena;
 	while (target)
 	{

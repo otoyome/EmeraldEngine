@@ -8,15 +8,11 @@
 
 namespace
 {
-	//	@tool サイズクラス一覧。すべて16の倍数にすることで、fixed_size_pool側のストライドが常に16バイト境界になる
 	constexpr size_t size_classes[] = { 16, 32, 64, 128, 256, 512, 1024 };
 	constexpr size_t size_class_count = sizeof(size_classes) / sizeof(size_classes[0]);
-	//	@tool ヘッダ末尾4バイトのタグに使う値。size_class_count未満ならfixed_size_pool側、これ以上なら可変長プール側
-	constexpr uint32_t large_pool_tag = 0xFFFFFFFFu;
 
-	//	@tool 可変長プールが新しいセグメントを確保する際の最低バイト数
+	constexpr uint32_t large_pool_tag = 0xFFFFFFFFu;
 	constexpr size_t large_pool_default_segment_bytes = 1 * 1024 * 1024;
-	//	@tool 可変長プールの分割後、端数がこれ未満なら分割せずノード全体をそのまま使う
 	constexpr size_t variable_node_min_split_payload = 32;
 
 #if defined(_DEBUG)
@@ -28,8 +24,8 @@ namespace
 		return (value + alignment - 1) & ~(alignment - 1);
 	}
 
-	//	@tool std::mutexはMSVC実装だと初回ロック時に内部でヒープ確保を行うことがあり、operator new内で
-	//	@tool 使うと無限再帰(スタックオーバーフロー)を起こすため、確保を伴わないSRWLOCKを直接使う
+	//	排他制御クラス
+	//	@remainder	std::mutexだとダメなので
 	struct srw_exclusive_lock
 	{
 		explicit srw_exclusive_lock(SRWLOCK& target) : target(target) { AcquireSRWLockExclusive(&target); }
@@ -41,27 +37,20 @@ namespace
 	};
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////
-	//	可変長プール(EMEのCMemoryManagerの可変長フリーリストを踏襲。前後の空きノードと結合しながら使い回す)
-	//	@tool サイズクラス上限(1024バイト)を超える確保、またはfixed_size_poolでは対応できない
-	//	@tool 16バイト超のアライメント要求はすべてこちらへ回す
-
 	struct variable_segment;
 
-	//	@tool owner_segmentを直接持つことで、deallocate時にセグメントを総当たりせずO(1)で
-	//	@tool 対象セグメントへ辿り着ける。large_pool_tagは必ず構造体の末尾(payloadの直前)に置き、
-	//	@tool fixed_size_pool側のclass_indexと同じ「payload-4バイトを読めば判定できる」位置関係にする
 	struct variable_node
 	{
 		variable_node* next;
 		variable_node* prev;
 		variable_segment* owner_segment;
-		size_t size;		//	ペイロードバイト数(ヘッダは含まない)
-		uint32_t used;		//	0 = 空き, 1 = 使用中
+		size_t size;
+		uint32_t used;
 #if defined(_DEBUG)
 		uint32_t canary;
-		uint32_t reserved;	//	@tool large_pool_tagが構造体末尾(=8バイト境界)に来るよう詰め物する
+		uint32_t reserved;
 #endif	//	defined(_DEBUG)
-		uint32_t large_pool_tag;	//	@tool 末尾固定。常にlarge_pool_tag定数を入れる
+		uint32_t large_pool_tag;
 	};
 	constexpr size_t variable_node_header_size = sizeof(variable_node);
 
@@ -118,8 +107,6 @@ namespace
 		return segment;
 	}
 
-	//	@tool ノードの先頭から厳密にexact_sizeバイトだけ切り出し、残りを新しい空きノードにする(端数マージ判定なし)
-	//	@tool アライメント調整用のパディング切り出しに使う。切り出す残りは呼び出し元が既にサイズを検証済みの前提
 	void split_variable_node_exact(variable_node* node, size_t exact_size)
 	{
 		variable_node* remainder = reinterpret_cast<variable_node*>(
@@ -136,8 +123,6 @@ namespace
 		node->next = remainder;
 	}
 
-	//	@tool ノードをrequested_size分だけ切り出す。余りが小さすぎる時は分割せずノード全体を使う
-	//	@tool (EME版はこの「端数が小さい」ケースのサイズ判定が抜けており、ちょうど収まる空きノードを見逃していた)
 	void split_variable_node(variable_node* node, size_t requested_size)
 	{
 		size_t remaining = node->size - requested_size;
@@ -147,9 +132,6 @@ namespace
 		split_variable_node_exact(node, requested_size);
 	}
 
-	//	@tool ノード内で実際にalignmentを満たす位置を探し、確保できればペイロードのポインタを返す。
-	//	@tool EME版は「アライメント値が16の倍数だと剰余が0になり調整処理ごとスキップされる」バグがあったため、
-	//	@tool 剰余では判定せず、実アドレスから必要なパディング量を直接計算するように修正している
 	void* try_allocate_from_node(variable_node** io_node, size_t requested_size, size_t alignment)
 	{
 		variable_node* node = *io_node;
@@ -159,9 +141,6 @@ namespace
 
 		if (padding != 0)
 		{
-			//	@tool パディング部分を独立ノードとして切り出せるだけの余白(ヘッダ1つ分)を確保する。
-			//	@tool 足りなければアライメント境界単位で切り上げる(paddingはalignmentの倍数のままなので、
-			//	@tool 最終的なペイロードアドレスのアライメントは崩れない)
 			if (padding < variable_node_header_size)
 				padding += align_up(variable_node_header_size - padding, alignment);
 
@@ -201,7 +180,6 @@ namespace
 			}
 		}
 
-		//	@tool 収まる空きノードが無かったので新しいセグメントを追加する
 		size_t min_bytes = variable_node_header_size * 2 + requested + alignment;
 		variable_segment* segment = create_variable_segment(min_bytes);
 		if (!segment)
@@ -220,22 +198,19 @@ namespace
 		return payload;
 	}
 
-	//	@tool 呼び出し元がヘッダ末尾のタグを見て、可変長プールが払い出したポインタだと確定した上で呼んでいる。
-	//	@tool owner_segmentにより、対象セグメントを総当たりせずO(1)で特定できる
 	void large_pool_deallocate(large_pool_state& state, void* payload)
 	{
 		variable_node* node = reinterpret_cast<variable_node*>(payload) - 1;
 #if defined(_DEBUG)
 		_ASSERT_EXPR(node->canary == canary_pattern,
 			L"memory_allocator: large pool header canary corrupted (buffer overrun?)");
-#endif
+#endif	//	defined(_DEBUG)
 		variable_segment* segment = node->owner_segment;
 		_ASSERT_EXPR(segment->base <= reinterpret_cast<uint8_t*>(node) && reinterpret_cast<uint8_t*>(payload) <= segment->end,
 			L"memory_allocator: header corrupted (owner_segment out of range)");
 
 		srw_exclusive_lock lock(state.lock);
 
-		//	@tool EME版はシグネチャしか見ておらず二重解放を検出できなかったため、使用中フラグを明示的にチェックする
 		_ASSERT_EXPR(node->used == 1, L"memory_allocator: double free detected (large allocation)");
 
 		state.used_bytes -= node->size;
@@ -265,7 +240,7 @@ namespace
 #if defined(_DEBUG)
 		if (node->canary != canary_pattern)
 			return false;
-#endif
+#endif	//	defined(_DEBUG)
 		if (!node->used)
 			return false;
 
@@ -273,11 +248,11 @@ namespace
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////
+	void shutdown_at_exit()
+	{
+		memory_allocator::shutdown();
+	}
 
-	void shutdown_at_exit();
-
-	//	@tool アロケータの内部状態。static local変数として保持することで、
-	//	@tool 他の静的オブジェクトの初期化順に関係なく初回使用時に安全に構築される
 	struct allocator_state
 	{
 		fixed_size_pool classes[size_class_count];
@@ -302,11 +277,6 @@ namespace
 		return state;
 	}
 
-	void shutdown_at_exit()
-	{
-		memory_allocator::shutdown();
-	}
-
 	uint32_t find_size_class_index(size_t size)
 	{
 		for (uint32_t index = 0; index < size_class_count; ++index)
@@ -317,9 +287,6 @@ namespace
 		return large_pool_tag;
 	}
 
-	//	@tool 確保済みポインタのペイロード直前4バイトには、必ずどちらかのタグが入っている
-	//	@tool (fixed_size_poolのclass_index、または可変長プールのlarge_pool_tag)。
-	//	@tool これを読むだけで、全クラス・全セグメントを総当たりせずO(1)でどちらの経路か判定できる
 	uint32_t read_tag(void* payload)
 	{
 		return *(reinterpret_cast<uint32_t*>(payload) - 1);
@@ -331,8 +298,6 @@ void* memory_allocator::allocate(size_t requested_size, size_t alignment)
 	size_t actual_size = requested_size == 0 ? 1 : requested_size;
 	allocator_state& state = get_state();
 
-	//	@tool fixed_size_poolのペイロードは常に16バイトアライメントしか保証していないため、
-	//	@tool それを超えるアライメントが必要な場合はパディング調整ができる可変長プールへ直接回す
 	uint32_t class_index = alignment <= 16 ? find_size_class_index(actual_size) : large_pool_tag;
 
 	void* payload = nullptr;
@@ -438,18 +403,13 @@ void memory_allocator::shutdown()
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-//	@tool operator new/deleteのグローバル差し替え。USE_CUSTOM_ALLOCATORが0の場合はmalloc/freeへ素通しする
-//	@tool Engineは静的ライブラリだが、new/deleteはコードベース全体から参照される記号のため、
-//	@tool ここで定義するだけで確実にリンクされる(明示的な参照や強制リンクの仕掛けは不要)
-//	@tool (placement newオペレータは標準のまま差し替えていない。理由はヘッダのコメントを参照)
-
 void* operator new(size_t size)
 {
 #if defined(USE_CUSTOM_ALLOCATOR)
 	void* ptr = memory_allocator::allocate(size);
-#else
+#else	//	defined(USE_CUSTOM_ALLOCATOR)
 	void* ptr = std::malloc(size);
-#endif
+#endif	//	defined(USE_CUSTOM_ALLOCATOR)
 	if (!ptr)
 		throw std::bad_alloc();
 	return ptr;
@@ -466,9 +426,9 @@ void operator delete(void* ptr) noexcept
 		return;
 #if defined(USE_CUSTOM_ALLOCATOR)
 	memory_allocator::deallocate(ptr);
-#else
+#else	//	defined(USE_CUSTOM_ALLOCATOR)
 	std::free(ptr);
-#endif
+#endif	//	defined(USE_CUSTOM_ALLOCATOR)
 }
 
 void operator delete[](void* ptr) noexcept
