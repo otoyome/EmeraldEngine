@@ -815,6 +815,15 @@ void framework::build_render_lists(
 		for (int path = 0; path < render_mesh_indices::forward_size; ++path)
 			total_forward[path] += bucket.forward[path].size();
 	}
+
+#if defined(USE_IMGUI)
+	//	デバッグ情報として保存
+	debug_total_draw_count = static_cast<UINT>(count);
+	debug_culled_draw_count = static_cast<UINT>(total_opaque + total_mask);
+	for (int path = 0; path < render_mesh_indices::forward_size; ++path)
+		debug_culled_draw_count += static_cast<UINT>(total_forward[path]);
+#endif	//	defined(USE_IMGUI)
+
 	mesh_indices.opaque.reserve(total_opaque);
 	mesh_indices.mask.reserve(total_mask);
 	for (int path = 0; path < render_mesh_indices::forward_size; ++path)

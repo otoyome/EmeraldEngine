@@ -3,6 +3,7 @@
 #include "collision/frustum_culling.h"
 
 #include <memory>
+#include <mutex>
 #include <unordered_map>
 
 class occlusion_culling_system;
@@ -96,6 +97,7 @@ private:
 
 #if defined(USE_IMGUI)
 	bool freeze_culling = false;
+	std::mutex frozen_visibilities_mutex;
 	std::unordered_map<UINT, bool> frozen_visibilities;
 #endif	//	defined(USE_IMGUI)
 };

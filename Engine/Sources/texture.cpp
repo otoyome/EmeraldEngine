@@ -571,6 +571,79 @@ bool texture_manager::load_texture_from_file(texture_ptr& out_texture, std::stri
 	return true;
 }
 
+void texture_manager::load_textures_from_files(std::vector<texture_ptr>& out_textures, const std::vector<std::string_view>& file_pathes, bool force_load)
+{
+	out_textures.assign(file_pathes.size(), nullptr);
+
+	//	•K—v‚È•¨‚¾‚¯‚ð•À—ñ‰»
+	struct pending_load
+	{
+		std::string path;
+		std::vector<std::size_t> out_indices;
+	};
+	std::unordered_map<std::string, std::size_t> path_to_pending;
+	std::vector<pending_load> pending_loads;
+	for (std::size_t index = 0; index < file_pathes.size(); ++index)
+	{
+		auto key_name = std::string(file_pathes[index]);
+
+		if (!force_load)
+		{
+			auto it = textures.find(key_name);
+			if (it != textures.end())
+			{
+				auto ptr = it->second.lock();
+				if (ptr)
+				{
+					out_textures[index] = ptr;
+					continue;
+				}
+				textures.erase(it);
+			}
+		}
+
+		auto pending_it = path_to_pending.find(key_name);
+		if (pending_it == path_to_pending.end())
+		{
+			path_to_pending.emplace(key_name, pending_loads.size());
+			pending_loads.push_back({ key_name, { index } });
+		}
+		else
+		{
+			pending_loads[pending_it->second].out_indices.push_back(index);
+		}
+	}
+
+	if (pending_loads.empty())
+		return;
+
+	std::vector<texture_ptr> loaded_textures(pending_loads.size());
+
+	load_parallel_executor.parallel_for(pending_loads.size(), 1,
+		[&](std::size_t, std::size_t begin, std::size_t end)
+		{
+			thread_local bool com_initialized = false;
+			if (!com_initialized)
+			{
+				CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+				com_initialized = true;
+			}
+
+			for (std::size_t i = begin; i < end; ++i)
+				load_texture_from_file_inner(loaded_textures[i], pending_loads[i].path);
+		});
+
+	for (std::size_t i = 0; i < pending_loads.size(); ++i)
+	{
+		if (!loaded_textures[i])
+			continue;
+
+		textures[pending_loads[i].path] = loaded_textures[i];
+		for (auto out_index : pending_loads[i].out_indices)
+			out_textures[out_index] = loaded_textures[i];
+	}
+}
+
 bool texture_manager::load_texture_from_file_inner(texture_ptr& out_texture, std::string_view file_path)
 {
 	HRESULT hr;

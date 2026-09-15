@@ -1,6 +1,7 @@
 #pragma once
 
 #include <chrono>
+#include "system/parallel_for_executor.h"
 
 enum class texture_data_types
 {
@@ -110,6 +111,7 @@ public:
 	bool generate_texture2d(texture_ptr& out_texture, std::string_view key, D3D11_TEXTURE2D_DESC desc, DWORD init_value, D3D11_SHADER_RESOURCE_VIEW_DESC* srv_desc = nullptr, D3D11_UNORDERED_ACCESS_VIEW_DESC* uav_desc = nullptr);
 	bool generate_texture2d(texture_ptr& out_texture, std::string_view key, D3D11_TEXTURE2D_DESC desc, D3D11_SUBRESOURCE_DATA subresource_data, D3D11_SHADER_RESOURCE_VIEW_DESC* srv_desc = nullptr, D3D11_UNORDERED_ACCESS_VIEW_DESC* uav_desc = nullptr);
 	bool load_texture_from_file(texture_ptr& out_texture, std::string_view file_path, bool force_load = false);
+	void load_textures_from_files(std::vector<texture_ptr>& out_textures, const std::vector<std::string_view>& file_pathes, bool force_load = false);
 	bool load_texture_from_memory(texture_ptr& out_texture, std::string_view key, const void* data, size_t size);
 
 	struct save_texture_desc
@@ -167,6 +169,8 @@ private:
 	texture_ptr	white_texture2d;
 	texture_ptr	black_texture2d;
 	texture_map	textures;
+	parallel_for_executor load_parallel_executor;
+
 #if defined(USE_IMGUI)
 	std::chrono::steady_clock::time_point last_check_time{};
 #endif	//	defined(USE_IMGUI)

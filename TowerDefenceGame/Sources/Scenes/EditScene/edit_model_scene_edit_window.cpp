@@ -639,7 +639,6 @@ void edit_model_scene::on_model_setup()
 
 	edit_model->set_active(true);
 	object_manager::instance()->register_object(edit_model);
-	edit_model->get_model_instance()->set_flag(model_instance::flags::culling, false);	//	常時表示
 
 	//	モデルのファイルパスを取得
 	std::string file_path = std::string(edit_model->get_model_instance()->get_resource()->get_file_path());

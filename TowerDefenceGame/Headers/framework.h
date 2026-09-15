@@ -129,6 +129,10 @@ private:	//	その他
 	bool draw_mesh_aabb{ false };
 	bool draw_collision{ false };
 
+	//	カリング確認用
+	UINT debug_total_draw_count{ 0 };
+	UINT debug_culled_draw_count{ 0 };
+
 	//	ログ系
 	logger::categorys display_log_category = logger::categorys::max;
 	UINT display_log_flags = (1 << static_cast<UINT>(logger::levels::error)) | (1 << static_cast<UINT>(logger::levels::warning));

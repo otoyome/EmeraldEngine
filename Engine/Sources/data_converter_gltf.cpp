@@ -505,8 +505,58 @@ namespace
 
 		//	マテリアル生成
 		materials.reserve(gltf_materials.size());
-		for (auto& gltf_material : gltf_materials)
+
+		//	マテリアル毎に逐次ロードすると重いので一括並列ロードする
+		struct material_texture_slots
 		{
+			texture_ptr base_texture;
+			texture_ptr emissive_texture;
+			texture_ptr roughness_metalness_texture;
+			texture_ptr normal_texture;
+			texture_ptr occlusion_texture;
+		};
+		std::vector<material_texture_slots> material_textures(gltf_materials.size());
+		{
+			std::vector<std::string> texture_path_storage;
+			std::vector<texture_ptr*> texture_path_targets;
+			texture_path_storage.reserve(gltf_materials.size() * 5);
+			texture_path_targets.reserve(gltf_materials.size() * 5);
+
+			auto collect_path = [&](std::string_view relative_path, texture_ptr* target)
+			{
+				if (relative_path.empty())
+					return;
+				std::filesystem::path file_path = path.parent_path() / relative_path;
+				texture_path_storage.emplace_back(file_path.string());
+				texture_path_targets.emplace_back(target);
+			};
+
+			for (UINT material_index = 0; material_index < gltf_materials.size(); ++material_index)
+			{
+				auto& gltf_material = gltf_materials[material_index];
+				auto& slots = material_textures[material_index];
+				collect_path(gltf_material.base_texture_path, &slots.base_texture);
+				collect_path(gltf_material.emissive_texture_path, &slots.emissive_texture);
+				collect_path(gltf_material.roughness_metalness_texture_path, &slots.roughness_metalness_texture);
+				collect_path(gltf_material.normal_texture_path, &slots.normal_texture);
+				collect_path(gltf_material.occlusion_texture_path, &slots.occlusion_texture);
+			}
+
+			std::vector<std::string_view> texture_path_views(texture_path_storage.begin(), texture_path_storage.end());
+			std::vector<texture_ptr> loaded_textures;
+			texture_manager::instance()->load_textures_from_files(loaded_textures, texture_path_views);
+
+			for (std::size_t index = 0; index < loaded_textures.size(); ++index)
+			{
+				if (loaded_textures[index])
+					*texture_path_targets[index] = loaded_textures[index];
+			}
+		}
+
+		for (UINT material_index = 0; material_index < gltf_materials.size(); ++material_index)
+		{
+			auto& gltf_material = gltf_materials[material_index];
+			auto& slots = material_textures[material_index];
 			auto& material = materials.emplace_back();
 			material.set_name(gltf_material.name);
 			material.set_domain(material::domains::surface);
@@ -531,65 +581,40 @@ namespace
 			material.set_pipeline_state(descs, ARRAYSIZE(descs));
 
 			material.set_float4("base_color_factor", gltf_material.base_color);
-			if (!gltf_material.base_texture_path.empty())
+			if (slots.base_texture)
 			{
-				texture_ptr texture;
-				std::filesystem::path file_path = path.parent_path() / gltf_material.base_texture_path;
-				if (texture_manager::instance()->load_texture_from_file(texture, file_path.string()))
-				{
-					texture->set_flag(texture::flags::srgb, true);
-					material.set_texture("BaseColorMap", texture);
-					texture_manager::instance()->save_texture(texture);
-				}
+				slots.base_texture->set_flag(texture::flags::srgb, true);
+				material.set_texture("BaseColorMap", slots.base_texture);
+				texture_manager::instance()->save_texture(slots.base_texture);
 			}
 			material.set_float3("emissive_color_factor", gltf_material.emissive_color);
-			if (!gltf_material.emissive_texture_path.empty())
+			if (slots.emissive_texture)
 			{
-				texture_ptr texture;
-				std::filesystem::path file_path = path.parent_path() / gltf_material.emissive_texture_path;
-				if (texture_manager::instance()->load_texture_from_file(texture, file_path.string()))
-				{
-					texture->set_flag(texture::flags::srgb, true);
-					material.set_texture("EmissiveMap", texture);
-					texture_manager::instance()->save_texture(texture);
-				}
+				slots.emissive_texture->set_flag(texture::flags::srgb, true);
+				material.set_texture("EmissiveMap", slots.emissive_texture);
+				texture_manager::instance()->save_texture(slots.emissive_texture);
 			}
 			material.set_float("roughness_factor", gltf_material.roughness);
 			material.set_float("metallic_factor", gltf_material.metalness);
-			if (!gltf_material.roughness_metalness_texture_path.empty())
+			if (slots.roughness_metalness_texture)
 			{
-				texture_ptr texture;
-				std::filesystem::path file_path = path.parent_path() / gltf_material.roughness_metalness_texture_path;
-				if (texture_manager::instance()->load_texture_from_file(texture, file_path.string()))
-				{
-					texture->set_flag(texture::flags::srgb, true);
-					material.set_texture("RoughnessMetallicMap", texture);
-					texture_manager::instance()->save_texture(texture);
-				}
+				slots.roughness_metalness_texture->set_flag(texture::flags::srgb, true);
+				material.set_texture("RoughnessMetallicMap", slots.roughness_metalness_texture);
+				texture_manager::instance()->save_texture(slots.roughness_metalness_texture);
 			}
 			material.set_float("normal_map_scale", gltf_material.normal_scale);
-			if (!gltf_material.normal_texture_path.empty())
+			if (slots.normal_texture)
 			{
-				texture_ptr texture;
-				std::filesystem::path file_path = path.parent_path() / gltf_material.normal_texture_path;
-				if (texture_manager::instance()->load_texture_from_file(texture, file_path.string()))
-				{
-					texture->set_flag(texture::flags::srgb, true);
-					material.set_texture("NormalMap", texture);
-					texture_manager::instance()->save_texture(texture);
-				}
+				slots.normal_texture->set_flag(texture::flags::srgb, true);
+				material.set_texture("NormalMap", slots.normal_texture);
+				texture_manager::instance()->save_texture(slots.normal_texture);
 			}
 			material.set_float("occlusion_strength", gltf_material.occlusion_strength);
-			if (!gltf_material.occlusion_texture_path.empty())
+			if (slots.occlusion_texture)
 			{
-				texture_ptr texture;
-				std::filesystem::path file_path = path.parent_path() / gltf_material.occlusion_texture_path;
-				if (texture_manager::instance()->load_texture_from_file(texture, file_path.string()))
-				{
-					texture->set_flag(texture::flags::srgb, true);
-					material.set_texture("OcclusionMap", texture);
-					texture_manager::instance()->save_texture(texture);
-				}
+				slots.occlusion_texture->set_flag(texture::flags::srgb, true);
+				material.set_texture("OcclusionMap", slots.occlusion_texture);
+				texture_manager::instance()->save_texture(slots.occlusion_texture);
 			}
 		}
 

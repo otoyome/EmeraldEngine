@@ -150,7 +150,7 @@ void object_manager::for_each_parallel(const std::function<void(game_object*)>& 
 	constexpr std::size_t grain = 8;
 
 	object_update_executor.parallel_for(count, grain,
-		[this, &body](std::size_t /*worker_index*/, std::size_t begin, std::size_t end)
+		[this, &body](std::size_t, std::size_t begin, std::size_t end)
 		{
 			for (std::size_t index = begin; index < end; ++index)
 			{
