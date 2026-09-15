@@ -160,6 +160,8 @@ public:
 
 #if defined(USE_IMGUI)
 	bool decode_texture_from_file(texture_ptr& out_texture, std::string_view file_path);
+
+	bool convert_texture_to_dds(std::string_view source_file_path, std::string_view dds_file_path, bool generate_mipmaps);
 #endif	//	defined(USE_IMGUI)
 
 private:

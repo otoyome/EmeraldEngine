@@ -1,4 +1,5 @@
 #include "data_converter.h"
+#include <unordered_set>
 #include "model_buffer_pool.h"
 
 #include "graphics_utility.h"
@@ -455,21 +456,6 @@ namespace
 			}
 		}
 
-		//	メッシュ最適化
-		model_resource_utility::optimized_meshs(resource);
-		
-		//	シャドウメッシュ生成
-		if (convert_data.is_generate_shadow_mesh)
-		{
-			model_resource_utility::generate_shadow_meshes(resource, false);
-		}
-		
-		//	LODメッシュ生成
-		if (convert_data.generate_lod_mesh_count > 0)
-		{
-			model_resource_utility::generate_lod_meshs(resource, convert_data.generate_lod_mesh_count, false);
-		}
-
 		//	各種バッファを設定
 		auto generate_buffer_func = [&](model_resource::mesh::sub_mesh& mesh)
 		{
@@ -522,11 +508,31 @@ namespace
 			texture_path_storage.reserve(gltf_materials.size() * 5);
 			texture_path_targets.reserve(gltf_materials.size() * 5);
 
+			std::unordered_set<std::string> converted_texture_paths;
 			auto collect_path = [&](std::string_view relative_path, texture_ptr* target)
 			{
 				if (relative_path.empty())
 					return;
 				std::filesystem::path file_path = path.parent_path() / relative_path;
+
+				//	DDS変更 & ミップマップ生成
+				if (convert_data.is_convert_texture_to_dds)
+				{
+					std::string source_key = file_path.string();
+					std::filesystem::path dds_path = file_path;
+					dds_path.replace_extension(".dds");
+
+					bool converted = converted_texture_paths.count(source_key) != 0;
+					if (!converted)
+					{
+						converted = texture_manager::instance()->convert_texture_to_dds(source_key, dds_path.string(), true);
+						if (converted)
+							converted_texture_paths.insert(source_key);
+					}
+					if (converted)
+						file_path = dds_path;
+				}
+
 				texture_path_storage.emplace_back(file_path.string());
 				texture_path_targets.emplace_back(target);
 			};

@@ -29,8 +29,7 @@ namespace data_converter
 			bool is_change_coordinate_system = true;			//	座標系変換
 			bool is_change_coordinate_system_indices = false;	//	座標系変換時にインデックスを反転
 			bool is_normalize_weight = true;					//	影響度の正規化
-			bool is_generate_shadow_mesh = false;				//	影メッシュ生成
-			int generate_lod_mesh_count = 0;					//	LODメッシュ生成数
+			bool is_convert_texture_to_dds = true;				//	テクスチャをDDS化しミップマップを生成
 
 			//	[エンジン改造:接線に再計算法線を含める対応]
 			bool is_recomputed_normal = false;					//	法線を再計算するか
@@ -61,8 +60,6 @@ namespace data_converter
 			bool is_change_coordinate_system = true;			//	座標系変換
 			bool is_change_coordinate_system_indices = false;	//	座標系変換時にインデックスを反転
 			bool is_normalize_weight = true;					//	影響度の正規化
-			bool is_generate_shadow_mesh = true;				//	影メッシュ生成
-			int generate_lod_mesh_count = 8;					//	LODメッシュ生成数
 
 			//	[エンジン改造:接線に再計算法線を含める対応]
 			bool is_recomputed_normal = true;					//	法線を再計算するか

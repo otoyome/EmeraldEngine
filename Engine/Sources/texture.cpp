@@ -907,6 +907,40 @@ bool texture_manager::decode_texture_from_file(texture_ptr& out_texture, std::st
 {
 	return load_texture_from_file_inner(out_texture, file_path);
 }
+
+bool texture_manager::convert_texture_to_dds(std::string_view source_file_path, std::string_view dds_file_path, bool generate_mipmaps)
+{
+	std::filesystem::path source_path(source_file_path);
+
+	DirectX::TexMetadata tex_meta_data;
+	DirectX::ScratchImage scratch_image;
+	if (!load_image_file(source_path.wstring().data(), tex_meta_data, scratch_image))
+		return false;
+
+	if (generate_mipmaps)
+	{
+		DirectX::ScratchImage mip_chain;
+		HRESULT hr = DirectX::GenerateMipMaps(scratch_image.GetImages(),
+											  scratch_image.GetImageCount(),
+											  scratch_image.GetMetadata(),
+											  DirectX::TEX_FILTER_DEFAULT,
+											  0,	//	ミップマップを全て作る
+											  mip_chain);
+		if (SUCCEEDED(hr))
+			scratch_image = std::move(mip_chain);
+	}
+
+	std::filesystem::path dds_path(dds_file_path);
+	dds_path.replace_extension(".dds");
+
+	HRESULT hr = DirectX::SaveToDDSFile(scratch_image.GetImages(),
+										scratch_image.GetImageCount(),
+										scratch_image.GetMetadata(),
+										DirectX::DDS_FLAGS_NONE,
+										dds_path.wstring().data());
+	return SUCCEEDED(hr);
+}
+
 #endif	//	defined(USE_IMGUI)
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////

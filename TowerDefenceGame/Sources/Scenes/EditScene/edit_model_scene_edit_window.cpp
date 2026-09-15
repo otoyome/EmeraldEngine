@@ -263,8 +263,7 @@ void edit_model_scene::imgui_model_loader_window()
 				ImGui::Checkbox("change_coordinate_system", &convert_option_data.gltf.is_change_coordinate_system);
 				ImGui::Checkbox("change_coordinate_system_indices", &convert_option_data.gltf.is_change_coordinate_system_indices);
 				ImGui::Separator();
-				ImGui::Checkbox("generate_shadow_mesh", &convert_option_data.gltf.is_generate_shadow_mesh);
-				ImGui::SliderInt("generate_lod_mesh_count", &convert_option_data.gltf.generate_lod_mesh_count, 0, 16);
+				ImGui::Checkbox("convert_texture_to_dds", &convert_option_data.gltf.is_convert_texture_to_dds);
 
 				//	[エンジン改造:接線に再計算法線を含める対応]
 				ImGui::Separator();
