@@ -58,12 +58,11 @@ public:
 	void set_occlusion_animation_distance(float distance) { occlusion_animation_distance = distance; }
 
 #if defined(USE_IMGUI)
-	//	デバッグ用:フラスタム/オクルージョンカリングの判定結果をunique_id単位で過去のもので固定する
+	//	デバッグ用にカリング結果を固定する
 	bool is_freeze_culling() const { return freeze_culling; }
 	void set_freeze_culling(bool flag) { freeze_culling = flag; }
 	bool resolve_debug_visible(UINT unique_id, bool current_visible);
 #endif	//	defined(USE_IMGUI)
-
 	void cache_previous_view_projection_matrix();
 
 public:
@@ -93,7 +92,7 @@ private:
 	collision::frustum_culling frustum_culling;
 
 	std::shared_ptr<occlusion_culling_system> occlusion_culling;
-	float occlusion_animation_distance = 0.0f;
+	float occlusion_animation_distance = system_units::convert_cm_to_unit(1.0f);
 
 #if defined(USE_IMGUI)
 	bool freeze_culling = false;

@@ -888,12 +888,6 @@
     <FxCompile Include="..\Shaders\FullscreenQuad\compress_rgb_to_log_ps.hlsl">
       <Filter>Shaders\FullscreenQuad</Filter>
     </FxCompile>
-    <FxCompile Include="..\Shaders\Common\summed_area_table_y.hlsl">
-      <Filter>Shaders\Common</Filter>
-    </FxCompile>
-    <FxCompile Include="..\Shaders\Common\summed_area_table_x.hlsl">
-      <Filter>Shaders\Common</Filter>
-    </FxCompile>
     <FxCompile Include="..\Shaders\Gltf\gltf_depth_ps.hlsl">
       <Filter>Shaders\Gltf</Filter>
     </FxCompile>
@@ -1083,9 +1077,6 @@
       <Filter>Shaders\Common</Filter>
     </None>
     <None Include="..\Shaders\Common\shading_functions.hlsli">
-      <Filter>Shaders\Common</Filter>
-    </None>
-    <None Include="..\Shaders\Common\summed_area_table.hlsli">
       <Filter>Shaders\Common</Filter>
     </None>
     <None Include="..\Shaders\Common\common.hlsli">

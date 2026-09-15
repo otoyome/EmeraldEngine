@@ -25,9 +25,9 @@ namespace
 		UINT hiz_mip_count;
 		DirectX::XMFLOAT2 hiz_size;
 		float depth_bias;
-		DirectX::XMFLOAT3 dummy;
+		DirectX::XMFLOAT2 clip_near_far;
+		float dummy;
 	};
-
 	std::shared_ptr<compute_shader> load_cs(std::string_view path)
 	{
 		load_shader_file desc;
@@ -298,7 +298,8 @@ void occlusion_culling_system::update(graphics_context& context, float animation
 		constant.instance_count = count;
 		constant.hiz_mip_count = hiz_mip_count;
 		constant.hiz_size = DirectX::XMFLOAT2(static_cast<float>(hiz_mip_sizes[0].x), static_cast<float>(hiz_mip_sizes[0].y));
-		constant.depth_bias = 0.0005f;
+		constant.clip_near_far = { context.scene_constant.camera_clip_distance.x, context.scene_constant.camera_clip_distance.y };
+		constant.depth_bias = 5.0f;
 		dc->UpdateSubresource(cull_constant_buffer.Get(), 0, nullptr, &constant, 0, 0);
 		dc->CSSetConstantBuffers(0, 1, cull_constant_buffer.GetAddressOf());
 		dc->CSSetShader(occlusion_culling_cs->get_shader().Get(), nullptr, 0);
@@ -308,7 +309,7 @@ void occlusion_culling_system::update(graphics_context& context, float animation
 		ID3D11SamplerState* sampler = render_data::instance()->get_sampler_states(render_data::SAMPLER_STATE::POINT_CLAMP).Get();
 		dc->CSSetSamplers(0, 1, &sampler);
 		dc->CSSetUnorderedAccessViews(0, 1, visibility_uav.GetAddressOf(), nullptr);
-		dc->Dispatch(math::alignment(count, 64u), 1, 1);
+		dc->Dispatch((count + 63u) / 64u, 1, 1);
 		context.clear_unordered_access_views();
 		context.clear_shader_resorce_views();
 	}

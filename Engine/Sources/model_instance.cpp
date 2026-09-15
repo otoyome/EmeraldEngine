@@ -260,11 +260,12 @@ void model_instance_manger::get_container(mesh_container& container)
 		}
 
 		//	•`‰æî•ñ\’z
+		UINT submesh_index = 0;
 		for (auto& instance_mesh : instance->get_meshes())
 		{
+			UINT current_submesh_index = submesh_index++;
 			if (!instance_mesh.mesh || !instance_mesh.visible)
 				continue;
-
 			auto& mesh = *instance_mesh.mesh;
 			if (mesh.material_index == model_resource::invalid_id)
 				continue;
@@ -330,8 +331,11 @@ void model_instance_manger::get_container(mesh_container& container)
 			buffer_data.system_flags = 0;
 			system_utility::set_bitflag(buffer_data.system_flags, buffer_datas::flags::culling, instance->is_flag(model_instance::flags::culling));
 			system_utility::set_bitflag(buffer_data.system_flags, buffer_datas::flags::static_mesh, mesh.bones.empty());
-			buffer_data.unique_id = instance->get_unique_id();
-
+			{
+				UINT combined = instance->get_unique_id();
+				combined ^= current_submesh_index + 0x9e3779b9u + (combined << 6) + (combined >> 2);
+				buffer_data.unique_id = combined;
+			}
 			buffer_data.color_meshs.clear();
 			buffer_data.shadow_mesh.vertex_buffer_views = nullptr;
 			buffer_data.shadow_mesh.index_buffer_view = nullptr;

@@ -502,16 +502,6 @@ xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y</Command>
     <ClInclude Include="Headers\stdafx.h" />
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="..\Shaders\Common\summed_area_table_x.hlsl">
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">Compute</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compute</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Compute</ShaderType>
-    </FxCompile>
-    <FxCompile Include="..\Shaders\Common\summed_area_table_y.hlsl">
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">Compute</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compute</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Compute</ShaderType>
-    </FxCompile>
     <FxCompile Include="..\Shaders\ComputeParticle\Renderer\Default\compute_particle_default_csm_gs.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">true</ExcludedFromBuild>
@@ -1094,7 +1084,6 @@ xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y</Command>
     <None Include="..\Shaders\Common\lights.hlsli" />
     <None Include="..\Shaders\Common\scene_constant_buffer.hlsli" />
     <None Include="..\Shaders\Common\shading_functions.hlsli" />
-    <None Include="..\Shaders\Common\summed_area_table.hlsli" />
     <None Include="..\Shaders\DeferredRendering\deferred_rendering.hlsli" />
     <None Include="..\Shaders\DeferredRendering\gbuffer.hlsli" />
     <None Include="..\Shaders\DeferredRendering\shading_models.hlsli" />

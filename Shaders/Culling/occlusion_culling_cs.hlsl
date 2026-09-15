@@ -18,8 +18,14 @@ cbuffer OCCLUSION_CULL_CONSTANT_BUFFER : register(b0)
 	uint hiz_mip_count;
 	float2 hiz_size;		//	ミップ0の解像度
 	float depth_bias;
-	float3 dummy;
+	float2 clip_near_far;	//	x:near y:far
+	float dummy;
 };
+
+float linearize_depth(float z_ndc, float near_z, float far_z)
+{
+	return (far_z * near_z) / (far_z - z_ndc * (far_z - near_z));
+}
 
 [numthreads(64, 1, 1)]
 void main(uint3 id : SV_DispatchThreadID)
@@ -87,6 +93,9 @@ void main(uint3 id : SV_DispatchThreadID)
 	occluder = max(occluder, hiz.SampleLevel(hiz_sampler, float2(uv_min.x, uv_max.y), lod));
 	occluder = max(occluder, hiz.SampleLevel(hiz_sampler, float2(uv_max.x, uv_max.y), lod));
 
-	bool occluded = (min_z - depth_bias) > occluder;
+	float min_z_linear = linearize_depth(min_z, clip_near_far.x, clip_near_far.y);
+	float occluder_linear = linearize_depth(occluder, clip_near_far.x, clip_near_far.y);
+
+	bool occluded = (min_z_linear - depth_bias) > occluder_linear;
 	visibility[i] = occluded ? 0 : 1;
 }

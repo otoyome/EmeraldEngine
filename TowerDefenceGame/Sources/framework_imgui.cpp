@@ -216,9 +216,6 @@ void framework::imgui_render_infos_window()
 
 		ImGui::Checkbox("draw_collision", &draw_collision);
 
-		ImGui::Text("mesh draw: %u / %u (culled: %u)", debug_culled_draw_count, debug_total_draw_count,
-			debug_total_draw_count > debug_culled_draw_count ? debug_total_draw_count - debug_culled_draw_count : 0);
-
 		if (camera_manager::is_valid())
 		{
 			camera_container container;
