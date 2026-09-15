@@ -87,23 +87,51 @@ bool editor_items::edit_effect_noeds(std::shared_ptr<context>& context, effect_i
 		size_t add_node_index = effect_resource::invalid_id;
 		size_t delete_node_index = effect_resource::invalid_id;
 		std::vector<std::pair<std::string, std::string>> renamed_nodes;
+
+		//	高速化のために番号対応
+		constexpr size_t none = static_cast<size_t>(-1);
+		std::vector<size_t> model_index_by_node(nodes.size(), none);
+		std::vector<size_t> particle_index_by_node(nodes.size(), none);
+		std::vector<size_t> decal_index_by_node(nodes.size(), none);
+		for (UINT index = 0; index < models.size(); ++index)
+		{
+			auto n = models[index].node_index;
+			if (n < nodes.size() && model_index_by_node[n] == none)
+				model_index_by_node[n] = index;
+		}
+		for (UINT index = 0; index < particles.size(); ++index)
+		{
+			auto n = particles[index].node_index;
+			if (n < nodes.size() && particle_index_by_node[n] == none)
+				particle_index_by_node[n] = index;
+		}
+		for (UINT index = 0; index < decals.size(); ++index)
+		{
+			auto n = decals[index].node_index;
+			if (n < nodes.size() && decal_index_by_node[n] == none)
+				decal_index_by_node[n] = index;
+		}
+
 		std::function<bool(effect_resource::node&, size_t)> node_func = [&](effect_resource::node& node, size_t node_index)
 		{
 			ImGui::PushID(context->get_item_id());
 			bool edit_flag = false;
 
 			//	ノード
-			auto& flag = context->flag_maps[node.name];
+			auto& flag_data = context->animation_ui_flag_maps[node.name];
 
-			if (ImGui::Button((flag ? context->down_allow : context->right_allow).get<utf8_cache>().c_str()))
-				flag = !flag;
+			if (ImGui::Button((flag_data.node ? context->down_allow : context->right_allow).get<utf8_cache>().c_str()))
+				flag_data.node = !flag_data.node;
 			ImGui::SameLine();
-			std::string old_node_name = node.name;
-			if (ImGui::InputTextUtf8("name", node.name))
+			std::string node_name = node.name.get<utf8_cache>();
+			if (ImGui::InputText("name", node_name))
 			{
 				edit_flag = true;
-				if (old_node_name != node.name)
-					renamed_nodes.emplace_back(old_node_name, node.name);
+				if (node.name.get<utf8_cache>() != node_name)
+				{
+					node.name = system_utility::convert_shift_jis(node_name);
+					renamed_nodes.emplace_back(node.name.get<utf8_cache>(), node.name);
+				}
 			}
 			ImGui::SameLine();
 			if (ImGui::Button("Delete"))
@@ -113,7 +141,7 @@ bool editor_items::edit_effect_noeds(std::shared_ptr<context>& context, effect_i
 			}
 
 			//	ノード処理
-			if (flag)
+			if (flag_data.node)
 			{
 				ImGui::Indent();
 				if (ImGui::DragFloat3("scale", &node.scale.x, 0.01f, 0.0f, 100.0f))
@@ -135,32 +163,22 @@ bool editor_items::edit_effect_noeds(std::shared_ptr<context>& context, effect_i
 
 				//	モデル
 				{
-					size_t data_index = -1;
-					for (UINT index = 0; index < models.size(); ++index)
-					{
-						auto& model = models[index];
-						if (model.node_index == node_index)
-						{
-							data_index = index;
-							break;
-						}
-					}
+					size_t data_index = model_index_by_node[node_index];
 
 					ImGui::PushID(context->get_item_id());
-					auto& flag = context->flag_maps[node.name + std::string("model")];
-					if (ImGui::Button((flag ? context->down_allow : context->right_allow).get<utf8_cache>().c_str()))
-						flag = !flag;
+					if (ImGui::Button((flag_data.model ? context->down_allow : context->right_allow).get<utf8_cache>().c_str()))
+						flag_data.model = !flag_data.model;
 					ImGui::SameLine();
 					ImGui::Text("model");
 					ImGui::SameLine();
-					if (data_index != -1)
+					if (data_index != none)
 					{
 						if (ImGui::Button("Delete"))
 						{
 							models.erase(models.begin() + data_index);
 							edit_flag = true;
 						}
-						else if (flag)
+						else if (flag_data.model)
 						{
 							ImGui::Indent();
 							if (edit_effect_model(context, effect_resource, models[data_index]))
@@ -182,32 +200,22 @@ bool editor_items::edit_effect_noeds(std::shared_ptr<context>& context, effect_i
 
 				//	パーティクル
 				{
-					size_t data_index = -1;
-					for (UINT index = 0; index < particles.size(); ++index)
-					{
-						auto& particle = particles[index];
-						if (particle.node_index == node_index)
-						{
-							data_index = index;
-							break;
-						}
-					}
+					size_t data_index = particle_index_by_node[node_index];
 
 					ImGui::PushID(context->get_item_id());
-					auto& flag = context->flag_maps[node.name + std::string("particle")];
-					if (ImGui::Button((flag ? context->down_allow : context->right_allow).get<utf8_cache>().c_str()))
-						flag = !flag;
+					if (ImGui::Button((flag_data.particle ? context->down_allow : context->right_allow).get<utf8_cache>().c_str()))
+						flag_data.particle = !flag_data.particle;
 					ImGui::SameLine();
 					ImGui::Text("particle");
 					ImGui::SameLine();
-					if (data_index != -1)
+					if (data_index != none)
 					{
 						if (ImGui::Button("Delete"))
 						{
 							particles.erase(particles.begin() + data_index);
 							edit_flag = true;
 						}
-						else if (flag)
+						else if (flag_data.particle)
 						{
 							ImGui::Indent();
 							if (edit_effect_particle(context, effect_resource, particles[data_index]))
@@ -229,32 +237,22 @@ bool editor_items::edit_effect_noeds(std::shared_ptr<context>& context, effect_i
 
 				//	デカール
 				{
-					size_t data_index = -1;
-					for (UINT index = 0; index < decals.size(); ++index)
-					{
-						auto& decal = decals[index];
-						if (decal.node_index == node_index)
-						{
-							data_index = index;
-							break;
-						}
-					}
+					size_t data_index = decal_index_by_node[node_index];
 
 					ImGui::PushID(context->get_item_id());
-					auto& flag = context->flag_maps[node.name + std::string("decal")];
-					if (ImGui::Button((flag ? context->down_allow : context->right_allow).get<utf8_cache>().c_str()))
-						flag = !flag;
+					if (ImGui::Button((flag_data.decal ? context->down_allow : context->right_allow).get<utf8_cache>().c_str()))
+						flag_data.decal = !flag_data.decal;
 					ImGui::SameLine();
 					ImGui::Text("decal");
 					ImGui::SameLine();
-					if (data_index != -1)
+					if (data_index != none)
 					{
 						if (ImGui::Button("Delete"))
 						{
 							decals.erase(decals.begin() + data_index);
 							edit_flag = true;
 						}
-						else if (flag)
+						else if (flag_data.decal)
 						{
 							ImGui::Indent();
 							if (edit_effect_decal(context, effect_resource, decals[data_index]))
@@ -343,14 +341,24 @@ bool editor_items::edit_effect_noeds(std::shared_ptr<context>& context, effect_i
 			//	アニメーションノードの編集
 			auto& animation_nodes = animations.back().nodes;
 
-			//	リネームされたノードはアニメーションノードの名前も追従させる(新規追加ではなく更新にする)
 			for (auto& renamed_node : renamed_nodes)
 			{
 				auto it = std::find_if(animation_nodes.begin(),
 						 animation_nodes.end(),
 						 [&](animation::node_data& n) {return n.node_name == renamed_node.first;});
 				if (it != animation_nodes.end())
+				{
+					//	古いキーを破棄
+					auto it_flags = context->animation_ui_flag_maps.find(it->node_name);
+					if (it_flags != context->animation_ui_flag_maps.end())
+					{
+						auto flag_data = it_flags->second;
+						context->animation_ui_flag_maps.erase(it_flags);
+						context->animation_ui_flag_maps[renamed_node.second] = flag_data;
+					}
+
 					it->node_name = renamed_node.second;
+				}
 			}
 
 			for (auto& node : nodes)
@@ -926,5 +934,3 @@ bool editor_items::edit_effect_decal(std::shared_ptr<context>& context, effect_r
 }
 
 #endif	//	defined(USE_IMGUI)
-
-

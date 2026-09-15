@@ -45,7 +45,7 @@ public:
 		texture_ptr cross_texture; // ×テクスチャ
 		texture_ptr reserve_texture; // 内部で一時的に保持しておきたいテクスチャ
 		model_resource_ptr reserve_model_resource; // 内部で一時的に保持しておきたい
-		std::map<std::string, bool> flag_maps; // フラグ管理
+		std::unordered_map<std::string, bool> flag_maps; // フラグ管理
 		cache_string down_allow = "↓";
 		cache_string right_allow = "→";
 
@@ -59,6 +59,13 @@ public:
 		inline static const std::string EditAnimationHideRootMotion = "__EditAnimationHideRootMotion__";
 		inline static const std::string EditAnimationHideIK = "__EditAnimationHideIK__";
 		inline static const std::string EditAnimationHideCurve = "__EditAnimationHideCurve__";
+		struct node_ui_flags {
+			bool node = false;
+			bool model = false;
+			bool particle = false;
+			bool decal = false;
+		};
+		std::unordered_map<std::string, node_ui_flags> animation_ui_flag_maps; // フラグ管理
 	};
 
 	//	内部で利用するエディターアイテムのインターフェース

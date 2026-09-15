@@ -23,7 +23,7 @@ public:
 
 	struct node
 	{
-		std::string name;
+		cache_string name;
 		size_t parent_index = invalid_id;
 
 		DirectX::XMFLOAT3 scale = {1, 1, 1};

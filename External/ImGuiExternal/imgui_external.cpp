@@ -154,11 +154,10 @@ bool ImGui::InputText(const char* label, std::string& str, ImGuiInputTextFlags f
 {
 	flags |= ImGuiInputTextFlags_CallbackResize;
 
-	std::string text = system_utility::convert_utf8(str);
 	return ImGui::InputText(
 		label,
-		text.data(),
-		text.capacity() + 1,
+		str.data(),
+		str.capacity() + 1,
 		flags,
 		input_text_callback,
 		&str
@@ -170,6 +169,19 @@ bool ImGui::InputTextUtf8(const char* label, std::string& str, ImGuiInputTextFla
 	flags |= ImGuiInputTextFlags_CallbackResize;
 
 	std::string text = system_utility::convert_utf8(str);
+	if (ImGui::InputText(label, text.data(), text.capacity() + 1, flags, input_text_callback, &text))
+	{
+		str = system_utility::convert_shift_jis(text);
+		return true;
+	}
+	return false;
+}
+
+bool ImGui::InputTextUtf8(const char* label, cache_string& str, ImGuiInputTextFlags flags)
+{
+	flags |= ImGuiInputTextFlags_CallbackResize;
+
+	std::string text = str.get<utf8_cache>();
 	if (ImGui::InputText(label, text.data(), text.capacity() + 1, flags, input_text_callback, &text))
 	{
 		str = system_utility::convert_shift_jis(text);
