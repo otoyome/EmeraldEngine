@@ -79,6 +79,7 @@
     <ClInclude Include="Headers\render_data.h" />
     <ClInclude Include="Headers\render_pass.h" />
     <ClInclude Include="Headers\retarget_profile.h" />
+    <ClInclude Include="Headers\System\cache_string.h" />
     <ClInclude Include="Headers\timeline_resource.h" />
     <ClInclude Include="Headers\shader.h" />
     <ClInclude Include="Headers\sprite.h" />
@@ -155,6 +156,7 @@
     <ClCompile Include="Sources\render_data.cpp" />
     <ClCompile Include="Sources\render_pass.cpp" />
     <ClCompile Include="Sources\retarget_profile.cpp" />
+    <ClCompile Include="Sources\System\cache_string.cpp" />
     <ClCompile Include="Sources\timeline_resource.cpp" />
     <ClCompile Include="Sources\shader.cpp" />
     <ClCompile Include="Sources\sprite.cpp" />

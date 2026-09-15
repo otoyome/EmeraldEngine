@@ -7,12 +7,12 @@ size_t game_object::get_id() const
 
 std::string_view game_object::get_name() const
 {
-	return name;
+	return name.view();
 }
 
 void game_object::set_name(std::string_view name)
 {
-	this->name = std::string(name);
+	this->name = name;
 }
 
 bool game_object::is_active() const
@@ -71,7 +71,7 @@ void game_object::imgui_render()
 		return;
 
 	ImGui::PushID(0x10203040 + static_cast<int>(id));
-	if (ImGui::TreeNode(system_utility::convert_utf8(name).data()))
+	if (ImGui::TreeNode(name.get<utf8_cache>().data()))
 	{
 		if (ImGui::Checkbox("active", &active))
 		{

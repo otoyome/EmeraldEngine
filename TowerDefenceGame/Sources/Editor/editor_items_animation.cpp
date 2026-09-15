@@ -535,7 +535,7 @@ namespace
 				UINT track_index = 0;
 				for (auto& track : animation_data->nodes)
 				{
-					auto label = system_utility::convert_utf8(track.node_name);
+					auto& label = track.node_name.get<utf8_cache>();
 					if (ImGui::BeginNeoTimelineEx(label.data()))
 					{
 						UINT key_index = 0;
@@ -641,7 +641,7 @@ namespace
 						case timeline_category::node:
 						{
 							auto& track = animation_data->nodes[key.track_index];
-							auto label = system_utility::convert_utf8(track.node_name);
+							auto& label = track.node_name.get<utf8_cache>();
 							ImGui::Text("%s[%d]", label.data(), key.key_index);
 							edit_node_inspector(track.nodes[key.key_index]);
 							break;

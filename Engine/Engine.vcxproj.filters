@@ -282,6 +282,9 @@
     <ClInclude Include="Headers\System\parallel_for_executor.h">
       <Filter>Headers\System</Filter>
     </ClInclude>
+    <ClInclude Include="Headers\System\cache_string.h">
+      <Filter>Headers\System</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Sources\geometric_primitive.cpp">
@@ -477,6 +480,9 @@
       <Filter>Sources\System\BehaviorTree</Filter>
     </ClCompile>
     <ClCompile Include="Sources\System\simple_helper.cpp">
+      <Filter>Sources\System</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\System\cache_string.cpp">
       <Filter>Sources\System</Filter>
     </ClCompile>
   </ItemGroup>

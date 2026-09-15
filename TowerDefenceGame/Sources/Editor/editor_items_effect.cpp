@@ -95,7 +95,7 @@ bool editor_items::edit_effect_noeds(std::shared_ptr<context>& context, effect_i
 			//	ƒm[ƒh
 			auto& flag = context->flag_maps[node.name];
 
-			if (ImGui::Button(system_utility::convert_shift_jis_to_utf8(flag ? "«" : "¨").c_str()))
+			if (ImGui::Button((flag ? context->down_allow : context->right_allow).get<utf8_cache>().c_str()))
 				flag = !flag;
 			ImGui::SameLine();
 			std::string old_node_name = node.name;
@@ -148,7 +148,7 @@ bool editor_items::edit_effect_noeds(std::shared_ptr<context>& context, effect_i
 
 					ImGui::PushID(context->get_item_id());
 					auto& flag = context->flag_maps[node.name + std::string("model")];
-					if (ImGui::Button(system_utility::convert_shift_jis_to_utf8(flag ? "«" : "¨").c_str()))
+					if (ImGui::Button((flag ? context->down_allow : context->right_allow).get<utf8_cache>().c_str()))
 						flag = !flag;
 					ImGui::SameLine();
 					ImGui::Text("model");
@@ -195,7 +195,7 @@ bool editor_items::edit_effect_noeds(std::shared_ptr<context>& context, effect_i
 
 					ImGui::PushID(context->get_item_id());
 					auto& flag = context->flag_maps[node.name + std::string("particle")];
-					if (ImGui::Button(system_utility::convert_shift_jis_to_utf8(flag ? "«" : "¨").c_str()))
+					if (ImGui::Button((flag ? context->down_allow : context->right_allow).get<utf8_cache>().c_str()))
 						flag = !flag;
 					ImGui::SameLine();
 					ImGui::Text("particle");
@@ -242,7 +242,7 @@ bool editor_items::edit_effect_noeds(std::shared_ptr<context>& context, effect_i
 
 					ImGui::PushID(context->get_item_id());
 					auto& flag = context->flag_maps[node.name + std::string("decal")];
-					if (ImGui::Button(system_utility::convert_shift_jis_to_utf8(flag ? "«" : "¨").c_str()))
+					if (ImGui::Button((flag ? context->down_allow : context->right_allow).get<utf8_cache>().c_str()))
 						flag = !flag;
 					ImGui::SameLine();
 					ImGui::Text("decal");

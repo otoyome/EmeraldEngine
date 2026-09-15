@@ -52,7 +52,7 @@ protected:
 
 private:
 	size_t id;
-	std::string name;
+	cache_string name;
 	bool active;
 #if defined(USE_IMGUI)
 	bool display_inspector = true;

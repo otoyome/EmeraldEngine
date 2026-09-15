@@ -46,6 +46,8 @@ public:
 		texture_ptr reserve_texture; // 内部で一時的に保持しておきたいテクスチャ
 		model_resource_ptr reserve_model_resource; // 内部で一時的に保持しておきたい
 		std::map<std::string, bool> flag_maps; // フラグ管理
+		cache_string down_allow = "↓";
+		cache_string right_allow = "→";
 
 	private:	//	アニメーション関係
 		std::unique_ptr<ibase_editor> interpolation_editor;

@@ -918,14 +918,10 @@ bool shader_base::is_reload()
 	{
 		std::error_code error;
 
-		//	監視ファイルが消えている場合は「変更なし」扱い
-		if (!std::filesystem::exists(file.file_path, error) || error)
-			continue;
-
 		//	最終更新日時と違う場合は再コンパイルが必要
 		auto write_time = std::filesystem::last_write_time(file.file_path, error);
 		if (error)
-			continue;
+			continue;	//	消えている/読めない場合は変更なし扱い
 
 		if (file.last_write_time != write_time)
 			return true;

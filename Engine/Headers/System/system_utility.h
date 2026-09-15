@@ -23,6 +23,7 @@
 
 #include "cereal/cereal.hpp"
 #include "magic_enum/include/magic_enum/magic_enum.hpp"
+#include "system/cache_string.h"
 
 namespace	system_utility
 {
