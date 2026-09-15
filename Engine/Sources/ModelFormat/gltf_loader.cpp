@@ -1702,7 +1702,7 @@ void gltf_loader::load_materials(std::vector<material_data>& materials)
 {
 	std::filesystem::path directry_path(file_path.parent_path());
 
-	auto load_texture = [&](int gltf_texture_index, std::string_view texture_type, std::string_view material_name)
+	auto load_texture = [&](int gltf_texture_index)
 	{
 		if (gltf_texture_index < 0)
 			return std::string("");
@@ -1734,9 +1734,8 @@ void gltf_loader::load_materials(std::vector<material_data>& materials)
 			{
 				std::string extension(std::filesystem::path(gltf_image.mimeType).filename().string());
 				std::string path;
-				path += material_name;
-				path += "_";
-				path += texture_type;
+				path += "image_";
+				path += std::to_string(gltf_texture.source);
 				path += ".";
 				path += extension;
 				texture_filepath = path;
@@ -1820,11 +1819,11 @@ void gltf_loader::load_materials(std::vector<material_data>& materials)
 		{
 			material.alpha_mode = alpha_modes::opaque;
 		}
-		material.base_texture_path = load_texture(gltf_material.pbrMetallicRoughness.baseColorTexture.index, "base_color", material.name.c_str());
-		material.emissive_texture_path = load_texture(gltf_material.emissiveTexture.index, "emissive", material.name.c_str());
-		material.normal_texture_path = load_texture(gltf_material.normalTexture.index, "normal", material.name.c_str());
-		material.occlusion_texture_path = load_texture(gltf_material.occlusionTexture.index, "occlusion", material.name.c_str());
-		material.roughness_metalness_texture_path = load_texture(gltf_material.pbrMetallicRoughness.metallicRoughnessTexture.index, "roughness_metallic", material.name.c_str());
+		material.base_texture_path = load_texture(gltf_material.pbrMetallicRoughness.baseColorTexture.index);
+		material.emissive_texture_path = load_texture(gltf_material.emissiveTexture.index);
+		material.normal_texture_path = load_texture(gltf_material.normalTexture.index);
+		material.occlusion_texture_path = load_texture(gltf_material.occlusionTexture.index);
+		material.roughness_metalness_texture_path = load_texture(gltf_material.pbrMetallicRoughness.metallicRoughnessTexture.index);
 
 		//	àŸï˚ê´
 		auto it = gltf_material.extensions.find("KHR_materials_anisotropy");
