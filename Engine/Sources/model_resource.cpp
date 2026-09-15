@@ -295,12 +295,34 @@ void model_resource::build_model()
 {
 	HRESULT hr;
 
+	//	テクスチャの枚数が多いと重いので並列読込するように
+	{
+		std::vector<std::string> texture_path_storage;
+		for (auto& material : materials)
+		{
+			for (auto& shader_resource : material.get_shader_resources())
+			{
+				for (auto& resource : shader_resource.second.resources)
+				{
+					if (resource.is_file_path_or_key && !resource.path.empty())
+						texture_path_storage.emplace_back(resource.path);
+				}
+			}
+		}
+
+		if (!texture_path_storage.empty())
+		{
+			std::vector<std::string_view> texture_path_views(texture_path_storage.begin(), texture_path_storage.end());
+			std::vector<texture_ptr> loaded_textures;
+			texture_manager::instance()->load_textures_from_files(loaded_textures, texture_path_views);
+		}
+	}
+
 	//	マテリアル
 	for (auto& material : materials)
 	{
 		material.build();
 	}
-
 	//	頂点・インデックスバッファ
 	for (auto& mesh : meshes)
 	{
