@@ -31,6 +31,7 @@ emitter_context build_emitter_context(inout uint emitter_binary_offset, uint emi
     em_context.scale = em_common.scale;
     em_context.rotation = em_common.rotation;
     em_context.translation = em_common.translation;
+    em_context.reverse_depth = has_flag(em_common.emitter_state, em_common_item_state_reverse_depth_sort);
 
     return em_context;
 }

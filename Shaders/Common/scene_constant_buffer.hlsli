@@ -9,7 +9,7 @@ cbuffer SCENE_CONSTANT_BUFFER : register(b0)
     float4 camera_right; //  xyz : 方向, w : tan(fovY)
     float4 camera_up; //  xyz : 方向, w : 空き
     float4 camera_direction; //  xyz : 方向, w : 空き
-    float4 camera_clip_distance;
+    float4 camera_clip_distance; // x : 近クリップ, y : 遠クリップ, z = x * y, w = y - x
     float4 viewport_rect;   //  xy : 左上, zw : 右下
     row_major float4x4 view_transform;
     row_major float4x4 projection_transform;

@@ -1017,9 +1017,6 @@
     <FxCompile Include="..\Shaders\ComputeParticle\System\compute_particle_terminate_particles_cs.hlsl">
       <Filter>Shaders\ComputeParticle\System</Filter>
     </FxCompile>
-    <FxCompile Include="..\Shaders\ComputeParticle\System\compute_particle_update_particles_cs.hlsl">
-      <Filter>Shaders\ComputeParticle\System</Filter>
-    </FxCompile>
     <FxCompile Include="..\Shaders\ComputeParticle\System\compute_particle_begin_update_cs.hlsl">
       <Filter>Shaders\ComputeParticle\System</Filter>
     </FxCompile>
@@ -1067,6 +1064,9 @@
     </FxCompile>
     <FxCompile Include="..\Shaders\ComputeParticle\System\compute_particle_spawn_from_events_cs.hlsl">
       <Filter>Shaders\ComputeParticle\System</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shaders\ComputeParticle\System\compute_particle_update_particles_cs.hlsl">
+      <Filter>Shaders\ComputeParticle</Filter>
     </FxCompile>
   </ItemGroup>
   <ItemGroup>

@@ -15,6 +15,7 @@ struct emitter_context
     float3 scale; // Šgkî•ñ
     float4 rotation; // ‰ñ“]î•ñ
     float3 translation; // ˆÚ“®î•ñ
+    bool reverse_depth; // ‹t[“xƒtƒ‰ƒO
 };
 
 //////////////////////////////////////////////////////////////////////////

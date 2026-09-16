@@ -9,54 +9,41 @@ StructuredBuffer<uint> emitter_table_buffer : register(t0);
 StructuredBuffer<emitter_header> emitter_header_buffer : register(t1);
 StructuredBuffer<emitter_range> emitter_range_buffer : register(t2);
 
-static const uint ThreadsCount = 1024;
-
-[numthreads(ThreadsCount, 1, 1)]
+[numthreads(NumDispatchThread, 1, 1)]
 void main(uint3 dispatch_thread_id : SV_DispatchThreadID)
 {
-    if (dispatch_thread_id.x >= total_emitter_count)
+    uint header_index = dispatch_thread_id.x;
+    if (header_index >= total_particle_count)
         return;
 
-    uint emitter_index = emitter_table_buffer.Load(dispatch_thread_id.x);
-    if (emitter_index == invalid_tag)
+    particle_header header = particle_header_buffer[header_index];
+    if (header.tag == invalid_tag)
         return;
-
-    //  死亡しているパーティクル番号をパーティクルインデックスバッファに返す
-    emitter_range range = emitter_range_buffer[emitter_index];
-
-    //  パーティクル総数更新
-    emitter_data_buffer[emitter_index].particle_num = range.alive_end - range.alive_head;
-
-    //  パーティクル破棄
-    particle_header dead_header;
-    dead_header.tag = invalid_tag;
-    dead_header.depth = 0;
-
-    //  死亡したパーティクル番号をインデックスバッファに格納
-    uint particle_index_head = emitter_header_buffer[emitter_index].particle_index_head;
+    
     bool alive;
     uint emitter_id, particle_index;
+    get_particle_header_parameter(header, alive, emitter_id, particle_index);
 
-    //  生存者の番号を詰めていく
-    uint index, index_buffer_counter = particle_index_head;
-    for (index = range.alive_head; index < range.alive_end; ++index)
+    emitter_range range = emitter_range_buffer[emitter_id];
+    uint particle_index_head = emitter_header_buffer[emitter_id].particle_index_head;
+
+    if (header_index >= range.alive_head && header_index < range.alive_end)
     {
-        particle_header header = particle_header_buffer[index];
-        get_particle_header_parameter(header, alive, emitter_id, particle_index);
-
-        particle_index_buffer[index_buffer_counter] = particle_index;
-        ++index_buffer_counter;
+        //  自分の位置から直接オフセット算出
+        uint index = particle_index_head + (header_index - range.alive_head);
+        particle_index_buffer[index] = particle_index;
     }
-    //  破棄者の番号を詰めていく
-    for (index = range.dead_head; index < range.dead_end; ++index)
+    else if (header_index >= range.dead_head && header_index < range.dead_end)
     {
-        particle_header header = particle_header_buffer[index];
-        get_particle_header_parameter(header, alive, emitter_id, particle_index);
-        if (header.tag == invalid_tag)
-            continue;
+        //  alive分だけずらして算出
+        uint alive_count = range.alive_end - range.alive_head;
+        uint index = particle_index_head + alive_count + (header_index - range.dead_head);
+        particle_index_buffer[index] = particle_index;
 
-        particle_index_buffer[index_buffer_counter] = particle_index;
-        particle_header_buffer[index] = dead_header;
-        ++index_buffer_counter;
+        //  破棄情報として利用
+        particle_header dead_header;
+        dead_header.tag = invalid_tag;
+        dead_header.depth = 0;
+        particle_header_buffer[header_index] = dead_header;
     }
 }

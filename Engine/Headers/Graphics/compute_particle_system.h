@@ -76,8 +76,9 @@ namespace particle_system_item
 			//	エミッターステートフラグ類
 			enum class state
 			{
-				active = 1 << 0,		//	アクティブフラグ
-				billboard_off = 1 << 1,	//	ビルボード無し
+				active = 1 << 0,				//	アクティブフラグ
+				billboard_off = 1 << 1,			//	ビルボード無し
+				reverse_depth_sort = 1 << 2,	//	逆深度ソート(半透明描画用)
 			};
 
 			//	エミッター情報
@@ -441,10 +442,10 @@ private:
 
 		range_particles,
 		terminate_particles,
+		build_emitter_draw_arguments,
 
 		end_update,
 
-		build_emitter_draw_arguments,
 		build_primitive,
 
 		max,

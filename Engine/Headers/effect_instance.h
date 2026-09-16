@@ -163,6 +163,9 @@ class effect_manager
 	};
 
 public:
+	static constexpr UINT trail_body_max = 64;
+
+public:
 	inline const std::vector<item>& get_items() const { return items; }
 	inline std::shared_ptr<compute_particle_system> get_particle_system() const { return particle_system; }
 

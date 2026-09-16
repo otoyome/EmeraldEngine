@@ -20,8 +20,9 @@ namespace particle
 			//	ステート
 			enum class states
 			{
-				animation = 1 << 0,		//	アニメーション
-				billboard_off = 1 << 1,	//	ビルボード無し
+				animation = 1 << 0,				//	アニメーション
+				billboard_off = 1 << 1,			//	ビルボード無し
+				reverse_depth_sort = 1 << 2,	//	逆深度ソート
 			};
 
 			//	形状指定

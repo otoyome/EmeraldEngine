@@ -39,6 +39,9 @@ namespace
 				system_utility::set_bitflag(common_data.emitter_state,
 					particle_system_item::emitter::common::state::billboard_off,
 					renderer->is_state(::particle::item::renderer::states::billboard_off));
+				system_utility::set_bitflag(common_data.emitter_state,
+					particle_system_item::emitter::common::state::reverse_depth_sort,
+					renderer->is_state(::particle::item::renderer::states::reverse_depth_sort));
 			}
 
 			auto WorldMatrix = DirectX::XMLoadFloat4x4(&node_data.world_transform);
@@ -447,10 +450,21 @@ effect_manager::effect_manager()
 {
 	//	コンピュートパーティクルシステム生成
 	{
-		UINT emitter_max = 512;
-		UINT emitter_data_size = sizeof(DirectX::XMFLOAT4X4) * 6;
-		UINT particle_max = 100000;
-		UINT particle_data_size = sizeof(DirectX::XMFLOAT4) * 32;
+		UINT emitter_max = 128;	//	512;
+		UINT particle_max = 100000;	//	1000000;
+		UINT emitter_data_size = sizeof(particle_system_item::emitter::common)
+								+ sizeof(particle_system_item::emitter::trail)
+								+ sizeof(particle_system_item::emitter::uv)
+								+ sizeof(particle_system_item::emitter::color)
+								+ sizeof(particle_system_item::emitter::velocity)
+								+ sizeof(particle_system_item::emitter::attract)
+								+ sizeof(particle_system_item::emitter::event);
+
+		UINT particle_data_size = sizeof(particle_system_item::particle::common)
+								+ sizeof(particle_system_item::particle::trail_header)
+								+ sizeof(particle_system_item::particle::trail_body) * trail_body_max
+								+ sizeof(particle_system_item::particle::velocity)
+								+ sizeof(particle_system_item::particle::attract);
 		particle_system = std::make_unique<compute_particle_system>(render_data::instance()->get_device().Get(),
 			emitter_max,
 			emitter_data_size,

@@ -14,8 +14,11 @@ StructuredBuffer<particle_header> particle_header_buffer : register(t4);
 #define SRV emitter_binary_buffer
 #include "compute_particle_system_item_emitter.hlsli"
 
-[numthreads(NumDispatchThread, 1, 1)]
-void main(uint3 group_thread_ids : SV_GroupThreadID)
+//  エミッターの最大値
+static const uint NumThread = 1024;
+
+[numthreads(NumThread, 1, 1)]
+void main(uint3 group_thread_ids : SV_GroupThreadID, uint group_index : SV_GroupIndex)
 {
     if (group_thread_ids.x >= total_emitter_count)
         return;
@@ -25,14 +28,17 @@ void main(uint3 group_thread_ids : SV_GroupThreadID)
     if (emitter_id == invalid_tag)
         return;
 
+    //  パーティクル総数更新
+    emitter_range range = emitter_range_buffer[emitter_id];
+    uint particle_num = range.alive_end - range.alive_head;
+
     //  エミッター情報取得
     em_common_item em_common;
     uint emitter_binary_offset = emitter_header_buffer[emitter_id].emitter_binary_head;
     stream_common_item(rw_read_only, emitter_binary_offset, em_common);
 
-    //  共有メモリに格納
+    //  頂点数計算
     uint vertex_count = 0;
-    uint particle_num = emitter_data_buffer[emitter_id].particle_num;
     if (em_common.active_items & emitter_active_trail_item_bit_flag)
     {
         //  ribon
@@ -50,4 +56,7 @@ void main(uint3 group_thread_ids : SV_GroupThreadID)
     uint4 draw_indirect_data = uint4(vertex_count, 1, 0, 0);
     uint offset = FixedIndirectDataSize + emitter_id * draw_indirect_size;
     indirect_data_buffer.Store4(offset, draw_indirect_data);
+    
+    //  パーティクル総数更新
+    emitter_data_buffer[emitter_id].particle_num = particle_num;
 }

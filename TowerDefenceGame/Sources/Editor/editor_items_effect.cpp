@@ -333,6 +333,36 @@ bool editor_items::edit_effect_noeds(std::shared_ptr<context>& context, effect_i
 		if (delete_node_index != effect_resource::invalid_id)
 		{
 			nodes.erase(nodes.begin() + delete_node_index);
+			auto it_model = models.begin();
+			while (it_model != models.end())
+			{
+				if (it_model->node_index == delete_node_index)
+				{
+					models.erase(it_model);
+					break;
+				}
+				++it_model;
+			}
+			auto it_particle = particles.begin();
+			while (it_particle != particles.end())
+			{
+				if (it_particle->node_index == delete_node_index)
+				{
+					particles.erase(it_particle);
+					break;
+				}
+				++it_particle;
+			}
+			auto it_decal = decals.begin();
+			while (it_decal != decals.end())
+			{
+				if (it_decal->node_index == delete_node_index)
+				{
+					decals.erase(it_decal);
+					break;
+				}
+				++it_decal;
+			}
 			sort_nodes(effect_resource);
 		}
 
@@ -570,7 +600,7 @@ bool editor_items::edit_effect_particle(std::shared_ptr<context>& context, effec
 						}
 
 						//	‹OÕ
-						if (ImGui::DragUInt("max", &renderer->trail.max, 0.1f))
+						if (ImGui::DragUInt("max", &renderer->trail.max, 0.1f, 1, effect_manager::trail_body_max))
 							edit_flag = true;
 						if (ImGui::EditFlags<particle::item::renderer::trails::states>(renderer->trail.state))
 							edit_flag = true;

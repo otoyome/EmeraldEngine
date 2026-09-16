@@ -16,7 +16,8 @@ namespace
 
 	//	その他定数
 	static constexpr UINT number_of_vertices_per_particle = 6;
-	static constexpr UINT max_emitter = 1024;
+	static constexpr UINT max_emitter = 1 << 10;
+	static constexpr UINT max_particle = 1 << 21;
 	static constexpr UINT vertex_buffer_uav_max = std::min(4, D3D11_1_UAV_SLOT_COUNT - 1);
 
 	//	2の累乗の数値に変換
@@ -118,10 +119,10 @@ namespace
 
 		"Shaders/ComputeParticle/System/compute_particle_range_particles_cs.hlsl",
 		"Shaders/ComputeParticle/System/compute_particle_terminate_particles_cs.hlsl",
+		"Shaders/ComputeParticle/System/compute_particle_build_emitter_draw_arguments_cs.hlsl",
 
 		"Shaders/ComputeParticle/System/compute_particle_end_update_cs.hlsl",
 
-		"Shaders/ComputeParticle/System/compute_particle_build_emitter_draw_arguments_cs.hlsl",
 		"Shaders/ComputeParticle/System/compute_particle_build_primitive_cs.hlsl",
 	};
 }
@@ -136,6 +137,7 @@ compute_particle_system::compute_particle_system(ID3D11Device* device,
 	//	パーティクル数をスレッド数に合わせて制限
 	num_particle = calculate_adjust_to_power_of_2(num_particle);
 	total_particle_count = ((num_particle + (NumDispatchThread - 1)) / NumDispatchThread) * NumDispatchThread;
+	total_particle_count = std::min(max_particle, num_particle);
 	total_emitter_count = std::min(num_emitter, max_emitter);
 
 	//	エミッター/パーティクル一つの最大サイズから総数のサイズに変更
@@ -1110,27 +1112,11 @@ void compute_particle_system::update(graphics_context& context, float elapsed_ti
 		context.device_context->CSSetShaderResources(1, 1, emitter_header_shader_resource_view.GetAddressOf());
 		context.device_context->CSSetShaderResources(2, 1, emitter_range_shader_resource_view.GetAddressOf());
 
+		//	パーティクルインデックスリスト更新
 		context.device_context->CSSetShader(compute_shaderes[static_cast<int>(dispatch_shaderes::terminate_particles)]->get_shader().Get(), nullptr, 0);
-		context.device_context->Dispatch(1, 1, 1);
+		context.device_context->Dispatch(total_particle_count / NumDispatchThread, 1, 1);
 		clear_resources(context.device_context);
 	}
-
-	//	更新終了処理
-	{
-		context.device_context->CSSetUnorderedAccessViews(0, 1, indirect_data_unordered_access_view.GetAddressOf(), nullptr);
-		context.device_context->CSSetShaderResources(0, 1, emitter_table_shader_resource_view.GetAddressOf());
-		context.device_context->CSSetShaderResources(1, 1, emitter_data_shader_resource_view.GetAddressOf());
-		context.device_context->CSSetShader(compute_shaderes[static_cast<int>(dispatch_shaderes::end_update)]->get_shader().Get(), nullptr, 0);
-		context.device_context->Dispatch(1, 1, 1);
-		clear_resources(context.device_context);
-	}
-
-}
-
-void compute_particle_system::build_primitives(graphics_context& context)
-{
-	context.device_context->CSSetConstantBuffers(common_pipeline_states::scene_cbv_index, 1, context.scene_constant_buffer.GetAddressOf());
-	context.device_context->CSSetConstantBuffers(common_constant_buffer_index, 1, common_constant_buffer.GetAddressOf());
 
 	//	エミッター毎の描画情報を構築していく
 	{
@@ -1148,6 +1134,22 @@ void compute_particle_system::build_primitives(graphics_context& context)
 		context.device_context->Dispatch(1, 1, 1);	//	エミッターを並列で処理させる
 		clear_resources(context.device_context);
 	}
+
+	//	更新終了処理
+	{
+		context.device_context->CSSetUnorderedAccessViews(0, 1, indirect_data_unordered_access_view.GetAddressOf(), nullptr);
+		context.device_context->CSSetShaderResources(0, 1, emitter_table_shader_resource_view.GetAddressOf());
+		context.device_context->CSSetShaderResources(1, 1, emitter_data_shader_resource_view.GetAddressOf());
+		context.device_context->CSSetShader(compute_shaderes[static_cast<int>(dispatch_shaderes::end_update)]->get_shader().Get(), nullptr, 0);
+		context.device_context->Dispatch(1, 1, 1);
+		clear_resources(context.device_context);
+	}
+}
+
+void compute_particle_system::build_primitives(graphics_context& context)
+{
+	context.device_context->CSSetConstantBuffers(common_pipeline_states::scene_cbv_index, 1, context.scene_constant_buffer.GetAddressOf());
+	context.device_context->CSSetConstantBuffers(common_constant_buffer_index, 1, common_constant_buffer.GetAddressOf());
 
 	//	頂点バッファ構築
 	{

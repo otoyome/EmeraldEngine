@@ -133,6 +133,12 @@ void get_particle_header_parameter(in particle_header header, out bool alive, ou
     particle_index = (header.tag >> tag_particle_index_bit_shift_count) & tag_particle_index_bit_mask;
 }
 
+//  パーティクルヘッダーからインデックス情報取得関数
+uint get_particle_index(in particle_header header)
+{
+    return (header.tag >> tag_particle_index_bit_shift_count) & tag_particle_index_bit_mask;
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 //  その他汎用関数群
 ////////////////////////////////////////////////////////////////////////////////////////////////////////

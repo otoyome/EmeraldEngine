@@ -3,11 +3,12 @@
 [numthreads(NumDispatchThread, 1, 1)]
 void main(uint3 dispatch_thread_id : SV_DispatchThreadID)
 {
-    if (dispatch_thread_id.x >= total_particle_count)
+    uint header_index = dispatch_thread_id.x;
+    if (header_index >= total_particle_count)
         return;
 
     //  パーティクルヘッダー取得
-    particle_header header = particle_header_buffer.Load(dispatch_thread_id.x);
+    particle_header header = particle_header_buffer.Load(header_index);
     if (header.tag == invalid_tag)
         return;
 
@@ -66,6 +67,8 @@ void main(uint3 dispatch_thread_id : SV_DispatchThreadID)
     {
         header.tag = set_particle_header_tag(alive, emitter_id, particle_index);
         header.depth = mul(float4(pt_common.translation, 1), view_transform).z;
-        particle_header_buffer[dispatch_thread_id.x] = header;
+        //  不透明/半透明用に逆深度ソート対応
+        header.depth = em_context.reverse_depth ? (camera_clip_distance.w - header.depth) : header.depth;
+        particle_header_buffer[header_index] = header;
     }
 }
