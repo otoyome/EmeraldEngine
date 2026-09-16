@@ -19,6 +19,9 @@ public:
 	//	解除
 	bool deallocate(UINT deallocate_position);
 
+	//	拡張
+	bool grow(UINT additional_size);
+
 	//	プール全体のサイズ
 	UINT get_capacity() const { return capacity; }
 

@@ -85,11 +85,13 @@ std::vector<const char*> logger::get_levels_texts()
 
 void logger::clear()
 {
+	std::lock_guard<std::mutex> lock(critical_section);
 	logs.clear();
 }
 
 void logger::register_log(categorys category, levels level, const char* text)
 {
+	std::lock_guard<std::mutex> lock(critical_section);
 	logs.emplace_back(category, level, text);
 	while (logs.size() > log_max)
 	{

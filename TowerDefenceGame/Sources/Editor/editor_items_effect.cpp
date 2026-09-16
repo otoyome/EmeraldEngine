@@ -123,15 +123,14 @@ bool editor_items::edit_effect_noeds(std::shared_ptr<context>& context, effect_i
 			if (ImGui::Button((flag_data.node ? context->down_allow : context->right_allow).get<utf8_cache>().c_str()))
 				flag_data.node = !flag_data.node;
 			ImGui::SameLine();
-			std::string node_name = node.name.get<utf8_cache>();
-			if (ImGui::InputText("name", node_name))
+			std::string old_node_name = node.name.get<utf8_cache>();
+			std::string node_name = old_node_name;
+			ImGui::InputText("name", node_name);
+			if (ImGui::IsItemDeactivatedAfterEdit() && node_name != old_node_name)
 			{
+				node.name = system_utility::convert_shift_jis(node_name);
+				renamed_nodes.emplace_back(old_node_name, node.name);
 				edit_flag = true;
-				if (node.name.get<utf8_cache>() != node_name)
-				{
-					node.name = system_utility::convert_shift_jis(node_name);
-					renamed_nodes.emplace_back(node.name.get<utf8_cache>(), node.name);
-				}
 			}
 			ImGui::SameLine();
 			if (ImGui::Button("Delete"))

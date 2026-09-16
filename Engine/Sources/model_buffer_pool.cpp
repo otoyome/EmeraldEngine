@@ -10,6 +10,7 @@ namespace
 model_gpu_buffer::model_gpu_buffer(UINT bind_flag, UINT capacity_in_bytes, UINT stride_in_bytes)
 : capacity_in_bytes(capacity_in_bytes)
 , stride_in_bytes(stride_in_bytes)
+, bind_flag(bind_flag)
 {
 	D3D11_BUFFER_DESC buffer_desc{};
 	buffer_desc.ByteWidth = capacity_in_bytes;
@@ -30,8 +31,7 @@ void model_gpu_buffer::queue_upload(UINT offset_in_bytes, const void* data, UINT
 
 	pending_upload upload;
 	upload.offset_in_bytes = offset_in_bytes;
-	upload.data = data;
-	upload.size_in_bytes = size_in_bytes;
+	upload.data.assign(static_cast<const uint8_t*>(data), static_cast<const uint8_t*>(data) + size_in_bytes);
 	pending_uploads.emplace_back(std::move(upload));
 }
 
@@ -44,14 +44,43 @@ void model_gpu_buffer::flush_uploads()
 	{
 		D3D11_BOX box{};
 		box.left = upload.offset_in_bytes;
-		box.right = upload.offset_in_bytes + upload.size_in_bytes;
+		box.right = upload.offset_in_bytes + static_cast<UINT>(upload.data.size());
 		box.top = 0;
 		box.bottom = 1;
 		box.front = 0;
 		box.back = 1;
-		render_data::instance()->get_immediate_context()->UpdateSubresource(buffer.Get(), 0, &box, upload.data, 0, 0);
+		render_data::instance()->get_immediate_context()->UpdateSubresource(buffer.Get(), 0, &box, upload.data.data(), 0, 0);
 	}
 	pending_uploads.clear();
+}
+
+void model_gpu_buffer::grow(UINT new_capacity_in_bytes)
+{
+	if (new_capacity_in_bytes <= capacity_in_bytes)
+		return;
+
+	D3D11_BUFFER_DESC buffer_desc{};
+	buffer_desc.ByteWidth = new_capacity_in_bytes;
+	buffer_desc.Usage = D3D11_USAGE_DEFAULT;
+	buffer_desc.BindFlags = bind_flag;
+
+	Microsoft::WRL::ComPtr<ID3D11Buffer> new_buffer;
+	HRESULT hr = render_data::instance()->get_device()->CreateBuffer(&buffer_desc, nullptr, new_buffer.GetAddressOf());
+	_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+	if (FAILED(hr))
+		return;
+
+	D3D11_BOX box{};
+	box.left = 0;
+	box.right = capacity_in_bytes;
+	box.top = 0;
+	box.bottom = 1;
+	box.front = 0;
+	box.back = 1;
+	render_data::instance()->get_immediate_context()->CopySubresourceRegion(new_buffer.Get(), 0, 0, 0, 0, buffer.Get(), 0, &box);
+
+	buffer = new_buffer;
+	capacity_in_bytes = new_capacity_in_bytes;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -59,7 +88,10 @@ model_buffer_pool_manager::model_buffer_pool_manager()
 : index_buffer(std::make_unique<model_gpu_buffer>(D3D11_BIND_INDEX_BUFFER, index_pool_capacity_in_bytes))
 {
 	vertex_slot_allocator.initialize(vertex_slot_capacity);
+	vertex_slot_capacity_current = vertex_slot_capacity;
+
 	index_position_allocator.initialize(index_pool_capacity_in_bytes);
+	index_capacity_current = index_pool_capacity_in_bytes;
 }
 
 model_buffer_pool_manager::~model_buffer_pool_manager()
@@ -69,6 +101,12 @@ model_buffer_pool_manager::~model_buffer_pool_manager()
 UINT model_buffer_pool_manager::allocate_vertex_slots(UINT vertex_count)
 {
 	UINT base_vertex = vertex_slot_allocator.allocate(vertex_count);
+	if (base_vertex == variable_position_allocator::allocate_failed_code)
+	{
+		UINT growth = vertex_slot_capacity_current > vertex_count ? vertex_slot_capacity_current : vertex_count;
+		grow_vertex_capacity(growth);
+		base_vertex = vertex_slot_allocator.allocate(vertex_count);
+	}
 	_ASSERT_EXPR(base_vertex != variable_position_allocator::allocate_failed_code, L"model_buffer_pool_manager allocate failed");
 	return base_vertex;
 }
@@ -83,10 +121,34 @@ model_gpu_buffer& model_buffer_pool_manager::get_vertex_buffer_pool(const semant
 	auto it = vertex_buffers.find(target_semantic);
 	if (it == vertex_buffers.end())
 	{
-		UINT capacity_in_bytes = vertex_slot_capacity * stride_in_bytes;
+		UINT capacity_in_bytes = vertex_slot_capacity_current * stride_in_bytes;
 		it = vertex_buffers.emplace(target_semantic, std::make_unique<model_gpu_buffer>(D3D11_BIND_VERTEX_BUFFER, capacity_in_bytes, stride_in_bytes)).first;
 	}
 	return *it->second;
+}
+
+void model_buffer_pool_manager::grow_vertex_capacity(UINT additional_vertex_count)
+{
+	if (!vertex_slot_allocator.grow(additional_vertex_count))
+	{
+		_ASSERT_EXPR(false, L"model_buffer_pool_manager: failed to grow vertex slot allocator");
+		return;
+	}
+	vertex_slot_capacity_current += additional_vertex_count;
+
+	for (auto& pool : vertex_buffers)
+		pool.second->grow(vertex_slot_capacity_current * pool.second->get_stride_in_bytes());
+}
+
+void model_buffer_pool_manager::grow_index_capacity(UINT additional_bytes)
+{
+	if (!index_position_allocator.grow(additional_bytes))
+	{
+		_ASSERT_EXPR(false, L"model_buffer_pool_manager: failed to grow index pool allocator");
+		return;
+	}
+	index_capacity_current += additional_bytes;
+	index_buffer->grow(index_capacity_current);
 }
 
 void model_buffer_pool_manager::queue_vertex_upload(const semantic& target_semantic, UINT byte_offset, const void* data, UINT size_in_bytes, UINT stride_in_bytes)
@@ -104,6 +166,12 @@ ID3D11Buffer* model_buffer_pool_manager::get_vertex_buffer(const semantic& targe
 UINT model_buffer_pool_manager::allocate_index(UINT size_in_bytes)
 {
 	UINT offset_in_bytes = index_position_allocator.allocate(size_in_bytes);
+	if (offset_in_bytes == variable_position_allocator::allocate_failed_code)
+	{
+		UINT growth = index_capacity_current > size_in_bytes ? index_capacity_current : size_in_bytes;
+		grow_index_capacity(growth);
+		offset_in_bytes = index_position_allocator.allocate(size_in_bytes);
+	}
 	_ASSERT_EXPR(offset_in_bytes != variable_position_allocator::allocate_failed_code, L"model_buffer_pool_manager allocate failed");
 	return offset_in_bytes;
 }

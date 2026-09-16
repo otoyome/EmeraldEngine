@@ -91,3 +91,22 @@ bool variable_position_allocator::deallocate(UINT deallocate_position)
 
 	return false;
 }
+
+bool variable_position_allocator::grow(UINT additional_size)
+{
+	if (additional_size == 0)
+		return true;
+
+	UINT new_capacity = capacity + additional_size;
+	if (new_capacity < capacity || new_capacity >= alive_flag)
+		return false;
+
+	//	末尾のノードが空きならそのまま伸ばす。使用中(alive)なら新しい空きノードを追加する
+	if (!nodes.empty() && !is_alive(nodes.back().size))
+		nodes.back().size = unpack_size(nodes.back().size) + additional_size;
+	else
+		nodes.push_back({ capacity, additional_size });
+
+	capacity = new_capacity;
+	return true;
+}

@@ -18,6 +18,8 @@ public:
 	void queue_upload(UINT offset_in_bytes, const void* data, UINT size_in_bytes);
 	void flush_uploads();
 
+	void grow(UINT new_capacity_in_bytes);
+
 	ID3D11Buffer* get_buffer() const { return buffer.Get(); }
 	UINT get_capacity_in_bytes() const { return capacity_in_bytes; }
 	UINT get_stride_in_bytes() const { return stride_in_bytes; }
@@ -27,14 +29,14 @@ private:
 	struct pending_upload
 	{
 		UINT offset_in_bytes;
-		const void* data;
-		UINT size_in_bytes;
+		std::vector<uint8_t> data;
 	};
 
 	Microsoft::WRL::ComPtr<ID3D11Buffer> buffer;
 	std::vector<pending_upload> pending_uploads;
 	UINT capacity_in_bytes = 0;
 	UINT stride_in_bytes = 0;
+	UINT bind_flag = 0;
 };
 
 //	モデルの頂点/インデックスバッファ管理クラス
@@ -79,9 +81,14 @@ public:
 private:
 	model_gpu_buffer& get_vertex_buffer_pool(const semantic& target_semantic, UINT stride_in_bytes);
 
+	void grow_vertex_capacity(UINT additional_vertex_count);
+	void grow_index_capacity(UINT additional_bytes);
+
 	variable_position_allocator vertex_slot_allocator;
 	std::unordered_map<semantic, std::unique_ptr<model_gpu_buffer>> vertex_buffers;
+	UINT vertex_slot_capacity_current = 0;
 
 	variable_position_allocator index_position_allocator;
 	std::unique_ptr<model_gpu_buffer> index_buffer;
+	UINT index_capacity_current = 0;
 };
