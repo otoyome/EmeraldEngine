@@ -227,7 +227,7 @@ namespace
 
 			status = U_ZERO_ERROR;
 			int32_t utf8_len = ucnv_fromUChars(utf8_converter, nullptr, 0,
-				work_uchar_buffer.data(), static_cast<int32_t>(work_uchar_buffer.size()), &status);
+				work_uchar_buffer.data(), u16_len, &status);
 			if (status != U_BUFFER_OVERFLOW_ERROR && U_FAILURE(status))
 				return "";
 
@@ -235,12 +235,12 @@ namespace
 			work_string_resize(utf8_len + 1);
 			ucnv_fromUChars(utf8_converter,
 				work_string.data(), static_cast<int32_t>(work_string.size()),
-				work_uchar_buffer.data(), static_cast<int32_t>(work_uchar_buffer.size()), &status);
+				work_uchar_buffer.data(), u16_len, &status);
 
 			if (U_FAILURE(status))
 				return "";
 
-			return work_string;
+			return work_string.substr(0, utf8_len);
 		}
 
 		std::wstring convert_shift_jis_to_utf16(std::string_view sjis)
@@ -263,7 +263,7 @@ namespace
 			if (U_FAILURE(status))
 				return std::wstring();
 
-			return std::wstring(reinterpret_cast<wchar_t*>(work_uchar_buffer.data()), static_cast<int32_t>(work_uchar_buffer.size()));
+			return std::wstring(reinterpret_cast<wchar_t*>(work_uchar_buffer.data()), u16_len);
 		}
 
 		std::string convert_utf8_to_shift_jis(std::string_view utf8)
@@ -292,7 +292,7 @@ namespace
 			status = U_ZERO_ERROR;
 			int32_t sjis_len = ucnv_fromUChars(sjis_converter,
 				nullptr, 0,
-				work_uchar_buffer.data(), static_cast<int32_t>(work_uchar_buffer.size()),
+				work_uchar_buffer.data(), u16_len,
 				&status);
 			if (status != U_BUFFER_OVERFLOW_ERROR && U_FAILURE(status))
 				return "";
@@ -301,13 +301,13 @@ namespace
 			work_string_resize(sjis_len + 1);
 			ucnv_fromUChars(sjis_converter,
 				work_string.data(), static_cast<int32_t>(work_string.size()),
-				work_uchar_buffer.data(), static_cast<int32_t>(work_uchar_buffer.size()),
+				work_uchar_buffer.data(), u16_len,
 				&status);
 
 			if (U_FAILURE(status))
 				return "";
 
-			return work_string;
+			return work_string.substr(0, sjis_len);
 		}
 
 		std::wstring convert_utf8_to_utf16(std::string_view utf8)
@@ -333,7 +333,7 @@ namespace
 			if (U_FAILURE(status))
 				return std::wstring();
 
-			return std::wstring(reinterpret_cast<wchar_t*>(work_uchar_buffer.data()), static_cast<int32_t>(work_uchar_buffer.size()));
+			return std::wstring(reinterpret_cast<wchar_t*>(work_uchar_buffer.data()), u16_len);
 		}
 
 		std::string convert_utf16_to_shift_jis(std::wstring_view utf16)
@@ -361,7 +361,7 @@ namespace
 			if (U_FAILURE(status))
 				return "";
 
-			return work_string;
+			return work_string.substr(0, sjis_len);
 		}
 
 		std::string convert_utf16_to_utf8(std::wstring_view utf16)
@@ -386,7 +386,7 @@ namespace
 			if (U_FAILURE(status))
 				return "";
 
-			return work_string;
+			return work_string.substr(0, utf8_len);
 		}
 
 	private:
