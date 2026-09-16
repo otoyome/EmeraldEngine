@@ -501,6 +501,9 @@ void effect_manager::update_gpu(graphics_context& context, float elapsed_time)
 	if (!particle_system)
 		return;
 
+	//	パーティクルイベントクリア
+	particle_events.clear();
+
 	//	固定ステップ処理
 	constexpr float fixed_step = system_units::convert_fps_to_sec(1.0f);
 	constexpr int max_substep = 4;	//	最大ステップ数
@@ -604,6 +607,15 @@ void effect_manager::update_gpu(graphics_context& context, float elapsed_time)
 		bool last_step = !any_update || hit_forward_limit;	//	最終ステップだけ頂点バッファを作る
 
 		particle_system->update(context, any_update ? fixed_step : 0.0f);
+
+		//	イベントを取得しておく
+		particle_system->fetch_events(context, work_particle_events);
+		if (!work_particle_events.empty())
+		{
+			particle_events.reserve(particle_events.size() + work_particle_events.size());
+			particle_events.insert(particle_events.end(), work_particle_events.begin(), work_particle_events.end());
+			work_particle_events.clear();
+		}
 
 		if (last_step)
 		{

@@ -628,6 +628,136 @@ void model_resource_utility::generate_lod_meshs(model_resource& resource, int ma
 	}
 }
 
+#if 0
+//	立方体状のSDF
+struct signed_distance_field
+{
+	inline bool is_valid() const
+	{
+		return resolution > 0 && !voxels.empty();
+	}
+
+	//	ボクセルサイズ
+	inline float voxel_size() const
+	{
+		return resolution > 0 ? (bounds_max.x - bounds_min.x) / static_cast<float>(resolution) : 0.0f;
+	}
+
+	//	ボクセルインデックス(x,y,z)から線形インデックスを求める
+	inline size_t index_of(uint32_t x, uint32_t y, uint32_t z) const
+	{
+		return (static_cast<size_t>(z) * resolution + y) * resolution + x;
+	}
+
+	//	ボクセル中心のワールド(ローカル)座標を求める
+	inline DirectX::XMFLOAT3 voxel_center(uint32_t x, uint32_t y, uint32_t z) const
+	{
+		const float size = voxel_size();
+		return DirectX::XMFLOAT3
+		{
+			bounds_min.x + (static_cast<float>(x) + 0.5f) * size,
+			bounds_min.y + (static_cast<float>(y) + 0.5f) * size,
+			bounds_min.z + (static_cast<float>(z) + 0.5f) * size,
+		};
+	}
+
+public:
+	uint32_t resolution = 0;
+	DirectX::XMFLOAT3 bounds_min = { 0, 0, 0 };
+	DirectX::XMFLOAT3 bounds_max = { 0, 0, 0 };
+	std::vector<float> voxels;
+};
+
+//	指定したメッシュからcubic Signed Distance Fieldを生成する
+bool create_cubic_sdf(signed_distance_field& out_sdf, size_t mesh_index, uint32_t resolution = 32, float bounds_padding_rate = 0.1f);
+
+bool create_cubic_sdf(signed_distance_field& out_sdf, size_t mesh_index, uint32_t resolution, float bounds_padding_rate) const
+{
+	if (mesh_index >= meshes.size())
+	{
+		DEBUG_ERROR_CATEGORY(logger::categorys::model, "create_cubic_sdf failed : mesh_index out of range[%zu]", mesh_index);
+		return false;
+	}
+	if (resolution == 0)
+	{
+		DEBUG_ERROR_CATEGORY(logger::categorys::model, "create_cubic_sdf failed : resolution must be greater than 0");
+		return false;
+	}
+
+	const mesh& target_mesh = meshes[mesh_index];
+
+	//	三角形リストを抽出
+	std::vector<sdf_triangle> triangles;
+	if (!extract_triangles(target_mesh, triangles))
+	{
+		DEBUG_ERROR_CATEGORY(logger::categorys::model, "create_cubic_sdf failed : failed to extract triangles[mesh_index=%zu]", mesh_index);
+		return false;
+	}
+
+	//	バウンディングボックスの中心を求める
+	const DirectX::XMFLOAT3 center =
+	{
+		(target_mesh.bounds_min.x + target_mesh.bounds_max.x) * 0.5f,
+		(target_mesh.bounds_min.y + target_mesh.bounds_max.y) * 0.5f,
+		(target_mesh.bounds_min.z + target_mesh.bounds_max.z) * 0.5f,
+	};
+
+	//	立方体状のSDFにするため、最大の辺長を基準に各軸へ余白(padding)を持たせて正立方体化する
+	const float extent_x = target_mesh.bounds_max.x - target_mesh.bounds_min.x;
+	const float extent_y = target_mesh.bounds_max.y - target_mesh.bounds_min.y;
+	const float extent_z = target_mesh.bounds_max.z - target_mesh.bounds_min.z;
+	const float max_extent = std::max({ extent_x, extent_y, extent_z });
+	const float half_extent = (max_extent * 0.5f) * (1.0f + bounds_padding_rate);
+
+	out_sdf.resolution = resolution;
+	out_sdf.bounds_min = { center.x - half_extent, center.y - half_extent, center.z - half_extent };
+	out_sdf.bounds_max = { center.x + half_extent, center.y + half_extent, center.z + half_extent };
+	out_sdf.voxels.assign(static_cast<size_t>(resolution) * resolution * resolution, 0.0f);
+
+	const float voxel_size = out_sdf.voxel_size();
+
+	//	フラットインデックスの配列を用意し、ボクセル単位で並列に距離計算を行う
+	//	(各ボクセルの計算は他のボクセルに依存しないため完全に並列化可能)
+	std::vector<uint32_t> flat_indices(out_sdf.voxels.size());
+	std::iota(flat_indices.begin(), flat_indices.end(), 0u);
+
+	std::for_each(std::execution::par, flat_indices.begin(), flat_indices.end(),
+		[&](uint32_t flat_index)
+		{
+			const uint32_t x = flat_index % resolution;
+			const uint32_t y = (flat_index / resolution) % resolution;
+			const uint32_t z = flat_index / (resolution * resolution);
+
+			const DirectX::XMFLOAT3 voxel_center =
+			{
+				out_sdf.bounds_min.x + (static_cast<float>(x) + 0.5f) * voxel_size,
+				out_sdf.bounds_min.y + (static_cast<float>(y) + 0.5f) * voxel_size,
+				out_sdf.bounds_min.z + (static_cast<float>(z) + 0.5f) * voxel_size,
+			};
+
+			//	全三角形との距離を総当たりで調べ、最短のものを採用する
+			//	@remainder	三角形数が多い場合はBVH/Octree等で候補を絞ることを推奨
+			float min_squared_distance = std::numeric_limits<float>::max();
+			for (const auto& tri : triangles)
+			{
+				const float squared_distance = squared_distance_point_triangle(voxel_center, tri);
+				min_squared_distance = std::min(min_squared_distance, squared_distance);
+			}
+			float distance = std::sqrt(min_squared_distance);
+
+			//	レイキャストの交差パリティで内外判定し、内側なら符号を反転する
+			if (is_point_inside(voxel_center, triangles))
+				distance = -distance;
+
+			out_sdf.voxels[flat_index] = distance;
+		});
+
+	DEBUG_LOG_CATEGORY(logger::categorys::model, "create_cubic_sdf successed[mesh_index=%zu, resolution=%u, triangle_count=%zu]",
+		mesh_index, resolution, triangles.size());
+	return true;
+}
+#endif
+
 void model_resource_utility::clear_lod_meshs(model_resource& resource)
 {
 	for (auto& mesh : resource.get_meshes_for_editor())

@@ -16,8 +16,6 @@
 
 #include "object/gameobjects/cinematics/cinematics_object.h"
 
-#include "object/gameobjects/ui/ui_object.h"
-
 namespace
 {
 	//	ポストプロセスマテリアル
@@ -110,10 +108,10 @@ game_main_scene::game_main_scene()
 		player1->set_rotation({0.0f, 0.0f, 0.0f});
 		register_object(player1);
 
-		auto controller_object = std::make_shared<player_controller_object>("プレイヤー入力", player1, main_camera);
-		register_object(controller_object);
+		player_controller = std::make_shared<player_controller_object>("プレイヤー入力", player1, main_camera);
+		register_object(player_controller);
 
-		player_camera_controller = std::make_shared<player_camera_controller_object>("プレイヤーカメラ", controller_object, main_camera);
+		player_camera_controller = std::make_shared<player_camera_controller_object>("プレイヤーカメラ", player_controller, main_camera);
 		register_object(player_camera_controller);
 	}
 
@@ -140,11 +138,21 @@ game_main_scene::game_main_scene()
 
 	//	UIオブジェクト設置(UIレンダリングの確認用)
 	{
-		auto test_ui = std::make_shared<ui_object>("UI表示確認用オブジェクト");
+		test_ui = std::make_shared<ui_object>("UI表示確認用オブジェクト");
 		test_ui->set_screen_rect({ 40, 40, 180, 50 });
 		test_ui->set_color({ 1, 0, 0, 1 });
 		test_ui->set_sort_order(0);
 		register_object(test_ui);
+	}
+
+	//	星粒生成
+	{
+		effect_resource_ptr resource;
+		if (effect_resource_manager::instance()->load(resource, "Assets/Resources/Effects/StarDust.eme"))
+		{
+			star_dust = std::make_shared<effect_instance>(resource);
+			effect_manager::instance()->register_instance(star_dust);
+		}
 	}
 }
 
@@ -159,11 +167,29 @@ bool game_main_scene::initialize_core()
 
 bool game_main_scene::uninitialize_core()
 {
+	player_controller = nullptr;
+	if (star_dust)
+		effect_manager::instance()->unregister_instance(star_dust);
 	return true;
 }
 
 void game_main_scene::update_core(float elapsed_time)
 {
+	if (star_dust && player_controller)
+	{
+		//	吸引座標とイベント基準座標設定
+		auto position = player_controller->get_controll_object()->get_push_box()->get_position();
+		position.y += player_controller->get_controll_object()->get_push_box()->get_local_scale().y;
+		star_dust->set_attract_position(position);
+		star_dust->set_event_position(position);
+
+		//	1F前のパーティクルイベント情報を取得してカウンター加算
+		auto particle_events = effect_manager::instance()->get_particle_events();
+		hit_count += particle_events.size();
+		float rate = static_cast<float>(hit_count) / 3000.0f;
+		test_ui->set_screen_rect({ 40, 40, (1280 - 40) * math::saturate(rate), 50 });
+
+	}
 }
 
 #if defined(USE_IMGUI)

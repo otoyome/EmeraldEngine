@@ -129,7 +129,9 @@ private:
 
 	//	吸引座標
 	DirectX::XMFLOAT3 attract_position = {0, 0, 0};
-	DirectX::XMFLOAT3 event_position = {0, 0, 0};	//	イベント発火位置(ワールド、ゲーム側から設定)
+
+	//	イベント座標
+	DirectX::XMFLOAT3 event_position = {0, 0, 0};
 
 	//	アニメーション関連
 	float animation_time = 0.0f;
@@ -168,6 +170,7 @@ public:
 public:
 	inline const std::vector<item>& get_items() const { return items; }
 	inline std::shared_ptr<compute_particle_system> get_particle_system() const { return particle_system; }
+	inline const std::vector<compute_particle_system::particle_event>& get_particle_events() const { return particle_events; }
 
 private:
 	effect_manager();
@@ -188,6 +191,7 @@ private:
 
 private:
 	std::shared_ptr<compute_particle_system> particle_system;
+	std::vector<compute_particle_system::particle_event> particle_events, work_particle_events;
 
 	std::vector<item> items;
 	std::vector<effect_instance_ptr> instances_add;
