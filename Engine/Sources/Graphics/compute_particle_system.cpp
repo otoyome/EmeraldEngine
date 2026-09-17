@@ -60,13 +60,12 @@ namespace
 	//	汎用情報定義
 	struct common_constants
 	{
-		float				elapsed_time;								//	経過時間
-		DirectX::XMUINT3	x_of_shift_seed;							//	XorShift乱数種
 		UINT				total_emitter_count;						//	エミッター最大数
 		UINT				total_particle_count;						//	パーティクル最大数
 		UINT				total_cpu_spawn_count;						//	CPU側での発生予定パーティクル数(厳密にはシェーダー側で管理)
-		UINT				erase_id_count;								//	破棄Id数
 		UINT				total_emitter_spawn_count;					//	エミッター発生数合計(spawn_offsetの合計)
+
+		UINT				erase_id_count;								//	破棄Id数
 		DirectX::XMUINT3	common_constant_dummy;
 		DirectX::XMUINT4	erase_id_list[max_erase_particle_list / 4];	//	エミッター破棄Idリスト
 	};
@@ -803,9 +802,7 @@ void compute_particle_system::update(graphics_context& context, float elapsed_ti
 	//	共用の定数バッファ設定
 	{
 		common_constants constant;
-		constant.elapsed_time = elapsed_time;
-		constant.x_of_shift_seed = { 0u, 0u, 0u };
-		constant.total_emitter_count = total_emitter_count;	//	emitter_id_table.size();
+		constant.total_emitter_count = total_emitter_count;
 		constant.total_particle_count = total_particle_count;
 		constant.total_cpu_spawn_count = total_spawn_cpu_particle_count + max_particle_event;
 		constant.total_emitter_spawn_count = total_spawn_cpu_particle_count;	//	イベント用の割り当て開始位置算出用
