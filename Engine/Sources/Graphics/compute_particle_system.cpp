@@ -11,13 +11,13 @@ namespace
 	static constexpr UINT range_particles_constant_buffer_index = 11;
 	static constexpr UINT build_primitive_constant_buffer_index = 11;
 
-	static constexpr UINT max_erase_particle_list = 128;
-	static constexpr UINT max_particle_event = 1024;
+	static constexpr UINT max_erase_particle_list = 128;	//	一度に破棄できるエミッター数
+	static constexpr UINT max_particle_event = 1024;		//	最大パーティクルイベント数
 
 	//	その他定数
-	static constexpr UINT number_of_vertices_per_particle = 6;
-	static constexpr UINT max_emitter = 1 << 10;
-	static constexpr UINT max_particle = 1 << 21;
+	static constexpr UINT number_of_vertices_per_particle = 6;	//	triangle_listで描画するので
+	static constexpr UINT max_emitter = 1 << 10;	//	システム的なエミッター最大数
+	static constexpr UINT max_particle = 1 << 21;	//	システム的なパーティクル最大数
 	static constexpr UINT vertex_buffer_uav_max = std::min(4, D3D11_1_UAV_SLOT_COUNT - 1);
 
 	//	2の累乗の数値に変換
@@ -802,7 +802,7 @@ void compute_particle_system::update(graphics_context& context, float elapsed_ti
 		constant.x_of_shift_seed = { 0u, 0u, 0u };
 		constant.total_emitter_count = total_emitter_count;	//	emitter_id_table.size();
 		constant.total_particle_count = total_particle_count;
-		constant.total_cpu_spawn_count = total_spawn_cpu_particle_count + max_particle_event;	//	GPUイベントスポーン用の空き枠
+		constant.total_cpu_spawn_count = total_spawn_cpu_particle_count + max_particle_event;
 		constant.erase_id_count = erase_id_count;
 		for (UINT index = 0; index < constant.erase_id_count; ++index)
 			(&constant.erase_id_list[0].x)[index] = erase_id_list[index];
@@ -1041,7 +1041,7 @@ void compute_particle_system::update(graphics_context& context, float elapsed_ti
 		context.device_context->DispatchIndirect(indirect_data_buffer.Get(), UpdateParticleDispatchIndirect);
 		clear_resources(context.device_context);
 
-		//	CPUで読みだすためコピー
+		//	パーティクルイベントをCPUで読みだすためコピー
 		context.device_context->CopyStructureCount(particle_event_count_staging.Get(), 0, particle_event_append_uav.Get());
 		context.device_context->CopyStructureCount(particle_event_count_buffer.Get(), 0, particle_event_append_uav.Get());
 		context.device_context->CopyResource(particle_event_staging.Get(), particle_event_buffer.Get());

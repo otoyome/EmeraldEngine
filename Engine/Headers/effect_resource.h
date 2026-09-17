@@ -106,10 +106,10 @@ private:
 private:
 	std::string file_path;
 
-	std::vector<node> nodes;	//	ノード情報
-	std::vector<model> models;	//	モデル情報
-	std::vector<particle> particles;	//	パーティクル情報
-	std::vector<decal> decals;	//	デカール情報
+	std::vector<node> nodes;					//	ノード情報
+	std::vector<model> models;					//	モデル情報
+	std::vector<particle> particles;			//	パーティクル情報
+	std::vector<decal> decals;					//	デカール情報
 	std::vector<animation::data> animations;	//	アニメーション情報
 };
 

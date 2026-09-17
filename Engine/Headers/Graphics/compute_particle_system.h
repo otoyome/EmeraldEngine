@@ -415,11 +415,11 @@ private:
 
 	//	イベント情報バッファ
 	Microsoft::WRL::ComPtr<ID3D11Buffer> particle_event_buffer;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> particle_event_shader_resource_view;
 	Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> particle_event_append_uav;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> particle_event_staging;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> particle_event_count_staging;
 	bool particle_event_valid = false;
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> particle_event_shader_resource_view;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> particle_event_count_buffer;
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> particle_event_count_shader_resource_view;
 
