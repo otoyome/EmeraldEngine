@@ -930,6 +930,35 @@ bool texture_manager::convert_texture_to_dds(std::string_view source_file_path, 
 			scratch_image = std::move(mip_chain);
 	}
 
+	//	BC圧縮(アルファを実際に使っていればBC3、そうでなければBC1)
+	if (!DirectX::IsCompressed(scratch_image.GetMetadata().format))
+	{
+		bool use_alpha = false;
+		if (DirectX::HasAlpha(scratch_image.GetMetadata().format))
+		{
+			DirectX::EvaluateImage(*scratch_image.GetImage(0, 0, 0), [&use_alpha](const DirectX::XMVECTOR* pixels, size_t width, size_t)
+			{
+				if (use_alpha)
+					return;
+				for (size_t x = 0; x < width; ++x)
+				{
+					if (DirectX::XMVectorGetW(pixels[x]) < 0.999f)
+					{
+						use_alpha = true;
+						break;
+					}
+				}
+			});
+		}
+
+		DXGI_FORMAT compress_format = use_alpha ? DXGI_FORMAT_BC3_UNORM : DXGI_FORMAT_BC1_UNORM;
+		DirectX::ScratchImage compressed_image;
+		HRESULT compress_hr = DirectX::Compress(scratch_image.GetImages(), scratch_image.GetImageCount(), scratch_image.GetMetadata(),
+			compress_format, DirectX::TEX_COMPRESS_DEFAULT, DirectX::TEX_THRESHOLD_DEFAULT, compressed_image);
+		if (SUCCEEDED(compress_hr))
+			scratch_image = std::move(compressed_image);
+	}
+
 	std::filesystem::path dds_path(dds_file_path);
 	dds_path.replace_extension(".dds");
 

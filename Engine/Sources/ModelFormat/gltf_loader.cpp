@@ -1172,6 +1172,45 @@ namespace
 			break;
 		}
 	}
+
+	std::vector<UINT> convert_indices_to_trianglelist(const UINT* indices, size_t index_count, int mode)
+	{
+		std::vector<UINT> result;
+		if (index_count < 3)
+			return result;
+
+		if (mode == TINYGLTF_MODE_TRIANGLE_STRIP)
+		{
+			result.reserve((index_count - 2) * 3);
+			for (size_t index = 0; index + 2 < index_count; ++index)
+			{
+				if (index % 2 == 0)
+				{
+					result.push_back(indices[index]);
+					result.push_back(indices[index + 1]);
+					result.push_back(indices[index + 2]);
+				}
+				else
+				{
+					result.push_back(indices[index + 1]);
+					result.push_back(indices[index]);
+					result.push_back(indices[index + 2]);
+				}
+			}
+		}
+		else if (mode == TINYGLTF_MODE_TRIANGLE_FAN)
+		{
+			result.reserve((index_count - 2) * 3);
+			for (size_t index = 1; index + 1 < index_count; ++index)
+			{
+				result.push_back(indices[0]);
+				result.push_back(indices[index]);
+				result.push_back(indices[index + 1]);
+			}
+		}
+		return result;
+	}
+
 }
 
 gltf_loader::node_animation_data::pose_data gltf_loader::node_animation_data::calculate(float second)
@@ -1364,6 +1403,14 @@ void gltf_loader::load_meshes(std::vector<mesh_data>& meshes, const std::vector<
 
 		for (const tinygltf::Primitive& gltf_primitive : gltf_mesh.primitives)
 		{
+			//	三角形以外のモデルは除外
+			if (gltf_primitive.mode == TINYGLTF_MODE_POINTS ||
+				gltf_primitive.mode == TINYGLTF_MODE_LINE ||
+				gltf_primitive.mode == TINYGLTF_MODE_LINE_LOOP ||
+				gltf_primitive.mode == TINYGLTF_MODE_LINE_STRIP)
+			{
+				continue;
+			}
 			mesh_data& mesh = meshes.emplace_back();
 			mesh.node_index = gltf_node_index;
 			mesh.material_index = gltf_primitive.material;
@@ -1424,6 +1471,21 @@ void gltf_loader::load_meshes(std::vector<mesh_data>& meshes, const std::vector<
 					memcpy_s(mesh.index_buffer.row_data.data(), mesh.index_buffer.row_data.size(),
 						indices, mesh.index_buffer.size_in_bytes);
 				}
+			}
+
+			//	三角形リストへ変換
+			if (gltf_primitive.mode == TINYGLTF_MODE_TRIANGLE_STRIP || gltf_primitive.mode == TINYGLTF_MODE_TRIANGLE_FAN)
+			{
+				const UINT* source_indices = reinterpret_cast<const UINT*>(mesh.index_buffer.row_data.data());
+				size_t source_count = mesh.index_buffer.count();
+				std::vector<UINT> triangle_list_indices = convert_indices_to_trianglelist(source_indices, source_count, gltf_primitive.mode);
+
+				mesh.index_buffer.format = DXGI_FORMAT_R32_UINT;
+				mesh.index_buffer.stride_in_bytes = sizeof(UINT);
+				mesh.index_buffer.size_in_bytes = triangle_list_indices.size() * sizeof(UINT);
+				mesh.index_buffer.row_data.resize(mesh.index_buffer.size_in_bytes);
+				memcpy_s(mesh.index_buffer.row_data.data(), mesh.index_buffer.row_data.size(),
+					triangle_list_indices.data(), mesh.index_buffer.size_in_bytes);
 			}
 
 			// 頂点バッファ

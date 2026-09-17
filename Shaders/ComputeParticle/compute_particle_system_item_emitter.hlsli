@@ -21,6 +21,7 @@ struct em_common_item
     float3 spawn_area_min; // パーティクル生成範囲最小
     float3 spawn_area_max; // パーティクル生成範囲最大
     uint spawn_count; // パーティクル生成数
+    uint spawn_offset; // 発生オフセット
 
     //  エミッターの姿勢情報
     float3 scale; // 拡縮情報
@@ -43,6 +44,7 @@ void stream_common_item(uint rw, inout uint offset, inout em_common_item value)
     em_stream_ptr(rw, offset, value.spawn_area_min);
     em_stream_ptr(rw, offset, value.spawn_area_max);
     em_stream_ptr(rw, offset, value.spawn_count);
+    em_stream_ptr(rw, offset, value.spawn_offset);
 
     em_stream_ptr(rw, offset, value.scale);
     em_stream_ptr(rw, offset, value.rotation);

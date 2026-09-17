@@ -230,6 +230,7 @@ void roomba_camera_controller_object::fixed_update_default(float elapsed_time)
 		{
 			update_fov_counter -= elapsed_time;
 		}
+		update_fov_counter = math::clamp(update_fov_counter, 0.0f, dash_fov_time_max);
 		float rate = math::saturate(update_fov_counter / dash_fov_time_max);
 		camera->get_camera()->set_fov_y(math::lerp(dash_fov_range.x, dash_fov_range.y, rate));
 	}

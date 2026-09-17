@@ -60,13 +60,15 @@ namespace
 	//	汎用情報定義
 	struct common_constants
 	{
-		float				elapsed_time;			//	経過時間
-		DirectX::XMUINT3	x_of_shift_seed;		//	XorShift乱数種
-		UINT				total_emitter_count;	//	エミッター最大数
-		UINT				total_particle_count;	//	パーティクル最大数
-		UINT				total_cpu_spawn_count;	//	CPU側での発生予定パーティクル数(厳密にはシェーダー側で管理)
-		UINT				erase_id_count;			//	破棄Id数
-		DirectX::XMUINT4	erase_id_list[max_erase_particle_list / 4];		//	エミッター破棄Idリスト
+		float				elapsed_time;								//	経過時間
+		DirectX::XMUINT3	x_of_shift_seed;							//	XorShift乱数種
+		UINT				total_emitter_count;						//	エミッター最大数
+		UINT				total_particle_count;						//	パーティクル最大数
+		UINT				total_cpu_spawn_count;						//	CPU側での発生予定パーティクル数(厳密にはシェーダー側で管理)
+		UINT				erase_id_count;								//	破棄Id数
+		UINT				total_emitter_spawn_count;					//	エミッター発生数合計(spawn_offsetの合計)
+		DirectX::XMUINT3	common_constant_dummy;
+		DirectX::XMUINT4	erase_id_list[max_erase_particle_list / 4];	//	エミッター破棄Idリスト
 	};
 
 	//	汎用情報定義
@@ -751,6 +753,9 @@ void compute_particle_system::update(graphics_context& context, float elapsed_ti
 		auto& emitter_resource = emitter_resources[emitter_id];
 		auto& update_emitter_data = update_emitter_datas[emitter_id];
 
+		//	スポーン数
+		update_emitter_data.common.spawn_offset = total_spawn_cpu_particle_count;
+
 		//	アイテム情報をバイナリに書き込む
 		std::vector<char> data_buffer;
 		data_buffer.resize(emitter_resource.resource.system.max_update_item_size);
@@ -803,6 +808,7 @@ void compute_particle_system::update(graphics_context& context, float elapsed_ti
 		constant.total_emitter_count = total_emitter_count;	//	emitter_id_table.size();
 		constant.total_particle_count = total_particle_count;
 		constant.total_cpu_spawn_count = total_spawn_cpu_particle_count + max_particle_event;
+		constant.total_emitter_spawn_count = total_spawn_cpu_particle_count;	//	イベント用の割り当て開始位置算出用
 		constant.erase_id_count = erase_id_count;
 		for (UINT index = 0; index < constant.erase_id_count; ++index)
 			(&constant.erase_id_list[0].x)[index] = erase_id_list[index];

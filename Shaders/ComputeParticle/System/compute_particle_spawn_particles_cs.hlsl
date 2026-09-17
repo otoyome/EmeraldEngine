@@ -44,9 +44,9 @@ void main(uint3 dispatch_thread_id : SV_DispatchThreadID)
         {
             spawn_max = min(common.spawn_count, spawn_max);
 
-            //  パーティクルの末尾の番号を取得(ここの同期命令を無くしたい)
-            uint spawn_particle_head = 0;
-            indirect_data_buffer.InterlockedAdd(NumPreviousParticleOffset, spawn_max, spawn_particle_head);
+            //  書き込み位置の先頭算出
+            uint previous_particle_count = indirect_data_buffer.Load(NumPreviousParticleOffset) - total_emitter_spawn_count;
+            uint spawn_particle_head = previous_particle_count + common.spawn_offset;
 
             //  エミッターデータにパーティクルヘッダーの割り当てアドレスと発生数を記録
             uint current_particle_count = indirect_data_buffer.Load(NumCurrentParticleOffset);
@@ -66,7 +66,7 @@ void main(uint3 dispatch_thread_id : SV_DispatchThreadID)
             }
         }
     }
-    
+
     //  データ書き込み
     emitter_data_buffer[emitter_index] = em_data;
 }

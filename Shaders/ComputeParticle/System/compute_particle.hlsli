@@ -92,6 +92,8 @@ cbuffer COMMON_CONSTANTS : register(b10)
     uint total_particle_count; // システムで管理できるパーティクル総数
     uint total_cpu_spawn_count; // 発生予定のパーティクル総数
     uint erase_id_count; //	破棄Id数
+    uint total_emitter_spawn_count; // エミッター発生数合計(spawn_offsetの合計)
+    uint3 common_constant_dummy;
     uint4 erase_id_list[128 / 4]; //	エミッター破棄Idリスト
 };
 

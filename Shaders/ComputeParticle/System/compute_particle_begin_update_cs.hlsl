@@ -16,7 +16,9 @@ void main(uint3 dispatch_thread_id : SV_DispatchThreadID)
 
     //  格納
     indirect_data_buffer.Store(NumCurrentParticleOffset, num_current_particle);
-    indirect_data_buffer.Store(NumPreviousParticleOffset, num_previous_particle);
+
+    //	イベント用に発生数を加算
+    indirect_data_buffer.Store(NumPreviousParticleOffset, num_previous_particle + total_emitter_spawn_count);
     
     //  このタイミングで更新用ディスパッチ数を決めておく
     float x = ceil((float) num_current_particle / (float) NumDispatchThread);

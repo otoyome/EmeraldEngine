@@ -91,6 +91,7 @@ namespace particle_system_item
 			DirectX::XMFLOAT3 spawn_area_min = {0, 0, 0}; // 生成範囲最小
 			DirectX::XMFLOAT3 spawn_area_max = {0, 0, 0}; // 生成範囲最大
 			UINT spawn_count = 0; // 生成数
+			UINT spawn_offset = 0; // 発生オフセット
 
 			//	エミッター姿勢情報
 			DirectX::XMFLOAT3 scale; // 拡縮情報
