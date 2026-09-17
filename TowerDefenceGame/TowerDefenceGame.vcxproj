@@ -198,7 +198,7 @@
     <FxCompile>
       <ShaderModel>5.0</ShaderModel>
       <ObjectFileOutput>$(SolutionDir)Assets\CSO\%(Filename).cso</ObjectFileOutput>
-      <AdditionalIncludeDirectories>$(SolutionDir)Shaders;$(SolutionDir)Shaders\Common;$(SolutionDir)Shaders\ComputeParticle;$(SolutionDir)Shaders\ComputeParticle\Renderer;$(SolutionDir)Shaders\ComputeParticle\System;$(SolutionDir)Shaders\DeferredRendering;$(SolutionDir)Shaders\FullscreenQuad;$(SolutionDir)Shaders\GeometricPrimitive;$(SolutionDir)Shaders\Gltf;$(SolutionDir)Shaders\Model;$(SolutionDir)Shaders\SkyBox;$(SolutionDir)Shaders\Sprite;$(SolutionDir)Shaders\StaticMesh;$(SolutionDir)Shaders\Toon;$(SolutionDir)Shaders\DeferredDecal;$(SolutionDir)External</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Shaders;$(SolutionDir)Shaders\Common;$(SolutionDir)Shaders\Collision;$(SolutionDir)Shaders\ComputeParticle;$(SolutionDir)Shaders\ComputeParticle\Renderer;$(SolutionDir)Shaders\ComputeParticle\System;$(SolutionDir)Shaders\DeferredRendering;$(SolutionDir)Shaders\FullscreenQuad;$(SolutionDir)Shaders\GeometricPrimitive;$(SolutionDir)Shaders\Gltf;$(SolutionDir)Shaders\Model;$(SolutionDir)Shaders\SkyBox;$(SolutionDir)Shaders\Sprite;$(SolutionDir)Shaders\StaticMesh;$(SolutionDir)Shaders\Toon;$(SolutionDir)Shaders\DeferredDecal;$(SolutionDir)External</AdditionalIncludeDirectories>
     </FxCompile>
     <PostBuildEvent>
       <Command>xcopy "$(SolutionDir)External\DirectXShaderCompiler\bin\x64\dxcompiler.dll" "$(OutDir)" /y
@@ -232,7 +232,7 @@ xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y</Command>
     <FxCompile>
       <ShaderModel>5.0</ShaderModel>
       <ObjectFileOutput>$(SolutionDir)Assets\CSO\%(Filename).cso</ObjectFileOutput>
-      <AdditionalIncludeDirectories>$(SolutionDir)Shaders;$(SolutionDir)Shaders\Common;$(SolutionDir)Shaders\ComputeParticle;$(SolutionDir)Shaders\ComputeParticle\Renderer;$(SolutionDir)Shaders\ComputeParticle\System;$(SolutionDir)Shaders\DeferredRendering;$(SolutionDir)Shaders\FullscreenQuad;$(SolutionDir)Shaders\GeometricPrimitive;$(SolutionDir)Shaders\Gltf;$(SolutionDir)Shaders\Model;$(SolutionDir)Shaders\SkyBox;$(SolutionDir)Shaders\Sprite;$(SolutionDir)Shaders\StaticMesh;$(SolutionDir)Shaders\Toon;$(SolutionDir)Shaders\DeferredDecal;$(SolutionDir)External</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Shaders;$(SolutionDir)Shaders\Common;$(SolutionDir)Shaders\Collision;$(SolutionDir)Shaders\ComputeParticle;$(SolutionDir)Shaders\ComputeParticle\Renderer;$(SolutionDir)Shaders\ComputeParticle\System;$(SolutionDir)Shaders\DeferredRendering;$(SolutionDir)Shaders\FullscreenQuad;$(SolutionDir)Shaders\GeometricPrimitive;$(SolutionDir)Shaders\Gltf;$(SolutionDir)Shaders\Model;$(SolutionDir)Shaders\SkyBox;$(SolutionDir)Shaders\Sprite;$(SolutionDir)Shaders\StaticMesh;$(SolutionDir)Shaders\Toon;$(SolutionDir)Shaders\DeferredDecal;$(SolutionDir)External</AdditionalIncludeDirectories>
     </FxCompile>
     <PostBuildEvent>
       <Command>xcopy "$(SolutionDir)External\DirectXShaderCompiler\bin\x64\dxcompiler.dll" "$(OutDir)" /y
@@ -294,7 +294,7 @@ xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y</Command>
     <FxCompile>
       <ShaderModel>5.0</ShaderModel>
       <ObjectFileOutput>$(SolutionDir)Assets\CSO\%(Filename).cso</ObjectFileOutput>
-      <AdditionalIncludeDirectories>$(SolutionDir)Shaders;$(SolutionDir)Shaders\Common;$(SolutionDir)Shaders\ComputeParticle;$(SolutionDir)Shaders\ComputeParticle\Renderer;$(SolutionDir)Shaders\ComputeParticle\System;$(SolutionDir)Shaders\DeferredRendering;$(SolutionDir)Shaders\FullscreenQuad;$(SolutionDir)Shaders\GeometricPrimitive;$(SolutionDir)Shaders\Gltf;$(SolutionDir)Shaders\Model;$(SolutionDir)Shaders\SkyBox;$(SolutionDir)Shaders\Sprite;$(SolutionDir)Shaders\StaticMesh;$(SolutionDir)Shaders\Toon;$(SolutionDir)Shaders\DeferredDecal;$(SolutionDir)External</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Shaders;$(SolutionDir)Shaders\Common;$(SolutionDir)Shaders\Collision;$(SolutionDir)Shaders\ComputeParticle;$(SolutionDir)Shaders\ComputeParticle\Renderer;$(SolutionDir)Shaders\ComputeParticle\System;$(SolutionDir)Shaders\DeferredRendering;$(SolutionDir)Shaders\FullscreenQuad;$(SolutionDir)Shaders\GeometricPrimitive;$(SolutionDir)Shaders\Gltf;$(SolutionDir)Shaders\Model;$(SolutionDir)Shaders\SkyBox;$(SolutionDir)Shaders\Sprite;$(SolutionDir)Shaders\StaticMesh;$(SolutionDir)Shaders\Toon;$(SolutionDir)Shaders\DeferredDecal;$(SolutionDir)External</AdditionalIncludeDirectories>
     </FxCompile>
     <PostBuildEvent>
       <Command>xcopy "$(SolutionDir)External\DirectXShaderCompiler\bin\x64\dxcompiler.dll" "$(OutDir)" /y
@@ -755,6 +755,7 @@ xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y</Command>
     <None Include="..\External\subpixel_morphological_anti_aliasing\SMAA.hlsli" />
     <None Include="..\Shaders\Common\common_post_process.hlsli" />
     <None Include="..\Shaders\Common\shadow_map.hlsli" />
+    <None Include="..\Shaders\Collision\cubic_sdf_collision.hlsli" />
     <None Include="..\Shaders\ComputeParticle\compute_particle_system_item_emitter.hlsli" />
     <None Include="..\Shaders\ComputeParticle\compute_particle_system_item_particle.hlsli" />
     <None Include="..\Shaders\ComputeParticle\compute_particle_update_items.hlsli" />

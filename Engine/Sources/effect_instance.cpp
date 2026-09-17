@@ -24,6 +24,7 @@ namespace
 		const effect_instance::node& node_data,
 		float elapsed_time,
 		UINT deterministic_seed,
+		ID3D11DeviceContext* device_context,
 		UINT emit_target_system_index = invalid_emitter_id)
 	{
 		auto renderer = particle_data.get_item<::particle::item::renderer>();
@@ -157,6 +158,17 @@ namespace
 
 			append(&event_item, sizeof(event_item));
 			common_data.active_items |= 1 << particle_system_item::emitter::event::data_id;
+		}
+		if (auto sdf_collision = particle_data.get_item<::particle::item::sdf_collision>())
+		{
+			particle_system_item::emitter::sdf_collision sdf_collision_item;
+			sdf_collision_item.sdf_id = effect_manager::instance()
+				? effect_manager::instance()->get_or_load_cubic_sdf(device_context, sdf_collision->sdf_path)
+				: 0xFFFFFFFF;
+			sdf_collision_item.collision_radius = sdf_collision->collision_radius;
+
+			append(&sdf_collision_item, sizeof(sdf_collision_item));
+			common_data.active_items |= 1 << particle_system_item::emitter::sdf_collision::data_id;
 		}
 
 		data.common = common_data;
@@ -458,7 +470,8 @@ effect_manager::effect_manager()
 								+ sizeof(particle_system_item::emitter::color)
 								+ sizeof(particle_system_item::emitter::velocity)
 								+ sizeof(particle_system_item::emitter::attract)
-								+ sizeof(particle_system_item::emitter::event);
+								+ sizeof(particle_system_item::emitter::event)
+								+ sizeof(particle_system_item::emitter::sdf_collision);
 
 		UINT particle_data_size = sizeof(particle_system_item::particle::common)
 								+ sizeof(particle_system_item::particle::trail_header)
@@ -471,10 +484,42 @@ effect_manager::effect_manager()
 			particle_max,
 			particle_data_size);
 	}
+
+	//	@tool SDF衝突判定用GPUリソース初期化(voxelプール/ヘッダー数はひとまずの目安)
+	{
+		constexpr UINT voxel_pool_size = 8 * 1024 * 1024;	//	float要素数(約32MB)
+		constexpr UINT header_capacity = 64;				//	同時登録できるcubic_sdf数
+		cubic_sdf_resource.initialize(render_data::instance()->get_device().Get(), voxel_pool_size, header_capacity);
+		particle_system->set_cubic_sdf_gpu_resource(&cubic_sdf_resource);
+	}
 }
 
 effect_manager::~effect_manager()
 {
+	cubic_sdf_resource.uninitialize();
+}
+
+//	@tool パスからcubic_sdfをロード(またはキャッシュから取得)してsdf_idを返す
+uint32_t effect_manager::get_or_load_cubic_sdf(ID3D11DeviceContext* device_context, std::string_view path)
+{
+	if (path.empty())
+		return collision::cubic_sdf_gpu_resource::invalid_id;
+
+	std::string key(path);
+	auto it = cubic_sdf_id_cache.find(key);
+	if (it != cubic_sdf_id_cache.end())
+		return it->second;
+
+	collision::cubic_sdf sdf;
+	if (!sdf.deserialize(key))
+	{
+		DEBUG_ERROR_CATEGORY(logger::categorys::model, "get_or_load_cubic_sdf failed : deserialize failed. %s", key.c_str());
+		return collision::cubic_sdf_gpu_resource::invalid_id;
+	}
+
+	uint32_t sdf_id = cubic_sdf_resource.register_sdf(device_context, sdf);
+	cubic_sdf_id_cache.emplace(std::move(key), sdf_id);
+	return sdf_id;
 }
 
 void effect_manager::update(float elapsed_time)
@@ -590,7 +635,7 @@ void effect_manager::update_gpu(graphics_context& context, float elapsed_time)
 				//	乱数値を生成
 				UINT seed = instance->get_particle_simulation_step() * 2654435761u + emitter_item.system_index;
 
-				auto data = build_emitter_update_data(*instance, particle_data.particle, node_data, step_elapsed, seed, emit_target);
+				auto data = build_emitter_update_data(*instance, particle_data.particle, node_data, step_elapsed, seed, context.device_context, emit_target);
 				particle_system->update_emitter(emitter_item.system_index, data);
 			}
 

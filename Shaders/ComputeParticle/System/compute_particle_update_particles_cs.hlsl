@@ -50,6 +50,7 @@ void main(uint3 dispatch_thread_id : SV_DispatchThreadID)
         update_velocity_item(em_context, pt_common, emitter_binary_offset, particle_binary_offset);
         update_attract_item(em_context, pt_common, emitter_binary_offset, particle_binary_offset);
         update_event_item(em_context, pt_common, emitter_binary_offset, particle_binary_offset);
+        update_sdf_collision_item(em_context, pt_common, emitter_binary_offset, particle_binary_offset);
 
         //  ¶‘¶ŠÔXV
         if (alive)

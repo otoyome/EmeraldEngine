@@ -17,6 +17,11 @@ ByteAddressBuffer emitter_binary_buffer : register(t1);
 #define UAV particle_binary_buffer
 #include "compute_particle_system_item_particle.hlsli"
 
+//	@tool SDF衝突判定用バッファ(collision::cubic_sdf_gpu_resourceから束縛される)
+#include "cubic_sdf_collision.hlsli"
+StructuredBuffer<sdf_header> cubic_sdf_header_buffer : register(t2);
+StructuredBuffer<float> cubic_sdf_voxel_buffer : register(t3);
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 //  エミッターコンテキスト構築
 emitter_context build_emitter_context(inout uint emitter_binary_offset, uint emitter_id, uint3 dispatch_thread_id)
@@ -275,6 +280,38 @@ void update_event_item(inout emitter_context em_context, inout pt_common_item pt
 
                 //  イベント通知済み判定
                 pt_common.state |= particle_binary_state_bit_event_fired;
+            }
+        }
+    }
+}
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+//  @tool SDF衝突更新アイテム(反射等は行わず、衝突したら寿命を使い切らせて即死させる簡易実装)
+void update_sdf_collision_item(inout emitter_context em_context, inout pt_common_item pt_common, inout uint emitter_binary_offset, inout uint particle_binary_offset)
+{
+    if (has_flag(em_context.active_items, emitter_active_sdf_collision_item_bit_flag))
+    {
+        em_sdf_collision_item collision;
+        stream_sdf_collision_item(rw_read_only, emitter_binary_offset, collision);
+
+        if (collision.sdf_id != invalid_sdf_id
+            && em_context.elapsed_time > 0.0f
+            && !has_flag(pt_common.state, particle_binary_state_bit_spawn_frame))
+        {
+            //  エミッター(=SDFの対象オブジェクト)のローカル空間へワールド座標を変換する
+            float4 inverse_rotation = float4(-em_context.rotation.xyz, em_context.rotation.w);
+            float3 local_position = rotate_vector_quaternion(pt_common.translation - em_context.translation, inverse_rotation);
+            local_position /= max(em_context.scale, 0.0001f);
+
+            float distance = 0.0f;
+            if (sample_cubic_sdf(cubic_sdf_header_buffer, cubic_sdf_voxel_buffer, collision.sdf_id, local_position, distance))
+            {
+                //  @remainder  スケールの影響でローカル距離とワールド距離がずれるため、等方スケールを前提に近似変換する
+                distance *= em_context.scale.x;
+                if (distance <= collision.collision_radius)
+                {
+                    //  衝突したら寿命を使い切らせて次のフレームで死亡させる
+                    pt_common.life_time = pt_common.life_time_max;
+                }
             }
         }
     }

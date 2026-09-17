@@ -909,6 +909,44 @@ bool editor_items::edit_effect_particle(std::shared_ptr<context>& context, effec
 			ImGui::TreePop();
 		}
 	}
+
+	//	@tool SDFè’ìÀîªíË
+	{
+		auto sdf_collision = particle.particle.get_item<particle::item::sdf_collision>();
+		if (ImGui::TreeNode("sdf_collision"))
+		{
+			if (ImGui::Button(!sdf_collision ? "Add sdf_collision" : "Remove sdf_collision"))
+			{
+				if (sdf_collision)
+				{
+					particle.particle.unregister_item<particle::item::sdf_collision>();
+					sdf_collision = nullptr;
+				}
+				else
+				{
+					sdf_collision = particle.particle.register_item<particle::item::sdf_collision>();
+				}
+				edit_flag = true;
+			}
+			if (sdf_collision)
+			{
+				ImGui::InputText("sdf_path", sdf_collision->sdf_path);
+				ImGui::SameLine();
+				if (ImGui::Button("..."))
+				{
+					std::string file_path;
+					if (open_file_dialog(sdf_file_dialog_filter, file_path))
+					{
+						sdf_collision->sdf_path = file_path;
+						edit_flag = true;
+					}
+				}
+				if (ImGui::DragFloat("collision_radius", &sdf_collision->collision_radius, 0.001f, 0.0f, 100000.0f))
+					edit_flag = true;
+			}
+			ImGui::TreePop();
+		}
+	}
 	return edit_flag;
 }
 

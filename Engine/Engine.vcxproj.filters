@@ -135,6 +135,9 @@
     <ClInclude Include="Headers\Collision\mesh.h">
       <Filter>Headers\Collision</Filter>
     </ClInclude>
+    <ClInclude Include="Headers\Collision\cubic_sdf_gpu_resource.h">
+      <Filter>Headers\Collision</Filter>
+    </ClInclude>
     <ClInclude Include="Headers\Input\input.h">
       <Filter>Headers\Input</Filter>
     </ClInclude>
@@ -369,6 +372,9 @@
       <Filter>Sources\Graphics</Filter>
     </ClCompile>
     <ClCompile Include="Sources\Collision\mesh.cpp">
+      <Filter>Sources\Collision</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Collision\cubic_sdf_gpu_resource.cpp">
       <Filter>Sources\Collision</Filter>
     </ClCompile>
     <ClCompile Include="Sources\post_process_volume.cpp">

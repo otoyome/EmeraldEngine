@@ -42,6 +42,7 @@
     <ClInclude Include="Headers\Collision\raycast.h" />
     <ClInclude Include="Headers\Collision\sphere.h" />
     <ClInclude Include="Headers\Collision\mesh.h" />
+    <ClInclude Include="Headers\Collision\cubic_sdf_gpu_resource.h" />
     <ClInclude Include="Headers\common_pipeline_states.h" />
     <ClInclude Include="Headers\custom_pipeline_state.h" />
     <ClInclude Include="Headers\data_converter.h" />
@@ -123,6 +124,7 @@
     <ClCompile Include="Sources\Collision\raycast.cpp" />
     <ClCompile Include="Sources\Collision\sphere.cpp" />
     <ClCompile Include="Sources\Collision\mesh.cpp" />
+    <ClCompile Include="Sources\Collision\cubic_sdf_gpu_resource.cpp" />
     <ClCompile Include="Sources\custom_pipeline_state.cpp" />
     <ClCompile Include="Sources\data_converter.cpp" />
     <ClCompile Include="Sources\data_converter_gltf.cpp" />

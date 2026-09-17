@@ -2,6 +2,8 @@
 
 #include "effect_resource.h"
 #include "model_instance.h"
+#include "Collision/cubic_sdf_gpu_resource.h"
+#include <unordered_map>
 
 //	エフェクトインスタンス
 class effect_instance
@@ -185,12 +187,18 @@ public:
 
 	void get_container(effect_container& effects, decal_container& decals);
 
+	//	@tool パスからcubic_sdfをロード(またはキャッシュから取得)してsdf_idを返す
+	uint32_t get_or_load_cubic_sdf(ID3D11DeviceContext* device_context, std::string_view path);
+
 private:
 	void add_instances();
 	void remove_instances();
 
 private:
 	std::shared_ptr<compute_particle_system> particle_system;
+	//	@tool SDF衝突判定用GPUリソース(所有はこのクラスが行う)
+	collision::cubic_sdf_gpu_resource cubic_sdf_resource;
+	std::unordered_map<std::string, uint32_t> cubic_sdf_id_cache;
 	std::vector<compute_particle_system::particle_event> particle_events, work_particle_events;
 
 	std::vector<item> items;
