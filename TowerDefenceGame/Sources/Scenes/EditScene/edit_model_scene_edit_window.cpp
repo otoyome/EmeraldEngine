@@ -418,6 +418,19 @@ void edit_model_scene::imgui_model_loader_window()
 				generate_bounding_mesh_asset();
 			}
 		}
+
+		//	cubic SDFê∂ê¨
+		if (edit_model)
+		{
+			ImGui::Separator();
+			ImGui::Text("Cubic SDF");
+			ImGui::SliderInt("sdf_resolution", &cubic_sdf_option.resolution, 4, 128);
+			ImGui::SliderFloat("sdf_bounds_padding_rate", &cubic_sdf_option.bounds_padding_rate, 0.0f, 1.0f);
+			if (ImGui::Button("Generate Cubic SDF"))
+			{
+				generate_cubic_sdf_asset();
+			}
+		}
 	}
 }
 

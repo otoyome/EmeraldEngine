@@ -285,7 +285,7 @@
     <ClInclude Include="Headers\System\cache_string.h">
       <Filter>Headers\System</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Collision\cubix_sdf.h">
+    <ClInclude Include="Headers\Collision\cubic_sdf.h">
       <Filter>Headers\Collision</Filter>
     </ClInclude>
   </ItemGroup>
@@ -488,7 +488,7 @@
     <ClCompile Include="Sources\System\cache_string.cpp">
       <Filter>Sources\System</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Collision\cubix_sdf.cpp">
+    <ClCompile Include="Sources\Collision\cubic_sdf.cpp">
       <Filter>Sources\Collision</Filter>
     </ClCompile>
   </ItemGroup>

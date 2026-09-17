@@ -9,6 +9,8 @@
 
 #include "collision/mesh.h"
 
+#include "collision/cubic_sdf.h"
+
 #include "model_resource_utility.h"
 
 #include "custom_pipeline_state.h"
@@ -316,6 +318,35 @@ void edit_model_scene::generate_bounding_mesh_asset()
 		std::filesystem::path out_path = model_path;
 		out_path.replace_extension(std::to_string(mesh_index) + "." + std::string(collision::bounding_mesh::extension));
 		out_mesh.serialize(out_path.string());
+	}
+}
+
+void edit_model_scene::generate_cubic_sdf_asset()
+{
+	if (!edit_model)
+		return;
+
+	auto resource = edit_model->get_model_instance()->get_resource();
+	if (!resource)
+		return;
+
+	std::filesystem::path model_path{ std::string(resource->get_file_path()) };
+	for (size_t mesh_index = 0; mesh_index < resource->get_meshes().size(); ++mesh_index)
+	{
+		collision::generate_bounding_mesh_data data;
+		data.WorldMatrix = DirectX::XMMatrixIdentity();
+		data.reverse_flag = bounding_mesh_option.reverse_flag;
+		data.separate_level = static_cast<UINT>(bounding_mesh_option.separate_level);
+		data.lod_level = bounding_mesh_option.use_lod ? bounding_mesh_option.lod_level : -1;
+
+		collision::cubic_sdf out_sdf;
+		if (!collision::create_cubic_sdf(out_sdf, resource, mesh_index, data,
+			static_cast<uint32_t>(cubic_sdf_option.resolution), cubic_sdf_option.bounds_padding_rate))
+			continue;
+
+		std::filesystem::path out_path = model_path;
+		out_path.replace_extension(std::to_string(mesh_index) + "." + std::string(collision::cubic_sdf::extension));
+		out_sdf.serialize(out_path.string());
 	}
 }
 

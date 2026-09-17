@@ -37,6 +37,7 @@ private:
 	void save_model();
 	void generate_lod();
 	void generate_bounding_mesh_asset();
+	void generate_cubic_sdf_asset();
 	void generate_shadow_mesh_asset();
 	void discard_lod();
 	void discard_shadow_mesh();
@@ -92,7 +93,8 @@ private:
 
 	//	メッシュ結合のグリッド分割数（軸ごと）。{1,1,1} で全結合
 	DirectX::XMINT3 combine_grid_divisions = { 1, 1, 1 };
-	//	結合前の meshes / nodes 退避（結合解除で復元する）
+
+	//	結合前の meshes / nodes 退避
 	std::vector<model_resource::mesh> combine_backup_meshes;
 	std::vector<model_resource::node> combine_backup_nodes;
 	bool has_combine_backup = false;
@@ -104,7 +106,16 @@ private:
 		bool reverse_flag = true;
 		bool use_lod = false;
 		int lod_level = 0;
-	} bounding_mesh_option;
+	};
+	bounding_mesh_option bounding_mesh_option;
+
+	//	cubic_sdf 生成情報
+	struct cubic_sdf_option
+	{
+		int resolution = 32;
+		float bounds_padding_rate = 0.1f;
+	};
+	cubic_sdf_option cubic_sdf_option;
 
 	//	変換情報
 	std::string load_model_path;

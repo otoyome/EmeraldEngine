@@ -69,6 +69,12 @@ namespace collision
 
 		void include_corner(DirectX::XMFLOAT3& min, DirectX::XMFLOAT3& max) const override;
 
+	public:
+		//	点が閉じたメッシュの内側にあるかを判定
+		bool is_point_inside(const DirectX::XMFLOAT3& point) const;
+		//	点からメッシュ表面までの最短距離を求める
+		bool distance_to_point(const DirectX::XMFLOAT3& point, float& out_distance, DirectX::XMFLOAT3* out_nearest_point = nullptr, DirectX::XMFLOAT3* out_normal = nullptr) const;
+
 	private:
 		bool intersect_point_inner(const DirectX::XMFLOAT3& point, float& nearlest, const std::vector<size_t>& triangle_indices) const;
 		bool intersect_segment_inner(const DirectX::XMFLOAT3& start, const DirectX::XMFLOAT3& end, const std::vector<size_t>& triangle_indices, intersect_data* intersect = nullptr) const;

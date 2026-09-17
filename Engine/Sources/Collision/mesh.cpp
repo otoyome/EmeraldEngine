@@ -297,7 +297,41 @@ namespace
 		distance = t;
 		return	true;
 	}
-}
+
+
+	bool XM_CALLCONV ray_intersects_triangle_both_side(DirectX::XMVECTOR Start, DirectX::XMVECTOR Direction,
+		DirectX::XMVECTOR A, DirectX::XMVECTOR EdgeAB, DirectX::XMVECTOR EdgeCA)
+	{
+		constexpr float epsilon = 1e-6f;
+
+		DirectX::XMVECTOR e2 = DirectX::XMVectorNegate(EdgeCA);	//	e2 = C - A
+
+		DirectX::XMVECTOR pvec = DirectX::XMVector3Cross(Direction, e2);
+		float det = DirectX::XMVectorGetX(DirectX::XMVector3Dot(EdgeAB, pvec));
+		if (fabsf(det) < epsilon)
+			return false;	//	レイと三角形が平行
+
+		float inv_det = 1.0f / det;
+		DirectX::XMVECTOR tvec = DirectX::XMVectorSubtract(Start, A);
+		float u = DirectX::XMVectorGetX(DirectX::XMVector3Dot(tvec, pvec)) * inv_det;
+		if (u < 0.0f || u > 1.0f)
+			return false;
+
+		DirectX::XMVECTOR qvec = DirectX::XMVector3Cross(tvec, EdgeAB);
+		float v = DirectX::XMVectorGetX(DirectX::XMVector3Dot(Direction, qvec)) * inv_det;
+		if (v < 0.0f || u + v > 1.0f)
+			return false;
+
+		float t = DirectX::XMVectorGetX(DirectX::XMVector3Dot(e2, qvec)) * inv_det;
+		return t > epsilon;	//	始点より前方でのみ交差とみなす
+	}
+
+	constexpr DirectX::XMFLOAT3 inside_test_ray_directions[] =
+	{
+		{ 0.5773503f,  0.5773503f,  0.5773503f},
+		{ 0.7071068f, -0.7071068f,  0.4082483f},
+		{-0.4082483f,  0.5773503f, -0.7071068f},
+	};}
 
 using namespace collision;
 
@@ -1718,6 +1752,126 @@ float bounding_mesh::calculate_segment_distance(const collision::line& line,
 	}
 
 	return nearlest_distance;
+}
+
+bool bounding_mesh::is_point_inside(const DirectX::XMFLOAT3& point) const
+{
+	if (triangles.empty())
+		return false;
+
+	DirectX::XMFLOAT3 local_point;
+	DirectX::XMStoreFloat3(&local_point, DirectX::XMVector3TransformCoord(DirectX::XMLoadFloat3(&point), get_inverse_transform_matrix()));
+	DirectX::XMVECTOR P = DirectX::XMLoadFloat3(&local_point);
+
+	constexpr size_t direction_count = std::size(inside_test_ray_directions);
+	DirectX::XMVECTOR directions[direction_count];
+	UINT hit_counts[direction_count] = {};
+	for (size_t index = 0; index < direction_count; ++index)
+		directions[index] = DirectX::XMLoadFloat3(&inside_test_ray_directions[index]);
+
+	auto p = positions.data();
+	for (auto& triangle : triangles)
+	{
+		DirectX::XMVECTOR A = DirectX::XMLoadFloat3(p + triangle.a);
+		DirectX::XMVECTOR AB = DirectX::XMLoadFloat3(&triangle.ab);
+		DirectX::XMVECTOR CA = DirectX::XMLoadFloat3(&triangle.ca);
+
+		for (size_t index = 0; index < direction_count; ++index)
+		{
+			if (ray_intersects_triangle_both_side(P, directions[index], A, AB, CA))
+				++hit_counts[index];
+		}
+	}
+
+	UINT inside_votes = 0;
+	for (auto hit_count : hit_counts)
+	{
+		if ((hit_count % 2) == 1)
+			++inside_votes;
+	}
+	return inside_votes * 2 > direction_count;
+}
+
+bool bounding_mesh::distance_to_point(const DirectX::XMFLOAT3& point, float& out_distance, DirectX::XMFLOAT3* out_nearest_point, DirectX::XMFLOAT3* out_normal) const
+{
+	if (triangles.empty() || block_datas.empty())
+		return false;
+
+	DirectX::XMFLOAT3 local_point;
+	DirectX::XMStoreFloat3(&local_point, DirectX::XMVector3TransformCoord(DirectX::XMLoadFloat3(&point), get_inverse_transform_matrix()));
+	DirectX::XMVECTOR P = DirectX::XMLoadFloat3(&local_point);
+
+	auto p = positions.data();
+	auto t = triangles.data();
+
+	std::vector<bool> checked(block_datas.size(), false);
+
+	float nearest_sq = FLT_MAX;
+	DirectX::XMVECTOR nearest_point_v = P;
+	DirectX::XMFLOAT3 nearest_normal = { 0.0f, 1.0f, 0.0f };
+
+	float search_radius = std::max({ area_unit.x, area_unit.y, area_unit.z });
+	if (search_radius <= 0.0f)
+		search_radius = 1.0f;
+
+	for (int safety = 0; safety < 32; ++safety)
+	{
+		DirectX::XMFLOAT3 min = { local_point.x - search_radius, local_point.y - search_radius, local_point.z - search_radius };
+		DirectX::XMFLOAT3 max = { local_point.x + search_radius, local_point.y + search_radius, local_point.z + search_radius };
+		auto list = calculate_check_order_list(min, max, area_min, area_unit, separate_count);
+		bool covers_whole_grid = list.size() >= block_datas.size();
+
+		for (auto node_index : list)
+		{
+			if (checked[node_index])
+				continue;
+			checked[node_index] = true;
+
+			auto& node = block_datas[node_index];
+			for (auto triangle_index : node.triangles)
+			{
+				auto& triangle = t[triangle_index];
+				DirectX::XMVECTOR A = DirectX::XMLoadFloat3(p + triangle.a);
+				DirectX::XMVECTOR B = DirectX::XMLoadFloat3(p + triangle.b);
+				DirectX::XMVECTOR C = DirectX::XMLoadFloat3(p + triangle.c);
+				DirectX::XMVECTOR AB = DirectX::XMLoadFloat3(&triangle.ab);
+				DirectX::XMVECTOR BC = DirectX::XMLoadFloat3(&triangle.bc);
+				DirectX::XMVECTOR CA = DirectX::XMLoadFloat3(&triangle.ca);
+				DirectX::XMVECTOR AC = DirectX::XMVectorNegate(CA);
+
+				DirectX::XMVECTOR NP;
+				calculate_nearlest_point(P, A, B, C, AB, BC, AC, NP);
+				float d = DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(DirectX::XMVectorSubtract(NP, P)));
+				if (d < nearest_sq)
+				{
+					nearest_sq = d;
+					nearest_point_v = NP;
+					nearest_normal = triangle.normal;
+				}
+			}
+		}
+
+		if (nearest_sq < FLT_MAX && sqrtf(nearest_sq) <= search_radius)
+			break;
+		if (covers_whole_grid)
+			break;
+
+		search_radius *= 2.0f;
+	}
+
+	if (nearest_sq >= FLT_MAX)
+		return false;
+
+	out_distance = sqrtf(nearest_sq);
+	if (out_nearest_point)
+	{
+		DirectX::XMStoreFloat3(out_nearest_point, DirectX::XMVector3TransformCoord(nearest_point_v, get_transform_matrix()));
+	}
+	if (out_normal)
+	{
+		DirectX::XMStoreFloat3(out_normal, DirectX::XMVector3Normalize(DirectX::XMVector3TransformNormal(DirectX::XMLoadFloat3(&nearest_normal), get_transform_matrix())));
+	}
+	return true;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
