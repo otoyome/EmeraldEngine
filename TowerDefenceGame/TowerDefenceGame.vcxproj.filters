@@ -240,6 +240,12 @@
     <Filter Include="Sources\Object\GameObjects\UI\Common">
       <UniqueIdentifier>{451c5df4-4744-4a50-aae3-663fdd716827}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Sources\Object\GameObjects\MiniGame">
+      <UniqueIdentifier>{517a80ff-57e0-4bf8-b7d8-aef6c4c7b4c0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Headers\Object\GameObjects\MiniGame">
+      <UniqueIdentifier>{c0fd6346-569e-4ca2-91fa-1c756fea5db6}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\External\imgui\imgui.cpp">
@@ -527,6 +533,21 @@
     <ClCompile Include="Sources\Object\GameObjects\UI\ui_text.cpp">
       <Filter>Sources\Object\GameObjects\UI</Filter>
     </ClCompile>
+    <ClCompile Include="Sources\Object\GameObjects\MiniGame\roomba_object.cpp">
+      <Filter>Sources\Object\GameObjects\MiniGame</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Object\GameObjects\MiniGame\roomba_controller_object.cpp">
+      <Filter>Sources\Object\GameObjects\MiniGame</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Object\GameObjects\MiniGame\roomba_camera_controller_object.cpp">
+      <Filter>Sources\Object\GameObjects\MiniGame</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Object\GameObjects\MiniGame\roomba_object _management.cpp">
+      <Filter>Sources\Object\GameObjects\MiniGame</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Scenes\GameScene\minigame_scene.cpp">
+      <Filter>Sources\Scenes\GameScene</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\External\imgui\imgui.h">
@@ -807,6 +828,18 @@
     </ClInclude>
     <ClInclude Include="Headers\Renderer\ui_renderer.h">
       <Filter>Headers\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Object\GameObjects\MiniGame\roomba_object.h">
+      <Filter>Headers\Object\GameObjects\MiniGame</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Object\GameObjects\MiniGame\roomba_controller_object.h">
+      <Filter>Headers\Object\GameObjects\MiniGame</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Object\GameObjects\MiniGame\roomba_camera_controller_object.h">
+      <Filter>Headers\Object\GameObjects\MiniGame</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Scenes\GameScene\minigame_scene.h">
+      <Filter>Headers\Scenes\GameScene</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
