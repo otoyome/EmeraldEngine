@@ -90,7 +90,6 @@ minigame_scene::minigame_scene()
 		//	ルンバオブジェクト生成
 		player_object = std::make_shared<roomba_object>("プレイヤー 制御", roomba_model, "player");
 		register_object(player_object);
-		player_object->set_scale({0.1f, 0.1f, 0.1f});
 		player_object->set_position(system_units::convert_m_to_unit({0, 0, -50}));
 		player_object->set_rotation({0.0f, 0.0f, 0.0f});
 
@@ -142,7 +141,7 @@ bool minigame_scene::uninitialize_core()
 
 void minigame_scene::update_core(float elapsed_time)
 {
-	if (star_dust && player_object)
+	if (star_dust && player_object && test_ui)
 	{
 		//	吸引座標とイベント基準座標設定
 		auto position = player_object->get_push_box()->get_position();
@@ -150,12 +149,13 @@ void minigame_scene::update_core(float elapsed_time)
 		star_dust->set_attract_position(position);
 		star_dust->set_event_position(position);
 
-		//	1F前のパーティクルイベント情報を取得してカウンター加算
+		//	1F前のパーティクルイベント情報を取得してライフを増減
 		auto particle_events = effect_manager::instance()->get_particle_events();
-		hit_count += particle_events.size();
-		float rate = static_cast<float>(hit_count) / 3000.0f;
-		test_ui->set_screen_rect({ 40, 40, (1280 - 40) * math::saturate(rate), 50 });
 
+		player_object->set_health(player_object->get_health() - particle_events.size() * 100);
+
+		float rate = 1.0f - (static_cast<float>(player_object->get_health()) / player_object->get_max_health());
+		test_ui->set_screen_rect({ 40, 40, (1200 - 40) * math::saturate(rate), 50 });
 	}
 }
 

@@ -32,7 +32,6 @@ protected:
 private:
 	std::shared_ptr<roomba_object> player_object;
 	std::shared_ptr<ui_object> test_ui;
-	int hit_count = 0;
 
 	std::shared_ptr<effect_instance> star_dust;
 };

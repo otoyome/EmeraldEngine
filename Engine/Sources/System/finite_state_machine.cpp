@@ -109,9 +109,10 @@ bool hierarchy_finite_state_node::change_state(std::string_view key)
 		return false;
 	}
 
-	it_next->second->enter();
 	if (current_node)
 		current_node->exit();
+
+	it_next->second->enter();
 
 #if defined(_DEBUG) || defined(USE_IMGUI)
 	DEBUG_LOG("change_state:%s > %s\n",
@@ -183,6 +184,9 @@ bool finite_state_machine::change_state(std::string_view key)
 		DEBUG_LOG("not found state : %d\n", key);
 		return false;
 	}
+
+	if (current_node)
+		current_node->exit();
 
 	it_next->second->enter();
 

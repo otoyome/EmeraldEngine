@@ -7,7 +7,7 @@ namespace
 	//	ヨー回転速度
 	constexpr float rotation_speed = DirectX::XMConvertToRadians(90.0f);
 	//	±ピッチ制限角度
-	constexpr DirectX::XMFLOAT2 pitch_limit_angle = { DirectX::XMConvertToRadians(-10.0f), DirectX::XMConvertToRadians(45.0f) };
+	constexpr DirectX::XMFLOAT2 pitch_limit_angle = { DirectX::XMConvertToRadians(+5.0f), DirectX::XMConvertToRadians(45.0f) };
 	//	開始距離
 	constexpr float default_distance = system_units::convert_m_to_unit(7.0f);
 	//	角度によるフォーカス位置のオフセット
@@ -16,8 +16,12 @@ namespace
 	//	フォーカス追従制限
 	constexpr float focus_limit_range_max = system_units::convert_m_to_unit(2.0f); // 基本フォーカス
 	//	ダッシュ中の視野角制御
-	constexpr DirectX::XMFLOAT2 dash_fov_range = {DirectX::XMConvertToRadians(30.0f), DirectX::XMConvertToRadians(45.0f)};
-	constexpr float dash_fov_time_max = 0.5f;
+	constexpr float fov_follow_rate = 6.0f;
+	constexpr DirectX::XMFLOAT2 fov_range = {DirectX::XMConvertToRadians(30.0f), DirectX::XMConvertToRadians(60.0f)};
+	constexpr math::ease::type fov_ease = math::ease::type::lerp;
+
+	//	死亡時のカメラ停止時間
+	constexpr float dead_wait_lock_time = 0.6f;
 }
 
 const math::rotator& roomba_camera_controller_object::get_rotation() const
@@ -69,7 +73,9 @@ roomba_camera_controller_object::roomba_camera_controller_object(std::string_vie
 , focus_limit_range(focus_limit_range_max)
 , update_focus_rate_inner(0.05f)
 
-, update_fov_counter(0)
+, update_fov_rate_inner(0.0f)
+
+, dead_wait_time(dead_wait_lock_time)
 {
 	focus = player_controller->get_focus_point();
 }
@@ -114,6 +120,21 @@ void roomba_camera_controller_object::fixed_update_default(float elapsed_time)
 	DirectX::XMVECTOR Up{ DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f) };
 
 	DirectX::XMFLOAT3 new_focus = player_controller->get_controll_object()->get_focus_point();
+	float focus_limit = focus_limit_range;
+	if (player_controller->get_controll_object()->check_same_state(roomba_object::state_names[roomba_object::state_dead]))
+	{
+		if (dead_wait_time >= 0.0f && dead_wait_time < dead_wait_lock_time)
+		{
+			new_focus = dead_focus;
+		}
+		else
+		{
+			dead_focus = new_focus;
+		}
+		dead_wait_time -= elapsed_time;
+		focus_limit = 40.0f;
+	}
+
 	float update_focus_rate = update_focus_rate_inner;
 
 	//	物体との距離に応じて調整
@@ -152,7 +173,7 @@ void roomba_camera_controller_object::fixed_update_default(float elapsed_time)
 			focus_vector.z = new_focus.z - temp_focus.z;
 			float length_sq = focus_vector.x * focus_vector.x + focus_vector.y * focus_vector.y + focus_vector.z * focus_vector.z;
 
-			focus_rate = math::lerp(focus_rate, 1.0f, math::saturate(length_sq / (focus_limit_range * focus_limit_range)));
+			focus_rate = math::lerp(focus_rate, 1.0f, math::saturate(length_sq / (focus_limit * focus_limit)));
 		}
 		focus.x += (new_focus.x - focus.x) * focus_rate;
 		focus.y += (new_focus.y - focus.y) * focus_rate;
@@ -181,7 +202,7 @@ void roomba_camera_controller_object::fixed_update_default(float elapsed_time)
 		math::rotator camera_rotation = get_rotation();
 		camera_front = camera_rotation.get_front();
 
-		float offset = system_units::convert_m_to_unit(0.6f);
+		float offset = system_units::convert_m_to_unit(1.0f);
 		float dist = focus_distance - offset;
 		camera_focus.x = focus.x - camera_front.x * offset;
 		camera_focus.y = focus.y - camera_front.y * offset;
@@ -192,6 +213,7 @@ void roomba_camera_controller_object::fixed_update_default(float elapsed_time)
 		float min_y_offset = math::linearstep(0.0f, pitch_limit_angle.x, camera_rotation.x);
 		float max_y_offset = math::linearstep(0.0f, pitch_limit_angle.y, camera_rotation.x);
 		camera_position.y += min_y_offset * focus_y_min_offset + max_y_offset * focus_y_max_offset;
+
 		//	物体と当たり判定
 		{
 			collision_world::sphere_cast_descs desc;
@@ -211,6 +233,7 @@ void roomba_camera_controller_object::fixed_update_default(float elapsed_time)
 				vector.y = camera_position.y - camera_focus.y;
 				vector.z = camera_position.z - camera_focus.z;
 				DirectX::XMStoreFloat3(&vector, DirectX::XMVector3Normalize(DirectX::XMLoadFloat3(&vector)));
+
 				camera_position.x = camera_focus.x + vector.x * length;
 				camera_position.y = camera_focus.y + vector.y * length;
 				camera_position.z = camera_focus.z + vector.z * length;
@@ -220,19 +243,17 @@ void roomba_camera_controller_object::fixed_update_default(float elapsed_time)
 		set_position(camera_position);
 	}
 
-	//	ダッシュ中は視野角補正
+	//	視野角制御
 	{
-		if (player_controller->get_controll_object()->check_same_state(roomba_object::state_names[roomba_object::state_dash]))
-		{
-			update_fov_counter += elapsed_time;
-		}
-		else
-		{
-			update_fov_counter -= elapsed_time;
-		}
-		update_fov_counter = math::clamp(update_fov_counter, 0.0f, dash_fov_time_max);
-		float rate = math::saturate(update_fov_counter / dash_fov_time_max);
-		camera->get_camera()->set_fov_y(math::lerp(dash_fov_range.x, dash_fov_range.y, rate));
+		auto velocity = player_controller->get_controll_object()->get_velocity();
+		auto speed = sqrtf(velocity.x * velocity.x + velocity.y * velocity.y + velocity.z * velocity.z);
+		auto max_speed = player_controller->get_controll_object()->get_max_speed(roomba_object::move_mode::dash);
+		float rate = math::saturate(speed / max_speed);
+		float alpha = 1.0f - expf(-fov_follow_rate * elapsed_time);
+		update_fov_rate_inner = math::lerp(update_fov_rate_inner, rate, alpha);
+
+		rate = math::ease::calculate(update_fov_rate_inner, fov_ease);
+		camera->get_camera()->set_fov_y(math::lerp(fov_range.x, fov_range.y, rate));
 	}
 }
 

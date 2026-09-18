@@ -67,6 +67,10 @@ namespace
 					spawn->is_state(::particle::item::spawn::states::burst))
 					common_data.spawn_count = 0;
 
+				//	¶¬’â~’†‚Å‚ ‚ê‚Î
+				if (instance.is_flag(effect_instance::flags::spawn_stop))
+					common_data.spawn_count = 0;
+
 				//	~‚Ü‚Á‚Ä‚éƒtƒŒ[ƒ€‚Å‚Í¶¬‚µ‚È‚¢
 				if (elapsed_time <= 0.0f)
 					common_data.spawn_count = 0;
@@ -278,6 +282,7 @@ effect_instance::effect_instance()
 	set_flag(flags::active, true);
 	set_flag(flags::color_render, true);
 	set_flag(flags::shadow_caster, false);
+	set_flag(flags::spawn_stop, false);
 	set_flag(effect_instance::flags::bursted, false);
 }
 
@@ -404,6 +409,23 @@ void effect_instance::set_particle_simulation_step(UINT count)
 void effect_instance::reset_particle_simulation_step()
 {
 	particle_simulation_step = 0;
+}
+
+std::size_t effect_instance::search_node_index_by_name(std::string_view data_name)
+{
+	auto hash_key = system_utility::generate_hash(data_name);
+	std::size_t node_index = 0;
+	for (auto& node : nodes)
+	{
+		if (hash_key != system_utility::generate_hash(node.name))
+		{
+			++node_index;
+			continue;
+		}
+
+		return node_index;
+	}
+	return invalid_id;
 }
 
 void effect_instance::build()

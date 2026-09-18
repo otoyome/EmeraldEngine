@@ -1,16 +1,70 @@
 #include "object/gameobjects/MiniGame/roomba_object.h"
 
-namespace setup_data
+namespace
 {
-	constexpr float walk_accelaration = system_units::convert_m_to_unit(5.0f); // 歩きの加速度(m/s2)
-	constexpr float dash_accelaration = system_units::convert_m_to_unit(15.0f); // ダッシュ加速度(m/s2)
+	//	入力・停止判定の閾値
+	constexpr float move_input_dead_zone = 0.01f;
+	constexpr float move_input_dead_zone_sq = move_input_dead_zone * move_input_dead_zone;
 
-	constexpr float walk_breaking_deceleration = system_units::convert_m_to_unit(3.0f); // 歩きの減速度(m/s2)
-	constexpr float dash_breaking_deceleration = system_units::convert_m_to_unit(15.0f); // ダッシュ減速度(m/s2)
-	constexpr float move_stop_breaking_deceleration = system_units::convert_m_to_unit(24.0f); // ブレーキング減速力(m/s2)
+	constexpr float rotation_input_dead_zone = 0.001f;
+	constexpr float rotation_input_dead_zone_sq = rotation_input_dead_zone * rotation_input_dead_zone;
 
-	constexpr float walk_max_speed = system_units::convert_m_to_unit(2.0f); // 歩きの速度(m/s)
-	constexpr float dash_max_speed = system_units::convert_m_to_unit(10.0f); // ダッシュ速度(m/s)
+	constexpr float horizontal_move_stop_epsilon = 0.001f;
+	constexpr float horizontal_move_stop_epsilon_sq = horizontal_move_stop_epsilon * horizontal_move_stop_epsilon;
+
+	constexpr float action_move_input_dead_zone = 0.1f;
+	constexpr float action_move_input_dead_zone_sq = action_move_input_dead_zone * action_move_input_dead_zone;
+
+	//	傾き関連
+	constexpr float ground_tilt_follow_rate = 15.0f;
+	constexpr float velocity_tilt_follow_rate = 30.0f;
+	constexpr float velocity_roll_max = DirectX::XMConvertToRadians(+20.0f);
+	constexpr float velocity_pitch_max = DirectX::XMConvertToRadians(20.0f);
+
+	//	死亡加速
+	constexpr float death_spin_speed = DirectX::XMConvertToRadians(720.0f);
+	constexpr DirectX::XMFLOAT3 dead_impulse = system_units::convert_m_to_unit({2.0f, 10.0f, 2.0f});
+
+	//	力 > 加速度
+	float convert_force_to_acceleration(float force, float mass)
+	{
+		return force / mass;
+	}
+
+	//	地面の傾きを角度で算出
+	DirectX::XMFLOAT3 calculate_ground_tilt(const DirectX::XMFLOAT3& euler, const DirectX::XMFLOAT3& normal)
+	{
+		DirectX::XMFLOAT3 front = { sinf(euler.y), 0.0f, +cosf(euler.y) };
+		DirectX::XMFLOAT3 right = { cosf(euler.y), 0.0f, -sinf(euler.y) };
+
+		float forward_component = normal.x * front.x + normal.z * front.z;
+		float right_component   = normal.x * right.x + normal.z * right.z;
+
+		DirectX::XMFLOAT3 out;
+		out.x = atan2f(forward_component, normal.y);
+		out.y = euler.y;
+		out.z = asinf(math::clamp(-right_component, -1.0f, 1.0f));
+		return out;
+	}
+
+	//	速度ベクトルから前後・左右の傾き角を算出
+	DirectX::XMFLOAT2 calculate_velocity_tilt(float yaw, const DirectX::XMFLOAT3& velocity, float max_speed, bool flip_pitch = false)
+	{
+		DirectX::XMFLOAT2 front = { sinf(yaw), +cosf(yaw) };
+		DirectX::XMFLOAT2 right = { cosf(yaw), -sinf(yaw) };
+
+		float forward_speed = velocity.x * front.x + velocity.z * front.y;
+		float lateral_speed = velocity.x * right.x + velocity.z * right.y;
+
+		float forward_rate = (max_speed > FLT_EPSILON) ? math::clamp(forward_speed / max_speed, -1.0f, 1.0f) : 0.0f;
+		float lateral_rate = (max_speed > FLT_EPSILON) ? math::clamp(lateral_speed / max_speed, -1.0f, 1.0f) : 0.0f;
+
+		DirectX::XMFLOAT2 out;
+		float pitch = velocity_pitch_max * fabsf(forward_rate);
+		out.x = (flip_pitch ? (forward_rate < 0.0f) : (forward_rate > 0.0f)) ? -pitch : pitch;
+		out.y = lateral_rate * velocity_roll_max;
+		return out;
+	}
 }
 
 void roomba_object::fixed_update(float elapsed_time)
@@ -23,15 +77,12 @@ void roomba_object::fixed_update(float elapsed_time)
 	//invisile_timer = std::max(invisile_timer - elapsed_time, 0.0f);
 
 	//	経過時間更新
-	elapsed_time *= elapsed_time_scale;
+	elapsed_time *= elapsed_time_scale;	
 
 	//	ヒットストップ
 	//get_model_object()->set_animation_speed(hit_stop_time <= FLT_EPSILON ? elapsed_time_scale : 0.0f);
 	//if (hit_stop_time > 0.0f)
 	//	return;
-
-	//	傾き破棄
-	set_rotation({get_rotation().x, get_rotation().y, 0});
 
 	//	各種フラグを落としておく
 	set_flag(roomba_object::flags::invisible, false);
@@ -53,18 +104,64 @@ void roomba_object::fixed_update(float elapsed_time)
 	update_vertical_move(elapsed_time);
 
 	//	傾き適応
+	if (check_same_state(state_names[state_dead]))
 	{
-		set_rotation({get_rotation().x, get_rotation().y, roll_value});
-		roll_value *= 0.1f;
+		//	死亡時はスピンさせる
+		DirectX::XMVECTOR Velocity = DirectX::XMLoadFloat3(&get_velocity());
+		float speed = DirectX::XMVectorGetX(DirectX::XMVector3Length(Velocity));
+		if (speed >= 0.001f)
+		{
+			Velocity = DirectX::XMVector3Normalize(Velocity);
+			DirectX::XMVECTOR UpVector = DirectX::XMVectorNegate(DirectX::XMVector3Normalize(DirectX::XMLoadFloat3(&world_gravity)));
+			UpVector = DirectX::XMVector3Cross(Velocity, UpVector);
+
+			if (DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(UpVector)) > 0.00001f)
+			{
+				death_spin_angle = speed;
+
+				DirectX::XMVECTOR Rotation = DirectX::XMLoadFloat4(&death_spin_rotator.convert_quaternion());
+				DirectX::XMVECTOR AddRotation = DirectX::XMQuaternionRotationAxis(UpVector, death_spin_angle);
+				Rotation = DirectX::XMQuaternionMultiply(Rotation, AddRotation);
+
+				DirectX::XMFLOAT4 rot;
+				DirectX::XMStoreFloat4(&rot, Rotation);
+				math::rotator new_rot = rot;
+				new_rot.y -= DirectX::XM_PIDIV2;	//	補正
+				set_rotation(new_rot);
+			}
+		}
+	}
+	else
+	{
+		//	速度から傾き算出
+		{
+			auto max_speed = get_max_speed(roomba_object::move_mode::dash);
+			bool flip_flag = move_vector.x * move_vector.x + move_vector.y * move_vector.y <= 0.0001f;
+			DirectX::XMFLOAT2 velocity_tilt_target = calculate_velocity_tilt(get_rotation().y, get_velocity(), max_speed, flip_flag);
+
+			float velocity_tilt_alpha = 1.0f - expf(-velocity_tilt_follow_rate * elapsed_time);
+			velocity_tilt_pitch += (velocity_tilt_target.x - velocity_tilt_pitch) * velocity_tilt_alpha;
+			velocity_tilt_roll  += (velocity_tilt_target.y - velocity_tilt_roll) * velocity_tilt_alpha;
+		}
+
+		//	地面の法線から傾き算出
+		{
+			DirectX::XMFLOAT3 ground_tilt = calculate_ground_tilt(get_rotation(), ground_normal);
+
+			float ground_tilt_alpha = 1.0f - expf(-ground_tilt_follow_rate * elapsed_time);
+			ground_tilt_pitch += (ground_tilt.x - ground_tilt_pitch) * ground_tilt_alpha;
+			ground_tilt_roll  += (ground_tilt.z - ground_tilt_roll) * ground_tilt_alpha;
+		}
+
+		DirectX::XMFLOAT3 rot = get_rotation();
+		//	@remainder	モデルの問題で設定を変えている
+		rot.x = ground_tilt_roll + velocity_tilt_roll;
+		rot.z = ground_tilt_pitch + velocity_tilt_pitch;
+		set_rotation(rot);
 	}
 
 	//	各種速度関係の情報はクリアしておく
 	move_vector = {};
-	accelaration = {};
-
-	//	傾き適応
-	set_rotation({get_rotation().x, get_rotation().y, roll_value});
-	roll_value *= 0.1f;
 
 	//	アクション情報クリア
 	action_data = {};
@@ -72,21 +169,7 @@ void roomba_object::fixed_update(float elapsed_time)
 
 void roomba_object::post_update(float elapsed_time)
 {
-	//	エフェクトインスタンスを監視して破棄処理
-	auto it_effect = effect_instances.begin();
-	while (it_effect != effect_instances.end())
-	{
-		auto effect_instance = (*it_effect);
-		if (effect_instance->get_animation_time() >= effect_instance->get_animation_end_time())
-		{
-			effect_manager::instance()->unregister_instance(effect_instance);
-			it_effect = effect_instances.erase(it_effect);
-		}
-		else
-		{
-			++it_effect;
-		}
-	}
+	update_effects(elapsed_time);
 }
 
 void roomba_object::input_action_data(action_datas data)
@@ -96,7 +179,7 @@ void roomba_object::input_action_data(action_datas data)
 	float my = action_data.move.y;
 	float mz = action_data.move.z;
 	float ml = (mx * mx + my * my + mz * mz);
-	if (ml >= 0.1f * 0.1f)
+	if (ml >= action_move_input_dead_zone_sq)
 	{
 		ml = sqrtf(ml);
 		action_data.move.x /= ml;
@@ -183,35 +266,12 @@ bool roomba_object::input_action(float elapsed_time)
 	return false;
 }
 
-bool roomba_object::input_move(float elapsed_time, move_mode mode)
+bool roomba_object::input_move(float elapsed_time)
 {
-	//	速度指定
-	float accelaration = setup_data::walk_accelaration;
-	float max_speed = setup_data::walk_max_speed;
-	float deceleration = setup_data::walk_breaking_deceleration;
-	switch (mode)
-	{
-		case move_mode::dash:
-		{
-			accelaration = setup_data::dash_accelaration;
-			max_speed = setup_data::dash_max_speed;
-			deceleration = setup_data::dash_breaking_deceleration;
-			break;
-		}
-	}
-	accelaration = push_box->get_mass() * setup_data::dash_accelaration;
-	max_speed = push_box->get_mass() * setup_data::dash_max_speed;
-	deceleration = push_box->get_mass() * setup_data::dash_breaking_deceleration;
-
-	//	入力ベクトル方向に速度ベクトルを修正する
 	DirectX::XMFLOAT2 move = DirectX::XMFLOAT2(action_data.move.x, action_data.move.z);
-	float adjust_move_velocity_rate = 1.0f;
-	adjustment_velocity(move, adjust_move_velocity_rate);
 
-	add_move_vector(move, accelaration);
+	add_move_vector(move);
 	set_turn_vector(move);
-	set_max_move_speed(max_speed);
-	set_breaking_deceleration(deceleration);
 
 	return move.x != 0 || move.y != 0;
 }
@@ -222,11 +282,12 @@ void roomba_object::register_states()
 	register_state<function_finite_state_node>("state_"###STATE, \
 												[this](){enter_##STATE();}, \
 												[this](float elapsed_time) {update_##STATE(elapsed_time);}, \
-												[this](){});
+												[this](){exit_##STATE();});
 	REGISTER_MACRO(idle);
 	REGISTER_MACRO(walk);
 	REGISTER_MACRO(dash);
 	REGISTER_MACRO(move_stop);
+	REGISTER_MACRO(dead);
 #undef REGISTER_MACRO
 }
 
@@ -237,6 +298,13 @@ void roomba_object::enter_idle()
 
 void roomba_object::update_idle(float elapsed_time)
 {
+	//	死亡
+	if (get_health() <= 0)
+	{
+		change_state(state_names[state_dead]);
+		return;
+	}
+
 	//	入力
 	if (input_action(elapsed_time))
 	{
@@ -244,21 +312,15 @@ void roomba_object::update_idle(float elapsed_time)
 	}
 
 	//	移動処理
-	move_mode mode = move_mode::walk;
-	if (action_data.dash)
+	if (input_move(elapsed_time))
 	{
-		mode = move_mode::dash;
-	}
-
-	if (input_move(elapsed_time, mode))
-	{
-		if (mode == move_mode::walk)
-		{
-			change_state(roomba_object::state_names[state_walk]);
-		}
-		else if (mode == move_mode::dash)
+		if (action_data.dash)
 		{
 			change_state(roomba_object::state_names[state_dash]);
+		}
+		else
+		{
+			change_state(roomba_object::state_names[state_walk]);
 		}
 	}
 }
@@ -275,6 +337,13 @@ void roomba_object::enter_walk()
 
 void roomba_object::update_walk(float elapsed_time)
 {
+	//	死亡
+	if (get_health() <= 0)
+	{
+		change_state(state_names[state_dead]);
+		return;
+	}
+
 	//	入力
 	if (input_action(elapsed_time))
 	{
@@ -282,13 +351,9 @@ void roomba_object::update_walk(float elapsed_time)
 	}
 
 	//	移動処理
-	move_mode mode = move_mode::walk;
-	if (action_data.dash)
-		mode = move_mode::dash;
-
-	if (input_move(elapsed_time, mode))
+	if (input_move(elapsed_time))
 	{
-		if (mode == move_mode::dash)
+		if (action_data.dash)
 			change_state(roomba_object::state_names[state_dash]);
 	}
 }
@@ -299,20 +364,33 @@ void roomba_object::exit_walk()
 
 void roomba_object::enter_dash()
 {
+	dash_effect_instance_node_index = dash_effect_instance->search_node_index_by_name("smoke");
 }
 
 void roomba_object::update_dash(float elapsed_time)
 {
+	//	死亡
+	if (get_health() <= 0)
+	{
+		change_state(state_names[state_dead]);
+		return;
+	}
+
 	//	移動
-	if (!input_move(elapsed_time, move_mode::dash))
+	if (!input_move(elapsed_time))
 	{
 		change_state(state_names[state_move_stop]);
 		return;
 	}
+
+	//	ダッシュ状態じゃなくなれば戻す
+	if (!action_data.dash)
+		change_state(state_names[state_walk]);
 }
 
 void roomba_object::exit_dash()
 {
+	dash_effect_instance_node_index = effect_instance::invalid_id;
 }
 
 void roomba_object::enter_move_stop()
@@ -323,12 +401,39 @@ void roomba_object::update_move_stop(float elapsed_time)
 {
 	//	待機処理も利用
 	update_idle(elapsed_time);
-
-	//	ブレーキング減速力
-	set_breaking_deceleration(setup_data::move_stop_breaking_deceleration);
 }
 
 void roomba_object::exit_move_stop()
+{
+}
+
+void roomba_object::enter_dead()
+{
+	DirectX::XMFLOAT3 vel = get_velocity();
+	vel.x *= dead_impulse.x;
+	vel.y += dead_impulse.y;
+	vel.z *= dead_impulse.z;
+	add_impulse(vel);
+
+	//	死亡情報取得
+	death_spin_angle = 0.0f;
+	death_spin_rotator = get_rotation();
+
+	//	爆発させる
+	auto effect = play_effect(static_cast<size_t>(effect_id::dead)).lock();
+	if (effect)
+	{
+		effect->set_position(get_position());
+	}
+}
+
+void roomba_object::update_dead(float elapsed_time)
+{
+	//	爆発させたい
+	//if (
+}
+
+void roomba_object::exit_dead()
 {
 }
 
@@ -336,8 +441,64 @@ void roomba_object::exit_move_stop()
 void roomba_object::register_effects()
 {
 	//	エフェクトリソース読込
+	register_effect(static_cast<size_t>(effect_id::dash_dust), "Assets/Resources/Effects/DashDust.eme");
+	register_effect(static_cast<size_t>(effect_id::dead), "Assets/Resources/Effects/Dead.eme");
 
-//	register_effect(static_cast<size_t>(custom_effect_id::break_attack_impact), "Assets/Resources/Effects/EventTest.eme");
+	//	走りエフェクトは常時必要なので
+	auto dash_effect = play_effect(static_cast<size_t>(effect_id::dash_dust));
+	{
+		dash_effect_instance = dash_effect.lock();
+		if (dash_effect_instance)
+		{
+			dash_effect_instance_node_index = effect_instance::invalid_id;
+		}
+	}
+}
+
+void roomba_object::update_effects(float elapsed_time)
+{
+	//	走り関係の対応
+	{
+		//	スポーンフラグ
+		dash_effect_instance->set_flag(effect_instance::flags::spawn_stop, dash_effect_instance_node_index == effect_instance::invalid_id);
+
+		//	スポーン座標を変更
+		if (dash_effect_instance_node_index != effect_instance::invalid_id)
+		{
+			auto& nodes = dash_effect_instance->get_nodes();
+			nodes[dash_effect_instance_node_index].position = get_position();
+			nodes[dash_effect_instance_node_index].rotation = get_rotation();
+		}
+	}
+
+	//	エフェクトインスタンスを監視して破棄処理
+	auto it_effect = effect_instances.begin();
+	while (it_effect != effect_instances.end())
+	{
+		auto effect_instance = (*it_effect);
+		if (effect_instance->get_animation_time() >= effect_instance->get_animation_end_time())
+		{
+			effect_manager::instance()->unregister_instance(effect_instance);
+			it_effect = effect_instances.erase(it_effect);
+		}
+		else
+		{
+			++it_effect;
+		}
+	}
+}
+
+void roomba_object::unregister_effects()
+{
+	//	エフェクト破棄
+	auto it_effect = effect_instances.begin();
+	while (it_effect != effect_instances.end())
+	{
+		effect_manager::instance()->unregister_instance((*it_effect));
+		++it_effect;
+	}
+	effect_instances.clear();
+	effect_resources.clear();
 }
 
 bool roomba_object::register_effect(size_t effect_id, std::string_view file_path)
@@ -451,33 +612,32 @@ void roomba_object::update_horizontal_velocity(float elapsed_time)
 {
 	//	入力フラグ
 	float move_length = move_vector.x * move_vector.x + move_vector.y * move_vector.y;
-	bool input_move = move_length > 0.01f * 0.01f;
+	bool input_move = move_length > move_input_dead_zone_sq;
 
 	//	加速処理
 	if (input_move)
 	{
-		//	add_force
-		float acceleration_force = accelaration * elapsed_time;
-		float frame_acceleration = acceleration_force / get_push_box()->get_mass();
-
 		float move_vector_x = move_vector.x;
 		float move_vector_z = move_vector.y;
 		move_length = sqrtf(move_length);
 		move_vector_x /= move_length;
 		move_vector_z /= move_length;
 
-		velocity.x += move_vector_x * frame_acceleration;
-		velocity.z += move_vector_z * frame_acceleration;
+		auto accelaration_force = get_current_accelaration_force() * elapsed_time;
+		DirectX::XMFLOAT3 drive_force = {move_vector_x * accelaration_force, 0, move_vector_z * accelaration_force};
+		add_force(drive_force);
 	}
 
 	//	摩擦処理
 	if (is_flag(flags::on_ground))
 	{
 		//	垂直抗力
-		float normal_force = fabsf(frame_gravity.y) * get_push_box()->get_mass();
+		float slope_cos = math::clamp(ground_normal.y, 0.0f, 1.0f);
+		float gravity_y = frame_gravity.y;
+		float normal_force = fabsf(gravity_y) * get_push_box()->get_mass() * slope_cos;
 
 		//	合成摩擦係数
-		float total_friction = (ground_friction + get_push_box()->get_physical_data().friction) * 0.5f;
+		float total_friction = (ground_friction + get_current_friction()) * 0.5f;
 
 		//	動摩擦力
 		float kinetic_friction_force = normal_force * total_friction;
@@ -517,10 +677,9 @@ void roomba_object::update_horizontal_velocity(float elapsed_time)
 	}
 
 	//	ブレーキング処理
-	if (!input_move)
 	{
-		float breaking_force = breaking_deceleration * elapsed_time;
-		float breaking_acceleration = breaking_force / get_push_box()->get_mass();
+		float breaking_force = get_current_breaking_deceleration_force() * elapsed_time;
+		float breaking_acceleration = convert_force_to_acceleration(breaking_force, get_push_box()->get_mass());
 
 		float speed_sq = velocity.x * velocity.x + velocity.z * velocity.z;
 
@@ -541,9 +700,9 @@ void roomba_object::update_horizontal_velocity(float elapsed_time)
 	//	最大速度制限
 	{
 		float speed_sq = velocity.x * velocity.x + velocity.z * velocity.z;
-		if (speed_sq > max_move_speed * max_move_speed)
+		if (speed_sq > get_current_max_speed() * get_current_max_speed())
 		{
-			float scale = max_move_speed / sqrtf(speed_sq);
+			float scale = get_current_max_speed() / sqrtf(speed_sq);
 			velocity.x *= scale;
 			velocity.z *= scale;
 		}
@@ -565,65 +724,13 @@ void roomba_object::update_horizontal_move(float elapsed_time)
 {
 	//	ルートモーションの速度加算
 	DirectX::XMFLOAT3 vel = DirectX::XMFLOAT3(velocity.x * elapsed_time, 0.0f, velocity.z * elapsed_time);
-	if (vel.x * vel.x + vel.z * vel.z <= 0.001f * 0.001f)
+	if (vel.x * vel.x + vel.z * vel.z <= horizontal_move_stop_epsilon_sq)
 		return;
 
 	//	座標算出
 	DirectX::XMFLOAT3 new_position, normal;
 	calculate_position(vel, false, new_position, normal);
 	set_position(new_position);
-}
-
-void roomba_object::adjustment_velocity(DirectX::XMFLOAT2& move, float adjust_move_velocity_rate)
-{
-	if (move.x == 0 && move.y == 0)
-		return;
-
-	float vx = get_velocity().x, vy = get_velocity().z;
-	float vl = vx * vx + vy * vy;
-	if (vl > FLT_EPSILON)
-	{
-		float mx = move.x, my = move.y;
-		float ml = sqrtf(mx * mx + my * my);
-
-		mx /= ml;
-		my /= ml;
-
-		vl = sqrtf(vl);
-		vx /= vl;
-		vy /= vl;
-
-		float sin = math::clamp(vx * my - vy * mx, -1.0f, 1.0f);
-		float dot = math::clamp(mx * vx + my * vy, -1.0f, 1.0f);
-
-		//	入力を速度方向に若干変化させる
-		{
-			float angle = asinf(sin) * adjust_move_velocity_rate;
-			float mmx = move.x * cosf(angle) - move.y * sinf(angle);
-			float mmy = move.x * sinf(angle) + move.y * cosf(angle);
-			move.x = mmx;
-			move.y = mmy;
-		}
-
-		//	入力方向に合わせて速度ベクトルの修正
-		{
-			if ((fabsf(sin) < 0.01f) && (dot < -0.1f))
-			{
-				set_velocity({ mx * vl, get_velocity().y, my * vl });
-			}
-			else
-			{
-				float angle = asinf(sin) * adjust_move_velocity_rate;
-				float vvx = get_velocity().x * cosf(angle) - get_velocity().z * sinf(angle);
-				float vvy = get_velocity().x * sinf(angle) + get_velocity().z * cosf(angle);
-				set_velocity({ vvx, get_velocity().y, vvy });
-			}
-
-			//	速度に合わせて傾ける
-			roll_value += DirectX::XMConvertToRadians(15.0f * sin);
-			roll_value = math::clamp(roll_value, -DirectX::XMConvertToRadians(10.0f), DirectX::XMConvertToRadians(10.0f));
-		}
-	}
 }
 
 bool roomba_object::calculate_position(DirectX::XMFLOAT3 velocity, bool vertical, DirectX::XMFLOAT3& out_position, DirectX::XMFLOAT3& out_normal, float* out_friction)

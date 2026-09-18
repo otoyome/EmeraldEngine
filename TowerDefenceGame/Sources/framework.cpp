@@ -57,7 +57,9 @@ int framework::run()
 		return uninitialize();
 	}
 
+#if defined(USE_IMGUI)
 	imgui_initialize();
+#endif	//	defined(USE_IMGUI)
 
 	while (WM_QUIT != msg.message)
 	{
@@ -75,7 +77,9 @@ int framework::run()
 		}
 	}
 
+#if defined(USE_IMGUI)
 	imgui_terminate();
+#endif	//	defined(USE_IMGUI)
 
 	BOOL fullscreen{};
 	render_data::instance()->get_swap_chain()->GetFullscreenState(&fullscreen, 0);

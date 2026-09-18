@@ -25,8 +25,9 @@ public:
 		state_walk,
 		state_dash,
 		state_move_stop,
+		state_dead,
 
-		state_common_max,
+		state_max,
 	};
 
 	static constexpr std::string_view state_names[] =
@@ -35,6 +36,7 @@ public:
 		"state_walk",
 		"state_dash",
 		"state_move_stop",
+		"state_dead",
 	};
 
 	//	移動段階
@@ -50,6 +52,13 @@ public:
 		movable,			//	移動可能フラグ
 		on_ground,			//	接地フラグ
 		invisible,			//	無敵フラグ
+	};
+
+	// エフェクトId
+	enum class effect_id
+	{
+		dash_dust,
+		dead,
 	};
 
 	//	判定形状情報
@@ -94,6 +103,8 @@ public:
 
 	void fixed_update(float elapsed_time) override;
 	void post_update(float elapsed_time) override;
+
+	void on_finalize() override;
 
 #if defined(USE_IMGUI)
 	void imgui_render_core() override;
@@ -147,19 +158,22 @@ public:
 
 	DirectX::XMFLOAT3 get_focus_point() const;
 
-	void add_move_vector(DirectX::XMFLOAT2 direction, float accelaration);
+	void add_move_vector(DirectX::XMFLOAT2 direction);
 
 	void set_turn_vector(DirectX::XMFLOAT2 direction);
 	DirectX::XMFLOAT2 get_turn_vector() const;
 
+	void add_force(DirectX::XMFLOAT3 force);
 	void add_impulse(DirectX::XMFLOAT3 delta_velocity);
 
-	float get_max_move_speed() const;
-	void set_max_move_speed(float max_move_speed);
+	float get_current_accelaration_force() const;
+	float get_current_max_speed() const;
+	float get_current_breaking_deceleration_force() const;
 
-	float get_breaking_deceleration() const;
-	void set_breaking_deceleration(float breaking_deceleration);
+	float get_current_friction() const;
 
+	float get_accelaration_force(move_mode mode) const;
+	float get_max_speed(move_mode mode) const;
 	float get_air_drag_coefficient() const;
 
 public:	//	入力情報設定
@@ -192,7 +206,7 @@ private:	//	内部ステート系
 	void register_states();
 
 	bool input_action(float elapsed_time);
-	bool input_move(float elapsed_time, move_mode mode);
+	bool input_move(float elapsed_time);
 
 	void enter_idle();
 	void update_idle(float elapsed_time);
@@ -210,11 +224,16 @@ private:	//	内部ステート系
 	void update_move_stop(float elapsed_time);
 	void exit_move_stop();
 
-private:	//	内部エフェクト系
+	void enter_dead();
+	void update_dead(float elapsed_time);
+	void exit_dead();
+
+private:	//	エフェクト系
 	void register_effects();
+	void update_effects(float elapsed_time);
+	void unregister_effects();
 	bool register_effect(size_t effect_id, std::string_view file_path);
 	std::weak_ptr<effect_instance> play_effect(size_t effect_id);
-	void adjustment_velocity(DirectX::XMFLOAT2& move, float adjust_move_velocity_rate);
 	bool calculate_position(DirectX::XMFLOAT3 velocity, bool vertical, DirectX::XMFLOAT3& out_position, DirectX::XMFLOAT3& out_normal, float* out_friction = nullptr);
 
 private:	//	姿勢制御
@@ -248,13 +267,17 @@ private:
 	DirectX::XMFLOAT2 turn_front_vector; // 回転方向
 	DirectX::XMFLOAT3 velocity; // 速度(m/s)
 	DirectX::XMFLOAT3 world_gravity; // ワールド重力(m/s2)
-	float accelaration; // 加速量(m/s2)
-	float breaking_deceleration; // 減速量(m/s2)
-	float max_move_speed; // 最大速度(m/s)
-	float rotation_speed; // 回転速度
-	float roll_value; // 傾き量
-
 	float gravity_scale; // 重力スケール
+
+	float rotation_speed; // 回転速度
+
+	float velocity_tilt_pitch; // 速度ピッチ
+	float velocity_tilt_roll; // 速度ロール
+	float ground_tilt_pitch; // 地形ピッチ
+	float ground_tilt_roll; // 地形ロール
+	float death_spin_angle;	//	死亡後の回転蓄積角度
+	math::rotator death_spin_rotator;	//	死亡時に固定する向き(進行方向)
+
 	float slope_rate; // 坂道補正係数
 	float step_offset; // 段差補正
 	float slope_limit; // 傾斜角度が一定以上なら進めないようにする
@@ -265,4 +288,7 @@ private:
 
 	std::unordered_map<size_t, effect_resource_ptr> effect_resources; // エフェクトリソース
 	std::vector<effect_instance_ptr> effect_instances; // エフェクトインスタンス
+
+	effect_instance_ptr dash_effect_instance;
+	size_t dash_effect_instance_node_index;
 };

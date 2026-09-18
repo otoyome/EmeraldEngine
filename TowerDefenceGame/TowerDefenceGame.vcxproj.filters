@@ -1319,5 +1319,6 @@
     <None Include="..\Shaders\Surface\surface.hlsli">
       <Filter>Shaders\Surface</Filter>
     </None>
+    <None Include="..\Shaders\Collision\cubic_sdf_collision.hlsli" />
   </ItemGroup>
 </Project>

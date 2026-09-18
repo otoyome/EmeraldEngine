@@ -367,7 +367,7 @@ void framework::imgui_textures_window()
 
 void framework::imgui_scene_change()
 {
-	if (ImGui::Begin("Chane Change Window"))
+	if (ImGui::Begin("Scene Change Window"))
 	{
 		change_scene<edit_model_scene>();
 		change_scene<dummy_scene>();

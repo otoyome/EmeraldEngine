@@ -13,10 +13,12 @@ public:
 
 	enum class flags
 	{
-		active,			//	表示フラグ
+		active,			//	表示
 		color_render,	//	色描画
 		shadow_caster,	//	影生成
-		animation_loop,	//	アニメーションループフラグ
+		animation_loop,	//	アニメーションループ
+
+		spawn_stop,		//	パーティクル生成ストップ
 
 		bursted,		//	バースト生成処理
 	};
@@ -109,6 +111,8 @@ public:
 	void reset_to_initial_state();
 	void reset_particle_simulation_time();
 	void reset_particle_simulation_step();
+
+	std::size_t search_node_index_by_name(std::string_view data_name);
 
 private:
 	void build();

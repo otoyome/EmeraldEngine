@@ -15,5 +15,7 @@ public:
 protected:
 	bool initialize_core() override;
 	void update_core(float elapsed_time) override;
+#if defined(USE_IMGUI)
 	void imgui_render_core() override;
+#endif	//	defined(USE_IMGUI)
 };

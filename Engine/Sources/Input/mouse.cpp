@@ -1,5 +1,9 @@
 #include "input/mouse.h"
 
+#if defined(USE_IMGUI)
+#include "keyboard.h"
+#endif	//	defined(USE_IMGUI)
+
 namespace
 {
 	static const int KeyMap[] =
@@ -93,6 +97,24 @@ void mouse::set_viewport_size(const DirectX::XMINT2& size)
 
 void mouse::update_state()
 {
+#if defined(USE_IMGUI)
+	bool window_center_lock = this->window_center_lock;
+	bool cursol_hide = this->cursol_hide;
+
+	//	F1“ü—ÍŽž‚É‰ðœ
+	auto keyboard_state = keyboard::instance()->get_state();
+	static bool force_unlock = false;
+	if (keyboard_state.is_key_state(keyboard::key_states::f1) == input::state::down)
+	{
+		force_unlock = !force_unlock;
+	}
+	if (force_unlock)
+	{
+		window_center_lock = false;
+		cursol_hide = false;
+	}
+#endif	//	defined(USE_IMGUI)
+
 	bool current_cursol_hide = cursol_hide;
 	position_states new_position_state;
 	{

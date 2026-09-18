@@ -85,5 +85,5 @@ private:
 	float focus_limit_range; // 注視点移動制限範囲
 	float update_focus_rate_inner; // 注視点更新係数
 
-	float update_fov_counter; // 視野角更新カウンター
+	float update_fov_rate_inner; // 視野角更新係数
 };

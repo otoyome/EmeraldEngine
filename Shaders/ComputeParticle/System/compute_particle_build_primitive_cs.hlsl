@@ -350,7 +350,7 @@ void main(uint3 dispatch_thread_id : SV_DispatchThreadID)
                 //  ビルボード処理
                 float4x4 billboard_matrix = inverse_view_transform;
                 billboard_matrix._41_42_43_44 = float4(0, 0, 0, 1);
-                rotation_matrix = mul(billboard_matrix, rotation_matrix);
+                rotation_matrix = billboard_matrix;
             }
             float4x4 translation_matrix = matrix_translation(pt_common.translation);
             float4x4 world_matrix = mul(mul(scale_matrix, rotation_matrix), translation_matrix);

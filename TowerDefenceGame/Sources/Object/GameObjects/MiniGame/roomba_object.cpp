@@ -7,12 +7,32 @@ namespace setup_data
 	constexpr int health = 15000; // 体力
 	constexpr float mass = 4.0f; // 重さ
 
-	constexpr float capsule_push_radius = system_units::convert_m_to_unit(0.2f); // 押し合い判定半径
-	constexpr float capsule_length = system_units::convert_m_to_unit(0.01f); // 当たり判定長さ
+	constexpr float capsule_push_radius = system_units::convert_m_to_unit(0.4f); // 押し合い判定半径
+	constexpr float capsule_length = system_units::convert_m_to_unit(0.1f); // 当たり判定長さ
 
 	constexpr DirectX::XMFLOAT3 capsule_offset = {0.0f, capsule_length + capsule_push_radius, 0.0f}; // 当たり判定長さオフセット
 
-	constexpr float friction = 0.995f;	// 摩擦係数(ゴム靴？)
+	//	普通ルンバモード
+	constexpr float walk_accelaration = system_units::convert_m_to_unit(6.0f); // 歩きの加速度(m/s2)
+	constexpr float walk_max_speed = system_units::convert_m_to_unit(0.5f); // 歩きの速度(m/s)
+	constexpr float walk_breaking_deceleration = system_units::convert_m_to_unit(0.0f); // 歩きの減速度(m/s2)
+
+	//	爆速ルンバモード
+	constexpr float dash_accelaration = system_units::convert_m_to_unit(18.0f); // ダッシュ加速度(m/s2)
+	constexpr float dash_max_speed = system_units::convert_m_to_unit(16.0f); // ダッシュ速度(m/s)
+	constexpr float dash_breaking_deceleration = system_units::convert_m_to_unit(0.0f); // ダッシュ減速度(m/s2)
+
+	//	停止時の減速力
+	constexpr float move_stop_breaking_deceleration = system_units::convert_m_to_unit(6.0f); // ブレーキング減速力(m/s2)
+
+	//	性能低下
+	constexpr float health_max_speed = system_units::convert_m_to_unit(64.0f); // 歩きの速度(m/s)
+	constexpr float health_breaking_deceleration = system_units::convert_m_to_unit(0.0f); // ブレーキング減速力(m/s2)
+
+	//	摩擦係数
+	constexpr float base_friction = 0.995f;	// 摩擦係数(ゴム靴？)
+	constexpr float wet_friction = 0.01f;	// 摩擦係数(めちゃくちゃ滑りやすくする)
+	constexpr float dead_friction = 10.0f;	// 摩擦係数
 }
 
 roomba_object::roomba_object(std::string_view name, std::shared_ptr<model_object> model, std::string_view collision_filter_name)
@@ -21,8 +41,8 @@ roomba_object::roomba_object(std::string_view name, std::shared_ptr<model_object
 , flag_data(0)
 , collision_filter_name(std::string(collision_filter_name))
 
-, health(health)
-, max_health(health)
+, health(setup_data::health)
+, max_health(setup_data::health)
 
 , push_box()
 
@@ -30,13 +50,15 @@ roomba_object::roomba_object(std::string_view name, std::shared_ptr<model_object
 , turn_front_vector(0.0f, 0.0f)
 , velocity(0.0f, 0.0f, 0.0f)
 , world_gravity(setup_data::world_gravity)
-, accelaration(system_units::convert_m_to_unit(6.0f))
-, breaking_deceleration(system_units::convert_m_to_unit(6.0f))
-, max_move_speed(system_units::convert_m_to_unit(15.0f))
-, rotation_speed(DirectX::XMConvertToRadians(1440.0f))
-, roll_value(0.0f)
-
 , gravity_scale(1.0f)
+
+, rotation_speed(DirectX::XMConvertToRadians(1440.0f))
+
+, velocity_tilt_pitch(0.0f)
+, velocity_tilt_roll(0.0f)
+, ground_tilt_pitch (0.0f)
+, ground_tilt_roll(0.0f)
+
 , slope_rate(1.0f)
 , step_offset(system_units::convert_m_to_unit(10.0f))
 , slope_limit(DirectX::XMConvertToRadians(30.0f))
@@ -45,13 +67,16 @@ roomba_object::roomba_object(std::string_view name, std::shared_ptr<model_object
 	set_flag(flags::movable, true);
 	set_flag(flags::on_ground, true);
 
+	//	基本サイズ調整
+	set_scale({0.2f, 0.2f, 0.2f});
+
 	//	当たり判定の登録
 	push_box = std::make_shared<collision_object>();
 	push_box->set_filter(collision_filter_name);
 	push_box->set_bounding_object(std::make_shared<collision::bounding_capsule>());
 	push_box->set_local_scale({setup_data::capsule_push_radius, setup_data::capsule_length, 0.0f});
 	push_box->set_local_offset(setup_data::capsule_offset);
-	push_box->set_physical_data({setup_data::friction});
+	push_box->set_physical_data({setup_data::base_friction});
 	push_box->set_mass(setup_data::mass);
 	push_box->set_draw_normal_color({0.0f, 1.0f, 0.0f, 1.0f});
 	push_box->set_collision_enter([this](collision_object::data data) {on_push_box_enter(data);});
@@ -72,6 +97,12 @@ roomba_object::roomba_object(std::string_view name, std::shared_ptr<model_object
 
 roomba_object::~roomba_object()
 {
+}
+
+void roomba_object::on_finalize()
+{
+	unregister_effects();
+
 	object_manager::instance()->unregister_object(push_box);
 	object_manager::instance()->unregister_object(model);
 	model.reset();
@@ -112,9 +143,6 @@ void roomba_object::imgui_render_core()
 	}
 
 	ImGui::DragFloat3("velocity", &velocity.x, 0.01f);
-	ImGui::DragFloat("accelaration", &accelaration, 0.01f);
-	ImGui::DragFloat("breaking_deceleration", &breaking_deceleration, 0.01f);
-	ImGui::DragFloat("max_move_speed", &max_move_speed, 0.01f);
 
 	degrees = DirectX::XMConvertToDegrees(rotation_speed);
 	ImGui::DragFloat("rotation_speed", &degrees, 0.01f);
@@ -208,10 +236,9 @@ DirectX::XMFLOAT3 roomba_object::get_focus_point() const
 	return {transform._41, transform._42, transform._43};
 }
 
-void roomba_object::add_move_vector(DirectX::XMFLOAT2 move_vector, float accelaration)
+void roomba_object::add_move_vector(DirectX::XMFLOAT2 move_vector)
 {
 	this->move_vector = move_vector;
-	this->accelaration = accelaration;
 }
 
 void roomba_object::set_turn_vector(DirectX::XMFLOAT2 direction)
@@ -293,6 +320,15 @@ void roomba_object::set_elapsed_time_scale(float elapsed_time_scale)
 	}
 }
 
+void roomba_object::add_force(DirectX::XMFLOAT3 force)
+{
+	//	時間で積分済みの力を加速度へ
+	auto mass = get_push_box()->get_mass();
+	velocity.x += force.x / mass;
+	velocity.y += force.y / mass;
+	velocity.z += force.z / mass;
+}
+
 void roomba_object::add_impulse(DirectX::XMFLOAT3 delta_velocity)
 {
 	//	単純に速度に加算する
@@ -301,24 +337,92 @@ void roomba_object::add_impulse(DirectX::XMFLOAT3 delta_velocity)
 	velocity.z += delta_velocity.z;
 }
 
-float roomba_object::get_max_move_speed() const
+float roomba_object::get_current_accelaration_force() const
 {
-	return max_move_speed;
+	return get_accelaration_force(check_same_state(roomba_object::state_names[roomba_object::state_dash]) ? move_mode::dash : move_mode::walk);
 }
 
-void roomba_object::set_max_move_speed(float max_move_speed)
+float roomba_object::get_current_max_speed() const
 {
-	this->max_move_speed = max_move_speed;
+	float max_speed = get_max_speed(check_same_state(roomba_object::state_names[roomba_object::state_dash]) ? move_mode::dash : move_mode::walk);
+	//	ライフによる摩擦係数減衰
+	{
+		float life_rate = math::saturate(static_cast<float>(health) / max_health);
+		life_rate = math::ease::in_out_expo(life_rate);
+		max_speed = math::lerp(setup_data::health_max_speed, max_speed, life_rate);
+	}
+	return max_speed;
 }
 
-float roomba_object::get_breaking_deceleration() const
+float roomba_object::get_current_breaking_deceleration_force() const
 {
-	return breaking_deceleration;
+	float deceleration = setup_data::walk_breaking_deceleration;
+
+	auto hash_lkey = system_utility::generate_hash(get_current_state());
+	switch (hash_lkey)
+	{
+		case system_utility::generate_hash(roomba_object::state_names[roomba_object::state_dash]):
+		{
+			deceleration = setup_data::dash_breaking_deceleration;
+			break;
+		}
+		case system_utility::generate_hash(roomba_object::state_names[roomba_object::state_move_stop]):
+		{
+			deceleration = setup_data::move_stop_breaking_deceleration;
+			break;
+		}
+	}
+
+	//	ライフによる減速力変動
+	{
+		float life_rate =  math::saturate(static_cast<float>(health) / max_health);
+		life_rate = math::ease::in_out_expo(life_rate);
+		deceleration = math::lerp(setup_data::health_breaking_deceleration, deceleration, life_rate);
+	}
+
+	return push_box->get_mass() * deceleration;
 }
 
-void roomba_object::set_breaking_deceleration(float breaking_deceleration)
+float roomba_object::get_current_friction() const
 {
-	this->breaking_deceleration = breaking_deceleration;
+	//	基本摩擦係数
+	float friction = setup_data::base_friction;
+
+	if (check_same_state(state_names[state_dead]))
+	{
+		//	死亡時は急激に減速させる
+		friction = setup_data::dead_friction;
+	}
+	else
+	{
+		//	ライフによる摩擦係数減衰
+		float life_rate = math::saturate(static_cast<float>(health) / max_health);
+		life_rate = math::ease::in_out_expo(life_rate);
+		friction = math::lerp(setup_data::wet_friction, friction, life_rate);
+	}
+	return friction;
+}
+
+float roomba_object::get_accelaration_force(move_mode mode) const
+{
+	float accelaration = 0.0f;
+	switch (mode)
+	{
+		case move_mode::walk: accelaration = setup_data::walk_accelaration;	break;
+		case move_mode::dash: accelaration = setup_data::dash_accelaration;	break;
+	}
+	return push_box->get_mass() * accelaration;
+}
+
+float roomba_object::get_max_speed(move_mode mode) const
+{
+	float max_speed = 0.0f;
+	switch (mode)
+	{
+		case move_mode::walk: max_speed = setup_data::walk_max_speed;	break;
+		case move_mode::dash: max_speed = setup_data::dash_max_speed;	break;
+	}
+	return max_speed;
 }
 
 float roomba_object::get_air_drag_coefficient() const

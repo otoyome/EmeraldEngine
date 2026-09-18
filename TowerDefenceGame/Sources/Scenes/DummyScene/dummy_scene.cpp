@@ -209,6 +209,8 @@ void dummy_scene::update_core(float elapsed_time)
 {
 }
 
+#if defined(USE_IMGUI)
 void dummy_scene::imgui_render_core()
 {
 }
+#endif	//	defined(USE_IMGUI)
