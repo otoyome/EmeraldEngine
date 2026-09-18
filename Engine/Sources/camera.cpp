@@ -1,6 +1,6 @@
 #include "camera.h"
 
-#include "occlusion_culling_system.h"
+#include "graphics/occlusion_culling_system.h"
 
 camera::camera()
 : system_flags(0)

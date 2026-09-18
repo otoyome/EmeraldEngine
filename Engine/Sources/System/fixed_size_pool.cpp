@@ -4,8 +4,8 @@
 #include <cstdlib>
 #include <cstdint>
 
-//	排他制御クラス。std::mutexはMSVC実装だと初回ロック時に内部でヒープ確保を行うことがあり、
-//	operator new内で使うと無限再帰(スタックオーバーフロー)を起こすため、確保を伴わないSRWLOCKを直接使う
+//	排他制御クラス。std::mutexはMSVC環境だと初回ロック時に内部でヒープ確保が行われることがあり、
+//	operator new内で使うと無限再帰(スタックオーバーフロー)を起こしかねないため、確保を伴わないSRWLOCKを直接使う
 struct fixed_size_pool::srw_exclusive_lock
 {
 	explicit srw_exclusive_lock(SRWLOCK& target) : target(target) { AcquireSRWLockExclusive(&target); }
@@ -17,9 +17,9 @@ private:
 };
 
 //	1ピース分のヘッダ。owner_arenaを直接持つことで、deallocate時にアリーナを総当たりせずO(1)で
-//	対象アリーナへ辿り着ける。class_indexは必ず構造体の末尾(payloadの直前)に置く。memory_allocator側が
-//	payload-4バイトを読むだけで「どのサイズクラスのプールが払い出したポインタか」をO(1)で判定するために使う。
-//	全サイズクラスでヘッダサイズを16バイト(デバッグ時32バイト)固定にし、ペイロードの16バイトアライメントを保証している
+//	対象アリーナへ辿り着ける。class_indexは必ず構造体の末尾(payloadの直前)に置く。memory_allocatorから
+//	payload-4バイトを読むだけで「どのサイズクラスのプールから取り出したポインタか」をO(1)で判定するために使う。
+//	全サイズクラスでヘッダサイズを16バイト(デバッグは32バイト)固定にし、ペイロードも16バイトアラインメントを保証している
 struct fixed_size_pool::piece_header
 {
 	arena* owner_arena;
@@ -31,20 +31,21 @@ struct fixed_size_pool::piece_header
 	uint32_t class_index;	//	末尾固定。payloadの直前4バイト
 };
 
-//	固定長プールの1スラブ。満杯になったら(呼び出し側が)新しいスラブを連結する形にして、
-//	起動時に指定した個数を超えると確保できなくなる、という制約を無くしている。
-//	arena構造体自身もVirtualAllocした領域の先頭に埋め込むため、reservedでサイズを16バイト境界に揃えている
-//	(こうしないと直後に続くピース列の先頭が16バイトアライメントからズレる)
+//	固定長プールの1スラブ。手狭になったら新しいスラブを連結し、逆に空になったスラブは即座にOSへ返却する。
+//	free_list_headは空きピースのpayload領域自体を間借りして繋いだイントルーシブ・フリーリストの先頭で、
+//	確保・解放とも走査を伴わずO(1)で行える。arena構造体自身がVirtualAllocした領域の先頭に埋め込まれるため、
+//	フィールド8個(64バイト)ちょうどで16バイト境界に揃うようにしている
+//	(そうしないと直後に続くピース列の先頭が16バイトアラインメントから狂う)
 struct fixed_size_pool::arena
 {
 	arena* next_arena;
+	arena* prev_arena;
 	uint8_t* pool;
 	uint8_t* pool_end;
 	size_t stride;
 	size_t used_count;
 	size_t piece_count;
-	size_t next_free_hint;		//	空きがあるかもしれない最小オフセット
-	size_t reserved;
+	void* free_list_head;
 };
 
 const size_t fixed_size_pool::arena_slab_bytes = 64 * 1024;
@@ -53,19 +54,14 @@ const size_t fixed_size_pool::piece_header_size = sizeof(piece_header);
 const uint32_t fixed_size_pool::canary_pattern = 0xCDCDCDCDu;
 #endif
 
-size_t fixed_size_pool::align_up(size_t value, size_t alignment)
-{
-	return (value + alignment - 1) & ~(alignment - 1);
-}
-
 fixed_size_pool::~fixed_size_pool()
 {
 	//	スラブはVirtualAllocでプロセスに直接確保しており、意図的に一切解放しない。
-	//	以前はプロセス終了時にatexitで明示的に解放していたが、静的初期化順序次第では
-	//	このプールより後に構築された(=先に破棄される)静的オブジェクトが、このプール由来の
-	//	メモリを解放しようとする前にスラブを消してしまい、解放済み領域への書き込みでクラッシュする
+	//	以前はプロセス終了時にatexitで明示的に解放していたが、静的初期化順序次第でこの
+	//	プールを元に構築された(=先に破棄された)静的オブジェクトが、このプール自体が
+	//	解放しようとする前にスラブを解放してしまい、解放済み領域への書き込みでクラッシュする
 	//	不具合があった。VirtualAllocで確保した領域はCRTのデバッグヒープに追跡されないため、
-	//	そもそも「未解放」としてリーク検出に引っかからない。解放せず放置する方が安全
+	//	終了時に「漏れている」としてリーク検出に引っかかることもない。よって解放しないほうが安全
 }
 
 void fixed_size_pool::initialize(uint32_t new_class_index, size_t new_piece_size)
@@ -91,83 +87,111 @@ fixed_size_pool::arena* fixed_size_pool::create_arena()
 	uint8_t* pool = static_cast<uint8_t*>(block) + sizeof(arena);
 
 	new_arena->next_arena = nullptr;
+	new_arena->prev_arena = nullptr;
 	new_arena->pool = pool;
 	new_arena->pool_end = pool + stride * piece_count;
 	new_arena->stride = stride;
 	new_arena->used_count = 0;
 	new_arena->piece_count = piece_count;
-	new_arena->next_free_hint = 0;
+	new_arena->free_list_head = nullptr;
 
-	for (uint8_t* piece = pool; piece < new_arena->pool_end; piece += stride)
+	for (size_t index = piece_count; index-- > 0; )
 	{
+		uint8_t* piece = pool + index * stride;
 		piece_header* header = reinterpret_cast<piece_header*>(piece);
 		header->owner_arena = new_arena;
 		header->state = piece_state_free;
 		header->class_index = class_index;
 #if defined(_DEBUG)
 		header->canary = canary_pattern;
-#endif
+#endif	//	defined(_DEBUG)
+
+		uint8_t* payload = piece + piece_header_size;
+		*reinterpret_cast<void**>(payload) = new_arena->free_list_head;
+		new_arena->free_list_head = payload;
 	}
 	return new_arena;
 }
 
-//	ヒントの位置からスキャンし、空きかつアライメント条件を満たすピースを探す
-void* fixed_size_pool::allocate_from_arena(arena* target, uint32_t class_index, size_t alignment)
+void* fixed_size_pool::allocate_from_arena(arena* target)
 {
-	uint8_t* piece = target->pool + target->next_free_hint;
-	while (piece < target->pool_end)
-	{
-		piece_header* header = reinterpret_cast<piece_header*>(piece);
-		if (header->state == piece_state_free)
-		{
-			uint8_t* payload = piece + piece_header_size;
-			if (align_up(reinterpret_cast<size_t>(payload), alignment) == reinterpret_cast<size_t>(payload))
-			{
+	if (!target->free_list_head)
+		return nullptr;
+
+	uint8_t* payload = static_cast<uint8_t*>(target->free_list_head);
+	piece_header* header = reinterpret_cast<piece_header*>(payload - piece_header_size);
+
 #if defined(_DEBUG)
-				_ASSERT_EXPR(header->canary == canary_pattern,
-					L"fixed_size_pool: header canary corrupted (buffer underrun?)");
+	_ASSERT_EXPR(header->canary == canary_pattern,
+		L"fixed_size_pool: header canary corrupted (buffer underrun?)");
 #endif	//	defined(_DEBUG)
-				_ASSERT_EXPR(header->owner_arena == target && header->class_index == class_index,
-					L"fixed_size_pool: header corrupted (owner/class mismatch)");
+	_ASSERT_EXPR(header->owner_arena == target && header->class_index == class_index,
+		L"fixed_size_pool: header corrupted (owner/class mismatch)");
+	_ASSERT_EXPR(header->state == piece_state_free, L"fixed_size_pool: free list corrupted (piece already in use)");
 
-				header->state = piece_state_used;
-				++target->used_count;
+	target->free_list_head = *reinterpret_cast<void**>(payload);
+	header->state = piece_state_used;
+	++target->used_count;
 
-				size_t freed_to = static_cast<size_t>(piece + target->stride - target->pool);
-				if (freed_to > target->next_free_hint)
-					target->next_free_hint = freed_to;
-
-				return payload;
-			}
-		}
-		piece += target->stride;
-	}
-	return nullptr;
+	return payload;
 }
 
 void* fixed_size_pool::allocate(size_t alignment)
 {
+	_ASSERT_EXPR(alignment <= 16 && (16 % alignment) == 0,
+		L"fixed_size_pool: this pool only guarantees 16-byte alignment");
+
 	srw_exclusive_lock scoped_lock(lock);
 
 	for (arena* target = first_arena; target; target = target->next_arena)
 	{
-		if (void* payload = allocate_from_arena(target, class_index, alignment))
+		if (void* payload = allocate_from_arena(target))
 			return payload;
 	}
 
 	arena* new_arena = create_arena();
 	if (!new_arena)
 		return nullptr;
+
 	new_arena->next_arena = first_arena;
+	if (first_arena)
+		first_arena->prev_arena = new_arena;
 	first_arena = new_arena;
 
-	return allocate_from_arena(new_arena, class_index, alignment);
+	return allocate_from_arena(new_arena);
+}
+
+void fixed_size_pool::release_arena_if_redundant(arena* target)
+{
+	if (target->used_count != 0)
+		return;
+
+	bool other_arena_has_room = false;
+	for (arena* candidate = first_arena; candidate; candidate = candidate->next_arena)
+	{
+		if (candidate != target && candidate->free_list_head)
+		{
+			other_arena_has_room = true;
+			break;
+		}
+	}
+	if (!other_arena_has_room)
+		return;
+
+	if (target->prev_arena)
+		target->prev_arena->next_arena = target->next_arena;
+	else
+		first_arena = target->next_arena;
+	if (target->next_arena)
+		target->next_arena->prev_arena = target->prev_arena;
+
+	VirtualFree(target, 0, MEM_RELEASE);
 }
 
 void fixed_size_pool::deallocate(void* payload)
 {
-	//	呼び出し元(memory_allocator)がヘッダ末尾のclass_indexタグを見て、既にこのプールが
-	//	払い出したポインタだと確定した上で呼んでいる。owner_arenaにより対象アリーナを
+	//	呼び出し側(memory_allocator)が既にヘッダのclass_indexタグを見て、このプールから
+	//	取り出したポインタだと確定した上で呼んでいる。owner_arenaにより対象アリーナを
 	//	総当たりせずO(1)で特定できる
 	uint8_t* piece = static_cast<uint8_t*>(payload) - piece_header_size;
 	piece_header* header = reinterpret_cast<piece_header*>(piece);
@@ -186,13 +210,15 @@ void fixed_size_pool::deallocate(void* payload)
 
 	srw_exclusive_lock scoped_lock(lock);
 
-	//	使用中フラグを明示的にチェックすることで二重解放を検出する
+	//	使用中フラグを明示的にチェックすることで二重解放を検出できる
 	_ASSERT_EXPR(header->state == piece_state_used, L"fixed_size_pool: double free detected");
 	header->state = piece_state_free;
+
+	*reinterpret_cast<void**>(payload) = target->free_list_head;
+	target->free_list_head = payload;
 	--target->used_count;
 
-	if (piece_offset < target->next_free_hint)
-		target->next_free_hint = piece_offset;
+	release_arena_if_redundant(target);
 }
 
 bool fixed_size_pool::validate_placement(void* payload, size_t size) const

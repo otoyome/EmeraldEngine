@@ -1,4 +1,4 @@
-#include "occlusion_culling_system.h"
+#include "graphics/occlusion_culling_system.h"
 
 #include "render_data.h"
 

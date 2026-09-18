@@ -184,18 +184,8 @@ namespace particle
 			void serialize(Archive& archive, int version);
 		};
 
-		//	@tool SDF衝突判定情報
-		struct sdf_collision
-		{
-			std::string sdf_path;	// 対象のcubic_sdf(.esdf)ファイルパス
-			float collision_radius = system_units::convert_m_to_unit(0.1f); // 衝突とみなす半径
-
-			template<class Archive>
-			void serialize(Archive& archive, int version);
-		};
-
 		//	保存型
-		using variant = std::variant<renderer, spawn, velocity, attract, event, sdf_collision>; 
+		using variant = std::variant<renderer, spawn, velocity, attract, event>; 
 
 		//	判断用
 		template<class Type, class Variant>

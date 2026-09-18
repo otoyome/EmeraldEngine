@@ -9,7 +9,7 @@
 #include "texture.h"
 #include "font_data.h"
 #include "camera.h"
-#include "occlusion_culling_system.h"
+#include "graphics/occlusion_culling_system.h"
 #include "model_resource.h"
 #include "model_buffer_pool.h"
 #include "model_instance.h"

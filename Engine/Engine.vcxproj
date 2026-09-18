@@ -32,7 +32,6 @@
     <ClInclude Include="Headers\buffer_view.h" />
     <ClInclude Include="Headers\camera.h" />
     <ClInclude Include="Headers\Collision\cubic_sdf.h" />
-    <ClInclude Include="Headers\occlusion_culling_system.h" />
     <ClInclude Include="Headers\Collision\collision.h" />
     <ClInclude Include="Headers\Collision\box.h" />
     <ClInclude Include="Headers\Collision\capsule.h" />
@@ -42,7 +41,6 @@
     <ClInclude Include="Headers\Collision\raycast.h" />
     <ClInclude Include="Headers\Collision\sphere.h" />
     <ClInclude Include="Headers\Collision\mesh.h" />
-    <ClInclude Include="Headers\Collision\cubic_sdf_gpu_resource.h" />
     <ClInclude Include="Headers\common_pipeline_states.h" />
     <ClInclude Include="Headers\custom_pipeline_state.h" />
     <ClInclude Include="Headers\data_converter.h" />
@@ -51,10 +49,12 @@
     <ClInclude Include="Headers\font_data.h" />
     <ClInclude Include="Headers\geometric_primitive.h" />
     <ClInclude Include="Headers\Graphics\compute_particle_system.h" />
+    <ClInclude Include="Headers\Graphics\cubic_sdf_buffer_pool.h" />
     <ClInclude Include="Headers\Graphics\debug_primitive_collector.h" />
     <ClInclude Include="Headers\Graphics\direct_x_helper.h" />
     <ClInclude Include="Headers\Graphics\fast_fourier_transform.h" />
     <ClInclude Include="Headers\Graphics\gpu_timer.h" />
+    <ClInclude Include="Headers\Graphics\occlusion_culling_system.h" />
     <ClInclude Include="Headers\Graphics\particle_resource.h" />
     <ClInclude Include="Headers\graphics_context.h" />
     <ClInclude Include="Headers\graphics_utility.h" />
@@ -114,7 +114,8 @@
     <ClCompile Include="Sources\animation_resource.cpp" />
     <ClCompile Include="Sources\camera.cpp" />
     <ClCompile Include="Sources\Collision\cubic_sdf.cpp" />
-    <ClCompile Include="Sources\occlusion_culling_system.cpp" />
+    <ClCompile Include="Sources\Graphics\cubic_sdf_buffer_pool.cpp" />
+    <ClCompile Include="Sources\Graphics\occlusion_culling_system.cpp" />
     <ClCompile Include="Sources\Collision\collision.cpp" />
     <ClCompile Include="Sources\Collision\box.cpp" />
     <ClCompile Include="Sources\Collision\capsule.cpp" />
@@ -124,7 +125,6 @@
     <ClCompile Include="Sources\Collision\raycast.cpp" />
     <ClCompile Include="Sources\Collision\sphere.cpp" />
     <ClCompile Include="Sources\Collision\mesh.cpp" />
-    <ClCompile Include="Sources\Collision\cubic_sdf_gpu_resource.cpp" />
     <ClCompile Include="Sources\custom_pipeline_state.cpp" />
     <ClCompile Include="Sources\data_converter.cpp" />
     <ClCompile Include="Sources\data_converter_gltf.cpp" />

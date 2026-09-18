@@ -212,19 +212,4 @@ void stream_event_item(uint rw, inout uint offset, inout em_event_item value)
     em_stream_ptr(rw, offset, value.target_emitter_id);
 }
 
-//////////////////////////////////////////////////////////////////////////
-//  @tool SDFÕ“Ë”»’èƒAƒCƒeƒ€
-struct em_sdf_collision_item
-{
-    uint sdf_id;             //  collision::cubic_sdf_gpu_resource::invalid_id‘Š“–‚È‚ç–³Œø
-    float collision_radius;  //  ‚±‚Ì‹——£ˆÈ‰º‚È‚çÕ“Ë‚Æ‚İ‚È‚·
-};
-
-static const uint emitter_active_sdf_collision_item_bit_flag = 1 << 6;
-
-void stream_sdf_collision_item(uint rw, inout uint offset, inout em_sdf_collision_item value)
-{
-    em_stream_ptr(rw, offset, value.sdf_id);
-    em_stream_ptr(rw, offset, value.collision_radius);
-}
 #endif  //  __COMPUTE_PARTICLES_SYSTEM_ITEM_EITTER_HLSLI__

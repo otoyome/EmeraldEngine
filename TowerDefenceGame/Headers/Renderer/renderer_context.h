@@ -1,6 +1,6 @@
 #pragma once
 
-#include "occlusion_culling_system.h"
+#include "graphics/occlusion_culling_system.h"
 
 //	メッシュ描画順リスト
 struct render_mesh_indices

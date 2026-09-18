@@ -76,7 +76,7 @@ private:
 	float game_distance_scale_inner;
 	float game_distance_scale_rate;
 
-	math::rotator disengage_direction; // カメラを離す方向(目標方向)
+	math::rotator disengage_direction; // カメラを離す方向
 	float update_disengage_direction_inner_rate; // 方向適応割合
 	float update_disengage_direction_rate; // 方向適応割合
 
@@ -86,4 +86,6 @@ private:
 	float update_focus_rate_inner; // 注視点更新係数
 
 	float update_fov_rate_inner; // 視野角更新係数
+	float dead_wait_time;
+	DirectX::XMFLOAT3 dead_focus;
 };

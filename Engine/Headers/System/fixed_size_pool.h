@@ -42,9 +42,9 @@ private:
 	static const uint32_t canary_pattern;
 #endif
 
-	static size_t align_up(size_t value, size_t alignment);
 	arena* create_arena();
-	static void* allocate_from_arena(arena* target, uint32_t class_index, size_t alignment);
+	void* allocate_from_arena(arena* target);
+	void release_arena_if_redundant(arena* target);
 
 private:
 	mutable SRWLOCK lock = SRWLOCK_INIT;

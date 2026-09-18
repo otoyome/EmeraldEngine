@@ -163,17 +163,6 @@ namespace
 			append(&event_item, sizeof(event_item));
 			common_data.active_items |= 1 << particle_system_item::emitter::event::data_id;
 		}
-		if (auto sdf_collision = particle_data.get_item<::particle::item::sdf_collision>())
-		{
-			particle_system_item::emitter::sdf_collision sdf_collision_item;
-			sdf_collision_item.sdf_id = effect_manager::instance()
-				? effect_manager::instance()->get_or_load_cubic_sdf(device_context, sdf_collision->sdf_path)
-				: 0xFFFFFFFF;
-			sdf_collision_item.collision_radius = sdf_collision->collision_radius;
-
-			append(&sdf_collision_item, sizeof(sdf_collision_item));
-			common_data.active_items |= 1 << particle_system_item::emitter::sdf_collision::data_id;
-		}
 
 		data.common = common_data;
 		return data;
@@ -485,15 +474,14 @@ effect_manager::effect_manager()
 	//	コンピュートパーティクルシステム生成
 	{
 		UINT emitter_max = 128;	//	512;
-		UINT particle_max = 100000;	//	1000000;
+		UINT particle_max = 200000;	//	1000000;
 		UINT emitter_data_size = sizeof(particle_system_item::emitter::common)
 								+ sizeof(particle_system_item::emitter::trail)
 								+ sizeof(particle_system_item::emitter::uv)
 								+ sizeof(particle_system_item::emitter::color)
 								+ sizeof(particle_system_item::emitter::velocity)
 								+ sizeof(particle_system_item::emitter::attract)
-								+ sizeof(particle_system_item::emitter::event)
-								+ sizeof(particle_system_item::emitter::sdf_collision);
+								+ sizeof(particle_system_item::emitter::event);
 
 		UINT particle_data_size = sizeof(particle_system_item::particle::common)
 								+ sizeof(particle_system_item::particle::trail_header)
@@ -507,41 +495,23 @@ effect_manager::effect_manager()
 			particle_data_size);
 	}
 
-	//	@tool SDF衝突判定用GPUリソース初期化(voxelプール/ヘッダー数はひとまずの目安)
+	//	衝突判定用GPUリソース初期化
 	{
-		constexpr UINT voxel_pool_size = 8 * 1024 * 1024;	//	float要素数(約32MB)
-		constexpr UINT header_capacity = 64;				//	同時登録できるcubic_sdf数
-		cubic_sdf_resource.initialize(render_data::instance()->get_device().Get(), voxel_pool_size, header_capacity);
-		particle_system->set_cubic_sdf_gpu_resource(&cubic_sdf_resource);
+		constexpr UINT voxel_pool_size = 16 * 1024 * 1024;
+		constexpr UINT header_capacity = 64;
+		cubic_sdf_resource = std::make_shared<cubic_sdf_buffer_pool>(render_data::instance()->get_device().Get(), voxel_pool_size, header_capacity);
+		particle_system->set_cubic_sdf_gpu_resource(cubic_sdf_resource);
 	}
 }
 
 effect_manager::~effect_manager()
 {
-	cubic_sdf_resource.uninitialize();
+	cubic_sdf_resource.reset();
 }
 
-//	@tool パスからcubic_sdfをロード(またはキャッシュから取得)してsdf_idを返す
-uint32_t effect_manager::get_or_load_cubic_sdf(ID3D11DeviceContext* device_context, std::string_view path)
+uint32_t effect_manager::add_cubic_sdf(ID3D11DeviceContext* device_context, collision::cubic_sdf& sdf)
 {
-	if (path.empty())
-		return collision::cubic_sdf_gpu_resource::invalid_id;
-
-	std::string key(path);
-	auto it = cubic_sdf_id_cache.find(key);
-	if (it != cubic_sdf_id_cache.end())
-		return it->second;
-
-	collision::cubic_sdf sdf;
-	if (!sdf.deserialize(key))
-	{
-		DEBUG_ERROR_CATEGORY(logger::categorys::model, "get_or_load_cubic_sdf failed : deserialize failed. %s", key.c_str());
-		return collision::cubic_sdf_gpu_resource::invalid_id;
-	}
-
-	uint32_t sdf_id = cubic_sdf_resource.register_sdf(device_context, sdf);
-	cubic_sdf_id_cache.emplace(std::move(key), sdf_id);
-	return sdf_id;
+	return cubic_sdf_resource->register_sdf(device_context, sdf);
 }
 
 void effect_manager::update(float elapsed_time)

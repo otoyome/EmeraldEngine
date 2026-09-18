@@ -13,10 +13,7 @@
 #include "shader.h"
 #include "system/variable_position_allocator.h"
 
-namespace collision
-{
-	class cubic_sdf_gpu_resource;
-}
+#include "graphics/cubic_sdf_buffer_pool.h"
 
 namespace particle_system_item
 {
@@ -204,15 +201,6 @@ namespace particle_system_item
 			float radius;	// 範囲
 			UINT target_emitter_id;
 		};
-
-		//	@tool SDF衝突判定アイテム(距離がcollision_radius以下なら衝突とみなす)
-		struct sdf_collision
-		{
-			static constexpr UINT data_id = 6;
-
-			UINT sdf_id = 0xFFFFFFFF;		//	collision::cubic_sdf_gpu_resource::invalid_id相当
-			float collision_radius = 0.0f;	//	衝突とみなす距離
-		};
 	}
 
 	//	エミッター基礎情報リソース
@@ -365,13 +353,9 @@ public:
 	//	登録エミッター更新
 	void update_emitter(UINT emitter_id, const update_emitter_data& data);
 
-	//	@tool パーティクルのSDF衝突判定に使うGPUリソースを外部から設定する(所有はしない)
-	void set_cubic_sdf_gpu_resource(const collision::cubic_sdf_gpu_resource* resource) { cubic_sdf_resource = resource; }
+	void set_cubic_sdf_gpu_resource(std::shared_ptr<cubic_sdf_buffer_pool> resource);
 
 private:
-	//	@tool SDF衝突判定用(所有はしない、参照のみ)
-	const collision::cubic_sdf_gpu_resource* cubic_sdf_resource = nullptr;
-
 	UINT total_emitter_count;
 	UINT emitter_binary_buffer_size;
 	UINT total_particle_count;
@@ -443,6 +427,9 @@ private:
 	bool particle_event_valid = false;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> particle_event_count_buffer;
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> particle_event_count_shader_resource_view;
+
+	//	SDFリソース
+	std::shared_ptr<cubic_sdf_buffer_pool> sdf_buffer_pool;
 
 	//	各種シェーダー
 	enum class dispatch_shaderes

@@ -26,7 +26,7 @@ public:
 		L"テクスチャ (*.emo)\0*.emo\0\
 		すべてのファイル (*.*)\0*.*\0";
 
-	//	@tool cubic_sdfファイルの読み込み用
+	//	cubic_sdfファイルの読み込み用
 	static constexpr TCHAR* sdf_file_dialog_filter =
 		L"cubic SDF (*.esdf)\0*.esdf\0\
 		すべてのファイル (*.*)\0*.*\0";

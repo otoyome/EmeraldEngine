@@ -26,7 +26,6 @@ CEREAL_CLASS_VERSION(particle::item::spawn, 1)
 CEREAL_CLASS_VERSION(particle::item::velocity, 1)
 CEREAL_CLASS_VERSION(particle::item::attract, 1)
 CEREAL_CLASS_VERSION(particle::item::event, 1)
-CEREAL_CLASS_VERSION(particle::item::sdf_collision, 1)
 
 CEREAL_CLASS_VERSION(particle::data, 1);
 
@@ -146,11 +145,6 @@ void particle::item::event::serialize(Archive& archive, int version)
 	archive(node_name, radius);
 }
 
-template<class Archive>
-void particle::item::sdf_collision::serialize(Archive& archive, int version)
-{
-	archive(sdf_path, collision_radius);
-}
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 bool particle::data::is_valid() const
@@ -220,12 +214,6 @@ particle_system_item::emitter_resource particle::data::constract_system_resource
 	if (auto event = get_item<particle::item::event>())
 	{
 		emitter_system.max_update_item_size += sizeof(particle_system_item::emitter::event);
-	}
-
-	//	@tool SDFè’ìÀîªíËèÓïÒÇÃê›íË
-	if (auto sdf_collision = get_item<particle::item::sdf_collision>())
-	{
-		emitter_system.max_update_item_size += sizeof(particle_system_item::emitter::sdf_collision);
 	}
 
 	return resource;

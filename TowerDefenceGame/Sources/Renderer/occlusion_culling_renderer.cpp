@@ -1,6 +1,6 @@
 #include "Renderer/occlusion_culling_renderer.h"
 
-#include "occlusion_culling_system.h"
+#include "graphics/occlusion_culling_system.h"
 #include "camera.h"
 #include "render_data.h"
 

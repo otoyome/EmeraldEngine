@@ -1,16 +1,15 @@
-#include	"Collision/cubic_sdf_gpu_resource.h"
+#include	"graphics/cubic_sdf_buffer_pool.h"
 
-bool collision::cubic_sdf_gpu_resource::initialize(ID3D11Device* device, UINT voxel_pool_size, UINT header_capacity)
+cubic_sdf_buffer_pool::cubic_sdf_buffer_pool(ID3D11Device* device, UINT voxel_pool_size, UINT header_capacity)
 {
 	HRESULT hr;
-
 	if (!voxel_allocator.initialize(voxel_pool_size * sizeof(float)))
 	{
 		DEBUG_ERROR_CATEGORY(logger::categorys::model, "cubic_sdf_gpu_resource initialize failed : voxel_allocator initialize failed");
-		return false;
+		return;
 	}
 
-	//	voxelバッファ本体(CPUから部分更新するだけなのでUAVは不要、SRVのみで良い)
+	//	ボクセルバッファ本体
 	{
 		D3D11_BUFFER_DESC desc = {};
 		desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
@@ -20,21 +19,17 @@ bool collision::cubic_sdf_gpu_resource::initialize(ID3D11Device* device, UINT vo
 		desc.Usage = D3D11_USAGE_DEFAULT;
 		hr = device->CreateBuffer(&desc, nullptr, voxel_buffer.GetAddressOf());
 		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
-		if (FAILED(hr))
-			return false;
 
 		hr = device->CreateShaderResourceView(voxel_buffer.Get(), nullptr, voxel_shader_resource_view.GetAddressOf());
 		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
-		if (FAILED(hr))
-			return false;
 	}
 
-	//	ヘッダーバッファ(登録されているcubic_sdfの一覧)
+	//	ヘッダーバッファ
 	{
 		headers.assign(header_capacity, sdf_header{});
 		free_header_ids.resize(header_capacity);
 		for (UINT index = 0; index < header_capacity; ++index)
-			free_header_ids[index] = header_capacity - 1 - index;	//	先頭のIDから使われるように逆順で積んでおく
+			free_header_ids[index] = header_capacity - 1 - index;
 
 		D3D11_BUFFER_DESC desc = {};
 		desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
@@ -48,19 +43,13 @@ bool collision::cubic_sdf_gpu_resource::initialize(ID3D11Device* device, UINT vo
 		initialize_data.SysMemPitch = desc.ByteWidth;
 		hr = device->CreateBuffer(&desc, &initialize_data, header_buffer.GetAddressOf());
 		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
-		if (FAILED(hr))
-			return false;
 
 		hr = device->CreateShaderResourceView(header_buffer.Get(), nullptr, header_shader_resource_view.GetAddressOf());
 		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
-		if (FAILED(hr))
-			return false;
 	}
-
-	return true;
 }
 
-void collision::cubic_sdf_gpu_resource::uninitialize()
+cubic_sdf_buffer_pool::~cubic_sdf_buffer_pool()
 {
 	voxel_shader_resource_view.Reset();
 	voxel_buffer.Reset();
@@ -70,7 +59,7 @@ void collision::cubic_sdf_gpu_resource::uninitialize()
 	free_header_ids.clear();
 }
 
-uint32_t collision::cubic_sdf_gpu_resource::register_sdf(ID3D11DeviceContext* device_context, const cubic_sdf& sdf)
+uint32_t cubic_sdf_buffer_pool::register_sdf(ID3D11DeviceContext* device_context, const collision::cubic_sdf& sdf)
 {
 	if (!sdf.is_valid())
 	{
@@ -94,7 +83,7 @@ uint32_t collision::cubic_sdf_gpu_resource::register_sdf(ID3D11DeviceContext* de
 	const uint32_t sdf_id = free_header_ids.back();
 	free_header_ids.pop_back();
 
-	//	@tool voxel本体は該当領域だけを部分更新する
+	//	ボクセル書き込み
 	D3D11_BOX voxel_write_box = {};
 	voxel_write_box.left = voxel_byte_offset;
 	voxel_write_box.right = voxel_byte_offset + voxel_byte_size;
@@ -104,7 +93,7 @@ uint32_t collision::cubic_sdf_gpu_resource::register_sdf(ID3D11DeviceContext* de
 	voxel_write_box.back = 1;
 	device_context->UpdateSubresource(voxel_buffer.Get(), 0, &voxel_write_box, sdf.voxels.data(), voxel_byte_size, 0);
 
-	//	@tool ヘッダーも1件分だけ部分更新する
+	//	ヘッダーバッファ更新
 	sdf_header header;
 	header.voxel_offset = voxel_byte_offset / sizeof(float);
 	header.resolution = sdf.resolution;
@@ -124,20 +113,19 @@ uint32_t collision::cubic_sdf_gpu_resource::register_sdf(ID3D11DeviceContext* de
 	return sdf_id;
 }
 
-void collision::cubic_sdf_gpu_resource::unregister_sdf(ID3D11DeviceContext* device_context, uint32_t sdf_id)
+void cubic_sdf_buffer_pool::unregister_sdf(ID3D11DeviceContext* device_context, uint32_t sdf_id)
 {
 	if (sdf_id >= headers.size())
 		return;
 
 	auto& header = headers[sdf_id];
 	if (header.resolution == 0)
-		return;	//	@tool 未登録のIDに対する二重解放を無視する
+		return;
 
 	voxel_allocator.deallocate(header.voxel_offset * sizeof(float));
 	header = sdf_header{};
 	free_header_ids.emplace_back(sdf_id);
 
-	//	@tool スロットが再利用される前に参照されても無効値として扱われるよう、GPU側のヘッダーも空にしておく
 	D3D11_BOX header_write_box = {};
 	header_write_box.left = static_cast<UINT>(sizeof(sdf_header) * sdf_id);
 	header_write_box.right = header_write_box.left + static_cast<UINT>(sizeof(sdf_header));

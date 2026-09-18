@@ -119,20 +119,30 @@ void roomba_camera_controller_object::fixed_update_default(float elapsed_time)
 {
 	DirectX::XMVECTOR Up{ DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f) };
 
+	//	フォーカスポイント算出
 	DirectX::XMFLOAT3 new_focus = player_controller->get_controll_object()->get_focus_point();
-	float focus_limit = focus_limit_range;
 	if (player_controller->get_controll_object()->check_same_state(roomba_object::state_names[roomba_object::state_dead]))
 	{
 		if (dead_wait_time >= 0.0f && dead_wait_time < dead_wait_lock_time)
 		{
 			new_focus = dead_focus;
 		}
-		else
+		else if (dead_wait_time == dead_wait_lock_time)
 		{
 			dead_focus = new_focus;
 		}
+		else if (dead_wait_time < 0.0f)
+		{
+			new_focus = dead_focus = math::lerp(new_focus, dead_focus, 0.95f);
+
+			//	現在のフォーカスとカメラの位置関係から回転を算出
+			DirectX::XMFLOAT3 direction;
+			direction.x = dead_focus.x - get_position().x;
+			direction.y = dead_focus.y - get_position().y;
+			direction.z = dead_focus.z - get_position().z;
+			disengage_direction.set_parameter_from_direction(direction);
+		}
 		dead_wait_time -= elapsed_time;
-		focus_limit = 40.0f;
 	}
 
 	float update_focus_rate = update_focus_rate_inner;
@@ -173,7 +183,7 @@ void roomba_camera_controller_object::fixed_update_default(float elapsed_time)
 			focus_vector.z = new_focus.z - temp_focus.z;
 			float length_sq = focus_vector.x * focus_vector.x + focus_vector.y * focus_vector.y + focus_vector.z * focus_vector.z;
 
-			focus_rate = math::lerp(focus_rate, 1.0f, math::saturate(length_sq / (focus_limit * focus_limit)));
+			focus_rate = math::lerp(focus_rate, 1.0f, math::saturate(length_sq / (focus_limit_range * focus_limit_range)));
 		}
 		focus.x += (new_focus.x - focus.x) * focus_rate;
 		focus.y += (new_focus.y - focus.y) * focus_rate;

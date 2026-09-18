@@ -99,9 +99,6 @@
     <ClInclude Include="Headers\camera.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\occlusion_culling_system.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
     <ClInclude Include="Headers\Collision\frustum_culling.h">
       <Filter>Headers\Collision</Filter>
     </ClInclude>
@@ -133,9 +130,6 @@
       <Filter>Headers\Graphics</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Collision\mesh.h">
-      <Filter>Headers\Collision</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Collision\cubic_sdf_gpu_resource.h">
       <Filter>Headers\Collision</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Input\input.h">
@@ -291,6 +285,12 @@
     <ClInclude Include="Headers\Collision\cubic_sdf.h">
       <Filter>Headers\Collision</Filter>
     </ClInclude>
+    <ClInclude Include="Headers\Graphics\occlusion_culling_system.h">
+      <Filter>Headers\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Graphics\cubic_sdf_buffer_pool.h">
+      <Filter>Headers\Graphics</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Sources\geometric_primitive.cpp">
@@ -338,9 +338,6 @@
     <ClCompile Include="Sources\camera.cpp">
       <Filter>Sources</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\occlusion_culling_system.cpp">
-      <Filter>Sources</Filter>
-    </ClCompile>
     <ClCompile Include="Sources\Collision\collision.cpp">
       <Filter>Sources\Collision</Filter>
     </ClCompile>
@@ -372,9 +369,6 @@
       <Filter>Sources\Graphics</Filter>
     </ClCompile>
     <ClCompile Include="Sources\Collision\mesh.cpp">
-      <Filter>Sources\Collision</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Collision\cubic_sdf_gpu_resource.cpp">
       <Filter>Sources\Collision</Filter>
     </ClCompile>
     <ClCompile Include="Sources\post_process_volume.cpp">
@@ -496,6 +490,12 @@
     </ClCompile>
     <ClCompile Include="Sources\Collision\cubic_sdf.cpp">
       <Filter>Sources\Collision</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Graphics\occlusion_culling_system.cpp">
+      <Filter>Sources\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Graphics\cubic_sdf_buffer_pool.cpp">
+      <Filter>Sources\Graphics</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

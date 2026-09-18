@@ -1,7 +1,7 @@
 #include "Graphics/compute_particle_system.h"
 
 #include "custom_pipeline_state.h"
-#include "Collision/cubic_sdf_gpu_resource.h"
+#include "graphics/cubic_sdf_buffer_pool.h"
 
 namespace
 {
@@ -582,6 +582,11 @@ void compute_particle_system::update_emitter(UINT emitter_id, const update_emitt
 	update_emitter_datas[emitter_id] = data;
 }
 
+void compute_particle_system::set_cubic_sdf_gpu_resource(std::shared_ptr<cubic_sdf_buffer_pool> resource)
+{
+	sdf_buffer_pool = resource;
+}
+
 void compute_particle_system::reset()
 {
 	pending_reset = true;
@@ -1041,11 +1046,13 @@ void compute_particle_system::update(graphics_context& context, float elapsed_ti
 		context.device_context->CSSetShaderResources(0, 1, emitter_header_shader_resource_view.GetAddressOf());
 		context.device_context->CSSetShaderResources(1, 1, emitter_binary_shader_resource_view[current_buffer_index].GetAddressOf());
 
-		//	@tool SDF衝突判定用バッファ(外部から設定されている場合のみ束縛する)
-		ID3D11ShaderResourceView* cubic_sdf_header_srv = cubic_sdf_resource ? cubic_sdf_resource->get_header_shader_resource_view() : nullptr;
-		ID3D11ShaderResourceView* cubic_sdf_voxel_srv = cubic_sdf_resource ? cubic_sdf_resource->get_voxel_shader_resource_view() : nullptr;
-		context.device_context->CSSetShaderResources(2, 1, &cubic_sdf_header_srv);
-		context.device_context->CSSetShaderResources(3, 1, &cubic_sdf_voxel_srv);
+		//	SDF衝突判定用バッファ
+		{
+			ID3D11ShaderResourceView* cubic_sdf_header_srv = sdf_buffer_pool ? sdf_buffer_pool->get_header_shader_resource_view() : nullptr;
+			ID3D11ShaderResourceView* cubic_sdf_voxel_srv = sdf_buffer_pool ? sdf_buffer_pool->get_voxel_shader_resource_view() : nullptr;
+			context.device_context->CSSetShaderResources(2, 1, &cubic_sdf_header_srv);
+			context.device_context->CSSetShaderResources(3, 1, &cubic_sdf_voxel_srv);
+		}
 
 		context.device_context->CSSetShader(compute_shaderes[static_cast<int>(dispatch_shaderes::update_particles)]->get_shader().Get(), nullptr, 0);
 		context.device_context->DispatchIndirect(indirect_data_buffer.Get(), UpdateParticleDispatchIndirect);
