@@ -58,6 +58,7 @@ public:
 	enum class effect_id
 	{
 		dash_dust,
+		spark,
 		dead,
 	};
 
@@ -290,5 +291,6 @@ private:
 	std::vector<effect_instance_ptr> effect_instances; // エフェクトインスタンス
 
 	effect_instance_ptr dash_effect_instance;
-	size_t dash_effect_instance_node_index;
+	effect_instance_ptr spark_effect_instance;
+	size_t dash_effect_instance_node_index[2];
 };

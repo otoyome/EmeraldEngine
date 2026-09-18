@@ -144,6 +144,10 @@ void roomba_camera_controller_object::fixed_update_default(float elapsed_time)
 		}
 		dead_wait_time -= elapsed_time;
 	}
+	else
+	{
+		dead_wait_time = dead_wait_lock_time;
+	}
 
 	float update_focus_rate = update_focus_rate_inner;
 

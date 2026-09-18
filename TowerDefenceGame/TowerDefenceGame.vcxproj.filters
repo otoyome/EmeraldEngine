@@ -246,6 +246,9 @@
     <Filter Include="Headers\Object\GameObjects\MiniGame">
       <UniqueIdentifier>{c0fd6346-569e-4ca2-91fa-1c756fea5db6}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shaders\Collision">
+      <UniqueIdentifier>{79bb0c04-f9bd-4ada-b2f7-b0b15a20cfae}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\External\imgui\imgui.cpp">
@@ -1319,6 +1322,8 @@
     <None Include="..\Shaders\Surface\surface.hlsli">
       <Filter>Shaders\Surface</Filter>
     </None>
-    <None Include="..\Shaders\Collision\cubic_sdf_collision.hlsli" />
+    <None Include="..\Shaders\Collision\cubic_sdf_collision.hlsli">
+      <Filter>Shaders\Collision</Filter>
+    </None>
   </ItemGroup>
 </Project>

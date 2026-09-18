@@ -463,6 +463,7 @@ void effect_instance::build()
 
 		auto& data = decals.emplace_back();
 		data.node_index = decal.node_index;
+		data.material = std::make_shared<material>();
 		decal.material->duplicate(*data.material);
 	}
 }

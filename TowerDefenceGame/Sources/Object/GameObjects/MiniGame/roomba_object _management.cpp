@@ -364,7 +364,8 @@ void roomba_object::exit_walk()
 
 void roomba_object::enter_dash()
 {
-	dash_effect_instance_node_index = dash_effect_instance->search_node_index_by_name("smoke");
+	dash_effect_instance_node_index[0] = dash_effect_instance->search_node_index_by_name("smoke left");
+	dash_effect_instance_node_index[1] = dash_effect_instance->search_node_index_by_name("smoke right");
 }
 
 void roomba_object::update_dash(float elapsed_time)
@@ -390,7 +391,8 @@ void roomba_object::update_dash(float elapsed_time)
 
 void roomba_object::exit_dash()
 {
-	dash_effect_instance_node_index = effect_instance::invalid_id;
+	dash_effect_instance_node_index[0] = effect_instance::invalid_id;
+	dash_effect_instance_node_index[1] = effect_instance::invalid_id;
 }
 
 void roomba_object::enter_move_stop()
@@ -430,7 +432,11 @@ void roomba_object::enter_dead()
 void roomba_object::update_dead(float elapsed_time)
 {
 	//	爆発させたい
-	//if (
+	if (keyboard::instance()->get_state().is_key_state(keyboard::key_states::a) == input::state::down)
+	{
+		set_health(get_max_health());
+		change_state(state_names[state_idle]);
+	}
 }
 
 void roomba_object::exit_dead()
@@ -442,6 +448,7 @@ void roomba_object::register_effects()
 {
 	//	エフェクトリソース読込
 	register_effect(static_cast<size_t>(effect_id::dash_dust), "Assets/Resources/Effects/DashDust.eme");
+	register_effect(static_cast<size_t>(effect_id::spark), "Assets/Resources/Effects/Spark.eme");
 	register_effect(static_cast<size_t>(effect_id::dead), "Assets/Resources/Effects/Dead.eme");
 
 	//	走りエフェクトは常時必要なので
@@ -450,25 +457,56 @@ void roomba_object::register_effects()
 		dash_effect_instance = dash_effect.lock();
 		if (dash_effect_instance)
 		{
-			dash_effect_instance_node_index = effect_instance::invalid_id;
+			dash_effect_instance_node_index[0] = effect_instance::invalid_id;
+			dash_effect_instance_node_index[1] = effect_instance::invalid_id;
 		}
+	}
+
+	//	スパークエフェクト
+	auto spark_effect = play_effect(static_cast<size_t>(effect_id::spark));
+	{
+		spark_effect_instance = spark_effect.lock();
 	}
 }
 
 void roomba_object::update_effects(float elapsed_time)
 {
 	//	走り関係の対応
+	if (dash_effect_instance)
 	{
 		//	スポーンフラグ
-		dash_effect_instance->set_flag(effect_instance::flags::spawn_stop, dash_effect_instance_node_index == effect_instance::invalid_id);
+		dash_effect_instance->set_flag(effect_instance::flags::spawn_stop,
+									   dash_effect_instance_node_index[0] == effect_instance::invalid_id &&
+									   dash_effect_instance_node_index[1] == effect_instance::invalid_id);
 
-		//	スポーン座標を変更
-		if (dash_effect_instance_node_index != effect_instance::invalid_id)
+		auto& nodes = dash_effect_instance->get_nodes();
+		auto right = get_rotation().get_right();
+		if (dash_effect_instance_node_index[0] != effect_instance::invalid_id)
 		{
-			auto& nodes = dash_effect_instance->get_nodes();
-			nodes[dash_effect_instance_node_index].position = get_position();
-			nodes[dash_effect_instance_node_index].rotation = get_rotation();
+			auto& node = nodes[dash_effect_instance_node_index[0]];
+			node.rotation = get_rotation();
+			node.position.x = get_position().x - right.x * 1.5f;
+			node.position.y = get_position().y - right.y * 1.5f;
+			node.position.z = get_position().z - right.z * 1.5f;
 		}
+		if (dash_effect_instance_node_index[1] != effect_instance::invalid_id)
+		{
+			auto& node = nodes[dash_effect_instance_node_index[1]];
+			node.position = get_position();
+			node.rotation = get_rotation();
+			node.position.x = get_position().x + right.x * 1.5f;
+			node.position.y = get_position().y + right.y * 1.5f;
+			node.position.z = get_position().z + right.z * 1.5f;
+		}
+	}
+
+	//	スパーク対応
+	if (spark_effect_instance)
+	{
+		spark_effect_instance->set_flag(effect_instance::flags::spawn_stop, get_health() >= get_max_health() / 2);
+		spark_effect_instance->set_position(get_position());
+		float scale = static_cast<float>(get_max_health() - get_health()) / (get_max_health() / 2);
+		spark_effect_instance->set_scale({scale, scale, scale});
 	}
 
 	//	エフェクトインスタンスを監視して破棄処理
