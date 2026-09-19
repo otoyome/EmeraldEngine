@@ -111,12 +111,10 @@ namespace particle_system_item
 			enum class states
 			{
 				use_fade = 1 << 0,	//	軌跡終端フェード
-				use_time_fade = 1 << 1,	//	時間フェード
 			};
 
 			UINT state = 0;
 			UINT max = 0; // 軌跡総数
-			DirectX::XMFLOAT2 fade_rate = {0.2f, 0.8f};	//	フェード
 		};
 
 		//	UVアイテム
@@ -144,12 +142,14 @@ namespace particle_system_item
 
 			enum class states
 			{
-				random = 1 << 0,		//	ランダム設定
+				random = 1 << 0,	//	ランダム設定
+				use_fade = 1 << 1,	//	フェード有効化
 			};
 
 			UINT state = 0;
 			DirectX::XMFLOAT4 color_min; // 色の範囲
 			DirectX::XMFLOAT4 color_max; // 色の範囲
+			DirectX::XMFLOAT2 fade_range = {0.1f, 0.9f};	// フェード範囲(x:フェードイン終了 y:フェードアウト開始)
 		};
 
 		//	速度アイテム

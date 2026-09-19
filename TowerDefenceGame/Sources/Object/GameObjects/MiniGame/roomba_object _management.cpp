@@ -103,6 +103,24 @@ void roomba_object::fixed_update(float elapsed_time)
 	update_horizontal_move(elapsed_time);
 	update_vertical_move(elapsed_time);
 
+	//	各種ライフ情報更新
+	{
+		//	水分量に寄る死亡判定
+		if (!check_same_state(state_names[state_dead]) && get_wet_rate() >= 1.0f)
+		{
+			change_state(state_names[state_dead]);
+		}
+
+		//	熱量/水分量更新
+		update_values(elapsed_time);
+
+		//	熱量に寄る死亡判定
+		if (!check_same_state(state_names[state_dead]) && get_heat_rate() >= 1.0f)
+		{
+			change_state(state_names[state_dead]);
+		}
+	}
+
 	//	傾き適応
 	if (check_same_state(state_names[state_dead]))
 	{
@@ -296,15 +314,30 @@ void roomba_object::enter_idle()
 	//	何もしない
 }
 
+void roomba_object::update_values(float elapsed_time)
+{
+	float elapsed_frame = system_units::convert_sec_to_fps(elapsed_time);
+
+	//	速度から活動量と、空気抵抗による放熱・乾燥を算出
+	DirectX::XMVECTOR Velocity = DirectX::XMLoadFloat3(&get_velocity());
+	float speed = DirectX::XMVectorGetX(DirectX::XMVector3Length(Velocity));
+	float speed_rate = math::saturate(speed / get_max_speed(move_mode::dash));
+	float activity_rate = math::lerp(-1.0f, 2.0f, speed_rate);
+	float drag_rate = speed_rate * speed_rate;
+
+	//	単純な式
+	float base_wet_value = 10.0f;
+	float base_heat_value = 50.0f;
+	float wind_cooling_factor = 1.0f;
+	float wind_drying_factor = 1.0f;
+	float heat_rate = activity_rate * elapsed_frame - get_wet_rate() - drag_rate * wind_cooling_factor;
+	float wet_rate = -fabsf(activity_rate) * elapsed_frame - get_heat_rate() - drag_rate * wind_drying_factor;
+	set_heat_value(get_heat_value() + static_cast<int>(base_heat_value * heat_rate));
+	set_wet_value(get_wet_value() + static_cast<int>(base_wet_value * wet_rate));
+}
+
 void roomba_object::update_idle(float elapsed_time)
 {
-	//	死亡
-	if (get_health() <= 0)
-	{
-		change_state(state_names[state_dead]);
-		return;
-	}
-
 	//	入力
 	if (input_action(elapsed_time))
 	{
@@ -337,13 +370,6 @@ void roomba_object::enter_walk()
 
 void roomba_object::update_walk(float elapsed_time)
 {
-	//	死亡
-	if (get_health() <= 0)
-	{
-		change_state(state_names[state_dead]);
-		return;
-	}
-
 	//	入力
 	if (input_action(elapsed_time))
 	{
@@ -370,13 +396,6 @@ void roomba_object::enter_dash()
 
 void roomba_object::update_dash(float elapsed_time)
 {
-	//	死亡
-	if (get_health() <= 0)
-	{
-		change_state(state_names[state_dead]);
-		return;
-	}
-
 	//	移動
 	if (!input_move(elapsed_time))
 	{
@@ -431,10 +450,10 @@ void roomba_object::enter_dead()
 
 void roomba_object::update_dead(float elapsed_time)
 {
-	//	爆発させたい
 	if (keyboard::instance()->get_state().is_key_state(keyboard::key_states::a) == input::state::down)
 	{
-		set_health(get_max_health());
+		set_wet_value(0);
+		set_heat_value(0);
 		change_state(state_names[state_idle]);
 	}
 }
@@ -443,12 +462,18 @@ void roomba_object::exit_dead()
 {
 }
 
+void roomba_object::on_wet(float rate)
+{
+	set_wet_value(get_wet_value() + rate);
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void roomba_object::register_effects()
 {
 	//	エフェクトリソース読込
 	register_effect(static_cast<size_t>(effect_id::dash_dust), "Assets/Resources/Effects/DashDust.eme");
 	register_effect(static_cast<size_t>(effect_id::spark), "Assets/Resources/Effects/Spark.eme");
+	register_effect(static_cast<size_t>(effect_id::spark_smoke), "Assets/Resources/Effects/SparkSmoke.eme");
 	register_effect(static_cast<size_t>(effect_id::dead), "Assets/Resources/Effects/Dead.eme");
 
 	//	走りエフェクトは常時必要なので
@@ -466,6 +491,12 @@ void roomba_object::register_effects()
 	auto spark_effect = play_effect(static_cast<size_t>(effect_id::spark));
 	{
 		spark_effect_instance = spark_effect.lock();
+	}
+
+	//	煙エフェクト
+	auto spark_smoke_effect = play_effect(static_cast<size_t>(effect_id::spark_smoke));
+	{
+		spark_smoke_effect_instance = spark_smoke_effect.lock();
 	}
 }
 
@@ -500,13 +531,22 @@ void roomba_object::update_effects(float elapsed_time)
 		}
 	}
 
-	//	スパーク対応
+	//	漏電によるスパーク対応
 	if (spark_effect_instance)
 	{
-		spark_effect_instance->set_flag(effect_instance::flags::spawn_stop, get_health() >= get_max_health() / 2);
+		spark_effect_instance->set_flag(effect_instance::flags::spawn_stop, get_wet_rate() >= 0.5f);
 		spark_effect_instance->set_position(get_position());
-		float scale = static_cast<float>(get_max_health() - get_health()) / (get_max_health() / 2);
+		float scale = get_wet_rate() * 1.5f;
 		spark_effect_instance->set_scale({scale, scale, scale});
+	}
+
+	//	熱による煙対応
+	if (spark_smoke_effect_instance)
+	{
+		spark_smoke_effect_instance->set_flag(effect_instance::flags::spawn_stop, get_heat_rate() >= 0.5f);
+		spark_smoke_effect_instance->set_position(get_position());
+		float scale = get_heat_rate() * 4.0f;
+		spark_smoke_effect_instance->set_scale({scale, scale, scale});
 	}
 
 	//	エフェクトインスタンスを監視して破棄処理

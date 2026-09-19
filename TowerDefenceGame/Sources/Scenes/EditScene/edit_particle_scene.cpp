@@ -10,6 +10,7 @@
 #include "custom_pipeline_state.h"
 
 #include "effect_instance.h"
+#include "Graphics/debug_primitive_collector.h"
 
 #if defined(USE_IMGUI)
 #include "Editor/editor_camera.h"
@@ -35,6 +36,11 @@ namespace
 	//	エフェクト
 	constexpr TCHAR* EffectFileDialogFilter =
 		L"エフェクトファイル (*.eme)\0*.eme;\0\
+		すべてのファイル (*.*)\0*.*\0";
+
+	//	cubic SDF
+	constexpr TCHAR* SdfFileDialogFilter =
+		L"cubic SDF (*.esdf)\0*.esdf;\0\
 		すべてのファイル (*.*)\0*.*\0";
 
 	//	ポストプロセスマテリアル
@@ -258,11 +264,22 @@ bool edit_particle_scene::uninitialize_core()
 	if (edit_instance)
 		effect_manager::instance()->unregister_instance(edit_instance);
 
+	if (!edit_sdfs.empty() && effect_manager::is_valid())
+	{
+		auto device_context = render_data::instance()->get_immediate_context();
+		for (auto& sdf : edit_sdfs)
+		{
+			effect_manager::instance()->remove_cubic_sdf(device_context.Get(), sdf.sdf_id);
+		}
+		edit_sdfs.clear();
+	}
+
 	return true;
 }
 
 void edit_particle_scene::update_core(float elapsed_time)
 {
+	draw_sdf_debug_primitives();
 }
 
 void edit_particle_scene::imgui_render_core()
@@ -313,6 +330,13 @@ void edit_particle_scene::imgui_render_core()
 			}
 		}
 	}
+
+	//	cubic_sdf読込み関係
+	if (ImGui::Begin("SDF"))
+	{
+		imgui_render_sdf();
+	}
+	ImGui::End();
 
 	//	エフェクト編集
 	if (edit_resource)
@@ -598,4 +622,148 @@ void edit_particle_scene::generate_default_effect()
 		}
 	}
 }
+
+void edit_particle_scene::imgui_render_sdf()
+{
+	ImGui::Text("Cubic SDF ");
+	ImGui::SameLine();
+	if (ImGui::Button("Load SDF"))
+	{
+		std::vector<std::string> file_paths;
+		if (editor_items::open_file_dialog_multi(SdfFileDialogFilter, file_paths))
+		{
+			auto device_context = render_data::instance()->get_immediate_context();
+			for (auto& file_path : file_paths)
+			{
+				collision::cubic_sdf sdf;
+				if (!sdf.deserialize(file_path))
+					continue;
+
+				uint32_t sdf_id = effect_manager::instance()->add_cubic_sdf(device_context.Get(), sdf);
+				if (sdf_id != 0xFFFFFFFF)
+				{
+					edit_sdf_data data;
+					data.file_path = file_path;
+					data.sdf_id = sdf_id;
+					data.bounds_min = sdf.bounds_min;
+					data.bounds_max = sdf.bounds_max;
+					data.resolution = sdf.resolution;
+
+					//	ボクセル可視化用に表面付近のボクセルだけ抽出
+					{
+						constexpr size_t max_points = 4000;
+						const float voxel_size = sdf.voxel_size();
+						const float threshold = voxel_size * 0.75f;
+
+						std::vector<DirectX::XMFLOAT4> candidates;
+						for (uint32_t z = 0; z < sdf.resolution; ++z)
+						{
+							for (uint32_t y = 0; y < sdf.resolution; ++y)
+							{
+								for (uint32_t x = 0; x < sdf.resolution; ++x)
+								{
+									float distance = sdf.voxels[sdf.index_of(x, y, z)];
+									if (fabsf(distance) <= threshold)
+									{
+										auto voxel_center = sdf.voxel_center(x, y, z);
+										candidates.emplace_back(voxel_center.x, voxel_center.y, voxel_center.z, distance);
+									}
+								}
+							}
+						}
+
+						if (candidates.size() <= max_points)
+						{
+							data.voxel_points = std::move(candidates);
+						}
+						else
+						{
+							//	数が多い場合は等間隔に間引く
+							data.voxel_points.reserve(max_points);
+							const float stride = static_cast<float>(candidates.size()) / static_cast<float>(max_points);
+							for (size_t i = 0; i < max_points; ++i)
+							{
+								data.voxel_points.emplace_back(candidates[static_cast<size_t>(i * stride)]);
+							}
+						}
+					}
+
+					edit_sdfs.emplace_back(data);
+				}
+			}
+		}
+	}
+
+	//	登録済み一覧
+	for (size_t index = 0; index < edit_sdfs.size(); )
+	{
+		ImGui::PushID(static_cast<int>(index));
+		ImGui::Text(edit_sdfs[index].file_path.get<utf8_cache>().data());
+		ImGui::SameLine();
+		ImGui::Checkbox("Voxels", &edit_sdfs[index].show_voxels);
+		ImGui::SameLine();
+		bool removed = false;
+		if (ImGui::Button("Remove"))
+		{
+			auto device_context = render_data::instance()->get_immediate_context();
+			effect_manager::instance()->remove_cubic_sdf(device_context.Get(), edit_sdfs[index].sdf_id);
+			edit_sdfs.erase(edit_sdfs.begin() + index);
+			removed = true;
+		}
+		ImGui::PopID();
+		if (!removed)
+			++index;
+	}
+}
+
+void edit_particle_scene::draw_sdf_debug_primitives()
+{
+	for (auto& sdf : edit_sdfs)
+	{
+		DirectX::XMFLOAT3 center =
+		{
+			(sdf.bounds_min.x + sdf.bounds_max.x) * 0.5f,
+			(sdf.bounds_min.y + sdf.bounds_max.y) * 0.5f,
+			(sdf.bounds_min.z + sdf.bounds_max.z) * 0.5f,
+		};
+		DirectX::XMFLOAT3 half_extent =
+		{
+			(sdf.bounds_max.x - sdf.bounds_min.x) * 0.5f,
+			(sdf.bounds_max.y - sdf.bounds_min.y) * 0.5f,
+			(sdf.bounds_max.z - sdf.bounds_min.z) * 0.5f,
+		};
+		DirectX::XMFLOAT4 rotation = { 0.0f, 0.0f, 0.0f, 1.0f };
+		DirectX::XMFLOAT4 color = { 0.0f, 1.0f, 1.0f, 1.0f };
+		QUEUE_DEBUG_PRIMITIVE_BOX(center, rotation, half_extent, color, true);
+
+		//	表面付近のボクセルを小さい十字マークで表示
+		//	赤 = 内側/負、緑 = 外側/表面付近
+		if (sdf.show_voxels && sdf.resolution > 0)
+		{
+			const float voxel_size = (sdf.bounds_max.x - sdf.bounds_min.x) / static_cast<float>(sdf.resolution);
+			const float half_cross = voxel_size * 0.4f;
+			for (auto& point : sdf.voxel_points)
+			{
+				DirectX::XMFLOAT3 p = { point.x, point.y, point.z };
+				DirectX::XMFLOAT4 point_color = point.w < 0.0f
+					? DirectX::XMFLOAT4(1.0f, 0.2f, 0.2f, 1.0f)
+					: DirectX::XMFLOAT4(0.2f, 1.0f, 0.2f, 1.0f);
+
+				QUEUE_DEBUG_PRIMITIVE_LINE(
+					DirectX::XMFLOAT3(p.x - half_cross, p.y, p.z),
+					DirectX::XMFLOAT3(p.x + half_cross, p.y, p.z),
+					point_color, true);
+				QUEUE_DEBUG_PRIMITIVE_LINE(
+					DirectX::XMFLOAT3(p.x, p.y - half_cross, p.z),
+					DirectX::XMFLOAT3(p.x, p.y + half_cross, p.z),
+					point_color, true);
+				QUEUE_DEBUG_PRIMITIVE_LINE(
+					DirectX::XMFLOAT3(p.x, p.y, p.z - half_cross),
+					DirectX::XMFLOAT3(p.x, p.y, p.z + half_cross),
+					point_color, true);
+			}
+		}
+	}
+}
+
 #endif	//	defined(USE_IMGUI)

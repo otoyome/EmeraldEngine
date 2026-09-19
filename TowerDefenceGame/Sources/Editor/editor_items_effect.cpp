@@ -603,11 +603,6 @@ bool editor_items::edit_effect_particle(std::shared_ptr<context>& context, effec
 							edit_flag = true;
 						if (ImGui::EditFlags<particle::item::renderer::trails::states>(renderer->trail.state))
 							edit_flag = true;
-						if (renderer->trail.is_state(particle::item::renderer::trails::states::use_time_fade))
-						{
-							if (ImGui::DragFloat2("time_fade_rate", &renderer->trail.time_fade_rate.x, 0.001f))
-								edit_flag = true;
-						}
 						break;
 					}
 					default:
@@ -720,6 +715,21 @@ bool editor_items::edit_effect_particle(std::shared_ptr<context>& context, effec
 					else
 					{
 						if (ImGui::ColorEdit4("color", &renderer->color.color_min.x))
+						{
+							edit_flag = true;
+						}
+					}
+
+					//	フェード設定
+					checked = renderer->color.is_state(particle::item::renderer::colors::states::use_fade);
+					if (ImGui::Checkbox("use_fade", &checked))
+					{
+						renderer->color.set_state(particle::item::renderer::colors::states::use_fade, checked);
+						edit_flag = true;
+					}
+					if (checked)
+					{
+						if (ImGui::SliderFloat2("fade_range", &renderer->color.fade_range.x, 0.0f, 1.0f))
 						{
 							edit_flag = true;
 						}

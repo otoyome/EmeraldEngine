@@ -120,6 +120,7 @@ private:	//	“à•”•ÒW—pŠÖ”
 
 public:	//	”Ä—p
 	static bool open_file_dialog(TCHAR* text, std::string& out_selected_file_path);
+	static bool open_file_dialog_multi(TCHAR* text, std::vector<std::string>& out_selected_file_paths);
 	static bool save_file_dialog(TCHAR* text, std::string& out_selected_file_path, const TCHAR* default_extension = nullptr);
 	static bool copy_to_clipboard(const char* text);
 

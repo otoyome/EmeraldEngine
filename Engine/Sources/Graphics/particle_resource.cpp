@@ -17,9 +17,9 @@
 #include "animation_data_version.h"
 
 // CEREALバージョン定義
-CEREAL_CLASS_VERSION(particle::item::renderer::trails, 2)
+CEREAL_CLASS_VERSION(particle::item::renderer::trails, 3)
 CEREAL_CLASS_VERSION(particle::item::renderer::texcoords, 1)
-CEREAL_CLASS_VERSION(particle::item::renderer::colors, 1)
+CEREAL_CLASS_VERSION(particle::item::renderer::colors, 2)
 CEREAL_CLASS_VERSION(particle::item::renderer, 1)
 
 CEREAL_CLASS_VERSION(particle::item::spawn, 1)
@@ -49,7 +49,13 @@ void particle::item::renderer::trails::serialize(Archive& archive, int version)
 		}
 		case 2:
 		{
-			archive(state, max, time_fade_rate);
+			DirectX::XMFLOAT2 unused_time_fade_rate;
+			archive(state, max, unused_time_fade_rate);
+			break;
+		}
+		case 3:
+		{
+			archive(state, max);
 			break;
 		}
 	}
@@ -80,7 +86,19 @@ void particle::item::renderer::colors::set_state(states flag, bool value)
 template<class Archive>
 void particle::item::renderer::colors::serialize(Archive& archive, int version)
 {
-	archive(state, color_min, color_max);
+	switch (version)
+	{
+		case 1:
+		{
+			archive(state, color_min, color_max);
+			break;
+		}
+		case 2:
+		{
+			archive(state, color_min, color_max, fade_range);
+			break;
+		}
+	}
 }
 
 bool particle::item::renderer::is_state(states flag) const

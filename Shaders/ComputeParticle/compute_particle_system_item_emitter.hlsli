@@ -59,20 +59,17 @@ struct em_trail_item
 {
     uint state;
     uint max; // 軌跡総数
-    float2 time_fade_rate; //	フェード
 };
 
 static const uint emitter_active_trail_item_bit_flag = 1 << 0;
 
 static const uint em_trail_item_state_use_fade = 1 << 0; //	軌跡描画時にフェードさせる
-static const uint em_trail_item_state_use_time_fade = 1 << 1; //	軌跡描画時にフェードさせる
 
 //  軌跡アイテム読み込み
 void stream_trail_item(uint rw, inout uint offset, inout em_trail_item value)
 {
     em_stream_ptr(rw, offset, value.state);
     em_stream_ptr(rw, offset, value.max);
-    em_stream_ptr(rw, offset, value.time_fade_rate);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -112,11 +109,13 @@ struct em_color_item
     uint state; //  ステート
     float4 color_min; // 色の範囲
     float4 color_max; // 色の範囲
+    float2 fade_range; // フェード範囲(x:フェードイン終了 y:フェードアウト開始)
 };
 
 static const uint emitter_active_color_item_bit_flag = 1 << 2;
 
 static const uint emitter_color_item_state_random = 1 << 0; //	ランダム設定
+static const uint emitter_color_item_state_use_fade = 1 << 1; // フェード有効化
 
 //  色アイテム読み込み
 void stream_color_item(uint rw, inout uint offset, inout em_color_item value)
@@ -124,6 +123,7 @@ void stream_color_item(uint rw, inout uint offset, inout em_color_item value)
     em_stream_ptr(rw, offset, value.state);
     em_stream_ptr(rw, offset, value.color_min);
     em_stream_ptr(rw, offset, value.color_max);
+    em_stream_ptr(rw, offset, value.fade_range);
 }
 
 //////////////////////////////////////////////////////////////////////////

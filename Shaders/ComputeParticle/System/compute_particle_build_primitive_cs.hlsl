@@ -138,7 +138,7 @@ float3 calculate_trail_axis(float3 pos0, float3 pos1, float3 face_dir)
 }
 
 //  経過時間によるフェードイン・フェードアウト係数を求める
-float calculate_trail_time_fade(float life_time, float life_time_max, float2 time_fade_rate)
+float calculate_life_fade(float life_time, float life_time_max, float2 time_fade_rate)
 {
     float time_rate = saturate(life_time / life_time_max);
     float fade_in = smoothstep(0.0f, time_fade_rate.x, time_rate);
@@ -228,6 +228,13 @@ void main(uint3 dispatch_thread_id : SV_DispatchThreadID)
         //  以降は不要
     }
 
+    //  色アイテムの生存時間比率(0～1)によるフェード係数
+    float color_fade = 1.0f;
+    if (has_flag(em_common.active_items, emitter_active_color_item_bit_flag) && has_flag(em_color.state, emitter_color_item_state_use_fade))
+    {
+        color_fade = calculate_life_fade(pt_common.life_time, pt_common.life_time_max, em_color.fade_range);
+    }
+
     //  軌跡形状アイテムを取得しているか判定
     float4 vertex_color[4], vertex_positions[4];
     float2 vertex_texcoord[4];
@@ -289,6 +296,10 @@ void main(uint3 dispatch_thread_id : SV_DispatchThreadID)
                 vertex_color[1] = pt_common.color;
                 vertex_color[2] = pt_common.color;
                 vertex_color[3] = pt_common.color;
+                vertex_color[0].a *= color_fade;
+                vertex_color[1].a *= color_fade;
+                vertex_color[2].a *= color_fade;
+                vertex_color[3].a *= color_fade;
 
                 //  末尾に行くほどフェード
                 if (em_trail.state & em_trail_item_state_use_fade)
@@ -297,15 +308,6 @@ void main(uint3 dispatch_thread_id : SV_DispatchThreadID)
                     vertex_color[1].a *= 1.0f - rate[0];
                     vertex_color[2].a *= 1.0f - rate[1];
                     vertex_color[3].a *= 1.0f - rate[1];
-                }
-                //  時間経過によるフェード
-                if (em_trail.state & em_trail_item_state_use_time_fade)
-                {
-                    float fade = calculate_trail_time_fade(pt_common.life_time, pt_common.life_time_max, em_trail.time_fade_rate);
-                    vertex_color[0].a *= fade;
-                    vertex_color[1].a *= fade;
-                    vertex_color[2].a *= fade;
-                    vertex_color[3].a *= fade;
                 }
                 vertex_texcoord[0] = uv_rect.xy + uv_rect.zw * float2(0, rate[0]);
                 vertex_texcoord[1] = uv_rect.xy + uv_rect.zw * float2(1, rate[0]);
@@ -364,6 +366,10 @@ void main(uint3 dispatch_thread_id : SV_DispatchThreadID)
             vertex_color[1] = pt_common.color;
             vertex_color[2] = pt_common.color;
             vertex_color[3] = pt_common.color;
+            vertex_color[0].a *= color_fade;
+            vertex_color[1].a *= color_fade;
+            vertex_color[2].a *= color_fade;
+            vertex_color[3].a *= color_fade;
             float4 uv_rect = float4(0, 0, 1, 1);
             if (em_common.active_items & emitter_active_uv_item_bit_flag)
             {

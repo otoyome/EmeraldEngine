@@ -124,8 +124,8 @@ void update_color_item(inout emitter_context em_context, inout pt_common_item pt
     if (has_flag(em_context.active_items, emitter_active_color_item_bit_flag))
     {
         //  表示用の物なのでエミッター分オフセットしておく
-        em_color_item em_uv;
-        stream_color_item(rw_read_only, emitter_binary_offset, em_uv);
+        em_color_item em_color;
+        stream_color_item(rw_read_only, emitter_binary_offset, em_color);
     }
 }
 

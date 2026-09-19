@@ -39,12 +39,22 @@ private:
 	effect_resource_ptr edit_resource;
 	effect_instance_ptr edit_instance;
 
-	//	
-	struct animation_player_context
+private:
+	//	エディター上で読み込み・登録しているcubic_sdf
+	struct edit_sdf_data
 	{
-		bool loop = true;
-		bool paused = false;
+		cache_string file_path;
+		uint32_t sdf_id = 0xFFFFFFFF;
+		DirectX::XMFLOAT3 bounds_min = { 0, 0, 0 };
+		DirectX::XMFLOAT3 bounds_max = { 0, 0, 0 };
+		uint32_t resolution = 0;
+		bool show_voxels = true;
+
+		std::vector<DirectX::XMFLOAT4> voxel_points;	//	ボクセル可視化用
 	};
-	animation_player_context animation_player;
+	std::vector<edit_sdf_data> edit_sdfs;
+
+	void imgui_render_sdf();
+	void draw_sdf_debug_primitives();
 };
 #endif // defined(USE_IMGUI)

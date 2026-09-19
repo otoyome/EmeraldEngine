@@ -803,6 +803,50 @@ bool editor_items::open_file_dialog(TCHAR* text, std::string& out_selected_file_
 	return opened;
 }
 
+bool editor_items::open_file_dialog_multi(TCHAR* text, std::vector<std::string>& out_selected_file_paths)
+{
+	out_selected_file_paths.clear();
+
+	constexpr DWORD buffer_size = 1 << 16;
+	std::vector<TCHAR> buffer(buffer_size, 0);
+
+	OPENFILENAME open_file_name; // ç\ë¢ëÃ
+	ZeroMemory(&open_file_name, sizeof(open_file_name));
+	open_file_name.lStructSize = sizeof(open_file_name);
+	open_file_name.hwndOwner = GetForegroundWindow();
+	open_file_name.lpstrFilter = text;
+	open_file_name.lpstrFile = buffer.data();
+	open_file_name.nMaxFile = buffer_size;
+	open_file_name.Flags = OFN_EXPLORER | OFN_NOCHANGEDIR | OFN_FILEMUSTEXIST | OFN_ALLOWMULTISELECT;
+
+	if (!GetOpenFileName(&open_file_name))
+		return false;
+
+	const TCHAR* ptr = buffer.data();
+	std::wstring directory = ptr;
+	ptr += directory.size() + 1;
+
+	if (*ptr == 0)
+	{
+		std::string file_path = system_utility::convert_shift_jis(directory);
+		out_selected_file_paths.emplace_back(system_utility::convert_to_relative_path(file_path));
+	}
+	else
+	{
+		while (*ptr != 0)
+		{
+			std::wstring file_name = ptr;
+			ptr += file_name.size() + 1;
+
+			std::filesystem::path full_path = std::filesystem::path(directory) / file_name;
+			std::string file_path = system_utility::convert_shift_jis(full_path.wstring());
+			out_selected_file_paths.emplace_back(system_utility::convert_to_relative_path(file_path));
+		}
+	}
+
+	return !out_selected_file_paths.empty();
+}
+
 bool editor_items::save_file_dialog(TCHAR* text, std::string& out_selected_file_path, const TCHAR* default_extension)
 {
 	OPENFILENAME open_file_name; // ç\ë¢ëÃ

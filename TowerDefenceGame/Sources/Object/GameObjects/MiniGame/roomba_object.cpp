@@ -4,7 +4,9 @@ namespace setup_data
 {
 	constexpr DirectX::XMFLOAT3 world_gravity = {0.0f, system_units::convert_m_to_unit(-9.8f), 0.0f};	//	ワールド重力
 
-	constexpr int health = 15000; // 体力
+	constexpr int wet_value = 10000; // 耐水性能
+	constexpr int heat_value = 10000; // 耐熱性脳
+
 	constexpr float mass = 4.0f; // 重さ
 
 	constexpr float capsule_push_radius = system_units::convert_m_to_unit(0.4f); // 押し合い判定半径
@@ -13,8 +15,8 @@ namespace setup_data
 	constexpr DirectX::XMFLOAT3 capsule_offset = {0.0f, capsule_length + capsule_push_radius, 0.0f}; // 当たり判定長さオフセット
 
 	//	普通ルンバモード
-	constexpr float walk_accelaration = system_units::convert_m_to_unit(6.0f); // 歩きの加速度(m/s2)
-	constexpr float walk_max_speed = system_units::convert_m_to_unit(0.5f); // 歩きの速度(m/s)
+	constexpr float walk_accelaration = system_units::convert_m_to_unit(12.0f); // 歩きの加速度(m/s2)
+	constexpr float walk_max_speed = system_units::convert_m_to_unit(1.0f); // 歩きの速度(m/s)
 	constexpr float walk_breaking_deceleration = system_units::convert_m_to_unit(0.0f); // 歩きの減速度(m/s2)
 
 	//	爆速ルンバモード
@@ -26,8 +28,7 @@ namespace setup_data
 	constexpr float move_stop_breaking_deceleration = system_units::convert_m_to_unit(6.0f); // ブレーキング減速力(m/s2)
 
 	//	性能低下
-	constexpr float health_max_speed = system_units::convert_m_to_unit(64.0f); // 歩きの速度(m/s)
-	constexpr float health_breaking_deceleration = system_units::convert_m_to_unit(0.0f); // ブレーキング減速力(m/s2)
+	constexpr float wet_max_speed = system_units::convert_m_to_unit(64.0f); // 濡れる事による最大速度(m/s)
 
 	//	摩擦係数
 	constexpr float base_friction = 0.995f;	// 摩擦係数(ゴム靴？)
@@ -41,8 +42,10 @@ roomba_object::roomba_object(std::string_view name, std::shared_ptr<model_object
 , flag_data(0)
 , collision_filter_name(std::string(collision_filter_name))
 
-, health(setup_data::health)
-, max_health(setup_data::health)
+, wet_value(0)
+, max_wet_value(setup_data::wet_value)
+, heat_value(0)
+, max_heat_value(setup_data::heat_value)
 
 , push_box()
 
@@ -127,8 +130,10 @@ void roomba_object::imgui_render_core()
 			current_state_name = state_machine.get_current_state()->get_name();
 		ImGui::Text("current_state : %s", current_state_name.data(), current_state_name.size());
 	}
-	ImGui::DragInt("health", &health);
-	ImGui::DragInt("max_health", &max_health);
+	ImGui::DragInt("wet_value", &wet_value);
+	ImGui::DragInt("max_wet_value", &max_wet_value);
+	ImGui::DragInt("heat_value", &heat_value);
+	ImGui::DragInt("max_heat_value", &max_heat_value);
 
 	{
 		auto scale = get_scale();
@@ -281,31 +286,55 @@ void roomba_object::set_step_offset(float step_offset)
 	this->step_offset = step_offset;
 }
 
-int roomba_object::get_health() const
+int roomba_object::get_wet_value() const
 {
-	return health;
+	return wet_value;
 }
 
-void roomba_object::set_health(int health)
+void roomba_object::set_wet_value(int wet_value)
 {
-	this->health = math::clamp(health, 0, max_health);
+	this->wet_value = math::clamp(wet_value, 0, max_wet_value);
 }
 
-int roomba_object::get_max_health() const
+int roomba_object::get_max_wet_value() const
 {
-	return max_health;
+	return max_wet_value;
 }
 
-void roomba_object::set_max_health(int max_health)
+void roomba_object::set_max_wet_value(int max_wet_value)
 {
-	this->max_health = max_health;
+	this->max_wet_value = max_wet_value;
 	//	最大値が減ったら減らす
-	if (this->health > this->max_health)
+	if (this->wet_value > this->max_wet_value)
 	{
-		this->health = this->max_health;
+		this->wet_value = this->max_wet_value;
 	}
 }
 
+int roomba_object::get_heat_value() const
+{
+	return heat_value;
+}
+
+void roomba_object::set_heat_value(int heat_value)
+{
+	this->heat_value = math::clamp(heat_value, 0, max_heat_value);
+}
+
+int roomba_object::get_max_heat_value() const
+{
+	return max_heat_value;
+}
+
+void roomba_object::set_max_heat_value(int max_heat_value)
+{
+	this->max_heat_value = max_heat_value;
+	//	最大値が減ったら減らす
+	if (this->heat_value > this->max_heat_value)
+	{
+		this->heat_value = this->max_heat_value;
+	}
+}
 float roomba_object::get_elapsed_time_scale() const
 {
 	return elapsed_time_scale;
@@ -345,11 +374,11 @@ float roomba_object::get_current_accelaration_force() const
 float roomba_object::get_current_max_speed() const
 {
 	float max_speed = get_max_speed(check_same_state(roomba_object::state_names[roomba_object::state_dash]) ? move_mode::dash : move_mode::walk);
-	//	ライフによる摩擦係数減衰
+
+	//	濡れによる最大速度上昇
 	{
-		float life_rate = math::saturate(static_cast<float>(health) / max_health);
-		life_rate = math::ease::in_out_expo(life_rate);
-		max_speed = math::lerp(setup_data::health_max_speed, max_speed, life_rate);
+		float rate = math::ease::in_out_expo(get_wet_rate());
+		max_speed = math::lerp(max_speed, setup_data::wet_max_speed, rate);
 	}
 	return max_speed;
 }
@@ -373,13 +402,6 @@ float roomba_object::get_current_breaking_deceleration_force() const
 		}
 	}
 
-	//	ライフによる減速力変動
-	{
-		float life_rate =  math::saturate(static_cast<float>(health) / max_health);
-		life_rate = math::ease::in_out_expo(life_rate);
-		deceleration = math::lerp(setup_data::health_breaking_deceleration, deceleration, life_rate);
-	}
-
 	return push_box->get_mass() * deceleration;
 }
 
@@ -395,10 +417,9 @@ float roomba_object::get_current_friction() const
 	}
 	else
 	{
-		//	ライフによる摩擦係数減衰
-		float life_rate = math::saturate(static_cast<float>(health) / max_health);
-		life_rate = math::ease::in_out_expo(life_rate);
-		friction = math::lerp(setup_data::wet_friction, friction, life_rate);
+		//	濡れによる摩擦係数減衰
+		float rate = math::ease::in_out_expo(get_wet_rate());
+		friction = math::lerp(friction, setup_data::wet_friction, rate);
 	}
 	return friction;
 }

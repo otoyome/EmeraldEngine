@@ -39,12 +39,10 @@ namespace particle
 				enum class states
 				{
 					use_fade = 1 << 0,	//	軌跡終端フェード
-					use_time_fade = 1 << 1,	//	時間フェード
 				};
 
 				UINT state = 0;
 				UINT max = 30; // 軌跡総数
-				DirectX::XMFLOAT2 time_fade_rate = {0.2f, 0.8f};	//	フェード
 
 				bool is_state(states flag) const;
 				void set_state(states flag, bool value);
@@ -82,11 +80,13 @@ namespace particle
 				enum class states
 				{
 					random = 1 << 0,		//	ランダム設定
+					use_fade = 1 << 1,		//	フェード有効化
 				};
 
 				UINT state = 0; // ステート
-				DirectX::XMFLOAT4 color_min = {1, 1, 1, 1};	//	色の最小
-				DirectX::XMFLOAT4 color_max = {1, 1, 1, 1};	//	色の最大
+				DirectX::XMFLOAT4 color_min = {1, 1, 1, 1};		//	色の最小
+				DirectX::XMFLOAT4 color_max = {1, 1, 1, 1};		//	色の最大
+				DirectX::XMFLOAT2 fade_range = {0.1f, 0.9f};	//	フェード範囲(x:フェードイン終了 y:フェードアウト開始)
 
 				bool is_state(states flag) const;
 				void set_state(states flag, bool value);

@@ -59,6 +59,7 @@ public:
 	{
 		dash_dust,
 		spark,
+		spark_smoke,
 		dead,
 	};
 
@@ -77,13 +78,6 @@ public:
 
 		math::rotator rotator;
 		DirectX::XMFLOAT3 position;
-	};
-
-	//	‘Ì—Í•Ï“®î•ñ
-	struct health_varing_descs
-	{
-		int value = 0; // •Ï“®—Ê
-		bool defat_attack = true; // Œ‚”j—U”­‹Z
 	};
 
 private:
@@ -149,10 +143,16 @@ public:
 	float get_step_offset() const;
 	void set_step_offset(float step_offset);
 
-	int get_health() const;
-	void set_health(int health);
-	int get_max_health() const;
-	void set_max_health(int max_health);
+	int get_wet_value() const;
+	void set_wet_value(int wet_value);
+	int get_max_wet_value() const;
+	void set_max_wet_value(int max_wet_value);
+	int get_heat_value() const;
+	void set_heat_value(int heat_value);
+	int get_max_heat_value() const;
+	void set_max_heat_value(int max_heat_value);
+	float get_wet_rate() const {return math::saturate(static_cast<float>(wet_value) / max_wet_value);}
+	float get_heat_rate() const {return math::saturate(static_cast<float>(heat_value) / max_heat_value);}
 
 	float get_elapsed_time_scale() const;
 	void set_elapsed_time_scale(float elapsed_time_scale);
@@ -197,6 +197,9 @@ public:	//	ƒXƒe[ƒgŠÖŒW
 	bool register_change_state_callback(std::string_view state_id, std::string_view identifier, call_back_change_state callback);
 	bool unregister_change_state_callback(std::string_view state_id, std::string_view identifier);
 
+public:	//	“–‚½‚èŠÖŒW
+	void on_wet(float rate);
+
 private:	//	“à•”ƒXƒe[ƒgŒn
 	template<typename Type, typename ... Arguments>
 	bool register_state(const Arguments ... arguments)
@@ -208,6 +211,8 @@ private:	//	“à•”ƒXƒe[ƒgŒn
 
 	bool input_action(float elapsed_time);
 	bool input_move(float elapsed_time);
+
+	void update_values(float elapsed_time);
 
 	void enter_idle();
 	void update_idle(float elapsed_time);
@@ -253,8 +258,12 @@ private:
 private:
 	std::shared_ptr<model_object> model;
 	int flag_data; // ƒrƒbƒgƒtƒ‰ƒOî•ñ
-	int health; // ‘Ì—Í
-	int max_health; // Å‘å‘Ì—Í
+
+	int wet_value; // ”G‚ê—Ê
+	int max_wet_value; // Å‘å”G‚ê—Ê
+	int heat_value; // ”M—Ê
+	int max_heat_value; // Å‘å”M—Ê
+
 	float elapsed_time_scale; // ŠÔƒXƒP[ƒ‹
 	action_datas action_data; // “ü—Íî•ñ
 
@@ -292,5 +301,6 @@ private:
 
 	effect_instance_ptr dash_effect_instance;
 	effect_instance_ptr spark_effect_instance;
+	effect_instance_ptr spark_smoke_effect_instance;
 	size_t dash_effect_instance_node_index[2];
 };

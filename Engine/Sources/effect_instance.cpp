@@ -98,7 +98,6 @@ namespace
 			particle_system_item::emitter::trail trail;
 			trail.state = renderer->trail.state;
 			trail.max = renderer->trail.max;
-			trail.fade_rate = renderer->trail.time_fade_rate;
 			append(&trail, sizeof(trail));
 			common_data.active_items |= 1 << particle_system_item::emitter::trail::data_id;
 		}
@@ -117,6 +116,7 @@ namespace
 			color_item.state = renderer->color.state;
 			color_item.color_min = renderer->color.color_min;
 			color_item.color_max = renderer->color.color_max;
+			color_item.fade_range = renderer->color.fade_range;
 			append(&color_item, sizeof(color_item));
 			common_data.active_items |= 1 << particle_system_item::emitter::color::data_id;
 		}
@@ -513,6 +513,12 @@ effect_manager::~effect_manager()
 uint32_t effect_manager::add_cubic_sdf(ID3D11DeviceContext* device_context, collision::cubic_sdf& sdf)
 {
 	return cubic_sdf_resource->register_sdf(device_context, sdf);
+}
+
+void effect_manager::remove_cubic_sdf(ID3D11DeviceContext* device_context, uint32_t sdf_id)
+{
+	if (cubic_sdf_resource)
+		cubic_sdf_resource->unregister_sdf(device_context, sdf_id);
 }
 
 void effect_manager::update(float elapsed_time)

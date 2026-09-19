@@ -90,7 +90,7 @@ minigame_scene::minigame_scene()
 		//	ルンバオブジェクト生成
 		player_object = std::make_shared<roomba_object>("プレイヤー 制御", roomba_model, "player");
 		register_object(player_object);
-		player_object->set_position(system_units::convert_m_to_unit({0, 0, -50}));
+		player_object->set_position(system_units::convert_m_to_unit({0, 0, -60}));
 		player_object->set_rotation({0.0f, 0.0f, 0.0f});
 
 		//	ルンバ制御オブジェクト生成
@@ -102,13 +102,20 @@ minigame_scene::minigame_scene()
 		register_object(camera_controller);
 	}
 
-	//	UIオブジェクト設置(UIレンダリングの確認用)
+	//	UIオブジェクト設置
 	{
-		test_ui = std::make_shared<ui_object>("UI表示確認用オブジェクト");
-		test_ui->set_screen_rect({ 40, 40, 180, 50 });
-		test_ui->set_color({ 1, 0, 0, 1 });
-		test_ui->set_sort_order(0);
-		register_object(test_ui);
+		test_heat = std::make_shared<ui_object>("熱バー");
+		test_heat->set_screen_rect({ 40, 40, 180, 50 });
+		test_heat->set_color({ 1, 0, 0, 1 });
+		test_heat->set_sort_order(0);
+		register_object(test_heat);
+	}
+	{
+		test_wet = std::make_shared<ui_object>("濡れバー");
+		test_wet->set_screen_rect({ 40, 100, 180, 50 });
+		test_wet->set_color({ 0, 0, 1, 1 });
+		test_wet->set_sort_order(0);
+		register_object(test_wet);
 	}
 
 	//	星粒生成
@@ -141,21 +148,29 @@ bool minigame_scene::uninitialize_core()
 
 void minigame_scene::update_core(float elapsed_time)
 {
-	if (star_dust && player_object && test_ui)
+	if (player_object)
 	{
-		//	吸引座標とイベント基準座標設定
-		auto position = player_object->get_push_box()->get_position();
-		position.y += player_object->get_push_box()->get_local_scale().y * 0.5f;
-		star_dust->set_attract_position(position);
-		star_dust->set_event_position(position);
+		if (star_dust)
+		{
+			//	吸引座標とイベント基準座標設定
+			auto position = player_object->get_push_box()->get_position();
+			position.y += player_object->get_push_box()->get_local_scale().y * 0.5f;
+			star_dust->set_attract_position(position);
+			star_dust->set_event_position(position);
+		}
 
 		//	1F前のパーティクルイベント情報を取得してライフを増減
 		auto particle_events = effect_manager::instance()->get_particle_events();
+		player_object->on_wet(particle_events.size() * 100);
 
-		player_object->set_health(player_object->get_health() - particle_events.size() * 100);
-
-		float rate = 1.0f - (static_cast<float>(player_object->get_health()) / player_object->get_max_health());
-		test_ui->set_screen_rect({ 40, 40, (1200 - 40) * math::saturate(rate), 50 });
+		if (test_heat)
+		{
+			test_heat->set_screen_rect({ 40, 40, (1200 - 40) * player_object->get_heat_rate(), 50 });
+		}
+		if (test_wet)
+		{
+			test_wet->set_screen_rect({ 40, 100, (1200 - 40) * player_object->get_wet_rate(), 50 });
+		}
 	}
 }
 

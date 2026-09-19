@@ -31,7 +31,8 @@ protected:
 
 private:
 	std::shared_ptr<roomba_object> player_object;
-	std::shared_ptr<ui_object> test_ui;
+	std::shared_ptr<ui_object> test_wet;
+	std::shared_ptr<ui_object> test_heat;
 
 	std::shared_ptr<effect_instance> star_dust;
 };
