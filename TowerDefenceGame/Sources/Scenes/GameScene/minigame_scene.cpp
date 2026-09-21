@@ -191,11 +191,11 @@ minigame_scene::minigame_scene()
 	//	エフェクト類生成
 	{
 		effect_resource_ptr resource;
-		if (effect_resource_manager::instance()->load(resource, "Assets/Resources/Effects/Bubble.eme"))
-		{
-			bubble_effect = std::make_shared<effect_instance>(resource);
-			effect_manager::instance()->register_instance(bubble_effect);
-		}
+		//if (effect_resource_manager::instance()->load(resource, "Assets/Resources/Effects/Bubble.eme"))
+		//{
+		//	bubble_effect = std::make_shared<effect_instance>(resource);
+		//	effect_manager::instance()->register_instance(bubble_effect);
+		//}
 		if (effect_resource_manager::instance()->load(resource, "Assets/Resources/Effects/Rain.eme"))
 		{
 			rain_effect = std::make_shared<effect_instance>(resource);
@@ -251,9 +251,65 @@ void minigame_scene::update_core(float elapsed_time)
 			}
 		}
 
-		//	1F前のパーティクルイベント情報を取得してライフを増減
+		//	1F前のパーティクルイベント情報を取得
 		auto particle_events = effect_manager::instance()->get_particle_events();
-		player_object->on_wet(particle_events.size() * 100);
+		auto push_box_position = DirectX::XMLoadFloat3(&player_object->get_push_box()->get_position());
+
+		//	bubble/rainの自エミッターIDを収集
+		for (auto& item : effect_manager::instance()->get_items())
+		{
+			if (item.effect_instance == bubble_effect)
+			{
+				for (auto& emitter_item : item.emitter_items)
+					bubble_emitter_ids.push_back(emitter_item.system_index);
+			}
+			else if (item.effect_instance == rain_effect)
+			{
+				for (auto& emitter_item : item.emitter_items)
+					rain_emitter_ids.push_back(emitter_item.system_index);
+			}
+		}
+
+		//	濡れゲージ増加処理
+		UINT wet_event_count = 0;
+		for (auto& event_info : particle_events)
+		{
+			//	泡の場合はそのまま濡れカウントとして
+			bool is_bubble = false;
+			for (auto emitter_id : bubble_emitter_ids)
+			{
+				if (emitter_id == event_info.target_emitter_id)
+				{
+					is_bubble = true;
+					break;
+				}
+			}
+			if (is_bubble)
+			{
+				++wet_event_count;
+				continue;
+			}
+
+			//	雨の場合はそのまま球体判定をこちらで行う
+			bool is_rain = false;
+			for (auto emitter_id : rain_emitter_ids)
+			{
+				if (emitter_id == event_info.target_emitter_id)
+				{
+					is_rain = true;
+					break;
+				}
+			}
+			if (is_rain)
+			{
+				auto event_position = DirectX::XMLoadFloat3(&event_info.position);
+				float distance = DirectX::XMVectorGetX(DirectX::XMVector3Length(DirectX::XMVectorSubtract(event_position, push_box_position)));
+				if (distance <= 0.1f)
+					++wet_event_count;
+				//	範囲外のrainイベントは無視
+			}
+		}
+		player_object->on_wet(wet_event_count * 100);
 
 		if (test_heat)
 		{

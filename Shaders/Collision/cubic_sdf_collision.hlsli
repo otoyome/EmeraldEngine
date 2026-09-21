@@ -83,7 +83,8 @@ bool sample_cubic_sdf_nearest(StructuredBuffer<sdf_header> header_buffer,
     bool hit_any = false;
     float nearest_distance = 0.0f;
 
-    [loop] for (uint sdf_id = 0; sdf_id < header_count; ++sdf_id)
+    [loop]
+    for (uint sdf_id = 0; sdf_id < header_count; ++sdf_id)
     {
         //	マスクIdスキップ
         uint mask_word = (sdf_id < 32) ? skip_mask.x : skip_mask.y;

@@ -39,4 +39,5 @@ private:
 
 	std::shared_ptr<effect_instance> bubble_effect;
 	std::shared_ptr<effect_instance> rain_effect;
+	std::vector<UINT> bubble_emitter_ids, rain_emitter_ids;
 };

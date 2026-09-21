@@ -23,7 +23,7 @@ CEREAL_CLASS_VERSION(particle::item::renderer::colors, 2)
 CEREAL_CLASS_VERSION(particle::item::renderer, 1)
 
 CEREAL_CLASS_VERSION(particle::item::spawn, 1)
-CEREAL_CLASS_VERSION(particle::item::velocity, 1)
+CEREAL_CLASS_VERSION(particle::item::velocity, 2)
 CEREAL_CLASS_VERSION(particle::item::attract, 1)
 CEREAL_CLASS_VERSION(particle::item::event, 2)
 
@@ -140,11 +140,28 @@ void particle::item::velocity::set_state(states flag, bool value)
 template<class Archive>
 void particle::item::velocity::serialize(Archive& archive, int version)
 {
-	archive(state,
-			direction, angle_range, power_range,
-			acceleration_min, acceleration_max,
-			deceleration_min, deceleration_max,
-			gravity_scale);
+	switch (version)
+	{
+		case 1:
+		{
+			DirectX::XMFLOAT3 unused_deceleration_min, unused_deceleration_max;
+			archive(state,
+					direction, angle_range, power_range,
+					acceleration_min, acceleration_max,
+					unused_deceleration_min, unused_deceleration_max,
+					gravity_scale);
+			break;
+		}
+		case 2:
+		{
+			archive(state,
+					direction, angle_range, power_range,
+					acceleration_min, acceleration_max,
+					damping_min, damping_max,
+					gravity_scale);
+			break;
+		}
+	}
 }
 
 template<class Archive>

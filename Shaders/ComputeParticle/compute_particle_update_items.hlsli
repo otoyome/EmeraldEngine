@@ -189,27 +189,15 @@ void update_velocity_item(inout emitter_context em_context, inout pt_common_item
                 //  速度更新
                 pt_velocity.velocity += (velocity.gravity + acceleration) * em_context.elapsed_time;
 
-                //  減速処理
-                float3 deceleration = velocity.deceleration_min;
-                if (has_flag(velocity.state, emitter_veloctiy_item_state_random_deceleration))
+                //  減衰処理(damping): 速度に比例して減衰させる
+                float damping = velocity.damping_min;
+                if (has_flag(velocity.state, emitter_veloctiy_item_state_random_damping))
                 {
-                    deceleration = lerp(velocity.deceleration_min,
-                                        velocity.deceleration_max,
+                    damping = lerp(velocity.damping_min,
+                                        velocity.damping_max,
                                         x_or_shift_random(em_context.random_seed));
                 }
-                float3 decel_step = min(abs(pt_velocity.velocity), deceleration * em_context.elapsed_time);
-                pt_velocity.velocity -= sign(pt_velocity.velocity) * decel_step;
-
-                //  地形と当たり判定
-                float sdf_distance;
-                uint sdf_id;
-                float sdf_hit_threshold = max(pt_common.scale.x, max(pt_common.scale.y, pt_common.scale.z)) * 0.5f;
-                if (sample_cubic_sdf_nearest(cubic_sdf_header_buffer, cubic_sdf_voxel_buffer, pt_common.translation, uint2(0, 0), sdf_distance, sdf_id)
-                    && sdf_distance <= sdf_hit_threshold)
-                {
-                    //  寿命切れで死亡
-                    pt_common.life_time = pt_common.life_time_max;
-                }
+                pt_velocity.velocity *= max(1.0f - damping * em_context.elapsed_time, 0.0f);
 
                 //  移動
                 pt_common.translation += pt_velocity.velocity * em_context.elapsed_time;
@@ -280,23 +268,40 @@ void update_event_item(inout emitter_context em_context, inout pt_common_item pt
         em_event_item em_event;
         stream_event_item(rw_read_only, emitter_binary_offset, em_event);
 
-        //  範囲内かどうか
-        if (em_context.elapsed_time > 0.0f &&
-            !has_flag(pt_common.state, particle_binary_state_bit_spawn_frame) &&
+        pt_event_item pt_event;
+        uint write_offset = particle_binary_offset;
+        stream_event_item(rw_read, particle_binary_offset, pt_event);
+
+        if (has_flag(pt_common.state, particle_binary_state_bit_spawn_frame))
+        {
+            if (has_flag(em_event.state, emitter_event_item_state_contact_collision))
+            {
+                //	SDF距離の基準値を保存
+                float sdf_distance;
+                uint sdf_id;
+                pt_event.previous_distance = sample_cubic_sdf_nearest(cubic_sdf_header_buffer, cubic_sdf_voxel_buffer, pt_common.translation, uint2(0, 0), sdf_distance, sdf_id)
+                    ? sdf_distance : em_event.radius;
+            }
+        }
+        else if (em_context.elapsed_time > 0.0f &&   //  動いているとき以外は処理しない
             !has_flag(pt_common.state, particle_binary_state_bit_event_fired))
         {
             bool hit = false;
 
+            //	sdfとの当たり判定
             if (has_flag(em_event.state, emitter_event_item_state_contact_collision))
             {
-                //	sdfとの当たり判定
                 float sdf_distance;
                 uint sdf_id;
-                if (sample_cubic_sdf_nearest(cubic_sdf_header_buffer, cubic_sdf_voxel_buffer, pt_common.translation, uint2(0, 0), sdf_distance, sdf_id)
-                    && sdf_distance <= em_event.radius)
+                if (!sample_cubic_sdf_nearest(cubic_sdf_header_buffer, cubic_sdf_voxel_buffer, pt_common.translation, uint2(0, 0), sdf_distance, sdf_id))
+                    sdf_distance = em_event.radius;
+
+                //	SDFの符号反転を検出して通過判定
+                if (sign(pt_event.previous_distance) != sign(sdf_distance))
                 {
                     hit = true;
                 }
+                pt_event.previous_distance = sdf_distance;
             }
             else
             {
@@ -318,8 +323,16 @@ void update_event_item(inout emitter_context em_context, inout pt_common_item pt
 
                 //  イベント通知済み判定
                 pt_common.state |= particle_binary_state_bit_event_fired;
+
+                //  ヒット時に死亡させる
+                if (has_flag(em_event.state, emitter_event_item_state_kill_on_hit))
+                {
+                    pt_common.life_time = pt_common.life_time_max;
+                }
             }
         }
+
+        stream_event_item(rw_write, write_offset, pt_event);
     }
 }
 

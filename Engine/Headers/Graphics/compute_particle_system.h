@@ -67,6 +67,12 @@ namespace particle_system_item
 		{
 			DirectX::XMFLOAT3 velocity;
 		};
+
+		//	イベントアイテム
+		struct event
+		{
+			float previous_distance;
+		};
 	}
 
 	//	@remainder	これを一々CPP/HLSL両方で定義するのはめんどくさいよね～( ;∀;)
@@ -162,7 +168,7 @@ namespace particle_system_item
 				random_direction = 1 << 0,		//	directionを元に、angle_rangeの範囲でランダムに変更
 				random_power = 1 << 1,			//	power_rangeの範囲でランダムに変更
 				random_acceleration = 1 << 2,	//	加速をランダムに変更
-				random_deceleration = 1 << 3,	//	減速をランダムに変更
+				random_damping = 1 << 3,	//	減衰係数をランダムに変更
 			};
 
 			UINT state = 0;
@@ -173,8 +179,8 @@ namespace particle_system_item
 			DirectX::XMFLOAT3 acceleration_min; // 最低加速
 			DirectX::XMFLOAT3 acceleration_max; // 最大加速
 
-			DirectX::XMFLOAT3 deceleration_min; // 最低減速
-			DirectX::XMFLOAT3 deceleration_max; // 最大減速
+			float damping_min; // 最低減衰係数(1/s)
+			float damping_max; // 最大減衰係数(1/s)
 
 			DirectX::XMFLOAT3 gravity; // 重力
 		};
@@ -200,6 +206,7 @@ namespace particle_system_item
 			enum class state
 			{
 				contact_collision = 1 << 0,	//	登録されているsdfとの当たり判定に切り替える
+				kill_on_hit = 1 << 1,	//	ヒット時にパーティクルを死亡させる
 			};
 
 			UINT state = 0; // ステート

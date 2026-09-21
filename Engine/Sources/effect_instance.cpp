@@ -129,8 +129,8 @@ namespace
 			velocity_item.direction = velocity->direction;
 			velocity_item.acceleration_min = velocity->acceleration_min;
 			velocity_item.acceleration_max = velocity->acceleration_max;
-			velocity_item.deceleration_max = velocity->deceleration_max;
-			velocity_item.deceleration_min = velocity->deceleration_min;
+			velocity_item.damping_max = velocity->damping_max;
+			velocity_item.damping_min = velocity->damping_min;
 			velocity_item.gravity = { 0.0f, system_units::convert_m_to_unit(-9.8f), 0.0f };
 			velocity_item.gravity.x *= velocity->gravity_scale.x;
 			velocity_item.gravity.y *= velocity->gravity_scale.y;
@@ -156,8 +156,12 @@ namespace
 		{
 			particle_system_item::emitter::event event_item;
 
-			event_item.state = event->is_state(::particle::item::event::states::contact_collision)
-				? static_cast<UINT>(particle_system_item::emitter::event::state::contact_collision) : 0;
+			UINT event_state = 0;
+			if (event->is_state(::particle::item::event::states::contact_collision))
+				event_state |= static_cast<UINT>(particle_system_item::emitter::event::state::contact_collision);
+			if (event->is_state(::particle::item::event::states::kill_on_hit))
+				event_state |= static_cast<UINT>(particle_system_item::emitter::event::state::kill_on_hit);
+			event_item.state = event_state;
 			event_item.center = calculate_local_position(instance.get_event_position());
 			event_item.radius = event->radius;
 			event_item.target_emitter_id = emit_target_system_index;
@@ -490,7 +494,8 @@ effect_manager::effect_manager()
 								+ sizeof(particle_system_item::particle::trail_header)
 								+ sizeof(particle_system_item::particle::trail_body) * trail_body_max
 								+ sizeof(particle_system_item::particle::velocity)
-								+ sizeof(particle_system_item::particle::attract);
+								+ sizeof(particle_system_item::particle::attract)
+								+ sizeof(particle_system_item::particle::event);
 		particle_system = std::make_unique<compute_particle_system>(render_data::instance()->get_device().Get(),
 			emitter_max,
 			emitter_data_size,

@@ -591,7 +591,6 @@ void edit_particle_scene::generate_default_effect()
 					velocity->set_state(particle::item::velocity::states::random_direction, true);
 					velocity->set_state(particle::item::velocity::states::random_power, true);
 					velocity->set_state(particle::item::velocity::states::random_acceleration, true);
-					velocity->set_state(particle::item::velocity::states::random_deceleration, true);
 					velocity->direction = { 0.0f, 1.0f, 0.0f };
 					velocity->angle_range = { -DirectX::XM_PI / 4, +DirectX::XM_PI / 4 };
 					velocity->power_range = { 100.0f, 200.0f };
@@ -605,14 +604,6 @@ void edit_particle_scene::generate_default_effect()
 						velocity->acceleration_max.z = +10.0f;
 					}
 
-					{
-						velocity->deceleration_min.x = -10.0f;
-						velocity->deceleration_min.y = -10.0f;
-						velocity->deceleration_min.z = -10.0f;
-						velocity->deceleration_max.x = +10.0f;
-						velocity->deceleration_max.y = +10.0f;
-						velocity->deceleration_max.z = +10.0f;
-					}
 					velocity->gravity_scale = { 1.0f, 1.0f, 1.0f };
 				}
 			}

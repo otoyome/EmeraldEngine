@@ -132,14 +132,14 @@ struct em_veloctiy_item
 {
     uint state; //  ステート
     float3 direction; // 初期方向
-    float2 angle_range; // 初期角度範囲
-    float2 power_range; // 初速威力範囲
+    float2 angle_range; // 発射角度範囲
+    float2 power_range; // 発射威力範囲
 
     float3 acceleration_min; // 最低加速
     float3 acceleration_max; // 最大加速
 
-    float3 deceleration_min; // 最低減速
-    float3 deceleration_max; // 最大減速
+    float damping_min; // 最低減衰係数(1/s)
+    float damping_max; // 最大減衰係数(1/s)
 
     float3 gravity; // 重力
 };
@@ -149,9 +149,9 @@ static const uint emitter_active_veloctiy_item_bit_flag = 1 << 3;
 static const uint emitter_veloctiy_item_state_random_direction = 1 << 0;
 static const uint emitter_veloctiy_item_state_random_power = 1 << 1;
 static const uint emitter_veloctiy_item_state_random_acceleration = 1 << 2;
-static const uint emitter_veloctiy_item_state_random_deceleration = 1 << 3;
+static const uint emitter_veloctiy_item_state_random_damping = 1 << 3;
 
-//  加速アイテム読み込み
+//  速度アイテム読み込み
 void stream_veloctiy_item(uint rw, inout uint offset, inout em_veloctiy_item value)
 {
     em_stream_ptr(rw, offset, value.state);
@@ -162,8 +162,8 @@ void stream_veloctiy_item(uint rw, inout uint offset, inout em_veloctiy_item val
     em_stream_ptr(rw, offset, value.acceleration_min);
     em_stream_ptr(rw, offset, value.acceleration_max);
 
-    em_stream_ptr(rw, offset, value.deceleration_min);
-    em_stream_ptr(rw, offset, value.deceleration_max);
+    em_stream_ptr(rw, offset, value.damping_min);
+    em_stream_ptr(rw, offset, value.damping_max);
 
     em_stream_ptr(rw, offset, value.gravity);
 }
@@ -207,6 +207,7 @@ struct em_event_item
 static const uint emitter_active_event_item_bit_flag = 1 << 5;
 
 static const uint emitter_event_item_state_contact_collision = 1 << 0;
+static const uint emitter_event_item_state_kill_on_hit = 1 << 1;
 
 void stream_event_item(uint rw, inout uint offset, inout em_event_item value)
 {

@@ -821,9 +821,9 @@ bool editor_items::edit_effect_particle(std::shared_ptr<context>& context, effec
 					edit_flag = true;
 				if (ImGui::DragFloat3("acceleration_max", &velocity->acceleration_max.x, 0.01f, 0.01f, 1000.0f))
 					edit_flag = true;
-				if (ImGui::DragFloat3("deceleration_min", &velocity->deceleration_min.x, 0.01f, 0.01f, 1000.0f))
+				if (ImGui::DragFloat("damping_min", &velocity->damping_min, 0.01f, 0.0f, 100000.0f))
 					edit_flag = true;
-				if (ImGui::DragFloat3("deceleration_max", &velocity->deceleration_max.x, 0.01f, 0.01f, 1000.0f))
+				if (ImGui::DragFloat("damping_max", &velocity->damping_max, 0.01f, 0.0f, 100000.0f))
 					edit_flag = true;
 				if (ImGui::DragFloat3("gravity_scale", &velocity->gravity_scale.x, 0.01f, 0.0f, 1000.0f))
 					edit_flag = true;
@@ -920,6 +920,13 @@ bool editor_items::edit_effect_particle(std::shared_ptr<context>& context, effec
 				if (ImGui::Checkbox("use sdf collision", &use_sdf_collision))
 				{
 					event->set_state(particle::item::event::states::contact_collision, use_sdf_collision);
+					edit_flag = true;
+				}
+
+				bool kill_on_hit = event->is_state(particle::item::event::states::kill_on_hit);
+				if (ImGui::Checkbox("kill on hit", &kill_on_hit))
+				{
+					event->set_state(particle::item::event::states::kill_on_hit, kill_on_hit);
 					edit_flag = true;
 				}
 			}

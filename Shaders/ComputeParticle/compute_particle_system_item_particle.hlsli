@@ -96,4 +96,16 @@ void stream_attract_item(uint rw, inout uint offset, inout pt_attract_item attra
     pt_stream_ptr(rw, offset, attract.velocity);
 }
 
+//////////////////////////////////////////////////////////////////////////
+//  イベントアイテム
+struct pt_event_item
+{
+    float previous_distance;
+};
+
+void stream_event_item(uint rw, inout uint offset, inout pt_event_item event)
+{
+    pt_stream_ptr(rw, offset, event.previous_distance);
+}
+
 #endif  //  __COMPUTE_PARTICLES_SYSTEM_ITEM_PARTICLE_HLSLI__
