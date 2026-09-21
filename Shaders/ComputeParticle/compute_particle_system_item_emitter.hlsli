@@ -208,6 +208,7 @@ static const uint emitter_active_event_item_bit_flag = 1 << 5;
 
 static const uint emitter_event_item_state_contact_collision = 1 << 0;
 static const uint emitter_event_item_state_kill_on_hit = 1 << 1;
+static const uint emitter_event_item_state_sweep_collision = 1 << 2;
 
 void stream_event_item(uint rw, inout uint offset, inout em_event_item value)
 {

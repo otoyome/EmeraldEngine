@@ -71,7 +71,7 @@ namespace particle_system_item
 		//	イベントアイテム
 		struct event
 		{
-			float previous_distance;
+			DirectX::XMFLOAT3 previous_position;
 		};
 	}
 
@@ -207,6 +207,7 @@ namespace particle_system_item
 			{
 				contact_collision = 1 << 0,	//	登録されているsdfとの当たり判定に切り替える
 				kill_on_hit = 1 << 1,	//	ヒット時にパーティクルを死亡させる
+				sweep_collision = 1 << 2,	//	前フレームとの間をスイープ判定する
 			};
 
 			UINT state = 0; // ステート

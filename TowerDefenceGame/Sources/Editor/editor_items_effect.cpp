@@ -929,6 +929,13 @@ bool editor_items::edit_effect_particle(std::shared_ptr<context>& context, effec
 					event->set_state(particle::item::event::states::kill_on_hit, kill_on_hit);
 					edit_flag = true;
 				}
+
+				bool sweep_collision = event->is_state(particle::item::event::states::sweep_collision);
+				if (ImGui::Checkbox("sweep collision", &sweep_collision))
+				{
+					event->set_state(particle::item::event::states::sweep_collision, sweep_collision);
+					edit_flag = true;
+				}
 			}
 			ImGui::TreePop();
 		}

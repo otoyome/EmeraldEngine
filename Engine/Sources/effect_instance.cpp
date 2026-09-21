@@ -161,6 +161,8 @@ namespace
 				event_state |= static_cast<UINT>(particle_system_item::emitter::event::state::contact_collision);
 			if (event->is_state(::particle::item::event::states::kill_on_hit))
 				event_state |= static_cast<UINT>(particle_system_item::emitter::event::state::kill_on_hit);
+			if (event->is_state(::particle::item::event::states::sweep_collision))
+				event_state |= static_cast<UINT>(particle_system_item::emitter::event::state::sweep_collision);
 			event_item.state = event_state;
 			event_item.center = calculate_local_position(instance.get_event_position());
 			event_item.radius = event->radius;

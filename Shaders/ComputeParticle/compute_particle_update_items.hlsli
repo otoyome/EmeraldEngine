@@ -263,6 +263,8 @@ void update_attract_item(inout emitter_context em_context, inout pt_common_item 
 //  @remainder  今の所ヒット位置イベントのみ取り扱っているが、寿命切れなどでエフェクト発生などしたり、色々考えられる。
 void update_event_item(inout emitter_context em_context, inout pt_common_item pt_common, inout uint emitter_binary_offset, inout uint particle_binary_offset)
 {
+    static const uint event_item_sweep_step_count = 4;
+
     if (has_flag(em_context.active_items, emitter_active_event_item_bit_flag))
     {
         em_event_item em_event;
@@ -274,14 +276,8 @@ void update_event_item(inout emitter_context em_context, inout pt_common_item pt
 
         if (has_flag(pt_common.state, particle_binary_state_bit_spawn_frame))
         {
-            if (has_flag(em_event.state, emitter_event_item_state_contact_collision))
-            {
-                //	SDF距離の基準値を保存
-                float sdf_distance;
-                uint sdf_id;
-                pt_event.previous_distance = sample_cubic_sdf_nearest(cubic_sdf_header_buffer, cubic_sdf_voxel_buffer, pt_common.translation, uint2(0, 0), sdf_distance, sdf_id)
-                    ? sdf_distance : em_event.radius;
-            }
+            //	最初のフレームは現在位置を基準として保存
+            pt_event.previous_position = pt_common.translation;
         }
         else if (em_context.elapsed_time > 0.0f &&   //  動いているとき以外は処理しない
             !has_flag(pt_common.state, particle_binary_state_bit_event_fired))
@@ -291,17 +287,30 @@ void update_event_item(inout emitter_context em_context, inout pt_common_item pt
             //	sdfとの当たり判定
             if (has_flag(em_event.state, emitter_event_item_state_contact_collision))
             {
-                float sdf_distance;
-                uint sdf_id;
-                if (!sample_cubic_sdf_nearest(cubic_sdf_header_buffer, cubic_sdf_voxel_buffer, pt_common.translation, uint2(0, 0), sdf_distance, sdf_id))
-                    sdf_distance = em_event.radius;
+                //	sweep有効時は前フレーム位置との間を数点サンプリングして通過を検出
+                uint sweep_steps = has_flag(em_event.state, emitter_event_item_state_sweep_collision) ? event_item_sweep_step_count : 1;
 
-                //	SDFの符号反転を検出して通過判定
-                if (sign(pt_event.previous_distance) != sign(sdf_distance))
+                float previous_sample_distance;
+                uint previous_sample_id;
+                if (!sample_cubic_sdf_nearest(cubic_sdf_header_buffer, cubic_sdf_voxel_buffer, pt_event.previous_position, uint2(0, 0), previous_sample_distance, previous_sample_id))
+                    previous_sample_distance = em_event.radius;
+
+                [loop] for (uint step = 1; step <= sweep_steps; ++step)
                 {
-                    hit = true;
+                    float3 sample_position = lerp(pt_event.previous_position, pt_common.translation, (float) step / (float) sweep_steps);
+
+                    float sample_distance;
+                    uint sample_id;
+                    if (!sample_cubic_sdf_nearest(cubic_sdf_header_buffer, cubic_sdf_voxel_buffer, sample_position, uint2(0, 0), sample_distance, sample_id))
+                        sample_distance = em_event.radius;
+
+                    if (sign(previous_sample_distance) != sign(sample_distance))
+                    {
+                        hit = true;
+                        break;
+                    }
+                    previous_sample_distance = sample_distance;
                 }
-                pt_event.previous_distance = sdf_distance;
             }
             else
             {
@@ -330,6 +339,8 @@ void update_event_item(inout emitter_context em_context, inout pt_common_item pt
                     pt_common.life_time = pt_common.life_time_max;
                 }
             }
+
+            pt_event.previous_position = pt_common.translation;
         }
 
         stream_event_item(rw_write, write_offset, pt_event);

@@ -191,11 +191,11 @@ minigame_scene::minigame_scene()
 	//	エフェクト類生成
 	{
 		effect_resource_ptr resource;
-		//if (effect_resource_manager::instance()->load(resource, "Assets/Resources/Effects/Bubble.eme"))
-		//{
-		//	bubble_effect = std::make_shared<effect_instance>(resource);
-		//	effect_manager::instance()->register_instance(bubble_effect);
-		//}
+		if (effect_resource_manager::instance()->load(resource, "Assets/Resources/Effects/Bubble.eme"))
+		{
+			bubble_effect = std::make_shared<effect_instance>(resource);
+			effect_manager::instance()->register_instance(bubble_effect);
+		}
 		if (effect_resource_manager::instance()->load(resource, "Assets/Resources/Effects/Rain.eme"))
 		{
 			rain_effect = std::make_shared<effect_instance>(resource);

@@ -100,12 +100,12 @@ void stream_attract_item(uint rw, inout uint offset, inout pt_attract_item attra
 //  イベントアイテム
 struct pt_event_item
 {
-    float previous_distance;
+    float3 previous_position;
 };
 
 void stream_event_item(uint rw, inout uint offset, inout pt_event_item event)
 {
-    pt_stream_ptr(rw, offset, event.previous_distance);
+    pt_stream_ptr(rw, offset, event.previous_position);
 }
 
 #endif  //  __COMPUTE_PARTICLES_SYSTEM_ITEM_PARTICLE_HLSLI__
