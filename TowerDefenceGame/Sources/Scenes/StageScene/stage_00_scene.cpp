@@ -8,6 +8,7 @@
 #include "object/light_object.h"
 #include "object/model_object.h"
 #include "object/gameobjects/stage_object.h"
+#include "effect_instance.h"
 
 stage_00_scene::stage_00_scene()
 : scene_base()
@@ -82,6 +83,7 @@ bool stage_00_scene::initialize_core()
 					* DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&stage->get_rotation().convert_quaternion()))
 					* DirectX::XMMatrixTranslationFromVector(DirectX::XMLoadFloat3(&stage->get_position()));
 		generate_model_collision(model->get_model_instance()->get_resource(), transform, separate_level);
+		generate_model_sdf(model->get_model_instance()->get_resource());
 
 		register_object(model);
 		register_object(stage);
@@ -92,6 +94,16 @@ bool stage_00_scene::initialize_core()
 
 bool stage_00_scene::uninitialize_core()
 {
+	if (!sdf_ids.empty() && effect_manager::is_valid())
+	{
+		auto device_context = render_data::instance()->get_immediate_context();
+		for (auto sdf_id : sdf_ids)
+		{
+			effect_manager::instance()->remove_cubic_sdf(device_context.Get(), sdf_id);
+		}
+		sdf_ids.clear();
+	}
+
 	return true;
 }
 
@@ -136,5 +148,30 @@ void stage_00_scene::generate_model_collision(model_resource_ptr resource, Direc
 			register_object(collision);
 		}
 
+	}
+}
+
+void stage_00_scene::generate_model_sdf(model_resource_ptr resource)
+{
+	std::string file_path = std::string(resource->get_file_path());
+	std::filesystem::path sdf_path(file_path);
+
+	auto device_context = render_data::instance()->get_immediate_context();
+	for (size_t mesh_index = 0; mesh_index < resource->get_meshes().size(); ++mesh_index)
+	{
+		//	シリアライズ済みファイルがあるか確認
+		std::string extension = std::to_string(mesh_index) + "." + std::string(collision::cubic_sdf::extension);
+		sdf_path = file_path;
+		sdf_path.replace_extension(extension);
+		if (!std::filesystem::exists(sdf_path))
+			continue;
+
+		collision::cubic_sdf sdf;
+		if (!sdf.deserialize(sdf_path.string()))
+			continue;
+
+		uint32_t sdf_id = effect_manager::instance()->add_cubic_sdf(device_context.Get(), sdf);
+		if (sdf_id != 0xFFFFFFFF)
+			sdf_ids.push_back(sdf_id);
 	}
 }

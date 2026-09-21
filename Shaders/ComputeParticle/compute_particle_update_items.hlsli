@@ -207,8 +207,8 @@ void update_velocity_item(inout emitter_context em_context, inout pt_common_item
                 if (sample_cubic_sdf_nearest(cubic_sdf_header_buffer, cubic_sdf_voxel_buffer, pt_common.translation, uint2(0, 0), sdf_distance, sdf_id)
                     && sdf_distance <= sdf_hit_threshold)
                 {
-                    //  “K“–‚É‹t•ûŒü‚É”½ŽË
-                    pt_velocity.velocity = pt_velocity.velocity * -0.5f;
+                    //  Žõ–½Ø‚ê‚ÅŽ€–S
+                    pt_common.life_time = pt_common.life_time_max;
                 }
 
                 //  ˆÚ“®
@@ -277,8 +277,8 @@ void update_event_item(inout emitter_context em_context, inout pt_common_item pt
 {
     if (has_flag(em_context.active_items, emitter_active_event_item_bit_flag))
     {
-        em_event_item emit;
-        stream_event_item(rw_read_only, emitter_binary_offset, emit);
+        em_event_item em_event;
+        stream_event_item(rw_read_only, emitter_binary_offset, em_event);
 
         //  ”ÍˆÍ“à‚©‚Ç‚¤‚©
         if (em_context.elapsed_time > 0.0f &&
@@ -287,13 +287,13 @@ void update_event_item(inout emitter_context em_context, inout pt_common_item pt
         {
             bool hit = false;
 
-            if (has_flag(emit.state, emitter_event_item_state_contact_collision))
+            if (has_flag(em_event.state, emitter_event_item_state_contact_collision))
             {
                 //	sdf‚Æ‚Ì“–‚½‚è”»’è
                 float sdf_distance;
                 uint sdf_id;
                 if (sample_cubic_sdf_nearest(cubic_sdf_header_buffer, cubic_sdf_voxel_buffer, pt_common.translation, uint2(0, 0), sdf_distance, sdf_id)
-                    && sdf_distance <= emit.radius)
+                    && sdf_distance <= em_event.radius)
                 {
                     hit = true;
                 }
@@ -301,8 +301,8 @@ void update_event_item(inout emitter_context em_context, inout pt_common_item pt
             else
             {
                 //  ”¼Œa”»’è
-                float dist = length(emit.center - pt_common.translation);
-                if (dist < emit.radius)
+                float dist = length(em_event.center - pt_common.translation);
+                if (dist < em_event.radius)
                 {
                     hit = true;
                 }
@@ -312,7 +312,7 @@ void update_event_item(inout emitter_context em_context, inout pt_common_item pt
             {
                 //  ƒCƒxƒ“ƒgƒoƒbƒtƒ@‚É“o˜^
                 particle_event ev;
-                ev.target_emitter_id = emit.target_emitter_id;
+                ev.target_emitter_id = em_event.target_emitter_id;
                 ev.position = pt_common.translation;
                 particle_event_buffer.Append(ev);
 

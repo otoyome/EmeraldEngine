@@ -74,69 +74,6 @@ minigame_scene::minigame_scene()
 		register_object(main_camera);
 	}
 
-	//	演出オブジェクト生成
-	std::shared_ptr<cinematics_object> main_cinematics;
-	{
-		main_cinematics = std::make_shared<cinematics_object>("演出管理オブジェクト", main_camera);
-		register_object(main_cinematics);
-	}
-
-	//	ルンバモデル生成
-	{
-		//	モデルオブジェクト生成
-		auto roomba_model = std::make_shared<model_object>("ルンバ モデル", "Assets/Resources/Models/Roomba/Roomba.emo");
-		register_object(roomba_model);
-
-		//	ルンバオブジェクト生成
-		player_object = std::make_shared<roomba_object>("プレイヤー 制御", roomba_model, "player");
-		register_object(player_object);
-		player_object->set_position(system_units::convert_m_to_unit({0, 0, -60}));
-		player_object->set_rotation({0.0f, 0.0f, 0.0f});
-
-		//	ルンバ制御オブジェクト生成
-		auto roomba_controller = std::make_shared<roomba_controller_object>("プレイヤー 入力", player_object, main_camera);
-		register_object(roomba_controller);
-
-		//	ルンバカメラ制御オブジェクト
-		auto camera_controller = std::make_shared<roomba_camera_controller_object>("プレイヤー カメラ", roomba_controller, main_camera);
-		register_object(camera_controller);
-	}
-
-	//	UIオブジェクト設置
-	{
-		test_heat = std::make_shared<ui_object>("熱バー");
-		test_heat->set_screen_rect({ 40, 40, 180, 50 });
-		test_heat->set_color({ 1, 0, 0, 1 });
-		test_heat->set_sort_order(0);
-		register_object(test_heat);
-	}
-	{
-		test_wet = std::make_shared<ui_object>("濡れバー");
-		test_wet->set_screen_rect({ 40, 100, 180, 50 });
-		test_wet->set_color({ 0, 0, 1, 1 });
-		test_wet->set_sort_order(0);
-		register_object(test_wet);
-	}
-	{
-		font_data_ptr speed_font;
-		font_data_manager::instance()->load_from_file(speed_font, "Assets/Resources/Textures/fonts/MS Gothic/MS Gothic.fnt");
-		test_speed = std::make_shared<ui_text>("速度", speed_font);
-		test_speed->set_screen_rect({ 1000, 500, 180, 180 });
-		test_speed->set_color({ 0, 0, 1, 1 });
-		test_speed->set_sort_order(0);
-		register_object(test_speed);
-	}
-
-	//	星粒生成
-	{
-		effect_resource_ptr resource;
-		if (effect_resource_manager::instance()->load(resource, "Assets/Resources/Effects/Bubble.eme"))
-		{
-			bubble_effect = std::make_shared<effect_instance>(resource);
-			effect_manager::instance()->register_instance(bubble_effect);
-		}
-	}
-
 	//	ポストプロセス生成
 	if (pipeline_state_manager* instance = pipeline_state_manager::instance())
 	{
@@ -204,6 +141,67 @@ minigame_scene::minigame_scene()
 			post_process_volume->get_volume()->register_postprocess_materials(post_process_material);
 		}
 	}
+
+	//	ルンバモデル生成
+	{
+		//	モデルオブジェクト生成
+		auto roomba_model = std::make_shared<model_object>("ルンバ モデル", "Assets/Resources/Models/Roomba/Roomba.emo");
+		register_object(roomba_model);
+
+		//	ルンバオブジェクト生成
+		player_object = std::make_shared<roomba_object>("プレイヤー 制御", roomba_model, "player");
+		register_object(player_object);
+		player_object->set_position(system_units::convert_m_to_unit({0, 0, -60}));
+		player_object->set_rotation({0.0f, 0.0f, 0.0f});
+
+		//	ルンバ制御オブジェクト生成
+		auto roomba_controller = std::make_shared<roomba_controller_object>("プレイヤー 入力", player_object, main_camera);
+		register_object(roomba_controller);
+
+		//	ルンバカメラ制御オブジェクト
+		auto camera_controller = std::make_shared<roomba_camera_controller_object>("プレイヤー カメラ", roomba_controller, main_camera);
+		register_object(camera_controller);
+	}
+
+	//	UIオブジェクト設置
+	{
+		test_heat = std::make_shared<ui_object>("熱バー");
+		test_heat->set_screen_rect({ 40, 40, 180, 50 });
+		test_heat->set_color({ 1, 0, 0, 1 });
+		test_heat->set_sort_order(0);
+		register_object(test_heat);
+	}
+	{
+		test_wet = std::make_shared<ui_object>("濡れバー");
+		test_wet->set_screen_rect({ 40, 100, 180, 50 });
+		test_wet->set_color({ 0, 0, 1, 1 });
+		test_wet->set_sort_order(0);
+		register_object(test_wet);
+	}
+	{
+		font_data_ptr speed_font;
+		font_data_manager::instance()->load_from_file(speed_font, "Assets/Resources/Textures/fonts/MS Gothic/MS Gothic.fnt");
+		test_speed = std::make_shared<ui_text>("速度", speed_font);
+		test_speed->set_screen_rect({ 1000, 500, 180, 180 });
+		test_speed->set_color({ 0, 0, 1, 1 });
+		test_speed->set_sort_order(0);
+		register_object(test_speed);
+	}
+
+	//	エフェクト類生成
+	{
+		effect_resource_ptr resource;
+		if (effect_resource_manager::instance()->load(resource, "Assets/Resources/Effects/Bubble.eme"))
+		{
+			bubble_effect = std::make_shared<effect_instance>(resource);
+			effect_manager::instance()->register_instance(bubble_effect);
+		}
+		if (effect_resource_manager::instance()->load(resource, "Assets/Resources/Effects/Rain.eme"))
+		{
+			rain_effect = std::make_shared<effect_instance>(resource);
+			effect_manager::instance()->register_instance(rain_effect);
+		}
+	}
 }
 
 minigame_scene::~minigame_scene()
@@ -220,6 +218,8 @@ bool minigame_scene::uninitialize_core()
 	player_object = nullptr;
 	if (bubble_effect)
 		effect_manager::instance()->unregister_instance(bubble_effect);
+	if (rain_effect)
+		effect_manager::instance()->unregister_instance(rain_effect);
 	return true;
 }
 

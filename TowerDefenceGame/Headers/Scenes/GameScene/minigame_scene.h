@@ -38,4 +38,5 @@ private:
 	std::shared_ptr<ui_text> test_speed;
 
 	std::shared_ptr<effect_instance> bubble_effect;
+	std::shared_ptr<effect_instance> rain_effect;
 };
