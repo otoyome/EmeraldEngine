@@ -50,6 +50,20 @@ cbuffer CINEMATIC_POST_PROCESS_CONSTANT_BUFFER
 	float  ds_dummy0;
 	float4 sd0;	//	x:amplitude y:angular_frequency z:posterize_count w:amount
 	float4 sd1;
+
+	//	ヴィネット
+	float  vg_intensity;
+	float  vg_radius;
+	float  vg_softness;
+	float  vg_dummy0;
+	float3 vg_color;
+	float  vg_dummy1;
+
+	//	カゲロウ
+	float  hz_intensity;
+	float  hz_scale;
+	float  hz_speed;
+	float  hz_dummy0;
 };
 
 Texture2D text_texture;
@@ -78,6 +92,14 @@ float4 main(VS_OUT pin) : SV_TARGET
 		float2 d = uv - 0.5f;
 		float r = length(d);
 		uv += d * sin(r * ds_power - time_data.x * ds_speed * 6.28318f) * 0.02f * ds_amount;
+	}
+
+	//	陽炎
+	if (hz_intensity > 0.0f)
+	{
+		float2 haze_seed = uv * hz_scale + time_data.x * hz_speed;
+		float2 haze_offset = float2(sin(haze_seed.y * 6.28318f), cos(haze_seed.x * 6.28318f));
+		uv += haze_offset * 0.01f * hz_intensity;
 	}
 
 	float4 color = scene_color_map.Sample(scene_map_sampler, uv);
@@ -159,5 +181,13 @@ float4 main(VS_OUT pin) : SV_TARGET
 		color.rgb = lerp(color.rgb, cl_color, smooth_alpha);
 	}
 
+	//	周辺減光
+	if (vg_intensity > 0.0f)
+	{
+		float2 centered_uv = pin.texcoord - 0.5f;
+		float vignette_distance = length(centered_uv) * 2.0f;
+		float vignette_factor = smoothstep(vg_radius - vg_softness, vg_radius, vignette_distance);
+		color.rgb = lerp(color.rgb, vg_color, saturate(vignette_factor * vg_intensity));
+	}
 	return color;
 }

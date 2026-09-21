@@ -263,8 +263,6 @@ void update_attract_item(inout emitter_context em_context, inout pt_common_item 
 //  @remainder  今の所ヒット位置イベントのみ取り扱っているが、寿命切れなどでエフェクト発生などしたり、色々考えられる。
 void update_event_item(inout emitter_context em_context, inout pt_common_item pt_common, inout uint emitter_binary_offset, inout uint particle_binary_offset)
 {
-    static const uint event_item_sweep_step_count = 4;
-
     if (has_flag(em_context.active_items, emitter_active_event_item_bit_flag))
     {
         em_event_item em_event;
@@ -285,15 +283,16 @@ void update_event_item(inout emitter_context em_context, inout pt_common_item pt
             bool hit = false;
 
             //	sdfとの当たり判定
+            float3 hit_position = pt_common.translation;
             if (has_flag(em_event.state, emitter_event_item_state_contact_collision))
             {
                 //	sweep有効時は前フレーム位置との間を数点サンプリングして通過を検出
+                static const uint event_item_sweep_step_count = 4;    //  スイープカウント
                 uint sweep_steps = has_flag(em_event.state, emitter_event_item_state_sweep_collision) ? event_item_sweep_step_count : 1;
 
                 float previous_sample_distance;
                 uint previous_sample_id;
-                if (!sample_cubic_sdf_nearest(cubic_sdf_header_buffer, cubic_sdf_voxel_buffer, pt_event.previous_position, uint2(0, 0), previous_sample_distance, previous_sample_id))
-                    previous_sample_distance = em_event.radius;
+                bool previous_sample_valid = sample_cubic_sdf_nearest(cubic_sdf_header_buffer, cubic_sdf_voxel_buffer, pt_event.previous_position, uint2(0, 0), previous_sample_distance, previous_sample_id);
 
                 [loop] for (uint step = 1; step <= sweep_steps; ++step)
                 {
@@ -301,15 +300,22 @@ void update_event_item(inout emitter_context em_context, inout pt_common_item pt
 
                     float sample_distance;
                     uint sample_id;
-                    if (!sample_cubic_sdf_nearest(cubic_sdf_header_buffer, cubic_sdf_voxel_buffer, sample_position, uint2(0, 0), sample_distance, sample_id))
-                        sample_distance = em_event.radius;
+                    bool sample_valid = sample_cubic_sdf_nearest(cubic_sdf_header_buffer, cubic_sdf_voxel_buffer, sample_position, uint2(0, 0), sample_distance, sample_id);
 
-                    if (sign(previous_sample_distance) != sign(sample_distance))
+                    //	両方がSDF範囲内の時だけ通過とみなす
+                    if (previous_sample_valid && sample_valid && sign(previous_sample_distance) != sign(sample_distance))
                     {
+                        //	距離を使って交差位置を線形補間
+                        float3 previous_sample_position = lerp(pt_event.previous_position, pt_common.translation, (float) (step - 1) / (float) sweep_steps);
+                        float denom = previous_sample_distance - sample_distance;
+                        float t = abs(denom) > 1.0e-6f ? saturate(previous_sample_distance / denom) : 0.5f;
+                        hit_position = lerp(previous_sample_position, sample_position, t);
+
                         hit = true;
                         break;
                     }
                     previous_sample_distance = sample_distance;
+                    previous_sample_valid = sample_valid;
                 }
             }
             else
@@ -318,6 +324,7 @@ void update_event_item(inout emitter_context em_context, inout pt_common_item pt
                 float dist = length(em_event.center - pt_common.translation);
                 if (dist < em_event.radius)
                 {
+                    hit_position = pt_common.translation;
                     hit = true;
                 }
             }
@@ -327,7 +334,7 @@ void update_event_item(inout emitter_context em_context, inout pt_common_item pt
                 //  イベントバッファに登録
                 particle_event ev;
                 ev.target_emitter_id = em_event.target_emitter_id;
-                ev.position = pt_common.translation;
+                ev.position = hit_position;
                 particle_event_buffer.Append(ev);
 
                 //  イベント通知済み判定

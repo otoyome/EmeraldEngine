@@ -391,7 +391,7 @@ void roomba_object::add_impulse(DirectX::XMFLOAT3 delta_velocity)
 
 float roomba_object::get_current_accelaration_force() const
 {
-	if (action_data.move.x == 0 && action_data.move.y == 0)
+	if (action_data.move.x == 0 && action_data.move.z == 0)
 		return 0.0f;
 
 	return get_accelaration_force(action_data.dash ? move_mode::dash : move_mode::walk);

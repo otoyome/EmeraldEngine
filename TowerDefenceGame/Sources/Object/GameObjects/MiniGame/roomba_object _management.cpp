@@ -274,8 +274,8 @@ void roomba_object::update_values(float elapsed_time)
 	float elapsed_frame = system_units::convert_sec_to_fps(elapsed_time);
 
 	//	‰Á‘¬‚É‚æ‚é‰Á”M
-	float accelaration = (action_data.move.x != 0 || action_data.move.y != 0) * 0.2f
-					   + action_data.dash * 0.8f;
+	float moved = action_data.move.x != 0 || action_data.move.z != 0;
+	float accelaration = moved * 0.2f + (moved * action_data.dash) * 0.8f;
 	float accelaration_rate = math::lerp(-0.5f, 1.0f, accelaration);
 
 	//	…•ª—Ê‚É‚æ‚é•ú”M

@@ -140,6 +140,7 @@ void post_process_renderer_base::render(renderer_context& renderer_context)
 			context.scene_depth_texture = render_targets->scene_depth_stencil_texture;
 
 			pipeline_state->begin(context);
+			material->update_parameters(context);
 			pipeline_state->update_parameters(context, *material, nullptr);
 			draw(context, pipeline_state, 4);
 			pipeline_state->end(context);

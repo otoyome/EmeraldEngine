@@ -32,25 +32,25 @@ namespace
 			"被写界深度前ポストプロセスマテリアル",
 		},
 		{
-			"before_tonemapping_color_filter",
+			"after_dof_color_filter",
 			"Shaders/FullscreenQuad/fullscreen_quad_vs.hlsl",
 			"Shaders/Postprocess/color_filter_after_dof_ps.hlsl",
 			"被写界深度後ポストプロセスマテリアル",
 		},
 		{
-			"before_tonemapping_color_filter",
+			"after_dof_translucency_color_filter",
 			"Shaders/FullscreenQuad/fullscreen_quad_vs.hlsl",
 			"Shaders/Postprocess/color_filter_after_dof_translucency_ps.hlsl",
 			"被写界深度後半透明描画ポストプロセスマテリアル",
 		},
 		{
-			"after_tonemapping_color_filter",
+			"before_bloom_color_filter",
 			"Shaders/FullscreenQuad/fullscreen_quad_vs.hlsl",
 			"Shaders/Postprocess/color_filter_before_bloom_ps.hlsl",
 			"ブルーム前ポストプロセスマテリアル",
 		},
 		{
-			"after_tonemapping_color_filter",
+			"after_tone_mapping_color_filter",
 			"Shaders/FullscreenQuad/fullscreen_quad_vs.hlsl",
 			"Shaders/Postprocess/color_filter_after_tone_mapping_ps.hlsl",
 			"トーンマッピング後ポストプロセスマテリアル",
@@ -139,6 +139,10 @@ minigame_scene::minigame_scene()
 
 			//	マテリアル登録
 			post_process_volume->get_volume()->register_postprocess_materials(post_process_material);
+
+			//	
+			if (index == 1)
+				heat_vignette_material = post_process_material;
 		}
 	}
 
@@ -327,6 +331,38 @@ void minigame_scene::update_core(float elapsed_time)
 			char text[64];
 			sprintf_s(text, "速度: %.1f km/h", speed_km_h);
 			test_speed->set_texts(text);
+		}
+
+		if (heat_vignette_material)
+		{
+			//	熱量に応じて赤く
+			float heat_rate = math::saturate(player_object->get_heat_rate() * 2.0f - 1.0f);
+			heat_vignette_material->set_float("vg_intensity", heat_rate);
+			heat_vignette_material->set_float("vg_radius", 0.4f);
+			heat_vignette_material->set_float("vg_softness", 0.6f);
+			heat_vignette_material->set_float3("vg_color", {1.0f, 0.0f, 0.0f});
+
+			//	陽炎もだす
+			heat_vignette_material->set_float("hz_intensity", heat_rate);
+			heat_vignette_material->set_float("hz_scale", 20.0f);
+			heat_vignette_material->set_float("hz_speed", 1.5f);
+
+			//	速度に応じて集中線を出す
+			{
+				DirectX::XMVECTOR LineVelocity = DirectX::XMLoadFloat3(&player_object->get_velocity());
+				float line_speed = DirectX::XMVectorGetX(DirectX::XMVector3Length(LineVelocity));
+				float line_max_speed = player_object->get_max_speed(roomba_object::move_mode::dash);
+				float line_speed_rate = math::saturate(line_speed / line_max_speed);
+				line_speed_rate = math::saturate(line_speed_rate * 2.0f - 1.0f);
+
+				heat_vignette_material->set_float("cl_intensity", line_speed_rate);
+				heat_vignette_material->set_float("cl_use_animation", 1.0f);
+				heat_vignette_material->set_float("cl_animation_speed", 20.0f);
+				heat_vignette_material->set_float("cl_pattern_seed", 12.0f);
+				heat_vignette_material->set_float("cl_noise_scale", 120.0f);
+				heat_vignette_material->set_float3("cl_color", {1.0f, 1.0f, 1.0f});
+				heat_vignette_material->set_float2("cl_edge", {0.5f, 0.9f});
+			}
 		}
 	}
 }
