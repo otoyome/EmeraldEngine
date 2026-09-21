@@ -5,6 +5,7 @@
 #include "Scenes/StageScene/stage_00_scene.h"
 
 #include "object/gameobjects/minigame/roomba_object.h"
+#include "object/camera_object.h"
 #include "object/gameobjects/ui/ui_object.h"
 
 #include "effect_instance.h"
@@ -33,6 +34,7 @@ protected:
 
 private:
 	std::shared_ptr<roomba_object> player_object;
+	std::shared_ptr<camera_object> main_camera;
 	std::shared_ptr<ui_object> test_wet;
 	std::shared_ptr<ui_object> test_heat;
 	std::shared_ptr<ui_text> test_speed;

@@ -68,7 +68,8 @@ cbuffer CINEMATIC_POST_PROCESS_CONSTANT_BUFFER
 	//	…“H
 	float  wd_intensity;
 	float  wd_scale;
-	float2 wd_dummy0;
+	float  wd_wind_x;
+	float  wd_wind_dummy0;
 };
 
 Texture2D text_texture;
@@ -97,6 +98,14 @@ float rain_hash1(float t)
 float rain_saw(float b, float t)
 {
 	return smoothstep(0.0f, b, t) * smoothstep(1.0f, b, t);
+}
+
+//	‰J‚Ì—‰º•ûŒü‚ğ”CˆÓŠp“x‚¾‚¯‰ñ“]‚³‚¹‚é
+float2 rain_rotate(float2 v, float angle)
+{
+	float s = sin(angle);
+	float c = cos(angle);
+	return float2(v.x * c - v.y * s, v.x * s + v.y * c);
 }
 
 //	–{—¬ + ”ö‚ğˆø‚­‹OÕ
@@ -301,6 +310,14 @@ float4 main(VS_OUT pin) : SV_TARGET
 		float rain_zoom = -cos(time_data.x * 0.2f);
 		rain_uv *= (0.7f + rain_zoom * 0.3f) * wd_scale;
 
+		//	‰J—±ŠÖ”‚Íy²ãŒü‚«‚ª³‚ÌÀ•WŒniGLSL—R—ˆj‚ğ‘O’ñ‚Æ‚·‚é‚½‚ß”½“]‚³‚¹‚é
+		rain_uv.y = -rain_uv.y;
+
+		//	‰¡•ûŒü‚Ì‘¬“x‚Å—‰º•ûŒü©‘Ì‚ğŒX‚¯‚éiis•ûŒü‚Æ‹tŒü‚«j
+		float2 fall_dir = normalize(float2(wd_wind_x, 1.0f));
+		float fall_angle = atan2(fall_dir.x, fall_dir.y);
+		rain_uv = rain_rotate(rain_uv, fall_angle);
+
 		float rain_time = time_data.x * 0.2f;
 		float rain_amount = saturate(wd_intensity);
 		float rain_static = smoothstep(-0.5f, 1.0f, rain_amount) * 2.0f;
@@ -314,6 +331,8 @@ float4 main(VS_OUT pin) : SV_TARGET
 		float rain_cx = rain_drops(rain_uv + rain_e, rain_time, rain_static, rain_layer1, rain_layer2).x;
 		float rain_cy = rain_drops(rain_uv + rain_e.yx, rain_time, rain_static, rain_layer1, rain_layer2).x;
 		float2 rain_n = float2(rain_cx - rain_c.x, rain_cy - rain_c.x);
+		rain_n = rain_rotate(rain_n, -fall_angle);
+		rain_n.y = -rain_n.y;
 
 		float3 rain_refracted = scene_color_map.Sample(scene_map_sampler, saturate(pin.texcoord + rain_n)).rgb;
 		color.rgb = lerp(color.rgb, rain_refracted, saturate(rain_c.x * rain_amount));

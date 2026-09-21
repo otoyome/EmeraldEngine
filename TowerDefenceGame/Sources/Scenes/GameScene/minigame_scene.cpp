@@ -66,7 +66,6 @@ minigame_scene::minigame_scene()
 	mouse::instance()->set_cursol_hide(true);
 
 	//	メインカメラ生成
-	std::shared_ptr<camera_object> main_camera;
 	{
 		main_camera = std::make_shared<camera_object>("メインカメラ");
 		main_camera->get_camera()->set_fov_y(DirectX::XMConvertToRadians(30.0f));
@@ -202,11 +201,11 @@ minigame_scene::minigame_scene()
 			bubble_effect = std::make_shared<effect_instance>(resource);
 			effect_manager::instance()->register_instance(bubble_effect);
 		}
-		if (effect_resource_manager::instance()->load(resource, "Assets/Resources/Effects/Rain.eme"))
-		{
-			rain_effect = std::make_shared<effect_instance>(resource);
-			effect_manager::instance()->register_instance(rain_effect);
-		}
+		//if (effect_resource_manager::instance()->load(resource, "Assets/Resources/Effects/Rain.eme"))
+		//{
+		//	rain_effect = std::make_shared<effect_instance>(resource);
+		//	effect_manager::instance()->register_instance(rain_effect);
+		//}
 	}
 }
 
@@ -339,6 +338,7 @@ void minigame_scene::update_core(float elapsed_time)
 		{
 			//	熱量に応じて赤く
 			float heat_rate = math::saturate(player_object->get_heat_rate() * 2.0f - 1.0f);
+			float wet_rate = player_object->get_wet_rate();
 			postprocess_material->set_float("vg_intensity", heat_rate);
 			postprocess_material->set_float("vg_radius", 0.4f);
 			postprocess_material->set_float("vg_softness", 0.6f);
@@ -350,11 +350,9 @@ void minigame_scene::update_core(float elapsed_time)
 			postprocess_material->set_float("hz_speed", 1.5f);
 
 			//	水分量に応じて水滴を出す
-			{
-				float wet_rate = player_object->get_wet_rate();
-				postprocess_material->set_float("wd_intensity", wet_rate);
-				postprocess_material->set_float("wd_scale", 4.0f);
-			}
+			postprocess_material->set_float("wd_intensity", wet_rate);
+			postprocess_material->set_float("wd_scale", 2.0f);
+			postprocess_material->set_float("wd_wind_x", 0.0f);
 		}
 	}
 }
