@@ -200,7 +200,7 @@ void update_velocity_item(inout emitter_context em_context, inout pt_common_item
                 float3 decel_step = min(abs(pt_velocity.velocity), deceleration * em_context.elapsed_time);
                 pt_velocity.velocity -= sign(pt_velocity.velocity) * decel_step;
 
-                //  ˆê’U’nŒ`‚Æ“–‚½‚è”»’è
+                //  ’nŒ`‚Æ“–‚½‚è”»’è
                 float sdf_distance;
                 uint sdf_id;
                 float sdf_hit_threshold = max(pt_common.scale.x, max(pt_common.scale.y, pt_common.scale.z)) * 0.5f;
@@ -287,10 +287,25 @@ void update_event_item(inout emitter_context em_context, inout pt_common_item pt
         {
             bool hit = false;
 
-            float dist = length(emit.center - pt_common.translation);
-            if (dist < emit.radius)
+            if (has_flag(emit.state, emitter_event_item_state_contact_collision))
             {
-                hit = true;
+                //	sdf‚Æ‚Ì“–‚½‚è”»’è
+                float sdf_distance;
+                uint sdf_id;
+                if (sample_cubic_sdf_nearest(cubic_sdf_header_buffer, cubic_sdf_voxel_buffer, pt_common.translation, uint2(0, 0), sdf_distance, sdf_id)
+                    && sdf_distance <= emit.radius)
+                {
+                    hit = true;
+                }
+            }
+            else
+            {
+                //  ”¼Œa”»’è
+                float dist = length(emit.center - pt_common.translation);
+                if (dist < emit.radius)
+                {
+                    hit = true;
+                }
             }
 
             if (hit)

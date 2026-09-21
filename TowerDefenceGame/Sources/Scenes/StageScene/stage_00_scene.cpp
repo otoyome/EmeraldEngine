@@ -122,21 +122,19 @@ void stage_00_scene::generate_model_collision(model_resource_ptr resource, Direc
 		std::string extension = std::to_string(mesh_index) + "." + std::string(collision::bounding_mesh::extension);
 		collision_mesh_path = file_path;
 		collision_mesh_path.replace_extension(extension);
-		if (!(std::filesystem::exists(collision_mesh_path) &&
-			mesh->deserialize(collision_mesh_path.string())))
+		if (std::filesystem::exists(collision_mesh_path) && mesh->deserialize(collision_mesh_path.string()))
 		{
-			//	‘¶İ‚µ‚È‚¢ê‡‚Í¶¬
-			continue;
+			//	ƒ‚ƒfƒ‹“o˜^
+			collision_object_ptr collision = std::make_shared<collision_object>();
+#if defined(USE_IMGUI)
+			collision->set_name(resource->get_materials()[resource->get_meshes()[mesh_index].material_index].get_name());
+#endif	//	defined(USE_IMGUI)
+			collision->set_bounding_object(mesh);
+			collision->set_filter("stage");
+			collision->set_flag(collision_object::flags::static_object, true);
+			collision->set_physical_data(resource->get_materials()[resource->get_meshes()[mesh_index].material_index].get_physical_data());
+			register_object(collision);
 		}
 
-		collision_object_ptr collision = std::make_shared<collision_object>();
-#if defined(USE_IMGUI)
-		collision->set_name(resource->get_materials()[resource->get_meshes()[mesh_index].material_index].get_name());
-#endif	//	defined(USE_IMGUI)
-		collision->set_bounding_object(mesh);
-		collision->set_filter("stage");
-		collision->set_flag(collision_object::flags::static_object, true);
-		collision->set_physical_data(resource->get_materials()[resource->get_meshes()[mesh_index].material_index].get_physical_data());
-		register_object(collision);
 	}
 }

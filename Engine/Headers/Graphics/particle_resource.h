@@ -178,8 +178,16 @@ namespace particle
 		//	イベント情報
 		struct event
 		{
+			enum class states
+			{
+				contact_collision = 1 << 0,	//	登録されているsdfとの当たり判定に切り替える
+			};
+
+			UINT state = 0;
 			std::string node_name;	// イベント通知ノード
 			float radius = system_units::convert_m_to_unit(1.0f);	// 反応範囲
+			bool is_state(states flag) const;
+			void set_state(states flag, bool value);
 			template<class Archive>
 			void serialize(Archive& archive, int version);
 		};

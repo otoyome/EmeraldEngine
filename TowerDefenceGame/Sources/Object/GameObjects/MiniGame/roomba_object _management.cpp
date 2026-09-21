@@ -466,14 +466,13 @@ void roomba_object::update_velocity(float elapsed_time)
 			//	動摩擦力
 			float kinetic_friction_force = normal_force * total_friction;
 
-			//	@tool ブレーキ入力があれば、摩擦に追加でブレーキ力を合算する
-			float resistance_force = kinetic_friction_force;
+			//	ブレーキ力を合算
 			if (action_data.breaking)
-				resistance_force += get_current_braking_force();
+				kinetic_friction_force += get_current_braking_force();
 
 			//	面に沿う速度と逆向きの力積
 			DirectX::XMVECTOR TangentDirection = DirectX::XMVectorScale(TangentVelocity, 1.0f / tangent_speed);
-			float resistance_impulse = resistance_force * elapsed_time;
+			float resistance_impulse = kinetic_friction_force * elapsed_time;
 			resistance_impulse = std::min(resistance_impulse, tangent_speed * get_push_box()->get_mass());
 
 			DirectX::XMVECTOR ResistanceForce = DirectX::XMVectorScale(TangentDirection, resistance_impulse);
@@ -562,7 +561,7 @@ bool roomba_object::calculate_position(DirectX::XMFLOAT3 velocity, float elapsed
 	static constexpr float SkinStep = system_units::convert_cm_to_unit(0.1f);
 
 	bool hit_flag = false;
-	DirectX::XMVECTOR Velocity = DirectX::XMLoadFloat3(&velocity);	//	@tool 距離ではなく速度(m/s)のまま保持する
+	DirectX::XMVECTOR Velocity = DirectX::XMLoadFloat3(&velocity);
 	float remaining_time = elapsed_time;
 
 	for (size_t iteration = 0; iteration < 3; ++iteration)
@@ -598,13 +597,12 @@ bool roomba_object::calculate_position(DirectX::XMFLOAT3 velocity, float elapsed
 			if (out_friction)
 				*out_friction = hit_collision_object->get_physical_data().friction;
 
-			//	@tool 実際に進めた距離の割合ぶんだけ残り時間を消費する
 			float traveled_fraction = math::saturate(hit_distance / travel_distance);
 			remaining_time -= remaining_time * traveled_fraction;
 			if (remaining_time <= 0.0f)
 				break;
 
-			//	@tool 距離ではなく元の速度から法線成分を除去してスライドさせる(重力が水平速度に化けるのを防ぐ)
+			//	重力が水平速度になるのを制御
 			float dot = DirectX::XMVectorGetX(DirectX::XMVector3Dot(Velocity, Normal));
 			Velocity = DirectX::XMVectorSubtract(Velocity, DirectX::XMVectorScale(Normal, dot));
 		}

@@ -156,6 +156,8 @@ namespace
 		{
 			particle_system_item::emitter::event event_item;
 
+			event_item.state = event->is_state(::particle::item::event::states::contact_collision)
+				? static_cast<UINT>(particle_system_item::emitter::event::state::contact_collision) : 0;
 			event_item.center = calculate_local_position(instance.get_event_position());
 			event_item.radius = event->radius;
 			event_item.target_emitter_id = emit_target_system_index;

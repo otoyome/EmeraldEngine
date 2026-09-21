@@ -197,9 +197,15 @@ namespace particle_system_item
 		{
 			static constexpr UINT data_id = 5;
 
+			enum class state
+			{
+				contact_collision = 1 << 0,	//	登録されているsdfとの当たり判定に切り替える
+			};
+
+			UINT state = 0; // ステート
 			DirectX::XMFLOAT3 center; // 位置
 			float radius;	// 範囲
-			UINT target_emitter_id;
+			UINT target_emitter_id;	// 呼び出しエミッターID
 		};
 	}
 

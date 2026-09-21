@@ -25,7 +25,7 @@ CEREAL_CLASS_VERSION(particle::item::renderer, 1)
 CEREAL_CLASS_VERSION(particle::item::spawn, 1)
 CEREAL_CLASS_VERSION(particle::item::velocity, 1)
 CEREAL_CLASS_VERSION(particle::item::attract, 1)
-CEREAL_CLASS_VERSION(particle::item::event, 1)
+CEREAL_CLASS_VERSION(particle::item::event, 2)
 
 CEREAL_CLASS_VERSION(particle::data, 1);
 
@@ -157,10 +157,30 @@ void particle::item::attract::serialize(Archive& archive, int version)
 			kill_radius);
 }
 
+bool particle::item::event::is_state(states flag) const
+{
+	return system_utility::is_bitflag(state, flag);
+}
+void particle::item::event::set_state(states flag, bool value)
+{
+	system_utility::set_bitflag(state, flag, value);
+}
 template<class Archive>
 void particle::item::event::serialize(Archive& archive, int version)
 {
-	archive(node_name, radius);
+	switch (version)
+	{
+		case 1:
+		{
+			archive(node_name, radius);
+			break;
+		}
+		case 2:
+		{
+			archive(state, node_name, radius);
+			break;
+		}
+	}
 }
 
 

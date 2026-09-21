@@ -915,6 +915,13 @@ bool editor_items::edit_effect_particle(std::shared_ptr<context>& context, effec
 				}
 				if (ImGui::DragFloat("radius", &event->radius, 0.01f, 0.0f, 100000.0f))
 					edit_flag = true;
+
+				bool use_sdf_collision = event->is_state(particle::item::event::states::contact_collision);
+				if (ImGui::Checkbox("use sdf collision", &use_sdf_collision))
+				{
+					event->set_state(particle::item::event::states::contact_collision, use_sdf_collision);
+					edit_flag = true;
+				}
 			}
 			ImGui::TreePop();
 		}
