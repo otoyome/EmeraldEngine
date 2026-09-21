@@ -168,6 +168,7 @@ void update_velocity_item(inout emitter_context em_context, inout pt_common_item
 
                     spread_dir = base_dir * cos_theta + (tangent * cos_phi + bitangent * sin_phi) * sin_theta;
                 }
+
                 //  速度回転
                 pt_velocity.velocity = rotate_vector_quaternion(spread_dir, em_context.rotation) * power;
             }
@@ -181,8 +182,11 @@ void update_velocity_item(inout emitter_context em_context, inout pt_common_item
                                         velocity.acceleration_max,
                                         x_or_shift_random(em_context.random_seed));
                 }
+
                 //  加速方向回転
                 acceleration = rotate_vector_quaternion(acceleration, em_context.rotation);
+
+                //  速度更新
                 pt_velocity.velocity += (velocity.gravity + acceleration) * em_context.elapsed_time;
 
                 //  減速処理
@@ -195,6 +199,17 @@ void update_velocity_item(inout emitter_context em_context, inout pt_common_item
                 }
                 float3 decel_step = min(abs(pt_velocity.velocity), deceleration * em_context.elapsed_time);
                 pt_velocity.velocity -= sign(pt_velocity.velocity) * decel_step;
+
+                //  一旦地形と当たり判定
+                float sdf_distance;
+                uint sdf_id;
+                float sdf_hit_threshold = max(pt_common.scale.x, max(pt_common.scale.y, pt_common.scale.z)) * 0.5f;
+                if (sample_cubic_sdf_nearest(cubic_sdf_header_buffer, cubic_sdf_voxel_buffer, pt_common.translation, uint2(0, 0), sdf_distance, sdf_id)
+                    && sdf_distance <= sdf_hit_threshold)
+                {
+                    //  適当に逆方向に反射
+                    pt_velocity.velocity = pt_velocity.velocity * -0.5f;
+                }
 
                 //  移動
                 pt_common.translation += pt_velocity.velocity * em_context.elapsed_time;
@@ -266,12 +281,19 @@ void update_event_item(inout emitter_context em_context, inout pt_common_item pt
         stream_event_item(rw_read_only, emitter_binary_offset, emit);
 
         //  範囲内かどうか
-        if (em_context.elapsed_time > 0.0f
-            && !has_flag(pt_common.state, particle_binary_state_bit_spawn_frame)
-            && !has_flag(pt_common.state, particle_binary_state_bit_event_fired))
+        if (em_context.elapsed_time > 0.0f &&
+            !has_flag(pt_common.state, particle_binary_state_bit_spawn_frame) &&
+            !has_flag(pt_common.state, particle_binary_state_bit_event_fired))
         {
+            bool hit = false;
+
             float dist = length(emit.center - pt_common.translation);
             if (dist < emit.radius)
+            {
+                hit = true;
+            }
+
+            if (hit)
             {
                 //  イベントバッファに登録
                 particle_event ev;

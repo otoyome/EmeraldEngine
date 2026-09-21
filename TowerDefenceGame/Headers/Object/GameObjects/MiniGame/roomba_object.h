@@ -21,10 +21,7 @@ public:
 	// 共通ステートId
 	enum state_ids
 	{
-		state_idle,
-		state_walk,
-		state_dash,
-		state_move_stop,
+		state_active,
 		state_dead,
 
 		state_max,
@@ -32,10 +29,7 @@ public:
 
 	static constexpr std::string_view state_names[] =
 	{
-		"state_idle",
-		"state_walk",
-		"state_dash",
-		"state_move_stop",
+		"state_active",
 		"state_dead",
 	};
 
@@ -151,8 +145,10 @@ public:
 	void set_heat_value(int heat_value);
 	int get_max_heat_value() const;
 	void set_max_heat_value(int max_heat_value);
-	float get_wet_rate() const {return math::saturate(static_cast<float>(wet_value) / max_wet_value);}
-	float get_heat_rate() const {return math::saturate(static_cast<float>(heat_value) / max_heat_value);}
+	float get_wet_rate() const;
+	float get_heat_rate() const;
+
+	float get_attract_range() const;
 
 	float get_elapsed_time_scale() const;
 	void set_elapsed_time_scale(float elapsed_time_scale);
@@ -164,25 +160,29 @@ public:
 	void set_turn_vector(DirectX::XMFLOAT2 direction);
 	DirectX::XMFLOAT2 get_turn_vector() const;
 
+public:	//	速度系
 	void add_force(DirectX::XMFLOAT3 force);
 	void add_impulse(DirectX::XMFLOAT3 delta_velocity);
 
+	float get_max_speed(move_mode mode) const;
+
+private:
 	float get_current_accelaration_force() const;
-	float get_current_max_speed() const;
-	float get_current_breaking_deceleration_force() const;
+	float get_current_braking_force() const;
 
 	float get_current_friction() const;
 
 	float get_accelaration_force(move_mode mode) const;
-	float get_max_speed(move_mode mode) const;
-	float get_air_drag_coefficient() const;
+
+	float calculate_drag_coefficient() const;
+	float calculate_frontal_area() const;
 
 public:	//	入力情報設定
 	struct action_datas
 	{
 		DirectX::XMFLOAT3 move = { 0, 0, 0 }; // 移動方向
 		bool dash = false; // ダッシュ
-		bool attract = false; // 吸収
+		bool breaking = false; // ブレーキ
 
 		bool use_turn_vector = false; // 向きベクトルを別で指定する
 		DirectX::XMFLOAT2 turn_vector = { 0, 0 }; // 向き方向
@@ -209,26 +209,11 @@ private:	//	内部ステート系
 
 	void register_states();
 
-	bool input_action(float elapsed_time);
-	bool input_move(float elapsed_time);
-
 	void update_values(float elapsed_time);
 
-	void enter_idle();
-	void update_idle(float elapsed_time);
-	void exit_idle();
-
-	void enter_walk();
-	void update_walk(float elapsed_time);
-	void exit_walk();
-
-	void enter_dash();
-	void update_dash(float elapsed_time);
-	void exit_dash();
-
-	void enter_move_stop();
-	void update_move_stop(float elapsed_time);
-	void exit_move_stop();
+	void enter_active();
+	void update_active(float elapsed_time);
+	void exit_active();
 
 	void enter_dead();
 	void update_dead(float elapsed_time);
@@ -240,14 +225,13 @@ private:	//	エフェクト系
 	void unregister_effects();
 	bool register_effect(size_t effect_id, std::string_view file_path);
 	std::weak_ptr<effect_instance> play_effect(size_t effect_id);
-	bool calculate_position(DirectX::XMFLOAT3 velocity, bool vertical, DirectX::XMFLOAT3& out_position, DirectX::XMFLOAT3& out_normal, float* out_friction = nullptr);
 
 private:	//	姿勢制御
 	void update_rotation(float elapsed_time);
-	void update_vertical_velocity(float elapsed_time);
-	void update_vertical_move(float elapsed_time);
-	void update_horizontal_velocity(float elapsed_time);
-	void update_horizontal_move(float elapsed_time);
+	void update_velocity(float elapsed_time);
+	void update_move(float elapsed_time);
+
+	bool calculate_position(DirectX::XMFLOAT3 velocity, float elapsed_time, DirectX::XMFLOAT3& out_position, DirectX::XMFLOAT3& out_normal, float* out_friction = nullptr);
 
 private:
 	void generate_box_data(std::vector<bounding_inner_datas>& datas, const bounding_datas& bounding_data);
@@ -277,6 +261,7 @@ private:
 	DirectX::XMFLOAT2 turn_front_vector; // 回転方向
 	DirectX::XMFLOAT3 velocity; // 速度(m/s)
 	DirectX::XMFLOAT3 world_gravity; // ワールド重力(m/s2)
+	float world_air_density;	// 空気密度(kg/m^3)
 	float gravity_scale; // 重力スケール
 
 	float rotation_speed; // 回転速度
@@ -293,8 +278,6 @@ private:
 	float slope_limit; // 傾斜角度が一定以上なら進めないようにする
 	float ground_friction; // 地面摩擦係数
 	DirectX::XMFLOAT3 ground_normal; // 地面法線
-
-	DirectX::XMFLOAT3 frame_gravity; // 1Fの重力(deltaの方が良いか？)
 
 	std::unordered_map<size_t, effect_resource_ptr> effect_resources; // エフェクトリソース
 	std::vector<effect_instance_ptr> effect_instances; // エフェクトインスタンス

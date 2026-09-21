@@ -65,6 +65,7 @@ bool stage_00_scene::initialize_core()
 	//	動かさない事前提
 	{
 		auto file_path = "Assets/Resources/Models/バーダス・コロシアム/バーダス・コロシアム.emo";
+		//auto file_path = "Assets/Resources/Models/race_track/race_track.emo";
 		UINT separate_level = 6;
 		std::filesystem::path path(file_path);
 		assert (std::filesystem::exists(path));
@@ -125,12 +126,7 @@ void stage_00_scene::generate_model_collision(model_resource_ptr resource, Direc
 			mesh->deserialize(collision_mesh_path.string())))
 		{
 			//	存在しない場合は生成
-			collision::generate_bounding_mesh_data data;
-			data.WorldMatrix = transform;
-			data.reverse_flag = true;
-			data.separate_level = separate_level;
-			collision::generate_bounding_mesh(*mesh, resource, mesh_index, data);
-			mesh->serialize(collision_mesh_path.string());
+			continue;
 		}
 
 		collision_object_ptr collision = std::make_shared<collision_object>();
@@ -140,7 +136,7 @@ void stage_00_scene::generate_model_collision(model_resource_ptr resource, Direc
 		collision->set_bounding_object(mesh);
 		collision->set_filter("stage");
 		collision->set_flag(collision_object::flags::static_object, true);
-		collision->set_physical_data(resource->get_materials()[mesh_index].get_physical_data());
+		collision->set_physical_data(resource->get_materials()[resource->get_meshes()[mesh_index].material_index].get_physical_data());
 		register_object(collision);
 	}
 }

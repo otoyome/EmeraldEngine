@@ -9,6 +9,8 @@
 
 #include "effect_instance.h"
 
+#include "object/gameobjects/ui/ui_text.h"
+
 //	ゲームメインシーン
 class minigame_scene : public scene_base
 {
@@ -33,6 +35,7 @@ private:
 	std::shared_ptr<roomba_object> player_object;
 	std::shared_ptr<ui_object> test_wet;
 	std::shared_ptr<ui_object> test_heat;
+	std::shared_ptr<ui_text> test_speed;
 
-	std::shared_ptr<effect_instance> star_dust;
+	std::shared_ptr<effect_instance> bubble_effect;
 };

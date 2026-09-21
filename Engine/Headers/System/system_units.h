@@ -18,6 +18,17 @@ public:
 		unit,	//	1.0unit = 10cm
 	};
 
+	//	質量について、1.0f とどのような単位で取り扱うかを決める定数
+	enum class mass_units
+	{
+		micro_gram,
+		milli_gram,
+		gram,
+		kilogram,
+
+		unit,	//	1.0unit = 1kg
+	};
+
 	//	1秒間に何回更新するか
 	static constexpr int frame_per_sec = 60;
 
@@ -30,6 +41,19 @@ public:
 			case length_units::centi_meter:	return	"cm";
 			case length_units::meter:		return	"m";
 			case length_units::unit:		return	"unit";
+		}
+		return	"unknwon";
+	}
+
+	static constexpr std::string_view mass_unit_text(mass_units unit)
+	{
+		switch (unit)
+		{
+			case mass_units::micro_gram:		return	"ug";
+			case mass_units::milli_gram:		return	"mg";
+			case mass_units::gram:			return	"g";
+			case mass_units::kilogram:		return	"kg";
+			case mass_units::unit:			return	"unit";
 		}
 		return	"unknwon";
 	}
@@ -99,6 +123,68 @@ private:
 		return 1.0f;
 	}
 
+	static constexpr float mass_factor(mass_units origin, mass_units dest)
+	{
+		switch (origin)
+		{
+			case mass_units::micro_gram:
+			{
+				switch (dest)
+				{
+					case mass_units::milli_gram:	return 0.001f;
+					case mass_units::gram:			return 1e-6f;
+					case mass_units::kilogram:		return 1e-9f;
+					case mass_units::unit:			return 1e-9f;
+				}
+				break;
+			}
+			case mass_units::milli_gram:
+			{
+				switch (dest)
+				{
+					case mass_units::micro_gram:	return 1000.0f;
+					case mass_units::gram:			return 0.001f;
+					case mass_units::kilogram:		return 1e-6f;
+					case mass_units::unit:			return 1e-6f;
+				}
+				break;
+			}
+			case mass_units::gram:
+			{
+				switch (dest)
+				{
+					case mass_units::micro_gram:	return 1000000.0f;
+					case mass_units::milli_gram:	return 1000.0f;
+					case mass_units::kilogram:		return 0.001f;
+					case mass_units::unit:			return 0.001f;
+				}
+				break;
+			}
+			case mass_units::kilogram:
+			{
+				switch (dest)
+				{
+					case mass_units::micro_gram:	return 1000000000.0f;
+					case mass_units::milli_gram:	return 1000000.0f;
+					case mass_units::gram:			return 1000.0f;
+					case mass_units::unit:			return 1.0f;
+				}
+				break;
+			}
+			case mass_units::unit:
+			{
+				switch (dest)
+				{
+					case mass_units::micro_gram:	return 1000000000.0f;
+					case mass_units::milli_gram:	return 1000000.0f;
+					case mass_units::gram:			return 1000.0f;
+					case mass_units::kilogram:		return 1.0f;
+				}
+				break;
+			}
+		}
+		return 1.0f;
+	}
 public:
 	//	マイクロメートル <> ミリメートル変換
 	static constexpr float convert_um_to_mm(float value) { return value * length_factor(length_units::micro_meter, length_units::milli_meter); }
@@ -140,6 +226,28 @@ public:
 	}
 
 public:
+	//	マイクログラムの<>ミリグラム変換
+	static constexpr float convert_ug_to_mg(float value) { return value * mass_factor(mass_units::micro_gram, mass_units::milli_gram); }
+	static constexpr float convert_mg_to_ug(float value) { return value * mass_factor(mass_units::milli_gram, mass_units::micro_gram); }
+
+	//	ミリグラムの<>グラム変換
+	static constexpr float convert_mg_to_g(float value) { return value * mass_factor(mass_units::milli_gram, mass_units::gram); }
+	static constexpr float convert_g_to_mg(float value) { return value * mass_factor(mass_units::gram, mass_units::milli_gram); }
+
+	//	グラムの<>キログラム変換
+	static constexpr float convert_g_to_kg(float value) { return value * mass_factor(mass_units::gram, mass_units::kilogram); }
+	static constexpr float convert_kg_to_g(float value) { return value * mass_factor(mass_units::kilogram, mass_units::gram); }
+
+	//	各単位系での質量をゲーム単位へ変換
+	static constexpr float convert_ug_to_unit(float value) { return value * mass_factor(mass_units::micro_gram, mass_units::unit); }
+	static constexpr float convert_mg_to_unit(float value) { return value * mass_factor(mass_units::milli_gram, mass_units::unit); }
+	static constexpr float convert_g_to_unit(float value) { return value * mass_factor(mass_units::gram, mass_units::unit); }
+	static constexpr float convert_kg_to_unit(float value) { return value * mass_factor(mass_units::kilogram, mass_units::unit); }
+	static constexpr float convert_unit_to_ug(float value) { return value * mass_factor(mass_units::unit, mass_units::micro_gram); }
+	static constexpr float convert_unit_to_mg(float value) { return value * mass_factor(mass_units::unit, mass_units::milli_gram); }
+	static constexpr float convert_unit_to_g(float value) { return value * mass_factor(mass_units::unit, mass_units::gram); }
+	static constexpr float convert_unit_to_kg(float value) { return value * mass_factor(mass_units::unit, mass_units::kilogram); }
+
 	//	秒 <> ミリ秒変換
 	static constexpr float convert_sec_to_millisec(float value) { return value * 1000.0f; }
 	static constexpr float convert_millisec_to_sec(float value) { return value / 1000.0f; }

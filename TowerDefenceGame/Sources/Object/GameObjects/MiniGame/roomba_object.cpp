@@ -2,38 +2,42 @@
 
 namespace setup_data
 {
-	constexpr DirectX::XMFLOAT3 world_gravity = {0.0f, system_units::convert_m_to_unit(-9.8f), 0.0f};	//	ワールド重力
+	constexpr auto world_gravity = DirectX::XMFLOAT3(0.0f, system_units::convert_m_to_unit(-9.8f), 0.0f);	//	ワールド重力(m/s2)
+	constexpr float world_air_density = 1.225f / 1000.0f;	// ワールド空間の空気密度(kg/m^3)
 
 	constexpr int wet_value = 10000; // 耐水性能
 	constexpr int heat_value = 10000; // 耐熱性脳
 
-	constexpr float mass = 4.0f; // 重さ
+	constexpr float mass = system_units::convert_kg_to_unit(4.0f); // 重さ(kg)
 
 	constexpr float capsule_push_radius = system_units::convert_m_to_unit(0.4f); // 押し合い判定半径
 	constexpr float capsule_length = system_units::convert_m_to_unit(0.1f); // 当たり判定長さ
 
 	constexpr DirectX::XMFLOAT3 capsule_offset = {0.0f, capsule_length + capsule_push_radius, 0.0f}; // 当たり判定長さオフセット
 
+	//	吸引最大範囲
+	constexpr DirectX::XMFLOAT2 attract_radius_range = {system_units::convert_m_to_unit(1.0f), system_units::convert_m_to_unit(10.0f)};
+
+	//	ルンバの形状情報(実機相当のサイズ)
+	constexpr float drag_coefficient = 0.45f;	// ルンバの抗力係数Cd(ブラフボディの参考値)
+	constexpr float diameter = system_units::convert_m_to_unit(0.34f);	// ルンバの直径(m)
+	constexpr float height = system_units::convert_m_to_unit(0.092f);	// ルンバの高さ(m)
+
 	//	普通ルンバモード
-	constexpr float walk_accelaration = system_units::convert_m_to_unit(12.0f); // 歩きの加速度(m/s2)
-	constexpr float walk_max_speed = system_units::convert_m_to_unit(1.0f); // 歩きの速度(m/s)
-	constexpr float walk_breaking_deceleration = system_units::convert_m_to_unit(0.0f); // 歩きの減速度(m/s2)
+	constexpr float walk_accelaration = system_units::convert_m_to_unit(14.0f); // 歩きの加速度(m/s2)
+	constexpr float walk_max_speed = system_units::convert_m_to_unit(0.56f); // 歩きの速度(m/s)
 
 	//	爆速ルンバモード
 	constexpr float dash_accelaration = system_units::convert_m_to_unit(18.0f); // ダッシュ加速度(m/s2)
-	constexpr float dash_max_speed = system_units::convert_m_to_unit(16.0f); // ダッシュ速度(m/s)
-	constexpr float dash_breaking_deceleration = system_units::convert_m_to_unit(0.0f); // ダッシュ減速度(m/s2)
+	constexpr float dash_max_speed = system_units::convert_m_to_unit(16.67f); // ダッシュ速度(m/s)
 
-	//	停止時の減速力
-	constexpr float move_stop_breaking_deceleration = system_units::convert_m_to_unit(6.0f); // ブレーキング減速力(m/s2)
-
-	//	性能低下
-	constexpr float wet_max_speed = system_units::convert_m_to_unit(64.0f); // 濡れる事による最大速度(m/s)
+	//	ブレーキ
+	constexpr float braking_deceleration = system_units::convert_m_to_unit(15.0f); // ブレーキ減速度(m/s2)
 
 	//	摩擦係数
-	constexpr float base_friction = 0.995f;	// 摩擦係数(ゴム靴？)
+	constexpr float base_friction = 2.5f;	// 摩擦係数
 	constexpr float wet_friction = 0.01f;	// 摩擦係数(めちゃくちゃ滑りやすくする)
-	constexpr float dead_friction = 10.0f;	// 摩擦係数
+	constexpr float dead_friction = 80.0f;	// 摩擦係数
 }
 
 roomba_object::roomba_object(std::string_view name, std::shared_ptr<model_object> model, std::string_view collision_filter_name)
@@ -53,6 +57,7 @@ roomba_object::roomba_object(std::string_view name, std::shared_ptr<model_object
 , turn_front_vector(0.0f, 0.0f)
 , velocity(0.0f, 0.0f, 0.0f)
 , world_gravity(setup_data::world_gravity)
+, world_air_density(setup_data::world_air_density)
 , gravity_scale(1.0f)
 
 , rotation_speed(DirectX::XMConvertToRadians(1440.0f))
@@ -62,7 +67,6 @@ roomba_object::roomba_object(std::string_view name, std::shared_ptr<model_object
 , ground_tilt_pitch (0.0f)
 , ground_tilt_roll(0.0f)
 
-, slope_rate(1.0f)
 , step_offset(system_units::convert_m_to_unit(10.0f))
 , slope_limit(DirectX::XMConvertToRadians(30.0f))
 , ground_friction(0.5f)
@@ -95,7 +99,7 @@ roomba_object::roomba_object(std::string_view name, std::shared_ptr<model_object
 	register_effects();
 
 	//	起動時は待機ステート
-	change_state(roomba_object::state_names[state_idle]);
+	change_state(roomba_object::state_names[state_active]);
 }
 
 roomba_object::~roomba_object()
@@ -335,6 +339,25 @@ void roomba_object::set_max_heat_value(int max_heat_value)
 		this->heat_value = this->max_heat_value;
 	}
 }
+
+float roomba_object::get_wet_rate() const
+{
+	return math::saturate(static_cast<float>(wet_value) / max_wet_value);
+}
+
+float roomba_object::get_heat_rate() const
+{
+	return math::saturate(static_cast<float>(heat_value) / max_heat_value);
+}
+
+float roomba_object::get_attract_range() const
+{
+	DirectX::XMVECTOR Velocity = DirectX::XMLoadFloat3(&get_velocity());
+	float speed = DirectX::XMVectorGetX(DirectX::XMVector3Length(Velocity));
+	float speed_rate = math::saturate(speed / get_max_speed(move_mode::dash));
+	return math::lerp(setup_data::attract_radius_range.x, setup_data::attract_radius_range.y, speed_rate);
+}
+
 float roomba_object::get_elapsed_time_scale() const
 {
 	return elapsed_time_scale;
@@ -368,41 +391,15 @@ void roomba_object::add_impulse(DirectX::XMFLOAT3 delta_velocity)
 
 float roomba_object::get_current_accelaration_force() const
 {
-	return get_accelaration_force(check_same_state(roomba_object::state_names[roomba_object::state_dash]) ? move_mode::dash : move_mode::walk);
+	if (action_data.move.x == 0 && action_data.move.y == 0)
+		return 0.0f;
+
+	return get_accelaration_force(action_data.dash ? move_mode::dash : move_mode::walk);
 }
 
-float roomba_object::get_current_max_speed() const
+float roomba_object::get_current_braking_force() const
 {
-	float max_speed = get_max_speed(check_same_state(roomba_object::state_names[roomba_object::state_dash]) ? move_mode::dash : move_mode::walk);
-
-	//	濡れによる最大速度上昇
-	{
-		float rate = math::ease::in_out_expo(get_wet_rate());
-		max_speed = math::lerp(max_speed, setup_data::wet_max_speed, rate);
-	}
-	return max_speed;
-}
-
-float roomba_object::get_current_breaking_deceleration_force() const
-{
-	float deceleration = setup_data::walk_breaking_deceleration;
-
-	auto hash_lkey = system_utility::generate_hash(get_current_state());
-	switch (hash_lkey)
-	{
-		case system_utility::generate_hash(roomba_object::state_names[roomba_object::state_dash]):
-		{
-			deceleration = setup_data::dash_breaking_deceleration;
-			break;
-		}
-		case system_utility::generate_hash(roomba_object::state_names[roomba_object::state_move_stop]):
-		{
-			deceleration = setup_data::move_stop_breaking_deceleration;
-			break;
-		}
-	}
-
-	return push_box->get_mass() * deceleration;
+	return get_push_box()->get_mass() * setup_data::braking_deceleration;
 }
 
 float roomba_object::get_current_friction() const
@@ -446,11 +443,41 @@ float roomba_object::get_max_speed(move_mode mode) const
 	return max_speed;
 }
 
-float roomba_object::get_air_drag_coefficient() const
+float roomba_object::calculate_drag_coefficient() const
 {
-	//	空気抵抗係数
-	static constexpr float air_drag_coefficient = 0.02f;
-	return air_drag_coefficient;
+	float base_drag_coefficient = setup_data::drag_coefficient;
+
+	//	濡れによる抗力計算係数(2%くらいで考えておく)
+	float wet_rate = get_wet_rate();
+
+	return base_drag_coefficient * math::lerp(1.0f, 1.02f, wet_rate);
+}
+
+float roomba_object::calculate_frontal_area() const
+{
+	//	姿勢Y方向と速度方向のなす角から、円柱としての投影面積を算出
+	DirectX::XMVECTOR Velocity = DirectX::XMLoadFloat3(&velocity);
+	float speed_sq = DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(Velocity));
+
+	//	水平面
+	float horizontal_area = setup_data::diameter * setup_data::height;
+	if (speed_sq < FLT_EPSILON)
+		return horizontal_area;
+
+	float radius = setup_data::diameter * 0.5f;
+
+	//	垂直面
+	float vertical_area = DirectX::XM_PI * radius * radius;
+
+	//	半径r・高さhの円柱を軸から角度θ傾いた方向から見たときの投影面積を求める
+	DirectX::XMVECTOR VelocityDirection = DirectX::XMVector3Normalize(Velocity);
+	DirectX::XMFLOAT3 up = get_rotation().get_up();
+	DirectX::XMVECTOR UpDir = DirectX::XMLoadFloat3(&up);
+
+	float cos_theta = fabsf(DirectX::XMVectorGetX(DirectX::XMVector3Dot(VelocityDirection, UpDir)));
+	float sin_theta = sqrtf(std::max(1.0f - cos_theta * cos_theta, 0.0f));
+
+	return vertical_area * cos_theta + horizontal_area * sin_theta;
 }
 
 void roomba_object::generate_box_data(std::vector<bounding_inner_datas>& datas, const bounding_datas& bounding_data)
