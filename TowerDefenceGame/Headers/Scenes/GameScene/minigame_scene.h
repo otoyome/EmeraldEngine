@@ -37,6 +37,8 @@ private:
 	std::shared_ptr<camera_object> main_camera;
 	std::shared_ptr<ui_object> test_wet;
 	std::shared_ptr<ui_object> test_heat;
+	std::shared_ptr<ui_object> test_wet_max;
+	std::shared_ptr<ui_object> test_heat_max;
 	std::shared_ptr<ui_text> test_speed;
 	std::shared_ptr<material> postprocess_material;
 

@@ -177,11 +177,25 @@ minigame_scene::minigame_scene()
 		register_object(test_heat);
 	}
 	{
+		test_heat_max = std::make_shared<ui_object>("熱バー(最大値)");
+		test_heat_max->set_screen_rect({ 40, 95, 1160, 10 });
+		test_heat_max->set_color({ 0.3f, 0.3f, 0.3f, 1 });
+		test_heat_max->set_sort_order(0);
+		register_object(test_heat_max);
+	}
+	{
 		test_wet = std::make_shared<ui_object>("濡れバー");
-		test_wet->set_screen_rect({ 40, 100, 180, 50 });
+		test_wet->set_screen_rect({ 40, 115, 180, 50 });
 		test_wet->set_color({ 0, 0, 1, 1 });
 		test_wet->set_sort_order(0);
 		register_object(test_wet);
+	}
+	{
+		test_wet_max = std::make_shared<ui_object>("濡れバー(最大値)");
+		test_wet_max->set_screen_rect({ 40, 170, 1160, 10 });
+		test_wet_max->set_color({ 0.3f, 0.3f, 0.3f, 1 });
+		test_wet_max->set_sort_order(0);
+		register_object(test_wet_max);
 	}
 	{
 		font_data_ptr speed_font;
@@ -322,7 +336,7 @@ void minigame_scene::update_core(float elapsed_time)
 		}
 		if (test_wet)
 		{
-			test_wet->set_screen_rect({ 40, 100, (1200 - 40) * player_object->get_wet_rate(), 50 });
+			test_wet->set_screen_rect({ 40, 115, (1200 - 40) * player_object->get_wet_rate(), 50 });
 		}
 		if (test_speed)
 		{
