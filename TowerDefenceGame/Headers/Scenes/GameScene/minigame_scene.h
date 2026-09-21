@@ -36,7 +36,7 @@ private:
 	std::shared_ptr<ui_object> test_wet;
 	std::shared_ptr<ui_object> test_heat;
 	std::shared_ptr<ui_text> test_speed;
-	std::shared_ptr<material> heat_vignette_material;
+	std::shared_ptr<material> postprocess_material;
 
 	std::shared_ptr<effect_instance> bubble_effect;
 	std::shared_ptr<effect_instance> rain_effect;

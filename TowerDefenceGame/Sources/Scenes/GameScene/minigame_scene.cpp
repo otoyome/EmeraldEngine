@@ -140,9 +140,11 @@ minigame_scene::minigame_scene()
 			//	マテリアル登録
 			post_process_volume->get_volume()->register_postprocess_materials(post_process_material);
 
-			//	
+			//	連携させるためにポストプロセスマテリアルを保持しておく
 			if (index == 1)
-				heat_vignette_material = post_process_material;
+			{
+				postprocess_material = post_process_material;
+			}
 		}
 	}
 
@@ -333,35 +335,25 @@ void minigame_scene::update_core(float elapsed_time)
 			test_speed->set_texts(text);
 		}
 
-		if (heat_vignette_material)
+		if (postprocess_material)
 		{
 			//	熱量に応じて赤く
 			float heat_rate = math::saturate(player_object->get_heat_rate() * 2.0f - 1.0f);
-			heat_vignette_material->set_float("vg_intensity", heat_rate);
-			heat_vignette_material->set_float("vg_radius", 0.4f);
-			heat_vignette_material->set_float("vg_softness", 0.6f);
-			heat_vignette_material->set_float3("vg_color", {1.0f, 0.0f, 0.0f});
+			postprocess_material->set_float("vg_intensity", heat_rate);
+			postprocess_material->set_float("vg_radius", 0.4f);
+			postprocess_material->set_float("vg_softness", 0.6f);
+			postprocess_material->set_float3("vg_color", {1.0f, 0.0f, 0.0f});
 
 			//	陽炎もだす
-			heat_vignette_material->set_float("hz_intensity", heat_rate);
-			heat_vignette_material->set_float("hz_scale", 20.0f);
-			heat_vignette_material->set_float("hz_speed", 1.5f);
+			postprocess_material->set_float("hz_intensity", heat_rate);
+			postprocess_material->set_float("hz_scale", 20.0f);
+			postprocess_material->set_float("hz_speed", 1.5f);
 
-			//	速度に応じて集中線を出す
+			//	水分量に応じて水滴を出す
 			{
-				DirectX::XMVECTOR LineVelocity = DirectX::XMLoadFloat3(&player_object->get_velocity());
-				float line_speed = DirectX::XMVectorGetX(DirectX::XMVector3Length(LineVelocity));
-				float line_max_speed = player_object->get_max_speed(roomba_object::move_mode::dash);
-				float line_speed_rate = math::saturate(line_speed / line_max_speed);
-				line_speed_rate = math::saturate(line_speed_rate * 2.0f - 1.0f);
-
-				heat_vignette_material->set_float("cl_intensity", line_speed_rate);
-				heat_vignette_material->set_float("cl_use_animation", 1.0f);
-				heat_vignette_material->set_float("cl_animation_speed", 20.0f);
-				heat_vignette_material->set_float("cl_pattern_seed", 12.0f);
-				heat_vignette_material->set_float("cl_noise_scale", 120.0f);
-				heat_vignette_material->set_float3("cl_color", {1.0f, 1.0f, 1.0f});
-				heat_vignette_material->set_float2("cl_edge", {0.5f, 0.9f});
+				float wet_rate = player_object->get_wet_rate();
+				postprocess_material->set_float("wd_intensity", wet_rate);
+				postprocess_material->set_float("wd_scale", 4.0f);
 			}
 		}
 	}
