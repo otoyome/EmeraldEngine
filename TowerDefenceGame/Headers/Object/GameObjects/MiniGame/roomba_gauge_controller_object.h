@@ -30,6 +30,8 @@ public:
 	{
 		left,
 		right,
+		up,
+		down,
 	};
 
 public:
@@ -57,6 +59,8 @@ public:
 	void call_shake(const shake_descs& shake_desc);
 
 	void set_alpha(float alpha);
+
+	void set_animation_direction(directions direction);
 
 private:
 	std::function<int()> get_value;

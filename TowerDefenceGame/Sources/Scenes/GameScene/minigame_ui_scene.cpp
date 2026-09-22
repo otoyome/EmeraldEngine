@@ -5,17 +5,17 @@
 namespace
 {
 	//	ヒートゲージ左上位置
-	static constexpr DirectX::XMFLOAT2 heat_ui_position = {40, 40};
-	static constexpr DirectX::XMFLOAT2 heat_ui_size = {180, 40};
+	static constexpr DirectX::XMFLOAT2 heat_ui_position = {1200, 500};
+	static constexpr DirectX::XMFLOAT2 heat_ui_size = {30, 180};
 	//	ウェットゲージ左上位置
-	static constexpr DirectX::XMFLOAT2 wet_ui_position = {40, 80};
-	static constexpr DirectX::XMFLOAT2 wet_ui_size = {180, 40};
+	static constexpr DirectX::XMFLOAT2 wet_ui_position = {1240, 500};
+	static constexpr DirectX::XMFLOAT2 wet_ui_size = {30, 180};
 	//	加速アイコン左上位置
-	static constexpr DirectX::XMFLOAT2 accel_icon_ui_position = {1010, 540};
+	static constexpr DirectX::XMFLOAT2 accel_icon_ui_position = {1130, 540};
 	static constexpr DirectX::XMFLOAT2 accel_icon_ui_size = {36, 36};
 	static constexpr DirectX::XMFLOAT2 accel_icon_main_ui_size = {72, 36};
 	//	減速アイコン左上位置
-	static constexpr DirectX::XMFLOAT2 brake_icon_ui_position = {1130, 540};
+	static constexpr DirectX::XMFLOAT2 brake_icon_ui_position = {1130, 612};
 	static constexpr DirectX::XMFLOAT2 brake_icon_ui_size = {36, 36};
 	static constexpr DirectX::XMFLOAT2 brake_icon_main_ui_size = {72, 36};
 }
@@ -38,9 +38,9 @@ minigame_ui_scene::minigame_ui_scene()
 			desc.objects[index] = std::make_shared<ui_image>("ヒートゲージ:カバー");
 			desc.objects[index]->set_screen_rect({ heat_ui_position.x, heat_ui_position.y, heat_ui_size.x, heat_ui_size.y });
 			desc.objects[index]->set_color({ 1, 1, 1, 1 });
+			desc.objects[index]->set_border({ 0, 0, 1, 1 });
 			desc.objects[index]->set_texture("Assets/Resources/Textures/hud/hud_cover.png");
 			desc.objects[index]->set_draw_mode(ui_image::draw_modes::sliced);
-			desc.objects[index]->set_border({0.2f, 0.2f, 0.8f, 0.8f});
 			desc.objects[index]->set_sort_order(10);
 			register_object(desc.objects[index]);
 		}
@@ -48,7 +48,7 @@ minigame_ui_scene::minigame_ui_scene()
 			const int index = static_cast<int>(roomba_gauge_controller_object::ui_id::main);
 			desc.objects[index] = std::make_shared<ui_image>("ヒートゲージ:メイン");
 			desc.objects[index]->set_screen_rect({ heat_ui_position.x, heat_ui_position.y, heat_ui_size.x, heat_ui_size.y });
-			desc.objects[index]->set_color({ 1, 1, 1, 1 });
+			desc.objects[index]->set_color({ 1, 0.25f, 0.25f, 1 });
 			desc.objects[index]->set_texture("Assets/Resources/Textures/hud/hud_image.png");
 			desc.objects[index]->set_draw_mode(ui_image::draw_modes::sliced);
 			desc.objects[index]->set_sort_order(5);
@@ -65,6 +65,7 @@ minigame_ui_scene::minigame_ui_scene()
 			register_object(desc.objects[index]);
 		}
 		hud_object_desc.heat_bar = std::make_shared<roomba_gauge_controller_object>(desc);
+		hud_object_desc.heat_bar->set_animation_direction(roomba_gauge_controller_object::directions::up);
 		register_object(hud_object_desc.heat_bar);
 	}
 
@@ -77,6 +78,7 @@ minigame_ui_scene::minigame_ui_scene()
 			desc.objects[index] = std::make_shared<ui_image>("ウェットゲージ:カバー");
 			desc.objects[index]->set_screen_rect({ wet_ui_position.x, wet_ui_position.y, wet_ui_size.x, wet_ui_size.y });
 			desc.objects[index]->set_color({ 1, 1, 1, 1 });
+			desc.objects[index]->set_border({ 0, 0, 1, 1 });
 			desc.objects[index]->set_texture("Assets/Resources/Textures/hud/hud_cover.png");
 			desc.objects[index]->set_draw_mode(ui_image::draw_modes::sliced);
 			desc.objects[index]->set_sort_order(10);
@@ -86,7 +88,7 @@ minigame_ui_scene::minigame_ui_scene()
 			const int index = static_cast<int>(roomba_gauge_controller_object::ui_id::main);
 			desc.objects[index] = std::make_shared<ui_image>("ウェットゲージ:メイン");
 			desc.objects[index]->set_screen_rect({ wet_ui_position.x, wet_ui_position.y, wet_ui_size.x, wet_ui_size.y });
-			desc.objects[index]->set_color({ 1, 1, 1, 1 });
+			desc.objects[index]->set_color({ 0.25f, 0.25f, 1, 1 });
 			desc.objects[index]->set_texture("Assets/Resources/Textures/hud/hud_image.png");
 			desc.objects[index]->set_draw_mode(ui_image::draw_modes::sliced);
 			desc.objects[index]->set_sort_order(5);
@@ -103,6 +105,7 @@ minigame_ui_scene::minigame_ui_scene()
 			register_object(desc.objects[index]);
 		}
 		hud_object_desc.wet_bar = std::make_shared<roomba_gauge_controller_object>(desc);
+		hud_object_desc.wet_bar->set_animation_direction(roomba_gauge_controller_object::directions::up);
 		register_object(hud_object_desc.wet_bar);
 	}
 
