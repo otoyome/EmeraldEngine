@@ -1,0 +1,25 @@
+#pragma once
+
+#include "Scenes/scene_base.h"
+
+#include "object/gameobjects/ui/ui_image.h"
+
+//	タイトルシーン
+class minigame_title_scene : public scene_base
+{
+	SCENE_DECRLEAR(minigame_title_scene, scene_base);
+
+public:
+	minigame_title_scene();
+	minigame_title_scene(const minigame_title_scene&) = delete;
+	minigame_title_scene(minigame_title_scene&&) = delete;
+	~minigame_title_scene() override;
+
+protected:
+	bool initialize_core() override;
+	bool uninitialize_core() override;
+	void update_core(float elapsed_time) override;
+#ifdef USE_IMGUI
+	virtual void imgui_render_core() override;
+#endif
+};

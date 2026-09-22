@@ -23,7 +23,8 @@ extern ImWchar glyphRangesJapanese[];
 #include "scenes/editscene/edit_timeline_scene.h"
 #include "scenes/DummyScene/dummy_scene.h"
 #include "Scenes/GameScene/game_main_scene.h"
-#include "Scenes/GameScene/minigame_scene.h"
+
+#include "Scenes/MiniGameScene/minigame_scene.h"
 
 #include "imPlot/imPlot.h"
 #include "imtimeline/ImTimeline.h"

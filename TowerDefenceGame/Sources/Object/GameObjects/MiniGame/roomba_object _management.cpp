@@ -421,7 +421,7 @@ void roomba_object::update_velocity(float elapsed_time)
 				DirectX::XMVECTOR DriveDirection = DirectX::XMVectorSet(move_vector_x, 0.0f, move_vector_z, 0.0f);
 				float speed_along_drive = DirectX::XMVectorGetX(DirectX::XMVector3Dot(Velocity, DriveDirection));
 				float max_speed = get_max_speed(move_mode::walk);
-				float speed_margin = max_speed * 0.05f;
+				float speed_margin = max_speed * 0.1f;
 				float over_speed = speed_along_drive - (max_speed - speed_margin);
 				limiter_rate = 1.0f - math::saturate(over_speed / speed_margin);
 			}

@@ -3,7 +3,10 @@
 #include "custom_pipeline_state.h"
 
 #include "scenes/gamescene/game_main_scene.h"
-#include "scenes/gamescene/minigame_scene.h"
+
+#include "scenes/minigamescene/minigame_scene.h"
+#include "scenes/minigamescene/minigame_title_scene.h"
+
 #include "scenes/editscene/edit_model_scene.h"
 #include "scenes/editscene/edit_particle_scene.h"
 
@@ -1490,9 +1493,10 @@ void load_shader_scene::update_core(float elapsed_time)
 	//scene_manager::instance()->change_scene<edit_model_scene>();
 	//scene_manager::instance()->change_scene<game_main_scene>();
 	//scene_manager::instance()->change_scene<edit_particle_scene>();
-	scene_manager::instance()->change_scene<minigame_scene>();
+	//scene_manager::instance()->change_scene<minigame_scene>();
+	scene_manager::instance()->change_scene<minigame_title_scene>();
 #else	//	defined(USE_IMGUI)
-	scene_manager::instance()->change_scene<minigame_scene>();
+	scene_manager::instance()->change_scene<minigame_title_scene>();
 #endif	//	defined(USE_IMGUI)
 }
 

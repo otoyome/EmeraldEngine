@@ -8,6 +8,7 @@ roomba_hud_controller_object::roomba_hud_controller_object(object_descs descs)
 , speed(descs.speed)
 , accel_icon(descs.accel_icon)
 , brake_icon(descs.brake_icon)
+, game_timer(descs.game_timer)
 {
 }
 

@@ -16,6 +16,14 @@ class minigame_scene : public scene_base
 	SCENE_ADD_CHILDREN_DECRLEAR(minigame_scene, scene_base, stage_00_scene, minigame_ui_scene);
 
 public:
+	enum class game_states
+	{
+		start_count,
+		main_game,
+		result_move,
+	};
+
+public:
 	minigame_scene();
 	minigame_scene(const minigame_scene&) = delete;
 	minigame_scene(minigame_scene&&) = delete;
@@ -37,4 +45,7 @@ private:
 	std::shared_ptr<effect_instance> bubble_effect;
 	std::shared_ptr<effect_instance> rain_effect;
 	std::vector<UINT> bubble_emitter_ids, rain_emitter_ids;
+
+	float game_timer;
+	game_states game_state;
 };

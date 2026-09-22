@@ -401,8 +401,10 @@ xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y</Command>
     <ClCompile Include="Sources\Scenes\EditScene\edit_particle_scene.cpp" />
     <ClCompile Include="Sources\Scenes\EditScene\edit_timeline_scene.cpp" />
     <ClCompile Include="Sources\Scenes\GameScene\game_main_scene.cpp" />
-    <ClCompile Include="Sources\Scenes\GameScene\minigame_scene.cpp" />
-    <ClCompile Include="Sources\Scenes\GameScene\minigame_ui_scene.cpp" />
+    <ClCompile Include="Sources\Scenes\MiniGameScene\minigame_result_scene.cpp" />
+    <ClCompile Include="Sources\Scenes\MiniGameScene\minigame_scene.cpp" />
+    <ClCompile Include="Sources\Scenes\MiniGameScene\minigame_title_scene.cpp" />
+    <ClCompile Include="Sources\Scenes\MiniGameScene\minigame_ui_scene.cpp" />
     <ClCompile Include="Sources\Scenes\scene_base.cpp" />
     <ClCompile Include="Sources\Scenes\load_shader_scene.cpp" />
     <ClCompile Include="Sources\Scenes\StageScene\stage_00_scene.cpp" />
@@ -511,8 +513,10 @@ xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y</Command>
     <ClInclude Include="Headers\Scenes\EditScene\edit_particle_scene.h" />
     <ClInclude Include="Headers\Scenes\EditScene\edit_timeline_scene.h" />
     <ClInclude Include="Headers\Scenes\GameScene\game_main_scene.h" />
-    <ClInclude Include="Headers\Scenes\GameScene\minigame_scene.h" />
-    <ClInclude Include="Headers\Scenes\GameScene\minigame_ui_scene.h" />
+    <ClInclude Include="Headers\Scenes\MiniGameScene\minigame_result_scene.h" />
+    <ClInclude Include="Headers\Scenes\MiniGameScene\minigame_scene.h" />
+    <ClInclude Include="Headers\Scenes\MiniGameScene\minigame_title_scene.h" />
+    <ClInclude Include="Headers\Scenes\MiniGameScene\minigame_ui_scene.h" />
     <ClInclude Include="Headers\Scenes\scene_base.h" />
     <ClInclude Include="Headers\Scenes\load_shader_scene.h" />
     <ClInclude Include="Headers\Scenes\StageScene\stage_00_scene.h" />

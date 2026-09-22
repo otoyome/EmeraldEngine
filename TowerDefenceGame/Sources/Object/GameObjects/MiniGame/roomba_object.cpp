@@ -18,14 +18,14 @@ namespace setup_data
 	//	吸引最大範囲
 	constexpr DirectX::XMFLOAT2 attract_radius_range = {system_units::convert_m_to_unit(1.0f), system_units::convert_m_to_unit(10.0f)};
 
-	//	ルンバの形状情報(実機相当のサイズ)
-	constexpr float drag_coefficient = 0.45f;	// ルンバの抗力係数Cd(ブラフボディの参考値)
+	//	ルンバの形状情報
+	constexpr float drag_coefficient = 0.45f;	// ルンバの抗力係数Cd
 	constexpr float diameter = system_units::convert_m_to_unit(0.34f);	// ルンバの直径(m)
 	constexpr float height = system_units::convert_m_to_unit(0.092f);	// ルンバの高さ(m)
 
 	//	普通ルンバモード
 	constexpr float walk_accelaration = system_units::convert_m_to_unit(14.0f); // 歩きの加速度(m/s2)
-	constexpr float walk_max_speed = system_units::convert_m_to_unit(0.56f); // 歩きの速度(m/s)
+	constexpr float walk_max_speed = system_units::convert_m_to_unit(0.75f); // 歩きの速度(m/s)
 
 	//	爆速ルンバモード
 	constexpr float dash_accelaration = system_units::convert_m_to_unit(18.0f); // ダッシュ加速度(m/s2)

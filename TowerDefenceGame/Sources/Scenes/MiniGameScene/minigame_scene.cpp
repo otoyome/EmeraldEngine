@@ -1,4 +1,4 @@
-#include "Scenes/GameScene/minigame_scene.h"
+#include "Scenes/MiniGameScene/minigame_scene.h"
 
 #include "custom_pipeline_state.h"
 
@@ -11,6 +11,8 @@
 #include "object/gameobjects/minigame/roomba_camera_controller_object.h"
 
 #include "object/gameobjects/cinematics/cinematics_object.h"
+
+#include "Scenes/MiniGameScene/minigame_result_scene.h"
 
 namespace
 {
@@ -182,6 +184,9 @@ minigame_scene::minigame_scene()
 			effect_manager::instance()->register_instance(rain_effect);
 		}
 	}
+
+	//	タイマーリセット
+	game_timer = 0.0f;
 }
 
 minigame_scene::~minigame_scene()
@@ -205,112 +210,146 @@ bool minigame_scene::uninitialize_core()
 
 void minigame_scene::update_core(float elapsed_time)
 {
-	if (player_object)
+	switch (game_state)
 	{
-		if (bubble_effect)
+		case game_states::start_count:
 		{
-			//	吸引座標とイベント基準座標設定
-			auto position = player_object->get_push_box()->get_position();
-			position.y += player_object->get_push_box()->get_local_scale().y * 0.5f;
-			bubble_effect->set_attract_position(position);
-			bubble_effect->set_event_position(position);
-
-			//	吸引範囲設定
-			auto bubble_index = bubble_effect->search_node_index_by_name("Bubble");
-			for (auto& particle : bubble_effect->get_particles())
+			break;
+		}
+		case game_states::main_game:
+		{
+			//	時間表示更新
+			game_timer += elapsed_time;
+			if (auto timer_object = object_manager::instance()->search_object<timer_controller_object>("経過時間表示コントローラー"))
 			{
-				if (particle.node_index != bubble_index)
-					continue;
+				timer_object->set_time(game_timer);
+			}
 
-				auto attract = particle.particle.get_item<particle::item::attract>();
-				if (attract)
+			//	プレイヤーの情報を各種機能に伝達
+			if (player_object)
+			{
+				if (bubble_effect)
 				{
-					attract->radius = player_object->get_attract_range();
-					break;
+					//	吸引座標とイベント基準座標設定
+					auto position = player_object->get_push_box()->get_position();
+					position.y += player_object->get_push_box()->get_local_scale().y * 0.5f;
+					bubble_effect->set_attract_position(position);
+					bubble_effect->set_event_position(position);
+
+					//	吸引範囲設定
+					auto bubble_index = bubble_effect->search_node_index_by_name("Bubble");
+					for (auto& particle : bubble_effect->get_particles())
+					{
+						if (particle.node_index != bubble_index)
+							continue;
+
+						auto attract = particle.particle.get_item<particle::item::attract>();
+						if (attract)
+						{
+							attract->radius = player_object->get_attract_range();
+							break;
+						}
+					}
+				}
+
+				//	1F前のパーティクルイベント情報を取得
+				auto particle_events = effect_manager::instance()->get_particle_events();
+				auto push_box_position = DirectX::XMLoadFloat3(&player_object->get_push_box()->get_position());
+
+				//	bubble/rainの自エミッターIDを収集
+				for (auto& item : effect_manager::instance()->get_items())
+				{
+					if (item.effect_instance == bubble_effect)
+					{
+						for (auto& emitter_item : item.emitter_items)
+							bubble_emitter_ids.push_back(emitter_item.system_index);
+					}
+					else if (item.effect_instance == rain_effect)
+					{
+						for (auto& emitter_item : item.emitter_items)
+							rain_emitter_ids.push_back(emitter_item.system_index);
+					}
+				}
+
+				//	濡れゲージ増加処理
+				UINT wet_event_count = 0;
+				for (auto& event_info : particle_events)
+				{
+					//	泡の場合はそのまま濡れカウントとして
+					bool is_bubble = false;
+					for (auto emitter_id : bubble_emitter_ids)
+					{
+						if (emitter_id == event_info.target_emitter_id)
+						{
+							is_bubble = true;
+							break;
+						}
+					}
+					if (is_bubble)
+					{
+						++wet_event_count;
+						continue;
+					}
+
+					//	雨の場合はそのまま球体判定をこちらで行う
+					bool is_rain = false;
+					for (auto emitter_id : rain_emitter_ids)
+					{
+						if (emitter_id == event_info.target_emitter_id)
+						{
+							is_rain = true;
+							break;
+						}
+					}
+					if (is_rain)
+					{
+						auto event_position = DirectX::XMLoadFloat3(&event_info.position);
+						float distance = DirectX::XMVectorGetX(DirectX::XMVector3Length(DirectX::XMVectorSubtract(event_position, push_box_position)));
+						if (distance <= 0.1f)
+							++wet_event_count;
+						//	範囲外のrainイベントは無視
+					}
+				}
+				player_object->on_wet(wet_event_count * 100);
+
+				//	エフェクトと連動
+				if (postprocess_material)
+				{
+					//	熱量に応じて赤く
+					float heat_rate = math::saturate(player_object->get_heat_rate() * 2.0f - 1.0f);
+					float wet_rate = player_object->get_wet_rate();
+					postprocess_material->set_float("vg_intensity", heat_rate);
+					postprocess_material->set_float("vg_radius", 0.4f);
+					postprocess_material->set_float("vg_softness", 0.6f);
+					postprocess_material->set_float3("vg_color", {0.75f, 0.0f, 0.0f});
+
+					//	陽炎もだす
+					postprocess_material->set_float("hz_intensity", heat_rate);
+					postprocess_material->set_float("hz_scale", 20.0f);
+					postprocess_material->set_float("hz_speed", 1.5f);
+
+					//	水分量に応じて水滴を出す
+					postprocess_material->set_float("wd_intensity", wet_rate);
+					postprocess_material->set_float("wd_scale", 2.0f);
+					postprocess_material->set_float("wd_wind_x", 0.0f);
 				}
 			}
+			break;
 		}
-
-		//	1F前のパーティクルイベント情報を取得
-		auto particle_events = effect_manager::instance()->get_particle_events();
-		auto push_box_position = DirectX::XMLoadFloat3(&player_object->get_push_box()->get_position());
-
-		//	bubble/rainの自エミッターIDを収集
-		for (auto& item : effect_manager::instance()->get_items())
+		case game_states::result_move:
 		{
-			if (item.effect_instance == bubble_effect)
+			//	死亡後、スペースキーか左クリックでリザルトシーンへ
+			if (player_object && player_object->check_same_state(roomba_object::state_names[roomba_object::state_dead]))
 			{
-				for (auto& emitter_item : item.emitter_items)
-					bubble_emitter_ids.push_back(emitter_item.system_index);
-			}
-			else if (item.effect_instance == rain_effect)
-			{
-				for (auto& emitter_item : item.emitter_items)
-					rain_emitter_ids.push_back(emitter_item.system_index);
-			}
-		}
-
-		//	濡れゲージ増加処理
-		UINT wet_event_count = 0;
-		for (auto& event_info : particle_events)
-		{
-			//	泡の場合はそのまま濡れカウントとして
-			bool is_bubble = false;
-			for (auto emitter_id : bubble_emitter_ids)
-			{
-				if (emitter_id == event_info.target_emitter_id)
+				bool continue_input = keyboard::instance()->get_state().is_key_state(keyboard::key_states::space) == input::state::down
+					|| mouse::instance()->get_state().is_key_state(mouse::key_states::left) == input::state::down;
+				if (continue_input)
 				{
-					is_bubble = true;
-					break;
+					return;
 				}
 			}
-			if (is_bubble)
-			{
-				++wet_event_count;
-				continue;
-			}
-
-			//	雨の場合はそのまま球体判定をこちらで行う
-			bool is_rain = false;
-			for (auto emitter_id : rain_emitter_ids)
-			{
-				if (emitter_id == event_info.target_emitter_id)
-				{
-					is_rain = true;
-					break;
-				}
-			}
-			if (is_rain)
-			{
-				auto event_position = DirectX::XMLoadFloat3(&event_info.position);
-				float distance = DirectX::XMVectorGetX(DirectX::XMVector3Length(DirectX::XMVectorSubtract(event_position, push_box_position)));
-				if (distance <= 0.1f)
-					++wet_event_count;
-				//	範囲外のrainイベントは無視
-			}
-		}
-		player_object->on_wet(wet_event_count * 100);
-
-		//	エフェクトと連動
-		if (postprocess_material)
-		{
-			//	熱量に応じて赤く
-			float heat_rate = math::saturate(player_object->get_heat_rate() * 2.0f - 1.0f);
-			float wet_rate = player_object->get_wet_rate();
-			postprocess_material->set_float("vg_intensity", heat_rate);
-			postprocess_material->set_float("vg_radius", 0.4f);
-			postprocess_material->set_float("vg_softness", 0.6f);
-			postprocess_material->set_float3("vg_color", {1.0f, 0.0f, 0.0f});
-
-			//	陽炎もだす
-			postprocess_material->set_float("hz_intensity", heat_rate);
-			postprocess_material->set_float("hz_scale", 20.0f);
-			postprocess_material->set_float("hz_speed", 1.5f);
-
-			//	水分量に応じて水滴を出す
-			postprocess_material->set_float("wd_intensity", wet_rate);
-			postprocess_material->set_float("wd_scale", 2.0f);
-			postprocess_material->set_float("wd_wind_x", 0.0f);
+			scene_manager::instance()->change_scene<minigame_result_scene>();
+			break;
 		}
 	}
 }

@@ -249,6 +249,12 @@
     <Filter Include="Shaders\Collision">
       <UniqueIdentifier>{79bb0c04-f9bd-4ada-b2f7-b0b15a20cfae}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Sources\Scenes\MiniGameScene">
+      <UniqueIdentifier>{79721896-297e-4148-97c9-38b1fb6c9cca}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Headers\Scenes\MiniGameScene">
+      <UniqueIdentifier>{6dd0dba5-ed7d-4b5e-bb77-7e945655164d}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\External\imgui\imgui.cpp">
@@ -548,9 +554,6 @@
     <ClCompile Include="Sources\Object\GameObjects\MiniGame\roomba_object _management.cpp">
       <Filter>Sources\Object\GameObjects\MiniGame</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Scenes\GameScene\minigame_scene.cpp">
-      <Filter>Sources\Scenes\GameScene</Filter>
-    </ClCompile>
     <ClCompile Include="Sources\Object\GameObjects\MiniGame\roomba_hud_controller_object.cpp">
       <Filter>Sources\Object\GameObjects\MiniGame</Filter>
     </ClCompile>
@@ -560,8 +563,17 @@
     <ClCompile Include="Sources\Object\GameObjects\MiniGame\roomba_speed_controller_object.cpp">
       <Filter>Sources\Object\GameObjects\MiniGame</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Scenes\GameScene\minigame_ui_scene.cpp">
-      <Filter>Sources\Scenes\GameScene</Filter>
+    <ClCompile Include="Sources\Scenes\MiniGameScene\minigame_result_scene.cpp">
+      <Filter>Sources\Scenes\MiniGameScene</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Scenes\MiniGameScene\minigame_scene.cpp">
+      <Filter>Sources\Scenes\MiniGameScene</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Scenes\MiniGameScene\minigame_title_scene.cpp">
+      <Filter>Sources\Scenes\MiniGameScene</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Scenes\MiniGameScene\minigame_ui_scene.cpp">
+      <Filter>Sources\Scenes\MiniGameScene</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -853,9 +865,6 @@
     <ClInclude Include="Headers\Object\GameObjects\MiniGame\roomba_camera_controller_object.h">
       <Filter>Headers\Object\GameObjects\MiniGame</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Scenes\GameScene\minigame_scene.h">
-      <Filter>Headers\Scenes\GameScene</Filter>
-    </ClInclude>
     <ClInclude Include="Headers\Object\GameObjects\MiniGame\roomba_hud_controller_object.h">
       <Filter>Headers\Object\GameObjects\MiniGame</Filter>
     </ClInclude>
@@ -865,8 +874,17 @@
     <ClInclude Include="Headers\Object\GameObjects\MiniGame\roomba_gauge_controller_object.h">
       <Filter>Headers\Object\GameObjects\MiniGame</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Scenes\GameScene\minigame_ui_scene.h">
-      <Filter>Headers\Scenes\GameScene</Filter>
+    <ClInclude Include="Headers\Scenes\MiniGameScene\minigame_result_scene.h">
+      <Filter>Headers\Scenes\MiniGameScene</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Scenes\MiniGameScene\minigame_scene.h">
+      <Filter>Headers\Scenes\MiniGameScene</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Scenes\MiniGameScene\minigame_title_scene.h">
+      <Filter>Headers\Scenes\MiniGameScene</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Scenes\MiniGameScene\minigame_ui_scene.h">
+      <Filter>Headers\Scenes\MiniGameScene</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
