@@ -1,8 +1,10 @@
 #pragma once
 
 #include "object/gameobjects/ui/hud/key_icon_controller_object.h"
+#include "object/gameobjects/ui/hud/timer_controller_object.h"
 
 #include "roomba_gauge_controller_object.h"
+#include "roomba_speed_controller_object.h"
 #include "roomba_controller_object.h"
 
 //	ルンバ：UI管理用オブジェクト
@@ -16,11 +18,12 @@ public:
 		std::string name;
 		std::shared_ptr<roomba_gauge_controller_object> heat_bar;
 		std::shared_ptr<roomba_gauge_controller_object> wet_bar;
+		std::shared_ptr<roomba_speed_controller_object> speed;
 
 		std::shared_ptr<key_indicator_object> accel_icon;
 		std::shared_ptr<key_indicator_object> brake_icon;
 
-	//	std::shared_ptr<timer_controller_object> timer;
+		std::shared_ptr<timer_controller_object> timer;
 	};
 
 public:
@@ -41,6 +44,7 @@ private:
 	std::weak_ptr<roomba_controller_object> roomba;
 	std::shared_ptr<roomba_gauge_controller_object> heat_bar;
 	std::shared_ptr<roomba_gauge_controller_object> wet_bar;
+	std::shared_ptr<roomba_speed_controller_object> speed;
 
 	std::shared_ptr<key_indicator_object> accel_icon;
 	std::shared_ptr<key_indicator_object> brake_icon;

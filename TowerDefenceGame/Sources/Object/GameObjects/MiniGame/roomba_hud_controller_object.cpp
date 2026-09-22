@@ -5,6 +5,7 @@ roomba_hud_controller_object::roomba_hud_controller_object(object_descs descs)
 , setup_player_data(false)
 , heat_bar(descs.heat_bar)
 , wet_bar(descs.wet_bar)
+, speed(descs.speed)
 , accel_icon(descs.accel_icon)
 , brake_icon(descs.brake_icon)
 {
@@ -42,6 +43,12 @@ void roomba_hud_controller_object::on_initialize()
 		if (auto instance = roomba.lock())
 			return instance->get_controll_object()->get_max_wet_value();
 		return 1;
+	});
+	speed->set_getter(
+	[this]() {
+		if (auto instance = roomba.lock())
+			return instance->get_controll_object()->get_velocity();
+		return DirectX::XMFLOAT3{ 0.0f, 0.0f, 0.0f };
 	});
 }
 

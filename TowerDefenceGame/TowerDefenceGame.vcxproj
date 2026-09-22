@@ -355,6 +355,7 @@ xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y</Command>
     <ClCompile Include="Sources\Object\GameObjects\MiniGame\roomba_object _management.cpp" />
     <ClCompile Include="Sources\Object\GameObjects\MiniGame\roomba_object.cpp" />
     <ClCompile Include="Sources\Object\GameObjects\MiniGame\roomba_hud_controller_object.cpp" />
+    <ClCompile Include="Sources\Object\GameObjects\MiniGame\roomba_speed_controller_object.cpp" />
     <ClCompile Include="Sources\Object\GameObjects\stage_object.cpp" />
     <ClCompile Include="Sources\Object\GameObjects\UI\Common\fade_controller_object.cpp" />
     <ClCompile Include="Sources\Object\GameObjects\UI\Common\result_hud_controller.cpp" />
@@ -462,6 +463,7 @@ xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y</Command>
     <ClInclude Include="Headers\Object\GameObjects\MiniGame\roomba_gauge_controller_object.h" />
     <ClInclude Include="Headers\Object\GameObjects\MiniGame\roomba_object.h" />
     <ClInclude Include="Headers\Object\GameObjects\MiniGame\roomba_hud_controller_object.h" />
+    <ClInclude Include="Headers\Object\GameObjects\MiniGame\roomba_speed_controller_object.h" />
     <ClInclude Include="Headers\Object\GameObjects\stage_object.h" />
     <ClInclude Include="Headers\Object\GameObjects\UI\Common\fade_controller_object.h" />
     <ClInclude Include="Headers\Object\GameObjects\UI\Common\result_hud_controller.h" />
