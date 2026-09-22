@@ -467,7 +467,7 @@ void roomba_object::update_velocity(float elapsed_time)
 			float kinetic_friction_force = normal_force * total_friction;
 
 			//	ブレーキ力を合算
-			if (action_data.breaking)
+			if (action_data.brake)
 				kinetic_friction_force += get_current_braking_force();
 
 			//	面に沿う速度と逆向きの力積

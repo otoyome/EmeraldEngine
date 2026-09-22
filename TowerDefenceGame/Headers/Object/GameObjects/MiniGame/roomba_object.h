@@ -165,14 +165,13 @@ public:	//	速度系
 	void add_impulse(DirectX::XMFLOAT3 delta_velocity);
 
 	float get_max_speed(move_mode mode) const;
+	float get_current_accelaration_force() const;
+	float get_accelaration_force(move_mode mode) const;
 
 private:
-	float get_current_accelaration_force() const;
 	float get_current_braking_force() const;
-
 	float get_current_friction() const;
 
-	float get_accelaration_force(move_mode mode) const;
 
 	float calculate_drag_coefficient() const;
 	float calculate_frontal_area() const;
@@ -182,7 +181,7 @@ public:	//	入力情報設定
 	{
 		DirectX::XMFLOAT3 move = { 0, 0, 0 }; // 移動方向
 		bool dash = false; // ダッシュ
-		bool breaking = false; // ブレーキ
+		bool brake = false; // ブレーキ
 
 		bool use_turn_vector = false; // 向きベクトルを別で指定する
 		DirectX::XMFLOAT2 turn_vector = { 0, 0 }; // 向き方向

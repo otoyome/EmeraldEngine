@@ -13,15 +13,6 @@ private:
 		default,
 	};
 
-	using call_back_dead_start = std::function<void()>;
-	using call_back_dead_start_map = std::unordered_map<std::string, call_back_dead_start>;
-
-	using call_back_select_dead = std::function<void()>;
-	using call_back_select_dead_map = std::unordered_map<std::string, call_back_select_dead>;
-
-	using call_back_select_regenerate = std::function<void()>;
-	using call_back_select_regenerate_map = std::unordered_map<std::string, call_back_select_regenerate>;
-
 public:
 	std::shared_ptr<roomba_object> get_controll_object() const;
 	DirectX::XMFLOAT3 get_focus_point() const;

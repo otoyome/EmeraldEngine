@@ -70,7 +70,7 @@ void roomba_controller_object::fixed_update(float elapsed_time)
 			action_datas[0].move = get_move_vector();
 			action_datas[0].dash = keyboard_state.is_key_state(keyboard::key_states::shift) == input::state::hold ||
 								   mouse_state.is_key_state(mouse::key_states::left) == input::state::hold;
-			action_datas[0].breaking = keyboard_state.is_key_state(keyboard::key_states::ctrl) == input::state::hold ||
+			action_datas[0].brake = keyboard_state.is_key_state(keyboard::key_states::ctrl) == input::state::hold ||
 								   mouse_state.is_key_state(mouse::key_states::right) == input::state::hold;
 
 			//	ƒAƒNƒVƒ‡ƒ“î•ñˆø‚«“n‚µ
@@ -84,7 +84,7 @@ void roomba_controller_object::fixed_update(float elapsed_time)
 				action_data.move.y += action_datas[index].move.y * frame_move_rate;
 				action_data.move.z += action_datas[index].move.z * frame_move_rate;
 				action_data.dash = action_datas[index].dash ? true : action_data.dash;
-				action_data.breaking = action_datas[index].breaking ? true : action_data.breaking;
+				action_data.brake = action_datas[index].brake ? true : action_data.brake;
 			}
 
 			//	

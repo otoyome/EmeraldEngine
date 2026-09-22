@@ -168,45 +168,6 @@ minigame_scene::minigame_scene()
 		register_object(camera_controller);
 	}
 
-	//	UIオブジェクト設置
-	{
-		test_heat = std::make_shared<ui_object>("熱バー");
-		test_heat->set_screen_rect({ 40, 40, 180, 50 });
-		test_heat->set_color({ 1, 0, 0, 1 });
-		test_heat->set_sort_order(0);
-		register_object(test_heat);
-	}
-	{
-		test_heat_max = std::make_shared<ui_object>("熱バー(最大値)");
-		test_heat_max->set_screen_rect({ 40, 95, 1160, 10 });
-		test_heat_max->set_color({ 0.3f, 0.3f, 0.3f, 1 });
-		test_heat_max->set_sort_order(0);
-		register_object(test_heat_max);
-	}
-	{
-		test_wet = std::make_shared<ui_object>("濡れバー");
-		test_wet->set_screen_rect({ 40, 115, 180, 50 });
-		test_wet->set_color({ 0, 0, 1, 1 });
-		test_wet->set_sort_order(0);
-		register_object(test_wet);
-	}
-	{
-		test_wet_max = std::make_shared<ui_object>("濡れバー(最大値)");
-		test_wet_max->set_screen_rect({ 40, 170, 1160, 10 });
-		test_wet_max->set_color({ 0.3f, 0.3f, 0.3f, 1 });
-		test_wet_max->set_sort_order(0);
-		register_object(test_wet_max);
-	}
-	{
-		font_data_ptr speed_font;
-		font_data_manager::instance()->load_from_file(speed_font, "Assets/Resources/Textures/fonts/MS Gothic/MS Gothic.fnt");
-		test_speed = std::make_shared<ui_text>("速度", speed_font);
-		test_speed->set_screen_rect({ 1000, 500, 180, 180 });
-		test_speed->set_color({ 0, 0, 1, 1 });
-		test_speed->set_sort_order(0);
-		register_object(test_speed);
-	}
-
 	//	エフェクト類生成
 	{
 		effect_resource_ptr resource;
@@ -215,11 +176,11 @@ minigame_scene::minigame_scene()
 			bubble_effect = std::make_shared<effect_instance>(resource);
 			effect_manager::instance()->register_instance(bubble_effect);
 		}
-		//if (effect_resource_manager::instance()->load(resource, "Assets/Resources/Effects/Rain.eme"))
-		//{
-		//	rain_effect = std::make_shared<effect_instance>(resource);
-		//	effect_manager::instance()->register_instance(rain_effect);
-		//}
+		if (effect_resource_manager::instance()->load(resource, "Assets/Resources/Effects/Rain.eme"))
+		{
+			rain_effect = std::make_shared<effect_instance>(resource);
+			effect_manager::instance()->register_instance(rain_effect);
+		}
 	}
 }
 
@@ -330,24 +291,7 @@ void minigame_scene::update_core(float elapsed_time)
 		}
 		player_object->on_wet(wet_event_count * 100);
 
-		if (test_heat)
-		{
-			test_heat->set_screen_rect({ 40, 40, (1200 - 40) * player_object->get_heat_rate(), 50 });
-		}
-		if (test_wet)
-		{
-			test_wet->set_screen_rect({ 40, 115, (1200 - 40) * player_object->get_wet_rate(), 50 });
-		}
-		if (test_speed)
-		{
-			DirectX::XMVECTOR Velocity = DirectX::XMLoadFloat3(&player_object->get_velocity());
-			float speed_m_s = system_units::convert_unit_to_m(DirectX::XMVectorGetX(DirectX::XMVector3Length(Velocity)));
-			float speed_km_h = speed_m_s * 3.6f;
-			char text[64];
-			sprintf_s(text, "速度: %.1f km/h", speed_km_h);
-			test_speed->set_texts(text);
-		}
-
+		//	エフェクトと連動
 		if (postprocess_material)
 		{
 			//	熱量に応じて赤く

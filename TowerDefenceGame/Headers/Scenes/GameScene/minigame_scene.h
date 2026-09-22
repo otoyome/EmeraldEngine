@@ -2,21 +2,18 @@
 
 #include "Scenes/scene_base.h"
 
+#include "minigame_ui_scene.h"
 #include "Scenes/StageScene/stage_00_scene.h"
 
 #include "object/gameobjects/minigame/roomba_object.h"
 #include "object/camera_object.h"
-#include "object/gameobjects/ui/ui_object.h"
-
 #include "effect_instance.h"
-
-#include "object/gameobjects/ui/ui_text.h"
 
 //	ゲームメインシーン
 class minigame_scene : public scene_base
 {
 	//SCENE_DECRLEAR(minigame_scene, scene_base);
-	SCENE_ADD_CHILDREN_DECRLEAR(minigame_scene, scene_base, stage_00_scene);
+	SCENE_ADD_CHILDREN_DECRLEAR(minigame_scene, scene_base, stage_00_scene, minigame_ui_scene);
 
 public:
 	minigame_scene();
@@ -35,11 +32,6 @@ protected:
 private:
 	std::shared_ptr<roomba_object> player_object;
 	std::shared_ptr<camera_object> main_camera;
-	std::shared_ptr<ui_object> test_wet;
-	std::shared_ptr<ui_object> test_heat;
-	std::shared_ptr<ui_object> test_wet_max;
-	std::shared_ptr<ui_object> test_heat_max;
-	std::shared_ptr<ui_text> test_speed;
 	std::shared_ptr<material> postprocess_material;
 
 	std::shared_ptr<effect_instance> bubble_effect;
