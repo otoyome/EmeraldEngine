@@ -217,43 +217,44 @@ void update_attract_item(inout emitter_context em_context, inout pt_common_item 
         pt_attract_item pt_attract;
         uint write_offset = particle_binary_offset;
         stream_attract_item(rw_read, particle_binary_offset, pt_attract);
-
-        em_attract_item attract;
-        stream_attract_item(rw_read_only, emitter_binary_offset, attract);
-
-        if (has_flag(pt_common.state, particle_binary_state_bit_spawn_frame))
+        //  エミッター側の情報を取得
         {
-            //  最初のフレームは初期化
-            pt_attract.velocity = float3(0, 0, 0);
-        }
-        else if (em_context.elapsed_time > 0.0f)
-        {
-            float3 target_vector = attract.position - pt_common.translation;
-            float dist = length(target_vector);
+            em_attract_item attract;
+            stream_attract_item(rw_read_only, emitter_binary_offset, attract);
 
-            if (dist > 0.0001f)
+            if (has_flag(pt_common.state, particle_binary_state_bit_spawn_frame))
             {
-                float3 dir = target_vector / dist;
-
-                //  影響範囲による減衰
-                float influence = saturate(1.0f - dist / max(attract.radius, 0.0001f));
-                influence = pow(influence, max(attract.falloff, 0.0001f));
-
-                //  加速処理
-                pt_attract.velocity += dir * attract.strength * influence * em_context.elapsed_time;
-                //  減速処理
-                pt_attract.velocity *= max(1.0f - attract.damping * em_context.elapsed_time, 0.0f);
-                //  移動
-                pt_common.translation += pt_attract.velocity * em_context.elapsed_time;
+                //  最初のフレームは初期化
+                pt_attract.velocity = float3(0, 0, 0);
             }
-
-            //  消滅範囲に入ったら寿命切れ扱いで消す
-            if (dist <= attract.kill_radius)
+            else if (em_context.elapsed_time > 0.0f)
             {
-                pt_common.life_time = pt_common.life_time_max;
+                float3 target_vector = attract.position - pt_common.translation;
+                float dist = length(target_vector);
+
+                if (dist > 0.0001f)
+                {
+                    float3 dir = target_vector / dist;
+
+                    //  影響範囲による減衰
+                    float influence = saturate(1.0f - dist / max(attract.radius, 0.0001f));
+                    influence = pow(influence, max(attract.falloff, 0.0001f));
+
+                    //  加速処理
+                    pt_attract.velocity += dir * attract.strength * influence * em_context.elapsed_time;
+                    //  減速処理
+                    pt_attract.velocity *= max(1.0f - attract.damping * em_context.elapsed_time, 0.0f);
+                    //  移動
+                    pt_common.translation += pt_attract.velocity * em_context.elapsed_time;
+                }
+
+                //  消滅範囲に入ったら寿命切れ扱いで消す
+                if (dist <= attract.kill_radius)
+                {
+                    pt_common.life_time = pt_common.life_time_max;
+                }
             }
         }
-
         stream_attract_item(rw_write, write_offset, pt_attract);
     }
 }
@@ -265,91 +266,92 @@ void update_event_item(inout emitter_context em_context, inout pt_common_item pt
 {
     if (has_flag(em_context.active_items, emitter_active_event_item_bit_flag))
     {
-        em_event_item em_event;
-        stream_event_item(rw_read_only, emitter_binary_offset, em_event);
-
         pt_event_item pt_event;
         uint write_offset = particle_binary_offset;
         stream_event_item(rw_read, particle_binary_offset, pt_event);
-
-        if (has_flag(pt_common.state, particle_binary_state_bit_spawn_frame))
+        //  エミッター側の情報を取得
         {
-            //	最初のフレームは現在位置を基準として保存
-            pt_event.previous_position = pt_common.translation;
-        }
-        else if (em_context.elapsed_time > 0.0f &&   //  動いているとき以外は処理しない
-            !has_flag(pt_common.state, particle_binary_state_bit_event_fired))
-        {
-            bool hit = false;
+            em_event_item em_event;
+            stream_event_item(rw_read_only, emitter_binary_offset, em_event);
 
-            //	sdfとの当たり判定
-            float3 hit_position = pt_common.translation;
-            if (has_flag(em_event.state, emitter_event_item_state_contact_collision))
+            if (has_flag(pt_common.state, particle_binary_state_bit_spawn_frame))
             {
-                //	sweep有効時は前フレーム位置との間を数点サンプリングして通過を検出
-                static const uint event_item_sweep_step_count = 4;    //  スイープカウント
-                uint sweep_steps = has_flag(em_event.state, emitter_event_item_state_sweep_collision) ? event_item_sweep_step_count : 1;
+                //	最初のフレームは現在位置を基準として保存
+                pt_event.previous_position = pt_common.translation;
+            }
+            else if (em_context.elapsed_time > 0.0f &&   //  動いているとき以外は処理しない
+                !has_flag(pt_common.state, particle_binary_state_bit_event_fired))
+            {
+                bool hit = false;
 
-                float previous_sample_distance;
-                uint previous_sample_id;
-                bool previous_sample_valid = sample_cubic_sdf_nearest(cubic_sdf_header_buffer, cubic_sdf_voxel_buffer, pt_event.previous_position, uint2(0, 0), previous_sample_distance, previous_sample_id);
-
-                [loop] for (uint step = 1; step <= sweep_steps; ++step)
+                //	sdfとの当たり判定
+                float3 hit_position = pt_common.translation;
+                if (has_flag(em_event.state, emitter_event_item_state_contact_collision))
                 {
-                    float3 sample_position = lerp(pt_event.previous_position, pt_common.translation, (float) step / (float) sweep_steps);
+                    //	sweep有効時は前フレーム位置との間を数点サンプリングして通過を検出
+                    static const uint event_item_sweep_step_count = 4;    //  スイープカウント
+                    uint sweep_steps = has_flag(em_event.state, emitter_event_item_state_sweep_collision) ? event_item_sweep_step_count : 1;
 
-                    float sample_distance;
-                    uint sample_id;
-                    bool sample_valid = sample_cubic_sdf_nearest(cubic_sdf_header_buffer, cubic_sdf_voxel_buffer, sample_position, uint2(0, 0), sample_distance, sample_id);
+                    float previous_sample_distance;
+                    uint previous_sample_id;
+                    bool previous_sample_valid = sample_cubic_sdf_nearest(cubic_sdf_header_buffer, cubic_sdf_voxel_buffer, pt_event.previous_position, uint2(0, 0), previous_sample_distance, previous_sample_id);
 
-                    //	両方がSDF範囲内の時だけ通過とみなす
-                    if (previous_sample_valid && sample_valid && sign(previous_sample_distance) != sign(sample_distance))
+                    [loop] for (uint step = 1; step <= sweep_steps; ++step)
                     {
-                        //	距離を使って交差位置を線形補間
-                        float3 previous_sample_position = lerp(pt_event.previous_position, pt_common.translation, (float) (step - 1) / (float) sweep_steps);
-                        float denom = previous_sample_distance - sample_distance;
-                        float t = abs(denom) > 1.0e-6f ? saturate(previous_sample_distance / denom) : 0.5f;
-                        hit_position = lerp(previous_sample_position, sample_position, t);
+                        float3 sample_position = lerp(pt_event.previous_position, pt_common.translation, (float) step / (float) sweep_steps);
 
-                        hit = true;
-                        break;
+                        float sample_distance;
+                        uint sample_id;
+                        bool sample_valid = sample_cubic_sdf_nearest(cubic_sdf_header_buffer, cubic_sdf_voxel_buffer, sample_position, uint2(0, 0), sample_distance, sample_id);
+
+                        //	両方がSDF範囲内の時だけ通過とみなす
+                        if (previous_sample_valid && sample_valid && sign(previous_sample_distance) != sign(sample_distance))
+                        {
+                            //	距離を使って交差位置を線形補間
+                            float3 previous_sample_position = lerp(pt_event.previous_position, pt_common.translation, (float) (step - 1) / (float) sweep_steps);
+                            float denom = previous_sample_distance - sample_distance;
+                            float t = abs(denom) > 1.0e-6f ? saturate(previous_sample_distance / denom) : 0.5f;
+                            hit_position = lerp(previous_sample_position, sample_position, t);
+
+                            hit = true;
+                            break;
+                        }
+                        previous_sample_distance = sample_distance;
+                        previous_sample_valid = sample_valid;
                     }
-                    previous_sample_distance = sample_distance;
-                    previous_sample_valid = sample_valid;
                 }
-            }
-            else
-            {
-                //  半径判定
-                float dist = length(em_event.center - pt_common.translation);
-                if (dist < em_event.radius)
+                else
                 {
-                    hit_position = pt_common.translation;
-                    hit = true;
+                    //  半径判定
+                    float dist = length(em_event.center - pt_common.translation);
+                    if (dist < em_event.radius)
+                    {
+                        hit_position = pt_common.translation;
+                        hit = true;
+                    }
                 }
-            }
 
-            if (hit)
-            {
-                //  イベントバッファに登録
-                particle_event ev;
-                ev.target_emitter_id = em_event.target_emitter_id;
-                ev.position = hit_position;
-                particle_event_buffer.Append(ev);
-
-                //  イベント通知済み判定
-                pt_common.state |= particle_binary_state_bit_event_fired;
-
-                //  ヒット時に死亡させる
-                if (has_flag(em_event.state, emitter_event_item_state_kill_on_hit))
+                if (hit)
                 {
-                    pt_common.life_time = pt_common.life_time_max;
-                }
-            }
+                    //  イベントバッファに登録
+                    particle_event ev;
+                    ev.target_emitter_id = em_event.target_emitter_id;
+                    ev.position = hit_position;
+                    particle_event_buffer.Append(ev);
 
-            pt_event.previous_position = pt_common.translation;
+                    //  イベント通知済み判定
+                    pt_common.state |= particle_binary_state_bit_event_fired;
+
+                    //  ヒット時に死亡させる
+                    if (has_flag(em_event.state, emitter_event_item_state_kill_on_hit))
+                    {
+                        pt_common.life_time = pt_common.life_time_max;
+                    }
+                }
+
+                pt_event.previous_position = pt_common.translation;
+            }
         }
-
         stream_event_item(rw_write, write_offset, pt_event);
     }
 }

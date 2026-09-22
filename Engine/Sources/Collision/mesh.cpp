@@ -1756,7 +1756,7 @@ float bounding_mesh::calculate_segment_distance(const collision::line& line,
 
 bool bounding_mesh::is_point_inside(const DirectX::XMFLOAT3& point) const
 {
-	if (triangles.empty())
+	if (triangles.empty() || block_datas.empty())
 		return false;
 
 	DirectX::XMFLOAT3 local_point;
@@ -1769,15 +1769,43 @@ bool bounding_mesh::is_point_inside(const DirectX::XMFLOAT3& point) const
 	for (size_t index = 0; index < direction_count; ++index)
 		directions[index] = DirectX::XMLoadFloat3(&inside_test_ray_directions[index]);
 
-	auto p = positions.data();
-	for (auto& triangle : triangles)
-	{
-		DirectX::XMVECTOR A = DirectX::XMLoadFloat3(p + triangle.a);
-		DirectX::XMVECTOR AB = DirectX::XMLoadFloat3(&triangle.ab);
-		DirectX::XMVECTOR CA = DirectX::XMLoadFloat3(&triangle.ca);
+	DirectX::XMFLOAT3 grid_extent = { area_max.x - area_min.x, area_max.y - area_min.y, area_max.z - area_min.z };
+	float ray_length = sqrtf(grid_extent.x * grid_extent.x + grid_extent.y * grid_extent.y + grid_extent.z * grid_extent.z)
+		+ std::max({ area_unit.x, area_unit.y, area_unit.z });
 
-		for (size_t index = 0; index < direction_count; ++index)
+	auto p = positions.data();
+	std::vector<size_t> candidate_triangles;
+	for (size_t index = 0; index < direction_count; ++index)
+	{
+		DirectX::XMFLOAT3 local_end;
+		DirectX::XMStoreFloat3(&local_end, DirectX::XMVectorAdd(P, DirectX::XMVectorScale(directions[index], ray_length)));
+
+		DirectX::XMFLOAT3 min = local_point, max = local_point;
+		min.x = std::min(min.x, local_end.x); min.y = std::min(min.y, local_end.y); min.z = std::min(min.z, local_end.z);
+		max.x = std::max(max.x, local_end.x); max.y = std::max(max.y, local_end.y); max.z = std::max(max.z, local_end.z);
+
+		candidate_triangles.clear();
+		auto list = calculate_check_order_list(min, max, area_min, area_unit, separate_count);
+		for (auto node_index : list)
 		{
+			auto& node = block_datas[node_index];
+			if (node.triangles.empty())
+				continue;
+			if (!node.bounds.intersect_segment(local_point, local_end))
+				continue;
+
+			candidate_triangles.insert(candidate_triangles.end(), node.triangles.begin(), node.triangles.end());
+		}
+		std::sort(candidate_triangles.begin(), candidate_triangles.end());
+		candidate_triangles.erase(std::unique(candidate_triangles.begin(), candidate_triangles.end()), candidate_triangles.end());
+
+		for (auto triangle_index : candidate_triangles)
+		{
+			auto& triangle = triangles[triangle_index];
+			DirectX::XMVECTOR A = DirectX::XMLoadFloat3(p + triangle.a);
+			DirectX::XMVECTOR AB = DirectX::XMLoadFloat3(&triangle.ab);
+			DirectX::XMVECTOR CA = DirectX::XMLoadFloat3(&triangle.ca);
+
 			if (ray_intersects_triangle_both_side(P, directions[index], A, AB, CA))
 				++hit_counts[index];
 		}

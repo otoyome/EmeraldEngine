@@ -26,6 +26,9 @@ public:
 	std::string_view get_texts() const;
 	void set_texts(std::string_view texts);
 
+	float get_font_size() const;
+	void set_font_size(float font_size);
+
 public:
 	ui_text(std::string_view name, font_data_ptr font_data);
 	~ui_text() override;
@@ -42,4 +45,5 @@ private:
 	alignment_verticals alignment_vertical;
 
 	std::string texts;
+	float font_size;
 };

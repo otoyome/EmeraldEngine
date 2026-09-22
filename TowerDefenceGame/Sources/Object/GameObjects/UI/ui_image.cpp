@@ -13,6 +13,33 @@ namespace
 		{ 0.0f, 0.5f },	//	ç∂
 		{ 0.0f, 0.0f },	//	ç∂è„
 	};
+
+	DirectX::XMFLOAT2 calculate_corner_size(float border_near, float border_far, float texture_size, float screen_size)
+	{
+		float rate[2] = { border_near, border_far };
+		float total_rate = rate[0] + rate[1];
+		if (total_rate <= 0.0f)
+		{
+			return { 0.0f, 1.0f };
+		}
+
+		{
+			float w = std::max(total_rate - 1.0f, 0.0f);
+			float w0 = rate[0] / total_rate;
+			float w1 = rate[1] / total_rate;
+			rate[0] -= w * w0;
+			rate[1] -= w * w1;
+			total_rate = rate[0] + rate[1];
+		}
+		float near_size = rate[0] * texture_size;
+		float far_size = rate[1] * texture_size;
+		float size_rate = screen_size / texture_size;
+		float remain = texture_size * (std::min(size_rate, total_rate) - total_rate);
+		near_size = std::max(0.0f, near_size + remain * (rate[0] / total_rate));
+		far_size = std::max(0.0f, far_size + remain * (rate[1] / total_rate));
+
+		return { std::max(0.0f, near_size / screen_size), std::max(0.0f, (screen_size - far_size) / screen_size) };
+	}
 }
 
 ui_image::draw_modes ui_image::get_draw_mode() const
@@ -92,7 +119,7 @@ void ui_image::set_texture(texture_ptr texture)
 ui_image::ui_image(std::string_view name)
 : ui_object(name)
 , draw_mode(draw_modes::single)
-, border(0.25f, 0.25f, 0.5f, 0.5f)
+, border(0.25f, 0.25f, 0.25f, 0.25f)
 , fill_amount(1.0f)
 , fill_origin(fill_origins::top)
 , fill_clockwise(true)
@@ -145,44 +172,10 @@ void ui_image::pre_render()
 				//	ç¿ïW
 				DirectX::XMFLOAT2 corner_size[2];
 				{
-					float rate[2] = {border.x, math::saturate(1.0f - (border.x + border.z))};
-					float total_rate = rate[0] + rate[1];
-					{
-						float w = std::max(total_rate - 1.0f, 0.0f);
-						float w0 = rate[0] / total_rate;
-						float w1 = rate[1] / total_rate;
-						rate[0] -= w * w0;
-						rate[1] -= w * w1;
-						total_rate = rate[0] + rate[1];
-					}
-					float l = rate[0] * texture_size.x;
-					float r = rate[1] * texture_size.x;
-					float remain = texture_size.x * (std::min(size_rate.x, total_rate) - total_rate);
-					l = std::max(0.0f, l + remain * (rate[0] / total_rate));
-					r = std::max(0.0f, r + remain * (rate[1] / total_rate));
-
-					corner_size[0].x = std::max(0.0f, l / screen_rect_size.x);
-					corner_size[1].x = std::max(0.0f, (screen_rect_size.x - r) / screen_rect_size.x);
-				}
-				{
-					float rate[2] = { border.y, math::saturate(1.0f - (border.y + border.w))};
-					float total_rate = rate[0] + rate[1];
-					{
-						float w = std::max(total_rate - 1.0f, 0.0f);
-						float w0 = rate[0] / total_rate;
-						float w1 = rate[1] / total_rate;
-						rate[0] -= w * w0;
-						rate[1] -= w * w1;
-						total_rate = rate[0] + rate[1];
-					}
-					float l = rate[0] * texture_size.y;
-					float r = rate[1] * texture_size.y;
-					float remain = texture_size.y * (std::min(size_rate.y, total_rate) - total_rate);
-					l = std::max(0.0f, l + remain * (rate[0] / total_rate));
-					r = std::max(0.0f, r + remain * (rate[1] / total_rate));
-
-					corner_size[0].y = std::max(0.0f, l / screen_rect_size.y);
-					corner_size[1].y = std::max(0.0f, (screen_rect_size.y - r) / screen_rect_size.y);
+					DirectX::XMFLOAT2 x_corners = calculate_corner_size(border.x, border.z, texture_size.x, screen_rect_size.x);
+					DirectX::XMFLOAT2 y_corners = calculate_corner_size(border.y, border.w, texture_size.y, screen_rect_size.y);
+					corner_size[0] = { x_corners.x, y_corners.x };
+					corner_size[1] = { x_corners.y, y_corners.y };
 				}
 				//	UV
 				float llx = 0.0f;
@@ -195,22 +188,22 @@ void ui_image::pre_render()
 				float cry = corner_size[1].y;
 				vertices.push_back({{ llx, lly, 0.0f }, color, {                0.0f, 0.0f }});
 				vertices.push_back({{ clx, lly, 0.0f }, color, {            border.x, 0.0f }});
-				vertices.push_back({{ crx, lly, 0.0f }, color, { border.x + border.z, 0.0f }});
+				vertices.push_back({{ crx, lly, 0.0f }, color, { 1.0f - border.z, 0.0f }});
 				vertices.push_back({{ lrx, lly, 0.0f }, color, {                1.0f, 0.0f }});
 
 				vertices.push_back({{ llx, cly, 0.0f }, color, {                0.0f, border.y }});
 				vertices.push_back({{ clx, cly, 0.0f }, color, {            border.x, border.y }});
-				vertices.push_back({{ crx, cly, 0.0f }, color, { border.x + border.z, border.y }});
+				vertices.push_back({{ crx, cly, 0.0f }, color, { 1.0f - border.z, border.y }});
 				vertices.push_back({{ lrx, cly, 0.0f }, color, {                1.0f, border.y }});
 
-				vertices.push_back({{ llx, cry, 0.0f }, color, {                0.0f, border.y + border.w }});
-				vertices.push_back({{ clx, cry, 0.0f }, color, {            border.x, border.y + border.w }});
-				vertices.push_back({{ crx, cry, 0.0f }, color, { border.x + border.z, border.y + border.w }});
-				vertices.push_back({{ lrx, cry, 0.0f }, color, {                1.0f, border.y + border.w }});
+				vertices.push_back({{ llx, cry, 0.0f }, color, {                0.0f, 1.0f - border.w }});
+				vertices.push_back({{ clx, cry, 0.0f }, color, {            border.x, 1.0f - border.w }});
+				vertices.push_back({{ crx, cry, 0.0f }, color, { 1.0f - border.z, 1.0f - border.w }});
+				vertices.push_back({{ lrx, cry, 0.0f }, color, {                1.0f, 1.0f - border.w }});
 
 				vertices.push_back({{ llx, lry, 0.0f }, color, {                0.0f, 1.0f }});
 				vertices.push_back({{ clx, lry, 0.0f }, color, {            border.x, 1.0f }});
-				vertices.push_back({{ crx, lry, 0.0f }, color, { border.x + border.z, 1.0f }});
+				vertices.push_back({{ crx, lry, 0.0f }, color, { 1.0f - border.z, 1.0f }});
 				vertices.push_back({{ lrx, lry, 0.0f }, color, {                1.0f, 1.0f }});
 
 				indices.emplace_back(0);	indices.emplace_back(1);	indices.emplace_back(4);

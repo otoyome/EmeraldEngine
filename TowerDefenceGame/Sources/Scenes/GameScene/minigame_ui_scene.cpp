@@ -18,8 +18,8 @@ namespace
 	static constexpr DirectX::XMFLOAT2 brake_icon_ui_position = {1130, 612};
 	static constexpr DirectX::XMFLOAT2 brake_icon_ui_size = {36, 36};
 	static constexpr DirectX::XMFLOAT2 brake_icon_main_ui_size = {72, 36};
-	//	速度表示パネル左上位置
-	static constexpr DirectX::XMFLOAT2 timer_ui_position = {1038, 184};
+	//	時間表示パネル左上位置
+	static constexpr DirectX::XMFLOAT2 timer_ui_position = {1038, 650};
 	static constexpr DirectX::XMFLOAT2 timer_ui_size = {243, 50};
 	//	速度表示パネル左上位置
 	static constexpr DirectX::XMFLOAT2 speed_ui_size = {480, 100};
@@ -44,7 +44,7 @@ minigame_ui_scene::minigame_ui_scene()
 			desc.objects[index] = std::make_shared<ui_image>("ヒートゲージ:メイン");
 			desc.objects[index]->set_screen_rect({ heat_ui_position.x, heat_ui_position.y, heat_ui_size.x, heat_ui_size.y });
 			desc.objects[index]->set_color({ 1, 0.25f, 0.25f, 1 });
-			desc.objects[index]->set_border({0.25f,0,0.5f,1});
+			desc.objects[index]->set_border({0.25f,0,0.25f,0});
 			desc.objects[index]->set_texture("Assets/Resources/Textures/hud/SpeedMeterLeft.png");
 			desc.objects[index]->set_draw_mode(ui_image::draw_modes::sliced);
 			desc.objects[index]->set_sort_order(5);
@@ -64,7 +64,7 @@ minigame_ui_scene::minigame_ui_scene()
 			desc.objects[index] = std::make_shared<ui_image>("ウェットゲージ:メイン");
 			desc.objects[index]->set_screen_rect({ wet_ui_position.x, wet_ui_position.y, wet_ui_size.x, wet_ui_size.y });
 			desc.objects[index]->set_color({ 0.25f, 0.25f, 1, 1 });
-			desc.objects[index]->set_border({0.25f,0,0.5f,1});
+			desc.objects[index]->set_border({0.25f,0,0.25f,0});
 			desc.objects[index]->set_texture("Assets/Resources/Textures/hud/SpeedMeterRight.png");
 			desc.objects[index]->set_draw_mode(ui_image::draw_modes::sliced);
 			desc.objects[index]->set_sort_order(5);
@@ -162,7 +162,7 @@ minigame_ui_scene::minigame_ui_scene()
 
 		//	顔画像
 		object_desc.image = std::make_shared<ui_image>("タイマー：ベース");
-		object_desc.image->set_screen_rect({ 1038, 124, 243, 50 });
+		object_desc.image->set_screen_rect({ timer_ui_position.x, timer_ui_position.y, timer_ui_size.x, timer_ui_size.y });
 		object_desc.image->set_texture("Assets/Resources/Textures/Hud/NotificationWindow.png");
 		object_desc.image->set_draw_mode(ui_image::draw_modes::sliced);
 		object_desc.image->set_sort_order(100);
@@ -170,7 +170,7 @@ minigame_ui_scene::minigame_ui_scene()
 
 		object_desc.text = std::make_shared<ui_text>("タイマー：：数値", font);
 		object_desc.text->set_texts("00:00:00");
-		object_desc.text->set_screen_rect({ 1397, 135, 32, 32 });
+		object_desc.text->set_screen_rect({ timer_ui_position.x + 59, timer_ui_position.y + 11, 32, 32 });
 		object_desc.text->set_sort_order(110);
 		register_object(object_desc.text);
 
@@ -187,13 +187,14 @@ minigame_ui_scene::minigame_ui_scene()
 		object_desc.image->set_screen_rect({ speed_ui_position.x, speed_ui_position.y, speed_ui_size.x, speed_ui_size.y });
 		object_desc.image->set_texture("Assets/Resources/Textures/Hud/SpeedMeter.png");
 		object_desc.image->set_draw_mode(ui_image::draw_modes::sliced);
-		object_desc.image->set_border({0,0,1,1});
+		object_desc.image->set_border({0,0,0,0});
 		object_desc.image->set_sort_order(100);
 		register_object(object_desc.image);
 
 		object_desc.text = std::make_shared<ui_text>("速度表示：数値", font);
 		object_desc.text->set_texts("0.0");
 		object_desc.text->set_screen_rect({ speed_ui_position.x + 230, speed_ui_position.y + 20, 64, 64 });
+		object_desc.text->set_font_size(64);
 		object_desc.text->set_sort_order(110);
 		register_object(object_desc.text);
 

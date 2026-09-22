@@ -11,12 +11,24 @@ void ui_text::set_texts(std::string_view texts)
 	set_dirty();
 }
 
+float ui_text::get_font_size() const
+{
+	return font_size;
+}
+
+void ui_text::set_font_size(float font_size)
+{
+	this->font_size = font_size;
+	set_dirty();
+}
+
 ui_text::ui_text(std::string_view name, font_data_ptr font_data)
 : ui_objects(name)
 , font_data(font_data)
 , alignment_horizontal(alignment_horizontals::left)
 , alignment_vertical(alignment_verticals::top)
 , texts("text")
+, font_size(font_data->get_font_height())
 {
 	get_sprites().resize(font_data->get_textures().size());
 	int texture_index = 0;
@@ -44,8 +56,9 @@ void ui_text::pre_render()
 		float start_y = 0.0f;
 		float x = 0.0f;
 		float y = 0.0f;
-		float x_scale = 1.0f;
-		float y_scale = 1.0f;
+		float font_scale = (font_data->get_font_height() > 0.0f) ? (font_size / font_data->get_font_height()) : 1.0f;
+		float x_scale = font_scale;
+		float y_scale = font_scale;
 		float space = font_data->get_font_width() * x_scale;
 
 		std::wstring utf16_texts = system_utility::convert_shift_jis_to_utf16(texts.data());
@@ -159,6 +172,12 @@ void ui_text::imgui_render_core()
 	if (ImGui::InputText("Text", temp_text.data(), temp_text.size()))
 	{
 		set_texts(temp_text);
+	}
+
+	float temp_font_size = get_font_size();
+	if (ImGui::DragFloat("font_size", &temp_font_size, 0.5f, 1.0f, 256.0f))
+	{
+		set_font_size(temp_font_size);
 	}
 }
 #endif	//	defined(USE_IMGUI)
