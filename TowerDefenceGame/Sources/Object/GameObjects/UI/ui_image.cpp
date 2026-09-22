@@ -1,5 +1,20 @@
 #include "object/gameobjects/ui/ui_image.h"
 
+namespace
+{
+	const DirectX::XMFLOAT2 fill_ring_points[8] =
+	{
+		{ 0.5f, 0.0f },	//	ã
+		{ 1.0f, 0.0f },	//	‰Eã
+		{ 1.0f, 0.5f },	//	‰E
+		{ 1.0f, 1.0f },	//	‰E‰º
+		{ 0.5f, 1.0f },	//	‰º
+		{ 0.0f, 1.0f },	//	¶‰º
+		{ 0.0f, 0.5f },	//	¶
+		{ 0.0f, 0.0f },	//	¶ã
+	};
+}
+
 ui_image::draw_modes ui_image::get_draw_mode() const
 {
 	return draw_mode;
@@ -19,6 +34,39 @@ DirectX::XMFLOAT4 ui_image::get_border() const
 void ui_image::set_border(DirectX::XMFLOAT4 border)
 {
 	this->border = math::saturate(border);
+	set_dirty();
+}
+
+float ui_image::get_fill_amount() const
+{
+	return fill_amount;
+}
+
+void ui_image::set_fill_amount(float fill_amount)
+{
+	this->fill_amount = math::saturate(fill_amount);
+	set_dirty();
+}
+
+ui_image::fill_origins ui_image::get_fill_origin() const
+{
+	return fill_origin;
+}
+
+void ui_image::set_fill_origin(fill_origins fill_origin)
+{
+	this->fill_origin = fill_origin;
+	set_dirty();
+}
+
+bool ui_image::get_fill_clockwise() const
+{
+	return fill_clockwise;
+}
+
+void ui_image::set_fill_clockwise(bool fill_clockwise)
+{
+	this->fill_clockwise = fill_clockwise;
 	set_dirty();
 }
 
@@ -45,6 +93,9 @@ ui_image::ui_image(std::string_view name)
 : ui_object(name)
 , draw_mode(draw_modes::single)
 , border(0.25f, 0.25f, 0.5f, 0.5f)
+, fill_amount(1.0f)
+, fill_origin(fill_origins::top)
+, fill_clockwise(true)
 {
 }
 
@@ -190,6 +241,59 @@ void ui_image::pre_render()
 				indices.emplace_back(11);	indices.emplace_back(15);	indices.emplace_back(14);
 				break;
 			}
+			case draw_modes::filled:
+			{
+				float amount = math::saturate(fill_amount);
+				if (amount > 0.0f)
+				{
+					int origin_index = 0;
+					switch (fill_origin)
+					{
+						case fill_origins::top:		origin_index = 0;	break;
+						case fill_origins::right:	origin_index = 2;	break;
+						case fill_origins::bottom:	origin_index = 4;	break;
+						case fill_origins::left:		origin_index = 6;	break;
+					}
+					int direction = fill_clockwise ? 1 : -1;
+
+					auto ring_point = [&](int step)
+					{
+						int wrapped = ((origin_index + step * direction) % 8 + 8) % 8;
+						return fill_ring_points[wrapped];
+					};
+
+					float total = amount * 8.0f;
+					int full_slices = std::min(8, static_cast<int>(total));
+					float fraction = total - static_cast<float>(full_slices);
+
+					vertices.push_back({{ 0.5f, 0.5f, 0.0f }, color, { 0.5f, 0.5f }});
+
+					DirectX::XMFLOAT2 first_point = ring_point(0);
+					vertices.push_back({{ first_point.x, first_point.y, 0.0f }, color, { first_point.x, first_point.y }});
+
+					for (int step = 1; step <= full_slices; ++step)
+					{
+						DirectX::XMFLOAT2 point = ring_point(step);
+						vertices.push_back({{ point.x, point.y, 0.0f }, color, { point.x, point.y }});
+					}
+
+					if (fraction > 0.0f)
+					{
+						DirectX::XMFLOAT2 from = ring_point(full_slices);
+						DirectX::XMFLOAT2 to = ring_point(full_slices + 1);
+						DirectX::XMFLOAT2 point = { math::lerp(from.x, to.x, fraction), math::lerp(from.y, to.y, fraction) };
+						vertices.push_back({{ point.x, point.y, 0.0f }, color, { point.x, point.y }});
+					}
+
+					for (UINT index = 1; index < vertices.size() - 1; ++index)
+					{
+						indices.emplace_back(0);
+						indices.emplace_back(index);
+						indices.emplace_back(index + 1);
+					}
+				}
+				break;
+			}
 		}
 		get_sprite().update_vertices(vertices, indices);
 	}
@@ -202,17 +306,9 @@ void ui_image::imgui_render_core()
 {
 	base::imgui_render_core();
 
-	const char* draw_mode_names[] =
+	if (ImGui::Combo("draw_mode", draw_mode))
 	{
-		"single",
-		"sliced",
-	};
-	static_assert(ARRAYSIZE(draw_mode_names) == magic_enum::enum_count<draw_modes>());
-
-	int index = static_cast<int>(draw_mode);
-	if (ImGui::Combo("draw_mode", &index, draw_mode_names, ARRAYSIZE(draw_mode_names)))
-	{
-		set_draw_mode(static_cast<draw_modes>(index));
+		set_dirty();
 	}
 
 	auto rect = get_border();
@@ -220,6 +316,25 @@ void ui_image::imgui_render_core()
 	{
 		set_border(rect);
 	}
+
+	if (draw_mode == draw_modes::filled)
+	{
+		float amount = get_fill_amount();
+		if (ImGui::DragFloat("fill_amount", &amount, 0.01f, 0.0f, 1.0f))
+		{
+			set_fill_amount(amount);
+		}
+
+		if (ImGui::Combo("fill_origin", fill_origin))
+		{
+			set_dirty();
+		}
+
+		bool clockwise = get_fill_clockwise();
+		if (ImGui::Checkbox("fill_clockwise", &clockwise))
+		{
+			set_fill_clockwise(clockwise);
+		}
+	}
 }
 #endif	//	defined(USE_IMGUI)
-

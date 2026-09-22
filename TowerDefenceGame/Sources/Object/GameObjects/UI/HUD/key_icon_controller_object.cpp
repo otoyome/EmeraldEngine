@@ -4,11 +4,11 @@ namespace
 {
 	constexpr std::string_view key_icon_texture_path[] =
 	{
-		"Assets/Resources/texture/keyboard_E_click_icon.png",
-		"Assets/Resources/texture/keyboard_Q_click_icon.png",
-		"Assets/Resources/texture/keyboard_space_icon.png",
-		"Assets/Resources/texture/mouse_left_click_icon.png",
-		"Assets/Resources/texture/mouse_right_click_icon.png",
+		"Assets/Resources/Textures/hud/keyboard_E_click_icon.png",
+		"Assets/Resources/Textures/hud/keyboard_Q_click_icon.png",
+		"Assets/Resources/Textures/hud/keyboard_space_icon.png",
+		"Assets/Resources/Textures/hud/mouse_left_click_icon.png",
+		"Assets/Resources/Textures/hud/mouse_right_click_icon.png",
 	};
 }
 

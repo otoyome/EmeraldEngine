@@ -11,13 +11,13 @@ namespace
 	static constexpr DirectX::XMFLOAT2 wet_ui_position = {40, 80};
 	static constexpr DirectX::XMFLOAT2 wet_ui_size = {180, 40};
 	//	加速アイコン左上位置
-	static constexpr DirectX::XMFLOAT2 accel_icon_ui_position = {1110, 840};
+	static constexpr DirectX::XMFLOAT2 accel_icon_ui_position = {1010, 540};
 	static constexpr DirectX::XMFLOAT2 accel_icon_ui_size = {36, 36};
-	static constexpr DirectX::XMFLOAT2 accel_icon_main_ui_size = {96, 96};
+	static constexpr DirectX::XMFLOAT2 accel_icon_main_ui_size = {72, 36};
 	//	減速アイコン左上位置
-	static constexpr DirectX::XMFLOAT2 brake_icon_ui_position = {1230, 840};
+	static constexpr DirectX::XMFLOAT2 brake_icon_ui_position = {1130, 540};
 	static constexpr DirectX::XMFLOAT2 brake_icon_ui_size = {36, 36};
-	static constexpr DirectX::XMFLOAT2 brake_icon_main_ui_size = {96, 96};
+	static constexpr DirectX::XMFLOAT2 brake_icon_main_ui_size = {72, 36};
 }
 
 minigame_ui_scene::minigame_ui_scene()
@@ -112,7 +112,10 @@ minigame_ui_scene::minigame_ui_scene()
 		desc.name = "加速キーアイコン";
 		desc.icon_type = key_icon_object::key_icon_type::mouse_left_click;
 		desc.icon = std::make_shared<ui_image>("加速キーアイコン");
-		desc.icon->set_screen_rect({ accel_icon_ui_position.x, accel_icon_ui_position.y, accel_icon_ui_size.x, accel_icon_ui_size.y });
+		desc.icon->set_screen_rect({accel_icon_ui_position.x,
+									accel_icon_ui_position.y,
+									accel_icon_ui_size.x,
+									accel_icon_ui_size.y });
 		desc.icon->set_draw_mode(ui_image::draw_modes::single);
 		desc.icon->set_sort_order(0);
 		register_object(desc.icon);
@@ -121,7 +124,10 @@ minigame_ui_scene::minigame_ui_scene()
 
 		auto main_icon = std::make_shared<ui_image>("加速メインアイコン");
 		main_icon->set_texture("Assets/Resources/Textures/hud/accel_icon.png");
-		main_icon->set_screen_rect({ accel_icon_ui_position.x - 30, accel_icon_ui_position.y - 100, accel_icon_main_ui_size.x, accel_icon_main_ui_size.y });
+		main_icon->set_screen_rect({accel_icon_ui_position.x - accel_icon_main_ui_size.x / 4,
+									accel_icon_ui_position.y + accel_icon_ui_size.y + 4,
+									accel_icon_main_ui_size.x,
+									accel_icon_main_ui_size.y });
 		main_icon->set_draw_mode(ui_image::draw_modes::single);
 		main_icon->set_sort_order(0);
 		register_object(main_icon);
@@ -146,7 +152,10 @@ minigame_ui_scene::minigame_ui_scene()
 		desc.name = "減速キーアイコン";
 		desc.icon_type = key_icon_object::key_icon_type::mouse_right_click;
 		desc.icon = std::make_shared<ui_image>("減速キーアイコン");
-		desc.icon->set_screen_rect({ brake_icon_ui_position.x, brake_icon_ui_position.y, brake_icon_ui_size.x, brake_icon_ui_size.y });
+		desc.icon->set_screen_rect({brake_icon_ui_position.x,
+									brake_icon_ui_position.y,
+									brake_icon_ui_size.x,
+									brake_icon_ui_size.y });
 		desc.icon->set_draw_mode(ui_image::draw_modes::single);
 		desc.icon->set_sort_order(0);
 		register_object(desc.icon);
@@ -155,7 +164,10 @@ minigame_ui_scene::minigame_ui_scene()
 
 		auto main_icon = std::make_shared<ui_image>("減速メインアイコン");
 		main_icon->set_texture("Assets/Resources/Textures/hud/brake_icon.png");
-		main_icon->set_screen_rect({ brake_icon_ui_position.x - 30, brake_icon_ui_position.y - 100, brake_icon_main_ui_size.x, brake_icon_main_ui_size.y });
+		main_icon->set_screen_rect({brake_icon_ui_position.x - brake_icon_main_ui_size.x / 4,
+									brake_icon_ui_position.y + brake_icon_ui_size.y + 4,
+									brake_icon_main_ui_size.x,
+									brake_icon_main_ui_size.y });
 		main_icon->set_draw_mode(ui_image::draw_modes::single);
 		main_icon->set_sort_order(0);
 		register_object(main_icon);
