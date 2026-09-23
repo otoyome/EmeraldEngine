@@ -244,7 +244,7 @@ particle_system_item::emitter_resource particle::data::constract_system_resource
 
 		//	UV指定アイテム
 		emitter_system.max_update_item_size += sizeof(particle_system_item::emitter::uv);
-		//emitter_system.particle_type_size += sizeof(particle_system_item::particle::uv);
+		emitter_system.particle_type_size += sizeof(particle_system_item::particle::uv);
 
 		//	色指定アイテム
 		emitter_system.max_update_item_size += sizeof(particle_system_item::emitter::color);
@@ -269,6 +269,7 @@ particle_system_item::emitter_resource particle::data::constract_system_resource
 	if (auto event = get_item<particle::item::event>())
 	{
 		emitter_system.max_update_item_size += sizeof(particle_system_item::emitter::event);
+		emitter_system.particle_type_size += sizeof(particle_system_item::particle::event);
 	}
 
 	return resource;

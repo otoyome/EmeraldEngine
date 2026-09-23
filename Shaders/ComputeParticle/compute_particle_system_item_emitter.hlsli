@@ -88,6 +88,7 @@ static const uint emitter_active_uv_item_bit_flag = 1 << 1;
 //  ステートビットフラグ
 static const uint emitter_uv_item_state_direct = 1 << 0;	//	UV座標を直接指定
 static const uint emitter_uv_item_state_animation = 1 << 1;	//	アニメーション使用フラグ
+static const uint emitter_uv_item_state_random_index = 1 << 2;	//	スポーン時にランダムなインデックスを選ぶ
 
 //  UVスクロールの方向制御用
 static const int2 emitter_uv_item_animation_direction_basis_value = uint2(5, 5);

@@ -48,14 +48,6 @@ roomba_controller_object::~roomba_controller_object()
 
 void roomba_controller_object::fixed_update(float elapsed_time)
 {
-	//	€–S”jŠüˆ—
-	//if (dead_state != dead_states::none)
-	//{
-	//	if (dead_state == dead_states::call)
-	//		dead_process();
-	//	return;
-	//}
-
 	//	“ü—Í‹L˜^
 	auto keyboard_state = keyboard::instance()->get_state();
 	auto mouse_state = mouse::instance()->get_state();

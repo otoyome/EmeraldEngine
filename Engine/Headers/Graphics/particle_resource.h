@@ -60,6 +60,7 @@ namespace particle
 				{
 					direct = 1 << 0,	//	UV座標を直接指定
 					animation = 1 << 1,	//	アニメーション使用フラグ
+					random_index = 1 << 2,	//	スポーン時にランダムなインデックスを選ぶ
 				};
 
 				UINT state = 0; // ステート

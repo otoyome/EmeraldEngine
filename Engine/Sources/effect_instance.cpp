@@ -495,6 +495,7 @@ effect_manager::effect_manager()
 		UINT particle_data_size = sizeof(particle_system_item::particle::common)
 								+ sizeof(particle_system_item::particle::trail_header)
 								+ sizeof(particle_system_item::particle::trail_body) * trail_body_max
+								+ sizeof(particle_system_item::particle::uv)
 								+ sizeof(particle_system_item::particle::velocity)
 								+ sizeof(particle_system_item::particle::attract)
 								+ sizeof(particle_system_item::particle::event);

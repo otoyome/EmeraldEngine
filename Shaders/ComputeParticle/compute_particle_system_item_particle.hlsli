@@ -73,6 +73,17 @@ void stream_trail_body(uint rw, inout uint offset, inout pt_trail_body_item trai
     pt_stream_ptr(rw, offset, trail_body.translation);
 }
 //////////////////////////////////////////////////////////////////////////
+//	UVアイテム
+struct pt_uv_item
+{
+    uint index;
+};
+
+void stream_uv_item(uint rw, inout uint offset, inout pt_uv_item value)
+{
+    pt_stream_ptr(rw, offset, value.index);
+}
+//////////////////////////////////////////////////////////////////////////
 //  速度アイテム
 struct pt_velocity_item
 {

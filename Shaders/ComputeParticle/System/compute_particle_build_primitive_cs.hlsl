@@ -74,7 +74,7 @@ void register_vertex(uint vertex_buffer_index, inout uint vertex_buffer_byte_off
 }
 
 //  UV矩形生成
-float4 calculate_uv_rect(in pt_common_item pt_common, in em_uv_item em_uv)
+float4 calculate_uv_rect(in pt_common_item pt_common, in em_uv_item em_uv, in pt_uv_item pt_uv)
 {
     float4 rect = em_uv.rect;
     if (em_uv.state & emitter_uv_item_state_direct)
@@ -105,7 +105,8 @@ float4 calculate_uv_rect(in pt_common_item pt_common, in em_uv_item em_uv)
         float v = h / (float) sy;
 
         //  番号指定
-        int uv_index = em_uv.index;
+        //	ランダムインデックス使用時はパーティクル毎の値を使う
+        int uv_index = (em_uv.state & emitter_uv_item_state_random_index) ? pt_uv.index : em_uv.index;
 
         //  アニメーション制御
         if (em_uv.state & emitter_uv_item_state_animation)
@@ -218,11 +219,22 @@ void main(uint3 dispatch_thread_id : SV_DispatchThreadID)
     //  パーティクル共通情報取得
     pt_common_item pt_common = (pt_common_item) 0;
     pt_trail_header_item pt_trail_header = (pt_trail_header_item) 0;
+    pt_uv_item pt_uv = (pt_uv_item) 0;
     {
         stream_common_item(rw_read_only, particle_binary_offset, pt_common);
         if (em_common.active_items & emitter_active_trail_item_bit_flag)
         {
             stream_trail_header(rw_read_only, particle_binary_offset, pt_trail_header);
+        }
+        if (em_common.active_items & emitter_active_uv_item_bit_flag)
+        {
+            //	トレイルボディ分をスキップしてUVアイテムを読む
+            uint uv_read_offset = particle_binary_offset;
+            if (em_common.active_items & emitter_active_trail_item_bit_flag)
+            {
+                uv_read_offset += em_trail.max * pt_trail_body_size_of_bytes;
+            }
+            stream_uv_item(rw_read_only, uv_read_offset, pt_uv);
         }
 
         //  以降は不要
@@ -266,12 +278,13 @@ void main(uint3 dispatch_thread_id : SV_DispatchThreadID)
         float4 uv_rect = float4(0, 0, 1, 1);
         if (em_common.active_items & emitter_active_uv_item_bit_flag)
         {
-            uv_rect = calculate_uv_rect(pt_common, em_uv);
+            uv_rect = calculate_uv_rect(pt_common, em_uv, pt_uv);
         }
         
         //  頂点登録
         uint index = 0;
-        [loop] for (index = 0; index < pt_trail_header.counter; ++index)
+        uint trail_counter = min(pt_trail_header.counter, em_trail.max);
+        [loop] for (index = 0; index < trail_counter; ++index)
         {
             vertex_positions[0] = vertex_positions[2];
             vertex_positions[1] = vertex_positions[3];
@@ -327,7 +340,7 @@ void main(uint3 dispatch_thread_id : SV_DispatchThreadID)
         vertex_color[1] = vertex_color[3];
         vertex_texcoord[0] = vertex_texcoord[2];
         vertex_texcoord[1] = vertex_texcoord[3];
-        [loop] for (index = pt_trail_header.counter; index < em_trail.max; ++index)
+        [loop] for (index = trail_counter; index < em_trail.max; ++index)
         {
             //  頂点座標
             uint vertex_buffer_byte_offset = ((particle_header_offset * em_trail.max + index) * index_size) * vertex_size;
@@ -373,7 +386,7 @@ void main(uint3 dispatch_thread_id : SV_DispatchThreadID)
             float4 uv_rect = float4(0, 0, 1, 1);
             if (em_common.active_items & emitter_active_uv_item_bit_flag)
             {
-                uv_rect = calculate_uv_rect(pt_common, em_uv);
+                uv_rect = calculate_uv_rect(pt_common, em_uv, pt_uv);
             }
             vertex_texcoord[0] = uv_rect.xy + uv_rect.zw * float2(0, 0);
             vertex_texcoord[1] = uv_rect.xy + uv_rect.zw * float2(1, 0);

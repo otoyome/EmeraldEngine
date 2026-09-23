@@ -6,6 +6,7 @@
 #include "roomba_gauge_controller_object.h"
 #include "roomba_speed_controller_object.h"
 #include "roomba_controller_object.h"
+#include "roomba_trash_controller_object.h"
 
 //	ルンバ：UI管理用オブジェクト
 class roomba_hud_controller_object : public game_object
@@ -19,6 +20,7 @@ public:
 		std::shared_ptr<roomba_gauge_controller_object> heat_bar;
 		std::shared_ptr<roomba_gauge_controller_object> wet_bar;
 		std::shared_ptr<roomba_speed_controller_object> speed;
+		std::shared_ptr<roomba_trash_controller_object> trash;
 
 		std::shared_ptr<key_indicator_object> accel_icon;
 		std::shared_ptr<key_indicator_object> brake_icon;

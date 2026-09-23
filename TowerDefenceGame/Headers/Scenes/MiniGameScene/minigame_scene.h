@@ -20,8 +20,11 @@ public:
 	enum class game_states
 	{
 		startup,
-		start_count,
+		countdown_setup,
+		countdown,
 		main_game,
+		dead_stop_wait,
+		dead_time_wait,
 		result_wait,
 		result_fade_out,
 	};
@@ -45,10 +48,13 @@ private:
 	std::shared_ptr<material> postprocess_material;
 
 	std::shared_ptr<effect_instance> bubble_effect;
-	std::shared_ptr<effect_instance> rain_effect;
-	std::vector<UINT> bubble_emitter_ids, rain_emitter_ids;
+	std::shared_ptr<effect_instance> dust_effect;
+	std::vector<UINT> bubble_emitter_ids;
+	std::vector<UINT> dust_emitter_ids;
 
 	float game_timer;
 	float countdown_timer;
 	game_states game_state;
+	int trash_count;
+	int trash_max;
 };

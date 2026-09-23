@@ -672,6 +672,14 @@ bool editor_items::edit_effect_particle(std::shared_ptr<context>& context, effec
 						{
 							edit_flag = true;
 						}
+
+						bool random_index = renderer->uv.is_state(particle::item::renderer::texcoords::states::random_index);
+						if (ImGui::Checkbox("random index", &random_index))
+						{
+							renderer->uv.set_state(particle::item::renderer::texcoords::states::random_index, random_index);
+							edit_flag = true;
+						}
+
 						checked = renderer->uv.is_state(particle::item::renderer::texcoords::states::animation);
 						if (ImGui::Checkbox("animation", &checked))
 						{

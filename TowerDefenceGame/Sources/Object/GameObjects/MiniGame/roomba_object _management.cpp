@@ -350,12 +350,7 @@ void roomba_object::enter_dead()
 
 void roomba_object::update_dead(float elapsed_time)
 {
-	if (keyboard::instance()->get_state().is_key_state(keyboard::key_states::a) == input::state::down)
-	{
-		set_wet_value(0);
-		set_heat_value(0);
-		change_state(state_names[state_active]);
-	}
+	//	“Á‚É‰½‚à‚µ‚È‚¢
 }
 
 void roomba_object::exit_dead()

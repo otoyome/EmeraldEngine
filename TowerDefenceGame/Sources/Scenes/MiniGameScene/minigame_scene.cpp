@@ -60,6 +60,17 @@ namespace
 			"トーンマッピング後ポストプロセスマテリアル",
 		}
 	};
+
+	//	開始座標
+	constexpr DirectX::XMFLOAT3 StartPosition = system_units::convert_m_to_unit({0, 0, -60});
+	constexpr DirectX::XMFLOAT3 StartRotation = {0, 0, 0};
+	constexpr float DeadStopWaitTimer = 10.0f;
+	constexpr float DeadWaitTimer = 3.0f;
+
+	//	各種名前
+	constexpr std::string_view RoombaObjectName = "ルンバ 制御";
+	constexpr std::string_view RoombaControllerObjectName = "ルンバ 入力";
+
 }
 
 minigame_scene::minigame_scene()
@@ -161,13 +172,13 @@ minigame_scene::minigame_scene()
 		register_object(roomba_model);
 
 		//	ルンバオブジェクト生成
-		player_object = std::make_shared<roomba_object>("プレイヤー 制御", roomba_model, "player");
+		player_object = std::make_shared<roomba_object>(RoombaObjectName, roomba_model, "player");
+		player_object->set_position(StartPosition);
+		player_object->set_rotation(StartRotation);
 		register_object(player_object);
-		player_object->set_position(system_units::convert_m_to_unit({0, 0, -60}));
-		player_object->set_rotation({0.0f, 0.0f, 0.0f});
 
 		//	ルンバ制御オブジェクト生成
-		auto roomba_controller = std::make_shared<roomba_controller_object>("プレイヤー 入力", player_object, main_camera);
+		auto roomba_controller = std::make_shared<roomba_controller_object>(RoombaControllerObjectName, player_object, main_camera);
 		register_object(roomba_controller);
 
 		//	ルンバカメラ制御オブジェクト
@@ -183,16 +194,36 @@ minigame_scene::minigame_scene()
 			bubble_effect = std::make_shared<effect_instance>(resource);
 			effect_manager::instance()->register_instance(bubble_effect);
 		}
-		if (effect_resource_manager::instance()->load(resource, "Assets/Resources/Effects/Rain.eme"))
+		if (effect_resource_manager::instance()->load(resource, "Assets/Resources/Effects/Dust.eme"))
 		{
-			rain_effect = std::make_shared<effect_instance>(resource);
-			effect_manager::instance()->register_instance(rain_effect);
+			dust_effect = std::make_shared<effect_instance>(resource);
+
+			//	Dustノードのパーティクル設定からゴミの最大数を収集する
+			auto dust_index = dust_effect->search_node_index_by_name("Dust");
+			for (auto& particle : dust_effect->get_particles())
+			{
+				if (particle.node_index != dust_index)
+					continue;
+
+				if (auto renderer = particle.particle.get_item<particle::item::renderer>())
+				{
+					trash_max += static_cast<int>(renderer->total_particle_count);
+				}
+			}
+
+			effect_manager::instance()->register_instance(dust_effect);
 		}
+		//if (effect_resource_manager::instance()->load(resource, "Assets/Resources/Effects/Rain.eme"))
+		//{
+		//	rain_effect = std::make_shared<effect_instance>(resource);
+		//	effect_manager::instance()->register_instance(rain_effect);
+		//}
 	}
 
 	//	タイマーリセット
 	game_timer = 0.0f;
 	countdown_timer = 0.0f;
+	trash_count = 0;
 	game_state = game_states::startup;
 }
 
@@ -210,8 +241,8 @@ bool minigame_scene::uninitialize_core()
 	player_object = nullptr;
 	if (bubble_effect)
 		effect_manager::instance()->unregister_instance(bubble_effect);
-	if (rain_effect)
-		effect_manager::instance()->unregister_instance(rain_effect);
+	if (dust_effect)
+		effect_manager::instance()->unregister_instance(dust_effect);
 	return true;
 }
 
@@ -223,20 +254,45 @@ void minigame_scene::update_core(float elapsed_time)
 		{
 			//	フェードイン開始
 			transition_fade_controller::instance()->play(fade::directions::in, 0.5f, fade::modes::black);
-			game_state = game_states::start_count;
+
+			//	関数登録
+			if (auto trash_object = object_manager::instance()->search_object<roomba_trash_controller_object>("ルンバUI：ゴミ収集率コントローラー"))
+			{
+				trash_object->set_getter([this](){ return trash_count; }, [this](){ return trash_max; });
+			}
+
+			//	カウントダウン中はプレイヤー入力を止める
+			if (auto controller = object_manager::instance()->search_object<roomba_controller_object>(RoombaControllerObjectName))
+			{
+				controller->set_input_purmit_flag(false);
+			}
+			game_state = game_states::countdown_setup;
 			break;
 		}
-		case game_states::start_count:
+		case game_states::countdown_setup:
+		{
+			//	プレイヤーをアクティブ状態に
+			player_object->set_heat_value(0);
+			player_object->set_wet_value(0);
+			player_object->set_position(StartPosition);
+			player_object->set_rotation(StartRotation);
+			player_object->change_state(roomba_object::state_names[roomba_object::state_active]);
+
+			//	カウントダウン中はプレイヤー入力を止める
+			if (auto controller = object_manager::instance()->search_object<roomba_controller_object>(RoombaControllerObjectName))
+			{
+				controller->set_input_purmit_flag(false);
+			}
+
+			countdown_timer = 0.0f;
+			game_state = game_states::countdown;
+			break;
+		}
+		case game_states::countdown:
 		{
 			if (transition_fade_controller::instance()->is_processing())
 			{
 				return;
-			}
-
-			//	カウントダウン中はプレイヤー入力を止める
-			if (auto controller = object_manager::instance()->search_object<roomba_controller_object>("プレイヤー 操作"))
-			{
-				controller->set_input_purmit_flag(false);
 			}
 
 			countdown_timer += elapsed_time;
@@ -245,7 +301,7 @@ void minigame_scene::update_core(float elapsed_time)
 			constexpr float start_display_time = 0.8f;
 			constexpr float countdown_finish_time = count_interval * 3.0f + start_display_time;
 
-			if (auto countdown = object_manager::instance()->search_object<countdown_controller_object>("カウントダウン表示コントローラー"))
+			if (auto countdown = object_manager::instance()->search_object<countdown_controller_object>("ルンバUI：カウントダウン表示コントローラー"))
 			{
 				if (countdown_timer < count_interval * 1.0f)
 					countdown->set_count(3);
@@ -260,7 +316,7 @@ void minigame_scene::update_core(float elapsed_time)
 			}
 			if (countdown_timer >= countdown_finish_time)
 			{
-				if (auto controller = object_manager::instance()->search_object<roomba_controller_object>("プレイヤー 操作"))
+				if (auto controller = object_manager::instance()->search_object<roomba_controller_object>(RoombaControllerObjectName))
 				{
 					controller->set_input_purmit_flag(true);
 				}
@@ -280,26 +336,49 @@ void minigame_scene::update_core(float elapsed_time)
 			//	プレイヤーの情報を各種機能に伝達
 			if (player_object)
 			{
-				if (bubble_effect)
+				//	吸引座標とイベント基準座標設定
 				{
-					//	吸引座標とイベント基準座標設定
 					auto position = player_object->get_push_box()->get_position();
 					position.y += player_object->get_push_box()->get_local_scale().y * 0.5f;
-					bubble_effect->set_attract_position(position);
-					bubble_effect->set_event_position(position);
-
-					//	吸引範囲設定
-					auto bubble_index = bubble_effect->search_node_index_by_name("Bubble");
-					for (auto& particle : bubble_effect->get_particles())
+					if (bubble_effect)
 					{
-						if (particle.node_index != bubble_index)
-							continue;
+						bubble_effect->set_attract_position(position);
+						bubble_effect->set_event_position(position);
 
-						auto attract = particle.particle.get_item<particle::item::attract>();
-						if (attract)
+						//	吸引範囲設定
+						auto bubble_index = bubble_effect->search_node_index_by_name("Bubble");
+						for (auto& particle : bubble_effect->get_particles())
 						{
-							attract->radius = player_object->get_attract_range();
-							break;
+							if (particle.node_index != bubble_index)
+								continue;
+
+							auto attract = particle.particle.get_item<particle::item::attract>();
+							if (attract)
+							{
+								attract->radius = player_object->get_attract_range();
+								break;
+							}
+						}
+					}
+					if (dust_effect)
+					{
+						//	吸引座標とイベント基準座標設定
+						dust_effect->set_attract_position(position);
+						dust_effect->set_event_position(position);
+
+						//	吸引範囲設定
+						auto dust_index = dust_effect->search_node_index_by_name("Dust");
+						for (auto& particle : dust_effect->get_particles())
+						{
+							if (particle.node_index != dust_index)
+								continue;
+
+							auto attract = particle.particle.get_item<particle::item::attract>();
+							if (attract)
+							{
+								attract->radius = player_object->get_attract_range();
+								break;
+							}
 						}
 					}
 				}
@@ -308,7 +387,7 @@ void minigame_scene::update_core(float elapsed_time)
 				auto particle_events = effect_manager::instance()->get_particle_events();
 				auto push_box_position = DirectX::XMLoadFloat3(&player_object->get_push_box()->get_position());
 
-				//	bubble/rainの自エミッターIDを収集
+				//	bubble/dustの自エミッターIDを収集
 				for (auto& item : effect_manager::instance()->get_items())
 				{
 					if (item.effect_instance == bubble_effect)
@@ -316,15 +395,14 @@ void minigame_scene::update_core(float elapsed_time)
 						for (auto& emitter_item : item.emitter_items)
 							bubble_emitter_ids.push_back(emitter_item.system_index);
 					}
-					else if (item.effect_instance == rain_effect)
+					else if (item.effect_instance == dust_effect)
 					{
 						for (auto& emitter_item : item.emitter_items)
-							rain_emitter_ids.push_back(emitter_item.system_index);
+							dust_emitter_ids.push_back(emitter_item.system_index);
 					}
 				}
 
-				//	濡れゲージ増加処理
-				UINT wet_event_count = 0;
+				//	カウンター関係処理
 				for (auto& event_info : particle_events)
 				{
 					//	泡の場合はそのまま濡れカウントとして
@@ -339,30 +417,25 @@ void minigame_scene::update_core(float elapsed_time)
 					}
 					if (is_bubble)
 					{
-						++wet_event_count;
+						player_object->on_wet(100);
 						continue;
 					}
-
-					//	雨の場合はそのまま球体判定をこちらで行う
-					bool is_rain = false;
-					for (auto emitter_id : rain_emitter_ids)
+					//	塵の場合はそのまま収集カウントとして
+					bool is_dust = false;
+					for (auto emitter_id : dust_emitter_ids)
 					{
 						if (emitter_id == event_info.target_emitter_id)
 						{
-							is_rain = true;
+							is_dust = true;
 							break;
 						}
 					}
-					if (is_rain)
+					if (is_dust)
 					{
-						auto event_position = DirectX::XMLoadFloat3(&event_info.position);
-						float distance = DirectX::XMVectorGetX(DirectX::XMVector3Length(DirectX::XMVectorSubtract(event_position, push_box_position)));
-						if (distance <= 0.1f)
-							++wet_event_count;
-						//	範囲外のrainイベントは無視
+						++trash_count;
+						continue;
 					}
 				}
-				player_object->on_wet(wet_event_count * 100);
 
 				//	エフェクトと連動
 				if (postprocess_material)
@@ -387,10 +460,34 @@ void minigame_scene::update_core(float elapsed_time)
 				}
 			}
 
-			//	プレイヤー死亡でリザルト待ちへ
+			//	プレイヤー死亡でリスタートへ
 			if (player_object && player_object->check_same_state(roomba_object::state_names[roomba_object::state_dead]))
 			{
-				game_state = game_states::result_wait;
+				countdown_timer = 0.0f;
+				game_state = game_states::dead_stop_wait;
+			}
+			break;
+		}
+		case game_states::dead_stop_wait:
+		{
+			float velocity = player_object->get_velocity().x * player_object->get_velocity().x
+						   + player_object->get_velocity().y * player_object->get_velocity().y
+						   + player_object->get_velocity().z * player_object->get_velocity().z;
+			countdown_timer += elapsed_time;
+
+			if (countdown_timer >= DeadStopWaitTimer || velocity <= 0.2f)
+			{
+				countdown_timer = 0.0f;
+				game_state = game_states::dead_time_wait;
+			}
+			break;
+		}
+		case game_states::dead_time_wait:
+		{
+			countdown_timer += elapsed_time;
+			if (countdown_timer >= DeadWaitTimer)
+			{
+				game_state = game_states::countdown_setup;
 			}
 			break;
 		}

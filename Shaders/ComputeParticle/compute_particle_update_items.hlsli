@@ -111,9 +111,23 @@ void update_uv_item(inout emitter_context em_context, inout pt_common_item pt_co
 {
     if (has_flag(em_context.active_items, emitter_active_uv_item_bit_flag))
     {
-        //  表示用の物なのでエミッター分オフセットしておく
-        em_uv_item em_uv;
-        stream_uv_item(rw_read_only, emitter_binary_offset, em_uv);
+        pt_uv_item pt_uv;
+        uint write_offset = particle_binary_offset;
+        stream_uv_item(rw_read, particle_binary_offset, pt_uv);
+        //  エミッター側の情報を取得
+        {
+            em_uv_item em_uv;
+            stream_uv_item(rw_read_only, emitter_binary_offset, em_uv);
+
+            if (has_flag(pt_common.state, particle_binary_state_bit_spawn_frame) &&
+                has_flag(em_uv.state, emitter_uv_item_state_random_index))
+            {
+                //	スポーン時にランダムなインデックスを選ぶ
+                uint split_total = max(em_uv.split_count.x, 1) * max(em_uv.split_count.y, 1);
+                pt_uv.index = (uint) (x_or_shift_random(em_context.random_seed) * split_total);
+            }
+        }
+        stream_uv_item(rw_write, write_offset, pt_uv);
     }
 }
 
