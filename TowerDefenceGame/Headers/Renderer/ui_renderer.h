@@ -21,7 +21,12 @@ public:
 	void resize_buffer(int width, int height) override;
 
 private:
-	void sprite_render(graphics_context& context, const std::vector<std::unordered_map<semantic, buffer_view>>& vbvs, const std::vector<buffer_view>& ibvs);
+	struct sprite_buffer_views
+	{
+		buffer_view views[3];
+	};
+
+	void sprite_render(graphics_context& context, const std::vector<sprite_buffer_views>& vbvs, const std::vector<buffer_view>& ibvs);
 
 private:
 	std::shared_ptr<scene_render_targets> render_targets;

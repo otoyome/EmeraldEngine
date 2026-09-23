@@ -109,6 +109,9 @@ void post_process_renderer_base::render(renderer_context& renderer_context)
 	if (!is_find)
 		return;
 
+	std::string render_pass_name = std::string(magic_enum::enum_name(get_material_blendable_locations()));
+	render_pass_name += "_post_process_material_pass";
+
 	job_executor.execute([this, inner_volume](graphics_context& context)
 	{
 		//	ポストプロセス
@@ -168,7 +171,7 @@ void post_process_renderer_base::render(renderer_context& renderer_context)
 
 			scene_color_rendering_pass.deactivate(context.device_context);
 		}
-	}, "post_process_material_pass", renderer_context, get_render_basis_sort_order());
+	}, render_pass_name, renderer_context, get_render_basis_sort_order());
 }
 
 void post_process_renderer_base::resize_buffer(int width, int height)

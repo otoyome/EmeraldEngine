@@ -103,7 +103,7 @@ void ui_renderer::render(renderer_context& context)
 		context.device_context->RSSetViewports(1, &viewport);
 
 		//	バッファ生成
-		std::vector<std::unordered_map<semantic, buffer_view>> vbvs;
+		std::vector<sprite_buffer_views> vbvs;
 		std::vector<buffer_view> ibvs;
 		{
 			HRESULT hr;
@@ -155,7 +155,7 @@ void ui_renderer::render(renderer_context& context)
 				}
 				//	各view構築
 				{
-					std::unordered_map<semantic, buffer_view> map;
+					sprite_buffer_views views;
 					for (auto& it : vertex_buffer_views)
 					{
 						buffer_view view;
@@ -164,9 +164,15 @@ void ui_renderer::render(renderer_context& context)
 						view.stride_in_bytes = it.second.stride_in_bytes;
 						view.size_in_bytes = (vertex_size - vertex_offset) * view.stride_in_bytes;
 						view.offset_in_bytes = vertex_offset * view.stride_in_bytes;
-						map.insert_or_assign(it.first, view);
+
+						if (it.first == format_datas[format_id::position].s)
+							views.views[format_id::position] = view;
+						else if (it.first == format_datas[format_id::color_0].s)
+							views.views[format_id::color_0] = view;
+						else if (it.first == format_datas[format_id::texcoord_0].s)
+							views.views[format_id::texcoord_0] = view;
 					}
-					vbvs.emplace_back(map);
+					vbvs.emplace_back(views);
 
 					buffer_view ibv;
 					ibv.format = index_buffer_view.format;
@@ -192,7 +198,7 @@ void ui_renderer::render(renderer_context& context)
 	}, "ui_rendering_pass", context, get_render_basis_sort_order());
 }
 
-void ui_renderer::sprite_render(graphics_context& context, const std::vector<std::unordered_map<semantic, buffer_view>>& vbvs, const std::vector<buffer_view>& ibvs)
+void ui_renderer::sprite_render(graphics_context& context, const std::vector<sprite_buffer_views>& vbvs, const std::vector<buffer_view>& ibvs)
 {
 	static const semantic base_vertex_semantic("POSITION", 0);
 
@@ -242,15 +248,21 @@ void ui_renderer::sprite_render(graphics_context& context, const std::vector<std
 		{
 			if (stream_index >= D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT)
 				break;
-			auto it = vbs.find(semantic.first);
-			if (it != vbs.end())
+			const buffer_view* view = nullptr;
+			if (semantic.first == format_datas[format_id::position].s)
+				view = &vbs.views[format_id::position];
+			else if (semantic.first == format_datas[format_id::color_0].s)
+				view = &vbs.views[format_id::color_0];
+			else if (semantic.first == format_datas[format_id::texcoord_0].s)
+				view = &vbs.views[format_id::texcoord_0];
+
+			if (view && view->buffer)
 			{
-				auto& view = it->second;
-				stream_buffers[stream_index] = view.buffer.Get();
-				stream_strides[stream_index] = static_cast<UINT>(view.stride_in_bytes);
+				stream_buffers[stream_index] = view->buffer.Get();
+				stream_strides[stream_index] = static_cast<UINT>(view->stride_in_bytes);
 				stream_offsets[stream_index] = 0;
-				if (it->first == base_vertex_semantic)
-					base_vertex_location = static_cast<UINT>(view.offset());
+				if (semantic.first == base_vertex_semantic)
+					base_vertex_location = static_cast<UINT>(view->offset());
 			}
 			++stream_index;
 		}

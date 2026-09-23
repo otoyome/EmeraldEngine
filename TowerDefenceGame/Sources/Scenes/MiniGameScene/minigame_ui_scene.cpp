@@ -13,7 +13,7 @@ namespace
 	static constexpr DirectX::XMFLOAT2 wet_ui_size = {100, 20};
 	//	ゴミ収集率左上位置
 	static constexpr DirectX::XMFLOAT2 trash_ui_size = {100, 100};
-	static constexpr DirectX::XMFLOAT2 trash_ui_position = {630 - trash_ui_size.x / 2, 480};
+	static constexpr DirectX::XMFLOAT2 trash_ui_position = {615, 530};
 	//	加速アイコン左上位置
 	static constexpr DirectX::XMFLOAT2 accel_icon_ui_position = {1130, 540};
 	static constexpr DirectX::XMFLOAT2 accel_icon_ui_size = {36, 36};
@@ -91,9 +91,7 @@ minigame_ui_scene::minigame_ui_scene()
 										trash_ui_size.y });
 			desc.text->set_color({ 1, 1, 1, 1 });
 			desc.text->set_texts("0%");
-			desc.text->set_screen_rect({ speed_ui_position.x + 230, speed_ui_position.y + 20, 64, 64 });
 			desc.text->set_font_size(48);
-			desc.text->set_sort_order(110);
 			desc.text->set_sort_order(5);
 			register_object(desc.text);
 		}
