@@ -584,6 +584,9 @@
     <ClCompile Include="Sources\Object\GameObjects\UI\HUD\countdown_controller_object.cpp">
       <Filter>Sources\Object\GameObjects\UI\HUD</Filter>
     </ClCompile>
+    <ClCompile Include="Sources\Object\GameObjects\MiniGame\roomba_trash_controller_object.cpp">
+      <Filter>Sources\Object\GameObjects\MiniGame</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\External\imgui\imgui.h">
@@ -903,6 +906,9 @@
     </ClInclude>
     <ClInclude Include="Headers\Object\GameObjects\UI\HUD\countdown_controller_object.h">
       <Filter>Headers\Object\GameObjects\UI\HUD</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Object\GameObjects\MiniGame\roomba_trash_controller_object.h">
+      <Filter>Headers\Object\GameObjects\MiniGame</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
