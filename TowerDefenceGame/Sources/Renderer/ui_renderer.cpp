@@ -127,6 +127,23 @@ void ui_renderer::render(renderer_context& context)
 			DirectX::XMFLOAT2* texcoords = static_cast<DirectX::XMFLOAT2*>(mapped_vertices[format_id::texcoord_0].pData);
 			UINT* indices = static_cast<UINT*>(mapped_indices.pData);
 
+			//	各セマンティックのバッファ/フォーマット/ストライドはフレーム内で共通なので1度だけ取得しておく
+			buffer_view view_templates[3];
+			for (auto& it : vertex_buffer_views)
+			{
+				if (it.first == format_datas[format_id::position].s)
+					view_templates[format_id::position] = it.second;
+				else if (it.first == format_datas[format_id::color_0].s)
+					view_templates[format_id::color_0] = it.second;
+				else if (it.first == format_datas[format_id::texcoord_0].s)
+					view_templates[format_id::texcoord_0] = it.second;
+			}
+
+			//	スプライト数分をまとめて確保しておく
+			size_t sprite_count = context.render_data->sprite_container.sprite_datas.size();
+			vbvs.reserve(sprite_count);
+			ibvs.reserve(sprite_count);
+
 			//	各バッファに詰め込む
 			UINT vertex_size = 0, index_size = 0;
 			for (auto& sprite_data : context.render_data->sprite_container.sprite_datas)
@@ -156,21 +173,15 @@ void ui_renderer::render(renderer_context& context)
 				//	各view構築
 				{
 					sprite_buffer_views views;
-					for (auto& it : vertex_buffer_views)
+					for (int format_index = 0; format_index < 3; ++format_index)
 					{
-						buffer_view view;
-						view.format = it.second.format;
-						view.buffer = it.second.buffer;
-						view.stride_in_bytes = it.second.stride_in_bytes;
-						view.size_in_bytes = (vertex_size - vertex_offset) * view.stride_in_bytes;
-						view.offset_in_bytes = vertex_offset * view.stride_in_bytes;
-
-						if (it.first == format_datas[format_id::position].s)
-							views.views[format_id::position] = view;
-						else if (it.first == format_datas[format_id::color_0].s)
-							views.views[format_id::color_0] = view;
-						else if (it.first == format_datas[format_id::texcoord_0].s)
-							views.views[format_id::texcoord_0] = view;
+						auto& view = views.views[format_index];
+						auto& view_template = view_templates[format_index];
+						view.format = view_template.format;
+						view.buffer = view_template.buffer;
+						view.stride_in_bytes = view_template.stride_in_bytes;
+						view.size_in_bytes = (vertex_size - vertex_offset) * view_template.stride_in_bytes;
+						view.offset_in_bytes = vertex_offset * view_template.stride_in_bytes;
 					}
 					vbvs.emplace_back(views);
 
