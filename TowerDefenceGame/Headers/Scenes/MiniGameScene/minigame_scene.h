@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Scenes/scene_base.h"
+#include "Scenes/stationed_scene.h"
 
 #include "minigame_ui_scene.h"
 #include "Scenes/StageScene/stage_00_scene.h"
@@ -13,14 +14,16 @@
 class minigame_scene : public scene_base
 {
 	//SCENE_DECRLEAR(minigame_scene, scene_base);
-	SCENE_ADD_CHILDREN_DECRLEAR(minigame_scene, scene_base, stage_00_scene, minigame_ui_scene);
+	SCENE_ADD_CHILDREN_DECRLEAR(minigame_scene, scene_base, stationed_scene, stage_00_scene, minigame_ui_scene);
 
 public:
 	enum class game_states
 	{
+		startup,
 		start_count,
 		main_game,
-		result_move,
+		result_wait,
+		result_fade_out,
 	};
 
 public:
@@ -39,7 +42,6 @@ protected:
 
 private:
 	std::shared_ptr<roomba_object> player_object;
-	std::shared_ptr<camera_object> main_camera;
 	std::shared_ptr<material> postprocess_material;
 
 	std::shared_ptr<effect_instance> bubble_effect;
@@ -47,5 +49,6 @@ private:
 	std::vector<UINT> bubble_emitter_ids, rain_emitter_ids;
 
 	float game_timer;
+	float countdown_timer;
 	game_states game_state;
 };

@@ -575,6 +575,15 @@
     <ClCompile Include="Sources\Scenes\MiniGameScene\minigame_ui_scene.cpp">
       <Filter>Sources\Scenes\MiniGameScene</Filter>
     </ClCompile>
+    <ClCompile Include="Sources\Scenes\setup_scene.cpp">
+      <Filter>Sources\Scenes</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Scenes\stationed_scene.cpp">
+      <Filter>Sources\Scenes</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Object\GameObjects\UI\HUD\countdown_controller_object.cpp">
+      <Filter>Sources\Object\GameObjects\UI\HUD</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\External\imgui\imgui.h">
@@ -885,6 +894,15 @@
     </ClInclude>
     <ClInclude Include="Headers\Scenes\MiniGameScene\minigame_ui_scene.h">
       <Filter>Headers\Scenes\MiniGameScene</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Scenes\setup_scene.h">
+      <Filter>Headers\Scenes</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Scenes\stationed_scene.h">
+      <Filter>Headers\Scenes</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Object\GameObjects\UI\HUD\countdown_controller_object.h">
+      <Filter>Headers\Object\GameObjects\UI\HUD</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

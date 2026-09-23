@@ -2,15 +2,17 @@
 
 #include "Scenes/MiniGameScene/minigame_scene.h"
 
+#include "object/gameobjects/ui/common/transition_fade_controller.h"
+
 namespace
 {
 	//	タイトルロゴ配置位置
-	static constexpr DirectX::XMFLOAT2 title_logo_position = { 0, 0 };
-	static constexpr DirectX::XMFLOAT2 title_logo_size = { SCREEN_WIDTH, SCREEN_HEIGHT };
+	static constexpr DirectX::XMFLOAT2 title_logo_position = { 16 * 20, 9 * 20 };
+	static constexpr DirectX::XMFLOAT2 title_logo_size = { 640 - title_logo_position.x / 2, 360 - title_logo_position.y / 2 };
 
 	//	スタート案内アイコン配置位置
-	static constexpr DirectX::XMFLOAT2 start_icon_size = { 60, 60 };
-	static constexpr DirectX::XMFLOAT2 start_icon_position = { (SCREEN_WIDTH - start_icon_size.x) / 2, SCREEN_HEIGHT - 100 };
+	static constexpr DirectX::XMFLOAT2 start_icon_size = { 120, 120 };
+	static constexpr DirectX::XMFLOAT2 start_icon_position = { (640 - start_icon_size.x) / 2, SCREEN_HEIGHT - 100 };
 }
 
 minigame_title_scene::minigame_title_scene()
@@ -32,13 +34,19 @@ minigame_title_scene::minigame_title_scene()
 
 	//	スタート案内アイコン
 	{
-		auto start_icon = std::make_shared<ui_image>("スタート案内アイコン");
-		start_icon->set_screen_rect({ start_icon_position.x, start_icon_position.y, start_icon_size.x, start_icon_size.y });
-		start_icon->set_texture("Assets/Resources/Textures/hud/keyboard_space_icon.png");
-		start_icon->set_draw_mode(ui_image::draw_modes::single);
-		start_icon->set_sort_order(1);
-		register_object(start_icon);
+		font_data_ptr font;
+		font_data_manager::instance()->load_from_file(font, "Assets/Resources/Textures/fonts/MS Gothic/MS Gothic.fnt");
+
+		auto title_click_text = std::make_shared<ui_text>("タイトル:クリックテキスト", font);
+		title_click_text->set_screen_rect({ 490, 508.000, 120, 64 });
+		title_click_text->set_sort_order(20);
+		title_click_text->set_color({ 1, 1, 0, 1 });
+		title_click_text->set_texts("MOUSE LEFT CLICK / SPACE DOWN");
+		register_object(title_click_text);
 	}
+
+	//	遷移フェードコントローラーにプレイを要求
+	transition_fade_controller::instance()->play(fade::directions::in, 0.5f, fade::modes::black);
 }
 
 minigame_title_scene::~minigame_title_scene()
@@ -57,12 +65,38 @@ bool minigame_title_scene::uninitialize_core()
 
 void minigame_title_scene::update_core(float elapsed_time)
 {
-	//	スペースキーか左クリックでゲームを開始する
-	bool start_input = keyboard::instance()->get_state().is_key_state(keyboard::key_states::space) == input::state::down
-		|| mouse::instance()->get_state().is_key_state(mouse::key_states::left) == input::state::down;
-	if (start_input)
+	switch (state)
 	{
-		scene_manager::instance()->change_scene<minigame_scene>();
+		case states::fade_in_wait:
+		{
+			//	終了待機
+			if (!transition_fade_controller::instance()->is_processing())
+			{
+				state = states::input_wait;
+			}
+			break;
+		}
+		case states::input_wait:
+		{
+			//	スペースキーか左クリックでゲームを開始する
+			bool start_input = keyboard::instance()->get_state().is_key_state(keyboard::key_states::space) == input::state::down
+				|| mouse::instance()->get_state().is_key_state(mouse::key_states::left) == input::state::down;
+			if (start_input)
+			{
+				transition_fade_controller::instance()->play(fade::directions::out, 0.5f, fade::modes::black);
+				state = states::fade_out_wait;
+			}
+			break;
+		}
+		case states::fade_out_wait:
+		{
+			if (!transition_fade_controller::instance()->is_processing())
+			{
+				scene_manager::instance()->remove_scene<minigame_title_scene>();
+				scene_manager::instance()->add_scene<minigame_scene>();
+			}
+			break;
+		}
 	}
 }
 

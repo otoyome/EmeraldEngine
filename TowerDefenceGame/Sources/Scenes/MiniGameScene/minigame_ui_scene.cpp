@@ -1,6 +1,7 @@
 #include "Scenes/MiniGameScene/minigame_ui_scene.h"
 
 #include "custom_pipeline_state.h"
+#include "object/gameobjects/ui/hud/countdown_controller_object.h"
 
 namespace
 {
@@ -200,6 +201,29 @@ minigame_ui_scene::minigame_ui_scene()
 		register_object(hud_object_desc.speed);
 	}
 
+	//	カウントダウン表示
+	{
+		countdown_controller_object::object_descs desc;
+		desc.name = "カウントダウン表示コントローラー";
+
+		desc.text = std::make_shared<ui_text>("カウントダウン表示：数値", font);
+		desc.text->set_texts("");
+		desc.text->set_font_size(220);
+		desc.text->set_screen_rect({ 630 - 110, 360 - 110, 220, 220 });
+		desc.text->set_sort_order(200);
+		register_object(desc.text);
+
+		desc.start_image = std::make_shared<ui_image>("カウントダウン表示：スタート画像");
+		desc.start_image->set_texture("Assets/Resources/Textures/hud/Start.png");
+		desc.start_image->set_screen_rect({ 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT });
+		desc.start_image->set_draw_mode(ui_image::draw_modes::single);
+		desc.start_image->set_color({ 1, 1, 1, 0 });
+		desc.start_image->set_sort_order(200);
+		register_object(desc.start_image);
+
+		auto countdown = std::make_shared<countdown_controller_object>(desc);
+		register_object(countdown);
+	}
 	hud_object_desc.name = "ルンバ：メインHUD";
 	auto hud = std::make_shared<roomba_hud_controller_object>(hud_object_desc);
 	register_object(hud);

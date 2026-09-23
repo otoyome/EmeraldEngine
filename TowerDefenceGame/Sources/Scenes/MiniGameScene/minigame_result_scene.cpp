@@ -2,6 +2,8 @@
 
 #include "Scenes/MiniGameScene/minigame_title_scene.h"
 
+#include "object/gameobjects/ui/common/transition_fade_controller.h"
+
 namespace
 {
 	//	リザルト背景配置位置
@@ -53,6 +55,9 @@ minigame_result_scene::minigame_result_scene()
 		continue_icon->set_sort_order(1);
 		register_object(continue_icon);
 	}
+
+	//	遷移プレイ
+	transition_fade_controller::instance()->play(fade::directions::in, 0.5f, fade::modes::black);
 }
 
 minigame_result_scene::~minigame_result_scene()
@@ -71,12 +76,37 @@ bool minigame_result_scene::uninitialize_core()
 
 void minigame_result_scene::update_core(float elapsed_time)
 {
-	//	スペースキーか左クリックでタイトルへ戻る
-	bool continue_input = keyboard::instance()->get_state().is_key_state(keyboard::key_states::space) == input::state::down
-		|| mouse::instance()->get_state().is_key_state(mouse::key_states::left) == input::state::down;
-	if (continue_input)
+	switch (state)
 	{
-		scene_manager::instance()->change_scene<minigame_title_scene>();
+		case states::fade_in_wait:
+		{
+			if (!transition_fade_controller::instance()->is_processing())
+			{
+				state = states::input_wait;
+			}
+			break;
+		}
+		case states::input_wait:
+		{
+			//	スペースキーか左クリックでタイトルへ戻る
+			bool continue_input = keyboard::instance()->get_state().is_key_state(keyboard::key_states::space) == input::state::down
+				|| mouse::instance()->get_state().is_key_state(mouse::key_states::left) == input::state::down;
+			if (continue_input)
+			{
+				transition_fade_controller::instance()->play(fade::directions::out, 0.5f, fade::modes::black);
+				state = states::fade_out_wait;
+			}
+			break;
+		}
+		case states::fade_out_wait:
+		{
+			if (!transition_fade_controller::instance()->is_processing())
+			{
+				scene_manager::instance()->remove_scene<minigame_result_scene>();
+				scene_manager::instance()->add_scene<minigame_title_scene>();
+			}
+			break;
+		}
 	}
 }
 

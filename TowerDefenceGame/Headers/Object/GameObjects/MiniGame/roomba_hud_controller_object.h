@@ -24,6 +24,7 @@ public:
 		std::shared_ptr<key_indicator_object> brake_icon;
 
 		std::shared_ptr<timer_controller_object> timer;
+		float game_timer = 0.0f;
 	};
 
 public:
@@ -48,4 +49,5 @@ private:
 
 	std::shared_ptr<key_indicator_object> accel_icon;
 	std::shared_ptr<key_indicator_object> brake_icon;
+	float game_timer;
 };

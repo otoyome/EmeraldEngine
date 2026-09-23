@@ -13,6 +13,8 @@
 #include "object/gameobjects/cinematics/cinematics_object.h"
 
 #include "Scenes/MiniGameScene/minigame_result_scene.h"
+#include "object/gameobjects/ui/common/transition_fade_controller.h"
+#include "object/gameobjects/ui/hud/countdown_controller_object.h"
 
 namespace
 {
@@ -68,12 +70,15 @@ minigame_scene::minigame_scene()
 	mouse::instance()->set_cursol_hide(true);
 
 	//	メインカメラ生成
+	std::shared_ptr<camera_object> main_camera;
 	{
-		main_camera = std::make_shared<camera_object>("メインカメラ");
+		main_camera = object_manager::instance()->search_object<camera_object>("メインカメラ");
 		main_camera->get_camera()->set_fov_y(DirectX::XMConvertToRadians(30.0f));
 		main_camera->set_position({0, 10, 40});
-		register_object(main_camera);
 	}
+
+	//	遷移フェードコントローラーにプレイを要求
+	transition_fade_controller::instance()->play(fade::directions::in, 0.5f, fade::modes::black);
 
 	//	ポストプロセス生成
 	if (pipeline_state_manager* instance = pipeline_state_manager::instance())
@@ -187,6 +192,8 @@ minigame_scene::minigame_scene()
 
 	//	タイマーリセット
 	game_timer = 0.0f;
+	countdown_timer = 0.0f;
+	game_state = game_states::startup;
 }
 
 minigame_scene::~minigame_scene()
@@ -211,9 +218,54 @@ bool minigame_scene::uninitialize_core()
 void minigame_scene::update_core(float elapsed_time)
 {
 	switch (game_state)
-	{
+	{	
+		case game_states::startup:
+		{
+			//	フェードイン開始
+			transition_fade_controller::instance()->play(fade::directions::in, 0.5f, fade::modes::black);
+			game_state = game_states::start_count;
+			break;
+		}
 		case game_states::start_count:
 		{
+			if (transition_fade_controller::instance()->is_processing())
+			{
+				return;
+			}
+
+			//	カウントダウン中はプレイヤー入力を止める
+			if (auto controller = object_manager::instance()->search_object<roomba_controller_object>("プレイヤー 操作"))
+			{
+				controller->set_input_purmit_flag(false);
+			}
+
+			countdown_timer += elapsed_time;
+
+			constexpr float count_interval = 1.0f;
+			constexpr float start_display_time = 0.8f;
+			constexpr float countdown_finish_time = count_interval * 3.0f + start_display_time;
+
+			if (auto countdown = object_manager::instance()->search_object<countdown_controller_object>("カウントダウン表示コントローラー"))
+			{
+				if (countdown_timer < count_interval * 1.0f)
+					countdown->set_count(3);
+				else if (countdown_timer < count_interval * 2.0f)
+					countdown->set_count(2);
+				else if (countdown_timer < count_interval * 3.0f)
+					countdown->set_count(1);
+				else if (countdown_timer < countdown_finish_time)
+					countdown->set_start();
+				else
+					countdown->hide();
+			}
+			if (countdown_timer >= countdown_finish_time)
+			{
+				if (auto controller = object_manager::instance()->search_object<roomba_controller_object>("プレイヤー 操作"))
+				{
+					controller->set_input_purmit_flag(true);
+				}
+				game_state = game_states::main_game;
+			}
 			break;
 		}
 		case game_states::main_game:
@@ -334,21 +386,36 @@ void minigame_scene::update_core(float elapsed_time)
 					postprocess_material->set_float("wd_wind_x", 0.0f);
 				}
 			}
-			break;
-		}
-		case game_states::result_move:
-		{
-			//	死亡後、スペースキーか左クリックでリザルトシーンへ
+
+			//	プレイヤー死亡でリザルト待ちへ
 			if (player_object && player_object->check_same_state(roomba_object::state_names[roomba_object::state_dead]))
 			{
-				bool continue_input = keyboard::instance()->get_state().is_key_state(keyboard::key_states::space) == input::state::down
-					|| mouse::instance()->get_state().is_key_state(mouse::key_states::left) == input::state::down;
-				if (continue_input)
-				{
-					return;
-				}
+				game_state = game_states::result_wait;
 			}
-			scene_manager::instance()->change_scene<minigame_result_scene>();
+			break;
+		}
+		case game_states::result_wait:
+		{
+			//	スペースキーか左クリックでリザルトシーンへ
+			bool continue_input = keyboard::instance()->get_state().is_key_state(keyboard::key_states::space) == input::state::down
+				|| mouse::instance()->get_state().is_key_state(mouse::key_states::left) == input::state::down;
+			if (continue_input)
+			{
+				//	フェードアウト開始
+				transition_fade_controller::instance()->play(fade::directions::out, 0.5f, fade::modes::black);
+				game_state = game_states::result_fade_out;
+			}
+			break;
+		}
+		case game_states::result_fade_out:
+		{
+			if (!transition_fade_controller::instance()->is_processing())
+			{
+				scene_manager::instance()->remove_scene<stage_00_scene>();
+				scene_manager::instance()->remove_scene<minigame_ui_scene>();
+				scene_manager::instance()->remove_scene<minigame_scene>();
+				scene_manager::instance()->add_scene<minigame_result_scene>();
+			}
 			break;
 		}
 	}
