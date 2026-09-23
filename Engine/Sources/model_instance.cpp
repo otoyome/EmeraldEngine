@@ -210,6 +210,10 @@ void model_instance_manger::registered(std::weak_ptr<model_instance> instance)
 
 void model_instance_manger::get_container(mesh_container& container)
 {
+	const semantic tangent_semantic("TANGENT", 0);
+	const semantic position_semantic("POSITION", 0);
+	const semantic normal_semantic("NORMAL", 0);
+
 	container.clear();
 
 	std::size_t primitive_buffer_count = 0;
@@ -411,10 +415,6 @@ void model_instance_manger::get_container(mesh_container& container)
 
 			//	変換行列・プリミティブヘッダを登録
 			{
-				const semantic tangent_semantic("TANGENT", 0);
-				const semantic position_semantic("POSITION", 0);
-				const semantic normal_semantic("NORMAL", 0);
-
 				common_pipeline_states::primitive_constants& header = container.primitive_header_scratch.emplace_back();
 
 				//	接線の有無

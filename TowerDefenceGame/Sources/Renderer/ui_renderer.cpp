@@ -127,7 +127,7 @@ void ui_renderer::render(renderer_context& context)
 			DirectX::XMFLOAT2* texcoords = static_cast<DirectX::XMFLOAT2*>(mapped_vertices[format_id::texcoord_0].pData);
 			UINT* indices = static_cast<UINT*>(mapped_indices.pData);
 
-			//	各セマンティックのバッファ/フォーマット/ストライドはフレーム内で共通なので1度だけ取得しておく
+			//	各セマンティックのバッファ/フォーマット/ストライドはフレーム内で共通
 			buffer_view view_templates[3];
 			for (auto& it : vertex_buffer_views)
 			{
@@ -139,7 +139,7 @@ void ui_renderer::render(renderer_context& context)
 					view_templates[format_id::texcoord_0] = it.second;
 			}
 
-			//	スプライト数分をまとめて確保しておく
+			//	スプライト数分をまとめて確保
 			size_t sprite_count = context.render_data->sprite_container.sprite_datas.size();
 			vbvs.reserve(sprite_count);
 			ibvs.reserve(sprite_count);
