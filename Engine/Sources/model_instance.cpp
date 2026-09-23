@@ -223,9 +223,10 @@ void model_instance_manger::get_container(mesh_container& container)
 	PreviousNodeWorldTransforms.resize(common_pipeline_states::mesh_bone_max);
 
 	//	バッファ/マテリアルの配列生成
-	std::size_t buffer_count = 0, material_count = 0;
-	container.buffer_datas.resize(256);
-	container.material_datas.resize(256);
+	container.buffer_datas.clear();
+	container.buffer_datas.reserve(256);
+	container.material_datas.clear();
+	container.material_datas.reserve(256);
 
 	//	メッシュコンテナ生成
 	auto it = instances.begin();
@@ -324,11 +325,8 @@ void model_instance_manger::get_container(mesh_container& container)
 			}
 
 			//	バッファ情報構築
-			if (buffer_count >= container.buffer_datas.size())
-			{
-				container.buffer_datas.resize(container.buffer_datas.size() * 2);
-			}
-			auto& buffer_data = container.buffer_datas[buffer_count];
+			auto& buffer_data = container.buffer_datas.emplace_back();
+			UINT buffer_index = static_cast<UINT>(container.buffer_datas.size() - 1);
 			buffer_data.lod_range_rate = instance->get_lod_range_rate();
 			buffer_data.bounds_min = bounds_min;
 			buffer_data.bounds_max = bounds_max;
@@ -478,25 +476,20 @@ void model_instance_manger::get_container(mesh_container& container)
 				buffer_data.primitive_buffer = constant_bufferes[primitive_buffer_count++];
 
 				common_pipeline_states::primitive_index_constants index_constant{};
-				index_constant.primitive_index = static_cast<UINT>(buffer_count);
+				index_constant.primitive_index = buffer_index;
 				render_data::instance()->get_immediate_context()->UpdateSubresource(buffer_data.primitive_buffer.Get(), 0, 0, &index_constant, 0, 0);
 			}
 
 			//	マテリアル情報構築
-			if (material_count >= container.material_datas.size())
-			{
-				container.material_datas.resize(container.material_datas.size() * 2);
-			}
-			auto& material_data = container.material_datas[material_count];
+			auto& material_data = container.material_datas.emplace_back();
+			UINT material_index = static_cast<UINT>(container.material_datas.size() - 1);
 			material_data.material = instance->get_materials().data() + mesh.material_index;
 
 			//	描画情報構築
 			container.draw_datas.emplace_back();
 			auto& draw_data = container.draw_datas.back();
-			draw_data.buffer_index = static_cast<UINT>(buffer_count);
-			draw_data.material_index = static_cast<UINT>(material_count);
-			++buffer_count;
-			++material_count;
+			draw_data.buffer_index = buffer_index;
+			draw_data.material_index = material_index;
 			if (instance->is_flag(model_instance::flags::color_render))
 			{
 				container.color_datas.emplace_back(container.draw_datas.size() - 1);
@@ -548,10 +541,6 @@ void model_instance_manger::get_container(mesh_container& container)
 			instance->set_previous_world_transform(instance->get_world_transform());
 		}
 	}
-
-	//	バッファリサイズ
-	container.buffer_datas.resize(buffer_count);
-	container.material_datas.resize(material_count);
 
 	//	Transform 行列をGPUへ転送
 	container.build_transform_buffers();

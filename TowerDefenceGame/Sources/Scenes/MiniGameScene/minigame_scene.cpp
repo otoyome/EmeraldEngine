@@ -472,9 +472,9 @@ void minigame_scene::update_core(float elapsed_time)
 		if (postprocess_material)
 		{
 			//	”M—Ê‚É‰ž‚¶‚ÄÔ‚­
-			float heat_rate = math::saturate(player_object->get_heat_rate());
+			float heat_rate = math::saturate(player_object->get_heat_rate() - 0.6f);
 			float wet_rate = player_object->get_wet_rate();
-			postprocess_material->set_float("vg_intensity", math::saturate(heat_rate - 0.6f));
+			postprocess_material->set_float("vg_intensity", heat_rate);
 			postprocess_material->set_float("vg_radius", 0.4f);
 			postprocess_material->set_float("vg_softness", 0.6f);
 			postprocess_material->set_float3("vg_color", {0.75f, 0.0f, 0.0f});
