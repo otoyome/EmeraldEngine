@@ -16,6 +16,12 @@ public:
 		filled,
 	};
 
+	enum class fill_methods
+	{
+		axis,
+		radial,
+	};
+
 	enum class fill_origins
 	{
 		top,
@@ -33,6 +39,9 @@ public:
 
 	float get_fill_amount() const;
 	void set_fill_amount(float fill_amount);
+
+	fill_methods get_fill_method() const;
+	void set_fill_method(fill_methods fill_method);
 
 	fill_origins get_fill_origin() const;
 	void set_fill_origin(fill_origins fill_origin);
@@ -55,11 +64,17 @@ public:
 #endif	//	defined(USE_IMGUI)
 
 private:
+	void build_primitive_single(std::vector<sprite::vertex>& vertices, std::vector<UINT>& indices);
+	void build_primitive_sliced(std::vector<sprite::vertex>& vertices, std::vector<UINT>& indices);
+	void build_primitive_filled(std::vector<sprite::vertex>& vertices, std::vector<UINT>& indices);
+
+private:
 	draw_modes draw_mode;
 
 	DirectX::XMFLOAT4 border;
 
 	float fill_amount = 1.0f;
+	fill_methods fill_method = fill_methods::radial;
 	fill_origins fill_origin = fill_origins::top;
 	bool fill_clockwise = true;
 };

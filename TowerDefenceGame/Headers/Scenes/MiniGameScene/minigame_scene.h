@@ -20,6 +20,8 @@ public:
 	enum class game_states
 	{
 		startup,
+		warming_up,
+		warming_up_end,
 		countdown_setup,
 		countdown,
 		main_game,
@@ -47,8 +49,8 @@ private:
 	std::shared_ptr<roomba_object> player_object;
 	std::shared_ptr<material> postprocess_material;
 
-	std::shared_ptr<effect_instance> bubble_effect;
-	std::shared_ptr<effect_instance> dust_effect;
+	std::vector<std::shared_ptr<effect_instance>> bubble_effect;
+	std::vector<std::shared_ptr<effect_instance>> dust_effect;
 	std::vector<UINT> bubble_emitter_ids;
 	std::vector<UINT> dust_emitter_ids;
 

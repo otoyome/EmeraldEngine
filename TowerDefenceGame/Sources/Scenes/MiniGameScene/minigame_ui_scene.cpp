@@ -6,28 +6,33 @@
 namespace
 {
 	//	ヒートゲージ左上位置
-	static constexpr DirectX::XMFLOAT2 heat_ui_position = {450, 600};
-	static constexpr DirectX::XMFLOAT2 heat_ui_size = {100, 20};
+	static constexpr DirectX::XMFLOAT2 heat_ui_position = {850, 500};
+	static constexpr DirectX::XMFLOAT2 heat_ui_size = {50, 200};
 	//	ウェットゲージ左上位置
-	static constexpr DirectX::XMFLOAT2 wet_ui_position = {728, 600};
-	static constexpr DirectX::XMFLOAT2 wet_ui_size = {100, 20};
+	static constexpr DirectX::XMFLOAT2 wet_ui_position = {800, 500};
+	static constexpr DirectX::XMFLOAT2 wet_ui_size = {50, 200};
 	//	ゴミ収集率左上位置
-	static constexpr DirectX::XMFLOAT2 trash_ui_size = {100, 100};
-	static constexpr DirectX::XMFLOAT2 trash_ui_position = {615, 530};
+	static constexpr DirectX::XMFLOAT2 trash_base_ui_position = {900, 500};
+	static constexpr DirectX::XMFLOAT2 trash_base_ui_size = {359, 100};
+	static constexpr DirectX::XMFLOAT2 trash_ui_position = {1050, 520};
+	static constexpr DirectX::XMFLOAT2 trash_ui_size = {100, 60};
 	//	加速アイコン左上位置
-	static constexpr DirectX::XMFLOAT2 accel_icon_ui_position = {1130, 540};
+	static constexpr DirectX::XMFLOAT2 accel_icon_ui_position = {920, 620};
 	static constexpr DirectX::XMFLOAT2 accel_icon_ui_size = {36, 36};
 	static constexpr DirectX::XMFLOAT2 accel_icon_main_ui_size = {72, 36};
 	//	減速アイコン左上位置
-	static constexpr DirectX::XMFLOAT2 brake_icon_ui_position = {1130, 612};
+	static constexpr DirectX::XMFLOAT2 brake_icon_ui_position = {980, 620};
 	static constexpr DirectX::XMFLOAT2 brake_icon_ui_size = {36, 36};
 	static constexpr DirectX::XMFLOAT2 brake_icon_main_ui_size = {72, 36};
 	//	時間表示パネル左上位置
 	static constexpr DirectX::XMFLOAT2 timer_ui_position = {640, 100};
 	static constexpr DirectX::XMFLOAT2 timer_ui_size = {240, 50};
 	//	速度表示パネル左上位置
-	static constexpr DirectX::XMFLOAT2 speed_ui_size = {480, 100};
-	static constexpr DirectX::XMFLOAT2 speed_ui_position = {630 - speed_ui_size.x / 2, 580};
+	static constexpr DirectX::XMFLOAT2 speed_base_ui_position = {900, 600};
+	static constexpr DirectX::XMFLOAT2 speed_base_ui_size = {360, 100};
+	static constexpr DirectX::XMFLOAT2 speed_text_ui_position = {1040, 610};
+	static constexpr DirectX::XMFLOAT2 speed_text_ui_size = {64, 64};
+	static constexpr float speed_text_font_size = 80.0f;
 }
 
 minigame_ui_scene::minigame_ui_scene()
@@ -44,18 +49,30 @@ minigame_ui_scene::minigame_ui_scene()
 		roomba_gauge_controller_object::object_descs desc;
 		desc.name = "ルンバUI：ヒートゲージコントローラー";
 		{
+			const int index = static_cast<int>(roomba_gauge_controller_object::ui_id::cover);
+			desc.objects[index] = std::make_shared<ui_image>("ルンバUI：ヒートゲージ:カバー");
+			desc.objects[index]->set_screen_rect({ heat_ui_position.x, heat_ui_position.y, heat_ui_size.x, heat_ui_size.y });
+			desc.objects[index]->set_color({ 1, 0.25f, 0.25f, 1 });
+			desc.objects[index]->set_border({0,0,1,1});
+			desc.objects[index]->set_texture("Assets/Resources/Textures/hud/HeatMeter.png");
+			desc.objects[index]->set_draw_mode(ui_image::draw_modes::sliced);
+			desc.objects[index]->set_sort_order(10);
+			register_object(desc.objects[index]);
+		}
+		{
 			const int index = static_cast<int>(roomba_gauge_controller_object::ui_id::main);
 			desc.objects[index] = std::make_shared<ui_image>("ルンバUI：ヒートゲージ:メイン");
 			desc.objects[index]->set_screen_rect({ heat_ui_position.x, heat_ui_position.y, heat_ui_size.x, heat_ui_size.y });
 			desc.objects[index]->set_color({ 1, 0.25f, 0.25f, 1 });
-			desc.objects[index]->set_border({0.25f,0,0.25f,0});
-			desc.objects[index]->set_texture("Assets/Resources/Textures/hud/SpeedMeterLeft.png");
-			desc.objects[index]->set_draw_mode(ui_image::draw_modes::sliced);
+			desc.objects[index]->set_border({0,0,1,1});
+			desc.objects[index]->set_texture("Assets/Resources/Textures/hud/HeatMeterMain.png");
+			desc.objects[index]->set_draw_mode(ui_image::draw_modes::filled);
+			desc.objects[index]->set_fill_method(ui_image::fill_methods::axis);
+			desc.objects[index]->set_fill_origin(ui_image::fill_origins::bottom);
 			desc.objects[index]->set_sort_order(5);
 			register_object(desc.objects[index]);
 		}
 		hud_object_desc.heat_bar = std::make_shared<roomba_gauge_controller_object>(desc);
-		hud_object_desc.heat_bar->set_animation_direction(roomba_gauge_controller_object::directions::left);
 		register_object(hud_object_desc.heat_bar);
 	}
 
@@ -64,18 +81,30 @@ minigame_ui_scene::minigame_ui_scene()
 		roomba_gauge_controller_object::object_descs desc;
 		desc.name = "ルンバUI：ウェットゲージコントローラー";
 		{
+			const int index = static_cast<int>(roomba_gauge_controller_object::ui_id::cover);
+			desc.objects[index] = std::make_shared<ui_image>("ルンバUI：ウェットゲージ:カバー");
+			desc.objects[index]->set_screen_rect({ wet_ui_position.x, wet_ui_position.y, wet_ui_size.x, wet_ui_size.y });
+			desc.objects[index]->set_color({ 0.25f, 0.25f, 1, 1 });
+			desc.objects[index]->set_border({0,0,1,1});
+			desc.objects[index]->set_texture("Assets/Resources/Textures/hud/WetMeter.png");
+			desc.objects[index]->set_draw_mode(ui_image::draw_modes::sliced);
+			desc.objects[index]->set_sort_order(10);
+			register_object(desc.objects[index]);
+		}
+		{
 			const int index = static_cast<int>(roomba_gauge_controller_object::ui_id::main);
 			desc.objects[index] = std::make_shared<ui_image>("ルンバUI：ウェットゲージ:メイン");
 			desc.objects[index]->set_screen_rect({ wet_ui_position.x, wet_ui_position.y, wet_ui_size.x, wet_ui_size.y });
 			desc.objects[index]->set_color({ 0.25f, 0.25f, 1, 1 });
-			desc.objects[index]->set_border({0.25f,0,0.25f,0});
-			desc.objects[index]->set_texture("Assets/Resources/Textures/hud/SpeedMeterRight.png");
-			desc.objects[index]->set_draw_mode(ui_image::draw_modes::sliced);
+			desc.objects[index]->set_border({0,0,1,1});
+			desc.objects[index]->set_texture("Assets/Resources/Textures/hud/WetMeterMain.png");
+			desc.objects[index]->set_draw_mode(ui_image::draw_modes::filled);
+			desc.objects[index]->set_fill_method(ui_image::fill_methods::axis);
+			desc.objects[index]->set_fill_origin(ui_image::fill_origins::bottom);
 			desc.objects[index]->set_sort_order(5);
 			register_object(desc.objects[index]);
 		}
 		hud_object_desc.wet_bar = std::make_shared<roomba_gauge_controller_object>(desc);
-		hud_object_desc.wet_bar->set_animation_direction(roomba_gauge_controller_object::directions::right);
 		register_object(hud_object_desc.wet_bar);
 	}
 
@@ -83,6 +112,16 @@ minigame_ui_scene::minigame_ui_scene()
 	{
 		roomba_trash_controller_object::object_descs desc;
 		desc.name = "ルンバUI：ゴミ収集率コントローラー";
+		{
+			desc.image = std::make_shared<ui_image>("ルンバUI：ゴミ収集率:ベース");
+			desc.image->set_screen_rect({ trash_base_ui_position.x, trash_base_ui_position.y, trash_base_ui_size.x, trash_base_ui_size.y });
+			desc.image->set_color({ 0.25f, 0.25f, 1, 1 });
+			desc.image->set_border({0,0,1,1});
+			desc.image->set_texture("Assets/Resources/Textures/hud/DustMeter.png");
+			desc.image->set_draw_mode(ui_image::draw_modes::sliced);
+			desc.image->set_sort_order(0);
+			register_object(desc.image);
+		}
 		{
 			desc.text = std::make_shared<ui_text>("ルンバUI：ゴミ収集率:メイン", font);
 			desc.text->set_screen_rect({trash_ui_position.x,
@@ -206,18 +245,18 @@ minigame_ui_scene::minigame_ui_scene()
 		desc.name = "ルンバUI：速度表示コントローラー";
 
 		desc.image = std::make_shared<ui_image>("ルンバUI：速度表示：ベース");
-		desc.image->set_screen_rect({ speed_ui_position.x, speed_ui_position.y, speed_ui_size.x, speed_ui_size.y });
+		desc.image->set_screen_rect({ speed_base_ui_position.x, speed_base_ui_position.y, speed_base_ui_size.x, speed_base_ui_size.y });
 		desc.image->set_texture("Assets/Resources/Textures/Hud/SpeedMeter.png");
 		desc.image->set_draw_mode(ui_image::draw_modes::sliced);
 		desc.image->set_border({0,0,0,0});
-		desc.image->set_sort_order(100);
+		desc.image->set_sort_order(0);
 		register_object(desc.image);
 
 		desc.text = std::make_shared<ui_text>("ルンバUI：速度表示：数値", font);
 		desc.text->set_texts("0.0");
-		desc.text->set_screen_rect({ speed_ui_position.x + 230, speed_ui_position.y + 20, 64, 64 });
-		desc.text->set_font_size(48);
-		desc.text->set_sort_order(110);
+		desc.text->set_screen_rect({ speed_text_ui_position.x, speed_text_ui_position.y, speed_text_ui_size.x, speed_text_ui_size.y });
+		desc.text->set_font_size(speed_text_font_size);
+		desc.text->set_sort_order(5);
 		register_object(desc.text);
 
 		hud_object_desc.speed = std::make_shared<roomba_speed_controller_object>(desc);
@@ -247,6 +286,35 @@ minigame_ui_scene::minigame_ui_scene()
 		auto countdown = std::make_shared<countdown_controller_object>(desc);
 		register_object(countdown);
 	}
+
+	//	チュートリアル
+	if (0)
+	{
+		roomba_gauge_controller_object::object_descs desc;
+		desc.name = "ルンバUI：チュートリアル";
+		std::shared_ptr<ui_image> tutorial_base;
+		std::shared_ptr<ui_text> tutorial_text;
+		std::shared_ptr<ui_text> tutorial_title;
+		{
+			hud_object_desc.tutorial_base = std::make_shared<ui_image>("ルンバUI：チュートリアル：ベース");
+			hud_object_desc.tutorial_base->set_screen_rect({ heat_ui_position.x, heat_ui_position.y, heat_ui_size.x, heat_ui_size.y });
+			hud_object_desc.tutorial_base->set_color({ 1, 0.25f, 0.25f, 1 });
+			hud_object_desc.tutorial_base->set_border({0,0,1,1});
+			hud_object_desc.tutorial_base->set_texture("Assets/Resources/Textures/hud/NotificationWindow.png");
+			hud_object_desc.tutorial_base->set_draw_mode(ui_image::draw_modes::sliced);
+			hud_object_desc.tutorial_base->set_sort_order(0);
+			register_object(hud_object_desc.tutorial_base);
+		}
+		{
+			hud_object_desc.tutorial_text = std::make_shared<ui_text>("ルンバUI：チュートリアル：テキスト", font);
+			hud_object_desc.tutorial_text->set_screen_rect({ heat_ui_position.x, heat_ui_position.y, heat_ui_size.x, heat_ui_size.y });
+			hud_object_desc.tutorial_text->set_texts("このゲームはゴミを収集するゲームです。\nあ");
+			hud_object_desc.tutorial_text->set_sort_order(5);
+			register_object(hud_object_desc.tutorial_text);
+		}
+	}
+
+
 	hud_object_desc.name = "ルンバUI：メインHUD";
 	auto hud = std::make_shared<roomba_hud_controller_object>(hud_object_desc);
 	register_object(hud);

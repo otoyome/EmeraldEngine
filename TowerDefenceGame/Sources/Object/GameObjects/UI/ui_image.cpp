@@ -75,6 +75,17 @@ void ui_image::set_fill_amount(float fill_amount)
 	set_dirty();
 }
 
+ui_image::fill_methods ui_image::get_fill_method() const
+{
+	return fill_method;
+}
+
+void ui_image::set_fill_method(fill_methods fill_method)
+{
+	this->fill_method = fill_method;
+	set_dirty();
+}
+
 ui_image::fill_origins ui_image::get_fill_origin() const
 {
 	return fill_origin;
@@ -130,161 +141,212 @@ ui_image::~ui_image()
 {
 }
 
-void ui_image::pre_render()
+void ui_image::build_primitive_single(std::vector<sprite::vertex>& vertices, std::vector<UINT>& indices)
 {
-	//	頂点修正
-	if (is_dirty())
-	{
-		DirectX::XMFLOAT4 color = { 1.0f, 1.0f, 1.0f, 1.0f };
+	DirectX::XMFLOAT4 color = { 1.0f, 1.0f, 1.0f, 1.0f };
 
-		std::vector<sprite::vertex> vertices;
-		std::vector<UINT> indices;
-		switch (draw_mode)
+	vertices.push_back({{ 0.0f, 0.0f, 0.0f }, color, { 0.0f, 0.0f }});
+	vertices.push_back({{ 1.0f, 0.0f, 0.0f }, color, { 1.0f, 0.0f }});
+	vertices.push_back({{ 0.0f, 1.0f, 0.0f }, color, { 0.0f, 1.0f }});
+	vertices.push_back({{ 1.0f, 1.0f, 0.0f }, color, { 1.0f, 1.0f }});
+	indices.emplace_back(0);
+	indices.emplace_back(1);
+	indices.emplace_back(2);
+	indices.emplace_back(1);
+	indices.emplace_back(3);
+	indices.emplace_back(2);
+}
+
+void ui_image::build_primitive_sliced(std::vector<sprite::vertex>& vertices, std::vector<UINT>& indices)
+{
+	DirectX::XMFLOAT4 color = { 1.0f, 1.0f, 1.0f, 1.0f };
+
+	//	テクスチャ空間での境界を算出
+	texture_ptr texture;
+	get_sprite().get_material().get_texture(sprite::base_texture_name, texture);
+	DirectX::XMFLOAT2 texture_size = { SCREEN_WIDTH, SCREEN_HEIGHT };
+	if (texture2d_ptr texture_2d = std::static_pointer_cast<texture2d>(texture))
+	{
+		texture_size.x = static_cast<float>(texture_2d->get_width());
+		texture_size.y = static_cast<float>(texture_2d->get_height());
+	}
+
+	DirectX::XMFLOAT2 screen_rect_size = { get_screen_rect().z, get_screen_rect().w };
+	DirectX::XMFLOAT2 size_rate = { screen_rect_size.x / texture_size.x, screen_rect_size.y / texture_size.y };
+	//	座標
+	DirectX::XMFLOAT2 corner_size[2];
+	{
+		DirectX::XMFLOAT2 x_corners = calculate_corner_size(border.x, border.z, texture_size.x, screen_rect_size.x);
+		DirectX::XMFLOAT2 y_corners = calculate_corner_size(border.y, border.w, texture_size.y, screen_rect_size.y);
+		corner_size[0] = { x_corners.x, y_corners.x };
+		corner_size[1] = { x_corners.y, y_corners.y };
+	}
+	//	UV
+	float llx = 0.0f;
+	float lrx = 1.0f;
+	float lly = 0.0f;
+	float lry = 1.0f;
+	float clx = corner_size[0].x;
+	float crx = corner_size[1].x;
+	float cly = corner_size[0].y;
+	float cry = corner_size[1].y;
+	vertices.push_back({{ llx, lly, 0.0f }, color, {                0.0f, 0.0f }});
+	vertices.push_back({{ clx, lly, 0.0f }, color, {            border.x, 0.0f }});
+	vertices.push_back({{ crx, lly, 0.0f }, color, { 1.0f - border.z, 0.0f }});
+	vertices.push_back({{ lrx, lly, 0.0f }, color, {                1.0f, 0.0f }});
+
+	vertices.push_back({{ llx, cly, 0.0f }, color, {                0.0f, border.y }});
+	vertices.push_back({{ clx, cly, 0.0f }, color, {            border.x, border.y }});
+	vertices.push_back({{ crx, cly, 0.0f }, color, { 1.0f - border.z, border.y }});
+	vertices.push_back({{ lrx, cly, 0.0f }, color, {                1.0f, border.y }});
+
+	vertices.push_back({{ llx, cry, 0.0f }, color, {                0.0f, 1.0f - border.w }});
+	vertices.push_back({{ clx, cry, 0.0f }, color, {            border.x, 1.0f - border.w }});
+	vertices.push_back({{ crx, cry, 0.0f }, color, { 1.0f - border.z, 1.0f - border.w }});
+	vertices.push_back({{ lrx, cry, 0.0f }, color, {                1.0f, 1.0f - border.w }});
+
+	vertices.push_back({{ llx, lry, 0.0f }, color, {                0.0f, 1.0f }});
+	vertices.push_back({{ clx, lry, 0.0f }, color, {            border.x, 1.0f }});
+	vertices.push_back({{ crx, lry, 0.0f }, color, { 1.0f - border.z, 1.0f }});
+	vertices.push_back({{ lrx, lry, 0.0f }, color, {                1.0f, 1.0f }});
+
+	indices.emplace_back(0);	indices.emplace_back(1);	indices.emplace_back(4);
+	indices.emplace_back(1);	indices.emplace_back(5);	indices.emplace_back(4);
+
+	indices.emplace_back(1);	indices.emplace_back(2);	indices.emplace_back(5);
+	indices.emplace_back(2);	indices.emplace_back(6);	indices.emplace_back(5);
+
+	indices.emplace_back(2);	indices.emplace_back(3);	indices.emplace_back(6);
+	indices.emplace_back(3);	indices.emplace_back(7);	indices.emplace_back(6);
+
+	indices.emplace_back(4);	indices.emplace_back(5);	indices.emplace_back(8);
+	indices.emplace_back(5);	indices.emplace_back(9);	indices.emplace_back(8);
+
+	indices.emplace_back(5);	indices.emplace_back(6);	indices.emplace_back(9);
+	indices.emplace_back(6);	indices.emplace_back(10);	indices.emplace_back(9);
+
+	indices.emplace_back(6);	indices.emplace_back(7);	indices.emplace_back(10);
+	indices.emplace_back(7);	indices.emplace_back(11);	indices.emplace_back(10);
+
+	indices.emplace_back(8);	indices.emplace_back(9);	indices.emplace_back(12);
+	indices.emplace_back(9);	indices.emplace_back(13);	indices.emplace_back(12);
+
+	indices.emplace_back(9);	indices.emplace_back(10);	indices.emplace_back(13);
+	indices.emplace_back(10);	indices.emplace_back(14);	indices.emplace_back(13);
+
+	indices.emplace_back(10);	indices.emplace_back(11);	indices.emplace_back(14);
+	indices.emplace_back(11);	indices.emplace_back(15);	indices.emplace_back(14);
+}
+
+void ui_image::build_primitive_filled(std::vector<sprite::vertex>& vertices, std::vector<UINT>& indices)
+{
+	float amount = math::saturate(fill_amount);
+	if (amount <= FLT_MIN)
+		return;
+
+	DirectX::XMFLOAT4 color = { 1.0f, 1.0f, 1.0f, 1.0f };
+	switch (fill_method)
+	{
+		case fill_methods::axis:
 		{
-			case draw_modes::single:
+			auto build_rect = [&](float x0, float y0, float x1, float y1)
 			{
-				vertices.push_back({{ 0.0f, 0.0f, 0.0f }, color, { 0.0f, 0.0f }});
-				vertices.push_back({{ 1.0f, 0.0f, 0.0f }, color, { 1.0f, 0.0f }});
-				vertices.push_back({{ 0.0f, 1.0f, 0.0f }, color, { 0.0f, 1.0f }});
-				vertices.push_back({{ 1.0f, 1.0f, 0.0f }, color, { 1.0f, 1.0f }});
+				vertices.push_back({{ x0, y0, 0.0f }, color, { x0, y0 }});
+				vertices.push_back({{ x1, y0, 0.0f }, color, { x1, y0 }});
+				vertices.push_back({{ x0, y1, 0.0f }, color, { x0, y1 }});
+				vertices.push_back({{ x1, y1, 0.0f }, color, { x1, y1 }});
+
 				indices.emplace_back(0);
 				indices.emplace_back(1);
 				indices.emplace_back(2);
 				indices.emplace_back(1);
 				indices.emplace_back(3);
 				indices.emplace_back(2);
+			};
+
+			switch (fill_origin)
+			{
+				case fill_origins::left:	build_rect(0.0f, 0.0f, amount, 1.0f);			break;
+				case fill_origins::right:	build_rect(1.0f - amount, 0.0f, 1.0f, 1.0f);	break;
+				case fill_origins::top:		build_rect(0.0f, 0.0f, 1.0f, amount);			break;
+				case fill_origins::bottom:	build_rect(0.0f, 1.0f - amount, 1.0f, 1.0f);	break;
+			}
+			break;
+		}
+		case fill_methods::radial:
+		{
+			int origin_index = 0;
+			switch (fill_origin)
+			{
+				case fill_origins::top:		origin_index = 0;	break;
+				case fill_origins::right:	origin_index = 2;	break;
+				case fill_origins::bottom:	origin_index = 4;	break;
+				case fill_origins::left:	origin_index = 6;	break;
+			}
+			int direction = fill_clockwise ? 1 : -1;
+
+			auto ring_point = [&](int step)
+			{
+				int wrapped = ((origin_index + step * direction) % 8 + 8) % 8;
+				return fill_ring_points[wrapped];
+			};
+
+			float total = amount * 8.0f;
+			int full_slices = std::min(8, static_cast<int>(total));
+			float fraction = total - static_cast<float>(full_slices);
+
+			vertices.push_back({{ 0.5f, 0.5f, 0.0f }, color, { 0.5f, 0.5f }});
+
+			DirectX::XMFLOAT2 first_point = ring_point(0);
+			vertices.push_back({{ first_point.x, first_point.y, 0.0f }, color, { first_point.x, first_point.y }});
+
+			for (int step = 1; step <= full_slices; ++step)
+			{
+				DirectX::XMFLOAT2 point = ring_point(step);
+				vertices.push_back({{ point.x, point.y, 0.0f }, color, { point.x, point.y }});
+			}
+
+			if (fraction > 0.0f)
+			{
+				DirectX::XMFLOAT2 from = ring_point(full_slices);
+				DirectX::XMFLOAT2 to = ring_point(full_slices + 1);
+				DirectX::XMFLOAT2 point = { math::lerp(from.x, to.x, fraction), math::lerp(from.y, to.y, fraction) };
+				vertices.push_back({{ point.x, point.y, 0.0f }, color, { point.x, point.y }});
+			}
+
+			for (UINT index = 1; index < vertices.size() - 1; ++index)
+			{
+				indices.emplace_back(0);
+				indices.emplace_back(index);
+				indices.emplace_back(index + 1);
+			}
+			break;
+		}
+	}
+}
+
+void ui_image::pre_render()
+{
+	//	頂点修正
+	if (is_dirty())
+	{
+		std::vector<sprite::vertex> vertices;
+		std::vector<UINT> indices;
+		switch (draw_mode)
+		{
+			case draw_modes::single:
+			{
+				build_primitive_single(vertices, indices);
 				break;
 			}
 			case draw_modes::sliced:
 			{
-				//	テクスチャ空間での境界を算出
-				texture_ptr texture;
-				get_sprite().get_material().get_texture(sprite::base_texture_name, texture);
-				DirectX::XMFLOAT2 texture_size = { SCREEN_WIDTH, SCREEN_HEIGHT };
-				if (texture2d_ptr texture_2d = std::static_pointer_cast<texture2d>(texture))
-				{
-					texture_size.x = static_cast<float>(texture_2d->get_width());
-					texture_size.y = static_cast<float>(texture_2d->get_height());
-				}
-
-				DirectX::XMFLOAT2 screen_rect_size = { get_screen_rect().z, get_screen_rect().w };
-				DirectX::XMFLOAT2 size_rate = { screen_rect_size.x / texture_size.x, screen_rect_size.y / texture_size.y };
-				//	座標
-				DirectX::XMFLOAT2 corner_size[2];
-				{
-					DirectX::XMFLOAT2 x_corners = calculate_corner_size(border.x, border.z, texture_size.x, screen_rect_size.x);
-					DirectX::XMFLOAT2 y_corners = calculate_corner_size(border.y, border.w, texture_size.y, screen_rect_size.y);
-					corner_size[0] = { x_corners.x, y_corners.x };
-					corner_size[1] = { x_corners.y, y_corners.y };
-				}
-				//	UV
-				float llx = 0.0f;
-				float lrx = 1.0f;
-				float lly = 0.0f;
-				float lry = 1.0f;
-				float clx = corner_size[0].x;
-				float crx = corner_size[1].x;
-				float cly = corner_size[0].y;
-				float cry = corner_size[1].y;
-				vertices.push_back({{ llx, lly, 0.0f }, color, {                0.0f, 0.0f }});
-				vertices.push_back({{ clx, lly, 0.0f }, color, {            border.x, 0.0f }});
-				vertices.push_back({{ crx, lly, 0.0f }, color, { 1.0f - border.z, 0.0f }});
-				vertices.push_back({{ lrx, lly, 0.0f }, color, {                1.0f, 0.0f }});
-
-				vertices.push_back({{ llx, cly, 0.0f }, color, {                0.0f, border.y }});
-				vertices.push_back({{ clx, cly, 0.0f }, color, {            border.x, border.y }});
-				vertices.push_back({{ crx, cly, 0.0f }, color, { 1.0f - border.z, border.y }});
-				vertices.push_back({{ lrx, cly, 0.0f }, color, {                1.0f, border.y }});
-
-				vertices.push_back({{ llx, cry, 0.0f }, color, {                0.0f, 1.0f - border.w }});
-				vertices.push_back({{ clx, cry, 0.0f }, color, {            border.x, 1.0f - border.w }});
-				vertices.push_back({{ crx, cry, 0.0f }, color, { 1.0f - border.z, 1.0f - border.w }});
-				vertices.push_back({{ lrx, cry, 0.0f }, color, {                1.0f, 1.0f - border.w }});
-
-				vertices.push_back({{ llx, lry, 0.0f }, color, {                0.0f, 1.0f }});
-				vertices.push_back({{ clx, lry, 0.0f }, color, {            border.x, 1.0f }});
-				vertices.push_back({{ crx, lry, 0.0f }, color, { 1.0f - border.z, 1.0f }});
-				vertices.push_back({{ lrx, lry, 0.0f }, color, {                1.0f, 1.0f }});
-
-				indices.emplace_back(0);	indices.emplace_back(1);	indices.emplace_back(4);
-				indices.emplace_back(1);	indices.emplace_back(5);	indices.emplace_back(4);
-
-				indices.emplace_back(1);	indices.emplace_back(2);	indices.emplace_back(5);
-				indices.emplace_back(2);	indices.emplace_back(6);	indices.emplace_back(5);
-
-				indices.emplace_back(2);	indices.emplace_back(3);	indices.emplace_back(6);
-				indices.emplace_back(3);	indices.emplace_back(7);	indices.emplace_back(6);
-
-				indices.emplace_back(4);	indices.emplace_back(5);	indices.emplace_back(8);
-				indices.emplace_back(5);	indices.emplace_back(9);	indices.emplace_back(8);
-
-				indices.emplace_back(5);	indices.emplace_back(6);	indices.emplace_back(9);
-				indices.emplace_back(6);	indices.emplace_back(10);	indices.emplace_back(9);
-
-				indices.emplace_back(6);	indices.emplace_back(7);	indices.emplace_back(10);
-				indices.emplace_back(7);	indices.emplace_back(11);	indices.emplace_back(10);
-
-				indices.emplace_back(8);	indices.emplace_back(9);	indices.emplace_back(12);
-				indices.emplace_back(9);	indices.emplace_back(13);	indices.emplace_back(12);
-
-				indices.emplace_back(9);	indices.emplace_back(10);	indices.emplace_back(13);
-				indices.emplace_back(10);	indices.emplace_back(14);	indices.emplace_back(13);
-
-				indices.emplace_back(10);	indices.emplace_back(11);	indices.emplace_back(14);
-				indices.emplace_back(11);	indices.emplace_back(15);	indices.emplace_back(14);
+				build_primitive_sliced(vertices, indices);
 				break;
 			}
 			case draw_modes::filled:
 			{
-				float amount = math::saturate(fill_amount);
-				if (amount > 0.0f)
-				{
-					int origin_index = 0;
-					switch (fill_origin)
-					{
-						case fill_origins::top:		origin_index = 0;	break;
-						case fill_origins::right:	origin_index = 2;	break;
-						case fill_origins::bottom:	origin_index = 4;	break;
-						case fill_origins::left:		origin_index = 6;	break;
-					}
-					int direction = fill_clockwise ? 1 : -1;
-
-					auto ring_point = [&](int step)
-					{
-						int wrapped = ((origin_index + step * direction) % 8 + 8) % 8;
-						return fill_ring_points[wrapped];
-					};
-
-					float total = amount * 8.0f;
-					int full_slices = std::min(8, static_cast<int>(total));
-					float fraction = total - static_cast<float>(full_slices);
-
-					vertices.push_back({{ 0.5f, 0.5f, 0.0f }, color, { 0.5f, 0.5f }});
-
-					DirectX::XMFLOAT2 first_point = ring_point(0);
-					vertices.push_back({{ first_point.x, first_point.y, 0.0f }, color, { first_point.x, first_point.y }});
-
-					for (int step = 1; step <= full_slices; ++step)
-					{
-						DirectX::XMFLOAT2 point = ring_point(step);
-						vertices.push_back({{ point.x, point.y, 0.0f }, color, { point.x, point.y }});
-					}
-
-					if (fraction > 0.0f)
-					{
-						DirectX::XMFLOAT2 from = ring_point(full_slices);
-						DirectX::XMFLOAT2 to = ring_point(full_slices + 1);
-						DirectX::XMFLOAT2 point = { math::lerp(from.x, to.x, fraction), math::lerp(from.y, to.y, fraction) };
-						vertices.push_back({{ point.x, point.y, 0.0f }, color, { point.x, point.y }});
-					}
-
-					for (UINT index = 1; index < vertices.size() - 1; ++index)
-					{
-						indices.emplace_back(0);
-						indices.emplace_back(index);
-						indices.emplace_back(index + 1);
-					}
-				}
+				build_primitive_filled(vertices, indices);
 				break;
 			}
 		}
@@ -316,6 +378,12 @@ void ui_image::imgui_render_core()
 		if (ImGui::DragFloat("fill_amount", &amount, 0.01f, 0.0f, 1.0f))
 		{
 			set_fill_amount(amount);
+		}
+
+		auto method = get_fill_method();
+		if (ImGui::Combo("fill_method", method))
+		{
+			set_fill_method(method);
 		}
 
 		if (ImGui::Combo("fill_origin", fill_origin))

@@ -6,8 +6,15 @@ roomba_hud_controller_object::roomba_hud_controller_object(object_descs descs)
 , heat_bar(descs.heat_bar)
 , wet_bar(descs.wet_bar)
 , speed(descs.speed)
+, trash(descs.trash)
+
 , accel_icon(descs.accel_icon)
 , brake_icon(descs.brake_icon)
+, timer(descs.timer)
+
+, tutorial_base(descs.tutorial_base)
+, tutorial_text(descs.tutorial_text)
+
 , game_timer(descs.game_timer)
 {
 }

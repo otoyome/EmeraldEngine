@@ -86,32 +86,70 @@ roomba_camera_controller_object::~roomba_camera_controller_object()
 
 void roomba_camera_controller_object::fixed_update(float elapsed_time)
 {
-	//	死亡破棄処理
-	//if (dead_state != dead_states::none)
-	//{
-	//	if (dead_state == dead_states::call)
-	//		dead_process();
-	//	return;
-	//}
-
 	//	ちょっと面倒なのでここで対応
-	//switch (state)
+	switch (state)
 	{
-		//case states::entry:
-		//{
-		//	fixed_update_entry(elapsed_time);
-		//	break;
-		//}
+		case states::entry:
+		{
+			fixed_update_entry(elapsed_time);
+			break;
+		}
 		//case states::clear_performance:
 		//{
 		//	fixed_update_clear_performance(elapsed_time);
 		//	break;
 		//}
-		//default:
-		//{
+		default:
+		{
 			fixed_update_default(elapsed_time);
-		//	break;
-		//}
+			break;
+		}
+	}
+}
+
+void roomba_camera_controller_object::fixed_update_entry(float elapsed_time)
+{
+	DirectX::XMVECTOR Up{ DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f) };
+
+	//	フォーカスポイント算出
+	DirectX::XMFLOAT3 new_focus = player_controller->get_controll_object()->get_focus_point();
+
+	//	旋回処理
+	{
+		//	とりあえず旋回処理をさせる
+		disengage_direction.x = -DirectX::XM_PI / 8.0f;
+		disengage_direction.y += (DirectX::XM_PIDIV4) * elapsed_time;
+
+		math::rotator camera_rotation = get_rotation();
+		DirectX::XMVECTOR Rot1, Rot2;
+		Rot1 = DirectX::XMLoadFloat4(&camera_rotation.convert_quaternion());
+		Rot2 = DirectX::XMLoadFloat4(&disengage_direction.convert_quaternion());
+		DirectX::XMFLOAT4 rotation;
+		DirectX::XMStoreFloat4(&rotation, DirectX::XMQuaternionSlerp(Rot1, Rot2, update_disengage_direction_rate));
+		camera_rotation = rotation;
+		camera_rotation.z = 0.0f;
+
+		camera_rotation.x = math::clamp(camera_rotation.x, pitch_limit_angle.x, pitch_limit_angle.y);
+		camera_rotation.y = math::normalize_angle(camera_rotation.y);
+		set_rotation(camera_rotation);
+	}
+
+	//	カメラの姿勢の更新
+	{
+		DirectX::XMFLOAT3 camera_position, camera_front, camera_focus;
+		math::rotator camera_rotation = get_rotation();
+		camera_front = camera_rotation.get_front();
+
+		float offset = system_units::convert_m_to_unit(1.0f);
+		float dist = system_units::convert_m_to_unit(3.0f) - offset;
+		camera_focus.x = focus.x - camera_front.x * offset;
+		camera_focus.y = focus.y - camera_front.y * offset;
+		camera_focus.z = focus.z - camera_front.z * offset;
+		camera_position.x = camera_focus.x - camera_front.x * dist;
+		camera_position.y = camera_focus.y - camera_front.y * dist;
+		camera_position.z = camera_focus.z - camera_front.z * dist;
+		set_rotation(camera_rotation);
+		set_position(camera_position);
 	}
 }
 
@@ -316,6 +354,7 @@ void roomba_camera_controller_object::change_state(states state)
 	this->state = state;
 	sub_state = 0;
 	work_float = 0;
+	disengage_direction = {0, 0, 0};
 }
 
 void roomba_camera_controller_object::on_finalize()

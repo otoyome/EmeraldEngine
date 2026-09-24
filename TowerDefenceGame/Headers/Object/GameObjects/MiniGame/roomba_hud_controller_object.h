@@ -26,6 +26,9 @@ public:
 		std::shared_ptr<key_indicator_object> brake_icon;
 
 		std::shared_ptr<timer_controller_object> timer;
+
+		std::shared_ptr<ui_image> tutorial_base;
+		std::shared_ptr<ui_text> tutorial_text;
 		float game_timer = 0.0f;
 	};
 
@@ -48,8 +51,14 @@ private:
 	std::shared_ptr<roomba_gauge_controller_object> heat_bar;
 	std::shared_ptr<roomba_gauge_controller_object> wet_bar;
 	std::shared_ptr<roomba_speed_controller_object> speed;
+	std::shared_ptr<roomba_trash_controller_object> trash;
 
 	std::shared_ptr<key_indicator_object> accel_icon;
 	std::shared_ptr<key_indicator_object> brake_icon;
+
+	std::shared_ptr<timer_controller_object> timer;
+
+	std::shared_ptr<ui_image> tutorial_base;
+	std::shared_ptr<ui_text> tutorial_text;
 	float game_timer;
 };

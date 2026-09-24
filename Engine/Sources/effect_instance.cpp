@@ -88,8 +88,9 @@ namespace
 		auto IW = DirectX::XMMatrixInverse(nullptr, DirectX::XMLoadFloat4x4(&node_data.world_transform));
 		auto calculate_local_position = [&](DirectX::XMFLOAT3 position)
 		{
-			auto AT = DirectX::XMLoadFloat3(&position);
-			DirectX::XMStoreFloat3(&position, DirectX::XMVector3TransformCoord(AT, IW));
+			//	@remainder	全部ワールド空間で計算してたわ・・・orz
+			//auto AT = DirectX::XMLoadFloat3(&position);
+			//DirectX::XMStoreFloat3(&position, DirectX::XMVector3TransformCoord(AT, IW));
 			return position;
 		};
 

@@ -48,25 +48,8 @@ void roomba_gauge_controller_object::fixed_update(float elapsed_time)
 		main_value_inner = value;
 		main_rate = static_cast<float>(value) / max_value;
 	}
-	DirectX::XMFLOAT4 main_rect = ui[ui_index]->get_screen_rect();
-	switch (animation_direction)
-	{
-		case directions::left:
-			main_rect.z = main_rate * origin_rects[ui_index].z;
-			break;
-		case directions::right:
-			main_rect.z = main_rate * origin_rects[ui_index].z;
-			main_rect.x = origin_rects[ui_index].x + (origin_rects[ui_index].z - main_rect.z);
-			break;
-		case directions::up:
-			main_rect.w = main_rate * origin_rects[ui_index].w;
-			main_rect.y = origin_rects[ui_index].y + (origin_rects[ui_index].w - main_rect.w);
-			break;
-		case directions::down:
-			main_rect.w = main_rate * origin_rects[ui_index].w;
-			break;
-	}
-	ui[ui_index]->set_screen_rect(main_rect);
+
+	ui[ui_index]->set_fill_amount(main_rate);
 }
 
 void roomba_gauge_controller_object::post_update(float elapsed_time)
@@ -136,8 +119,4 @@ void roomba_gauge_controller_object::set_alpha(float alpha)
 	}
 }
 
-void roomba_gauge_controller_object::set_animation_direction(directions direction)
-{
-	animation_direction = direction;
-}
 

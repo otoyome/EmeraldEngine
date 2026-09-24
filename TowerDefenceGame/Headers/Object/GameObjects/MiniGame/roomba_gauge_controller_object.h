@@ -26,14 +26,6 @@ public:
 	};
 	static constexpr size_t ui_max = magic_enum::enum_count<ui_id>();
 
-	enum class directions
-	{
-		left,
-		right,
-		up,
-		down,
-	};
-
 public:
 	struct shake_descs
 	{
@@ -60,8 +52,6 @@ public:
 
 	void set_alpha(float alpha);
 
-	void set_animation_direction(directions direction);
-
 private:
 	std::function<int()> get_value;
 	std::function<int()> get_max_value;
@@ -70,7 +60,6 @@ private:
 	int max_value = 1;
 	int main_value_inner = 1;
 	float animation_speed = 0.025f;
-	directions animation_direction = directions::left;
 	shake_descs shake_desc;
 
 	std::shared_ptr<ui_image> ui[ui_max];

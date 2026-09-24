@@ -53,6 +53,7 @@ public:
 	void change_state(states state);
 
 private:
+	void fixed_update_entry(float elapsed_time);
 	void fixed_update_default(float elapsed_time);
 
 	bool play_animation(std::string_view animation_name, bool loop);
