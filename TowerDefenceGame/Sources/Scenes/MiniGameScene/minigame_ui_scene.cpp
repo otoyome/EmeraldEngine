@@ -33,6 +33,13 @@ namespace
 	static constexpr DirectX::XMFLOAT2 speed_text_ui_position = {1040, 610};
 	static constexpr DirectX::XMFLOAT2 speed_text_ui_size = {64, 64};
 	static constexpr float speed_text_font_size = 80.0f;
+
+	//	チュートリアルパネル左上位置
+	static constexpr DirectX::XMFLOAT2 tutorial_ui_position = {800, 200};
+	static constexpr DirectX::XMFLOAT2 tutorial_ui_size = {460, 300};
+	static constexpr DirectX::XMFLOAT2 tutorial_ui_text_position = {810, 240};
+	static constexpr DirectX::XMFLOAT2 tutorial_ui_text_size = {460, 300};
+	static constexpr std::string_view tutorial_text = "なるべく早い時間でゴミを収集\nするのが目的です。\nゴミ以外にも泡があり、収集す\nると濡れます。\n加速すると熱くなるので水分を\n取る事で加熱を抑えます。\n加熱・水分を取り過ぎると爆発\nしてリスタートします。";
 }
 
 minigame_ui_scene::minigame_ui_scene()
@@ -283,37 +290,44 @@ minigame_ui_scene::minigame_ui_scene()
 		desc.start_image->set_sort_order(200);
 		register_object(desc.start_image);
 
+		desc.finish_image = std::make_shared<ui_image>("ルンバUI：カウントダウン表示：フィニッシュ画像");
+		desc.finish_image->set_texture("Assets/Resources/Textures/hud/Finish.png");
+		desc.finish_image->set_screen_rect({ 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT });
+		desc.finish_image->set_draw_mode(ui_image::draw_modes::single);
+		desc.finish_image->set_color({ 1, 1, 1, 0 });
+		desc.finish_image->set_sort_order(200);
+		register_object(desc.finish_image);
+
 		auto countdown = std::make_shared<countdown_controller_object>(desc);
 		register_object(countdown);
 	}
 
 	//	チュートリアル
-	if (0)
 	{
 		roomba_gauge_controller_object::object_descs desc;
 		desc.name = "ルンバUI：チュートリアル";
-		std::shared_ptr<ui_image> tutorial_base;
-		std::shared_ptr<ui_text> tutorial_text;
-		std::shared_ptr<ui_text> tutorial_title;
 		{
 			hud_object_desc.tutorial_base = std::make_shared<ui_image>("ルンバUI：チュートリアル：ベース");
-			hud_object_desc.tutorial_base->set_screen_rect({ heat_ui_position.x, heat_ui_position.y, heat_ui_size.x, heat_ui_size.y });
+			hud_object_desc.tutorial_base->set_screen_rect({ tutorial_ui_position.x, tutorial_ui_position.y, tutorial_ui_size.x, tutorial_ui_size.y });
 			hud_object_desc.tutorial_base->set_color({ 1, 0.25f, 0.25f, 1 });
 			hud_object_desc.tutorial_base->set_border({0,0,1,1});
 			hud_object_desc.tutorial_base->set_texture("Assets/Resources/Textures/hud/NotificationWindow.png");
 			hud_object_desc.tutorial_base->set_draw_mode(ui_image::draw_modes::sliced);
 			hud_object_desc.tutorial_base->set_sort_order(0);
+			hud_object_desc.tutorial_base->set_color({1, 1, 1, 0.5f});
+			hud_object_desc.tutorial_base->set_border({0.25f, 0.25f, 0.75f, 0.75f});
 			register_object(hud_object_desc.tutorial_base);
 		}
 		{
 			hud_object_desc.tutorial_text = std::make_shared<ui_text>("ルンバUI：チュートリアル：テキスト", font);
-			hud_object_desc.tutorial_text->set_screen_rect({ heat_ui_position.x, heat_ui_position.y, heat_ui_size.x, heat_ui_size.y });
-			hud_object_desc.tutorial_text->set_texts("このゲームはゴミを収集するゲームです。\nあ");
+			hud_object_desc.tutorial_text->set_screen_rect({ tutorial_ui_text_position.x, tutorial_ui_text_position.y, tutorial_ui_text_size.x, tutorial_ui_text_size.y });
+			hud_object_desc.tutorial_text->set_texts(tutorial_text);
 			hud_object_desc.tutorial_text->set_sort_order(5);
+			hud_object_desc.tutorial_text->set_color({1, 1, 1, 0.5f});
+			hud_object_desc.tutorial_text->set_font_size(32);
 			register_object(hud_object_desc.tutorial_text);
 		}
 	}
-
 
 	hud_object_desc.name = "ルンバUI：メインHUD";
 	auto hud = std::make_shared<roomba_hud_controller_object>(hud_object_desc);

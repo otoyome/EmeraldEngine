@@ -27,6 +27,7 @@ public:
 		main_game,
 		dead_stop_wait,
 		dead_time_wait,
+		result_start,
 		result_wait,
 		result_fade_out,
 	};

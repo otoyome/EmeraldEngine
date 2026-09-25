@@ -14,20 +14,20 @@ public:
 		std::string name;
 		std::shared_ptr<ui_text> text;
 		std::shared_ptr<ui_image> start_image;
+		std::shared_ptr<ui_image> finish_image;
 	};
 
 public:
 	countdown_controller_object(const object_descs& object_desc);
 	~countdown_controller_object() override;
 
-	//	残りカウント(3,2,1など)を表示する
 	void set_count(int count);
-	//	スタート画像を表示する
 	void set_start();
-	//	何も表示しない状態にする
+	void set_finish();
 	void hide();
 
 private:
 	std::shared_ptr<ui_text> text;
 	std::shared_ptr<ui_image> start_image;
+	std::shared_ptr<ui_image> finish_image;
 };

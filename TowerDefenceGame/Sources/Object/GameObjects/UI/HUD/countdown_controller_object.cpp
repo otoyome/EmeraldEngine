@@ -4,6 +4,7 @@ countdown_controller_object::countdown_controller_object(const object_descs& obj
 : game_object(object_desc.name)
 , text(object_desc.text)
 , start_image(object_desc.start_image)
+, finish_image(object_desc.finish_image)
 {
 }
 
@@ -26,6 +27,12 @@ void countdown_controller_object::set_count(int count)
 		color.w = 0.0f;
 		start_image->set_color(color);
 	}
+	if (finish_image)
+	{
+		auto color = finish_image->get_color();
+		color.w = 0.0f;
+		finish_image->set_color(color);
+	}
 }
 
 void countdown_controller_object::set_start()
@@ -42,6 +49,34 @@ void countdown_controller_object::set_start()
 		color.w = 1.0f;
 		start_image->set_color(color);
 	}
+	if (finish_image)
+	{
+		auto color = finish_image->get_color();
+		color.w = 0.0f;
+		finish_image->set_color(color);
+	}
+}
+
+void countdown_controller_object::set_finish()
+{
+	if (text)
+	{
+		auto color = text->get_color();
+		color.w = 0.0f;
+		text->set_color(color);
+	}
+	if (start_image)
+	{
+		auto color = start_image->get_color();
+		color.w = 0.0f;
+		start_image->set_color(color);
+	}
+	if (finish_image)
+	{
+		auto color = finish_image->get_color();
+		color.w = 1.0f;
+		finish_image->set_color(color);
+	}
 }
 
 void countdown_controller_object::hide()
@@ -57,5 +92,11 @@ void countdown_controller_object::hide()
 		auto color = start_image->get_color();
 		color.w = 0.0f;
 		start_image->set_color(color);
+	}
+	if (finish_image)
+	{
+		auto color = finish_image->get_color();
+		color.w = 0.0f;
+		finish_image->set_color(color);
 	}
 }

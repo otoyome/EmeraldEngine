@@ -36,10 +36,11 @@ namespace
 	//	開始座標
 	constexpr DirectX::XMFLOAT3 StartPosition = system_units::convert_m_to_unit({0, 0, -60});
 	constexpr DirectX::XMFLOAT3 StartRotation = {0, 0, 0};
-	constexpr float warmingUpTimer = 4.0f;
+	constexpr float WarmingUpTimer = 4.0f;
 	constexpr float DeadStopWaitTimer = 7.0f;
 	constexpr float DeadWaitTimer = 3.0f;
-	constexpr int WetDamage = 300;
+	constexpr float ResultTimer = 5.0f;
+	constexpr int WetDamage = 500;
 	constexpr float DustSetLength = 40;
 	constexpr float BubbleSetLength = DustSetLength / 2;
 	constexpr DirectX::XMFLOAT3 DustBlock[] =
@@ -226,6 +227,7 @@ minigame_scene::minigame_scene()
 	game_timer = 0.0f;
 	countdown_timer = 0.0f;
 	trash_count = 0;
+	trash_max = 10;
 	game_state = game_states::startup;
 }
 
@@ -292,7 +294,7 @@ void minigame_scene::update_core(float elapsed_time)
 
 			//	ウォーミングアップ待機
 			countdown_timer += elapsed_time;
-			if (countdown_timer >= warmingUpTimer)
+			if (countdown_timer >= WarmingUpTimer)
 			{
 				countdown_timer = 0.0f;
 				transition_fade_controller::instance()->play(fade::directions::out, 0.5f, fade::modes::black);
@@ -391,7 +393,7 @@ void minigame_scene::update_core(float elapsed_time)
 			if (static_cast<float>(trash_count) / trash_max >= 0.99f)
 			{
 				countdown_timer = 0.0f;
-				game_state = game_states::result_wait;
+				game_state = game_states::result_start;
 			}
 			break;
 		}
@@ -418,17 +420,42 @@ void minigame_scene::update_core(float elapsed_time)
 			}
 			break;
 		}
+		case game_states::result_start:
+		{
+			if (auto controller = object_manager::instance()->search_object<roomba_controller_object>(RoombaControllerObjectName))
+			{
+				controller->set_input_purmit_flag(false);
+			}
+			if (auto controller = object_manager::instance()->search_object<roomba_camera_controller_object>(RoombaCameraControllerObjectName))
+			{
+				controller->set_input_purmit_flag(false);
+				//controller->change_state(roomba_camera_controller_object::states::entry);
+			}
+			countdown_timer = 0;
+			game_state = game_states::result_wait;
+			break;
+		}
 		case game_states::result_wait:
 		{
-			//	スペースキーか左クリックでリザルトシーンへ
-			bool continue_input = keyboard::instance()->get_state().is_key_state(keyboard::key_states::space) == input::state::down
-				|| mouse::instance()->get_state().is_key_state(mouse::key_states::left) == input::state::down;
-			if (continue_input)
+			countdown_timer += elapsed_time;
+
+			constexpr float count_interval = 1.0f;
+			constexpr float start_display_time = 0.8f;
+			constexpr float countdown_finish_time = count_interval * 4.0f + start_display_time;
+			if (auto countdown = object_manager::instance()->search_object<countdown_controller_object>("ルンバUI：カウントダウン表示コントローラー"))
+			{
+				if (countdown_timer < count_interval * 4.0f)
+					countdown->set_finish();
+				else
+					countdown->hide();
+			}
+			if (countdown_timer >= countdown_finish_time)
 			{
 				//	フェードアウト開始
 				transition_fade_controller::instance()->play(fade::directions::out, 0.5f, fade::modes::black);
 				game_state = game_states::result_fade_out;
 			}
+
 			break;
 		}
 		case game_states::result_fade_out:
@@ -445,7 +472,7 @@ void minigame_scene::update_core(float elapsed_time)
 	}
 
 	//	プレイヤーの情報を各種機能に伝達
-	if (player_object)
+	if (player_object && game_state < game_states::result_start)
 	{
 		//	吸引座標/範囲設/イベント基準座標設定
 		{
