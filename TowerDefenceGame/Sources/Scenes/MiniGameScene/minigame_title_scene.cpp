@@ -7,8 +7,8 @@
 namespace
 {
 	//	タイトルロゴ配置位置
-	static constexpr DirectX::XMFLOAT2 title_logo_position = { 16 * 20, 9 * 20 };
-	static constexpr DirectX::XMFLOAT2 title_logo_size = { 640 - title_logo_position.x / 2, 360 - title_logo_position.y / 2 };
+	static constexpr DirectX::XMFLOAT2 title_logo_position = { 320, 180 };
+	static constexpr DirectX::XMFLOAT2 title_logo_size = { 640, 270 };
 
 	//	スタート案内アイコン配置位置
 	static constexpr DirectX::XMFLOAT2 start_icon_size = { 120, 120 };
@@ -38,8 +38,9 @@ minigame_title_scene::minigame_title_scene()
 		font_data_manager::instance()->load_from_file(font, "Assets/Resources/Textures/fonts/MS Gothic/MS Gothic.fnt");
 
 		auto title_click_text = std::make_shared<ui_text>("タイトル:クリックテキスト", font);
-		title_click_text->set_screen_rect({ 490, 508.000, 120, 64 });
+		title_click_text->set_screen_rect({ 415, 580.000, 450, 90 });
 		title_click_text->set_sort_order(20);
+		title_click_text->set_font_size(32);
 		title_click_text->set_color({ 1, 1, 0, 1 });
 		title_click_text->set_texts("MOUSE LEFT CLICK / SPACE DOWN");
 		register_object(title_click_text);

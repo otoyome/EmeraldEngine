@@ -52,6 +52,10 @@ void ui_text::pre_render()
 		std::vector<std::vector<sprite::vertex>> page_vertices(get_sprites().size());
 		std::vector<std::vector<UINT>> page_indices(get_sprites().size());
 
+		//	表示領域サイズ
+		float box_width = get_screen_rect().z;
+		float box_height = get_screen_rect().w;
+
 		float start_x = 0.0f;
 		float start_y = 0.0f;
 		float x = 0.0f;
@@ -60,15 +64,17 @@ void ui_text::pre_render()
 		float x_scale = font_scale;
 		float y_scale = font_scale;
 		float space = font_data->get_font_width() * x_scale;
+		float line_height = font_data->get_font_height() * y_scale;
+		int line_count = 1;
 
 		std::wstring utf16_texts = system_utility::convert_shift_jis_to_utf16(texts.data());
 		for (size_t index = 0; index < utf16_texts.size(); ++index)
 		{
-			// 文字値から文字情報が格納されているコードを取得
+			// 文字値が文字列に格納されているコードを取得
 			WORD word = static_cast<WORD>(utf16_texts[index]);
 			WORD code = font_data->get_character_indices().at(word);
 
-			// 特殊制御用コードの処理
+			// 制御用コードの処理
 			if (code == font_data::EndCode)
 			{
 				break;
@@ -76,7 +82,8 @@ void ui_text::pre_render()
 			else if (code == font_data::ReturnCode)
 			{
 				x = start_x;
-				y += font_data->get_font_height() * y_scale;
+				y += line_height;
+				++line_count;
 				continue;
 			}
 			else if (code == font_data::TabCode)
@@ -92,11 +99,20 @@ void ui_text::pre_render()
 
 			// 文字情報を取得し、頂点データを編集
 			const font_data::character_info& info = font_data->get_character_infos().at(code);
+			float xadvance = info.xadvance * x_scale;
+
+			//	表示領域の幅を超える場合は折り返す
+			if (box_width > 0.0f && x > start_x && x + xadvance > box_width)
+			{
+				x = start_x;
+				y += line_height;
+				++line_count;
+			}
+
 			float xoffset = info.xoffset * x_scale;
 			float yoffset = info.yoffset * y_scale;
 			float width = info.width * x_scale;
 			float height = info.height * y_scale;
-			float xadvance = info.xadvance * x_scale;
 			float positionX = x + xoffset;// + 0.5f;
 			float positionY = y + yoffset;// + 0.5f;
 
@@ -146,13 +162,17 @@ void ui_text::pre_render()
 			indices.push_back(previous_vertex_size + 2);
 		}
 
+		//	表示領域の高さを超える場合は文字サイズを縮小する
+		float required_height = static_cast<float>(line_count) * line_height;
+		float shrink_rate = (box_height > 0.0f && required_height > box_height) ? (box_height / required_height) : 1.0f;
+
 		int index = 0;
 		for (auto& sprite : get_sprites())
 		{
 			for (auto& vertex : page_vertices[index])
 			{
-				vertex.position.x /= get_screen_rect().z;
-				vertex.position.y /= get_screen_rect().w;
+				vertex.position.x = vertex.position.x * shrink_rate / get_screen_rect().z;
+				vertex.position.y = vertex.position.y * shrink_rate / get_screen_rect().w;
 			}
 			sprite.update_vertices(page_vertices[index], page_indices[index]);
 			++index;
@@ -167,11 +187,9 @@ void ui_text::imgui_render_core()
 {
 	base::imgui_render_core();
 
-	std::string temp_text = texts;
-	temp_text.resize(1024);
-	if (ImGui::InputText("Text", temp_text.data(), temp_text.size()))
+	if (ImGui::InputTextUtf8("Text", texts))
 	{
-		set_texts(temp_text);
+		set_dirty();
 	}
 
 	float temp_font_size = get_font_size();

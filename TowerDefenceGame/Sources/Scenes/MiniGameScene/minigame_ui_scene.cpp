@@ -2,44 +2,52 @@
 
 #include "custom_pipeline_state.h"
 #include "object/gameobjects/ui/hud/countdown_controller_object.h"
+#include "object/gameobjects/minigame/roomba_tutorial_controller_object.h"
 
 namespace
 {
 	//	ヒートゲージ左上位置
 	static constexpr DirectX::XMFLOAT2 heat_ui_position = {850, 500};
-	static constexpr DirectX::XMFLOAT2 heat_ui_size = {50, 200};
+	static constexpr DirectX::XMFLOAT2 heat_ui_size = {50, 220};
 	//	ウェットゲージ左上位置
 	static constexpr DirectX::XMFLOAT2 wet_ui_position = {800, 500};
-	static constexpr DirectX::XMFLOAT2 wet_ui_size = {50, 200};
+	static constexpr DirectX::XMFLOAT2 wet_ui_size = {50, 220};
 	//	ゴミ収集率左上位置
 	static constexpr DirectX::XMFLOAT2 trash_base_ui_position = {900, 500};
-	static constexpr DirectX::XMFLOAT2 trash_base_ui_size = {359, 100};
-	static constexpr DirectX::XMFLOAT2 trash_ui_position = {1050, 520};
+	static constexpr DirectX::XMFLOAT2 trash_base_ui_size = {359, 70};
+	static constexpr DirectX::XMFLOAT2 trash_ui_position = {1050, 510};
 	static constexpr DirectX::XMFLOAT2 trash_ui_size = {100, 60};
+	//	時間表示パネル左上位置
+	static constexpr DirectX::XMFLOAT2 timer_ui_position = {520, 100};
+	static constexpr DirectX::XMFLOAT2 timer_ui_size = {500, 64};
+	//	速度表示パネル左上位置
+	static constexpr DirectX::XMFLOAT2 speed_base_ui_position = {900, 570};
+	static constexpr DirectX::XMFLOAT2 speed_base_ui_size = {360, 100};
+	static constexpr DirectX::XMFLOAT2 speed_text_ui_position = {1040, 580};
+	static constexpr DirectX::XMFLOAT2 speed_text_ui_size = {360, 80};
+	static constexpr float speed_text_font_size = 80.0f;
+	//	チュートリアルパネル左上位置
+	static constexpr DirectX::XMFLOAT2 tutorial_ui_position = {360, 200};
+	static constexpr DirectX::XMFLOAT2 tutorial_ui_size = {500, 400};
+	static constexpr DirectX::XMFLOAT2 tutorial_ui_text_position = {370, 240};
+	static constexpr DirectX::XMFLOAT2 tutorial_ui_text_size = {480, 350};
+	static constexpr std::string_view tutorial_text = "なるべく早い時間でゴミを収集するのが目的です。\n\nゴミ以外にも泡があり、収集すると濡れます。\n加速すると熱くなるので水分を取る事で加熱を抑えます。\n加熱・水分を取り過ぎると爆発してリスタートします。";
+
 	//	加速アイコン左上位置
-	static constexpr DirectX::XMFLOAT2 accel_icon_ui_position = {920, 620};
+	static constexpr DirectX::XMFLOAT2 accel_icon_ui_position = {900, 680};
 	static constexpr DirectX::XMFLOAT2 accel_icon_ui_size = {36, 36};
+	static constexpr DirectX::XMFLOAT2 accel_icon_main_ui_position = {936, 680};
 	static constexpr DirectX::XMFLOAT2 accel_icon_main_ui_size = {72, 36};
 	//	減速アイコン左上位置
-	static constexpr DirectX::XMFLOAT2 brake_icon_ui_position = {980, 620};
+	static constexpr DirectX::XMFLOAT2 brake_icon_ui_position = {1010, 680};
 	static constexpr DirectX::XMFLOAT2 brake_icon_ui_size = {36, 36};
+	static constexpr DirectX::XMFLOAT2 brake_icon_main_ui_position = {1046, 680};
 	static constexpr DirectX::XMFLOAT2 brake_icon_main_ui_size = {72, 36};
-	//	時間表示パネル左上位置
-	static constexpr DirectX::XMFLOAT2 timer_ui_position = {640, 100};
-	static constexpr DirectX::XMFLOAT2 timer_ui_size = {240, 50};
-	//	速度表示パネル左上位置
-	static constexpr DirectX::XMFLOAT2 speed_base_ui_position = {900, 600};
-	static constexpr DirectX::XMFLOAT2 speed_base_ui_size = {360, 100};
-	static constexpr DirectX::XMFLOAT2 speed_text_ui_position = {1040, 610};
-	static constexpr DirectX::XMFLOAT2 speed_text_ui_size = {64, 64};
-	static constexpr float speed_text_font_size = 80.0f;
-
-	//	チュートリアルパネル左上位置
-	static constexpr DirectX::XMFLOAT2 tutorial_ui_position = {800, 200};
-	static constexpr DirectX::XMFLOAT2 tutorial_ui_size = {460, 300};
-	static constexpr DirectX::XMFLOAT2 tutorial_ui_text_position = {810, 240};
-	static constexpr DirectX::XMFLOAT2 tutorial_ui_text_size = {460, 300};
-	static constexpr std::string_view tutorial_text = "なるべく早い時間でゴミを収集\nするのが目的です。\nゴミ以外にも泡があり、収集す\nると濡れます。\n加速すると熱くなるので水分を\n取る事で加熱を抑えます。\n加熱・水分を取り過ぎると爆発\nしてリスタートします。";
+	//	チュートリアルアイコン左上位置
+	static constexpr DirectX::XMFLOAT2 tutorial_icon_ui_position = {1010, 680};
+	static constexpr DirectX::XMFLOAT2 tutorial_icon_ui_size = {72, 36};
+	static constexpr DirectX::XMFLOAT2 tutorial_icon_main_ui_position = {1200, 680};
+	static constexpr DirectX::XMFLOAT2 tutorial_icon_main_ui_size = {72, 36};
 }
 
 minigame_ui_scene::minigame_ui_scene()
@@ -145,86 +153,6 @@ minigame_ui_scene::minigame_ui_scene()
 		register_object(hud_object_desc.trash);
 	}
 
-	//	加速アイコン
-	{
-		key_icon_object::object_descs desc;
-		desc.name = "ルンバUI：加速キーアイコン";
-		desc.icon_type = key_icon_object::key_icon_type::mouse_left_click;
-		desc.icon = std::make_shared<ui_image>("ルンバUI：加速キーアイコン");
-		desc.icon->set_screen_rect({accel_icon_ui_position.x,
-									accel_icon_ui_position.y,
-									accel_icon_ui_size.x,
-									accel_icon_ui_size.y });
-		desc.icon->set_draw_mode(ui_image::draw_modes::single);
-		desc.icon->set_sort_order(0);
-		register_object(desc.icon);
-		auto& key_object = std::make_shared<key_icon_object>(desc);
-		register_object(key_object);
-
-		auto main_icon = std::make_shared<ui_image>("ルンバUI：加速メインアイコン");
-		main_icon->set_texture("Assets/Resources/Textures/hud/accel_icon.png");
-		main_icon->set_screen_rect({accel_icon_ui_position.x - accel_icon_main_ui_size.x / 4,
-									accel_icon_ui_position.y + accel_icon_ui_size.y + 4,
-									accel_icon_main_ui_size.x,
-									accel_icon_main_ui_size.y });
-		main_icon->set_draw_mode(ui_image::draw_modes::single);
-		main_icon->set_sort_order(0);
-		register_object(main_icon);
-
-		auto button = std::make_shared<ui_button>("ルンバUI：加速アイコンボタン", main_icon);
-		button->set_color(ui_button::color_type::normal, {1, 1, 1, 1});
-		button->set_color(ui_button::color_type::pressed, {1, 1, 1, 1});
-		button->set_color(ui_button::color_type::disabled, {1, 1, 1, 1});
-		register_object(button);
-
-		key_indicator_object::object_descs object_desc;
-		object_desc.name = "ルンバUI：加速キーインジケータ";
-		object_desc.button = button;
-		object_desc.key = key_object;
-		hud_object_desc.accel_icon = std::make_shared<key_indicator_object>(object_desc);
-		register_object(hud_object_desc.accel_icon);
-	}
-
-	//	減速アイコン
-	{
-		key_icon_object::object_descs desc;
-		desc.name = "ルンバUI：減速キーアイコン";
-		desc.icon_type = key_icon_object::key_icon_type::mouse_right_click;
-		desc.icon = std::make_shared<ui_image>("ルンバUI：減速キーアイコン");
-		desc.icon->set_screen_rect({brake_icon_ui_position.x,
-									brake_icon_ui_position.y,
-									brake_icon_ui_size.x,
-									brake_icon_ui_size.y });
-		desc.icon->set_draw_mode(ui_image::draw_modes::single);
-		desc.icon->set_sort_order(0);
-		register_object(desc.icon);
-		auto& key_object = std::make_shared<key_icon_object>(desc);
-		register_object(key_object);
-
-		auto main_icon = std::make_shared<ui_image>("ルンバUI：減速メインアイコン");
-		main_icon->set_texture("Assets/Resources/Textures/hud/brake_icon.png");
-		main_icon->set_screen_rect({brake_icon_ui_position.x - brake_icon_main_ui_size.x / 4,
-									brake_icon_ui_position.y + brake_icon_ui_size.y + 4,
-									brake_icon_main_ui_size.x,
-									brake_icon_main_ui_size.y });
-		main_icon->set_draw_mode(ui_image::draw_modes::single);
-		main_icon->set_sort_order(0);
-		register_object(main_icon);
-
-		auto button = std::make_shared<ui_button>("ルンバUI：減速アイコンボタン", main_icon);
-		button->set_color(ui_button::color_type::normal, {1, 1, 1, 1});
-		button->set_color(ui_button::color_type::pressed, {1, 1, 1, 1});
-		button->set_color(ui_button::color_type::disabled, {1, 1, 1, 1});
-		register_object(button);
-
-		key_indicator_object::object_descs object_desc;
-		object_desc.name = "ルンバUI：減速キーインジケータ";
-		object_desc.button = button;
-		object_desc.key = key_object;
-		hud_object_desc.brake_icon = std::make_shared<key_indicator_object>(object_desc);
-		register_object(hud_object_desc.brake_icon);
-	}
-
 	//	タイマーウィンドウ
 	{
 		timer_controller_object::object_descs object_desc;
@@ -233,10 +161,10 @@ minigame_ui_scene::minigame_ui_scene()
 		{
 			object_desc.text = std::make_shared<ui_text>("ルンバUI：タイマー：：数値", font);
 			object_desc.text->set_texts("00:00:00");
-			object_desc.text->set_screen_rect({ timer_ui_position.x - timer_ui_size.x / 2,
+			object_desc.text->set_screen_rect({ timer_ui_position.x,
 											    timer_ui_position.y,
-											    32,
-											    32 });
+											    timer_ui_size.x,
+											    timer_ui_size.y});
 			object_desc.text->set_font_size(64);
 			object_desc.text->set_sort_order(110);
 			register_object(object_desc.text);
@@ -278,7 +206,7 @@ minigame_ui_scene::minigame_ui_scene()
 		desc.text = std::make_shared<ui_text>("ルンバUI：カウントダウン表示：数値", font);
 		desc.text->set_texts("");
 		desc.text->set_font_size(220);
-		desc.text->set_screen_rect({ 630 - 110, 360 - 110, 220, 220 });
+		desc.text->set_screen_rect({ 640 - 110, 360 - 110, 220, 220 });
 		desc.text->set_sort_order(200);
 		register_object(desc.text);
 
@@ -304,29 +232,152 @@ minigame_ui_scene::minigame_ui_scene()
 
 	//	チュートリアル
 	{
-		roomba_gauge_controller_object::object_descs desc;
-		desc.name = "ルンバUI：チュートリアル";
+		roomba_tutorial_controller_object::object_descs desc;
+		desc.name = "ルンバUI：チュートリアル表示コントローラー";
 		{
-			hud_object_desc.tutorial_base = std::make_shared<ui_image>("ルンバUI：チュートリアル：ベース");
-			hud_object_desc.tutorial_base->set_screen_rect({ tutorial_ui_position.x, tutorial_ui_position.y, tutorial_ui_size.x, tutorial_ui_size.y });
-			hud_object_desc.tutorial_base->set_color({ 1, 0.25f, 0.25f, 1 });
-			hud_object_desc.tutorial_base->set_border({0,0,1,1});
-			hud_object_desc.tutorial_base->set_texture("Assets/Resources/Textures/hud/NotificationWindow.png");
-			hud_object_desc.tutorial_base->set_draw_mode(ui_image::draw_modes::sliced);
-			hud_object_desc.tutorial_base->set_sort_order(0);
-			hud_object_desc.tutorial_base->set_color({1, 1, 1, 0.5f});
-			hud_object_desc.tutorial_base->set_border({0.25f, 0.25f, 0.75f, 0.75f});
-			register_object(hud_object_desc.tutorial_base);
+			desc.base_image = std::make_shared<ui_image>("ルンバUI：チュートリアル：ベース");
+			desc.base_image->set_screen_rect({ tutorial_ui_position.x, tutorial_ui_position.y, tutorial_ui_size.x, tutorial_ui_size.y });
+			desc.base_image->set_texture("Assets/Resources/Textures/hud/NotificationWindow.png");
+			desc.base_image->set_draw_mode(ui_image::draw_modes::sliced);
+			desc.base_image->set_color({ 1, 1, 1, 0.5f });
+			desc.base_image->set_border({ 0.25f, 0.25f, 0.75f, 0.75f });
+			desc.base_image->set_sort_order(0);
+			register_object(desc.base_image);
 		}
 		{
-			hud_object_desc.tutorial_text = std::make_shared<ui_text>("ルンバUI：チュートリアル：テキスト", font);
-			hud_object_desc.tutorial_text->set_screen_rect({ tutorial_ui_text_position.x, tutorial_ui_text_position.y, tutorial_ui_text_size.x, tutorial_ui_text_size.y });
-			hud_object_desc.tutorial_text->set_texts(tutorial_text);
-			hud_object_desc.tutorial_text->set_sort_order(5);
-			hud_object_desc.tutorial_text->set_color({1, 1, 1, 0.5f});
-			hud_object_desc.tutorial_text->set_font_size(32);
-			register_object(hud_object_desc.tutorial_text);
+			desc.text = std::make_shared<ui_text>("ルンバUI：チュートリアル：テキスト", font);
+			desc.text->set_screen_rect({ tutorial_ui_text_position.x, tutorial_ui_text_position.y, tutorial_ui_text_size.x, tutorial_ui_text_size.y });
+			desc.text->set_texts(tutorial_text);
+			desc.text->set_color({ 1, 1, 1, 0.5f });
+			desc.text->set_font_size(32);
+			desc.text->set_sort_order(5);
+			register_object(desc.text);
 		}
+
+		hud_object_desc.tutorial = std::make_shared<roomba_tutorial_controller_object>(desc);
+		//	既定では非表示(スペースキーを押している間だけ表示する)
+		hud_object_desc.tutorial->set_alpha(0.0f);
+		register_object(hud_object_desc.tutorial);
+	}
+
+	//	加速アイコン
+	{
+		key_icon_object::object_descs desc;
+		desc.name = "ルンバUI：加速キーアイコン";
+		desc.icon_type = key_icon_object::key_icon_type::mouse_left_click;
+		desc.icon = std::make_shared<ui_image>("ルンバUI：加速キーアイコン");
+		desc.icon->set_screen_rect({accel_icon_ui_position.x,
+									accel_icon_ui_position.y,
+									accel_icon_ui_size.x,
+									accel_icon_ui_size.y });
+		desc.icon->set_draw_mode(ui_image::draw_modes::single);
+		desc.icon->set_sort_order(0);
+		register_object(desc.icon);
+		auto& key_object = std::make_shared<key_icon_object>(desc);
+		register_object(key_object);
+
+		auto main_icon = std::make_shared<ui_image>("ルンバUI：加速メインアイコン");
+		main_icon->set_texture("Assets/Resources/Textures/hud/accel_icon.png");
+		main_icon->set_screen_rect({accel_icon_main_ui_position.x,
+									accel_icon_main_ui_position.y,
+									accel_icon_main_ui_size.x,
+									accel_icon_main_ui_size.y });
+		main_icon->set_draw_mode(ui_image::draw_modes::single);
+		main_icon->set_sort_order(0);
+		register_object(main_icon);
+
+		auto button = std::make_shared<ui_button>("ルンバUI：加速アイコンボタン", main_icon);
+		button->set_color(ui_button::color_type::normal, {1, 1, 1, 1});
+		button->set_color(ui_button::color_type::pressed, {1, 1, 1, 1});
+		button->set_color(ui_button::color_type::disabled, {1, 1, 1, 1});
+		register_object(button);
+
+		key_indicator_object::object_descs object_desc;
+		object_desc.name = "ルンバUI：加速キーインジケータ";
+		object_desc.button = button;
+		object_desc.key = key_object;
+		hud_object_desc.accel_icon = std::make_shared<key_indicator_object>(object_desc);
+		register_object(hud_object_desc.accel_icon);
+	}
+
+	//	減速アイコン
+	{
+		key_icon_object::object_descs desc;
+		desc.name = "ルンバUI：減速キーアイコン";
+		desc.icon_type = key_icon_object::key_icon_type::mouse_right_click;
+		desc.icon = std::make_shared<ui_image>("ルンバUI：減速キーアイコン");
+		desc.icon->set_screen_rect({brake_icon_ui_position.x,
+									brake_icon_ui_position.y,
+									brake_icon_ui_size.x,
+									brake_icon_ui_size.y });
+		desc.icon->set_draw_mode(ui_image::draw_modes::single);
+		desc.icon->set_sort_order(0);
+		register_object(desc.icon);
+		auto& key_object = std::make_shared<key_icon_object>(desc);
+		register_object(key_object);
+
+		auto main_icon = std::make_shared<ui_image>("ルンバUI：減速メインアイコン");
+		main_icon->set_texture("Assets/Resources/Textures/hud/brake_icon.png");
+		main_icon->set_screen_rect({brake_icon_main_ui_position.x,
+									brake_icon_main_ui_position.y,
+									brake_icon_main_ui_size.x,
+									brake_icon_main_ui_size.y });
+		main_icon->set_draw_mode(ui_image::draw_modes::single);
+		main_icon->set_sort_order(0);
+		register_object(main_icon);
+
+		auto button = std::make_shared<ui_button>("ルンバUI：減速アイコンボタン", main_icon);
+		button->set_color(ui_button::color_type::normal, {1, 1, 1, 1});
+		button->set_color(ui_button::color_type::pressed, {1, 1, 1, 1});
+		button->set_color(ui_button::color_type::disabled, {1, 1, 1, 1});
+		register_object(button);
+
+		key_indicator_object::object_descs object_desc;
+		object_desc.name = "ルンバUI：減速キーインジケータ";
+		object_desc.button = button;
+		object_desc.key = key_object;
+		hud_object_desc.brake_icon = std::make_shared<key_indicator_object>(object_desc);
+		register_object(hud_object_desc.brake_icon);
+	}
+
+	//	チュートリアルアイコン
+	{
+		key_icon_object::object_descs desc;
+		desc.name = "ルンバUI：チュートリアルキーアイコン";
+		desc.icon_type = key_icon_object::key_icon_type::space;
+		desc.icon = std::make_shared<ui_image>("ルンバUI：チュートリアルキーアイコン");
+		desc.icon->set_screen_rect({tutorial_icon_ui_position.x,
+									tutorial_icon_ui_position.y,
+									tutorial_icon_ui_size.x,
+									tutorial_icon_ui_size.y });
+		desc.icon->set_draw_mode(ui_image::draw_modes::single);
+		desc.icon->set_sort_order(0);
+		register_object(desc.icon);
+		auto& key_object = std::make_shared<key_icon_object>(desc);
+		register_object(key_object);
+
+		auto main_icon = std::make_shared<ui_image>("ルンバUI：チュートリアルメインアイコン");
+		main_icon->set_texture("Assets/Resources/Textures/hud/tutorial_icon.png");
+		main_icon->set_screen_rect({tutorial_icon_main_ui_position.x,
+									tutorial_icon_main_ui_position.y,
+									tutorial_icon_main_ui_size.x,
+									tutorial_icon_main_ui_size.y });
+		main_icon->set_draw_mode(ui_image::draw_modes::single);
+		main_icon->set_sort_order(0);
+		register_object(main_icon);
+
+		auto button = std::make_shared<ui_button>("ルンバUI：チュートリアルアイコンボタン", main_icon);
+		button->set_color(ui_button::color_type::normal, {1, 1, 1, 1});
+		button->set_color(ui_button::color_type::pressed, {1, 1, 1, 1});
+		button->set_color(ui_button::color_type::disabled, {1, 1, 1, 1});
+		register_object(button);
+
+		key_indicator_object::object_descs object_desc;
+		object_desc.name = "ルンバUI：チュートリアルキーインジケータ";
+		object_desc.button = button;
+		object_desc.key = key_object;
+		hud_object_desc.brake_icon = std::make_shared<key_indicator_object>(object_desc);
+		register_object(hud_object_desc.brake_icon);
 	}
 
 	hud_object_desc.name = "ルンバUI：メインHUD";

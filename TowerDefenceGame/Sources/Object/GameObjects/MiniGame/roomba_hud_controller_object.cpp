@@ -12,8 +12,7 @@ roomba_hud_controller_object::roomba_hud_controller_object(object_descs descs)
 , brake_icon(descs.brake_icon)
 , timer(descs.timer)
 
-, tutorial_base(descs.tutorial_base)
-, tutorial_text(descs.tutorial_text)
+, tutorial(descs.tutorial)
 
 , game_timer(descs.game_timer)
 {

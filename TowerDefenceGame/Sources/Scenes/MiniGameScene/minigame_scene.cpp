@@ -15,6 +15,7 @@
 #include "Scenes/MiniGameScene/minigame_result_scene.h"
 #include "object/gameobjects/ui/common/transition_fade_controller.h"
 #include "object/gameobjects/ui/hud/countdown_controller_object.h"
+#include "object/gameobjects/minigame/roomba_tutorial_controller_object.h"
 
 namespace
 {
@@ -375,6 +376,14 @@ void minigame_scene::update_core(float elapsed_time)
 		}
 		case game_states::main_game:
 		{
+			//	スペースキーを押している間だけチュートリアルを表示する
+			if (auto tutorial = object_manager::instance()->search_object<roomba_tutorial_controller_object>("ルンバUI：チュートリアル表示コントローラー"))
+			{
+				auto space_state = keyboard::instance()->get_state().is_key_state(keyboard::key_states::space);
+				bool space_held = space_state == input::state::down || space_state == input::state::hold;
+				tutorial->set_alpha(space_held ? 1.0f : 0.0f);
+			}
+
 			//	時間表示更新
 			game_timer += elapsed_time;
 			if (auto timer_object = object_manager::instance()->search_object<timer_controller_object>("ルンバUI：経過時間表示コントローラー"))

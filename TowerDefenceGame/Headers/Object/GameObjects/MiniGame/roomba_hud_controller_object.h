@@ -7,6 +7,7 @@
 #include "roomba_speed_controller_object.h"
 #include "roomba_controller_object.h"
 #include "roomba_trash_controller_object.h"
+#include "roomba_tutorial_controller_object.h"
 
 //	ルンバ：UI管理用オブジェクト
 class roomba_hud_controller_object : public game_object
@@ -27,8 +28,7 @@ public:
 
 		std::shared_ptr<timer_controller_object> timer;
 
-		std::shared_ptr<ui_image> tutorial_base;
-		std::shared_ptr<ui_text> tutorial_text;
+		std::shared_ptr<roomba_tutorial_controller_object> tutorial;
 		float game_timer = 0.0f;
 	};
 
@@ -58,7 +58,6 @@ private:
 
 	std::shared_ptr<timer_controller_object> timer;
 
-	std::shared_ptr<ui_image> tutorial_base;
-	std::shared_ptr<ui_text> tutorial_text;
+	std::shared_ptr<roomba_tutorial_controller_object> tutorial;
 	float game_timer;
 };
