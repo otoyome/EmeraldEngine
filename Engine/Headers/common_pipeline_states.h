@@ -19,6 +19,7 @@ namespace common_pipeline_states
 	constexpr UINT parameter_cbv_index = 2;				//	パラメーター定数バッファ番号
 	constexpr UINT light_cbv_index = 3;					//	ライトの定数バッファ番号
 	constexpr UINT shadowmap_cbv_index = 4;				//	シャドウマップの定数バッファ番号
+	constexpr UINT meshlet_cbv_index = 5;				//	メッシュレット定数バッファ番号
 	constexpr UINT shadowmap_srv_index = 10;			//	シャドウマップのSRV番号
 	constexpr UINT shadowmap_sampler_index = 10;		//	シャドウマップのSampler番号
 
@@ -136,6 +137,15 @@ namespace common_pipeline_states
 	{
 		UINT primitive_index = 0;
 		UINT primitive_index_padding[3] = {};
+	};
+
+	//	メッシュレット定数バッファ
+	struct meshlet_draw_constants
+	{
+		UINT vertex_offset = 0;
+		UINT triangle_offset = 0;	//	@tool メッシュレットの三角形インデックスプールへのオフセット(SV_VertexIDはStartVertexLocationを含まないため、この定数バッファで渡す必要がある)
+		UINT mesh_base_vertex = 0;
+		UINT padding = 0;
 	};
 
 	constexpr UINT morph_srv_position_index = 80;	//	モーフィング用座標

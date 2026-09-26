@@ -16,6 +16,131 @@
 
 #if defined(USE_IMGUI)
 
+namespace
+{
+	//	@tool 三角形リストとして扱うため、インデックス数を3の倍数に切り詰める(末尾の不完全な三角形を破棄する)
+	UINT sanitize_triangle_list_count(UINT index_count)
+	{
+		return index_count - (index_count % 3);
+	}
+
+	//	メッシュからメッシュレット生成
+	void generate_meshlets_for_geometry(
+		const std::unordered_map<semantic, buffer_view>& vertex_buffer_views,
+		const buffer_view& index_buffer_view,
+		std::vector<model_resource::mesh::meshlet>& out_meshlets,
+		std::vector<UINT>& out_meshlet_vertices,
+		std::vector<uint8_t>& out_meshlet_triangles)
+	{
+		out_meshlets.clear();
+		out_meshlet_vertices.clear();
+		out_meshlet_triangles.clear();
+
+		static const semantic position_semantic("POSITION", 0);
+
+		const size_t max_vertices = 64;
+		const size_t max_triangles = 124;
+		const float cone_weight = 0.5f;
+
+		auto position_it = vertex_buffer_views.find(position_semantic);
+		if (position_it == vertex_buffer_views.end() ||
+			index_buffer_view.row_data.empty())
+			return;
+
+		UINT index_count = static_cast<UINT>(index_buffer_view.count());
+		//	@tool 三角形リストとして不完全な末尾は切り詰める(3の倍数でない場合meshoptimizer側の処理が壊れるため)
+		index_count = sanitize_triangle_list_count(index_count);
+		if (index_count == 0)
+			return;
+
+		//	インデックスバッファを32bitへ展開する(R16_UINT等、R32_UINT以外のフォーマットにも対応する)
+		std::vector<UINT> widened_indices;
+		const UINT* indices = nullptr;
+		switch (graphics_utility::get_byte_offset_from_format(index_buffer_view.format))
+		{
+			case sizeof(UINT):
+			{
+				indices = reinterpret_cast<const UINT*>(index_buffer_view.row_data.data());
+				break;
+			}
+
+			case sizeof(USHORT):
+			{
+				const USHORT* source = reinterpret_cast<const USHORT*>(index_buffer_view.row_data.data());
+				widened_indices.assign(source, source + index_count);
+				indices = widened_indices.data();
+				break;
+			}
+
+			case sizeof(UCHAR):
+			{
+				const UCHAR* source = index_buffer_view.row_data.data();
+				widened_indices.assign(source, source + index_count);
+				indices = widened_indices.data();
+				break;
+			}
+
+			default:
+				//	未対応のインデックスフォーマット
+				return;
+		}
+
+		auto& position_view = position_it->second;
+		const DirectX::XMFLOAT3* positions = reinterpret_cast<const DirectX::XMFLOAT3*>(position_view.row_data.data());
+		UINT vertex_count = static_cast<UINT>(position_view.count());
+
+		if (vertex_count == 0)
+			return;
+
+		size_t max_meshlets = meshopt_buildMeshletsBound(index_count, max_vertices, max_triangles);
+		if (max_meshlets == 0)
+			return;
+
+		std::vector<meshopt_Meshlet> meshlets(max_meshlets);
+		std::vector<unsigned int> meshlet_vertices(max_meshlets * max_vertices);
+		std::vector<unsigned char> meshlet_triangles(max_meshlets * max_triangles * 3);
+
+		size_t meshlet_count = meshopt_buildMeshlets(
+			meshlets.data(), meshlet_vertices.data(), meshlet_triangles.data(),
+			indices, index_count,
+			reinterpret_cast<const float*>(positions), vertex_count, sizeof(DirectX::XMFLOAT3),
+			max_vertices, max_triangles, cone_weight);
+
+		if (meshlet_count == 0)
+			return;
+
+		meshlets.resize(meshlet_count);
+		const meshopt_Meshlet& last = meshlets.back();
+		meshlet_vertices.resize(static_cast<size_t>(last.vertex_offset) + last.vertex_count);
+		meshlet_triangles.resize(static_cast<size_t>(last.triangle_offset) + ((static_cast<size_t>(last.triangle_count) * 3 + 3) & ~size_t(3)));
+
+		//	バウンディングスフィア/法線コーン算出
+		out_meshlets.reserve(meshlet_count);
+		for (auto& m : meshlets)
+		{
+			meshopt_Bounds bounds = meshopt_computeMeshletBounds(
+				&meshlet_vertices[m.vertex_offset], &meshlet_triangles[m.triangle_offset],
+				m.triangle_count,
+				reinterpret_cast<const float*>(positions), vertex_count, sizeof(DirectX::XMFLOAT3));
+
+			model_resource::mesh::meshlet dst{};
+			dst.vertex_offset = m.vertex_offset;
+			dst.triangle_offset = m.triangle_offset;
+			dst.vertex_count = m.vertex_count;
+			dst.triangle_count = m.triangle_count;
+			dst.bounds_center = { bounds.center[0], bounds.center[1], bounds.center[2] };
+			dst.bounds_radius = bounds.radius;
+			dst.cone_apex = { bounds.cone_apex[0], bounds.cone_apex[1], bounds.cone_apex[2] };
+			dst.cone_axis = { bounds.cone_axis[0], bounds.cone_axis[1], bounds.cone_axis[2] };
+			dst.cone_cutoff = bounds.cone_cutoff;
+			out_meshlets.emplace_back(dst);
+		}
+
+		out_meshlet_vertices = std::move(meshlet_vertices);
+		out_meshlet_triangles = std::move(meshlet_triangles);
+	}
+}
+
 void model_resource_utility::combine_unskinned_meshes(model_resource& resource, DirectX::XMINT3 grid_divisions)
 {
 	using namespace DirectX;
@@ -305,7 +430,7 @@ void model_resource_utility::combine_unskinned_meshes(model_resource& resource, 
 				dst.bounds_max = bounds_max;
 			}
 
-			//	GPU バッファ生成(共有プール経由)
+			//	GPU バッファ生成
 			model_buffer_pool_manager::instance()->build_vertex_buffers(dst.vertex_buffer_views);
 			model_buffer_pool_manager::instance()->build_index_buffer(dst.index_buffer_view);
 		}
@@ -334,10 +459,15 @@ void model_resource_utility::optimized_meshs(model_resource& resource)
 		if (!mesh.morph_meshes.empty())
 			continue;
 
-		//	インデックスリストを生成
+		//	@tool meshoptimizerのMulti系関数はstream_countが16以下でなければならない(超える場合は最適化を諦める)
+		if (mesh.vertex_buffer_views.size() > 16)
+			continue;
+
+		//	インデックスリストを生成(3の倍数でない末尾は切り詰める)
+		UINT sanitized_index_count = sanitize_triangle_list_count(static_cast<UINT>(mesh.index_buffer_view.count()));
 		std::vector<UINT> indices;
-		indices.reserve(mesh.index_buffer_view.count());
-		for (UINT index = 0; index < mesh.index_buffer_view.count(); ++index)
+		indices.reserve(sanitized_index_count);
+		for (UINT index = 0; index < sanitized_index_count; ++index)
 		{
 			if (mesh.index_buffer_view.stride_in_bytes == 2)
 			{
@@ -357,13 +487,29 @@ void model_resource_utility::optimized_meshs(model_resource& resource)
 			std::size_t vertex_count = mesh.vertex_buffer_views.begin()->second.count();
 
 			//	stream生成
+			//	@tool オーバードロー最適化でPOSITIONデータを正しく参照するため、streams内でのPOSITIONの位置も記録する
 			std::vector<meshopt_Stream> streams;
-			for (auto& vbv : mesh.vertex_buffer_views)
+			std::size_t position_stream_index = 0;
 			{
-				auto& stream = streams.emplace_back();
-				stream.data = vbv.second.row_data.data();
-				stream.size = vbv.second.stride_in_bytes;
-				stream.stride = vbv.second.stride_in_bytes;
+				bool position_find = false;
+				for (auto& vbv : mesh.vertex_buffer_views)
+				{
+					auto& stream = streams.emplace_back();
+					stream.data = vbv.second.row_data.data();
+					stream.size = vbv.second.stride_in_bytes;
+					stream.stride = vbv.second.stride_in_bytes;
+					if (!position_find)
+					{
+						if (vbv.first == semantic("POSITION", 0))
+						{
+							position_find = true;
+						}
+						else
+						{
+							++position_stream_index;
+						}
+					}
+				}
 			}
 
 			//	重複頂点最適化
@@ -396,7 +542,7 @@ void model_resource_utility::optimized_meshs(model_resource& resource)
 					indices.data(),
 					indices.data(),
 					indices.size(),
-					reinterpret_cast<const float*>(vertex_buffer[0].data()),
+					reinterpret_cast<const float*>(vertex_buffer[position_stream_index].data()),
 					new_vertex_count,
 					pos->second.stride_in_bytes,
 					1.05f);
@@ -456,10 +602,15 @@ void model_resource_utility::generate_shadow_meshes(model_resource& resource, bo
 		if (mesh.index_buffer_view.count() == 0)
 			continue;
 
-		//	インデックスリストを生成
+		//	@tool meshoptimizerのMulti系関数はstream_countが16以下でなければならない(超える場合はシャドウメッシュ生成を諦める)
+		if (mesh.vertex_buffer_views.size() > 16)
+			continue;
+
+		//	インデックスリストを生成(3の倍数でない末尾は切り詰める)
+		UINT sanitized_index_count = sanitize_triangle_list_count(static_cast<UINT>(mesh.index_buffer_view.count()));
 		std::vector<UINT> indices;
-		indices.reserve(mesh.index_buffer_view.count());
-		for (UINT index = 0; index < mesh.index_buffer_view.count(); ++index)
+		indices.reserve(sanitized_index_count);
+		for (UINT index = 0; index < sanitized_index_count; ++index)
 		{
 			if (mesh.index_buffer_view.stride_in_bytes == 2)
 			{
@@ -526,8 +677,17 @@ void model_resource_utility::generate_shadow_meshes(model_resource& resource, bo
 				{
 					model_buffer_pool_manager::instance()->build_index_buffer(mesh.shadow_mesh.index_buffer_view);
 				}
+
+				//	メッシュレット生成
+				generate_meshlets_for_geometry(mesh.vertex_buffer_views, mesh.shadow_mesh.index_buffer_view,
+					mesh.shadow_mesh.meshlets, mesh.shadow_mesh.meshlet_vertices, mesh.shadow_mesh.meshlet_triangles);
 			}
 		}
+	}
+
+	if (regenerate_buffer)
+	{
+		resource.rebuild_meshlet_data();
 	}
 }
 
@@ -539,10 +699,11 @@ void model_resource_utility::generate_lod_meshs(model_resource& resource, int ma
 		if (mesh.index_buffer_view.count() == 0)
 			continue;
 
-		//	インデックスリストを生成
+		//	インデックスリストを生成(3の倍数でない末尾は切り詰める)
+		UINT sanitized_index_count = sanitize_triangle_list_count(static_cast<UINT>(mesh.index_buffer_view.count()));
 		std::vector<UINT> indices;
-		indices.reserve(mesh.index_buffer_view.count());
-		for (UINT index = 0; index < mesh.index_buffer_view.count(); ++index)
+		indices.reserve(sanitized_index_count);
+		for (UINT index = 0; index < sanitized_index_count; ++index)
 		{
 			if (mesh.index_buffer_view.stride_in_bytes == 2)
 			{
@@ -593,7 +754,15 @@ void model_resource_utility::generate_lod_meshs(model_resource& resource, int ma
 
 			//	重複頂点最適化
 			for (auto& old_lod_mesh : mesh.lod_meshs)
+			{
 				model_buffer_pool_manager::instance()->free_index_buffer(old_lod_mesh.index_buffer_view);
+				if (!old_lod_mesh.meshlet_draw_infos.empty())
+				{
+					model_buffer_pool_manager::instance()->free_meshlet_data(
+						old_lod_mesh.meshlet_vertex_base, static_cast<UINT>(old_lod_mesh.meshlet_vertices.size()),
+						old_lod_mesh.meshlet_triangle_base, static_cast<UINT>(old_lod_mesh.meshlet_triangles.size()));
+				}
+			}
 			mesh.lod_meshs.clear();
 
 			for (INT lod = 0; lod < max_lod_level; ++lod)
@@ -622,148 +791,36 @@ void model_resource_utility::generate_lod_meshs(model_resource& resource, int ma
 				{
 					model_buffer_pool_manager::instance()->build_index_buffer(sub_mesh.index_buffer_view);
 				}
+
+				//	メッシュレット生成
+				generate_meshlets_for_geometry(mesh.vertex_buffer_views, sub_mesh.index_buffer_view,
+					sub_mesh.meshlets, sub_mesh.meshlet_vertices, sub_mesh.meshlet_triangles);
+
 				mesh.lod_meshs.emplace_back(sub_mesh);
 			}
 		}
 	}
+
+	if (regeneratge_buffer)
+	{
+		resource.rebuild_meshlet_data();
+	}
 }
-
-#if 0
-//	立方体状のSDF
-struct signed_distance_field
-{
-	inline bool is_valid() const
-	{
-		return resolution > 0 && !voxels.empty();
-	}
-
-	//	ボクセルサイズ
-	inline float voxel_size() const
-	{
-		return resolution > 0 ? (bounds_max.x - bounds_min.x) / static_cast<float>(resolution) : 0.0f;
-	}
-
-	//	ボクセルインデックス(x,y,z)から線形インデックスを求める
-	inline size_t index_of(uint32_t x, uint32_t y, uint32_t z) const
-	{
-		return (static_cast<size_t>(z) * resolution + y) * resolution + x;
-	}
-
-	//	ボクセル中心のワールド(ローカル)座標を求める
-	inline DirectX::XMFLOAT3 voxel_center(uint32_t x, uint32_t y, uint32_t z) const
-	{
-		const float size = voxel_size();
-		return DirectX::XMFLOAT3
-		{
-			bounds_min.x + (static_cast<float>(x) + 0.5f) * size,
-			bounds_min.y + (static_cast<float>(y) + 0.5f) * size,
-			bounds_min.z + (static_cast<float>(z) + 0.5f) * size,
-		};
-	}
-
-public:
-	uint32_t resolution = 0;
-	DirectX::XMFLOAT3 bounds_min = { 0, 0, 0 };
-	DirectX::XMFLOAT3 bounds_max = { 0, 0, 0 };
-	std::vector<float> voxels;
-};
-
-//	指定したメッシュからcubic Signed Distance Fieldを生成する
-bool create_cubic_sdf(signed_distance_field& out_sdf, size_t mesh_index, uint32_t resolution = 32, float bounds_padding_rate = 0.1f);
-
-bool create_cubic_sdf(signed_distance_field& out_sdf, size_t mesh_index, uint32_t resolution, float bounds_padding_rate) const
-{
-	if (mesh_index >= meshes.size())
-	{
-		DEBUG_ERROR_CATEGORY(logger::categorys::model, "create_cubic_sdf failed : mesh_index out of range[%zu]", mesh_index);
-		return false;
-	}
-	if (resolution == 0)
-	{
-		DEBUG_ERROR_CATEGORY(logger::categorys::model, "create_cubic_sdf failed : resolution must be greater than 0");
-		return false;
-	}
-
-	const mesh& target_mesh = meshes[mesh_index];
-
-	//	三角形リストを抽出
-	std::vector<sdf_triangle> triangles;
-	if (!extract_triangles(target_mesh, triangles))
-	{
-		DEBUG_ERROR_CATEGORY(logger::categorys::model, "create_cubic_sdf failed : failed to extract triangles[mesh_index=%zu]", mesh_index);
-		return false;
-	}
-
-	//	バウンディングボックスの中心を求める
-	const DirectX::XMFLOAT3 center =
-	{
-		(target_mesh.bounds_min.x + target_mesh.bounds_max.x) * 0.5f,
-		(target_mesh.bounds_min.y + target_mesh.bounds_max.y) * 0.5f,
-		(target_mesh.bounds_min.z + target_mesh.bounds_max.z) * 0.5f,
-	};
-
-	//	立方体状のSDFにするため、最大の辺長を基準に各軸へ余白(padding)を持たせて正立方体化する
-	const float extent_x = target_mesh.bounds_max.x - target_mesh.bounds_min.x;
-	const float extent_y = target_mesh.bounds_max.y - target_mesh.bounds_min.y;
-	const float extent_z = target_mesh.bounds_max.z - target_mesh.bounds_min.z;
-	const float max_extent = std::max({ extent_x, extent_y, extent_z });
-	const float half_extent = (max_extent * 0.5f) * (1.0f + bounds_padding_rate);
-
-	out_sdf.resolution = resolution;
-	out_sdf.bounds_min = { center.x - half_extent, center.y - half_extent, center.z - half_extent };
-	out_sdf.bounds_max = { center.x + half_extent, center.y + half_extent, center.z + half_extent };
-	out_sdf.voxels.assign(static_cast<size_t>(resolution) * resolution * resolution, 0.0f);
-
-	const float voxel_size = out_sdf.voxel_size();
-
-	//	フラットインデックスの配列を用意し、ボクセル単位で並列に距離計算を行う
-	//	(各ボクセルの計算は他のボクセルに依存しないため完全に並列化可能)
-	std::vector<uint32_t> flat_indices(out_sdf.voxels.size());
-	std::iota(flat_indices.begin(), flat_indices.end(), 0u);
-
-	std::for_each(std::execution::par, flat_indices.begin(), flat_indices.end(),
-		[&](uint32_t flat_index)
-		{
-			const uint32_t x = flat_index % resolution;
-			const uint32_t y = (flat_index / resolution) % resolution;
-			const uint32_t z = flat_index / (resolution * resolution);
-
-			const DirectX::XMFLOAT3 voxel_center =
-			{
-				out_sdf.bounds_min.x + (static_cast<float>(x) + 0.5f) * voxel_size,
-				out_sdf.bounds_min.y + (static_cast<float>(y) + 0.5f) * voxel_size,
-				out_sdf.bounds_min.z + (static_cast<float>(z) + 0.5f) * voxel_size,
-			};
-
-			//	全三角形との距離を総当たりで調べ、最短のものを採用する
-			//	@remainder	三角形数が多い場合はBVH/Octree等で候補を絞ることを推奨
-			float min_squared_distance = std::numeric_limits<float>::max();
-			for (const auto& tri : triangles)
-			{
-				const float squared_distance = squared_distance_point_triangle(voxel_center, tri);
-				min_squared_distance = std::min(min_squared_distance, squared_distance);
-			}
-			float distance = std::sqrt(min_squared_distance);
-
-			//	レイキャストの交差パリティで内外判定し、内側なら符号を反転する
-			if (is_point_inside(voxel_center, triangles))
-				distance = -distance;
-
-			out_sdf.voxels[flat_index] = distance;
-		});
-
-	DEBUG_LOG_CATEGORY(logger::categorys::model, "create_cubic_sdf successed[mesh_index=%zu, resolution=%u, triangle_count=%zu]",
-		mesh_index, resolution, triangles.size());
-	return true;
-}
-#endif
 
 void model_resource_utility::clear_lod_meshs(model_resource& resource)
 {
 	for (auto& mesh : resource.get_meshes_for_editor())
 	{
 		for (auto& lod_mesh : mesh.lod_meshs)
+		{
 			model_buffer_pool_manager::instance()->free_index_buffer(lod_mesh.index_buffer_view);
+			if (!lod_mesh.meshlet_draw_infos.empty())
+			{
+				model_buffer_pool_manager::instance()->free_meshlet_data(
+					lod_mesh.meshlet_vertex_base, static_cast<UINT>(lod_mesh.meshlet_vertices.size()),
+					lod_mesh.meshlet_triangle_base, static_cast<UINT>(lod_mesh.meshlet_triangles.size()));
+			}
+		}
 		mesh.lod_meshs.clear();
 	}
 }
@@ -773,6 +830,12 @@ void model_resource_utility::clear_shadow_meshes(model_resource& resource)
 	for (auto& mesh : resource.get_meshes_for_editor())
 	{
 		model_buffer_pool_manager::instance()->free_index_buffer(mesh.shadow_mesh.index_buffer_view);
+		if (!mesh.shadow_mesh.meshlet_draw_infos.empty())
+		{
+			model_buffer_pool_manager::instance()->free_meshlet_data(
+				mesh.shadow_mesh.meshlet_vertex_base, static_cast<UINT>(mesh.shadow_mesh.meshlet_vertices.size()),
+				mesh.shadow_mesh.meshlet_triangle_base, static_cast<UINT>(mesh.shadow_mesh.meshlet_triangles.size()));
+		}
 		mesh.shadow_mesh = {};
 	}
 }
@@ -783,6 +846,18 @@ void model_resource_utility::optimize_meshs(model_resource& resource)
 	{
 		model_buffer_pool_manager::instance()->free_vertex_buffers(mesh.vertex_buffer_views);
 		model_buffer_pool_manager::instance()->free_index_buffer(mesh.index_buffer_view);
+
+		//	@tool 頂点・インデックスの並びが変わるためメッシュレットは無効になる。古いGPUバッファを解放してCPU側もクリアする
+		if (!mesh.meshlet_draw_infos.empty())
+		{
+			model_buffer_pool_manager::instance()->free_meshlet_data(
+				mesh.meshlet_vertex_base, static_cast<UINT>(mesh.meshlet_vertices.size()),
+				mesh.meshlet_triangle_base, static_cast<UINT>(mesh.meshlet_triangles.size()));
+		}
+		mesh.meshlets.clear();
+		mesh.meshlet_vertices.clear();
+		mesh.meshlet_triangles.clear();
+		mesh.meshlet_draw_infos.clear();
 	}
 
 	optimized_meshs(resource);
@@ -797,84 +872,26 @@ void model_resource_utility::optimize_meshs(model_resource& resource)
 	clear_shadow_meshes(resource);
 }
 
+
+
 void model_resource_utility::generate_meshlets(model_resource& resource)
 {
-	if (!resource.get_meshes_for_editor().empty())
-		return;
-
-	static const semantic position_semantic("POSITION", 0);
-
-	const size_t max_vertices = 64;
-	const size_t max_triangles = 124;
-	const float cone_weight = 0.5f;
-
 	for (auto& mesh : resource.get_meshes_for_editor())
 	{
-		mesh.meshlets.clear();
-		mesh.meshlet_vertices.clear();
-		mesh.meshlet_triangles.clear();
+		generate_meshlets_for_geometry(mesh.vertex_buffer_views, mesh.index_buffer_view,
+			mesh.meshlets, mesh.meshlet_vertices, mesh.meshlet_triangles);
 
-		auto position_it = mesh.vertex_buffer_views.find(position_semantic);
-		if (position_it == mesh.vertex_buffer_views.end() ||
-			mesh.index_buffer_view.format != DXGI_FORMAT_R32_UINT ||
-			mesh.index_buffer_view.row_data.empty())
-			continue;
+		generate_meshlets_for_geometry(mesh.vertex_buffer_views, mesh.shadow_mesh.index_buffer_view,
+			mesh.shadow_mesh.meshlets, mesh.shadow_mesh.meshlet_vertices, mesh.shadow_mesh.meshlet_triangles);
 
-		auto& position_view = position_it->second;
-		const DirectX::XMFLOAT3* positions = reinterpret_cast<const DirectX::XMFLOAT3*>(position_view.row_data.data());
-		UINT vertex_count = static_cast<UINT>(position_view.count());
-		const UINT* indices = reinterpret_cast<const UINT*>(mesh.index_buffer_view.row_data.data());
-		UINT index_count = static_cast<UINT>(mesh.index_buffer_view.count());
-
-		if (vertex_count == 0 || index_count == 0)
-			continue;
-
-		size_t max_meshlets = meshopt_buildMeshletsBound(index_count, max_vertices, max_triangles);
-		if (max_meshlets == 0)
-			continue;
-
-		std::vector<meshopt_Meshlet> meshlets(max_meshlets);
-		std::vector<unsigned int> meshlet_vertices(max_meshlets * max_vertices);
-		std::vector<unsigned char> meshlet_triangles(max_meshlets * max_triangles * 3);
-
-		size_t meshlet_count = meshopt_buildMeshlets(
-			meshlets.data(), meshlet_vertices.data(), meshlet_triangles.data(),
-			indices, index_count,
-			reinterpret_cast<const float*>(positions), vertex_count, sizeof(DirectX::XMFLOAT3),
-			max_vertices, max_triangles, cone_weight);
-
-		if (meshlet_count == 0)
-			continue;
-
-		meshlets.resize(meshlet_count);
-		const meshopt_Meshlet& last = meshlets.back();
-		meshlet_vertices.resize(static_cast<size_t>(last.vertex_offset) + last.vertex_count);
-		meshlet_triangles.resize(static_cast<size_t>(last.triangle_offset) + ((static_cast<size_t>(last.triangle_count) * 3 + 3) & ~size_t(3)));
-
-		//	バウンディングスフィア/法線コーン算出
-		mesh.meshlets.reserve(meshlet_count);
-		for (auto& m : meshlets)
+		for (auto& lod_mesh : mesh.lod_meshs)
 		{
-			meshopt_Bounds bounds = meshopt_computeMeshletBounds(
-				&meshlet_vertices[m.vertex_offset], &meshlet_triangles[m.triangle_offset],
-				m.triangle_count,
-				reinterpret_cast<const float*>(positions), vertex_count, sizeof(DirectX::XMFLOAT3));
-
-			model_resource::mesh::meshlet dst{};
-			dst.vertex_offset = m.vertex_offset;
-			dst.triangle_offset = m.triangle_offset;
-			dst.vertex_count = m.vertex_count;
-			dst.triangle_count = m.triangle_count;
-			dst.bounds_center = { bounds.center[0], bounds.center[1], bounds.center[2] };
-			dst.bounds_radius = bounds.radius;
-			dst.cone_apex = { bounds.cone_apex[0], bounds.cone_apex[1], bounds.cone_apex[2] };
-			dst.cone_axis = { bounds.cone_axis[0], bounds.cone_axis[1], bounds.cone_axis[2] };
-			dst.cone_cutoff = bounds.cone_cutoff;
-			mesh.meshlets.emplace_back(dst);
+			generate_meshlets_for_geometry(mesh.vertex_buffer_views, lod_mesh.index_buffer_view,
+				lod_mesh.meshlets, lod_mesh.meshlet_vertices, lod_mesh.meshlet_triangles);
 		}
-
-		mesh.meshlet_vertices = std::move(meshlet_vertices);
-		mesh.meshlet_triangles = std::move(meshlet_triangles);
 	}
+
+	//	GPU側へ反映
+	resource.rebuild_meshlet_data();
 }
 #endif	//	defined(USE_IMGUI)

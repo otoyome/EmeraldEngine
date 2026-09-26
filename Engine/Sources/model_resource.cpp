@@ -20,12 +20,51 @@ CEREAL_CLASS_VERSION(model_resource::node, 1)
 CEREAL_CLASS_VERSION(model_resource::bone, 1)
 CEREAL_CLASS_VERSION(model_resource::mesh, 4)
 CEREAL_CLASS_VERSION(model_resource::mesh::meshlet, 1)
-CEREAL_CLASS_VERSION(model_resource::mesh::sub_mesh, 1)
+CEREAL_CLASS_VERSION(model_resource::mesh::sub_mesh, 2)
 CEREAL_CLASS_VERSION(model_resource::mesh::morph_mesh, 1)
 CEREAL_CLASS_VERSION(model_resource::capsule_shadow, 1)
 CEREAL_CLASS_VERSION(model_resource, 1)
 
+namespace
+{
+	template<class Type>
+	void free_meshlet_data(Type& holder)
+	{
+		if (holder.meshlet_draw_infos.empty())
+			return;
+
+		model_buffer_pool_manager::instance()->free_meshlet_data(
+			holder.meshlet_vertex_base, static_cast<UINT>(holder.meshlet_vertices.size()),
+			holder.meshlet_triangle_base, static_cast<UINT>(holder.meshlet_triangles.size()));
+
+		holder.meshlet_draw_infos.clear();
+	}
+
+	template<class Type>
+	void build_meshlet_data(Type& holder)
+	{
+		free_meshlet_data(holder);
+
+		if (holder.meshlets.empty() || holder.meshlet_vertices.empty() || holder.meshlet_triangles.empty())
+			return;
+
+		model_buffer_pool_manager::instance()->build_meshlet_data(holder.meshlet_vertices, holder.meshlet_triangles,
+			holder.meshlet_vertex_base, holder.meshlet_triangle_base);
+
+		holder.meshlet_draw_infos.reserve(holder.meshlets.size());
+		for (auto& meshlet : holder.meshlets)
+		{
+			meshlet_draw_data draw_info{};
+			draw_info.vertex_offset = holder.meshlet_vertex_base + meshlet.vertex_offset;
+			draw_info.triangle_offset = holder.meshlet_triangle_base + meshlet.triangle_offset;
+			draw_info.triangle_count = meshlet.triangle_count;
+			holder.meshlet_draw_infos.emplace_back(draw_info);
+		}
+	}
+}
+
 template<class Archive>
+
 void model_resource::node::serialize(Archive& archive, int version)
 {
 	archive(CEREAL_NVP(name),
@@ -45,8 +84,30 @@ void model_resource::bone::serialize(Archive& archive, int version)
 template<class Archive>
 void model_resource::mesh::sub_mesh::serialize(Archive& archive, int version)
 {
-	archive(CEREAL_NVP(vertex_buffer_views),
-			CEREAL_NVP(index_buffer_view));
+	switch (version)
+	{
+		case 1:
+		{
+			archive(CEREAL_NVP(vertex_buffer_views),
+					CEREAL_NVP(index_buffer_view));
+			break;
+		}
+		case 2:
+		{
+			archive(CEREAL_NVP(vertex_buffer_views),
+					CEREAL_NVP(index_buffer_view),
+					CEREAL_NVP(meshlets),
+					CEREAL_NVP(meshlet_vertices),
+					CEREAL_NVP(meshlet_triangles));
+			break;
+		}
+		default:
+		{
+			archive(CEREAL_NVP(vertex_buffer_views),
+					CEREAL_NVP(index_buffer_view));
+			break;
+		}
+	}
 }
 
 template<class Archive>
@@ -173,6 +234,18 @@ model_resource::~model_resource()
 	{
 		model_buffer_pool_manager::instance()->free_vertex_buffers(mesh.vertex_buffer_views);
 		model_buffer_pool_manager::instance()->free_index_buffer(mesh.index_buffer_view);
+		free_meshlet_data(mesh);
+
+		model_buffer_pool_manager::instance()->free_vertex_buffers(mesh.shadow_mesh.vertex_buffer_views);
+		model_buffer_pool_manager::instance()->free_index_buffer(mesh.shadow_mesh.index_buffer_view);
+		free_meshlet_data(mesh.shadow_mesh);
+
+		for (auto& lod_mesh : mesh.lod_meshs)
+		{
+			model_buffer_pool_manager::instance()->free_vertex_buffers(lod_mesh.vertex_buffer_views);
+			model_buffer_pool_manager::instance()->free_index_buffer(lod_mesh.index_buffer_view);
+			free_meshlet_data(lod_mesh);
+		}
 	}
 }
 
@@ -361,6 +434,15 @@ void model_resource::build_model()
 		model_buffer_pool_manager::instance()->build_vertex_buffers(mesh.vertex_buffer_views);
 		model_buffer_pool_manager::instance()->build_index_buffer(mesh.index_buffer_view);
 
+		model_buffer_pool_manager::instance()->build_vertex_buffers(mesh.shadow_mesh.vertex_buffer_views);
+		model_buffer_pool_manager::instance()->build_index_buffer(mesh.shadow_mesh.index_buffer_view);
+
+		for (auto& lod_mesh : mesh.lod_meshs)
+		{
+			model_buffer_pool_manager::instance()->build_vertex_buffers(lod_mesh.vertex_buffer_views);
+			model_buffer_pool_manager::instance()->build_index_buffer(lod_mesh.index_buffer_view);
+		}
+
 		//	モーフバッファビュー生成
 		for (auto& morph_mesh : mesh.morph_meshes)
 		{
@@ -381,6 +463,20 @@ void model_resource::build_model()
 				_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
 			}
 		}
+	}
+
+	//	メッシュレット情報構築
+	rebuild_meshlet_data();
+}
+
+void model_resource::rebuild_meshlet_data()
+{
+	for (auto& mesh : meshes)
+	{
+		build_meshlet_data(mesh);
+		build_meshlet_data(mesh.shadow_mesh);
+		for (auto& lod_mesh : mesh.lod_meshs)
+			build_meshlet_data(lod_mesh);
 	}
 }
 

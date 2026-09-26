@@ -81,6 +81,14 @@ private:
 	system_utility::hash_key hash = -1;
 };
 
+//	メッシュレット情報
+struct meshlet_draw_data
+{
+	UINT vertex_offset = 0;
+	UINT triangle_offset = 0;
+	UINT triangle_count = 0;
+};
+
 //	描画バッファ情報
 struct buffer_datas
 {
@@ -100,6 +108,7 @@ struct buffer_datas
 		const buffer_view* index_buffer_view;
 		D3D_PRIMITIVE_TOPOLOGY primitive_topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 		std::vector<morph_mesh> morph_meshes;
+		const std::vector<meshlet_draw_data>* meshlets = nullptr;
 	};
 
 	UINT vertex_count;										//	Drawで使用する際の頂点数

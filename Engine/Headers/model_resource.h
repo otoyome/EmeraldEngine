@@ -7,6 +7,7 @@
 #include "animation_resource.h"
 #include "collision/capsule.h"
 #include "collision/box.h"
+#include "buffer_view.h"
 
 #include "retarget_profile.h"
 
@@ -41,30 +42,6 @@ public:
 
 	struct mesh
 	{
-		struct sub_mesh
-		{
-			std::unordered_map<semantic, buffer_view> vertex_buffer_views;
-			buffer_view index_buffer_view;
-			bool is_valid() const
-			{
-				return index_buffer_view.size_in_bytes > 0 &&
-						vertex_buffer_views.size() > 0;
-			}
-			template<class Archive>
-			void serialize(Archive& archive, int version);
-		};
-		struct morph_mesh
-		{
-			//	@remainder	コンピュートシェーダーでSparse分だけやるようにした方が圧倒的に早いし制限を取っ払う事ができる。
-			std::unordered_map<semantic, buffer_view> vertex_buffer_views;
-			bool is_valid() const
-			{
-				return vertex_buffer_views.size() > 0;
-			}
-			template<class Archive>
-			void serialize(Archive& archive, int version);
-		};
-
 		//	メッシュレット
 		struct meshlet
 		{
@@ -82,6 +59,40 @@ public:
 			DirectX::XMFLOAT3 cone_axis = { 0, 0, 0 };
 			float cone_cutoff = 0.0f;
 
+			template<class Archive>
+			void serialize(Archive& archive, int version);
+		};
+
+		struct sub_mesh
+		{
+			std::unordered_map<semantic, buffer_view> vertex_buffer_views;
+			buffer_view index_buffer_view;
+
+			std::vector<meshlet> meshlets;
+			std::vector<UINT> meshlet_vertices;
+			std::vector<uint8_t> meshlet_triangles;
+
+			//	以下、シリアライズ対象外データ
+			UINT meshlet_vertex_base = 0;
+			UINT meshlet_triangle_base = 0;
+			std::vector<meshlet_draw_data> meshlet_draw_infos;
+
+			bool is_valid() const
+			{
+				return index_buffer_view.size_in_bytes > 0 &&
+						vertex_buffer_views.size() > 0;
+			}
+			template<class Archive>
+			void serialize(Archive& archive, int version);
+		};
+		struct morph_mesh
+		{
+			//	@remainder	コンピュートシェーダーでSparse分だけやるようにした方が圧倒的に早いし制限を取っ払う事ができる。
+			std::unordered_map<semantic, buffer_view> vertex_buffer_views;
+			bool is_valid() const
+			{
+				return vertex_buffer_views.size() > 0;
+			}
 			template<class Archive>
 			void serialize(Archive& archive, int version);
 		};
@@ -105,6 +116,11 @@ public:
 		std::vector<meshlet> meshlets;
 		std::vector<UINT> meshlet_vertices;
 		std::vector<uint8_t> meshlet_triangles;
+
+		//	以下、シリアライズ対象外データ
+		UINT meshlet_vertex_base = 0;
+		UINT meshlet_triangle_base = 0;
+		std::vector<meshlet_draw_data> meshlet_draw_infos;
 
 		template<class Archive>
 		void serialize(Archive& archive, int version);
@@ -172,6 +188,8 @@ public:
 	bool deserialize(std::string_view file_path);
 
 	void paste_materials(const std::vector<material>& materials);
+
+	void rebuild_meshlet_data();
 
 private:
 	void build_model();

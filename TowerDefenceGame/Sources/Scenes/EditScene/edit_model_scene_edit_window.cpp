@@ -374,6 +374,11 @@ void edit_model_scene::imgui_model_loader_window()
 			{
 				optimize_mesh_asset();
 			}
+			ImGui::SameLine();
+			if (ImGui::Button("Generate Meshlets"))
+			{
+				generate_meshlet_asset();
+			}
 		}
 
 		//	スキンなしメッシュの空間グリッド結合

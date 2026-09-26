@@ -218,6 +218,59 @@ void apply_morph_normal(inout float3 normal, uint vertex_id)
 }
 #endif  //  defined(HAS_MORPH)
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+//	メッシュレット頂点プールバッファ
+ByteAddressBuffer meshlet_positions : register(t102);
+ByteAddressBuffer meshlet_normals : register(t103);
+ByteAddressBuffer meshlet_tangents : register(t104);
+ByteAddressBuffer meshlet_colors0 : register(t105);
+ByteAddressBuffer meshlet_texcoords0 : register(t106);
+ByteAddressBuffer meshlet_texcoords1 : register(t107);
+ByteAddressBuffer meshlet_joints0 : register(t108);
+ByteAddressBuffer meshlet_joints1 : register(t109);
+ByteAddressBuffer meshlet_joints2 : register(t110);
+ByteAddressBuffer meshlet_joints3 : register(t111);
+ByteAddressBuffer meshlet_weights0 : register(t112);
+ByteAddressBuffer meshlet_weights1 : register(t113);
+ByteAddressBuffer meshlet_weights2 : register(t114);
+ByteAddressBuffer meshlet_weights3 : register(t115);
+ByteAddressBuffer meshlet_vertex_indices : register(t116);
+ByteAddressBuffer meshlet_triangle_indices : register(t117);
+
+cbuffer MESHLET_DRAW_CONSTANT_BUFFER : register(b5)
+{
+	uint meshlet_vertex_offset;
+	uint meshlet_triangle_offset;	//	@tool SV_VertexIDはDraw()のStartVertexLocationを含まないため、三角形インデックスプールのオフセットをここから渡す
+	uint meshlet_mesh_base_vertex;
+	uint meshlet_draw_padding;
+};
+
+//	SV_VertexIDから、このメッシュレット内のローカル頂点番号を経由してグローバル頂点番号を求める
+uint meshlet_resolve_global_vertex_index(uint vertex_id)
+{
+	uint triangle_index_pool_index = meshlet_triangle_offset + vertex_id;
+	uint local_vertex_index = meshlet_triangle_indices.Load(triangle_index_pool_index * 4);
+	uint mesh_local_vertex_index = meshlet_vertex_indices.Load((meshlet_vertex_offset + local_vertex_index) * 4);
+	return meshlet_mesh_base_vertex + mesh_local_vertex_index;
+}
+
+float3 meshlet_load_position(uint vertex_index) { return asfloat(meshlet_positions.Load3(vertex_index * 12)); }
+float3 meshlet_load_normal(uint vertex_index) { return asfloat(meshlet_normals.Load3(vertex_index * 12)); }
+float4 meshlet_load_tangent(uint vertex_index) { return asfloat(meshlet_tangents.Load4(vertex_index * 16)); }
+float4 meshlet_load_color0(uint vertex_index) { return asfloat(meshlet_colors0.Load4(vertex_index * 16)); }
+float2 meshlet_load_texcoord0(uint vertex_index) { return asfloat(meshlet_texcoords0.Load2(vertex_index * 8)); }
+float2 meshlet_load_texcoord1(uint vertex_index) { return asfloat(meshlet_texcoords1.Load2(vertex_index * 8)); }
+uint4 meshlet_load_joints0(uint vertex_index) { return meshlet_joints0.Load4(vertex_index * 16); }
+uint4 meshlet_load_joints1(uint vertex_index) { return meshlet_joints1.Load4(vertex_index * 16); }
+uint4 meshlet_load_joints2(uint vertex_index) { return meshlet_joints2.Load4(vertex_index * 16); }
+uint4 meshlet_load_joints3(uint vertex_index) { return meshlet_joints3.Load4(vertex_index * 16); }
+float4 meshlet_load_weights0(uint vertex_index) { return asfloat(meshlet_weights0.Load4(vertex_index * 16)); }
+float4 meshlet_load_weights1(uint vertex_index) { return asfloat(meshlet_weights1.Load4(vertex_index * 16)); }
+float4 meshlet_load_weights2(uint vertex_index) { return asfloat(meshlet_weights2.Load4(vertex_index * 16)); }
+float4 meshlet_load_weights3(uint vertex_index) { return asfloat(meshlet_weights3.Load4(vertex_index * 16)); }
+
+
+
 #include "surface.hlsli"
 
 

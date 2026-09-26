@@ -236,8 +236,31 @@ void edit_model_scene::update_core(float elapsed_time)
 			}
 			if (is_load && resource)
 			{
-				//	メッシュレット生成
-				model_resource_utility::generate_meshlets(*resource);
+				if (convert_option_data.kind == convert_option_data::kinds::mmd ||
+					convert_option_data.kind == convert_option_data::kinds::gltf)
+				{
+					//	変換直後はメッシュレット未対応のため、最適化してからメッシュレットを生成する
+					model_resource_utility::optimize_meshs(*resource);
+					model_resource_utility::generate_meshlets(*resource);
+				}
+				else if (convert_option_data.kind == convert_option_data::kinds::emo)
+				{
+					//	メッシュレット未対応の.emoを読み込んだ場合は、最適化してからメッシュレットを生成する
+					bool has_meshlets = false;
+					for (auto& mesh : resource->get_meshes())
+					{
+						if (!mesh.meshlets.empty())
+						{
+							has_meshlets = true;
+							break;
+						}
+					}
+					if (!has_meshlets)
+					{
+						model_resource_utility::optimize_meshs(*resource);
+						model_resource_utility::generate_meshlets(*resource);
+					}
+				}
 
 				//	モデル生成
 				edit_model = std::make_shared<model_object>(load_model_path, resource);
@@ -401,6 +424,18 @@ void edit_model_scene::optimize_mesh_asset()
 		return;
 
 	model_resource_utility::optimize_meshs(*resource);
+}
+
+void edit_model_scene::generate_meshlet_asset()
+{
+	if (!edit_model)
+		return;
+
+	auto resource = edit_model->get_model_instance()->get_resource();
+	if (!resource)
+		return;
+
+	model_resource_utility::generate_meshlets(*resource);
 }
 
 void edit_model_scene::combine_meshes()

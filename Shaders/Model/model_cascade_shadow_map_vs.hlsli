@@ -3,20 +3,55 @@
 
 //#include "model.hlsli"
 
-VS_SHADOW_MAP_OUT main(VS_SHADOW_MAP_IN vin
-#if defined(HAS_MORPH)
-, uint vertex_id : SV_VertexID
-#endif  //  defined(HAS_MORPH)
-)
+//	メッシュレット頂点情報読込
+VS_SHADOW_MAP_IN load_vertex_pulled(uint vertex_id)
+{
+    VS_SHADOW_MAP_IN vin = (VS_SHADOW_MAP_IN)0;
+    uint global_vertex_index = meshlet_resolve_global_vertex_index(vertex_id);
+
+    vin.position = meshlet_load_position(global_vertex_index);
+    vin.normal = meshlet_load_normal(global_vertex_index);
+#if VERTEX_COLOR_MAX > 0
+    vin.color[0] = meshlet_load_color0(global_vertex_index);
+#endif  //  VERTEX_COLOR_MAX > 0
+#if TEXCOORD_MAX > 0
+    vin.texcoord[0] = meshlet_load_texcoord0(global_vertex_index);
+#endif  //  TEXCOORD_MAX > 0
+#if TEXCOORD_MAX > 1
+    vin.texcoord[1] = meshlet_load_texcoord1(global_vertex_index);
+#endif  //  TEXCOORD_MAX > 1
+#if BONE_MAX > 0
+    vin.joints[0] = meshlet_load_joints0(global_vertex_index);
+    vin.weights[0] = meshlet_load_weights0(global_vertex_index);
+#endif  //  BONE_MAX > 0
+#if BONE_MAX > 4
+    vin.joints[1] = meshlet_load_joints1(global_vertex_index);
+    vin.weights[1] = meshlet_load_weights1(global_vertex_index);
+#endif  //  BONE_MAX > 4
+#if BONE_MAX > 8
+    vin.joints[2] = meshlet_load_joints2(global_vertex_index);
+    vin.weights[2] = meshlet_load_weights2(global_vertex_index);
+#endif  //  BONE_MAX > 8
+#if BONE_MAX > 12
+    vin.joints[3] = meshlet_load_joints3(global_vertex_index);
+    vin.weights[3] = meshlet_load_weights3(global_vertex_index);
+#endif  //  BONE_MAX > 12
+
+    return vin;
+}
+
+VS_SHADOW_MAP_OUT main(uint vertex_id : SV_VertexID)
 {
     uint index;
     VS_SHADOW_MAP_OUT vout = (VS_SHADOW_MAP_OUT)0;
+    VS_SHADOW_MAP_IN vin = load_vertex_pulled(vertex_id);
 
 #if defined(HAS_MORPH)  //  モーフィング対応
-    apply_morph_position(vin.position, vertex_id);
-    apply_morph_normal(vin.normal, vertex_id);
+    uint global_vertex_index_for_morph = meshlet_resolve_global_vertex_index(vertex_id);
+    apply_morph_position(vin.position, global_vertex_index_for_morph);
+    apply_morph_normal(vin.normal, global_vertex_index_for_morph);
 #endif  //  defined(HAS_MORPH)
-    
+
 #if BONE_MAX > 0
     float3 position = 0, normal = 0;
     [unroll] for (index = 0; index < BoneMax; ++index)

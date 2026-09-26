@@ -42,6 +42,7 @@ private:
 	void discard_lod();
 	void discard_shadow_mesh();
 	void optimize_mesh_asset();
+	void generate_meshlet_asset();
 
 	void combine_meshes();
 	void clear_combined_meshes();

@@ -23,18 +23,13 @@ void scene_renderer_commons::draw_indexed(const graphics_context& context,
 					const buffer_datas& buffer_data,
 					graphics_pipeline_state_ptr pipeline_state)
 {
-	const std::unordered_map<semantic, buffer_view>* vertex_buffer_views = nullptr;
-	const buffer_view* index_buffer_view = nullptr;
-	D3D_PRIMITIVE_TOPOLOGY primitive_topology = D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
+	const buffer_datas::sub_mesh* draw_mesh = nullptr;
 	ID3D11ShaderResourceView* morph_positions[common_pipeline_states::morph_max] = {};
 	ID3D11ShaderResourceView* morph_normals[common_pipeline_states::morph_max] = {};
-	ID3D11ShaderResourceView* morph_texcoords[common_pipeline_states::morph_max] = {};
 	if (context.is_shadow_rendering)
 	{
 		//	シャドウメッシュ対応
-		vertex_buffer_views = buffer_data.shadow_mesh.vertex_buffer_views;
-		index_buffer_view = buffer_data.shadow_mesh.index_buffer_view;
-		primitive_topology = buffer_data.shadow_mesh.primitive_topology;
+		draw_mesh = &buffer_data.shadow_mesh;
 	}
 	else
 	{
@@ -51,10 +46,7 @@ void scene_renderer_commons::draw_indexed(const graphics_context& context,
 			if (lod_mesh_index >= lod_count)
 				lod_mesh_index = lod_count - 1;
 		}
-		auto* draw_mesh = &buffer_data.color_meshs[lod_mesh_index];
-		vertex_buffer_views = draw_mesh->vertex_buffer_views;
-		index_buffer_view = draw_mesh->index_buffer_view;
-		primitive_topology = draw_mesh->primitive_topology;
+		draw_mesh = &buffer_data.color_meshs[lod_mesh_index];
 
 		//	モーフィング対応
 		if (!draw_mesh->morph_meshes.empty())
@@ -75,43 +67,86 @@ void scene_renderer_commons::draw_indexed(const graphics_context& context,
 			}
 		}
 	}
+
+	//	メッシュレットが無ければ描画しない
+	if (!draw_mesh->meshlets || draw_mesh->meshlets->empty())
+		return;
+
 	//	モーフィングバッファ設定
 	context.device_context->VSSetShaderResources(common_pipeline_states::morph_srv_position_index,
-													common_pipeline_states::morph_max, morph_positions);
+												 common_pipeline_states::morph_max, morph_positions);
 	context.device_context->VSSetShaderResources(common_pipeline_states::morph_srv_normal_index,
-													common_pipeline_states::morph_max, morph_normals);
+												 common_pipeline_states::morph_max, morph_normals);
 
-	//	頂点ストリーム更新
-	ID3D11Buffer* stream_buffers[D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT] = {};
-	UINT stream_strides[D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT] = {};
-	UINT stream_offsets[D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT] = {};
-	UINT stream_index = 0;
-	UINT base_vertex_location = 0;
-	static const semantic base_vertex_semantic("POSITION", 0);
-	for (auto& semantic : pipeline_state->get_semantic_list())
+	//	メッシュレットの頂点はメッシュローカルな頂点番号なので、
+	//	プール内でのメッシュの先頭頂点位置を算出
+	UINT mesh_base_vertex = 0;
 	{
-		if (stream_index >= D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT)
-			break;
-		auto it = vertex_buffer_views->find(semantic.first);
-		if (it != vertex_buffer_views->end())
-		{
-			auto& view = it->second;
-			stream_buffers[stream_index] = model_buffer_pool_manager::instance()->get_vertex_buffer(it->first);
-			stream_strides[stream_index] = static_cast<UINT>(view.stride_in_bytes);
-			stream_offsets[stream_index] = 0;
-			if (it->first == base_vertex_semantic)
-				base_vertex_location = static_cast<UINT>(view.offset());
-		}
-		++stream_index;
+		static const semantic position_semantic("POSITION", 0);
+		auto it = draw_mesh->vertex_buffer_views->find(position_semantic);
+		if (it != draw_mesh->vertex_buffer_views->end())
+			mesh_base_vertex = static_cast<UINT>(it->second.offset());
 	}
-	if (stream_index > 0)
-		context.set_vertex_buffers(0, stream_index, stream_buffers, stream_strides, stream_offsets);
 
-	//	描画
-	context.set_index_buffer(model_buffer_pool_manager::instance()->get_index_buffer(), index_buffer_view->format, 0);
-	context.set_primitive_topology(primitive_topology);
-	context.device_context->DrawIndexed(static_cast<UINT>(index_buffer_view->count()),
-										static_cast<UINT>(index_buffer_view->offset()), base_vertex_location);
+	//	頂点バッファ登録
+	{
+		static const semantic position_semantic("POSITION", 0);
+		static const semantic normal_semantic("NORMAL", 0);
+		static const semantic tangent_semantic("TANGENT", 0);
+		static const semantic color0_semantic("COLOR", 0);
+		static const semantic texcoord0_semantic("TEXCOORD", 0);
+		static const semantic texcoord1_semantic("TEXCOORD", 1);
+		static const semantic joints0_semantic("JOINTS", 0);
+		static const semantic joints1_semantic("JOINTS", 1);
+		static const semantic joints2_semantic("JOINTS", 2);
+		static const semantic joints3_semantic("JOINTS", 3);
+		static const semantic weights0_semantic("WEIGHTS", 0);
+		static const semantic weights1_semantic("WEIGHTS", 1);
+		static const semantic weights2_semantic("WEIGHTS", 2);
+		static const semantic weights3_semantic("WEIGHTS", 3);
+
+		auto pool = model_buffer_pool_manager::instance();
+		ID3D11ShaderResourceView* attribute_srvs[16] =
+		{
+			pool->get_vertex_buffer_srv(position_semantic),
+			pool->get_vertex_buffer_srv(normal_semantic),
+			pool->get_vertex_buffer_srv(tangent_semantic),
+			pool->get_vertex_buffer_srv(color0_semantic),
+			pool->get_vertex_buffer_srv(texcoord0_semantic),
+			pool->get_vertex_buffer_srv(texcoord1_semantic),
+			pool->get_vertex_buffer_srv(joints0_semantic),
+			pool->get_vertex_buffer_srv(joints1_semantic),
+			pool->get_vertex_buffer_srv(joints2_semantic),
+			pool->get_vertex_buffer_srv(joints3_semantic),
+			pool->get_vertex_buffer_srv(weights0_semantic),
+			pool->get_vertex_buffer_srv(weights1_semantic),
+			pool->get_vertex_buffer_srv(weights2_semantic),
+			pool->get_vertex_buffer_srv(weights3_semantic),
+			pool->get_meshlet_vertex_buffer_srv(),
+			pool->get_meshlet_triangle_buffer_srv(),
+		};
+		context.device_context->VSSetShaderResources(102, 16, attribute_srvs);
+	}
+
+	//	メッシュレット単位で描画するので通常の頂点バッファ等は使用しない
+	context.set_vertex_buffers(0, 0, nullptr, nullptr, nullptr);
+	context.set_index_buffer(nullptr, DXGI_FORMAT_UNKNOWN, 0);
+	context.set_primitive_topology(draw_mesh->primitive_topology);
+
+	auto meshlet_constant_buffer = model_buffer_pool_manager::instance()->get_meshlet_draw_constant_buffer();
+	context.device_context->VSSetConstantBuffers(common_pipeline_states::meshlet_cbv_index, 1, &meshlet_constant_buffer);
+
+	for (auto& meshlet : *draw_mesh->meshlets)
+	{
+		common_pipeline_states::meshlet_draw_constants constants{};
+		constants.vertex_offset = meshlet.vertex_offset;
+		constants.triangle_offset = meshlet.triangle_offset;
+		constants.mesh_base_vertex = mesh_base_vertex;
+		context.device_context->UpdateSubresource(meshlet_constant_buffer, 0, nullptr, &constants, 0, 0);
+
+		//	@tool SV_VertexIDはStartVertexLocationを含まないため、オフセットは定数バッファ(triangle_offset)経由で渡す
+		context.device_context->Draw(meshlet.triangle_count * 3, 0);
+	}
 }
 
 void scene_renderer_commons::model_render(graphics_context& context,
