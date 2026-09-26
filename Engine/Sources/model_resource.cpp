@@ -233,17 +233,14 @@ model_resource::~model_resource()
 	for (auto& mesh : meshes)
 	{
 		model_buffer_pool_manager::instance()->free_vertex_buffers(mesh.vertex_buffer_views);
-		model_buffer_pool_manager::instance()->free_index_buffer(mesh.index_buffer_view);
 		free_meshlet_data(mesh);
 
 		model_buffer_pool_manager::instance()->free_vertex_buffers(mesh.shadow_mesh.vertex_buffer_views);
-		model_buffer_pool_manager::instance()->free_index_buffer(mesh.shadow_mesh.index_buffer_view);
 		free_meshlet_data(mesh.shadow_mesh);
 
 		for (auto& lod_mesh : mesh.lod_meshs)
 		{
 			model_buffer_pool_manager::instance()->free_vertex_buffers(lod_mesh.vertex_buffer_views);
-			model_buffer_pool_manager::instance()->free_index_buffer(lod_mesh.index_buffer_view);
 			free_meshlet_data(lod_mesh);
 		}
 	}
@@ -428,19 +425,14 @@ void model_resource::build_model()
 	{
 		material.build();
 	}
-	//	頂点・インデックスバッファ
+	//	頂点バッファ
 	for (auto& mesh : meshes)
 	{
 		model_buffer_pool_manager::instance()->build_vertex_buffers(mesh.vertex_buffer_views);
-		model_buffer_pool_manager::instance()->build_index_buffer(mesh.index_buffer_view);
-
 		model_buffer_pool_manager::instance()->build_vertex_buffers(mesh.shadow_mesh.vertex_buffer_views);
-		model_buffer_pool_manager::instance()->build_index_buffer(mesh.shadow_mesh.index_buffer_view);
-
 		for (auto& lod_mesh : mesh.lod_meshs)
 		{
 			model_buffer_pool_manager::instance()->build_vertex_buffers(lod_mesh.vertex_buffer_views);
-			model_buffer_pool_manager::instance()->build_index_buffer(lod_mesh.index_buffer_view);
 		}
 
 		//	モーフバッファビュー生成

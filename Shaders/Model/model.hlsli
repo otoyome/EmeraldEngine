@@ -240,7 +240,7 @@ ByteAddressBuffer meshlet_triangle_indices : register(t117);
 cbuffer MESHLET_DRAW_CONSTANT_BUFFER : register(b5)
 {
 	uint meshlet_vertex_offset;
-	uint meshlet_triangle_offset;	//	@tool SV_VertexIDはDraw()のStartVertexLocationを含まないため、三角形インデックスプールのオフセットをここから渡す
+	uint meshlet_triangle_offset;
 	uint meshlet_mesh_base_vertex;
 	uint meshlet_draw_padding;
 };

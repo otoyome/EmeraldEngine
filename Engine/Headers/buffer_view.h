@@ -105,7 +105,6 @@ struct buffer_datas
 	struct sub_mesh
 	{
 		const std::unordered_map<semantic, buffer_view>* vertex_buffer_views;
-		const buffer_view* index_buffer_view;
 		D3D_PRIMITIVE_TOPOLOGY primitive_topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 		std::vector<morph_mesh> morph_meshes;
 		const std::vector<meshlet_draw_data>* meshlets = nullptr;

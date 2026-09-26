@@ -338,9 +338,6 @@ void gbuffer_decal_renderer::render(renderer_context& renderer_context)
 				//	バッファ情報生成
 				buffer_datas buffer_data;
 				{
-					auto& mesh = buffer_data.color_meshs.emplace_back();
-					mesh.vertex_buffer_views = &cube->get_vertex_buffer_views();
-					mesh.index_buffer_view = &cube->get_index_buffer_view();
 					DirectX::XMMATRIX W = DirectX::XMMatrixScaling(decal.scale.x, decal.scale.y, decal.scale.z)
 										* DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&decal.rotation.convert_quaternion()))
 										* DirectX::XMMatrixTranslation(decal.position.x, decal.position.y, decal.position.z);
@@ -366,7 +363,7 @@ void gbuffer_decal_renderer::render(renderer_context& renderer_context)
 				{
 					stencil_write_pipeline_state->begin(context);
 					stencil_write_pipeline_state->update_parameters(context, *decal.material.material, &buffer_data);
-					scene_renderer_commons::draw_indexed(context, 0.0f, buffer_data, stencil_write_pipeline_state);
+					scene_renderer_commons::draw_geometric_primitive(context, *cube);
 					stencil_write_pipeline_state->end(context);
 				}
 
@@ -385,7 +382,7 @@ void gbuffer_decal_renderer::render(renderer_context& renderer_context)
 					else
 					{
 						pipeline_state->update_parameters(context, *decal.material.material, &buffer_data);
-						scene_renderer_commons::draw_indexed(context, 0.0f, buffer_data, pipeline_state);
+						scene_renderer_commons::draw_geometric_primitive(context, *cube);
 					}
 					pipeline_state->end(context);
 				}

@@ -68,12 +68,6 @@ public:
 	ID3D11Buffer* get_vertex_buffer(const semantic& target_semantic);
 	ID3D11ShaderResourceView* get_vertex_buffer_srv(const semantic& target_semantic);
 
-	UINT allocate_index(UINT size_in_bytes);
-	void free_index(UINT offset_in_bytes);
-	void queue_index_upload(UINT offset_in_bytes, const void* data, UINT size_in_bytes);
-	ID3D11Buffer* get_index_buffer();
-	ID3D11ShaderResourceView* get_index_buffer_srv();
-
 	//	メッシュレット用頂点・三角形バッファ構築
 	void build_meshlet_data(const std::vector<UINT>& meshlet_vertices, const std::vector<uint8_t>& meshlet_triangles, UINT& out_vertex_base, UINT& out_triangle_base);
 	void free_meshlet_data(UINT vertex_base, UINT vertex_count, UINT triangle_base, UINT triangle_count);
@@ -89,14 +83,10 @@ public:
 	void build_vertex_buffers(std::unordered_map<semantic, buffer_view>& vertex_buffer_views);
 	void free_vertex_buffers(const std::unordered_map<semantic, buffer_view>& vertex_buffer_views);
 
-	void build_index_buffer(buffer_view& index_buffer_view);
-	void free_index_buffer(const buffer_view& index_buffer_view);
-
 private:
 	model_gpu_buffer& get_vertex_buffer_pool(const semantic& target_semantic, UINT stride_in_bytes);
 
 	void grow_vertex_capacity(UINT additional_vertex_count);
-	void grow_index_capacity(UINT additional_bytes);
 	UINT allocate_meshlet_vertices(UINT count);
 	void free_meshlet_vertices(UINT base);
 	UINT allocate_meshlet_triangles(UINT count);
@@ -107,10 +97,6 @@ private:
 	variable_position_allocator vertex_slot_allocator;
 	std::unordered_map<semantic, std::unique_ptr<model_gpu_buffer>> vertex_buffers;
 	UINT vertex_slot_capacity_current = 0;
-
-	variable_position_allocator index_position_allocator;
-	std::unique_ptr<model_gpu_buffer> index_buffer;
-	UINT index_capacity_current = 0;
 
 	variable_position_allocator meshlet_vertex_allocator;
 	std::unique_ptr<model_gpu_buffer> meshlet_vertex_buffer;

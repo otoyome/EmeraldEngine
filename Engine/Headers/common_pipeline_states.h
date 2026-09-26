@@ -143,7 +143,7 @@ namespace common_pipeline_states
 	struct meshlet_draw_constants
 	{
 		UINT vertex_offset = 0;
-		UINT triangle_offset = 0;	//	@tool メッシュレットの三角形インデックスプールへのオフセット(SV_VertexIDはStartVertexLocationを含まないため、この定数バッファで渡す必要がある)
+		UINT triangle_offset = 0;
 		UINT mesh_base_vertex = 0;
 		UINT padding = 0;
 	};

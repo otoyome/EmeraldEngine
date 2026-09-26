@@ -340,7 +340,6 @@ namespace
 				memcpy_s(view.row_data.data(), view.row_data.size() * view.stride_in_bytes,
 						 pmx_indices.data(), pmx_indices.size() * view.stride_in_bytes);
 
-				model_buffer_pool_manager::instance()->build_index_buffer(view);
 			}
 		}
 

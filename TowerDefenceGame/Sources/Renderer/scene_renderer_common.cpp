@@ -138,15 +138,44 @@ void scene_renderer_commons::draw_indexed(const graphics_context& context,
 
 	for (auto& meshlet : *draw_mesh->meshlets)
 	{
+		//	定数バッファで各種バッファの位置情報を渡す
 		common_pipeline_states::meshlet_draw_constants constants{};
 		constants.vertex_offset = meshlet.vertex_offset;
 		constants.triangle_offset = meshlet.triangle_offset;
 		constants.mesh_base_vertex = mesh_base_vertex;
 		context.device_context->UpdateSubresource(meshlet_constant_buffer, 0, nullptr, &constants, 0, 0);
 
-		//	@tool SV_VertexIDはStartVertexLocationを含まないため、オフセットは定数バッファ(triangle_offset)経由で渡す
 		context.device_context->Draw(meshlet.triangle_count * 3, 0);
 	}
+}
+
+void scene_renderer_commons::draw_geometric_primitive(const graphics_context& context, const geometric_primitive& primitive)
+{
+	static const semantic position_semantic("POSITION", 0);
+	static const semantic texcoord_semantic("TEXCOORD", 0);
+
+	auto& vertex_buffer_views = primitive.get_vertex_buffer_views();
+	auto& index_buffer_view = primitive.get_index_buffer_view();
+
+	auto position_it = vertex_buffer_views.find(position_semantic);
+	auto texcoord_it = vertex_buffer_views.find(texcoord_semantic);
+
+	ID3D11Buffer* buffers[2] =
+	{
+		position_it != vertex_buffer_views.end() ? position_it->second.buffer.Get() : nullptr,
+		texcoord_it != vertex_buffer_views.end() ? texcoord_it->second.buffer.Get() : nullptr,
+	};
+	UINT strides[2] =
+	{
+		position_it != vertex_buffer_views.end() ? static_cast<UINT>(position_it->second.stride_in_bytes) : 0,
+		texcoord_it != vertex_buffer_views.end() ? static_cast<UINT>(texcoord_it->second.stride_in_bytes) : 0,
+	};
+	UINT offsets[2] = { 0, 0 };
+
+	context.set_vertex_buffers(0, 2, buffers, strides, offsets);
+	context.set_index_buffer(index_buffer_view.buffer.Get(), index_buffer_view.format, 0);
+	context.set_primitive_topology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	context.device_context->DrawIndexed(static_cast<UINT>(index_buffer_view.count()), 0, 0);
 }
 
 void scene_renderer_commons::model_render(graphics_context& context,

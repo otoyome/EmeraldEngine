@@ -462,17 +462,11 @@ namespace
 			if (mesh.index_buffer_view.count() == 0)
 				return;
 
-			//	インデックスバッファ書き戻し
-			model_buffer_pool_manager::instance()->build_index_buffer(mesh.index_buffer_view);
-
 			//	頂点バッファ書き戻し
 			model_buffer_pool_manager::instance()->build_vertex_buffers(mesh.vertex_buffer_views);
 		};
 		for (auto& mesh : meshes)
 		{
-			//	インデックスバッファ書き戻し
-			model_buffer_pool_manager::instance()->build_index_buffer(mesh.index_buffer_view);
-
 			//	頂点バッファ書き戻し
 			model_buffer_pool_manager::instance()->build_vertex_buffers(mesh.vertex_buffer_views);
 

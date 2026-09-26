@@ -18,7 +18,7 @@
 
 namespace
 {
-	//	@tool 三角形リストとして扱うため、インデックス数を3の倍数に切り詰める(末尾の不完全な三角形を破棄する)
+	//	インデックス数を3の倍数に切り詰め
 	UINT sanitize_triangle_list_count(UINT index_count)
 	{
 		return index_count - (index_count % 3);
@@ -48,7 +48,6 @@ namespace
 			return;
 
 		UINT index_count = static_cast<UINT>(index_buffer_view.count());
-		//	@tool 三角形リストとして不完全な末尾は切り詰める(3の倍数でない場合meshoptimizer側の処理が壊れるため)
 		index_count = sanitize_triangle_list_count(index_count);
 		if (index_count == 0)
 			return;
@@ -432,7 +431,6 @@ void model_resource_utility::combine_unskinned_meshes(model_resource& resource, 
 
 			//	GPU バッファ生成
 			model_buffer_pool_manager::instance()->build_vertex_buffers(dst.vertex_buffer_views);
-			model_buffer_pool_manager::instance()->build_index_buffer(dst.index_buffer_view);
 		}
 	}
 
@@ -459,11 +457,11 @@ void model_resource_utility::optimized_meshs(model_resource& resource)
 		if (!mesh.morph_meshes.empty())
 			continue;
 
-		//	@tool meshoptimizerのMulti系関数はstream_countが16以下でなければならない(超える場合は最適化を諦める)
+		//	meshoptimizerのMulti系関数はstream_countが16以下でなければならない
 		if (mesh.vertex_buffer_views.size() > 16)
 			continue;
 
-		//	インデックスリストを生成(3の倍数でない末尾は切り詰める)
+		//	インデックスリストを生成
 		UINT sanitized_index_count = sanitize_triangle_list_count(static_cast<UINT>(mesh.index_buffer_view.count()));
 		std::vector<UINT> indices;
 		indices.reserve(sanitized_index_count);
@@ -487,7 +485,6 @@ void model_resource_utility::optimized_meshs(model_resource& resource)
 			std::size_t vertex_count = mesh.vertex_buffer_views.begin()->second.count();
 
 			//	stream生成
-			//	@tool オーバードロー最適化でPOSITIONデータを正しく参照するため、streams内でのPOSITIONの位置も記録する
 			std::vector<meshopt_Stream> streams;
 			std::size_t position_stream_index = 0;
 			{
@@ -602,7 +599,7 @@ void model_resource_utility::generate_shadow_meshes(model_resource& resource, bo
 		if (mesh.index_buffer_view.count() == 0)
 			continue;
 
-		//	@tool meshoptimizerのMulti系関数はstream_countが16以下でなければならない(超える場合はシャドウメッシュ生成を諦める)
+		//	meshoptimizerのMulti系関数はstream_countが16以下でなければならない
 		if (mesh.vertex_buffer_views.size() > 16)
 			continue;
 
@@ -664,8 +661,6 @@ void model_resource_utility::generate_shadow_meshes(model_resource& resource, bo
 
 			//	影のインデックスバッファ書き戻し
 			{
-				model_buffer_pool_manager::instance()->free_index_buffer(mesh.shadow_mesh.index_buffer_view);
-
 				mesh.shadow_mesh.index_buffer_view.row_data.resize(indices.size() * sizeof(UINT));
 				memcpy_s(mesh.shadow_mesh.index_buffer_view.row_data.data(),
 						 mesh.shadow_mesh.index_buffer_view.row_data.size(),
@@ -673,11 +668,6 @@ void model_resource_utility::generate_shadow_meshes(model_resource& resource, bo
 				mesh.shadow_mesh.index_buffer_view.format = DXGI_FORMAT_R32_UINT;
 				mesh.shadow_mesh.index_buffer_view.size_in_bytes = indices.size() * sizeof(UINT);
 				mesh.shadow_mesh.index_buffer_view.stride_in_bytes = sizeof(UINT);
-				if (regenerate_buffer)
-				{
-					model_buffer_pool_manager::instance()->build_index_buffer(mesh.shadow_mesh.index_buffer_view);
-				}
-
 				//	メッシュレット生成
 				generate_meshlets_for_geometry(mesh.vertex_buffer_views, mesh.shadow_mesh.index_buffer_view,
 					mesh.shadow_mesh.meshlets, mesh.shadow_mesh.meshlet_vertices, mesh.shadow_mesh.meshlet_triangles);
@@ -755,7 +745,6 @@ void model_resource_utility::generate_lod_meshs(model_resource& resource, int ma
 			//	重複頂点最適化
 			for (auto& old_lod_mesh : mesh.lod_meshs)
 			{
-				model_buffer_pool_manager::instance()->free_index_buffer(old_lod_mesh.index_buffer_view);
 				if (!old_lod_mesh.meshlet_draw_infos.empty())
 				{
 					model_buffer_pool_manager::instance()->free_meshlet_data(
@@ -787,11 +776,6 @@ void model_resource_utility::generate_lod_meshs(model_resource& resource, int ma
 				sub_mesh.index_buffer_view.format = DXGI_FORMAT_R32_UINT;
 				sub_mesh.index_buffer_view.size_in_bytes = lod_indicesLod.size() * sizeof(UINT);
 				sub_mesh.index_buffer_view.stride_in_bytes = sizeof(UINT);
-				if (regeneratge_buffer)
-				{
-					model_buffer_pool_manager::instance()->build_index_buffer(sub_mesh.index_buffer_view);
-				}
-
 				//	メッシュレット生成
 				generate_meshlets_for_geometry(mesh.vertex_buffer_views, sub_mesh.index_buffer_view,
 					sub_mesh.meshlets, sub_mesh.meshlet_vertices, sub_mesh.meshlet_triangles);
@@ -813,7 +797,6 @@ void model_resource_utility::clear_lod_meshs(model_resource& resource)
 	{
 		for (auto& lod_mesh : mesh.lod_meshs)
 		{
-			model_buffer_pool_manager::instance()->free_index_buffer(lod_mesh.index_buffer_view);
 			if (!lod_mesh.meshlet_draw_infos.empty())
 			{
 				model_buffer_pool_manager::instance()->free_meshlet_data(
@@ -829,7 +812,6 @@ void model_resource_utility::clear_shadow_meshes(model_resource& resource)
 {
 	for (auto& mesh : resource.get_meshes_for_editor())
 	{
-		model_buffer_pool_manager::instance()->free_index_buffer(mesh.shadow_mesh.index_buffer_view);
 		if (!mesh.shadow_mesh.meshlet_draw_infos.empty())
 		{
 			model_buffer_pool_manager::instance()->free_meshlet_data(
@@ -845,9 +827,7 @@ void model_resource_utility::optimize_meshs(model_resource& resource)
 	for (auto& mesh : resource.get_meshes_for_editor())
 	{
 		model_buffer_pool_manager::instance()->free_vertex_buffers(mesh.vertex_buffer_views);
-		model_buffer_pool_manager::instance()->free_index_buffer(mesh.index_buffer_view);
 
-		//	@tool 頂点・インデックスの並びが変わるためメッシュレットは無効になる。古いGPUバッファを解放してCPU側もクリアする
 		if (!mesh.meshlet_draw_infos.empty())
 		{
 			model_buffer_pool_manager::instance()->free_meshlet_data(
@@ -865,7 +845,6 @@ void model_resource_utility::optimize_meshs(model_resource& resource)
 	for (auto& mesh : resource.get_meshes_for_editor())
 	{
 		model_buffer_pool_manager::instance()->build_vertex_buffers(mesh.vertex_buffer_views);
-		model_buffer_pool_manager::instance()->build_index_buffer(mesh.index_buffer_view);
 	}
 
 	clear_lod_meshs(resource);

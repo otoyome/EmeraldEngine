@@ -22,6 +22,9 @@ namespace scene_renderer_commons
 					  const buffer_datas& buffer_data,
 					  graphics_pipeline_state_ptr pipeline_state);
 
+	void draw_geometric_primitive(const graphics_context& context,
+					  const geometric_primitive& primitive);
+
 	void model_render(graphics_context& context,
 					  const std::vector<std::size_t>& mesh_indices,
 					  const std::vector<float>& mesh_lengths,

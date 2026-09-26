@@ -6,7 +6,6 @@ namespace
 {
 	//	頂点・インデックスバッファの初期容量
 	constexpr UINT vertex_slot_capacity = 3 * 1000 * 1000;
-	constexpr UINT index_pool_capacity_in_bytes = 32 * 1024 * 1024;
 
 	//	メッシュレット用頂点・三角形バッファの初期容量
 	constexpr UINT meshlet_vertex_pool_capacity = 500 * 1000;
@@ -109,15 +108,11 @@ void model_gpu_buffer::create_srv()
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 model_buffer_pool_manager::model_buffer_pool_manager()
-: index_buffer(std::make_unique<model_gpu_buffer>(D3D11_BIND_INDEX_BUFFER, index_pool_capacity_in_bytes))
-, meshlet_vertex_buffer(std::make_unique<model_gpu_buffer>(D3D11_BIND_SHADER_RESOURCE, static_cast<UINT>(meshlet_vertex_pool_capacity * sizeof(UINT)), static_cast<UINT>(sizeof(UINT))))
+: meshlet_vertex_buffer(std::make_unique<model_gpu_buffer>(D3D11_BIND_SHADER_RESOURCE, static_cast<UINT>(meshlet_vertex_pool_capacity * sizeof(UINT)), static_cast<UINT>(sizeof(UINT))))
 , meshlet_triangle_buffer(std::make_unique<model_gpu_buffer>(D3D11_BIND_SHADER_RESOURCE, static_cast<UINT>(meshlet_triangle_pool_capacity * sizeof(UINT)), static_cast<UINT>(sizeof(UINT))))
 {
 	vertex_slot_allocator.initialize(vertex_slot_capacity);
 	vertex_slot_capacity_current = vertex_slot_capacity;
-
-	index_position_allocator.initialize(index_pool_capacity_in_bytes);
-	index_capacity_current = index_pool_capacity_in_bytes;
 
 	meshlet_vertex_allocator.initialize(meshlet_vertex_pool_capacity);
 	meshlet_vertex_capacity_current = meshlet_vertex_pool_capacity;
@@ -177,17 +172,6 @@ void model_buffer_pool_manager::grow_vertex_capacity(UINT additional_vertex_coun
 
 	for (auto& pool : vertex_buffers)
 		pool.second->grow(vertex_slot_capacity_current * pool.second->get_stride_in_bytes());
-}
-
-void model_buffer_pool_manager::grow_index_capacity(UINT additional_bytes)
-{
-	if (!index_position_allocator.grow(additional_bytes))
-	{
-		_ASSERT_EXPR(false, L"model_buffer_pool_manager: failed to grow index pool allocator");
-		return;
-	}
-	index_capacity_current += additional_bytes;
-	index_buffer->grow(index_capacity_current);
 }
 
 UINT model_buffer_pool_manager::allocate_meshlet_vertices(UINT count)
@@ -268,39 +252,6 @@ ID3D11ShaderResourceView* model_buffer_pool_manager::get_vertex_buffer_srv(const
 	return it->second->get_srv();
 }
 
-UINT model_buffer_pool_manager::allocate_index(UINT size_in_bytes)
-{
-	UINT offset_in_bytes = index_position_allocator.allocate(size_in_bytes);
-	if (offset_in_bytes == variable_position_allocator::allocate_failed_code)
-	{
-		UINT growth = index_capacity_current > size_in_bytes ? index_capacity_current : size_in_bytes;
-		grow_index_capacity(growth);
-		offset_in_bytes = index_position_allocator.allocate(size_in_bytes);
-	}
-	_ASSERT_EXPR(offset_in_bytes != variable_position_allocator::allocate_failed_code, L"model_buffer_pool_manager allocate failed");
-	return offset_in_bytes;
-}
-
-void model_buffer_pool_manager::free_index(UINT offset_in_bytes)
-{
-	index_position_allocator.deallocate(offset_in_bytes);
-}
-
-void model_buffer_pool_manager::queue_index_upload(UINT offset_in_bytes, const void* data, UINT size_in_bytes)
-{
-	index_buffer->queue_upload(offset_in_bytes, data, size_in_bytes);
-}
-
-ID3D11Buffer* model_buffer_pool_manager::get_index_buffer()
-{
-	return index_buffer->get_buffer();
-}
-
-ID3D11ShaderResourceView* model_buffer_pool_manager::get_index_buffer_srv()
-{
-	return index_buffer->get_srv();
-}
-
 void model_buffer_pool_manager::build_meshlet_data(const std::vector<UINT>& meshlet_vertices, const std::vector<uint8_t>& meshlet_triangles, UINT& out_vertex_base, UINT& out_triangle_base)
 {
 	out_vertex_base = 0;
@@ -351,7 +302,6 @@ void model_buffer_pool_manager::flush_uploads()
 	{
 		pool.second->flush_uploads();
 	}
-	index_buffer->flush_uploads();
 	meshlet_vertex_buffer->flush_uploads();
 	meshlet_triangle_buffer->flush_uploads();
 }
@@ -359,7 +309,7 @@ void model_buffer_pool_manager::flush_uploads()
 std::vector<model_buffer_pool_manager::pool_usage> model_buffer_pool_manager::get_pool_usages() const
 {
 	std::vector<pool_usage> usages;
-	usages.reserve(vertex_buffers.size() + 1);
+	usages.reserve(vertex_buffers.size());
 
 	UINT used_vertex_slots = vertex_slot_allocator.get_used_size();
 	for (auto& pool : vertex_buffers)
@@ -370,12 +320,6 @@ std::vector<model_buffer_pool_manager::pool_usage> model_buffer_pool_manager::ge
 		usage.capacity_in_bytes = pool.second->get_capacity_in_bytes();
 		usages.emplace_back(std::move(usage));
 	}
-
-	pool_usage index_usage;
-	index_usage.label = "INDEX";
-	index_usage.used_in_bytes = index_position_allocator.get_used_size();
-	index_usage.capacity_in_bytes = index_buffer->get_capacity_in_bytes();
-	usages.emplace_back(std::move(index_usage));
 
 	return usages;
 }
@@ -405,22 +349,4 @@ void model_buffer_pool_manager::free_vertex_buffers(const std::unordered_map<sem
 
 	UINT base_vertex = static_cast<UINT>(vertex_buffer_views.begin()->second.offset());
 	free_vertex_slots(base_vertex);
-}
-
-void model_buffer_pool_manager::build_index_buffer(buffer_view& index_buffer_view)
-{
-	if (index_buffer_view.size_in_bytes == 0)
-		return;
-
-	index_buffer_view.offset_in_bytes = allocate_index(static_cast<UINT>(index_buffer_view.size_in_bytes));
-	queue_index_upload(static_cast<UINT>(index_buffer_view.offset_in_bytes),
-		index_buffer_view.row_data.data(), static_cast<UINT>(index_buffer_view.size_in_bytes));
-}
-
-void model_buffer_pool_manager::free_index_buffer(const buffer_view& index_buffer_view)
-{
-	if (index_buffer_view.size_in_bytes == 0)
-		return;
-
-	free_index(static_cast<UINT>(index_buffer_view.offset_in_bytes));
 }

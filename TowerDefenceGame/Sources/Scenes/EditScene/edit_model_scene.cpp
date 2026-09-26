@@ -236,17 +236,10 @@ void edit_model_scene::update_core(float elapsed_time)
 			}
 			if (is_load && resource)
 			{
-				if (convert_option_data.kind == convert_option_data::kinds::mmd ||
-					convert_option_data.kind == convert_option_data::kinds::gltf)
+				//	メッシュレット生成判定
+				bool has_meshlets = false;
+				if (convert_option_data.kind == convert_option_data::kinds::emo)
 				{
-					//	変換直後はメッシュレット未対応のため、最適化してからメッシュレットを生成する
-					model_resource_utility::optimize_meshs(*resource);
-					model_resource_utility::generate_meshlets(*resource);
-				}
-				else if (convert_option_data.kind == convert_option_data::kinds::emo)
-				{
-					//	メッシュレット未対応の.emoを読み込んだ場合は、最適化してからメッシュレットを生成する
-					bool has_meshlets = false;
 					for (auto& mesh : resource->get_meshes())
 					{
 						if (!mesh.meshlets.empty())
@@ -255,11 +248,11 @@ void edit_model_scene::update_core(float elapsed_time)
 							break;
 						}
 					}
-					if (!has_meshlets)
-					{
-						model_resource_utility::optimize_meshs(*resource);
-						model_resource_utility::generate_meshlets(*resource);
-					}
+				}
+				if (!has_meshlets)
+				{
+					model_resource_utility::optimize_meshs(*resource);
+					model_resource_utility::generate_meshlets(*resource);
 				}
 
 				//	モデル生成

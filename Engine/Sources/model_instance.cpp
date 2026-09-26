@@ -340,14 +340,12 @@ void model_instance_manger::get_container(mesh_container& container)
 			}
 			buffer_data.color_meshs.clear();
 			buffer_data.shadow_mesh.vertex_buffer_views = nullptr;
-			buffer_data.shadow_mesh.index_buffer_view = nullptr;
 			buffer_data.shadow_mesh.morph_meshes.clear();
 
 			//	’¸“_ƒoƒbƒtƒ@Œn—ñ“o˜^
 			{
 				auto& main_mesh = buffer_data.color_meshs.emplace_back();
 				main_mesh.vertex_buffer_views = &mesh.vertex_buffer_views;
-				main_mesh.index_buffer_view = &mesh.index_buffer_view;
 				main_mesh.primitive_topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 				main_mesh.meshlets = &mesh.meshlet_draw_infos;
 
@@ -390,11 +388,6 @@ void model_instance_manger::get_container(mesh_container& container)
 						sub_mesh.vertex_buffer_views = &mesh.vertex_buffer_views;
 					}
 					sub_mesh.meshlets = lod_mesh.meshlet_draw_infos.empty() ? &mesh.meshlet_draw_infos : &lod_mesh.meshlet_draw_infos;
-					sub_mesh.index_buffer_view = &lod_mesh.index_buffer_view;
-					if (lod_mesh.index_buffer_view.count() == 0)
-					{
-						sub_mesh.index_buffer_view = &mesh.index_buffer_view;
-					}
 					sub_mesh.primitive_topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 				}
 			}
@@ -406,10 +399,6 @@ void model_instance_manger::get_container(mesh_container& container)
 				if (!mesh.lod_meshs[index].vertex_buffer_views.empty())
 				{
 					sub_mesh.vertex_buffer_views = &mesh.lod_meshs[index].vertex_buffer_views;
-				}
-				if (mesh.lod_meshs[index].index_buffer_view.count() != 0)
-				{
-					sub_mesh.index_buffer_view = &mesh.lod_meshs[index].index_buffer_view;
 				}
 				sub_mesh.meshlets = mesh.lod_meshs[index].meshlet_draw_infos.empty() ? &mesh.meshlet_draw_infos : &mesh.lod_meshs[index].meshlet_draw_infos;
 			}
@@ -509,11 +498,6 @@ void model_instance_manger::get_container(mesh_container& container)
 					buffer_data.shadow_mesh.vertex_buffer_views = &mesh.vertex_buffer_views;
 				}
 				buffer_data.shadow_mesh.meshlets = mesh.shadow_mesh.meshlet_draw_infos.empty() ? &mesh.meshlet_draw_infos : &mesh.shadow_mesh.meshlet_draw_infos;
-				buffer_data.shadow_mesh.index_buffer_view = &mesh.shadow_mesh.index_buffer_view;
-				if (mesh.shadow_mesh.index_buffer_view.size_in_bytes == 0)
-				{
-					buffer_data.shadow_mesh.index_buffer_view = &mesh.index_buffer_view;
-				}
 				buffer_data.shadow_mesh.primitive_topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 
 				container.shadow_datas.emplace_back(container.draw_datas.size() - 1);
