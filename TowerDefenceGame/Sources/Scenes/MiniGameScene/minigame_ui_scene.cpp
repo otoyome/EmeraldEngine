@@ -44,10 +44,10 @@ namespace
 	static constexpr DirectX::XMFLOAT2 brake_icon_main_ui_position = {1046, 680};
 	static constexpr DirectX::XMFLOAT2 brake_icon_main_ui_size = {72, 36};
 	//	チュートリアルアイコン左上位置
-	static constexpr DirectX::XMFLOAT2 tutorial_icon_ui_position = {1010, 680};
+	static constexpr DirectX::XMFLOAT2 tutorial_icon_ui_position = {1118, 680};
 	static constexpr DirectX::XMFLOAT2 tutorial_icon_ui_size = {72, 36};
-	static constexpr DirectX::XMFLOAT2 tutorial_icon_main_ui_position = {1200, 680};
-	static constexpr DirectX::XMFLOAT2 tutorial_icon_main_ui_size = {72, 36};
+	static constexpr DirectX::XMFLOAT2 tutorial_icon_main_ui_position = {1190, 680};
+	static constexpr DirectX::XMFLOAT2 tutorial_icon_main_ui_size = {92, 36};
 }
 
 minigame_ui_scene::minigame_ui_scene()
