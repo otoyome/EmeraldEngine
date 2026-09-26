@@ -9,7 +9,7 @@ debug_primitive_manager::debug_primitive_manager()
 	HRESULT hr;
 	auto device = render_data::instance()->get_device();
 
-	//	���_�o�b�t�@
+	//	頂点バッファ
 	for (auto& vertex_buffer_view : vertex_buffer_views)
 	{
 		buffer_view vertex_buffer;
@@ -36,7 +36,8 @@ debug_primitive_manager::~debug_primitive_manager()
 void debug_primitive_manager::get_container(debug_draw_primitive_container& container)
 {
 	auto immediate_context = render_data::instance()->get_immediate_context();
-	//	�`����o�^
+
+	//	描画登録
 	HRESULT hr{ S_OK };
 	for (UINT index = 0; index < static_cast<int>(debug_draw_primitive_container::line_buffer_id::max); ++index)
 	{
@@ -49,14 +50,14 @@ void debug_primitive_manager::get_container(debug_draw_primitive_container& cont
 
 		const UINT copy_count = static_cast<UINT>(std::min<size_t>(VertexCount, vertices[index].size()));
 		const UINT copy_bytes = copy_count * sizeof(vertex);
-		D3D11_BOX dst_box = {0, 0, 0, copy_bytes, 1, 1};
+		D3D11_BOX dst_box = { 0, 0, 0, copy_bytes, 1, 1 };
 		immediate_context->UpdateSubresource(view.buffer.Get(), 0, &dst_box,
 											 vertices[index].data(), copy_bytes, 0);
 
-		//	���_���̐ݒ�
+		//	頂点数の設定
 		view.size_in_bytes = view.stride_in_bytes * vertices[index].size();
 
-		//	�R���e�i�ɏ��o�^
+		//	コンテナに登録
 		main_mesh.vertex_buffer_views = &vertex_buffer_views[index];
 		vertices[index].clear();
 	}
@@ -79,7 +80,7 @@ void debug_primitive_manager::queue_line(const DirectX::XMFLOAT3 start, const Di
 
 void debug_primitive_manager::queue_sphere(const DirectX::XMFLOAT3 center, float radius, const DirectX::XMFLOAT4 color, bool depth_write)
 {
-	//	���̌`��œo�^
+	//	球の形状を登録
 	std::vector<DirectX::XMFLOAT3> vertices;
 	vertices.emplace_back(center.x, center.y + radius, center.z);
 
@@ -141,7 +142,7 @@ void debug_primitive_manager::queue_sphere(const DirectX::XMFLOAT3 center, float
 
 void debug_primitive_manager::queue_capsule(const DirectX::XMFLOAT3 center, const DirectX::XMFLOAT4 rotation, float radius, float length, const DirectX::XMFLOAT4& color, bool depth_write)
 {
-	//	÷İ('��')�ķ�
+	//	カプセル形状を登録
 	math::rotator rotator(rotation);
 	DirectX::XMVECTOR Center = DirectX::XMLoadFloat3(&center);
 	DirectX::XMFLOAT3 work = rotator.get_up();
@@ -201,6 +202,7 @@ void debug_primitive_manager::queue_box(const DirectX::XMFLOAT3 position, const 
 	collision::bounding_box box(scale, rotation, position);
 	DirectX::XMFLOAT3 vertices[8];
 	box.calculate_vertex(vertices, 8);
+
 	queue_line(vertices[0], vertices[1], color, depth_write);
 	queue_line(vertices[1], vertices[2], color, depth_write);
 	queue_line(vertices[2], vertices[3], color, depth_write);
