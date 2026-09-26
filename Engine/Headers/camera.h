@@ -1,12 +1,12 @@
 #pragma once
 
 #include "collision/frustum_culling.h"
+#include "graphics/hiz_buffer.h"
+#include "graphics/occlusion_culling_system.h"
 
 #include <memory>
 #include <mutex>
 #include <unordered_map>
-
-class occlusion_culling_system;
 
 class camera
 {
@@ -53,6 +53,7 @@ public:
 	const collision::frustum_culling& get_frustum_culling();
 
 	std::shared_ptr<occlusion_culling_system> get_occlusion_culling();
+	std::shared_ptr<hiz_buffer> get_hiz_buffer();
 
 	float get_occlusion_animation_distance() const { return occlusion_animation_distance; }
 	void set_occlusion_animation_distance(float distance) { occlusion_animation_distance = distance; }
@@ -92,6 +93,7 @@ private:
 	collision::frustum_culling frustum_culling;
 
 	std::shared_ptr<occlusion_culling_system> occlusion_culling;
+	std::shared_ptr<hiz_buffer> hiz;
 	float occlusion_animation_distance = system_units::convert_cm_to_unit(1.0f);
 
 #if defined(USE_IMGUI)

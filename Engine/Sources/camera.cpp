@@ -1,7 +1,5 @@
 #include "camera.h"
 
-#include "graphics/occlusion_culling_system.h"
-
 camera::camera()
 : system_flags(0)
 , position(0.0f, 0.0f, 0.0f)
@@ -228,6 +226,13 @@ std::shared_ptr<occlusion_culling_system> camera::get_occlusion_culling()
 	if (!occlusion_culling)
 		occlusion_culling = std::make_shared<occlusion_culling_system>();
 	return occlusion_culling;
+}
+
+std::shared_ptr<hiz_buffer> camera::get_hiz_buffer()
+{
+	if (!hiz)
+		hiz = std::make_shared<hiz_buffer>();
+	return hiz;
 }
 
 #if defined(USE_IMGUI)

@@ -701,6 +701,7 @@ void framework::prepare_renderer_context(
 
 	//	オクルージョンカリング情報設定
 	{
+		context.hiz_buffer = camera.camera->get_hiz_buffer();
 		context.occlusion_culling_system = camera.camera->get_occlusion_culling();
 		context.occlusion_animation_distance = camera.camera->get_occlusion_animation_distance();
 	}

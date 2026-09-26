@@ -58,6 +58,8 @@ namespace
 			draw_info.vertex_offset = holder.meshlet_vertex_base + meshlet.vertex_offset;
 			draw_info.triangle_offset = holder.meshlet_triangle_base + meshlet.triangle_offset;
 			draw_info.triangle_count = meshlet.triangle_count;
+			draw_info.bounds_center = meshlet.bounds_center;
+			draw_info.bounds_radius = meshlet.bounds_radius;
 			holder.meshlet_draw_infos.emplace_back(draw_info);
 		}
 	}

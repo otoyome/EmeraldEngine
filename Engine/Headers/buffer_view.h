@@ -87,6 +87,8 @@ struct meshlet_draw_data
 	UINT vertex_offset = 0;
 	UINT triangle_offset = 0;
 	UINT triangle_count = 0;
+	DirectX::XMFLOAT3 bounds_center = { 0, 0, 0 };
+	float bounds_radius = 0.0f;
 };
 
 //	描画バッファ情報
@@ -117,6 +119,7 @@ struct buffer_datas
 	DirectX::XMFLOAT2 lod_range_rate = {0.0f, 10000.0f};	//	LOD距離範囲
 	UINT unique_id = 0xFFFFFFFF;							//	ユニークID
 	DirectX::XMFLOAT3 bounds_min, bounds_max;				//	AABB範囲
+	DirectX::XMFLOAT4X4 world_transform = {};				//	ワールド変換行列
 	Microsoft::WRL::ComPtr<ID3D11Buffer> primitive_buffer;	//	プリミティブバッファ
 };
 

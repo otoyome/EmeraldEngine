@@ -288,6 +288,12 @@
     <ClInclude Include="Headers\Graphics\occlusion_culling_system.h">
       <Filter>Headers\Graphics</Filter>
     </ClInclude>
+    <ClInclude Include="Headers\Graphics\meshlet_culling_system.h">
+      <Filter>Headers\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Graphics\hiz_buffer.h">
+      <Filter>Headers\Graphics</Filter>
+    </ClInclude>
     <ClInclude Include="Headers\Graphics\cubic_sdf_buffer_pool.h">
       <Filter>Headers\Graphics</Filter>
     </ClInclude>
@@ -492,6 +498,12 @@
       <Filter>Sources\Collision</Filter>
     </ClCompile>
     <ClCompile Include="Sources\Graphics\occlusion_culling_system.cpp">
+      <Filter>Sources\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Graphics\meshlet_culling_system.cpp">
+      <Filter>Sources\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Graphics\hiz_buffer.cpp">
       <Filter>Sources\Graphics</Filter>
     </ClCompile>
     <ClCompile Include="Sources\Graphics\cubic_sdf_buffer_pool.cpp">

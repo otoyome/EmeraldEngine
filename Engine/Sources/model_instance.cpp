@@ -330,6 +330,7 @@ void model_instance_manger::get_container(mesh_container& container)
 			buffer_data.lod_range_rate = instance->get_lod_range_rate();
 			buffer_data.bounds_min = bounds_min;
 			buffer_data.bounds_max = bounds_max;
+			DirectX::XMStoreFloat4x4(&buffer_data.world_transform, NodeWorldTransforms[mesh.node_index]);
 			buffer_data.system_flags = 0;
 			system_utility::set_bitflag(buffer_data.system_flags, buffer_datas::flags::culling, instance->is_flag(model_instance::flags::culling));
 			system_utility::set_bitflag(buffer_data.system_flags, buffer_datas::flags::static_mesh, mesh.bones.empty());

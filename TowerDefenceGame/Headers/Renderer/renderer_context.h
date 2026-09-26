@@ -1,6 +1,7 @@
 #pragma once
 
 #include "graphics/occlusion_culling_system.h"
+#include "graphics/hiz_buffer.h"
 
 //	メッシュ描画順リスト
 struct render_mesh_indices
@@ -59,6 +60,8 @@ struct renderer_context
 	std::shared_ptr<render_particle_indices> render_particle_indices;	//	パーティクル描画データ
 	std::shared_ptr<render_decal_indices> render_decal_indices;			//	デカール描画データ
 
-	std::shared_ptr<occlusion_culling_system> occlusion_culling_system;	//	オクルージョンカリング情報
-	float occlusion_animation_distance;									//	オクルージョンカリングをアニメーションモデルも対象にする
+	std::shared_ptr<hiz_buffer> hiz_buffer;								//	階層Zバッファ
+
+	std::shared_ptr<occlusion_culling_system> occlusion_culling_system;	//	オクルージョンカリングシステム
+	float occlusion_animation_distance;									//	アニメーションモデルも対象にする為の距離情報
 };
