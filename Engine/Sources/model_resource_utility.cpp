@@ -796,4 +796,85 @@ void model_resource_utility::optimize_meshs(model_resource& resource)
 	clear_lod_meshs(resource);
 	clear_shadow_meshes(resource);
 }
+
+void model_resource_utility::generate_meshlets(model_resource& resource)
+{
+	if (!resource.get_meshes_for_editor().empty())
+		return;
+
+	static const semantic position_semantic("POSITION", 0);
+
+	const size_t max_vertices = 64;
+	const size_t max_triangles = 124;
+	const float cone_weight = 0.5f;
+
+	for (auto& mesh : resource.get_meshes_for_editor())
+	{
+		mesh.meshlets.clear();
+		mesh.meshlet_vertices.clear();
+		mesh.meshlet_triangles.clear();
+
+		auto position_it = mesh.vertex_buffer_views.find(position_semantic);
+		if (position_it == mesh.vertex_buffer_views.end() ||
+			mesh.index_buffer_view.format != DXGI_FORMAT_R32_UINT ||
+			mesh.index_buffer_view.row_data.empty())
+			continue;
+
+		auto& position_view = position_it->second;
+		const DirectX::XMFLOAT3* positions = reinterpret_cast<const DirectX::XMFLOAT3*>(position_view.row_data.data());
+		UINT vertex_count = static_cast<UINT>(position_view.count());
+		const UINT* indices = reinterpret_cast<const UINT*>(mesh.index_buffer_view.row_data.data());
+		UINT index_count = static_cast<UINT>(mesh.index_buffer_view.count());
+
+		if (vertex_count == 0 || index_count == 0)
+			continue;
+
+		size_t max_meshlets = meshopt_buildMeshletsBound(index_count, max_vertices, max_triangles);
+		if (max_meshlets == 0)
+			continue;
+
+		std::vector<meshopt_Meshlet> meshlets(max_meshlets);
+		std::vector<unsigned int> meshlet_vertices(max_meshlets * max_vertices);
+		std::vector<unsigned char> meshlet_triangles(max_meshlets * max_triangles * 3);
+
+		size_t meshlet_count = meshopt_buildMeshlets(
+			meshlets.data(), meshlet_vertices.data(), meshlet_triangles.data(),
+			indices, index_count,
+			reinterpret_cast<const float*>(positions), vertex_count, sizeof(DirectX::XMFLOAT3),
+			max_vertices, max_triangles, cone_weight);
+
+		if (meshlet_count == 0)
+			continue;
+
+		meshlets.resize(meshlet_count);
+		const meshopt_Meshlet& last = meshlets.back();
+		meshlet_vertices.resize(static_cast<size_t>(last.vertex_offset) + last.vertex_count);
+		meshlet_triangles.resize(static_cast<size_t>(last.triangle_offset) + ((static_cast<size_t>(last.triangle_count) * 3 + 3) & ~size_t(3)));
+
+		//	バウンディングスフィア/法線コーン算出
+		mesh.meshlets.reserve(meshlet_count);
+		for (auto& m : meshlets)
+		{
+			meshopt_Bounds bounds = meshopt_computeMeshletBounds(
+				&meshlet_vertices[m.vertex_offset], &meshlet_triangles[m.triangle_offset],
+				m.triangle_count,
+				reinterpret_cast<const float*>(positions), vertex_count, sizeof(DirectX::XMFLOAT3));
+
+			model_resource::mesh::meshlet dst{};
+			dst.vertex_offset = m.vertex_offset;
+			dst.triangle_offset = m.triangle_offset;
+			dst.vertex_count = m.vertex_count;
+			dst.triangle_count = m.triangle_count;
+			dst.bounds_center = { bounds.center[0], bounds.center[1], bounds.center[2] };
+			dst.bounds_radius = bounds.radius;
+			dst.cone_apex = { bounds.cone_apex[0], bounds.cone_apex[1], bounds.cone_apex[2] };
+			dst.cone_axis = { bounds.cone_axis[0], bounds.cone_axis[1], bounds.cone_axis[2] };
+			dst.cone_cutoff = bounds.cone_cutoff;
+			mesh.meshlets.emplace_back(dst);
+		}
+
+		mesh.meshlet_vertices = std::move(meshlet_vertices);
+		mesh.meshlet_triangles = std::move(meshlet_triangles);
+	}
+}
 #endif	//	defined(USE_IMGUI)

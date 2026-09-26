@@ -18,7 +18,8 @@
 // CEREALバージョン定義
 CEREAL_CLASS_VERSION(model_resource::node, 1)
 CEREAL_CLASS_VERSION(model_resource::bone, 1)
-CEREAL_CLASS_VERSION(model_resource::mesh, 3)
+CEREAL_CLASS_VERSION(model_resource::mesh, 4)
+CEREAL_CLASS_VERSION(model_resource::mesh::meshlet, 1)
 CEREAL_CLASS_VERSION(model_resource::mesh::sub_mesh, 1)
 CEREAL_CLASS_VERSION(model_resource::mesh::morph_mesh, 1)
 CEREAL_CLASS_VERSION(model_resource::capsule_shadow, 1)
@@ -52,6 +53,20 @@ template<class Archive>
 void model_resource::mesh::morph_mesh::serialize(Archive& archive, int version)
 {
 	archive(CEREAL_NVP(vertex_buffer_views));
+}
+
+template<class Archive>
+void model_resource::mesh::meshlet::serialize(Archive& archive, int version)
+{
+	archive(CEREAL_NVP(vertex_offset),
+			CEREAL_NVP(triangle_offset),
+			CEREAL_NVP(vertex_count),
+			CEREAL_NVP(triangle_count),
+			CEREAL_NVP(bounds_center),
+			CEREAL_NVP(bounds_radius),
+			CEREAL_NVP(cone_apex),
+			CEREAL_NVP(cone_axis),
+			CEREAL_NVP(cone_cutoff));
 }
 
 template<class Archive>
@@ -95,6 +110,23 @@ void model_resource::mesh::serialize(Archive& archive, int version)
 					CEREAL_NVP(bounds_min),
 					CEREAL_NVP(bounds_max),
 					CEREAL_NVP(lod_meshs));
+			break;
+		}
+		case 4:
+		{
+			archive(CEREAL_NVP(bones),
+					CEREAL_NVP(material_index),
+					CEREAL_NVP(node_index),
+					CEREAL_NVP(vertex_buffer_views),
+					CEREAL_NVP(index_buffer_view),
+					CEREAL_NVP(morph_meshes),
+					CEREAL_NVP(morph_indices),
+					CEREAL_NVP(bounds_min),
+					CEREAL_NVP(bounds_max),
+					CEREAL_NVP(lod_meshs),
+					CEREAL_NVP(meshlets),
+					CEREAL_NVP(meshlet_vertices),
+					CEREAL_NVP(meshlet_triangles));
 			break;
 		}
 		default:

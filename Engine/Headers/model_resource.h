@@ -65,6 +65,27 @@ public:
 			void serialize(Archive& archive, int version);
 		};
 
+		//	メッシュレット
+		struct meshlet
+		{
+			UINT vertex_offset = 0;
+			UINT triangle_offset = 0;
+			UINT vertex_count = 0;
+			UINT triangle_count = 0;
+
+			//	バウンディングスフィア
+			DirectX::XMFLOAT3 bounds_center = { 0, 0, 0 };
+			float bounds_radius = 0.0f;
+
+			//	法線コーン
+			DirectX::XMFLOAT3 cone_apex = { 0, 0, 0 };
+			DirectX::XMFLOAT3 cone_axis = { 0, 0, 0 };
+			float cone_cutoff = 0.0f;
+
+			template<class Archive>
+			void serialize(Archive& archive, int version);
+		};
+
 		std::vector<bone> bones;
 		size_t material_index = invalid_id;
 		size_t node_index = invalid_id;
@@ -80,6 +101,10 @@ public:
 
 		DirectX::XMFLOAT3 bounds_min;
 		DirectX::XMFLOAT3 bounds_max;
+
+		std::vector<meshlet> meshlets;
+		std::vector<UINT> meshlet_vertices;
+		std::vector<uint8_t> meshlet_triangles;
 
 		template<class Archive>
 		void serialize(Archive& archive, int version);

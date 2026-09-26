@@ -22,5 +22,7 @@ namespace model_resource_utility
 	void clear_shadow_meshes(model_resource& resource);
 	//	メッシュ最適化
 	void optimize_meshs(model_resource& resource);
+	//	メッシュレット生成
+	void generate_meshlets(model_resource& resource);
 #endif	//	defined(USE_IMGUI)
 }

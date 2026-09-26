@@ -220,17 +220,23 @@ void edit_model_scene::update_core(float elapsed_time)
 					data_converter::mmd::convert_model_data data;
 					convert_option_data.mmd.file_path = load_model_path;
 					is_load = data_converter::mmd::convert(*resource, convert_option_data.mmd);
+					if (is_load)
+						model_resource_utility::generate_meshlets(*resource);
 					break;
 				}
 				case convert_option_data::kinds::gltf:
 				{
 					convert_option_data.gltf.file_path = load_model_path;
 					is_load = data_converter::gltf::convert(*resource, convert_option_data.gltf);
+					if (is_load)
+						model_resource_utility::generate_meshlets(*resource);
 					break;
 				}
 				case convert_option_data::kinds::emo:
 				{
 					is_load = model_resource_manager::instance()->load(resource, load_model_path);
+					if (is_load)
+						model_resource_utility::generate_meshlets(*resource);
 					break;
 				}
 			}
