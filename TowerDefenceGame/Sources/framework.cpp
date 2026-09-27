@@ -27,6 +27,7 @@
 
 #include "Object/object_manager.h"
 #include "Object/GameObjects/UI/ui_object.h"
+#include "Object/GameObjects/MiniGame/minigame_record_data.h"
 
 #include "System/engine_config_data.h"
 
@@ -194,6 +195,7 @@ bool framework::initialize()
 	effect_resource_manager::create_instance();
 	effect_manager::create_instance();
 	ik_resource_manager::create_instance();
+	minigame_record_data::create_instance();
 #if defined(USE_IMGUI)
 	debug_primitive_manager::create_instance();
 #endif // defined(USE_IMGUI)
@@ -902,6 +904,7 @@ bool framework::uninitialize()
 	pipeline_state_manager::delete_instance();
 	shader_manager::delete_instance();
 	font_data_manager::delete_instance();
+	minigame_record_data::delete_instance();
 	texture_manager::delete_instance();
 	keyboard::delete_instance();
 	mouse::delete_instance();
