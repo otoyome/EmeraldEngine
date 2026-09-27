@@ -6,6 +6,8 @@
 #include "geometric_primitive.h"
 
 #include "collision/frustum_culling.h"
+#include "graphics/meshlet_culling_system.h"
+#include "graphics/hiz_buffer.h"
 
 namespace scene_renderer_commons
 {
@@ -34,6 +36,12 @@ namespace scene_renderer_commons
 					  const std::vector<std::size_t>& mesh_indices,
 					  const collision::frustum_culling& frustum_culling,
 					  material::surface_paths surface_path);
+
+	void model_render_indirect(graphics_context& context,
+					  const std::vector<std::size_t>& mesh_indices,
+					  const std::vector<float>& mesh_lengths,
+					  material::surface_paths surface_path,
+					  meshlet_culling_system& meshlet_culling);
 
 	void particle_render(graphics_context& context,
 						 const std::vector<std::size_t>& mesh_indices,

@@ -2,6 +2,7 @@
 
 #include "graphics/occlusion_culling_system.h"
 #include "graphics/hiz_buffer.h"
+#include "graphics/meshlet_culling_system.h"
 
 //	メッシュ描画順リスト
 struct render_mesh_indices
@@ -61,6 +62,7 @@ struct renderer_context
 	std::shared_ptr<render_decal_indices> render_decal_indices;			//	デカール描画データ
 
 	std::shared_ptr<hiz_buffer> hiz_buffer;								//	階層Zバッファ
+	std::shared_ptr<meshlet_culling_system> meshlet_culling_system;	//	メッシュレット単位カリング+間接描画
 
 	std::shared_ptr<occlusion_culling_system> occlusion_culling_system;	//	オクルージョンカリングシステム
 	float occlusion_animation_distance;									//	アニメーションモデルも対象にする為の距離情報

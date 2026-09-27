@@ -82,6 +82,7 @@ public:
 	{
 		std::string name{ "" };
 		graphics_pipeline_state_ptr value{ nullptr };
+		graphics_pipeline_state_ptr indirect_value{ nullptr };	//	メッシュレット間接描画用のバリアント(name + "_indirect"で検索。無ければシリアライズ対象外)
 
 #if defined(USE_IMGUI)
 		UINT reload_callback_id = UINT_MAX;
@@ -262,6 +263,7 @@ public:
 	std::string_view get_pipeline_state_name(system_paths type) const;
 	std::string_view get_pipeline_state_name() const;
 	graphics_pipeline_state_ptr get_pipeline_state(surface_paths value) const;
+	graphics_pipeline_state_ptr get_pipeline_state(surface_paths value, bool indirect) const;
 	graphics_pipeline_state_ptr get_pipeline_state(decal_paths value) const;
 	graphics_pipeline_state_ptr get_pipeline_state(system_paths value) const;
 	graphics_pipeline_state_ptr get_pipeline_state() const;

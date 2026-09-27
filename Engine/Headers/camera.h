@@ -8,6 +8,8 @@
 #include <mutex>
 #include <unordered_map>
 
+class meshlet_culling_system;
+
 class camera
 {
 public:
@@ -54,6 +56,7 @@ public:
 
 	std::shared_ptr<occlusion_culling_system> get_occlusion_culling();
 	std::shared_ptr<hiz_buffer> get_hiz_buffer();
+	std::shared_ptr<meshlet_culling_system> get_meshlet_culling();
 
 	float get_occlusion_animation_distance() const { return occlusion_animation_distance; }
 	void set_occlusion_animation_distance(float distance) { occlusion_animation_distance = distance; }
@@ -94,6 +97,7 @@ private:
 
 	std::shared_ptr<occlusion_culling_system> occlusion_culling;
 	std::shared_ptr<hiz_buffer> hiz;
+	std::shared_ptr<meshlet_culling_system> meshlet_culling;
 	float occlusion_animation_distance = system_units::convert_cm_to_unit(1.0f);
 
 #if defined(USE_IMGUI)

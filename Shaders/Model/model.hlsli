@@ -165,11 +165,16 @@ struct BoneMatrix
 StructuredBuffer<PrimitiveHeader> primitive_headers : register(t100);
 StructuredBuffer<BoneMatrix> bone_matrices : register(t101);
 
+#if defined(INDIRECT_MESHLET_DRAW)
+//	@tool 間接描画時はprimitive_indexをメッシュレットインスタンスのレコードから設定するため、定数バッファではなく書き換え可能なグローバル変数にする
+static uint primitive_index;
+#else	//	defined(INDIRECT_MESHLET_DRAW)
 cbuffer PRIMITIVE_CONSTANT_BUFFER
 {
     uint primitive_index;
     uint3 primitive_index_padding;
 };
+#endif	//	defined(INDIRECT_MESHLET_DRAW)
 
 #define primitive_parameter (primitive_headers[primitive_index].header_primitive_parameter)
 
@@ -237,6 +242,39 @@ ByteAddressBuffer meshlet_weights3 : register(t115);
 ByteAddressBuffer meshlet_vertex_indices : register(t116);
 ByteAddressBuffer meshlet_triangle_indices : register(t117);
 
+#if defined(INDIRECT_MESHLET_DRAW)
+//	@tool 間接描画(DrawInstancedIndirect)時に、cullで生存したメッシュレット1件分のレコード(C++側のmeshlet_instance_gpuとレイアウトを一致させる)
+struct MeshletInstanceRecord
+{
+	uint vertex_offset;
+	uint triangle_offset;
+	uint triangle_count;
+	uint primitive_index;
+	float3 bounds_center;
+	float bounds_radius;
+	uint transform_index;
+	uint no_cull;
+	uint pipeline_group;
+	uint padding;
+};
+StructuredBuffer<MeshletInstanceRecord> visible_meshlet_instances : register(t118);
+
+static uint meshlet_vertex_offset;
+static uint meshlet_triangle_offset;
+static uint meshlet_mesh_base_vertex;
+
+//	@tool SV_InstanceIDから描画対象のメッシュレットインスタンスを解決し、以降の頂点プーリングで使う各種インデックスとprimitive_indexを設定する
+//	戻り値は「三角形数を超えるvertex_idかどうか」(呼び出し側で縮退させる判定に使う)
+bool meshlet_resolve_instance(uint instance_id, uint vertex_id)
+{
+	MeshletInstanceRecord record = visible_meshlet_instances[instance_id];
+	meshlet_vertex_offset = record.vertex_offset;
+	meshlet_triangle_offset = record.triangle_offset;
+	meshlet_mesh_base_vertex = primitive_headers[record.primitive_index].base_vertex;
+	primitive_index = record.primitive_index;
+	return vertex_id >= record.triangle_count * 3;
+}
+#else	//	defined(INDIRECT_MESHLET_DRAW)
 cbuffer MESHLET_DRAW_CONSTANT_BUFFER : register(b5)
 {
 	uint meshlet_vertex_offset;
@@ -244,6 +282,7 @@ cbuffer MESHLET_DRAW_CONSTANT_BUFFER : register(b5)
 	uint meshlet_mesh_base_vertex;
 	uint meshlet_draw_padding;
 };
+#endif	//	defined(INDIRECT_MESHLET_DRAW)
 
 //	SV_VertexIDから、このメッシュレット内のローカル頂点番号を経由してグローバル頂点番号を求める
 uint meshlet_resolve_global_vertex_index(uint vertex_id)

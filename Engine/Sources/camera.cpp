@@ -1,4 +1,5 @@
 #include "camera.h"
+#include "graphics/meshlet_culling_system.h"
 
 camera::camera()
 : system_flags(0)
@@ -233,6 +234,13 @@ std::shared_ptr<hiz_buffer> camera::get_hiz_buffer()
 	if (!hiz)
 		hiz = std::make_shared<hiz_buffer>();
 	return hiz;
+}
+
+std::shared_ptr<meshlet_culling_system> camera::get_meshlet_culling()
+{
+	if (!meshlet_culling)
+		meshlet_culling = std::make_shared<meshlet_culling_system>();
+	return meshlet_culling;
 }
 
 #if defined(USE_IMGUI)

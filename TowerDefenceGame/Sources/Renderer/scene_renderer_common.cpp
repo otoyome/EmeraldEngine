@@ -1,6 +1,50 @@
 #include "Renderer/scene_renderer_common.h"
 #include "model_buffer_pool.h"
 
+namespace
+{
+	//	@tool メッシュレット頂点プーリング用の属性SRV(t102からt117)をまとめて設定する(draw_indexed/model_render_indirect共通)
+	void bind_meshlet_attribute_srvs(const graphics_context& context)
+	{
+		static const semantic position_semantic("POSITION", 0);
+		static const semantic normal_semantic("NORMAL", 0);
+		static const semantic tangent_semantic("TANGENT", 0);
+		static const semantic color0_semantic("COLOR", 0);
+		static const semantic texcoord0_semantic("TEXCOORD", 0);
+		static const semantic texcoord1_semantic("TEXCOORD", 1);
+		static const semantic joints0_semantic("JOINTS", 0);
+		static const semantic joints1_semantic("JOINTS", 1);
+		static const semantic joints2_semantic("JOINTS", 2);
+		static const semantic joints3_semantic("JOINTS", 3);
+		static const semantic weights0_semantic("WEIGHTS", 0);
+		static const semantic weights1_semantic("WEIGHTS", 1);
+		static const semantic weights2_semantic("WEIGHTS", 2);
+		static const semantic weights3_semantic("WEIGHTS", 3);
+
+		auto pool = model_buffer_pool_manager::instance();
+		ID3D11ShaderResourceView* attribute_srvs[16] =
+		{
+			pool->get_vertex_buffer_srv(position_semantic),
+			pool->get_vertex_buffer_srv(normal_semantic),
+			pool->get_vertex_buffer_srv(tangent_semantic),
+			pool->get_vertex_buffer_srv(color0_semantic),
+			pool->get_vertex_buffer_srv(texcoord0_semantic),
+			pool->get_vertex_buffer_srv(texcoord1_semantic),
+			pool->get_vertex_buffer_srv(joints0_semantic),
+			pool->get_vertex_buffer_srv(joints1_semantic),
+			pool->get_vertex_buffer_srv(joints2_semantic),
+			pool->get_vertex_buffer_srv(joints3_semantic),
+			pool->get_vertex_buffer_srv(weights0_semantic),
+			pool->get_vertex_buffer_srv(weights1_semantic),
+			pool->get_vertex_buffer_srv(weights2_semantic),
+			pool->get_vertex_buffer_srv(weights3_semantic),
+			pool->get_meshlet_vertex_buffer_srv(),
+			pool->get_meshlet_triangle_buffer_srv(),
+		};
+		context.device_context->VSSetShaderResources(102, 16, attribute_srvs);
+	}
+}
+
 float scene_renderer_commons::convert_linear_depth_to_projection_depth(float depth, float z_buffer_parameteres_y)
 {
 	float z_buffer_parameteres_x = 1.0f - z_buffer_parameteres_y;
@@ -89,44 +133,7 @@ void scene_renderer_commons::draw_indexed(const graphics_context& context,
 	}
 
 	//	頂点バッファ登録
-	{
-		static const semantic position_semantic("POSITION", 0);
-		static const semantic normal_semantic("NORMAL", 0);
-		static const semantic tangent_semantic("TANGENT", 0);
-		static const semantic color0_semantic("COLOR", 0);
-		static const semantic texcoord0_semantic("TEXCOORD", 0);
-		static const semantic texcoord1_semantic("TEXCOORD", 1);
-		static const semantic joints0_semantic("JOINTS", 0);
-		static const semantic joints1_semantic("JOINTS", 1);
-		static const semantic joints2_semantic("JOINTS", 2);
-		static const semantic joints3_semantic("JOINTS", 3);
-		static const semantic weights0_semantic("WEIGHTS", 0);
-		static const semantic weights1_semantic("WEIGHTS", 1);
-		static const semantic weights2_semantic("WEIGHTS", 2);
-		static const semantic weights3_semantic("WEIGHTS", 3);
-
-		auto pool = model_buffer_pool_manager::instance();
-		ID3D11ShaderResourceView* attribute_srvs[16] =
-		{
-			pool->get_vertex_buffer_srv(position_semantic),
-			pool->get_vertex_buffer_srv(normal_semantic),
-			pool->get_vertex_buffer_srv(tangent_semantic),
-			pool->get_vertex_buffer_srv(color0_semantic),
-			pool->get_vertex_buffer_srv(texcoord0_semantic),
-			pool->get_vertex_buffer_srv(texcoord1_semantic),
-			pool->get_vertex_buffer_srv(joints0_semantic),
-			pool->get_vertex_buffer_srv(joints1_semantic),
-			pool->get_vertex_buffer_srv(joints2_semantic),
-			pool->get_vertex_buffer_srv(joints3_semantic),
-			pool->get_vertex_buffer_srv(weights0_semantic),
-			pool->get_vertex_buffer_srv(weights1_semantic),
-			pool->get_vertex_buffer_srv(weights2_semantic),
-			pool->get_vertex_buffer_srv(weights3_semantic),
-			pool->get_meshlet_vertex_buffer_srv(),
-			pool->get_meshlet_triangle_buffer_srv(),
-		};
-		context.device_context->VSSetShaderResources(102, 16, attribute_srvs);
-	}
+	bind_meshlet_attribute_srvs(context);
 
 	//	メッシュレット単位で描画するので通常の頂点バッファ等は使用しない
 	context.set_vertex_buffers(0, 0, nullptr, nullptr, nullptr);
@@ -214,6 +221,60 @@ void scene_renderer_commons::model_render(graphics_context& context,
 	}
 	if (current_pipeline_state)
 		current_pipeline_state->end(context);
+}
+
+void scene_renderer_commons::model_render_indirect(graphics_context& context,
+					const std::vector<std::size_t>& mesh_indices,
+					const std::vector<float>& mesh_lengths,
+					material::surface_paths surface_path,
+					meshlet_culling_system& meshlet_culling)
+{
+	auto draw_data_ptr = context.render_data->mesh_container.draw_datas.data();
+	auto material_data_ptr = context.render_data->mesh_container.material_datas.data();
+
+	//	@tool カリングはオクルージョンカリングと同じタイミングで事前に完了済みのため、ここではマテリアル単位で結果を参照して間接描画するだけ
+	std::unordered_set<material*> drawn;
+	std::vector<std::size_t> fallback_indices;
+
+	for (auto& draw_index : mesh_indices)
+	{
+		auto draw_data = draw_data_ptr + draw_index;
+		auto material_data = material_data_ptr + draw_data->material_index;
+		material* mat = material_data->material;
+
+		auto pipeline_state = mat->get_pipeline_state(surface_path, true);
+		auto result = pipeline_state ? meshlet_culling.find_result(mat) : nullptr;
+
+		if (!pipeline_state || !result)
+		{
+			fallback_indices.emplace_back(draw_index);
+			continue;
+		}
+
+		if (!drawn.insert(mat).second)
+			continue;	//	同一マテリアルは既に描画済み
+
+		pipeline_state->begin(context);
+		mat->update_parameters(context);
+		pipeline_state->update_parameters(context, *mat, nullptr);
+
+		bind_meshlet_attribute_srvs(context);
+		context.device_context->VSSetShaderResources(118, 1, &result->visible_meshlet_srv);
+
+		context.set_vertex_buffers(0, 0, nullptr, nullptr, nullptr);
+		context.set_index_buffer(nullptr, DXGI_FORMAT_UNKNOWN, 0);
+		context.set_primitive_topology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+		context.device_context->DrawInstancedIndirect(result->indirect_args_buffer, 0);
+
+		pipeline_state->end(context);
+	}
+
+	//	@tool 間接描画用バリアントの無いマテリアル、または生存メッシュレットが無かったマテリアルは、既存のメッシュレット単位描画にフォールバックする
+	if (!fallback_indices.empty())
+	{
+		model_render(context, fallback_indices, mesh_lengths, surface_path);
+	}
 }
 
 void scene_renderer_commons::model_render(graphics_context& context,

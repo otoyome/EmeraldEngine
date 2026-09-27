@@ -43,10 +43,24 @@ VS_DEPTH_IN load_vertex_pulled(uint vertex_id)
     return vin;
 }
 
+#if defined(INDIRECT_MESHLET_DRAW)
+VS_DEPTH_OUT main(uint vertex_id : SV_VertexID, uint instance_id : SV_InstanceID)
+#else	//	defined(INDIRECT_MESHLET_DRAW)
 VS_DEPTH_OUT main(uint vertex_id : SV_VertexID)
+#endif	//	defined(INDIRECT_MESHLET_DRAW)
 {
     uint index;
     VS_DEPTH_OUT vout = (VS_DEPTH_OUT)0;
+
+#if defined(INDIRECT_MESHLET_DRAW)
+    //	@tool 三角形数を超える頂点は縮退させ、ラスタライズされないようにする
+    if (meshlet_resolve_instance(instance_id, vertex_id))
+    {
+        vout.position = float4(0, 0, 0, 0);
+        return vout;
+    }
+#endif	//	defined(INDIRECT_MESHLET_DRAW)
+
     VS_DEPTH_IN vin = load_vertex_pulled(vertex_id);
 
 #if defined(HAS_MORPH)  //  モーフィング対応

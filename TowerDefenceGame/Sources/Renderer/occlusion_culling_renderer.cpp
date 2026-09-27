@@ -2,6 +2,7 @@
 
 #include "graphics/occlusion_culling_system.h"
 #include "graphics/hiz_buffer.h"
+#include "graphics/meshlet_culling_system.h"
 #include "camera.h"
 #include "render_data.h"
 
@@ -17,13 +18,14 @@ occlusion_culling_renderer::~occlusion_culling_renderer()
 
 void occlusion_culling_renderer::render(renderer_context& context)
 {
-	if (!render_targets || !context.occlusion_culling_system || !context.hiz_buffer)
+	if (!render_targets || !context.occlusion_culling_system || !context.hiz_buffer || !context.meshlet_culling_system)
 		return;
 
-	//	カメラ毎の occlusion_culling_system / hiz_buffer を使う
+	//	カメラ毎の occlusion_culling_system / hiz_buffer / meshlet_culling_system を使う
 	auto occlusion = context.occlusion_culling_system;
 	auto hiz = context.hiz_buffer;
-	if (!occlusion || !hiz)
+	auto meshlet_culling = context.meshlet_culling_system;
+	if (!occlusion || !hiz || !meshlet_culling)
 		return;
 
 	//	Hi-Z バッファをシーン深度に合わせる
@@ -33,7 +35,18 @@ void occlusion_culling_renderer::render(renderer_context& context)
 
 	float animation_test_distance = context.occlusion_animation_distance;
 
-	job_executor.execute([this, occlusion, hiz, animation_test_distance](graphics_context& context)
+	//	@tool 深度プリパス/G-Bufferパスの両方が同じ可視サブメッシュ一覧(opaque+mask)を描画するため、
+	//	メッシュレットカリングもここで1回だけ行い、両パスから結果を共有する
+	std::vector<std::size_t> visible_draw_indices;
+	if (context.render_mesh_indices)
+	{
+		visible_draw_indices.reserve(context.render_mesh_indices->opaque.size() + context.render_mesh_indices->mask.size());
+		visible_draw_indices.insert(visible_draw_indices.end(), context.render_mesh_indices->opaque.begin(), context.render_mesh_indices->opaque.end());
+		visible_draw_indices.insert(visible_draw_indices.end(), context.render_mesh_indices->mask.begin(), context.render_mesh_indices->mask.end());
+	}
+	auto render_mesh_indices = context.render_mesh_indices;
+
+	job_executor.execute([this, occlusion, hiz, meshlet_culling, animation_test_distance, visible_draw_indices, render_mesh_indices](graphics_context& context)
 	{
 		context.debug_begin_event(L"occlusion_culling");
 
@@ -44,6 +57,12 @@ void occlusion_culling_renderer::render(renderer_context& context)
 
 		//	オクルージョンカリング実行
 		occlusion->update(context, animation_test_distance, *hiz);
+
+		//	メッシュレット単位カリング(深度プリパス/G-Bufferパスで共有)
+		if (render_mesh_indices)
+		{
+			meshlet_culling->build_and_cull(context, visible_draw_indices, render_mesh_indices->lengths, *hiz);
+		}
 
 		context.scene_depth_texture = nullptr;
 
