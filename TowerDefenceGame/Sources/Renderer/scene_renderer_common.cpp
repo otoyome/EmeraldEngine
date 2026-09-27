@@ -345,6 +345,115 @@ void scene_renderer_commons::model_render(graphics_context& context,
 		current_pipeline_state->end(context);
 }
 
+void scene_renderer_commons::model_render_shadow_batched(graphics_context& context,
+					const std::vector<std::size_t>& mesh_indices,
+					const collision::frustum_culling& frustum_culling,
+					material::surface_paths surface_path)
+{
+	auto draw_data_ptr = context.render_data->mesh_container.draw_datas.data();
+	auto material_data_ptr = context.render_data->mesh_container.material_datas.data();
+	auto buffer_data_ptr = context.render_data->mesh_container.buffer_datas.data();
+
+	struct material_batch
+	{
+		graphics_pipeline_state_ptr pipeline_state;
+		std::vector<common_pipeline_states::meshlet_instance_record> instance_records;
+	};
+	std::unordered_map<material*, material_batch> batches;
+	std::vector<std::size_t> fallback_indices;
+
+	//	マテリアル単位でメッシュレットをまとめて描画
+	for (auto& draw_index : mesh_indices)
+	{
+		auto draw_data = draw_data_ptr + draw_index;
+		auto material_data = material_data_ptr + draw_data->material_index;
+
+		//	AABB判定
+		auto buffer_data = buffer_data_ptr + draw_data->buffer_index;
+		if (!frustum_culling.to_aabb(buffer_data->bounds_min, buffer_data->bounds_max))
+			continue;
+
+		material* mat = material_data->material;
+		auto pipeline_state = mat->get_pipeline_state(surface_path);
+		if (!pipeline_state)
+			continue;
+
+		//	影メッシュが無ければ対象外
+		const buffer_datas::sub_mesh& draw_mesh = buffer_data->shadow_mesh;
+		if (!draw_mesh.meshlets || draw_mesh.meshlets->empty())
+			continue;
+
+		//	モーフィング持ちは専用SRVを個別バインドする必要があるため他オブジェクトとまとめられない
+		if (!draw_mesh.morph_meshes.empty())
+		{
+			fallback_indices.emplace_back(draw_index);
+			continue;
+		}
+
+		//	メッシュレット単位のフラスタムカリングと収集
+		bool apply_meshlet_frustum_culling = system_utility::is_bitflag(buffer_data->system_flags, buffer_datas::flags::culling);
+		auto& batch = batches[mat];
+		batch.pipeline_state = pipeline_state;
+		for (auto& meshlet : *draw_mesh.meshlets)
+		{
+			if (apply_meshlet_frustum_culling && !is_meshlet_visible(frustum_culling, buffer_data->world_transform, meshlet.bounds_center, meshlet.bounds_radius))
+				continue;
+
+			auto& record = batch.instance_records.emplace_back();
+			record.vertex_offset = meshlet.vertex_offset;
+			record.triangle_offset = meshlet.triangle_offset;
+			record.triangle_count = meshlet.triangle_count;
+			record.primitive_index = draw_data->buffer_index;
+		}
+	}
+
+	//	マテリアル単位でまとめて描画
+	if (!batches.empty())
+	{
+		auto pool = model_buffer_pool_manager::instance();
+
+		context.set_vertex_buffers(0, 0, nullptr, nullptr, nullptr);
+		context.set_index_buffer(nullptr, DXGI_FORMAT_UNKNOWN, 0);
+		context.set_primitive_topology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+		for (auto& pair : batches)
+		{
+			material* mat = pair.first;
+			auto& batch = pair.second;
+			//	メッシュレット無し
+			if (batch.instance_records.empty())
+				continue;
+
+			batch.pipeline_state->begin(context);
+			mat->update_parameters(context);
+			batch.pipeline_state->update_parameters(context, *mat, nullptr);
+
+			bind_meshlet_attribute_srvs(context);
+
+			ID3D11Buffer* batch_buffer = nullptr;
+			ID3D11ShaderResourceView* batch_srv = nullptr;
+			pool->get_meshlet_instance_batch(static_cast<UINT>(batch.instance_records.size()), &batch_buffer, &batch_srv);
+
+			D3D11_BOX box{};
+			box.right = static_cast<UINT>(sizeof(common_pipeline_states::meshlet_instance_record) * batch.instance_records.size());
+			box.bottom = 1;
+			box.back = 1;
+			context.device_context->UpdateSubresource(batch_buffer, 0, &box, batch.instance_records.data(), 0, 0);
+
+			context.device_context->VSSetShaderResources(118, 1, &batch_srv);
+			context.device_context->DrawInstanced(meshlet_culling_system::max_meshlet_vertices_per_draw, static_cast<UINT>(batch.instance_records.size()), 0, 0);
+
+			batch.pipeline_state->end(context);
+		}
+	}
+
+	//	モーフィング等でまとめられなかった分は通常経路で描画
+	if (!fallback_indices.empty())
+	{
+		model_render(context, fallback_indices, frustum_culling, surface_path);
+	}
+}
+
 void scene_renderer_commons::particle_render(graphics_context& context,
 					const std::vector<std::size_t>& draw_indices,
 					material::surface_paths surface_path)
