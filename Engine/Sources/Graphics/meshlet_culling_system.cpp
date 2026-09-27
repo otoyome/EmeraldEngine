@@ -164,23 +164,10 @@ void meshlet_culling_system::build_and_cull(graphics_context& context, const std
 		auto material_data = material_data_ptr + draw_data->material_index;
 
 		//	•`‰æ‘ÎÛ‚ÌLODƒƒbƒVƒ…‚ð‘I‘ð
-		std::size_t lod_count = buffer_data.color_meshs.size();
-		if (lod_count == 0)
+		if (buffer_data.color_meshs.empty())
 			continue;
 
-		std::size_t lod_mesh_index = 0;
-		if (lod_count > 1)
-		{
-			float mesh_length = lengths[draw_index];
-			float lod_range_min = buffer_data.lod_range_rate.x * context.scene_constant.camera_clip_distance.x;
-			float lod_range_max = buffer_data.lod_range_rate.y * context.scene_constant.camera_clip_distance.y;
-			float lod_range = lod_range_max - lod_range_min;
-			float lod_rate = (lod_range > 1e-6f) ? math::saturate((mesh_length - lod_range_min) / lod_range) : 0.0f;
-			lod_mesh_index = static_cast<std::size_t>(lod_rate * static_cast<float>(lod_count - 1) + 0.5f);
-			if (lod_mesh_index >= lod_count)
-				lod_mesh_index = lod_count - 1;
-		}
-
+		std::size_t lod_mesh_index = buffer_data.select_lod_mesh_index(lengths[draw_index], context.scene_constant.camera_clip_distance);
 		auto& sub_mesh = buffer_data.color_meshs[lod_mesh_index];
 		if (!sub_mesh.meshlets || sub_mesh.meshlets->empty())
 			continue;

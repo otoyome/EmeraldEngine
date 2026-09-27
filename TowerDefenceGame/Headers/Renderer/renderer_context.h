@@ -64,4 +64,8 @@ struct renderer_context
 	std::shared_ptr<occlusion_culling_system> occlusion_culling_system;	//	オクルージョンカリングシステム
 	float occlusion_animation_distance;									//	アニメーションモデル対象にする為の距離情報
 	std::shared_ptr<meshlet_culling_system> meshlet_culling_system;		//	メッシュレットカリングシステム
+
+#if defined(USE_IMGUI)
+	bool freeze_culling = false;										//	メッシュレットカリング固定化フラグ
+#endif	//	defined(USE_IMGUI)
 };

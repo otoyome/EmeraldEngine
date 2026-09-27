@@ -35,6 +35,10 @@ void occlusion_culling_renderer::render(renderer_context& context)
 
 	float animation_test_distance = context.occlusion_animation_distance;
 
+#if defined(USE_IMGUI)
+	bool freeze_culling = context.freeze_culling;
+#endif	//	defined(USE_IMGUI)
+
 	//	メッシュレットカリング情報
 	std::vector<std::size_t> visible_draw_indices;
 	if (context.render_mesh_indices)
@@ -45,7 +49,11 @@ void occlusion_culling_renderer::render(renderer_context& context)
 	}
 
 	auto render_mesh_indices = context.render_mesh_indices;
-	job_executor.execute([this, occlusion, hiz, meshlet_culling, animation_test_distance, visible_draw_indices, render_mesh_indices](graphics_context& context)
+	job_executor.execute([this, occlusion, hiz, meshlet_culling, animation_test_distance, visible_draw_indices, render_mesh_indices
+#if defined(USE_IMGUI)
+		, freeze_culling
+#endif	//	defined(USE_IMGUI)
+		](graphics_context& context)
 	{
 		context.debug_begin_event(L"occlusion_culling");
 
@@ -57,8 +65,11 @@ void occlusion_culling_renderer::render(renderer_context& context)
 		//	オクルージョンカリング実行
 		occlusion->update(context, animation_test_distance, *hiz);
 
-		//	メッシュレットカリング実行
+#if defined(USE_IMGUI)
+		if (!freeze_culling && render_mesh_indices)
+#else	//	defined(USE_IMGUI)
 		if (render_mesh_indices)
+#endif	//	defined(USE_IMGUI)
 		{
 			meshlet_culling->build_and_cull(context, visible_draw_indices, render_mesh_indices->lengths, *hiz);
 		}

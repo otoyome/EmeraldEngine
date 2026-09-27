@@ -101,18 +101,7 @@ void scene_renderer_commons::draw_indexed(const graphics_context& context,
 	else
 	{
 		//	LOD対応
-		std::size_t lod_count = buffer_data.color_meshs.size();
-		std::size_t lod_mesh_index = 0;
-		if (lod_count > 1)
-		{
-			float lod_range_min = buffer_data.lod_range_rate.x * context.scene_constant.camera_clip_distance.x;
-			float lod_range_max = buffer_data.lod_range_rate.y * context.scene_constant.camera_clip_distance.y;
-			float lod_range = lod_range_max - lod_range_min;
-			float lod_rate = (lod_range > 1e-6f) ? math::saturate((mesh_length - lod_range_min) / lod_range) : 0.0f;
-			lod_mesh_index = static_cast<std::size_t>(lod_rate * static_cast<float>(lod_count - 1) + 0.5f);
-			if (lod_mesh_index >= lod_count)
-				lod_mesh_index = lod_count - 1;
-		}
+		std::size_t lod_mesh_index = buffer_data.select_lod_mesh_index(mesh_length, context.scene_constant.camera_clip_distance);
 		draw_mesh = &buffer_data.color_meshs[lod_mesh_index];
 
 		//	モーフィング対応
@@ -158,9 +147,13 @@ void scene_renderer_commons::draw_indexed(const graphics_context& context,
 	auto single_instance_srv = pool->get_single_meshlet_instance_srv();
 	context.device_context->VSSetShaderResources(118, 1, &single_instance_srv);
 
+	bool apply_meshlet_frustum_culling = meshlet_frustum_culling != nullptr &&
+		system_utility::is_bitflag(buffer_data.system_flags, buffer_datas::flags::culling);
+
 	for (auto& meshlet : *draw_mesh->meshlets)
 	{
-		if (meshlet_frustum_culling && !is_meshlet_visible(*meshlet_frustum_culling, buffer_data.world_transform, meshlet.bounds_center, meshlet.bounds_radius))
+		//	@tool カリング無効(no_cull)なオブジェクトはメッシュレット単位のフラスタムカリングも行わない
+		if (apply_meshlet_frustum_culling && !is_meshlet_visible(*meshlet_frustum_culling, buffer_data.world_transform, meshlet.bounds_center, meshlet.bounds_radius))
 			continue;
 
 		common_pipeline_states::meshlet_instance_record record{};

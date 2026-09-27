@@ -121,6 +121,30 @@ struct buffer_datas
 	DirectX::XMFLOAT3 bounds_min, bounds_max;				//	AABB範囲
 	DirectX::XMFLOAT4X4 world_transform = {};				//	ワールド変換行列
 	Microsoft::WRL::ComPtr<ID3D11Buffer> primitive_buffer;	//	プリミティブバッファ
+
+	//	LOD選択
+	std::size_t select_lod_mesh_index(float mesh_length, const DirectX::XMFLOAT4& camera_clip_distance) const
+	{
+		std::size_t lod_count = color_meshs.size();
+		std::size_t lod_mesh_index = 0;
+		if (lod_count > 1)
+		{
+			float lod_range_min = lod_range_rate.x * camera_clip_distance.x;
+			float lod_range_max = lod_range_rate.y * camera_clip_distance.y;
+			float lod_range = lod_range_max - lod_range_min;
+			float lod_rate = 0.0f;
+			if (lod_range > 1e-6f)
+			{
+				lod_rate = (mesh_length - lod_range_min) / lod_range;
+				if (lod_rate < 0.0f) lod_rate = 0.0f;
+				if (lod_rate > 1.0f) lod_rate = 1.0f;
+			}
+			lod_mesh_index = static_cast<std::size_t>(lod_rate * static_cast<float>(lod_count - 1) + 0.5f);
+			if (lod_mesh_index >= lod_count)
+				lod_mesh_index = lod_count - 1;
+		}
+		return lod_mesh_index;
+	}
 };
 
 

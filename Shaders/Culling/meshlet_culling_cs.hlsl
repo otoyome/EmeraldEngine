@@ -1,7 +1,4 @@
 //	メッシュレット単位のフラスタム+オクルージョンカリング
-//	既存のocclusion_culling_cs.hlslと同じ「AABBを画面空間に投影してHi-Zと比較する」方式を、
-//	メッシュレットのローカルバウンディングスフィアをワールド変換した上で適用する
-
 struct MeshletInstance
 {
 	uint   vertex_offset;
@@ -21,12 +18,11 @@ struct SubmeshTransform
 	row_major float4x4 world_transform;
 };
 
-StructuredBuffer<MeshletInstance> meshlet_instances : register(t0);
-StructuredBuffer<SubmeshTransform> submesh_transforms : register(t1);
-Texture2D<float> hiz : register(t2);
-SamplerState hiz_sampler : register(s0);
-
-AppendStructuredBuffer<MeshletInstance> visible_meshlets : register(u0);
+StructuredBuffer<MeshletInstance> meshlet_instances : register(t0);			//	表示候補メッシュレットバッファ
+StructuredBuffer<SubmeshTransform> submesh_transforms : register(t1);		//	姿勢行列バッファ
+Texture2D<float> hiz : register(t2);										//	階層型Zバッファ
+SamplerState hiz_sampler : register(s0);									//	階層型Zバッファサンプラー
+AppendStructuredBuffer<MeshletInstance> visible_meshlets : register(u0);	//	表示メッシュレットバッファ
 
 cbuffer MESHLET_CULL_CONSTANT_BUFFER : register(b0)
 {
@@ -72,6 +68,7 @@ void main(uint3 id : SV_DispatchThreadID)
 	float2 uv_min = float2(1e9f, 1e9f);
 	float2 uv_max = float2(-1e9f, -1e9f);
 	float  min_z = 1e9f;
+	int behind_count = 0;
 
 	[unroll]
 	for (int c = 0; c < 8; ++c)
@@ -84,9 +81,9 @@ void main(uint3 id : SV_DispatchThreadID)
 		float4 clip = mul(float4(p, 1.0f), view_projection);
 		if (clip.w <= 1e-4f)
 		{
-			//	近クリップ面より手前の頂点を含む
-			visible_meshlets.Append(inst);
-			return;
+			//	@tool 視点より後ろの頂点はスクリーン座標に変換できないため、ループ後にまとめて判定する
+			behind_count++;
+			continue;
 		}
 
 		float3 ndc = clip.xyz / clip.w;
@@ -94,6 +91,18 @@ void main(uint3 id : SV_DispatchThreadID)
 		uv_min = min(uv_min, uv);
 		uv_max = max(uv_max, uv);
 		min_z = min(min_z, ndc.z);
+	}
+
+	if (behind_count == 8)
+	{
+		//	@tool 8頂点すべてが視点より後ろ(近クリップ面より手前)：完全に不可視
+		return;
+	}
+	if (behind_count > 0)
+	{
+		//	@tool 一部の頂点だけ視点より後ろ：近クリップ面をまたぐので保守的に可視扱いする
+		visible_meshlets.Append(inst);
+		return;
 	}
 
 	if (min_z <= 0.0f)

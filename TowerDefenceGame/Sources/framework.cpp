@@ -705,6 +705,9 @@ void framework::prepare_renderer_context(
 		context.occlusion_culling_system = camera.camera->get_occlusion_culling();
 		context.meshlet_culling_system = camera.camera->get_meshlet_culling();
 		context.occlusion_animation_distance = camera.camera->get_occlusion_animation_distance();
+#if defined(USE_IMGUI)
+		context.freeze_culling = camera.camera->is_freeze_culling();
+#endif	//	defined(USE_IMGUI)
 	}
 }
 
