@@ -29,8 +29,9 @@ SurfaceData surface(VS_OUT pin, bool is_front_face)
 
     //	–@ü/]–@ü/Úü
     float3 N = normalize(pin.w_normal.xyz);
-    float3 T = primitive_parameter.x ? normalize(pin.w_tangent.xyz) : float3(1.0f, 0.0f, 0.0f);
-    float sigma = primitive_parameter.x ? pin.w_tangent.w : 1.0f; //  sigma‚ÍUV‚Ì•ûŒü‚É‚æ‚éŒW”
+    bool has_tangent = primitive_headers[pin.primitive_index].header_primitive_parameter.x;
+    float3 T = has_tangent ? normalize(pin.w_tangent.xyz) : float3(1.0f, 0.0f, 0.0f);
+    float sigma = has_tangent ? pin.w_tangent.w : 1.0f; //  sigma‚ÍUV‚Ì•ûŒü‚É‚æ‚éŒW”
     T = normalize(T - N * dot(N, T)); //  N ‚Æ³Šm‚É’¼Œğ‚·‚é‚æ‚¤‚É’²®
     float3 B = normalize(cross(N, T) * sigma);
     if (!is_front_face)

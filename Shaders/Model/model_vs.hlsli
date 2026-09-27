@@ -12,10 +12,10 @@
 #endif // defined(FORWARD_RENDERING)
 
 //	メッシュレット頂点情報読込
-VS_IN load_vertex_pulled(uint vertex_id)
+VS_IN load_vertex_pulled(MeshletContext meshlet_context, uint vertex_id)
 {
     VS_IN vin = (VS_IN)0;
-    uint global_vertex_index = meshlet_resolve_global_vertex_index(vertex_id);
+    uint global_vertex_index = meshlet_resolve_global_vertex_index(meshlet_context, vertex_id);
 
     vin.position = meshlet_load_position(global_vertex_index);
     vin.normal = meshlet_load_normal(global_vertex_index);
@@ -61,20 +61,28 @@ VS_OUT main(uint vertex_id : SV_VertexID)
     VS_OUT vout = (VS_OUT) 0;
 
 #if defined(INDIRECT_MESHLET_DRAW)
-    //	@tool 三角形数を超える頂点は縮退させ、ラスタライズされないようにする
-    if (meshlet_resolve_instance(instance_id, vertex_id))
+    //	メッシュレット構築
+    bool is_degenerate;
+    MeshletContext meshlet_context = meshlet_build_context(instance_id, vertex_id, is_degenerate);
+    if (is_degenerate)
     {
+        //  構築できない場合は縮退ポリゴン化
         vout.position = float4(0, 0, 0, 0);
         return vout;
     }
+#else	//	defined(INDIRECT_MESHLET_DRAW)
+    MeshletContext meshlet_context = meshlet_build_context();
 #endif	//	defined(INDIRECT_MESHLET_DRAW)
 
-    VS_IN vin = load_vertex_pulled(vertex_id);
+    //	ピクセルシェーダー側でもprimitive_indexが欲しいときがあるので
+    vout.primitive_index = meshlet_context.primitive_index;
+
+    VS_IN vin = load_vertex_pulled(meshlet_context, vertex_id);
 
 #if defined(HAS_MORPH)  //  モーフィング対応
-    uint global_vertex_index_for_morph = meshlet_resolve_global_vertex_index(vertex_id);
-    apply_morph_position(vin.position, global_vertex_index_for_morph);
-    apply_morph_normal(vin.normal, global_vertex_index_for_morph);
+    uint global_vertex_index_for_morph = meshlet_resolve_global_vertex_index(meshlet_context, vertex_id);
+    apply_morph_position(meshlet_context, vin.position, global_vertex_index_for_morph);
+    apply_morph_normal(meshlet_context, vin.normal, global_vertex_index_for_morph);
 #endif  //  defined(HAS_MORPH)
 
 #if BONE_MAX > 0
@@ -89,13 +97,13 @@ VS_OUT main(uint vertex_id : SV_VertexID)
         uint col = index % 4u;
         uint bone_index = vin.joints[row][col];
         float bone_weight = vin.weights[row][col];
-        current_position += mul(float4(vin.position, 1), get_bone_transform(bone_index)).xyz * bone_weight;
-        normal += mul(float4(vin.normal, 0), get_bone_transform(bone_index)).xyz * bone_weight;
+        current_position += mul(float4(vin.position, 1), get_bone_transform(meshlet_context, bone_index)).xyz * bone_weight;
+        normal += mul(float4(vin.normal, 0), get_bone_transform(meshlet_context, bone_index)).xyz * bone_weight;
 #if defined(HAS_TANGENT)
-        tangent += mul(float4(vin.tangent.xyz, 0), get_bone_transform(bone_index)).xyz * bone_weight;
+        tangent += mul(float4(vin.tangent.xyz, 0), get_bone_transform(meshlet_context, bone_index)).xyz * bone_weight;
 #endif  //  defined(HAS_TANGENT)
 
-        previous_position += mul(float4(vin.position, 1), get_previous_bone_transform(bone_index)).xyz * bone_weight;
+        previous_position += mul(float4(vin.position, 1), get_previous_bone_transform(meshlet_context, bone_index)).xyz * bone_weight;
     }
 
 #else  //  BONE_MAX > 0

@@ -65,17 +65,6 @@ SurfaceData surface(VS_OUT pin, bool is_front_face)
         data.roughness = material_parameters.x;
         data.metalness = material_parameters.y;
 
-        //  顔の場合はライティングのY軸を無視したいので調整用に顔の姿勢軸を入れる
-        float3 face_front = float3(0, 0, 1), face_right = float3(1, 0, 0);
-        if (face_material_flag)
-        {
-            //  本当は顔の方向を設定するので対応するボーン番号を入れる事
-            face_right = normalize(get_bone_transform(0)._11_12_13);
-            face_front = normalize(get_bone_transform(0)._31_32_33);
-            //  顔専用ライティングを行うかどうか
-            SetGBufferFlags(data.stencil, material_attribute_ligting_xz_plane, face_material_flag);
-        }
-
         //  詳細情報
         if (HAS_RESOURCE(DetailMap))
         {
@@ -91,8 +80,6 @@ SurfaceData surface(VS_OUT pin, bool is_front_face)
         data.unique_parameter.x = PackFloat2ToFloat(shading_threshold_and_offset);
         data.unique_parameter.y = 0;
         data.unique_data.x = asuint(pin.color[0].r); // 赤色がシェーディング補正値なので格納
-        data.unique_data.y = PackNormal(face_right);
-        data.unique_data.z = PackNormal(face_front);
     }
 
     data.shading_model = is_outline_pixel ? shading_model_unlit : material_shading_model;

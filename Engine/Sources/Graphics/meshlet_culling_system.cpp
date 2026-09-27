@@ -66,7 +66,7 @@ void meshlet_culling_system::generate_submesh_transform_buffer(UINT count)
 
 meshlet_culling_system::material_resources& meshlet_culling_system::get_or_create_resources(material* mat)
 {
-	return per_material_resources[mat];
+	return material_resource_map[mat];
 }
 
 void meshlet_culling_system::generate_meshlet_instance_buffer(material_resources& res, UINT count)
@@ -163,7 +163,7 @@ void meshlet_culling_system::build_and_cull(graphics_context& context, const std
 		auto& buffer_data = buffer_data_ptr[draw_data->buffer_index];
 		auto material_data = material_data_ptr + draw_data->material_index;
 
-		//	描画対象のLODメッシュを選択する(draw_indexedと同じ選定ロジック)
+		//	描画対象のLODメッシュを選択
 		std::size_t lod_count = buffer_data.color_meshs.size();
 		if (lod_count == 0)
 			continue;
@@ -271,7 +271,7 @@ void meshlet_culling_system::cull_material_group(graphics_context& context, mate
 	context.clear_shader_resorce_views();
 	dc->CSSetShader(nullptr, nullptr, 0);
 
-	//	間接描画引数を準備する({VertexCountPerInstance, InstanceCount, StartVertexLocation, StartInstanceLocation})
+	//	マテリアルグループ毎にカリング
 	UINT args[4] = { max_meshlet_vertices_per_draw, 0, 0, 0 };
 	dc->UpdateSubresource(res.indirect_args_buffer.Get(), 0, nullptr, args, 0, 0);
 	dc->CopyStructureCount(res.indirect_args_buffer.Get(), sizeof(UINT), res.visible_meshlet_uav.Get());

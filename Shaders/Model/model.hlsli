@@ -121,6 +121,7 @@ struct VS_GBUFFER_OUT
 
     float4 current_clip_position : CLIP_POSITION0;
     float4 previous_clip_position : CLIP_POSITION1;
+    nointerpolation uint primitive_index : PRIMITIVE_INDEX;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -139,6 +140,7 @@ struct VS_FORWARD_OUT
     float4 current_clip_position : CLIP_POSITION0;
     float4 previous_clip_position : CLIP_POSITION1;
     float4 shadow_texcoords[shadow_map_max] : SHADOW_TEXCOORDS;
+    nointerpolation uint primitive_index : PRIMITIVE_INDEX;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -165,27 +167,25 @@ struct BoneMatrix
 StructuredBuffer<PrimitiveHeader> primitive_headers : register(t100);
 StructuredBuffer<BoneMatrix> bone_matrices : register(t101);
 
-#if defined(INDIRECT_MESHLET_DRAW)
-//	@tool 間接描画時はprimitive_indexをメッシュレットインスタンスのレコードから設定するため、定数バッファではなく書き換え可能なグローバル変数にする
-static uint primitive_index;
-#else	//	defined(INDIRECT_MESHLET_DRAW)
-cbuffer PRIMITIVE_CONSTANT_BUFFER
+//	メッシュレットコンテキスト
+struct MeshletContext
 {
-    uint primitive_index;
-    uint3 primitive_index_padding;
+	uint primitive_index;
+	uint mesh_base_vertex;
+	uint meshlet_vertex_offset;
+	uint meshlet_triangle_offset;
 };
-#endif	//	defined(INDIRECT_MESHLET_DRAW)
 
-#define primitive_parameter (primitive_headers[primitive_index].header_primitive_parameter)
+#define primitive_parameter(context) (primitive_headers[(context).primitive_index].header_primitive_parameter)
 
-float4x4 get_bone_transform(uint bone_index)
+float4x4 get_bone_transform(MeshletContext context, uint bone_index)
 {
-    return bone_matrices[primitive_headers[primitive_index].bone_offset + bone_index].transform;
+    return bone_matrices[primitive_headers[context.primitive_index].bone_offset + bone_index].transform;
 }
 
-float4x4 get_previous_bone_transform(uint bone_index)
+float4x4 get_previous_bone_transform(MeshletContext context, uint bone_index)
 {
-    return bone_matrices[primitive_headers[primitive_index].previous_bone_offset + bone_index].transform;
+    return bone_matrices[primitive_headers[context.primitive_index].previous_bone_offset + bone_index].transform;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -193,31 +193,31 @@ float4x4 get_previous_bone_transform(uint bone_index)
 StructuredBuffer<float3> morph_positions[morph_max] : register(t80);
 StructuredBuffer<float3> morph_normals[morph_max] : register(t88);
 
-#define position_morph      (primitive_headers[primitive_index].header_position_morph)
-#define normal_morph        (primitive_headers[primitive_index].header_normal_morph)
+#define position_morph(context)      (primitive_headers[(context).primitive_index].header_position_morph)
+#define normal_morph(context)        (primitive_headers[(context).primitive_index].header_normal_morph)
 
-void apply_morph_position(inout float3 position, uint vertex_id)
+void apply_morph_position(MeshletContext context, inout float3 position, uint vertex_id)
 {
-    uint local_vertex_id = vertex_id - primitive_headers[primitive_index].base_vertex;
+    uint local_vertex_id = vertex_id - context.mesh_base_vertex;
     [unroll] for (uint index = 0; index < morph_max; ++index)
     {
-        if (index >= primitive_parameter.y)
+        if (index >= primitive_parameter(context).y)
             break;
 
-        float weight = position_morph[index / 4][index % 4];
+        float weight = position_morph(context)[index / 4][index % 4];
         position += morph_positions[index][local_vertex_id] * weight;
     }
 }
 
-void apply_morph_normal(inout float3 normal, uint vertex_id)
+void apply_morph_normal(MeshletContext context, inout float3 normal, uint vertex_id)
 {
-    uint local_vertex_id = vertex_id - primitive_headers[primitive_index].base_vertex;
+    uint local_vertex_id = vertex_id - context.mesh_base_vertex;
     [unroll] for (uint index = 0; index < morph_max; ++index)
     {
-        if (index >= primitive_parameter.z)
+        if (index >= primitive_parameter(context).z)
             break;
 
-        float weight = normal_morph[index / 4][index % 4];
+        float weight = normal_morph(context)[index / 4][index % 4];
         normal = lerp(normal, morph_normals[index][local_vertex_id], weight);
     }
 }
@@ -243,7 +243,7 @@ ByteAddressBuffer meshlet_vertex_indices : register(t116);
 ByteAddressBuffer meshlet_triangle_indices : register(t117);
 
 #if defined(INDIRECT_MESHLET_DRAW)
-//	@tool 間接描画(DrawInstancedIndirect)時に、cullで生存したメッシュレット1件分のレコード(C++側のmeshlet_instance_gpuとレイアウトを一致させる)
+//	カリング結果のメッシュレット情報を受け取る構造体
 struct MeshletInstanceRecord
 {
 	uint vertex_offset;
@@ -259,38 +259,53 @@ struct MeshletInstanceRecord
 };
 StructuredBuffer<MeshletInstanceRecord> visible_meshlet_instances : register(t118);
 
-static uint meshlet_vertex_offset;
-static uint meshlet_triangle_offset;
-static uint meshlet_mesh_base_vertex;
-
-//	@tool SV_InstanceIDから描画対象のメッシュレットインスタンスを解決し、以降の頂点プーリングで使う各種インデックスとprimitive_indexを設定する
-//	戻り値は「三角形数を超えるvertex_idかどうか」(呼び出し側で縮退させる判定に使う)
-bool meshlet_resolve_instance(uint instance_id, uint vertex_id)
+//	メッシュレットコンテキスト構築
+MeshletContext meshlet_build_context(uint instance_id, uint vertex_id, out bool is_degenerate)
 {
 	MeshletInstanceRecord record = visible_meshlet_instances[instance_id];
-	meshlet_vertex_offset = record.vertex_offset;
-	meshlet_triangle_offset = record.triangle_offset;
-	meshlet_mesh_base_vertex = primitive_headers[record.primitive_index].base_vertex;
-	primitive_index = record.primitive_index;
-	return vertex_id >= record.triangle_count * 3;
+
+	MeshletContext context;
+	context.primitive_index = record.primitive_index;
+	context.mesh_base_vertex = primitive_headers[record.primitive_index].base_vertex;
+	context.meshlet_vertex_offset = record.vertex_offset;
+	context.meshlet_triangle_offset = record.triangle_offset;
+
+	is_degenerate = vertex_id >= record.triangle_count * 3;
+	return context;
 }
 #else	//	defined(INDIRECT_MESHLET_DRAW)
+cbuffer PRIMITIVE_CONSTANT_BUFFER
+{
+	uint primitive_index_constant;
+	uint3 primitive_index_padding;
+};
+
 cbuffer MESHLET_DRAW_CONSTANT_BUFFER : register(b5)
 {
-	uint meshlet_vertex_offset;
-	uint meshlet_triangle_offset;
-	uint meshlet_mesh_base_vertex;
+	uint meshlet_vertex_offset_constant;
+	uint meshlet_triangle_offset_constant;
+	uint meshlet_mesh_base_vertex_constant;
 	uint meshlet_draw_padding;
 };
+
+MeshletContext meshlet_build_context()
+{
+	MeshletContext context;
+	context.primitive_index = primitive_index_constant;
+	context.mesh_base_vertex = meshlet_mesh_base_vertex_constant;
+	context.meshlet_vertex_offset = meshlet_vertex_offset_constant;
+	context.meshlet_triangle_offset = meshlet_triangle_offset_constant;
+	return context;
+}
 #endif	//	defined(INDIRECT_MESHLET_DRAW)
 
 //	SV_VertexIDから、このメッシュレット内のローカル頂点番号を経由してグローバル頂点番号を求める
-uint meshlet_resolve_global_vertex_index(uint vertex_id)
+uint meshlet_resolve_global_vertex_index(MeshletContext context, uint vertex_id)
 {
-	uint triangle_index_pool_index = meshlet_triangle_offset + vertex_id;
+	uint triangle_index_pool_index = context.meshlet_triangle_offset + vertex_id;
 	uint local_vertex_index = meshlet_triangle_indices.Load(triangle_index_pool_index * 4);
-	uint mesh_local_vertex_index = meshlet_vertex_indices.Load((meshlet_vertex_offset + local_vertex_index) * 4);
-	return meshlet_mesh_base_vertex + mesh_local_vertex_index;
+	uint mesh_local_vertex_index = meshlet_vertex_indices.Load((context.meshlet_vertex_offset + local_vertex_index) * 4);
+	return context.mesh_base_vertex + mesh_local_vertex_index;
 }
 
 float3 meshlet_load_position(uint vertex_index) { return asfloat(meshlet_positions.Load3(vertex_index * 12)); }

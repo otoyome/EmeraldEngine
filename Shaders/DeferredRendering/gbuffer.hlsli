@@ -16,8 +16,6 @@ static const uint material_attribute_decal_off              = 1 <<  2;  //  デカ
 
 //  空き
 
-static const uint material_attribute_ligting_xz_plane       = 1 << 31;  //  [エンジン改造:ライティング計算時にXZ平面で適応]
-
 //static const uint material_attribute_ = 1 << 31;
 
 //  GBuffer情報構造体

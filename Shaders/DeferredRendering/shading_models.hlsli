@@ -71,15 +71,6 @@ DirectLighting integrate_bxdf(in GBufferData gbuffer_data, in LightingData light
             float4 ilm_color = gbuffer_data.ilm_color;
             float3 normal = normalize(gbuffer_data.w_normal);
             float3 lighting_direction = -normalize(lighting_data.direction);
-            if (IsGBufferFlags(gbuffer_data, material_attribute_ligting_xz_plane))
-            {
-                //  ライトの方向をXZ平面に射影
-                float3 face_right = UnpackNormal(gbuffer_data.unique_data.y);
-                float3 face_front = UnpackNormal(gbuffer_data.unique_data.z);
-                float x = dot(face_right, lighting_direction);
-                float z = dot(face_front, lighting_direction);
-                lighting_direction = normalize(face_right * x + face_front * z);
-            }
             float3 view_vector = -normalize(gbuffer_data.w_position.xyz - lighting_data.camera_position.xyz);
             // 反射ベクトルベースでも良いが、動きが安定しやすいのでハーフベクトルにしておく
             float3 half_vector = normalize(lighting_direction + view_vector);

@@ -3,7 +3,7 @@
 
 namespace
 {
-	//	@tool メッシュレット頂点プーリング用の属性SRV(t102からt117)をまとめて設定する(draw_indexed/model_render_indirect共通)
+	//	メッシュレット用の属性SRV設定
 	void bind_meshlet_attribute_srvs(const graphics_context& context)
 	{
 		static const semantic position_semantic("POSITION", 0);
@@ -232,10 +232,8 @@ void scene_renderer_commons::model_render_indirect(graphics_context& context,
 	auto draw_data_ptr = context.render_data->mesh_container.draw_datas.data();
 	auto material_data_ptr = context.render_data->mesh_container.material_datas.data();
 
-	//	@tool カリングはオクルージョンカリングと同じタイミングで事前に完了済みのため、ここではマテリアル単位で結果を参照して間接描画するだけ
 	std::unordered_set<material*> drawn;
 	std::vector<std::size_t> fallback_indices;
-
 	for (auto& draw_index : mesh_indices)
 	{
 		auto draw_data = draw_data_ptr + draw_index;
@@ -270,7 +268,6 @@ void scene_renderer_commons::model_render_indirect(graphics_context& context,
 		pipeline_state->end(context);
 	}
 
-	//	@tool 間接描画用バリアントの無いマテリアル、または生存メッシュレットが無かったマテリアルは、既存のメッシュレット単位描画にフォールバックする
 	if (!fallback_indices.empty())
 	{
 		model_render(context, fallback_indices, mesh_lengths, surface_path);

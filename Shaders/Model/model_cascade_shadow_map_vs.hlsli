@@ -4,10 +4,10 @@
 //#include "model.hlsli"
 
 //	メッシュレット頂点情報読込
-VS_SHADOW_MAP_IN load_vertex_pulled(uint vertex_id)
+VS_SHADOW_MAP_IN load_vertex_pulled(MeshletContext meshlet_context, uint vertex_id)
 {
     VS_SHADOW_MAP_IN vin = (VS_SHADOW_MAP_IN)0;
-    uint global_vertex_index = meshlet_resolve_global_vertex_index(vertex_id);
+    uint global_vertex_index = meshlet_resolve_global_vertex_index(meshlet_context, vertex_id);
 
     vin.position = meshlet_load_position(global_vertex_index);
     vin.normal = meshlet_load_normal(global_vertex_index);
@@ -44,12 +44,13 @@ VS_SHADOW_MAP_OUT main(uint vertex_id : SV_VertexID)
 {
     uint index;
     VS_SHADOW_MAP_OUT vout = (VS_SHADOW_MAP_OUT)0;
-    VS_SHADOW_MAP_IN vin = load_vertex_pulled(vertex_id);
+    MeshletContext meshlet_context = meshlet_build_context();
+    VS_SHADOW_MAP_IN vin = load_vertex_pulled(meshlet_context, vertex_id);
 
 #if defined(HAS_MORPH)  //  モーフィング対応
-    uint global_vertex_index_for_morph = meshlet_resolve_global_vertex_index(vertex_id);
-    apply_morph_position(vin.position, global_vertex_index_for_morph);
-    apply_morph_normal(vin.normal, global_vertex_index_for_morph);
+    uint global_vertex_index_for_morph = meshlet_resolve_global_vertex_index(meshlet_context, vertex_id);
+    apply_morph_position(meshlet_context, vin.position, global_vertex_index_for_morph);
+    apply_morph_normal(meshlet_context, vin.normal, global_vertex_index_for_morph);
 #endif  //  defined(HAS_MORPH)
 
 #if BONE_MAX > 0
@@ -58,8 +59,8 @@ VS_SHADOW_MAP_OUT main(uint vertex_id : SV_VertexID)
     {
         uint bone_index = vin.joints[index / 4][index % 4];
         float bone_weight = vin.weights[index / 4][index % 4];
-        position += mul(float4(vin.position, 1), get_bone_transform(bone_index)).xyz * bone_weight;
-        normal += mul(float4(vin.normal, 0), get_bone_transform(bone_index)).xyz * bone_weight;
+        position += mul(float4(vin.position, 1), get_bone_transform(meshlet_context, bone_index)).xyz * bone_weight;
+        normal += mul(float4(vin.normal, 0), get_bone_transform(meshlet_context, bone_index)).xyz * bone_weight;
     }
 #else  //  BONE_MAX > 0
     float3 position = vin.position;

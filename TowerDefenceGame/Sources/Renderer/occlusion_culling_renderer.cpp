@@ -35,8 +35,7 @@ void occlusion_culling_renderer::render(renderer_context& context)
 
 	float animation_test_distance = context.occlusion_animation_distance;
 
-	//	@tool 深度プリパス/G-Bufferパスの両方が同じ可視サブメッシュ一覧(opaque+mask)を描画するため、
-	//	メッシュレットカリングもここで1回だけ行い、両パスから結果を共有する
+	//	メッシュレットカリング情報
 	std::vector<std::size_t> visible_draw_indices;
 	if (context.render_mesh_indices)
 	{
@@ -44,8 +43,8 @@ void occlusion_culling_renderer::render(renderer_context& context)
 		visible_draw_indices.insert(visible_draw_indices.end(), context.render_mesh_indices->opaque.begin(), context.render_mesh_indices->opaque.end());
 		visible_draw_indices.insert(visible_draw_indices.end(), context.render_mesh_indices->mask.begin(), context.render_mesh_indices->mask.end());
 	}
-	auto render_mesh_indices = context.render_mesh_indices;
 
+	auto render_mesh_indices = context.render_mesh_indices;
 	job_executor.execute([this, occlusion, hiz, meshlet_culling, animation_test_distance, visible_draw_indices, render_mesh_indices](graphics_context& context)
 	{
 		context.debug_begin_event(L"occlusion_culling");
@@ -58,7 +57,7 @@ void occlusion_culling_renderer::render(renderer_context& context)
 		//	オクルージョンカリング実行
 		occlusion->update(context, animation_test_distance, *hiz);
 
-		//	メッシュレット単位カリング(深度プリパス/G-Bufferパスで共有)
+		//	メッシュレットカリング実行
 		if (render_mesh_indices)
 		{
 			meshlet_culling->build_and_cull(context, visible_draw_indices, render_mesh_indices->lengths, *hiz);
