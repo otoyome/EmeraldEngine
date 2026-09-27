@@ -983,7 +983,7 @@ void deffered_lighting_renderer::render_directional_shadow_map(const light& ligh
 		//	ƒ‚ƒfƒ‹—Þ•`‰æ
 		context.is_shadow_rendering = true;
 		scene_renderer_commons::model_render(context, context.render_data->mesh_container.shadow_datas, frustum_culling, material::surface_paths::shadow_write_pass);
-		scene_renderer_commons::particle_render(context, context.render_data->effect_container.sprite_trail_shadow_datas, material::surface_paths::shadow_write_pass);
+		//scene_renderer_commons::particle_render(context, context.render_data->effect_container.sprite_trail_shadow_datas, material::surface_paths::shadow_write_pass);
 		context.is_shadow_rendering = false;
 
 		shadow_map_pass.deactivate(context.device_context);
@@ -1129,7 +1129,7 @@ void deffered_lighting_renderer::render_spot_shadow_map(const light& light, comm
 
 		context.is_shadow_rendering = true;
 		scene_renderer_commons::model_render(context, context.render_data->mesh_container.shadow_datas, frustum_culling, material::surface_paths::shadow_write_pass);
-		scene_renderer_commons::particle_render(context, context.render_data->effect_container.sprite_trail_shadow_datas, material::surface_paths::shadow_write_pass);
+		//scene_renderer_commons::particle_render(context, context.render_data->effect_container.sprite_trail_shadow_datas, material::surface_paths::shadow_write_pass);
 		context.is_shadow_rendering = false;
 
 		shadow_map_pass.deactivate(context.device_context);

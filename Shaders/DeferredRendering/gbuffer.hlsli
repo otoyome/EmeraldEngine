@@ -238,4 +238,14 @@ void SetGBufferFlags(inout GBufferData data, uint bit_flag, bool flag)
     SetGBufferFlags(data.stencil, bit_flag, flag);
 }
 
+//	デバッグ用：メッシュレット用にIDから疑似ランダムな色を生成する
+float3 DebugMeshletIdToColor(uint id)
+{
+    uint h = id * 2654435761u;
+    float r = ((h >>  0) & 0xFF) / 255.0f;
+    float g = ((h >>  8) & 0xFF) / 255.0f;
+    float b = ((h >> 16) & 0xFF) / 255.0f;
+    return float3(r, g, b);
+}
+
 #endif  //  __GBUFFER_HLSLI__

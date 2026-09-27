@@ -229,6 +229,9 @@ void framework::imgui_render_infos_window()
 				bool freeze_culling = camera_data.camera->is_freeze_culling();
 				if (ImGui::Checkbox("freeze_culling", &freeze_culling))
 					camera_data.camera->set_freeze_culling(freeze_culling);
+				bool debug_visualize_meshlets = camera_data.camera->is_debug_visualize_meshlets();
+				if (ImGui::Checkbox("debug_visualize_meshlets", &debug_visualize_meshlets))
+					camera_data.camera->set_debug_visualize_meshlets(debug_visualize_meshlets);
 				ImGui::PopID();
 			}
 		}

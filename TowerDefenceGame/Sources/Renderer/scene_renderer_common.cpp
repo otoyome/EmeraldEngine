@@ -152,7 +152,6 @@ void scene_renderer_commons::draw_indexed(const graphics_context& context,
 
 	for (auto& meshlet : *draw_mesh->meshlets)
 	{
-		//	@tool カリング無効(no_cull)なオブジェクトはメッシュレット単位のフラスタムカリングも行わない
 		if (apply_meshlet_frustum_culling && !is_meshlet_visible(*meshlet_frustum_culling, buffer_data.world_transform, meshlet.bounds_center, meshlet.bounds_radius))
 			continue;
 

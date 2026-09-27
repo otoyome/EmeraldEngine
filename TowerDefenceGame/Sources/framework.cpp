@@ -651,6 +651,9 @@ void framework::prepare_renderer_context(
 		context.scene_constant_buffer = camera.constant_buffer;
 		context.scene_constant.time_data.x = current_time;
 		context.scene_constant.time_data.y = previous_time;
+#if defined(USE_IMGUI)
+		context.scene_constant.time_data.z = camera.camera->is_debug_visualize_meshlets() ? 1.0f : 0.0f;
+#endif	//	defined(USE_IMGUI)
 
 		context.scene_constant.camera_position.x = camera.camera->get_position().x;
 		context.scene_constant.camera_position.y = camera.camera->get_position().y;

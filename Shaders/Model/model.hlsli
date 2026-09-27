@@ -122,7 +122,9 @@ struct VS_GBUFFER_OUT
     float4 current_clip_position : CLIP_POSITION0;
     float4 previous_clip_position : CLIP_POSITION1;
     nointerpolation uint primitive_index : PRIMITIVE_INDEX;
+    nointerpolation uint meshlet_debug_id : MESHLET_DEBUG_ID;
 };
+#define HAS_MESHLET_DEBUG_ID
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 //  フォワードレンダリング用

@@ -66,6 +66,10 @@ public:
 	bool is_freeze_culling() const { return freeze_culling; }
 	void set_freeze_culling(bool flag) { freeze_culling = flag; }
 	bool resolve_debug_visible(UINT unique_id, bool current_visible);
+
+	//	デバッグ用にメッシュレット単位で色分け表示する
+	bool is_debug_visualize_meshlets() const { return debug_visualize_meshlets; }
+	void set_debug_visualize_meshlets(bool flag) { debug_visualize_meshlets = flag; }
 #endif	//	defined(USE_IMGUI)
 	void cache_previous_view_projection_matrix();
 
@@ -102,6 +106,7 @@ private:
 
 #if defined(USE_IMGUI)
 	bool freeze_culling = false;
+	bool debug_visualize_meshlets = false;
 	std::mutex frozen_visibilities_mutex;
 	std::unordered_map<UINT, bool> frozen_visibilities;
 #endif	//	defined(USE_IMGUI)

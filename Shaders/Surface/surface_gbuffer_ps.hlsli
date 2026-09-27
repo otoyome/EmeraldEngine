@@ -16,6 +16,16 @@ PS_GBUFFER_OUT main(VS_OUT pin, bool is_front_face : SV_IsFrontFace)
         clip(surface_data.base_color.a - alpha_threshold);
     }
 
+#if defined(HAS_MESHLET_DEBUG_ID)
+	if (time_data.z > 0.5f)
+	{
+		float3 debug_color = DebugMeshletIdToColor(pin.meshlet_debug_id);
+		surface_data.base_color = float4(debug_color, 1.0f);
+		surface_data.emissive_color = debug_color;
+		surface_data.shading_model = shading_model_unlit;
+	}
+#endif	//	defined(HAS_MESHLET_DEBUG_ID)
+
     //  GBufferData‚Éo—Íî•ñ‚ğ‚Ü‚Æ‚ß‚é
     GBufferData g_buffer_data = convert_g_buffer_data(surface_data);
     encode_g_buffer_data encode_data = encode_g_buffer(g_buffer_data, view_projection_transform, z_buffer_parameteres);

@@ -65,8 +65,13 @@ VS_OUT main(uint vertex_id : SV_VertexID, uint instance_id : SV_InstanceID)
         vout.position = float4(0, 0, 0, 0);
         return vout;
     }
+
     //	ピクセルシェーダー側でもprimitive_indexが欲しいときがあるので
     vout.primitive_index = meshlet_context.primitive_index;
+
+#if !defined(FORWARD_RENDERING)
+	vout.meshlet_debug_id = meshlet_context.primitive_index * 1000003u + meshlet_context.meshlet_triangle_offset;
+#endif	//	!defined(FORWARD_RENDERING)
 
     VS_IN vin = load_vertex_pulled(meshlet_context, vertex_id);
 
