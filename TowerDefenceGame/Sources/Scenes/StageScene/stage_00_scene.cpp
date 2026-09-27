@@ -25,6 +25,46 @@ bool stage_00_scene::initialize_core()
 	{
 		auto directional = std::make_shared<directional_light_object>("•½sŒõŒ¹");
 		//directional->get_light()->set_csm_distance_factor(0.25f);
+		{
+			int index = 0;
+			auto bias = directional->get_light()->get_shadow_bias(index);
+			bias.depth_bias = 0;
+			directional->get_light()->set_shadow_bias(index, bias);
+		}
+		{
+			int index = 1;
+			auto bias = directional->get_light()->get_shadow_bias(index);
+			bias.depth_bias = 0;
+			directional->get_light()->set_shadow_bias(index, bias);
+		}
+		{
+			int index = 2;
+			auto bias = directional->get_light()->get_shadow_bias(index);
+			bias.depth_bias = 0;
+			bias.sigma_factor = 2.0f;
+			directional->get_light()->set_shadow_bias(index, bias);
+		}
+		{
+			int index = 3;
+			auto bias = directional->get_light()->get_shadow_bias(index);
+			bias.depth_bias = 0.03f;
+			bias.sigma_factor = 2.0f;
+			directional->get_light()->set_shadow_bias(index, bias);
+		}
+		{
+			int index = 4;
+			auto bias = directional->get_light()->get_shadow_bias(index);
+			bias.depth_bias = 0.05f;
+			bias.sigma_factor = 2.0f;
+			directional->get_light()->set_shadow_bias(index, bias);
+		}
+		{
+			int index = 5;
+			auto bias = directional->get_light()->get_shadow_bias(index);
+			bias.depth_bias = 0.07f;
+			bias.sigma_factor = 2.0f;
+			directional->get_light()->set_shadow_bias(index, bias);
+		}
 		register_object(directional);
 	}
 

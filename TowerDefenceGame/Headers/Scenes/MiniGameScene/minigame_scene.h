@@ -60,4 +60,5 @@ private:
 	game_states game_state;
 	int trash_count;
 	int trash_max;
+	float max_speed_kmh;
 };

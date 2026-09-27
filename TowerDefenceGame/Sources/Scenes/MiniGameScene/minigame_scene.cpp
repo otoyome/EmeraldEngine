@@ -16,6 +16,7 @@
 #include "object/gameobjects/ui/common/transition_fade_controller.h"
 #include "object/gameobjects/ui/hud/countdown_controller_object.h"
 #include "object/gameobjects/minigame/roomba_tutorial_controller_object.h"
+#include "object/gameobjects/minigame/minigame_record_data.h"
 
 namespace
 {
@@ -226,9 +227,9 @@ minigame_scene::minigame_scene()
 
 	//	タイマーリセット
 	game_timer = 0.0f;
+	max_speed_kmh = 0.0f;
 	countdown_timer = 0.0f;
 	trash_count = 0;
-	trash_max = 10;
 	game_state = game_states::startup;
 }
 
@@ -391,6 +392,15 @@ void minigame_scene::update_core(float elapsed_time)
 				timer_object->set_time(game_timer);
 			}
 
+			//	最高速度を記録
+			if (player_object)
+			{
+				DirectX::XMVECTOR Velocity = DirectX::XMLoadFloat3(&player_object->get_velocity());
+				float speed_m_s = system_units::convert_unit_to_m(DirectX::XMVectorGetX(DirectX::XMVector3Length(Velocity)));
+				float speed_kmh = speed_m_s * 3.6f;
+				max_speed_kmh = std::max(max_speed_kmh, speed_kmh);
+			}
+
 			//	プレイヤー死亡でリスタート処理へ
 			if (player_object && player_object->check_same_state(roomba_object::state_names[roomba_object::state_dead]))
 			{
@@ -474,6 +484,25 @@ void minigame_scene::update_core(float elapsed_time)
 				scene_manager::instance()->remove_scene<stage_00_scene>();
 				scene_manager::instance()->remove_scene<minigame_ui_scene>();
 				scene_manager::instance()->remove_scene<minigame_scene>();
+
+				//	リザルトシーンへ成績を渡す
+				minigame_result_scene::result_data result;
+				result.clear_time = game_timer;
+				result.trash_count = trash_count;
+				result.trash_max = trash_max;
+				result.max_speed_kmh = max_speed_kmh;
+				minigame_result_scene::set_result(result);
+
+				//	過去の記録として保存
+				if (auto record_data = minigame_record_data::instance())
+				{
+					minigame_record_entry entry;
+					entry.clear_time = game_timer;
+					entry.max_speed_kmh = max_speed_kmh;
+					entry.trash_count = trash_count;
+					entry.trash_max = trash_max;
+					record_data->add_record(entry);
+				}
 				scene_manager::instance()->add_scene<minigame_result_scene>();
 			}
 			break;

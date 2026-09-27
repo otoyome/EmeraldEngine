@@ -352,6 +352,10 @@ float roomba_object::get_heat_rate() const
 
 float roomba_object::get_attract_range() const
 {
+	//	€–S‚Í‹z‚¢‚Ü‚È‚¢
+	if (check_same_state(state_names[state_dead]))
+		return 0.0f;
+
 	DirectX::XMVECTOR Velocity = DirectX::XMLoadFloat3(&get_velocity());
 	float speed = DirectX::XMVectorGetX(DirectX::XMVector3Length(Velocity));
 	float speed_rate = math::saturate(speed / get_max_speed(move_mode::dash));

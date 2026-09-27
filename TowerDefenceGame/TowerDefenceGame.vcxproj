@@ -354,6 +354,7 @@ xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y</Command>
     <ClCompile Include="Sources\Object\GameObjects\MiniGame\roomba_gauge_controller_object.cpp" />
     <ClCompile Include="Sources\Object\GameObjects\MiniGame\roomba_object _management.cpp" />
     <ClCompile Include="Sources\Object\GameObjects\MiniGame\roomba_object.cpp" />
+    <ClCompile Include="Sources\Object\GameObjects\MiniGame\minigame_record_data.cpp" />
     <ClCompile Include="Sources\Object\GameObjects\MiniGame\roomba_hud_controller_object.cpp" />
     <ClCompile Include="Sources\Object\GameObjects\MiniGame\roomba_speed_controller_object.cpp" />
     <ClCompile Include="Sources\Object\GameObjects\MiniGame\roomba_trash_controller_object.cpp" />
@@ -469,6 +470,7 @@ xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y</Command>
     <ClInclude Include="Headers\Object\GameObjects\MiniGame\roomba_controller_object.h" />
     <ClInclude Include="Headers\Object\GameObjects\MiniGame\roomba_gauge_controller_object.h" />
     <ClInclude Include="Headers\Object\GameObjects\MiniGame\roomba_object.h" />
+    <ClInclude Include="Headers\Object\GameObjects\MiniGame\minigame_record_data.h" />
     <ClInclude Include="Headers\Object\GameObjects\MiniGame\roomba_hud_controller_object.h" />
     <ClInclude Include="Headers\Object\GameObjects\MiniGame\roomba_speed_controller_object.h" />
     <ClInclude Include="Headers\Object\GameObjects\MiniGame\roomba_trash_controller_object.h" />
