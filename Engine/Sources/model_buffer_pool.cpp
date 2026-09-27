@@ -121,10 +121,20 @@ model_buffer_pool_manager::model_buffer_pool_manager()
 	meshlet_triangle_capacity_current = meshlet_triangle_pool_capacity;
 
 	D3D11_BUFFER_DESC bd{};
-	bd.ByteWidth = sizeof(common_pipeline_states::meshlet_draw_constants);
+	bd.ByteWidth = sizeof(common_pipeline_states::meshlet_instance_record);
 	bd.Usage = D3D11_USAGE_DEFAULT;
-	bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-	HRESULT hr = render_data::instance()->get_device()->CreateBuffer(&bd, nullptr, meshlet_draw_constant_buffer.GetAddressOf());
+	bd.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+	bd.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
+	bd.StructureByteStride = sizeof(common_pipeline_states::meshlet_instance_record);
+	HRESULT hr = render_data::instance()->get_device()->CreateBuffer(&bd, nullptr, single_meshlet_instance_buffer.GetAddressOf());
+	_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+
+	D3D11_SHADER_RESOURCE_VIEW_DESC sd{};
+	sd.Format = DXGI_FORMAT_UNKNOWN;
+	sd.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
+	sd.Buffer.FirstElement = 0;
+	sd.Buffer.NumElements = 1;
+	hr = render_data::instance()->get_device()->CreateShaderResourceView(single_meshlet_instance_buffer.Get(), &sd, single_meshlet_instance_srv.GetAddressOf());
 	_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
 }
 
@@ -291,9 +301,14 @@ ID3D11ShaderResourceView* model_buffer_pool_manager::get_meshlet_triangle_buffer
 	return meshlet_triangle_buffer->get_srv();
 }
 
-ID3D11Buffer* model_buffer_pool_manager::get_meshlet_draw_constant_buffer()
+ID3D11Buffer* model_buffer_pool_manager::get_single_meshlet_instance_buffer()
 {
-	return meshlet_draw_constant_buffer.Get();
+	return single_meshlet_instance_buffer.Get();
+}
+
+ID3D11ShaderResourceView* model_buffer_pool_manager::get_single_meshlet_instance_srv()
+{
+	return single_meshlet_instance_srv.Get();
 }
 
 void model_buffer_pool_manager::flush_uploads()

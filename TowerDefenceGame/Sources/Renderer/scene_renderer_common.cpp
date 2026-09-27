@@ -65,6 +65,7 @@ void scene_renderer_commons::draw(const graphics_context& context,
 void scene_renderer_commons::draw_indexed(const graphics_context& context,
 					float mesh_length,
 					const buffer_datas& buffer_data,
+					UINT primitive_index,
 					graphics_pipeline_state_ptr pipeline_state)
 {
 	const buffer_datas::sub_mesh* draw_mesh = nullptr;
@@ -122,37 +123,29 @@ void scene_renderer_commons::draw_indexed(const graphics_context& context,
 	context.device_context->VSSetShaderResources(common_pipeline_states::morph_srv_normal_index,
 												 common_pipeline_states::morph_max, morph_normals);
 
-	//	メッシュレットの頂点はメッシュローカルな頂点番号なので、
-	//	プール内でのメッシュの先頭頂点位置を算出
-	UINT mesh_base_vertex = 0;
-	{
-		static const semantic position_semantic("POSITION", 0);
-		auto it = draw_mesh->vertex_buffer_views->find(position_semantic);
-		if (it != draw_mesh->vertex_buffer_views->end())
-			mesh_base_vertex = static_cast<UINT>(it->second.offset());
-	}
-
 	//	頂点バッファ登録
 	bind_meshlet_attribute_srvs(context);
 
-	//	メッシュレット単位で描画するので通常の頂点バッファ等は使用しない
+	//	メッシュレット単位で描画するので通常の頂点バッファ入力は使用しない
 	context.set_vertex_buffers(0, 0, nullptr, nullptr, nullptr);
 	context.set_index_buffer(nullptr, DXGI_FORMAT_UNKNOWN, 0);
 	context.set_primitive_topology(draw_mesh->primitive_topology);
 
-	auto meshlet_constant_buffer = model_buffer_pool_manager::instance()->get_meshlet_draw_constant_buffer();
-	context.device_context->VSSetConstantBuffers(common_pipeline_states::meshlet_cbv_index, 1, &meshlet_constant_buffer);
+	auto pool = model_buffer_pool_manager::instance();
+	auto single_instance_buffer = pool->get_single_meshlet_instance_buffer();
+	auto single_instance_srv = pool->get_single_meshlet_instance_srv();
+	context.device_context->VSSetShaderResources(118, 1, &single_instance_srv);
 
 	for (auto& meshlet : *draw_mesh->meshlets)
 	{
-		//	定数バッファで各種バッファの位置情報を渡す
-		common_pipeline_states::meshlet_draw_constants constants{};
-		constants.vertex_offset = meshlet.vertex_offset;
-		constants.triangle_offset = meshlet.triangle_offset;
-		constants.mesh_base_vertex = mesh_base_vertex;
-		context.device_context->UpdateSubresource(meshlet_constant_buffer, 0, nullptr, &constants, 0, 0);
+		common_pipeline_states::meshlet_instance_record record{};
+		record.vertex_offset = meshlet.vertex_offset;
+		record.triangle_offset = meshlet.triangle_offset;
+		record.triangle_count = meshlet.triangle_count;
+		record.primitive_index = primitive_index;
+		context.device_context->UpdateSubresource(single_instance_buffer, 0, nullptr, &record, 0, 0);
 
-		context.device_context->Draw(meshlet.triangle_count * 3, 0);
+		context.device_context->DrawInstanced(meshlet.triangle_count * 3, 1, 0, 0);
 	}
 }
 
@@ -216,7 +209,7 @@ void scene_renderer_commons::model_render(graphics_context& context,
 
 			material_data->material->update_parameters(context);
 			current_pipeline_state->update_parameters(context, *material_data->material, buffer_data);
-			draw_indexed(context, mesh_lengths[draw_index], *buffer_data, current_pipeline_state);
+			draw_indexed(context, mesh_lengths[draw_index], *buffer_data, draw_data->buffer_index, current_pipeline_state);
 		}
 	}
 	if (current_pipeline_state)
@@ -240,7 +233,7 @@ void scene_renderer_commons::model_render_indirect(graphics_context& context,
 		auto material_data = material_data_ptr + draw_data->material_index;
 		material* mat = material_data->material;
 
-		auto pipeline_state = mat->get_pipeline_state(surface_path, true);
+		auto pipeline_state = mat->get_pipeline_state(surface_path);
 		auto result = pipeline_state ? meshlet_culling.find_result(mat) : nullptr;
 
 		if (!pipeline_state || !result)
@@ -250,7 +243,7 @@ void scene_renderer_commons::model_render_indirect(graphics_context& context,
 		}
 
 		if (!drawn.insert(mat).second)
-			continue;	//	同一マテリアルは既に描画済み
+			continue;	//	このマテリアルは既に描画済み
 
 		pipeline_state->begin(context);
 		mat->update_parameters(context);
@@ -315,7 +308,7 @@ void scene_renderer_commons::model_render(graphics_context& context,
 			float lod_diff_y = lod_center_y - context.scene_constant.camera_position.y;
 			float lod_diff_z = lod_center_z - context.scene_constant.camera_position.z;
 			float mesh_length = sqrtf(lod_diff_x * lod_diff_x + lod_diff_y * lod_diff_y + lod_diff_z * lod_diff_z);
-			draw_indexed(context, mesh_length, *buffer_data, current_pipeline_state);
+			draw_indexed(context, mesh_length, *buffer_data, draw_data->buffer_index, current_pipeline_state);
 		}
 	}
 	if (current_pipeline_state)
@@ -326,7 +319,7 @@ void scene_renderer_commons::particle_render(graphics_context& context,
 					const std::vector<std::size_t>& draw_indices,
 					material::surface_paths surface_path)
 {
-	//	スプライト/軌跡パーティクル
+	//	スプライト/トレイルパーティクル
 	auto draw_data_ptr = context.render_data->effect_container.sprite_trail_draw_datas.data();
 
 	//	パーティクル類描画

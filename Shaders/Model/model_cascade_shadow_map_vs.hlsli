@@ -40,11 +40,20 @@ VS_SHADOW_MAP_IN load_vertex_pulled(MeshletContext meshlet_context, uint vertex_
     return vin;
 }
 
-VS_SHADOW_MAP_OUT main(uint vertex_id : SV_VertexID)
+VS_SHADOW_MAP_OUT main(uint vertex_id : SV_VertexID, uint instance_id : SV_InstanceID)
 {
     uint index;
     VS_SHADOW_MAP_OUT vout = (VS_SHADOW_MAP_OUT)0;
-    MeshletContext meshlet_context = meshlet_build_context();
+
+	//	メッシュレット構築
+    bool is_degenerate;
+    MeshletContext meshlet_context = meshlet_build_context(instance_id, vertex_id, is_degenerate);
+    if (is_degenerate)
+    {
+        //  構築できない場合は縮退ポリゴン化
+        vout.position = float4(0, 0, 0, 0);
+        return vout;
+    }
     VS_SHADOW_MAP_IN vin = load_vertex_pulled(meshlet_context, vertex_id);
 
 #if defined(HAS_MORPH)  //  モーフィング対応

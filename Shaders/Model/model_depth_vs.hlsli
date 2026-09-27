@@ -43,17 +43,12 @@ VS_DEPTH_IN load_vertex_pulled(MeshletContext meshlet_context, uint vertex_id)
     return vin;
 }
 
-#if defined(INDIRECT_MESHLET_DRAW)
 VS_DEPTH_OUT main(uint vertex_id : SV_VertexID, uint instance_id : SV_InstanceID)
-#else	//	defined(INDIRECT_MESHLET_DRAW)
-VS_DEPTH_OUT main(uint vertex_id : SV_VertexID)
-#endif	//	defined(INDIRECT_MESHLET_DRAW)
 {
     uint index;
     VS_DEPTH_OUT vout = (VS_DEPTH_OUT)0;
 
-#if defined(INDIRECT_MESHLET_DRAW)
-    //	メッシュレット構築
+	//	メッシュレット構築
     bool is_degenerate;
     MeshletContext meshlet_context = meshlet_build_context(instance_id, vertex_id, is_degenerate);
     if (is_degenerate)
@@ -62,10 +57,6 @@ VS_DEPTH_OUT main(uint vertex_id : SV_VertexID)
         vout.position = float4(0, 0, 0, 0);
         return vout;
     }
-#else	//	defined(INDIRECT_MESHLET_DRAW)
-    MeshletContext meshlet_context = meshlet_build_context();
-#endif	//	defined(INDIRECT_MESHLET_DRAW)
-
     VS_DEPTH_IN vin = load_vertex_pulled(meshlet_context, vertex_id);
 
 #if defined(HAS_MORPH)  //  モーフィング対応

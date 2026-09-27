@@ -19,7 +19,7 @@
 //  ↑のマクロの宣言状況に応じて追加するかしないかを決めるためのマクロ
 #if VERTEX_COLOR_MAX > 0
 static const uint VertexColorMax = VERTEX_COLOR_MAX;
-#define DECLARATION_IN_COLOR    float4 color[VertexColorMax] : COLOR;
+#define DECLARATION_IN_COLOR    float4 color[VertexColorMax];
 #define DECLARATION_OUT_COLOR   float4 color[VertexColorMax] : COLOR;
 #else   //  VERTEX_COLOR_MAX > 0
 #define DECLARATION_IN_COLOR
@@ -28,7 +28,7 @@ static const uint VertexColorMax = VERTEX_COLOR_MAX;
 
 #if TEXCOORD_MAX > 0
 static const uint TexcoordMax = TEXCOORD_MAX;
-#define DECLARATION_IN_TEXCOORD     float2 texcoord[TexcoordMax] : TEXCOORD;
+#define DECLARATION_IN_TEXCOORD     float2 texcoord[TexcoordMax];
 #define DECLARATION_OUT_TEXCOORD    float2 texcoord[TexcoordMax] : TEXCOORD;
 #else   //  TEXCOORD_MAX > 0
 #define DECLARATION_IN_TEXCOORD
@@ -38,15 +38,15 @@ static const uint TexcoordMax = TEXCOORD_MAX;
 #if BONE_MAX > 0
 static const uint AlignmentBoneMax = alignment( BONE_MAX, 4 ) / 4;
 static const uint BoneMax = BONE_MAX;
-#define DECLARATION_IN_JOINTS   uint4 joints[AlignmentBoneMax] : JOINTS;
-#define DECLARATION_IN_WEIGHTS  float4 weights[AlignmentBoneMax] : WEIGHTS;
+#define DECLARATION_IN_JOINTS   uint4 joints[AlignmentBoneMax];
+#define DECLARATION_IN_WEIGHTS  float4 weights[AlignmentBoneMax];
 #else   //  BONE_MAX > 0
 #define DECLARATION_IN_JOINTS
 #define DECLARATION_IN_WEIGHTS
 #endif  //  BONE_MAX > 0
 
 #if defined(HAS_TANGENT)
-#define DECLARATION_IN_TANGENT  float4 tangent : TANGENT;
+#define DECLARATION_IN_TANGENT  float4 tangent;
 #define DECLARATION_OUT_TANGENT float4 w_tangent : TANGENT;
 #else   //  defined(HAS_TANGENT)
 #define DECLARATION_IN_TANGENT
@@ -57,8 +57,8 @@ static const uint BoneMax = BONE_MAX;
 //  深度書き込み用
 struct VS_DEPTH_IN
 {
-    float3 position : POSITION;
-    float3 normal : NORMAL;
+    float3 position;
+    float3 normal;
     DECLARATION_IN_TANGENT
     DECLARATION_IN_COLOR
     DECLARATION_IN_TEXCOORD
@@ -80,8 +80,8 @@ struct VS_DEPTH_OUT
 //  シャドウマップ生成用
 struct VS_SHADOW_MAP_IN
 {
-    float3 position : POSITION;
-    float3 normal : NORMAL;
+    float3 position;
+    float3 normal;
     DECLARATION_IN_COLOR
     DECLARATION_IN_TEXCOORD
     DECLARATION_IN_JOINTS
@@ -101,8 +101,8 @@ struct VS_SHADOW_MAP_OUT
 //  GBuffer生成用
 struct VS_GBUFFER_IN
 {
-    float3 position : POSITION;
-    float3 normal : NORMAL;
+    float3 position;
+    float3 normal;
     DECLARATION_IN_TANGENT
     DECLARATION_IN_COLOR
     DECLARATION_IN_TEXCOORD
@@ -242,8 +242,7 @@ ByteAddressBuffer meshlet_weights3 : register(t115);
 ByteAddressBuffer meshlet_vertex_indices : register(t116);
 ByteAddressBuffer meshlet_triangle_indices : register(t117);
 
-#if defined(INDIRECT_MESHLET_DRAW)
-//	カリング結果のメッシュレット情報を受け取る構造体
+//	メッシュレットインスタンス情報
 struct MeshletInstanceRecord
 {
 	uint vertex_offset;
@@ -273,31 +272,6 @@ MeshletContext meshlet_build_context(uint instance_id, uint vertex_id, out bool 
 	is_degenerate = vertex_id >= record.triangle_count * 3;
 	return context;
 }
-#else	//	defined(INDIRECT_MESHLET_DRAW)
-cbuffer PRIMITIVE_CONSTANT_BUFFER
-{
-	uint primitive_index_constant;
-	uint3 primitive_index_padding;
-};
-
-cbuffer MESHLET_DRAW_CONSTANT_BUFFER : register(b5)
-{
-	uint meshlet_vertex_offset_constant;
-	uint meshlet_triangle_offset_constant;
-	uint meshlet_mesh_base_vertex_constant;
-	uint meshlet_draw_padding;
-};
-
-MeshletContext meshlet_build_context()
-{
-	MeshletContext context;
-	context.primitive_index = primitive_index_constant;
-	context.mesh_base_vertex = meshlet_mesh_base_vertex_constant;
-	context.meshlet_vertex_offset = meshlet_vertex_offset_constant;
-	context.meshlet_triangle_offset = meshlet_triangle_offset_constant;
-	return context;
-}
-#endif	//	defined(INDIRECT_MESHLET_DRAW)
 
 //	SV_VertexIDから、このメッシュレット内のローカル頂点番号を経由してグローバル頂点番号を求める
 uint meshlet_resolve_global_vertex_index(MeshletContext context, uint vertex_id)

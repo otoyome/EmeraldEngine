@@ -230,7 +230,6 @@ void material::build()
 #endif	//	defined(USE_IMGUI)
 
 			pipeline_state.value = state;
-			pipeline_state.indirect_value = pipeline_state_manager::instance()->search(pipeline_state.name + "_indirect");
 
 #if defined(USE_IMGUI)
 			if (pipeline_state.value)
@@ -611,7 +610,6 @@ bool material::set_pipeline_state(const set_surface_pipeline_states_desc* descs,
 #endif	//	defined(USE_IMGUI)
 
 				pipeline_states[index].value = pipeline_state;
-				pipeline_states[index].indirect_value = pipeline_state_manager::instance()->search(name + "_indirect");
 
 #if defined(USE_IMGUI)
 				if (pipeline_states[index].value)
@@ -647,7 +645,6 @@ bool material::set_pipeline_state(domains domain, UINT index, std::string_view p
 #endif	//	defined(USE_IMGUI)
 
 			pipeline_states[index].value = pipeline_state;
-			pipeline_states[index].indirect_value = pipeline_state_manager::instance()->search(name + "_indirect");
 
 #if defined(USE_IMGUI)
 			if (pipeline_states[index].value)
@@ -668,7 +665,6 @@ bool material::set_pipeline_state(domains domain, UINT index, std::string_view p
 #endif	//	defined(USE_IMGUI)
 
 			pipeline_states[index].value = pipeline_state;
-			pipeline_states[index].indirect_value = pipeline_state_manager::instance()->search(name + "_indirect");
 
 			//	マテリアルパラメーターの更新
 			build_parameters();
@@ -730,17 +726,6 @@ graphics_pipeline_state_ptr material::get_pipeline_state(surface_paths value) co
 {
 	assert(domain == domains::surface || domain == domains::particle);
 	return get_pipeline_state(domain, static_cast<UINT>(value));
-}
-graphics_pipeline_state_ptr material::get_pipeline_state(surface_paths value, bool indirect) const
-{
-	assert(domain == domains::surface || domain == domains::particle);
-	if (!indirect)
-		return get_pipeline_state(value);
-
-	UINT index = static_cast<UINT>(value);
-	if (index >= pipeline_states.size())
-		return nullptr;
-	return pipeline_states[index].indirect_value;
 }
 
 graphics_pipeline_state_ptr material::get_pipeline_state(decal_paths value) const

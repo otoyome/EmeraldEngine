@@ -6,6 +6,7 @@
 #include <string>
 
 #include "buffer_view.h"
+#include "common_pipeline_states.h"
 #include "System/variable_position_allocator.h"
 
 //	GPUバッファの実体とアップロードキューだけを持つクラス
@@ -61,9 +62,11 @@ private:
 	~model_buffer_pool_manager();
 
 public:
+	//	頂点バッファ確保
 	UINT allocate_vertex_slots(UINT vertex_count);
 	void free_vertex_slots(UINT base_vertex);
 
+	//	頂点バッファをアップロード
 	void queue_vertex_upload(const semantic& target_semantic, UINT byte_offset, const void* data, UINT size_in_bytes, UINT stride_in_bytes);
 	ID3D11Buffer* get_vertex_buffer(const semantic& target_semantic);
 	ID3D11ShaderResourceView* get_vertex_buffer_srv(const semantic& target_semantic);
@@ -74,7 +77,8 @@ public:
 
 	ID3D11ShaderResourceView* get_meshlet_vertex_buffer_srv();
 	ID3D11ShaderResourceView* get_meshlet_triangle_buffer_srv();
-	ID3D11Buffer* get_meshlet_draw_constant_buffer();
+	ID3D11Buffer* get_single_meshlet_instance_buffer();
+	ID3D11ShaderResourceView* get_single_meshlet_instance_srv();
 
 	void flush_uploads();
 
@@ -106,5 +110,7 @@ private:
 	std::unique_ptr<model_gpu_buffer> meshlet_triangle_buffer;
 	UINT meshlet_triangle_capacity_current = 0;
 
-	Microsoft::WRL::ComPtr<ID3D11Buffer> meshlet_draw_constant_buffer;
+	//	@tool 単体描画（DrawInstanced 1件）用のメッシュレットインスタンス情報バッファ
+	Microsoft::WRL::ComPtr<ID3D11Buffer> single_meshlet_instance_buffer;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> single_meshlet_instance_srv;
 };

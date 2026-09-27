@@ -133,21 +133,28 @@ namespace common_pipeline_states
 		DirectX::XMFLOAT4 position_morph[morph_max / 4];
 		DirectX::XMFLOAT4 normal_morph[morph_max / 4];
 	};
+
+	//	プリミティブ番号定数バッファ
 	struct primitive_index_constants
 	{
 		UINT primitive_index = 0;
 		UINT primitive_index_padding[3] = {};
 	};
 
-	//	メッシュレット定数バッファ
-	struct meshlet_draw_constants
+	//	メッシュレットインスタンス情報
+	struct meshlet_instance_record
 	{
 		UINT vertex_offset = 0;
 		UINT triangle_offset = 0;
-		UINT mesh_base_vertex = 0;
+		UINT triangle_count = 0;
+		UINT primitive_index = 0;
+		DirectX::XMFLOAT3 bounds_center = {};
+		float bounds_radius = 0.0f;
+		UINT transform_index = 0;
+		UINT no_cull = 0;
+		UINT pipeline_group = 0;
 		UINT padding = 0;
 	};
-
 	constexpr UINT morph_srv_position_index = 80;	//	モーフィング用座標
 	constexpr UINT morph_srv_normal_index = morph_srv_position_index + morph_max * 1;		//	モーフィング用法線
 	constexpr std::string_view morph_positions_name = "morph_positions";
