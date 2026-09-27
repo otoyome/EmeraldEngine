@@ -23,7 +23,8 @@ namespace scene_renderer_commons
 					  float mesh_length,
 					  const buffer_datas& buffer_data,
 					  UINT primitive_index,
-					  graphics_pipeline_state_ptr pipeline_state);
+					  graphics_pipeline_state_ptr pipeline_state,
+					  const collision::frustum_culling* meshlet_frustum_culling = nullptr);
 
 	void draw_geometric_primitive(const graphics_context& context,
 					  const geometric_primitive& primitive);
@@ -31,7 +32,8 @@ namespace scene_renderer_commons
 	void model_render(graphics_context& context,
 					  const std::vector<std::size_t>& mesh_indices,
 					  const std::vector<float>& mesh_lengths,
-					  material::surface_paths surface_path);
+					  material::surface_paths surface_path,
+					  const collision::frustum_culling* meshlet_frustum_culling = nullptr);
 
 	void model_render(graphics_context& context,
 					  const std::vector<std::size_t>& mesh_indices,

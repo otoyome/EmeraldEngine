@@ -110,7 +110,6 @@ private:
 	std::unique_ptr<model_gpu_buffer> meshlet_triangle_buffer;
 	UINT meshlet_triangle_capacity_current = 0;
 
-	//	@tool 単体描画（DrawInstanced 1件）用のメッシュレットインスタンス情報バッファ
 	Microsoft::WRL::ComPtr<ID3D11Buffer> single_meshlet_instance_buffer;
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> single_meshlet_instance_srv;
 };

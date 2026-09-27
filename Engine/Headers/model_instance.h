@@ -131,8 +131,6 @@ private:
 	model_instance_manger();
 	~model_instance_manger();
 
-	void generate_constant_bufferes();
-
 public:
 	void registered(std::weak_ptr<model_instance> instance);
 
@@ -140,5 +138,4 @@ public:
 
 private:
 	model_instances instances;
-	std::vector<Microsoft::WRL::ComPtr<ID3D11Buffer>> constant_bufferes;
 };

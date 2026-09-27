@@ -43,6 +43,27 @@ namespace
 		};
 		context.device_context->VSSetShaderResources(102, 16, attribute_srvs);
 	}
+
+	//	ローカル空間のメッシュレット境界球をワールド変換し、視錐台と交差するか判定する
+	bool is_meshlet_visible(const collision::frustum_culling& frustum_culling,
+							 const DirectX::XMFLOAT4X4& world_transform,
+							 const DirectX::XMFLOAT3& local_center,
+							 float local_radius)
+	{
+		DirectX::XMVECTOR local_center_vector = DirectX::XMLoadFloat3(&local_center);
+		DirectX::XMMATRIX world_matrix = DirectX::XMLoadFloat4x4(&world_transform);
+		DirectX::XMFLOAT3 world_center;
+		DirectX::XMStoreFloat3(&world_center, DirectX::XMVector3TransformCoord(local_center_vector, world_matrix));
+
+		float scale_x = sqrtf(world_transform._11 * world_transform._11 + world_transform._12 * world_transform._12 + world_transform._13 * world_transform._13);
+		float scale_y = sqrtf(world_transform._21 * world_transform._21 + world_transform._22 * world_transform._22 + world_transform._23 * world_transform._23);
+		float scale_z = sqrtf(world_transform._31 * world_transform._31 + world_transform._32 * world_transform._32 + world_transform._33 * world_transform._33);
+		float scale = scale_x;
+		if (scale_y > scale) scale = scale_y;
+		if (scale_z > scale) scale = scale_z;
+
+		return frustum_culling.to_sphere(world_center, local_radius * scale);
+	}
 }
 
 float scene_renderer_commons::convert_linear_depth_to_projection_depth(float depth, float z_buffer_parameteres_y)
@@ -66,7 +87,8 @@ void scene_renderer_commons::draw_indexed(const graphics_context& context,
 					float mesh_length,
 					const buffer_datas& buffer_data,
 					UINT primitive_index,
-					graphics_pipeline_state_ptr pipeline_state)
+					graphics_pipeline_state_ptr pipeline_state,
+					const collision::frustum_culling* meshlet_frustum_culling)
 {
 	const buffer_datas::sub_mesh* draw_mesh = nullptr;
 	ID3D11ShaderResourceView* morph_positions[common_pipeline_states::morph_max] = {};
@@ -138,6 +160,9 @@ void scene_renderer_commons::draw_indexed(const graphics_context& context,
 
 	for (auto& meshlet : *draw_mesh->meshlets)
 	{
+		if (meshlet_frustum_culling && !is_meshlet_visible(*meshlet_frustum_culling, buffer_data.world_transform, meshlet.bounds_center, meshlet.bounds_radius))
+			continue;
+
 		common_pipeline_states::meshlet_instance_record record{};
 		record.vertex_offset = meshlet.vertex_offset;
 		record.triangle_offset = meshlet.triangle_offset;
@@ -181,7 +206,8 @@ void scene_renderer_commons::draw_geometric_primitive(const graphics_context& co
 void scene_renderer_commons::model_render(graphics_context& context,
 					const std::vector<std::size_t>& mesh_indices,
 					const std::vector<float>& mesh_lengths,
-					material::surface_paths surface_path)
+					material::surface_paths surface_path,
+					const collision::frustum_culling* meshlet_frustum_culling)
 {
 	auto draw_data_ptr = context.render_data->mesh_container.draw_datas.data();
 	auto material_data_ptr = context.render_data->mesh_container.material_datas.data();
@@ -209,7 +235,7 @@ void scene_renderer_commons::model_render(graphics_context& context,
 
 			material_data->material->update_parameters(context);
 			current_pipeline_state->update_parameters(context, *material_data->material, buffer_data);
-			draw_indexed(context, mesh_lengths[draw_index], *buffer_data, draw_data->buffer_index, current_pipeline_state);
+			draw_indexed(context, mesh_lengths[draw_index], *buffer_data, draw_data->buffer_index, current_pipeline_state, meshlet_frustum_culling);
 		}
 	}
 	if (current_pipeline_state)
@@ -308,7 +334,7 @@ void scene_renderer_commons::model_render(graphics_context& context,
 			float lod_diff_y = lod_center_y - context.scene_constant.camera_position.y;
 			float lod_diff_z = lod_center_z - context.scene_constant.camera_position.z;
 			float mesh_length = sqrtf(lod_diff_x * lod_diff_x + lod_diff_y * lod_diff_y + lod_diff_z * lod_diff_z);
-			draw_indexed(context, mesh_length, *buffer_data, draw_data->buffer_index, current_pipeline_state);
+			draw_indexed(context, mesh_length, *buffer_data, draw_data->buffer_index, current_pipeline_state, &frustum_culling);
 		}
 	}
 	if (current_pipeline_state)

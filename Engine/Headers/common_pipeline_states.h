@@ -134,13 +134,6 @@ namespace common_pipeline_states
 		DirectX::XMFLOAT4 normal_morph[morph_max / 4];
 	};
 
-	//	プリミティブ番号定数バッファ
-	struct primitive_index_constants
-	{
-		UINT primitive_index = 0;
-		UINT primitive_index_padding[3] = {};
-	};
-
 	//	メッシュレットインスタンス情報
 	struct meshlet_instance_record
 	{

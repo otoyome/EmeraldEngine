@@ -216,8 +216,6 @@ void model_instance_manger::get_container(mesh_container& container)
 
 	container.clear();
 
-	std::size_t primitive_buffer_count = 0;
-
 	std::vector<DirectX::XMMATRIX> NodeWorldTransforms, PreviousNodeWorldTransforms;
 	NodeWorldTransforms.resize(common_pipeline_states::mesh_bone_max);
 	PreviousNodeWorldTransforms.resize(common_pipeline_states::mesh_bone_max);
@@ -460,17 +458,6 @@ void model_instance_manger::get_container(mesh_container& container)
 						header.base_vertex = static_cast<UINT>(it->second.offset());
 					}
 				}
-
-				//	プリミティブ用インデックス定数バッファ取得
-				if (primitive_buffer_count + 1 >= constant_bufferes.size())
-				{
-					generate_constant_bufferes();
-				}
-				buffer_data.primitive_buffer = constant_bufferes[primitive_buffer_count++];
-
-				common_pipeline_states::primitive_index_constants index_constant{};
-				index_constant.primitive_index = buffer_index;
-				render_data::instance()->get_immediate_context()->UpdateSubresource(buffer_data.primitive_buffer.Get(), 0, 0, &index_constant, 0, 0);
 			}
 
 			//	マテリアル情報構築
@@ -533,22 +520,4 @@ void model_instance_manger::get_container(mesh_container& container)
 
 	//	Transform 行列をGPUへ転送
 	container.build_transform_buffers();
-}
-
-void model_instance_manger::generate_constant_bufferes()
-{
-	auto render_data = render_data::instance();
-	auto device = render_data->get_device();
-
-	HRESULT hr;
-	D3D11_BUFFER_DESC buffer_desc{};
-	buffer_desc.Usage = D3D11_USAGE_DEFAULT;
-	buffer_desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-	buffer_desc.CPUAccessFlags = 0;
-	buffer_desc.MiscFlags = 0;
-	buffer_desc.StructureByteStride = 0;
-	auto& buffer = constant_bufferes.emplace_back();
-	buffer_desc.ByteWidth = sizeof(common_pipeline_states::primitive_index_constants);
-	hr = device->CreateBuffer(&buffer_desc, nullptr, buffer.ReleaseAndGetAddressOf());
-	_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
 }
