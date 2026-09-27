@@ -23,8 +23,7 @@ extern ImWchar glyphRangesJapanese[];
 #include "scenes/editscene/edit_timeline_scene.h"
 #include "scenes/DummyScene/dummy_scene.h"
 #include "Scenes/GameScene/game_main_scene.h"
-
-#include "Scenes/MiniGameScene/minigame_title_scene.h"
+#include "Scenes/setup_scene.h"
 
 #include "imPlot/imPlot.h"
 #include "imtimeline/ImTimeline.h"
@@ -378,7 +377,7 @@ void framework::imgui_scene_change()
 		change_scene<edit_particle_scene>();
 		change_scene<edit_timeline_scene>();
 		//change_scene<game_main_scene>();
-		change_scene<minigame_title_scene>();
+		change_scene<setup_scene>();
 	}
 	ImGui::End();
 }

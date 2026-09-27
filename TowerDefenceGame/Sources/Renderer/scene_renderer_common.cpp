@@ -143,27 +143,39 @@ void scene_renderer_commons::draw_indexed(const graphics_context& context,
 	context.set_primitive_topology(draw_mesh->primitive_topology);
 
 	auto pool = model_buffer_pool_manager::instance();
-	auto single_instance_buffer = pool->get_single_meshlet_instance_buffer();
-	auto single_instance_srv = pool->get_single_meshlet_instance_srv();
-	context.device_context->VSSetShaderResources(118, 1, &single_instance_srv);
 
 	bool apply_meshlet_frustum_culling = meshlet_frustum_culling != nullptr &&
 		system_utility::is_bitflag(buffer_data.system_flags, buffer_datas::flags::culling);
 
+	std::vector<common_pipeline_states::meshlet_instance_record> instance_records;
+	instance_records.reserve(draw_mesh->meshlets->size());
 	for (auto& meshlet : *draw_mesh->meshlets)
 	{
 		if (apply_meshlet_frustum_culling && !is_meshlet_visible(*meshlet_frustum_culling, buffer_data.world_transform, meshlet.bounds_center, meshlet.bounds_radius))
 			continue;
 
-		common_pipeline_states::meshlet_instance_record record{};
+		auto& record = instance_records.emplace_back();
 		record.vertex_offset = meshlet.vertex_offset;
 		record.triangle_offset = meshlet.triangle_offset;
 		record.triangle_count = meshlet.triangle_count;
 		record.primitive_index = primitive_index;
-		context.device_context->UpdateSubresource(single_instance_buffer, 0, nullptr, &record, 0, 0);
-
-		context.device_context->DrawInstanced(meshlet.triangle_count * 3, 1, 0, 0);
 	}
+
+	if (instance_records.empty())
+		return;
+
+	ID3D11Buffer* batch_buffer = nullptr;
+	ID3D11ShaderResourceView* batch_srv = nullptr;
+	pool->get_meshlet_instance_batch(static_cast<UINT>(instance_records.size()), &batch_buffer, &batch_srv);
+
+	D3D11_BOX box{};
+	box.right = static_cast<UINT>(sizeof(common_pipeline_states::meshlet_instance_record) * instance_records.size());
+	box.bottom = 1;
+	box.back = 1;
+	context.device_context->UpdateSubresource(batch_buffer, 0, &box, instance_records.data(), 0, 0);
+
+	context.device_context->VSSetShaderResources(118, 1, &batch_srv);
+	context.device_context->DrawInstanced(meshlet_culling_system::max_meshlet_vertices_per_draw, static_cast<UINT>(instance_records.size()), 0, 0);
 }
 
 void scene_renderer_commons::draw_geometric_primitive(const graphics_context& context, const geometric_primitive& primitive)

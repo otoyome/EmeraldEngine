@@ -120,22 +120,6 @@ model_buffer_pool_manager::model_buffer_pool_manager()
 	meshlet_triangle_allocator.initialize(meshlet_triangle_pool_capacity);
 	meshlet_triangle_capacity_current = meshlet_triangle_pool_capacity;
 
-	D3D11_BUFFER_DESC bd{};
-	bd.ByteWidth = sizeof(common_pipeline_states::meshlet_instance_record);
-	bd.Usage = D3D11_USAGE_DEFAULT;
-	bd.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-	bd.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
-	bd.StructureByteStride = sizeof(common_pipeline_states::meshlet_instance_record);
-	HRESULT hr = render_data::instance()->get_device()->CreateBuffer(&bd, nullptr, single_meshlet_instance_buffer.GetAddressOf());
-	_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
-
-	D3D11_SHADER_RESOURCE_VIEW_DESC sd{};
-	sd.Format = DXGI_FORMAT_UNKNOWN;
-	sd.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
-	sd.Buffer.FirstElement = 0;
-	sd.Buffer.NumElements = 1;
-	hr = render_data::instance()->get_device()->CreateShaderResourceView(single_meshlet_instance_buffer.Get(), &sd, single_meshlet_instance_srv.GetAddressOf());
-	_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
 }
 
 model_buffer_pool_manager::~model_buffer_pool_manager()
@@ -247,6 +231,33 @@ void model_buffer_pool_manager::queue_vertex_upload(const semantic& target_seman
 	get_vertex_buffer_pool(target_semantic, stride_in_bytes).queue_upload(byte_offset, data, size_in_bytes);
 }
 
+void model_buffer_pool_manager::build_vertex_buffers(std::unordered_map<semantic, buffer_view>& vertex_buffer_views)
+{
+	if (vertex_buffer_views.empty())
+		return;
+
+	auto& first_view = vertex_buffer_views.begin()->second;
+	UINT vertex_count = static_cast<UINT>(first_view.count());
+	UINT base_vertex = allocate_vertex_slots(vertex_count);
+
+	for (auto& view : vertex_buffer_views)
+	{
+		UINT stride_in_bytes = static_cast<UINT>(view.second.stride_in_bytes);
+		view.second.offset_in_bytes = static_cast<size_t>(base_vertex) * stride_in_bytes;
+		queue_vertex_upload(view.first, static_cast<UINT>(view.second.offset_in_bytes),
+			view.second.row_data.data(), static_cast<UINT>(view.second.size_in_bytes), stride_in_bytes);
+	}
+}
+
+void model_buffer_pool_manager::free_vertex_buffers(const std::unordered_map<semantic, buffer_view>& vertex_buffer_views)
+{
+	if (vertex_buffer_views.empty())
+		return;
+
+	UINT base_vertex = static_cast<UINT>(vertex_buffer_views.begin()->second.offset());
+	free_vertex_slots(base_vertex);
+}
+
 ID3D11Buffer* model_buffer_pool_manager::get_vertex_buffer(const semantic& target_semantic)
 {
 	auto it = vertex_buffers.find(target_semantic);
@@ -301,14 +312,38 @@ ID3D11ShaderResourceView* model_buffer_pool_manager::get_meshlet_triangle_buffer
 	return meshlet_triangle_buffer->get_srv();
 }
 
-ID3D11Buffer* model_buffer_pool_manager::get_single_meshlet_instance_buffer()
+void model_buffer_pool_manager::get_meshlet_instance_batch(UINT min_capacity, ID3D11Buffer** out_buffer, ID3D11ShaderResourceView** out_srv)
 {
-	return single_meshlet_instance_buffer.Get();
-}
+	std::lock_guard<std::mutex> lock(meshlet_instance_batch_mutex);
 
-ID3D11ShaderResourceView* model_buffer_pool_manager::get_single_meshlet_instance_srv()
-{
-	return single_meshlet_instance_srv.Get();
+	if (min_capacity > meshlet_instance_batch_capacity || !meshlet_instance_batch_buffer)
+	{
+		UINT cap = meshlet_instance_batch_capacity ? meshlet_instance_batch_capacity : 256;
+		while (cap < min_capacity) cap *= 2;
+		meshlet_instance_batch_capacity = cap;
+
+		auto device = render_data::instance()->get_device();
+
+		D3D11_BUFFER_DESC bd{};
+		bd.ByteWidth = sizeof(common_pipeline_states::meshlet_instance_record) * cap;
+		bd.Usage = D3D11_USAGE_DEFAULT;
+		bd.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+		bd.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
+		bd.StructureByteStride = sizeof(common_pipeline_states::meshlet_instance_record);
+		HRESULT hr = device->CreateBuffer(&bd, nullptr, meshlet_instance_batch_buffer.ReleaseAndGetAddressOf());
+		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+
+		D3D11_SHADER_RESOURCE_VIEW_DESC sd{};
+		sd.Format = DXGI_FORMAT_UNKNOWN;
+		sd.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
+		sd.Buffer.FirstElement = 0;
+		sd.Buffer.NumElements = cap;
+		hr = device->CreateShaderResourceView(meshlet_instance_batch_buffer.Get(), &sd, meshlet_instance_batch_srv.ReleaseAndGetAddressOf());
+		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+	}
+
+	*out_buffer = meshlet_instance_batch_buffer.Get();
+	*out_srv = meshlet_instance_batch_srv.Get();
 }
 
 void model_buffer_pool_manager::flush_uploads()
@@ -337,31 +372,4 @@ std::vector<model_buffer_pool_manager::pool_usage> model_buffer_pool_manager::ge
 	}
 
 	return usages;
-}
-
-void model_buffer_pool_manager::build_vertex_buffers(std::unordered_map<semantic, buffer_view>& vertex_buffer_views)
-{
-	if (vertex_buffer_views.empty())
-		return;
-
-	auto& first_view = vertex_buffer_views.begin()->second;
-	UINT vertex_count = static_cast<UINT>(first_view.count());
-	UINT base_vertex = allocate_vertex_slots(vertex_count);
-
-	for (auto& view : vertex_buffer_views)
-	{
-		UINT stride_in_bytes = static_cast<UINT>(view.second.stride_in_bytes);
-		view.second.offset_in_bytes = static_cast<size_t>(base_vertex) * stride_in_bytes;
-		queue_vertex_upload(view.first, static_cast<UINT>(view.second.offset_in_bytes),
-			view.second.row_data.data(), static_cast<UINT>(view.second.size_in_bytes), stride_in_bytes);
-	}
-}
-
-void model_buffer_pool_manager::free_vertex_buffers(const std::unordered_map<semantic, buffer_view>& vertex_buffer_views)
-{
-	if (vertex_buffer_views.empty())
-		return;
-
-	UINT base_vertex = static_cast<UINT>(vertex_buffer_views.begin()->second.offset());
-	free_vertex_slots(base_vertex);
 }
