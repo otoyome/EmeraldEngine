@@ -211,7 +211,7 @@ void update_velocity_item(inout emitter_context em_context, inout pt_common_item
                                         velocity.damping_max,
                                         x_or_shift_random(em_context.random_seed));
                 }
-                pt_velocity.velocity *= max(1.0f - damping * em_context.elapsed_time, 0.0f);
+                pt_velocity.velocity *= exp(-damping * em_context.elapsed_time);
 
                 //  à⁄ìÆ
                 pt_common.translation += pt_velocity.velocity * em_context.elapsed_time;
@@ -257,7 +257,7 @@ void update_attract_item(inout emitter_context em_context, inout pt_common_item 
                     //  â¡ë¨èàóù
                     pt_attract.velocity += dir * attract.strength * influence * em_context.elapsed_time;
                     //  å∏ë¨èàóù
-                    pt_attract.velocity *= max(1.0f - attract.damping * em_context.elapsed_time, 0.0f);
+                    pt_attract.velocity *= exp(-attract.damping * em_context.elapsed_time);
                     //  à⁄ìÆ
                     pt_common.translation += pt_attract.velocity * em_context.elapsed_time;
                 }

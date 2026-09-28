@@ -138,6 +138,7 @@ compute_particle_system::compute_particle_system(ID3D11Device* device,
 
 	//	パーティクル数をスレッド数に合わせて制限
 	num_particle = calculate_adjust_to_power_of_2(num_particle);
+	num_particle = std::max(num_particle, BitonicSortC2Thread * 2);	//	ソート最小単位分は確保
 	total_particle_count = ((num_particle + (NumDispatchThread - 1)) / NumDispatchThread) * NumDispatchThread;
 	total_particle_count = std::min(max_particle, num_particle);
 	total_emitter_count = std::min(num_emitter, max_emitter);
@@ -440,15 +441,21 @@ compute_particle_system::compute_particle_system(ID3D11Device* device,
 		staging_desc.ByteWidth = sizeof(particle_event) * max_particle_event;
 		staging_desc.Usage = D3D11_USAGE_STAGING;
 		staging_desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
-		hr = device->CreateBuffer(&staging_desc, nullptr, particle_event_staging.GetAddressOf());
-		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+		for (UINT index = 0; index < particle_event_staging_count; ++index)
+		{
+			hr = device->CreateBuffer(&staging_desc, nullptr, particle_event_staging[index].GetAddressOf());
+			_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+		}
 
 		D3D11_BUFFER_DESC count_desc = {};
 		count_desc.ByteWidth = sizeof(UINT);
 		count_desc.Usage = D3D11_USAGE_STAGING;
 		count_desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
-		hr = device->CreateBuffer(&count_desc, nullptr, particle_event_count_staging.GetAddressOf());
-		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+		for (UINT index = 0; index < particle_event_staging_count; ++index)
+		{
+			hr = device->CreateBuffer(&count_desc, nullptr, particle_event_count_staging[index].GetAddressOf());
+			_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+		}
 	}
 	//	コンピュートシェーダー読み込み
 	for (int index = 0; index < static_cast<int>(dispatch_shaderes::max); ++index)
@@ -637,6 +644,11 @@ void compute_particle_system::update(graphics_context& context, float elapsed_ti
 			//	データ初期化
 			emitter_resources[remove_emitter_id] = {};
 			emitter_headers[remove_emitter_id] = {};
+
+			//	GPU側エミッター情報も無効化
+			emitter_data em_data = {};
+			D3D11_BOX box = { sizeof(emitter_data) * remove_emitter_id, 0, 0, sizeof(emitter_data) * (remove_emitter_id + 1), 1, 1 };
+			context.device_context->UpdateSubresource(emitter_data_buffer.Get(), 0, &box, &em_data, sizeof(em_data), 0);
 
 			emitter_id_stack.push(remove_emitter_id);
 		}
@@ -846,6 +858,10 @@ void compute_particle_system::update(graphics_context& context, float elapsed_ti
 	if (pending_reset)
 	{
 		pending_reset = false;
+
+		//	未読イベント破棄
+		particle_event_staging_pending = 0;
+		particle_event_overflow.clear();
 
 		//	システム情報クリア
 		{
@@ -1058,11 +1074,20 @@ void compute_particle_system::update(graphics_context& context, float elapsed_ti
 		context.device_context->DispatchIndirect(indirect_data_buffer.Get(), UpdateParticleDispatchIndirect);
 		clear_resources(context.device_context);
 
+		//	書き込み先が未読なら同期読み出し
+		if (particle_event_staging_pending >= particle_event_staging_count)
+		{
+			read_particle_event_staging(context.device_context, particle_event_staging_head, true, particle_event_overflow);
+			particle_event_staging_head = (particle_event_staging_head + 1) % particle_event_staging_count;
+			--particle_event_staging_pending;
+		}
+		UINT staging_index = (particle_event_staging_head + particle_event_staging_pending) % particle_event_staging_count;
+
 		//	パーティクルイベントをCPUで読みだすためコピー
-		context.device_context->CopyStructureCount(particle_event_count_staging.Get(), 0, particle_event_append_uav.Get());
+		context.device_context->CopyStructureCount(particle_event_count_staging[staging_index].Get(), 0, particle_event_append_uav.Get());
 		context.device_context->CopyStructureCount(particle_event_count_buffer.Get(), 0, particle_event_append_uav.Get());
-		context.device_context->CopyResource(particle_event_staging.Get(), particle_event_buffer.Get());
-		particle_event_valid = true;
+		context.device_context->CopyResource(particle_event_staging[staging_index].Get(), particle_event_buffer.Get());
+		++particle_event_staging_pending;
 	}
 
 	//	ソート処理
@@ -1222,33 +1247,51 @@ void compute_particle_system::generate_render_data(UINT emitter_id, effect_conta
 	data.vertex_buffer_view.offset_for_args = FixedIndirectDataSize + sizeof(draw_indirect) * emitter_id;
 }
 
-//	前フレームのイベントを取得
 void compute_particle_system::fetch_events(graphics_context& context, std::vector<particle_event>& out_events)
 {
 	out_events.clear();
-	if (!particle_event_valid)
-		return;
+	out_events.swap(particle_event_overflow);
 
-	auto* device_context = context.device_context;
+	//	完了済みのみ読み出し
+	while (particle_event_staging_pending > 0)
+	{
+		if (!read_particle_event_staging(context.device_context, particle_event_staging_head, false, out_events))
+			break;
+
+		particle_event_staging_head = (particle_event_staging_head + 1) % particle_event_staging_count;
+		--particle_event_staging_pending;
+	}
+}
+
+bool compute_particle_system::read_particle_event_staging(ID3D11DeviceContext* device_context, UINT slot, bool wait, std::vector<particle_event>& out_events)
+{
+	UINT map_flags = wait ? 0 : D3D11_MAP_FLAG_DO_NOT_WAIT;
 
 	UINT event_count = 0;
 	{
 		D3D11_MAPPED_SUBRESOURCE mapped = {};
-		if (SUCCEEDED(device_context->Map(particle_event_count_staging.Get(), 0, D3D11_MAP_READ, 0, &mapped)))
+		HRESULT hr = device_context->Map(particle_event_count_staging[slot].Get(), 0, D3D11_MAP_READ, map_flags, &mapped);
+		if (hr == DXGI_ERROR_WAS_STILL_DRAWING)
+			return false;
+		if (SUCCEEDED(hr))
 		{
 			event_count = *reinterpret_cast<const UINT*>(mapped.pData);
-			device_context->Unmap(particle_event_count_staging.Get(), 0);
+			device_context->Unmap(particle_event_count_staging[slot].Get(), 0);
 		}
 	}
 	event_count = std::min(event_count, max_particle_event);
 	if (event_count == 0)
-		return;
+		return true;
 
 	D3D11_MAPPED_SUBRESOURCE mapped = {};
-	if (SUCCEEDED(device_context->Map(particle_event_staging.Get(), 0, D3D11_MAP_READ, 0, &mapped)))
+	HRESULT hr = device_context->Map(particle_event_staging[slot].Get(), 0, D3D11_MAP_READ, map_flags, &mapped);
+	if (hr == DXGI_ERROR_WAS_STILL_DRAWING)
+		return false;
+	if (SUCCEEDED(hr))
 	{
 		const particle_event* src = reinterpret_cast<const particle_event*>(mapped.pData);
-		out_events.assign(src, src + event_count);
-		device_context->Unmap(particle_event_staging.Get(), 0);
+		out_events.insert(out_events.end(), src, src + event_count);
+		device_context->Unmap(particle_event_staging[slot].Get(), 0);
 	}
+	return true;
 }

@@ -341,6 +341,13 @@ public:
 		Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> unordered_access_view;
 	};
 
+	//	パーティクルイベント情報
+	struct particle_event
+	{
+		DirectX::XMFLOAT3 position;
+		UINT target_emitter_id;
+	};
+
 public:
 	compute_particle_system(ID3D11Device* device,
 		UINT num_emitter, UINT emitter_data_size,
@@ -358,12 +365,7 @@ public:
 	void reset();
 	void reset_emitter(UINT emitter_id);
 
-	//	パーティクルイベント
-	struct particle_event
-	{
-		DirectX::XMFLOAT3 position;
-		UINT target_emitter_id;
-	};
+	//	パーティクルイベント取得
 	void fetch_events(graphics_context& context, std::vector<particle_event>& out_events);
 
 	//	エミッター登録/解除
@@ -374,6 +376,9 @@ public:
 	void update_emitter(UINT emitter_id, const update_emitter_data& data);
 
 	void set_cubic_sdf_gpu_resource(std::shared_ptr<cubic_sdf_buffer_pool> resource);
+
+private:
+	bool read_particle_event_staging(ID3D11DeviceContext* device_context, UINT slot, bool wait, std::vector<particle_event>& out_events);
 
 private:
 	UINT total_emitter_count;
@@ -442,9 +447,12 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11Buffer> particle_event_buffer;
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> particle_event_shader_resource_view;
 	Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> particle_event_append_uav;
-	Microsoft::WRL::ComPtr<ID3D11Buffer> particle_event_staging;
-	Microsoft::WRL::ComPtr<ID3D11Buffer> particle_event_count_staging;
-	bool particle_event_valid = false;
+	static constexpr UINT particle_event_staging_count = 8;	//	読み出し用リング数
+	Microsoft::WRL::ComPtr<ID3D11Buffer> particle_event_staging[particle_event_staging_count];
+	Microsoft::WRL::ComPtr<ID3D11Buffer> particle_event_count_staging[particle_event_staging_count];
+	UINT particle_event_staging_head = 0;	//	読み出し待ち先頭
+	UINT particle_event_staging_pending = 0;	//	読み出し待ち数
+	std::vector<particle_event> particle_event_overflow;	//	同期読み出し済みイベント
 	Microsoft::WRL::ComPtr<ID3D11Buffer> particle_event_count_buffer;
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> particle_event_count_shader_resource_view;
 
