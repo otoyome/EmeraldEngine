@@ -158,6 +158,40 @@ namespace common_pipeline_states
 	constexpr system_utility::hash_key primitive_headers_hash_key = system_utility::generate_hash(primitive_headers_name);
 	constexpr std::string_view bone_matrices_name = "bone_matrices";
 	constexpr system_utility::hash_key bone_matrices_hash_key = system_utility::generate_hash(bone_matrices_name);
+	constexpr std::string_view meshlet_positions_name = "meshlet_positions";
+	constexpr system_utility::hash_key meshlet_positions_hash_key = system_utility::generate_hash(meshlet_positions_name);
+	constexpr std::string_view meshlet_normals_name = "meshlet_normals";
+	constexpr system_utility::hash_key meshlet_normals_hash_key = system_utility::generate_hash(meshlet_normals_name);
+	constexpr std::string_view meshlet_tangents_name = "meshlet_tangents";
+	constexpr system_utility::hash_key meshlet_tangents_hash_key = system_utility::generate_hash(meshlet_tangents_name);
+	constexpr std::string_view meshlet_colors0_name = "meshlet_colors0";
+	constexpr system_utility::hash_key meshlet_colors0_hash_key = system_utility::generate_hash(meshlet_colors0_name);
+	constexpr std::string_view meshlet_texcoords0_name = "meshlet_texcoords0";
+	constexpr system_utility::hash_key meshlet_texcoords0_hash_key = system_utility::generate_hash(meshlet_texcoords0_name);
+	constexpr std::string_view meshlet_texcoords1_name = "meshlet_texcoords1";
+	constexpr system_utility::hash_key meshlet_texcoords1_hash_key = system_utility::generate_hash(meshlet_texcoords1_name);
+	constexpr std::string_view meshlet_joints0_name = "meshlet_joints0";
+	constexpr system_utility::hash_key meshlet_joints0_hash_key = system_utility::generate_hash(meshlet_joints0_name);
+	constexpr std::string_view meshlet_joints1_name = "meshlet_joints1";
+	constexpr system_utility::hash_key meshlet_joints1_hash_key = system_utility::generate_hash(meshlet_joints1_name);
+	constexpr std::string_view meshlet_joints2_name = "meshlet_joints2";
+	constexpr system_utility::hash_key meshlet_joints2_hash_key = system_utility::generate_hash(meshlet_joints2_name);
+	constexpr std::string_view meshlet_joints3_name = "meshlet_joints3";
+	constexpr system_utility::hash_key meshlet_joints3_hash_key = system_utility::generate_hash(meshlet_joints3_name);
+	constexpr std::string_view meshlet_weights0_name = "meshlet_weights0";
+	constexpr system_utility::hash_key meshlet_weights0_hash_key = system_utility::generate_hash(meshlet_weights0_name);
+	constexpr std::string_view meshlet_weights1_name = "meshlet_weights1";
+	constexpr system_utility::hash_key meshlet_weights1_hash_key = system_utility::generate_hash(meshlet_weights1_name);
+	constexpr std::string_view meshlet_weights2_name = "meshlet_weights2";
+	constexpr system_utility::hash_key meshlet_weights2_hash_key = system_utility::generate_hash(meshlet_weights2_name);
+	constexpr std::string_view meshlet_weights3_name = "meshlet_weights3";
+	constexpr system_utility::hash_key meshlet_weights3_hash_key = system_utility::generate_hash(meshlet_weights3_name);
+	constexpr std::string_view meshlet_vertex_indices_name = "meshlet_vertex_indices";
+	constexpr system_utility::hash_key meshlet_vertex_indices_hash_key = system_utility::generate_hash(meshlet_vertex_indices_name);
+	constexpr std::string_view meshlet_triangle_indices_name = "meshlet_triangle_indices";
+	constexpr system_utility::hash_key meshlet_triangle_indices_hash_key = system_utility::generate_hash(meshlet_triangle_indices_name);
+	constexpr std::string_view visible_meshlet_instances_name = "visible_meshlet_instances";
+	constexpr system_utility::hash_key visible_meshlet_instances_hash_key = system_utility::generate_hash(visible_meshlet_instances_name);
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////
 	//	パラメーター定数バッファ構造体
 	constexpr std::string_view parameter_constant_buffer_name = "PARAMETER_CONSTANT_BUFFER";
@@ -283,7 +317,6 @@ namespace common_pipeline_states
 	{
 		scene_constant_buffer_name,
 		primitive_constant_buffer_name,
-		primitive_headers_name,
 		shadow_map_constant_buffer_name,
 		deferred_light_constant_buffer_name,
 		forward_light_constant_buffer_name,
@@ -298,6 +331,25 @@ namespace common_pipeline_states
 	{
 		morph_positions_name,
 		morph_normals_name,
+		primitive_headers_name,
+		bone_matrices_name,
+		meshlet_positions_name,
+		meshlet_normals_name,
+		meshlet_tangents_name,
+		meshlet_colors0_name,
+		meshlet_texcoords0_name,
+		meshlet_texcoords1_name,
+		meshlet_joints0_name,
+		meshlet_joints1_name,
+		meshlet_joints2_name,
+		meshlet_joints3_name,
+		meshlet_weights0_name,
+		meshlet_weights1_name,
+		meshlet_weights2_name,
+		meshlet_weights3_name,
+		meshlet_vertex_indices_name,
+		meshlet_triangle_indices_name,
+		visible_meshlet_instances_name,
 
 		forward_only_diffuse_iem_name,
 		forward_only_specular_pmrem_name,
