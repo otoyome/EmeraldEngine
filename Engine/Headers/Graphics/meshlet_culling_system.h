@@ -82,13 +82,11 @@ public:
 	const cull_result* find_result(material* mat) const;
 
 private:
-
-	material_resources& get_or_create_resources(material* mat);
-	void generate_meshlet_instance_buffer(material_resources& res, UINT count);
-	void generate_visible_meshlet_buffer(material_resources& res, UINT count);
+	void generate_meshlet_instance_buffer(material_resources& resource, UINT count);
+	void generate_visible_meshlet_buffer(material_resources& resource, UINT count);
 	void generate_submesh_transform_buffer(UINT count);
 
-	void cull_material_group(graphics_context& context, material* mat, const std::vector<meshlet_instance_gpu>& instances, hiz_buffer& hiz);
+	void cull_material_group(graphics_context& context, material* material, const std::vector<meshlet_instance_gpu>& instances, hiz_buffer& hiz);
 
 private:
 	std::shared_ptr<compute_shader> meshlet_culling_cs;
@@ -104,5 +102,5 @@ private:
 
 	//	スクラッチバッファ
 	std::vector<DirectX::XMFLOAT4X4> submesh_transform_scratch;
-	std::unordered_map<material*, std::vector<meshlet_instance_gpu>> per_material_scratch;
+	std::unordered_map<material*, std::vector<meshlet_instance_gpu>> material_scratch_buffer;
 };

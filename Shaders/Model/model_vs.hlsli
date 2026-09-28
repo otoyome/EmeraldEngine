@@ -117,9 +117,17 @@ VS_OUT main(uint vertex_id : SV_VertexID, uint instance_id : SV_InstanceID)
     vout.w_position.w = 1.0f;
     vout.w_normal.xyz = normalize(normal).xyz;
     vout.w_normal.w = 0.0f;
+
 #if defined(HAS_TANGENT)
+
+#if defined(HAS_MORPH)
+	//	–@ü‚É‘Î‚µ‚ÄÚü‚ðÄ’¼Œð‰»
+    tangent = tangent - dot(tangent, vout.w_normal.xyz) * vout.w_normal.xyz;
+#endif  //  defined(HAS_MORPH)
+
     vout.w_tangent.xyz = normalize(tangent).xyz;
     vout.w_tangent.w = vin.tangent.w;
+
 #endif  //  defined(HAS_TANGENT)
 
 #if VERTEX_COLOR_MAX > 0

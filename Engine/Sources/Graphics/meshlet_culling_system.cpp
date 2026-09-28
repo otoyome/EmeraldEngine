@@ -5,6 +5,7 @@
 
 namespace
 {
+	static constexpr UINT ThreadCount = 64;
 	std::shared_ptr<compute_shader> load_cs(std::string_view path)
 	{
 		load_shader_file desc;
@@ -40,14 +41,15 @@ void meshlet_culling_system::generate_submesh_transform_buffer(UINT count)
 	if (count <= submesh_transform_capacity && submesh_transform_buffer)
 		return;
 
-	UINT cap = submesh_transform_capacity ? submesh_transform_capacity : 256;
-	while (cap < count) cap *= 2;
-	submesh_transform_capacity = cap;
+	UINT capacity = submesh_transform_capacity ? submesh_transform_capacity : 256;
+	while (capacity < count)
+		capacity *= 2;
+	submesh_transform_capacity = capacity;
 
 	auto device = render_data::instance()->get_device();
 
 	D3D11_BUFFER_DESC bd{};
-	bd.ByteWidth = sizeof(DirectX::XMFLOAT4X4) * cap;
+	bd.ByteWidth = sizeof(DirectX::XMFLOAT4X4) * capacity;
 	bd.Usage = D3D11_USAGE_DEFAULT;
 	bd.BindFlags = D3D11_BIND_SHADER_RESOURCE;
 	bd.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
@@ -59,14 +61,9 @@ void meshlet_culling_system::generate_submesh_transform_buffer(UINT count)
 	sd.Format = DXGI_FORMAT_UNKNOWN;
 	sd.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
 	sd.Buffer.FirstElement = 0;
-	sd.Buffer.NumElements = cap;
+	sd.Buffer.NumElements = capacity;
 	hr = device->CreateShaderResourceView(submesh_transform_buffer.Get(), &sd, submesh_transform_srv.ReleaseAndGetAddressOf());
 	_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
-}
-
-meshlet_culling_system::material_resources& meshlet_culling_system::get_or_create_resources(material* mat)
-{
-	return material_resource_map[mat];
 }
 
 void meshlet_culling_system::generate_meshlet_instance_buffer(material_resources& res, UINT count)
@@ -74,14 +71,15 @@ void meshlet_culling_system::generate_meshlet_instance_buffer(material_resources
 	if (count <= res.meshlet_instance_capacity && res.meshlet_instance_buffer)
 		return;
 
-	UINT cap = res.meshlet_instance_capacity ? res.meshlet_instance_capacity : 256;
-	while (cap < count) cap *= 2;
-	res.meshlet_instance_capacity = cap;
+	UINT capacity = res.meshlet_instance_capacity ? res.meshlet_instance_capacity : 256;
+	while (capacity < count)
+		capacity *= 2;
+	res.meshlet_instance_capacity = capacity;
 
 	auto device = render_data::instance()->get_device();
 
 	D3D11_BUFFER_DESC bd{};
-	bd.ByteWidth = sizeof(meshlet_instance_gpu) * cap;
+	bd.ByteWidth = sizeof(meshlet_instance_gpu) * capacity;
 	bd.Usage = D3D11_USAGE_DEFAULT;
 	bd.BindFlags = D3D11_BIND_SHADER_RESOURCE;
 	bd.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
@@ -93,7 +91,7 @@ void meshlet_culling_system::generate_meshlet_instance_buffer(material_resources
 	sd.Format = DXGI_FORMAT_UNKNOWN;
 	sd.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
 	sd.Buffer.FirstElement = 0;
-	sd.Buffer.NumElements = cap;
+	sd.Buffer.NumElements = capacity;
 	hr = device->CreateShaderResourceView(res.meshlet_instance_buffer.Get(), &sd, res.meshlet_instance_srv.ReleaseAndGetAddressOf());
 	_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
 }
@@ -103,14 +101,15 @@ void meshlet_culling_system::generate_visible_meshlet_buffer(material_resources&
 	if (count <= res.visible_meshlet_capacity && res.visible_meshlet_buffer)
 		return;
 
-	UINT cap = res.visible_meshlet_capacity ? res.visible_meshlet_capacity : 256;
-	while (cap < count) cap *= 2;
-	res.visible_meshlet_capacity = cap;
+	UINT capacity = res.visible_meshlet_capacity ? res.visible_meshlet_capacity : 256;
+	while (capacity < count)
+		capacity *= 2;
+	res.visible_meshlet_capacity = capacity;
 
 	auto device = render_data::instance()->get_device();
 
 	D3D11_BUFFER_DESC bd{};
-	bd.ByteWidth = sizeof(meshlet_instance_gpu) * cap;
+	bd.ByteWidth = sizeof(meshlet_instance_gpu) * capacity;
 	bd.Usage = D3D11_USAGE_DEFAULT;
 	bd.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
 	bd.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
@@ -122,7 +121,7 @@ void meshlet_culling_system::generate_visible_meshlet_buffer(material_resources&
 	ud.Format = DXGI_FORMAT_UNKNOWN;
 	ud.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
 	ud.Buffer.FirstElement = 0;
-	ud.Buffer.NumElements = cap;
+	ud.Buffer.NumElements = capacity;
 	ud.Buffer.Flags = D3D11_BUFFER_UAV_FLAG_APPEND;
 	hr = device->CreateUnorderedAccessView(res.visible_meshlet_buffer.Get(), &ud, res.visible_meshlet_uav.ReleaseAndGetAddressOf());
 	_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
@@ -131,7 +130,7 @@ void meshlet_culling_system::generate_visible_meshlet_buffer(material_resources&
 	sd.Format = DXGI_FORMAT_UNKNOWN;
 	sd.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
 	sd.Buffer.FirstElement = 0;
-	sd.Buffer.NumElements = cap;
+	sd.Buffer.NumElements = capacity;
 	hr = device->CreateShaderResourceView(res.visible_meshlet_buffer.Get(), &sd, res.visible_meshlet_srv.ReleaseAndGetAddressOf());
 	_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
 
@@ -150,13 +149,14 @@ void meshlet_culling_system::build_and_cull(graphics_context& context, const std
 {
 	current_results.clear();
 	submesh_transform_scratch.clear();
-	per_material_scratch.clear();
+	material_scratch_buffer.clear();
 
 	auto& mesh_container = context.render_data->mesh_container;
 	auto draw_data_ptr = mesh_container.draw_datas.data();
 	auto buffer_data_ptr = mesh_container.buffer_datas.data();
 	auto material_data_ptr = mesh_container.material_datas.data();
 
+	//	マテリアルごとにメッシュレットをグルーピング
 	for (auto& draw_index : visible_draw_indices)
 	{
 		auto draw_data = draw_data_ptr + draw_index;
@@ -172,13 +172,20 @@ void meshlet_culling_system::build_and_cull(graphics_context& context, const std
 		if (!sub_mesh.meshlets || sub_mesh.meshlets->empty())
 			continue;
 
+		//	モーフィング持ちは別で処理
+		if (!sub_mesh.morph_meshes.empty())
+			continue;
+
+		//	サブメッシュのワールド行列を設定
 		UINT transform_index = static_cast<UINT>(submesh_transform_scratch.size());
 		submesh_transform_scratch.emplace_back(buffer_data.world_transform);
 
-		UINT primitive_index = draw_data->buffer_index;
+		//	カリング判定
 		UINT no_cull = system_utility::is_bitflag(buffer_data.system_flags, buffer_datas::flags::culling) ? 0 : 1;
 
-		auto& instances = per_material_scratch[material_data->material];
+		//	メッシュレット分登録
+		UINT primitive_index = draw_data->buffer_index;
+		auto& instances = material_scratch_buffer[material_data->material];
 		for (auto& meshlet : *sub_mesh.meshlets)
 		{
 			auto& instance = instances.emplace_back();
@@ -197,6 +204,7 @@ void meshlet_culling_system::build_and_cull(graphics_context& context, const std
 	if (submesh_transform_scratch.empty())
 		return;
 
+	//	サブメッシュの変換行列を登録
 	generate_submesh_transform_buffer(static_cast<UINT>(submesh_transform_scratch.size()));
 	{
 		D3D11_BOX box{};
@@ -206,33 +214,36 @@ void meshlet_culling_system::build_and_cull(graphics_context& context, const std
 		context.device_context->UpdateSubresource(submesh_transform_buffer.Get(), 0, &box, submesh_transform_scratch.data(), 0, 0);
 	}
 
-	for (auto& group : per_material_scratch)
+	//	マテリアルグループ毎にカリング
+	for (auto& group : material_scratch_buffer)
 	{
 		cull_material_group(context, group.first, group.second, hiz);
 	}
 }
 
-void meshlet_culling_system::cull_material_group(graphics_context& context, material* mat, const std::vector<meshlet_instance_gpu>& instances, hiz_buffer& hiz)
+void meshlet_culling_system::cull_material_group(graphics_context& context, material* material, const std::vector<meshlet_instance_gpu>& instances, hiz_buffer& hiz)
 {
 	if (instances.empty())
 		return;
 
-	material_resources& res = get_or_create_resources(mat);
-
-	UINT instance_count = static_cast<UINT>(instances.size());
-	generate_meshlet_instance_buffer(res, instance_count);
-	generate_visible_meshlet_buffer(res, instance_count);
-
 	auto dc = context.device_context;
 
+	//	マテリアル単位のリソース取得
+	material_resources& resource = material_resource_map[material];
+	UINT instance_count = static_cast<UINT>(instances.size());
+	generate_meshlet_instance_buffer(resource, instance_count);
+	generate_visible_meshlet_buffer(resource, instance_count);
+
+	//	メッシュレットのインデックス情報転送
 	{
 		D3D11_BOX box{};
 		box.right = static_cast<UINT>(sizeof(meshlet_instance_gpu) * instances.size());
 		box.bottom = 1;
 		box.back = 1;
-		dc->UpdateSubresource(res.meshlet_instance_buffer.Get(), 0, &box, instances.data(), 0, 0);
+		dc->UpdateSubresource(resource.meshlet_instance_buffer.Get(), 0, &box, instances.data(), 0, 0);
 	}
 
+	//	カリング設定
 	cull_constants constant{};
 	constant.view_projection = context.scene_constant.view_projection_transform;
 	constant.meshlet_instance_count = instance_count;
@@ -240,33 +251,32 @@ void meshlet_culling_system::cull_material_group(graphics_context& context, mate
 	auto hiz_size = hiz.get_size();
 	constant.hiz_size = DirectX::XMFLOAT2(static_cast<float>(hiz_size.x), static_cast<float>(hiz_size.y));
 	constant.clip_near_far = { context.scene_constant.camera_clip_distance.x, context.scene_constant.camera_clip_distance.y };
-	constant.depth_bias = 5.0f;
+	constant.depth_bias = 1.0f;
 	dc->UpdateSubresource(cull_constant_buffer.Get(), 0, nullptr, &constant, 0, 0);
 	dc->CSSetConstantBuffers(0, 1, cull_constant_buffer.GetAddressOf());
 	dc->CSSetShader(meshlet_culling_cs->get_shader().Get(), nullptr, 0);
 
-	ID3D11ShaderResourceView* srvs[3] = { res.meshlet_instance_srv.Get(), submesh_transform_srv.Get(), hiz.get_srv() };
+	ID3D11ShaderResourceView* srvs[3] = { resource.meshlet_instance_srv.Get(), submesh_transform_srv.Get(), hiz.get_srv() };
 	dc->CSSetShaderResources(0, 3, srvs);
-	ID3D11SamplerState* sampler = render_data::instance()->get_sampler_states(render_data::SAMPLER_STATE::POINT_CLAMP).Get();
-	dc->CSSetSamplers(0, 1, &sampler);
+	dc->CSSetSamplers(0, 1, render_data::instance()->get_sampler_states(render_data::SAMPLER_STATE::POINT_CLAMP).GetAddressOf());
 
+	//	カリング処理
 	UINT initial_count = 0;
-	dc->CSSetUnorderedAccessViews(0, 1, res.visible_meshlet_uav.GetAddressOf(), &initial_count);
-	dc->Dispatch((instance_count + 63u) / 64u, 1, 1);
+	dc->CSSetUnorderedAccessViews(0, 1, resource.visible_meshlet_uav.GetAddressOf(), &initial_count);
+	dc->Dispatch((instance_count + ThreadCount - 1) / ThreadCount, 1, 1);
+
+	//	結果を取得して保存
+	UINT arguments[4] = { max_meshlet_vertices_per_draw, 0, 0, 0 };
+	dc->UpdateSubresource(resource.indirect_args_buffer.Get(), 0, nullptr, arguments, 0, 0);
+	dc->CopyStructureCount(resource.indirect_args_buffer.Get(), sizeof(UINT), resource.visible_meshlet_uav.Get());
+	cull_result result{};
+	result.visible_meshlet_srv = resource.visible_meshlet_srv.Get();
+	result.indirect_args_buffer = resource.indirect_args_buffer.Get();
+	current_results[material] = result;
 
 	context.clear_unordered_access_views();
 	context.clear_shader_resorce_views();
 	dc->CSSetShader(nullptr, nullptr, 0);
-
-	//	マテリアルグループ毎にカリング
-	UINT args[4] = { max_meshlet_vertices_per_draw, 0, 0, 0 };
-	dc->UpdateSubresource(res.indirect_args_buffer.Get(), 0, nullptr, args, 0, 0);
-	dc->CopyStructureCount(res.indirect_args_buffer.Get(), sizeof(UINT), res.visible_meshlet_uav.Get());
-
-	cull_result result{};
-	result.visible_meshlet_srv = res.visible_meshlet_srv.Get();
-	result.indirect_args_buffer = res.indirect_args_buffer.Get();
-	current_results[mat] = result;
 }
 
 const meshlet_culling_system::cull_result* meshlet_culling_system::find_result(material* mat) const

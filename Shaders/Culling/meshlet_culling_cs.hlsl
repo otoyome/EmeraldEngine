@@ -49,7 +49,7 @@ void main(uint3 id : SV_DispatchThreadID)
 
 	MeshletInstance inst = meshlet_instances[i];
 
-	//	カリング無効(常に生存)
+	//	カリング無効
 	if (inst.no_cull != 0)
 	{
 		visible_meshlets.Append(inst);
@@ -81,7 +81,7 @@ void main(uint3 id : SV_DispatchThreadID)
 		float4 clip = mul(float4(p, 1.0f), view_projection);
 		if (clip.w <= 1e-4f)
 		{
-			//	@tool 視点より後ろの頂点はスクリーン座標に変換できないため、ループ後にまとめて判定する
+			//	視点より後ろの頂点はスクリーン座標に変換できないため、ループ後にまとめて判定する
 			behind_count++;
 			continue;
 		}
@@ -95,12 +95,12 @@ void main(uint3 id : SV_DispatchThreadID)
 
 	if (behind_count == 8)
 	{
-		//	@tool 8頂点すべてが視点より後ろ(近クリップ面より手前)：完全に不可視
+		//	8頂点すべてが視点より後ろ(近クリップ面より手前)：不可視
 		return;
 	}
 	if (behind_count > 0)
 	{
-		//	@tool 一部の頂点だけ視点より後ろ：近クリップ面をまたぐので保守的に可視扱いする
+		//	一部の頂点だけ視点より後ろ：近クリップ面をまたぐので可視扱いする
 		visible_meshlets.Append(inst);
 		return;
 	}

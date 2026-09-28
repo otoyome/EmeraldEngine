@@ -254,6 +254,12 @@ void scene_renderer_commons::model_render_indirect(graphics_context& context,
 {
 	auto draw_data_ptr = context.render_data->mesh_container.draw_datas.data();
 	auto material_data_ptr = context.render_data->mesh_container.material_datas.data();
+	auto buffer_data_ptr = context.render_data->mesh_container.buffer_datas.data();
+
+	//	メッシュレットの描画の場合は使わない
+	context.set_vertex_buffers(0, 0, nullptr, nullptr, nullptr);
+	context.set_index_buffer(nullptr, DXGI_FORMAT_UNKNOWN, 0);
+	context.set_primitive_topology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 	std::unordered_set<material*> drawn;
 	std::vector<std::size_t> fallback_indices;
@@ -261,30 +267,39 @@ void scene_renderer_commons::model_render_indirect(graphics_context& context,
 	{
 		auto draw_data = draw_data_ptr + draw_index;
 		auto material_data = material_data_ptr + draw_data->material_index;
-		material* mat = material_data->material;
+		material* material = material_data->material;
 
-		auto pipeline_state = mat->get_pipeline_state(surface_path);
-		auto result = pipeline_state ? meshlet_culling.find_result(mat) : nullptr;
+		//	モーフ持ちは別パス
+		auto buffer_data = buffer_data_ptr + draw_data->buffer_index;
+		if (!buffer_data->color_meshs.empty())
+		{
+			std::size_t lod_mesh_index = buffer_data->select_lod_mesh_index(mesh_lengths[draw_index], context.scene_constant.camera_clip_distance);
+			if (!buffer_data->color_meshs[lod_mesh_index].morph_meshes.empty())
+			{
+				fallback_indices.emplace_back(draw_index);
+				continue;
+			}
+		}
 
+		//	メッシュレットカリングした結果、失敗していた場合は別パス
+		auto pipeline_state = material->get_pipeline_state(surface_path);
+		auto result = pipeline_state ? meshlet_culling.find_result(material) : nullptr;
 		if (!pipeline_state || !result)
 		{
 			fallback_indices.emplace_back(draw_index);
 			continue;
 		}
 
-		if (!drawn.insert(mat).second)
+		if (!drawn.insert(material).second)
 			continue;	//	このマテリアルは既に描画済み
 
 		pipeline_state->begin(context);
-		mat->update_parameters(context);
-		pipeline_state->update_parameters(context, *mat, nullptr);
+		material->update_parameters(context);
+		pipeline_state->update_parameters(context, *material, buffer_data);
 
+		//	メッシュレットバインド
 		bind_meshlet_attribute_srvs(context);
 		context.device_context->VSSetShaderResources(118, 1, &result->visible_meshlet_srv);
-
-		context.set_vertex_buffers(0, 0, nullptr, nullptr, nullptr);
-		context.set_index_buffer(nullptr, DXGI_FORMAT_UNKNOWN, 0);
-		context.set_primitive_topology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 		context.device_context->DrawInstancedIndirect(result->indirect_args_buffer, 0);
 
