@@ -18,7 +18,14 @@ float4 main(VS_OUT pin) : SV_TARGET
             float attenuateLength = saturate(1.0f - len / point_light.range);
             float shading_attenuation = attenuateLength * attenuateLength;
             
-            float shadowing_attenuation = 1;
+            float3 shadowing_attenuation = 1;
+            if (IsGBufferFlags(data, material_attribute_shadow_receiver))
+            {
+                if (light_attribute & light_flag_use_shadow)
+                {
+                    shadowing_attenuation = shadowing_process_point(data.w_position, point_light.position.xyz).rgb;
+                }
+            }
             
             LightingData lighting_data;
             lighting_data.shading_attenuation = shading_attenuation;

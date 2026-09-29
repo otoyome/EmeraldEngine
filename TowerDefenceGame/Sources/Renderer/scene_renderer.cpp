@@ -958,7 +958,7 @@ void deffered_lighting_renderer::render_directional_shadow_map(const light& ligh
 				slope_depth_bias	= bias_data.slope_depth_bias_scale * bias_data.slope_depth_bias;
 				shadow_map_constant.shadow_bias[index].x = std::max(0.0f, depth_bias);
 				shadow_map_constant.shadow_bias[index].y = std::max(0.0f, depth_bias * slope_depth_bias);
-				shadow_map_constant.shadow_bias[index].z = bias_data.max_depth_bias;
+				shadow_map_constant.shadow_bias[index].z = bias_data.max_slope_depth_bias;
 				shadow_map_constant.shadow_bias[index].w = 1.0f / bias_data.sigma_factor; // 分散値
 			}
 		}
@@ -1031,11 +1031,80 @@ void deffered_lighting_renderer::render_point(const light& light, common_pipelin
 
 void deffered_lighting_renderer::render_point_shadow_map(const light& light, common_pipeline_states::shadow_map_constants& shadow_map_constant, renderer_context& context)
 {
-	return;
-	job_executor.execute([this](graphics_context& context)
+	DirectX::XMFLOAT3 position = light.get_position();
+	DirectX::XMVECTOR position_vector = DirectX::XMLoadFloat3(&position);
+	float range = light.get_range();
+
+	//	キューブマップ6面分の視線方向・上方向(0:+X, 1:-X, 2:+Y, 3:-Y, 4:+Z, 5:-Z)
+	static const DirectX::XMFLOAT3 cube_face_directions[6] =
 	{
+		{ +1.0f,  0.0f,  0.0f },
+		{ -1.0f,  0.0f,  0.0f },
+		{  0.0f, +1.0f,  0.0f },
+		{  0.0f, -1.0f,  0.0f },
+		{  0.0f,  0.0f, +1.0f },
+		{  0.0f,  0.0f, -1.0f },
+	};
+	static const DirectX::XMFLOAT3 cube_face_ups[6] =
+	{
+		{ 0.0f, 1.0f,  0.0f },
+		{ 0.0f, 1.0f,  0.0f },
+		{ 0.0f, 0.0f, -1.0f },
+		{ 0.0f, 0.0f, +1.0f },
+		{ 0.0f, 1.0f,  0.0f },
+		{ 0.0f, 1.0f,  0.0f },
+	};
+
+	DirectX::XMMATRIX ProjectionMatrix = DirectX::XMMatrixPerspectiveFovLH(DirectX::XM_PIDIV2, 1.0f, 0.01f, range);
+
+	//	定数バッファ設定
+	shadow_map_constant.shadow_map_count = 6;
+	shadow_map_constant.shadow_attenuation = light.get_shadow_attenuation();
+	shadow_map_constant.shadow_mask = 0;
+
+	for (UINT face = 0; face < 6; ++face)
+	{
+		DirectX::XMVECTOR direction_vector = DirectX::XMLoadFloat3(&cube_face_directions[face]);
+		DirectX::XMVECTOR up_vector = DirectX::XMLoadFloat3(&cube_face_ups[face]);
+		DirectX::XMMATRIX ViewMatrix = DirectX::XMMatrixLookToLH(position_vector, direction_vector, up_vector);
+		DirectX::XMStoreFloat4x4(&shadow_map_constant.light_view_projection_transform[face], ViewMatrix * ProjectionMatrix);
+
+		//	面選択はワールド方向で行うため、カスケード用の深度バンドは常に真になる値にしておく
+		shadow_map_constant.shadow_split_distance[face].x = -1.0f;
+		shadow_map_constant.shadow_split_distance[face].y = -1.0f;
+		shadow_map_constant.shadow_split_distance[face].z = FLT_MAX;
+		shadow_map_constant.shadow_split_distance[face].w = FLT_MAX;
+
+		//	バイアス処理
+		auto& bias_data = light.get_shadow_bias(face);
+		float depth_bias, slope_depth_bias;
+		depth_bias = bias_data.max_depth_bias / math::max(0.01f, range);
+		depth_bias *= 0.5f;
+		depth_bias *= bias_data.depth_bias;
+		slope_depth_bias = bias_data.slope_depth_bias_scale * bias_data.slope_depth_bias;
+		shadow_map_constant.shadow_bias[face].x = std::max(0.0f, depth_bias);
+		shadow_map_constant.shadow_bias[face].y = std::max(0.0f, depth_bias * slope_depth_bias);
+		shadow_map_constant.shadow_bias[face].z = bias_data.max_slope_depth_bias;
+		shadow_map_constant.shadow_bias[face].w = bias_data.sigma_factor; // 分散値
+	}
+
+	job_executor.execute([this, shadow_map_constant, position, range](graphics_context& context)
+	{
+		shadow_map_pass.activate(context.device_context);
+
+		context.shadow_map_constant = shadow_map_constant;
+
+		context.device_context->RSSetViewports(1, &shadow_map_pass_viewport);
+
+		context.is_shadow_rendering = true;
+		scene_renderer_commons::model_render_shadow_batched(context, context.render_data->mesh_container.shadow_datas, position, range, material::surface_paths::shadow_write_pass);
+		context.is_shadow_rendering = false;
+
+		shadow_map_pass.deactivate(context.device_context);
 	}, "render_point_shadow_map_pass", context, get_render_basis_sort_order() + register_index++, true);
 }
+
+
 
 void deffered_lighting_renderer::render_spot(const light& light, common_pipeline_states::shadow_map_constants& shadow_map_constant, renderer_context& context)
 {
@@ -1104,11 +1173,11 @@ void deffered_lighting_renderer::render_spot_shadow_map(const light& light, comm
 		slope_depth_bias	= bias_data.slope_depth_bias_scale * bias_data.slope_depth_bias;
 		shadow_map_constant.shadow_bias[0].x = std::max(0.0f, depth_bias);
 		shadow_map_constant.shadow_bias[0].y = std::max(0.0f, depth_bias * slope_depth_bias);
-		shadow_map_constant.shadow_bias[0].z = bias_data.max_depth_bias;
+		shadow_map_constant.shadow_bias[0].z = bias_data.max_slope_depth_bias;
 		shadow_map_constant.shadow_bias[0].w = bias_data.sigma_factor; // 分散値
 	}
 
-	shadow_map_constant.shadow_mask = 0x00000001;
+	shadow_map_constant.shadow_mask = 0;
 	DirectX::XMStoreFloat4x4(&shadow_map_constant.light_view_projection_transform[0], ViewMatrix * ProjectionMatrix);
 
 	//	モデル類描画

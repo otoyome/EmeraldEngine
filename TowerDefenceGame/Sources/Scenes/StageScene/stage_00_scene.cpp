@@ -69,18 +69,59 @@ bool stage_00_scene::initialize_core()
 	}
 
 	//	その他光源設定
-	if (0)
 	{
 		auto point = std::make_shared<point_light_object>("点光源");
-		point->set_flag(light::flags::use_shadow, false);
-		point->set_position(system_units::convert_m_to_unit({ 0, 5.0f, 0 }));
+		point->set_flag(light::flags::use_shadow, true);
+		point->set_position(system_units::convert_m_to_unit({ 0, 5.0f, -20 }));
 		point->set_range(system_units::convert_m_to_unit(10.0f));
-		point->set_color({ 1.0f, 1.0f, 1.0f, 100.0f });
+		point->set_color({ 1.0f, 1.0f, 1.0f, 1.0f });
+		{
+			int index = 0;
+			auto bias = point->get_light()->get_shadow_bias(index);
+			bias.depth_bias = 0;
+			bias.sigma_factor = 1.0f;
+			point->get_light()->set_shadow_bias(index, bias);
+		}
+		{
+			int index = 1;
+			auto bias = point->get_light()->get_shadow_bias(index);
+			bias.depth_bias = 0;
+			bias.sigma_factor = 1.0f;
+			point->get_light()->set_shadow_bias(index, bias);
+		}
+		{
+			int index = 2;
+			auto bias = point->get_light()->get_shadow_bias(index);
+			bias.depth_bias = 0;
+			bias.sigma_factor = 1.0f;
+			point->get_light()->set_shadow_bias(index, bias);
+		}
+		{
+			int index = 3;
+			auto bias = point->get_light()->get_shadow_bias(index);
+			bias.depth_bias = 0.0f;
+			bias.sigma_factor = 1.0f;
+			point->get_light()->set_shadow_bias(index, bias);
+		}
+		{
+			int index = 4;
+			auto bias = point->get_light()->get_shadow_bias(index);
+			bias.depth_bias = 0.0f;
+			bias.sigma_factor = 1.0f;
+			point->get_light()->set_shadow_bias(index, bias);
+		}
+		{
+			int index = 5;
+			auto bias = point->get_light()->get_shadow_bias(index);
+			bias.depth_bias = 0.0f;
+			bias.sigma_factor = 1.0f;
+			point->get_light()->set_shadow_bias(index, bias);
+		}
 		register_object(point);
 
 		auto spot = std::make_shared<spot_light_object>("スポットライト");
 		spot->set_flag(light::flags::use_shadow, true);
-		spot->set_position(system_units::convert_m_to_unit({ 0, 5.0f, -10 }));
+		spot->set_position(system_units::convert_m_to_unit({ 0, 5.0f, -30 }));
 		spot->set_rotation({DirectX::XM_PI * 0.5f, 0, 0});
 		spot->set_range(system_units::convert_m_to_unit(20.0f));
 		spot->set_inner_cone(30.0f);
@@ -106,7 +147,7 @@ bool stage_00_scene::initialize_core()
 	//	動かさない事前提
 	{
 		auto file_path = "Assets/Resources/Models/バーダス・コロシアム/バーダス・コロシアム.emo";
-		//auto file_path = "Assets/Resources/Models/race_track/race_track.emo";
+		//auto file_path = "Assets/Resources/Models/StylizedEgypt/StylizedEgypt.emo";
 		UINT separate_level = 6;
 		std::filesystem::path path(file_path);
 		assert (std::filesystem::exists(path));

@@ -64,6 +64,60 @@ namespace
 
 		return frustum_culling.to_sphere(world_center, local_radius * scale);
 	}
+
+	//	AABBと球が交差するかどうかを判定する
+	bool aabb_intersects_sphere(const DirectX::XMFLOAT3& aabb_min,
+								 const DirectX::XMFLOAT3& aabb_max,
+								 const DirectX::XMFLOAT3& sphere_center,
+								 float sphere_radius)
+	{
+		float clamped_x = sphere_center.x;
+		if (clamped_x < aabb_min.x) clamped_x = aabb_min.x;
+		if (clamped_x > aabb_max.x) clamped_x = aabb_max.x;
+		float clamped_y = sphere_center.y;
+		if (clamped_y < aabb_min.y) clamped_y = aabb_min.y;
+		if (clamped_y > aabb_max.y) clamped_y = aabb_max.y;
+		float clamped_z = sphere_center.z;
+		if (clamped_z < aabb_min.z) clamped_z = aabb_min.z;
+		if (clamped_z > aabb_max.z) clamped_z = aabb_max.z;
+
+		float diff_x = clamped_x - sphere_center.x;
+		float diff_y = clamped_y - sphere_center.y;
+		float diff_z = clamped_z - sphere_center.z;
+		float distance_squared = diff_x * diff_x + diff_y * diff_y + diff_z * diff_z;
+
+		return distance_squared <= sphere_radius * sphere_radius;
+	}
+
+	//	ローカル空間のメッシュレット境界をワールド変換し、球と交差するか判定する
+	bool is_meshlet_visible_sphere(const DirectX::XMFLOAT3& sphere_center,
+									float sphere_radius,
+									const DirectX::XMFLOAT4X4& world_transform,
+									const DirectX::XMFLOAT3& local_center,
+									float local_radius)
+	{
+		DirectX::XMVECTOR local_center_vector = DirectX::XMLoadFloat3(&local_center);
+		DirectX::XMMATRIX world_matrix = DirectX::XMLoadFloat4x4(&world_transform);
+		DirectX::XMFLOAT3 world_center;
+		DirectX::XMStoreFloat3(&world_center, DirectX::XMVector3TransformCoord(local_center_vector, world_matrix));
+
+		float scale_x = sqrtf(world_transform._11 * world_transform._11 + world_transform._12 * world_transform._12 + world_transform._13 * world_transform._13);
+		float scale_y = sqrtf(world_transform._21 * world_transform._21 + world_transform._22 * world_transform._22 + world_transform._23 * world_transform._23);
+		float scale_z = sqrtf(world_transform._31 * world_transform._31 + world_transform._32 * world_transform._32 + world_transform._33 * world_transform._33);
+		float scale = scale_x;
+		if (scale_y > scale) scale = scale_y;
+		if (scale_z > scale) scale = scale_z;
+
+		float world_radius = local_radius * scale;
+		float diff_x = world_center.x - sphere_center.x;
+		float diff_y = world_center.y - sphere_center.y;
+		float diff_z = world_center.z - sphere_center.z;
+		float distance_squared = diff_x * diff_x + diff_y * diff_y + diff_z * diff_z;
+		float radius_sum = sphere_radius + world_radius;
+
+		return distance_squared <= radius_sum * radius_sum;
+	}
+
 }
 
 float scene_renderer_commons::convert_linear_depth_to_projection_depth(float depth, float z_buffer_parameteres_y)
@@ -398,7 +452,7 @@ void scene_renderer_commons::model_render_shadow_batched(graphics_context& conte
 		if (!draw_mesh.meshlets || draw_mesh.meshlets->empty())
 			continue;
 
-		//	モーフィング持ちは専用SRVを個別バインドする必要があるため他オブジェクトとまとめられない
+		//	モーフィング持ちは別パス
 		if (!draw_mesh.morph_meshes.empty())
 		{
 			fallback_indices.emplace_back(draw_index);
@@ -468,6 +522,141 @@ void scene_renderer_commons::model_render_shadow_batched(graphics_context& conte
 		model_render(context, fallback_indices, frustum_culling, surface_path);
 	}
 }
+
+void scene_renderer_commons::model_render_shadow_batched(graphics_context& context,
+					const std::vector<std::size_t>& mesh_indices,
+					const DirectX::XMFLOAT3& sphere_center,
+					float sphere_radius,
+					material::surface_paths surface_path)
+{
+	auto draw_data_ptr = context.render_data->mesh_container.draw_datas.data();
+	auto material_data_ptr = context.render_data->mesh_container.material_datas.data();
+	auto buffer_data_ptr = context.render_data->mesh_container.buffer_datas.data();
+
+	struct material_batch
+	{
+		graphics_pipeline_state_ptr pipeline_state;
+		std::vector<common_pipeline_states::meshlet_instance_record> instance_records;
+	};
+	std::unordered_map<material*, material_batch> batches;
+	std::vector<std::size_t> fallback_indices;
+
+	//	マテリアル単位でメッシュレットをまとめて描画
+	for (auto& draw_index : mesh_indices)
+	{
+		auto draw_data = draw_data_ptr + draw_index;
+		auto material_data = material_data_ptr + draw_data->material_index;
+
+		//	球との交差判定
+		auto buffer_data = buffer_data_ptr + draw_data->buffer_index;
+		if (!aabb_intersects_sphere(buffer_data->bounds_min, buffer_data->bounds_max, sphere_center, sphere_radius))
+			continue;
+
+		material* mat = material_data->material;
+		auto pipeline_state = mat->get_pipeline_state(surface_path);
+		if (!pipeline_state)
+			continue;
+
+		//	影メッシュが無ければ対象外
+		const buffer_datas::sub_mesh& draw_mesh = buffer_data->shadow_mesh;
+		if (!draw_mesh.meshlets || draw_mesh.meshlets->empty())
+			continue;
+
+		//	モーフィング持ちは別パス
+		if (!draw_mesh.morph_meshes.empty())
+		{
+			fallback_indices.emplace_back(draw_index);
+			continue;
+		}
+
+		//	メッシュレット単位の球カリングと収集
+		bool apply_meshlet_culling = system_utility::is_bitflag(buffer_data->system_flags, buffer_datas::flags::culling);
+		auto& batch = batches[mat];
+		batch.pipeline_state = pipeline_state;
+		for (auto& meshlet : *draw_mesh.meshlets)
+		{
+			if (apply_meshlet_culling && !is_meshlet_visible_sphere(sphere_center, sphere_radius, buffer_data->world_transform, meshlet.bounds_center, meshlet.bounds_radius))
+				continue;
+
+			auto& record = batch.instance_records.emplace_back();
+			record.vertex_offset = meshlet.vertex_offset;
+			record.triangle_offset = meshlet.triangle_offset;
+			record.triangle_count = meshlet.triangle_count;
+			record.primitive_index = draw_data->buffer_index;
+		}
+	}
+
+	//	マテリアル単位でまとめて描画
+	if (!batches.empty())
+	{
+		auto pool = model_buffer_pool_manager::instance();
+
+		context.set_vertex_buffers(0, 0, nullptr, nullptr, nullptr);
+		context.set_index_buffer(nullptr, DXGI_FORMAT_UNKNOWN, 0);
+		context.set_primitive_topology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+		for (auto& pair : batches)
+		{
+			material* mat = pair.first;
+			auto& batch = pair.second;
+			//	このマテリアルは生存メッシュレット無し
+			if (batch.instance_records.empty())
+				continue;
+
+			batch.pipeline_state->begin(context);
+			mat->update_parameters(context);
+			batch.pipeline_state->update_parameters(context, *mat, nullptr);
+
+			bind_meshlet_attribute_srvs(context);
+
+			ID3D11Buffer* batch_buffer = nullptr;
+			ID3D11ShaderResourceView* batch_srv = nullptr;
+			pool->get_meshlet_instance_batch(static_cast<UINT>(batch.instance_records.size()), &batch_buffer, &batch_srv);
+
+			D3D11_BOX box{};
+			box.right = static_cast<UINT>(sizeof(common_pipeline_states::meshlet_instance_record) * batch.instance_records.size());
+			box.bottom = 1;
+			box.back = 1;
+			context.device_context->UpdateSubresource(batch_buffer, 0, &box, batch.instance_records.data(), 0, 0);
+
+			context.device_context->VSSetShaderResources(118, 1, &batch_srv);
+			context.device_context->DrawInstanced(meshlet_culling_system::max_meshlet_vertices_per_draw, static_cast<UINT>(batch.instance_records.size()), 0, 0);
+
+			batch.pipeline_state->end(context);
+		}
+	}
+
+	//	モーフィング等でまとめられなかった分は通常経路で描画
+	if (!fallback_indices.empty())
+	{
+		graphics_pipeline_state_ptr current_pipeline_state;
+		for (auto& draw_index : fallback_indices)
+		{
+			auto draw_data = draw_data_ptr + draw_index;
+			auto material_data = material_data_ptr + draw_data->material_index;
+			auto buffer_data = buffer_data_ptr + draw_data->buffer_index;
+
+			if (auto pipeline_state = material_data->material->get_pipeline_state(surface_path))
+			{
+				if (pipeline_state != current_pipeline_state)
+				{
+					if (current_pipeline_state)
+						current_pipeline_state->end(context);
+
+					current_pipeline_state = pipeline_state;
+					current_pipeline_state->begin(context);
+				}
+
+				material_data->material->update_parameters(context);
+				current_pipeline_state->update_parameters(context, *material_data->material, buffer_data);
+				draw_indexed(context, 0.0f, *buffer_data, draw_data->buffer_index, current_pipeline_state);
+			}
+		}
+		if (current_pipeline_state)
+			current_pipeline_state->end(context);
+	}
+}
+
 
 void scene_renderer_commons::particle_render(graphics_context& context,
 					const std::vector<std::size_t>& draw_indices,

@@ -45,6 +45,12 @@ namespace scene_renderer_commons
 					  const collision::frustum_culling& frustum_culling,
 					  material::surface_paths surface_path);
 
+	void model_render_shadow_batched(graphics_context& context,
+					  const std::vector<std::size_t>& mesh_indices,
+					  const DirectX::XMFLOAT3& sphere_center,
+					  float sphere_radius,
+					  material::surface_paths surface_path);
+
 	void model_render_indirect(graphics_context& context,
 					  const std::vector<std::size_t>& mesh_indices,
 					  const std::vector<float>& mesh_lengths,

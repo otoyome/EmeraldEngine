@@ -25,15 +25,15 @@ void main(triangle VS_SHADOW_MAP_OUT input[3], inout TriangleStream<GS_CSM_OUT> 
 
         float4x4 view_projection = light_view_projection_transform[k];
         //	カリング
-        float4 positions[3];
+        float4 positions[3], s_positions[3];
         [unroll] for (i = 0; i < 3; i++)
         {
             positions[i] = mul(float4(input[i].position.xyz, 1.0f), view_projection);
-            positions[i] /= positions[i].w;
+            s_positions[i] = positions[i] / positions[i].w;
         }
 
         //  微小ポリゴンはカリングする
-        if (minimum_primitive_culling(positions))
+        if (minimum_primitive_culling(s_positions))
             continue;
 
         //  シャドウマップ適応

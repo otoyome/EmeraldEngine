@@ -109,4 +109,36 @@ float4 shadowing_process(float3 world_position, float4x4 view_matrix)
     return float4(light_attenuation, sm_index);
 }
 
+//	ポイントライト用シャドウサンプル
+float4 shadowing_process_point(float3 world_position, float3 light_position)
+{
+    float3 L = world_position - light_position;
+    float3 absL = abs(L);
+
+    //	面選択(0:+X, 1:-X, 2:+Y, 3:-Y, 4:+Z, 5:-Z)
+    uint index;
+    if (absL.x >= absL.y && absL.x >= absL.z)
+        index = (L.x > 0.0f) ? 0 : 1;
+    else if (absL.y >= absL.z)
+        index = (L.y > 0.0f) ? 2 : 3;
+    else
+        index = (L.z > 0.0f) ? 4 : 5;
+
+    float angle = frac(sin(dot(world_position.xy, float2(12.9898f, 78.233f))) * 43758.5453f) * 3.14159265f * 2;
+    float2x2 rot = { cos(angle), -sin(angle), sin(angle), cos(angle) };
+
+    //	シャドウ座標
+    float4 shadow_position = mul(float4(world_position, 1.0f), light_view_projection_transform[index]);
+    shadow_position /= shadow_position.w;
+
+    //	範囲クリップ
+    float3 texcoord = float3(shadow_position.xy * float2(0.5f, -0.5f) + (float2)0.5f, shadow_position.z);
+    if (!(all(texcoord >= (float3)0.0f) * all(texcoord <= (float3)1.0f)))
+        return float4(1.0f, 1.0f, 1.0f, shadow_map_max);
+
+    float3 light_attenuation = shadowmap_fetch_pcf(index, texcoord, rot, shadow_bias[index].w);
+    return float4(light_attenuation, index);
+}
+
+
 #endif  //  __SHADOW_MAP_HLSLI__
