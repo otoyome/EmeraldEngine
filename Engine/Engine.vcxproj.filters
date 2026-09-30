@@ -43,6 +43,12 @@
     <Filter Include="Headers\System\BehaviorTree">
       <UniqueIdentifier>{16213654-ea52-427f-b93d-0078ad90f3b5}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Headers\Math">
+      <UniqueIdentifier>{b353db9d-9c77-4856-90f7-d7c3f522128b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Sources\Math">
+      <UniqueIdentifier>{d09f55fd-9e4c-4b63-b4de-1d7f8dfbda9a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Headers\geometric_primitive.h">
@@ -297,6 +303,48 @@
     <ClInclude Include="Headers\Graphics\cubic_sdf_buffer_pool.h">
       <Filter>Headers\Graphics</Filter>
     </ClInclude>
+    <ClInclude Include="Headers\Math\angle.h">
+      <Filter>Headers\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Math\easing.h">
+      <Filter>Headers\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Math\exponential_quaternion.h">
+      <Filter>Headers\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Math\interpolation.h">
+      <Filter>Headers\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Math\math_all.h">
+      <Filter>Headers\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Math\math_common.h">
+      <Filter>Headers\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Math\math_simd.h">
+      <Filter>Headers\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Math\matrix.h">
+      <Filter>Headers\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Math\quaternion.h">
+      <Filter>Headers\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Math\rotator.h">
+      <Filter>Headers\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Math\utility.h">
+      <Filter>Headers\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Math\vector2.h">
+      <Filter>Headers\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Math\vector3.h">
+      <Filter>Headers\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Math\vector4.h">
+      <Filter>Headers\Math</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Sources\geometric_primitive.cpp">
@@ -508,6 +556,27 @@
     </ClCompile>
     <ClCompile Include="Sources\Graphics\cubic_sdf_buffer_pool.cpp">
       <Filter>Sources\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Math\exponential_quaternion.cpp">
+      <Filter>Sources\Math</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Math\matrix.cpp">
+      <Filter>Sources\Math</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Math\quaternion.cpp">
+      <Filter>Sources\Math</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Math\rotator.cpp">
+      <Filter>Sources\Math</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Math\vector2.cpp">
+      <Filter>Sources\Math</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Math\vector3.cpp">
+      <Filter>Sources\Math</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Math\vector4.cpp">
+      <Filter>Sources\Math</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
