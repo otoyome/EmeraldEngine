@@ -53,10 +53,16 @@ void hiz_buffer::resize_buffer(int width, int height)
 	auto device = render_data::instance()->get_device();
 	HRESULT hr;
 
-	//	ミップ段数を算出
+	//	ミップ段数を算出(ミップ0は元解像度以下の2のべき乗にする)
+	UINT hiz_width = 1, hiz_height = 1;
+	while (hiz_width * 2 <= static_cast<UINT>(width))
+		hiz_width *= 2;
+	while (hiz_height * 2 <= static_cast<UINT>(height))
+		hiz_height *= 2;
+
 	hiz_mip_count = 1;
 	{
-		int m = (width > height) ? width : height;
+		UINT m = (hiz_width > hiz_height) ? hiz_width : hiz_height;
 		while (m > 1)
 		{
 			m >>= 1;
@@ -69,8 +75,8 @@ void hiz_buffer::resize_buffer(int width, int height)
 
 	//	Hi-Z用バッファ生成
 	D3D11_TEXTURE2D_DESC td{};
-	td.Width = width;
-	td.Height = height;
+	td.Width = hiz_width;
+	td.Height = hiz_height;
 	td.MipLevels = hiz_mip_count;
 	td.ArraySize = 1;
 	td.Format = DXGI_FORMAT_R32_FLOAT;
@@ -95,8 +101,8 @@ void hiz_buffer::resize_buffer(int width, int height)
 	hiz_mip_sizes.assign(hiz_mip_count, {});
 	for (UINT mip = 0; mip < hiz_mip_count; ++mip)
 	{
-		UINT mw = width >> mip;  if (mw == 0) mw = 1;
-		UINT mh = height >> mip; if (mh == 0) mh = 1;
+		UINT mw = hiz_width >> mip;  if (mw == 0) mw = 1;
+		UINT mh = hiz_height >> mip; if (mh == 0) mh = 1;
 		hiz_mip_sizes[mip] = { mw, mh };
 
 		D3D11_SHADER_RESOURCE_VIEW_DESC sd{};
@@ -126,7 +132,7 @@ void hiz_buffer::build(graphics_context& context)
 	//	ミップ0生成
 	hiz_constants constant{};
 	constant.dst_size = hiz_mip_sizes[0];
-	constant.src_size = hiz_mip_sizes[0];
+	constant.src_size = { static_cast<UINT>(last_width), static_cast<UINT>(last_height) };
 	dc->UpdateSubresource(hiz_constant_buffer.Get(), 0, nullptr, &constant, 0, 0);
 	dc->CSSetConstantBuffers(0, 1, hiz_constant_buffer.GetAddressOf());
 	dc->CSSetShader(hiz_copy_cs->get_shader().Get(), nullptr, 0);

@@ -85,7 +85,12 @@ void main(uint3 id : SV_DispatchThreadID)
 
 	float2 rect_px = (uv_max - uv_min) * hiz_size;
 	float  lod = ceil(log2(max(max(rect_px.x, rect_px.y), 1.0f)));
-	lod = clamp(lod, 0.0f, (float)(hiz_mip_count - 1));
+	if (lod > (float)(hiz_mip_count - 1))
+	{
+		//	@tool HiZ‚ÌÅ‘åƒ~ƒbƒv‚Å•¢‚¦‚È‚¢‘å‚«‚³‚È‚Ì‚ÅÕ•Á”»’è‚µ‚È‚¢
+		visibility[i] = 1;
+		return;
+	}
 
 	float occluder = 0.0f;
 	occluder = max(occluder, hiz.SampleLevel(hiz_sampler, float2(uv_min.x, uv_min.y), lod));

@@ -62,6 +62,26 @@ void main(uint3 id : SV_DispatchThreadID)
 	float scale = max(length(world_transform[0].xyz), max(length(world_transform[1].xyz), length(world_transform[2].xyz)));
 	float world_radius = inst.bounds_radius * scale;
 
+	//	視錐台の6平面と境界球で判定
+	float4x4 vp_t = transpose(view_projection);
+	float4 frustum_planes[6] =
+	{
+		vp_t[3] + vp_t[0],	//	左
+		vp_t[3] - vp_t[0],	//	右
+		vp_t[3] + vp_t[1],	//	下
+		vp_t[3] - vp_t[1],	//	上
+		vp_t[2],			//	近
+		vp_t[3] - vp_t[2],	//	遠
+	};
+	[unroll]
+	for (int plane_index = 0; plane_index < 6; ++plane_index)
+	{
+		if (dot(frustum_planes[plane_index].xyz, world_center) + frustum_planes[plane_index].w < -world_radius * length(frustum_planes[plane_index].xyz))
+		{
+			return;	//	画面外
+		}
+	}
+
 	float3 bmin = world_center - world_radius;
 	float3 bmax = world_center + world_radius;
 
@@ -95,8 +115,7 @@ void main(uint3 id : SV_DispatchThreadID)
 
 	if (behind_count == 8)
 	{
-		//	8頂点すべてが視点より後ろ(近クリップ面より手前)：不可視
-		return;
+		return;	//	画面外
 	}
 	if (behind_count > 0)
 	{
@@ -115,13 +134,17 @@ void main(uint3 id : SV_DispatchThreadID)
 	uv_max = saturate(uv_max);
 	if (uv_min.x >= uv_max.x || uv_min.y >= uv_max.y)
 	{
-		//	画面外
-		return;
+		return;	//	画面外
 	}
 
 	float2 rect_px = (uv_max - uv_min) * hiz_size;
 	float  lod = ceil(log2(max(max(rect_px.x, rect_px.y), 1.0f)));
-	lod = clamp(lod, 0.0f, (float)(hiz_mip_count - 1));
+	if (lod > (float)(hiz_mip_count - 1))
+	{
+		//	@tool HiZの最大ミップで覆えない大きさなので遮蔽判定しない
+		visible_meshlets.Append(inst);
+		return;
+	}
 
 	float occluder = 0.0f;
 	occluder = max(occluder, hiz.SampleLevel(hiz_sampler, float2(uv_min.x, uv_min.y), lod));
