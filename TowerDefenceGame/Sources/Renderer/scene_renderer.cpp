@@ -1055,7 +1055,7 @@ void deffered_lighting_renderer::render_point_shadow_map(const light& light, com
 		{ 0.0f, 1.0f,  0.0f },
 	};
 
-	DirectX::XMMATRIX ProjectionMatrix = DirectX::XMMatrixPerspectiveFovLH(DirectX::XM_PIDIV2, 1.0f, 0.01f, range);
+	DirectX::XMMATRIX ProjectionMatrix = DirectX::XMMatrixPerspectiveFovLH(DirectX::XM_PIDIV2, 1.0f, 1.0f, range);
 
 	//	定数バッファ設定
 	shadow_map_constant.shadow_map_count = 6;
@@ -1118,6 +1118,12 @@ void deffered_lighting_renderer::render_spot(const light& light, common_pipeline
 		context.shadow_map_texture = render_targets->shadowmap_depth_texture;
 		context.shadow_map_constant = shadow_map_constant;
 
+		//	G-Bufferテクスチャ設定
+		for (UINT index = 0; index < static_cast<UINT>(common_pipeline_states::gbuffer_id::max); ++index)
+		{
+			context.g_buffer_textures[index] = render_targets->g_buffer_textures[index];
+		}
+
 		//	ビューポートの設定
 		context.device_context->RSSetViewports(1, &lighting_pass_viewport);
 		{
@@ -1149,7 +1155,7 @@ void deffered_lighting_renderer::render_spot_shadow_map(const light& light, comm
 	TransformMatrix = DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&rotation))
 					* DirectX::XMMatrixTranslation(position.x, position.y, position.z);
 	ViewMatrix = DirectX::XMMatrixInverse(nullptr, TransformMatrix);
-	ProjectionMatrix = DirectX::XMMatrixPerspectiveFovLH(light.get_outer_cone() * 2.0f, 1.0f, 0.01f, light.get_range());
+	ProjectionMatrix = DirectX::XMMatrixPerspectiveFovLH(light.get_outer_cone() * 2.0f, 1.0f, 1.0f, light.get_range());
 
 	//	定数バッファ情報設定
 	shadow_map_constant.shadow_map_count = 1;

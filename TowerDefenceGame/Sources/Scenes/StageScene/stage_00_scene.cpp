@@ -120,12 +120,12 @@ bool stage_00_scene::initialize_core()
 		register_object(point);
 
 		auto spot = std::make_shared<spot_light_object>("スポットライト");
-		spot->set_flag(light::flags::use_shadow, false);
+		spot->set_flag(light::flags::use_shadow, true);
 		spot->set_position(system_units::convert_m_to_unit({ 0, 5.0f, -30 }));
 		spot->set_rotation({DirectX::XM_PI * 0.2f, 0, 0});
-		spot->set_range(system_units::convert_m_to_unit(1000.0f));
-		spot->set_inner_cone(60.0f);
-		spot->set_outer_cone(80.0f);
+		spot->set_range(system_units::convert_m_to_unit(20.0f));
+		spot->set_inner_cone(30.0f);
+		spot->set_outer_cone(60.0f);
 		spot->set_color({ 1.0f, 1.0f, 1.0f, 10.0f });
 		register_object(spot);
 	}
