@@ -14,5 +14,5 @@ void main(uint3 id : SV_DispatchThreadID)
 	float d2 = src_depth.Load(int3(min(s + int2(0, 1), smax), 0));
 	float d3 = src_depth.Load(int3(min(s + int2(1, 1), smax), 0));
 
-	dst[id.xy] = max(max(d0, d1), max(d2, d3));
+	dst[id.xy] = min(min(d0, d1), min(d2, d3));	//	ç≈Ç‡ãﬂÇ¢ê[ìx
 }

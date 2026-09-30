@@ -25,7 +25,7 @@ float3 shadowmap_fetch(int index, float3 texcoord)
 {
     float3 texcoordUVW = float3(texcoord.xy, index);
     float depth = shadow_maps.Sample(shadow_maps_sampler_state, texcoordUVW).r;
-    float factor = step(texcoord.z, depth + shadow_map_constant_bias);
+    float factor = step(depth - shadow_map_constant_bias, texcoord.z);
     return lerp(shadow_attenuation, float3(1.0f, 1.0f, 1.0f), factor);
 }
 
@@ -65,7 +65,7 @@ float3 shadowmap_fetch_pcf(int index, float3 texcoord, float2x2 rotation_matrix,
 
         float3 texcoordUVW = float3(texcoord.xy + offset, index);
         float depth = shadow_maps.SampleLevel(shadow_maps_sampler_state, texcoordUVW, 0).r;
-        float value = step(texcoord.z, depth + shadow_map_constant_bias);
+        float value = step(depth - shadow_map_constant_bias, texcoord.z);
         attenuation += value.xxx;
     }
     return lerp(shadow_attenuation, float3(1.0f, 1.0f, 1.0f), attenuation / poisson_disk_size);

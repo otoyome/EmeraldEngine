@@ -187,7 +187,7 @@ void camera::update_parameters()
 	DirectX::XMStoreFloat4x4(&view_matrix, View);
 
 	aspect_ratio = static_cast<float>(screen_rect.z - screen_rect.x) / static_cast<float>(screen_rect.w - screen_rect.y);
-	Projection = DirectX::XMMatrixPerspectiveFovLH(fov_y, aspect_ratio, clip_distance.x, clip_distance.y);
+	Projection = DirectX::XMMatrixPerspectiveFovLH(fov_y, aspect_ratio, clip_distance.y, clip_distance.x);
 	if (is_flag(flags::hybrid_projection))
 	{
 		//	ïΩçsìäâeÇ∆ÇÃÉuÉåÉìÉhèàóù
@@ -199,7 +199,7 @@ void camera::update_parameters()
 		DirectX::XMMATRIX OrthoProjection;
 		float ortho_height = tanf(0.5f * fov_y);
 		float ortho_width = ortho_height * aspect_ratio;
-		OrthoProjection = DirectX::XMMatrixOrthographicLH(ortho_width, ortho_height, clip_distance.x, clip_distance.y);
+		OrthoProjection = DirectX::XMMatrixOrthographicLH(ortho_width, ortho_height, clip_distance.y, clip_distance.x);
 
 		OrthoProjection.r[0] = DirectX::XMVectorMultiply(OrthoProjection.r[0], O);
 		OrthoProjection.r[1] = DirectX::XMVectorMultiply(OrthoProjection.r[1], O);

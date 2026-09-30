@@ -30,7 +30,7 @@ float2 reconst_velocity(float2 velocity)
 float calc_soft_depth_compare(float za, float zb)
 {
     static const float SoftDepthExtend = 0.1f;
-    return saturate(1.0f - (za - zb) / SoftDepthExtend);
+    return saturate(1.0f - (zb - za) / SoftDepthExtend);
 }
 
 float calc_cone(float L, float2 V)

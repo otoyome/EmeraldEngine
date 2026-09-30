@@ -19,7 +19,7 @@ struct depth_stencil_view
 	Microsoft::WRL::ComPtr<ID3D11DepthStencilView> view;
 	bool clear_depth{true};
 	bool clear_stencil{true};
-	FLOAT clear_depth_value{1.0f};
+	FLOAT clear_depth_value{0.0f};
 	UINT8 clear_stencil_value{0};
 
 	depth_stencil_view(){};

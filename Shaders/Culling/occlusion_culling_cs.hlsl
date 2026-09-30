@@ -24,7 +24,7 @@ cbuffer OCCLUSION_CULL_CONSTANT_BUFFER : register(b0)
 
 float linearize_depth(float z_ndc, float near_z, float far_z)
 {
-	return (far_z * near_z) / (far_z - z_ndc * (far_z - near_z));
+	return (far_z * near_z) / (near_z + z_ndc * (far_z - near_z));
 }
 
 [numthreads(64, 1, 1)]
@@ -43,7 +43,7 @@ void main(uint3 id : SV_DispatchThreadID)
 
 	float2 uv_min = float2(1e9f, 1e9f);
 	float2 uv_max = float2(-1e9f, -1e9f);
-	float  min_z = 1e9f;
+	float  min_z = -1e9f;
 
 	[unroll]
 	for (int c = 0; c < 8; ++c)
@@ -65,10 +65,10 @@ void main(uint3 id : SV_DispatchThreadID)
 		float2 uv = ndc.xy * float2(0.5f, -0.5f) + 0.5f;
 		uv_min = min(uv_min, uv);
 		uv_max = max(uv_max, uv);
-		min_z = min(min_z, ndc.z);
+		min_z = max(min_z, ndc.z);
 	}
 
-	if (min_z <= 0.0f)
+	if (min_z >= 1.0f)
 	{
 		visibility[i] = 1;
 		return;
@@ -87,16 +87,16 @@ void main(uint3 id : SV_DispatchThreadID)
 	float  lod = ceil(log2(max(max(rect_px.x, rect_px.y), 1.0f)));
 	if (lod > (float)(hiz_mip_count - 1))
 	{
-		//	@tool HiZの最大ミップで覆えない大きさなので遮蔽判定しない
+		//	HiZの最大ミップで覆えない大きさなので遮蔽判定しない
 		visibility[i] = 1;
 		return;
 	}
 
-	float occluder = 0.0f;
-	occluder = max(occluder, hiz.SampleLevel(hiz_sampler, float2(uv_min.x, uv_min.y), lod));
-	occluder = max(occluder, hiz.SampleLevel(hiz_sampler, float2(uv_max.x, uv_min.y), lod));
-	occluder = max(occluder, hiz.SampleLevel(hiz_sampler, float2(uv_min.x, uv_max.y), lod));
-	occluder = max(occluder, hiz.SampleLevel(hiz_sampler, float2(uv_max.x, uv_max.y), lod));
+	float occluder = 1.0f;
+	occluder = min(occluder, hiz.SampleLevel(hiz_sampler, float2(uv_min.x, uv_min.y), lod));
+	occluder = min(occluder, hiz.SampleLevel(hiz_sampler, float2(uv_max.x, uv_min.y), lod));
+	occluder = min(occluder, hiz.SampleLevel(hiz_sampler, float2(uv_min.x, uv_max.y), lod));
+	occluder = min(occluder, hiz.SampleLevel(hiz_sampler, float2(uv_max.x, uv_max.y), lod));
 
 	float min_z_linear = linearize_depth(min_z, clip_near_far.x, clip_near_far.y);
 	float occluder_linear = linearize_depth(occluder, clip_near_far.x, clip_near_far.y);

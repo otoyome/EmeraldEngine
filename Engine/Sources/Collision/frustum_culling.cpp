@@ -172,10 +172,10 @@ void frustum_culling::create_frustum_corners(const DirectX::XMMATRIX & inverse_v
 {
 	const DirectX::XMVECTOR base_corners[] =
 	{
-		DirectX::XMVectorSet(-1, -1, -1, 1),
-		DirectX::XMVectorSet( 1, -1, -1, 1),
-		DirectX::XMVectorSet( 1,  1, -1, 1),
-		DirectX::XMVectorSet(-1,  1, -1, 1),
+		DirectX::XMVectorSet(-1, -1, 0, 1),
+		DirectX::XMVectorSet( 1, -1, 0, 1),
+		DirectX::XMVectorSet( 1,  1, 0, 1),
+		DirectX::XMVectorSet(-1,  1, 0, 1),
 		DirectX::XMVectorSet(-1, -1,  1, 1),
 		DirectX::XMVectorSet( 1, -1,  1, 1),
 		DirectX::XMVectorSet( 1,  1,  1, 1),

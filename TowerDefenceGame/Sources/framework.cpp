@@ -684,8 +684,8 @@ void framework::prepare_renderer_context(
 		context.scene_constant.camera_clip_distance.z = camera.camera->get_clip_distance().x * camera.camera->get_clip_distance().y;
 		context.scene_constant.camera_clip_distance.w = camera.camera->get_clip_distance().y - camera.camera->get_clip_distance().x;
 
-		context.scene_constant.z_buffer_parameteres.y = camera.camera->get_clip_distance().y / camera.camera->get_clip_distance().x;
-		context.scene_constant.z_buffer_parameteres.x = 1.0f - context.scene_constant.z_buffer_parameteres.y;
+		context.scene_constant.z_buffer_parameteres.y = 1.0f;
+		context.scene_constant.z_buffer_parameteres.x = camera.camera->get_clip_distance().y / camera.camera->get_clip_distance().x - 1.0f;
 		context.scene_constant.z_buffer_parameteres.z = context.scene_constant.z_buffer_parameteres.x / camera.camera->get_clip_distance().y;
 		context.scene_constant.z_buffer_parameteres.w = context.scene_constant.z_buffer_parameteres.y / camera.camera->get_clip_distance().y;
 

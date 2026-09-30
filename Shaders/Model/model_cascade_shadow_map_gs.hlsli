@@ -54,7 +54,7 @@ void main(triangle VS_SHADOW_MAP_OUT input[3], inout TriangleStream<GS_CSM_OUT> 
                 float slope_bias = offset_parameter.y * slope;
                 depth_bias = offset_parameter.x + slope_bias;
             }
-            element.vout.position.z += depth_bias;
+            element.vout.position.z -= depth_bias;	//	Reversed-Z: ’l‚ª¬‚³‚¢‚Ù‚Ç‰“‚¢‚Ì‚Åˆø‚«ŽZ‚É
 
 #if VERTEX_COLOR_MAX > 0
             [unroll] for (j = 0; j < VertexColorMax; ++j)

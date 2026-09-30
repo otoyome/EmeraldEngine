@@ -122,8 +122,8 @@ namespace
 
 float scene_renderer_commons::convert_linear_depth_to_projection_depth(float depth, float z_buffer_parameteres_y)
 {
-	float z_buffer_parameteres_x = 1.0f - z_buffer_parameteres_y;
-	return (1.0f / depth - z_buffer_parameteres_y) / z_buffer_parameteres_x;
+	float z_buffer_parameteres_x = z_buffer_parameteres_y - 1.0f;
+	return (1.0f / depth - 1.0f) / z_buffer_parameteres_x;
 }
 
 void scene_renderer_commons::draw(const graphics_context& context,

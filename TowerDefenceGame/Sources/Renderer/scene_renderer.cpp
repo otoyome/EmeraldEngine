@@ -854,7 +854,7 @@ void deffered_lighting_renderer::render_directional_shadow_map(const light& ligh
 			{
 				top_min_distance = 0.0f;
 				top_max_distance = top_min_distance + radius * 2.0f;
-				LightProjectionMatrix = DirectX::XMMatrixOrthographicOffCenterLH(-radius, +radius, -radius, +radius, top_min_distance, top_max_distance);
+				LightProjectionMatrix = DirectX::XMMatrixOrthographicOffCenterLH(-radius, +radius, -radius, +radius, top_max_distance, top_min_distance);
 			}
 
 			//	フラスタムカリング生成
@@ -937,7 +937,7 @@ void deffered_lighting_renderer::render_directional_shadow_map(const light& ligh
 				//	投影行列生成
 				float ortho_near = 0.0f;
 				float ortho_far  = std::max(far_z - near_z, 0.0001f);
-				DirectX::XMMATRIX LightProjectionMatrix = DirectX::XMMatrixOrthographicOffCenterLH(-radius, +radius, -radius, +radius, ortho_near, ortho_far);
+				DirectX::XMMATRIX LightProjectionMatrix = DirectX::XMMatrixOrthographicOffCenterLH(-radius, +radius, -radius, +radius, ortho_far, ortho_near);
 				DirectX::XMStoreFloat4x4(&shadow_map_constant.light_view_projection_transform[index], LightViewMatrix * LightProjectionMatrix);
 			}
 
@@ -1055,7 +1055,7 @@ void deffered_lighting_renderer::render_point_shadow_map(const light& light, com
 		{ 0.0f, 1.0f,  0.0f },
 	};
 
-	DirectX::XMMATRIX ProjectionMatrix = DirectX::XMMatrixPerspectiveFovLH(DirectX::XM_PIDIV2, 1.0f, 1.0f, range);
+	DirectX::XMMATRIX ProjectionMatrix = DirectX::XMMatrixPerspectiveFovLH(DirectX::XM_PIDIV2, 1.0f, range, 1.0f);
 
 	//	定数バッファ設定
 	shadow_map_constant.shadow_map_count = 6;
@@ -1155,7 +1155,7 @@ void deffered_lighting_renderer::render_spot_shadow_map(const light& light, comm
 	TransformMatrix = DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&rotation))
 					* DirectX::XMMatrixTranslation(position.x, position.y, position.z);
 	ViewMatrix = DirectX::XMMatrixInverse(nullptr, TransformMatrix);
-	ProjectionMatrix = DirectX::XMMatrixPerspectiveFovLH(light.get_outer_cone() * 2.0f, 1.0f, 1.0f, light.get_range());
+	ProjectionMatrix = DirectX::XMMatrixPerspectiveFovLH(light.get_outer_cone() * 2.0f, 1.0f, light.get_range(), 1.0f);
 
 	//	定数バッファ情報設定
 	shadow_map_constant.shadow_map_count = 1;

@@ -52,7 +52,7 @@ deferred_decal_stencil_write_pipeline_state::deferred_decal_stencil_write_pipeli
 		D3D11_DEPTH_STENCIL_DESC depth_stencil_desc{};
 		depth_stencil_desc.DepthEnable = TRUE;
 		depth_stencil_desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
-		depth_stencil_desc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
+		depth_stencil_desc.DepthFunc = D3D11_COMPARISON_GREATER_EQUAL;
 		depth_stencil_desc.StencilEnable = TRUE;
 		depth_stencil_desc.StencilReadMask = 0xFF;
 		depth_stencil_desc.StencilWriteMask = 0xFF;
