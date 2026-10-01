@@ -147,6 +147,12 @@
     <Filter Include="Sources\Scenes\DummyScene">
       <UniqueIdentifier>{001086ae-2f26-4314-ae17-a3b4b60670de}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Headers\Scenes\TestScene">
+      <UniqueIdentifier>{3e1a91eb-ec24-4c9d-a6fe-7b32d76b8513}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Sources\Scenes\TestScene">
+      <UniqueIdentifier>{fe60d588-153d-49cd-ad08-f34fbf3cc0fc}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Headers\Object\Collision">
       <UniqueIdentifier>{d363c044-d275-4eff-a82e-ad6ea6ccafa4}</UniqueIdentifier>
     </Filter>
@@ -415,6 +421,9 @@
     </ClCompile>
     <ClCompile Include="Sources\Scenes\DummyScene\dummy_scene.cpp">
       <Filter>Sources\Scenes\DummyScene</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Scenes\TestScene\collision_test_scene.cpp">
+      <Filter>Sources\Scenes\TestScene</Filter>
     </ClCompile>
     <ClCompile Include="Sources\Object\Collision\collision_filter.cpp">
       <Filter>Sources\Object\Collision</Filter>
@@ -759,6 +768,9 @@
     </ClInclude>
     <ClInclude Include="Headers\Scenes\DummyScene\dummy_scene.h">
       <Filter>Headers\Scenes\DummyScene</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Scenes\TestScene\collision_test_scene.h">
+      <Filter>Headers\Scenes\TestScene</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Object\Collision\collision_filter.h">
       <Filter>Headers\Object\Collision</Filter>

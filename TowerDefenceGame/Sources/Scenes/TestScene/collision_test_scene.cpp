@@ -1,0 +1,752 @@
+#include "scenes/TestScene/collision_test_scene.h"
+#include "camera.h"
+
+#include <cstdarg>
+#include <cmath>
+
+#include "object/light_object.h"
+#include "object/camera_object.h"
+
+#include "collision/sphere.h"
+#include "collision/capsule.h"
+#include "collision/box.h"
+#include "collision/mesh.h"
+
+#if defined(USE_IMGUI)
+#include "Editor/editor_camera.h"
+#endif // defined(USE_IMGUI)
+
+namespace
+{
+	//	@tool 1メートル
+	const float unit = system_units::convert_m_to_unit(1.0f);
+
+	//	@tool 度数からクォータニオン
+	DirectX::XMFLOAT4 to_quaternion(const DirectX::XMFLOAT3& degree)
+	{
+		DirectX::XMFLOAT4 quaternion;
+		DirectX::XMStoreFloat4(&quaternion, DirectX::XMQuaternionRotationRollPitchYaw(
+			DirectX::XMConvertToRadians(degree.x),
+			DirectX::XMConvertToRadians(degree.y),
+			DirectX::XMConvertToRadians(degree.z)));
+		return quaternion;
+	}
+
+	DirectX::XMFLOAT3 scale3(const DirectX::XMFLOAT3& value, float scale)
+	{
+		return { value.x * scale, value.y * scale, value.z * scale };
+	}
+
+	DirectX::XMFLOAT3 add3(const DirectX::XMFLOAT3& a, const DirectX::XMFLOAT3& b)
+	{
+		return { a.x + b.x, a.y + b.y, a.z + b.z };
+	}
+
+	DirectX::XMFLOAT3 sub3(const DirectX::XMFLOAT3& a, const DirectX::XMFLOAT3& b)
+	{
+		return { a.x - b.x, a.y - b.y, a.z - b.z };
+	}
+
+	float dot3(const DirectX::XMFLOAT3& a, const DirectX::XMFLOAT3& b)
+	{
+		return a.x * b.x + a.y * b.y + a.z * b.z;
+	}
+
+	float length3(const DirectX::XMFLOAT3& a)
+	{
+		return sqrtf(dot3(a, a));
+	}
+
+	DirectX::XMFLOAT3 normalize3(const DirectX::XMFLOAT3& a)
+	{
+		float length = length3(a);
+		return length > 0.0f ? scale3(a, 1.0f / length) : a;
+	}
+
+	bool is_finite3(const DirectX::XMFLOAT3& a)
+	{
+		return std::isfinite(a.x) && std::isfinite(a.y) && std::isfinite(a.z);
+	}
+
+	std::string text_format(const char* format_text, ...)
+	{
+		char buffer[512];
+		va_list args;
+		va_start(args, format_text);
+		vsnprintf(buffer, sizeof(buffer), format_text, args);
+		va_end(args);
+		return buffer;
+	}
+
+	std::string to_string(const DirectX::XMFLOAT3& value)
+	{
+		return text_format("(%.3f, %.3f, %.3f)", value.x, value.y, value.z);
+	}
+
+	//	@tool 床メッシュ生成
+	std::shared_ptr<collision::bounding_mesh> create_floor_mesh(float half_x, float half_z)
+	{
+		std::vector<DirectX::XMFLOAT3> positions =
+		{
+			{ -half_x, 0.0f, -half_z },
+			{ -half_x, 0.0f, +half_z },
+			{ +half_x, 0.0f, +half_z },
+			{ +half_x, 0.0f, -half_z },
+		};
+		static constexpr UINT indices[] = { 0, 1, 2, 0, 2, 3 };
+
+		std::vector<collision::bounding_mesh::triangle> triangles;
+		for (size_t index = 0; index < std::size(indices); index += 3)
+		{
+			auto& triangle = triangles.emplace_back();
+			triangle.a = indices[index + 0];
+			triangle.b = indices[index + 1];
+			triangle.c = indices[index + 2];
+
+			//	@tool 事前計算
+			auto p = positions.data();
+			auto A = DirectX::XMLoadFloat3(p + triangle.a);
+			auto B = DirectX::XMLoadFloat3(p + triangle.b);
+			auto C = DirectX::XMLoadFloat3(p + triangle.c);
+			auto AB = DirectX::XMVectorSubtract(B, A);
+			auto BC = DirectX::XMVectorSubtract(C, B);
+			auto CA = DirectX::XMVectorSubtract(A, C);
+			DirectX::XMStoreFloat3(&triangle.ab, AB);
+			DirectX::XMStoreFloat3(&triangle.bc, BC);
+			DirectX::XMStoreFloat3(&triangle.ca, CA);
+			DirectX::XMStoreFloat3(&triangle.normal, DirectX::XMVector3Normalize(DirectX::XMVector3Cross(AB, BC)));
+			DirectX::XMStoreFloat3(&triangle.min, DirectX::XMVectorMin(A, DirectX::XMVectorMin(B, C)));
+			DirectX::XMStoreFloat3(&triangle.max, DirectX::XMVectorMax(A, DirectX::XMVectorMax(B, C)));
+			triangle.lab = collision::line(collision::line::types::segment, p[triangle.a], p[triangle.b]);
+			triangle.lbc = collision::line(collision::line::types::segment, p[triangle.b], p[triangle.c]);
+			triangle.lca = collision::line(collision::line::types::segment, p[triangle.c], p[triangle.a]);
+		}
+		return std::make_shared<collision::bounding_mesh>(positions, triangles, 0);
+	}
+
+#if defined(USE_IMGUI)
+	//	@tool 形状描画
+	void draw_shape(const collision::bounding_object& object, const DirectX::XMFLOAT4& color, const DirectX::XMFLOAT3& offset = { 0.0f, 0.0f, 0.0f })
+	{
+		DirectX::XMFLOAT3 position = add3(object.get_position(), offset);
+		switch (object.get_type())
+		{
+			case collision::bounding_object::types::sphere:
+			{
+				auto& sphere = static_cast<const collision::bounding_sphere&>(object);
+				QUEUE_DEBUG_PRIMITIVE_SPHERE(position, sphere.get_radius(), color, true);
+				break;
+			}
+			case collision::bounding_object::types::capsule:
+			{
+				auto& capsule = static_cast<const collision::bounding_capsule&>(object);
+				QUEUE_DEBUG_PRIMITIVE_CAPSULE(position, capsule.get_rotation(), capsule.get_radius(), capsule.get_length(), color, true);
+				break;
+			}
+			case collision::bounding_object::types::box:
+			{
+				QUEUE_DEBUG_PRIMITIVE_BOX(position, object.get_rotation(), object.get_local_scale(), color, true);
+				break;
+			}
+			case collision::bounding_object::types::mesh:
+			{
+				auto& mesh = static_cast<const collision::bounding_mesh&>(object);
+				DirectX::XMMATRIX Transform = mesh.get_transform_matrix();
+				DirectX::XMVECTOR Offset = DirectX::XMLoadFloat3(&offset);
+				auto& positions = mesh.get_positions();
+				for (auto& triangle : mesh.get_triangles())
+				{
+					DirectX::XMFLOAT3 points[3];
+					const UINT indices[3] = { triangle.a, triangle.b, triangle.c };
+					for (int index = 0; index < 3; ++index)
+						DirectX::XMStoreFloat3(&points[index], DirectX::XMVectorAdd(DirectX::XMVector3TransformCoord(DirectX::XMLoadFloat3(&positions[indices[index]]), Transform), Offset));
+					QUEUE_DEBUG_PRIMITIVE_LINE(points[0], points[1], color, true);
+					QUEUE_DEBUG_PRIMITIVE_LINE(points[1], points[2], color, true);
+					QUEUE_DEBUG_PRIMITIVE_LINE(points[2], points[0], color, true);
+				}
+				break;
+			}
+		}
+	}
+
+	//	@tool 点と法線の描画
+	void draw_point_normal(const DirectX::XMFLOAT3& point, const DirectX::XMFLOAT3& normal, float length, const DirectX::XMFLOAT4& color)
+	{
+		QUEUE_DEBUG_PRIMITIVE_SPHERE(point, 0.03f * unit, color, false);
+		QUEUE_DEBUG_PRIMITIVE_LINE(point, add3(point, scale3(normal, length)), color, false);
+	}
+
+	//	@tool 形状設定の編集
+	void edit_shape(const char* label, collision_test_scene::shape_desc& desc)
+	{
+		ImGui::PushID(label);
+		ImGui::Text("%s", label);
+		static const char* type_names[] = { "sphere", "capsule", "box", "mesh(floor)" };
+		int type = static_cast<int>(desc.type);
+		if (ImGui::Combo("type", &type, type_names, IM_ARRAYSIZE(type_names)))
+			desc.type = static_cast<collision_test_scene::shape_types>(type);
+		ImGui::DragFloat3("position(m)", &desc.position.x, 0.01f);
+		ImGui::DragFloat3("rotation(deg)", &desc.rotation.x, 0.5f);
+		switch (desc.type)
+		{
+			case collision_test_scene::shape_types::sphere:
+				ImGui::DragFloat("radius(m)", &desc.radius, 0.01f, 0.01f, 100.0f);
+				break;
+			case collision_test_scene::shape_types::capsule:
+				ImGui::DragFloat("radius(m)", &desc.radius, 0.01f, 0.01f, 100.0f);
+				ImGui::DragFloat("length(m)", &desc.length, 0.01f, 0.0f, 100.0f);
+				break;
+			case collision_test_scene::shape_types::box:
+				ImGui::DragFloat3("half extent(m)", &desc.extent.x, 0.01f, 0.01f, 100.0f);
+				break;
+			case collision_test_scene::shape_types::mesh:
+				ImGui::DragFloat2("half size xz(m)", &desc.extent.x, 0.01f, 0.01f, 100.0f);
+				break;
+		}
+		ImGui::PopID();
+	}
+
+	//	@tool 判定結果の表示
+	void show_intersect(const char* label, bool hit, bool hit_without_data, const collision::intersect_data& data)
+	{
+		ImGui::Text("%s : %s", label, hit ? "HIT" : "---");
+		if (hit != hit_without_data)
+			ImGui::TextColored(ImVec4(1, 0.3f, 0.3f, 1), "  mismatch with intersect=nullptr (%s)", hit_without_data ? "HIT" : "---");
+		for (size_t index = 0; index < data.size(); ++index)
+		{
+			auto& info = data[index];
+			ImGui::Text("  [%zu] point %s", index, to_string(scale3(info.point, 1.0f / unit)).c_str());
+			ImGui::Text("      normal %s  length %.4f m", to_string(info.normal).c_str(), info.length / unit);
+		}
+	}
+#endif	//	defined(USE_IMGUI)
+
+	//	@tool 交差テスト項目(メートル)
+	struct overlap_case
+	{
+		const char* name;
+		collision_test_scene::shape_desc a;
+		collision_test_scene::shape_desc b;
+		bool expect_hit;
+		bool check_normal;
+		DirectX::XMFLOAT3 normal;	//	@tool Aを押し出す向き
+		float depth;				//	@tool 負なら確認しない
+		bool check_opposite = true;	//	@tool 逆順の法線が反対向きか確認
+	};
+
+	//	@tool キャストテスト項目(メートル)
+	struct cast_case
+	{
+		const char* name;
+		collision_test_scene::cast_desc cast;
+		collision_test_scene::shape_desc target;
+		bool expect_hit;
+		float length;				//	@tool 負なら確認しない
+		bool check_normal;
+		DirectX::XMFLOAT3 normal;
+	};
+
+	collision_test_scene::shape_desc make_sphere(DirectX::XMFLOAT3 position, float radius)
+	{
+		collision_test_scene::shape_desc desc;
+		desc.type = collision_test_scene::shape_types::sphere;
+		desc.position = position;
+		desc.radius = radius;
+		return desc;
+	}
+
+	collision_test_scene::shape_desc make_capsule(DirectX::XMFLOAT3 position, DirectX::XMFLOAT3 rotation, float radius, float length)
+	{
+		collision_test_scene::shape_desc desc;
+		desc.type = collision_test_scene::shape_types::capsule;
+		desc.position = position;
+		desc.rotation = rotation;
+		desc.radius = radius;
+		desc.length = length;
+		return desc;
+	}
+
+	collision_test_scene::shape_desc make_box(DirectX::XMFLOAT3 position, DirectX::XMFLOAT3 rotation, DirectX::XMFLOAT3 extent)
+	{
+		collision_test_scene::shape_desc desc;
+		desc.type = collision_test_scene::shape_types::box;
+		desc.position = position;
+		desc.rotation = rotation;
+		desc.extent = extent;
+		return desc;
+	}
+
+	collision_test_scene::shape_desc make_floor(DirectX::XMFLOAT3 position = { 0, 0, 0 }, DirectX::XMFLOAT3 rotation = { 0, 0, 0 }, float half = 5.0f)
+	{
+		collision_test_scene::shape_desc desc;
+		desc.type = collision_test_scene::shape_types::mesh;
+		desc.position = position;
+		desc.rotation = rotation;
+		desc.extent = { half, half, half };
+		return desc;
+	}
+
+	collision_test_scene::cast_desc make_cast(collision_test_scene::cast_types type, DirectX::XMFLOAT3 start, DirectX::XMFLOAT3 end, float radius = 0.5f, float length = 2.0f, DirectX::XMFLOAT3 rotation = { 0, 0, 0 })
+	{
+		collision_test_scene::cast_desc desc;
+		desc.type = type;
+		desc.start = start;
+		desc.end = end;
+		desc.radius = radius;
+		desc.length = length;
+		desc.rotation = rotation;
+		return desc;
+	}
+}
+
+collision_test_scene::collision_test_scene()
+: scene_base()
+{
+	shape_descs[0] = make_capsule({ 0.0f, 1.3f, 0.0f }, { 0.0f, 0.0f, 0.0f }, 0.5f, 2.0f);
+	shape_descs[1] = make_floor();
+}
+
+collision_test_scene::~collision_test_scene()
+{
+}
+
+bool collision_test_scene::initialize_core()
+{
+	//	メインカメラ生成
+	std::shared_ptr<camera_object> main_camera;
+	{
+		main_camera = std::make_shared<camera_object>("メインカメラ");
+		main_camera->get_camera()->set_fov_y(DirectX::XMConvertToRadians(45.0f));
+		main_camera->set_position(system_units::convert_m_to_unit({ 0.0f, 3.0f, 10.0f }));
+		main_camera->set_rotation({ 0.2f, DirectX::XM_PI, 0 });
+		register_object(main_camera);
+		mouse::instance()->set_center_lock(false);
+		mouse::instance()->set_cursol_hide(false);
+	}
+
+#if defined(USE_IMGUI)
+	//	エディターカメラ生成
+	{
+		auto camera = std::make_shared<editor_camera>(main_camera);
+		camera->set_position(system_units::convert_m_to_unit({ 0.0f, 3.0f, 10.0f }));
+		camera->set_rotation({ 0.2f, DirectX::XM_PI, 0 });
+		camera->set_rotation_speed(camera->get_rotation_speed() * 0.25f);
+		camera->set_move_speed(camera->get_move_speed() * 0.25f);
+		register_object(camera);
+	}
+#endif // defined(USE_IMGUI)
+
+	//	平行光源生成
+	{
+		auto light = std::make_shared<directional_light_object>("平行光源");
+		auto color = light->get_color();
+		color.w = 1.0f;
+		light->set_color(color);
+		light->set_flag(light::flags::use_shadow, false);
+		register_object(light);
+	}
+
+	return true;
+}
+
+void collision_test_scene::update_core(float elapsed_time)
+{
+	if (mode == 0)
+		update_pair_test();
+	else
+		update_cast_test();
+}
+
+collision_test_scene::shape_desc collision_test_scene::to_unit(const shape_desc& desc)
+{
+	shape_desc result = desc;
+	result.position = scale3(desc.position, unit);
+	result.radius = desc.radius * unit;
+	result.length = desc.length * unit;
+	result.extent = scale3(desc.extent, unit);
+	return result;
+}
+
+collision_test_scene::cast_desc collision_test_scene::to_unit(const cast_desc& desc)
+{
+	cast_desc result = desc;
+	result.start = scale3(desc.start, unit);
+	result.end = scale3(desc.end, unit);
+	result.radius = desc.radius * unit;
+	result.length = desc.length * unit;
+	return result;
+}
+
+std::shared_ptr<collision::bounding_object> collision_test_scene::create_shape(const shape_desc& desc)
+{
+	DirectX::XMFLOAT4 rotation = to_quaternion(desc.rotation);
+	switch (desc.type)
+	{
+		case shape_types::sphere:
+			return std::make_shared<collision::bounding_sphere>(desc.position, desc.radius);
+		case shape_types::capsule:
+			return std::make_shared<collision::bounding_capsule>(desc.position, rotation, desc.radius, desc.length);
+		case shape_types::box:
+			return std::make_shared<collision::bounding_box>(desc.extent, rotation, desc.position);
+		case shape_types::mesh:
+		{
+			auto mesh = create_floor_mesh(desc.extent.x, desc.extent.y);
+			mesh->set_rotation(rotation);
+			mesh->set_position(desc.position);
+			return mesh;
+		}
+	}
+	return nullptr;
+}
+
+bool collision_test_scene::execute_cast(const cast_desc& desc, const collision::bounding_object& target, collision::intersect_data* intersect)
+{
+	switch (desc.type)
+	{
+		case cast_types::segment:
+			return target.intersect_segment(desc.start, desc.end, intersect);
+		case cast_types::sphere:
+			return target.intersect_sphere_cast(desc.start, desc.end, desc.radius, intersect);
+		case cast_types::capsule:
+			return target.intersect_capsule_cast(desc.start, desc.end, desc.radius, desc.length, to_quaternion(desc.rotation), intersect);
+	}
+	return false;
+}
+
+void collision_test_scene::update_pair_test()
+{
+	auto a = create_shape(to_unit(shape_descs[0]));
+	auto b = create_shape(to_unit(shape_descs[1]));
+	if (!a || !b)
+		return;
+
+	intersect_ab.clear();
+	intersect_ba.clear();
+	hit_ab = a->intersection(b.get(), &intersect_ab);
+	hit_ab_without_data = a->intersection(b.get(), nullptr);
+	hit_ba = b->intersection(a.get(), &intersect_ba);
+	hit_ba_without_data = b->intersection(a.get(), nullptr);
+
+#if defined(USE_IMGUI)
+	const DirectX::XMFLOAT4 normal_color = { 1.0f, 1.0f, 1.0f, 1.0f };
+	const DirectX::XMFLOAT4 hit_color = { 1.0f, 0.2f, 0.2f, 1.0f };
+	draw_shape(*a, hit_ab ? hit_color : DirectX::XMFLOAT4{ 0.4f, 0.8f, 1.0f, 1.0f });
+	draw_shape(*b, hit_ba ? hit_color : normal_color);
+
+	//	@tool A基準の接触(黄)、B基準の接触(水色)
+	for (size_t index = 0; index < intersect_ab.size(); ++index)
+		draw_point_normal(intersect_ab[index].point, intersect_ab[index].normal, std::max(intersect_ab[index].length, 0.3f * unit), { 1.0f, 1.0f, 0.0f, 1.0f });
+	for (size_t index = 0; index < intersect_ba.size(); ++index)
+		draw_point_normal(intersect_ba[index].point, intersect_ba[index].normal, std::max(intersect_ba[index].length, 0.3f * unit), { 0.0f, 1.0f, 1.0f, 1.0f });
+
+	//	@tool 押し出し後のAを緑で表示
+	if (draw_ghost && hit_ab && intersect_ab.size() > 0)
+		draw_shape(*a, { 0.2f, 1.0f, 0.2f, 1.0f }, scale3(intersect_ab[0].normal, intersect_ab[0].length));
+#endif	//	defined(USE_IMGUI)
+}
+
+void collision_test_scene::update_cast_test()
+{
+	auto target = create_shape(to_unit(shape_descs[1]));
+	if (!target)
+		return;
+
+	cast_desc desc = to_unit(cast);
+	cast_intersect.clear();
+	cast_hit = execute_cast(desc, *target, &cast_intersect);
+
+#if defined(USE_IMGUI)
+	draw_shape(*target, cast_hit ? DirectX::XMFLOAT4{ 1.0f, 0.2f, 0.2f, 1.0f } : DirectX::XMFLOAT4{ 1.0f, 1.0f, 1.0f, 1.0f });
+	QUEUE_DEBUG_PRIMITIVE_LINE(desc.start, desc.end, DirectX::XMFLOAT4(1.0f, 1.0f, 0.0f, 1.0f), false);
+
+	//	@tool 始点(灰)・終点(暗灰)・接触時(橙)
+	auto draw_caster = [&](const DirectX::XMFLOAT3& center, const DirectX::XMFLOAT4& color)
+	{
+		switch (desc.type)
+		{
+			case cast_types::segment:
+				QUEUE_DEBUG_PRIMITIVE_SPHERE(center, 0.03f * unit, color, false);
+				break;
+			case cast_types::sphere:
+				QUEUE_DEBUG_PRIMITIVE_SPHERE(center, desc.radius, color, true);
+				break;
+			case cast_types::capsule:
+				QUEUE_DEBUG_PRIMITIVE_CAPSULE(center, to_quaternion(desc.rotation), desc.radius, desc.length, color, true);
+				break;
+		}
+	};
+	draw_caster(desc.start, { 0.7f, 0.7f, 0.7f, 1.0f });
+	draw_caster(desc.end, { 0.35f, 0.35f, 0.35f, 1.0f });
+	if (cast_hit && cast_intersect.size() > 0)
+	{
+		auto& info = cast_intersect[0];
+		draw_caster(info.point, { 1.0f, 0.6f, 0.0f, 1.0f });
+		DirectX::XMFLOAT3 contact = desc.type == cast_types::segment ? info.point : info.point2;
+		draw_point_normal(contact, info.normal, 0.5f * unit, { 0.0f, 1.0f, 1.0f, 1.0f });
+	}
+#endif	//	defined(USE_IMGUI)
+}
+
+void collision_test_scene::run_self_tests()
+{
+	test_results.clear();
+	test_passed_count = 0;
+
+	const float tolerance = 0.002f;	//	@tool 許容誤差(メートル)
+	auto add_result = [&](const std::string& name, bool passed, const std::string& detail)
+	{
+		test_results.push_back({ name, passed, detail });
+		if (passed)
+			++test_passed_count;
+	};
+
+	//	@tool 回転・移動した床の法線
+	const DirectX::XMFLOAT3 tilt_position = { 3.0f, 2.0f, -1.0f };
+	const DirectX::XMFLOAT3 tilt_rotation = { 30.0f, 20.0f, 0.0f };
+	DirectX::XMFLOAT3 tilt_normal;
+	const DirectX::XMFLOAT4 tilt_quaternion = to_quaternion(tilt_rotation);
+	DirectX::XMStoreFloat3(&tilt_normal, DirectX::XMVector3Rotate(DirectX::XMVectorSet(0, 1, 0, 0), DirectX::XMLoadFloat4(&tilt_quaternion)));
+	auto on_tilt = [&](float height) { return add3(tilt_position, scale3(tilt_normal, height)); };
+
+	//	@tool 交差テスト
+	const overlap_case overlap_cases[] =
+	{
+		{ "sphere-sphere",					make_sphere({ 0, 0, 0 }, 1.0f), make_sphere({ 1.5f, 0, 0 }, 1.0f), true, true, { -1, 0, 0 }, 0.5f },
+		{ "sphere-sphere separated",		make_sphere({ 0, 0, 0 }, 1.0f), make_sphere({ 2.5f, 0, 0 }, 1.0f), false, false, {}, -1.0f },
+		{ "sphere-sphere same center",		make_sphere({ 0, 0, 0 }, 1.0f), make_sphere({ 0, 0, 0 }, 1.0f), true, false, {}, 2.0f, false },
+		{ "capsule-sphere side",			make_capsule({ 0, 0, 0 }, { 0, 0, 0 }, 0.5f, 2.0f), make_sphere({ 0.9f, 0.8f, 0 }, 0.5f), true, true, { -1, 0, 0 }, 0.1f },
+		{ "capsule-sphere cap",				make_capsule({ 0, 0, 0 }, { 0, 0, 0 }, 0.5f, 2.0f), make_sphere({ 0, 1.9f, 0 }, 0.5f), true, true, { 0, -1, 0 }, 0.1f },
+		{ "capsule-capsule parallel",		make_capsule({ 0, 0, 0 }, { 0, 0, 0 }, 0.5f, 2.0f), make_capsule({ 0.8f, 0, 0 }, { 0, 0, 0 }, 0.5f, 2.0f), true, true, { -1, 0, 0 }, 0.2f },
+		{ "capsule-capsule crossing",		make_capsule({ 0, 0, 0 }, { 0, 0, 0 }, 0.5f, 2.0f), make_capsule({ 0, 0, 0 }, { 0, 0, 90 }, 0.5f, 2.0f), true, false, {}, 1.0f },
+		{ "capsule-capsule separated",		make_capsule({ 0, 0, 0 }, { 0, 0, 0 }, 0.5f, 2.0f), make_capsule({ 1.2f, 0, 0 }, { 0, 0, 0 }, 0.5f, 2.0f), false, false, {}, -1.0f },
+		{ "box-sphere outside",				make_box({ 0, 0, 0 }, { 0, 0, 0 }, { 1, 1, 1 }), make_sphere({ 1.4f, 0, 0 }, 0.5f), true, true, { -1, 0, 0 }, 0.1f },
+		{ "box-sphere center inside",		make_box({ 0, 0, 0 }, { 0, 0, 0 }, { 1, 1, 1 }), make_sphere({ 0.8f, 0, 0 }, 0.5f), true, true, { -1, 0, 0 }, 0.7f },
+		{ "box-sphere same center",			make_box({ 0, 0, 0 }, { 0, 0, 0 }, { 1, 1, 1 }), make_sphere({ 0, 0, 0 }, 0.5f), true, false, {}, 1.5f },
+		{ "rotated box-sphere",				make_box({ 0, 0, 0 }, { 0, 45, 0 }, { 1, 1, 1 }), make_sphere({ 1.6f, 0, 0 }, 0.5f), true, true, { -1, 0, 0 }, 0.5f - (1.6f - sqrtf(2.0f)) },
+		{ "box-box face",					make_box({ 0, 0, 0 }, { 0, 0, 0 }, { 1, 1, 1 }), make_box({ 1.8f, 0, 0 }, { 0, 0, 0 }, { 1, 1, 1 }), true, true, { -1, 0, 0 }, 0.2f },
+		{ "box-box rotated",				make_box({ 0, 0, 0 }, { 0, 0, 0 }, { 1, 1, 1 }), make_box({ 2.2f, 0, 0 }, { 0, 45, 0 }, { 1, 1, 1 }), true, true, { -1, 0, 0 }, 1.0f - (2.2f - sqrtf(2.0f)) },
+		{ "box-box rotated A",				make_box({ 0, 0, 0 }, { 0, 30, 0 }, { 1, 1, 1 }), make_box({ 0, 1.9f, 0 }, { 0, 0, 0 }, { 1, 1, 1 }), true, true, { 0, -1, 0 }, 0.1f },
+		{ "box-box separated",				make_box({ 0, 0, 0 }, { 0, 0, 0 }, { 1, 1, 1 }), make_box({ 2.5f, 0, 0 }, { 0, 0, 0 }, { 1, 1, 1 }), false, false, {}, -1.0f },
+		{ "capsule-box side",				make_capsule({ 1.3f, 0, 0 }, { 0, 0, 0 }, 0.5f, 2.0f), make_box({ 0, 0, 0 }, { 0, 0, 0 }, { 1, 1, 1 }), true, true, { 1, 0, 0 }, 0.2f },
+		{ "capsule-box lying on top",		make_capsule({ 0, 1.4f, 0 }, { 0, 0, 90 }, 0.5f, 2.0f), make_box({ 0, 0, 0 }, { 0, 0, 0 }, { 1, 1, 1 }), true, true, { 0, 1, 0 }, 0.1f },
+		{ "capsule-rotated box",			make_capsule({ 0, 2.3f, 0 }, { 0, 0, 0 }, 0.5f, 2.0f), make_box({ 0, 0, 0 }, { 0, 30, 0 }, { 1, 1, 1 }), true, true, { 0, 1, 0 }, 0.2f },
+		{ "sphere-floor",					make_sphere({ 0, 0.5f, 0 }, 1.0f), make_floor(), true, true, { 0, 1, 0 }, 0.5f },
+		{ "sphere-floor separated",			make_sphere({ 0, 1.5f, 0 }, 1.0f), make_floor(), false, false, {}, -1.0f },
+		{ "capsule-floor standing",			make_capsule({ 0, 1.3f, 0 }, { 0, 0, 0 }, 0.5f, 2.0f), make_floor(), true, true, { 0, 1, 0 }, 0.2f },
+		{ "capsule-floor lying",			make_capsule({ 0, 0.3f, 0 }, { 0, 0, 90 }, 0.5f, 2.0f), make_floor(), true, true, { 0, 1, 0 }, 0.2f },
+		{ "capsule-floor over edge",		make_capsule({ 5.2f, 0.3f, 0 }, { 0, 0, 90 }, 0.5f, 2.0f), make_floor(), true, true, { 0, 1, 0 }, 0.2f },
+		{ "box-floor",						make_box({ 0, 0.3f, 0 }, { 0, 0, 0 }, { 0.5f, 0.5f, 0.5f }), make_floor(), true, true, { 0, 1, 0 }, 0.2f },
+		{ "box-floor separated",			make_box({ 0, 0.6f, 0 }, { 0, 0, 0 }, { 0.5f, 0.5f, 0.5f }), make_floor(), false, false, {}, -1.0f },
+		{ "sphere-tilted floor",			make_sphere(on_tilt(0.5f), 1.0f), make_floor(tilt_position, tilt_rotation), true, true, tilt_normal, 0.5f },
+		{ "capsule-tilted floor",			make_capsule(on_tilt(1.3f), tilt_rotation, 0.5f, 2.0f), make_floor(tilt_position, tilt_rotation), true, true, tilt_normal, 0.2f },
+		{ "capsule-tilted floor separated",	make_capsule(on_tilt(1.6f), tilt_rotation, 0.5f, 2.0f), make_floor(tilt_position, tilt_rotation), false, false, {}, -1.0f },
+	};
+
+	for (auto& test : overlap_cases)
+	{
+		auto a = create_shape(to_unit(test.a));
+		auto b = create_shape(to_unit(test.b));
+
+		collision::intersect_data ab, ba;
+		bool hit_ab = a->intersection(b.get(), &ab);
+		bool hit_ab_null = a->intersection(b.get(), nullptr);
+		bool hit_ba = b->intersection(a.get(), &ba);
+		bool hit_ba_null = b->intersection(a.get(), nullptr);
+
+		std::string detail;
+		bool passed = true;
+		auto fail = [&](const std::string& text) { passed = false; detail += text + " "; };
+
+		if (hit_ab != test.expect_hit)
+			fail(text_format("hit=%d expect=%d.", hit_ab, test.expect_hit));
+		if (hit_ab != hit_ab_null || hit_ba != hit_ba_null)
+			fail("result differs with intersect=nullptr.");
+		if (hit_ab != hit_ba)
+			fail(text_format("asymmetric (A->B %d, B->A %d).", hit_ab, hit_ba));
+
+		if (hit_ab && ab.size() == 0)
+			fail("no contact data.");
+		if (hit_ab && ab.size() > 0)
+		{
+			auto& info = ab[0];
+			float depth = info.length / unit;
+			detail += text_format("n=%s d=%.3f. ", to_string(info.normal).c_str(), depth);
+
+			if (!is_finite3(info.normal) || !is_finite3(info.point) || !std::isfinite(info.length))
+				fail("non finite value.");
+			else if (fabsf(length3(info.normal) - 1.0f) > 0.01f)
+				fail("normal not unit.");
+			if (info.length < 0.0f)
+				fail("negative depth.");
+			if (test.check_normal && dot3(info.normal, normalize3(test.normal)) < 0.999f)
+				fail(text_format("normal expect %s.", to_string(test.normal).c_str()));
+			if (test.depth >= 0.0f && fabsf(depth - test.depth) > tolerance)
+				fail(text_format("depth expect %.3f.", test.depth));
+			if (test.check_opposite && ba.size() > 0 && dot3(info.normal, ba[0].normal) > -0.99f)
+				fail(text_format("B->A normal not opposite %s.", to_string(ba[0].normal).c_str()));
+
+			//	@tool 法線方向へ押し出すと離れるか
+			shape_desc moved = test.a;
+			moved.position = add3(test.a.position, scale3(info.normal, depth + 0.01f));
+			auto moved_a = create_shape(to_unit(moved));
+			if (moved_a->intersection(b.get(), nullptr))
+				fail("still hit after push out.");
+		}
+		add_result(std::string("[overlap] ") + test.name, passed, detail);
+	}
+
+	//	@tool キャストテスト
+	const float edge = 1.0f + 0.5f / sqrtf(2.0f);
+	const float corner = 1.0f + 0.5f / sqrtf(3.0f);
+	const DirectX::XMFLOAT3 diagonal2 = normalize3({ 1, 1, 0 });
+	const DirectX::XMFLOAT3 diagonal3 = normalize3({ 1, 1, 1 });
+	const cast_case cast_cases[] =
+	{
+		{ "segment-sphere",					make_cast(cast_types::segment, { 0, 5, 0 }, { 0, -5, 0 }), make_sphere({ 0, 0, 0 }, 1.0f), true, 4.0f, true, { 0, 1, 0 } },
+		{ "segment-sphere start inside",	make_cast(cast_types::segment, { 0, 0.5f, 0 }, { 0, -5, 0 }), make_sphere({ 0, 0, 0 }, 1.0f), true, 0.0f, false, {} },
+		{ "segment-sphere miss",			make_cast(cast_types::segment, { 0, 5, 0 }, { 0, 2, 0 }), make_sphere({ 0, 0, 0 }, 1.0f), false, -1.0f, false, {} },
+		{ "segment-capsule top",			make_cast(cast_types::segment, { 0, 5, 0 }, { 0, -5, 0 }), make_capsule({ 0, 0, 0 }, { 0, 0, 0 }, 0.5f, 2.0f), true, 3.5f, true, { 0, 1, 0 } },
+		{ "segment-capsule side",			make_cast(cast_types::segment, { 5, 0, 0 }, { -5, 0, 0 }), make_capsule({ 0, 0, 0 }, { 0, 0, 0 }, 0.5f, 2.0f), true, 4.5f, true, { 1, 0, 0 } },
+		{ "segment-box",					make_cast(cast_types::segment, { 0, 5, 0 }, { 0, -5, 0 }), make_box({ 0, 0, 0 }, { 0, 0, 0 }, { 1, 1, 1 }), true, 4.0f, true, { 0, 1, 0 } },
+		{ "segment-rotated box",			make_cast(cast_types::segment, { 0, 5, 0 }, { 0, -5, 0 }), make_box({ 0, 0, 0 }, { 0, 0, 30 }, { 1, 1, 1 }), true, 5.0f - 1.0f / cosf(DirectX::XMConvertToRadians(30.0f)), true, { -0.5f, sqrtf(3.0f) * 0.5f, 0 } },
+		{ "segment-box miss short",			make_cast(cast_types::segment, { 0, 5, 0 }, { 0, 2, 0 }), make_box({ 0, 0, 0 }, { 0, 0, 0 }, { 1, 1, 1 }), false, -1.0f, false, {} },
+		{ "segment-floor",					make_cast(cast_types::segment, { 1, 5, 1 }, { 1, -5, 1 }), make_floor(), true, 5.0f, true, { 0, 1, 0 } },
+		{ "segment-tilted floor",			make_cast(cast_types::segment, on_tilt(5.0f), on_tilt(-5.0f)), make_floor(tilt_position, tilt_rotation), true, 5.0f, true, tilt_normal },
+		{ "sphere cast-sphere",				make_cast(cast_types::sphere, { 0, 5, 0 }, { 0, -5, 0 }), make_sphere({ 0, 0, 0 }, 1.0f), true, 3.5f, true, { 0, 1, 0 } },
+		{ "sphere cast-capsule side",		make_cast(cast_types::sphere, { 5, 0, 0 }, { -5, 0, 0 }), make_capsule({ 0, 0, 0 }, { 0, 0, 0 }, 0.5f, 2.0f), true, 4.0f, true, { 1, 0, 0 } },
+		{ "sphere cast-capsule top",		make_cast(cast_types::sphere, { 0, 5, 0 }, { 0, -5, 0 }), make_capsule({ 0, 0, 0 }, { 0, 0, 0 }, 0.5f, 2.0f), true, 3.0f, true, { 0, 1, 0 } },
+		{ "sphere cast-box face",			make_cast(cast_types::sphere, { 0, 5, 0 }, { 0, -5, 0 }), make_box({ 0, 0, 0 }, { 0, 0, 0 }, { 1, 1, 1 }), true, 3.5f, true, { 0, 1, 0 } },
+		{ "sphere cast-box edge",			make_cast(cast_types::sphere, { 5, 5, 0 }, { -5, -5, 0 }), make_box({ 0, 0, 0 }, { 0, 0, 0 }, { 1, 1, 1 }), true, sqrtf(2.0f) * (5.0f - edge), true, diagonal2 },
+		{ "sphere cast-box corner",			make_cast(cast_types::sphere, { 5, 5, 5 }, { -5, -5, -5 }), make_box({ 0, 0, 0 }, { 0, 0, 0 }, { 1, 1, 1 }), true, sqrtf(3.0f) * (5.0f - corner), true, diagonal3 },
+		{ "sphere cast-box start overlap in",	make_cast(cast_types::sphere, { 0, 1.2f, 0 }, { 0, -5, 0 }), make_box({ 0, 0, 0 }, { 0, 0, 0 }, { 1, 1, 1 }), true, 0.0f, true, { 0, 1, 0 } },
+		{ "sphere cast-box start overlap out",	make_cast(cast_types::sphere, { 0, 1.2f, 0 }, { 0, 5, 0 }), make_box({ 0, 0, 0 }, { 0, 0, 0 }, { 1, 1, 1 }), false, -1.0f, false, {} },
+		{ "sphere cast-rotated box",		make_cast(cast_types::sphere, { 0, 5, 0 }, { 0, -5, 0 }), make_box({ 0, 0, 0 }, { 0, 0, 30 }, { 1, 1, 1 }), true, -1.0f, false, {} },
+		{ "sphere cast-floor",				make_cast(cast_types::sphere, { 0, 5, 0 }, { 0, -5, 0 }), make_floor(), true, 4.5f, true, { 0, 1, 0 } },
+		{ "sphere cast-floor start overlap in",	make_cast(cast_types::sphere, { 0, 0.3f, 0 }, { 0, -5, 0 }), make_floor(), true, 0.0f, true, { 0, 1, 0 } },
+		{ "sphere cast-floor slide",		make_cast(cast_types::sphere, { 0, 0.5f, 0 }, { 3, 0.5f, 0 }), make_floor(), false, -1.0f, false, {} },
+		{ "sphere cast-tilted floor",		make_cast(cast_types::sphere, on_tilt(5.0f), on_tilt(-5.0f)), make_floor(tilt_position, tilt_rotation), true, 4.5f, true, tilt_normal },
+		{ "capsule cast-sphere",			make_cast(cast_types::capsule, { 0, 5, 0 }, { 0, -5, 0 }), make_sphere({ 0, 0, 0 }, 1.0f), true, 2.5f, true, { 0, 1, 0 } },
+		{ "capsule cast-box",				make_cast(cast_types::capsule, { 0, 5, 0 }, { 0, -5, 0 }), make_box({ 0, 0, 0 }, { 0, 0, 0 }, { 1, 1, 1 }), true, 2.5f, true, { 0, 1, 0 } },
+		{ "capsule cast-capsule",			make_cast(cast_types::capsule, { 5, 0, 0 }, { -5, 0, 0 }), make_capsule({ 0, 0, 0 }, { 0, 0, 0 }, 0.5f, 2.0f), true, 4.0f, true, { 1, 0, 0 } },
+		{ "capsule cast-floor",				make_cast(cast_types::capsule, { 0, 5, 0 }, { 0, -5, 0 }), make_floor(), true, 3.5f, true, { 0, 1, 0 } },
+		{ "capsule cast-floor lying",		make_cast(cast_types::capsule, { 0, 5, 0 }, { 0, -5, 0 }, 0.5f, 2.0f, { 0, 0, 90 }), make_floor(), true, 4.5f, true, { 0, 1, 0 } },
+	};
+
+	for (auto& test : cast_cases)
+	{
+		cast_desc desc = to_unit(test.cast);
+		auto target = create_shape(to_unit(test.target));
+
+		collision::intersect_data data;
+		bool hit = execute_cast(desc, *target, &data);
+		bool hit_null = execute_cast(desc, *target, nullptr);
+
+		std::string detail;
+		bool passed = true;
+		auto fail = [&](const std::string& text) { passed = false; detail += text + " "; };
+
+		if (hit != test.expect_hit)
+			fail(text_format("hit=%d expect=%d.", hit, test.expect_hit));
+		if (hit != hit_null)
+			fail("result differs with intersect=nullptr.");
+		if (hit && data.size() == 0)
+			fail("no hit data.");
+		if (hit && data.size() > 0)
+		{
+			auto& info = data[0];
+			float length = info.length / unit;
+			detail += text_format("len=%.3f n=%s. ", length, to_string(info.normal).c_str());
+
+			if (!is_finite3(info.normal) || !is_finite3(info.point) || !std::isfinite(info.length))
+				fail("non finite value.");
+			if (test.length >= 0.0f && fabsf(length - test.length) > tolerance)
+				fail(text_format("length expect %.3f.", test.length));
+			if (test.check_normal && dot3(info.normal, normalize3(test.normal)) < 0.999f)
+				fail(text_format("normal expect %s.", to_string(normalize3(test.normal)).c_str()));
+
+			//	@tool キャストの接触時中心が始点+移動距離と一致するか
+			if (desc.type != cast_types::segment)
+			{
+				DirectX::XMFLOAT3 direction = normalize3(sub3(desc.end, desc.start));
+				DirectX::XMFLOAT3 center = add3(desc.start, scale3(direction, info.length));
+				if (length3(sub3(center, info.point)) / unit > tolerance)
+					fail(text_format("point %s is not center at hit.", to_string(scale3(info.point, 1.0f / unit)).c_str()));
+			}
+		}
+		add_result(std::string("[cast] ") + test.name, passed, detail);
+	}
+}
+
+#if defined(USE_IMGUI)
+void collision_test_scene::imgui_render_core()
+{
+	if (!ImGui::CollapsingHeader("collision test", ImGuiTreeNodeFlags_DefaultOpen))
+		return;
+
+	ImGui::RadioButton("overlap", &mode, 0);
+	ImGui::SameLine();
+	ImGui::RadioButton("cast", &mode, 1);
+	ImGui::Separator();
+
+	if (mode == 0)
+	{
+		edit_shape("A", shape_descs[0]);
+		ImGui::Separator();
+		edit_shape("B", shape_descs[1]);
+		ImGui::Checkbox("draw pushed A (green)", &draw_ghost);
+		ImGui::Separator();
+		show_intersect("A->B (yellow)", hit_ab, hit_ab_without_data, intersect_ab);
+		show_intersect("B->A (cyan)", hit_ba, hit_ba_without_data, intersect_ba);
+		if (hit_ab != hit_ba)
+			ImGui::TextColored(ImVec4(1, 0.3f, 0.3f, 1), "asymmetric result");
+	}
+	else
+	{
+		ImGui::PushID("cast");
+		static const char* type_names[] = { "segment", "sphere", "capsule" };
+		int type = static_cast<int>(cast.type);
+		if (ImGui::Combo("cast type", &type, type_names, IM_ARRAYSIZE(type_names)))
+			cast.type = static_cast<cast_types>(type);
+		ImGui::DragFloat3("start(m)", &cast.start.x, 0.01f);
+		ImGui::DragFloat3("end(m)", &cast.end.x, 0.01f);
+		if (cast.type != cast_types::segment)
+			ImGui::DragFloat("radius(m)", &cast.radius, 0.01f, 0.01f, 100.0f);
+		if (cast.type == cast_types::capsule)
+		{
+			ImGui::DragFloat("length(m)", &cast.length, 0.01f, 0.0f, 100.0f);
+			ImGui::DragFloat3("rotation(deg)", &cast.rotation.x, 0.5f);
+		}
+		ImGui::PopID();
+		ImGui::Separator();
+		edit_shape("target", shape_descs[1]);
+		ImGui::Separator();
+		ImGui::Text("result : %s", cast_hit ? "HIT" : "---");
+		for (size_t index = 0; index < cast_intersect.size(); ++index)
+		{
+			auto& info = cast_intersect[index];
+			ImGui::Text("  center %s", to_string(scale3(info.point, 1.0f / unit)).c_str());
+			ImGui::Text("  contact %s", to_string(scale3(info.point2, 1.0f / unit)).c_str());
+			ImGui::Text("  normal %s  length %.4f m", to_string(info.normal).c_str(), info.length / unit);
+		}
+	}
+
+	ImGui::Separator();
+	if (ImGui::Button("run self tests"))
+		run_self_tests();
+	if (!test_results.empty())
+	{
+		ImGui::SameLine();
+		bool all = test_passed_count == test_results.size();
+		ImGui::TextColored(all ? ImVec4(0.3f, 1, 0.3f, 1) : ImVec4(1, 0.3f, 0.3f, 1), "%zu / %zu passed", test_passed_count, test_results.size());
+		if (ImGui::BeginChild("test results", ImVec2(0, 300), true))
+		{
+			for (auto& result : test_results)
+			{
+				ImGui::TextColored(result.passed ? ImVec4(0.3f, 1, 0.3f, 1) : ImVec4(1, 0.3f, 0.3f, 1), "%s %s", result.passed ? "PASS" : "FAIL", result.name.c_str());
+				ImGui::TextWrapped("    %s", result.detail.c_str());
+			}
+		}
+		ImGui::EndChild();
+	}
+}
+#endif	//	defined(USE_IMGUI)
