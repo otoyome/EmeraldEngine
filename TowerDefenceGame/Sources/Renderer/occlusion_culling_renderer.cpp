@@ -48,12 +48,18 @@ void occlusion_culling_renderer::render(renderer_context& context)
 		visible_draw_indices.insert(visible_draw_indices.end(), context.render_mesh_indices->mask.begin(), context.render_mesh_indices->mask.end());
 	}
 
-	auto render_mesh_indices = context.render_mesh_indices;
-	job_executor.execute([this, occlusion, hiz, meshlet_culling, animation_test_distance, visible_draw_indices, render_mesh_indices
+	//	@tool グルーピングとバッファ確保は記録時に行い、後続パスが今フレームのバッファを参照できるようにする
 #if defined(USE_IMGUI)
-		, freeze_culling
+	bool execute_meshlet_culling = !freeze_culling && context.render_mesh_indices;
+#else	//	defined(USE_IMGUI)
+	bool execute_meshlet_culling = static_cast<bool>(context.render_mesh_indices);
 #endif	//	defined(USE_IMGUI)
-		](graphics_context& context)
+	if (execute_meshlet_culling)
+	{
+		meshlet_culling->prepare(*context.render_data, visible_draw_indices, context.render_mesh_indices->lengths, context.scene_constant.camera_clip_distance);
+	}
+
+	job_executor.execute([this, occlusion, hiz, meshlet_culling, animation_test_distance, execute_meshlet_culling](graphics_context& context)
 	{
 		context.debug_begin_event(L"occlusion_culling");
 
@@ -65,13 +71,9 @@ void occlusion_culling_renderer::render(renderer_context& context)
 		//	オクルージョンカリング実行
 		occlusion->update(context, animation_test_distance, *hiz);
 
-#if defined(USE_IMGUI)
-		if (!freeze_culling && render_mesh_indices)
-#else	//	defined(USE_IMGUI)
-		if (render_mesh_indices)
-#endif	//	defined(USE_IMGUI)
+		if (execute_meshlet_culling)
 		{
-			meshlet_culling->build_and_cull(context, visible_draw_indices, render_mesh_indices->lengths, *hiz);
+			meshlet_culling->cull(context, *hiz);
 		}
 
 		context.scene_depth_texture = nullptr;

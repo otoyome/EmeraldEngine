@@ -142,6 +142,9 @@ bool collision::create_cubic_sdf(cubic_sdf& out_sdf, bounding_mesh& mesh, uint32
 	out_sdf.bounds_max = { center.x + half_extent, center.y + half_extent, center.z + half_extent };
 	out_sdf.voxels.assign(static_cast<size_t>(resolution) * resolution * resolution, 0.0f);
 
+	//	@tool ボクセル中心(ローカル)をワールドへ変換する行列
+	DirectX::XMFLOAT4X4 mesh_transform = mesh.get_transform_float4x4();
+
 	std::vector<size_t> flat_indices(out_sdf.voxels.size());
 	std::iota(flat_indices.begin(), flat_indices.end(), size_t{0});
 
@@ -152,7 +155,8 @@ bool collision::create_cubic_sdf(cubic_sdf& out_sdf, bounding_mesh& mesh, uint32
 			const uint32_t y = static_cast<uint32_t>((flat_index / resolution) % resolution);
 			const uint32_t z = static_cast<uint32_t>(flat_index / (static_cast<size_t>(resolution) * resolution));
 
-			const DirectX::XMFLOAT3 voxel_center = out_sdf.voxel_center(x, y, z);
+			DirectX::XMFLOAT3 voxel_center = out_sdf.voxel_center(x, y, z);
+			DirectX::XMStoreFloat3(&voxel_center, DirectX::XMVector3TransformCoord(DirectX::XMLoadFloat3(&voxel_center), DirectX::XMLoadFloat4x4(&mesh_transform)));
 
 			float distance = 0.0f;
 			mesh.distance_to_point(voxel_center, distance);

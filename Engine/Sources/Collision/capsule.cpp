@@ -41,11 +41,15 @@ DirectX::XMFLOAT3 bounding_capsule::get_axis_float3() const
 bounding_capsule::bounding_capsule()
 : bounding_object()
 {
+	//	@tool 線分の再計算
+	on_change_parameter();
 }
 
 bounding_capsule::bounding_capsule(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT4& rotation, float radius, float length)
 : bounding_object({radius, length, 0.0f}, rotation, position)
 {
+	//	@tool 線分の再計算
+	on_change_parameter();
 }
 
 bounding_capsule::~bounding_capsule()
@@ -61,29 +65,71 @@ bool bounding_capsule::intersect_point(const DirectX::XMFLOAT3& point) const
 
 bool bounding_capsule::intersect_segment(const DirectX::XMFLOAT3& start, const DirectX::XMFLOAT3& end, intersect_data* intersect) const
 {
-	DirectX::XMFLOAT3 horizon1, horizon2;
-	float delta1, delta2;
-	auto segment = collision::line(collision::line::types::segment, start, end);
-	float length = line.calculate_distance(horizon1, delta1, horizon2, delta2, segment) - get_radius();
+	DirectX::XMVECTOR Start = DirectX::XMLoadFloat3(&start);
+	DirectX::XMVECTOR End = DirectX::XMLoadFloat3(&end);
+	DirectX::XMVECTOR Line0 = DirectX::XMLoadFloat3(&line[0]);
+	DirectX::XMVECTOR Line1 = DirectX::XMLoadFloat3(&line[1]);
+	const float radius = get_radius();
 
-	if (intersect && length <= 0.0f)
+	//	@tool 軸上の最近点
+	auto axis_point = [&](DirectX::XMVECTOR Point)
 	{
-		DirectX::XMVECTOR Horizon1 = DirectX::XMLoadFloat3(&horizon1);
-		DirectX::XMVECTOR Horizon2 = DirectX::XMLoadFloat3(&horizon2);
-		DirectX::XMVECTOR Line = DirectX::XMVector3Normalize(DirectX::XMVectorSubtract(Horizon2, Horizon1));
-		DirectX::XMVECTOR Length = DirectX::XMVectorSet(length, length, length, length);
+		DirectX::XMFLOAT3 point, horizon;
+		float delta;
+		DirectX::XMStoreFloat3(&point, Point);
+		line.calculate_distance(horizon, delta, point);
+		return DirectX::XMLoadFloat3(&horizon);
+	};
 
-		DirectX::XMFLOAT3 insert_point;
-		DirectX::XMVECTOR InsertPoint = DirectX::XMVectorMultiplyAdd(Line, Length, Horizon2);
-		DirectX::XMStoreFloat3(&insert_point, InsertPoint);
-
-		Line = DirectX::XMVectorSubtract(InsertPoint, DirectX::XMLoadFloat3(&start));
-		DirectX::XMStoreFloat3(&horizon1, DirectX::XMVector3Normalize(Line));
-
-		intersect->add(insert_point, horizon1, DirectX::XMVectorGetX(DirectX::XMVector3Length(Line)));
+	//	@tool 始点が内側
+	DirectX::XMVECTOR StartAxis = axis_point(Start);
+	DirectX::XMVECTOR StartVector = DirectX::XMVectorSubtract(Start, StartAxis);
+	float start_length = DirectX::XMVectorGetX(DirectX::XMVector3Length(StartVector));
+	if (start_length <= radius)
+	{
+		if (intersect)
+		{
+			DirectX::XMVECTOR Normal = (start_length > 1e-6f) ? DirectX::XMVectorScale(StartVector, 1.0f / start_length)
+															  : DirectX::XMVector3Normalize(DirectX::XMVectorSubtract(Start, End));
+			DirectX::XMFLOAT3 normal;
+			DirectX::XMStoreFloat3(&normal, Normal);
+			intersect->add(start, normal, 0.0f);
+		}
+		return true;
 	}
 
-	return length <= 0.0f;
+	//	@tool 両端の球と円柱で最も近い交点
+	DirectX::XMVECTOR HitPosition;
+	float hit_distance = 0.0f;
+	float near_distance = FLT_MAX;
+	DirectX::XMVECTOR NearPosition = DirectX::XMVectorZero();
+	if (intersect_ray_vs_sphere(Start, End, Line0, radius, HitPosition, hit_distance) && hit_distance < near_distance)
+	{
+		near_distance = hit_distance;
+		NearPosition = HitPosition;
+	}
+	if (intersect_ray_vs_sphere(Start, End, Line1, radius, HitPosition, hit_distance) && hit_distance < near_distance)
+	{
+		near_distance = hit_distance;
+		NearPosition = HitPosition;
+	}
+	if (intersect_ray_vs_cylinder(Start, End, Line0, Line1, radius, HitPosition, hit_distance) && hit_distance < near_distance)
+	{
+		near_distance = hit_distance;
+		NearPosition = HitPosition;
+	}
+	if (near_distance == FLT_MAX)
+		return false;
+
+	if (intersect)
+	{
+		DirectX::XMVECTOR Normal = DirectX::XMVector3Normalize(DirectX::XMVectorSubtract(NearPosition, axis_point(NearPosition)));
+		DirectX::XMFLOAT3 position, normal;
+		DirectX::XMStoreFloat3(&position, NearPosition);
+		DirectX::XMStoreFloat3(&normal, Normal);
+		intersect->add(position, normal, near_distance);
+	}
+	return true;
 }
 
 bool bounding_capsule::intersect_sphere(const DirectX::XMFLOAT3& point, float radius, intersect_data* intersect) const
@@ -94,15 +140,18 @@ bool bounding_capsule::intersect_sphere(const DirectX::XMFLOAT3& point, float ra
 
 	if( intersect && length <= 0.0f )
 	{
+		//	@tool 軸上の最近点から自分を押し出す向き
 		DirectX::XMVECTOR Point = DirectX::XMLoadFloat3(&point);
-		DirectX::XMVECTOR Position = DirectX::XMLoadFloat3(&get_position());
-		DirectX::XMVECTOR Line = DirectX::XMVector3Normalize(DirectX::XMVectorSubtract(Position, Point));
-		DirectX::XMVECTOR Length = DirectX::XMVectorSet(length + radius, length + radius, length + radius, length + radius);
+		DirectX::XMVECTOR Horizon = DirectX::XMLoadFloat3(&horizon);
+		DirectX::XMVECTOR Vector = DirectX::XMVectorSubtract(Horizon, Point);
+		DirectX::XMVECTOR Normal = (DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(Vector)) > 1e-12f)
+			? DirectX::XMVector3Normalize(Vector)
+			: DirectX::XMVector3Normalize(DirectX::XMVector3Orthogonal(get_axis_vector()));
 
-		DirectX::XMFLOAT3 line;
-		DirectX::XMStoreFloat3(&line, Line);
-		DirectX::XMStoreFloat3(&horizon, DirectX::XMVectorMultiplyAdd(Line, Length, Point));
-		intersect->add(horizon, line, -length);
+		DirectX::XMFLOAT3 insert_point, normal;
+		DirectX::XMStoreFloat3(&normal, Normal);
+		DirectX::XMStoreFloat3(&insert_point, DirectX::XMVectorSubtract(Horizon, DirectX::XMVectorScale(Normal, get_radius())));
+		intersect->add(insert_point, normal, -length);
 	}
 
 	return length <= 0.0f;
@@ -116,8 +165,8 @@ bool bounding_capsule::intersect_sphere(const bounding_sphere& sphere, intersect
 bool bounding_capsule::intersect_capsule(const bounding_capsule& capsule, intersect_data* intersect) const
 {
 	//	先に球同士で判定
-	bounding_sphere self_bs = bounding_sphere(get_position(), get_radius() + get_length());
-	bounding_sphere capsule_bs = bounding_sphere(capsule.get_position(), capsule.get_radius() + capsule.get_length());
+	bounding_sphere self_bs = bounding_sphere(get_position(), get_radius() + get_length() * 0.5f);
+	bounding_sphere capsule_bs = bounding_sphere(capsule.get_position(), capsule.get_radius() + capsule.get_length() * 0.5f);
 	if (!self_bs.intersect_sphere(capsule_bs))
 		return false;
 
@@ -128,15 +177,28 @@ bool bounding_capsule::intersect_capsule(const bounding_capsule& capsule, inters
 
 	if (intersect && length <= 0.0f)
 	{
+		//	@tool 相手から自分へ向かう向き
 		DirectX::XMVECTOR Horizon1 = DirectX::XMLoadFloat3(&horizon1);
 		DirectX::XMVECTOR Horizon2 = DirectX::XMLoadFloat3(&horizon2);
-		DirectX::XMVECTOR Line = DirectX::XMVector3Normalize(DirectX::XMVectorSubtract(Horizon2, Horizon1));
-		DirectX::XMVECTOR Length = DirectX::XMVectorSet(length + capsule.get_radius(), length + capsule.get_radius(), length + capsule.get_radius(), length + capsule.get_radius());
+		DirectX::XMVECTOR Vector = DirectX::XMVectorSubtract(Horizon1, Horizon2);
+		DirectX::XMVECTOR Normal;
+		if (DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(Vector)) > 1e-12f)
+		{
+			Normal = DirectX::XMVector3Normalize(Vector);
+		}
+		else
+		{
+			//	@tool 軸が交差している場合は両軸に垂直
+			Normal = DirectX::XMVector3Cross(get_axis_vector(), capsule.get_axis_vector());
+			if (DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(Normal)) <= 1e-12f)
+				Normal = DirectX::XMVector3Orthogonal(get_axis_vector());
+			Normal = DirectX::XMVector3Normalize(Normal);
+		}
 
-		DirectX::XMFLOAT3 insert_point;
-		DirectX::XMStoreFloat3(&insert_point, DirectX::XMVectorMultiplyAdd(Line, Length, Horizon2));
-		DirectX::XMStoreFloat3(&horizon1, DirectX::XMVector3Normalize(Line));
-		intersect->add(insert_point, horizon1, length);
+		DirectX::XMFLOAT3 insert_point, normal;
+		DirectX::XMStoreFloat3(&normal, Normal);
+		DirectX::XMStoreFloat3(&insert_point, DirectX::XMVectorSubtract(Horizon1, DirectX::XMVectorScale(Normal, get_radius())));
+		intersect->add(insert_point, normal, -length);
 	}
 
 	return length <= 0.0f;
@@ -144,97 +206,78 @@ bool bounding_capsule::intersect_capsule(const bounding_capsule& capsule, inters
 
 bool bounding_capsule::intersect_box(const bounding_box& box, intersect_data* intersect) const
 {
-	if (box.intersect_capsule(*this, intersect))
-	{
-		if (intersect)
-		{
-			for (size_t index = 0; index < intersect->size(); ++index)
-			{
-				(*intersect)[index].normal.x = -(*intersect)[index].normal.x;
-				(*intersect)[index].normal.y = -(*intersect)[index].normal.y;
-				(*intersect)[index].normal.z = -(*intersect)[index].normal.z;
-			}
-		}
-		return true;
-	}
-	return	false;
+	return delegate_flipped(intersect, [&]() { return box.intersect_capsule(*this, intersect); });
 }
 
 bool bounding_capsule::intersect_mesh(const bounding_mesh& mesh, intersect_data* intersect) const
 {
-	if (mesh.intersect_capsule(*this, intersect))
-	{
-		if (intersect)
-		{
-			for (size_t index = 0; index < intersect->size(); ++index)
-			{
-				(*intersect)[index].normal.x = -(*intersect)[index].normal.x;
-				(*intersect)[index].normal.y = -(*intersect)[index].normal.y;
-				(*intersect)[index].normal.z = -(*intersect)[index].normal.z;
-			}
-		}
-		return true;
-	}
-	return	false;
+	return delegate_flipped(intersect, [&]() { return mesh.intersect_capsule(*this, intersect); });
 }
 
 bool bounding_capsule::intersect_sphere_cast(const DirectX::XMFLOAT3& start, const DirectX::XMFLOAT3& end, float radius, intersect_data* intersect) const
 {
 	DirectX::XMVECTOR Start = DirectX::XMLoadFloat3(&start);
 	DirectX::XMVECTOR End = DirectX::XMLoadFloat3(&end);
-	DirectX::XMVECTOR SphereCenter = DirectX::XMLoadFloat3(&get_position());
+	DirectX::XMVECTOR Direction = DirectX::XMVector3Normalize(DirectX::XMVectorSubtract(End, Start));
 
 	DirectX::XMVECTOR SphereCenter0 = DirectX::XMLoadFloat3(&line[0]);
 	DirectX::XMVECTOR SphereCenter1 = DirectX::XMLoadFloat3(&line[1]);
+	const float combined_radius = get_radius() + radius;
 
-	DirectX::XMVECTOR NearPosition, NearNormal, HitPosition;
+	//	@tool 軸上の最近点
+	auto axis_point = [&](DirectX::XMVECTOR Point)
+	{
+		DirectX::XMFLOAT3 point, horizon;
+		float delta;
+		DirectX::XMStoreFloat3(&point, Point);
+		line.calculate_distance(horizon, delta, point);
+		return DirectX::XMLoadFloat3(&horizon);
+	};
+
+	//	@tool 開始時の重なり
+	{
+		DirectX::XMVECTOR AxisPoint = axis_point(Start);
+		DirectX::XMVECTOR ToStart = DirectX::XMVectorSubtract(Start, AxisPoint);
+		float start_distance = DirectX::XMVectorGetX(DirectX::XMVector3Length(ToStart));
+		if (start_distance < combined_radius)
+		{
+			DirectX::XMVECTOR Normal = (start_distance > 1e-6f) ? DirectX::XMVectorScale(ToStart, 1.0f / start_distance) : DirectX::XMVectorNegate(Direction);
+			if (DirectX::XMVectorGetX(DirectX::XMVector3Dot(Direction, Normal)) >= 0.0f)
+				return false;
+			add_cast_hit(intersect, Start, DirectX::XMVectorAdd(AxisPoint, DirectX::XMVectorScale(Normal, get_radius())), Normal, 0.0f);
+			return true;
+		}
+	}
+
+	DirectX::XMVECTOR NearCenter = DirectX::XMVectorZero(), HitPosition;
 	float near_distance = FLT_MAX, hit_distance;
-	bool ret = false;
-	if (intersect_ray_vs_sphere(Start, End, SphereCenter0, get_radius() + radius, HitPosition, hit_distance) && hit_distance > 0.0f)
+	if (intersect_ray_vs_sphere(Start, End, SphereCenter0, combined_radius, HitPosition, hit_distance) && hit_distance > 0.0f && hit_distance < near_distance)
 	{
-		DirectX::XMVECTOR Vec = DirectX::XMVector3Normalize(DirectX::XMVectorSubtract(SphereCenter0, HitPosition));
-		NearPosition = DirectX::XMVectorAdd(HitPosition, DirectX::XMVectorScale(Vec, radius));
 		near_distance = hit_distance;
-		NearNormal = Vec;
-		ret = true;
+		NearCenter = HitPosition;
 	}
-
-	if (intersect_ray_vs_sphere(Start, End, SphereCenter1, get_radius() + radius, HitPosition, hit_distance) && hit_distance > 0.0f)
+	if (intersect_ray_vs_sphere(Start, End, SphereCenter1, combined_radius, HitPosition, hit_distance) && hit_distance > 0.0f && hit_distance < near_distance)
 	{
-		if (near_distance > hit_distance)
-		{
-			DirectX::XMVECTOR Vec = DirectX::XMVector3Normalize(DirectX::XMVectorSubtract(SphereCenter1, HitPosition));
-			NearPosition = DirectX::XMVectorAdd(HitPosition, DirectX::XMVectorScale(Vec, radius));
-			near_distance = hit_distance;
-			NearNormal = Vec;
-			ret = true;
-		}
+		near_distance = hit_distance;
+		NearCenter = HitPosition;
 	}
-
-	if (intersect_ray_vs_cylinder(Start, End, SphereCenter0, SphereCenter1, get_radius() + radius, HitPosition, hit_distance) && hit_distance > 0.0f)
+	if (intersect_ray_vs_cylinder(Start, End, SphereCenter0, SphereCenter1, combined_radius, HitPosition, hit_distance) && hit_distance > 0.0f && hit_distance < near_distance)
 	{
-		if (near_distance >= hit_distance)
-		{
-			DirectX::XMVECTOR Vec = DirectX::XMVectorSubtract(HitPosition, SphereCenter0);
-			DirectX::XMVECTOR CapsuleVector = DirectX::XMVector3Normalize(DirectX::XMVectorSubtract(SphereCenter1, SphereCenter0));
-			DirectX::XMVECTOR NearCenter = DirectX::XMVectorMultiplyAdd(DirectX::XMVector3Dot(Vec, CapsuleVector), CapsuleVector, SphereCenter0);
+		near_distance = hit_distance;
+		NearCenter = HitPosition;
+	}
+	if (near_distance == FLT_MAX)
+		return false;
 
-			//	軸上の最近点(NearCenter)から衝突点へ向かうベクトルが法線
-			DirectX::XMVECTOR Normal = DirectX::XMVector3Normalize(DirectX::XMVectorSubtract(HitPosition, NearCenter));
-			NearPosition = DirectX::XMVectorSubtract(HitPosition, DirectX::XMVectorScale(Normal, radius));
-			near_distance = hit_distance;
-			NearNormal = Normal;
-			ret = true;
-		}
-	}
-	if (ret && intersect)
+	if (intersect)
 	{
-		DirectX::XMFLOAT3 insert_point, normal;
-		DirectX::XMStoreFloat3(&insert_point, NearPosition);
-		DirectX::XMStoreFloat3(&normal, NearNormal);
-		intersect->add(insert_point, normal, near_distance);
+		//	@tool 軸上の最近点から接触時の中心へ向かう外向き法線
+		DirectX::XMVECTOR AxisPoint = axis_point(NearCenter);
+		DirectX::XMVECTOR Normal = DirectX::XMVector3Normalize(DirectX::XMVectorSubtract(NearCenter, AxisPoint));
+		DirectX::XMVECTOR Contact = DirectX::XMVectorAdd(AxisPoint, DirectX::XMVectorScale(Normal, get_radius()));
+		add_cast_hit(intersect, NearCenter, Contact, Normal, near_distance);
 	}
-	return ret;
+	return true;
 }
 
 bool bounding_capsule::intersect_capsule_cast(const DirectX::XMFLOAT3& start, const DirectX::XMFLOAT3& end,

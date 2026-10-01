@@ -125,7 +125,9 @@ void collision_world::inner_step_simulation(float elapsed_time)
 					continue;
 
 				//	カテゴリーチェック
-				if (!raw1->get_filter()->is_flag(raw2->get_filter()->get_category()))
+				//	@tool どちらかが対象なら判定
+				if (!raw1->get_filter()->is_flag(raw2->get_filter()->get_category()) &&
+					!raw2->get_filter()->is_flag(raw1->get_filter()->get_category()))
 					continue;
 
 				auto bounding1 = raw1->get_bounding_object();

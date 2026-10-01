@@ -44,15 +44,38 @@ bool intersect_data::multiply_matrix(std::size_t index, DirectX::XMMATRIX matrix
 	if (index >= infomations.size())
 		return false;
 
-	DirectX::XMVECTOR Position, Normal;
+	DirectX::XMVECTOR Position, Position2, Normal;
 	Position = DirectX::XMVector3TransformCoord(DirectX::XMLoadFloat3(&infomations[index].point), matrix);
+	Position2 = DirectX::XMVector3TransformCoord(DirectX::XMLoadFloat3(&infomations[index].point2), matrix);
 	Normal = DirectX::XMVector3TransformNormal(DirectX::XMLoadFloat3(&infomations[index].normal), matrix);
 	DirectX::XMStoreFloat3(&infomations[index].point, Position);
+	DirectX::XMStoreFloat3(&infomations[index].point2, Position2);
 	DirectX::XMStoreFloat3(&infomations[index].normal, DirectX::XMVector3Normalize(Normal));
 	return true;
 }
 
-std::size_t intersect_data::size()
+void intersect_data::multiply_matrix_from(std::size_t begin, DirectX::XMMATRIX matrix)
+{
+	for (std::size_t index = begin; index < infomations.size(); ++index)
+		multiply_matrix(index, matrix);
+}
+
+void intersect_data::flip_normals_from(std::size_t begin)
+{
+	for (std::size_t index = begin; index < infomations.size(); ++index)
+	{
+		infomations[index].normal.x = -infomations[index].normal.x;
+		infomations[index].normal.y = -infomations[index].normal.y;
+		infomations[index].normal.z = -infomations[index].normal.z;
+	}
+}
+
+void intersect_data::append(const intersect_data& data)
+{
+	infomations.insert(infomations.end(), data.infomations.begin(), data.infomations.end());
+}
+
+std::size_t intersect_data::size() const
 {
 	return infomations.size();
 }
@@ -211,13 +234,15 @@ bool bounding_object::intersect_capsule_cast_by_axis_spheres(const DirectX::XMFL
 				nearest_distance = travel;
 				nearest = sample;
 				nearest[0].length = travel;
+				//	@tool ÚGŽž‚ÌƒJƒvƒZƒ‹’†S
+				XMStoreFloat3(&nearest[0].point, XMVectorAdd(Start, XMVectorScale(MoveDirection, travel)));
 				hit = true;
 			}
 		}
 	}
 
 	if (hit && intersect)
-		*intersect = nearest;
+		intersect->append(nearest);
 	return hit;
 }
 
@@ -260,14 +285,14 @@ bool collision::ray_cast_16(DirectX::XMVECTOR Start, DirectX::XMVECTOR End, cons
 	const USHORT* indices = reinterpret_cast<const USHORT*>(triangles.indices);
 	const size_t offsets[] =
 	{
-		triangles.reverse_index ? 0u : 2u,
-		1u,
 		triangles.reverse_index ? 2u : 0u,
+		1u,
+		triangles.reverse_index ? 0u : 2u,
 	};
 
 	bool hit = false;
 	DirectX::XMVECTOR HitPosition, HitNormal;
-	for (size_t index = triangles.index_start; index < triangles.index_count; index += 3)
+	for (size_t index = triangles.index_start; index + 2 < triangles.index_start + triangles.index_count; index += 3)
 	{
 		USHORT ai = indices[index + offsets[0]];
 		USHORT bi = indices[index + offsets[1]];
@@ -323,7 +348,7 @@ bool collision::ray_cast_16(DirectX::XMVECTOR Start, DirectX::XMVECTOR End, cons
 	{
 		intersect_data::infomation infomation;
 		DirectX::XMStoreFloat3(&infomation.point, HitPosition);
-		DirectX::XMStoreFloat3(&infomation.normal, HitNormal);
+		DirectX::XMStoreFloat3(&infomation.normal, DirectX::XMVector3Normalize(HitNormal));
 		infomation.length = neart;
 		result->add(infomation);
 	}
@@ -347,7 +372,7 @@ bool collision::ray_cast_32(DirectX::XMVECTOR Start, DirectX::XMVECTOR End, cons
 
 	bool hit = false;
 	DirectX::XMVECTOR HitPosition, HitNormal;
-	for (size_t index = triangles.index_start; index < triangles.index_count; index += 3)
+	for (size_t index = triangles.index_start; index + 2 < triangles.index_start + triangles.index_count; index += 3)
 	{
 		UINT ai = indices[index + offsets[0]];
 		UINT bi = indices[index + offsets[1]];
@@ -403,7 +428,7 @@ bool collision::ray_cast_32(DirectX::XMVECTOR Start, DirectX::XMVECTOR End, cons
 	{
 		intersect_data::infomation infomation;
 		DirectX::XMStoreFloat3(&infomation.point, HitPosition);
-		DirectX::XMStoreFloat3(&infomation.normal, HitNormal);
+		DirectX::XMStoreFloat3(&infomation.normal, DirectX::XMVector3Normalize(HitNormal));
 		infomation.length = neart;
 		result->add(infomation);
 	}
@@ -543,4 +568,38 @@ bool XM_CALLCONV collision::intersect_ray_vs_cylinder(DirectX::XMVECTOR start, D
 	}
 
 	return false;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+void XM_CALLCONV collision::add_cast_hit(intersect_data* intersect, DirectX::XMVECTOR center, DirectX::XMVECTOR contact, DirectX::XMVECTOR normal, float length)
+{
+	if (!intersect)
+		return;
+
+	intersect_data::infomation infomation;
+	DirectX::XMStoreFloat3(&infomation.point, center);
+	DirectX::XMStoreFloat3(&infomation.point2, contact);
+	DirectX::XMStoreFloat3(&infomation.normal, DirectX::XMVector3Normalize(normal));
+	infomation.length = length;
+	intersect->add(infomation);
+}
+
+collision::cast_start_overlap XM_CALLCONV collision::check_cast_start_overlap(DirectX::XMVECTOR start, DirectX::XMVECTOR end, DirectX::XMVECTOR nearest_point,
+																			  float radius, DirectX::XMVECTOR fallback_normal, intersect_data* intersect)
+{
+	DirectX::XMVECTOR Vector = DirectX::XMVectorSubtract(start, nearest_point);
+	float distance_sq = DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(Vector));
+	if (distance_sq >= radius * radius)
+		return cast_start_overlap::none;
+
+	float distance = sqrtf(distance_sq);
+	DirectX::XMVECTOR Normal = (distance > 1e-6f) ? DirectX::XMVectorScale(Vector, 1.0f / distance) : DirectX::XMVector3Normalize(fallback_normal);
+
+	//	@tool –Ê‚ÖŒü‚©‚¤ê‡‚Ì‚ÝÚG
+	DirectX::XMVECTOR Move = DirectX::XMVectorSubtract(end, start);
+	if (DirectX::XMVectorGetX(DirectX::XMVector3Dot(Move, Normal)) >= 0.0f)
+		return cast_start_overlap::leaving;
+
+	add_cast_hit(intersect, start, nearest_point, Normal, 0.0f);
+	return cast_start_overlap::hit;
 }

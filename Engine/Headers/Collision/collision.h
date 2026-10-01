@@ -7,15 +7,18 @@
 
 namespace collision
 {
+	//	@tool 交差: point=接触点, normal=自分を押し出す向き, length=めり込み量(正)
+	//	@tool 線分: point=交点, normal=相手表面の法線, length=始点からの距離
+	//	@tool キャスト: point=接触時の中心, point2=相手側接触点, normal=相手表面の法線, length=移動距離
 	class intersect_data
 	{
 	public:
 		struct infomation
 		{
-			DirectX::XMFLOAT3 point;
-			DirectX::XMFLOAT3 point2;
-			DirectX::XMFLOAT3 normal;
-			float length;
+			DirectX::XMFLOAT3 point = {};
+			DirectX::XMFLOAT3 point2 = {};
+			DirectX::XMFLOAT3 normal = {};
+			float length = 0.0f;
 		};
 
 	public:
@@ -29,7 +32,14 @@ namespace collision
 		bool multiply_matrix(std::size_t index, DirectX::XMFLOAT4X4 matrix);
 		bool multiply_matrix(std::size_t index, DirectX::XMMATRIX matrix);
 
-		std::size_t size();
+		//	@tool 指定番号以降を行列変換
+		void multiply_matrix_from(std::size_t begin, DirectX::XMMATRIX matrix);
+		//	@tool 指定番号以降の法線反転
+		void flip_normals_from(std::size_t begin);
+		//	@tool 末尾に追加
+		void append(const intersect_data& data);
+
+		std::size_t size() const;
 
 	public:
 		const infomation& operator[](std::size_t index) const;
@@ -100,6 +110,18 @@ namespace collision
 	protected:
 		virtual	void on_change_parameter();
 
+		//	@tool 相手側関数へ委譲し法線を自分基準へ反転
+		template<typename function>
+		static bool delegate_flipped(intersect_data* intersect, function&& func)
+		{
+			std::size_t begin = intersect ? intersect->size() : 0;
+			if (!func())
+				return false;
+			if (intersect)
+				intersect->flip_normals_from(begin);
+			return true;
+		}
+
 	private:
 		DirectX::XMFLOAT3 local_scale;
 		DirectX::XMFLOAT4 rotation;
@@ -131,4 +153,18 @@ namespace collision
 	bool XM_CALLCONV intersect_ray_vs_cylinder(DirectX::XMVECTOR start, DirectX::XMVECTOR end,
 											   DirectX::XMVECTOR start_cylinder, DirectX::XMVECTOR end_cylinder,
 											   float radius, DirectX::XMVECTOR& hit_pos, float& hit_distance);
+
+	//	@tool キャスト結果の追加
+	void XM_CALLCONV add_cast_hit(intersect_data* intersect, DirectX::XMVECTOR center, DirectX::XMVECTOR contact, DirectX::XMVECTOR normal, float length);
+
+	//	@tool キャスト開始時の重なり状態
+	enum class cast_start_overlap
+	{
+		none,		//	@tool 重なり無し
+		hit,		//	@tool 接近中
+		leaving,	//	@tool 離脱中
+	};
+	//	@tool キャスト開始時の重なり判定
+	cast_start_overlap XM_CALLCONV check_cast_start_overlap(DirectX::XMVECTOR start, DirectX::XMVECTOR end, DirectX::XMVECTOR nearest_point,
+															float radius, DirectX::XMVECTOR fallback_normal, intersect_data* intersect);
 }	//	namespace collision

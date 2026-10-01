@@ -11,7 +11,8 @@
 
 namespace scene_renderer_commons
 {
-	float convert_linear_depth_to_projection_depth(float depth, float z_buffer_parameteres_y);
+	//	@tool ƒrƒ…[‹óŠÔ‚Ì[“x‚ğƒJƒƒ‰‚ÌË‰e[“x‚É•ÏŠ·‚·‚é
+	float convert_view_depth_to_projection_depth(float view_depth, float near_clip, float far_clip);
 
 	void draw(const graphics_context& context,
 			  graphics_pipeline_state_ptr pipeline_state,
@@ -55,7 +56,7 @@ namespace scene_renderer_commons
 					  const std::vector<std::size_t>& mesh_indices,
 					  const std::vector<float>& mesh_lengths,
 					  material::surface_paths surface_path,
-					  meshlet_culling_system& meshlet_culling);
+					  const meshlet_culling_system::cull_result_map& cull_results);
 
 	void particle_render(graphics_context& context,
 						 const std::vector<std::size_t>& mesh_indices,

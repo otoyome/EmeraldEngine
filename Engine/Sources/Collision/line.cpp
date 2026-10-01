@@ -41,8 +41,11 @@ bool line::is_parallel(const line& line) const
 {
 	DirectX::XMVECTOR PointA[2] = {DirectX::XMLoadFloat3(&point[0]), DirectX::XMLoadFloat3(&point[1])};
 	DirectX::XMVECTOR PointB[2] = {DirectX::XMLoadFloat3(&line.point[0]), DirectX::XMLoadFloat3(&line.point[1])};
-	DirectX::XMVECTOR LineA = DirectX::XMVectorSubtract(PointA[1], PointA[0]);
-	DirectX::XMVECTOR LineB = DirectX::XMVectorSubtract(PointB[1], PointB[0]);
+	//	@tool 直線は[1]が方向ベクトル
+	DirectX::XMVECTOR LineA = (type == types::line) ? PointA[1] : DirectX::XMVectorSubtract(PointA[1], PointA[0]);
+	DirectX::XMVECTOR LineB = (line.type == types::line) ? PointB[1] : DirectX::XMVectorSubtract(PointB[1], PointB[0]);
+	LineA = DirectX::XMVector3Normalize(LineA);
+	LineB = DirectX::XMVector3Normalize(LineB);
 	DirectX::XMVECTOR Cross = DirectX::XMVector3Cross(LineA, LineB);
 	return	DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(Cross)) < FLT_EPSILON;
 }
@@ -103,25 +106,19 @@ float line::calculate_segment_distance(DirectX::XMFLOAT3& horizon, float& delta,
 	DirectX::XMVECTOR PointA[2] = {DirectX::XMLoadFloat3(&this->point[0]), DirectX::XMLoadFloat3(&this->point[1])};
 	DirectX::XMVECTOR Point = DirectX::XMLoadFloat3(&point);
 	DirectX::XMVECTOR LineA = DirectX::XMVectorSubtract(PointA[1], PointA[0]);
-	DirectX::XMFLOAT3 lineA;
-	DirectX::XMStoreFloat3(&lineA, LineA);
-	//	垂線の長さ、垂線の足の座標及びtを算出
-	line line(types::line, this->point[0], lineA);
-	float length = line.calculate_line_distance(horizon, delta, point);
 
-	if (!math::is_sharp_angle(point, this->point[0], this->point[1]))
+	//	@tool 線分上の媒介変数(0～1)で最近点を算出
+	float square_length = DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(LineA));
+	delta = 0.0f;
+	if (square_length > FLT_EPSILON)
 	{
-		//	∠_rPoint, m_vPoint[0], m_vPoint[1] が鈍角なので、始点の外側と判定する
-		horizon	= this->point[0];
-		return DirectX::XMVectorGetX(DirectX::XMVector3Length(DirectX::XMVectorSubtract(PointA[0], Point)));
+		delta = DirectX::XMVectorGetX(DirectX::XMVector3Dot(LineA, DirectX::XMVectorSubtract(Point, PointA[0]))) / square_length;
+		delta = math::saturate(delta);
 	}
-	else if( !math::is_sharp_angle(point, this->point[1], this->point[0]))
-	{
-		//	∠_rPoint, m_vPoint[1], m_vPoint[0] が鈍角なので、終点側の外側と判定する
-		horizon	= this->point[1];
-		return DirectX::XMVectorGetX(DirectX::XMVector3Length(DirectX::XMVectorSubtract(PointA[1], Point)));
-	}
-	return length;
+
+	DirectX::XMVECTOR Horizon = DirectX::XMVectorMultiplyAdd(LineA, DirectX::XMVectorReplicate(delta), PointA[0]);
+	DirectX::XMStoreFloat3(&horizon, Horizon);
+	return DirectX::XMVectorGetX(DirectX::XMVector3Length(DirectX::XMVectorSubtract(Horizon, Point)));
 }
 
 float line::calculate_line_distance(DirectX::XMFLOAT3& horizon1, float& delta1, DirectX::XMFLOAT3& horizon2, float& delta2, const line& line) const

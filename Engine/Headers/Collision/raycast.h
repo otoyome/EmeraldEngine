@@ -3,6 +3,8 @@
 
 #include <directxmath.h>
 #include <utility>
+#include <cfloat>
+#include <cmath>
 
 int intersect_ray_triangles
 (
@@ -26,6 +28,14 @@ inline bool intersect_ray_aabb(const float p[3], const float d[3], const float m
 
 	for (size_t a = 0; a < 3; ++a)
 	{
+		//	@tool Ž²‚É•½s‚Èê‡‚ÍƒXƒ‰ƒu“à‚©”»’è
+		if (fabsf(d[a]) <= FLT_EPSILON)
+		{
+			if (p[a] < min[a] || p[a] > max[a])
+				return false;
+			continue;
+		}
+
 		float inv_d{ 1.0f / d[a] };
 		float t0{ (min[a] - p[a]) * inv_d };
 		float t1{ (max[a] - p[a]) * inv_d };

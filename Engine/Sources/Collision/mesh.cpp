@@ -373,6 +373,13 @@ bounding_mesh::bounding_mesh(std::vector<DirectX::XMFLOAT3>& positions, std::vec
 	, triangles(triangles)
 	, separate_count(1, 1, 1)
 {
+	//	@tool 頂点が無い場合は空のまま
+	if (positions.empty())
+	{
+		area_min = area_max = area_size = area_unit = DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f);
+		return;
+	}
+
 	//	幅算出
 	//include_corner(area_min, area_max);
 	area_min = area_max = positions[0];
@@ -880,12 +887,15 @@ bool bounding_mesh::intersect_segment(const DirectX::XMFLOAT3& start, const Dire
 	max.x = std::max(max.x, local_end.x);
 	max.y = std::max(max.y, local_end.y);
 	max.z = std::max(max.z, local_end.z);
+	if (DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(DirectX::XMVectorSubtract(DirectX::XMLoadFloat3(&local_end), DirectX::XMLoadFloat3(&local_start)))) <= 1e-12f)
+		return false;
+
 	auto list = calculate_check_order_list(min, max, area_min, area_unit, separate_count);
 	if (list.empty())
 		return false;
 
 	bool hit = false;
-	intersect_data data;
+	intersect_data data, best;
 	for (auto node_index : list)
 	{
 		auto& node = block_datas[node_index];
@@ -900,17 +910,9 @@ bool bounding_mesh::intersect_segment(const DirectX::XMFLOAT3& start, const Dire
 			data.clear();
 			if (intersect_segment_inner_moller(local_start, local_end, node.triangles, &data))
 			{
-				if (intersect->size() == 0)
-				{
-					*intersect = data;
-				}
-				else
-				{
-					if (data[0].length < (*intersect)[0].length)
-					{
-						*intersect = data;
-					}
-				}
+				//	@tool 最も近い交点を採用
+				if (best.size() == 0 || data[0].length < best[0].length)
+					best = data;
 				hit = true;
 			}
 		}
@@ -924,14 +926,9 @@ bool bounding_mesh::intersect_segment(const DirectX::XMFLOAT3& start, const Dire
 	//	ローカル空間からワールド空間へ変換
 	if (hit && intersect)
 	{
-		for (size_t i = 0; i < intersect->size(); ++i)
-		{
-			auto& info = (*intersect)[i];
-			DirectX::XMStoreFloat3(&info.point,
-				DirectX::XMVector3TransformCoord(DirectX::XMLoadFloat3(&info.point), get_transform_matrix()));
-			DirectX::XMStoreFloat3(&info.normal,
-				DirectX::XMVector3Normalize(DirectX::XMVector3TransformNormal(DirectX::XMLoadFloat3(&info.normal), get_transform_matrix())));
-		}
+		size_t begin = intersect->size();
+		intersect->append(best);
+		intersect->multiply_matrix_from(begin, get_transform_matrix());
 	}
 	return hit;
 }
@@ -946,6 +943,7 @@ bool bounding_mesh::intersect_sphere_inner(const DirectX::XMFLOAT3& point, float
 	auto ti = triangle_indices.data();
 	auto t = triangles.data();
 	DirectX::XMVECTOR NealestPoint = {};
+	DirectX::XMVECTOR NealestNormal = DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
 	float nearlest = FLT_MAX;
 	for (size_t index = 0; index < triangle_indices.size(); ++index)
 	{
@@ -965,6 +963,7 @@ bool bounding_mesh::intersect_sphere_inner(const DirectX::XMFLOAT3& point, float
 		{
 			nearlest = t;
 			NealestPoint = NP;
+			NealestNormal = DirectX::XMLoadFloat3(&triangle->normal);
 		}
 	}
 	nearlest = sqrtf(nearlest);
@@ -972,7 +971,11 @@ bool bounding_mesh::intersect_sphere_inner(const DirectX::XMFLOAT3& point, float
 	if (nearlest <= 0.0f && intersect)
 	{
 		P = DirectX::XMLoadFloat3(&point);
-		DirectX::XMVECTOR Vector = DirectX::XMVector3Normalize(DirectX::XMVectorSubtract(NealestPoint, P));
+		DirectX::XMVECTOR Vector = DirectX::XMVectorSubtract(NealestPoint, P);
+		//	@tool 中心が面上なら面法線の逆向き
+		if (DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(Vector)) <= 1e-12f)
+			Vector = DirectX::XMVectorNegate(NealestNormal);
+		Vector = DirectX::XMVector3Normalize(Vector);
 		DirectX::XMFLOAT3 p, n;
 		DirectX::XMStoreFloat3(&p, NealestPoint);
 		DirectX::XMStoreFloat3(&n, Vector);
@@ -995,24 +998,36 @@ bool bounding_mesh::intersect_sphere(const DirectX::XMFLOAT3& point, float radiu
 	max.z = local_point.z + radius;
 	auto list = calculate_check_order_list(min, max, area_min, area_unit, separate_count);
 
+	bool hit = false;
+	intersect_data data, best;
 	for (auto node_index : list)
 	{
 		auto& node = block_datas[node_index];
-		if (intersect_sphere_inner(local_point, radius, node.triangles, intersect))
+		if (!intersect)
 		{
-			if (intersect && intersect->size() > 0)
-			{
-				//	ワールドへ変換
-				auto& info = (*intersect)[intersect->size() - 1];
-				DirectX::XMStoreFloat3(&info.point,
-					DirectX::XMVector3TransformCoord(DirectX::XMLoadFloat3(&info.point), get_transform_matrix()));
-				DirectX::XMStoreFloat3(&info.normal,
-					DirectX::XMVector3Normalize(DirectX::XMVector3TransformNormal(DirectX::XMLoadFloat3(&info.normal), get_transform_matrix())));
-			}
-			return true;
+			if (intersect_sphere_inner(local_point, radius, node.triangles, nullptr))
+				return true;
+			continue;
+		}
+
+		//	@tool 全ブロックから最も深い接触を採用
+		data.clear();
+		if (intersect_sphere_inner(local_point, radius, node.triangles, &data))
+		{
+			if (best.size() == 0 || data[0].length > best[0].length)
+				best = data;
+			hit = true;
 		}
 	}
-	return false;
+
+	if (hit && intersect)
+	{
+		//	ワールドへ変換
+		size_t begin = intersect->size();
+		intersect->append(best);
+		intersect->multiply_matrix_from(begin, get_transform_matrix());
+	}
+	return hit;
 }
 
 bool bounding_mesh::intersect_sphere(const bounding_sphere& sphere, intersect_data* intersect) const
@@ -1081,7 +1096,7 @@ bool bounding_mesh::intersect_capsule_inner(const bounding_capsule& local_capsul
 
 	if (nearlest < radius && intersect)
 	{
-		auto triangle = t + nealest_face_index;
+		auto triangle = t + ti[nealest_face_index];
 		DirectX::XMVECTOR TriangleA = DirectX::XMLoadFloat3(p + triangle->a);
 		DirectX::XMVECTOR TriangleB = DirectX::XMLoadFloat3(p + triangle->b);
 		DirectX::XMVECTOR TriangleC = DirectX::XMLoadFloat3(p + triangle->c);
@@ -1107,7 +1122,7 @@ bool bounding_mesh::intersect_capsule_inner(const bounding_capsule& local_capsul
 			{
 				//	両端の表裏判定
 				float d = DirectX::XMVectorGetX(DirectX::XMVector3Dot(Normal, Direction));
-				DirectX::XMVECTOR BackPoint = d > 0 ? Position : End;
+				DirectX::XMVECTOR BackPoint = d > 0 ? End : Position;
 
 				//	裏側の点から交点へのベクトルを算出し、カプセルのポジションに加算
 				//	さらに法線の単位ベクトルにカプセルの半径を掛けたベクトルを用意し、カプセルのポジションに加算する
@@ -1133,7 +1148,7 @@ bool bounding_mesh::intersect_capsule_inner(const bounding_capsule& local_capsul
 		//	法線が手に入らなかった場合は三角形の面を納入
 		if (DirectX::XMVectorGetX(DirectX::XMVector3Dot(Normal, Normal)) <= FLT_EPSILON)
 		{
-			Normal = DirectX::XMVector3Normalize(Vector);
+			Normal = DirectX::XMLoadFloat3(&triangle->normal);
 		}
 
 		//	法線を反転しておく
@@ -1141,7 +1156,7 @@ bool bounding_mesh::intersect_capsule_inner(const bounding_capsule& local_capsul
 
 		DirectX::XMStoreFloat3(&infomation.point, DirectX::XMVector3TransformCoord(DirectX::XMLoadFloat3(&infomation.point), TransformMatrix));
 		DirectX::XMStoreFloat3(&infomation.point2, DirectX::XMVector3TransformCoord(DirectX::XMLoadFloat3(&infomation.point2), TransformMatrix));
-		DirectX::XMStoreFloat3(&infomation.normal, DirectX::XMVector3TransformNormal(Normal, TransformMatrix));
+		DirectX::XMStoreFloat3(&infomation.normal, DirectX::XMVector3Normalize(DirectX::XMVector3TransformNormal(DirectX::XMLoadFloat3(&infomation.normal), TransformMatrix)));
 		intersect->add(infomation);
 	}
 	return nearlest < radius;
@@ -1149,12 +1164,6 @@ bool bounding_mesh::intersect_capsule_inner(const bounding_capsule& local_capsul
 
 bool bounding_mesh::intersect_capsule(const bounding_capsule& capsule, intersect_data* intersect) const
 {
-	DirectX::XMFLOAT3 min, max;
-	capsule.include_corner(min, max);
-	auto list = calculate_check_order_list(min, max, area_min, area_unit, separate_count);
-	if (list.empty())
-		return false;
-
 	//	ローカル空間に変換
 	bounding_capsule local_capsule = capsule;
 	{
@@ -1169,48 +1178,36 @@ bool bounding_mesh::intersect_capsule(const bounding_capsule& capsule, intersect
 		local_capsule.set_position(translation);
 	}
 
+	//	@tool ローカル空間のAABB
 	DirectX::XMVECTOR Min, Max;
-	inner::axis_aligned_bounding_box capsule_box;
-	{
-		DirectX::XMFLOAT3 min, max;
-		local_capsule.include_corner(min, max);
-		max.x = (max.x - min.x) * 0.5f;
-		max.y = (max.y - min.y) * 0.5f;
-		max.z = (max.z - min.z) * 0.5f;
-		min.x += max.x;
-		min.y += max.y;
-		min.z += max.z;
-		Min = DirectX::XMLoadFloat3(&min);
-		Max = DirectX::XMLoadFloat3(&max);
-		capsule_box = inner::axis_aligned_bounding_box(max, min);
-	}
+	DirectX::XMFLOAT3 min, max;
+	local_capsule.include_corner(min, max);
+	Min = DirectX::XMLoadFloat3(&min);
+	Max = DirectX::XMLoadFloat3(&max);
+
+	auto list = calculate_check_order_list(min, max, area_min, area_unit, separate_count);
+	if (list.empty())
+		return false;
 
 	bool hit = false;
+	intersect_data data, best;
 	for (auto node_index : list)
 	{
 		auto& node = block_datas[node_index];
 		if (node.triangles.empty())
 			continue;
 
-		if (!node.bounds.intersect_capsule(capsule))
+		if (!node.bounds.intersect_capsule(local_capsule))
 			continue;
 
 		if (intersect)
 		{
-			intersect_data data;
+			data.clear();
 			if (intersect_capsule_inner(local_capsule, Min, Max, get_transform_matrix(), node.triangles, &data))
 			{
-				if (intersect->size() == 0)
-				{
-					*intersect = data;
-				}
-				else
-				{
-					if (data[0].length < (*intersect)[0].length)
-					{
-						*intersect = data;
-					}
-				}
+				//	@tool 最も深い接触を採用
+				if (best.size() == 0 || data[0].length > best[0].length)
+					best = data;
 				hit = true;
 			}
 		}
@@ -1220,6 +1217,9 @@ bool bounding_mesh::intersect_capsule(const bounding_capsule& capsule, intersect
 				return true;
 		}
 	}
+
+	if (hit && intersect)
+		intersect->append(best);
 	return hit;
 }
 
@@ -1249,6 +1249,7 @@ bool bounding_mesh::intersect_box_inner(DirectX::XMVECTOR Center, DirectX::XMVEC
 	bool hit = false;
 	float nearlest = FLT_MAX;
 	DirectX::XMVECTOR NearlestPoint = {};
+	DirectX::XMVECTOR NearlestNormal = AxisY;
 	for (size_t index = 0; index < triangle_indices.size(); ++index)
 	{
 		auto triangle = t + ti[index];
@@ -1294,6 +1295,7 @@ bool bounding_mesh::intersect_box_inner(DirectX::XMVECTOR Center, DirectX::XMVEC
 		{
 			nearlest = distance_square;
 			NearlestPoint = NP;
+			NearlestNormal = Normal;
 		}
 	}
 
@@ -1301,7 +1303,8 @@ bool bounding_mesh::intersect_box_inner(DirectX::XMVECTOR Center, DirectX::XMVEC
 	{
 		DirectX::XMVECTOR Vector = DirectX::XMVectorSubtract(NearlestPoint, Center);
 		float distance = sqrtf(nearlest);
-		DirectX::XMVECTOR Direction = (distance > FLT_EPSILON) ? DirectX::XMVector3Normalize(Vector) : AxisY;
+		//	@tool 中心が面上なら面法線の逆向き
+		DirectX::XMVECTOR Direction = (distance > FLT_EPSILON) ? DirectX::XMVector3Normalize(Vector) : DirectX::XMVectorNegate(NearlestNormal);
 
 		float support = fabsf(DirectX::XMVectorGetX(DirectX::XMVector3Dot(AxisX, Direction))) * half_extent.x
 					   + fabsf(DirectX::XMVectorGetX(DirectX::XMVector3Dot(AxisY, Direction))) * half_extent.y
@@ -1310,7 +1313,7 @@ bool bounding_mesh::intersect_box_inner(DirectX::XMVECTOR Center, DirectX::XMVEC
 		DirectX::XMFLOAT3 point, normal;
 		DirectX::XMStoreFloat3(&point, NearlestPoint);
 		DirectX::XMStoreFloat3(&normal, Direction);
-		intersect->add(point, normal, fabsf(support - distance));
+		intersect->add(point, normal, std::max(support - distance, 0.0f));
 	}
 
 	return hit;
@@ -1345,32 +1348,32 @@ bool bounding_mesh::intersect_box(const bounding_box& box, intersect_data* inter
 	if (list.empty())
 		return false;
 
+	//	@tool ローカル空間の箱
+	DirectX::XMFLOAT4 local_rotation;
+	DirectX::XMFLOAT3 local_position;
+	DirectX::XMStoreFloat4(&local_rotation, Rotation);
+	DirectX::XMStoreFloat3(&local_position, Translation);
+	bounding_box local_box(half_extent, local_rotation, local_position);
+
 	bool hit = false;
+	intersect_data data, best;
 	for (auto node_index : list)
 	{
 		auto& node = block_datas[node_index];
 		if (node.triangles.empty())
 			continue;
 
-		if (!node.bounds.intersect_box(box))
+		if (!node.bounds.intersect_box(local_box))
 			continue;
 
 		if (intersect)
 		{
-			intersect_data data;
+			data.clear();
 			if (intersect_box_inner(Center, AxisX, AxisY, AxisZ, half_extent, BoxMin, BoxMax, node.triangles, &data))
 			{
-				if (intersect->size() == 0)
-				{
-					*intersect = data;
-				}
-				else
-				{
-					if (data[0].length < (*intersect)[0].length)
-					{
-						*intersect = data;
-					}
-				}
+				//	@tool 最も深い接触を採用
+				if (best.size() == 0 || data[0].length > best[0].length)
+					best = data;
 				hit = true;
 			}
 		}
@@ -1379,6 +1382,14 @@ bool bounding_mesh::intersect_box(const bounding_box& box, intersect_data* inter
 			if (intersect_box_inner(Center, AxisX, AxisY, AxisZ, half_extent, BoxMin, BoxMax, node.triangles, nullptr))
 				return true;
 		}
+	}
+
+	if (hit && intersect)
+	{
+		//	@tool ワールドへ変換
+		size_t begin = intersect->size();
+		intersect->append(best);
+		intersect->multiply_matrix_from(begin, get_transform_matrix());
 	}
 	return hit;
 }
@@ -1437,13 +1448,33 @@ bool bounding_mesh::intersect_sphere_cast_inner(const collision::line& sweep_lin
 		DirectX::XMVECTOR NearestOnTriangle;
 		calculate_nearlest_point(Start, TriangleA, TriangleB, TriangleC, EdgeAB, EdgeBC, EdgeAC, NearestOnTriangle);
 		if (DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(DirectX::XMVectorSubtract(NearestOnTriangle, Start))) <= radius * radius)
+		{
+			//	@tool 表側から面へ向かう場合のみ移動距離0で接触
+			DirectX::XMVECTOR FaceNormal = DirectX::XMLoadFloat3(&triangle->normal);
+			if (DirectX::XMVectorGetX(DirectX::XMVector3Dot(DirectX::XMVectorSubtract(Start, TriangleA), FaceNormal)) < 0.0f)
+				continue;
+
+			DirectX::XMVECTOR Vector = DirectX::XMVectorSubtract(Start, NearestOnTriangle);
+			DirectX::XMVECTOR OverlapNormal = (DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(Vector)) > 1e-12f) ? DirectX::XMVector3Normalize(Vector) : FaceNormal;
+			if (DirectX::XMVectorGetX(DirectX::XMVector3Dot(SweepDirectionNormalize, OverlapNormal)) >= 0.0f)
+				continue;
+
+			if (0.0f < nearlest_distance)
+			{
+				nearlest_distance = 0.0f;
+				nearlest_triangle_pos = NearestOnTriangle;
+				nearlest_normal = OverlapNormal;
+				hit_flag = true;
+			}
 			continue;
+		}
 
 		//	三角形の法線（正規化しない：後続の平面判定のスケールに用いるため）
 		DirectX::XMVECTOR Norm = DirectX::XMVector3Cross(EdgeAB, EdgeAC);
 		float d = DirectX::XMVectorGetX(DirectX::XMVector3Dot(Norm, qp));
 
 		bool triangle_hit = false;
+		bool face_hit = false;
 		float hit_distance = 0.0f;
 		DirectX::XMVECTOR hit_position = {};
 
@@ -1466,6 +1497,7 @@ bool bounding_mesh::intersect_sphere_cast_inner(const collision::line& sweep_lin
 						hit_distance = DirectX::XMVectorGetX(DirectX::XMVector3Length(DirectX::XMVectorSubtract(cross_pos, Start)));
 						hit_position = DirectX::XMVectorSubtract(cross_pos, fix_vec);
 						triangle_hit = true;
+						face_hit = true;
 					}
 				}
 			}
@@ -1534,6 +1566,14 @@ bool bounding_mesh::intersect_sphere_cast_inner(const collision::line& sweep_lin
 			nearlest_triangle_pos = hit_position;
 			//nearlest_normal = DirectX::XMLoadFloat3(&triangle->normal);
 			nearlest_normal = DirectX::XMVector3Normalize(Norm);
+			if (!face_hit)
+			{
+				//	@tool 頂点・辺は接触点から球中心への向き
+				DirectX::XMVECTOR Center = DirectX::XMVectorAdd(Start, DirectX::XMVectorScale(SweepDirectionNormalize, hit_distance));
+				DirectX::XMVECTOR Vector = DirectX::XMVectorSubtract(Center, hit_position);
+				if (DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(Vector)) > 1e-12f)
+					nearlest_normal = DirectX::XMVector3Normalize(Vector);
+			}
 			hit_flag = true;
 		}
 	}
@@ -1571,9 +1611,13 @@ bool bounding_mesh::intersect_sphere_cast(const DirectX::XMFLOAT3& start, const 
 	if (list.empty())
 		return false;
 
+	if (DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(DirectX::XMVectorSubtract(DirectX::XMLoadFloat3(&local_end), DirectX::XMLoadFloat3(&local_start)))) <= 1e-12f)
+		return false;
+
 	collision::line sweep_line(collision::line::types::segment, local_start, local_end);
 
 	bool hit = false;
+	intersect_data data, best;
 	for (auto node_index : list)
 	{
 		auto& node = block_datas[node_index];
@@ -1582,13 +1626,12 @@ bool bounding_mesh::intersect_sphere_cast(const DirectX::XMFLOAT3& start, const 
 
 		if (intersect)
 		{
-			intersect_data data;
+			data.clear();
 			if (intersect_sphere_cast_inner(sweep_line, radius, node.triangles, &data))
 			{
-				if (intersect->size() == 0 || data[0].length < (*intersect)[0].length)
-				{
-					*intersect = data;
-				}
+				//	@tool 最も近い交点を採用
+				if (best.size() == 0 || data[0].length < best[0].length)
+					best = data;
 				hit = true;
 			}
 		}
@@ -1602,16 +1645,9 @@ bool bounding_mesh::intersect_sphere_cast(const DirectX::XMFLOAT3& start, const 
 	//	結果をローカル空間からワールド空間へ変換
 	if (hit && intersect)
 	{
-		for (size_t i = 0; i < intersect->size(); ++i)
-		{
-			auto& info = (*intersect)[i];
-			DirectX::XMStoreFloat3(&info.point,
-				DirectX::XMVector3TransformCoord(DirectX::XMLoadFloat3(&info.point), get_transform_matrix()));
-			DirectX::XMStoreFloat3(&info.point2,
-				DirectX::XMVector3TransformCoord(DirectX::XMLoadFloat3(&info.point2), get_transform_matrix()));
-			DirectX::XMStoreFloat3(&info.normal,
-				DirectX::XMVector3Normalize(DirectX::XMVector3TransformNormal(DirectX::XMLoadFloat3(&info.normal), get_transform_matrix())));
-		}
+		size_t begin = intersect->size();
+		intersect->append(best);
+		intersect->multiply_matrix_from(begin, get_transform_matrix());
 	}
 
 	return hit;
@@ -1627,8 +1663,22 @@ bool bounding_mesh::intersect_capsule_cast(const DirectX::XMFLOAT3& start, const
 
 void bounding_mesh::include_corner(DirectX::XMFLOAT3& min, DirectX::XMFLOAT3& max) const
 {
-	min = area_min;
-	max = area_max;
+	//	@tool ローカル範囲の8頂点をワールドへ変換して包含
+	DirectX::XMMATRIX Transform = get_transform_matrix();
+	DirectX::XMVECTOR Min = DirectX::XMVectorReplicate(FLT_MAX);
+	DirectX::XMVECTOR Max = DirectX::XMVectorReplicate(-FLT_MAX);
+	for (int corner = 0; corner < 8; ++corner)
+	{
+		DirectX::XMFLOAT3 point(
+			(corner & 1) ? area_max.x : area_min.x,
+			(corner & 2) ? area_max.y : area_min.y,
+			(corner & 4) ? area_max.z : area_min.z);
+		DirectX::XMVECTOR Point = DirectX::XMVector3TransformCoord(DirectX::XMLoadFloat3(&point), Transform);
+		Min = DirectX::XMVectorMin(Min, Point);
+		Max = DirectX::XMVectorMax(Max, Point);
+	}
+	DirectX::XMStoreFloat3(&min, Min);
+	DirectX::XMStoreFloat3(&max, Max);
 }
 
 float bounding_mesh::calculate_segment_distance(const collision::line& line,
@@ -1731,24 +1781,24 @@ float bounding_mesh::calculate_segment_distance(const collision::line& line,
 	if (distance_edge < nearlest_distance)
 	{
 		nearlest_distance = distance_edge;
-		DirectX::XMStoreFloat3(&nearlest_point_segment, DirectX::XMVectorScale(DirectX::XMLoadFloat3(&horizon1), delta1));
-		DirectX::XMStoreFloat3(&nearlest_point_triangle, DirectX::XMVectorScale(DirectX::XMLoadFloat3(&horizon2), delta2));
+		nearlest_point_segment = horizon1;
+		nearlest_point_triangle = horizon2;
 	}
 
 	distance_edge = line.calculate_distance(horizon1, delta1, horizon2, delta2, triangle.lbc);
 	if (distance_edge < nearlest_distance)
 	{
 		nearlest_distance = distance_edge;
-		DirectX::XMStoreFloat3(&nearlest_point_segment, DirectX::XMVectorScale(DirectX::XMLoadFloat3(&horizon1), delta1));
-		DirectX::XMStoreFloat3(&nearlest_point_triangle, DirectX::XMVectorScale(DirectX::XMLoadFloat3(&horizon2), delta2));
+		nearlest_point_segment = horizon1;
+		nearlest_point_triangle = horizon2;
 	}
 
 	distance_edge = line.calculate_distance(horizon1, delta1, horizon2, delta2, triangle.lca);
 	if (distance_edge < nearlest_distance)
 	{
 		nearlest_distance = distance_edge;
-		DirectX::XMStoreFloat3(&nearlest_point_segment, DirectX::XMVectorScale(DirectX::XMLoadFloat3(&horizon1), delta1));
-		DirectX::XMStoreFloat3(&nearlest_point_triangle, DirectX::XMVectorScale(DirectX::XMLoadFloat3(&horizon2), delta2));
+		nearlest_point_segment = horizon1;
+		nearlest_point_triangle = horizon2;
 	}
 
 	return nearlest_distance;
@@ -1937,6 +1987,11 @@ bool collision::generate_bounding_mesh(bounding_mesh& out_mesh, model_resource_p
 
 	DirectX::XMMATRIX local_transform_matrix = calculate_transform_matrix(mesh.node_index);
 
+	//	@tool ワールド行列を分解しスケールは頂点へ焼き込む
+	DirectX::XMVECTOR WorldScale, WorldRotation, WorldTranslation;
+	DirectX::XMMatrixDecompose(&WorldScale, &WorldRotation, &WorldTranslation, data.WorldMatrix);
+	local_transform_matrix = DirectX::XMMatrixMultiply(local_transform_matrix, DirectX::XMMatrixScalingFromVector(WorldScale));
+
 	auto it = mesh.vertex_buffer_views.find(semantic("POSITION", 0));
 	if (it == mesh.vertex_buffer_views.end())
 		return false;
@@ -1970,9 +2025,11 @@ bool collision::generate_bounding_mesh(bounding_mesh& out_mesh, model_resource_p
 			triangle.c = fetch_index(index + index3);
 
 			//	事前計算
-			auto A = DirectX::XMLoadFloat3(p  + triangle.a);
-			auto B = DirectX::XMLoadFloat3(p  + triangle.b);
-			auto C = DirectX::XMLoadFloat3(p  + triangle.c);
+			//	@tool 変換後の頂点から算出
+			auto tp = positions.data();
+			auto A = DirectX::XMLoadFloat3(tp + triangle.a);
+			auto B = DirectX::XMLoadFloat3(tp + triangle.b);
+			auto C = DirectX::XMLoadFloat3(tp + triangle.c);
 			auto AB = DirectX::XMVectorSubtract(B, A);
 			auto BC = DirectX::XMVectorSubtract(C, B);
 			auto CA = DirectX::XMVectorSubtract(A, C);
@@ -1987,22 +2044,19 @@ bool collision::generate_bounding_mesh(bounding_mesh& out_mesh, model_resource_p
 			auto Max = DirectX::XMVectorMax(A, DirectX::XMVectorMax(B, C));
 			DirectX::XMStoreFloat3(&triangle.min, Min);
 			DirectX::XMStoreFloat3(&triangle.max, Max);
-			triangle.lab = collision::line(collision::line::types::segment, *(p  + triangle.a), *(p  + triangle.b));
-			triangle.lbc = collision::line(collision::line::types::segment, *(p  + triangle.b), *(p  + triangle.c));
-			triangle.lca = collision::line(collision::line::types::segment, *(p  + triangle.c), *(p  + triangle.a));
+			triangle.lab = collision::line(collision::line::types::segment, *(tp + triangle.a), *(tp + triangle.b));
+			triangle.lbc = collision::line(collision::line::types::segment, *(tp + triangle.b), *(tp + triangle.c));
+			triangle.lca = collision::line(collision::line::types::segment, *(tp + triangle.c), *(tp + triangle.a));
 		}
 	}
 
 	out_mesh = collision::bounding_mesh(positions, triangles, data.separate_level);
 
 	{
-		DirectX::XMVECTOR Scale, Rotation, Translation;
-		DirectX::XMMatrixDecompose(&Scale, &Rotation, &Translation, data.WorldMatrix);
-
 		DirectX::XMFLOAT4 rotation;
 		DirectX::XMFLOAT3 translation;
-		DirectX::XMStoreFloat4(&rotation, Rotation);
-		DirectX::XMStoreFloat3(&translation, Translation);
+		DirectX::XMStoreFloat4(&rotation, WorldRotation);
+		DirectX::XMStoreFloat3(&translation, WorldTranslation);
 
 		out_mesh.set_rotation(rotation);
 		out_mesh.set_position(translation);

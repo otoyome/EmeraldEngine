@@ -81,7 +81,7 @@ public:
 
 	ID3D11ShaderResourceView* get_meshlet_vertex_buffer_srv();
 	ID3D11ShaderResourceView* get_meshlet_triangle_buffer_srv();
-	void get_meshlet_instance_batch(UINT min_capacity, ID3D11Buffer** out_buffer, ID3D11ShaderResourceView** out_srv);
+	void get_meshlet_instance_batch(UINT min_capacity, Microsoft::WRL::ComPtr<ID3D11Buffer>& out_buffer, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>& out_srv);
 
 public:
 	void flush_uploads();

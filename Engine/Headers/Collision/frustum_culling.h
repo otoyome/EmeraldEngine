@@ -56,6 +56,7 @@ namespace collision
 	private:
 		plane planes[surface_max];	//	‹‘ä‚Ì–Ê
 		DirectX::XMFLOAT4 corners[8];	//	‹‘ä‚Ì’¸“_
+		bool has_corners = false;	//	@tool ’¸“_ZoÏ‚İ‚©
 	};
 
 }	//	namespace collision

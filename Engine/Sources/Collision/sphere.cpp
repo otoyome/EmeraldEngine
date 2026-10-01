@@ -54,19 +54,40 @@ bool bounding_sphere::intersect_segment(DirectX::XMVECTOR Start, DirectX::XMVECT
 {
 	DirectX::XMVECTOR Direction = DirectX::XMVectorSubtract(End, Start);
 	float distance = DirectX::XMVectorGetX(DirectX::XMVector3Length(Direction));
-	Direction = DirectX::XMVector3Normalize(Direction);
+	if (distance <= 1e-6f)
+		return false;
+	Direction = DirectX::XMVectorScale(Direction, 1.0f / distance);
 	const float segment_length = distance;
 
-	DirectX::BoundingSphere sphere = DirectX::BoundingSphere(get_position(), get_radius());
+	DirectX::XMVECTOR Center = DirectX::XMLoadFloat3(&get_position());
+	const float radius = get_radius();
+
+	//	@tool 始点が内側
+	DirectX::XMVECTOR StartToCenter = DirectX::XMVectorSubtract(Start, Center);
+	float start_length_sq = DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(StartToCenter));
+	if (start_length_sq <= radius * radius)
+	{
+		if (intersect)
+		{
+			DirectX::XMVECTOR Normal = (start_length_sq > 1e-12f) ? DirectX::XMVector3Normalize(StartToCenter) : DirectX::XMVectorNegate(Direction);
+			DirectX::XMFLOAT3 position, normal;
+			DirectX::XMStoreFloat3(&position, Start);
+			DirectX::XMStoreFloat3(&normal, Normal);
+			intersect->add(position, normal, 0.0f);
+		}
+		return true;
+	}
+
+	DirectX::BoundingSphere sphere = DirectX::BoundingSphere(get_position(), radius);
 	if (sphere.Intersects(Start, Direction, distance) && distance <= segment_length)
 	{
 		if (intersect)
 		{
-			DirectX::XMVECTOR Distance = DirectX::XMVectorSet(distance, distance, distance, distance);
-			DirectX::XMFLOAT3 position, direction;
-			DirectX::XMStoreFloat3(&position, DirectX::XMVectorMultiplyAdd(Direction, Distance, Start));
-			DirectX::XMStoreFloat3(&direction, DirectX::XMVectorNegate(Direction));
-			intersect->add(position, direction, distance);
+			DirectX::XMVECTOR Position = DirectX::XMVectorMultiplyAdd(Direction, DirectX::XMVectorReplicate(distance), Start);
+			DirectX::XMFLOAT3 position, normal;
+			DirectX::XMStoreFloat3(&position, Position);
+			DirectX::XMStoreFloat3(&normal, DirectX::XMVector3Normalize(DirectX::XMVectorSubtract(Position, Center)));
+			intersect->add(position, normal, distance);
 		}
 		return true;
 	}
@@ -83,6 +104,9 @@ bool bounding_sphere::intersect_sphere(const DirectX::XMFLOAT3& point, float rad
 	bool insert = distance <= 0.0f;
 	if (intersect && insert)
 	{
+		//	@tool 中心一致時は上方向
+		if (DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(Vector)) <= 1e-12f)
+			Vector = DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
 		Vector = DirectX::XMVector3Normalize(Vector);
 		DirectX::XMFLOAT3 point, normal;
 		DirectX::XMStoreFloat3(&normal, Vector);
@@ -101,17 +125,17 @@ bool bounding_sphere::intersect_sphere(const bounding_sphere& sphere, intersect_
 
 bool bounding_sphere::intersect_capsule(const bounding_capsule& capsule, intersect_data* intersect) const
 {
-	return	capsule.intersect_sphere(*this, intersect);
+	return delegate_flipped(intersect, [&]() { return capsule.intersect_sphere(*this, intersect); });
 }
 
 bool bounding_sphere::intersect_box(const bounding_box& box, intersect_data* intersect) const
 {
-	return	box.intersect_sphere(*this, intersect);
+	return delegate_flipped(intersect, [&]() { return box.intersect_sphere(*this, intersect); });
 }
 
 bool bounding_sphere::intersect_mesh(const bounding_mesh& mesh, intersect_data* intersect) const
 {
-	return	mesh.intersect_sphere(*this, intersect);
+	return delegate_flipped(intersect, [&]() { return mesh.intersect_sphere(*this, intersect); });
 }
 
 
@@ -120,17 +144,29 @@ bool bounding_sphere::intersect_sphere_cast(const DirectX::XMFLOAT3& start, cons
 	DirectX::XMVECTOR Start = DirectX::XMLoadFloat3(&start);
 	DirectX::XMVECTOR End = DirectX::XMLoadFloat3(&end);
 	DirectX::XMVECTOR SphereCenter = DirectX::XMLoadFloat3(&get_position());
- 
+	DirectX::XMVECTOR Direction = DirectX::XMVector3Normalize(DirectX::XMVectorSubtract(End, Start));
+
+	//	@tool 開始時の重なり
+	{
+		DirectX::XMVECTOR ToStart = DirectX::XMVectorSubtract(Start, SphereCenter);
+		float start_distance = DirectX::XMVectorGetX(DirectX::XMVector3Length(ToStart));
+		if (start_distance < get_radius() + radius)
+		{
+			DirectX::XMVECTOR Normal = (start_distance > 1e-6f) ? DirectX::XMVectorScale(ToStart, 1.0f / start_distance) : DirectX::XMVectorNegate(Direction);
+			if (DirectX::XMVectorGetX(DirectX::XMVector3Dot(Direction, Normal)) >= 0.0f)
+				return false;
+			add_cast_hit(intersect, Start, DirectX::XMVectorAdd(SphereCenter, DirectX::XMVectorScale(Normal, get_radius())), Normal, 0.0f);
+			return true;
+		}
+	}
+
 	DirectX::XMVECTOR HitPosition;
 	float hit_distance;
 	if (intersect_ray_vs_sphere(Start, End, SphereCenter, get_radius() + radius, HitPosition, hit_distance) && hit_distance > 0.0f)
 	{
-		DirectX::XMVECTOR Vec = DirectX::XMVector3Normalize(DirectX::XMVectorSubtract(SphereCenter, HitPosition));
-		HitPosition = DirectX::XMVectorAdd(HitPosition, DirectX::XMVectorScale(Vec, radius));
-		DirectX::XMFLOAT3 point, normal;
-		DirectX::XMStoreFloat3(&point, HitPosition);
-		DirectX::XMStoreFloat3(&normal, Vec);
-		intersect->add(point, normal, hit_distance);
+		DirectX::XMVECTOR Normal = DirectX::XMVector3Normalize(DirectX::XMVectorSubtract(HitPosition, SphereCenter));
+		DirectX::XMVECTOR Contact = DirectX::XMVectorSubtract(HitPosition, DirectX::XMVectorScale(Normal, radius));
+		add_cast_hit(intersect, HitPosition, Contact, Normal, hit_distance);
 		return true;
 	}
 
@@ -161,6 +197,29 @@ bool bounding_sphere::intersect_capsule_cast(const DirectX::XMFLOAT3& start, con
 
 	float combined_radius = get_radius() + radius;
 
+	//	@tool 軸上の最近点
+	auto axis_point = [&](XMVECTOR Center)
+	{
+		float proj = XMVectorGetX(XMVector3Dot(XMVectorSubtract(SphereCenter, Center), Axis));
+		proj = math::clamp(proj, -half, +half);
+		return XMVectorAdd(Center, XMVectorScale(Axis, proj));
+	};
+
+	//	@tool 開始時の重なり
+	{
+		XMVECTOR AxisPoint = axis_point(Start);
+		XMVECTOR ToCaster = XMVectorSubtract(AxisPoint, SphereCenter);
+		float start_distance = XMVectorGetX(XMVector3Length(ToCaster));
+		if (start_distance < combined_radius)
+		{
+			XMVECTOR Normal = (start_distance > 1e-6f) ? XMVectorScale(ToCaster, 1.0f / start_distance) : XMVectorNegate(VelocityNormal);
+			if (XMVectorGetX(XMVector3Dot(VelocityNormal, Normal)) >= 0.0f)
+				return false;
+			add_cast_hit(intersect, Start, XMVectorAdd(SphereCenter, XMVectorScale(Normal, get_radius())), Normal, 0.0f);
+			return true;
+		}
+	}
+
 	//	移動カプセル基準フレームでの対象球の光線
 	XMVECTOR RayStart = XMVectorSubtract(SphereCenter, Start);
 	XMVECTOR RayEnd = XMVectorSubtract(SphereCenter, End);
@@ -182,22 +241,15 @@ bool bounding_sphere::intersect_capsule_cast(const DirectX::XMFLOAT3& start, con
 	if (intersect)
 	{
 		XMVECTOR CenterWorld = XMVectorAdd(Start, XMVectorScale(VelocityNormal, nearest));
-		XMVECTOR ToSphere = XMVectorSubtract(SphereCenter, CenterWorld);
-		float proj = XMVectorGetX(XMVector3Dot(ToSphere, Axis));
-		if (proj < -half) proj = -half;
-		if (proj > +half) proj = +half;
-		XMVECTOR AxisPointWorld = XMVectorAdd(CenterWorld, XMVectorScale(Axis, proj));
+		XMVECTOR AxisPointWorld = axis_point(CenterWorld);
 
-		XMVECTOR Direction = XMVectorSubtract(SphereCenter, AxisPointWorld);
+		//	@tool 対象球の外向き法線
+		XMVECTOR Direction = XMVectorSubtract(AxisPointWorld, SphereCenter);
 		if (XMVectorGetX(XMVector3LengthSq(Direction)) < FLT_EPSILON)
-			Direction = VelocityNormal;
+			Direction = XMVectorNegate(VelocityNormal);
 		XMVECTOR Normal = XMVector3Normalize(Direction);
-		XMVECTOR ContactPoint = XMVectorAdd(AxisPointWorld, XMVectorScale(Normal, radius));
-
-		DirectX::XMFLOAT3 point, normal;
-		XMStoreFloat3(&point, ContactPoint);
-		XMStoreFloat3(&normal, Normal);
-		intersect->add(point, normal, nearest);
+		XMVECTOR ContactPoint = XMVectorAdd(SphereCenter, XMVectorScale(Normal, get_radius()));
+		add_cast_hit(intersect, CenterWorld, ContactPoint, Normal, nearest);
 	}
 	return true;
 }

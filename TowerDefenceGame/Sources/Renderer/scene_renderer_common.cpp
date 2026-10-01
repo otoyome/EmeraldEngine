@@ -120,10 +120,10 @@ namespace
 
 }
 
-float scene_renderer_commons::convert_linear_depth_to_projection_depth(float depth, float z_buffer_parameteres_y)
+float scene_renderer_commons::convert_view_depth_to_projection_depth(float view_depth, float near_clip, float far_clip)
 {
-	float z_buffer_parameteres_x = z_buffer_parameteres_y - 1.0f;
-	return (1.0f / depth - 1.0f) / z_buffer_parameteres_x;
+	//	@tool リバースZの透視投影(near→1, far→0)
+	return near_clip * (far_clip - view_depth) / (view_depth * (far_clip - near_clip));
 }
 
 void scene_renderer_commons::draw(const graphics_context& context,
@@ -218,17 +218,17 @@ void scene_renderer_commons::draw_indexed(const graphics_context& context,
 	if (instance_records.empty())
 		return;
 
-	ID3D11Buffer* batch_buffer = nullptr;
-	ID3D11ShaderResourceView* batch_srv = nullptr;
-	pool->get_meshlet_instance_batch(static_cast<UINT>(instance_records.size()), &batch_buffer, &batch_srv);
+	Microsoft::WRL::ComPtr<ID3D11Buffer> batch_buffer;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> batch_srv;
+	pool->get_meshlet_instance_batch(static_cast<UINT>(instance_records.size()), batch_buffer, batch_srv);
 
 	D3D11_BOX box{};
 	box.right = static_cast<UINT>(sizeof(common_pipeline_states::meshlet_instance_record) * instance_records.size());
 	box.bottom = 1;
 	box.back = 1;
-	context.device_context->UpdateSubresource(batch_buffer, 0, &box, instance_records.data(), 0, 0);
+	context.device_context->UpdateSubresource(batch_buffer.Get(), 0, &box, instance_records.data(), 0, 0);
 
-	context.device_context->VSSetShaderResources(118, 1, &batch_srv);
+	context.device_context->VSSetShaderResources(118, 1, batch_srv.GetAddressOf());
 	context.device_context->DrawInstanced(meshlet_culling_system::max_meshlet_vertices_per_draw, static_cast<UINT>(instance_records.size()), 0, 0);
 }
 
@@ -304,7 +304,7 @@ void scene_renderer_commons::model_render_indirect(graphics_context& context,
 					const std::vector<std::size_t>& mesh_indices,
 					const std::vector<float>& mesh_lengths,
 					material::surface_paths surface_path,
-					meshlet_culling_system& meshlet_culling)
+					const meshlet_culling_system::cull_result_map& cull_results)
 {
 	auto draw_data_ptr = context.render_data->mesh_container.draw_datas.data();
 	auto material_data_ptr = context.render_data->mesh_container.material_datas.data();
@@ -337,7 +337,8 @@ void scene_renderer_commons::model_render_indirect(graphics_context& context,
 
 		//	メッシュレットカリングした結果、失敗していた場合は別パス
 		auto pipeline_state = material->get_pipeline_state(surface_path);
-		auto result = pipeline_state ? meshlet_culling.find_result(material) : nullptr;
+		auto result_it = pipeline_state ? cull_results.find(material) : cull_results.end();
+		auto result = (result_it != cull_results.end()) ? &result_it->second : nullptr;
 		if (!pipeline_state || !result)
 		{
 			fallback_indices.emplace_back(draw_index);
@@ -353,9 +354,9 @@ void scene_renderer_commons::model_render_indirect(graphics_context& context,
 
 		//	メッシュレットバインド
 		bind_meshlet_attribute_srvs(context);
-		context.device_context->VSSetShaderResources(118, 1, &result->visible_meshlet_srv);
+		context.device_context->VSSetShaderResources(118, 1, result->visible_meshlet_srv.GetAddressOf());
 
-		context.device_context->DrawInstancedIndirect(result->indirect_args_buffer, 0);
+		context.device_context->DrawInstancedIndirect(result->indirect_args_buffer.Get(), 0);
 
 		pipeline_state->end(context);
 	}
@@ -499,17 +500,17 @@ void scene_renderer_commons::model_render_shadow_batched(graphics_context& conte
 
 			bind_meshlet_attribute_srvs(context);
 
-			ID3D11Buffer* batch_buffer = nullptr;
-			ID3D11ShaderResourceView* batch_srv = nullptr;
-			pool->get_meshlet_instance_batch(static_cast<UINT>(batch.instance_records.size()), &batch_buffer, &batch_srv);
+			Microsoft::WRL::ComPtr<ID3D11Buffer> batch_buffer;
+			Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> batch_srv;
+			pool->get_meshlet_instance_batch(static_cast<UINT>(batch.instance_records.size()), batch_buffer, batch_srv);
 
 			D3D11_BOX box{};
 			box.right = static_cast<UINT>(sizeof(common_pipeline_states::meshlet_instance_record) * batch.instance_records.size());
 			box.bottom = 1;
 			box.back = 1;
-			context.device_context->UpdateSubresource(batch_buffer, 0, &box, batch.instance_records.data(), 0, 0);
+			context.device_context->UpdateSubresource(batch_buffer.Get(), 0, &box, batch.instance_records.data(), 0, 0);
 
-			context.device_context->VSSetShaderResources(118, 1, &batch_srv);
+			context.device_context->VSSetShaderResources(118, 1, batch_srv.GetAddressOf());
 			context.device_context->DrawInstanced(meshlet_culling_system::max_meshlet_vertices_per_draw, static_cast<UINT>(batch.instance_records.size()), 0, 0);
 
 			batch.pipeline_state->end(context);
@@ -609,17 +610,17 @@ void scene_renderer_commons::model_render_shadow_batched(graphics_context& conte
 
 			bind_meshlet_attribute_srvs(context);
 
-			ID3D11Buffer* batch_buffer = nullptr;
-			ID3D11ShaderResourceView* batch_srv = nullptr;
-			pool->get_meshlet_instance_batch(static_cast<UINT>(batch.instance_records.size()), &batch_buffer, &batch_srv);
+			Microsoft::WRL::ComPtr<ID3D11Buffer> batch_buffer;
+			Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> batch_srv;
+			pool->get_meshlet_instance_batch(static_cast<UINT>(batch.instance_records.size()), batch_buffer, batch_srv);
 
 			D3D11_BOX box{};
 			box.right = static_cast<UINT>(sizeof(common_pipeline_states::meshlet_instance_record) * batch.instance_records.size());
 			box.bottom = 1;
 			box.back = 1;
-			context.device_context->UpdateSubresource(batch_buffer, 0, &box, batch.instance_records.data(), 0, 0);
+			context.device_context->UpdateSubresource(batch_buffer.Get(), 0, &box, batch.instance_records.data(), 0, 0);
 
-			context.device_context->VSSetShaderResources(118, 1, &batch_srv);
+			context.device_context->VSSetShaderResources(118, 1, batch_srv.GetAddressOf());
 			context.device_context->DrawInstanced(meshlet_culling_system::max_meshlet_vertices_per_draw, static_cast<UINT>(batch.instance_records.size()), 0, 0);
 
 			batch.pipeline_state->end(context);
