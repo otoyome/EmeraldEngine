@@ -5,6 +5,7 @@
 namespace math
 {
 	//	2次元ベクトル演算クラス
+	//	@tool 【格納】x, y（SIMD 使用時は z = w = 0 を加えた 4 要素）。規約に関係なく同じで、内部の計算も 1 通り
 	//	@tool SIMD 演算を基本とするため vector3 / vector4 と同じくレジスタ幅で保持し、z, w は常に 0 を保つ
 	//	@tool サイズ：float 版 16 バイト、double 版 32 バイト（MATH_DISABLE_SIMD 時は 8 / 16 バイト）
 	template<typename T>
@@ -33,7 +34,10 @@ namespace math
 		explicit vector2(const T values[element_count]) { set(values[0], values[1]); }
 		explicit vector2(const vector3<T>& v);
 		explicit vector2(const vector4<T>& v);
-		vector2(const DirectX::XMFLOAT2& v) { set(static_cast<T>(v.x), static_cast<T>(v.y)); }
+		vector2(const basic_element2<T>& v) { set(v.x, v.y); }
+		//	@tool 要素の型が違う保存用の型からの変換
+		template<typename U, std::enable_if_t<!std::is_same_v<T, U>, int> = 0>
+		explicit vector2(const basic_element2<U>& v) { set(static_cast<T>(v.x), static_cast<T>(v.y)); }
 		//	@tool float <> double の変換（精度が変わるため明示的に行う）
 		template<typename U, std::enable_if_t<!std::is_same_v<T, U>, int> = 0>
 		explicit vector2(const vector2<U>& v) { set(static_cast<T>(v.x), static_cast<T>(v.y)); }
@@ -113,7 +117,7 @@ namespace math
 		}
 
 		//	正規化済みベクトルを取得
-		vector2 create_normalize() const { vector2 ret = *this; ret.normalize(); return ret; }
+		vector2 normalized() const { vector2 ret = *this; ret.normalize(); return ret; }
 
 	public:
 		//	足し算
@@ -207,36 +211,15 @@ namespace math
 		T cross(const vector2& v) const { return cross(*this, v); }
 
 		//	行列と演算したベクトルを取得
-		vector4<T> create_transform(const matrix<T>& m) const;
+		vector4<T> transformed(const matrix<T>& m) const;
 		//	指定のベクトルを指定の行列空間に変換し、結果を w = 1 に投影する
 		void transform_coord(const matrix<T>& m);
 		//	指定のベクトルを指定の行列空間に変換し、結果を w = 1 に投影したベクトルを取得
-		vector2 create_transform_coord(const matrix<T>& m) const;
+		vector2 transformed_coord(const matrix<T>& m) const;
 
-		//	@tool DirectXMath との相互変換（double 版は float に丸められる）
-		DirectX::XMFLOAT2 to_xmfloat2() const { return DirectX::XMFLOAT2(static_cast<float>(x), static_cast<float>(y)); }
-		DirectX::XMVECTOR to_xmvector() const
-		{
-			if constexpr (use_simd_v<T>)
-			{
-				return ops::to_float4(reg);
-			}
-			else
-			{
-				return DirectX::XMVectorSet(static_cast<float>(x), static_cast<float>(y), 0.0f, 0.0f);
-			}
-		}
-		static vector2 load(DirectX::FXMVECTOR v)
-		{
-			if constexpr (use_simd_v<T>)
-			{
-				return vector2(ops::from_float4(v));
-			}
-			else
-			{
-				return vector2(static_cast<T>(DirectX::XMVectorGetX(v)), static_cast<T>(DirectX::XMVectorGetY(v)));
-			}
-		}
+		//	@tool 保存用の型への変換（double -> float は丸められる）
+		float2 to_float2() const { return float2(static_cast<float>(x), static_cast<float>(y)); }
+		double2 to_double2() const { return double2(static_cast<double>(x), static_cast<double>(y)); }
 
 	public:
 		T& operator[](std::int32_t index) { return elements[index]; }

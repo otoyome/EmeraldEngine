@@ -303,6 +303,12 @@
     <ClInclude Include="Headers\Graphics\cubic_sdf_buffer_pool.h">
       <Filter>Headers\Graphics</Filter>
     </ClInclude>
+    <ClInclude Include="Headers\Math\element.h">
+      <Filter>Headers\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Math\math_config.h">
+      <Filter>Headers\Math</Filter>
+    </ClInclude>
     <ClInclude Include="Headers\Math\angle.h">
       <Filter>Headers\Math</Filter>
     </ClInclude>

@@ -86,13 +86,43 @@ namespace math::angle
 	}
 
 	//	sincosの近似値取得用関数
-	//	@tool float 版は DirectX::XMScalarSinCos（Framework と同じ近似式）、double 版は標準の sin / cos を使う
+	//	@tool float 版は Framework の近似式、double 版は標準の sin / cos を使う
 	template<typename T>
 	void sin_cos(T angle, T& out_sin, T& out_cos)
 	{
 		if constexpr (std::is_same_v<T, float>)
 		{
-			DirectX::XMScalarSinCos(&out_sin, &out_cos, angle);
+			//	https://homepage.math.uiowa.edu/~whan/3800.d/S4-6.pdf
+
+			//	ラジアン角を -PI～PIの間に
+			float quotient = angle / constants<float>::pi2;
+			quotient = static_cast<float>(static_cast<std::int32_t>(angle >= 0.0f ? quotient + 0.5f : quotient - 0.5f));
+			float y = angle - constants<float>::pi2 * quotient;
+
+			//	y のsin を -PI/2～PI/2の間に
+			float sign;
+			if (y > constants<float>::pi_half)
+			{
+				y = constants<float>::pi - y;
+				sign = -1.0f;
+			}
+			else if (y < -constants<float>::pi_half)
+			{
+				y = -constants<float>::pi - y;
+				sign = -1.0f;
+			}
+			else
+			{
+				sign = +1.0f;
+			}
+
+			float square_y = y * y;
+
+			//	11度
+			out_sin = (((((-2.3889859e-08f * square_y + 2.7525562e-06f) * square_y - 0.00019840874f) * square_y + 0.0083333310f) * square_y - 0.16666667f) * square_y + 1.0f) * y;
+
+			//	10度
+			out_cos = sign * (((((-2.6051615e-07f * square_y + 2.4760495e-05f) * square_y - 0.0013888378f) * square_y + 0.041666638f) * square_y - 0.5f) * square_y + 1.0f);
 		}
 		else
 		{

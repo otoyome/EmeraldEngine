@@ -49,18 +49,12 @@ namespace math
 			T sin_theta = std::sin(angle);
 			T ps = std::sin(angle * (static_cast<T>(1) - value));
 			T pe = std::sin(angle * value);
-			return ((l * ps + r * pe) / sin_theta).create_normalize();
+			return ((l * ps + r * pe) / sin_theta).normalized();
 		}
 
 		template<typename T>
 		quaternion<T> slerp_quaternion(const quaternion<T>& l, const quaternion<T>& r, T value)
 		{
-			if constexpr (use_simd_v<T> && std::is_same_v<T, float>)
-			{
-				//	@tool float 版は Framework の SIMD 版と同じく DirectXMath の実装を使う
-				return quaternion<T>(DirectX::XMQuaternionSlerp(l.reg, r.reg, value));
-			}
-			else
 			{
 				T dot = l.dot(r);
 				bool flag = false;
@@ -155,7 +149,7 @@ namespace math
 	quaternion<T> nlerp(const quaternion<T>& l, const quaternion<T>& r, detail::identity_t<T> value)
 	{
 		T sign = l.dot(r) < static_cast<T>(0) ? static_cast<T>(-1) : static_cast<T>(1);
-		return detail::lerp_quaternion(l, r * sign, value).create_normalize();
+		return detail::lerp_quaternion(l, r * sign, value).normalized();
 	}
 
 	//	エルミート補間

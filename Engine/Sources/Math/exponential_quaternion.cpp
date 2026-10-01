@@ -38,7 +38,7 @@ namespace math
 
 		T angle = std::sqrt(length);
 		T theta = std::sin(angle) / angle;
-		return quaternion<T>(axis.x * theta, axis.y * theta, axis.z * theta, std::cos(angle)).create_normalize();
+		return quaternion<T>(axis.x * theta, axis.y * theta, axis.z * theta, std::cos(angle)).normalized();
 	}
 
 	template<typename T>

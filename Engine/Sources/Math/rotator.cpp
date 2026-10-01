@@ -20,19 +20,19 @@ namespace math
 	template<typename T>
 	vector3<T> basic_rotator<T>::front() const
 	{
-		return to_quaternion().front().create_normalize();
+		return to_quaternion().front().normalized();
 	}
 
 	template<typename T>
 	vector3<T> basic_rotator<T>::up() const
 	{
-		return to_quaternion().up().create_normalize();
+		return to_quaternion().up().normalized();
 	}
 
 	template<typename T>
 	vector3<T> basic_rotator<T>::right() const
 	{
-		return to_quaternion().right().create_normalize();
+		return to_quaternion().right().normalized();
 	}
 
 	template<typename T>

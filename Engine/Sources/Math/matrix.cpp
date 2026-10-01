@@ -59,12 +59,13 @@ namespace math
 	}
 
 	template<typename T>
-	matrix<T>::matrix(const DirectX::XMFLOAT4X4& source)
+	matrix<T>::matrix(const basic_element_matrix<T, 4, 4>& source)
 	{
-		set(static_cast<T>(source._11), static_cast<T>(source._12), static_cast<T>(source._13), static_cast<T>(source._14),
-			static_cast<T>(source._21), static_cast<T>(source._22), static_cast<T>(source._23), static_cast<T>(source._24),
-			static_cast<T>(source._31), static_cast<T>(source._32), static_cast<T>(source._33), static_cast<T>(source._34),
-			static_cast<T>(source._41), static_cast<T>(source._42), static_cast<T>(source._43), static_cast<T>(source._44));
+		const auto& s = source.m;
+		set_storage(s[0][0], s[0][1], s[0][2], s[0][3],
+			s[1][0], s[1][1], s[1][2], s[1][3],
+			s[2][0], s[2][1], s[2][2], s[2][3],
+			s[3][0], s[3][1], s[3][2], s[3][3]);
 	}
 
 	template<typename T>
@@ -77,10 +78,7 @@ namespace math
 	matrix<T>::matrix(const quaternion<T>& rotation, const vector3<T>& position)
 	{
 		*this = rotation_quaternion(rotation);
-		_41 = position.x;
-		_42 = position.y;
-		_43 = position.z;
-		_44 = static_cast<T>(1);
+		set_translation(position);
 	}
 
 	template<typename T>
@@ -104,8 +102,8 @@ namespace math
 		}
 		else
 		{
-			//	@tool Framework のスカラー版は 2～4 行目の w を _14 に書き込んでいたため修正している
-			set(v1.x, v1.y, v1.z, v1.w,
+			//	@tool Framework のスカラー版は 2～4 行目の w を s14 に書き込んでいたため修正している
+			set_storage(v1.x, v1.y, v1.z, v1.w,
 				v2.x, v2.y, v2.z, v2.w,
 				v3.x, v3.y, v3.z, v3.w,
 				v4.x, v4.y, v4.z, v4.w);
@@ -115,16 +113,17 @@ namespace math
 	template<typename T>
 	bool matrix<T>::decompose(vector3<T>& out_scale, quaternion<T>& out_rotation, vector3<T>& out_position) const
 	{
-		out_position.set(_41, _42, _43);
+		const matrix& row_form = *this;
+		out_position.set(row_form.s41, row_form.s42, row_form.s43);
 
-		out_scale.set(std::sqrt(_11 * _11 + _12 * _12 + _13 * _13),
-					  std::sqrt(_21 * _21 + _22 * _22 + _23 * _23),
-					  std::sqrt(_31 * _31 + _32 * _32 + _33 * _33));
+		out_scale.set(std::sqrt(row_form.s11 * row_form.s11 + row_form.s12 * row_form.s12 + row_form.s13 * row_form.s13),
+					  std::sqrt(row_form.s21 * row_form.s21 + row_form.s22 * row_form.s22 + row_form.s23 * row_form.s23),
+					  std::sqrt(row_form.s31 * row_form.s31 + row_form.s32 * row_form.s32 + row_form.s33 * row_form.s33));
 
 		std::uint32_t a, b, c;
 		rank_decompose(a, b, c, out_scale.x, out_scale.y, out_scale.z);
 
-		vector4<T> basis[3] = { to_vector4(0), to_vector4(1), to_vector4(2) };
+		vector4<T> basis[3] = { row_form.to_vector4(0), row_form.to_vector4(1), row_form.to_vector4(2) };
 		const vector4<T> identity_basis[3] =
 		{
 			vector4<T>(1, 0, 0, 0),
@@ -157,7 +156,8 @@ namespace math
 		}
 		basis[c].normalize();
 
-		matrix work(basis[0].x, basis[0].y, basis[0].z, 0,
+		matrix work;
+		work.set_storage(basis[0].x, basis[0].y, basis[0].z, 0,
 					basis[1].x, basis[1].y, basis[1].z, 0,
 					basis[2].x, basis[2].y, basis[2].z, 0,
 					0, 0, 0, 1);
@@ -179,7 +179,7 @@ namespace math
 			return false;
 		}
 
-		work.set(basis[0].x, basis[0].y, basis[0].z, 0,
+		work.set_storage(basis[0].x, basis[0].y, basis[0].z, 0,
 				 basis[1].x, basis[1].y, basis[1].z, 0,
 				 basis[2].x, basis[2].y, basis[2].z, 0,
 				 0, 0, 0, 1);
@@ -189,33 +189,33 @@ namespace math
 	}
 
 	template<typename T>
-	void matrix<T>::mirroring(mirroring_order order)
+	void matrix<T>::mirror(mirroring_order order)
 	{
 		//	http://momose-d.cocolog-nifty.com/blog/2014/08/post-ac70.html
 		switch (order)
 		{
 			case mirroring_order::x:
 			{
-				_12 = -_12;
-				_13 = -_13;
-				_21 = -_21;
-				_31 = -_31;
+				s12 = -s12;
+				s13 = -s13;
+				s21 = -s21;
+				s31 = -s31;
 				break;
 			}
 			case mirroring_order::y:
 			{
-				_12 = -_12;
-				_21 = -_21;
-				_23 = -_23;
-				_32 = -_32;
+				s12 = -s12;
+				s21 = -s21;
+				s23 = -s23;
+				s32 = -s32;
 				break;
 			}
 			case mirroring_order::z:
 			{
-				_13 = -_13;
-				_23 = -_23;
-				_31 = -_31;
-				_32 = -_32;
+				s13 = -s13;
+				s23 = -s23;
+				s31 = -s31;
+				s32 = -s32;
 				break;
 			}
 		}
@@ -230,7 +230,7 @@ namespace math
 		}
 		else
 		{
-			return vector4<T>(m[index][0], m[index][1], m[index][2], m[index][3]);
+			return vector4<T>(storage[index][0], storage[index][1], storage[index][2], storage[index][3]);
 		}
 	}
 
@@ -243,104 +243,93 @@ namespace math
 		}
 		else
 		{
-			return vector3<T>(m[index][0], m[index][1], m[index][2]);
+			return vector3<T>(storage[index][0], storage[index][1], storage[index][2]);
 		}
 	}
 
 	template<typename T>
 	vector3<T> matrix<T>::get_translation() const
 	{
-		return vector3<T>(_41, _42, _43);
+		return vector3<T>(s41, s42, s43);
+
 	}
 
 	template<typename T>
 	void matrix<T>::set_translation(const vector3<T>& position)
 	{
-		_41 = position.x;
-		_42 = position.y;
-		_43 = position.z;
+		s41 = position.x;
+		s42 = position.y;
+		s43 = position.z;
 	}
 
 	template<typename T>
-	DirectX::XMFLOAT4X4 matrix<T>::to_xmfloat4x4() const
+	float4x4 matrix<T>::to_float4x4() const
 	{
-		DirectX::XMFLOAT4X4 ret;
-		for (std::int32_t row = 0; row < 4; ++row)
+		float4x4 ret;
+		if constexpr (use_simd_v<T>)
 		{
-			for (std::int32_t column = 0; column < 4; ++column)
+			for (std::int32_t row = 0; row < 4; ++row)
 			{
-				ret.m[row][column] = static_cast<float>(m[row][column]);
+				_mm_storeu_ps(ret.m[row], ops::to_float4(reg[row]));
+			}
+		}
+		else
+		{
+			for (std::uint32_t i = 0; i < element_count; ++i)
+			{
+				ret.elements[i] = static_cast<float>(elements[i]);
 			}
 		}
 		return ret;
 	}
 
 	template<typename T>
-	DirectX::XMMATRIX matrix<T>::to_xmmatrix() const
+	double4x4 matrix<T>::to_double4x4() const
 	{
-		if constexpr (use_simd_v<T>)
+		double4x4 ret;
+		for (std::uint32_t i = 0; i < element_count; ++i)
 		{
-			return DirectX::XMMATRIX(ops::to_float4(reg[0]), ops::to_float4(reg[1]), ops::to_float4(reg[2]), ops::to_float4(reg[3]));
+			ret.elements[i] = static_cast<double>(elements[i]);
 		}
-		else
-		{
-			DirectX::XMFLOAT4X4 f = to_xmfloat4x4();
-			return DirectX::XMLoadFloat4x4(&f);
-		}
+		return ret;
 	}
 
 	template<typename T>
-	matrix<T> matrix<T>::load(DirectX::FXMMATRIX source)
+	float4x3 matrix<T>::to_float4x3() const
 	{
-		if constexpr (use_simd_v<T>)
+		float4x3 ret;
+		for (std::int32_t row = 0; row < 4; ++row)
 		{
-			return matrix(ops::from_float4(source.r[0]), ops::from_float4(source.r[1]), ops::from_float4(source.r[2]), ops::from_float4(source.r[3]));
+			for (std::int32_t column = 0; column < 3; ++column)
+			{
+				ret.m[row][column] = static_cast<float>(storage[row][column]);
+			}
 		}
-		else
-		{
-			DirectX::XMFLOAT4X4 f;
-			DirectX::XMStoreFloat4x4(&f, source);
-			return matrix(f);
-		}
+		return ret;
 	}
 
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////
 	template<typename T>
 	T matrix<T>::determinant(const matrix& mat)
 	{
-		if constexpr (use_simd_v<T> && std::is_same_v<T, float>)
-		{
-			return DirectX::XMVectorGetX(DirectX::XMMatrixDeterminant(mat.to_xmmatrix()));
-		}
-		else if constexpr (use_simd_v<T>)
+		if constexpr (use_simd_v<T>)
 		{
 			return simd::determinant<ops>(mat.reg);
 		}
 		else
 		{
-			vector4<T> v1(mat.m[0][0], mat.m[1][0], mat.m[2][0], mat.m[3][0]);
-			vector4<T> v2(mat.m[0][1], mat.m[1][1], mat.m[2][1], mat.m[3][1]);
-			vector4<T> v3(mat.m[0][2], mat.m[1][2], mat.m[2][2], mat.m[3][2]);
+			vector4<T> v1(mat.storage[0][0], mat.storage[1][0], mat.storage[2][0], mat.storage[3][0]);
+			vector4<T> v2(mat.storage[0][1], mat.storage[1][1], mat.storage[2][1], mat.storage[3][1]);
+			vector4<T> v3(mat.storage[0][2], mat.storage[1][2], mat.storage[2][2], mat.storage[3][2]);
 			vector4<T> minor = vector4<T>::cross(v1, v2, v3);
-			return -(mat.m[0][3] * minor.x + mat.m[1][3] * minor.y + mat.m[2][3] * minor.z + mat.m[3][3] * minor.w);
+			return -(mat.storage[0][3] * minor.x + mat.storage[1][3] * minor.y + mat.storage[2][3] * minor.z + mat.storage[3][3] * minor.w);
 		}
 	}
 
 	template<typename T>
 	matrix<T> matrix<T>::inverse(const matrix& mat)
 	{
-		if constexpr (use_simd_v<T> && std::is_same_v<T, float>)
-		{
-			//	@tool float 版は Framework の SIMD 版と同じく DirectXMath の実装を使う
-			DirectX::XMVECTOR det;
-			DirectX::XMMATRIX ret = DirectX::XMMatrixInverse(&det, mat.to_xmmatrix());
-			if (DirectX::XMVectorGetX(det) == 0.0f)
-			{
-				return mat;
-			}
-			return load(ret);
-		}
-		else if constexpr (use_simd_v<T>)
+		if constexpr (use_simd_v<T>)
 		{
 			matrix ret;
 			if (!simd::inverse<ops>(mat.reg, ret.reg))
@@ -368,14 +357,14 @@ namespace math
 					if (j != i)
 					{
 						std::int32_t a = j > i ? j - 1 : j;
-						rows[a].set(mat.m[j][0], mat.m[j][1], mat.m[j][2], mat.m[j][3]);
+						rows[a].set(mat.storage[j][0], mat.storage[j][1], mat.storage[j][2], mat.storage[j][3]);
 					}
 				}
 				vector4<T> work = vector4<T>::cross(rows[0], rows[1], rows[2]);
-				ret.m[0][i] = sign[i] * work.x / det;
-				ret.m[1][i] = sign[i] * work.y / det;
-				ret.m[2][i] = sign[i] * work.z / det;
-				ret.m[3][i] = sign[i] * work.w / det;
+				ret.storage[0][i] = sign[i] * work.x / det;
+				ret.storage[1][i] = sign[i] * work.y / det;
+				ret.storage[2][i] = sign[i] * work.z / det;
+				ret.storage[3][i] = sign[i] * work.w / det;
 			}
 			return ret;
 		}
@@ -385,9 +374,9 @@ namespace math
 	matrix<T> matrix<T>::inverse_for_scaling(const matrix& mat)
 	{
 		matrix ret;
-		ret._11 = static_cast<T>(1) / mat._11;
-		ret._22 = static_cast<T>(1) / mat._22;
-		ret._33 = static_cast<T>(1) / mat._33;
+		ret.s11 = static_cast<T>(1) / mat.s11;
+		ret.s22 = static_cast<T>(1) / mat.s22;
+		ret.s33 = static_cast<T>(1) / mat.s33;
 		return ret;
 	}
 
@@ -401,25 +390,24 @@ namespace math
 	matrix<T> matrix<T>::inverse_for_translation(const matrix& mat)
 	{
 		matrix ret;
-		ret._41 = -mat._41;
-		ret._42 = -mat._42;
-		ret._43 = -mat._43;
+		ret.set_translation(-mat.get_translation());
 		return ret;
 	}
 
 	template<typename T>
 	matrix<T> matrix<T>::inverse_for_rt(const matrix& mat)
 	{
-		matrix rotation = mat;
-		rotation._41 = rotation._42 = rotation._43 = static_cast<T>(0);
-		rotation._44 = static_cast<T>(1);
+		const matrix& source = mat;
+		matrix rotation = source;
+		rotation.s41 = rotation.s42 = rotation.s43 = static_cast<T>(0);
+		rotation.s44 = static_cast<T>(1);
 		rotation = inverse_for_rotation(rotation);
 
 		matrix ret = rotation;
-		ret._41 = -mat._41 * rotation._11 - mat._42 * rotation._21 - mat._43 * rotation._31;
-		ret._42 = -mat._41 * rotation._12 - mat._42 * rotation._22 - mat._43 * rotation._32;
-		ret._43 = -mat._41 * rotation._13 - mat._42 * rotation._23 - mat._43 * rotation._33;
-		ret._44 = static_cast<T>(1);
+		ret.s41 = -source.s41 * rotation.s11 - source.s42 * rotation.s21 - source.s43 * rotation.s31;
+		ret.s42 = -source.s41 * rotation.s12 - source.s42 * rotation.s22 - source.s43 * rotation.s32;
+		ret.s43 = -source.s41 * rotation.s13 - source.s42 * rotation.s23 - source.s43 * rotation.s33;
+		ret.s44 = static_cast<T>(1);
 		return ret;
 	}
 
@@ -437,7 +425,7 @@ namespace math
 			{
 				for (std::int32_t column = 0; column < 4; ++column)
 				{
-					ret.m[row][column] = mat.m[column][row];
+					ret.storage[row][column] = mat.storage[column][row];
 				}
 			}
 		}
@@ -454,9 +442,9 @@ namespace math
 	matrix<T> matrix<T>::scaling(T scale_x, T scale_y, T scale_z)
 	{
 		matrix ret;
-		ret._11 = scale_x;
-		ret._22 = scale_y;
-		ret._33 = scale_z;
+		ret.s11 = scale_x;
+		ret.s22 = scale_y;
+		ret.s33 = scale_z;
 		return ret;
 	}
 
@@ -467,10 +455,10 @@ namespace math
 		math::angle::sin_cos(pitch, sx, cx);
 
 		matrix ret;
-		ret._22 =  cx;
-		ret._23 =  sx;
-		ret._32 = -sx;
-		ret._33 =  cx;
+		ret.s22 =  cx;
+		ret.s23 =  sx;
+		ret.s32 = -sx;
+		ret.s33 =  cx;
 		return ret;
 	}
 
@@ -481,10 +469,10 @@ namespace math
 		math::angle::sin_cos(yaw, sy, cy);
 
 		matrix ret;
-		ret._11 =  cy;
-		ret._13 = -sy;
-		ret._31 =  sy;
-		ret._33 =  cy;
+		ret.s11 =  cy;
+		ret.s13 = -sy;
+		ret.s31 =  sy;
+		ret.s33 =  cy;
 		return ret;
 	}
 
@@ -495,10 +483,10 @@ namespace math
 		math::angle::sin_cos(roll, sz, cz);
 
 		matrix ret;
-		ret._11 =  cz;
-		ret._12 =  sz;
-		ret._21 = -sz;
-		ret._22 =  cz;
+		ret.s11 =  cz;
+		ret.s12 =  sz;
+		ret.s21 = -sz;
+		ret.s22 =  cz;
 		return ret;
 	}
 
@@ -521,92 +509,92 @@ namespace math
 		{
 			case rotation_order::xyz:
 			{
-				ret._11 = cy * cz;
-				ret._12 = cy * sz;
-				ret._13 = -sy;
+				ret.s11 = cy * cz;
+				ret.s12 = cy * sz;
+				ret.s13 = -sy;
 
-				ret._21 = sx * sy * cz + cx * -sz;
-				ret._22 = sx * sy * sz + cx * cz;
-				ret._23 = sx * cy;
+				ret.s21 = sx * sy * cz + cx * -sz;
+				ret.s22 = sx * sy * sz + cx * cz;
+				ret.s23 = sx * cy;
 
-				ret._31 = cx * sy * cz + -sx * -sz;
-				ret._32 = cx * sy * sz + -sx * cz;
-				ret._33 = cx * cy;
+				ret.s31 = cx * sy * cz + -sx * -sz;
+				ret.s32 = cx * sy * sz + -sx * cz;
+				ret.s33 = cx * cy;
 				break;
 			}
 			case rotation_order::xzy:
 			{
-				ret._11 = cz * cy;
-				ret._12 = sz;
-				ret._13 = cz * -sy;
+				ret.s11 = cz * cy;
+				ret.s12 = sz;
+				ret.s13 = cz * -sy;
 
-				ret._21 = cx * -sz * cy + sx * sy;
-				ret._22 = cx * cz;
-				ret._23 = cx * sz * sy + sx * cy;
+				ret.s21 = cx * -sz * cy + sx * sy;
+				ret.s22 = cx * cz;
+				ret.s23 = cx * sz * sy + sx * cy;
 
-				ret._31 = sx * sz * cy + cx * sy;
-				ret._32 = -sx * cz;
-				ret._33 = -sx * sz * sy + cx * cy;
+				ret.s31 = sx * sz * cy + cx * sy;
+				ret.s32 = -sx * cz;
+				ret.s33 = -sx * sz * sy + cx * cy;
 				break;
 			}
 			case rotation_order::yxz:
 			{
-				ret._11 = cy * cz + -sy * -sx * -sz;
-				ret._12 = cy * sz + -sy * -sx * cz;
-				ret._13 = -sy * cx;
+				ret.s11 = cy * cz + -sy * -sx * -sz;
+				ret.s12 = cy * sz + -sy * -sx * cz;
+				ret.s13 = -sy * cx;
 
-				ret._21 = cx * -sz;
-				ret._22 = cx * cz;
-				ret._23 = sx;
+				ret.s21 = cx * -sz;
+				ret.s22 = cx * cz;
+				ret.s23 = sx;
 
-				ret._31 = sy * cz + cy * -sx * -sz;
-				ret._32 = sy * sz + cy * -sx * cz;
-				ret._33 = cy * cx;
+				ret.s31 = sy * cz + cy * -sx * -sz;
+				ret.s32 = sy * sz + cy * -sx * cz;
+				ret.s33 = cy * cx;
 				break;
 			}
 			case rotation_order::yzx:
 			{
-				ret._11 = cy * cz;
-				ret._12 = cy * sz * cx + sy * sx;
-				ret._13 = cy * sz * sx + -sy * cx;
+				ret.s11 = cy * cz;
+				ret.s12 = cy * sz * cx + sy * sx;
+				ret.s13 = cy * sz * sx + -sy * cx;
 
-				ret._21 = -sz;
-				ret._22 = cz * cx;
-				ret._23 = cz * sx;
+				ret.s21 = -sz;
+				ret.s22 = cz * cx;
+				ret.s23 = cz * sx;
 
-				ret._31 = sy * cz;
-				ret._32 = sy * sz * cx + cy * -sx;
-				ret._33 = sy * sz * sx + cy * cx;
+				ret.s31 = sy * cz;
+				ret.s32 = sy * sz * cx + cy * -sx;
+				ret.s33 = sy * sz * sx + cy * cx;
 				break;
 			}
 			case rotation_order::zxy:
 			{
-				ret._11 = cz * cy + sz * sx * sy;
-				ret._12 = sz * cx;
-				ret._13 = cz * -sy + sz * sx * cy;
+				ret.s11 = cz * cy + sz * sx * sy;
+				ret.s12 = sz * cx;
+				ret.s13 = cz * -sy + sz * sx * cy;
 
-				ret._21 = -sz * cy + cz * sx * sy;
-				ret._22 = cz * cx;
-				ret._23 = sz * sy + cz * sx * cy;
+				ret.s21 = -sz * cy + cz * sx * sy;
+				ret.s22 = cz * cx;
+				ret.s23 = sz * sy + cz * sx * cy;
 
-				ret._31 = cx * sy;
-				ret._32 = -sx;
-				ret._33 = cx * cy;
+				ret.s31 = cx * sy;
+				ret.s32 = -sx;
+				ret.s33 = cx * cy;
 				break;
 			}
 			case rotation_order::zyx:
 			{
-				ret._11 = cz * cy;
-				ret._12 = sz * cx + cz * sy * sx;
-				ret._13 = sz * sx + cz * -sy * cx;
+				ret.s11 = cz * cy;
+				ret.s12 = sz * cx + cz * sy * sx;
+				ret.s13 = sz * sx + cz * -sy * cx;
 
-				ret._21 = -sz * cy;
-				ret._22 = cz * cx + sz * sy * -sx;
-				ret._23 = cz * sx + sz * sy * cx;
+				ret.s21 = -sz * cy;
+				ret.s22 = cz * cx + sz * sy * -sx;
+				ret.s23 = cz * sx + sz * sy * cx;
 
-				ret._31 = sy;
-				ret._32 = cy * -sx;
-				ret._33 = cy * cx;
+				ret.s31 = sy;
+				ret.s32 = cy * -sx;
+				ret.s33 = cy * cx;
 				break;
 			}
 			default:
@@ -625,7 +613,7 @@ namespace math
 		//	@tool また ±90 度付近で asin の引数が閾値をわずかに下回ると残り2軸が誤差だけで決まってしまい、
 		//	@tool float のクォータニオン経由では大きく崩れていたため、cos の閾値でジンバルロックを判定している
 		const T threshold = constants<T>::gimbal_lock_threshold;
-		const auto& r = rotation.m;
+		const auto& r = rotation.storage;
 		switch (order)
 		{
 			case rotation_order::xyz:
@@ -750,47 +738,39 @@ namespace math
 	template<typename T>
 	matrix<T> matrix<T>::rotation_quaternion(const quaternion<T>& rotation)
 	{
-		if constexpr (use_simd_v<T> && std::is_same_v<T, float>)
-		{
-			//	@tool float 版は Framework の SIMD 版と同じ計算を DirectXMath で行う（double 版はスカラー計算）
-			return load(DirectX::XMMatrixRotationQuaternion(rotation.reg));
-		}
-		else
-		{
-			const T xx = rotation.x * rotation.x;
-			const T xy = rotation.x * rotation.y;
-			const T xz = rotation.x * rotation.z;
-			const T yy = rotation.y * rotation.y;
-			const T yz = rotation.y * rotation.z;
-			const T zz = rotation.z * rotation.z;
-			const T wx = rotation.w * rotation.x;
-			const T wy = rotation.w * rotation.y;
-			const T wz = rotation.w * rotation.z;
-			constexpr T one = static_cast<T>(1);
-			constexpr T two = static_cast<T>(2);
+		const T xx = rotation.x * rotation.x;
+		const T xy = rotation.x * rotation.y;
+		const T xz = rotation.x * rotation.z;
+		const T yy = rotation.y * rotation.y;
+		const T yz = rotation.y * rotation.z;
+		const T zz = rotation.z * rotation.z;
+		const T wx = rotation.w * rotation.x;
+		const T wy = rotation.w * rotation.y;
+		const T wz = rotation.w * rotation.z;
+		constexpr T one = static_cast<T>(1);
+		constexpr T two = static_cast<T>(2);
 
-			matrix ret;
-			ret._11 = one - two * yy - two * zz;
-			ret._12 =       two * xy + two * wz;
-			ret._13 =       two * xz - two * wy;
+		matrix ret;
+		ret.s11 = one - two * yy - two * zz;
+		ret.s12 =       two * xy + two * wz;
+		ret.s13 =       two * xz - two * wy;
 
-			ret._21 =       two * xy - two * wz;
-			ret._22 = one - two * xx - two * zz;
-			ret._23 =       two * yz + two * wx;
+		ret.s21 =       two * xy - two * wz;
+		ret.s22 = one - two * xx - two * zz;
+		ret.s23 =       two * yz + two * wx;
 
-			ret._31 =       two * xz + two * wy;
-			ret._32 =       two * yz - two * wx;
-			ret._33 = one - two * xx - two * yy;
-			return ret;
-		}
+		ret.s31 =       two * xz + two * wy;
+		ret.s32 =       two * yz - two * wx;
+		ret.s33 = one - two * xx - two * yy;
+		return ret;
 	}
 
 	template<typename T>
 	matrix<T> matrix<T>::translation(T position_x, T position_y)
 	{
 		matrix ret;
-		ret._41 = position_x;
-		ret._42 = position_y;
+		ret.s41 = position_x;
+		ret.s42 = position_y;
 		return ret;
 	}
 
@@ -798,9 +778,9 @@ namespace math
 	matrix<T> matrix<T>::translation(T position_x, T position_y, T position_z)
 	{
 		matrix ret;
-		ret._41 = position_x;
-		ret._42 = position_y;
-		ret._43 = position_z;
+		ret.s41 = position_x;
+		ret.s42 = position_y;
+		ret.s43 = position_z;
 		return ret;
 	}
 
@@ -808,10 +788,10 @@ namespace math
 	matrix<T> matrix<T>::translation(T position_x, T position_y, T position_z, T position_w)
 	{
 		matrix ret;
-		ret._41 = position_x;
-		ret._42 = position_y;
-		ret._43 = position_z;
-		ret._44 = position_w;
+		ret.s41 = position_x;
+		ret.s42 = position_y;
+		ret.s43 = position_z;
+		ret.s44 = position_w;
 		return ret;
 	}
 
@@ -836,22 +816,24 @@ namespace math
 	template<typename T>
 	matrix<T> matrix<T>::transform(const vector3<T>& scale, const quaternion<T>& rotation, const vector3<T>& position)
 	{
-		matrix ret = scaling(scale) * rotation_quaternion(rotation);
-		ret._41 = position.x;
-		ret._42 = position.y;
-		ret._43 = position.z;
-		ret._44 = static_cast<T>(1);
+		//	@tool 拡縮の後に回転し、平行移動を加える
+		matrix ret = concatenate(scaling(scale), rotation_quaternion(rotation));
+		ret.s41 = position.x;
+		ret.s42 = position.y;
+		ret.s43 = position.z;
+		ret.s44 = static_cast<T>(1);
 		return ret;
 	}
 
 	template<typename T>
 	matrix<T> matrix<T>::transform(const vector3<T>& scale, const vector3<T>& euler, const vector3<T>& position)
 	{
-		matrix ret = scaling(scale) * rotation_xyz(euler);
-		ret._41 = position.x;
-		ret._42 = position.y;
-		ret._43 = position.z;
-		ret._44 = static_cast<T>(1);
+		//	@tool 拡縮の後に回転し、平行移動を加える
+		matrix ret = concatenate(scaling(scale), rotation_xyz(euler));
+		ret.s41 = position.x;
+		ret.s42 = position.y;
+		ret.s43 = position.z;
+		ret.s44 = static_cast<T>(1);
 		return ret;
 	}
 
@@ -863,28 +845,30 @@ namespace math
 		{
 			case coordinate_order::rh:
 			{
-				axis_z = (position - target).create_normalize();
+				axis_z = (position - target).normalized();
 				break;
 			}
 			case coordinate_order::lh:
 			default:
 			{
-				axis_z = (target - position).create_normalize();
+				axis_z = (target - position).normalized();
 				break;
 			}
 		}
-		vector3<T> axis_x = vector3<T>::cross(up_vector, axis_z).create_normalize();
-		vector3<T> axis_y = vector3<T>::cross(axis_z, axis_x).create_normalize();
+		vector3<T> axis_x = vector3<T>::cross(up_vector, axis_z).normalized();
+		vector3<T> axis_y = vector3<T>::cross(axis_z, axis_x).normalized();
 
-		return matrix(axis_x.x, axis_y.x, axis_z.x, 0,
+		matrix ret;
+		ret.set_storage(axis_x.x, axis_y.x, axis_z.x, 0,
 					  axis_x.y, axis_y.y, axis_z.y, 0,
 					  axis_x.z, axis_y.z, axis_z.z, 0,
 					  -vector3<T>::dot(axis_x, position), -vector3<T>::dot(axis_y, position), -vector3<T>::dot(axis_z, position), 1);
+		return ret;
 	}
 
 	namespace
 	{
-		//	@tool 透視投影の深度成分（_33 / _34 / _43）の設定
+		//	@tool 透視投影の深度成分（s33 / s34 / s43）の設定
 		//	@tool Framework の右手系は z_order を無視して既定値で分岐し、normal の式も誤っていたため修正している
 		//	@tool また右手系の無限遠は未対応（DebugAssert）だったため実装している
 		template<typename T>
@@ -898,29 +882,29 @@ namespace math
 					{
 						if (z_order == projection_z_order::normal)
 						{
-							ret._33 = static_cast<T>(-1);
-							ret._43 = -near_z;
+							ret.s33 = static_cast<T>(-1);
+							ret.s43 = -near_z;
 						}
 						else
 						{
-							ret._33 = static_cast<T>(0);
-							ret._43 = near_z;
+							ret.s33 = static_cast<T>(0);
+							ret.s43 = near_z;
 						}
 					}
 					else
 					{
 						if (z_order == projection_z_order::normal)
 						{
-							ret._33 = far_z / (near_z - far_z);
-							ret._43 = near_z * ret._33;
+							ret.s33 = far_z / (near_z - far_z);
+							ret.s43 = near_z * ret.s33;
 						}
 						else
 						{
-							ret._33 = near_z / (far_z - near_z);
-							ret._43 = far_z * ret._33;
+							ret.s33 = near_z / (far_z - near_z);
+							ret.s43 = far_z * ret.s33;
 						}
 					}
-					ret._34 = static_cast<T>(-1);
+					ret.s34 = static_cast<T>(-1);
 					break;
 				}
 				case coordinate_order::lh:
@@ -930,33 +914,33 @@ namespace math
 					{
 						if (z_order == projection_z_order::normal)
 						{
-							ret._33 = static_cast<T>(1);
-							ret._43 = -near_z;
+							ret.s33 = static_cast<T>(1);
+							ret.s43 = -near_z;
 						}
 						else
 						{
-							ret._33 = static_cast<T>(0);
-							ret._43 = near_z;
+							ret.s33 = static_cast<T>(0);
+							ret.s43 = near_z;
 						}
 					}
 					else
 					{
 						if (z_order == projection_z_order::normal)
 						{
-							ret._33 = far_z / (far_z - near_z);
-							ret._43 = -ret._33 * near_z;
+							ret.s33 = far_z / (far_z - near_z);
+							ret.s43 = -ret.s33 * near_z;
 						}
 						else
 						{
-							ret._33 = -near_z / (far_z - near_z);
-							ret._43 = -far_z * ret._33;
+							ret.s33 = -near_z / (far_z - near_z);
+							ret.s43 = -far_z * ret.s33;
 						}
 					}
-					ret._34 = static_cast<T>(1);
+					ret.s34 = static_cast<T>(1);
 					break;
 				}
 			}
-			ret._44 = static_cast<T>(0);
+			ret.s44 = static_cast<T>(0);
 		}
 
 	}	//	namespace
@@ -965,8 +949,8 @@ namespace math
 	matrix<T> matrix<T>::perspective(T width, T height, T near_z, T far_z, coordinate_order coordinate, projection_z_order z_order)
 	{
 		matrix ret;
-		ret._11 = static_cast<T>(2) * near_z / width;
-		ret._22 = static_cast<T>(2) * near_z / height;
+		ret.s11 = static_cast<T>(2) * near_z / width;
+		ret.s22 = static_cast<T>(2) * near_z / height;
 		set_perspective_depth(ret, near_z, far_z, !(far_z > near_z), coordinate, z_order);
 		return ret;
 	}
@@ -981,8 +965,8 @@ namespace math
 
 		matrix ret;
 		//	係数算出
-		ret._11 = x_scale;
-		ret._22 = y_scale;
+		ret.s11 = x_scale;
+		ret.s22 = y_scale;
 		set_perspective_depth(ret, near_z, far_z, far_z < near_z, coordinate, z_order);
 		return ret;
 	}
@@ -1022,18 +1006,18 @@ namespace math
 
 		matrix ret;
 		//	係数算出
-		ret._11 = square_near * reciprocal_width;
-		ret._22 = square_near * reciprocal_height;
+		ret.s11 = square_near * reciprocal_width;
+		ret.s22 = square_near * reciprocal_height;
 		//	オフセット算出
 		if (coordinate == coordinate_order::rh)
 		{
-			ret._31 = (left + right) * reciprocal_width;
-			ret._32 = (top + bottom) * reciprocal_height;
+			ret.s31 = (left + right) * reciprocal_width;
+			ret.s32 = (top + bottom) * reciprocal_height;
 		}
 		else
 		{
-			ret._31 = -(left + right) * reciprocal_width;
-			ret._32 = -(top + bottom) * reciprocal_height;
+			ret.s31 = -(left + right) * reciprocal_width;
+			ret.s32 = -(top + bottom) * reciprocal_height;
 		}
 		set_perspective_depth(ret, near_z, far_z, far_z < near_z, coordinate, z_order);
 		return ret;
@@ -1058,8 +1042,8 @@ namespace math
 	matrix<T> matrix<T>::orthographic(T width, T height, T near_z, T far_z, coordinate_order coordinate, projection_z_order z_order)
 	{
 		matrix ret;
-		ret._11 = static_cast<T>(2) / width;
-		ret._22 = static_cast<T>(2) / height;
+		ret.s11 = static_cast<T>(2) / width;
+		ret.s22 = static_cast<T>(2) / height;
 
 		//	Zオーダーが反転指定ならNear/Farを入れ替える
 		if (z_order == projection_z_order::reverse)
@@ -1073,20 +1057,20 @@ namespace math
 		{
 			case coordinate_order::rh:
 			{
-				ret._33 = static_cast<T>(1) / (near_z - far_z);
-				ret._43 = near_z / (near_z - far_z);
+				ret.s33 = static_cast<T>(1) / (near_z - far_z);
+				ret.s43 = near_z / (near_z - far_z);
 				break;
 			}
 			case coordinate_order::lh:
 			default:
 			{
-				ret._33 = static_cast<T>(1) / (far_z - near_z);
-				ret._43 = near_z / (near_z - far_z);
+				ret.s33 = static_cast<T>(1) / (far_z - near_z);
+				ret.s43 = near_z / (near_z - far_z);
 				break;
 			}
 		}
 
-		ret._44 = static_cast<T>(1);
+		ret.s44 = static_cast<T>(1);
 		return ret;
 	}
 
@@ -1105,28 +1089,28 @@ namespace math
 		T reciprocal_height = static_cast<T>(1) / (bottom - top);
 
 		matrix ret;
-		ret._11 = reciprocal_width + reciprocal_width;
-		ret._22 = reciprocal_height + reciprocal_height;
-		ret._41 = -(left + right) * reciprocal_width;
-		ret._42 = -(top + bottom) * reciprocal_height;
+		ret.s11 = reciprocal_width + reciprocal_width;
+		ret.s22 = reciprocal_height + reciprocal_height;
+		ret.s41 = -(left + right) * reciprocal_width;
+		ret.s42 = -(top + bottom) * reciprocal_height;
 		switch (coordinate)
 		{
 			case coordinate_order::rh:
 			{
-				ret._33 = static_cast<T>(1) / (near_z - far_z);
-				ret._43 = ret._33 * near_z;
+				ret.s33 = static_cast<T>(1) / (near_z - far_z);
+				ret.s43 = ret.s33 * near_z;
 				break;
 			}
 			case coordinate_order::lh:
 			default:
 			{
-				ret._33 = static_cast<T>(1) / (far_z - near_z);
-				ret._43 = -ret._33 * near_z;
+				ret.s33 = static_cast<T>(1) / (far_z - near_z);
+				ret.s43 = -ret.s33 * near_z;
 				break;
 			}
 		}
 
-		ret._44 = static_cast<T>(1);
+		ret.s44 = static_cast<T>(1);
 		return ret;
 	}
 
@@ -1134,25 +1118,25 @@ namespace math
 	matrix<T> matrix<T>::viewport(T left, T right, T top, T bottom, T min_z, T max_z)
 	{
 		matrix ret;
-		ret._11 = (right - left) / static_cast<T>(2);
-		ret._12 = 0;
-		ret._13 = 0;
-		ret._14 = 0;
+		ret.s11 = (right - left) / static_cast<T>(2);
+		ret.s12 = 0;
+		ret.s13 = 0;
+		ret.s14 = 0;
 
-		ret._21 = 0;
-		ret._22 = -(bottom - top) / static_cast<T>(2);
-		ret._23 = 0;
-		ret._24 = 0;
+		ret.s21 = 0;
+		ret.s22 = -(bottom - top) / static_cast<T>(2);
+		ret.s23 = 0;
+		ret.s24 = 0;
 
-		ret._31 = 0;
-		ret._32 = 0;
-		ret._33 = max_z - min_z;
-		ret._34 = 0;
+		ret.s31 = 0;
+		ret.s32 = 0;
+		ret.s33 = max_z - min_z;
+		ret.s34 = 0;
 
-		ret._41 = left + ret._11;
-		ret._42 = top - ret._22;
-		ret._43 = min_z;
-		ret._44 = static_cast<T>(1);
+		ret.s41 = left + ret.s11;
+		ret.s42 = top - ret.s22;
+		ret.s43 = min_z;
+		ret.s44 = static_cast<T>(1);
 
 		return ret;
 	}

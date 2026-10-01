@@ -27,10 +27,16 @@ float2 reconst_velocity(float2 velocity)
     return velocity * tile_size;
 }
 
+//	非線形深度をビュー空間の線形深度に変換する
+float convert_to_view_depth(float depth)
+{
+    return 1.0f / (z_buffer_parameteres.z * depth + z_buffer_parameteres.w);
+}
+
 float calc_soft_depth_compare(float za, float zb)
 {
-    static const float SoftDepthExtend = 0.1f;
-    return saturate(1.0f - (zb - za) / SoftDepthExtend);
+    static const float SoftDepthExtend = 0.1f;	//	線形深度での許容幅
+    return saturate(1.0f - (za - zb) / SoftDepthExtend);
 }
 
 float calc_cone(float L, float2 V)
@@ -75,7 +81,7 @@ void main(int3 dispatch_thread_id : SV_DispatchThreadID)
         return;
     }
     
-    float depth = depth_map.Load(int3(dispatch_thread_id.xy, 0));
+    float depth = convert_to_view_depth(depth_map.Load(int3(dispatch_thread_id.xy, 0)));
 
     float2 X = (float2) dispatch_thread_id.xy;
     int3 nX = int3((int) X.x, (int) X.y, 0);
@@ -103,7 +109,7 @@ void main(int3 dispatch_thread_id : SV_DispatchThreadID)
         float2 Y = clamp(X + Va * t + half_pixel, 0.0f, tex_size);
         int3 nY = int3((int) Y.x, (int) Y.y, 0);
 
-        float Zy = depth_map.Load(nY);
+        float Zy = convert_to_view_depth(depth_map.Load(nY));
         float2 L = length(dispatch_thread_id.xy - nY.xy);
 
         float2 Vy = reconst_velocity(velocity_map.Load(nY));

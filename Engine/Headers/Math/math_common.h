@@ -4,21 +4,24 @@
 #include <cstddef>
 #include <cstdint>
 #include <type_traits>
-#include <DirectXMath.h>
 
 //	@tool OJT Framework の Math クラス群を float / double 両対応のテンプレートとして移植したもの
-//	@tool 行優先・行ベクトル（v * M）・左手座標系
+//	@tool 左手系・行ベクトル・リバースデプスを基本として設計し、Math/math_config.h の設定で内部の計算を切り替える
 //	@tool オイラー角は X：Pitch / Y：Yaw / Z：Roll
 //	@tool 既存の math_utility.h（math 名前空間）と名前が衝突しないよう、
 //	@tool 汎用テンプレート（min / max / clamp / saturate / lerp / smoothstep）と同名の関数は
 //	@tool float / double の具体型ごとの非テンプレート関数として定義している
+//	@tool 命名規則：その場で書き換える関数は動詞（normalize / invert / transpose / mirror / transform_coord）、
+//	@tool 書き換えたコピーを返す関数は過去分詞（normalized / inverted / transposed / mirrored / transformed_coord）
 
+#include "Math/math_config.h"
 #include "Math/math_simd.h"
+#include "Math/element.h"
 
-//	@tool float 版は DirectXMath が SSE を使う構成のときだけ SIMD で処理する（DirectXMath の関数にレジスタを直接渡すため）
-//	@tool double 版は SSE2（/arch:AVX2 指定時は AVX2）で処理する
+//	@tool DirectXMath には依存しない
+//	@tool float 版は SSE、double 版は SSE2（/arch:AVX2 指定時は AVX2）で処理する
 //	@tool MATH_DISABLE_SIMD を定義すると float / double ともスカラー処理になる（デバッグ・検証用）
-#if !defined(MATH_DISABLE_SIMD) && defined(_XM_SSE_INTRINSICS_) && !defined(_XM_NO_INTRINSICS_)
+#if !defined(MATH_DISABLE_SIMD)
 #define	MATH_USE_SIMD_FLOAT		1
 #else
 #define	MATH_USE_SIMD_FLOAT		0
@@ -55,7 +58,25 @@ namespace math
 
 		invalid = -1,
 	};
+#if MATH_RIGHT_HANDED
+	constexpr coordinate_order default_coordinate_order = coordinate_order::rh;
+#else
 	constexpr coordinate_order default_coordinate_order = coordinate_order::lh;
+#endif
+
+	//	@tool 行列とベクトルの掛け方
+	enum class vector_convention
+	{
+		row,		//	行ベクトル（v * M）
+		column,		//	列ベクトル（M * v）
+	};
+#if MATH_COLUMN_VECTOR
+	constexpr vector_convention default_vector_convention = vector_convention::column;
+#else
+	constexpr vector_convention default_vector_convention = vector_convention::row;
+#endif
+	//	@tool 列ベクトル規約か
+	constexpr bool is_column_vector = default_vector_convention == vector_convention::column;
 
 	//	射影行列の深度方向
 	enum class projection_z_order
@@ -63,7 +84,11 @@ namespace math
 		normal = 0,		//	0～1
 		reverse,		//	1～0
 	};
+#if MATH_REVERSE_DEPTH
 	constexpr projection_z_order default_projection_z_order = projection_z_order::reverse;
+#else
+	constexpr projection_z_order default_projection_z_order = projection_z_order::normal;
+#endif
 
 	//	ミラーリング定数
 	enum class mirroring_order

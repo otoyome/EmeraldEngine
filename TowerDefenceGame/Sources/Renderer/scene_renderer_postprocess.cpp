@@ -988,6 +988,7 @@ void motion_blur_post_process_renderer::render(renderer_context& renderer_contex
 			context.device_context->CSSetShaderResources(neigbor_max_velocity_srv_index, 1,
 				reconstract_velocity_map->get_shader_resource_view().GetAddressOf());
 			context.device_context->CSSetConstantBuffers(motion_blur::cbv_index, 1, constant_buffer.GetAddressOf());
+			context.device_context->CSSetConstantBuffers(common_pipeline_states::scene_cbv_index, 1, context.scene_constant_buffer.GetAddressOf());
 
 			context.device_context->CSSetShader(motion_blur->get_shader().Get(), nullptr, 0);
 			UINT x = ( render_targets->scene_color_texture->get_width() + motion_blur::blur_threads.x - 1) / motion_blur::blur_threads.x;

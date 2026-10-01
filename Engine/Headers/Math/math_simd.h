@@ -101,7 +101,7 @@ namespace math::simd
 			out[3] = r3;
 		}
 
-		//	@tool float 4要素（DirectX::XMVECTOR）との相互変換
+		//	@tool float 4要素（__m128）との相互変換
 		static __m128 to_float4(const reg& v) { return v; }
 		static reg from_float4(__m128 v) { return v; }
 	};

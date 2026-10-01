@@ -5,6 +5,8 @@
 namespace math
 {
 	//	4次元ベクトル演算クラス
+	//	@tool 【格納】x, y, z, w。規約に関係なく同じで、内部の計算も 1 通り
+	//	@tool 【規約で変わるもの】行列との積の書き方（行ベクトル規約：v * M、列ベクトル規約：M * v）
 	template<typename T>
 	class alignas(simd_alignment_v<T>) vector4
 	{
@@ -33,7 +35,10 @@ namespace math
 		vector4(const vector2<T>& v1, const vector2<T>& v2);
 		explicit vector4(const vector3<T>& v);
 		vector4(const vector3<T>& v, T w);
-		vector4(const DirectX::XMFLOAT4& v) { set(static_cast<T>(v.x), static_cast<T>(v.y), static_cast<T>(v.z), static_cast<T>(v.w)); }
+		vector4(const basic_element4<T>& v) { set(v.x, v.y, v.z, v.w); }
+		//	@tool 要素の型が違う保存用の型からの変換
+		template<typename U, std::enable_if_t<!std::is_same_v<T, U>, int> = 0>
+		explicit vector4(const basic_element4<U>& v) { set(static_cast<T>(v.x), static_cast<T>(v.y), static_cast<T>(v.z), static_cast<T>(v.w)); }
 		//	@tool float <> double の変換（精度が変わるため明示的に行う）
 		template<typename U, std::enable_if_t<!std::is_same_v<T, U>, int> = 0>
 		explicit vector4(const vector4<U>& v) { set(static_cast<T>(v.x), static_cast<T>(v.y), static_cast<T>(v.z), static_cast<T>(v.w)); }
@@ -109,7 +114,7 @@ namespace math
 		}
 
 		//	正規化済みベクトルを取得
-		vector4 create_normalize() const { vector4 ret = *this; ret.normalize(); return ret; }
+		vector4 normalized() const { vector4 ret = *this; ret.normalize(); return ret; }
 
 		//	Vector3 に変換して取得
 		vector3<T> to_vector3() const;
@@ -217,32 +222,21 @@ namespace math
 		//	外積
 		vector4 cross(const vector4& center, const vector4& right) const { return cross(*this, center, right); }
 
-		//	@tool DirectXMath との相互変換（double 版は float に丸められる）
-		DirectX::XMFLOAT4 to_xmfloat4() const { return DirectX::XMFLOAT4(static_cast<float>(x), static_cast<float>(y), static_cast<float>(z), static_cast<float>(w)); }
-		DirectX::XMVECTOR to_xmvector() const
+		//	@tool 保存用の型への変換（double -> float は丸められる）
+		float4 to_float4() const
 		{
+			float4 ret;
 			if constexpr (use_simd_v<T>)
 			{
-				return ops::to_float4(reg);
+				_mm_storeu_ps(ret.elements, ops::to_float4(reg));
 			}
 			else
 			{
-				return DirectX::XMVectorSet(static_cast<float>(x), static_cast<float>(y), static_cast<float>(z), static_cast<float>(w));
+				ret = float4(static_cast<float>(x), static_cast<float>(y), static_cast<float>(z), static_cast<float>(w));
 			}
+			return ret;
 		}
-		static vector4 load(DirectX::FXMVECTOR v)
-		{
-			if constexpr (use_simd_v<T>)
-			{
-				return vector4(ops::from_float4(v));
-			}
-			else
-			{
-				DirectX::XMFLOAT4 f;
-				DirectX::XMStoreFloat4(&f, v);
-				return vector4(f);
-			}
-		}
+		double4 to_double4() const { return double4(static_cast<double>(x), static_cast<double>(y), static_cast<double>(z), static_cast<double>(w)); }
 
 	public:
 		T& operator[](std::int32_t index) { return elements[index]; }
@@ -303,6 +297,18 @@ namespace math
 
 	template<typename T>
 	inline vector4<T> operator*(T value, const vector4<T>& v) { return v * value; }
+
+	//	@tool ベクトルと行列の積。規約に合った書き方だけを定義する（逆の書き方はコンパイルエラーになる）
+	//	@tool どちらも vector4::transform(v, M) と同じ結果（規約に関係なく使うなら transform を使う）
+#if MATH_COLUMN_VECTOR
+	template<typename T>
+	inline vector4<T> operator*(const matrix<T>& m, const vector4<T>& v) { return vector4<T>::transform(v, m); }
+#else
+	template<typename T>
+	inline vector4<T> operator*(const vector4<T>& v, const matrix<T>& m) { return vector4<T>::transform(v, m); }
+	template<typename T>
+	inline vector4<T>& operator*=(vector4<T>& v, const matrix<T>& m) { v = vector4<T>::transform(v, m); return v; }
+#endif
 
 	using vector4f = vector4<float>;
 	using vector4d = vector4<double>;

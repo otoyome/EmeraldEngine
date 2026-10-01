@@ -70,9 +70,11 @@
     <ClInclude Include="Headers\material.h" />
     <ClInclude Include="Headers\Math\angle.h" />
     <ClInclude Include="Headers\Math\easing.h" />
+    <ClInclude Include="Headers\Math\element.h" />
     <ClInclude Include="Headers\Math\exponential_quaternion.h" />
     <ClInclude Include="Headers\Math\interpolation.h" />
     <ClInclude Include="Headers\Math\math_all.h" />
+    <ClInclude Include="Headers\Math\math_config.h" />
     <ClInclude Include="Headers\Math\math_common.h" />
     <ClInclude Include="Headers\Math\math_simd.h" />
     <ClInclude Include="Headers\Math\matrix.h" />

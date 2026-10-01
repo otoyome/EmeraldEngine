@@ -5,6 +5,8 @@
 namespace math
 {
 	//	3次元ベクトル演算クラス
+	//	@tool 【格納】x, y, z（SIMD 使用時は w = 0 を加えた 4 要素）。規約に関係なく同じで、内部の計算も 1 通り
+	//	@tool 【規約で変わるもの】forward()（左手系：+Z、右手系：-Z）、行列との積の書き方（vector4 の operator* を参照）
 	//	@tool SIMD 使用時は 4 要素分の領域を持ち、w は常に 0 を保つ
 	//	@tool サイズ：float 版 16 バイト、double 版 32 バイト（32 バイト境界。MATH_DISABLE_SIMD 時は 12 / 24 バイト）
 	template<typename T>
@@ -26,6 +28,10 @@ namespace math
 		static vector3 y_axis() { return vector3(0, 1, 0); }
 		static vector3 z_axis() { return vector3(0, 0, 1); }
 		static vector3 axis(std::int32_t index) { vector3 ret(0, 0, 0); ret[index] = static_cast<T>(1); return ret; }
+		//	@tool 前方向（左手系：+Z、右手系：-Z）・右方向（+X）・上方向（+Y）
+		static vector3 forward(coordinate_order coordinate = default_coordinate_order) { return coordinate == coordinate_order::rh ? vector3(0, 0, -1) : vector3(0, 0, 1); }
+		static vector3 right() { return vector3(1, 0, 0); }
+		static vector3 up() { return vector3(0, 1, 0); }
 
 	public:
 		vector3() { set(0, 0, 0); }
@@ -35,7 +41,10 @@ namespace math
 		explicit vector3(const T values[element_count]) { set(values); }
 		explicit vector3(const vector2<T>& v, T z = 0);
 		explicit vector3(const vector4<T>& v);
-		vector3(const DirectX::XMFLOAT3& v) { set(static_cast<T>(v.x), static_cast<T>(v.y), static_cast<T>(v.z)); }
+		vector3(const basic_element3<T>& v) { set(v.x, v.y, v.z); }
+		//	@tool 要素の型が違う保存用の型からの変換
+		template<typename U, std::enable_if_t<!std::is_same_v<T, U>, int> = 0>
+		explicit vector3(const basic_element3<U>& v) { set(static_cast<T>(v.x), static_cast<T>(v.y), static_cast<T>(v.z)); }
 		//	@tool float <> double の変換（精度が変わるため明示的に行う）
 		template<typename U, std::enable_if_t<!std::is_same_v<T, U>, int> = 0>
 		explicit vector3(const vector3<U>& v) { set(static_cast<T>(v.x), static_cast<T>(v.y), static_cast<T>(v.z)); }
@@ -118,7 +127,7 @@ namespace math
 		}
 
 		//	正規化済みベクトルを取得
-		vector3 create_normalize() const { vector3 ret = *this; ret.normalize(); return ret; }
+		vector3 normalized() const { vector3 ret = *this; ret.normalize(); return ret; }
 
 	public:
 		//	足し算
@@ -213,7 +222,10 @@ namespace math
 		}
 
 		//	クォータニオン * ベクトル * 逆クォータニオン の結果を算出する
-		void multiply(const quaternion<T>& q);
+		//	@tool 回転させる（Framework の Multiply(Quaternion)。成分ごとの multiply と紛らわしいため改名。規約に関係なく同じ結果）
+		void rotate(const quaternion<T>& q);
+		//	@tool 回転させたベクトルを取得
+		vector3 rotated(const quaternion<T>& q) const;
 
 		//	内積
 		T dot(const vector3& v) const { return dot(*this, v); }
@@ -222,46 +234,23 @@ namespace math
 		vector3 cross(const vector3& v) const { return cross(*this, v); }
 
 		//	指定のベクトルを指定の行列空間に変換したベクトルを取得
-		vector4<T> create_transform(const matrix<T>& m) const;
+		vector4<T> transformed(const matrix<T>& m) const;
 
 		//	指定のベクトルを指定の行列空間に変換し、結果を w = 1 に投影する
 		void transform_coord(const matrix<T>& m);
 
 		//	指定のベクトルを指定の行列空間に変換し、結果を w = 1 に投影したベクトルを取得
-		vector3 create_transform_coord(const matrix<T>& m) const;
+		vector3 transformed_coord(const matrix<T>& m) const;
 
 		//	指定のベクトルを指定の行列空間に変換し、結果を w = 0 に投影する
 		void transform_normal(const matrix<T>& m);
 
 		//	指定のベクトルを指定の行列空間に変換し、結果を w = 0 に投影したベクトルを取得
-		vector3 create_transform_normal(const matrix<T>& m) const;
+		vector3 transformed_normal(const matrix<T>& m) const;
 
-		//	@tool DirectXMath との相互変換（double 版は float に丸められる）
-		DirectX::XMFLOAT3 to_xmfloat3() const { return DirectX::XMFLOAT3(static_cast<float>(x), static_cast<float>(y), static_cast<float>(z)); }
-		DirectX::XMVECTOR to_xmvector() const
-		{
-			if constexpr (use_simd_v<T>)
-			{
-				return ops::to_float4(reg);
-			}
-			else
-			{
-				return DirectX::XMVectorSet(static_cast<float>(x), static_cast<float>(y), static_cast<float>(z), 0.0f);
-			}
-		}
-		static vector3 load(DirectX::FXMVECTOR v)
-		{
-			if constexpr (use_simd_v<T>)
-			{
-				return vector3(ops::from_float4(v));
-			}
-			else
-			{
-				DirectX::XMFLOAT3 f;
-				DirectX::XMStoreFloat3(&f, v);
-				return vector3(f);
-			}
-		}
+		//	@tool 保存用の型への変換（double -> float は丸められる）
+		float3 to_float3() const { return float3(static_cast<float>(x), static_cast<float>(y), static_cast<float>(z)); }
+		double3 to_double3() const { return double3(static_cast<double>(x), static_cast<double>(y), static_cast<double>(z)); }
 
 	public:
 		T& operator[](std::int32_t index) { return elements[index]; }

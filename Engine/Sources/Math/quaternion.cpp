@@ -29,6 +29,15 @@ namespace math
 	}
 
 	template<typename T>
+	vector3<T> quaternion<T>::rotate(const vector3<T>& v) const
+	{
+		//	@tool q * v * q^-1 を展開した式（単位クォータニオン前提）
+		//	@tool t = 2 * (q.xyz x v)、v' = v + w * t + q.xyz x t
+		const vector3<T> axis_vector(x, y, z);
+		const vector3<T> t = vector3<T>::cross(axis_vector, v) * static_cast<T>(2);
+		return v + t * w + vector3<T>::cross(axis_vector, t);
+	}
+	template<typename T>
 	vector3<T> quaternion<T>::axis() const
 	{
 		T work = x * x + y * y + z * z;
@@ -49,7 +58,7 @@ namespace math
 	}
 
 	template<typename T>
-	vector3<T> quaternion<T>::front() const
+	vector3<T> quaternion<T>::front(coordinate_order coordinate) const
 	{
 		const T xx = x * x;
 		const T xz = x * z;
@@ -58,9 +67,10 @@ namespace math
 		const T wx = w * x;
 		const T wy = w * y;
 
-		return vector3<T>(static_cast<T>(2) * xz + static_cast<T>(2) * wy,
-						  static_cast<T>(2) * yz - static_cast<T>(2) * wx,
-						  static_cast<T>(1) - static_cast<T>(2) * xx - static_cast<T>(2) * yy);
+		vector3<T> ret(static_cast<T>(2) * xz + static_cast<T>(2) * wy,
+					   static_cast<T>(2) * yz - static_cast<T>(2) * wx,
+					   static_cast<T>(1) - static_cast<T>(2) * xx - static_cast<T>(2) * yy);
+		return coordinate == coordinate_order::rh ? -ret : ret;
 	}
 
 	template<typename T>
@@ -108,7 +118,7 @@ namespace math
 	}
 
 	template<typename T>
-	void quaternion<T>::mirroring(mirroring_order order)
+	void quaternion<T>::mirror(mirroring_order order)
 	{
 		//	http://momose-d.cocolog-nifty.com/blog/2014/08/post-ee2b.html
 		switch (order)
@@ -291,7 +301,7 @@ namespace math
 			//	@tool Framework は逆向きのときも (0, 0, 0, -1)（= 無回転）を返していたため、
 			//	@tool direction1 に直交する軸で 180 度回転させるよう修正している
 			vector3<T> other = std::abs(direction1.x) < static_cast<T>(0.9) ? vector3<T>::x_axis() : vector3<T>::y_axis();
-			vector3<T> half_axis = vector3<T>::cross(direction1, other).create_normalize();
+			vector3<T> half_axis = vector3<T>::cross(direction1, other).normalized();
 			return quaternion(half_axis.x, half_axis.y, half_axis.z, 0);
 		}
 		rotation_axis_vector.normalize();
@@ -307,49 +317,49 @@ namespace math
 	quaternion<T> quaternion<T>::rotation_matrix(const matrix<T>& m)
 	{
 		quaternion ret;
-		if (m._33 <= static_cast<T>(0))	//	x^2 + y^2 >= z^2 + w^2
+		if (m.s33 <= static_cast<T>(0))	//	x^2 + y^2 >= z^2 + w^2
 		{
-			T dif10 = m._22 - m._11;
-			T omr22 = static_cast<T>(1) - m._33;
+			T dif10 = m.s22 - m.s11;
+			T omr22 = static_cast<T>(1) - m.s33;
 			if (dif10 <= static_cast<T>(0))	//	x^2 >= y^2
 			{
 				T four_x_sqr = omr22 - dif10;
 				T inv4x = static_cast<T>(0.5) / std::sqrt(four_x_sqr);
 				ret.set(four_x_sqr * inv4x,
-						(m._12 + m._21) * inv4x,
-						(m._13 + m._31) * inv4x,
-						(m._23 - m._32) * inv4x);
+						(m.s12 + m.s21) * inv4x,
+						(m.s13 + m.s31) * inv4x,
+						(m.s23 - m.s32) * inv4x);
 			}
 			else	//	y^2 >= x^2
 			{
 				T four_y_sqr = omr22 + dif10;
 				T inv4y = static_cast<T>(0.5) / std::sqrt(four_y_sqr);
-				ret.set((m._12 + m._21) * inv4y,
+				ret.set((m.s12 + m.s21) * inv4y,
 						four_y_sqr * inv4y,
-						(m._23 + m._32) * inv4y,
-						(m._31 - m._13) * inv4y);
+						(m.s23 + m.s32) * inv4y,
+						(m.s31 - m.s13) * inv4y);
 			}
 		}
 		else	//	z^2 + w^2 >= x^2 + y^2
 		{
-			T sum10 = m._22 + m._11;
-			T opr22 = static_cast<T>(1) + m._33;
+			T sum10 = m.s22 + m.s11;
+			T opr22 = static_cast<T>(1) + m.s33;
 			if (sum10 <= static_cast<T>(0))	//	z^2 >= w^2
 			{
 				T four_z_sqr = opr22 - sum10;
 				T inv4z = static_cast<T>(0.5) / std::sqrt(four_z_sqr);
-				ret.set((m._13 + m._31) * inv4z,
-						(m._23 + m._32) * inv4z,
+				ret.set((m.s13 + m.s31) * inv4z,
+						(m.s23 + m.s32) * inv4z,
 						four_z_sqr * inv4z,
-						(m._12 - m._21) * inv4z);
+						(m.s12 - m.s21) * inv4z);
 			}
 			else	//	w^2 >= z^2
 			{
 				T four_w_sqr = opr22 + sum10;
 				T inv4w = static_cast<T>(0.5) / std::sqrt(four_w_sqr);
-				ret.set((m._23 - m._32) * inv4w,
-						(m._31 - m._13) * inv4w,
-						(m._12 - m._21) * inv4w,
+				ret.set((m.s23 - m.s32) * inv4w,
+						(m.s31 - m.s13) * inv4w,
+						(m.s12 - m.s21) * inv4w,
 						four_w_sqr * inv4w);
 			}
 		}
@@ -357,11 +367,12 @@ namespace math
 	}
 
 	template<typename T>
-	quaternion<T> quaternion<T>::look_rotation(const vector3<T>& forward, const vector3<T>& up_vector)
+	quaternion<T> quaternion<T>::look_rotation(const vector3<T>& forward, const vector3<T>& up_vector, coordinate_order coordinate)
 	{
-		vector3<T> axis_z = forward.create_normalize();
-		vector3<T> axis_x = vector3<T>::cross(up_vector, axis_z).create_normalize();
-		vector3<T> axis_y = vector3<T>::cross(axis_z, axis_x).create_normalize();
+		//	@tool 右手系は -Z が前方向なので、Z 軸を forward の逆向きにする
+		vector3<T> axis_z = coordinate == coordinate_order::rh ? (-forward).normalized() : forward.normalized();
+		vector3<T> axis_x = vector3<T>::cross(up_vector, axis_z).normalized();
+		vector3<T> axis_y = vector3<T>::cross(axis_z, axis_x).normalized();
 
 		T num8 = (axis_x.x + axis_y.y) + axis_z.z;
 		if (num8 > static_cast<T>(0))
