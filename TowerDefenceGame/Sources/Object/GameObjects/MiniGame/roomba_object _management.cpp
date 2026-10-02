@@ -525,7 +525,7 @@ void roomba_object::update_move(float elapsed_time)
 
 	set_position(resolved_position);
 
-	//	実際に進めた変位から速度を再算出。斜面スライドの結果が次フレームの速度にも反映される
+	//	実際に進めた変位から速度を再算出
 	if (elapsed_time > FLT_EPSILON)
 	{
 		velocity.x = (resolved_position.x - start_position.x) / elapsed_time;
