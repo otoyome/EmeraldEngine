@@ -11,7 +11,7 @@ namespace math
 {
 	namespace detail
 	{
-		//	@tool ベクトル型の判定と SIMD レジスタを持つかどうか
+		//	ベクトル型の判定と SIMD レジスタを持つかどうか
 		template<typename V>
 		struct vector_traits
 		{
@@ -39,7 +39,7 @@ namespace math
 		template<typename V>
 		constexpr bool is_vector_v = vector_traits<V>::is_vector;
 
-		//	@tool テンプレート引数の推論対象から外すための型
+		//	テンプレート引数の推論対象から外すための型
 		template<typename T>
 		struct identity { using type = T; };
 		template<typename T>
@@ -199,17 +199,27 @@ namespace math
 	template<typename T, std::enable_if_t<std::is_arithmetic_v<T>, int> = 0>
 	T mirror(T min_value, T max_value, T value)
 	{
-		T length = max_value - min_value;
+		const T length = max_value - min_value;
+		const T offset = value - min_value;
+		std::int64_t count;
+		T mod_value;
 		if constexpr (std::is_floating_point_v<T>)
 		{
-			T mod_value = std::fmod(value, length);
-			return static_cast<std::int64_t>(value / length) % 2 == 0 ? min_value + mod_value : max_value - mod_value;
+			const T floor_count = std::floor(offset / length);
+			count = static_cast<std::int64_t>(floor_count);
+			mod_value = offset - floor_count * length;
 		}
 		else
 		{
-			T mod_value = value % length;
-			return (value / length) % 2 == 0 ? min_value + mod_value : max_value - mod_value;
+			count = static_cast<std::int64_t>(offset / length);
+			mod_value = offset % length;
+			if (mod_value < 0)
+			{
+				mod_value += length;
+				--count;
+			}
 		}
+		return count % 2 == 0 ? min_value + mod_value : max_value - mod_value;
 	}
 	template<typename V, std::enable_if_t<detail::is_vector_v<V>, int> = 0>
 	V mirror(const V& min_value, const V& max_value, const V& value)
@@ -294,7 +304,11 @@ namespace math
 		}
 
 		//	無限遠平面
-		//	@tool normal 指定の無限遠は Framework でも未対応（DebugAssert）
+		//	リバースデプスは ndc = near / z、通常の深度は ndc = 1 - near / z
+		if (z_order == projection_z_order::normal)
+		{
+			return near_z / (static_cast<T>(1) - ndc_depth);
+		}
 		return near_z / ndc_depth;
 	}
 
@@ -314,7 +328,6 @@ namespace math
 		}
 
 		//	無限遠平面
-		//	@tool normal 指定の無限遠は Framework でも未対応（DebugAssert）
 		return near_z / ndc_depth;
 	}
 
@@ -366,7 +379,6 @@ namespace math
 	}
 
 	//	桁数の計算
-	//	@tool counting_zeros が true なら 0 を1桁として数える
 	constexpr std::uint64_t calc_digit(std::uint64_t value, bool counting_zeros = false)
 	{
 		if (value == 0 && counting_zeros)
@@ -386,7 +398,6 @@ namespace math
 	//	エンディアン変換
 	//	用途が少ないので一部しか対応していない
 	//	必要に応じて追加
-	//	@tool Framework は std::byteswap（C++23）を使っていたが、このプロジェクトは C++17 のためシフトで実装している
 	constexpr std::int8_t convert_endian(std::int8_t value) { return value; }
 	constexpr std::uint8_t convert_endian(std::uint8_t value) { return value; }
 	constexpr std::uint16_t convert_endian(std::uint16_t value)
@@ -406,7 +417,6 @@ namespace math
 	constexpr std::int64_t convert_endian(std::int64_t value) { return static_cast<std::int64_t>(convert_endian(static_cast<std::uint64_t>(value))); }
 
 	//	三角形の面積を算出する
-	//	@tool Framework は3辺すべてに vertex1 の長さを使っていたため、各辺の長さを使うよう修正している
 	template<typename T>
 	T calculate_triangle_area(const vector2<T>& vertex1, const vector2<T>& vertex2, const vector2<T>& vertex3)
 	{

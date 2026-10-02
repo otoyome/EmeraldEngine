@@ -373,7 +373,7 @@ bounding_mesh::bounding_mesh(std::vector<DirectX::XMFLOAT3>& positions, std::vec
 	, triangles(triangles)
 	, separate_count(1, 1, 1)
 {
-	//	@tool ’¸“_‚ª–³‚¢ê‡‚Í‹ó‚Ì‚Ü‚Ü
+	//	’¸“_‚ª–³‚¢ê‡‚Í‹ó‚Ì‚Ü‚Ü
 	if (positions.empty())
 	{
 		area_min = area_max = area_size = area_unit = DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f);

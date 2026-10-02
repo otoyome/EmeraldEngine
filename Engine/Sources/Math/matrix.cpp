@@ -6,7 +6,7 @@ namespace math
 {
 	namespace
 	{
-		//	@tool 3要素を大きい順に並べた添字を返す（Framework の RANKDECOMPOSE マクロ相当）
+		//	3要素を大きい順に並べた添字を返す（Framework の RANKDECOMPOSE マクロ相当）
 		template<typename T>
 		void rank_decompose(std::uint32_t& a, std::uint32_t& b, std::uint32_t& c, T x, T y, T z)
 		{
@@ -102,7 +102,6 @@ namespace math
 		}
 		else
 		{
-			//	@tool Framework のスカラー版は 2～4 行目の w を s14 に書き込んでいたため修正している
 			set_storage(v1.x, v1.y, v1.z, v1.w,
 				v2.x, v2.y, v2.z, v2.w,
 				v3.x, v3.y, v3.z, v3.w,
@@ -608,10 +607,6 @@ namespace math
 	template<typename T>
 	bool matrix<T>::to_euler_angle(T& out_x, T& out_y, T& out_z, const matrix& rotation, rotation_order order)
 	{
-		//	@tool 中間の軸の角度は asin ではなく atan2(sin, cos) で求める（cos は同じ行・列の2要素の長さ）
-		//	@tool Framework の実装はジンバルロック時の符号が xyz / xzy / yzx / zyx などで逆になっていた。
-		//	@tool また ±90 度付近で asin の引数が閾値をわずかに下回ると残り2軸が誤差だけで決まってしまい、
-		//	@tool float のクォータニオン経由では大きく崩れていたため、cos の閾値でジンバルロックを判定している
 		const T threshold = constants<T>::gimbal_lock_threshold;
 		const auto& r = rotation.storage;
 		switch (order)
@@ -725,7 +720,6 @@ namespace math
 	template<typename T>
 	bool matrix<T>::to_euler_angle(vector3<T>& out, const matrix& rotation, rotation_order order)
 	{
-		//	@tool Framework は x の出力先に z を渡していたため修正している
 		return to_euler_angle(out.x, out.y, out.z, rotation, order);
 	}
 
@@ -816,7 +810,7 @@ namespace math
 	template<typename T>
 	matrix<T> matrix<T>::transform(const vector3<T>& scale, const quaternion<T>& rotation, const vector3<T>& position)
 	{
-		//	@tool 拡縮の後に回転し、平行移動を加える
+		//	拡縮の後に回転し、平行移動を加える
 		matrix ret = concatenate(scaling(scale), rotation_quaternion(rotation));
 		ret.s41 = position.x;
 		ret.s42 = position.y;
@@ -828,7 +822,7 @@ namespace math
 	template<typename T>
 	matrix<T> matrix<T>::transform(const vector3<T>& scale, const vector3<T>& euler, const vector3<T>& position)
 	{
-		//	@tool 拡縮の後に回転し、平行移動を加える
+		//	拡縮の後に回転し、平行移動を加える
 		matrix ret = concatenate(scaling(scale), rotation_xyz(euler));
 		ret.s41 = position.x;
 		ret.s42 = position.y;
@@ -868,9 +862,7 @@ namespace math
 
 	namespace
 	{
-		//	@tool 透視投影の深度成分（s33 / s34 / s43）の設定
-		//	@tool Framework の右手系は z_order を無視して既定値で分岐し、normal の式も誤っていたため修正している
-		//	@tool また右手系の無限遠は未対応（DebugAssert）だったため実装している
+		//	透視投影の深度成分の設定
 		template<typename T>
 		void set_perspective_depth(matrix<T>& ret, T near_z, T far_z, bool infinite_far_plane, coordinate_order coordinate, projection_z_order z_order)
 		{
@@ -967,7 +959,7 @@ namespace math
 		//	係数算出
 		ret.s11 = x_scale;
 		ret.s22 = y_scale;
-		set_perspective_depth(ret, near_z, far_z, far_z < near_z, coordinate, z_order);
+		set_perspective_depth(ret, near_z, far_z, !(far_z > near_z), coordinate, z_order);
 		return ret;
 	}
 
@@ -1019,7 +1011,7 @@ namespace math
 			ret.s31 = -(left + right) * reciprocal_width;
 			ret.s32 = -(top + bottom) * reciprocal_height;
 		}
-		set_perspective_depth(ret, near_z, far_z, far_z < near_z, coordinate, z_order);
+		set_perspective_depth(ret, near_z, far_z, !(far_z > near_z), coordinate, z_order);
 		return ret;
 	}
 
@@ -1027,7 +1019,7 @@ namespace math
 	matrix<T> matrix<T>::perspective_fov_offset_center(T fov_y, T aspect, T near_z, T far_z, T offset_x, T offset_y, coordinate_order coordinate, projection_z_order z_order)
 	{
 		T height = std::tan(fov_y * static_cast<T>(0.5));
-		T width = std::tan(math::angle::fov_horizontal_to_fov_vertical(fov_y, aspect) * static_cast<T>(0.5));
+		T width = std::tan(math::angle::fov_vertical_to_fov_horizontal(fov_y, aspect) * static_cast<T>(0.5));
 		return perspective_off_center(-near_z * width + offset_x,
 									  +near_z * width + offset_x,
 									  +near_z * height + offset_y,
@@ -1086,7 +1078,7 @@ namespace math
 		}
 
 		T reciprocal_width = static_cast<T>(1) / (right - left);
-		T reciprocal_height = static_cast<T>(1) / (bottom - top);
+		T reciprocal_height = static_cast<T>(1) / (top - bottom);
 
 		matrix ret;
 		ret.s11 = reciprocal_width + reciprocal_width;

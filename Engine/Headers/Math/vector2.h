@@ -4,10 +4,7 @@
 
 namespace math
 {
-	//	2次元ベクトル演算クラス
-	//	@tool 【格納】x, y（SIMD 使用時は z = w = 0 を加えた 4 要素）。規約に関係なく同じで、内部の計算も 1 通り
-	//	@tool SIMD 演算を基本とするため vector3 / vector4 と同じくレジスタ幅で保持し、z, w は常に 0 を保つ
-	//	@tool サイズ：float 版 16 バイト、double 版 32 バイト（MATH_DISABLE_SIMD 時は 8 / 16 バイト）
+	//	2次元ベクトル
 	template<typename T>
 	class alignas(simd_alignment_v<T>) vector2
 	{
@@ -18,7 +15,6 @@ namespace math
 		using ops = simd_ops_t<T>;
 		using register_type = simd_register_t<T>;
 		static constexpr std::uint32_t element_count = 2;	//	要素数
-		//	@tool SIMD 使用時はレジスタ幅分の領域を確保する
 		static constexpr std::uint32_t storage_count = use_simd_v<T> ? 4 : 2;
 
 	public:
@@ -35,13 +31,10 @@ namespace math
 		explicit vector2(const vector3<T>& v);
 		explicit vector2(const vector4<T>& v);
 		vector2(const basic_element2<T>& v) { set(v.x, v.y); }
-		//	@tool 要素の型が違う保存用の型からの変換
 		template<typename U, std::enable_if_t<!std::is_same_v<T, U>, int> = 0>
 		explicit vector2(const basic_element2<U>& v) { set(static_cast<T>(v.x), static_cast<T>(v.y)); }
-		//	@tool float <> double の変換（精度が変わるため明示的に行う）
 		template<typename U, std::enable_if_t<!std::is_same_v<T, U>, int> = 0>
 		explicit vector2(const vector2<U>& v) { set(static_cast<T>(v.x), static_cast<T>(v.y)); }
-		//	@tool SIMD レジスタから生成（z, w は 0 にする）
 		explicit vector2(const register_type& v) { set(v); }
 
 		void set(T value) { set(value, value); }
@@ -162,7 +155,7 @@ namespace math
 			}
 		}
 
-		//	@tool スカラー倍
+		//	スカラー倍
 		void multiply(T value)
 		{
 			if constexpr (use_simd_v<T>)
@@ -177,7 +170,6 @@ namespace math
 		}
 
 		//	割り算
-		//	@tool SIMD 版は z, w = 0 / 0 にならないよう xy のみ割って z, w を 0 に戻す
 		void division(const vector2& v)
 		{
 			if constexpr (use_simd_v<T>)
@@ -191,7 +183,7 @@ namespace math
 			}
 		}
 
-		//	@tool スカラー割り
+		//	スカラー割り
 		void division(T value)
 		{
 			if constexpr (use_simd_v<T>)
@@ -217,7 +209,7 @@ namespace math
 		//	指定のベクトルを指定の行列空間に変換し、結果を w = 1 に投影したベクトルを取得
 		vector2 transformed_coord(const matrix<T>& m) const;
 
-		//	@tool 保存用の型への変換（double -> float は丸められる）
+		//	型変換
 		float2 to_float2() const { return float2(static_cast<float>(x), static_cast<float>(y)); }
 		double2 to_double2() const { return double2(static_cast<double>(x), static_cast<double>(y)); }
 
@@ -264,11 +256,9 @@ namespace math
 		static T cross(const vector2& l, const vector2& r) { return l.x * r.y - l.y * r.x; }
 
 		//	指定のベクトルを指定の行列空間に変換する
-		//	@tool Framework の実装どおり (x, y, 1, 1) として変換する（z 行も加算される点に注意）
 		static vector4<T> transform(const vector2& l, const matrix<T>& r);
 
 		//	指定のベクトルを指定の行列空間に変換し、結果を w = 1 に投影する
-		//	@tool transform と同じく (x, y, 1, 1) として変換する
 		static vector2 transform_coord(const vector2& l, const matrix<T>& r);
 
 	public:

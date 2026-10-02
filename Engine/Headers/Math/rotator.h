@@ -5,7 +5,6 @@
 namespace math
 {
 	//	オイラー角で操作しクォータニオンを算出するヘルパークラス
-	//	@tool 既存の math::rotator（System/math_utility.h）と名前が衝突するため basic_rotator としている
 	template<typename T>
 	class basic_rotator
 	{
@@ -20,7 +19,6 @@ namespace math
 		constexpr basic_rotator(T pitch, T yaw, T roll) : x(pitch), y(yaw), z(roll) {}
 		explicit basic_rotator(const vector3<T>& euler);
 		basic_rotator(const quaternion<T>& rotation);
-		//	@tool float <> double の変換（精度が変わるため明示的に行う）
 		template<typename U, std::enable_if_t<!std::is_same_v<T, U>, int> = 0>
 		explicit constexpr basic_rotator(const basic_rotator<U>& v) : x(static_cast<T>(v.x)), y(static_cast<T>(v.y)), z(static_cast<T>(v.z)) {}
 

@@ -27,6 +27,12 @@ MATH_TEST_TYPED(utility_scalar)
 	CHECK_NEAR(wrap(vector3<T>(0, 0, 0), vector3<T>(10, 10, 10), vector3<T>(12, -3, 5)), vector3<T>(2, 7, 5), tol);
 	CHECK_NEAR(mirror(static_cast<T>(0), static_cast<T>(10), static_cast<T>(13)), static_cast<T>(7), tol);
 	CHECK(mirror(0, 10, 13) == 7);
+	//	@tool min_value が 0 以外でも範囲内の値は変わらず、範囲外は端で折り返す
+	CHECK(mirror(5, 10, 7) == 7 && mirror(5, 10, 12) == 8 && mirror(5, 10, 3) == 7 && mirror(5, 10, 17) == 7);
+	CHECK_NEAR(mirror(static_cast<T>(5), static_cast<T>(10), static_cast<T>(7)), static_cast<T>(7), tol);
+	CHECK_NEAR(mirror(static_cast<T>(5), static_cast<T>(10), static_cast<T>(12)), static_cast<T>(8), tol);
+	CHECK_NEAR(mirror(static_cast<T>(5), static_cast<T>(10), static_cast<T>(3)), static_cast<T>(7), tol);
+	CHECK_NEAR(mirror(static_cast<T>(5), static_cast<T>(10), static_cast<T>(17)), static_cast<T>(7), tol);
 	CHECK(between(1, 3, 2) && !between(1, 3, 4));
 	CHECK(sign(static_cast<T>(-2)) == -1 && sign(static_cast<T>(0)) == 0 && sign0plus(static_cast<T>(0)) == 1);
 	CHECK(math::signbit(static_cast<T>(-0.0)) && !math::signbit(static_cast<T>(1)));
@@ -65,15 +71,33 @@ MATH_TEST_TYPED(utility_interpolation)
 	CHECK(lerp(vector4<T>(0, 0, 0, 0), vector4<T>(4, 4, 4, 4), static_cast<T>(0.5)) == vector4<T>(2, 2, 2, 2));
 	CHECK_NEAR(slerp(vector3<T>(1, 0, 0), vector3<T>(0, 1, 0), static_cast<T>(0.5)), vector3<T>(1, 1, 0).normalized(), tol);
 	CHECK_NEAR(slerp(vector3<T>(1, 0, 0), vector3<T>(1, 0, 0), static_cast<T>(0.5)), vector3<T>(1, 0, 0), tol);
+	//	@tool 正反対の 2 ベクトルでも NaN にならず、直交する軸で回る（途中は単位長で l と直交、両端は l と r）
+	for (const vector3<T>& from : { vector3<T>(1, 0, 0), vector3<T>(0, 0, -1), vector3<T>(1, 2, 3).normalized() })
+	{
+		const vector3<T> to = -from;
+		const vector3<T> middle = slerp(from, to, static_cast<T>(0.5));
+		CHECK_NEAR(middle.length(), static_cast<T>(1), tol);
+		CHECK_NEAR(vector3<T>::dot(middle, from), static_cast<T>(0), tol);
+		CHECK_NEAR(slerp(from, to, static_cast<T>(0)), from, tol);
+		CHECK_NEAR(slerp(from, to, static_cast<T>(1)), to, tol);
+		CHECK_NEAR(vector3<T>::dot(slerp(from, to, static_cast<T>(0.25)), from), std::cos(constants<T>::pi * static_cast<T>(0.25)), tol);
+	}
+	//	@tool ほぼ同じ向きでも有限の値になる
+	{
+		const vector3<T> near_x = vector3<T>(1, static_cast<T>(1e-5), 0).normalized();
+		const vector3<T> middle = slerp(vector3<T>(1, 0, 0), near_x, static_cast<T>(0.5));
+		CHECK(std::isfinite(middle.x) && std::isfinite(middle.y) && std::isfinite(middle.z));
+		CHECK_NEAR(middle.length(), static_cast<T>(1), tol);
+	}
 	CHECK_NEAR(smoothstep(vector3<T>(0, 0, 0), vector3<T>(2, 4, 1), static_cast<T>(1)), vector3<T>(static_cast<T>(0.5), static_cast<T>(0.15625), 1), tol);
 	CHECK(bezier(vector2<T>(0, 0), vector2<T>(1, 2), vector2<T>(2, 0), static_cast<T>(0.5)) == vector2<T>(1, 1));
 	CHECK_NEAR(bezier(vector3<T>(0, 0, 0), vector3<T>(0, 3, 0), vector3<T>(3, 3, 0), vector3<T>(3, 0, 0), static_cast<T>(0.5)), vector3<T>(static_cast<T>(1.5), static_cast<T>(2.25), 0), tol);
 }
 
-//	@tool イージング：始点 0・終点 1（指数系は定義上 1 / 255 程度の誤差がある）
+//	@tool イージング：始点 0・終点 1
 MATH_TEST_TYPED(utility_easing)
 {
-	const double tol = 5e-3;
+	const double tol = 1e-5;
 	for (std::int32_t i = 0; i < static_cast<std::int32_t>(easing::type::lerp); ++i)
 	{
 		const easing::type type = static_cast<easing::type>(i);
@@ -84,6 +108,50 @@ MATH_TEST_TYPED(utility_easing)
 		CHECK_NEAR(easing::calculate(static_cast<T>(-1), type), easing::calculate(static_cast<T>(0), type), 1e-9);
 	}
 	CHECK_NEAR(easing::in_quad(static_cast<T>(0.5)), static_cast<T>(0.25), 1e-6);
+	//	@tool in は緩やかに始まり、out は緩やかに終わる（in(t) = 1 - out(1 - t)）。in_out は中心対称（in_out(t) = 1 - in_out(1 - t)）
+	for (std::int32_t family = 0; family < 10; ++family)
+	{
+		const easing::type in_type = static_cast<easing::type>(family * 3);
+		const easing::type out_type = static_cast<easing::type>(family * 3 + 1);
+		const easing::type in_out_type = static_cast<easing::type>(family * 3 + 2);
+		for (T time : { static_cast<T>(0.1), static_cast<T>(0.3), static_cast<T>(0.45), static_cast<T>(0.7) })
+		{
+			CHECK_NEAR(easing::calculate(time, in_type), static_cast<T>(1) - easing::calculate(static_cast<T>(1) - time, out_type), 1e-5);
+			CHECK_NEAR(easing::calculate(time, in_out_type), static_cast<T>(1) - easing::calculate(static_cast<T>(1) - time, in_out_type), 1e-5);
+		}
+		CHECK(easing::calculate(static_cast<T>(0.2), in_type) < static_cast<T>(0.2) + static_cast<T>(1e-5));
+	}
+	//	@tool すべての曲線が連続している（10 万分割した隣り合う値の差が 0.006 未満。端で接線が垂直になる circ でも約 0.0045）
+	for (std::int32_t i = 0; i < static_cast<std::int32_t>(easing::type::lerp); ++i)
+	{
+		const easing::type type = static_cast<easing::type>(i);
+		double max_step = 0;
+		for (std::int32_t step = 0; step < 100000; ++step)
+		{
+			const T a = easing::calculate(static_cast<T>(static_cast<double>(step) / 100000), type);
+			const T b = easing::calculate(static_cast<T>(static_cast<double>(step + 1) / 100000), type);
+			max_step = std::fmax(max_step, std::fabs(static_cast<double>(b - a)));
+		}
+		CHECK(max_step < 0.006);
+	}
+	CHECK_NEAR(easing::in_sine(static_cast<T>(0.5)), static_cast<T>(1) - std::cos(constants<T>::pi * static_cast<T>(0.25)), 1e-6);
+	CHECK_NEAR(easing::out_sine(static_cast<T>(0.5)), std::sin(constants<T>::pi * static_cast<T>(0.25)), 1e-6);
+	//	@tool circ は単位円の弧：(1 - in_circ(t))^2 + t^2 = 1
+	for (T time : { static_cast<T>(0.2), static_cast<T>(0.6), static_cast<T>(0.9) })
+	{
+		const T c = static_cast<T>(1) - easing::in_circ(time);
+		CHECK_NEAR(c * c + time * time, static_cast<T>(1), 1e-5);
+	}
+	CHECK(easing::out_expo(static_cast<T>(1)) == static_cast<T>(1) && easing::in_out_expo(static_cast<T>(1)) == static_cast<T>(1));
+	CHECK(easing::in_expo(static_cast<T>(0)) == static_cast<T>(0) && easing::in_out_expo(static_cast<T>(0)) == static_cast<T>(0));
+	//	@tool easings.net の式と同じ値
+	CHECK_NEAR(easing::in_expo(static_cast<T>(0.5)), static_cast<T>(0.03125), 1e-6);
+	CHECK_NEAR(easing::in_out_expo(static_cast<T>(0.25)), static_cast<T>(0.015625), 1e-6);
+	CHECK_NEAR(easing::in_elastic(static_cast<T>(0.5)), static_cast<T>(-0.015625), 1e-6);
+	CHECK_NEAR(easing::in_out_elastic(static_cast<T>(0.5)), static_cast<T>(0.5), 1e-6);
+	CHECK_NEAR(easing::out_bounce(static_cast<T>(0.5)), static_cast<T>(0.765625), 1e-6);
+	CHECK_NEAR(easing::in_out_bounce(static_cast<T>(0.5)), static_cast<T>(0.5), 1e-6);
+	CHECK_NEAR(easing::in_out_back(static_cast<T>(0.25)), static_cast<T>(-0.0996818437), 1e-6);
 	CHECK_NEAR(easing::in_out_cubic(static_cast<T>(0.75)), static_cast<T>(0.9375), 1e-5);
 	CHECK_NEAR(easing::calculate(static_cast<T>(0.3), easing::type::lerp), static_cast<T>(0.3), 1e-6);
 }
@@ -100,8 +168,11 @@ MATH_TEST_TYPED(utility_angle)
 	CHECK_NEAR(angle::difference(static_cast<T>(0.1), constants<T>::pi2 - static_cast<T>(0.1)), static_cast<T>(0.2), tol * 10);
 	CHECK(angle::is_sharp_angle(vector3<T>(1, 0, 0), vector3<T>(), vector3<T>(1, 1, 0)));
 	CHECK(!angle::is_sharp_angle(vector3<T>(1, 0, 0), vector3<T>(), vector3<T>(-1, 1, 0)));
-	//	@tool fov_vertical_to_fov_horizontal と fov_horizontal_to_fov_vertical は互いに逆変換（Framework の名前どおり）
+	//	@tool 垂直視野角 90 度・アスペクト比 2 の水平視野角は 2 * atan(2)（横長なら水平視野角の方が広い）
 	const T fov = static_cast<T>(1.1), aspect = static_cast<T>(1.6);
+	CHECK_NEAR(angle::fov_vertical_to_fov_horizontal(constants<T>::pi_half, static_cast<T>(2)), static_cast<T>(2) * std::atan(static_cast<T>(2)), tol);
+	CHECK_NEAR(angle::fov_horizontal_to_fov_vertical(static_cast<T>(2) * std::atan(static_cast<T>(2)), static_cast<T>(2)), constants<T>::pi_half, tol);
+	CHECK(angle::fov_vertical_to_fov_horizontal(fov, aspect) > fov);
 	CHECK_NEAR(angle::fov_vertical_to_fov_horizontal(angle::fov_horizontal_to_fov_vertical(fov, aspect), aspect), fov, tol);
 	for (T a : { static_cast<T>(-7), static_cast<T>(-1), static_cast<T>(0), static_cast<T>(0.5), static_cast<T>(2), static_cast<T>(10) })
 	{

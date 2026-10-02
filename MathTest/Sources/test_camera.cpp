@@ -65,6 +65,14 @@ MATH_TEST_TYPED(camera_perspective_depth)
 		}
 	}
 
+	//	@tool far == near は、どの透視投影でも無限遠として扱う
+	const matrix<T> same_near_far = matrix<T>::perspective_fov(static_cast<T>(1), static_cast<T>(1.5), near_z, near_z);
+	CHECK_NEAR(same_near_far, matrix<T>::perspective_fov(static_cast<T>(1), static_cast<T>(1.5), near_z, static_cast<T>(-1)), tol);
+	const matrix<T> same_off_center = matrix<T>::perspective_off_center(static_cast<T>(-0.1), static_cast<T>(0.1), static_cast<T>(0.1), static_cast<T>(-0.1), near_z, near_z);
+	CHECK_NEAR(same_off_center, matrix<T>::perspective_off_center(static_cast<T>(-0.1), static_cast<T>(0.1), static_cast<T>(0.1), static_cast<T>(-0.1), near_z, static_cast<T>(-1)), tol);
+	//	@tool 中心を移動しない perspective_fov_offset_center は perspective_fov と同じ
+	CHECK_NEAR(matrix<T>::perspective_fov_offset_center(static_cast<T>(1), static_cast<T>(1.5), near_z, far_z, 0, 0), matrix<T>::perspective_fov(static_cast<T>(1), static_cast<T>(1.5), near_z, far_z), 1e-3);
+
 	//	@tool 既定値は MATH_REVERSE_DEPTH に従う
 	CHECK(default_projection_z_order == (MATH_REVERSE_DEPTH ? projection_z_order::reverse : projection_z_order::normal));
 	CHECK(is_reverse_depth() == (MATH_REVERSE_DEPTH != 0));
@@ -104,9 +112,15 @@ MATH_TEST_TYPED(camera_orthographic)
 			CHECK_NEAR(corner.y, static_cast<T>(1), tol);
 		}
 	}
+	//	@tool 左・右・上・下の指定は perspective_off_center と同じく左 = -1、右 = +1、上 = +1、下 = -1 になる
 	const matrix<T> offset = matrix<T>::orthographic_offset_center(0, 100, 0, 50, 1, 10, coordinate_order::lh, projection_z_order::normal);
 	CHECK_NEAR(projected_depth(offset, vector3<T>(0, 0, 1)), static_cast<T>(0), tol);
 	CHECK_NEAR(vector4<T>::transform(vector4<T>(50, 25, 5, 1), offset).x, static_cast<T>(0), tol);
+	CHECK_NEAR(vector4<T>::transform(vector4<T>(0, 0, 5, 1), offset).x, static_cast<T>(-1), tol);
+	CHECK_NEAR(vector4<T>::transform(vector4<T>(0, 0, 5, 1), offset).y, static_cast<T>(1), tol);
+	CHECK_NEAR(vector4<T>::transform(vector4<T>(100, 50, 5, 1), offset).y, static_cast<T>(-1), tol);
+	const matrix<T> perspective_box = matrix<T>::perspective_off_center(-1, 1, 1, -1, 1, 10, coordinate_order::lh, projection_z_order::normal);
+	CHECK(vector4<T>::transform(vector4<T>(0, 1, 1, 1), perspective_box).y > 0);
 }
 
 //	@tool ビューポートとスクリーン座標からの逆変換
@@ -128,8 +142,10 @@ MATH_TEST_TYPED(camera_screen_to_world)
 	CHECK_NEAR((world - eye).normalized(), (target - eye).normalized(), tol);
 	CHECK_NEAR((world - eye).length(), static_cast<T>(0.1), tol);
 
-	const vector3<T> ndc = vector3<T>::calc_screen_to_projection(960, 540, near_depth, projection, viewport);
-	CHECK_NEAR(ndc, vector3<T>::forward() * static_cast<T>(0.1), tol);
+	//	@tool calc_screen_to_view はビュー空間の座標を返す（画面中央・near 面なら前方向に near の距離）
+	const vector3<T> view_position = vector3<T>::calc_screen_to_view(960, 540, near_depth, projection, viewport);
+	CHECK_NEAR(view_position, vector3<T>::forward() * static_cast<T>(0.1), tol);
+	CHECK_NEAR(vector3<T>::transform_coord(view_position, view.inverted()), world, tol);
 }
 
 //	@tool 深度の変換（正規化済み深度 <-> ビュー空間の距離）
@@ -145,6 +161,11 @@ MATH_TEST_TYPED(camera_depth_conversion)
 			const T depth = projected_depth(projection, vector3<T>(0, 0, distance));
 			CHECK_NEAR(convert_depth(depth, near_z, far_z, z_order) / distance, static_cast<T>(1), tol);
 			CHECK_NEAR(convert_linear_depth(depth, near_z, far_z, z_order), (distance - near_z) / (far_z - near_z), tol);
+
+			//	@tool 無限遠（far < near）でも距離に戻せる
+			const matrix<T> infinite = matrix<T>::perspective_fov(static_cast<T>(1), static_cast<T>(1), near_z, static_cast<T>(-1), coordinate_order::lh, z_order);
+			const T infinite_depth = projected_depth(infinite, vector3<T>(0, 0, distance));
+			CHECK_NEAR(convert_depth(infinite_depth, near_z, static_cast<T>(-1), z_order) / distance, static_cast<T>(1), tol);
 		}
 	}
 }

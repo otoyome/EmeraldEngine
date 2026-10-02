@@ -5,14 +5,6 @@
 namespace math
 {
 	//	4x4行列演算クラス
-	//	@tool 【格納】規約に関係なく常に「左手系・行ベクトル規約の行列を行優先で並べた形」で持つ
-	//	@tool         reg[0] / reg[1] / reg[2] が X 軸 / Y 軸 / Z 軸、reg[3] が平行移動（storage[軸][成分]）
-	//	@tool         列ベクトル規約の行列を列優先で並べた形も同じ並びになるため、規約によって格納や計算が変わることはない
-	//	@tool         そのまま GPU に送れる（行ベクトル規約：row_major + mul(v, M)、列ベクトル規約：column_major + mul(M, v)）
-	//	@tool 【規約で変わるもの】数学上の要素名（_11～_44 / operator()(行, 列)）、16 要素を受け取る生成・設定、A * B の順序
-	//	@tool         行ベクトル規約（既定）：v * M、平行移動は _41, _42, _43、A * B は「A の後に B」
-	//	@tool         列ベクトル規約（MATH_COLUMN_VECTOR）：M * v、平行移動は _14, _24, _34、A * B は「B の後に A」
-	//	@tool         規約に関係なく「first の後に second」を合成したい場合は concatenate(first, second) を使う
 	template<typename T>
 	class alignas(simd_alignment_v<T>) matrix
 	{
@@ -28,7 +20,6 @@ namespace math
 		matrix() { identity(); }
 		matrix(const matrix&) = default;
 		matrix& operator=(const matrix&) = default;
-		//	@tool 数学上の並び（1 行目から順）で指定する。列ベクトル規約では格納時に転置される
 		matrix(T m11, T m12, T m13, T m14,
 			   T m21, T m22, T m23, T m24,
 			   T m31, T m32, T m33, T m34,
@@ -39,11 +30,8 @@ namespace math
 				m31, m32, m33, m34,
 				m41, m42, m43, m44);
 		}
-		//	@tool X 軸 / Y 軸 / Z 軸 / 平行移動 の 4 つの軸ベクトルから生成（行ベクトル規約では行、列ベクトル規約では列になる）
 		matrix(const vector4<T>& axis_x, const vector4<T>& axis_y, const vector4<T>& axis_z, const vector4<T>& axis_w);
-		//	@tool 保存用の型からの生成（格納順のままコピーする）
 		matrix(const basic_element_matrix<T, 4, 4>& source);
-		//	@tool 要素の型が違う保存用の型からの変換（格納順のままコピーする）
 		template<typename U, std::enable_if_t<!std::is_same_v<T, U>, int> = 0>
 		explicit matrix(const basic_element_matrix<U, 4, 4>& source)
 		{
@@ -52,7 +40,6 @@ namespace math
 				elements[i] = static_cast<T>(source.elements[i]);
 			}
 		}
-		//	@tool float <> double の変換（精度が変わるため明示的に行う）
 		template<typename U, std::enable_if_t<!std::is_same_v<T, U>, int> = 0>
 		explicit matrix(const matrix<U>& mat)
 		{
@@ -61,7 +48,6 @@ namespace math
 				elements[i] = static_cast<T>(mat.elements[i]);
 			}
 		}
-		//	@tool SIMD レジスタ（軸ベクトル）から生成
 		matrix(const register_type& axis_x, const register_type& axis_y, const register_type& axis_z, const register_type& axis_w)
 		{
 			reg[0] = axis_x;
@@ -78,7 +64,6 @@ namespace math
 
 		void set(T value);
 
-		//	@tool 数学上の並びで設定する（列ベクトル規約では格納時に転置される）
 		void set(T m11, T m12, T m13, T m14,
 				 T m21, T m22, T m23, T m24,
 				 T m31, T m32, T m33, T m34,
@@ -100,7 +85,6 @@ namespace math
 			}
 		}
 
-		//	@tool 格納順（X 軸、Y 軸、Z 軸、平行移動の順）で設定する。規約に関係なく同じ結果になる
 		void set_storage(T v11, T v12, T v13, T v14,
 						 T v21, T v22, T v23, T v24,
 						 T v31, T v32, T v33, T v34,
@@ -122,7 +106,6 @@ namespace math
 			}
 		}
 
-		//	@tool 4 つの軸ベクトルで設定する
 		void set(const vector4<T>& axis_x, const vector4<T>& axis_y, const vector4<T>& axis_z, const vector4<T>& axis_w);
 
 		//	転置する
@@ -159,14 +142,12 @@ namespace math
 		matrix mirrored(mirroring_order order) const { matrix ret = *this; ret.mirror(order); return ret; }
 
 		//	Vector4で要素を取得
-		//	@tool index 番目の軸ベクトル（0：X 軸、1：Y 軸、2：Z 軸、3：平行移動）。行ベクトル規約では行、列ベクトル規約では列
 		vector4<T> to_vector4(std::int32_t index) const;
 
 		//	Vector3で要素を取得
-		//	@tool index 番目の軸ベクトルの xyz
 		vector3<T> to_vector3(std::int32_t index) const;
 
-		//	@tool 平行移動成分の取得 / 設定
+		//	平行移動成分の取得 / 設定
 		vector3<T> get_translation() const;
 		void set_translation(const vector3<T>& position);
 
@@ -230,7 +211,6 @@ namespace math
 		}
 
 		//	掛け算（*this = *this * r）
-		//	@tool 行ベクトル規約は「this の後に r」、列ベクトル規約は「r の後に this」
 		void multiply(const matrix& r)
 		{
 			if constexpr (is_column_vector)
@@ -243,15 +223,11 @@ namespace math
 			}
 		}
 
-		//	@tool 保存用の型への変換（格納順のままコピーする。double -> float は丸められる）
 		float4x4 to_float4x4() const;
 		double4x4 to_double4x4() const;
-		//	@tool 各軸ベクトルの w（行ベクトル規約の _14, _24, _34, _44）を除いた 4 x 3 要素（アフィン変換を詰めて GPU に送る用）
-		//	@tool 列ベクトル規約では、そのまま column_major の float3x4 として読める並びになる
 		float4x3 to_float4x3() const;
 
 	public:
-		//	@tool 数学上の (行, 列) でアクセスする（0 始まり。列ベクトル規約では格納と転置の関係になる）
 		T& operator()(std::uint32_t row, std::uint32_t column)
 		{
 			if constexpr (is_column_vector)
@@ -274,7 +250,6 @@ namespace math
 				return storage[row][column];
 			}
 		}
-		//	@tool 0～15 の格納順の通し番号でアクセスする
 		T& operator[](std::int32_t index) { return elements[index]; }
 		const T& operator[](std::int32_t index) const { return elements[index]; }
 		matrix operator+() const { return *this; }
@@ -304,8 +279,6 @@ namespace math
 		bool operator!=(const matrix& r) const { return !(*this == r); }
 
 	public:
-		//	@tool 「first の変換の後に second の変換」を表す行列（規約に関係なく同じ意味）
-		//	@tool 行ベクトル規約では first * second、列ベクトル規約では second * first と同じ
 		static matrix concatenate(const matrix& first, const matrix& second)
 		{
 			matrix ret;
@@ -333,7 +306,6 @@ namespace math
 		static T determinant(const matrix& mat);
 
 		//	逆行列化
-		//	@tool 行列式が 0 の場合は元の行列をそのまま返す（Framework の実装どおり）
 		static matrix inverse(const matrix& mat);
 
 		//	拡縮行列を対象とした逆行列化
@@ -367,7 +339,6 @@ namespace math
 		static matrix rotation_z(T roll);
 
 		//	オイラー角指定の回転行列を生成
-		//	@tool order は回転を適用する順（xyz なら X 軸回転の後に Y 軸回転の後に Z 軸回転）。規約に関係なく同じ意味
 		static matrix rotation_xyz(const vector3<T>& rotation, rotation_order order = default_rotation_order);
 
 		//	オイラー角指定の回転行列を生成
@@ -406,7 +377,6 @@ namespace math
 		static matrix translation(const vector4<T>& position);
 
 		//	姿勢制御行列を生成
-		//	@tool 拡縮の後に回転の後に平行移動（規約に関係なく同じ意味）
 		static matrix transform(const vector3<T>& scale, const quaternion<T>& rotation, const vector3<T>& position);
 
 		//	姿勢制御行列を生成
@@ -416,19 +386,19 @@ namespace math
 		static matrix look_at(const vector3<T>& position, const vector3<T>& target, const vector3<T>& up_vector, coordinate_order coordinate = default_coordinate_order);
 
 		//	透視投影行列生成
-		//	@tool far が near 以下の場合は無限遠
+		//	far が near 以下の場合は無限遠
 		static matrix perspective(T width, T height, T near_z, T far_z, coordinate_order coordinate = default_coordinate_order, projection_z_order z_order = default_projection_z_order);
 
 		//	透視投影行列生成
-		//	@tool far が near 未満の場合は無限遠
+		//	far が near 以下の場合は無限遠
 		static matrix perspective_fov(T fov_y, T aspect, T near_z, T far_z, coordinate_order coordinate = default_coordinate_order, projection_z_order z_order = default_projection_z_order);
 
 		//	矩形指定透視投影行列生成
-		//	@tool far が near 未満の場合は無限遠
+		//	far が near 以下の場合は無限遠
 		static matrix perspective_off_center(T left, T right, T top, T bottom, T near_z, T far_z, coordinate_order coordinate = default_coordinate_order, projection_z_order z_order = default_projection_z_order);
 
 		//	透視投影行列生成
-		//	@tool offset_x / offset_y は中心点の移動量
+		//	offset_x / offset_y は中心点の移動量
 		static matrix perspective_fov_offset_center(T fov_y, T aspect, T near_z, T far_z, T offset_x, T offset_y, coordinate_order coordinate = default_coordinate_order, projection_z_order z_order = default_projection_z_order);
 
 		//	正射影行列生成
@@ -443,13 +413,13 @@ namespace math
 	public:
 		union
 		{
-			//	@tool 軸ベクトルのレジスタ（0：X 軸、1：Y 軸、2：Z 軸、3：平行移動）
+			//	軸ベクトルのレジスタ（0：X 軸、1：Y 軸、2：Z 軸、3：平行移動）
 			register_type reg[4];
-			//	@tool 格納順の通し番号
+			//	格納順の通し番号
 			T elements[element_count];
-			//	@tool storage[軸][成分]
+			//	storage[軸][成分]
 			T storage[4][4];
-			//	@tool 格納順の要素名（行ベクトル規約の _11～_44 と同じ位置。ライブラリ内部の計算はこちらを使う）
+			//	格納順の要素名（行ベクトル規約の _11～_44 と同じ位置。ライブラリ内部の計算はこちらを使う）
 			struct
 			{
 				T s11, s12, s13, s14;
@@ -457,7 +427,7 @@ namespace math
 				T s31, s32, s33, s34;
 				T s41, s42, s43, s44;
 			};
-			//	@tool 数学上の要素名（_行列）
+			//	数学上の要素名（_行列）
 			struct
 			{
 #if MATH_COLUMN_VECTOR

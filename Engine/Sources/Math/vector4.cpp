@@ -66,7 +66,6 @@ namespace math
 
 	namespace
 	{
-		//	@tool 行ベクトル規約の形の行列 r で v * r を計算する
 		template<typename T>
 		vector4<T> transform_row(const vector4<T>& l, const matrix<T>& r)
 		{
@@ -85,7 +84,6 @@ namespace math
 
 	}	//	namespace
 
-	//	@tool 格納は規約に関係なく同じ並びのため、列ベクトル規約（M * v）でも同じ計算になる
 	template<typename T>
 	vector4<T> vector4<T>::transform(const vector4& l, const matrix<T>& r)
 	{

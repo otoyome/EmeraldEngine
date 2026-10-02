@@ -6,13 +6,12 @@
 //	time ‚É 0`1‚ğ—^‚¦‚½‚ç•âŠ®ˆ—‚ğŒo‚Ä 0`1 ‚ğ•Ô‚·B
 //	Interpolation ‚Æ‚ ‚¦‚Ä•ª‚¯‚Ä‚¢‚é‚Ì‚Í easing cheat seat ‚ÌŠÖŒWB
 //	‚Ç‚¤‚¢‚¤‹Èü‚ª‚Å‚«‚é‚©‚Í https://easings.net/ QÆ‚µ‚Ä‚­‚¾‚³‚¢
-//	@tool Šù‘¶‚Ì math::easeiSystem/math_utility.hj‚Æ–¼‘O‚ªÕ“Ë‚·‚é‚½‚ß math::easing ‚Æ‚µ‚Ä‚¢‚é
 namespace math::easing
 {
 	template<typename T>
-	T in_sine(T time) { return std::sin(constants<T>::pi_half * time); }
+	T in_sine(T time) { return static_cast<T>(1) - std::cos(constants<T>::pi_half * time); }
 	template<typename T>
-	T out_sine(T time) { return static_cast<T>(1) + std::sin(constants<T>::pi_half * (time - static_cast<T>(1))); }
+	T out_sine(T time) { return std::sin(constants<T>::pi_half * time); }
 	template<typename T>
 	T in_out_sine(T time) { return static_cast<T>(0.5) * (static_cast<T>(1) + std::sin(constants<T>::pi * (time - static_cast<T>(0.5)))); }
 
@@ -41,7 +40,6 @@ namespace math::easing
 		{
 			return static_cast<T>(4) * time * time * time;
 		}
-		//	@tool Framework ‚Ì® 1 + (--t) * (2 * (--t)) * (2 * t) ‚Í•]‰¿‡‚ª–¢‹K’è‚Ì‚½‚ßAˆÓ}‚Ç‚¨‚è‚ÌŒ`‚É“WŠJ‚µ‚Ä‚¢‚é
 		time -= static_cast<T>(1);
 		return static_cast<T>(1) + static_cast<T>(4) * time * time * time;
 	}
@@ -100,31 +98,51 @@ namespace math::easing
 	}
 
 	template<typename T>
-	T in_expo(T time) { return (std::pow(static_cast<T>(2), static_cast<T>(8) * time) - static_cast<T>(1)) / static_cast<T>(255); }
+	T in_expo(T time)
+	{
+		return time <= static_cast<T>(0) ? static_cast<T>(0) : std::pow(static_cast<T>(2), static_cast<T>(10) * time - static_cast<T>(10));
+	}
 	template<typename T>
-	T out_expo(T time) { return static_cast<T>(1) - std::pow(static_cast<T>(2), static_cast<T>(-8) * time); }
+	T out_expo(T time)
+	{
+		return time >= static_cast<T>(1) ? static_cast<T>(1) : static_cast<T>(1) - std::pow(static_cast<T>(2), static_cast<T>(-10) * time);
+	}
 	template<typename T>
 	T in_out_expo(T time)
 	{
+		if (time <= static_cast<T>(0))
+		{
+			return static_cast<T>(0);
+		}
+		if (time >= static_cast<T>(1))
+		{
+			return static_cast<T>(1);
+		}
 		if (time < static_cast<T>(0.5))
 		{
-			return (std::pow(static_cast<T>(2), static_cast<T>(16) * time) - static_cast<T>(1)) / static_cast<T>(510);
+			return std::pow(static_cast<T>(2), static_cast<T>(20) * time - static_cast<T>(10)) * static_cast<T>(0.5);
 		}
-		return static_cast<T>(1) - static_cast<T>(0.5) * std::pow(static_cast<T>(2), static_cast<T>(-16) * (time - static_cast<T>(0.5)));
+		return (static_cast<T>(2) - std::pow(static_cast<T>(2), static_cast<T>(10) - static_cast<T>(20) * time)) * static_cast<T>(0.5);
 	}
 
 	template<typename T>
-	T in_circ(T time) { return static_cast<T>(1) - std::sqrt(static_cast<T>(1) - time); }
+	T in_circ(T time) { return static_cast<T>(1) - std::sqrt(static_cast<T>(1) - time * time); }
 	template<typename T>
-	T out_circ(T time) { return std::sqrt(time); }
+	T out_circ(T time)
+	{
+		time -= static_cast<T>(1);
+		return std::sqrt(static_cast<T>(1) - time * time);
+	}
 	template<typename T>
 	T in_out_circ(T time)
 	{
+		const T double_time = static_cast<T>(2) * time;
 		if (time < static_cast<T>(0.5))
 		{
-			return (static_cast<T>(1) - std::sqrt(static_cast<T>(1) - static_cast<T>(2) * time)) * static_cast<T>(0.5);
+			return (static_cast<T>(1) - std::sqrt(static_cast<T>(1) - double_time * double_time)) * static_cast<T>(0.5);
 		}
-		return (static_cast<T>(1) + std::sqrt(static_cast<T>(2) * time - static_cast<T>(1))) * static_cast<T>(0.5);
+		const T rest = double_time - static_cast<T>(2);
+		return (std::sqrt(static_cast<T>(1) - rest * rest) + static_cast<T>(1)) * static_cast<T>(0.5);
 	}
 
 	template<typename T>
@@ -138,55 +156,96 @@ namespace math::easing
 	template<typename T>
 	T in_out_back(T time)
 	{
+		const T c2 = static_cast<T>(1.70158 * 1.525);
+		const T double_time = static_cast<T>(2) * time;
 		if (time < static_cast<T>(0.5))
 		{
-			return time * time * (static_cast<T>(7) * time - static_cast<T>(2.5)) * static_cast<T>(2);
+			return double_time * double_time * ((c2 + static_cast<T>(1)) * double_time - c2) * static_cast<T>(0.5);
 		}
-		time -= static_cast<T>(1);
-		return static_cast<T>(1) + time * time * static_cast<T>(2) * (static_cast<T>(7) * time + static_cast<T>(2.5));
+		const T rest = double_time - static_cast<T>(2);
+		return (rest * rest * ((c2 + static_cast<T>(1)) * rest + c2) + static_cast<T>(2)) * static_cast<T>(0.5);
 	}
 
 	template<typename T>
 	T in_elastic(T time)
 	{
-		T time_pow = time * time;
-		return time_pow * time_pow * std::sin(time * constants<T>::pi * static_cast<T>(4.5));
+		if (time <= static_cast<T>(0))
+		{
+			return static_cast<T>(0);
+		}
+		if (time >= static_cast<T>(1))
+		{
+			return static_cast<T>(1);
+		}
+		const T c4 = constants<T>::pi2 / static_cast<T>(3);
+		return -std::pow(static_cast<T>(2), static_cast<T>(10) * time - static_cast<T>(10)) * std::sin((static_cast<T>(10) * time - static_cast<T>(10.75)) * c4);
 	}
 	template<typename T>
 	T out_elastic(T time)
 	{
-		T time_pow = (time - static_cast<T>(1)) * (time - static_cast<T>(1));
-		return static_cast<T>(1) - time_pow * time_pow * std::cos(time * constants<T>::pi * static_cast<T>(4.5));
+		if (time <= static_cast<T>(0))
+		{
+			return static_cast<T>(0);
+		}
+		if (time >= static_cast<T>(1))
+		{
+			return static_cast<T>(1);
+		}
+		const T c4 = constants<T>::pi2 / static_cast<T>(3);
+		return std::pow(static_cast<T>(2), static_cast<T>(-10) * time) * std::sin((static_cast<T>(10) * time - static_cast<T>(0.75)) * c4) + static_cast<T>(1);
 	}
 	template<typename T>
 	T in_out_elastic(T time)
 	{
-		T time_pow;
-		if (time < static_cast<T>(0.45))
+		if (time <= static_cast<T>(0))
 		{
-			time_pow = time * time;
-			return static_cast<T>(8) * time_pow * time_pow * std::sin(time * constants<T>::pi * static_cast<T>(9));
+			return static_cast<T>(0);
 		}
-		else if (time < static_cast<T>(0.55))
+		if (time >= static_cast<T>(1))
 		{
-			return static_cast<T>(0.5) + static_cast<T>(0.75) * std::sin(time * constants<T>::pi * static_cast<T>(4));
+			return static_cast<T>(1);
 		}
-		time_pow = (time - static_cast<T>(1)) * (time - static_cast<T>(1));
-		return static_cast<T>(1) - static_cast<T>(8) * time_pow * time_pow * std::sin(time * constants<T>::pi * static_cast<T>(9));
+		const T c5 = constants<T>::pi2 / static_cast<T>(4.5);
+		const T s = std::sin((static_cast<T>(20) * time - static_cast<T>(11.125)) * c5);
+		if (time < static_cast<T>(0.5))
+		{
+			return -std::pow(static_cast<T>(2), static_cast<T>(20) * time - static_cast<T>(10)) * s * static_cast<T>(0.5);
+		}
+		return std::pow(static_cast<T>(2), static_cast<T>(10) - static_cast<T>(20) * time) * s * static_cast<T>(0.5) + static_cast<T>(1);
 	}
 
 	template<typename T>
-	T in_bounce(T time) { return std::pow(static_cast<T>(2), static_cast<T>(6) * (time - static_cast<T>(1))) * std::abs(std::sin(time * constants<T>::pi * static_cast<T>(3.5))); }
+	T out_bounce(T time)
+	{
+		const T n1 = static_cast<T>(7.5625);
+		const T d1 = static_cast<T>(2.75);
+		if (time < static_cast<T>(1) / d1)
+		{
+			return n1 * time * time;
+		}
+		if (time < static_cast<T>(2) / d1)
+		{
+			time -= static_cast<T>(1.5) / d1;
+			return n1 * time * time + static_cast<T>(0.75);
+		}
+		if (time < static_cast<T>(2.5) / d1)
+		{
+			time -= static_cast<T>(2.25) / d1;
+			return n1 * time * time + static_cast<T>(0.9375);
+		}
+		time -= static_cast<T>(2.625) / d1;
+		return n1 * time * time + static_cast<T>(0.984375);
+	}
 	template<typename T>
-	T out_bounce(T time) { return static_cast<T>(1) - std::pow(static_cast<T>(2), static_cast<T>(-6) * time) * std::abs(std::cos(time * constants<T>::pi * static_cast<T>(3.5))); }
+	T in_bounce(T time) { return static_cast<T>(1) - out_bounce(static_cast<T>(1) - time); }
 	template<typename T>
 	T in_out_bounce(T time)
 	{
 		if (time < static_cast<T>(0.5))
 		{
-			return static_cast<T>(8) * std::pow(static_cast<T>(2), static_cast<T>(8) * (time - static_cast<T>(1))) * std::abs(std::sin(time * constants<T>::pi * static_cast<T>(7)));
+			return (static_cast<T>(1) - out_bounce(static_cast<T>(1) - static_cast<T>(2) * time)) * static_cast<T>(0.5);
 		}
-		return static_cast<T>(1) - static_cast<T>(8) * std::pow(static_cast<T>(2), static_cast<T>(-8) * time) * std::abs(std::sin(time * constants<T>::pi * static_cast<T>(7)));
+		return (static_cast<T>(1) + out_bounce(static_cast<T>(2) * time - static_cast<T>(1))) * static_cast<T>(0.5);
 	}
 
 	//	•âŠÔˆ—’è”
@@ -227,7 +286,6 @@ namespace math::easing
 		max,
 	};
 
-	//	@tool time ‚Í 0`1 ‚ÉŠÛ‚ß‚Ä‚©‚çŒvZ‚·‚éiFramework ‚ÍŠÛ‚ß‚½’l‚ğg‚Á‚Ä‚¢‚È‚©‚Á‚½j
 	template<typename T>
 	T calculate(T time, type easing_type)
 	{

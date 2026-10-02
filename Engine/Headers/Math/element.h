@@ -4,10 +4,7 @@
 #include <cstdint>
 #include <type_traits>
 
-//	@tool 保存・受け渡し用の値型（Framework の ElementValue.h 相当）
-//	@tool 演算用の vector2 / vector3 / vector4 / quaternion / matrix は SIMD レジスタ幅で保持するため、
-//	@tool 配列での大量保持・GPU への転送・シリアライズなどにはこちらの詰めた型を使い、必要な時だけ相互に変換する
-//	@tool 要素は詰めて並ぶ（float3 は 12 バイト、float4x4 は 64 バイト）
+//	保存・受け渡し用の値型
 namespace math
 {
 	//	2要素
@@ -25,7 +22,7 @@ namespace math
 
 		constexpr basic_element2() : x(0), y(0) {}
 		constexpr basic_element2(T x, T y) : x(x), y(y) {}
-		//	@tool 要素の型が違うものからの変換（精度が変わるため明示的に行う）
+
 		template<typename U, std::enable_if_t<!std::is_same_v<T, U>, int> = 0>
 		explicit constexpr basic_element2(const basic_element2<U>& v) : x(static_cast<T>(v.x)), y(static_cast<T>(v.y)) {}
 
@@ -50,7 +47,7 @@ namespace math
 
 		constexpr basic_element3() : x(0), y(0), z(0) {}
 		constexpr basic_element3(T x, T y, T z) : x(x), y(y), z(z) {}
-		//	@tool 要素の型が違うものからの変換（精度が変わるため明示的に行う）
+
 		template<typename U, std::enable_if_t<!std::is_same_v<T, U>, int> = 0>
 		explicit constexpr basic_element3(const basic_element3<U>& v) : x(static_cast<T>(v.x)), y(static_cast<T>(v.y)), z(static_cast<T>(v.z)) {}
 
@@ -75,7 +72,7 @@ namespace math
 
 		constexpr basic_element4() : x(0), y(0), z(0), w(0) {}
 		constexpr basic_element4(T x, T y, T z, T w) : x(x), y(y), z(z), w(w) {}
-		//	@tool 要素の型が違うものからの変換（精度が変わるため明示的に行う）
+
 		template<typename U, std::enable_if_t<!std::is_same_v<T, U>, int> = 0>
 		explicit constexpr basic_element4(const basic_element4<U>& v) : x(static_cast<T>(v.x)), y(static_cast<T>(v.y)), z(static_cast<T>(v.z)), w(static_cast<T>(v.w)) {}
 
@@ -86,7 +83,6 @@ namespace math
 	};
 
 	//	行列（行優先で Rows 行 Columns 列）
-	//	@tool 既定値は対角成分が 1 の行列（4x4 なら単位行列）
 	template<typename T, std::uint32_t Rows, std::uint32_t Columns>
 	struct basic_element_matrix
 	{
@@ -108,7 +104,7 @@ namespace math
 				elements[i * Columns + i] = static_cast<T>(1);
 			}
 		}
-		//	@tool 要素の型が違うものからの変換（精度が変わるため明示的に行う）
+
 		template<typename U, std::enable_if_t<!std::is_same_v<T, U>, int> = 0>
 		explicit constexpr basic_element_matrix(const basic_element_matrix<U, Rows, Columns>& v) : elements{}
 		{
@@ -134,7 +130,6 @@ namespace math
 		constexpr bool operator!=(const basic_element_matrix& v) const { return !(*this == v); }
 	};
 
-	//	@tool 別名（HLSL の型名に合わせている）
 	using float2 = basic_element2<float>;
 	using float3 = basic_element3<float>;
 	using float4 = basic_element4<float>;

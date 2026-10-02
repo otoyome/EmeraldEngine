@@ -31,8 +31,7 @@ namespace math
 	template<typename T>
 	vector3<T> quaternion<T>::rotate(const vector3<T>& v) const
 	{
-		//	@tool q * v * q^-1 を展開した式（単位クォータニオン前提）
-		//	@tool t = 2 * (q.xyz x v)、v' = v + w * t + q.xyz x t
+		//	q * v * q^-1 を展開した式（単位クォータニオン前提）
 		const vector3<T> axis_vector(x, y, z);
 		const vector3<T> t = vector3<T>::cross(axis_vector, v) * static_cast<T>(2);
 		return v + t * w + vector3<T>::cross(axis_vector, t);
@@ -142,28 +141,6 @@ namespace math
 				break;
 			}
 		}
-	}
-
-	template<typename T>
-	bool quaternion<T>::restrict(const vector3<T>& min_angle, const vector3<T>& max_angle)
-	{
-		bool limit = false;
-		for (std::uint32_t i = 0; i < vector3<T>::element_count; ++i)
-		{
-			T min_value = std::sin(min_angle[i] * static_cast<T>(0.5));
-			T max_value = std::sin(max_angle[i] * static_cast<T>(0.5));
-			if (elements[i] < min_value)
-			{
-				elements[i] = min_value;
-				limit = true;
-			}
-			if (elements[i] > max_value)
-			{
-				elements[i] = max_value;
-				limit = true;
-			}
-		}
-		return limit;
 	}
 
 	///////////////////////////////////////////////////////////////////////////////////////////
@@ -298,8 +275,6 @@ namespace math
 				return quaternion(0, 0, 0, 1);
 			}
 
-			//	@tool Framework は逆向きのときも (0, 0, 0, -1)（= 無回転）を返していたため、
-			//	@tool direction1 に直交する軸で 180 度回転させるよう修正している
 			vector3<T> other = std::abs(direction1.x) < static_cast<T>(0.9) ? vector3<T>::x_axis() : vector3<T>::y_axis();
 			vector3<T> half_axis = vector3<T>::cross(direction1, other).normalized();
 			return quaternion(half_axis.x, half_axis.y, half_axis.z, 0);
@@ -307,7 +282,6 @@ namespace math
 		rotation_axis_vector.normalize();
 
 		//	半角の公式
-		//	@tool 丸め誤差で sqrt の中が負にならないよう 0 未満を切り捨てている
 		T c = std::sqrt((std::max)(static_cast<T>(0), static_cast<T>(0.5) * (static_cast<T>(1) + cos_angle)));
 		T s = std::sqrt((std::max)(static_cast<T>(0), static_cast<T>(0.5) * (static_cast<T>(1) - cos_angle)));
 		return quaternion(rotation_axis_vector.x * s, rotation_axis_vector.y * s, rotation_axis_vector.z * s, c);
@@ -369,7 +343,7 @@ namespace math
 	template<typename T>
 	quaternion<T> quaternion<T>::look_rotation(const vector3<T>& forward, const vector3<T>& up_vector, coordinate_order coordinate)
 	{
-		//	@tool 右手系は -Z が前方向なので、Z 軸を forward の逆向きにする
+		//	右手系は -Z が前方向なので、Z 軸を forward の逆向きにする
 		vector3<T> axis_z = coordinate == coordinate_order::rh ? (-forward).normalized() : forward.normalized();
 		vector3<T> axis_x = vector3<T>::cross(up_vector, axis_z).normalized();
 		vector3<T> axis_y = vector3<T>::cross(axis_z, axis_x).normalized();

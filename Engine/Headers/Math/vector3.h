@@ -5,10 +5,6 @@
 namespace math
 {
 	//	3次元ベクトル演算クラス
-	//	@tool 【格納】x, y, z（SIMD 使用時は w = 0 を加えた 4 要素）。規約に関係なく同じで、内部の計算も 1 通り
-	//	@tool 【規約で変わるもの】forward()（左手系：+Z、右手系：-Z）、行列との積の書き方（vector4 の operator* を参照）
-	//	@tool SIMD 使用時は 4 要素分の領域を持ち、w は常に 0 を保つ
-	//	@tool サイズ：float 版 16 バイト、double 版 32 バイト（32 バイト境界。MATH_DISABLE_SIMD 時は 12 / 24 バイト）
 	template<typename T>
 	class alignas(simd_alignment_v<T>) vector3
 	{
@@ -19,7 +15,6 @@ namespace math
 		using ops = simd_ops_t<T>;
 		using register_type = simd_register_t<T>;
 		static constexpr std::uint32_t element_count = 3;	//	要素数
-		//	@tool SIMD 使用時はレジスタ幅分の領域を確保する
 		static constexpr std::uint32_t storage_count = use_simd_v<T> ? 4 : 3;
 
 	public:
@@ -28,7 +23,6 @@ namespace math
 		static vector3 y_axis() { return vector3(0, 1, 0); }
 		static vector3 z_axis() { return vector3(0, 0, 1); }
 		static vector3 axis(std::int32_t index) { vector3 ret(0, 0, 0); ret[index] = static_cast<T>(1); return ret; }
-		//	@tool 前方向（左手系：+Z、右手系：-Z）・右方向（+X）・上方向（+Y）
 		static vector3 forward(coordinate_order coordinate = default_coordinate_order) { return coordinate == coordinate_order::rh ? vector3(0, 0, -1) : vector3(0, 0, 1); }
 		static vector3 right() { return vector3(1, 0, 0); }
 		static vector3 up() { return vector3(0, 1, 0); }
@@ -42,13 +36,10 @@ namespace math
 		explicit vector3(const vector2<T>& v, T z = 0);
 		explicit vector3(const vector4<T>& v);
 		vector3(const basic_element3<T>& v) { set(v.x, v.y, v.z); }
-		//	@tool 要素の型が違う保存用の型からの変換
 		template<typename U, std::enable_if_t<!std::is_same_v<T, U>, int> = 0>
 		explicit vector3(const basic_element3<U>& v) { set(static_cast<T>(v.x), static_cast<T>(v.y), static_cast<T>(v.z)); }
-		//	@tool float <> double の変換（精度が変わるため明示的に行う）
 		template<typename U, std::enable_if_t<!std::is_same_v<T, U>, int> = 0>
 		explicit vector3(const vector3<U>& v) { set(static_cast<T>(v.x), static_cast<T>(v.y), static_cast<T>(v.z)); }
-		//	@tool SIMD レジスタから生成（w は 0 にする）
 		explicit vector3(const register_type& v) { set(v); }
 
 		void set(T value) { set(value, value, value); }
@@ -175,7 +166,7 @@ namespace math
 			}
 		}
 
-		//	@tool スカラー倍
+		//	スカラー倍
 		void multiply(T value)
 		{
 			if constexpr (use_simd_v<T>)
@@ -191,7 +182,6 @@ namespace math
 		}
 
 		//	割り算
-		//	@tool SIMD 版は w = 0 / 0 にならないよう xyz のみ割って w を 0 に戻す
 		void division(const vector3& v)
 		{
 			if constexpr (use_simd_v<T>)
@@ -206,7 +196,7 @@ namespace math
 			}
 		}
 
-		//	@tool スカラー割り
+		//	スカラー割り
 		void division(T value)
 		{
 			if constexpr (use_simd_v<T>)
@@ -222,9 +212,8 @@ namespace math
 		}
 
 		//	クォータニオン * ベクトル * 逆クォータニオン の結果を算出する
-		//	@tool 回転させる（Framework の Multiply(Quaternion)。成分ごとの multiply と紛らわしいため改名。規約に関係なく同じ結果）
 		void rotate(const quaternion<T>& q);
-		//	@tool 回転させたベクトルを取得
+		//	回転させたベクトルを取得
 		vector3 rotated(const quaternion<T>& q) const;
 
 		//	内積
@@ -248,7 +237,7 @@ namespace math
 		//	指定のベクトルを指定の行列空間に変換し、結果を w = 0 に投影したベクトルを取得
 		vector3 transformed_normal(const matrix<T>& m) const;
 
-		//	@tool 保存用の型への変換（double -> float は丸められる）
+		//	型変換
 		float3 to_float3() const { return float3(static_cast<float>(x), static_cast<float>(y), static_cast<float>(z)); }
 		double3 to_double3() const { return double3(static_cast<double>(x), static_cast<double>(y), static_cast<double>(z)); }
 
@@ -310,22 +299,19 @@ namespace math
 		static vector3 scratch(const vector3& front, const vector3& normal) { return front - normal * dot(front, normal); }
 
 		//	法線に対して反射させたベクトルを算出
-		//	@tool Framework のスカラー版は 2 倍を重ねて掛けていた（4 倍になる）ため SIMD 版の式に合わせている
 		static vector3 reflect(const vector3& front, const vector3& normal) { return front - normal * (static_cast<T>(2) * dot(front, normal)); }
 
 		//	指定のベクトルを指定の行列空間に変換する
 		static vector4<T> transform(const vector3& l, const matrix<T>& r);
 
 		//	指定のベクトルを指定の行列空間に変換し、結果を w = 1 に投影する
-		//	主に座標に使用
 		static vector3 transform_coord(const vector3& l, const matrix<T>& r);
 
 		//	指定のベクトルを指定の行列空間に変換し、結果を w = 0 に投影する
-		//	主にベクトルに使用
 		static vector3 transform_normal(const vector3& l, const matrix<T>& r);
 
-		//	スクリーン座標から射影座標へ変換する
-		static vector3 calc_screen_to_projection(T screen_x, T screen_y, T depth, const matrix<T>& projection, const matrix<T>& viewport);
+		//	スクリーン座標からビュー空間の座標へ変換する
+		static vector3 calc_screen_to_view(T screen_x, T screen_y, T depth, const matrix<T>& projection, const matrix<T>& viewport);
 
 		//	スクリーン座標からワールド座標へ変換する
 		static vector3 calc_screen_to_world(T screen_x, T screen_y, T depth, const matrix<T>& view, const matrix<T>& projection, const matrix<T>& viewport);

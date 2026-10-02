@@ -36,13 +36,10 @@ namespace math
 		explicit vector4(const vector3<T>& v);
 		vector4(const vector3<T>& v, T w);
 		vector4(const basic_element4<T>& v) { set(v.x, v.y, v.z, v.w); }
-		//	@tool 要素の型が違う保存用の型からの変換
 		template<typename U, std::enable_if_t<!std::is_same_v<T, U>, int> = 0>
 		explicit vector4(const basic_element4<U>& v) { set(static_cast<T>(v.x), static_cast<T>(v.y), static_cast<T>(v.z), static_cast<T>(v.w)); }
-		//	@tool float <> double の変換（精度が変わるため明示的に行う）
 		template<typename U, std::enable_if_t<!std::is_same_v<T, U>, int> = 0>
 		explicit vector4(const vector4<U>& v) { set(static_cast<T>(v.x), static_cast<T>(v.y), static_cast<T>(v.z), static_cast<T>(v.w)); }
-		//	@tool SIMD レジスタから生成
 		explicit vector4(const register_type& v) { reg = v; }
 
 		void set(T value) { set(value, value, value, value); }
@@ -168,7 +165,7 @@ namespace math
 			}
 		}
 
-		//	@tool スカラー倍
+		//	スカラー倍
 		void multiply(T value)
 		{
 			if constexpr (use_simd_v<T>)
@@ -200,7 +197,7 @@ namespace math
 			}
 		}
 
-		//	@tool スカラー割り
+		//	スカラー割り
 		void division(T value)
 		{
 			if constexpr (use_simd_v<T>)
@@ -222,7 +219,7 @@ namespace math
 		//	外積
 		vector4 cross(const vector4& center, const vector4& right) const { return cross(*this, center, right); }
 
-		//	@tool 保存用の型への変換（double -> float は丸められる）
+		//	型変換
 		float4 to_float4() const
 		{
 			float4 ret;
@@ -297,18 +294,6 @@ namespace math
 
 	template<typename T>
 	inline vector4<T> operator*(T value, const vector4<T>& v) { return v * value; }
-
-	//	@tool ベクトルと行列の積。規約に合った書き方だけを定義する（逆の書き方はコンパイルエラーになる）
-	//	@tool どちらも vector4::transform(v, M) と同じ結果（規約に関係なく使うなら transform を使う）
-#if MATH_COLUMN_VECTOR
-	template<typename T>
-	inline vector4<T> operator*(const matrix<T>& m, const vector4<T>& v) { return vector4<T>::transform(v, m); }
-#else
-	template<typename T>
-	inline vector4<T> operator*(const vector4<T>& v, const matrix<T>& m) { return vector4<T>::transform(v, m); }
-	template<typename T>
-	inline vector4<T>& operator*=(vector4<T>& v, const matrix<T>& m) { v = vector4<T>::transform(v, m); return v; }
-#endif
 
 	using vector4f = vector4<float>;
 	using vector4d = vector4<double>;

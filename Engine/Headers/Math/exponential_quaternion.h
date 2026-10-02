@@ -6,7 +6,6 @@ namespace math
 {
 	//	対数クォータニオン演算クラス
 	//	最低限の実装しかしていない
-	//	@tool 3要素のみのため float / double ともスカラー処理
 	template<typename T>
 	class exponential_quaternion
 	{
@@ -20,11 +19,10 @@ namespace math
 		constexpr exponential_quaternion() : x(0), y(0), z(0) {}
 		constexpr exponential_quaternion(T x, T y, T z) : x(x), y(y), z(z) {}
 		explicit exponential_quaternion(const quaternion<T>& q);
-		//	@tool float <> double の変換（精度が変わるため明示的に行う）
+
 		template<typename U, std::enable_if_t<!std::is_same_v<T, U>, int> = 0>
 		explicit constexpr exponential_quaternion(const exponential_quaternion<U>& v) : x(static_cast<T>(v.x)), y(static_cast<T>(v.y)), z(static_cast<T>(v.z)) {}
 
-		//	@tool クォータニオンに変換
 		quaternion<T> to_quaternion() const;
 		explicit operator quaternion<T>() const;
 

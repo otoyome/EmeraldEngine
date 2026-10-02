@@ -5,22 +5,10 @@
 #include <cstdint>
 #include <type_traits>
 
-//	@tool OJT Framework の Math クラス群を float / double 両対応のテンプレートとして移植したもの
-//	@tool 左手系・行ベクトル・リバースデプスを基本として設計し、Math/math_config.h の設定で内部の計算を切り替える
-//	@tool オイラー角は X：Pitch / Y：Yaw / Z：Roll
-//	@tool 既存の math_utility.h（math 名前空間）と名前が衝突しないよう、
-//	@tool 汎用テンプレート（min / max / clamp / saturate / lerp / smoothstep）と同名の関数は
-//	@tool float / double の具体型ごとの非テンプレート関数として定義している
-//	@tool 命名規則：その場で書き換える関数は動詞（normalize / invert / transpose / mirror / transform_coord）、
-//	@tool 書き換えたコピーを返す関数は過去分詞（normalized / inverted / transposed / mirrored / transformed_coord）
-
 #include "Math/math_config.h"
 #include "Math/math_simd.h"
 #include "Math/element.h"
 
-//	@tool DirectXMath には依存しない
-//	@tool float 版は SSE、double 版は SSE2（/arch:AVX2 指定時は AVX2）で処理する
-//	@tool MATH_DISABLE_SIMD を定義すると float / double ともスカラー処理になる（デバッグ・検証用）
 #if !defined(MATH_DISABLE_SIMD)
 #define	MATH_USE_SIMD_FLOAT		1
 #else
@@ -47,7 +35,7 @@ namespace math
 
 		invalid = -1,
 	};
-	//	@tool 既定の回転順序（Framework の RotationOrder::Default と同じ）
+	//	既定の回転順序
 	constexpr rotation_order default_rotation_order = rotation_order::zxy;
 
 	//	デカルト座標系定数
@@ -64,7 +52,7 @@ namespace math
 	constexpr coordinate_order default_coordinate_order = coordinate_order::lh;
 #endif
 
-	//	@tool 行列とベクトルの掛け方
+	//	行列とベクトルの掛け方
 	enum class vector_convention
 	{
 		row,		//	行ベクトル（v * M）
@@ -75,7 +63,7 @@ namespace math
 #else
 	constexpr vector_convention default_vector_convention = vector_convention::row;
 #endif
-	//	@tool 列ベクトル規約か
+	//	列ベクトル規約か
 	constexpr bool is_column_vector = default_vector_convention == vector_convention::column;
 
 	//	射影行列の深度方向
@@ -104,7 +92,7 @@ namespace math
 		return default_projection_z_order == projection_z_order::reverse;
 	}
 
-	//	@tool 型ごとの定数
+	//	型ごとの定数
 	template<typename T>
 	struct constants;
 
@@ -118,9 +106,7 @@ namespace math
 		static constexpr float sqrt2 = 1.41421356f;
 		static constexpr float degree_to_radian = pi / 180.0f;
 		static constexpr float radian_to_degree = 180.0f / pi;
-		//	@tool 正規化時にゼロベクトルとみなす長さ
 		static constexpr float normalize_threshold = 1e-6f;
-		//	@tool オイラー角変換でジンバルロックとみなす cos の閾値（約 16 * sqrt(epsilon)）
 		static constexpr float gimbal_lock_threshold = 5.5e-3f;
 	};
 
@@ -134,16 +120,14 @@ namespace math
 		static constexpr double sqrt2 = 1.41421356237309504880168872420969808;
 		static constexpr double degree_to_radian = pi / 180.0;
 		static constexpr double radian_to_degree = 180.0 / pi;
-		//	@tool 正規化時にゼロベクトルとみなす長さ
 		static constexpr double normalize_threshold = 1e-12;
-		//	@tool オイラー角変換でジンバルロックとみなす cos の閾値（約 16 * sqrt(epsilon)）
 		static constexpr double gimbal_lock_threshold = 2.4e-7;
 	};
 
 	template<typename T>
 	constexpr bool is_supported_scalar_v = std::is_same_v<T, float> || std::is_same_v<T, double>;
 
-	//	@tool SIMD レジスタ型の切り替え（SIMD を使わない型には空の構造体を置く）
+	//	SIMD レジスタ型の切り替え（SIMD を使わない型には空の構造体を置く）
 	struct no_simd_register {};
 
 	template<typename T>
@@ -177,7 +161,7 @@ namespace math
 	template<typename T>
 	constexpr bool use_simd_v = simd_traits<T>::enabled;
 
-	//	@tool SIMD 演算の実装（f4 / d4）
+	//	SIMD 演算の実装（f4 / d4）
 	template<typename T>
 	using simd_ops_t = typename simd_traits<T>::ops;
 

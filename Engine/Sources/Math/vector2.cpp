@@ -48,31 +48,30 @@ namespace math
 
 	namespace
 	{
-		//	@tool 行ベクトル規約の形の行列 r で (x, y, 1, 1) * r を計算する
+		//	行ベクトル規約の形の行列 r で (x, y, 0, 1) * r を計算する
 		template<typename T>
 		vector4<T> transform_row(const vector2<T>& l, const matrix<T>& r)
 		{
 			if constexpr (use_simd_v<T>)
 			{
 				using ops = simd_ops_t<T>;
-				//	@tool x * m[0] + y * m[1] + m[2] + m[3]
-				simd_register_t<T> result = ops::add(r.reg[2], r.reg[3]);
+				//	x * m[0] + y * m[1] + m[3]
+				simd_register_t<T> result = r.reg[3];
 				result = ops::add(result, ops::mul(ops::template splat<1>(l.reg), r.reg[1]));
 				result = ops::add(result, ops::mul(ops::template splat<0>(l.reg), r.reg[0]));
 				return vector4<T>(result);
 			}
 			else
 			{
-				return vector4<T>(l.x * r.s11 + l.y * r.s21 + r.s31 + r.s41,
-								  l.x * r.s12 + l.y * r.s22 + r.s32 + r.s42,
-								  l.x * r.s13 + l.y * r.s23 + r.s33 + r.s43,
-								  l.x * r.s14 + l.y * r.s24 + r.s34 + r.s44);
+				return vector4<T>(l.x * r.s11 + l.y * r.s21 + r.s41,
+								  l.x * r.s12 + l.y * r.s22 + r.s42,
+								  l.x * r.s13 + l.y * r.s23 + r.s43,
+								  l.x * r.s14 + l.y * r.s24 + r.s44);
 			}
 		}
 
 	}	//	namespace
 
-	//	@tool 格納は規約に関係なく同じ並びのため、列ベクトル規約（M * v）でも同じ計算になる
 	template<typename T>
 	vector4<T> vector2<T>::transform(const vector2& l, const matrix<T>& r)
 	{
@@ -86,7 +85,6 @@ namespace math
 		if constexpr (use_simd_v<T>)
 		{
 			register_type w = ops::template splat<3>(v.reg);
-			//	@tool w が 0 のときは割らない（スカラー版と同じ挙動）
 			register_type mask = ops::cmp_neq(w, ops::zero());
 			return vector2(ops::select(mask, ops::div(v.reg, w), v.reg));
 		}

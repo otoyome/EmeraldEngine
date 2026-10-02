@@ -40,19 +40,17 @@ namespace math::angle
 	vector4<T> to_degree(const vector4<T>& radian) { return radian * constants<T>::radian_to_degree; }
 
 	//	垂直視野角から水平視野角に変換
-	//	@tool Framework の実装どおり。式は「水平 -> 垂直」の変換になっている点に注意
 	template<typename T>
-	T fov_vertical_to_fov_horizontal(T fov_x, T aspect)
+	T fov_vertical_to_fov_horizontal(T fov_y, T aspect)
 	{
-		return static_cast<T>(2) * std::atan(std::tan(fov_x * static_cast<T>(0.5)) / aspect);
+		return static_cast<T>(2) * std::atan(std::tan(fov_y * static_cast<T>(0.5)) * aspect);
 	}
 
 	//	水平視野角から垂直視野角に変換
-	//	@tool Framework の実装どおり。式は「垂直 -> 水平」の変換になっている点に注意
 	template<typename T>
-	T fov_horizontal_to_fov_vertical(T fov_y, T aspect)
+	T fov_horizontal_to_fov_vertical(T fov_x, T aspect)
 	{
-		return static_cast<T>(2) * std::atan(aspect * std::tan(fov_y * static_cast<T>(0.5)));
+		return static_cast<T>(2) * std::atan(std::tan(fov_x * static_cast<T>(0.5)) / aspect);
 	}
 
 	//	角度の正規化
@@ -86,7 +84,6 @@ namespace math::angle
 	}
 
 	//	sincosの近似値取得用関数
-	//	@tool float 版は Framework の近似式、double 版は標準の sin / cos を使う
 	template<typename T>
 	void sin_cos(T angle, T& out_sin, T& out_cos)
 	{
@@ -162,8 +159,6 @@ namespace math::angle::euler
 	}
 
 	//	オイラー角度の正規化
-	//	@tool Framework は各軸を個別に 2π（中間の軸は π）で折り返していたため、中間の軸が ±90 度を超えると
-	//	@tool 別の回転になっていた。回転行列を経由して limit_min ～ limit_max に収まる等価な角度を求めている
 	template<typename T>
 	vector3<T> normalize(const vector3<T>& angle, rotation_order order = default_rotation_order)
 	{

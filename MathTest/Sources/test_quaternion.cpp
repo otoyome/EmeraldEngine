@@ -20,6 +20,8 @@ MATH_TEST_TYPED(quaternion_basic)
 	CHECK_NEAR(out_axis, axis, tol);
 	CHECK(quaternion<T>(axis, angle) == q);
 	CHECK(quaternion<T>().axis() == vector3<T>());
+	//	@tool 誤差で w が 1 をわずかに超えても NaN にならない
+	CHECK(quaternion<T>(0, 0, 0, static_cast<T>(1) + constants<T>::epsilon * 4).angle() == 0);
 
 	//	@tool 回転軸は正規化される前提だが、rotation_axis は結果を正規化する
 	CHECK_NEAR(quaternion<T>::rotation_axis(axis * static_cast<T>(3), angle).length(), static_cast<T>(1), tol);
@@ -163,6 +165,9 @@ MATH_TEST_TYPED(quaternion_mirror_restrict)
 	const T limit = static_cast<T>(0.5);
 	CHECK(limited.restrict(vector3<T>(-limit, -limit, -limit), vector3<T>(limit, limit, limit)));
 	CHECK_NEAR(limited.x, std::sin(limit * static_cast<T>(0.5)), tol);
+	//	@tool 制限後も単位クォータニオンのまま（制限した角度の回転になる）
+	CHECK_NEAR(limited.length(), static_cast<T>(1), tol);
+	CHECK_SAME_ROTATION(limited, quaternion<T>::rotation_x(limit), tol);
 	quaternion<T> free = quaternion<T>::rotation_x(static_cast<T>(0.2));
 	CHECK(!free.restrict(vector3<T>(-limit, -limit, -limit), vector3<T>(limit, limit, limit)));
 }

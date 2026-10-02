@@ -143,10 +143,12 @@ MATH_TEST_TYPED(vector_transform)
 					 0, 0, 0, 2);
 	CHECK_NEAR(vector3<T>::transform_coord(p, half), p / static_cast<T>(2), tol);
 
-	//	@tool vector2 は Framework の仕様どおり (x, y, 1, 1) として変換する
+	//	@tool vector2 は (x, y, 0, 1) として変換する（Z 軸の成分は加算されない）
 	matrix<T> z_offset = matrix<T>::translation(0, 0, 0);
 	z_offset.storage[2][0] = 5;
-	CHECK_NEAR(vector2<T>::transform(vector2<T>(1, 2), z_offset), vector4<T>(6, 2, 1, 1), tol);
+	CHECK_NEAR(vector2<T>::transform(vector2<T>(1, 2), z_offset), vector4<T>(1, 2, 0, 1), tol);
+	CHECK_NEAR(vector2<T>::transform(vector2<T>(1, 2), translation), vector4<T>(11, 22, 30, 1), tol);
+	CHECK_NEAR(vector2<T>::transform_coord(vector2<T>(1, 2), matrix<T>::rotation_z(constants<T>::pi_half)), vector2<T>(-2, 1), tol);
 	CHECK_NEAR(vector2<T>::transform_coord(vector2<T>(1, 2), translation), vector2<T>(11, 22), tol);
 }
 

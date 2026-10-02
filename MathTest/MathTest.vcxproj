@@ -21,12 +21,14 @@
   <!-- MathColumnVector / MathRightHanded / MathReverseDepth：math_config.h の各マクロの値、MathDisableSimd：true で SIMD を無効化 -->
   <!-- MathTestOptions：追加のコンパイラオプション、MathTestVariant：出力先の区別 -->
   <PropertyGroup>
-    <MathTestDefines></MathTestDefines>
+    <MathTestDefines>
+    </MathTestDefines>
     <MathTestDefines Condition="'$(MathColumnVector)'!=''">$(MathTestDefines);MATH_COLUMN_VECTOR=$(MathColumnVector)</MathTestDefines>
     <MathTestDefines Condition="'$(MathRightHanded)'!=''">$(MathTestDefines);MATH_RIGHT_HANDED=$(MathRightHanded)</MathTestDefines>
     <MathTestDefines Condition="'$(MathReverseDepth)'!=''">$(MathTestDefines);MATH_REVERSE_DEPTH=$(MathReverseDepth)</MathTestDefines>
     <MathTestDefines Condition="'$(MathDisableSimd)'=='true'">$(MathTestDefines);MATH_DISABLE_SIMD</MathTestDefines>
-    <MathTestOptions Condition="'$(MathTestOptions)'==''"></MathTestOptions>
+    <MathTestOptions Condition="'$(MathTestOptions)'==''">
+    </MathTestOptions>
     <MathTestVariant Condition="'$(MathTestVariant)'==''">default</MathTestVariant>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -66,7 +68,7 @@
       <DisableSpecificWarnings>4201;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
       <PreprocessorDefinitions>$(MathTestDefines);_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(ProjectDir)..\Engine\Headers;$(ProjectDir)Headers;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>$(MathTestOptions) %(AdditionalOptions)</AdditionalOptions>

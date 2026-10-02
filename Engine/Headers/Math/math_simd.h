@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-//	@tool x86 / x64 以外は未対応（SIMD 補助関数を常に宣言しておく必要があるため）
+//	x86 / x64 以外は未対応
 #if !defined(_M_X64) && !defined(_M_IX86)
 #error "Math ライブラリは x86 / x64 のみ対応"
 #endif
@@ -11,17 +11,10 @@
 #include <immintrin.h>
 #endif
 
-//	@tool SIMD 処理の共通層
-//	@tool float は __m128（SSE）、double は __m128d x2（SSE2）で 4 要素を扱う
-//	@tool /arch:AVX2 でビルドした場合のみ double は __m256d 1 本で扱う
-//	@tool double のレジスタは AVX2 の有無にかかわらず 32 バイト・32 バイト境界で、型の配置は変わらない
-//	@tool Framework は AVX / FMA 命令（_mm_permute_ps / _mm_fmadd_ps）を使っていたが、
-//	@tool このプロジェクトは /arch:AVX を指定していないため SSE2 の命令だけで組み直している
-//	@tool if constexpr の破棄側でも名前解決できるよう、MATH_DISABLE_SIMD に関係なく常に宣言している
-//	@tool permute / shuffle のテンプレート引数は「結果の要素 i に元の要素 Ii を入れる」順で指定する
+//	SIMD 処理
 namespace math::simd
 {
-	//	@tool float 4要素（SSE）
+	//	float 4要素（SSE）
 	struct f4
 	{
 		using value_type = float;
@@ -44,24 +37,24 @@ namespace math::simd
 		static reg cmp_ge(const reg& a, const reg& b) { return _mm_cmpge_ps(a, b); }
 		static reg cmp_lt(const reg& a, const reg& b) { return _mm_cmplt_ps(a, b); }
 		static reg cmp_neq(const reg& a, const reg& b) { return _mm_cmpneq_ps(a, b); }
-		//	@tool mask が立っている要素は if_true、それ以外は if_false
+		//	mask が立っている要素は if_true、それ以外は if_false
 		static reg select(const reg& mask, const reg& if_true, const reg& if_false) { return _mm_or_ps(_mm_and_ps(mask, if_true), _mm_andnot_ps(mask, if_false)); }
 
 		template<int I0, int I1, int I2, int I3>
 		static reg permute(const reg& v) { return _mm_shuffle_ps(v, v, _MM_SHUFFLE(I3, I2, I1, I0)); }
-		//	@tool 要素 0, 1 を a から、要素 2, 3 を b から取り出す
+		//	要素 0, 1 を a から、要素 2, 3 を b から取り出す
 		template<int I0, int I1, int I2, int I3>
 		static reg shuffle(const reg& a, const reg& b) { return _mm_shuffle_ps(a, b, _MM_SHUFFLE(I3, I2, I1, I0)); }
 		template<int I>
 		static reg splat(const reg& v) { return permute<I, I, I, I>(v); }
 
-		//	@tool w を 0 にする
+		//	w を 0 にする
 		static reg mask_xyz(const reg& v) { return _mm_and_ps(v, _mm_castsi128_ps(_mm_set_epi32(0, -1, -1, -1))); }
-		//	@tool z, w を 0 にする
+		//	z, w を 0 にする
 		static reg mask_xy(const reg& v) { return _mm_and_ps(v, _mm_castsi128_ps(_mm_set_epi32(0, 0, -1, -1))); }
 		static float first(const reg& v) { return _mm_cvtss_f32(v); }
 
-		//	@tool 内積（全要素に結果を格納）
+		//	内積（全要素に結果を格納）
 		static reg dot2(const reg& a, const reg& b)
 		{
 			reg d = _mm_mul_ps(a, b);
@@ -87,7 +80,7 @@ namespace math::simd
 			return _mm_add_ps(d, t);
 		}
 
-		//	@tool 4x4 の転置（out は in と同じでもよい）
+		//	4x4 の転置（out は in と同じでもよい）
 		static void transpose(const reg* in, reg* out)
 		{
 			reg r0 = in[0];
@@ -101,13 +94,13 @@ namespace math::simd
 			out[3] = r3;
 		}
 
-		//	@tool float 4要素（__m128）との相互変換
+		//	float 4要素（__m128）との相互変換
 		static __m128 to_float4(const reg& v) { return v; }
 		static reg from_float4(__m128 v) { return v; }
 	};
 
 #if defined(__AVX2__)
-	//	@tool double 4要素（AVX2）
+	//	double 4要素（AVX2）
 	struct d4
 	{
 		using value_type = double;
@@ -178,8 +171,8 @@ namespace math::simd
 		static reg from_float4(__m128 v) { return _mm256_cvtps_pd(v); }
 	};
 #else
-	//	@tool double 4要素（SSE2 の __m128d を 2 本使う）
-	//	@tool AVX2 版（__m256d）とサイズ・アライメントを揃えるため 32 バイト境界に置く
+	//	double 4要素（SSE2 の __m128d を 2 本使う）
+	//	AVX2 版（__m256d）とサイズ・アライメントを揃えるため 32 バイト境界に置く
 	struct d4
 	{
 		using value_type = double;
@@ -216,7 +209,7 @@ namespace math::simd
 					 _mm_or_pd(_mm_and_pd(mask.zw, if_true.zw), _mm_andnot_pd(mask.zw, if_false.zw)) };
 		}
 
-		//	@tool 4要素の中から2要素を選んで __m128d を作る
+		//	4要素の中から2要素を選んで __m128d を作る
 		template<int A, int B>
 		static __m128d pick(const reg& v)
 		{
@@ -273,9 +266,7 @@ namespace math::simd
 	};
 #endif	//	defined(__AVX2__)
 
-	//	@tool ここから下は f4 / d4 共通のアルゴリズム
-
-	//	@tool 長さの2乗 length_sq を使って正規化する（長さが threshold 未満なら 0 を返す）
+	//	長さの2乗 length_sq を使って正規化する（長さが threshold 未満なら 0 を返す）
 	template<typename Ops>
 	typename Ops::reg normalize(const typename Ops::reg& v, const typename Ops::reg& length_sq, typename Ops::value_type threshold)
 	{
@@ -284,7 +275,7 @@ namespace math::simd
 		return Ops::select(mask, Ops::div(v, length), Ops::zero());
 	}
 
-	//	@tool 3次元の外積（w は 0 になる）
+	//	3次元の外積（w は 0 になる）
 	template<typename Ops>
 	typename Ops::reg cross3(const typename Ops::reg& a, const typename Ops::reg& b)
 	{
@@ -292,11 +283,11 @@ namespace math::simd
 						Ops::mul(Ops::template permute<2, 0, 1, 3>(a), Ops::template permute<1, 2, 0, 3>(b)));
 	}
 
-	//	@tool 4次元の外積（Framework の Vector4::Cross と同じ結果）
+	//	4次元の外積（Framework の Vector4::Cross と同じ結果）
 	template<typename Ops>
 	typename Ops::reg cross4(const typename Ops::reg& l, const typename Ops::reg& c, const typename Ops::reg& r)
 	{
-		//	@tool 各要素 = L[a] * (C[p] * R[q] - R[p] * C[q]) を3項組み合わせて符号 (+, -, +, -) を掛ける
+		//	各要素 = L[a] * (C[p] * R[q] - R[p] * C[q]) を3項組み合わせて符号 (+, -, +, -) を掛ける
 		typename Ops::reg term1 = Ops::mul(Ops::template permute<1, 0, 0, 0>(l),
 			Ops::sub(Ops::mul(Ops::template permute<2, 2, 1, 1>(c), Ops::template permute<3, 3, 3, 2>(r)),
 					 Ops::mul(Ops::template permute<2, 2, 1, 1>(r), Ops::template permute<3, 3, 3, 2>(c))));
@@ -309,7 +300,7 @@ namespace math::simd
 		return Ops::mul(Ops::add(Ops::sub(term1, term2), term3), Ops::set(1, -1, 1, -1));
 	}
 
-	//	@tool v.x * m[0] + v.y * m[1] + v.z * m[2] + v.w * m[3]
+	//	v.x * m[0] + v.y * m[1] + v.z * m[2] + v.w * m[3]
 	template<typename Ops>
 	typename Ops::reg transform4(const typename Ops::reg& v, const typename Ops::reg* m)
 	{
@@ -320,7 +311,7 @@ namespace math::simd
 		return result;
 	}
 
-	//	@tool v.x * m[0] + v.y * m[1] + v.z * m[2] + m[3]（w = 1 として変換）
+	//	v.x * m[0] + v.y * m[1] + v.z * m[2] + m[3]（w = 1 として変換）
 	template<typename Ops>
 	typename Ops::reg transform3_point(const typename Ops::reg& v, const typename Ops::reg* m)
 	{
@@ -330,7 +321,7 @@ namespace math::simd
 		return result;
 	}
 
-	//	@tool v.x * m[0] + v.y * m[1] + v.z * m[2]（w = 0 として変換）
+	//	v.x * m[0] + v.y * m[1] + v.z * m[2]（w = 0 として変換）
 	template<typename Ops>
 	typename Ops::reg transform3_normal(const typename Ops::reg& v, const typename Ops::reg* m)
 	{
@@ -340,7 +331,7 @@ namespace math::simd
 		return result;
 	}
 
-	//	@tool 4x4 行列の積 out = a * b（out は a / b と同じでもよい）
+	//	4x4 行列の積 out = a * b（out は a / b と同じでもよい）
 	template<typename Ops>
 	void multiply(const typename Ops::reg* a, const typename Ops::reg* b, typename Ops::reg* out)
 	{
@@ -354,7 +345,7 @@ namespace math::simd
 		out[3] = r3;
 	}
 
-	//	@tool クォータニオンの積 q * r（q の回転の後に r の回転。ハミルトン積で r, q の順に掛ける）
+	//	クォータニオンの積 q * r（q の回転の後に r の回転。ハミルトン積で r, q の順に掛ける）
 	template<typename Ops>
 	typename Ops::reg quaternion_multiply(const typename Ops::reg& q, const typename Ops::reg& r)
 	{
@@ -365,7 +356,7 @@ namespace math::simd
 		return result;
 	}
 
-	//	@tool 4x4 行列の行列式（Framework のスカラー版と同じく列ベクトルの4次元外積で求める）
+	//	4x4 行列の行列式（Framework のスカラー版と同じく列ベクトルの4次元外積で求める）
 	template<typename Ops>
 	typename Ops::value_type determinant(const typename Ops::reg* m)
 	{
@@ -375,7 +366,7 @@ namespace math::simd
 		return -Ops::first(Ops::dot4(columns[3], minor));
 	}
 
-	//	@tool 4x4 行列の逆行列（行列式が 0 の場合は false を返し out は変更しない）
+	//	4x4 行列の逆行列（行列式が 0 の場合は false を返し out は変更しない）
 	template<typename Ops>
 	bool inverse(const typename Ops::reg* m, typename Ops::reg* out)
 	{
@@ -385,7 +376,7 @@ namespace math::simd
 			return false;
 		}
 
-		//	@tool 各行を除いた3行の4次元外積が余因子（列）になる
+		//	各行を除いた3行の4次元外積が余因子（列）になる
 		typename Ops::reg cofactor[4];
 		cofactor[0] = cross4<Ops>(m[1], m[2], m[3]);
 		cofactor[1] = Ops::neg(cross4<Ops>(m[0], m[2], m[3]));

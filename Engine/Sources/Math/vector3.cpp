@@ -4,7 +4,6 @@ namespace math
 {
 	namespace
 	{
-		//	@tool 行ベクトル規約の形の行列 r で v * r を計算する（w = 1）
 		template<typename T>
 		vector4<T> transform_row(const vector3<T>& l, const matrix<T>& r)
 		{
@@ -21,7 +20,6 @@ namespace math
 			}
 		}
 
-		//	@tool 行ベクトル規約の形の行列 r で v * r を計算し、w = 1 に投影する
 		template<typename T>
 		vector3<T> transform_coord_row(const vector3<T>& l, const matrix<T>& r)
 		{
@@ -31,7 +29,6 @@ namespace math
 				using register_type = simd_register_t<T>;
 				register_type v = simd::transform3_point<ops>(l.reg, r.reg);
 				register_type w = ops::template splat<3>(v);
-				//	@tool w が 0 のときは割らない（スカラー版と同じ挙動）
 				register_type mask = ops::cmp_neq(w, ops::zero());
 				return vector3<T>(ops::select(mask, ops::div(v, w), v));
 			}
@@ -52,7 +49,6 @@ namespace math
 			}
 		}
 
-		//	@tool 行ベクトル規約の形の行列 r で v * r を計算する（w = 0）
 		template<typename T>
 		vector3<T> transform_normal_row(const vector3<T>& l, const matrix<T>& r)
 		{
@@ -62,7 +58,6 @@ namespace math
 			}
 			else
 			{
-				//	@tool Framework のスカラー版は平行移動（_41～_43）も加算していたため、SIMD 版に合わせて除外している
 				return vector3<T>(l.x * r.s11 + l.y * r.s21 + l.z * r.s31,
 								  l.x * r.s12 + l.y * r.s22 + l.z * r.s32,
 								  l.x * r.s13 + l.y * r.s23 + l.z * r.s33);
@@ -93,7 +88,7 @@ namespace math
 	template<typename T>
 	void vector3<T>::rotate(const quaternion<T>& q)
 	{
-		//	@tool q * v * q^-1（規約に関係なく同じ結果）
+		//	q * v * q^-1
 		*this = q.rotate(*this);
 	}
 
@@ -133,7 +128,6 @@ namespace math
 		return transform_normal(*this, m);
 	}
 
-	//	@tool 格納は規約に関係なく同じ並びのため、列ベクトル規約（M * v）でも同じ計算になる
 	template<typename T>
 	vector4<T> vector3<T>::transform(const vector3& l, const matrix<T>& r)
 	{
@@ -153,14 +147,13 @@ namespace math
 	}
 
 	template<typename T>
-	vector3<T> vector3<T>::calc_screen_to_projection(T screen_x, T screen_y, T depth, const matrix<T>& projection, const matrix<T>& viewport)
+	vector3<T> vector3<T>::calc_screen_to_view(T screen_x, T screen_y, T depth, const matrix<T>& projection, const matrix<T>& viewport)
 	{
 		//	各行列の逆行列を算出
 		matrix<T> inverse_projection = projection.inverted();
 		matrix<T> inverse_viewport = viewport.inverted();
 
 		//	逆変換
-		//	@tool ビューポートの逆変換の後に射影の逆変換
 		matrix<T> work = matrix<T>::concatenate(inverse_viewport, inverse_projection);
 		return transform_coord(vector3(screen_x, screen_y, depth), work);
 	}
@@ -174,7 +167,6 @@ namespace math
 		matrix<T> inverse_viewport = viewport.inverted();
 
 		//	逆変換
-		//	@tool ビューポート -> 射影 -> ビュー の順に逆変換する
 		matrix<T> work = matrix<T>::concatenate(matrix<T>::concatenate(inverse_viewport, inverse_projection), inverse_view);
 		return transform_coord(vector3(screen_x, screen_y, depth), work);
 	}

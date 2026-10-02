@@ -5,10 +5,6 @@
 namespace math
 {
 	//	クォータニオン演算クラス
-	//	@tool 【格納】(x, y, z, w)。規約に関係なく同じで、内部の計算も 1 通り
-	//	@tool 【規約で変わるもの】q1 * q2 の順序（行ベクトル規約：q1 の後に q2、列ベクトル規約：q2 の後に q1。matrix の * と同じ）
-	//	@tool         front() / look_rotation() の前方向（左手系：+Z、右手系：-Z）
-	//	@tool 規約に関係なく使えるもの：concatenate(first, second)（first の後に second）、hamilton_product(a, b)（数学上の積）、rotate(v)
 	template<typename T>
 	class alignas(simd_alignment_v<T>) quaternion
 	{
@@ -30,17 +26,14 @@ namespace math
 		quaternion(T x, T y, T z, T w) { set(x, y, z, w); }
 		explicit quaternion(const T values[element_count]) { set(values[0], values[1], values[2], values[3]); }
 		quaternion(const basic_element4<T>& v) { set(v.x, v.y, v.z, v.w); }
-		//	@tool 要素の型が違う保存用の型からの変換
 		template<typename U, std::enable_if_t<!std::is_same_v<T, U>, int> = 0>
 		explicit quaternion(const basic_element4<U>& v) { set(static_cast<T>(v.x), static_cast<T>(v.y), static_cast<T>(v.z), static_cast<T>(v.w)); }
 		explicit quaternion(const vector3<T>& euler, rotation_order order = default_rotation_order);
 		quaternion(const vector3<T>& axis, T angle);
 		quaternion(const vector3<T>& vector1, const vector3<T>& vector2);
 		explicit quaternion(const matrix<T>& m);
-		//	@tool float <> double の変換（精度が変わるため明示的に行う）
 		template<typename U, std::enable_if_t<!std::is_same_v<T, U>, int> = 0>
 		explicit quaternion(const quaternion<U>& q) { set(static_cast<T>(q.x), static_cast<T>(q.y), static_cast<T>(q.z), static_cast<T>(q.w)); }
-		//	@tool SIMD レジスタから生成
 		explicit quaternion(const register_type& v) { reg = v; }
 
 		void set(T set_x, T set_y, T set_z, T set_w)
@@ -64,20 +57,19 @@ namespace math
 		//	長さの2乗を取得
 		T square_length() const { return dot(*this); }
 
-		//	@tool ベクトルを回転させたベクトルを取得（q * v * q^-1。規約に関係なく同じ結果）
+		//	回転させたベクトルを取得
 		vector3<T> rotate(const vector3<T>& v) const;
 
 		//	回転軸の取得
 		vector3<T> axis() const;
 
 		//	回転軸に対する回転角度
-		T angle() const { return std::acos(w) * static_cast<T>(2); }
+		T angle() const { return std::acos(w < static_cast<T>(-1) ? static_cast<T>(-1) : (w > static_cast<T>(1) ? static_cast<T>(1) : w)) * static_cast<T>(2); }
 
 		//	回転軸と回転角度の取得
 		void axis_angle(vector3<T>& out_axis, T& out_angle) const;
 
 		//	前方向ベクトル取得
-		//	@tool 左手系は +Z、右手系は -Z を回転させた向き
 		vector3<T> front(coordinate_order coordinate = default_coordinate_order) const;
 
 		//	右方向ベクトル取得
@@ -87,7 +79,6 @@ namespace math
 		vector3<T> up() const;
 
 		//	正規化
-		//	@tool 長さが閾値未満のときは変更しない（Framework の実装どおり）
 		void normalize()
 		{
 			if constexpr (use_simd_v<T>)
@@ -169,26 +160,19 @@ namespace math
 		}
 
 		//	クォータニオン同士の結合（*this = *this * r）
-		//	@tool 行ベクトル規約は「this の回転の後に r の回転」、列ベクトル規約は「r の回転の後に this の回転」
-		//	@tool どちらの規約でも matrix(q1 * q2) == matrix(q1) * matrix(q2) になる
 		void multiply(const quaternion& r)
 		{
 			if constexpr (is_column_vector)
 			{
-				*this = concatenate(r, *this);
+				*this = hamilton_product(r, *this);
 			}
 			else
 			{
-				*this = concatenate(*this, r);
+				*this = hamilton_product(*this, r);
 			}
 		}
 
-		//	@tool 「first の回転の後に second の回転」を表すクォータニオン（規約に関係なく同じ意味。matrix::concatenate と対応）
-		static quaternion concatenate(const quaternion& first, const quaternion& second)
-		{
-			return hamilton_product(second, first);
-		}
-		//	@tool 数学上のハミルトン積 a * b（規約に関係なく「b の回転の後に a の回転」）
+		//	ハミルトン積「b の回転の後に a の回転」）
 		static quaternion hamilton_product(const quaternion& a, const quaternion& b)
 		{
 			if constexpr (use_simd_v<T>)
@@ -203,6 +187,13 @@ namespace math
 								  a.w * b.w - a.x * b.x - a.y * b.y - a.z * b.z);
 			}
 		}
+
+		//	a の回転の後に b の回転を表すクォータニオン
+		static quaternion concatenate(const quaternion& a, const quaternion& b)
+		{
+			return hamilton_product(b, a);
+		}
+
 		//	掛け算
 		void multiply(T value)
 		{
@@ -219,11 +210,7 @@ namespace math
 			}
 		}
 
-		//	回転制限
-		//	@return	制限がかかったかどうか
-		bool restrict(const vector3<T>& min_angle, const vector3<T>& max_angle);
-
-		//	@tool 保存用の型への変換（double -> float は丸められる）
+		//	型変換
 		float4 to_float4() const
 		{
 			float4 ret;
@@ -279,14 +266,12 @@ namespace math
 		static quaternion rotation_axis(const vector3<T>& axis, T angle);
 
 		//	２つの方向ベクトルからクォータニオンを生成
-		//	@tool 引数は正規化済みの方向ベクトルであること
 		static quaternion vector_to_vector(const vector3<T>& direction1, const vector3<T>& direction2);
 
 		//	回転行列からクォータニオンを生成
 		static quaternion rotation_matrix(const matrix<T>& m);
 
 		//	指定の上方向を考慮し、指定の方向に向いたクォータニオンを算出
-		//	@tool 回転後の front() が forward を向く（左手系は +Z、右手系は -Z を forward に合わせる）
 		static quaternion look_rotation(const vector3<T>& forward, const vector3<T>& up, coordinate_order coordinate = default_coordinate_order);
 
 	public:
