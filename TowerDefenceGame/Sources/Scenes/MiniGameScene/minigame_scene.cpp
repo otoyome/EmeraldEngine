@@ -42,7 +42,7 @@ namespace
 	constexpr float DeadStopWaitTimer = 7.0f;
 	constexpr float DeadWaitTimer = 3.0f;
 	constexpr float ResultTimer = 5.0f;
-	constexpr int WetDamage = 500;
+	constexpr int WetDamage = 400;
 	constexpr float DustSetLength = 40;
 	constexpr float BubbleSetLength = DustSetLength / 2;
 	constexpr DirectX::XMFLOAT3 DustBlock[] =

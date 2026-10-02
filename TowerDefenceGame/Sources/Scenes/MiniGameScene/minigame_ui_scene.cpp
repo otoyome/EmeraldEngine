@@ -31,7 +31,7 @@ namespace
 	static constexpr DirectX::XMFLOAT2 tutorial_ui_size = {500, 400};
 	static constexpr DirectX::XMFLOAT2 tutorial_ui_text_position = {370, 240};
 	static constexpr DirectX::XMFLOAT2 tutorial_ui_text_size = {480, 350};
-	static constexpr std::string_view tutorial_text = "なるべく早い時間でゴミを収集するのが目的です。\n\nゴミ以外にも泡があり、収集すると濡れます。\n加速すると熱くなるので水分を取る事で加熱を抑えます。\n加熱・水分を取り過ぎると爆発してリスタートします。";
+	static constexpr std::string_view tutorial_text = "WASD : 移動\nマウス左 : 加速\nマウス右：減速\n\n熱と水分両方を管理しながら素早くゴミを収集するのが目的です。\n\nゴミ以外にも泡があり、収集すると濡れます。\n加速すると熱くなるので水分を取る事で加熱を抑えます。\n加熱/水分を取り過ぎると爆発してリスタートします。";
 
 	//	加速アイコン左上位置
 	static constexpr DirectX::XMFLOAT2 accel_icon_ui_position = {900, 680};

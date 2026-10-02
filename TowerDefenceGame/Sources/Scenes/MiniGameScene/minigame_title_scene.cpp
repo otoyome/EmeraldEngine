@@ -7,8 +7,13 @@
 namespace
 {
 	//	タイトルロゴ配置位置
-	static constexpr DirectX::XMFLOAT2 title_logo_position = { 320, 180 };
+	static constexpr DirectX::XMFLOAT2 title_logo_position = { 60, 180 };
 	static constexpr DirectX::XMFLOAT2 title_logo_size = { 640, 270 };
+
+	//	チュートリアルパネル左上位置
+	static constexpr DirectX::XMFLOAT2 tutorial_ui_text_position = {770, 125};
+	static constexpr DirectX::XMFLOAT2 tutorial_ui_text_size = {480, 400};
+	static constexpr std::string_view tutorial_text = "WASD : 移動\nマウス左 : 加速\nマウス右：減速\n\n熱と水分両方を管理しながら素早くゴミを収集するのが目的です。\n\nゴミ以外にも泡があり、収集すると濡れます。\n加速すると熱くなるので水分を取る事で加熱を抑えます。\n加熱/水分を取り過ぎると爆発してリスタートします。";
 
 	//	スタート案内アイコン配置位置
 	static constexpr DirectX::XMFLOAT2 start_icon_size = { 120, 120 };
@@ -22,6 +27,9 @@ minigame_title_scene::minigame_title_scene()
 	mouse::instance()->set_center_lock(false);
 	mouse::instance()->set_cursol_hide(false);
 
+	font_data_ptr font;
+	font_data_manager::instance()->load_from_file(font, "Assets/Resources/Textures/fonts/MS Gothic/MS Gothic.fnt");
+
 	//	タイトルロゴ
 	{
 		auto logo = std::make_shared<ui_image>("タイトルロゴ");
@@ -32,11 +40,19 @@ minigame_title_scene::minigame_title_scene()
 		register_object(logo);
 	}
 
+	//	チュートリアル
+	{
+		auto text = std::make_shared<ui_text>("ルンバUI：チュートリアル：テキスト", font);
+		text->set_screen_rect({ tutorial_ui_text_position.x, tutorial_ui_text_position.y, tutorial_ui_text_size.x, tutorial_ui_text_size.y });
+		text->set_texts(tutorial_text);
+		text->set_color({ 1, 1, 1, 1 });
+		text->set_font_size(32);
+		text->set_sort_order(5);
+		register_object(text);
+	}
+
 	//	スタート案内アイコン
 	{
-		font_data_ptr font;
-		font_data_manager::instance()->load_from_file(font, "Assets/Resources/Textures/fonts/MS Gothic/MS Gothic.fnt");
-
 		auto title_click_text = std::make_shared<ui_text>("タイトル:クリックテキスト", font);
 		title_click_text->set_screen_rect({ 415, 580.000, 450, 90 });
 		title_click_text->set_sort_order(20);
