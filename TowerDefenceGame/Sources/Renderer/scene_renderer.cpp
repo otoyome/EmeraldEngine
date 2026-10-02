@@ -79,30 +79,8 @@ depth_prepass_renderer::~depth_prepass_renderer()
 
 void depth_prepass_renderer::render(renderer_context& renderer_context)
 {
-	//	@tool 前フレームの可視リストは前フレームのプリミティブ番号を指しているので、付け替え情報を記録時に生成する
-	std::shared_ptr<meshlet_culling_system::remap_snapshot> remap_snapshot;
-	if (renderer_context.meshlet_culling_system)
+	job_executor.execute([this, renderer_context](graphics_context& context)
 	{
-		std::vector<std::size_t> visible_draw_indices;
-		visible_draw_indices.reserve(renderer_context.render_mesh_indices->opaque.size() + renderer_context.render_mesh_indices->mask.size());
-		visible_draw_indices.insert(visible_draw_indices.end(), renderer_context.render_mesh_indices->opaque.begin(), renderer_context.render_mesh_indices->opaque.end());
-		visible_draw_indices.insert(visible_draw_indices.end(), renderer_context.render_mesh_indices->mask.begin(), renderer_context.render_mesh_indices->mask.end());
-		remap_snapshot = renderer_context.meshlet_culling_system->create_remap_snapshot(*renderer_context.render_data, visible_draw_indices,
-																						renderer_context.render_mesh_indices->lengths, renderer_context.scene_constant.camera_clip_distance);
-	}
-	else
-	{
-		remap_snapshot = std::make_shared<meshlet_culling_system::remap_snapshot>();
-	}
-
-	job_executor.execute([this, renderer_context, remap_snapshot](graphics_context& context)
-	{
-		//	@tool 前フレームの可視リストを今フレームのプリミティブ番号へ付け替える
-		if (renderer_context.meshlet_culling_system)
-		{
-			renderer_context.meshlet_culling_system->apply_remap(context, *remap_snapshot);
-		}
-
 		//	描画先設定
 		rendering_pass.activate(context.device_context);
 
@@ -110,8 +88,8 @@ void depth_prepass_renderer::render(renderer_context& renderer_context)
 		context.device_context->RSSetViewports(1, &viewport);
 
 		//	モデル類描画
-		scene_renderer_commons::model_render_indirect(context, renderer_context.render_mesh_indices->opaque, renderer_context.render_mesh_indices->lengths, material::surface_paths::depth_write_pass, remap_snapshot->results);
-		scene_renderer_commons::model_render_indirect(context, renderer_context.render_mesh_indices->mask, renderer_context.render_mesh_indices->lengths, material::surface_paths::depth_write_pass, remap_snapshot->results);
+		scene_renderer_commons::model_render_indirect(context, renderer_context.render_mesh_indices->opaque, renderer_context.render_mesh_indices->lengths, material::surface_paths::depth_write_pass, *renderer_context.meshlet_culling_system);
+		scene_renderer_commons::model_render_indirect(context, renderer_context.render_mesh_indices->mask, renderer_context.render_mesh_indices->lengths, material::surface_paths::depth_write_pass, *renderer_context.meshlet_culling_system);
 		scene_renderer_commons::particle_render(context, renderer_context.render_particle_indices->opaque, material::surface_paths::depth_write_pass);
 		scene_renderer_commons::particle_render(context, renderer_context.render_particle_indices->mask, material::surface_paths::depth_write_pass);
 
@@ -164,14 +142,7 @@ gbuffer_renderer::~gbuffer_renderer()
 
 void gbuffer_renderer::render(renderer_context& renderer_context)
 {
-	//	@tool カリング結果は記録時に取得しておく(ワーカースレッドからカリングシステム本体を参照しない)
-	meshlet_culling_system::cull_result_map cull_results;
-	if (renderer_context.meshlet_culling_system)
-	{
-		cull_results = renderer_context.meshlet_culling_system->get_results();
-	}
-
-	job_executor.execute([this, renderer_context, cull_results](graphics_context& context)
+	job_executor.execute([this, renderer_context](graphics_context& context)
 	{
 		//	描画先設定
 		rendering_pass.activate(context.device_context);
@@ -180,8 +151,8 @@ void gbuffer_renderer::render(renderer_context& renderer_context)
 		context.device_context->RSSetViewports(1, &viewport);
 
 		//	モデル類描画
-		scene_renderer_commons::model_render_indirect(context, renderer_context.render_mesh_indices->opaque, renderer_context.render_mesh_indices->lengths, material::surface_paths::g_buffer_pass, cull_results);
-		scene_renderer_commons::model_render_indirect(context, renderer_context.render_mesh_indices->mask, renderer_context.render_mesh_indices->lengths, material::surface_paths::g_buffer_pass, cull_results);
+		scene_renderer_commons::model_render_indirect(context, renderer_context.render_mesh_indices->opaque, renderer_context.render_mesh_indices->lengths, material::surface_paths::g_buffer_pass, *renderer_context.meshlet_culling_system);
+		scene_renderer_commons::model_render_indirect(context, renderer_context.render_mesh_indices->mask, renderer_context.render_mesh_indices->lengths, material::surface_paths::g_buffer_pass, *renderer_context.meshlet_culling_system);
 		scene_renderer_commons::particle_render(context, renderer_context.render_particle_indices->opaque, material::surface_paths::g_buffer_pass);
 		scene_renderer_commons::particle_render(context, renderer_context.render_particle_indices->mask, material::surface_paths::g_buffer_pass);
 
@@ -774,6 +745,8 @@ void deffered_lighting_renderer::render_directional_shadow_map(const light& ligh
 	DirectX::XMMATRIX CameraTransformMatrix = DirectX::XMMatrixInverse(nullptr, DirectX::XMLoadFloat4x4(&context.scene_constant.view_transform));
 	DirectX::XMMATRIX LightTransformMatrix = DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&rotation)) * 
 												DirectX::XMMatrixTranslation(position.x, position.y, position.z);
+	DirectX::XMMATRIX InverseProjectionTransform;
+	InverseProjectionTransform = DirectX::XMLoadFloat4x4(&context.scene_constant.inverse_projection_transform);
 
 	DirectX::XMVECTOR LightRight, LightUp, LightFront, LightPosition;
 	LightRight = LightTransformMatrix.r[0];
@@ -782,9 +755,14 @@ void deffered_lighting_renderer::render_directional_shadow_map(const light& ligh
 	LightPosition = LightTransformMatrix.r[3];
 
 	//	クリップ距離を算出
-	//	@tool 射影深度からの逆算はリバースZでnear/farが入れ替わるので、カメラのクリップ距離(ビュー空間)を直接使う
-	float near_clip = context.scene_constant.camera_clip_distance.x;
-	float camera_far_clip = context.scene_constant.camera_clip_distance.y;
+	float near_clip, far_clip;
+	{
+		DirectX::XMVECTOR NearPosition, FarPosition;
+		NearPosition = DirectX::XMVector3TransformCoord(DirectX::XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f), InverseProjectionTransform);
+		FarPosition = DirectX::XMVector3TransformCoord(DirectX::XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f), InverseProjectionTransform);
+		near_clip = DirectX::XMVectorGetZ(NearPosition);
+		far_clip = DirectX::XMVectorGetX(DirectX::XMVector3Length(DirectX::XMVectorSubtract(FarPosition, NearPosition)));
+	}
 
 	//	シーンのAABBを算出
 	DirectX::XMFLOAT3 scene_min = {FLT_MAX, FLT_MAX, FLT_MAX}, scene_max = {-FLT_MAX, -FLT_MAX, -FLT_MAX};
@@ -816,10 +794,17 @@ void deffered_lighting_renderer::render_directional_shadow_map(const light& ligh
 	}
 
 	//	CSM用に遠クリップ面に対して距離制限をかける
-	//	@tool csm_distance_factorはカメラの遠クリップ距離に対する割合
-	float far_clip = std::max(near_clip, std::min(camera_far_clip * light.get_csm_distance_factor(), camera_far_clip));
-	float projection_near_clip = scene_renderer_commons::convert_view_depth_to_projection_depth(near_clip, near_clip, camera_far_clip);
-	float projection_far_clip = scene_renderer_commons::convert_view_depth_to_projection_depth(far_clip, near_clip, camera_far_clip);
+	float projection_near_clip, projection_far_clip;
+	{
+		projection_near_clip = 0.0f;
+		projection_far_clip = scene_renderer_commons::convert_linear_depth_to_projection_depth(light.get_csm_distance_factor(), far_clip / near_clip);
+
+		//	クリップ距離を再算出
+		DirectX::XMVECTOR NearPosition, FarPosition;
+		NearPosition = DirectX::XMVector3TransformCoord(DirectX::XMVectorSet(0.0f, 0.0f, projection_near_clip, 0.0f), InverseProjectionTransform);
+		FarPosition = DirectX::XMVector3TransformCoord(DirectX::XMVectorSet(0.0f, 0.0f, projection_far_clip, 0.0f), InverseProjectionTransform);
+		far_clip = DirectX::XMVectorGetX(DirectX::XMVector3Length(DirectX::XMVectorSubtract(FarPosition, NearPosition)));
+	}
 
 	//	シャドウマップ情報算出
 	shadow_map_constant.shadow_map_count = directional_shadow_map_count;
@@ -909,8 +894,8 @@ void deffered_lighting_renderer::render_directional_shadow_map(const light& ligh
 			//	AABBを囲む球体を算出（半径はカメラの回転に依存せず、near/far/FOV/aspectのみで決まる＝Stableな値）
 			DirectX::XMVECTOR Center;
 			float radius;
-			compute_frustum_bounding_sphere(scene_renderer_commons::convert_view_depth_to_projection_depth(split_distance[index + 0], near_clip, camera_far_clip),
-											scene_renderer_commons::convert_view_depth_to_projection_depth(split_distance[index + 1], near_clip, camera_far_clip),
+			compute_frustum_bounding_sphere(scene_renderer_commons::convert_linear_depth_to_projection_depth(split_distance[index + 0] / far_clip, far_clip / near_clip),
+											scene_renderer_commons::convert_linear_depth_to_projection_depth(split_distance[index + 1] / far_clip, far_clip / near_clip),
 											InverseViewProjectionTransform, Center, radius);
 			radius *= 1.0001f;
 
@@ -1205,7 +1190,7 @@ void deffered_lighting_renderer::render_spot_shadow_map(const light& light, comm
 	collision::frustum_culling frustum_culling;
 	{
 		frustum_culling.create_planes(shadow_map_constant.light_view_projection_transform[0]);
-		frustum_culling.create_frustum_corners(DirectX::XMMatrixInverse(nullptr, ViewMatrix * ProjectionMatrix));	//	@tool 平面と同じライトの視錐台から生成する
+		frustum_culling.create_frustum_corners(DirectX::XMMatrixInverse(nullptr, DirectX::XMLoadFloat4x4(&context.scene_constant.view_projection_transform)));
 	}
 
 	job_executor.execute([this, shadow_map_constant, frustum_culling](graphics_context& context)

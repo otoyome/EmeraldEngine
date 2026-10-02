@@ -312,7 +312,7 @@ ID3D11ShaderResourceView* model_buffer_pool_manager::get_meshlet_triangle_buffer
 	return meshlet_triangle_buffer->get_srv();
 }
 
-void model_buffer_pool_manager::get_meshlet_instance_batch(UINT min_capacity, Microsoft::WRL::ComPtr<ID3D11Buffer>& out_buffer, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>& out_srv)
+void model_buffer_pool_manager::get_meshlet_instance_batch(UINT min_capacity, ID3D11Buffer** out_buffer, ID3D11ShaderResourceView** out_srv)
 {
 	std::lock_guard<std::mutex> lock(meshlet_instance_batch_mutex);
 
@@ -342,9 +342,8 @@ void model_buffer_pool_manager::get_meshlet_instance_batch(UINT min_capacity, Mi
 		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
 	}
 
-	//	@tool ロック解除後に別スレッドが拡張しても使い終わるまで解放されないよう参照を渡す
-	out_buffer = meshlet_instance_batch_buffer;
-	out_srv = meshlet_instance_batch_srv;
+	*out_buffer = meshlet_instance_batch_buffer.Get();
+	*out_srv = meshlet_instance_batch_srv.Get();
 }
 
 void model_buffer_pool_manager::flush_uploads()

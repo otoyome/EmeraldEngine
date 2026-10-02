@@ -1474,7 +1474,6 @@ bool bounding_mesh::intersect_sphere_cast_inner(const collision::line& sweep_lin
 		float d = DirectX::XMVectorGetX(DirectX::XMVector3Dot(Norm, qp));
 
 		bool triangle_hit = false;
-		bool face_hit = false;
 		float hit_distance = 0.0f;
 		DirectX::XMVECTOR hit_position = {};
 
@@ -1497,7 +1496,6 @@ bool bounding_mesh::intersect_sphere_cast_inner(const collision::line& sweep_lin
 						hit_distance = DirectX::XMVectorGetX(DirectX::XMVector3Length(DirectX::XMVectorSubtract(cross_pos, Start)));
 						hit_position = DirectX::XMVectorSubtract(cross_pos, fix_vec);
 						triangle_hit = true;
-						face_hit = true;
 					}
 				}
 			}
@@ -1566,14 +1564,6 @@ bool bounding_mesh::intersect_sphere_cast_inner(const collision::line& sweep_lin
 			nearlest_triangle_pos = hit_position;
 			//nearlest_normal = DirectX::XMLoadFloat3(&triangle->normal);
 			nearlest_normal = DirectX::XMVector3Normalize(Norm);
-			if (!face_hit)
-			{
-				//	@tool 頂点・辺は接触点から球中心への向き
-				DirectX::XMVECTOR Center = DirectX::XMVectorAdd(Start, DirectX::XMVectorScale(SweepDirectionNormalize, hit_distance));
-				DirectX::XMVECTOR Vector = DirectX::XMVectorSubtract(Center, hit_position);
-				if (DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(Vector)) > 1e-12f)
-					nearlest_normal = DirectX::XMVector3Normalize(Vector);
-			}
 			hit_flag = true;
 		}
 	}

@@ -125,7 +125,6 @@ void collision_world::inner_step_simulation(float elapsed_time)
 					continue;
 
 				//	カテゴリーチェック
-				//	@tool どちらかが対象なら判定
 				if (!raw1->get_filter()->is_flag(raw2->get_filter()->get_category()) &&
 					!raw2->get_filter()->is_flag(raw1->get_filter()->get_category()))
 					continue;
@@ -322,16 +321,18 @@ bool collision_world::register_object(collision_object_ptr object)
 
 	std::lock_guard<std::mutex> lock(mutex);
 
+	auto it = std::find(collision_objects_remove.begin(), collision_objects_remove.end(), object);
+	if (it != collision_objects_remove.end())
+	{
+		collision_objects_remove.erase(it);
+		return true;
+	}
+
 	if (std::find(collision_objects_add.begin(), collision_objects_add.end(), object) != collision_objects_add.end())
 		return false;
 	if (std::find(collision_objects.begin(), collision_objects.end(), object) != collision_objects.end())
 		return false;
 
-	auto it = std::find(collision_objects_remove.begin(), collision_objects_remove.end(), object);
-	if (it != collision_objects_remove.end())
-	{
-		collision_objects_remove.erase(it);
-	}
 	collision_objects_add.emplace_back(object);
 	return true;
 }
@@ -343,16 +344,18 @@ bool collision_world::unregister_object(collision_object_ptr object)
 
 	std::lock_guard<std::mutex> lock(mutex);
 
+	auto it = std::find(collision_objects_add.begin(), collision_objects_add.end(), object);
+	if (it != collision_objects_add.end())
+	{
+		collision_objects_add.erase(it);
+		return true;
+	}
+
 	if (std::find(collision_objects_remove.begin(), collision_objects_remove.end(), object) != collision_objects_remove.end())
 		return false;
 	if (std::find(collision_objects.begin(), collision_objects.end(), object) == collision_objects.end())
 		return false;
 
-	auto it = std::find(collision_objects_add.begin(), collision_objects_add.end(), object);
-	if (it != collision_objects_add.end())
-	{
-		collision_objects_add.erase(it);
-	}
 	collision_objects_remove.emplace_back(object);
 	return true;
 }

@@ -143,13 +143,13 @@ void model_object::fixed_update(float elapsed_time)
 	if (!animations.empty())
 	{
 		auto& animation_data = animations[animation_index];
-		float previous_time = animation_time;
+		float previous_time = (std::min)(animation_time, animation_data.end_time);
 		animation_time += elapsed_time * animation_speed;
-		float current_time = animation_time;
-		if (current_time > animation_data.end_time)
+		if (animation_loop && animation_data.end_time > 0.0f && animation_time > animation_data.end_time)
 		{
-			current_time = animation_loop ? fmodf(current_time, animation_data.end_time) : animation_data.end_time;
+			animation_time = fmodf(animation_time, animation_data.end_time);
 		}
+		float current_time = (std::min)(animation_time, animation_data.end_time);
 
 		update_node_animation(animation_data, current_time, previous_time);
 		update_morph_animation(animation_data, current_time, previous_time);
@@ -373,6 +373,10 @@ void model_object::update_node_animation(const animation::data& animation_data, 
 	//	アニメーション算出
 	model_instance->compute_animation_nodes(current_node_animations, animation_index, current_time);
 
+	float delta_time = current_time - previous_time;
+	if (animation_loop && previous_time > current_time)
+		delta_time += animation_data.end_time;
+
 	//	ルートモーション
 	if (animation_data.root_motion_xz || animation_data.root_motion_y || animation_data.root_rotation)
 	{
@@ -474,7 +478,7 @@ void model_object::update_node_animation(const animation::data& animation_data, 
 
 				//	コールバック呼び出し
 				if (on_root_animation_translation)
-					on_root_animation_translation(world_translation, current_time - previous_time);
+					on_root_animation_translation(world_translation, delta_time);
 			}
 
 			if (animation_data.root_rotation)
@@ -522,7 +526,7 @@ void model_object::update_node_animation(const animation::data& animation_data, 
 				}
 				//	コールバック呼び出し
 				if (on_root_animation_rotation)
-					on_root_animation_rotation(local_rotation, current_time - previous_time);
+					on_root_animation_rotation(local_rotation, delta_time);
 			}
 		}
 	}

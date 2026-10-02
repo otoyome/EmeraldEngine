@@ -256,16 +256,21 @@ bool object_manager::register_object(game_object_ptr object)
 
 	std::lock_guard<std::mutex> lock(mutex);
 
+	auto it = std::find(game_object_removes.begin(), game_object_removes.end(), object);
+	if (it != game_object_removes.end())
+	{
+		game_object_removes.erase(it);
+
+		if (std::find(game_objects.begin(), game_objects.end(), object) == game_objects.end())
+			game_object_add.emplace_back(object);
+		return true;
+	}
+
 	if (std::find(game_object_add.begin(), game_object_add.end(), object) != game_object_add.end())
 		return false;
 	if (std::find(game_objects.begin(), game_objects.end(), object) != game_objects.end())
 		return false;
 
-	auto it = std::find(game_object_removes.begin(), game_object_removes.end(), object);
-	if (it != game_object_removes.end())
-	{
-		game_object_removes.erase(it);
-	}
 	game_object_add.emplace_back(object);
 	return true;
 }
@@ -279,14 +284,18 @@ bool object_manager::unregister_object(game_object_ptr object)
 
 	if (std::find(game_object_removes.begin(), game_object_removes.end(), object) != game_object_removes.end())
 		return false;
-	if (std::find(game_objects.begin(), game_objects.end(), object) == game_objects.end())
-		return false;
 
 	auto it = std::find(game_object_add.begin(), game_object_add.end(), object);
 	if (it != game_object_add.end())
 	{
 		game_object_add.erase(it);
+		game_object_removes.emplace_back(object);
+		return true;
 	}
+
+	if (std::find(game_objects.begin(), game_objects.end(), object) == game_objects.end())
+		return false;
+
 	game_object_removes.emplace_back(object);
 	return true;
 }
@@ -303,24 +312,50 @@ bool object_manager::unregister_object(collision_object_ptr object)
 
 void object_manager::add_objects()
 {
-	for (auto& object : game_object_add)
+	std::vector<game_object_ptr> adds;
+	while (true)
 	{
-		game_objects.emplace_back(object->shared_from_this());
-		game_objects.back()->on_initialize();
+		{
+			std::lock_guard<std::mutex> lock(mutex);
+			if (game_object_add.empty())
+				break;
+
+			adds.swap(game_object_add);
+			game_objects.insert(game_objects.end(), adds.begin(), adds.end());
+		}
+
+		for (auto& object : adds)
+		{
+			object->on_initialize();
+		}
+		adds.clear();
 	}
-	system_utility::std_vector_swap_clear(game_object_add);
 }
 
 void object_manager::remove_objects()
 {
-	for (auto& object : game_object_removes)
+	std::vector<game_object_ptr> removes;
+	while (true)
 	{
-		auto it = std::find(game_objects.begin(), game_objects.end(), object);
-		if (it != game_objects.end())
 		{
-			(*it)->on_finalize();
-			game_objects.erase(it);
+			std::lock_guard<std::mutex> lock(mutex);
+			if (game_object_removes.empty())
+				break;
+
+			removes.swap(game_object_removes);
+
+			for (auto& object : removes)
+			{
+				auto it = std::find(game_objects.begin(), game_objects.end(), object);
+				if (it != game_objects.end())
+					game_objects.erase(it);
+			}
 		}
+
+		for (auto& object : removes)
+		{
+			object->on_finalize();
+		}
+		removes.clear();
 	}
-	system_utility::std_vector_swap_clear(game_object_removes);
 }

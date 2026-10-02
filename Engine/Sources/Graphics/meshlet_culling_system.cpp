@@ -18,29 +18,17 @@ namespace
 		shader_manager::instance()->load_shader<compute_shader>(shader, desc);
 		return shader;
 	}
-
-	//	@tool 付け替え用キー(上位32bit:unique_id, 下位32bit:LOD番号)
-	static constexpr UINT64 invalid_primitive_key = ~0ull;
-	UINT64 make_primitive_key(UINT unique_id, std::size_t lod_mesh_index)
-	{
-		return (static_cast<UINT64>(unique_id) << 32) | static_cast<UINT64>(lod_mesh_index & 0xFFFFFFFF);
-	}
 }
 
 meshlet_culling_system::meshlet_culling_system()
 {
 	meshlet_culling_cs = load_cs("Shaders/Culling/meshlet_culling_cs.hlsl");
-	meshlet_remap_cs = load_cs("Shaders/Culling/meshlet_remap_cs.hlsl");
 
 	D3D11_BUFFER_DESC bd{};
 	bd.Usage = D3D11_USAGE_DEFAULT;
 	bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	bd.ByteWidth = sizeof(cull_constants);
 	HRESULT hr = render_data::instance()->get_device()->CreateBuffer(&bd, nullptr, cull_constant_buffer.GetAddressOf());
-	_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
-
-	bd.ByteWidth = sizeof(remap_constants);
-	hr = render_data::instance()->get_device()->CreateBuffer(&bd, nullptr, remap_constant_buffer.GetAddressOf());
 	_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
 }
 
@@ -138,11 +126,6 @@ void meshlet_culling_system::generate_visible_meshlet_buffer(material_resources&
 	hr = device->CreateUnorderedAccessView(res.visible_meshlet_buffer.Get(), &ud, res.visible_meshlet_uav.ReleaseAndGetAddressOf());
 	_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
 
-	//	@tool 前フレームのリストを書き換える用(Appendカウンタに触れない)
-	ud.Buffer.Flags = 0;
-	hr = device->CreateUnorderedAccessView(res.visible_meshlet_buffer.Get(), &ud, res.visible_meshlet_remap_uav.ReleaseAndGetAddressOf());
-	_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
-
 	D3D11_SHADER_RESOURCE_VIEW_DESC sd{};
 	sd.Format = DXGI_FORMAT_UNKNOWN;
 	sd.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
@@ -162,23 +145,30 @@ void meshlet_culling_system::generate_visible_meshlet_buffer(material_resources&
 	}
 }
 
-template<typename Function>
-void meshlet_culling_system::for_each_cull_target(const render_data_context& render_data, const std::vector<std::size_t>& visible_draw_indices, const std::vector<float>& lengths, const DirectX::XMFLOAT4& camera_clip_distance, Function function) const
+void meshlet_culling_system::build_and_cull(graphics_context& context, const std::vector<std::size_t>& visible_draw_indices, const std::vector<float>& lengths, hiz_buffer& hiz)
 {
-	auto draw_data_ptr = render_data.mesh_container.draw_datas.data();
-	auto buffer_data_ptr = render_data.mesh_container.buffer_datas.data();
+	current_results.clear();
+	submesh_transform_scratch.clear();
+	material_scratch_buffer.clear();
 
+	auto& mesh_container = context.render_data->mesh_container;
+	auto draw_data_ptr = mesh_container.draw_datas.data();
+	auto buffer_data_ptr = mesh_container.buffer_datas.data();
+	auto material_data_ptr = mesh_container.material_datas.data();
+
+	//	マテリアルごとにメッシュレットをグルーピング
 	for (auto& draw_index : visible_draw_indices)
 	{
-		const struct mesh_container::draw_datas& draw_data = draw_data_ptr[draw_index];
-		const ::buffer_datas& buffer_data = buffer_data_ptr[draw_data.buffer_index];
+		auto draw_data = draw_data_ptr + draw_index;
+		auto& buffer_data = buffer_data_ptr[draw_data->buffer_index];
+		auto material_data = material_data_ptr + draw_data->material_index;
 
 		//	描画対象のLODメッシュを選択
 		if (buffer_data.color_meshs.empty())
 			continue;
 
-		std::size_t lod_mesh_index = buffer_data.select_lod_mesh_index(lengths[draw_index], camera_clip_distance);
-		const ::buffer_datas::sub_mesh& sub_mesh = buffer_data.color_meshs[lod_mesh_index];
+		std::size_t lod_mesh_index = buffer_data.select_lod_mesh_index(lengths[draw_index], context.scene_constant.camera_clip_distance);
+		auto& sub_mesh = buffer_data.color_meshs[lod_mesh_index];
 		if (!sub_mesh.meshlets || sub_mesh.meshlets->empty())
 			continue;
 
@@ -186,36 +176,16 @@ void meshlet_culling_system::for_each_cull_target(const render_data_context& ren
 		if (!sub_mesh.morph_meshes.empty())
 			continue;
 
-		function(draw_data, buffer_data, sub_mesh, lod_mesh_index);
-	}
-}
-
-void meshlet_culling_system::prepare(const render_data_context& render_data, const std::vector<std::size_t>& visible_draw_indices, const std::vector<float>& lengths, const DirectX::XMFLOAT4& camera_clip_distance)
-{
-	current_results.clear();
-	submesh_transform_scratch.clear();
-	material_scratch_buffer.clear();
-
-	auto material_data_ptr = render_data.mesh_container.material_datas.data();
-	result_primitive_keys.assign(render_data.mesh_container.buffer_datas.size(), invalid_primitive_key);
-
-	//	マテリアルごとにメッシュレットをグルーピング
-	for_each_cull_target(render_data, visible_draw_indices, lengths, camera_clip_distance,
-		[&](const struct mesh_container::draw_datas& draw_data, const ::buffer_datas& buffer_data, const ::buffer_datas::sub_mesh& sub_mesh, std::size_t lod_mesh_index)
-	{
 		//	サブメッシュのワールド行列を設定
 		UINT transform_index = static_cast<UINT>(submesh_transform_scratch.size());
 		submesh_transform_scratch.emplace_back(buffer_data.world_transform);
 
 		//	カリング判定
-		UINT no_cull = system_utility::is_bitflag(buffer_data.system_flags, ::buffer_datas::flags::culling) ? 0 : 1;
-
-		//	@tool 次フレームの付け替え用にキーを記録
-		result_primitive_keys[draw_data.buffer_index] = make_primitive_key(buffer_data.unique_id, lod_mesh_index);
+		UINT no_cull = system_utility::is_bitflag(buffer_data.system_flags, buffer_datas::flags::culling) ? 0 : 1;
 
 		//	メッシュレット分登録
-		UINT primitive_index = draw_data.buffer_index;
-		auto& instances = material_scratch_buffer[material_data_ptr[draw_data.material_index].material];
+		UINT primitive_index = draw_data->buffer_index;
+		auto& instances = material_scratch_buffer[material_data->material];
 		for (auto& meshlet : *sub_mesh.meshlets)
 		{
 			auto& instance = instances.emplace_back();
@@ -229,43 +199,13 @@ void meshlet_culling_system::prepare(const render_data_context& render_data, con
 			instance.no_cull = no_cull;
 			instance.pipeline_group = 0;
 		}
-	});
-
-	//	@tool 今フレーム使われなかったマテリアルのバッファは解放する(破棄されたインスタンスの分が溜まり続けないように)
-	for (auto it = material_resource_map.begin(); it != material_resource_map.end();)
-	{
-		if (material_scratch_buffer.find(it->first) == material_scratch_buffer.end())
-			it = material_resource_map.erase(it);
-		else
-			++it;
 	}
 
-	if (submesh_transform_scratch.empty())
-		return;
-
-	//	@tool バッファ確保は記録時に済ませ、再生時に差し替わらないようにする
-	generate_submesh_transform_buffer(static_cast<UINT>(submesh_transform_scratch.size()));
-	for (auto& group : material_scratch_buffer)
-	{
-		material_resources& resource = material_resource_map[group.first];
-		UINT instance_count = static_cast<UINT>(group.second.size());
-		generate_meshlet_instance_buffer(resource, instance_count);
-		generate_visible_meshlet_buffer(resource, instance_count);
-
-		cull_result& result = current_results[group.first];
-		result.visible_meshlet_srv = resource.visible_meshlet_srv;
-		result.visible_meshlet_remap_uav = resource.visible_meshlet_remap_uav;
-		result.indirect_args_buffer = resource.indirect_args_buffer;
-		result.visible_meshlet_capacity = resource.visible_meshlet_capacity;
-	}
-}
-
-void meshlet_culling_system::cull(graphics_context& context, hiz_buffer& hiz)
-{
 	if (submesh_transform_scratch.empty())
 		return;
 
 	//	サブメッシュの変換行列を登録
+	generate_submesh_transform_buffer(static_cast<UINT>(submesh_transform_scratch.size()));
 	{
 		D3D11_BOX box{};
 		box.right = static_cast<UINT>(sizeof(DirectX::XMFLOAT4X4) * submesh_transform_scratch.size());
@@ -281,115 +221,6 @@ void meshlet_culling_system::cull(graphics_context& context, hiz_buffer& hiz)
 	}
 }
 
-std::shared_ptr<meshlet_culling_system::remap_snapshot> meshlet_culling_system::create_remap_snapshot(const render_data_context& render_data, const std::vector<std::size_t>& visible_draw_indices, const std::vector<float>& lengths, const DirectX::XMFLOAT4& camera_clip_distance)
-{
-	auto snapshot = std::make_shared<remap_snapshot>();
-
-	//	@tool 今フレームのキー → プリミティブ番号
-	std::vector<UINT64> current_keys(render_data.mesh_container.buffer_datas.size(), invalid_primitive_key);
-	std::unordered_map<UINT64, UINT> key_to_primitive_index;
-	key_to_primitive_index.reserve(current_keys.size());
-	for_each_cull_target(render_data, visible_draw_indices, lengths, camera_clip_distance,
-		[&](const struct mesh_container::draw_datas& draw_data, const ::buffer_datas& buffer_data, const ::buffer_datas::sub_mesh&, std::size_t lod_mesh_index)
-	{
-		UINT64 key = make_primitive_key(buffer_data.unique_id, lod_mesh_index);
-		current_keys[draw_data.buffer_index] = key;
-		key_to_primitive_index.emplace(key, draw_data.buffer_index);
-	});
-
-	//	@tool 前フレームのカリング結果があれば付け替え表を生成する
-	if (!current_results.empty() && !result_primitive_keys.empty())
-	{
-		snapshot->results = current_results;
-		snapshot->remap_table.assign(result_primitive_keys.size(), invalid_primitive_index);
-		for (std::size_t index = 0; index < result_primitive_keys.size(); ++index)
-		{
-			UINT64 key = result_primitive_keys[index];
-			if (key == invalid_primitive_key)
-				continue;
-
-			auto it = key_to_primitive_index.find(key);
-			if (it != key_to_primitive_index.end())
-				snapshot->remap_table[index] = it->second;
-		}
-
-		//	@tool 付け替え表バッファ確保
-		UINT count = static_cast<UINT>(snapshot->remap_table.size());
-		if (count > remap_capacity || !remap_buffer)
-		{
-			UINT capacity = remap_capacity ? remap_capacity : 256;
-			while (capacity < count)
-				capacity *= 2;
-			remap_capacity = capacity;
-
-			auto device = ::render_data::instance()->get_device();
-
-			D3D11_BUFFER_DESC bd{};
-			bd.ByteWidth = sizeof(UINT) * capacity;
-			bd.Usage = D3D11_USAGE_DEFAULT;
-			bd.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-			bd.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
-			bd.StructureByteStride = sizeof(UINT);
-			HRESULT hr = device->CreateBuffer(&bd, nullptr, remap_buffer.ReleaseAndGetAddressOf());
-			_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
-
-			D3D11_SHADER_RESOURCE_VIEW_DESC sd{};
-			sd.Format = DXGI_FORMAT_UNKNOWN;
-			sd.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
-			sd.Buffer.FirstElement = 0;
-			sd.Buffer.NumElements = capacity;
-			hr = device->CreateShaderResourceView(remap_buffer.Get(), &sd, remap_srv.ReleaseAndGetAddressOf());
-			_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
-		}
-		snapshot->remap_buffer = remap_buffer;
-		snapshot->remap_srv = remap_srv;
-	}
-
-	//	@tool 付け替え後の可視リストは今フレームの番号を指す
-	result_primitive_keys = std::move(current_keys);
-	return snapshot;
-}
-
-void meshlet_culling_system::apply_remap(graphics_context& context, const remap_snapshot& snapshot)
-{
-	if (snapshot.results.empty() || snapshot.remap_table.empty() || !snapshot.remap_buffer)
-		return;
-
-	auto dc = context.device_context;
-
-	//	@tool 付け替え表転送
-	{
-		D3D11_BOX box{};
-		box.right = static_cast<UINT>(sizeof(UINT) * snapshot.remap_table.size());
-		box.bottom = 1;
-		box.back = 1;
-		dc->UpdateSubresource(snapshot.remap_buffer.Get(), 0, &box, snapshot.remap_table.data(), 0, 0);
-	}
-
-	dc->CSSetShader(meshlet_remap_cs->get_shader().Get(), nullptr, 0);
-	dc->CSSetShaderResources(0, 1, snapshot.remap_srv.GetAddressOf());
-	for (auto& pair : snapshot.results)
-	{
-		const cull_result& result = pair.second;
-		if (!result.visible_meshlet_remap_uav || result.visible_meshlet_capacity == 0)
-			continue;
-
-		remap_constants constant{};
-		constant.meshlet_capacity = result.visible_meshlet_capacity;
-		constant.remap_count = static_cast<UINT>(snapshot.remap_table.size());
-		dc->UpdateSubresource(remap_constant_buffer.Get(), 0, nullptr, &constant, 0, 0);
-		dc->CSSetConstantBuffers(0, 1, remap_constant_buffer.GetAddressOf());
-
-		//	@tool 有効件数はGPU側にしか無いので容量分すべて処理する(範囲外は描画されないので影響しない)
-		dc->CSSetUnorderedAccessViews(0, 1, result.visible_meshlet_remap_uav.GetAddressOf(), nullptr);
-		dc->Dispatch((result.visible_meshlet_capacity + ThreadCount - 1) / ThreadCount, 1, 1);
-	}
-
-	context.clear_unordered_access_views();
-	context.clear_shader_resorce_views();
-	dc->CSSetShader(nullptr, nullptr, 0);
-}
-
 void meshlet_culling_system::cull_material_group(graphics_context& context, material* material, const std::vector<meshlet_instance_gpu>& instances, hiz_buffer& hiz)
 {
 	if (instances.empty())
@@ -398,11 +229,10 @@ void meshlet_culling_system::cull_material_group(graphics_context& context, mate
 	auto dc = context.device_context;
 
 	//	マテリアル単位のリソース取得
-	auto resource_it = material_resource_map.find(material);
-	if (resource_it == material_resource_map.end())
-		return;
-	material_resources& resource = resource_it->second;
+	material_resources& resource = material_resource_map[material];
 	UINT instance_count = static_cast<UINT>(instances.size());
+	generate_meshlet_instance_buffer(resource, instance_count);
+	generate_visible_meshlet_buffer(resource, instance_count);
 
 	//	メッシュレットのインデックス情報転送
 	{
@@ -439,8 +269,20 @@ void meshlet_culling_system::cull_material_group(graphics_context& context, mate
 	UINT arguments[4] = { max_meshlet_vertices_per_draw, 0, 0, 0 };
 	dc->UpdateSubresource(resource.indirect_args_buffer.Get(), 0, nullptr, arguments, 0, 0);
 	dc->CopyStructureCount(resource.indirect_args_buffer.Get(), sizeof(UINT), resource.visible_meshlet_uav.Get());
+	cull_result result{};
+	result.visible_meshlet_srv = resource.visible_meshlet_srv.Get();
+	result.indirect_args_buffer = resource.indirect_args_buffer.Get();
+	current_results[material] = result;
 
 	context.clear_unordered_access_views();
 	context.clear_shader_resorce_views();
 	dc->CSSetShader(nullptr, nullptr, 0);
+}
+
+const meshlet_culling_system::cull_result* meshlet_culling_system::find_result(material* mat) const
+{
+	auto it = current_results.find(mat);
+	if (it == current_results.end())
+		return nullptr;
+	return &it->second;
 }
