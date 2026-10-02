@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>17.0</VCProjectVersion>
+    <Keyword>Win32Proj</Keyword>
+    <ProjectGuid>{39e5a390-208e-4fa7-ba5e-9903899cc315}</ProjectGuid>
+    <RootNamespace>MathTest</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <!-- Math ライブラリの規約を切り替えてテストするためのプロパティ（run_math_tests.bat から指定する） -->
+  <!-- MathColumnVector / MathRightHanded / MathReverseDepth：math_config.h の各マクロの値、MathDisableSimd：true で SIMD を無効化 -->
+  <!-- MathTestOptions：追加のコンパイラオプション、MathTestVariant：出力先の区別 -->
+  <PropertyGroup>
+    <MathTestDefines></MathTestDefines>
+    <MathTestDefines Condition="'$(MathColumnVector)'!=''">$(MathTestDefines);MATH_COLUMN_VECTOR=$(MathColumnVector)</MathTestDefines>
+    <MathTestDefines Condition="'$(MathRightHanded)'!=''">$(MathTestDefines);MATH_RIGHT_HANDED=$(MathRightHanded)</MathTestDefines>
+    <MathTestDefines Condition="'$(MathReverseDepth)'!=''">$(MathTestDefines);MATH_REVERSE_DEPTH=$(MathReverseDepth)</MathTestDefines>
+    <MathTestDefines Condition="'$(MathDisableSimd)'=='true'">$(MathTestDefines);MATH_DISABLE_SIMD</MathTestDefines>
+    <MathTestOptions Condition="'$(MathTestOptions)'==''"></MathTestOptions>
+    <MathTestVariant Condition="'$(MathTestVariant)'==''">default</MathTestVariant>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <OutDir>$(ProjectDir)x64\$(Configuration)\$(MathTestVariant)\</OutDir>
+    <IntDir>$(ProjectDir)x64\$(Configuration)\$(MathTestVariant)\obj\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <WarningLevel>Level4</WarningLevel>
+      <!-- C4201：無名構造体（Math ライブラリの共用体で意図的に使用している） -->
+      <DisableSpecificWarnings>4201;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <SDLCheck>true</SDLCheck>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <PreprocessorDefinitions>$(MathTestDefines);_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\Engine\Headers;$(ProjectDir)Headers;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>$(MathTestOptions) %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="Headers\test_framework.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\Engine\Sources\Math\exponential_quaternion.cpp" />
+    <ClCompile Include="..\Engine\Sources\Math\matrix.cpp" />
+    <ClCompile Include="..\Engine\Sources\Math\quaternion.cpp" />
+    <ClCompile Include="..\Engine\Sources\Math\rotator.cpp" />
+    <ClCompile Include="..\Engine\Sources\Math\vector2.cpp" />
+    <ClCompile Include="..\Engine\Sources\Math\vector3.cpp" />
+    <ClCompile Include="..\Engine\Sources\Math\vector4.cpp" />
+    <ClCompile Include="Sources\main.cpp" />
+    <ClCompile Include="Sources\test_camera.cpp" />
+    <ClCompile Include="Sources\test_euler.cpp" />
+    <ClCompile Include="Sources\test_matrix.cpp" />
+    <ClCompile Include="Sources\test_quaternion.cpp" />
+    <ClCompile Include="Sources\test_simd.cpp" />
+    <ClCompile Include="Sources\test_utility.cpp" />
+    <ClCompile Include="Sources\test_vector.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="run_math_tests.bat" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
