@@ -983,11 +983,11 @@ bool framework::create_buffers()
 
 		//	深度ステンシルバッファを生成
 		{
-			texture2d_desc.Format = DXGI_FORMAT_R24G8_TYPELESS;
+			texture2d_desc.Format = DXGI_FORMAT_R32G8X24_TYPELESS;
 			texture2d_desc.BindFlags = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
 
 			D3D11_SHADER_RESOURCE_VIEW_DESC shader_resource_view_desc{};
-			shader_resource_view_desc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
+			shader_resource_view_desc.Format = DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS;
 			shader_resource_view_desc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
 			shader_resource_view_desc.Texture2D.MostDetailedMip = 0;
 			shader_resource_view_desc.Texture2D.MipLevels = 1;

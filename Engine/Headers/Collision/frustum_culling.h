@@ -56,7 +56,7 @@ namespace collision
 	private:
 		plane planes[surface_max];	//	視錐台の面
 		DirectX::XMFLOAT4 corners[8];	//	視錐台の頂点
-		bool has_corners = false;	//	@tool 頂点算出済みか
+		bool has_corners = false;	//	頂点算出済みか
 	};
 
 }	//	namespace collision

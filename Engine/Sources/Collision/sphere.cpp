@@ -62,7 +62,7 @@ bool bounding_sphere::intersect_segment(DirectX::XMVECTOR Start, DirectX::XMVECT
 	DirectX::XMVECTOR Center = DirectX::XMLoadFloat3(&get_position());
 	const float radius = get_radius();
 
-	//	@tool 始点が内側
+	//	始点が内側
 	DirectX::XMVECTOR StartToCenter = DirectX::XMVectorSubtract(Start, Center);
 	float start_length_sq = DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(StartToCenter));
 	if (start_length_sq <= radius * radius)
@@ -104,7 +104,7 @@ bool bounding_sphere::intersect_sphere(const DirectX::XMFLOAT3& point, float rad
 	bool insert = distance <= 0.0f;
 	if (intersect && insert)
 	{
-		//	@tool 中心一致時は上方向
+		//	中心一致時は上方向
 		if (DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(Vector)) <= 1e-12f)
 			Vector = DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
 		Vector = DirectX::XMVector3Normalize(Vector);
@@ -146,7 +146,7 @@ bool bounding_sphere::intersect_sphere_cast(const DirectX::XMFLOAT3& start, cons
 	DirectX::XMVECTOR SphereCenter = DirectX::XMLoadFloat3(&get_position());
 	DirectX::XMVECTOR Direction = DirectX::XMVector3Normalize(DirectX::XMVectorSubtract(End, Start));
 
-	//	@tool 開始時の重なり
+	//	開始時の重なり
 	{
 		DirectX::XMVECTOR ToStart = DirectX::XMVectorSubtract(Start, SphereCenter);
 		float start_distance = DirectX::XMVectorGetX(DirectX::XMVector3Length(ToStart));
@@ -197,7 +197,7 @@ bool bounding_sphere::intersect_capsule_cast(const DirectX::XMFLOAT3& start, con
 
 	float combined_radius = get_radius() + radius;
 
-	//	@tool 軸上の最近点
+	//	軸上の最近点
 	auto axis_point = [&](XMVECTOR Center)
 	{
 		float proj = XMVectorGetX(XMVector3Dot(XMVectorSubtract(SphereCenter, Center), Axis));
@@ -205,7 +205,7 @@ bool bounding_sphere::intersect_capsule_cast(const DirectX::XMFLOAT3& start, con
 		return XMVectorAdd(Center, XMVectorScale(Axis, proj));
 	};
 
-	//	@tool 開始時の重なり
+	//	開始時の重なり
 	{
 		XMVECTOR AxisPoint = axis_point(Start);
 		XMVECTOR ToCaster = XMVectorSubtract(AxisPoint, SphereCenter);
@@ -243,7 +243,7 @@ bool bounding_sphere::intersect_capsule_cast(const DirectX::XMFLOAT3& start, con
 		XMVECTOR CenterWorld = XMVectorAdd(Start, XMVectorScale(VelocityNormal, nearest));
 		XMVECTOR AxisPointWorld = axis_point(CenterWorld);
 
-		//	@tool 対象球の外向き法線
+		//	対象球の外向き法線
 		XMVECTOR Direction = XMVectorSubtract(AxisPointWorld, SphereCenter);
 		if (XMVectorGetX(XMVector3LengthSq(Direction)) < FLT_EPSILON)
 			Direction = XMVectorNegate(VelocityNormal);

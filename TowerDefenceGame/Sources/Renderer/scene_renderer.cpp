@@ -104,7 +104,7 @@ void depth_prepass_renderer::resize_buffer(int width, int height)
 
 	//	•`‰æƒpƒX¶¬
 	D3D11_DEPTH_STENCIL_VIEW_DESC depth_stencil_view_desc{};
-	depth_stencil_view_desc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	depth_stencil_view_desc.Format = DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
 	depth_stencil_view_desc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
 	depth_stencil_view_desc.Texture2D.MipSlice = 0;
 	rendering_pass.depth_stencil = depth_stencil_view(render_targets->scene_depth_stencil_texture, &depth_stencil_view_desc);
@@ -235,7 +235,7 @@ void gbuffer_renderer::resize_buffer(int width, int height)
 		}
 
 		D3D11_DEPTH_STENCIL_VIEW_DESC depth_stencil_view_desc{};
-		depth_stencil_view_desc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+		depth_stencil_view_desc.Format = DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
 		depth_stencil_view_desc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
 		depth_stencil_view_desc.Texture2D.MipSlice = 0;
 		rendering_pass.depth_stencil = depth_stencil_view(render_targets->scene_depth_stencil_texture, &depth_stencil_view_desc);
@@ -434,7 +434,7 @@ void gbuffer_decal_renderer::resize_buffer(int width, int height)
 		}
 #endif
 		D3D11_DEPTH_STENCIL_VIEW_DESC depth_stencil_view_desc{};
-		depth_stencil_view_desc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+		depth_stencil_view_desc.Format = DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
 		depth_stencil_view_desc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
 		depth_stencil_view_desc.Texture2D.MipSlice = 0;
 		rendering_pass.depth_stencil = depth_stencil_view(render_targets->scene_depth_stencil_texture, &depth_stencil_view_desc);
@@ -1329,7 +1329,7 @@ void debug_draw_pass_renderer::resize_buffer(int width, int height)
 	rendering_pass.render_targets.emplace_back(render_data::instance()->get_swap_chain());
 	rendering_pass.render_targets.back().clear_color = false;
 	D3D11_DEPTH_STENCIL_VIEW_DESC depth_stencil_view_desc{};
-	depth_stencil_view_desc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	depth_stencil_view_desc.Format = DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
 	depth_stencil_view_desc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
 	depth_stencil_view_desc.Texture2D.MipSlice = 0;
 	rendering_pass.depth_stencil = depth_stencil_view(render_targets->scene_depth_stencil_texture, &depth_stencil_view_desc);

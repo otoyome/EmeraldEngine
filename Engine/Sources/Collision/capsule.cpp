@@ -41,14 +41,14 @@ DirectX::XMFLOAT3 bounding_capsule::get_axis_float3() const
 bounding_capsule::bounding_capsule()
 : bounding_object()
 {
-	//	@tool 線分の再計算
+	//	線分の再計算
 	on_change_parameter();
 }
 
 bounding_capsule::bounding_capsule(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT4& rotation, float radius, float length)
 : bounding_object({radius, length, 0.0f}, rotation, position)
 {
-	//	@tool 線分の再計算
+	//	線分の再計算
 	on_change_parameter();
 }
 
@@ -71,7 +71,7 @@ bool bounding_capsule::intersect_segment(const DirectX::XMFLOAT3& start, const D
 	DirectX::XMVECTOR Line1 = DirectX::XMLoadFloat3(&line[1]);
 	const float radius = get_radius();
 
-	//	@tool 軸上の最近点
+	//	軸上の最近点
 	auto axis_point = [&](DirectX::XMVECTOR Point)
 	{
 		DirectX::XMFLOAT3 point, horizon;
@@ -81,7 +81,7 @@ bool bounding_capsule::intersect_segment(const DirectX::XMFLOAT3& start, const D
 		return DirectX::XMLoadFloat3(&horizon);
 	};
 
-	//	@tool 始点が内側
+	//	始点が内側
 	DirectX::XMVECTOR StartAxis = axis_point(Start);
 	DirectX::XMVECTOR StartVector = DirectX::XMVectorSubtract(Start, StartAxis);
 	float start_length = DirectX::XMVectorGetX(DirectX::XMVector3Length(StartVector));
@@ -98,7 +98,7 @@ bool bounding_capsule::intersect_segment(const DirectX::XMFLOAT3& start, const D
 		return true;
 	}
 
-	//	@tool 両端の球と円柱で最も近い交点
+	//	両端の球と円柱で最も近い交点
 	DirectX::XMVECTOR HitPosition;
 	float hit_distance = 0.0f;
 	float near_distance = FLT_MAX;
@@ -140,7 +140,7 @@ bool bounding_capsule::intersect_sphere(const DirectX::XMFLOAT3& point, float ra
 
 	if( intersect && length <= 0.0f )
 	{
-		//	@tool 軸上の最近点から自分を押し出す向き
+		//	軸上の最近点から自分を押し出す向き
 		DirectX::XMVECTOR Point = DirectX::XMLoadFloat3(&point);
 		DirectX::XMVECTOR Horizon = DirectX::XMLoadFloat3(&horizon);
 		DirectX::XMVECTOR Vector = DirectX::XMVectorSubtract(Horizon, Point);
@@ -177,7 +177,7 @@ bool bounding_capsule::intersect_capsule(const bounding_capsule& capsule, inters
 
 	if (intersect && length <= 0.0f)
 	{
-		//	@tool 相手から自分へ向かう向き
+		//	相手から自分へ向かう向き
 		DirectX::XMVECTOR Horizon1 = DirectX::XMLoadFloat3(&horizon1);
 		DirectX::XMVECTOR Horizon2 = DirectX::XMLoadFloat3(&horizon2);
 		DirectX::XMVECTOR Vector = DirectX::XMVectorSubtract(Horizon1, Horizon2);
@@ -188,7 +188,7 @@ bool bounding_capsule::intersect_capsule(const bounding_capsule& capsule, inters
 		}
 		else
 		{
-			//	@tool 軸が交差している場合は両軸に垂直
+			//	軸が交差している場合は両軸に垂直
 			Normal = DirectX::XMVector3Cross(get_axis_vector(), capsule.get_axis_vector());
 			if (DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(Normal)) <= 1e-12f)
 				Normal = DirectX::XMVector3Orthogonal(get_axis_vector());
@@ -224,7 +224,7 @@ bool bounding_capsule::intersect_sphere_cast(const DirectX::XMFLOAT3& start, con
 	DirectX::XMVECTOR SphereCenter1 = DirectX::XMLoadFloat3(&line[1]);
 	const float combined_radius = get_radius() + radius;
 
-	//	@tool 軸上の最近点
+	//	軸上の最近点
 	auto axis_point = [&](DirectX::XMVECTOR Point)
 	{
 		DirectX::XMFLOAT3 point, horizon;
@@ -234,7 +234,7 @@ bool bounding_capsule::intersect_sphere_cast(const DirectX::XMFLOAT3& start, con
 		return DirectX::XMLoadFloat3(&horizon);
 	};
 
-	//	@tool 開始時の重なり
+	//	開始時の重なり
 	{
 		DirectX::XMVECTOR AxisPoint = axis_point(Start);
 		DirectX::XMVECTOR ToStart = DirectX::XMVectorSubtract(Start, AxisPoint);
@@ -271,7 +271,7 @@ bool bounding_capsule::intersect_sphere_cast(const DirectX::XMFLOAT3& start, con
 
 	if (intersect)
 	{
-		//	@tool 軸上の最近点から接触時の中心へ向かう外向き法線
+		//	軸上の最近点から接触時の中心へ向かう外向き法線
 		DirectX::XMVECTOR AxisPoint = axis_point(NearCenter);
 		DirectX::XMVECTOR Normal = DirectX::XMVector3Normalize(DirectX::XMVectorSubtract(NearCenter, AxisPoint));
 		DirectX::XMVECTOR Contact = DirectX::XMVectorAdd(AxisPoint, DirectX::XMVectorScale(Normal, get_radius()));

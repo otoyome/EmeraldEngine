@@ -142,7 +142,7 @@ bool collision::create_cubic_sdf(cubic_sdf& out_sdf, bounding_mesh& mesh, uint32
 	out_sdf.bounds_max = { center.x + half_extent, center.y + half_extent, center.z + half_extent };
 	out_sdf.voxels.assign(static_cast<size_t>(resolution) * resolution * resolution, 0.0f);
 
-	//	@tool ボクセル中心(ローカル)をワールドへ変換する行列
+	//	ボクセル中心(ローカル)をワールドへ変換する行列
 	DirectX::XMFLOAT4X4 mesh_transform = mesh.get_transform_float4x4();
 
 	std::vector<size_t> flat_indices(out_sdf.voxels.size());

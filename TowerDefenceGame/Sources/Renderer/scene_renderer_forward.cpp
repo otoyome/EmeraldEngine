@@ -69,7 +69,7 @@ void before_dof_forward_renderer::resize_buffer(int width, int height)
 	rtv.clear_color = false;
 
 	D3D11_DEPTH_STENCIL_VIEW_DESC depth_stencil_view_desc{};
-	depth_stencil_view_desc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	depth_stencil_view_desc.Format = DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
 	depth_stencil_view_desc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
 	depth_stencil_view_desc.Texture2D.MipSlice = 0;
 	rendering_pass.depth_stencil = depth_stencil_view(render_targets->scene_depth_stencil_texture, &depth_stencil_view_desc);
@@ -142,7 +142,7 @@ void after_dof_forward_renderer::resize_buffer(int width, int height)
 	rtv.clear_color = false;
 
 	D3D11_DEPTH_STENCIL_VIEW_DESC depth_stencil_view_desc{};
-	depth_stencil_view_desc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	depth_stencil_view_desc.Format = DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
 	depth_stencil_view_desc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
 	depth_stencil_view_desc.Texture2D.MipSlice = 0;
 	rendering_pass.depth_stencil = depth_stencil_view(render_targets->scene_depth_stencil_texture, &depth_stencil_view_desc);
@@ -215,7 +215,7 @@ void after_motion_blur_forward_renderer::resize_buffer(int width, int height)
 	rtv.clear_color = false;
 
 	D3D11_DEPTH_STENCIL_VIEW_DESC depth_stencil_view_desc{};
-	depth_stencil_view_desc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	depth_stencil_view_desc.Format = DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
 	depth_stencil_view_desc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
 	depth_stencil_view_desc.Texture2D.MipSlice = 0;
 	rendering_pass.depth_stencil = depth_stencil_view(render_targets->scene_depth_stencil_texture, &depth_stencil_view_desc);

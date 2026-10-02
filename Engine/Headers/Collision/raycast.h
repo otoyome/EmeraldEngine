@@ -28,7 +28,7 @@ inline bool intersect_ray_aabb(const float p[3], const float d[3], const float m
 
 	for (size_t a = 0; a < 3; ++a)
 	{
-		//	@tool 軸に平行な場合はスラブ内か判定
+		//	軸に平行な場合はスラブ内か判定
 		if (fabsf(d[a]) <= FLT_EPSILON)
 		{
 			if (p[a] < min[a] || p[a] > max[a])

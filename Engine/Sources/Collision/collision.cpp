@@ -54,7 +54,7 @@ bool intersect_data::multiply_matrix(std::size_t index, DirectX::XMMATRIX matrix
 	return true;
 }
 
-void intersect_data::multiply_matrix_from(std::size_t begin, DirectX::XMMATRIX matrix)
+void intersect_data::multiply_matrices(std::size_t begin, DirectX::XMMATRIX matrix)
 {
 	for (std::size_t index = begin; index < infomations.size(); ++index)
 		multiply_matrix(index, matrix);
@@ -215,7 +215,7 @@ bool bounding_object::intersect_capsule_cast_by_axis_spheres(const DirectX::XMFL
 		XMStoreFloat3(&sample_start, XMVectorAdd(Start, Offset));
 		XMStoreFloat3(&sample_end, XMVectorAdd(End, Offset));
 
-		//	@tool 開始時の重なりはスフィアキャスト側で判定
+		//	開始時の重なりはスフィアキャスト側で判定
 		intersect_data sample;
 		if (intersect_sphere_cast(sample_start, sample_end, radius, &sample) && sample.size() > 0)
 		{
@@ -225,7 +225,7 @@ bool bounding_object::intersect_capsule_cast_by_axis_spheres(const DirectX::XMFL
 				nearest_distance = travel;
 				nearest = sample;
 				nearest[0].length = travel;
-				//	@tool 接触時のカプセル中心
+				//	接触時のカプセル中心
 				XMStoreFloat3(&nearest[0].point, XMVectorAdd(Start, XMVectorScale(MoveDirection, travel)));
 				hit = true;
 			}
@@ -586,7 +586,6 @@ collision::cast_start_overlap XM_CALLCONV collision::check_cast_start_overlap(Di
 	float distance = sqrtf(distance_sq);
 	DirectX::XMVECTOR Normal = (distance > 1e-6f) ? DirectX::XMVectorScale(Vector, 1.0f / distance) : DirectX::XMVector3Normalize(fallback_normal);
 
-	//	@tool 面へ向かう場合のみ接触
 	DirectX::XMVECTOR Move = DirectX::XMVectorSubtract(end, start);
 	if (DirectX::XMVectorGetX(DirectX::XMVector3Dot(Move, Normal)) >= 0.0f)
 		return cast_start_overlap::leaving;

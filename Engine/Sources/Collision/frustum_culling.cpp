@@ -28,7 +28,7 @@ bool frustum_culling::intersection(const bounding_object* object) const
 		case bounding_object::types::box: return to_box(*static_cast<const bounding_box*>(object));
 		case bounding_object::types::mesh:
 		{
-			//	@tool メッシュはAABBで判定
+			//	メッシュはAABBで判定
 			DirectX::XMFLOAT3 min, max;
 			object->include_corner(min, max);
 			return to_aabb(min, max);
@@ -101,7 +101,7 @@ bool frustum_culling::to_aabb(const DirectX::XMFLOAT3& min, const DirectX::XMFLO
 			return false;
 	}
 
-	//	@tool 頂点未算出なら平面判定のみ
+	//	頂点未算出なら平面判定のみ
 	if (!has_corners)
 		return true;
 
@@ -198,7 +198,7 @@ void frustum_culling::create_frustum_corners(const DirectX::XMMATRIX & inverse_v
 		DirectX::XMVECTOR Point;
 		Point = DirectX::XMVector4Transform(base_corners[index], inverse_view_projection_matrix);
 		float w = DirectX::XMVectorGetW(Point);
-		//	@tool 無限遠の頂点は使用しない
+		//	無限遠の頂点は使用しない
 		if (fabsf(w) <= 1e-6f)
 		{
 			has_corners = false;

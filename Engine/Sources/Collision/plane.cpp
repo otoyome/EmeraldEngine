@@ -2,7 +2,7 @@
 
 DirectX::XMFLOAT3 collision::plane::get_plane_position() const
 {
-	//	@tool n・p + w = 0 を満たす点
+	//	n・p + w = 0 を満たす点
 	return DirectX::XMFLOAT3(-parameter.x * parameter.w, -parameter.y * parameter.w, -parameter.z * parameter.w);
 }
 
@@ -53,7 +53,7 @@ void collision::plane::normlize()
 {
 	DirectX::XMVECTOR Parameter = DirectX::XMLoadFloat4(&parameter);
 	DirectX::XMVECTOR Length = DirectX::XMVector3Length(Parameter);
-	//	@tool 法線が無い平面は常に内側扱い
+	//	法線が無い平面は常に内側扱い
 	if (DirectX::XMVectorGetX(Length) <= FLT_EPSILON)
 	{
 		parameter = DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, parameter.w >= 0.0f ? 1.0f : -1.0f);
@@ -85,7 +85,7 @@ bool collision::plane::to_line(const line& line, float* distance, DirectX::XMFLO
 		float dotV2_Normal = DirectX::XMVectorGetX(DirectX::XMVector3Dot(V2, Normal));
 		if (fabsf(dotV1_Normal - dotV2_Normal) <= FLT_EPSILON)
 		{
-			//	@tool 平行時は平面上にある場合のみ交差
+			//	平行時は平面上にある場合のみ交差
 			if (fabsf(dotV1_Normal) > FLT_EPSILON)
 				return false;
 			if (distance)

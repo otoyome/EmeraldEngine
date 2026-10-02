@@ -18,10 +18,10 @@
 
 namespace
 {
-	//	@tool 1メートル
+	//	1メートル
 	const float unit = system_units::convert_m_to_unit(1.0f);
 
-	//	@tool 度数からクォータニオン
+	//	度数からクォータニオン
 	DirectX::XMFLOAT4 to_quaternion(const DirectX::XMFLOAT3& degree)
 	{
 		DirectX::XMFLOAT4 quaternion;
@@ -83,7 +83,7 @@ namespace
 		return text_format("(%.3f, %.3f, %.3f)", value.x, value.y, value.z);
 	}
 
-	//	@tool 床メッシュ生成
+	//	床メッシュ生成
 	std::shared_ptr<collision::bounding_mesh> create_floor_mesh(float half_x, float half_z)
 	{
 		std::vector<DirectX::XMFLOAT3> positions =
@@ -103,7 +103,7 @@ namespace
 			triangle.b = indices[index + 1];
 			triangle.c = indices[index + 2];
 
-			//	@tool 事前計算
+			//	事前計算
 			auto p = positions.data();
 			auto A = DirectX::XMLoadFloat3(p + triangle.a);
 			auto B = DirectX::XMLoadFloat3(p + triangle.b);
@@ -125,7 +125,7 @@ namespace
 	}
 
 #if defined(USE_IMGUI)
-	//	@tool 形状描画
+	//	形状描画
 	void draw_shape(const collision::bounding_object& object, const DirectX::XMFLOAT4& color, const DirectX::XMFLOAT3& offset = { 0.0f, 0.0f, 0.0f })
 	{
 		DirectX::XMFLOAT3 position = add3(object.get_position(), offset);
@@ -169,14 +169,14 @@ namespace
 		}
 	}
 
-	//	@tool 点と法線の描画
+	//	点と法線の描画
 	void draw_point_normal(const DirectX::XMFLOAT3& point, const DirectX::XMFLOAT3& normal, float length, const DirectX::XMFLOAT4& color)
 	{
 		QUEUE_DEBUG_PRIMITIVE_SPHERE(point, 0.03f * unit, color, false);
 		QUEUE_DEBUG_PRIMITIVE_LINE(point, add3(point, scale3(normal, length)), color, false);
 	}
 
-	//	@tool 形状設定の編集
+	//	形状設定の編集
 	void edit_shape(const char* label, collision_test_scene::shape_desc& desc)
 	{
 		ImGui::PushID(label);
@@ -206,7 +206,7 @@ namespace
 		ImGui::PopID();
 	}
 
-	//	@tool 判定結果の表示
+	//	判定結果の表示
 	void show_intersect(const char* label, bool hit, bool hit_without_data, const collision::intersect_data& data)
 	{
 		ImGui::Text("%s : %s", label, hit ? "HIT" : "---");
@@ -221,7 +221,7 @@ namespace
 	}
 #endif	//	defined(USE_IMGUI)
 
-	//	@tool 交差テスト項目(メートル)
+	//	交差テスト項目(メートル)
 	struct overlap_case
 	{
 		const char* name;
@@ -229,19 +229,19 @@ namespace
 		collision_test_scene::shape_desc b;
 		bool expect_hit;
 		bool check_normal;
-		DirectX::XMFLOAT3 normal;	//	@tool Aを押し出す向き
-		float depth;				//	@tool 負なら確認しない
-		bool check_opposite = true;	//	@tool 逆順の法線が反対向きか確認
+		DirectX::XMFLOAT3 normal;	//	Aを押し出す向き
+		float depth;				//	負なら確認しない
+		bool check_opposite = true;	//	逆順の法線が反対向きか確認
 	};
 
-	//	@tool キャストテスト項目(メートル)
+	//	キャストテスト項目(メートル)
 	struct cast_case
 	{
 		const char* name;
 		collision_test_scene::cast_desc cast;
 		collision_test_scene::shape_desc target;
 		bool expect_hit;
-		float length;				//	@tool 負なら確認しない
+		float length;				//	負なら確認しない
 		bool check_normal;
 		DirectX::XMFLOAT3 normal;
 	};
@@ -433,13 +433,13 @@ void collision_test_scene::update_pair_test()
 	draw_shape(*a, hit_ab ? hit_color : DirectX::XMFLOAT4{ 0.4f, 0.8f, 1.0f, 1.0f });
 	draw_shape(*b, hit_ba ? hit_color : normal_color);
 
-	//	@tool A基準の接触(黄)、B基準の接触(水色)
+	//	A基準の接触(黄)、B基準の接触(水色)
 	for (size_t index = 0; index < intersect_ab.size(); ++index)
 		draw_point_normal(intersect_ab[index].point, intersect_ab[index].normal, std::max(intersect_ab[index].length, 0.3f * unit), { 1.0f, 1.0f, 0.0f, 1.0f });
 	for (size_t index = 0; index < intersect_ba.size(); ++index)
 		draw_point_normal(intersect_ba[index].point, intersect_ba[index].normal, std::max(intersect_ba[index].length, 0.3f * unit), { 0.0f, 1.0f, 1.0f, 1.0f });
 
-	//	@tool 押し出し後のAを緑で表示
+	//	押し出し後のAを緑で表示
 	if (draw_ghost && hit_ab && intersect_ab.size() > 0)
 		draw_shape(*a, { 0.2f, 1.0f, 0.2f, 1.0f }, scale3(intersect_ab[0].normal, intersect_ab[0].length));
 #endif	//	defined(USE_IMGUI)
@@ -459,7 +459,7 @@ void collision_test_scene::update_cast_test()
 	draw_shape(*target, cast_hit ? DirectX::XMFLOAT4{ 1.0f, 0.2f, 0.2f, 1.0f } : DirectX::XMFLOAT4{ 1.0f, 1.0f, 1.0f, 1.0f });
 	QUEUE_DEBUG_PRIMITIVE_LINE(desc.start, desc.end, DirectX::XMFLOAT4(1.0f, 1.0f, 0.0f, 1.0f), false);
 
-	//	@tool 始点(灰)・終点(暗灰)・接触時(橙)
+	//	始点(灰)・終点(暗灰)・接触時(橙)
 	auto draw_caster = [&](const DirectX::XMFLOAT3& center, const DirectX::XMFLOAT4& color)
 	{
 		switch (desc.type)
@@ -492,7 +492,7 @@ void collision_test_scene::run_self_tests()
 	test_results.clear();
 	test_passed_count = 0;
 
-	const float tolerance = 0.002f;	//	@tool 許容誤差(メートル)
+	const float tolerance = 0.002f;	//	許容誤差(メートル)
 	auto add_result = [&](const std::string& name, bool passed, const std::string& detail)
 	{
 		test_results.push_back({ name, passed, detail });
@@ -500,7 +500,7 @@ void collision_test_scene::run_self_tests()
 			++test_passed_count;
 	};
 
-	//	@tool 回転・移動した床の法線
+	//	回転・移動した床の法線
 	const DirectX::XMFLOAT3 tilt_position = { 3.0f, 2.0f, -1.0f };
 	const DirectX::XMFLOAT3 tilt_rotation = { 30.0f, 20.0f, 0.0f };
 	DirectX::XMFLOAT3 tilt_normal;
@@ -508,7 +508,7 @@ void collision_test_scene::run_self_tests()
 	DirectX::XMStoreFloat3(&tilt_normal, DirectX::XMVector3Rotate(DirectX::XMVectorSet(0, 1, 0, 0), DirectX::XMLoadFloat4(&tilt_quaternion)));
 	auto on_tilt = [&](float height) { return add3(tilt_position, scale3(tilt_normal, height)); };
 
-	//	@tool 交差テスト
+	//	交差テスト
 	const overlap_case overlap_cases[] =
 	{
 		{ "sphere-sphere",					make_sphere({ 0, 0, 0 }, 1.0f), make_sphere({ 1.5f, 0, 0 }, 1.0f), true, true, { -1, 0, 0 }, 0.5f },
@@ -585,7 +585,7 @@ void collision_test_scene::run_self_tests()
 			if (test.check_opposite && ba.size() > 0 && dot3(info.normal, ba[0].normal) > -0.99f)
 				fail(text_format("B->A normal not opposite %s.", to_string(ba[0].normal).c_str()));
 
-			//	@tool 法線方向へ押し出すと離れるか
+			//	法線方向へ押し出すと離れるか
 			shape_desc moved = test.a;
 			moved.position = add3(test.a.position, scale3(info.normal, depth + 0.01f));
 			auto moved_a = create_shape(to_unit(moved));
@@ -595,7 +595,7 @@ void collision_test_scene::run_self_tests()
 		add_result(std::string("[overlap] ") + test.name, passed, detail);
 	}
 
-	//	@tool キャストテスト
+	//	キャストテスト
 	const float edge = 1.0f + 0.5f / sqrtf(2.0f);
 	const float corner = 1.0f + 0.5f / sqrtf(3.0f);
 	const DirectX::XMFLOAT3 diagonal2 = normalize3({ 1, 1, 0 });
@@ -664,7 +664,7 @@ void collision_test_scene::run_self_tests()
 			if (test.check_normal && dot3(info.normal, normalize3(test.normal)) < 0.999f)
 				fail(text_format("normal expect %s.", to_string(normalize3(test.normal)).c_str()));
 
-			//	@tool キャストの接触時中心が始点+移動距離と一致するか
+			//	キャストの接触時中心が始点+移動距離と一致するか
 			if (desc.type != cast_types::segment)
 			{
 				DirectX::XMFLOAT3 direction = normalize3(sub3(desc.end, desc.start));

@@ -41,7 +41,7 @@ bool line::is_parallel(const line& line) const
 {
 	DirectX::XMVECTOR PointA[2] = {DirectX::XMLoadFloat3(&point[0]), DirectX::XMLoadFloat3(&point[1])};
 	DirectX::XMVECTOR PointB[2] = {DirectX::XMLoadFloat3(&line.point[0]), DirectX::XMLoadFloat3(&line.point[1])};
-	//	@tool ’¼ü‚Í[1]‚ª•ûŒüƒxƒNƒgƒ‹
+	//	’¼ü‚Í[1]‚ª•ûŒüƒxƒNƒgƒ‹
 	DirectX::XMVECTOR LineA = (type == types::line) ? PointA[1] : DirectX::XMVectorSubtract(PointA[1], PointA[0]);
 	DirectX::XMVECTOR LineB = (line.type == types::line) ? PointB[1] : DirectX::XMVectorSubtract(PointB[1], PointB[0]);
 	LineA = DirectX::XMVector3Normalize(LineA);
@@ -107,7 +107,7 @@ float line::calculate_segment_distance(DirectX::XMFLOAT3& horizon, float& delta,
 	DirectX::XMVECTOR Point = DirectX::XMLoadFloat3(&point);
 	DirectX::XMVECTOR LineA = DirectX::XMVectorSubtract(PointA[1], PointA[0]);
 
-	//	@tool ü•ªã‚Ì”}‰î•Ï”(0`1)‚ÅÅ‹ß“_‚ðŽZo
+	//	ü•ªã‚Ì”}‰î•Ï”(0`1)‚ÅÅ‹ß“_‚ðŽZo
 	float square_length = DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(LineA));
 	delta = 0.0f;
 	if (square_length > FLT_EPSILON)

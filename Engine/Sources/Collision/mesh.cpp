@@ -910,7 +910,7 @@ bool bounding_mesh::intersect_segment(const DirectX::XMFLOAT3& start, const Dire
 			data.clear();
 			if (intersect_segment_inner_moller(local_start, local_end, node.triangles, &data))
 			{
-				//	@tool 最も近い交点を採用
+				//	最も近い交点を採用
 				if (best.size() == 0 || data[0].length < best[0].length)
 					best = data;
 				hit = true;
@@ -928,7 +928,7 @@ bool bounding_mesh::intersect_segment(const DirectX::XMFLOAT3& start, const Dire
 	{
 		size_t begin = intersect->size();
 		intersect->append(best);
-		intersect->multiply_matrix_from(begin, get_transform_matrix());
+		intersect->multiply_matrices(begin, get_transform_matrix());
 	}
 	return hit;
 }
@@ -972,7 +972,7 @@ bool bounding_mesh::intersect_sphere_inner(const DirectX::XMFLOAT3& point, float
 	{
 		P = DirectX::XMLoadFloat3(&point);
 		DirectX::XMVECTOR Vector = DirectX::XMVectorSubtract(NealestPoint, P);
-		//	@tool 中心が面上なら面法線の逆向き
+		//	中心が面上なら面法線の逆向き
 		if (DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(Vector)) <= 1e-12f)
 			Vector = DirectX::XMVectorNegate(NealestNormal);
 		Vector = DirectX::XMVector3Normalize(Vector);
@@ -1010,7 +1010,7 @@ bool bounding_mesh::intersect_sphere(const DirectX::XMFLOAT3& point, float radiu
 			continue;
 		}
 
-		//	@tool 全ブロックから最も深い接触を採用
+		//	全ブロックから最も深い接触を採用
 		data.clear();
 		if (intersect_sphere_inner(local_point, radius, node.triangles, &data))
 		{
@@ -1025,7 +1025,7 @@ bool bounding_mesh::intersect_sphere(const DirectX::XMFLOAT3& point, float radiu
 		//	ワールドへ変換
 		size_t begin = intersect->size();
 		intersect->append(best);
-		intersect->multiply_matrix_from(begin, get_transform_matrix());
+		intersect->multiply_matrices(begin, get_transform_matrix());
 	}
 	return hit;
 }
@@ -1178,7 +1178,7 @@ bool bounding_mesh::intersect_capsule(const bounding_capsule& capsule, intersect
 		local_capsule.set_position(translation);
 	}
 
-	//	@tool ローカル空間のAABB
+	//	ローカル空間のAABB
 	DirectX::XMVECTOR Min, Max;
 	DirectX::XMFLOAT3 min, max;
 	local_capsule.include_corner(min, max);
@@ -1205,7 +1205,7 @@ bool bounding_mesh::intersect_capsule(const bounding_capsule& capsule, intersect
 			data.clear();
 			if (intersect_capsule_inner(local_capsule, Min, Max, get_transform_matrix(), node.triangles, &data))
 			{
-				//	@tool 最も深い接触を採用
+				//	最も深い接触を採用
 				if (best.size() == 0 || data[0].length > best[0].length)
 					best = data;
 				hit = true;
@@ -1303,7 +1303,7 @@ bool bounding_mesh::intersect_box_inner(DirectX::XMVECTOR Center, DirectX::XMVEC
 	{
 		DirectX::XMVECTOR Vector = DirectX::XMVectorSubtract(NearlestPoint, Center);
 		float distance = sqrtf(nearlest);
-		//	@tool 中心が面上なら面法線の逆向き
+		//	中心が面上なら面法線の逆向き
 		DirectX::XMVECTOR Direction = (distance > FLT_EPSILON) ? DirectX::XMVector3Normalize(Vector) : DirectX::XMVectorNegate(NearlestNormal);
 
 		float support = fabsf(DirectX::XMVectorGetX(DirectX::XMVector3Dot(AxisX, Direction))) * half_extent.x
@@ -1348,7 +1348,7 @@ bool bounding_mesh::intersect_box(const bounding_box& box, intersect_data* inter
 	if (list.empty())
 		return false;
 
-	//	@tool ローカル空間の箱
+	//	ローカル空間の箱
 	DirectX::XMFLOAT4 local_rotation;
 	DirectX::XMFLOAT3 local_position;
 	DirectX::XMStoreFloat4(&local_rotation, Rotation);
@@ -1371,7 +1371,7 @@ bool bounding_mesh::intersect_box(const bounding_box& box, intersect_data* inter
 			data.clear();
 			if (intersect_box_inner(Center, AxisX, AxisY, AxisZ, half_extent, BoxMin, BoxMax, node.triangles, &data))
 			{
-				//	@tool 最も深い接触を採用
+				//	最も深い接触を採用
 				if (best.size() == 0 || data[0].length > best[0].length)
 					best = data;
 				hit = true;
@@ -1386,10 +1386,10 @@ bool bounding_mesh::intersect_box(const bounding_box& box, intersect_data* inter
 
 	if (hit && intersect)
 	{
-		//	@tool ワールドへ変換
+		//	ワールドへ変換
 		size_t begin = intersect->size();
 		intersect->append(best);
-		intersect->multiply_matrix_from(begin, get_transform_matrix());
+		intersect->multiply_matrices(begin, get_transform_matrix());
 	}
 	return hit;
 }
@@ -1449,7 +1449,7 @@ bool bounding_mesh::intersect_sphere_cast_inner(const collision::line& sweep_lin
 		calculate_nearlest_point(Start, TriangleA, TriangleB, TriangleC, EdgeAB, EdgeBC, EdgeAC, NearestOnTriangle);
 		if (DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(DirectX::XMVectorSubtract(NearestOnTriangle, Start))) <= radius * radius)
 		{
-			//	@tool 表側から面へ向かう場合のみ移動距離0で接触
+			//	表側から面へ向かう場合のみ移動距離0で接触
 			DirectX::XMVECTOR FaceNormal = DirectX::XMLoadFloat3(&triangle->normal);
 			if (DirectX::XMVectorGetX(DirectX::XMVector3Dot(DirectX::XMVectorSubtract(Start, TriangleA), FaceNormal)) < 0.0f)
 				continue;
@@ -1619,7 +1619,7 @@ bool bounding_mesh::intersect_sphere_cast(const DirectX::XMFLOAT3& start, const 
 			data.clear();
 			if (intersect_sphere_cast_inner(sweep_line, radius, node.triangles, &data))
 			{
-				//	@tool 最も近い交点を採用
+				//	最も近い交点を採用
 				if (best.size() == 0 || data[0].length < best[0].length)
 					best = data;
 				hit = true;
@@ -1637,7 +1637,7 @@ bool bounding_mesh::intersect_sphere_cast(const DirectX::XMFLOAT3& start, const 
 	{
 		size_t begin = intersect->size();
 		intersect->append(best);
-		intersect->multiply_matrix_from(begin, get_transform_matrix());
+		intersect->multiply_matrices(begin, get_transform_matrix());
 	}
 
 	return hit;
@@ -1653,7 +1653,7 @@ bool bounding_mesh::intersect_capsule_cast(const DirectX::XMFLOAT3& start, const
 
 void bounding_mesh::include_corner(DirectX::XMFLOAT3& min, DirectX::XMFLOAT3& max) const
 {
-	//	@tool ローカル範囲の8頂点をワールドへ変換して包含
+	//	ローカル範囲の8頂点をワールドへ変換して包含
 	DirectX::XMMATRIX Transform = get_transform_matrix();
 	DirectX::XMVECTOR Min = DirectX::XMVectorReplicate(FLT_MAX);
 	DirectX::XMVECTOR Max = DirectX::XMVectorReplicate(-FLT_MAX);
@@ -1977,7 +1977,7 @@ bool collision::generate_bounding_mesh(bounding_mesh& out_mesh, model_resource_p
 
 	DirectX::XMMATRIX local_transform_matrix = calculate_transform_matrix(mesh.node_index);
 
-	//	@tool ワールド行列を分解しスケールは頂点へ焼き込む
+	//	ワールド行列を分解しスケールは頂点へ焼き込む
 	DirectX::XMVECTOR WorldScale, WorldRotation, WorldTranslation;
 	DirectX::XMMatrixDecompose(&WorldScale, &WorldRotation, &WorldTranslation, data.WorldMatrix);
 	local_transform_matrix = DirectX::XMMatrixMultiply(local_transform_matrix, DirectX::XMMatrixScalingFromVector(WorldScale));
@@ -2015,7 +2015,6 @@ bool collision::generate_bounding_mesh(bounding_mesh& out_mesh, model_resource_p
 			triangle.c = fetch_index(index + index3);
 
 			//	事前計算
-			//	@tool 変換後の頂点から算出
 			auto tp = positions.data();
 			auto A = DirectX::XMLoadFloat3(tp + triangle.a);
 			auto B = DirectX::XMLoadFloat3(tp + triangle.b);
