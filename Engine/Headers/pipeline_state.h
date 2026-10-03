@@ -347,7 +347,7 @@ public:
 	std::vector<graphics_pipeline_state_ptr> get_domain_lists(pipeline_state_base::domains domain);
 
 private:
-	bool	register_pipeline_state(graphics_pipeline_state_ptr& pipeline_state);
+	bool	register_pipeline_state(const graphics_pipeline_state_ptr& pipeline_state);
 
 private:
 	graphics_pipeline_state_ptr_map	graphics_pipeline_state_map;

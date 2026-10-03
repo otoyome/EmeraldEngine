@@ -482,7 +482,7 @@ void pipeline_state_base::unregister_reload_callback(UINT id)
 #endif	//	defined(USE_IMGUI)
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
-bool pipeline_state_manager::register_pipeline_state(graphics_pipeline_state_ptr& pipeline_state)
+bool pipeline_state_manager::register_pipeline_state(const graphics_pipeline_state_ptr& pipeline_state)
 {
 	std::string key_name = std::string(pipeline_state->get_name());
 	auto it = graphics_pipeline_state_map.find(key_name);
