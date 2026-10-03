@@ -780,7 +780,7 @@ bool editor_items::edit_model_resource_item(std::shared_ptr<context>& context, m
 	return edit_flag;
 }
 
-bool editor_items::open_file_dialog(TCHAR* text, std::string& out_selected_file_path)
+bool editor_items::open_file_dialog(const TCHAR* text, std::string& out_selected_file_path)
 {
 	OPENFILENAME open_file_name; // ç\ë¢ëÃ
 	TCHAR selected_file_path[MAX_PATH] = { 0 };
@@ -803,7 +803,7 @@ bool editor_items::open_file_dialog(TCHAR* text, std::string& out_selected_file_
 	return opened;
 }
 
-bool editor_items::open_file_dialog_multi(TCHAR* text, std::vector<std::string>& out_selected_file_paths)
+bool editor_items::open_file_dialog_multi(const TCHAR* text, std::vector<std::string>& out_selected_file_paths)
 {
 	out_selected_file_paths.clear();
 
@@ -847,7 +847,7 @@ bool editor_items::open_file_dialog_multi(TCHAR* text, std::vector<std::string>&
 	return !out_selected_file_paths.empty();
 }
 
-bool editor_items::save_file_dialog(TCHAR* text, std::string& out_selected_file_path, const TCHAR* default_extension)
+bool editor_items::save_file_dialog(const TCHAR* text, std::string& out_selected_file_path, const TCHAR* default_extension)
 {
 	OPENFILENAME open_file_name; // ç\ë¢ëÃ
 	TCHAR selected_file_path[MAX_PATH] = { 0 };

@@ -34,12 +34,12 @@ namespace
 	};
 
 	//	エフェクト
-	constexpr TCHAR* EffectFileDialogFilter =
+	constexpr const TCHAR* EffectFileDialogFilter =
 		L"エフェクトファイル (*.eme)\0*.eme;\0\
 		すべてのファイル (*.*)\0*.*\0";
 
 	//	cubic SDF
-	constexpr TCHAR* SdfFileDialogFilter =
+	constexpr const TCHAR* SdfFileDialogFilter =
 		L"cubic SDF (*.esdf)\0*.esdf;\0\
 		すべてのファイル (*.*)\0*.*\0";
 

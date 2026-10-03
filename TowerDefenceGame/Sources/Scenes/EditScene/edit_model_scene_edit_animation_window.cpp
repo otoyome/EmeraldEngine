@@ -14,7 +14,7 @@
 
 namespace
 {
-	constexpr TCHAR* AnimationFileDialogFilter =
+	constexpr const TCHAR* AnimationFileDialogFilter =
 		L"モデルファイル (*.vmd, *.gltf, *.glb)\0*.vmd;*.gltf;*.glb;\0\
 		すべてのファイル (*.*)\0*.*\0";
 
@@ -83,7 +83,7 @@ void edit_model_scene::imgui_render_animation()
 
 					animation_resource animations;
 
-					auto& resource = edit_model->get_model_instance()->get_resource();
+					auto resource = edit_model->get_model_instance()->get_resource_for_editor();
 					if (extension == std::filesystem::path(".vmd"))
 					{
 						//	MMD用
@@ -233,7 +233,9 @@ void edit_model_scene::imgui_render_ik()
 			}
 
 			//	IK情報ウィンドウ
-			editor_items::edit_ik(editor_context, edit_model->get_model_instance(), edit_model->get_ik_resource());
+			auto model_instance = edit_model->get_model_instance();
+			auto ik_resource = edit_model->get_ik_resource();
+			editor_items::edit_ik(editor_context, model_instance, ik_resource);
 		}
 	}
 	ImGui::End();

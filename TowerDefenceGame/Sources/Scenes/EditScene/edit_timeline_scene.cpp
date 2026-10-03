@@ -20,17 +20,17 @@
 namespace
 {
 	//	モデル
-	constexpr TCHAR* ModelFileDialogFilter =
+	constexpr const TCHAR* ModelFileDialogFilter =
 		L"モデルファイル (*.emo)\0*.emo;\0\
 		すべてのファイル (*.*)\0*.*\0";
 
 	//	エフェクト
-	constexpr TCHAR* EffectFileDialogFilter =
+	constexpr const TCHAR* EffectFileDialogFilter =
 		L"エフェクトファイル (*.eme)\0*.eme;\0\
 		すべてのファイル (*.*)\0*.*\0";
 
 	//	タイムライン
-	constexpr TCHAR* TimelineFileDialogFilter =
+	constexpr const TCHAR* TimelineFileDialogFilter =
 		L"タイムラインファイル (*.etl)\0*.etl;\0\
 		すべてのファイル (*.*)\0*.*\0";
 
@@ -976,8 +976,8 @@ void edit_timeline_scene::apply_timeline_state()
 					transform.start.position.z + (transform.end.position.z - transform.start.position.z) * t,
 				};
 
-				const DirectX::XMVECTOR quaternion_start = DirectX::XMLoadFloat4(&math::rotator(transform.start.rotation).convert_quaternion());
-				const DirectX::XMVECTOR quaternion_end = DirectX::XMLoadFloat4(&math::rotator(transform.end.rotation).convert_quaternion());
+				const DirectX::XMVECTOR quaternion_start = math::rotator(transform.start.rotation).convert_quaternion_vector();
+				const DirectX::XMVECTOR quaternion_end = math::rotator(transform.end.rotation).convert_quaternion_vector();
 				DirectX::XMFLOAT4 quaternion;
 				DirectX::XMStoreFloat4(&quaternion, DirectX::XMQuaternionSlerp(quaternion_start, quaternion_end, t));
 
@@ -1058,8 +1058,8 @@ void edit_timeline_scene::apply_timeline_state()
 			entry.start.position.z + (entry.end.position.z - entry.start.position.z) * t,
 		};
 
-		const DirectX::XMVECTOR quaternion_start = DirectX::XMLoadFloat4(&math::rotator(entry.start.rotation).convert_quaternion());
-		const DirectX::XMVECTOR quaternion_end = DirectX::XMLoadFloat4(&math::rotator(entry.end.rotation).convert_quaternion());
+		auto quaternion_start = math::rotator(entry.start.rotation).convert_quaternion_vector();
+		auto quaternion_end = math::rotator(entry.end.rotation).convert_quaternion_vector();
 		DirectX::XMFLOAT4 quaternion;
 		DirectX::XMStoreFloat4(&quaternion, DirectX::XMQuaternionSlerp(quaternion_start, quaternion_end, t));
 

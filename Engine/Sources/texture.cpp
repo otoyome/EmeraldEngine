@@ -10,9 +10,6 @@
 #include <vector>
 #include "DirectXTex.h"
 
-#include <WICTextureLoader.h>
-#include <DDSTextureLoader.h>
-
 
 #include "cereal/archives/binary.hpp"
 #include "cereal/archives/json.hpp"

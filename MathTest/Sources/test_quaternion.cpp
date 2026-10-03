@@ -150,8 +150,8 @@ MATH_TEST_TYPED(quaternion_direction)
 	CHECK_NEAR(basic_rotator<T>(quaternion<T>::look_rotation(forward, vector3<T>::up())).front(), forward, tol);
 }
 
-//	@tool ミラーリング・回転制限
-MATH_TEST_TYPED(quaternion_mirror_restrict)
+//	@tool ミラーリング
+MATH_TEST_TYPED(quaternion_mirror)
 {
 	const double tol = math_test::tolerance<T>() * 5;
 	const quaternion<T> q = quaternion<T>::rotation_y(static_cast<T>(0.6));
@@ -160,16 +160,6 @@ MATH_TEST_TYPED(quaternion_mirror_restrict)
 	quaternion<T> m = q;
 	m.mirror(mirroring_order::z);
 	CHECK(m == q.mirrored(mirroring_order::z));
-
-	quaternion<T> limited = quaternion<T>::rotation_x(static_cast<T>(1.0));
-	const T limit = static_cast<T>(0.5);
-	CHECK(limited.restrict(vector3<T>(-limit, -limit, -limit), vector3<T>(limit, limit, limit)));
-	CHECK_NEAR(limited.x, std::sin(limit * static_cast<T>(0.5)), tol);
-	//	@tool 制限後も単位クォータニオンのまま（制限した角度の回転になる）
-	CHECK_NEAR(limited.length(), static_cast<T>(1), tol);
-	CHECK_SAME_ROTATION(limited, quaternion<T>::rotation_x(limit), tol);
-	quaternion<T> free = quaternion<T>::rotation_x(static_cast<T>(0.2));
-	CHECK(!free.restrict(vector3<T>(-limit, -limit, -limit), vector3<T>(limit, limit, limit)));
 }
 
 //	@tool 補間

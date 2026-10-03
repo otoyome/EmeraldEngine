@@ -188,7 +188,7 @@ void effect_instance::set_name(std::string_view name)
 	this->name = name;
 }
 
-effect_resource_ptr effect_instance::get_resource() const
+const effect_resource_ptr effect_instance::get_resource() const
 {
 	return resource;
 }

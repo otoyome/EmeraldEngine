@@ -182,7 +182,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>USE_IMGUI;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>$(SolutionDir)DirectXTK-master\Inc;$(SolutionDir)Engine\Headers;$(SolutionDir)External;$(SolutionDir)External\tinygltf-master;$(SolutionDir)External\imgui;$(SolutionDir)External\stb;$(SolutionDir)External\nameof\include;$(SolutionDir)External\magic_enum\include\magic_enum;$(SolutionDir)External\cereal\include;$(SolutionDir)External\meshoptimizer;$(SolutionDir)External\uchardet\src;$(SolutionDir)External\icu\include;$(ProjectDir)Headers</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Engine\Headers;$(SolutionDir)External;$(SolutionDir)External\tinygltf-master;$(SolutionDir)External\imgui;$(SolutionDir)External\stb;$(SolutionDir)External\nameof\include;$(SolutionDir)External\magic_enum\include\magic_enum;$(SolutionDir)External\cereal\include;$(SolutionDir)External\meshoptimizer;$(SolutionDir)External\uchardet\src;$(SolutionDir)External\icu\include;$(ProjectDir)Headers</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <PrecompiledHeaderFile>stdafx.h</PrecompiledHeaderFile>
       <ForcedIncludeFiles>stdafx.h</ForcedIncludeFiles>
@@ -193,7 +193,7 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories);$(SolutionDir)DirectXTK-master\Bin\Desktop_2019\x64\$(Configuration);$(SolutionDir)Engine\Bin\x64\$(Configuration);$(SolutionDir)External\Effekseer170\Lib\x64\$(Configuration);$(SolutionDir)External\Effekseer170\lib;$(SolutionDir)External\DirectXTex\lib\$(Configuration);$(SolutionDir)External\meshoptimizer\lib\$(Configuration);$(SolutionDir)External\icu\lib64;%(AdditionalDependencies)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>DirectXTK.lib;DirectXTex.lib;d3d11.lib;dxgi.lib;Engine.lib;dxguid.lib;dxcompiler.lib;d3dcompiler.lib;meshoptimizer.lib;icudt.lib;icuind.lib;icuiod.lib;icutud.lib;icuucd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>DirectXTex.lib;d3d11.lib;dxgi.lib;Engine.lib;dxguid.lib;dxcompiler.lib;d3dcompiler.lib;meshoptimizer.lib;icudt.lib;icuind.lib;icuiod.lib;icutud.lib;icuucd.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <FxCompile>
       <ShaderModel>5.0</ShaderModel>
@@ -213,7 +213,7 @@ xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y</Command>
       <Optimization>Full</Optimization>
       <PreprocessorDefinitions>USE_IMGUI;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>$(SolutionDir)DirectXTK-master\Inc;$(SolutionDir)Engine\Headers;$(SolutionDir)External;$(SolutionDir)External\tinygltf-master;$(SolutionDir)External\imgui;$(SolutionDir)External\stb;$(SolutionDir)External\nameof\include;$(SolutionDir)External\magic_enum\include\magic_enum;$(SolutionDir)External\cereal\include;$(SolutionDir)External\meshoptimizer;$(SolutionDir)External\uchardet\src;$(SolutionDir)External\icu\include;$(ProjectDir)Headers</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Engine\Headers;$(SolutionDir)External;$(SolutionDir)External\tinygltf-master;$(SolutionDir)External\imgui;$(SolutionDir)External\stb;$(SolutionDir)External\nameof\include;$(SolutionDir)External\magic_enum\include\magic_enum;$(SolutionDir)External\cereal\include;$(SolutionDir)External\meshoptimizer;$(SolutionDir)External\uchardet\src;$(SolutionDir)External\icu\include;$(ProjectDir)Headers</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
@@ -227,7 +227,7 @@ xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y</Command>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(SolutionDir)DirectXTK-master\Bin\Desktop_2019\x64\$(Configuration);$(SolutionDir)Engine\Bin\x64\$(Configuration);$(SolutionDir)External\Effekseer170\Lib\x64\$(Configuration);$(SolutionDir)External\Effekseer170\lib;$(SolutionDir)External\DirectXTex\lib\$(Configuration);$(SolutionDir)External\meshoptimizer\lib\$(Configuration);$(SolutionDir)External\uchardet\lib\$(Configuration);$(SolutionDir)External\icu\lib64;%(AdditionalDependencies);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>DirectXTK.lib;DirectXTex.lib;d3d11.lib;dxgi.lib;Engine.lib;dxguid.lib;dxcompiler.lib;d3dcompiler.lib;meshoptimizer.lib;icudt.lib;icuin.lib;icuio.lib;icutu.lib;icuuc.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>DirectXTex.lib;d3d11.lib;dxgi.lib;Engine.lib;dxguid.lib;dxcompiler.lib;d3dcompiler.lib;meshoptimizer.lib;icudt.lib;icuin.lib;icuio.lib;icutu.lib;icuuc.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <FxCompile>
       <ShaderModel>5.0</ShaderModel>
@@ -276,7 +276,7 @@ xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y</Command>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>NDEBUG;USE_IMGUI;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>$(SolutionDir)DirectXTK-master\Inc;$(SolutionDir)Engine\Headers;$(SolutionDir)External;$(SolutionDir)External\tinygltf-master;$(SolutionDir)External\imgui;$(SolutionDir)External\stb;$(SolutionDir)External\nameof\include;$(SolutionDir)External\magic_enum\include\magic_enum;$(SolutionDir)External\cereal\include;$(SolutionDir)External\meshoptimizer;$(SolutionDir)External\uchardet\src;$(SolutionDir)External\icu\include;$(ProjectDir)Headers</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Engine\Headers;$(SolutionDir)External;$(SolutionDir)External\tinygltf-master;$(SolutionDir)External\imgui;$(SolutionDir)External\stb;$(SolutionDir)External\nameof\include;$(SolutionDir)External\magic_enum\include\magic_enum;$(SolutionDir)External\cereal\include;$(SolutionDir)External\meshoptimizer;$(SolutionDir)External\uchardet\src;$(SolutionDir)External\icu\include;$(ProjectDir)Headers</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <PrecompiledHeaderFile>stdafx.h</PrecompiledHeaderFile>
       <ForcedIncludeFiles>stdafx.h</ForcedIncludeFiles>
@@ -288,7 +288,7 @@ xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y</Command>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>DirectXTK.lib;DirectXTex.lib;d3d11.lib;dxgi.lib;Engine.lib;dxguid.lib;dxcompiler.lib;d3dcompiler.lib;meshoptimizer.lib;icudt.lib;icuin.lib;icuio.lib;icutu.lib;icuuc.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>DirectXTex.lib;d3d11.lib;dxgi.lib;Engine.lib;dxguid.lib;dxcompiler.lib;d3dcompiler.lib;meshoptimizer.lib;icudt.lib;icuin.lib;icuio.lib;icutu.lib;icuuc.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories);$(SolutionDir)DirectXTK-master\Bin\Desktop_2019\x64\$(Configuration);$(SolutionDir)Engine\Bin\x64\$(Configuration);$(SolutionDir)External\Effekseer170\Lib\x64\$(Configuration);$(SolutionDir)External\Effekseer170\lib;$(SolutionDir)External\DirectXTex\lib\$(Configuration);$(SolutionDir)External\meshoptimizer\lib\$(Configuration);$(SolutionDir)External\icu\lib64;%(AdditionalDependencies)</AdditionalLibraryDirectories>
     </Link>
     <FxCompile>

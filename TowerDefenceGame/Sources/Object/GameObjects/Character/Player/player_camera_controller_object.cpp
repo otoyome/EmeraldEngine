@@ -290,8 +290,8 @@ void player_camera_controller_object::fixed_update_default(float elapsed_time)
 	{
 		math::rotator camera_rotation = get_rotation();
 		DirectX::XMVECTOR Rot1, Rot2;
-		Rot1 = DirectX::XMLoadFloat4(&camera_rotation.convert_quaternion());
-		Rot2 = DirectX::XMLoadFloat4(&disengage_direction.convert_quaternion());
+		Rot1 = camera_rotation.convert_quaternion_vector();
+		Rot2 = disengage_direction.convert_quaternion_vector();
 		DirectX::XMFLOAT4 rotation;
 		DirectX::XMStoreFloat4(&rotation, DirectX::XMQuaternionSlerp(Rot1, Rot2, update_disengage_direction_rate));
 		camera_rotation = rotation;
@@ -457,8 +457,10 @@ void player_camera_controller_object::on_parry_camera(character_object* characte
 	{
 		auto self_object = player_controller->get_controll_object();
 		auto taget_object = player_controller->get_controll_object()->get_lockon_taget_object().lock();
-		DirectX::XMVECTOR SelfPosition = DirectX::XMLoadFloat3(&self_object->get_focus_point());
-		DirectX::XMVECTOR TargetPosition = DirectX::XMLoadFloat3(&taget_object->get_focus_point());
+		auto self_focus_point = self_object->get_focus_point();
+		auto taget_focus_point = taget_object->get_focus_point();
+		DirectX::XMVECTOR SelfPosition = DirectX::XMLoadFloat3(&self_focus_point);
+		DirectX::XMVECTOR TargetPosition = DirectX::XMLoadFloat3(&taget_focus_point);
 		DirectX::XMVECTOR CameraPosition = DirectX::XMLoadFloat3(&get_position());
 		DirectX::XMVECTOR Vector = DirectX::XMVectorSubtract(TargetPosition, SelfPosition);
 

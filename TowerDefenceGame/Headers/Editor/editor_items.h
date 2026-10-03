@@ -17,17 +17,17 @@ class editor_items
 {
 public:
 	//	取り扱いテクスチャの読み込み用
-	static constexpr TCHAR* texture_file_dialog_filter =
+	static constexpr const TCHAR* texture_file_dialog_filter =
 		L"テクスチャ (*.bmp, *.png, *.jpg, *.tga, *.dds, *.hdr)\0*.bmp;*.png;*.jpg;*.tga;*.dds;*.hdr\0\
 		すべてのファイル (*.*)\0*.*\0";
 
 	//	取り扱いテクスチャの読み込み用
-	static constexpr TCHAR* model_file_dialog_filter =
+	static constexpr const TCHAR* model_file_dialog_filter =
 		L"テクスチャ (*.emo)\0*.emo\0\
 		すべてのファイル (*.*)\0*.*\0";
 
 	//	cubic_sdfファイルの読み込み用
-	static constexpr TCHAR* sdf_file_dialog_filter =
+	static constexpr const TCHAR* sdf_file_dialog_filter =
 		L"cubic SDF (*.esdf)\0*.esdf\0\
 		すべてのファイル (*.*)\0*.*\0";
 
@@ -119,9 +119,9 @@ private:	//	内部編集用関数
 	static bool edit_effect_decal(std::shared_ptr<context>& context, effect_resource_ptr& effect_resource, effect_resource::decal& decal);
 
 public:	//	汎用
-	static bool open_file_dialog(TCHAR* text, std::string& out_selected_file_path);
-	static bool open_file_dialog_multi(TCHAR* text, std::vector<std::string>& out_selected_file_paths);
-	static bool save_file_dialog(TCHAR* text, std::string& out_selected_file_path, const TCHAR* default_extension = nullptr);
+	static bool open_file_dialog(const TCHAR* text, std::string& out_selected_file_path);
+	static bool open_file_dialog_multi(const TCHAR* text, std::vector<std::string>& out_selected_file_paths);
+	static bool save_file_dialog(const TCHAR* text, std::string& out_selected_file_path, const TCHAR* default_extension = nullptr);
 	static bool copy_to_clipboard(const char* text);
 
 private:

@@ -1160,7 +1160,7 @@ bloom_and_tone_mapping_post_process_renderer::bloom_and_tone_mapping_post_proces
 	}
 
 	//	定数バッファの生成
-	if (auto& device = render_data::instance()->get_device())
+	if (auto device = render_data::instance()->get_device())
 	{
 		D3D11_BUFFER_DESC buffer_desc{};
 		buffer_desc.Usage = D3D11_USAGE_DEFAULT;

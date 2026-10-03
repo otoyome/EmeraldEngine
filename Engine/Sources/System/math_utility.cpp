@@ -757,6 +757,11 @@ DirectX::XMFLOAT4 math::rotator::convert_quaternion() const
 	return quaternion;
 }
 
+DirectX::XMVECTOR math::rotator::convert_quaternion_vector() const
+{
+	return DirectX::XMQuaternionRotationRollPitchYaw(x, y, z);
+}
+
 void math::rotator::set_parameter_from_direction(DirectX::XMFLOAT3 direction)
 {
 	float s = sqrtf(direction.x * direction.x + direction.y * direction.y + direction.z * direction.z);

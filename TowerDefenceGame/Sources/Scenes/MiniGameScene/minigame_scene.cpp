@@ -395,7 +395,8 @@ void minigame_scene::update_core(float elapsed_time)
 			//	Å‚‘¬“x‚ð‹L˜^
 			if (player_object)
 			{
-				DirectX::XMVECTOR Velocity = DirectX::XMLoadFloat3(&player_object->get_velocity());
+				auto velocity = player_object->get_velocity();
+				auto Velocity = DirectX::XMLoadFloat3(&velocity);
 				float speed_m_s = system_units::convert_unit_to_m(DirectX::XMVectorGetX(DirectX::XMVector3Length(Velocity)));
 				float speed_kmh = speed_m_s * 3.6f;
 				max_speed_kmh = std::max(max_speed_kmh, speed_kmh);

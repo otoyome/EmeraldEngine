@@ -1,7 +1,7 @@
 #include "input/mouse.h"
 
 #if defined(USE_IMGUI)
-#include "keyboard.h"
+#include "Input/keyboard.h"
 #endif	//	defined(USE_IMGUI)
 
 namespace

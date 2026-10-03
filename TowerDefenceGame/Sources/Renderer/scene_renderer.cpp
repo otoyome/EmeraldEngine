@@ -339,7 +339,7 @@ void gbuffer_decal_renderer::render(renderer_context& renderer_context)
 				buffer_datas buffer_data;
 				{
 					DirectX::XMMATRIX W = DirectX::XMMatrixScaling(decal.scale.x, decal.scale.y, decal.scale.z)
-										* DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&decal.rotation.convert_quaternion()))
+										* DirectX::XMMatrixRotationQuaternion(decal.rotation.convert_quaternion_vector())
 										* DirectX::XMMatrixTranslation(decal.position.x, decal.position.y, decal.position.z);
 					//	プリミティブバッファ更新
 					{
@@ -474,7 +474,7 @@ deffered_lighting_renderer::deffered_lighting_renderer(render_job_registrar job_
 
 	//	ディファードレンダリング系シェーダー準備
 	{
-		static constexpr char* shader_names[] =
+		static constexpr const char* shader_names[] =
 		{
 			"deferred_indirect_lighting",
 			"deferred_directional_lighting",

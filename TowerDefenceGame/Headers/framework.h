@@ -30,7 +30,7 @@ struct render_data_context;
 class framework
 {
 public:
-	static constexpr WCHAR* APPLICATION_NAME = L"Sample Engine";
+	static constexpr const TCHAR* APPLICATION_NAME = _T("Sample Engine");
 
 public:
 	framework(HWND hwnd);

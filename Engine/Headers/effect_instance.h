@@ -65,7 +65,7 @@ public:
 	std::string_view get_name() const;
 	void set_name(std::string_view name);
 
-	effect_resource_ptr get_resource() const;
+	const effect_resource_ptr get_resource() const;
 
 	const DirectX::XMFLOAT3& get_scale() const;
 	void set_scale(const DirectX::XMFLOAT3& scale);
@@ -101,6 +101,10 @@ public:
 
 	inline const DirectX::XMFLOAT4X4& get_previous_world_transform() const { return previous_world_transform; }
 	inline void set_previous_world_transform(const DirectX::XMFLOAT4X4& transform){ previous_world_transform = transform; }
+
+#if defined(USE_IMGUI)
+	inline effect_resource_ptr get_resource_for_editor() {return resource;}
+#endif	//	defined(USE_IMGUI)
 
 public:
 	effect_instance();

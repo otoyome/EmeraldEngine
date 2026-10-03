@@ -70,14 +70,15 @@ namespace
 			if (!selected_points.empty() && ImGui::IsMouseDown(ImGuiMouseButton_Right))
 				remove_points(selected_points);
 
-			//	0..1 にクランプ
+			//	0～1 にクランプ
 			for (auto& point : curve.datas)
 				point = math::saturate(point);
 
 			//	Edit / Reset / クランプで datas 側が変化しているのでキャッシュを追従させる
 			reload_points();
 
-			ImGui::Text(u8"    アニメーション時間");
+			static cache_string animation_time = "    アニメーション時間";
+			ImGui::Text(animation_time.c_str());
 		}
 
 	private:

@@ -15,7 +15,7 @@
 namespace
 {
 	//	モデル
-	constexpr TCHAR* ModelFileDialogFilter =
+	constexpr const TCHAR* ModelFileDialogFilter =
 		L"モデルファイル (*.emo, *.pmx, *.gltf, *.glb)\0*.emo;*.pmx;*.gltf;*.glb;\0\
 		すべてのファイル (*.*)\0*.*\0";
 }
@@ -558,7 +558,7 @@ void edit_model_scene::on_mouse_left_down_and_hold(void* data_ptr)
 			continue;
 
 		auto& mesh = *instance_mesh.mesh;
-		auto& positions = mesh.vertex_buffer_views.find(semantic("POSITION", 0));
+		auto positions = mesh.vertex_buffer_views.find(semantic("POSITION", 0));
 		auto& indiceds = mesh.index_buffer_view;
 		if (positions == mesh.vertex_buffer_views.end() || indiceds.count() == 0)
 			continue;
@@ -591,8 +591,8 @@ void edit_model_scene::on_mouse_left_down_and_hold(void* data_ptr)
 				continue;
 
 			auto& mesh = *const_cast<model_resource::mesh*>(instance_mesh.mesh);
-			auto& position_view = mesh.vertex_buffer_views.find(semantic("POSITION", 0));
-			auto& color_view = mesh.vertex_buffer_views.find(semantic("COLOR", 0));
+			auto position_view = mesh.vertex_buffer_views.find(semantic("POSITION", 0));
+			auto color_view = mesh.vertex_buffer_views.find(semantic("COLOR", 0));
 			if (position_view == mesh.vertex_buffer_views.end() || color_view == mesh.vertex_buffer_views.end())
 				continue;
 

@@ -342,7 +342,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;USE_IMGUI;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)DirectXTK-master\Inc;$(SolutionDir)External;$(SolutionDir)External\tinygltf-master;$(SolutionDir)External\stb;$(SolutionDir)External\cereal\include;$(SolutionDir)External\magic_enum\include;$(SolutionDir)External\uchardet\src;$(SolutionDir)External\icu\include;$(ProjectDir)Headers</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)External;$(SolutionDir)External\tinygltf-master;$(SolutionDir)External\stb;$(SolutionDir)External\cereal\include;$(SolutionDir)External\magic_enum\include;$(SolutionDir)External\uchardet\src;$(SolutionDir)External\icu\include;$(ProjectDir)Headers</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <PrecompiledHeader>Use</PrecompiledHeader>
@@ -363,7 +363,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;USE_IMGUI;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)DirectXTK-master\Inc;$(SolutionDir)External;$(SolutionDir)External\tinygltf-master;$(SolutionDir)External\stb;$(SolutionDir)External\cereal\include;$(SolutionDir)External\magic_enum\include;$(SolutionDir)External\uchardet\src;$(SolutionDir)External\icu\include;$(ProjectDir)Headers</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)External;$(SolutionDir)External\tinygltf-master;$(SolutionDir)External\stb;$(SolutionDir)External\cereal\include;$(SolutionDir)External\magic_enum\include;$(SolutionDir)External\uchardet\src;$(SolutionDir)External\icu\include;$(ProjectDir)Headers</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <Optimization>Full</Optimization>
@@ -389,7 +389,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;USE_IMGUI;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)DirectXTK-master\Inc;$(SolutionDir)External;$(SolutionDir)External\tinygltf-master;$(SolutionDir)External\stb;$(SolutionDir)External\cereal\include;$(SolutionDir)External\magic_enum\include;$(SolutionDir)External\uchardet\src;$(SolutionDir)External\icu\include;$(ProjectDir)Headers</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)External;$(SolutionDir)External\tinygltf-master;$(SolutionDir)External\stb;$(SolutionDir)External\cereal\include;$(SolutionDir)External\magic_enum\include;$(SolutionDir)External\uchardet\src;$(SolutionDir)External\icu\include;$(ProjectDir)Headers</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <PrecompiledHeader>Use</PrecompiledHeader>

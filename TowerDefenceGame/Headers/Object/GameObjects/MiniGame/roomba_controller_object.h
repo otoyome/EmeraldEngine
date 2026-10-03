@@ -10,7 +10,7 @@ class roomba_controller_object : public game_object
 private:
 	enum class modes
 	{
-		default,
+		normal,
 	};
 
 public:

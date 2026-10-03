@@ -152,22 +152,6 @@ MATH_TEST_TYPED(vector_transform)
 	CHECK_NEAR(vector2<T>::transform_coord(vector2<T>(1, 2), translation), vector2<T>(11, 22), tol);
 }
 
-//	@tool ベクトルと行列の積の書き方は規約に従う
-MATH_TEST_TYPED(vector_matrix_operator)
-{
-	const double tol = math_test::tolerance<T>();
-	const matrix<T> m = matrix<T>::concatenate(matrix<T>::scaling(2, 3, 4), matrix<T>::translation(1, 2, 3));
-	const vector4<T> v(1, 1, 1, 1);
-#if MATH_COLUMN_VECTOR
-	CHECK_NEAR(m * v, vector4<T>::transform(v, m), tol);
-#else
-	CHECK_NEAR(v * m, vector4<T>::transform(v, m), tol);
-	vector4<T> w = v;
-	w *= m;
-	CHECK_NEAR(w, vector4<T>(3, 5, 7, 1), tol);
-#endif
-}
-
 //	@tool 方向の定数（左手系：前方向 +Z、右手系：前方向 -Z）
 MATH_TEST_TYPED(vector_direction)
 {

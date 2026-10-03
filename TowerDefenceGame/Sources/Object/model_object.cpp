@@ -205,7 +205,7 @@ void model_object::update_transform()
 
 	dirty = false;
 	DirectX::XMMATRIX Scale = DirectX::XMMatrixScaling(scale.x, scale.y, scale.z);
-	DirectX::XMMATRIX Rotation = DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&rotator.convert_quaternion()));
+	DirectX::XMMATRIX Rotation = DirectX::XMMatrixRotationQuaternion(rotator.convert_quaternion_vector());
 	DirectX::XMMATRIX Translation = DirectX::XMMatrixTranslation(position.x, position.y, position.z);
 	model_instance->update_transform(Scale * Rotation * Translation);
 }
@@ -385,7 +385,7 @@ void model_object::update_node_animation(const animation::data& animation_data, 
 		{
 			//	ƒ[ƒ‹ƒhs—ñ
 			DirectX::XMMATRIX Scale = DirectX::XMMatrixScaling(scale.x, scale.y, scale.z);
-			DirectX::XMMATRIX Rotation = DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&rotator.convert_quaternion()));
+			DirectX::XMMATRIX Rotation = DirectX::XMMatrixRotationQuaternion(rotator.convert_quaternion_vector());
 			DirectX::XMMATRIX Translation = DirectX::XMMatrixTranslation(position.x, position.y, position.z);
 			DirectX::XMMATRIX WorldTransform = Scale * Rotation * Translation;
 
@@ -856,9 +856,7 @@ void model_object::imgui_render_core()
 		{
 			ImGui::PushID(editor_context->get_item_id());
 			ImGui::Text(system_utility::convert_utf8(node.name).data());
-			if (node.parent_index == model_resource::invalid_id)
-				ImGui::InputText("Parent", std::string(""));
-			else
+			if (node.parent_index != model_resource::invalid_id)
 				ImGui::InputText("Parent", model_instance->get_nodes()[node.parent_index].name);
 			DirectX::XMVECTOR LS, LR, LT;
 			DirectX::XMVECTOR GS, GR, GT;

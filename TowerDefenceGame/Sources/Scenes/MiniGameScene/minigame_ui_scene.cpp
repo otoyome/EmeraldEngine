@@ -273,7 +273,7 @@ minigame_ui_scene::minigame_ui_scene()
 		desc.icon->set_draw_mode(ui_image::draw_modes::single);
 		desc.icon->set_sort_order(0);
 		register_object(desc.icon);
-		auto& key_object = std::make_shared<key_icon_object>(desc);
+		auto key_object = std::make_shared<key_icon_object>(desc);
 		register_object(key_object);
 
 		auto main_icon = std::make_shared<ui_image>("ルンバUI：加速メインアイコン");
@@ -313,7 +313,7 @@ minigame_ui_scene::minigame_ui_scene()
 		desc.icon->set_draw_mode(ui_image::draw_modes::single);
 		desc.icon->set_sort_order(0);
 		register_object(desc.icon);
-		auto& key_object = std::make_shared<key_icon_object>(desc);
+		auto key_object = std::make_shared<key_icon_object>(desc);
 		register_object(key_object);
 
 		auto main_icon = std::make_shared<ui_image>("ルンバUI：減速メインアイコン");
@@ -353,7 +353,7 @@ minigame_ui_scene::minigame_ui_scene()
 		desc.icon->set_draw_mode(ui_image::draw_modes::single);
 		desc.icon->set_sort_order(0);
 		register_object(desc.icon);
-		auto& key_object = std::make_shared<key_icon_object>(desc);
+		auto key_object = std::make_shared<key_icon_object>(desc);
 		register_object(key_object);
 
 		auto main_icon = std::make_shared<ui_image>("ルンバUI：チュートリアルメインアイコン");

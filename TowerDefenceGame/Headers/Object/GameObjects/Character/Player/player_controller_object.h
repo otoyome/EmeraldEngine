@@ -10,7 +10,7 @@ class player_controller_object : public game_object
 private:
 	enum class modes
 	{
-		default,
+		normal,
 		stagger,
 		dead_select,
 	};

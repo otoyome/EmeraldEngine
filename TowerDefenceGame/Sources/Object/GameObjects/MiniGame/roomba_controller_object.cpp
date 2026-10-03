@@ -37,7 +37,7 @@ roomba_controller_object::roomba_controller_object(std::string_view name, std::s
 , input_purmit_flag(true)
 , camera(camera)
 , controll_object(controll_object)
-, mode(modes::default)
+, mode(modes::normal)
 , action_datas()
 {
 }
@@ -53,7 +53,7 @@ void roomba_controller_object::fixed_update(float elapsed_time)
 	auto mouse_state = mouse::instance()->get_state();
 	switch (mode)
 	{
-		case modes::default:
+		case modes::normal:
 		{
 			for (size_t index = ARRAYSIZE(action_datas) - 1; index > 0; --index)
 			{

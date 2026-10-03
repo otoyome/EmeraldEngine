@@ -75,7 +75,7 @@ bool editor_items::edit_effect_noeds(std::shared_ptr<context>& context, effect_i
 {
 	bool edit_flag = false;
 
-	auto& effect_resource = effect_instance->get_resource();
+	auto effect_resource = effect_instance->get_resource_for_editor();
 	auto& nodes = effect_resource->get_nodes_for_editor();
 	auto& models = effect_resource->get_models_for_editor();
 	auto& particles = effect_resource->get_particles_for_editor();

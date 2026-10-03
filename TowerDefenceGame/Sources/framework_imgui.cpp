@@ -137,7 +137,8 @@ void framework::imgui_log_window()
 				display_log_category = static_cast<logger::categorys>(category);
 			}
 			ImGui::SameLine();
-			if (ImGui::Button(is_log_descending_order ? u8"ç~èá" : u8"è∏èá"))
+			static cache_string orders[] = {"ç~èá", "è∏èá"};
+			if (ImGui::Button(is_log_descending_order ? orders[0].c_str() : orders[1].c_str()))
 				is_log_descending_order = !is_log_descending_order;
 		}
 		{

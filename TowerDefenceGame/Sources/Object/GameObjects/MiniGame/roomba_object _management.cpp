@@ -111,7 +111,8 @@ void roomba_object::fixed_update(float elapsed_time)
 	if (check_same_state(state_names[state_dead]))
 	{
 		//	€–S‚ÍƒXƒsƒ“‚³‚¹‚é
-		DirectX::XMVECTOR Velocity = DirectX::XMLoadFloat3(&get_velocity());
+		auto velocity = get_velocity();
+		DirectX::XMVECTOR Velocity = DirectX::XMLoadFloat3(&velocity);
 		float speed = DirectX::XMVectorGetX(DirectX::XMVector3Length(Velocity));
 		if (speed >= 0.001f)
 		{
@@ -123,7 +124,7 @@ void roomba_object::fixed_update(float elapsed_time)
 			{
 				death_spin_angle = speed;
 
-				DirectX::XMVECTOR Rotation = DirectX::XMLoadFloat4(&death_spin_rotator.convert_quaternion());
+				DirectX::XMVECTOR Rotation = death_spin_rotator.convert_quaternion_vector();
 				DirectX::XMVECTOR AddRotation = DirectX::XMQuaternionRotationAxis(UpVector, death_spin_angle);
 				Rotation = DirectX::XMQuaternionMultiply(Rotation, AddRotation);
 
@@ -282,7 +283,8 @@ void roomba_object::update_values(float elapsed_time)
 	float wet_cooling_rate = get_wet_rate() * 0.75f;
 
 	//	‹ó‹C’ïR‚É‚æ‚é•ú”MEŠ£‘‡‚ğZo
-	DirectX::XMVECTOR Velocity = DirectX::XMLoadFloat3(&get_velocity());
+	auto velocity = get_velocity();
+	auto Velocity = DirectX::XMLoadFloat3(&velocity);
 	float speed = DirectX::XMVectorGetX(DirectX::XMVector3Length(Velocity));
 	float speed_rate = math::smoothstep(0.0f, get_max_speed(move_mode::dash), speed);
 	float air_drag_heat_rate = math::lerp(0.0f, 0.5f, speed_rate);

@@ -122,8 +122,8 @@ void roomba_camera_controller_object::fixed_update_entry(float elapsed_time)
 
 		math::rotator camera_rotation = get_rotation();
 		DirectX::XMVECTOR Rot1, Rot2;
-		Rot1 = DirectX::XMLoadFloat4(&camera_rotation.convert_quaternion());
-		Rot2 = DirectX::XMLoadFloat4(&disengage_direction.convert_quaternion());
+		Rot1 = camera_rotation.convert_quaternion_vector();
+		Rot2 = disengage_direction.convert_quaternion_vector();
 		DirectX::XMFLOAT4 rotation;
 		DirectX::XMStoreFloat4(&rotation, DirectX::XMQuaternionSlerp(Rot1, Rot2, update_disengage_direction_rate));
 		camera_rotation = rotation;
@@ -236,8 +236,8 @@ void roomba_camera_controller_object::fixed_update_default(float elapsed_time)
 	{
 		math::rotator camera_rotation = get_rotation();
 		DirectX::XMVECTOR Rot1, Rot2;
-		Rot1 = DirectX::XMLoadFloat4(&camera_rotation.convert_quaternion());
-		Rot2 = DirectX::XMLoadFloat4(&disengage_direction.convert_quaternion());
+		Rot1 = camera_rotation.convert_quaternion_vector();
+		Rot2 = disengage_direction.convert_quaternion_vector();
 		DirectX::XMFLOAT4 rotation;
 		DirectX::XMStoreFloat4(&rotation, DirectX::XMQuaternionSlerp(Rot1, Rot2, update_disengage_direction_rate));
 		camera_rotation = rotation;

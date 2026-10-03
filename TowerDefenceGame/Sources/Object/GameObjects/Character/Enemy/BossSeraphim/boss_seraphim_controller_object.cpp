@@ -471,7 +471,7 @@ public:
 				if (timer >= 7.0f)
 				{
 					//	プレイヤー側の入力を可能にしておく
-					if (auto& player_controller = object_manager::instance()->search_object<player_controller_object>())
+					if (auto player_controller = object_manager::instance()->search_object<player_controller_object>())
 					{
 						player_controller->set_input_purmit_flag(true);
 					}
@@ -684,7 +684,7 @@ boss_seraphim_controller_object::boss_seraphim_controller_object(std::string_vie
 	get_boss_seraphim_object()->register_change_state_callback(character_object::state_names[character_object::state_parry_attack], TRANSITION_PARRY_ATTACK, [](character_object*)
 		{
 			//	プレイヤー側の入力を止めておく
-			if (auto& player_controller = object_manager::instance()->search_object<player_controller_object>())
+			if (auto player_controller = object_manager::instance()->search_object<player_controller_object>())
 			{
 				player_controller->set_input_purmit_flag(false);
 			}
@@ -692,7 +692,7 @@ boss_seraphim_controller_object::boss_seraphim_controller_object(std::string_vie
 	get_boss_seraphim_object()->register_parry_attck_start(PARRY_ATTACK_START, []()
 		{
 			//	プレイヤー側の入力を止めておく
-			if (auto& player_controller = object_manager::instance()->search_object<player_controller_object>())
+			if (auto player_controller = object_manager::instance()->search_object<player_controller_object>())
 			{
 				player_controller->set_input_purmit_flag(true);
 			}

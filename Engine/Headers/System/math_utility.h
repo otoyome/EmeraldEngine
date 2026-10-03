@@ -246,6 +246,7 @@ namespace math
 		DirectX::XMFLOAT3 get_front() const;
 
 		DirectX::XMFLOAT4 convert_quaternion() const;
+		DirectX::XMVECTOR convert_quaternion_vector() const;
 
 		void set_parameter_from_direction(DirectX::XMFLOAT3 direction);
 

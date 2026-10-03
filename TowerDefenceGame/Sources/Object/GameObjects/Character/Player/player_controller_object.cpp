@@ -37,7 +37,7 @@ player_controller_object::player_controller_object(std::string_view name, std::s
 , input_purmit_flag(true)
 , camera(camera)
 , controll_object(controll_object)
-, mode(modes::default)
+, mode(modes::normal)
 , action_datas()
 , dead_state(dead_states::none)
 {
@@ -89,7 +89,7 @@ void player_controller_object::fixed_update(float elapsed_time)
 	auto mouse_state = mouse::instance()->get_state();
 	switch (mode)
 	{
-		case	modes::default:
+		case	modes::normal:
 		{
 			for (size_t index = ARRAYSIZE(action_datas) - 1; index > 0; --index)
 			{
@@ -156,7 +156,7 @@ void player_controller_object::fixed_update(float elapsed_time)
 				if (is_attack)
 					controll_object->change_state(character_object::state_names[character_object::state_break_attack]);
 
-				mode = modes::default;
+				mode = modes::normal;
 
 				//	コールバック
 				for (auto& func : on_stagger_exits)
@@ -178,7 +178,7 @@ void player_controller_object::fixed_update(float elapsed_time)
 			if (is_attack)
 			{
 				controll_object->change_state(character_object::state_names[character_object::state_regenerate]);
-				mode = modes::default;
+				mode = modes::normal;
 
 				//	コールバック
 				for (auto& func : on_select_regenerate)
@@ -190,7 +190,7 @@ void player_controller_object::fixed_update(float elapsed_time)
 			if (is_cancel)
 			{
 				controll_object->change_state(character_object::state_names[character_object::state_dead_complete]);
-				mode = modes::default;
+				mode = modes::normal;
 
 				//	コールバック
 				for (auto& func : on_select_dead)

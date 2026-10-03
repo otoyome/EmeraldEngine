@@ -62,7 +62,7 @@ public:
 
 	void set_lod_range_rate(DirectX::XMFLOAT2 rate) {lod_range_rate = math::saturate(rate);}
 
-	inline model_resource_ptr get_resource() const { return resource; }
+	inline const model_resource_ptr get_resource() const { return resource; }
 	inline const std::vector<node>& get_nodes() const { return nodes; }
 	inline std::vector<node>& get_nodes() { return nodes; }
 	inline const std::vector<material>& get_materials() const { return materials; }
@@ -77,6 +77,7 @@ public:
 	inline void set_previous_world_transform(const DirectX::XMFLOAT4X4& transform){ previous_world_transform = transform; }
 
 #if defined(USE_IMGUI)
+	inline model_resource_ptr get_resource_for_editor() { return resource; }
 	inline void set_materials_for_editor(const std::vector<material>& materials) { this->materials = materials; }
 #endif	//	defined(USE_IMGUI)
 
@@ -112,7 +113,7 @@ private:
 	std::vector<mesh> meshes;
 	std::vector<morph> morphes;
 
-	inline static std::atomic<size_t> id_counter;
+	inline static std::atomic<UINT> id_counter;
 };
 
 using model_instance_ptr = std::shared_ptr<model_instance>;

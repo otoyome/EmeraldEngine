@@ -1,5 +1,7 @@
 #pragma once
 
+class scene_manager;
+
 struct scene_generates
 {
 	template<typename Type>

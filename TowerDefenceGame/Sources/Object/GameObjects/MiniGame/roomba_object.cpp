@@ -356,7 +356,8 @@ float roomba_object::get_attract_range() const
 	if (check_same_state(state_names[state_dead]))
 		return 0.0f;
 
-	DirectX::XMVECTOR Velocity = DirectX::XMLoadFloat3(&get_velocity());
+	auto velocity = get_velocity();
+	auto Velocity = DirectX::XMLoadFloat3(&velocity);
 	float speed = DirectX::XMVectorGetX(DirectX::XMVector3Length(Velocity));
 	float speed_rate = math::saturate(speed / get_max_speed(move_mode::dash));
 	return math::lerp(setup_data::attract_radius_range.x, setup_data::attract_radius_range.y, speed_rate);

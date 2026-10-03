@@ -288,11 +288,11 @@ void collision_object::update()
 
 	DirectX::XMMATRIX Rotation, Translation;
 	DirectX::XMMATRIX LocalMatrix, WorldMatrix;
-	Rotation = DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&local_rotation.convert_quaternion()));
+	Rotation = DirectX::XMMatrixRotationQuaternion(local_rotation.convert_quaternion_vector());
 	Translation = DirectX::XMMatrixTranslationFromVector(DirectX::XMLoadFloat3(&local_offset));
 	LocalMatrix = Rotation * Translation;
 
-	Rotation = DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&rotation.convert_quaternion()));
+	Rotation = DirectX::XMMatrixRotationQuaternion(rotation.convert_quaternion_vector());
 	Translation = DirectX::XMMatrixTranslationFromVector(DirectX::XMLoadFloat3(&position));
 	WorldMatrix = Rotation * Translation;
 	WorldMatrix = LocalMatrix * WorldMatrix;

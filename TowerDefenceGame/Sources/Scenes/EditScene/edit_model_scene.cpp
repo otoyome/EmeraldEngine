@@ -285,7 +285,7 @@ void edit_model_scene::save_model()
 		return;
 
 	//	EMO形式で吐き出す
-	auto& resource = edit_model->get_model_instance()->get_resource();
+	auto resource = edit_model->get_model_instance()->get_resource_for_editor();
 
 	//	マテリアルの上書き
 	auto& resource_materials = resource->get_materials_for_editor();
