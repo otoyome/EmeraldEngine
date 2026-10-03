@@ -234,12 +234,12 @@ void character_object::set_scale(const DirectX::XMFLOAT3& scale)
 	model->set_scale(scale);
 }
 
-const math::rotator& character_object::get_rotation() const
+const math::rotatorf& character_object::get_rotation() const
 {
 	return model->get_rotation();
 }
 
-void character_object::set_rotation(const math::rotator& rotator)
+void character_object::set_rotation(const math::rotatorf& rotator)
 {
 	model->set_rotation(rotator);
 	if (push_box)
@@ -1094,7 +1094,7 @@ void character_object::on_root_animation_translation(const DirectX::XMFLOAT3& tr
 void character_object::on_root_animation_rotation(const DirectX::XMFLOAT4& rotation, float delta_time)
 {
 	float normalized_value = (system_units::convert_fps_to_sec(1.0f) / std::max(delta_time, 0.000001f));
-	math::rotator rotator = rotation;
+	math::rotatorf rotator(system_utility::to_math_quaternion(rotation));
 	rotator.x = get_rotation().x + rotator.x * normalized_value;
 	rotator.y = get_rotation().y + rotator.y * normalized_value;
 	rotator.z = get_rotation().z + rotator.z * normalized_value;

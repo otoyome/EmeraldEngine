@@ -20,25 +20,25 @@ namespace
 	//	('É÷')êÊê∂ÅAtimelineÇ™ó~ÇµÇ¢Ç≈Ç∑ÅB
 	constexpr common_animation::float_animation break_effect_scaling_texts[] =
 	{
-		{0.00f, math::ease::type::lerp, 1.0f / 8.0f},
-		{0.1f, math::ease::type::in_back, 1.0f},
+		{0.00f, math::easing::type::lerp, 1.0f / 8.0f},
+		{0.1f, math::easing::type::in_back, 1.0f},
 	};
 	constexpr common_animation::float2_animation break_effect_display_text_offsets[] =
 	{
-		{0.75f, math::ease::type::in_back, {0.00f, 0.00f}},
-		{1.50f, math::ease::type::in_back, {0.25f, 0.00f}},
+		{0.75f, math::easing::type::in_back, {0.00f, 0.00f}},
+		{1.50f, math::easing::type::in_back, {0.25f, 0.00f}},
 	};
 	constexpr common_animation::float4_animation break_effect_display_text_colors[] =
 	{
-		{0.00f, math::ease::type::out_elastic, {0.25f, 0.25f, 1.0f, 1.0f}},
-		{0.05f, math::ease::type::out_elastic, {0.25f, 1.0f, 1.0f, 1.0f}},
-		{0.10f, math::ease::type::out_elastic, {1.0f, 0.25f, 1.0f, 1.0f}},
-		{0.15f, math::ease::type::out_elastic, {0.25f, 0.25f, 1.0f, 1.0f}},
-		{0.20f, math::ease::type::out_elastic, {0.25f, 1.0f, 1.0f, 1.0f}},
-		{0.25f, math::ease::type::out_elastic, {1.0f, 0.25f, 1.0f, 1.0f}},
-		{0.30f, math::ease::type::out_elastic, {0.25f, 0.25f, 1.0f, 1.0f}},
-		{1.00f, math::ease::type::in_back, {0.0f, 0.0f, 0.0f, 0.5f}},
-		{1.50f, math::ease::type::in_back, {0.0f, 0.0f, 0.0f, 0.0f}},
+		{0.00f, math::easing::type::out_elastic, {0.25f, 0.25f, 1.0f, 1.0f}},
+		{0.05f, math::easing::type::out_elastic, {0.25f, 1.0f, 1.0f, 1.0f}},
+		{0.10f, math::easing::type::out_elastic, {1.0f, 0.25f, 1.0f, 1.0f}},
+		{0.15f, math::easing::type::out_elastic, {0.25f, 0.25f, 1.0f, 1.0f}},
+		{0.20f, math::easing::type::out_elastic, {0.25f, 1.0f, 1.0f, 1.0f}},
+		{0.25f, math::easing::type::out_elastic, {1.0f, 0.25f, 1.0f, 1.0f}},
+		{0.30f, math::easing::type::out_elastic, {0.25f, 0.25f, 1.0f, 1.0f}},
+		{1.00f, math::easing::type::in_back, {0.0f, 0.0f, 0.0f, 0.5f}},
+		{1.50f, math::easing::type::in_back, {0.0f, 0.0f, 0.0f, 0.0f}},
 	};
 }
 

@@ -161,7 +161,7 @@ bool stage_00_scene::initialize_core()
 		//	ƒƒbƒVƒ…•ª“–‚½‚è”»’è¶¬
 		DirectX::XMMATRIX transform;
 		transform = DirectX::XMMatrixScalingFromVector(DirectX::XMLoadFloat3(&stage->get_scale()))
-					* DirectX::XMMatrixRotationQuaternion(stage->get_rotation().convert_quaternion_vector())
+					* DirectX::XMMatrixRotationQuaternion(system_utility::to_xmvector(stage->get_rotation().to_quaternion()))
 					* DirectX::XMMatrixTranslationFromVector(DirectX::XMLoadFloat3(&stage->get_position()));
 		generate_model_collision(model->get_model_instance()->get_resource(), transform, separate_level);
 		generate_model_sdf(model->get_model_instance()->get_resource());

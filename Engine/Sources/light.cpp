@@ -69,7 +69,7 @@ light_data light::convert_light_data() const
 		case light_type::directional:
 		{
 			directional_lights light;
-			DirectX::XMFLOAT3 direction = rotation.get_front();
+			DirectX::XMFLOAT3 direction = system_utility::to_xmfloat(rotation.front());
 			light.direction.x = direction.x;
 			light.direction.y = direction.y;
 			light.direction.z = direction.z;
@@ -93,7 +93,7 @@ light_data light::convert_light_data() const
 		case light_type::spot:
 		{
 			spot_lights light;
-			DirectX::XMFLOAT3 direction = rotation.get_front();
+			DirectX::XMFLOAT3 direction = system_utility::to_xmfloat(rotation.front());
 			light.position.x = position.x;
 			light.position.y = position.y;
 			light.position.z = position.z;
@@ -128,12 +128,12 @@ void light::set_position(const DirectX::XMFLOAT3& position)
 	this->position = position;
 }
 
-const math::rotator& light::get_rotation() const
+const math::rotatorf& light::get_rotation() const
 {
 	return rotation;
 }
 
-void light::set_rotation(const math::rotator& rotation)
+void light::set_rotation(const math::rotatorf& rotation)
 {
 	this->rotation = rotation;
 }

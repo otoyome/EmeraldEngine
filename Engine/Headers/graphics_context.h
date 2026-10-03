@@ -148,7 +148,7 @@ struct effect_container
 struct decal_datas
 {
 	DirectX::XMFLOAT3 scale = {1, 1, 1};
-	math::rotator rotation = {0, 0, 0};
+	math::rotatorf rotation = {0, 0, 0};
 	DirectX::XMFLOAT3 position = {0, 0, 0};
 	collision::bounding_box box;
 	material_datas material;

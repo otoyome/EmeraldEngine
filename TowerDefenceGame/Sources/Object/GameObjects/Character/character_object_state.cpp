@@ -238,7 +238,7 @@ void character_object::update_rotation(float elapsed_time)
 	vector.y /= length;
 
 	//	前ベクトル算出
-	math::rotator rotator = get_rotation();
+	math::rotatorf rotator = get_rotation();
 	DirectX::XMFLOAT2 front = DirectX::XMFLOAT2(sinf(rotator.y), cosf(rotator.y));
 
 	//	回転量算出

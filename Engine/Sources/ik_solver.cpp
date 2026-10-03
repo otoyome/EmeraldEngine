@@ -12,19 +12,20 @@ namespace
 		DirectX::XMStoreFloat4(&twist, Twist);
 
 		//	対数クォータニオンに変換
-		DirectX::XMFLOAT3 log_quaternion = math::convert_log_quaternion(twist);
+		const math::exponential_quaternionf log_twist(system_utility::to_math_quaternion(twist));
+		DirectX::XMFLOAT3 log_quaternion(log_twist.x, log_twist.y, log_twist.z);
 		DirectX::XMVECTOR LogQuaternion = DirectX::XMLoadFloat3(&log_quaternion);
 
 		//	twist 成分だけを抽出
 		DirectX::XMVECTOR Axis = DirectX::XMVector3Normalize(TwistAxis);
 		float projection = DirectX::XMVectorGetX(DirectX::XMVector3Dot(LogQuaternion, Axis));
-		float angle = math::normalize_angle(projection);
+		float angle = math::angle::normalize(projection);
 		angle = std::min(std::max(angle, min_angle), max_angle);
 
 		//	クォータニオンに変換
 		DirectX::XMFLOAT3 new_log_quaternion;
 		DirectX::XMStoreFloat3(&new_log_quaternion, DirectX::XMVectorScale(Axis, angle));
-		DirectX::XMFLOAT4 new_quaternion = math::convert_quaternion(new_log_quaternion);
+		DirectX::XMFLOAT4 new_quaternion = system_utility::to_xmfloat(math::exponential_quaternionf(new_log_quaternion.x, new_log_quaternion.y, new_log_quaternion.z).to_quaternion());
 		return DirectX::XMLoadFloat4(&new_quaternion);
 	}
 
@@ -61,7 +62,7 @@ namespace
 
 	float difference_angle(float a, float b)
 	{
-		float diff = math::normalize_angle_0_2pi(a) - math::normalize_angle_0_2pi(b);
+		float diff = math::angle::normalize_positive(a) - math::angle::normalize_positive(b);
 		if (diff > DirectX::XM_PI)
 		{
 			return diff - DirectX::XM_2PI;
@@ -157,17 +158,17 @@ namespace
 	DirectX::XMFLOAT3 subtract_angle(const DirectX::XMFLOAT3& current_angle, const DirectX::XMFLOAT3& prev_angle)
 	{
 		DirectX::XMFLOAT3 angle;
-		angle.x = math::normalize_angle_0_2pi(current_angle.x - prev_angle.x);
-		angle.y = math::normalize_angle_0_2pi(current_angle.y - prev_angle.y);
-		angle.z = math::normalize_angle_0_2pi(current_angle.z - prev_angle.z);
+		angle.x = math::angle::normalize_positive(current_angle.x - prev_angle.x);
+		angle.y = math::angle::normalize_positive(current_angle.y - prev_angle.y);
+		angle.z = math::angle::normalize_positive(current_angle.z - prev_angle.z);
 		return	angle;
 	}
 	DirectX::XMFLOAT3 additional_angle(const DirectX::XMFLOAT3& current_angle, const DirectX::XMFLOAT3& prev_angle)
 	{
 		DirectX::XMFLOAT3 angle;
-		angle.x = math::normalize_angle_0_2pi(current_angle.x + prev_angle.x);
-		angle.y = math::normalize_angle_0_2pi(current_angle.y + prev_angle.y);
-		angle.z = math::normalize_angle_0_2pi(current_angle.z + prev_angle.z);
+		angle.x = math::angle::normalize_positive(current_angle.x + prev_angle.x);
+		angle.y = math::angle::normalize_positive(current_angle.y + prev_angle.y);
+		angle.z = math::angle::normalize_positive(current_angle.z + prev_angle.z);
 		return	angle;
 	}
 	DirectX::XMFLOAT3 clamp_angle(const DirectX::XMFLOAT3& current_angle, const DirectX::XMFLOAT3& min, const DirectX::XMFLOAT3& max)
@@ -334,12 +335,12 @@ void ik_solver::solve_aim(solve_data& solve_data, DirectX::XMFLOAT3 ik_target_po
 			DirectX::XMFLOAT3 pole_axis = {0, 0, 0};
 			switch (link_data.use_axis)
 			{
-				case axis::x:			pole_axis = math::calculate_right(resource_node.rotation);	break;
-				case axis::reverse_x:	pole_axis = math::calculate_right(resource_node.rotation);	break;
-				case axis::y:			pole_axis = math::calculate_up(resource_node.rotation);		break;
-				case axis::reverse_y:	pole_axis = math::calculate_up(resource_node.rotation);		break;
-				case axis::z:			pole_axis = math::calculate_front(resource_node.rotation);	break;
-				case axis::reverse_z:	pole_axis = math::calculate_front(resource_node.rotation);	break;
+				case axis::x:			pole_axis = system_utility::to_xmfloat(system_utility::to_math_quaternion(resource_node.rotation).right());	break;
+				case axis::reverse_x:	pole_axis = system_utility::to_xmfloat(system_utility::to_math_quaternion(resource_node.rotation).right());	break;
+				case axis::y:			pole_axis = system_utility::to_xmfloat(system_utility::to_math_quaternion(resource_node.rotation).up());		break;
+				case axis::reverse_y:	pole_axis = system_utility::to_xmfloat(system_utility::to_math_quaternion(resource_node.rotation).up());		break;
+				case axis::z:			pole_axis = system_utility::to_xmfloat(system_utility::to_math_quaternion(resource_node.rotation).front());	break;
+				case axis::reverse_z:	pole_axis = system_utility::to_xmfloat(system_utility::to_math_quaternion(resource_node.rotation).front());	break;
 			}
 			DirectX::XMVECTOR PoleAxis = DirectX::XMLoadFloat3(&pole_axis);
 			return DirectX::XMVector3Normalize(DirectX::XMVectorScale(PoleAxis, reverse_flag ? -1.0f : +1.0f));
@@ -353,7 +354,7 @@ void ik_solver::solve_aim(solve_data& solve_data, DirectX::XMFLOAT3 ik_target_po
 				float max_hinge = link_data.limit_angles[1];
 
 				DirectX::XMVECTOR HingeAxis = get_rotation_axis();
-				DirectX::XMVECTOR Twist = math::decompose_twist(NewLocalRotation, HingeAxis);
+				DirectX::XMVECTOR Twist = system_utility::to_xmvector(system_utility::to_math_quaternion(NewLocalRotation).twist(system_utility::to_math_vector3(HingeAxis)));
 				NewLocalRotation = clamp_twist(Twist, HingeAxis, min_hinge, max_hinge);
 				break;
 			}
@@ -365,7 +366,10 @@ void ik_solver::solve_aim(solve_data& solve_data, DirectX::XMFLOAT3 ik_target_po
 
 				DirectX::XMVECTOR TwistAxis = get_rotation_axis();
 				DirectX::XMVECTOR Twist, Swing;
-				math::decompose_twist_and_swing(NewLocalRotation, TwistAxis, Twist, Swing);
+				math::quaternionf twist, swing;
+				system_utility::to_math_quaternion(NewLocalRotation).decompose_twist_swing(system_utility::to_math_vector3(TwistAxis), twist, swing);
+				Twist = system_utility::to_xmvector(twist);
+				Swing = system_utility::to_xmvector(swing);
 				Twist = clamp_twist(Twist, TwistAxis, min_twist, max_twist);
 				Swing = clamp_swing(Swing, max_swing);
 				NewLocalRotation = DirectX::XMQuaternionNormalize(DirectX::XMQuaternionMultiply(Swing, Twist));
@@ -376,7 +380,7 @@ void ik_solver::solve_aim(solve_data& solve_data, DirectX::XMFLOAT3 ik_target_po
 				//	オイラー角による拘束
 				DirectX::XMFLOAT4 limit_rotation;
 				DirectX::XMStoreFloat4(&limit_rotation, NewLocalRotation);
-				auto euler = math::convert_quaternion_to_euler(limit_rotation);
+				auto euler = math::rotatorf(system_utility::to_math_quaternion(limit_rotation));
 				euler.x = math::clamp(euler.x, link_data.limit_angles[0], link_data.limit_angles[3]);
 				euler.y = math::clamp(euler.y, link_data.limit_angles[1], link_data.limit_angles[4]);
 				euler.z = math::clamp(euler.z, link_data.limit_angles[2], link_data.limit_angles[5]);
@@ -619,12 +623,12 @@ void ik_solver::solve_ccd(solve_data& solve_data, DirectX::XMFLOAT3 ik_target_po
 					DirectX::XMFLOAT3 pole_axis = {0, 0, 0};
 					switch (link_data.use_axis)
 					{
-						case axis::x:			pole_axis = math::calculate_right(resource_node.rotation);	break;
-						case axis::reverse_x:	pole_axis = math::calculate_right(resource_node.rotation);	break;
-						case axis::y:			pole_axis = math::calculate_up(resource_node.rotation);		break;
-						case axis::reverse_y:	pole_axis = math::calculate_up(resource_node.rotation);		break;
-						case axis::z:			pole_axis = math::calculate_front(resource_node.rotation);	break;
-						case axis::reverse_z:	pole_axis = math::calculate_front(resource_node.rotation);	break;
+						case axis::x:			pole_axis = system_utility::to_xmfloat(system_utility::to_math_quaternion(resource_node.rotation).right());	break;
+						case axis::reverse_x:	pole_axis = system_utility::to_xmfloat(system_utility::to_math_quaternion(resource_node.rotation).right());	break;
+						case axis::y:			pole_axis = system_utility::to_xmfloat(system_utility::to_math_quaternion(resource_node.rotation).up());		break;
+						case axis::reverse_y:	pole_axis = system_utility::to_xmfloat(system_utility::to_math_quaternion(resource_node.rotation).up());		break;
+						case axis::z:			pole_axis = system_utility::to_xmfloat(system_utility::to_math_quaternion(resource_node.rotation).front());	break;
+						case axis::reverse_z:	pole_axis = system_utility::to_xmfloat(system_utility::to_math_quaternion(resource_node.rotation).front());	break;
 					}
 					DirectX::XMVECTOR PoleAxis = DirectX::XMLoadFloat3(&pole_axis);
 					return DirectX::XMVector3Normalize(DirectX::XMVectorScale(PoleAxis, reverse_flag ? -1.0f : +1.0f));
@@ -638,7 +642,7 @@ void ik_solver::solve_ccd(solve_data& solve_data, DirectX::XMFLOAT3 ik_target_po
 						float max_hinge = link_data.limit_angles[1];
 
 						DirectX::XMVECTOR HingeAxis = get_rotation_axis();
-						DirectX::XMVECTOR Twist = math::decompose_twist(NewLocalRotation, HingeAxis);
+						DirectX::XMVECTOR Twist = system_utility::to_xmvector(system_utility::to_math_quaternion(NewLocalRotation).twist(system_utility::to_math_vector3(HingeAxis)));
 						NewLocalRotation = clamp_twist(Twist, HingeAxis, min_hinge, max_hinge);
 						break;
 					}
@@ -650,7 +654,10 @@ void ik_solver::solve_ccd(solve_data& solve_data, DirectX::XMFLOAT3 ik_target_po
 
 						DirectX::XMVECTOR TwistAxis = get_rotation_axis();
 						DirectX::XMVECTOR Twist, Swing;
-						math::decompose_twist_and_swing(NewLocalRotation, TwistAxis, Twist, Swing);
+						math::quaternionf twist, swing;
+						system_utility::to_math_quaternion(NewLocalRotation).decompose_twist_swing(system_utility::to_math_vector3(TwistAxis), twist, swing);
+						Twist = system_utility::to_xmvector(twist);
+						Swing = system_utility::to_xmvector(swing);
 						Twist = clamp_twist(Twist, TwistAxis, min_twist, max_twist);
 						Swing = clamp_swing(Swing, max_swing);
 						NewLocalRotation = DirectX::XMQuaternionNormalize(DirectX::XMQuaternionMultiply(Swing, Twist));

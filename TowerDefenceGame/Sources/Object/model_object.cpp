@@ -33,12 +33,12 @@ void model_object::set_scale(const DirectX::XMFLOAT3& scale)
 	this->scale = scale;
 }
 
-const math::rotator& model_object::get_rotation() const
+const math::rotatorf& model_object::get_rotation() const
 {
 	return rotator;
 }
 
-void model_object::set_rotation(const math::rotator& rotator)
+void model_object::set_rotation(const math::rotatorf& rotator)
 {
 	dirty = true;
 	this->rotator = rotator;
@@ -205,7 +205,7 @@ void model_object::update_transform()
 
 	dirty = false;
 	DirectX::XMMATRIX Scale = DirectX::XMMatrixScaling(scale.x, scale.y, scale.z);
-	DirectX::XMMATRIX Rotation = DirectX::XMMatrixRotationQuaternion(rotator.convert_quaternion_vector());
+	DirectX::XMMATRIX Rotation = DirectX::XMMatrixRotationQuaternion(system_utility::to_xmvector(rotator.to_quaternion()));
 	DirectX::XMMATRIX Translation = DirectX::XMMatrixTranslation(position.x, position.y, position.z);
 	model_instance->update_transform(Scale * Rotation * Translation);
 }
@@ -385,7 +385,7 @@ void model_object::update_node_animation(const animation::data& animation_data, 
 		{
 			//	ワールド行列
 			DirectX::XMMATRIX Scale = DirectX::XMMatrixScaling(scale.x, scale.y, scale.z);
-			DirectX::XMMATRIX Rotation = DirectX::XMMatrixRotationQuaternion(rotator.convert_quaternion_vector());
+			DirectX::XMMATRIX Rotation = DirectX::XMMatrixRotationQuaternion(system_utility::to_xmvector(rotator.to_quaternion()));
 			DirectX::XMMATRIX Translation = DirectX::XMMatrixTranslation(position.x, position.y, position.z);
 			DirectX::XMMATRIX WorldTransform = Scale * Rotation * Translation;
 
@@ -518,10 +518,10 @@ void model_object::update_node_animation(const animation::data& animation_data, 
 				DirectX::XMStoreFloat4(&local_rotation, LocalRotation);
 				if (apply_root_animation_transform)
 				{
-					math::rotator local_rotator = local_rotation;
-					rotator.x = math::normalize_angle(rotator.x + local_rotator.x);
-					rotator.y = math::normalize_angle(rotator.y + local_rotator.y);
-					rotator.z = math::normalize_angle(rotator.z + local_rotator.z);
+					math::rotatorf local_rotator(system_utility::to_math_quaternion(local_rotation));
+					rotator.x = math::angle::normalize(rotator.x + local_rotator.x);
+					rotator.y = math::angle::normalize(rotator.y + local_rotator.y);
+					rotator.z = math::angle::normalize(rotator.z + local_rotator.z);
 					dirty = true;
 				}
 				//	コールバック呼び出し
@@ -863,13 +863,13 @@ void model_object::imgui_render_core()
 			DirectX::XMMatrixDecompose(&LS, &LR, &LT, DirectX::XMLoadFloat4x4(&node.local_transform));
 			DirectX::XMMatrixDecompose(&GS, &GR, &GT, DirectX::XMLoadFloat4x4(&node.global_transform));
 			DirectX::XMFLOAT3 ls = system_utility::convert_xmfloat3_from_vector(LS);
-			math::rotator lr = math::rotator(system_utility::convert_xmfloat4_from_vector(LR));
+			math::rotatorf lr = math::rotatorf(system_utility::to_math_quaternion(LR));
 			DirectX::XMFLOAT3 lt = system_utility::convert_xmfloat3_from_vector(LT);
 			ImGui::DragFloat3("Local Scale", &ls.x);
 			ImGui::DragAngle3("Local Rotation", &lr.x);
 			ImGui::DragFloat3("Local Translation", &lt.x);
 			ls = system_utility::convert_xmfloat3_from_vector(GS);
-			lr = math::rotator(system_utility::convert_xmfloat4_from_vector(GR));
+			lr = math::rotatorf(system_utility::to_math_quaternion(GR));
 			lt = system_utility::convert_xmfloat3_from_vector(GT);
 			ImGui::DragFloat3("Global Scale", &ls.x);
 			ImGui::DragAngle3("Global Rotation", &lr.x);

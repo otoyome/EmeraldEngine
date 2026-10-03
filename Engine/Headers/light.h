@@ -41,8 +41,8 @@ public:
 	light_type get_light_type() const;
 	DirectX::XMFLOAT3 get_position() const;
 	void set_position(const DirectX::XMFLOAT3& position);
-	const math::rotator& get_rotation() const;
-	void set_rotation(const math::rotator& rotation);
+	const math::rotatorf& get_rotation() const;
+	void set_rotation(const math::rotatorf& rotation);
 	const DirectX::XMFLOAT4& get_color() const;
 	void set_color(const DirectX::XMFLOAT4& color);
 
@@ -69,7 +69,7 @@ private:
 	//	ライトパラメーター
 	light_type type;
 	DirectX::XMFLOAT3 position;
-	math::rotator rotation;
+	math::rotatorf rotation;
 	DirectX::XMFLOAT4 color;
 	DirectX::XMFLOAT3 parameter;
 

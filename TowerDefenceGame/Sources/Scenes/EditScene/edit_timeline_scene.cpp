@@ -976,13 +976,13 @@ void edit_timeline_scene::apply_timeline_state()
 					transform.start.position.z + (transform.end.position.z - transform.start.position.z) * t,
 				};
 
-				const DirectX::XMVECTOR quaternion_start = math::rotator(transform.start.rotation).convert_quaternion_vector();
-				const DirectX::XMVECTOR quaternion_end = math::rotator(transform.end.rotation).convert_quaternion_vector();
+				const DirectX::XMVECTOR quaternion_start = system_utility::to_xmvector(math::rotatorf(transform.start.rotation).to_quaternion());
+				const DirectX::XMVECTOR quaternion_end = system_utility::to_xmvector(math::rotatorf(transform.end.rotation).to_quaternion());
 				DirectX::XMFLOAT4 quaternion;
 				DirectX::XMStoreFloat4(&quaternion, DirectX::XMQuaternionSlerp(quaternion_start, quaternion_end, t));
 
 				model->set_position(position);
-				model->set_rotation(math::rotator(quaternion));
+				model->set_rotation(math::rotatorf(system_utility::to_math_quaternion(quaternion)));
 				break;
 			}
 		}
@@ -1058,15 +1058,15 @@ void edit_timeline_scene::apply_timeline_state()
 			entry.start.position.z + (entry.end.position.z - entry.start.position.z) * t,
 		};
 
-		auto quaternion_start = math::rotator(entry.start.rotation).convert_quaternion_vector();
-		auto quaternion_end = math::rotator(entry.end.rotation).convert_quaternion_vector();
+		auto quaternion_start = system_utility::to_xmvector(math::rotatorf(entry.start.rotation).to_quaternion());
+		auto quaternion_end = system_utility::to_xmvector(math::rotatorf(entry.end.rotation).to_quaternion());
 		DirectX::XMFLOAT4 quaternion;
 		DirectX::XMStoreFloat4(&quaternion, DirectX::XMQuaternionSlerp(quaternion_start, quaternion_end, t));
 
 		const float fov_y = entry.start.fov_y + (entry.end.fov_y - entry.start.fov_y) * t;
 
 		main_camera->set_position(position);
-		main_camera->set_rotation(math::rotator(quaternion));
+		main_camera->set_rotation(math::rotatorf(system_utility::to_math_quaternion(quaternion)));
 		main_camera->get_camera()->set_fov_y(fov_y);
 	}
 	else if (editor_camera_object && !editor_camera_object->is_active())

@@ -1,11 +1,11 @@
 #include "object/camera_object.h"
 
-const math::rotator& camera_object::get_rotation() const
+const math::rotatorf& camera_object::get_rotation() const
 {
 	return rotation;
 }
 
-void camera_object::set_rotation(const math::rotator& rotator)
+void camera_object::set_rotation(const math::rotatorf& rotator)
 {
 	this->rotation = rotator;
 }
@@ -52,7 +52,7 @@ camera_object::~camera_object()
 
 void camera_object::post_update(float elapsed_time)
 {
-	math::rotator new_rotation = rotation;
+	math::rotatorf new_rotation = rotation;
 	DirectX::XMFLOAT3 new_position = position;
 	camera->set_rotation(new_rotation);
 	camera->set_position(new_position);

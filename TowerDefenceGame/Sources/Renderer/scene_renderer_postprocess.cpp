@@ -429,8 +429,8 @@ void screen_space_reflection_renderer::render_denoise(graphics_context& context,
 		context.device_context->CSSetConstantBuffers(ssr::denoise_cbv_index, 1, denoise_constant_buffer.GetAddressOf());
 	}
 
-	UINT thread_x = math::alignment(texture_size.x, ssr::denoise_threads.x) / ssr::denoise_threads.x;
-	UINT thread_y = math::alignment(texture_size.y, ssr::denoise_threads.y) / ssr::denoise_threads.y;
+	UINT thread_x = math::calc_alignment_power_of_two(texture_size.x, ssr::denoise_threads.x) / ssr::denoise_threads.x;
+	UINT thread_y = math::calc_alignment_power_of_two(texture_size.y, ssr::denoise_threads.y) / ssr::denoise_threads.y;
 
 	//	ƒfƒmƒCƒYˆ—
 	{

@@ -11,8 +11,8 @@ class camera_object : public game_object
 public:
 	camera_ptr get_camera() const {return camera;}
 
-	const math::rotator& get_rotation() const;
-	void set_rotation(const math::rotator& rotator);
+	const math::rotatorf& get_rotation() const;
+	void set_rotation(const math::rotatorf& rotator);
 
 	const DirectX::XMFLOAT3& get_position() const;
 	void set_position(const DirectX::XMFLOAT3& position);
@@ -35,6 +35,6 @@ public:
 private:
 	camera_ptr camera;
 
-	math::rotator rotation;
+	math::rotatorf rotation;
 	DirectX::XMFLOAT3 position;
 };

@@ -186,9 +186,6 @@
     <ClInclude Include="Headers\System\logger.h">
       <Filter>Headers\System</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\System\math_utility.h">
-      <Filter>Headers\System</Filter>
-    </ClInclude>
     <ClInclude Include="Headers\System\memory_allocator.h">
       <Filter>Headers\System</Filter>
     </ClInclude>
@@ -462,9 +459,6 @@
       <Filter>Sources\System</Filter>
     </ClCompile>
     <ClCompile Include="Sources\System\system_units.cpp">
-      <Filter>Sources\System</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\System\math_utility.cpp">
       <Filter>Sources\System</Filter>
     </ClCompile>
     <ClCompile Include="Sources\System\memory_allocator.cpp">

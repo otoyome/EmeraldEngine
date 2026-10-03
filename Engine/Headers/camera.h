@@ -30,8 +30,8 @@ public:
 	const DirectX::XMFLOAT3& get_position() const;
 	void set_position(const DirectX::XMFLOAT3& position);
 
-	const math::rotator& get_rotation() const;
-	void set_rotation(const math::rotator& rotation);
+	const math::rotatorf& get_rotation() const;
+	void set_rotation(const math::rotatorf& rotation);
 
 	float get_fov_y() const;
 	void set_fov_y(float fov_y);
@@ -83,7 +83,7 @@ private:
 private:
 	UINT system_flags;
 	DirectX::XMFLOAT3 position;
-	math::rotator rotation;
+	math::rotatorf rotation;
 	DirectX::XMFLOAT3 right;
 	DirectX::XMFLOAT3 up;
 	DirectX::XMFLOAT3 front;

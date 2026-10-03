@@ -16,8 +16,8 @@ public:
 	const DirectX::XMFLOAT3& get_scale() const;
 	void set_scale(const DirectX::XMFLOAT3& scale);
 
-	const math::rotator& get_rotation() const;
-	void set_rotation(const math::rotator& rotator);
+	const math::rotatorf& get_rotation() const;
+	void set_rotation(const math::rotatorf& rotator);
 
 	const DirectX::XMFLOAT3& get_position() const;
 	void set_position(const DirectX::XMFLOAT3& position);

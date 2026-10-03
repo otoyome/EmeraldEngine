@@ -36,6 +36,28 @@ MATH_TEST_TYPED(utility_scalar)
 	CHECK(between(1, 3, 2) && !between(1, 3, 4));
 	CHECK(sign(static_cast<T>(-2)) == -1 && sign(static_cast<T>(0)) == 0 && sign0plus(static_cast<T>(0)) == 1);
 	CHECK(math::signbit(static_cast<T>(-0.0)) && !math::signbit(static_cast<T>(1)));
+
+	//	@tool 旧 System/math_utility.h から統合したスカラー版
+	CHECK(math::min(static_cast<T>(2), static_cast<T>(-1)) == -1 && math::max(static_cast<T>(2), static_cast<T>(-1)) == 2 && math::min(3, 5) == 3);
+	CHECK(clamp(static_cast<T>(5), static_cast<T>(0), static_cast<T>(1)) == 1 && clamp(-3, 0, 10) == 0 && clamp(4, 0, 10) == 4);
+	CHECK(saturate(static_cast<T>(-0.5)) == 0 && saturate(static_cast<T>(0.25)) == static_cast<T>(0.25));
+	//	@tool clamp_outside は内側の値を近い方の端へ押し出し、外側の値はそのまま
+	CHECK(clamp_outside(static_cast<T>(0.3), static_cast<T>(0), static_cast<T>(1)) == 0 && clamp_outside(static_cast<T>(0.7), static_cast<T>(0), static_cast<T>(1)) == 1);
+	CHECK(clamp_outside(static_cast<T>(2), static_cast<T>(0), static_cast<T>(1)) == 2);
+	CHECK(step(static_cast<T>(1), static_cast<T>(1)) == 1 && step(static_cast<T>(1), static_cast<T>(0.5)) == 0);
+	CHECK_NEAR(linearstep(static_cast<T>(2), static_cast<T>(4), static_cast<T>(3)), static_cast<T>(0.5), tol);
+	CHECK(linearstep(static_cast<T>(2), static_cast<T>(4), static_cast<T>(5)) == 1);
+	CHECK_NEAR(smoothstep(static_cast<T>(0), static_cast<T>(2), static_cast<T>(0.5)), static_cast<T>(0.15625), tol);
+	CHECK_NEAR(math::lerp(static_cast<T>(1), static_cast<T>(3), static_cast<T>(0.25)), static_cast<T>(1.5), tol);
+	//	@tool 整数の補間は切り捨て
+	CHECK(math::lerp(0, 10, static_cast<T>(0.37)) == 3);
+	CHECK(nearly_equal(static_cast<T>(1), static_cast<T>(1) + constants<T>::epsilon) && !nearly_equal(static_cast<T>(1), static_cast<T>(1.1)));
+	CHECK(nearly_equal(vector3<T>(1, 2, 3), vector3<T>(1, 2, static_cast<T>(3.05)), static_cast<T>(0.1)) && !nearly_equal(vector3<T>(1, 2, 3), vector3<T>(1, 2, static_cast<T>(3.2)), static_cast<T>(0.1)));
+	for (int i = 0; i < 100; ++i)
+	{
+		const T value = rand_range(static_cast<T>(-2), static_cast<T>(3));
+		CHECK(value >= -2 && value <= 3);
+	}
 }
 
 //	@tool 整数・ビット系
@@ -44,6 +66,7 @@ MATH_TEST(utility_integer)
 	CHECK(round_up_to_power_of_two(5) == 8 && round_up_to_power_of_two(8) == 8);
 	CHECK(calc_next_power_of_two(static_cast<std::uint32_t>(17)) == 32u && calc_next_power_of_two(static_cast<std::uint64_t>(1ull << 40)) == (1ull << 40));
 	CHECK(calc_alignment(13, 8) == 16 && calc_alignment(16, 8) == 16);
+	CHECK(calc_alignment_power_of_two(13u, 8u) == 16u && calc_alignment_power_of_two(16u, 8u) == 16u && calc_alignment_power_of_two(0u, 16u) == 0u);
 	CHECK(calc_digit(12345) == 5 && calc_digit(0) == 0 && calc_digit(0, true) == 1);
 	CHECK(convert_endian(static_cast<std::uint32_t>(0x11223344u)) == 0x44332211u);
 	CHECK(convert_endian(static_cast<std::uint16_t>(0x1122u)) == 0x2211u);
@@ -166,6 +189,17 @@ MATH_TEST_TYPED(utility_angle)
 	//	@tool ±π ちょうどは丸め誤差でどちらにもなりうるため、少しずらした値で確認する
 	CHECK_NEAR(angle::normalize(constants<T>::pi * 3 - static_cast<T>(0.5)), constants<T>::pi - static_cast<T>(0.5), tol * 10);
 	CHECK_NEAR(angle::difference(static_cast<T>(0.1), constants<T>::pi2 - static_cast<T>(0.1)), static_cast<T>(0.2), tol * 10);
+	//	@tool 範囲内の値は丸め誤差なしでそのまま返す（毎フレーム正規化しても値がずれない）
+	CHECK(angle::normalize(static_cast<T>(0.3)) == static_cast<T>(0.3) && angle::normalize(static_cast<T>(-2.5)) == static_cast<T>(-2.5));
+	CHECK_NEAR(angle::normalize(static_cast<T>(-7)), static_cast<T>(-7) + constants<T>::pi2, tol * 10);
+	CHECK_NEAR(angle::normalize_positive(static_cast<T>(-0.5)), constants<T>::pi2 - static_cast<T>(0.5), tol * 10);
+	CHECK_NEAR(angle::normalize_positive(constants<T>::pi2 * 3 + static_cast<T>(1)), static_cast<T>(1), tol * 100);
+	CHECK(angle::normalize_positive(static_cast<T>(0)) == 0 && angle::normalize_positive(static_cast<T>(1)) == static_cast<T>(1));
+	for (T value : { static_cast<T>(-1e-9), static_cast<T>(-100), static_cast<T>(57) })
+	{
+		const T positive = angle::normalize_positive(value);
+		CHECK(positive >= 0 && positive < constants<T>::pi2);
+	}
 	CHECK(angle::is_sharp_angle(vector3<T>(1, 0, 0), vector3<T>(), vector3<T>(1, 1, 0)));
 	CHECK(!angle::is_sharp_angle(vector3<T>(1, 0, 0), vector3<T>(), vector3<T>(-1, 1, 0)));
 	//	@tool 垂直視野角 90 度・アスペクト比 2 の水平視野角は 2 * atan(2)（横長なら水平視野角の方が広い）

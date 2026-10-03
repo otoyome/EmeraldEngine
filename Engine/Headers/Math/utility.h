@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdlib>
 #include <cstring>
 
 #include "Math/math_common.h"
@@ -135,15 +136,91 @@ namespace math
 	}
 
 	//	value の絶対値を算出
-	//	@tool スカラー版も用意しておかないと、名前隠蔽で math 名前空間内の abs(int) などが呼べなくなる
 	template<typename T, std::enable_if_t<std::is_arithmetic_v<T> && std::is_signed_v<T>, int> = 0>
 	T abs(T value) { return std::abs(value); }
 	template<typename V, std::enable_if_t<detail::is_vector_v<V>, int> = 0>
 	V abs(const V& value) { return detail::abs_elements(value); }
 
-	//	@tool min / max / clamp / saturate は既存の汎用テンプレート（System/math_utility.h）と
-	//	@tool 衝突しないよう、具体型ごとの非テンプレート関数として定義する（完全一致なら非テンプレートが優先される）
-#define	MATH_DEFINE_VECTOR_UTILITY(vector_type)																														\
+	//	value と min_value を比較して小さい値を返す
+	template<typename T, std::enable_if_t<std::is_arithmetic_v<T>, int> = 0>
+	constexpr T (min)(T value, T min_value) { return min_value < value ? min_value : value; }
+
+	//	value と max_value を比較して大きい値を返す
+	template<typename T, std::enable_if_t<std::is_arithmetic_v<T>, int> = 0>
+	constexpr T (max)(T value, T max_value) { return value < max_value ? max_value : value; }
+
+	//	value を min_value ～ max_value 間に限定する
+	template<typename T, std::enable_if_t<std::is_arithmetic_v<T>, int> = 0>
+	constexpr T clamp(T value, T min_value, T max_value) { return value > max_value ? max_value : (value < min_value ? min_value : value); }
+
+	//	value を 0 ～ 1 間に限定する
+	template<typename T, std::enable_if_t<std::is_arithmetic_v<T>, int> = 0>
+	constexpr T saturate(T value) { return clamp(value, static_cast<T>(0), static_cast<T>(1)); }
+
+	//	value が min_value ～ max_value の内側にあるときは、近い方の端へ押し出す（外側ならそのまま）
+	template<typename T, std::enable_if_t<std::is_arithmetic_v<T>, int> = 0>
+	constexpr T clamp_outside(T value, T min_value, T max_value)
+	{
+		if (value > min_value && value < max_value)
+		{
+			return (value - min_value < max_value - value) ? min_value : max_value;
+		}
+		return value;
+	}
+
+	//	value が edge 以上なら 1、未満なら 0（HLSL の step と同じ）
+	template<typename T, std::enable_if_t<std::is_arithmetic_v<T>, int> = 0>
+	constexpr T step(T edge, T value) { return value >= edge ? static_cast<T>(1) : static_cast<T>(0); }
+
+	//	value が min_value ～ max_value の範囲でどの位置にあるかを 0 ～ 1 で返す
+	template<typename T, std::enable_if_t<std::is_floating_point_v<T>, int> = 0>
+	constexpr T linearstep(T min_value, T max_value, T value) { return saturate((value - min_value) / (max_value - min_value)); }
+
+	//	linearstep をエルミート補間で滑らかにしたもの（HLSL の smoothstep と同じ）
+	template<typename T, std::enable_if_t<std::is_floating_point_v<T>, int> = 0>
+	constexpr T smoothstep(T min_value, T max_value, T value)
+	{
+		const T t = linearstep(min_value, max_value, value);
+		return t * t * (static_cast<T>(3) - (t + t));
+	}
+
+	//	線形補間（整数は補間後に切り捨てる）
+	template<typename T, typename U, std::enable_if_t<std::is_arithmetic_v<T> && std::is_floating_point_v<U>, int> = 0>
+	constexpr T lerp(T l, T r, U value) { return l + static_cast<T>(static_cast<U>(r - l) * value); }
+
+	//	値の差が tolerance 以下か
+	template<typename T, std::enable_if_t<std::is_floating_point_v<T>, int> = 0>
+	bool nearly_equal(T l, T r, T tolerance = constants<T>::epsilon * static_cast<T>(10)) { return std::abs(l - r) <= tolerance; }
+	//	すべての要素の差が tolerance 以下か
+	template<typename V, std::enable_if_t<detail::is_vector_v<V>, int> = 0>
+	bool nearly_equal(const V& l, const V& r, typename V::value_type tolerance = constants<typename V::value_type>::epsilon * static_cast<typename V::value_type>(10))
+	{
+		for (std::uint32_t i = 0; i < V::element_count; ++i)
+		{
+			if (!(std::abs(l[i] - r[i]) <= tolerance))
+			{
+				return false;
+			}
+		}
+		return true;
+	}
+
+	//	min_value ～ max_value の乱数を取得（std::rand を使う。分解能は 1/100000）
+	template<typename T, std::enable_if_t<std::is_floating_point_v<T>, int> = 0>
+	T rand_range(T min_value, T max_value)
+	{
+		const T rate = static_cast<T>(std::rand() % 100000) * static_cast<T>(0.00001);
+		return rate * (max_value - min_value) + min_value;
+	}
+
+	//	value を 2 のべき乗の alignment に切り上げる
+	template<typename T, std::enable_if_t<std::is_integral_v<T>, int> = 0>
+	constexpr T calc_alignment_power_of_two(T value, T alignment)
+	{
+		return (value + (alignment - 1)) & ~(alignment - 1);
+	}
+
+#define	MATH_DEFINE_VECTOR_UTILITY(vector_type)																													\
 	/*	value と min_value を比較して小さい値を返す	*/																												\
 	inline vector_type (min)(const vector_type& value, const vector_type& min_value) { return detail::min_elements(value, min_value); }								\
 	/*	value と max_value を比較して大きい値を返す	*/																												\

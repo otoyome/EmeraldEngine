@@ -143,13 +143,13 @@ void debug_primitive_manager::queue_sphere(const DirectX::XMFLOAT3 center, float
 void debug_primitive_manager::queue_capsule(const DirectX::XMFLOAT3 center, const DirectX::XMFLOAT4 rotation, float radius, float length, const DirectX::XMFLOAT4& color, bool depth_write)
 {
 	//	カプセル形状を登録
-	math::rotator rotator(rotation);
+	const math::quaternionf quaternion = system_utility::to_math_quaternion(rotation).normalized();
 	DirectX::XMVECTOR Center = DirectX::XMLoadFloat3(&center);
-	DirectX::XMFLOAT3 work = rotator.get_up();
+	DirectX::XMFLOAT3 work = system_utility::to_xmfloat(quaternion.up());
 	DirectX::XMVECTOR Up = DirectX::XMLoadFloat3(&work);
-	work = rotator.get_right();
+	work = system_utility::to_xmfloat(quaternion.right());
 	DirectX::XMVECTOR Right = DirectX::XMLoadFloat3(&work);
-	work = rotator.get_front();
+	work = system_utility::to_xmfloat(quaternion.front());
 	DirectX::XMVECTOR Front = DirectX::XMLoadFloat3(&work);
 
 	DirectX::XMVECTOR Botom = DirectX::XMVectorAdd(Center, DirectX::XMVectorScale(Up, -length / 2));

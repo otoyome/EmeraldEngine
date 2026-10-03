@@ -37,7 +37,7 @@ namespace
 
 	//	äJénç¿ïW
 	constexpr DirectX::XMFLOAT3 StartPosition = system_units::convert_m_to_unit({0, 0, -60});
-	constexpr DirectX::XMFLOAT3 StartRotation = {0, 0, 0};
+	constexpr math::rotatorf StartRotation = {0, 0, 0};
 	constexpr float WarmingUpTimer = 4.0f;
 	constexpr float DeadStopWaitTimer = 7.0f;
 	constexpr float DeadWaitTimer = 3.0f;

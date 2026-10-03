@@ -5,6 +5,7 @@
 #include "Math/vector3.h"
 #include "Math/vector4.h"
 #include "Math/quaternion.h"
+#include "Math/rotator.h"
 #include "Math/utility.h"
 
 namespace math
@@ -134,6 +135,9 @@ namespace math
 	inline quaternionf lerp(const quaternionf& l, const quaternionf& r, float value) { return detail::lerp_quaternion(l, r, value); }
 	inline quaterniond lerp(const quaterniond& l, const quaterniond& r, double value) { return detail::lerp_quaternion(l, r, value); }
 	inline quaterniond lerp(const quaterniond& l, const quaterniond& r, float value) { return detail::lerp_quaternion(l, r, static_cast<double>(value)); }
+	inline rotatorf lerp(const rotatorf& l, const rotatorf& r, float value) { return rotatorf::lerp(l, r, value); }
+	inline rotatord lerp(const rotatord& l, const rotatord& r, double value) { return rotatord::lerp(l, r, value); }
+	inline rotatord lerp(const rotatord& l, const rotatord& r, float value) { return rotatord::lerp(l, r, static_cast<double>(value)); }
 
 	//	ãÖñ ê¸å`ï‚ä‘
 	inline vector3f slerp(const vector3f& l, const vector3f& r, float value) { return detail::slerp_vector(l, r, value); }

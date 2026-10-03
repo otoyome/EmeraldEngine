@@ -73,12 +73,12 @@ void collision_object::set_draw_hit_color(DirectX::XMFLOAT4 color)
 	this->draw_hit_color = color;
 }
 
-const math::rotator& collision_object::get_rotation() const
+const math::rotatorf& collision_object::get_rotation() const
 {
 	return rotation;
 }
 
-void collision_object::set_rotation(const math::rotator& rotation)
+void collision_object::set_rotation(const math::rotatorf& rotation)
 {
 	this->rotation = rotation;
 	set_flag(flags::dirty, true);
@@ -106,12 +106,12 @@ void collision_object::set_local_scale(const DirectX::XMFLOAT3& scale)
 	set_flag(flags::dirty, true);
 }
 
-const math::rotator& collision_object::get_local_rotation() const
+const math::rotatorf& collision_object::get_local_rotation() const
 {
 	return local_rotation;
 }
 
-void collision_object::set_local_rotation(const math::rotator& rotation)
+void collision_object::set_local_rotation(const math::rotatorf& rotation)
 {
 	local_rotation = rotation;
 	set_flag(flags::dirty, true);
@@ -288,11 +288,11 @@ void collision_object::update()
 
 	DirectX::XMMATRIX Rotation, Translation;
 	DirectX::XMMATRIX LocalMatrix, WorldMatrix;
-	Rotation = DirectX::XMMatrixRotationQuaternion(local_rotation.convert_quaternion_vector());
+	Rotation = DirectX::XMMatrixRotationQuaternion(system_utility::to_xmvector(local_rotation.to_quaternion()));
 	Translation = DirectX::XMMatrixTranslationFromVector(DirectX::XMLoadFloat3(&local_offset));
 	LocalMatrix = Rotation * Translation;
 
-	Rotation = DirectX::XMMatrixRotationQuaternion(rotation.convert_quaternion_vector());
+	Rotation = DirectX::XMMatrixRotationQuaternion(system_utility::to_xmvector(rotation.to_quaternion()));
 	Translation = DirectX::XMMatrixTranslationFromVector(DirectX::XMLoadFloat3(&position));
 	WorldMatrix = Rotation * Translation;
 	WorldMatrix = LocalMatrix * WorldMatrix;

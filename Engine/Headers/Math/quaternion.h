@@ -145,6 +145,12 @@ namespace math
 		//	ミラーリング
 		quaternion mirrored(mirroring_order order) const { quaternion ret = *this; ret.mirror(order); return ret; }
 
+		//	twist_axis周りの回転成分を取得
+		quaternion twist(const vector3<T>& twist_axis) const;
+
+		//	ツイストと、それ以外の傾きに分解
+		void decompose_twist_swing(const vector3<T>& twist_axis, quaternion& out_twist, quaternion& out_swing) const;
+
 	public:
 		//	内積
 		T dot(const quaternion& r) const

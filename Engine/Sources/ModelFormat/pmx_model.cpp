@@ -19,7 +19,7 @@ namespace
 {
 	float difference_angle(float a, float b)
 	{
-		float diff = math::normalize_angle_0_2pi(a) - math::normalize_angle_0_2pi(b);
+		float diff = math::angle::normalize_positive(a) - math::angle::normalize_positive(b);
 		if (diff > DirectX::XM_PI)
 		{
 			return diff - DirectX::XM_2PI;
@@ -115,17 +115,17 @@ namespace
 	DirectX::XMFLOAT3 subtract_angle(const DirectX::XMFLOAT3& current_angle, const DirectX::XMFLOAT3& prev_angle)
 	{
 		DirectX::XMFLOAT3 angle;
-		angle.x = math::normalize_angle_0_2pi(current_angle.x - prev_angle.x);
-		angle.y = math::normalize_angle_0_2pi(current_angle.y - prev_angle.y);
-		angle.z = math::normalize_angle_0_2pi(current_angle.z - prev_angle.z);
+		angle.x = math::angle::normalize_positive(current_angle.x - prev_angle.x);
+		angle.y = math::angle::normalize_positive(current_angle.y - prev_angle.y);
+		angle.z = math::angle::normalize_positive(current_angle.z - prev_angle.z);
 		return	angle;
 	}
 	DirectX::XMFLOAT3 additional_angle(const DirectX::XMFLOAT3& current_angle, const DirectX::XMFLOAT3& prev_angle)
 	{
 		DirectX::XMFLOAT3 angle;
-		angle.x = math::normalize_angle_0_2pi(current_angle.x + prev_angle.x);
-		angle.y = math::normalize_angle_0_2pi(current_angle.y + prev_angle.y);
-		angle.z = math::normalize_angle_0_2pi(current_angle.z + prev_angle.z);
+		angle.x = math::angle::normalize_positive(current_angle.x + prev_angle.x);
+		angle.y = math::angle::normalize_positive(current_angle.y + prev_angle.y);
+		angle.z = math::angle::normalize_positive(current_angle.z + prev_angle.z);
 		return	angle;
 	}
 	DirectX::XMFLOAT3 clamp_angle(const DirectX::XMFLOAT3& current_angle, const DirectX::XMFLOAT3& min, const DirectX::XMFLOAT3& max)

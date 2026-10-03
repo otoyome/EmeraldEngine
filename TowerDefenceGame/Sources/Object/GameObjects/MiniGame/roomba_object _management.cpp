@@ -124,13 +124,13 @@ void roomba_object::fixed_update(float elapsed_time)
 			{
 				death_spin_angle = speed;
 
-				DirectX::XMVECTOR Rotation = death_spin_rotator.convert_quaternion_vector();
+				DirectX::XMVECTOR Rotation = system_utility::to_xmvector(death_spin_rotator.to_quaternion());
 				DirectX::XMVECTOR AddRotation = DirectX::XMQuaternionRotationAxis(UpVector, death_spin_angle);
 				Rotation = DirectX::XMQuaternionMultiply(Rotation, AddRotation);
 
 				DirectX::XMFLOAT4 rot;
 				DirectX::XMStoreFloat4(&rot, Rotation);
-				math::rotator new_rot = rot;
+				math::rotatorf new_rot(system_utility::to_math_quaternion(rot));
 				new_rot.y -= DirectX::XM_PIDIV2;	//	•â³
 				set_rotation(new_rot);
 			}
@@ -151,14 +151,14 @@ void roomba_object::fixed_update(float elapsed_time)
 
 		//	’n–Ê‚Ì–@ü‚©‚çŒX‚«ŽZo
 		{
-			DirectX::XMFLOAT3 ground_tilt = calculate_ground_tilt(get_rotation(), ground_normal);
+			DirectX::XMFLOAT3 ground_tilt = calculate_ground_tilt(system_utility::to_xmfloat(get_rotation()), ground_normal);
 
 			float ground_tilt_alpha = 1.0f - expf(-ground_tilt_follow_rate * elapsed_time);
 			ground_tilt_pitch += (ground_tilt.x - ground_tilt_pitch) * ground_tilt_alpha;
 			ground_tilt_roll  += (ground_tilt.z - ground_tilt_roll) * ground_tilt_alpha;
 		}
 
-		DirectX::XMFLOAT3 rot = get_rotation();
+		math::rotatorf rot = get_rotation();
 		//	@remainder	ƒ‚ƒfƒ‹‚Ì–â‘è‚ÅÝ’è‚ð•Ï‚¦‚Ä‚¢‚é
 		rot.x = ground_tilt_roll + velocity_tilt_roll;
 		rot.z = ground_tilt_pitch + velocity_tilt_pitch;
@@ -377,7 +377,7 @@ void roomba_object::update_rotation(float elapsed_time)
 	vector.y /= length;
 
 	//	‘OƒxƒNƒgƒ‹ŽZo
-	math::rotator rotator = get_rotation();
+	math::rotatorf rotator = get_rotation();
 	DirectX::XMFLOAT2 front = DirectX::XMFLOAT2(sinf(rotator.y), cosf(rotator.y));
 
 	//	‰ñ“]—ÊŽZo
@@ -656,11 +656,11 @@ void roomba_object::update_effects(float elapsed_time)
 									   dash_effect_instance_node_index[1] == effect_instance::invalid_id);
 
 		auto& nodes = dash_effect_instance->get_nodes();
-		auto right = get_rotation().get_right();
+		auto right = system_utility::to_xmfloat(get_rotation().right());
 		if (dash_effect_instance_node_index[0] != effect_instance::invalid_id)
 		{
 			auto& node = nodes[dash_effect_instance_node_index[0]];
-			node.rotation = get_rotation();
+			node.rotation = system_utility::to_xmfloat(get_rotation());
 			node.position.x = get_position().x - right.x * 1.5f;
 			node.position.y = get_position().y - right.y * 1.5f;
 			node.position.z = get_position().z - right.z * 1.5f;
@@ -669,7 +669,7 @@ void roomba_object::update_effects(float elapsed_time)
 		{
 			auto& node = nodes[dash_effect_instance_node_index[1]];
 			node.position = get_position();
-			node.rotation = get_rotation();
+			node.rotation = system_utility::to_xmfloat(get_rotation());
 			node.position.x = get_position().x + right.x * 1.5f;
 			node.position.y = get_position().y + right.y * 1.5f;
 			node.position.z = get_position().z + right.z * 1.5f;

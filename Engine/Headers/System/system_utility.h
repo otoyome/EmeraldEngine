@@ -24,6 +24,7 @@
 #include "cereal/cereal.hpp"
 #include "magic_enum/include/magic_enum/magic_enum.hpp"
 #include "system/cache_string.h"
+#include "Math/math_all.h"
 
 namespace	system_utility
 {
@@ -179,6 +180,31 @@ namespace	system_utility
 	DirectX::XMFLOAT4X4 convert_xmfloat4x4_from_matrix(DirectX::XMMATRIX value);
 
 	std::string to_display_time_string(float time);
+
+	inline math::vector2f to_math(const DirectX::XMFLOAT2& v) { return math::vector2f(v.x, v.y); }
+	inline math::vector3f to_math(const DirectX::XMFLOAT3& v) { return math::vector3f(v.x, v.y, v.z); }
+	inline math::vector4f to_math(const DirectX::XMFLOAT4& v) { return math::vector4f(v.x, v.y, v.z, v.w); }
+	inline math::quaternionf to_math_quaternion(const DirectX::XMFLOAT4& q) { return math::quaternionf(q.x, q.y, q.z, q.w); }
+	inline math::quaternionf to_math_quaternion(DirectX::FXMVECTOR q) { DirectX::XMFLOAT4 v; DirectX::XMStoreFloat4(&v, q); return to_math_quaternion(v); }
+	inline math::rotatorf to_math_rotator(const DirectX::XMFLOAT3& euler) { return math::rotatorf(euler.x, euler.y, euler.z); }
+	inline math::vector3f to_math_vector3(DirectX::FXMVECTOR v) { DirectX::XMFLOAT3 f; DirectX::XMStoreFloat3(&f, v); return to_math(f); }
+	inline math::matrixf to_math(const DirectX::XMFLOAT4X4& m)
+	{
+		math::matrixf ret;
+		ret.set_storage(m._11, m._12, m._13, m._14, m._21, m._22, m._23, m._24, m._31, m._32, m._33, m._34, m._41, m._42, m._43, m._44);
+		return ret;
+	}
+
+	inline DirectX::XMFLOAT2 to_xmfloat(const math::vector2f& v) { return DirectX::XMFLOAT2(v.x, v.y); }
+	inline DirectX::XMFLOAT3 to_xmfloat(const math::vector3f& v) { return DirectX::XMFLOAT3(v.x, v.y, v.z); }
+	inline DirectX::XMFLOAT4 to_xmfloat(const math::vector4f& v) { return DirectX::XMFLOAT4(v.x, v.y, v.z, v.w); }
+	inline DirectX::XMFLOAT4 to_xmfloat(const math::quaternionf& q) { return DirectX::XMFLOAT4(q.x, q.y, q.z, q.w); }
+	inline DirectX::XMFLOAT3 to_xmfloat(const math::rotatorf& r) { return DirectX::XMFLOAT3(r.x, r.y, r.z); }
+	inline DirectX::XMFLOAT4X4 to_xmfloat(const math::matrixf& m)
+	{
+		return DirectX::XMFLOAT4X4(m.s11, m.s12, m.s13, m.s14, m.s21, m.s22, m.s23, m.s24, m.s31, m.s32, m.s33, m.s34, m.s41, m.s42, m.s43, m.s44);
+	}
+	inline DirectX::XMVECTOR to_xmvector(const math::quaternionf& q) { return DirectX::XMVectorSet(q.x, q.y, q.z, q.w); }
 }	//	namespace system_utility
 
 // シリアライズ
@@ -282,6 +308,19 @@ namespace DirectX
 			cereal::make_nvp("_21", m._21), cereal::make_nvp("_22", m._22), cereal::make_nvp("_23", m._23), cereal::make_nvp("_24", m._24),
 			cereal::make_nvp("_31", m._31), cereal::make_nvp("_32", m._32), cereal::make_nvp("_33", m._33), cereal::make_nvp("_34", m._34),
 			cereal::make_nvp("_41", m._41), cereal::make_nvp("_42", m._42), cereal::make_nvp("_43", m._43), cereal::make_nvp("_44", m._44)
+		);
+	}
+}
+
+namespace math
+{
+	template<class Archive>
+	void serialize(Archive& archive, rotatorf& v)
+	{
+		archive(
+			cereal::make_nvp("x", v.x),
+			cereal::make_nvp("y", v.y),
+			cereal::make_nvp("z", v.z)
 		);
 	}
 }

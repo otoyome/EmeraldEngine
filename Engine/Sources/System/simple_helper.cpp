@@ -10,7 +10,7 @@ void common_animation::compute_animation(float time, const float_animation* anim
 		float factor = (time - first.time) / (second.time - first.time);
 		if (0.0f <= factor && factor < 1.0f)
 		{
-			factor = math::ease::calculate(factor, first.ease_type);
+			factor = math::easing::calculate(factor, first.ease_type);
 			func(math::lerp(first.value, second.value, factor));
 			break;
 		}
@@ -31,7 +31,7 @@ void common_animation::compute_animation(float time, const float2_animation* ani
 		float factor = (time - first.time) / (second.time - first.time);
 		if (0.0f <= factor && factor < 1.0f)
 		{
-			factor = math::ease::calculate(factor, first.ease_type);
+			factor = math::easing::calculate(factor, first.ease_type);
 			DirectX::XMFLOAT2 value;
 			value.x = math::lerp(first.value.x, second.value.x, factor);
 			value.y = math::lerp(first.value.y, second.value.y, factor);
@@ -55,7 +55,7 @@ void common_animation::compute_animation(float time, const float3_animation* ani
 		float factor = (time - first.time) / (second.time - first.time);
 		if (0.0f <= factor && factor < 1.0f)
 		{
-			factor = math::ease::calculate(factor, first.ease_type);
+			factor = math::easing::calculate(factor, first.ease_type);
 			DirectX::XMFLOAT3 value;
 			value.x = math::lerp(first.value.x, second.value.x, factor);
 			value.y = math::lerp(first.value.y, second.value.y, factor);
@@ -80,7 +80,7 @@ void common_animation::compute_animation(float time, const float4_animation* ani
 		float factor = (time - first.time) / (second.time - first.time);
 		if (0.0f <= factor && factor < 1.0f)
 		{
-			factor = math::ease::calculate(factor, first.ease_type);
+			factor = math::easing::calculate(factor, first.ease_type);
 			DirectX::XMFLOAT4 value;
 			value.x = math::lerp(first.value.x, second.value.x, factor);
 			value.y = math::lerp(first.value.y, second.value.y, factor);
@@ -105,7 +105,7 @@ compute_fade::out_calculator::out_calculator(time_pair fade_out)
 
 float compute_fade::out_calculator::compute(float time)
 {
-	float factor = math::ease::calculate((time - fade_out.start) / (fade_out.end - fade_out.start), fade_out.ease_type);
+	float factor = math::easing::calculate((time - fade_out.start) / (fade_out.end - fade_out.start), fade_out.ease_type);
 	return math::saturate(factor);
 }
 compute_fade::in_calculator::in_calculator(time_pair fade_in)
@@ -115,7 +115,7 @@ compute_fade::in_calculator::in_calculator(time_pair fade_in)
 
 float compute_fade::in_calculator::compute(float time)
 {
-	float factor = math::ease::calculate(1.0f - (time - fade_in.start) / (fade_in.end - fade_in.start), fade_in.ease_type);
+	float factor = math::easing::calculate(1.0f - (time - fade_in.start) / (fade_in.end - fade_in.start), fade_in.ease_type);
 	return math::saturate(factor);
 }
 
@@ -132,7 +132,7 @@ float compute_fade::calculator::compute(float time, bool* end_flag)
 	float factor = 0.0f;
 	if (fade_out.start <= time && time <= fade_out.end)
 	{
-		factor = math::ease::calculate((time - fade_out.start) / (fade_out.end - fade_out.start), fade_out.ease_type);
+		factor = math::easing::calculate((time - fade_out.start) / (fade_out.end - fade_out.start), fade_out.ease_type);
 	}
 	else if (fade_out.end <= time && time <= fade_in.start)
 	{
@@ -140,7 +140,7 @@ float compute_fade::calculator::compute(float time, bool* end_flag)
 	}
 	else if (fade_in.start <= time && time <= fade_in.end)
 	{
-		factor = math::ease::calculate(1.0f - (time - fade_in.start) / (fade_in.end - fade_in.start), fade_in.ease_type);
+		factor = math::easing::calculate(1.0f - (time - fade_in.start) / (fade_in.end - fade_in.start), fade_in.ease_type);
 	}
 	else if (fade_in.end <= time && end_flag)
 	{

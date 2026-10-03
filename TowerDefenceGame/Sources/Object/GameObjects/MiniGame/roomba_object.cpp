@@ -202,14 +202,14 @@ void roomba_object::set_scale(const DirectX::XMFLOAT3& scale)
 	model->set_scale(scale);
 }
 
-math::rotator roomba_object::get_rotation() const
+math::rotatorf roomba_object::get_rotation() const
 {
 	auto rotator = model->get_rotation();
 	rotator.y -= DirectX::XM_PIDIV2;
 	return rotator;
 }
 
-void roomba_object::set_rotation(math::rotator rotator)
+void roomba_object::set_rotation(math::rotatorf rotator)
 {
 	rotator.y += DirectX::XM_PIDIV2;
 	model->set_rotation(rotator);
@@ -420,7 +420,7 @@ float roomba_object::get_current_friction() const
 	else
 	{
 		//	”G‚ê‚É‚æ‚é–€CŒW”Œ¸Š
-		float rate = math::ease::in_out_expo(get_wet_rate());
+		float rate = math::easing::in_out_expo(get_wet_rate());
 		friction = math::lerp(friction, setup_data::wet_friction, rate);
 	}
 	return friction;
@@ -476,7 +476,7 @@ float roomba_object::calculate_frontal_area() const
 
 	//	”¼ŒarE‚‚³h‚Ì‰~’Œ‚ğ²‚©‚çŠp“xƒÆŒX‚¢‚½•ûŒü‚©‚çŒ©‚½‚Æ‚«‚Ì“Š‰e–ÊÏ‚ğ‹‚ß‚é
 	DirectX::XMVECTOR VelocityDirection = DirectX::XMVector3Normalize(Velocity);
-	DirectX::XMFLOAT3 up = get_rotation().get_up();
+	DirectX::XMFLOAT3 up = system_utility::to_xmfloat(get_rotation().up());
 	DirectX::XMVECTOR UpDir = DirectX::XMLoadFloat3(&up);
 
 	float cos_theta = fabsf(DirectX::XMVectorGetX(DirectX::XMVector3Dot(VelocityDirection, UpDir)));

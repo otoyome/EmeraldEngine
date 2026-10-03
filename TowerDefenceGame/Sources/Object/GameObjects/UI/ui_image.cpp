@@ -60,7 +60,7 @@ DirectX::XMFLOAT4 ui_image::get_border() const
 
 void ui_image::set_border(DirectX::XMFLOAT4 border)
 {
-	this->border = math::saturate(border);
+	this->border = system_utility::to_xmfloat(math::saturate(system_utility::to_math(border)));
 	set_dirty();
 }
 

@@ -53,12 +53,12 @@ void camera::set_position(const DirectX::XMFLOAT3& position)
 	this->position = position;
 }
 
-const math::rotator& camera::get_rotation() const
+const math::rotatorf& camera::get_rotation() const
 {
 	return rotation;
 }
 
-void camera::set_rotation(const math::rotator& rotation)
+void camera::set_rotation(const math::rotatorf& rotation)
 {
 	set_flag(flags::dirty, true);
 	this->rotation = rotation;
@@ -174,7 +174,7 @@ void camera::update_parameters()
 	float aspect_ratio;
 
 	Position = DirectX::XMLoadFloat3(&position);
-	DirectX::XMFLOAT4 quaternion = rotation;
+	DirectX::XMFLOAT4 quaternion = system_utility::to_xmfloat(rotation.to_quaternion());
 	Rotation = DirectX::XMLoadFloat4(&quaternion);
 
 	DirectX::XMMATRIX RotationMatrix = DirectX::XMMatrixRotationQuaternion(Rotation);

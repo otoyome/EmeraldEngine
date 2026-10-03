@@ -397,7 +397,7 @@ void material::build_parameters()
 				cb.identifieres.insert(std::make_pair(variable_name, cb.subsets.size()));
 				cb.subsets.emplace_back(subset);
 
-				return math::alignment(subset.stride, 0x0Fu);	//	16バイトアライメント
+				return math::calc_alignment_power_of_two(subset.stride, 0x0Fu);	//	16バイトアライメント
 			};
 
 			for (auto& variable : cbv.variables)

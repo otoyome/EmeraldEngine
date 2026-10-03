@@ -5,8 +5,6 @@
 namespace math
 {
 	//	4次元ベクトル演算クラス
-	//	@tool 【格納】x, y, z, w。規約に関係なく同じで、内部の計算も 1 通り
-	//	@tool 【規約で変わるもの】行列との積の書き方（行ベクトル規約：v * M、列ベクトル規約：M * v）
 	template<typename T>
 	class alignas(simd_alignment_v<T>) vector4
 	{

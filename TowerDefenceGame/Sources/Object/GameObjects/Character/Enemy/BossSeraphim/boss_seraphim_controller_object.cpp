@@ -164,7 +164,7 @@ public:
 		}
 		else
 		{
-			target_position = owner->get_controll_object()->get_rotation().get_front();
+			target_position = system_utility::to_xmfloat(owner->get_controll_object()->get_rotation().front());
 			target_position.x += position.x;
 			target_position.y += position.y;
 			target_position.z += position.z;
@@ -227,7 +227,7 @@ public:
 					}
 					else
 					{
-						target_position = owner->get_controll_object()->get_rotation().get_front();
+						target_position = system_utility::to_xmfloat(owner->get_controll_object()->get_rotation().front());
 						target_position.x += position.x;
 						target_position.y += position.y;
 						target_position.z += position.z;
@@ -304,7 +304,7 @@ public:
 		}
 		else
 		{
-			target_position = owner->get_controll_object()->get_rotation().get_front();
+			target_position = system_utility::to_xmfloat(owner->get_controll_object()->get_rotation().front());
 			target_position.x += position.x;
 			target_position.y += position.y;
 			target_position.z += position.z;
@@ -354,7 +354,7 @@ public:
 		}
 		else
 		{
-			target_position = owner->get_controll_object()->get_rotation().get_front();
+			target_position = system_utility::to_xmfloat(owner->get_controll_object()->get_rotation().front());
 			target_position.x += position.x;
 			target_position.y += position.y;
 			target_position.z += position.z;
@@ -539,7 +539,7 @@ public:
 		}
 		else
 		{
-			target_position = owner->get_controll_object()->get_rotation().get_front();
+			target_position = system_utility::to_xmfloat(owner->get_controll_object()->get_rotation().front());
 			target_position.x += position.x;
 			target_position.y += position.y;
 			target_position.z += position.z;

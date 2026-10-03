@@ -60,7 +60,7 @@ void ui_button::fixed_update(float elapsed_time)
 
 	if (pressed)
 	{
-		if (math::equal(image->get_color(), color[static_cast<int>(color_type::pressed)]))
+		if (math::nearly_equal(system_utility::to_math(image->get_color()), system_utility::to_math(color[static_cast<int>(color_type::pressed)])))
 			pressed = false;
 		apply_color = color[static_cast<int>(color_type::pressed)];
 	}
@@ -68,7 +68,7 @@ void ui_button::fixed_update(float elapsed_time)
 	if (image)
 	{
 		apply_color.w *= alpha;
-		DirectX::XMFLOAT4 col = math::lerp(image->get_color(), apply_color, fade_duration);
+		DirectX::XMFLOAT4 col = system_utility::to_xmfloat(math::lerp(system_utility::to_math(image->get_color()), system_utility::to_math(apply_color), fade_duration));
 		image->set_color(col);
 	}
 }

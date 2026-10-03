@@ -64,9 +64,9 @@ void editor_camera::debug_update(float elapsed_time)
 		}
 
 		float speed = move_speed * system_units::convert_sec_to_fps(elapsed_time);
-		DirectX::XMFLOAT3 front = rotation.get_front();
-		DirectX::XMFLOAT3 right = rotation.get_right();
-		DirectX::XMFLOAT3 up = rotation.get_up();
+		DirectX::XMFLOAT3 front = system_utility::to_xmfloat(rotation.front());
+		DirectX::XMFLOAT3 right = system_utility::to_xmfloat(rotation.right());
+		DirectX::XMFLOAT3 up = system_utility::to_xmfloat(rotation.up());
 		position.x += +front.x * speed * z + right.x * speed * x - up.x * speed * y;
 		position.y += +front.y * speed * z + right.y * speed * x - up.y * speed * y;
 		position.z += +front.z * speed * z + right.z * speed * x - up.z * speed * y;
@@ -87,16 +87,16 @@ void editor_camera::debug_update(float elapsed_time)
 		{
 			float speed = rotation_speed * system_units::convert_sec_to_fps(elapsed_time);
 			rotation.x += move.y * speed;
-			rotation.y += move.x * (rotation.get_up().y < 0 ? -speed : speed);
+			rotation.y += move.x * (system_utility::to_xmfloat(rotation.up()).y < 0 ? -speed : speed);
 		}
 
 		if (mouse_state.is_key_state(mouse::key_states::middle) == input::state::hold ||
 			(mouse_state.is_key_state(mouse::key_states::right) != input::state::hold && wheel != 0))
 		{
 			float speed = system_units::convert_m_to_unit(0.02f) * system_units::convert_sec_to_fps(elapsed_time);
-			DirectX::XMFLOAT3 front = rotation.get_front();
-			DirectX::XMFLOAT3 right = rotation.get_right();
-			DirectX::XMFLOAT3 up = rotation.get_up();
+			DirectX::XMFLOAT3 front = system_utility::to_xmfloat(rotation.front());
+			DirectX::XMFLOAT3 right = system_utility::to_xmfloat(rotation.right());
+			DirectX::XMFLOAT3 up = system_utility::to_xmfloat(rotation.up());
 			position.x += +front.x * speed * wheel - right.x * speed * move.x + up.x * speed * move.y;
 			position.y += +front.y * speed * wheel - right.y * speed * move.x + up.y * speed * move.y;
 			position.z += +front.z * speed * wheel - right.z * speed * move.x + up.z * speed * move.y;

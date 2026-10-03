@@ -914,7 +914,7 @@ void kuroko_object::post_update(float elapsed_time)
 			auto AttachTransform = DirectX::XMLoadFloat4x4(&parent_node.global_transform);
 
 			auto ScaleTransform = DirectX::XMMatrixScaling(get_scale().x, get_scale().y, get_scale().z);
-			auto rot = get_rotation().convert_quaternion();
+			auto rot = system_utility::to_xmfloat(get_rotation().to_quaternion());
 			auto RotationTransform = DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&rot));
 			auto TranslationTransform = DirectX::XMMatrixTranslation(get_position().x, get_position().y, get_position().z);
 			DirectX::XMMATRIX WorldTransform = AttachTransform * ScaleTransform * RotationTransform * TranslationTransform;
@@ -928,10 +928,10 @@ void kuroko_object::post_update(float elapsed_time)
 			DirectX::XMStoreFloat3(&node_animation.scale, Scale);
 			DirectX::XMStoreFloat4(&node_animation.rotation, Rotation);
 			DirectX::XMStoreFloat3(&node_animation.translation, Translation);
-			math::rotator rotation = node_animation.rotation;
-			node_animation.translation.x += rotation.get_right().x;
-			node_animation.translation.y += rotation.get_right().y;
-			node_animation.translation.z += rotation.get_right().z;
+			math::rotatorf rotation(system_utility::to_math_quaternion(node_animation.rotation));
+			node_animation.translation.x += system_utility::to_xmfloat(rotation.right()).x;
+			node_animation.translation.y += system_utility::to_xmfloat(rotation.right()).y;
+			node_animation.translation.z += system_utility::to_xmfloat(rotation.right()).z;
 			weapon_model->set_node_pose(attach_node_index, node_animation);
 			weapon_model->update_transform();
 		}
@@ -951,8 +951,8 @@ void kuroko_object::post_update(float elapsed_time)
 		auto effect_instance = play_effect(static_cast<size_t>(custom_effect_id::break_attack_impact)).lock();
 		auto effect_position = get_position();
 		auto effect_rotation = get_rotation();
-		auto effect_front = effect_rotation.get_front();
-		auto effect_up = effect_rotation.get_up();
+		auto effect_front = system_utility::to_xmfloat(effect_rotation.front());
+		auto effect_up = system_utility::to_xmfloat(effect_rotation.up());
 		effect_position.x += system_units::convert_m_to_unit(effect_front.x * 0.5f) + system_units::convert_m_to_unit(effect_up.x * 1.5f);
 		effect_position.y += system_units::convert_m_to_unit(effect_front.y * 0.5f) + system_units::convert_m_to_unit(effect_up.y * 1.5f);
 		effect_position.z += system_units::convert_m_to_unit(effect_front.z * 0.5f) + system_units::convert_m_to_unit(effect_up.z * 1.5f);
@@ -1296,7 +1296,7 @@ void kuroko_object::update_walk(float elapsed_time)
 	{
 		mx /= ml;
 		my /= ml;
-		auto front = get_model_object()->get_rotation().get_front();
+		auto front = system_utility::to_xmfloat(get_model_object()->get_rotation().front());
 		float tx = front.x, ty = front.z;
 		float tl = sqrtf(tx * tx + ty * ty);
 		tx /= tl;
@@ -1842,7 +1842,7 @@ void kuroko_object::enter_break_attack()
 	set_gravity_scale(system_units::convert_fps_to_sec(0.0f));
 	set_flag(flags::on_ground, false);
 	get_model_object()->play_animation(index, false);
-	DirectX::XMFLOAT3 front = get_rotation().get_front();
+	DirectX::XMFLOAT3 front = system_utility::to_xmfloat(get_rotation().front());
 	move_stop_vector = {front.x, front.z};
 }
 
@@ -1864,8 +1864,8 @@ void kuroko_object::update_break_attack(float elapsed_time)
 	{
 		camera_transform_descs desc;
 		desc.set_flag(camera_transform_descs::flags::set_focus_direction, true);
-		auto front = get_rotation().get_front();
-		auto right = get_rotation().get_right();
+		auto front = system_utility::to_xmfloat(get_rotation().front());
+		auto right = system_utility::to_xmfloat(get_rotation().right());
 		desc.focus_direction.x = +front.x + right.x * 0.5f;
 		desc.focus_direction.y = +front.y + right.y * 0.5f;
 		desc.focus_direction.z = +front.z + right.z * 0.5f;
@@ -1884,7 +1884,7 @@ void kuroko_object::update_break_attack(float elapsed_time)
 
 	//	“®ì’†‚Í–³“G•t—^
 	set_flag(character_object::flags::invisible, true);
-	DirectX::XMFLOAT2 move = {get_rotation().get_front().x, get_rotation().get_front().z};
+	DirectX::XMFLOAT2 move = {system_utility::to_xmfloat(get_rotation().front()).x, system_utility::to_xmfloat(get_rotation().front()).z};
 	add_move_vector(move, walk_accelaration);
 	set_max_move_speed(walk_max_speed);
 	set_breaking_deceleration(hi_dash_breaking_deceleration);
@@ -1923,7 +1923,7 @@ void kuroko_object::enter_break_attack_2()
 	work_float[0] = 0.0f;
 	set_flag(character_object::flags::invisible, true);
 	get_model_object()->play_animation(index, true, 0.1f);
-	DirectX::XMFLOAT3 front = get_rotation().get_front();
+	DirectX::XMFLOAT3 front = system_utility::to_xmfloat(get_rotation().front());
 	move_stop_vector = {front.x, front.z};
 }
 
@@ -1936,8 +1936,8 @@ void kuroko_object::update_break_attack_2(float elapsed_time)
 	{
 		camera_transform_descs desc;
 		desc.set_flag(camera_transform_descs::flags::set_focus_direction, true);
-		auto front = get_rotation().get_front();
-		auto right = get_rotation().get_right();
+		auto front = system_utility::to_xmfloat(get_rotation().front());
+		auto right = system_utility::to_xmfloat(get_rotation().right());
 		desc.focus_direction.x = +front.x + right.x * 0.5f;
 		desc.focus_direction.y = +front.y + right.y * 0.5f;
 		desc.focus_direction.z = +front.z + right.z * 0.5f;
@@ -1957,7 +1957,7 @@ void kuroko_object::update_break_attack_2(float elapsed_time)
 		}
 		else
 		{
-			target_position = get_rotation().get_front();
+			target_position = system_utility::to_xmfloat(get_rotation().front());
 		}
 	
 		//	ƒ^[ƒQƒbƒg‚Ì•ûŒü‚ÉuŠÔˆÚ“®
@@ -2050,7 +2050,7 @@ void kuroko_object::update_break_attack_3(float elapsed_time)
 	//}
 
 	//	UŒ‚”»’èŠÖŒW
-	update_attack_box(animation_time, get_rotation().get_front());
+	update_attack_box(animation_time, system_utility::to_xmfloat(get_rotation().front()));
 
 	//	“®ì’†‚Í–³“G•t—^
 	set_flag(character_object::flags::invisible, true);
@@ -2104,7 +2104,7 @@ void kuroko_object::update_attack(float elapsed_time)
 	}
 
 	//	UŒ‚”»’èŠÖŒW
-	update_attack_box(animation_time, get_rotation().get_front());
+	update_attack_box(animation_time, system_utility::to_xmfloat(get_rotation().front()));
 
 	//	UŒ‚–ˆ‚Ì“Áê‘Î‰
 	bool hide_model = false;
@@ -2140,8 +2140,8 @@ void kuroko_object::update_attack(float elapsed_time)
 				{
 					camera_transform_descs desc;
 					desc.set_flag(camera_transform_descs::flags::set_focus_direction, true);
-					auto front = get_rotation().get_front();
-					auto right = get_rotation().get_right();
+					auto front = system_utility::to_xmfloat(get_rotation().front());
+					auto right = system_utility::to_xmfloat(get_rotation().right());
 					desc.focus_direction.x = +front.x + right.x;
 					desc.focus_direction.y = +front.y + right.y;
 					desc.focus_direction.z = +front.z + right.z;
@@ -2168,8 +2168,8 @@ void kuroko_object::update_attack(float elapsed_time)
 				{
 					camera_transform_descs desc;
 					desc.set_flag(camera_transform_descs::flags::set_focus_direction, true);
-					auto front = get_rotation().get_front();
-					auto right = get_rotation().get_right();
+					auto front = system_utility::to_xmfloat(get_rotation().front());
+					auto right = system_utility::to_xmfloat(get_rotation().right());
 					desc.focus_direction.x = +front.x + right.x;
 					desc.focus_direction.y = +front.y + right.y;
 					desc.focus_direction.z = +front.z + right.z;
@@ -2215,10 +2215,10 @@ void kuroko_object::update_attack(float elapsed_time)
 		if (calculate_lockon_target_vector(direction))
 		{
 			DirectX::XMVECTOR Vector = DirectX::XMVector3Normalize(DirectX::XMVectorSet(direction.x, 0.0f, direction.y, 0.0f));
-			effect_rotation.set_parameter_from_direction(system_utility::convert_xmfloat3_from_vector(Vector));
+			effect_rotation = math::rotatorf::from_direction(system_utility::to_math(system_utility::convert_xmfloat3_from_vector(Vector)));
 		}
 
-		auto effect_front = effect_rotation.get_front();
+		auto effect_front = system_utility::to_xmfloat(effect_rotation.front());
 		effect_position.x += system_units::convert_m_to_unit(effect_front.x);
 		effect_position.y += system_units::convert_m_to_unit(effect_front.y);
 		effect_position.z += system_units::convert_m_to_unit(effect_front.z);
@@ -2281,7 +2281,7 @@ void kuroko_object::update_attack6_1(float elapsed_time)
 	set_gravity_scale(-0.025f * elapsed_time);
 
 	//	UŒ‚”»’èŠÖŒW
-	update_attack_box(animation_time, get_rotation().get_front());
+	update_attack_box(animation_time, system_utility::to_xmfloat(get_rotation().front()));
 
 	//	ƒJƒƒ‰‚ğˆø‚­
 	{
@@ -2304,7 +2304,7 @@ void kuroko_object::enter_attack6_2()
 	}
 
 	set_flag(character_object::flags::invisible, true);
-	DirectX::XMFLOAT3 front = get_rotation().get_front();
+	DirectX::XMFLOAT3 front = system_utility::to_xmfloat(get_rotation().front());
 	move_stop_vector = {front.x, front.z};
 	attack_data_flags = false;
 	sub_state = 0;
@@ -2403,7 +2403,7 @@ void kuroko_object::update_attack6_3(float elapsed_time)
 	}
 
 	//	UŒ‚”»’èŠÖŒW
-	update_attack_box(animation_time, get_rotation().get_front());
+	update_attack_box(animation_time, system_utility::to_xmfloat(get_rotation().front()));
 
 	//	“®ì’†‚Í–³“G•t—^
 	set_flag( character_object::flags::invisible, true);
@@ -2507,7 +2507,7 @@ void kuroko_object::enter_special_2()
 
 	current_attack_id = attack_id::special_2;
 	set_flag(character_object::flags::invisible, true);
-	DirectX::XMFLOAT3 front = get_rotation().get_front();
+	DirectX::XMFLOAT3 front = system_utility::to_xmfloat(get_rotation().front());
 	move_stop_vector = {front.x, front.z};
 	attack_data_flags = false;
 	sub_state = 0;
@@ -2539,7 +2539,7 @@ void kuroko_object::update_special_2(float elapsed_time)
 		}
 		else
 		{
-			target_position = get_rotation().get_front();
+			target_position = system_utility::to_xmfloat(get_rotation().front());
 		}
 	
 		//	ƒ^[ƒQƒbƒg‚Ì•ûŒü‚ÉuŠÔˆÚ“®
@@ -2554,7 +2554,7 @@ void kuroko_object::update_special_2(float elapsed_time)
 
 	//	UŒ‚”»’èŠÖŒW
 	{
-		update_attack_box(animation_time - work_float[0], get_rotation().get_front());
+		update_attack_box(animation_time - work_float[0], system_utility::to_xmfloat(get_rotation().front()));
 		if (sub_attack_id != 0)
 		{
 			work_float[0] = animation_time;
@@ -2618,7 +2618,7 @@ void kuroko_object::enter_special_3()
 	set_gravity_scale(system_units::convert_fps_to_sec(0.0f));
 	set_flag(flags::on_ground, false);
 	get_model_object()->play_animation(index, false);
-	DirectX::XMFLOAT3 front = get_rotation().get_front();
+	DirectX::XMFLOAT3 front = system_utility::to_xmfloat(get_rotation().front());
 	move_stop_vector = {front.x, front.z};
 }
 
@@ -2635,7 +2635,7 @@ void kuroko_object::update_special_3(float elapsed_time)
 	set_gravity_scale(0.0f);
 
 	//	UŒ‚”»’èŠÖŒW
-	update_attack_box(animation_time, get_rotation().get_front());
+	update_attack_box(animation_time, system_utility::to_xmfloat(get_rotation().front()));
 
 	//	ƒJƒƒ‰‚ğˆø‚­
 	{
@@ -2669,7 +2669,7 @@ void kuroko_object::enter_special_4()
 	current_attack_id = attack_id::special_4;
 	set_flag(character_object::flags::invisible, true);
 	get_model_object()->play_animation(index, true, 0.0f);
-	DirectX::XMFLOAT3 front = get_rotation().get_front();
+	DirectX::XMFLOAT3 front = system_utility::to_xmfloat(get_rotation().front());
 	move_stop_vector = {front.x, front.z};
 }
 
@@ -2684,7 +2684,7 @@ void kuroko_object::update_special_4(float elapsed_time)
 
 	//	UŒ‚”»’èŠÖŒW
 	{
-		update_attack_box(animation_time - work_float[0], get_rotation().get_front());
+		update_attack_box(animation_time - work_float[0], system_utility::to_xmfloat(get_rotation().front()));
 		if (sub_attack_id != 0)
 		{
 			work_float[0] = animation_time;
@@ -2773,7 +2773,7 @@ void kuroko_object::update_special_5(float elapsed_time)
 	}
 
 	//	UŒ‚”»’èŠÖŒW
-	update_attack_box(animation_time, get_rotation().get_front());
+	update_attack_box(animation_time, system_utility::to_xmfloat(get_rotation().front()));
 
 	//	“®ì’†‚Í–³“G•t—^
 	set_flag( character_object::flags::invisible, true);
@@ -2854,12 +2854,12 @@ bool kuroko_object::transition_parry(const damage_datas& data)
 	clear_datas();
 
 	//	‚æ‚ë‚¯•ûŒü‚É‹­§“I‚ÉŒü‚­
-	math::rotator rotation;
+	math::rotatorf rotation;
 	DirectX::XMFLOAT3 sd;
 	sd.x = -data.stagger_direction.x;
 	sd.y = -data.stagger_direction.y;
 	sd.z = -data.stagger_direction.z;
-	rotation.set_parameter_from_direction(sd);
+	rotation = math::rotatorf::from_direction(system_utility::to_math(sd));
 	//	…•½‚É‚Í§ŒÀ‚µ‚Ä‚¨‚­
 	rotation.x = 0.0f;
 	rotation.z = 0.0f;

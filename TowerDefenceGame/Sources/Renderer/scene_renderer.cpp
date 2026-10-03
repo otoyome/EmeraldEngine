@@ -339,13 +339,13 @@ void gbuffer_decal_renderer::render(renderer_context& renderer_context)
 				buffer_datas buffer_data;
 				{
 					DirectX::XMMATRIX W = DirectX::XMMatrixScaling(decal.scale.x, decal.scale.y, decal.scale.z)
-										* DirectX::XMMatrixRotationQuaternion(decal.rotation.convert_quaternion_vector())
+										* DirectX::XMMatrixRotationQuaternion(system_utility::to_xmvector(decal.rotation.to_quaternion()))
 										* DirectX::XMMatrixTranslation(decal.position.x, decal.position.y, decal.position.z);
 					//	プリミティブバッファ更新
 					{
 						common_pipeline_states::decal_primitive_constants dpc;
 						DirectX::XMStoreFloat4x4(&dpc.decal_transform, W);
-						auto front = decal.rotation.get_up();
+						auto front = system_utility::to_xmfloat(decal.rotation.up());
 						dpc.decal_direction.x = front.x;
 						dpc.decal_direction.y = front.y;
 						dpc.decal_direction.z = front.z;
@@ -740,7 +740,7 @@ void deffered_lighting_renderer::render_directional(const light& light, common_p
 
 void deffered_lighting_renderer::render_directional_shadow_map(const light& light, common_pipeline_states::shadow_map_constants& shadow_map_constant, renderer_context& context)
 {
-	DirectX::XMFLOAT4 rotation = light.get_rotation().convert_quaternion();
+	DirectX::XMFLOAT4 rotation = system_utility::to_xmfloat(light.get_rotation().to_quaternion());
 	DirectX::XMFLOAT3 position = light.get_position();
 	DirectX::XMMATRIX CameraTransformMatrix = DirectX::XMMatrixInverse(nullptr, DirectX::XMLoadFloat4x4(&context.scene_constant.view_transform));
 	DirectX::XMMATRIX LightTransformMatrix = DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&rotation)) * 
@@ -773,8 +773,8 @@ void deffered_lighting_renderer::render_directional_shadow_map(const light& ligh
 		{
 			auto draw_data = draw_data_ptr + draw_index;
 			auto buffer_data = buffer_data_ptr + draw_data->buffer_index;
-			scene_min = math::min(buffer_data->bounds_min, scene_min);
-			scene_max = math::max(buffer_data->bounds_max, scene_max);
+			scene_min = system_utility::to_xmfloat(math::min(system_utility::to_math(buffer_data->bounds_min), system_utility::to_math(scene_min)));
+			scene_max = system_utility::to_xmfloat(math::max(system_utility::to_math(buffer_data->bounds_max), system_utility::to_math(scene_max)));
 		}
 	}
 	const bool has_scene_aabb = (scene_min.x <= scene_max.x) && (scene_min.y <= scene_max.y) && (scene_min.z <= scene_max.z);
@@ -1149,7 +1149,7 @@ void deffered_lighting_renderer::render_spot_shadow_map(const light& light, comm
 {
 	auto reserve_scene_constant = context.scene_constant;
 
-	DirectX::XMFLOAT4 rotation = light.get_rotation().convert_quaternion();
+	DirectX::XMFLOAT4 rotation = system_utility::to_xmfloat(light.get_rotation().to_quaternion());
 	DirectX::XMFLOAT3 position = light.get_position();
 	DirectX::XMMATRIX TransformMatrix, ViewMatrix, ProjectionMatrix;
 	TransformMatrix = DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&rotation))

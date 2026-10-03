@@ -36,8 +36,8 @@ public:
 public:
 	std::shared_ptr<camera_object> get_camera_object() const {return camera;}
 
-	const math::rotator& get_rotation() const;
-	void set_rotation(const math::rotator& rotator);
+	const math::rotatorf& get_rotation() const;
+	void set_rotation(const math::rotatorf& rotator);
 
 	const DirectX::XMFLOAT3& get_position() const;
 	void set_position(const DirectX::XMFLOAT3& position);
@@ -105,7 +105,7 @@ private:
 	float game_distance_scale_inner;
 	float game_distance_scale_rate;
 
-	math::rotator disengage_direction; // カメラを離す方向(目標方向)
+	math::rotatorf disengage_direction; // カメラを離す方向(目標方向)
 	float update_disengage_direction_inner_rate; // 方向適応割合
 	float update_disengage_direction_rate; // 方向適応割合
 

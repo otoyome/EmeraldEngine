@@ -25,8 +25,8 @@ public:
 	void on_execute();
 
 	inline std::shared_ptr<camera_object> get_camera() {return camera;}
-	void set_rotation(const math::rotator& rotation) {this->rotation = rotation;}
-	const math::rotator& get_rotation() {return rotation;}
+	void set_rotation(const math::rotatorf& rotation) {this->rotation = rotation;}
+	const math::rotatorf& get_rotation() {return rotation;}
 	void set_position(const DirectX::XMFLOAT3& position) { this->position = position; }
 	const DirectX::XMFLOAT3& get_position() { return position; }
 
@@ -41,9 +41,9 @@ private:
 	bool execute;
 	bool is_auto_rotate = false;
 
-	math::rotator rotation;
+	math::rotatorf rotation;
 	DirectX::XMFLOAT3 position;
-	math::rotator restore_rotation;
+	math::rotatorf restore_rotation;
 	DirectX::XMFLOAT3 restore_position;
 
 	POINT cursor_position{ 0, 0 };

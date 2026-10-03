@@ -19,7 +19,6 @@ namespace math
 	{
 		if constexpr (use_simd_v<T>)
 		{
-			//	@tool vector3 ‚Ì w ‚Íí‚É 0 ‚Ì‚½‚ß‚»‚Ì‚Ü‚Üg‚¦‚é
 			reg = v.reg;
 		}
 		else

@@ -52,7 +52,7 @@ namespace
 
 					auto& data = light_data.light.directional_light_data[light_data.light.light_counts.x];
 					data.color = light->get_color();
-					auto direction = light->get_rotation().get_front();
+					auto direction = light->get_rotation().front();
 					data.direction.x = direction.x;
 					data.direction.y = direction.y;
 					data.direction.z = direction.z;
@@ -81,7 +81,7 @@ namespace
 						continue;
 
 					auto& data = light_data.light.spot_light_data[light_data.light.light_counts.z];
-					auto direction = light->get_rotation().get_front();
+					auto direction = light->get_rotation().front();
 					data.position.x = light->get_position().x;
 					data.position.y = light->get_position().y;
 					data.position.z = light->get_position().z;

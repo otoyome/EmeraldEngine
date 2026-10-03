@@ -20,12 +20,12 @@ void stage_object::set_scale(const DirectX::XMFLOAT3& scale)
 	model->set_scale(scale);
 }
 
-const math::rotator& stage_object::get_rotation() const
+const math::rotatorf& stage_object::get_rotation() const
 {
 	return model->get_rotation();
 }
 
-void stage_object::set_rotation(const math::rotator& rotator)
+void stage_object::set_rotation(const math::rotatorf& rotator)
 {
 	model->set_rotation(rotator);
 }

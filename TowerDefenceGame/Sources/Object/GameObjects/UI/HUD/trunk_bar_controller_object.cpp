@@ -75,9 +75,9 @@ void trunk_bar_controller_object::fixed_update(float elapsed_time)
 		bool is_change_color = false;
 		if (numeric_value >= 100)
 		{
-			changed_color.x = fabsf((math::ease::in_back(color_animation_time)) * 2.0f - 1.0f);
-			changed_color.y = fabsf((math::ease::in_cubic(color_animation_time + 0.5f)) * 2.0f - 1.0f);
-			changed_color.z = fabsf((math::ease::in_quint(color_animation_time - 0.3f)) * 2.0f - 1.0f);
+			changed_color.x = fabsf((math::easing::in_back(color_animation_time)) * 2.0f - 1.0f);
+			changed_color.y = fabsf((math::easing::in_cubic(color_animation_time + 0.5f)) * 2.0f - 1.0f);
+			changed_color.z = fabsf((math::easing::in_quint(color_animation_time - 0.3f)) * 2.0f - 1.0f);
 			color_animation_time += elapsed_time;
 			color_animation_time = fmodf(color_animation_time, 1.0f);
 			is_change_color = true;

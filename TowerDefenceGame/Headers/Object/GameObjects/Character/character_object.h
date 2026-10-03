@@ -140,14 +140,14 @@ public:
 		collision::bounding_object::types type = collision::bounding_object::types::box;
 		bool is_follow_self = true;
 		DirectX::XMFLOAT3 local_scale;
-		math::rotator local_rotator;
+		math::rotatorf local_rotator;
 		DirectX::XMFLOAT3 local_offset;
 	};
 	struct bounding_datas
 	{
 		bounding_descs desc;
 
-		math::rotator rotator;
+		math::rotatorf rotator;
 		DirectX::XMFLOAT3 position;
 	};
 
@@ -304,8 +304,8 @@ public:
 	const DirectX::XMFLOAT3& get_scale() const;
 	void set_scale(const DirectX::XMFLOAT3& scale);
 
-	const math::rotator& get_rotation() const;
-	void set_rotation(const math::rotator& rotator);
+	const math::rotatorf& get_rotation() const;
+	void set_rotation(const math::rotatorf& rotator);
 
 	float get_rotation_speed() const;
 	void set_rotation_speed(float rotation_speed);

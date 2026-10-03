@@ -1162,8 +1162,8 @@ void player_camera_controller_object::fixed_update_entry(float elapsed_time)
 	auto position = get_position();
 	update_animation(elapsed_time);
 
-	set_rotation(math::slerp(get_rotation(), rotation, apply_animation_rate_value));
-	set_position(math::lerp(get_position(), position, apply_animation_rate_value));
+	set_rotation(math::rotatorf(math::slerp(get_rotation().to_quaternion(), rotation.to_quaternion(), apply_animation_rate_value)));
+	set_position(system_utility::to_xmfloat(math::lerp(system_utility::to_math(get_position()), system_utility::to_math(position), apply_animation_rate_value)));
 }
 
 void player_camera_controller_object::fixed_update_clear_performance(float elapsed_time)
@@ -1209,8 +1209,8 @@ void player_camera_controller_object::fixed_update_clear_performance(float elaps
 	auto position = get_position();
 	update_animation(elapsed_time);
 
-	set_rotation(math::slerp(get_rotation(), rotation, apply_animation_rate_value));
-	set_position(math::lerp(get_position(), position, apply_animation_rate_value));
+	set_rotation(math::rotatorf(math::slerp(get_rotation().to_quaternion(), rotation.to_quaternion(), apply_animation_rate_value)));
+	set_position(system_utility::to_xmfloat(math::lerp(system_utility::to_math(get_position()), system_utility::to_math(position), apply_animation_rate_value)));
 }
 
 bool player_camera_controller_object::play_animation(std::string_view animation_name, bool loop)
@@ -1246,7 +1246,7 @@ void player_camera_controller_object::update_animation(float elapsed_time)
 			animation::camera_spherical begin_animation, previous_animation;
 			animation_data.compute_animation(begin_animation, 0.0f);
 			animation_data.compute_animation(previous_animation, previous_time);
-			math::rotator rotation = get_rotation();
+			math::rotatorf rotation = get_rotation();
 			if (animation_data.root_rotation)
 			{
 				//	ÉçÅ[ÉJÉãâÒì]ÇéZèo
@@ -1279,9 +1279,9 @@ void player_camera_controller_object::update_animation(float elapsed_time)
 				DirectX::XMFLOAT4 local_rotation;
 				DirectX::XMStoreFloat4(&local_rotation, LocalRotation);
 				DirectX::XMFLOAT3 local_rotator = math::convert_quaternion_to_euler(local_rotation);
-				rotation.x = math::normalize_angle(rotation.x + local_rotator.x);
-				rotation.y = math::normalize_angle(rotation.y + local_rotator.y);
-				rotation.z = math::normalize_angle(rotation.z + local_rotator.z);
+				rotation.x = math::angle::normalize(rotation.x + local_rotator.x);
+				rotation.y = math::angle::normalize(rotation.y + local_rotator.y);
+				rotation.z = math::angle::normalize(rotation.z + local_rotator.z);
 			}
 			else
 			{

@@ -60,7 +60,7 @@ public:
 	int get_lod_max() const{return meshes.empty() ? 0 : meshes.begin()->mesh ? static_cast<int>(meshes.begin()->mesh->lod_meshs.size()) : 0;}
 	const DirectX::XMFLOAT2& get_lod_range_rate() const {return lod_range_rate;}
 
-	void set_lod_range_rate(DirectX::XMFLOAT2 rate) {lod_range_rate = math::saturate(rate);}
+	void set_lod_range_rate(DirectX::XMFLOAT2 rate) {lod_range_rate = system_utility::to_xmfloat(math::saturate(system_utility::to_math(rate)));}
 
 	inline const model_resource_ptr get_resource() const { return resource; }
 	inline const std::vector<node>& get_nodes() const { return nodes; }

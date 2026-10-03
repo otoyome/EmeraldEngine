@@ -63,14 +63,14 @@ public:
 		collision::bounding_object::types type = collision::bounding_object::types::box;
 		bool is_follow_self = true;
 		DirectX::XMFLOAT3 local_scale;
-		math::rotator local_rotator;
+		math::rotatorf local_rotator;
 		DirectX::XMFLOAT3 local_offset;
 	};
 	struct bounding_datas
 	{
 		bounding_descs desc;
 
-		math::rotator rotator;
+		math::rotatorf rotator;
 		DirectX::XMFLOAT3 position;
 	};
 
@@ -114,8 +114,8 @@ public:
 	const DirectX::XMFLOAT3& get_scale() const;
 	void set_scale(const DirectX::XMFLOAT3& scale);
 
-	math::rotator get_rotation() const;
-	void set_rotation(math::rotator rotator);
+	math::rotatorf get_rotation() const;
+	void set_rotation(math::rotatorf rotator);
 
 	float get_rotation_speed() const;
 	void set_rotation_speed(float rotation_speed);
@@ -270,7 +270,7 @@ private:
 	float ground_tilt_pitch; // 地形ピッチ
 	float ground_tilt_roll; // 地形ロール
 	float death_spin_angle;	//	死亡後の回転蓄積角度
-	math::rotator death_spin_rotator;	//	死亡時に固定する向き(進行方向)
+	math::rotatorf death_spin_rotator;	//	死亡時に固定する向き(進行方向)
 
 	float slope_rate; // 坂道補正係数
 	float step_offset; // 段差補正

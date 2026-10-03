@@ -1104,7 +1104,7 @@ void boss_seraphim_object::update_walk(float elapsed_time)
 	{
 		mx /= ml;
 		my /= ml;
-		auto front = get_model_object()->get_rotation().get_front();
+		auto front = system_utility::to_xmfloat(get_model_object()->get_rotation().front());
 		float tx = front.x, ty = front.z;
 		float tl = sqrtf(tx * tx + ty * ty);
 		tx /= tl;
@@ -1472,7 +1472,7 @@ void boss_seraphim_object::update_attack(float elapsed_time)
 			box_data.rotator = get_rotation();
 			damage_datas damage_data;
 			damage_data.desc = attack_box.attack;
-			damage_data.stagger_direction = get_rotation().get_front();
+			damage_data.stagger_direction = system_utility::to_xmfloat(get_rotation().front());
 			add_attack_box(box_data, damage_data);
 			attack_data_flags = true;
 		}
@@ -1569,12 +1569,12 @@ bool boss_seraphim_object::transition_parry(const damage_datas& data)
 	}
 
 	//	ÇÊÇÎÇØï˚å¸Ç…ã≠êßìIÇ…å¸Ç≠
-	math::rotator rotation;
+	math::rotatorf rotation;
 	DirectX::XMFLOAT3 sd;
 	sd.x = -data.stagger_direction.x;
 	sd.y = -data.stagger_direction.y;
 	sd.z = -data.stagger_direction.z;
-	rotation.set_parameter_from_direction(sd);
+	rotation = math::rotatorf::from_direction(system_utility::to_math(sd));
 
 	//	êÖïΩÇ…ÇÕêßå¿ÇµÇƒÇ®Ç≠
 	rotation.x = 0.0f;
@@ -1842,10 +1842,10 @@ void boss_seraphim_object::update_parry_attack_2(float elapsed_time)
 					Right = DirectX::XMVectorAdd(Right, DirectX::XMLoadFloat3(&get_position()));
 					DirectX::XMStoreFloat3(&work_float3[1], Right);
 				}
-				work_float3[2].x += get_rotation().get_front().x * parry_attack_2_takedown_point_front;
-				work_float3[2].z += get_rotation().get_front().z * parry_attack_2_takedown_point_front;
-				work_float3[2].x += get_rotation().get_right().x * parry_attack_2_takedown_point_right;
-				work_float3[2].z += get_rotation().get_right().z * parry_attack_2_takedown_point_right;
+				work_float3[2].x += system_utility::to_xmfloat(get_rotation().front()).x * parry_attack_2_takedown_point_front;
+				work_float3[2].z += system_utility::to_xmfloat(get_rotation().front()).z * parry_attack_2_takedown_point_front;
+				work_float3[2].x += system_utility::to_xmfloat(get_rotation().right()).x * parry_attack_2_takedown_point_right;
+				work_float3[2].z += system_utility::to_xmfloat(get_rotation().right()).z * parry_attack_2_takedown_point_right;
 			}
 			sub_state = calculate_move;
 			break;
@@ -1856,8 +1856,8 @@ void boss_seraphim_object::update_parry_attack_2(float elapsed_time)
 			float previous_rate = work_float[0] / parry_attack_2_move_time;
 			work_float[0] = std::max(work_float[0] - elapsed_time, 0.0f);
 			float current_rate = std::max(work_float[0] / parry_attack_2_move_time, 0.0f);
-			auto p0 = math::bezier(work_float3[0], work_float3[1], work_float3[2], 1 - previous_rate);
-			auto p1 = math::bezier(work_float3[0], work_float3[1], work_float3[2], 1 - current_rate);
+			auto p0 = system_utility::to_xmfloat(math::bezier(system_utility::to_math(work_float3[0]), system_utility::to_math(work_float3[1]), system_utility::to_math(work_float3[2]), 1 - previous_rate));
+			auto p1 = system_utility::to_xmfloat(math::bezier(system_utility::to_math(work_float3[0]), system_utility::to_math(work_float3[1]), system_utility::to_math(work_float3[2]), 1 - current_rate));
 			set_position(p1);
 
 			//	å¸Ç´ÇïœÇ¶ÇÈ

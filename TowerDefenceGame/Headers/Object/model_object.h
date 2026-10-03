@@ -44,8 +44,8 @@ public:
 	const DirectX::XMFLOAT3& get_scale() const;
 	void set_scale(const DirectX::XMFLOAT3& scale);
 
-	const math::rotator& get_rotation() const;
-	void set_rotation(const math::rotator& rotator);
+	const math::rotatorf& get_rotation() const;
+	void set_rotation(const math::rotatorf& rotator);
 
 	const DirectX::XMFLOAT3& get_position() const;
 	void set_position(const DirectX::XMFLOAT3& position);
@@ -113,7 +113,7 @@ private:
 	model_instance_ptr model_instance;
 	bool dirty = true;
 	DirectX::XMFLOAT3 scale = {1.0f, 1.0f, 1.0f};
-	math::rotator rotator = {0.0f, 0.0f, 0.0f};
+	math::rotatorf rotator = {0.0f, 0.0f, 0.0f};
 	DirectX::XMFLOAT3 position = {0.0f, 0.0f, 0.0f};
 
 	bool apply_root_animation_transform = true;

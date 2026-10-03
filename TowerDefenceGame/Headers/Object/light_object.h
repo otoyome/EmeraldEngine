@@ -42,8 +42,8 @@ class directional_light_object : public light_object
 	GAME_OBJECT_DECRLEAR(directional_light_object, light_object)
 
 public:
-	void set_rotation(const math::rotator& rotation);
-	const math::rotator& get_rotation() const;
+	void set_rotation(const math::rotatorf& rotation);
+	const math::rotatorf& get_rotation() const;
 
 public:
 	directional_light_object(std::string_view name);
@@ -78,8 +78,8 @@ class spot_light_object : public light_object
 	GAME_OBJECT_DECRLEAR(spot_light_object, light_object)
 
 public:
-	void set_rotation(const math::rotator& rotation);
-	const math::rotator& get_rotation() const;
+	void set_rotation(const math::rotatorf& rotation);
+	const math::rotatorf& get_rotation() const;
 
 	void set_range(float radius);
 	float get_range() const;

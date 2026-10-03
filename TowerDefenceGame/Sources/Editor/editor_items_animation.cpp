@@ -72,7 +72,7 @@ namespace
 
 			//	0～1 にクランプ
 			for (auto& point : curve.datas)
-				point = math::saturate(point);
+				point = system_utility::to_xmfloat(math::saturate(system_utility::to_math(point)));
 
 			//	Edit / Reset / クランプで datas 側が変化しているのでキャッシュを追従させる
 			reload_points();
@@ -583,9 +583,9 @@ namespace
 			ImGui::DragFloat("time", &node.time, 1.0f / fps, 0.0f, 0.0f, "%.6f");
 			ImGui::DragFloat3("scale", &node.scale.x, 0.01f);
 
-			math::rotator rotator = node.rotation;
+			math::rotatorf rotator(system_utility::to_math_quaternion(node.rotation));
 			ImGui::DragFloat3("rotation", &rotator.x, 0.01f);
-			node.rotation = rotator;
+			node.rotation = system_utility::to_xmfloat(rotator.to_quaternion());
 
 			ImGui::DragFloat3("translation", &node.translation.x, 0.01f);
 		}

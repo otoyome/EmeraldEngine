@@ -143,6 +143,24 @@ namespace math
 		}
 	}
 
+	template<typename T>
+	quaternion<T> quaternion<T>::twist(const vector3<T>& twist_axis) const
+	{
+		const vector3<T> projection = twist_axis * vector3<T>::dot(vector3<T>(x, y, z), twist_axis);
+		if (projection.length() <= constants<T>::epsilon)
+		{
+			return quaternion(0, 0, 0, 1);
+		}
+		return quaternion(projection.x, projection.y, projection.z, w).normalized();
+	}
+
+	template<typename T>
+	void quaternion<T>::decompose_twist_swing(const vector3<T>& twist_axis, quaternion& out_twist, quaternion& out_swing) const
+	{
+		out_twist = twist(twist_axis);
+		out_swing = concatenate(*this, out_twist.conjugated()).normalized();
+	}
+
 	///////////////////////////////////////////////////////////////////////////////////////////
 	template<typename T>
 	quaternion<T> quaternion<T>::rotation_x(T pitch)

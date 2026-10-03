@@ -85,10 +85,10 @@ void editor_items::render_model_bones(const model_instance& model_instance, cons
 			DirectX::XMMatrixDecompose(&Scale, &Rotation, &Translation, NodeWorldMatrix);
 			DirectX::XMFLOAT4 rotation;
 			DirectX::XMStoreFloat4(&rotation, Rotation);
-			auto rotator = math::rotator(rotation);
-			auto front = rotator.get_front();
-			auto right = rotator.get_right();
-			auto up = rotator.get_up();
+			auto rotator = math::rotatorf(system_utility::to_math_quaternion(rotation));
+			auto front = system_utility::to_xmfloat(rotator.front());
+			auto right = system_utility::to_xmfloat(rotator.right());
+			auto up = system_utility::to_xmfloat(rotator.up());
 
 			DirectX::XMFLOAT3 end[3];
 			static constexpr float joint_length = 0.3f;
@@ -245,10 +245,10 @@ void editor_items::render_model_select_bones(const model_instance& model_instanc
 			DirectX::XMMatrixDecompose(&Scale, &Rotation, &Translation, NodeWorldMatrix);
 			DirectX::XMFLOAT4 rotation;
 			DirectX::XMStoreFloat4(&rotation, Rotation);
-			auto rotator = math::rotator(rotation);
-			auto front = rotator.get_front();
-			auto right = rotator.get_right();
-			auto up = rotator.get_up();
+			auto rotator = math::rotatorf(system_utility::to_math_quaternion(rotation));
+			auto front = system_utility::to_xmfloat(rotator.front());
+			auto right = system_utility::to_xmfloat(rotator.right());
+			auto up = system_utility::to_xmfloat(rotator.up());
 
 			DirectX::XMFLOAT3 end[3];
 			static constexpr float joint_length = 0.3f;

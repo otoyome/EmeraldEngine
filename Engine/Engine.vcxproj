@@ -117,7 +117,6 @@
     <ClInclude Include="Headers\System\fixed_size_pool.h" />
     <ClInclude Include="Headers\System\high_resolution_timer.h" />
     <ClInclude Include="Headers\System\logger.h" />
-    <ClInclude Include="Headers\System\math_utility.h" />
     <ClInclude Include="Headers\System\memory_allocator.h" />
     <ClInclude Include="Headers\System\misc.h" />
     <ClInclude Include="Headers\System\parallel_for_executor.h" />
@@ -204,7 +203,6 @@
     <ClCompile Include="Sources\System\finite_state_machine.cpp" />
     <ClCompile Include="Sources\System\fixed_size_pool.cpp" />
     <ClCompile Include="Sources\System\logger.cpp" />
-    <ClCompile Include="Sources\System\math_utility.cpp" />
     <ClCompile Include="Sources\System\memory_allocator.cpp" />
     <ClCompile Include="Sources\System\simple_helper.cpp" />
     <ClCompile Include="Sources\System\system_units.cpp" />

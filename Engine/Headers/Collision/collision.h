@@ -3,7 +3,7 @@
 #include <DirectXMath.h>
 #include <vector>
 #include <memory>
-#include "System/math_utility.h"
+#include "Math/math_all.h"
 
 namespace collision
 {

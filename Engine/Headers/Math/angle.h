@@ -57,7 +57,29 @@ namespace math::angle
 	template<typename T>
 	T normalize(T angle)
 	{
-		return std::atan2(std::sin(angle), std::cos(angle));
+		angle = std::fmod(angle, constants<T>::pi2);
+		if (angle > constants<T>::pi)
+		{
+			return angle - constants<T>::pi2;
+		}
+		if (angle < -constants<T>::pi)
+		{
+			return angle + constants<T>::pi2;
+		}
+		return angle;
+	}
+
+	//	Šp“x‚ğ 0`2ƒÎ ‚ÉÜ‚è•Ô‚·
+	template<typename T>
+	T normalize_positive(T angle)
+	{
+		angle = std::fmod(angle, constants<T>::pi2);
+		if (angle < static_cast<T>(0))
+		{
+			angle += constants<T>::pi2;
+		}
+		//	-0.0 •t‹ß‚Ì•‰‚Ì’l‚É 2ƒÎ ‚ğ‘«‚·‚ÆŠÛ‚ß‚Å 2ƒÎ ‚É‚È‚é‚±‚Æ‚ª‚ ‚é‚½‚ß 0 ‚É–ß‚·
+		return angle >= constants<T>::pi2 ? static_cast<T>(0) : angle;
 	}
 
 	//	Šp“x‚Ì·•ª‚ğZo

@@ -44,7 +44,7 @@ public:
 				struct parameter
 				{
 					DirectX::XMFLOAT3 position = { 0, 0, 0 };
-					math::rotator rotation = { 0, 0, 0 };
+					math::rotatorf rotation = { 0, 0, 0 };
 
 					template<class Archive>
 					void serialize(Archive& archive, int version);
@@ -73,7 +73,7 @@ public:
 			struct parameter
 			{
 				DirectX::XMFLOAT3 position = { 0, 0, 0 };
-				math::rotator rotation = { 0, 0, 0 };
+				math::rotatorf rotation = { 0, 0, 0 };
 				float fov_y = 0.5235988f;
 
 				template<class Archive>

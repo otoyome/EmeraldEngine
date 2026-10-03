@@ -26,13 +26,13 @@ namespace
 	constexpr float break_effect_time = 4.0f;
 	constexpr common_animation::float_animation break_effect_scaling_distance[] =
 	{
-		{0.00f, math::ease::type::out_elastic, 1.0f},
-		{1.0f, math::ease::type::lerp, 0.55f},
+		{0.00f, math::easing::type::out_elastic, 1.0f},
+		{1.0f, math::easing::type::lerp, 0.55f},
 	};
 	constexpr common_animation::float_animation break_effect_update_focus_time[] =
 	{
-		{0.00f, math::ease::type::lerp, 1.0f},
-		{1.0f, math::ease::type::lerp, 0.0001f},
+		{0.00f, math::easing::type::lerp, 1.0f},
+		{1.0f, math::easing::type::lerp, 0.0001f},
 	};
 
 	constexpr std::string_view OnAttackHitCameraShakeId = "CAMERA_ATTACK_HIT_SHAKE_CALLBACK";
@@ -48,12 +48,12 @@ namespace
 	constexpr std::string_view OnControllObjectDead = "CONTROLL_OBJECT_DEAD";
 }
 
-const math::rotator& player_camera_controller_object::get_rotation() const
+const math::rotatorf& player_camera_controller_object::get_rotation() const
 {
 	return camera->get_rotation();
 }
 
-void player_camera_controller_object::set_rotation(const math::rotator& rotator)
+void player_camera_controller_object::set_rotation(const math::rotatorf& rotator)
 {
 	camera->set_rotation(rotator);
 }
@@ -235,7 +235,7 @@ void player_camera_controller_object::fixed_update_default(float elapsed_time)
 		float attack_scale = 1.0f;
 		if (attack_hit_distance_scale_time > 0.0f)
 		{
-			float rate = math::ease::out_cubic(math::saturate(attack_hit_distance_scale_time));
+			float rate = math::easing::out_cubic(math::saturate(attack_hit_distance_scale_time));
 			attack_scale = math::lerp(1.0f, attack_hit_distance_scale, rate);
 			attack_hit_distance_scale_time -= elapsed_time;
 		}
@@ -288,25 +288,20 @@ void player_camera_controller_object::fixed_update_default(float elapsed_time)
 
 	//	ê˘âÒèàóù
 	{
-		math::rotator camera_rotation = get_rotation();
-		DirectX::XMVECTOR Rot1, Rot2;
-		Rot1 = camera_rotation.convert_quaternion_vector();
-		Rot2 = disengage_direction.convert_quaternion_vector();
-		DirectX::XMFLOAT4 rotation;
-		DirectX::XMStoreFloat4(&rotation, DirectX::XMQuaternionSlerp(Rot1, Rot2, update_disengage_direction_rate));
-		camera_rotation = rotation;
+		math::rotatorf camera_rotation = get_rotation();
+		camera_rotation = math::rotatorf(math::slerp(camera_rotation.to_quaternion(), disengage_direction.to_quaternion(), update_disengage_direction_rate));
 		camera_rotation.z = 0.0f;
 
 		camera_rotation.x = math::clamp(camera_rotation.x, pitch_limit_angle.x, pitch_limit_angle.y);
-		camera_rotation.y = math::normalize_angle(camera_rotation.y);
+		camera_rotation.y = math::angle::normalize(camera_rotation.y);
 		set_rotation(camera_rotation);
 	}
 
 	//	ÉJÉÅÉâÇÃépê®ÇÃçXêV
 	{
 		DirectX::XMFLOAT3 camera_position, camera_front;
-		math::rotator camera_rotation = get_rotation();
-		camera_front = camera_rotation.get_front();
+		math::rotatorf camera_rotation = get_rotation();
+		camera_front = system_utility::to_xmfloat(camera_rotation.front());
 
 		camera_position.x = focus.x - camera_front.x * focus_distance;
 		camera_position.y = focus.y - camera_front.y * focus_distance;
@@ -368,7 +363,7 @@ void player_camera_controller_object::update(float elapsed_time)
 		disengage_direction.y += DirectX::XMConvertToRadians(move.x) * 0.1f;
 
 		disengage_direction.x = math::clamp(disengage_direction.x, pitch_limit_angle.x, pitch_limit_angle.y);
-		disengage_direction.y = math::normalize_angle(disengage_direction.y);
+		disengage_direction.y = math::angle::normalize(disengage_direction.y);
 	}
 }
 
@@ -425,9 +420,9 @@ void player_camera_controller_object::on_camera_transform(const character_object
 	if (desc.is_flag(character_object::camera_transform_descs::flags::set_focus_direction))
 	{
 		DirectX::XMVECTOR Vector = DirectX::XMVector3Normalize(DirectX::XMLoadFloat3(&desc.focus_direction));
-		disengage_direction.set_parameter_from_direction(system_utility::convert_xmfloat3_from_vector(Vector));
+		disengage_direction = math::rotatorf::from_direction(system_utility::to_math(system_utility::convert_xmfloat3_from_vector(Vector)));
 		disengage_direction.x = math::clamp(disengage_direction.x, pitch_limit_angle.x, pitch_limit_angle.y);
-		disengage_direction.y = math::normalize_angle(disengage_direction.y);
+		disengage_direction.y = math::angle::normalize(disengage_direction.y);
 	}
 	if (desc.is_flag(character_object::camera_transform_descs::flags::set_focus_distance_factor))
 	{
@@ -488,9 +483,9 @@ void player_camera_controller_object::on_parry_camera(character_object* characte
 		Vector = DirectX::XMVector3Normalize(Vector);
 
 		//	âÒì]ó éZèo
-		disengage_direction.set_parameter_from_direction(system_utility::convert_xmfloat3_from_vector(Vector));
+		disengage_direction = math::rotatorf::from_direction(system_utility::to_math(system_utility::convert_xmfloat3_from_vector(Vector)));
 		disengage_direction.x = math::clamp(disengage_direction.x, pitch_limit_angle.x, pitch_limit_angle.y);
-		disengage_direction.y = math::normalize_angle(disengage_direction.y);
+		disengage_direction.y = math::angle::normalize(disengage_direction.y);
 	}
 }
 

@@ -1,6 +1,6 @@
 #pragma	once
 
-#include "math_utility.h"
+#include "Math/math_all.h"
 
 //	簡易的なアニメーション計算用構造体
 namespace common_animation
@@ -8,28 +8,28 @@ namespace common_animation
 	struct float_animation
 	{
 		float time;
-		math::ease::type ease_type;
+		math::easing::type ease_type;
 		float value;
 	};
 
 	struct float2_animation
 	{
 		float time;
-		math::ease::type ease_type;
+		math::easing::type ease_type;
 		DirectX::XMFLOAT2 value;
 	};
 
 	struct float3_animation
 	{
 		float time;
-		math::ease::type ease_type;
+		math::easing::type ease_type;
 		DirectX::XMFLOAT3 value;
 	};
 
 	struct float4_animation
 	{
 		float time;
-		math::ease::type ease_type;
+		math::easing::type ease_type;
 		DirectX::XMFLOAT4 value;
 	};
 
@@ -46,7 +46,7 @@ namespace compute_fade
 	{
 		float start;
 		float end;
-		math::ease::type ease_type = math::ease::type::lerp;
+		math::easing::type ease_type = math::easing::type::lerp;
 	};
 
 	struct out_calculator

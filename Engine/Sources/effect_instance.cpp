@@ -203,12 +203,12 @@ void effect_instance::set_scale(const DirectX::XMFLOAT3& scale)
 	this->scale = scale;
 }
 
-const math::rotator& effect_instance::get_rotation() const
+const math::rotatorf& effect_instance::get_rotation() const
 {
 	return rotation;
 }
 
-void effect_instance::set_rotation(const math::rotator& rotator)
+void effect_instance::set_rotation(const math::rotatorf& rotator)
 {
 	this->rotation = rotator;
 }
@@ -304,8 +304,7 @@ void effect_instance::update(float elapsed_time)
 	for (auto& node : nodes)
 	{
 		DirectX::XMMATRIX Scale = DirectX::XMMatrixScaling(node.scale.x, node.scale.y, node.scale.z);
-		DirectX::XMFLOAT4 node_quaternion = math::rotator(node.rotation).convert_quaternion();
-		DirectX::XMMATRIX Rotation = DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&node_quaternion));
+		DirectX::XMMATRIX Rotation = DirectX::XMMatrixRotationQuaternion(system_utility::to_xmvector(system_utility::to_math_rotator(node.rotation).to_quaternion()));
 		DirectX::XMMATRIX Translation = DirectX::XMMatrixTranslation(node.position.x, node.position.y, node.position.z);
 		DirectX::XMStoreFloat4x4(&node.local_transform, Scale * Rotation * Translation);
 	}
@@ -347,7 +346,7 @@ void effect_instance::update(float elapsed_time)
 	}
 
 	//	épê®èÓïÒ
-	auto rot = rotation.convert_quaternion();
+	auto rot = system_utility::to_xmfloat(rotation.to_quaternion());
 	auto S = DirectX::XMMatrixScaling(scale.x, scale.y, scale.z);
 	auto R = DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&rot));
 	auto T = DirectX::XMMatrixTranslation(position.x, position.y, position.z);
@@ -715,8 +714,8 @@ void effect_manager::get_container(effect_container& effects, decal_container& d
 			DirectX::XMStoreFloat3(&decal.position, T);
 			DirectX::XMFLOAT4 rotation;
 			DirectX::XMStoreFloat4(&rotation, R);
-			decal.rotation = rotation;
-			decal.box = collision::bounding_box(decal.scale, decal.rotation, decal.position);
+			decal.rotation = math::rotatorf(system_utility::to_math_quaternion(rotation));
+			decal.box = collision::bounding_box(decal.scale, rotation, decal.position);
 			decal.material.material = decal_data.material.get();
 		}
 

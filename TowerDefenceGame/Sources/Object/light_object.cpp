@@ -62,12 +62,12 @@ void light_object::on_deactive()
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
-void directional_light_object::set_rotation(const math::rotator& direction)
+void directional_light_object::set_rotation(const math::rotatorf& direction)
 {
 	light->set_rotation(direction);
 }
 
-const math::rotator& directional_light_object::get_rotation() const
+const math::rotatorf& directional_light_object::get_rotation() const
 {
 	return light->get_rotation();
 }
@@ -76,8 +76,8 @@ directional_light_object::directional_light_object(std::string_view name)
 : light_object(name)
 {
 	light_manager::instance()->generate_light(light, light_type::directional);
-	math::rotator rotation;
-	rotation.set_parameter_from_direction({1, -1, -1});
+	math::rotatorf rotation;
+	rotation = math::rotatorf::from_direction(math::vector3f(1, -1, -1));
 	set_rotation(rotation);
 	set_position({0, 0, 0});
 }
@@ -197,12 +197,12 @@ void point_light_object::imgui_tree_inner_render()
 #endif	//	defined(USE_IMGUI)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
-void spot_light_object::set_rotation(const math::rotator& rotation)
+void spot_light_object::set_rotation(const math::rotatorf& rotation)
 {
 	light->set_rotation(rotation);
 }
 
-const math::rotator& spot_light_object::get_rotation() const
+const math::rotatorf& spot_light_object::get_rotation() const
 {
 	return light->get_rotation();
 }

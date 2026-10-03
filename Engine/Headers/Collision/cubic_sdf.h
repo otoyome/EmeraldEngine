@@ -4,7 +4,7 @@
 #include <vector>
 #include <memory>
 #include <string_view>
-#include "System/math_utility.h"
+#include "Math/math_all.h"
 #include "model_resource.h"
 
 namespace collision
