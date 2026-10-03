@@ -53,11 +53,15 @@ MATH_TEST_TYPED(utility_scalar)
 	CHECK(math::lerp(0, 10, static_cast<T>(0.37)) == 3);
 	CHECK(nearly_equal(static_cast<T>(1), static_cast<T>(1) + constants<T>::epsilon) && !nearly_equal(static_cast<T>(1), static_cast<T>(1.1)));
 	CHECK(nearly_equal(vector3<T>(1, 2, 3), vector3<T>(1, 2, static_cast<T>(3.05)), static_cast<T>(0.1)) && !nearly_equal(vector3<T>(1, 2, 3), vector3<T>(1, 2, static_cast<T>(3.2)), static_cast<T>(0.1)));
+	T max_random = static_cast<T>(-2);
 	for (int i = 0; i < 100; ++i)
 	{
 		const T value = rand_range(static_cast<T>(-2), static_cast<T>(3));
 		CHECK(value >= -2 && value <= 3);
+		max_random = (std::max)(max_random, value);
 	}
+	//	@tool 範囲の上側まで値が出る（RAND_MAX が小さい環境で範囲の一部しか返さない不具合の確認）
+	CHECK(max_random > static_cast<T>(2));
 }
 
 //	@tool 整数・ビット系

@@ -170,11 +170,11 @@ namespace math
 		{
 			if constexpr (is_column_vector)
 			{
-				*this = hamilton_product(r, *this);
+				*this = hamilton_product(*this, r);
 			}
 			else
 			{
-				*this = hamilton_product(*this, r);
+				*this = hamilton_product(r, *this);
 			}
 		}
 

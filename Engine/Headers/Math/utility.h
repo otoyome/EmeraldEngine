@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cassert>
 #include <cstdlib>
 #include <cstring>
 
@@ -205,11 +206,11 @@ namespace math
 		return true;
 	}
 
-	//	min_value ～ max_value の乱数を取得（std::rand を使う。分解能は 1/100000）
+	//	min_value ～ max_value の乱数を取得
 	template<typename T, std::enable_if_t<std::is_floating_point_v<T>, int> = 0>
 	T rand_range(T min_value, T max_value)
 	{
-		const T rate = static_cast<T>(std::rand() % 100000) * static_cast<T>(0.00001);
+		const T rate = static_cast<T>(std::rand()) / (static_cast<T>(RAND_MAX) + static_cast<T>(1));
 		return rate * (max_value - min_value) + min_value;
 	}
 
@@ -405,7 +406,10 @@ namespace math
 		}
 
 		//	無限遠平面
-		return near_z / ndc_depth;
+		//	@tool 遠方面が無限遠だと 0～1 の線形深度は定義できないため非対応（距離が必要なら convert_depth を使う）
+		assert(!"convert_linear_depth does not support infinite far plane.");
+		//	@tool リリースビルドでは far を無限大にした極限値 0 を返す
+		return static_cast<T>(0);
 	}
 
 	//	秒からミリ秒へ
