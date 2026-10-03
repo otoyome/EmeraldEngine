@@ -44,6 +44,9 @@
     <ClCompile Include="Sources\test_camera.cpp">
       <Filter>Sources</Filter>
     </ClCompile>
+    <ClCompile Include="Sources\test_directxmath.cpp">
+      <Filter>Sources</Filter>
+    </ClCompile>
     <ClCompile Include="Sources\test_euler.cpp">
       <Filter>Sources</Filter>
     </ClCompile>

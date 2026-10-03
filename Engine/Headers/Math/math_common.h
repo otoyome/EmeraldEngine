@@ -106,7 +106,8 @@ namespace math
 		static constexpr float sqrt2 = 1.41421356f;
 		static constexpr float degree_to_radian = pi / 180.0f;
 		static constexpr float radian_to_degree = 180.0f / pi;
-		static constexpr float normalize_threshold = 1e-6f;
+		static constexpr float normalize_threshold = 1.175494351e-38f;
+		static constexpr float parallel_threshold = 1e-6f;
 		static constexpr float gimbal_lock_threshold = 5.5e-3f;
 	};
 
@@ -120,7 +121,8 @@ namespace math
 		static constexpr double sqrt2 = 1.41421356237309504880168872420969808;
 		static constexpr double degree_to_radian = pi / 180.0;
 		static constexpr double radian_to_degree = 180.0 / pi;
-		static constexpr double normalize_threshold = 1e-12;
+		static constexpr double normalize_threshold = 2.2250738585072014e-308;
+		static constexpr double parallel_threshold = 1e-12;
 		static constexpr double gimbal_lock_threshold = 2.4e-7;
 	};
 

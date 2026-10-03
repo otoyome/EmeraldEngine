@@ -23,8 +23,9 @@ MATH_TEST_TYPED(quaternion_basic)
 	//	@tool 誤差で w が 1 をわずかに超えても NaN にならない
 	CHECK(quaternion<T>(0, 0, 0, static_cast<T>(1) + constants<T>::epsilon * 4).angle() == 0);
 
-	//	@tool 回転軸は正規化される前提だが、rotation_axis は結果を正規化する
+	//	@tool 長さが 1 でない軸も正規化して使う（DirectXMath と同じ）
 	CHECK_NEAR(quaternion<T>::rotation_axis(axis * static_cast<T>(3), angle).length(), static_cast<T>(1), tol);
+	CHECK_SAME_ROTATION(quaternion<T>::rotation_axis(axis * static_cast<T>(3), angle), q, tol);
 
 	CHECK_SAME_ROTATION(quaternion<T>::rotation_x(static_cast<T>(0.5)), quaternion<T>::rotation_axis(vector3<T>::x_axis(), static_cast<T>(0.5)), tol);
 	CHECK_SAME_ROTATION(quaternion<T>::rotation_y(static_cast<T>(0.5)), quaternion<T>::rotation_axis(vector3<T>::y_axis(), static_cast<T>(0.5)), tol);

@@ -85,6 +85,14 @@ MATH_TEST_TYPED(vector_products)
 	CHECK_NEAR(vector3<T>(3, 4, 12).square_length(), static_cast<T>(169), tol);
 	CHECK_NEAR(vector3<T>(0, 3, 4).normalized(), vector3<T>(0, static_cast<T>(0.6), static_cast<T>(0.8)), tol);
 	CHECK(vector3<T>().normalized() == vector3<T>());
+	//	@tool DirectXMath と同じく、長さがほぼ 0 でなければ短いベクトルも正規化する
+	CHECK_NEAR(vector3<T>(static_cast<T>(1e-7), 0, 0).normalized(), vector3<T>::x_axis(), tol);
+	//	@tool orthogonal は元のベクトルと直交する
+	for (const vector3<T>& v : { vector3<T>(1, 2, 3), vector3<T>(1, -2, 3), vector3<T>(-1, 2, -3), vector3<T>(0, 0, 1) })
+	{
+		CHECK_NEAR(vector3<T>::dot(vector3<T>::orthogonal(v), v), static_cast<T>(0), tol);
+		CHECK(vector3<T>::orthogonal(v).square_length() > 0);
+	}
 
 	CHECK_NEAR(vector4<T>(1, 2, 3, 4).dot(vector4<T>(5, 6, 7, 8)), static_cast<T>(70), tol);
 	CHECK_NEAR(vector4<T>(1, 1, 1, 1).length(), static_cast<T>(2), tol);

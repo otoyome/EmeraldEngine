@@ -307,6 +307,7 @@ namespace math
 
 		//	逆行列化
 		static matrix inverse(const matrix& mat);
+		static bool try_inverse(const matrix& mat, matrix& out);
 
 		//	拡縮行列を対象とした逆行列化
 		static matrix inverse_for_scaling(const matrix& mat);
@@ -395,7 +396,7 @@ namespace math
 
 		//	矩形指定透視投影行列生成
 		//	far が near 以下の場合は無限遠
-		static matrix perspective_off_center(T left, T right, T top, T bottom, T near_z, T far_z, coordinate_order coordinate = default_coordinate_order, projection_z_order z_order = default_projection_z_order);
+		static matrix perspective_off_center(T left, T right, T bottom, T top, T near_z, T far_z, coordinate_order coordinate = default_coordinate_order, projection_z_order z_order = default_projection_z_order);
 
 		//	透視投影行列生成
 		//	offset_x / offset_y は中心点の移動量
@@ -405,7 +406,7 @@ namespace math
 		static matrix orthographic(T width, T height, T near_z, T far_z, coordinate_order coordinate = default_coordinate_order, projection_z_order z_order = default_projection_z_order);
 
 		//	中心点移動付き正射影行列生成
-		static matrix orthographic_offset_center(T left, T right, T top, T bottom, T near_z, T far_z, coordinate_order coordinate = default_coordinate_order, projection_z_order z_order = default_projection_z_order);
+		static matrix orthographic_offset_center(T left, T right, T bottom, T top, T near_z, T far_z, coordinate_order coordinate = default_coordinate_order, projection_z_order z_order = default_projection_z_order);
 
 		//	ビューポート行列生成
 		static matrix viewport(T left, T right, T top, T bottom, T min_z, T max_z);

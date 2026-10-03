@@ -370,6 +370,24 @@ namespace math
 	}
 
 	template<typename T>
+	bool matrix<T>::try_inverse(const matrix& mat, matrix& out)
+	{
+		if constexpr (use_simd_v<T>)
+		{
+			return simd::inverse<ops>(mat.reg, out.reg);
+		}
+		else
+		{
+			if (determinant(mat) == static_cast<T>(0))
+			{
+				return false;
+			}
+			out = inverse(mat);
+			return true;
+		}
+	}
+
+	template<typename T>
 	matrix<T> matrix<T>::inverse_for_scaling(const matrix& mat)
 	{
 		matrix ret;
@@ -866,6 +884,9 @@ namespace math
 		template<typename T>
 		void set_perspective_depth(matrix<T>& ret, T near_z, T far_z, bool infinite_far_plane, coordinate_order coordinate, projection_z_order z_order)
 		{
+			//	far に無限大を渡した場合も無限遠として扱う
+			infinite_far_plane = infinite_far_plane || std::isinf(far_z);
+			assert(!(far_z > static_cast<T>(0) && far_z < near_z));
 			switch (coordinate)
 			{
 				case coordinate_order::rh:
@@ -964,7 +985,7 @@ namespace math
 	}
 
 	template<typename T>
-	matrix<T> matrix<T>::perspective_off_center(T left, T right, T top, T bottom, T near_z, T far_z, coordinate_order coordinate, projection_z_order z_order)
+	matrix<T> matrix<T>::perspective_off_center(T left, T right, T bottom, T top, T near_z, T far_z, coordinate_order coordinate, projection_z_order z_order)
 	{
 		//	XNDC	= a * XView / ZView + b;
 		//	YNDC	= c * YView / ZView + d;
@@ -1022,8 +1043,8 @@ namespace math
 		T width = std::tan(math::angle::fov_vertical_to_fov_horizontal(fov_y, aspect) * static_cast<T>(0.5));
 		return perspective_off_center(-near_z * width + offset_x,
 									  +near_z * width + offset_x,
-									  +near_z * height + offset_y,
 									  -near_z * height + offset_y,
+									  +near_z * height + offset_y,
 									  near_z,
 									  far_z,
 									  coordinate,
@@ -1067,7 +1088,7 @@ namespace math
 	}
 
 	template<typename T>
-	matrix<T> matrix<T>::orthographic_offset_center(T left, T right, T top, T bottom, T near_z, T far_z, coordinate_order coordinate, projection_z_order z_order)
+	matrix<T> matrix<T>::orthographic_offset_center(T left, T right, T bottom, T top, T near_z, T far_z, coordinate_order coordinate, projection_z_order z_order)
 	{
 		//	Zオーダーが反転指定ならNear/Farを入れ替える
 		if (z_order == projection_z_order::reverse)

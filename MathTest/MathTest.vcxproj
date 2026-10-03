@@ -107,6 +107,7 @@
     <ClCompile Include="..\Engine\Sources\Math\vector4.cpp" />
     <ClCompile Include="Sources\main.cpp" />
     <ClCompile Include="Sources\test_camera.cpp" />
+    <ClCompile Include="Sources\test_directxmath.cpp" />
     <ClCompile Include="Sources\test_euler.cpp" />
     <ClCompile Include="Sources\test_matrix.cpp" />
     <ClCompile Include="Sources\test_quaternion.cpp" />

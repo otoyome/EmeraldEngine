@@ -1,3 +1,5 @@
+#include <limits>
+
 #include "test_framework.h"
 
 using namespace math;
@@ -55,7 +57,7 @@ MATH_TEST_TYPED(camera_perspective_depth)
 			CHECK_NEAR(projected_depth(box, forward * near_z), near_depth, tol);
 			CHECK_NEAR(projected_depth(box, forward * far_z), 1 - near_depth, tol);
 
-			const matrix<T> off_center = matrix<T>::perspective_off_center(static_cast<T>(-0.1), static_cast<T>(0.2), static_cast<T>(0.05), static_cast<T>(-0.05), near_z, far_z, coordinate, z_order);
+			const matrix<T> off_center = matrix<T>::perspective_off_center(static_cast<T>(-0.1), static_cast<T>(0.2), static_cast<T>(-0.05), static_cast<T>(0.05), near_z, far_z, coordinate, z_order);
 			CHECK_NEAR(projected_depth(off_center, forward * near_z), near_depth, tol);
 
 			//	@tool far < near で無限遠（near の深度は同じ、遠方は far 側の値に近づく）
@@ -68,10 +70,14 @@ MATH_TEST_TYPED(camera_perspective_depth)
 	//	@tool far == near は、どの透視投影でも無限遠として扱う
 	const matrix<T> same_near_far = matrix<T>::perspective_fov(static_cast<T>(1), static_cast<T>(1.5), near_z, near_z);
 	CHECK_NEAR(same_near_far, matrix<T>::perspective_fov(static_cast<T>(1), static_cast<T>(1.5), near_z, static_cast<T>(-1)), tol);
-	const matrix<T> same_off_center = matrix<T>::perspective_off_center(static_cast<T>(-0.1), static_cast<T>(0.1), static_cast<T>(0.1), static_cast<T>(-0.1), near_z, near_z);
-	CHECK_NEAR(same_off_center, matrix<T>::perspective_off_center(static_cast<T>(-0.1), static_cast<T>(0.1), static_cast<T>(0.1), static_cast<T>(-0.1), near_z, static_cast<T>(-1)), tol);
+	const matrix<T> same_off_center = matrix<T>::perspective_off_center(static_cast<T>(-0.1), static_cast<T>(0.1), static_cast<T>(-0.1), static_cast<T>(0.1), near_z, near_z);
+	CHECK_NEAR(same_off_center, matrix<T>::perspective_off_center(static_cast<T>(-0.1), static_cast<T>(0.1), static_cast<T>(-0.1), static_cast<T>(0.1), near_z, static_cast<T>(-1)), tol);
 	//	@tool 中心を移動しない perspective_fov_offset_center は perspective_fov と同じ
 	CHECK_NEAR(matrix<T>::perspective_fov_offset_center(static_cast<T>(1), static_cast<T>(1.5), near_z, far_z, 0, 0), matrix<T>::perspective_fov(static_cast<T>(1), static_cast<T>(1.5), near_z, far_z), 1e-3);
+
+	//	@tool far に無限大を渡しても無限遠として扱う
+	CHECK_NEAR(matrix<T>::perspective_fov(static_cast<T>(1), static_cast<T>(1.5), near_z, std::numeric_limits<T>::infinity()), matrix<T>::perspective_fov(static_cast<T>(1), static_cast<T>(1.5), near_z, static_cast<T>(-1)), tol);
+	CHECK_NEAR(convert_depth(static_cast<T>(0.5), near_z, std::numeric_limits<T>::infinity()), convert_depth(static_cast<T>(0.5), near_z, static_cast<T>(-1)), tol);
 
 	//	@tool 既定値は MATH_REVERSE_DEPTH に従う
 	CHECK(default_projection_z_order == (MATH_REVERSE_DEPTH ? projection_z_order::reverse : projection_z_order::normal));
@@ -112,14 +118,14 @@ MATH_TEST_TYPED(camera_orthographic)
 			CHECK_NEAR(corner.y, static_cast<T>(1), tol);
 		}
 	}
-	//	@tool 左・右・上・下の指定は perspective_off_center と同じく左 = -1、右 = +1、上 = +1、下 = -1 になる
-	const matrix<T> offset = matrix<T>::orthographic_offset_center(0, 100, 0, 50, 1, 10, coordinate_order::lh, projection_z_order::normal);
+	//	@tool 左・右・下・上の順で指定し（DirectXMath と同じ）、左 = -1、右 = +1、上 = +1、下 = -1 になる
+	const matrix<T> offset = matrix<T>::orthographic_offset_center(0, 100, 50, 0, 1, 10, coordinate_order::lh, projection_z_order::normal);
 	CHECK_NEAR(projected_depth(offset, vector3<T>(0, 0, 1)), static_cast<T>(0), tol);
 	CHECK_NEAR(vector4<T>::transform(vector4<T>(50, 25, 5, 1), offset).x, static_cast<T>(0), tol);
 	CHECK_NEAR(vector4<T>::transform(vector4<T>(0, 0, 5, 1), offset).x, static_cast<T>(-1), tol);
 	CHECK_NEAR(vector4<T>::transform(vector4<T>(0, 0, 5, 1), offset).y, static_cast<T>(1), tol);
 	CHECK_NEAR(vector4<T>::transform(vector4<T>(100, 50, 5, 1), offset).y, static_cast<T>(-1), tol);
-	const matrix<T> perspective_box = matrix<T>::perspective_off_center(-1, 1, 1, -1, 1, 10, coordinate_order::lh, projection_z_order::normal);
+	const matrix<T> perspective_box = matrix<T>::perspective_off_center(-1, 1, -1, 1, 1, 10, coordinate_order::lh, projection_z_order::normal);
 	CHECK(vector4<T>::transform(vector4<T>(0, 1, 1, 1), perspective_box).y > 0);
 }
 

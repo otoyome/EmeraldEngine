@@ -301,6 +301,16 @@ namespace math
 		//	法線に対して反射させたベクトルを算出
 		static vector3 reflect(const vector3& front, const vector3& normal) { return front - normal * (static_cast<T>(2) * dot(front, normal)); }
 
+		//	直交するベクトルを算出
+		static vector3 orthogonal(const vector3& v)
+		{
+			if ((v.z < static_cast<T>(0)) == (v.y < static_cast<T>(0)))
+			{
+				return vector3(v.y + v.z, -v.x, -v.x);
+			}
+			return vector3(v.y - v.z, -v.x, v.x);
+		}
+
 		//	指定のベクトルを指定の行列空間に変換する
 		static vector4<T> transform(const vector3& l, const matrix<T>& r);
 

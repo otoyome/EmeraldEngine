@@ -276,7 +276,8 @@ namespace math
 		T s, c;
 		math::angle::sin_cos(rotation_angle * static_cast<T>(0.5), s, c);
 
-		quaternion ret(rotation_axis_vector.x * s, rotation_axis_vector.y * s, rotation_axis_vector.z * s, c);
+		const vector3<T> unit_axis = rotation_axis_vector.normalized();
+		quaternion ret(unit_axis.x * s, unit_axis.y * s, unit_axis.z * s, c);
 		ret.normalize();
 		return ret;
 	}
@@ -286,7 +287,7 @@ namespace math
 	{
 		vector3<T> rotation_axis_vector = vector3<T>::cross(direction1, direction2);
 		T cos_angle = vector3<T>::dot(direction1, direction2);
-		if (rotation_axis_vector.square_length() < constants<T>::normalize_threshold)
+		if (rotation_axis_vector.square_length() < constants<T>::parallel_threshold)
 		{
 			if (cos_angle >= static_cast<T>(0))
 			{

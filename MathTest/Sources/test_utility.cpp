@@ -14,6 +14,10 @@ MATH_TEST_TYPED(utility_vector_elementwise)
 	CHECK(math::abs(vector2<T>(-1, -2)) == vector2<T>(1, 2));
 	CHECK(math::abs(-3) == 3 && math::abs(static_cast<T>(-1.5)) == static_cast<T>(1.5));
 	CHECK(element_max(vector3<T>(1, 7, 3)) == 7 && element_min(vector4<T>(4, 2, 9, 1)) == 1);
+	CHECK(any_greater(vector3<T>(1, 5, 3), vector3<T>(2, 4, 3)) && !any_greater(vector3<T>(1, 4, 3), vector3<T>(2, 4, 3)));
+	CHECK(any_less(vector3<T>(1, 5, 3), vector3<T>(2, 4, 3)) && !any_less(vector3<T>(2, 5, 3), vector3<T>(2, 4, 3)));
+	CHECK(all_greater(vector2<T>(3, 4), vector2<T>(1, 2)) && !all_greater(vector2<T>(3, 2), vector2<T>(1, 2)));
+	CHECK(all_less(vector4<T>(0, 0, 0, 0), vector4<T>(1, 1, 1, 1)) && !all_less(vector4<T>(0, 0, 0, 1), vector4<T>(1, 1, 1, 1)));
 }
 
 //	@tool ループ・反復・範囲・符号

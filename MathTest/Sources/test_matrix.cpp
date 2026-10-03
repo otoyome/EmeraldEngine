@@ -142,6 +142,12 @@ MATH_TEST_TYPED(matrix_inverse)
 	//	@tool 行列式が 0 のときは元の行列を返す
 	const matrix<T> singular = matrix<T>::scaling(1, 0, 1);
 	CHECK(singular.inverted() == singular);
+	//	@tool try_inverse は逆行列が存在しないと false を返し、out を変更しない
+	matrix<T> inverse_out = matrix<T>::translation(1, 2, 3);
+	CHECK(!matrix<T>::try_inverse(singular, inverse_out));
+	CHECK(inverse_out == matrix<T>::translation(1, 2, 3));
+	CHECK(matrix<T>::try_inverse(m, inverse_out));
+	CHECK_NEAR(inverse_out, m.inverted(), tol);
 
 	const matrix<T> rt = matrix<T>::concatenate(matrix<T>::rotation_xyz(static_cast<T>(0.3), static_cast<T>(1.1), static_cast<T>(-0.4)), matrix<T>::translation(5, -6, 7));
 	CHECK_NEAR(matrix<T>::inverse_for_rt(rt), rt.inverted(), tol);

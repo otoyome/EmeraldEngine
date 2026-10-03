@@ -142,6 +142,39 @@ namespace math
 	template<typename V, std::enable_if_t<detail::is_vector_v<V>, int> = 0>
 	V abs(const V& value) { return detail::abs_elements(value); }
 
+	//	いずれかの要素で l > r なら true
+	template<typename V, std::enable_if_t<detail::is_vector_v<V>, int> = 0>
+	bool any_greater(const V& l, const V& r)
+	{
+		for (std::uint32_t i = 0; i < V::element_count; ++i)
+		{
+			if (l[i] > r[i])
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+	//	いずれかの要素で l < r なら true
+	template<typename V, std::enable_if_t<detail::is_vector_v<V>, int> = 0>
+	bool any_less(const V& l, const V& r) { return any_greater(r, l); }
+	//	すべての要素で l > r なら true
+	template<typename V, std::enable_if_t<detail::is_vector_v<V>, int> = 0>
+	bool all_greater(const V& l, const V& r)
+	{
+		for (std::uint32_t i = 0; i < V::element_count; ++i)
+		{
+			if (!(l[i] > r[i]))
+			{
+				return false;
+			}
+		}
+		return true;
+	}
+	//	すべての要素で l < r なら true
+	template<typename V, std::enable_if_t<detail::is_vector_v<V>, int> = 0>
+	bool all_less(const V& l, const V& r) { return all_greater(r, l); }
+
 	//	value と min_value を比較して小さい値を返す
 	template<typename T, std::enable_if_t<std::is_arithmetic_v<T>, int> = 0>
 	constexpr T (min)(T value, T min_value) { return min_value < value ? min_value : value; }
@@ -371,7 +404,7 @@ namespace math
 	template<typename T>
 	T convert_depth(T ndc_depth, T near_z, T far_z, projection_z_order z_order = default_projection_z_order)
 	{
-		if (far_z > near_z)
+		if (far_z > near_z && !std::isinf(far_z))
 		{
 			if (z_order == projection_z_order::normal)
 			{
@@ -394,7 +427,7 @@ namespace math
 	template<typename T>
 	T convert_linear_depth(T ndc_depth, T near_z, T far_z, projection_z_order z_order = default_projection_z_order)
 	{
-		if (far_z > near_z)
+		if (far_z > near_z && !std::isinf(far_z))
 		{
 			if (z_order == projection_z_order::normal)
 			{
@@ -406,9 +439,8 @@ namespace math
 		}
 
 		//	無限遠平面
-		//	@tool 遠方面が無限遠だと 0～1 の線形深度は定義できないため非対応（距離が必要なら convert_depth を使う）
+		//	遠方面が無限遠だと 0～1 の線形深度は定義できないため非対応
 		assert(!"convert_linear_depth does not support infinite far plane.");
-		//	@tool リリースビルドでは far を無限大にした極限値 0 を返す
 		return static_cast<T>(0);
 	}
 
