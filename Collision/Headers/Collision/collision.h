@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <memory>
+#include <type_traits>
 #include "Math/math_all.h"
 
 namespace collision
@@ -17,12 +18,14 @@ namespace collision
 			double length = 0.0f;			// ‹——£
 		};
 
+		static constexpr std::size_t inline_capacity = 4;
+
 	public:
 		void add(const infomation& infomation);
 		void add(const math::double3& point, const math::double3& normal, double length);
 		void add(const math::float3& point, const math::float3& normal, float length);
 		void clear();
-		void swap(intersect_data& other) noexcept { infomations.swap(other.infomations); }
+		void swap(intersect_data& other) noexcept;
 
 		bool multiply_matrix(std::size_t index, const math::double4x4& matrix);
 		bool multiply_matrix(std::size_t index, const math::matrixd& matrix);
@@ -30,14 +33,23 @@ namespace collision
 		void flip_normals_from(std::size_t begin);
 		void append(const intersect_data& data);
 
-		std::size_t size() const;
+		std::size_t size() const { return count; }
 
 	public:
-		const infomation& operator[](std::size_t index) const;
-		infomation& operator[](std::size_t index);
+		const infomation& operator[](std::size_t index) const { return index < inline_capacity ? inline_storage.items[index] : overflow_infomations[index - inline_capacity]; }
+		infomation& operator[](std::size_t index) { return index < inline_capacity ? inline_storage.items[index] : overflow_infomations[index - inline_capacity]; }
 
 	private:
-		std::vector<infomation>	infomations;
+		static_assert(std::is_trivially_copyable_v<infomation> && std::is_trivially_destructible_v<infomation>);
+		union inline_storage_type
+		{
+			inline_storage_type() {}
+			infomation items[inline_capacity];
+		};
+
+		inline_storage_type	inline_storage;
+		std::vector<infomation>	overflow_infomations;
+		std::size_t	count = 0;
 	};
 
 	class bounding_sphere;

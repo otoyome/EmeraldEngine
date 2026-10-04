@@ -5,11 +5,17 @@
 #include	"collision/box.h"
 #include	"collision/mesh.h"
 
+#include	<new>
+
 using namespace collision;
 
 void intersect_data::add(const infomation& infomation)
 {
-	infomations.emplace_back(infomation);
+	if (count < inline_capacity)
+		new (&inline_storage.items[count]) intersect_data::infomation(infomation);
+	else
+		overflow_infomations.emplace_back(infomation);
+	++count;
 }
 
 void intersect_data::add(const math::double3& point, const math::double3& normal, double length)
@@ -28,7 +34,23 @@ void intersect_data::add(const math::float3& point, const math::float3& normal, 
 
 void intersect_data::clear()
 {
-	infomations.clear();
+	count = 0;
+	overflow_infomations.clear();
+}
+
+void intersect_data::swap(intersect_data& other) noexcept
+{
+	const std::size_t this_inline_count = (std::min)(count, inline_capacity);
+	const std::size_t other_inline_count = (std::min)(other.count, inline_capacity);
+	const std::size_t common_count = (std::min)(this_inline_count, other_inline_count);
+	for (std::size_t index = 0; index < common_count; ++index)
+		std::swap(inline_storage.items[index], other.inline_storage.items[index]);
+	for (std::size_t index = common_count; index < this_inline_count; ++index)
+		new (&other.inline_storage.items[index]) infomation(inline_storage.items[index]);
+	for (std::size_t index = common_count; index < other_inline_count; ++index)
+		new (&inline_storage.items[index]) infomation(other.inline_storage.items[index]);
+	overflow_infomations.swap(other.overflow_infomations);
+	std::swap(count, other.count);
 }
 
 bool intersect_data::multiply_matrix(std::size_t index, const math::double4x4& matrix)
@@ -38,53 +60,42 @@ bool intersect_data::multiply_matrix(std::size_t index, const math::double4x4& m
 
 bool intersect_data::multiply_matrix(std::size_t index, const math::matrixd& matrix)
 {
-	if (index >= infomations.size())
+	if (index >= count)
 		return false;
 
+	auto& infomation = (*this)[index];
 	math::vector3d Position, Position2, Normal;
-	Position = math::vector3d::transform_coord(math::vector3d(infomations[index].point), matrix);
-	Position2 = math::vector3d::transform_coord(math::vector3d(infomations[index].point2), matrix);
-	Normal = math::vector3d::transform_normal(math::vector3d(infomations[index].normal), matrix);
-	infomations[index].point = Position.to_double3();
-	infomations[index].point2 = Position2.to_double3();
-	infomations[index].normal = Normal.normalized().to_double3();
+	Position = math::vector3d::transform_coord(math::vector3d(infomation.point), matrix);
+	Position2 = math::vector3d::transform_coord(math::vector3d(infomation.point2), matrix);
+	Normal = math::vector3d::transform_normal(math::vector3d(infomation.normal), matrix);
+	infomation.point = Position.to_double3();
+	infomation.point2 = Position2.to_double3();
+	infomation.normal = Normal.normalized().to_double3();
 	return true;
 }
 
 void intersect_data::multiply_matrices(std::size_t begin, const math::matrixd& matrix)
 {
-	for (std::size_t index = begin; index < infomations.size(); ++index)
+	for (std::size_t index = begin; index < count; ++index)
 		multiply_matrix(index, matrix);
 }
 
 void intersect_data::flip_normals_from(std::size_t begin)
 {
-	for (std::size_t index = begin; index < infomations.size(); ++index)
+	for (std::size_t index = begin; index < count; ++index)
 	{
-		infomations[index].normal.x = -infomations[index].normal.x;
-		infomations[index].normal.y = -infomations[index].normal.y;
-		infomations[index].normal.z = -infomations[index].normal.z;
+		auto& normal = (*this)[index].normal;
+		normal.x = -normal.x;
+		normal.y = -normal.y;
+		normal.z = -normal.z;
 	}
 }
 
 void intersect_data::append(const intersect_data& data)
 {
-	infomations.insert(infomations.end(), data.infomations.begin(), data.infomations.end());
-}
-
-std::size_t intersect_data::size() const
-{
-	return infomations.size();
-}
-
-const intersect_data::infomation& intersect_data::operator[](std::size_t index) const
-{
-	return infomations[index];
-}
-
-intersect_data::infomation& intersect_data::operator[](std::size_t index)
-{
-	return infomations[index];
+	const std::size_t data_count = data.count;
+	for (std::size_t index = 0; index < data_count; ++index)
+		add(data[index]);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
