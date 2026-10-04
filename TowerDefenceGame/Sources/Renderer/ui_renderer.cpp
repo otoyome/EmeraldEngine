@@ -145,6 +145,8 @@ void ui_renderer::render(renderer_context& context)
 			ibvs.reserve(sprite_count);
 
 			//	各バッファに詰め込む
+			sprite_buffer_views views;
+			buffer_view ibv;
 			UINT vertex_size = 0, index_size = 0;
 			for (auto& sprite_data : context.render_data->sprite_container.sprite_datas)
 			{
@@ -172,7 +174,6 @@ void ui_renderer::render(renderer_context& context)
 				}
 				//	各view構築
 				{
-					sprite_buffer_views views;
 					for (int format_index = 0; format_index < 3; ++format_index)
 					{
 						auto& view = views.views[format_index];
@@ -185,7 +186,6 @@ void ui_renderer::render(renderer_context& context)
 					}
 					vbvs.emplace_back(views);
 
-					buffer_view ibv;
 					ibv.format = index_buffer_view.format;
 					ibv.buffer = index_buffer_view.buffer;
 					ibv.stride_in_bytes = index_buffer_view.stride_in_bytes;
