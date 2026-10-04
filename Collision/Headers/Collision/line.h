@@ -4,9 +4,13 @@
 
 namespace collision
 {
-	class line
+	template<typename T>
+	class basic_line
 	{
 	public:
+		using element_type = math::basic_element3<T>;
+		using vector_type = math::vector3<T>;
+
 		enum class types
 		{
 			line,
@@ -14,33 +18,39 @@ namespace collision
 		};
 
 	public:
-		line();
-		line(types type, const math::float3& start, const math::float3& vector);
+		basic_line();
+		basic_line(types type, const element_type& start, const element_type& vector);
 
-		void initialize(types type, const math::float3& start, const math::float3& vector);
+		void initialize(types type, const element_type& start, const element_type& vector);
 
-		float calculate_distance(math::float3& horizon, float& delta, const math::float3& point) const;
-		float calculate_distance(math::float3& horizon1, float& delta1, math::float3& horizon2, float& delta2, const line& line) const;
+		T calculate_distance(element_type& horizon, T& delta, const element_type& point) const;
+		T calculate_distance(element_type& horizon1, T& delta1, element_type& horizon2, T& delta2, const basic_line& line) const;
 
-		bool is_parallel(const line& line) const;
+		bool is_parallel(const basic_line& line) const;
 
-		float get_length() const;
+		T get_length() const;
 		types get_type() const;
-		math::float3 get_point(float t) const;
+		element_type get_point(T t) const;
 
 	public:
-		inline const math::float3& operator[](size_t index) const { return	point[index]; }
+		inline const element_type& operator[](size_t index) const { return	point[index]; }
 
 	private:
-		float calculate_line_distance(math::float3& horizon, float& delta, const math::float3& point) const;
-		float calculate_segment_distance(math::float3& horizon, float& delta, const math::float3& point) const;
-		float calculate_line_distance(math::float3& horizon1, float& delta1, math::float3& horizon2, float& delta2, const line& line) const;
-		float calculate_segment_distance(math::float3& horizon1, float& delta1, math::float3& horizon2, float& delta2, const line& line) const;
+		T calculate_line_distance(element_type& horizon, T& delta, const element_type& point) const;
+		T calculate_segment_distance(element_type& horizon, T& delta, const element_type& point) const;
+		T calculate_line_distance(element_type& horizon1, T& delta1, element_type& horizon2, T& delta2, const basic_line& line) const;
+		T calculate_segment_distance(element_type& horizon1, T& delta1, element_type& horizon2, T& delta2, const basic_line& line) const;
+
+		static element_type to_element(const vector_type& v) { return element_type(v.x, v.y, v.z); }
 
 	private:
 		types type;
-		math::float3 point[2]; //  [0]：始点, [1]：[直線]正規化済みの方向ベクトル,[線分]終点
+		element_type point[2]; //  [0]：始点, [1]：[直線]正規化済みの方向ベクトル,[線分]終点
 	};
+
+	using line = basic_line<double>;
+	using linef = basic_line<float>;
+
+	extern template class basic_line<float>;
+	extern template class basic_line<double>;
 }	//	namespace collision
-
-

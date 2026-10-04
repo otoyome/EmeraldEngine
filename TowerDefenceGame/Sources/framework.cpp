@@ -686,8 +686,8 @@ void framework::prepare_renderer_context(
 
 		context.scene_constant.z_buffer_parameteres.y = 1.0f;
 		context.scene_constant.z_buffer_parameteres.x = camera.camera->get_clip_distance().y / camera.camera->get_clip_distance().x - 1.0f;
-		context.scene_constant.z_buffer_parameteres.z = context.scene_constant.z_buffer_parameteres.x / camera.camera->get_clip_distance().y;
-		context.scene_constant.z_buffer_parameteres.w = context.scene_constant.z_buffer_parameteres.y / camera.camera->get_clip_distance().y;
+		context.scene_constant.z_buffer_parameteres.z = 1.0f / camera.camera->get_clip_distance().x - 1.0f / camera.camera->get_clip_distance().y;
+		context.scene_constant.z_buffer_parameteres.w = 1.0f / camera.camera->get_clip_distance().y;
 
 		context.scene_constant.view_transform = camera.camera->get_view_matrix();
 		context.scene_constant.projection_transform = camera.camera->get_projection_matrix();
@@ -979,11 +979,11 @@ bool framework::create_buffers()
 
 		//	深度ステンシルバッファを生成
 		{
-			texture2d_desc.Format = DXGI_FORMAT_R32G8X24_TYPELESS;
+			texture2d_desc.Format = common_pipeline_states::scene_depth_texture_format;
 			texture2d_desc.BindFlags = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
 
 			D3D11_SHADER_RESOURCE_VIEW_DESC shader_resource_view_desc{};
-			shader_resource_view_desc.Format = DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS;
+			shader_resource_view_desc.Format = common_pipeline_states::scene_depth_shader_resource_view_format;
 			shader_resource_view_desc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
 			shader_resource_view_desc.Texture2D.MostDetailedMip = 0;
 			shader_resource_view_desc.Texture2D.MipLevels = 1;
@@ -1029,7 +1029,7 @@ bool framework::create_buffers()
 		texture2d_desc.Height = 2048;
 		texture2d_desc.MipLevels = 1;
 		texture2d_desc.ArraySize = 6;
-		texture2d_desc.Format = DXGI_FORMAT_R32_TYPELESS;
+		texture2d_desc.Format = common_pipeline_states::shadow_map_texture_format;
 		texture2d_desc.SampleDesc.Count = 1;
 		texture2d_desc.SampleDesc.Quality = 0;
 		texture2d_desc.Usage = D3D11_USAGE_DEFAULT;
@@ -1038,7 +1038,7 @@ bool framework::create_buffers()
 		texture2d_desc.MiscFlags = 0;
 
 		D3D11_SHADER_RESOURCE_VIEW_DESC shader_resource_view_desc{};
-		shader_resource_view_desc.Format = DXGI_FORMAT_R32_FLOAT;
+		shader_resource_view_desc.Format = common_pipeline_states::shadow_map_shader_resource_view_format;
 		shader_resource_view_desc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DARRAY;
 		shader_resource_view_desc.Texture2DArray.MostDetailedMip = 0;
 		shader_resource_view_desc.Texture2DArray.MipLevels = 1;

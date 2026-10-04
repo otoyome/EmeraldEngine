@@ -510,11 +510,11 @@ bool character_object::calculate_position(math::float3 velocity, bool vertical, 
 	out_position = get_position();
 
 	//	オフセット位置を算出
-	float height = bounding_object->get_radius() + bounding_object->get_length() * 0.5f;
+	float height = static_cast<float>(bounding_object->get_radius() + bounding_object->get_length() * 0.5);
 	math::vector3f Offset(0.0f, height, 0.0f);
 
 	collision_world::sphere_cast_descs desc;
-	desc.radius = bounding_object->get_radius();
+	desc.radius = static_cast<float>(bounding_object->get_radius());
 	if (is_flag(flags::invisible))
 	{
 		desc.filter = collision_filter_manager::instance()->search_filter("invisible");
@@ -614,7 +614,7 @@ bool character_object::calculate_position(math::float3 velocity, bool vertical, 
 					break;
 			}
 
-			float hit_distance = intersect_data[0].length - SkinStep;
+			float hit_distance = static_cast<float>(intersect_data[0].length) - SkinStep;
 			MoveVector = To - From;
 			float remain_distance = MoveVector.length() - hit_distance;
 			distance = math::clamp(remain_distance, 0.0f, distance);

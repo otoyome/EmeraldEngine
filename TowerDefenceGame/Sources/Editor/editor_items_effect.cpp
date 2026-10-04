@@ -663,7 +663,7 @@ bool editor_items::edit_effect_particle(std::shared_ptr<context>& context, effec
 						{
 							edit_flag = true;
 						}
-						if (ImGui::DragUInt("index", &renderer->uv.index, renderer->uv.splits.x * renderer->uv.splits.y))
+						if (ImGui::DragUInt("index", &renderer->uv.index, 1.0f, 0, renderer->uv.splits.x * renderer->uv.splits.y - 1))
 						{
 							edit_flag = true;
 						}

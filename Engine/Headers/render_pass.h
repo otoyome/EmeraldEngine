@@ -1,6 +1,7 @@
 #pragma once
 
 #include "texture.h"
+#include "common_pipeline_states.h"
 
 struct render_target_view
 {
@@ -19,7 +20,7 @@ struct depth_stencil_view
 	Microsoft::WRL::ComPtr<ID3D11DepthStencilView> view;
 	bool clear_depth{true};
 	bool clear_stencil{true};
-	FLOAT clear_depth_value{0.0f};
+	FLOAT clear_depth_value{common_pipeline_states::depth_clear_value};
 	UINT8 clear_stencil_value{0};
 
 	depth_stencil_view(){};

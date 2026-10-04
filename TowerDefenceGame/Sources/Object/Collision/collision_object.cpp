@@ -184,7 +184,7 @@ void collision_object::solve_pushing_objects(collision::intersect_data& intersec
 		auto& info = intersect_data[index];
 		math::vector3f Normal(info.normal);
 		math::vector3f P1(get_position());
-		P1 = P1 + (Normal * info.length);
+		P1 = P1 + (Normal * static_cast<float>(info.length));
 		math::float3 p1;
 		p1 = P1.to_float3();
 		set_position(p1);
@@ -294,9 +294,9 @@ void collision_object::update()
 
 	const math::float3 bounding_translation = translation.to_float3();
 	const math::float4 bounding_rotation = quaternion.to_float4();
-	bounding_object->set_local_scale(local_scale);
-	bounding_object->set_rotation(bounding_rotation);
-	bounding_object->set_position(bounding_translation);
+	bounding_object->set_local_scale(math::double3(local_scale));
+	bounding_object->set_rotation(math::double4(bounding_rotation));
+	bounding_object->set_position(math::double3(bounding_translation));
 }
 
 void collision_object::debug_draw()
@@ -312,19 +312,19 @@ void collision_object::debug_draw()
 		case collision::bounding_object::types::sphere:
 		{
 			auto object = std::static_pointer_cast<collision::bounding_sphere>(bounding_object);
-			QUEUE_DEBUG_PRIMITIVE_SPHERE(object->get_position(), object->get_radius(), draw_color, true);
+			QUEUE_DEBUG_PRIMITIVE_SPHERE(math::float3(object->get_position()), static_cast<float>(object->get_radius()), draw_color, true);
 			break;
 		}
 		case collision::bounding_object::types::capsule:
 		{
 			auto object = std::static_pointer_cast<collision::bounding_capsule>(bounding_object);
-			QUEUE_DEBUG_PRIMITIVE_CAPSULE(object->get_position(), object->get_rotation(), object->get_radius(), object->get_length(), draw_color, true);
+			QUEUE_DEBUG_PRIMITIVE_CAPSULE(math::float3(object->get_position()), math::float4(object->get_rotation()), static_cast<float>(object->get_radius()), static_cast<float>(object->get_length()), draw_color, true);
 			break;
 		}
 		case collision::bounding_object::types::box:
 		{
 			auto object = std::static_pointer_cast<collision::bounding_box>(bounding_object);
-			QUEUE_DEBUG_PRIMITIVE_BOX(object->get_position(), object->get_rotation(), object->get_local_scale(), draw_color, true);
+			QUEUE_DEBUG_PRIMITIVE_BOX(math::float3(object->get_position()), math::float4(object->get_rotation()), math::float3(object->get_local_scale()), draw_color, true);
 			break;
 		}
 		case collision::bounding_object::types::mesh:

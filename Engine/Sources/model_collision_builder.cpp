@@ -94,19 +94,19 @@ bool collision::generate_bounding_mesh(bounding_mesh& out_mesh, model_resource_p
 			auto Max = (math::max)(A, (math::max)(B, C));
 			triangle.min = Min.to_float3();
 			triangle.max = Max.to_float3();
-			triangle.lab = collision::line(collision::line::types::segment, *(tp + triangle.a), *(tp + triangle.b));
-			triangle.lbc = collision::line(collision::line::types::segment, *(tp + triangle.b), *(tp + triangle.c));
-			triangle.lca = collision::line(collision::line::types::segment, *(tp + triangle.c), *(tp + triangle.a));
+			triangle.lab = collision::linef(collision::linef::types::segment, *(tp + triangle.a), *(tp + triangle.b));
+			triangle.lbc = collision::linef(collision::linef::types::segment, *(tp + triangle.b), *(tp + triangle.c));
+			triangle.lca = collision::linef(collision::linef::types::segment, *(tp + triangle.c), *(tp + triangle.a));
 		}
 	}
 
 	out_mesh = collision::bounding_mesh(positions, triangles, data.separate_level);
 
 	{
-		math::float4 rotation;
-		math::float3 translation;
-		rotation = WorldRotation.to_float4();
-		translation = WorldTranslation.to_float3();
+		math::double4 rotation;
+		math::double3 translation;
+		rotation = WorldRotation.to_double4();
+		translation = WorldTranslation.to_double3();
 
 		out_mesh.set_rotation(rotation);
 		out_mesh.set_position(translation);

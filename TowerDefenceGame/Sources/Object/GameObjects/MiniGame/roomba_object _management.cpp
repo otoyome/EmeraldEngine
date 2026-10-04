@@ -543,12 +543,12 @@ bool roomba_object::calculate_position(math::float3 velocity, float elapsed_time
 
 	out_position = get_position();
 
-	float height = bounding_object->get_radius() + bounding_object->get_length() * 0.5f;
+	float height = static_cast<float>(bounding_object->get_radius() + bounding_object->get_length() * 0.5);
 	math::vector3f Offset(0.0f, height, 0.0f);
 
 	collision_world::capsule_cast_descs desc;
-	desc.radius = bounding_object->get_radius();
-	desc.length = bounding_object->get_length();
+	desc.radius = static_cast<float>(bounding_object->get_radius());
+	desc.length = static_cast<float>(bounding_object->get_length());
 	desc.filter = is_flag(flags::invisible)
 		? collision_filter_manager::instance()->search_filter("invisible")
 		: collision_filter_manager::instance()->search_filter(collision_filter_name);
@@ -586,7 +586,7 @@ bool roomba_object::calculate_position(math::float3 velocity, float elapsed_time
 			math::vector3f Normal = math::vector3f(intersect_data[0].normal).normalized();
 			out_normal = Normal.to_float3();
 
-			float hit_distance = std::max(intersect_data[0].length - SkinStep, 0.0f);
+			float hit_distance = std::max(static_cast<float>(intersect_data[0].length) - SkinStep, 0.0f);
 			math::vector3f Position = From + (NormalizedVelocity * hit_distance);
 			Position = Position + (Normal * SkinStep);
 			out_position = (Position - Offset).to_float3();

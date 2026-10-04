@@ -721,7 +721,7 @@ namespace
 						const math::float4 q = math::quaternionf::rotation_xyz(test_ik.rotation.x, test_ik.rotation.y, test_ik.rotation.z).to_float4();
 						math::float3 t = test_ik.position;
 
-						collision::bounding_box box(s, q, t);
+						collision::bounding_box box{math::double3(s), math::double4(q), math::double3(t)};
 						auto& model_instance_nodes = model_instance->get_nodes();
 						{
 							auto& left_solve_data = ik_solver->get_solve_data()[behavior_data.solve_ids[0]];
@@ -757,17 +757,17 @@ namespace
 															  right_world_matrix._42 - (foot_data.ray_origin_offsets[1] + foot_data.ray_length),
 															  right_world_matrix._43);
 
-								left_hit = box.intersect_segment(left_start, left_end, &left_hit_data);
-								right_hit = box.intersect_segment(right_start, right_end, &right_hit_data);
+								left_hit = box.intersect_segment(math::double3(left_start), math::double3(left_end), &left_hit_data);
+								right_hit = box.intersect_segment(math::double3(right_start), math::double3(right_end), &right_hit_data);
 							}
 
 							//	çòà íuÇâ∫Ç∞ÇÈ
 							{
 								float length = FLT_MIN;
 								if (left_hit)
-									length = foot_data.ray_length - left_hit_data[0].length;
+									length = foot_data.ray_length - static_cast<float>(left_hit_data[0].length);
 								if (right_hit)
-									length = std::max(length, foot_data.ray_length - right_hit_data[0].length);
+									length = std::max(length, foot_data.ray_length - static_cast<float>(right_hit_data[0].length));
 
 								const math::vector3f pelvis_offset(0, -length, 0);
 								for (auto& node_index : foot_data.adjust_node_indices)
@@ -788,12 +788,12 @@ namespace
 							if (left_hit)
 							{
 								left_hit_data[0].point.y -= foot_data.foot_offset;
-								ik_solver->solve(behavior_data.solve_ids[0], left_hit_data[0].point);
+								ik_solver->solve(behavior_data.solve_ids[0], math::float3(left_hit_data[0].point));
 							}
 							if (right_hit)
 							{
 								right_hit_data[0].point.y -= foot_data.foot_offset;
-								ik_solver->solve(behavior_data.solve_ids[1], right_hit_data[0].point);
+								ik_solver->solve(behavior_data.solve_ids[1], math::float3(right_hit_data[0].point));
 							}
 						}
 

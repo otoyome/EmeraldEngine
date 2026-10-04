@@ -12,7 +12,7 @@ light::light(light_type type)
 	set_flag(flags::active, true);
 	set_flag(flags::use_shadow, true);
 
-	csm_distance_factor = 0.5f;
+	csm_distance = 5000.0f;
 	pssm_split_weight = 0.8f;
 	shadow_attenuation = {0.2f, 0.2f, 0.2f};
 
@@ -188,14 +188,14 @@ void light::set_shadow_attenuation(const math::float3& attenuation)
 	this->shadow_attenuation = attenuation;
 }
 
-float light::get_csm_distance_factor() const
+float light::get_csm_distance() const
 {
-	return csm_distance_factor;
+	return csm_distance;
 }
 
-void light::set_csm_distance_factor(float factor)
+void light::set_csm_distance(float distance)
 {
-	this->csm_distance_factor = math::max(factor, 0.0001f);
+	this->csm_distance = math::max(distance, 0.0001f);
 }
 
 float light::get_pssm_split_weight() const

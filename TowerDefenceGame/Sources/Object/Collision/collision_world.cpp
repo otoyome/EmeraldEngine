@@ -34,9 +34,11 @@ namespace
 			if (!bounding)
 				continue;
 
-			math::float3 min_corner;
-			math::float3 max_corner;
-			bounding->include_corner(min_corner, max_corner);
+			math::double3 world_min_corner;
+			math::double3 world_max_corner;
+			bounding->include_corner(world_min_corner, world_max_corner);
+			const math::float3 min_corner(world_min_corner);
+			const math::float3 max_corner(world_max_corner);
 
 			collision_octree::aabb box{};
 			box.min = { min_corner.x - broadphase_margin, min_corner.y - broadphase_margin, min_corner.z - broadphase_margin };
@@ -137,8 +139,13 @@ void collision_world::inner_step_simulation(float elapsed_time)
 				//	AABB‚ðŽg‚Á‚Ä‘åŽG”c‚É”»’èˆ—
 				collision_octree::aabb box1{};
 				collision_octree::aabb box2{};
-				bounding1->include_corner(box1.min, box1.max);
-				bounding2->include_corner(box2.min, box2.max);
+				{
+					math::double3 min1, max1, min2, max2;
+					bounding1->include_corner(min1, max1);
+					bounding2->include_corner(min2, max2);
+					box1.min = math::float3(min1); box1.max = math::float3(max1);
+					box2.min = math::float3(min2); box2.max = math::float3(max2);
+				}
 				if (!collision_octree::aabb::intersects(box1, box2))
 					continue;
 
@@ -200,7 +207,7 @@ void collision_world::inner_step_simulation(float elapsed_time)
 				for (size_t hit_index = 0; hit_index < hit.size(); ++hit_index)
 				{
 					auto data = hit[hit_index];
-					if (fabsf(data.length) <= FLT_EPSILON)
+					if (std::fabs(data.length) <= FLT_EPSILON)
 						continue;
 
 					auto temp = data;
@@ -227,7 +234,7 @@ void collision_world::inner_step_simulation(float elapsed_time)
 				for (size_t hit_index = 0; hit_index < data2.size(); ++hit_index)
 				{
 					auto& data = data2[hit_index];
-					if (fabsf(data.length) <= FLT_EPSILON)
+					if (std::fabs(data.length) <= FLT_EPSILON)
 						continue;
 
 					data.normal.x = -data.normal.x;
@@ -384,7 +391,7 @@ bool collision_world::ray_cast(const ray_cast_descs& desc, collision::intersect_
 			}
 		}
 
-		if (!find && object->get_bounding_object()->intersect_segment(desc.start, desc.end, &data))
+		if (!find && object->get_bounding_object()->intersect_segment(math::double3(desc.start), math::double3(desc.end), &data))
 		{
 			if (intersect_data.size() == 0)
 			{
@@ -426,7 +433,7 @@ bool collision_world::sphere_cast(const sphere_cast_descs& desc, collision::inte
 			}
 		}
 
-		if (!find && object->get_bounding_object()->intersect_sphere_cast(desc.start, desc.end, desc.radius, &data))
+		if (!find && object->get_bounding_object()->intersect_sphere_cast(math::double3(desc.start), math::double3(desc.end), desc.radius, &data))
 		{
 			if (intersect_data.size() == 0 || data[0].length < intersect_data[0].length)
 			{
@@ -464,7 +471,7 @@ bool collision_world::capsule_cast(const capsule_cast_descs& desc, collision::in
 		}
 
 		if (!find && object->get_bounding_object()->intersect_capsule_cast(
-						desc.start, desc.end, desc.radius, desc.length, desc.rotation, &data))
+						math::double3(desc.start), math::double3(desc.end), desc.radius, desc.length, math::double4(desc.rotation), &data))
 		{
 			if (intersect_data.size() == 0 || data[0].length < intersect_data[0].length)
 			{

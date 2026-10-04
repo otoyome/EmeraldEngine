@@ -39,24 +39,26 @@ namespace
 							  const math::float3& n,
 							  const collision::inner::axis_aligned_bounding_box& box)
 	{
-		// 三角形の頂点をAABB中心を原点とした座標系に移動
+		const math::float3 box_position(box.get_position());
+		const math::float3 box_scale(box.get_local_scale());
+
 		math::float3 v[3];
-		v[0].x = u0.x - box.get_position().x;
-		v[0].y = u0.y - box.get_position().y;
-		v[0].z = u0.z - box.get_position().z;
-		v[1].x = u1.x - box.get_position().x;
-		v[1].y = u1.y - box.get_position().y;
-		v[1].z = u1.z - box.get_position().z;
-		v[2].x = u2.x - box.get_position().x;
-		v[2].y = u2.y - box.get_position().y;
-		v[2].z = u2.z - box.get_position().z;
+		v[0].x = u0.x - box_position.x;
+		v[0].y = u0.y - box_position.y;
+		v[0].z = u0.z - box_position.z;
+		v[1].x = u1.x - box_position.x;
+		v[1].y = u1.y - box_position.y;
+		v[1].z = u1.z - box_position.z;
+		v[2].x = u2.x - box_position.x;
+		v[2].y = u2.y - box_position.y;
+		v[2].z = u2.z - box_position.z;
 
 		// 1. 三角形のAABBとAABBの交差判定
 		math::float3 bmin, bmax;
-		bmin.x = -box.get_local_scale().x;
-		bmin.y = -box.get_local_scale().y;
-		bmin.z = -box.get_local_scale().z;
-		bmax = box.get_local_scale();
+		bmin.x = -box_scale.x;
+		bmin.y = -box_scale.y;
+		bmin.z = -box_scale.z;
+		bmax = box_scale;
 		
 		math::float3 tmin = v[0], tmax = v[0];
 		for(int j = 1; j < 3; ++j)
@@ -80,7 +82,7 @@ namespace
 			return false;
 
 		// 2. AABBと三角形を含む平面との交差判定
-		if(!plane_aabb(n, -(n.x * v[0].x + n.y * v[0].y + n.z * v[0].z), {0.0f, 0.0f, 0.0f}, box.get_local_scale()))
+		if(!plane_aabb(n, -(n.x * v[0].x + n.y * v[0].y + n.z * v[0].z), {0.0f, 0.0f, 0.0f}, box_scale))
 			return false;
 
 		// 3. AABBの各軸方向とエッジのテスト
@@ -105,9 +107,9 @@ namespace
 				p.x = math::vector3f::dot(A, math::vector3f(v[0]));
 				p.y = math::vector3f::dot(A, math::vector3f(v[1]));
 				p.z = math::vector3f::dot(A, math::vector3f(v[2]));
-				float r = box.get_local_scale().x * fabs(a.x)
-						+ box.get_local_scale().y * fabs(a.y)
-						+ box.get_local_scale().z * fabs(a.z);
+				float r = box_scale.x * fabs(a.x)
+						+ box_scale.y * fabs(a.y)
+						+ box_scale.z * fabs(a.z);
 				if(std::min(p.x, std::min(p.y, p.z)) > r || std::max(p.x, std::max(p.y, p.z)) < -r)
 					return false;
 			}
@@ -356,13 +358,13 @@ void bounding_mesh::block_data::serialize(Archive& archive, int version)
 	archive(CEREAL_NVP(center), CEREAL_NVP(triangles));
 }
 
-const math::float3& bounding_mesh::get_local_scale() const
+const math::double3& bounding_mesh::get_local_scale() const
 {
-	static const math::float3 scale = {1.0f, 1.0f, 1.0f};
+	static const math::double3 scale = {1.0, 1.0, 1.0};
 	return	scale;
 }
 
-void bounding_mesh::set_local_scale(const math::float3& scale)
+void bounding_mesh::set_local_scale(const math::double3& scale)
 {
 	//	何もしない
 }
@@ -480,7 +482,7 @@ bounding_mesh::bounding_mesh(std::vector<math::float3>& positions, std::vector<t
 					data.center.x += area_unit.x * (static_cast<float>(x) + 0.5f);
 					data.center.y += area_unit.y * (static_cast<float>(y) + 0.5f);
 					data.center.z += area_unit.z * (static_cast<float>(z) + 0.5f);
-					data.bounds = inner::axis_aligned_bounding_box(extent, data.center);
+					data.bounds = inner::axis_aligned_bounding_box(math::double3(extent), math::double3(data.center));
 				}
 			}
 		}
@@ -520,8 +522,9 @@ bounding_mesh::bounding_mesh(std::vector<math::float3>& positions, std::vector<t
 
 						block_data& data = block_datas[block_index];
 
-						math::vector3f BoxMin, BoxMax;
-						data.bounds.include_corner(BoxMin, BoxMax);
+						math::vector3d BoundsMin, BoundsMax;
+						data.bounds.include_corner(BoundsMin, BoundsMax);
+						math::vector3f BoxMin(BoundsMin), BoxMax(BoundsMax);
 
 						if (math::any_greater(tc.triangle_min, BoxMax) || math::any_greater(BoxMin, tc.triangle_max))
 							continue;
@@ -647,7 +650,7 @@ bool bounding_mesh::deserialize(std::string_view file_path)
 		extent.z = area_unit.z * 0.5f;
 		for (auto& node : block_datas)
 		{
-			node.bounds = inner::axis_aligned_bounding_box(extent, node.center);
+			node.bounds = inner::axis_aligned_bounding_box(math::double3(extent), math::double3(node.center));
 		}
 
 		//	事前計算
@@ -671,9 +674,9 @@ bool bounding_mesh::deserialize(std::string_view file_path)
 			auto Max = (math::max)(A, (math::max)(B, C));
 			triangle.min = Min.to_float3();
 			triangle.max = Max.to_float3();
-			triangle.lab = collision::line(collision::line::types::segment, *(p  + triangle.a), *(p  + triangle.b));
-			triangle.lbc = collision::line(collision::line::types::segment, *(p  + triangle.b), *(p  + triangle.c));
-			triangle.lca = collision::line(collision::line::types::segment, *(p  + triangle.c), *(p  + triangle.a));
+			triangle.lab = collision::linef(collision::linef::types::segment, *(p  + triangle.a), *(p  + triangle.b));
+			triangle.lbc = collision::linef(collision::linef::types::segment, *(p  + triangle.b), *(p  + triangle.c));
+			triangle.lca = collision::linef(collision::linef::types::segment, *(p  + triangle.c), *(p  + triangle.a));
 		}
 		return true;
 	}
@@ -713,10 +716,10 @@ bool bounding_mesh::intersect_point_inner(const math::float3& point, float& near
 	return nearlest < FLT_EPSILON;
 }
 
-bool bounding_mesh::intersect_point(const math::float3& point) const
+bool bounding_mesh::intersect_point(const math::double3& point) const
 {
 	math::float3 local_point;
-	local_point = (math::vector3f::transform_coord(math::vector3f(point), get_inverse_transform_matrix())).to_float3();
+	local_point = (math::vector3d::transform_coord(math::vector3d(point), get_inverse_transform_matrix())).to_float3();
 
 	float nearlest = FLT_MAX;
 
@@ -725,7 +728,7 @@ bool bounding_mesh::intersect_point(const math::float3& point) const
 		return false;
 
 	auto& node = block_datas[index];
-	if (node.bounds.intersect_point(local_point))
+	if (node.bounds.intersect_point(math::double3(local_point)))
 	{
 		if (intersect_point_inner(local_point, nearlest, node.triangles))
 			return true;
@@ -798,8 +801,8 @@ bool bounding_mesh::intersect_segment_inner(const math::float3& start, const mat
 	if (hit && intersect)
 	{
 		intersect_data::infomation infomation;
-		infomation.point = HitPosition.to_float3();
-		infomation.normal = HitNormal.to_float3();
+		infomation.point = math::double3(HitPosition.to_float3());
+		infomation.normal = math::double3(HitNormal.to_float3());
 		infomation.length = neart;
 		intersect->add(infomation);
 	}
@@ -866,19 +869,19 @@ bool bounding_mesh::intersect_segment_inner_moller(const math::float3& start, co
 	if (hit && intersect)
 	{
 		intersect_data::infomation infomation;
-		infomation.point = HitPosition.to_float3();
-		infomation.normal = hit_normal;
+		infomation.point = math::double3(HitPosition.to_float3());
+		infomation.normal = math::double3(hit_normal);
 		infomation.length = neart;
 		intersect->add(infomation);
 	}
 	return	hit;
 }
 
-bool bounding_mesh::intersect_segment(const math::float3& start, const math::float3& end, intersect_data* intersect) const
+bool bounding_mesh::intersect_segment(const math::double3& start, const math::double3& end, intersect_data* intersect) const
 {
 	math::float3 local_start, local_end;
-	local_start = (math::vector3f::transform_coord(math::vector3f(start), get_inverse_transform_matrix())).to_float3();
-	local_end = (math::vector3f::transform_coord(math::vector3f(end), get_inverse_transform_matrix())).to_float3();
+	local_start = (math::vector3d::transform_coord(math::vector3d(start), get_inverse_transform_matrix())).to_float3();
+	local_end = (math::vector3d::transform_coord(math::vector3d(end), get_inverse_transform_matrix())).to_float3();
 
 	math::float3 min = local_start, max = local_start;
 	min.x = std::min(min.x, local_end.x);
@@ -902,7 +905,7 @@ bool bounding_mesh::intersect_segment(const math::float3& start, const math::flo
 		if (node.triangles.empty())
 			continue;
 
-		if (!node.bounds.intersect_segment(local_start, local_end))
+		if (!node.bounds.intersect_segment(math::double3(local_start), math::double3(local_end)))
 			continue;
 
 		if (intersect)
@@ -984,10 +987,11 @@ bool bounding_mesh::intersect_sphere_inner(const math::float3& point, float radi
 	return nearlest <= 0.0f;
 }
 
-bool bounding_mesh::intersect_sphere(const math::float3& point, float radius, intersect_data* intersect) const
+bool bounding_mesh::intersect_sphere(const math::double3& point, double world_radius, intersect_data* intersect) const
 {
+	const float radius = static_cast<float>(world_radius);
 	math::float3 local_point;
-	local_point = (math::vector3f::transform_coord(math::vector3f(point), get_inverse_transform_matrix())).to_float3();
+	local_point = (math::vector3d::transform_coord(math::vector3d(point), get_inverse_transform_matrix())).to_float3();
 
 	math::float3 min, max;
 	min.x = local_point.x - radius;
@@ -1035,7 +1039,7 @@ bool bounding_mesh::intersect_sphere(const bounding_sphere& sphere, intersect_da
 	return	intersect_sphere(sphere.get_position(), sphere.get_radius(), intersect);
 }
 
-bool bounding_mesh::intersect_capsule_inner(const bounding_capsule& local_capsule, math::vector3f CapsuleMin, math::vector3f CapsuleMax, math::matrixf TransformMatrix, const std::vector<size_t>& triangle_indices, intersect_data* intersect) const
+bool bounding_mesh::intersect_capsule_inner(const bounding_capsule& local_capsule, math::vector3f CapsuleMin, math::vector3f CapsuleMax, const math::matrixd& TransformMatrix, const std::vector<size_t>& triangle_indices, intersect_data* intersect) const
 {
 	if (triangle_indices.empty())
 		return false;
@@ -1043,8 +1047,9 @@ bool bounding_mesh::intersect_capsule_inner(const bounding_capsule& local_capsul
 	auto p = positions.data();
 	auto ti = triangle_indices.data();
 	auto t = triangles.data();
-	auto local_capsule_line = local_capsule.get_line();
-	auto radius = local_capsule.get_radius();
+	const auto& local_capsule_double_line = local_capsule.get_line();
+	collision::linef local_capsule_line(collision::linef::types::segment, math::float3(local_capsule_double_line[0]), math::float3(local_capsule_double_line[1]));
+	const float radius = static_cast<float>(local_capsule.get_radius());
 	auto LineA = math::vector3f(local_capsule_line[0]);
 	auto LineB = math::vector3f(local_capsule_line[1]);
 
@@ -1101,13 +1106,13 @@ bool bounding_mesh::intersect_capsule_inner(const bounding_capsule& local_capsul
 		math::vector3f PointA(nearlest_point_segment);
 		math::vector3f PointB(nearlest_point_triangle);
 
-		math::vector3f Position(local_capsule.get_line()[0]);
-		math::vector3f End(local_capsule.get_line()[1]);
+		math::vector3f Position(local_capsule_line[0]);
+		math::vector3f End(local_capsule_line[1]);
 		math::vector3f Direction = (Position - End).normalized();
 
 		collision::intersect_data::infomation infomation;
-		infomation.point = nearlest_point_segment;
-		infomation.point2 = nearlest_point_triangle;
+		infomation.point = math::double3(nearlest_point_segment);
+		infomation.point2 = math::double3(nearlest_point_triangle);
 		math::vector3f Vector = PointA - PointB;
 
 		//	最短点が面上の場合
@@ -1150,11 +1155,11 @@ bool bounding_mesh::intersect_capsule_inner(const bounding_capsule& local_capsul
 		}
 
 		//	法線を反転しておく
-		infomation.normal = (-Normal).to_float3();
+		infomation.normal = math::double3((-Normal).to_float3());
 
-		infomation.point = (math::vector3f::transform_coord(math::vector3f(infomation.point), TransformMatrix)).to_float3();
-		infomation.point2 = (math::vector3f::transform_coord(math::vector3f(infomation.point2), TransformMatrix)).to_float3();
-		infomation.normal = ((math::vector3f::transform_normal(math::vector3f(infomation.normal), TransformMatrix)).normalized()).to_float3();
+		infomation.point = (math::vector3d::transform_coord(math::vector3d(infomation.point), TransformMatrix)).to_double3();
+		infomation.point2 = (math::vector3d::transform_coord(math::vector3d(infomation.point2), TransformMatrix)).to_double3();
+		infomation.normal = ((math::vector3d::transform_normal(math::vector3d(infomation.normal), TransformMatrix)).normalized()).to_double3();
 		intersect->add(infomation);
 	}
 	return nearlest < radius;
@@ -1165,14 +1170,14 @@ bool bounding_mesh::intersect_capsule(const bounding_capsule& capsule, intersect
 	//	ローカル空間に変換
 	bounding_capsule local_capsule = capsule;
 	{
-		math::matrixf CopyTransformMatrix = local_capsule.get_transform_matrix();
-		math::vector3f Scale, Translation;
-		math::quaternionf Rotation;
+		math::matrixd CopyTransformMatrix = local_capsule.get_transform_matrix();
+		math::vector3d Scale, Translation;
+		math::quaterniond Rotation;
 		(CopyTransformMatrix * get_inverse_transform_matrix()).decompose(Scale, Rotation, Translation);
-		math::float4 rotation;
-		math::float3 translation;
-		rotation = Rotation.to_float4();
-		translation = Translation.to_float3();
+		math::double4 rotation;
+		math::double3 translation;
+		rotation = Rotation.to_double4();
+		translation = Translation.to_double3();
 		local_capsule.set_rotation(rotation);
 		local_capsule.set_position(translation);
 	}
@@ -1180,7 +1185,12 @@ bool bounding_mesh::intersect_capsule(const bounding_capsule& capsule, intersect
 	//	ローカル空間のAABB
 	math::vector3f Min, Max;
 	math::float3 min, max;
-	local_capsule.include_corner(min, max);
+	{
+		math::double3 local_min, local_max;
+		local_capsule.include_corner(local_min, local_max);
+		min = math::float3(local_min);
+		max = math::float3(local_max);
+	}
 	Min = math::vector3f(min);
 	Max = math::vector3f(max);
 
@@ -1233,7 +1243,7 @@ bool bounding_mesh::intersect_box_inner(math::vector3f Center, math::vector3f Ax
 	auto ti = triangle_indices.data();
 	auto t = triangles.data();
 
-	inner::axis_aligned_bounding_box local_box(half_extent, math::float3{0.0f, 0.0f, 0.0f});
+	inner::axis_aligned_bounding_box local_box(math::double3(half_extent), math::double3{0.0, 0.0, 0.0});
 
 	auto to_box_space = [&](math::vector3f V)
 	{
@@ -1318,17 +1328,17 @@ bool bounding_mesh::intersect_box_inner(math::vector3f Center, math::vector3f Ax
 
 bool bounding_mesh::intersect_box(const bounding_box& box, intersect_data* intersect) const
 {
-	math::vector3f Scale, Translation;
-	math::quaternionf Rotation;
+	math::vector3d Scale, Translation;
+	math::quaterniond Rotation;
 	(box.get_transform_matrix() * get_inverse_transform_matrix()).decompose(Scale, Rotation, Translation);
 
-	math::matrixf RotationMatrix = math::matrixf::rotation_quaternion(Rotation);
-	math::vector3f AxisX = RotationMatrix.to_vector3(0).normalized();
-	math::vector3f AxisY = RotationMatrix.to_vector3(1).normalized();
-	math::vector3f AxisZ = RotationMatrix.to_vector3(2).normalized();
-	math::vector3f Center = Translation;
+	math::matrixd RotationMatrix = math::matrixd::rotation_quaternion(Rotation);
+	math::vector3f AxisX(RotationMatrix.to_vector3(0).normalized().to_float3());
+	math::vector3f AxisY(RotationMatrix.to_vector3(1).normalized().to_float3());
+	math::vector3f AxisZ(RotationMatrix.to_vector3(2).normalized().to_float3());
+	math::vector3f Center(Translation.to_float3());
 
-	const math::float3& half_extent = box.get_local_scale();
+	const math::float3 half_extent(box.get_local_scale());
 
 	math::vector3f Extent = ((math::abs(AxisX) * half_extent.x) + (math::abs(AxisY) * half_extent.y)) + (math::abs(AxisZ) * half_extent.z);
 	math::vector3f BoxMin = Center - Extent;
@@ -1343,11 +1353,11 @@ bool bounding_mesh::intersect_box(const bounding_box& box, intersect_data* inter
 		return false;
 
 	//	ローカル空間の箱
-	math::float4 local_rotation;
-	math::float3 local_position;
-	local_rotation = Rotation.to_float4();
-	local_position = Translation.to_float3();
-	bounding_box local_box(half_extent, local_rotation, local_position);
+	math::double4 local_rotation;
+	math::double3 local_position;
+	local_rotation = Rotation.to_double4();
+	local_position = Translation.to_double3();
+	bounding_box local_box(box.get_local_scale(), local_rotation, local_position);
 
 	bool hit = false;
 	intersect_data data, best;
@@ -1395,7 +1405,7 @@ bool bounding_mesh::intersect_mesh(const bounding_mesh& mesh, intersect_data* in
 	return false;
 }
 
-bool bounding_mesh::intersect_sphere_cast_inner(const collision::line& sweep_line, float radius, const std::vector<size_t>& triangle_indices, intersect_data* intersect) const
+bool bounding_mesh::intersect_sphere_cast_inner(const collision::linef& sweep_line, float radius, const std::vector<size_t>& triangle_indices, intersect_data* intersect) const
 {
 	//	各三角形について移動する球との交差を判定し、メッシュ内で最も移動距離の短い交点を採用する
 	if (triangle_indices.empty())
@@ -1533,10 +1543,12 @@ bool bounding_mesh::intersect_sphere_cast_inner(const collision::line& sweep_lin
 
 			for (int e = 0; e < 3; ++e)
 			{
-				math::vector3f cyl_pos;
-				float cyl_dist;
-				if (intersect_ray_vs_cylinder(Start, End, edges[e].p0, edges[e].p1, radius, cyl_pos, cyl_dist))
+				math::vector3d cyl_pos_double;
+				double cyl_dist_double;
+				if (intersect_ray_vs_cylinder(math::vector3d(Start), math::vector3d(End), math::vector3d(edges[e].p0), math::vector3d(edges[e].p1), radius, cyl_pos_double, cyl_dist_double))
 				{
+					math::vector3f cyl_pos(cyl_pos_double);
+					float cyl_dist = static_cast<float>(cyl_dist_double);
 					if (bound_distance > cyl_dist)
 					{
 						math::vector3f edge_dir = (edges[e].p1 - edges[e].p0).normalized();
@@ -1566,20 +1578,21 @@ bool bounding_mesh::intersect_sphere_cast_inner(const collision::line& sweep_lin
 		math::vector3f SphereCenterAtHit = Start + (SweepDirectionNormalize * nearlest_distance);
 
 		collision::intersect_data::infomation infomation;
-		infomation.point = SphereCenterAtHit.to_float3();		//	接触時点の球の中心位置
-		infomation.point2 = math::vector3f(nearlest_triangle_pos).to_float3();	//	三角形側の接触点
+		infomation.point = math::double3(SphereCenterAtHit.to_float3());		//	接触時点の球の中心位置
+		infomation.point2 = math::double3(math::vector3f(nearlest_triangle_pos).to_float3());	//	三角形側の接触点
 		infomation.length = nearlest_distance;								//	接触までの移動距離
-		infomation.normal = math::vector3f(nearlest_normal).to_float3();		//	接触面の法線
+		infomation.normal = math::double3(math::vector3f(nearlest_normal).to_float3());		//	接触面の法線
 		intersect->add(infomation);
 	}
 	return hit_flag;
 }
 
-bool bounding_mesh::intersect_sphere_cast(const math::float3& start, const math::float3& end, float radius, intersect_data* intersect) const
+bool bounding_mesh::intersect_sphere_cast(const math::double3& start, const math::double3& end, double world_radius, intersect_data* intersect) const
 {
+	const float radius = static_cast<float>(world_radius);
 	math::float3 local_start, local_end;
-	local_start = (math::vector3f::transform_coord(math::vector3f(start), get_inverse_transform_matrix())).to_float3();
-	local_end = (math::vector3f::transform_coord(math::vector3f(end), get_inverse_transform_matrix())).to_float3();
+	local_start = (math::vector3d::transform_coord(math::vector3d(start), get_inverse_transform_matrix())).to_float3();
+	local_end = (math::vector3d::transform_coord(math::vector3d(end), get_inverse_transform_matrix())).to_float3();
 
 	math::float3 min, max;
 	min.x = std::min(local_start.x, local_end.x) - radius;
@@ -1596,7 +1609,7 @@ bool bounding_mesh::intersect_sphere_cast(const math::float3& start, const math:
 	if ((math::vector3f(local_end) - math::vector3f(local_start)).square_length() <= 1e-12f)
 		return false;
 
-	collision::line sweep_line(collision::line::types::segment, local_start, local_end);
+	collision::linef sweep_line(collision::linef::types::segment, local_start, local_end);
 
 	bool hit = false;
 	intersect_data data, best;
@@ -1635,35 +1648,35 @@ bool bounding_mesh::intersect_sphere_cast(const math::float3& start, const math:
 	return hit;
 }
 
-bool bounding_mesh::intersect_capsule_cast(const math::float3& start, const math::float3& end,
-										   float radius, float length, const math::float4& rotation,
+bool bounding_mesh::intersect_capsule_cast(const math::double3& start, const math::double3& end,
+										   double radius, double length, const math::double4& rotation,
 										   intersect_data* intersect) const
 {
-	math::vector3f axis = math::quaternionf(rotation).rotate(math::vector3f(0.0f, 1.0f, 0.0f));
+	math::vector3d axis = math::quaterniond(rotation).rotate(math::vector3d(0.0, 1.0, 0.0));
 	return intersect_capsule_cast_by_axis_spheres(start, end, radius, length, axis, intersect);
 }
 
-void bounding_mesh::include_corner(math::float3& min, math::float3& max) const
+void bounding_mesh::include_corner(math::double3& min, math::double3& max) const
 {
 	//	ローカル範囲の8頂点をワールドへ変換して包含
-	math::matrixf Transform = get_transform_matrix();
-	math::vector3f Min(FLT_MAX, FLT_MAX, FLT_MAX);
-	math::vector3f Max(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+	math::matrixd Transform = get_transform_matrix();
+	math::vector3d Min(DBL_MAX, DBL_MAX, DBL_MAX);
+	math::vector3d Max(-DBL_MAX, -DBL_MAX, -DBL_MAX);
 	for (int corner = 0; corner < 8; ++corner)
 	{
 		math::float3 point(
 			(corner & 1) ? area_max.x : area_min.x,
 			(corner & 2) ? area_max.y : area_min.y,
 			(corner & 4) ? area_max.z : area_min.z);
-		math::vector3f Point = math::vector3f::transform_coord(math::vector3f(point), Transform);
+		math::vector3d Point = math::vector3d::transform_coord(math::vector3d(point), Transform);
 		Min = (math::min)(Min, Point);
 		Max = (math::max)(Max, Point);
 	}
-	min = Min.to_float3();
-	max = Max.to_float3();
+	min = Min.to_double3();
+	max = Max.to_double3();
 }
 
-float bounding_mesh::calculate_segment_distance(const collision::line& line,
+float bounding_mesh::calculate_segment_distance(const collision::linef& line,
 												const triangle& triangle,
 												math::float3& nearlest_point_segment,
 												math::float3& nearlest_point_triangle,
@@ -1786,13 +1799,13 @@ float bounding_mesh::calculate_segment_distance(const collision::line& line,
 	return nearlest_distance;
 }
 
-bool bounding_mesh::is_point_inside(const math::float3& point) const
+bool bounding_mesh::is_point_inside(const math::double3& point) const
 {
 	if (triangles.empty() || block_datas.empty())
 		return false;
 
 	math::float3 local_point;
-	local_point = (math::vector3f::transform_coord(math::vector3f(point), get_inverse_transform_matrix())).to_float3();
+	local_point = (math::vector3d::transform_coord(math::vector3d(point), get_inverse_transform_matrix())).to_float3();
 	math::vector3f P(local_point);
 
 	constexpr size_t direction_count = std::size(inside_test_ray_directions);
@@ -1823,7 +1836,7 @@ bool bounding_mesh::is_point_inside(const math::float3& point) const
 			auto& node = block_datas[node_index];
 			if (node.triangles.empty())
 				continue;
-			if (!node.bounds.intersect_segment(local_point, local_end))
+			if (!node.bounds.intersect_segment(math::double3(local_point), math::double3(local_end)))
 				continue;
 
 			candidate_triangles.insert(candidate_triangles.end(), node.triangles.begin(), node.triangles.end());
@@ -1852,13 +1865,13 @@ bool bounding_mesh::is_point_inside(const math::float3& point) const
 	return inside_votes * 2 > direction_count;
 }
 
-bool bounding_mesh::distance_to_point(const math::float3& point, float& out_distance, math::float3* out_nearest_point, math::float3* out_normal) const
+bool bounding_mesh::distance_to_point(const math::double3& point, double& out_distance, math::double3* out_nearest_point, math::double3* out_normal) const
 {
 	if (triangles.empty() || block_datas.empty())
 		return false;
 
 	math::float3 local_point;
-	local_point = (math::vector3f::transform_coord(math::vector3f(point), get_inverse_transform_matrix())).to_float3();
+	local_point = (math::vector3d::transform_coord(math::vector3d(point), get_inverse_transform_matrix())).to_float3();
 	math::vector3f P(local_point);
 
 	auto p = positions.data();
@@ -1925,11 +1938,11 @@ bool bounding_mesh::distance_to_point(const math::float3& point, float& out_dist
 	out_distance = sqrtf(nearest_sq);
 	if (out_nearest_point)
 	{
-		*out_nearest_point = (math::vector3f::transform_coord(nearest_point_v, get_transform_matrix())).to_float3();
+		*out_nearest_point = (math::vector3d::transform_coord(math::vector3d(nearest_point_v.to_float3()), get_transform_matrix())).to_double3();
 	}
 	if (out_normal)
 	{
-		*out_normal = ((math::vector3f::transform_normal(math::vector3f(nearest_normal), get_transform_matrix())).normalized()).to_float3();
+		*out_normal = ((math::vector3d::transform_normal(math::vector3d(nearest_normal), get_transform_matrix())).normalized()).to_double3();
 	}
 	return true;
 }

@@ -1,6 +1,7 @@
 #include "fullscreen_quad.hlsli"
 #include "shading_functions.hlsli"
 #include "scene_constant_buffer.hlsli"
+#include "gbuffer.hlsli"
 
 
 Texture2D color_map : register(t0);
@@ -130,7 +131,8 @@ float4 main(VS_OUT pin) : SV_TARGET
             normal_weight = pow(saturate(normal_weight), 32.0f);
  
             //  深度のウェイトを求める
-            float depth_diff = high_resolution_normal_depth.w - low_resolution_normal_depth[i].w;
+            //  @remainder	線形深度をビュー空間の値にしたので相対差で比較する
+            float depth_diff = calculate_relative_linear_depth_difference(high_resolution_normal_depth.w, low_resolution_normal_depth[i].w);
             float depth_weight = 1.0f / (1.0f + abs(depth_diff));
 
             float weight = normal_weight * depth_weight * bilinear_weights[high_resolution_index][i];

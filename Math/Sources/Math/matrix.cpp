@@ -1058,6 +1058,15 @@ namespace math
 		ret.s11 = static_cast<T>(2) / width;
 		ret.s22 = static_cast<T>(2) / height;
 
+		//	far に無限大を渡した場合は無限遠の極限として扱う(深度は一定になる)
+		if (std::isinf(far_z))
+		{
+			ret.s33 = static_cast<T>(0);
+			ret.s43 = (z_order == projection_z_order::reverse) ? static_cast<T>(1) : static_cast<T>(0);
+			ret.s44 = static_cast<T>(1);
+			return ret;
+		}
+
 		//	Zオーダーが反転指定ならNear/Farを入れ替える
 		if (z_order == projection_z_order::reverse)
 		{
@@ -1090,6 +1099,7 @@ namespace math
 	template<typename T>
 	matrix<T> matrix<T>::orthographic_offset_center(T left, T right, T bottom, T top, T near_z, T far_z, coordinate_order coordinate, projection_z_order z_order)
 	{
+		const bool infinite_far_plane = std::isinf(far_z);
 		//	Zオーダーが反転指定ならNear/Farを入れ替える
 		if (z_order == projection_z_order::reverse)
 		{
@@ -1106,6 +1116,15 @@ namespace math
 		ret.s22 = reciprocal_height + reciprocal_height;
 		ret.s41 = -(left + right) * reciprocal_width;
 		ret.s42 = -(top + bottom) * reciprocal_height;
+
+		//	far に無限大を渡した場合は無限遠の極限として扱う(深度は一定になる)
+		if (infinite_far_plane)
+		{
+			ret.s33 = static_cast<T>(0);
+			ret.s43 = (z_order == projection_z_order::reverse) ? static_cast<T>(1) : static_cast<T>(0);
+			ret.s44 = static_cast<T>(1);
+			return ret;
+		}
 		switch (coordinate)
 		{
 			case coordinate_order::rh:

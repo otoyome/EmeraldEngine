@@ -122,9 +122,9 @@ void directional_light_object::imgui_tree_inner_render()
 	ImGui::SliderFloat("pssm_split_weight", &pssm_split_weight, 0.0f, 1.0f, "%.6f");
 	light->set_pssm_split_weight(pssm_split_weight);
 
-	auto csm_distance_factor = light->get_csm_distance_factor();
-	ImGui::SliderFloat("csm_distance_factor", &csm_distance_factor, 0.0f, 1.0f, "%.6f");
-	light->set_csm_distance_factor(csm_distance_factor);
+	auto csm_distance = light->get_csm_distance();
+	ImGui::DragFloat("csm_distance", &csm_distance, 1.0f, 0.0f, 100000.0f, "%.1f");
+	light->set_csm_distance(csm_distance);
 
 	ImGui::Separator();
 	for (int index = 0; index < common_pipeline_states::shadow_map_max; ++index)

@@ -28,7 +28,7 @@ namespace collision
 		float calculate_distance(const math::float3& point) const;
 
 		//	ü‚Æ•½–Ê‚ÌŒğ·”»’è
-		bool to_line(const line& line, float* distance = nullptr, math::float3* insert_point = nullptr) const;
+		bool to_line(const linef& line, float* distance = nullptr, math::float3* insert_point = nullptr) const;
 
 	private:
 		math::float4 parameter; //	xyz : –@ü, w : ‹——£

@@ -199,9 +199,12 @@ void debug_primitive_manager::queue_capsule(const math::float3 center, const mat
 
 void debug_primitive_manager::queue_box(const math::float3 position, const math::float4 rotation, const math::float3 scale, const math::float4& color, bool depth_write)
 {
-	collision::bounding_box box(scale, rotation, position);
+	collision::bounding_box box{math::double3(scale), math::double4(rotation), math::double3(position)};
+	math::double3 box_vertices[8];
+	box.calculate_vertex(box_vertices, 8);
 	math::float3 vertices[8];
-	box.calculate_vertex(vertices, 8);
+	for (size_t index = 0; index < 8; ++index)
+		vertices[index] = math::float3(box_vertices[index]);
 
 	queue_line(vertices[0], vertices[1], color, depth_write);
 	queue_line(vertices[1], vertices[2], color, depth_write);

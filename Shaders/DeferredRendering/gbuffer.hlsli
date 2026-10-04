@@ -1,6 +1,8 @@
 #ifndef __GBUFFER_HLSLI__
 #define __GBUFFER_HLSLI__
 
+#include "common.hlsli"
+
 //  シェーディングモデル定数
 static const uint shading_model_unlit       = 0;    //  シェーディング計算：ライティング無し
 static const uint shading_model_default_lit = 1; //  シェーディング計算：基本計算
@@ -134,13 +136,21 @@ float2 calculate_uvspace_velocity(float4 current_clip_position, float4 previous_
 //  非線形深度から線形深度へ変換
 float convert_projection_depth_to_linear_depth(float depth, float4 z_buffer_parameteres)
 {
-    return 1.0f / (z_buffer_parameteres.x * depth + z_buffer_parameteres.y);
+    //	遠クリップ基準(0～1)ではなくビュー空間の深度を返す(遠クリップが無限遠でも成立する)
+    return 1.0f / max(z_buffer_parameteres.z * depth + z_buffer_parameteres.w, 1.0f / gbuffer_max_linear_depth);
 }
 
 //  線形深度から非線形深度へ変換
 float convert_linear_depth_to_projection_depth(float depth, float4 z_buffer_parameteres)
 {
-    return (1.0f - z_buffer_parameteres.y * depth) / (z_buffer_parameteres.x * depth);
+    //	遠クリップが有限の場合、空の値は遠クリップより奥になり逆射影が発散するので遠クリップ面(ほぼ0)で止める
+    return max((1.0f / depth - z_buffer_parameteres.w) / z_buffer_parameteres.z, min_projection_depth);
+}
+
+//	2つの線形深度の相対差(0～1)。深度のスケールに依存しない比較に使う
+float calculate_relative_linear_depth_difference(float depth0, float depth1)
+{
+    return abs(depth0 - depth1) / max(max(depth0, depth1), relative_linear_depth_epsilon);
 }
 
 //  GBufferDataに纏めた情報をピクセルシェーダーの出力用構造体に変換

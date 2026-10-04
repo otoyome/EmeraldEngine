@@ -692,7 +692,7 @@ skybox_pipeline_state::skybox_pipeline_state()
 		D3D11_DEPTH_STENCIL_DESC depth_stencil_desc{};
 		depth_stencil_desc.DepthEnable = TRUE;
 		depth_stencil_desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
-		depth_stencil_desc.DepthFunc = D3D11_COMPARISON_GREATER_EQUAL;
+		depth_stencil_desc.DepthFunc = common_pipeline_states::depth_comparison_func;
 		hr = render_data::instance()->get_device()->CreateDepthStencilState(&depth_stencil_desc, depth_stencil_states.GetAddressOf());
 		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
 	}

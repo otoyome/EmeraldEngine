@@ -290,12 +290,13 @@ void model_instance_manger::get_container(mesh_container& container)
 				math::float3 scale((mesh.bounds_max.x - mesh.bounds_min.x) * 0.5f, (mesh.bounds_max.y - mesh.bounds_min.y) * 0.5f, (mesh.bounds_max.z - mesh.bounds_min.z) * 0.5f);
 				math::float3 center(mesh.bounds_min.x + scale.x, mesh.bounds_min.y + scale.y, mesh.bounds_min.z + scale.z);
 
-				collision::bounding_box box = collision::bounding_box(scale, {0.0f, 0.0f, 0.0f, 1.0f}, center);
+				collision::bounding_box box = collision::bounding_box(math::double3(scale), {0.0, 0.0, 0.0, 1.0}, math::double3(center));
 
-				math::float3 vertices[8];
+				math::double3 vertices[8];
 				box.calculate_vertex(vertices, ARRAYSIZE(vertices));
-				for (auto& vertex : vertices)
+				for (auto& box_vertex : vertices)
 				{
+					math::float3 vertex(box_vertex);
 					vertex = math::vector3f::transform_coord(vertex, NodeWorldTransforms[mesh.node_index]).to_float3();
 					bounds_min.x = std::min(vertex.x, bounds_min.x);
 					bounds_min.y = std::min(vertex.y, bounds_min.y);

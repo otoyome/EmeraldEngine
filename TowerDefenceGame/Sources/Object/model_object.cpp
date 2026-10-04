@@ -657,9 +657,9 @@ void model_object::update_ik()
 				{
 					float length = 0.0f;
 					if (left_hit)
-						length = left_hit_data[0].length - left_baseline;
+						length = static_cast<float>(left_hit_data[0].length) - left_baseline;
 					if (right_hit)
-						length = std::max(length, right_hit_data[0].length - right_baseline);
+						length = std::max(length, static_cast<float>(right_hit_data[0].length) - right_baseline);
 					length = std::max(length, 0.0f);
 
 					//	ワールド空間でのオフセット位置を算出
@@ -688,7 +688,7 @@ void model_object::update_ik()
 				//	ヒット位置に足を補正
 				if (left_hit)
 				{
-					math::float3 ik_pos = left_hit_data[0].point;
+					math::float3 ik_pos(left_hit_data[0].point);
 					ik_pos.x += foot_ik_direction.x * foot_data.foot_offset;
 					ik_pos.y += foot_ik_direction.y * foot_data.foot_offset;
 					ik_pos.z += foot_ik_direction.z * foot_data.foot_offset;
@@ -696,7 +696,7 @@ void model_object::update_ik()
 				}
 				if (right_hit)
 				{
-					math::float3 ik_pos = right_hit_data[0].point;
+					math::float3 ik_pos(right_hit_data[0].point);
 					ik_pos.x += foot_ik_direction.x * foot_data.foot_offset;
 					ik_pos.y += foot_ik_direction.y * foot_data.foot_offset;
 					ik_pos.z += foot_ik_direction.z * foot_data.foot_offset;

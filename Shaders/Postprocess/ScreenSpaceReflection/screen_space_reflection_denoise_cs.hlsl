@@ -117,7 +117,7 @@ void main(int3 group_id : SV_GroupID, int3 group_thread_id : SV_GroupThreadID, i
             float weight_normal = pow(normal_dist, denoise_normal_sigma);
 
             //  ê[ìxÇÃèdÇ›
-            float delta_depth = center_normal_depth.w - normal_depth.w;
+            float delta_depth = calculate_relative_linear_depth_difference(center_normal_depth.w, normal_depth.w);
             float depth_dist = dot(delta_depth, delta_depth);
             float weight_depth = min(exp(-depth_dist / (denoise_depth_sigma * denoise_sigma_scale)), 1.0f);
 

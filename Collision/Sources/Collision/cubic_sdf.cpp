@@ -154,11 +154,12 @@ bool collision::create_cubic_sdf(cubic_sdf& out_sdf, bounding_mesh& mesh, uint32
 			math::float3 voxel_center = out_sdf.voxel_center(x, y, z);
 			voxel_center = math::vector3f::transform_coord(voxel_center, mesh_transform).to_float3();
 
-			float distance = 0.0f;
-			mesh.distance_to_point(voxel_center, distance);
+			double world_distance = 0.0;
+			mesh.distance_to_point(math::double3(voxel_center), world_distance);
+			float distance = static_cast<float>(world_distance);
 
 			//	“àŠO”»’è
-			if (mesh.is_point_inside(voxel_center))
+			if (mesh.is_point_inside(math::double3(voxel_center)))
 				distance = -distance;
 
 			out_sdf.voxels[flat_index] = distance;

@@ -320,7 +320,7 @@ void player_camera_controller_object::fixed_update_default(float elapsed_time)
 			collision_object_ptr hit_collision_object;
 			if (object_manager::instance()->get_world().sphere_cast(desc, intersect_data, hit_collision_object))
 			{
-				float length = intersect_data[0].length;
+				float length = static_cast<float>(intersect_data[0].length);
 				math::float3 vector;
 				vector.x = camera_position.x - focus.x;
 				vector.y = camera_position.y - focus.y;

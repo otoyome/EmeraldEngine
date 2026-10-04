@@ -104,7 +104,7 @@ void depth_prepass_renderer::resize_buffer(int width, int height)
 
 	//	描画パス生成
 	D3D11_DEPTH_STENCIL_VIEW_DESC depth_stencil_view_desc{};
-	depth_stencil_view_desc.Format = DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
+	depth_stencil_view_desc.Format = common_pipeline_states::scene_depth_stencil_view_format;
 	depth_stencil_view_desc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
 	depth_stencil_view_desc.Texture2D.MipSlice = 0;
 	rendering_pass.depth_stencil = depth_stencil_view(render_targets->scene_depth_stencil_texture, &depth_stencil_view_desc);
@@ -206,13 +206,13 @@ void gbuffer_renderer::resize_buffer(int width, int height)
 	{
 		FLOAT clear_color[][4] =
 		{
-			{ 0.0f, 0.0f, 0.0f, 0.0f },	//	base_color
-			{ 0.0f, 0.0f, 0.0f, 1.0f },	//	normal_depth
-			{ 0.0f, 0.0f, 0.0f, 0.0f },	//	parameter
-			{ 0.0f, 0.0f, 0.0f, 0.0f },	//	velocity
-			{ 0.0f, 0.0f, 0.0f, 0.0f },	//	unique_data
-			{ 0.0f, 0.0f, 0.0f, 0.0f },	//	shade_color [エンジン改造:G-Buffer]
-			{ 0.0f, 0.0f, 0.0f, 0.0f },	//	ilm_color [エンジン改造:G-Buffer]
+			{ 0.0f, 0.0f, 0.0f, 0.0f },		//	base_color
+			{ 0.0f, 0.0f, 0.0f, common_pipeline_states::gbuffer_max_linear_depth },	//	normal_depth
+			{ 0.0f, 0.0f, 0.0f, 0.0f },		//	parameter
+			{ 0.0f, 0.0f, 0.0f, 0.0f },		//	velocity
+			{ 0.0f, 0.0f, 0.0f, 0.0f },		//	unique_data
+			{ 0.0f, 0.0f, 0.0f, 0.0f },		//	shade_color [エンジン改造:G-Buffer]
+			{ 0.0f, 0.0f, 0.0f, 0.0f },		//	ilm_color [エンジン改造:G-Buffer]
 		};
 		rendering_pass.render_targets.clear();
 		for (int i = 0; i < static_cast<int>(common_pipeline_states::gbuffer_id::max); ++i)
@@ -235,7 +235,7 @@ void gbuffer_renderer::resize_buffer(int width, int height)
 		}
 
 		D3D11_DEPTH_STENCIL_VIEW_DESC depth_stencil_view_desc{};
-		depth_stencil_view_desc.Format = DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
+		depth_stencil_view_desc.Format = common_pipeline_states::scene_depth_stencil_view_format;
 		depth_stencil_view_desc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
 		depth_stencil_view_desc.Texture2D.MipSlice = 0;
 		rendering_pass.depth_stencil = depth_stencil_view(render_targets->scene_depth_stencil_texture, &depth_stencil_view_desc);
@@ -321,7 +321,7 @@ void gbuffer_decal_renderer::render(renderer_context& renderer_context)
 				center.x = context.scene_constant.camera_position.x;
 				center.y = context.scene_constant.camera_position.y;
 				center.z = context.scene_constant.camera_position.z;
-				sphere = collision::bounding_sphere(center, context.scene_constant.camera_clip_distance.x * 1.01f);
+				sphere = collision::bounding_sphere(math::double3(center), context.scene_constant.camera_clip_distance.x * 1.01f);
 			}
 
 			//	必要なテクスチャを設定
@@ -434,7 +434,7 @@ void gbuffer_decal_renderer::resize_buffer(int width, int height)
 		}
 #endif
 		D3D11_DEPTH_STENCIL_VIEW_DESC depth_stencil_view_desc{};
-		depth_stencil_view_desc.Format = DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
+		depth_stencil_view_desc.Format = common_pipeline_states::scene_depth_stencil_view_format;
 		depth_stencil_view_desc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
 		depth_stencil_view_desc.Texture2D.MipSlice = 0;
 		rendering_pass.depth_stencil = depth_stencil_view(render_targets->scene_depth_stencil_texture, &depth_stencil_view_desc);
@@ -788,7 +788,7 @@ void deffered_lighting_renderer::render_directional_shadow_map(const light& ligh
 	}
 
 	//	CSM用に遠クリップ面に対して距離制限をかける
-	float far_clip = std::max(near_clip, std::min(camera_far_clip * light.get_csm_distance_factor(), camera_far_clip));
+	float far_clip = std::max(near_clip, std::min(light.get_csm_distance(), camera_far_clip));
 	float projection_near_clip = scene_renderer_commons::convert_view_depth_to_projection_depth(near_clip, near_clip, camera_far_clip);
 	float projection_far_clip = scene_renderer_commons::convert_view_depth_to_projection_depth(far_clip, near_clip, camera_far_clip);
 
@@ -1222,7 +1222,7 @@ void deffered_lighting_renderer::resize_shadow_buffer(int width, int height)
 	render_targets->shadowmap_depth_texture->get_shader_resource_view()->GetDesc(&srv_desc);
 	//	シャドウマップパス生成
 	D3D11_DEPTH_STENCIL_VIEW_DESC depth_stencil_view_desc{};
-	depth_stencil_view_desc.Format = DXGI_FORMAT_D32_FLOAT;
+	depth_stencil_view_desc.Format = common_pipeline_states::shadow_map_depth_stencil_view_format;
 	depth_stencil_view_desc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DARRAY;
 	depth_stencil_view_desc.Texture2DArray.ArraySize = srv_desc.Texture2DArray.ArraySize;
 	depth_stencil_view_desc.Texture2DArray.FirstArraySlice = 0;
@@ -1305,7 +1305,7 @@ void debug_draw_pass_renderer::resize_buffer(int width, int height)
 	rendering_pass.render_targets.emplace_back(render_data::instance()->get_swap_chain());
 	rendering_pass.render_targets.back().clear_color = false;
 	D3D11_DEPTH_STENCIL_VIEW_DESC depth_stencil_view_desc{};
-	depth_stencil_view_desc.Format = DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
+	depth_stencil_view_desc.Format = common_pipeline_states::scene_depth_stencil_view_format;
 	depth_stencil_view_desc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
 	depth_stencil_view_desc.Texture2D.MipSlice = 0;
 	rendering_pass.depth_stencil = depth_stencil_view(render_targets->scene_depth_stencil_texture, &depth_stencil_view_desc);

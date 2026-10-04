@@ -185,22 +185,22 @@ graphics_custom_pipeline_state::graphics_custom_pipeline_state()
 		D3D11_DEPTH_STENCIL_DESC depth_stencil_desc{};
 		depth_stencil_desc.DepthEnable = TRUE;
 		depth_stencil_desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
-		depth_stencil_desc.DepthFunc = D3D11_COMPARISON_GREATER_EQUAL;
+		depth_stencil_desc.DepthFunc = common_pipeline_states::depth_comparison_func;
 		hr = device->CreateDepthStencilState(&depth_stencil_desc, depth_stencil_states[static_cast<size_t>(depth_stencil_state::depth_test_and_write)].GetAddressOf());
 		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
 		depth_stencil_desc.DepthEnable = TRUE;
 		depth_stencil_desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
-		depth_stencil_desc.DepthFunc = D3D11_COMPARISON_GREATER_EQUAL;
+		depth_stencil_desc.DepthFunc = common_pipeline_states::depth_comparison_func;
 		hr = device->CreateDepthStencilState(&depth_stencil_desc, depth_stencil_states[static_cast<size_t>(depth_stencil_state::depth_test_only)].GetAddressOf());
 		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
 		depth_stencil_desc.DepthEnable = FALSE;
 		depth_stencil_desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
-		depth_stencil_desc.DepthFunc = D3D11_COMPARISON_GREATER_EQUAL;
+		depth_stencil_desc.DepthFunc = common_pipeline_states::depth_comparison_func;
 		hr = device->CreateDepthStencilState(&depth_stencil_desc, depth_stencil_states[static_cast<size_t>(depth_stencil_state::depth_write_only)].GetAddressOf());
 		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
 		depth_stencil_desc.DepthEnable = FALSE;
 		depth_stencil_desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
-		depth_stencil_desc.DepthFunc = D3D11_COMPARISON_GREATER_EQUAL;
+		depth_stencil_desc.DepthFunc = common_pipeline_states::depth_comparison_func;
 		hr = device->CreateDepthStencilState(&depth_stencil_desc, depth_stencil_states[static_cast<size_t>(depth_stencil_state::depth_off)].GetAddressOf());
 		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
 
@@ -209,7 +209,7 @@ graphics_custom_pipeline_state::graphics_custom_pipeline_state()
 			D3D11_DEPTH_STENCIL_DESC depth_stencil_desc{};
 			depth_stencil_desc.DepthEnable = TRUE;
 			depth_stencil_desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
-			depth_stencil_desc.DepthFunc = D3D11_COMPARISON_GREATER_EQUAL;
+			depth_stencil_desc.DepthFunc = common_pipeline_states::depth_comparison_func;
 			depth_stencil_desc.StencilEnable = TRUE;
 			depth_stencil_desc.StencilReadMask = 0xFF;
 			depth_stencil_desc.StencilWriteMask = 0xFF;

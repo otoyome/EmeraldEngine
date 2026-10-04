@@ -569,8 +569,8 @@ void edit_model_scene::on_mouse_left_down_and_hold(void* data_ptr)
 		{
 			if (result[0].length < vertex_hit_length)
 			{
-				brush_data.position = result[0].point;
-				vertex_hit_length = result[0].length;
+				brush_data.position = math::float3(result[0].point);
+				vertex_hit_length = static_cast<float>(result[0].length);
 			}
 		}
 	}

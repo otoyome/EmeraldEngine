@@ -116,13 +116,15 @@ namespace
 
 float scene_renderer_commons::convert_view_depth_to_projection_depth(float view_depth, float near_clip, float far_clip)
 {
+	const float reciprocal_far_clip = 1.0f / far_clip;
+	const float near_far_ratio = near_clip * reciprocal_far_clip;
 	if constexpr (math::is_reverse_depth())
 	{
-		return near_clip * (far_clip - view_depth) / (view_depth * (far_clip - near_clip));
+		return near_clip * (1.0f - view_depth * reciprocal_far_clip) / (view_depth * (1.0f - near_far_ratio));
 	}
 	else
 	{
-		return far_clip * (view_depth - near_clip) / (view_depth * (far_clip - near_clip));
+		return (view_depth - near_clip) / (view_depth * (1.0f - near_far_ratio));
 	}
 }
 

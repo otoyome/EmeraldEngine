@@ -27,6 +27,28 @@ namespace common_pipeline_states
 	constexpr UINT decal_stencil_ref = 0x80;
 
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////
+	//	深度バッファ関係
+	//	@remainder	シェーダー側の値はcommon.hlsliと合わせること
+	constexpr float depth_near_value = math::is_reverse_depth() ? 1.0f : 0.0f;	//	near面の射影深度
+	constexpr float depth_far_value = math::is_reverse_depth() ? 0.0f : 1.0f;	//	far面(無限遠)の射影深度
+	constexpr float depth_clear_value = depth_far_value;						//	深度バッファのクリア値
+	constexpr auto depth_comparison_func = math::is_reverse_depth()	//	深度テストの比較関数
+										 ? D3D11_COMPARISON_GREATER_EQUAL
+										 : D3D11_COMPARISON_LESS_EQUAL;
+
+	constexpr float gbuffer_max_linear_depth = 1.0e10f;	//	G-Bufferに保存する線形深度(ビュー空間)の上限。空(無限遠)はこの値で表す
+
+	//	シーン深度ステンシルバッファのフォーマット
+	constexpr DXGI_FORMAT scene_depth_texture_format = DXGI_FORMAT_R32G8X24_TYPELESS;
+	constexpr DXGI_FORMAT scene_depth_stencil_view_format = DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
+	constexpr DXGI_FORMAT scene_depth_shader_resource_view_format = DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS;
+
+	//	シャドウマップのフォーマット
+	constexpr DXGI_FORMAT shadow_map_texture_format = DXGI_FORMAT_R32_TYPELESS;
+	constexpr DXGI_FORMAT shadow_map_depth_stencil_view_format = DXGI_FORMAT_D32_FLOAT;
+	constexpr DXGI_FORMAT shadow_map_shader_resource_view_format = DXGI_FORMAT_R32_FLOAT;
+
+	///////////////////////////////////////////////////////////////////////////////////////////////////////////
 	//	シーン情報
 	constexpr std::string_view scene_constant_buffer_name = "SCENE_CONSTANT_BUFFER";
 	constexpr system_utility::hash_key scene_constant_buffer_hash_key = system_utility::generate_hash(scene_constant_buffer_name);

@@ -139,6 +139,24 @@ float4 wrap(float4 _min, float4 _max, float4 _value)
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//  深度0(遠クリップ/無限遠)はw=0になり割れないので、奥の深度で逆射影する
+static const float unproject_depth = 1.0e-7f;
+
+//	ビュー空間の深度の上限。無限遠の空はこの値で表す
+static const float gbuffer_max_linear_depth = 1.0e10f;
+
+//	射影深度のnear面/far面(無限遠)の値。
+//	@remainder	CPU側のcommon_pipeline_statesと値を合わせること
+static const float depth_near_value = 1.0f;
+static const float depth_far_value = 0.0f;
+
+//	線形深度から射影深度へ戻す際の下限
+static const float min_projection_depth = 1.0e-20f;
+
+//	線形深度の相対差を求める際の0除算防止
+static const float relative_linear_depth_epsilon = 1.0e-6f;
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //	距離単位
 static const int length_units_micro_meter = 0;
 static const int length_units_milli_meter = 1;

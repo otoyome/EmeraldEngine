@@ -10,7 +10,7 @@ void main(uint3 id : SV_DispatchThreadID)
 	uint2 s_begin = (id.xy * src_size) / dst_size;
 	uint2 s_end = min(((id.xy + 1) * src_size + dst_size - 1) / dst_size, src_size);
 
-	float depth = 1.0f;
+	float depth = depth_near_value;
 	for (uint y = s_begin.y; y < s_end.y; ++y)
 	{
 		for (uint x = s_begin.x; x < s_end.x; ++x)

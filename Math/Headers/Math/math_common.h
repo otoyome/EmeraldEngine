@@ -3,6 +3,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <type_traits>
 
 #include "Math/math_config.h"
@@ -19,6 +20,17 @@
 #define	MATH_USE_SIMD_DOUBLE	1
 #else
 #define	MATH_USE_SIMD_DOUBLE	0
+#endif
+
+//	double は AVX2 のとき __m256d、それ以外は __m128d × 2 になり、型の境界の揃えとサイズが変わる
+#if defined(_MSC_VER)
+#if !MATH_USE_SIMD_FLOAT && !MATH_USE_SIMD_DOUBLE
+#pragma detect_mismatch("math_simd", "none")
+#elif defined(__AVX2__)
+#pragma detect_mismatch("math_simd", "avx2")
+#else
+#pragma detect_mismatch("math_simd", "sse")
+#endif
 #endif
 
 namespace math
@@ -109,6 +121,8 @@ namespace math
 		static constexpr float normalize_threshold = 1.175494351e-38f;
 		static constexpr float parallel_threshold = 1e-6f;
 		static constexpr float gimbal_lock_threshold = 5.5e-3f;
+		static constexpr float max_value = std::numeric_limits<float>::max();		//	有限の最大値
+		static constexpr float infinity = std::numeric_limits<float>::infinity();	//	無限大
 	};
 
 	template<>
@@ -124,6 +138,8 @@ namespace math
 		static constexpr double normalize_threshold = 2.2250738585072014e-308;
 		static constexpr double parallel_threshold = 1e-12;
 		static constexpr double gimbal_lock_threshold = 2.4e-7;
+		static constexpr double max_value = std::numeric_limits<double>::max();		//	有限の最大値
+		static constexpr double infinity = std::numeric_limits<double>::infinity();	//	無限大
 	};
 
 	template<typename T>

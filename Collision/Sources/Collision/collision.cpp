@@ -12,13 +12,18 @@ void intersect_data::add(const infomation& infomation)
 	infomations.emplace_back(infomation);
 }
 
-void intersect_data::add(const math::float3& point, const math::float3& normal, float length)
+void intersect_data::add(const math::double3& point, const math::double3& normal, double length)
 {
 	infomation	infomation;
 	infomation.point = point;
-	infomation.normal = math::vector3f(normal).normalized().to_float3();
+	infomation.normal = math::vector3d(normal).normalized().to_double3();
 	infomation.length = length;
 	add(infomation);
+}
+
+void intersect_data::add(const math::float3& point, const math::float3& normal, float length)
+{
+	add(math::double3(point), math::double3(normal), static_cast<double>(length));
 }
 
 void intersect_data::clear()
@@ -26,27 +31,27 @@ void intersect_data::clear()
 	infomations.clear();
 }
 
-bool intersect_data::multiply_matrix(std::size_t index, const math::float4x4& matrix)
+bool intersect_data::multiply_matrix(std::size_t index, const math::double4x4& matrix)
 {
-	return multiply_matrix(index, math::matrixf(matrix));
+	return multiply_matrix(index, math::matrixd(matrix));
 }
 
-bool intersect_data::multiply_matrix(std::size_t index, const math::matrixf& matrix)
+bool intersect_data::multiply_matrix(std::size_t index, const math::matrixd& matrix)
 {
 	if (index >= infomations.size())
 		return false;
 
-	math::vector3f Position, Position2, Normal;
-	Position = math::vector3f::transform_coord(math::vector3f(infomations[index].point), matrix);
-	Position2 = math::vector3f::transform_coord(math::vector3f(infomations[index].point2), matrix);
-	Normal = math::vector3f::transform_normal(math::vector3f(infomations[index].normal), matrix);
-	infomations[index].point = Position.to_float3();
-	infomations[index].point2 = Position2.to_float3();
-	infomations[index].normal = Normal.normalized().to_float3();
+	math::vector3d Position, Position2, Normal;
+	Position = math::vector3d::transform_coord(math::vector3d(infomations[index].point), matrix);
+	Position2 = math::vector3d::transform_coord(math::vector3d(infomations[index].point2), matrix);
+	Normal = math::vector3d::transform_normal(math::vector3d(infomations[index].normal), matrix);
+	infomations[index].point = Position.to_double3();
+	infomations[index].point2 = Position2.to_double3();
+	infomations[index].normal = Normal.normalized().to_double3();
 	return true;
 }
 
-void intersect_data::multiply_matrices(std::size_t begin, const math::matrixf& matrix)
+void intersect_data::multiply_matrices(std::size_t begin, const math::matrixd& matrix)
 {
 	for (std::size_t index = begin; index < infomations.size(); ++index)
 		multiply_matrix(index, matrix);
@@ -83,34 +88,34 @@ intersect_data::infomation& intersect_data::operator[](std::size_t index)
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-const math::float3& bounding_object::get_local_scale() const
+const math::double3& bounding_object::get_local_scale() const
 {
 	return	local_scale;
 }
 
-void bounding_object::set_local_scale(const math::float3& scale)
+void bounding_object::set_local_scale(const math::double3& scale)
 {
 	this->local_scale = scale;
 	on_change_parameter();
 }
 
-const math::float4& bounding_object::get_rotation() const
+const math::double4& bounding_object::get_rotation() const
 {
 	return	rotation;
 }
 
-void bounding_object::set_rotation(const math::float4& rotation)
+void bounding_object::set_rotation(const math::double4& rotation)
 {
 	this->rotation = rotation;
 	on_change_parameter();
 }
 
-const math::float3& bounding_object::get_position() const
+const math::double3& bounding_object::get_position() const
 {
 	return position;
 }
 
-void bounding_object::set_position(const math::float3& position)
+void bounding_object::set_position(const math::double3& position)
 {
 	this->position	= position;
 	on_change_parameter();
@@ -118,22 +123,22 @@ void bounding_object::set_position(const math::float3& position)
 
 math::float4x4 bounding_object::get_transform_float4x4() const
 {
-	return transform_matrix;
+	return math::float4x4(transform_matrix);
 }
 
-math::matrixf bounding_object::get_transform_matrix() const
+math::matrixd bounding_object::get_transform_matrix() const
 {
-	return	math::matrixf(transform_matrix);
+	return	math::matrixd(transform_matrix);
 }
 
 math::float4x4 bounding_object::get_inverse_transform_float4x4() const
 {
-	return inverse_transform_matrix;
+	return math::float4x4(inverse_transform_matrix);
 }
 
-math::matrixf bounding_object::get_inverse_transform_matrix() const
+math::matrixd bounding_object::get_inverse_transform_matrix() const
 {
-	return	math::matrixf(inverse_transform_matrix);
+	return	math::matrixd(inverse_transform_matrix);
 }
 
 bounding_object::bounding_object()
@@ -144,7 +149,7 @@ bounding_object::bounding_object()
 	on_change_parameter();
 }
 
-bounding_object::bounding_object(const math::float3& local_scale, const math::float4& rotation, const math::float3& position)
+bounding_object::bounding_object(const math::double3& local_scale, const math::double4& rotation, const math::double3& position)
 : local_scale(local_scale)
 , rotation(rotation)
 , position(position)
@@ -169,55 +174,55 @@ bool bounding_object::intersection(const bounding_object* object, intersect_data
 	return	false;
 }
 
-bool bounding_object::intersect_capsule_cast_by_axis_spheres(const math::float3& start, const math::float3& end,
-															   float radius, float length, math::vector3f axis,
+bool bounding_object::intersect_capsule_cast_by_axis_spheres(const math::double3& start, const math::double3& end,
+															   double radius, double length, math::vector3d axis,
 															   intersect_data* intersect) const
 {
 
-	math::vector3f Axis = axis.normalized();
-	float half = length * 0.5f;
+	math::vector3d Axis = axis.normalized();
+	double half = length * 0.5f;
 
 	int samples = 1;
 	if (length > FLT_EPSILON && radius > FLT_EPSILON)
 	{
-		samples = static_cast<int>(ceilf(length / radius)) + 1;
+		samples = static_cast<int>(std::ceil(length / radius)) + 1;
 		if (samples < 2)
 			samples = 2;
 	}
 
-	math::vector3f Start(start);
-	math::vector3f End(end);
+	math::vector3d Start(start);
+	math::vector3d End(end);
 
-	math::vector3f Move = End - Start;
-	float move_length = Move.length();
-	math::vector3f MoveDirection = (move_length > FLT_EPSILON) ? Move * (1.0f / move_length) : math::vector3f::zero();
+	math::vector3d Move = End - Start;
+	double move_length = Move.length();
+	math::vector3d MoveDirection = (move_length > FLT_EPSILON) ? Move * (1.0f / move_length) : math::vector3d::zero();
 
 	bool hit = false;
-	float nearest_distance = FLT_MAX;
+	double nearest_distance = FLT_MAX;
 	intersect_data nearest, sample;
 	for (int index = 0; index < samples; ++index)
 	{
-		float s = (samples > 1)
-			? (-half + length * (static_cast<float>(index) / static_cast<float>(samples - 1)))
+		double s = (samples > 1)
+			? (-half + length * (static_cast<double>(index) / static_cast<double>(samples - 1)))
 			: 0.0f;
-		math::vector3f Offset = Axis * s;
+		math::vector3d Offset = Axis * s;
 
-		math::float3 sample_start, sample_end;
-		sample_start = (Start + Offset).to_float3();
-		sample_end = (End + Offset).to_float3();
+		math::double3 sample_start, sample_end;
+		sample_start = (Start + Offset).to_double3();
+		sample_end = (End + Offset).to_double3();
 
 		//	開始時の重なりはスフィアキャスト側で判定
 		sample.clear();
 		if (intersect_sphere_cast(sample_start, sample_end, radius, &sample) && sample.size() > 0)
 		{
-			float travel = sample[0].length;
+			double travel = sample[0].length;
 			if (travel < nearest_distance)
 			{
 				nearest_distance = travel;
 				nearest.swap(sample);
 				nearest[0].length = travel;
 				//	接触時のカプセル中心
-				nearest[0].point = (Start + (MoveDirection * travel)).to_float3();
+				nearest[0].point = (Start + (MoveDirection * travel)).to_double3();
 				hit = true;
 			}
 		}
@@ -230,12 +235,12 @@ bool bounding_object::intersect_capsule_cast_by_axis_spheres(const math::float3&
 
 void bounding_object::on_change_parameter()
 {
-	math::matrixf Rotation = math::matrixf::rotation_quaternion(math::quaternionf(rotation));
-	math::matrixf Translation = math::matrixf::translation(position.x, position.y, position.z);
+	math::matrixd Rotation = math::matrixd::rotation_quaternion(math::quaterniond(rotation));
+	math::matrixd Translation = math::matrixd::translation(position.x, position.y, position.z);
 
-	math::matrixf TransformMatrix = Rotation * Translation;
-	transform_matrix = TransformMatrix.to_float4x4();
-	inverse_transform_matrix = TransformMatrix.inverted().to_float4x4();
+	math::matrixd TransformMatrix = Rotation * Translation;
+	transform_matrix = TransformMatrix.to_double4x4();
+	inverse_transform_matrix = TransformMatrix.inverted().to_double4x4();
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -329,8 +334,8 @@ bool collision::ray_cast_16(math::vector3f Start, math::vector3f End, const tria
 	if (hit && result)
 	{
 		intersect_data::infomation infomation;
-		infomation.point = HitPosition.to_float3();
-		infomation.normal = HitNormal.normalized().to_float3();
+		infomation.point = math::double3(HitPosition.to_float3());
+		infomation.normal = math::double3(HitNormal.normalized().to_float3());
 		infomation.length = neart;
 		result->add(infomation);
 	}
@@ -409,8 +414,8 @@ bool collision::ray_cast_32(math::vector3f Start, math::vector3f End, const tria
 	if (hit && result)
 	{
 		intersect_data::infomation infomation;
-		infomation.point = HitPosition.to_float3();
-		infomation.normal = HitNormal.normalized().to_float3();
+		infomation.point = math::double3(HitPosition.to_float3());
+		infomation.normal = math::double3(HitNormal.normalized().to_float3());
 		infomation.length = neart;
 		result->add(infomation);
 	}
@@ -418,19 +423,19 @@ bool collision::ray_cast_32(math::vector3f Start, math::vector3f End, const tria
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool collision::intersect_ray_vs_sphere(math::vector3f start, math::vector3f end,
-													math::vector3f sphere_pos, float radius,
-													math::vector3f& hit_pos, float& hit_distance)
+bool collision::intersect_ray_vs_sphere(math::vector3d start, math::vector3d end,
+													math::vector3d sphere_pos, double radius,
+													math::vector3d& hit_pos, double& hit_distance)
 {
-	math::vector3f direction = end - start;
-	math::vector3f direction_normalize = direction.normalized();
-	math::vector3f ray2sphere = sphere_pos - start;
-	float projection = math::vector3f::dot(ray2sphere, direction_normalize);
+	math::vector3d direction = end - start;
+	math::vector3d direction_normalize = direction.normalized();
+	math::vector3d ray2sphere = sphere_pos - start;
+	double projection = math::vector3d::dot(ray2sphere, direction_normalize);
 
-	float dist_sq = ray2sphere.square_length() - projection * projection;
+	double dist_sq = ray2sphere.square_length() - projection * projection;
 	if (dist_sq < radius * radius)
 	{
-		hit_distance = projection - sqrtf(radius * radius - dist_sq);
+		hit_distance = projection - std::sqrt(radius * radius - dist_sq);
 		if (hit_distance > 0.0f)
 		{
 			if (hit_distance < direction.length())
@@ -442,21 +447,21 @@ bool collision::intersect_ray_vs_sphere(math::vector3f start, math::vector3f end
 	}
 
 	hit_distance = 0.0f;
-	hit_pos = math::vector3f::zero();
+	hit_pos = math::vector3d::zero();
 	return false;
 }
 
-bool collision::intersect_ray_vs_cylinder(math::vector3f start, math::vector3f end,
-													  math::vector3f start_cylinder, math::vector3f end_cylinder,
-													  float radius, math::vector3f& hit_pos, float& hit_distance)
+bool collision::intersect_ray_vs_cylinder(math::vector3d start, math::vector3d end,
+													  math::vector3d start_cylinder, math::vector3d end_cylinder,
+													  double radius, math::vector3d& hit_pos, double& hit_distance)
 {
-	math::vector3f d = end_cylinder - start_cylinder;
-	math::vector3f m = start - start_cylinder;
-	math::vector3f n = end - start;
+	math::vector3d d = end_cylinder - start_cylinder;
+	math::vector3d m = start - start_cylinder;
+	math::vector3d n = end - start;
 
-	float md = math::vector3f::dot(m, d);
-	float nd = math::vector3f::dot(n, d);
-	float dd = math::vector3f::dot(d, d);
+	double md = math::vector3d::dot(m, d);
+	double nd = math::vector3d::dot(n, d);
+	double dd = math::vector3d::dot(d, d);
 
 	//	線分が円柱のどちらかの底面に対して完全に外側にあるかどうかを判定
 	if (md < 0.0f && md + nd < 0.0f)
@@ -465,18 +470,18 @@ bool collision::intersect_ray_vs_cylinder(math::vector3f start, math::vector3f e
 	if (md > dd && md + nd > dd)
 		return false;	//	線分が円柱のend_cylinderの外側にある
 
-	float nn = math::vector3f::dot(n, n);
-	float a = dd * nn - nd * nd;
-	float k = math::vector3f::dot(m, m) - radius * radius;
-	float c = dd * k - md * md;
+	double nn = math::vector3d::dot(n, n);
+	double a = dd * nn - nd * nd;
+	double k = math::vector3d::dot(m, m) - radius * radius;
+	double c = dd * k - md * md;
 
 	//	線分が円柱の軸に対して平行
-	if (fabsf(a) < 0.0001f)
+	if (std::fabs(a) < 0.0001f)
 	{
 		if (c > 0.0f)
 			return false;	//	線分は円柱の外側
 
-		float t = 0.0f;
+		double t = 0.0f;
 		if (md < 0.0f)
 		{
 			//	start_cylinder側の底面より手前から始まっている
@@ -503,23 +508,23 @@ bool collision::intersect_ray_vs_cylinder(math::vector3f start, math::vector3f e
 
 	//	線分が円柱の軸に対して平行でない
 	//	円柱の表面を表す陰関数方程式と直線の方程式の解を求めて交差判定を行う。
-	float mn = math::vector3f::dot(m, n);
-	float b = dd * mn - nd * md;
-	float D = b * b - a * c;	//	判別式
+	double mn = math::vector3d::dot(m, n);
+	double b = dd * mn - nd * md;
+	double D = b * b - a * c;	//	判別式
 
 	if (D < 0.0f)
 		return false;	//	実数解がないので交差していない
 
-	hit_distance = (-b - sqrtf(D)) / a;
+	hit_distance = (-b - std::sqrt(D)) / a;
 	if (hit_distance < 0.0f)
 	{
-		hit_distance = (-b + sqrtf(D)) / a;
+		hit_distance = (-b + std::sqrt(D)) / a;
 		if (hit_distance < 0.0f)
 			return false;	//	交点が線分の外側にあり交差していない
 	}
 	else if (hit_distance > 1.0f)
 	{
-		hit_distance = (-b + sqrtf(D)) / a;
+		hit_distance = (-b + std::sqrt(D)) / a;
 		if (hit_distance > 1.0f)
 			return false;	//	交点が線分の外側にあり交差していない
 	}
@@ -527,7 +532,7 @@ bool collision::intersect_ray_vs_cylinder(math::vector3f start, math::vector3f e
 	if (md + hit_distance * nd < 0.0f)
 	{
 		//	円柱のstart_cylinder側の底面の外で交差
-		float t = -md / nd;
+		double t = -md / nd;
 		if (k + t * (2.0f * mn + t * nn) > 0.0f)
 			return false;
 		hit_distance = t;
@@ -535,7 +540,7 @@ bool collision::intersect_ray_vs_cylinder(math::vector3f start, math::vector3f e
 	else if (md + hit_distance * nd > dd)
 	{
 		//	円柱のend_cylinder側の底面の外で交差
-		float t = (dd - md) / nd;
+		double t = (dd - md) / nd;
 		if (k + dd - 2.0f * md + t * (2.0f * (mn - nd) + t * nn) > 0.0f)
 			return false;
 		hit_distance = t;
@@ -553,32 +558,32 @@ bool collision::intersect_ray_vs_cylinder(math::vector3f start, math::vector3f e
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void collision::add_cast_hit(intersect_data* intersect, math::vector3f center, math::vector3f contact, math::vector3f normal, float length)
+void collision::add_cast_hit(intersect_data* intersect, math::vector3d center, math::vector3d contact, math::vector3d normal, double length)
 {
 	if (!intersect)
 		return;
 
 	intersect_data::infomation infomation;
-	infomation.point = math::vector3f(center).to_float3();
-	infomation.point2 = math::vector3f(contact).to_float3();
-	infomation.normal = normal.normalized().to_float3();
+	infomation.point = math::vector3d(center).to_double3();
+	infomation.point2 = math::vector3d(contact).to_double3();
+	infomation.normal = normal.normalized().to_double3();
 	infomation.length = length;
 	intersect->add(infomation);
 }
 
-collision::cast_start_overlap collision::check_cast_start_overlap(math::vector3f start, math::vector3f end, math::vector3f nearest_point,
-																			  float radius, math::vector3f fallback_normal, intersect_data* intersect)
+collision::cast_start_overlap collision::check_cast_start_overlap(math::vector3d start, math::vector3d end, math::vector3d nearest_point,
+																			  double radius, math::vector3d fallback_normal, intersect_data* intersect)
 {
-	math::vector3f Vector = start - nearest_point;
-	float distance_sq = Vector.square_length();
+	math::vector3d Vector = start - nearest_point;
+	double distance_sq = Vector.square_length();
 	if (distance_sq >= radius * radius)
 		return cast_start_overlap::none;
 
-	float distance = sqrtf(distance_sq);
-	math::vector3f Normal = (distance > 1e-6f) ? Vector * (1.0f / distance) : fallback_normal.normalized();
+	double distance = std::sqrt(distance_sq);
+	math::vector3d Normal = (distance > 1e-6f) ? Vector * (1.0f / distance) : fallback_normal.normalized();
 
-	math::vector3f Move = end - start;
-	if (math::vector3f::dot(Move, Normal) >= 0.0f)
+	math::vector3d Move = end - start;
+	if (math::vector3d::dot(Move, Normal) >= 0.0f)
 		return cast_start_overlap::leaving;
 
 	add_cast_hit(intersect, start, nearest_point, Normal, 0.0f);

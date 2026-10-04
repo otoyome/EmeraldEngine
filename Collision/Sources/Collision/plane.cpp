@@ -67,7 +67,7 @@ float collision::plane::calculate_distance(const math::float3& point) const
 	return	parameter.x * point.x + parameter.y * point.y + parameter.z * point.z + parameter.w;
 }
 
-bool collision::plane::to_line(const line& line, float* distance, math::float3* insert_point) const
+bool collision::plane::to_line(const linef& line, float* distance, math::float3* insert_point) const
 {
 	math::float3 plane_position = get_plane_position();
 	math::vector3f PlanePosition(plane_position);
@@ -77,7 +77,7 @@ bool collision::plane::to_line(const line& line, float* distance, math::float3* 
 	math::vector3f Line1Position(line_1_position);
 	math::float3 normal = get_normal();
 	math::vector3f Normal(normal);
-	if (line.get_type() == line::types::segment)
+	if (line.get_type() == linef::types::segment)
 	{
 		math::vector3f V1 = Line0Position - PlanePosition;
 		math::vector3f V2 = Line1Position - PlanePosition;

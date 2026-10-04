@@ -1,3 +1,5 @@
+#include "common.hlsli"
+
 //	メッシュレット単位のフラスタム+オクルージョンカリング
 struct MeshletInstance
 {
@@ -37,7 +39,9 @@ cbuffer MESHLET_CULL_CONSTANT_BUFFER : register(b0)
 
 float linearize_depth(float z_ndc, float near_z, float far_z)
 {
-	return (far_z * near_z) / (near_z + z_ndc * (far_z - near_z));
+	//	far_zが無限遠(near/far = 0)でもNaNにならない形にしている
+	float near_far_ratio = near_z / far_z;
+	return near_z / (near_far_ratio + z_ndc * (1.0f - near_far_ratio));
 }
 
 [numthreads(64, 1, 1)]
@@ -124,7 +128,7 @@ void main(uint3 id : SV_DispatchThreadID)
 		return;
 	}
 
-	if (min_z >= 1.0f)
+	if (min_z >= depth_near_value)
 	{
 		visible_meshlets.Append(inst);
 		return;
@@ -146,7 +150,7 @@ void main(uint3 id : SV_DispatchThreadID)
 		return;
 	}
 
-	float occluder = 1.0f;
+	float occluder = depth_near_value;
 	occluder = min(occluder, hiz.SampleLevel(hiz_sampler, float2(uv_min.x, uv_min.y), lod));
 	occluder = min(occluder, hiz.SampleLevel(hiz_sampler, float2(uv_max.x, uv_min.y), lod));
 	occluder = min(occluder, hiz.SampleLevel(hiz_sampler, float2(uv_min.x, uv_max.y), lod));

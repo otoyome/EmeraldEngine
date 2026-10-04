@@ -132,6 +132,7 @@
       <AdditionalIncludeDirectories>.\DirectXTK-master\Inc</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -159,6 +160,7 @@
       <AdditionalIncludeDirectories>.\DirectXTK-master\Inc</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -184,6 +186,7 @@
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>$(SolutionDir)Engine\Headers;$(SolutionDir)Math\Headers;$(SolutionDir)Collision\Headers;$(SolutionDir)External;$(SolutionDir)External\tinygltf-master;$(SolutionDir)External\imgui;$(SolutionDir)External\stb;$(SolutionDir)External\nameof\include;$(SolutionDir)External\magic_enum\include\magic_enum;$(SolutionDir)External\cereal\include;$(SolutionDir)External\meshoptimizer;$(SolutionDir)External\uchardet\src;$(SolutionDir)External\icu\include;$(ProjectDir)Headers</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
       <PrecompiledHeaderFile>stdafx.h</PrecompiledHeaderFile>
       <ForcedIncludeFiles>stdafx.h</ForcedIncludeFiles>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
@@ -215,6 +218,7 @@ xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y</Command>
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>$(SolutionDir)Engine\Headers;$(SolutionDir)Math\Headers;$(SolutionDir)Collision\Headers;$(SolutionDir)External;$(SolutionDir)External\tinygltf-master;$(SolutionDir)External\imgui;$(SolutionDir)External\stb;$(SolutionDir)External\nameof\include;$(SolutionDir)External\magic_enum\include\magic_enum;$(SolutionDir)External\cereal\include;$(SolutionDir)External\meshoptimizer;$(SolutionDir)External\uchardet\src;$(SolutionDir)External\icu\include;$(ProjectDir)Headers</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <PrecompiledHeaderFile>stdafx.h</PrecompiledHeaderFile>
@@ -253,6 +257,7 @@ xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y</Command>
       <AdditionalIncludeDirectories>.\DirectXTK-master\Inc</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -278,6 +283,7 @@ xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y</Command>
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>$(SolutionDir)Engine\Headers;$(SolutionDir)Math\Headers;$(SolutionDir)Collision\Headers;$(SolutionDir)External;$(SolutionDir)External\tinygltf-master;$(SolutionDir)External\imgui;$(SolutionDir)External\stb;$(SolutionDir)External\nameof\include;$(SolutionDir)External\magic_enum\include\magic_enum;$(SolutionDir)External\cereal\include;$(SolutionDir)External\meshoptimizer;$(SolutionDir)External\uchardet\src;$(SolutionDir)External\icu\include;$(ProjectDir)Headers</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
       <PrecompiledHeaderFile>stdafx.h</PrecompiledHeaderFile>
       <ForcedIncludeFiles>stdafx.h</ForcedIncludeFiles>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>

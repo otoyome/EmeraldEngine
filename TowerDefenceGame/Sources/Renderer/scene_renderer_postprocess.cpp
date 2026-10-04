@@ -29,8 +29,8 @@ namespace
 			}
 
 			//	” ‚Æ‚Ì‹——£‚ðŽZo‚µ‚ÄÅ‚à‹ß‚¢‚Ì‚ð‚Æ‚è‚ ‚¦‚¸“ü‚ê‚Ä‚¨‚­
-			auto box = collision::inner::axis_aligned_bounding_box(volume->get_outer_range(), volume->get_position());
-			float box_to_length = box.calculate_point_to_length(camera_position);
+			auto box = collision::inner::axis_aligned_bounding_box(math::double3(volume->get_outer_range()), math::double3(volume->get_position()));
+			float box_to_length = static_cast<float>(box.calculate_point_to_length(math::double3(camera_position)));
 			if (box_to_length < length)
 			{
 				length = box_to_length;

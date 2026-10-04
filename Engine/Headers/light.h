@@ -56,8 +56,8 @@ public:
 	//	‰eŠÖŒW
 	const math::float3& get_shadow_attenuation() const;
 	void set_shadow_attenuation(const math::float3& attenuation);
-	float get_csm_distance_factor() const;
-	void set_csm_distance_factor(float factor);
+	float get_csm_distance() const;
+	void set_csm_distance(float distance);
 	float get_pssm_split_weight() const;
 	void set_pssm_split_weight(float weight);
 	const shadow_map_bias_data& get_shadow_bias(int index) const;
@@ -74,7 +74,7 @@ private:
 	math::float3 parameter;
 
 	//	‰eŠÖŒW
-	float csm_distance_factor; // •½sŒõŒ¹ê—p
+	float csm_distance; // •½sŒõŒ¹ê—p
 	float pssm_split_weight; // •½sŒõŒ¹ê—p
 	math::float3 shadow_attenuation;
 	shadow_map_bias_data bias_data[common_pipeline_states::shadow_map_max];

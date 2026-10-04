@@ -65,6 +65,19 @@ namespace
 		return std::isfinite(a.x) && std::isfinite(a.y) && std::isfinite(a.z);
 	}
 
+	struct float_infomation
+	{
+		math::float3 point;
+		math::float3 point2;
+		math::float3 normal;
+		float length;
+	};
+
+	float_infomation to_float_info(const collision::intersect_data::infomation& info)
+	{
+		return { math::float3(info.point), math::float3(info.point2), math::float3(info.normal), static_cast<float>(info.length) };
+	}
+
 	std::string text_format(const char* format_text, ...)
 	{
 		char buffer[512];
@@ -114,9 +127,9 @@ namespace
 			triangle.normal = ((math::vector3f::cross(AB, BC)).normalized()).to_float3();
 			triangle.min = ((math::min)(A, (math::min)(B, C))).to_float3();
 			triangle.max = ((math::max)(A, (math::max)(B, C))).to_float3();
-			triangle.lab = collision::line(collision::line::types::segment, p[triangle.a], p[triangle.b]);
-			triangle.lbc = collision::line(collision::line::types::segment, p[triangle.b], p[triangle.c]);
-			triangle.lca = collision::line(collision::line::types::segment, p[triangle.c], p[triangle.a]);
+			triangle.lab = collision::linef(collision::linef::types::segment, p[triangle.a], p[triangle.b]);
+			triangle.lbc = collision::linef(collision::linef::types::segment, p[triangle.b], p[triangle.c]);
+			triangle.lca = collision::linef(collision::linef::types::segment, p[triangle.c], p[triangle.a]);
 		}
 		return std::make_shared<collision::bounding_mesh>(positions, triangles, 0);
 	}
@@ -125,30 +138,30 @@ namespace
 	//	形状描画
 	void draw_shape(const collision::bounding_object& object, const math::float4& color, const math::float3& offset = { 0.0f, 0.0f, 0.0f })
 	{
-		math::float3 position = add3(object.get_position(), offset);
+		math::float3 position = add3(math::float3(object.get_position()), offset);
 		switch (object.get_type())
 		{
 			case collision::bounding_object::types::sphere:
 			{
 				auto& sphere = static_cast<const collision::bounding_sphere&>(object);
-				QUEUE_DEBUG_PRIMITIVE_SPHERE(position, sphere.get_radius(), color, true);
+				QUEUE_DEBUG_PRIMITIVE_SPHERE(position, static_cast<float>(sphere.get_radius()), color, true);
 				break;
 			}
 			case collision::bounding_object::types::capsule:
 			{
 				auto& capsule = static_cast<const collision::bounding_capsule&>(object);
-				QUEUE_DEBUG_PRIMITIVE_CAPSULE(position, capsule.get_rotation(), capsule.get_radius(), capsule.get_length(), color, true);
+				QUEUE_DEBUG_PRIMITIVE_CAPSULE(position, math::float4(capsule.get_rotation()), static_cast<float>(capsule.get_radius()), static_cast<float>(capsule.get_length()), color, true);
 				break;
 			}
 			case collision::bounding_object::types::box:
 			{
-				QUEUE_DEBUG_PRIMITIVE_BOX(position, object.get_rotation(), object.get_local_scale(), color, true);
+				QUEUE_DEBUG_PRIMITIVE_BOX(position, math::float4(object.get_rotation()), math::float3(object.get_local_scale()), color, true);
 				break;
 			}
 			case collision::bounding_object::types::mesh:
 			{
 				auto& mesh = static_cast<const collision::bounding_mesh&>(object);
-				math::matrixf Transform = mesh.get_transform_matrix();
+				math::matrixf Transform(mesh.get_transform_matrix());
 				math::vector3f Offset(offset);
 				auto& positions = mesh.get_positions();
 				for (auto& triangle : mesh.get_triangles())
@@ -211,7 +224,7 @@ namespace
 			ImGui::TextColored(ImVec4(1, 0.3f, 0.3f, 1), "  mismatch with intersect=nullptr (%s)", hit_without_data ? "HIT" : "---");
 		for (size_t index = 0; index < data.size(); ++index)
 		{
-			auto& info = data[index];
+			const auto info = to_float_info(data[index]);
 			ImGui::Text("  [%zu] point %s", index, to_string(scale3(info.point, 1.0f / unit)).c_str());
 			ImGui::Text("      normal %s  length %.4f m", to_string(info.normal).c_str(), info.length / unit);
 		}
@@ -380,16 +393,16 @@ std::shared_ptr<collision::bounding_object> collision_test_scene::create_shape(c
 	switch (desc.type)
 	{
 		case shape_types::sphere:
-			return std::make_shared<collision::bounding_sphere>(desc.position, desc.radius);
+			return std::make_shared<collision::bounding_sphere>(math::double3(desc.position), desc.radius);
 		case shape_types::capsule:
-			return std::make_shared<collision::bounding_capsule>(desc.position, rotation, desc.radius, desc.length);
+			return std::make_shared<collision::bounding_capsule>(math::double3(desc.position), math::double4(rotation), desc.radius, desc.length);
 		case shape_types::box:
-			return std::make_shared<collision::bounding_box>(desc.extent, rotation, desc.position);
+			return std::make_shared<collision::bounding_box>(math::double3(desc.extent), math::double4(rotation), math::double3(desc.position));
 		case shape_types::mesh:
 		{
 			auto mesh = create_floor_mesh(desc.extent.x, desc.extent.y);
-			mesh->set_rotation(rotation);
-			mesh->set_position(desc.position);
+			mesh->set_rotation(math::double4(rotation));
+			mesh->set_position(math::double3(desc.position));
 			return mesh;
 		}
 	}
@@ -401,11 +414,11 @@ bool collision_test_scene::execute_cast(const cast_desc& desc, const collision::
 	switch (desc.type)
 	{
 		case cast_types::segment:
-			return target.intersect_segment(desc.start, desc.end, intersect);
+			return target.intersect_segment(math::double3(desc.start), math::double3(desc.end), intersect);
 		case cast_types::sphere:
-			return target.intersect_sphere_cast(desc.start, desc.end, desc.radius, intersect);
+			return target.intersect_sphere_cast(math::double3(desc.start), math::double3(desc.end), desc.radius, intersect);
 		case cast_types::capsule:
-			return target.intersect_capsule_cast(desc.start, desc.end, desc.radius, desc.length, to_quaternion(desc.rotation), intersect);
+			return target.intersect_capsule_cast(math::double3(desc.start), math::double3(desc.end), desc.radius, desc.length, math::double4(to_quaternion(desc.rotation)), intersect);
 	}
 	return false;
 }
@@ -432,13 +445,13 @@ void collision_test_scene::update_pair_test()
 
 	//	A基準の接触(黄)、B基準の接触(水色)
 	for (size_t index = 0; index < intersect_ab.size(); ++index)
-		draw_point_normal(intersect_ab[index].point, intersect_ab[index].normal, std::max(intersect_ab[index].length, 0.3f * unit), { 1.0f, 1.0f, 0.0f, 1.0f });
+		draw_point_normal(to_float_info(intersect_ab[index]).point, to_float_info(intersect_ab[index]).normal, std::max(to_float_info(intersect_ab[index]).length, 0.3f * unit), { 1.0f, 1.0f, 0.0f, 1.0f });
 	for (size_t index = 0; index < intersect_ba.size(); ++index)
-		draw_point_normal(intersect_ba[index].point, intersect_ba[index].normal, std::max(intersect_ba[index].length, 0.3f * unit), { 0.0f, 1.0f, 1.0f, 1.0f });
+		draw_point_normal(to_float_info(intersect_ba[index]).point, to_float_info(intersect_ba[index]).normal, std::max(to_float_info(intersect_ba[index]).length, 0.3f * unit), { 0.0f, 1.0f, 1.0f, 1.0f });
 
 	//	押し出し後のAを緑で表示
 	if (draw_ghost && hit_ab && intersect_ab.size() > 0)
-		draw_shape(*a, { 0.2f, 1.0f, 0.2f, 1.0f }, scale3(intersect_ab[0].normal, intersect_ab[0].length));
+		draw_shape(*a, { 0.2f, 1.0f, 0.2f, 1.0f }, scale3(to_float_info(intersect_ab[0]).normal, to_float_info(intersect_ab[0]).length));
 #endif	//	defined(USE_IMGUI)
 }
 
@@ -476,7 +489,7 @@ void collision_test_scene::update_cast_test()
 	draw_caster(desc.end, { 0.35f, 0.35f, 0.35f, 1.0f });
 	if (cast_hit && cast_intersect.size() > 0)
 	{
-		auto& info = cast_intersect[0];
+		const auto info = to_float_info(cast_intersect[0]);
 		draw_caster(info.point, { 1.0f, 0.6f, 0.0f, 1.0f });
 		math::float3 contact = desc.type == cast_types::segment ? info.point : info.point2;
 		draw_point_normal(contact, info.normal, 0.5f * unit, { 0.0f, 1.0f, 1.0f, 1.0f });
@@ -565,7 +578,7 @@ void collision_test_scene::run_self_tests()
 			fail("no contact data.");
 		if (hit_ab && ab.size() > 0)
 		{
-			auto& info = ab[0];
+			const auto info = to_float_info(ab[0]);
 			float depth = info.length / unit;
 			detail += text_format("n=%s d=%.3f. ", to_string(info.normal).c_str(), depth);
 
@@ -579,8 +592,8 @@ void collision_test_scene::run_self_tests()
 				fail(text_format("normal expect %s.", to_string(test.normal).c_str()));
 			if (test.depth >= 0.0f && fabsf(depth - test.depth) > tolerance)
 				fail(text_format("depth expect %.3f.", test.depth));
-			if (test.check_opposite && ba.size() > 0 && dot3(info.normal, ba[0].normal) > -0.99f)
-				fail(text_format("B->A normal not opposite %s.", to_string(ba[0].normal).c_str()));
+			if (test.check_opposite && ba.size() > 0 && dot3(info.normal, to_float_info(ba[0]).normal) > -0.99f)
+				fail(text_format("B->A normal not opposite %s.", to_string(to_float_info(ba[0]).normal).c_str()));
 
 			//	法線方向へ押し出すと離れるか
 			shape_desc moved = test.a;
@@ -650,7 +663,7 @@ void collision_test_scene::run_self_tests()
 			fail("no hit data.");
 		if (hit && data.size() > 0)
 		{
-			auto& info = data[0];
+			const auto info = to_float_info(data[0]);
 			float length = info.length / unit;
 			detail += text_format("len=%.3f n=%s. ", length, to_string(info.normal).c_str());
 
@@ -720,7 +733,7 @@ void collision_test_scene::imgui_render_core()
 		ImGui::Text("result : %s", cast_hit ? "HIT" : "---");
 		for (size_t index = 0; index < cast_intersect.size(); ++index)
 		{
-			auto& info = cast_intersect[index];
+			const auto info = to_float_info(cast_intersect[index]);
 			ImGui::Text("  center %s", to_string(scale3(info.point, 1.0f / unit)).c_str());
 			ImGui::Text("  contact %s", to_string(scale3(info.point2, 1.0f / unit)).c_str());
 			ImGui::Text("  normal %s  length %.4f m", to_string(info.normal).c_str(), info.length / unit);

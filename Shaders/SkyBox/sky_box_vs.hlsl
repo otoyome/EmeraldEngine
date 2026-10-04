@@ -4,11 +4,11 @@ VS_OUT main(uint vin : SV_VERTEXID)
 {
     VS_OUT vout;
     vout.position.xy = float2(vin % 2, vin / 2) * float2(2.0f, -2.0f) - float2(1.0f, -1.0f);
-    vout.position.z = 0;
+    vout.position.z = depth_far_value;
     vout.position.w = 1;
 
     //  NDC座標からワールド座標へ変換
-    vout.world_position = mul(vout.position, inverse_view_projection_transform);
+    vout.world_position = mul(float4(vout.position.xy, unproject_depth, 1.0f), inverse_view_projection_transform);
     vout.world_position /= vout.world_position.w;
 
     //  速度ベクトル計算用座標を算出

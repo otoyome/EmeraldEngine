@@ -702,7 +702,7 @@ void effect_manager::get_container(effect_container& effects, decal_container& d
 			decal.scale = scale.to_float3();
 			decal.position = position.to_float3();
 			decal.rotation = math::rotatorf(rotation);
-			decal.box = collision::bounding_box(decal.scale, rotation.to_float4(), decal.position);
+			decal.box = collision::bounding_box(math::double3(decal.scale), rotation.to_double4(), math::double3(decal.position));
 			decal.material.material = decal_data.material.get();
 		}
 

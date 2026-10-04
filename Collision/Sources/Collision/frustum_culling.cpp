@@ -29,9 +29,9 @@ bool frustum_culling::intersection(const bounding_object* object) const
 		case bounding_object::types::mesh:
 		{
 			//	ƒƒbƒVƒ…‚ÍAABB‚Å”»’è
-			math::float3 min, max;
+			math::double3 min, max;
 			object->include_corner(min, max);
-			return to_aabb(min, max);
+			return to_aabb(math::float3(min), math::float3(max));
 		}
 	}
 	assert(!"Not Comaptible Collilsion.");
@@ -64,23 +64,23 @@ bool frustum_culling::to_sphere(const math::float3& point, float radius) const
 
 bool frustum_culling::to_sphere(const bounding_sphere& sphere) const
 {
-    return	to_sphere(sphere.get_position(), sphere.get_radius());
+    return	to_sphere(math::float3(sphere.get_position()), static_cast<float>(sphere.get_radius()));
 }
 
 bool frustum_culling::to_capsule(const bounding_capsule& capsule) const
 {
 	//	‚½‚¾‚ÌAABB‚Å‚Ì”»’è
-	math::float3 min, max;
+	math::double3 min, max;
 	capsule.include_corner(min, max);
-	return to_aabb(min, max);
+	return to_aabb(math::float3(min), math::float3(max));
 }
 
 bool frustum_culling::to_box(const bounding_box& box) const
 {
 	//	‚½‚¾‚ÌAABB‚Å‚Ì”»’è
-	math::float3 min, max;
+	math::double3 min, max;
 	box.include_corner(min, max);
-	return to_aabb(min, max);
+	return to_aabb(math::float3(min), math::float3(max));
 }
 
 bool frustum_culling::to_aabb(const math::float3& min, const math::float3& max) const

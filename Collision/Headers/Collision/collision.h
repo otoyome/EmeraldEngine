@@ -11,21 +11,22 @@ namespace collision
 	public:
 		struct infomation
 		{
-			math::float3 point = {};	// 接触時の中心
-			math::float3 point2 = {};	// 相手側接触点
-			math::float3 normal = {};	// 法線
-			float length = 0.0f;			// 距離
+			math::double3 point = {};	// 接触時の中心
+			math::double3 point2 = {};	// 相手側接触点
+			math::double3 normal = {};	// 法線
+			double length = 0.0f;			// 距離
 		};
 
 	public:
 		void add(const infomation& infomation);
+		void add(const math::double3& point, const math::double3& normal, double length);
 		void add(const math::float3& point, const math::float3& normal, float length);
 		void clear();
 		void swap(intersect_data& other) noexcept { infomations.swap(other.infomations); }
 
-		bool multiply_matrix(std::size_t index, const math::float4x4& matrix);
-		bool multiply_matrix(std::size_t index, const math::matrixf& matrix);
-		void multiply_matrices(std::size_t begin, const math::matrixf& matrix);
+		bool multiply_matrix(std::size_t index, const math::double4x4& matrix);
+		bool multiply_matrix(std::size_t index, const math::matrixd& matrix);
+		void multiply_matrices(std::size_t begin, const math::matrixd& matrix);
 		void flip_normals_from(std::size_t begin);
 		void append(const intersect_data& data);
 
@@ -59,43 +60,43 @@ namespace collision
 	public:
 		virtual types get_type() const = 0;
 
-		virtual const math::float3& get_local_scale() const;
-		virtual void set_local_scale(const math::float3& scale);
+		virtual const math::double3& get_local_scale() const;
+		virtual void set_local_scale(const math::double3& scale);
 
-		const math::float4& get_rotation() const;
-		void set_rotation(const math::float4& rotation);
+		const math::double4& get_rotation() const;
+		void set_rotation(const math::double4& rotation);
 
-		const math::float3& get_position() const;
-		void set_position(const math::float3& position);
+		const math::double3& get_position() const;
+		void set_position(const math::double3& position);
 
 		math::float4x4 get_transform_float4x4() const;
-		math::matrixf get_transform_matrix() const;
+		math::matrixd get_transform_matrix() const;
 
 		math::float4x4 get_inverse_transform_float4x4() const;
-		math::matrixf get_inverse_transform_matrix() const;
+		math::matrixd get_inverse_transform_matrix() const;
 
 	public:
 		bounding_object();
-		bounding_object(const math::float3& local_scale, const math::float4& rotation, const math::float3& position);
+		bounding_object(const math::double3& local_scale, const math::double4& rotation, const math::double3& position);
 		virtual	~bounding_object();
 
 		bool intersection(const bounding_object* object, intersect_data* intersect = nullptr) const;
-		virtual bool intersect_point(const math::float3& point) const = 0;
-		virtual bool intersect_segment(const math::float3& start, const math::float3& end, intersect_data* intersect = nullptr) const = 0;
+		virtual bool intersect_point(const math::double3& point) const = 0;
+		virtual bool intersect_segment(const math::double3& start, const math::double3& end, intersect_data* intersect = nullptr) const = 0;
 		virtual bool intersect_sphere(const bounding_sphere& sphere, intersect_data* intersect = nullptr) const = 0;
 		virtual bool intersect_capsule(const bounding_capsule& capsule, intersect_data* intersect = nullptr) const = 0;
 		virtual bool intersect_box(const bounding_box& box, intersect_data* intersect = nullptr) const = 0;
 		virtual bool intersect_mesh(const bounding_mesh& mesh, intersect_data* intersect = nullptr) const = 0;
 
-		virtual bool intersect_sphere_cast(const math::float3& start, const math::float3& end, float radius, intersect_data* intersect = nullptr) const = 0;
+		virtual bool intersect_sphere_cast(const math::double3& start, const math::double3& end, double radius, intersect_data* intersect = nullptr) const = 0;
 
-		virtual bool intersect_capsule_cast(const math::float3& start, const math::float3& end, float radius, float length, const math::float4& rotation, intersect_data* intersect = nullptr) const = 0;
+		virtual bool intersect_capsule_cast(const math::double3& start, const math::double3& end, double radius, double length, const math::double4& rotation, intersect_data* intersect = nullptr) const = 0;
 
 		//	スフィアキャストを流用して軸毎にスフィアキャストを行う方式
-		bool intersect_capsule_cast_by_axis_spheres(const math::float3& start, const math::float3& end,
-			float radius, float length, math::vector3f axis, intersect_data* intersect = nullptr) const;
+		bool intersect_capsule_cast_by_axis_spheres(const math::double3& start, const math::double3& end,
+			double radius, double length, math::vector3d axis, intersect_data* intersect = nullptr) const;
 
-		virtual void include_corner(math::float3& min, math::float3& max) const = 0;
+		virtual void include_corner(math::double3& min, math::double3& max) const = 0;
 
 	protected:
 		virtual	void on_change_parameter();
@@ -113,11 +114,11 @@ namespace collision
 		}
 
 	private:
-		math::float3 local_scale;
-		math::float4 rotation;
-		math::float3 position;
-		math::float4x4 transform_matrix;
-		math::float4x4 inverse_transform_matrix;
+		math::double3 local_scale;
+		math::double4 rotation;
+		math::double3 position;
+		math::double4x4 transform_matrix;
+		math::double4x4 inverse_transform_matrix;
 	};
 
 	//	レイキャスト
@@ -136,16 +137,16 @@ namespace collision
 	bool ray_cast_16(math::vector3f start, math::vector3f end, const triangles& triangles, intersect_data* result);
 	bool ray_cast_32(math::vector3f start, math::vector3f end, const triangles& triangles, intersect_data* result);
 
-	bool intersect_ray_vs_sphere(math::vector3f start, math::vector3f end,
-											 math::vector3f sphere_pos, float radius,
-											 math::vector3f& hit_pos, float& hit_distance);
+	bool intersect_ray_vs_sphere(math::vector3d start, math::vector3d end,
+											 math::vector3d sphere_pos, double radius,
+											 math::vector3d& hit_pos, double& hit_distance);
 
-	bool intersect_ray_vs_cylinder(math::vector3f start, math::vector3f end,
-											   math::vector3f start_cylinder, math::vector3f end_cylinder,
-											   float radius, math::vector3f& hit_pos, float& hit_distance);
+	bool intersect_ray_vs_cylinder(math::vector3d start, math::vector3d end,
+											   math::vector3d start_cylinder, math::vector3d end_cylinder,
+											   double radius, math::vector3d& hit_pos, double& hit_distance);
 
 	//	キャスト結果の追加
-	void add_cast_hit(intersect_data* intersect, math::vector3f center, math::vector3f contact, math::vector3f normal, float length);
+	void add_cast_hit(intersect_data* intersect, math::vector3d center, math::vector3d contact, math::vector3d normal, double length);
 
 	//	キャスト開始時の重なり状態
 	enum class cast_start_overlap
@@ -156,6 +157,6 @@ namespace collision
 	};
 
 	//	キャスト開始時の重なり判定
-	cast_start_overlap check_cast_start_overlap(math::vector3f start, math::vector3f end, math::vector3f nearest_point,
-															float radius, math::vector3f fallback_normal, intersect_data* intersect);
+	cast_start_overlap check_cast_start_overlap(math::vector3d start, math::vector3d end, math::vector3d nearest_point,
+															double radius, math::vector3d fallback_normal, intersect_data* intersect);
 }	//	namespace collision
