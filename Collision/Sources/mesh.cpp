@@ -12,6 +12,12 @@
 #include "cereal/types/unordered_map.hpp"
 
 #include <thread>
+#include <fstream>
+
+#if !defined(NOMINMAX)
+#define NOMINMAX
+#endif
+#include <windows.h>
 #include <algorithm>
 
 namespace
@@ -110,22 +116,22 @@ namespace
 		return true;
 	}
 
-	inline UINT calculate_array_index_from_point(const math::float3& point, const math::float3& area_min, const math::float3& area_unit, math::uint3 separate_count)
+	inline std::uint32_t calculate_array_index_from_point(const math::float3& point, const math::float3& area_min, const math::float3& area_unit, math::uint3 separate_count)
 	{
-		auto cell = [](float value, float amin, float unit, UINT count) -> int
+		auto cell = [](float value, float amin, float unit, std::uint32_t count) -> int
 		{
 			int i = static_cast<int>(floorf((value - amin) / unit));
 			return std::clamp(i, 0, static_cast<int>(count) - 1);
 		};
-		const UINT ix = static_cast<UINT>(cell(point.x, area_min.x, area_unit.x, separate_count.x));
-		const UINT iy = static_cast<UINT>(cell(point.y, area_min.y, area_unit.y, separate_count.y));
-		const UINT iz = static_cast<UINT>(cell(point.z, area_min.z, area_unit.z, separate_count.z));
+		const std::uint32_t ix = static_cast<std::uint32_t>(cell(point.x, area_min.x, area_unit.x, separate_count.x));
+		const std::uint32_t iy = static_cast<std::uint32_t>(cell(point.y, area_min.y, area_unit.y, separate_count.y));
+		const std::uint32_t iz = static_cast<std::uint32_t>(cell(point.z, area_min.z, area_unit.z, separate_count.z));
 		return ix + iy * separate_count.x + iz * separate_count.x * separate_count.y;
 	}
 
-	std::vector<UINT> calculate_check_order_list(const math::float3& min, const math::float3& max, const math::float3& area_min, const math::float3& area_unit, math::uint3 separate_count)
+	std::vector<std::uint32_t> calculate_check_order_list(const math::float3& min, const math::float3& max, const math::float3& area_min, const math::float3& area_unit, math::uint3 separate_count)
 	{
-		auto cell = [](float value, float amin, float unit, UINT count) -> int
+		auto cell = [](float value, float amin, float unit, std::uint32_t count) -> int
 		{
 			int i = static_cast<int>(floorf((value - amin) / unit));
 			return std::clamp(i, 0, static_cast<int>(count) - 1);
@@ -146,7 +152,7 @@ namespace
 		const int z0 = cell(min.z, area_min.z, area_unit.z, separate_count.z);
 		const int z1 = cell(max.z, area_min.z, area_unit.z, separate_count.z);
 
-		std::vector<UINT> order_list;
+		std::vector<std::uint32_t> order_list;
 		order_list.reserve(static_cast<size_t>(x1 - x0 + 1) * (y1 - y0 + 1) * (z1 - z0 + 1));
 		for (int z = z0; z <= z1; ++z)
 		{
@@ -154,9 +160,9 @@ namespace
 			{
 				for (int x = x0; x <= x1; ++x)
 				{
-					order_list.emplace_back(static_cast<UINT>(x)
-						+ static_cast<UINT>(y) * separate_count.x
-						+ static_cast<UINT>(z) * separate_count.x * separate_count.y);
+					order_list.emplace_back(static_cast<std::uint32_t>(x)
+						+ static_cast<std::uint32_t>(y) * separate_count.x
+						+ static_cast<std::uint32_t>(z) * separate_count.x * separate_count.y);
 				}
 			}
 		}
@@ -366,7 +372,7 @@ bounding_mesh::bounding_mesh()
 {
 }
 
-bounding_mesh::bounding_mesh(std::vector<math::float3>& positions, std::vector<triangle>& triangles, UINT separate_level)
+bounding_mesh::bounding_mesh(std::vector<math::float3>& positions, std::vector<triangle>& triangles, std::uint32_t separate_level)
 	: bounding_object({1, 1, 1}, {0, 0, 0, 1}, {0, 0, 0})
 	, positions(positions)
 	, triangles(triangles)
@@ -403,7 +409,7 @@ bounding_mesh::bounding_mesh(std::vector<math::float3>& positions, std::vector<t
 		separate_level = 0;
 
 	{
-		UINT temp_separate_count = 1u << separate_level;
+		std::uint32_t temp_separate_count = 1u << separate_level;
 		separate_count.x = temp_separate_count;
 		separate_count.y = temp_separate_count;
 		separate_count.z = temp_separate_count;
@@ -462,13 +468,13 @@ bounding_mesh::bounding_mesh(std::vector<math::float3>& positions, std::vector<t
 		math::float3 extent = area_unit;
 		extent.x *= 0.5f; extent.y *= 0.5f; extent.z *= 0.5f;
 
-		for (UINT z = 0; z < separate_count.z; ++z)
+		for (std::uint32_t z = 0; z < separate_count.z; ++z)
 		{
-			for (UINT y = 0; y < separate_count.y; ++y)
+			for (std::uint32_t y = 0; y < separate_count.y; ++y)
 			{
-				for (UINT x = 0; x < separate_count.x; ++x)
+				for (std::uint32_t x = 0; x < separate_count.x; ++x)
 				{
-					UINT block_index = x + y * separate_count.x + z * separate_count.x * separate_count.y;
+					std::uint32_t block_index = x + y * separate_count.x + z * separate_count.x * separate_count.y;
 					block_data& data = block_datas[block_index];
 					data.center = area_min;
 					data.center.x += area_unit.x * (static_cast<float>(x) + 0.5f);
@@ -483,7 +489,7 @@ bounding_mesh::bounding_mesh(std::vector<math::float3>& positions, std::vector<t
 	// 三角形ごとに「重なりうるブロック範囲」だけを見る（B×T → 大幅削減）
 	auto clamp_index = [](int v, int lo, int hi) { return v < lo ? lo : (v > hi ? hi : v); };
 
-	auto process_range = [&](size_t begin, size_t end, std::vector<std::pair<UINT, UINT>>& out /* block_index, tri_index */)
+	auto process_range = [&](size_t begin, size_t end, std::vector<std::pair<std::uint32_t, std::uint32_t>>& out /* block_index, tri_index */)
 	{
 		auto t = triangles.data();
 		for (size_t index = begin; index < end; ++index)
@@ -508,9 +514,9 @@ bounding_mesh::bounding_mesh(std::vector<math::float3>& positions, std::vector<t
 				{
 					for (int x = x0; x <= x1; ++x)
 					{
-						UINT block_index = static_cast<UINT>(x) +
-											static_cast<UINT>(y) * separate_count.x +
-											static_cast<UINT>(z) * separate_count.x * separate_count.y;
+						std::uint32_t block_index = static_cast<std::uint32_t>(x) +
+											static_cast<std::uint32_t>(y) * separate_count.x +
+											static_cast<std::uint32_t>(z) * separate_count.x * separate_count.y;
 
 						block_data& data = block_datas[block_index];
 
@@ -521,7 +527,7 @@ bounding_mesh::bounding_mesh(std::vector<math::float3>& positions, std::vector<t
 							continue;
 
 						if (triangle_aabb(tc.a, tc.b, tc.c, tri->normal, data.bounds))
-							out.emplace_back(block_index, static_cast<UINT>(index));
+							out.emplace_back(block_index, static_cast<std::uint32_t>(index));
 					}
 				}
 			}
@@ -532,14 +538,14 @@ bounding_mesh::bounding_mesh(std::vector<math::float3>& positions, std::vector<t
 	if (triangle_count == 0)
 		return;
 
-	UINT thread_count = std::max(1u, std::min(std::thread::hardware_concurrency(), 16u));
-	thread_count = static_cast<UINT>(std::min<size_t>(thread_count, triangle_count));
+	std::uint32_t thread_count = std::max(1u, std::min(std::thread::hardware_concurrency(), 16u));
+	thread_count = static_cast<std::uint32_t>(std::min<size_t>(thread_count, triangle_count));
 
-	std::vector<std::vector<std::pair<UINT, UINT>>> results(thread_count);
+	std::vector<std::vector<std::pair<std::uint32_t, std::uint32_t>>> results(thread_count);
 	{
 		std::vector<std::thread> workers;
 		size_t chunk = (triangle_count + thread_count - 1) / thread_count;
-		for (UINT i = 0; i < thread_count; ++i)
+		for (std::uint32_t i = 0; i < thread_count; ++i)
 		{
 			size_t begin = i * chunk;
 			size_t end = std::min(triangle_count, begin + chunk);
@@ -600,7 +606,6 @@ bool bounding_mesh::serialize(std::string_view file_path)
 		}
 		catch (...)
 		{
-			DEBUG_ERROR("bounding_mesh serialize failed. %s\n", file_path.data());
 			assert(!"bounding_mesh serialize failed.\n");
 			return false;
 		}
@@ -631,7 +636,6 @@ bool bounding_mesh::deserialize(std::string_view file_path)
 		}
 		catch (...)
 		{
-			DEBUG_ERROR("bounding_mesh deserialize failed. %s\n", file_path.data());
 			assert(!"bounding_mesh deserialize failed.\n");
 			return false;
 		}
@@ -1793,7 +1797,7 @@ bool bounding_mesh::is_point_inside(const math::float3& point) const
 
 	constexpr size_t direction_count = std::size(inside_test_ray_directions);
 	math::vector3f directions[direction_count];
-	UINT hit_counts[direction_count] = {};
+	std::uint32_t hit_counts[direction_count] = {};
 	for (size_t index = 0; index < direction_count; ++index)
 		directions[index] = math::vector3f(inside_test_ray_directions[index]);
 
@@ -1839,7 +1843,7 @@ bool bounding_mesh::is_point_inside(const math::float3& point) const
 		}
 	}
 
-	UINT inside_votes = 0;
+	std::uint32_t inside_votes = 0;
 	for (auto hit_count : hit_counts)
 	{
 		if ((hit_count % 2) == 1)
@@ -1927,118 +1931,5 @@ bool bounding_mesh::distance_to_point(const math::float3& point, float& out_dist
 	{
 		*out_normal = ((math::vector3f::transform_normal(math::vector3f(nearest_normal), get_transform_matrix())).normalized()).to_float3();
 	}
-	return true;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////
-bool collision::generate_bounding_mesh(bounding_mesh& out_mesh, model_resource_ptr resource, size_t index, generate_bounding_mesh_data data)
-{
-	auto& mesh = resource->get_meshes()[index];
-
-	//	使用するインデックスバッファを選択
-	const buffer_view* index_view = &mesh.index_buffer_view;
-	if (data.lod_level >= 0)
-	{
-		if (data.lod_level >= static_cast<int>(mesh.lod_meshs.size()))
-			return false;
-		index_view = &mesh.lod_meshs[data.lod_level].index_buffer_view;
-	}
-	if (index_view->count() == 0)
-		return false;
-
-	auto& nodes = resource->get_nodes();
-	std::function<math::matrixf(size_t index)> calculate_transform_matrix = [&](size_t node_index)
-	{
-		if (node_index == model_resource::invalid_id)
-			return math::matrixf();
-
-		auto& node = nodes[node_index];
-		math::matrixf transform;
-		transform = math::matrixf::scaling(node.scale.x, node.scale.y, node.scale.z)
-				  * math::matrixf::rotation_quaternion(math::quaternionf(node.rotation))
-				  * math::matrixf::translation(node.translation.x, node.translation.y, node.translation.z);
-		if (node.parent_index != model_resource::invalid_id)
-			transform *= calculate_transform_matrix(node.parent_index);
-
-		return transform;
-	};
-
-	math::matrixf local_transform_matrix = calculate_transform_matrix(mesh.node_index);
-
-	//	ワールド行列を分解しスケールは頂点へ焼き込む
-	math::vector3f WorldScale, WorldTranslation;
-	math::quaternionf WorldRotation;
-	data.WorldMatrix.decompose(WorldScale, WorldRotation, WorldTranslation);
-	local_transform_matrix = local_transform_matrix * math::matrixf::scaling(WorldScale);
-
-	auto it = mesh.vertex_buffer_views.find(semantic("POSITION", 0));
-	if (it == mesh.vertex_buffer_views.end())
-		return false;
-
-	std::vector<math::float3> positions;
-	std::vector<bounding_mesh::triangle> triangles;
-	{
-		auto p = reinterpret_cast<const math::float3*>(it->second.row_data.data());
-		for (UINT index = 0; index < it->second.count(); ++index)
-		{
-			math::vector3f P(*(p + index));
-			positions.emplace_back() = (math::vector3f::transform_coord(P, local_transform_matrix)).to_float3();
-		}
-
-		auto fetch_index = [&](UINT k) -> UINT
-		{
-			if (index_view->stride_in_bytes == 2)
-				return reinterpret_cast<const USHORT*>(index_view->row_data.data())[k];
-			if (index_view->stride_in_bytes == 1)
-				return reinterpret_cast<const UCHAR*>(index_view->row_data.data())[k];
-			return reinterpret_cast<const UINT*>(index_view->row_data.data())[k];
-		};
-		UINT index1 = data.reverse_flag ? 2 : 0;
-		UINT index2 = 1;
-		UINT index3 = data.reverse_flag ? 0 : 2;
-		for (UINT index = 0; index < index_view->count(); index += 3)
-		{
-			bounding_mesh::triangle& triangle = triangles.emplace_back();
-			triangle.a = fetch_index(index + index1);
-			triangle.b = fetch_index(index + index2);
-			triangle.c = fetch_index(index + index3);
-
-			//	事前計算
-			auto tp = positions.data();
-			auto A = math::vector3f(*(tp + triangle.a));
-			auto B = math::vector3f(*(tp + triangle.b));
-			auto C = math::vector3f(*(tp + triangle.c));
-			auto AB = B - A;
-			auto BC = C - B;
-			auto CA = A - C;
-			triangle.ab = AB.to_float3();
-			triangle.bc = BC.to_float3();
-			triangle.ca = CA.to_float3();
-
-			auto Normal = math::vector3f::cross(AB, BC);
-			triangle.normal = Normal.normalized().to_float3();
-
-			auto Min = (math::min)(A, (math::min)(B, C));
-			auto Max = (math::max)(A, (math::max)(B, C));
-			triangle.min = Min.to_float3();
-			triangle.max = Max.to_float3();
-			triangle.lab = collision::line(collision::line::types::segment, *(tp + triangle.a), *(tp + triangle.b));
-			triangle.lbc = collision::line(collision::line::types::segment, *(tp + triangle.b), *(tp + triangle.c));
-			triangle.lca = collision::line(collision::line::types::segment, *(tp + triangle.c), *(tp + triangle.a));
-		}
-	}
-
-	out_mesh = collision::bounding_mesh(positions, triangles, data.separate_level);
-
-	{
-		math::float4 rotation;
-		math::float3 translation;
-		rotation = WorldRotation.to_float4();
-		translation = WorldTranslation.to_float3();
-
-		out_mesh.set_rotation(rotation);
-		out_mesh.set_position(translation);
-	}
-
 	return true;
 }

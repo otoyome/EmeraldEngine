@@ -33,8 +33,20 @@ namespace math
 		vector3& operator=(const vector3&) = default;
 		vector3(T x, T y, T z) { set(x, y, z); }
 		explicit vector3(const T values[element_count]) { set(values); }
-		explicit vector3(const vector2<T>& v, T z = 0);
-		explicit vector3(const vector4<T>& v);
+		template<typename V, std::enable_if_t<std::is_same_v<V, vector2<T>>, int> = 0>
+		explicit vector3(const V& v, T z = 0) { set(v.x, v.y, z); }
+		template<typename V, std::enable_if_t<std::is_same_v<V, vector4<T>>, int> = 0>
+		explicit vector3(const V& v)
+		{
+			if constexpr (use_simd_v<T>)
+			{
+				set(v.reg);
+			}
+			else
+			{
+				set(v.x, v.y, v.z);
+			}
+		}
 		vector3(const basic_element3<T>& v) { set(v.x, v.y, v.z); }
 		template<typename U, std::enable_if_t<!std::is_same_v<T, U>, int> = 0>
 		explicit vector3(const basic_element3<U>& v) { set(static_cast<T>(v.x), static_cast<T>(v.y), static_cast<T>(v.z)); }

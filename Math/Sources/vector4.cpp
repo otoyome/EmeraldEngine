@@ -3,28 +3,9 @@
 namespace math
 {
 	template<typename T>
-	vector4<T>::vector4(const vector2<T>& v)
-	{
-		set(v.x, v.y, 0, 0);
-	}
-
-	template<typename T>
 	vector4<T>::vector4(const vector2<T>& v1, const vector2<T>& v2)
 	{
 		set(v1.x, v1.y, v2.x, v2.y);
-	}
-
-	template<typename T>
-	vector4<T>::vector4(const vector3<T>& v)
-	{
-		if constexpr (use_simd_v<T>)
-		{
-			reg = v.reg;
-		}
-		else
-		{
-			set(v.x, v.y, v.z, 0);
-		}
 	}
 
 	template<typename T>

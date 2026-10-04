@@ -1,11 +1,11 @@
 #pragma once
 
 #include	"collision.h"
-#include	"model_resource.h"
+#include	"line.h"
+#include	"box.h"
 
 namespace collision
 {
-	using UINT = unsigned int;
 
 	class bounding_mesh : public bounding_object
 	{
@@ -14,7 +14,7 @@ namespace collision
 
 		struct triangle
 		{
-			UINT a, b, c;	//	座標番号
+			std::uint32_t a, b, c;	//	座標番号
 
 			//	事前計算
 			math::float3 normal;		//	法線
@@ -50,7 +50,7 @@ namespace collision
 
 	public:
 		bounding_mesh();
-		bounding_mesh(std::vector<math::float3>& positions, std::vector<triangle>& triangles, UINT separate_level = 4);
+		bounding_mesh(std::vector<math::float3>& positions, std::vector<triangle>& triangles, std::uint32_t separate_level = 4);
 		~bounding_mesh() override;
 
 		bool serialize(std::string_view file_path);
@@ -100,12 +100,4 @@ namespace collision
 		std::vector<block_data> block_datas;
 	};
 
-	struct generate_bounding_mesh_data
-	{
-		math::matrixf WorldMatrix;	// ワールド行列
-		bool reverse_flag = true;		// ポリゴン反転処理フラグ
-		UINT separate_level = 4;		// 空間分割数
-		int lod_level = -1;				// LODメッシュから生成 -1: ベースメッシュ / 0以上: lod_meshs[lod_level] のインデックスから生成
-	};
-	bool generate_bounding_mesh(bounding_mesh& out_mesh, model_resource_ptr resource, size_t index, generate_bounding_mesh_data data);
 }	//	namespace collision

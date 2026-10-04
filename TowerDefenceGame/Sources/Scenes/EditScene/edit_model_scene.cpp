@@ -1,6 +1,7 @@
 #include "scenes/editscene/edit_model_scene.h"
 
 #include "model_instance.h"
+#include "model_collision_builder.h"
 #include "camera.h"
 
 #include "object/light_object.h"

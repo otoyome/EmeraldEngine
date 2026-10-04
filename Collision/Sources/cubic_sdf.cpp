@@ -58,7 +58,6 @@ bool collision::cubic_sdf::serialize(std::string_view file_path)
 		}
 		catch (...)
 		{
-			DEBUG_ERROR_CATEGORY(logger::categorys::model, "cubic_sdf serialize failed. %s", file_path.data());
 			assert(!"cubic_sdf serialize failed.\n");
 			return false;
 		}
@@ -84,7 +83,6 @@ bool collision::cubic_sdf::deserialize(std::string_view file_path)
 		}
 		catch (...)
 		{
-			DEBUG_ERROR_CATEGORY(logger::categorys::model, "cubic_sdf deserialize failed. %s", file_path.data());
 			assert(!"cubic_sdf deserialize failed.\n");
 			return false;
 		}
@@ -101,12 +99,10 @@ bool collision::create_cubic_sdf(cubic_sdf& out_sdf, bounding_mesh& mesh, uint32
 
 	if (triangles.empty())
 	{
-		DEBUG_ERROR_CATEGORY(logger::categorys::model, "create_cubic_sdf failed : mesh empty");
 		return false;
 	}
 	if (resolution == 0)
 	{
-		DEBUG_ERROR_CATEGORY(logger::categorys::model, "create_cubic_sdf failed : resolution must be greater than 0");
 		return false;
 	}
 
@@ -168,25 +164,5 @@ bool collision::create_cubic_sdf(cubic_sdf& out_sdf, bounding_mesh& mesh, uint32
 			out_sdf.voxels[flat_index] = distance;
 		});
 
-	DEBUG_LOG_CATEGORY(logger::categorys::model, "create_cubic_sdf successed[resolution=%u, triangle_count=%zu]",
-		resolution, triangles.size());
 	return true;
-}
-
-bool collision::create_cubic_sdf(cubic_sdf& out_sdf, model_resource_ptr resource, size_t index, const generate_bounding_mesh_data& mesh_data, uint32_t resolution, float bounds_padding_rate)
-{
-	if (!resource)
-	{
-		DEBUG_ERROR_CATEGORY(logger::categorys::model, "create_cubic_sdf failed : resource is null");
-		return false;
-	}
-
-	bounding_mesh mesh;
-	if (!generate_bounding_mesh(mesh, resource, index, mesh_data))
-	{
-		DEBUG_ERROR_CATEGORY(logger::categorys::model, "create_cubic_sdf failed : generate_bounding_mesh failed");
-		return false;
-	}
-
-	return create_cubic_sdf(out_sdf, mesh, resolution, bounds_padding_rate);
 }

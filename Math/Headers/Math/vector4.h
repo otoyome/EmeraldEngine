@@ -29,9 +29,21 @@ namespace math
 		vector4& operator=(const vector4&) = default;
 		vector4(T x, T y, T z, T w) { set(x, y, z, w); }
 		explicit vector4(const T values[element_count]) { set(values); }
-		explicit vector4(const vector2<T>& v);
+		template<typename V, std::enable_if_t<std::is_same_v<V, vector2<T>>, int> = 0>
+		explicit vector4(const V& v) { set(v.x, v.y, 0, 0); }
 		vector4(const vector2<T>& v1, const vector2<T>& v2);
-		explicit vector4(const vector3<T>& v);
+		template<typename V, std::enable_if_t<std::is_same_v<V, vector3<T>>, int> = 0>
+		explicit vector4(const V& v)
+		{
+			if constexpr (use_simd_v<T>)
+			{
+				reg = v.reg;
+			}
+			else
+			{
+				set(v.x, v.y, v.z, 0);
+			}
+		}
 		vector4(const vector3<T>& v, T w);
 		vector4(const basic_element4<T>& v) { set(v.x, v.y, v.z, v.w); }
 		template<typename U, std::enable_if_t<!std::is_same_v<T, U>, int> = 0>

@@ -31,16 +31,6 @@
     <ClInclude Include="Headers\animation_resource.h" />
     <ClInclude Include="Headers\buffer_view.h" />
     <ClInclude Include="Headers\camera.h" />
-    <ClInclude Include="Headers\Collision\cubic_sdf.h" />
-    <ClInclude Include="Headers\Collision\collision.h" />
-    <ClInclude Include="Headers\Collision\box.h" />
-    <ClInclude Include="Headers\Collision\capsule.h" />
-    <ClInclude Include="Headers\Collision\frustum_culling.h" />
-    <ClInclude Include="Headers\Collision\line.h" />
-    <ClInclude Include="Headers\Collision\plane.h" />
-    <ClInclude Include="Headers\Collision\raycast.h" />
-    <ClInclude Include="Headers\Collision\sphere.h" />
-    <ClInclude Include="Headers\Collision\mesh.h" />
     <ClInclude Include="Headers\common_pipeline_states.h" />
     <ClInclude Include="Headers\custom_pipeline_state.h" />
     <ClInclude Include="Headers\data_converter.h" />
@@ -68,22 +58,6 @@
     <ClInclude Include="Headers\light.h" />
     <ClInclude Include="Headers\light_data.h" />
     <ClInclude Include="Headers\material.h" />
-    <ClInclude Include="Headers\Math\angle.h" />
-    <ClInclude Include="Headers\Math\easing.h" />
-    <ClInclude Include="Headers\Math\element.h" />
-    <ClInclude Include="Headers\Math\exponential_quaternion.h" />
-    <ClInclude Include="Headers\Math\interpolation.h" />
-    <ClInclude Include="Headers\Math\math_all.h" />
-    <ClInclude Include="Headers\Math\math_config.h" />
-    <ClInclude Include="Headers\Math\math_common.h" />
-    <ClInclude Include="Headers\Math\math_simd.h" />
-    <ClInclude Include="Headers\Math\matrix.h" />
-    <ClInclude Include="Headers\Math\quaternion.h" />
-    <ClInclude Include="Headers\Math\rotator.h" />
-    <ClInclude Include="Headers\Math\utility.h" />
-    <ClInclude Include="Headers\Math\vector2.h" />
-    <ClInclude Include="Headers\Math\vector3.h" />
-    <ClInclude Include="Headers\Math\vector4.h" />
     <ClInclude Include="Headers\ModelFormat\gltf_loader.h" />
     <ClInclude Include="Headers\ModelFormat\pmx_definision.h" />
     <ClInclude Include="Headers\ModelFormat\pmx_loader.h" />
@@ -94,6 +68,7 @@
     <ClInclude Include="Headers\model_resource.h" />
     <ClInclude Include="Headers\model_buffer_pool.h" />
     <ClInclude Include="Headers\model_resource_utility.h" />
+    <ClInclude Include="Headers\model_collision_builder.h" />
     <ClInclude Include="Headers\pipeline_state.h" />
     <ClInclude Include="Headers\post_process_volume.h" />
     <ClInclude Include="Headers\render_data.h" />
@@ -130,20 +105,10 @@
   <ItemGroup>
     <ClCompile Include="Sources\animation_resource.cpp" />
     <ClCompile Include="Sources\camera.cpp" />
-    <ClCompile Include="Sources\Collision\cubic_sdf.cpp" />
     <ClCompile Include="Sources\Graphics\cubic_sdf_buffer_pool.cpp" />
     <ClCompile Include="Sources\Graphics\hiz_buffer.cpp" />
     <ClCompile Include="Sources\Graphics\meshlet_culling_system.cpp" />
     <ClCompile Include="Sources\Graphics\occlusion_culling_system.cpp" />
-    <ClCompile Include="Sources\Collision\collision.cpp" />
-    <ClCompile Include="Sources\Collision\box.cpp" />
-    <ClCompile Include="Sources\Collision\capsule.cpp" />
-    <ClCompile Include="Sources\Collision\frustum_culling.cpp" />
-    <ClCompile Include="Sources\Collision\line.cpp" />
-    <ClCompile Include="Sources\Collision\plane.cpp" />
-    <ClCompile Include="Sources\Collision\raycast.cpp" />
-    <ClCompile Include="Sources\Collision\sphere.cpp" />
-    <ClCompile Include="Sources\Collision\mesh.cpp" />
     <ClCompile Include="Sources\custom_pipeline_state.cpp" />
     <ClCompile Include="Sources\data_converter.cpp" />
     <ClCompile Include="Sources\data_converter_gltf.cpp" />
@@ -166,18 +131,12 @@
     <ClCompile Include="Sources\light.cpp" />
     <ClCompile Include="Sources\light_data.cpp" />
     <ClCompile Include="Sources\material.cpp" />
-    <ClCompile Include="Sources\Math\exponential_quaternion.cpp" />
-    <ClCompile Include="Sources\Math\matrix.cpp" />
-    <ClCompile Include="Sources\Math\quaternion.cpp" />
-    <ClCompile Include="Sources\Math\rotator.cpp" />
-    <ClCompile Include="Sources\Math\vector2.cpp" />
-    <ClCompile Include="Sources\Math\vector3.cpp" />
-    <ClCompile Include="Sources\Math\vector4.cpp" />
     <ClCompile Include="Sources\ModelFormat\gltf_loader.cpp" />
     <ClCompile Include="Sources\ModelFormat\pmx_loader.cpp" />
     <ClCompile Include="Sources\ModelFormat\pmx_model.cpp" />
     <ClCompile Include="Sources\ModelFormat\vmd_loader.cpp" />
     <ClCompile Include="Sources\model_instance.cpp" />
+    <ClCompile Include="Sources\model_collision_builder.cpp" />
     <ClCompile Include="Sources\model_resource.cpp" />
     <ClCompile Include="Sources\model_buffer_pool.cpp" />
     <ClCompile Include="Sources\model_resource_utility.cpp" />
@@ -208,6 +167,16 @@
     <ClCompile Include="Sources\System\system_units.cpp" />
     <ClCompile Include="Sources\System\system_utility.cpp" />
     <ClCompile Include="Sources\texture.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Math\Math.vcxproj">
+      <Project>{A7AB94D7-730B-45B7-8000-E0EBE4D2C878}</Project>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </ProjectReference>
+    <ProjectReference Include="..\Collision\Collision.vcxproj">
+      <Project>{51FA7ACE-7279-433A-995A-9D8668006662}</Project>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </ProjectReference>
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
@@ -280,15 +249,15 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>$(ProjectDir)Headers;$(SolutionDir)External;$(SolutionDir)External\Headers;$(SolutionDir)External\DirectXTex\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)Headers;$(SolutionDir)Math\Headers;$(SolutionDir)Collision\Headers;$(SolutionDir)External;$(SolutionDir)External\Headers;$(SolutionDir)External\DirectXTex\include;$(IncludePath)</IncludePath>
     <OutDir>$(ProjectDir)Bin\$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">
-    <IncludePath>$(ProjectDir)Headers;$(SolutionDir)External;$(SolutionDir)External\Headers;$(SolutionDir)External\DirectXTex\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)Headers;$(SolutionDir)Math\Headers;$(SolutionDir)Collision\Headers;$(SolutionDir)External;$(SolutionDir)External\Headers;$(SolutionDir)External\DirectXTex\include;$(IncludePath)</IncludePath>
     <OutDir>$(ProjectDir)Bin\$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>$(ProjectDir)Headers;$(SolutionDir)External;$(SolutionDir)External\Headers;$(SolutionDir)External\DirectXTex\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)Headers;$(SolutionDir)Math\Headers;$(SolutionDir)Collision\Headers;$(SolutionDir)External;$(SolutionDir)External\Headers;$(SolutionDir)External\DirectXTex\include;$(IncludePath)</IncludePath>
     <OutDir>$(ProjectDir)Bin\$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">

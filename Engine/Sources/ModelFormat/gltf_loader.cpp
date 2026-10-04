@@ -29,17 +29,17 @@ namespace
 		"WEIGHTS",
 	};
 
-	math::float3 convert_gltf_vector3_to_xmfloat3(const std::vector<double>& vec)
+	math::float3 convert_gltf_vector3_to_float3(const std::vector<double>& vec)
 	{
 		return math::float3(static_cast<float>(vec.at(0)), static_cast<float>(vec.at(1)), static_cast<float>(vec.at(2)));
 	}
 
-	math::float4 convert_gltf_quaternion_to_xmfloat4(const std::vector<double>& quat)
+	math::float4 convert_gltf_quaternion_to_float4(const std::vector<double>& quat)
 	{
 		return math::float4(static_cast<float>(quat.at(0)), static_cast<float>(quat.at(1)), static_cast<float>(quat.at(2)), static_cast<float>(quat.at(3)));
 	}
 
-	math::float4x4 convert_gltf_matrix_to_xmfloat4x4(const std::vector<double>& mat)
+	math::float4x4 convert_gltf_matrix_to_float4x4(const std::vector<double>& mat)
 	{
 		return math::float4x4(static_cast<float>(mat.at(0)), static_cast<float>(mat.at(1)), static_cast<float>(mat.at(2)), static_cast<float>(mat.at(3)),
 								   static_cast<float>(mat.at(4)), static_cast<float>(mat.at(5)), static_cast<float>(mat.at(6)), static_cast<float>(mat.at(7)),
@@ -1344,7 +1344,7 @@ void gltf_loader::load_nodes(std::vector<node_data>& nodes)
 
 		if (!gltf_node.matrix.empty())
 		{
-			math::float4x4 m = convert_gltf_matrix_to_xmfloat4x4(gltf_node.matrix);
+			math::float4x4 m = convert_gltf_matrix_to_float4x4(gltf_node.matrix);
 
 			math::vector3f S, T;
 			math::quaternionf R;
@@ -1358,15 +1358,15 @@ void gltf_loader::load_nodes(std::vector<node_data>& nodes)
 		{
 			if (gltf_node.scale.size() > 0)
 			{
-				node.scale = convert_gltf_vector3_to_xmfloat3(gltf_node.scale);
+				node.scale = convert_gltf_vector3_to_float3(gltf_node.scale);
 			}
 			if (gltf_node.rotation.size() > 0)
 			{
-				node.rotation = convert_gltf_quaternion_to_xmfloat4(gltf_node.rotation);
+				node.rotation = convert_gltf_quaternion_to_float4(gltf_node.rotation);
 			}
 			if (gltf_node.translation.size() > 0)
 			{
-				node.translation = convert_gltf_vector3_to_xmfloat3(gltf_node.translation);
+				node.translation = convert_gltf_vector3_to_float3(gltf_node.translation);
 			}
 		}
 

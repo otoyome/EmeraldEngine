@@ -31,7 +31,7 @@ void intersect_data::add(const math::float3& point, const math::float3& normal, 
 
 void intersect_data::clear()
 {
-	system_utility::std_vector_swap_clear(infomations);
+	decltype(infomations)().swap(infomations);
 }
 
 bool intersect_data::multiply_matrix(std::size_t index, math::float4x4 matrix)
@@ -272,7 +272,7 @@ bool collision::ray_cast_16(math::vector3f Start, math::vector3f End, const tria
 	float Length = Vec.length();
 
 	float neart = Length;
-	const USHORT* indices = reinterpret_cast<const USHORT*>(triangles.indices);
+	const std::uint16_t* indices = reinterpret_cast<const std::uint16_t*>(triangles.indices);
 	const size_t offsets[] =
 	{
 		triangles.reverse_index ? 2u : 0u,
@@ -284,9 +284,9 @@ bool collision::ray_cast_16(math::vector3f Start, math::vector3f End, const tria
 	math::vector3f HitPosition, HitNormal;
 	for (size_t index = triangles.index_start; index + 2 < triangles.index_start + triangles.index_count; index += 3)
 	{
-		USHORT ai = indices[index + offsets[0]];
-		USHORT bi = indices[index + offsets[1]];
-		USHORT ci = indices[index + offsets[2]];
+		std::uint16_t ai = indices[index + offsets[0]];
+		std::uint16_t bi = indices[index + offsets[1]];
+		std::uint16_t ci = indices[index + offsets[2]];
 
 		math::vector3f A(*(triangles.positions + ai));
 		math::vector3f B(*(triangles.positions + bi));
@@ -352,8 +352,8 @@ bool collision::ray_cast_32(math::vector3f Start, math::vector3f End, const tria
 	float Length = Vec.length();
 
 	float neart = Length;
-	const UINT* indices = reinterpret_cast<const UINT*>(triangles.indices);
-	const UINT offsets[] =
+	const std::uint32_t* indices = reinterpret_cast<const std::uint32_t*>(triangles.indices);
+	const std::uint32_t offsets[] =
 	{
 		triangles.reverse_index ? 2u : 0u,
 		1u,
@@ -364,9 +364,9 @@ bool collision::ray_cast_32(math::vector3f Start, math::vector3f End, const tria
 	math::vector3f HitPosition, HitNormal;
 	for (size_t index = triangles.index_start; index + 2 < triangles.index_start + triangles.index_count; index += 3)
 	{
-		UINT ai = indices[index + offsets[0]];
-		UINT bi = indices[index + offsets[1]];
-		UINT ci = indices[index + offsets[2]];
+		std::uint32_t ai = indices[index + offsets[0]];
+		std::uint32_t bi = indices[index + offsets[1]];
+		std::uint32_t ci = indices[index + offsets[2]];
 
 		math::vector3f A(*(triangles.positions + ai));
 		math::vector3f B(*(triangles.positions + bi));

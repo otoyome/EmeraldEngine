@@ -6,11 +6,20 @@ MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TowerDefenceGame", "TowerDefenceGame\TowerDefenceGame.vcxproj", "{0DDBE550-8551-4506-9A5A-4DD100C00C48}"
 	ProjectSection(ProjectDependencies) = postProject
 		{3574562A-1F5E-4328-AC9A-30054E53EF0E} = {3574562A-1F5E-4328-AC9A-30054E53EF0E}
+		{A7AB94D7-730B-45B7-8000-E0EBE4D2C878} = {A7AB94D7-730B-45B7-8000-E0EBE4D2C878}
+		{51FA7ACE-7279-433A-995A-9D8668006662} = {51FA7ACE-7279-433A-995A-9D8668006662}
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Engine", "Engine\Engine.vcxproj", "{3574562A-1F5E-4328-AC9A-30054E53EF0E}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MathTest", "MathTest\MathTest.vcxproj", "{39E5A390-208E-4FA7-BA5E-9903899CC315}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Math", "Math\Math.vcxproj", "{A7AB94D7-730B-45B7-8000-E0EBE4D2C878}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Collision", "Collision\Collision.vcxproj", "{51FA7ACE-7279-433A-995A-9D8668006662}"
+	ProjectSection(ProjectDependencies) = postProject
+		{A7AB94D7-730B-45B7-8000-E0EBE4D2C878} = {A7AB94D7-730B-45B7-8000-E0EBE4D2C878}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -55,6 +64,24 @@ Global
 		{39E5A390-208E-4FA7-BA5E-9903899CC315}.Release|x64.ActiveCfg = Release|x64
 		{39E5A390-208E-4FA7-BA5E-9903899CC315}.Release|x64.Build.0 = Release|x64
 		{39E5A390-208E-4FA7-BA5E-9903899CC315}.Release|x86.ActiveCfg = Release|x64
+		{A7AB94D7-730B-45B7-8000-E0EBE4D2C878}.Debug|x64.ActiveCfg = Debug|x64
+		{A7AB94D7-730B-45B7-8000-E0EBE4D2C878}.Debug|x64.Build.0 = Debug|x64
+		{A7AB94D7-730B-45B7-8000-E0EBE4D2C878}.Debug|x86.ActiveCfg = Debug|x64
+		{A7AB94D7-730B-45B7-8000-E0EBE4D2C878}.Develop|x64.ActiveCfg = Develop|x64
+		{A7AB94D7-730B-45B7-8000-E0EBE4D2C878}.Develop|x64.Build.0 = Develop|x64
+		{A7AB94D7-730B-45B7-8000-E0EBE4D2C878}.Develop|x86.ActiveCfg = Develop|x64
+		{A7AB94D7-730B-45B7-8000-E0EBE4D2C878}.Release|x64.ActiveCfg = Release|x64
+		{A7AB94D7-730B-45B7-8000-E0EBE4D2C878}.Release|x64.Build.0 = Release|x64
+		{A7AB94D7-730B-45B7-8000-E0EBE4D2C878}.Release|x86.ActiveCfg = Release|x64
+		{51FA7ACE-7279-433A-995A-9D8668006662}.Debug|x64.ActiveCfg = Debug|x64
+		{51FA7ACE-7279-433A-995A-9D8668006662}.Debug|x64.Build.0 = Debug|x64
+		{51FA7ACE-7279-433A-995A-9D8668006662}.Debug|x86.ActiveCfg = Debug|x64
+		{51FA7ACE-7279-433A-995A-9D8668006662}.Develop|x64.ActiveCfg = Develop|x64
+		{51FA7ACE-7279-433A-995A-9D8668006662}.Develop|x64.Build.0 = Develop|x64
+		{51FA7ACE-7279-433A-995A-9D8668006662}.Develop|x86.ActiveCfg = Develop|x64
+		{51FA7ACE-7279-433A-995A-9D8668006662}.Release|x64.ActiveCfg = Release|x64
+		{51FA7ACE-7279-433A-995A-9D8668006662}.Release|x64.Build.0 = Release|x64
+		{51FA7ACE-7279-433A-995A-9D8668006662}.Release|x86.ActiveCfg = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

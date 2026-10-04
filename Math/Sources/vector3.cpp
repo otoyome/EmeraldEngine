@@ -67,25 +67,6 @@ namespace math
 	}	//	namespace
 
 	template<typename T>
-	vector3<T>::vector3(const vector2<T>& v, T set_z)
-	{
-		set(v.x, v.y, set_z);
-	}
-
-	template<typename T>
-	vector3<T>::vector3(const vector4<T>& v)
-	{
-		if constexpr (use_simd_v<T>)
-		{
-			set(v.reg);
-		}
-		else
-		{
-			set(v.x, v.y, v.z);
-		}
-	}
-
-	template<typename T>
 	void vector3<T>::rotate(const quaternion<T>& q)
 	{
 		//	q * v * q^-1

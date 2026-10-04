@@ -28,8 +28,18 @@ namespace math
 		vector2& operator=(const vector2&) = default;
 		vector2(T x, T y) { set(x, y); }
 		explicit vector2(const T values[element_count]) { set(values[0], values[1]); }
-		explicit vector2(const vector3<T>& v);
-		explicit vector2(const vector4<T>& v);
+		template<typename V, std::enable_if_t<std::is_same_v<V, vector3<T>> || std::is_same_v<V, vector4<T>>, int> = 0>
+		explicit vector2(const V& v)
+		{
+			if constexpr (use_simd_v<T>)
+			{
+				set(v.reg);
+			}
+			else
+			{
+				set(v.x, v.y);
+			}
+		}
 		vector2(const basic_element2<T>& v) { set(v.x, v.y); }
 		template<typename U, std::enable_if_t<!std::is_same_v<T, U>, int> = 0>
 		explicit vector2(const basic_element2<U>& v) { set(static_cast<T>(v.x), static_cast<T>(v.y)); }

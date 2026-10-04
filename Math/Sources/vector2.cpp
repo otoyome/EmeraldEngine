@@ -3,32 +3,6 @@
 namespace math
 {
 	template<typename T>
-	vector2<T>::vector2(const vector3<T>& v)
-	{
-		if constexpr (use_simd_v<T>)
-		{
-			set(v.reg);
-		}
-		else
-		{
-			set(v.x, v.y);
-		}
-	}
-
-	template<typename T>
-	vector2<T>::vector2(const vector4<T>& v)
-	{
-		if constexpr (use_simd_v<T>)
-		{
-			set(v.reg);
-		}
-		else
-		{
-			set(v.x, v.y);
-		}
-	}
-
-	template<typename T>
 	vector4<T> vector2<T>::transformed(const matrix<T>& m) const
 	{
 		return transform(*this, m);

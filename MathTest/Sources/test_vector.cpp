@@ -2,6 +2,12 @@
 
 using namespace math;
 
+//	@tool 次元の違う保存用の型からは変換できない（要素が黙って増減しない）。同じ次元とベクトル同士は変換できる
+static_assert(!std::is_constructible_v<vector3f, float4> && !std::is_constructible_v<vector3f, float2>, "vector3 は float2 / float4 から作れない");
+static_assert(!std::is_constructible_v<vector2f, float3> && !std::is_constructible_v<vector2f, float4>, "vector2 は float3 / float4 から作れない");
+static_assert(!std::is_constructible_v<vector4f, float2> && !std::is_constructible_v<vector4f, float3>, "vector4 は float2 / float3 から作れない");
+static_assert(std::is_constructible_v<vector3f, float3> && std::is_constructible_v<vector3f, vector4f> && std::is_constructible_v<vector4f, vector3f, float>, "同じ次元とベクトル同士は変換できる");
+
 //	@tool 生成・設定・要素アクセス
 MATH_TEST_TYPED(vector_construct)
 {

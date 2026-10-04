@@ -4,12 +4,10 @@
 #include <memory>
 #include <string_view>
 #include "Math/math_all.h"
-#include "model_resource.h"
 
 namespace collision
 {
 	class bounding_mesh;
-	struct generate_bounding_mesh_data;
 
 	//	立体形状のSDF
 	struct cubic_sdf
@@ -34,7 +32,5 @@ namespace collision
 	//	指定したメッシュから cubic Signed Distance Field を生成
 	bool create_cubic_sdf(cubic_sdf& out_sdf, bounding_mesh& mesh, uint32_t resolution = 32, float bounds_padding_rate = 0.1f);
 
-	//	 model_resourceから cubic Signed Distance Field を生成
-	bool create_cubic_sdf(cubic_sdf& out_sdf, model_resource_ptr resource, size_t index, const generate_bounding_mesh_data& mesh_data, uint32_t resolution = 32, float bounds_padding_rate = 0.1f);
 
 }	//	namespace collision

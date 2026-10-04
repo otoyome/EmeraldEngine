@@ -7,12 +7,6 @@
     <Filter Include="Headers">
       <UniqueIdentifier>{11ba890f-8786-4096-9423-f67584441e95}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Sources\Collision">
-      <UniqueIdentifier>{a572c795-5702-4af4-bae0-cb57a2741a4d}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Headers\Collision">
-      <UniqueIdentifier>{da833294-ed0f-43f8-9c0d-b0c31c79b592}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Headers\Input">
       <UniqueIdentifier>{cdce47c4-dae5-4060-b42a-5fadccabf110}</UniqueIdentifier>
     </Filter>
@@ -42,12 +36,6 @@
     </Filter>
     <Filter Include="Headers\System\BehaviorTree">
       <UniqueIdentifier>{16213654-ea52-427f-b93d-0078ad90f3b5}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Headers\Math">
-      <UniqueIdentifier>{b353db9d-9c77-4856-90f7-d7c3f522128b}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Sources\Math">
-      <UniqueIdentifier>{d09f55fd-9e4c-4b63-b4de-1d7f8dfbda9a}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -96,6 +84,9 @@
     <ClInclude Include="Headers\model_resource_utility.h">
       <Filter>Headers</Filter>
     </ClInclude>
+    <ClInclude Include="Headers\model_collision_builder.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
     <ClInclude Include="Headers\pipeline_state.h">
       <Filter>Headers</Filter>
     </ClInclude>
@@ -105,27 +96,6 @@
     <ClInclude Include="Headers\camera.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Collision\frustum_culling.h">
-      <Filter>Headers\Collision</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Collision\line.h">
-      <Filter>Headers\Collision</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Collision\plane.h">
-      <Filter>Headers\Collision</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Collision\sphere.h">
-      <Filter>Headers\Collision</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Collision\collision.h">
-      <Filter>Headers\Collision</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Collision\box.h">
-      <Filter>Headers\Collision</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Collision\capsule.h">
-      <Filter>Headers\Collision</Filter>
-    </ClInclude>
     <ClInclude Include="Headers\Input\mouse.h">
       <Filter>Headers\Input</Filter>
     </ClInclude>
@@ -134,9 +104,6 @@
     </ClInclude>
     <ClInclude Include="Headers\Graphics\debug_primitive_collector.h">
       <Filter>Headers\Graphics</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Collision\mesh.h">
-      <Filter>Headers\Collision</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Input\input.h">
       <Filter>Headers\Input</Filter>
@@ -176,9 +143,6 @@
     </ClInclude>
     <ClInclude Include="Headers\ModelFormat\vmd_loader.h">
       <Filter>Headers\ModelFormat</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Collision\raycast.h">
-      <Filter>Headers\Collision</Filter>
     </ClInclude>
     <ClInclude Include="Headers\System\enum_class_attribute.h">
       <Filter>Headers\System</Filter>
@@ -285,9 +249,6 @@
     <ClInclude Include="Headers\System\cache_string.h">
       <Filter>Headers\System</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Collision\cubic_sdf.h">
-      <Filter>Headers\Collision</Filter>
-    </ClInclude>
     <ClInclude Include="Headers\Graphics\occlusion_culling_system.h">
       <Filter>Headers\Graphics</Filter>
     </ClInclude>
@@ -299,54 +260,6 @@
     </ClInclude>
     <ClInclude Include="Headers\Graphics\cubic_sdf_buffer_pool.h">
       <Filter>Headers\Graphics</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Math\element.h">
-      <Filter>Headers\Math</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Math\math_config.h">
-      <Filter>Headers\Math</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Math\angle.h">
-      <Filter>Headers\Math</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Math\easing.h">
-      <Filter>Headers\Math</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Math\exponential_quaternion.h">
-      <Filter>Headers\Math</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Math\interpolation.h">
-      <Filter>Headers\Math</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Math\math_all.h">
-      <Filter>Headers\Math</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Math\math_common.h">
-      <Filter>Headers\Math</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Math\math_simd.h">
-      <Filter>Headers\Math</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Math\matrix.h">
-      <Filter>Headers\Math</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Math\quaternion.h">
-      <Filter>Headers\Math</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Math\rotator.h">
-      <Filter>Headers\Math</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Math\utility.h">
-      <Filter>Headers\Math</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Math\vector2.h">
-      <Filter>Headers\Math</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Math\vector3.h">
-      <Filter>Headers\Math</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Math\vector4.h">
-      <Filter>Headers\Math</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -383,6 +296,9 @@
     <ClCompile Include="Sources\model_instance.cpp">
       <Filter>Sources</Filter>
     </ClCompile>
+    <ClCompile Include="Sources\model_collision_builder.cpp">
+      <Filter>Sources</Filter>
+    </ClCompile>
     <ClCompile Include="Sources\material.cpp">
       <Filter>Sources</Filter>
     </ClCompile>
@@ -395,27 +311,6 @@
     <ClCompile Include="Sources\camera.cpp">
       <Filter>Sources</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Collision\collision.cpp">
-      <Filter>Sources\Collision</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Collision\box.cpp">
-      <Filter>Sources\Collision</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Collision\capsule.cpp">
-      <Filter>Sources\Collision</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Collision\frustum_culling.cpp">
-      <Filter>Sources\Collision</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Collision\line.cpp">
-      <Filter>Sources\Collision</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Collision\plane.cpp">
-      <Filter>Sources\Collision</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Collision\sphere.cpp">
-      <Filter>Sources\Collision</Filter>
-    </ClCompile>
     <ClCompile Include="Sources\Input\mouse.cpp">
       <Filter>Sources\Input</Filter>
     </ClCompile>
@@ -424,9 +319,6 @@
     </ClCompile>
     <ClCompile Include="Sources\Graphics\debug_primitive_collector.cpp">
       <Filter>Sources\Graphics</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Collision\mesh.cpp">
-      <Filter>Sources\Collision</Filter>
     </ClCompile>
     <ClCompile Include="Sources\post_process_volume.cpp">
       <Filter>Sources</Filter>
@@ -451,9 +343,6 @@
     </ClCompile>
     <ClCompile Include="Sources\ModelFormat\vmd_loader.cpp">
       <Filter>Sources\ModelFormat</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Collision\raycast.cpp">
-      <Filter>Sources\Collision</Filter>
     </ClCompile>
     <ClCompile Include="Sources\System\logger.cpp">
       <Filter>Sources\System</Filter>
@@ -542,9 +431,6 @@
     <ClCompile Include="Sources\System\cache_string.cpp">
       <Filter>Sources\System</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Collision\cubic_sdf.cpp">
-      <Filter>Sources\Collision</Filter>
-    </ClCompile>
     <ClCompile Include="Sources\Graphics\occlusion_culling_system.cpp">
       <Filter>Sources\Graphics</Filter>
     </ClCompile>
@@ -556,27 +442,6 @@
     </ClCompile>
     <ClCompile Include="Sources\Graphics\cubic_sdf_buffer_pool.cpp">
       <Filter>Sources\Graphics</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Math\exponential_quaternion.cpp">
-      <Filter>Sources\Math</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Math\matrix.cpp">
-      <Filter>Sources\Math</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Math\quaternion.cpp">
-      <Filter>Sources\Math</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Math\rotator.cpp">
-      <Filter>Sources\Math</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Math\vector2.cpp">
-      <Filter>Sources\Math</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Math\vector3.cpp">
-      <Filter>Sources\Math</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Math\vector4.cpp">
-      <Filter>Sources\Math</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

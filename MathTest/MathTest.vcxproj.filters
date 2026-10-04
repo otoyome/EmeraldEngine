@@ -17,25 +17,25 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\Engine\Sources\Math\exponential_quaternion.cpp">
+    <ClCompile Include="..\Math\Sources\exponential_quaternion.cpp">
       <Filter>Math</Filter>
     </ClCompile>
-    <ClCompile Include="..\Engine\Sources\Math\matrix.cpp">
+    <ClCompile Include="..\Math\Sources\matrix.cpp">
       <Filter>Math</Filter>
     </ClCompile>
-    <ClCompile Include="..\Engine\Sources\Math\quaternion.cpp">
+    <ClCompile Include="..\Math\Sources\quaternion.cpp">
       <Filter>Math</Filter>
     </ClCompile>
-    <ClCompile Include="..\Engine\Sources\Math\rotator.cpp">
+    <ClCompile Include="..\Math\Sources\rotator.cpp">
       <Filter>Math</Filter>
     </ClCompile>
-    <ClCompile Include="..\Engine\Sources\Math\vector2.cpp">
+    <ClCompile Include="..\Math\Sources\vector2.cpp">
       <Filter>Math</Filter>
     </ClCompile>
-    <ClCompile Include="..\Engine\Sources\Math\vector3.cpp">
+    <ClCompile Include="..\Math\Sources\vector3.cpp">
       <Filter>Math</Filter>
     </ClCompile>
-    <ClCompile Include="..\Engine\Sources\Math\vector4.cpp">
+    <ClCompile Include="..\Math\Sources\vector4.cpp">
       <Filter>Math</Filter>
     </ClCompile>
     <ClCompile Include="Sources\main.cpp">
