@@ -7,14 +7,6 @@
 
 using namespace collision;
 
-intersect_data::intersect_data()
-{
-}
-
-intersect_data::~intersect_data()
-{
-}
-
 void intersect_data::add(const infomation& infomation)
 {
 	infomations.emplace_back(infomation);
@@ -31,15 +23,15 @@ void intersect_data::add(const math::float3& point, const math::float3& normal, 
 
 void intersect_data::clear()
 {
-	decltype(infomations)().swap(infomations);
+	infomations.clear();
 }
 
-bool intersect_data::multiply_matrix(std::size_t index, math::float4x4 matrix)
+bool intersect_data::multiply_matrix(std::size_t index, const math::float4x4& matrix)
 {
 	return multiply_matrix(index, math::matrixf(matrix));
 }
 
-bool intersect_data::multiply_matrix(std::size_t index, math::matrixf matrix)
+bool intersect_data::multiply_matrix(std::size_t index, const math::matrixf& matrix)
 {
 	if (index >= infomations.size())
 		return false;
@@ -54,7 +46,7 @@ bool intersect_data::multiply_matrix(std::size_t index, math::matrixf matrix)
 	return true;
 }
 
-void intersect_data::multiply_matrices(std::size_t begin, math::matrixf matrix)
+void intersect_data::multiply_matrices(std::size_t begin, const math::matrixf& matrix)
 {
 	for (std::size_t index = begin; index < infomations.size(); ++index)
 		multiply_matrix(index, matrix);
@@ -202,7 +194,7 @@ bool bounding_object::intersect_capsule_cast_by_axis_spheres(const math::float3&
 
 	bool hit = false;
 	float nearest_distance = FLT_MAX;
-	intersect_data nearest;
+	intersect_data nearest, sample;
 	for (int index = 0; index < samples; ++index)
 	{
 		float s = (samples > 1)
@@ -215,14 +207,14 @@ bool bounding_object::intersect_capsule_cast_by_axis_spheres(const math::float3&
 		sample_end = (End + Offset).to_float3();
 
 		//	開始時の重なりはスフィアキャスト側で判定
-		intersect_data sample;
+		sample.clear();
 		if (intersect_sphere_cast(sample_start, sample_end, radius, &sample) && sample.size() > 0)
 		{
 			float travel = sample[0].length;
 			if (travel < nearest_distance)
 			{
 				nearest_distance = travel;
-				nearest = sample;
+				nearest.swap(sample);
 				nearest[0].length = travel;
 				//	接触時のカプセル中心
 				nearest[0].point = (Start + (MoveDirection * travel)).to_float3();

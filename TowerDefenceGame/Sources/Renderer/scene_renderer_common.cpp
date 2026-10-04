@@ -114,10 +114,16 @@ namespace
 
 }
 
-float scene_renderer_commons::convert_linear_depth_to_projection_depth(float depth, float z_buffer_parameteres_y)
+float scene_renderer_commons::convert_view_depth_to_projection_depth(float view_depth, float near_clip, float far_clip)
 {
-	float z_buffer_parameteres_x = z_buffer_parameteres_y - 1.0f;
-	return (1.0f / depth - 1.0f) / z_buffer_parameteres_x;
+	if constexpr (math::is_reverse_depth())
+	{
+		return near_clip * (far_clip - view_depth) / (view_depth * (far_clip - near_clip));
+	}
+	else
+	{
+		return far_clip * (view_depth - near_clip) / (view_depth * (far_clip - near_clip));
+	}
 }
 
 void scene_renderer_commons::draw(const graphics_context& context,

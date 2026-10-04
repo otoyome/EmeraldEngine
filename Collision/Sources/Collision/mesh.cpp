@@ -912,7 +912,7 @@ bool bounding_mesh::intersect_segment(const math::float3& start, const math::flo
 			{
 				//	Å‚à‹ß‚¢Œğ“_‚ğÌ—p
 				if (best.size() == 0 || data[0].length < best[0].length)
-					best = data;
+					best.swap(data);
 				hit = true;
 			}
 		}
@@ -1015,7 +1015,7 @@ bool bounding_mesh::intersect_sphere(const math::float3& point, float radius, in
 		if (intersect_sphere_inner(local_point, radius, node.triangles, &data))
 		{
 			if (best.size() == 0 || data[0].length > best[0].length)
-				best = data;
+				best.swap(data);
 			hit = true;
 		}
 	}
@@ -1206,7 +1206,7 @@ bool bounding_mesh::intersect_capsule(const bounding_capsule& capsule, intersect
 			{
 				//	Å‚à[‚¢ÚG‚ğÌ—p
 				if (best.size() == 0 || data[0].length > best[0].length)
-					best = data;
+					best.swap(data);
 				hit = true;
 			}
 		}
@@ -1367,7 +1367,7 @@ bool bounding_mesh::intersect_box(const bounding_box& box, intersect_data* inter
 			{
 				//	Å‚à[‚¢ÚG‚ğÌ—p
 				if (best.size() == 0 || data[0].length > best[0].length)
-					best = data;
+					best.swap(data);
 				hit = true;
 			}
 		}
@@ -1613,7 +1613,7 @@ bool bounding_mesh::intersect_sphere_cast(const math::float3& start, const math:
 			{
 				//	Å‚à‹ß‚¢Œğ“_‚ğÌ—p
 				if (best.size() == 0 || data[0].length < best[0].length)
-					best = data;
+					best.swap(data);
 				hit = true;
 			}
 		}

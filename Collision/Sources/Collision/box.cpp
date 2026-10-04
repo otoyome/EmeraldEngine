@@ -255,8 +255,8 @@ bool inner::axis_aligned_bounding_box::intersect_capsule(const bounding_capsule&
 	//	î†ÇÃ3é≤
 	for (size_t index = 0; index < 3; ++index)
 	{
-		float projR = fabsf(d[index]) + capsule.get_radius();
-		float pd = (projR + e[index]) - fabsf(t[index]);
+		float projR = fabsf(d[static_cast<int32_t>(index)]) + capsule.get_radius();
+		float pd = (projR + e[static_cast<int32_t>(index)]) - fabsf(t[static_cast<int32_t>(index)]);
 		if (pd <= 0.0f)
 			return false;
 		if (pd < pen_depth)
@@ -315,36 +315,36 @@ bool inner::axis_aligned_bounding_box::intersect_capsule(const bounding_capsule&
 				size_t clip_axis = clip_Axes[pen_axis][index];
 				float offset = (&get_local_scale().x)[clip_axis];
 
-				if (S1[clip_axis] < offset && S2[clip_axis] > offset)
+				if (S1[static_cast<int32_t>(clip_axis)] < offset && S2[static_cast<int32_t>(clip_axis)] > offset)
 				{
 					math::vector3f Delta = S2 - S1;
-					float w = (offset - S1[clip_axis]) / Delta[clip_axis];
+					float w = (offset - S1[static_cast<int32_t>(clip_axis)]) / Delta[static_cast<int32_t>(clip_axis)];
 					S2 = S1 + (Delta * w);
 				}
-				else if (S1[clip_axis] > offset && S2[clip_axis] < offset)
+				else if (S1[static_cast<int32_t>(clip_axis)] > offset && S2[static_cast<int32_t>(clip_axis)] < offset)
 				{
 					math::vector3f Delta = S1 - S2;
-					float w = (offset - S2[clip_axis]) / Delta[clip_axis];
+					float w = (offset - S2[static_cast<int32_t>(clip_axis)]) / Delta[static_cast<int32_t>(clip_axis)];
 					S1 = S2 + (Delta * w);
 				}
 
-				if (S1[clip_axis] > -offset && S2[clip_axis] < -offset)
+				if (S1[static_cast<int32_t>(clip_axis)] > -offset && S2[static_cast<int32_t>(clip_axis)] < -offset)
 				{
 					math::vector3f Delta = S2 - S1;
-					float w = (-offset - S1[clip_axis]) / Delta[clip_axis];
+					float w = (-offset - S1[static_cast<int32_t>(clip_axis)]) / Delta[static_cast<int32_t>(clip_axis)];
 					S2 = S1 + (Delta * w);
 				}
-				else if (S1[clip_axis] < -offset && S2[clip_axis] > -offset)
+				else if (S1[static_cast<int32_t>(clip_axis)] < -offset && S2[static_cast<int32_t>(clip_axis)] > -offset)
 				{
 					math::vector3f Delta = S1 - S2;
-					float w = (-offset - S2[clip_axis]) / Delta[clip_axis];
+					float w = (-offset - S2[static_cast<int32_t>(clip_axis)]) / Delta[static_cast<int32_t>(clip_axis)];
 					S1 = S2 + (Delta * w);
 				}
 			}
 
 			math::vector3f Normal(0.0f, 0.0f, 0.0f);
-			float element = t[pen_axis] > 0.0f ? 1.0f : -1.0f;
-			Normal[pen_axis] = element;
+			float element = t[static_cast<int32_t>(pen_axis)] > 0.0f ? 1.0f : -1.0f;
+			Normal[static_cast<int32_t>(pen_axis)] = element;
 
 			//	ñ@ê¸ï˚å¸Ç…ç≈Ç‡ê[Ç¢í[ì_
 			float diff = math::vector3f::dot(S1 - S2, Normal);
@@ -376,7 +376,7 @@ bool inner::axis_aligned_bounding_box::intersect_capsule(const bounding_capsule&
 			math::float3 p1(0.0f, 0.0f, 0.0f), q1(0.0f, 0.0f, 0.0f);
 			for (size_t index = 0; index < 3; ++index)
 			{
-				float extent = e[index];
+				float extent = e[static_cast<int32_t>(index)];
 				if (index == pen_axis)
 				{
 					(&p1.x)[index] = +extent;
@@ -384,7 +384,7 @@ bool inner::axis_aligned_bounding_box::intersect_capsule(const bounding_capsule&
 				}
 				else
 				{
-					float value = Axes[pen_axis][index] < 0.0f ? -extent : extent;
+					float value = Axes[pen_axis][static_cast<int32_t>(index)] < 0.0f ? -extent : extent;
 					(&p1.x)[index] = value;
 					(&q1.x)[index] = value;
 				}
@@ -885,7 +885,7 @@ namespace
 		math::vector3f Axis(0.0f, 0.0f, 0.0f);
 		math::vector3f Delta = ObbMatrix.to_vector3(3) - math::vector3f(aabb.get_position());
 	
-		Axis[axis_index] = Delta[axis_index] < 0.0f ? -1.0f : 1.0f;
+		Axis[static_cast<int32_t>(axis_index)] = Delta[static_cast<int32_t>(axis_index)] < 0.0f ? -1.0f : 1.0f;
 
 		math::vector3f LocalAxis = math::vector3f::transform_normal(Axis, ObbMatrix.transposed());
 
@@ -896,13 +896,13 @@ namespace
 		{
 			face_axis = 1;
 		}
-		if (fabs(ScaledAxis[face_axis]) < fabs(ScaledAxis.z))
+		if (fabs(ScaledAxis[static_cast<int32_t>(face_axis)]) < fabs(ScaledAxis.z))
 		{
 			face_axis = 2;
 		}
 
 		math::vector3f Vertices[12];
-		size_t face_index = ScaledAxis[face_axis] < 0.0f ? face_axis : face_axis + 3;
+		size_t face_index = ScaledAxis[static_cast<int32_t>(face_axis)] < 0.0f ? face_axis : face_axis + 3;
 
 		static const math::vector3f UnitVertices[8] =
 		{
@@ -948,7 +948,7 @@ namespace
 			size_t index = clip_axes[axis_index][a];
 
 			math::vector3f PlaneN(0.0f, 0.0f, 0.0f);
-			PlaneN[index] = 1.0f;
+			PlaneN[static_cast<int32_t>(index)] = 1.0f;
 			float planeOffset = (&aabb.get_local_scale().x)[index];
 			
 			clipPolygonToPlaneNegative(PlaneN, planeOffset, Input, input_count, Output, output_count);
@@ -959,7 +959,7 @@ namespace
 			Input = Output;
 			Output = Temp;
 
-			PlaneN[index] = -1.0f;
+			PlaneN[static_cast<int32_t>(index)] = -1.0f;
 			clipPolygonToPlaneNegative(PlaneN, planeOffset, Input, input_count, Output, output_count);
 
 			input_count = output_count;
@@ -976,7 +976,7 @@ namespace
 		float distances[12];
 		for (size_t index = 0; index < size; ++index)
 		{
-			distances[index] = Input[index][axis_index] * Axis[axis_index];
+			distances[index] = Input[index][static_cast<int32_t>(axis_index)] * Axis[static_cast<int32_t>(axis_index)];
 		}
 
 		for (size_t loop = 0; loop < size; ++loop)
@@ -1179,12 +1179,12 @@ bool bounding_box::intersect_box(const bounding_box& box, intersect_data* inters
 	size_t world_axis = 0;
 	for (size_t index = 0; index < 3; ++index)
 	{
-		float	ra	= extentsA[index];
+		float	ra	= extentsA[static_cast<int32_t>(index)];
 		float	rb	= extentsB[0] * abs_r.m[index][0]
 					+ extentsB[1] * abs_r.m[index][1]
 					+ extentsB[2] * abs_r.m[index][2];
 
-		float d = fabsf(t[index]);
+		float d = fabsf(t[static_cast<int32_t>(index)]);
 
 		float pd = (ra + rb) - d;
 			
@@ -1205,7 +1205,7 @@ bool bounding_box::intersect_box(const bounding_box& box, intersect_data* inters
 		float ra = extentsA.x * abs_r.m[0][index]
 				 + extentsA.y * abs_r.m[1][index]
 				 + extentsA.z * abs_r.m[2][index];
-		float rb = extentsB[index];
+		float rb = extentsB[static_cast<int32_t>(index)];
 
 		float d = fabsf(t.x * r.m[0][index] + t.y * r.m[1][index] + t.z * r.m[2][index]);
 		float pd = (ra + rb) - d;
@@ -1341,7 +1341,7 @@ bool bounding_box::intersect_box(const bounding_box& box, intersect_data* inters
 					}
 					else
 					{
-						value = Direction[index] < 0.0f ? -value : value;
+						value = Direction[static_cast<int32_t>(index)] < 0.0f ? -value : value;
 						(&p.x)[index] = value;
 						(&q.x)[index] = value;
 					}

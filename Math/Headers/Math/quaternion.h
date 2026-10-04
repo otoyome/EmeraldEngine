@@ -14,7 +14,7 @@ namespace math
 		using value_type = T;
 		using ops = simd_ops_t<T>;
 		using register_type = simd_register_t<T>;
-		static constexpr std::uint32_t element_count = 4;	//	óvëfêî
+		static constexpr std::size_t element_count = 4;	//	óvëfêî
 
 	public:
 		static quaternion identity() { return quaternion(0, 0, 0, 1); }
@@ -233,8 +233,8 @@ namespace math
 		double4 to_double4() const { return double4(static_cast<double>(x), static_cast<double>(y), static_cast<double>(z), static_cast<double>(w)); }
 
 	public:
-		T& operator[](std::int32_t index) { return elements[index]; }
-		const T& operator[](std::int32_t index) const { return elements[index]; }
+		T& operator[](std::size_t index) { return elements[index]; }
+		const T& operator[](std::size_t index) const { return elements[index]; }
 		quaternion operator-() const { return quaternion(-x, -y, -z, -w); }
 		quaternion operator*(const quaternion& q) const { quaternion ret = *this; ret.multiply(q); return ret; }
 		quaternion operator*(T value) const { quaternion ret = *this; ret.multiply(value); return ret; }

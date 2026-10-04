@@ -11,7 +11,8 @@
 
 namespace scene_renderer_commons
 {
-	float convert_linear_depth_to_projection_depth(float depth, float z_buffer_parameteres_y);
+	//	ƒrƒ…[‹óŠÔ‚Ì[“x‚ğƒJƒƒ‰‚ÌË‰e[“x‚É•ÏŠ·‚·‚é(MATH_REVERSE_DEPTH‚Ìİ’è‚É]‚¤)
+	float convert_view_depth_to_projection_depth(float view_depth, float near_clip, float far_clip);
 
 	void draw(const graphics_context& context,
 			  graphics_pipeline_state_ptr pipeline_state,

@@ -755,14 +755,8 @@ void deffered_lighting_renderer::render_directional_shadow_map(const light& ligh
 	LightPosition = LightTransformMatrix.to_vector3(3);
 
 	//	クリップ距離を算出
-	float near_clip, far_clip;
-	{
-		math::vector3f NearPosition, FarPosition;
-		NearPosition = math::vector3f::transform_coord(math::vector3f(0.0f, 0.0f, 0.0f), InverseProjectionTransform);
-		FarPosition = math::vector3f::transform_coord(math::vector3f(0.0f, 0.0f, 1.0f), InverseProjectionTransform);
-		near_clip = NearPosition.z;
-		far_clip = (FarPosition - NearPosition).length();
-	}
+	float near_clip = context.scene_constant.camera_clip_distance.x;
+	float camera_far_clip = context.scene_constant.camera_clip_distance.y;
 
 	//	シーンのAABBを算出
 	math::float3 scene_min = {FLT_MAX, FLT_MAX, FLT_MAX}, scene_max = {-FLT_MAX, -FLT_MAX, -FLT_MAX};
@@ -794,17 +788,9 @@ void deffered_lighting_renderer::render_directional_shadow_map(const light& ligh
 	}
 
 	//	CSM用に遠クリップ面に対して距離制限をかける
-	float projection_near_clip, projection_far_clip;
-	{
-		projection_near_clip = 0.0f;
-		projection_far_clip = scene_renderer_commons::convert_linear_depth_to_projection_depth(light.get_csm_distance_factor(), far_clip / near_clip);
-
-		//	クリップ距離を再算出
-		math::vector3f NearPosition, FarPosition;
-		NearPosition = math::vector3f::transform_coord(math::vector3f(0.0f, 0.0f, projection_near_clip), InverseProjectionTransform);
-		FarPosition = math::vector3f::transform_coord(math::vector3f(0.0f, 0.0f, projection_far_clip), InverseProjectionTransform);
-		far_clip = (FarPosition - NearPosition).length();
-	}
+	float far_clip = std::max(near_clip, std::min(camera_far_clip * light.get_csm_distance_factor(), camera_far_clip));
+	float projection_near_clip = scene_renderer_commons::convert_view_depth_to_projection_depth(near_clip, near_clip, camera_far_clip);
+	float projection_far_clip = scene_renderer_commons::convert_view_depth_to_projection_depth(far_clip, near_clip, camera_far_clip);
 
 	//	シャドウマップ情報算出
 	shadow_map_constant.shadow_map_count = directional_shadow_map_count;
@@ -889,8 +875,8 @@ void deffered_lighting_renderer::render_directional_shadow_map(const light& ligh
 			//	AABBを囲む球体を算出（半径はカメラの回転に依存せず、near/far/FOV/aspectのみで決まる＝Stableな値）
 			math::vector3f Center;
 			float radius;
-			compute_frustum_bounding_sphere(scene_renderer_commons::convert_linear_depth_to_projection_depth(split_distance[index + 0] / far_clip, far_clip / near_clip),
-											scene_renderer_commons::convert_linear_depth_to_projection_depth(split_distance[index + 1] / far_clip, far_clip / near_clip),
+			compute_frustum_bounding_sphere(scene_renderer_commons::convert_view_depth_to_projection_depth(split_distance[index + 0], near_clip, camera_far_clip),
+											scene_renderer_commons::convert_view_depth_to_projection_depth(split_distance[index + 1], near_clip, camera_far_clip),
 											InverseViewProjectionTransform, Center, radius);
 			radius *= 1.0001f;
 

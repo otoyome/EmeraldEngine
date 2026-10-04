@@ -388,12 +388,12 @@ bool collision_world::ray_cast(const ray_cast_descs& desc, collision::intersect_
 		{
 			if (intersect_data.size() == 0)
 			{
-				intersect_data = data;
+				intersect_data.swap(data);
 				out_collision = object;
 			}
 			else if (data[0].length < intersect_data[0].length)
 			{
-				intersect_data = data;
+				intersect_data.swap(data);
 				out_collision = object;
 			}
 			data.clear();
@@ -430,7 +430,7 @@ bool collision_world::sphere_cast(const sphere_cast_descs& desc, collision::inte
 		{
 			if (intersect_data.size() == 0 || data[0].length < intersect_data[0].length)
 			{
-				intersect_data = data;
+				intersect_data.swap(data);
 				out_collision = object;
 			}
 			data.clear();
@@ -468,7 +468,7 @@ bool collision_world::capsule_cast(const capsule_cast_descs& desc, collision::in
 		{
 			if (intersect_data.size() == 0 || data[0].length < intersect_data[0].length)
 			{
-				intersect_data = data;
+				intersect_data.swap(data);
 				out_collision = object;
 			}
 			data.clear();

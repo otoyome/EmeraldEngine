@@ -18,16 +18,14 @@ namespace collision
 		};
 
 	public:
-		intersect_data();
-		virtual ~intersect_data();
-
 		void add(const infomation& infomation);
 		void add(const math::float3& point, const math::float3& normal, float length);
 		void clear();
+		void swap(intersect_data& other) noexcept { infomations.swap(other.infomations); }
 
-		bool multiply_matrix(std::size_t index, math::float4x4 matrix);
-		bool multiply_matrix(std::size_t index, math::matrixf matrix);
-		void multiply_matrices(std::size_t begin, math::matrixf matrix);
+		bool multiply_matrix(std::size_t index, const math::float4x4& matrix);
+		bool multiply_matrix(std::size_t index, const math::matrixf& matrix);
+		void multiply_matrices(std::size_t begin, const math::matrixf& matrix);
 		void flip_normals_from(std::size_t begin);
 		void append(const intersect_data& data);
 
