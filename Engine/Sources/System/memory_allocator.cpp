@@ -33,8 +33,6 @@ void memory_allocator::init_variable_node_tail(variable_node* node)
 	node->large_pool_tag_value = large_pool_tag;
 }
 
-//	segment構造体自身とバッファを1回のVirtualAllocでまとめて確保する。VirtualAllocした領域は
-//	CRTのデバッグヒープに追跡されないため、意図的に一切解放しなくてもリーク検出には引っかからない
 memory_allocator::variable_segment* memory_allocator::create_variable_segment(size_t min_bytes)
 {
 	size_t segment_bytes = min_bytes > large_pool_default_segment_bytes ? min_bytes : large_pool_default_segment_bytes;
@@ -213,7 +211,7 @@ memory_allocator::allocator_state& memory_allocator::get_state()
 
 uint32_t memory_allocator::find_size_class_index(size_t size)
 {
-	//	サイズクラスが16から始まる2の累乗の並びである前提で求める
+	//	サイズが16から始まる2の累乗の並びである前提で求める
 	static_assert([] {
 		for (size_t index = 0; index < size_class_count; ++index)
 		{

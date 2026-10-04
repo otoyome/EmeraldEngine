@@ -65,7 +65,7 @@ fixed_size_pool::arena* fixed_size_pool::create_arena()
 	static_assert(sizeof(arena) % 16 == 0, "fixed_size_pool::arena must be a multiple of 16 bytes");
 
 	size_t stride = piece_header_size + piece_size;
-	//	arena構造体ぶんを差し引き、全体がVirtualAllocの確保粒度(64KB)に収まるようにする
+	//	arena構造体ぶんを差し引き、全体がVirtualAllocの確保粒度に収まるようにする
 	size_t piece_count = (arena_slab_bytes - sizeof(arena)) / stride;
 	if (piece_count == 0)
 		piece_count = 1;

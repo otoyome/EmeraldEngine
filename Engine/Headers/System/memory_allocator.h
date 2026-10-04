@@ -12,19 +12,11 @@
 //	固定長&可変長プールクラス
 class memory_allocator
 {
-	//	サイズクラス一覧。すべて16の倍数にすることで、fixed_size_pool側のストライドが常に16バイト境界になる
 	static constexpr size_t size_classes[7] = { 16, 32, 64, 128, 256, 512, 1024 };
 	static constexpr size_t size_class_count = 7;
-
-	//	ヘッダ末尾4バイトのタグに使う値。size_class_count未満ならfixed_size_pool側、これ以上なら可変長プール側
 	static constexpr uint32_t large_pool_tag = 0xFFFFFFFFu;
-
-	//	可変長プールが新しいセグメントを確保する際の最低バイト数
 	static constexpr size_t large_pool_default_segment_bytes = 1 * 1024 * 1024;
-
-	//	可変長プールの分割後、端数がこれ未満なら分割せずノード全体をそのまま使う
 	static constexpr size_t variable_node_min_split_payload = 32;
-
 #if defined(_DEBUG)
 	static constexpr uint32_t canary_pattern = 0xCDCDCDCDu;
 #endif	//	defined(_DEBUG)
