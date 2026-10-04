@@ -43,6 +43,7 @@ public:
 	void set_screen_rect(math::float4 screen_rect);
 	const math::float2& get_clip_distance() const;
 	void set_clip_distance(math::float2 clip_distance);
+	math::float2 get_effective_clip_distance() const;
 
 	const math::float3& get_right();
 	const math::float3& get_up();

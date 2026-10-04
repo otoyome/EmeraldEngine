@@ -679,15 +679,15 @@ void framework::prepare_renderer_context(
 
 		context.scene_constant.viewport_rect = camera.camera->get_screen_rect();
 
-		context.scene_constant.camera_clip_distance.x = camera.camera->get_clip_distance().x;
-		context.scene_constant.camera_clip_distance.y = camera.camera->get_clip_distance().y;
-		context.scene_constant.camera_clip_distance.z = camera.camera->get_clip_distance().x * camera.camera->get_clip_distance().y;
-		context.scene_constant.camera_clip_distance.w = camera.camera->get_clip_distance().y - camera.camera->get_clip_distance().x;
+		context.scene_constant.camera_clip_distance.x = camera.camera->get_effective_clip_distance().x;
+		context.scene_constant.camera_clip_distance.y = camera.camera->get_effective_clip_distance().y;
+		context.scene_constant.camera_clip_distance.z = camera.camera->get_effective_clip_distance().x * camera.camera->get_effective_clip_distance().y;
+		context.scene_constant.camera_clip_distance.w = camera.camera->get_effective_clip_distance().y - camera.camera->get_effective_clip_distance().x;
 
 		context.scene_constant.z_buffer_parameteres.y = 1.0f;
-		context.scene_constant.z_buffer_parameteres.x = camera.camera->get_clip_distance().y / camera.camera->get_clip_distance().x - 1.0f;
-		context.scene_constant.z_buffer_parameteres.z = 1.0f / camera.camera->get_clip_distance().x - 1.0f / camera.camera->get_clip_distance().y;
-		context.scene_constant.z_buffer_parameteres.w = 1.0f / camera.camera->get_clip_distance().y;
+		context.scene_constant.z_buffer_parameteres.x = camera.camera->get_effective_clip_distance().y / camera.camera->get_effective_clip_distance().x - 1.0f;
+		context.scene_constant.z_buffer_parameteres.z = 1.0f / camera.camera->get_effective_clip_distance().x - 1.0f / camera.camera->get_effective_clip_distance().y;
+		context.scene_constant.z_buffer_parameteres.w = 1.0f / camera.camera->get_effective_clip_distance().y;
 
 		context.scene_constant.view_transform = camera.camera->get_view_matrix();
 		context.scene_constant.projection_transform = camera.camera->get_projection_matrix();

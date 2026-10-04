@@ -131,7 +131,16 @@ namespace
 		return ix + iy * separate_count.x + iz * separate_count.x * separate_count.y;
 	}
 
-	std::vector<std::uint32_t> calculate_check_order_list(const math::float3& min, const math::float3& max, const math::float3& area_min, const math::float3& area_unit, math::uint3 separate_count)
+	//	AABB と重なるブロックの範囲
+	struct check_block_range
+	{
+		int x0, x1;
+		int y0, y1;
+		int z0, z1;
+	};
+
+	//	AABB と重なるブロックの範囲を求める
+	bool calculate_check_block_range(const math::float3& min, const math::float3& max, const math::float3& area_min, const math::float3& area_unit, math::uint3 separate_count, check_block_range& out_range)
 	{
 		auto cell = [](float value, float amin, float unit, std::uint32_t count) -> int
 		{
@@ -145,30 +154,46 @@ namespace
 		if (max.x < area_min.x || min.x > grid_max_x ||
 			max.y < area_min.y || min.y > grid_max_y ||
 			max.z < area_min.z || min.z > grid_max_z)
-			return {};
+			return false;
 
-		const int x0 = cell(min.x, area_min.x, area_unit.x, separate_count.x);
-		const int x1 = cell(max.x, area_min.x, area_unit.x, separate_count.x);
-		const int y0 = cell(min.y, area_min.y, area_unit.y, separate_count.y);
-		const int y1 = cell(max.y, area_min.y, area_unit.y, separate_count.y);
-		const int z0 = cell(min.z, area_min.z, area_unit.z, separate_count.z);
-		const int z1 = cell(max.z, area_min.z, area_unit.z, separate_count.z);
+		out_range.x0 = cell(min.x, area_min.x, area_unit.x, separate_count.x);
+		out_range.x1 = cell(max.x, area_min.x, area_unit.x, separate_count.x);
+		out_range.y0 = cell(min.y, area_min.y, area_unit.y, separate_count.y);
+		out_range.y1 = cell(max.y, area_min.y, area_unit.y, separate_count.y);
+		out_range.z0 = cell(min.z, area_min.z, area_unit.z, separate_count.z);
+		out_range.z1 = cell(max.z, area_min.z, area_unit.z, separate_count.z);
+		return true;
+	}
 
-		std::vector<std::uint32_t> order_list;
-		order_list.reserve(static_cast<size_t>(x1 - x0 + 1) * (y1 - y0 + 1) * (z1 - z0 + 1));
-		for (int z = z0; z <= z1; ++z)
+	template<typename Function>
+	bool for_each_check_block(const math::float3& min, const math::float3& max, const math::float3& area_min, const math::float3& area_unit, math::uint3 separate_count, Function&& func)
+	{
+		check_block_range range;
+		if (!calculate_check_block_range(min, max, area_min, area_unit, separate_count, range))
+			return false;
+
+		for (int z = range.z0; z <= range.z1; ++z)
 		{
-			for (int y = y0; y <= y1; ++y)
+			for (int y = range.y0; y <= range.y1; ++y)
 			{
-				for (int x = x0; x <= x1; ++x)
+				for (int x = range.x0; x <= range.x1; ++x)
 				{
-					order_list.emplace_back(static_cast<std::uint32_t>(x)
+					if (func(static_cast<std::uint32_t>(x)
 						+ static_cast<std::uint32_t>(y) * separate_count.x
-						+ static_cast<std::uint32_t>(z) * separate_count.x * separate_count.y);
+						+ static_cast<std::uint32_t>(z) * separate_count.x * separate_count.y))
+						return true;
 				}
 			}
 		}
-		return order_list;
+		return false;
+	}
+
+	size_t count_check_block(const math::float3& min, const math::float3& max, const math::float3& area_min, const math::float3& area_unit, math::uint3 separate_count)
+	{
+		check_block_range range;
+		if (!calculate_check_block_range(min, max, area_min, area_unit, separate_count, range))
+			return 0;
+		return static_cast<size_t>(range.x1 - range.x0 + 1) * (range.y1 - range.y0 + 1) * (range.z1 - range.z0 + 1);
 	}
 
 
@@ -374,7 +399,7 @@ bounding_mesh::bounding_mesh()
 {
 }
 
-bounding_mesh::bounding_mesh(std::vector<math::float3>& positions, std::vector<triangle>& triangles, std::uint32_t separate_level)
+bounding_mesh::bounding_mesh(std::vector<math::vector3f>& positions, std::vector<triangle>& triangles, std::uint32_t separate_level)
 	: bounding_object({1, 1, 1}, {0, 0, 0, 1}, {0, 0, 0})
 	, positions(positions)
 	, triangles(triangles)
@@ -389,7 +414,7 @@ bounding_mesh::bounding_mesh(std::vector<math::float3>& positions, std::vector<t
 
 	//	幅算出
 	//include_corner(area_min, area_max);
-	area_min = area_max = positions[0];
+	area_min = area_max = positions[0].to_float3();
 	for (auto& position : positions)
 	{
 		area_min.x	= std::min(position.x, area_min.x);
@@ -444,7 +469,7 @@ bounding_mesh::bounding_mesh(std::vector<math::float3>& positions, std::vector<t
 	//	三角形の事前計算
 	struct triangle_cache
 	{
-		math::float3 a, b, c;
+		math::vector3f a, b, c;
 		math::vector3f triangle_min, triangle_max;
 	};
 	std::vector<triangle_cache> triangle_caches(triangles.size());
@@ -458,11 +483,8 @@ bounding_mesh::bounding_mesh(std::vector<math::float3>& positions, std::vector<t
 			tc.a = p[tri->a];
 			tc.b = p[tri->b];
 			tc.c = p[tri->c];
-			auto A = math::vector3f(tc.a);
-			auto B = math::vector3f(tc.b);
-			auto C = math::vector3f(tc.c);
-			tc.triangle_min = (math::min)((math::min)(A, B), C);
-			tc.triangle_max = (math::max)((math::max)(A, B), C);
+			tc.triangle_min = (math::min)((math::min)(tc.a, tc.b), tc.c);
+			tc.triangle_max = (math::max)((math::max)(tc.a, tc.b), tc.c);
 		}
 	}
 
@@ -529,7 +551,7 @@ bounding_mesh::bounding_mesh(std::vector<math::float3>& positions, std::vector<t
 						if (math::any_greater(tc.triangle_min, BoxMax) || math::any_greater(BoxMin, tc.triangle_max))
 							continue;
 
-						if (triangle_aabb(tc.a, tc.b, tc.c, tri->normal, data.bounds))
+						if (triangle_aabb(tc.a.to_float3(), tc.b.to_float3(), tc.c.to_float3(), tri->normal.to_float3(), data.bounds))
 							out.emplace_back(block_index, static_cast<std::uint32_t>(index));
 					}
 				}
@@ -657,26 +679,26 @@ bool bounding_mesh::deserialize(std::string_view file_path)
 		auto p = positions.data();
 		for (auto& triangle : triangles)
 		{
-			auto A = math::vector3f(*(p  + triangle.a));
-			auto B = math::vector3f(*(p  + triangle.b));
-			auto C = math::vector3f(*(p  + triangle.c));
+			const auto& A = *(p  + triangle.a);
+			const auto& B = *(p  + triangle.b);
+			const auto& C = *(p  + triangle.c);
 			auto AB = B - A;
 			auto BC = C - B;
 			auto CA = A - C;
-			triangle.ab = AB.to_float3();
-			triangle.bc = BC.to_float3();
-			triangle.ca = CA.to_float3();
+			triangle.ab = AB;
+			triangle.bc = BC;
+			triangle.ca = CA;
 
 			auto Normal = math::vector3f::cross(AB, BC);
-			triangle.normal = Normal.normalized().to_float3();
+			triangle.normal = Normal.normalized();
 
 			auto Min = (math::min)(A, (math::min)(B, C));
 			auto Max = (math::max)(A, (math::max)(B, C));
-			triangle.min = Min.to_float3();
-			triangle.max = Max.to_float3();
-			triangle.lab = collision::linef(collision::linef::types::segment, *(p  + triangle.a), *(p  + triangle.b));
-			triangle.lbc = collision::linef(collision::linef::types::segment, *(p  + triangle.b), *(p  + triangle.c));
-			triangle.lca = collision::linef(collision::linef::types::segment, *(p  + triangle.c), *(p  + triangle.a));
+			triangle.min = Min;
+			triangle.max = Max;
+			triangle.lab = collision::linef(collision::linef::types::segment, A.to_float3(), B.to_float3());
+			triangle.lbc = collision::linef(collision::linef::types::segment, B.to_float3(), C.to_float3());
+			triangle.lca = collision::linef(collision::linef::types::segment, C.to_float3(), A.to_float3());
 		}
 		return true;
 	}
@@ -862,7 +884,7 @@ bool bounding_mesh::intersect_segment_inner_moller(const math::float3& start, co
 
 		neart = tt;
 		HitPosition = Dir * (math::vector3f(tt, tt, tt)) + Start;
-		hit_normal = triangle.normal;
+		hit_normal = triangle.normal.to_float3();
 		hit = true;
 	}
 
@@ -893,20 +915,17 @@ bool bounding_mesh::intersect_segment(const math::double3& start, const math::do
 	if ((math::vector3f(local_end) - math::vector3f(local_start)).square_length() <= 1e-12f)
 		return false;
 
-	auto list = calculate_check_order_list(min, max, area_min, area_unit, separate_count);
-	if (list.empty())
-		return false;
 
 	bool hit = false;
 	intersect_data data, best;
-	for (auto node_index : list)
+	if (for_each_check_block(min, max, area_min, area_unit, separate_count, [&](std::uint32_t node_index)
 	{
 		auto& node = block_datas[node_index];
 		if (node.triangles.empty())
-			continue;
+			return false;
 
 		if (!node.bounds.intersect_segment(math::double3(local_start), math::double3(local_end)))
-			continue;
+			return false;
 
 		if (intersect)
 		{
@@ -924,7 +943,9 @@ bool bounding_mesh::intersect_segment(const math::double3& start, const math::do
 			if (intersect_segment_inner_moller(local_start, local_end, node.triangles))
 				return true;
 		}
-	}
+		return false;
+	}))
+		return true;
 
 	//	ローカル空間からワールド空間へ変換
 	if (hit && intersect)
@@ -1000,18 +1021,17 @@ bool bounding_mesh::intersect_sphere(const math::double3& point, double world_ra
 	max.x = local_point.x + radius;
 	max.y = local_point.y + radius;
 	max.z = local_point.z + radius;
-	auto list = calculate_check_order_list(min, max, area_min, area_unit, separate_count);
 
 	bool hit = false;
 	intersect_data data, best;
-	for (auto node_index : list)
+	if (for_each_check_block(min, max, area_min, area_unit, separate_count, [&](std::uint32_t node_index)
 	{
 		auto& node = block_datas[node_index];
 		if (!intersect)
 		{
 			if (intersect_sphere_inner(local_point, radius, node.triangles, nullptr))
 				return true;
-			continue;
+			return false;
 		}
 
 		//	全ブロックから最も深い接触を採用
@@ -1022,7 +1042,9 @@ bool bounding_mesh::intersect_sphere(const math::double3& point, double world_ra
 				best.swap(data);
 			hit = true;
 		}
-	}
+		return false;
+	}))
+		return true;
 
 	if (hit && intersect)
 	{
@@ -1194,20 +1216,17 @@ bool bounding_mesh::intersect_capsule(const bounding_capsule& capsule, intersect
 	Min = math::vector3f(min);
 	Max = math::vector3f(max);
 
-	auto list = calculate_check_order_list(min, max, area_min, area_unit, separate_count);
-	if (list.empty())
-		return false;
 
 	bool hit = false;
 	intersect_data data, best;
-	for (auto node_index : list)
+	if (for_each_check_block(min, max, area_min, area_unit, separate_count, [&](std::uint32_t node_index)
 	{
 		auto& node = block_datas[node_index];
 		if (node.triangles.empty())
-			continue;
+			return false;
 
 		if (!node.bounds.intersect_capsule(local_capsule))
-			continue;
+			return false;
 
 		if (intersect)
 		{
@@ -1225,7 +1244,9 @@ bool bounding_mesh::intersect_capsule(const bounding_capsule& capsule, intersect
 			if (intersect_capsule_inner(local_capsule, Min, Max, get_transform_matrix(), node.triangles, intersect))
 				return true;
 		}
-	}
+		return false;
+	}))
+		return true;
 
 	if (hit && intersect)
 		intersect->append(best);
@@ -1348,9 +1369,6 @@ bool bounding_mesh::intersect_box(const bounding_box& box, intersect_data* inter
 	min = BoxMin.to_float3();
 	max = BoxMax.to_float3();
 
-	auto list = calculate_check_order_list(min, max, area_min, area_unit, separate_count);
-	if (list.empty())
-		return false;
 
 	//	ローカル空間の箱
 	math::double4 local_rotation;
@@ -1361,14 +1379,14 @@ bool bounding_mesh::intersect_box(const bounding_box& box, intersect_data* inter
 
 	bool hit = false;
 	intersect_data data, best;
-	for (auto node_index : list)
+	if (for_each_check_block(min, max, area_min, area_unit, separate_count, [&](std::uint32_t node_index)
 	{
 		auto& node = block_datas[node_index];
 		if (node.triangles.empty())
-			continue;
+			return false;
 
 		if (!node.bounds.intersect_box(local_box))
-			continue;
+			return false;
 
 		if (intersect)
 		{
@@ -1386,7 +1404,9 @@ bool bounding_mesh::intersect_box(const bounding_box& box, intersect_data* inter
 			if (intersect_box_inner(Center, AxisX, AxisY, AxisZ, half_extent, BoxMin, BoxMax, node.triangles, nullptr))
 				return true;
 		}
-	}
+		return false;
+	}))
+		return true;
 
 	if (hit && intersect)
 	{
@@ -1602,9 +1622,6 @@ bool bounding_mesh::intersect_sphere_cast(const math::double3& start, const math
 	max.y = std::max(local_start.y, local_end.y) + radius;
 	max.z = std::max(local_start.z, local_end.z) + radius;
 
-	auto list = calculate_check_order_list(min, max, area_min, area_unit, separate_count);
-	if (list.empty())
-		return false;
 
 	if ((math::vector3f(local_end) - math::vector3f(local_start)).square_length() <= 1e-12f)
 		return false;
@@ -1613,11 +1630,11 @@ bool bounding_mesh::intersect_sphere_cast(const math::double3& start, const math
 
 	bool hit = false;
 	intersect_data data, best;
-	for (auto node_index : list)
+	if (for_each_check_block(min, max, area_min, area_unit, separate_count, [&](std::uint32_t node_index)
 	{
 		auto& node = block_datas[node_index];
 		if (node.triangles.empty())
-			continue;
+			return false;
 
 		if (intersect)
 		{
@@ -1635,7 +1652,9 @@ bool bounding_mesh::intersect_sphere_cast(const math::double3& start, const math
 			if (intersect_sphere_cast_inner(sweep_line, radius, node.triangles, nullptr))
 				return true;
 		}
-	}
+		return false;
+	}))
+		return true;
 
 	//	結果をローカル空間からワールド空間へ変換
 	if (hit && intersect)
@@ -1764,9 +1783,9 @@ float bounding_mesh::calculate_segment_distance(const collision::linef& line,
 
 	//	最近傍点は頂点と線分上に存在(カプセル用に必須)
 	nearlest_point_edghFlg = true;
-	math::float3 a = *(p + triangle.a);
-	math::float3 b = *(p + triangle.b);
-	math::float3 c = *(p + triangle.c);
+	math::float3 a = (p + triangle.a)->to_float3();
+	math::float3 b = (p + triangle.b)->to_float3();
+	math::float3 c = (p + triangle.c)->to_float3();
 
 	//	三角形外部に線分（または端）が存在し、最近点が辺上になる場合、線分と三角形の３辺の距離を全て計測し比較する
 	math::float3 horizon1, horizon2;
@@ -1830,17 +1849,17 @@ bool bounding_mesh::is_point_inside(const math::double3& point) const
 		max.x = std::max(max.x, local_end.x); max.y = std::max(max.y, local_end.y); max.z = std::max(max.z, local_end.z);
 
 		candidate_triangles.clear();
-		auto list = calculate_check_order_list(min, max, area_min, area_unit, separate_count);
-		for (auto node_index : list)
+		for_each_check_block(min, max, area_min, area_unit, separate_count, [&](std::uint32_t node_index)
 		{
 			auto& node = block_datas[node_index];
 			if (node.triangles.empty())
-				continue;
+				return false;
 			if (!node.bounds.intersect_segment(math::double3(local_point), math::double3(local_end)))
-				continue;
+				return false;
 
 			candidate_triangles.insert(candidate_triangles.end(), node.triangles.begin(), node.triangles.end());
-		}
+			return false;
+		});
 		std::sort(candidate_triangles.begin(), candidate_triangles.end());
 		candidate_triangles.erase(std::unique(candidate_triangles.begin(), candidate_triangles.end()), candidate_triangles.end());
 
@@ -1891,13 +1910,12 @@ bool bounding_mesh::distance_to_point(const math::double3& point, double& out_di
 	{
 		math::float3 min = { local_point.x - search_radius, local_point.y - search_radius, local_point.z - search_radius };
 		math::float3 max = { local_point.x + search_radius, local_point.y + search_radius, local_point.z + search_radius };
-		auto list = calculate_check_order_list(min, max, area_min, area_unit, separate_count);
-		bool covers_whole_grid = list.size() >= block_datas.size();
+		bool covers_whole_grid = count_check_block(min, max, area_min, area_unit, separate_count) >= block_datas.size();
 
-		for (auto node_index : list)
+		for_each_check_block(min, max, area_min, area_unit, separate_count, [&](std::uint32_t node_index)
 		{
 			if (checked[node_index])
-				continue;
+				return false;
 			checked[node_index] = true;
 
 			auto& node = block_datas[node_index];
@@ -1919,10 +1937,11 @@ bool bounding_mesh::distance_to_point(const math::double3& point, double& out_di
 				{
 					nearest_sq = d;
 					nearest_point_v = NP;
-					nearest_normal = triangle.normal;
+					nearest_normal = triangle.normal.to_float3();
 				}
 			}
-		}
+			return false;
+		});
 
 		if (nearest_sq < FLT_MAX && sqrtf(nearest_sq) <= search_radius)
 			break;

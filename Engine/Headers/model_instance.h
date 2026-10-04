@@ -58,9 +58,9 @@ public:
 	UINT get_unique_id() const { return unique_id; }
 	void set_lod_index(int lod_index) {this->lod_index = lod_index;}
 	int get_lod_max() const{return meshes.empty() ? 0 : meshes.begin()->mesh ? static_cast<int>(meshes.begin()->mesh->lod_meshs.size()) : 0;}
-	const math::float2& get_lod_range_rate() const {return lod_range_rate;}
+	const math::float2& get_lod_distance_range() const {return lod_distance_range;}
 
-	void set_lod_range_rate(math::float2 rate) {lod_range_rate = math::saturate(math::vector2f(rate)).to_float2();}
+	void set_lod_distance_range(math::float2 range) {lod_distance_range.x = math::max(range.x, 0.0f); lod_distance_range.y = math::max(range.y, lod_distance_range.x);}
 
 	inline const model_resource_ptr get_resource() const { return resource; }
 	inline const std::vector<node>& get_nodes() const { return nodes; }
@@ -103,7 +103,7 @@ private:
 	UINT system_flags;
 	int lod_index;
 	UINT unique_id = 0;
-	math::float2 lod_range_rate = {0.0f, 1.0f};
+	math::float2 lod_distance_range = {0.0f, 10000.0f};
 	model_resource_ptr resource;
 	math::float4x4 world_transform = { 1, 0, 0, 0,  0, 1, 0, 0,  0, 0, 1, 0,  0, 0, 0, 1 };
 	math::float4x4 previous_world_transform = { 1, 0, 0, 0,  0, 1, 0, 0,  0, 0, 1, 0,  0, 0, 0, 1 };

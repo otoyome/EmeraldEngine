@@ -1,4 +1,5 @@
 #include "scene_constant_buffer.hlsli"
+#include "common.hlsli"
 #include "filter_functions.hlsli"
 
 //	F’²•â³î•ñ

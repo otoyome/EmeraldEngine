@@ -116,21 +116,21 @@ struct buffer_datas
 	UINT system_flags = 0;									//	モデルフラグ類
 	std::vector<sub_mesh> color_meshs;						//	色描画メッシュ
 	sub_mesh shadow_mesh;									//	影用描画メッシュ
-	math::float2 lod_range_rate = {0.0f, 10000.0f};	//	LOD距離範囲
+	math::float2 lod_distance_range = {0.0f, 10000.0f};		//	LOD距離範囲
 	UINT unique_id = 0xFFFFFFFF;							//	ユニークID
-	math::float3 bounds_min, bounds_max;				//	AABB範囲
-	math::float4x4 world_transform = {};				//	ワールド変換行列
+	math::float3 bounds_min, bounds_max;					//	AABB範囲
+	math::float4x4 world_transform = {};					//	ワールド変換行列
 	Microsoft::WRL::ComPtr<ID3D11Buffer> primitive_buffer;	//	プリミティブバッファ
 
 	//	LOD選択
-	std::size_t select_lod_mesh_index(float mesh_length, const math::float4& camera_clip_distance) const
+	std::size_t select_lod_mesh_index(float mesh_length) const
 	{
 		std::size_t lod_count = color_meshs.size();
 		std::size_t lod_mesh_index = 0;
 		if (lod_count > 1)
 		{
-			float lod_range_min = lod_range_rate.x * camera_clip_distance.x;
-			float lod_range_max = lod_range_rate.y * camera_clip_distance.y;
+			float lod_range_min = lod_distance_range.x;
+			float lod_range_max = lod_distance_range.y;
 			float lod_range = lod_range_max - lod_range_min;
 			float lod_rate = 0.0f;
 			if (lod_range > 1e-6f)

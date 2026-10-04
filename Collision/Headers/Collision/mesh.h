@@ -17,9 +17,9 @@ namespace collision
 			std::uint32_t a, b, c;	//	座標番号
 
 			//	事前計算
-			math::float3 normal;		//	法線
-			math::float3 ab, bc, ca;	//	辺
-			math::float3 min, max;		//	最小最大
+			math::vector3f normal;		//	法線
+			math::vector3f ab, bc, ca;	//	辺
+			math::vector3f min, max;		//	最小最大
 			collision::linef lab, lbc, lca;	//	線分
 
 			template<class Archive>
@@ -42,7 +42,7 @@ namespace collision
 		const math::double3& get_local_scale() const override;
 		void set_local_scale(const math::double3& scale) override;
 
-		const std::vector<math::float3>& get_positions() const {return positions;}
+		const std::vector<math::vector3f>& get_positions() const {return positions;}
 		const std::vector<triangle>& get_triangles() const {return triangles;}
 		const std::vector<block_data>& get_block_datas() const {return block_datas;}
 		const math::float3& get_area_unit() const {return area_unit;}
@@ -50,7 +50,7 @@ namespace collision
 
 	public:
 		bounding_mesh();
-		bounding_mesh(std::vector<math::float3>& positions, std::vector<triangle>& triangles, std::uint32_t separate_level = 4);
+		bounding_mesh(std::vector<math::vector3f>& positions, std::vector<triangle>& triangles, std::uint32_t separate_level = 4);
 		~bounding_mesh() override;
 
 		bool serialize(std::string_view file_path);
@@ -89,7 +89,7 @@ namespace collision
 										 math::float3& nearlest_point_segment, math::float3& nearlest_point_triangle, bool& nearlest_point_edghFlg) const;
 
 	private:
-		std::vector<math::float3> positions;
+		std::vector<math::vector3f> positions;
 		std::vector<triangle> triangles;
 
 		math::float3 area_min;

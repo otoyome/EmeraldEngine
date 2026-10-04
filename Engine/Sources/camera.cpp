@@ -108,6 +108,17 @@ void camera::set_clip_distance(math::float2 clip_distance)
 	this->clip_distance = clip_distance;
 }
 
+math::float2 camera::get_effective_clip_distance() const
+{
+	math::float2 ret = clip_distance;
+	if (!(ret.y > ret.x))
+	{
+		//	–³ŒÀ‰“‚Æ‚µ‚Äˆµ‚¤
+		ret.y = math::constants<float>::infinity;
+	}
+	return ret;
+}
+
 const math::float3& camera::get_right()
 {
 	update_parameters();
@@ -178,7 +189,8 @@ void camera::update_parameters()
 	view_matrix = view.to_float4x4();
 
 	const float aspect_ratio = static_cast<float>(screen_rect.z - screen_rect.x) / static_cast<float>(screen_rect.w - screen_rect.y);
-	math::matrixf projection = math::matrixf::perspective_fov(fov_y, aspect_ratio, clip_distance.x, clip_distance.y);
+	const math::float2 effective_clip_distance = get_effective_clip_distance();
+	math::matrixf projection = math::matrixf::perspective_fov(fov_y, aspect_ratio, effective_clip_distance.x, effective_clip_distance.y);
 	if (is_flag(flags::hybrid_projection))
 	{
 		//	•½s“Š‰e‚Æ‚ÌƒuƒŒƒ“ƒhˆ—
@@ -187,7 +199,7 @@ void camera::update_parameters()
 
 		float ortho_height = tanf(0.5f * fov_y);
 		float ortho_width = ortho_height * aspect_ratio;
-		const math::matrixf ortho_projection = math::matrixf::orthographic(ortho_width, ortho_height, clip_distance.x, clip_distance.y);
+		const math::matrixf ortho_projection = math::matrixf::orthographic(ortho_width, ortho_height, effective_clip_distance.x, effective_clip_distance.y);
 
 		projection = projection * p_r + ortho_projection * o_r;
 	}

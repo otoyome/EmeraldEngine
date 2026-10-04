@@ -774,9 +774,9 @@ void model_object::imgui_render_core()
 	ImGui::DragAngle3("rotation", &rotator.x, 0.01f);
 	ImGui::DragFloat3("position", &position.x, 0.01f);
 	{
-		math::float2 lod_range_rate = get_model_instance()->get_lod_range_rate();
-		ImGui::SliderFloat2("lod_range_rate", &lod_range_rate.x, 0.0f, 1.0f);
-		get_model_instance()->set_lod_range_rate(lod_range_rate);
+		math::float2 lod_distance_range = get_model_instance()->get_lod_distance_range();
+		ImGui::DragFloat2("lod_distance_range", &lod_distance_range.x, 1.0f, 0.0f, 100000.0f, "%.1f");
+		get_model_instance()->set_lod_distance_range(lod_distance_range);
 	}
 	{
 		int lod_index = get_model_instance()->get_lod_index();

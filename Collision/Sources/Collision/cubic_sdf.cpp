@@ -107,8 +107,8 @@ bool collision::create_cubic_sdf(cubic_sdf& out_sdf, bounding_mesh& mesh, uint32
 	}
 
 	//	ƒƒbƒVƒ…‚ÌAABB‚ğ‹‚ß‚é
-	math::float3 bounds_min = positions[0];
-	math::float3 bounds_max = positions[0];
+	math::float3 bounds_min = positions[0].to_float3();
+	math::float3 bounds_max = positions[0].to_float3();
 	for (auto& position : positions)
 	{
 		bounds_min.x = std::min(bounds_min.x, position.x);

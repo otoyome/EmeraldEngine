@@ -10,6 +10,7 @@ Texture2D<float> scene_depth_stencil : register(t1);
 float convert_depth(uint3 position)
 {
     float depth = scene_depth_stencil.Load(int3(position.xy, 0)).r;
+    depth = max(depth, min_projection_depth);
     float2 t = (position.xy / (float2) scene_resolution.xy) * 2.0f - 1.0f;
     float4 p = mul(float4(t.x, -t.y, depth, 1), inverse_projection_transform);
     depth = p.z / p.w;

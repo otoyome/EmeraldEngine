@@ -96,12 +96,12 @@ namespace
 	//	床メッシュ生成
 	std::shared_ptr<collision::bounding_mesh> create_floor_mesh(float half_x, float half_z)
 	{
-		std::vector<math::float3> positions =
+		std::vector<math::vector3f> positions =
 		{
-			{ -half_x, 0.0f, -half_z },
-			{ -half_x, 0.0f, +half_z },
-			{ +half_x, 0.0f, +half_z },
-			{ +half_x, 0.0f, -half_z },
+			math::vector3f(-half_x, 0.0f, -half_z),
+			math::vector3f(-half_x, 0.0f, +half_z),
+			math::vector3f(+half_x, 0.0f, +half_z),
+			math::vector3f(+half_x, 0.0f, -half_z),
 		};
 		static constexpr UINT indices[] = { 0, 1, 2, 0, 2, 3 };
 
@@ -115,21 +115,21 @@ namespace
 
 			//	事前計算
 			auto p = positions.data();
-			auto A = math::vector3f(*(p + triangle.a));
-			auto B = math::vector3f(*(p + triangle.b));
-			auto C = math::vector3f(*(p + triangle.c));
+			const auto& A = *(p + triangle.a);
+			const auto& B = *(p + triangle.b);
+			const auto& C = *(p + triangle.c);
 			auto AB = B - A;
 			auto BC = C - B;
 			auto CA = A - C;
-			triangle.ab = AB.to_float3();
-			triangle.bc = BC.to_float3();
-			triangle.ca = CA.to_float3();
-			triangle.normal = ((math::vector3f::cross(AB, BC)).normalized()).to_float3();
-			triangle.min = ((math::min)(A, (math::min)(B, C))).to_float3();
-			triangle.max = ((math::max)(A, (math::max)(B, C))).to_float3();
-			triangle.lab = collision::linef(collision::linef::types::segment, p[triangle.a], p[triangle.b]);
-			triangle.lbc = collision::linef(collision::linef::types::segment, p[triangle.b], p[triangle.c]);
-			triangle.lca = collision::linef(collision::linef::types::segment, p[triangle.c], p[triangle.a]);
+			triangle.ab = AB;
+			triangle.bc = BC;
+			triangle.ca = CA;
+			triangle.normal = (math::vector3f::cross(AB, BC)).normalized();
+			triangle.min = (math::min)(A, (math::min)(B, C));
+			triangle.max = (math::max)(A, (math::max)(B, C));
+			triangle.lab = collision::linef(collision::linef::types::segment, A.to_float3(), B.to_float3());
+			triangle.lbc = collision::linef(collision::linef::types::segment, B.to_float3(), C.to_float3());
+			triangle.lca = collision::linef(collision::linef::types::segment, C.to_float3(), A.to_float3());
 		}
 		return std::make_shared<collision::bounding_mesh>(positions, triangles, 0);
 	}

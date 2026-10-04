@@ -310,7 +310,7 @@ void model_instance_manger::get_container(mesh_container& container)
 			//	バッファ情報構築
 			auto& buffer_data = container.buffer_datas.emplace_back();
 			UINT buffer_index = static_cast<UINT>(container.buffer_datas.size() - 1);
-			buffer_data.lod_range_rate = instance->get_lod_range_rate();
+			buffer_data.lod_distance_range = instance->get_lod_distance_range();
 			buffer_data.bounds_min = bounds_min;
 			buffer_data.bounds_max = bounds_max;
 			buffer_data.world_transform = (NodeWorldTransforms[mesh.node_index]).to_float4x4();

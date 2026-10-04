@@ -47,14 +47,14 @@ bool collision::generate_bounding_mesh(bounding_mesh& out_mesh, model_resource_p
 	if (it == mesh.vertex_buffer_views.end())
 		return false;
 
-	std::vector<math::float3> positions;
+	std::vector<math::vector3f> positions;
 	std::vector<bounding_mesh::triangle> triangles;
 	{
 		auto p = reinterpret_cast<const math::float3*>(it->second.row_data.data());
 		for (UINT index = 0; index < it->second.count(); ++index)
 		{
 			math::vector3f P(*(p + index));
-			positions.emplace_back() = (math::vector3f::transform_coord(P, local_transform_matrix)).to_float3();
+			positions.emplace_back() = math::vector3f::transform_coord(P, local_transform_matrix);
 		}
 
 		auto fetch_index = [&](UINT k) -> UINT
@@ -77,26 +77,26 @@ bool collision::generate_bounding_mesh(bounding_mesh& out_mesh, model_resource_p
 
 			//	Ž–‘OŒvŽZ
 			auto tp = positions.data();
-			auto A = math::vector3f(*(tp + triangle.a));
-			auto B = math::vector3f(*(tp + triangle.b));
-			auto C = math::vector3f(*(tp + triangle.c));
+			const auto& A = *(tp + triangle.a);
+			const auto& B = *(tp + triangle.b);
+			const auto& C = *(tp + triangle.c);
 			auto AB = B - A;
 			auto BC = C - B;
 			auto CA = A - C;
-			triangle.ab = AB.to_float3();
-			triangle.bc = BC.to_float3();
-			triangle.ca = CA.to_float3();
+			triangle.ab = AB;
+			triangle.bc = BC;
+			triangle.ca = CA;
 
 			auto Normal = math::vector3f::cross(AB, BC);
-			triangle.normal = Normal.normalized().to_float3();
+			triangle.normal = Normal.normalized();
 
 			auto Min = (math::min)(A, (math::min)(B, C));
 			auto Max = (math::max)(A, (math::max)(B, C));
-			triangle.min = Min.to_float3();
-			triangle.max = Max.to_float3();
-			triangle.lab = collision::linef(collision::linef::types::segment, *(tp + triangle.a), *(tp + triangle.b));
-			triangle.lbc = collision::linef(collision::linef::types::segment, *(tp + triangle.b), *(tp + triangle.c));
-			triangle.lca = collision::linef(collision::linef::types::segment, *(tp + triangle.c), *(tp + triangle.a));
+			triangle.min = Min;
+			triangle.max = Max;
+			triangle.lab = collision::linef(collision::linef::types::segment, A.to_float3(), B.to_float3());
+			triangle.lbc = collision::linef(collision::linef::types::segment, B.to_float3(), C.to_float3());
+			triangle.lca = collision::linef(collision::linef::types::segment, C.to_float3(), A.to_float3());
 		}
 	}
 

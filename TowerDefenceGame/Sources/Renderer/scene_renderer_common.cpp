@@ -157,7 +157,7 @@ void scene_renderer_commons::draw_indexed(const graphics_context& context,
 	else
 	{
 		//	LOD対応
-		std::size_t lod_mesh_index = buffer_data.select_lod_mesh_index(mesh_length, context.scene_constant.camera_clip_distance);
+		std::size_t lod_mesh_index = buffer_data.select_lod_mesh_index(mesh_length);
 		draw_mesh = &buffer_data.color_meshs[lod_mesh_index];
 
 		//	モーフィング対応
@@ -329,7 +329,7 @@ void scene_renderer_commons::model_render_indirect(graphics_context& context,
 		auto buffer_data = buffer_data_ptr + draw_data->buffer_index;
 		if (!buffer_data->color_meshs.empty())
 		{
-			std::size_t lod_mesh_index = buffer_data->select_lod_mesh_index(mesh_lengths[draw_index], context.scene_constant.camera_clip_distance);
+			std::size_t lod_mesh_index = buffer_data->select_lod_mesh_index(mesh_lengths[draw_index]);
 			if (!buffer_data->color_meshs[lod_mesh_index].morph_meshes.empty())
 			{
 				fallback_indices.emplace_back(draw_index);

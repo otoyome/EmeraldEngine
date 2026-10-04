@@ -167,7 +167,7 @@ void meshlet_culling_system::build_and_cull(graphics_context& context, const std
 		if (buffer_data.color_meshs.empty())
 			continue;
 
-		std::size_t lod_mesh_index = buffer_data.select_lod_mesh_index(lengths[draw_index], context.scene_constant.camera_clip_distance);
+		std::size_t lod_mesh_index = buffer_data.select_lod_mesh_index(lengths[draw_index]);
 		auto& sub_mesh = buffer_data.color_meshs[lod_mesh_index];
 		if (!sub_mesh.meshlets || sub_mesh.meshlets->empty())
 			continue;

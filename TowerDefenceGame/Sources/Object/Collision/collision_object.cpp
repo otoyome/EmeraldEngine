@@ -372,9 +372,9 @@ void collision_object::debug_draw()
 				for (UINT index = 0;index < block.triangles.size(); ++index)
 				{
 					auto triangle = t + ti[index];
-					auto a = *(positions + triangle->a);
-					auto b = *(positions + triangle->b);
-					auto c = *(positions + triangle->c);
+					auto a = (positions + triangle->a)->to_float3();
+					auto b = (positions + triangle->b)->to_float3();
+					auto c = (positions + triangle->c)->to_float3();
 					QUEUE_DEBUG_PRIMITIVE_LINE(a, b, draw_color, true);
 					QUEUE_DEBUG_PRIMITIVE_LINE(c, b, draw_color, true);
 					QUEUE_DEBUG_PRIMITIVE_LINE(a, c, draw_color, true);
