@@ -2,7 +2,6 @@
 
 #include <d3d11.h>
 #include <wrl.h>
-#include <directxmath.h>
 
 #include <vector>
 #include <unordered_map>
@@ -28,42 +27,42 @@ class pmx_model
 
 	struct calculate_node_data
 	{
-		DirectX::XMFLOAT3 init_scale{ 1, 1, 1 };
-		DirectX::XMFLOAT4 init_rotation{ 0, 0, 0, 1 };
-		DirectX::XMFLOAT3 init_translation{ 0, 0, 0 };
+		math::float3 init_scale{ 1, 1, 1 };
+		math::float4 init_rotation{ 0, 0, 0, 1 };
+		math::float3 init_translation{ 0, 0, 0 };
 
-		DirectX::XMFLOAT4X4 initialize_matrix;
+		math::float4x4 initialize_matrix;
 
-		DirectX::XMFLOAT3 animation_scale{ 1, 1, 1 };
-		DirectX::XMFLOAT4 animation_rotation{ 0, 0, 0, 1 };
-		DirectX::XMFLOAT3 animation_translation{ 0, 0, 0 };
+		math::float3 animation_scale{ 1, 1, 1 };
+		math::float4 animation_rotation{ 0, 0, 0, 1 };
+		math::float3 animation_translation{ 0, 0, 0 };
 
-		DirectX::XMFLOAT4 append_rotation{ 0, 0, 0, 1 };
-		DirectX::XMFLOAT3 append_translation{ 0, 0, 0 };
+		math::float4 append_rotation{ 0, 0, 0, 1 };
+		math::float3 append_translation{ 0, 0, 0 };
 
-		DirectX::XMFLOAT4 ik_rotation{ 0, 0, 0, 1 };
+		math::float4 ik_rotation{ 0, 0, 0, 1 };
 
-		DirectX::XMFLOAT3 scale{ 1, 1, 1 };
-		DirectX::XMFLOAT4 rotation{ 0, 0, 0, 1 };
-		DirectX::XMFLOAT3 position{ 0, 0, 0 };
+		math::float3 scale{ 1, 1, 1 };
+		math::float4 rotation{ 0, 0, 0, 1 };
+		math::float3 position{ 0, 0, 0 };
 
-		DirectX::XMFLOAT4X4 locll_matrix{ 1, 0, 0, 0,  0, 1, 0, 0,  0, 0, 1, 0,  0, 0, 0, 1 };
-		DirectX::XMFLOAT4X4 global_matrix{ 1, 0, 0, 0,  0, 1, 0, 0,  0, 0, 1, 0,  0, 0, 0, 1 };
+		math::float4x4 locll_matrix{ 1, 0, 0, 0,  0, 1, 0, 0,  0, 0, 1, 0,  0, 0, 0, 1 };
+		math::float4x4 global_matrix{ 1, 0, 0, 0,  0, 1, 0, 0,  0, 0, 1, 0,  0, 0, 0, 1 };
 
 		void begin();
 		void update_local_matrix();
-		void update_global_matrix(DirectX::XMMATRIX parent_global_matrix);
+		void update_global_matrix(const math::matrixf& parent_global_matrix);
 	};
 
 public:
 	struct vertex
 	{
-		DirectX::XMFLOAT3 position;
-		DirectX::XMFLOAT3 normal;
-		DirectX::XMFLOAT2 texcoord;
-		DirectX::XMFLOAT4 additional_uv[4];
-		DirectX::XMUINT4  bone_indices;
-		DirectX::XMFLOAT4 bone_weights;
+		math::float3 position;
+		math::float3 normal;
+		math::float2 texcoord;
+		math::float4 additional_uv[4];
+		math::uint4  bone_indices;
+		math::float4 bone_weights;
 	};
 
 	struct subset
@@ -127,9 +126,9 @@ public:
 				UINT sphere_texture_index;
 				UINT ramp_texture_index;
 				UINT shadow_threshold_texture_index;
-				DirectX::XMFLOAT4 diffuse_color;
-				DirectX::XMFLOAT4 specular_color;
-				DirectX::XMFLOAT4 edge_color;
+				math::float4 diffuse_color;
+				math::float4 specular_color;
+				math::float4 edge_color;
 
 				float edge_size;
 				float alpha_clip_threshold;
@@ -147,10 +146,10 @@ public:
 				float depth_normal_outline_factor;
 
 				//	影閾値マップのオフセット
-				DirectX::XMFLOAT2 shadow_threshold_texcoord_offset;
+				math::float2 shadow_threshold_texcoord_offset;
 				float dummy_2;
 
-				DirectX::XMFLOAT4 outline_adjust_parameter;
+				math::float4 outline_adjust_parameter;
 			} def;
 		};
 
@@ -179,9 +178,9 @@ public:
 		size_t append_node_index = pmx_invalid_target_id;
 		size_t ik_node_index = pmx_invalid_target_id;
 
-		DirectX::XMFLOAT4X4 offset_matrix;
-		DirectX::XMFLOAT4X4 local_matrix{ 1, 0, 0, 0,  0, 1, 0, 0,  0, 0, 1, 0,  0, 0, 0, 1 };
-		DirectX::XMFLOAT4X4 global_matrix{ 1, 0, 0, 0,  0, 1, 0, 0,  0, 0, 1, 0,  0, 0, 0, 1 };
+		math::float4x4 offset_matrix;
+		math::float4x4 local_matrix{ 1, 0, 0, 0,  0, 1, 0, 0,  0, 0, 1, 0,  0, 0, 0, 1 };
+		math::float4x4 global_matrix{ 1, 0, 0, 0,  0, 1, 0, 0,  0, 0, 1, 0,  0, 0, 0, 1 };
 
 		calculate_node_data calculate_data;
 	};
@@ -199,11 +198,11 @@ public:
 	{
 		size_t target_index;
 		plane_lock lock = plane_lock::free;
-		DirectX::XMFLOAT3 angle_max{ 1, 1, 1 };
-		DirectX::XMFLOAT3 angle_min{ 1, 1, 1 };
+		math::float3 angle_max{ 1, 1, 1 };
+		math::float3 angle_min{ 1, 1, 1 };
 
 		float plane_mode_angle = 0;
-		DirectX::XMFLOAT3 prev_angle = {0, 0, 0};
+		math::float3 prev_angle = {0, 0, 0};
 	};
 
 	struct ik_data
@@ -222,8 +221,8 @@ public:
 	{
 		float time;
 		//	MMDに拡縮は無い。
-		DirectX::XMFLOAT4 rotation{ 0, 0, 0, 1 };
-		DirectX::XMFLOAT3 translation{ 0, 0, 0 };
+		math::float4 rotation{ 0, 0, 0, 1 };
+		math::float3 translation{ 0, 0, 0 };
 	};
 
 	struct animation
@@ -237,12 +236,12 @@ public:
 	static constexpr UINT bone_max = 1000;
 	struct primitive_constants
 	{
-		DirectX::XMFLOAT4X4 world;
-		DirectX::XMFLOAT4X4 previous_world;
-		DirectX::XMINT4 texture_index;
-		DirectX::XMFLOAT4 diffuse_color;
-		DirectX::XMFLOAT4 specular_color;
-		DirectX::XMFLOAT4 edge_color;
+		math::float4x4 world;
+		math::float4x4 previous_world;
+		math::int4 texture_index;
+		math::float4 diffuse_color;
+		math::float4 specular_color;
+		math::float4 edge_color;
 
 		float edge_size;
 		float alpha_clip_threshold = 0.01f;
@@ -256,9 +255,9 @@ public:
 
 	struct node_animation_data
 	{
-		DirectX::XMFLOAT3 scale{1, 1, 1};
-		DirectX::XMFLOAT4 rotation{ 0, 0, 0, 1 };
-		DirectX::XMFLOAT3 translation{ 0, 0, 0 };
+		math::float3 scale{1, 1, 1};
+		math::float4 rotation{ 0, 0, 0, 1 };
+		math::float3 translation{ 0, 0, 0 };
 	};
 	void compute_animation(std::string_view animation_name, float time, std::vector<node_animation_data>& node_datas);
 	void update_transforms(std::vector<node_animation_data>& node_datas);

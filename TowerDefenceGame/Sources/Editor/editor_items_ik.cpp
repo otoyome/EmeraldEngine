@@ -685,19 +685,15 @@ namespace
 					if (index != model_resource::invalid_id)
 					{
 						auto& middle_node = model_instance->get_nodes()[index];
-						DirectX::XMVECTOR PoleOffset = DirectX::XMLoadFloat3(&ik_data.pole_offset);
-						DirectX::XMMATRIX MiddleGlobalTransform = DirectX::XMLoadFloat4x4(&middle_node.global_transform);
-						DirectX::XMVECTOR GlobalPosition = DirectX::XMVector3TransformCoord(PoleOffset, MiddleGlobalTransform);
-						DirectX::XMFLOAT3 position;
-						DirectX::XMStoreFloat3(&position, GlobalPosition);
-						QUEUE_DEBUG_PRIMITIVE_SPHERE(position, 0.1f, DirectX::XMFLOAT4(1, 1, 1, 1), true);
+						const math::vector3f global_position = math::vector3f::transform_coord(ik_data.pole_offset, middle_node.global_transform);
+						QUEUE_DEBUG_PRIMITIVE_SPHERE(global_position.to_float3(), 0.1f, math::float4(1, 1, 1, 1), true);
 					}
 				}
 
 				ik_solver->solve(index, test_ik.position);
 
 				//	ポイント座標表示
-				QUEUE_DEBUG_PRIMITIVE_SPHERE(test_ik.position, 0.1f, DirectX::XMFLOAT4(1, 1, 1, 1), true);
+				QUEUE_DEBUG_PRIMITIVE_SPHERE(test_ik.position, 0.1f, math::float4(1, 1, 1, 1), true);
 			}
 		}
 
@@ -721,10 +717,9 @@ namespace
 							behavior_data.solve_ids[1] == ik_resource::invalid_id)
 							continue;
 
-						DirectX::XMFLOAT3 s = {10, 10, 10};
-						DirectX::XMFLOAT4 q;
-						DirectX::XMStoreFloat4(&q, DirectX::XMQuaternionRotationRollPitchYaw(test_ik.rotation.x, test_ik.rotation.y, test_ik.rotation.z));
-						DirectX::XMFLOAT3 t = test_ik.position;
+						math::float3 s = {10, 10, 10};
+						const math::float4 q = math::quaternionf::rotation_xyz(test_ik.rotation.x, test_ik.rotation.y, test_ik.rotation.z).to_float4();
+						math::float3 t = test_ik.position;
 
 						collision::bounding_box box(s, q, t);
 						auto& model_instance_nodes = model_instance->get_nodes();
@@ -738,28 +733,27 @@ namespace
 
 							//	
 							auto& foot_data = std::get<ik_resource::foot_data>(behavior_data.data);
-							DirectX::XMMATRIX WorldMatrix = DirectX::XMLoadFloat4x4(&model_instance->get_world_transform());
-							DirectX::XMFLOAT4X4 left_world_matrix, right_world_matrix;
-							DirectX::XMStoreFloat4x4(&left_world_matrix, DirectX::XMLoadFloat4x4(&left_node.global_transform) * WorldMatrix);
-							DirectX::XMStoreFloat4x4(&right_world_matrix, DirectX::XMLoadFloat4x4(&right_node.global_transform) * WorldMatrix);
+							const math::matrixf world_matrix(model_instance->get_world_transform());
+							const math::float4x4 left_world_matrix = (math::matrixf(left_node.global_transform) * world_matrix).to_float4x4();
+							const math::float4x4 right_world_matrix = (math::matrixf(right_node.global_transform) * world_matrix).to_float4x4();
 
 							//	各足が埋まるかを確認
 							collision::intersect_data left_hit_data, right_hit_data;
 							bool left_hit, right_hit;
 							{
-								DirectX::XMFLOAT3 left_start, right_start, left_end, right_end;
+								math::float3 left_start, right_start, left_end, right_end;
 
-								left_start = DirectX::XMFLOAT3(left_world_matrix._41,
+								left_start = math::float3(left_world_matrix._41,
 															   left_world_matrix._42 + foot_data.ray_origin_offsets[0],
 															   left_world_matrix._43);
-								right_start = DirectX::XMFLOAT3(right_world_matrix._41,
+								right_start = math::float3(right_world_matrix._41,
 															    right_world_matrix._42 + foot_data.ray_origin_offsets[1],
 															    right_world_matrix._43);
 
-								left_end = DirectX::XMFLOAT3(left_world_matrix._41,
+								left_end = math::float3(left_world_matrix._41,
 															 left_world_matrix._42 - (foot_data.ray_origin_offsets[0] + foot_data.ray_length),
 														     left_world_matrix._43);
-								right_end = DirectX::XMFLOAT3(right_world_matrix._41,
+								right_end = math::float3(right_world_matrix._41,
 															  right_world_matrix._42 - (foot_data.ray_origin_offsets[1] + foot_data.ray_length),
 															  right_world_matrix._43);
 
@@ -775,16 +769,14 @@ namespace
 								if (right_hit)
 									length = std::max(length, foot_data.ray_length - right_hit_data[0].length);
 
-								auto PelvisOffset = DirectX::XMVectorSet(0, -length, 0, 0);
+								const math::vector3f pelvis_offset(0, -length, 0);
 								for (auto& node_index : foot_data.adjust_node_indices)
 								{
 									auto& pelvis_node_data = ik_resource->get_node_list()[node_index];
 									auto& pelvis_node = model_instance_nodes[model_instance->get_node_index_by_name(pelvis_node_data.source_node_name)];
 
-									DirectX::XMFLOAT3 local_direction;
-									DirectX::XMMATRIX PelvisWorldMatrix = DirectX::XMLoadFloat4x4(&pelvis_node.global_transform) * WorldMatrix;
-									DirectX::XMMATRIX InversePelvisWorldMatrix = DirectX::XMMatrixInverse(nullptr, PelvisWorldMatrix);
-									DirectX::XMStoreFloat3(&local_direction, DirectX::XMVector3TransformNormal(PelvisOffset, InversePelvisWorldMatrix));
+									const math::matrixf inverse_pelvis_world_matrix = (math::matrixf(pelvis_node.global_transform) * world_matrix).inverted();
+									const math::vector3f local_direction = math::vector3f::transform_normal(pelvis_offset, inverse_pelvis_world_matrix);
 									pelvis_node.local_transform._41 += local_direction.x;
 									pelvis_node.local_transform._42 += local_direction.y;
 									pelvis_node.local_transform._43 += local_direction.z;
@@ -805,7 +797,7 @@ namespace
 							}
 						}
 
-						QUEUE_DEBUG_PRIMITIVE_BOX(t, q, s, DirectX::XMFLOAT4(1, 1, 1, 1), true);
+						QUEUE_DEBUG_PRIMITIVE_BOX(t, q, s, math::float4(1, 1, 1, 1), true);
 						break;
 					}
 					case ::ik_resource::behavior_mode::lookat:
@@ -814,7 +806,7 @@ namespace
 						{
 							ik_solver->solve(solve_id, test_ik.position);
 						}
-						QUEUE_DEBUG_PRIMITIVE_SPHERE(test_ik.position, 0.1f, DirectX::XMFLOAT4(1, 1, 1, 1), true);
+						QUEUE_DEBUG_PRIMITIVE_SPHERE(test_ik.position, 0.1f, math::float4(1, 1, 1, 1), true);
 						break;
 					}
 				}
@@ -834,8 +826,8 @@ namespace
 		{
 			std::string data_nama;
 			bool test_flag = false;
-			DirectX::XMFLOAT3 rotation = {0, 0, 0};
-			DirectX::XMFLOAT3 position = {0, 0, 0};
+			math::float3 rotation = {0, 0, 0};
+			math::float3 position = {0, 0, 0};
 		};
 		std::vector<test_ik> test_solve_iks;
 		std::vector<test_ik> test_behavior_iks;

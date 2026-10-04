@@ -15,12 +15,12 @@ texture_ptr face_image_controller_object::get_image() const
 	return uis[ui_id::main]->get_texture();
 }
 
-DirectX::XMFLOAT4 face_image_controller_object::get_uv_rect() const
+math::float4 face_image_controller_object::get_uv_rect() const
 {
 	return uis[ui_id::main]->get_uv_rect();
 }
 
-void face_image_controller_object::set_image(texture_ptr image, DirectX::XMFLOAT4 uv_rect)
+void face_image_controller_object::set_image(texture_ptr image, math::float4 uv_rect)
 {
 	uis[ui_id::main]->set_texture(image);
 	uis[ui_id::main]->set_uv_rect(uv_rect);
@@ -101,7 +101,7 @@ void face_image_controller_object::set_alpha(float alpha)
 		if (!uis[index])
 			continue;
 
-		DirectX::XMFLOAT4 color = origin_colors[index];
+		math::float4 color = origin_colors[index];
 		color.w *= alpha;
 		uis[index]->set_color(color);
 	}

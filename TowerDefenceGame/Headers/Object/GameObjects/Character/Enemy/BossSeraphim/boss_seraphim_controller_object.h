@@ -58,7 +58,7 @@ public:
 	float parry_wait_timer = 0;
 	bool work_flag[3] = {false, false, false};
 	float work_float[3] = {0.0f, 0.0f, 0.0f};
-	DirectX::XMFLOAT3 work_float3[3] = {};
+	math::float3 work_float3[3] = {};
 };
 
 #define	HFSN_DECRLEAR(ABSTRACT_TYPE, BASE_TYPE)	\

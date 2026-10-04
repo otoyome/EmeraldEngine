@@ -42,7 +42,7 @@ void mouse::set_state(const states& state)
 	memcpy_s(key_state, sizeof(key_state), state.key_state, sizeof(state.key_state));
 }
 
-DirectX::XMINT2 mouse::get_move_cursol() const
+math::int2 mouse::get_move_cursol() const
 {
 	return {move_vector.x, move_vector.y};
 }
@@ -90,7 +90,7 @@ mouse::~mouse()
 {
 }
 
-void mouse::set_viewport_size(const DirectX::XMINT2& size)
+void mouse::set_viewport_size(const math::int2& size)
 {
 	viewport_size = size;
 }

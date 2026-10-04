@@ -20,7 +20,7 @@ namespace math
 			struct { T x, y; };
 		};
 
-		constexpr basic_element2() : x(0), y(0) {}
+		basic_element2() = default;
 		constexpr basic_element2(T x, T y) : x(x), y(y) {}
 
 		template<typename U, std::enable_if_t<!std::is_same_v<T, U>, int> = 0>
@@ -45,7 +45,7 @@ namespace math
 			struct { T x, y, z; };
 		};
 
-		constexpr basic_element3() : x(0), y(0), z(0) {}
+		basic_element3() = default;
 		constexpr basic_element3(T x, T y, T z) : x(x), y(y), z(z) {}
 
 		template<typename U, std::enable_if_t<!std::is_same_v<T, U>, int> = 0>
@@ -70,7 +70,7 @@ namespace math
 			struct { T x, y, z, w; };
 		};
 
-		constexpr basic_element4() : x(0), y(0), z(0), w(0) {}
+		basic_element4() = default;
 		constexpr basic_element4(T x, T y, T z, T w) : x(x), y(y), z(z), w(w) {}
 
 		template<typename U, std::enable_if_t<!std::is_same_v<T, U>, int> = 0>
@@ -105,8 +105,62 @@ namespace math
 			}
 		}
 
+		template<typename... Args, std::enable_if_t<sizeof...(Args) == element_count && (std::is_arithmetic_v<Args> && ...), int> = 0>
+		constexpr basic_element_matrix(Args... values) : elements{ static_cast<T>(values)... } {}
+
 		template<typename U, std::enable_if_t<!std::is_same_v<T, U>, int> = 0>
 		explicit constexpr basic_element_matrix(const basic_element_matrix<U, Rows, Columns>& v) : elements{}
+		{
+			for (std::uint32_t i = 0; i < element_count; ++i)
+			{
+				elements[i] = static_cast<T>(v.elements[i]);
+			}
+		}
+
+		T& operator()(std::uint32_t row, std::uint32_t column) { return m[row][column]; }
+		constexpr const T& operator()(std::uint32_t row, std::uint32_t column) const { return m[row][column]; }
+		constexpr bool operator==(const basic_element_matrix& v) const
+		{
+			for (std::uint32_t i = 0; i < element_count; ++i)
+			{
+				if (elements[i] != v.elements[i])
+				{
+					return false;
+				}
+			}
+			return true;
+		}
+		constexpr bool operator!=(const basic_element_matrix& v) const { return !(*this == v); }
+	};
+
+	template<typename T>
+	struct basic_element_matrix<T, 4, 4>
+	{
+		using value_type = T;
+		static constexpr std::uint32_t row_count = 4;			//	çsêî
+		static constexpr std::uint32_t column_count = 4;		//	óÒêî
+		static constexpr std::uint32_t element_count = 16;	//	óvëfêî
+
+		union
+		{
+			T elements[element_count];
+			T m[4][4];
+			struct
+			{
+				T _11, _12, _13, _14;
+				T _21, _22, _23, _24;
+				T _31, _32, _33, _34;
+				T _41, _42, _43, _44;
+			};
+		};
+
+		constexpr basic_element_matrix() : elements{ 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1 } {}
+
+		template<typename... Args, std::enable_if_t<sizeof...(Args) == element_count && (std::is_arithmetic_v<Args> && ...), int> = 0>
+		constexpr basic_element_matrix(Args... values) : elements{ static_cast<T>(values)... } {}
+
+		template<typename U, std::enable_if_t<!std::is_same_v<T, U>, int> = 0>
+		explicit constexpr basic_element_matrix(const basic_element_matrix<U, 4, 4>& v) : elements{}
 		{
 			for (std::uint32_t i = 0; i < element_count; ++i)
 			{

@@ -102,12 +102,12 @@ bool	pmx_loader::load(void* buffer, size_t buffer_size, std::string_view folder_
 		vertices.resize(*read_buffer<unsigned int>());
 		for( auto& it : vertices)
 		{
-			it.position = *read_buffer<DirectX::XMFLOAT3>();
-			it.normal = *read_buffer<DirectX::XMFLOAT3>();
-			it.texcoord = *read_buffer<DirectX::XMFLOAT2>();
+			it.position = *read_buffer<math::float3>();
+			it.normal = *read_buffer<math::float3>();
+			it.texcoord = *read_buffer<math::float2>();
 			for (int jj = 0; jj < index_data.uv; jj++)
 			{
-				it.additional_uv[jj] = *read_buffer<DirectX::XMFLOAT4>();
+				it.additional_uv[jj] = *read_buffer<math::float4>();
 			}
 			it.skining_type = static_cast<pmx_skining_type>(*read_buffer<unsigned char>());
 			it.bone_indices = {pmx_invalid_target_id, pmx_invalid_target_id , pmx_invalid_target_id , pmx_invalid_target_id };
@@ -134,7 +134,7 @@ bool	pmx_loader::load(void* buffer, size_t buffer_size, std::string_view folder_
 					it.bone_indices.y	= read_index(index_data.bone_index_size);
 					it.bone_indices.z	= read_index(index_data.bone_index_size);
 					it.bone_indices.w	= read_index(index_data.bone_index_size);
-					it.bone_weights = *read_buffer<DirectX::XMFLOAT4>();
+					it.bone_weights = *read_buffer<math::float4>();
 					break;
 				}
 				case	pmx_skining_type::sdef:
@@ -143,9 +143,9 @@ bool	pmx_loader::load(void* buffer, size_t buffer_size, std::string_view folder_
 					it.bone_indices.y = read_index(index_data.bone_index_size);
 					it.bone_weights.x = *read_buffer<float>();
 					it.bone_weights.y = 1.0f - it.bone_weights.x;
-					it.sdef[0] = *read_buffer<DirectX::XMFLOAT3>();
-					it.sdef[1] = *read_buffer<DirectX::XMFLOAT3>();
-					it.sdef[2] = *read_buffer<DirectX::XMFLOAT3>();
+					it.sdef[0] = *read_buffer<math::float3>();
+					it.sdef[1] = *read_buffer<math::float3>();
+					it.sdef[2] = *read_buffer<math::float3>();
 					break;
 				}
 				case	pmx_skining_type::qdef:
@@ -154,7 +154,7 @@ bool	pmx_loader::load(void* buffer, size_t buffer_size, std::string_view folder_
 					it.bone_indices.y = read_index(index_data.bone_index_size);
 					it.bone_indices.z = read_index(index_data.bone_index_size);
 					it.bone_indices.w = read_index(index_data.bone_index_size);
-					it.bone_weights = *read_buffer<DirectX::XMFLOAT4>();
+					it.bone_weights = *read_buffer<math::float4>();
 					break;
 				}
 				default:
@@ -199,12 +199,12 @@ bool	pmx_loader::load(void* buffer, size_t buffer_size, std::string_view folder_
 			read_string(material_name, ARRAYSIZE(material_name));
 			material.name					= ConvertUtf8(material_name);
 			read_string(material_name, ARRAYSIZE(material_name));
-			material.diffuse				= *read_buffer<DirectX::XMFLOAT4>();
-			material.specular				= *read_buffer<DirectX::XMFLOAT3>();
+			material.diffuse				= *read_buffer<math::float4>();
+			material.specular				= *read_buffer<math::float3>();
 			material.specularlity			= *read_buffer<float>();
-			material.ambient				= *read_buffer<DirectX::XMFLOAT3>();
+			material.ambient				= *read_buffer<math::float3>();
 			material.draw_flag				= *read_buffer<unsigned char>();
-			material.edge_color				= *read_buffer<DirectX::XMFLOAT4>();
+			material.edge_color				= *read_buffer<math::float4>();
 			material.edge_size				= *read_buffer<float>();
 			material.deffuse_texture_index	= read_index(index_data.texture_index_size);
 			material.sphere_texture_index	= read_index(index_data.texture_index_size);
@@ -225,7 +225,7 @@ bool	pmx_loader::load(void* buffer, size_t buffer_size, std::string_view folder_
 			read_string(bone_name, ARRAYSIZE(bone_name));
 			bone.name = ConvertUtf8(bone_name);
 			read_string(bone_name, ARRAYSIZE(bone_name));
-			bone.position		= *read_buffer<DirectX::XMFLOAT3>();
+			bone.position		= *read_buffer<math::float3>();
 			bone.parent_index	= read_index(index_data.bone_index_size);
 			bone.level			= *read_buffer<unsigned int>();
 			bone.bone_flag		= *read_buffer<unsigned short>();
@@ -236,7 +236,7 @@ bool	pmx_loader::load(void* buffer, size_t buffer_size, std::string_view folder_
 			else
 			{
 				bone.target_index = pmx_invalid_target_id;
-				bone.offset = *read_buffer<DirectX::XMFLOAT3>();
+				bone.offset = *read_buffer<math::float3>();
 			}
 			if (bone.bone_flag & (static_cast<int>(pmx_bone_bitflag::is_append_rotation) | static_cast<int>(pmx_bone_bitflag::is_append_translation)))
 			{
@@ -245,12 +245,12 @@ bool	pmx_loader::load(void* buffer, size_t buffer_size, std::string_view folder_
 			}
 			if (bone.bone_flag & static_cast<int>(pmx_bone_bitflag::is_ik_axis_lock))
 			{
-				bone.lock_axis_orientation = *read_buffer<DirectX::XMFLOAT3>();
+				bone.lock_axis_orientation = *read_buffer<math::float3>();
 			}
 			if (bone.bone_flag & static_cast<int>(pmx_bone_bitflag::local_axis))
 			{
-				bone.local_axis_x_orientation = *read_buffer<DirectX::XMFLOAT3>();
-				bone.local_axis_z_orientation = *read_buffer<DirectX::XMFLOAT3>();
+				bone.local_axis_x_orientation = *read_buffer<math::float3>();
+				bone.local_axis_z_orientation = *read_buffer<math::float3>();
 			}
 			if (bone.bone_flag & static_cast<int>(pmx_bone_bitflag::is_external_parent_deform))
 			{
@@ -268,8 +268,8 @@ bool	pmx_loader::load(void* buffer, size_t buffer_size, std::string_view folder_
 					ik_link.angle_lock = *read_buffer<unsigned char>();
 					if (ik_link.angle_lock == 1)
 					{
-						ik_link.angle_min = *read_buffer<DirectX::XMFLOAT3>();
-						ik_link.angle_max = *read_buffer<DirectX::XMFLOAT3>();
+						ik_link.angle_min = *read_buffer<math::float3>();
+						ik_link.angle_max = *read_buffer<math::float3>();
 					}
 				}
 			}
@@ -306,7 +306,7 @@ bool	pmx_loader::load(void* buffer, size_t buffer_size, std::string_view folder_
 					for (unsigned int index = 0; index < size; ++index)
 					{
 						unsigned int vertex_index = read_index(index_data.vertex_index_size);
-						morph.vertex_offset.insert_or_assign(vertex_index, *read_buffer<DirectX::XMFLOAT3>());
+						morph.vertex_offset.insert_or_assign(vertex_index, *read_buffer<math::float3>());
 					}
 					break;
 				}
@@ -316,8 +316,8 @@ bool	pmx_loader::load(void* buffer, size_t buffer_size, std::string_view folder_
 					for (auto& offset : morph.bone_offset)
 					{
 						offset.bone_index = read_index(index_data.bone_index_size);
-						offset.translation = *read_buffer<DirectX::XMFLOAT3>();
-						offset.rotation = *read_buffer<DirectX::XMFLOAT4>();
+						offset.translation = *read_buffer<math::float3>();
+						offset.rotation = *read_buffer<math::float4>();
 					}
 					break;
 				}
@@ -333,7 +333,7 @@ bool	pmx_loader::load(void* buffer, size_t buffer_size, std::string_view folder_
 					for (unsigned int index = 0; index < size; ++index)
 					{
 						unsigned int vertex_index = read_index(index_data.vertex_index_size);
-						morph.uv_offset[offset_index].insert_or_assign(vertex_index, *read_buffer<DirectX::XMFLOAT4>());
+						morph.uv_offset[offset_index].insert_or_assign(vertex_index, *read_buffer<math::float4>());
 					}
 					break;
 				}
@@ -344,15 +344,15 @@ bool	pmx_loader::load(void* buffer, size_t buffer_size, std::string_view folder_
 					{
 						offset.material_index = read_index(index_data.material_index_size);
 						offset.offset_operation = *read_buffer<unsigned char>();
-						offset.diffuse = *read_buffer<DirectX::XMFLOAT4>();
-						offset.specular = *read_buffer<DirectX::XMFLOAT3>();
+						offset.diffuse = *read_buffer<math::float4>();
+						offset.specular = *read_buffer<math::float3>();
 						offset.specularlity = *read_buffer<float>();
-						offset.ambient = *read_buffer<DirectX::XMFLOAT3>();
-						offset.edge_color = *read_buffer<DirectX::XMFLOAT4>();
+						offset.ambient = *read_buffer<math::float3>();
+						offset.edge_color = *read_buffer<math::float4>();
 						offset.edge_size = *read_buffer<float>();
-						offset.textureARGB = *read_buffer<DirectX::XMFLOAT4>();
-						offset.shpereARGB = *read_buffer<DirectX::XMFLOAT4>();
-						offset.toonARGB = *read_buffer<DirectX::XMFLOAT4>();
+						offset.textureARGB = *read_buffer<math::float4>();
+						offset.shpereARGB = *read_buffer<math::float4>();
+						offset.toonARGB = *read_buffer<math::float4>();
 					}
 					break;
 				}
@@ -373,8 +373,8 @@ bool	pmx_loader::load(void* buffer, size_t buffer_size, std::string_view folder_
 					{
 						offset.rigidbody_index = read_index(index_data.rigidbody_index_size);
 						offset.is_local = *read_buffer<unsigned char>();
-						offset.velocity = *read_buffer<DirectX::XMFLOAT3>();
-						offset.angular_torque = *read_buffer<DirectX::XMFLOAT3>();
+						offset.velocity = *read_buffer<math::float3>();
+						offset.angular_torque = *read_buffer<math::float3>();
 					}
 					break;
 				}

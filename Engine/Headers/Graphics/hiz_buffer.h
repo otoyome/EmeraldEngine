@@ -5,7 +5,6 @@
 
 #include <d3d11.h>
 #include <wrl.h>
-#include <directxmath.h>
 
 #include "graphics_context.h"
 #include "shader.h"
@@ -23,7 +22,7 @@ public:
 
 	ID3D11ShaderResourceView* get_srv() const { return hiz_srv.Get(); }
 	UINT get_mip_count() const { return hiz_mip_count; }
-	DirectX::XMUINT2 get_size() const { return hiz_mip_sizes.empty() ? DirectX::XMUINT2{ 0, 0 } : hiz_mip_sizes[0]; }
+	math::uint2 get_size() const { return hiz_mip_sizes.empty() ? math::uint2{ 0, 0 } : hiz_mip_sizes[0]; }
 
 private:
 	std::shared_ptr<compute_shader> hiz_copy_cs;
@@ -33,7 +32,7 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> hiz_srv;
 	std::vector<Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>> hiz_mip_srvs;
 	std::vector<Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView>> hiz_mip_uavs;
-	std::vector<DirectX::XMUINT2> hiz_mip_sizes;
+	std::vector<math::uint2> hiz_mip_sizes;
 	UINT hiz_mip_count = 0;
 
 	Microsoft::WRL::ComPtr<ID3D11Buffer> hiz_constant_buffer;

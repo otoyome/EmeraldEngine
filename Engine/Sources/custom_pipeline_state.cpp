@@ -36,11 +36,6 @@ namespace
 	{
 		forward_light_data light_data = {};
 		//	テキトーに近くのライトを詰める
-		auto BoundsMin = DirectX::XMVectorSet(buffer_data.bounds_min.x, buffer_data.bounds_min.y, buffer_data.bounds_min.z, 0);
-		auto BoundsMax = DirectX::XMVectorSet(buffer_data.bounds_max.x, buffer_data.bounds_max.y, buffer_data.bounds_max.z, 0);
-		auto BoundsCenter = DirectX::XMVectorScale(DirectX::XMVectorSubtract(BoundsMax, BoundsMin), 0.5f);
-		BoundsCenter = DirectX::XMVectorAdd(BoundsCenter, BoundsMin);
-
 		for (auto& light : context.render_data->light_container.lights)
 		{
 			switch(light->get_light_type())

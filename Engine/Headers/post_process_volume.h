@@ -78,7 +78,7 @@ public:
 
 	bool display_dof_area = false;
 	int blur_size = 57;
-	DirectX::XMFLOAT2 adjust_length = { 0.0f, 0.0f };
+	math::float2 adjust_length = { 0.0f, 0.0f };
 
 	int precision_scale_factor = 26; //	¸“x’²®ŒW”
 									 //	”íÊŠE[“x‚ÅF‚ª‚¨‚©‚µ‚­‚È‚Á‚Ä‚¢‚é‚Í‚±‚ê‚ğ’²®‚µ‚Ä‚İ‚Ä‚­‚¾‚³‚¢B
@@ -99,7 +99,7 @@ private:
 public:
 	float ray_max_distance = 1000.0f;
 	float ray_resolution = 0.5f;
-	DirectX::XMFLOAT2 ray_tickness = {0.5f, 100.0f};
+	math::float2 ray_tickness = {0.5f, 100.0f};
 
 	int ray_substep_iteration_max = 15;
 	int ray_flags = 0;
@@ -141,7 +141,7 @@ private:
 
 public:
 	float adapt_rate = 0.05f;
-	DirectX::XMFLOAT2 luminance_range = {2.0f, 1000.0f};
+	math::float2 luminance_range = {2.0f, 1000.0f};
 
 public:
 	bool is_active() const;
@@ -190,14 +190,14 @@ public:
 	bool is_flag(flags flag) const { return system_utility::is_bitflag(system_flags, 1 << static_cast<UINT>(flag)); }
 	void set_flag(flags flag, bool value){ system_utility::set_bitflag(system_flags, 1 << static_cast<UINT>(flag), value); }
 
-	DirectX::XMFLOAT3 get_position() const;
-	void set_position(const DirectX::XMFLOAT3& position);
-	DirectX::XMFLOAT3 get_inner_range() const;
-	void set_inner_range(const DirectX::XMFLOAT3& inner_range);
-	DirectX::XMFLOAT3 get_outer_range() const;
-	void set_outer_range(const DirectX::XMFLOAT3& outer_range);
-	const DirectX::XMFLOAT4& get_color() const;
-	void set_color(const DirectX::XMFLOAT4& color);
+	math::float3 get_position() const;
+	void set_position(const math::float3& position);
+	math::float3 get_inner_range() const;
+	void set_inner_range(const math::float3& inner_range);
+	math::float3 get_outer_range() const;
+	void set_outer_range(const math::float3& outer_range);
+	const math::float4& get_color() const;
+	void set_color(const math::float4& color);
 
 	const bloom_data& get_bloom_constant() const;
 	void set_bloom_constant(const bloom_data& data);
@@ -234,10 +234,10 @@ private:
 	tone_mapping_data tone_mapping_constant;
 	std::vector<std::shared_ptr<material>> postprocess_materials;
 
-	DirectX::XMFLOAT3 position;
-	DirectX::XMFLOAT3 inner_range;
-	DirectX::XMFLOAT3 outer_range;
-	DirectX::XMFLOAT4 color;
+	math::float3 position;
+	math::float3 inner_range;
+	math::float3 outer_range;
+	math::float4 color;
 };
 ENUM_ATTR_BITFLAG(post_process_volume::flags);
 

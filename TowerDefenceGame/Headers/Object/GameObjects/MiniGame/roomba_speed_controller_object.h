@@ -22,14 +22,14 @@ public:
 
 	void fixed_update(float elapsed_time) override;
 
-	void set_getter(std::function<DirectX::XMFLOAT3()> get_velocity);
+	void set_getter(std::function<math::float3()> get_velocity);
 	void set_alpha(float alpha);
 
 private:
-	std::function<DirectX::XMFLOAT3()> get_velocity;
+	std::function<math::float3()> get_velocity;
 
 	std::shared_ptr<ui_image> image;
 	std::shared_ptr<ui_text> text;
-	DirectX::XMFLOAT4 origin_colors[2];
+	math::float4 origin_colors[2];
 };
 

@@ -16,11 +16,11 @@ class model_object : public game_object
 	GAME_OBJECT_DECRLEAR(model_object, game_object)
 
 public:
-	using call_back_root_animation_translation = std::function<void(const DirectX::XMFLOAT3&, float)>;
-	using call_back_root_animation_rotation = std::function<void(const DirectX::XMFLOAT4&, float)>;
+	using call_back_root_animation_translation = std::function<void(const math::float3&, float)>;
+	using call_back_root_animation_rotation = std::function<void(const math::float4&, float)>;
 
 	//	FootIK方向
-	static constexpr DirectX::XMFLOAT3 foot_ik_direction = {0, -1, 0};
+	static constexpr math::float3 foot_ik_direction = {0, -1, 0};
 
 	//	IK情報
 	struct ik_data
@@ -29,11 +29,11 @@ public:
 		bool initialized = false;	//	初回フレーム判定
 
 		//	HandIK用
-		DirectX::XMFLOAT3 left_hand_target_position = {0, 0, 0};
-		DirectX::XMFLOAT3 right_hand_target_position = {0, 0, 0};
+		math::float3 left_hand_target_position = {0, 0, 0};
+		math::float3 right_hand_target_position = {0, 0, 0};
 
 		//	AimIK用
-		DirectX::XMFLOAT3 aim_target_position;
+		math::float3 aim_target_position;
 	};
 
 public:
@@ -41,14 +41,14 @@ public:
 	ik_resource_ptr get_ik_resource();
 	void set_ik_resource(ik_resource_ptr ik_resource);
 
-	const DirectX::XMFLOAT3& get_scale() const;
-	void set_scale(const DirectX::XMFLOAT3& scale);
+	const math::float3& get_scale() const;
+	void set_scale(const math::float3& scale);
 
 	const math::rotatorf& get_rotation() const;
 	void set_rotation(const math::rotatorf& rotator);
 
-	const DirectX::XMFLOAT3& get_position() const;
-	void set_position(const DirectX::XMFLOAT3& position);
+	const math::float3& get_position() const;
+	void set_position(const math::float3& position);
 
 	bool get_apply_root_animation_transform() const;
 	void set_apply_root_animation_transform(bool flag);
@@ -112,9 +112,9 @@ private:
 private:
 	model_instance_ptr model_instance;
 	bool dirty = true;
-	DirectX::XMFLOAT3 scale = {1.0f, 1.0f, 1.0f};
+	math::float3 scale = {1.0f, 1.0f, 1.0f};
 	math::rotatorf rotator = {0.0f, 0.0f, 0.0f};
-	DirectX::XMFLOAT3 position = {0.0f, 0.0f, 0.0f};
+	math::float3 position = {0.0f, 0.0f, 0.0f};
 
 	bool apply_root_animation_transform = true;
 	call_back_root_animation_translation on_root_animation_translation;

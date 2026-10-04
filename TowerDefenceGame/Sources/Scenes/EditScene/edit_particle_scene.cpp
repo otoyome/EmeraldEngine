@@ -124,7 +124,7 @@ bool edit_particle_scene::initialize_core()
 	//	メインカメラ生成
 	{
 		main_camera = std::make_shared<camera_object>("メインカメラ");
-		main_camera->get_camera()->set_fov_y(DirectX::XMConvertToRadians(30.0f));
+		main_camera->get_camera()->set_fov_y(math::angle::to_radian(30.0f));
 	//	main_camera->get_camera()->set_flag(camera::flags::hybrid_projection, true);
 	//	main_camera->get_camera()->set_hybrid_rate(0.3f);	//	透視投影
 		register_object(main_camera);
@@ -241,7 +241,7 @@ bool edit_particle_scene::initialize_core()
 	{
 		auto camera = std::make_shared<editor_camera>(main_camera);
 		camera->set_position(system_units::convert_m_to_unit({ 0, 1, 8 }));
-		camera->set_rotation({ 0, DirectX::XM_PI, 0 });
+		camera->set_rotation({ 0, math::constants<float>::pi, 0 });
 		camera->set_rotation_speed(camera->get_rotation_speed() * 0.25f);
 		camera->set_move_speed(camera->get_move_speed() * 0.25f);
 		register_object(camera);
@@ -371,7 +371,7 @@ void edit_particle_scene::generate_default_effect()
 {
 	//	テスト用にスプライトパーティクルエミッター登録
 	{
-		static constexpr DirectX::XMUINT2 split_count = { 5, 5 };
+		static constexpr math::uint2 split_count = { 5, 5 };
 		static constexpr float increment_time = system_units::convert_fps_to_sec(1.0f);
 
 		effect_resource_ptr resource;
@@ -425,7 +425,7 @@ void edit_particle_scene::generate_default_effect()
 						material->set_pipeline_state(pso_descs, ARRAYSIZE(pso_descs));
 
 						//	パラメーター設定
-						material->set_float4("base_color_factor", DirectX::XMFLOAT4(1, 1, 1, 1));
+						material->set_float4("base_color_factor", math::float4(1, 1, 1, 1));
 						{
 							texture_ptr texture;
 							std::filesystem::path file_path = "Assets/Resources/Textures/Explosion01_5x5.png";
@@ -508,7 +508,7 @@ void edit_particle_scene::generate_default_effect()
 
 					//	UV設定
 					{
-						static constexpr DirectX::XMUINT2 split_count = { 5, 5 };
+						static constexpr math::uint2 split_count = { 5, 5 };
 						static constexpr float increment_time = system_units::convert_fps_to_sec(1.0f);
 
 						renderer->uv.set_state(particle::item::renderer::texcoords::states::animation, true);
@@ -537,7 +537,7 @@ void edit_particle_scene::generate_default_effect()
 						material->set_pipeline_state(pso_descs, ARRAYSIZE(pso_descs));
 
 						//	パラメーター設定
-						material->set_float4("base_color_factor", DirectX::XMFLOAT4(1, 1, 1, 1));
+						material->set_float4("base_color_factor", math::float4(1, 1, 1, 1));
 						{
 							texture_ptr texture;
 							//std::filesystem::path file_path = "Assets/Resources/Textures/trail.png";
@@ -592,7 +592,7 @@ void edit_particle_scene::generate_default_effect()
 					velocity->set_state(particle::item::velocity::states::random_power, true);
 					velocity->set_state(particle::item::velocity::states::random_acceleration, true);
 					velocity->direction = { 0.0f, 1.0f, 0.0f };
-					velocity->angle_range = { -DirectX::XM_PI / 4, +DirectX::XM_PI / 4 };
+					velocity->angle_range = { -math::constants<float>::pi / 4, +math::constants<float>::pi / 4 };
 					velocity->power_range = { 100.0f, 200.0f };
 
 					{
@@ -646,7 +646,7 @@ void edit_particle_scene::imgui_render_sdf()
 						const float voxel_size = sdf.voxel_size();
 						const float threshold = voxel_size * 0.75f;
 
-						std::vector<DirectX::XMFLOAT4> candidates;
+						std::vector<math::float4> candidates;
 						for (uint32_t z = 0; z < sdf.resolution; ++z)
 						{
 							for (uint32_t y = 0; y < sdf.resolution; ++y)
@@ -711,20 +711,20 @@ void edit_particle_scene::draw_sdf_debug_primitives()
 {
 	for (auto& sdf : edit_sdfs)
 	{
-		DirectX::XMFLOAT3 center =
+		math::float3 center =
 		{
 			(sdf.bounds_min.x + sdf.bounds_max.x) * 0.5f,
 			(sdf.bounds_min.y + sdf.bounds_max.y) * 0.5f,
 			(sdf.bounds_min.z + sdf.bounds_max.z) * 0.5f,
 		};
-		DirectX::XMFLOAT3 half_extent =
+		math::float3 half_extent =
 		{
 			(sdf.bounds_max.x - sdf.bounds_min.x) * 0.5f,
 			(sdf.bounds_max.y - sdf.bounds_min.y) * 0.5f,
 			(sdf.bounds_max.z - sdf.bounds_min.z) * 0.5f,
 		};
-		DirectX::XMFLOAT4 rotation = { 0.0f, 0.0f, 0.0f, 1.0f };
-		DirectX::XMFLOAT4 color = { 0.0f, 1.0f, 1.0f, 1.0f };
+		math::float4 rotation = { 0.0f, 0.0f, 0.0f, 1.0f };
+		math::float4 color = { 0.0f, 1.0f, 1.0f, 1.0f };
 		QUEUE_DEBUG_PRIMITIVE_BOX(center, rotation, half_extent, color, true);
 
 		//	表面付近のボクセルを小さい十字マークで表示
@@ -735,22 +735,22 @@ void edit_particle_scene::draw_sdf_debug_primitives()
 			const float half_cross = voxel_size * 0.4f;
 			for (auto& point : sdf.voxel_points)
 			{
-				DirectX::XMFLOAT3 p = { point.x, point.y, point.z };
-				DirectX::XMFLOAT4 point_color = point.w < 0.0f
-					? DirectX::XMFLOAT4(1.0f, 0.2f, 0.2f, 1.0f)
-					: DirectX::XMFLOAT4(0.2f, 1.0f, 0.2f, 1.0f);
+				math::float3 p = { point.x, point.y, point.z };
+				math::float4 point_color = point.w < 0.0f
+					? math::float4(1.0f, 0.2f, 0.2f, 1.0f)
+					: math::float4(0.2f, 1.0f, 0.2f, 1.0f);
 
 				QUEUE_DEBUG_PRIMITIVE_LINE(
-					DirectX::XMFLOAT3(p.x - half_cross, p.y, p.z),
-					DirectX::XMFLOAT3(p.x + half_cross, p.y, p.z),
+					math::float3(p.x - half_cross, p.y, p.z),
+					math::float3(p.x + half_cross, p.y, p.z),
 					point_color, true);
 				QUEUE_DEBUG_PRIMITIVE_LINE(
-					DirectX::XMFLOAT3(p.x, p.y - half_cross, p.z),
-					DirectX::XMFLOAT3(p.x, p.y + half_cross, p.z),
+					math::float3(p.x, p.y - half_cross, p.z),
+					math::float3(p.x, p.y + half_cross, p.z),
 					point_color, true);
 				QUEUE_DEBUG_PRIMITIVE_LINE(
-					DirectX::XMFLOAT3(p.x, p.y, p.z - half_cross),
-					DirectX::XMFLOAT3(p.x, p.y, p.z + half_cross),
+					math::float3(p.x, p.y, p.z - half_cross),
+					math::float3(p.x, p.y, p.z + half_cross),
 					point_color, true);
 			}
 		}

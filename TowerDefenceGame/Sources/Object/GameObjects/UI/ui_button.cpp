@@ -1,16 +1,16 @@
 #include "object/gameobjects/ui/ui_button.h"
 
-DirectX::XMFLOAT4 ui_button::get_color(color_type type) const
+math::float4 ui_button::get_color(color_type type) const
 {
 	return color[static_cast<int>(type)];
 }
 
-void ui_button::set_color(color_type type, const DirectX::XMFLOAT4& color)
+void ui_button::set_color(color_type type, const math::float4& color)
 {
 	this->color[static_cast<int>(type)] = color;
 }
 
-void ui_button::set_color(color_type type, const DirectX::XMFLOAT3& color)
+void ui_button::set_color(color_type type, const math::float3& color)
 {
 	auto& c = this->color[static_cast<int>(type)];
 	c.x = color.x;
@@ -48,7 +48,7 @@ ui_button::~ui_button()
 
 void ui_button::fixed_update(float elapsed_time)
 {
-	DirectX::XMFLOAT4 apply_color = image->get_color();
+	math::float4 apply_color = image->get_color();
 	if (enable)
 	{
 		apply_color = color[static_cast<int>(color_type::normal)];
@@ -60,7 +60,7 @@ void ui_button::fixed_update(float elapsed_time)
 
 	if (pressed)
 	{
-		if (math::nearly_equal(system_utility::to_math(image->get_color()), system_utility::to_math(color[static_cast<int>(color_type::pressed)])))
+		if (math::nearly_equal(math::vector4f(image->get_color()), math::vector4f(color[static_cast<int>(color_type::pressed)])))
 			pressed = false;
 		apply_color = color[static_cast<int>(color_type::pressed)];
 	}
@@ -68,7 +68,7 @@ void ui_button::fixed_update(float elapsed_time)
 	if (image)
 	{
 		apply_color.w *= alpha;
-		DirectX::XMFLOAT4 col = system_utility::to_xmfloat(math::lerp(system_utility::to_math(image->get_color()), system_utility::to_math(apply_color), fade_duration));
+		math::float4 col = math::lerp(math::vector4f(image->get_color()), math::vector4f(apply_color), fade_duration).to_float4();
 		image->set_color(col);
 	}
 }

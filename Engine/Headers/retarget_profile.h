@@ -12,9 +12,9 @@ struct retarget_profile
 	{
 		std::string target_name;
 
-		DirectX::XMFLOAT3 scale = {1, 1, 1};
-		DirectX::XMFLOAT4 rotation = {0, 0, 0, 1};
-		DirectX::XMFLOAT3 translation = {0, 0, 0};
+		math::float3 scale = {1, 1, 1};
+		math::float4 rotation = {0, 0, 0, 1};
+		math::float3 translation = {0, 0, 0};
 
 		bool is_lock_scale = false;
 		bool is_lock_rotation = false;
@@ -26,7 +26,7 @@ struct retarget_profile
 
 public:
 	std::map<std::string, bone_data> bone_map;				//	ボーンマップ
-	DirectX::XMFLOAT3 base_scaling = { 1.0f, 1.0f, 1.0f };	//	基準のスケーリング情報
+	math::float3 base_scaling = { 1.0f, 1.0f, 1.0f };	//	基準のスケーリング情報
 
 	template<class Archive>
 	void serialize(Archive& archive, int version);

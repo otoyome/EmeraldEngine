@@ -208,42 +208,42 @@ post_process_volume::~post_process_volume()
 {
 }
 
-DirectX::XMFLOAT3 post_process_volume::get_position() const
+math::float3 post_process_volume::get_position() const
 {
 	return position;
 }
 
-void post_process_volume::set_position(const DirectX::XMFLOAT3& position)
+void post_process_volume::set_position(const math::float3& position)
 {
 	this->position = position;
 }
 
-DirectX::XMFLOAT3 post_process_volume::get_inner_range() const
+math::float3 post_process_volume::get_inner_range() const
 {
 	return inner_range;
 }
 
-void post_process_volume::set_inner_range(const DirectX::XMFLOAT3& inner_range)
+void post_process_volume::set_inner_range(const math::float3& inner_range)
 {
 	this->inner_range = inner_range;
 }
 
-DirectX::XMFLOAT3 post_process_volume::get_outer_range() const
+math::float3 post_process_volume::get_outer_range() const
 {
 	return outer_range;
 }
 
-void post_process_volume::set_outer_range(const DirectX::XMFLOAT3& outer_range)
+void post_process_volume::set_outer_range(const math::float3& outer_range)
 {
 	this->outer_range = outer_range;
 }
 
-const DirectX::XMFLOAT4& post_process_volume::get_color() const
+const math::float4& post_process_volume::get_color() const
 {
 	return color;
 }
 
-void post_process_volume::set_color(const DirectX::XMFLOAT4& color)
+void post_process_volume::set_color(const math::float4& color)
 {
 	this->color = color;
 }
@@ -392,8 +392,8 @@ void post_process_volume_manager::get_container(post_process_volume_container& c
 				continue;
 			}
 
-			DirectX::XMFLOAT4 rotation = { 0.0f, 0.0f, 0.0f, 1.0f };
-			DirectX::XMFLOAT4 color = { 0.0f, 1.0f, 0.0f, 1.0f };
+			math::float4 rotation = { 0.0f, 0.0f, 0.0f, 1.0f };
+			math::float4 color = { 0.0f, 1.0f, 0.0f, 1.0f };
 			QUEUE_DEBUG_PRIMITIVE_BOX(instance->get_position(), rotation, instance->get_outer_range(), color, true);
 			QUEUE_DEBUG_PRIMITIVE_BOX(instance->get_position(), rotation, instance->get_inner_range(), color, true);
 		}

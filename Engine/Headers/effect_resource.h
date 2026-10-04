@@ -26,9 +26,9 @@ public:
 		cache_string name;
 		size_t parent_index = invalid_id;
 
-		DirectX::XMFLOAT3 scale = {1, 1, 1};
-		DirectX::XMFLOAT3 rotation = {0, 0, 0};
-		DirectX::XMFLOAT3 position = {0, 0, 0};
+		math::float3 scale = {1, 1, 1};
+		math::float3 rotation = {0, 0, 0};
+		math::float3 position = {0, 0, 0};
 
 		template<class Archive>
 		void serialize(Archive& archive, int version);

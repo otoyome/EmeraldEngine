@@ -85,7 +85,7 @@ void hp_bar_controller_object::fixed_update(float elapsed_time)
 				main_rate = static_cast<float>(value) / character->get_max_health();
 				animation_state = animation_state::sub;
 			}
-			DirectX::XMFLOAT4 main_rect = ui[ui_id::main]->get_screen_rect();
+			math::float4 main_rect = ui[ui_id::main]->get_screen_rect();
 			main_rect.z = main_rate * origin_rects[ui_id::main].z;
 			if (animation_direction == directions::right)
 			{
@@ -115,7 +115,7 @@ void hp_bar_controller_object::fixed_update(float elapsed_time)
 				sub_rate = static_cast<float>(value) / character->get_max_health();
 				animation_state = animation_state::idle;
 			}
-			DirectX::XMFLOAT4 sub_rect = ui[ui_id::sub]->get_screen_rect();
+			math::float4 sub_rect = ui[ui_id::sub]->get_screen_rect();
 			sub_rect.z = sub_rate * origin_rects[ui_id::sub].z;
 			if (animation_direction == directions::right)
 			{
@@ -129,7 +129,7 @@ void hp_bar_controller_object::fixed_update(float elapsed_time)
 			if (ui[ui_id::main])
 			{
 				float main_rate = static_cast<float>(value) / character->get_max_health();
-				DirectX::XMFLOAT4 main_rect = ui[ui_id::main]->get_screen_rect();
+				math::float4 main_rect = ui[ui_id::main]->get_screen_rect();
 				main_rect.z = main_rate * origin_rects[ui_id::main].z;
 				if (animation_direction == directions::right)
 				{
@@ -140,7 +140,7 @@ void hp_bar_controller_object::fixed_update(float elapsed_time)
 			if (ui[ui_id::sub])
 			{
 				float sub_rate = static_cast<float>(value) / character->get_max_health();
-				DirectX::XMFLOAT4 sub_rect = ui[ui_id::sub]->get_screen_rect();
+				math::float4 sub_rect = ui[ui_id::sub]->get_screen_rect();
 				sub_rect.z = sub_rate * origin_rects[ui_id::sub].z;
 				if (animation_direction == directions::right)
 				{
@@ -233,7 +233,7 @@ void hp_bar_controller_object::set_alpha(float alpha)
 		if (!ui[index])
 			continue;
 
-		DirectX::XMFLOAT4 color = origin_colors[index];
+		math::float4 color = origin_colors[index];
 		color.w *= alpha;
 		ui[index]->set_color(color);
 	}

@@ -47,7 +47,7 @@ void ui_text::pre_render()
 	//	í∏ì_èCê≥
 	if (is_dirty())
 	{
-		DirectX::XMFLOAT4 color = { 1.0f, 1.0f, 1.0f, 1.0f };
+		math::float4 color = { 1.0f, 1.0f, 1.0f, 1.0f };
 
 		std::vector<std::vector<sprite::vertex>> page_vertices(get_sprites().size());
 		std::vector<std::vector<UINT>> page_indices(get_sprites().size());

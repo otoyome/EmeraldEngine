@@ -1,14 +1,14 @@
 #include	"collision/plane.h"
 
-DirectX::XMFLOAT3 collision::plane::get_plane_position() const
+math::float3 collision::plane::get_plane_position() const
 {
 	//	n・p + w = 0 を満たす点
-	return DirectX::XMFLOAT3(-parameter.x * parameter.w, -parameter.y * parameter.w, -parameter.z * parameter.w);
+	return math::float3(-parameter.x * parameter.w, -parameter.y * parameter.w, -parameter.z * parameter.w);
 }
 
-DirectX::XMFLOAT3 collision::plane::get_normal() const
+math::float3 collision::plane::get_normal() const
 {
-	return DirectX::XMFLOAT3(parameter.x, parameter.y, parameter.z);
+	return math::float3(parameter.x, parameter.y, parameter.z);
 }
 
 float collision::plane::get_distance() const
@@ -16,32 +16,32 @@ float collision::plane::get_distance() const
 	return parameter.w;
 }
 
-const DirectX::XMFLOAT4& collision::plane::get_parameter() const
+const math::float4& collision::plane::get_parameter() const
 {
 	return parameter;
 }
 
-void collision::plane::set_parameter(const DirectX::XMFLOAT4& parameter)
+void collision::plane::set_parameter(const math::float4& parameter)
 {
 	this->parameter = parameter;
 }
 
-collision::plane::plane(const DirectX::XMFLOAT4& parameter)
+collision::plane::plane(const math::float4& parameter)
 {
 	initialize(parameter);
 }
 
-collision::plane::plane(const DirectX::XMFLOAT3& normal, float distance)
+collision::plane::plane(const math::float3& normal, float distance)
 {
 	initialize(normal, distance);
 }
 
-void collision::plane::initialize(const DirectX::XMFLOAT4& parameter)
+void collision::plane::initialize(const math::float4& parameter)
 {
 	this->parameter = parameter;
 }
 
-void collision::plane::initialize(const DirectX::XMFLOAT3& normal, float distance)
+void collision::plane::initialize(const math::float3& normal, float distance)
 {
 	this->parameter.x = normal.x;
 	this->parameter.y = normal.y;
@@ -51,38 +51,38 @@ void collision::plane::initialize(const DirectX::XMFLOAT3& normal, float distanc
 
 void collision::plane::normlize()
 {
-	DirectX::XMVECTOR Parameter = DirectX::XMLoadFloat4(&parameter);
-	DirectX::XMVECTOR Length = DirectX::XMVector3Length(Parameter);
+	math::vector4f Parameter(parameter);
+	float Length = Parameter.length();
 	//	法線が無い平面は常に内側扱い
-	if (DirectX::XMVectorGetX(Length) <= FLT_EPSILON)
+	if (Length <= FLT_EPSILON)
 	{
-		parameter = DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, parameter.w >= 0.0f ? 1.0f : -1.0f);
+		parameter = math::float4(0.0f, 0.0f, 0.0f, parameter.w >= 0.0f ? 1.0f : -1.0f);
 		return;
 	}
-	DirectX::XMStoreFloat4(&parameter, DirectX::XMVectorDivide(Parameter, Length));
+	parameter = (Parameter / Length).to_float4();
 }
 
-float collision::plane::calculate_distance(const DirectX::XMFLOAT3& point) const
+float collision::plane::calculate_distance(const math::float3& point) const
 {
 	return	parameter.x * point.x + parameter.y * point.y + parameter.z * point.z + parameter.w;
 }
 
-bool collision::plane::to_line(const line& line, float* distance, DirectX::XMFLOAT3* insert_point) const
+bool collision::plane::to_line(const line& line, float* distance, math::float3* insert_point) const
 {
-	DirectX::XMFLOAT3 plane_position = get_plane_position();
-	DirectX::XMVECTOR PlanePosition = DirectX::XMLoadFloat3(&plane_position);
-	DirectX::XMFLOAT3 line_0_position = line[0];
-	DirectX::XMFLOAT3 line_1_position = line[1];
-	DirectX::XMVECTOR Line0Position = DirectX::XMLoadFloat3(&line_0_position);
-	DirectX::XMVECTOR Line1Position = DirectX::XMLoadFloat3(&line_1_position);
-	DirectX::XMFLOAT3 normal = get_normal();
-	DirectX::XMVECTOR Normal = DirectX::XMLoadFloat3(&normal);
+	math::float3 plane_position = get_plane_position();
+	math::vector3f PlanePosition(plane_position);
+	math::float3 line_0_position = line[0];
+	math::float3 line_1_position = line[1];
+	math::vector3f Line0Position(line_0_position);
+	math::vector3f Line1Position(line_1_position);
+	math::float3 normal = get_normal();
+	math::vector3f Normal(normal);
 	if (line.get_type() == line::types::segment)
 	{
-		DirectX::XMVECTOR V1 = DirectX::XMVectorSubtract(Line0Position, PlanePosition);
-		DirectX::XMVECTOR V2 = DirectX::XMVectorSubtract(Line1Position, PlanePosition);
-		float dotV1_Normal = DirectX::XMVectorGetX(DirectX::XMVector3Dot(V1, Normal));
-		float dotV2_Normal = DirectX::XMVectorGetX(DirectX::XMVector3Dot(V2, Normal));
+		math::vector3f V1 = Line0Position - PlanePosition;
+		math::vector3f V2 = Line1Position - PlanePosition;
+		float dotV1_Normal = math::vector3f::dot(V1, Normal);
+		float dotV2_Normal = math::vector3f::dot(V2, Normal);
 		if (fabsf(dotV1_Normal - dotV2_Normal) <= FLT_EPSILON)
 		{
 			//	平行時は平面上にある場合のみ交差
@@ -91,17 +91,17 @@ bool collision::plane::to_line(const line& line, float* distance, DirectX::XMFLO
 			if (distance)
 				*distance = 0.0f;
 			if (insert_point)
-				DirectX::XMStoreFloat3(insert_point, Line0Position);
+				*insert_point = Line0Position.to_float3();
 			return true;
 		}
 		else if ((dotV1_Normal >= 0.0 && dotV2_Normal <= 0.0) || (dotV1_Normal <= 0.0 && dotV2_Normal >= 0.0))
 		{
 			float length = fabsf(dotV1_Normal) / (fabsf(dotV1_Normal) + fabsf(dotV2_Normal));
-			DirectX::XMVECTOR Segment = DirectX::XMVectorSubtract(Line1Position, Line0Position);
+			math::vector3f Segment = Line1Position - Line0Position;
 			if (distance)
-				*distance = length * DirectX::XMVectorGetX(DirectX::XMVector3Length(Segment));
+				*distance = length * Segment.length();
 			if (insert_point)
-				DirectX::XMStoreFloat3(insert_point, DirectX::XMVectorAdd(Line0Position, DirectX::XMVectorScale(Segment, length)));
+				*insert_point = (Line0Position + (Segment * length)).to_float3();
 			return true;
 		}
 		//	交差していない
@@ -109,25 +109,25 @@ bool collision::plane::to_line(const line& line, float* distance, DirectX::XMFLO
 	}
 	else
 	{
-		DirectX::XMVECTOR V1 = DirectX::XMVectorSubtract(PlanePosition, Line0Position);
-		DirectX::XMVECTOR V2 = DirectX::XMVectorSubtract(Line1Position, PlanePosition);
-		float dotV1_Normal = DirectX::XMVectorGetX(DirectX::XMVector3Dot(V1, Normal));
+		math::vector3f V1 = PlanePosition - Line0Position;
+		math::vector3f V2 = Line1Position - PlanePosition;
+		float dotV1_Normal = math::vector3f::dot(V1, Normal);
 		if (fabsf(dotV1_Normal) < FLT_EPSILON)
 		{
 			if (distance)
 				*distance	= 0.0f;
 			if (insert_point)
-				DirectX::XMStoreFloat3(insert_point, Line0Position);
+				*insert_point = Line0Position.to_float3();
 			return true;
 		}
-		float dotLine2_Normal = DirectX::XMVectorGetX(DirectX::XMVector3Dot(Line1Position, Normal));
+		float dotLine2_Normal = math::vector3f::dot(Line1Position, Normal);
 		if (dotLine2_Normal != 0.0f)
 		{
 			float length = dotV1_Normal / dotLine2_Normal;
 			if (distance)
 				*distance = length;
 			if (insert_point)
-				DirectX::XMStoreFloat3(insert_point, DirectX::XMVectorAdd(Line0Position, DirectX::XMVectorScale(Line1Position, length)));
+				*insert_point = (Line0Position + (Line1Position * length)).to_float3();
 			return true;
 		}
 	}

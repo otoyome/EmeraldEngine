@@ -33,7 +33,7 @@ bool edit_model_scene::initialize_core()
 	//	メインカメラ生成
 	{
 		main_camera = std::make_shared<camera_object>("メインカメラ");
-		main_camera->get_camera()->set_fov_y(DirectX::XMConvertToRadians(30.0f));
+		main_camera->get_camera()->set_fov_y(math::angle::to_radian(30.0f));
 		register_object(main_camera);
 		mouse::instance()->set_center_lock(false);
 		mouse::instance()->set_cursol_hide(false);
@@ -326,7 +326,7 @@ void edit_model_scene::generate_bounding_mesh_asset()
 	for (size_t mesh_index = 0; mesh_index < resource->get_meshes().size(); ++mesh_index)
 	{
 		collision::generate_bounding_mesh_data data;
-		data.WorldMatrix = DirectX::XMMatrixIdentity();
+		data.WorldMatrix = math::matrixf();
 		data.reverse_flag = bounding_mesh_option.reverse_flag;
 		data.separate_level = static_cast<UINT>(bounding_mesh_option.separate_level);
 		data.lod_level = bounding_mesh_option.use_lod ? bounding_mesh_option.lod_level : -1;
@@ -354,7 +354,7 @@ void edit_model_scene::generate_cubic_sdf_asset()
 	for (size_t mesh_index = 0; mesh_index < resource->get_meshes().size(); ++mesh_index)
 	{
 		collision::generate_bounding_mesh_data data;
-		data.WorldMatrix = DirectX::XMMatrixIdentity();
+		data.WorldMatrix = math::matrixf();
 		data.reverse_flag = bounding_mesh_option.reverse_flag;
 		data.separate_level = static_cast<UINT>(bounding_mesh_option.separate_level);
 		data.lod_level = bounding_mesh_option.use_lod ? bounding_mesh_option.lod_level : -1;

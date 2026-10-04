@@ -49,7 +49,7 @@ void particle::item::renderer::trails::serialize(Archive& archive, int version)
 		}
 		case 2:
 		{
-			DirectX::XMFLOAT2 unused_time_fade_rate;
+			math::float2 unused_time_fade_rate;
 			archive(state, max, unused_time_fade_rate);
 			break;
 		}
@@ -144,7 +144,7 @@ void particle::item::velocity::serialize(Archive& archive, int version)
 	{
 		case 1:
 		{
-			DirectX::XMFLOAT3 unused_deceleration_min, unused_deceleration_max;
+			math::float3 unused_deceleration_min, unused_deceleration_max;
 			archive(state,
 					direction, angle_range, power_range,
 					acceleration_min, acceleration_max,

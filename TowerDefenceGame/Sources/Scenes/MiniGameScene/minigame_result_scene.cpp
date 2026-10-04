@@ -9,25 +9,25 @@
 namespace
 {
 	//	リザルト背景配置位置
-	static constexpr DirectX::XMFLOAT2 result_back_position = { 0, 0 };
-	static constexpr DirectX::XMFLOAT2 result_back_size = { SCREEN_WIDTH, SCREEN_HEIGHT };
+	static constexpr math::float2 result_back_position = { 0, 0 };
+	static constexpr math::float2 result_back_size = { SCREEN_WIDTH, SCREEN_HEIGHT };
 
 	//	プレイ終了メッセージ配置位置
-	static constexpr DirectX::XMFLOAT2 thanks_message_size = { 600, 258 };
-	static constexpr DirectX::XMFLOAT2 thanks_message_position = { (SCREEN_WIDTH - thanks_message_size.x) / 2, 220 };
+	static constexpr math::float2 thanks_message_size = { 600, 258 };
+	static constexpr math::float2 thanks_message_position = { (SCREEN_WIDTH - thanks_message_size.x) / 2, 220 };
 
 	//	タイトルへ戻る案内アイコン配置位置
-	static constexpr DirectX::XMFLOAT2 continue_icon_size = { 120, 60 };
-	static constexpr DirectX::XMFLOAT2 continue_icon_position = { (SCREEN_WIDTH - continue_icon_size.x) / 2, SCREEN_HEIGHT - 100 };
+	static constexpr math::float2 continue_icon_size = { 120, 60 };
+	static constexpr math::float2 continue_icon_position = { (SCREEN_WIDTH - continue_icon_size.x) / 2, SCREEN_HEIGHT - 100 };
 
 	//	リザルト成績表示配置位置
-	static constexpr DirectX::XMFLOAT2 result_stats_position = { thanks_message_position.x, thanks_message_position.y + thanks_message_size.y + 20 };
-	static constexpr DirectX::XMFLOAT2 result_stats_size = { thanks_message_size.x, 32 };
+	static constexpr math::float2 result_stats_position = { thanks_message_position.x, thanks_message_position.y + thanks_message_size.y + 20 };
+	static constexpr math::float2 result_stats_size = { thanks_message_size.x, 32 };
 	static constexpr float result_stats_line_height = 40;
 
 	//	プレイ履歴表示配置位置
-	static constexpr DirectX::XMFLOAT2 history_position = { 960, 220 };
-	static constexpr DirectX::XMFLOAT2 history_size = { 300, 260 };
+	static constexpr math::float2 history_position = { 960, 220 };
+	static constexpr math::float2 history_size = { 300, 260 };
 	static constexpr float history_font_size = 20.0f;
 }
 

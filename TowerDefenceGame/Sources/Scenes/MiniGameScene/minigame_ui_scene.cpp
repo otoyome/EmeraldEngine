@@ -7,47 +7,47 @@
 namespace
 {
 	//	ヒートゲージ左上位置
-	static constexpr DirectX::XMFLOAT2 heat_ui_position = {850, 500};
-	static constexpr DirectX::XMFLOAT2 heat_ui_size = {50, 220};
+	static constexpr math::float2 heat_ui_position = {850, 500};
+	static constexpr math::float2 heat_ui_size = {50, 220};
 	//	ウェットゲージ左上位置
-	static constexpr DirectX::XMFLOAT2 wet_ui_position = {800, 500};
-	static constexpr DirectX::XMFLOAT2 wet_ui_size = {50, 220};
+	static constexpr math::float2 wet_ui_position = {800, 500};
+	static constexpr math::float2 wet_ui_size = {50, 220};
 	//	ゴミ収集率左上位置
-	static constexpr DirectX::XMFLOAT2 trash_base_ui_position = {900, 500};
-	static constexpr DirectX::XMFLOAT2 trash_base_ui_size = {359, 70};
-	static constexpr DirectX::XMFLOAT2 trash_ui_position = {1050, 510};
-	static constexpr DirectX::XMFLOAT2 trash_ui_size = {100, 60};
+	static constexpr math::float2 trash_base_ui_position = {900, 500};
+	static constexpr math::float2 trash_base_ui_size = {359, 70};
+	static constexpr math::float2 trash_ui_position = {1050, 510};
+	static constexpr math::float2 trash_ui_size = {100, 60};
 	//	時間表示パネル左上位置
-	static constexpr DirectX::XMFLOAT2 timer_ui_position = {520, 100};
-	static constexpr DirectX::XMFLOAT2 timer_ui_size = {500, 64};
+	static constexpr math::float2 timer_ui_position = {520, 100};
+	static constexpr math::float2 timer_ui_size = {500, 64};
 	//	速度表示パネル左上位置
-	static constexpr DirectX::XMFLOAT2 speed_base_ui_position = {900, 570};
-	static constexpr DirectX::XMFLOAT2 speed_base_ui_size = {360, 100};
-	static constexpr DirectX::XMFLOAT2 speed_text_ui_position = {1040, 580};
-	static constexpr DirectX::XMFLOAT2 speed_text_ui_size = {360, 80};
+	static constexpr math::float2 speed_base_ui_position = {900, 570};
+	static constexpr math::float2 speed_base_ui_size = {360, 100};
+	static constexpr math::float2 speed_text_ui_position = {1040, 580};
+	static constexpr math::float2 speed_text_ui_size = {360, 80};
 	static constexpr float speed_text_font_size = 80.0f;
 	//	チュートリアルパネル左上位置
-	static constexpr DirectX::XMFLOAT2 tutorial_ui_position = {360, 200};
-	static constexpr DirectX::XMFLOAT2 tutorial_ui_size = {500, 400};
-	static constexpr DirectX::XMFLOAT2 tutorial_ui_text_position = {370, 240};
-	static constexpr DirectX::XMFLOAT2 tutorial_ui_text_size = {480, 350};
+	static constexpr math::float2 tutorial_ui_position = {360, 200};
+	static constexpr math::float2 tutorial_ui_size = {500, 400};
+	static constexpr math::float2 tutorial_ui_text_position = {370, 240};
+	static constexpr math::float2 tutorial_ui_text_size = {480, 350};
 	static constexpr std::string_view tutorial_text = "WASD : 移動\nマウス左 : 加速\nマウス右：減速\n\n熱と水分両方を管理しながら素早くゴミを収集するのが目的です。\n\nゴミ以外にも泡があり、収集すると濡れます。\n加速すると熱くなるので水分を取る事で加熱を抑えます。\n加熱/水分を取り過ぎると爆発してリスタートします。";
 
 	//	加速アイコン左上位置
-	static constexpr DirectX::XMFLOAT2 accel_icon_ui_position = {900, 680};
-	static constexpr DirectX::XMFLOAT2 accel_icon_ui_size = {36, 36};
-	static constexpr DirectX::XMFLOAT2 accel_icon_main_ui_position = {936, 680};
-	static constexpr DirectX::XMFLOAT2 accel_icon_main_ui_size = {72, 36};
+	static constexpr math::float2 accel_icon_ui_position = {900, 680};
+	static constexpr math::float2 accel_icon_ui_size = {36, 36};
+	static constexpr math::float2 accel_icon_main_ui_position = {936, 680};
+	static constexpr math::float2 accel_icon_main_ui_size = {72, 36};
 	//	減速アイコン左上位置
-	static constexpr DirectX::XMFLOAT2 brake_icon_ui_position = {1010, 680};
-	static constexpr DirectX::XMFLOAT2 brake_icon_ui_size = {36, 36};
-	static constexpr DirectX::XMFLOAT2 brake_icon_main_ui_position = {1046, 680};
-	static constexpr DirectX::XMFLOAT2 brake_icon_main_ui_size = {72, 36};
+	static constexpr math::float2 brake_icon_ui_position = {1010, 680};
+	static constexpr math::float2 brake_icon_ui_size = {36, 36};
+	static constexpr math::float2 brake_icon_main_ui_position = {1046, 680};
+	static constexpr math::float2 brake_icon_main_ui_size = {72, 36};
 	//	チュートリアルアイコン左上位置
-	static constexpr DirectX::XMFLOAT2 tutorial_icon_ui_position = {1118, 680};
-	static constexpr DirectX::XMFLOAT2 tutorial_icon_ui_size = {72, 36};
-	static constexpr DirectX::XMFLOAT2 tutorial_icon_main_ui_position = {1190, 680};
-	static constexpr DirectX::XMFLOAT2 tutorial_icon_main_ui_size = {92, 36};
+	static constexpr math::float2 tutorial_icon_ui_position = {1118, 680};
+	static constexpr math::float2 tutorial_icon_ui_size = {72, 36};
+	static constexpr math::float2 tutorial_icon_main_ui_position = {1190, 680};
+	static constexpr math::float2 tutorial_icon_main_ui_size = {92, 36};
 }
 
 minigame_ui_scene::minigame_ui_scene()

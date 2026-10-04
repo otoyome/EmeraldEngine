@@ -63,7 +63,7 @@ void debug_primitive_manager::get_container(debug_draw_primitive_container& cont
 	}
 }
 
-void debug_primitive_manager::queue_line(const DirectX::XMFLOAT3 start, const DirectX::XMFLOAT3 end, const DirectX::XMFLOAT4 color, bool depth_write)
+void debug_primitive_manager::queue_line(const math::float3 start, const math::float3 end, const math::float4 color, bool depth_write)
 {
 	int index = depth_write ? 0 : 1;
 	if (vertices[index].size() + 2 >= VertexCount)
@@ -78,23 +78,23 @@ void debug_primitive_manager::queue_line(const DirectX::XMFLOAT3 start, const Di
 	vertices[index].emplace_back(vertex);
 }
 
-void debug_primitive_manager::queue_sphere(const DirectX::XMFLOAT3 center, float radius, const DirectX::XMFLOAT4 color, bool depth_write)
+void debug_primitive_manager::queue_sphere(const math::float3 center, float radius, const math::float4 color, bool depth_write)
 {
 	//	球の形状を登録
-	std::vector<DirectX::XMFLOAT3> vertices;
+	std::vector<math::float3> vertices;
 	vertices.emplace_back(center.x, center.y + radius, center.z);
 
 	static constexpr uint32_t stacks = 8;
 	static constexpr uint32_t slices = 8;
-	float phi_step{ DirectX::XM_PI / stacks };
-	float theta_step{ 2.0f * DirectX::XM_PI / slices };
+	float phi_step{ math::constants<float>::pi / stacks };
+	float theta_step{ 2.0f * math::constants<float>::pi / slices };
 	for (uint32_t i = 1; i <= stacks - 1; ++i)
 	{
 		float phi{ i * phi_step };
 		for (uint32_t j = 0; j <= slices; ++j)
 		{
 			float theta{ j * theta_step };
-			DirectX::XMFLOAT3 position;
+			math::float3 position;
 			position.x = center.x + radius * sinf(phi) * cosf(theta);
 			position.y = center.y + radius * cosf(phi);
 			position.z = center.z + radius * sinf(phi) * sinf(theta);
@@ -140,67 +140,67 @@ void debug_primitive_manager::queue_sphere(const DirectX::XMFLOAT3 center, float
 	}
 }
 
-void debug_primitive_manager::queue_capsule(const DirectX::XMFLOAT3 center, const DirectX::XMFLOAT4 rotation, float radius, float length, const DirectX::XMFLOAT4& color, bool depth_write)
+void debug_primitive_manager::queue_capsule(const math::float3 center, const math::float4 rotation, float radius, float length, const math::float4& color, bool depth_write)
 {
 	//	カプセル形状を登録
-	const math::quaternionf quaternion = system_utility::to_math_quaternion(rotation).normalized();
-	DirectX::XMVECTOR Center = DirectX::XMLoadFloat3(&center);
-	DirectX::XMFLOAT3 work = system_utility::to_xmfloat(quaternion.up());
-	DirectX::XMVECTOR Up = DirectX::XMLoadFloat3(&work);
-	work = system_utility::to_xmfloat(quaternion.right());
-	DirectX::XMVECTOR Right = DirectX::XMLoadFloat3(&work);
-	work = system_utility::to_xmfloat(quaternion.front());
-	DirectX::XMVECTOR Front = DirectX::XMLoadFloat3(&work);
+	const math::quaternionf quaternion = math::quaternionf(rotation).normalized();
+	const math::vector3f Center(center);
+	math::float3 work = quaternion.up().to_float3();
+	const math::vector3f Up(work);
+	work = quaternion.right().to_float3();
+	const math::vector3f Right(work);
+	work = quaternion.front().to_float3();
+	const math::vector3f Front(work);
 
-	DirectX::XMVECTOR Botom = DirectX::XMVectorAdd(Center, DirectX::XMVectorScale(Up, -length / 2));
-	DirectX::XMVECTOR Top = DirectX::XMVectorAdd(Center, DirectX::XMVectorScale(Up, +length / 2));
+	const math::vector3f Botom = Center + Up * (-length / 2);
+	const math::vector3f Top = Center + Up * (+length / 2);
 
-	DirectX::XMFLOAT3 position, position2;
-	DirectX::XMStoreFloat3(&position, Botom);
+	math::float3 position, position2;
+	position = Botom.to_float3();
 	queue_sphere(position, radius, color, depth_write);
-	DirectX::XMStoreFloat3(&position, Top);
+	position = Top.to_float3();
 	queue_sphere(position, radius, color, depth_write);
 
-	DirectX::XMStoreFloat3(&position, DirectX::XMVectorAdd(Botom, DirectX::XMVectorScale(Right, radius)));
-	DirectX::XMStoreFloat3(&position2, DirectX::XMVectorAdd(Top, DirectX::XMVectorScale(Right, radius)));
+	position = (Botom + Right * radius).to_float3();
+	position2 = (Top + Right * radius).to_float3();
 	queue_line(position, position2, color, depth_write);
 
-	DirectX::XMStoreFloat3(&position, DirectX::XMVectorAdd(Botom, DirectX::XMVectorScale(Right, -radius)));
-	DirectX::XMStoreFloat3(&position2, DirectX::XMVectorAdd(Top, DirectX::XMVectorScale(Right, -radius)));
+	position = (Botom + Right * -radius).to_float3();
+	position2 = (Top + Right * -radius).to_float3();
 	queue_line(position, position2, color, depth_write);
 
-	DirectX::XMStoreFloat3(&position, DirectX::XMVectorAdd(Botom, DirectX::XMVectorScale(Front, radius)));
-	DirectX::XMStoreFloat3(&position2, DirectX::XMVectorAdd(Top, DirectX::XMVectorScale(Front, radius)));
+	position = (Botom + Front * radius).to_float3();
+	position2 = (Top + Front * radius).to_float3();
 	queue_line(position, position2, color, depth_write);
 
-	DirectX::XMStoreFloat3(&position, DirectX::XMVectorAdd(Botom, DirectX::XMVectorScale(Front, -radius)));
-	DirectX::XMStoreFloat3(&position2, DirectX::XMVectorAdd(Top, DirectX::XMVectorScale(Front, -radius)));
+	position = (Botom + Front * -radius).to_float3();
+	position2 = (Top + Front * -radius).to_float3();
 	queue_line(position, position2, color, depth_write);
 
-	DirectX::XMVECTOR Direction1 = DirectX::XMVector3Normalize(DirectX::XMVectorAdd(Right, Front));
-	DirectX::XMVECTOR Direction2 = DirectX::XMVector3Normalize(DirectX::XMVectorSubtract(Right, Front));
+	const math::vector3f Direction1 = (Right + Front).normalized();
+	const math::vector3f Direction2 = (Right - Front).normalized();
 
-	DirectX::XMStoreFloat3(&position, DirectX::XMVectorAdd(Botom, DirectX::XMVectorScale(Direction1, radius)));
-	DirectX::XMStoreFloat3(&position2, DirectX::XMVectorAdd(Top, DirectX::XMVectorScale(Direction1, radius)));
+	position = (Botom + Direction1 * radius).to_float3();
+	position2 = (Top + Direction1 * radius).to_float3();
 	queue_line(position, position2, color, depth_write);
 
-	DirectX::XMStoreFloat3(&position, DirectX::XMVectorAdd(Botom, DirectX::XMVectorScale(Direction1, -radius)));
-	DirectX::XMStoreFloat3(&position2, DirectX::XMVectorAdd(Top, DirectX::XMVectorScale(Direction1, -radius)));
+	position = (Botom + Direction1 * -radius).to_float3();
+	position2 = (Top + Direction1 * -radius).to_float3();
 	queue_line(position, position2, color, depth_write);
 
-	DirectX::XMStoreFloat3(&position, DirectX::XMVectorAdd(Botom, DirectX::XMVectorScale(Direction2, radius)));
-	DirectX::XMStoreFloat3(&position2, DirectX::XMVectorAdd(Top, DirectX::XMVectorScale(Direction2, radius)));
+	position = (Botom + Direction2 * radius).to_float3();
+	position2 = (Top + Direction2 * radius).to_float3();
 	queue_line(position, position2, color, depth_write);
 
-	DirectX::XMStoreFloat3(&position, DirectX::XMVectorAdd(Botom, DirectX::XMVectorScale(Direction2, -radius)));
-	DirectX::XMStoreFloat3(&position2, DirectX::XMVectorAdd(Top, DirectX::XMVectorScale(Direction2, -radius)));
+	position = (Botom + Direction2 * -radius).to_float3();
+	position2 = (Top + Direction2 * -radius).to_float3();
 	queue_line(position, position2, color, depth_write);
 }
 
-void debug_primitive_manager::queue_box(const DirectX::XMFLOAT3 position, const DirectX::XMFLOAT4 rotation, const DirectX::XMFLOAT3 scale, const DirectX::XMFLOAT4& color, bool depth_write)
+void debug_primitive_manager::queue_box(const math::float3 position, const math::float4 rotation, const math::float3 scale, const math::float4& color, bool depth_write)
 {
 	collision::bounding_box box(scale, rotation, position);
-	DirectX::XMFLOAT3 vertices[8];
+	math::float3 vertices[8];
 	box.calculate_vertex(vertices, 8);
 
 	queue_line(vertices[0], vertices[1], color, depth_write);

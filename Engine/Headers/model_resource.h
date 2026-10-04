@@ -25,9 +25,9 @@ public:
 		std::string name;
 		size_t parent_index = invalid_id;
 
-		DirectX::XMFLOAT3 scale = { 1, 1, 1 };
-		DirectX::XMFLOAT4 rotation = { 0, 0, 0, 1 };
-		DirectX::XMFLOAT3 translation = { 0, 0, 0 };
+		math::float3 scale = { 1, 1, 1 };
+		math::float4 rotation = { 0, 0, 0, 1 };
+		math::float3 translation = { 0, 0, 0 };
 		template<class Archive>
 		void serialize(Archive& archive, int version);
 	};
@@ -35,7 +35,7 @@ public:
 	struct bone
 	{
 		size_t node_index;
-		DirectX::XMFLOAT4X4 offset_matrix = {1, 0, 0, 0,  0, 1, 0, 0,  0, 0, 1, 0,  0, 0, 0, 1};
+		math::float4x4 offset_matrix = {1, 0, 0, 0,  0, 1, 0, 0,  0, 0, 1, 0,  0, 0, 0, 1};
 		template<class Archive>
 		void serialize(Archive& archive, int version);
 	};
@@ -51,12 +51,12 @@ public:
 			UINT triangle_count = 0;
 
 			//	バウンディングスフィア
-			DirectX::XMFLOAT3 bounds_center = { 0, 0, 0 };
+			math::float3 bounds_center = { 0, 0, 0 };
 			float bounds_radius = 0.0f;
 
 			//	法線コーン
-			DirectX::XMFLOAT3 cone_apex = { 0, 0, 0 };
-			DirectX::XMFLOAT3 cone_axis = { 0, 0, 0 };
+			math::float3 cone_apex = { 0, 0, 0 };
+			math::float3 cone_axis = { 0, 0, 0 };
 			float cone_cutoff = 0.0f;
 
 			template<class Archive>
@@ -110,8 +110,8 @@ public:
 		sub_mesh shadow_mesh;
 		std::vector<sub_mesh> lod_meshs;
 
-		DirectX::XMFLOAT3 bounds_min;
-		DirectX::XMFLOAT3 bounds_max;
+		math::float3 bounds_min;
+		math::float3 bounds_max;
 
 		std::vector<meshlet> meshlets;
 		std::vector<UINT> meshlet_vertices;
@@ -143,8 +143,8 @@ public:
 	struct capsule_shadow
 	{
 		size_t node_index;
-		DirectX::XMFLOAT4 rotation;
-		DirectX::XMFLOAT3 center;
+		math::float4 rotation;
+		math::float3 center;
 		float radius;
 		float length;
 		template<class Archive>

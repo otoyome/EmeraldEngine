@@ -5,7 +5,6 @@
 #include <map>
 #include <unordered_map>
 #include <string>
-#include <DirectXMath.h>
 #include <wrl.h>
 #include <algorithm>
 
@@ -21,8 +20,8 @@ struct	vmd_bone_frame
 {
 	std::string			name;				//	ボーン名
 	unsigned int		frame;				//	フレーム
-	DirectX::XMFLOAT3	position;			//	位置
-	DirectX::XMFLOAT4	rotation;			//	回転(クォータニオン)
+	math::float3	position;			//	位置
+	math::float4	rotation;			//	回転(クォータニオン)
 	bool				is_linear[4];		//	線形補間フラグ
 	unsigned char		interpolate[64];	//	補間曲線テーブル
 };
@@ -38,8 +37,8 @@ struct	vmd_camera_frame
 {
 	unsigned int		frame;				//	フレーム
 	float				distance;			//	距離
-	DirectX::XMFLOAT3	position;			//	注視点
-	DirectX::XMFLOAT3	rotation;			//	回転(オイラー角)
+	math::float3	position;			//	注視点
+	math::float3	rotation;			//	回転(オイラー角)
 	unsigned char		interpolate[24];	//	補間曲線(未使用)
 											//	補間曲線は4点のベジェ曲線(0,0),(x1,y1),(x2,y2),(127,127)で表している。
 											//	各軸のパラメータを
@@ -63,8 +62,8 @@ struct	vmd_camera_frame
 struct	vmd_light_frame
 {
 	unsigned int		m_uFrame;	//	フレーム
-	DirectX::XMFLOAT3	m_vPos;		//	目標点
-	DirectX::XMFLOAT3	m_vColor;	//	目標色( 0 ～ 1.0f)
+	math::float3	m_vPos;		//	目標点
+	math::float3	m_vColor;	//	目標色( 0 ～ 1.0f)
 };
 
 struct	vmd_self_shadow_frame

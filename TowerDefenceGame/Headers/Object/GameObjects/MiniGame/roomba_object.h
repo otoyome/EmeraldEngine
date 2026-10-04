@@ -62,16 +62,16 @@ public:
 	{
 		collision::bounding_object::types type = collision::bounding_object::types::box;
 		bool is_follow_self = true;
-		DirectX::XMFLOAT3 local_scale;
+		math::float3 local_scale;
 		math::rotatorf local_rotator;
-		DirectX::XMFLOAT3 local_offset;
+		math::float3 local_offset;
 	};
 	struct bounding_datas
 	{
 		bounding_descs desc;
 
 		math::rotatorf rotator;
-		DirectX::XMFLOAT3 position;
+		math::float3 position;
 	};
 
 private:
@@ -106,13 +106,13 @@ public:
 	texture_ptr get_face_texture() const;
 	void set_face_texture(texture_ptr face);
 
-	DirectX::XMFLOAT4 get_face_uv() const;
-	void set_face_uv(DirectX::XMFLOAT4 face_uv);
+	math::float4 get_face_uv() const;
+	void set_face_uv(math::float4 face_uv);
 
 	const collision_object_ptr& get_push_box() const;
 
-	const DirectX::XMFLOAT3& get_scale() const;
-	void set_scale(const DirectX::XMFLOAT3& scale);
+	const math::float3& get_scale() const;
+	void set_scale(const math::float3& scale);
 
 	math::rotatorf get_rotation() const;
 	void set_rotation(math::rotatorf rotator);
@@ -120,16 +120,16 @@ public:
 	float get_rotation_speed() const;
 	void set_rotation_speed(float rotation_speed);
 
-	const DirectX::XMFLOAT3& get_position() const;
-	void set_position(const DirectX::XMFLOAT3& position);
+	const math::float3& get_position() const;
+	void set_position(const math::float3& position);
 
-	const DirectX::XMFLOAT3& get_footstep_position() const;
+	const math::float3& get_footstep_position() const;
 
 	bool is_flag(flags flag) const { return system_utility::is_bitflag(flag_data, 1 << static_cast<UINT>(flag)); }
 	void set_flag(flags flag, bool value) { system_utility::set_bitflag(flag_data, 1 << static_cast<UINT>(flag), value); }
 
-	DirectX::XMFLOAT3 get_velocity() const;
-	void set_velocity(DirectX::XMFLOAT3 velocity);
+	math::float3 get_velocity() const;
+	void set_velocity(math::float3 velocity);
 
 	float get_gravity_scale() const;
 	void set_gravity_scale(float gravity_scale);
@@ -153,16 +153,16 @@ public:
 	float get_elapsed_time_scale() const;
 	void set_elapsed_time_scale(float elapsed_time_scale);
 
-	DirectX::XMFLOAT3 get_focus_point() const;
+	math::float3 get_focus_point() const;
 
-	void add_move_vector(DirectX::XMFLOAT2 direction);
+	void add_move_vector(math::float2 direction);
 
-	void set_turn_vector(DirectX::XMFLOAT2 direction);
-	DirectX::XMFLOAT2 get_turn_vector() const;
+	void set_turn_vector(math::float2 direction);
+	math::float2 get_turn_vector() const;
 
 public:	//	速度系
-	void add_force(DirectX::XMFLOAT3 force);
-	void add_impulse(DirectX::XMFLOAT3 delta_velocity);
+	void add_force(math::float3 force);
+	void add_impulse(math::float3 delta_velocity);
 
 	float get_max_speed(move_mode mode) const;
 	float get_current_accelaration_force() const;
@@ -179,12 +179,12 @@ private:
 public:	//	入力情報設定
 	struct action_datas
 	{
-		DirectX::XMFLOAT3 move = { 0, 0, 0 }; // 移動方向
+		math::float3 move = { 0, 0, 0 }; // 移動方向
 		bool dash = false; // ダッシュ
 		bool brake = false; // ブレーキ
 
 		bool use_turn_vector = false; // 向きベクトルを別で指定する
-		DirectX::XMFLOAT2 turn_vector = { 0, 0 }; // 向き方向
+		math::float2 turn_vector = { 0, 0 }; // 向き方向
 	};
 	void input_action_data(action_datas action_data);
 
@@ -230,7 +230,7 @@ private:	//	姿勢制御
 	void update_velocity(float elapsed_time);
 	void update_move(float elapsed_time);
 
-	bool calculate_position(DirectX::XMFLOAT3 velocity, float elapsed_time, DirectX::XMFLOAT3& out_position, DirectX::XMFLOAT3& out_normal, float* out_friction = nullptr);
+	bool calculate_position(math::float3 velocity, float elapsed_time, math::float3& out_position, math::float3& out_normal, float* out_friction = nullptr);
 
 private:
 	void generate_box_data(std::vector<bounding_inner_datas>& datas, const bounding_datas& bounding_data);
@@ -256,10 +256,10 @@ private:
 	collision_object_ptr push_box; // 押し合い判定
 	std::string collision_filter_name; // コリジョンフィルター名
 
-	DirectX::XMFLOAT2 move_vector; // 移動方向
-	DirectX::XMFLOAT2 turn_front_vector; // 回転方向
-	DirectX::XMFLOAT3 velocity; // 速度(m/s)
-	DirectX::XMFLOAT3 world_gravity; // ワールド重力(m/s2)
+	math::float2 move_vector; // 移動方向
+	math::float2 turn_front_vector; // 回転方向
+	math::float3 velocity; // 速度(m/s)
+	math::float3 world_gravity; // ワールド重力(m/s2)
 	float world_air_density;	// 空気密度(kg/m^3)
 	float gravity_scale; // 重力スケール
 
@@ -276,7 +276,7 @@ private:
 	float step_offset; // 段差補正
 	float slope_limit; // 傾斜角度が一定以上なら進めないようにする
 	float ground_friction; // 地面摩擦係数
-	DirectX::XMFLOAT3 ground_normal; // 地面法線
+	math::float3 ground_normal; // 地面法線
 
 	std::unordered_map<size_t, effect_resource_ptr> effect_resources; // エフェクトリソース
 	std::vector<effect_instance_ptr> effect_instances; // エフェクトインスタンス

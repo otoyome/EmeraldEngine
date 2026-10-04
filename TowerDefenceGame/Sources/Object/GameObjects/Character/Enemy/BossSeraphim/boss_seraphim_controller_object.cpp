@@ -13,9 +13,9 @@ namespace
 	constexpr float persuit_hi_dash_judge_range = system_units::convert_m_to_unit(5.0f);
 	constexpr float attack_judge_range = system_units::convert_m_to_unit(1.5f);
 	constexpr float attack_judge_range_margin = system_units::convert_m_to_unit(0.5f);
-	constexpr DirectX::XMFLOAT2 attack_judge_time = {0.8f, 1.2f};
+	constexpr math::float2 attack_judge_time = {0.8f, 1.2f};
 
-	constexpr DirectX::XMFLOAT2 parry_wait_timer = { 2.0f, 4.0f };
+	constexpr math::float2 parry_wait_timer = { 2.0f, 4.0f };
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -156,15 +156,15 @@ public:
 
 		//	ˆê’è”ÍˆÍ“à‚Å‚ ‚ê‚ÎUŒ‚
 		auto target_object = owner->get_controller()->search_lockon_taget_object().lock();
-		DirectX::XMFLOAT3 position = owner->get_controll_object()->get_position();
-		DirectX::XMFLOAT3 target_position;
+		math::float3 position = owner->get_controll_object()->get_position();
+		math::float3 target_position;
 		if (target_object)
 		{
 			target_position = target_object->get_position();
 		}
 		else
 		{
-			target_position = system_utility::to_xmfloat(owner->get_controll_object()->get_rotation().front());
+			target_position = owner->get_controll_object()->get_rotation().front().to_float3();
 			target_position.x += position.x;
 			target_position.y += position.y;
 			target_position.z += position.z;
@@ -219,15 +219,15 @@ public:
 				//	‹——£”»’è
 				{
 					auto target_object = owner->get_controller()->search_lockon_taget_object().lock();
-					DirectX::XMFLOAT3 position = owner->get_controll_object()->get_position();
-					DirectX::XMFLOAT3 target_position;
+					math::float3 position = owner->get_controll_object()->get_position();
+					math::float3 target_position;
 					if (target_object)
 					{
 						target_position = target_object->get_position();
 					}
 					else
 					{
-						target_position = system_utility::to_xmfloat(owner->get_controll_object()->get_rotation().front());
+						target_position = owner->get_controll_object()->get_rotation().front().to_float3();
 						target_position.x += position.x;
 						target_position.y += position.y;
 						target_position.z += position.z;
@@ -296,15 +296,15 @@ public:
 
 		//	ˆê’è”ÍˆÍ“à‚Å‚ ‚ê‚ÎUŒ‚
 		auto target_object = owner->get_controller()->search_lockon_taget_object().lock();
-		DirectX::XMFLOAT3 position = owner->get_controll_object()->get_position();
-		DirectX::XMFLOAT3 target_position;
+		math::float3 position = owner->get_controll_object()->get_position();
+		math::float3 target_position;
 		if (target_object)
 		{
 			target_position = target_object->get_position();
 		}
 		else
 		{
-			target_position = system_utility::to_xmfloat(owner->get_controll_object()->get_rotation().front());
+			target_position = owner->get_controll_object()->get_rotation().front().to_float3();
 			target_position.x += position.x;
 			target_position.y += position.y;
 			target_position.z += position.z;
@@ -346,15 +346,15 @@ public:
 			return action_interface::state::complete;
 		}
 		auto target_object = owner->get_controller()->search_lockon_taget_object().lock();
-		DirectX::XMFLOAT3 position = owner->get_controll_object()->get_position();
-		DirectX::XMFLOAT3 target_position;
+		math::float3 position = owner->get_controll_object()->get_position();
+		math::float3 target_position;
 		if (target_object)
 		{
 			target_position = target_object->get_position();
 		}
 		else
 		{
-			target_position = system_utility::to_xmfloat(owner->get_controll_object()->get_rotation().front());
+			target_position = owner->get_controll_object()->get_rotation().front().to_float3();
 			target_position.x += position.x;
 			target_position.y += position.y;
 			target_position.z += position.z;
@@ -531,15 +531,15 @@ public:
 	{
 		//	ˆê’è”ÍˆÍ“à‚Å‚ ‚ê‚ÎUŒ‚
 		auto target_object = owner->get_controller()->search_lockon_taget_object().lock();
-		DirectX::XMFLOAT3 position = owner->get_controll_object()->get_position();
-		DirectX::XMFLOAT3 target_position;
+		math::float3 position = owner->get_controll_object()->get_position();
+		math::float3 target_position;
 		if (target_object)
 		{
 			target_position = target_object->get_position();
 		}
 		else
 		{
-			target_position = system_utility::to_xmfloat(owner->get_controll_object()->get_rotation().front());
+			target_position = owner->get_controll_object()->get_rotation().front().to_float3();
 			target_position.x += position.x;
 			target_position.y += position.y;
 			target_position.z += position.z;
@@ -573,9 +573,7 @@ public:
 			}
 			case states::walking:
 			{
-				DirectX::XMVECTOR Vector = DirectX::XMVectorSet(action_data.turn_vector.x, 0, action_data.turn_vector.y, 0);
-				DirectX::XMVECTOR Right = DirectX::XMVector3Cross(Vector, DirectX::XMVectorSet(0.0f, left ? -1.0f : 1.0f, 0.0f, 0.0f));
-				DirectX::XMStoreFloat3(&direction, Right);
+				direction = math::vector3f::cross(math::vector3f(action_data.turn_vector.x, 0, action_data.turn_vector.y), math::vector3f(0.0f, left ? -1.0f : 1.0f, 0.0f)).to_float3();
 				action_data.move = direction;
 				break;
 			}
@@ -612,7 +610,7 @@ public:
 private:
 	states state;
 	bool left;
-	DirectX::XMFLOAT3 direction;
+	math::float3 direction;
 	hfsn_boss_seraphim_base* owner;
 };
 

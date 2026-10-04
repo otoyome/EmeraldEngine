@@ -21,7 +21,7 @@ void common_animation::compute_animation(float time, const float_animation* anim
 	}
 }
 
-void common_animation::compute_animation(float time, const float2_animation* animations, size_t animation_size, std::function<void(DirectX::XMFLOAT2)> func)
+void common_animation::compute_animation(float time, const float2_animation* animations, size_t animation_size, std::function<void(math::float2)> func)
 {
 	UINT index = 0;
 	for(; index < animation_size - 1; ++index)
@@ -32,7 +32,7 @@ void common_animation::compute_animation(float time, const float2_animation* ani
 		if (0.0f <= factor && factor < 1.0f)
 		{
 			factor = math::easing::calculate(factor, first.ease_type);
-			DirectX::XMFLOAT2 value;
+			math::float2 value;
 			value.x = math::lerp(first.value.x, second.value.x, factor);
 			value.y = math::lerp(first.value.y, second.value.y, factor);
 			func(value);
@@ -45,7 +45,7 @@ void common_animation::compute_animation(float time, const float2_animation* ani
 	}
 }
 
-void common_animation::compute_animation(float time, const float3_animation* animations, size_t animation_size, std::function<void(DirectX::XMFLOAT3)> func)
+void common_animation::compute_animation(float time, const float3_animation* animations, size_t animation_size, std::function<void(math::float3)> func)
 {
 	UINT index = 0;
 	for(; index < animation_size - 1; ++index)
@@ -56,7 +56,7 @@ void common_animation::compute_animation(float time, const float3_animation* ani
 		if (0.0f <= factor && factor < 1.0f)
 		{
 			factor = math::easing::calculate(factor, first.ease_type);
-			DirectX::XMFLOAT3 value;
+			math::float3 value;
 			value.x = math::lerp(first.value.x, second.value.x, factor);
 			value.y = math::lerp(first.value.y, second.value.y, factor);
 			value.z = math::lerp(first.value.z, second.value.z, factor);
@@ -70,7 +70,7 @@ void common_animation::compute_animation(float time, const float3_animation* ani
 	}
 }
 
-void common_animation::compute_animation(float time, const float4_animation* animations, size_t animation_size, std::function<void(DirectX::XMFLOAT4)> func)
+void common_animation::compute_animation(float time, const float4_animation* animations, size_t animation_size, std::function<void(math::float4)> func)
 {
 	UINT index = 0;
 	for(; index < animation_size - 1; ++index)
@@ -81,7 +81,7 @@ void common_animation::compute_animation(float time, const float4_animation* ani
 		if (0.0f <= factor && factor < 1.0f)
 		{
 			factor = math::easing::calculate(factor, first.ease_type);
-			DirectX::XMFLOAT4 value;
+			math::float4 value;
 			value.x = math::lerp(first.value.x, second.value.x, factor);
 			value.y = math::lerp(first.value.y, second.value.y, factor);
 			value.z = math::lerp(first.value.z, second.value.z, factor);

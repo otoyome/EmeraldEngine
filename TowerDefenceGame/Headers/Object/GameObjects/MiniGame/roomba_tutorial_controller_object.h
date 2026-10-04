@@ -25,5 +25,5 @@ public:
 private:
 	std::shared_ptr<ui_image> base_image;
 	std::shared_ptr<ui_text> text;
-	DirectX::XMFLOAT4 origin_colors[2];
+	math::float4 origin_colors[2];
 };

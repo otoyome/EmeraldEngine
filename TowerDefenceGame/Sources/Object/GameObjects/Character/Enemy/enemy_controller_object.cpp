@@ -13,7 +13,7 @@ std::shared_ptr<character_object> enemy_controller_object::get_controll_object()
 	return controll_object;
 }
 
-DirectX::XMFLOAT3 enemy_controller_object::get_focus_point() const
+math::float3 enemy_controller_object::get_focus_point() const
 {
 	return controll_object->get_position();
 }

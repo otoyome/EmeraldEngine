@@ -27,13 +27,13 @@ namespace
 			: x(d.x), y(d.y), z(d.z) {}
 		Vec3Key(Vec3Key&& d)
 			: x(d.x), y(d.y), z(d.z) {}
-		Vec3Key(const DirectX::XMFLOAT3* d)
+		Vec3Key(const math::float3* d)
 			: x(d->x), y(d->y), z(d->z) {}
 		bool operator==(const Vec3Key& o) const
 		{
 			return fabsf(x - o.x) < epsilon && fabsf(y - o.y) < epsilon && fabsf(z - o.z) < epsilon;
 		}
-		bool operator==(const DirectX::XMFLOAT3& o) const
+		bool operator==(const math::float3& o) const
 		{
 			return fabsf(x - o.x) < epsilon && fabsf(y - o.y) < epsilon && fabsf(z - o.z) < epsilon;
 		}
@@ -183,7 +183,7 @@ namespace
 			gltf_loader::register_vertex_data data;
 			data.format = DXGI_FORMAT_R32G32B32A32_FLOAT;
 			data.set_data.resize(graphics_utility::get_byte_offset_from_format(data.format));
-			DirectX::XMFLOAT4* p = reinterpret_cast<DirectX::XMFLOAT4*>(data.set_data.data());
+			math::float4* p = reinterpret_cast<math::float4*>(data.set_data.data());
 			*p = { 1.0f, 1.0f, 1.0f, 1.0f };
 			loader.populate_vertex_data(gltf_meshes, semantic("COLOR", 0), data);
 		}
@@ -194,19 +194,19 @@ namespace
 			//	法線再算出
 			for (auto& gltf_mesh : gltf_meshes)
 			{
-				DirectX::XMFLOAT3* positions = nullptr;
-				DirectX::XMFLOAT3* normals = nullptr;
-				DirectX::XMFLOAT4* tangents = nullptr;
+				math::float3* positions = nullptr;
+				math::float3* normals = nullptr;
+				math::float4* tangents = nullptr;
 
 				auto it_position = gltf_mesh.vertex_buffers.find({ "POSITION", 0 });
 				auto it_normal = gltf_mesh.vertex_buffers.find({ "NORMAL", 0 });
 				auto it_tangent = gltf_mesh.vertex_buffers.find({ "TANGENT", 0 });
 				if (it_position != gltf_mesh.vertex_buffers.end())
-					positions = it_position->second.data<DirectX::XMFLOAT3>();
+					positions = it_position->second.data<math::float3>();
 				if (it_normal != gltf_mesh.vertex_buffers.end())
-					normals = it_normal->second.data<DirectX::XMFLOAT3>();
+					normals = it_normal->second.data<math::float3>();
 				if (it_tangent != gltf_mesh.vertex_buffers.end())
-					tangents = it_tangent->second.data<DirectX::XMFLOAT4>();
+					tangents = it_tangent->second.data<math::float4>();
 
 				if (!positions)
 					continue;
@@ -217,17 +217,17 @@ namespace
 				{
 					const UINT* indices = reinterpret_cast<const UINT*>(gltf_mesh.index_buffer.row_data.data());
 					//	面法線計算
-					DirectX::XMFLOAT3* a = positions + indices[index + 0];
-					DirectX::XMFLOAT3* b = positions + indices[index + 1];
-					DirectX::XMFLOAT3* c = positions + indices[index + 2];
-					DirectX::XMVECTOR A = DirectX::XMLoadFloat3(a);
-					DirectX::XMVECTOR B = DirectX::XMLoadFloat3(b);
-					DirectX::XMVECTOR C = DirectX::XMLoadFloat3(c);
-					DirectX::XMVECTOR AB = DirectX::XMVectorSubtract(B, A);
-					DirectX::XMVECTOR AC = DirectX::XMVectorSubtract(C, A);
-					DirectX::XMVECTOR Normal = DirectX::XMVector3Normalize(DirectX::XMVector3Cross(AC, AB));
-					DirectX::XMFLOAT3 normal;
-					DirectX::XMStoreFloat3(&normal, Normal);
+					math::float3* a = positions + indices[index + 0];
+					math::float3* b = positions + indices[index + 1];
+					math::float3* c = positions + indices[index + 2];
+					math::vector3f A(*a);
+					math::vector3f B(*b);
+					math::vector3f C(*c);
+					math::vector3f AB = B - A;
+					math::vector3f AC = C - A;
+					math::vector3f Normal = (math::vector3f::cross(AC, AB)).normalized();
+					math::float3 normal;
+					normal = Normal.to_float3();
 
 					//	同じ位置の法線に加算していく
 					auto& it_a = recomputed_normals[Vec3Key(a)];
@@ -375,7 +375,7 @@ namespace
 				if (it == gltf_mesh.vertex_buffers.end())
 					continue;
 
-				DirectX::XMUINT4* value = reinterpret_cast<DirectX::XMUINT4*>(it->second.row_data.data());
+				math::uint4* value = reinterpret_cast<math::uint4*>(it->second.row_data.data());
 				for (UINT index = 0; index < it->second.count(); ++index)
 				{
 					value[index].x = sorted_nodes[value[index].x].dest_index;
@@ -403,7 +403,7 @@ namespace
 				{
 					std::vector<unsigned char> data;
 					data.resize(gltf_mesh.vertex_buffers.begin()->second.count() * 16u);
-					DirectX::XMFLOAT4* value = reinterpret_cast<DirectX::XMFLOAT4*>(data.data());
+					math::float4* value = reinterpret_cast<math::float4*>(data.data());
 					for (UINT index = 0; index < data.size() / 16u; ++index)
 					{
 						value[index].x = 1.0f;
@@ -431,7 +431,7 @@ namespace
 				std::vector<unsigned char> data;
 				{
 					data.resize(gltf_mesh.vertex_buffers.begin()->second.count() * 16u);
-					DirectX::XMUINT4* value = reinterpret_cast<DirectX::XMUINT4*>(data.data());
+					math::uint4* value = reinterpret_cast<math::uint4*>(data.data());
 					for (UINT index = 0; index < data.size() / 16u; ++index)
 					{
 						value[index].x = 0;
@@ -443,7 +443,7 @@ namespace
 				}
 				{
 					data.resize(gltf_mesh.vertex_buffers.begin()->second.count() * 16u);
-					DirectX::XMFLOAT4* value = reinterpret_cast<DirectX::XMFLOAT4*>(data.data());
+					math::float4* value = reinterpret_cast<math::float4*>(data.data());
 					for (UINT index = 0; index < data.size() / 16u; ++index)
 					{
 						value[index].x = 1.0f;
@@ -712,22 +712,23 @@ namespace
 
 						auto& data = bone_map.find(name)->second;
 
-						DirectX::XMMATRIX LocalMatrix;
-						LocalMatrix = DirectX::XMMatrixScaling(nodes[index].scale.x, nodes[index].scale.y, nodes[index].scale.z);
-						LocalMatrix *= DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&nodes[index].rotation));
-						LocalMatrix *= DirectX::XMMatrixTranslation(nodes[index].translation.x, nodes[index].translation.y, nodes[index].translation.z);
+						math::matrixf LocalMatrix;
+						LocalMatrix = math::matrixf::scaling(nodes[index].scale.x, nodes[index].scale.y, nodes[index].scale.z);
+						LocalMatrix *= math::matrixf::rotation_quaternion(math::quaternionf(nodes[index].rotation));
+						LocalMatrix *= math::matrixf::translation(nodes[index].translation.x, nodes[index].translation.y, nodes[index].translation.z);
 						
-						DirectX::XMMATRIX AdjustMatrix;
-						AdjustMatrix = DirectX::XMMatrixScaling(data.scale.x, data.scale.y, data.scale.z);
-						AdjustMatrix *= DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&data.rotation));
-						AdjustMatrix *= DirectX::XMMatrixTranslation(data.translation.x, data.translation.y, data.translation.z);
+						math::matrixf AdjustMatrix;
+						AdjustMatrix = math::matrixf::scaling(data.scale.x, data.scale.y, data.scale.z);
+						AdjustMatrix *= math::matrixf::rotation_quaternion(math::quaternionf(data.rotation));
+						AdjustMatrix *= math::matrixf::translation(data.translation.x, data.translation.y, data.translation.z);
 
-						DirectX::XMVECTOR Scale, Rotation, Translation;
-						DirectX::XMMatrixDecompose(&Scale, &Rotation, &Translation, AdjustMatrix * LocalMatrix);
+						math::vector3f Scale, Translation;
+						math::quaternionf Rotation;
+						(AdjustMatrix * LocalMatrix).decompose(Scale, Rotation, Translation);
 
-						DirectX::XMStoreFloat3(&nodes[index].scale, Scale);
-						DirectX::XMStoreFloat4(&nodes[index].rotation, Rotation);
-						DirectX::XMStoreFloat3(&nodes[index].translation, Translation);
+						nodes[index].scale = Scale.to_float3();
+						nodes[index].rotation = Rotation.to_float4();
+						nodes[index].translation = Translation.to_float3();
 					}
 				}
 			}
@@ -758,31 +759,31 @@ namespace
 				dest_model_instance.set_node_poses(dest_animation_nodes);
 				source_model_instance.set_node_poses(source_nodes);
 
-				dest_model_instance.update_transform(DirectX::XMMatrixIdentity());
-				source_model_instance.update_transform(DirectX::XMMatrixIdentity());
+				dest_model_instance.update_transform(math::matrixf());
+				source_model_instance.update_transform(math::matrixf());
 			}
 
 			//	バインド行列を生成
-			DirectX::XMMATRIX SourceParentMatrix = DirectX::XMMatrixIdentity();
+			math::matrixf SourceParentMatrix;
 			if (source_instance_node.parent_index != model_resource::invalid_id)
 			{
 				auto& parent_instance_node = source_model_instance.get_nodes()[source_instance_node.parent_index];
-				SourceParentMatrix = DirectX::XMLoadFloat4x4(&parent_instance_node.global_transform);
+				SourceParentMatrix = math::matrixf(parent_instance_node.global_transform);
 			}
-			DirectX::XMMATRIX SourceMatrix = DirectX::XMLoadFloat4x4(&source_instance_node.global_transform);
-			DirectX::XMMATRIX InverseSourceMatrix = DirectX::XMMatrixInverse(nullptr, SourceMatrix);
+			math::matrixf SourceMatrix(source_instance_node.global_transform);
+			math::matrixf InverseSourceMatrix = SourceMatrix.inverted();
 
-			DirectX::XMMATRIX DestParentMatrix = DirectX::XMMatrixIdentity();
+			math::matrixf DestParentMatrix;
 			if (dest_instance_node.parent_index != model_resource::invalid_id)
 			{
 				auto& parent_instance_node = dest_model_instance.get_nodes()[dest_instance_node.parent_index];
-				DestParentMatrix = DirectX::XMLoadFloat4x4(&parent_instance_node.global_transform);
+				DestParentMatrix = math::matrixf(parent_instance_node.global_transform);
 			}
-			DirectX::XMMATRIX DestMatrix = DirectX::XMLoadFloat4x4(&dest_instance_node.global_transform);
-			DirectX::XMMATRIX InverseDestParentMatrix = DirectX::XMMatrixInverse(nullptr, DestParentMatrix);
+			math::matrixf DestMatrix(dest_instance_node.global_transform);
+			math::matrixf InverseDestParentMatrix = DestParentMatrix.inverted();
 
-			DirectX::XMMATRIX DestRelativeMatrix = DestMatrix * InverseSourceMatrix;
-			DirectX::XMMATRIX SourceRelativeParentMatrix = SourceParentMatrix * InverseDestParentMatrix;
+			math::matrixf DestRelativeMatrix = DestMatrix * InverseSourceMatrix;
+			math::matrixf SourceRelativeParentMatrix = SourceParentMatrix * InverseDestParentMatrix;
 
 			//	適応ロックフラグ
 			bool is_lock_scale = false, is_lock_rotation = false, is_lock_translation = false;
@@ -802,27 +803,28 @@ namespace
 				source_model_instance.compute_animation_nodes(nodes, source_animation_index, sampling_time);
 				animation_node_adjust(source_model_instance, nodes);
 				source_model_instance.set_node_poses(nodes);
-				source_model_instance.update_transform(DirectX::XMMatrixIdentity());
+				source_model_instance.update_transform(math::matrixf());
 
 				//	親の初期行列からの差分を求めて納入
-				DirectX::XMMATRIX LocalMatrix = DirectX::XMLoadFloat4x4(&source_instance_node.local_transform);
+				math::matrixf LocalMatrix(source_instance_node.local_transform);
 				LocalMatrix = DestRelativeMatrix * LocalMatrix * SourceRelativeParentMatrix;
 
-				DirectX::XMVECTOR Scale, Rotation, Translation;
-				DirectX::XMMatrixDecompose(&Scale, &Rotation, &Translation, LocalMatrix);
+				math::vector3f Scale, Translation;
+				math::quaternionf Rotation;
+				LocalMatrix.decompose(Scale, Rotation, Translation);
 
 				auto& na = dest_animation_node.nodes.emplace_back();
 				na.time = sampling_time;
 				if (!is_lock_scale)
-					DirectX::XMStoreFloat3(&na.scale, Scale);
+					na.scale = Scale.to_float3();
 				else
 					na.scale = dest_animation_nodes[dest_node_index].scale;
 				if (!is_lock_rotation)
-					DirectX::XMStoreFloat4(&na.rotation, Rotation);
+					na.rotation = Rotation.to_float4();
 				else
 					na.rotation = dest_animation_nodes[dest_node_index].rotation;
 				if (!is_lock_translation)
-					DirectX::XMStoreFloat3(&na.translation, Translation);
+					na.translation = Translation.to_float3();
 				else
 					na.translation = dest_animation_nodes[dest_node_index].translation;
 			}

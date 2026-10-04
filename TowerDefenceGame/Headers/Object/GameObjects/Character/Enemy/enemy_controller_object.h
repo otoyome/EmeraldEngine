@@ -28,7 +28,7 @@ public:
 	virtual enemy_type_data get_enemy_type() const = 0;
 
 	std::shared_ptr<character_object> get_controll_object() const;
-	DirectX::XMFLOAT3 get_focus_point() const;
+	math::float3 get_focus_point() const;
 
 public:
 	enemy_controller_object(std::string_view name, std::shared_ptr<character_object> controll_object);

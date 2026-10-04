@@ -29,10 +29,10 @@ public:
 		bool dirty = true;
 		size_t parent_index = invalid_id;
 
-		DirectX::XMFLOAT4X4 local_transform = {1, 0, 0, 0,  0, 1, 0, 0,  0, 0, 1, 0,  0, 0, 0, 1};
-		DirectX::XMFLOAT4X4 global_transform = {1, 0, 0, 0,  0, 1, 0, 0,  0, 0, 1, 0,  0, 0, 0, 1};
+		math::float4x4 local_transform = {1, 0, 0, 0,  0, 1, 0, 0,  0, 0, 1, 0,  0, 0, 0, 1};
+		math::float4x4 global_transform = {1, 0, 0, 0,  0, 1, 0, 0,  0, 0, 1, 0,  0, 0, 0, 1};
 
-		DirectX::XMFLOAT4X4 previous_global_transform = {1, 0, 0, 0,  0, 1, 0, 0,  0, 0, 1, 0,  0, 0, 0, 1};
+		math::float4x4 previous_global_transform = {1, 0, 0, 0,  0, 1, 0, 0,  0, 0, 1, 0,  0, 0, 0, 1};
 	};
 
 	struct morph
@@ -58,9 +58,9 @@ public:
 	UINT get_unique_id() const { return unique_id; }
 	void set_lod_index(int lod_index) {this->lod_index = lod_index;}
 	int get_lod_max() const{return meshes.empty() ? 0 : meshes.begin()->mesh ? static_cast<int>(meshes.begin()->mesh->lod_meshs.size()) : 0;}
-	const DirectX::XMFLOAT2& get_lod_range_rate() const {return lod_range_rate;}
+	const math::float2& get_lod_range_rate() const {return lod_range_rate;}
 
-	void set_lod_range_rate(DirectX::XMFLOAT2 rate) {lod_range_rate = system_utility::to_xmfloat(math::saturate(system_utility::to_math(rate)));}
+	void set_lod_range_rate(math::float2 rate) {lod_range_rate = math::saturate(math::vector2f(rate)).to_float2();}
 
 	inline const model_resource_ptr get_resource() const { return resource; }
 	inline const std::vector<node>& get_nodes() const { return nodes; }
@@ -71,10 +71,10 @@ public:
 	inline std::vector<mesh>& get_meshes() { return meshes; }
 	inline const std::vector<morph>& get_morphes() const { return morphes; }
 	inline std::vector<morph>& get_morphes() { return morphes; }
-	inline DirectX::XMFLOAT4X4& get_world_transform() { return world_transform; }
-	inline const DirectX::XMFLOAT4X4& get_world_transform() const { return world_transform; }
-	inline const DirectX::XMFLOAT4X4& get_previous_world_transform() const { return previous_world_transform; }
-	inline void set_previous_world_transform(const DirectX::XMFLOAT4X4& transform){ previous_world_transform = transform; }
+	inline math::float4x4& get_world_transform() { return world_transform; }
+	inline const math::float4x4& get_world_transform() const { return world_transform; }
+	inline const math::float4x4& get_previous_world_transform() const { return previous_world_transform; }
+	inline void set_previous_world_transform(const math::float4x4& transform){ previous_world_transform = transform; }
 
 #if defined(USE_IMGUI)
 	inline model_resource_ptr get_resource_for_editor() { return resource; }
@@ -93,8 +93,8 @@ public:
 	void set_node_poses(const std::vector<node_animation>& nodes);
 	void set_node_pose(size_t node_index, const node_animation& node);
 	bool set_morph(std::string_view morph_name, const morph_animation& morph);
-	void update_transform(const DirectX::XMFLOAT4X4& world_transform);
-	void update_transform(const DirectX::XMMATRIX& world_transform);
+	void update_transform(const math::float4x4& world_transform);
+	void update_transform(const math::matrixf& world_transform);
 
 private:
 	void build_model();
@@ -103,10 +103,10 @@ private:
 	UINT system_flags;
 	int lod_index;
 	UINT unique_id = 0;
-	DirectX::XMFLOAT2 lod_range_rate = {0.0f, 1.0f};
+	math::float2 lod_range_rate = {0.0f, 1.0f};
 	model_resource_ptr resource;
-	DirectX::XMFLOAT4X4 world_transform = { 1, 0, 0, 0,  0, 1, 0, 0,  0, 0, 1, 0,  0, 0, 0, 1 };
-	DirectX::XMFLOAT4X4 previous_world_transform = { 1, 0, 0, 0,  0, 1, 0, 0,  0, 0, 1, 0,  0, 0, 0, 1 };
+	math::float4x4 world_transform = { 1, 0, 0, 0,  0, 1, 0, 0,  0, 0, 1, 0,  0, 0, 0, 1 };
+	math::float4x4 previous_world_transform = { 1, 0, 0, 0,  0, 1, 0, 0,  0, 0, 1, 0,  0, 0, 0, 1 };
 
 	std::vector<material> materials;
 	std::vector<node> nodes;

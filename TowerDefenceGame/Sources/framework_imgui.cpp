@@ -529,12 +529,12 @@ void framework::build_debug_primitives(const render_data_context& render_data)
 	//	モデルAABBのデバッグ表示
 	if (draw_mesh_aabb)
 	{
-		DirectX::XMFLOAT4 rotation = {0.0f, 0.0f, 0.0f, 1.0f};
-		DirectX::XMFLOAT4 color = {1.0f, 0.0f, 0.0f, 1.0f};
+		math::float4 rotation = {0.0f, 0.0f, 0.0f, 1.0f};
+		math::float4 color = {1.0f, 0.0f, 0.0f, 1.0f};
 		for (auto& buffer_data : render_data.mesh_container.buffer_datas)
 		{
-			DirectX::XMFLOAT3 scale((buffer_data.bounds_max.x - buffer_data.bounds_min.x) * 0.5f, (buffer_data.bounds_max.y - buffer_data.bounds_min.y) * 0.5f, (buffer_data.bounds_max.z - buffer_data.bounds_min.z) * 0.5f);
-			DirectX::XMFLOAT3 center(buffer_data.bounds_min.x + scale.x, buffer_data.bounds_min.y + scale.y, buffer_data.bounds_min.z + scale.z);
+			math::float3 scale((buffer_data.bounds_max.x - buffer_data.bounds_min.x) * 0.5f, (buffer_data.bounds_max.y - buffer_data.bounds_min.y) * 0.5f, (buffer_data.bounds_max.z - buffer_data.bounds_min.z) * 0.5f);
+			math::float3 center(buffer_data.bounds_min.x + scale.x, buffer_data.bounds_min.y + scale.y, buffer_data.bounds_min.z + scale.z);
 			QUEUE_DEBUG_PRIMITIVE_BOX(center, rotation, scale, color, true);
 		}
 	}
@@ -548,21 +548,21 @@ void framework::build_debug_primitives(const render_data_context& render_data)
 		float len = system_units::convert_m_to_unit(static_cast<float>(index));
 		if (display_grid_xz)
 		{
-			DirectX::XMFLOAT4 line_color = DirectX::XMFLOAT4(1.0f, 0.0f, 1.0f, 1);
-			QUEUE_DEBUG_PRIMITIVE_LINE(DirectX::XMFLOAT3(len, 0.0f, -grid_length), DirectX::XMFLOAT3(len, 0.0f, +grid_length), line_color, true);
-			QUEUE_DEBUG_PRIMITIVE_LINE(DirectX::XMFLOAT3(-grid_length, 0.0f, len), DirectX::XMFLOAT3(+grid_length, 0.0f, len), line_color, true);
+			math::float4 line_color = math::float4(1.0f, 0.0f, 1.0f, 1);
+			QUEUE_DEBUG_PRIMITIVE_LINE(math::float3(len, 0.0f, -grid_length), math::float3(len, 0.0f, +grid_length), line_color, true);
+			QUEUE_DEBUG_PRIMITIVE_LINE(math::float3(-grid_length, 0.0f, len), math::float3(+grid_length, 0.0f, len), line_color, true);
 		}
 		if (display_grid_xy)
 		{
-			DirectX::XMFLOAT4 line_color = DirectX::XMFLOAT4(1.0f, 1.0f, 0.0f, 1);
-			QUEUE_DEBUG_PRIMITIVE_LINE(DirectX::XMFLOAT3(len, -grid_length, 0.0f), DirectX::XMFLOAT3(len, +grid_length, 0.0f), line_color, true);
-			QUEUE_DEBUG_PRIMITIVE_LINE(DirectX::XMFLOAT3(-grid_length, len, 0.0f), DirectX::XMFLOAT3(+grid_length, len, 0.0f), line_color, true);
+			math::float4 line_color = math::float4(1.0f, 1.0f, 0.0f, 1);
+			QUEUE_DEBUG_PRIMITIVE_LINE(math::float3(len, -grid_length, 0.0f), math::float3(len, +grid_length, 0.0f), line_color, true);
+			QUEUE_DEBUG_PRIMITIVE_LINE(math::float3(-grid_length, len, 0.0f), math::float3(+grid_length, len, 0.0f), line_color, true);
 		}
 		if (display_grid_yz)
 		{
-			DirectX::XMFLOAT4 line_color = DirectX::XMFLOAT4(0.0f, 1.0f, 1.0f, 1);
-			QUEUE_DEBUG_PRIMITIVE_LINE(DirectX::XMFLOAT3(0.0f, len, -grid_length), DirectX::XMFLOAT3(0.0f, len, +grid_length), line_color, true);
-			QUEUE_DEBUG_PRIMITIVE_LINE(DirectX::XMFLOAT3(0.0f, -grid_length, len), DirectX::XMFLOAT3(0.0f, +grid_length, len), line_color, true);
+			math::float4 line_color = math::float4(0.0f, 1.0f, 1.0f, 1);
+			QUEUE_DEBUG_PRIMITIVE_LINE(math::float3(0.0f, len, -grid_length), math::float3(0.0f, len, +grid_length), line_color, true);
+			QUEUE_DEBUG_PRIMITIVE_LINE(math::float3(0.0f, -grid_length, len), math::float3(0.0f, +grid_length, len), line_color, true);
 		}
 	}
 }

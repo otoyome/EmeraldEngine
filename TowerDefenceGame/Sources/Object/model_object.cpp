@@ -22,12 +22,12 @@ void model_object::set_ik_resource(ik_resource_ptr ik_resource)
 	ik_datas.resize(ik_resource->get_behavior_data_list().size());
 }
 
-const DirectX::XMFLOAT3& model_object::get_scale() const
+const math::float3& model_object::get_scale() const
 {
 	return scale;
 }
 
-void model_object::set_scale(const DirectX::XMFLOAT3& scale)
+void model_object::set_scale(const math::float3& scale)
 {
 	dirty = true;
 	this->scale = scale;
@@ -44,12 +44,12 @@ void model_object::set_rotation(const math::rotatorf& rotator)
 	this->rotator = rotator;
 }
 
-const DirectX::XMFLOAT3& model_object::get_position() const
+const math::float3& model_object::get_position() const
 {
 	return position;
 }
 
-void model_object::set_position(const DirectX::XMFLOAT3& position)
+void model_object::set_position(const math::float3& position)
 {
 	dirty = true;
 	this->position = position;
@@ -76,7 +76,7 @@ model_object::model_object(std::string_view name, std::string_view file_path)
 		if (model_resource_manager::instance()->load(resource, file_path))
 		{
 			model_instance = std::make_shared<::model_instance>(resource);
-			model_instance->update_transform(DirectX::XMMatrixIdentity());
+			model_instance->update_transform(math::matrixf());
 			model_instance_manger::instance()->registered(model_instance);
 		}
 	}
@@ -106,7 +106,7 @@ model_object::model_object(std::string_view name, model_resource_ptr resource)
 	previous_node_animations.clear();
 	model_instance = std::make_shared<::model_instance>(resource);
 	play_animation(animation_index, animation_loop, 0.0f);
-	model_instance->update_transform(DirectX::XMMatrixIdentity());
+	model_instance->update_transform(math::matrixf());
 	model_instance_manger::instance()->registered(model_instance);
 
 	//	IK情報チェック
@@ -204,10 +204,7 @@ void model_object::update_transform()
 		return;
 
 	dirty = false;
-	DirectX::XMMATRIX Scale = DirectX::XMMatrixScaling(scale.x, scale.y, scale.z);
-	DirectX::XMMATRIX Rotation = DirectX::XMMatrixRotationQuaternion(system_utility::to_xmvector(rotator.to_quaternion()));
-	DirectX::XMMATRIX Translation = DirectX::XMMatrixTranslation(position.x, position.y, position.z);
-	model_instance->update_transform(Scale * Rotation * Translation);
+	model_instance->update_transform(math::matrixf::transform(scale, rotator.to_quaternion(), position));
 }
 
 void model_object::play_animation(size_t animation_index, bool loop, float blend_time)
@@ -384,10 +381,7 @@ void model_object::update_node_animation(const animation::data& animation_data, 
 		if (node_index != model_resource::invalid_id)
 		{
 			//	ワールド行列
-			DirectX::XMMATRIX Scale = DirectX::XMMatrixScaling(scale.x, scale.y, scale.z);
-			DirectX::XMMATRIX Rotation = DirectX::XMMatrixRotationQuaternion(system_utility::to_xmvector(rotator.to_quaternion()));
-			DirectX::XMMATRIX Translation = DirectX::XMMatrixTranslation(position.x, position.y, position.z);
-			DirectX::XMMATRIX WorldTransform = Scale * Rotation * Translation;
+			const math::matrixf world_transform = math::matrixf::transform(scale, rotator.to_quaternion(), position);
 
 			model_instance::node_animation& current_node_animation = current_node_animations[node_index];
 			model_instance::node_animation begin_node_animation, previous_node_animation, end_node_animation;
@@ -398,7 +392,7 @@ void model_object::update_node_animation(const animation::data& animation_data, 
 			if (animation_data.root_motion_xz || animation_data.root_motion_y)
 			{
 				//	ローカル移動値を算出
-				DirectX::XMFLOAT3 local_translation;
+				math::float3 local_translation;
 				if (animation_loop && (previous_time > current_time))
 				{
 					if (!is_end_compite_animation)
@@ -418,55 +412,45 @@ void model_object::update_node_animation(const animation::data& animation_data, 
 				}
 
 				//	親のノード空間へ移動
-				DirectX::XMMATRIX ParentGlobalTransform;
+				math::matrixf parent_global_transform;
 				if (model_instance->get_nodes()[node_index].parent_index != model_resource::invalid_id)
 				{
 					auto& nodes = model_instance->get_nodes();
 					auto& node = nodes[node_index];
 					auto& parent_node = nodes[node.parent_index];
-					ParentGlobalTransform = DirectX::XMLoadFloat4x4(&parent_node.global_transform);
+					parent_global_transform = math::matrixf(parent_node.global_transform);
 				}
-				else
-				{
-					ParentGlobalTransform = DirectX::XMMatrixIdentity();
-				}
-				DirectX::XMVECTOR LocalTranslation = DirectX::XMLoadFloat3(&local_translation);
-				DirectX::XMVECTOR GlobalTranslation = DirectX::XMVector3TransformNormal(LocalTranslation, ParentGlobalTransform);
+				math::vector3f global_translation = math::vector3f::transform_normal(local_translation, parent_global_transform);
 
 				//	アニメーション側から情報を破棄
 				{
 					if (!animation_data.root_motion_xz)
 					{
-						GlobalTranslation = DirectX::XMVectorSetX(GlobalTranslation, 0);
-						GlobalTranslation = DirectX::XMVectorSetZ(GlobalTranslation, 0);
+						global_translation.x = 0;
+						global_translation.z = 0;
 					}
 					if (!animation_data.root_motion_y)
 					{
-						GlobalTranslation = DirectX::XMVectorSetY(GlobalTranslation, 0);
+						global_translation.y = 0;
 					}
 
-					DirectX::XMVECTOR LocalPosition = DirectX::XMLoadFloat3(&current_node_animation.translation);
-					DirectX::XMVECTOR GlobalPosition = DirectX::XMVector3TransformNormal(LocalPosition, ParentGlobalTransform);
+					math::vector3f global_position = math::vector3f::transform_normal(current_node_animation.translation, parent_global_transform);
 
 					if (animation_data.root_motion_xz)
 					{
-						GlobalPosition = DirectX::XMVectorSetX(GlobalPosition, 0);
-						GlobalPosition = DirectX::XMVectorSetZ(GlobalPosition, 0);
+						global_position.x = 0;
+						global_position.z = 0;
 					}
 					if (animation_data.root_motion_y)
 					{
-						GlobalPosition = DirectX::XMVectorSetY(GlobalPosition, 0);
+						global_position.y = 0;
 					}
-					DirectX::XMMATRIX InverseParentGlobalTransform = DirectX::XMMatrixInverse(nullptr, ParentGlobalTransform);
-					LocalPosition = DirectX::XMVector3Transform(GlobalPosition, InverseParentGlobalTransform);
-
-					DirectX::XMStoreFloat3(&current_node_animation.translation, LocalPosition);
+					const math::matrixf inverse_parent_global_transform = parent_global_transform.inverted();
+					current_node_animation.translation = math::vector3f::transform(global_position, inverse_parent_global_transform).to_vector3().to_float3();
 				}
 
 				//	グローバル空間での移動ベクトルをワールド空間に移動させる
-				DirectX::XMVECTOR WorldTranslation = DirectX::XMVector3TransformNormal(GlobalTranslation, WorldTransform);
-				DirectX::XMFLOAT3 world_translation;
-				DirectX::XMStoreFloat3(&world_translation, WorldTranslation);
+				const math::float3 world_translation = math::vector3f::transform_normal(global_translation, world_transform).to_float3();
 				// 位置を更新
 				if (apply_root_animation_transform)
 				{
@@ -484,7 +468,7 @@ void model_object::update_node_animation(const animation::data& animation_data, 
 			if (animation_data.root_rotation)
 			{
 				//	ローカル回転を算出
-				DirectX::XMVECTOR LocalRotation, WorkRotation[2];
+				math::quaternionf local_rotation_quaternion;
 				if (animation_loop && (previous_time > current_time))
 				{
 					if (!is_end_compite_animation)
@@ -492,33 +476,22 @@ void model_object::update_node_animation(const animation::data& animation_data, 
 						is_end_compite_animation = true;
 						model_instance->compute_animation_node(end_node_animation, animation_index, node_index, animation_data.end_time);
 					}
-					WorkRotation[0] = DirectX::XMLoadFloat4(&end_node_animation.rotation);
-					WorkRotation[1] = DirectX::XMLoadFloat4(&previous_node_animation.rotation);
-					WorkRotation[1] = DirectX::XMQuaternionInverse(WorkRotation[1]);
-					LocalRotation = DirectX::XMQuaternionMultiply(WorkRotation[0], WorkRotation[1]);
-					WorkRotation[0] = DirectX::XMLoadFloat4(&current_node_animation.rotation);
-					WorkRotation[1] = DirectX::XMLoadFloat4(&begin_node_animation.rotation);
-					WorkRotation[1] = DirectX::XMQuaternionInverse(WorkRotation[1]);
-					WorkRotation[1] = DirectX::XMQuaternionMultiply(WorkRotation[0], WorkRotation[1]);
-					LocalRotation = DirectX::XMQuaternionMultiply(LocalRotation, WorkRotation[1]);
+					local_rotation_quaternion = math::quaternionf(end_node_animation.rotation) * math::quaternionf(previous_node_animation.rotation).inverted();
+					local_rotation_quaternion *= math::quaternionf(current_node_animation.rotation) * math::quaternionf(begin_node_animation.rotation).inverted();
 				}
 				else
 				{
-					WorkRotation[0] = DirectX::XMLoadFloat4(&current_node_animation.rotation);
-					WorkRotation[1] = DirectX::XMLoadFloat4(&previous_node_animation.rotation);
-					WorkRotation[1] = DirectX::XMQuaternionInverse(WorkRotation[1]);
-					LocalRotation = DirectX::XMQuaternionMultiply(WorkRotation[0], WorkRotation[1]);
+					local_rotation_quaternion = math::quaternionf(current_node_animation.rotation) * math::quaternionf(previous_node_animation.rotation).inverted();
 				}
 
 				//	ローカル回転量を破棄
 				current_node_animation.rotation = begin_node_animation.rotation;
 
 				//	ワールド回転更新
-				DirectX::XMFLOAT4 local_rotation;
-				DirectX::XMStoreFloat4(&local_rotation, LocalRotation);
+				const math::float4 local_rotation = local_rotation_quaternion.to_float4();
 				if (apply_root_animation_transform)
 				{
-					math::rotatorf local_rotator(system_utility::to_math_quaternion(local_rotation));
+					math::rotatorf local_rotator{ math::quaternionf(local_rotation) };
 					rotator.x = math::angle::normalize(rotator.x + local_rotator.x);
 					rotator.y = math::angle::normalize(rotator.y + local_rotator.y);
 					rotator.z = math::angle::normalize(rotator.z + local_rotator.z);
@@ -543,9 +516,9 @@ void model_object::update_node_animation(const animation::data& animation_data, 
 				auto& node = current_node_animations[index];
 				auto& current = current_node_animations[index];
 				auto& previous = previous_node_animations[index];
-				DirectX::XMStoreFloat3(&node.scale, DirectX::XMVectorLerp(DirectX::XMLoadFloat3(&previous.scale), DirectX::XMLoadFloat3(&current.scale), rate));
-				DirectX::XMStoreFloat4(&node.rotation, DirectX::XMQuaternionSlerp(DirectX::XMLoadFloat4(&previous.rotation), DirectX::XMLoadFloat4(&current.rotation), rate));
-				DirectX::XMStoreFloat3(&node.translation, DirectX::XMVectorLerp(DirectX::XMLoadFloat3(&previous.translation), DirectX::XMLoadFloat3(&current.translation), rate));
+				node.scale = math::lerp(math::vector3f(previous.scale), math::vector3f(current.scale), rate).to_float3();
+				node.rotation = math::slerp(math::quaternionf(previous.rotation), math::quaternionf(current.rotation), rate).to_float4();
+				node.translation = math::lerp(math::vector3f(previous.translation), math::vector3f(current.translation), rate).to_float3();
 			}
 		}
 		else
@@ -597,7 +570,7 @@ void model_object::update_ik()
 
 	auto& model_instance_nodes = model_instance->get_nodes();
 	auto& behavior_data_list = ik_solver->get_behavior_data_list();
-	auto WorldMatrix = DirectX::XMLoadFloat4x4(&model_instance->get_world_transform());
+	math::matrixf WorldMatrix(model_instance->get_world_transform());
 
 	if (ik_datas.size() != behavior_data_list.size())
 	{
@@ -639,11 +612,11 @@ void model_object::update_ik()
 				auto& foot_data = std::get<ik_resource::foot_data>(behavior_data.data);
 
 				//	各足の座標を算出
-				DirectX::XMFLOAT4X4 left_world_matrix, right_world_matrix;
-				DirectX::XMStoreFloat4x4(&left_world_matrix, DirectX::XMLoadFloat4x4(&left_node.global_transform) * WorldMatrix);
-				DirectX::XMStoreFloat4x4(&right_world_matrix, DirectX::XMLoadFloat4x4(&right_node.global_transform) * WorldMatrix);
-				const DirectX::XMFLOAT3 left_foot_position(left_world_matrix._41, left_world_matrix._42, left_world_matrix._43);
-				const DirectX::XMFLOAT3 right_foot_position(right_world_matrix._41, right_world_matrix._42, right_world_matrix._43);
+				math::float4x4 left_world_matrix, right_world_matrix;
+				left_world_matrix = (math::matrixf(left_node.global_transform) * WorldMatrix).to_float4x4();
+				right_world_matrix = (math::matrixf(right_node.global_transform) * WorldMatrix).to_float4x4();
+				const math::float3 left_foot_position(left_world_matrix._41, left_world_matrix._42, left_world_matrix._43);
+				const math::float3 right_foot_position(right_world_matrix._41, right_world_matrix._42, right_world_matrix._43);
 
 				//	各足が埋まるかを確認
 				bool left_hit, right_hit;
@@ -654,7 +627,7 @@ void model_object::update_ik()
 					right_ray_data.filter = collision_filter_manager::instance()->search_filter("ik");
 
 					left_ray_data.start =
-					left_ray_data.end = DirectX::XMFLOAT3(left_world_matrix._41, left_world_matrix._42, left_world_matrix._43);
+					left_ray_data.end = math::float3(left_world_matrix._41, left_world_matrix._42, left_world_matrix._43);
 					left_ray_data.start.x -= foot_ik_direction.x * foot_data.ray_origin_offsets[0];
 					left_ray_data.start.y -= foot_ik_direction.y * foot_data.ray_origin_offsets[0];
 					left_ray_data.start.z -= foot_ik_direction.z * foot_data.ray_origin_offsets[0];
@@ -663,7 +636,7 @@ void model_object::update_ik()
 					left_ray_data.end.z += foot_ik_direction.z * (foot_data.ray_origin_offsets[0] + foot_data.ray_length);
 
 					right_ray_data.start =
-					right_ray_data.end = DirectX::XMFLOAT3(right_world_matrix._41, right_world_matrix._42, right_world_matrix._43);
+					right_ray_data.end = math::float3(right_world_matrix._41, right_world_matrix._42, right_world_matrix._43);
 					right_ray_data.start.x -= foot_ik_direction.x * foot_data.ray_origin_offsets[1];
 					right_ray_data.start.y -= foot_ik_direction.y * foot_data.ray_origin_offsets[1];
 					right_ray_data.start.z -= foot_ik_direction.z * foot_data.ray_origin_offsets[1];
@@ -690,7 +663,7 @@ void model_object::update_ik()
 					length = std::max(length, 0.0f);
 
 					//	ワールド空間でのオフセット位置を算出
-					auto PelvisOffset = DirectX::XMVectorScale(DirectX::XMLoadFloat3(&foot_ik_direction), length);
+					const math::vector3f pelvis_offset = math::vector3f(foot_ik_direction) * length;
 
 					//	該当ノード全体に適応
 					for (auto& node_index : foot_data.adjust_node_indices)
@@ -698,16 +671,13 @@ void model_object::update_ik()
 						auto& pelvis_node_data = ik_solver->get_resource()->get_node_list()[node_index];
 						auto& pelvis_node = model_instance_nodes[model_instance->get_node_index_by_name(pelvis_node_data.source_node_name)];
 
-						DirectX::XMMATRIX ParentPelvisWorldMatrix = WorldMatrix;
+						math::matrixf parent_pelvis_world_matrix = WorldMatrix;
 						if (pelvis_node.parent_index != ik_resource::invalid_id)
 						{
 							auto& parent_node_data = model_instance_nodes[pelvis_node.parent_index];
-							ParentPelvisWorldMatrix = DirectX::XMLoadFloat4x4(&parent_node_data.global_transform) * WorldMatrix;
+							parent_pelvis_world_matrix = math::matrixf(parent_node_data.global_transform) * WorldMatrix;
 						}
-						DirectX::XMMATRIX InversePelvisWorldMatrix = DirectX::XMMatrixInverse(nullptr, ParentPelvisWorldMatrix);
-
-						DirectX::XMFLOAT3 local_direction;
-						DirectX::XMStoreFloat3(&local_direction, DirectX::XMVector3TransformNormal(PelvisOffset, InversePelvisWorldMatrix));
+						const math::vector3f local_direction = math::vector3f::transform_normal(pelvis_offset, parent_pelvis_world_matrix.inverted());
 						pelvis_node.local_transform._41 += local_direction.x;
 						pelvis_node.local_transform._42 += local_direction.y;
 						pelvis_node.local_transform._43 += local_direction.z;
@@ -718,7 +688,7 @@ void model_object::update_ik()
 				//	ヒット位置に足を補正
 				if (left_hit)
 				{
-					DirectX::XMFLOAT3 ik_pos = left_hit_data[0].point;
+					math::float3 ik_pos = left_hit_data[0].point;
 					ik_pos.x += foot_ik_direction.x * foot_data.foot_offset;
 					ik_pos.y += foot_ik_direction.y * foot_data.foot_offset;
 					ik_pos.z += foot_ik_direction.z * foot_data.foot_offset;
@@ -726,7 +696,7 @@ void model_object::update_ik()
 				}
 				if (right_hit)
 				{
-					DirectX::XMFLOAT3 ik_pos = right_hit_data[0].point;
+					math::float3 ik_pos = right_hit_data[0].point;
 					ik_pos.x += foot_ik_direction.x * foot_data.foot_offset;
 					ik_pos.y += foot_ik_direction.y * foot_data.foot_offset;
 					ik_pos.z += foot_ik_direction.z * foot_data.foot_offset;
@@ -748,12 +718,7 @@ void model_object::update_ik()
 				// 左手のIKターゲットをワールド座標へ変換して適用
 				//if (hand_data.enable_left)
 				{
-					DirectX::XMFLOAT3 left_target_pos;
-					DirectX::XMStoreFloat3(
-						&left_target_pos,
-						DirectX::XMVector3Transform(
-							DirectX::XMLoadFloat3(&ik_data.left_hand_target_position),
-							WorldMatrix));
+					const math::float3 left_target_pos = math::vector3f::transform(ik_data.left_hand_target_position, WorldMatrix).to_vector3().to_float3();
 
 					ik_solver->solve(behavior_data.solve_ids[0], left_target_pos);
 				}
@@ -761,12 +726,7 @@ void model_object::update_ik()
 				// 右手のIKターゲットをワールド座標へ変換して適用
 				//if (hand_data.enable_right)
 				{
-					DirectX::XMFLOAT3 right_target_pos;
-					DirectX::XMStoreFloat3(
-						&right_target_pos,
-						DirectX::XMVector3Transform(
-							DirectX::XMLoadFloat3(&ik_data.right_hand_target_position),
-							WorldMatrix));
+					const math::float3 right_target_pos = math::vector3f::transform(ik_data.right_hand_target_position, WorldMatrix).to_vector3().to_float3();
 
 					ik_solver->solve(behavior_data.solve_ids[1], right_target_pos);
 				}
@@ -814,7 +774,7 @@ void model_object::imgui_render_core()
 	ImGui::DragAngle3("rotation", &rotator.x, 0.01f);
 	ImGui::DragFloat3("position", &position.x, 0.01f);
 	{
-		DirectX::XMFLOAT2 lod_range_rate = get_model_instance()->get_lod_range_rate();
+		math::float2 lod_range_rate = get_model_instance()->get_lod_range_rate();
 		ImGui::SliderFloat2("lod_range_rate", &lod_range_rate.x, 0.0f, 1.0f);
 		get_model_instance()->set_lod_range_rate(lod_range_rate);
 	}
@@ -858,19 +818,19 @@ void model_object::imgui_render_core()
 			ImGui::Text(system_utility::convert_utf8(node.name).data());
 			if (node.parent_index != model_resource::invalid_id)
 				ImGui::InputText("Parent", model_instance->get_nodes()[node.parent_index].name);
-			DirectX::XMVECTOR LS, LR, LT;
-			DirectX::XMVECTOR GS, GR, GT;
-			DirectX::XMMatrixDecompose(&LS, &LR, &LT, DirectX::XMLoadFloat4x4(&node.local_transform));
-			DirectX::XMMatrixDecompose(&GS, &GR, &GT, DirectX::XMLoadFloat4x4(&node.global_transform));
-			DirectX::XMFLOAT3 ls = system_utility::convert_xmfloat3_from_vector(LS);
-			math::rotatorf lr = math::rotatorf(system_utility::to_math_quaternion(LR));
-			DirectX::XMFLOAT3 lt = system_utility::convert_xmfloat3_from_vector(LT);
+			math::vector3f local_scale, local_translation, global_scale, global_translation;
+			math::quaternionf local_rotation, global_rotation;
+			math::matrixf(node.local_transform).decompose(local_scale, local_rotation, local_translation);
+			math::matrixf(node.global_transform).decompose(global_scale, global_rotation, global_translation);
+			math::float3 ls = local_scale.to_float3();
+			math::rotatorf lr = math::rotatorf(local_rotation);
+			math::float3 lt = local_translation.to_float3();
 			ImGui::DragFloat3("Local Scale", &ls.x);
 			ImGui::DragAngle3("Local Rotation", &lr.x);
 			ImGui::DragFloat3("Local Translation", &lt.x);
-			ls = system_utility::convert_xmfloat3_from_vector(GS);
-			lr = math::rotatorf(system_utility::to_math_quaternion(GR));
-			lt = system_utility::convert_xmfloat3_from_vector(GT);
+			ls = global_scale.to_float3();
+			lr = math::rotatorf(global_rotation);
+			lt = global_translation.to_float3();
 			ImGui::DragFloat3("Global Scale", &ls.x);
 			ImGui::DragAngle3("Global Rotation", &lr.x);
 			ImGui::DragFloat3("Global Translation", &lt.x);

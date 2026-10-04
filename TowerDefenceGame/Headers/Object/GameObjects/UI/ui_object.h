@@ -5,16 +5,16 @@
 
 namespace ui
 {
-	constexpr DirectX::XMFLOAT2 get_pixel_size()
+	constexpr math::float2 get_pixel_size()
 	{
 		return { 1.0f / SCREEN_WIDTH, 1.0f / SCREEN_HEIGHT };
 	}
-	constexpr DirectX::XMFLOAT4 calculate_screen_rect_rate(DirectX::XMFLOAT4 rect)
+	constexpr math::float4 calculate_screen_rect_rate(math::float4 rect)
 	{
 		//return rect;
 		return { rect.x / SCREEN_WIDTH, rect.y / SCREEN_HEIGHT, rect.z / SCREEN_WIDTH, rect.w / SCREEN_HEIGHT };
 	}
-	constexpr DirectX::XMFLOAT4 calculate_screen_rect(DirectX::XMFLOAT4 rect_rate)
+	constexpr math::float4 calculate_screen_rect(math::float4 rect_rate)
 	{
 		//return rect;
 		return { rect_rate.x * SCREEN_WIDTH, rect_rate.y * SCREEN_HEIGHT, rect_rate.z * SCREEN_WIDTH, rect_rate.w * SCREEN_HEIGHT };
@@ -33,24 +33,24 @@ public:
 	float get_rotation() const;
 	void set_rotation(float rotation);
 
-	DirectX::XMFLOAT4 get_screen_rect() const;
-	void set_screen_rect(const DirectX::XMFLOAT4& screen_rect);
+	math::float4 get_screen_rect() const;
+	void set_screen_rect(const math::float4& screen_rect);
 
-	const DirectX::XMFLOAT2& get_pivot() const;
-	void set_pivot(const DirectX::XMFLOAT2& position);
+	const math::float2& get_pivot() const;
+	void set_pivot(const math::float2& position);
 
-	const DirectX::XMFLOAT4& get_uv_rect() const;
-	void set_uv_rect(const DirectX::XMFLOAT4& uv_rect);
+	const math::float4& get_uv_rect() const;
+	void set_uv_rect(const math::float4& uv_rect);
 
-	const DirectX::XMFLOAT4& get_color() const;
-	void set_color(const DirectX::XMFLOAT4& color);
-	void set_color(const DirectX::XMFLOAT3& color);
+	const math::float4& get_color() const;
+	void set_color(const math::float4& color);
+	void set_color(const math::float3& color);
 
 protected:
 	bool is_dirty() const;
 	void set_dirty();
 
-	virtual DirectX::XMFLOAT4 get_screen_rect_inner() const;
+	virtual math::float4 get_screen_rect_inner() const;
 
 public:
 	ui_object_base(std::string_view name);
@@ -67,10 +67,10 @@ private:
 
 	int sort_order;
 	float rotation;
-	DirectX::XMFLOAT2 pivot;
-	DirectX::XMFLOAT4 screen_rect;
-	DirectX::XMFLOAT4 uv_rect;
-	DirectX::XMFLOAT4 color;
+	math::float2 pivot;
+	math::float4 screen_rect;
+	math::float4 uv_rect;
+	math::float4 color;
 };
 
 //	UI制御用オブジェクト
@@ -83,7 +83,7 @@ public:
 	sprite& get_sprite() { return sprite; }
 
 private:
-	DirectX::XMFLOAT4 get_screen_rect_inner() const override { return base::get_screen_rect_inner(); }
+	math::float4 get_screen_rect_inner() const override { return base::get_screen_rect_inner(); }
 
 public:
 	ui_object(std::string_view name);
@@ -105,7 +105,7 @@ public:
 	std::vector<sprite>& get_sprites() { return sprites; }
 
 private:
-	DirectX::XMFLOAT4 get_screen_rect_inner() const override { return base::get_screen_rect_inner(); }
+	math::float4 get_screen_rect_inner() const override { return base::get_screen_rect_inner(); }
 
 public:
 	ui_objects(std::string_view name);

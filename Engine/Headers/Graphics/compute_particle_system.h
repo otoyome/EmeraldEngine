@@ -2,7 +2,6 @@
 
 #include <d3d11.h>
 #include <wrl.h>
-#include <directxmath.h>
 
 #include <vector>
 #include <stack>
@@ -40,10 +39,10 @@ namespace particle_system_item
 			UINT state;
 			float life_time;
 			float life_time_max;
-			DirectX::XMFLOAT3 scale; // 拡縮情報
-			DirectX::XMFLOAT4 rotation; // 回転情報
-			DirectX::XMFLOAT3 translation; // 移動情報
-			DirectX::XMFLOAT4 color; // 色情報
+			math::float3 scale; // 拡縮情報
+			math::float4 rotation; // 回転情報
+			math::float3 translation; // 移動情報
+			math::float4 color; // 色情報
 		};
 		//  軌跡アイテム
 		struct trail_header
@@ -52,9 +51,9 @@ namespace particle_system_item
 		};
 		struct trail_body
 		{
-			DirectX::XMFLOAT3 scale; // 拡縮情報
-			DirectX::XMFLOAT4 rotation; // 回転情報
-			DirectX::XMFLOAT3 translation; // 移動情報
+			math::float3 scale; // 拡縮情報
+			math::float4 rotation; // 回転情報
+			math::float3 translation; // 移動情報
 		};
 		//	UVアイテム
 		struct uv
@@ -64,19 +63,19 @@ namespace particle_system_item
 		//  速度アイテム
 		struct velocity
 		{
-			DirectX::XMFLOAT3 velocity; // 移動速度
+			math::float3 velocity; // 移動速度
 		};
 
 		//  引き込みアイテム
 		struct attract
 		{
-			DirectX::XMFLOAT3 velocity;
+			math::float3 velocity;
 		};
 
 		//	イベントアイテム
 		struct event
 		{
-			DirectX::XMFLOAT3 previous_position;
+			math::float3 previous_position;
 		};
 	}
 
@@ -99,17 +98,17 @@ namespace particle_system_item
 			UINT active_items = 0; // アイテムアクティブフラグ
 
 			// パーティクル発生情報
-			DirectX::XMFLOAT2 spawn_life_time_range = {1.0f, 1.0f}; // 生存時間範囲
-			DirectX::XMFLOAT2 spawn_scale_range = {1.0f, 1.0f}; // 拡縮範囲
-			DirectX::XMFLOAT3 spawn_area_min = {0, 0, 0}; // 生成範囲最小
-			DirectX::XMFLOAT3 spawn_area_max = {0, 0, 0}; // 生成範囲最大
+			math::float2 spawn_life_time_range = {1.0f, 1.0f}; // 生存時間範囲
+			math::float2 spawn_scale_range = {1.0f, 1.0f}; // 拡縮範囲
+			math::float3 spawn_area_min = {0, 0, 0}; // 生成範囲最小
+			math::float3 spawn_area_max = {0, 0, 0}; // 生成範囲最大
 			UINT spawn_count = 0; // 生成数
 			UINT spawn_offset = 0; // 発生オフセット
 
 			//	エミッター姿勢情報
-			DirectX::XMFLOAT3 scale; // 拡縮情報
-			DirectX::XMFLOAT4 rotation; // 回転情報
-			DirectX::XMFLOAT3 translation; // 移動情報
+			math::float3 scale; // 拡縮情報
+			math::float4 rotation; // 回転情報
+			math::float3 translation; // 移動情報
 			float elapsed_time = 0.0f; // 経過時間
 			UINT random_seed = 0; // 乱数種
 		};
@@ -143,8 +142,8 @@ namespace particle_system_item
 			UINT state = 0; // ステート
 			UINT index = 0;	// スプリット数に応じた番号
 			float time = 0.0f;	//	アニメーションで使用する
-			DirectX::XMUINT2 split_count = {1, 1};	//	分割数
-			DirectX::XMFLOAT4 rect = {0, 0, 1, 1};	//	UV矩形
+			math::uint2 split_count = {1, 1};	//	分割数
+			math::float4 rect = {0, 0, 1, 1};	//	UV矩形
 		};
 
 		//	色アイテム
@@ -159,9 +158,9 @@ namespace particle_system_item
 			};
 
 			UINT state = 0;
-			DirectX::XMFLOAT4 color_min; // 色の範囲
-			DirectX::XMFLOAT4 color_max; // 色の範囲
-			DirectX::XMFLOAT2 fade_range = {0.1f, 0.9f};	// フェード範囲(x:フェードイン終了 y:フェードアウト開始)
+			math::float4 color_min; // 色の範囲
+			math::float4 color_max; // 色の範囲
+			math::float2 fade_range = {0.1f, 0.9f};	// フェード範囲(x:フェードイン終了 y:フェードアウト開始)
 		};
 
 		//	速度アイテム
@@ -178,17 +177,17 @@ namespace particle_system_item
 			};
 
 			UINT state = 0;
-			DirectX::XMFLOAT3 direction; // 初期方向
-			DirectX::XMFLOAT2 angle_range; // 初期角度範囲
-			DirectX::XMFLOAT2 power_range; // 初速威力範囲
+			math::float3 direction; // 初期方向
+			math::float2 angle_range; // 初期角度範囲
+			math::float2 power_range; // 初速威力範囲
 
-			DirectX::XMFLOAT3 acceleration_min; // 最低加速
-			DirectX::XMFLOAT3 acceleration_max; // 最大加速
+			math::float3 acceleration_min; // 最低加速
+			math::float3 acceleration_max; // 最大加速
 
 			float damping_min; // 最低減衰係数(1/s)
 			float damping_max; // 最大減衰係数(1/s)
 
-			DirectX::XMFLOAT3 gravity; // 重力
+			math::float3 gravity; // 重力
 		};
 
 		//	引き込みアイテム
@@ -196,7 +195,7 @@ namespace particle_system_item
 		{
 			static constexpr UINT data_id = 4;
 
-			DirectX::XMFLOAT3 position; // 位置
+			math::float3 position; // 位置
 			float strength; // 吸引力
 			float radius; // 影響範囲
 			float falloff; // 範囲内の影響力を調整
@@ -217,7 +216,7 @@ namespace particle_system_item
 			};
 
 			UINT state = 0; // ステート
-			DirectX::XMFLOAT3 center; // 位置
+			math::float3 center; // 位置
 			float radius;	// 範囲
 			UINT target_emitter_id;	// 呼び出しエミッターID
 		};
@@ -311,9 +310,9 @@ public:
 	};
 
 	//	DispatchIndirect用構造体
-	using	dispatch_indirect = DirectX::XMUINT3;	//	Dispatch.x / Dispatch.y / Dispatch.z
+	using	dispatch_indirect = math::uint3;	//	Dispatch.x / Dispatch.y / Dispatch.z
 	//	DrawIndirect用構造体
-	using	draw_indirect = DirectX::XMUINT4;	//	vertex_count_per_instance / instance_count / start_vertex_location / start_instance_location
+	using	draw_indirect = math::uint4;	//	vertex_count_per_instance / instance_count / start_vertex_location / start_instance_location
 
 	//	00バイト目：現在のパーティクル総数
 	//	04バイト目：1F前のパーティクル総数
@@ -328,9 +327,9 @@ public:
 	//	頂点情報
 	struct vertex_data
 	{
-		DirectX::XMFLOAT3 position;
-		DirectX::XMFLOAT4 color;
-		DirectX::XMFLOAT2 texcoord;
+		math::float3 position;
+		math::float4 color;
+		math::float2 texcoord;
 	};
 
 	//	内部管理用エミッター情報
@@ -344,7 +343,7 @@ public:
 	//	パーティクルイベント情報
 	struct particle_event
 	{
-		DirectX::XMFLOAT3 position;
+		math::float3 position;
 		UINT target_emitter_id;
 	};
 

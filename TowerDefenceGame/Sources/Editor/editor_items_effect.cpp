@@ -152,12 +152,11 @@ bool editor_items::edit_effect_noeds(std::shared_ptr<context>& context, effect_i
 
 				//	図形表示
 				{
-					DirectX::XMFLOAT4 draw_color = {1, 1, 1, 1};
-					DirectX::XMVECTOR S, R, T;
-					DirectX::XMMatrixDecompose(&S, &R, &T, DirectX::XMLoadFloat4x4(&effect_instance->get_nodes()[node_index].global_transform));
-					DirectX::XMFLOAT3 t;
-					DirectX::XMStoreFloat3(&t, T);
-					QUEUE_DEBUG_PRIMITIVE_SPHERE(t, 1.0f, draw_color, true);
+					math::float4 draw_color = {1, 1, 1, 1};
+					math::vector3f s, t;
+					math::quaternionf r;
+					math::matrixf(effect_instance->get_nodes()[node_index].global_transform).decompose(s, r, t);
+					QUEUE_DEBUG_PRIMITIVE_SPHERE(t.to_float3(), 1.0f, draw_color, true);
 				}
 
 				//	モデル
@@ -259,15 +258,11 @@ bool editor_items::edit_effect_noeds(std::shared_ptr<context>& context, effect_i
 
 							//	図形表示
 							{
-								DirectX::XMFLOAT4 draw_color = {1, 1, 1, 1};
-								DirectX::XMVECTOR S, R, T;
-								DirectX::XMMatrixDecompose(&S, &R, &T, DirectX::XMLoadFloat4x4(&effect_instance->get_nodes()[node_index].global_transform));
-								DirectX::XMFLOAT3 s, t;
-								DirectX::XMFLOAT4 r;
-								DirectX::XMStoreFloat3(&s, S);
-								DirectX::XMStoreFloat4(&r, R);
-								DirectX::XMStoreFloat3(&t, T);
-								QUEUE_DEBUG_PRIMITIVE_BOX(t, r, s, draw_color, true);
+								math::float4 draw_color = {1, 1, 1, 1};
+								math::vector3f s, t;
+								math::quaternionf r;
+								math::matrixf(effect_instance->get_nodes()[node_index].global_transform).decompose(s, r, t);
+								QUEUE_DEBUG_PRIMITIVE_BOX(t.to_float3(), r.to_float4(), s.to_float3(), draw_color, true);
 							}
 							ImGui::Unindent();
 						}
@@ -499,7 +494,7 @@ bool editor_items::edit_effect_particle(std::shared_ptr<context>& context, effec
 		material->set_pipeline_state(pso_descs, ARRAYSIZE(pso_descs));
 
 		//	パラメーター設定
-		material->set_float4("base_color_factor", DirectX::XMFLOAT4(1, 1, 1, 1));
+		material->set_float4("base_color_factor", math::float4(1, 1, 1, 1));
 		{
 			texture_ptr texture;
 			std::filesystem::path file_path = "Assets/Resources/Textures/white_16x16.png";
@@ -646,7 +641,7 @@ bool editor_items::edit_effect_particle(std::shared_ptr<context>& context, effec
 						}
 						if (checked)
 						{
-							DirectX::XMINT2 direction = DirectX::XMINT2(renderer->uv.splits.x, renderer->uv.splits.y);
+							math::int2 direction = math::int2(renderer->uv.splits.x, renderer->uv.splits.y);
 							direction.x -= 5;
 							direction.y -= 5;
 							if (ImGui::DragInt2("direction", &direction.x, 0.1f, -1, 1))
@@ -972,7 +967,7 @@ bool editor_items::edit_effect_decal(std::shared_ptr<context>& context, effect_r
 		material->set_pipeline_state(material::decal_paths::fullscreen, "deferred_decal_default_fullscreen");
 
 		//	パラメーター設定
-		material->set_float4("base_color_factor", DirectX::XMFLOAT4(1, 1, 1, 1));
+		material->set_float4("base_color_factor", math::float4(1, 1, 1, 1));
 		material->set_float("normal_map_scale", 1.0f);
 		{
 			texture_ptr texture;

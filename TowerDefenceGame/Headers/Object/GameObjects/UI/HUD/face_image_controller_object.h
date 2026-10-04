@@ -25,8 +25,8 @@ public:
 
 public:
 	texture_ptr get_image() const;
-	DirectX::XMFLOAT4 get_uv_rect() const;
-	void set_image(texture_ptr image, DirectX::XMFLOAT4 uv_rect);
+	math::float4 get_uv_rect() const;
+	void set_image(texture_ptr image, math::float4 uv_rect);
 
 public:
 	face_image_controller_object(const object_descs& object_desc);
@@ -42,7 +42,7 @@ private:
 	shake_descs shake_desc;
 
 	std::shared_ptr<ui_image> uis[3];
-	DirectX::XMFLOAT4 origin_rects[3];
-	DirectX::XMFLOAT4 origin_colors[3];
-	DirectX::XMFLOAT2 shake_offset = {0, 0};
+	math::float4 origin_rects[3];
+	math::float4 origin_colors[3];
+	math::float2 shake_offset = {0, 0};
 };

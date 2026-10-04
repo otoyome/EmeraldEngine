@@ -105,8 +105,8 @@ fast_fourier_transform::~fast_fourier_transform()
 }
 
 void fast_fourier_transform::clear_uavs(ID3D11DeviceContext* immediate_context,
-										 DirectX::XMFLOAT4 real_clear_value,
-										 DirectX::XMFLOAT4 imaginary_clear_value)
+										 math::float4 real_clear_value,
+										 math::float4 imaginary_clear_value)
 {
 	auto* real_uav = complex_number_textures[static_cast<int>(textures::real0)]->get_unordered_access_view().Get();
 	auto* imaginary_uav = complex_number_textures[static_cast<int>(textures::imaginary0)]->get_unordered_access_view().Get();

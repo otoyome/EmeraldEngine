@@ -85,7 +85,7 @@ namespace
 		}
 
 		auto& position_view = position_it->second;
-		const DirectX::XMFLOAT3* positions = reinterpret_cast<const DirectX::XMFLOAT3*>(position_view.row_data.data());
+		const math::float3* positions = reinterpret_cast<const math::float3*>(position_view.row_data.data());
 		UINT vertex_count = static_cast<UINT>(position_view.count());
 
 		if (vertex_count == 0)
@@ -102,7 +102,7 @@ namespace
 		size_t meshlet_count = meshopt_buildMeshlets(
 			meshlets.data(), meshlet_vertices.data(), meshlet_triangles.data(),
 			indices, index_count,
-			reinterpret_cast<const float*>(positions), vertex_count, sizeof(DirectX::XMFLOAT3),
+			reinterpret_cast<const float*>(positions), vertex_count, sizeof(math::float3),
 			max_vertices, max_triangles, cone_weight);
 
 		if (meshlet_count == 0)
@@ -120,7 +120,7 @@ namespace
 			meshopt_Bounds bounds = meshopt_computeMeshletBounds(
 				&meshlet_vertices[m.vertex_offset], &meshlet_triangles[m.triangle_offset],
 				m.triangle_count,
-				reinterpret_cast<const float*>(positions), vertex_count, sizeof(DirectX::XMFLOAT3));
+				reinterpret_cast<const float*>(positions), vertex_count, sizeof(math::float3));
 
 			model_resource::mesh::meshlet dst{};
 			dst.vertex_offset = m.vertex_offset;
@@ -140,10 +140,8 @@ namespace
 	}
 }
 
-void model_resource_utility::combine_unskinned_meshes(model_resource& resource, DirectX::XMINT3 grid_divisions)
+void model_resource_utility::combine_unskinned_meshes(model_resource& resource, math::int3 grid_divisions)
 {
-	using namespace DirectX;
-
 	auto& meshes = resource.get_meshes_for_editor();
 	auto& nodes = resource.get_nodes_for_editor();
 
@@ -158,15 +156,12 @@ void model_resource_utility::combine_unskinned_meshes(model_resource& resource, 
 	//	ノードのローカル/グローバル変換
 	auto local_matrix = [](const model_resource::node& n)
 	{
-		XMMATRIX S = XMMatrixScalingFromVector(XMLoadFloat3(&n.scale));
-		XMMATRIX R = XMMatrixRotationQuaternion(XMLoadFloat4(&n.rotation));
-		XMMATRIX T = XMMatrixTranslationFromVector(XMLoadFloat3(&n.translation));
-		return S * R * T;
+		return math::matrixf::transform(n.scale, math::quaternionf(n.rotation), n.translation);
 	};
-	std::function<XMMATRIX(size_t)> global_matrix = [&](size_t index) -> XMMATRIX
+	std::function<math::matrixf(size_t)> global_matrix = [&](size_t index) -> math::matrixf
 	{
 		if (index == model_resource::invalid_id || index >= nodes.size())
-			return XMMatrixIdentity();
+			return math::matrixf();
 		return local_matrix(nodes[index]) * global_matrix(nodes[index].parent_index);
 	};
 
@@ -183,11 +178,11 @@ void model_resource_utility::combine_unskinned_meshes(model_resource& resource, 
 	};
 
 	//	対象メッシュのワールド中心と全体 AABB を求める
-	struct combinable_info { size_t mesh_index; XMFLOAT3 center; };
+	struct combinable_info { size_t mesh_index; math::float3 center; };
 	std::vector<combinable_info> combinables;
 	std::vector<size_t> passthrough;
-	XMFLOAT3 world_min = { +FLT_MAX, +FLT_MAX, +FLT_MAX };
-	XMFLOAT3 world_max = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
+	math::float3 world_min = { +FLT_MAX, +FLT_MAX, +FLT_MAX };
+	math::float3 world_max = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
 	for (size_t mesh_index = 0; mesh_index < meshes.size(); ++mesh_index)
 	{
 		if (!is_combinable(meshes[mesh_index]))
@@ -196,18 +191,17 @@ void model_resource_utility::combine_unskinned_meshes(model_resource& resource, 
 			continue;
 		}
 
-		XMMATRIX gm = global_matrix(meshes[mesh_index].node_index);
-		const XMFLOAT3 lmin = meshes[mesh_index].bounds_min;
-		const XMFLOAT3 lmax = meshes[mesh_index].bounds_max;
-		XMFLOAT3 wmin = { +FLT_MAX, +FLT_MAX, +FLT_MAX };
-		XMFLOAT3 wmax = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
+		const math::matrixf gm = global_matrix(meshes[mesh_index].node_index);
+		const math::float3 lmin = meshes[mesh_index].bounds_min;
+		const math::float3 lmax = meshes[mesh_index].bounds_max;
+		math::float3 wmin = { +FLT_MAX, +FLT_MAX, +FLT_MAX };
+		math::float3 wmax = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
 		for (int corner = 0; corner < 8; ++corner)
 		{
-			XMVECTOR p = XMVectorSet((corner & 1) ? lmax.x : lmin.x,
-									 (corner & 2) ? lmax.y : lmin.y,
-									 (corner & 4) ? lmax.z : lmin.z, 1.0f);
-			XMFLOAT3 wp;
-			XMStoreFloat3(&wp, XMVector3TransformCoord(p, gm));
+			const math::vector3f p((corner & 1) ? lmax.x : lmin.x,
+								   (corner & 2) ? lmax.y : lmin.y,
+								   (corner & 4) ? lmax.z : lmin.z);
+			const math::vector3f wp = math::vector3f::transform_coord(p, gm);
 			wmin.x = std::min(wmin.x, wp.x); wmin.y = std::min(wmin.y, wp.y); wmin.z = std::min(wmin.z, wp.z);
 			wmax.x = std::max(wmax.x, wp.x); wmax.y = std::max(wmax.y, wp.y); wmax.z = std::max(wmax.z, wp.z);
 		}
@@ -225,7 +219,7 @@ void model_resource_utility::combine_unskinned_meshes(model_resource& resource, 
 	if (combinables.size() < 2)
 		return;
 
-	const XMFLOAT3 world_size =
+	const math::float3 world_size =
 	{
 		std::max(world_max.x - world_min.x, 1e-4f),
 		std::max(world_max.y - world_min.y, 1e-4f),
@@ -316,12 +310,12 @@ void model_resource_utility::combine_unskinned_meshes(model_resource& resource, 
 			{
 				buffer_view joints_view;
 				joints_view.format = DXGI_FORMAT_R32G32B32A32_UINT;
-				joints_view.stride_in_bytes = sizeof(XMUINT4);
+				joints_view.stride_in_bytes = sizeof(math::uint4);
 				dst.vertex_buffer_views.insert(std::make_pair(joints_semantic, joints_view));
 
 				buffer_view weights_view;
 				weights_view.format = DXGI_FORMAT_R32G32B32A32_FLOAT;
-				weights_view.stride_in_bytes = sizeof(XMFLOAT4);
+				weights_view.stride_in_bytes = sizeof(math::float4);
 				dst.vertex_buffer_views.insert(std::make_pair(weights_semantic, weights_view));
 			}
 			for (auto& src_vbv : base_src.vertex_buffer_views)
@@ -367,20 +361,20 @@ void model_resource_utility::combine_unskinned_meshes(model_resource& resource, 
 				{
 					buffer_view& joints_view = dst.vertex_buffer_views.at(joints_semantic);
 					const size_t offset = joints_view.row_data.size();
-					joints_view.row_data.resize(offset + static_cast<size_t>(src_vertex_count) * sizeof(XMUINT4));
-					XMUINT4* out_joints = reinterpret_cast<XMUINT4*>(joints_view.row_data.data() + offset);
+					joints_view.row_data.resize(offset + static_cast<size_t>(src_vertex_count) * sizeof(math::uint4));
+					math::uint4* out_joints = reinterpret_cast<math::uint4*>(joints_view.row_data.data() + offset);
 					for (UINT i = 0; i < src_vertex_count; ++i)
-						out_joints[i] = XMUINT4(static_cast<UINT>(bone_index), 0, 0, 0);
+						out_joints[i] = math::uint4(static_cast<UINT>(bone_index), 0, 0, 0);
 					joints_view.size_in_bytes = joints_view.row_data.size();
 				}
 				//	WEIGHTS = [1, 0, 0, 0]
 				{
 					buffer_view& weights_view = dst.vertex_buffer_views.at(weights_semantic);
 					const size_t offset = weights_view.row_data.size();
-					weights_view.row_data.resize(offset + static_cast<size_t>(src_vertex_count) * sizeof(XMFLOAT4));
-					XMFLOAT4* out_weights = reinterpret_cast<XMFLOAT4*>(weights_view.row_data.data() + offset);
+					weights_view.row_data.resize(offset + static_cast<size_t>(src_vertex_count) * sizeof(math::float4));
+					math::float4* out_weights = reinterpret_cast<math::float4*>(weights_view.row_data.data() + offset);
 					for (UINT i = 0; i < src_vertex_count; ++i)
-						out_weights[i] = XMFLOAT4(1.0f, 0.0f, 0.0f, 0.0f);
+						out_weights[i] = math::float4(1.0f, 0.0f, 0.0f, 0.0f);
 					weights_view.size_in_bytes = weights_view.row_data.size();
 				}
 				//	その他の頂点バッファをそのまま連結
@@ -400,27 +394,26 @@ void model_resource_utility::combine_unskinned_meshes(model_resource& resource, 
 
 			//	AABB 再計算
 			{
-				std::vector<XMMATRIX> bone_transforms(dst.bones.size());
+				std::vector<math::matrixf> bone_transforms(dst.bones.size());
 				for (size_t bone_index = 0; bone_index < dst.bones.size(); ++bone_index)
 				{
 					bone_transforms[bone_index] =
-						XMLoadFloat4x4(&dst.bones[bone_index].offset_matrix) * global_matrix(dst.bones[bone_index].node_index);
+						math::matrixf(dst.bones[bone_index].offset_matrix) * global_matrix(dst.bones[bone_index].node_index);
 				}
 
 				auto pos_it = dst.vertex_buffer_views.find(position_semantic);
 				auto joints_it = dst.vertex_buffer_views.find(joints_semantic);
-				XMFLOAT3 bounds_min = { FLT_MAX, FLT_MAX, FLT_MAX };
-				XMFLOAT3 bounds_max = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
+				math::float3 bounds_min = { FLT_MAX, FLT_MAX, FLT_MAX };
+				math::float3 bounds_max = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
 				if (pos_it != dst.vertex_buffer_views.end() && joints_it != dst.vertex_buffer_views.end())
 				{
-					const XMFLOAT3* positions = reinterpret_cast<const XMFLOAT3*>(pos_it->second.row_data.data());
-					const XMUINT4* joints = reinterpret_cast<const XMUINT4*>(joints_it->second.row_data.data());
+					const math::float3* positions = reinterpret_cast<const math::float3*>(pos_it->second.row_data.data());
+					const math::uint4* joints = reinterpret_cast<const math::uint4*>(joints_it->second.row_data.data());
 					const size_t vertex_count = pos_it->second.count();
 					for (size_t i = 0; i < vertex_count; ++i)
 					{
 						const UINT bone = (joints[i].x < bone_transforms.size()) ? joints[i].x : 0;
-						XMFLOAT3 wp;
-						XMStoreFloat3(&wp, XMVector3TransformCoord(XMLoadFloat3(&positions[i]), bone_transforms[bone]));
+						const math::vector3f wp = math::vector3f::transform_coord(positions[i], bone_transforms[bone]);
 						bounds_min.x = std::min(bounds_min.x, wp.x); bounds_min.y = std::min(bounds_min.y, wp.y); bounds_min.z = std::min(bounds_min.z, wp.z);
 						bounds_max.x = std::max(bounds_max.x, wp.x); bounds_max.y = std::max(bounds_max.y, wp.y); bounds_max.z = std::max(bounds_max.z, wp.z);
 					}

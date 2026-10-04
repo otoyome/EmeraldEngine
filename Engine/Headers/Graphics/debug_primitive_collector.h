@@ -14,8 +14,8 @@ class debug_primitive_manager
 
 	struct vertex
 	{
-		DirectX::XMFLOAT3 position;
-		DirectX::XMFLOAT4 color;
+		math::float3 position;
+		math::float4 color;
 	};
 
 private:
@@ -25,10 +25,10 @@ private:
 public:
 	void get_container(debug_draw_primitive_container& container);
 
-	void queue_line(const DirectX::XMFLOAT3 start, const DirectX::XMFLOAT3 end, const DirectX::XMFLOAT4 color, bool depth_write = true);
-	void queue_sphere(const DirectX::XMFLOAT3 center, float radius, const DirectX::XMFLOAT4 color, bool depth_write = true);
-	void queue_capsule(const DirectX::XMFLOAT3 center, const DirectX::XMFLOAT4 rotation, float radius, float length, const DirectX::XMFLOAT4& color, bool depth_write = true);
-	void queue_box(const DirectX::XMFLOAT3 position, const DirectX::XMFLOAT4 rotation, const DirectX::XMFLOAT3 scale, const DirectX::XMFLOAT4& color, bool depth_write = true);
+	void queue_line(const math::float3 start, const math::float3 end, const math::float4 color, bool depth_write = true);
+	void queue_sphere(const math::float3 center, float radius, const math::float4 color, bool depth_write = true);
+	void queue_capsule(const math::float3 center, const math::float4 rotation, float radius, float length, const math::float4& color, bool depth_write = true);
+	void queue_box(const math::float3 position, const math::float4 rotation, const math::float3 scale, const math::float4& color, bool depth_write = true);
 
 private:
 	std::vector<vertex> vertices[static_cast<int>(debug_draw_primitive_container::line_buffer_id::max)];

@@ -6,7 +6,6 @@
 
 #include <d3d11.h>
 #include <wrl.h>
-#include <directxmath.h>
 
 #include "graphics_context.h"
 #include "shader.h"
@@ -25,7 +24,7 @@ class meshlet_culling_system
 		UINT triangle_offset = 0;
 		UINT triangle_count = 0;
 		UINT primitive_index = 0;
-		DirectX::XMFLOAT3 bounds_center = {};
+		math::float3 bounds_center = {};
 		float bounds_radius = 0.0f;
 		UINT transform_index = 0;
 		UINT no_cull = 0;
@@ -35,12 +34,12 @@ class meshlet_culling_system
 
 	struct cull_constants
 	{
-		DirectX::XMFLOAT4X4 view_projection;
+		math::float4x4 view_projection;
 		UINT meshlet_instance_count;
 		UINT hiz_mip_count;
-		DirectX::XMFLOAT2 hiz_size;
+		math::float2 hiz_size;
 		float depth_bias;
-		DirectX::XMFLOAT2 clip_near_far;
+		math::float2 clip_near_far;
 		float dummy;
 	};
 
@@ -101,6 +100,6 @@ private:
 	std::unordered_map<material*, cull_result> current_results;
 
 	//	スクラッチバッファ
-	std::vector<DirectX::XMFLOAT4X4> submesh_transform_scratch;
+	std::vector<math::float4x4> submesh_transform_scratch;
 	std::unordered_map<material*, std::vector<meshlet_instance_gpu>> material_scratch_buffer;
 };

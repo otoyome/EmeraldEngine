@@ -73,7 +73,7 @@ game_main_scene::game_main_scene()
 	std::shared_ptr<camera_object> main_camera;
 	{
 		main_camera = std::make_shared<camera_object>("メインカメラ");
-		main_camera->get_camera()->set_fov_y(DirectX::XMConvertToRadians(30.0f));
+		main_camera->get_camera()->set_fov_y(math::angle::to_radian(30.0f));
 		main_camera->set_position({0, 10, 40});
 		register_object(main_camera);
 	}
@@ -124,7 +124,7 @@ game_main_scene::game_main_scene()
 		auto enemy1 = std::make_shared<boss_seraphim_object>(boss_model, "enemy");
 		enemy1->set_active(false);
 		enemy1->set_position(system_units::convert_m_to_unit({0, -1000, 0}));
-		enemy1->set_rotation({ 0.0f, DirectX::XM_PI, 0.0f });
+		enemy1->set_rotation({ 0.0f, math::constants<float>::pi, 0.0f });
 		register_object(enemy1);
 
 		auto controller = std::make_shared<boss_seraphim_controller_object>("ボスセラフィム制御用クラス", enemy1);

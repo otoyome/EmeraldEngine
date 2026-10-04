@@ -61,7 +61,7 @@ void mesh_container::build_transform_buffers()
 	regenerate_structured_buffer(primitive_header_buffer, primitive_header_srv, primitive_header_capacity,
 		sizeof(common_pipeline_states::primitive_constants), primitive_header_scratch.size());
 	regenerate_structured_buffer(bone_matrix_buffer, bone_matrix_srv, bone_matrix_capacity,
-		sizeof(DirectX::XMFLOAT4X4), bone_matrix_scratch.size());
+		sizeof(math::float4x4), bone_matrix_scratch.size());
 
 	auto immediate_context = render_data::instance()->get_immediate_context();
 
@@ -76,7 +76,7 @@ void mesh_container::build_transform_buffers()
 	upload_range(primitive_header_buffer.Get(), primitive_header_scratch.data(),
 		static_cast<UINT>(primitive_header_scratch.size() * sizeof(common_pipeline_states::primitive_constants)));
 	upload_range(bone_matrix_buffer.Get(), bone_matrix_scratch.data(),
-		static_cast<UINT>(bone_matrix_scratch.size() * sizeof(DirectX::XMFLOAT4X4)));
+		static_cast<UINT>(bone_matrix_scratch.size() * sizeof(math::float4x4)));
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

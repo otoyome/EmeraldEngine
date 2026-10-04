@@ -54,7 +54,7 @@ namespace particle
 			struct texcoords
 			{
 				//	直接指定時のアニメーション方向を割り出すための基準値
-				static constexpr DirectX::XMUINT2 animation_direction_basis_value = {5, 5};
+				static constexpr math::uint2 animation_direction_basis_value = {5, 5};
 
 				enum class states
 				{
@@ -66,8 +66,8 @@ namespace particle
 				UINT state = 0; // ステート
 				UINT index = 0;	// スプリット数に応じた番号
 				float time = 0.0f;	//	アニメーションで使用する
-				DirectX::XMFLOAT4 rect = {0, 0, 1, 1};
-				DirectX::XMUINT2 splits = {1, 1};	//	分割数
+				math::float4 rect = {0, 0, 1, 1};
+				math::uint2 splits = {1, 1};	//	分割数
 
 				bool is_state(states flag) const;
 				void set_state(states flag, bool value);
@@ -85,9 +85,9 @@ namespace particle
 				};
 
 				UINT state = 0; // ステート
-				DirectX::XMFLOAT4 color_min = {1, 1, 1, 1};		//	色の最小
-				DirectX::XMFLOAT4 color_max = {1, 1, 1, 1};		//	色の最大
-				DirectX::XMFLOAT2 fade_range = {0.1f, 0.9f};	//	フェード範囲(x:フェードイン終了 y:フェードアウト開始)
+				math::float4 color_min = {1, 1, 1, 1};		//	色の最小
+				math::float4 color_max = {1, 1, 1, 1};		//	色の最大
+				math::float2 fade_range = {0.1f, 0.9f};	//	フェード範囲(x:フェードイン終了 y:フェードアウト開始)
 
 				bool is_state(states flag) const;
 				void set_state(states flag, bool value);
@@ -120,11 +120,11 @@ namespace particle
 			};
 
 			UINT state = 0;
-			DirectX::XMFLOAT2 life_time_range = {0.5f, 1.0f}; // 生存時間範囲
-			DirectX::XMFLOAT2 scale_range = {1.0f, 1.0f}; // 拡縮範囲
-			DirectX::XMFLOAT3 area_min = {0, 0, 0}; // 生成範囲最小
-			DirectX::XMFLOAT3 area_max = {0, 0, 0}; // 生成範囲最大
-			DirectX::XMUINT2 range = {10, 30}; // 生成数
+			math::float2 life_time_range = {0.5f, 1.0f}; // 生存時間範囲
+			math::float2 scale_range = {1.0f, 1.0f}; // 拡縮範囲
+			math::float3 area_min = {0, 0, 0}; // 生成範囲最小
+			math::float3 area_max = {0, 0, 0}; // 生成範囲最大
+			math::uint2 range = {10, 30}; // 生成数
 
 			bool is_state(states flag) const;
 			void set_state(states flag, bool value);
@@ -145,17 +145,17 @@ namespace particle
 
 			UINT state = 0;
 
-			DirectX::XMFLOAT3 direction = {0, 0, 1}; // 初期方向
-			DirectX::XMFLOAT2 angle_range = {0, DirectX::XM_PIDIV4}; // 初期角度範囲
-			DirectX::XMFLOAT2 power_range = {0, 10.0f}; // 初速威力範囲
+			math::float3 direction = {0, 0, 1}; // 初期方向
+			math::float2 angle_range = {0, (math::constants<float>::pi * 0.25f)}; // 初期角度範囲
+			math::float2 power_range = {0, 10.0f}; // 初速威力範囲
 
-			DirectX::XMFLOAT3 acceleration_min = {0, 0, 0}; // 最低加速
-			DirectX::XMFLOAT3 acceleration_max = {0, 0, 0}; // 最大加速
+			math::float3 acceleration_min = {0, 0, 0}; // 最低加速
+			math::float3 acceleration_max = {0, 0, 0}; // 最大加速
 
 			float damping_min = 0.0f; // 最低減衰係数(1/s)
 			float damping_max = 0.0f; // 最大減衰係数(1/s)
 
-			DirectX::XMFLOAT3 gravity_scale = {1, 1, 1}; //	重力係数
+			math::float3 gravity_scale = {1, 1, 1}; //	重力係数
 
 			bool is_state(states flag) const;
 			void set_state(states flag, bool value);

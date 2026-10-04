@@ -63,12 +63,12 @@ void collision_object::set_bounding_object(std::shared_ptr<collision::bounding_o
 	bounding_object = object;
 }
 
-void collision_object::set_draw_normal_color(DirectX::XMFLOAT4 color)
+void collision_object::set_draw_normal_color(math::float4 color)
 {
 	this->draw_normal_color = color;
 }
 
-void collision_object::set_draw_hit_color(DirectX::XMFLOAT4 color)
+void collision_object::set_draw_hit_color(math::float4 color)
 {
 	this->draw_hit_color = color;
 }
@@ -84,23 +84,23 @@ void collision_object::set_rotation(const math::rotatorf& rotation)
 	set_flag(flags::dirty, true);
 }
 
-const DirectX::XMFLOAT3& collision_object::get_position() const
+const math::float3& collision_object::get_position() const
 {
 	return position;
 }
 
-void collision_object::set_position(const DirectX::XMFLOAT3& position)
+void collision_object::set_position(const math::float3& position)
 {
 	this->position = position;
 	set_flag(flags::dirty, true);
 }
 
-const DirectX::XMFLOAT3& collision_object::get_local_scale() const
+const math::float3& collision_object::get_local_scale() const
 {
 	return local_scale;
 }
 
-void collision_object::set_local_scale(const DirectX::XMFLOAT3& scale)
+void collision_object::set_local_scale(const math::float3& scale)
 {
 	local_scale = scale;
 	set_flag(flags::dirty, true);
@@ -117,12 +117,12 @@ void collision_object::set_local_rotation(const math::rotatorf& rotation)
 	set_flag(flags::dirty, true);
 }
 
-const DirectX::XMFLOAT3& collision_object::get_local_offset() const
+const math::float3& collision_object::get_local_offset() const
 {
 	return local_offset;
 }
 
-void collision_object::set_local_offset(const DirectX::XMFLOAT3& offset)
+void collision_object::set_local_offset(const math::float3& offset)
 {
 	local_offset = offset;
 	set_flag(flags::dirty, true);
@@ -182,11 +182,11 @@ void collision_object::solve_pushing_objects(collision::intersect_data& intersec
 	for (int index = 0; index < intersect_data.size(); ++index)
 	{
 		auto& info = intersect_data[index];
-		DirectX::XMVECTOR Normal = DirectX::XMLoadFloat3(&info.normal);
-		DirectX::XMVECTOR P1 = DirectX::XMLoadFloat3(&get_position());
-		P1 = DirectX::XMVectorAdd(P1, DirectX::XMVectorScale(Normal, info.length));
-		DirectX::XMFLOAT3 p1;
-		DirectX::XMStoreFloat3(&p1, P1);
+		math::vector3f Normal(info.normal);
+		math::vector3f P1(get_position());
+		P1 = P1 + (Normal * info.length);
+		math::float3 p1;
+		p1 = P1.to_float3();
 		set_position(p1);
 	}
 }
@@ -286,23 +286,14 @@ void collision_object::update()
 
 	set_flag(flags::dirty, false);
 
-	DirectX::XMMATRIX Rotation, Translation;
-	DirectX::XMMATRIX LocalMatrix, WorldMatrix;
-	Rotation = DirectX::XMMatrixRotationQuaternion(system_utility::to_xmvector(local_rotation.to_quaternion()));
-	Translation = DirectX::XMMatrixTranslationFromVector(DirectX::XMLoadFloat3(&local_offset));
-	LocalMatrix = Rotation * Translation;
+	const math::matrixf local_matrix = math::matrixf::rotation_quaternion(local_rotation.to_quaternion()) * math::matrixf::translation(local_offset);
+	const math::matrixf world_matrix = local_matrix * math::matrixf::rotation_quaternion(rotation.to_quaternion()) * math::matrixf::translation(position);
+	math::vector3f dummy, translation;
+	math::quaternionf quaternion;
+	world_matrix.decompose(dummy, quaternion, translation);
 
-	Rotation = DirectX::XMMatrixRotationQuaternion(system_utility::to_xmvector(rotation.to_quaternion()));
-	Translation = DirectX::XMMatrixTranslationFromVector(DirectX::XMLoadFloat3(&position));
-	WorldMatrix = Rotation * Translation;
-	WorldMatrix = LocalMatrix * WorldMatrix;
-	DirectX::XMVECTOR Dummy, BoundingRotation, BoundingTranslation;
-	DirectX::XMMatrixDecompose(&Dummy, &BoundingRotation, &BoundingTranslation, WorldMatrix);
-
-	DirectX::XMFLOAT3 bounding_translation;
-	DirectX::XMFLOAT4 bounding_rotation;
-	DirectX::XMStoreFloat4(&bounding_rotation, BoundingRotation);
-	DirectX::XMStoreFloat3(&bounding_translation, BoundingTranslation);
+	const math::float3 bounding_translation = translation.to_float3();
+	const math::float4 bounding_rotation = quaternion.to_float4();
 	bounding_object->set_local_scale(local_scale);
 	bounding_object->set_rotation(bounding_rotation);
 	bounding_object->set_position(bounding_translation);
@@ -315,7 +306,7 @@ void collision_object::debug_draw()
 		return;
 
 	update();
-	DirectX::XMFLOAT4 draw_color = is_flag(flags::frame_hit) ? draw_hit_color : draw_normal_color;
+	math::float4 draw_color = is_flag(flags::frame_hit) ? draw_hit_color : draw_normal_color;
 	switch (bounding_object->get_type())
 	{
 		case collision::bounding_object::types::sphere:
@@ -343,7 +334,7 @@ void collision_object::debug_draw()
 
 			auto object = std::static_pointer_cast<collision::bounding_mesh>(bounding_object);
 			auto positions = object->get_positions().data();
-			static constexpr DirectX::XMFLOAT4 DrawColor[] =
+			static constexpr math::float4 DrawColor[] =
 			{
 				{1.0f, 1.0f, 1.0f, 1.0f},
 				{1.0f, 1.0f, 0.0f, 1.0f},
@@ -362,11 +353,11 @@ void collision_object::debug_draw()
 				{0.0f, 0.0f, 0.5f, 1.0f},
 			};
 
-			DirectX::XMFLOAT4 rotation = {0, 0, 0, 1};
+			math::float4 rotation = {0, 0, 0, 1};
 			INT draw_mesh_collision_index = draw_mesh_collision_x_index +
 				draw_mesh_collision_y_index * object->get_separate_count().x +
 				draw_mesh_collision_z_index * object->get_separate_count().x * object->get_separate_count().y;
-			DirectX::XMFLOAT3 extent = object->get_area_unit();
+			math::float3 extent = object->get_area_unit();
 			extent.x *= 0.5f;
 			extent.y *= 0.5f;
 			extent.z *= 0.5f;
@@ -374,7 +365,7 @@ void collision_object::debug_draw()
 			{
 				auto& block = object->get_block_datas()[index];
 
-				DirectX::XMFLOAT4 draw_color = index == draw_mesh_collision_index ? draw_hit_color : draw_normal_color;
+				math::float4 draw_color = index == draw_mesh_collision_index ? draw_hit_color : draw_normal_color;
 				QUEUE_DEBUG_PRIMITIVE_BOX(block.center, rotation, extent, draw_color, true);
 				auto ti = block.triangles.data();
 				auto t = object->get_triangles().data();

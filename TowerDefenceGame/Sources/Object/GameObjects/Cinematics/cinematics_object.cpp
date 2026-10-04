@@ -221,7 +221,7 @@ void cinematics_object::pre_render()
 				common_animation::compute_animation(time, break_effect_scaling_texts, ARRAYSIZE(break_effect_scaling_texts), texcoord_scale_func);
 
 				//	ï∂éöà⁄ìÆí≤êÆ
-				std::function<void(DirectX::XMFLOAT2)> texcoord_offset_func = [&](DirectX::XMFLOAT2 value)
+				std::function<void(math::float2)> texcoord_offset_func = [&](math::float2 value)
 				{
 					post_process_data.overwrite_text.texcoord_offset.x = value.x;
 					post_process_data.overwrite_text.texcoord_offset.y = value.y;
@@ -229,7 +229,7 @@ void cinematics_object::pre_render()
 				common_animation::compute_animation(time, break_effect_display_text_offsets, ARRAYSIZE(break_effect_display_text_offsets), texcoord_offset_func);
 
 				//	ï∂éöÇÃìßâﬂílí≤êÆ
-				std::function<void(DirectX::XMFLOAT4)> text_color_func = [&](DirectX::XMFLOAT4 value)
+				std::function<void(math::float4)> text_color_func = [&](math::float4 value)
 				{
 					post_process_data.overwrite_text.color.x *= value.x;
 					post_process_data.overwrite_text.color.y *= value.y;
@@ -456,8 +456,8 @@ void cinematics_object::apply_post_process(const post_process_datas& data)
 	m.set_float("ds_power", data.distortion_data.power);
 	m.set_float("ds_speed", data.distortion_data.speed);
 	m.set_float("ds_amount", data.distortion_data.amount);
-	m.set_float4("sd0", DirectX::XMFLOAT4(data.sin_distortion_datas[0].height_amplitude, data.sin_distortion_datas[0].height_angular_frequency, static_cast<float>(data.sin_distortion_datas[0].height_postraize_count), data.sin_distortion_datas[0].amount));
-	m.set_float4("sd1", DirectX::XMFLOAT4(data.sin_distortion_datas[1].height_amplitude, data.sin_distortion_datas[1].height_angular_frequency, static_cast<float>(data.sin_distortion_datas[1].height_postraize_count), data.sin_distortion_datas[1].amount));
+	m.set_float4("sd0", math::float4(data.sin_distortion_datas[0].height_amplitude, data.sin_distortion_datas[0].height_angular_frequency, static_cast<float>(data.sin_distortion_datas[0].height_postraize_count), data.sin_distortion_datas[0].amount));
+	m.set_float4("sd1", math::float4(data.sin_distortion_datas[1].height_amplitude, data.sin_distortion_datas[1].height_angular_frequency, static_cast<float>(data.sin_distortion_datas[1].height_postraize_count), data.sin_distortion_datas[1].amount));
 }
 
 void cinematics_object::on_active()

@@ -17,9 +17,9 @@ public:
 	};
 
 public:
-	DirectX::XMFLOAT4 get_color(color_type type) const;
-	void set_color(color_type type, const DirectX::XMFLOAT4& color);
-	void set_color(color_type type, const DirectX::XMFLOAT3& color);
+	math::float4 get_color(color_type type) const;
+	void set_color(color_type type, const math::float4& color);
+	void set_color(color_type type, const math::float3& color);
 	void set_alpha(float alpha);
 
 	bool get_enabled();
@@ -39,7 +39,7 @@ public:
 
 private:
 	std::shared_ptr<ui_image> image;
-	DirectX::XMFLOAT4 color[magic_enum::enum_count<color_type>()];
+	math::float4 color[magic_enum::enum_count<color_type>()];
 	bool enable = false;
 	bool pressed = false;
 	float fade_duration = 0.1f;

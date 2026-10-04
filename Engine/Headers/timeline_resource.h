@@ -5,7 +5,6 @@
 #include <variant>
 #include <vector>
 
-#include <DirectXMath.h>
 
 struct timeline_resource
 {
@@ -43,7 +42,7 @@ public:
 			{
 				struct parameter
 				{
-					DirectX::XMFLOAT3 position = { 0, 0, 0 };
+					math::float3 position = { 0, 0, 0 };
 					math::rotatorf rotation = { 0, 0, 0 };
 
 					template<class Archive>
@@ -72,7 +71,7 @@ public:
 		{
 			struct parameter
 			{
-				DirectX::XMFLOAT3 position = { 0, 0, 0 };
+				math::float3 position = { 0, 0, 0 };
 				math::rotatorf rotation = { 0, 0, 0 };
 				float fov_y = 0.5235988f;
 
@@ -94,7 +93,7 @@ public:
 			float start_time = 0.0f;
 			float end_time = 1.0f;
 			std::string effect_path;
-			DirectX::XMFLOAT3 position = { 0, 0, 0 };
+			math::float3 position = { 0, 0, 0 };
 
 			template<class Archive>
 			void serialize(Archive& archive, int version);

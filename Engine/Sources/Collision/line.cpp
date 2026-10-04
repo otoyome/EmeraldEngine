@@ -6,18 +6,18 @@ line::line()
 {
 }
 
-line::line(types type, const DirectX::XMFLOAT3& start, const DirectX::XMFLOAT3& vector)
+line::line(types type, const math::float3& start, const math::float3& vector)
 {
 	initialize( type, start, vector );
 }
 
-void line::initialize(types type, const DirectX::XMFLOAT3& start, const DirectX::XMFLOAT3& vector)
+void line::initialize(types type, const math::float3& start, const math::float3& vector)
 {
 	this->type = type;
 	point[0] = start;
 	if (type == types::line)
 	{
-		DirectX::XMStoreFloat3(&point[1], DirectX::XMVector3Normalize(DirectX::XMLoadFloat3(&vector)));
+		point[1] = math::vector3f(vector).normalized().to_float3();
 	}
 	else
 	{
@@ -25,13 +25,13 @@ void line::initialize(types type, const DirectX::XMFLOAT3& start, const DirectX:
 	}
 }
 
-float line::calculate_distance(DirectX::XMFLOAT3& horizon, float& delta, const DirectX::XMFLOAT3& point) const
+float line::calculate_distance(math::float3& horizon, float& delta, const math::float3& point) const
 {
 	return (type == types::line) ? calculate_line_distance(horizon, delta, point)
 								 : calculate_segment_distance(horizon, delta, point);
 }
 
-float line::calculate_distance(DirectX::XMFLOAT3& horizon1, float& delta1, DirectX::XMFLOAT3& horizon2, float& delta2, const line& line) const
+float line::calculate_distance(math::float3& horizon1, float& delta1, math::float3& horizon2, float& delta2, const line& line) const
 {
 	return (type == types::line) ? calculate_line_distance(horizon1, delta1, horizon2, delta2, line)
 								 : calculate_segment_distance(horizon1, delta1, horizon2, delta2, line);
@@ -39,23 +39,23 @@ float line::calculate_distance(DirectX::XMFLOAT3& horizon1, float& delta1, Direc
 
 bool line::is_parallel(const line& line) const
 {
-	DirectX::XMVECTOR PointA[2] = {DirectX::XMLoadFloat3(&point[0]), DirectX::XMLoadFloat3(&point[1])};
-	DirectX::XMVECTOR PointB[2] = {DirectX::XMLoadFloat3(&line.point[0]), DirectX::XMLoadFloat3(&line.point[1])};
+	math::vector3f PointA[2] = {math::vector3f(point[0]), math::vector3f(point[1])};
+	math::vector3f PointB[2] = {math::vector3f(line.point[0]), math::vector3f(line.point[1])};
 	//	íºê¸ÇÕ[1]Ç™ï˚å¸ÉxÉNÉgÉã
-	DirectX::XMVECTOR LineA = (type == types::line) ? PointA[1] : DirectX::XMVectorSubtract(PointA[1], PointA[0]);
-	DirectX::XMVECTOR LineB = (line.type == types::line) ? PointB[1] : DirectX::XMVectorSubtract(PointB[1], PointB[0]);
-	LineA = DirectX::XMVector3Normalize(LineA);
-	LineB = DirectX::XMVector3Normalize(LineB);
-	DirectX::XMVECTOR Cross = DirectX::XMVector3Cross(LineA, LineB);
-	return	DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(Cross)) < FLT_EPSILON;
+	math::vector3f LineA = (type == types::line) ? PointA[1] : PointA[1] - PointA[0];
+	math::vector3f LineB = (line.type == types::line) ? PointB[1] : PointB[1] - PointB[0];
+	LineA = LineA.normalized();
+	LineB = LineB.normalized();
+	math::vector3f Cross = math::vector3f::cross(LineA, LineB);
+	return	Cross.square_length() < FLT_EPSILON;
 }
 
 float line::get_length() const
 {
-	DirectX::XMVECTOR PointA[2] = {DirectX::XMLoadFloat3(&point[0]), DirectX::XMLoadFloat3(&point[1])};
-	DirectX::XMVECTOR LineA = DirectX::XMVectorSubtract(PointA[1], PointA[0]);
+	math::vector3f PointA[2] = {math::vector3f(point[0]), math::vector3f(point[1])};
+	math::vector3f LineA = PointA[1] - PointA[0];
 
-	return (type == types::line) ? FLT_MAX : DirectX::XMVectorGetX(DirectX::XMVector3Length(LineA));
+	return (type == types::line) ? FLT_MAX : LineA.length();
 }
 
 line::types line::get_type() const
@@ -63,65 +63,65 @@ line::types line::get_type() const
 	return	type;
 }
 
-DirectX::XMFLOAT3 line::get_point(float t) const
+math::float3 line::get_point(float t) const
 {
-	DirectX::XMVECTOR PointA[2] = {DirectX::XMLoadFloat3(&point[0]), DirectX::XMLoadFloat3(&point[1])};
-	DirectX::XMVECTOR LineA = DirectX::XMVectorSubtract(PointA[1], PointA[0]);
+	math::vector3f PointA[2] = {math::vector3f(point[0]), math::vector3f(point[1])};
+	math::vector3f LineA = PointA[1] - PointA[0];
 
-	DirectX::XMVECTOR Position;
+	math::vector3f Position;
 	if (type == types::line)
 	{
-		Position = DirectX::XMVectorMultiplyAdd(PointA[1], DirectX::XMVectorSet(t, t, t, 0), PointA[0]);
+		Position = PointA[1] * (math::vector3f(t, t, t)) + PointA[0];
 	}
 	else
 	{
-		Position = DirectX::XMVectorLerp(PointA[0], PointA[1], t);
+		Position = math::lerp(PointA[0], PointA[1], t);
 	}
-	DirectX::XMFLOAT3 position;
-	DirectX::XMStoreFloat3(&position, Position);
+	math::float3 position;
+	position = Position.to_float3();
 	return position;
 }
 
-float line::calculate_line_distance(DirectX::XMFLOAT3& horizon, float& delta, const DirectX::XMFLOAT3& point) const
+float line::calculate_line_distance(math::float3& horizon, float& delta, const math::float3& point) const
 {
-	DirectX::XMVECTOR PointA[2] = {DirectX::XMLoadFloat3(&this->point[0]), DirectX::XMLoadFloat3(&this->point[1])};
-	DirectX::XMVECTOR PointB = DirectX::XMLoadFloat3(&point);
-	float square_length = DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(PointA[1]));
+	math::vector3f PointA[2] = {math::vector3f(this->point[0]), math::vector3f(this->point[1])};
+	math::vector3f PointB(point);
+	float square_length = PointA[1].square_length();
 	delta	= 0.0f;
 	if (square_length > 0.0f)
 	{
-		delta = DirectX::XMVectorGetX(DirectX::XMVector3Dot(PointA[1], DirectX::XMVectorSubtract(PointB, PointA[0])));
+		delta = math::vector3f::dot(PointA[1], PointB - PointA[0]);
 		delta /= square_length;
 	}
 
-	DirectX::XMVECTOR Horizon;
-	Horizon = DirectX::XMVectorMultiplyAdd(PointA[1], DirectX::XMVectorSet(delta, delta, delta, 0), PointA[0]);
-	DirectX::XMStoreFloat3(&horizon, Horizon);
+	math::vector3f Horizon;
+	Horizon = PointA[1] * (math::vector3f(delta, delta, delta)) + PointA[0];
+	horizon = Horizon.to_float3();
 
-	return DirectX::XMVectorGetX(DirectX::XMVector3Length(DirectX::XMVectorSubtract(Horizon, PointB)));
+	return (Horizon - PointB).length();
 }
 
-float line::calculate_segment_distance(DirectX::XMFLOAT3& horizon, float& delta, const DirectX::XMFLOAT3& point) const
+float line::calculate_segment_distance(math::float3& horizon, float& delta, const math::float3& point) const
 {
-	DirectX::XMVECTOR PointA[2] = {DirectX::XMLoadFloat3(&this->point[0]), DirectX::XMLoadFloat3(&this->point[1])};
-	DirectX::XMVECTOR Point = DirectX::XMLoadFloat3(&point);
-	DirectX::XMVECTOR LineA = DirectX::XMVectorSubtract(PointA[1], PointA[0]);
+	math::vector3f PointA[2] = {math::vector3f(this->point[0]), math::vector3f(this->point[1])};
+	math::vector3f Point(point);
+	math::vector3f LineA = PointA[1] - PointA[0];
 
 	//	ê¸ï™è„ÇÃî}âÓïœêî(0Å`1)Ç≈ç≈ãﬂì_ÇéZèo
-	float square_length = DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(LineA));
+	float square_length = LineA.square_length();
 	delta = 0.0f;
 	if (square_length > FLT_EPSILON)
 	{
-		delta = DirectX::XMVectorGetX(DirectX::XMVector3Dot(LineA, DirectX::XMVectorSubtract(Point, PointA[0]))) / square_length;
+		delta = math::vector3f::dot(LineA, Point - PointA[0]) / square_length;
 		delta = math::saturate(delta);
 	}
 
-	DirectX::XMVECTOR Horizon = DirectX::XMVectorMultiplyAdd(LineA, DirectX::XMVectorReplicate(delta), PointA[0]);
-	DirectX::XMStoreFloat3(&horizon, Horizon);
-	return DirectX::XMVectorGetX(DirectX::XMVector3Length(DirectX::XMVectorSubtract(Horizon, Point)));
+	math::vector3f Horizon = LineA * (math::vector3f(delta, delta, delta)) + PointA[0];
+	horizon = Horizon.to_float3();
+	return (Horizon - Point).length();
 }
 
-float line::calculate_line_distance(DirectX::XMFLOAT3& horizon1, float& delta1, DirectX::XMFLOAT3& horizon2, float& delta2, const line& line) const
+float line::calculate_line_distance(math::float3& horizon1, float& delta1, math::float3& horizon2, float& delta2, const line& line) const
 {
 	//	2íºê¸Ç™ïΩçsÅH
 	if (is_parallel(line))
@@ -135,37 +135,37 @@ float line::calculate_line_distance(DirectX::XMFLOAT3& horizon1, float& delta1, 
 	}
 
 	//	2íºê¸ÇÕÇÀÇ∂ÇÍä÷åW
-	DirectX::XMVECTOR PointA[2] = {DirectX::XMLoadFloat3(&point[0]), DirectX::XMLoadFloat3(&point[1])};
-	DirectX::XMVECTOR PointB[2] = {DirectX::XMLoadFloat3(&line.point[0]), DirectX::XMLoadFloat3(&line.point[1])};
-	float dotV1_V2 = DirectX::XMVectorGetX(DirectX::XMVector3Dot(PointA[1], PointB[1]));
-	float dotV1_V1 = DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(PointA[1]));
-	float dotV2_V2 = DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(PointB[1]));
-	DirectX::XMVECTOR VectorP21_P11 = DirectX::XMVectorSubtract(PointA[0], PointB[0]);
+	math::vector3f PointA[2] = {math::vector3f(point[0]), math::vector3f(point[1])};
+	math::vector3f PointB[2] = {math::vector3f(line.point[0]), math::vector3f(line.point[1])};
+	float dotV1_V2 = math::vector3f::dot(PointA[1], PointB[1]);
+	float dotV1_V1 = PointA[1].square_length();
+	float dotV2_V2 = PointB[1].square_length();
+	math::vector3f VectorP21_P11 = PointA[0] - PointB[0];
 
-	float dotB2_P21P11 = DirectX::XMVectorGetX(DirectX::XMVector3Dot(PointB[1], VectorP21_P11));
-	float dotB1_P21P11 = DirectX::XMVectorGetX(DirectX::XMVector3Dot(PointA[1], VectorP21_P11));
+	float dotB2_P21P11 = math::vector3f::dot(PointB[1], VectorP21_P11);
+	float dotB1_P21P11 = math::vector3f::dot(PointA[1], VectorP21_P11);
 	delta1 = ( dotV1_V2 * dotB2_P21P11 - dotV2_V2 * dotB1_P21P11 ) / ( dotV1_V1 * dotV2_V2 - dotV1_V2 * dotV1_V2 );
 	horizon1 = get_point(delta1);
-	DirectX::XMVECTOR Horizon1 = DirectX::XMLoadFloat3(&horizon1);
-	delta2 = DirectX::XMVectorGetX(DirectX::XMVector3Dot(PointB[1], DirectX::XMVectorSubtract(Horizon1, PointB[0])));
+	math::vector3f Horizon1(horizon1);
+	delta2 = math::vector3f::dot(PointB[1], Horizon1 - PointB[0]);
 	delta2 /= dotV2_V2;
 	horizon2 = line.get_point(delta2);
-	DirectX::XMVECTOR Horizon2 = DirectX::XMLoadFloat3(&horizon2);
-	return DirectX::XMVectorGetX(DirectX::XMVector3Length(DirectX::XMVectorSubtract(Horizon2, Horizon1)));
+	math::vector3f Horizon2(horizon2);
+	return (Horizon2 - Horizon1).length();
 }
 
-float line::calculate_segment_distance(DirectX::XMFLOAT3& horizon1, float& delta1, DirectX::XMFLOAT3& horizon2, float& delta2, const line& line) const
+float line::calculate_segment_distance(math::float3& horizon1, float& delta1, math::float3& horizon2, float& delta2, const line& line) const
 {
-	DirectX::XMVECTOR PointA0 = DirectX::XMLoadFloat3(&point[0]);
-	DirectX::XMVECTOR PointA1 = DirectX::XMLoadFloat3(&point[1]);
-	DirectX::XMVECTOR PointB0 = DirectX::XMLoadFloat3(&line.point[0]);
-	DirectX::XMVECTOR PointB1 = DirectX::XMLoadFloat3(&line.point[1]);
-	DirectX::XMVECTOR LineA2_A1 = DirectX::XMVectorSubtract(PointA1, PointA0);
-	DirectX::XMVECTOR LineB2_B1 = DirectX::XMVectorSubtract(PointB1, PointB0);
-	DirectX::XMVECTOR LineA1_B1 = DirectX::XMVectorSubtract(PointA0, PointB0);
+	math::vector3f PointA0(point[0]);
+	math::vector3f PointA1(point[1]);
+	math::vector3f PointB0(line.point[0]);
+	math::vector3f PointB1(line.point[1]);
+	math::vector3f LineA2_A1 = PointA1 - PointA0;
+	math::vector3f LineB2_B1 = PointB1 - PointB0;
+	math::vector3f LineA1_B1 = PointA0 - PointB0;
 
-	float square_length1 = DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(LineA2_A1));
-	float square_length2 = DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(LineB2_B1));
+	float square_length1 = LineA2_A1.square_length();
+	float square_length2 = LineB2_B1.square_length();
 
 	//	S1Ç™èkëﬁÇµÇƒÇ¢ÇÈÅH
 	if (square_length1 <= FLT_EPSILON)
@@ -178,21 +178,21 @@ float line::calculate_segment_distance(DirectX::XMFLOAT3& horizon1, float& delta
 			delta2 = 0.0f;
 			horizon1 = point[0];
 			horizon2 = line.point[0];
-			DirectX::XMVECTOR Horizon1 = DirectX::XMLoadFloat3(&horizon1);
-			DirectX::XMVECTOR Horizon2 = DirectX::XMLoadFloat3(&horizon2);
-			return DirectX::XMVectorGetX(DirectX::XMVector3Length(DirectX::XMVectorSubtract(Horizon2, Horizon1)));
+			math::vector3f Horizon1(horizon1);
+			math::vector3f Horizon2(horizon2);
+			return (Horizon2 - Horizon1).length();
 		}
 		else
 		{
 			//	S1ÇÃénì_Ç∆S2ÇÃç≈íZñ‚ëËÇ…ãAíÖ
-			float dotLB2B1_LA1B1 = DirectX::XMVectorGetX(DirectX::XMVector3Dot(LineB2_B1, LineA1_B1));
+			float dotLB2B1_LA1B1 = math::vector3f::dot(LineB2_B1, LineA1_B1);
 			delta1 = 0.0f;
 			delta2 = math::saturate(dotLB2B1_LA1B1 / square_length2);
 		}
 	}
 	else
 	{
-		float dotLA2A1_LA1B1 = DirectX::XMVectorGetX(DirectX::XMVector3Dot(LineA2_A1, LineA1_B1));
+		float dotLA2A1_LA1B1 = math::vector3f::dot(LineA2_A1, LineA1_B1);
 		if (square_length2 <= FLT_EPSILON)
 		{
 			//	S2Ç™èkëﬁÇµÇƒÇ¢ÇÈèÍçáÇÕ
@@ -202,8 +202,8 @@ float line::calculate_segment_distance(DirectX::XMFLOAT3& horizon1, float& delta
 		}
 		else
 		{
-			float dotLB2B1_LA1B1 = DirectX::XMVectorGetX(DirectX::XMVector3Dot(LineB2_B1, LineA1_B1));
-			float dotLA2A1_LB2B1 = DirectX::XMVectorGetX(DirectX::XMVector3Dot(LineA2_A1, LineB2_B1));
+			float dotLB2B1_LA1B1 = math::vector3f::dot(LineB2_B1, LineA1_B1);
+			float dotLA2A1_LB2B1 = math::vector3f::dot(LineA2_A1, LineB2_B1);
 			float de_normal = square_length1 * square_length2 - dotLA2A1_LB2B1 * dotLA2A1_LB2B1;
 			if (de_normal != 0.0f)
 			{
@@ -230,10 +230,10 @@ float line::calculate_segment_distance(DirectX::XMFLOAT3& horizon1, float& delta
 		}
 	}
 
-	DirectX::XMVECTOR Horizon1 = DirectX::XMVectorMultiplyAdd(LineA2_A1, DirectX::XMVectorReplicate(delta1), PointA0);
-	DirectX::XMVECTOR Horizon2 = DirectX::XMVectorMultiplyAdd(LineB2_B1, DirectX::XMVectorReplicate(delta2), PointB0);
-	DirectX::XMStoreFloat3(&horizon1, Horizon1);
-	DirectX::XMStoreFloat3(&horizon2, Horizon2);
-	return DirectX::XMVectorGetX(DirectX::XMVector3Length(DirectX::XMVectorSubtract(Horizon2, Horizon1)));
+	math::vector3f Horizon1 = LineA2_A1 * (math::vector3f(delta1, delta1, delta1)) + PointA0;
+	math::vector3f Horizon2 = LineB2_B1 * (math::vector3f(delta2, delta2, delta2)) + PointB0;
+	horizon1 = Horizon1.to_float3();
+	horizon2 = Horizon2.to_float3();
+	return (Horizon2 - Horizon1).length();
 }
 

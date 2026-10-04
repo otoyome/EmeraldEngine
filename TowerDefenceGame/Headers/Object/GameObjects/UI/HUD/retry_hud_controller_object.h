@@ -58,7 +58,7 @@ private:
 	std::shared_ptr<key_icon_object> dead_icon;
 	std::shared_ptr<ui_text> dead_text;
 
-	DirectX::XMFLOAT4 original_color[magic_enum::enum_count<ui_ids>()];
+	math::float4 original_color[magic_enum::enum_count<ui_ids>()];
 
 	fade::directions direction;
 	fade::states fade_state;

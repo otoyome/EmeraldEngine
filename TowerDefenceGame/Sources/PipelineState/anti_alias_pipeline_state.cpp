@@ -13,7 +13,7 @@ namespace smaa
 		UINT smaa_max_search_steps_diagonal = 16;	//	対角パターン検索の最大ステップ数
 		UINT smaa_corner_rounding = 25;	//	角の丸みを調整
 		float smaa_local_contrast_adaptation_factor = 2.0f;	//	不要な交差エッジを除去するための係数
-		DirectX::XMUINT2 smaa_dummy;
+		math::uint2 smaa_dummy;
 		bool smaa_draw_edge = false;	//	デバッグ用の適応エッジ表示判定
 	};
 }

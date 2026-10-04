@@ -10,12 +10,12 @@ void stage_object::set_model_object(std::shared_ptr<model_object> model)
 	this->model = model;
 }
 
-const DirectX::XMFLOAT3& stage_object::get_scale() const
+const math::float3& stage_object::get_scale() const
 {
 	return model->get_scale();
 }
 
-void stage_object::set_scale(const DirectX::XMFLOAT3& scale)
+void stage_object::set_scale(const math::float3& scale)
 {
 	model->set_scale(scale);
 }
@@ -30,12 +30,12 @@ void stage_object::set_rotation(const math::rotatorf& rotator)
 	model->set_rotation(rotator);
 }
 
-const DirectX::XMFLOAT3& stage_object::get_position() const
+const math::float3& stage_object::get_position() const
 {
 	return model->get_position();
 }
 
-void stage_object::set_position(const DirectX::XMFLOAT3& position)
+void stage_object::set_position(const math::float3& position)
 {
 	model->set_position(position);
 }
@@ -57,18 +57,18 @@ void stage_object::imgui_render_core()
 #endif	//	defined(USE_IMGUI)
 
 #if 0
-size_t stage_object::ray_cast(const DirectX::XMFLOAT3& start, const DirectX::XMFLOAT3& end, collision::intersect_data& intersect_data)
+size_t stage_object::ray_cast(const math::float3& start, const math::float3& end, collision::intersect_data& intersect_data)
 {
-	return ray_cast(DirectX::XMLoadFloat3(&start), DirectX::XMLoadFloat3(&end), intersect_data);
+	return ray_cast(math::vector3f(start), math::vector3f(end), intersect_data);
 }
 
-size_t stage_object::ray_cast(const DirectX::XMVECTOR& Start, const DirectX::XMVECTOR& End, collision::intersect_data& intersect_data)
+size_t stage_object::ray_cast(const math::vector3f& Start, const math::vector3f& End, collision::intersect_data& intersect_data)
 {
 	if (!model || !model->get_model_instance() || !model->get_model_instance()->get_resource())
 		return stage_object::invalid_material_index;
 
-	DirectX::XMVECTOR WorldStart = Start;
-	DirectX::XMVECTOR WorldEnd = End;
+	const math::vector3f WorldStart = Start;
+	const math::vector3f WorldEnd = End;
 	//	レイキャスト前に姿勢を確定
 	update_transform();
 
@@ -86,44 +86,44 @@ size_t stage_object::ray_cast(const DirectX::XMVECTOR& Start, const DirectX::XMV
 			continue;
 
 		auto& node = instance->get_nodes()[mesh.node_index];
-		DirectX::XMMATRIX WorldTransform = DirectX::XMLoadFloat4x4(&node.world_transform);
+		math::matrixf WorldTransform(node.world_transform);
 		//	AABBと直線とで交差判定してレイキャストを飛ばせるようにする
 		{
 			mesh.bounds_min, mesh.bounds_max;
 		}
 
-		DirectX::XMMATRIX InverseWorldTransform = DirectX::XMMatrixInverse(nullptr, WorldTransform);
-		DirectX::XMVECTOR LocalStart = DirectX::XMVector3TransformCoord(WorldStart, InverseWorldTransform);
-		DirectX::XMVECTOR LocalEnd = DirectX::XMVector3TransformCoord(WorldEnd, InverseWorldTransform);
+		math::matrixf InverseWorldTransform = WorldTransform.inverted();
+		math::vector3f LocalStart = math::vector3f::transform_coord(WorldStart, InverseWorldTransform);
+		math::vector3f LocalEnd = math::vector3f::transform_coord(WorldEnd, InverseWorldTransform);
 		collision::triangles triangles;
-		triangles.positions = reinterpret_cast<const DirectX::XMFLOAT3*>(it->second.row_data.data());
+		triangles.positions = reinterpret_cast<const math::float3*>(it->second.row_data.data());
 		triangles.indices = reinterpret_cast<const UINT*>(mesh.index_buffer_view.row_data.data());
 		triangles.index_count = mesh.index_buffer_view.count();
 		triangles.reverse_index = true;
 		collision::intersect_data temp_intersect_data;
 		if (collision::ray_cast(LocalStart, LocalEnd, triangles, &temp_intersect_data))
 		{
-			DirectX::XMVECTOR LocalPoint = DirectX::XMLoadFloat3(&temp_intersect_data[0].point);
-			DirectX::XMVECTOR WorldPoint = DirectX::XMVector3TransformCoord(LocalPoint, WorldTransform);
-			DirectX::XMVECTOR WorldLength = DirectX::XMVector3Length(DirectX::XMVectorSubtract(WorldPoint, WorldStart));
+			math::vector3f LocalPoint(temp_intersect_data[0].point);
+			math::vector3f WorldPoint = math::vector3f::transform_coord(LocalPoint, WorldTransform);
+			float WorldLength = (WorldPoint - WorldStart).length();
 
-			float distance = DirectX::XMVectorGetX(WorldLength);
+			float distance = WorldLength;
 			if (intersect_data.size() == 0)
 			{
 				intersect_data = temp_intersect_data;
-				DirectX::XMVECTOR LocalNormal = DirectX::XMLoadFloat3(&temp_intersect_data[0].normal);
-				DirectX::XMVECTOR WorldNormal = DirectX::XMVector3TransformNormal(LocalNormal, WorldTransform);
-				DirectX::XMStoreFloat3(&intersect_data[0].point, WorldPoint);
-				DirectX::XMStoreFloat3(&intersect_data[0].normal, WorldNormal);
+				math::vector3f LocalNormal(temp_intersect_data[0].normal);
+				math::vector3f WorldNormal = math::vector3f::transform_normal(LocalNormal, WorldTransform);
+				intersect_data[0].point = WorldPoint.to_float3();
+				intersect_data[0].normal = WorldNormal.to_float3();
 				intersect_data[0].length = distance;
 				material_index = mesh.material_index;
 			}
 			else if (distance < intersect_data[0].length)
 			{
-				DirectX::XMVECTOR LocalNormal = DirectX::XMLoadFloat3(&temp_intersect_data[0].normal);
-				DirectX::XMVECTOR WorldNormal = DirectX::XMVector3TransformNormal(LocalNormal, WorldTransform);
-				DirectX::XMStoreFloat3(&intersect_data[0].point, WorldPoint);
-				DirectX::XMStoreFloat3(&intersect_data[0].normal, WorldNormal);
+				math::vector3f LocalNormal(temp_intersect_data[0].normal);
+				math::vector3f WorldNormal = math::vector3f::transform_normal(LocalNormal, WorldTransform);
+				intersect_data[0].point = WorldPoint.to_float3();
+				intersect_data[0].normal = WorldNormal.to_float3();
 				intersect_data[0].length = distance;
 				material_index = mesh.material_index;
 			}

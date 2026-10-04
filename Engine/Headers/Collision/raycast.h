@@ -1,7 +1,6 @@
 // RAYCAST
 #pragma once
 
-#include <directxmath.h>
 #include <utility>
 #include <cfloat>
 #include <cmath>
@@ -13,10 +12,10 @@ int intersect_ray_triangles
 	const uint32_t stride,
 	const uint32_t* indices,
 	const size_t index_count,
-	const DirectX::XMFLOAT4& ray_position,
-	const DirectX::XMFLOAT4& ray_direction,
-	DirectX::XMFLOAT4& intersection_point,
-	DirectX::XMFLOAT3& intersection_normal,
+	const math::float4& ray_position,
+	const math::float4& ray_direction,
+	math::float4& intersection_point,
+	math::float3& intersection_normal,
 	float& distance,
 	const bool RHS = true
 );

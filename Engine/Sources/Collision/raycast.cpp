@@ -1,7 +1,6 @@
 // RAYCAST
 #include "Collision/raycast.h"
 
-using namespace DirectX;
 
 int intersect_ray_triangles
 (
@@ -10,10 +9,10 @@ int intersect_ray_triangles
 	const uint32_t stride,
 	const uint32_t* indices,
 	const size_t index_count,
-	const XMFLOAT4& ray_position,
-	const XMFLOAT4& ray_direction,
-	XMFLOAT4& intersection_point,
-	XMFLOAT3& intersection_normal,
+	const math::float4& ray_position,
+	const math::float4& ray_direction,
+	math::float4& intersection_point,
+	math::float3& intersection_normal,
 	float& distance,
 	const bool RHS
 )
@@ -29,66 +28,51 @@ int intersect_ray_triangles
 	const float ray_length_limit{ distance };
 	float closest_distance{ FLT_MAX };
 
-	XMVECTOR XP{}, XN{};
-	const XMVECTOR P{ XMVectorSet(ray_position.x, ray_position.y, ray_position.z, 1) };
-	const XMVECTOR D{ XMVector3Normalize(XMVectorSet(ray_direction.x, ray_direction.y, ray_direction.z, 0)) };
+	math::vector3f XP{}, XN{};
+	const math::vector3f P(ray_position.x, ray_position.y, ray_position.z);
+	const math::vector3f D{ (math::vector3f(ray_direction.x, ray_direction.y, ray_direction.z)).normalized() };
 
 	using byte = uint8_t;
 	const byte* p{ reinterpret_cast<const byte*>(positions) + offset };
 	const size_t triangle_count{ index_count / 3 };
 	for (size_t triangle_index = 0; triangle_index < triangle_count; triangle_index++)
 	{
-		const XMVECTOR A{ XMVectorSet(
-			(reinterpret_cast<const float*>(p + indices[triangle_index * 3 + C0] * stride))[0],
-			(reinterpret_cast<const float*>(p + indices[triangle_index * 3 + C0] * stride))[1],
-			(reinterpret_cast<const float*>(p + indices[triangle_index * 3 + C0] * stride))[2],
-			1.0f
-		) };
-		const XMVECTOR B{ XMVectorSet(
-			(reinterpret_cast<const float*>(p + indices[triangle_index * 3 + C1] * stride))[0],
-			(reinterpret_cast<const float*>(p + indices[triangle_index * 3 + C1] * stride))[1],
-			(reinterpret_cast<const float*>(p + indices[triangle_index * 3 + C1] * stride))[2],
-			1.0f
-		) };
-		const XMVECTOR C{ XMVectorSet(
-			(reinterpret_cast<const float*>(p + indices[triangle_index * 3 + C2] * stride))[0],
-			(reinterpret_cast<const float*>(p + indices[triangle_index * 3 + C2] * stride))[1],
-			(reinterpret_cast<const float*>(p + indices[triangle_index * 3 + C2] * stride))[2],
-			1.0f
-		) };
+		const math::vector3f A(*reinterpret_cast<const math::float3*>(p + indices[triangle_index * 3 + C0] * stride));
+		const math::vector3f B(*reinterpret_cast<const math::float3*>(p + indices[triangle_index * 3 + C1] * stride));
+		const math::vector3f C(*reinterpret_cast<const math::float3*>(p + indices[triangle_index * 3 + C2] * stride));
 
-		XMVECTOR Q{};
+		math::vector3f Q{};
 
-		const XMVECTOR N{ XMVector3Normalize(XMVector3Cross(XMVectorSubtract(B, A), XMVectorSubtract(C, A))) };
-		const float d{ XMVectorGetByIndex(XMVector3Dot(N, A), 0) };
+		const math::vector3f N{ (math::vector3f::cross(B - A, C - A)).normalized() };
+		const float d{ math::vector3f::dot(N, A) };
 
-		const float denominator{ XMVectorGetByIndex(XMVector3Dot(N, D), 0) };
+		const float denominator{ math::vector3f::dot(N, D) };
 		if (denominator < 0)
 		{
-			const float numerator{ d - XMVectorGetByIndex(XMVector3Dot(N, P), 0) };
+			const float numerator{ d - math::vector3f::dot(N, P) };
 			const float t{ numerator / denominator };
 
 			if (t > 0 && t < ray_length_limit)
 			{
-				Q = XMVectorAdd(P, XMVectorScale(D, t));
+				Q = P + (D * t);
 
-				const XMVECTOR QA{ XMVectorSubtract(A, Q) };
-				const XMVECTOR QB{ XMVectorSubtract(B, Q) };
-				const XMVECTOR QC{ XMVectorSubtract(C, Q) };
+				const math::vector3f QA{ A - Q };
+				const math::vector3f QB{ B - Q };
+				const math::vector3f QC{ C - Q };
 
-				XMVECTOR U{ XMVector3Cross(QB, QC) };
-				XMVECTOR V{ XMVector3Cross(QC, QA) };
-				if (XMVectorGetByIndex(XMVector3Dot(U, V), 0) < 0)
+				math::vector3f U{ math::vector3f::cross(QB, QC) };
+				math::vector3f V{ math::vector3f::cross(QC, QA) };
+				if (math::vector3f::dot(U, V) < 0)
 				{
 					continue;
 				}
 
-				XMVECTOR W{ XMVector3Cross(QA, QB) };
-				if (XMVectorGetByIndex(XMVector3Dot(U, W), 0) < 0)
+				math::vector3f W{ math::vector3f::cross(QA, QB) };
+				if (math::vector3f::dot(U, W) < 0)
 				{
 					continue;
 				}
-				if (XMVectorGetByIndex(XMVector3Dot(V, W), 0) < 0)
+				if (math::vector3f::dot(V, W) < 0)
 				{
 					continue;
 				}
@@ -106,8 +90,8 @@ int intersect_ray_triangles
 	}
 	if (intersection_count > 0)
 	{
-		XMStoreFloat4(&intersection_point, XP);
-		XMStoreFloat3(&intersection_normal, XN);
+		intersection_point = math::float4(XP.x, XP.y, XP.z, 1.0f);
+		intersection_normal = XN.to_float3();
 		distance = closest_distance;
 	}
 	return intersected_triangle_index;

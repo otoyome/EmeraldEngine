@@ -29,41 +29,41 @@ namespace
 		"WEIGHTS",
 	};
 
-	DirectX::XMFLOAT3 convert_gltf_vector3_to_xmfloat3(const std::vector<double>& vec)
+	math::float3 convert_gltf_vector3_to_xmfloat3(const std::vector<double>& vec)
 	{
-		return DirectX::XMFLOAT3(static_cast<float>(vec.at(0)), static_cast<float>(vec.at(1)), static_cast<float>(vec.at(2)));
+		return math::float3(static_cast<float>(vec.at(0)), static_cast<float>(vec.at(1)), static_cast<float>(vec.at(2)));
 	}
 
-	DirectX::XMFLOAT4 convert_gltf_quaternion_to_xmfloat4(const std::vector<double>& quat)
+	math::float4 convert_gltf_quaternion_to_xmfloat4(const std::vector<double>& quat)
 	{
-		return DirectX::XMFLOAT4(static_cast<float>(quat.at(0)), static_cast<float>(quat.at(1)), static_cast<float>(quat.at(2)), static_cast<float>(quat.at(3)));
+		return math::float4(static_cast<float>(quat.at(0)), static_cast<float>(quat.at(1)), static_cast<float>(quat.at(2)), static_cast<float>(quat.at(3)));
 	}
 
-	DirectX::XMFLOAT4X4 convert_gltf_matrix_to_xmfloat4x4(const std::vector<double>& mat)
+	math::float4x4 convert_gltf_matrix_to_xmfloat4x4(const std::vector<double>& mat)
 	{
-		return DirectX::XMFLOAT4X4(static_cast<float>(mat.at(0)), static_cast<float>(mat.at(1)), static_cast<float>(mat.at(2)), static_cast<float>(mat.at(3)),
+		return math::float4x4(static_cast<float>(mat.at(0)), static_cast<float>(mat.at(1)), static_cast<float>(mat.at(2)), static_cast<float>(mat.at(3)),
 								   static_cast<float>(mat.at(4)), static_cast<float>(mat.at(5)), static_cast<float>(mat.at(6)), static_cast<float>(mat.at(7)),
 								   static_cast<float>(mat.at(8)), static_cast<float>(mat.at(9)), static_cast<float>(mat.at(10)), static_cast<float>(mat.at(11)),
 								   static_cast<float>(mat.at(12)), static_cast<float>(mat.at(13)), static_cast<float>(mat.at(14)), static_cast<float>(mat.at(15)));
 	}
 
-	void convert_vector_cordinate_axis_system(DirectX::XMFLOAT3& vec)
+	void convert_vector_cordinate_axis_system(math::float3& vec)
 	{
 		vec.x = -vec.x;
 	}
 
-	void convert_vector_cordinate_axis_system(DirectX::XMFLOAT4& vec)
+	void convert_vector_cordinate_axis_system(math::float4& vec)
 	{
 		vec.x = -vec.x;
 	}
 
-	void convert_quaternion_cordinate_axis_system(DirectX::XMFLOAT4& quat)
+	void convert_quaternion_cordinate_axis_system(math::float4& quat)
 	{
 		quat.x = -quat.x;
 		quat.w = -quat.w;
 	}
 
-	void convert_matrix_cordinate_axis_system(DirectX::XMFLOAT4X4& mat)
+	void convert_matrix_cordinate_axis_system(math::float4x4& mat)
 	{
 		mat._12 = -mat._12;
 		mat._13 = -mat._13;
@@ -87,7 +87,7 @@ namespace
 			auto it = mesh.vertex_buffers.find({ semantic_name, semantic_index });
 			if (it != mesh.vertex_buffers.end())
 			{
-				DirectX::XMFLOAT3* ptr = reinterpret_cast<DirectX::XMFLOAT3*>(it->second.row_data.data());
+				math::float3* ptr = reinterpret_cast<math::float3*>(it->second.row_data.data());
 				for (UINT index = 0; index < it->second.count(); ++index)
 				{
 					convert_vector_cordinate_axis_system(ptr[index]);
@@ -105,7 +105,7 @@ namespace
 				auto it = morph_data.second.vertex_buffers.find({ semantic_name, semantic_index });
 				if (it != morph_data.second.vertex_buffers.end())
 				{
-					DirectX::XMFLOAT3* ptr = reinterpret_cast<DirectX::XMFLOAT3*>(it->second.row_data.data());
+					math::float3* ptr = reinterpret_cast<math::float3*>(it->second.row_data.data());
 					for (UINT index = 0; index < it->second.count(); ++index)
 					{
 						convert_vector_cordinate_axis_system(ptr[index]);
@@ -125,7 +125,7 @@ namespace
 			auto it = mesh.vertex_buffers.find({ semantic_name, semantic_index });
 			if (it != mesh.vertex_buffers.end())
 			{
-				DirectX::XMFLOAT4* ptr = reinterpret_cast<DirectX::XMFLOAT4*>(it->second.row_data.data());
+				math::float4* ptr = reinterpret_cast<math::float4*>(it->second.row_data.data());
 				for (UINT index = 0; index < it->second.count(); ++index)
 				{
 					convert_vector_cordinate_axis_system(ptr[index]);
@@ -143,7 +143,7 @@ namespace
 				auto it = morph_data.second.vertex_buffers.find({ semantic_name, semantic_index });
 				if (it != morph_data.second.vertex_buffers.end())
 				{
-					DirectX::XMFLOAT4* ptr = reinterpret_cast<DirectX::XMFLOAT4*>(it->second.row_data.data());
+					math::float4* ptr = reinterpret_cast<math::float4*>(it->second.row_data.data());
 					for (UINT index = 0; index < it->second.count(); ++index)
 					{
 						convert_vector_cordinate_axis_system(ptr[index]);
@@ -297,29 +297,29 @@ namespace
 			return;
 		}
 
-		auto data_positions = reinterpret_cast<const DirectX::XMFLOAT3*>(it_positions->second.row_data.data());
-		auto data_texcoords = reinterpret_cast<const DirectX::XMFLOAT2*>(it_texcoord->second.row_data.data());
-		auto data_normals = reinterpret_cast<const DirectX::XMFLOAT3*>(it_normals->second.row_data.data());
+		auto data_positions = reinterpret_cast<const math::float3*>(it_positions->second.row_data.data());
+		auto data_texcoords = reinterpret_cast<const math::float2*>(it_texcoord->second.row_data.data());
+		auto data_normals = reinterpret_cast<const math::float3*>(it_normals->second.row_data.data());
 
-		auto calculate_tangent_and_binormal	= [](DirectX::XMFLOAT3* positions, DirectX::XMFLOAT2* texcorrds, DirectX::XMFLOAT3* normals,
-												 DirectX::XMFLOAT3& tangent, DirectX::XMFLOAT3& binormal)
+		auto calculate_tangent_and_binormal	= [](math::float3* positions, math::float2* texcorrds, math::float3* normals,
+												 math::float3& tangent, math::float3& binormal)
 		{
-			DirectX::XMVECTOR Parameters[3][3]	=
+			math::vector3f Parameters[3][3]	=
 			{
 				{
-					DirectX::XMVectorSet(positions[0].x, texcorrds[0].x, texcorrds[0].y, 0),
-					DirectX::XMVectorSet(positions[0].y, texcorrds[0].x, texcorrds[0].y, 0),
-					DirectX::XMVectorSet(positions[0].z, texcorrds[0].x, texcorrds[0].y, 0)
+					math::vector3f(positions[0].x, texcorrds[0].x, texcorrds[0].y),
+					math::vector3f(positions[0].y, texcorrds[0].x, texcorrds[0].y),
+					math::vector3f(positions[0].z, texcorrds[0].x, texcorrds[0].y)
 				},
 				{
-					DirectX::XMVectorSet(positions[1].x, texcorrds[1].x, texcorrds[1].y, 0),
-					DirectX::XMVectorSet(positions[1].y, texcorrds[1].x, texcorrds[1].y, 0),
-					DirectX::XMVectorSet(positions[1].z, texcorrds[1].x, texcorrds[1].y, 0)
+					math::vector3f(positions[1].x, texcorrds[1].x, texcorrds[1].y),
+					math::vector3f(positions[1].y, texcorrds[1].x, texcorrds[1].y),
+					math::vector3f(positions[1].z, texcorrds[1].x, texcorrds[1].y)
 				},
 				{
-					DirectX::XMVectorSet(positions[2].x, texcorrds[2].x, texcorrds[2].y, 0),
-					DirectX::XMVectorSet(positions[2].y, texcorrds[2].x, texcorrds[2].y, 0),
-					DirectX::XMVectorSet(positions[2].z, texcorrds[2].x, texcorrds[2].y, 0)
+					math::vector3f(positions[2].x, texcorrds[2].x, texcorrds[2].y),
+					math::vector3f(positions[2].y, texcorrds[2].x, texcorrds[2].y),
+					math::vector3f(positions[2].z, texcorrds[2].x, texcorrds[2].y)
 				},
 			};
 
@@ -327,32 +327,32 @@ namespace
 			float u[3], v[3];
 			for (UINT index = 0; index < 3; ++index)
 			{
-				DirectX::XMVECTOR V1 = DirectX::XMVectorSubtract(Parameters[1][index], Parameters[0][index]);
-				DirectX::XMVECTOR V2 = DirectX::XMVectorSubtract(Parameters[2][index], Parameters[0][index]);
-				DirectX::XMVECTOR ABC = DirectX::XMVector3Normalize(DirectX::XMVector3Cross(V1, V2));
-				if (DirectX::XMVectorGetX(ABC) == 0)
+				const math::vector3f V1 = Parameters[1][index] - Parameters[0][index];
+				const math::vector3f V2 = Parameters[2][index] - Parameters[0][index];
+				math::vector3f ABC = (math::vector3f::cross(V1, V2)).normalized();
+				if (ABC.x == 0)
 				{
 					//	縮退ポリゴンの場合はうまく算出できない
-					DirectX::XMVECTOR Normal = DirectX::XMLoadFloat3(normals);
-					DirectX::XMVECTOR Binormal = DirectX::XMVector3Normalize(DirectX::XMVector3Cross(Normal, DirectX::XMVectorSet(0, 1, 0, 0)));
-					DirectX::XMVECTOR Tangent = DirectX::XMVector3Normalize(DirectX::XMVector3Cross(Normal, Binormal));
-					Binormal = DirectX::XMVector3Normalize(DirectX::XMVector3Cross(Normal, Tangent));
-					DirectX::XMStoreFloat3(&tangent, Tangent);
-					DirectX::XMStoreFloat3(&binormal, Binormal);
+					math::vector3f Normal(*normals);
+					math::vector3f Binormal = (math::vector3f::cross(Normal, math::vector3f(0, 1, 0))).normalized();
+					math::vector3f Tangent = (math::vector3f::cross(Normal, Binormal)).normalized();
+					Binormal = (math::vector3f::cross(Normal, Tangent)).normalized();
+					tangent = Tangent.to_float3();
+					binormal = Binormal.to_float3();
 					return;
 				}
 				else
 				{
-					u[index] = -DirectX::XMVectorGetY(ABC) / DirectX::XMVectorGetX(ABC);
-					v[index] = -DirectX::XMVectorGetZ(ABC) / DirectX::XMVectorGetX(ABC);
+					u[index] = -ABC.y / ABC.x;
+					v[index] = -ABC.z / ABC.x;
 				}
 			}
-			DirectX::XMStoreFloat3(&tangent, DirectX::XMVector3Normalize(DirectX::XMVectorSet(u[0], u[1], u[2], 0)));
-			DirectX::XMStoreFloat3(&binormal, DirectX::XMVector3Normalize(DirectX::XMVectorSet(v[0], v[1], v[2], 0)));
+			tangent = ((math::vector3f(u[0], u[1], u[2])).normalized()).to_float3();
+			binormal = ((math::vector3f(v[0], v[1], v[2])).normalized()).to_float3();
 		};
 
 		//	各頂点の接線と従法線の合計を算出
-		std::vector<DirectX::XMFLOAT3> tangents, binormals;
+		std::vector<math::float3> tangents, binormals;
 		tangents.resize(it_positions->second.count());
 		binormals.resize(it_positions->second.count());
 		for (UINT index = 0; index < index_buffer.count(); index += 3)
@@ -387,10 +387,10 @@ namespace
 			}
 
 			//	接線算出
-			DirectX::XMFLOAT3 positions[3] = {data_positions[indices[0]], data_positions[indices[1]], data_positions[indices[2]]};
-			DirectX::XMFLOAT2 texcoords[3] ={data_texcoords[indices[0]], data_texcoords[indices[1]], data_texcoords[indices[2]]};
-			DirectX::XMFLOAT3 normals[3] ={data_normals[indices[0]], data_normals[indices[1]], data_normals[indices[2]]};
-			DirectX::XMFLOAT3 tangent, binormal;
+			math::float3 positions[3] = {data_positions[indices[0]], data_positions[indices[1]], data_positions[indices[2]]};
+			math::float2 texcoords[3] ={data_texcoords[indices[0]], data_texcoords[indices[1]], data_texcoords[indices[2]]};
+			math::float3 normals[3] ={data_normals[indices[0]], data_normals[indices[1]], data_normals[indices[2]]};
+			math::float3 tangent, binormal;
 			calculate_tangent_and_binormal(positions, texcoords, normals, tangent, binormal);
 
 			//	合計から求める
@@ -421,19 +421,19 @@ namespace
 		buffer_data.stride_in_bytes = graphics_utility::get_byte_offset_from_format(buffer_data.format);
 		buffer_data.size_in_bytes = buffer_data.stride_in_bytes * it_positions->second.count();
 		buffer_data.row_data.resize(buffer_data.size_in_bytes);
-		auto data_tangents = reinterpret_cast<DirectX::XMFLOAT4*>(buffer_data.row_data.data());
+		auto data_tangents = reinterpret_cast<math::float4*>(buffer_data.row_data.data());
 		for (std::size_t index = 0; index < buffer_data.count(); ++index)
 		{
-			DirectX::XMVECTOR T = DirectX::XMLoadFloat3(tangents.data() + index);
-			DirectX::XMVECTOR B = DirectX::XMLoadFloat3(binormals.data() + index);
-			DirectX::XMVECTOR N = DirectX::XMLoadFloat3(data_normals + index);
+			math::vector3f T(tangents[index]);
+			math::vector3f B(binormals[index]);
+			math::vector3f N(data_normals[index]);
 
 			//	グラムシュミット直交化
-			T = DirectX::XMVector3Normalize(DirectX::XMVectorSubtract(T, DirectX::XMVectorScale(N, DirectX::XMVectorGetX(DirectX::XMVector3Dot(N, T)))));
+			T = (T - (N * (math::vector3f::dot(N, T)))).normalized();
 
 			//	符号算出
-			float handedness = (DirectX::XMVectorGetX(DirectX::XMVector3Dot(DirectX::XMVector3Cross(N, T), B)) < 0.0f) ? -1.0f : 1.0f;
-			DirectX::XMStoreFloat4(data_tangents + index, DirectX::XMVectorSetW(T, handedness));
+			float handedness = (math::vector3f::dot(math::vector3f::cross(N, T), B) < 0.0f) ? -1.0f : 1.0f;
+			data_tangents[index] = math::float4(T.x, T.y, T.z, handedness);
 		}
 		vertex_buffers.insert_or_assign(semantic(gltf_semantic_names[static_cast<int>(gltf_semantic_index::TANGENT)], 0), buffer_data);
 	}
@@ -1243,9 +1243,9 @@ gltf_loader::node_animation_data::pose_data gltf_loader::node_animation_data::ca
 		if (data1.second <= second && second < data2.second)
 		{
 			float rate = (second - data1.second) / (data2.second - data1.second);
-			DirectX::XMVECTOR R1 = DirectX::XMLoadFloat4(&data1.value);
-			DirectX::XMVECTOR R2 = DirectX::XMLoadFloat4(&data2.value);
-			DirectX::XMStoreFloat4(&pose.rotation, DirectX::XMQuaternionSlerp(R1, R2, rate));
+			math::quaternionf R1(data1.value);
+			math::quaternionf R2(data2.value);
+			pose.rotation = (math::slerp(R1, R2, rate)).to_float4();
 			break;
 		}
 	}
@@ -1344,14 +1344,15 @@ void gltf_loader::load_nodes(std::vector<node_data>& nodes)
 
 		if (!gltf_node.matrix.empty())
 		{
-			DirectX::XMFLOAT4X4 m = convert_gltf_matrix_to_xmfloat4x4(gltf_node.matrix);
+			math::float4x4 m = convert_gltf_matrix_to_xmfloat4x4(gltf_node.matrix);
 
-			DirectX::XMVECTOR S, R, T;
-			DirectX::XMMatrixDecompose(&S, &R, &T, DirectX::XMLoadFloat4x4(&m));
+			math::vector3f S, T;
+			math::quaternionf R;
+			math::matrixf(m).decompose(S, R, T);
 
-			DirectX::XMStoreFloat3(&node.scale, S);
-			DirectX::XMStoreFloat4(&node.rotation, R);
-			DirectX::XMStoreFloat3(&node.translation, T);
+			node.scale = S.to_float3();
+			node.rotation = R.to_float4();
+			node.translation = T.to_float3();
 		}
 		else
 		{
@@ -1378,13 +1379,13 @@ void gltf_loader::load_meshes(std::vector<mesh_data>& meshes, const std::vector<
 {
 	auto calculate_transform_matrix = [&](const node_data& node)
 	{
-		DirectX::XMMATRIX S = DirectX::XMMatrixScalingFromVector(DirectX::XMLoadFloat3(&node.scale));
-		DirectX::XMMATRIX R = DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&node.rotation));
-		DirectX::XMMATRIX T = DirectX::XMMatrixTranslationFromVector(DirectX::XMLoadFloat3(&node.translation));
+		math::matrixf S = math::matrixf::scaling(math::vector3f(node.scale));
+		math::matrixf R = math::matrixf::rotation_quaternion(math::quaternionf(node.rotation));
+		math::matrixf T = math::matrixf::translation(math::vector3f(node.translation));
 		return S * R * T;
 	};
 
-	std::function<void(DirectX::XMMATRIX&, std::size_t)> calculate_global_matrix = [&](DirectX::XMMATRIX& m, std::size_t index)
+	std::function<void(math::matrixf&, std::size_t)> calculate_global_matrix = [&](math::matrixf& m, std::size_t index)
 	{
 		if (index == invalid_id)
 			return;
@@ -1421,7 +1422,7 @@ void gltf_loader::load_meshes(std::vector<mesh_data>& meshes, const std::vector<
 				const tinygltf::Skin& gltf_skin = gltf_model.skins.at(gltf_node.skin);
 				const tinygltf::Accessor& gltf_accessor = gltf_model.accessors.at(gltf_skin.inverseBindMatrices);
 				const tinygltf::BufferView& gltf_buffer_view = gltf_model.bufferViews.at(gltf_accessor.bufferView);
-				const DirectX::XMFLOAT4X4* offset_matrices = reinterpret_cast<const DirectX::XMFLOAT4X4*>(gltf_model.buffers.at(gltf_buffer_view.buffer).data.data() + gltf_buffer_view.byteOffset + gltf_accessor.byteOffset);
+				const math::float4x4* offset_matrices = reinterpret_cast<const math::float4x4*>(gltf_model.buffers.at(gltf_buffer_view.buffer).data.data() + gltf_buffer_view.byteOffset + gltf_accessor.byteOffset);
 				for (int bone_index = 0; bone_index < gltf_accessor.count; ++bone_index)
 				{
 					bone_data& bone = mesh.bones.emplace_back();
@@ -1655,7 +1656,7 @@ void gltf_loader::load_meshes(std::vector<mesh_data>& meshes, const std::vector<
 					if (total_weights.empty())
 						total_weights.resize(it->second.count());
 
-					DirectX::XMFLOAT4* weights = it->second.data<DirectX::XMFLOAT4>();
+					math::float4* weights = it->second.data<math::float4>();
 					for (UINT vertex_index = 0; vertex_index < it->second.count(); ++vertex_index)
 					{
 						total_weights[vertex_index].second += weights[vertex_index].x;
@@ -1679,7 +1680,7 @@ void gltf_loader::load_meshes(std::vector<mesh_data>& meshes, const std::vector<
 					if (it == mesh.vertex_buffers.end())
 						continue;
 
-					DirectX::XMFLOAT4* weights = it->second.data<DirectX::XMFLOAT4>();
+					math::float4* weights = it->second.data<math::float4>();
 					for (UINT vertex_index = 0; vertex_index < it->second.count(); ++vertex_index)
 					{
 						if (total_weights[vertex_index].first)
@@ -1710,33 +1711,33 @@ void gltf_loader::load_meshes(std::vector<mesh_data>& meshes, const std::vector<
 				auto positions = mesh.vertex_buffers.find({ gltf_semantic_names[static_cast<int>(gltf_semantic_index::POSITION)], 0});
 				if (positions != mesh.vertex_buffers.end())
 				{
-					DirectX::XMFLOAT3* ptr = reinterpret_cast<DirectX::XMFLOAT3*>(positions->second.row_data.data());
+					math::float3* ptr = reinterpret_cast<math::float3*>(positions->second.row_data.data());
 
-					std::vector<DirectX::XMUINT4*> joints;
-					std::vector<DirectX::XMFLOAT4*> weights;
+					std::vector<math::uint4*> joints;
+					std::vector<math::float4*> weights;
 					while (mesh.vertex_buffers.end() != mesh.vertex_buffers.find({ gltf_semantic_names[static_cast<int>(gltf_semantic_index::JOINTS)], static_cast<UINT>(joints.size()) }))
 					{
 						auto joint_data = mesh.vertex_buffers.find({ gltf_semantic_names[static_cast<int>(gltf_semantic_index::JOINTS)], static_cast<UINT>(joints.size())});
 						auto weight_data = mesh.vertex_buffers.find({ gltf_semantic_names[static_cast<int>(gltf_semantic_index::WEIGHTS)], static_cast<UINT>(joints.size())});
-						joints.emplace_back(reinterpret_cast<DirectX::XMUINT4*>(joint_data->second.row_data.data()));
-						weights.emplace_back(reinterpret_cast<DirectX::XMFLOAT4*>(weight_data->second.row_data.data()));
+						joints.emplace_back(reinterpret_cast<math::uint4*>(joint_data->second.row_data.data()));
+						weights.emplace_back(reinterpret_cast<math::float4*>(weight_data->second.row_data.data()));
 					}
 
-					std::vector<DirectX::XMMATRIX> transforms(mesh.bones.size());
+					std::vector<math::matrixf> transforms(mesh.bones.size());
 					for (UINT index = 0; index < mesh.bones.size(); ++index)
 					{
 						auto& node = mesh.bones[index];
-						DirectX::XMMATRIX wm = calculate_transform_matrix(nodes[node.node_index]);
+						math::matrixf wm = calculate_transform_matrix(nodes[node.node_index]);
 						calculate_global_matrix(wm, nodes[node.node_index].parent_node_index);
-						transforms[index] = DirectX::XMLoadFloat4x4(&node.offset_matrix) * wm;
+						transforms[index] = math::matrixf(node.offset_matrix) * wm;
 					}
 
 					for (UINT index = 0; index < positions->second.count(); ++index)
 					{
-						DirectX::XMFLOAT3 pos = ptr[index];
+						math::float3 pos = ptr[index];
 						if (!joints.empty())
 						{
-							DirectX::XMMATRIX m = DirectX::XMMatrixSet(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+							math::matrixf m(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 							for (UINT joint_index = 0; joint_index < joints.size(); ++joint_index)
 							{
 								m += transforms[joints[joint_index][index].x] * weights[joint_index][index].x;
@@ -1744,8 +1745,8 @@ void gltf_loader::load_meshes(std::vector<mesh_data>& meshes, const std::vector<
 								m += transforms[joints[joint_index][index].z] * weights[joint_index][index].z;
 								m += transforms[joints[joint_index][index].w] * weights[joint_index][index].w;
 							}
-							DirectX::XMVECTOR p = DirectX::XMLoadFloat3(&pos);
-							DirectX::XMStoreFloat3(&pos, DirectX::XMVector3TransformCoord(p, m));
+							math::vector3f p(pos);
+							pos = (math::vector3f::transform_coord(p, m)).to_float3();
 						}
 						mesh.bounds_min.x = std::min(pos.x, mesh.bounds_min.x);
 						mesh.bounds_min.y = std::min(pos.y, mesh.bounds_min.y);
@@ -1945,7 +1946,7 @@ void gltf_loader::populate_vertex_data(std::vector<mesh_data>& meshes, const sem
 
 void gltf_loader::load_animations(std::vector<animation_data>& animations, const std::vector<node_data>& nodes)
 {
-	DirectX::XMVECTOR epsilon = DirectX::XMVectorReplicate(0.00001f);
+	math::vector3f epsilon(0.00001f, 0.00001f, 0.00001f);
 	animations.reserve(gltf_model.animations.size());
 	for (const tinygltf::Animation& gltf_animation : gltf_model.animations)
 	{
@@ -1991,7 +1992,7 @@ void gltf_loader::load_animations(std::vector<animation_data>& animations, const
 			// キーフレームデータ取得
 			if (gltf_animation_channel.target_path == "scale")
 			{
-				const DirectX::XMFLOAT3* gltf_key_frame_values = reinterpret_cast<const DirectX::XMFLOAT3*>(gltf_model.buffers.at(gltf_output_buffer_view.buffer).data.data() + gltf_output_buffer_view.byteOffset + gltf_output_accessor.byteOffset);
+				const math::float3* gltf_key_frame_values = reinterpret_cast<const math::float3*>(gltf_model.buffers.at(gltf_output_buffer_view.buffer).data.data() + gltf_output_buffer_view.byteOffset + gltf_output_accessor.byteOffset);
 				for (int index = 0; index < gltf_input_accessor.count; ++index)
 				{
 					vector_key_frame& key_frame = node_animation.scales.emplace_back();
@@ -2001,7 +2002,7 @@ void gltf_loader::load_animations(std::vector<animation_data>& animations, const
 			}
 			else if (gltf_animation_channel.target_path == "rotation")
 			{
-				const DirectX::XMFLOAT4* gltf_key_frame_values = reinterpret_cast<const DirectX::XMFLOAT4*>(gltf_model.buffers.at(gltf_output_buffer_view.buffer).data.data() + gltf_output_buffer_view.byteOffset + gltf_output_accessor.byteOffset);
+				const math::float4* gltf_key_frame_values = reinterpret_cast<const math::float4*>(gltf_model.buffers.at(gltf_output_buffer_view.buffer).data.data() + gltf_output_buffer_view.byteOffset + gltf_output_accessor.byteOffset);
 				for (int index = 0; index < gltf_input_accessor.count; ++index)
 				{
 					quaternion_key_frame& key_frame = node_animation.rotations.emplace_back();
@@ -2011,7 +2012,7 @@ void gltf_loader::load_animations(std::vector<animation_data>& animations, const
 			}
 			else if (gltf_animation_channel.target_path == "translation")
 			{
-				const DirectX::XMFLOAT3* gltf_key_frame_values = reinterpret_cast<const DirectX::XMFLOAT3*>(gltf_model.buffers.at(gltf_output_buffer_view.buffer).data.data() + gltf_output_buffer_view.byteOffset + gltf_output_accessor.byteOffset);
+				const math::float3* gltf_key_frame_values = reinterpret_cast<const math::float3*>(gltf_model.buffers.at(gltf_output_buffer_view.buffer).data.data() + gltf_output_buffer_view.byteOffset + gltf_output_accessor.byteOffset);
 				for (int index = 0; index < gltf_input_accessor.count; ++index)
 				{
 					vector_key_frame& key_frame = node_animation.translations.emplace_back();
@@ -2112,7 +2113,7 @@ void gltf_loader::load_node_bones(std::vector<bone_data>& bones, const convert_m
 				const tinygltf::Skin& gltf_skin = gltf_model.skins.at(gltf_node.skin);
 				const tinygltf::Accessor& gltf_accessor = gltf_model.accessors.at(gltf_skin.inverseBindMatrices);
 				const tinygltf::BufferView& gltf_buffer_view = gltf_model.bufferViews.at(gltf_accessor.bufferView);
-				const DirectX::XMFLOAT4X4* offset_matrices = reinterpret_cast<const DirectX::XMFLOAT4X4*>(gltf_model.buffers.at(gltf_buffer_view.buffer).data.data() + gltf_buffer_view.byteOffset + gltf_accessor.byteOffset);
+				const math::float4x4* offset_matrices = reinterpret_cast<const math::float4x4*>(gltf_model.buffers.at(gltf_buffer_view.buffer).data.data() + gltf_buffer_view.byteOffset + gltf_accessor.byteOffset);
 				for (int bone_index = 0; bone_index < gltf_accessor.count; ++bone_index)
 				{
 					auto node_index = gltf_skin.joints.at(bone_index);

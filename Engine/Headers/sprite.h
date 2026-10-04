@@ -10,11 +10,11 @@ public:
 	static constexpr std::string_view base_texture_name = "color_map";
 
 public:
-	const std::vector<DirectX::XMFLOAT3>& get_positions() const { return positions; }
-	const std::vector<DirectX::XMFLOAT4>& get_colors() const { return colors; }
-	const std::vector<DirectX::XMFLOAT2>& get_texcoords() const { return texcoords; }
+	const std::vector<math::float3>& get_positions() const { return positions; }
+	const std::vector<math::float4>& get_colors() const { return colors; }
+	const std::vector<math::float2>& get_texcoords() const { return texcoords; }
 	const std::vector<UINT>& get_indices() const {return indices;}
-	DirectX::XMFLOAT4X4 get_transform_matrix() const { return transform_matrix; }
+	math::float4x4 get_transform_matrix() const { return transform_matrix; }
 	material& get_material() {return material;}
 	const material& get_material() const {return material;}
 
@@ -24,9 +24,9 @@ public:
 
 	struct vertex
 	{
-		DirectX::XMFLOAT3 position;
-		DirectX::XMFLOAT4 color;
-		DirectX::XMFLOAT2 texcoord;
+		math::float3 position;
+		math::float4 color;
+		math::float2 texcoord;
 	};
 	void update_vertices(const std::vector<vertex>& vertices, const std::vector<UINT>& indices);
 
@@ -37,10 +37,10 @@ public:
 		float sx, float sy, float sw, float sh);
 
 private:
-	std::vector<DirectX::XMFLOAT3> positions;
-	std::vector<DirectX::XMFLOAT4> colors;
-	std::vector<DirectX::XMFLOAT2> texcoords;
+	std::vector<math::float3> positions;
+	std::vector<math::float4> colors;
+	std::vector<math::float2> texcoords;
 	std::vector<UINT> indices;
-	DirectX::XMFLOAT4X4 transform_matrix;
+	math::float4x4 transform_matrix;
 	material material;
 };

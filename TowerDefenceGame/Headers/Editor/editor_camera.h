@@ -12,7 +12,7 @@ public:
 	static constexpr std::string_view left_click_release_identifier = "editor_camera::left_click_release_identifier";
 	struct mouse_position_data
 	{
-		DirectX::XMFLOAT2 position;
+		math::float2 position;
 	};
 
 public:
@@ -27,8 +27,8 @@ public:
 	inline std::shared_ptr<camera_object> get_camera() {return camera;}
 	void set_rotation(const math::rotatorf& rotation) {this->rotation = rotation;}
 	const math::rotatorf& get_rotation() {return rotation;}
-	void set_position(const DirectX::XMFLOAT3& position) { this->position = position; }
-	const DirectX::XMFLOAT3& get_position() { return position; }
+	void set_position(const math::float3& position) { this->position = position; }
+	const math::float3& get_position() { return position; }
 
 	void set_rotation_speed(float rotation_speed) { this->rotation_speed = rotation_speed; }
 	float get_rotation_speed() { return rotation_speed; }
@@ -42,9 +42,9 @@ private:
 	bool is_auto_rotate = false;
 
 	math::rotatorf rotation;
-	DirectX::XMFLOAT3 position;
+	math::float3 position;
 	math::rotatorf restore_rotation;
-	DirectX::XMFLOAT3 restore_position;
+	math::float3 restore_position;
 
 	POINT cursor_position{ 0, 0 };
 	float rotation_speed = 0.0125f * 0.5f;

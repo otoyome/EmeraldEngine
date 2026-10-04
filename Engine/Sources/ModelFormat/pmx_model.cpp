@@ -20,20 +20,20 @@ namespace
 	float difference_angle(float a, float b)
 	{
 		float diff = math::angle::normalize_positive(a) - math::angle::normalize_positive(b);
-		if (diff > DirectX::XM_PI)
+		if (diff > math::constants<float>::pi)
 		{
-			return diff - DirectX::XM_2PI;
+			return diff - math::constants<float>::pi2;
 		}
-		else if (diff < -DirectX::XM_PI)
+		else if (diff < -math::constants<float>::pi)
 		{
-			return diff + DirectX::XM_2PI;
+			return diff + math::constants<float>::pi2;
 		}
 		return diff;
 	}
-	DirectX::XMFLOAT3 decompose(const DirectX::XMMATRIX& m, const DirectX::XMFLOAT3& before)
+	math::float3 decompose(const math::matrixf& m, const math::float3& before)
 	{
-		DirectX::XMFLOAT3 r;
-		float sy = -m.r[0].m128_f32[2];
+		math::float3 r;
+		float sy = -m.storage[0][2];
 		const float e = 1.0e-6f;
 
 		if ((1.0f - std::abs(sy)) < e)
@@ -47,12 +47,12 @@ namespace
 				if (cx > 0)
 				{
 					r.x = 0;
-					r.z = std::asin(-m.r[1].m128_f32[0]);
+					r.z = std::asin(-m.storage[1][0]);
 				}
 				else
 				{
-					r.x = DirectX::XM_PI;
-					r.z = std::asin(m.r[1].m128_f32[0]);
+					r.x = math::constants<float>::pi;
+					r.z = std::asin(m.storage[1][0]);
 				}
 			}
 			else
@@ -61,24 +61,24 @@ namespace
 				if (cz > 0)
 				{
 					r.z = 0;
-					r.x = std::asin(-m.r[2].m128_f32[1]);
+					r.x = std::asin(-m.storage[2][1]);
 				}
 				else
 				{
-					r.z = DirectX::XM_PI;
-					r.x = std::asin(m.r[2].m128_f32[1]);
+					r.z = math::constants<float>::pi;
+					r.x = std::asin(m.storage[2][1]);
 				}
 			}
 		}
 		else
 		{
-			r.x = std::atan2(m.r[1].m128_f32[2], m.r[2].m128_f32[2]);
-			r.y = std::asin(-m.r[0].m128_f32[2]);
-			r.z = std::atan2(m.r[0].m128_f32[1], m.r[0].m128_f32[0]);
+			r.x = std::atan2(m.storage[1][2], m.storage[2][2]);
+			r.y = std::asin(-m.storage[0][2]);
+			r.z = std::atan2(m.storage[0][1], m.storage[0][0]);
 		}
 
-		const float pi = DirectX::XM_PI;
-		DirectX::XMFLOAT3 tests[] =
+		const float pi = math::constants<float>::pi;
+		math::float3 tests[] =
 		{
 			{ r.x + pi, pi - r.y, r.z + pi },
 			{ r.x + pi, pi - r.y, r.z - pi },
@@ -107,30 +107,30 @@ namespace
 		}
 		return r;
 	}
-	DirectX::XMFLOAT3 decompose(const DirectX::XMVECTOR& q, const DirectX::XMFLOAT3& before)
+	math::float3 decompose(const math::quaternionf& q, const math::float3& before)
 	{
-		return decompose(DirectX::XMMatrixRotationQuaternion(q), before);
+		return decompose(math::matrixf::rotation_quaternion(q), before);
 	}
 
-	DirectX::XMFLOAT3 subtract_angle(const DirectX::XMFLOAT3& current_angle, const DirectX::XMFLOAT3& prev_angle)
+	math::float3 subtract_angle(const math::float3& current_angle, const math::float3& prev_angle)
 	{
-		DirectX::XMFLOAT3 angle;
+		math::float3 angle;
 		angle.x = math::angle::normalize_positive(current_angle.x - prev_angle.x);
 		angle.y = math::angle::normalize_positive(current_angle.y - prev_angle.y);
 		angle.z = math::angle::normalize_positive(current_angle.z - prev_angle.z);
 		return	angle;
 	}
-	DirectX::XMFLOAT3 additional_angle(const DirectX::XMFLOAT3& current_angle, const DirectX::XMFLOAT3& prev_angle)
+	math::float3 additional_angle(const math::float3& current_angle, const math::float3& prev_angle)
 	{
-		DirectX::XMFLOAT3 angle;
+		math::float3 angle;
 		angle.x = math::angle::normalize_positive(current_angle.x + prev_angle.x);
 		angle.y = math::angle::normalize_positive(current_angle.y + prev_angle.y);
 		angle.z = math::angle::normalize_positive(current_angle.z + prev_angle.z);
 		return	angle;
 	}
-	DirectX::XMFLOAT3 clamp_angle(const DirectX::XMFLOAT3& current_angle, const DirectX::XMFLOAT3& min, const DirectX::XMFLOAT3& max)
+	math::float3 clamp_angle(const math::float3& current_angle, const math::float3& min, const math::float3& max)
 	{
-		DirectX::XMFLOAT3 angle;
+		math::float3 angle;
 		angle.x = std::clamp(current_angle.x, min.x, max.x);
 		angle.y = std::clamp(current_angle.y, min.y, max.y);
 		angle.z = std::clamp(current_angle.z, min.z, max.z);
@@ -174,34 +174,35 @@ void pmx_model::calculate_node_data::begin()
 
 void pmx_model::calculate_node_data::update_local_matrix()
 {
-	DirectX::XMVECTOR local_scale, local_rotation, local_position;
-	local_scale = DirectX::XMLoadFloat3(&animation_scale);
+	math::vector3f local_scale, local_position;
+	math::quaternionf local_rotation;
+	local_scale = math::vector3f(animation_scale);
 
-	local_rotation	= DirectX::XMVectorSet( 0, 0, 0, 1 );
-	local_rotation	= DirectX::XMQuaternionMultiply(local_rotation, DirectX::XMLoadFloat4(&append_rotation));
-	local_rotation	= DirectX::XMQuaternionMultiply(local_rotation, DirectX::XMLoadFloat4(&animation_rotation));
-	local_rotation	= DirectX::XMQuaternionMultiply(local_rotation, DirectX::XMLoadFloat4(&ik_rotation));
+	local_rotation	= math::quaternionf(0, 0, 0, 1);
+	local_rotation	= local_rotation * math::quaternionf(append_rotation);
+	local_rotation	= local_rotation * math::quaternionf(animation_rotation);
+	local_rotation	= local_rotation * math::quaternionf(ik_rotation);
 
-	local_position	= DirectX::XMLoadFloat3(&append_translation);
-	local_position	= DirectX::XMVectorAdd(local_position, DirectX::XMLoadFloat3(&animation_translation));
+	local_position	= math::vector3f(append_translation);
+	local_position	= local_position + math::vector3f(animation_translation);
 
-	DirectX::XMMATRIX matrix;
-	matrix	= DirectX::XMMatrixScalingFromVector(local_scale)
-			* DirectX::XMMatrixRotationQuaternion(local_rotation)
-			* DirectX::XMMatrixTranslationFromVector(local_position)
-			* DirectX::XMLoadFloat4x4(&initialize_matrix);
-	DirectX::XMMatrixDecompose(&local_scale, &local_rotation, &local_position, matrix);
-	DirectX::XMStoreFloat3(&scale, local_scale);
-	DirectX::XMStoreFloat4(&rotation, local_rotation);
-	DirectX::XMStoreFloat3(&position, local_position);
-	DirectX::XMStoreFloat4x4(&locll_matrix, matrix);
+	math::matrixf matrix;
+	matrix	= math::matrixf::scaling(local_scale)
+			* math::matrixf::rotation_quaternion(local_rotation)
+			* math::matrixf::translation(local_position)
+			* math::matrixf(initialize_matrix);
+	matrix.decompose(local_scale, local_rotation, local_position);
+	scale = local_scale.to_float3();
+	rotation = local_rotation.to_float4();
+	position = local_position.to_float3();
+	locll_matrix = matrix.to_float4x4();
 	global_matrix = locll_matrix;
 }
 
-void pmx_model::calculate_node_data::update_global_matrix(DirectX::XMMATRIX parent_global_matrix)
+void pmx_model::calculate_node_data::update_global_matrix(const math::matrixf& parent_global_matrix)
 {
-	DirectX::XMMATRIX matrix = DirectX::XMLoadFloat4x4(&global_matrix);
-	DirectX::XMStoreFloat4x4(&global_matrix, matrix * parent_global_matrix);
+	math::matrixf matrix(global_matrix);
+	global_matrix = (matrix * parent_global_matrix).to_float4x4();
 }
 
 #define	SWAP( a, b )	if(a > b){ decltype( a )	t	= b; b	= a; a	= t; }
@@ -300,10 +301,10 @@ pmx_model::pmx_model(ID3D11Device* device, pmx_loader& loader)
 				}
 			}
 
-			DirectX::XMMATRIX im;
-			im = DirectX::XMMatrixTranslation(wn.calculate_data.init_translation.x, wn.calculate_data.init_translation.y, wn.calculate_data.init_translation.z);
-			DirectX::XMStoreFloat4x4(&wn.calculate_data.initialize_matrix, im);
-			DirectX::XMStoreFloat4x4(&wn.offset_matrix, DirectX::XMMatrixInverse(nullptr, im));
+			math::matrixf im;
+			im = math::matrixf::translation(wn.calculate_data.init_translation.x, wn.calculate_data.init_translation.y, wn.calculate_data.init_translation.z);
+			wn.calculate_data.initialize_matrix = im.to_float4x4();
+			wn.offset_matrix = im.inverted().to_float4x4();
 
 			//	Append
 			if ((b.bone_flag & static_cast<unsigned short>(pmx_bone_bitflag::is_append_translation)) ||
@@ -383,19 +384,20 @@ pmx_model::pmx_model(ID3D11Device* device, pmx_loader& loader)
 
 		for (auto& n : nodes)
 		{
-			DirectX::XMMATRIX im = DirectX::XMLoadFloat4x4(&n.calculate_data.initialize_matrix);
+			math::matrixf im(n.calculate_data.initialize_matrix);
 			if (n.parent_node_index != pmx_invalid_target_id)
-				im *= DirectX::XMLoadFloat4x4(&nodes[n.parent_node_index].offset_matrix);
+				im *= math::matrixf(nodes[n.parent_node_index].offset_matrix);
 
-			DirectX::XMVECTOR scale, rotation, translation;
-			DirectX::XMMatrixDecompose(&scale, &rotation, &translation, im);
-			DirectX::XMStoreFloat3(&n.calculate_data.init_scale, scale);
-			DirectX::XMStoreFloat4(&n.calculate_data.init_rotation, DirectX::XMQuaternionNormalize(rotation));
-			DirectX::XMStoreFloat3(&n.calculate_data.init_translation, translation);
-			im	= DirectX::XMMatrixScalingFromVector(DirectX::XMLoadFloat3(&n.calculate_data.init_scale))
-				* DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&n.calculate_data.init_rotation))
-				* DirectX::XMMatrixTranslationFromVector(DirectX::XMLoadFloat3(&n.calculate_data.init_translation));
-			DirectX::XMStoreFloat4x4(&n.calculate_data.initialize_matrix, im);
+			math::vector3f scale, translation;
+			math::quaternionf rotation;
+			im.decompose(scale, rotation, translation);
+			n.calculate_data.init_scale = scale.to_float3();
+			n.calculate_data.init_rotation = rotation.normalized().to_float4();
+			n.calculate_data.init_translation = translation.to_float3();
+			im	= math::matrixf::scaling(math::vector3f(n.calculate_data.init_scale))
+				* math::matrixf::rotation_quaternion(math::quaternionf(n.calculate_data.init_rotation))
+				* math::matrixf::translation(math::vector3f(n.calculate_data.init_translation));
+			n.calculate_data.initialize_matrix = im.to_float4x4();
 		}
 	}
 
@@ -607,12 +609,12 @@ void pmx_model::compute_animation(std::string_view animation_name, float time, s
 				continue;
 
 			float rate = (time - keyframe0.time) / (keyframe1.time - keyframe0.time);
-			DirectX::XMVECTOR R0 = DirectX::XMLoadFloat4(&keyframe0.rotation);
-			DirectX::XMVECTOR R1 = DirectX::XMLoadFloat4(&keyframe1.rotation);
-			DirectX::XMVECTOR T0 = DirectX::XMLoadFloat3(&keyframe0.translation);
-			DirectX::XMVECTOR T1 = DirectX::XMLoadFloat3(&keyframe1.translation);
-			DirectX::XMStoreFloat4(&node.calculate_data.animation_rotation, DirectX::XMQuaternionNormalize(DirectX::XMQuaternionSlerp(R0, R1, rate)));
-			DirectX::XMStoreFloat3(&node.calculate_data.animation_translation, DirectX::XMVectorLerp(T0, T1, rate));
+			math::quaternionf R0(keyframe0.rotation);
+			math::quaternionf R1(keyframe1.rotation);
+			math::vector3f T0(keyframe0.translation);
+			math::vector3f T1(keyframe1.translation);
+			node.calculate_data.animation_rotation = ((math::slerp(R0, R1, rate)).normalized()).to_float4();
+			node.calculate_data.animation_translation = (math::lerp(T0, T1, rate)).to_float3();
 			break;
 		}
 
@@ -641,8 +643,8 @@ void pmx_model::compute_animation(std::string_view animation_name, float time, s
 		node.calculate_data.update_local_matrix();
 		if (node.parent_node_index != pmx_invalid_target_id)
 		{
-			DirectX::XMMATRIX matrix;
-			matrix = DirectX::XMLoadFloat4x4(&nodes[node.parent_node_index].calculate_data.global_matrix);
+			math::matrixf matrix;
+			matrix = math::matrixf(nodes[node.parent_node_index].calculate_data.global_matrix);
 			node.calculate_data.update_global_matrix(matrix);
 		}
 	}
@@ -680,15 +682,15 @@ void pmx_model::update_ik(size_t node_index)
 	if (!ikdata.enable)
 		return;
 
-	DirectX::XMVECTOR ik_target_position = DirectX::XMVectorSet(source_node.calculate_data.global_matrix._41, source_node.calculate_data.global_matrix._42, source_node.calculate_data.global_matrix._43, 1);
+	math::vector3f ik_target_position(source_node.calculate_data.global_matrix._41, source_node.calculate_data.global_matrix._42, source_node.calculate_data.global_matrix._43);
 
 	int loop_max = ikdata.loop;
 	for (int loop_count = 0; loop_count < loop_max; ++loop_count)
 	{
 		auto& target_node = nodes[ikdata.target_index];
-		DirectX::XMVECTOR target_position = DirectX::XMVectorSet(target_node.calculate_data.global_matrix._41, target_node.calculate_data.global_matrix._42, target_node.calculate_data.global_matrix._43, 1);
-		DirectX::XMVECTOR vector = DirectX::XMVectorSubtract(ik_target_position, target_position);
-		float distance = DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(vector));
+		math::vector3f target_position(target_node.calculate_data.global_matrix._41, target_node.calculate_data.global_matrix._42, target_node.calculate_data.global_matrix._43);
+		math::vector3f vector = ik_target_position - target_position;
+		float distance = vector.square_length();
 		if (distance <= 0.001f)
 			break;
 
@@ -705,51 +707,50 @@ void pmx_model::update_ik(size_t node_index)
 			//	平面処理以外
 			else
 			{
-				DirectX::XMMATRIX inverse_link_global_matrix = DirectX::XMMatrixInverse(nullptr, DirectX::XMLoadFloat4x4(&link_node.calculate_data.global_matrix));
+				math::matrixf inverse_link_global_matrix = math::matrixf(link_node.calculate_data.global_matrix).inverted();
 
-				DirectX::XMVECTOR effector_global_position = DirectX::XMVectorSet(target_node.calculate_data.global_matrix._41, target_node.calculate_data.global_matrix._42, target_node.calculate_data.global_matrix._43, 1);
-				DirectX::XMVECTOR effector_local_position = DirectX::XMVector3TransformCoord(effector_global_position, inverse_link_global_matrix);
-				DirectX::XMVECTOR target_local_position = DirectX::XMVector3TransformCoord(ik_target_position, inverse_link_global_matrix);
+				math::vector3f effector_global_position(target_node.calculate_data.global_matrix._41, target_node.calculate_data.global_matrix._42, target_node.calculate_data.global_matrix._43);
+				math::vector3f effector_local_position = math::vector3f::transform_coord(effector_global_position, inverse_link_global_matrix);
+				math::vector3f target_local_position = math::vector3f::transform_coord(ik_target_position, inverse_link_global_matrix);
 
-				DirectX::XMVECTOR effector_local_direction = DirectX::XMVector3Normalize(effector_local_position);
-				DirectX::XMVECTOR target_local_direction = DirectX::XMVector3Normalize(target_local_position);
-				float	dot = DirectX::XMVectorGetX(DirectX::XMVector3Dot(effector_local_direction, target_local_direction));
+				math::vector3f effector_local_direction = effector_local_position.normalized();
+				math::vector3f target_local_direction = target_local_position.normalized();
+				float	dot = math::vector3f::dot(effector_local_direction, target_local_direction);
 				float	angle = acosf(dot);
-				DirectX::XMVECTOR axis = DirectX::XMVector3Normalize(DirectX::XMVector3Cross(effector_local_direction, target_local_direction));
-				if (isnan(angle) || DirectX::XMVectorGetX(DirectX::XMVector3Dot(axis, axis)) <= 0.001f)
+				math::vector3f axis = (math::vector3f::cross(effector_local_direction, target_local_direction)).normalized();
+				if (isnan(angle) || math::vector3f::dot(axis, axis) <= 0.001f)
 					continue;
 
 				angle = std::min(angle, ikdata.angile_limit);
 
-				DirectX::XMVECTOR rotation = DirectX::XMQuaternionRotationAxis(axis, angle);
+				math::quaternionf rotation = math::quaternionf::rotation_axis(axis, angle);
 
 				//	適応
-				DirectX::XMVECTOR node_rotation = DirectX::XMLoadFloat4(&link_node.calculate_data.rotation);
-				node_rotation = DirectX::XMQuaternionMultiply(rotation, node_rotation);
-				node_rotation = DirectX::XMQuaternionNormalize(node_rotation);
+				math::quaternionf node_rotation(link_node.calculate_data.rotation);
+				node_rotation = rotation * node_rotation;
+				node_rotation = node_rotation.normalized();
 
 				//	角度制限
 				if (link_data.lock == plane_lock::lock)
 				{
-					DirectX::XMFLOAT3 angle = decompose(node_rotation, link_data.prev_angle);
+					math::float3 angle = decompose(node_rotation, link_data.prev_angle);
 
-					DirectX::XMFLOAT3 limit_angle = clamp_angle(angle, link_data.angle_min, link_data.angle_max);
+					math::float3 limit_angle = clamp_angle(angle, link_data.angle_min, link_data.angle_max);
 					limit_angle = clamp_angle(subtract_angle(limit_angle, link_data.prev_angle),
 											{-ikdata.angile_limit, -ikdata.angile_limit, -ikdata.angile_limit},
 											{+ikdata.angile_limit, +ikdata.angile_limit, +ikdata.angile_limit});
 					limit_angle = additional_angle(limit_angle, link_data.prev_angle);
 
-					node_rotation = DirectX::XMQuaternionRotationRollPitchYaw(limit_angle.x, limit_angle.y, limit_angle.z);
+					node_rotation = math::quaternionf::rotation_xyz(limit_angle.x, limit_angle.y, limit_angle.z);
 					link_data.prev_angle = limit_angle;
 				}
 
 				//	IKノード情報に変換
-				DirectX::XMVECTOR inverse_rotation, append_rotation, animation_rotation;
-				append_rotation = DirectX::XMLoadFloat4(&link_node.calculate_data.append_rotation);
-				animation_rotation = DirectX::XMLoadFloat4(&link_node.calculate_data.animation_rotation);
-				inverse_rotation = DirectX::XMQuaternionInverse(DirectX::XMQuaternionMultiply(append_rotation, animation_rotation));
-				node_rotation = DirectX::XMQuaternionMultiply(inverse_rotation, node_rotation);
-				DirectX::XMStoreFloat4(&link_node.calculate_data.ik_rotation, DirectX::XMQuaternionNormalize(node_rotation));
+				const math::quaternionf append_rotation(link_node.calculate_data.append_rotation);
+				const math::quaternionf animation_rotation(link_node.calculate_data.animation_rotation);
+				const math::quaternionf inverse_rotation = (append_rotation * animation_rotation).inverted();
+				node_rotation = inverse_rotation * node_rotation;
+				link_node.calculate_data.ik_rotation = node_rotation.normalized().to_float4();
 			}
 
 			//	グローバル行列再計算
@@ -760,7 +761,7 @@ void pmx_model::update_ik(size_t node_index)
 
 void pmx_model::update_ik_plane(int iteration, ik_data& ik_data, ik_link_data& link_data, plane_lock axis)
 {
-	DirectX::XMVECTOR rotate_axis;
+	math::vector3f rotate_axis;
 	float limit_min_angle = 0;
 	float limit_max_angle = 0;
 
@@ -770,21 +771,21 @@ void pmx_model::update_ik_plane(int iteration, ik_data& ik_data, ik_link_data& l
 		{
 			limit_min_angle = link_data.angle_min.x;
 			limit_max_angle = link_data.angle_max.x;
-			rotate_axis = DirectX::XMVectorSet(1.0f, 0.0f, 0.0f, 0.0f);
+			rotate_axis = math::vector3f(1.0f, 0.0f, 0.0f);
 			break;
 		}
 		case plane_lock::plane_y:
 		{
 			limit_min_angle = link_data.angle_min.y;
 			limit_max_angle = link_data.angle_max.y;
-			rotate_axis = DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+			rotate_axis = math::vector3f(0.0f, 1.0f, 0.0f);
 			break;
 		}
 		case plane_lock::plane_z:
 		{
 			limit_min_angle = link_data.angle_min.z;
 			limit_max_angle = link_data.angle_max.z;
-			rotate_axis = DirectX::XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
+			rotate_axis = math::vector3f(0.0f, 0.0f, 1.0f);
 			break;
 		}
 	}
@@ -792,19 +793,19 @@ void pmx_model::update_ik_plane(int iteration, ik_data& ik_data, ik_link_data& l
 	node& target_node	= nodes[ik_data.target_index];
 	node& link_node		= nodes[link_data.target_index];
 
-	DirectX::XMVECTOR ik_target_position = DirectX::XMVectorSet(source_node.calculate_data.global_matrix._41, source_node.calculate_data.global_matrix._42, source_node.calculate_data.global_matrix._43, 1);
-	DirectX::XMVECTOR target_position = DirectX::XMVectorSet(target_node.calculate_data.global_matrix._41, target_node.calculate_data.global_matrix._42, target_node.calculate_data.global_matrix._43, 1);
+	math::vector3f ik_target_position(source_node.calculate_data.global_matrix._41, source_node.calculate_data.global_matrix._42, source_node.calculate_data.global_matrix._43);
+	math::vector3f target_position(target_node.calculate_data.global_matrix._41, target_node.calculate_data.global_matrix._42, target_node.calculate_data.global_matrix._43);
 
-	DirectX::XMMATRIX inverse_link_global_matrix = DirectX::XMMatrixInverse(nullptr, DirectX::XMLoadFloat4x4(&link_node.calculate_data.global_matrix));
+	math::matrixf inverse_link_global_matrix = math::matrixf(link_node.calculate_data.global_matrix).inverted();
 
-	DirectX::XMVECTOR effector_global_position = DirectX::XMVectorSet(target_node.calculate_data.global_matrix._41, target_node.calculate_data.global_matrix._42, target_node.calculate_data.global_matrix._43, 1);
-	DirectX::XMVECTOR effector_local_position = DirectX::XMVector3TransformCoord(effector_global_position, inverse_link_global_matrix);
-	DirectX::XMVECTOR target_local_position = DirectX::XMVector3TransformCoord(ik_target_position, inverse_link_global_matrix);
+	math::vector3f effector_global_position(target_node.calculate_data.global_matrix._41, target_node.calculate_data.global_matrix._42, target_node.calculate_data.global_matrix._43);
+	math::vector3f effector_local_position = math::vector3f::transform_coord(effector_global_position, inverse_link_global_matrix);
+	math::vector3f target_local_position = math::vector3f::transform_coord(ik_target_position, inverse_link_global_matrix);
 
-	DirectX::XMVECTOR effector_local_direction = DirectX::XMVector3Normalize(effector_local_position);
-	DirectX::XMVECTOR target_local_direction = DirectX::XMVector3Normalize(target_local_position);
+	math::vector3f effector_local_direction = effector_local_position.normalized();
+	math::vector3f target_local_direction = target_local_position.normalized();
 
-	float dot = DirectX::XMVectorGetX(DirectX::XMVector3Dot(effector_local_direction, target_local_direction));
+	float dot = math::vector3f::dot(effector_local_direction, target_local_direction);
 	float angle = std::acos(dot);
 	if(isnan(angle))
 		return;
@@ -812,13 +813,13 @@ void pmx_model::update_ik_plane(int iteration, ik_data& ik_data, ik_link_data& l
 	angle = std::clamp(angle, -ik_data.angile_limit, ik_data.angile_limit);
 
 	//	回転方向を判断するため、両方の方向に回転させてみて適応角度を変える
-	DirectX::XMVECTOR rotation1 = DirectX::XMQuaternionRotationAxis(rotate_axis, +angle);
-	DirectX::XMVECTOR target_vector1 = DirectX::XMVector3Rotate(effector_local_direction, rotation1);
-	float dot1 = DirectX::XMVectorGetX(DirectX::XMVector3Dot(target_vector1, target_local_direction));
+	math::quaternionf rotation1 = math::quaternionf::rotation_axis(rotate_axis, +angle);
+	math::vector3f target_vector1 = rotation1.rotate(effector_local_direction);
+	float dot1 = math::vector3f::dot(target_vector1, target_local_direction);
 
-	DirectX::XMVECTOR rotation2 = DirectX::XMQuaternionRotationAxis(rotate_axis, -angle);
-	DirectX::XMVECTOR target_vector2 = DirectX::XMVector3Rotate(effector_local_direction, rotation2);
-	float dot2 = DirectX::XMVectorGetX(DirectX::XMVector3Dot(target_vector2, target_local_direction));
+	math::quaternionf rotation2 = math::quaternionf::rotation_axis(rotate_axis, -angle);
+	math::vector3f target_vector2 = rotation2.rotate(effector_local_direction);
+	float dot2 = math::vector3f::dot(target_vector2, target_local_direction);
 
 	float new_angle = link_data.plane_mode_angle + ((dot1 > dot2) ? +angle : -angle);
 	if (iteration == 0)
@@ -841,15 +842,14 @@ void pmx_model::update_ik_plane(int iteration, ik_data& ik_data, ik_link_data& l
 	}
 	new_angle = std::clamp(new_angle, limit_min_angle, limit_max_angle);
 	link_data.plane_mode_angle = new_angle;
-	DirectX::XMVECTOR node_rotation = DirectX::XMQuaternionRotationAxis(rotate_axis, new_angle);
+	math::quaternionf node_rotation = math::quaternionf::rotation_axis(rotate_axis, new_angle);
 
 	//	IKノード情報に変換
-	DirectX::XMVECTOR inverse_rotation, append_rotation, animation_rotation;
-	append_rotation = DirectX::XMLoadFloat4(&link_node.calculate_data.append_rotation);
-	animation_rotation = DirectX::XMLoadFloat4(&link_node.calculate_data.animation_rotation);
-	inverse_rotation = DirectX::XMQuaternionInverse(DirectX::XMQuaternionMultiply(append_rotation, animation_rotation));
-	node_rotation	= DirectX::XMQuaternionMultiply(inverse_rotation, node_rotation);
-	DirectX::XMStoreFloat4(&link_node.calculate_data.ik_rotation, DirectX::XMQuaternionNormalize(node_rotation));
+	const math::quaternionf append_rotation(link_node.calculate_data.append_rotation);
+	const math::quaternionf animation_rotation(link_node.calculate_data.animation_rotation);
+	const math::quaternionf inverse_rotation = (append_rotation * animation_rotation).inverted();
+	node_rotation	= inverse_rotation * node_rotation;
+	link_node.calculate_data.ik_rotation = node_rotation.normalized().to_float4();
 }
 
 void pmx_model::update_append(size_t node_index)
@@ -865,7 +865,7 @@ void pmx_model::update_append(size_t node_index)
 	bool is_update = false;
 	if (append.is_translation)
 	{
-		DirectX::XMFLOAT3 translation;
+		math::float3 translation;
 		if( target_node.append_node_index != pmx_invalid_target_id )
 		{
 			translation	= target_node.calculate_data.append_translation;
@@ -875,7 +875,7 @@ void pmx_model::update_append(size_t node_index)
 			translation	= target_node.calculate_data.animation_translation;
 		}
 
-		if (!DirectX::XMVector3Equal(DirectX::XMLoadFloat3(&source_node.calculate_data.append_translation), DirectX::XMLoadFloat3(&translation)))
+		if (!(math::vector3f(source_node.calculate_data.append_translation) == math::vector3f(translation)))
 		{
 			source_node.calculate_data.append_translation.x	= translation.x * append.weight;
 			source_node.calculate_data.append_translation.y	= translation.y * append.weight;
@@ -885,27 +885,27 @@ void pmx_model::update_append(size_t node_index)
 	}
 	if (append.is_rotation)
 	{
-		DirectX::XMVECTOR rotation = DirectX::XMVectorSet(0, 0, 0, 1);
+		math::quaternionf rotation(0, 0, 0, 1);
 		if( target_node.append_node_index != pmx_invalid_target_id )
 		{
-			rotation	= DirectX::XMLoadFloat4(&target_node.calculate_data.append_rotation);
+			rotation	= math::quaternionf(target_node.calculate_data.append_rotation);
 		}
 		else
 		{
-			rotation	= DirectX::XMQuaternionMultiply(rotation, DirectX::XMLoadFloat4(&target_node.calculate_data.append_rotation));
-			rotation	= DirectX::XMQuaternionMultiply(rotation, DirectX::XMLoadFloat4(&target_node.calculate_data.animation_rotation));
+			rotation	= rotation * math::quaternionf(target_node.calculate_data.append_rotation);
+			rotation	= rotation * math::quaternionf(target_node.calculate_data.animation_rotation);
 		}
 
-		rotation	= DirectX::XMQuaternionMultiply(rotation, DirectX::XMLoadFloat4(&target_node.calculate_data.ik_rotation));
-		rotation	= DirectX::XMQuaternionMultiply(rotation, DirectX::XMLoadFloat4(&target_node.calculate_data.init_rotation));
-		rotation	= DirectX::XMQuaternionNormalize(rotation);
+		rotation	= rotation * math::quaternionf(target_node.calculate_data.ik_rotation);
+		rotation	= rotation * math::quaternionf(target_node.calculate_data.init_rotation);
+		rotation	= rotation.normalized();
 
-		DirectX::XMVECTOR append_rotation = DirectX::XMLoadFloat4(&source_node.calculate_data.append_rotation);
-		if (!DirectX::XMQuaternionEqual(append_rotation, rotation))
+		math::quaternionf append_rotation(source_node.calculate_data.append_rotation);
+		if (!(append_rotation == rotation))
 		{
-			append_rotation = DirectX::XMQuaternionSlerp(DirectX::XMVectorSet(0, 0, 0, 1), rotation, append.weight);
-			append_rotation = DirectX::XMQuaternionNormalize(append_rotation);
-			DirectX::XMStoreFloat4(&source_node.calculate_data.append_rotation, append_rotation);
+			append_rotation = math::slerp(math::quaternionf(0, 0, 0, 1), rotation, append.weight);
+			append_rotation = append_rotation.normalized();
+			source_node.calculate_data.append_rotation = append_rotation.to_float4();
 			is_update = true;
 		}
 	}
@@ -923,7 +923,7 @@ void pmx_model::update_node_transforms(size_t node_index)
 	node.calculate_data.update_local_matrix();
 	if (node.parent_node_index != pmx_invalid_target_id)
 	{
-		node.calculate_data.update_global_matrix(DirectX::XMLoadFloat4x4(&nodes[node.parent_node_index].calculate_data.global_matrix));
+		node.calculate_data.update_global_matrix(math::matrixf(nodes[node.parent_node_index].calculate_data.global_matrix));
 	}
 
 	//	子供を更新していく
@@ -945,18 +945,18 @@ void pmx_model::update_transforms(std::vector<node_animation_data>& node_datas)
 		auto& node = nodes[node_index];
 		auto& node_data = node_datas[node_index];
 
-		DirectX::XMMATRIX local, global;
-		local	= DirectX::XMMatrixScalingFromVector(DirectX::XMLoadFloat3(&node_data.scale))
-				* DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&node_data.rotation))
-				* DirectX::XMMatrixTranslationFromVector(DirectX::XMLoadFloat3(&node_data.translation));
+		math::matrixf local, global;
+		local	= math::matrixf::scaling(math::vector3f(node_data.scale))
+				* math::matrixf::rotation_quaternion(math::quaternionf(node_data.rotation))
+				* math::matrixf::translation(math::vector3f(node_data.translation));
 		global = local;
 		if (node.parent_node_index != pmx_invalid_target_id)
 		{
-			global = DirectX::XMLoadFloat4x4(&nodes[node.parent_node_index].global_matrix);
-			global = DirectX::XMMatrixMultiply(local, global);
+			global = math::matrixf(nodes[node.parent_node_index].global_matrix);
+			global = local * global;
 		}
-		DirectX::XMStoreFloat4x4(&node.local_matrix, local);
-		DirectX::XMStoreFloat4x4(&node.global_matrix, global);
+		node.local_matrix = local.to_float4x4();
+		node.global_matrix = global.to_float4x4();
 	}
 }
 
@@ -1007,13 +1007,14 @@ bool pmx_model::add_vmd_animation(const char* motion_name, const vmd_loader& loa
 		auto& node = nodes[node_index];
 		node_animation anim;
 		anim.time = bone_animation.frame / normalized_frame;
-		DirectX::XMMATRIX animation_matrix;
-		animation_matrix = DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&bone_animation.rotation))
-						* DirectX::XMMatrixTranslationFromVector(DirectX::XMLoadFloat3(&bone_animation.position));
-		DirectX::XMVECTOR scale, rotation, translation;
-		DirectX::XMMatrixDecompose(&scale, &rotation, &translation, animation_matrix);
-		DirectX::XMStoreFloat4(&anim.rotation, DirectX::XMQuaternionNormalize(rotation));
-		DirectX::XMStoreFloat3(&anim.translation, translation);
+		math::matrixf animation_matrix;
+		animation_matrix = math::matrixf::rotation_quaternion(math::quaternionf(bone_animation.rotation))
+						* math::matrixf::translation(math::vector3f(bone_animation.position));
+		math::vector3f scale, translation;
+		math::quaternionf rotation;
+		animation_matrix.decompose(scale, rotation, translation);
+		anim.rotation = rotation.normalized().to_float4();
+		anim.translation = translation.to_float3();
 		animation.nodes[node_index].emplace_back(anim);
 	}
 	//	ソート

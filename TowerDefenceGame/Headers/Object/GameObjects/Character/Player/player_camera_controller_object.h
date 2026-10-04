@@ -39,8 +39,8 @@ public:
 	const math::rotatorf& get_rotation() const;
 	void set_rotation(const math::rotatorf& rotator);
 
-	const DirectX::XMFLOAT3& get_position() const;
-	void set_position(const DirectX::XMFLOAT3& position);
+	const math::float3& get_position() const;
+	void set_position(const math::float3& position);
 
 	void set_input_purmit_flag(bool flag);
 
@@ -109,7 +109,7 @@ private:
 	float update_disengage_direction_inner_rate; // 方向適応割合
 	float update_disengage_direction_rate; // 方向適応割合
 
-	DirectX::XMFLOAT3 focus; // 注視点座標
+	math::float3 focus; // 注視点座標
 	float focus_distance; // 注視点距離
 	float focus_limit_range; // 注視点移動制限範囲
 	float update_focus_rate_inner; // 注視点更新係数

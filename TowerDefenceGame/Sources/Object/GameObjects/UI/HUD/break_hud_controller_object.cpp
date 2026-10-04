@@ -71,7 +71,7 @@ void break_hud_controller_object::post_update(float elapsed_time)
 		animation_time += elapsed_time;
 
 		float rate = math::saturate(1.0f - animation_time / animation_max_time);
-		DirectX::XMFLOAT4 main_rect = original_main_rect;
+		math::float4 main_rect = original_main_rect;
 		main_rect.z = rate * original_main_rect.z;
 		break_main->set_screen_rect(main_rect);
 	}

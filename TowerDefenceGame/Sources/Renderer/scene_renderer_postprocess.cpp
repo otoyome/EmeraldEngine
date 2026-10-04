@@ -16,7 +16,7 @@
 namespace
 {
 	//	ポストプロセスボリューム取得
-	post_process_volume_ptr search_volume(const DirectX::XMFLOAT3& camera_position, const render_data_context& context)
+	post_process_volume_ptr search_volume(const math::float3& camera_position, const render_data_context& context)
 	{
 		float length = FLT_MAX;
 		post_process_volume_ptr result, unblind;
@@ -89,7 +89,7 @@ post_process_renderer_base::~post_process_renderer_base()
 void post_process_renderer_base::render(renderer_context& renderer_context)
 {
 	//	ポストプロセスボリュームが無ければ適応しない
-	DirectX::XMFLOAT3 camera_position;
+	math::float3 camera_position;
 	camera_position.x = renderer_context.scene_constant.camera_position.x;
 	camera_position.y = renderer_context.scene_constant.camera_position.y;
 	camera_position.z = renderer_context.scene_constant.camera_position.z;
@@ -213,7 +213,7 @@ namespace ssr
 {
 	struct denoise_constants
 	{
-		DirectX::XMUINT2	texture_size;
+		math::uint2	texture_size;
 		float				reset_flag;
 		float				iteration;
 
@@ -224,9 +224,9 @@ namespace ssr
 
 		float				denoise_temporal_blend_factor;
 		float				denoise_counter_max;
-		DirectX::XMUINT2	denoise_dummy;
+		math::uint2	denoise_dummy;
 	};
-	constexpr DirectX::XMUINT2 denoise_threads = { 16, 16 };
+	constexpr math::uint2 denoise_threads = { 16, 16 };
 	constexpr UINT denoise_cbv_index = 3;
 }
 
@@ -293,7 +293,7 @@ screen_space_reflection_renderer::~screen_space_reflection_renderer()
 void screen_space_reflection_renderer::render(renderer_context& renderer_context)
 {
 	//	ポストプロセスボリュームが無ければ適応しない
-	DirectX::XMFLOAT3 camera_position;
+	math::float3 camera_position;
 	camera_position.x = renderer_context.scene_constant.camera_position.x;
 	camera_position.y = renderer_context.scene_constant.camera_position.y;
 	camera_position.z = renderer_context.scene_constant.camera_position.z;
@@ -408,7 +408,7 @@ void screen_space_reflection_renderer::render_denoise(graphics_context& context,
 {
 	auto& ssr_data = inner_volume->get_screen_space_reflection_constant();
 
-	DirectX::XMUINT2 texture_size;
+	math::uint2 texture_size;
 	texture_size.x = static_cast<UINT>(ssr_color_pass_viewport.Width + 0.1f);
 	texture_size.y = static_cast<UINT>(ssr_color_pass_viewport.Height + 0.1f);
 	{
@@ -611,7 +611,7 @@ namespace dof
 {
 	struct parameter_constants
 	{
-		DirectX::XMFLOAT4 parameter[3];	//	x : focal_length(焦点距離)
+		math::float4 parameter[3];	//	x : focal_length(焦点距離)
 										//	y : focus_distance(ピントの合う距離)
 										//	z : circle_of_confusion(許容散乱円)
 										//	w : apeture(絞り値)
@@ -624,17 +624,17 @@ namespace dof
     									//	z : ブラー最大半径
 										//  w : スケールファクター
 
-		DirectX::XMINT4 resolutions;	//  xy : シーン解像度, zw : バッファ解像度
+		math::int4 resolutions;	//  xy : シーン解像度, zw : バッファ解像度
 	};
 	constexpr int parameter_cbv_index = 1;
 	constexpr int scene_color_srv_index = 0;
 	constexpr int scene_depth_srv_index = 1;
 	constexpr int sat_color_srv_index = 2;
 
-	static constexpr DirectX::XMUINT3 filter_thread_count = {8, 8, 1};
+	static constexpr math::uint3 filter_thread_count = {8, 8, 1};
 	static constexpr int max_blur_radius = 64;
 
-	static constexpr DirectX::XMUINT3 vertical_integrate_thread_count = {64, 1, 1};
+	static constexpr math::uint3 vertical_integrate_thread_count = {64, 1, 1};
 }
 
 depth_of_field_post_process_renderer::depth_of_field_post_process_renderer(render_job_registrar job_executor, std::shared_ptr<scene_render_targets> render_targets)
@@ -682,7 +682,7 @@ depth_of_field_post_process_renderer::~depth_of_field_post_process_renderer()
 void depth_of_field_post_process_renderer::render(renderer_context& renderer_context)
 {
 	//	ポストプロセスボリュームが無ければ適応しない
-	DirectX::XMFLOAT3 camera_position;
+	math::float3 camera_position;
 	camera_position.x = renderer_context.scene_constant.camera_position.x;
 	camera_position.y = renderer_context.scene_constant.camera_position.y;
 	camera_position.z = renderer_context.scene_constant.camera_position.z;
@@ -709,7 +709,7 @@ void depth_of_field_post_process_renderer::render(renderer_context& renderer_con
 
 		//	フィルターセットアップ
 		{
-			DirectX::XMUINT4 clear_value = {0, 0, 0, 0};
+			math::uint4 clear_value = {0, 0, 0, 0};
 			context.device_context->ClearUnorderedAccessViewUint(filter_buffer_uav.Get(), &clear_value.x);
 			context.device_context->CSSetUnorderedAccessViews(0, 1, filter_buffer_uav.GetAddressOf(), nullptr);
 
@@ -785,7 +785,7 @@ void depth_of_field_post_process_renderer::resize_buffer(int width, int height)
 		buffer_desc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
 		buffer_desc.CPUAccessFlags = 0;
 		buffer_desc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
-		buffer_desc.StructureByteStride = sizeof(DirectX::XMINT4);
+		buffer_desc.StructureByteStride = sizeof(math::int4);
 		buffer_desc.ByteWidth = buffer_desc.StructureByteStride * filter_buffer_width * filter_buffer_height;
 		D3D11_UNORDERED_ACCESS_VIEW_DESC uav_desc{};
 		uav_desc.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
@@ -863,8 +863,8 @@ namespace motion_blur
 
 	constexpr int tile_size = 20;
 
-	static constexpr DirectX::XMUINT3 max_threads = {8, 8, 1};
-	static constexpr DirectX::XMUINT3 blur_threads = {32, 32, 1};
+	static constexpr math::uint3 max_threads = {8, 8, 1};
+	static constexpr math::uint3 blur_threads = {32, 32, 1};
 }
 
 motion_blur_post_process_renderer::motion_blur_post_process_renderer(render_job_registrar job_executor, std::shared_ptr<scene_render_targets> render_targets)
@@ -910,7 +910,7 @@ motion_blur_post_process_renderer::~motion_blur_post_process_renderer()
 void motion_blur_post_process_renderer::render(renderer_context& renderer_context)
 {
 	//	ポストプロセスボリュームが無ければ適応しない
-	DirectX::XMFLOAT3 camera_position;
+	math::float3 camera_position;
 	camera_position.x = renderer_context.scene_constant.camera_position.x;
 	camera_position.y = renderer_context.scene_constant.camera_position.y;
 	camera_position.z = renderer_context.scene_constant.camera_position.z;
@@ -1054,7 +1054,7 @@ namespace luminance_extract
 		float lens_ghost_intensity;
 
 	    bool exposure_adjust;
-		DirectX::XMFLOAT3 dummy;
+		math::float3 dummy;
 	};
 	constexpr int cbv_index = 0;
 	constexpr int bloom_uav_index = 0;
@@ -1068,7 +1068,7 @@ namespace bloom
 	struct fft_gaussian_constants
 	{
 		float deviation;
-		DirectX::XMFLOAT3 dummy;
+		math::float3 dummy;
 	};
 
 	struct lens_ghost_constants
@@ -1087,7 +1087,7 @@ namespace bloom
 
 	constexpr int fft_gaussian_cbv_index = 0;
 
-	static constexpr DirectX::XMUINT3 thread_count = {32, 32, 1};
+	static constexpr math::uint3 thread_count = {32, 32, 1};
 }
 
 namespace tone_mapping
@@ -1095,14 +1095,14 @@ namespace tone_mapping
 	struct parameter_constants
 	{
 		//  露出補正処理
-		DirectX::XMFLOAT4 exposure_compensation_data;  //  x : 使用フラグ, y : 適応レート, zw : 適応輝度範囲
+		math::float4 exposure_compensation_data;  //  x : 使用フラグ, y : 適応レート, zw : 適応輝度範囲
 
 		//  トーンマッピング
-		DirectX::XMFLOAT4 tone_mapping_variable[2]; //  0.xは種類として利用、以下は場合によりけり
+		math::float4 tone_mapping_variable[2]; //  0.xは種類として利用、以下は場合によりけり
 	};
 	constexpr int cbv_index = 0;
 
-	static constexpr DirectX::XMUINT3 max_threads = { 32, 32, 1 };
+	static constexpr math::uint3 max_threads = { 32, 32, 1 };
 }
 
 //	処理負荷軽減のために低解像度版でやる
@@ -1220,7 +1220,7 @@ bloom_and_tone_mapping_post_process_renderer::~bloom_and_tone_mapping_post_proce
 void bloom_and_tone_mapping_post_process_renderer::render(renderer_context& renderer_context)
 {
 	//	ポストプロセスボリュームが無ければ適応しない
-	DirectX::XMFLOAT3 camera_position;
+	math::float3 camera_position;
 	camera_position.x = renderer_context.scene_constant.camera_position.x;
 	camera_position.y = renderer_context.scene_constant.camera_position.y;
 	camera_position.z = renderer_context.scene_constant.camera_position.z;
@@ -1633,7 +1633,7 @@ namespace antialias
 	constexpr int scene_depth_srv_index = 1;
 	constexpr int sat_color_srv_index = 2;
 
-	static constexpr DirectX::XMUINT3 thread_count = { 16, 9, 1 };
+	static constexpr math::uint3 thread_count = { 16, 9, 1 };
 }
 
 anti_alias_post_process_renderer::anti_alias_post_process_renderer(render_job_registrar job_executor, std::shared_ptr<scene_render_targets> render_targets)

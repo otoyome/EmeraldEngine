@@ -41,7 +41,7 @@ void ik_resource::foot_data::serialize(Archive& archive, int version)
 		}
 		case 3:
 		{
-			std::array<DirectX::XMFLOAT3, 2> ray_origin_offsets;
+			std::array<math::float3, 2> ray_origin_offsets;
 			archive(CEREAL_NVP(ray_length),
 					CEREAL_NVP(ray_origin_offsets),
 					CEREAL_NVP(foot_offset),

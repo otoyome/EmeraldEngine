@@ -30,20 +30,20 @@ public:
 	struct shape_desc
 	{
 		shape_types type = shape_types::sphere;
-		DirectX::XMFLOAT3 position = { 0.0f, 0.0f, 0.0f };
-		DirectX::XMFLOAT3 rotation = { 0.0f, 0.0f, 0.0f };	//	度数
+		math::float3 position = { 0.0f, 0.0f, 0.0f };
+		math::float3 rotation = { 0.0f, 0.0f, 0.0f };	//	度数
 		float radius = 0.5f;
 		float length = 2.0f;
-		DirectX::XMFLOAT3 extent = { 1.0f, 1.0f, 1.0f };	//	箱の半径 / 床の半径(xz)
+		math::float3 extent = { 1.0f, 1.0f, 1.0f };	//	箱の半径 / 床の半径(xz)
 	};
 
 	//	キャスト設定
 	struct cast_desc
 	{
 		cast_types type = cast_types::sphere;
-		DirectX::XMFLOAT3 start = { 0.0f, 5.0f, 0.0f };
-		DirectX::XMFLOAT3 end = { 0.0f, -5.0f, 0.0f };
-		DirectX::XMFLOAT3 rotation = { 0.0f, 0.0f, 0.0f };	//	度数
+		math::float3 start = { 0.0f, 5.0f, 0.0f };
+		math::float3 end = { 0.0f, -5.0f, 0.0f };
+		math::float3 rotation = { 0.0f, 0.0f, 0.0f };	//	度数
 		float radius = 0.5f;
 		float length = 2.0f;
 	};

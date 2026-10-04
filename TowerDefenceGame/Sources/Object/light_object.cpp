@@ -15,22 +15,22 @@ bool light_object::is_flag(light::flags flag) const
 	return light->is_flag(flag);
 }
 
-void light_object::set_color(DirectX::XMFLOAT4 color)
+void light_object::set_color(math::float4 color)
 {
 	light->set_color(color);
 }
 
-DirectX::XMFLOAT4 light_object::get_color() const
+math::float4 light_object::get_color() const
 {
 	return light->get_color();
 }
 
-void light_object::set_position(DirectX::XMFLOAT3 position)
+void light_object::set_position(math::float3 position)
 {
 	light->set_position(position);
 }
 
-DirectX::XMFLOAT3 light_object::get_position() const
+math::float3 light_object::get_position() const
 {
 	return light->get_position();
 }
@@ -219,22 +219,22 @@ float spot_light_object::get_range() const
 
 void spot_light_object::set_inner_cone(float degree)
 {
-	light->set_inner_cone(DirectX::XMConvertToRadians(degree));
+	light->set_inner_cone(math::angle::to_radian(degree));
 }
 
 float spot_light_object::get_inner_cone() const
 {
-	return DirectX::XMConvertToDegrees(light->get_inner_cone());
+	return math::angle::to_degree(light->get_inner_cone());
 }
 
 void spot_light_object::set_outer_cone(float degree)
 {
-	light->set_outer_cone(DirectX::XMConvertToRadians(degree));
+	light->set_outer_cone(math::angle::to_radian(degree));
 }
 
 float spot_light_object::get_outer_cone() const
 {
-	return DirectX::XMConvertToDegrees(light->get_outer_cone());
+	return math::angle::to_degree(light->get_outer_cone());
 }
 
 spot_light_object::spot_light_object(std::string_view name)
@@ -301,22 +301,22 @@ bool light_probe_object::is_flag(light_probe::flags flag) const
 	return light_probe->is_flag(flag);
 }
 
-void light_probe_object::set_color(DirectX::XMFLOAT4 color)
+void light_probe_object::set_color(math::float4 color)
 {
 	light_probe->set_color(color);
 }
 
-DirectX::XMFLOAT4 light_probe_object::get_color() const
+math::float4 light_probe_object::get_color() const
 {
 	return light_probe->get_color();
 }
 
-void light_probe_object::set_position(DirectX::XMFLOAT3 position)
+void light_probe_object::set_position(math::float3 position)
 {
 	light_probe->set_position(position);
 }
 
-DirectX::XMFLOAT3 light_probe_object::get_position() const
+math::float3 light_probe_object::get_position() const
 {
 	return light_probe->get_position();
 }
@@ -407,22 +407,22 @@ void sky_light_object::imgui_tree_inner_render()
 #endif	//	defined(USE_IMGUI)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
-void area_light_probe_object::set_inner_range(DirectX::XMFLOAT3 range)
+void area_light_probe_object::set_inner_range(math::float3 range)
 {
 	light_probe->set_inner_range(range);
 }
 
-DirectX::XMFLOAT3 area_light_probe_object::get_inner_range() const
+math::float3 area_light_probe_object::get_inner_range() const
 {
 	return light_probe->get_inner_range();
 }
 
-void area_light_probe_object::set_outer_range(DirectX::XMFLOAT3 range)
+void area_light_probe_object::set_outer_range(math::float3 range)
 {
 	light_probe->set_outer_range(range);
 }
 
-DirectX::XMFLOAT3 area_light_probe_object::get_outer_range() const
+math::float3 area_light_probe_object::get_outer_range() const
 {
 	return light_probe->get_outer_range();
 }

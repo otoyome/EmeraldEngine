@@ -2,7 +2,7 @@
 
 namespace setup_data
 {
-	constexpr auto world_gravity = DirectX::XMFLOAT3(0.0f, system_units::convert_m_to_unit(-9.8f), 0.0f);	//	ワールド重力(m/s2)
+	constexpr auto world_gravity = math::float3(0.0f, system_units::convert_m_to_unit(-9.8f), 0.0f);	//	ワールド重力(m/s2)
 	constexpr float world_air_density = 1.225f / 1000.0f;	// ワールド空間の空気密度(kg/m^3)
 
 	constexpr int wet_value = 10000; // 耐水性能
@@ -13,10 +13,10 @@ namespace setup_data
 	constexpr float capsule_push_radius = system_units::convert_m_to_unit(0.4f); // 押し合い判定半径
 	constexpr float capsule_length = system_units::convert_m_to_unit(0.1f); // 当たり判定長さ
 
-	constexpr DirectX::XMFLOAT3 capsule_offset = {0.0f, capsule_length + capsule_push_radius, 0.0f}; // 当たり判定長さオフセット
+	constexpr math::float3 capsule_offset = {0.0f, capsule_length + capsule_push_radius, 0.0f}; // 当たり判定長さオフセット
 
 	//	吸引最大範囲
-	constexpr DirectX::XMFLOAT2 attract_radius_range = {system_units::convert_m_to_unit(1.0f), system_units::convert_m_to_unit(10.0f)};
+	constexpr math::float2 attract_radius_range = {system_units::convert_m_to_unit(1.0f), system_units::convert_m_to_unit(10.0f)};
 
 	//	ルンバの形状情報
 	constexpr float drag_coefficient = 0.45f;	// ルンバの抗力係数Cd
@@ -60,7 +60,7 @@ roomba_object::roomba_object(std::string_view name, std::shared_ptr<model_object
 , world_air_density(setup_data::world_air_density)
 , gravity_scale(1.0f)
 
-, rotation_speed(DirectX::XMConvertToRadians(1440.0f))
+, rotation_speed(math::angle::to_radian(1440.0f))
 
 , velocity_tilt_pitch(0.0f)
 , velocity_tilt_roll(0.0f)
@@ -68,7 +68,7 @@ roomba_object::roomba_object(std::string_view name, std::shared_ptr<model_object
 , ground_tilt_roll(0.0f)
 
 , step_offset(system_units::convert_m_to_unit(10.0f))
-, slope_limit(DirectX::XMConvertToRadians(30.0f))
+, slope_limit(math::angle::to_radian(30.0f))
 , ground_friction(0.5f)
 {
 	set_flag(flags::movable, true);
@@ -153,16 +153,16 @@ void roomba_object::imgui_render_core()
 
 	ImGui::DragFloat3("velocity", &velocity.x, 0.01f);
 
-	degrees = DirectX::XMConvertToDegrees(rotation_speed);
+	degrees = math::angle::to_degree(rotation_speed);
 	ImGui::DragFloat("rotation_speed", &degrees, 0.01f);
-	rotation_speed = DirectX::XMConvertToRadians(degrees);
+	rotation_speed = math::angle::to_radian(degrees);
 
 	ImGui::DragFloat("gravity_scale", &gravity_scale, 0.01f);
 	ImGui::DragFloat("step_offset", &step_offset, 0.01f);
 
-	degrees = DirectX::XMConvertToDegrees(slope_limit);
+	degrees = math::angle::to_degree(slope_limit);
 	ImGui::DragFloat("slope_limit", &degrees, 0.01f);
-	slope_limit = DirectX::XMConvertToRadians(degrees);
+	slope_limit = math::angle::to_radian(degrees);
 
 	if (push_box)
 	{
@@ -192,12 +192,12 @@ const collision_object_ptr& roomba_object::get_push_box() const
 	return push_box;
 }
 
-const DirectX::XMFLOAT3& roomba_object::get_scale() const
+const math::float3& roomba_object::get_scale() const
 {
 	return model->get_scale();
 }
 
-void roomba_object::set_scale(const DirectX::XMFLOAT3& scale)
+void roomba_object::set_scale(const math::float3& scale)
 {
 	model->set_scale(scale);
 }
@@ -205,13 +205,13 @@ void roomba_object::set_scale(const DirectX::XMFLOAT3& scale)
 math::rotatorf roomba_object::get_rotation() const
 {
 	auto rotator = model->get_rotation();
-	rotator.y -= DirectX::XM_PIDIV2;
+	rotator.y -= math::constants<float>::pi_half;
 	return rotator;
 }
 
 void roomba_object::set_rotation(math::rotatorf rotator)
 {
-	rotator.y += DirectX::XM_PIDIV2;
+	rotator.y += math::constants<float>::pi_half;
 	model->set_rotation(rotator);
 	if (push_box)
 		push_box->set_rotation(rotator);
@@ -227,45 +227,45 @@ void roomba_object::set_rotation_speed(float rotation_speed)
 	this->rotation_speed = rotation_speed;
 }
 
-const DirectX::XMFLOAT3& roomba_object::get_position() const
+const math::float3& roomba_object::get_position() const
 {
 	return model->get_position();
 }
 
-void roomba_object::set_position(const DirectX::XMFLOAT3& position)
+void roomba_object::set_position(const math::float3& position)
 {
 	model->set_position(position);
 	if (push_box)
 		push_box->set_position(position);
 }
 
-DirectX::XMFLOAT3 roomba_object::get_focus_point() const
+math::float3 roomba_object::get_focus_point() const
 {
 	auto transform = push_box->get_bounding_object()->get_transform_float4x4();
 	return {transform._41, transform._42, transform._43};
 }
 
-void roomba_object::add_move_vector(DirectX::XMFLOAT2 move_vector)
+void roomba_object::add_move_vector(math::float2 move_vector)
 {
 	this->move_vector = move_vector;
 }
 
-void roomba_object::set_turn_vector(DirectX::XMFLOAT2 direction)
+void roomba_object::set_turn_vector(math::float2 direction)
 {
 	this->turn_front_vector = direction;
 }
 
-DirectX::XMFLOAT2 roomba_object::get_turn_vector() const
+math::float2 roomba_object::get_turn_vector() const
 {
 	return this->turn_front_vector;
 }
 
-DirectX::XMFLOAT3 roomba_object::get_velocity() const
+math::float3 roomba_object::get_velocity() const
 {
 	return velocity;
 }
 
-void roomba_object::set_velocity(DirectX::XMFLOAT3 velocity)
+void roomba_object::set_velocity(math::float3 velocity)
 {
 	this->velocity = velocity;
 }
@@ -357,8 +357,8 @@ float roomba_object::get_attract_range() const
 		return 0.0f;
 
 	auto velocity = get_velocity();
-	auto Velocity = DirectX::XMLoadFloat3(&velocity);
-	float speed = DirectX::XMVectorGetX(DirectX::XMVector3Length(Velocity));
+	auto Velocity = math::vector3f(velocity);
+	float speed = Velocity.length();
 	float speed_rate = math::saturate(speed / get_max_speed(move_mode::dash));
 	return math::lerp(setup_data::attract_radius_range.x, setup_data::attract_radius_range.y, speed_rate);
 }
@@ -377,7 +377,7 @@ void roomba_object::set_elapsed_time_scale(float elapsed_time_scale)
 	}
 }
 
-void roomba_object::add_force(DirectX::XMFLOAT3 force)
+void roomba_object::add_force(math::float3 force)
 {
 	//	時間で積分済みの力を加速度へ
 	auto mass = get_push_box()->get_mass();
@@ -386,7 +386,7 @@ void roomba_object::add_force(DirectX::XMFLOAT3 force)
 	velocity.z += force.z / mass;
 }
 
-void roomba_object::add_impulse(DirectX::XMFLOAT3 delta_velocity)
+void roomba_object::add_impulse(math::float3 delta_velocity)
 {
 	//	単純に速度に加算する
 	velocity.x += delta_velocity.x;
@@ -461,8 +461,8 @@ float roomba_object::calculate_drag_coefficient() const
 float roomba_object::calculate_frontal_area() const
 {
 	//	姿勢Y方向と速度方向のなす角から、円柱としての投影面積を算出
-	DirectX::XMVECTOR Velocity = DirectX::XMLoadFloat3(&velocity);
-	float speed_sq = DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(Velocity));
+	math::vector3f Velocity(velocity);
+	float speed_sq = Velocity.square_length();
 
 	//	水平面
 	float horizontal_area = setup_data::diameter * setup_data::height;
@@ -472,14 +472,14 @@ float roomba_object::calculate_frontal_area() const
 	float radius = setup_data::diameter * 0.5f;
 
 	//	垂直面
-	float vertical_area = DirectX::XM_PI * radius * radius;
+	float vertical_area = math::constants<float>::pi * radius * radius;
 
 	//	半径r・高さhの円柱を軸から角度θ傾いた方向から見たときの投影面積を求める
-	DirectX::XMVECTOR VelocityDirection = DirectX::XMVector3Normalize(Velocity);
-	DirectX::XMFLOAT3 up = system_utility::to_xmfloat(get_rotation().up());
-	DirectX::XMVECTOR UpDir = DirectX::XMLoadFloat3(&up);
+	math::vector3f VelocityDirection = Velocity.normalized();
+	math::float3 up = get_rotation().up().to_float3();
+	math::vector3f UpDir(up);
 
-	float cos_theta = fabsf(DirectX::XMVectorGetX(DirectX::XMVector3Dot(VelocityDirection, UpDir)));
+	float cos_theta = fabsf(math::vector3f::dot(VelocityDirection, UpDir));
 	float sin_theta = sqrtf(std::max(1.0f - cos_theta * cos_theta, 0.0f));
 
 	return vertical_area * cos_theta + horizontal_area * sin_theta;

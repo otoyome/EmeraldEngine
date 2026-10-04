@@ -12,35 +12,35 @@ enum class light_type
 
 struct directional_lights
 {
-	DirectX::XMFLOAT4 direction{ 1.0f, -1.0f, -1.0f, 1.0f };
-	DirectX::XMFLOAT4 color{ 1.0f, 1.0f, 1.0f, 1.0f };
+	math::float4 direction{ 1.0f, -1.0f, -1.0f, 1.0f };
+	math::float4 color{ 1.0f, 1.0f, 1.0f, 1.0f };
 };
 
 struct point_lights
 {
-	DirectX::XMFLOAT4 position{ 0, 0, 0, 0 };
-	DirectX::XMFLOAT4 color{ 1, 1, 1, 1 };
+	math::float4 position{ 0, 0, 0, 0 };
+	math::float4 color{ 1, 1, 1, 1 };
 	float range{ 0 };
-	DirectX::XMFLOAT3 dummy;
+	math::float3 dummy;
 };
 
 struct spot_lights
 {
-	DirectX::XMFLOAT4 position{ 0, 0, 0, 0 };
-	DirectX::XMFLOAT4 direction{ 0, 0, 1, 0 };
-	DirectX::XMFLOAT4 color{ 1, 1, 1, 1 };
+	math::float4 position{ 0, 0, 0, 0 };
+	math::float4 direction{ 0, 0, 1, 0 };
+	math::float4 color{ 1, 1, 1, 1 };
 	float range{ 0 };
-	float inner_corn{ DirectX::XMConvertToRadians(30) };
-	float outer_corn{ DirectX::XMConvertToRadians(45) };
+	float inner_corn{ math::angle::to_radian(30.0f) };
+	float outer_corn{ math::angle::to_radian(45.0f) };
 	float dummy;
 };
 
 struct light_probes
 {
-	DirectX::XMFLOAT4 position{ 0, 0, 0, 0 };
-	DirectX::XMFLOAT4 color{ 1, 1, 1, 1 };
-	DirectX::XMFLOAT4 inner_area{ 100, 100, 100, 0 };
-	DirectX::XMFLOAT4 outer_area{ 200, 200, 200, 0 };
+	math::float4 position{ 0, 0, 0, 0 };
+	math::float4 color{ 1, 1, 1, 1 };
+	math::float4 inner_area{ 100, 100, 100, 0 };
+	math::float4 outer_area{ 200, 200, 200, 0 };
 };
 
 struct light_data
@@ -71,7 +71,7 @@ struct light_data
 	//  work_data[1] = color
 	//  work_data[2] = xyz = inner area, w = dummy
 	//  work_data[3] = xyz = outer area, w = ƒ‰ƒCƒgŽí•Ê
-	DirectX::XMFLOAT4 work_data[4];
+	math::float4 work_data[4];
 };
 
 namespace light_data_utility
@@ -94,10 +94,10 @@ namespace light_data_utility
 
 	light_type get_light_type(const light_data& data);
 
-	DirectX::XMFLOAT3 get_position(const light_data& data);
+	math::float3 get_position(const light_data& data);
 
-	DirectX::XMFLOAT3 get_direction(const light_data& data);
+	math::float3 get_direction(const light_data& data);
 
-	DirectX::XMFLOAT4 get_color(const light_data& data);
+	math::float4 get_color(const light_data& data);
 
 }	//	namespace light_data_utility

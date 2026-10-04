@@ -693,13 +693,9 @@ void framework::prepare_renderer_context(
 		context.scene_constant.projection_transform = camera.camera->get_projection_matrix();
 		context.scene_constant.view_projection_transform = camera.camera->get_view_projection_matrix();
 
-		DirectX::XMMATRIX View, Projection, ViewProjection;
-		View = DirectX::XMLoadFloat4x4(&context.scene_constant.view_transform);
-		Projection = DirectX::XMLoadFloat4x4(&context.scene_constant.projection_transform);
-		ViewProjection = DirectX::XMLoadFloat4x4(&context.scene_constant.view_projection_transform);
-		DirectX::XMStoreFloat4x4(&context.scene_constant.inverse_view_transform, DirectX::XMMatrixInverse(nullptr, View));
-		DirectX::XMStoreFloat4x4(&context.scene_constant.inverse_projection_transform, DirectX::XMMatrixInverse(nullptr, Projection));
-		DirectX::XMStoreFloat4x4(&context.scene_constant.inverse_view_projection_transform, DirectX::XMMatrixInverse(nullptr, ViewProjection));
+		context.scene_constant.inverse_view_transform = math::matrixf(context.scene_constant.view_transform).inverted().to_float4x4();
+		context.scene_constant.inverse_projection_transform = math::matrixf(context.scene_constant.projection_transform).inverted().to_float4x4();
+		context.scene_constant.inverse_view_projection_transform = math::matrixf(context.scene_constant.view_projection_transform).inverted().to_float4x4();
 
 		context.scene_constant.previous_view_projection_transform = camera.camera->get_previous_view_projection_matrix();
 	}
@@ -767,7 +763,7 @@ void framework::build_render_lists(
 				return;
 		}
 		//	ƒJƒƒ‰‚©‚ç‚Ì‹——£ŽZo
-		DirectX::XMFLOAT3 center;
+		math::float3 center;
 		center.x = (buffer_data->bounds_min.x + buffer_data->bounds_max.x) * 0.5f;
 		center.y = (buffer_data->bounds_min.y + buffer_data->bounds_max.y) * 0.5f;
 		center.z = (buffer_data->bounds_min.z + buffer_data->bounds_max.z) * 0.5f;

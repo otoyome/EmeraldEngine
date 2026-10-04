@@ -29,15 +29,15 @@ public:
 		std::string name;
 		size_t parent_index = invalid_id;
 
-		DirectX::XMFLOAT3 scale = {1, 1, 1};
-		DirectX::XMFLOAT3 rotation = {0, 0, 0};
-		DirectX::XMFLOAT3 position = {0, 0, 0};
+		math::float3 scale = {1, 1, 1};
+		math::float3 rotation = {0, 0, 0};
+		math::float3 position = {0, 0, 0};
 
-		DirectX::XMFLOAT4X4 local_transform = {1, 0, 0, 0,  0, 1, 0, 0,  0, 0, 1, 0,  0, 0, 0, 1};
-		DirectX::XMFLOAT4X4 global_transform = { 1, 0, 0, 0,  0, 1, 0, 0,  0, 0, 1, 0,  0, 0, 0, 1 };
-		DirectX::XMFLOAT4X4 world_transform = { 1, 0, 0, 0,  0, 1, 0, 0,  0, 0, 1, 0,  0, 0, 0, 1 };
+		math::float4x4 local_transform = {1, 0, 0, 0,  0, 1, 0, 0,  0, 0, 1, 0,  0, 0, 0, 1};
+		math::float4x4 global_transform = { 1, 0, 0, 0,  0, 1, 0, 0,  0, 0, 1, 0,  0, 0, 0, 1 };
+		math::float4x4 world_transform = { 1, 0, 0, 0,  0, 1, 0, 0,  0, 0, 1, 0,  0, 0, 0, 1 };
 
-		DirectX::XMFLOAT4X4 previous_world_transform = { 1, 0, 0, 0,  0, 1, 0, 0,  0, 0, 1, 0,  0, 0, 0, 1 };
+		math::float4x4 previous_world_transform = { 1, 0, 0, 0,  0, 1, 0, 0,  0, 0, 1, 0,  0, 0, 0, 1 };
 	};
 
 	struct model
@@ -67,20 +67,20 @@ public:
 
 	const effect_resource_ptr get_resource() const;
 
-	const DirectX::XMFLOAT3& get_scale() const;
-	void set_scale(const DirectX::XMFLOAT3& scale);
+	const math::float3& get_scale() const;
+	void set_scale(const math::float3& scale);
 
 	const math::rotatorf& get_rotation() const;
 	void set_rotation(const math::rotatorf& rotator);
 
-	const DirectX::XMFLOAT3& get_position() const;
-	void set_position(const DirectX::XMFLOAT3& position);
+	const math::float3& get_position() const;
+	void set_position(const math::float3& position);
 
-	const DirectX::XMFLOAT3& get_attract_position() const;
-	void set_attract_position(const DirectX::XMFLOAT3& position);
+	const math::float3& get_attract_position() const;
+	void set_attract_position(const math::float3& position);
 
-	const DirectX::XMFLOAT3& get_event_position() const;
-	void set_event_position(const DirectX::XMFLOAT3& position);
+	const math::float3& get_event_position() const;
+	void set_event_position(const math::float3& position);
 
 	float get_animation_time() const;
 	void set_animation_time(float animation_time);
@@ -99,8 +99,8 @@ public:
 	inline std::vector<particle>& get_particles() { return particles; }
 	inline std::vector<decal>& get_decals() { return decals; }
 
-	inline const DirectX::XMFLOAT4X4& get_previous_world_transform() const { return previous_world_transform; }
-	inline void set_previous_world_transform(const DirectX::XMFLOAT4X4& transform){ previous_world_transform = transform; }
+	inline const math::float4x4& get_previous_world_transform() const { return previous_world_transform; }
+	inline void set_previous_world_transform(const math::float4x4& transform){ previous_world_transform = transform; }
 
 #if defined(USE_IMGUI)
 	inline effect_resource_ptr get_resource_for_editor() {return resource;}
@@ -133,16 +133,16 @@ private:
 	std::vector<decal> decals;
 
 	//	姿勢情報
-	DirectX::XMFLOAT3 scale = {1, 1, 1};
+	math::float3 scale = {1, 1, 1};
 	math::rotatorf rotation = {0, 0, 0};
-	DirectX::XMFLOAT3 position = {0, 0, 0};
-	DirectX::XMFLOAT4X4 previous_world_transform = {1, 0, 0, 0,  0, 1, 0, 0,  0, 0, 1, 0,  0, 0, 0, 1};
+	math::float3 position = {0, 0, 0};
+	math::float4x4 previous_world_transform = {1, 0, 0, 0,  0, 1, 0, 0,  0, 0, 1, 0,  0, 0, 0, 1};
 
 	//	吸引座標
-	DirectX::XMFLOAT3 attract_position = {0, 0, 0};
+	math::float3 attract_position = {0, 0, 0};
 
 	//	イベント座標
-	DirectX::XMFLOAT3 event_position = {0, 0, 0};
+	math::float3 event_position = {0, 0, 0};
 
 	//	アニメーション関連
 	float animation_time = 0.0f;

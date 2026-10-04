@@ -32,21 +32,21 @@ namespace common_pipeline_states
 	constexpr system_utility::hash_key scene_constant_buffer_hash_key = system_utility::generate_hash(scene_constant_buffer_name);
 	struct scene_constants
 	{
-		DirectX::XMFLOAT4 time_data;	//	x : 現在時間, y : 前時間, zw : 空き
-		DirectX::XMFLOAT4 z_buffer_parameteres;
-		DirectX::XMFLOAT4 camera_position; //  xyz : 座標, w : fovY
-		DirectX::XMFLOAT4 camera_right; //  xyz : 方向, w : tan(fovY)
-		DirectX::XMFLOAT4 camera_up; //  xyz : 方向, w : 空き
-		DirectX::XMFLOAT4 camera_direction; //  xyz : 方向, w : 空き
-		DirectX::XMFLOAT4 camera_clip_distance;
-		DirectX::XMFLOAT4 viewport_rect;
-		DirectX::XMFLOAT4X4 view_transform;
-		DirectX::XMFLOAT4X4 projection_transform;
-		DirectX::XMFLOAT4X4 view_projection_transform;
-		DirectX::XMFLOAT4X4 inverse_view_transform;
-		DirectX::XMFLOAT4X4 inverse_projection_transform;
-		DirectX::XMFLOAT4X4 inverse_view_projection_transform;
-		DirectX::XMFLOAT4X4 previous_view_projection_transform;
+		math::float4 time_data;	//	x : 現在時間, y : 前時間, zw : 空き
+		math::float4 z_buffer_parameteres;
+		math::float4 camera_position; //  xyz : 座標, w : fovY
+		math::float4 camera_right; //  xyz : 方向, w : tan(fovY)
+		math::float4 camera_up; //  xyz : 方向, w : 空き
+		math::float4 camera_direction; //  xyz : 方向, w : 空き
+		math::float4 camera_clip_distance;
+		math::float4 viewport_rect;
+		math::float4x4 view_transform;
+		math::float4x4 projection_transform;
+		math::float4x4 view_projection_transform;
+		math::float4x4 inverse_view_transform;
+		math::float4x4 inverse_projection_transform;
+		math::float4x4 inverse_view_projection_transform;
+		math::float4x4 previous_view_projection_transform;
 	};
 
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -57,7 +57,7 @@ namespace common_pipeline_states
 	{
 		light_data light_data;
 		UINT light_attribute;
-		DirectX::XMFLOAT3 light_data_dummy;
+		math::float3 light_data_dummy;
 	};
 
 	//	フォワード用ライト定数バッファ構造体
@@ -68,7 +68,7 @@ namespace common_pipeline_states
 	constexpr system_utility::hash_key forward_light_constant_buffer_hash_key = system_utility::generate_hash(forward_light_constant_buffer_name);
 	struct forward_light_constants
 	{
-		DirectX::XMUINT4 light_counts;
+		math::uint4 light_counts;
 		directional_lights directional_light_data[directional_light_count];
 		point_lights point_light_data[point_light_count];
 		spot_lights spot_light_data[spot_light_count];
@@ -103,12 +103,12 @@ namespace common_pipeline_states
 	struct shadow_map_constants
 	{
 		UINT shadow_map_count = 0;
-		DirectX::XMFLOAT3 shadow_attenuation;
-		DirectX::XMFLOAT4 shadow_bias[shadow_map_max];
-		DirectX::XMFLOAT4 shadow_split_distance[shadow_map_max];
-		DirectX::XMFLOAT4X4 light_view_projection_transform[shadow_map_max];
+		math::float3 shadow_attenuation;
+		math::float4 shadow_bias[shadow_map_max];
+		math::float4 shadow_split_distance[shadow_map_max];
+		math::float4x4 light_view_projection_transform[shadow_map_max];
 		UINT shadow_mask;	//	8ビットまで
-		DirectX::XMFLOAT3 shadow_dummy;
+		math::float3 shadow_dummy;
 	};
 	constexpr std::string_view shadow_maps_name = "shadow_maps";
 	constexpr system_utility::hash_key shadow_maps_hash_key = system_utility::generate_hash(shadow_maps_name);
@@ -123,15 +123,15 @@ namespace common_pipeline_states
 	constexpr system_utility::hash_key primitive_constant_buffer_hash_key = system_utility::generate_hash(primitive_constant_buffer_name);
 	struct primitive_constants
 	{
-		DirectX::XMUINT4 primitive_parameter = {};	//	x : 接線を所持しているかどうか, yzw : 空き
+		math::uint4 primitive_parameter = {};	//	x : 接線を所持しているかどうか, yzw : 空き
 
 		UINT bone_offset = 0;			//	現在ボーン先頭位置
 		UINT previous_bone_offset = 0;	//	前フレームボーン先頭位置
 		UINT bone_count = 0;			//	ボーン数
 		UINT base_vertex = 0;			//	先頭頂点番号
 
-		DirectX::XMFLOAT4 position_morph[morph_max / 4];
-		DirectX::XMFLOAT4 normal_morph[morph_max / 4];
+		math::float4 position_morph[morph_max / 4];
+		math::float4 normal_morph[morph_max / 4];
 	};
 
 	//	メッシュレットインスタンス情報
@@ -141,7 +141,7 @@ namespace common_pipeline_states
 		UINT triangle_offset = 0;
 		UINT triangle_count = 0;
 		UINT primitive_index = 0;
-		DirectX::XMFLOAT3 bounds_center = {};
+		math::float3 bounds_center = {};
 		float bounds_radius = 0.0f;
 		UINT transform_index = 0;
 		UINT no_cull = 0;
@@ -198,8 +198,8 @@ namespace common_pipeline_states
 	constexpr system_utility::hash_key parameter_constant_buffer_hash_key = system_utility::generate_hash(parameter_constant_buffer_name);
 	struct parameter_constants
 	{
-		DirectX::XMINT4 shader_resource_view_index[shader_resource_view_max / 4]; // SRV使用フラグ
-		DirectX::XMUINT4 shader_resource_view_flags[shader_resource_view_max / 4]; // SRVフラグ類
+		math::int4 shader_resource_view_index[shader_resource_view_max / 4]; // SRV使用フラグ
+		math::uint4 shader_resource_view_flags[shader_resource_view_max / 4]; // SRVフラグ類
 
 		UINT material_flags; // マテリアルフラグ類
 		float material_alpha_clip_threshold; // 透明/不透明閾値
@@ -235,9 +235,9 @@ namespace common_pipeline_states
 	constexpr system_utility::hash_key decal_primitive_constant_buffer_hash_key = system_utility::generate_hash(decal_primitive_constant_buffer_name);
 	struct decal_primitive_constants
 	{
-		DirectX::XMFLOAT4X4 decal_transform;
-		DirectX::XMFLOAT4X4 decal_inverse_transform;
-		DirectX::XMFLOAT4 decal_direction;
+		math::float4x4 decal_transform;
+		math::float4x4 decal_inverse_transform;
+		math::float4 decal_direction;
 	};
 
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -298,12 +298,12 @@ namespace common_pipeline_states
 	{
 		float ray_max_distance;				//  反射最大距離
 		float ray_resolution;				//  レイのステップ解像度
-		DirectX::XMFLOAT2 ray_tickness;		//  深度判定を行う際の厚みの範囲
+		math::float2 ray_tickness;		//  深度判定を行う際の厚みの範囲
 
 		int ray_substep_iteration_max;		//	ステップ深度チェック細分化回数
 		int ray_flags;						//  処理の設定フラグ
-		DirectX::XMFLOAT2 dummy;
-		DirectX::XMFLOAT4 viewport_size;	//  シーンのビューポートサイズ
+		math::float2 dummy;
+		math::float4 viewport_size;	//  シーンのビューポートサイズ
 	};
 	constexpr UINT screen_space_reflection_flags_reflection_dir_adjust = 0;	//	角度による厚み調整
 	constexpr UINT screen_space_reflection_flags_consideration_uv_hole = 1;	//	UV穴埋め

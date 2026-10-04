@@ -273,12 +273,12 @@ namespace ssr
 	{
 		float ray_max_distance;				//  反射最大距離
 		float ray_resolution;				//  レイのステップ解像度
-		DirectX::XMFLOAT2 ray_tickness;		//  深度判定を行う際の厚みの範囲
+		math::float2 ray_tickness;		//  深度判定を行う際の厚みの範囲
 
 		int ray_substep_iteration_max;		//	ステップ深度チェック細分化回数
 		int ray_flags;						//  処理の設定フラグ
-		DirectX::XMFLOAT2 dummy;			//  深度判定を行う際の厚みの範囲
-		DirectX::XMFLOAT4 viewport_size;	//  シーンのビューポートサイズ
+		math::float2 dummy;			//  深度判定を行う際の厚みの範囲
+		math::float4 viewport_size;	//  シーンのビューポートサイズ
 	};
 }
 

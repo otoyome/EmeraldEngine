@@ -49,11 +49,11 @@ void meshlet_culling_system::generate_submesh_transform_buffer(UINT count)
 	auto device = render_data::instance()->get_device();
 
 	D3D11_BUFFER_DESC bd{};
-	bd.ByteWidth = sizeof(DirectX::XMFLOAT4X4) * capacity;
+	bd.ByteWidth = sizeof(math::float4x4) * capacity;
 	bd.Usage = D3D11_USAGE_DEFAULT;
 	bd.BindFlags = D3D11_BIND_SHADER_RESOURCE;
 	bd.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
-	bd.StructureByteStride = sizeof(DirectX::XMFLOAT4X4);
+	bd.StructureByteStride = sizeof(math::float4x4);
 	HRESULT hr = device->CreateBuffer(&bd, nullptr, submesh_transform_buffer.ReleaseAndGetAddressOf());
 	_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
 
@@ -208,7 +208,7 @@ void meshlet_culling_system::build_and_cull(graphics_context& context, const std
 	generate_submesh_transform_buffer(static_cast<UINT>(submesh_transform_scratch.size()));
 	{
 		D3D11_BOX box{};
-		box.right = static_cast<UINT>(sizeof(DirectX::XMFLOAT4X4) * submesh_transform_scratch.size());
+		box.right = static_cast<UINT>(sizeof(math::float4x4) * submesh_transform_scratch.size());
 		box.bottom = 1;
 		box.back = 1;
 		context.device_context->UpdateSubresource(submesh_transform_buffer.Get(), 0, &box, submesh_transform_scratch.data(), 0, 0);
@@ -249,7 +249,7 @@ void meshlet_culling_system::cull_material_group(graphics_context& context, mate
 	constant.meshlet_instance_count = instance_count;
 	constant.hiz_mip_count = hiz.get_mip_count();
 	auto hiz_size = hiz.get_size();
-	constant.hiz_size = DirectX::XMFLOAT2(static_cast<float>(hiz_size.x), static_cast<float>(hiz_size.y));
+	constant.hiz_size = math::float2(static_cast<float>(hiz_size.x), static_cast<float>(hiz_size.y));
 	constant.clip_near_far = { context.scene_constant.camera_clip_distance.x, context.scene_constant.camera_clip_distance.y };
 	constant.depth_bias = 1.0f;
 	dc->UpdateSubresource(cull_constant_buffer.Get(), 0, nullptr, &constant, 0, 0);

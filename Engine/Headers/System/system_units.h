@@ -1,6 +1,6 @@
 #pragma once
 
-#include <directxmath.h>
+#include "Math/element.h"
 #include <string>
 #include <string_view>
 
@@ -212,15 +212,15 @@ public:
 	static constexpr float convert_unit_to_cm(float value) { return value * length_factor(length_units::unit, length_units::centi_meter); }
 	static constexpr float convert_unit_to_m(float value) { return value * length_factor(length_units::unit, length_units::meter); }
 
-	static constexpr DirectX::XMFLOAT2 convert_m_to_unit(DirectX::XMFLOAT2 value)
+	static constexpr math::float2 convert_m_to_unit(math::float2 value)
 	{
 		return {convert_m_to_unit(value.x), convert_m_to_unit(value.y)};
 	}
-	static constexpr DirectX::XMFLOAT3 convert_m_to_unit(DirectX::XMFLOAT3 value)
+	static constexpr math::float3 convert_m_to_unit(math::float3 value)
 	{
 		return {convert_m_to_unit(value.x), convert_m_to_unit(value.y), convert_m_to_unit(value.z)};
 	}
-	static constexpr DirectX::XMFLOAT4 convert_m_to_unit(DirectX::XMFLOAT4 value)
+	static constexpr math::float4 convert_m_to_unit(math::float4 value)
 	{
 		return {convert_m_to_unit(value.x), convert_m_to_unit(value.y), convert_m_to_unit(value.z), convert_m_to_unit(value.w)};
 	}

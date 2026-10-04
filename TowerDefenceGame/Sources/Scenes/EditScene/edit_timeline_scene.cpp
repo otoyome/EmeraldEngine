@@ -585,7 +585,7 @@ bool edit_timeline_scene::initialize_core()
 	//	メインカメラ生成
 	{
 		main_camera = std::make_shared<camera_object>("メインカメラ");
-		main_camera->get_camera()->set_fov_y(DirectX::XMConvertToRadians(30.0f));
+		main_camera->get_camera()->set_fov_y(math::angle::to_radian(30.0f));
 		register_object(main_camera);
 		mouse::instance()->set_center_lock(false);
 		mouse::instance()->set_cursol_hide(false);
@@ -680,7 +680,7 @@ bool edit_timeline_scene::initialize_core()
 	{
 		auto camera = std::make_shared<editor_camera>(main_camera);
 		camera->set_position(system_units::convert_m_to_unit({ 0, 1, 8 }));
-		camera->set_rotation({ 0, DirectX::XM_PI, 0 });
+		camera->set_rotation({ 0, math::constants<float>::pi, 0 });
 		camera->set_rotation_speed(camera->get_rotation_speed() * 0.25f);
 		camera->set_move_speed(camera->get_move_speed() * 0.25f);
 		register_object(camera);
@@ -969,20 +969,19 @@ void edit_timeline_scene::apply_timeline_state()
 				const float denom = std::max(0.0001f, transform.end_time - transform.start_time);
 				const float t = math::saturate((current_time - transform.start_time) / denom);
 
-				const DirectX::XMFLOAT3 position =
+				const math::float3 position =
 				{
 					transform.start.position.x + (transform.end.position.x - transform.start.position.x) * t,
 					transform.start.position.y + (transform.end.position.y - transform.start.position.y) * t,
 					transform.start.position.z + (transform.end.position.z - transform.start.position.z) * t,
 				};
 
-				const DirectX::XMVECTOR quaternion_start = system_utility::to_xmvector(math::rotatorf(transform.start.rotation).to_quaternion());
-				const DirectX::XMVECTOR quaternion_end = system_utility::to_xmvector(math::rotatorf(transform.end.rotation).to_quaternion());
-				DirectX::XMFLOAT4 quaternion;
-				DirectX::XMStoreFloat4(&quaternion, DirectX::XMQuaternionSlerp(quaternion_start, quaternion_end, t));
+				const math::quaternionf quaternion_start = math::rotatorf(transform.start.rotation).to_quaternion();
+				const math::quaternionf quaternion_end = math::rotatorf(transform.end.rotation).to_quaternion();
+				const math::float4 quaternion = math::slerp(quaternion_start, quaternion_end, t).to_float4();
 
 				model->set_position(position);
-				model->set_rotation(math::rotatorf(system_utility::to_math_quaternion(quaternion)));
+				model->set_rotation(math::rotatorf(math::quaternionf(quaternion)));
 				break;
 			}
 		}
@@ -1051,22 +1050,21 @@ void edit_timeline_scene::apply_timeline_state()
 		const float denom = std::max(0.0001f, entry.end_time - entry.start_time);
 		const float t = math::saturate((current_time - entry.start_time) / denom);
 
-		const DirectX::XMFLOAT3 position =
+		const math::float3 position =
 		{
 			entry.start.position.x + (entry.end.position.x - entry.start.position.x) * t,
 			entry.start.position.y + (entry.end.position.y - entry.start.position.y) * t,
 			entry.start.position.z + (entry.end.position.z - entry.start.position.z) * t,
 		};
 
-		auto quaternion_start = system_utility::to_xmvector(math::rotatorf(entry.start.rotation).to_quaternion());
-		auto quaternion_end = system_utility::to_xmvector(math::rotatorf(entry.end.rotation).to_quaternion());
-		DirectX::XMFLOAT4 quaternion;
-		DirectX::XMStoreFloat4(&quaternion, DirectX::XMQuaternionSlerp(quaternion_start, quaternion_end, t));
+		const math::quaternionf quaternion_start = math::rotatorf(entry.start.rotation).to_quaternion();
+		const math::quaternionf quaternion_end = math::rotatorf(entry.end.rotation).to_quaternion();
+		const math::float4 quaternion = math::slerp(quaternion_start, quaternion_end, t).to_float4();
 
 		const float fov_y = entry.start.fov_y + (entry.end.fov_y - entry.start.fov_y) * t;
 
 		main_camera->set_position(position);
-		main_camera->set_rotation(math::rotatorf(system_utility::to_math_quaternion(quaternion)));
+		main_camera->set_rotation(math::rotatorf(math::quaternionf(quaternion)));
 		main_camera->get_camera()->set_fov_y(fov_y);
 	}
 	else if (editor_camera_object && !editor_camera_object->is_active())

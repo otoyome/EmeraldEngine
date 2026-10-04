@@ -25,7 +25,6 @@
 #include <d3d11.h>
 #include <d3d11_1.h>
 #include <wrl.h>
-#include <directxmath.h>
 #include <cassert>
 
 #include "nameof.hpp"

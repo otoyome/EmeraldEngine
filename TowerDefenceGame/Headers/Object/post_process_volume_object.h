@@ -19,14 +19,14 @@ public:
 	bool is_flag(post_process_volume::flags flag) const;
 	void set_flag(post_process_volume::flags flag, bool value);
 
-	DirectX::XMFLOAT3 get_position() const;
-	void set_position(const DirectX::XMFLOAT3& position);
-	DirectX::XMFLOAT3 get_inner_range() const;
-	void set_inner_range(const DirectX::XMFLOAT3& inner_range);
-	DirectX::XMFLOAT3 get_outer_range() const;
-	void set_outer_range(const DirectX::XMFLOAT3& outer_range);
-	const DirectX::XMFLOAT4& get_color() const;
-	void set_color(const DirectX::XMFLOAT4& color);
+	math::float3 get_position() const;
+	void set_position(const math::float3& position);
+	math::float3 get_inner_range() const;
+	void set_inner_range(const math::float3& inner_range);
+	math::float3 get_outer_range() const;
+	void set_outer_range(const math::float3& outer_range);
+	const math::float4& get_color() const;
+	void set_color(const math::float4& color);
 
 public:
 	post_process_volume_object(std::string_view name);

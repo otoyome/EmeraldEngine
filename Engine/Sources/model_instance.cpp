@@ -56,11 +56,7 @@ void model_instance::set_node_poses(const std::vector<node_animation>& node_anim
 	{
 		auto& in = *(instance_node_ptr + index);
 		auto& an = *(animation_node_ptr + index);
-		DirectX::XMMATRIX Scale = DirectX::XMMatrixScaling(an.scale.x, an.scale.y, an.scale.z);
-		DirectX::XMMATRIX Rotation = DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&an.rotation));
-		DirectX::XMMATRIX Matrix = Scale * Rotation;
-		Matrix.r[3] = DirectX::XMVectorSet(an.translation.x, an.translation.y, an.translation.z, 1.0f);
-		DirectX::XMStoreFloat4x4(&in.local_transform, Matrix);
+		in.local_transform = math::matrixf::transform(an.scale, math::quaternionf(an.rotation), an.translation).to_float4x4();
 	}
 }
 
@@ -73,11 +69,7 @@ void model_instance::set_node_pose(size_t node_index, const node_animation& node
 	}
 
 	auto& in = nodes[node_index];
-	DirectX::XMMATRIX Scale = DirectX::XMMatrixScaling(node.scale.x, node.scale.y, node.scale.z);
-	DirectX::XMMATRIX Rotation = DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&node.rotation));
-	DirectX::XMMATRIX Matrix = Scale * Rotation;
-	Matrix.r[3] = DirectX::XMVectorSet(node.translation.x, node.translation.y, node.translation.z, 1.0f);
-	DirectX::XMStoreFloat4x4(&in.local_transform, Matrix);
+	in.local_transform = math::matrixf::transform(node.scale, math::quaternionf(node.rotation), node.translation).to_float4x4();
 }
 
 bool model_instance::set_morph(std::string_view morph_name, const morph_animation& morph)
@@ -93,27 +85,24 @@ bool model_instance::set_morph(std::string_view morph_name, const morph_animatio
 	return false;
 }
 
-void model_instance::update_transform(const DirectX::XMFLOAT4X4& world_transform)
+void model_instance::update_transform(const math::float4x4& world_transform)
 {
-	DirectX::XMMATRIX WorldTransform = DirectX::XMLoadFloat4x4(&world_transform);
 	this->world_transform = world_transform;
 	for (auto& node : nodes)
 	{
-		DirectX::XMMATRIX GlobalTransform = DirectX::XMLoadFloat4x4(&node.local_transform);
+		math::matrixf global_transform(node.local_transform);
 		if (node.parent_index != invalid_id)
 		{
 			auto& parent_node = nodes[node.parent_index];
-			GlobalTransform *= DirectX::XMLoadFloat4x4(&parent_node.global_transform);
+			global_transform *= math::matrixf(parent_node.global_transform);
 		}
-		DirectX::XMStoreFloat4x4(&node.global_transform, GlobalTransform);
+		node.global_transform = global_transform.to_float4x4();
 	}
 }
 
-void model_instance::update_transform(const DirectX::XMMATRIX& world_transform)
+void model_instance::update_transform(const math::matrixf& world_transform)
 {
-	DirectX::XMFLOAT4X4 matrix;
-	DirectX::XMStoreFloat4x4(&matrix, world_transform);
-	update_transform(matrix);
+	update_transform(world_transform.to_float4x4());
 }
 
 void model_instance::build_model()
@@ -136,14 +125,11 @@ void model_instance::build_model()
 		node instance_node;
 		instance_node.name = resource_node.name;
 		instance_node.parent_index = resource_node.parent_index;
-		DirectX::XMMATRIX LocalTransform = DirectX::XMMatrixScalingFromVector(DirectX::XMLoadFloat3(&resource_node.scale)) *
-																			  DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&resource_node.rotation)) *
-																			  DirectX::XMMatrixTranslationFromVector(DirectX::XMLoadFloat3(&resource_node.translation));
-		DirectX::XMStoreFloat4x4(&instance_node.local_transform, LocalTransform);
+		const math::matrixf local_transform = math::matrixf::transform(resource_node.scale, math::quaternionf(resource_node.rotation), resource_node.translation);
+		instance_node.local_transform = local_transform.to_float4x4();
 		if (instance_node.parent_index != model_resource::invalid_id)
 		{
-			DirectX::XMMATRIX GlobalTransform = DirectX::XMLoadFloat4x4(&nodes[instance_node.parent_index].global_transform);
-			DirectX::XMStoreFloat4x4(&instance_node.global_transform, LocalTransform * GlobalTransform);
+			instance_node.global_transform = (local_transform * math::matrixf(nodes[instance_node.parent_index].global_transform)).to_float4x4();
 		}
 		else
 		{
@@ -216,7 +202,7 @@ void model_instance_manger::get_container(mesh_container& container)
 
 	container.clear();
 
-	std::vector<DirectX::XMMATRIX> NodeWorldTransforms, PreviousNodeWorldTransforms;
+	std::vector<math::matrixf> NodeWorldTransforms, PreviousNodeWorldTransforms;
 	NodeWorldTransforms.resize(common_pipeline_states::mesh_bone_max);
 	PreviousNodeWorldTransforms.resize(common_pipeline_states::mesh_bone_max);
 
@@ -252,8 +238,8 @@ void model_instance_manger::get_container(mesh_container& container)
 		}
 
 		//	ワールド行列等生成
-		DirectX::XMMATRIX WorldTransform = DirectX::XMLoadFloat4x4(&instance->get_world_transform());
-		DirectX::XMMATRIX PreviousWorldTransform = DirectX::XMLoadFloat4x4(&instance->get_previous_world_transform());
+		const math::matrixf WorldTransform(instance->get_world_transform());
+		const math::matrixf PreviousWorldTransform(instance->get_previous_world_transform());
 
 		//	ノードサイズ調整
 		if (NodeWorldTransforms.size() <= instance->get_nodes().size())
@@ -279,8 +265,8 @@ void model_instance_manger::get_container(mesh_container& container)
 				for (auto& bone : mesh.bones)
 				{
 					auto& node = instance->get_nodes()[bone.node_index];
-					auto gm = DirectX::XMLoadFloat4x4(&node.global_transform);
-					auto pgm = DirectX::XMLoadFloat4x4(&node.previous_global_transform);
+					const math::matrixf gm(node.global_transform);
+					const math::matrixf pgm(node.previous_global_transform);
 					NodeWorldTransforms[bone.node_index] = gm * WorldTransform;
 					PreviousNodeWorldTransforms[bone.node_index] = pgm * PreviousWorldTransform;
 					if (mesh.node_index == bone.node_index)
@@ -289,30 +275,28 @@ void model_instance_manger::get_container(mesh_container& container)
 				if (!inside)
 				{
 					auto& node = instance->get_nodes()[mesh.node_index];
-					auto gm = DirectX::XMLoadFloat4x4(&node.global_transform);
-					auto pgm = DirectX::XMLoadFloat4x4(&node.previous_global_transform);
+					const math::matrixf gm(node.global_transform);
+					const math::matrixf pgm(node.previous_global_transform);
 					NodeWorldTransforms[mesh.node_index] = gm * WorldTransform;
 					PreviousNodeWorldTransforms[mesh.node_index] = pgm * PreviousWorldTransform;
 				}
 			}
 
 			//	ワールド空間上のAABBを生成
-			DirectX::XMFLOAT3 bounds_min, bounds_max;
+			math::float3 bounds_min, bounds_max;
 			{
 				bounds_min = { +FLT_MAX, +FLT_MAX, +FLT_MAX };
 				bounds_max = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
-				DirectX::XMFLOAT3 scale((mesh.bounds_max.x - mesh.bounds_min.x) * 0.5f, (mesh.bounds_max.y - mesh.bounds_min.y) * 0.5f, (mesh.bounds_max.z - mesh.bounds_min.z) * 0.5f);
-				DirectX::XMFLOAT3 center(mesh.bounds_min.x + scale.x, mesh.bounds_min.y + scale.y, mesh.bounds_min.z + scale.z);
+				math::float3 scale((mesh.bounds_max.x - mesh.bounds_min.x) * 0.5f, (mesh.bounds_max.y - mesh.bounds_min.y) * 0.5f, (mesh.bounds_max.z - mesh.bounds_min.z) * 0.5f);
+				math::float3 center(mesh.bounds_min.x + scale.x, mesh.bounds_min.y + scale.y, mesh.bounds_min.z + scale.z);
 
 				collision::bounding_box box = collision::bounding_box(scale, {0.0f, 0.0f, 0.0f, 1.0f}, center);
 
-				DirectX::XMFLOAT3 vertices[8];
+				math::float3 vertices[8];
 				box.calculate_vertex(vertices, ARRAYSIZE(vertices));
 				for (auto& vertex : vertices)
 				{
-					DirectX::XMStoreFloat3(&vertex,
-						DirectX::XMVector3TransformCoord(DirectX::XMLoadFloat3(&vertex),
-											NodeWorldTransforms[mesh.node_index]));
+					vertex = math::vector3f::transform_coord(vertex, NodeWorldTransforms[mesh.node_index]).to_float3();
 					bounds_min.x = std::min(vertex.x, bounds_min.x);
 					bounds_min.y = std::min(vertex.y, bounds_min.y);
 					bounds_min.z = std::min(vertex.z, bounds_min.z);
@@ -328,7 +312,7 @@ void model_instance_manger::get_container(mesh_container& container)
 			buffer_data.lod_range_rate = instance->get_lod_range_rate();
 			buffer_data.bounds_min = bounds_min;
 			buffer_data.bounds_max = bounds_max;
-			DirectX::XMStoreFloat4x4(&buffer_data.world_transform, NodeWorldTransforms[mesh.node_index]);
+			buffer_data.world_transform = (NodeWorldTransforms[mesh.node_index]).to_float4x4();
 			buffer_data.system_flags = 0;
 			system_utility::set_bitflag(buffer_data.system_flags, buffer_datas::flags::culling, instance->is_flag(model_instance::flags::culling));
 			system_utility::set_bitflag(buffer_data.system_flags, buffer_datas::flags::static_mesh, mesh.bones.empty());
@@ -438,15 +422,15 @@ void model_instance_manger::get_container(mesh_container& container)
 				for (UINT bone_index = 0; bone_index < bone_count; ++bone_index)
 				{
 					auto& bone = mesh.bones[bone_index];
-					DirectX::XMMATRIX NodeOffsetTransform = DirectX::XMLoadFloat4x4(&bone.offset_matrix);
-					DirectX::XMStoreFloat4x4(&container.bone_matrix_scratch.emplace_back(), NodeOffsetTransform * NodeWorldTransforms[bone.node_index]);
+					const math::matrixf NodeOffsetTransform(bone.offset_matrix);
+					container.bone_matrix_scratch.push_back((NodeOffsetTransform * NodeWorldTransforms[bone.node_index]).to_float4x4());
 				}
 				header.previous_bone_offset = static_cast<UINT>(container.bone_matrix_scratch.size());
 				for (UINT bone_index = 0; bone_index < bone_count; ++bone_index)
 				{
 					auto& bone = mesh.bones[bone_index];
-					DirectX::XMMATRIX NodeOffsetTransform = DirectX::XMLoadFloat4x4(&bone.offset_matrix);
-					DirectX::XMStoreFloat4x4(&container.bone_matrix_scratch.emplace_back(), NodeOffsetTransform * PreviousNodeWorldTransforms[bone.node_index]);
+					const math::matrixf NodeOffsetTransform(bone.offset_matrix);
+					container.bone_matrix_scratch.push_back((NodeOffsetTransform * PreviousNodeWorldTransforms[bone.node_index]).to_float4x4());
 				}
 				header.bone_count = bone_count;
 
@@ -499,7 +483,7 @@ void model_instance_manger::get_container(mesh_container& container)
 				//{
 				//	for (auto& capsule : instance->get_resource()->get_capsule_shadows())
 				//	{
-				//		DirectX::XMFLOAT4X4 node_world_transform = instance->get_nodes()[capsule.node_index].world_transform;
+				//		math::float4x4 node_world_transform = instance->get_nodes()[capsule.node_index].world_transform;
 				//		capsule.capsule.
 				//		container.capsule_shadow_datas.emplace_back();
 				//	}
@@ -509,7 +493,7 @@ void model_instance_manger::get_container(mesh_container& container)
 
 		//	過去行列を保存
 		{
-			DirectX::XMMATRIX WorldTransform = DirectX::XMLoadFloat4x4(&instance->get_world_transform());
+			const math::matrixf WorldTransform(instance->get_world_transform());
 			for (auto& node : instance->get_nodes())
 			{
 				node.previous_global_transform = node.global_transform;

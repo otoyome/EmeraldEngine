@@ -26,7 +26,7 @@ namespace
 	constexpr float ScaleFactorForMMDtoEMO = 10.0f / 8.0f;
 
 	//	âÒì]ï‚ê≥
-	constexpr DirectX::XMFLOAT3 RotationFactorForMMDtoEMO = { 0.0f, DirectX::XM_PI, 0.0f };
+	constexpr math::float3 RotationFactorForMMDtoEMO = { 0.0f, math::constants<float>::pi, 0.0f };
 }
 
 template<class Archive>
@@ -150,8 +150,8 @@ float animation::interpolation::calculate_time(float rate) const
 	if (data_index >= datas.size() - 1)
 		return datas.back().y;
 
-	DirectX::XMFLOAT2 s = datas[data_index + 0];
-	DirectX::XMFLOAT2 e = datas[data_index + 1];
+	math::float2 s = datas[data_index + 0];
+	math::float2 e = datas[data_index + 1];
 	switch (type)
 	{
 		case types::smooth:		rate = math::smoothstep(s.x, e.x, rate); break;
@@ -249,9 +249,9 @@ bool animation::data::inner_compute_animation(animation::node& out, size_t node_
 			continue;
 
 		float value = (time - animation_1.time) / (animation_2.time - animation_1.time);
-		DirectX::XMStoreFloat3(&out.scale, DirectX::XMVectorLerp(DirectX::XMLoadFloat3(&animation_1.scale), DirectX::XMLoadFloat3(&animation_2.scale), value));
-		DirectX::XMStoreFloat4(&out.rotation, DirectX::XMQuaternionSlerp(DirectX::XMLoadFloat4(&animation_1.rotation), DirectX::XMLoadFloat4(&animation_2.rotation), value));
-		DirectX::XMStoreFloat3(&out.translation, DirectX::XMVectorLerp(DirectX::XMLoadFloat3(&animation_1.translation), DirectX::XMLoadFloat3(&animation_2.translation), value));
+		out.scale = math::lerp(math::vector3f(animation_1.scale), math::vector3f(animation_2.scale), value).to_float3();
+		out.rotation = math::slerp(math::quaternionf(animation_1.rotation), math::quaternionf(animation_2.rotation), value).to_float4();
+		out.translation = math::lerp(math::vector3f(animation_1.translation), math::vector3f(animation_2.translation), value).to_float3();
 		index = node_max;
 		break;
 	}
@@ -303,12 +303,12 @@ bool animation::data::compute_animation(animation::camera_spherical& out, float 
 		if (0.0f <= value && value < 1.0f)
 		{
 			out.distance = math::lerp(animation_1.distance, animation_2.distance, value);
-			out.focus = system_utility::to_xmfloat(math::lerp(system_utility::to_math(animation_1.focus), system_utility::to_math(animation_2.focus), value));
+			out.focus = math::lerp(math::vector3f(animation_1.focus), math::vector3f(animation_2.focus), value).to_float3();
 			out.is_parth = math::lerp(animation_1.is_parth, animation_2.is_parth, value);
 
-			const math::quaternionf quaternion1 = system_utility::to_math_rotator(animation_1.rotation).to_quaternion();
-			const math::quaternionf quaternion2 = system_utility::to_math_rotator(animation_2.rotation).to_quaternion();
-			out.rotation = system_utility::to_xmfloat(math::rotatorf(math::slerp(quaternion1, quaternion2, value)));
+			const math::quaternionf quaternion1 = math::rotatorf(math::vector3f(animation_1.rotation)).to_quaternion();
+			const math::quaternionf quaternion2 = math::rotatorf(math::vector3f(animation_2.rotation)).to_quaternion();
+			out.rotation = math::rotatorf(math::slerp(quaternion1, quaternion2, value)).to_vector3().to_float3();
 			out.view_angle = math::lerp(animation_1.view_angle, animation_2.view_angle, value);
 			index = camera_sphericals.size();
 			break;
@@ -430,7 +430,7 @@ bool animation::data::compute_animation(float time, variable_function function) 
 	return true;
 }
 
-bool animation::data::call_events(DirectX::XMFLOAT2 time_range, std::function<void(const event& event)> function) const
+bool animation::data::call_events(math::float2 time_range, std::function<void(const event& event)> function) const
 {
 	float previous_time = calculate_time(time_range.x) * end_time;
 	float current_time = calculate_time(time_range.y) * end_time;
@@ -549,7 +549,7 @@ bool animation_resource::convert_from_camera_vmd(std::string_view animation_name
 	animation.name = animation_name;
 	animation.end_time = loader.get_end_frame() / NormalizedFrameForVMD;
 
-	DirectX::XMMATRIX rotation_matrix = DirectX::XMMatrixRotationRollPitchYaw(RotationFactorForMMDtoEMO.x, RotationFactorForMMDtoEMO.y, RotationFactorForMMDtoEMO.z);
+	const math::matrixf rotation_matrix = math::matrixf::rotation_xyz(math::vector3f(RotationFactorForMMDtoEMO));
 
 	auto calculate_camera_animation = [&](const vmd_loader& loader, float time)
 		{
@@ -568,25 +568,23 @@ bool animation_resource::convert_from_camera_vmd(std::string_view animation_name
 				{
 					camera.distance = math::lerp(animation_1.distance, animation_2.distance, value);
 					camera.distance *= -ScaleFactorForMMDtoEMO;
-					camera.focus = system_utility::to_xmfloat(math::lerp(system_utility::to_math(animation_1.position), system_utility::to_math(animation_2.position), value));
+					camera.focus = math::lerp(math::vector3f(animation_1.position), math::vector3f(animation_2.position), value).to_float3();
 					camera.focus.x *= ScaleFactorForMMDtoEMO;
 					camera.focus.y *= ScaleFactorForMMDtoEMO;
 					camera.focus.z *= ScaleFactorForMMDtoEMO;
-					DirectX::XMVECTOR position = DirectX::XMLoadFloat3(&camera.focus);
-					position = DirectX::XMVector3TransformCoord(position, rotation_matrix);
-					DirectX::XMStoreFloat3(&camera.focus, position);
+					camera.focus = math::vector3f::transform_coord(camera.focus, rotation_matrix).to_float3();
 
 					camera.is_parth = math::lerp(animation_1.is_parth, animation_2.is_parth, value);
-					camera.rotation = system_utility::to_xmfloat(math::lerp(system_utility::to_math(animation_1.rotation), system_utility::to_math(animation_2.rotation), value));
+					camera.rotation = math::lerp(math::vector3f(animation_1.rotation), math::vector3f(animation_2.rotation), value).to_float3();
 
-					DirectX::XMMATRIX rotation = DirectX::XMMatrixRotationQuaternion(system_utility::to_xmvector(system_utility::to_math_rotator(camera.rotation).to_quaternion()));
+					math::matrixf rotation = math::matrixf::rotation_quaternion(math::rotatorf(math::vector3f(camera.rotation)).to_quaternion());
 					rotation *= rotation_matrix;
-					camera.rotation = system_utility::to_xmfloat(math::rotatorf(system_utility::to_math(system_utility::convert_xmfloat4x4_from_matrix(rotation))));
+					camera.rotation = math::rotatorf(rotation).to_vector3().to_float3();
 					camera.rotation.x = -camera.rotation.x;
 					camera.rotation.y = -camera.rotation.y;
 					camera.rotation.z = -camera.rotation.z;
 
-					camera.view_angle = DirectX::XMConvertToRadians(static_cast<float>(math::lerp(animation_1.view_angle, animation_2.view_angle, value)));
+					camera.view_angle = math::angle::to_radian(static_cast<float>(math::lerp(animation_1.view_angle, animation_2.view_angle, value)));
 					return camera;
 				}
 			}
@@ -597,21 +595,19 @@ bool animation_resource::convert_from_camera_vmd(std::string_view animation_name
 			camera.focus.x *= ScaleFactorForMMDtoEMO;
 			camera.focus.y *= ScaleFactorForMMDtoEMO;
 			camera.focus.z *= ScaleFactorForMMDtoEMO;
-			DirectX::XMVECTOR position = DirectX::XMLoadFloat3(&camera.focus);
-			position = DirectX::XMVector3TransformCoord(position, rotation_matrix);
-			DirectX::XMStoreFloat3(&camera.focus, position);
+			camera.focus = math::vector3f::transform_coord(camera.focus, rotation_matrix).to_float3();
 
 			camera.is_parth = camera_animations[index].is_parth;
 			camera.rotation = camera_animations[index].rotation;
 
-			DirectX::XMMATRIX rotation = DirectX::XMMatrixRotationQuaternion(system_utility::to_xmvector(system_utility::to_math_rotator(camera.rotation).to_quaternion()));
+			math::matrixf rotation = math::matrixf::rotation_quaternion(math::rotatorf(math::vector3f(camera.rotation)).to_quaternion());
 			rotation *= rotation_matrix;
-			camera.rotation = system_utility::to_xmfloat(math::rotatorf(system_utility::to_math(system_utility::convert_xmfloat4x4_from_matrix(rotation))));
+			camera.rotation = math::rotatorf(rotation).to_vector3().to_float3();
 			camera.rotation.x = -camera.rotation.x;
 			camera.rotation.y = -camera.rotation.y;
 			camera.rotation.z = -camera.rotation.z;
 
-			camera.view_angle = DirectX::XMConvertToRadians(static_cast<float>(camera_animations[index].view_angle));
+			camera.view_angle = math::angle::to_radian(static_cast<float>(camera_animations[index].view_angle));
 			return camera;
 		};
 

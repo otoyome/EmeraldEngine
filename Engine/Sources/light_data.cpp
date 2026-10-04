@@ -89,29 +89,29 @@ light_type light_data_utility::get_light_type(const light_data& data)
 	return static_cast<light_type>(data.work_data[3].w + 0.5f);
 }
 
-DirectX::XMFLOAT3 light_data_utility::get_position(const light_data& data)
+math::float3 light_data_utility::get_position(const light_data& data)
 {
 	switch (get_light_type(data))
 	{
-	case light_type::directional: return  DirectX::XMFLOAT3(data.work_data[2].x, data.work_data[2].y, data.work_data[2].z);
-	case light_type::point: return  DirectX::XMFLOAT3(data.work_data[0].x, data.work_data[0].y, data.work_data[0].z);
-	case light_type::spot: return  DirectX::XMFLOAT3(data.work_data[0].x, data.work_data[0].y, data.work_data[0].z);
+	case light_type::directional: return  math::float3(data.work_data[2].x, data.work_data[2].y, data.work_data[2].z);
+	case light_type::point: return  math::float3(data.work_data[0].x, data.work_data[0].y, data.work_data[0].z);
+	case light_type::spot: return  math::float3(data.work_data[0].x, data.work_data[0].y, data.work_data[0].z);
 	}
-	return DirectX::XMFLOAT3(0, 0, 0);
+	return math::float3(0, 0, 0);
 }
 
-DirectX::XMFLOAT3 light_data_utility::get_direction(const light_data& data)
+math::float3 light_data_utility::get_direction(const light_data& data)
 {
 	switch (get_light_type(data))
 	{
-	case light_type::directional: return  DirectX::XMFLOAT3(data.work_data[0].x, data.work_data[0].y, data.work_data[0].z);
-	case light_type::point: return  DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f);
-	case light_type::spot: return  DirectX::XMFLOAT3(data.work_data[1].x, data.work_data[1].y, data.work_data[1].z);
+	case light_type::directional: return  math::float3(data.work_data[0].x, data.work_data[0].y, data.work_data[0].z);
+	case light_type::point: return  math::float3(0.0f, 0.0f, 0.0f);
+	case light_type::spot: return  math::float3(data.work_data[1].x, data.work_data[1].y, data.work_data[1].z);
 	}
-	return DirectX::XMFLOAT3(0, 0, 0);
+	return math::float3(0, 0, 0);
 }
 
-DirectX::XMFLOAT4 light_data_utility::get_color(const light_data& data)
+math::float4 light_data_utility::get_color(const light_data& data)
 {
 	switch (get_light_type(data))
 	{
@@ -119,5 +119,5 @@ DirectX::XMFLOAT4 light_data_utility::get_color(const light_data& data)
 	case light_type::point: return  data.work_data[1];
 	case light_type::spot: return  data.work_data[2];
 	}
-	return DirectX::XMFLOAT4(0, 0, 0, 0);
+	return math::float4(0, 0, 0, 0);
 }

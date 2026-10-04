@@ -21,15 +21,15 @@ public:
 	{
 		std::string name;
 		size_t parent_node_index = invalid_id;
-		DirectX::XMFLOAT3 scale = { 1, 1, 1 };
-		DirectX::XMFLOAT4 rotation = { 0, 0, 0, 1 };
-		DirectX::XMFLOAT3 translation = { 0, 0, 0 };
+		math::float3 scale = { 1, 1, 1 };
+		math::float4 rotation = { 0, 0, 0, 1 };
+		math::float3 translation = { 0, 0, 0 };
 	};
 
 	struct bone_data
 	{
 		size_t node_index;
-		DirectX::XMFLOAT4X4 offset_matrix = { 1, 0, 0, 0,  0, 1, 0, 0,  0, 0, 1, 0,  0, 0, 0, 1 };
+		math::float4x4 offset_matrix = { 1, 0, 0, 0,  0, 1, 0, 0,  0, 0, 1, 0,  0, 0, 0, 1 };
 	};
 
 	struct buffer_data
@@ -68,16 +68,16 @@ public:
 		};
 		std::unordered_map<std::string, morph_data> morph_datas;
 
-		DirectX::XMFLOAT3 bounds_min = { +FLT_MAX, +FLT_MAX, +FLT_MAX };
-		DirectX::XMFLOAT3 bounds_max = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
+		math::float3 bounds_min = { +FLT_MAX, +FLT_MAX, +FLT_MAX };
+		math::float3 bounds_max = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
 	};
 
 	struct material_data
 	{
 		std::string name;
 		alpha_modes alpha_mode = alpha_modes::opaque;
-		DirectX::XMFLOAT4 base_color = { 1, 1, 1, 1 };
-		DirectX::XMFLOAT3 emissive_color = { 1, 1, 1 };
+		math::float4 base_color = { 1, 1, 1, 1 };
+		math::float3 emissive_color = { 1, 1, 1 };
 		float emissive_intensity = 1;
 
 		float occlusion_strength = 0.0f;
@@ -99,13 +99,13 @@ public:
 	struct vector_key_frame
 	{
 		float second;
-		DirectX::XMFLOAT3 value;
+		math::float3 value;
 	};
 
 	struct quaternion_key_frame
 	{
 		float second;
-		DirectX::XMFLOAT4 value;
+		math::float4 value;
 	};
 
 	struct node_animation_data
@@ -117,9 +117,9 @@ public:
 
 		struct pose_data
 		{
-			DirectX::XMFLOAT3 scale = {1.0f, 1.0f, 1.0f};
-			DirectX::XMFLOAT4 rotation = {0.0f, 0.0f, 0.0f, 1.0f};
-			DirectX::XMFLOAT3 translation = {0.0f, 0.0f, 0.0f};
+			math::float3 scale = {1.0f, 1.0f, 1.0f};
+			math::float4 rotation = {0.0f, 0.0f, 0.0f, 1.0f};
+			math::float3 translation = {0.0f, 0.0f, 0.0f};
 		};
 		pose_data calculate(float second);
 	};

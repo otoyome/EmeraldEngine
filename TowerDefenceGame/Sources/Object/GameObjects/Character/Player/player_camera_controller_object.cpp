@@ -5,9 +5,9 @@
 namespace
 {
 	//	ヨー回転速度
-	constexpr float rotation_speed = DirectX::XMConvertToRadians(90.0f);
+	constexpr float rotation_speed = math::angle::to_radian(90.0f);
 	//	±ピッチ制限角度
-	constexpr DirectX::XMFLOAT2 pitch_limit_angle = { DirectX::XMConvertToRadians(-10.0f), DirectX::XMConvertToRadians(45.0f) };
+	constexpr math::float2 pitch_limit_angle = { math::angle::to_radian(-10.0f), math::angle::to_radian(45.0f) };
 	//	開始距離
 	constexpr float default_distance = system_units::convert_m_to_unit(7.0f);
 	//	角度によるフォーカス位置のオフセット
@@ -19,8 +19,8 @@ namespace
 	constexpr float attack_focus_limit_range_max = system_units::convert_m_to_unit(15.0f); // 攻撃中
 	//	パリィ情報
 	constexpr float parry_state_time = system_units::convert_fps_to_sec(60.0f);
-	constexpr DirectX::XMFLOAT2 parry_first_focus_distance_time_range = { system_units::convert_fps_to_sec(0.0f), system_units::convert_fps_to_sec(15.0f) };
-	constexpr DirectX::XMFLOAT2 parry_second_focus_distance_time_range = { parry_first_focus_distance_time_range.y, system_units::convert_fps_to_sec(30.0f) };
+	constexpr math::float2 parry_first_focus_distance_time_range = { system_units::convert_fps_to_sec(0.0f), system_units::convert_fps_to_sec(15.0f) };
+	constexpr math::float2 parry_second_focus_distance_time_range = { parry_first_focus_distance_time_range.y, system_units::convert_fps_to_sec(30.0f) };
 	constexpr float update_parry_focus_time = system_units::convert_fps_to_sec(0.5f);
 	//	よろけ情報
 	constexpr float break_effect_time = 4.0f;
@@ -58,12 +58,12 @@ void player_camera_controller_object::set_rotation(const math::rotatorf& rotator
 	camera->set_rotation(rotator);
 }
 
-const DirectX::XMFLOAT3& player_camera_controller_object::get_position() const
+const math::float3& player_camera_controller_object::get_position() const
 {
 	return camera->get_position();
 }
 
-void player_camera_controller_object::set_position(const DirectX::XMFLOAT3& position)
+void player_camera_controller_object::set_position(const math::float3& position)
 {
 	camera->set_position(position);
 }
@@ -160,9 +160,7 @@ void player_camera_controller_object::fixed_update(float elapsed_time)
 
 void player_camera_controller_object::fixed_update_default(float elapsed_time)
 {
-	DirectX::XMVECTOR Up{ DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f) };
-
-	DirectX::XMFLOAT3 new_focus = player_controller->get_controll_object()->get_focus_point();
+	math::float3 new_focus = player_controller->get_controll_object()->get_focus_point();
 	float update_focus_rate = update_focus_rate_inner;
 
 	//	特殊カメラ演出中の処理
@@ -267,13 +265,13 @@ void player_camera_controller_object::fixed_update_default(float elapsed_time)
 		float focus_rate = update_focus_rate;
 		{
 			//	一時座標算出
-			DirectX::XMFLOAT3 temp_focus;
+			math::float3 temp_focus;
 			temp_focus.x = focus.x + (new_focus.x - focus.x) * update_focus_rate;
 			temp_focus.y = focus.y + (new_focus.y - focus.y) * update_focus_rate;
 			temp_focus.z = focus.z + (new_focus.z - focus.z) * update_focus_rate;
 
 			//	距離制限
-			DirectX::XMFLOAT3 focus_vector;
+			math::float3 focus_vector;
 			focus_vector.x = new_focus.x - temp_focus.x;
 			focus_vector.y = new_focus.y - temp_focus.y;
 			focus_vector.z = new_focus.z - temp_focus.z;
@@ -299,9 +297,9 @@ void player_camera_controller_object::fixed_update_default(float elapsed_time)
 
 	//	カメラの姿勢の更新
 	{
-		DirectX::XMFLOAT3 camera_position, camera_front;
+		math::float3 camera_position, camera_front;
 		math::rotatorf camera_rotation = get_rotation();
-		camera_front = system_utility::to_xmfloat(camera_rotation.front());
+		camera_front = camera_rotation.front().to_float3();
 
 		camera_position.x = focus.x - camera_front.x * focus_distance;
 		camera_position.y = focus.y - camera_front.y * focus_distance;
@@ -323,11 +321,11 @@ void player_camera_controller_object::fixed_update_default(float elapsed_time)
 			if (object_manager::instance()->get_world().sphere_cast(desc, intersect_data, hit_collision_object))
 			{
 				float length = intersect_data[0].length;
-				DirectX::XMFLOAT3 vector;
+				math::float3 vector;
 				vector.x = camera_position.x - focus.x;
 				vector.y = camera_position.y - focus.y;
 				vector.z = camera_position.z - focus.z;
-				DirectX::XMStoreFloat3(&vector, DirectX::XMVector3Normalize(DirectX::XMLoadFloat3(&vector)));
+				vector = math::vector3f(vector).normalized().to_float3();
 				camera_position.x = focus.x + vector.x * length;
 				camera_position.y = focus.y + vector.y * length;
 				camera_position.z = focus.z + vector.z * length;
@@ -353,14 +351,14 @@ void player_camera_controller_object::update(float elapsed_time)
 		return;
 
 	//	旋回加速処理
-	DirectX::XMFLOAT2 move;
+	math::float2 move;
 	move.x = static_cast<float>(mouse::instance()->get_move_cursol().x);
 	move.y = static_cast<float>(mouse::instance()->get_move_cursol().y);
 	float move_length = (move.x * move.x + move.y * move.y);
 	if (move_length > 0.001f * 0.001f)
 	{
-		disengage_direction.x += DirectX::XMConvertToRadians(move.y) * 0.1f;
-		disengage_direction.y += DirectX::XMConvertToRadians(move.x) * 0.1f;
+		disengage_direction.x += math::angle::to_radian(move.y) * 0.1f;
+		disengage_direction.y += math::angle::to_radian(move.x) * 0.1f;
 
 		disengage_direction.x = math::clamp(disengage_direction.x, pitch_limit_angle.x, pitch_limit_angle.y);
 		disengage_direction.y = math::angle::normalize(disengage_direction.y);
@@ -419,8 +417,8 @@ void player_camera_controller_object::on_camera_transform(const character_object
 {
 	if (desc.is_flag(character_object::camera_transform_descs::flags::set_focus_direction))
 	{
-		DirectX::XMVECTOR Vector = DirectX::XMVector3Normalize(DirectX::XMLoadFloat3(&desc.focus_direction));
-		disengage_direction = math::rotatorf::from_direction(system_utility::to_math(system_utility::convert_xmfloat3_from_vector(Vector)));
+		math::vector3f Vector = math::vector3f(desc.focus_direction).normalized();
+		disengage_direction = math::rotatorf::from_direction(Vector);
 		disengage_direction.x = math::clamp(disengage_direction.x, pitch_limit_angle.x, pitch_limit_angle.y);
 		disengage_direction.y = math::angle::normalize(disengage_direction.y);
 	}
@@ -454,36 +452,34 @@ void player_camera_controller_object::on_parry_camera(character_object* characte
 		auto taget_object = player_controller->get_controll_object()->get_lockon_taget_object().lock();
 		auto self_focus_point = self_object->get_focus_point();
 		auto taget_focus_point = taget_object->get_focus_point();
-		DirectX::XMVECTOR SelfPosition = DirectX::XMLoadFloat3(&self_focus_point);
-		DirectX::XMVECTOR TargetPosition = DirectX::XMLoadFloat3(&taget_focus_point);
-		DirectX::XMVECTOR CameraPosition = DirectX::XMLoadFloat3(&get_position());
-		DirectX::XMVECTOR Vector = DirectX::XMVectorSubtract(TargetPosition, SelfPosition);
+		math::vector3f SelfPosition(self_focus_point);
+		math::vector3f TargetPosition(taget_focus_point);
+		math::vector3f CameraPosition(get_position());
+		math::vector3f Vector = TargetPosition - SelfPosition;
 
 		//	左側か右側か判定
-		DirectX::XMVECTOR VectorXZ = DirectX::XMVectorSetY(Vector, DirectX::XMVectorGetZ(Vector));
-		DirectX::XMVECTOR CameraVector = DirectX::XMVectorSubtract(CameraPosition, SelfPosition);
-		DirectX::XMVECTOR CameraVectorXZ = DirectX::XMVectorSetY(CameraVector, DirectX::XMVectorGetZ(CameraVector));
-		DirectX::XMVECTOR Sin = DirectX::XMVector2Cross(VectorXZ, CameraVectorXZ);
-		float left = DirectX::XMVectorGetY(Sin) < 0.0f ? -1.0f : +1.0f;
+		math::vector3f CameraVector = CameraPosition - SelfPosition;
+		const float sin = math::vector2f::cross(math::vector2f(Vector.x, Vector.z), math::vector2f(CameraVector.x, CameraVector.z));
+		float left = sin < 0.0f ? -1.0f : +1.0f;
 
 		//	Y差分は0にしておく
-		Vector = DirectX::XMVectorSetY(Vector, 0.0f);
+		Vector.y = 0.0f;
 
 		//	正規化
-		Vector = DirectX::XMVector3Normalize(Vector);
+		Vector = Vector.normalized();
 
 		//	右方向ベクトル算出
-		DirectX::XMVECTOR Up{ DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f) };
-		DirectX::XMVECTOR Right = DirectX::XMVector3Cross(Up, Vector);
+		math::vector3f Up(0.0f, 1.0f, 0.0f);
+		math::vector3f Right = math::vector3f::cross(Up, Vector);
 
 		//	一定距離離す
-		Vector = DirectX::XMVectorScale(Vector, system_units::convert_m_to_unit(0.5f));
-		Vector = DirectX::XMVectorAdd(Vector, DirectX::XMVectorScale(Right, system_units::convert_m_to_unit(left * 0.25f)));
-		Vector = DirectX::XMVectorAdd(Vector, DirectX::XMVectorScale(Up, system_units::convert_m_to_unit(0.1f)));
-		Vector = DirectX::XMVector3Normalize(Vector);
+		Vector = Vector * system_units::convert_m_to_unit(0.5f);
+		Vector = Vector + (Right * (system_units::convert_m_to_unit(left * 0.25f)));
+		Vector = Vector + (Up * system_units::convert_m_to_unit(0.1f));
+		Vector = Vector.normalized();
 
 		//	回転量算出
-		disengage_direction = math::rotatorf::from_direction(system_utility::to_math(system_utility::convert_xmfloat3_from_vector(Vector)));
+		disengage_direction = math::rotatorf::from_direction(Vector);
 		disengage_direction.x = math::clamp(disengage_direction.x, pitch_limit_angle.x, pitch_limit_angle.y);
 		disengage_direction.y = math::angle::normalize(disengage_direction.y);
 	}

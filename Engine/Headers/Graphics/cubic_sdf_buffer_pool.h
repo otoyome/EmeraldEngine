@@ -2,7 +2,6 @@
 
 #include <d3d11.h>
 #include <wrl.h>
-#include <DirectXMath.h>
 #include <vector>
 #include <cstdint>
 
@@ -19,8 +18,8 @@ public:
 	{
 		uint32_t voxel_offset = 0;
 		uint32_t resolution = 0;
-		DirectX::XMFLOAT3 bounds_min = { 0, 0, 0 };
-		DirectX::XMFLOAT3 bounds_max = { 0, 0, 0 };
+		math::float3 bounds_min = { 0, 0, 0 };
+		math::float3 bounds_max = { 0, 0, 0 };
 	};
 
 public:

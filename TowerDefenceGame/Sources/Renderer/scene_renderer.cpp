@@ -19,20 +19,20 @@
 
 namespace
 {
-    void compute_bounding_sphere(DirectX::XMVECTOR* corners, UINT size, DirectX::XMVECTOR& out_center, float& out_radius)
+    void compute_bounding_sphere(const math::vector3f* corners, UINT size, math::vector3f& out_center, float& out_radius)
     {
-        DirectX::XMVECTOR sum = DirectX::XMVectorZero();
+        math::vector3f sum = math::vector3f::zero();
         for (UINT index = 0; index < size; ++index)
         {
-            sum = DirectX::XMVectorAdd(sum, corners[index]);
+            sum = sum + corners[index];
         }
 
-        DirectX::XMVECTOR center = DirectX::XMVectorScale(sum, 1.0f / 8.0f);
+        math::vector3f center = sum * (1.0f / 8.0f);
 
         float radius_sq = 0.0f;
         for (UINT index = 0; index < size; ++index)
         {
-            float d_sq = DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(DirectX::XMVectorSubtract(corners[index], center)));
+            float d_sq = (corners[index] - center).square_length();
             radius_sq = std::max(radius_sq, d_sq);
         }
 
@@ -41,19 +41,19 @@ namespace
     }
 
     void compute_frustum_bounding_sphere(float ndc_near, float ndc_far,
-                                          DirectX::CXMMATRIX inverse_view_projection_transform,
-                                          DirectX::XMVECTOR& out_center, float& out_radius)
+                                          const math::matrixf& inverse_view_projection_transform,
+                                          math::vector3f& out_center, float& out_radius)
     {
-        DirectX::XMVECTOR corners[8] =
+        const math::vector3f corners[8] =
         {
-            DirectX::XMVector3TransformCoord(DirectX::XMVectorSet(-1.0f, -1.0f, ndc_near, 1.0f), inverse_view_projection_transform),
-            DirectX::XMVector3TransformCoord(DirectX::XMVectorSet(+1.0f, -1.0f, ndc_near, 1.0f), inverse_view_projection_transform),
-            DirectX::XMVector3TransformCoord(DirectX::XMVectorSet(+1.0f, +1.0f, ndc_near, 1.0f), inverse_view_projection_transform),
-            DirectX::XMVector3TransformCoord(DirectX::XMVectorSet(-1.0f, +1.0f, ndc_near, 1.0f), inverse_view_projection_transform),
-            DirectX::XMVector3TransformCoord(DirectX::XMVectorSet(-1.0f, -1.0f, ndc_far,  1.0f), inverse_view_projection_transform),
-            DirectX::XMVector3TransformCoord(DirectX::XMVectorSet(+1.0f, -1.0f, ndc_far,  1.0f), inverse_view_projection_transform),
-            DirectX::XMVector3TransformCoord(DirectX::XMVectorSet(+1.0f, +1.0f, ndc_far,  1.0f), inverse_view_projection_transform),
-            DirectX::XMVector3TransformCoord(DirectX::XMVectorSet(-1.0f, +1.0f, ndc_far,  1.0f), inverse_view_projection_transform),
+            math::vector3f::transform_coord(math::vector3f(-1.0f, -1.0f, ndc_near), inverse_view_projection_transform),
+            math::vector3f::transform_coord(math::vector3f(+1.0f, -1.0f, ndc_near), inverse_view_projection_transform),
+            math::vector3f::transform_coord(math::vector3f(+1.0f, +1.0f, ndc_near), inverse_view_projection_transform),
+            math::vector3f::transform_coord(math::vector3f(-1.0f, +1.0f, ndc_near), inverse_view_projection_transform),
+            math::vector3f::transform_coord(math::vector3f(-1.0f, -1.0f, ndc_far), inverse_view_projection_transform),
+            math::vector3f::transform_coord(math::vector3f(+1.0f, -1.0f, ndc_far), inverse_view_projection_transform),
+            math::vector3f::transform_coord(math::vector3f(+1.0f, +1.0f, ndc_far), inverse_view_projection_transform),
+            math::vector3f::transform_coord(math::vector3f(-1.0f, +1.0f, ndc_far), inverse_view_projection_transform),
         };
 		compute_bounding_sphere(corners, 8, out_center, out_radius);
     }
@@ -317,7 +317,7 @@ void gbuffer_decal_renderer::render(renderer_context& renderer_context)
 			//	カメラ球体
 			collision::bounding_sphere sphere;
 			{
-				DirectX::XMFLOAT3 center;
+				math::float3 center;
 				center.x = context.scene_constant.camera_position.x;
 				center.y = context.scene_constant.camera_position.y;
 				center.z = context.scene_constant.camera_position.z;
@@ -338,19 +338,19 @@ void gbuffer_decal_renderer::render(renderer_context& renderer_context)
 				//	バッファ情報生成
 				buffer_datas buffer_data;
 				{
-					DirectX::XMMATRIX W = DirectX::XMMatrixScaling(decal.scale.x, decal.scale.y, decal.scale.z)
-										* DirectX::XMMatrixRotationQuaternion(system_utility::to_xmvector(decal.rotation.to_quaternion()))
-										* DirectX::XMMatrixTranslation(decal.position.x, decal.position.y, decal.position.z);
+					const math::matrixf W = math::matrixf::scaling(decal.scale.x, decal.scale.y, decal.scale.z)
+										* math::matrixf::rotation_quaternion(decal.rotation.to_quaternion())
+										* math::matrixf::translation(decal.position.x, decal.position.y, decal.position.z);
 					//	プリミティブバッファ更新
 					{
 						common_pipeline_states::decal_primitive_constants dpc;
-						DirectX::XMStoreFloat4x4(&dpc.decal_transform, W);
-						auto front = system_utility::to_xmfloat(decal.rotation.up());
+						dpc.decal_transform = W.to_float4x4();
+						auto front = decal.rotation.up().to_float3();
 						dpc.decal_direction.x = front.x;
 						dpc.decal_direction.y = front.y;
 						dpc.decal_direction.z = front.z;
 						dpc.decal_direction.w = 0;
-						DirectX::XMStoreFloat4x4(&dpc.decal_inverse_transform, DirectX::XMMatrixInverse(nullptr, W));
+						dpc.decal_inverse_transform = W.inverted().to_float4x4();
 						context.device_context->UpdateSubresource(decal_primitive_primitive_buffer.Get(), 0, 0, &dpc, 0, 0);
 					}
 					buffer_data.primitive_buffer = decal_primitive_primitive_buffer;
@@ -740,32 +740,32 @@ void deffered_lighting_renderer::render_directional(const light& light, common_p
 
 void deffered_lighting_renderer::render_directional_shadow_map(const light& light, common_pipeline_states::shadow_map_constants& shadow_map_constant, renderer_context& context)
 {
-	DirectX::XMFLOAT4 rotation = system_utility::to_xmfloat(light.get_rotation().to_quaternion());
-	DirectX::XMFLOAT3 position = light.get_position();
-	DirectX::XMMATRIX CameraTransformMatrix = DirectX::XMMatrixInverse(nullptr, DirectX::XMLoadFloat4x4(&context.scene_constant.view_transform));
-	DirectX::XMMATRIX LightTransformMatrix = DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&rotation)) * 
-												DirectX::XMMatrixTranslation(position.x, position.y, position.z);
-	DirectX::XMMATRIX InverseProjectionTransform;
-	InverseProjectionTransform = DirectX::XMLoadFloat4x4(&context.scene_constant.inverse_projection_transform);
+	math::float4 rotation = light.get_rotation().to_quaternion().to_float4();
+	math::float3 position = light.get_position();
+	math::matrixf CameraTransformMatrix = math::matrixf(context.scene_constant.view_transform).inverted();
+	math::matrixf LightTransformMatrix = math::matrixf::rotation_quaternion(math::quaternionf(rotation)) * 
+												math::matrixf::translation(position.x, position.y, position.z);
+	math::matrixf InverseProjectionTransform;
+	InverseProjectionTransform = math::matrixf(context.scene_constant.inverse_projection_transform);
 
-	DirectX::XMVECTOR LightRight, LightUp, LightFront, LightPosition;
-	LightRight = LightTransformMatrix.r[0];
-	LightUp = LightTransformMatrix.r[1];
-	LightFront = LightTransformMatrix.r[2];
-	LightPosition = LightTransformMatrix.r[3];
+	math::vector3f LightRight, LightUp, LightFront, LightPosition;
+	LightRight = LightTransformMatrix.to_vector3(0);
+	LightUp = LightTransformMatrix.to_vector3(1);
+	LightFront = LightTransformMatrix.to_vector3(2);
+	LightPosition = LightTransformMatrix.to_vector3(3);
 
 	//	クリップ距離を算出
 	float near_clip, far_clip;
 	{
-		DirectX::XMVECTOR NearPosition, FarPosition;
-		NearPosition = DirectX::XMVector3TransformCoord(DirectX::XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f), InverseProjectionTransform);
-		FarPosition = DirectX::XMVector3TransformCoord(DirectX::XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f), InverseProjectionTransform);
-		near_clip = DirectX::XMVectorGetZ(NearPosition);
-		far_clip = DirectX::XMVectorGetX(DirectX::XMVector3Length(DirectX::XMVectorSubtract(FarPosition, NearPosition)));
+		math::vector3f NearPosition, FarPosition;
+		NearPosition = math::vector3f::transform_coord(math::vector3f(0.0f, 0.0f, 0.0f), InverseProjectionTransform);
+		FarPosition = math::vector3f::transform_coord(math::vector3f(0.0f, 0.0f, 1.0f), InverseProjectionTransform);
+		near_clip = NearPosition.z;
+		far_clip = (FarPosition - NearPosition).length();
 	}
 
 	//	シーンのAABBを算出
-	DirectX::XMFLOAT3 scene_min = {FLT_MAX, FLT_MAX, FLT_MAX}, scene_max = {-FLT_MAX, -FLT_MAX, -FLT_MAX};
+	math::float3 scene_min = {FLT_MAX, FLT_MAX, FLT_MAX}, scene_max = {-FLT_MAX, -FLT_MAX, -FLT_MAX};
 	{
 		auto draw_data_ptr = context.render_data->mesh_container.draw_datas.data();
 		auto buffer_data_ptr = context.render_data->mesh_container.buffer_datas.data();
@@ -773,8 +773,8 @@ void deffered_lighting_renderer::render_directional_shadow_map(const light& ligh
 		{
 			auto draw_data = draw_data_ptr + draw_index;
 			auto buffer_data = buffer_data_ptr + draw_data->buffer_index;
-			scene_min = system_utility::to_xmfloat(math::min(system_utility::to_math(buffer_data->bounds_min), system_utility::to_math(scene_min)));
-			scene_max = system_utility::to_xmfloat(math::max(system_utility::to_math(buffer_data->bounds_max), system_utility::to_math(scene_max)));
+			scene_min = math::min(math::vector3f(buffer_data->bounds_min), math::vector3f(scene_min)).to_float3();
+			scene_max = math::max(math::vector3f(buffer_data->bounds_max), math::vector3f(scene_max)).to_float3();
 		}
 	}
 	const bool has_scene_aabb = (scene_min.x <= scene_max.x) && (scene_min.y <= scene_max.y) && (scene_min.z <= scene_max.z);
@@ -783,12 +783,12 @@ void deffered_lighting_renderer::render_directional_shadow_map(const light& ligh
 	float scene_min_z = 0.0f, scene_max_z = 0.0f;
 	if (has_scene_aabb)
 	{
-		DirectX::XMVECTOR Min = DirectX::XMLoadFloat3(&scene_min);
-		DirectX::XMVECTOR Max = DirectX::XMLoadFloat3(&scene_max);
-		DirectX::XMVECTOR Center = DirectX::XMVectorScale(DirectX::XMVectorAdd(Min, Max), 0.5f);
-		DirectX::XMVECTOR Extent = DirectX::XMVectorScale(DirectX::XMVectorSubtract(Max, Min), 0.5f);
-		float center_proj = DirectX::XMVectorGetX(DirectX::XMVector3Dot(Center, LightFront));
-		float extent_proj = DirectX::XMVectorGetX(DirectX::XMVector3Dot(Extent, DirectX::XMVectorAbs(LightFront)));
+		math::vector3f Min(scene_min);
+		math::vector3f Max(scene_max);
+		math::vector3f Center = (Min + Max) * 0.5f;
+		math::vector3f Extent = (Max - Min) * 0.5f;
+		float center_proj = math::vector3f::dot(Center, LightFront);
+		float extent_proj = math::vector3f::dot(Extent, math::abs(LightFront));
 		scene_min_z = center_proj - extent_proj;
 		scene_max_z = center_proj + extent_proj;
 	}
@@ -800,10 +800,10 @@ void deffered_lighting_renderer::render_directional_shadow_map(const light& ligh
 		projection_far_clip = scene_renderer_commons::convert_linear_depth_to_projection_depth(light.get_csm_distance_factor(), far_clip / near_clip);
 
 		//	クリップ距離を再算出
-		DirectX::XMVECTOR NearPosition, FarPosition;
-		NearPosition = DirectX::XMVector3TransformCoord(DirectX::XMVectorSet(0.0f, 0.0f, projection_near_clip, 0.0f), InverseProjectionTransform);
-		FarPosition = DirectX::XMVector3TransformCoord(DirectX::XMVectorSet(0.0f, 0.0f, projection_far_clip, 0.0f), InverseProjectionTransform);
-		far_clip = DirectX::XMVectorGetX(DirectX::XMVector3Length(DirectX::XMVectorSubtract(FarPosition, NearPosition)));
+		math::vector3f NearPosition, FarPosition;
+		NearPosition = math::vector3f::transform_coord(math::vector3f(0.0f, 0.0f, projection_near_clip), InverseProjectionTransform);
+		FarPosition = math::vector3f::transform_coord(math::vector3f(0.0f, 0.0f, projection_far_clip), InverseProjectionTransform);
+		far_clip = (FarPosition - NearPosition).length();
 	}
 
 	//	シャドウマップ情報算出
@@ -812,26 +812,26 @@ void deffered_lighting_renderer::render_directional_shadow_map(const light& ligh
 	shadow_map_constant.shadow_mask = 0;
 	collision::frustum_culling frustum_culling;
 	{
-		DirectX::XMMATRIX InverseViewProjectionTransform;
-		InverseViewProjectionTransform = DirectX::XMLoadFloat4x4(&context.scene_constant.inverse_view_projection_transform);
+		math::matrixf InverseViewProjectionTransform;
+		InverseViewProjectionTransform = math::matrixf(context.scene_constant.inverse_view_projection_transform);
 		//	視錐台を囲むライト空間上の行列を生成
-		DirectX::XMMATRIX LightViewMatrix, LightProjectionMatrix;
+		math::matrixf LightViewMatrix, LightProjectionMatrix;
 		float top_min_distance, top_max_distance;	//	最大深度の範囲
 		{
 			//	AABBを囲む球体を算出
-			DirectX::XMVECTOR Center;
+			math::vector3f Center;
 			float radius;
 			if (has_scene_aabb)
 			{
-				DirectX::XMVECTOR scene_corners[8];
-				scene_corners[0] = DirectX::XMVectorSet(scene_min.x, scene_min.y, scene_min.z, 1.0f);
-				scene_corners[1] = DirectX::XMVectorSet(scene_max.x, scene_min.y, scene_min.z, 1.0f);
-				scene_corners[2] = DirectX::XMVectorSet(scene_min.x, scene_max.y, scene_min.z, 1.0f);
-				scene_corners[3] = DirectX::XMVectorSet(scene_max.x, scene_max.y, scene_min.z, 1.0f);
-				scene_corners[4] = DirectX::XMVectorSet(scene_min.x, scene_min.y, scene_max.z, 1.0f);
-				scene_corners[5] = DirectX::XMVectorSet(scene_max.x, scene_min.y, scene_max.z, 1.0f);
-				scene_corners[6] = DirectX::XMVectorSet(scene_min.x, scene_max.y, scene_max.z, 1.0f);
-				scene_corners[7] = DirectX::XMVectorSet(scene_max.x, scene_max.y, scene_max.z, 1.0f);
+				math::vector3f scene_corners[8];
+				scene_corners[0] = math::vector3f(scene_min.x, scene_min.y, scene_min.z);
+				scene_corners[1] = math::vector3f(scene_max.x, scene_min.y, scene_min.z);
+				scene_corners[2] = math::vector3f(scene_min.x, scene_max.y, scene_min.z);
+				scene_corners[3] = math::vector3f(scene_max.x, scene_max.y, scene_min.z);
+				scene_corners[4] = math::vector3f(scene_min.x, scene_min.y, scene_max.z);
+				scene_corners[5] = math::vector3f(scene_max.x, scene_min.y, scene_max.z);
+				scene_corners[6] = math::vector3f(scene_min.x, scene_max.y, scene_max.z);
+				scene_corners[7] = math::vector3f(scene_max.x, scene_max.y, scene_max.z);
 				compute_bounding_sphere(scene_corners, 8, Center, radius);
 			}
 			else
@@ -842,29 +842,24 @@ void deffered_lighting_renderer::render_directional_shadow_map(const light& ligh
 
 			//	視線行列算出
 			{
-				LightPosition = DirectX::XMVectorSubtract(Center, DirectX::XMVectorScale(LightFront, radius));
-				LightTransformMatrix.r[0] = DirectX::XMVectorSetW(LightRight, 0.0f);
-				LightTransformMatrix.r[1] = DirectX::XMVectorSetW(LightUp, 0.0f);
-				LightTransformMatrix.r[2] = DirectX::XMVectorSetW(LightFront, 0.0f);
-				LightTransformMatrix.r[3] = DirectX::XMVectorSetW(LightPosition, 1.0f);
-				LightViewMatrix = DirectX::XMMatrixInverse(nullptr, LightTransformMatrix);
+				LightPosition = Center - (LightFront * radius);
+				LightTransformMatrix = math::matrixf(math::vector4f(LightRight, 0.0f), math::vector4f(LightUp, 0.0f), math::vector4f(LightFront, 0.0f), math::vector4f(LightPosition, 1.0f));
+				LightViewMatrix = LightTransformMatrix.inverted();
 			}
 
 			//	投影行列生成
 			{
 				top_min_distance = 0.0f;
 				top_max_distance = top_min_distance + radius * 2.0f;
-				LightProjectionMatrix = DirectX::XMMatrixOrthographicOffCenterLH(-radius, +radius, -radius, +radius, top_max_distance, top_min_distance);
+				LightProjectionMatrix = math::matrixf::orthographic_offset_center(-radius, +radius, -radius, +radius, top_min_distance, top_max_distance);
 			}
 
 			//	フラスタムカリング生成
 			{
-				DirectX::XMFLOAT4X4 frustum_culling_light_view_projection_transform;
-				DirectX::XMStoreFloat4x4(&frustum_culling_light_view_projection_transform,
-										  LightViewMatrix * LightProjectionMatrix);
+				math::float4x4 frustum_culling_light_view_projection_transform;
+				frustum_culling_light_view_projection_transform = (LightViewMatrix * LightProjectionMatrix).to_float4x4();
 				frustum_culling.create_planes(frustum_culling_light_view_projection_transform);
-				frustum_culling.create_frustum_corners(DirectX::XMMatrixInverse(nullptr,
-														DirectX::XMLoadFloat4x4(&frustum_culling_light_view_projection_transform)));
+				frustum_culling.create_frustum_corners(math::matrixf(frustum_culling_light_view_projection_transform).inverted());
 			}
 		}
 
@@ -892,7 +887,7 @@ void deffered_lighting_renderer::render_directional_shadow_map(const light& ligh
 		for (UINT index = 0; index < directional_shadow_map_count; ++index)
 		{
 			//	AABBを囲む球体を算出（半径はカメラの回転に依存せず、near/far/FOV/aspectのみで決まる＝Stableな値）
-			DirectX::XMVECTOR Center;
+			math::vector3f Center;
 			float radius;
 			compute_frustum_bounding_sphere(scene_renderer_commons::convert_linear_depth_to_projection_depth(split_distance[index + 0] / far_clip, far_clip / near_clip),
 											scene_renderer_commons::convert_linear_depth_to_projection_depth(split_distance[index + 1] / far_clip, far_clip / near_clip),
@@ -904,9 +899,9 @@ void deffered_lighting_renderer::render_directional_shadow_map(const light& ligh
 				//	Stable CSM
 				float texel_size_x = (radius * 2.0f) / shadow_map_pass_viewport.Width;
 				float texel_size_y = (radius * 2.0f) / shadow_map_pass_viewport.Height;
-				float center_x = DirectX::XMVectorGetX(DirectX::XMVector3Dot(Center, LightRight));
-				float center_y = DirectX::XMVectorGetX(DirectX::XMVector3Dot(Center, LightUp));
-				float center_z = DirectX::XMVectorGetX(DirectX::XMVector3Dot(Center, LightFront));
+				float center_x = math::vector3f::dot(Center, LightRight);
+				float center_y = math::vector3f::dot(Center, LightUp);
+				float center_z = math::vector3f::dot(Center, LightFront);
 				float X = floorf(center_x / texel_size_x) * texel_size_x;
 				float Y = floorf(center_y / texel_size_y) * texel_size_y;
 
@@ -924,21 +919,16 @@ void deffered_lighting_renderer::render_directional_shadow_map(const light& ligh
 					near_z -= (top_max_distance - top_min_distance);
 				}
 
-				DirectX::XMVECTOR Origin = DirectX::XMVectorAdd(
-					DirectX::XMVectorAdd(DirectX::XMVectorScale(LightRight, X), DirectX::XMVectorScale(LightUp, Y)),
-					DirectX::XMVectorScale(LightFront, near_z));
+				math::vector3f Origin = ((LightRight * X) + (LightUp * Y)) + (LightFront * near_z);
 
-				LightTransformMatrix.r[0] = DirectX::XMVectorSetW(LightRight, 0.0f);
-				LightTransformMatrix.r[1] = DirectX::XMVectorSetW(LightUp, 0.0f);
-				LightTransformMatrix.r[2] = DirectX::XMVectorSetW(LightFront, 0.0f);
-				LightTransformMatrix.r[3] = DirectX::XMVectorSetW(Origin, 1.0f);
-				DirectX::XMMATRIX LightViewMatrix = DirectX::XMMatrixInverse(nullptr, LightTransformMatrix);
+				LightTransformMatrix = math::matrixf(math::vector4f(LightRight, 0.0f), math::vector4f(LightUp, 0.0f), math::vector4f(LightFront, 0.0f), math::vector4f(Origin, 1.0f));
+				math::matrixf LightViewMatrix = LightTransformMatrix.inverted();
 
 				//	投影行列生成
 				float ortho_near = 0.0f;
 				float ortho_far  = std::max(far_z - near_z, 0.0001f);
-				DirectX::XMMATRIX LightProjectionMatrix = DirectX::XMMatrixOrthographicOffCenterLH(-radius, +radius, -radius, +radius, ortho_far, ortho_near);
-				DirectX::XMStoreFloat4x4(&shadow_map_constant.light_view_projection_transform[index], LightViewMatrix * LightProjectionMatrix);
+				const math::matrixf LightProjectionMatrix = math::matrixf::orthographic_offset_center(-radius, +radius, -radius, +radius, ortho_near, ortho_far);
+				shadow_map_constant.light_view_projection_transform[index] = (LightViewMatrix * LightProjectionMatrix).to_float4x4();
 			}
 
 			{
@@ -1031,12 +1021,12 @@ void deffered_lighting_renderer::render_point(const light& light, common_pipelin
 
 void deffered_lighting_renderer::render_point_shadow_map(const light& light, common_pipeline_states::shadow_map_constants& shadow_map_constant, renderer_context& context)
 {
-	DirectX::XMFLOAT3 position = light.get_position();
-	DirectX::XMVECTOR position_vector = DirectX::XMLoadFloat3(&position);
+	math::float3 position = light.get_position();
+	math::vector3f position_vector(position);
 	float range = light.get_range();
 
 	//	キューブマップ6面分の視線方向・上方向(0:+X, 1:-X, 2:+Y, 3:-Y, 4:+Z, 5:-Z)
-	static const DirectX::XMFLOAT3 cube_face_directions[6] =
+	static const math::float3 cube_face_directions[6] =
 	{
 		{ +1.0f,  0.0f,  0.0f },
 		{ -1.0f,  0.0f,  0.0f },
@@ -1045,7 +1035,7 @@ void deffered_lighting_renderer::render_point_shadow_map(const light& light, com
 		{  0.0f,  0.0f, +1.0f },
 		{  0.0f,  0.0f, -1.0f },
 	};
-	static const DirectX::XMFLOAT3 cube_face_ups[6] =
+	static const math::float3 cube_face_ups[6] =
 	{
 		{ 0.0f, 1.0f,  0.0f },
 		{ 0.0f, 1.0f,  0.0f },
@@ -1055,7 +1045,7 @@ void deffered_lighting_renderer::render_point_shadow_map(const light& light, com
 		{ 0.0f, 1.0f,  0.0f },
 	};
 
-	DirectX::XMMATRIX ProjectionMatrix = DirectX::XMMatrixPerspectiveFovLH(DirectX::XM_PIDIV2, 1.0f, range, 1.0f);
+	const math::matrixf ProjectionMatrix = math::matrixf::perspective_fov(math::constants<float>::pi_half, 1.0f, 1.0f, range);
 
 	//	定数バッファ設定
 	shadow_map_constant.shadow_map_count = 6;
@@ -1064,10 +1054,10 @@ void deffered_lighting_renderer::render_point_shadow_map(const light& light, com
 
 	for (UINT face = 0; face < 6; ++face)
 	{
-		DirectX::XMVECTOR direction_vector = DirectX::XMLoadFloat3(&cube_face_directions[face]);
-		DirectX::XMVECTOR up_vector = DirectX::XMLoadFloat3(&cube_face_ups[face]);
-		DirectX::XMMATRIX ViewMatrix = DirectX::XMMatrixLookToLH(position_vector, direction_vector, up_vector);
-		DirectX::XMStoreFloat4x4(&shadow_map_constant.light_view_projection_transform[face], ViewMatrix * ProjectionMatrix);
+		math::vector3f direction_vector(cube_face_directions[face]);
+		math::vector3f up_vector(cube_face_ups[face]);
+		const math::matrixf ViewMatrix = math::matrixf::look_at(position_vector, position_vector + direction_vector, up_vector);
+		shadow_map_constant.light_view_projection_transform[face] = (ViewMatrix * ProjectionMatrix).to_float4x4();
 
 		//	面選択はワールド方向で行うため、カスケード用の深度バンドは常に真になる値にしておく
 		shadow_map_constant.shadow_split_distance[face].x = -1.0f;
@@ -1149,13 +1139,13 @@ void deffered_lighting_renderer::render_spot_shadow_map(const light& light, comm
 {
 	auto reserve_scene_constant = context.scene_constant;
 
-	DirectX::XMFLOAT4 rotation = system_utility::to_xmfloat(light.get_rotation().to_quaternion());
-	DirectX::XMFLOAT3 position = light.get_position();
-	DirectX::XMMATRIX TransformMatrix, ViewMatrix, ProjectionMatrix;
-	TransformMatrix = DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&rotation))
-					* DirectX::XMMatrixTranslation(position.x, position.y, position.z);
-	ViewMatrix = DirectX::XMMatrixInverse(nullptr, TransformMatrix);
-	ProjectionMatrix = DirectX::XMMatrixPerspectiveFovLH(light.get_outer_cone() * 2.0f, 1.0f, light.get_range(), 1.0f);
+	math::float4 rotation = light.get_rotation().to_quaternion().to_float4();
+	math::float3 position = light.get_position();
+	math::matrixf TransformMatrix, ViewMatrix, ProjectionMatrix;
+	TransformMatrix = math::matrixf::rotation_quaternion(math::quaternionf(rotation))
+					* math::matrixf::translation(position.x, position.y, position.z);
+	ViewMatrix = TransformMatrix.inverted();
+	ProjectionMatrix = math::matrixf::perspective_fov(light.get_outer_cone() * 2.0f, 1.0f, 1.0f, light.get_range());
 
 	//	定数バッファ情報設定
 	shadow_map_constant.shadow_map_count = 1;
@@ -1184,13 +1174,13 @@ void deffered_lighting_renderer::render_spot_shadow_map(const light& light, comm
 	}
 
 	shadow_map_constant.shadow_mask = 0;
-	DirectX::XMStoreFloat4x4(&shadow_map_constant.light_view_projection_transform[0], ViewMatrix * ProjectionMatrix);
+	shadow_map_constant.light_view_projection_transform[0] = (ViewMatrix * ProjectionMatrix).to_float4x4();
 
 	//	モデル類描画
 	collision::frustum_culling frustum_culling;
 	{
 		frustum_culling.create_planes(shadow_map_constant.light_view_projection_transform[0]);
-		frustum_culling.create_frustum_corners(DirectX::XMMatrixInverse(nullptr, DirectX::XMLoadFloat4x4(&context.scene_constant.view_projection_transform)));
+		frustum_culling.create_frustum_corners(math::matrixf(context.scene_constant.view_projection_transform).inverted());
 	}
 
 	job_executor.execute([this, shadow_map_constant, frustum_culling](graphics_context& context)

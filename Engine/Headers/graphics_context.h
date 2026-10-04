@@ -79,7 +79,7 @@ struct mesh_container
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> bone_matrix_srv;
 	UINT bone_matrix_capacity = 0;
 	std::vector<common_pipeline_states::primitive_constants> primitive_header_scratch;
-	std::vector<DirectX::XMFLOAT4X4> bone_matrix_scratch;
+	std::vector<math::float4x4> bone_matrix_scratch;
 
 	void build_transform_buffers();
 
@@ -147,9 +147,9 @@ struct effect_container
 //	@remaidner	ŠÔ‚ª–³‚¢‚Ì‚ÅƒŒƒ“ƒ_ƒ‰[‘¤‚Éƒ‚ƒfƒ‹‚ğ‚½‚¹‚Ä‚¢‚é
 struct decal_datas
 {
-	DirectX::XMFLOAT3 scale = {1, 1, 1};
+	math::float3 scale = {1, 1, 1};
 	math::rotatorf rotation = {0, 0, 0};
-	DirectX::XMFLOAT3 position = {0, 0, 0};
+	math::float3 position = {0, 0, 0};
 	collision::bounding_box box;
 	material_datas material;
 };

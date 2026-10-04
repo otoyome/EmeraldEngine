@@ -57,7 +57,7 @@ public:
 
 	struct hand_data
 	{
-		DirectX::XMFLOAT3 target_offset = {0, 0, 0}; // ターゲットからのオフセット
+		math::float3 target_offset = {0, 0, 0}; // ターゲットからのオフセット
 
 		template<class Archive>
 		void serialize(Archive& archive, int version);
@@ -100,11 +100,11 @@ public:
 
 		//	Limb
 		bool use_pole_node_offset = false;
-		DirectX::XMFLOAT3 pole_offset = {0, 0, 0};
+		math::float3 pole_offset = {0, 0, 0};
 
 		//	Aim
-		DirectX::XMFLOAT3 aim_axis = {0, 0, 1};
-		DirectX::XMFLOAT3 aim_offset = {0, 0, 0};
+		math::float3 aim_axis = {0, 0, 1};
+		math::float3 aim_offset = {0, 0, 0};
 
 		template<class Archive>
 		void serialize(Archive& archive, int version);

@@ -28,13 +28,13 @@ void roomba_tutorial_controller_object::set_alpha(float alpha)
 {
 	if (base_image)
 	{
-		DirectX::XMFLOAT4 color = origin_colors[ui_id::base];
+		math::float4 color = origin_colors[ui_id::base];
 		color.w *= alpha;
 		base_image->set_color(color);
 	}
 	if (text)
 	{
-		DirectX::XMFLOAT4 color = origin_colors[ui_id::text];
+		math::float4 color = origin_colors[ui_id::text];
 		color.w *= alpha;
 		text->set_color(color);
 	}

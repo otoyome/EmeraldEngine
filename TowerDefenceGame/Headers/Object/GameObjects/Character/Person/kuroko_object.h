@@ -97,7 +97,7 @@ public:
 	void input_action_data(action_datas action_data) override;
 
 	int get_use_special_power() const override;
-	DirectX::XMFLOAT3 get_focus_point() const override;
+	math::float3 get_focus_point() const override;
 
 	attack_id get_current_attack_id() const;
 
@@ -205,10 +205,10 @@ private:
 
 	bool input_move(float elapsed_time, move_mode mode, bool* flip_flag = nullptr);
 
-	void update_attack_box(float animation_time, DirectX::XMFLOAT3 stagger_direction);
+	void update_attack_box(float animation_time, math::float3 stagger_direction);
 
-	bool fast_apprpoaching_lockon_target(float elapsed_time, const DirectX::XMFLOAT2& range, float power = 3.5f);
-	bool calculate_lockon_target_vector(DirectX::XMFLOAT2& direction, float* distance = nullptr);
+	bool fast_apprpoaching_lockon_target(float elapsed_time, const math::float2& range, float power = 3.5f);
+	bool calculate_lockon_target_vector(math::float2& direction, float* distance = nullptr);
 
 private:
 	void register_states();
@@ -221,7 +221,7 @@ private:
 	float weapon_alpha = 1;
 
 	//	ÉèÅ[ÉLÉìÉOÉÅÉÇÉä
-	DirectX::XMFLOAT3 work_float3[2];
+	math::float3 work_float3[2];
 	float work_float[4];
 
 	//	à⁄ìÆèÓïÒ
@@ -238,7 +238,7 @@ private:
 	float dash_max_speed;
 	float hi_dash_max_speed;
 
-	DirectX::XMFLOAT2 move_stop_vector;
+	math::float2 move_stop_vector;
 	float move_stop_max_speed;
 	float roll_value;
 

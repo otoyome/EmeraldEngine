@@ -67,8 +67,8 @@ namespace
 		UINT				total_emitter_spawn_count;					//	エミッター発生数合計(spawn_offsetの合計)
 
 		UINT				erase_id_count;								//	破棄Id数
-		DirectX::XMUINT3	common_constant_dummy;
-		DirectX::XMUINT4	erase_id_list[max_erase_particle_list / 4];	//	エミッター破棄Idリスト
+		math::uint3	common_constant_dummy;
+		math::uint4	erase_id_list[max_erase_particle_list / 4];	//	エミッター破棄Idリスト
 	};
 
 	//	汎用情報定義
@@ -76,7 +76,7 @@ namespace
 	{
 		UINT	emitter_particle_index_head;	//	エミッター毎のパーティクル開始
 		UINT	emitter_particle_index_end;		//	エミッター毎のパーティクル終端
-		DirectX::XMUINT2	emitter_data_dummy;
+		math::uint2	emitter_data_dummy;
 	};
 
 	//	バイトニックソート情報定義
@@ -84,7 +84,7 @@ namespace
 	{
 		UINT	increment;
 		UINT	direction;
-		DirectX::XMUINT2	dummy;
+		math::uint2	dummy;
 	};
 	static constexpr UINT BitonicSortB2Thread = 256;
 	static constexpr UINT BitonicSortC2Thread = 512;
@@ -93,13 +93,13 @@ namespace
 	struct range_particles_constants
 	{
 		UINT	offset_index;
-		DirectX::XMUINT3	dummy;
+		math::uint3	dummy;
 	};
 
 	//	プリミティブ構築用情報定義
 	struct build_primitive_constants
 	{
-		DirectX::XMUINT4	emitter_ids[vertex_buffer_uav_max / 4];
+		math::uint4	emitter_ids[vertex_buffer_uav_max / 4];
 	};
 
 	//	コンピュートシェーダー

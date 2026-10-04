@@ -13,21 +13,21 @@ void ui_object_base::set_sort_order(int sort_order)
 
 float ui_object_base::get_rotation() const
 {
-	return DirectX::XMConvertToDegrees(rotation);
+	return math::angle::to_degree(rotation);
 }
 
 void ui_object_base::set_rotation(float angle)
 {
-	this->rotation = DirectX::XMConvertToRadians(angle);
+	this->rotation = math::angle::to_radian(angle);
 	set_dirty();
 }
 
-DirectX::XMFLOAT4 ui_object_base::get_screen_rect() const
+math::float4 ui_object_base::get_screen_rect() const
 {
 	return ui::calculate_screen_rect(screen_rect);
 }
 
-void ui_object_base::set_screen_rect(const DirectX::XMFLOAT4& screen_rect)
+void ui_object_base::set_screen_rect(const math::float4& screen_rect)
 {
 	this->screen_rect = ui::calculate_screen_rect_rate(screen_rect);
 	this->screen_rect.x = std::max(this->screen_rect.x, 0.0f);
@@ -35,40 +35,40 @@ void ui_object_base::set_screen_rect(const DirectX::XMFLOAT4& screen_rect)
 	set_dirty();
 }
 
-const DirectX::XMFLOAT2& ui_object_base::get_pivot() const
+const math::float2& ui_object_base::get_pivot() const
 {
 	return pivot;
 }
 
-void ui_object_base::set_pivot(const DirectX::XMFLOAT2& position)
+void ui_object_base::set_pivot(const math::float2& position)
 {
 	this->pivot = pivot;
 	set_dirty();
 }
 
-const DirectX::XMFLOAT4& ui_object_base::get_uv_rect() const
+const math::float4& ui_object_base::get_uv_rect() const
 {
 	return uv_rect;
 }
 
-void ui_object_base::set_uv_rect(const DirectX::XMFLOAT4& uv_rect)
+void ui_object_base::set_uv_rect(const math::float4& uv_rect)
 {
 	this->uv_rect = uv_rect;
 	set_dirty();
 }
 
-const DirectX::XMFLOAT4& ui_object_base::get_color() const
+const math::float4& ui_object_base::get_color() const
 {
 	return color;
 }
 
-void ui_object_base::set_color(const DirectX::XMFLOAT4& color)
+void ui_object_base::set_color(const math::float4& color)
 {
 	this->color = color;
 	set_dirty();
 }
 
-void ui_object_base::set_color(const DirectX::XMFLOAT3& color)
+void ui_object_base::set_color(const math::float3& color)
 {
 	this->color.x = color.x;
 	this->color.y = color.y;
@@ -86,7 +86,7 @@ void ui_object_base::set_dirty()
 	dirty = true;
 }
 
-DirectX::XMFLOAT4 ui_object_base::get_screen_rect_inner() const
+math::float4 ui_object_base::get_screen_rect_inner() const
 {
 	return screen_rect;
 }

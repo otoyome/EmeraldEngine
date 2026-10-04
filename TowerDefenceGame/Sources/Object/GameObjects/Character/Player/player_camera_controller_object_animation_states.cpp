@@ -79,7 +79,7 @@ namespace clear_performance
 	{
 		float time;
 
-		DirectX::XMFLOAT4 color;
+		math::float4 color;
 
 		float posterize_step;
 		float posterize_animation_rate;
@@ -102,19 +102,19 @@ namespace clear_performance
 				0.25f,
 				system_units::convert_m_to_unit(2.0f), 0.0f, true,
 				system_units::convert_m_to_unit({0, 0, 0}),
-				{0.0f, DirectX::XM_PIDIV2 / 4, 0.0f},
+				{0.0f, math::constants<float>::pi_half / 4, 0.0f},
 			},
 			{
 				0.30f,
 				system_units::convert_m_to_unit(2.0f), 0.0f, true,
 				system_units::convert_m_to_unit({0, 0, 0}),
-				{0.0f, DirectX::XM_PIDIV2 / 2, 0.0f},
+				{0.0f, math::constants<float>::pi_half / 2, 0.0f},
 			},
 			{
 				1.50f,
 				system_units::convert_m_to_unit(2.0f), 0.0f, true,
 				system_units::convert_m_to_unit({0, 0, 0}),
-				{0.0f, DirectX::XM_PIDIV2 / 2, 0.0f},
+				{0.0f, math::constants<float>::pi_half / 2, 0.0f},
 			},
 		};
 
@@ -204,13 +204,13 @@ namespace clear_performance
 				0.0f,
 				system_units::convert_m_to_unit(5.0f), 0.0f, true,
 				system_units::convert_m_to_unit({0, 1.5f, 0}),
-				{0.0f, -DirectX::XM_PIDIV2, 0.0f},
+				{0.0f, -math::constants<float>::pi_half, 0.0f},
 			},
 			{
 				1.50f,
 				system_units::convert_m_to_unit(5.0f), 0.0f, true,
 				system_units::convert_m_to_unit({0, 1.5f, 0}),
-				{0.0f, -DirectX::XM_PIDIV2, 0.0f},
+				{0.0f, -math::constants<float>::pi_half, 0.0f},
 			},
 		};
 
@@ -340,19 +340,19 @@ namespace clear_performance
 				0.0f,
 				system_units::convert_m_to_unit(20.0f), 0.0f, true,
 				system_units::convert_m_to_unit({0, 0, 0}),
-				{0.0f, DirectX::XM_PIDIV2, 0.0f},
+				{0.0f, math::constants<float>::pi_half, 0.0f},
 			},
 			{
 				2.0f,
 				system_units::convert_m_to_unit(18.0f), 0.0f, true,
 				system_units::convert_m_to_unit({0, 0, 0}),
-				{0.0f, DirectX::XM_PIDIV2, 0.0f},
+				{0.0f, math::constants<float>::pi_half, 0.0f},
 			},
 			{
 				3.0f,
 				system_units::convert_m_to_unit(0.0f), 0.0f, true,
 				system_units::convert_m_to_unit({0, 0, 0}),
-				{0.0f, DirectX::XM_PIDIV2, 0.0f},
+				{0.0f, math::constants<float>::pi_half, 0.0f},
 			},
 		};
 
@@ -441,7 +441,7 @@ namespace clear_performance
 				camera.is_parth = math::lerp(animation_1.is_parth, animation_2.is_parth, value);
 				camera.rotation = math::lerp(animation_1.rotation, animation_2.rotation, value);
 
-				camera.view_angle = DirectX::XMConvertToRadians(static_cast<float>(math::lerp(animation_1.view_angle, animation_2.view_angle, value)));
+				camera.view_angle = math::angle::to_radian(static_cast<float>(math::lerp(animation_1.view_angle, animation_2.view_angle, value)));
 				return camera;
 			}
 		}
@@ -452,7 +452,7 @@ namespace clear_performance
 		camera.is_parth = animations[index].is_parth;
 		camera.rotation = animations[index].rotation;
 
-		camera.view_angle = DirectX::XMConvertToRadians(static_cast<float>(animations[index].view_angle));
+		camera.view_angle = math::angle::to_radian(static_cast<float>(animations[index].view_angle));
 		return camera;
 	};
 
@@ -1163,7 +1163,7 @@ void player_camera_controller_object::fixed_update_entry(float elapsed_time)
 	update_animation(elapsed_time);
 
 	set_rotation(math::rotatorf(math::slerp(get_rotation().to_quaternion(), rotation.to_quaternion(), apply_animation_rate_value)));
-	set_position(system_utility::to_xmfloat(math::lerp(system_utility::to_math(get_position()), system_utility::to_math(position), apply_animation_rate_value)));
+	set_position(math::lerp(math::vector3f(get_position()), math::vector3f(position), apply_animation_rate_value).to_float3());
 }
 
 void player_camera_controller_object::fixed_update_clear_performance(float elapsed_time)
@@ -1210,7 +1210,7 @@ void player_camera_controller_object::fixed_update_clear_performance(float elaps
 	update_animation(elapsed_time);
 
 	set_rotation(math::rotatorf(math::slerp(get_rotation().to_quaternion(), rotation.to_quaternion(), apply_animation_rate_value)));
-	set_position(system_utility::to_xmfloat(math::lerp(system_utility::to_math(get_position()), system_utility::to_math(position), apply_animation_rate_value)));
+	set_position(math::lerp(math::vector3f(get_position()), math::vector3f(position), apply_animation_rate_value).to_float3());
 }
 
 bool player_camera_controller_object::play_animation(std::string_view animation_name, bool loop)
@@ -1250,35 +1250,35 @@ void player_camera_controller_object::update_animation(float elapsed_time)
 			if (animation_data.root_rotation)
 			{
 				//	ローカル回転を算出
-				DirectX::XMVECTOR LocalRotation, WorkRotation[2];
+				math::quaternionf LocalRotation, WorkRotation[2];
 #if 0
 				if (animation_loop && (previous_time > current_time))
 				{
 					animation::camera_spherical end_camera_animation;
 					animation_data.compute_animation(end_camera_animation, animation_data.end_time);
-					WorkRotation[0] = DirectX::XMLoadFloat4(&end_camera_animation.rotation);
-					WorkRotation[1] = DirectX::XMLoadFloat4(&previous_animation.rotation);
-					WorkRotation[1] = DirectX::XMQuaternionInverse(WorkRotation[1]);
-					LocalRotation = DirectX::XMQuaternionMultiply(WorkRotation[0], WorkRotation[1]);
-					WorkRotation[0] = DirectX::XMLoadFloat4(&current_animation.rotation);
-					WorkRotation[1] = DirectX::XMLoadFloat4(&begin_animation.rotation);
-					WorkRotation[1] = DirectX::XMQuaternionInverse(WorkRotation[1]);
-					WorkRotation[1] = DirectX::XMQuaternionMultiply(WorkRotation[0], WorkRotation[1]);
-					LocalRotation = DirectX::XMQuaternionMultiply(LocalRotation, WorkRotation[1]);
+					WorkRotation[0] = math::quaternionf(end_camera_animation.rotation);
+					WorkRotation[1] = math::quaternionf(previous_animation.rotation);
+					WorkRotation[1] = WorkRotation[1].inverted();
+					LocalRotation = WorkRotation[0] * WorkRotation[1];
+					WorkRotation[0] = math::quaternionf(current_animation.rotation);
+					WorkRotation[1] = math::quaternionf(begin_animation.rotation);
+					WorkRotation[1] = WorkRotation[1].inverted();
+					WorkRotation[1] = WorkRotation[0] * WorkRotation[1];
+					LocalRotation = LocalRotation * WorkRotation[1];
 				}
 				else
 #endif
 				{
-					WorkRotation[0] = DirectX::XMQuaternionRotationRollPitchYaw(current_animation.rotation.x, current_animation.rotation.y, current_animation.rotation.z);
-					WorkRotation[1] = DirectX::XMQuaternionRotationRollPitchYaw(previous_animation.rotation.x, previous_animation.rotation.y, previous_animation.rotation.z);
-					WorkRotation[1] = DirectX::XMQuaternionInverse(WorkRotation[1]);
-					LocalRotation = DirectX::XMQuaternionMultiply(WorkRotation[0], WorkRotation[1]);
+					WorkRotation[0] = math::quaternionf::rotation_xyz(current_animation.rotation.x, current_animation.rotation.y, current_animation.rotation.z);
+					WorkRotation[1] = math::quaternionf::rotation_xyz(previous_animation.rotation.x, previous_animation.rotation.y, previous_animation.rotation.z);
+					WorkRotation[1] = WorkRotation[1].inverted();
+					LocalRotation = WorkRotation[0] * WorkRotation[1];
 				}
 
 				//	ワールド回転更新
-				DirectX::XMFLOAT4 local_rotation;
-				DirectX::XMStoreFloat4(&local_rotation, LocalRotation);
-				DirectX::XMFLOAT3 local_rotator = math::convert_quaternion_to_euler(local_rotation);
+				math::float4 local_rotation;
+				local_rotation = LocalRotation.to_float4();
+				math::float3 local_rotator = math::convert_quaternion_to_euler(local_rotation);
 				rotation.x = math::angle::normalize(rotation.x + local_rotator.x);
 				rotation.y = math::angle::normalize(rotation.y + local_rotator.y);
 				rotation.z = math::angle::normalize(rotation.z + local_rotator.z);
@@ -1288,8 +1288,8 @@ void player_camera_controller_object::update_animation(float elapsed_time)
 				rotation = current_animation.rotation;
 			}
 
-			DirectX::XMFLOAT3 vector = rotation.get_front();
-			DirectX::XMFLOAT3 focus = current_animation.focus;
+			math::float3 vector = rotation.get_front();
+			math::float3 focus = current_animation.focus;
 			if (animation_data.root_motion_xz)
 			{
 				focus.x += this->focus.x;

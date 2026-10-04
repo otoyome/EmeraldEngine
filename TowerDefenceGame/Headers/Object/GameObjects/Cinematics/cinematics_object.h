@@ -21,7 +21,7 @@ class cinematics_object : public game_object
 		float time = 0.0f;
 		float color_separate_time = 0.0f;
 		bool high_power = true;
-		DirectX::XMFLOAT2 center{ 0.5f, 0.5f };
+		math::float2 center{ 0.5f, 0.5f };
 	};
 
 	struct break_datas

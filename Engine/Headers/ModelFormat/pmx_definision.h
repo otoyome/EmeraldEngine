@@ -5,7 +5,6 @@
 #include <map>
 #include <unordered_map>
 #include <string>
-#include <DirectXMath.h>
 #include <wrl.h>
 #include <algorithm>
 
@@ -127,26 +126,26 @@ struct	pmx_index_data
 
 struct	pmx_vertex
 {
-	DirectX::XMFLOAT3	position;			//	座標
-	DirectX::XMFLOAT3	normal;				//	法線
-	DirectX::XMFLOAT2	texcoord;			//	UV座標
-	DirectX::XMFLOAT4	additional_uv[4];	//	追加UV
+	math::float3	position;			//	座標
+	math::float3	normal;				//	法線
+	math::float2	texcoord;			//	UV座標
+	math::float4	additional_uv[4];	//	追加UV
 	pmx_skining_type	skining_type;		//	スキニングタイプ
-	DirectX::XMUINT4	bone_indices;			//	ボーンインデックス
-	DirectX::XMFLOAT4	bone_weights;		//	ボーン影響度
-	DirectX::XMFLOAT3	sdef[3];			//	Sdef用座標( 0 : c, 1 : r0, 2 : r1 )
+	math::uint4	bone_indices;			//	ボーンインデックス
+	math::float4	bone_weights;		//	ボーン影響度
+	math::float3	sdef[3];			//	Sdef用座標( 0 : c, 1 : r0, 2 : r1 )
 	float				edge_value;			//	エッジ倍率
 };
 
 struct	pmx_material
 {
 	std::string			name;					//	材質名
-	DirectX::XMFLOAT4	diffuse;				//	ディフューズカラー
-	DirectX::XMFLOAT3	specular;				//	スペキュラカラー
+	math::float4	diffuse;				//	ディフューズカラー
+	math::float3	specular;				//	スペキュラカラー
 	float				specularlity;			//	光沢度
-	DirectX::XMFLOAT3	ambient;				//	アンビエントカラー
+	math::float3	ambient;				//	アンビエントカラー
 	unsigned char		draw_flag;				//	マテリアル描画フラグ
-	DirectX::XMFLOAT4	edge_color;				//	エッジ色
+	math::float4	edge_color;				//	エッジ色
 	float				edge_size;				//	エッジサイズ
 	unsigned int		deffuse_texture_index;	//	ディフューズテクスチャインデックス
 	unsigned int		sphere_texture_index;	//	環境マップインデックス
@@ -162,28 +161,28 @@ struct	pmx_ik_link
 {
 	unsigned int		link_target;	//	リンクボーンインデックス
 	unsigned char		angle_lock;		//	角度制限
-	DirectX::XMFLOAT3	angle_max;		//	最大制限角度
-	DirectX::XMFLOAT3	angle_min;		//	最小制限角度
+	math::float3	angle_max;		//	最大制限角度
+	math::float3	angle_min;		//	最小制限角度
 };
 
 struct	pmx_bone
 {
 	std::string					name;						//	ボーン名
-	DirectX::XMFLOAT3			position;					//	座標
+	math::float3			position;					//	座標
 	unsigned int				parent_index;				//	親ボーンインデックス
 	unsigned int				level;						//	レベル(ボーンの更新階層)
 	unsigned short				bone_flag;					//	ボーンフラグ(16bit) 各bit 0:OFF 1:ON
-	DirectX::XMFLOAT3			offset;						//	(pmx_bone_bitflag::has_connection_bone == 0)の場合座標オフセット
+	math::float3			offset;						//	(pmx_bone_bitflag::has_connection_bone == 0)の場合座標オフセット
 	unsigned int				target_index;				//	(pmx_bone_bitflag::has_connection_bone == 1)の場合接続先ボーンインデックス
 	//	(pmx_bone_bitflag::is_append_rotation == 1)	回転付与
 	//	(pmx_bone_bitflag::is_append_translation == 1)	移動付与
 	unsigned int				append_parent_index;		//	付与親ボーンインデックス
 	float						append_weight;				//	付与率
 	//	(pmx_bone_bitflag::is_ik_axis_lock == 1)	軸固定
-	DirectX::XMFLOAT3			lock_axis_orientation;		//	固定軸の方向
+	math::float3			lock_axis_orientation;		//	固定軸の方向
 	//	(pmx_bone_bitflag::local_axis == 1)	ボーンのローカル操作時の軸
-	DirectX::XMFLOAT3			local_axis_x_orientation;	//	ボーンのローカル操作時の軸のX軸方向
-	DirectX::XMFLOAT3			local_axis_z_orientation;	//	ボーンのローカル操作時の軸のZ軸方向
+	math::float3			local_axis_x_orientation;	//	ボーンのローカル操作時の軸のX軸方向
+	math::float3			local_axis_z_orientation;	//	ボーンのローカル操作時の軸のZ軸方向
 	//	(pmx_bone_bitflag::is_external_parent_deform == 1)	外部親変形
 	unsigned int				key;						//	外部変形のkey値
 	//	(pmx_bone_bitflag::is_ik == 1)	IK
@@ -196,23 +195,23 @@ struct	pmx_bone
 struct	pmx_morph_bone_offset
 {
 	unsigned int		bone_index;
-	DirectX::XMFLOAT3	translation;
-	DirectX::XMFLOAT4	rotation;
+	math::float3	translation;
+	math::float4	rotation;
 };
 
 struct	pmx_morph_material_offset
 {
 	unsigned int		material_index;
 	unsigned char		offset_operation;
-	DirectX::XMFLOAT4	diffuse;
-	DirectX::XMFLOAT3	specular;
+	math::float4	diffuse;
+	math::float3	specular;
 	float				specularlity;
-	DirectX::XMFLOAT3	ambient;
-	DirectX::XMFLOAT4	edge_color;
+	math::float3	ambient;
+	math::float4	edge_color;
 	float				edge_size;
-	DirectX::XMFLOAT4	textureARGB;
-	DirectX::XMFLOAT4	shpereARGB;
-	DirectX::XMFLOAT4	toonARGB;
+	math::float4	textureARGB;
+	math::float4	shpereARGB;
+	math::float4	toonARGB;
 };
 
 struct	pmx_morph_group_offset
@@ -231,8 +230,8 @@ struct	pmx_morph_implus_offset
 {
 	unsigned int		rigidbody_index;
 	unsigned char		is_local;
-	DirectX::XMFLOAT3	velocity;
-	DirectX::XMFLOAT3	angular_torque;
+	math::float3	velocity;
+	math::float3	angular_torque;
 };
 
 struct	pmx_morph
@@ -241,8 +240,8 @@ struct	pmx_morph
 	pmx_morph_type								morph_type;				//	カテゴリ
 	pmx_morph_category							morph_category;			//	タイプ
 																		//	以下、継承するのもアレだったので全部保持する形に
-	std::unordered_map<unsigned int, DirectX::XMFLOAT3>	vertex_offset;	//	頂点オフセットリスト
-	std::unordered_map<unsigned int, DirectX::XMFLOAT4>	uv_offset[5];	//	UVオフセットリスト
+	std::unordered_map<unsigned int, math::float3>	vertex_offset;	//	頂点オフセットリスト
+	std::unordered_map<unsigned int, math::float4>	uv_offset[5];	//	UVオフセットリスト
 	std::vector<pmx_morph_bone_offset>			bone_offset;			//	ボーンオフセットリスト
 	std::vector<pmx_morph_material_offset>		material_offset;		//	マテリアルオフセットリスト
 	std::vector<pmx_morph_group_offset>			group_offset;			//	グループオフセットリスト

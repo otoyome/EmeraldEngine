@@ -30,11 +30,11 @@ size_t collision::cubic_sdf::index_of(uint32_t x, uint32_t y, uint32_t z) const
 	return (static_cast<size_t>(z) * resolution + y) * resolution + x;
 }
 
-DirectX::XMFLOAT3 collision::cubic_sdf::voxel_center(uint32_t x, uint32_t y, uint32_t z) const
+math::float3 collision::cubic_sdf::voxel_center(uint32_t x, uint32_t y, uint32_t z) const
 {
 	//	ボクセル中心のワールド(ローカル)座標を求める
 	const float size = voxel_size();
-	return DirectX::XMFLOAT3
+	return math::float3
 	{
 		bounds_min.x + (static_cast<float>(x) + 0.5f) * size,
 		bounds_min.y + (static_cast<float>(y) + 0.5f) * size,
@@ -111,8 +111,8 @@ bool collision::create_cubic_sdf(cubic_sdf& out_sdf, bounding_mesh& mesh, uint32
 	}
 
 	//	メッシュのAABBを求める
-	DirectX::XMFLOAT3 bounds_min = positions[0];
-	DirectX::XMFLOAT3 bounds_max = positions[0];
+	math::float3 bounds_min = positions[0];
+	math::float3 bounds_max = positions[0];
 	for (auto& position : positions)
 	{
 		bounds_min.x = std::min(bounds_min.x, position.x);
@@ -124,7 +124,7 @@ bool collision::create_cubic_sdf(cubic_sdf& out_sdf, bounding_mesh& mesh, uint32
 	}
 
 	//	バウンディングボックスの中心を求める
-	const DirectX::XMFLOAT3 center =
+	const math::float3 center =
 	{
 		(bounds_min.x + bounds_max.x) * 0.5f,
 		(bounds_min.y + bounds_max.y) * 0.5f,
@@ -143,7 +143,7 @@ bool collision::create_cubic_sdf(cubic_sdf& out_sdf, bounding_mesh& mesh, uint32
 	out_sdf.voxels.assign(static_cast<size_t>(resolution) * resolution * resolution, 0.0f);
 
 	//	ボクセル中心(ローカル)をワールドへ変換する行列
-	DirectX::XMFLOAT4X4 mesh_transform = mesh.get_transform_float4x4();
+	math::float4x4 mesh_transform = mesh.get_transform_float4x4();
 
 	std::vector<size_t> flat_indices(out_sdf.voxels.size());
 	std::iota(flat_indices.begin(), flat_indices.end(), size_t{0});
@@ -155,8 +155,8 @@ bool collision::create_cubic_sdf(cubic_sdf& out_sdf, bounding_mesh& mesh, uint32
 			const uint32_t y = static_cast<uint32_t>((flat_index / resolution) % resolution);
 			const uint32_t z = static_cast<uint32_t>(flat_index / (static_cast<size_t>(resolution) * resolution));
 
-			DirectX::XMFLOAT3 voxel_center = out_sdf.voxel_center(x, y, z);
-			DirectX::XMStoreFloat3(&voxel_center, DirectX::XMVector3TransformCoord(DirectX::XMLoadFloat3(&voxel_center), DirectX::XMLoadFloat4x4(&mesh_transform)));
+			math::float3 voxel_center = out_sdf.voxel_center(x, y, z);
+			voxel_center = math::vector3f::transform_coord(voxel_center, mesh_transform).to_float3();
 
 			float distance = 0.0f;
 			mesh.distance_to_point(voxel_center, distance);

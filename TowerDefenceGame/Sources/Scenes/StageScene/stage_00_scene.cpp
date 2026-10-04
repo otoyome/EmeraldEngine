@@ -69,6 +69,7 @@ bool stage_00_scene::initialize_core()
 	}
 
 	//	その他光源設定
+	if (0)
 	{
 		auto point = std::make_shared<point_light_object>("点光源");
 		point->set_flag(light::flags::use_shadow, true);
@@ -122,7 +123,7 @@ bool stage_00_scene::initialize_core()
 		auto spot = std::make_shared<spot_light_object>("スポットライト");
 		spot->set_flag(light::flags::use_shadow, true);
 		spot->set_position(system_units::convert_m_to_unit({ 0, 5.0f, -30 }));
-		spot->set_rotation({DirectX::XM_PI * 0.2f, 0, 0});
+		spot->set_rotation({math::constants<float>::pi * 0.2f, 0, 0});
 		spot->set_range(system_units::convert_m_to_unit(20.0f));
 		spot->set_inner_cone(30.0f);
 		spot->set_outer_cone(60.0f);
@@ -159,10 +160,7 @@ bool stage_00_scene::initialize_core()
 		auto stage = std::make_shared<stage_object>("ステージ制御", model);
 
 		//	メッシュ分当たり判定生成
-		DirectX::XMMATRIX transform;
-		transform = DirectX::XMMatrixScalingFromVector(DirectX::XMLoadFloat3(&stage->get_scale()))
-					* DirectX::XMMatrixRotationQuaternion(system_utility::to_xmvector(stage->get_rotation().to_quaternion()))
-					* DirectX::XMMatrixTranslationFromVector(DirectX::XMLoadFloat3(&stage->get_position()));
+		const math::matrixf transform = math::matrixf::transform(stage->get_scale(), stage->get_rotation().to_quaternion(), stage->get_position());
 		generate_model_collision(model->get_model_instance()->get_resource(), transform, separate_level);
 		generate_model_sdf(model->get_model_instance()->get_resource());
 
@@ -202,7 +200,7 @@ void stage_00_scene::imgui_render_core()
 }
 #endif	//	defined(USE_IMGUI)
 
-void stage_00_scene::generate_model_collision(model_resource_ptr resource, DirectX::XMMATRIX& transform, UINT separate_level)
+void stage_00_scene::generate_model_collision(model_resource_ptr resource, const math::matrixf& transform, UINT separate_level)
 {
 	std::string file_path = std::string(resource->get_file_path());
 	std::filesystem::path collision_mesh_path(file_path);

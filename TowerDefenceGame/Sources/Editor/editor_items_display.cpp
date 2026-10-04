@@ -40,7 +40,7 @@ void editor_items::render_model_bones(const model_instance& model_instance, cons
 		return false;
 	};
 
-	DirectX::XMMATRIX WorldMatrix = DirectX::XMLoadFloat4x4(&model_instance.get_world_transform());
+	math::matrixf WorldMatrix(model_instance.get_world_transform());
 	for (UINT node_index = 0; node_index < nodes.size(); ++node_index)
 	{
 		auto& node = nodes[node_index];
@@ -60,9 +60,9 @@ void editor_items::render_model_bones(const model_instance& model_instance, cons
 				continue;
 		}
 
-		DirectX::XMMATRIX NodeWorldMatrix = DirectX::XMLoadFloat4x4(&node.global_transform) * WorldMatrix;
-		DirectX::XMFLOAT3 start;
-		DirectX::XMStoreFloat3(&start, NodeWorldMatrix.r[3]);
+		math::matrixf NodeWorldMatrix = math::matrixf(node.global_transform) * WorldMatrix;
+		math::float3 start;
+		start = NodeWorldMatrix.to_vector3(3).to_float3();
 
 		std::vector<size_t> children;
 		for (UINT child_node_index = 0; child_node_index < nodes.size(); ++child_node_index)
@@ -73,24 +73,25 @@ void editor_items::render_model_bones(const model_instance& model_instance, cons
 			}
 		}
 
-		DirectX::XMFLOAT4 color = DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f);
+		math::float4 color = math::float4(0.0f, 0.0f, 0.0f, 1.0f);
 		if (is_select_bone(node.name.data()))
 		{
-			color = DirectX::XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f);
+			color = math::float4(1.0f, 0.0f, 0.0f, 1.0f);
 		}
 
 		//	Ž²•`‰æ
 		{
-			DirectX::XMVECTOR Scale, Rotation, Translation;
-			DirectX::XMMatrixDecompose(&Scale, &Rotation, &Translation, NodeWorldMatrix);
-			DirectX::XMFLOAT4 rotation;
-			DirectX::XMStoreFloat4(&rotation, Rotation);
-			auto rotator = math::rotatorf(system_utility::to_math_quaternion(rotation));
-			auto front = system_utility::to_xmfloat(rotator.front());
-			auto right = system_utility::to_xmfloat(rotator.right());
-			auto up = system_utility::to_xmfloat(rotator.up());
+			math::vector3f Scale, Translation;
+			math::quaternionf Rotation;
+			NodeWorldMatrix.decompose(Scale, Rotation, Translation);
+			math::float4 rotation;
+			rotation = Rotation.to_float4();
+			auto rotator = math::rotatorf(math::quaternionf(rotation));
+			auto front = rotator.front().to_float3();
+			auto right = rotator.right().to_float3();
+			auto up = rotator.up().to_float3();
 
-			DirectX::XMFLOAT3 end[3];
+			math::float3 end[3];
 			static constexpr float joint_length = 0.3f;
 			end[0].x = start.x + right.x * joint_length;
 			end[0].y = start.y + right.y * joint_length;
@@ -103,9 +104,9 @@ void editor_items::render_model_bones(const model_instance& model_instance, cons
 			end[2].x = start.x + front.x * joint_length;
 			end[2].y = start.y + front.y * joint_length;
 			end[2].z = start.z + front.z * joint_length;
-			QUEUE_DEBUG_PRIMITIVE_LINE(start, end[0], DirectX::XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f), false);
-			QUEUE_DEBUG_PRIMITIVE_LINE(start, end[1], DirectX::XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f), false);
-			QUEUE_DEBUG_PRIMITIVE_LINE(start, end[2], DirectX::XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f), false);
+			QUEUE_DEBUG_PRIMITIVE_LINE(start, end[0], math::float4(1.0f, 0.0f, 0.0f, 1.0f), false);
+			QUEUE_DEBUG_PRIMITIVE_LINE(start, end[1], math::float4(0.0f, 1.0f, 0.0f, 1.0f), false);
+			QUEUE_DEBUG_PRIMITIVE_LINE(start, end[2], math::float4(0.0f, 0.0f, 1.0f, 1.0f), false);
 		}
 
 		//	Žq‹Ÿ‚È‚µ‚ÌŽž
@@ -119,34 +120,34 @@ void editor_items::render_model_bones(const model_instance& model_instance, cons
 		for (auto& child : children)
 		{
 			auto& child_node = nodes[child];
-			DirectX::XMFLOAT3 end;
-			DirectX::XMStoreFloat3(&end, (DirectX::XMLoadFloat4x4(&child_node.global_transform) * WorldMatrix).r[3]);
+			math::float3 end;
+			end = ((math::matrixf(child_node.global_transform) * WorldMatrix).to_vector3(3)).to_float3();
 
-			DirectX::XMVECTOR Start = DirectX::XMLoadFloat3(&start);
-			DirectX::XMVECTOR End = DirectX::XMLoadFloat3(&end);
-			DirectX::XMVECTOR Vector = DirectX::XMVectorSubtract(End, Start);
-			float length = DirectX::XMVectorGetX(DirectX::XMVector3Length(Vector));
+			math::vector3f Start(start);
+			math::vector3f End(end);
+			math::vector3f Vector = End - Start;
+			float length = Vector.length();
 			if (length <= 0.000001f)
 			{
 				QUEUE_DEBUG_PRIMITIVE_SPHERE(start, 0.1f, color, false);
 				continue;
 			}
 
-			DirectX::XMVECTOR Front = DirectX::XMVector3Normalize(Vector);
-			DirectX::XMVECTOR Up = DirectX::XMVectorSet(0, 1, 0, 0);
-			if (fabsf(fabsf(DirectX::XMVectorGetZ(Front)) - 1) <= 0.000001f)
+			math::vector3f Front = Vector.normalized();
+			math::vector3f Up(0, 1, 0);
+			if (fabsf(fabsf(Front.z) - 1) <= 0.000001f)
 			{
-				Up = DirectX::XMVectorSet(0, 0, -DirectX::XMVectorGetZ(Front), 0);
+				Up = math::vector3f(0, 0, -Front.z);
 			}
-			DirectX::XMVECTOR Right = DirectX::XMVector3Normalize(DirectX::XMVector3Cross(Front, Up));
-			Up = DirectX::XMVector3Normalize(DirectX::XMVector3Cross(Right, Front));
-			Right = DirectX::XMVector3Normalize(DirectX::XMVector3Cross(Front, Up));
-			DirectX::XMFLOAT3 front, right, up;
-			DirectX::XMStoreFloat3(&right, Right);
-			DirectX::XMStoreFloat3(&up, Up);
-			DirectX::XMStoreFloat3(&front, Front);
+			math::vector3f Right = (math::vector3f::cross(Front, Up)).normalized();
+			Up = (math::vector3f::cross(Right, Front)).normalized();
+			Right = (math::vector3f::cross(Front, Up)).normalized();
+			math::float3 front, right, up;
+			right = Right.to_float3();
+			up = Up.to_float3();
+			front = Front.to_float3();
 
-			DirectX::XMFLOAT3 center, cpxpy, cpxmy, cmxpy, cmxmy;
+			math::float3 center, cpxpy, cpxmy, cmxpy, cmxmy;
 			float bone_length = 0.1f * std::min(1.0f, length);
 			center.x = start.x + front.x * length * bone_length;
 			center.y = start.y + front.y * length * bone_length;
@@ -217,16 +218,16 @@ void editor_items::render_model_select_bones(const model_instance& model_instanc
 			return false;
 		};
 
-	DirectX::XMMATRIX WorldMatrix = DirectX::XMLoadFloat4x4(&model_instance.get_world_transform());
+	math::matrixf WorldMatrix(model_instance.get_world_transform());
 	for (UINT node_index = 0; node_index < nodes.size(); ++node_index)
 	{
 		auto& node = nodes[node_index];
 		if (!is_select_bone(node.name.data()))
 			continue;
 
-		DirectX::XMMATRIX NodeWorldMatrix = DirectX::XMLoadFloat4x4(&node.global_transform) * WorldMatrix;
-		DirectX::XMFLOAT3 start;
-		DirectX::XMStoreFloat3(&start, NodeWorldMatrix.r[3]);
+		math::matrixf NodeWorldMatrix = math::matrixf(node.global_transform) * WorldMatrix;
+		math::float3 start;
+		start = NodeWorldMatrix.to_vector3(3).to_float3();
 
 		std::vector<size_t> children;
 		for (UINT child_node_index = 0; child_node_index < nodes.size(); ++child_node_index)
@@ -237,20 +238,21 @@ void editor_items::render_model_select_bones(const model_instance& model_instanc
 			}
 		}
 
-		DirectX::XMFLOAT4 color = DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f);
+		math::float4 color = math::float4(0.0f, 0.0f, 0.0f, 1.0f);
 
 		//	Ž²•`‰æ
 		{
-			DirectX::XMVECTOR Scale, Rotation, Translation;
-			DirectX::XMMatrixDecompose(&Scale, &Rotation, &Translation, NodeWorldMatrix);
-			DirectX::XMFLOAT4 rotation;
-			DirectX::XMStoreFloat4(&rotation, Rotation);
-			auto rotator = math::rotatorf(system_utility::to_math_quaternion(rotation));
-			auto front = system_utility::to_xmfloat(rotator.front());
-			auto right = system_utility::to_xmfloat(rotator.right());
-			auto up = system_utility::to_xmfloat(rotator.up());
+			math::vector3f Scale, Translation;
+			math::quaternionf Rotation;
+			NodeWorldMatrix.decompose(Scale, Rotation, Translation);
+			math::float4 rotation;
+			rotation = Rotation.to_float4();
+			auto rotator = math::rotatorf(math::quaternionf(rotation));
+			auto front = rotator.front().to_float3();
+			auto right = rotator.right().to_float3();
+			auto up = rotator.up().to_float3();
 
-			DirectX::XMFLOAT3 end[3];
+			math::float3 end[3];
 			static constexpr float joint_length = 0.3f;
 			end[0].x = start.x + right.x * joint_length;
 			end[0].y = start.y + right.y * joint_length;
@@ -263,9 +265,9 @@ void editor_items::render_model_select_bones(const model_instance& model_instanc
 			end[2].x = start.x + front.x * joint_length;
 			end[2].y = start.y + front.y * joint_length;
 			end[2].z = start.z + front.z * joint_length;
-			QUEUE_DEBUG_PRIMITIVE_LINE(start, end[0], DirectX::XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f), false);
-			QUEUE_DEBUG_PRIMITIVE_LINE(start, end[1], DirectX::XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f), false);
-			QUEUE_DEBUG_PRIMITIVE_LINE(start, end[2], DirectX::XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f), false);
+			QUEUE_DEBUG_PRIMITIVE_LINE(start, end[0], math::float4(1.0f, 0.0f, 0.0f, 1.0f), false);
+			QUEUE_DEBUG_PRIMITIVE_LINE(start, end[1], math::float4(0.0f, 1.0f, 0.0f, 1.0f), false);
+			QUEUE_DEBUG_PRIMITIVE_LINE(start, end[2], math::float4(0.0f, 0.0f, 1.0f, 1.0f), false);
 		}
 
 		//	Žq‹Ÿ‚È‚µ‚ÌŽž
@@ -279,34 +281,34 @@ void editor_items::render_model_select_bones(const model_instance& model_instanc
 		for (auto& child : children)
 		{
 			auto& child_node = nodes[child];
-			DirectX::XMFLOAT3 end;
-			DirectX::XMStoreFloat3(&end, (DirectX::XMLoadFloat4x4(&child_node.global_transform) * WorldMatrix).r[3]);
+			math::float3 end;
+			end = ((math::matrixf(child_node.global_transform) * WorldMatrix).to_vector3(3)).to_float3();
 
-			DirectX::XMVECTOR Start = DirectX::XMLoadFloat3(&start);
-			DirectX::XMVECTOR End = DirectX::XMLoadFloat3(&end);
-			DirectX::XMVECTOR Vector = DirectX::XMVectorSubtract(End, Start);
-			float length = DirectX::XMVectorGetX(DirectX::XMVector3Length(Vector));
+			math::vector3f Start(start);
+			math::vector3f End(end);
+			math::vector3f Vector = End - Start;
+			float length = Vector.length();
 			if (length <= 0.000001f)
 			{
 				QUEUE_DEBUG_PRIMITIVE_SPHERE(start, 0.1f, color, false);
 				continue;
 			}
 
-			DirectX::XMVECTOR Front = DirectX::XMVector3Normalize(Vector);
-			DirectX::XMVECTOR Up = DirectX::XMVectorSet(0, 1, 0, 0);
-			if (fabsf(fabsf(DirectX::XMVectorGetZ(Front)) - 1) <= 0.000001f)
+			math::vector3f Front = Vector.normalized();
+			math::vector3f Up(0, 1, 0);
+			if (fabsf(fabsf(Front.z) - 1) <= 0.000001f)
 			{
-				Up = DirectX::XMVectorSet(0, 0, -DirectX::XMVectorGetZ(Front), 0);
+				Up = math::vector3f(0, 0, -Front.z);
 			}
-			DirectX::XMVECTOR Right = DirectX::XMVector3Normalize(DirectX::XMVector3Cross(Front, Up));
-			Up = DirectX::XMVector3Normalize(DirectX::XMVector3Cross(Right, Front));
-			Right = DirectX::XMVector3Normalize(DirectX::XMVector3Cross(Front, Up));
-			DirectX::XMFLOAT3 front, right, up;
-			DirectX::XMStoreFloat3(&right, Right);
-			DirectX::XMStoreFloat3(&up, Up);
-			DirectX::XMStoreFloat3(&front, Front);
+			math::vector3f Right = (math::vector3f::cross(Front, Up)).normalized();
+			Up = (math::vector3f::cross(Right, Front)).normalized();
+			Right = (math::vector3f::cross(Front, Up)).normalized();
+			math::float3 front, right, up;
+			right = Right.to_float3();
+			up = Up.to_float3();
+			front = Front.to_float3();
 
-			DirectX::XMFLOAT3 center, cpxpy, cpxmy, cmxpy, cmxmy;
+			math::float3 center, cpxpy, cpxmy, cmxpy, cmxmy;
 			float bone_length = 0.1f * std::min(1.0f, length);
 			center.x = start.x + front.x * length * bone_length;
 			center.y = start.y + front.y * length * bone_length;

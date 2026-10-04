@@ -15,8 +15,8 @@ class collision_world
 public:
 	struct ray_cast_descs
 	{
-		DirectX::XMFLOAT3 start;
-		DirectX::XMFLOAT3 end;
+		math::float3 start;
+		math::float3 end;
 		collision_filter_ptr filter;
 		std::vector<collision_object_ptr> exclude_objects;
 	};
@@ -30,7 +30,7 @@ public:
 	{
 		float radius = 0.0f;
 		float length = 0.0f;
-		DirectX::XMFLOAT4 rotation = { 0, 0, 0, 1 };
+		math::float4 rotation = { 0, 0, 0, 1 };
 	};
 
 public:

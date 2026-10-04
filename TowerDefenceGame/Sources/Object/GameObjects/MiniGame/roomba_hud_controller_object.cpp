@@ -55,7 +55,7 @@ void roomba_hud_controller_object::on_initialize()
 	[this]() {
 		if (auto instance = roomba.lock())
 			return instance->get_controll_object()->get_velocity();
-		return DirectX::XMFLOAT3{ 0.0f, 0.0f, 0.0f };
+		return math::float3{ 0.0f, 0.0f, 0.0f };
 	});
 }
 

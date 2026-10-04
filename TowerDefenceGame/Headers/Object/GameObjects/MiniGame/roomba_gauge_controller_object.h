@@ -63,7 +63,7 @@ private:
 	shake_descs shake_desc;
 
 	std::shared_ptr<ui_image> ui[ui_max];
-	DirectX::XMFLOAT4 origin_rects[ui_max];
-	DirectX::XMFLOAT4 origin_colors[ui_max];
-	DirectX::XMFLOAT2 shake_offset = {0, 0};
+	math::float4 origin_rects[ui_max];
+	math::float4 origin_colors[ui_max];
+	math::float2 shake_offset = {0, 0};
 };

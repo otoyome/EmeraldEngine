@@ -27,8 +27,8 @@ public:
 	bool is_flag(flags flag) const;
 	void set_flag(flags flag, bool value);
 
-	const DirectX::XMFLOAT3& get_position() const;
-	void set_position(const DirectX::XMFLOAT3& position);
+	const math::float3& get_position() const;
+	void set_position(const math::float3& position);
 
 	const math::rotatorf& get_rotation() const;
 	void set_rotation(const math::rotatorf& rotation);
@@ -39,18 +39,18 @@ public:
 	float get_hybrid_rate() const;
 	void set_hybrid_rate(float hybrid_rate);
 
-	const DirectX::XMFLOAT4& get_screen_rect() const;
-	void set_screen_rect(DirectX::XMFLOAT4 screen_rect);
-	const DirectX::XMFLOAT2& get_clip_distance() const;
-	void set_clip_distance(DirectX::XMFLOAT2 clip_distance);
+	const math::float4& get_screen_rect() const;
+	void set_screen_rect(math::float4 screen_rect);
+	const math::float2& get_clip_distance() const;
+	void set_clip_distance(math::float2 clip_distance);
 
-	const DirectX::XMFLOAT3& get_right();
-	const DirectX::XMFLOAT3& get_up();
-	const DirectX::XMFLOAT3& get_front();
-	const DirectX::XMFLOAT4X4& get_view_matrix();
-	const DirectX::XMFLOAT4X4& get_projection_matrix();
-	const DirectX::XMFLOAT4X4& get_view_projection_matrix();
-	const DirectX::XMFLOAT4X4& get_previous_view_projection_matrix();
+	const math::float3& get_right();
+	const math::float3& get_up();
+	const math::float3& get_front();
+	const math::float4x4& get_view_matrix();
+	const math::float4x4& get_projection_matrix();
+	const math::float4x4& get_view_projection_matrix();
+	const math::float4x4& get_previous_view_projection_matrix();
 
 	const collision::frustum_culling& get_frustum_culling();
 
@@ -82,19 +82,19 @@ private:
 
 private:
 	UINT system_flags;
-	DirectX::XMFLOAT3 position;
+	math::float3 position;
 	math::rotatorf rotation;
-	DirectX::XMFLOAT3 right;
-	DirectX::XMFLOAT3 up;
-	DirectX::XMFLOAT3 front;
-	DirectX::XMFLOAT4X4 view_matrix;
-	DirectX::XMFLOAT4X4 projection_matrix;
-	DirectX::XMFLOAT4X4 view_projection_matrix;
-	DirectX::XMFLOAT4X4 previous_view_projection_matrix;
+	math::float3 right;
+	math::float3 up;
+	math::float3 front;
+	math::float4x4 view_matrix;
+	math::float4x4 projection_matrix;
+	math::float4x4 view_projection_matrix;
+	math::float4x4 previous_view_projection_matrix;
 
 	float fov_y;
-	DirectX::XMFLOAT4 screen_rect;
-	DirectX::XMFLOAT2 clip_distance;
+	math::float4 screen_rect;
+	math::float2 clip_distance;
 	float hybrid_rate;
 
 	collision::frustum_culling frustum_culling;

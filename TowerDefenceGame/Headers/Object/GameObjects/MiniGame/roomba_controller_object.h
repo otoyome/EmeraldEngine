@@ -15,7 +15,7 @@ private:
 
 public:
 	std::shared_ptr<roomba_object> get_controll_object() const;
-	DirectX::XMFLOAT3 get_focus_point() const;
+	math::float3 get_focus_point() const;
 
 	bool get_input_purmit_flag() const;
 	void set_input_purmit_flag(bool input_stop);
@@ -27,7 +27,7 @@ public:
 	void fixed_update(float elapsed_time) override;
 
 private:
-	DirectX::XMFLOAT3 get_move_vector();
+	math::float3 get_move_vector();
 
 	void on_finalize() override;
 

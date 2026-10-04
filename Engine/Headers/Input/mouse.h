@@ -19,7 +19,7 @@ public:
 	};
 	struct position_states
 	{
-		DirectX::XMINT2 position = { 0, 0 }; // センターロック時は中心点からの移動量が保存されている
+		math::int2 position = { 0, 0 }; // センターロック時は中心点からの移動量が保存されている
 		int wheel = 0;
 	};
 
@@ -36,7 +36,7 @@ public:
 	states get_state() const;
 	void set_state(const states& state);
 
-	DirectX::XMINT2 get_move_cursol() const;
+	math::int2 get_move_cursol() const;
 	int get_wheel_value() const;
 
 	void set_center_lock(bool lock);
@@ -58,7 +58,7 @@ public:
 		}
 	}
 
-	void set_viewport_size(const DirectX::XMINT2& size);
+	void set_viewport_size(const math::int2& size);
 
 	void update_state();
 
@@ -69,8 +69,8 @@ private:
 	bool window_center_lock;
 	bool cursol_hide;
 	int wheel_value;
-	DirectX::XMINT2 viewport_size;
-	DirectX::XMINT2 move_vector;
+	math::int2 viewport_size;
+	math::int2 move_vector;
 	position_states position_state;
 	input::state key_state[static_cast<int>(key_states::max)];
 };

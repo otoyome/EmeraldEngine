@@ -66,13 +66,13 @@ character_object::character_object(std::string_view name, std::shared_ptr<model_
 , accelaration(system_units::convert_m_to_unit(6.0f))
 , breaking_deceleration(system_units::convert_m_to_unit(6.0f))
 , max_move_speed(system_units::convert_m_to_unit(15.0f))
-, rotation_speed(DirectX::XMConvertToRadians(1440.0f))
+, rotation_speed(math::angle::to_radian(1440.0f))
 , roll_value(0.0f)
 
 , gravity_scale(1.0f)
 , slope_rate(1.0f)
 , step_offset(system_units::convert_m_to_unit(10.0f))
-, slope_limit(DirectX::XMConvertToRadians(30.0f))
+, slope_limit(math::angle::to_radian(30.0f))
 , ground_friction(0.5f)
 {
 	set_flag(flags::movable, true);
@@ -88,8 +88,8 @@ character_object::character_object(std::string_view name, std::shared_ptr<model_
 
 	//	ルートモーション情報の受け取り
 	model->set_apply_root_animation_transform(false);
-	model->register_root_animation_translation_callback([this](const DirectX::XMFLOAT3& translation, float delta_time) {on_root_animation_translation(translation, delta_time);});
-	model->register_root_animation_rotation_callback([this](const DirectX::XMFLOAT4& rotation, float delta_time) {on_root_animation_rotation(rotation, delta_time);});
+	model->register_root_animation_translation_callback([this](const math::float3& translation, float delta_time) {on_root_animation_translation(translation, delta_time);});
+	model->register_root_animation_rotation_callback([this](const math::float4& rotation, float delta_time) {on_root_animation_rotation(rotation, delta_time);});
 
 	set_elapsed_time_scale(1.0f);
 
@@ -165,16 +165,16 @@ void character_object::imgui_render_core()
 	ImGui::DragFloat("breaking_deceleration", &breaking_deceleration, 0.01f);
 	ImGui::DragFloat("max_move_speed", &max_move_speed, 0.01f);
 
-	degrees = DirectX::XMConvertToDegrees(rotation_speed);
+	degrees = math::angle::to_degree(rotation_speed);
 	ImGui::DragFloat("rotation_speed", &degrees, 0.01f);
-	rotation_speed = DirectX::XMConvertToRadians(degrees);
+	rotation_speed = math::angle::to_radian(degrees);
 
 	ImGui::DragFloat("gravity_scale", &gravity_scale, 0.01f);
 	ImGui::DragFloat("step_offset", &step_offset, 0.01f);
 
-	degrees = DirectX::XMConvertToDegrees(slope_limit);
+	degrees = math::angle::to_degree(slope_limit);
 	ImGui::DragFloat("slope_limit", &degrees, 0.01f);
-	slope_limit = DirectX::XMConvertToRadians(degrees);
+	slope_limit = math::angle::to_radian(degrees);
 
 	if (push_box)
 	{
@@ -209,12 +209,12 @@ void character_object::set_face_texture(texture_ptr face)
 	face_texture = face;
 }
 
-DirectX::XMFLOAT4 character_object::get_face_uv() const
+math::float4 character_object::get_face_uv() const
 {
 	return face_uv;
 }
 
-void character_object::set_face_uv(DirectX::XMFLOAT4 face_uv)
+void character_object::set_face_uv(math::float4 face_uv)
 {
 	this->face_uv = face_uv;
 }
@@ -224,12 +224,12 @@ const collision_object_ptr& character_object::get_push_box() const
 	return push_box;
 }
 
-const DirectX::XMFLOAT3& character_object::get_scale() const
+const math::float3& character_object::get_scale() const
 {
 	return model->get_scale();
 }
 
-void character_object::set_scale(const DirectX::XMFLOAT3& scale)
+void character_object::set_scale(const math::float3& scale)
 {
 	model->set_scale(scale);
 }
@@ -256,19 +256,19 @@ void character_object::set_rotation_speed(float rotation_speed)
 	this->rotation_speed = rotation_speed;
 }
 
-const DirectX::XMFLOAT3& character_object::get_position() const
+const math::float3& character_object::get_position() const
 {
 	return model->get_position();
 }
 
-void character_object::set_position(const DirectX::XMFLOAT3& position)
+void character_object::set_position(const math::float3& position)
 {
 	model->set_position(position);
 	if (push_box)
 		push_box->set_position(position);
 }
 
-const DirectX::XMFLOAT3& character_object::get_footstep_position() const
+const math::float3& character_object::get_footstep_position() const
 {
 	return footstep_position;
 }
@@ -283,34 +283,34 @@ void character_object::set_lockon_taget_object(std::weak_ptr<character_object> l
 	this->lockon_taget_object = lockon_taget_object;
 }
 
-DirectX::XMFLOAT3 character_object::get_focus_point() const
+math::float3 character_object::get_focus_point() const
 {
 	auto transform = push_box->get_bounding_object()->get_transform_float4x4();
 	return {transform._41, transform._42, transform._43};
 }
 
-void character_object::add_move_vector(DirectX::XMFLOAT2 move_vector, float accelaration)
+void character_object::add_move_vector(math::float2 move_vector, float accelaration)
 {
 	this->move_vector = move_vector;
 	this->accelaration = accelaration;
 }
 
-void character_object::set_turn_vector(DirectX::XMFLOAT2 direction)
+void character_object::set_turn_vector(math::float2 direction)
 {
 	this->turn_front_vector = direction;
 }
 
-DirectX::XMFLOAT2 character_object::get_turn_vector() const
+math::float2 character_object::get_turn_vector() const
 {
 	return this->turn_front_vector;
 }
 
-DirectX::XMFLOAT3 character_object::get_velocity() const
+math::float3 character_object::get_velocity() const
 {
 	return velocity;
 }
 
-void character_object::set_velocity(DirectX::XMFLOAT3 velocity)
+void character_object::set_velocity(math::float3 velocity)
 {
 	this->velocity = velocity;
 }
@@ -494,7 +494,7 @@ void character_object::set_damage_cancel_resist_level(character_object::action_l
 	this->damage_cancel_resist_level = damage_cancel_resist_level;
 }
 
-void character_object::add_impulse(DirectX::XMFLOAT3 delta_velocity)
+void character_object::add_impulse(math::float3 delta_velocity)
 {
 	//	単純に速度に加算する
 	velocity.x += delta_velocity.x;
@@ -837,7 +837,7 @@ void character_object::on_damaged(const damage_datas& data)
 	{
 		set_velocity({0, 0, 0});
 		//	吹き飛ばし速度を与える
-		DirectX::XMFLOAT3 impulse;
+		math::float3 impulse;
 		impulse.x = data.stagger_direction.x * data.desc.blow_power;
 		impulse.y = data.stagger_direction.y * data.desc.blow_power;
 		impulse.z = data.stagger_direction.z * data.desc.blow_power;
@@ -877,7 +877,7 @@ void character_object::on_guarded(const damage_datas& data)
 {
 	//	吹き飛ばし速度を与える
 	set_velocity({0, 0, 0});
-	DirectX::XMFLOAT3 impulse;
+	math::float3 impulse;
 	impulse.x = data.stagger_direction.x * data.desc.blow_power;
 	impulse.y = data.stagger_direction.y * data.desc.blow_power;
 	impulse.z = data.stagger_direction.z * data.desc.blow_power;
@@ -1083,7 +1083,7 @@ void character_object::on_push_box_stay(collision_object::data data)
 		set_position(push_box->get_position());
 }
 
-void character_object::on_root_animation_translation(const DirectX::XMFLOAT3& translation, float delta_time)
+void character_object::on_root_animation_translation(const math::float3& translation, float delta_time)
 {
 	float normalized_value = (system_units::convert_fps_to_sec(1.0f) / std::max(delta_time, 0.000001f));
 	root_motion_velocity.x = translation.x * normalized_value;
@@ -1091,10 +1091,10 @@ void character_object::on_root_animation_translation(const DirectX::XMFLOAT3& tr
 	root_motion_velocity.z = translation.z * normalized_value;
 }
 
-void character_object::on_root_animation_rotation(const DirectX::XMFLOAT4& rotation, float delta_time)
+void character_object::on_root_animation_rotation(const math::float4& rotation, float delta_time)
 {
 	float normalized_value = (system_units::convert_fps_to_sec(1.0f) / std::max(delta_time, 0.000001f));
-	math::rotatorf rotator(system_utility::to_math_quaternion(rotation));
+	math::rotatorf rotator{ math::quaternionf(rotation) };
 	rotator.x = get_rotation().x + rotator.x * normalized_value;
 	rotator.y = get_rotation().y + rotator.y * normalized_value;
 	rotator.z = get_rotation().z + rotator.z * normalized_value;

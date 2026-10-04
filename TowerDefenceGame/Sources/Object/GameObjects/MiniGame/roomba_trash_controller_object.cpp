@@ -55,13 +55,13 @@ void roomba_trash_controller_object::set_alpha(float alpha)
 {
 	if (image)
 	{
-		DirectX::XMFLOAT4 color = origin_colors[ui_id::base];
+		math::float4 color = origin_colors[ui_id::base];
 		color.w *= alpha;
 		image->set_color(color);
 	}
 	if (text)
 	{
-		DirectX::XMFLOAT4 color = origin_colors[ui_id::text];
+		math::float4 color = origin_colors[ui_id::text];
 		color.w *= alpha;
 		text->set_color(color);
 	}

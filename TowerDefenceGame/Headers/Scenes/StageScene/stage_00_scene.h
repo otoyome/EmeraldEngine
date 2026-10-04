@@ -23,7 +23,7 @@ public:
 #endif	//	defined(USE_IMGUI)
 
 public:
-	void generate_model_collision(model_resource_ptr resource, DirectX::XMMATRIX& transform, UINT separate_level);
+	void generate_model_collision(model_resource_ptr resource, const math::matrixf& transform, UINT separate_level);
 	void generate_model_sdf(model_resource_ptr resource);
 
 private:

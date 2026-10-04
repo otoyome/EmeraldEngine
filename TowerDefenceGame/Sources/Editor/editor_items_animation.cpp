@@ -57,7 +57,7 @@ namespace
 			ImGui::SameLine();
 			if (ImGui::Button("Reset##curve_reset"))
 			{
-				curve.datas = { DirectX::XMFLOAT2(0.0f, 0.0f), DirectX::XMFLOAT2(1.0f, 1.0f) };
+				curve.datas = { math::float2(0.0f, 0.0f), math::float2(1.0f, 1.0f) };
 				reload_points();
 			}
 
@@ -72,7 +72,7 @@ namespace
 
 			//	0～1 にクランプ
 			for (auto& point : curve.datas)
-				point = system_utility::to_xmfloat(math::saturate(system_utility::to_math(point)));
+				point = math::saturate(math::vector2f(point)).to_float2();
 
 			//	Edit / Reset / クランプで datas 側が変化しているのでキャッシュを追従させる
 			reload_points();
@@ -583,9 +583,9 @@ namespace
 			ImGui::DragFloat("time", &node.time, 1.0f / fps, 0.0f, 0.0f, "%.6f");
 			ImGui::DragFloat3("scale", &node.scale.x, 0.01f);
 
-			math::rotatorf rotator(system_utility::to_math_quaternion(node.rotation));
+			math::rotatorf rotator(math::quaternionf(node.rotation));
 			ImGui::DragFloat3("rotation", &rotator.x, 0.01f);
-			node.rotation = system_utility::to_xmfloat(rotator.to_quaternion());
+			node.rotation = rotator.to_quaternion().to_float4();
 
 			ImGui::DragFloat3("translation", &node.translation.x, 0.01f);
 		}

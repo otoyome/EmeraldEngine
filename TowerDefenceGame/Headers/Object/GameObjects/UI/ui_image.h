@@ -34,8 +34,8 @@ public:
 	draw_modes get_draw_mode() const;
 	void set_draw_mode(draw_modes draw_mode);
 
-	DirectX::XMFLOAT4 get_border() const;
-	void set_border(DirectX::XMFLOAT4 border);
+	math::float4 get_border() const;
+	void set_border(math::float4 border);
 
 	float get_fill_amount() const;
 	void set_fill_amount(float fill_amount);
@@ -71,7 +71,7 @@ private:
 private:
 	draw_modes draw_mode;
 
-	DirectX::XMFLOAT4 border;
+	math::float4 border;
 
 	float fill_amount = 1.0f;
 	fill_methods fill_method = fill_methods::radial;

@@ -23,8 +23,8 @@ namespace
 
 		//	ルート領域を求めつつ、各オブジェクトのAABBを控えておく
 		bool has_any = false;
-		DirectX::XMFLOAT3 world_min{};
-		DirectX::XMFLOAT3 world_max{};
+		math::float3 world_min{};
+		math::float3 world_max{};
 		for (auto& object : objects)
 		{
 			if (!object->is_flag(collision_object::flags::active))
@@ -34,8 +34,8 @@ namespace
 			if (!bounding)
 				continue;
 
-			DirectX::XMFLOAT3 min_corner;
-			DirectX::XMFLOAT3 max_corner;
+			math::float3 min_corner;
+			math::float3 max_corner;
 			bounding->include_corner(min_corner, max_corner);
 
 			collision_octree::aabb box{};

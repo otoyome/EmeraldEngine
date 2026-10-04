@@ -68,20 +68,20 @@ public:
 	const math::rotatorf& get_rotation() const;
 	void set_rotation(const math::rotatorf& rotation);
 
-	const DirectX::XMFLOAT3& get_position() const;
-	void set_position(const DirectX::XMFLOAT3& position);
+	const math::float3& get_position() const;
+	void set_position(const math::float3& position);
 
-	const DirectX::XMFLOAT3& get_local_scale() const;
-	void set_local_scale(const DirectX::XMFLOAT3& scale);
+	const math::float3& get_local_scale() const;
+	void set_local_scale(const math::float3& scale);
 
 	const math::rotatorf& get_local_rotation() const;
 	void set_local_rotation(const math::rotatorf& rotation);
 
-	const DirectX::XMFLOAT3& get_local_offset() const;
-	void set_local_offset(const DirectX::XMFLOAT3& offset);
+	const math::float3& get_local_offset() const;
+	void set_local_offset(const math::float3& offset);
 
-	void set_draw_normal_color(DirectX::XMFLOAT4 color);
-	void set_draw_hit_color(DirectX::XMFLOAT4 color);
+	void set_draw_normal_color(math::float4 color);
+	void set_draw_hit_color(math::float4 color);
 
 public:
 	collision_object();
@@ -125,15 +125,15 @@ private:
 	user_datas user_data;
 	float mass; // 本体の質量
 	material::physical_datas physical_data; // 物理マテリアル
-	DirectX::XMFLOAT3 local_scale; // ローカルスケール情報
+	math::float3 local_scale; // ローカルスケール情報
 	math::rotatorf local_rotation; // ローカル回転
-	DirectX::XMFLOAT3 local_offset; // ローカルオフセット
+	math::float3 local_offset; // ローカルオフセット
 
 	math::rotatorf rotation;
-	DirectX::XMFLOAT3 position;
+	math::float3 position;
 
-	DirectX::XMFLOAT4 draw_normal_color;
-	DirectX::XMFLOAT4 draw_hit_color;
+	math::float4 draw_normal_color;
+	math::float4 draw_hit_color;
 
 	std::shared_ptr<collision::bounding_object> bounding_object;
 

@@ -274,7 +274,7 @@ xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y</Command>
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>NDEBUG;USE_IMGUI;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;__USE_IMGUI;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>$(SolutionDir)Engine\Headers;$(SolutionDir)External;$(SolutionDir)External\tinygltf-master;$(SolutionDir)External\imgui;$(SolutionDir)External\stb;$(SolutionDir)External\nameof\include;$(SolutionDir)External\magic_enum\include\magic_enum;$(SolutionDir)External\cereal\include;$(SolutionDir)External\meshoptimizer;$(SolutionDir)External\uchardet\src;$(SolutionDir)External\icu\include;$(ProjectDir)Headers</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>

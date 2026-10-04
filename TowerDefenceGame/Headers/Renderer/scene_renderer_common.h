@@ -47,7 +47,7 @@ namespace scene_renderer_commons
 
 	void model_render_shadow_batched(graphics_context& context,
 					  const std::vector<std::size_t>& mesh_indices,
-					  const DirectX::XMFLOAT3& sphere_center,
+					  const math::float3& sphere_center,
 					  float sphere_radius,
 					  material::surface_paths surface_path);
 

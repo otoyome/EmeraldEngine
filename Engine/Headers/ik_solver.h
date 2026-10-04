@@ -29,8 +29,8 @@ public:
 
 		bool reset_previous_rotation = true;
 		float smoothness = 0.3f;
-		DirectX::XMFLOAT4 previous_rotation = { 0, 0, 0, 1 };	//	時間フィルタリング
-		DirectX::XMFLOAT3 prev_angle = {0, 0, 0};
+		math::float4 previous_rotation = { 0, 0, 0, 1 };	//	時間フィルタリング
+		math::float3 prev_angle = {0, 0, 0};
 		float plane_mode_angle = 0;	//	ccd_pmx用
 	};
 	struct solve_data
@@ -44,10 +44,10 @@ public:
 		float constraint_angle;
 
 		bool use_pole_node_offset;
-		DirectX::XMFLOAT3 pole_offset;
+		math::float3 pole_offset;
 
-		DirectX::XMFLOAT3 aim_axis;
-		DirectX::XMFLOAT3 aim_offset;
+		math::float3 aim_axis;
+		math::float3 aim_offset;
 	};
 
 public:
@@ -61,15 +61,15 @@ public:
 	ik_solver(model_instance_ptr instance, ik_resource_ptr resource);
 	~ik_solver();
 
-	void solve(size_t index, DirectX::XMFLOAT3 ik_target_position);
-	void solves(std::vector<DirectX::XMFLOAT3> ik_target_positions);
+	void solve(size_t index, math::float3 ik_target_position);
+	void solves(std::vector<math::float3> ik_target_positions);
 
 private:
-	void solve_aim(solve_data& solve_data, DirectX::XMFLOAT3 ik_target_position);
-	void solve_limb(solve_data& solve_data, DirectX::XMFLOAT3 ik_target_position);
-	void solve_ccd(solve_data& solve_data, DirectX::XMFLOAT3 ik_target_position);
-	void solve_ccd_pmx(solve_data& solve_data, DirectX::XMFLOAT3 ik_target_position);
-	void solve_ccd_pmx_plane(int iteration, solve_data& solve_data, node_data& link_data, DirectX::XMVECTOR ik_target_position, constraint_plane_lock axis);
+	void solve_aim(solve_data& solve_data, math::float3 ik_target_position);
+	void solve_limb(solve_data& solve_data, math::float3 ik_target_position);
+	void solve_ccd(solve_data& solve_data, math::float3 ik_target_position);
+	void solve_ccd_pmx(solve_data& solve_data, math::float3 ik_target_position);
+	void solve_ccd_pmx_plane(int iteration, solve_data& solve_data, node_data& link_data, const math::vector3f& ik_target_position, constraint_plane_lock axis);
 
 	void build();
 

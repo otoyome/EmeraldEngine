@@ -7,7 +7,7 @@ light::light(light_type type)
 , position(0, 0, 0)
 , rotation(0, 0, 0)
 , color(1, 1, 1, 1)
-, parameter(10.0f, DirectX::XMConvertToRadians(30.0f), DirectX::XMConvertToRadians(45.0f))
+, parameter(10.0f, math::angle::to_radian(30.0f), math::angle::to_radian(45.0f))
 {
 	set_flag(flags::active, true);
 	set_flag(flags::use_shadow, true);
@@ -69,7 +69,7 @@ light_data light::convert_light_data() const
 		case light_type::directional:
 		{
 			directional_lights light;
-			DirectX::XMFLOAT3 direction = system_utility::to_xmfloat(rotation.front());
+			math::float3 direction = rotation.front().to_float3();
 			light.direction.x = direction.x;
 			light.direction.y = direction.y;
 			light.direction.z = direction.z;
@@ -93,7 +93,7 @@ light_data light::convert_light_data() const
 		case light_type::spot:
 		{
 			spot_lights light;
-			DirectX::XMFLOAT3 direction = system_utility::to_xmfloat(rotation.front());
+			math::float3 direction = rotation.front().to_float3();
 			light.position.x = position.x;
 			light.position.y = position.y;
 			light.position.z = position.z;
@@ -118,12 +118,12 @@ light_type light::get_light_type() const
 	return type;
 }
 
-DirectX::XMFLOAT3 light::get_position() const
+math::float3 light::get_position() const
 {
 	return position;
 }
 
-void light::set_position(const DirectX::XMFLOAT3& position)
+void light::set_position(const math::float3& position)
 {
 	this->position = position;
 }
@@ -138,12 +138,12 @@ void light::set_rotation(const math::rotatorf& rotation)
 	this->rotation = rotation;
 }
 
-const DirectX::XMFLOAT4& light::get_color() const
+const math::float4& light::get_color() const
 {
 	return color;
 }
 
-void light::set_color(const DirectX::XMFLOAT4& color)
+void light::set_color(const math::float4& color)
 {
 	this->color = color;
 }
@@ -178,12 +178,12 @@ void light::set_outer_cone(float outer_cone)
 	this->parameter.z = outer_cone;
 }
 
-const DirectX::XMFLOAT3& light::get_shadow_attenuation() const
+const math::float3& light::get_shadow_attenuation() const
 {
 	return shadow_attenuation;
 }
 
-void light::set_shadow_attenuation(const DirectX::XMFLOAT3& attenuation)
+void light::set_shadow_attenuation(const math::float3& attenuation)
 {
 	this->shadow_attenuation = attenuation;
 }
@@ -268,42 +268,42 @@ void light_probe::set_lut_ggx_texture(texture_ptr texture)
 	lut_ggx_texture = texture;
 }
 
-DirectX::XMFLOAT3 light_probe::get_position() const
+math::float3 light_probe::get_position() const
 {
 	return position;
 }
 
-void light_probe::set_position(const DirectX::XMFLOAT3& position)
+void light_probe::set_position(const math::float3& position)
 {
 	this->position = position;
 }
 
-DirectX::XMFLOAT3 light_probe::get_inner_range() const
+math::float3 light_probe::get_inner_range() const
 {
 	return inner_range;
 }
 
-void light_probe::set_inner_range(const DirectX::XMFLOAT3& inner_range)
+void light_probe::set_inner_range(const math::float3& inner_range)
 {
 	this->inner_range = inner_range;
 }
 
-DirectX::XMFLOAT3 light_probe::get_outer_range() const
+math::float3 light_probe::get_outer_range() const
 {
 	return outer_range;
 }
 
-void light_probe::set_outer_range(const DirectX::XMFLOAT3& outer_range)
+void light_probe::set_outer_range(const math::float3& outer_range)
 {
 	this->outer_range = outer_range;
 }
 
-const DirectX::XMFLOAT4& light_probe::get_color() const
+const math::float4& light_probe::get_color() const
 {
 	return color;
 }
 
-void light_probe::set_color(const DirectX::XMFLOAT4& color)
+void light_probe::set_color(const math::float4& color)
 {
 	this->color = color;
 }

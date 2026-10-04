@@ -3,7 +3,6 @@
 #include <cstddef>
 #include <utility>
 #include <vector>
-#include <DirectXMath.h>
 
 class collision_object;
 
@@ -13,8 +12,8 @@ class collision_octree
 public:
 	struct aabb
 	{
-		DirectX::XMFLOAT3 min;
-		DirectX::XMFLOAT3 max;
+		math::float3 min;
+		math::float3 max;
 
 		//	2‚Â‚ÌAABB‚ªŒğ·‚µ‚Ä‚¢‚é‚©
 		static bool intersects(const aabb& lhs, const aabb& rhs)
@@ -62,17 +61,17 @@ private:
 	//	”ª•ª–Øƒm[ƒh
 	struct node
 	{
-		DirectX::XMFLOAT3 center;
+		math::float3 center;
 		float half_size;
 		std::vector<entry> entries;
 		size_t children[8];
 	};
 
 private:
-	size_t allocate_node(const DirectX::XMFLOAT3& center, float half_size);
+	size_t allocate_node(const math::float3& center, float half_size);
 	void insert_recursive(std::size_t node_index, int depth, const entry& item);
 	int  child_octant_containing(const node& parent, const aabb& bounds) const;
-	void child_bounds(const node& parent, int octant, DirectX::XMFLOAT3& out_center, float& out_half) const;
+	void child_bounds(const node& parent, int octant, math::float3& out_center, float& out_half) const;
 	void collect_recursive(std::size_t node_index, std::vector<const entry*>& ancestors, std::vector<object_pair>& out_pairs) const;
 	void query_recursive(std::size_t node_index, const aabb& bounds, std::vector<collision_object*>& out_objects) const;
 

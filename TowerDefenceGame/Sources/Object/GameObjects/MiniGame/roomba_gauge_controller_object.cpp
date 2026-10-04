@@ -113,7 +113,7 @@ void roomba_gauge_controller_object::set_alpha(float alpha)
 		if (!ui[index])
 			continue;
 
-		DirectX::XMFLOAT4 color = origin_colors[index];
+		math::float4 color = origin_colors[index];
 		color.w *= alpha;
 		ui[index]->set_color(color);
 	}

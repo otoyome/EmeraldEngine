@@ -4,7 +4,6 @@
 #include	"collision/box.h"
 #include	"collision/mesh.h"
 
-#include	<DirectXCollision.h>
 
 using namespace collision;
 
@@ -24,7 +23,7 @@ bounding_sphere::bounding_sphere()
 {
 }
 
-bounding_sphere::bounding_sphere(const DirectX::XMFLOAT3& position, float radius)
+bounding_sphere::bounding_sphere(const math::float3& position, float radius)
 : bounding_object({radius, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 1.0f}, position)
 {
 }
@@ -33,60 +32,71 @@ bounding_sphere::~bounding_sphere()
 {
 }
 
-bool bounding_sphere::intersect_point(const DirectX::XMFLOAT3& point) const
+bool bounding_sphere::intersect_point(const math::float3& point) const
 {
-	DirectX::XMVECTOR Point = DirectX::XMLoadFloat3(&point);
-	DirectX::XMVECTOR Position = DirectX::XMLoadFloat3(&get_position());
-	DirectX::XMVECTOR Vector = DirectX::XMVectorSubtract(Position, Point);
-	DirectX::XMVECTOR Distance = DirectX::XMVector3Length(Vector);
-	return	DirectX::XMVectorGetX(Distance) - get_radius() <= 0.0f;
+	math::vector3f Point(point);
+	math::vector3f Position(get_position());
+	math::vector3f Vector = Position - Point;
+	float Distance = Vector.length();
+	return	Distance - get_radius() <= 0.0f;
 }
 
-bool bounding_sphere::intersect_segment(const DirectX::XMFLOAT3& start, const DirectX::XMFLOAT3& end, intersect_data* intersect) const
+bool bounding_sphere::intersect_segment(const math::float3& start, const math::float3& end, intersect_data* intersect) const
 {
-	DirectX::XMVECTOR Start = DirectX::XMLoadFloat3(&start);
-	DirectX::XMVECTOR End = DirectX::XMLoadFloat3(&end);
+	math::vector3f Start(start);
+	math::vector3f End(end);
 
 	return intersect_segment(Start, End, intersect);
 }
 
-bool bounding_sphere::intersect_segment(DirectX::XMVECTOR Start, DirectX::XMVECTOR End, intersect_data* intersect) const
+bool bounding_sphere::intersect_segment(math::vector3f Start, math::vector3f End, intersect_data* intersect) const
 {
-	DirectX::XMVECTOR Direction = DirectX::XMVectorSubtract(End, Start);
-	float distance = DirectX::XMVectorGetX(DirectX::XMVector3Length(Direction));
+	math::vector3f Direction = End - Start;
+	float distance = Direction.length();
 	if (distance <= 1e-6f)
 		return false;
-	Direction = DirectX::XMVectorScale(Direction, 1.0f / distance);
+	Direction = Direction * (1.0f / distance);
 	const float segment_length = distance;
 
-	DirectX::XMVECTOR Center = DirectX::XMLoadFloat3(&get_position());
+	math::vector3f Center(get_position());
 	const float radius = get_radius();
 
 	//	始点が内側
-	DirectX::XMVECTOR StartToCenter = DirectX::XMVectorSubtract(Start, Center);
-	float start_length_sq = DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(StartToCenter));
+	math::vector3f StartToCenter = Start - Center;
+	float start_length_sq = StartToCenter.square_length();
 	if (start_length_sq <= radius * radius)
 	{
 		if (intersect)
 		{
-			DirectX::XMVECTOR Normal = (start_length_sq > 1e-12f) ? DirectX::XMVector3Normalize(StartToCenter) : DirectX::XMVectorNegate(Direction);
-			DirectX::XMFLOAT3 position, normal;
-			DirectX::XMStoreFloat3(&position, Start);
-			DirectX::XMStoreFloat3(&normal, Normal);
+			math::vector3f Normal = (start_length_sq > 1e-12f) ? StartToCenter.normalized() : -Direction;
+			math::float3 position, normal;
+			position = Start.to_float3();
+			normal = Normal.to_float3();
 			intersect->add(position, normal, 0.0f);
 		}
 		return true;
 	}
 
-	DirectX::BoundingSphere sphere = DirectX::BoundingSphere(get_position(), radius);
-	if (sphere.Intersects(Start, Direction, distance) && distance <= segment_length)
+	//	始点からのレイと球の交差
+	const math::vector3f to_center = Center - Start;
+	const float projection = math::vector3f::dot(to_center, Direction);
+	const float to_center_length_sq = to_center.square_length();
+	const float radius_sq = radius * radius;
+	const float distance_sq = to_center_length_sq - projection * projection;
+	bool ray_hit = !(projection < 0.0f && to_center_length_sq > radius_sq) && distance_sq <= radius_sq;
+	if (ray_hit)
+	{
+		const float q = std::sqrt(radius_sq - distance_sq);
+		distance = (to_center_length_sq > radius_sq) ? projection - q : projection + q;
+	}
+	if (ray_hit && distance <= segment_length)
 	{
 		if (intersect)
 		{
-			DirectX::XMVECTOR Position = DirectX::XMVectorMultiplyAdd(Direction, DirectX::XMVectorReplicate(distance), Start);
-			DirectX::XMFLOAT3 position, normal;
-			DirectX::XMStoreFloat3(&position, Position);
-			DirectX::XMStoreFloat3(&normal, DirectX::XMVector3Normalize(DirectX::XMVectorSubtract(Position, Center)));
+			math::vector3f Position = Direction * distance + Start;
+			math::float3 position, normal;
+			position = Position.to_float3();
+			normal = ((Position - Center).normalized()).to_float3();
 			intersect->add(position, normal, distance);
 		}
 		return true;
@@ -94,25 +104,25 @@ bool bounding_sphere::intersect_segment(DirectX::XMVECTOR Start, DirectX::XMVECT
 	return false;
 }
 
-bool bounding_sphere::intersect_sphere(const DirectX::XMFLOAT3& point, float radius, intersect_data* intersect) const
+bool bounding_sphere::intersect_sphere(const math::float3& point, float radius, intersect_data* intersect) const
 {
-	DirectX::XMVECTOR Point = DirectX::XMLoadFloat3(&point);
-	DirectX::XMVECTOR Position = DirectX::XMLoadFloat3(&get_position());
-	DirectX::XMVECTOR Vector = DirectX::XMVectorSubtract(Position, Point);
-	DirectX::XMVECTOR Distance = DirectX::XMVector3Length(Vector);
-	float distance = DirectX::XMVectorGetX(Distance) - get_radius() - radius;
+	math::vector3f Point(point);
+	math::vector3f Position(get_position());
+	math::vector3f Vector = Position - Point;
+	float Distance = Vector.length();
+	float distance = Distance - get_radius() - radius;
 	bool insert = distance <= 0.0f;
 	if (intersect && insert)
 	{
 		//	中心一致時は上方向
-		if (DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(Vector)) <= 1e-12f)
-			Vector = DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
-		Vector = DirectX::XMVector3Normalize(Vector);
-		DirectX::XMFLOAT3 point, normal;
-		DirectX::XMStoreFloat3(&normal, Vector);
+		if (Vector.square_length() <= 1e-12f)
+			Vector = math::vector3f(0.0f, 1.0f, 0.0f);
+		Vector = Vector.normalized();
+		math::float3 point, normal;
+		normal = Vector.to_float3();
 		radius += distance;
-		Distance = DirectX::XMVectorSet(radius, radius, radius, radius);
-		DirectX::XMStoreFloat3(&point, DirectX::XMVectorMultiplyAdd(Vector, Distance, Point));
+		Distance = radius;
+		point = (Vector * Distance + Point).to_float3();
 		intersect->add(point, normal, -distance);
 	}
 	return insert;
@@ -139,33 +149,33 @@ bool bounding_sphere::intersect_mesh(const bounding_mesh& mesh, intersect_data* 
 }
 
 
-bool bounding_sphere::intersect_sphere_cast(const DirectX::XMFLOAT3& start, const DirectX::XMFLOAT3& end, float radius, intersect_data* intersect) const
+bool bounding_sphere::intersect_sphere_cast(const math::float3& start, const math::float3& end, float radius, intersect_data* intersect) const
 {
-	DirectX::XMVECTOR Start = DirectX::XMLoadFloat3(&start);
-	DirectX::XMVECTOR End = DirectX::XMLoadFloat3(&end);
-	DirectX::XMVECTOR SphereCenter = DirectX::XMLoadFloat3(&get_position());
-	DirectX::XMVECTOR Direction = DirectX::XMVector3Normalize(DirectX::XMVectorSubtract(End, Start));
+	math::vector3f Start(start);
+	math::vector3f End(end);
+	math::vector3f SphereCenter(get_position());
+	math::vector3f Direction = (End - Start).normalized();
 
 	//	開始時の重なり
 	{
-		DirectX::XMVECTOR ToStart = DirectX::XMVectorSubtract(Start, SphereCenter);
-		float start_distance = DirectX::XMVectorGetX(DirectX::XMVector3Length(ToStart));
+		math::vector3f ToStart = Start - SphereCenter;
+		float start_distance = ToStart.length();
 		if (start_distance < get_radius() + radius)
 		{
-			DirectX::XMVECTOR Normal = (start_distance > 1e-6f) ? DirectX::XMVectorScale(ToStart, 1.0f / start_distance) : DirectX::XMVectorNegate(Direction);
-			if (DirectX::XMVectorGetX(DirectX::XMVector3Dot(Direction, Normal)) >= 0.0f)
+			math::vector3f Normal = (start_distance > 1e-6f) ? ToStart * (1.0f / start_distance) : -Direction;
+			if (math::vector3f::dot(Direction, Normal) >= 0.0f)
 				return false;
-			add_cast_hit(intersect, Start, DirectX::XMVectorAdd(SphereCenter, DirectX::XMVectorScale(Normal, get_radius())), Normal, 0.0f);
+			add_cast_hit(intersect, Start, SphereCenter + (Normal * get_radius()), Normal, 0.0f);
 			return true;
 		}
 	}
 
-	DirectX::XMVECTOR HitPosition;
+	math::vector3f HitPosition;
 	float hit_distance;
 	if (intersect_ray_vs_sphere(Start, End, SphereCenter, get_radius() + radius, HitPosition, hit_distance) && hit_distance > 0.0f)
 	{
-		DirectX::XMVECTOR Normal = DirectX::XMVector3Normalize(DirectX::XMVectorSubtract(HitPosition, SphereCenter));
-		DirectX::XMVECTOR Contact = DirectX::XMVectorSubtract(HitPosition, DirectX::XMVectorScale(Normal, radius));
+		math::vector3f Normal = (HitPosition - SphereCenter).normalized();
+		math::vector3f Contact = HitPosition - (Normal * radius);
 		add_cast_hit(intersect, HitPosition, Contact, Normal, hit_distance);
 		return true;
 	}
@@ -173,58 +183,57 @@ bool bounding_sphere::intersect_sphere_cast(const DirectX::XMFLOAT3& start, cons
 	return false;
 }
 
-bool bounding_sphere::intersect_capsule_cast(const DirectX::XMFLOAT3& start, const DirectX::XMFLOAT3& end,
-											 float radius, float length, const DirectX::XMFLOAT4& rotation,
+bool bounding_sphere::intersect_capsule_cast(const math::float3& start, const math::float3& end,
+											 float radius, float length, const math::float4& rotation,
 											 intersect_data* intersect) const
 {
-	using namespace DirectX;
 
-	XMVECTOR SphereCenter = XMLoadFloat3(&get_position());
-	XMVECTOR Start = XMLoadFloat3(&start);
-	XMVECTOR End = XMLoadFloat3(&end);
+	math::vector3f SphereCenter(get_position());
+	math::vector3f Start(start);
+	math::vector3f End(end);
 
-	XMVECTOR Velocity = XMVectorSubtract(End, Start);
-	float velocity_length = XMVectorGetX(XMVector3Length(Velocity));
+	math::vector3f Velocity = End - Start;
+	float velocity_length = Velocity.length();
 	if (velocity_length < FLT_EPSILON)
 		return false;
-	XMVECTOR VelocityNormal = XMVectorScale(Velocity, 1.0f / velocity_length);
+	math::vector3f VelocityNormal = Velocity * (1.0f / velocity_length);
 
 	//	カプセルの軸端点
-	XMVECTOR Axis = XMVector3Normalize(XMVector3Rotate(XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f), XMLoadFloat4(&rotation)));
+	math::vector3f Axis = (math::quaternionf(rotation).rotate(math::vector3f(0.0f, 1.0f, 0.0f))).normalized();
 	float half = length * 0.5f;
-	XMVECTOR Cap0 = XMVectorScale(Axis, -half);
-	XMVECTOR Cap1 = XMVectorScale(Axis, +half);
+	math::vector3f Cap0 = Axis * -half;
+	math::vector3f Cap1 = Axis * (+half);
 
 	float combined_radius = get_radius() + radius;
 
 	//	軸上の最近点
-	auto axis_point = [&](XMVECTOR Center)
+	auto axis_point = [&](math::vector3f Center)
 	{
-		float proj = XMVectorGetX(XMVector3Dot(XMVectorSubtract(SphereCenter, Center), Axis));
+		float proj = math::vector3f::dot(SphereCenter - Center, Axis);
 		proj = math::clamp(proj, -half, +half);
-		return XMVectorAdd(Center, XMVectorScale(Axis, proj));
+		return Center + (Axis * proj);
 	};
 
 	//	開始時の重なり
 	{
-		XMVECTOR AxisPoint = axis_point(Start);
-		XMVECTOR ToCaster = XMVectorSubtract(AxisPoint, SphereCenter);
-		float start_distance = XMVectorGetX(XMVector3Length(ToCaster));
+		math::vector3f AxisPoint = axis_point(Start);
+		math::vector3f ToCaster = AxisPoint - SphereCenter;
+		float start_distance = ToCaster.length();
 		if (start_distance < combined_radius)
 		{
-			XMVECTOR Normal = (start_distance > 1e-6f) ? XMVectorScale(ToCaster, 1.0f / start_distance) : XMVectorNegate(VelocityNormal);
-			if (XMVectorGetX(XMVector3Dot(VelocityNormal, Normal)) >= 0.0f)
+			math::vector3f Normal = (start_distance > 1e-6f) ? ToCaster * (1.0f / start_distance) : -VelocityNormal;
+			if (math::vector3f::dot(VelocityNormal, Normal) >= 0.0f)
 				return false;
-			add_cast_hit(intersect, Start, XMVectorAdd(SphereCenter, XMVectorScale(Normal, get_radius())), Normal, 0.0f);
+			add_cast_hit(intersect, Start, SphereCenter + (Normal * get_radius()), Normal, 0.0f);
 			return true;
 		}
 	}
 
 	//	移動カプセル基準フレームでの対象球の光線
-	XMVECTOR RayStart = XMVectorSubtract(SphereCenter, Start);
-	XMVECTOR RayEnd = XMVectorSubtract(SphereCenter, End);
+	math::vector3f RayStart = SphereCenter - Start;
+	math::vector3f RayEnd = SphereCenter - End;
 
-	XMVECTOR HitPosition;
+	math::vector3f HitPosition;
 	float hit_distance;
 	float nearest = FLT_MAX;
 
@@ -240,24 +249,24 @@ bool bounding_sphere::intersect_capsule_cast(const DirectX::XMFLOAT3& start, con
 
 	if (intersect)
 	{
-		XMVECTOR CenterWorld = XMVectorAdd(Start, XMVectorScale(VelocityNormal, nearest));
-		XMVECTOR AxisPointWorld = axis_point(CenterWorld);
+		math::vector3f CenterWorld = Start + (VelocityNormal * nearest);
+		math::vector3f AxisPointWorld = axis_point(CenterWorld);
 
 		//	対象球の外向き法線
-		XMVECTOR Direction = XMVectorSubtract(AxisPointWorld, SphereCenter);
-		if (XMVectorGetX(XMVector3LengthSq(Direction)) < FLT_EPSILON)
-			Direction = XMVectorNegate(VelocityNormal);
-		XMVECTOR Normal = XMVector3Normalize(Direction);
-		XMVECTOR ContactPoint = XMVectorAdd(SphereCenter, XMVectorScale(Normal, get_radius()));
+		math::vector3f Direction = AxisPointWorld - SphereCenter;
+		if (Direction.square_length() < FLT_EPSILON)
+			Direction = -VelocityNormal;
+		math::vector3f Normal = Direction.normalized();
+		math::vector3f ContactPoint = SphereCenter + (Normal * get_radius());
 		add_cast_hit(intersect, CenterWorld, ContactPoint, Normal, nearest);
 	}
 	return true;
 }
 
-void bounding_sphere::include_corner(DirectX::XMFLOAT3& min, DirectX::XMFLOAT3& max) const
+void bounding_sphere::include_corner(math::float3& min, math::float3& max) const
 {
-	DirectX::XMVECTOR Position = DirectX::XMLoadFloat3(&get_position());
-	DirectX::XMVECTOR Radius = DirectX::XMVectorSet(get_radius(), get_radius(), get_radius(), 0);
-	DirectX::XMStoreFloat3(&min, DirectX::XMVectorSubtract(Position, Radius));
-	DirectX::XMStoreFloat3(&max, DirectX::XMVectorAdd(Position, Radius));
+	math::vector3f Position(get_position());
+	math::vector3f Radius = math::vector3f(get_radius(), get_radius(), get_radius());
+	min = (Position - Radius).to_float3();
+	max = (Position + Radius).to_float3();
 }

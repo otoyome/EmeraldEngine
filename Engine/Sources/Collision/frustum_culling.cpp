@@ -10,7 +10,7 @@ frustum_culling::frustum_culling()
 {
 }
 
-frustum_culling::frustum_culling(const DirectX::XMFLOAT4X4& projection_matrix)
+frustum_culling::frustum_culling(const math::float4x4& projection_matrix)
 {
 	create_planes(projection_matrix);
 }
@@ -29,7 +29,7 @@ bool frustum_culling::intersection(const bounding_object* object) const
 		case bounding_object::types::mesh:
 		{
 			//	メッシュはAABBで判定
-			DirectX::XMFLOAT3 min, max;
+			math::float3 min, max;
 			object->include_corner(min, max);
 			return to_aabb(min, max);
 		}
@@ -38,7 +38,7 @@ bool frustum_culling::intersection(const bounding_object* object) const
 	return false;
 }
 
-bool frustum_culling::to_point(const DirectX::XMFLOAT3& point) const
+bool frustum_culling::to_point(const math::float3& point) const
 {
 	for (size_t index = 0; index < surface_max; ++index)
 	{
@@ -50,7 +50,7 @@ bool frustum_culling::to_point(const DirectX::XMFLOAT3& point) const
 	return true;
 }
 
-bool frustum_culling::to_sphere(const DirectX::XMFLOAT3& point, float radius) const
+bool frustum_culling::to_sphere(const math::float3& point, float radius) const
 {
 	for (size_t index = 0; index < surface_max; ++index)
 	{
@@ -70,7 +70,7 @@ bool frustum_culling::to_sphere(const bounding_sphere& sphere) const
 bool frustum_culling::to_capsule(const bounding_capsule& capsule) const
 {
 	//	ただのAABBでの判定
-	DirectX::XMFLOAT3 min, max;
+	math::float3 min, max;
 	capsule.include_corner(min, max);
 	return to_aabb(min, max);
 }
@@ -78,12 +78,12 @@ bool frustum_culling::to_capsule(const bounding_capsule& capsule) const
 bool frustum_culling::to_box(const bounding_box& box) const
 {
 	//	ただのAABBでの判定
-	DirectX::XMFLOAT3 min, max;
+	math::float3 min, max;
 	box.include_corner(min, max);
 	return to_aabb(min, max);
 }
 
-bool frustum_culling::to_aabb(const DirectX::XMFLOAT3& min, const DirectX::XMFLOAT3& max) const
+bool frustum_culling::to_aabb(const math::float3& min, const math::float3& max) const
 {
 	int r = 0;
 	for (int index = 0; index < surface_max; ++index)
@@ -141,32 +141,21 @@ bool frustum_culling::to_aabb(const DirectX::XMFLOAT3& min, const DirectX::XMFLO
 	return true;
 }
 
-void frustum_culling::create_planes(const DirectX::XMFLOAT4X4& view_projection_matrix)
+void frustum_culling::create_planes(const math::float4x4& view_projection_matrix)
 {
-	DirectX::XMFLOAT4 col0(view_projection_matrix.m[0][0], view_projection_matrix.m[1][0], view_projection_matrix.m[2][0], view_projection_matrix.m[3][0] );
-	DirectX::XMFLOAT4 col1(view_projection_matrix.m[0][1], view_projection_matrix.m[1][1], view_projection_matrix.m[2][1], view_projection_matrix.m[3][1] );
-	DirectX::XMFLOAT4 col2(view_projection_matrix.m[0][2], view_projection_matrix.m[1][2], view_projection_matrix.m[2][2], view_projection_matrix.m[3][2] );
-	DirectX::XMFLOAT4 col3(view_projection_matrix.m[0][3], view_projection_matrix.m[1][3], view_projection_matrix.m[2][3], view_projection_matrix.m[3][3] );
-	DirectX::XMVECTOR Col0 = DirectX::XMLoadFloat4(&col0);
-	DirectX::XMVECTOR Col1 = DirectX::XMLoadFloat4(&col1);
-	DirectX::XMVECTOR Col2 = DirectX::XMLoadFloat4(&col2);
-	DirectX::XMVECTOR Col3 = DirectX::XMLoadFloat4(&col3);
-	DirectX::XMFLOAT4 work;
+	const math::vector4f col0(view_projection_matrix.m[0][0], view_projection_matrix.m[1][0], view_projection_matrix.m[2][0], view_projection_matrix.m[3][0] );
+	const math::vector4f col1(view_projection_matrix.m[0][1], view_projection_matrix.m[1][1], view_projection_matrix.m[2][1], view_projection_matrix.m[3][1] );
+	const math::vector4f col2(view_projection_matrix.m[0][2], view_projection_matrix.m[1][2], view_projection_matrix.m[2][2], view_projection_matrix.m[3][2] );
+	const math::vector4f col3(view_projection_matrix.m[0][3], view_projection_matrix.m[1][3], view_projection_matrix.m[2][3], view_projection_matrix.m[3][3] );
 
-	DirectX::XMStoreFloat4(&work, DirectX::XMVectorAdd(Col3, Col0));
-	planes[surface_left].set_parameter(work);
-	DirectX::XMStoreFloat4(&work, DirectX::XMVectorSubtract(Col3, Col0));
-	planes[surface_right].set_parameter(work);
+	planes[surface_left].set_parameter((col3 + col0).to_float4());
+	planes[surface_right].set_parameter((col3 - col0).to_float4());
 
-	DirectX::XMStoreFloat4(&work, DirectX::XMVectorAdd(Col3, Col1));
-	planes[surface_bottom].set_parameter(work);
-	DirectX::XMStoreFloat4(&work, DirectX::XMVectorSubtract(Col3, Col1));
-	planes[surface_top].set_parameter(work);
+	planes[surface_bottom].set_parameter((col3 + col1).to_float4());
+	planes[surface_top].set_parameter((col3 - col1).to_float4());
 
-	DirectX::XMStoreFloat4(&work, Col2);
-	planes[surface_near].set_parameter(work);
-	DirectX::XMStoreFloat4(&work, DirectX::XMVectorSubtract(Col3, Col2));
-	planes[surface_far].set_parameter(work);
+	planes[surface_near].set_parameter(col2.to_float4());
+	planes[surface_far].set_parameter((col3 - col2).to_float4());
 
 	for (size_t index = 0; index < surface_max; ++index)
 	{
@@ -174,37 +163,36 @@ void frustum_culling::create_planes(const DirectX::XMFLOAT4X4& view_projection_m
 	}
 }
 
-void frustum_culling::create_frustum_corners(const DirectX::XMFLOAT4X4& inverse_view_projection_matrix)
+void frustum_culling::create_frustum_corners(const math::float4x4& inverse_view_projection_matrix)
 {
-	create_frustum_corners(DirectX::XMLoadFloat4x4(&inverse_view_projection_matrix));
+	create_frustum_corners(math::matrixf(inverse_view_projection_matrix));
 }
 
-void frustum_culling::create_frustum_corners(const DirectX::XMMATRIX & inverse_view_projection_matrix)
+void frustum_culling::create_frustum_corners(const math::matrixf& inverse_view_projection_matrix)
 {
-	const DirectX::XMVECTOR base_corners[] =
+	const math::vector4f base_corners[] =
 	{
-		DirectX::XMVectorSet(-1, -1, 0, 1),
-		DirectX::XMVectorSet( 1, -1, 0, 1),
-		DirectX::XMVectorSet( 1,  1, 0, 1),
-		DirectX::XMVectorSet(-1,  1, 0, 1),
-		DirectX::XMVectorSet(-1, -1,  1, 1),
-		DirectX::XMVectorSet( 1, -1,  1, 1),
-		DirectX::XMVectorSet( 1,  1,  1, 1),
-		DirectX::XMVectorSet(-1,  1,  1, 1)
+		math::vector4f(-1, -1, 0, 1),
+		math::vector4f( 1, -1, 0, 1),
+		math::vector4f( 1,  1, 0, 1),
+		math::vector4f(-1,  1, 0, 1),
+		math::vector4f(-1, -1,  1, 1),
+		math::vector4f( 1, -1,  1, 1),
+		math::vector4f( 1,  1,  1, 1),
+		math::vector4f(-1,  1,  1, 1)
 	};
 	
 	for (int index = 0; index < 8; ++index)
 	{
-		DirectX::XMVECTOR Point;
-		Point = DirectX::XMVector4Transform(base_corners[index], inverse_view_projection_matrix);
-		float w = DirectX::XMVectorGetW(Point);
+		const math::vector4f point = math::vector4f::transform(base_corners[index], inverse_view_projection_matrix);
+		float w = point.w;
 		//	無限遠の頂点は使用しない
 		if (fabsf(w) <= 1e-6f)
 		{
 			has_corners = false;
 			return;
 		}
-		DirectX::XMStoreFloat4(&corners[index], DirectX::XMVectorScale(Point, 1.0f / w));
+		corners[index] = (point * (1.0f / w)).to_float4();
 	}
 	has_corners = true;
 }

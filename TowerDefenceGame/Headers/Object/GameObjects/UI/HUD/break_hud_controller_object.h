@@ -50,8 +50,8 @@ private:
 	float animation_time;
 	float animation_max_time;
 
-	DirectX::XMFLOAT4 original_color[magic_enum::enum_count<ui_ids>()];
-	DirectX::XMFLOAT4 original_main_rect;
+	math::float4 original_color[magic_enum::enum_count<ui_ids>()];
+	math::float4 original_main_rect;
 	fade::directions direction;
 	fade::states fade_state;
 	float fade_animation_time;

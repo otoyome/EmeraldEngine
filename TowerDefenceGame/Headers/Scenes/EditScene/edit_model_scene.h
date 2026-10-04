@@ -93,7 +93,7 @@ private:
 	int generate_lod_level = 4;
 
 	//	メッシュ結合のグリッド分割数（軸ごと）。{1,1,1} で全結合
-	DirectX::XMINT3 combine_grid_divisions = { 1, 1, 1 };
+	math::int3 combine_grid_divisions = { 1, 1, 1 };
 
 	//	結合前の meshes / nodes 退避
 	std::vector<model_resource::mesh> combine_backup_meshes;
@@ -165,10 +165,10 @@ private:	//	頂点カラー編集系
 	struct brush_data
 	{
 		bool on = false;							//	処理
-		DirectX::XMFLOAT3 position;					//	座標
+		math::float3 position;					//	座標
 		float radius = 0.1f;						//	範囲
-		DirectX::XMFLOAT4 color{1, 1, 1, 0.5f};		//	色
-		DirectX::XMINT4 color_flags{1, 1, 1, 1};	//	色適応フラグ
+		math::float4 color{1, 1, 1, 0.5f};		//	色
+		math::int4 color_flags{1, 1, 1, 1};	//	色適応フラグ
 	};
 	brush_data brush_data;
 

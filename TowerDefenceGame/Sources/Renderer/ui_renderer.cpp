@@ -76,7 +76,7 @@ ui_renderer::ui_renderer(render_job_registrar job_executor, std::shared_ptr<scen
 	//	定数バッファ生成
 	{
 		D3D11_BUFFER_DESC buffer_desc{};
-		buffer_desc.ByteWidth = sizeof(DirectX::XMFLOAT4X4);
+		buffer_desc.ByteWidth = sizeof(math::float4x4);
 		buffer_desc.Usage = D3D11_USAGE_DEFAULT;
 		buffer_desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 		buffer_desc.CPUAccessFlags = 0;
@@ -122,9 +122,9 @@ void ui_renderer::render(renderer_context& context)
 			hr = context.device_context->Map(index_buffer_view.buffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_indices);
 			_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
 
-			DirectX::XMFLOAT3* positions = static_cast<DirectX::XMFLOAT3*>(mapped_vertices[format_id::position].pData);
-			DirectX::XMFLOAT4* colors = static_cast<DirectX::XMFLOAT4*>(mapped_vertices[format_id::color_0].pData);
-			DirectX::XMFLOAT2* texcoords = static_cast<DirectX::XMFLOAT2*>(mapped_vertices[format_id::texcoord_0].pData);
+			math::float3* positions = static_cast<math::float3*>(mapped_vertices[format_id::position].pData);
+			math::float4* colors = static_cast<math::float4*>(mapped_vertices[format_id::color_0].pData);
+			math::float2* texcoords = static_cast<math::float2*>(mapped_vertices[format_id::texcoord_0].pData);
 			UINT* indices = static_cast<UINT*>(mapped_indices.pData);
 
 			//	各セマンティックのバッファ/フォーマット/ストライドはフレーム内で共通
@@ -155,12 +155,12 @@ void ui_renderer::render(renderer_context& context)
 				vertex_size += static_cast<UINT>(sprite->get_positions().size());
 				assert(vertex_size < vertex_max);
 				{
-					memcpy_s(positions + vertex_offset, sizeof(DirectX::XMFLOAT3) * (vertex_max - vertex_offset),
-								sprite->get_positions().data(), sizeof(DirectX::XMFLOAT3) * (vertex_size - vertex_offset));
-					memcpy_s(colors + vertex_offset, sizeof(DirectX::XMFLOAT4) * (vertex_max - vertex_offset),
-								sprite->get_colors().data(), sizeof(DirectX::XMFLOAT4) * (vertex_size - vertex_offset));
-					memcpy_s(texcoords + vertex_offset, sizeof(DirectX::XMFLOAT2) * (vertex_max - vertex_offset),
-								sprite->get_texcoords().data(), sizeof(DirectX::XMFLOAT2) * (vertex_size - vertex_offset));
+					memcpy_s(positions + vertex_offset, sizeof(math::float3) * (vertex_max - vertex_offset),
+								sprite->get_positions().data(), sizeof(math::float3) * (vertex_size - vertex_offset));
+					memcpy_s(colors + vertex_offset, sizeof(math::float4) * (vertex_max - vertex_offset),
+								sprite->get_colors().data(), sizeof(math::float4) * (vertex_size - vertex_offset));
+					memcpy_s(texcoords + vertex_offset, sizeof(math::float2) * (vertex_max - vertex_offset),
+								sprite->get_texcoords().data(), sizeof(math::float2) * (vertex_size - vertex_offset));
 				}
 				//	インデックス情報書き込み
 				size_t index_offset = index_size;
@@ -242,7 +242,7 @@ void ui_renderer::sprite_render(graphics_context& context, const std::vector<spr
 		}
 
 		//	プリミティブ定数バッファ更新
-		DirectX::XMFLOAT4X4 transform_matrix = sprite->get_transform_matrix();
+		math::float4x4 transform_matrix = sprite->get_transform_matrix();
 		context.device_context->UpdateSubresource(primitive_constant_buffer.Get(), 0, nullptr, &transform_matrix, 0, 0);
 
 		buffer_datas buffer_data{};

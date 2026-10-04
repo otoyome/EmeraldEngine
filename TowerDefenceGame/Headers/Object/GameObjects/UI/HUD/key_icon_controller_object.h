@@ -37,7 +37,7 @@ public:
 
 private:
 	std::shared_ptr<ui_image> icon;
-	DirectX::XMFLOAT4 origin_color;
+	math::float4 origin_color;
 };
 
 //	キーインジケータ―オブジェクト

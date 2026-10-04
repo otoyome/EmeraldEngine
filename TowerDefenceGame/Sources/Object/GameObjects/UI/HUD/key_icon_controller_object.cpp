@@ -29,7 +29,7 @@ void key_icon_object::set_alpha(float alpha)
 {
 	if (icon)
 	{
-		DirectX::XMFLOAT4 color = origin_color;
+		math::float4 color = origin_color;
 		color.w *= alpha;
 		icon->set_color(color);
 	}

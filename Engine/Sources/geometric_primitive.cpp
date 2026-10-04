@@ -26,8 +26,8 @@ geometric_primitive::geometric_primitive(ID3D11Device* device)
 }
 
 void geometric_primitive::create_com_buffers(ID3D11Device* device,
-	DirectX::XMFLOAT3* positions,
-	DirectX::XMFLOAT2* texcoords,
+	math::float3* positions,
+	math::float2* texcoords,
 	size_t vertex_count,
 	uint32_t* indices,
 	size_t index_count)
@@ -82,8 +82,8 @@ void geometric_primitive::create_com_buffers(ID3D11Device* device,
 geometric_plane::geometric_plane(ID3D11Device* device, bool x_flip) : geometric_primitive(device)
 {
 	// create a mesh for a cube
-	DirectX::XMFLOAT3 positions[4];
-	DirectX::XMFLOAT2 texcoords[4];
+	math::float3 positions[4];
+	math::float2 texcoords[4];
 	uint32_t indices[6]{};
 	if (x_flip)
 	{
@@ -121,8 +121,8 @@ geometric_plane::geometric_plane(ID3D11Device* device, bool x_flip) : geometric_
 geometric_cube::geometric_cube(ID3D11Device* device) : geometric_primitive(device)
 {
 	// create a mesh for a cube
-	DirectX::XMFLOAT3 positions[24];
-	DirectX::XMFLOAT2 texcoords[24];
+	math::float3 positions[24];
+	math::float2 texcoords[24];
 	uint32_t indices[36]{};
 
 	uint32_t face{ 0 };
@@ -234,8 +234,8 @@ geometric_cube::geometric_cube(ID3D11Device* device) : geometric_primitive(devic
 
 geometric_sphere::geometric_sphere(ID3D11Device* device, uint32_t slices, uint32_t stacks) : geometric_primitive(device)
 {
-	std::vector<DirectX::XMFLOAT3> positions;
-	std::vector<DirectX::XMFLOAT2> texcoords;
+	std::vector<math::float3> positions;
+	std::vector<math::float2> texcoords;
 	std::vector<uint32_t> indices;
 
 	float r{ 0.5f };
@@ -258,8 +258,8 @@ geometric_sphere::geometric_sphere(ID3D11Device* device, uint32_t slices, uint32
 	positions.emplace_back(top_vertex.position);
 	texcoords.emplace_back(top_vertex.texcoord);
 
-	float phi_step{ DirectX::XM_PI / stacks };
-	float theta_step{ 2.0f * DirectX::XM_PI / slices };
+	float phi_step{ math::constants<float>::pi / stacks };
+	float theta_step{ 2.0f * math::constants<float>::pi / slices };
 
 	// Compute vertices for each stack ring (do not count the poles as rings).
 	for (uint32_t i = 1; i <= stacks - 1; ++i)
@@ -278,8 +278,8 @@ geometric_sphere::geometric_sphere(ID3D11Device* device, uint32_t slices, uint32
 			v.position.y = r * cosf(phi);
 			v.position.z = r * sinf(phi) * sinf(theta);
 
-			v.texcoord.x = theta / DirectX::XM_2PI;
-			v.texcoord.y = phi / DirectX::XM_PI;
+			v.texcoord.x = theta / math::constants<float>::pi2;
+			v.texcoord.y = phi / math::constants<float>::pi;
 
 			positions.emplace_back(v.position);
 			texcoords.emplace_back(v.texcoord);

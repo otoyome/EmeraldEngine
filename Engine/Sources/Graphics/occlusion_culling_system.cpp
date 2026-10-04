@@ -6,20 +6,20 @@ namespace
 {
 	struct instance_aabb_cpu
 	{
-		DirectX::XMFLOAT3 bmin;
+		math::float3 bmin;
 		float testable;	//	1:îªíËëŒè€ 0:èÌÇ…â¬éã
-		DirectX::XMFLOAT3 bmax;
+		math::float3 bmax;
 		float dummy;
 	};
 
 	struct cull_constants
 	{
-		DirectX::XMFLOAT4X4 view_projection;
+		math::float4x4 view_projection;
 		UINT instance_count;
 		UINT hiz_mip_count;
-		DirectX::XMFLOAT2 hiz_size;
+		math::float2 hiz_size;
 		float depth_bias;
-		DirectX::XMFLOAT2 clip_near_far;
+		math::float2 clip_near_far;
 		float dummy;
 	};
 	std::shared_ptr<compute_shader> load_cs(std::string_view path)
@@ -158,7 +158,7 @@ void occlusion_culling_system::update(graphics_context& context, float animation
 	}
 	generate_instance_buffers(count);
 
-	DirectX::XMFLOAT4X4 view_projection = context.scene_constant.view_projection_transform;
+	math::float4x4 view_projection = context.scene_constant.view_projection_transform;
 
 	auto dc = context.device_context;
 
@@ -176,7 +176,7 @@ void occlusion_culling_system::update(graphics_context& context, float animation
 		constant.view_projection = view_projection;
 		constant.instance_count = count;
 		constant.hiz_mip_count = hiz.get_mip_count();
-		constant.hiz_size = DirectX::XMFLOAT2(static_cast<float>(hiz_size.x), static_cast<float>(hiz_size.y));
+		constant.hiz_size = math::float2(static_cast<float>(hiz_size.x), static_cast<float>(hiz_size.y));
 		constant.clip_near_far = { context.scene_constant.camera_clip_distance.x, context.scene_constant.camera_clip_distance.y };
 		constant.depth_bias = 5.0f;
 		dc->UpdateSubresource(cull_constant_buffer.Get(), 0, nullptr, &constant, 0, 0);

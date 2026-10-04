@@ -2,45 +2,43 @@
 
 namespace
 {
-	DirectX::XMVECTOR clamp_twist(DirectX::XMVECTOR Twist,
-								  DirectX::XMVECTOR TwistAxis,
+	math::quaternionf clamp_twist(const math::quaternionf& Twist,
+								  const math::vector3f& TwistAxis,
 								  float min_angle,
 								  float max_angle)
 	{
 		//	軸回転抽出
-		DirectX::XMFLOAT4 twist;
-		DirectX::XMStoreFloat4(&twist, Twist);
+		const math::float4 twist = Twist.to_float4();
 
 		//	対数クォータニオンに変換
-		const math::exponential_quaternionf log_twist(system_utility::to_math_quaternion(twist));
-		DirectX::XMFLOAT3 log_quaternion(log_twist.x, log_twist.y, log_twist.z);
-		DirectX::XMVECTOR LogQuaternion = DirectX::XMLoadFloat3(&log_quaternion);
+		const math::exponential_quaternionf log_twist{ math::quaternionf(twist) };
+		math::float3 log_quaternion(log_twist.x, log_twist.y, log_twist.z);
+		math::vector3f LogQuaternion(log_quaternion);
 
 		//	twist 成分だけを抽出
-		DirectX::XMVECTOR Axis = DirectX::XMVector3Normalize(TwistAxis);
-		float projection = DirectX::XMVectorGetX(DirectX::XMVector3Dot(LogQuaternion, Axis));
+		math::vector3f Axis = TwistAxis.normalized();
+		float projection = math::vector3f::dot(LogQuaternion, Axis);
 		float angle = math::angle::normalize(projection);
 		angle = std::min(std::max(angle, min_angle), max_angle);
 
 		//	クォータニオンに変換
-		DirectX::XMFLOAT3 new_log_quaternion;
-		DirectX::XMStoreFloat3(&new_log_quaternion, DirectX::XMVectorScale(Axis, angle));
-		DirectX::XMFLOAT4 new_quaternion = system_utility::to_xmfloat(math::exponential_quaternionf(new_log_quaternion.x, new_log_quaternion.y, new_log_quaternion.z).to_quaternion());
-		return DirectX::XMLoadFloat4(&new_quaternion);
+		math::float3 new_log_quaternion;
+		new_log_quaternion = (Axis * angle).to_float3();
+		return math::exponential_quaternionf(new_log_quaternion.x, new_log_quaternion.y, new_log_quaternion.z).to_quaternion();
 	}
 
-	DirectX::XMVECTOR clamp_swing(DirectX::XMVECTOR Swing, float max_angle)
+	math::quaternionf clamp_swing(const math::quaternionf& Swing, float max_angle)
 	{
-		DirectX::XMVECTOR Axis;
+		math::vector3f Axis;
 		float angle;
-		DirectX::XMQuaternionToAxisAngle(&Axis, &angle, Swing);
+		Swing.axis_angle(Axis, angle);
 		if (angle <= max_angle)
 			return Swing;
 
-		return DirectX::XMQuaternionNormalize(DirectX::XMQuaternionRotationAxis(Axis, max_angle));
+		return math::quaternionf::rotation_axis(Axis, max_angle).normalized();
 	}
 
-	bool restrict_rotation(DirectX::XMFLOAT4& rotation, float* min, float* max)
+	bool restrict_rotation(math::float4& rotation, float* min, float* max)
 	{
 		bool lock = false;
 		float* rot = &rotation.x;
@@ -63,20 +61,20 @@ namespace
 	float difference_angle(float a, float b)
 	{
 		float diff = math::angle::normalize_positive(a) - math::angle::normalize_positive(b);
-		if (diff > DirectX::XM_PI)
+		if (diff > math::constants<float>::pi)
 		{
-			return diff - DirectX::XM_2PI;
+			return diff - math::constants<float>::pi2;
 		}
-		else if (diff < -DirectX::XM_PI)
+		else if (diff < -math::constants<float>::pi)
 		{
-			return diff + DirectX::XM_2PI;
+			return diff + math::constants<float>::pi2;
 		}
 		return diff;
 	}
-	DirectX::XMFLOAT3 decompose(const DirectX::XMMATRIX& m, const DirectX::XMFLOAT3& before)
+	math::float3 decompose(const math::matrixf& m, const math::float3& before)
 	{
-		DirectX::XMFLOAT3 r;
-		float sy = -m.r[0].m128_f32[2];
+		math::float3 r;
+		float sy = -m.storage[0][2];
 		const float e = 1.0e-6f;
 
 		if ((1.0f - std::abs(sy)) < e)
@@ -90,12 +88,12 @@ namespace
 				if (cx > 0)
 				{
 					r.x = 0;
-					r.z = std::asin(-m.r[1].m128_f32[0]);
+					r.z = std::asin(-m.storage[1][0]);
 				}
 				else
 				{
-					r.x = DirectX::XM_PI;
-					r.z = std::asin(m.r[1].m128_f32[0]);
+					r.x = math::constants<float>::pi;
+					r.z = std::asin(m.storage[1][0]);
 				}
 			}
 			else
@@ -104,24 +102,24 @@ namespace
 				if (cz > 0)
 				{
 					r.z = 0;
-					r.x = std::asin(-m.r[2].m128_f32[1]);
+					r.x = std::asin(-m.storage[2][1]);
 				}
 				else
 				{
-					r.z = DirectX::XM_PI;
-					r.x = std::asin(m.r[2].m128_f32[1]);
+					r.z = math::constants<float>::pi;
+					r.x = std::asin(m.storage[2][1]);
 				}
 			}
 		}
 		else
 		{
-			r.x = std::atan2(m.r[1].m128_f32[2], m.r[2].m128_f32[2]);
-			r.y = std::asin(-m.r[0].m128_f32[2]);
-			r.z = std::atan2(m.r[0].m128_f32[1], m.r[0].m128_f32[0]);
+			r.x = std::atan2(m.storage[1][2], m.storage[2][2]);
+			r.y = std::asin(-m.storage[0][2]);
+			r.z = std::atan2(m.storage[0][1], m.storage[0][0]);
 		}
 
-		const float pi = DirectX::XM_PI;
-		DirectX::XMFLOAT3 tests[] =
+		const float pi = math::constants<float>::pi;
+		math::float3 tests[] =
 		{
 			{ r.x + pi, pi - r.y, r.z + pi },
 			{ r.x + pi, pi - r.y, r.z - pi },
@@ -150,30 +148,30 @@ namespace
 		}
 		return r;
 	}
-	DirectX::XMFLOAT3 decompose(const DirectX::XMVECTOR& q, const DirectX::XMFLOAT3& before)
+	math::float3 decompose(const math::quaternionf& q, const math::float3& before)
 	{
-		return decompose(DirectX::XMMatrixRotationQuaternion(q), before);
+		return decompose(math::matrixf::rotation_quaternion(q), before);
 	}
 
-	DirectX::XMFLOAT3 subtract_angle(const DirectX::XMFLOAT3& current_angle, const DirectX::XMFLOAT3& prev_angle)
+	math::float3 subtract_angle(const math::float3& current_angle, const math::float3& prev_angle)
 	{
-		DirectX::XMFLOAT3 angle;
+		math::float3 angle;
 		angle.x = math::angle::normalize_positive(current_angle.x - prev_angle.x);
 		angle.y = math::angle::normalize_positive(current_angle.y - prev_angle.y);
 		angle.z = math::angle::normalize_positive(current_angle.z - prev_angle.z);
 		return	angle;
 	}
-	DirectX::XMFLOAT3 additional_angle(const DirectX::XMFLOAT3& current_angle, const DirectX::XMFLOAT3& prev_angle)
+	math::float3 additional_angle(const math::float3& current_angle, const math::float3& prev_angle)
 	{
-		DirectX::XMFLOAT3 angle;
+		math::float3 angle;
 		angle.x = math::angle::normalize_positive(current_angle.x + prev_angle.x);
 		angle.y = math::angle::normalize_positive(current_angle.y + prev_angle.y);
 		angle.z = math::angle::normalize_positive(current_angle.z + prev_angle.z);
 		return	angle;
 	}
-	DirectX::XMFLOAT3 clamp_angle(const DirectX::XMFLOAT3& current_angle, const DirectX::XMFLOAT3& min, const DirectX::XMFLOAT3& max)
+	math::float3 clamp_angle(const math::float3& current_angle, const math::float3& min, const math::float3& max)
 	{
-		DirectX::XMFLOAT3 angle;
+		math::float3 angle;
 		angle.x = std::clamp(current_angle.x, min.x, max.x);
 		angle.y = std::clamp(current_angle.y, min.y, max.y);
 		angle.z = std::clamp(current_angle.z, min.z, max.z);
@@ -211,7 +209,7 @@ size_t ik_solver::search_index_by_name(std::string_view data_name)
 	return resource->search_index_by_name(data_name);
 }
 
-void ik_solver::solve(size_t index, DirectX::XMFLOAT3 ik_target_position)
+void ik_solver::solve(size_t index, math::float3 ik_target_position)
 {
 	if (index >= solve_datas.size())
 		return;
@@ -244,7 +242,7 @@ void ik_solver::solve(size_t index, DirectX::XMFLOAT3 ik_target_position)
 	//	過去の計算結果と補間
 	{
 		auto& instance_node_list = instance->get_nodes();
-		auto WorldTramsform = DirectX::XMLoadFloat4x4(&instance->get_world_transform());
+		auto WorldTramsform = math::matrixf(instance->get_world_transform());
 
 		for (size_t link_node_index : solve_data.node_list)
 		{
@@ -255,20 +253,21 @@ void ik_solver::solve(size_t index, DirectX::XMFLOAT3 ik_target_position)
 			auto& link_node = instance_node_list[link_data.source_node_index];
 
 			//	適応
-			DirectX::XMVECTOR S, R, T;
-			DirectX::XMMATRIX LocalTransform = DirectX::XMLoadFloat4x4(&link_node.local_transform);
-			DirectX::XMMatrixDecompose(&S, &R, &T, LocalTransform);
+			math::vector3f S, T;
+			math::quaternionf R;
+			math::matrixf LocalTransform(link_node.local_transform);
+			LocalTransform.decompose(S, R, T);
 
 			//	安定化させるために過去の計算結果を利用
 			if (!link_data.reset_previous_rotation)
 			{
-				DirectX::XMVECTOR PreviousRotation = DirectX::XMLoadFloat4(&link_data.previous_rotation);
-				R = DirectX::XMQuaternionSlerp(PreviousRotation, R, link_data.smoothness);
+				math::quaternionf PreviousRotation(link_data.previous_rotation);
+				R = math::slerp(PreviousRotation, R, link_data.smoothness);
 			}
 			link_data.reset_previous_rotation = false;
-			DirectX::XMStoreFloat4(&link_data.previous_rotation, R);
-			LocalTransform = DirectX::XMMatrixAffineTransformation(S, DirectX::XMVectorZero(), R, T);
-			DirectX::XMStoreFloat4x4(&link_node.local_transform, LocalTransform);
+			link_data.previous_rotation = R.to_float4();
+			LocalTransform = math::matrixf::transform(S, R, T);
+			link_node.local_transform = LocalTransform.to_float4x4();
 		}
 
 		//	グローバル行列再計算
@@ -276,7 +275,7 @@ void ik_solver::solve(size_t index, DirectX::XMFLOAT3 ik_target_position)
 	}
 }
 
-void ik_solver::solves(std::vector<DirectX::XMFLOAT3> ik_target_positions)
+void ik_solver::solves(std::vector<math::float3> ik_target_positions)
 {
 	for (size_t index = 0; index < solve_datas.size(); ++index)
 	{
@@ -285,7 +284,7 @@ void ik_solver::solves(std::vector<DirectX::XMFLOAT3> ik_target_positions)
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
-void ik_solver::solve_aim(solve_data& solve_data, DirectX::XMFLOAT3 ik_target_position)
+void ik_solver::solve_aim(solve_data& solve_data, math::float3 ik_target_position)
 {
 	auto& instance_node_list = instance->get_nodes();
 	auto& model_resource_node_list = instance->get_resource()->get_nodes();
@@ -296,32 +295,33 @@ void ik_solver::solve_aim(solve_data& solve_data, DirectX::XMFLOAT3 ik_target_po
 	auto& link_data = nodes[solve_data.node_list[0]];
 	auto& aim_node = instance_node_list[link_data.source_node_index];
 
-	auto AimAxis = DirectX::XMLoadFloat3(&solve_data.aim_axis);
-	auto AimOffset = DirectX::XMLoadFloat3(&solve_data.aim_offset);
+	auto AimAxis = math::vector3f(solve_data.aim_axis);
+	auto AimOffset = math::vector3f(solve_data.aim_offset);
 
-	auto IKTargetPosition = DirectX::XMLoadFloat3(&ik_target_position);
-	auto WorldTramsform = DirectX::XMLoadFloat4x4(&instance->get_world_transform());
-	auto InverseWorldTramsform = DirectX::XMMatrixInverse(nullptr, WorldTramsform);
-	IKTargetPosition = DirectX::XMVector3TransformCoord(IKTargetPosition, InverseWorldTramsform);
+	auto IKTargetPosition = math::vector3f(ik_target_position);
+	auto WorldTramsform = math::matrixf(instance->get_world_transform());
+	auto InverseWorldTramsform = WorldTramsform.inverted();
+	IKTargetPosition = math::vector3f::transform_coord(IKTargetPosition, InverseWorldTramsform);
 	instance->update_transform(WorldTramsform);
 
-	auto InverseAimGlobalTransform = DirectX::XMMatrixInverse(nullptr, DirectX::XMLoadFloat4x4(&aim_node.global_transform));
-	IKTargetPosition = DirectX::XMVector3TransformCoord(IKTargetPosition, InverseAimGlobalTransform);
+	auto InverseAimGlobalTransform = math::matrixf(aim_node.global_transform).inverted();
+	IKTargetPosition = math::vector3f::transform_coord(IKTargetPosition, InverseAimGlobalTransform);
 
-	IKTargetPosition = DirectX::XMVectorAdd(IKTargetPosition, AimOffset);
+	IKTargetPosition = IKTargetPosition + AimOffset;
 
-	if (DirectX::XMVectorGetX(DirectX::XMVector3Dot(IKTargetPosition, IKTargetPosition)) <= 1e-6f)
+	if (math::vector3f::dot(IKTargetPosition, IKTargetPosition) <= 1e-6f)
 		return;
 
-	auto IKTargetDirection = DirectX::XMVector3Normalize(IKTargetPosition);
-	auto RotationAngle = acosf(DirectX::XMVectorGetX(DirectX::XMVector3Dot(AimAxis, IKTargetDirection)));
-	auto RotationAxis = DirectX::XMVector3Cross(AimAxis, IKTargetDirection);
-	auto AdjustQuaternion = DirectX::XMQuaternionRotationAxis(RotationAxis, RotationAngle);
+	auto IKTargetDirection = IKTargetPosition.normalized();
+	auto RotationAngle = acosf(math::vector3f::dot(AimAxis, IKTargetDirection));
+	auto RotationAxis = math::vector3f::cross(AimAxis, IKTargetDirection);
+	auto AdjustQuaternion = math::quaternionf::rotation_axis(RotationAxis, RotationAngle);
 
-	DirectX::XMVECTOR S, R, T;
-	auto LocalTransform = DirectX::XMLoadFloat4x4(&aim_node.local_transform);
-	DirectX::XMMatrixDecompose(&S, &R, &T, LocalTransform);
-	auto NewLocalRotation = DirectX::XMQuaternionMultiply(AdjustQuaternion, R);
+	math::vector3f S, T;
+	math::quaternionf R;
+	auto LocalTransform = math::matrixf(aim_node.local_transform);
+	LocalTransform.decompose(S, R, T);
+	auto NewLocalRotation = AdjustQuaternion * R;
 
 	//	角度制限
 	if (link_data.mode != constraint_mode::free)
@@ -332,18 +332,18 @@ void ik_solver::solve_aim(solve_data& solve_data, DirectX::XMFLOAT3 ik_target_po
 		{
 			auto& model_resource_node_list = instance->get_resource()->get_nodes();
 			auto& resource_node = model_resource_node_list[link_data.source_node_index];
-			DirectX::XMFLOAT3 pole_axis = {0, 0, 0};
+			math::float3 pole_axis = {0, 0, 0};
 			switch (link_data.use_axis)
 			{
-				case axis::x:			pole_axis = system_utility::to_xmfloat(system_utility::to_math_quaternion(resource_node.rotation).right());	break;
-				case axis::reverse_x:	pole_axis = system_utility::to_xmfloat(system_utility::to_math_quaternion(resource_node.rotation).right());	break;
-				case axis::y:			pole_axis = system_utility::to_xmfloat(system_utility::to_math_quaternion(resource_node.rotation).up());		break;
-				case axis::reverse_y:	pole_axis = system_utility::to_xmfloat(system_utility::to_math_quaternion(resource_node.rotation).up());		break;
-				case axis::z:			pole_axis = system_utility::to_xmfloat(system_utility::to_math_quaternion(resource_node.rotation).front());	break;
-				case axis::reverse_z:	pole_axis = system_utility::to_xmfloat(system_utility::to_math_quaternion(resource_node.rotation).front());	break;
+				case axis::x:			pole_axis = math::quaternionf(resource_node.rotation).right().to_float3();	break;
+				case axis::reverse_x:	pole_axis = math::quaternionf(resource_node.rotation).right().to_float3();	break;
+				case axis::y:			pole_axis = math::quaternionf(resource_node.rotation).up().to_float3();		break;
+				case axis::reverse_y:	pole_axis = math::quaternionf(resource_node.rotation).up().to_float3();		break;
+				case axis::z:			pole_axis = math::quaternionf(resource_node.rotation).front().to_float3();	break;
+				case axis::reverse_z:	pole_axis = math::quaternionf(resource_node.rotation).front().to_float3();	break;
 			}
-			DirectX::XMVECTOR PoleAxis = DirectX::XMLoadFloat3(&pole_axis);
-			return DirectX::XMVector3Normalize(DirectX::XMVectorScale(PoleAxis, reverse_flag ? -1.0f : +1.0f));
+			math::vector3f PoleAxis(pole_axis);
+			return (PoleAxis * (reverse_flag ? -1.0f : +1.0f)).normalized();
 		};
 
 		switch (link_data.mode)
@@ -353,8 +353,8 @@ void ik_solver::solve_aim(solve_data& solve_data, DirectX::XMFLOAT3 ik_target_po
 				float min_hinge = link_data.limit_angles[0];
 				float max_hinge = link_data.limit_angles[1];
 
-				DirectX::XMVECTOR HingeAxis = get_rotation_axis();
-				DirectX::XMVECTOR Twist = system_utility::to_xmvector(system_utility::to_math_quaternion(NewLocalRotation).twist(system_utility::to_math_vector3(HingeAxis)));
+				const math::vector3f HingeAxis = get_rotation_axis();
+				const math::quaternionf Twist = NewLocalRotation.twist(HingeAxis);
 				NewLocalRotation = clamp_twist(Twist, HingeAxis, min_hinge, max_hinge);
 				break;
 			}
@@ -364,40 +364,37 @@ void ik_solver::solve_aim(solve_data& solve_data, DirectX::XMFLOAT3 ik_target_po
 				float max_twist = link_data.limit_angles[1];
 				float max_swing = link_data.limit_angles[2];
 
-				DirectX::XMVECTOR TwistAxis = get_rotation_axis();
-				DirectX::XMVECTOR Twist, Swing;
-				math::quaternionf twist, swing;
-				system_utility::to_math_quaternion(NewLocalRotation).decompose_twist_swing(system_utility::to_math_vector3(TwistAxis), twist, swing);
-				Twist = system_utility::to_xmvector(twist);
-				Swing = system_utility::to_xmvector(swing);
+				const math::vector3f TwistAxis = get_rotation_axis();
+				math::quaternionf Twist, Swing;
+				NewLocalRotation.decompose_twist_swing(TwistAxis, Twist, Swing);
 				Twist = clamp_twist(Twist, TwistAxis, min_twist, max_twist);
 				Swing = clamp_swing(Swing, max_swing);
-				NewLocalRotation = DirectX::XMQuaternionNormalize(DirectX::XMQuaternionMultiply(Swing, Twist));
+				NewLocalRotation = (Swing * Twist).normalized();
 				break;
 			}
 			case constraint_mode::euler:
 			{
 				//	オイラー角による拘束
-				DirectX::XMFLOAT4 limit_rotation;
-				DirectX::XMStoreFloat4(&limit_rotation, NewLocalRotation);
-				auto euler = math::rotatorf(system_utility::to_math_quaternion(limit_rotation));
+				math::float4 limit_rotation;
+				limit_rotation = NewLocalRotation.to_float4();
+				auto euler = math::rotatorf(math::quaternionf(limit_rotation));
 				euler.x = math::clamp(euler.x, link_data.limit_angles[0], link_data.limit_angles[3]);
 				euler.y = math::clamp(euler.y, link_data.limit_angles[1], link_data.limit_angles[4]);
 				euler.z = math::clamp(euler.z, link_data.limit_angles[2], link_data.limit_angles[5]);
-				NewLocalRotation = DirectX::XMQuaternionRotationRollPitchYaw(euler.x, euler.y, euler.z);
-				NewLocalRotation = DirectX::XMQuaternionNormalize(NewLocalRotation);
+				NewLocalRotation = math::quaternionf::rotation_xyz(euler.x, euler.y, euler.z);
+				NewLocalRotation = NewLocalRotation.normalized();
 				break;
 			}
 		}
 	}
 
-	LocalTransform = DirectX::XMMatrixAffineTransformation(S, DirectX::XMVectorZero(), NewLocalRotation, T);
-	DirectX::XMStoreFloat4x4(&aim_node.local_transform, LocalTransform);
+	LocalTransform = math::matrixf::transform(S, NewLocalRotation, T);
+	aim_node.local_transform = LocalTransform.to_float4x4();
 	instance->update_transform(WorldTramsform);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
-void ik_solver::solve_limb(solve_data& solve_data, DirectX::XMFLOAT3 ik_target_position)
+void ik_solver::solve_limb(solve_data& solve_data, math::float3 ik_target_position)
 {
 	auto& instance_node_list = instance->get_nodes();
 
@@ -405,10 +402,10 @@ void ik_solver::solve_limb(solve_data& solve_data, DirectX::XMFLOAT3 ik_target_p
 		 solve_data.target_node_index == -1)
 		return;
 
-	auto IKTargetPosition = DirectX::XMLoadFloat3(&ik_target_position);
-	auto WorldTramsform = DirectX::XMLoadFloat4x4(&instance->get_world_transform());
-	auto InverseWorldTramsform = DirectX::XMMatrixInverse(nullptr, WorldTramsform);
-	IKTargetPosition = DirectX::XMVector3TransformCoord(IKTargetPosition, InverseWorldTramsform);
+	auto IKTargetPosition = math::vector3f(ik_target_position);
+	auto WorldTramsform = math::matrixf(instance->get_world_transform());
+	auto InverseWorldTramsform = WorldTramsform.inverted();
+	IKTargetPosition = math::vector3f::transform_coord(IKTargetPosition, InverseWorldTramsform);
 	instance->update_transform(WorldTramsform);
 
 	auto& root_node = instance_node_list[nodes[solve_data.node_list[0]].source_node_index];
@@ -416,55 +413,56 @@ void ik_solver::solve_limb(solve_data& solve_data, DirectX::XMFLOAT3 ik_target_p
 	auto& end_node = instance_node_list[nodes[solve_data.target_node_index].source_node_index];
 
 	{
-		DirectX::XMMATRIX RootGlobalTransform = DirectX::XMLoadFloat4x4(&root_node.global_transform);
-		DirectX::XMMATRIX MiddleGlobalTransform = DirectX::XMLoadFloat4x4(&middle_node.global_transform);
-		DirectX::XMMATRIX TipGlobalTransform = DirectX::XMLoadFloat4x4(&end_node.global_transform);
+		math::matrixf RootGlobalTransform(root_node.global_transform);
+		math::matrixf MiddleGlobalTransform(middle_node.global_transform);
+		math::matrixf TipGlobalTransform(end_node.global_transform);
 
 		//	計算用座標/ベクトル算出
-		DirectX::XMVECTOR RootGlobalPosition = RootGlobalTransform.r[3];
-		DirectX::XMVECTOR MiddleGlobalPosition = MiddleGlobalTransform.r[3];
-		DirectX::XMVECTOR TipGlobalPosition = TipGlobalTransform.r[3];
+		math::vector3f RootGlobalPosition = RootGlobalTransform.to_vector3(3);
+		math::vector3f MiddleGlobalPosition = MiddleGlobalTransform.to_vector3(3);
+		math::vector3f TipGlobalPosition = TipGlobalTransform.to_vector3(3);
 
-		DirectX::XMVECTOR RootMiddleVec = DirectX::XMVectorSubtract(MiddleGlobalPosition, RootGlobalPosition);
-		DirectX::XMVECTOR RootTargetVec = DirectX::XMVectorSubtract(IKTargetPosition, RootGlobalPosition);
-		DirectX::XMVECTOR MiddleTipVec = DirectX::XMVectorSubtract(TipGlobalPosition, MiddleGlobalPosition);
+		math::vector3f RootMiddleVec = MiddleGlobalPosition - RootGlobalPosition;
+		math::vector3f RootTargetVec = IKTargetPosition - RootGlobalPosition;
+		math::vector3f MiddleTipVec = TipGlobalPosition - MiddleGlobalPosition;
 
-		float root_middle_length = DirectX::XMVectorGetX(DirectX::XMVector3Length(RootMiddleVec));
-		float root_target_length = DirectX::XMVectorGetX(DirectX::XMVector3Length(RootTargetVec));
-		float middle_tip_length = DirectX::XMVectorGetX(DirectX::XMVector3Length(MiddleTipVec));
+		float root_middle_length = RootMiddleVec.length();
+		float root_target_length = RootTargetVec.length();
+		float middle_tip_length = MiddleTipVec.length();
 
-		auto calculate_rotate_bone = [&](model_instance::node& node, const DirectX::XMVECTOR& Direction1, const DirectX::XMVECTOR& Direction2)
+		auto calculate_rotate_bone = [&](model_instance::node& node, const math::vector3f& Direction1, const math::vector3f& Direction2)
 		{
-			DirectX::XMVECTOR GlobalAxis = DirectX::XMVector3Cross(Direction1, Direction2);
-			if (DirectX::XMVector3Equal(GlobalAxis, DirectX::XMVectorZero()))
+			math::vector3f GlobalAxis = math::vector3f::cross(Direction1, Direction2);
+			if (GlobalAxis == math::vector3f::zero())
 				return;
-			GlobalAxis = DirectX::XMVector3Normalize(GlobalAxis);
+			GlobalAxis = GlobalAxis.normalized();
 			
-			DirectX::XMMATRIX ParentGlobalTransform = DirectX::XMMatrixIdentity();
+			math::matrixf ParentGlobalTransform;
 			if (node.parent_index != model_instance::invalid_id)
 			{
 				auto& parent_node = instance_node_list[node.parent_index];
-				ParentGlobalTransform = DirectX::XMLoadFloat4x4(&parent_node.global_transform);
+				ParentGlobalTransform = math::matrixf(parent_node.global_transform);
 			}
-			DirectX::XMMATRIX InverseParentGlobalTransform = DirectX::XMMatrixInverse(nullptr, ParentGlobalTransform);
-			DirectX::XMVECTOR LocalAxis = DirectX::XMVector3TransformNormal(GlobalAxis, InverseParentGlobalTransform);
-			LocalAxis = DirectX::XMVector3Normalize(LocalAxis);
+			math::matrixf InverseParentGlobalTransform = ParentGlobalTransform.inverted();
+			math::vector3f LocalAxis = math::vector3f::transform_normal(GlobalAxis, InverseParentGlobalTransform);
+			LocalAxis = LocalAxis.normalized();
 
-			DirectX::XMVECTOR Dot = DirectX::XMVector3Dot(Direction1, Direction2);
-			float dot = DirectX::XMVectorGetX(Dot);
+			float Dot = math::vector3f::dot(Direction1, Direction2);
+			float dot = Dot;
 			float angle = acosf(std::clamp(dot, -1.0f, 1.0f));
 
-			DirectX::XMVECTOR S, R, T;
-			DirectX::XMMATRIX LocalTransform = DirectX::XMLoadFloat4x4(&node.local_transform);
-			DirectX::XMVECTOR LocalRotationAxis = DirectX::XMQuaternionRotationAxis(LocalAxis, angle);
-			DirectX::XMMatrixDecompose(&S, &R, &T, LocalTransform);
-			R = DirectX::XMQuaternionMultiply(R, LocalRotationAxis);
-			LocalTransform = DirectX::XMMatrixAffineTransformation(S, DirectX::XMVectorZero(), R, T);
-			DirectX::XMStoreFloat4x4(&node.local_transform, LocalTransform);
+			math::vector3f S, T;
+			math::quaternionf R;
+			math::matrixf LocalTransform(node.local_transform);
+			math::quaternionf LocalRotationAxis = math::quaternionf::rotation_axis(LocalAxis, angle);
+			LocalTransform.decompose(S, R, T);
+			R = R * LocalRotationAxis;
+			LocalTransform = math::matrixf::transform(S, R, T);
+			node.local_transform = LocalTransform.to_float4x4();
 		};
 
-		DirectX::XMVECTOR RootTargetDirection = DirectX::XMVector3Normalize(RootTargetVec);
-		DirectX::XMVECTOR RootMiddleDirection = DirectX::XMVector3Normalize(RootMiddleVec);
+		math::vector3f RootTargetDirection = RootTargetVec.normalized();
+		math::vector3f RootMiddleDirection = RootMiddleVec.normalized();
 
 		calculate_rotate_bone(root_node, RootMiddleDirection, RootTargetDirection);
 
@@ -480,60 +478,61 @@ void ik_solver::solve_limb(solve_data& solve_data, DirectX::XMFLOAT3 ik_target_p
 			if (angle > FLT_EPSILON)
 			{
 				//	ポール座標
-				DirectX::XMVECTOR PoleGlobalPosition = MiddleGlobalPosition;
+				math::vector3f PoleGlobalPosition = MiddleGlobalPosition;
 				if (solve_data.node_list.size() == 3)
 				{
 					if (solve_data.node_list[2] != model_resource::invalid_id &&
 						!solve_data.use_pole_node_offset)
 					{
 						auto& pole_node = instance_node_list[nodes[solve_data.node_list[2]].source_node_index];
-						DirectX::XMMATRIX PoleGlobalTransform = DirectX::XMLoadFloat4x4(&pole_node.global_transform);
-						PoleGlobalPosition = PoleGlobalTransform.r[3];
+						math::matrixf PoleGlobalTransform(pole_node.global_transform);
+						PoleGlobalPosition = PoleGlobalTransform.to_vector3(3);
 					}
 					else
 					{
-						DirectX::XMVECTOR PoleOffset = DirectX::XMLoadFloat3(&solve_data.pole_offset);
-						PoleGlobalPosition = DirectX::XMVector3TransformCoord(PoleOffset, MiddleGlobalTransform);
+						math::vector3f PoleOffset(solve_data.pole_offset);
+						PoleGlobalPosition = math::vector3f::transform_coord(PoleOffset, MiddleGlobalTransform);
 					}
 				}
-				DirectX::XMVECTOR RootPoleVec = DirectX::XMVectorSubtract(PoleGlobalPosition, RootGlobalPosition);
-				DirectX::XMVECTOR RootPoleDirection = DirectX::XMVector3Normalize(RootPoleVec);
-				DirectX::XMMATRIX RootParentGlobalTransform = DirectX::XMMatrixIdentity();
+				math::vector3f RootPoleVec = PoleGlobalPosition - RootGlobalPosition;
+				math::vector3f RootPoleDirection = RootPoleVec.normalized();
+				math::matrixf RootParentGlobalTransform;
 				if (root_node.parent_index != model_instance::invalid_id)
 				{
 					auto& parent_node = instance_node_list[root_node.parent_index];
-					RootParentGlobalTransform = DirectX::XMLoadFloat4x4(&parent_node.global_transform);
+					RootParentGlobalTransform = math::matrixf(parent_node.global_transform);
 				}
-				DirectX::XMMATRIX InverseRootParentGlobalTransform = DirectX::XMMatrixInverse(nullptr, RootParentGlobalTransform);
-				DirectX::XMVECTOR PoleGlobalAxis = DirectX::XMVector3Cross(RootMiddleDirection, RootPoleDirection);
-				DirectX::XMVECTOR PoleLocalAxis = DirectX::XMVector3TransformNormal(PoleGlobalAxis, InverseRootParentGlobalTransform);
-				PoleLocalAxis = DirectX::XMVector3Normalize(PoleLocalAxis);
-				if (DirectX::XMVectorGetX(DirectX::XMVector3Dot(PoleLocalAxis, PoleLocalAxis)) < FLT_EPSILON)
+				math::matrixf InverseRootParentGlobalTransform = RootParentGlobalTransform.inverted();
+				math::vector3f PoleGlobalAxis = math::vector3f::cross(RootMiddleDirection, RootPoleDirection);
+				math::vector3f PoleLocalAxis = math::vector3f::transform_normal(PoleGlobalAxis, InverseRootParentGlobalTransform);
+				PoleLocalAxis = PoleLocalAxis.normalized();
+				if (math::vector3f::dot(PoleLocalAxis, PoleLocalAxis) < FLT_EPSILON)
 				{
-					PoleLocalAxis = DirectX::XMVectorSet(0, 0, 1, 0);
+					PoleLocalAxis = math::vector3f(0, 0, 1);
 				}
 
-				DirectX::XMVECTOR LocalRotationAxis = DirectX::XMQuaternionRotationAxis(PoleLocalAxis, angle);
-				DirectX::XMVECTOR S, R, T;
-				DirectX::XMMATRIX LocalTransform = DirectX::XMLoadFloat4x4(&root_node.local_transform);
-				DirectX::XMMatrixDecompose(&S, &R, &T, LocalTransform);
-				R = DirectX::XMQuaternionMultiply(R, LocalRotationAxis);
-				LocalTransform = DirectX::XMMatrixAffineTransformation(S, DirectX::XMVectorZero(), R, T);
-				DirectX::XMStoreFloat4x4(&root_node.local_transform, LocalTransform);
+				math::quaternionf LocalRotationAxis = math::quaternionf::rotation_axis(PoleLocalAxis, angle);
+				math::vector3f S, T;
+				math::quaternionf R;
+				math::matrixf LocalTransform(root_node.local_transform);
+				LocalTransform.decompose(S, R, T);
+				R = R * LocalRotationAxis;
+				LocalTransform = math::matrixf::transform(S, R, T);
+				root_node.local_transform = LocalTransform.to_float4x4();
 			}
 		}
 
 		instance->update_transform(WorldTramsform);
 
-		MiddleGlobalTransform = DirectX::XMLoadFloat4x4(&middle_node.global_transform);
-		MiddleGlobalPosition = MiddleGlobalTransform.r[3];
-		TipGlobalTransform = DirectX::XMLoadFloat4x4(&end_node.global_transform);
-		TipGlobalPosition = TipGlobalTransform.r[3];
+		MiddleGlobalTransform = math::matrixf(middle_node.global_transform);
+		MiddleGlobalPosition = MiddleGlobalTransform.to_vector3(3);
+		TipGlobalTransform = math::matrixf(end_node.global_transform);
+		TipGlobalPosition = TipGlobalTransform.to_vector3(3);
 
-		MiddleTipVec = DirectX::XMVectorSubtract(TipGlobalPosition, MiddleGlobalPosition);
-		DirectX::XMVECTOR MiddleTipDirection = DirectX::XMVector3Normalize(MiddleTipVec);
-		DirectX::XMVECTOR MiddleTargetVec = DirectX::XMVectorSubtract(IKTargetPosition, MiddleGlobalPosition);
-		DirectX::XMVECTOR MiddleTargetDirection = DirectX::XMVector3Normalize(MiddleTargetVec);
+		MiddleTipVec = TipGlobalPosition - MiddleGlobalPosition;
+		math::vector3f MiddleTipDirection = MiddleTipVec.normalized();
+		math::vector3f MiddleTargetVec = IKTargetPosition - MiddleGlobalPosition;
+		math::vector3f MiddleTargetDirection = MiddleTargetVec.normalized();
 
 		calculate_rotate_bone(middle_node, MiddleTipDirection, MiddleTargetDirection);
 		instance->update_transform(WorldTramsform);
@@ -541,15 +540,15 @@ void ik_solver::solve_limb(solve_data& solve_data, DirectX::XMFLOAT3 ik_target_p
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
-void ik_solver::solve_ccd(solve_data& solve_data, DirectX::XMFLOAT3 ik_target_position)
+void ik_solver::solve_ccd(solve_data& solve_data, math::float3 ik_target_position)
 {
 	auto& instance_node_list = instance->get_nodes();
 	auto& model_resource_node_list = instance->get_resource()->get_nodes();
 
-	auto IKTargetPosition = DirectX::XMLoadFloat3(&ik_target_position);
-	auto WorldTramsform = DirectX::XMLoadFloat4x4(&instance->get_world_transform());
-	auto InverseWorldTramsform = DirectX::XMMatrixInverse(nullptr, WorldTramsform);
-	IKTargetPosition = DirectX::XMVector3TransformCoord(IKTargetPosition, InverseWorldTramsform);
+	auto IKTargetPosition = math::vector3f(ik_target_position);
+	auto WorldTramsform = math::matrixf(instance->get_world_transform());
+	auto InverseWorldTramsform = WorldTramsform.inverted();
+	IKTargetPosition = math::vector3f::transform_coord(IKTargetPosition, InverseWorldTramsform);
 
 	//	CCD-IK
 	for (UINT iteration = 0; iteration < solve_data.iteration; ++iteration)
@@ -561,57 +560,58 @@ void ik_solver::solve_ccd(solve_data& solve_data, DirectX::XMFLOAT3 ik_target_po
 
 		//	対象ノードを取得
 		auto& target_node = instance_node_list[target_node_data.source_node_index];
-		auto TargetPosition = DirectX::XMVectorSet(target_node.global_transform._41, target_node.global_transform._42, target_node.global_transform._43, 1);
+		auto TargetPosition = math::vector3f(target_node.global_transform._41, target_node.global_transform._42, target_node.global_transform._43);
 
 		//	対象ノードがIK対象座標にたどり着けば終了
-		DirectX::XMVECTOR vector = DirectX::XMVectorSubtract(IKTargetPosition, TargetPosition);
-		float distance = DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(vector));
+		math::vector3f vector = IKTargetPosition - TargetPosition;
+		float distance = vector.square_length();
 		if (distance <= 0.001f)
 			break;
 
 		bool remain_modify = false;
-		DirectX::XMVECTOR RemainRotation = DirectX::XMVectorSet(0, 0, 0, 1);
+		math::quaternionf RemainRotation(0, 0, 0, 1);
 		for (size_t link_node_index : solve_data.node_list)
 		{
 			auto& link_data = nodes[link_node_index];
 			auto& link_node = instance_node_list[link_data.source_node_index];
 			auto& resource_node = model_resource_node_list[link_data.source_node_index];
 
-			DirectX::XMMATRIX InverseLinkGlobalMatrix = DirectX::XMMatrixInverse(nullptr, DirectX::XMLoadFloat4x4(&link_node.global_transform));
+			math::matrixf InverseLinkGlobalMatrix = math::matrixf(link_node.global_transform).inverted();
 
-			DirectX::XMVECTOR EffectorGlobalPosition = DirectX::XMVectorSet(target_node.global_transform._41, target_node.global_transform._42, target_node.global_transform._43, 1);
-			DirectX::XMVECTOR EffectorLocalPosition = DirectX::XMVector3TransformCoord(EffectorGlobalPosition, InverseLinkGlobalMatrix);
-			DirectX::XMVECTOR TargetLocalPosition = DirectX::XMVector3TransformCoord(IKTargetPosition, InverseLinkGlobalMatrix);
+			math::vector3f EffectorGlobalPosition(target_node.global_transform._41, target_node.global_transform._42, target_node.global_transform._43);
+			math::vector3f EffectorLocalPosition = math::vector3f::transform_coord(EffectorGlobalPosition, InverseLinkGlobalMatrix);
+			math::vector3f TargetLocalPosition = math::vector3f::transform_coord(IKTargetPosition, InverseLinkGlobalMatrix);
 
-			DirectX::XMVECTOR EffectorLocalDirection = DirectX::XMVector3Normalize(EffectorLocalPosition);
-			DirectX::XMVECTOR TargetLocalDirection = DirectX::XMVector3Normalize(TargetLocalPosition);
+			math::vector3f EffectorLocalDirection = EffectorLocalPosition.normalized();
+			math::vector3f TargetLocalDirection = TargetLocalPosition.normalized();
 
-			float dot = DirectX::XMVectorGetX(DirectX::XMVector3Dot(EffectorLocalDirection, TargetLocalDirection));
+			float dot = math::vector3f::dot(EffectorLocalDirection, TargetLocalDirection);
 			float angle = acosf(dot);
 			if (isnan(angle))
 				continue;
 
-			DirectX::XMVECTOR axis = DirectX::XMVector3Normalize(DirectX::XMVector3Cross(EffectorLocalDirection, TargetLocalDirection));
-			if (DirectX::XMVectorGetX(DirectX::XMVector3Dot(axis, axis)) <= 0.001f)
+			math::vector3f axis = (math::vector3f::cross(EffectorLocalDirection, TargetLocalDirection)).normalized();
+			if (math::vector3f::dot(axis, axis) <= 0.001f)
 				continue;
 
 			angle = std::min(angle, solve_data.constraint_angle);
 
-			DirectX::XMVECTOR AdditionalRotation = DirectX::XMQuaternionRotationAxis(axis, angle);
+			math::quaternionf AdditionalRotation = math::quaternionf::rotation_axis(axis, angle);
 			//	余剰回転適応
 			if (remain_modify)
 			{
 				remain_modify = false;
-				AdditionalRotation = DirectX::XMQuaternionMultiply(RemainRotation, AdditionalRotation);
-				AdditionalRotation = DirectX::XMQuaternionNormalize(AdditionalRotation);
+				AdditionalRotation = RemainRotation * AdditionalRotation;
+				AdditionalRotation = AdditionalRotation.normalized();
 			}
 
 			//	適応
-			DirectX::XMVECTOR S, OriginalLocalRotation, T;
-			DirectX::XMMATRIX LocalTransform = DirectX::XMLoadFloat4x4(&link_node.local_transform);
-			DirectX::XMMatrixDecompose(&S, &OriginalLocalRotation, &T, LocalTransform);
-			DirectX::XMVECTOR NewLocalRotation = OriginalLocalRotation;
-			NewLocalRotation = DirectX::XMQuaternionNormalize(DirectX::XMQuaternionMultiply(AdditionalRotation, NewLocalRotation));
+			math::vector3f S, T;
+			math::quaternionf OriginalLocalRotation;
+			math::matrixf LocalTransform(link_node.local_transform);
+			LocalTransform.decompose(S, OriginalLocalRotation, T);
+			math::quaternionf NewLocalRotation = OriginalLocalRotation;
+			NewLocalRotation = (AdditionalRotation * NewLocalRotation).normalized();
 
 			//	角度制限
 			if (link_data.mode != constraint_mode::free)
@@ -620,18 +620,18 @@ void ik_solver::solve_ccd(solve_data& solve_data, DirectX::XMFLOAT3 ik_target_po
 				//	軸算出
 				auto get_rotation_axis = [&]()
 				{
-					DirectX::XMFLOAT3 pole_axis = {0, 0, 0};
+					math::float3 pole_axis = {0, 0, 0};
 					switch (link_data.use_axis)
 					{
-						case axis::x:			pole_axis = system_utility::to_xmfloat(system_utility::to_math_quaternion(resource_node.rotation).right());	break;
-						case axis::reverse_x:	pole_axis = system_utility::to_xmfloat(system_utility::to_math_quaternion(resource_node.rotation).right());	break;
-						case axis::y:			pole_axis = system_utility::to_xmfloat(system_utility::to_math_quaternion(resource_node.rotation).up());		break;
-						case axis::reverse_y:	pole_axis = system_utility::to_xmfloat(system_utility::to_math_quaternion(resource_node.rotation).up());		break;
-						case axis::z:			pole_axis = system_utility::to_xmfloat(system_utility::to_math_quaternion(resource_node.rotation).front());	break;
-						case axis::reverse_z:	pole_axis = system_utility::to_xmfloat(system_utility::to_math_quaternion(resource_node.rotation).front());	break;
+						case axis::x:			pole_axis = math::quaternionf(resource_node.rotation).right().to_float3();	break;
+						case axis::reverse_x:	pole_axis = math::quaternionf(resource_node.rotation).right().to_float3();	break;
+						case axis::y:			pole_axis = math::quaternionf(resource_node.rotation).up().to_float3();		break;
+						case axis::reverse_y:	pole_axis = math::quaternionf(resource_node.rotation).up().to_float3();		break;
+						case axis::z:			pole_axis = math::quaternionf(resource_node.rotation).front().to_float3();	break;
+						case axis::reverse_z:	pole_axis = math::quaternionf(resource_node.rotation).front().to_float3();	break;
 					}
-					DirectX::XMVECTOR PoleAxis = DirectX::XMLoadFloat3(&pole_axis);
-					return DirectX::XMVector3Normalize(DirectX::XMVectorScale(PoleAxis, reverse_flag ? -1.0f : +1.0f));
+					math::vector3f PoleAxis(pole_axis);
+					return (PoleAxis * (reverse_flag ? -1.0f : +1.0f)).normalized();
 				};
 
 				switch (link_data.mode)
@@ -641,8 +641,8 @@ void ik_solver::solve_ccd(solve_data& solve_data, DirectX::XMFLOAT3 ik_target_po
 						float min_hinge = link_data.limit_angles[0];
 						float max_hinge = link_data.limit_angles[1];
 
-						DirectX::XMVECTOR HingeAxis = get_rotation_axis();
-						DirectX::XMVECTOR Twist = system_utility::to_xmvector(system_utility::to_math_quaternion(NewLocalRotation).twist(system_utility::to_math_vector3(HingeAxis)));
+						const math::vector3f HingeAxis = get_rotation_axis();
+						const math::quaternionf Twist = NewLocalRotation.twist(HingeAxis);
 						NewLocalRotation = clamp_twist(Twist, HingeAxis, min_hinge, max_hinge);
 						break;
 					}
@@ -652,41 +652,38 @@ void ik_solver::solve_ccd(solve_data& solve_data, DirectX::XMFLOAT3 ik_target_po
 						float max_twist = link_data.limit_angles[1];
 						float max_swing = link_data.limit_angles[2];
 
-						DirectX::XMVECTOR TwistAxis = get_rotation_axis();
-						DirectX::XMVECTOR Twist, Swing;
-						math::quaternionf twist, swing;
-						system_utility::to_math_quaternion(NewLocalRotation).decompose_twist_swing(system_utility::to_math_vector3(TwistAxis), twist, swing);
-						Twist = system_utility::to_xmvector(twist);
-						Swing = system_utility::to_xmvector(swing);
+						const math::vector3f TwistAxis = get_rotation_axis();
+						math::quaternionf Twist, Swing;
+						NewLocalRotation.decompose_twist_swing(TwistAxis, Twist, Swing);
 						Twist = clamp_twist(Twist, TwistAxis, min_twist, max_twist);
 						Swing = clamp_swing(Swing, max_swing);
-						NewLocalRotation = DirectX::XMQuaternionNormalize(DirectX::XMQuaternionMultiply(Swing, Twist));
+						NewLocalRotation = (Swing * Twist).normalized();
 						break;
 					}
 					case constraint_mode::euler:
 					{
 						//	オイラー角による拘束
-						DirectX::XMFLOAT4 limit_rotation;
-						DirectX::XMStoreFloat4(&limit_rotation, NewLocalRotation);
+						math::float4 limit_rotation;
+						limit_rotation = NewLocalRotation.to_float4();
 						remain_modify = restrict_rotation(limit_rotation,
 															link_data.limit_angles + 0,
 															link_data.limit_angles + 3);
 						if (remain_modify)
 						{
-							DirectX::XMVECTOR NormalizedLimitRotation = DirectX::XMLoadFloat4(&limit_rotation);
-							NormalizedLimitRotation = DirectX::XMQuaternionNormalize(NormalizedLimitRotation);
+							math::quaternionf NormalizedLimitRotation(limit_rotation);
+							NormalizedLimitRotation = NormalizedLimitRotation.normalized();
 							//	余剰回転を算出
-							DirectX::XMVECTOR InverseNormalizedLimitRotation = DirectX::XMQuaternionInverse(NormalizedLimitRotation);
-							RemainRotation = DirectX::XMQuaternionMultiply(NewLocalRotation, InverseNormalizedLimitRotation);
-							DirectX::XMFLOAT4 work_rot;
-							DirectX::XMStoreFloat4(&work_rot, RemainRotation);
+							math::quaternionf InverseNormalizedLimitRotation = NormalizedLimitRotation.inverted();
+							RemainRotation = NewLocalRotation * InverseNormalizedLimitRotation;
+							math::float4 work_rot;
+							work_rot = RemainRotation.to_float4();
 							if (link_data.limit_angles[0] == link_data.limit_angles[3])
 								work_rot.x = link_data.limit_angles[0];
 							if (link_data.limit_angles[1] == link_data.limit_angles[4])
 								work_rot.y = link_data.limit_angles[1];
 							if (link_data.limit_angles[2] == link_data.limit_angles[5])
 								work_rot.z = link_data.limit_angles[2];
-							RemainRotation = DirectX::XMQuaternionNormalize(DirectX::XMLoadFloat4(&work_rot));
+							RemainRotation = math::quaternionf(work_rot).normalized();
 							//	制限された回転を適応
 							NewLocalRotation = NormalizedLimitRotation;
 						}
@@ -695,8 +692,8 @@ void ik_solver::solve_ccd(solve_data& solve_data, DirectX::XMFLOAT3 ik_target_po
 				}
 			}
 
-			LocalTransform = DirectX::XMMatrixAffineTransformation(S, DirectX::XMVectorZero(), NewLocalRotation, T);
-			DirectX::XMStoreFloat4x4(&link_node.local_transform, LocalTransform);
+			LocalTransform = math::matrixf::transform(S, NewLocalRotation, T);
+			link_node.local_transform = LocalTransform.to_float4x4();
 
 			//	グローバル行列再計算
 			instance->update_transform(WorldTramsform);
@@ -705,14 +702,14 @@ void ik_solver::solve_ccd(solve_data& solve_data, DirectX::XMFLOAT3 ik_target_po
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
-void ik_solver::solve_ccd_pmx(solve_data& solve_data, DirectX::XMFLOAT3 ik_target_position)
+void ik_solver::solve_ccd_pmx(solve_data& solve_data, math::float3 ik_target_position)
 {
 	auto& instance_node_list = instance->get_nodes();
 
-	auto IKTargetPosition = DirectX::XMLoadFloat3(&ik_target_position);
-	auto WorldTramsform = DirectX::XMLoadFloat4x4(&instance->get_world_transform());
-	auto InverseWorldTramsform = DirectX::XMMatrixInverse(nullptr, WorldTramsform);
-	IKTargetPosition = DirectX::XMVector3TransformCoord(IKTargetPosition, InverseWorldTramsform);
+	auto IKTargetPosition = math::vector3f(ik_target_position);
+	auto WorldTramsform = math::matrixf(instance->get_world_transform());
+	auto InverseWorldTramsform = WorldTramsform.inverted();
+	IKTargetPosition = math::vector3f::transform_coord(IKTargetPosition, InverseWorldTramsform);
 
 	//	初期化
 	for (size_t link_node_index : solve_data.node_list)
@@ -732,11 +729,11 @@ void ik_solver::solve_ccd_pmx(solve_data& solve_data, DirectX::XMFLOAT3 ik_targe
 
 		//	対象ノードを取得
 		auto& target_node = instance_node_list[target_node_data.source_node_index];
-		auto TargetPosition = DirectX::XMVectorSet(target_node.global_transform._41, target_node.global_transform._42, target_node.global_transform._43, 1);
+		auto TargetPosition = math::vector3f(target_node.global_transform._41, target_node.global_transform._42, target_node.global_transform._43);
 
 		//	対象ノードがIK対象座標にたどり着けば終了
-		DirectX::XMVECTOR vector = DirectX::XMVectorSubtract(IKTargetPosition, TargetPosition);
-		float distance = DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(vector));
+		math::vector3f vector = IKTargetPosition - TargetPosition;
+		float distance = vector.square_length();
 		if (distance <= 0.001f)
 			break;
 
@@ -753,52 +750,53 @@ void ik_solver::solve_ccd_pmx(solve_data& solve_data, DirectX::XMFLOAT3 ik_targe
 			{
 				auto& link_node = instance_node_list[link_data.source_node_index];
 
-				DirectX::XMMATRIX InverseLinkGlobalMatrix = DirectX::XMMatrixInverse(nullptr, DirectX::XMLoadFloat4x4(&link_node.global_transform));
+				math::matrixf InverseLinkGlobalMatrix = math::matrixf(link_node.global_transform).inverted();
 
-				DirectX::XMVECTOR EffectorGlobalPosition = DirectX::XMVectorSet(target_node.global_transform._41, target_node.global_transform._42, target_node.global_transform._43, 1);
-				DirectX::XMVECTOR EffectorLocalPosition = DirectX::XMVector3TransformCoord(EffectorGlobalPosition, InverseLinkGlobalMatrix);
-				DirectX::XMVECTOR TargetLocalPosition = DirectX::XMVector3TransformCoord(IKTargetPosition, InverseLinkGlobalMatrix);
+				math::vector3f EffectorGlobalPosition(target_node.global_transform._41, target_node.global_transform._42, target_node.global_transform._43);
+				math::vector3f EffectorLocalPosition = math::vector3f::transform_coord(EffectorGlobalPosition, InverseLinkGlobalMatrix);
+				math::vector3f TargetLocalPosition = math::vector3f::transform_coord(IKTargetPosition, InverseLinkGlobalMatrix);
 
-				DirectX::XMVECTOR EffectorLocalDirection = DirectX::XMVector3Normalize(EffectorLocalPosition);
-				DirectX::XMVECTOR TargetLocalDirection = DirectX::XMVector3Normalize(TargetLocalPosition);
+				math::vector3f EffectorLocalDirection = EffectorLocalPosition.normalized();
+				math::vector3f TargetLocalDirection = TargetLocalPosition.normalized();
 
-				float dot = DirectX::XMVectorGetX(DirectX::XMVector3Dot(EffectorLocalDirection, TargetLocalDirection));
+				float dot = math::vector3f::dot(EffectorLocalDirection, TargetLocalDirection);
 				float angle = acosf(dot);
 				if (isnan(angle))
 					continue;
 
-				DirectX::XMVECTOR axis = DirectX::XMVector3Normalize(DirectX::XMVector3Cross(EffectorLocalDirection, TargetLocalDirection));
-				if (DirectX::XMVectorGetX(DirectX::XMVector3Dot(axis, axis)) <= 0.001f)
+				math::vector3f axis = (math::vector3f::cross(EffectorLocalDirection, TargetLocalDirection)).normalized();
+				if (math::vector3f::dot(axis, axis) <= 0.001f)
 					continue;
 
 				angle = std::min(angle, solve_data.constraint_angle);
 
-				DirectX::XMVECTOR AdditionalRotation = DirectX::XMQuaternionRotationAxis(axis, angle);
+				math::quaternionf AdditionalRotation = math::quaternionf::rotation_axis(axis, angle);
 
 				//	適応
-				DirectX::XMVECTOR S, OriginalLocalRotation, T;
-				DirectX::XMMATRIX LocalTransform = DirectX::XMLoadFloat4x4(&link_node.local_transform);
-				DirectX::XMMatrixDecompose(&S, &OriginalLocalRotation, &T, LocalTransform);
-				DirectX::XMVECTOR NewLocalRotation = DirectX::XMQuaternionNormalize(DirectX::XMQuaternionMultiply(AdditionalRotation, OriginalLocalRotation));
+				math::vector3f S, T;
+				math::quaternionf OriginalLocalRotation;
+				math::matrixf LocalTransform(link_node.local_transform);
+				LocalTransform.decompose(S, OriginalLocalRotation, T);
+				math::quaternionf NewLocalRotation = (AdditionalRotation * OriginalLocalRotation).normalized();
 
 				//	角度制限
 				if (link_data.plane_lock != constraint_plane_lock::free)
 				{
-					DirectX::XMFLOAT3 angle = decompose(NewLocalRotation, link_data.prev_angle);
+					math::float3 angle = decompose(NewLocalRotation, link_data.prev_angle);
 
-					DirectX::XMFLOAT3 limit_angle = clamp_angle(angle, *reinterpret_cast<DirectX::XMFLOAT3*>(&link_data.limit_angles[0]), *reinterpret_cast<DirectX::XMFLOAT3*>(&link_data.limit_angles[3]));
+					math::float3 limit_angle = clamp_angle(angle, *reinterpret_cast<math::float3*>(&link_data.limit_angles[0]), *reinterpret_cast<math::float3*>(&link_data.limit_angles[3]));
 					limit_angle = clamp_angle(subtract_angle(limit_angle, link_data.prev_angle),
 											{-solve_data.constraint_angle, -solve_data.constraint_angle, -solve_data.constraint_angle},
 											{+solve_data.constraint_angle, +solve_data.constraint_angle, +solve_data.constraint_angle});
 					limit_angle = additional_angle(limit_angle, link_data.prev_angle);
 
-					NewLocalRotation = DirectX::XMQuaternionRotationRollPitchYaw(limit_angle.x, limit_angle.y, limit_angle.z);
+					NewLocalRotation = math::quaternionf::rotation_xyz(limit_angle.x, limit_angle.y, limit_angle.z);
 					link_data.prev_angle = limit_angle;
 				}
 
 				//	影響度を適応
-				LocalTransform = DirectX::XMMatrixAffineTransformation(S, DirectX::XMVectorZero(), NewLocalRotation, T);
-				DirectX::XMStoreFloat4x4(&link_node.local_transform, LocalTransform);
+				LocalTransform = math::matrixf::transform(S, NewLocalRotation, T);
+				link_node.local_transform = LocalTransform.to_float4x4();
 			}
 			//	グローバル行列再計算
 			instance->update_transform(WorldTramsform);
@@ -806,12 +804,12 @@ void ik_solver::solve_ccd_pmx(solve_data& solve_data, DirectX::XMFLOAT3 ik_targe
 	}
 }
 
-void ik_solver::solve_ccd_pmx_plane(int iteration, solve_data& solve_data, node_data& link_data, DirectX::XMVECTOR ik_target_position, constraint_plane_lock axis)
+void ik_solver::solve_ccd_pmx_plane(int iteration, solve_data& solve_data, node_data& link_data, const math::vector3f& ik_target_position, constraint_plane_lock axis)
 {
 	if (axis == constraint_plane_lock::free)
 		return;
 
-	DirectX::XMVECTOR rotate_axis;
+	math::vector3f rotate_axis;
 	float limit_min_angle, limit_max_angle;
 
 	switch (axis)
@@ -820,21 +818,21 @@ void ik_solver::solve_ccd_pmx_plane(int iteration, solve_data& solve_data, node_
 		{
 			limit_min_angle = link_data.limit_angles[0];
 			limit_max_angle = link_data.limit_angles[3];
-			rotate_axis = DirectX::XMVectorSet(1.0f, 0.0f, 0.0f, 0.0f);
+			rotate_axis = math::vector3f(1.0f, 0.0f, 0.0f);
 			break;
 		}
 		case constraint_plane_lock::y:
 		{
 			limit_min_angle = link_data.limit_angles[1];
 			limit_max_angle = link_data.limit_angles[4];
-			rotate_axis = DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+			rotate_axis = math::vector3f(0.0f, 1.0f, 0.0f);
 			break;
 		}
 		case constraint_plane_lock::z:
 		{
 			limit_min_angle = link_data.limit_angles[2];
 			limit_max_angle = link_data.limit_angles[5];
-			rotate_axis = DirectX::XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
+			rotate_axis = math::vector3f(0.0f, 0.0f, 1.0f);
 			break;
 		}
 	}
@@ -853,18 +851,18 @@ void ik_solver::solve_ccd_pmx_plane(int iteration, solve_data& solve_data, node_
 	auto& target_node = instance_node_list[target_node_data.source_node_index];
 	auto& link_node = instance_node_list[link_data.source_node_index];
 
-	DirectX::XMVECTOR target_position = DirectX::XMVectorSet(target_node.global_transform._41, target_node.global_transform._42, target_node.global_transform._43, 1);
+	math::vector3f target_position(target_node.global_transform._41, target_node.global_transform._42, target_node.global_transform._43);
 
-	DirectX::XMMATRIX inverse_link_global_matrix = DirectX::XMMatrixInverse(nullptr, DirectX::XMLoadFloat4x4(&link_node.global_transform));
+	math::matrixf inverse_link_global_matrix = math::matrixf(link_node.global_transform).inverted();
 
-	DirectX::XMVECTOR effector_global_position = DirectX::XMVectorSet(target_node.global_transform._41, target_node.global_transform._42, target_node.global_transform._43, 1);
-	DirectX::XMVECTOR effector_local_position = DirectX::XMVector3TransformCoord(effector_global_position, inverse_link_global_matrix);
-	DirectX::XMVECTOR target_local_position = DirectX::XMVector3TransformCoord(ik_target_position, inverse_link_global_matrix);
+	math::vector3f effector_global_position(target_node.global_transform._41, target_node.global_transform._42, target_node.global_transform._43);
+	math::vector3f effector_local_position = math::vector3f::transform_coord(effector_global_position, inverse_link_global_matrix);
+	math::vector3f target_local_position = math::vector3f::transform_coord(ik_target_position, inverse_link_global_matrix);
 
-	DirectX::XMVECTOR effector_local_direction = DirectX::XMVector3Normalize(effector_local_position);
-	DirectX::XMVECTOR target_local_direction = DirectX::XMVector3Normalize(target_local_position);
+	math::vector3f effector_local_direction = effector_local_position.normalized();
+	math::vector3f target_local_direction = target_local_position.normalized();
 
-	float dot = DirectX::XMVectorGetX(DirectX::XMVector3Dot(effector_local_direction, target_local_direction));
+	float dot = math::vector3f::dot(effector_local_direction, target_local_direction);
 	float angle = std::acos(dot);
 	if(isnan(angle))
 		return;
@@ -872,13 +870,13 @@ void ik_solver::solve_ccd_pmx_plane(int iteration, solve_data& solve_data, node_
 	angle = std::clamp(angle, -solve_data.constraint_angle, solve_data.constraint_angle);
 
 	//	回転方向を判断するため、両方の方向に回転させてみて適応角度を変える
-	DirectX::XMVECTOR rotation1 = DirectX::XMQuaternionRotationAxis(rotate_axis, +angle);
-	DirectX::XMVECTOR target_vector1 = DirectX::XMVector3Rotate(effector_local_direction, rotation1);
-	float dot1 = DirectX::XMVectorGetX(DirectX::XMVector3Dot(target_vector1, target_local_direction));
+	math::quaternionf rotation1 = math::quaternionf::rotation_axis(rotate_axis, +angle);
+	math::vector3f target_vector1 = rotation1.rotate(effector_local_direction);
+	float dot1 = math::vector3f::dot(target_vector1, target_local_direction);
 
-	DirectX::XMVECTOR rotation2 = DirectX::XMQuaternionRotationAxis(rotate_axis, -angle);
-	DirectX::XMVECTOR target_vector2 = DirectX::XMVector3Rotate(effector_local_direction, rotation2);
-	float dot2 = DirectX::XMVectorGetX(DirectX::XMVector3Dot(target_vector2, target_local_direction));
+	math::quaternionf rotation2 = math::quaternionf::rotation_axis(rotate_axis, -angle);
+	math::vector3f target_vector2 = rotation2.rotate(effector_local_direction);
+	float dot2 = math::vector3f::dot(target_vector2, target_local_direction);
 
 	float new_angle = link_data.plane_mode_angle + ((dot1 > dot2) ? +angle : -angle);
 	if (iteration == 0)
@@ -904,13 +902,14 @@ void ik_solver::solve_ccd_pmx_plane(int iteration, solve_data& solve_data, node_
 
 	//	IKノード情報に変換
 	{
-		DirectX::XMVECTOR S, R, T;
-		DirectX::XMMATRIX LocalTransform = DirectX::XMLoadFloat4x4(&link_node.local_transform);
-		DirectX::XMMatrixDecompose(&S, &R, &T, LocalTransform);
-		R = DirectX::XMQuaternionRotationAxis(rotate_axis, new_angle);
+		math::vector3f S, T;
+		math::quaternionf R;
+		math::matrixf LocalTransform(link_node.local_transform);
+		LocalTransform.decompose(S, R, T);
+		R = math::quaternionf::rotation_axis(rotate_axis, new_angle);
 		//	影響度を適応
-		LocalTransform = DirectX::XMMatrixAffineTransformation(S, DirectX::XMVectorZero(), R, T);
-		DirectX::XMStoreFloat4x4(&link_node.local_transform, LocalTransform);
+		LocalTransform = math::matrixf::transform(S, R, T);
+		link_node.local_transform = LocalTransform.to_float4x4();
 	}
 }
 

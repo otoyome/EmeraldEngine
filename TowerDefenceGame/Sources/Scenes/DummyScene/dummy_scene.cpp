@@ -27,12 +27,12 @@ bool dummy_scene::initialize_core()
 	std::shared_ptr<camera_object> main_camera;
 	{
 		main_camera = std::make_shared<camera_object>("ƒƒCƒ“ƒJƒƒ‰");
-		main_camera->get_camera()->set_fov_y(DirectX::XMConvertToRadians(45.0f));
+		main_camera->get_camera()->set_fov_y(math::angle::to_radian(45.0f));
 	//	main_camera->get_camera()->set_flag(camera::flags::hybrid_projection, true);
 	//	main_camera->get_camera()->set_hybrid_rate(0.3f);	//	“§Ž‹“Š‰e
 
 		main_camera->set_position({0, 10, 100.0f});
-		main_camera->set_rotation({0.1f, DirectX::XM_PI, 0});
+		main_camera->set_rotation({0.1f, math::constants<float>::pi, 0});
 		register_object(main_camera);
 		mouse::instance()->set_center_lock(false);
 		mouse::instance()->set_cursol_hide(false);
@@ -43,7 +43,7 @@ bool dummy_scene::initialize_core()
 	{
 		auto camera = std::make_shared<editor_camera>(main_camera);
 		camera->set_position(system_units::convert_m_to_unit({ 0, 1, 8 }));
-		camera->set_rotation({ 0, DirectX::XM_PI, 0 });
+		camera->set_rotation({ 0, math::constants<float>::pi, 0 });
 		camera->set_rotation_speed(camera->get_rotation_speed() * 0.25f);
 		camera->set_move_speed(camera->get_move_speed() * 0.25f);
 		register_object(camera);

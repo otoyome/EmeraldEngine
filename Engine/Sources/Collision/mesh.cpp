@@ -11,13 +11,12 @@
 #include "cereal/types/vector.hpp"
 #include "cereal/types/unordered_map.hpp"
 
-#include <DirectXCollision.h>
 #include <thread>
 #include <algorithm>
 
 namespace
 {
-	inline bool plane_aabb(const DirectX::XMFLOAT3& n, const float d, const DirectX::XMFLOAT3& c, const DirectX::XMFLOAT3& h)
+	inline bool plane_aabb(const math::float3& n, const float d, const math::float3& c, const math::float3& h)
 	{
 		float e = h.x * fabsf(n.x)
 				+ h.y * fabsf(n.y)
@@ -28,14 +27,14 @@ namespace
 		return true;
 	}
 
-	inline bool triangle_aabb(const DirectX::XMFLOAT3& u0,
-							  const DirectX::XMFLOAT3& u1,
-							  const DirectX::XMFLOAT3& u2,
-							  const DirectX::XMFLOAT3& n,
+	inline bool triangle_aabb(const math::float3& u0,
+							  const math::float3& u1,
+							  const math::float3& u2,
+							  const math::float3& n,
 							  const collision::inner::axis_aligned_bounding_box& box)
 	{
 		// 三角形の頂点をAABB中心を原点とした座標系に移動
-		DirectX::XMFLOAT3 v[3];
+		math::float3 v[3];
 		v[0].x = u0.x - box.get_position().x;
 		v[0].y = u0.y - box.get_position().y;
 		v[0].z = u0.z - box.get_position().z;
@@ -47,13 +46,13 @@ namespace
 		v[2].z = u2.z - box.get_position().z;
 
 		// 1. 三角形のAABBとAABBの交差判定
-		DirectX::XMFLOAT3 bmin, bmax;
+		math::float3 bmin, bmax;
 		bmin.x = -box.get_local_scale().x;
 		bmin.y = -box.get_local_scale().y;
 		bmin.z = -box.get_local_scale().z;
 		bmax = box.get_local_scale();
 		
-		DirectX::XMFLOAT3 tmin = v[0], tmax = v[0];
+		math::float3 tmin = v[0], tmax = v[0];
 		for(int j = 1; j < 3; ++j)
 		{
 			if(v[j].x < tmin.x) tmin.x = v[j].x;
@@ -79,8 +78,8 @@ namespace
 			return false;
 
 		// 3. AABBの各軸方向とエッジのテスト
-		DirectX::XMFLOAT3 e[3] = { {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 1.0f} };
-		DirectX::XMFLOAT3 f[3] = {};
+		math::float3 e[3] = { {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 1.0f} };
+		math::float3 f[3] = {};
 		f[0].x = v[1].x - v[0].x;
 		f[0].y = v[1].y - v[0].y;
 		f[0].z = v[1].z - v[0].z;
@@ -94,12 +93,12 @@ namespace
 		{
 			for(int j = 0; j < 3; ++j)
 			{
-				DirectX::XMFLOAT3 a, p;
-				DirectX::XMVECTOR A = DirectX::XMVector3Cross(DirectX::XMLoadFloat3(&e[i]), DirectX::XMLoadFloat3(&f[j]));
-				DirectX::XMStoreFloat3(&a, A);
-				p.x = DirectX::XMVectorGetX(DirectX::XMVector3Dot(A, DirectX::XMLoadFloat3(&v[0])));
-				p.y = DirectX::XMVectorGetX(DirectX::XMVector3Dot(A, DirectX::XMLoadFloat3(&v[1])));
-				p.z = DirectX::XMVectorGetX(DirectX::XMVector3Dot(A, DirectX::XMLoadFloat3(&v[2])));
+				math::float3 a, p;
+				math::vector3f A = math::vector3f::cross(math::vector3f(e[i]), math::vector3f(f[j]));
+				a = A.to_float3();
+				p.x = math::vector3f::dot(A, math::vector3f(v[0]));
+				p.y = math::vector3f::dot(A, math::vector3f(v[1]));
+				p.z = math::vector3f::dot(A, math::vector3f(v[2]));
 				float r = box.get_local_scale().x * fabs(a.x)
 						+ box.get_local_scale().y * fabs(a.y)
 						+ box.get_local_scale().z * fabs(a.z);
@@ -111,7 +110,7 @@ namespace
 		return true;
 	}
 
-	inline UINT calculate_array_index_from_point(const DirectX::XMFLOAT3& point, const DirectX::XMFLOAT3& area_min, const DirectX::XMFLOAT3& area_unit, DirectX::XMUINT3 separate_count)
+	inline UINT calculate_array_index_from_point(const math::float3& point, const math::float3& area_min, const math::float3& area_unit, math::uint3 separate_count)
 	{
 		auto cell = [](float value, float amin, float unit, UINT count) -> int
 		{
@@ -124,7 +123,7 @@ namespace
 		return ix + iy * separate_count.x + iz * separate_count.x * separate_count.y;
 	}
 
-	std::vector<UINT> calculate_check_order_list(const DirectX::XMFLOAT3& min, const DirectX::XMFLOAT3& max, const DirectX::XMFLOAT3& area_min, const DirectX::XMFLOAT3& area_unit, DirectX::XMUINT3 separate_count)
+	std::vector<UINT> calculate_check_order_list(const math::float3& min, const math::float3& max, const math::float3& area_min, const math::float3& area_unit, math::uint3 separate_count)
 	{
 		auto cell = [](float value, float amin, float unit, UINT count) -> int
 		{
@@ -165,33 +164,33 @@ namespace
 	}
 
 
-	bool XM_CALLCONV calculate_nearlest_point(DirectX::XMVECTOR P,
-											  DirectX::XMVECTOR A, DirectX::XMVECTOR B, DirectX::XMVECTOR C,
-											  DirectX::XMVECTOR EdgeAB, DirectX::XMVECTOR EdgeBC, DirectX::XMVECTOR EdgeAC,
-											  DirectX::XMVECTOR& NearlestPoint)
+	bool calculate_nearlest_point(math::vector3f P,
+											  math::vector3f A, math::vector3f B, math::vector3f C,
+											  math::vector3f EdgeAB, math::vector3f EdgeBC, math::vector3f EdgeAC,
+											  math::vector3f& NearlestPoint)
 	{
-		DirectX::XMVECTOR AP = DirectX::XMVectorSubtract(P, A);
+		math::vector3f AP = P - A;
 
-		float d1 = DirectX::XMVectorGetX(DirectX::XMVector3Dot(EdgeAB, AP));
-		float d2 = DirectX::XMVectorGetX(DirectX::XMVector3Dot(EdgeAC, AP));
+		float d1 = math::vector3f::dot(EdgeAB, AP);
+		float d2 = math::vector3f::dot(EdgeAC, AP);
 		if (d1 <= 0.0f && d2 <= 0.0f)
 		{
 			NearlestPoint = A;
 			return false;
 		}
 
-		DirectX::XMVECTOR bp = DirectX::XMVectorSubtract(P, B);
-		float d3 = DirectX::XMVectorGetX(DirectX::XMVector3Dot(EdgeAB, bp));
-		float d4 = DirectX::XMVectorGetX(DirectX::XMVector3Dot(EdgeAC, bp));
+		math::vector3f bp = P - B;
+		float d3 = math::vector3f::dot(EdgeAB, bp);
+		float d4 = math::vector3f::dot(EdgeAC, bp);
 		if (d3 >= 0.0f && d4 <= d3)
 		{
 			NearlestPoint = B;
 			return false;
 		}
 
-		DirectX::XMVECTOR cp = DirectX::XMVectorSubtract(P, C);
-		float d5 = DirectX::XMVectorGetX(DirectX::XMVector3Dot(EdgeAB, cp));
-		float d6 = DirectX::XMVectorGetX(DirectX::XMVector3Dot(EdgeAC, cp));
+		math::vector3f cp = P - C;
+		float d5 = math::vector3f::dot(EdgeAB, cp);
+		float d6 = math::vector3f::dot(EdgeAC, cp);
 		if (d6 >= 0.0f && d5 <= d6)
 		{
 			NearlestPoint = C;
@@ -201,14 +200,14 @@ namespace
 		float vc = d1 * d4 - d3 * d2;
 		if (vc <= 0.0f && d1 >= 0.0f && d3 <= 0.0f)
 		{
-			NearlestPoint = DirectX::XMVectorAdd(DirectX::XMVectorScale(EdgeAB, d1 / (d1 - d3)), A);
+			NearlestPoint = (EdgeAB * (d1 / (d1 - d3))) + A;
 			return false;
 		}
 
 		float vb = d5 * d2 - d1 * d6;
 		if (vb <= 0.0f && d2 >= 0.0f && d6 <= 0.0f)
 		{
-			NearlestPoint = DirectX::XMVectorAdd(DirectX::XMVectorScale(EdgeAC, d2 / (d2 - d6)), A);
+			NearlestPoint = (EdgeAC * (d2 / (d2 - d6))) + A;
 			return false;
 		}
 
@@ -216,46 +215,46 @@ namespace
 		if (va <= 0.0f && (d4 - d3) >= 0.0f && (d5 - d6) >= 0.0f)
 		{
 			float w = (d4 - d3) / ((d4 - d3) + (d5 - d6));
-			NearlestPoint = DirectX::XMVectorAdd(DirectX::XMVectorScale(EdgeBC, w), B);
+			NearlestPoint = (EdgeBC * w) + B;
 			return false;
 		}
 
 		//	最近点が三角形内の点と判断
 		float denom = 1.0f / (va + vb + vc);
-		DirectX::XMVECTOR ab = DirectX::XMVectorScale(EdgeAB, vb * denom);
-		DirectX::XMVECTOR ac = DirectX::XMVectorScale(EdgeAC, vc * denom);
-		NearlestPoint = DirectX::XMVectorAdd(DirectX::XMVectorAdd(ab, ac), A);
+		math::vector3f ab = EdgeAB * (vb * denom);
+		math::vector3f ac = EdgeAC * (vc * denom);
+		NearlestPoint = (ab + ac) + A;
 		return true;
 	}
 
-	bool XM_CALLCONV intersect_ray(DirectX::XMVECTOR Start, DirectX::XMVECTOR Direction,
-								   DirectX::XMVECTOR A, DirectX::XMVECTOR B, DirectX::XMVECTOR C,
-								   DirectX::XMVECTOR EdgeAB, DirectX::XMVECTOR EdgeBC, DirectX::XMVECTOR EdgeCA,
-								   DirectX::XMVECTOR Normal,
-								   DirectX::XMVECTOR& InsertPoint, float& distance, float max_delta = 1.0f)
+	bool intersect_ray(math::vector3f Start, math::vector3f Direction,
+								   math::vector3f A, math::vector3f B, math::vector3f C,
+								   math::vector3f EdgeAB, math::vector3f EdgeBC, math::vector3f EdgeCA,
+								   math::vector3f Normal,
+								   math::vector3f& InsertPoint, float& distance, float max_delta = 1.0f)
 	{
-		float dot = DirectX::XMVectorGetX(DirectX::XMVector3Dot(Direction, Normal));
+		float dot = math::vector3f::dot(Direction, Normal);
 		if (dot >= 0.0f)
 			return	false;
 
-		float dot2 = DirectX::XMVectorGetX(DirectX::XMVector3Dot(DirectX::XMVectorSubtract(A, Start), Normal));
+		float dot2 = math::vector3f::dot(A - Start, Normal);
 		float delta = (dot2 == 0.0f) ? 0 : (dot2 / dot);
 		if (delta < 0.0f || delta > max_delta)
 			return	false;
 
-		DirectX::XMVECTOR IP = DirectX::XMVectorAdd(DirectX::XMVectorScale(Direction, delta), Start);
+		math::vector3f IP = (Direction * delta) + Start;
 
-		DirectX::XMVECTOR Work;
-		Work = DirectX::XMVector3Cross(EdgeAB, DirectX::XMVectorSubtract(A, IP));
-		if (DirectX::XMVectorGetX(DirectX::XMVector3Dot(Work, Normal)) < 0.0f)
+		math::vector3f Work;
+		Work = math::vector3f::cross(EdgeAB, A - IP);
+		if (math::vector3f::dot(Work, Normal) < 0.0f)
 			return false;
 
-		Work = DirectX::XMVector3Cross(EdgeBC, DirectX::XMVectorSubtract(B, IP));
-		if (DirectX::XMVectorGetX(DirectX::XMVector3Dot(Work, Normal)) < 0.0f)
+		Work = math::vector3f::cross(EdgeBC, B - IP);
+		if (math::vector3f::dot(Work, Normal) < 0.0f)
 			return false;
 
-		Work = DirectX::XMVector3Cross(EdgeCA, DirectX::XMVectorSubtract(C, IP));
-		if (DirectX::XMVectorGetX(DirectX::XMVector3Dot(Work, Normal)) < 0.0f)
+		Work = math::vector3f::cross(EdgeCA, C - IP);
+		if (math::vector3f::dot(Work, Normal) < 0.0f)
 			return false;
 
 		InsertPoint = IP;
@@ -263,70 +262,70 @@ namespace
 		return	true;
 	}
 
-	bool XM_CALLCONV intersect_ray_moller(DirectX::XMVECTOR Start, DirectX::XMVECTOR Direction,
-										  DirectX::XMVECTOR A, DirectX::XMVECTOR B, DirectX::XMVECTOR C,
-										  DirectX::XMVECTOR EdgeAB, DirectX::XMVECTOR EdgeCA,
-										  DirectX::XMVECTOR& InsertPoint, float& distance, float max_delta = 1.0f)
+	bool intersect_ray_moller(math::vector3f Start, math::vector3f Direction,
+										  math::vector3f A, math::vector3f B, math::vector3f C,
+										  math::vector3f EdgeAB, math::vector3f EdgeCA,
+										  math::vector3f& InsertPoint, float& distance, float max_delta = 1.0f)
 	{
-		DirectX::XMVECTOR e1 = EdgeAB;
-		DirectX::XMVECTOR e2 = DirectX::XMVectorNegate(EdgeCA);
+		math::vector3f e1 = EdgeAB;
+		math::vector3f e2 = -EdgeCA;
 
-		DirectX::XMVECTOR alpha = DirectX::XMVector3Cross(Direction, e2);
-		float det = DirectX::XMVectorGetX(DirectX::XMVector3Dot(e1, alpha));
+		math::vector3f alpha = math::vector3f::cross(Direction, e2);
+		float det = math::vector3f::dot(e1, alpha);
 		if (det <= 1e-6f)
 			return false;
 
 		float inv_det = 1.0f / det;
-		DirectX::XMVECTOR r = DirectX::XMVectorSubtract(Start, A);
+		math::vector3f r = Start - A;
 
-		float u = DirectX::XMVectorGetX(DirectX::XMVector3Dot(alpha, r)) * inv_det;
+		float u = math::vector3f::dot(alpha, r) * inv_det;
 		if (u < 0.0f || u > 1.0f)
 			return false;
 
-		DirectX::XMVECTOR beta = DirectX::XMVector3Cross(r, e1);
+		math::vector3f beta = math::vector3f::cross(r, e1);
 
-		float v = DirectX::XMVectorGetX(DirectX::XMVector3Dot(Direction, beta)) * inv_det;
+		float v = math::vector3f::dot(Direction, beta) * inv_det;
 		if (v < 0.0f || u + v > 1.0f)
 			return false;
 
-		float t = DirectX::XMVectorGetX(DirectX::XMVector3Dot(e2, beta)) * inv_det;
+		float t = math::vector3f::dot(e2, beta) * inv_det;
 		if (t < 0.0f || t > max_delta)
 			return false;
 
-		InsertPoint = DirectX::XMVectorAdd(DirectX::XMVectorScale(Direction, t), Start);
+		InsertPoint = (Direction * t) + Start;
 		distance = t;
 		return	true;
 	}
 
 
-	bool XM_CALLCONV ray_intersects_triangle_both_side(DirectX::XMVECTOR Start, DirectX::XMVECTOR Direction,
-		DirectX::XMVECTOR A, DirectX::XMVECTOR EdgeAB, DirectX::XMVECTOR EdgeCA)
+	bool ray_intersects_triangle_both_side(math::vector3f Start, math::vector3f Direction,
+		math::vector3f A, math::vector3f EdgeAB, math::vector3f EdgeCA)
 	{
 		constexpr float epsilon = 1e-6f;
 
-		DirectX::XMVECTOR e2 = DirectX::XMVectorNegate(EdgeCA);	//	e2 = C - A
+		math::vector3f e2 = -EdgeCA;	//	e2 = C - A
 
-		DirectX::XMVECTOR pvec = DirectX::XMVector3Cross(Direction, e2);
-		float det = DirectX::XMVectorGetX(DirectX::XMVector3Dot(EdgeAB, pvec));
+		math::vector3f pvec = math::vector3f::cross(Direction, e2);
+		float det = math::vector3f::dot(EdgeAB, pvec);
 		if (fabsf(det) < epsilon)
 			return false;	//	レイと三角形が平行
 
 		float inv_det = 1.0f / det;
-		DirectX::XMVECTOR tvec = DirectX::XMVectorSubtract(Start, A);
-		float u = DirectX::XMVectorGetX(DirectX::XMVector3Dot(tvec, pvec)) * inv_det;
+		math::vector3f tvec = Start - A;
+		float u = math::vector3f::dot(tvec, pvec) * inv_det;
 		if (u < 0.0f || u > 1.0f)
 			return false;
 
-		DirectX::XMVECTOR qvec = DirectX::XMVector3Cross(tvec, EdgeAB);
-		float v = DirectX::XMVectorGetX(DirectX::XMVector3Dot(Direction, qvec)) * inv_det;
+		math::vector3f qvec = math::vector3f::cross(tvec, EdgeAB);
+		float v = math::vector3f::dot(Direction, qvec) * inv_det;
 		if (v < 0.0f || u + v > 1.0f)
 			return false;
 
-		float t = DirectX::XMVectorGetX(DirectX::XMVector3Dot(e2, qvec)) * inv_det;
+		float t = math::vector3f::dot(e2, qvec) * inv_det;
 		return t > epsilon;	//	始点より前方でのみ交差とみなす
 	}
 
-	constexpr DirectX::XMFLOAT3 inside_test_ray_directions[] =
+	constexpr math::float3 inside_test_ray_directions[] =
 	{
 		{ 0.5773503f,  0.5773503f,  0.5773503f},
 		{ 0.7071068f, -0.7071068f,  0.4082483f},
@@ -351,13 +350,13 @@ void bounding_mesh::block_data::serialize(Archive& archive, int version)
 	archive(CEREAL_NVP(center), CEREAL_NVP(triangles));
 }
 
-const DirectX::XMFLOAT3& bounding_mesh::get_local_scale() const
+const math::float3& bounding_mesh::get_local_scale() const
 {
-	static const DirectX::XMFLOAT3 scale = {1.0f, 1.0f, 1.0f};
+	static const math::float3 scale = {1.0f, 1.0f, 1.0f};
 	return	scale;
 }
 
-void bounding_mesh::set_local_scale(const DirectX::XMFLOAT3& scale)
+void bounding_mesh::set_local_scale(const math::float3& scale)
 {
 	//	何もしない
 }
@@ -367,7 +366,7 @@ bounding_mesh::bounding_mesh()
 {
 }
 
-bounding_mesh::bounding_mesh(std::vector<DirectX::XMFLOAT3>& positions, std::vector<triangle>& triangles, UINT separate_level)
+bounding_mesh::bounding_mesh(std::vector<math::float3>& positions, std::vector<triangle>& triangles, UINT separate_level)
 	: bounding_object({1, 1, 1}, {0, 0, 0, 1}, {0, 0, 0})
 	, positions(positions)
 	, triangles(triangles)
@@ -376,7 +375,7 @@ bounding_mesh::bounding_mesh(std::vector<DirectX::XMFLOAT3>& positions, std::vec
 	//	頂点が無い場合は空のまま
 	if (positions.empty())
 	{
-		area_min = area_max = area_size = area_unit = DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f);
+		area_min = area_max = area_size = area_unit = math::float3(0.0f, 0.0f, 0.0f);
 		return;
 	}
 
@@ -437,8 +436,8 @@ bounding_mesh::bounding_mesh(std::vector<DirectX::XMFLOAT3>& positions, std::vec
 	//	三角形の事前計算
 	struct triangle_cache
 	{
-		DirectX::XMFLOAT3 a, b, c;
-		DirectX::XMVECTOR triangle_min, triangle_max;
+		math::float3 a, b, c;
+		math::vector3f triangle_min, triangle_max;
 	};
 	std::vector<triangle_cache> triangle_caches(triangles.size());
 	{
@@ -451,16 +450,16 @@ bounding_mesh::bounding_mesh(std::vector<DirectX::XMFLOAT3>& positions, std::vec
 			tc.a = p[tri->a];
 			tc.b = p[tri->b];
 			tc.c = p[tri->c];
-			auto A = DirectX::XMLoadFloat3(&tc.a);
-			auto B = DirectX::XMLoadFloat3(&tc.b);
-			auto C = DirectX::XMLoadFloat3(&tc.c);
-			tc.triangle_min = DirectX::XMVectorMin(DirectX::XMVectorMin(A, B), C);
-			tc.triangle_max = DirectX::XMVectorMax(DirectX::XMVectorMax(A, B), C);
+			auto A = math::vector3f(tc.a);
+			auto B = math::vector3f(tc.b);
+			auto C = math::vector3f(tc.c);
+			tc.triangle_min = (math::min)((math::min)(A, B), C);
+			tc.triangle_max = (math::max)((math::max)(A, B), C);
 		}
 	}
 
 	{
-		DirectX::XMFLOAT3 extent = area_unit;
+		math::float3 extent = area_unit;
 		extent.x *= 0.5f; extent.y *= 0.5f; extent.z *= 0.5f;
 
 		for (UINT z = 0; z < separate_count.z; ++z)
@@ -491,9 +490,9 @@ bounding_mesh::bounding_mesh(std::vector<DirectX::XMFLOAT3>& positions, std::vec
 		{
 			auto& tc = triangle_caches[index];
 
-			DirectX::XMFLOAT3 tmin, tmax;
-			DirectX::XMStoreFloat3(&tmin, tc.triangle_min);
-			DirectX::XMStoreFloat3(&tmax, tc.triangle_max);
+			math::float3 tmin, tmax;
+			tmin = math::vector3f(tc.triangle_min).to_float3();
+			tmax = math::vector3f(tc.triangle_max).to_float3();
 
 			int x0 = clamp_index(static_cast<int>((tmin.x - area_min.x) / area_unit.x) - 1, 0, static_cast<int>(separate_count.x) - 1);
 			int x1 = clamp_index(static_cast<int>((tmax.x - area_min.x) / area_unit.x) + 1, 0, static_cast<int>(separate_count.x) - 1);
@@ -515,13 +514,10 @@ bounding_mesh::bounding_mesh(std::vector<DirectX::XMFLOAT3>& positions, std::vec
 
 						block_data& data = block_datas[block_index];
 
-						DirectX::XMVECTOR BoxMin, BoxMax;
+						math::vector3f BoxMin, BoxMax;
 						data.bounds.include_corner(BoxMin, BoxMax);
 
-						auto Disjoint = DirectX::XMVectorOrInt(
-							DirectX::XMVectorGreater(tc.triangle_min, BoxMax),
-							DirectX::XMVectorGreater(BoxMin, tc.triangle_max));
-						if (DirectX::Internal::XMVector3AnyTrue(Disjoint))
+						if (math::any_greater(tc.triangle_min, BoxMax) || math::any_greater(BoxMin, tc.triangle_max))
 							continue;
 
 						if (triangle_aabb(tc.a, tc.b, tc.c, tri->normal, data.bounds))
@@ -641,7 +637,7 @@ bool bounding_mesh::deserialize(std::string_view file_path)
 		}
 
 		//	インデックスブロック内部のバウンディングボックス生成
-		DirectX::XMFLOAT3 extent;
+		math::float3 extent;
 		extent.x = area_unit.x * 0.5f;
 		extent.y = area_unit.y * 0.5f;
 		extent.z = area_unit.z * 0.5f;
@@ -654,23 +650,23 @@ bool bounding_mesh::deserialize(std::string_view file_path)
 		auto p = positions.data();
 		for (auto& triangle : triangles)
 		{
-			auto A = DirectX::XMLoadFloat3(p  + triangle.a);
-			auto B = DirectX::XMLoadFloat3(p  + triangle.b);
-			auto C = DirectX::XMLoadFloat3(p  + triangle.c);
-			auto AB = DirectX::XMVectorSubtract(B, A);
-			auto BC = DirectX::XMVectorSubtract(C, B);
-			auto CA = DirectX::XMVectorSubtract(A, C);
-			DirectX::XMStoreFloat3(&triangle.ab, AB);
-			DirectX::XMStoreFloat3(&triangle.bc, BC);
-			DirectX::XMStoreFloat3(&triangle.ca, CA);
+			auto A = math::vector3f(*(p  + triangle.a));
+			auto B = math::vector3f(*(p  + triangle.b));
+			auto C = math::vector3f(*(p  + triangle.c));
+			auto AB = B - A;
+			auto BC = C - B;
+			auto CA = A - C;
+			triangle.ab = AB.to_float3();
+			triangle.bc = BC.to_float3();
+			triangle.ca = CA.to_float3();
 
-			auto Normal = DirectX::XMVector3Cross(AB, BC);
-			DirectX::XMStoreFloat3(&triangle.normal, DirectX::XMVector3Normalize(Normal));
+			auto Normal = math::vector3f::cross(AB, BC);
+			triangle.normal = Normal.normalized().to_float3();
 
-			auto Min = DirectX::XMVectorMin(A, DirectX::XMVectorMin(B, C));
-			auto Max = DirectX::XMVectorMax(A, DirectX::XMVectorMax(B, C));
-			DirectX::XMStoreFloat3(&triangle.min, Min);
-			DirectX::XMStoreFloat3(&triangle.max, Max);
+			auto Min = (math::min)(A, (math::min)(B, C));
+			auto Max = (math::max)(A, (math::max)(B, C));
+			triangle.min = Min.to_float3();
+			triangle.max = Max.to_float3();
 			triangle.lab = collision::line(collision::line::types::segment, *(p  + triangle.a), *(p  + triangle.b));
 			triangle.lbc = collision::line(collision::line::types::segment, *(p  + triangle.b), *(p  + triangle.c));
 			triangle.lca = collision::line(collision::line::types::segment, *(p  + triangle.c), *(p  + triangle.a));
@@ -682,12 +678,12 @@ bool bounding_mesh::deserialize(std::string_view file_path)
 	return false;
 }
 
-bool bounding_mesh::intersect_point_inner(const DirectX::XMFLOAT3& point, float& nearlest, const std::vector<size_t>& triangle_indices) const
+bool bounding_mesh::intersect_point_inner(const math::float3& point, float& nearlest, const std::vector<size_t>& triangle_indices) const
 {
 	if (triangle_indices.empty())
 		return false;
 
-	DirectX::XMVECTOR P = DirectX::XMLoadFloat3(&point);
+	math::vector3f P(point);
 	auto p = positions.data();
 	auto ti = triangle_indices.data();
 	auto t = triangles.data();
@@ -696,27 +692,27 @@ bool bounding_mesh::intersect_point_inner(const DirectX::XMFLOAT3& point, float&
 	{
 		auto triangle = t + ti[index];
 
-		DirectX::XMVECTOR A = DirectX::XMLoadFloat3(p + triangle->a);
-		DirectX::XMVECTOR B = DirectX::XMLoadFloat3(p + triangle->b);
-		DirectX::XMVECTOR C = DirectX::XMLoadFloat3(p + triangle->c);
-		DirectX::XMVECTOR AB = DirectX::XMLoadFloat3(&triangle->ab);
-		DirectX::XMVECTOR BC = DirectX::XMLoadFloat3(&triangle->bc);
-		DirectX::XMVECTOR CA = DirectX::XMLoadFloat3(&triangle->ca);
-		DirectX::XMVECTOR AC = DirectX::XMVectorNegate(CA);
+		math::vector3f A(*(p + triangle->a));
+		math::vector3f B(*(p + triangle->b));
+		math::vector3f C(*(p + triangle->c));
+		math::vector3f AB(triangle->ab);
+		math::vector3f BC(triangle->bc);
+		math::vector3f CA(triangle->ca);
+		math::vector3f AC = -CA;
 
-		DirectX::XMVECTOR NP;
+		math::vector3f NP;
 		calculate_nearlest_point(P, A, B, C, AB, BC, AC, NP);
-		float t = DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(DirectX::XMVectorSubtract(NP, P)));
+		float t = (NP - P).square_length();
 		if (t < nearlest)
 			nearlest = t;
 	}
 	return nearlest < FLT_EPSILON;
 }
 
-bool bounding_mesh::intersect_point(const DirectX::XMFLOAT3& point) const
+bool bounding_mesh::intersect_point(const math::float3& point) const
 {
-	DirectX::XMFLOAT3 local_point;
-	DirectX::XMStoreFloat3(&local_point, DirectX::XMVector3TransformCoord(DirectX::XMLoadFloat3(&point), get_inverse_transform_matrix()));
+	math::float3 local_point;
+	local_point = (math::vector3f::transform_coord(math::vector3f(point), get_inverse_transform_matrix())).to_float3();
 
 	float nearlest = FLT_MAX;
 
@@ -733,18 +729,18 @@ bool bounding_mesh::intersect_point(const DirectX::XMFLOAT3& point) const
 	return false;
 }
 
-bool bounding_mesh::intersect_segment_inner(const DirectX::XMFLOAT3& start, const DirectX::XMFLOAT3& end, const std::vector<size_t>& triangle_indices, intersect_data* intersect) const
+bool bounding_mesh::intersect_segment_inner(const math::float3& start, const math::float3& end, const std::vector<size_t>& triangle_indices, intersect_data* intersect) const
 {
 	if (triangle_indices.empty())
 		return false;
 
-	auto Start	= DirectX::XMLoadFloat3(&start);
-	auto End = DirectX::XMLoadFloat3(&end);
-	auto Vec = DirectX::XMVectorSubtract(End, Start);
-	auto Length = DirectX::XMVector3Length(Vec);
-	auto Dir = DirectX::XMVectorDivide(Vec, Length);
+	auto Start = math::vector3f(start);
+	auto End = math::vector3f(end);
+	auto Vec = End - Start;
+	auto Length = Vec.length();
+	auto Dir = Vec / Length;
 
-	auto neart = DirectX::XMVectorGetX(Length);
+	auto neart = Length;
 
 	auto p = positions.data();
 	auto ti = triangle_indices.data();
@@ -752,42 +748,42 @@ bool bounding_mesh::intersect_segment_inner(const DirectX::XMFLOAT3& start, cons
 	const size_t triangle_count = triangle_indices.size();
 
 	bool hit = false;
-	DirectX::XMVECTOR HitPosition, HitNormal, Cross;
+	math::vector3f HitPosition, HitNormal, Cross;
 	for (size_t index = 0; index < triangle_count; ++index)
 	{
 		auto triangle = t[ti[index]];
-		DirectX::XMVECTOR Normal = DirectX::XMLoadFloat3(&triangle.normal);
-		DirectX::XMVECTOR Dot = DirectX::XMVector3Dot(Normal, Dir);
-		if (DirectX::XMVectorGetX(Dot) >= 0)
+		math::vector3f Normal(triangle.normal);
+		float Dot = math::vector3f::dot(Normal, Dir);
+		if (Dot >= 0)
 			continue;
 
-		DirectX::XMVECTOR A = DirectX::XMLoadFloat3(p + triangle.a);
+		math::vector3f A(*(p + triangle.a));
 
-		DirectX::XMVECTOR V = DirectX::XMVectorSubtract(A, Start);
-		DirectX::XMVECTOR T = DirectX::XMVectorDivide(DirectX::XMVector3Dot(Normal, V), Dot);
+		math::vector3f V = A - Start;
+		float T = (math::vector3f::dot(Normal, V)) / Dot;
 
-		float t = DirectX::XMVectorGetX(T);
+		float t = T;
 		if (t < 0 || t > neart)
 			continue;
 
-		DirectX::XMVECTOR IP = DirectX::XMVectorMultiplyAdd(Dir, T, Start);
+		math::vector3f IP = Dir * T + Start;
 
-		V = DirectX::XMVectorSubtract(A, IP);
-		Cross = DirectX::XMVector3Cross(DirectX::XMVectorSubtract(A, IP), DirectX::XMLoadFloat3(&triangle.ab));
-		Dot = DirectX::XMVector3Dot(Cross, Normal);
-		if (DirectX::XMVectorGetX(Dot) < 0)
+		V = A - IP;
+		Cross = math::vector3f::cross(A - IP, math::vector3f(triangle.ab));
+		Dot = math::vector3f::dot(Cross, Normal);
+		if (Dot < 0)
 			continue;
 
-		DirectX::XMVECTOR B = DirectX::XMLoadFloat3(p + triangle.b);
-		Cross = DirectX::XMVector3Cross(DirectX::XMVectorSubtract(B, IP), DirectX::XMLoadFloat3(&triangle.bc));
-		Dot = DirectX::XMVector3Dot(Cross, Normal);
-		if (DirectX::XMVectorGetX(Dot) < 0)
+		math::vector3f B(*(p + triangle.b));
+		Cross = math::vector3f::cross(B - IP, math::vector3f(triangle.bc));
+		Dot = math::vector3f::dot(Cross, Normal);
+		if (Dot < 0)
 			continue;
 
-		DirectX::XMVECTOR C = DirectX::XMLoadFloat3(p + triangle.c);
-		Cross = DirectX::XMVector3Cross(DirectX::XMVectorSubtract(C, IP), DirectX::XMLoadFloat3(&triangle.ca));
-		Dot = DirectX::XMVector3Dot(Cross, Normal);
-		if (DirectX::XMVectorGetX(Dot) < 0)
+		math::vector3f C(*(p + triangle.c));
+		Cross = math::vector3f::cross(C - IP, math::vector3f(triangle.ca));
+		Dot = math::vector3f::dot(Cross, Normal);
+		if (Dot < 0)
 			continue;
 
 		neart = t;
@@ -798,25 +794,25 @@ bool bounding_mesh::intersect_segment_inner(const DirectX::XMFLOAT3& start, cons
 	if (hit && intersect)
 	{
 		intersect_data::infomation infomation;
-		DirectX::XMStoreFloat3(&infomation.point, HitPosition);
-		DirectX::XMStoreFloat3(&infomation.normal, HitNormal);
+		infomation.point = HitPosition.to_float3();
+		infomation.normal = HitNormal.to_float3();
 		infomation.length = neart;
 		intersect->add(infomation);
 	}
 	return	hit;
 }
 
-bool bounding_mesh::intersect_segment_inner_moller(const DirectX::XMFLOAT3& start, const DirectX::XMFLOAT3& end, const std::vector<size_t>& triangle_indices, intersect_data* intersect) const
+bool bounding_mesh::intersect_segment_inner_moller(const math::float3& start, const math::float3& end, const std::vector<size_t>& triangle_indices, intersect_data* intersect) const
 {
 	if (triangle_indices.empty())
 		return false;
 
-	auto Start	= DirectX::XMLoadFloat3(&start);
-	auto End = DirectX::XMLoadFloat3(&end);
-	auto Vec = DirectX::XMVectorSubtract(End, Start);
-	auto Length = DirectX::XMVector3Length(Vec);
-	auto Dir = DirectX::XMVectorDivide(Vec, Length);
-	auto neart = DirectX::XMVectorGetX(Length);
+	auto Start = math::vector3f(start);
+	auto End = math::vector3f(end);
+	auto Vec = End - Start;
+	auto Length = Vec.length();
+	auto Dir = Vec / Length;
+	auto neart = Length;
 
 	auto p = positions.data();
 	auto ti = triangle_indices.data();
@@ -824,41 +820,41 @@ bool bounding_mesh::intersect_segment_inner_moller(const DirectX::XMFLOAT3& star
 	const size_t triangle_count = triangle_indices.size();
 
 	bool hit = false;
-	DirectX::XMFLOAT3 hit_normal;
-	DirectX::XMVECTOR HitPosition;
+	math::float3 hit_normal;
+	math::vector3f HitPosition;
 	for (size_t index = 0; index < triangle_count; ++index)
 	{
 		auto triangle = t[ti[index]];
 
-		DirectX::XMVECTOR A = DirectX::XMLoadFloat3(p + triangle.a);
-		DirectX::XMVECTOR e1 = DirectX::XMLoadFloat3(&triangle.ab);				//	e1 = B - A
-		DirectX::XMVECTOR e2 = DirectX::XMVectorNegate(DirectX::XMLoadFloat3(&triangle.ca));	//	e2 = C - A (= -CA)
+		math::vector3f A(*(p + triangle.a));
+		math::vector3f e1(triangle.ab);				//	e1 = B - A
+		math::vector3f e2 = -math::vector3f(triangle.ca);	//	e2 = C - A (= -CA)
 
-		DirectX::XMVECTOR alpha = DirectX::XMVector3Cross(Dir, e2);
-		float det = DirectX::XMVectorGetX(DirectX::XMVector3Dot(e1, alpha));
+		math::vector3f alpha = math::vector3f::cross(Dir, e2);
+		float det = math::vector3f::dot(e1, alpha);
 
 		if (det <= 1e-6f)
 			continue;
 
 		float inv_det = 1.0f / det;
-		DirectX::XMVECTOR r = DirectX::XMVectorSubtract(Start, A);
+		math::vector3f r = Start - A;
 
-		float u = DirectX::XMVectorGetX(DirectX::XMVector3Dot(alpha, r)) * inv_det;
+		float u = math::vector3f::dot(alpha, r) * inv_det;
 		if (u < 0.0f || u > 1.0f)
 			continue;
 
-		DirectX::XMVECTOR beta = DirectX::XMVector3Cross(r, e1);
+		math::vector3f beta = math::vector3f::cross(r, e1);
 
-		float v = DirectX::XMVectorGetX(DirectX::XMVector3Dot(Dir, beta)) * inv_det;
+		float v = math::vector3f::dot(Dir, beta) * inv_det;
 		if (v < 0.0f || u + v > 1.0f)
 			continue;
 
-		float tt = DirectX::XMVectorGetX(DirectX::XMVector3Dot(e2, beta)) * inv_det;
+		float tt = math::vector3f::dot(e2, beta) * inv_det;
 		if (tt < 0.0f || tt > neart)
 			continue;
 
 		neart = tt;
-		HitPosition = DirectX::XMVectorMultiplyAdd(Dir, DirectX::XMVectorReplicate(tt), Start);
+		HitPosition = Dir * (math::vector3f(tt, tt, tt)) + Start;
 		hit_normal = triangle.normal;
 		hit = true;
 	}
@@ -866,7 +862,7 @@ bool bounding_mesh::intersect_segment_inner_moller(const DirectX::XMFLOAT3& star
 	if (hit && intersect)
 	{
 		intersect_data::infomation infomation;
-		DirectX::XMStoreFloat3(&infomation.point, HitPosition);
+		infomation.point = HitPosition.to_float3();
 		infomation.normal = hit_normal;
 		infomation.length = neart;
 		intersect->add(infomation);
@@ -874,20 +870,20 @@ bool bounding_mesh::intersect_segment_inner_moller(const DirectX::XMFLOAT3& star
 	return	hit;
 }
 
-bool bounding_mesh::intersect_segment(const DirectX::XMFLOAT3& start, const DirectX::XMFLOAT3& end, intersect_data* intersect) const
+bool bounding_mesh::intersect_segment(const math::float3& start, const math::float3& end, intersect_data* intersect) const
 {
-	DirectX::XMFLOAT3 local_start, local_end;
-	DirectX::XMStoreFloat3(&local_start, DirectX::XMVector3TransformCoord(DirectX::XMLoadFloat3(&start), get_inverse_transform_matrix()));
-	DirectX::XMStoreFloat3(&local_end,   DirectX::XMVector3TransformCoord(DirectX::XMLoadFloat3(&end),   get_inverse_transform_matrix()));
+	math::float3 local_start, local_end;
+	local_start = (math::vector3f::transform_coord(math::vector3f(start), get_inverse_transform_matrix())).to_float3();
+	local_end = (math::vector3f::transform_coord(math::vector3f(end), get_inverse_transform_matrix())).to_float3();
 
-	DirectX::XMFLOAT3 min = local_start, max = local_start;
+	math::float3 min = local_start, max = local_start;
 	min.x = std::min(min.x, local_end.x);
 	min.y = std::min(min.y, local_end.y);
 	min.z = std::min(min.z, local_end.z);
 	max.x = std::max(max.x, local_end.x);
 	max.y = std::max(max.y, local_end.y);
 	max.z = std::max(max.z, local_end.z);
-	if (DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(DirectX::XMVectorSubtract(DirectX::XMLoadFloat3(&local_end), DirectX::XMLoadFloat3(&local_start)))) <= 1e-12f)
+	if ((math::vector3f(local_end) - math::vector3f(local_start)).square_length() <= 1e-12f)
 		return false;
 
 	auto list = calculate_check_order_list(min, max, area_min, area_unit, separate_count);
@@ -933,63 +929,63 @@ bool bounding_mesh::intersect_segment(const DirectX::XMFLOAT3& start, const Dire
 	return hit;
 }
 
-bool bounding_mesh::intersect_sphere_inner(const DirectX::XMFLOAT3& point, float radius, const std::vector<size_t>& triangle_indices, intersect_data* intersect) const
+bool bounding_mesh::intersect_sphere_inner(const math::float3& point, float radius, const std::vector<size_t>& triangle_indices, intersect_data* intersect) const
 {
 	if (triangle_indices.empty())
 		return false;
 
-	DirectX::XMVECTOR P = DirectX::XMLoadFloat3(&point);
+	math::vector3f P(point);
 	auto p = positions.data();
 	auto ti = triangle_indices.data();
 	auto t = triangles.data();
-	DirectX::XMVECTOR NealestPoint = {};
-	DirectX::XMVECTOR NealestNormal = DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+	math::vector3f NealestPoint = {};
+	math::vector3f NealestNormal(0.0f, 1.0f, 0.0f);
 	float nearlest = FLT_MAX;
 	for (size_t index = 0; index < triangle_indices.size(); ++index)
 	{
 		auto triangle = t + ti[index];
-		DirectX::XMVECTOR A = DirectX::XMLoadFloat3(p + triangle->a);
-		DirectX::XMVECTOR B = DirectX::XMLoadFloat3(p + triangle->b);
-		DirectX::XMVECTOR C = DirectX::XMLoadFloat3(p + triangle->c);
-		DirectX::XMVECTOR AB = DirectX::XMLoadFloat3(&triangle->ab);
-		DirectX::XMVECTOR BC = DirectX::XMLoadFloat3(&triangle->bc);
-		DirectX::XMVECTOR CA = DirectX::XMLoadFloat3(&triangle->ca);
-		DirectX::XMVECTOR AC = DirectX::XMVectorNegate(CA);
+		math::vector3f A(*(p + triangle->a));
+		math::vector3f B(*(p + triangle->b));
+		math::vector3f C(*(p + triangle->c));
+		math::vector3f AB(triangle->ab);
+		math::vector3f BC(triangle->bc);
+		math::vector3f CA(triangle->ca);
+		math::vector3f AC = -CA;
 
-		DirectX::XMVECTOR NP;
+		math::vector3f NP;
 		calculate_nearlest_point(P, A, B, C, AB, BC, AC, NP);
-		float t = DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(DirectX::XMVectorSubtract(NP, P)));
+		float t = (NP - P).square_length();
 		if (t < nearlest)
 		{
 			nearlest = t;
 			NealestPoint = NP;
-			NealestNormal = DirectX::XMLoadFloat3(&triangle->normal);
+			NealestNormal = math::vector3f(triangle->normal);
 		}
 	}
 	nearlest = sqrtf(nearlest);
 	nearlest -= radius;
 	if (nearlest <= 0.0f && intersect)
 	{
-		P = DirectX::XMLoadFloat3(&point);
-		DirectX::XMVECTOR Vector = DirectX::XMVectorSubtract(NealestPoint, P);
+		P = math::vector3f(point);
+		math::vector3f Vector = NealestPoint - P;
 		//	中心が面上なら面法線の逆向き
-		if (DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(Vector)) <= 1e-12f)
-			Vector = DirectX::XMVectorNegate(NealestNormal);
-		Vector = DirectX::XMVector3Normalize(Vector);
-		DirectX::XMFLOAT3 p, n;
-		DirectX::XMStoreFloat3(&p, NealestPoint);
-		DirectX::XMStoreFloat3(&n, Vector);
+		if (Vector.square_length() <= 1e-12f)
+			Vector = -NealestNormal;
+		Vector = Vector.normalized();
+		math::float3 p, n;
+		p = math::vector3f(NealestPoint).to_float3();
+		n = Vector.to_float3();
 		intersect->add(p, n, fabsf(nearlest));
 	}
 	return nearlest <= 0.0f;
 }
 
-bool bounding_mesh::intersect_sphere(const DirectX::XMFLOAT3& point, float radius, intersect_data* intersect) const
+bool bounding_mesh::intersect_sphere(const math::float3& point, float radius, intersect_data* intersect) const
 {
-	DirectX::XMFLOAT3 local_point;
-	DirectX::XMStoreFloat3(&local_point, DirectX::XMVector3TransformCoord(DirectX::XMLoadFloat3(&point), get_inverse_transform_matrix()));
+	math::float3 local_point;
+	local_point = (math::vector3f::transform_coord(math::vector3f(point), get_inverse_transform_matrix())).to_float3();
 
-	DirectX::XMFLOAT3 min, max;
+	math::float3 min, max;
 	min.x = local_point.x - radius;
 	min.y = local_point.y - radius;
 	min.z = local_point.z - radius;
@@ -1035,7 +1031,7 @@ bool bounding_mesh::intersect_sphere(const bounding_sphere& sphere, intersect_da
 	return	intersect_sphere(sphere.get_position(), sphere.get_radius(), intersect);
 }
 
-bool bounding_mesh::intersect_capsule_inner(const bounding_capsule& local_capsule, DirectX::XMVECTOR CapsuleMin, DirectX::XMVECTOR CapsuleMax, DirectX::XMMATRIX TransformMatrix, const std::vector<size_t>& triangle_indices, intersect_data* intersect) const
+bool bounding_mesh::intersect_capsule_inner(const bounding_capsule& local_capsule, math::vector3f CapsuleMin, math::vector3f CapsuleMax, math::matrixf TransformMatrix, const std::vector<size_t>& triangle_indices, intersect_data* intersect) const
 {
 	if (triangle_indices.empty())
 		return false;
@@ -1045,10 +1041,10 @@ bool bounding_mesh::intersect_capsule_inner(const bounding_capsule& local_capsul
 	auto t = triangles.data();
 	auto local_capsule_line = local_capsule.get_line();
 	auto radius = local_capsule.get_radius();
-	auto LineA = DirectX::XMLoadFloat3(&local_capsule_line[0]);
-	auto LineB = DirectX::XMLoadFloat3(&local_capsule_line[1]);
+	auto LineA = math::vector3f(local_capsule_line[0]);
+	auto LineB = math::vector3f(local_capsule_line[1]);
 
-	DirectX::XMFLOAT3 nearlest_point_segment = {}, nearlest_point_triangle = {};
+	math::float3 nearlest_point_segment = {}, nearlest_point_triangle = {};
 	bool nearlest_point_edghFlg = false;
 	float nearlest = FLT_MAX;
 	size_t nealest_face_index = -1;
@@ -1057,21 +1053,19 @@ bool bounding_mesh::intersect_capsule_inner(const bounding_capsule& local_capsul
 		auto triangle = t + ti[index];
 
 		//	ボックス判定
-		auto Min = DirectX::XMLoadFloat3(&triangle->min);
-		auto Max = DirectX::XMLoadFloat3(&triangle->max);
-		DirectX::XMVECTOR Disjoint = DirectX::XMVectorOrInt(DirectX::XMVectorGreater(CapsuleMin, Max),
-															DirectX::XMVectorGreater(Min, CapsuleMax));
-		if (DirectX::Internal::XMVector3AnyTrue(Disjoint))
+		auto Min = math::vector3f(triangle->min);
+		auto Max = math::vector3f(triangle->max);
+		if (math::any_greater(CapsuleMin, Max) || math::any_greater(Min, CapsuleMax))
 			continue;
 
 		//	平面距離判定
 		if (nearlest < FLT_MAX)
 		{
-			auto TriA = DirectX::XMLoadFloat3(p + triangle->a);
-			auto Normal = DirectX::XMLoadFloat3(&triangle->normal);
+			auto TriA = math::vector3f(*(p + triangle->a));
+			auto Normal = math::vector3f(triangle->normal);
 
-			float dA = DirectX::XMVectorGetX(DirectX::XMVector3Dot(Normal, DirectX::XMVectorSubtract(LineA, TriA)));
-			float dB = DirectX::XMVectorGetX(DirectX::XMVector3Dot(Normal, DirectX::XMVectorSubtract(LineB, TriA)));
+			float dA = math::vector3f::dot(Normal, LineA - TriA);
+			float dB = math::vector3f::dot(Normal, LineB - TriA);
 
 			if (dA * dB > 0.0f)
 			{
@@ -1081,7 +1075,7 @@ bool bounding_mesh::intersect_capsule_inner(const bounding_capsule& local_capsul
 		}
 
 		//	距離算出
-		DirectX::XMFLOAT3 near_point_segment, near_point_triangle;
+		math::float3 near_point_segment, near_point_triangle;
 		bool near_point_edghFlg;
 		float t = calculate_segment_distance(local_capsule_line, *triangle, near_point_segment, near_point_triangle, near_point_edghFlg);
 		if (t < nearlest)
@@ -1097,23 +1091,23 @@ bool bounding_mesh::intersect_capsule_inner(const bounding_capsule& local_capsul
 	if (nearlest < radius && intersect)
 	{
 		auto triangle = t + ti[nealest_face_index];
-		DirectX::XMVECTOR TriangleA = DirectX::XMLoadFloat3(p + triangle->a);
-		DirectX::XMVECTOR TriangleB = DirectX::XMLoadFloat3(p + triangle->b);
-		DirectX::XMVECTOR TriangleC = DirectX::XMLoadFloat3(p + triangle->c);
-		DirectX::XMVECTOR PointA = DirectX::XMLoadFloat3(&nearlest_point_segment);
-		DirectX::XMVECTOR PointB = DirectX::XMLoadFloat3(&nearlest_point_triangle);
+		math::vector3f TriangleA(*(p + triangle->a));
+		math::vector3f TriangleB(*(p + triangle->b));
+		math::vector3f TriangleC(*(p + triangle->c));
+		math::vector3f PointA(nearlest_point_segment);
+		math::vector3f PointB(nearlest_point_triangle);
 
-		DirectX::XMVECTOR Position = DirectX::XMLoadFloat3(&local_capsule.get_line()[0]);
-		DirectX::XMVECTOR End = DirectX::XMLoadFloat3(&local_capsule.get_line()[1]);
-		DirectX::XMVECTOR Direction = DirectX::XMVector3Normalize(DirectX::XMVectorSubtract(Position, End));
+		math::vector3f Position(local_capsule.get_line()[0]);
+		math::vector3f End(local_capsule.get_line()[1]);
+		math::vector3f Direction = (Position - End).normalized();
 
 		collision::intersect_data::infomation infomation;
 		infomation.point = nearlest_point_segment;
 		infomation.point2 = nearlest_point_triangle;
-		DirectX::XMVECTOR Vector = DirectX::XMVectorSubtract(PointA, PointB);
+		math::vector3f Vector = PointA - PointB;
 
 		//	最短点が面上の場合
-		DirectX::XMVECTOR Normal = DirectX::XMLoadFloat3(&triangle->normal);
+		math::vector3f Normal(triangle->normal);
 
 		if (!nearlest_point_edghFlg)
 		{
@@ -1121,20 +1115,20 @@ bool bounding_mesh::intersect_capsule_inner(const bounding_capsule& local_capsul
 			if (nearlest == 0)
 			{
 				//	両端の表裏判定
-				float d = DirectX::XMVectorGetX(DirectX::XMVector3Dot(Normal, Direction));
-				DirectX::XMVECTOR BackPoint = d > 0 ? End : Position;
+				float d = math::vector3f::dot(Normal, Direction);
+				math::vector3f BackPoint = d > 0 ? End : Position;
 
 				//	裏側の点から交点へのベクトルを算出し、カプセルのポジションに加算
 				//	さらに法線の単位ベクトルにカプセルの半径を掛けたベクトルを用意し、カプセルのポジションに加算する
-				Vector = DirectX::XMVectorAdd(DirectX::XMVectorSubtract(PointB, BackPoint), DirectX::XMVectorScale(Normal, radius));
+				Vector = (PointB - BackPoint) + (Normal * radius);
 
-				infomation.length = DirectX::XMVectorGetX(DirectX::XMVector3Length(Vector));
-				Normal = DirectX::XMVector3Normalize(Vector);
+				infomation.length = Vector.length();
+				Normal = Vector.normalized();
 			}
 			else
 			{
-				infomation.length = radius - DirectX::XMVectorGetX(DirectX::XMVector3Length(Vector));
-				Normal = DirectX::XMVector3Normalize(Vector);
+				infomation.length = radius - Vector.length();
+				Normal = Vector.normalized();
 			}
 		}
 		else
@@ -1142,21 +1136,21 @@ bool bounding_mesh::intersect_capsule_inner(const bounding_capsule& local_capsul
 			//	最短点が辺上の場合
 			infomation.length = radius - nearlest;
 		//	infomation.length = radius - DirectX::XMVectorGetX(DirectX::XMVector3Length(Vector));
-			Normal = DirectX::XMVector3Normalize(Vector);
+			Normal = Vector.normalized();
 		}
 
 		//	法線が手に入らなかった場合は三角形の面を納入
-		if (DirectX::XMVectorGetX(DirectX::XMVector3Dot(Normal, Normal)) <= FLT_EPSILON)
+		if (math::vector3f::dot(Normal, Normal) <= FLT_EPSILON)
 		{
-			Normal = DirectX::XMLoadFloat3(&triangle->normal);
+			Normal = math::vector3f(triangle->normal);
 		}
 
 		//	法線を反転しておく
-		DirectX::XMStoreFloat3(&infomation.normal, DirectX::XMVectorNegate(Normal));
+		infomation.normal = (-Normal).to_float3();
 
-		DirectX::XMStoreFloat3(&infomation.point, DirectX::XMVector3TransformCoord(DirectX::XMLoadFloat3(&infomation.point), TransformMatrix));
-		DirectX::XMStoreFloat3(&infomation.point2, DirectX::XMVector3TransformCoord(DirectX::XMLoadFloat3(&infomation.point2), TransformMatrix));
-		DirectX::XMStoreFloat3(&infomation.normal, DirectX::XMVector3Normalize(DirectX::XMVector3TransformNormal(DirectX::XMLoadFloat3(&infomation.normal), TransformMatrix)));
+		infomation.point = (math::vector3f::transform_coord(math::vector3f(infomation.point), TransformMatrix)).to_float3();
+		infomation.point2 = (math::vector3f::transform_coord(math::vector3f(infomation.point2), TransformMatrix)).to_float3();
+		infomation.normal = ((math::vector3f::transform_normal(math::vector3f(infomation.normal), TransformMatrix)).normalized()).to_float3();
 		intersect->add(infomation);
 	}
 	return nearlest < radius;
@@ -1167,23 +1161,24 @@ bool bounding_mesh::intersect_capsule(const bounding_capsule& capsule, intersect
 	//	ローカル空間に変換
 	bounding_capsule local_capsule = capsule;
 	{
-		DirectX::XMMATRIX CopyTransformMatrix = local_capsule.get_transform_matrix();
-		DirectX::XMVECTOR Scale, Rotation, Translation;
-		DirectX::XMMatrixDecompose(&Scale, &Rotation, &Translation, CopyTransformMatrix * get_inverse_transform_matrix());
-		DirectX::XMFLOAT4 rotation;
-		DirectX::XMFLOAT3 translation;
-		DirectX::XMStoreFloat4(&rotation, Rotation);
-		DirectX::XMStoreFloat3(&translation, Translation);
+		math::matrixf CopyTransformMatrix = local_capsule.get_transform_matrix();
+		math::vector3f Scale, Translation;
+		math::quaternionf Rotation;
+		(CopyTransformMatrix * get_inverse_transform_matrix()).decompose(Scale, Rotation, Translation);
+		math::float4 rotation;
+		math::float3 translation;
+		rotation = Rotation.to_float4();
+		translation = Translation.to_float3();
 		local_capsule.set_rotation(rotation);
 		local_capsule.set_position(translation);
 	}
 
 	//	ローカル空間のAABB
-	DirectX::XMVECTOR Min, Max;
-	DirectX::XMFLOAT3 min, max;
+	math::vector3f Min, Max;
+	math::float3 min, max;
 	local_capsule.include_corner(min, max);
-	Min = DirectX::XMLoadFloat3(&min);
-	Max = DirectX::XMLoadFloat3(&max);
+	Min = math::vector3f(min);
+	Max = math::vector3f(max);
 
 	auto list = calculate_check_order_list(min, max, area_min, area_unit, separate_count);
 	if (list.empty())
@@ -1223,8 +1218,8 @@ bool bounding_mesh::intersect_capsule(const bounding_capsule& capsule, intersect
 	return hit;
 }
 
-bool bounding_mesh::intersect_box_inner(DirectX::XMVECTOR Center, DirectX::XMVECTOR AxisX, DirectX::XMVECTOR AxisY, DirectX::XMVECTOR AxisZ,
-										 const DirectX::XMFLOAT3& half_extent, DirectX::XMVECTOR BoxMin, DirectX::XMVECTOR BoxMax,
+bool bounding_mesh::intersect_box_inner(math::vector3f Center, math::vector3f AxisX, math::vector3f AxisY, math::vector3f AxisZ,
+										 const math::float3& half_extent, math::vector3f BoxMin, math::vector3f BoxMax,
 										 const std::vector<size_t>& triangle_indices, intersect_data* intersect) const
 {
 	if (triangle_indices.empty())
@@ -1234,45 +1229,43 @@ bool bounding_mesh::intersect_box_inner(DirectX::XMVECTOR Center, DirectX::XMVEC
 	auto ti = triangle_indices.data();
 	auto t = triangles.data();
 
-	inner::axis_aligned_bounding_box local_box(half_extent, DirectX::XMFLOAT3{0.0f, 0.0f, 0.0f});
+	inner::axis_aligned_bounding_box local_box(half_extent, math::float3{0.0f, 0.0f, 0.0f});
 
-	auto to_box_space = [&](DirectX::XMVECTOR V)
+	auto to_box_space = [&](math::vector3f V)
 	{
-		DirectX::XMVECTOR D = DirectX::XMVectorSubtract(V, Center);
-		DirectX::XMFLOAT3 result;
-		result.x = DirectX::XMVectorGetX(DirectX::XMVector3Dot(D, AxisX));
-		result.y = DirectX::XMVectorGetX(DirectX::XMVector3Dot(D, AxisY));
-		result.z = DirectX::XMVectorGetX(DirectX::XMVector3Dot(D, AxisZ));
+		math::vector3f D = V - Center;
+		math::float3 result;
+		result.x = math::vector3f::dot(D, AxisX);
+		result.y = math::vector3f::dot(D, AxisY);
+		result.z = math::vector3f::dot(D, AxisZ);
 		return result;
 	};
 
 	bool hit = false;
 	float nearlest = FLT_MAX;
-	DirectX::XMVECTOR NearlestPoint = {};
-	DirectX::XMVECTOR NearlestNormal = AxisY;
+	math::vector3f NearlestPoint = {};
+	math::vector3f NearlestNormal = AxisY;
 	for (size_t index = 0; index < triangle_indices.size(); ++index)
 	{
 		auto triangle = t + ti[index];
 
-		DirectX::XMVECTOR TriMin = DirectX::XMLoadFloat3(&triangle->min);
-		DirectX::XMVECTOR TriMax = DirectX::XMLoadFloat3(&triangle->max);
-		DirectX::XMVECTOR Disjoint = DirectX::XMVectorOrInt(DirectX::XMVectorGreater(TriMin, BoxMax),
-															 DirectX::XMVectorGreater(BoxMin, TriMax));
-		if (DirectX::Internal::XMVector3AnyTrue(Disjoint))
+		math::vector3f TriMin(triangle->min);
+		math::vector3f TriMax(triangle->max);
+		if (math::any_greater(TriMin, BoxMax) || math::any_greater(BoxMin, TriMax))
 			continue;
 
-		DirectX::XMVECTOR A = DirectX::XMLoadFloat3(p + triangle->a);
-		DirectX::XMVECTOR B = DirectX::XMLoadFloat3(p + triangle->b);
-		DirectX::XMVECTOR C = DirectX::XMLoadFloat3(p + triangle->c);
-		DirectX::XMVECTOR Normal = DirectX::XMLoadFloat3(&triangle->normal);
+		math::vector3f A(*(p + triangle->a));
+		math::vector3f B(*(p + triangle->b));
+		math::vector3f C(*(p + triangle->c));
+		math::vector3f Normal(triangle->normal);
 
-		DirectX::XMFLOAT3 la = to_box_space(A);
-		DirectX::XMFLOAT3 lb = to_box_space(B);
-		DirectX::XMFLOAT3 lc = to_box_space(C);
-		DirectX::XMFLOAT3 ln;
-		ln.x = DirectX::XMVectorGetX(DirectX::XMVector3Dot(Normal, AxisX));
-		ln.y = DirectX::XMVectorGetX(DirectX::XMVector3Dot(Normal, AxisY));
-		ln.z = DirectX::XMVectorGetX(DirectX::XMVector3Dot(Normal, AxisZ));
+		math::float3 la = to_box_space(A);
+		math::float3 lb = to_box_space(B);
+		math::float3 lc = to_box_space(C);
+		math::float3 ln;
+		ln.x = math::vector3f::dot(Normal, AxisX);
+		ln.y = math::vector3f::dot(Normal, AxisY);
+		ln.z = math::vector3f::dot(Normal, AxisZ);
 
 		if (!triangle_aabb(la, lb, lc, ln, local_box))
 			continue;
@@ -1282,15 +1275,15 @@ bool bounding_mesh::intersect_box_inner(DirectX::XMVECTOR Center, DirectX::XMVEC
 		if (!intersect)
 			continue;
 
-		DirectX::XMVECTOR AB = DirectX::XMLoadFloat3(&triangle->ab);
-		DirectX::XMVECTOR BC = DirectX::XMLoadFloat3(&triangle->bc);
-		DirectX::XMVECTOR CA = DirectX::XMLoadFloat3(&triangle->ca);
-		DirectX::XMVECTOR AC = DirectX::XMVectorNegate(CA);
+		math::vector3f AB(triangle->ab);
+		math::vector3f BC(triangle->bc);
+		math::vector3f CA(triangle->ca);
+		math::vector3f AC = -CA;
 
-		DirectX::XMVECTOR NP;
+		math::vector3f NP;
 		calculate_nearlest_point(Center, A, B, C, AB, BC, AC, NP);
 
-		float distance_square = DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(DirectX::XMVectorSubtract(NP, Center)));
+		float distance_square = (NP - Center).square_length();
 		if (distance_square < nearlest)
 		{
 			nearlest = distance_square;
@@ -1301,18 +1294,18 @@ bool bounding_mesh::intersect_box_inner(DirectX::XMVECTOR Center, DirectX::XMVEC
 
 	if (hit && intersect)
 	{
-		DirectX::XMVECTOR Vector = DirectX::XMVectorSubtract(NearlestPoint, Center);
+		math::vector3f Vector = NearlestPoint - Center;
 		float distance = sqrtf(nearlest);
 		//	中心が面上なら面法線の逆向き
-		DirectX::XMVECTOR Direction = (distance > FLT_EPSILON) ? DirectX::XMVector3Normalize(Vector) : DirectX::XMVectorNegate(NearlestNormal);
+		math::vector3f Direction = (distance > FLT_EPSILON) ? Vector.normalized() : -NearlestNormal;
 
-		float support = fabsf(DirectX::XMVectorGetX(DirectX::XMVector3Dot(AxisX, Direction))) * half_extent.x
-					   + fabsf(DirectX::XMVectorGetX(DirectX::XMVector3Dot(AxisY, Direction))) * half_extent.y
-					   + fabsf(DirectX::XMVectorGetX(DirectX::XMVector3Dot(AxisZ, Direction))) * half_extent.z;
+		float support = fabsf(math::vector3f::dot(AxisX, Direction)) * half_extent.x
+					   + fabsf(math::vector3f::dot(AxisY, Direction)) * half_extent.y
+					   + fabsf(math::vector3f::dot(AxisZ, Direction)) * half_extent.z;
 
-		DirectX::XMFLOAT3 point, normal;
-		DirectX::XMStoreFloat3(&point, NearlestPoint);
-		DirectX::XMStoreFloat3(&normal, Direction);
+		math::float3 point, normal;
+		point = math::vector3f(NearlestPoint).to_float3();
+		normal = Direction.to_float3();
 		intersect->add(point, normal, std::max(support - distance, 0.0f));
 	}
 
@@ -1321,38 +1314,35 @@ bool bounding_mesh::intersect_box_inner(DirectX::XMVECTOR Center, DirectX::XMVEC
 
 bool bounding_mesh::intersect_box(const bounding_box& box, intersect_data* intersect) const
 {
-	DirectX::XMVECTOR Scale, Rotation, Translation;
-	DirectX::XMMatrixDecompose(&Scale, &Rotation, &Translation, box.get_transform_matrix() * get_inverse_transform_matrix());
+	math::vector3f Scale, Translation;
+	math::quaternionf Rotation;
+	(box.get_transform_matrix() * get_inverse_transform_matrix()).decompose(Scale, Rotation, Translation);
 
-	DirectX::XMMATRIX RotationMatrix = DirectX::XMMatrixRotationQuaternion(Rotation);
-	DirectX::XMVECTOR AxisX = DirectX::XMVector3Normalize(RotationMatrix.r[0]);
-	DirectX::XMVECTOR AxisY = DirectX::XMVector3Normalize(RotationMatrix.r[1]);
-	DirectX::XMVECTOR AxisZ = DirectX::XMVector3Normalize(RotationMatrix.r[2]);
-	DirectX::XMVECTOR Center = Translation;
+	math::matrixf RotationMatrix = math::matrixf::rotation_quaternion(Rotation);
+	math::vector3f AxisX = RotationMatrix.to_vector3(0).normalized();
+	math::vector3f AxisY = RotationMatrix.to_vector3(1).normalized();
+	math::vector3f AxisZ = RotationMatrix.to_vector3(2).normalized();
+	math::vector3f Center = Translation;
 
-	const DirectX::XMFLOAT3& half_extent = box.get_local_scale();
+	const math::float3& half_extent = box.get_local_scale();
 
-	DirectX::XMVECTOR Extent = DirectX::XMVectorAdd(
-		DirectX::XMVectorAdd(
-			DirectX::XMVectorScale(DirectX::XMVectorAbs(AxisX), half_extent.x),
-			DirectX::XMVectorScale(DirectX::XMVectorAbs(AxisY), half_extent.y)),
-		DirectX::XMVectorScale(DirectX::XMVectorAbs(AxisZ), half_extent.z));
-	DirectX::XMVECTOR BoxMin = DirectX::XMVectorSubtract(Center, Extent);
-	DirectX::XMVECTOR BoxMax = DirectX::XMVectorAdd(Center, Extent);
+	math::vector3f Extent = ((math::abs(AxisX) * half_extent.x) + (math::abs(AxisY) * half_extent.y)) + (math::abs(AxisZ) * half_extent.z);
+	math::vector3f BoxMin = Center - Extent;
+	math::vector3f BoxMax = Center + Extent;
 
-	DirectX::XMFLOAT3 min, max;
-	DirectX::XMStoreFloat3(&min, BoxMin);
-	DirectX::XMStoreFloat3(&max, BoxMax);
+	math::float3 min, max;
+	min = BoxMin.to_float3();
+	max = BoxMax.to_float3();
 
 	auto list = calculate_check_order_list(min, max, area_min, area_unit, separate_count);
 	if (list.empty())
 		return false;
 
 	//	ローカル空間の箱
-	DirectX::XMFLOAT4 local_rotation;
-	DirectX::XMFLOAT3 local_position;
-	DirectX::XMStoreFloat4(&local_rotation, Rotation);
-	DirectX::XMStoreFloat3(&local_position, Translation);
+	math::float4 local_rotation;
+	math::float3 local_position;
+	local_rotation = Rotation.to_float4();
+	local_position = Translation.to_float3();
 	bounding_box local_box(half_extent, local_rotation, local_position);
 
 	bool hit = false;
@@ -1411,52 +1401,50 @@ bool bounding_mesh::intersect_sphere_cast_inner(const collision::line& sweep_lin
 	auto ti = triangle_indices.data();
 	auto t = triangles.data();
 
-	DirectX::XMVECTOR Start = DirectX::XMLoadFloat3(&sweep_line[0]);
-	DirectX::XMVECTOR End = DirectX::XMLoadFloat3(&sweep_line[1]);
-	DirectX::XMVECTOR SweepDirectionNormalize = DirectX::XMVector3Normalize(DirectX::XMVectorSubtract(End, Start));
-	DirectX::XMVECTOR qp = DirectX::XMVectorSubtract(Start, End);
+	math::vector3f Start(sweep_line[0]);
+	math::vector3f End(sweep_line[1]);
+	math::vector3f SweepDirectionNormalize = (End - Start).normalized();
+	math::vector3f qp = Start - End;
 
 	//	球のAABB
-	DirectX::XMVECTOR RadiusVec = DirectX::XMVectorReplicate(radius);
-	DirectX::XMVECTOR CastMin = DirectX::XMVectorSubtract(DirectX::XMVectorMin(Start, End), RadiusVec);
-	DirectX::XMVECTOR CastMax = DirectX::XMVectorAdd(DirectX::XMVectorMax(Start, End), RadiusVec);
+	math::vector3f RadiusVec(radius, radius, radius);
+	math::vector3f CastMin = ((math::min)(Start, End)) - RadiusVec;
+	math::vector3f CastMax = ((math::max)(Start, End)) + RadiusVec;
 
 	bool hit_flag = false;
 	float nearlest_distance = FLT_MAX;
-	DirectX::XMVECTOR nearlest_triangle_pos = {};
-	DirectX::XMVECTOR nearlest_normal = {};
+	math::vector3f nearlest_triangle_pos = {};
+	math::vector3f nearlest_normal = {};
 	for (size_t index = 0; index < triangle_indices.size(); ++index)
 	{
 		auto triangle = t + ti[index];
 
-		DirectX::XMVECTOR Min = DirectX::XMLoadFloat3(&triangle->min);
-		DirectX::XMVECTOR Max = DirectX::XMLoadFloat3(&triangle->max);
-		DirectX::XMVECTOR Disjoint = DirectX::XMVectorOrInt(DirectX::XMVectorGreater(CastMin, Max),
-															DirectX::XMVectorGreater(Min, CastMax));
-		if (DirectX::Internal::XMVector3AnyTrue(Disjoint))
+		math::vector3f Min(triangle->min);
+		math::vector3f Max(triangle->max);
+		if (math::any_greater(CastMin, Max) || math::any_greater(Min, CastMax))
 			continue;
 
-		DirectX::XMVECTOR TriangleA = DirectX::XMLoadFloat3(p + triangle->a);
-		DirectX::XMVECTOR TriangleB = DirectX::XMLoadFloat3(p + triangle->b);
-		DirectX::XMVECTOR TriangleC = DirectX::XMLoadFloat3(p + triangle->c);
-		DirectX::XMVECTOR EdgeAB = DirectX::XMLoadFloat3(&triangle->ab);
-		DirectX::XMVECTOR EdgeBC = DirectX::XMLoadFloat3(&triangle->bc);
-		DirectX::XMVECTOR EdgeCA = DirectX::XMLoadFloat3(&triangle->ca);
-		DirectX::XMVECTOR EdgeAC = DirectX::XMVectorNegate(EdgeCA);
+		math::vector3f TriangleA(*(p + triangle->a));
+		math::vector3f TriangleB(*(p + triangle->b));
+		math::vector3f TriangleC(*(p + triangle->c));
+		math::vector3f EdgeAB(triangle->ab);
+		math::vector3f EdgeBC(triangle->bc);
+		math::vector3f EdgeCA(triangle->ca);
+		math::vector3f EdgeAC = -EdgeCA;
 
 		//	開始位置ですでに球と三角形が交差している場合は、この三角形での判定を行わない
-		DirectX::XMVECTOR NearestOnTriangle;
+		math::vector3f NearestOnTriangle;
 		calculate_nearlest_point(Start, TriangleA, TriangleB, TriangleC, EdgeAB, EdgeBC, EdgeAC, NearestOnTriangle);
-		if (DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(DirectX::XMVectorSubtract(NearestOnTriangle, Start))) <= radius * radius)
+		if ((NearestOnTriangle - Start).square_length() <= radius * radius)
 		{
 			//	表側から面へ向かう場合のみ移動距離0で接触
-			DirectX::XMVECTOR FaceNormal = DirectX::XMLoadFloat3(&triangle->normal);
-			if (DirectX::XMVectorGetX(DirectX::XMVector3Dot(DirectX::XMVectorSubtract(Start, TriangleA), FaceNormal)) < 0.0f)
+			math::vector3f FaceNormal(triangle->normal);
+			if (math::vector3f::dot(Start - TriangleA, FaceNormal) < 0.0f)
 				continue;
 
-			DirectX::XMVECTOR Vector = DirectX::XMVectorSubtract(Start, NearestOnTriangle);
-			DirectX::XMVECTOR OverlapNormal = (DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(Vector)) > 1e-12f) ? DirectX::XMVector3Normalize(Vector) : FaceNormal;
-			if (DirectX::XMVectorGetX(DirectX::XMVector3Dot(SweepDirectionNormalize, OverlapNormal)) >= 0.0f)
+			math::vector3f Vector = Start - NearestOnTriangle;
+			math::vector3f OverlapNormal = (Vector.square_length() > 1e-12f) ? Vector.normalized() : FaceNormal;
+			if (math::vector3f::dot(SweepDirectionNormalize, OverlapNormal) >= 0.0f)
 				continue;
 
 			if (0.0f < nearlest_distance)
@@ -1470,31 +1458,31 @@ bool bounding_mesh::intersect_sphere_cast_inner(const collision::line& sweep_lin
 		}
 
 		//	三角形の法線（正規化しない：後続の平面判定のスケールに用いるため）
-		DirectX::XMVECTOR Norm = DirectX::XMVector3Cross(EdgeAB, EdgeAC);
-		float d = DirectX::XMVectorGetX(DirectX::XMVector3Dot(Norm, qp));
+		math::vector3f Norm = math::vector3f::cross(EdgeAB, EdgeAC);
+		float d = math::vector3f::dot(Norm, qp);
 
 		bool triangle_hit = false;
 		float hit_distance = 0.0f;
-		DirectX::XMVECTOR hit_position = {};
+		math::vector3f hit_position = {};
 
 		if (d >= 0.0f)	//	表側から接近している場合のみ判定する
 		{
 			//	面領域の判定
-			DirectX::XMVECTOR fix_vec = DirectX::XMVectorScale(DirectX::XMVector3Normalize(Norm), radius);
-			DirectX::XMVECTOR ap = DirectX::XMVectorSubtract(Start, DirectX::XMVectorAdd(TriangleA, fix_vec));
-			float plane_t = DirectX::XMVectorGetX(DirectX::XMVector3Dot(Norm, ap));
+			math::vector3f fix_vec = Norm.normalized() * radius;
+			math::vector3f ap = Start - (TriangleA + fix_vec);
+			float plane_t = math::vector3f::dot(Norm, ap);
 			if (plane_t >= 0.0f && plane_t < d)
 			{
-				DirectX::XMVECTOR e = DirectX::XMVector3Cross(qp, ap);
-				float v = DirectX::XMVectorGetX(DirectX::XMVector3Dot(EdgeAC, e));
+				math::vector3f e = math::vector3f::cross(qp, ap);
+				float v = math::vector3f::dot(EdgeAC, e);
 				if (v >= 0.0f && v <= d)
 				{
-					float w = -DirectX::XMVectorGetX(DirectX::XMVector3Dot(EdgeAB, e));
+					float w = -math::vector3f::dot(EdgeAB, e);
 					if (w > 0.0f && v + w <= d)
 					{
-						DirectX::XMVECTOR cross_pos = DirectX::XMVectorAdd(Start, DirectX::XMVectorScale(qp, -plane_t / d));
-						hit_distance = DirectX::XMVectorGetX(DirectX::XMVector3Length(DirectX::XMVectorSubtract(cross_pos, Start)));
-						hit_position = DirectX::XMVectorSubtract(cross_pos, fix_vec);
+						math::vector3f cross_pos = Start + (qp * (-plane_t / d));
+						hit_distance = (cross_pos - Start).length();
+						hit_position = cross_pos - fix_vec;
 						triangle_hit = true;
 					}
 				}
@@ -1504,17 +1492,17 @@ bool bounding_mesh::intersect_sphere_cast_inner(const collision::line& sweep_lin
 		if (!triangle_hit)
 		{
 			//	面領域で交差しなかった場合は、頂点・辺のボロノイ領域で最短距離の交点を求める
-			float bound_distance = DirectX::XMVectorGetX(DirectX::XMVector3Length(qp));
+			float bound_distance = qp.length();
 
-			const DirectX::XMVECTOR verts[3] = { TriangleA, TriangleB, TriangleC };
+			const math::vector3f verts[3] = { TriangleA, TriangleB, TriangleC };
 			for (int v = 0; v < 3; ++v)
 			{
-				DirectX::XMVECTOR ray2sphere = DirectX::XMVectorSubtract(verts[v], Start);
-				float projection = DirectX::XMVectorGetX(DirectX::XMVector3Dot(ray2sphere, SweepDirectionNormalize));
+				math::vector3f ray2sphere = verts[v] - Start;
+				float projection = math::vector3f::dot(ray2sphere, SweepDirectionNormalize);
 				if (projection <= 0.0f)
 					continue;
 
-				float dist_sq = DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(ray2sphere)) - projection * projection;
+				float dist_sq = ray2sphere.square_length() - projection * projection;
 				if (dist_sq < radius * radius)
 				{
 					float dist = projection - sqrtf(radius * radius - dist_sq);
@@ -1530,7 +1518,7 @@ bool bounding_mesh::intersect_sphere_cast_inner(const collision::line& sweep_lin
 
 			struct
 			{
-				DirectX::XMVECTOR p0, p1;
+				math::vector3f p0, p1;
 			}
 			const edges[3] =
 			{
@@ -1541,17 +1529,17 @@ bool bounding_mesh::intersect_sphere_cast_inner(const collision::line& sweep_lin
 
 			for (int e = 0; e < 3; ++e)
 			{
-				DirectX::XMVECTOR cyl_pos;
+				math::vector3f cyl_pos;
 				float cyl_dist;
 				if (intersect_ray_vs_cylinder(Start, End, edges[e].p0, edges[e].p1, radius, cyl_pos, cyl_dist))
 				{
 					if (bound_distance > cyl_dist)
 					{
-						DirectX::XMVECTOR edge_dir = DirectX::XMVector3Normalize(DirectX::XMVectorSubtract(edges[e].p1, edges[e].p0));
-						DirectX::XMVECTOR vec0p = DirectX::XMVectorSubtract(cyl_pos, edges[e].p0);
+						math::vector3f edge_dir = (edges[e].p1 - edges[e].p0).normalized();
+						math::vector3f vec0p = cyl_pos - edges[e].p0;
 						bound_distance = cyl_dist;
 						hit_distance = cyl_dist;
-						hit_position = DirectX::XMVectorMultiplyAdd(DirectX::XMVector3Dot(vec0p, edge_dir), edge_dir, edges[e].p0);
+						hit_position = (math::vector3f::dot(vec0p, edge_dir)) * edge_dir + edges[e].p0;
 						triangle_hit = true;
 					}
 				}
@@ -1563,7 +1551,7 @@ bool bounding_mesh::intersect_sphere_cast_inner(const collision::line& sweep_lin
 			nearlest_distance = hit_distance;
 			nearlest_triangle_pos = hit_position;
 			//nearlest_normal = DirectX::XMLoadFloat3(&triangle->normal);
-			nearlest_normal = DirectX::XMVector3Normalize(Norm);
+			nearlest_normal = Norm.normalized();
 			hit_flag = true;
 		}
 	}
@@ -1571,25 +1559,25 @@ bool bounding_mesh::intersect_sphere_cast_inner(const collision::line& sweep_lin
 	if (intersect && hit_flag)
 	{
 		//	接触時点の球中心位置
-		DirectX::XMVECTOR SphereCenterAtHit = DirectX::XMVectorAdd(Start, DirectX::XMVectorScale(SweepDirectionNormalize, nearlest_distance));
+		math::vector3f SphereCenterAtHit = Start + (SweepDirectionNormalize * nearlest_distance);
 
 		collision::intersect_data::infomation infomation;
-		DirectX::XMStoreFloat3(&infomation.point, SphereCenterAtHit);		//	接触時点の球の中心位置
-		DirectX::XMStoreFloat3(&infomation.point2, nearlest_triangle_pos);	//	三角形側の接触点
+		infomation.point = SphereCenterAtHit.to_float3();		//	接触時点の球の中心位置
+		infomation.point2 = math::vector3f(nearlest_triangle_pos).to_float3();	//	三角形側の接触点
 		infomation.length = nearlest_distance;								//	接触までの移動距離
-		DirectX::XMStoreFloat3(&infomation.normal, nearlest_normal);		//	接触面の法線
+		infomation.normal = math::vector3f(nearlest_normal).to_float3();		//	接触面の法線
 		intersect->add(infomation);
 	}
 	return hit_flag;
 }
 
-bool bounding_mesh::intersect_sphere_cast(const DirectX::XMFLOAT3& start, const DirectX::XMFLOAT3& end, float radius, intersect_data* intersect) const
+bool bounding_mesh::intersect_sphere_cast(const math::float3& start, const math::float3& end, float radius, intersect_data* intersect) const
 {
-	DirectX::XMFLOAT3 local_start, local_end;
-	DirectX::XMStoreFloat3(&local_start, DirectX::XMVector3TransformCoord(DirectX::XMLoadFloat3(&start), get_inverse_transform_matrix()));
-	DirectX::XMStoreFloat3(&local_end,   DirectX::XMVector3TransformCoord(DirectX::XMLoadFloat3(&end),   get_inverse_transform_matrix()));
+	math::float3 local_start, local_end;
+	local_start = (math::vector3f::transform_coord(math::vector3f(start), get_inverse_transform_matrix())).to_float3();
+	local_end = (math::vector3f::transform_coord(math::vector3f(end), get_inverse_transform_matrix())).to_float3();
 
-	DirectX::XMFLOAT3 min, max;
+	math::float3 min, max;
 	min.x = std::min(local_start.x, local_end.x) - radius;
 	min.y = std::min(local_start.y, local_end.y) - radius;
 	min.z = std::min(local_start.z, local_end.z) - radius;
@@ -1601,7 +1589,7 @@ bool bounding_mesh::intersect_sphere_cast(const DirectX::XMFLOAT3& start, const 
 	if (list.empty())
 		return false;
 
-	if (DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(DirectX::XMVectorSubtract(DirectX::XMLoadFloat3(&local_end), DirectX::XMLoadFloat3(&local_start)))) <= 1e-12f)
+	if ((math::vector3f(local_end) - math::vector3f(local_start)).square_length() <= 1e-12f)
 		return false;
 
 	collision::line sweep_line(collision::line::types::segment, local_start, local_end);
@@ -1643,82 +1631,82 @@ bool bounding_mesh::intersect_sphere_cast(const DirectX::XMFLOAT3& start, const 
 	return hit;
 }
 
-bool bounding_mesh::intersect_capsule_cast(const DirectX::XMFLOAT3& start, const DirectX::XMFLOAT3& end,
-										   float radius, float length, const DirectX::XMFLOAT4& rotation,
+bool bounding_mesh::intersect_capsule_cast(const math::float3& start, const math::float3& end,
+										   float radius, float length, const math::float4& rotation,
 										   intersect_data* intersect) const
 {
-	DirectX::XMVECTOR axis = DirectX::XMVector3Rotate(DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f), DirectX::XMLoadFloat4(&rotation));
+	math::vector3f axis = math::quaternionf(rotation).rotate(math::vector3f(0.0f, 1.0f, 0.0f));
 	return intersect_capsule_cast_by_axis_spheres(start, end, radius, length, axis, intersect);
 }
 
-void bounding_mesh::include_corner(DirectX::XMFLOAT3& min, DirectX::XMFLOAT3& max) const
+void bounding_mesh::include_corner(math::float3& min, math::float3& max) const
 {
 	//	ローカル範囲の8頂点をワールドへ変換して包含
-	DirectX::XMMATRIX Transform = get_transform_matrix();
-	DirectX::XMVECTOR Min = DirectX::XMVectorReplicate(FLT_MAX);
-	DirectX::XMVECTOR Max = DirectX::XMVectorReplicate(-FLT_MAX);
+	math::matrixf Transform = get_transform_matrix();
+	math::vector3f Min(FLT_MAX, FLT_MAX, FLT_MAX);
+	math::vector3f Max(-FLT_MAX, -FLT_MAX, -FLT_MAX);
 	for (int corner = 0; corner < 8; ++corner)
 	{
-		DirectX::XMFLOAT3 point(
+		math::float3 point(
 			(corner & 1) ? area_max.x : area_min.x,
 			(corner & 2) ? area_max.y : area_min.y,
 			(corner & 4) ? area_max.z : area_min.z);
-		DirectX::XMVECTOR Point = DirectX::XMVector3TransformCoord(DirectX::XMLoadFloat3(&point), Transform);
-		Min = DirectX::XMVectorMin(Min, Point);
-		Max = DirectX::XMVectorMax(Max, Point);
+		math::vector3f Point = math::vector3f::transform_coord(math::vector3f(point), Transform);
+		Min = (math::min)(Min, Point);
+		Max = (math::max)(Max, Point);
 	}
-	DirectX::XMStoreFloat3(&min, Min);
-	DirectX::XMStoreFloat3(&max, Max);
+	min = Min.to_float3();
+	max = Max.to_float3();
 }
 
 float bounding_mesh::calculate_segment_distance(const collision::line& line,
 												const triangle& triangle,
-												DirectX::XMFLOAT3& nearlest_point_segment,
-												DirectX::XMFLOAT3& nearlest_point_triangle,
+												math::float3& nearlest_point_segment,
+												math::float3& nearlest_point_triangle,
 												bool& nearlest_point_edghFlg) const
 {
 	nearlest_point_edghFlg = false;
 
 	//	線分と三角形の交差判定
 	auto p = positions.data();
-	DirectX::XMVECTOR PointA = DirectX::XMLoadFloat3(&line[0]);
-	DirectX::XMVECTOR PointB = DirectX::XMLoadFloat3(&line[1]);
-	DirectX::XMVECTOR TriangleA = DirectX::XMLoadFloat3(p + triangle.a);
-	DirectX::XMVECTOR TriangleB = DirectX::XMLoadFloat3(p + triangle.b);
-	DirectX::XMVECTOR TriangleC = DirectX::XMLoadFloat3(p + triangle.c);
-	DirectX::XMVECTOR EdgeAB = DirectX::XMLoadFloat3(&triangle.ab);
-	DirectX::XMVECTOR EdgeBC = DirectX::XMLoadFloat3(&triangle.bc);
-	DirectX::XMVECTOR EdgeCA = DirectX::XMLoadFloat3(&triangle.ca);
-	DirectX::XMVECTOR EdgeAC = DirectX::XMVectorNegate(EdgeCA);
-	DirectX::XMVECTOR TriangleNormal = DirectX::XMLoadFloat3(&triangle.normal);
+	math::vector3f PointA(line[0]);
+	math::vector3f PointB(line[1]);
+	math::vector3f TriangleA(*(p + triangle.a));
+	math::vector3f TriangleB(*(p + triangle.b));
+	math::vector3f TriangleC(*(p + triangle.c));
+	math::vector3f EdgeAB(triangle.ab);
+	math::vector3f EdgeBC(triangle.bc);
+	math::vector3f EdgeCA(triangle.ca);
+	math::vector3f EdgeAC = -EdgeCA;
+	math::vector3f TriangleNormal(triangle.normal);
 
-	DirectX::XMVECTOR RayDirection = DirectX::XMVectorSubtract(PointB, PointA);
-	DirectX::XMVECTOR IntersectPoint;
+	math::vector3f RayDirection = PointB - PointA;
+	math::vector3f IntersectPoint;
 	float distance;
 	if (intersect_ray_moller(PointA, RayDirection,
 					  TriangleA, TriangleB, TriangleC,
 					  EdgeAB, EdgeCA,
 					  IntersectPoint, distance))
 	{
-		DirectX::XMStoreFloat3(&nearlest_point_segment, IntersectPoint);
-		DirectX::XMStoreFloat3(&nearlest_point_triangle, IntersectPoint);
+		nearlest_point_segment = IntersectPoint.to_float3();
+		nearlest_point_triangle = IntersectPoint.to_float3();
 		return 0.0f;
 	}
 #if 0	//	逆方向からの二回目は破棄。復活させる場合は delta > max_delta 判定が不要
-	RayDirection = DirectX::XMVectorNegate(RayDirection);
+	RayDirection = -RayDirection;
 	if (intersect_ray(PointB, RayDirection,
 					  TriangleA, TriangleB, TriangleC,
 					  EdgeAB, EdgeBC, EdgeCA, TriangleNormal,
 					  IntersectPoint, distance))
 	{
-		DirectX::XMStoreFloat3(&nearlest_point_segment, IntersectPoint);
-		DirectX::XMStoreFloat3(&nearlest_point_triangle, IntersectPoint);
+		nearlest_point_segment = IntersectPoint.to_float3();
+		nearlest_point_triangle = IntersectPoint.to_float3();
 		return 0.0f;
 	}
 #endif
 
 	//	線分の各頂点に対して三角形の最近点を求める
-	DirectX::XMVECTOR NearPosA, NearPosB;
+	math::vector3f NearPosA, NearPosB;
 	bool insideA = calculate_nearlest_point(PointA, TriangleA, TriangleB, TriangleC,
 											EdgeAB, EdgeBC, EdgeAC, NearPosA);
 	bool insideB = calculate_nearlest_point(PointB, TriangleA, TriangleB, TriangleC,
@@ -1728,20 +1716,20 @@ float bounding_mesh::calculate_segment_distance(const collision::line& line,
 	if (insideA || insideB)
 	{
 		float distance_squareA, distance_squareB;
-		distance_squareA = DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(DirectX::XMVectorSubtract(NearPosA, PointA)));
-		distance_squareB = DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(DirectX::XMVectorSubtract(NearPosB, PointB)));
+		distance_squareA = (NearPosA - PointA).square_length();
+		distance_squareB = (NearPosB - PointB).square_length();
 
 		if (distance_squareA < distance_squareB)
 		{
 			nearlest_distance = sqrtf(distance_squareA);
-			DirectX::XMStoreFloat3(&nearlest_point_segment, PointA);
-			DirectX::XMStoreFloat3(&nearlest_point_triangle, NearPosA);
+			nearlest_point_segment = PointA.to_float3();
+			nearlest_point_triangle = NearPosA.to_float3();
 		}
 		else
 		{
 			nearlest_distance = sqrtf(distance_squareB);
-			DirectX::XMStoreFloat3(&nearlest_point_segment, PointB);
-			DirectX::XMStoreFloat3(&nearlest_point_triangle, NearPosB);
+			nearlest_point_segment = PointB.to_float3();
+			nearlest_point_triangle = NearPosB.to_float3();
 		}
 
 		//	両端とも射影点が三角形内部
@@ -1759,12 +1747,12 @@ float bounding_mesh::calculate_segment_distance(const collision::line& line,
 
 	//	最近傍点は頂点と線分上に存在(カプセル用に必須)
 	nearlest_point_edghFlg = true;
-	DirectX::XMFLOAT3 a = *(p + triangle.a);
-	DirectX::XMFLOAT3 b = *(p + triangle.b);
-	DirectX::XMFLOAT3 c = *(p + triangle.c);
+	math::float3 a = *(p + triangle.a);
+	math::float3 b = *(p + triangle.b);
+	math::float3 c = *(p + triangle.c);
 
 	//	三角形外部に線分（または端）が存在し、最近点が辺上になる場合、線分と三角形の３辺の距離を全て計測し比較する
-	DirectX::XMFLOAT3 horizon1, horizon2;
+	math::float3 horizon1, horizon2;
 	float delta1, delta2;
 
 	float distance_edge = line.calculate_distance(horizon1, delta1, horizon2, delta2, triangle.lab);
@@ -1794,22 +1782,22 @@ float bounding_mesh::calculate_segment_distance(const collision::line& line,
 	return nearlest_distance;
 }
 
-bool bounding_mesh::is_point_inside(const DirectX::XMFLOAT3& point) const
+bool bounding_mesh::is_point_inside(const math::float3& point) const
 {
 	if (triangles.empty() || block_datas.empty())
 		return false;
 
-	DirectX::XMFLOAT3 local_point;
-	DirectX::XMStoreFloat3(&local_point, DirectX::XMVector3TransformCoord(DirectX::XMLoadFloat3(&point), get_inverse_transform_matrix()));
-	DirectX::XMVECTOR P = DirectX::XMLoadFloat3(&local_point);
+	math::float3 local_point;
+	local_point = (math::vector3f::transform_coord(math::vector3f(point), get_inverse_transform_matrix())).to_float3();
+	math::vector3f P(local_point);
 
 	constexpr size_t direction_count = std::size(inside_test_ray_directions);
-	DirectX::XMVECTOR directions[direction_count];
+	math::vector3f directions[direction_count];
 	UINT hit_counts[direction_count] = {};
 	for (size_t index = 0; index < direction_count; ++index)
-		directions[index] = DirectX::XMLoadFloat3(&inside_test_ray_directions[index]);
+		directions[index] = math::vector3f(inside_test_ray_directions[index]);
 
-	DirectX::XMFLOAT3 grid_extent = { area_max.x - area_min.x, area_max.y - area_min.y, area_max.z - area_min.z };
+	math::float3 grid_extent = { area_max.x - area_min.x, area_max.y - area_min.y, area_max.z - area_min.z };
 	float ray_length = sqrtf(grid_extent.x * grid_extent.x + grid_extent.y * grid_extent.y + grid_extent.z * grid_extent.z)
 		+ std::max({ area_unit.x, area_unit.y, area_unit.z });
 
@@ -1817,10 +1805,10 @@ bool bounding_mesh::is_point_inside(const DirectX::XMFLOAT3& point) const
 	std::vector<size_t> candidate_triangles;
 	for (size_t index = 0; index < direction_count; ++index)
 	{
-		DirectX::XMFLOAT3 local_end;
-		DirectX::XMStoreFloat3(&local_end, DirectX::XMVectorAdd(P, DirectX::XMVectorScale(directions[index], ray_length)));
+		math::float3 local_end;
+		local_end = (P + (directions[index] * ray_length)).to_float3();
 
-		DirectX::XMFLOAT3 min = local_point, max = local_point;
+		math::float3 min = local_point, max = local_point;
 		min.x = std::min(min.x, local_end.x); min.y = std::min(min.y, local_end.y); min.z = std::min(min.z, local_end.z);
 		max.x = std::max(max.x, local_end.x); max.y = std::max(max.y, local_end.y); max.z = std::max(max.z, local_end.z);
 
@@ -1842,9 +1830,9 @@ bool bounding_mesh::is_point_inside(const DirectX::XMFLOAT3& point) const
 		for (auto triangle_index : candidate_triangles)
 		{
 			auto& triangle = triangles[triangle_index];
-			DirectX::XMVECTOR A = DirectX::XMLoadFloat3(p + triangle.a);
-			DirectX::XMVECTOR AB = DirectX::XMLoadFloat3(&triangle.ab);
-			DirectX::XMVECTOR CA = DirectX::XMLoadFloat3(&triangle.ca);
+			math::vector3f A(*(p + triangle.a));
+			math::vector3f AB(triangle.ab);
+			math::vector3f CA(triangle.ca);
 
 			if (ray_intersects_triangle_both_side(P, directions[index], A, AB, CA))
 				++hit_counts[index];
@@ -1860,14 +1848,14 @@ bool bounding_mesh::is_point_inside(const DirectX::XMFLOAT3& point) const
 	return inside_votes * 2 > direction_count;
 }
 
-bool bounding_mesh::distance_to_point(const DirectX::XMFLOAT3& point, float& out_distance, DirectX::XMFLOAT3* out_nearest_point, DirectX::XMFLOAT3* out_normal) const
+bool bounding_mesh::distance_to_point(const math::float3& point, float& out_distance, math::float3* out_nearest_point, math::float3* out_normal) const
 {
 	if (triangles.empty() || block_datas.empty())
 		return false;
 
-	DirectX::XMFLOAT3 local_point;
-	DirectX::XMStoreFloat3(&local_point, DirectX::XMVector3TransformCoord(DirectX::XMLoadFloat3(&point), get_inverse_transform_matrix()));
-	DirectX::XMVECTOR P = DirectX::XMLoadFloat3(&local_point);
+	math::float3 local_point;
+	local_point = (math::vector3f::transform_coord(math::vector3f(point), get_inverse_transform_matrix())).to_float3();
+	math::vector3f P(local_point);
 
 	auto p = positions.data();
 	auto t = triangles.data();
@@ -1875,8 +1863,8 @@ bool bounding_mesh::distance_to_point(const DirectX::XMFLOAT3& point, float& out
 	std::vector<bool> checked(block_datas.size(), false);
 
 	float nearest_sq = FLT_MAX;
-	DirectX::XMVECTOR nearest_point_v = P;
-	DirectX::XMFLOAT3 nearest_normal = { 0.0f, 1.0f, 0.0f };
+	math::vector3f nearest_point_v = P;
+	math::float3 nearest_normal = { 0.0f, 1.0f, 0.0f };
 
 	float search_radius = std::max({ area_unit.x, area_unit.y, area_unit.z });
 	if (search_radius <= 0.0f)
@@ -1884,8 +1872,8 @@ bool bounding_mesh::distance_to_point(const DirectX::XMFLOAT3& point, float& out
 
 	for (int safety = 0; safety < 32; ++safety)
 	{
-		DirectX::XMFLOAT3 min = { local_point.x - search_radius, local_point.y - search_radius, local_point.z - search_radius };
-		DirectX::XMFLOAT3 max = { local_point.x + search_radius, local_point.y + search_radius, local_point.z + search_radius };
+		math::float3 min = { local_point.x - search_radius, local_point.y - search_radius, local_point.z - search_radius };
+		math::float3 max = { local_point.x + search_radius, local_point.y + search_radius, local_point.z + search_radius };
 		auto list = calculate_check_order_list(min, max, area_min, area_unit, separate_count);
 		bool covers_whole_grid = list.size() >= block_datas.size();
 
@@ -1899,17 +1887,17 @@ bool bounding_mesh::distance_to_point(const DirectX::XMFLOAT3& point, float& out
 			for (auto triangle_index : node.triangles)
 			{
 				auto& triangle = t[triangle_index];
-				DirectX::XMVECTOR A = DirectX::XMLoadFloat3(p + triangle.a);
-				DirectX::XMVECTOR B = DirectX::XMLoadFloat3(p + triangle.b);
-				DirectX::XMVECTOR C = DirectX::XMLoadFloat3(p + triangle.c);
-				DirectX::XMVECTOR AB = DirectX::XMLoadFloat3(&triangle.ab);
-				DirectX::XMVECTOR BC = DirectX::XMLoadFloat3(&triangle.bc);
-				DirectX::XMVECTOR CA = DirectX::XMLoadFloat3(&triangle.ca);
-				DirectX::XMVECTOR AC = DirectX::XMVectorNegate(CA);
+				math::vector3f A(*(p + triangle.a));
+				math::vector3f B(*(p + triangle.b));
+				math::vector3f C(*(p + triangle.c));
+				math::vector3f AB(triangle.ab);
+				math::vector3f BC(triangle.bc);
+				math::vector3f CA(triangle.ca);
+				math::vector3f AC = -CA;
 
-				DirectX::XMVECTOR NP;
+				math::vector3f NP;
 				calculate_nearlest_point(P, A, B, C, AB, BC, AC, NP);
-				float d = DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(DirectX::XMVectorSubtract(NP, P)));
+				float d = (NP - P).square_length();
 				if (d < nearest_sq)
 				{
 					nearest_sq = d;
@@ -1933,11 +1921,11 @@ bool bounding_mesh::distance_to_point(const DirectX::XMFLOAT3& point, float& out
 	out_distance = sqrtf(nearest_sq);
 	if (out_nearest_point)
 	{
-		DirectX::XMStoreFloat3(out_nearest_point, DirectX::XMVector3TransformCoord(nearest_point_v, get_transform_matrix()));
+		*out_nearest_point = (math::vector3f::transform_coord(nearest_point_v, get_transform_matrix())).to_float3();
 	}
 	if (out_normal)
 	{
-		DirectX::XMStoreFloat3(out_normal, DirectX::XMVector3Normalize(DirectX::XMVector3TransformNormal(DirectX::XMLoadFloat3(&nearest_normal), get_transform_matrix())));
+		*out_normal = ((math::vector3f::transform_normal(math::vector3f(nearest_normal), get_transform_matrix())).normalized()).to_float3();
 	}
 	return true;
 }
@@ -1959,41 +1947,42 @@ bool collision::generate_bounding_mesh(bounding_mesh& out_mesh, model_resource_p
 		return false;
 
 	auto& nodes = resource->get_nodes();
-	std::function<DirectX::XMMATRIX(size_t index)> calculate_transform_matrix = [&](size_t node_index)
+	std::function<math::matrixf(size_t index)> calculate_transform_matrix = [&](size_t node_index)
 	{
 		if (node_index == model_resource::invalid_id)
-			return DirectX::XMMatrixIdentity();
+			return math::matrixf();
 
 		auto& node = nodes[node_index];
-		DirectX::XMMATRIX transform;
-		transform = DirectX::XMMatrixScaling(node.scale.x, node.scale.y, node.scale.z)
-				  * DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&node.rotation))
-				  * DirectX::XMMatrixTranslation(node.translation.x, node.translation.y, node.translation.z);
+		math::matrixf transform;
+		transform = math::matrixf::scaling(node.scale.x, node.scale.y, node.scale.z)
+				  * math::matrixf::rotation_quaternion(math::quaternionf(node.rotation))
+				  * math::matrixf::translation(node.translation.x, node.translation.y, node.translation.z);
 		if (node.parent_index != model_resource::invalid_id)
 			transform *= calculate_transform_matrix(node.parent_index);
 
 		return transform;
 	};
 
-	DirectX::XMMATRIX local_transform_matrix = calculate_transform_matrix(mesh.node_index);
+	math::matrixf local_transform_matrix = calculate_transform_matrix(mesh.node_index);
 
 	//	ワールド行列を分解しスケールは頂点へ焼き込む
-	DirectX::XMVECTOR WorldScale, WorldRotation, WorldTranslation;
-	DirectX::XMMatrixDecompose(&WorldScale, &WorldRotation, &WorldTranslation, data.WorldMatrix);
-	local_transform_matrix = DirectX::XMMatrixMultiply(local_transform_matrix, DirectX::XMMatrixScalingFromVector(WorldScale));
+	math::vector3f WorldScale, WorldTranslation;
+	math::quaternionf WorldRotation;
+	data.WorldMatrix.decompose(WorldScale, WorldRotation, WorldTranslation);
+	local_transform_matrix = local_transform_matrix * math::matrixf::scaling(WorldScale);
 
 	auto it = mesh.vertex_buffer_views.find(semantic("POSITION", 0));
 	if (it == mesh.vertex_buffer_views.end())
 		return false;
 
-	std::vector<DirectX::XMFLOAT3> positions;
+	std::vector<math::float3> positions;
 	std::vector<bounding_mesh::triangle> triangles;
 	{
-		auto p = reinterpret_cast<const DirectX::XMFLOAT3*>(it->second.row_data.data());
+		auto p = reinterpret_cast<const math::float3*>(it->second.row_data.data());
 		for (UINT index = 0; index < it->second.count(); ++index)
 		{
-			DirectX::XMVECTOR P = DirectX::XMLoadFloat3(p + index);
-			DirectX::XMStoreFloat3(&positions.emplace_back(), DirectX::XMVector3TransformCoord(P, local_transform_matrix));
+			math::vector3f P(*(p + index));
+			positions.emplace_back() = (math::vector3f::transform_coord(P, local_transform_matrix)).to_float3();
 		}
 
 		auto fetch_index = [&](UINT k) -> UINT
@@ -2016,23 +2005,23 @@ bool collision::generate_bounding_mesh(bounding_mesh& out_mesh, model_resource_p
 
 			//	事前計算
 			auto tp = positions.data();
-			auto A = DirectX::XMLoadFloat3(tp + triangle.a);
-			auto B = DirectX::XMLoadFloat3(tp + triangle.b);
-			auto C = DirectX::XMLoadFloat3(tp + triangle.c);
-			auto AB = DirectX::XMVectorSubtract(B, A);
-			auto BC = DirectX::XMVectorSubtract(C, B);
-			auto CA = DirectX::XMVectorSubtract(A, C);
-			DirectX::XMStoreFloat3(&triangle.ab, AB);
-			DirectX::XMStoreFloat3(&triangle.bc, BC);
-			DirectX::XMStoreFloat3(&triangle.ca, CA);
+			auto A = math::vector3f(*(tp + triangle.a));
+			auto B = math::vector3f(*(tp + triangle.b));
+			auto C = math::vector3f(*(tp + triangle.c));
+			auto AB = B - A;
+			auto BC = C - B;
+			auto CA = A - C;
+			triangle.ab = AB.to_float3();
+			triangle.bc = BC.to_float3();
+			triangle.ca = CA.to_float3();
 
-			auto Normal = DirectX::XMVector3Cross(AB, BC);
-			DirectX::XMStoreFloat3(&triangle.normal, DirectX::XMVector3Normalize(Normal));
+			auto Normal = math::vector3f::cross(AB, BC);
+			triangle.normal = Normal.normalized().to_float3();
 
-			auto Min = DirectX::XMVectorMin(A, DirectX::XMVectorMin(B, C));
-			auto Max = DirectX::XMVectorMax(A, DirectX::XMVectorMax(B, C));
-			DirectX::XMStoreFloat3(&triangle.min, Min);
-			DirectX::XMStoreFloat3(&triangle.max, Max);
+			auto Min = (math::min)(A, (math::min)(B, C));
+			auto Max = (math::max)(A, (math::max)(B, C));
+			triangle.min = Min.to_float3();
+			triangle.max = Max.to_float3();
 			triangle.lab = collision::line(collision::line::types::segment, *(tp + triangle.a), *(tp + triangle.b));
 			triangle.lbc = collision::line(collision::line::types::segment, *(tp + triangle.b), *(tp + triangle.c));
 			triangle.lca = collision::line(collision::line::types::segment, *(tp + triangle.c), *(tp + triangle.a));
@@ -2042,10 +2031,10 @@ bool collision::generate_bounding_mesh(bounding_mesh& out_mesh, model_resource_p
 	out_mesh = collision::bounding_mesh(positions, triangles, data.separate_level);
 
 	{
-		DirectX::XMFLOAT4 rotation;
-		DirectX::XMFLOAT3 translation;
-		DirectX::XMStoreFloat4(&rotation, WorldRotation);
-		DirectX::XMStoreFloat3(&translation, WorldTranslation);
+		math::float4 rotation;
+		math::float3 translation;
+		rotation = WorldRotation.to_float4();
+		translation = WorldTranslation.to_float3();
 
 		out_mesh.set_rotation(rotation);
 		out_mesh.set_position(translation);

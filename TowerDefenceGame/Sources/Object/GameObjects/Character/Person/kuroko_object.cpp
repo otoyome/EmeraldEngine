@@ -13,7 +13,7 @@ namespace setup_data
 	constexpr float capsule_push_radius = system_units::convert_m_to_unit(0.4f); // 押し合い判定半径
 	constexpr float capsule_hit_radius = system_units::convert_m_to_unit(0.2f); // 当たり判定半径
 	constexpr float capsule_length = system_units::convert_m_to_unit(1.4f); // 当たり判定長さ
-	constexpr DirectX::XMFLOAT3 capsule_offset = system_units::convert_m_to_unit({0.0f, 1.1f, 0.0f}); // 当たり判定長さオフセット
+	constexpr math::float3 capsule_offset = system_units::convert_m_to_unit({0.0f, 1.1f, 0.0f}); // 当たり判定長さオフセット
 
 	constexpr float friction = 0.995f;	// 摩擦係数(ゴム靴？)
 
@@ -237,7 +237,7 @@ namespace
 	//	攻撃情報
 	struct attack_box_datas
 	{
-		DirectX::XMFLOAT2 time_range;
+		math::float2 time_range;
 		character_object::attack_descs attack;
 		character_object::bounding_descs bounds;
 	};
@@ -676,7 +676,7 @@ namespace
 	{
 		std::string_view state_id; // 対応するステートId
 		kuroko_object::attack_id attack_id; // 対応する攻撃Id
-		DirectX::XMFLOAT2 range; // 範囲
+		math::float2 range; // 範囲
 		character_object::action_level action_level; // 対応する攻撃Id
 	};
 	constexpr damage_cancel_resist_state_datas damage_cancel_resist_state_data[] =
@@ -712,7 +712,7 @@ namespace
 
 	//	
 	constexpr std::string_view face_texture_path = "Assets/Resources/Kuroko/face_small.png";
-	constexpr DirectX::XMFLOAT4 face_texture_uv = {0.0f, 0.0f, 1.0f, 1.0f};
+	constexpr math::float4 face_texture_uv = {0.0f, 0.0f, 1.0f, 1.0f};
 
 	//	武器関係
 	constexpr std::string_view weapon_attach_parent_node_name = "右手首";
@@ -726,29 +726,29 @@ namespace
 	constexpr float transition_dodge_wait_lock_time = 0.5f;
 
 	//	カメラフォーカス位置補正
-	constexpr DirectX::XMFLOAT3 focus_offset = system_units::convert_m_to_unit({0.0f, 1.4f, 0.0f});
+	constexpr math::float3 focus_offset = system_units::convert_m_to_unit({0.0f, 1.4f, 0.0f});
 
 	//	攻撃時にロックオンターゲットに向かって急接近させるための反応範囲
-	constexpr DirectX::XMFLOAT2 fast_apprpoaching_range = {system_units::convert_m_to_unit(2.5f), system_units::convert_m_to_unit(7.0f)};
+	constexpr math::float2 fast_apprpoaching_range = {system_units::convert_m_to_unit(2.5f), system_units::convert_m_to_unit(7.0f)};
 
 	//	パリィ関係
 	constexpr std::string_view parry_node_name = "右手首";
-	constexpr DirectX::XMFLOAT2 parry_attack_fast_apprpoaching_range = { system_units::convert_m_to_unit(2.5f), system_units::convert_m_to_unit(100.0f) };
+	constexpr math::float2 parry_attack_fast_apprpoaching_range = { system_units::convert_m_to_unit(2.5f), system_units::convert_m_to_unit(100.0f) };
 
 	//	ブレイク攻撃
 	constexpr float special_2_fast_apprpoaching_power = system_units::convert_m_to_unit(30.0f);
-	constexpr DirectX::XMFLOAT2 special_2_extension_max_time = { 0.5f, 1.0f };
+	constexpr math::float2 special_2_extension_max_time = { 0.5f, 1.0f };
 
 	//	特殊攻撃
 	constexpr float attack_special_2_gravity_apply_time = 15.0f / 30.0f;
 
 	//	攻撃の際に各種処理を行う係数
-	constexpr DirectX::XMFLOAT2 attack_1_approaching_time = {0.0f / 30.0f, 5.0f / 30.0f};
-	constexpr DirectX::XMFLOAT2 attack_5_approaching_time = {3.0f / 30.0f, 15.0f / 30.0f};
-	constexpr DirectX::XMFLOAT2 attack_parry_approaching_time = { 3.0f / 30.0f, 15.0f / 30.0f };
+	constexpr math::float2 attack_1_approaching_time = {0.0f / 30.0f, 5.0f / 30.0f};
+	constexpr math::float2 attack_5_approaching_time = {3.0f / 30.0f, 15.0f / 30.0f};
+	constexpr math::float2 attack_parry_approaching_time = { 3.0f / 30.0f, 15.0f / 30.0f };
 	constexpr float attack_6_camera_distance_factor = 0.75f;
 	constexpr float attack_6_camera_distance_factor_rate = 0.5f;
-	constexpr DirectX::XMFLOAT2 attack_dodge_hide_time = {0.0f / 30.0f, 9.0f / 30.0f};
+	constexpr math::float2 attack_dodge_hide_time = {0.0f / 30.0f, 9.0f / 30.0f};
 	constexpr float attack_dodge_normal_speed = 15.0f;
 }
 
@@ -911,34 +911,29 @@ void kuroko_object::post_update(float elapsed_time)
 		{
 			//	指定のノードの姿勢を取得
 			auto& parent_node = get_model_object()->get_model_instance()->get_nodes()[parent_node_index];
-			auto AttachTransform = DirectX::XMLoadFloat4x4(&parent_node.global_transform);
+			const math::matrixf world_transform = math::matrixf(parent_node.global_transform) * math::matrixf::transform(get_scale(), get_rotation().to_quaternion(), get_position());
 
-			auto ScaleTransform = DirectX::XMMatrixScaling(get_scale().x, get_scale().y, get_scale().z);
-			auto rot = system_utility::to_xmfloat(get_rotation().to_quaternion());
-			auto RotationTransform = DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&rot));
-			auto TranslationTransform = DirectX::XMMatrixTranslation(get_position().x, get_position().y, get_position().z);
-			DirectX::XMMATRIX WorldTransform = AttachTransform * ScaleTransform * RotationTransform * TranslationTransform;
+			math::vector3f weapon_scale, weapon_translation;
+			math::quaternionf weapon_rotation;
+			world_transform.decompose(weapon_scale, weapon_rotation, weapon_translation);
+			weapon_rotation = math::quaternionf::rotation_xyz(0.0f, 0.0f, math::constants<float>::pi) * weapon_rotation;
 
-			DirectX::XMVECTOR Scale, Rotation, Translation;
-			DirectX::XMMatrixDecompose(&Scale, &Rotation, &Translation, WorldTransform);
-			Rotation = DirectX::XMQuaternionMultiply(DirectX::XMQuaternionRotationRollPitchYaw(0.0f, 0.0f, DirectX::XM_PI), Rotation);
-		
 			//	ノードに指定して更新
 			model_instance::node_animation node_animation;
-			DirectX::XMStoreFloat3(&node_animation.scale, Scale);
-			DirectX::XMStoreFloat4(&node_animation.rotation, Rotation);
-			DirectX::XMStoreFloat3(&node_animation.translation, Translation);
-			math::rotatorf rotation(system_utility::to_math_quaternion(node_animation.rotation));
-			node_animation.translation.x += system_utility::to_xmfloat(rotation.right()).x;
-			node_animation.translation.y += system_utility::to_xmfloat(rotation.right()).y;
-			node_animation.translation.z += system_utility::to_xmfloat(rotation.right()).z;
+			node_animation.scale = weapon_scale.to_float3();
+			node_animation.rotation = weapon_rotation.to_float4();
+			node_animation.translation = weapon_translation.to_float3();
+			math::rotatorf rotation(math::quaternionf(node_animation.rotation));
+			node_animation.translation.x += rotation.right().x;
+			node_animation.translation.y += rotation.right().y;
+			node_animation.translation.z += rotation.right().z;
 			weapon_model->set_node_pose(attach_node_index, node_animation);
 			weapon_model->update_transform();
 		}
 
 		for (auto& material : weapon_model->get_model_instance()->get_materials())
 		{
-			DirectX::XMFLOAT4 color;
+			math::float4 color;
 			material.get_float4(weapon_material_color_name, color);
 			color.w = weapon_alpha;
 			material.set_float4(weapon_material_color_name, color);
@@ -951,8 +946,8 @@ void kuroko_object::post_update(float elapsed_time)
 		auto effect_instance = play_effect(static_cast<size_t>(custom_effect_id::break_attack_impact)).lock();
 		auto effect_position = get_position();
 		auto effect_rotation = get_rotation();
-		auto effect_front = system_utility::to_xmfloat(effect_rotation.front());
-		auto effect_up = system_utility::to_xmfloat(effect_rotation.up());
+		auto effect_front = effect_rotation.front().to_float3();
+		auto effect_up = effect_rotation.up().to_float3();
 		effect_position.x += system_units::convert_m_to_unit(effect_front.x * 0.5f) + system_units::convert_m_to_unit(effect_up.x * 1.5f);
 		effect_position.y += system_units::convert_m_to_unit(effect_front.y * 0.5f) + system_units::convert_m_to_unit(effect_up.y * 1.5f);
 		effect_position.z += system_units::convert_m_to_unit(effect_front.z * 0.5f) + system_units::convert_m_to_unit(effect_up.z * 1.5f);
@@ -999,9 +994,9 @@ int kuroko_object::get_use_special_power() const
 	return 500;
 }
 
-DirectX::XMFLOAT3 kuroko_object::get_focus_point() const
+math::float3 kuroko_object::get_focus_point() const
 {
-	DirectX::XMFLOAT3 position = get_position();
+	math::float3 position = get_position();
 	if (check_same_state(state_names[state_break_attack]) ||
 		check_same_state(kuroko_state_names[state_break_attack_2]) ||
 		check_same_state(kuroko_state_names[state_break_attack_3]) ||
@@ -1235,7 +1230,7 @@ void kuroko_object::update_entry(float elapsed_time)
 		return;
 	}
 	work_float[0] += elapsed_time;
-	static constexpr DirectX::XMFLOAT2 range = {85.0f / 30.0f, 115.0f / 30.0f};
+	static constexpr math::float2 range = {85.0f / 30.0f, 115.0f / 30.0f};
 	weapon_alpha = math::smoothstep(range.x, range.y, work_float[0]);
 }
 
@@ -1287,7 +1282,7 @@ void kuroko_object::enter_walk()
 void kuroko_object::update_walk(float elapsed_time)
 {
 	size_t animation_index = get_model_object()->get_animation_index();
-	DirectX::XMFLOAT2 move = DirectX::XMFLOAT2(action_data.move.x, action_data.move.z);
+	math::float2 move = math::float2(action_data.move.x, action_data.move.z);
 
 	//	入力と方向ベクトルに合わせてモーションを切り替える
 	float mx = move.x, my = move.y;
@@ -1296,7 +1291,7 @@ void kuroko_object::update_walk(float elapsed_time)
 	{
 		mx /= ml;
 		my /= ml;
-		auto front = system_utility::to_xmfloat(get_model_object()->get_rotation().front());
+		auto front = get_model_object()->get_rotation().front().to_float3();
 		float tx = front.x, ty = front.z;
 		float tl = sqrtf(tx * tx + ty * ty);
 		tx /= tl;
@@ -1447,7 +1442,7 @@ void kuroko_object::update_hi_dash_flip(float elapsed_time)
 	if (animation_time >= 10.0f / 30.0f)
 	{
 		//	初速を与えておく
-		DirectX::XMFLOAT2 move = DirectX::XMFLOAT2(action_data.move.x, action_data.move.z);
+		math::float2 move = math::float2(action_data.move.x, action_data.move.z);
 		add_impulse({move.x * hi_dash_max_speed, 0.0f, move.y * hi_dash_max_speed});
 	}
 
@@ -1471,7 +1466,7 @@ void kuroko_object::enter_move_stop()
 
 	//	現在のベクトル
 	float speed = sqrtf(get_velocity().x * get_velocity().x + get_velocity().z * get_velocity().z);
-	move_stop_vector = DirectX::XMFLOAT2(get_velocity().x / speed, get_velocity().z / speed);
+	move_stop_vector = math::float2(get_velocity().x / speed, get_velocity().z / speed);
 
 	get_model_object()->play_animation(index, false, 0.1f);
 }
@@ -1521,7 +1516,7 @@ void kuroko_object::enter_dodge()
 	//	}
 	//	else
 	//	{
-	//		effect_rotation.y = math::normalize_angle(effect_rotation.y + DirectX::XM_PI);
+	//		effect_rotation.y = math::normalize_angle(effect_rotation.y + math::constants<float>::pi);
 	//		effect_position.x -= system_units::convert_m_to_unit(effect_front.x);
 	//		effect_position.y -= system_units::convert_m_to_unit(effect_front.y);
 	//		effect_position.z -= system_units::convert_m_to_unit(effect_front.z);
@@ -1842,7 +1837,7 @@ void kuroko_object::enter_break_attack()
 	set_gravity_scale(system_units::convert_fps_to_sec(0.0f));
 	set_flag(flags::on_ground, false);
 	get_model_object()->play_animation(index, false);
-	DirectX::XMFLOAT3 front = system_utility::to_xmfloat(get_rotation().front());
+	math::float3 front = get_rotation().front().to_float3();
 	move_stop_vector = {front.x, front.z};
 }
 
@@ -1864,8 +1859,8 @@ void kuroko_object::update_break_attack(float elapsed_time)
 	{
 		camera_transform_descs desc;
 		desc.set_flag(camera_transform_descs::flags::set_focus_direction, true);
-		auto front = system_utility::to_xmfloat(get_rotation().front());
-		auto right = system_utility::to_xmfloat(get_rotation().right());
+		auto front = get_rotation().front().to_float3();
+		auto right = get_rotation().right().to_float3();
 		desc.focus_direction.x = +front.x + right.x * 0.5f;
 		desc.focus_direction.y = +front.y + right.y * 0.5f;
 		desc.focus_direction.z = +front.z + right.z * 0.5f;
@@ -1884,7 +1879,7 @@ void kuroko_object::update_break_attack(float elapsed_time)
 
 	//	動作中は無敵付与
 	set_flag(character_object::flags::invisible, true);
-	DirectX::XMFLOAT2 move = {system_utility::to_xmfloat(get_rotation().front()).x, system_utility::to_xmfloat(get_rotation().front()).z};
+	math::float2 move = {get_rotation().front().x, get_rotation().front().z};
 	add_move_vector(move, walk_accelaration);
 	set_max_move_speed(walk_max_speed);
 	set_breaking_deceleration(hi_dash_breaking_deceleration);
@@ -1923,7 +1918,7 @@ void kuroko_object::enter_break_attack_2()
 	work_float[0] = 0.0f;
 	set_flag(character_object::flags::invisible, true);
 	get_model_object()->play_animation(index, true, 0.1f);
-	DirectX::XMFLOAT3 front = system_utility::to_xmfloat(get_rotation().front());
+	math::float3 front = get_rotation().front().to_float3();
 	move_stop_vector = {front.x, front.z};
 }
 
@@ -1936,8 +1931,8 @@ void kuroko_object::update_break_attack_2(float elapsed_time)
 	{
 		camera_transform_descs desc;
 		desc.set_flag(camera_transform_descs::flags::set_focus_direction, true);
-		auto front = system_utility::to_xmfloat(get_rotation().front());
-		auto right = system_utility::to_xmfloat(get_rotation().right());
+		auto front = get_rotation().front().to_float3();
+		auto right = get_rotation().right().to_float3();
 		desc.focus_direction.x = +front.x + right.x * 0.5f;
 		desc.focus_direction.y = +front.y + right.y * 0.5f;
 		desc.focus_direction.z = +front.z + right.z * 0.5f;
@@ -1949,7 +1944,7 @@ void kuroko_object::update_break_attack_2(float elapsed_time)
 
 	//	移動処理
 	{
-		DirectX::XMFLOAT3 target_position;
+		math::float3 target_position;
 		auto taget_object = get_lockon_taget_object().lock();
 		if (taget_object)
 		{
@@ -1957,7 +1952,7 @@ void kuroko_object::update_break_attack_2(float elapsed_time)
 		}
 		else
 		{
-			target_position = system_utility::to_xmfloat(get_rotation().front());
+			target_position = get_rotation().front().to_float3();
 		}
 	
 		//	ターゲットの方向に瞬間移動
@@ -2007,7 +2002,7 @@ void kuroko_object::enter_break_attack_3()
 
 	//	現在のベクトル
 	float speed = sqrtf(get_velocity().x * get_velocity().x + get_velocity().z * get_velocity().z);
-	move_stop_vector = DirectX::XMFLOAT2(get_velocity().x / speed, get_velocity().z / speed);
+	move_stop_vector = math::float2(get_velocity().x / speed, get_velocity().z / speed);
 	sub_state = 0;
 	sub_attack_id = 0;
 	attack_data_flags = false;
@@ -2050,7 +2045,7 @@ void kuroko_object::update_break_attack_3(float elapsed_time)
 	//}
 
 	//	攻撃判定関係
-	update_attack_box(animation_time, system_utility::to_xmfloat(get_rotation().front()));
+	update_attack_box(animation_time, get_rotation().front().to_float3());
 
 	//	動作中は無敵付与
 	set_flag(character_object::flags::invisible, true);
@@ -2104,7 +2099,7 @@ void kuroko_object::update_attack(float elapsed_time)
 	}
 
 	//	攻撃判定関係
-	update_attack_box(animation_time, system_utility::to_xmfloat(get_rotation().front()));
+	update_attack_box(animation_time, get_rotation().front().to_float3());
 
 	//	攻撃毎の特殊対応
 	bool hide_model = false;
@@ -2140,8 +2135,8 @@ void kuroko_object::update_attack(float elapsed_time)
 				{
 					camera_transform_descs desc;
 					desc.set_flag(camera_transform_descs::flags::set_focus_direction, true);
-					auto front = system_utility::to_xmfloat(get_rotation().front());
-					auto right = system_utility::to_xmfloat(get_rotation().right());
+					auto front = get_rotation().front().to_float3();
+					auto right = get_rotation().right().to_float3();
 					desc.focus_direction.x = +front.x + right.x;
 					desc.focus_direction.y = +front.y + right.y;
 					desc.focus_direction.z = +front.z + right.z;
@@ -2168,8 +2163,8 @@ void kuroko_object::update_attack(float elapsed_time)
 				{
 					camera_transform_descs desc;
 					desc.set_flag(camera_transform_descs::flags::set_focus_direction, true);
-					auto front = system_utility::to_xmfloat(get_rotation().front());
-					auto right = system_utility::to_xmfloat(get_rotation().right());
+					auto front = get_rotation().front().to_float3();
+					auto right = get_rotation().right().to_float3();
 					desc.focus_direction.x = +front.x + right.x;
 					desc.focus_direction.y = +front.y + right.y;
 					desc.focus_direction.z = +front.z + right.z;
@@ -2211,14 +2206,14 @@ void kuroko_object::update_attack(float elapsed_time)
 		auto effect_position = get_focus_point();
 		auto effect_rotation = get_rotation();
 		//	カメラをプレイヤーの後ろに送る
-		DirectX::XMFLOAT2 direction;
+		math::float2 direction;
 		if (calculate_lockon_target_vector(direction))
 		{
-			DirectX::XMVECTOR Vector = DirectX::XMVector3Normalize(DirectX::XMVectorSet(direction.x, 0.0f, direction.y, 0.0f));
-			effect_rotation = math::rotatorf::from_direction(system_utility::to_math(system_utility::convert_xmfloat3_from_vector(Vector)));
+			math::vector3f Vector = (math::vector3f(direction.x, 0.0f, direction.y)).normalized();
+			effect_rotation = math::rotatorf::from_direction(Vector);
 		}
 
-		auto effect_front = system_utility::to_xmfloat(effect_rotation.front());
+		auto effect_front = effect_rotation.front().to_float3();
 		effect_position.x += system_units::convert_m_to_unit(effect_front.x);
 		effect_position.y += system_units::convert_m_to_unit(effect_front.y);
 		effect_position.z += system_units::convert_m_to_unit(effect_front.z);
@@ -2281,7 +2276,7 @@ void kuroko_object::update_attack6_1(float elapsed_time)
 	set_gravity_scale(-0.025f * elapsed_time);
 
 	//	攻撃判定関係
-	update_attack_box(animation_time, system_utility::to_xmfloat(get_rotation().front()));
+	update_attack_box(animation_time, get_rotation().front().to_float3());
 
 	//	カメラを引く
 	{
@@ -2304,7 +2299,7 @@ void kuroko_object::enter_attack6_2()
 	}
 
 	set_flag(character_object::flags::invisible, true);
-	DirectX::XMFLOAT3 front = system_utility::to_xmfloat(get_rotation().front());
+	math::float3 front = get_rotation().front().to_float3();
 	move_stop_vector = {front.x, front.z};
 	attack_data_flags = false;
 	sub_state = 0;
@@ -2373,7 +2368,7 @@ void kuroko_object::enter_attack6_3()
 	//	math::compute_fade::calculator time_data = math::compute_fade::calculator({0.0f, 0.01f}, {5.0f, 10.0f});
 	//	auto decal = std::make_shared<decal_object>("攻撃6-3 : デカール", time_data);
 	//	decal->set_scale(system_units::convert_m_to_unit({ 5.0f, 5.0f, 5.0f }));
-	//	decal->set_rotation({ DirectX::XM_PI/2, 0, 0 });
+	//	decal->set_rotation({ math::constants<float>::pi/2, 0, 0 });
 	//	decal->set_position(get_position());
 	//	decal->get_material().set_texture(decal_object::material_variable_name_base_texture, attack_6_decal);
 	//	object_manager::instance()->register_object(decal);
@@ -2381,7 +2376,7 @@ void kuroko_object::enter_attack6_3()
 
 	//	現在のベクトル
 	float speed = sqrtf(get_velocity().x * get_velocity().x + get_velocity().z * get_velocity().z);
-	move_stop_vector = DirectX::XMFLOAT2(get_velocity().x / speed, get_velocity().z / speed);
+	move_stop_vector = math::float2(get_velocity().x / speed, get_velocity().z / speed);
 	current_attack_id = attack_id::attack_6_3;
 	sub_state = 0;
 	sub_attack_id = 0;
@@ -2403,7 +2398,7 @@ void kuroko_object::update_attack6_3(float elapsed_time)
 	}
 
 	//	攻撃判定関係
-	update_attack_box(animation_time, system_utility::to_xmfloat(get_rotation().front()));
+	update_attack_box(animation_time, get_rotation().front().to_float3());
 
 	//	動作中は無敵付与
 	set_flag( character_object::flags::invisible, true);
@@ -2507,7 +2502,7 @@ void kuroko_object::enter_special_2()
 
 	current_attack_id = attack_id::special_2;
 	set_flag(character_object::flags::invisible, true);
-	DirectX::XMFLOAT3 front = system_utility::to_xmfloat(get_rotation().front());
+	math::float3 front = get_rotation().front().to_float3();
 	move_stop_vector = {front.x, front.z};
 	attack_data_flags = false;
 	sub_state = 0;
@@ -2531,7 +2526,7 @@ void kuroko_object::update_special_2(float elapsed_time)
 
 	//	移動処理
 	{
-		DirectX::XMFLOAT3 target_position;
+		math::float3 target_position;
 		auto taget_object = get_lockon_taget_object().lock();
 		if (taget_object)
 		{
@@ -2539,7 +2534,7 @@ void kuroko_object::update_special_2(float elapsed_time)
 		}
 		else
 		{
-			target_position = system_utility::to_xmfloat(get_rotation().front());
+			target_position = get_rotation().front().to_float3();
 		}
 	
 		//	ターゲットの方向に瞬間移動
@@ -2554,7 +2549,7 @@ void kuroko_object::update_special_2(float elapsed_time)
 
 	//	攻撃判定関係
 	{
-		update_attack_box(animation_time - work_float[0], system_utility::to_xmfloat(get_rotation().front()));
+		update_attack_box(animation_time - work_float[0], get_rotation().front().to_float3());
 		if (sub_attack_id != 0)
 		{
 			work_float[0] = animation_time;
@@ -2618,7 +2613,7 @@ void kuroko_object::enter_special_3()
 	set_gravity_scale(system_units::convert_fps_to_sec(0.0f));
 	set_flag(flags::on_ground, false);
 	get_model_object()->play_animation(index, false);
-	DirectX::XMFLOAT3 front = system_utility::to_xmfloat(get_rotation().front());
+	math::float3 front = get_rotation().front().to_float3();
 	move_stop_vector = {front.x, front.z};
 }
 
@@ -2635,7 +2630,7 @@ void kuroko_object::update_special_3(float elapsed_time)
 	set_gravity_scale(0.0f);
 
 	//	攻撃判定関係
-	update_attack_box(animation_time, system_utility::to_xmfloat(get_rotation().front()));
+	update_attack_box(animation_time, get_rotation().front().to_float3());
 
 	//	カメラを引く
 	{
@@ -2669,7 +2664,7 @@ void kuroko_object::enter_special_4()
 	current_attack_id = attack_id::special_4;
 	set_flag(character_object::flags::invisible, true);
 	get_model_object()->play_animation(index, true, 0.0f);
-	DirectX::XMFLOAT3 front = system_utility::to_xmfloat(get_rotation().front());
+	math::float3 front = get_rotation().front().to_float3();
 	move_stop_vector = {front.x, front.z};
 }
 
@@ -2684,7 +2679,7 @@ void kuroko_object::update_special_4(float elapsed_time)
 
 	//	攻撃判定関係
 	{
-		update_attack_box(animation_time - work_float[0], system_utility::to_xmfloat(get_rotation().front()));
+		update_attack_box(animation_time - work_float[0], get_rotation().front().to_float3());
 		if (sub_attack_id != 0)
 		{
 			work_float[0] = animation_time;
@@ -2742,7 +2737,7 @@ void kuroko_object::enter_special_5()
 	//	math::compute_fade::calculator time_data = math::compute_fade::calculator({0.0f, 0.01f}, {5.0f, 10.0f});
 	//	auto decal = std::make_shared<decal_object>("ブレイク攻撃-5 : デカール", time_data);
 	//	decal->set_scale(system_units::convert_m_to_unit({ 10.0f, 10.0f, 10.0f }));
-	//	decal->set_rotation({ DirectX::XM_PI/2, 0, 0 });
+	//	decal->set_rotation({ math::constants<float>::pi/2, 0, 0 });
 	//	decal->set_position(get_position());
 	//	decal->get_material().set_texture(decal_object::material_variable_name_base_texture, attack_6_decal);
 	//	object_manager::instance()->register_object(decal);
@@ -2758,7 +2753,7 @@ void kuroko_object::enter_special_5()
 	get_model_object()->play_animation(index, false, 0.0f);
 
 	float speed = sqrtf(get_velocity().x * get_velocity().x + get_velocity().z * get_velocity().z);
-	move_stop_vector = DirectX::XMFLOAT2(get_velocity().x / speed, get_velocity().z / speed);
+	move_stop_vector = math::float2(get_velocity().x / speed, get_velocity().z / speed);
 }
 
 void kuroko_object::update_special_5(float elapsed_time)
@@ -2773,7 +2768,7 @@ void kuroko_object::update_special_5(float elapsed_time)
 	}
 
 	//	攻撃判定関係
-	update_attack_box(animation_time, system_utility::to_xmfloat(get_rotation().front()));
+	update_attack_box(animation_time, get_rotation().front().to_float3());
 
 	//	動作中は無敵付与
 	set_flag( character_object::flags::invisible, true);
@@ -2855,11 +2850,11 @@ bool kuroko_object::transition_parry(const damage_datas& data)
 
 	//	よろけ方向に強制的に向く
 	math::rotatorf rotation;
-	DirectX::XMFLOAT3 sd;
+	math::float3 sd;
 	sd.x = -data.stagger_direction.x;
 	sd.y = -data.stagger_direction.y;
 	sd.z = -data.stagger_direction.z;
-	rotation = math::rotatorf::from_direction(system_utility::to_math(sd));
+	rotation = math::rotatorf::from_direction(math::vector3f(sd));
 	//	水平には制限しておく
 	rotation.x = 0.0f;
 	rotation.z = 0.0f;
@@ -2968,7 +2963,7 @@ bool kuroko_object::input_move(float elapsed_time, move_mode mode, bool* flip_fl
 	}
 
 	//	入力ベクトル方向に速度ベクトルを修正する
-	DirectX::XMFLOAT2 move = DirectX::XMFLOAT2(action_data.move.x, action_data.move.z);
+	math::float2 move = math::float2(action_data.move.x, action_data.move.z);
 	adjustment_velocity(move, adjust_move_velocity_rate, flip_flag);
 
 	add_move_vector(move, accelaration);
@@ -2979,7 +2974,7 @@ bool kuroko_object::input_move(float elapsed_time, move_mode mode, bool* flip_fl
 	return move.x != 0 || move.y != 0;
 }
 
-void kuroko_object::update_attack_box(float animation_time, DirectX::XMFLOAT3 stagger_direction)
+void kuroko_object::update_attack_box(float animation_time, math::float3 stagger_direction)
 {
 	auto& data_range = attack_data_range[static_cast<int>(current_attack_id)];
 	auto& attack_box = attack_data_list[data_range.first + sub_attack_id];
@@ -3009,7 +3004,7 @@ void kuroko_object::update_attack_box(float animation_time, DirectX::XMFLOAT3 st
 	}
 }
 
-bool kuroko_object::fast_apprpoaching_lockon_target(float elapsed_time, const DirectX::XMFLOAT2& range, float power)
+bool kuroko_object::fast_apprpoaching_lockon_target(float elapsed_time, const math::float2& range, float power)
 {
 	auto taget_object = get_lockon_taget_object().lock();
 	if (!taget_object)
@@ -3034,7 +3029,7 @@ bool kuroko_object::fast_apprpoaching_lockon_target(float elapsed_time, const Di
 	return false;
 }
 
-bool kuroko_object::calculate_lockon_target_vector(DirectX::XMFLOAT2& direction, float* distance)
+bool kuroko_object::calculate_lockon_target_vector(math::float2& direction, float* distance)
 {
 	auto taget_object = get_lockon_taget_object().lock();
 	if (!taget_object)

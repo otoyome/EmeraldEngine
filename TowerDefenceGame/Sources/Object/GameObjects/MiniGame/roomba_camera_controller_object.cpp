@@ -5,9 +5,9 @@
 namespace
 {
 	//	ヨー回転速度
-	constexpr float rotation_speed = DirectX::XMConvertToRadians(90.0f);
+	constexpr float rotation_speed = math::angle::to_radian(90.0f);
 	//	±ピッチ制限角度
-	constexpr DirectX::XMFLOAT2 pitch_limit_angle = { DirectX::XMConvertToRadians(+5.0f), DirectX::XMConvertToRadians(45.0f) };
+	constexpr math::float2 pitch_limit_angle = { math::angle::to_radian(+5.0f), math::angle::to_radian(45.0f) };
 	//	開始距離
 	constexpr float default_distance = system_units::convert_m_to_unit(7.0f);
 	//	角度によるフォーカス位置のオフセット
@@ -17,7 +17,7 @@ namespace
 	constexpr float focus_limit_range_max = system_units::convert_m_to_unit(2.0f); // 基本フォーカス
 	//	ダッシュ中の視野角制御
 	constexpr float fov_follow_rate = 6.0f;
-	constexpr DirectX::XMFLOAT2 fov_range = {DirectX::XMConvertToRadians(30.0f), DirectX::XMConvertToRadians(60.0f)};
+	constexpr math::float2 fov_range = {math::angle::to_radian(30.0f), math::angle::to_radian(60.0f)};
 	constexpr math::easing::type fov_ease = math::easing::type::lerp;
 
 	//	死亡時のカメラ停止時間
@@ -34,12 +34,12 @@ void roomba_camera_controller_object::set_rotation(const math::rotatorf& rotator
 	camera->set_rotation(rotator);
 }
 
-const DirectX::XMFLOAT3& roomba_camera_controller_object::get_position() const
+const math::float3& roomba_camera_controller_object::get_position() const
 {
 	return camera->get_position();
 }
 
-void roomba_camera_controller_object::set_position(const DirectX::XMFLOAT3& position)
+void roomba_camera_controller_object::set_position(const math::float3& position)
 {
 	camera->set_position(position);
 }
@@ -109,16 +109,14 @@ void roomba_camera_controller_object::fixed_update(float elapsed_time)
 
 void roomba_camera_controller_object::fixed_update_entry(float elapsed_time)
 {
-	DirectX::XMVECTOR Up{ DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f) };
-
 	//	フォーカスポイント算出
-	DirectX::XMFLOAT3 new_focus = player_controller->get_controll_object()->get_focus_point();
+	math::float3 new_focus = player_controller->get_controll_object()->get_focus_point();
 
 	//	旋回処理
 	{
 		//	とりあえず旋回処理をさせる
-		disengage_direction.x = -DirectX::XM_PI / 8.0f;
-		disengage_direction.y += (DirectX::XM_PIDIV4) * elapsed_time;
+		disengage_direction.x = -math::constants<float>::pi / 8.0f;
+		disengage_direction.y += ((math::constants<float>::pi * 0.25f)) * elapsed_time;
 
 		math::rotatorf camera_rotation = get_rotation();
 		camera_rotation = math::rotatorf(math::slerp(camera_rotation.to_quaternion(), disengage_direction.to_quaternion(), update_disengage_direction_rate));
@@ -131,9 +129,9 @@ void roomba_camera_controller_object::fixed_update_entry(float elapsed_time)
 
 	//	カメラの姿勢の更新
 	{
-		DirectX::XMFLOAT3 camera_position, camera_front, camera_focus;
+		math::float3 camera_position, camera_front, camera_focus;
 		math::rotatorf camera_rotation = get_rotation();
-		camera_front = system_utility::to_xmfloat(camera_rotation.front());
+		camera_front = camera_rotation.front().to_float3();
 
 		float offset = system_units::convert_m_to_unit(1.0f);
 		float dist = system_units::convert_m_to_unit(3.0f) - offset;
@@ -150,10 +148,8 @@ void roomba_camera_controller_object::fixed_update_entry(float elapsed_time)
 
 void roomba_camera_controller_object::fixed_update_default(float elapsed_time)
 {
-	DirectX::XMVECTOR Up{ DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f) };
-
 	//	フォーカスポイント算出
-	DirectX::XMFLOAT3 new_focus = player_controller->get_controll_object()->get_focus_point();
+	math::float3 new_focus = player_controller->get_controll_object()->get_focus_point();
 	if (player_controller->get_controll_object()->check_same_state(roomba_object::state_names[roomba_object::state_dead]))
 	{
 		if (dead_wait_time >= 0.0f && dead_wait_time < dead_wait_lock_time)
@@ -166,14 +162,14 @@ void roomba_camera_controller_object::fixed_update_default(float elapsed_time)
 		}
 		else if (dead_wait_time < 0.0f)
 		{
-			new_focus = dead_focus = system_utility::to_xmfloat(math::lerp(system_utility::to_math(new_focus), system_utility::to_math(dead_focus), 0.95f));
+			new_focus = dead_focus = math::lerp(math::vector3f(new_focus), math::vector3f(dead_focus), 0.95f).to_float3();
 
 			//	現在のフォーカスとカメラの位置関係から回転を算出
-			DirectX::XMFLOAT3 direction;
+			math::float3 direction;
 			direction.x = dead_focus.x - get_position().x;
 			direction.y = dead_focus.y - get_position().y;
 			direction.z = dead_focus.z - get_position().z;
-			disengage_direction = math::rotatorf::from_direction(system_utility::to_math(direction));
+			disengage_direction = math::rotatorf::from_direction(math::vector3f(direction));
 		}
 		dead_wait_time -= elapsed_time;
 	}
@@ -208,13 +204,13 @@ void roomba_camera_controller_object::fixed_update_default(float elapsed_time)
 		float focus_rate = update_focus_rate;
 		{
 			//	一時座標算出
-			DirectX::XMFLOAT3 temp_focus;
+			math::float3 temp_focus;
 			temp_focus.x = focus.x + (new_focus.x - focus.x) * update_focus_rate;
 			temp_focus.y = focus.y + (new_focus.y - focus.y) * update_focus_rate;
 			temp_focus.z = focus.z + (new_focus.z - focus.z) * update_focus_rate;
 
 			//	距離制限
-			DirectX::XMFLOAT3 focus_vector;
+			math::float3 focus_vector;
 			focus_vector.x = new_focus.x - temp_focus.x;
 			focus_vector.y = new_focus.y - temp_focus.y;
 			focus_vector.z = new_focus.z - temp_focus.z;
@@ -240,9 +236,9 @@ void roomba_camera_controller_object::fixed_update_default(float elapsed_time)
 
 	//	カメラの姿勢の更新
 	{
-		DirectX::XMFLOAT3 camera_position, camera_front, camera_focus;
+		math::float3 camera_position, camera_front, camera_focus;
 		math::rotatorf camera_rotation = get_rotation();
-		camera_front = system_utility::to_xmfloat(camera_rotation.front());
+		camera_front = camera_rotation.front().to_float3();
 
 		float offset = system_units::convert_m_to_unit(1.0f);
 		float dist = focus_distance - offset;
@@ -270,11 +266,11 @@ void roomba_camera_controller_object::fixed_update_default(float elapsed_time)
 			if (object_manager::instance()->get_world().sphere_cast(desc, intersect_data, hit_collision_object))
 			{
 				float length = intersect_data[0].length;
-				DirectX::XMFLOAT3 vector;
+				math::float3 vector;
 				vector.x = camera_position.x - camera_focus.x;
 				vector.y = camera_position.y - camera_focus.y;
 				vector.z = camera_position.z - camera_focus.z;
-				DirectX::XMStoreFloat3(&vector, DirectX::XMVector3Normalize(DirectX::XMLoadFloat3(&vector)));
+				vector = math::vector3f(vector).normalized().to_float3();
 
 				camera_position.x = camera_focus.x + vector.x * length;
 				camera_position.y = camera_focus.y + vector.y * length;
@@ -306,14 +302,14 @@ void roomba_camera_controller_object::update(float elapsed_time)
 		return;
 
 	//	旋回加速処理
-	DirectX::XMFLOAT2 move;
+	math::float2 move;
 	move.x = static_cast<float>(mouse::instance()->get_move_cursol().x);
 	move.y = static_cast<float>(mouse::instance()->get_move_cursol().y);
 	float move_length = (move.x * move.x + move.y * move.y);
 	if (move_length > 0.001f * 0.001f)
 	{
-		disengage_direction.x += DirectX::XMConvertToRadians(move.y) * 0.1f;
-		disengage_direction.y += DirectX::XMConvertToRadians(move.x) * 0.1f;
+		disengage_direction.x += math::angle::to_radian(move.y) * 0.1f;
+		disengage_direction.y += math::angle::to_radian(move.x) * 0.1f;
 
 		disengage_direction.x = math::clamp(disengage_direction.x, pitch_limit_angle.x, pitch_limit_angle.y);
 		disengage_direction.y = math::angle::normalize(disengage_direction.y);

@@ -210,13 +210,13 @@ bool ImGui::SliderAngle2(const char* label, float* radians, float v_min, float v
 {
 	float angles[] =
 	{
-		DirectX::XMConvertToDegrees(radians[0]),
-		DirectX::XMConvertToDegrees(radians[1]),
+		math::angle::to_degree(radians[0]),
+		math::angle::to_degree(radians[1]),
 	};
 	if (ImGui::SliderFloat2(label, angles, v_min, v_max, format, flags))
 	{
-		radians[0] = DirectX::XMConvertToRadians(angles[0]);
-		radians[1] = DirectX::XMConvertToRadians(angles[1]);
+		radians[0] = math::angle::to_radian(angles[0]);
+		radians[1] = math::angle::to_radian(angles[1]);
 		return true;
 	}
 	return false;
@@ -226,15 +226,15 @@ bool ImGui::SliderAngle3(const char* label, float* radians, float v_min, float v
 {
 	float angles[] =
 	{
-		DirectX::XMConvertToDegrees(radians[0]),
-		DirectX::XMConvertToDegrees(radians[1]),
-		DirectX::XMConvertToDegrees(radians[2]),
+		math::angle::to_degree(radians[0]),
+		math::angle::to_degree(radians[1]),
+		math::angle::to_degree(radians[2]),
 	};
 	if (ImGui::SliderFloat3(label, angles, v_min, v_max, format, flags))
 	{
-		radians[0] = DirectX::XMConvertToRadians(angles[0]);
-		radians[1] = DirectX::XMConvertToRadians(angles[1]);
-		radians[2] = DirectX::XMConvertToRadians(angles[2]);
+		radians[0] = math::angle::to_radian(angles[0]);
+		radians[1] = math::angle::to_radian(angles[1]);
+		radians[2] = math::angle::to_radian(angles[2]);
 		return true;
 	}
 	return false;
@@ -244,17 +244,17 @@ bool ImGui::SliderAngle4(const char* label, float* radians, float v_min, float v
 {
 	float angles[] =
 	{
-		DirectX::XMConvertToDegrees(radians[0]),
-		DirectX::XMConvertToDegrees(radians[1]),
-		DirectX::XMConvertToDegrees(radians[2]),
-		DirectX::XMConvertToDegrees(radians[3]),
+		math::angle::to_degree(radians[0]),
+		math::angle::to_degree(radians[1]),
+		math::angle::to_degree(radians[2]),
+		math::angle::to_degree(radians[3]),
 	};
 	if (ImGui::SliderFloat4(label, angles, v_min, v_max, format, flags))
 	{
-		radians[0] = DirectX::XMConvertToRadians(angles[0]);
-		radians[1] = DirectX::XMConvertToRadians(angles[1]);
-		radians[2] = DirectX::XMConvertToRadians(angles[2]);
-		radians[3] = DirectX::XMConvertToRadians(angles[3]);
+		radians[0] = math::angle::to_radian(angles[0]);
+		radians[1] = math::angle::to_radian(angles[1]);
+		radians[2] = math::angle::to_radian(angles[2]);
+		radians[3] = math::angle::to_radian(angles[3]);
 		return true;
 	}
 	return false;
@@ -262,10 +262,10 @@ bool ImGui::SliderAngle4(const char* label, float* radians, float v_min, float v
 
 bool ImGui::DragAngle(const char* label, float* radian, float v_speed, float v_min, float v_max, const char* format, ImGuiSliderFlags flags)
 {
-	float angle = DirectX::XMConvertToDegrees(*radian);
+	float angle = math::angle::to_degree(*radian);
 	if (ImGui::DragFloat(label, &angle, v_speed, v_min, v_max, format, flags))
 	{
-		*radian = DirectX::XMConvertToRadians(angle);
+		*radian = math::angle::to_radian(angle);
 		return true;
 	}
 	return false;
@@ -275,13 +275,13 @@ bool ImGui::DragAngle2(const char* label, float* radians, float v_speed, float v
 {
 	float angles[] =
 	{
-		DirectX::XMConvertToDegrees(radians[0]),
-		DirectX::XMConvertToDegrees(radians[1]),
+		math::angle::to_degree(radians[0]),
+		math::angle::to_degree(radians[1]),
 	};
 	if (ImGui::DragFloat2(label, angles, v_speed, v_min, v_max, format, flags))
 	{
-		radians[0] = DirectX::XMConvertToRadians(angles[0]);
-		radians[1] = DirectX::XMConvertToRadians(angles[1]);
+		radians[0] = math::angle::to_radian(angles[0]);
+		radians[1] = math::angle::to_radian(angles[1]);
 		return true;
 	}
 	return false;
@@ -291,15 +291,15 @@ bool ImGui::DragAngle3(const char* label, float* radians, float v_speed, float v
 {
 	float angles[] =
 	{
-		DirectX::XMConvertToDegrees(radians[0]),
-		DirectX::XMConvertToDegrees(radians[1]),
-		DirectX::XMConvertToDegrees(radians[2]),
+		math::angle::to_degree(radians[0]),
+		math::angle::to_degree(radians[1]),
+		math::angle::to_degree(radians[2]),
 	};
 	if (ImGui::DragFloat3(label, angles, v_speed, v_min, v_max, format, flags))
 	{
-		radians[0] = DirectX::XMConvertToRadians(angles[0]);
-		radians[1] = DirectX::XMConvertToRadians(angles[1]);
-		radians[2] = DirectX::XMConvertToRadians(angles[2]);
+		radians[0] = math::angle::to_radian(angles[0]);
+		radians[1] = math::angle::to_radian(angles[1]);
+		radians[2] = math::angle::to_radian(angles[2]);
 		return true;
 	}
 	return false;
@@ -309,17 +309,17 @@ bool ImGui::DragAngle4(const char* label, float* radians, float v_speed, float v
 {
 	float angles[] =
 	{
-		DirectX::XMConvertToDegrees(radians[0]),
-		DirectX::XMConvertToDegrees(radians[1]),
-		DirectX::XMConvertToDegrees(radians[2]),
-		DirectX::XMConvertToDegrees(radians[3]),
+		math::angle::to_degree(radians[0]),
+		math::angle::to_degree(radians[1]),
+		math::angle::to_degree(radians[2]),
+		math::angle::to_degree(radians[3]),
 	};
 	if (ImGui::DragFloat4(label, angles, v_speed, v_min, v_max, format, flags))
 	{
-		radians[0] = DirectX::XMConvertToRadians(angles[0]);
-		radians[1] = DirectX::XMConvertToRadians(angles[1]);
-		radians[2] = DirectX::XMConvertToRadians(angles[2]);
-		radians[3] = DirectX::XMConvertToRadians(angles[3]);
+		radians[0] = math::angle::to_radian(angles[0]);
+		radians[1] = math::angle::to_radian(angles[1]);
+		radians[2] = math::angle::to_radian(angles[2]);
+		radians[3] = math::angle::to_radian(angles[3]);
 		return true;
 	}
 	return false;

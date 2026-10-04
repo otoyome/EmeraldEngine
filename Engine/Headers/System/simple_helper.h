@@ -16,27 +16,27 @@ namespace common_animation
 	{
 		float time;
 		math::easing::type ease_type;
-		DirectX::XMFLOAT2 value;
+		math::float2 value;
 	};
 
 	struct float3_animation
 	{
 		float time;
 		math::easing::type ease_type;
-		DirectX::XMFLOAT3 value;
+		math::float3 value;
 	};
 
 	struct float4_animation
 	{
 		float time;
 		math::easing::type ease_type;
-		DirectX::XMFLOAT4 value;
+		math::float4 value;
 	};
 
 	void compute_animation(float time, const float_animation* animations, size_t animation_size, std::function<void(float)> func);
-	void compute_animation(float time, const float2_animation* animations, size_t animation_size, std::function<void(DirectX::XMFLOAT2)> func);
-	void compute_animation(float time, const float3_animation* animations, size_t animation_size, std::function<void(DirectX::XMFLOAT3)> func);
-	void compute_animation(float time, const float4_animation* animations, size_t animation_size, std::function<void(DirectX::XMFLOAT4)> func);
+	void compute_animation(float time, const float2_animation* animations, size_t animation_size, std::function<void(math::float2)> func);
+	void compute_animation(float time, const float3_animation* animations, size_t animation_size, std::function<void(math::float3)> func);
+	void compute_animation(float time, const float4_animation* animations, size_t animation_size, std::function<void(math::float4)> func);
 }	//	namespace common_animation
 
 //	簡易的なフェード係数計算用構造体

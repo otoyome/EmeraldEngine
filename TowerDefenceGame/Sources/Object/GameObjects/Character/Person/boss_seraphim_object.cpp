@@ -11,7 +11,7 @@ namespace setup_data
 	constexpr float capsule_push_radius = system_units::convert_m_to_unit(0.4f); // 押し合い判定半径
 	constexpr float capsule_hit_radius = system_units::convert_m_to_unit(0.2f); // 当たり判定半径
 	constexpr float capsule_length = system_units::convert_m_to_unit(1.4f); // 当たり判定長さ
-	constexpr DirectX::XMFLOAT3 capsule_offset = system_units::convert_m_to_unit({ 0.0f, 1.1f, 0.0f }); // 当たり判定長さオフセット
+	constexpr math::float3 capsule_offset = system_units::convert_m_to_unit({ 0.0f, 1.1f, 0.0f }); // 当たり判定長さオフセット
 
 	constexpr float friction = 0.995f;	// 摩擦係数(ゴム靴？)
 
@@ -160,7 +160,7 @@ namespace
 	//	攻撃情報
 	struct attack_box_datas
 	{
-		DirectX::XMFLOAT2 time_range;
+		math::float2 time_range;
 		character_object::attack_descs attack;
 		character_object::bounding_descs bounds;
 	};
@@ -564,7 +564,7 @@ namespace
 	{
 		std::string_view state_id; // 対応するステートId
 		boss_seraphim_object::attack_id attack_id; // 対応する攻撃Id
-		DirectX::XMFLOAT2 range; // 範囲
+		math::float2 range; // 範囲
 		character_object::action_level action_level; // 対応する攻撃Id
 	};
 	constexpr damage_cancel_resist_state_datas damage_cancel_resist_state_data[] =
@@ -636,10 +636,10 @@ namespace
 
 	//	
 	constexpr std::string_view face_texture_path = "Assets/Resources/Seraphim/face_small.png";
-	constexpr DirectX::XMFLOAT4 face_texture_uv = {0.0f, 0.0f, 1.0f, 1.0f};
+	constexpr math::float4 face_texture_uv = {0.0f, 0.0f, 1.0f, 1.0f};
 
 	//	カメラフォーカス位置補正
-	constexpr DirectX::XMFLOAT3 focus_offset = system_units::convert_m_to_unit({0.0f, 1.6f, 0.0f});
+	constexpr math::float3 focus_offset = system_units::convert_m_to_unit({0.0f, 1.6f, 0.0f});
 
 	//	入場
 	constexpr float entry_roar_animation_time = 55.0f / 30.0f;
@@ -815,9 +815,9 @@ void boss_seraphim_object::input_action_data(action_datas action_data)
 	}
 }
 
-DirectX::XMFLOAT3 boss_seraphim_object::get_focus_point() const
+math::float3 boss_seraphim_object::get_focus_point() const
 {
-	DirectX::XMFLOAT3 position = get_position();
+	math::float3 position = get_position();
 	position.x += focus_offset.x;
 	position.y += focus_offset.y;
 	position.z += focus_offset.z;
@@ -1095,7 +1095,7 @@ void boss_seraphim_object::enter_walk()
 void boss_seraphim_object::update_walk(float elapsed_time)
 {
 	size_t animation_index = get_model_object()->get_animation_index();
-	DirectX::XMFLOAT2 move = DirectX::XMFLOAT2(action_data.move.x, action_data.move.z);
+	math::float2 move = math::float2(action_data.move.x, action_data.move.z);
 
 	//	入力と方向ベクトルに合わせてモーションを切り替える
 	float mx = move.x, my = move.y;
@@ -1104,7 +1104,7 @@ void boss_seraphim_object::update_walk(float elapsed_time)
 	{
 		mx /= ml;
 		my /= ml;
-		auto front = system_utility::to_xmfloat(get_model_object()->get_rotation().front());
+		auto front = get_model_object()->get_rotation().front().to_float3();
 		float tx = front.x, ty = front.z;
 		float tl = sqrtf(tx * tx + ty * ty);
 		tx /= tl;
@@ -1225,7 +1225,7 @@ void boss_seraphim_object::enter_move_stop()
 
 	//	現在のベクトル
 	float speed = sqrtf(get_velocity().x * get_velocity().x + get_velocity().z * get_velocity().z);
-	move_stop_vector = DirectX::XMFLOAT2(get_velocity().x / speed, get_velocity().z / speed);
+	move_stop_vector = math::float2(get_velocity().x / speed, get_velocity().z / speed);
 
 	get_model_object()->play_animation(index, false, 0.2f);
 }
@@ -1472,7 +1472,7 @@ void boss_seraphim_object::update_attack(float elapsed_time)
 			box_data.rotator = get_rotation();
 			damage_datas damage_data;
 			damage_data.desc = attack_box.attack;
-			damage_data.stagger_direction = system_utility::to_xmfloat(get_rotation().front());
+			damage_data.stagger_direction = get_rotation().front().to_float3();
 			add_attack_box(box_data, damage_data);
 			attack_data_flags = true;
 		}
@@ -1516,7 +1516,7 @@ void boss_seraphim_object::update_attack(float elapsed_time)
 		//auto effect_position = get_focus_point();
 		//auto effect_rotation = get_rotation();
 		////	カメラをプレイヤーの後ろに送る
-		//DirectX::XMFLOAT2 direction;
+		//math::float2 direction;
 		//if (calculate_lockon_target_vector(direction))
 		//{
 		//	DirectX::XMVECTOR Vector = DirectX::XMVector3Normalize(DirectX::XMVectorSet(direction.x, 0.0f, direction.y, 0.0f));
@@ -1570,11 +1570,11 @@ bool boss_seraphim_object::transition_parry(const damage_datas& data)
 
 	//	よろけ方向に強制的に向く
 	math::rotatorf rotation;
-	DirectX::XMFLOAT3 sd;
+	math::float3 sd;
 	sd.x = -data.stagger_direction.x;
 	sd.y = -data.stagger_direction.y;
 	sd.z = -data.stagger_direction.z;
-	rotation = math::rotatorf::from_direction(system_utility::to_math(sd));
+	rotation = math::rotatorf::from_direction(math::vector3f(sd));
 
 	//	水平には制限しておく
 	rotation.x = 0.0f;
@@ -1834,18 +1834,15 @@ void boss_seraphim_object::update_parry_attack_2(float elapsed_time)
 				work_float3[0] = get_position();
 				work_float3[2] = taget_object->get_position();
 				{
-					DirectX::XMVECTOR Front, Right;
-					Front = DirectX::XMVector3Normalize(DirectX::XMLoadFloat3(&focus));
-					Right = DirectX::XMVector3Cross(DirectX::XMVectorSet(0, 1, 0, 0), Front);
-					Front = DirectX::XMVectorScale(Front, 0.5f);
-					Right = DirectX::XMVectorScale(Right, length * 0.5f);
-					Right = DirectX::XMVectorAdd(Right, DirectX::XMLoadFloat3(&get_position()));
-					DirectX::XMStoreFloat3(&work_float3[1], Right);
+					math::vector3f front = math::vector3f(focus).normalized();
+					math::vector3f right = math::vector3f::cross(math::vector3f::up(), front);
+					right = right * (length * 0.5f) + math::vector3f(get_position());
+					work_float3[1] = right.to_float3();
 				}
-				work_float3[2].x += system_utility::to_xmfloat(get_rotation().front()).x * parry_attack_2_takedown_point_front;
-				work_float3[2].z += system_utility::to_xmfloat(get_rotation().front()).z * parry_attack_2_takedown_point_front;
-				work_float3[2].x += system_utility::to_xmfloat(get_rotation().right()).x * parry_attack_2_takedown_point_right;
-				work_float3[2].z += system_utility::to_xmfloat(get_rotation().right()).z * parry_attack_2_takedown_point_right;
+				work_float3[2].x += get_rotation().front().x * parry_attack_2_takedown_point_front;
+				work_float3[2].z += get_rotation().front().z * parry_attack_2_takedown_point_front;
+				work_float3[2].x += get_rotation().right().x * parry_attack_2_takedown_point_right;
+				work_float3[2].z += get_rotation().right().z * parry_attack_2_takedown_point_right;
 			}
 			sub_state = calculate_move;
 			break;
@@ -1856,12 +1853,12 @@ void boss_seraphim_object::update_parry_attack_2(float elapsed_time)
 			float previous_rate = work_float[0] / parry_attack_2_move_time;
 			work_float[0] = std::max(work_float[0] - elapsed_time, 0.0f);
 			float current_rate = std::max(work_float[0] / parry_attack_2_move_time, 0.0f);
-			auto p0 = system_utility::to_xmfloat(math::bezier(system_utility::to_math(work_float3[0]), system_utility::to_math(work_float3[1]), system_utility::to_math(work_float3[2]), 1 - previous_rate));
-			auto p1 = system_utility::to_xmfloat(math::bezier(system_utility::to_math(work_float3[0]), system_utility::to_math(work_float3[1]), system_utility::to_math(work_float3[2]), 1 - current_rate));
+			auto p0 = math::bezier(math::vector3f(work_float3[0]), math::vector3f(work_float3[1]), math::vector3f(work_float3[2]), 1 - previous_rate).to_float3();
+			auto p1 = math::bezier(math::vector3f(work_float3[0]), math::vector3f(work_float3[1]), math::vector3f(work_float3[2]), 1 - current_rate).to_float3();
 			set_position(p1);
 
 			//	向きを変える
-			DirectX::XMFLOAT3 v;
+			math::float3 v;
 			v.x = p1.x - p0.x;
 			v.y = p1.y - p0.y;
 			v.z = p1.z - p0.z;
@@ -1928,7 +1925,7 @@ bool boss_seraphim_object::input_move(float elapsed_time, move_mode mode, bool* 
 		}
 	}
 
-	DirectX::XMFLOAT2 move = DirectX::XMFLOAT2(action_data.move.x, action_data.move.z);
+	math::float2 move = math::float2(action_data.move.x, action_data.move.z);
 	adjustment_velocity(move, adjust_move_velocity_rate, flip_flag);
 
 	add_move_vector(move, accelaration);
@@ -1939,7 +1936,7 @@ bool boss_seraphim_object::input_move(float elapsed_time, move_mode mode, bool* 
 	return move.x != 0 || move.y != 0;
 }
 
-bool boss_seraphim_object::fast_apprpoaching_lockon_target(float elapsed_time, const DirectX::XMFLOAT2& range, float power)
+bool boss_seraphim_object::fast_apprpoaching_lockon_target(float elapsed_time, const math::float2& range, float power)
 {
 	auto taget_object = get_lockon_taget_object().lock();
 	if (!taget_object)
@@ -1964,7 +1961,7 @@ bool boss_seraphim_object::fast_apprpoaching_lockon_target(float elapsed_time, c
 	return false;
 }
 
-bool boss_seraphim_object::calculate_lockon_target_vector(DirectX::XMFLOAT2& direction, float* distance)
+bool boss_seraphim_object::calculate_lockon_target_vector(math::float2& direction, float* distance)
 {
 	auto taget_object = get_lockon_taget_object().lock();
 	if (!taget_object)

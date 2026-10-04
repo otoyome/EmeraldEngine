@@ -26,7 +26,7 @@ bool edit_model_scene::initialize_edit_core()
 	{
 		auto camera = std::make_shared<editor_camera>(main_camera);
 		camera->set_position(system_units::convert_m_to_unit({ 0, 1, 8 }));
-		camera->set_rotation({ 0, DirectX::XM_PI, 0 });
+		camera->set_rotation({ 0, math::constants<float>::pi, 0 });
 		camera->set_rotation_speed(camera->get_rotation_speed() * 0.25f);
 		camera->set_move_speed(camera->get_move_speed() * 0.25f);
 		register_object(camera);
@@ -500,7 +500,7 @@ void edit_model_scene::update_vertex_color_edit()
 	//	頂点編集時の座標表示
 	if (brush_data.on)
 	{
-		QUEUE_DEBUG_PRIMITIVE_SPHERE(brush_data.position, brush_data.radius, DirectX::XMFLOAT4(1, 1, 1, 1), true);
+		QUEUE_DEBUG_PRIMITIVE_SPHERE(brush_data.position, brush_data.radius, math::float4(1, 1, 1, 1), true);
 	}
 }
 
@@ -537,18 +537,12 @@ void edit_model_scene::on_mouse_left_down_and_hold(void* data_ptr)
 
 	auto data = static_cast<editor_camera::mouse_position_data*>(data_ptr);
 
-	auto View = DirectX::XMLoadFloat4x4(&main_camera->get_camera()->get_view_matrix());
-	auto Projection = DirectX::XMLoadFloat4x4(&main_camera->get_camera()->get_projection_matrix());
+	const math::matrixf view(main_camera->get_camera()->get_view_matrix());
+	const math::matrixf projection(main_camera->get_camera()->get_projection_matrix());
+	const math::matrixf viewport = math::matrixf::viewport(0, static_cast<float>(SCREEN_WIDTH), 0, static_cast<float>(SCREEN_HEIGHT), 0, 1);
 
-	DirectX::XMFLOAT3 start_position, end_position;
-	DirectX::XMStoreFloat3(&start_position,
-		DirectX::XMVector3Unproject(DirectX::XMVectorSet(data->position.x, data->position.y, 0, 1),
-			0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, 1,
-			Projection, View, DirectX::XMMatrixIdentity()));
-	DirectX::XMStoreFloat3(&end_position,
-		DirectX::XMVector3Unproject(DirectX::XMVectorSet(data->position.x, data->position.y, 1, 1),
-			0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, 1,
-			Projection, View, DirectX::XMMatrixIdentity()));
+	const math::float3 start_position = math::vector3f::calc_screen_to_world(data->position.x, data->position.y, 0, view, projection, viewport).to_float3();
+	const math::float3 end_position = math::vector3f::calc_screen_to_world(data->position.x, data->position.y, 1, view, projection, viewport).to_float3();
 
 	//	ヒット位置算出
 	float vertex_hit_length = FLT_MAX;
@@ -564,7 +558,7 @@ void edit_model_scene::on_mouse_left_down_and_hold(void* data_ptr)
 			continue;
 
 		collision::triangles triangles = {};
-		triangles.positions = reinterpret_cast<const DirectX::XMFLOAT3*>(positions->second.row_data.data());
+		triangles.positions = reinterpret_cast<const math::float3*>(positions->second.row_data.data());
 		triangles.indices = reinterpret_cast<const UINT*>(indiceds.row_data.data());
 		triangles.index_start = indiceds.offset();
 		triangles.index_count = indiceds.count();
@@ -597,12 +591,12 @@ void edit_model_scene::on_mouse_left_down_and_hold(void* data_ptr)
 				continue;
 
 			bool is_change = false;
-			auto positions = reinterpret_cast<DirectX::XMFLOAT3*>(position_view->second.row_data.data());
-			auto colors = reinterpret_cast<DirectX::XMFLOAT4*>(color_view->second.row_data.data());
+			auto positions = reinterpret_cast<math::float3*>(position_view->second.row_data.data());
+			auto colors = reinterpret_cast<math::float4*>(color_view->second.row_data.data());
 			for (size_t index = position_view->second.offset(); index < position_view->second.count(); ++index)
 			{
 				auto p = positions + index;
-				DirectX::XMFLOAT3 d;
+				math::float3 d;
 				d.x = p->x - brush_data.position.x;
 				d.y = p->y - brush_data.position.y;
 				d.z = p->z - brush_data.position.z;

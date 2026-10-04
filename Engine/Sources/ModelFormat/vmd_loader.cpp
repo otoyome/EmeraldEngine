@@ -76,8 +76,8 @@ bool	vmd_loader::load(void* buffer, unsigned int buffer_size)
 		{
 			bone_frame.name = ConvertUtf8(read_buffer<char>(sizeof(char) * 15));
 			bone_frame.frame = *read_buffer<int>();
-			bone_frame.position = *read_buffer<DirectX::XMFLOAT3>();
-			bone_frame.rotation = *read_buffer<DirectX::XMFLOAT4>();
+			bone_frame.position = *read_buffer<math::float3>();
+			bone_frame.rotation = *read_buffer<math::float4>();
 			//	補間曲線
 			//	補間曲線は4点のベジェ曲線(0,0),(x1,y1),(x2,y2),(127,127)で表している。
 			//	各軸のパラメータを
@@ -130,8 +130,8 @@ bool	vmd_loader::load(void* buffer, unsigned int buffer_size)
 		{
 			camera_frame.frame = *read_buffer<int>();
 			camera_frame.distance = *read_buffer<float>();
-			camera_frame.position = *read_buffer<DirectX::XMFLOAT3>();
-			camera_frame.rotation = *read_buffer<DirectX::XMFLOAT3>();
+			camera_frame.position = *read_buffer<math::float3>();
+			camera_frame.rotation = *read_buffer<math::float3>();
 			for (unsigned int jj = 0; jj < ARRAYSIZE(camera_frame.interpolate); jj++)
 			{
 				camera_frame.interpolate[jj] = *read_buffer<unsigned char>();

@@ -39,12 +39,12 @@ public:
 
 	light_data convert_light_data() const;
 	light_type get_light_type() const;
-	DirectX::XMFLOAT3 get_position() const;
-	void set_position(const DirectX::XMFLOAT3& position);
+	math::float3 get_position() const;
+	void set_position(const math::float3& position);
 	const math::rotatorf& get_rotation() const;
 	void set_rotation(const math::rotatorf& rotation);
-	const DirectX::XMFLOAT4& get_color() const;
-	void set_color(const DirectX::XMFLOAT4& color);
+	const math::float4& get_color() const;
+	void set_color(const math::float4& color);
 
 	float get_range() const;
 	void set_range(float range);
@@ -54,8 +54,8 @@ public:
 	void set_outer_cone(float outer_cone);
 
 	//	影関係
-	const DirectX::XMFLOAT3& get_shadow_attenuation() const;
-	void set_shadow_attenuation(const DirectX::XMFLOAT3& attenuation);
+	const math::float3& get_shadow_attenuation() const;
+	void set_shadow_attenuation(const math::float3& attenuation);
 	float get_csm_distance_factor() const;
 	void set_csm_distance_factor(float factor);
 	float get_pssm_split_weight() const;
@@ -68,15 +68,15 @@ private:
 
 	//	ライトパラメーター
 	light_type type;
-	DirectX::XMFLOAT3 position;
+	math::float3 position;
 	math::rotatorf rotation;
-	DirectX::XMFLOAT4 color;
-	DirectX::XMFLOAT3 parameter;
+	math::float4 color;
+	math::float3 parameter;
 
 	//	影関係
 	float csm_distance_factor; // 平行光源専用
 	float pssm_split_weight; // 平行光源専用
-	DirectX::XMFLOAT3 shadow_attenuation;
+	math::float3 shadow_attenuation;
 	shadow_map_bias_data bias_data[common_pipeline_states::shadow_map_max];
 };
 ENUM_ATTR_BITFLAG(light::flags);
@@ -105,14 +105,14 @@ public:
 	void set_specular_ibl_texture(texture_ptr texture);
 	void set_lut_ggx_texture(texture_ptr texture);
 
-	DirectX::XMFLOAT3 get_position() const;
-	void set_position(const DirectX::XMFLOAT3& position);
-	DirectX::XMFLOAT3 get_inner_range() const;
-	void set_inner_range(const DirectX::XMFLOAT3& inner_range);
-	DirectX::XMFLOAT3 get_outer_range() const;
-	void set_outer_range(const DirectX::XMFLOAT3& outer_range);
-	const DirectX::XMFLOAT4& get_color() const;
-	void set_color(const DirectX::XMFLOAT4& color);
+	math::float3 get_position() const;
+	void set_position(const math::float3& position);
+	math::float3 get_inner_range() const;
+	void set_inner_range(const math::float3& inner_range);
+	math::float3 get_outer_range() const;
+	void set_outer_range(const math::float3& outer_range);
+	const math::float4& get_color() const;
+	void set_color(const math::float4& color);
 
 private:
 	UINT system_flags;
@@ -120,10 +120,10 @@ private:
 	texture_ptr specular_texture;
 	texture_ptr lut_ggx_texture;
 
-	DirectX::XMFLOAT3 position;
-	DirectX::XMFLOAT3 inner_range;
-	DirectX::XMFLOAT3 outer_range;
-	DirectX::XMFLOAT4 color;
+	math::float3 position;
+	math::float3 inner_range;
+	math::float3 outer_range;
+	math::float4 color;
 };
 ENUM_ATTR_BITFLAG(light_probe::flags);
 

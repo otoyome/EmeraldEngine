@@ -8,30 +8,30 @@ namespace collision
 	class plane
 	{
 	public:
-		DirectX::XMFLOAT3 get_plane_position() const;
-		DirectX::XMFLOAT3 get_normal() const;
+		math::float3 get_plane_position() const;
+		math::float3 get_normal() const;
 		float get_distance() const;
-		const DirectX::XMFLOAT4& get_parameter() const;
-		void set_parameter(const DirectX::XMFLOAT4& parameter);
+		const math::float4& get_parameter() const;
+		void set_parameter(const math::float4& parameter);
 
 	public:
-		plane(const DirectX::XMFLOAT4& parameter = DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f));
-		plane(const DirectX::XMFLOAT3& normal, float distance);
+		plane(const math::float4& parameter = math::float4(0.0f, 0.0f, 0.0f, 0.0f));
+		plane(const math::float3& normal, float distance);
 
-		void initialize(const DirectX::XMFLOAT4& parameter);
-		void initialize(const DirectX::XMFLOAT3& normal, float distance);
+		void initialize(const math::float4& parameter);
+		void initialize(const math::float3& normal, float distance);
 
 		//	ê≥ãKâª
 		void normlize();
 
 		//	ì_Ç∆ïΩñ ÇÃãóó£
-		float calculate_distance(const DirectX::XMFLOAT3& point) const;
+		float calculate_distance(const math::float3& point) const;
 
 		//	ê¸Ç∆ïΩñ ÇÃåç∑îªíË
-		bool to_line(const line& line, float* distance = nullptr, DirectX::XMFLOAT3* insert_point = nullptr) const;
+		bool to_line(const line& line, float* distance = nullptr, math::float3* insert_point = nullptr) const;
 
 	private:
-		DirectX::XMFLOAT4 parameter; //	xyz : ñ@ê¸, w : ãóó£
+		math::float4 parameter; //	xyz : ñ@ê¸, w : ãóó£
 	};
 }	//	namespace collision
 

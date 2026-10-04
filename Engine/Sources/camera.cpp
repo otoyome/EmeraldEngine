@@ -13,7 +13,7 @@ camera::camera()
 , view_matrix()
 , projection_matrix()
 
-, fov_y(DirectX::XMConvertToRadians(45))
+, fov_y(math::angle::to_radian(45.0f))
 , screen_rect(0.0f, 0.0f, 1920.0f, 1080.0f)
 , clip_distance(1.0f, 10000.0f)
 , hybrid_rate(0.3f)
@@ -42,12 +42,12 @@ void camera::set_flag(flags flag, bool value)
 	system_utility::set_bitflag(system_flags, 1 << static_cast<UINT>(flag), value);
 }
 
-const DirectX::XMFLOAT3& camera::get_position() const
+const math::float3& camera::get_position() const
 {
 	return position;
 }
 
-void camera::set_position(const DirectX::XMFLOAT3& position)
+void camera::set_position(const math::float3& position)
 {
 	set_flag(flags::dirty, true);
 	this->position = position;
@@ -86,65 +86,65 @@ void camera::set_hybrid_rate(float hybrid_rate)
 	this->hybrid_rate = hybrid_rate;
 }
 
-const DirectX::XMFLOAT4& camera::get_screen_rect() const
+const math::float4& camera::get_screen_rect() const
 {
 	return screen_rect;
 }
 
-void camera::set_screen_rect(DirectX::XMFLOAT4 screen_rect)
+void camera::set_screen_rect(math::float4 screen_rect)
 {
 	set_flag(flags::dirty, true);
 	this->screen_rect = screen_rect;
 }
 
-const DirectX::XMFLOAT2& camera::get_clip_distance() const
+const math::float2& camera::get_clip_distance() const
 {
 	return clip_distance;
 }
 
-void camera::set_clip_distance(DirectX::XMFLOAT2 clip_distance)
+void camera::set_clip_distance(math::float2 clip_distance)
 {
 	set_flag(flags::dirty, true);
 	this->clip_distance = clip_distance;
 }
 
-const DirectX::XMFLOAT3& camera::get_right()
+const math::float3& camera::get_right()
 {
 	update_parameters();
 	return right;
 }
 
-const DirectX::XMFLOAT3& camera::get_up()
+const math::float3& camera::get_up()
 {
 	update_parameters();
 	return up;
 }
 
-const DirectX::XMFLOAT3& camera::get_front()
+const math::float3& camera::get_front()
 {
 	update_parameters();
 	return front;
 }
 
-const DirectX::XMFLOAT4X4& camera::get_view_matrix()
+const math::float4x4& camera::get_view_matrix()
 {
 	update_parameters();
 	return view_matrix;
 }
 
-const DirectX::XMFLOAT4X4& camera::get_projection_matrix()
+const math::float4x4& camera::get_projection_matrix()
 {
 	update_parameters();
 	return projection_matrix;
 }
 
-const DirectX::XMFLOAT4X4& camera::get_view_projection_matrix()
+const math::float4x4& camera::get_view_projection_matrix()
 {
 	update_parameters();
 	return view_projection_matrix;
 }
 
-const DirectX::XMFLOAT4X4& camera::get_previous_view_projection_matrix()
+const math::float4x4& camera::get_previous_view_projection_matrix()
 {
 	update_parameters();
 	return previous_view_projection_matrix;
@@ -169,56 +169,35 @@ void camera::update_parameters()
 
 	set_flag(flags::dirty, false);
 
-	DirectX::XMVECTOR Position, Rotation;
-	DirectX::XMMATRIX View, Projection;
-	float aspect_ratio;
+	const math::matrixf rotation_matrix = math::matrixf::rotation_quaternion(rotation.to_quaternion());
+	right = rotation_matrix.to_vector3(0).to_float3();
+	up = rotation_matrix.to_vector3(1).to_float3();
+	front = rotation_matrix.to_vector3(2).to_float3();
 
-	Position = DirectX::XMLoadFloat3(&position);
-	DirectX::XMFLOAT4 quaternion = system_utility::to_xmfloat(rotation.to_quaternion());
-	Rotation = DirectX::XMLoadFloat4(&quaternion);
+	const math::matrixf view = (rotation_matrix * math::matrixf::translation(position)).inverted();
+	view_matrix = view.to_float4x4();
 
-	DirectX::XMMATRIX RotationMatrix = DirectX::XMMatrixRotationQuaternion(Rotation);
-	DirectX::XMStoreFloat3(&right, RotationMatrix.r[0]);
-	DirectX::XMStoreFloat3(&up, RotationMatrix.r[1]);
-	DirectX::XMStoreFloat3(&front, RotationMatrix.r[2]);
-
-	DirectX::XMMATRIX TranslationMatrix = DirectX::XMMatrixTranslationFromVector(Position);
-	View = DirectX::XMMatrixInverse(nullptr, RotationMatrix * TranslationMatrix);
-	DirectX::XMStoreFloat4x4(&view_matrix, View);
-
-	aspect_ratio = static_cast<float>(screen_rect.z - screen_rect.x) / static_cast<float>(screen_rect.w - screen_rect.y);
-	Projection = DirectX::XMMatrixPerspectiveFovLH(fov_y, aspect_ratio, clip_distance.y, clip_distance.x);
+	const float aspect_ratio = static_cast<float>(screen_rect.z - screen_rect.x) / static_cast<float>(screen_rect.w - screen_rect.y);
+	math::matrixf projection = math::matrixf::perspective_fov(fov_y, aspect_ratio, clip_distance.x, clip_distance.y);
 	if (is_flag(flags::hybrid_projection))
 	{
 		//	ïΩçsìäâeÇ∆ÇÃÉuÉåÉìÉhèàóù
 		float p_r = math::saturate(hybrid_rate);
 		float o_r = 1.0f - p_r;
-		DirectX::XMVECTOR P = DirectX::XMVectorSet(p_r, p_r, p_r, p_r);
-		DirectX::XMVECTOR O = DirectX::XMVectorSet(o_r, o_r, o_r, o_r);
 
-		DirectX::XMMATRIX OrthoProjection;
 		float ortho_height = tanf(0.5f * fov_y);
 		float ortho_width = ortho_height * aspect_ratio;
-		OrthoProjection = DirectX::XMMatrixOrthographicLH(ortho_width, ortho_height, clip_distance.y, clip_distance.x);
+		const math::matrixf ortho_projection = math::matrixf::orthographic(ortho_width, ortho_height, clip_distance.x, clip_distance.y);
 
-		OrthoProjection.r[0] = DirectX::XMVectorMultiply(OrthoProjection.r[0], O);
-		OrthoProjection.r[1] = DirectX::XMVectorMultiply(OrthoProjection.r[1], O);
-		OrthoProjection.r[2] = DirectX::XMVectorMultiply(OrthoProjection.r[2], O);
-		OrthoProjection.r[3] = DirectX::XMVectorMultiply(OrthoProjection.r[3], O);
-
-		Projection.r[0] = DirectX::XMVectorMultiplyAdd(Projection.r[0], P, OrthoProjection.r[0]);
-		Projection.r[1] = DirectX::XMVectorMultiplyAdd(Projection.r[1], P, OrthoProjection.r[1]);
-		Projection.r[2] = DirectX::XMVectorMultiplyAdd(Projection.r[2], P, OrthoProjection.r[2]);
-		Projection.r[3] = DirectX::XMVectorMultiplyAdd(Projection.r[3], P, OrthoProjection.r[3]);
+		projection = projection * p_r + ortho_projection * o_r;
 	}
-	DirectX::XMStoreFloat4x4(&projection_matrix, Projection);
+	projection_matrix = projection.to_float4x4();
 
-	DirectX::XMMATRIX ViewProjection = View * Projection;
-	DirectX::XMStoreFloat4x4(&view_projection_matrix, ViewProjection);
+	const math::matrixf view_projection = view * projection;
+	view_projection_matrix = view_projection.to_float4x4();
 
 	frustum_culling.create_planes(view_projection_matrix);
-	DirectX::XMFLOAT4X4 inverse_view_projection;
-	DirectX::XMStoreFloat4x4(&inverse_view_projection, DirectX::XMMatrixInverse(nullptr, ViewProjection));
+	const math::float4x4 inverse_view_projection = view_projection.inverted().to_float4x4();
 	frustum_culling.create_frustum_corners(inverse_view_projection);
 }
 

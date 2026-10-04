@@ -16,7 +16,7 @@ std::shared_ptr<roomba_object> roomba_controller_object::get_controll_object() c
 	return controll_object;
 }
 
-DirectX::XMFLOAT3 roomba_controller_object::get_focus_point() const
+math::float3 roomba_controller_object::get_focus_point() const
 {
 	return controll_object->get_position();
 }
@@ -89,7 +89,7 @@ void roomba_controller_object::fixed_update(float elapsed_time)
 	}
 }
 
-DirectX::XMFLOAT3 roomba_controller_object::get_move_vector()
+math::float3 roomba_controller_object::get_move_vector()
 {
 	auto keyboard_state = keyboard::instance()->get_state();
 	int y_axis  = (keyboard_state.is_key_state(keyboard::key_states::w) == input::state::hold)
@@ -97,7 +97,7 @@ DirectX::XMFLOAT3 roomba_controller_object::get_move_vector()
 	int x_axis  = (keyboard_state.is_key_state(keyboard::key_states::d) == input::state::hold)
 				- (keyboard_state.is_key_state(keyboard::key_states::a) == input::state::hold);
 	if (y_axis == 0 && x_axis == 0)
-		return DirectX::XMFLOAT3(0, 0, 0);
+		return math::float3(0, 0, 0);
 
 	float camera_right_x = camera->get_right().x;
 	float camera_right_z = camera->get_right().z;
@@ -117,7 +117,7 @@ DirectX::XMFLOAT3 roomba_controller_object::get_move_vector()
 		camera_front_z	/= camera_front_length;
 	}
 
-	DirectX::XMFLOAT3 vector;
+	math::float3 vector;
 	vector.x = (camera_right_x * x_axis) + (camera_front_x * y_axis);
 	vector.y = 0.0f;
 	vector.z = (camera_right_z * x_axis) + (camera_front_z * y_axis);

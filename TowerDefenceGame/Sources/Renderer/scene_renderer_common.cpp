@@ -46,14 +46,11 @@ namespace
 
 	//	ローカル空間のメッシュレット境界球をワールド変換し、視錐台と交差するか判定する
 	bool is_meshlet_visible(const collision::frustum_culling& frustum_culling,
-							 const DirectX::XMFLOAT4X4& world_transform,
-							 const DirectX::XMFLOAT3& local_center,
+							 const math::float4x4& world_transform,
+							 const math::float3& local_center,
 							 float local_radius)
 	{
-		DirectX::XMVECTOR local_center_vector = DirectX::XMLoadFloat3(&local_center);
-		DirectX::XMMATRIX world_matrix = DirectX::XMLoadFloat4x4(&world_transform);
-		DirectX::XMFLOAT3 world_center;
-		DirectX::XMStoreFloat3(&world_center, DirectX::XMVector3TransformCoord(local_center_vector, world_matrix));
+		const math::float3 world_center = math::vector3f::transform_coord(local_center, world_transform).to_float3();
 
 		float scale_x = sqrtf(world_transform._11 * world_transform._11 + world_transform._12 * world_transform._12 + world_transform._13 * world_transform._13);
 		float scale_y = sqrtf(world_transform._21 * world_transform._21 + world_transform._22 * world_transform._22 + world_transform._23 * world_transform._23);
@@ -66,9 +63,9 @@ namespace
 	}
 
 	//	AABBと球が交差するかどうかを判定する
-	bool aabb_intersects_sphere(const DirectX::XMFLOAT3& aabb_min,
-								 const DirectX::XMFLOAT3& aabb_max,
-								 const DirectX::XMFLOAT3& sphere_center,
+	bool aabb_intersects_sphere(const math::float3& aabb_min,
+								 const math::float3& aabb_max,
+								 const math::float3& sphere_center,
 								 float sphere_radius)
 	{
 		float clamped_x = sphere_center.x;
@@ -90,16 +87,13 @@ namespace
 	}
 
 	//	ローカル空間のメッシュレット境界をワールド変換し、球と交差するか判定する
-	bool is_meshlet_visible_sphere(const DirectX::XMFLOAT3& sphere_center,
+	bool is_meshlet_visible_sphere(const math::float3& sphere_center,
 									float sphere_radius,
-									const DirectX::XMFLOAT4X4& world_transform,
-									const DirectX::XMFLOAT3& local_center,
+									const math::float4x4& world_transform,
+									const math::float3& local_center,
 									float local_radius)
 	{
-		DirectX::XMVECTOR local_center_vector = DirectX::XMLoadFloat3(&local_center);
-		DirectX::XMMATRIX world_matrix = DirectX::XMLoadFloat4x4(&world_transform);
-		DirectX::XMFLOAT3 world_center;
-		DirectX::XMStoreFloat3(&world_center, DirectX::XMVector3TransformCoord(local_center_vector, world_matrix));
+		const math::float3 world_center = math::vector3f::transform_coord(local_center, world_transform).to_float3();
 
 		float scale_x = sqrtf(world_transform._11 * world_transform._11 + world_transform._12 * world_transform._12 + world_transform._13 * world_transform._13);
 		float scale_y = sqrtf(world_transform._21 * world_transform._21 + world_transform._22 * world_transform._22 + world_transform._23 * world_transform._23);
@@ -525,7 +519,7 @@ void scene_renderer_commons::model_render_shadow_batched(graphics_context& conte
 
 void scene_renderer_commons::model_render_shadow_batched(graphics_context& context,
 					const std::vector<std::size_t>& mesh_indices,
-					const DirectX::XMFLOAT3& sphere_center,
+					const math::float3& sphere_center,
 					float sphere_radius,
 					material::surface_paths surface_path)
 {

@@ -7,9 +7,9 @@ namespace
 	static constexpr UINT GBufferDecalBufferIndex = 2;
 	struct gbuffer_decal_constant_buffer
 	{
-		DirectX::XMFLOAT4X4 decal_transform;
-		DirectX::XMFLOAT4X4 decal_inverse_transform;
-		DirectX::XMFLOAT4 decal_direction;
+		math::float4x4 decal_transform;
+		math::float4x4 decal_inverse_transform;
+		math::float4 decal_direction;
 	};
 
 	//	テクスチャ

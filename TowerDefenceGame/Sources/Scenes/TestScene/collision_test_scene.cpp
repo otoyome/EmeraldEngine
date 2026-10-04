@@ -22,48 +22,45 @@ namespace
 	const float unit = system_units::convert_m_to_unit(1.0f);
 
 	//	度数からクォータニオン
-	DirectX::XMFLOAT4 to_quaternion(const DirectX::XMFLOAT3& degree)
+	math::float4 to_quaternion(const math::float3& degree)
 	{
-		DirectX::XMFLOAT4 quaternion;
-		DirectX::XMStoreFloat4(&quaternion, DirectX::XMQuaternionRotationRollPitchYaw(
-			DirectX::XMConvertToRadians(degree.x),
-			DirectX::XMConvertToRadians(degree.y),
-			DirectX::XMConvertToRadians(degree.z)));
+		math::float4 quaternion;
+		quaternion = (math::quaternionf::rotation_xyz(math::angle::to_radian(degree.x), math::angle::to_radian(degree.y), math::angle::to_radian(degree.z))).to_float4();
 		return quaternion;
 	}
 
-	DirectX::XMFLOAT3 scale3(const DirectX::XMFLOAT3& value, float scale)
+	math::float3 scale3(const math::float3& value, float scale)
 	{
 		return { value.x * scale, value.y * scale, value.z * scale };
 	}
 
-	DirectX::XMFLOAT3 add3(const DirectX::XMFLOAT3& a, const DirectX::XMFLOAT3& b)
+	math::float3 add3(const math::float3& a, const math::float3& b)
 	{
 		return { a.x + b.x, a.y + b.y, a.z + b.z };
 	}
 
-	DirectX::XMFLOAT3 sub3(const DirectX::XMFLOAT3& a, const DirectX::XMFLOAT3& b)
+	math::float3 sub3(const math::float3& a, const math::float3& b)
 	{
 		return { a.x - b.x, a.y - b.y, a.z - b.z };
 	}
 
-	float dot3(const DirectX::XMFLOAT3& a, const DirectX::XMFLOAT3& b)
+	float dot3(const math::float3& a, const math::float3& b)
 	{
 		return a.x * b.x + a.y * b.y + a.z * b.z;
 	}
 
-	float length3(const DirectX::XMFLOAT3& a)
+	float length3(const math::float3& a)
 	{
 		return sqrtf(dot3(a, a));
 	}
 
-	DirectX::XMFLOAT3 normalize3(const DirectX::XMFLOAT3& a)
+	math::float3 normalize3(const math::float3& a)
 	{
 		float length = length3(a);
 		return length > 0.0f ? scale3(a, 1.0f / length) : a;
 	}
 
-	bool is_finite3(const DirectX::XMFLOAT3& a)
+	bool is_finite3(const math::float3& a)
 	{
 		return std::isfinite(a.x) && std::isfinite(a.y) && std::isfinite(a.z);
 	}
@@ -78,7 +75,7 @@ namespace
 		return buffer;
 	}
 
-	std::string to_string(const DirectX::XMFLOAT3& value)
+	std::string to_string(const math::float3& value)
 	{
 		return text_format("(%.3f, %.3f, %.3f)", value.x, value.y, value.z);
 	}
@@ -86,7 +83,7 @@ namespace
 	//	床メッシュ生成
 	std::shared_ptr<collision::bounding_mesh> create_floor_mesh(float half_x, float half_z)
 	{
-		std::vector<DirectX::XMFLOAT3> positions =
+		std::vector<math::float3> positions =
 		{
 			{ -half_x, 0.0f, -half_z },
 			{ -half_x, 0.0f, +half_z },
@@ -105,18 +102,18 @@ namespace
 
 			//	事前計算
 			auto p = positions.data();
-			auto A = DirectX::XMLoadFloat3(p + triangle.a);
-			auto B = DirectX::XMLoadFloat3(p + triangle.b);
-			auto C = DirectX::XMLoadFloat3(p + triangle.c);
-			auto AB = DirectX::XMVectorSubtract(B, A);
-			auto BC = DirectX::XMVectorSubtract(C, B);
-			auto CA = DirectX::XMVectorSubtract(A, C);
-			DirectX::XMStoreFloat3(&triangle.ab, AB);
-			DirectX::XMStoreFloat3(&triangle.bc, BC);
-			DirectX::XMStoreFloat3(&triangle.ca, CA);
-			DirectX::XMStoreFloat3(&triangle.normal, DirectX::XMVector3Normalize(DirectX::XMVector3Cross(AB, BC)));
-			DirectX::XMStoreFloat3(&triangle.min, DirectX::XMVectorMin(A, DirectX::XMVectorMin(B, C)));
-			DirectX::XMStoreFloat3(&triangle.max, DirectX::XMVectorMax(A, DirectX::XMVectorMax(B, C)));
+			auto A = math::vector3f(*(p + triangle.a));
+			auto B = math::vector3f(*(p + triangle.b));
+			auto C = math::vector3f(*(p + triangle.c));
+			auto AB = B - A;
+			auto BC = C - B;
+			auto CA = A - C;
+			triangle.ab = AB.to_float3();
+			triangle.bc = BC.to_float3();
+			triangle.ca = CA.to_float3();
+			triangle.normal = ((math::vector3f::cross(AB, BC)).normalized()).to_float3();
+			triangle.min = ((math::min)(A, (math::min)(B, C))).to_float3();
+			triangle.max = ((math::max)(A, (math::max)(B, C))).to_float3();
 			triangle.lab = collision::line(collision::line::types::segment, p[triangle.a], p[triangle.b]);
 			triangle.lbc = collision::line(collision::line::types::segment, p[triangle.b], p[triangle.c]);
 			triangle.lca = collision::line(collision::line::types::segment, p[triangle.c], p[triangle.a]);
@@ -126,9 +123,9 @@ namespace
 
 #if defined(USE_IMGUI)
 	//	形状描画
-	void draw_shape(const collision::bounding_object& object, const DirectX::XMFLOAT4& color, const DirectX::XMFLOAT3& offset = { 0.0f, 0.0f, 0.0f })
+	void draw_shape(const collision::bounding_object& object, const math::float4& color, const math::float3& offset = { 0.0f, 0.0f, 0.0f })
 	{
-		DirectX::XMFLOAT3 position = add3(object.get_position(), offset);
+		math::float3 position = add3(object.get_position(), offset);
 		switch (object.get_type())
 		{
 			case collision::bounding_object::types::sphere:
@@ -151,15 +148,15 @@ namespace
 			case collision::bounding_object::types::mesh:
 			{
 				auto& mesh = static_cast<const collision::bounding_mesh&>(object);
-				DirectX::XMMATRIX Transform = mesh.get_transform_matrix();
-				DirectX::XMVECTOR Offset = DirectX::XMLoadFloat3(&offset);
+				math::matrixf Transform = mesh.get_transform_matrix();
+				math::vector3f Offset(offset);
 				auto& positions = mesh.get_positions();
 				for (auto& triangle : mesh.get_triangles())
 				{
-					DirectX::XMFLOAT3 points[3];
+					math::float3 points[3];
 					const UINT indices[3] = { triangle.a, triangle.b, triangle.c };
 					for (int index = 0; index < 3; ++index)
-						DirectX::XMStoreFloat3(&points[index], DirectX::XMVectorAdd(DirectX::XMVector3TransformCoord(DirectX::XMLoadFloat3(&positions[indices[index]]), Transform), Offset));
+						points[index] = ((math::vector3f::transform_coord(math::vector3f(positions[indices[index]]), Transform)) + Offset).to_float3();
 					QUEUE_DEBUG_PRIMITIVE_LINE(points[0], points[1], color, true);
 					QUEUE_DEBUG_PRIMITIVE_LINE(points[1], points[2], color, true);
 					QUEUE_DEBUG_PRIMITIVE_LINE(points[2], points[0], color, true);
@@ -170,7 +167,7 @@ namespace
 	}
 
 	//	点と法線の描画
-	void draw_point_normal(const DirectX::XMFLOAT3& point, const DirectX::XMFLOAT3& normal, float length, const DirectX::XMFLOAT4& color)
+	void draw_point_normal(const math::float3& point, const math::float3& normal, float length, const math::float4& color)
 	{
 		QUEUE_DEBUG_PRIMITIVE_SPHERE(point, 0.03f * unit, color, false);
 		QUEUE_DEBUG_PRIMITIVE_LINE(point, add3(point, scale3(normal, length)), color, false);
@@ -229,7 +226,7 @@ namespace
 		collision_test_scene::shape_desc b;
 		bool expect_hit;
 		bool check_normal;
-		DirectX::XMFLOAT3 normal;	//	Aを押し出す向き
+		math::float3 normal;	//	Aを押し出す向き
 		float depth;				//	負なら確認しない
 		bool check_opposite = true;	//	逆順の法線が反対向きか確認
 	};
@@ -243,10 +240,10 @@ namespace
 		bool expect_hit;
 		float length;				//	負なら確認しない
 		bool check_normal;
-		DirectX::XMFLOAT3 normal;
+		math::float3 normal;
 	};
 
-	collision_test_scene::shape_desc make_sphere(DirectX::XMFLOAT3 position, float radius)
+	collision_test_scene::shape_desc make_sphere(math::float3 position, float radius)
 	{
 		collision_test_scene::shape_desc desc;
 		desc.type = collision_test_scene::shape_types::sphere;
@@ -255,7 +252,7 @@ namespace
 		return desc;
 	}
 
-	collision_test_scene::shape_desc make_capsule(DirectX::XMFLOAT3 position, DirectX::XMFLOAT3 rotation, float radius, float length)
+	collision_test_scene::shape_desc make_capsule(math::float3 position, math::float3 rotation, float radius, float length)
 	{
 		collision_test_scene::shape_desc desc;
 		desc.type = collision_test_scene::shape_types::capsule;
@@ -266,7 +263,7 @@ namespace
 		return desc;
 	}
 
-	collision_test_scene::shape_desc make_box(DirectX::XMFLOAT3 position, DirectX::XMFLOAT3 rotation, DirectX::XMFLOAT3 extent)
+	collision_test_scene::shape_desc make_box(math::float3 position, math::float3 rotation, math::float3 extent)
 	{
 		collision_test_scene::shape_desc desc;
 		desc.type = collision_test_scene::shape_types::box;
@@ -276,7 +273,7 @@ namespace
 		return desc;
 	}
 
-	collision_test_scene::shape_desc make_floor(DirectX::XMFLOAT3 position = { 0, 0, 0 }, DirectX::XMFLOAT3 rotation = { 0, 0, 0 }, float half = 5.0f)
+	collision_test_scene::shape_desc make_floor(math::float3 position = { 0, 0, 0 }, math::float3 rotation = { 0, 0, 0 }, float half = 5.0f)
 	{
 		collision_test_scene::shape_desc desc;
 		desc.type = collision_test_scene::shape_types::mesh;
@@ -286,7 +283,7 @@ namespace
 		return desc;
 	}
 
-	collision_test_scene::cast_desc make_cast(collision_test_scene::cast_types type, DirectX::XMFLOAT3 start, DirectX::XMFLOAT3 end, float radius = 0.5f, float length = 2.0f, DirectX::XMFLOAT3 rotation = { 0, 0, 0 })
+	collision_test_scene::cast_desc make_cast(collision_test_scene::cast_types type, math::float3 start, math::float3 end, float radius = 0.5f, float length = 2.0f, math::float3 rotation = { 0, 0, 0 })
 	{
 		collision_test_scene::cast_desc desc;
 		desc.type = type;
@@ -316,9 +313,9 @@ bool collision_test_scene::initialize_core()
 	std::shared_ptr<camera_object> main_camera;
 	{
 		main_camera = std::make_shared<camera_object>("メインカメラ");
-		main_camera->get_camera()->set_fov_y(DirectX::XMConvertToRadians(45.0f));
+		main_camera->get_camera()->set_fov_y(math::angle::to_radian(45.0f));
 		main_camera->set_position(system_units::convert_m_to_unit({ 0.0f, 3.0f, 10.0f }));
-		main_camera->set_rotation({ 0.2f, DirectX::XM_PI, 0 });
+		main_camera->set_rotation({ 0.2f, math::constants<float>::pi, 0 });
 		register_object(main_camera);
 		mouse::instance()->set_center_lock(false);
 		mouse::instance()->set_cursol_hide(false);
@@ -329,7 +326,7 @@ bool collision_test_scene::initialize_core()
 	{
 		auto camera = std::make_shared<editor_camera>(main_camera);
 		camera->set_position(system_units::convert_m_to_unit({ 0.0f, 3.0f, 10.0f }));
-		camera->set_rotation({ 0.2f, DirectX::XM_PI, 0 });
+		camera->set_rotation({ 0.2f, math::constants<float>::pi, 0 });
 		camera->set_rotation_speed(camera->get_rotation_speed() * 0.25f);
 		camera->set_move_speed(camera->get_move_speed() * 0.25f);
 		register_object(camera);
@@ -379,7 +376,7 @@ collision_test_scene::cast_desc collision_test_scene::to_unit(const cast_desc& d
 
 std::shared_ptr<collision::bounding_object> collision_test_scene::create_shape(const shape_desc& desc)
 {
-	DirectX::XMFLOAT4 rotation = to_quaternion(desc.rotation);
+	math::float4 rotation = to_quaternion(desc.rotation);
 	switch (desc.type)
 	{
 		case shape_types::sphere:
@@ -428,9 +425,9 @@ void collision_test_scene::update_pair_test()
 	hit_ba_without_data = b->intersection(a.get(), nullptr);
 
 #if defined(USE_IMGUI)
-	const DirectX::XMFLOAT4 normal_color = { 1.0f, 1.0f, 1.0f, 1.0f };
-	const DirectX::XMFLOAT4 hit_color = { 1.0f, 0.2f, 0.2f, 1.0f };
-	draw_shape(*a, hit_ab ? hit_color : DirectX::XMFLOAT4{ 0.4f, 0.8f, 1.0f, 1.0f });
+	const math::float4 normal_color = { 1.0f, 1.0f, 1.0f, 1.0f };
+	const math::float4 hit_color = { 1.0f, 0.2f, 0.2f, 1.0f };
+	draw_shape(*a, hit_ab ? hit_color : math::float4{ 0.4f, 0.8f, 1.0f, 1.0f });
 	draw_shape(*b, hit_ba ? hit_color : normal_color);
 
 	//	A基準の接触(黄)、B基準の接触(水色)
@@ -456,11 +453,11 @@ void collision_test_scene::update_cast_test()
 	cast_hit = execute_cast(desc, *target, &cast_intersect);
 
 #if defined(USE_IMGUI)
-	draw_shape(*target, cast_hit ? DirectX::XMFLOAT4{ 1.0f, 0.2f, 0.2f, 1.0f } : DirectX::XMFLOAT4{ 1.0f, 1.0f, 1.0f, 1.0f });
-	QUEUE_DEBUG_PRIMITIVE_LINE(desc.start, desc.end, DirectX::XMFLOAT4(1.0f, 1.0f, 0.0f, 1.0f), false);
+	draw_shape(*target, cast_hit ? math::float4{ 1.0f, 0.2f, 0.2f, 1.0f } : math::float4{ 1.0f, 1.0f, 1.0f, 1.0f });
+	QUEUE_DEBUG_PRIMITIVE_LINE(desc.start, desc.end, math::float4(1.0f, 1.0f, 0.0f, 1.0f), false);
 
 	//	始点(灰)・終点(暗灰)・接触時(橙)
-	auto draw_caster = [&](const DirectX::XMFLOAT3& center, const DirectX::XMFLOAT4& color)
+	auto draw_caster = [&](const math::float3& center, const math::float4& color)
 	{
 		switch (desc.type)
 		{
@@ -481,7 +478,7 @@ void collision_test_scene::update_cast_test()
 	{
 		auto& info = cast_intersect[0];
 		draw_caster(info.point, { 1.0f, 0.6f, 0.0f, 1.0f });
-		DirectX::XMFLOAT3 contact = desc.type == cast_types::segment ? info.point : info.point2;
+		math::float3 contact = desc.type == cast_types::segment ? info.point : info.point2;
 		draw_point_normal(contact, info.normal, 0.5f * unit, { 0.0f, 1.0f, 1.0f, 1.0f });
 	}
 #endif	//	defined(USE_IMGUI)
@@ -501,11 +498,11 @@ void collision_test_scene::run_self_tests()
 	};
 
 	//	回転・移動した床の法線
-	const DirectX::XMFLOAT3 tilt_position = { 3.0f, 2.0f, -1.0f };
-	const DirectX::XMFLOAT3 tilt_rotation = { 30.0f, 20.0f, 0.0f };
-	DirectX::XMFLOAT3 tilt_normal;
-	const DirectX::XMFLOAT4 tilt_quaternion = to_quaternion(tilt_rotation);
-	DirectX::XMStoreFloat3(&tilt_normal, DirectX::XMVector3Rotate(DirectX::XMVectorSet(0, 1, 0, 0), DirectX::XMLoadFloat4(&tilt_quaternion)));
+	const math::float3 tilt_position = { 3.0f, 2.0f, -1.0f };
+	const math::float3 tilt_rotation = { 30.0f, 20.0f, 0.0f };
+	math::float3 tilt_normal;
+	const math::float4 tilt_quaternion = to_quaternion(tilt_rotation);
+	tilt_normal = (math::quaternionf(tilt_quaternion).rotate(math::vector3f(0, 1, 0))).to_float3();
 	auto on_tilt = [&](float height) { return add3(tilt_position, scale3(tilt_normal, height)); };
 
 	//	交差テスト
@@ -598,8 +595,8 @@ void collision_test_scene::run_self_tests()
 	//	キャストテスト
 	const float edge = 1.0f + 0.5f / sqrtf(2.0f);
 	const float corner = 1.0f + 0.5f / sqrtf(3.0f);
-	const DirectX::XMFLOAT3 diagonal2 = normalize3({ 1, 1, 0 });
-	const DirectX::XMFLOAT3 diagonal3 = normalize3({ 1, 1, 1 });
+	const math::float3 diagonal2 = normalize3({ 1, 1, 0 });
+	const math::float3 diagonal3 = normalize3({ 1, 1, 1 });
 	const cast_case cast_cases[] =
 	{
 		{ "segment-sphere",					make_cast(cast_types::segment, { 0, 5, 0 }, { 0, -5, 0 }), make_sphere({ 0, 0, 0 }, 1.0f), true, 4.0f, true, { 0, 1, 0 } },
@@ -608,7 +605,7 @@ void collision_test_scene::run_self_tests()
 		{ "segment-capsule top",			make_cast(cast_types::segment, { 0, 5, 0 }, { 0, -5, 0 }), make_capsule({ 0, 0, 0 }, { 0, 0, 0 }, 0.5f, 2.0f), true, 3.5f, true, { 0, 1, 0 } },
 		{ "segment-capsule side",			make_cast(cast_types::segment, { 5, 0, 0 }, { -5, 0, 0 }), make_capsule({ 0, 0, 0 }, { 0, 0, 0 }, 0.5f, 2.0f), true, 4.5f, true, { 1, 0, 0 } },
 		{ "segment-box",					make_cast(cast_types::segment, { 0, 5, 0 }, { 0, -5, 0 }), make_box({ 0, 0, 0 }, { 0, 0, 0 }, { 1, 1, 1 }), true, 4.0f, true, { 0, 1, 0 } },
-		{ "segment-rotated box",			make_cast(cast_types::segment, { 0, 5, 0 }, { 0, -5, 0 }), make_box({ 0, 0, 0 }, { 0, 0, 30 }, { 1, 1, 1 }), true, 5.0f - 1.0f / cosf(DirectX::XMConvertToRadians(30.0f)), true, { -0.5f, sqrtf(3.0f) * 0.5f, 0 } },
+		{ "segment-rotated box",			make_cast(cast_types::segment, { 0, 5, 0 }, { 0, -5, 0 }), make_box({ 0, 0, 0 }, { 0, 0, 30 }, { 1, 1, 1 }), true, 5.0f - 1.0f / cosf(math::angle::to_radian(30.0f)), true, { -0.5f, sqrtf(3.0f) * 0.5f, 0 } },
 		{ "segment-box miss short",			make_cast(cast_types::segment, { 0, 5, 0 }, { 0, 2, 0 }), make_box({ 0, 0, 0 }, { 0, 0, 0 }, { 1, 1, 1 }), false, -1.0f, false, {} },
 		{ "segment-floor",					make_cast(cast_types::segment, { 1, 5, 1 }, { 1, -5, 1 }), make_floor(), true, 5.0f, true, { 0, 1, 0 } },
 		{ "segment-tilted floor",			make_cast(cast_types::segment, on_tilt(5.0f), on_tilt(-5.0f)), make_floor(tilt_position, tilt_rotation), true, 5.0f, true, tilt_normal },
@@ -667,8 +664,8 @@ void collision_test_scene::run_self_tests()
 			//	キャストの接触時中心が始点+移動距離と一致するか
 			if (desc.type != cast_types::segment)
 			{
-				DirectX::XMFLOAT3 direction = normalize3(sub3(desc.end, desc.start));
-				DirectX::XMFLOAT3 center = add3(desc.start, scale3(direction, info.length));
+				math::float3 direction = normalize3(sub3(desc.end, desc.start));
+				math::float3 center = add3(desc.start, scale3(direction, info.length));
 				if (length3(sub3(center, info.point)) / unit > tolerance)
 					fail(text_format("point %s is not center at hit.", to_string(scale3(info.point, 1.0f / unit)).c_str()));
 			}

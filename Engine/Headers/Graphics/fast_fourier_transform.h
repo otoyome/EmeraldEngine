@@ -45,8 +45,8 @@ public:
 
 	//	UAVのクリア
 	void clear_uavs(ID3D11DeviceContext* immediate_context,
-					DirectX::XMFLOAT4 real_clear_value = {0.0f, 0.0f, 0.0f, 0.0f},
-					DirectX::XMFLOAT4 imaginary_clear_value = {0.0f, 0.0f, 0.0f, 1.0f});
+					math::float4 real_clear_value = {0.0f, 0.0f, 0.0f, 0.0f},
+					math::float4 imaginary_clear_value = {0.0f, 0.0f, 0.0f, 1.0f});
 
 	//	フーリエ変換
 	void solve(ID3D11DeviceContext* immediate_context, modes mode);

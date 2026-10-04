@@ -2,12 +2,12 @@
 
 #include "implot/implot.h"
 
-DirectX::XMFLOAT3 post_process_volume_object::get_position() const
+math::float3 post_process_volume_object::get_position() const
 {
 	return instance->get_position();
 }
 
-void post_process_volume_object::set_position(const DirectX::XMFLOAT3& position)
+void post_process_volume_object::set_position(const math::float3& position)
 {
 	instance->set_position(position);
 }
@@ -57,32 +57,32 @@ void post_process_volume_object::set_flag(post_process_volume::flags flag, bool 
 	instance->set_flag(flag, value);
 }
 
-DirectX::XMFLOAT3 post_process_volume_object::get_inner_range() const
+math::float3 post_process_volume_object::get_inner_range() const
 {
 	return instance->get_inner_range();
 }
 
-void post_process_volume_object::set_inner_range(const DirectX::XMFLOAT3& inner_range)
+void post_process_volume_object::set_inner_range(const math::float3& inner_range)
 {
 	instance->set_inner_range(inner_range);
 }
 
-DirectX::XMFLOAT3 post_process_volume_object::get_outer_range() const
+math::float3 post_process_volume_object::get_outer_range() const
 {
 	return instance->get_outer_range();
 }
 
-void post_process_volume_object::set_outer_range(const DirectX::XMFLOAT3& outer_range)
+void post_process_volume_object::set_outer_range(const math::float3& outer_range)
 {
 	instance->set_outer_range(outer_range);
 }
 
-const DirectX::XMFLOAT4& post_process_volume_object::get_color() const
+const math::float4& post_process_volume_object::get_color() const
 {
 	return instance->get_color();
 }
 
-void post_process_volume_object::set_color(const DirectX::XMFLOAT4& color)
+void post_process_volume_object::set_color(const math::float4& color)
 {
 	instance->set_color(color);
 }

@@ -24,7 +24,7 @@ sprite::sprite()
 	indices.emplace_back(1);
 	indices.emplace_back(3);
 	indices.emplace_back(2);
-	DirectX::XMStoreFloat4x4(&transform_matrix, DirectX::XMMatrixIdentity());
+	transform_matrix = math::float4x4();
 
 	material.set_domain(material::domains::user_interface);
 	material.set_blend_mode(material::blend_modes::translucent);
@@ -57,7 +57,7 @@ void sprite::update_transform(float dx, float dy, float dw, float dh,
 							  float sx, float sy, float sw, float sh)
 {
 	float sin_angle, cos_angle;
-	DirectX::XMScalarSinCos(&sin_angle, &cos_angle, angle);
+	math::angle::sin_cos(angle, sin_angle, cos_angle);
 
 	transform_matrix._11 = dx;
 	transform_matrix._12 = dy;

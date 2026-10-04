@@ -60,7 +60,7 @@ public:
 public:
 	void input_action_data(action_datas action_data) override;
 
-	DirectX::XMFLOAT3 get_focus_point() const override;
+	math::float3 get_focus_point() const override;
 
 	attack_id get_current_attack_id() const;
 
@@ -146,8 +146,8 @@ void update_deluxe(float elapsed_time) override {}
 
 	bool input_move(float elapsed_time, move_mode mode, bool* flip_flag = nullptr);
 
-	bool fast_apprpoaching_lockon_target(float elapsed_time, const DirectX::XMFLOAT2& range, float power = 3.5f);
-	bool calculate_lockon_target_vector(DirectX::XMFLOAT2& direction, float* distance = nullptr);
+	bool fast_apprpoaching_lockon_target(float elapsed_time, const math::float2& range, float power = 3.5f);
+	bool calculate_lockon_target_vector(math::float2& direction, float* distance = nullptr);
 
 private:
 	void register_states();
@@ -160,7 +160,7 @@ private:
 	call_back_parry_attck_start_map on_parry_attck_start; // 攻撃を開始する時に呼び出される関数
 
 	//	ワーキングメモリ
-	DirectX::XMFLOAT3 work_float3[3];
+	math::float3 work_float3[3];
 	float work_float[4];
 
 	//	移動情報
@@ -177,7 +177,7 @@ private:
 	float dash_max_speed;
 	float hi_dash_max_speed;
 
-	DirectX::XMFLOAT2 move_stop_vector;
+	math::float2 move_stop_vector;
 	float move_stop_max_speed;
 
 	//	攻撃情報

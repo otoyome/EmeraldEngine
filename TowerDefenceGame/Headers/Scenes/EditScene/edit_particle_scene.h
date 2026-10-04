@@ -45,12 +45,12 @@ private:
 	{
 		cache_string file_path;
 		uint32_t sdf_id = 0xFFFFFFFF;
-		DirectX::XMFLOAT3 bounds_min = { 0, 0, 0 };
-		DirectX::XMFLOAT3 bounds_max = { 0, 0, 0 };
+		math::float3 bounds_min = { 0, 0, 0 };
+		math::float3 bounds_max = { 0, 0, 0 };
 		uint32_t resolution = 0;
 		bool show_voxels = true;
 
-		std::vector<DirectX::XMFLOAT4> voxel_points;	//	ボクセル可視化用
+		std::vector<math::float4> voxel_points;	//	ボクセル可視化用
 	};
 	std::vector<edit_sdf_data> edit_sdfs;
 

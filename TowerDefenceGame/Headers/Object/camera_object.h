@@ -14,12 +14,12 @@ public:
 	const math::rotatorf& get_rotation() const;
 	void set_rotation(const math::rotatorf& rotator);
 
-	const DirectX::XMFLOAT3& get_position() const;
-	void set_position(const DirectX::XMFLOAT3& position);
+	const math::float3& get_position() const;
+	void set_position(const math::float3& position);
 
-	const DirectX::XMFLOAT3& get_front() const;
-	const DirectX::XMFLOAT3& get_right() const;
-	const DirectX::XMFLOAT3& get_up() const;
+	const math::float3& get_front() const;
+	const math::float3& get_right() const;
+	const math::float3& get_up() const;
 
 public:
 	camera_object(std::string_view name);
@@ -36,5 +36,5 @@ private:
 	camera_ptr camera;
 
 	math::rotatorf rotation;
-	DirectX::XMFLOAT3 position;
+	math::float3 position;
 };

@@ -60,7 +60,7 @@ void trunk_bar_controller_object::fixed_update(float elapsed_time)
 			main_value_inner = f_value;
 
 			float main_rate = main_value_inner / max_value;
-			DirectX::XMFLOAT4 main_rect = uis[ui_id::main]->get_screen_rect();
+			math::float4 main_rect = uis[ui_id::main]->get_screen_rect();
 			main_rect.z = main_rate * origin_rects[ui_id::main].z;
 			if (animation_direction == directions::right)
 			{
@@ -71,7 +71,7 @@ void trunk_bar_controller_object::fixed_update(float elapsed_time)
 		float value_rate = static_cast<float>(value) / max_value;
 		int numeric_value = static_cast<int>(value_rate * 100.0f + 0.1f);
 
-		DirectX::XMFLOAT4 changed_color = {1, 1, 1, 1};
+		math::float4 changed_color = {1, 1, 1, 1};
 		bool is_change_color = false;
 		if (numeric_value >= 100)
 		{
@@ -176,7 +176,7 @@ void trunk_bar_controller_object::set_alpha(float alpha)
 		if (!uis[index])
 			continue;
 
-		DirectX::XMFLOAT4 color = origin_colors[index];
+		math::float4 color = origin_colors[index];
 		color.w *= alpha;
 		uis[index]->set_color(color);
 	}

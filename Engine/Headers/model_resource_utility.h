@@ -1,6 +1,5 @@
 #pragma once
 
-#include <DirectXMath.h>
 
 #include "model_resource.h"
 
@@ -8,7 +7,7 @@ namespace model_resource_utility
 {
 #if defined(USE_IMGUI)
 	//	スキンメッシュではないモデルを結合
-	void combine_unskinned_meshes(model_resource& resource, DirectX::XMINT3 grid_divisions);
+	void combine_unskinned_meshes(model_resource& resource, math::int3 grid_divisions);
 
 	//	メッシュ最適化
 	void optimized_meshs(model_resource& resource);

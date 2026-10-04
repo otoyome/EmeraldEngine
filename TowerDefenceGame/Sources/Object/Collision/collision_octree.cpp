@@ -26,7 +26,7 @@ void collision_octree::reset(const aabb& world_bounds, int depth_limit)
 	entry_count = 0;
 	max_depth = (std::max)(depth_limit, 0);
 
-	DirectX::XMFLOAT3 center
+	math::float3 center
 	{
 		(world_bounds.min.x + world_bounds.max.x) * 0.5f,
 		(world_bounds.min.y + world_bounds.max.y) * 0.5f,
@@ -50,7 +50,7 @@ void collision_octree::clear()
 	ready = false;
 }
 
-size_t collision_octree::allocate_node(const DirectX::XMFLOAT3& center, float half_size)
+size_t collision_octree::allocate_node(const math::float3& center, float half_size)
 {
 	node created{};
 	created.center = center;
@@ -85,7 +85,7 @@ void collision_octree::insert_recursive(std::size_t node_index, int depth, const
 		{
 			if (nodes[node_index].children[octant] == invalid_node)
 			{
-				DirectX::XMFLOAT3 child_center;
+				math::float3 child_center;
 				float child_half;
 				child_bounds(nodes[node_index], octant, child_center, child_half);
 
@@ -117,7 +117,7 @@ int collision_octree::child_octant_containing(const node& parent, const aabb& bo
 	return octant;
 }
 
-void collision_octree::child_bounds(const node& parent, int octant, DirectX::XMFLOAT3& out_center, float& out_half) const
+void collision_octree::child_bounds(const node& parent, int octant, math::float3& out_center, float& out_half) const
 {
 	out_half = parent.half_size * 0.5f;
 	out_center.x = parent.center.x + ((octant & 1) ? out_half : -out_half);

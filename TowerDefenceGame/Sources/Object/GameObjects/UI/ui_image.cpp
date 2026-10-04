@@ -2,7 +2,7 @@
 
 namespace
 {
-	const DirectX::XMFLOAT2 fill_ring_points[8] =
+	const math::float2 fill_ring_points[8] =
 	{
 		{ 0.5f, 0.0f },	//	上
 		{ 1.0f, 0.0f },	//	右上
@@ -14,7 +14,7 @@ namespace
 		{ 0.0f, 0.0f },	//	左上
 	};
 
-	DirectX::XMFLOAT2 calculate_corner_size(float border_near, float border_far, float texture_size, float screen_size)
+	math::float2 calculate_corner_size(float border_near, float border_far, float texture_size, float screen_size)
 	{
 		float rate[2] = { border_near, border_far };
 		float total_rate = rate[0] + rate[1];
@@ -53,14 +53,14 @@ void ui_image::set_draw_mode(draw_modes draw_mode)
 	set_dirty();
 }
 
-DirectX::XMFLOAT4 ui_image::get_border() const
+math::float4 ui_image::get_border() const
 {
 	return border;
 }
 
-void ui_image::set_border(DirectX::XMFLOAT4 border)
+void ui_image::set_border(math::float4 border)
 {
-	this->border = system_utility::to_xmfloat(math::saturate(system_utility::to_math(border)));
+	this->border = math::saturate(math::vector4f(border)).to_float4();
 	set_dirty();
 }
 
@@ -143,7 +143,7 @@ ui_image::~ui_image()
 
 void ui_image::build_primitive_single(std::vector<sprite::vertex>& vertices, std::vector<UINT>& indices)
 {
-	DirectX::XMFLOAT4 color = { 1.0f, 1.0f, 1.0f, 1.0f };
+	math::float4 color = { 1.0f, 1.0f, 1.0f, 1.0f };
 
 	vertices.push_back({{ 0.0f, 0.0f, 0.0f }, color, { 0.0f, 0.0f }});
 	vertices.push_back({{ 1.0f, 0.0f, 0.0f }, color, { 1.0f, 0.0f }});
@@ -159,25 +159,25 @@ void ui_image::build_primitive_single(std::vector<sprite::vertex>& vertices, std
 
 void ui_image::build_primitive_sliced(std::vector<sprite::vertex>& vertices, std::vector<UINT>& indices)
 {
-	DirectX::XMFLOAT4 color = { 1.0f, 1.0f, 1.0f, 1.0f };
+	math::float4 color = { 1.0f, 1.0f, 1.0f, 1.0f };
 
 	//	テクスチャ空間での境界を算出
 	texture_ptr texture;
 	get_sprite().get_material().get_texture(sprite::base_texture_name, texture);
-	DirectX::XMFLOAT2 texture_size = { SCREEN_WIDTH, SCREEN_HEIGHT };
+	math::float2 texture_size = { SCREEN_WIDTH, SCREEN_HEIGHT };
 	if (texture2d_ptr texture_2d = std::static_pointer_cast<texture2d>(texture))
 	{
 		texture_size.x = static_cast<float>(texture_2d->get_width());
 		texture_size.y = static_cast<float>(texture_2d->get_height());
 	}
 
-	DirectX::XMFLOAT2 screen_rect_size = { get_screen_rect().z, get_screen_rect().w };
-	DirectX::XMFLOAT2 size_rate = { screen_rect_size.x / texture_size.x, screen_rect_size.y / texture_size.y };
+	math::float2 screen_rect_size = { get_screen_rect().z, get_screen_rect().w };
+	math::float2 size_rate = { screen_rect_size.x / texture_size.x, screen_rect_size.y / texture_size.y };
 	//	座標
-	DirectX::XMFLOAT2 corner_size[2];
+	math::float2 corner_size[2];
 	{
-		DirectX::XMFLOAT2 x_corners = calculate_corner_size(border.x, border.z, texture_size.x, screen_rect_size.x);
-		DirectX::XMFLOAT2 y_corners = calculate_corner_size(border.y, border.w, texture_size.y, screen_rect_size.y);
+		math::float2 x_corners = calculate_corner_size(border.x, border.z, texture_size.x, screen_rect_size.x);
+		math::float2 y_corners = calculate_corner_size(border.y, border.w, texture_size.y, screen_rect_size.y);
 		corner_size[0] = { x_corners.x, y_corners.x };
 		corner_size[1] = { x_corners.y, y_corners.y };
 	}
@@ -244,7 +244,7 @@ void ui_image::build_primitive_filled(std::vector<sprite::vertex>& vertices, std
 	if (amount <= FLT_MIN)
 		return;
 
-	DirectX::XMFLOAT4 color = { 1.0f, 1.0f, 1.0f, 1.0f };
+	math::float4 color = { 1.0f, 1.0f, 1.0f, 1.0f };
 	switch (fill_method)
 	{
 		case fill_methods::axis:
@@ -297,20 +297,20 @@ void ui_image::build_primitive_filled(std::vector<sprite::vertex>& vertices, std
 
 			vertices.push_back({{ 0.5f, 0.5f, 0.0f }, color, { 0.5f, 0.5f }});
 
-			DirectX::XMFLOAT2 first_point = ring_point(0);
+			math::float2 first_point = ring_point(0);
 			vertices.push_back({{ first_point.x, first_point.y, 0.0f }, color, { first_point.x, first_point.y }});
 
 			for (int step = 1; step <= full_slices; ++step)
 			{
-				DirectX::XMFLOAT2 point = ring_point(step);
+				math::float2 point = ring_point(step);
 				vertices.push_back({{ point.x, point.y, 0.0f }, color, { point.x, point.y }});
 			}
 
 			if (fraction > 0.0f)
 			{
-				DirectX::XMFLOAT2 from = ring_point(full_slices);
-				DirectX::XMFLOAT2 to = ring_point(full_slices + 1);
-				DirectX::XMFLOAT2 point = { math::lerp(from.x, to.x, fraction), math::lerp(from.y, to.y, fraction) };
+				math::float2 from = ring_point(full_slices);
+				math::float2 to = ring_point(full_slices + 1);
+				math::float2 point = { math::lerp(from.x, to.x, fraction), math::lerp(from.y, to.y, fraction) };
 				vertices.push_back({{ point.x, point.y, 0.0f }, color, { point.x, point.y }});
 			}
 

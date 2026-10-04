@@ -6,8 +6,8 @@ namespace
 {
 	struct hiz_constants
 	{
-		DirectX::XMUINT2 dst_size;
-		DirectX::XMUINT2 src_size;
+		math::uint2 dst_size;
+		math::uint2 src_size;
 	};
 
 	std::shared_ptr<compute_shader> load_cs(std::string_view path)

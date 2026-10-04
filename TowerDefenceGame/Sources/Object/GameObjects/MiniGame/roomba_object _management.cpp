@@ -12,23 +12,23 @@ namespace
 	//	åXÇ´ä÷òA
 	constexpr float ground_tilt_follow_rate = 15.0f;
 	constexpr float velocity_tilt_follow_rate = 30.0f;
-	constexpr float velocity_roll_max = DirectX::XMConvertToRadians(+20.0f);
-	constexpr float velocity_pitch_max = DirectX::XMConvertToRadians(20.0f);
+	constexpr float velocity_roll_max = math::angle::to_radian(+20.0f);
+	constexpr float velocity_pitch_max = math::angle::to_radian(20.0f);
 
 	//	éÄñSâ¡ë¨
-	constexpr float death_spin_speed = DirectX::XMConvertToRadians(720.0f);
-	constexpr DirectX::XMFLOAT3 dead_impulse = system_units::convert_m_to_unit({0.0f, 10.0f, 0.0f});
+	constexpr float death_spin_speed = math::angle::to_radian(720.0f);
+	constexpr math::float3 dead_impulse = system_units::convert_m_to_unit({0.0f, 10.0f, 0.0f});
 
 	//	ínñ ÇÃåXÇ´ÇäpìxÇ≈éZèo
-	DirectX::XMFLOAT3 calculate_ground_tilt(const DirectX::XMFLOAT3& euler, const DirectX::XMFLOAT3& normal)
+	math::float3 calculate_ground_tilt(const math::float3& euler, const math::float3& normal)
 	{
-		DirectX::XMFLOAT3 front = { sinf(euler.y), 0.0f, +cosf(euler.y) };
-		DirectX::XMFLOAT3 right = { cosf(euler.y), 0.0f, -sinf(euler.y) };
+		math::float3 front = { sinf(euler.y), 0.0f, +cosf(euler.y) };
+		math::float3 right = { cosf(euler.y), 0.0f, -sinf(euler.y) };
 
 		float forward_component = normal.x * front.x + normal.z * front.z;
 		float right_component   = normal.x * right.x + normal.z * right.z;
 
-		DirectX::XMFLOAT3 out;
+		math::float3 out;
 		out.x = atan2f(forward_component, normal.y);
 		out.y = euler.y;
 		out.z = asinf(math::clamp(-right_component, -1.0f, 1.0f));
@@ -36,10 +36,10 @@ namespace
 	}
 
 	//	ë¨ìxÉxÉNÉgÉãÇ©ÇÁëOå„ÅEç∂âEÇÃåXÇ´äpÇéZèo
-	DirectX::XMFLOAT2 calculate_velocity_tilt(float yaw, const DirectX::XMFLOAT3& velocity, float max_speed, bool flip_pitch = false)
+	math::float2 calculate_velocity_tilt(float yaw, const math::float3& velocity, float max_speed, bool flip_pitch = false)
 	{
-		DirectX::XMFLOAT2 front = { sinf(yaw), +cosf(yaw) };
-		DirectX::XMFLOAT2 right = { cosf(yaw), -sinf(yaw) };
+		math::float2 front = { sinf(yaw), +cosf(yaw) };
+		math::float2 right = { cosf(yaw), -sinf(yaw) };
 
 		float forward_speed = velocity.x * front.x + velocity.z * front.y;
 		float lateral_speed = velocity.x * right.x + velocity.z * right.y;
@@ -47,7 +47,7 @@ namespace
 		float forward_rate = (max_speed > FLT_EPSILON) ? math::clamp(forward_speed / max_speed, -1.0f, 1.0f) : 0.0f;
 		float lateral_rate = (max_speed > FLT_EPSILON) ? math::clamp(lateral_speed / max_speed, -1.0f, 1.0f) : 0.0f;
 
-		DirectX::XMFLOAT2 out;
+		math::float2 out;
 		float pitch = velocity_pitch_max * fabsf(forward_rate);
 		out.x = (flip_pitch ? (forward_rate < 0.0f) : (forward_rate > 0.0f)) ? -pitch : pitch;
 		out.y = lateral_rate * velocity_roll_max;
@@ -112,26 +112,26 @@ void roomba_object::fixed_update(float elapsed_time)
 	{
 		//	éÄñSéûÇÕÉXÉsÉìÇ≥ÇπÇÈ
 		auto velocity = get_velocity();
-		DirectX::XMVECTOR Velocity = DirectX::XMLoadFloat3(&velocity);
-		float speed = DirectX::XMVectorGetX(DirectX::XMVector3Length(Velocity));
+		math::vector3f Velocity(velocity);
+		float speed = Velocity.length();
 		if (speed >= 0.001f)
 		{
-			Velocity = DirectX::XMVector3Normalize(Velocity);
-			DirectX::XMVECTOR UpVector = DirectX::XMVectorNegate(DirectX::XMVector3Normalize(DirectX::XMLoadFloat3(&world_gravity)));
-			UpVector = DirectX::XMVector3Cross(Velocity, UpVector);
+			Velocity = Velocity.normalized();
+			math::vector3f UpVector = -math::vector3f(world_gravity).normalized();
+			UpVector = math::vector3f::cross(Velocity, UpVector);
 
-			if (DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(UpVector)) > 0.00001f)
+			if (UpVector.square_length() > 0.00001f)
 			{
 				death_spin_angle = speed;
 
-				DirectX::XMVECTOR Rotation = system_utility::to_xmvector(death_spin_rotator.to_quaternion());
-				DirectX::XMVECTOR AddRotation = DirectX::XMQuaternionRotationAxis(UpVector, death_spin_angle);
-				Rotation = DirectX::XMQuaternionMultiply(Rotation, AddRotation);
+				math::quaternionf Rotation = death_spin_rotator.to_quaternion();
+				math::quaternionf AddRotation = math::quaternionf::rotation_axis(UpVector, death_spin_angle);
+				Rotation = Rotation * AddRotation;
 
-				DirectX::XMFLOAT4 rot;
-				DirectX::XMStoreFloat4(&rot, Rotation);
-				math::rotatorf new_rot(system_utility::to_math_quaternion(rot));
-				new_rot.y -= DirectX::XM_PIDIV2;	//	ï‚ê≥
+				math::float4 rot;
+				rot = Rotation.to_float4();
+				math::rotatorf new_rot{ math::quaternionf(rot) };
+				new_rot.y -= math::constants<float>::pi_half;	//	ï‚ê≥
 				set_rotation(new_rot);
 			}
 		}
@@ -142,7 +142,7 @@ void roomba_object::fixed_update(float elapsed_time)
 		{
 			auto max_speed = get_max_speed(roomba_object::move_mode::dash);
 			bool flip_flag = move_vector.x * move_vector.x + move_vector.y * move_vector.y <= 0.0001f;
-			DirectX::XMFLOAT2 velocity_tilt_target = calculate_velocity_tilt(get_rotation().y, get_velocity(), max_speed, flip_flag);
+			math::float2 velocity_tilt_target = calculate_velocity_tilt(get_rotation().y, get_velocity(), max_speed, flip_flag);
 
 			float velocity_tilt_alpha = 1.0f - expf(-velocity_tilt_follow_rate * elapsed_time);
 			velocity_tilt_pitch += (velocity_tilt_target.x - velocity_tilt_pitch) * velocity_tilt_alpha;
@@ -151,7 +151,7 @@ void roomba_object::fixed_update(float elapsed_time)
 
 		//	ínñ ÇÃñ@ê¸Ç©ÇÁåXÇ´éZèo
 		{
-			DirectX::XMFLOAT3 ground_tilt = calculate_ground_tilt(system_utility::to_xmfloat(get_rotation()), ground_normal);
+			math::float3 ground_tilt = calculate_ground_tilt(get_rotation().to_vector3().to_float3(), ground_normal);
 
 			float ground_tilt_alpha = 1.0f - expf(-ground_tilt_follow_rate * elapsed_time);
 			ground_tilt_pitch += (ground_tilt.x - ground_tilt_pitch) * ground_tilt_alpha;
@@ -284,8 +284,8 @@ void roomba_object::update_values(float elapsed_time)
 
 	//	ãÛãCíÔçRÇ…ÇÊÇÈï˙îMÅEä£ëáÇéZèo
 	auto velocity = get_velocity();
-	auto Velocity = DirectX::XMLoadFloat3(&velocity);
-	float speed = DirectX::XMVectorGetX(DirectX::XMVector3Length(Velocity));
+	auto Velocity = math::vector3f(velocity);
+	float speed = Velocity.length();
 	float speed_rate = math::smoothstep(0.0f, get_max_speed(move_mode::dash), speed);
 	float air_drag_heat_rate = math::lerp(0.0f, 0.5f, speed_rate);
 	float air_drag_wet_rate = math::lerp(0.1f, 0.75f, speed_rate);
@@ -306,7 +306,7 @@ void roomba_object::enter_active()
 
 void roomba_object::update_active(float elapsed_time)
 {
-	DirectX::XMFLOAT2 move = DirectX::XMFLOAT2(action_data.move.x, action_data.move.z);
+	math::float2 move = math::float2(action_data.move.x, action_data.move.z);
 
 	//	ì¸óÕÇ…çáÇÌÇπÇƒêßå‰
 	add_move_vector(move);
@@ -367,7 +367,7 @@ void roomba_object::on_wet(float rate)
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void roomba_object::update_rotation(float elapsed_time)
 {
-	DirectX::XMFLOAT2 vector = {turn_front_vector.x, turn_front_vector.y};
+	math::float2 vector = {turn_front_vector.x, turn_front_vector.y};
 	float length = (vector.x * vector.x + vector.y * vector.y);
 	if (length < 0.001f * 0.001f)
 		return;
@@ -378,7 +378,7 @@ void roomba_object::update_rotation(float elapsed_time)
 
 	//	ëOÉxÉNÉgÉãéZèo
 	math::rotatorf rotator = get_rotation();
-	DirectX::XMFLOAT2 front = DirectX::XMFLOAT2(sinf(rotator.y), cosf(rotator.y));
+	math::float2 front = math::float2(sinf(rotator.y), cosf(rotator.y));
 
 	//	âÒì]ó éZèo
 	float dot = front.x * vector.x + front.y * vector.y;
@@ -394,11 +394,11 @@ void roomba_object::update_rotation(float elapsed_time)
 
 void roomba_object::update_velocity(float elapsed_time)
 {
-	DirectX::XMVECTOR Velocity = DirectX::XMLoadFloat3(&velocity);
-	float speed_sq = DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(Velocity));
+	math::vector3f Velocity(velocity);
+	float speed_sq = Velocity.square_length();
 
 	//	â¡ë¨èàóù
-	DirectX::XMFLOAT3 drive_force = {0.0f, 0.0f, 0.0f};
+	math::float3 drive_force = {0.0f, 0.0f, 0.0f};
 	if (is_flag(flags::on_ground))
 	{
 		//	â¡ë¨ÇÕêÖïΩï˚å¸ÇÃÇ›Ç≈çlÇ¶ÇÈ
@@ -415,8 +415,8 @@ void roomba_object::update_velocity(float elapsed_time)
 			float limiter_rate = 1.0f;
 			if (!action_data.dash)
 			{
-				DirectX::XMVECTOR DriveDirection = DirectX::XMVectorSet(move_vector_x, 0.0f, move_vector_z, 0.0f);
-				float speed_along_drive = DirectX::XMVectorGetX(DirectX::XMVector3Dot(Velocity, DriveDirection));
+				math::vector3f DriveDirection(move_vector_x, 0.0f, move_vector_z);
+				float speed_along_drive = math::vector3f::dot(Velocity, DriveDirection);
 				float max_speed = get_max_speed(move_mode::walk);
 				float speed_margin = max_speed * 0.1f;
 				float over_speed = speed_along_drive - (max_speed - speed_margin);
@@ -437,24 +437,24 @@ void roomba_object::update_velocity(float elapsed_time)
 	}
 
 	//	â¡ë¨óÕ
-	DirectX::XMVECTOR DriveForce = DirectX::XMLoadFloat3(&drive_force);
+	math::vector3f DriveForce(drive_force);
 
 	//	ñÄéCèàóù
 	if (is_flag(flags::on_ground) && speed_sq > FLT_MIN)
 	{
-		DirectX::XMVECTOR Normal = DirectX::XMLoadFloat3(&ground_normal);
+		math::vector3f Normal(ground_normal);
 
 		//	ë¨ìxÇñ Ç…âàÇ§ê¨ï™Ç∆ñ@ê¸ê¨ï™Ç…ï™â
-		DirectX::XMVECTOR NormalVelocity = DirectX::XMVectorScale(Normal, DirectX::XMVectorGetX(DirectX::XMVector3Dot(Velocity, Normal)));
-		DirectX::XMVECTOR TangentVelocity = DirectX::XMVectorSubtract(Velocity, NormalVelocity);
-		float tangent_speed = DirectX::XMVectorGetX(DirectX::XMVector3Length(TangentVelocity));
+		math::vector3f NormalVelocity = Normal * (math::vector3f::dot(Velocity, Normal));
+		math::vector3f TangentVelocity = Velocity - NormalVelocity;
+		float tangent_speed = TangentVelocity.length();
 
 		if (tangent_speed > FLT_EPSILON)
 		{
-			DirectX::XMVECTOR Gravity = DirectX::XMVectorScale(DirectX::XMLoadFloat3(&world_gravity), gravity_scale);
+			math::vector3f Gravity = math::vector3f(world_gravity) * gravity_scale;
 
 			//	êÇíºçRóÕ
-			float gravity_along_normal = fabsf(DirectX::XMVectorGetX(DirectX::XMVector3Dot(Gravity, Normal)));
+			float gravity_along_normal = fabsf(math::vector3f::dot(Gravity, Normal));
 			float normal_force = gravity_along_normal * get_push_box()->get_mass();
 
 			//	çáê¨ñÄéCåWêî
@@ -468,12 +468,12 @@ void roomba_object::update_velocity(float elapsed_time)
 				kinetic_friction_force += get_current_braking_force();
 
 			//	ñ Ç…âàÇ§ë¨ìxÇ∆ãtå¸Ç´ÇÃóÕêœ
-			DirectX::XMVECTOR TangentDirection = DirectX::XMVectorScale(TangentVelocity, 1.0f / tangent_speed);
+			math::vector3f TangentDirection = TangentVelocity * (1.0f / tangent_speed);
 			float resistance_impulse = kinetic_friction_force * elapsed_time;
 			resistance_impulse = std::min(resistance_impulse, tangent_speed * get_push_box()->get_mass());
 
-			DirectX::XMVECTOR ResistanceForce = DirectX::XMVectorScale(TangentDirection, resistance_impulse);
-			DriveForce = DirectX::XMVectorSubtract(DriveForce, ResistanceForce);
+			math::vector3f ResistanceForce = TangentDirection * resistance_impulse;
+			DriveForce = DriveForce - ResistanceForce;
 		}
 	}
 
@@ -498,25 +498,25 @@ void roomba_object::update_velocity(float elapsed_time)
 		float drag_impulse = air_force * elapsed_time;
 		drag_impulse = std::min(drag_impulse, speed * get_push_box()->get_mass());
 
-		DirectX::XMVECTOR DragDirection = DirectX::XMVectorScale(Velocity, 1.0f / speed);
-		DirectX::XMVECTOR DragForce = DirectX::XMVectorScale(DragDirection, drag_impulse);
-		DriveForce = DirectX::XMVectorSubtract(DriveForce, DragForce);
+		math::vector3f DragDirection = Velocity * (1.0f / speed);
+		math::vector3f DragForce = DragDirection * drag_impulse;
+		DriveForce = DriveForce - DragForce;
 	}
 
 	//	óÕí«â¡
-	DirectX::XMStoreFloat3(&drive_force, DriveForce);
+	drive_force = DriveForce.to_float3();
 	add_force(drive_force);
 }
 
 void roomba_object::update_move(float elapsed_time)
 {
-	DirectX::XMFLOAT3 start_position = get_position();
+	math::float3 start_position = get_position();
 
 	ground_friction = 1.0f;
 	ground_normal = {};
 	set_flag(flags::on_ground, false);
 
-	DirectX::XMFLOAT3 resolved_position, hit_normal;
+	math::float3 resolved_position, hit_normal;
 	float friction = 0.0f;
 	if (calculate_position(velocity, elapsed_time, resolved_position, hit_normal, &friction))
 	{
@@ -536,7 +536,7 @@ void roomba_object::update_move(float elapsed_time)
 	}
 }
 
-bool roomba_object::calculate_position(DirectX::XMFLOAT3 velocity, float elapsed_time, DirectX::XMFLOAT3& out_position, DirectX::XMFLOAT3& out_normal, float* out_friction)
+bool roomba_object::calculate_position(math::float3 velocity, float elapsed_time, math::float3& out_position, math::float3& out_normal, float* out_friction)
 {
 	auto collision_object = get_push_box();
 	auto bounding_object = std::static_pointer_cast<collision::bounding_capsule>(collision_object->get_bounding_object());
@@ -544,7 +544,7 @@ bool roomba_object::calculate_position(DirectX::XMFLOAT3 velocity, float elapsed
 	out_position = get_position();
 
 	float height = bounding_object->get_radius() + bounding_object->get_length() * 0.5f;
-	DirectX::XMVECTOR Offset = DirectX::XMVectorSet(0.0f, height, 0.0f, 0.0f);
+	math::vector3f Offset(0.0f, height, 0.0f);
 
 	collision_world::capsule_cast_descs desc;
 	desc.radius = bounding_object->get_radius();
@@ -558,24 +558,24 @@ bool roomba_object::calculate_position(DirectX::XMFLOAT3 velocity, float elapsed
 	static constexpr float SkinStep = system_units::convert_cm_to_unit(0.1f);
 
 	bool hit_flag = false;
-	DirectX::XMVECTOR Velocity = DirectX::XMLoadFloat3(&velocity);
+	math::vector3f Velocity(velocity);
 	float remaining_time = elapsed_time;
 
 	for (size_t iteration = 0; iteration < 3; ++iteration)
 	{
-		float speed_sq = DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(Velocity));
+		float speed_sq = Velocity.square_length();
 		if (speed_sq < StopFactor * StopFactor || remaining_time <= 0.0f)
 			break;
 
 		float speed = sqrtf(speed_sq);
-		DirectX::XMVECTOR NormalizedVelocity = DirectX::XMVector3Normalize(Velocity);
+		math::vector3f NormalizedVelocity = Velocity.normalized();
 		float travel_distance = speed * remaining_time + SkinStep;
-		DirectX::XMVECTOR MoveVector = DirectX::XMVectorScale(NormalizedVelocity, travel_distance);
+		math::vector3f MoveVector = NormalizedVelocity * travel_distance;
 
-		DirectX::XMVECTOR From = DirectX::XMVectorAdd(DirectX::XMLoadFloat3(&out_position), Offset);
-		DirectX::XMVECTOR To = DirectX::XMVectorAdd(From, MoveVector);
-		DirectX::XMStoreFloat3(&desc.start, From);
-		DirectX::XMStoreFloat3(&desc.end, To);
+		math::vector3f From = math::vector3f(out_position) + Offset;
+		math::vector3f To = From + MoveVector;
+		desc.start = From.to_float3();
+		desc.end = To.to_float3();
 
 		collision::intersect_data intersect_data;
 		collision_object_ptr hit_collision_object;
@@ -583,13 +583,13 @@ bool roomba_object::calculate_position(DirectX::XMFLOAT3 velocity, float elapsed
 		{
 			hit_flag = true;
 
-			DirectX::XMVECTOR Normal = DirectX::XMVector3Normalize(DirectX::XMLoadFloat3(&intersect_data[0].normal));
-			DirectX::XMStoreFloat3(&out_normal, Normal);
+			math::vector3f Normal = math::vector3f(intersect_data[0].normal).normalized();
+			out_normal = Normal.to_float3();
 
 			float hit_distance = std::max(intersect_data[0].length - SkinStep, 0.0f);
-			DirectX::XMVECTOR Position = DirectX::XMVectorAdd(From, DirectX::XMVectorScale(NormalizedVelocity, hit_distance));
-			Position = DirectX::XMVectorAdd(Position, DirectX::XMVectorScale(Normal, SkinStep));
-			DirectX::XMStoreFloat3(&out_position, DirectX::XMVectorSubtract(Position, Offset));
+			math::vector3f Position = From + (NormalizedVelocity * hit_distance);
+			Position = Position + (Normal * SkinStep);
+			out_position = (Position - Offset).to_float3();
 
 			if (out_friction)
 				*out_friction = hit_collision_object->get_physical_data().friction;
@@ -600,12 +600,12 @@ bool roomba_object::calculate_position(DirectX::XMFLOAT3 velocity, float elapsed
 				break;
 
 			//	èdóÕÇ™êÖïΩë¨ìxÇ…Ç»ÇÈÇÃÇêßå‰
-			float dot = DirectX::XMVectorGetX(DirectX::XMVector3Dot(Velocity, Normal));
-			Velocity = DirectX::XMVectorSubtract(Velocity, DirectX::XMVectorScale(Normal, dot));
+			float dot = math::vector3f::dot(Velocity, Normal);
+			Velocity = Velocity - (Normal * dot);
 		}
 		else
 		{
-			DirectX::XMStoreFloat3(&out_position, DirectX::XMVectorSubtract(DirectX::XMVectorAdd(From, MoveVector), Offset));
+			out_position = ((From + MoveVector) - Offset).to_float3();
 			break;
 		}
 	}
@@ -656,11 +656,11 @@ void roomba_object::update_effects(float elapsed_time)
 									   dash_effect_instance_node_index[1] == effect_instance::invalid_id);
 
 		auto& nodes = dash_effect_instance->get_nodes();
-		auto right = system_utility::to_xmfloat(get_rotation().right());
+		auto right = get_rotation().right().to_float3();
 		if (dash_effect_instance_node_index[0] != effect_instance::invalid_id)
 		{
 			auto& node = nodes[dash_effect_instance_node_index[0]];
-			node.rotation = system_utility::to_xmfloat(get_rotation());
+			node.rotation = get_rotation().to_vector3().to_float3();
 			node.position.x = get_position().x - right.x * 1.5f;
 			node.position.y = get_position().y - right.y * 1.5f;
 			node.position.z = get_position().z - right.z * 1.5f;
@@ -669,7 +669,7 @@ void roomba_object::update_effects(float elapsed_time)
 		{
 			auto& node = nodes[dash_effect_instance_node_index[1]];
 			node.position = get_position();
-			node.rotation = system_utility::to_xmfloat(get_rotation());
+			node.rotation = get_rotation().to_vector3().to_float3();
 			node.position.x = get_position().x + right.x * 1.5f;
 			node.position.y = get_position().y + right.y * 1.5f;
 			node.position.z = get_position().z + right.z * 1.5f;

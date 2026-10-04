@@ -579,27 +579,6 @@ const char* system_utility::str_case_str(const char* text, const char* pattern)
 	return	nullptr;
 }
 
-DirectX::XMFLOAT3 system_utility::convert_xmfloat3_from_vector(DirectX::XMVECTOR value)
-{
-	DirectX::XMFLOAT3 vector;
-	DirectX::XMStoreFloat3(&vector, value);
-	return vector;
-}
-
-DirectX::XMFLOAT4 system_utility::convert_xmfloat4_from_vector(DirectX::XMVECTOR value)
-{
-	DirectX::XMFLOAT4 vector;
-	DirectX::XMStoreFloat4(&vector, value);
-	return vector;
-}
-
-DirectX::XMFLOAT4X4 system_utility::convert_xmfloat4x4_from_matrix(DirectX::XMMATRIX value)
-{
-	DirectX::XMFLOAT4X4 mat;
-	DirectX::XMStoreFloat4x4(&mat, value);
-	return mat;
-}
-
 std::string system_utility::to_display_time_string(float time)
 {
 	int minits = static_cast<int>(time / 60);

@@ -45,12 +45,12 @@ namespace
 					renderer->is_state(::particle::item::renderer::states::reverse_depth_sort));
 			}
 
-			auto WorldMatrix = DirectX::XMLoadFloat4x4(&node_data.world_transform);
-			DirectX::XMVECTOR S, R, T;
-			DirectX::XMMatrixDecompose(&S, &R, &T, WorldMatrix);
-			DirectX::XMStoreFloat3(&common_data.scale, S);
-			DirectX::XMStoreFloat4(&common_data.rotation, R);
-			DirectX::XMStoreFloat3(&common_data.translation, T);
+			math::vector3f scale, translation;
+			math::quaternionf rotation;
+			math::matrixf(node_data.world_transform).decompose(scale, rotation, translation);
+			common_data.scale = scale.to_float3();
+			common_data.rotation = rotation.to_float4();
+			common_data.translation = translation.to_float3();
 
 			if (spawn)
 			{
@@ -85,8 +85,8 @@ namespace
 			memcpy_s(data.item_binary.data() + pos, data.item_binary.size() - pos, p, size);
 		};
 
-		auto IW = DirectX::XMMatrixInverse(nullptr, DirectX::XMLoadFloat4x4(&node_data.world_transform));
-		auto calculate_local_position = [&](DirectX::XMFLOAT3 position)
+		const math::matrixf IW = math::matrixf(node_data.world_transform).inverted();
+		auto calculate_local_position = [&](math::float3 position)
 		{
 			//	@remainder	全部ワールド空間で計算してたわ・・・orz
 			//auto AT = DirectX::XMLoadFloat3(&position);
@@ -193,12 +193,12 @@ const effect_resource_ptr effect_instance::get_resource() const
 	return resource;
 }
 
-const DirectX::XMFLOAT3& effect_instance::get_scale() const
+const math::float3& effect_instance::get_scale() const
 {
 	return scale;
 }
 
-void effect_instance::set_scale(const DirectX::XMFLOAT3& scale)
+void effect_instance::set_scale(const math::float3& scale)
 {
 	this->scale = scale;
 }
@@ -213,32 +213,32 @@ void effect_instance::set_rotation(const math::rotatorf& rotator)
 	this->rotation = rotator;
 }
 
-const DirectX::XMFLOAT3& effect_instance::get_position() const
+const math::float3& effect_instance::get_position() const
 {
 	return position;
 }
 
-void effect_instance::set_position(const DirectX::XMFLOAT3& position)
+void effect_instance::set_position(const math::float3& position)
 {
 	this->position = position;
 }
 
-const DirectX::XMFLOAT3& effect_instance::get_attract_position() const
+const math::float3& effect_instance::get_attract_position() const
 {
 	return attract_position;
 }
 
-void effect_instance::set_attract_position(const DirectX::XMFLOAT3& position)
+void effect_instance::set_attract_position(const math::float3& position)
 {
 	this->attract_position = position;
 }
 
-const DirectX::XMFLOAT3& effect_instance::get_event_position() const
+const math::float3& effect_instance::get_event_position() const
 {
 	return event_position;
 }
 
-void effect_instance::set_event_position(const DirectX::XMFLOAT3& position)
+void effect_instance::set_event_position(const math::float3& position)
 {
 	this->event_position = position;
 }
@@ -303,10 +303,7 @@ void effect_instance::update(float elapsed_time)
 	//	初期姿勢に変換
 	for (auto& node : nodes)
 	{
-		DirectX::XMMATRIX Scale = DirectX::XMMatrixScaling(node.scale.x, node.scale.y, node.scale.z);
-		DirectX::XMMATRIX Rotation = DirectX::XMMatrixRotationQuaternion(system_utility::to_xmvector(system_utility::to_math_rotator(node.rotation).to_quaternion()));
-		DirectX::XMMATRIX Translation = DirectX::XMMatrixTranslation(node.position.x, node.position.y, node.position.z);
-		DirectX::XMStoreFloat4x4(&node.local_transform, Scale * Rotation * Translation);
+		node.local_transform = math::matrixf::transform(node.scale, math::rotatorf(math::vector3f(node.rotation)).to_quaternion(), node.position).to_float4x4();
 	}
 
 	//	アニメーション更新
@@ -337,32 +334,24 @@ void effect_instance::update(float elapsed_time)
 
 			node_animations[index] = an;
 			auto& in = nodes[index];
-			DirectX::XMMATRIX Scale = DirectX::XMMatrixScaling(an.scale.x, an.scale.y, an.scale.z);
-			DirectX::XMMATRIX Rotation = DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&an.rotation));
-			DirectX::XMMATRIX Matrix = Scale * Rotation;
-			Matrix.r[3] = DirectX::XMVectorSet(an.translation.x, an.translation.y, an.translation.z, 1.0f);
-			DirectX::XMStoreFloat4x4(&in.local_transform, Matrix);
+			in.local_transform = math::matrixf::transform(an.scale, math::quaternionf(an.rotation), an.translation).to_float4x4();
 		}
 	}
 
 	//	姿勢情報
-	auto rot = system_utility::to_xmfloat(rotation.to_quaternion());
-	auto S = DirectX::XMMatrixScaling(scale.x, scale.y, scale.z);
-	auto R = DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&rot));
-	auto T = DirectX::XMMatrixTranslation(position.x, position.y, position.z);
-	auto WorldTransform = S * R * T;
+	const math::matrixf world_transform = math::matrixf::transform(scale, rotation.to_quaternion(), position);
 
 	//	ノード更新
 	for (auto& node : nodes)
 	{
-		DirectX::XMMATRIX GlobalTransform = DirectX::XMLoadFloat4x4(&node.local_transform);
+		math::matrixf global_transform(node.local_transform);
 		if (node.parent_index != invalid_id)
 		{
 			auto& parent_node = nodes[node.parent_index];
-			GlobalTransform *= DirectX::XMLoadFloat4x4(&parent_node.global_transform);
+			global_transform *= math::matrixf(parent_node.global_transform);
 		}
-		DirectX::XMStoreFloat4x4(&node.global_transform, GlobalTransform);
-		DirectX::XMStoreFloat4x4(&node.world_transform, GlobalTransform * WorldTransform);
+		node.global_transform = global_transform.to_float4x4();
+		node.world_transform = (global_transform * world_transform).to_float4x4();
 	}
 
 	//	モデルの姿勢更新
@@ -707,15 +696,13 @@ void effect_manager::get_container(effect_container& effects, decal_container& d
 			auto& node_data = item.effect_instance->get_nodes()[decal_data.node_index];
 
 			auto& decal = decals.decal_datas.emplace_back();
-			auto WorldMatrix = DirectX::XMLoadFloat4x4(&node_data.world_transform);
-			DirectX::XMVECTOR S, R, T;
-			DirectX::XMMatrixDecompose(&S, &R, &T, WorldMatrix);
-			DirectX::XMStoreFloat3(&decal.scale, S);
-			DirectX::XMStoreFloat3(&decal.position, T);
-			DirectX::XMFLOAT4 rotation;
-			DirectX::XMStoreFloat4(&rotation, R);
-			decal.rotation = math::rotatorf(system_utility::to_math_quaternion(rotation));
-			decal.box = collision::bounding_box(decal.scale, rotation, decal.position);
+			math::vector3f scale, position;
+			math::quaternionf rotation;
+			math::matrixf(node_data.world_transform).decompose(scale, rotation, position);
+			decal.scale = scale.to_float3();
+			decal.position = position.to_float3();
+			decal.rotation = math::rotatorf(rotation);
+			decal.box = collision::bounding_box(decal.scale, rotation.to_float4(), decal.position);
 			decal.material.material = decal_data.material.get();
 		}
 

@@ -14,9 +14,9 @@ namespace animation
 	struct node
 	{
 		float time = 0.0f;
-		DirectX::XMFLOAT3 scale = { 1, 1, 1 };
-		DirectX::XMFLOAT4 rotation = { 0, 0, 0, 1 };
-		DirectX::XMFLOAT3 translation = { 0, 0, 0 };
+		math::float3 scale = { 1, 1, 1 };
+		math::float4 rotation = { 0, 0, 0, 1 };
+		math::float3 translation = { 0, 0, 0 };
 		template<class Archive>
 		void serialize(Archive& archive, int version);
 	};
@@ -35,8 +35,8 @@ namespace animation
 		float distance;
 		float view_angle;
 		unsigned char is_parth;
-		DirectX::XMFLOAT3 focus = { 0, 0, 0 };
-		DirectX::XMFLOAT3 rotation = { 0, 0, 0 };
+		math::float3 focus = { 0, 0, 0 };
+		math::float3 rotation = { 0, 0, 0 };
 		template<class Archive>
 		void serialize(Archive& archive, int version);
 	};
@@ -120,7 +120,7 @@ namespace animation
 			//bezier,	CurveEditorが対応されていないのでとりあえずオミットしておく。やる気が出ればあるいは・・・
 		};
 		types type = types::none;
-		std::vector<DirectX::XMFLOAT2> datas = {DirectX::XMFLOAT2(0, 0), DirectX::XMFLOAT2(1, 1)};
+		std::vector<math::float2> datas = {math::float2(0, 0), math::float2(1, 1)};
 
 		float calculate_time(float t) const;
 
@@ -159,7 +159,7 @@ namespace animation
 		bool compute_animation(float time, std::string_view identifier, variable_function function) const;
 		bool compute_animation(float time, variable_function function) const;
 
-		bool call_events(DirectX::XMFLOAT2 time_range, std::function<void(const event& event)> function) const;
+		bool call_events(math::float2 time_range, std::function<void(const event& event)> function) const;
 
 		template<class Archive>
 		void serialize(Archive& archive, int version);

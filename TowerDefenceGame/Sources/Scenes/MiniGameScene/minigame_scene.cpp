@@ -36,7 +36,7 @@ namespace
 	};
 
 	//	開始座標
-	constexpr DirectX::XMFLOAT3 StartPosition = system_units::convert_m_to_unit({0, 0, -60});
+	constexpr math::float3 StartPosition = system_units::convert_m_to_unit({0, 0, -60});
 	constexpr math::rotatorf StartRotation = {0, 0, 0};
 	constexpr float WarmingUpTimer = 4.0f;
 	constexpr float DeadStopWaitTimer = 7.0f;
@@ -45,7 +45,7 @@ namespace
 	constexpr int WetDamage = 400;
 	constexpr float DustSetLength = 40;
 	constexpr float BubbleSetLength = DustSetLength / 2;
-	constexpr DirectX::XMFLOAT3 DustBlock[] =
+	constexpr math::float3 DustBlock[] =
 	{
 		system_units::convert_m_to_unit({-DustSetLength, 0, -DustSetLength}),
 		system_units::convert_m_to_unit({+DustSetLength, 0, -DustSetLength}),
@@ -53,7 +53,7 @@ namespace
 		system_units::convert_m_to_unit({-DustSetLength, 0, +DustSetLength}),
 		system_units::convert_m_to_unit({+DustSetLength, 0, +DustSetLength}),
 	};
-	constexpr DirectX::XMFLOAT3 BubbleBlock[] =
+	constexpr math::float3 BubbleBlock[] =
 	{
 		system_units::convert_m_to_unit({-BubbleSetLength, 0, -BubbleSetLength}),
 		system_units::convert_m_to_unit({+BubbleSetLength, 0, -BubbleSetLength}),
@@ -78,7 +78,7 @@ minigame_scene::minigame_scene()
 	std::shared_ptr<camera_object> main_camera;
 	{
 		main_camera = object_manager::instance()->search_object<camera_object>("メインカメラ");
-		main_camera->get_camera()->set_fov_y(DirectX::XMConvertToRadians(30.0f));
+		main_camera->get_camera()->set_fov_y(math::angle::to_radian(30.0f));
 		main_camera->set_position({0, 10, 40});
 	}
 
@@ -396,8 +396,7 @@ void minigame_scene::update_core(float elapsed_time)
 			if (player_object)
 			{
 				auto velocity = player_object->get_velocity();
-				auto Velocity = DirectX::XMLoadFloat3(&velocity);
-				float speed_m_s = system_units::convert_unit_to_m(DirectX::XMVectorGetX(DirectX::XMVector3Length(Velocity)));
+				float speed_m_s = system_units::convert_unit_to_m(math::vector3f(velocity).length());
 				float speed_kmh = speed_m_s * 3.6f;
 				max_speed_kmh = std::max(max_speed_kmh, speed_kmh);
 			}

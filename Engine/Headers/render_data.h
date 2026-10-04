@@ -44,7 +44,7 @@ private:
 
 private:
 	CONST HWND hwnd;
-	DirectX::XMUINT2 screen_size;
+	math::uint2 screen_size;
 	Microsoft::WRL::ComPtr<ID3D11Device> device;
 	Microsoft::WRL::ComPtr<ID3D11DeviceContext> immediate_context;
 	Microsoft::WRL::ComPtr<IDXGISwapChain> swap_chain;

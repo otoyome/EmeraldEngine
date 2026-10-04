@@ -6,7 +6,6 @@
 
 #include <d3d11.h>
 #include <wrl.h>
-#include <directxmath.h>
 
 #include "graphics_context.h"
 #include "shader.h"

@@ -37,7 +37,7 @@ private:
 
 public:
 	std::shared_ptr<character_object> get_controll_object() const;
-	DirectX::XMFLOAT3 get_focus_point() const;
+	math::float3 get_focus_point() const;
 
 	bool get_input_purmit_flag() const;
 	void set_input_purmit_flag(bool input_stop);
@@ -64,7 +64,7 @@ public:
 	bool unregister_select_regenerate_callback(std::string_view identifier);
 
 private:
-	DirectX::XMFLOAT3 get_move_vector();
+	math::float3 get_move_vector();
 	std::weak_ptr<character_object> search_lockon_taget_object();
 
 	void on_search_target(character_object* character);

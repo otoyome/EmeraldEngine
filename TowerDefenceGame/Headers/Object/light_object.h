@@ -13,11 +13,11 @@ public:
 	void set_flag(light::flags flag, bool value);
 	bool is_flag(light::flags flag) const;
 
-	void set_color(DirectX::XMFLOAT4 color);
-	DirectX::XMFLOAT4 get_color() const;
+	void set_color(math::float4 color);
+	math::float4 get_color() const;
 
-	void set_position(DirectX::XMFLOAT3 position);
-	DirectX::XMFLOAT3 get_position() const;
+	void set_position(math::float3 position);
+	math::float3 get_position() const;
 
 public:
 	light_object(std::string_view name);
@@ -110,11 +110,11 @@ public:
 	void set_flag(light_probe::flags flag, bool value);
 	bool is_flag(light_probe::flags flag) const;
 
-	void set_position(DirectX::XMFLOAT3 position);
-	DirectX::XMFLOAT3 get_position() const;
+	void set_position(math::float3 position);
+	math::float3 get_position() const;
 
-	void set_color(DirectX::XMFLOAT4 color);
-	DirectX::XMFLOAT4 get_color() const;
+	void set_color(math::float4 color);
+	math::float4 get_color() const;
 
 	void set_diffuse_ibl_texture(texture_ptr texture);
 	texture_ptr get_diffuse_ibl_texture() const;
@@ -163,11 +163,11 @@ class area_light_probe_object : public light_probe_object
 	GAME_OBJECT_DECRLEAR(area_light_probe_object, light_probe_object)
 
 public:
-	void set_inner_range(DirectX::XMFLOAT3 range);
-	DirectX::XMFLOAT3 get_inner_range() const;
+	void set_inner_range(math::float3 range);
+	math::float3 get_inner_range() const;
 
-	void set_outer_range(DirectX::XMFLOAT3 range);
-	DirectX::XMFLOAT3 get_outer_range() const;
+	void set_outer_range(math::float3 range);
+	math::float3 get_outer_range() const;
 
 public:
 	area_light_probe_object(std::string_view name);

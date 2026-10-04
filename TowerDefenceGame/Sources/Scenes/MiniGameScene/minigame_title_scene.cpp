@@ -7,17 +7,17 @@
 namespace
 {
 	//	タイトルロゴ配置位置
-	static constexpr DirectX::XMFLOAT2 title_logo_position = { 60, 180 };
-	static constexpr DirectX::XMFLOAT2 title_logo_size = { 640, 270 };
+	static constexpr math::float2 title_logo_position = { 60, 180 };
+	static constexpr math::float2 title_logo_size = { 640, 270 };
 
 	//	チュートリアルパネル左上位置
-	static constexpr DirectX::XMFLOAT2 tutorial_ui_text_position = {770, 125};
-	static constexpr DirectX::XMFLOAT2 tutorial_ui_text_size = {480, 400};
+	static constexpr math::float2 tutorial_ui_text_position = {770, 125};
+	static constexpr math::float2 tutorial_ui_text_size = {480, 400};
 	static constexpr std::string_view tutorial_text = "WASD : 移動\nマウス左 : 加速\nマウス右：減速\n\n熱と水分両方を管理しながら素早くゴミを収集するのが目的です。\n\nゴミ以外にも泡があり、収集すると濡れます。\n加速すると熱くなるので水分を取る事で加熱を抑えます。\n加熱/水分を取り過ぎると爆発してリスタートします。";
 
 	//	スタート案内アイコン配置位置
-	static constexpr DirectX::XMFLOAT2 start_icon_size = { 120, 120 };
-	static constexpr DirectX::XMFLOAT2 start_icon_position = { (640 - start_icon_size.x) / 2, SCREEN_HEIGHT - 100 };
+	static constexpr math::float2 start_icon_size = { 120, 120 };
+	static constexpr math::float2 start_icon_position = { (640 - start_icon_size.x) / 2, SCREEN_HEIGHT - 100 };
 }
 
 minigame_title_scene::minigame_title_scene()

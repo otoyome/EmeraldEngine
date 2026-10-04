@@ -1,6 +1,5 @@
 #pragma once
 
-#include <DirectXMath.h>
 #include <vector>
 #include <memory>
 #include <string_view>
@@ -18,15 +17,15 @@ namespace collision
 		static constexpr std::string_view extension = "esdf";
 
 		uint32_t resolution = 0;
-		DirectX::XMFLOAT3 bounds_min = { 0, 0, 0 };
-		DirectX::XMFLOAT3 bounds_max = { 0, 0, 0 };
+		math::float3 bounds_min = { 0, 0, 0 };
+		math::float3 bounds_max = { 0, 0, 0 };
 		std::vector<float> voxels;
 
 	public:
 		bool is_valid() const;
 		float voxel_size() const;
 		size_t index_of(uint32_t x, uint32_t y, uint32_t z) const;
-		DirectX::XMFLOAT3 voxel_center(uint32_t x, uint32_t y, uint32_t z) const;
+		math::float3 voxel_center(uint32_t x, uint32_t y, uint32_t z) const;
 
 		bool serialize(std::string_view file_path);
 		bool deserialize(std::string_view file_path);

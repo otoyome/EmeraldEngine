@@ -284,34 +284,34 @@ public:
 	bool get_data(std::string_view key_name, void* data, std::size_t data_size) const;
 
 	bool get_int(std::string_view key_name, int& value) const {return get_data(key_name, &value, sizeof(value));}
-	bool get_int2(std::string_view key_name, DirectX::XMINT2& value) const {return get_data(key_name, &value, sizeof(value));}
-	bool get_int3(std::string_view key_name, DirectX::XMINT3& value) const {return get_data(key_name, &value, sizeof(value));}
-	bool get_int4(std::string_view key_name, DirectX::XMINT4& value) const {return get_data(key_name, &value, sizeof(value));}
+	bool get_int2(std::string_view key_name, math::int2& value) const {return get_data(key_name, &value, sizeof(value));}
+	bool get_int3(std::string_view key_name, math::int3& value) const {return get_data(key_name, &value, sizeof(value));}
+	bool get_int4(std::string_view key_name, math::int4& value) const {return get_data(key_name, &value, sizeof(value));}
 	bool set_int(std::string_view key_name, int value) {return set_data(key_name, &value, sizeof(value));}
-	bool set_int2(std::string_view key_name, DirectX::XMINT2 value) {return set_data(key_name, &value, sizeof(value));}
-	bool set_int3(std::string_view key_name, DirectX::XMINT3 value) {return set_data(key_name, &value, sizeof(value));}
-	bool set_int4(std::string_view key_name, DirectX::XMINT4 value) {return set_data(key_name, &value, sizeof(value));}
+	bool set_int2(std::string_view key_name, math::int2 value) {return set_data(key_name, &value, sizeof(value));}
+	bool set_int3(std::string_view key_name, math::int3 value) {return set_data(key_name, &value, sizeof(value));}
+	bool set_int4(std::string_view key_name, math::int4 value) {return set_data(key_name, &value, sizeof(value));}
 
 	bool set_uint(std::string_view key_name, UINT value) {return set_data(key_name, &value, sizeof(value));}
-	bool set_uint2(std::string_view key_name, DirectX::XMUINT2 value) {return set_data(key_name, &value, sizeof(value));}
-	bool set_uint3(std::string_view key_name, DirectX::XMUINT3 value) {return set_data(key_name, &value, sizeof(value));}
-	bool set_uint4(std::string_view key_name, DirectX::XMUINT4 value) {return set_data(key_name, &value, sizeof(value));}
+	bool set_uint2(std::string_view key_name, math::uint2 value) {return set_data(key_name, &value, sizeof(value));}
+	bool set_uint3(std::string_view key_name, math::uint3 value) {return set_data(key_name, &value, sizeof(value));}
+	bool set_uint4(std::string_view key_name, math::uint4 value) {return set_data(key_name, &value, sizeof(value));}
 	bool get_uint(std::string_view key_name, UINT& value) const {return get_data(key_name, &value, sizeof(value));}
-	bool get_uint2(std::string_view key_name, DirectX::XMUINT2& value) const {return get_data(key_name, &value, sizeof(value));}
-	bool get_uint3(std::string_view key_name, DirectX::XMUINT3& value) const {return get_data(key_name, &value, sizeof(value));}
-	bool get_uint4(std::string_view key_name, DirectX::XMUINT4& value) const {return get_data(key_name, &value, sizeof(value));}
+	bool get_uint2(std::string_view key_name, math::uint2& value) const {return get_data(key_name, &value, sizeof(value));}
+	bool get_uint3(std::string_view key_name, math::uint3& value) const {return get_data(key_name, &value, sizeof(value));}
+	bool get_uint4(std::string_view key_name, math::uint4& value) const {return get_data(key_name, &value, sizeof(value));}
 
 	bool set_float(std::string_view key_name, float value) {return set_data(key_name, &value, sizeof(value));}
-	bool set_float2(std::string_view key_name, DirectX::XMFLOAT2 value) {return set_data(key_name, &value, sizeof(value));}
-	bool set_float3(std::string_view key_name, DirectX::XMFLOAT3 value) {return set_data(key_name, &value, sizeof(value));}
-	bool set_float4(std::string_view key_name, DirectX::XMFLOAT4 value) {return set_data(key_name, &value, sizeof(value));}
+	bool set_float2(std::string_view key_name, math::float2 value) {return set_data(key_name, &value, sizeof(value));}
+	bool set_float3(std::string_view key_name, math::float3 value) {return set_data(key_name, &value, sizeof(value));}
+	bool set_float4(std::string_view key_name, math::float4 value) {return set_data(key_name, &value, sizeof(value));}
 	bool get_float(std::string_view key_name, float& value) const {return get_data(key_name, &value, sizeof(value));}
-	bool get_float2(std::string_view key_name, DirectX::XMFLOAT2& value) const {return get_data(key_name, &value, sizeof(value));}
-	bool get_float3(std::string_view key_name, DirectX::XMFLOAT3& value) const {return get_data(key_name, &value, sizeof(value));}
-	bool get_float4(std::string_view key_name, DirectX::XMFLOAT4& value) const {return get_data(key_name, &value, sizeof(value));}
+	bool get_float2(std::string_view key_name, math::float2& value) const {return get_data(key_name, &value, sizeof(value));}
+	bool get_float3(std::string_view key_name, math::float3& value) const {return get_data(key_name, &value, sizeof(value));}
+	bool get_float4(std::string_view key_name, math::float4& value) const {return get_data(key_name, &value, sizeof(value));}
 
-	bool set_float4x4(std::string_view key_name, DirectX::XMFLOAT4X4 value) {return set_data(key_name, &value, sizeof(value));}
-	bool get_float4x4(std::string_view key_name, DirectX::XMFLOAT4X4& value) const {return get_data(key_name, &value, sizeof(value));}
+	bool set_float4x4(std::string_view key_name, math::float4x4 value) {return set_data(key_name, &value, sizeof(value));}
+	bool get_float4x4(std::string_view key_name, math::float4x4& value) const {return get_data(key_name, &value, sizeof(value));}
 
 	bool set_texture(std::string_view key_name, texture_ptr value);
 	bool get_texture(std::string_view key_name, texture_ptr& value) const;

@@ -87,7 +87,7 @@ struct meshlet_draw_data
 	UINT vertex_offset = 0;
 	UINT triangle_offset = 0;
 	UINT triangle_count = 0;
-	DirectX::XMFLOAT3 bounds_center = { 0, 0, 0 };
+	math::float3 bounds_center = { 0, 0, 0 };
 	float bounds_radius = 0.0f;
 };
 
@@ -116,14 +116,14 @@ struct buffer_datas
 	UINT system_flags = 0;									//	モデルフラグ類
 	std::vector<sub_mesh> color_meshs;						//	色描画メッシュ
 	sub_mesh shadow_mesh;									//	影用描画メッシュ
-	DirectX::XMFLOAT2 lod_range_rate = {0.0f, 10000.0f};	//	LOD距離範囲
+	math::float2 lod_range_rate = {0.0f, 10000.0f};	//	LOD距離範囲
 	UINT unique_id = 0xFFFFFFFF;							//	ユニークID
-	DirectX::XMFLOAT3 bounds_min, bounds_max;				//	AABB範囲
-	DirectX::XMFLOAT4X4 world_transform = {};				//	ワールド変換行列
+	math::float3 bounds_min, bounds_max;				//	AABB範囲
+	math::float4x4 world_transform = {};				//	ワールド変換行列
 	Microsoft::WRL::ComPtr<ID3D11Buffer> primitive_buffer;	//	プリミティブバッファ
 
 	//	LOD選択
-	std::size_t select_lod_mesh_index(float mesh_length, const DirectX::XMFLOAT4& camera_clip_distance) const
+	std::size_t select_lod_mesh_index(float mesh_length, const math::float4& camera_clip_distance) const
 	{
 		std::size_t lod_count = color_meshs.size();
 		std::size_t lod_mesh_index = 0;

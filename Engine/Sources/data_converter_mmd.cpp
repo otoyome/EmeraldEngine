@@ -74,7 +74,7 @@ namespace
 	constexpr float ScaleFactorForMMDtoEMO = 10.0f / 8.0f;
 
 	//	âÒì]ï‚ê≥
-	constexpr DirectX::XMFLOAT3 RotationFactorForMMDtoEMO = {0.0f, DirectX::XM_PI, 0.0f};
+	constexpr math::float3 RotationFactorForMMDtoEMO = {0.0f, math::constants<float>::pi, 0.0f};
 
 	//	ê≥ãKâªÉtÉåÅ[ÉÄVMD
 	constexpr float NormalizedFrameForVMD = 30.0f;
@@ -105,7 +105,7 @@ namespace
 				node.scale.x = ScaleFactorForMMDtoEMO;
 				node.scale.y = ScaleFactorForMMDtoEMO;
 				node.scale.z = ScaleFactorForMMDtoEMO;
-				DirectX::XMStoreFloat4(&node.rotation, DirectX::XMQuaternionRotationRollPitchYaw(RotationFactorForMMDtoEMO.x, RotationFactorForMMDtoEMO.y, RotationFactorForMMDtoEMO.z));
+				node.rotation = math::quaternionf::rotation_xyz(RotationFactorForMMDtoEMO.x, RotationFactorForMMDtoEMO.y, RotationFactorForMMDtoEMO.z).to_float4();
 			}
 			for (auto& pmx_node : loader.get_nodes())
 			{
@@ -224,40 +224,40 @@ namespace
 				for (size_t index = 0; index < pmx_vertices.size(); ++index)
 				{
 					auto& vertex = pmx_vertices[index];
-					reinterpret_cast<DirectX::XMFLOAT3*>(views[format_id::position].row_data.data())[index] = vertex.position;
+					reinterpret_cast<math::float3*>(views[format_id::position].row_data.data())[index] = vertex.position;
 					mesh.bounds_min.x = std::min(vertex.position.x, mesh.bounds_min.x);
 					mesh.bounds_min.y = std::min(vertex.position.y, mesh.bounds_min.y);
 					mesh.bounds_min.z = std::min(vertex.position.z, mesh.bounds_min.z);
 					mesh.bounds_max.x = std::max(vertex.position.x, mesh.bounds_max.x);
 					mesh.bounds_max.y = std::max(vertex.position.y, mesh.bounds_max.y);
 					mesh.bounds_max.z = std::max(vertex.position.z, mesh.bounds_max.z);
-					reinterpret_cast<DirectX::XMFLOAT3*>(views[format_id::normal].row_data.data())[index] = vertex.normal;
-					reinterpret_cast<DirectX::XMFLOAT2*>(views[format_id::texcoord_0].row_data.data())[index] = vertex.texcoord;
-					reinterpret_cast<DirectX::XMFLOAT2*>(views[format_id::texcoord_1].row_data.data())[index] = { vertex.additional_uv[0].x, vertex.additional_uv[0].y };
-					reinterpret_cast<DirectX::XMFLOAT2*>(views[format_id::texcoord_2].row_data.data())[index] = { vertex.additional_uv[0].z, vertex.additional_uv[0].w };
-					reinterpret_cast<DirectX::XMFLOAT2*>(views[format_id::texcoord_3].row_data.data())[index] = { vertex.additional_uv[1].x, vertex.additional_uv[1].y };
-					reinterpret_cast<DirectX::XMFLOAT2*>(views[format_id::texcoord_4].row_data.data())[index] = { vertex.additional_uv[1].z, vertex.additional_uv[1].w };
-					reinterpret_cast<DirectX::XMFLOAT2*>(views[format_id::texcoord_5].row_data.data())[index] = { vertex.additional_uv[2].x, vertex.additional_uv[2].y };
-					reinterpret_cast<DirectX::XMFLOAT2*>(views[format_id::texcoord_6].row_data.data())[index] = { vertex.additional_uv[2].z, vertex.additional_uv[2].w };
-					reinterpret_cast<DirectX::XMFLOAT2*>(views[format_id::texcoord_7].row_data.data())[index] = { vertex.additional_uv[3].x, vertex.additional_uv[3].y };
-				//	reinterpret_cast<DirectX::XMFLOAT2*>(views[format_id::texcoord_8].row_data.data())[index] = { vertex.additional_uv[3].z, vertex.additional_uv[3].w };
+					reinterpret_cast<math::float3*>(views[format_id::normal].row_data.data())[index] = vertex.normal;
+					reinterpret_cast<math::float2*>(views[format_id::texcoord_0].row_data.data())[index] = vertex.texcoord;
+					reinterpret_cast<math::float2*>(views[format_id::texcoord_1].row_data.data())[index] = { vertex.additional_uv[0].x, vertex.additional_uv[0].y };
+					reinterpret_cast<math::float2*>(views[format_id::texcoord_2].row_data.data())[index] = { vertex.additional_uv[0].z, vertex.additional_uv[0].w };
+					reinterpret_cast<math::float2*>(views[format_id::texcoord_3].row_data.data())[index] = { vertex.additional_uv[1].x, vertex.additional_uv[1].y };
+					reinterpret_cast<math::float2*>(views[format_id::texcoord_4].row_data.data())[index] = { vertex.additional_uv[1].z, vertex.additional_uv[1].w };
+					reinterpret_cast<math::float2*>(views[format_id::texcoord_5].row_data.data())[index] = { vertex.additional_uv[2].x, vertex.additional_uv[2].y };
+					reinterpret_cast<math::float2*>(views[format_id::texcoord_6].row_data.data())[index] = { vertex.additional_uv[2].z, vertex.additional_uv[2].w };
+					reinterpret_cast<math::float2*>(views[format_id::texcoord_7].row_data.data())[index] = { vertex.additional_uv[3].x, vertex.additional_uv[3].y };
+				//	reinterpret_cast<math::float2*>(views[format_id::texcoord_8].row_data.data())[index] = { vertex.additional_uv[3].z, vertex.additional_uv[3].w };
 
-					reinterpret_cast<DirectX::XMUINT4*>(views[format_id::joint_0].row_data.data())[index] = vertex.bone_indices;
-					reinterpret_cast<DirectX::XMUINT4*>(views[format_id::joint_1].row_data.data())[index] = DirectX::XMUINT4(0, 0, 0, 0);
-					reinterpret_cast<DirectX::XMFLOAT4*>(views[format_id::weight_0].row_data.data())[index] = vertex.bone_weights;
-					reinterpret_cast<DirectX::XMFLOAT4*>(views[format_id::weight_1].row_data.data())[index] = DirectX::XMFLOAT4(0, 0, 0, 0);
+					reinterpret_cast<math::uint4*>(views[format_id::joint_0].row_data.data())[index] = vertex.bone_indices;
+					reinterpret_cast<math::uint4*>(views[format_id::joint_1].row_data.data())[index] = math::uint4(0, 0, 0, 0);
+					reinterpret_cast<math::float4*>(views[format_id::weight_0].row_data.data())[index] = vertex.bone_weights;
+					reinterpret_cast<math::float4*>(views[format_id::weight_1].row_data.data())[index] = math::float4(0, 0, 0, 0);
 
-					reinterpret_cast<DirectX::XMFLOAT4*>(views[format_id::color_0].row_data.data())[index] = DirectX::XMFLOAT4(1, 1, 1, 1);
-					reinterpret_cast<DirectX::XMFLOAT4*>(views[format_id::color_1].row_data.data())[index] = DirectX::XMFLOAT4(0, 0, 0, 0);
-				//	reinterpret_cast<DirectX::XMFLOAT4*>(views[format_id::color_2].row_data.data())[index] = DirectX::XMFLOAT4(0, 0, 0, 0);
-				//	reinterpret_cast<DirectX::XMFLOAT4*>(views[format_id::color_3].row_data.data())[index] = DirectX::XMFLOAT4(0, 0, 0, 0);
-				//	reinterpret_cast<DirectX::XMFLOAT4*>(views[format_id::color_4].row_data.data())[index] = DirectX::XMFLOAT4(0, 0, 0, 0);
-				//	reinterpret_cast<DirectX::XMFLOAT4*>(views[format_id::color_5].row_data.data())[index] = DirectX::XMFLOAT4(0, 0, 0, 0);
-				//	reinterpret_cast<DirectX::XMFLOAT4*>(views[format_id::color_6].row_data.data())[index] = DirectX::XMFLOAT4(0, 0, 0, 0);
-				//	reinterpret_cast<DirectX::XMFLOAT4*>(views[format_id::color_7].row_data.data())[index] = DirectX::XMFLOAT4(0, 0, 0, 0);
+					reinterpret_cast<math::float4*>(views[format_id::color_0].row_data.data())[index] = math::float4(1, 1, 1, 1);
+					reinterpret_cast<math::float4*>(views[format_id::color_1].row_data.data())[index] = math::float4(0, 0, 0, 0);
+				//	reinterpret_cast<math::float4*>(views[format_id::color_2].row_data.data())[index] = math::float4(0, 0, 0, 0);
+				//	reinterpret_cast<math::float4*>(views[format_id::color_3].row_data.data())[index] = math::float4(0, 0, 0, 0);
+				//	reinterpret_cast<math::float4*>(views[format_id::color_4].row_data.data())[index] = math::float4(0, 0, 0, 0);
+				//	reinterpret_cast<math::float4*>(views[format_id::color_5].row_data.data())[index] = math::float4(0, 0, 0, 0);
+				//	reinterpret_cast<math::float4*>(views[format_id::color_6].row_data.data())[index] = math::float4(0, 0, 0, 0);
+				//	reinterpret_cast<math::float4*>(views[format_id::color_7].row_data.data())[index] = math::float4(0, 0, 0, 0);
 
 					//	ê⁄ê¸ÇÕñ¢ëŒâû
-					reinterpret_cast<DirectX::XMFLOAT3*>(views[format_id::tangent].row_data.data())[index] = DirectX::XMFLOAT3(0, 0, 0);
+					reinterpret_cast<math::float3*>(views[format_id::tangent].row_data.data())[index] = math::float3(0, 0, 0);
 				}
 				for (size_t index = 0; index < views.size(); ++index)
 				{
@@ -273,7 +273,7 @@ namespace
 
 					//	í∏ì_ÇëIÇÒÇ≈ãlÇﬂÇƒÇ¢Ç≠
 					bool insert = false;
-					std::vector<DirectX::XMFLOAT3> positions(pmx_origin_indices.size());
+					std::vector<math::float3> positions(pmx_origin_indices.size());
 					for (UINT index = 0; index < pmx_origin_indices.size(); ++index)
 					{
 						auto& origin_index = pmx_origin_indices[index];
@@ -297,7 +297,7 @@ namespace
 						view.size_in_bytes = view.stride_in_bytes * positions.size();
 						view.row_data.resize(view.size_in_bytes);
 						memcpy_s(view.row_data.data(), view.row_data.size(),
-								 positions.data(), positions.size() * sizeof(DirectX::XMFLOAT3));
+								 positions.data(), positions.size() * sizeof(math::float3));
 					}
 
 					//	ñ@ê¸ÇÕÅH
@@ -413,7 +413,7 @@ namespace
 					na.nodes.back().scale.x = ScaleFactorForMMDtoEMO;
 					na.nodes.back().scale.y = ScaleFactorForMMDtoEMO;
 					na.nodes.back().scale.z = ScaleFactorForMMDtoEMO;
-					DirectX::XMStoreFloat4(&na.nodes.back().rotation, DirectX::XMQuaternionRotationRollPitchYaw(RotationFactorForMMDtoEMO.x, RotationFactorForMMDtoEMO.y, RotationFactorForMMDtoEMO.z));
+					na.nodes.back().rotation = math::quaternionf::rotation_xyz(RotationFactorForMMDtoEMO.x, RotationFactorForMMDtoEMO.y, RotationFactorForMMDtoEMO.z).to_float4();
 				}
 				//	É{Å[Éìï™ÇÃÉmÅ[ÉhÇìoò^
 				for (auto& node : loader.get_nodes())
@@ -454,14 +454,14 @@ namespace
 					sa.scale.x = ScaleFactorForMMDtoEMO;
 					sa.scale.y = ScaleFactorForMMDtoEMO;
 					sa.scale.z = ScaleFactorForMMDtoEMO;
-					DirectX::XMStoreFloat4(&sa.rotation, DirectX::XMQuaternionRotationRollPitchYaw(RotationFactorForMMDtoEMO.x, RotationFactorForMMDtoEMO.y, RotationFactorForMMDtoEMO.z));
+					sa.rotation = math::quaternionf::rotation_xyz(RotationFactorForMMDtoEMO.x, RotationFactorForMMDtoEMO.y, RotationFactorForMMDtoEMO.z).to_float4();
 					aa.nodes.emplace_back();
 					auto& ea = aa.nodes.back();
 					ea.time = animation.end_time;
 					ea.scale.x = ScaleFactorForMMDtoEMO;
 					ea.scale.y = ScaleFactorForMMDtoEMO;
 					ea.scale.z = ScaleFactorForMMDtoEMO;
-					DirectX::XMStoreFloat4(&ea.rotation, DirectX::XMQuaternionRotationRollPitchYaw(RotationFactorForMMDtoEMO.x, RotationFactorForMMDtoEMO.y, RotationFactorForMMDtoEMO.z));
+					ea.rotation = math::quaternionf::rotation_xyz(RotationFactorForMMDtoEMO.x, RotationFactorForMMDtoEMO.y, RotationFactorForMMDtoEMO.z).to_float4();
 				}
 
 				//	É{Å[Éìï™ÇÃÉmÅ[ÉhÇìoò^
@@ -625,14 +625,14 @@ bool data_converter::mmd::convert(animation_resource& resource, const convert_an
 			sa.scale.x = ScaleFactorForMMDtoEMO;
 			sa.scale.y = ScaleFactorForMMDtoEMO;
 			sa.scale.z = ScaleFactorForMMDtoEMO;
-			DirectX::XMStoreFloat4(&sa.rotation, DirectX::XMQuaternionRotationRollPitchYaw(RotationFactorForMMDtoEMO.x, RotationFactorForMMDtoEMO.y, RotationFactorForMMDtoEMO.z));
+			sa.rotation = math::quaternionf::rotation_xyz(RotationFactorForMMDtoEMO.x, RotationFactorForMMDtoEMO.y, RotationFactorForMMDtoEMO.z).to_float4();
 			aa.nodes.emplace_back();
 			auto& ea = aa.nodes.back();
 			ea.time = animation.end_time;
 			ea.scale.x = ScaleFactorForMMDtoEMO;
 			ea.scale.y = ScaleFactorForMMDtoEMO;
 			ea.scale.z = ScaleFactorForMMDtoEMO;
-			DirectX::XMStoreFloat4(&ea.rotation, DirectX::XMQuaternionRotationRollPitchYaw(RotationFactorForMMDtoEMO.x, RotationFactorForMMDtoEMO.y, RotationFactorForMMDtoEMO.z));
+			ea.rotation = math::quaternionf::rotation_xyz(RotationFactorForMMDtoEMO.x, RotationFactorForMMDtoEMO.y, RotationFactorForMMDtoEMO.z).to_float4();
 		}
 
 		//	É{Å[Éìï™ÇÃÉmÅ[ÉhÇìoò^

@@ -1,6 +1,5 @@
 #pragma once
 
-#include <DirectXMath.h>
 #include <vector>
 #include <memory>
 #include "Math/math_all.h"
@@ -12,9 +11,9 @@ namespace collision
 	public:
 		struct infomation
 		{
-			DirectX::XMFLOAT3 point = {};	// 接触時の中心
-			DirectX::XMFLOAT3 point2 = {};	// 相手側接触点
-			DirectX::XMFLOAT3 normal = {};	// 法線
+			math::float3 point = {};	// 接触時の中心
+			math::float3 point2 = {};	// 相手側接触点
+			math::float3 normal = {};	// 法線
 			float length = 0.0f;			// 距離
 		};
 
@@ -23,12 +22,12 @@ namespace collision
 		virtual ~intersect_data();
 
 		void add(const infomation& infomation);
-		void add(const DirectX::XMFLOAT3& point, const DirectX::XMFLOAT3& normal, float length);
+		void add(const math::float3& point, const math::float3& normal, float length);
 		void clear();
 
-		bool multiply_matrix(std::size_t index, DirectX::XMFLOAT4X4 matrix);
-		bool multiply_matrix(std::size_t index, DirectX::XMMATRIX matrix);
-		void multiply_matrices(std::size_t begin, DirectX::XMMATRIX matrix);
+		bool multiply_matrix(std::size_t index, math::float4x4 matrix);
+		bool multiply_matrix(std::size_t index, math::matrixf matrix);
+		void multiply_matrices(std::size_t begin, math::matrixf matrix);
 		void flip_normals_from(std::size_t begin);
 		void append(const intersect_data& data);
 
@@ -62,43 +61,43 @@ namespace collision
 	public:
 		virtual types get_type() const = 0;
 
-		virtual const DirectX::XMFLOAT3& get_local_scale() const;
-		virtual void set_local_scale(const DirectX::XMFLOAT3& scale);
+		virtual const math::float3& get_local_scale() const;
+		virtual void set_local_scale(const math::float3& scale);
 
-		const DirectX::XMFLOAT4& get_rotation() const;
-		void set_rotation(const DirectX::XMFLOAT4& rotation);
+		const math::float4& get_rotation() const;
+		void set_rotation(const math::float4& rotation);
 
-		const DirectX::XMFLOAT3& get_position() const;
-		void set_position(const DirectX::XMFLOAT3& position);
+		const math::float3& get_position() const;
+		void set_position(const math::float3& position);
 
-		DirectX::XMFLOAT4X4 get_transform_float4x4() const;
-		DirectX::XMMATRIX get_transform_matrix() const;
+		math::float4x4 get_transform_float4x4() const;
+		math::matrixf get_transform_matrix() const;
 
-		DirectX::XMFLOAT4X4 get_inverse_transform_float4x4() const;
-		DirectX::XMMATRIX get_inverse_transform_matrix() const;
+		math::float4x4 get_inverse_transform_float4x4() const;
+		math::matrixf get_inverse_transform_matrix() const;
 
 	public:
 		bounding_object();
-		bounding_object(const DirectX::XMFLOAT3& local_scale, const DirectX::XMFLOAT4& rotation, const DirectX::XMFLOAT3& position);
+		bounding_object(const math::float3& local_scale, const math::float4& rotation, const math::float3& position);
 		virtual	~bounding_object();
 
 		bool intersection(const bounding_object* object, intersect_data* intersect = nullptr) const;
-		virtual bool intersect_point(const DirectX::XMFLOAT3& point) const = 0;
-		virtual bool intersect_segment(const DirectX::XMFLOAT3& start, const DirectX::XMFLOAT3& end, intersect_data* intersect = nullptr) const = 0;
+		virtual bool intersect_point(const math::float3& point) const = 0;
+		virtual bool intersect_segment(const math::float3& start, const math::float3& end, intersect_data* intersect = nullptr) const = 0;
 		virtual bool intersect_sphere(const bounding_sphere& sphere, intersect_data* intersect = nullptr) const = 0;
 		virtual bool intersect_capsule(const bounding_capsule& capsule, intersect_data* intersect = nullptr) const = 0;
 		virtual bool intersect_box(const bounding_box& box, intersect_data* intersect = nullptr) const = 0;
 		virtual bool intersect_mesh(const bounding_mesh& mesh, intersect_data* intersect = nullptr) const = 0;
 
-		virtual bool intersect_sphere_cast(const DirectX::XMFLOAT3& start, const DirectX::XMFLOAT3& end, float radius, intersect_data* intersect = nullptr) const = 0;
+		virtual bool intersect_sphere_cast(const math::float3& start, const math::float3& end, float radius, intersect_data* intersect = nullptr) const = 0;
 
-		virtual bool intersect_capsule_cast(const DirectX::XMFLOAT3& start, const DirectX::XMFLOAT3& end, float radius, float length, const DirectX::XMFLOAT4& rotation, intersect_data* intersect = nullptr) const = 0;
+		virtual bool intersect_capsule_cast(const math::float3& start, const math::float3& end, float radius, float length, const math::float4& rotation, intersect_data* intersect = nullptr) const = 0;
 
 		//	スフィアキャストを流用して軸毎にスフィアキャストを行う方式
-		bool intersect_capsule_cast_by_axis_spheres(const DirectX::XMFLOAT3& start, const DirectX::XMFLOAT3& end,
-			float radius, float length, DirectX::XMVECTOR axis, intersect_data* intersect = nullptr) const;
+		bool intersect_capsule_cast_by_axis_spheres(const math::float3& start, const math::float3& end,
+			float radius, float length, math::vector3f axis, intersect_data* intersect = nullptr) const;
 
-		virtual void include_corner(DirectX::XMFLOAT3& min, DirectX::XMFLOAT3& max) const = 0;
+		virtual void include_corner(math::float3& min, math::float3& max) const = 0;
 
 	protected:
 		virtual	void on_change_parameter();
@@ -116,39 +115,39 @@ namespace collision
 		}
 
 	private:
-		DirectX::XMFLOAT3 local_scale;
-		DirectX::XMFLOAT4 rotation;
-		DirectX::XMFLOAT3 position;
-		DirectX::XMFLOAT4X4 transform_matrix;
-		DirectX::XMFLOAT4X4 inverse_transform_matrix;
+		math::float3 local_scale;
+		math::float4 rotation;
+		math::float3 position;
+		math::float4x4 transform_matrix;
+		math::float4x4 inverse_transform_matrix;
 	};
 
 	//	レイキャスト
 	struct triangles
 	{
-		const DirectX::XMFLOAT3* positions = nullptr;
+		const math::float3* positions = nullptr;
 		const unsigned int* indices = nullptr;
-		const DirectX::XMFLOAT3* polygon_normal = nullptr;
+		const math::float3* polygon_normal = nullptr;
 		size_t index_start = 0;
 		size_t index_count = 0;
 		bool reverse_index = false;
 		bool indices_stride_16 = false;
 	};
-	bool ray_cast(const DirectX::XMFLOAT3& start, const DirectX::XMFLOAT3& end, const triangles& triangles, intersect_data* result);
-	bool ray_cast(DirectX::XMVECTOR start, DirectX::XMVECTOR end, const triangles& triangles, intersect_data* result);
-	bool ray_cast_16(DirectX::XMVECTOR start, DirectX::XMVECTOR end, const triangles& triangles, intersect_data* result);
-	bool ray_cast_32(DirectX::XMVECTOR start, DirectX::XMVECTOR end, const triangles& triangles, intersect_data* result);
+	bool ray_cast(const math::float3& start, const math::float3& end, const triangles& triangles, intersect_data* result);
+	bool ray_cast(math::vector3f start, math::vector3f end, const triangles& triangles, intersect_data* result);
+	bool ray_cast_16(math::vector3f start, math::vector3f end, const triangles& triangles, intersect_data* result);
+	bool ray_cast_32(math::vector3f start, math::vector3f end, const triangles& triangles, intersect_data* result);
 
-	bool XM_CALLCONV intersect_ray_vs_sphere(DirectX::XMVECTOR start, DirectX::XMVECTOR end,
-											 DirectX::XMVECTOR sphere_pos, float radius,
-											 DirectX::XMVECTOR& hit_pos, float& hit_distance);
+	bool intersect_ray_vs_sphere(math::vector3f start, math::vector3f end,
+											 math::vector3f sphere_pos, float radius,
+											 math::vector3f& hit_pos, float& hit_distance);
 
-	bool XM_CALLCONV intersect_ray_vs_cylinder(DirectX::XMVECTOR start, DirectX::XMVECTOR end,
-											   DirectX::XMVECTOR start_cylinder, DirectX::XMVECTOR end_cylinder,
-											   float radius, DirectX::XMVECTOR& hit_pos, float& hit_distance);
+	bool intersect_ray_vs_cylinder(math::vector3f start, math::vector3f end,
+											   math::vector3f start_cylinder, math::vector3f end_cylinder,
+											   float radius, math::vector3f& hit_pos, float& hit_distance);
 
 	//	キャスト結果の追加
-	void XM_CALLCONV add_cast_hit(intersect_data* intersect, DirectX::XMVECTOR center, DirectX::XMVECTOR contact, DirectX::XMVECTOR normal, float length);
+	void add_cast_hit(intersect_data* intersect, math::vector3f center, math::vector3f contact, math::vector3f normal, float length);
 
 	//	キャスト開始時の重なり状態
 	enum class cast_start_overlap
@@ -159,6 +158,6 @@ namespace collision
 	};
 
 	//	キャスト開始時の重なり判定
-	cast_start_overlap XM_CALLCONV check_cast_start_overlap(DirectX::XMVECTOR start, DirectX::XMVECTOR end, DirectX::XMVECTOR nearest_point,
-															float radius, DirectX::XMVECTOR fallback_normal, intersect_data* intersect);
+	cast_start_overlap check_cast_start_overlap(math::vector3f start, math::vector3f end, math::vector3f nearest_point,
+															float radius, math::vector3f fallback_normal, intersect_data* intersect);
 }	//	namespace collision
