@@ -28,22 +28,22 @@
     <ClInclude Include="Headers\stdafx_collision.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Sources\box.cpp" />
-    <ClCompile Include="Sources\capsule.cpp" />
-    <ClCompile Include="Sources\collision.cpp" />
-    <ClCompile Include="Sources\cubic_sdf.cpp" />
-    <ClCompile Include="Sources\frustum_culling.cpp" />
-    <ClCompile Include="Sources\line.cpp" />
-    <ClCompile Include="Sources\mesh.cpp" />
-    <ClCompile Include="Sources\plane.cpp" />
-    <ClCompile Include="Sources\raycast.cpp" />
-    <ClCompile Include="Sources\sphere.cpp" />
-  </ItemGroup>
-  <ItemGroup>
     <ProjectReference Include="..\Math\Math.vcxproj">
       <Project>{A7AB94D7-730B-45B7-8000-E0EBE4D2C878}</Project>
       <LinkLibraryDependencies>false</LinkLibraryDependencies>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Sources\Collision\box.cpp" />
+    <ClCompile Include="Sources\Collision\capsule.cpp" />
+    <ClCompile Include="Sources\Collision\collision.cpp" />
+    <ClCompile Include="Sources\Collision\cubic_sdf.cpp" />
+    <ClCompile Include="Sources\Collision\frustum_culling.cpp" />
+    <ClCompile Include="Sources\Collision\line.cpp" />
+    <ClCompile Include="Sources\Collision\mesh.cpp" />
+    <ClCompile Include="Sources\Collision\plane.cpp" />
+    <ClCompile Include="Sources\Collision\raycast.cpp" />
+    <ClCompile Include="Sources\Collision\sphere.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>

@@ -1,0 +1,84 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClInclude Include="Headers\Collision\box.h">
+      <Filter>Headers\Collision</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Collision\capsule.h">
+      <Filter>Headers\Collision</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Collision\collision.h">
+      <Filter>Headers\Collision</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Collision\cubic_sdf.h">
+      <Filter>Headers\Collision</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Collision\frustum_culling.h">
+      <Filter>Headers\Collision</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Collision\line.h">
+      <Filter>Headers\Collision</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Collision\mesh.h">
+      <Filter>Headers\Collision</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Collision\plane.h">
+      <Filter>Headers\Collision</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Collision\raycast.h">
+      <Filter>Headers\Collision</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Collision\sphere.h">
+      <Filter>Headers\Collision</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\stdafx_collision.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Headers">
+      <UniqueIdentifier>{940bf7a6-0c31-449b-9759-84f49086b3bc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Headers\Collision">
+      <UniqueIdentifier>{7844eb77-9506-43b5-8dd9-4e926a074207}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Souorces">
+      <UniqueIdentifier>{16085b39-0a03-4054-8be0-741715b047f8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Souorces\Collision">
+      <UniqueIdentifier>{68375b8e-b25f-40e6-adfa-ecb414453497}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Sources\Collision\box.cpp">
+      <Filter>Souorces\Collision</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Collision\capsule.cpp">
+      <Filter>Souorces\Collision</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Collision\collision.cpp">
+      <Filter>Souorces\Collision</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Collision\cubic_sdf.cpp">
+      <Filter>Souorces\Collision</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Collision\frustum_culling.cpp">
+      <Filter>Souorces\Collision</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Collision\line.cpp">
+      <Filter>Souorces\Collision</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Collision\mesh.cpp">
+      <Filter>Souorces\Collision</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Collision\plane.cpp">
+      <Filter>Souorces\Collision</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Collision\raycast.cpp">
+      <Filter>Souorces\Collision</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Collision\sphere.cpp">
+      <Filter>Souorces\Collision</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>

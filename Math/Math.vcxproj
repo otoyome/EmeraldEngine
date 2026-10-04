@@ -34,13 +34,13 @@
     <ClInclude Include="Headers\Math\vector4.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Sources\exponential_quaternion.cpp" />
-    <ClCompile Include="Sources\matrix.cpp" />
-    <ClCompile Include="Sources\quaternion.cpp" />
-    <ClCompile Include="Sources\rotator.cpp" />
-    <ClCompile Include="Sources\vector2.cpp" />
-    <ClCompile Include="Sources\vector3.cpp" />
-    <ClCompile Include="Sources\vector4.cpp" />
+    <ClCompile Include="Sources\Math\exponential_quaternion.cpp" />
+    <ClCompile Include="Sources\Math\matrix.cpp" />
+    <ClCompile Include="Sources\Math\quaternion.cpp" />
+    <ClCompile Include="Sources\Math\rotator.cpp" />
+    <ClCompile Include="Sources\Math\vector2.cpp" />
+    <ClCompile Include="Sources\Math\vector3.cpp" />
+    <ClCompile Include="Sources\Math\vector4.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
