@@ -3,6 +3,7 @@
 
 #include <cstdlib>
 #include <cstdint>
+#include <intrin.h>
 #include <new>
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -212,12 +213,25 @@ memory_allocator::allocator_state& memory_allocator::get_state()
 
 uint32_t memory_allocator::find_size_class_index(size_t size)
 {
-	for (uint32_t index = 0; index < size_class_count; ++index)
-	{
-		if (size_classes[index] >= size)
-			return index;
-	}
-	return large_pool_tag;
+	//	サイズクラスが16から始まる2の累乗の並びである前提で求める
+	static_assert([] {
+		for (size_t index = 0; index < size_class_count; ++index)
+		{
+			if (size_classes[index] != (static_cast<size_t>(16) << index))
+				return false;
+		}
+		return true;
+	}(), "memory_allocator: size_classes must be powers of two starting from 16");
+
+	if (size <= size_classes[0])
+		return 0;
+	if (size > size_classes[size_class_count - 1])
+		return large_pool_tag;
+
+	//	size - 1 の最上位ビットが k なら収まるクラスは 2^(k+1) バイト。16 = 2^4 がインデックス0
+	unsigned long highest_bit = 0;
+	_BitScanReverse64(&highest_bit, static_cast<unsigned long long>(size - 1));
+	return static_cast<uint32_t>(highest_bit + 1 - 4);
 }
 
 uint32_t memory_allocator::read_tag(void* payload)

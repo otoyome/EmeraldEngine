@@ -4,8 +4,8 @@
 #include <cstdlib>
 #include <cstdint>
 
-//	排他制御クラス。std::mutexはMSVC環境だと初回ロック時に内部でヒープ確保が行われることがあり、
-//	operator new内で使うと無限再帰(スタックオーバーフロー)を起こしかねないため、確保を伴わないSRWLOCKを直接使う
+//	排他制御クラス
+//	std::mutexはMSVC環境だと初回ロック時に内部でヒープ確保が行われることがあるため自作
 struct fixed_size_pool::srw_exclusive_lock
 {
 	explicit srw_exclusive_lock(SRWLOCK& target) : target(target) { AcquireSRWLockExclusive(&target); }
@@ -16,10 +16,7 @@ private:
 	SRWLOCK& target;
 };
 
-//	1ピース分のヘッダ。owner_arenaを直接持つことで、deallocate時にアリーナを総当たりせずO(1)で
-//	対象アリーナへ辿り着ける。class_indexは必ず構造体の末尾(payloadの直前)に置く。memory_allocatorから
-//	payload-4バイトを読むだけで「どのサイズクラスのプールから取り出したポインタか」をO(1)で判定するために使う。
-//	全サイズクラスでヘッダサイズを16バイト(デバッグは32バイト)固定にし、ペイロードも16バイトアラインメントを保証している
+//	1ピース分のヘッダー
 struct fixed_size_pool::piece_header
 {
 	arena* owner_arena;
@@ -28,14 +25,10 @@ struct fixed_size_pool::piece_header
 	uint32_t canary;
 	uint32_t reserved[3];
 #endif	//	defined(_DEBUG)
-	uint32_t class_index;	//	末尾固定。payloadの直前4バイト
+	uint32_t class_index;
 };
 
-//	固定長プールの1スラブ。手狭になったら新しいスラブを連結し、逆に空になったスラブは即座にOSへ返却する。
-//	free_list_headは空きピースのpayload領域自体を間借りして繋いだイントルーシブ・フリーリストの先頭で、
-//	確保・解放とも走査を伴わずO(1)で行える。arena構造体自身がVirtualAllocした領域の先頭に埋め込まれるため、
-//	フィールド8個(64バイト)ちょうどで16バイト境界に揃うようにしている
-//	(そうしないと直後に続くピース列の先頭が16バイトアラインメントから狂う)
+//	固定長プールの1スラブ
 struct fixed_size_pool::arena
 {
 	arena* next_arena;
@@ -46,22 +39,18 @@ struct fixed_size_pool::arena
 	size_t used_count;
 	size_t piece_count;
 	void* free_list_head;
+	arena* next_available;	//	空きピースを持つアリーナだけをつなぐリスト
+	arena* prev_available;
 };
 
 const size_t fixed_size_pool::arena_slab_bytes = 64 * 1024;
 const size_t fixed_size_pool::piece_header_size = sizeof(piece_header);
 #if defined(_DEBUG)
 const uint32_t fixed_size_pool::canary_pattern = 0xCDCDCDCDu;
-#endif
+#endif // defined(_DEBUG)
 
 fixed_size_pool::~fixed_size_pool()
 {
-	//	スラブはVirtualAllocでプロセスに直接確保しており、意図的に一切解放しない。
-	//	以前はプロセス終了時にatexitで明示的に解放していたが、静的初期化順序次第でこの
-	//	プールを元に構築された(=先に破棄された)静的オブジェクトが、このプール自体が
-	//	解放しようとする前にスラブを解放してしまい、解放済み領域への書き込みでクラッシュする
-	//	不具合があった。VirtualAllocで確保した領域はCRTのデバッグヒープに追跡されないため、
-	//	終了時に「漏れている」としてリーク検出に引っかかることもない。よって解放しないほうが安全
 }
 
 void fixed_size_pool::initialize(uint32_t new_class_index, size_t new_piece_size)
@@ -72,8 +61,12 @@ void fixed_size_pool::initialize(uint32_t new_class_index, size_t new_piece_size
 
 fixed_size_pool::arena* fixed_size_pool::create_arena()
 {
+	//	ピース列の先頭を16バイト境界に揃える
+	static_assert(sizeof(arena) % 16 == 0, "fixed_size_pool::arena must be a multiple of 16 bytes");
+
 	size_t stride = piece_header_size + piece_size;
-	size_t piece_count = arena_slab_bytes / stride;
+	//	arena構造体ぶんを差し引き、全体がVirtualAllocの確保粒度(64KB)に収まるようにする
+	size_t piece_count = (arena_slab_bytes - sizeof(arena)) / stride;
 	if (piece_count == 0)
 		piece_count = 1;
 
@@ -94,6 +87,8 @@ fixed_size_pool::arena* fixed_size_pool::create_arena()
 	new_arena->used_count = 0;
 	new_arena->piece_count = piece_count;
 	new_arena->free_list_head = nullptr;
+	new_arena->next_available = nullptr;
+	new_arena->prev_available = nullptr;
 
 	for (size_t index = piece_count; index-- > 0; )
 	{
@@ -143,22 +138,55 @@ void* fixed_size_pool::allocate(size_t alignment)
 
 	srw_exclusive_lock scoped_lock(lock);
 
-	for (arena* target = first_arena; target; target = target->next_arena)
+	//	空きのあるアリーナだけをつないだリストの先頭から取る
+	arena* target = available_head;
+	if (!target)
 	{
-		if (void* payload = allocate_from_arena(target))
-			return payload;
+		target = create_arena();
+		if (!target)
+			return nullptr;
+
+		target->next_arena = first_arena;
+		if (first_arena)
+			first_arena->prev_arena = target;
+		first_arena = target;
+
+		link_available(target);
+		++empty_arena_count;
 	}
 
-	arena* new_arena = create_arena();
-	if (!new_arena)
-		return nullptr;
+	if (target->used_count == 0)
+		--empty_arena_count;
 
-	new_arena->next_arena = first_arena;
-	if (first_arena)
-		first_arena->prev_arena = new_arena;
-	first_arena = new_arena;
+	void* payload = allocate_from_arena(target);
 
-	return allocate_from_arena(new_arena);
+	//	満杯になったアリーナは空きありリストから外す
+	if (!target->free_list_head)
+		unlink_available(target);
+
+	return payload;
+}
+
+void fixed_size_pool::link_available(arena* target)
+{
+	target->prev_available = nullptr;
+	target->next_available = available_head;
+	if (available_head)
+		available_head->prev_available = target;
+	available_head = target;
+}
+
+void fixed_size_pool::unlink_available(arena* target)
+{
+	if (target->prev_available)
+		target->prev_available->next_available = target->next_available;
+	else
+		available_head = target->next_available;
+	if (target->next_available)
+		target->next_available->prev_available = target->prev_available;
+
+	target->next_available = nullptr;
+	target->prev_available = nullptr;
 }
 
 void fixed_size_pool::release_arena_if_redundant(arena* target)
@@ -166,17 +194,13 @@ void fixed_size_pool::release_arena_if_redundant(arena* target)
 	if (target->used_count != 0)
 		return;
 
-	bool other_arena_has_room = false;
-	for (arena* candidate = first_arena; candidate; candidate = candidate->next_arena)
-	{
-		if (candidate != target && candidate->free_list_head)
-		{
-			other_arena_has_room = true;
-			break;
-		}
-	}
-	if (!other_arena_has_room)
+	//	空になったアリーナを1つだけ予備として残す
+	++empty_arena_count;
+	if (empty_arena_count <= 1)
 		return;
+
+	//	空のアリーナは必ず空きありリストに入っている
+	unlink_available(target);
 
 	if (target->prev_arena)
 		target->prev_arena->next_arena = target->next_arena;
@@ -185,14 +209,12 @@ void fixed_size_pool::release_arena_if_redundant(arena* target)
 	if (target->next_arena)
 		target->next_arena->prev_arena = target->prev_arena;
 
+	--empty_arena_count;
 	VirtualFree(target, 0, MEM_RELEASE);
 }
 
 void fixed_size_pool::deallocate(void* payload)
 {
-	//	呼び出し側(memory_allocator)が既にヘッダのclass_indexタグを見て、このプールから
-	//	取り出したポインタだと確定した上で呼んでいる。owner_arenaにより対象アリーナを
-	//	総当たりせずO(1)で特定できる
 	uint8_t* piece = static_cast<uint8_t*>(payload) - piece_header_size;
 	piece_header* header = reinterpret_cast<piece_header*>(piece);
 
@@ -210,13 +232,19 @@ void fixed_size_pool::deallocate(void* payload)
 
 	srw_exclusive_lock scoped_lock(lock);
 
-	//	使用中フラグを明示的にチェックすることで二重解放を検出できる
+	//	二重解放チェック
 	_ASSERT_EXPR(header->state == piece_state_used, L"fixed_size_pool: double free detected");
 	header->state = piece_state_free;
+
+	//	返却前に満杯だったアリーナは、空きありリストへ戻す
+	bool was_full = (target->free_list_head == nullptr);
 
 	*reinterpret_cast<void**>(payload) = target->free_list_head;
 	target->free_list_head = payload;
 	--target->used_count;
+
+	if (was_full)
+		link_available(target);
 
 	release_arena_if_redundant(target);
 }

@@ -44,11 +44,15 @@ private:
 
 	arena* create_arena();
 	void* allocate_from_arena(arena* target);
+	void link_available(arena* target);
+	void unlink_available(arena* target);
 	void release_arena_if_redundant(arena* target);
 
 private:
 	mutable SRWLOCK lock = SRWLOCK_INIT;
 	arena* first_arena = nullptr;
+	arena* available_head = nullptr;
+	size_t empty_arena_count = 0;
 	size_t piece_size = 0;
 	uint32_t class_index = 0;
 };
