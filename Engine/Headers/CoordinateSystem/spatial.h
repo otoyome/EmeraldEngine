@@ -37,20 +37,24 @@ public:
 
 	std::uint32_t get_version() const;
 
-	bool attach(const std::shared_ptr<spatial>& parent, attach_rule rule = attach_rule::keep_world);
-	void detach(attach_rule rule = attach_rule::keep_world);
-
 	std::shared_ptr<spatial> get_parent() const;
 	std::shared_ptr<spatial> get_child(std::size_t index) const;
 	std::shared_ptr<spatial> get_root();
-
-	//	自分以下の再計算が必要なワールド姿勢をまとめて計算する
-	void update_descendants() const;
 
 public:
 	spatial();
 	explicit spatial(const transformd& local);
 	~spatial() override;
+
+	//	親子関係の付け替え
+	bool attach(const std::shared_ptr<spatial>& parent, attach_rule rule = attach_rule::keep_world);
+	void detach(attach_rule rule = attach_rule::keep_world);
+
+	//	自分以下の再計算が必要なワールド姿勢をまとめて計算する
+	void update_descendants() const;
+
+	template<class Archive>
+	void serialize(Archive& archive, int version);
 
 private:
 	void mark_dirty();
@@ -63,3 +67,5 @@ private:
 	transformd local;			//	ローカル姿勢
 	mutable transformd world;	//	ワールド姿勢
 };
+
+CEREAL_CLASS_VERSION(spatial, 1)

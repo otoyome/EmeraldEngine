@@ -32,20 +32,6 @@ void game_object::set_active(bool active)
 	}
 }
 
-const std::shared_ptr<spatial>& game_object::get_spatial() const
-{
-	return spatial;
-}
-
-void game_object::set_spatial(const std::shared_ptr<::spatial>& spatial)
-{
-	if (this->spatial && this->spatial != spatial)
-	{
-		this->spatial->detach();
-	}
-	this->spatial = spatial;
-}
-
 game_object::game_object(std::string_view name)
 : name(name)
 , active(true)
@@ -56,10 +42,6 @@ game_object::game_object(std::string_view name)
 
 game_object::~game_object()
 {
-	if (spatial)
-	{
-		spatial->detach();
-	}
 }
 
 void game_object::fixed_update(float elapsed_time)

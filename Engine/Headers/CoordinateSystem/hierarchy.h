@@ -22,8 +22,10 @@ public:
 	bool is_descendant_of(const hierarchy* ancestor) const;
 
 protected:
-	//	アタッチできるか判定
-	static bool can_attach(const hierarchy* self, const hierarchy* parent);
+	hierarchy();
+	virtual ~hierarchy();
+	hierarchy(const hierarchy&) = delete;
+	hierarchy& operator=(const hierarchy&) = delete;
 
 	//	自身を指定の子として登録する
 	void link(const std::shared_ptr<hierarchy>& parent);
@@ -35,10 +37,8 @@ protected:
 	children_type release_children();
 
 protected:
-	hierarchy();
-	virtual ~hierarchy();
-	hierarchy(const hierarchy&) = delete;
-	hierarchy& operator=(const hierarchy&) = delete;
+	//	アタッチできるか判定
+	static bool can_attach(const hierarchy* self, const hierarchy* parent);
 
 private:
 	std::weak_ptr<hierarchy> parent;	//	親

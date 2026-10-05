@@ -1,4 +1,8 @@
 #include "CoordinateSystem/transform.h"
+#include "Math/math_serialize.h"
+
+#include "cereal/archives/binary.hpp"
+#include "cereal/archives/json.hpp"
 
 template<typename T>
 transform<T> transform<T>::identity()
@@ -276,5 +280,32 @@ void transform<T>::update() const
 	system_utility::set_bitflag(system_flags, 1 << static_cast<int>(flags::dirty), false);
 }
 
+template<typename T>
+template<class Archive>
+void transform<T>::serialize(Archive& archive, int version)
+{
+	archive(
+		cereal::make_nvp("scale", scale),
+		cereal::make_nvp("rotation", rotation),
+		cereal::make_nvp("translation", translation)
+	);
+
+	//	読み込んだ場合は行列のキャッシュを再計算させる
+	if constexpr (Archive::is_loading::value)
+	{
+		set_flag(flags::dirty, true);
+	}
+}
+
 template class transform<float>;
 template class transform<double>;
+
+//	serialize は cpp で定義しているため、使用するアーカイブごとに明示的に実体化
+template void transform<float>::serialize<cereal::BinaryInputArchive>(cereal::BinaryInputArchive&, int);
+template void transform<float>::serialize<cereal::BinaryOutputArchive>(cereal::BinaryOutputArchive&, int);
+template void transform<float>::serialize<cereal::JSONInputArchive>(cereal::JSONInputArchive&, int);
+template void transform<float>::serialize<cereal::JSONOutputArchive>(cereal::JSONOutputArchive&, int);
+template void transform<double>::serialize<cereal::BinaryInputArchive>(cereal::BinaryInputArchive&, int);
+template void transform<double>::serialize<cereal::BinaryOutputArchive>(cereal::BinaryOutputArchive&, int);
+template void transform<double>::serialize<cereal::JSONInputArchive>(cereal::JSONInputArchive&, int);
+template void transform<double>::serialize<cereal::JSONOutputArchive>(cereal::JSONOutputArchive&, int);
