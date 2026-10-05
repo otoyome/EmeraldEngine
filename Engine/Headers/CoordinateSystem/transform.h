@@ -11,25 +11,56 @@ class transform
 	};
 
 	using vector3 = math::vector3<T>;
-	using rotator = math::rotator<T>;
+	using quaternion = math::quaternion<T>;
+	using matrix = math::matrix<T>;
 
 public:
 	bool is_flag(flags flag) const;
 	void set_flag(flags flag, bool value);
 
 	const vector3& get_scale() const;
-	void set_scale(vector3& scale);
-	const rotator& get_rotation() const;
-	void set_rotation(rotator& rotation);
+	void set_scale(const vector3& scale);
+	const quaternion& get_rotation() const;
+	void set_rotation(const quaternion& rotation);
 	const vector3& get_translation() const;
-	void set_translation(vector3& translation);
+	void set_translation(const vector3& translation);
+
+	const matrix& get_transform() const;
 
 public:
 	transform();
 
+	inline vector3 transform_point(const vector3& point) const
+	{
+		update();
+		return point * srt;
+	}
+	inline vector3 transform_vector(const vector3& vector) const
+	{
+		update();
+		return vector * sr;
+	}
+	inline vector3 transform_direction(const vector3& direction) const
+	{
+		return direction * math::matrixd::rotation_quaternion(rotation);
+	}
+
+	inline vector3 inverse_transform_point(const vector3& point) const
+	{
+		update();
+		return point * inverse_srt;
+	}
+
 private:
-	UINT system_flags;		//	ƒtƒ‰ƒO—Ş
-	vector3 scale;			//	Šgk—¦
-	rotator rotation;		//	‰ñ“]î•ñ
-	vector3 translation;	//	À•Wî•ñ
+	void update();
+
+private:
+	mutable UINT system_flags;	//	ƒtƒ‰ƒO—Ş
+	mutable matrix srt;			//	SRTs—ñ
+	mutable matrix inverse_srt;	//	‹tSRTs—ñ
+	mutable matrix sr;			//	SRs—ñ
+
+	vector3 scale;				//	Šgk—¦
+	quaternion rotation;		//	‰ñ“]î•ñ
+	vector3 translation;		//	À•Wî•ñ
 };

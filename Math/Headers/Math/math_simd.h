@@ -14,7 +14,7 @@
 //	SIMD 処理
 namespace math::simd
 {
-	//	float 4要素（SSE）
+	//	float 4要素
 	struct f4
 	{
 		using value_type = float;
@@ -54,7 +54,7 @@ namespace math::simd
 		static reg mask_xy(const reg& v) { return _mm_and_ps(v, _mm_castsi128_ps(_mm_set_epi32(0, 0, -1, -1))); }
 		static float first(const reg& v) { return _mm_cvtss_f32(v); }
 
-		//	内積（全要素に結果を格納）
+		//	内積
 		static reg dot2(const reg& a, const reg& b)
 		{
 			reg d = _mm_mul_ps(a, b);
@@ -80,7 +80,7 @@ namespace math::simd
 			return _mm_add_ps(d, t);
 		}
 
-		//	4x4 の転置（out は in と同じでもよい）
+		//	4x4 の転置
 		static void transpose(const reg* in, reg* out)
 		{
 			reg r0 = in[0];
@@ -94,13 +94,12 @@ namespace math::simd
 			out[3] = r3;
 		}
 
-		//	float 4要素（__m128）との相互変換
 		static __m128 to_float4(const reg& v) { return v; }
 		static reg from_float4(__m128 v) { return v; }
 	};
 
 #if defined(__AVX2__)
-	//	double 4要素（AVX2）
+	//	double 4要素
 	struct d4
 	{
 		using value_type = double;
@@ -171,8 +170,7 @@ namespace math::simd
 		static reg from_float4(__m128 v) { return _mm256_cvtps_pd(v); }
 	};
 #else
-	//	double 4要素（SSE2 の __m128d を 2 本使う）
-	//	AVX2 版（__m256d）とサイズ・アライメントを揃えるため 32 バイト境界に置く
+	//	double 4要素
 	struct d4
 	{
 		using value_type = double;
@@ -266,7 +264,7 @@ namespace math::simd
 	};
 #endif	//	defined(__AVX2__)
 
-	//	長さの2乗 length_sq を使って正規化する（長さが threshold 未満なら 0 を返す）
+	//	長さの2乗 length_sq を使って正規化する
 	template<typename Ops>
 	typename Ops::reg normalize(const typename Ops::reg& v, const typename Ops::reg& length_sq, typename Ops::value_type threshold)
 	{
@@ -275,7 +273,7 @@ namespace math::simd
 		return Ops::select(mask, Ops::div(v, length), Ops::zero());
 	}
 
-	//	3次元の外積（w は 0 になる）
+	//	3次元の外積
 	template<typename Ops>
 	typename Ops::reg cross3(const typename Ops::reg& a, const typename Ops::reg& b)
 	{
@@ -283,11 +281,10 @@ namespace math::simd
 						Ops::mul(Ops::template permute<2, 0, 1, 3>(a), Ops::template permute<1, 2, 0, 3>(b)));
 	}
 
-	//	4次元の外積（Framework の Vector4::Cross と同じ結果）
+	//	4次元の外積
 	template<typename Ops>
 	typename Ops::reg cross4(const typename Ops::reg& l, const typename Ops::reg& c, const typename Ops::reg& r)
 	{
-		//	各要素 = L[a] * (C[p] * R[q] - R[p] * C[q]) を3項組み合わせて符号 (+, -, +, -) を掛ける
 		typename Ops::reg term1 = Ops::mul(Ops::template permute<1, 0, 0, 0>(l),
 			Ops::sub(Ops::mul(Ops::template permute<2, 2, 1, 1>(c), Ops::template permute<3, 3, 3, 2>(r)),
 					 Ops::mul(Ops::template permute<2, 2, 1, 1>(r), Ops::template permute<3, 3, 3, 2>(c))));
@@ -300,7 +297,6 @@ namespace math::simd
 		return Ops::mul(Ops::add(Ops::sub(term1, term2), term3), Ops::set(1, -1, 1, -1));
 	}
 
-	//	v.x * m[0] + v.y * m[1] + v.z * m[2] + v.w * m[3]
 	template<typename Ops>
 	typename Ops::reg transform4(const typename Ops::reg& v, const typename Ops::reg* m)
 	{
@@ -311,7 +307,6 @@ namespace math::simd
 		return result;
 	}
 
-	//	v.x * m[0] + v.y * m[1] + v.z * m[2] + m[3]（w = 1 として変換）
 	template<typename Ops>
 	typename Ops::reg transform3_point(const typename Ops::reg& v, const typename Ops::reg* m)
 	{
@@ -321,7 +316,6 @@ namespace math::simd
 		return result;
 	}
 
-	//	v.x * m[0] + v.y * m[1] + v.z * m[2]（w = 0 として変換）
 	template<typename Ops>
 	typename Ops::reg transform3_normal(const typename Ops::reg& v, const typename Ops::reg* m)
 	{
@@ -331,7 +325,7 @@ namespace math::simd
 		return result;
 	}
 
-	//	4x4 行列の積 out = a * b（out は a / b と同じでもよい）
+	//	4x4 行列の積 out = a * b
 	template<typename Ops>
 	void multiply(const typename Ops::reg* a, const typename Ops::reg* b, typename Ops::reg* out)
 	{
@@ -345,7 +339,7 @@ namespace math::simd
 		out[3] = r3;
 	}
 
-	//	クォータニオンの積 q * r（q の回転の後に r の回転。ハミルトン積で r, q の順に掛ける）
+	//	クォータニオンの積 q * r
 	template<typename Ops>
 	typename Ops::reg quaternion_multiply(const typename Ops::reg& q, const typename Ops::reg& r)
 	{
@@ -356,7 +350,7 @@ namespace math::simd
 		return result;
 	}
 
-	//	4x4 行列の行列式（Framework のスカラー版と同じく列ベクトルの4次元外積で求める）
+	//	4x4 行列の行列式
 	template<typename Ops>
 	typename Ops::value_type determinant(const typename Ops::reg* m)
 	{
@@ -366,7 +360,7 @@ namespace math::simd
 		return -Ops::first(Ops::dot4(columns[3], minor));
 	}
 
-	//	4x4 行列の逆行列（行列式が 0 の場合は false を返し out は変更しない）
+	//	4x4 行列の逆行列
 	template<typename Ops>
 	bool inverse(const typename Ops::reg* m, typename Ops::reg* out)
 	{
@@ -376,7 +370,6 @@ namespace math::simd
 			return false;
 		}
 
-		//	各行を除いた3行の4次元外積が余因子（列）になる
 		typename Ops::reg cofactor[4];
 		cofactor[0] = cross4<Ops>(m[1], m[2], m[3]);
 		cofactor[1] = Ops::neg(cross4<Ops>(m[0], m[2], m[3]));

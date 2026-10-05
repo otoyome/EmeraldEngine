@@ -6,7 +6,7 @@ namespace math
 {
 	namespace
 	{
-		//	3要素を大きい順に並べた添字を返す（Framework の RANKDECOMPOSE マクロ相当）
+		//	3要素を大きい順に並べた添字を返す
 		template<typename T>
 		void rank_decompose(std::uint32_t& a, std::uint32_t& b, std::uint32_t& c, T x, T y, T z)
 		{

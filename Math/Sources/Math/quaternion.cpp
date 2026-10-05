@@ -31,7 +31,7 @@ namespace math
 	template<typename T>
 	vector3<T> quaternion<T>::rotate(const vector3<T>& v) const
 	{
-		//	q * v * q^-1 を展開した式（単位クォータニオン前提）
+		//	q * v * q^-1 を展開した式
 		const vector3<T> axis_vector(x, y, z);
 		const vector3<T> t = vector3<T>::cross(axis_vector, v) * static_cast<T>(2);
 		return v + t * w + vector3<T>::cross(axis_vector, t);
