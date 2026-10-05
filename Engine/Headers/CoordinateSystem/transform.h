@@ -17,22 +17,15 @@ public:
 	bool is_flag(flags flag) const;
 	void set_flag(flags flag, bool value);
 
-	inline const vector3& get_scale() const {return scale;}
-	inline void set_scale(vector3& scale) {this->scale = scale;}
-	inline const rotator& get_rotation() const {return rotation;}
-	inline void set_rotation(rotator& rotation) {this->rotation = rotation;}
-	inline const vector3& get_translation() const {return translation;}
-	inline void set_translation(vector3& translation) {this->translation = translation;}
+	const vector3& get_scale() const {return scale;}
+	void set_scale(vector3& scale) {this->scale = scale;}
+	const rotator& get_rotation() const {return rotation;}
+	void set_rotation(rotator& rotation) {this->rotation = rotation;}
+	const vector3& get_translation() const {return translation;}
+	void set_translation(vector3& translation) {this->translation = translation;}
 
 public:
-	transform()
-	: system_flags(0)
-	, scale(1, 1, 1)
-	, rotation(0.0f, 0.0f, 0.0f)
-	, translation(0.0f, 0.0f, 0.0f)
-	{
-		set_flag(flags::dirty, true);
-	}
+	transform();
 
 private:
 	UINT system_flags;		//	ƒtƒ‰ƒO—Þ
