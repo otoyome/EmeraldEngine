@@ -49,8 +49,6 @@ private:
 	void render(float elapsed_time);
 	bool uninitialize();
 
-	void calculate_frame_stats();
-
 	bool create_buffers();
 	bool create_collision_filters();
 
@@ -107,12 +105,6 @@ private:	//	•`‰æî•ñU‚è•ª‚¯
 private:	//	‚»‚Ì‘¼
 	float wheel{ 0 };
 	high_resolution_timer tictoc;
-#if defined(_DEBUG) || defined(USE_IMGUI)
-	uint32_t frames{ 0 };
-	float display_frame{ 0.0f };
-	float current_time{ 0.0f };
-	float previous_time{ 0.0f };
-#endif	//	defined(_DEBUG) || defined(USE_IMGUI)
 
 #if defined(USE_IMGUI)
 	//	ImGui—p

@@ -74,7 +74,6 @@ int framework::run()
 		else
 		{
 			tictoc.tick();
-			calculate_frame_stats();
 
 			//	詳細プロファイラーのフレーム開始
 			DETAIL_PROFILE_BEGIN_FRAME();
@@ -911,20 +910,6 @@ bool framework::uninitialize()
 	//	COMオブジェクト破棄
 	CoUninitialize();
 	return true;
-}
-
-void framework::calculate_frame_stats()
-{
-#if defined(_DEBUG) || defined(USE_IMGUI)
-	if (++frames, (tictoc.time_stamp() - current_time) >= 1.0f)
-	{
-		display_frame = static_cast<float>(frames);
-
-		frames = 0;
-		previous_time = current_time;
-		current_time += 1.0f;
-	}
-#endif	//	defined(_DEBUG) || defined(USE_IMGUI)
 }
 
 bool framework::create_buffers()

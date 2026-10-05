@@ -27,7 +27,6 @@ enum class object_profile_function
 //	DETAIL_PROFILE_CPU_SCOPE_CATEGORY(kind, name)					: 指定カテゴリにスコープのCPU時間を記録
 //	DETAIL_PROFILE_OBJECT_SCOPE(function, object)					: オブジェクト関数のCPU時間を記録(並列実行中でも可)
 //	DETAIL_PROFILE_RENDER_JOB_SCOPE(owner, name)					: 描画ジョブのCPU時間を記録
-//	DETAIL_PROFILE_ADD_TIME(name, time)								: 計測済みの時間をframeカテゴリに記録
 //	DETAIL_PROFILE_BEGIN_FRAME() / END_FRAME()						: 集計フレームの開始/終了
 //	DETAIL_PROFILE_GPU_BEGIN_FRAME() / GPU_END_FRAME()				: GPUスコープ計測フレームの開始/終了
 //	DETAIL_PROFILE_GPU_SCOPE_BEGIN() / GPU_SCOPE_END(owner, name)	: GPUスコープ計測
@@ -260,7 +259,6 @@ private:
 #define	DETAIL_PROFILE_CPU_SCOPE_CATEGORY(kind, name)	detail_profiler_cpu_scope DETAIL_PROFILE_UNIQUE_NAME(detail_profiler::category::kind, name)
 #define	DETAIL_PROFILE_OBJECT_SCOPE(function, object)	detail_profiler_object_scope DETAIL_PROFILE_UNIQUE_NAME(function, object)
 #define	DETAIL_PROFILE_RENDER_JOB_SCOPE(owner, name)	detail_profiler_render_job_scope DETAIL_PROFILE_UNIQUE_NAME(owner, name)
-#define	DETAIL_PROFILE_ADD_TIME(name, time)				DETAIL_PROFILE_CALL(add_time(detail_profiler::category::frame, name, time))
 #define	DETAIL_PROFILE_BEGIN_FRAME()					DETAIL_PROFILE_CALL(begin_frame())
 #define	DETAIL_PROFILE_END_FRAME()						DETAIL_PROFILE_CALL(end_frame())
 #define	DETAIL_PROFILE_GPU_BEGIN_FRAME()				DETAIL_PROFILE_CALL(begin_gpu_frame())
@@ -273,7 +271,6 @@ private:
 #define	DETAIL_PROFILE_CPU_SCOPE_CATEGORY(kind, name)	((void)0)
 #define	DETAIL_PROFILE_OBJECT_SCOPE(function, object)	((void)0)
 #define	DETAIL_PROFILE_RENDER_JOB_SCOPE(owner, name)	((void)0)
-#define	DETAIL_PROFILE_ADD_TIME(name, time)				((void)0)
 #define	DETAIL_PROFILE_BEGIN_FRAME()					((void)0)
 #define	DETAIL_PROFILE_END_FRAME()						((void)0)
 #define	DETAIL_PROFILE_GPU_BEGIN_FRAME()				((void)0)
