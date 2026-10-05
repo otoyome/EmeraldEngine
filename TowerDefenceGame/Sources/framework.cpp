@@ -36,6 +36,8 @@
 #include "Editor/editor_items.h"
 #endif // defined(USE_IMGUI)
 
+#include "Editor/detail_profiler.h"
+
 framework::framework(HWND hwnd) : hwnd(hwnd)
 {
 	logger::create_instance();
@@ -198,6 +200,7 @@ bool framework::initialize()
 	minigame_record_data::create_instance();
 #if defined(USE_IMGUI)
 	debug_primitive_manager::create_instance();
+	detail_profiler::create_instance();
 #endif // defined(USE_IMGUI)
 #if defined(USE_IMGUI)
 	editor_items::initialize();
@@ -263,6 +266,12 @@ bool framework::initialize()
 		ui_renderers.emplace_back(std::make_unique<ui_renderer>(render_executor, render_targets));
 	}
 
+	//	プロファイラー表示用のレンダラー名設定
+	for (auto& render : scene_renderers)
+		DETAIL_PROFILE_SET_RENDERER_NAME(*render);
+	for (auto& render : ui_renderers)
+		DETAIL_PROFILE_SET_RENDERER_NAME(*render);
+
 	//	全描画コマンド処理後に呼び出される関数登録
 	render_executor->register_post_rendering(
 		[this]
@@ -298,17 +307,23 @@ bool framework::initialize()
 void framework::update(float elapsed_time/*Elapsed seconds from last frame*/)
 {
 #if defined(USE_IMGUI)
+	//	詳細プロファイラーのフレーム開始
+	DETAIL_PROFILE_BEGIN_FRAME();
+
 	//	CPU側の更新時間計測開始
 	stationed_cpu_timer.begin();
 
 	//	各種データの更新チェック
-	if (shader_manager::is_valid())
 	{
-		shader_manager::instance()->check_shader_update_and_recompile();
-	}
-	if (texture_manager::is_valid())
-	{
-		texture_manager::instance()->check_update_and_reload();
+		DETAIL_PROFILE_CPU_SCOPE("update.asset_hot_reload");
+		if (shader_manager::is_valid())
+		{
+			shader_manager::instance()->check_shader_update_and_recompile();
+		}
+		if (texture_manager::is_valid())
+		{
+			texture_manager::instance()->check_update_and_reload();
+		}
 	}
 
 #endif //	defined(USE_IMGUI)
@@ -326,18 +341,21 @@ void framework::update(float elapsed_time/*Elapsed seconds from last frame*/)
 	//	シーン内の更新
 	if (scene_manager::is_valid())
 	{
+		DETAIL_PROFILE_CPU_SCOPE("update.scene_manager");
 		scene_manager::instance()->updates(elapsed_time);
 	}
 
 	//	オブジェクト更新
 	if (object_manager::is_valid())
 	{
+		DETAIL_PROFILE_CPU_SCOPE("update.object_manager");
 		object_manager::instance()->updates(elapsed_time);
 	}
 
 	//	エフェクト関係更新
 	if (effect_manager::is_valid())
 	{
+		DETAIL_PROFILE_CPU_SCOPE("update.effect_manager");
 		effect_manager::instance()->update(elapsed_time);
 	}
 
@@ -352,7 +370,11 @@ void framework::update(float elapsed_time/*Elapsed seconds from last frame*/)
 			timer_data[index] = timer_data[index + 1];
 		}
 		timer_data.back() = stationed_cpu_timer.get_result();
+		DETAIL_PROFILE_ADD_TIME("update", stationed_cpu_timer.get_result());
 	}
+
+	//	ImGuiウィンドウ構築の計測
+	DETAIL_PROFILE_CPU_SCOPE("update.imgui");
 
 	//	GPUスナップショット
 	if ((::GetAsyncKeyState(VK_SHIFT) & 0x8000) && (::GetAsyncKeyState(VK_F5) & 0x8000))
@@ -451,6 +473,8 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 	auto render_data = std::make_shared<render_data_context>();
 	auto render_particle_indices = std::make_shared<::render_particle_indices>();
 	{
+		DETAIL_PROFILE_CPU_SCOPE("render.collect_render_data");
+
 		//	ライト情報収集
 		light_manager::instance()->get_container(render_data->light_container);
 
@@ -568,8 +592,11 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 				occlusion->read_last_frame(occlusion_visible);
 
 			//	描画メッシュ／デカールのカリング・ソート
-			build_render_lists(*render_data, *camera.camera, camera.camera->get_frustum_culling(), occlusion_visible,
-				*context.render_mesh_indices, *context.render_decal_indices);
+			{
+				DETAIL_PROFILE_CPU_SCOPE("render.build_render_lists");
+				build_render_lists(*render_data, *camera.camera, camera.camera->get_frustum_culling(), occlusion_visible,
+					*context.render_mesh_indices, *context.render_decal_indices);
+			}
 
 			//	シーン構築
 			{
@@ -587,9 +614,13 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 			}
 
 			//	描画
-			for (auto& render : scene_renderers)
 			{
-				render->render(context);
+				DETAIL_PROFILE_CPU_SCOPE("render.scene_renderers_issue");
+				for (auto& render : scene_renderers)
+				{
+					DETAIL_PROFILE_CPU_SCOPE_CATEGORY(renderer_issue, render->get_profile_name());
+					render->render(context);
+				}
 			}
 		}
 
@@ -601,18 +632,25 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 			context.render_mesh_indices = std::make_shared<render_mesh_indices>();
 			for (auto& render : ui_renderers)
 			{
+				DETAIL_PROFILE_CPU_SCOPE_CATEGORY(renderer_issue, render->get_profile_name());
 				render->render(context);
 			}
 		}
 
 		//	描画コマンドを実行
-		render_executor->render();
+		{
+			DETAIL_PROFILE_CPU_SCOPE("render.execute_commands");
+			render_executor->render();
+		}
 
 		//	時間加算
 		total_time += elapsed_time;
 
 		//	描画コマンド実行終了処理
-		render_executor->end();
+		{
+			DETAIL_PROFILE_CPU_SCOPE("render.imgui_and_present");
+			render_executor->end();
+		}
 
 #if defined(USE_IMGUI)
 		//	スナップショットの情報を取得
@@ -637,7 +675,11 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 			timer_data[index] = timer_data[index + 1];
 		}
 		timer_data.back() = stationed_cpu_timer.get_result();
+		DETAIL_PROFILE_ADD_TIME("render", stationed_cpu_timer.get_result());
 	}
+
+	//	詳細プロファイラーのフレーム終了
+	DETAIL_PROFILE_END_FRAME();
 #endif //	defined(USE_IMGUI)
 }
 
@@ -887,6 +929,7 @@ bool framework::uninitialize()
 #endif // defined(USE_IMGUI)
 #if defined(USE_IMGUI)
 	debug_primitive_manager::delete_instance();
+	detail_profiler::delete_instance();
 #endif // defined(USE_IMGUI)
 	ik_resource_manager::delete_instance();
 	effect_manager::delete_instance();

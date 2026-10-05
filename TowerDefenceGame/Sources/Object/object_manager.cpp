@@ -80,44 +80,59 @@ void object_manager::updates(float elapsed_time)
 		//	固定更新処理
 		for (int count = 0; count < limit_loop_count; ++count)
 		{
-			for_each_parallel([](game_object* object)
 			{
-				object->fixed_update(fixed_per_second);
-			});
+				DETAIL_PROFILE_CPU_SCOPE("object.fixed_update");
+				for_each_parallel([](game_object* object)
+				{
+					object->fixed_update(fixed_per_second);
+				}, object_profile_function::fixed_update);
+			}
 
 			remove_objects();
 			add_objects();
 
 			//	当たり判定
+			{
+				DETAIL_PROFILE_CPU_SCOPE("object.collision_step");
 		#if 01	//	defined(_DEBUG)
-			world.step(fixed_per_second, 4, system_units::convert_fps_to_sec(0.25f));
+				world.step(fixed_per_second, 4, system_units::convert_fps_to_sec(0.25f));
 		#else	//	defined(_DEBUG)
-			world.step(fixed_per_second);
+				world.step(fixed_per_second);
 		#endif	//	defined(_DEBUG)
+			}
 
 			temporary_elapsed_time -= fixed_per_second;
 		}
 		remain_time = temporary_elapsed_time;
 
 		//	更新処理
-		for_each_parallel([elapsed_time](game_object* object)
 		{
-			object->update(elapsed_time);
-		});
+			DETAIL_PROFILE_CPU_SCOPE("object.update");
+			for_each_parallel([elapsed_time](game_object* object)
+			{
+				object->update(elapsed_time);
+			}, object_profile_function::update);
+		}
 
 		remove_objects();
 		add_objects();
 
 		//	更新後処理
-		for_each_parallel([elapsed_time](game_object* object)
 		{
-			object->post_update(elapsed_time);
-		});
+			DETAIL_PROFILE_CPU_SCOPE("object.post_update");
+			for_each_parallel([elapsed_time](game_object* object)
+			{
+				object->post_update(elapsed_time);
+			}, object_profile_function::post_update);
+		}
 
 		remove_objects();
 		add_objects();
 
 #if defined(USE_IMGUI)
+		//	デバッグ更新の計測
+		DETAIL_PROFILE_CPU_SCOPE("object.debug_update");
+
 		//	デバッグ更新
 		for (auto& object : game_objects)
 		{
@@ -141,7 +156,7 @@ void object_manager::updates(float elapsed_time)
 	}
 }
 
-void object_manager::for_each_parallel(const std::function<void(game_object*)>& body)
+void object_manager::for_each_parallel(const std::function<void(game_object*)>& body, object_profile_function function)
 {
 	const std::size_t count = game_objects.size();
 	if (count == 0)
@@ -150,13 +165,14 @@ void object_manager::for_each_parallel(const std::function<void(game_object*)>& 
 	constexpr std::size_t grain = 8;
 
 	object_update_executor.parallel_for(count, grain,
-		[this, &body](std::size_t, std::size_t begin, std::size_t end)
+		[this, &body, function](std::size_t, std::size_t begin, std::size_t end)
 		{
 			for (std::size_t index = begin; index < end; ++index)
 			{
 				game_object* object = game_objects[index].get();
 				if (!object->is_active())
 					continue;
+				DETAIL_PROFILE_OBJECT_SCOPE(function, object);
 				body(object);
 			}
 		});
@@ -168,10 +184,13 @@ void object_manager::pre_render()
 	add_objects();
 
 	//	描画前処理
-	for_each_parallel([](game_object* object)
 	{
-		object->pre_render();
-	});
+		DETAIL_PROFILE_CPU_SCOPE("object.pre_render");
+		for_each_parallel([](game_object* object)
+		{
+			object->pre_render();
+		}, object_profile_function::pre_render);
+	}
 
 	remove_objects();
 	add_objects();
@@ -183,12 +202,16 @@ void object_manager::post_render()
 	add_objects();
 
 	//	描画前処理
-	for (auto& object : game_objects)
 	{
-		if (!object->is_active())
-			continue;
+		DETAIL_PROFILE_CPU_SCOPE("object.post_render");
+		for (auto& object : game_objects)
+		{
+			if (!object->is_active())
+				continue;
 
-		object->post_render();
+			DETAIL_PROFILE_OBJECT_SCOPE(object_profile_function::post_render, object.get());
+			object->post_render();
+		}
 	}
 
 	remove_objects();

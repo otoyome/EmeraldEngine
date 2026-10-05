@@ -17,6 +17,7 @@ extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam
 extern ImWchar glyphRangesJapanese[];
 
 #include "Editor/editor_items.h"
+#include "Editor/detail_profiler.h"
 
 #include "scenes/editscene/edit_model_scene.h"
 #include "scenes/editscene/edit_particle_scene.h"
@@ -515,6 +516,12 @@ void framework::imgui_profiler_window(float elapsed_time)
 			}
 		}
 		ImGui::End();
+	}
+
+	//	@tool 詳細プロファイラー(オブジェクト関数/シーンレンダラー/GPUスコープ単位)
+	if (detail_profiler::is_valid())
+	{
+		detail_profiler::instance()->imgui_render();
 	}
 }
 

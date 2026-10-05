@@ -1,6 +1,8 @@
 #include "Renderer/render_job_executor.h"
 #include <thread>
 
+#include "Editor/detail_profiler.h"
+
 #if defined(USE_IMGUI)
 #include "imgui.h"
 #include "imgui/imgui_impl_dx11.h"
@@ -50,7 +52,7 @@ render_job_executor::~render_job_executor()
 	}
 }
 
-void render_job_executor::execute(std::function<render_job_function> task, std::string_view name, renderer_context& context, UINT sort_order, bool use_immediate_context)
+void render_job_executor::execute(std::function<render_job_function> task, std::string_view name, renderer_context& context, UINT sort_order, bool use_immediate_context, std::string_view owner_name)
 {
 	if (single_thread_mode)
 	{
@@ -61,19 +63,24 @@ void render_job_executor::execute(std::function<render_job_function> task, std::
 		g_context.scene_constant_buffer = context.scene_constant_buffer;
 
 		begin_snap_shot();
-		task(g_context);
-		end_snap_shot(name);
+		{
+			DETAIL_PROFILE_RENDER_JOB_SCOPE(owner_name, name);
+			task(g_context);
+		}
+		end_snap_shot(name, owner_name);
 		return;
 	}
 
 	std::string name_text = std::string(name);
+	std::string owner_text = std::string(owner_name);
 	if (use_immediate_context)
 	{
 		render_command_data command_data;
 		command_data.name = name_text;
+		command_data.owner_name = owner_text;
 		command_data.sort_order = sort_order;
 		command_data.task = std::function<void()>(
-			[task, name_text, context]()
+			[task, name_text, owner_text, context]()
 			{
 				//	描画コマンド積み込み
 				graphics_context g_context;
@@ -82,7 +89,10 @@ void render_job_executor::execute(std::function<render_job_function> task, std::
 				g_context.scene_constant = context.scene_constant;
 				g_context.scene_constant_buffer = context.scene_constant_buffer;
 				g_context.debug_begin_event(system_utility::convert_utf16(name_text).data());
-				task(g_context);
+				{
+					DETAIL_PROFILE_RENDER_JOB_SCOPE(owner_text, name_text);
+					task(g_context);
+				}
 				g_context.debug_end_event();
 			} );
 
@@ -92,7 +102,7 @@ void render_job_executor::execute(std::function<render_job_function> task, std::
 	{
 		std::lock_guard<std::mutex> lock_guard(mutex);
 		auto task_function = std::make_shared<std::function<void(ID3D11DeviceContext*)>>(
-			[task, name_text, context, sort_order, this](ID3D11DeviceContext* deferred_context)
+			[task, name_text, owner_text, context, sort_order, this](ID3D11DeviceContext* deferred_context)
 			{
 				//	描画コマンド積み込み
 				graphics_context g_context;
@@ -101,12 +111,16 @@ void render_job_executor::execute(std::function<render_job_function> task, std::
 				g_context.scene_constant = context.scene_constant;
 				g_context.scene_constant_buffer = context.scene_constant_buffer;
 				g_context.debug_begin_event(system_utility::convert_utf16(name_text).data());
-				task(g_context);
+				{
+					DETAIL_PROFILE_RENDER_JOB_SCOPE(owner_text, name_text);
+					task(g_context);
+				}
 				g_context.debug_end_event();
 
 				//	コマンドリスト生成
 				render_command_data command_data;
 				command_data.name = name_text;
+				command_data.owner_name = owner_text;
 				command_data.sort_order = sort_order;
 				deferred_context->FinishCommandList(false, command_data.command_list.GetAddressOf());
 				this->register_command(command_data);
@@ -136,6 +150,9 @@ void render_job_executor::begin()
 		}
 	}
 
+	//	常駐GPUスコープ計測フレーム開始
+	DETAIL_PROFILE_GPU_BEGIN_FRAME();
+
 	//	クリア
 	if (gpu_snap_shot)
 	{
@@ -151,6 +168,9 @@ void render_job_executor::end()
 	{
 		stationed_gpu_timer.end();
 	}
+
+	//	常駐GPUスコープ計測フレーム終了
+	DETAIL_PROFILE_GPU_END_FRAME();
 
 	gpu_snap_shot = false;
 #endif	//	defined(USE_IMGUI)
@@ -188,7 +208,7 @@ void render_job_executor::render()
 		{
 			command.task();
 		}
-		end_snap_shot(command.name);
+		end_snap_shot(command.name, command.owner_name);
 	}
 }
 
@@ -239,6 +259,9 @@ void render_job_executor::run(UINT context_index)
 
 void render_job_executor::begin_snap_shot()
 {
+	//	常駐GPUスコープ計測開始
+	DETAIL_PROFILE_GPU_SCOPE_BEGIN();
+
 #if defined(USE_IMGUI)
 	//	記録開始
 	if (gpu_snap_shot)
@@ -246,7 +269,7 @@ void render_job_executor::begin_snap_shot()
 #endif	//	defined(USE_IMGUI)
 }
 
-void render_job_executor::end_snap_shot(std::string_view command_name)
+void render_job_executor::end_snap_shot(std::string_view command_name, std::string_view owner_name)
 {
 #if defined(USE_IMGUI)
 	//	記録終了
@@ -257,6 +280,9 @@ void render_job_executor::end_snap_shot(std::string_view command_name)
 		snap_shot_time_stamps.emplace_back(std::string(command_name), result_time);
 	}
 #endif	//	defined(USE_IMGUI)
+
+	//	常駐GPUスコープ計測終了
+	DETAIL_PROFILE_GPU_SCOPE_END(owner_name, command_name);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -267,6 +293,6 @@ render_job_registrar::render_job_registrar(std::shared_ptr<render_job_executor> 
 
 void render_job_registrar::execute(std::function<render_job_function> task, std::string_view name, renderer_context& context, UINT sort_order, bool use_immediate_context)
 {
-	executor->execute(task, name, context, sort_order, use_immediate_context);
+	executor->execute(task, name, context, sort_order, use_immediate_context, owner_name);
 }
 

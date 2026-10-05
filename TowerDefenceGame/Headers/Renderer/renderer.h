@@ -21,6 +21,10 @@ public:
 	virtual void render(renderer_context& context) = 0;
 	virtual void resize_buffer(int width, int height) = 0;
 
+	//	プロファイラー表示用の名前
+	std::string_view get_profile_name() const { return job_executor.get_owner_name(); }
+	void set_profile_name(std::string_view name) { job_executor.set_owner_name(name); }
+
 protected:
 	render_job_registrar job_executor;
 };

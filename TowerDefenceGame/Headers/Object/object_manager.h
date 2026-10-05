@@ -7,6 +7,7 @@
 #include "object/messenger.h"
 #include "Collision/collision_world.h"
 #include "system/parallel_for_executor.h"
+#include "Editor/detail_profiler.h"
 
 using game_object_ptr = std::shared_ptr<game_object>;
 
@@ -138,7 +139,7 @@ private:
 	void add_objects();
 	void remove_objects();
 
-	void for_each_parallel(const std::function<void(game_object*)>& body);
+	void for_each_parallel(const std::function<void(game_object*)>& body, object_profile_function function);
 
 private:
 	std::mutex mutex;
