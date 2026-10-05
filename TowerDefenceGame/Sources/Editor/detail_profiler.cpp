@@ -98,6 +98,16 @@ detail_profiler::~detail_profiler()
 void detail_profiler::begin_frame()
 {
 	std::lock_guard<std::mutex> lock(mutex);
+
+	if (frame_interval_started)
+	{
+		frame_interval_timer.end();
+		if (!paused)
+			frame_interval.push(frame_interval_timer.get_result());
+	}
+	frame_interval_timer.begin();
+	frame_interval_started = true;
+
 	for (auto& values : frame_values)
 		values.clear();
 	frame_submitted.fill(false);
@@ -417,6 +427,7 @@ void detail_profiler::imgui_render()
 
 	std::lock_guard<std::mutex> lock(mutex);
 
+
 	//	‘€ì
 	{
 		ImGui::Checkbox("enable", &enabled);
@@ -433,6 +444,12 @@ void detail_profiler::imgui_render()
 		ImGui::SameLine();
 		filter.Draw("filter", 200.0f);
 		ImGui::TextDisabled("average / peak : last %d frames (GPU : frames with results)", history_size);
+
+		//	ƒtƒŒ[ƒ€ŠÔŠu‚ÆFPS
+		const float interval = get_value(frame_interval);
+		ImGui::Text("frame : %.3f ms (%.1f fps)", interval, interval > 0.0f ? 1000.0f / interval : 0.0f);
+		if (ImGui::IsItemHovered())
+			imgui_render_history_tooltip("frame interval", frame_interval);
 	}
 
 	if (ImGui::BeginTabBar("detail_profiler_tabs"))

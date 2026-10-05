@@ -11,8 +11,6 @@ extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam
 extern ImWchar glyphRangesJapanese[];
 
 #include "imtimeline/ImTimeline.h"
-
-#include "System/cpu_timer.h"
 #endif
 
 #include "system/parallel_for_executor.h"
@@ -134,35 +132,12 @@ private:	//	その他
 	UINT display_log_flags = (1 << static_cast<UINT>(logger::levels::error)) | (1 << static_cast<UINT>(logger::levels::warning));
 	bool is_log_descending_order = false;
 
-	//	常駐タイマー
-	enum class timer
-	{
-		update,
-		render,
-		max,
-	};
-	struct stamp_data
-	{
-		bool flag = true;
-		std::vector<float> datas;
-	};
-	cpu_timer stationed_cpu_timer;
-	bool display_cpu_flags[static_cast<UINT>(timer::max)];
-	stamp_data stationed_cpu_stamp_datas[static_cast<UINT>(timer::max)];
-	stamp_data stationed_gpu_stamp_datas;
-
-	//	GPUのスナップショット処理用
-	bool is_gpu_snap_shot = false;
-	bool is_gpu_snap_shot_inner = false;
-	bool show_gpu_profiler = false;
-	std::vector<gpu_time_stamp_data> gpu_time_stamp_datas;
-
 	void imgui_initialize();
 	void imgui_terminate();
 	void imgui_main_window();
 	void imgui_engine_config_window();
 	void imgui_log_window();
-	void imgui_profiler_window(float elapsed_time);
+	void imgui_profiler_window();
 	void imgui_render_infos_window();
 	void imgui_model_buffer_pool_window();
 	void imgui_memory_allocator_window();
@@ -170,8 +145,6 @@ private:	//	その他
 	void imgui_scene_change();
 
 	void build_debug_primitives(const render_data_context& render_data);
-	void gpu_snap_shot_begin();
-	void gpu_snap_shot_end();
 #endif // defined(USE_IMGUI)
 };
 

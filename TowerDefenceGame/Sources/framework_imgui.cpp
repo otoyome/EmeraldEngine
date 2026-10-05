@@ -32,9 +32,6 @@ extern ImWchar glyphRangesJapanese[];
 
 namespace
 {
-	//	常駐タイマーの記録サイズ
-	int stationed_stamp_size = 512;
-
 	template<typename Type>
 	void change_scene()
 	{
@@ -63,12 +60,6 @@ void framework::imgui_initialize()
 		style.WindowRounding = 0.0f;
 		style.Colors[ImGuiCol_WindowBg].w = 1.0f;
 	}
-
-	for (auto& time_stamp_data : stationed_cpu_stamp_datas)
-	{
-		time_stamp_data.datas.resize(stationed_stamp_size);
-	}
-	stationed_gpu_stamp_datas.datas.resize(stationed_stamp_size);
 }
 
 void framework::imgui_terminate()
@@ -387,138 +378,9 @@ void framework::imgui_scene_change()
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////
-namespace
+void framework::imgui_profiler_window()
 {
-	constexpr int timeline_section_data = 100;
-}
-
-void framework::imgui_profiler_window(float elapsed_time)
-{
-	//	常駐タイマー
-	if (ImGui::Begin("stationed_profiler"))
-	{
-		//	表示フラグ
-		{
-			ImGui::PushID(0xF1274094);
-			for (UINT index = 0; index < static_cast<UINT>(timer::max); ++index)
-			{
-				auto kind = static_cast<timer>(index);
-				auto& stamp_data = stationed_cpu_stamp_datas[index];
-				ImGui::Checkbox(magic_enum::enum_name(kind).data(), &stamp_data.flag);
-				ImGui::SameLine();
-			}
-			{
-				auto& stamp_data = stationed_gpu_stamp_datas;
-				ImGui::Checkbox("gpu", &stamp_data.flag);
-			}
-			ImGui::PopID();
-		}
-#if defined(_DEBUG) || defined(USE_IMGUI)
-		//	FPS表示
-		{
-			ImGui::SameLine();
-			ImGui::Text("FPS : %d ", static_cast<int>(display_frame));
-		}
-#endif	//	defined(_DEBUG) || defined(USE_IMGUI)
-
-		//	スタンプ表示
-		ImPlot::SetNextAxisLimits(ImAxis_X1, 0.0f, stationed_stamp_size * 0.01f, ImGuiCond_Always);
-		ImPlot::SetNextAxisLimits(ImAxis_Y1, 0.0f, 16.666f, ImGuiCond_Always);
-		if (ImPlot::BeginPlot("profiller", ImVec2(-1, -1)))
-		{
-			ImPlot::SetupAxis(ImAxis_X1, "frame", ImPlotAxisFlags_NoTickLabels);
-			ImPlot::SetupAxis(ImAxis_Y1, "millisecond");
-			//	CPU
-			for (UINT index = 0; index < static_cast<UINT>(timer::max); ++index)
-			{
-				auto& stamp_data = stationed_cpu_stamp_datas[index];
-				if (!stamp_data.flag)
-					continue;
-
-				auto& timer_data = stamp_data.datas;
-				float min = FLT_MAX, max = -FLT_MAX;
-				for (auto& data : timer_data)
-				{
-					min = std::min(min, data);
-					max = std::max(max, data);
-				}
-				auto kind = static_cast<timer>(index);
-				std::string text = std::string(magic_enum::enum_name(kind));
-				text += " : " + std::to_string(min) + ", " + std::to_string(max);
-
-				ImPlot::PlotLine(text.data(),
-					timer_data.data(),
-					static_cast<int>(timer_data.size()),
-					0.01f);
-			}
-			//	GPU
-			if (stationed_gpu_stamp_datas.flag)
-			{
-				auto& timer_data = stationed_gpu_stamp_datas.datas;
-				for (size_t index = 0; index < timer_data.size() - 1; ++index)
-				{
-					timer_data[index] = timer_data[index + 1];
-				}
-				timer_data.back() = render_executor->get_stationed_time_stamp();
-
-				float min = FLT_MAX, max = -FLT_MAX;
-				for (auto& data : timer_data)
-				{
-					min = std::min(min, data);
-					max = std::max(max, data);
-				}
-
-				std::string text;
-				text = "gpu : " + std::to_string(min) + ", " + std::to_string(max);
-
-				ImPlot::PlotLine(text.data(),
-					timer_data.data(),
-					static_cast<int>(timer_data.size()),
-					0.01f);
-			}
-			ImPlot::EndPlot();
-		}
-	}
-	ImGui::End();
-
-	//	GPUタイムスタンプ表示
-	if (show_gpu_profiler)
-	{
-		if (ImGui::Begin("gpu_time_stamp_datas", &show_gpu_profiler))
-		{
-			float total_time = 0;
-			for (auto& time_stamp : gpu_time_stamp_datas)
-			{
-				total_time += time_stamp.elapsed_time;
-			}
-			if (ImGui::ImTimeline::BeginTimeline("GPU", 0, total_time, 1))
-			{
-				total_time = 0;
-				for (auto& time_stamp : gpu_time_stamp_datas)
-				{
-					double s = total_time;
-					double e = total_time + time_stamp.elapsed_time;
-					ImGui::PushID(static_cast<int>(total_time * 1000.0f));
-					ImGui::ImTimeline::TimelineEvent(time_stamp.name.data(), s, e, 0);
-					total_time += time_stamp.elapsed_time;
-					if (ImGui::IsItemHovered())
-					{
-						ImGui::BeginTooltip();
-						ImGui::Text("%s\n%f", time_stamp.name.data(), time_stamp.elapsed_time);
-						ImGui::EndTooltip();
-					}
-					ImGui::Separator();
-					ImGui::PopID();
-				}
-				static double dummy1 = 0;
-				static double dummy2 = 1;
-				ImGui::ImTimeline::EndTimeline(10, dummy1, dummy2, 1.0f);
-			}
-		}
-		ImGui::End();
-	}
-
-	//	@tool 詳細プロファイラー(オブジェクト関数/シーンレンダラー/GPUスコープ単位)
+	//	詳細プロファイラー(オブジェクト関数/シーンレンダラー/GPUスコープ単位)
 	if (detail_profiler::is_valid())
 	{
 		detail_profiler::instance()->imgui_render();
@@ -572,29 +434,6 @@ void framework::build_debug_primitives(const render_data_context& render_data)
 			QUEUE_DEBUG_PRIMITIVE_LINE(math::float3(0.0f, -grid_length, len), math::float3(0.0f, +grid_length, len), line_color, true);
 		}
 	}
-}
-
-void framework::gpu_snap_shot_begin()
-{
-	if (!is_gpu_snap_shot)
-		return;
-
-	//	GPUのスナップショット処理
-	is_gpu_snap_shot_inner = is_gpu_snap_shot;
-	is_gpu_snap_shot = false;
-	render_executor->begin_gpu_snap_shot();
-}
-
-void framework::gpu_snap_shot_end()
-{
-	if (!is_gpu_snap_shot_inner)
-		return;
-
-	Sleep(1000);
-	//	スナップショット終了処理
-	is_gpu_snap_shot_inner = false;
-	show_gpu_profiler = true;
-	render_executor->end_gpu_snap_shot(gpu_time_stamp_datas);
 }
 
 #endif // defined(USE_IMGUI)

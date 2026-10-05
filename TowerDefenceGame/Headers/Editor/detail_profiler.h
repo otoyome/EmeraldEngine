@@ -177,6 +177,10 @@ private:
 	display_value value_mode = display_value::average;
 	ImGuiTextFilter filter;
 
+	cpu_timer frame_interval_timer;
+	bool frame_interval_started = false;
+	history frame_interval;
+
 	std::mutex mutex;
 	std::array<std::unordered_map<std::string, frame_value>, static_cast<size_t>(category::max)> frame_values;
 	std::array<bool, static_cast<size_t>(category::max)> frame_submitted{};

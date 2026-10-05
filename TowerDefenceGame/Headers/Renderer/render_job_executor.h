@@ -5,18 +5,6 @@
 #include "renderer_domain.h"
 #include "renderer_context.h"
 
-#if defined(USE_IMGUI)
-#include "Graphics/gpu_timer.h"
-
-//	GPUタイムスタンプ情報
-struct gpu_time_stamp_data
-{
-	std::string name;
-	float elapsed_time;
-	gpu_time_stamp_data(std::string name, float elapsed_time) : name(name), elapsed_time(elapsed_time) {}
-};
-#endif	//	defined(USE_IMGUI)
-
 using render_job_function = void(graphics_context&);
 
 //	描画用ジョブ実行者
@@ -51,26 +39,9 @@ public:
 		post_render_function = function;
 	}
 
-#if defined(USE_IMGUI)
-	//	スナップショット撮影
-	void begin_gpu_snap_shot() {gpu_snap_shot = true;}
-
-	//	スナップショット:タイムスタンプリスト取得
-	void end_gpu_snap_shot(std::vector<gpu_time_stamp_data>& time_stamp_data)
-	{
-		time_stamp_data = snap_shot_time_stamps;
-	}
-
-	//	常駐でのGPU使用状況を取得
-	inline float get_stationed_time_stamp() const { return stationed_time_stamp; }
-#endif	//	defined(USE_IMGUI)
-
 private:
 	void run(UINT context_index);
 	void register_command(render_command_data& command_data);
-
-	void begin_snap_shot();
-	void end_snap_shot(std::string_view command_name, std::string_view owner_name);
 
 private:
 	std::mutex mutex;
@@ -86,15 +57,6 @@ private:
 	std::function<void()> post_render_function;
 
 	std::vector<render_command_data> render_command_list;
-
-#if defined(USE_IMGUI)
-	bool gpu_snap_shot = false;
-	gpu_timer stationed_gpu_timer;
-	float stationed_time_stamp;
-
-	gpu_timer snap_shot_gpu_timer;
-	std::vector<gpu_time_stamp_data> snap_shot_time_stamps;
-#endif	//	defined(USE_IMGUI)
 };
 
 class render_job_registrar

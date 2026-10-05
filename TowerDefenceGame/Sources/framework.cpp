@@ -75,8 +75,15 @@ int framework::run()
 		{
 			tictoc.tick();
 			calculate_frame_stats();
+
+			//	詳細プロファイラーのフレーム開始
+			DETAIL_PROFILE_BEGIN_FRAME();
+
 			update(tictoc.time_interval());
 			render(tictoc.time_interval());
+
+			//	詳細プロファイラーのフレーム終了
+			DETAIL_PROFILE_END_FRAME();
 		}
 	}
 
@@ -306,13 +313,10 @@ bool framework::initialize()
 
 void framework::update(float elapsed_time/*Elapsed seconds from last frame*/)
 {
+	//	更新処理全体の計測
+	DETAIL_PROFILE_CPU_SCOPE("update");
+
 #if defined(USE_IMGUI)
-	//	詳細プロファイラーのフレーム開始
-	DETAIL_PROFILE_BEGIN_FRAME();
-
-	//	CPU側の更新時間計測開始
-	stationed_cpu_timer.begin();
-
 	//	各種データの更新チェック
 	{
 		DETAIL_PROFILE_CPU_SCOPE("update.asset_hot_reload");
@@ -360,27 +364,9 @@ void framework::update(float elapsed_time/*Elapsed seconds from last frame*/)
 	}
 
 #if defined(USE_IMGUI)
-	//	CPU側の更新時間計測終了
-	{
-		stationed_cpu_timer.end();
-
-		auto& timer_data = stationed_cpu_stamp_datas[static_cast<UINT>(timer::update)].datas;
-		for (size_t index = 0; index < timer_data.size() - 1; ++index)
-		{
-			timer_data[index] = timer_data[index + 1];
-		}
-		timer_data.back() = stationed_cpu_timer.get_result();
-		DETAIL_PROFILE_ADD_TIME("update", stationed_cpu_timer.get_result());
-	}
-
 	//	ImGuiウィンドウ構築の計測
 	DETAIL_PROFILE_CPU_SCOPE("update.imgui");
 
-	//	GPUスナップショット
-	if ((::GetAsyncKeyState(VK_SHIFT) & 0x8000) && (::GetAsyncKeyState(VK_F5) & 0x8000))
-	{
-		is_gpu_snap_shot = true;
-	}
 	ImGui_ImplDX11_NewFrame();
 	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();
@@ -405,7 +391,7 @@ void framework::update(float elapsed_time/*Elapsed seconds from last frame*/)
 	imgui_engine_config_window();
 
 	//	GPU計測時間表示
-	imgui_profiler_window(elapsed_time);
+	imgui_profiler_window();
 
 	//	描画系情報
 	imgui_render_infos_window();
@@ -458,10 +444,8 @@ void framework::build_particle_render_lists(const render_data_context& render_da
 
 void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 {
-#if defined(USE_IMGUI)
-	//	CPU側の描画時間計測開始
-	stationed_cpu_timer.begin();
-#endif //	defined(USE_IMGUI)
+	//	描画処理全体の計測
+	DETAIL_PROFILE_CPU_SCOPE("render");
 
 	//	描画前処理
 	if (object_manager::is_valid())
@@ -548,11 +532,6 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 
 	//	バッファ描画
 	{
-#if defined(USE_IMGUI)
-		//	GPUのスナップショット
-		gpu_snap_shot_begin();
-#endif	//	defined(USE_IMGUI)
-
 		//	レンダラー開始処理
 		render_executor->begin();
 
@@ -651,11 +630,6 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 			DETAIL_PROFILE_CPU_SCOPE("render.imgui_and_present");
 			render_executor->end();
 		}
-
-#if defined(USE_IMGUI)
-		//	スナップショットの情報を取得
-		gpu_snap_shot_end();
-#endif //	defined(USE_IMGUI)
 	}
 
 	//	描画後処理
@@ -663,24 +637,6 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 	{
 		object_manager::instance()->post_render();
 	}
-
-#if defined(USE_IMGUI)
-	//	CPU側の描画時間計測終了
-	{
-		stationed_cpu_timer.end();
-
-		auto& timer_data = stationed_cpu_stamp_datas[static_cast<UINT>(timer::render)].datas;
-		for (size_t index = 0; index < timer_data.size() - 1; ++index)
-		{
-			timer_data[index] = timer_data[index + 1];
-		}
-		timer_data.back() = stationed_cpu_timer.get_result();
-		DETAIL_PROFILE_ADD_TIME("render", stationed_cpu_timer.get_result());
-	}
-
-	//	詳細プロファイラーのフレーム終了
-	DETAIL_PROFILE_END_FRAME();
-#endif //	defined(USE_IMGUI)
 }
 
 void framework::prepare_renderer_context(

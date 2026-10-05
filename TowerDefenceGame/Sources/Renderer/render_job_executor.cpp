@@ -12,11 +12,6 @@
 render_job_executor::render_job_executor(UINT num_threads)
 : running(true)
 , single_thread_mode(false)
-#if defined(USE_IMGUI)
-, stationed_gpu_timer(render_data::instance()->get_immediate_context())
-, snap_shot_gpu_timer(render_data::instance()->get_immediate_context())
-, stationed_time_stamp(0)
-#endif	//	defined(USE_IMGUI)
 {
 	HRESULT hr;
 	assert(num_threads != -1);
@@ -62,12 +57,12 @@ void render_job_executor::execute(std::function<render_job_function> task, std::
 		g_context.scene_constant = context.scene_constant;
 		g_context.scene_constant_buffer = context.scene_constant_buffer;
 
-		begin_snap_shot();
+		DETAIL_PROFILE_GPU_SCOPE_BEGIN();
 		{
 			DETAIL_PROFILE_RENDER_JOB_SCOPE(owner_name, name);
 			task(g_context);
 		}
-		end_snap_shot(name, owner_name);
+		DETAIL_PROFILE_GPU_SCOPE_END(owner_name, name);
 		return;
 	}
 
@@ -139,41 +134,14 @@ void render_job_executor::execute(std::function<render_job_function> task, std::
 
 void render_job_executor::begin()
 {
-#if defined(USE_IMGUI)
-	//	常駐タイマー開始
-	{
-		float time = stationed_gpu_timer.get_result(true);
-		if (stationed_gpu_timer.is_finalized())
-		{
-			stationed_time_stamp = time;
-			stationed_gpu_timer.begin();
-		}
-	}
-
 	//	常駐GPUスコープ計測フレーム開始
 	DETAIL_PROFILE_GPU_BEGIN_FRAME();
-
-	//	クリア
-	if (gpu_snap_shot)
-	{
-		snap_shot_time_stamps.clear();
-	}
-#endif	//	defined(USE_IMGUI)
 }
 
 void render_job_executor::end()
 {
-#if defined(USE_IMGUI)
-	//	常駐タイマー終了
-	{
-		stationed_gpu_timer.end();
-	}
-
 	//	常駐GPUスコープ計測フレーム終了
 	DETAIL_PROFILE_GPU_END_FRAME();
-
-	gpu_snap_shot = false;
-#endif	//	defined(USE_IMGUI)
 
 	render_command_list.clear();
 	post_render_function();
@@ -199,7 +167,7 @@ void render_job_executor::render()
 	ID3D11DeviceContext* immediate_context = render_data::instance()->get_immediate_context().Get();
 	for (auto& command : local_command_list)
 	{
-		begin_snap_shot();
+		DETAIL_PROFILE_GPU_SCOPE_BEGIN();
 		if (command.command_list)
 		{
 			immediate_context->ExecuteCommandList(command.command_list.Get(), false);
@@ -208,7 +176,7 @@ void render_job_executor::render()
 		{
 			command.task();
 		}
-		end_snap_shot(command.name, command.owner_name);
+		DETAIL_PROFILE_GPU_SCOPE_END(command.owner_name, command.name);
 	}
 }
 
@@ -255,34 +223,6 @@ void render_job_executor::run(UINT context_index)
 			completion_condition.notify_all(); 
 		}
 	}
-}
-
-void render_job_executor::begin_snap_shot()
-{
-	//	常駐GPUスコープ計測開始
-	DETAIL_PROFILE_GPU_SCOPE_BEGIN();
-
-#if defined(USE_IMGUI)
-	//	記録開始
-	if (gpu_snap_shot)
-		snap_shot_gpu_timer.begin();
-#endif	//	defined(USE_IMGUI)
-}
-
-void render_job_executor::end_snap_shot(std::string_view command_name, std::string_view owner_name)
-{
-#if defined(USE_IMGUI)
-	//	記録終了
-	if (gpu_snap_shot)
-	{
-		snap_shot_gpu_timer.end();
-		float result_time = snap_shot_gpu_timer.get_result();
-		snap_shot_time_stamps.emplace_back(std::string(command_name), result_time);
-	}
-#endif	//	defined(USE_IMGUI)
-
-	//	常駐GPUスコープ計測終了
-	DETAIL_PROFILE_GPU_SCOPE_END(owner_name, command_name);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
