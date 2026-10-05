@@ -273,6 +273,9 @@
     <ClInclude Include="Headers\CoordinateSystem\hierarchy.h">
       <Filter>Headers\CoordinateSystem</Filter>
     </ClInclude>
+    <ClInclude Include="Headers\CoordinateSystem\spatial.h">
+      <Filter>Headers\CoordinateSystem</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Sources\geometric_primitive.cpp">
@@ -459,6 +462,9 @@
       <Filter>Sources\CoordinateSystem</Filter>
     </ClCompile>
     <ClCompile Include="Sources\CoordinateSystem\hierarchy.cpp">
+      <Filter>Sources\CoordinateSystem</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\CoordinateSystem\spatial.cpp">
       <Filter>Sources\CoordinateSystem</Filter>
     </ClCompile>
   </ItemGroup>

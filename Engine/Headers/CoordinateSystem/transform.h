@@ -71,9 +71,8 @@ public:
 	//	origin ‚ğŒ´“_‚Æ‚µ‚½ float ‚Ìp¨s—ñ‚ğæ“¾
 	math::matrixf to_relative_matrix(const vector3& origin) const;
 
-	bool nearly_equal(const transform& v, T tolerance = math::constants<T>::epsilon * static_cast<T>(10)) const;
-
-	bool is_valid() const;
+	//	”äŠr
+	bool equal(const transform& v, T tolerance = math::constants<T>::epsilon * static_cast<T>(10)) const;
 
 	transform operator*(const transform& parent) const;
 	transform& operator*=(const transform& parent);

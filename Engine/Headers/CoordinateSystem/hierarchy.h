@@ -1,21 +1,46 @@
 #pragma once
 
-#include "Math/math_all.h"
+#include <memory>
+#include <vector>
 
-class hierarchy
+//	親子関係
+class hierarchy : public std::enable_shared_from_this<hierarchy>
 {
-	enum class flags
-	{
-		dirty,	//	再計算フラグ
-	};
+public:
+	using children_type = std::vector<std::shared_ptr<hierarchy>>;
 
 public:
-	bool is_flag(flags flag) const;
-	void set_flag(flags flag, bool value);
+	std::shared_ptr<hierarchy> get_parent() const;
 
-public:
+	const children_type& get_children() const;
+	std::size_t get_child_count() const;
+
+	//	ルートからの深さ
+	std::size_t get_depth() const;
+
+	//	子孫判定
+	bool is_descendant_of(const hierarchy* ancestor) const;
+
+protected:
+	//	アタッチできるか判定
+	static bool can_attach(const hierarchy* self, const hierarchy* parent);
+
+	//	自身を指定の子として登録する
+	void link(const std::shared_ptr<hierarchy>& parent);
+
+	//	自身を親から外す
+	void unlink();
+
+	//	すべての子の親を解除し、子の一覧を返す
+	children_type release_children();
+
+protected:
 	hierarchy();
+	virtual ~hierarchy();
+	hierarchy(const hierarchy&) = delete;
+	hierarchy& operator=(const hierarchy&) = delete;
 
 private:
-	UINT system_flags;		//	フラグ類
+	std::weak_ptr<hierarchy> parent;	//	親
+	children_type children;				//	子供達
 };

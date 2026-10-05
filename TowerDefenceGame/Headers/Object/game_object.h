@@ -2,6 +2,8 @@
 
 #include <mutex>
 
+#include "CoordinateSystem/spatial.h"
+
 //	ゲーム用オブジェクト
 class game_object : public std::enable_shared_from_this<game_object>
 {
@@ -15,10 +17,15 @@ public:
 
 public:
 	size_t get_id() const;
+
 	std::string_view get_name() const;
 	void set_name(std::string_view name);
+
 	bool is_active() const;
 	void set_active(bool active);
+
+	const std::shared_ptr<::spatial>& get_spatial() const;
+	void set_spatial(const std::shared_ptr<::spatial>& spatial);
 
 public:
 	game_object(std::string_view name);
@@ -52,11 +59,12 @@ protected:
 
 private:
 	size_t id;
-	cache_string name;
 	bool active;
 #if defined(USE_IMGUI)
 	bool display_inspector = true;
 #endif	//	defined(USE_IMGUI)
+	cache_string name;
+	std::shared_ptr<spatial> spatial;
 
 	inline static std::atomic<size_t> id_counter;
 };

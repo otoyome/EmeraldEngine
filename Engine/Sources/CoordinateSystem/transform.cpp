@@ -232,32 +232,12 @@ math::matrixf transform<T>::to_relative_matrix(const vector3& origin) const
 }
 
 template<typename T>
-bool transform<T>::nearly_equal(const transform& v, T tolerance) const
+bool transform<T>::equal(const transform& v, T tolerance) const
 {
 	//	q ‚Æ -q ‚Í“¯‚¶‰ñ“]‚ð•\‚·‚½‚ßA‰ñ“]‚Í“àÏ‚Ìâ‘Î’l‚Å”äŠr‚·‚é
 	return math::nearly_equal(scale, v.scale, tolerance)
 		&& math::nearly_equal(translation, v.translation, tolerance)
 		&& std::abs(rotation.normalized().dot(v.rotation.normalized())) >= static_cast<T>(1) - tolerance;
-}
-
-template<typename T>
-bool transform<T>::is_valid() const
-{
-	for (std::int32_t i = 0; i < 3; ++i)
-	{
-		if (!std::isfinite(scale[i]) || !std::isfinite(translation[i]) || scale[i] == static_cast<T>(0))
-		{
-			return false;
-		}
-	}
-	for (std::size_t i = 0; i < 4; ++i)
-	{
-		if (!std::isfinite(rotation[i]))
-		{
-			return false;
-		}
-	}
-	return rotation.square_length() > static_cast<T>(0);
 }
 
 template<typename T>
