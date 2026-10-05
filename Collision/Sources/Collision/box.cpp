@@ -393,8 +393,8 @@ bool inner::axis_aligned_bounding_box::intersect_capsule(const bounding_capsule&
 			math::double3 s1, s2;
 			s1 = S1.to_double3();
 			s2 = S2.to_double3();
-			line line1(line::types::segment, s1, s2);
-			line line2(line::types::segment, p1, q1);
+			lined line1(lined::types::segment, s1, s2);
+			lined line2(lined::types::segment, p1, q1);
 
 			math::double3 cp_aabb, cp_cap;
 			double length_aabb, length_cap;
@@ -1367,8 +1367,8 @@ bool bounding_box::intersect_box(const bounding_box& box, intersect_data* inters
 			qA = QA.to_double3();
 			qB = QB.to_double3();
 
-			line line1(line::types::segment, pA, qA);
-			line line2(line::types::segment, pB, qB);
+			lined line1(lined::types::segment, pA, qA);
+			lined line2(lined::types::segment, pB, qB);
 
 			math::double3 cpA, cpB;
 			double deltaA, deltaB;

@@ -7,7 +7,7 @@
 namespace math
 {
 	template<class Archive, typename T>
-	void serialize(Archive& archive, basic_element2<T>& v)
+	void serialize(Archive& archive, element2<T>& v)
 	{
 		archive(
 			cereal::make_nvp("x", v.x),
@@ -16,7 +16,7 @@ namespace math
 	}
 
 	template<class Archive, typename T>
-	void serialize(Archive& archive, basic_element3<T>& v)
+	void serialize(Archive& archive, element3<T>& v)
 	{
 		archive(
 			cereal::make_nvp("x", v.x),
@@ -26,7 +26,7 @@ namespace math
 	}
 
 	template<class Archive, typename T>
-	void serialize(Archive& archive, basic_element4<T>& v)
+	void serialize(Archive& archive, element4<T>& v)
 	{
 		archive(
 			cereal::make_nvp("x", v.x),
@@ -37,7 +37,7 @@ namespace math
 	}
 
 	template<class Archive, typename T>
-	void serialize(Archive& archive, basic_element_matrix<T, 4, 4>& m)
+	void serialize(Archive& archive, element_matrix<T, 4, 4>& m)
 	{
 		auto& e = m.elements;
 		archive(

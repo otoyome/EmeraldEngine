@@ -59,7 +59,7 @@ namespace math
 	}
 
 	template<typename T>
-	matrix<T>::matrix(const basic_element_matrix<T, 4, 4>& source)
+	matrix<T>::matrix(const element_matrix<T, 4, 4>& source)
 	{
 		const auto& s = source.m;
 		set_storage(s[0][0], s[0][1], s[0][2], s[0][3],

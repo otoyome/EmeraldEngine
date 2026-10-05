@@ -31,9 +31,9 @@ namespace math
 				m41, m42, m43, m44);
 		}
 		matrix(const vector4<T>& axis_x, const vector4<T>& axis_y, const vector4<T>& axis_z, const vector4<T>& axis_w);
-		matrix(const basic_element_matrix<T, 4, 4>& source);
+		matrix(const element_matrix<T, 4, 4>& source);
 		template<typename U, std::enable_if_t<!std::is_same_v<T, U>, int> = 0>
-		explicit matrix(const basic_element_matrix<U, 4, 4>& source)
+		explicit matrix(const element_matrix<U, 4, 4>& source)
 		{
 			for (std::uint32_t i = 0; i < element_count; ++i)
 			{

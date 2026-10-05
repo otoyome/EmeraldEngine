@@ -40,9 +40,9 @@ namespace math
 				set(v.x, v.y);
 			}
 		}
-		vector2(const basic_element2<T>& v) { set(v.x, v.y); }
+		vector2(const element2<T>& v) { set(v.x, v.y); }
 		template<typename U, std::enable_if_t<!std::is_same_v<T, U>, int> = 0>
-		explicit vector2(const basic_element2<U>& v) { set(static_cast<T>(v.x), static_cast<T>(v.y)); }
+		explicit vector2(const element2<U>& v) { set(static_cast<T>(v.x), static_cast<T>(v.y)); }
 		template<typename U, std::enable_if_t<!std::is_same_v<T, U>, int> = 0>
 		explicit vector2(const vector2<U>& v) { set(static_cast<T>(v.x), static_cast<T>(v.y)); }
 		explicit vector2(const register_type& v) { set(v); }

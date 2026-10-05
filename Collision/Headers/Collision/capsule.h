@@ -10,7 +10,7 @@ namespace collision
 	public:
 		types get_type() const override {return types::capsule;}
 
-		const line& get_line() const {return line;}
+		const lined& get_line() const {return line;}
 
 		double get_radius() const;
 		void set_radius(double radius);
@@ -43,6 +43,6 @@ namespace collision
 		void on_change_parameter() override;
 
 	private:
-		line line;
+		lined line;
 	};
 }	//	namespace collision

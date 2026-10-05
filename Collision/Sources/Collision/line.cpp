@@ -3,18 +3,18 @@
 using namespace collision;
 
 template<typename T>
-basic_line<T>::basic_line()
+line<T>::line()
 {
 }
 
 template<typename T>
-basic_line<T>::basic_line(types type, const element_type& start, const element_type& vector)
+line<T>::line(types type, const element_type& start, const element_type& vector)
 {
 	initialize( type, start, vector );
 }
 
 template<typename T>
-void basic_line<T>::initialize(types type, const element_type& start, const element_type& vector)
+void line<T>::initialize(types type, const element_type& start, const element_type& vector)
 {
 	this->type = type;
 	point[0] = start;
@@ -29,21 +29,21 @@ void basic_line<T>::initialize(types type, const element_type& start, const elem
 }
 
 template<typename T>
-T basic_line<T>::calculate_distance(element_type& horizon, T& delta, const element_type& point) const
+T line<T>::calculate_distance(element_type& horizon, T& delta, const element_type& point) const
 {
 	return (type == types::line) ? calculate_line_distance(horizon, delta, point)
 								 : calculate_segment_distance(horizon, delta, point);
 }
 
 template<typename T>
-T basic_line<T>::calculate_distance(element_type& horizon1, T& delta1, element_type& horizon2, T& delta2, const basic_line& line) const
+T line<T>::calculate_distance(element_type& horizon1, T& delta1, element_type& horizon2, T& delta2, const line& line) const
 {
 	return (type == types::line) ? calculate_line_distance(horizon1, delta1, horizon2, delta2, line)
 								 : calculate_segment_distance(horizon1, delta1, horizon2, delta2, line);
 }
 
 template<typename T>
-bool basic_line<T>::is_parallel(const basic_line& line) const
+bool line<T>::is_parallel(const line& line) const
 {
 	vector_type PointA[2] = {vector_type(point[0]), vector_type(point[1])};
 	vector_type PointB[2] = {vector_type(line.point[0]), vector_type(line.point[1])};
@@ -57,7 +57,7 @@ bool basic_line<T>::is_parallel(const basic_line& line) const
 }
 
 template<typename T>
-T basic_line<T>::get_length() const
+T line<T>::get_length() const
 {
 	vector_type PointA[2] = {vector_type(point[0]), vector_type(point[1])};
 	vector_type LineA = PointA[1] - PointA[0];
@@ -66,13 +66,13 @@ T basic_line<T>::get_length() const
 }
 
 template<typename T>
-typename basic_line<T>::types basic_line<T>::get_type() const
+typename line<T>::types line<T>::get_type() const
 {
 	return	type;
 }
 
 template<typename T>
-typename basic_line<T>::element_type basic_line<T>::get_point(T t) const
+typename line<T>::element_type line<T>::get_point(T t) const
 {
 	vector_type PointA[2] = {vector_type(point[0]), vector_type(point[1])};
 	vector_type LineA = PointA[1] - PointA[0];
@@ -92,7 +92,7 @@ typename basic_line<T>::element_type basic_line<T>::get_point(T t) const
 }
 
 template<typename T>
-T basic_line<T>::calculate_line_distance(element_type& horizon, T& delta, const element_type& point) const
+T line<T>::calculate_line_distance(element_type& horizon, T& delta, const element_type& point) const
 {
 	vector_type PointA[2] = {vector_type(this->point[0]), vector_type(this->point[1])};
 	vector_type PointB(point);
@@ -112,7 +112,7 @@ T basic_line<T>::calculate_line_distance(element_type& horizon, T& delta, const 
 }
 
 template<typename T>
-T basic_line<T>::calculate_segment_distance(element_type& horizon, T& delta, const element_type& point) const
+T line<T>::calculate_segment_distance(element_type& horizon, T& delta, const element_type& point) const
 {
 	vector_type PointA[2] = {vector_type(this->point[0]), vector_type(this->point[1])};
 	vector_type Point(point);
@@ -133,7 +133,7 @@ T basic_line<T>::calculate_segment_distance(element_type& horizon, T& delta, con
 }
 
 template<typename T>
-T basic_line<T>::calculate_line_distance(element_type& horizon1, T& delta1, element_type& horizon2, T& delta2, const basic_line& line) const
+T line<T>::calculate_line_distance(element_type& horizon1, T& delta1, element_type& horizon2, T& delta2, const line& line) const
 {
 	//	2íºê¸Ç™ïΩçsÅH
 	if (is_parallel(line))
@@ -167,7 +167,7 @@ T basic_line<T>::calculate_line_distance(element_type& horizon1, T& delta1, elem
 }
 
 template<typename T>
-T basic_line<T>::calculate_segment_distance(element_type& horizon1, T& delta1, element_type& horizon2, T& delta2, const basic_line& line) const
+T line<T>::calculate_segment_distance(element_type& horizon1, T& delta1, element_type& horizon2, T& delta2, const line& line) const
 {
 	vector_type PointA0(point[0]);
 	vector_type PointA1(point[1]);
@@ -250,5 +250,5 @@ T basic_line<T>::calculate_segment_distance(element_type& horizon1, T& delta1, e
 	return (Horizon2 - Horizon1).length();
 }
 
-template class collision::basic_line<float>;
-template class collision::basic_line<double>;
+template class collision::line<float>;
+template class collision::line<double>;

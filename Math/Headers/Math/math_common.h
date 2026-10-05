@@ -196,6 +196,6 @@ namespace math
 	template<typename T> class quaternion;
 	template<typename T> class matrix;
 	template<typename T> class exponential_quaternion;
-	template<typename T> class basic_rotator;
+	template<typename T> class rotator;
 
 }	//	namespace math

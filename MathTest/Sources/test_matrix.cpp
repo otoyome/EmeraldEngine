@@ -214,7 +214,7 @@ MATH_TEST_TYPED(matrix_conversion)
 	CHECK(d.m[1][1] == static_cast<double>(m.storage[1][1]));
 	const float4x3 c = m.to_float4x3();
 	CHECK(c.m[3][0] == 7.0f && c.m[3][2] == 9.0f && c.m[1][1] == static_cast<float>(m.storage[1][1]));
-	CHECK(matrix<T>(basic_element_matrix<T, 4, 4>(m.to_double4x4())) == m);
+	CHECK(matrix<T>(element_matrix<T, 4, 4>(m.to_double4x4())) == m);
 	CHECK(matrix<float>(matrix<double>::translation(1, 2, 3)) == matrix<float>::translation(1, 2, 3));
 	CHECK(float4x4().m[0][0] == 1 && float4x4().m[0][1] == 0);
 }

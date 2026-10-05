@@ -47,9 +47,9 @@ namespace math
 				set(v.x, v.y, v.z);
 			}
 		}
-		vector3(const basic_element3<T>& v) { set(v.x, v.y, v.z); }
+		vector3(const element3<T>& v) { set(v.x, v.y, v.z); }
 		template<typename U, std::enable_if_t<!std::is_same_v<T, U>, int> = 0>
-		explicit vector3(const basic_element3<U>& v) { set(static_cast<T>(v.x), static_cast<T>(v.y), static_cast<T>(v.z)); }
+		explicit vector3(const element3<U>& v) { set(static_cast<T>(v.x), static_cast<T>(v.y), static_cast<T>(v.z)); }
 		template<typename U, std::enable_if_t<!std::is_same_v<T, U>, int> = 0>
 		explicit vector3(const vector3<U>& v) { set(static_cast<T>(v.x), static_cast<T>(v.y), static_cast<T>(v.z)); }
 		explicit vector3(const register_type& v) { set(v); }

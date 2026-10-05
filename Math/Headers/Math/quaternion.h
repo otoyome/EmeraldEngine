@@ -25,9 +25,9 @@ namespace math
 		quaternion& operator=(const quaternion&) = default;
 		quaternion(T x, T y, T z, T w) { set(x, y, z, w); }
 		explicit quaternion(const T values[element_count]) { set(values[0], values[1], values[2], values[3]); }
-		quaternion(const basic_element4<T>& v) { set(v.x, v.y, v.z, v.w); }
+		quaternion(const element4<T>& v) { set(v.x, v.y, v.z, v.w); }
 		template<typename U, std::enable_if_t<!std::is_same_v<T, U>, int> = 0>
-		explicit quaternion(const basic_element4<U>& v) { set(static_cast<T>(v.x), static_cast<T>(v.y), static_cast<T>(v.z), static_cast<T>(v.w)); }
+		explicit quaternion(const element4<U>& v) { set(static_cast<T>(v.x), static_cast<T>(v.y), static_cast<T>(v.z), static_cast<T>(v.w)); }
 		explicit quaternion(const vector3<T>& euler, rotation_order order = default_rotation_order);
 		quaternion(const vector3<T>& axis, T angle);
 		quaternion(const vector3<T>& vector1, const vector3<T>& vector2);

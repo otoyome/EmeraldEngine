@@ -326,6 +326,6 @@ void bounding_capsule::on_change_parameter()
 	math::double3 start, end;
 	start = Start.to_double3();
 	end = End.to_double3();
-	line = decltype(line)(line::types::segment, start, end);
+	line = decltype(line)(lined::types::segment, start, end);
 
 }

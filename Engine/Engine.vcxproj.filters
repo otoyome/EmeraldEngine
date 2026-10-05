@@ -37,6 +37,12 @@
     <Filter Include="Headers\System\BehaviorTree">
       <UniqueIdentifier>{16213654-ea52-427f-b93d-0078ad90f3b5}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Headers\CoordinateSystem">
+      <UniqueIdentifier>{3a63e2af-2a83-416f-a65d-abf5babd5c51}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Sources\CoordinateSystem">
+      <UniqueIdentifier>{7a655dec-6419-4294-9d5d-b5f25c6b6a3c}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Headers\geometric_primitive.h">
@@ -261,6 +267,9 @@
     <ClInclude Include="Headers\Graphics\cubic_sdf_buffer_pool.h">
       <Filter>Headers\Graphics</Filter>
     </ClInclude>
+    <ClInclude Include="Headers\CoordinateSystem\transform.h">
+      <Filter>Headers\CoordinateSystem</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Sources\geometric_primitive.cpp">
@@ -442,6 +451,9 @@
     </ClCompile>
     <ClCompile Include="Sources\Graphics\cubic_sdf_buffer_pool.cpp">
       <Filter>Sources\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\CoordinateSystem\transform.cpp">
+      <Filter>Sources\CoordinateSystem</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
