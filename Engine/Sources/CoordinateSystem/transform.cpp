@@ -13,13 +13,13 @@ transform<T>::transform()
 template<typename T>
 bool transform<T>::is_flag(flags flag) const
 {
-	return system_utility::is_bitflag(1 << static_cast<int>(flag));
+	return system_utility::is_bitflag(system_flags, 1 << static_cast<int>(flag));
 }
 
 template<typename T>
 void transform<T>::set_flag(flags flag, bool value)
 {
-	system_utility::set_bitflag(1 << static_cast<int>(flag), value);
+	system_utility::set_bitflag(system_flags, 1 << static_cast<int>(flag), value);
 }
 
 template<typename T>

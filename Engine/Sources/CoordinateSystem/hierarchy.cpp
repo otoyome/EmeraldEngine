@@ -8,10 +8,10 @@ hierarchy::hierarchy()
 
 bool hierarchy::is_flag(flags flag) const
 {
-	return system_utility::is_bitflag(1 << static_cast<int>(flag));
+	return system_utility::is_bitflag(system_flags, 1 << static_cast<int>(flag));
 }
 
 void hierarchy::set_flag(flags flag, bool value)
 {
-	system_utility::set_bitflag(1 << static_cast<int>(flag), value);
+	system_utility::set_bitflag(system_flags, 1 << static_cast<int>(flag), value);
 }

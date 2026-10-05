@@ -17,12 +17,12 @@ public:
 	bool is_flag(flags flag) const;
 	void set_flag(flags flag, bool value);
 
-	const vector3& get_scale() const {return scale;}
-	void set_scale(vector3& scale) {this->scale = scale;}
-	const rotator& get_rotation() const {return rotation;}
-	void set_rotation(rotator& rotation) {this->rotation = rotation;}
-	const vector3& get_translation() const {return translation;}
-	void set_translation(vector3& translation) {this->translation = translation;}
+	const vector3& get_scale() const;
+	void set_scale(vector3& scale);
+	const rotator& get_rotation() const;
+	void set_rotation(rotator& rotation);
+	const vector3& get_translation() const;
+	void set_translation(vector3& translation);
 
 public:
 	transform();

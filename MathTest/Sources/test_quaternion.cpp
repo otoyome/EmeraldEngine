@@ -190,25 +190,25 @@ MATH_TEST_TYPED(quaternion_exponential_rotator)
 	CHECK_SAME_ROTATION((log_q * static_cast<T>(0.5)).to_quaternion(), quaternion<T>::rotation_axis(vector3<T>(1, 2, -2).normalized(), static_cast<T>(0.6)), tol);
 	CHECK(exponential_quaternion<T>(quaternion<T>()).to_quaternion() == quaternion<T>());
 
-	const rotator<T> rotator(static_cast<T>(0.3), static_cast<T>(-0.8), static_cast<T>(0.5));
-	CHECK_SAME_ROTATION(rotator.to_quaternion(), quaternion<T>(rotator.to_vector3()), tol);
-	CHECK_NEAR(rotator<T>(rotator.to_quaternion()).to_vector3(), rotator.to_vector3(), tol);
+	const rotator<T> rot(static_cast<T>(0.3), static_cast<T>(-0.8), static_cast<T>(0.5));
+	CHECK_SAME_ROTATION(rot.to_quaternion(), quaternion<T>(rot.to_vector3()), tol);
+	CHECK_NEAR(rotator<T>(rot.to_quaternion()).to_vector3(), rot.to_vector3(), tol);
 	//	@tool 四則演算は各軸の角度ごと
-	CHECK((rotator + rotator) == rotator<T>(static_cast<T>(0.6), static_cast<T>(-1.6), static_cast<T>(1.0)));
-	CHECK((rotator - rotator) == rotator<T>::zero());
-	CHECK((rotator * static_cast<T>(2)) == (static_cast<T>(2) * rotator));
-	CHECK_NEAR((rotator / static_cast<T>(2)).to_vector3(), rotator.to_vector3() * static_cast<T>(0.5), tol);
+	CHECK((rot + rot) == rotator<T>(static_cast<T>(0.6), static_cast<T>(-1.6), static_cast<T>(1.0)));
+	CHECK((rot - rot) == rotator<T>::zero());
+	CHECK((rot * static_cast<T>(2)) == (static_cast<T>(2) * rot));
+	CHECK_NEAR((rot / static_cast<T>(2)).to_vector3(), rot.to_vector3() * static_cast<T>(0.5), tol);
 	//	@tool ベクトルの回転・逆回転・逆 rotator
 	const vector3<T> v(1, -2, 3);
-	CHECK_NEAR(rotator.rotate(v), rotator.to_quaternion().rotate(v), tol);
-	CHECK_NEAR(rotator.unrotate(rotator.rotate(v)), v, tol);
-	CHECK_NEAR(rotator.inverse().rotate(rotator.rotate(v)), v, tol);
-	CHECK_NEAR(rotator.front(), rotator.to_quaternion().front(), tol);
+	CHECK_NEAR(rot.rotate(v), rot.to_quaternion().rotate(v), tol);
+	CHECK_NEAR(rot.unrotate(rot.rotate(v)), v, tol);
+	CHECK_NEAR(rot.inverse().rotate(rot.rotate(v)), v, tol);
+	CHECK_NEAR(rot.front(), rot.to_quaternion().front(), tol);
 	//	@tool 回転順を指定した変換
 	for (rotation_order order : { rotation_order::xyz, rotation_order::zxy, rotation_order::yxz })
 	{
-		CHECK_SAME_ROTATION(rotator.to_quaternion(order), quaternion<T>(rotator.to_vector3(), order), tol);
-		CHECK(rotator<T>(rotator.to_quaternion(order), order).nearly_equal(rotator, static_cast<T>(tol)));
+		CHECK_SAME_ROTATION(rot.to_quaternion(order), quaternion<T>(rot.to_vector3(), order), tol);
+		CHECK(rotator<T>(rot.to_quaternion(order), order).nearly_equal(rot, static_cast<T>(tol)));
 	}
 	//	@tool 正規化は -π～π に折り返す
 	const T pi = constants<T>::pi;
@@ -216,18 +216,18 @@ MATH_TEST_TYPED(quaternion_exponential_rotator)
 	CHECK_NEAR(wrapped.normalized().to_vector3(), vector3<T>(static_cast<T>(0.5), static_cast<T>(-0.5), pi * static_cast<T>(-0.5)), tol);
 	CHECK(wrapped.nearly_equal(wrapped.normalized(), static_cast<T>(tol)));
 	CHECK(rotator<T>(pi * 2, -pi * 2, 0).nearly_zero(static_cast<T>(tol)));
-	CHECK(!rotator.nearly_zero());
+	CHECK(!rot.nearly_zero());
 	//	@tool クランプは各軸ごと
 	const rotator<T> limit(static_cast<T>(0.2), static_cast<T>(0.2), static_cast<T>(0.2));
-	CHECK(rotator.clamped(-limit, limit) == rotator<T>(static_cast<T>(0.2), static_cast<T>(-0.2), static_cast<T>(0.2)));
+	CHECK(rot.clamped(-limit, limit) == rotator<T>(static_cast<T>(0.2), static_cast<T>(-0.2), static_cast<T>(0.2)));
 	//	@tool 補間は各軸ごとに最短経路（170 度 -> -170 度は 180 度を通る）
 	const rotator<T> from(0, angle::to_radian(static_cast<T>(170)), 0);
 	const rotator<T> to(0, angle::to_radian(static_cast<T>(-170)), 0);
 	CHECK(lerp(from, to, static_cast<T>(0.5)).nearly_equal(rotator<T>(0, pi, 0), static_cast<T>(tol)));
 	CHECK(lerp(from, to, static_cast<T>(1)).nearly_equal(to, static_cast<T>(tol)));
-	CHECK(rotator<T>::lerp(rotator, rotator, static_cast<T>(0.3)).nearly_equal(rotator, static_cast<T>(tol)));
+	CHECK(rotator<T>::lerp(rot, rot, static_cast<T>(0.3)).nearly_equal(rot, static_cast<T>(tol)));
 	//	@tool 回転行列からの生成はクォータニオンからの生成と同じ
-	CHECK(rotator<T>(matrix<T>(rotator.to_quaternion())).nearly_equal(rotator, static_cast<T>(tol)));
+	CHECK(rotator<T>(matrix<T>(rot.to_quaternion())).nearly_equal(rot, static_cast<T>(tol)));
 	//	@tool from_direction の front() は direction を向く
 	for (const vector3<T>& direction : { vector3<T>(1, -2, 3), vector3<T>(-1, 0, -1), vector3<T>(0, 1, static_cast<T>(0.2)) })
 	{
