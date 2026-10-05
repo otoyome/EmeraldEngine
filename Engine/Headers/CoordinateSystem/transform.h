@@ -13,6 +13,15 @@ class transform
 	using vector3 = math::vector3<T>;
 	using quaternion = math::quaternion<T>;
 	using matrix = math::matrix<T>;
+	using other_value_type = std::conditional_t<std::is_same_v<T, float>, double, float>;
+
+public:
+	//	’PˆÊp¨
+	static transform identity();
+	//	p¨s—ñ‚©‚ç¶¬
+	static transform from_matrix(const matrix& m);
+	//	2‚Â‚Ìp¨‚ğ•âŠÔ
+	static transform blend(const transform& l, const transform& r, T value);
 
 public:
 	bool is_flag(flags flag) const;
@@ -26,41 +35,66 @@ public:
 	void set_translation(const vector3& translation);
 
 	const matrix& get_transform() const;
+	const matrix& get_inverse_transform() const;
+
+	vector3 get_forward() const;
+	vector3 get_right() const;
+	vector3 get_up() const;
+
+	//	Œ»İ‚ÌÀ•W‚ÉˆÚ“®—Ê‚ğ‰Á‚¦‚é
+	void translate(const vector3& offset);
+	//	Œ»İ‚Ì‰ñ“]‚ÌŒã‚É‰ñ“]‚ğ‰Á‚¦‚é
+	void rotate(const quaternion& rotation);
+	//	Œ»İ‚ÌŠgk—¦‚ÉŠ|‚¯‡‚í‚¹‚é
+	void multiply_scale(const vector3& scale);
 
 public:
 	transform();
+	transform(const vector3& scale, const quaternion& rotation, const vector3& translation);
+	explicit transform(const transform<other_value_type>& v);
 
-	inline vector3 transform_point(const vector3& point) const
-	{
-		update();
-		return point * srt;
-	}
-	inline vector3 transform_vector(const vector3& vector) const
-	{
-		update();
-		return vector * sr;
-	}
-	inline vector3 transform_direction(const vector3& direction) const
-	{
-		return direction * math::matrixd::rotation_quaternion(rotation);
-	}
+	vector3 transform_point(const vector3& point) const;
+	vector3 transform_vector(const vector3& vector) const;
+	vector3 transform_direction(const vector3& direction) const;
 
-	inline vector3 inverse_transform_point(const vector3& point) const
-	{
-		update();
-		return point * inverse_srt;
-	}
+	vector3 inverse_transform_point(const vector3& point) const;
+	vector3 inverse_transform_vector(const vector3& vector) const;
+	vector3 inverse_transform_direction(const vector3& direction) const;
+
+	//	p¨‚ğ‡¬
+	transform multiply(const transform& parent) const;
+	//	‹tp¨‚ğæ“¾
+	transform inverse() const;
+	//	parent ‚©‚çŒ©‚½‘Š‘Îp¨‚ğæ“¾
+	transform relative_to(const transform& parent) const;
+
+	//	origin ‚ğŒ´“_‚Æ‚µ‚½ float ‚Ìp¨s—ñ‚ğæ“¾
+	math::matrixf to_relative_matrix(const vector3& origin) const;
+
+	bool nearly_equal(const transform& v, T tolerance = math::constants<T>::epsilon * static_cast<T>(10)) const;
+
+	bool is_valid() const;
+
+	transform operator*(const transform& parent) const;
+	transform& operator*=(const transform& parent);
+	bool operator==(const transform& v) const;
+	bool operator!=(const transform& v) const;
 
 private:
-	void update();
+	void update() const;
 
 private:
 	mutable UINT system_flags;	//	ƒtƒ‰ƒO—Ş
 	mutable matrix srt;			//	SRTs—ñ
 	mutable matrix inverse_srt;	//	‹tSRTs—ñ
-	mutable matrix sr;			//	SRs—ñ
 
 	vector3 scale;				//	Šgk—¦
 	quaternion rotation;		//	‰ñ“]î•ñ
 	vector3 translation;		//	À•Wî•ñ
 };
+
+using transformf = transform<float>;
+using transformd = transform<double>;
+
+extern template class transform<float>;
+extern template class transform<double>;
