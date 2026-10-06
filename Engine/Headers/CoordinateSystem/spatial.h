@@ -12,6 +12,7 @@ class spatial : public hierarchy
 	enum class flags
 	{
 		dirty,	//	再計算フラグ
+		euler_hint,	//	local_euler_hint が有効か
 	};
 
 public:
@@ -26,14 +27,26 @@ public:
 	bool is_flag(flags flag) const;
 	void set_flag(flags flag, bool value);
 
+	//	ローカル姿勢
 	const transformd& get_local() const;
+	math::rotatord get_local_euler() const;
 	void set_local(const transformd& local);
 	void set_local_scale(const math::vector3d& scale);
 	void set_local_rotation(const math::quaterniond& rotation);
+	void set_local_euler(const math::rotatord& euler);
 	void set_local_translation(const math::vector3d& translation);
 
+	//	ワールド姿勢
 	const transformd& get_world() const;
+	math::vector3d get_world_scale() const;
+	math::quaterniond get_world_rotation() const;
+	math::rotatord get_world_euler() const;
+	math::vector3d get_world_translation() const;
 	void set_world(const transformd& world);
+	void set_world_scale(const math::vector3d& scale);
+	void set_world_rotation(const math::quaterniond& rotation);
+	void set_world_euler(const math::rotatord& euler);
+	void set_world_translation(const math::vector3d& translation);
 
 	std::uint32_t get_version() const;
 
@@ -61,11 +74,12 @@ private:
 	void update_world() const;
 
 private:
-	mutable UINT system_flags;	//	フラグ類
-	std::uint32_t version;		//	変更回数
+	mutable UINT system_flags;			//	フラグ類
+	std::uint32_t version;				//	変更回数
 
-	transformd local;			//	ローカル姿勢
-	mutable transformd world;	//	ワールド姿勢
+	transformd local;					//	ローカル姿勢
+	mutable transformd world;			//	ワールド姿勢
+	math::rotatord local_euler_hint;	//	最後に設定されたローカル回転のオイラー角
 };
 
 CEREAL_CLASS_VERSION(spatial, 1)

@@ -19,8 +19,10 @@ editor_camera::~editor_camera()
 
 void editor_camera::fixed_update(float elapsed_time)
 {
-	camera->set_rotation(rotation);
-	camera->set_position(position);
+	math::rotatord new_rotation(rotation);
+	camera->set_world_euler(new_rotation);
+	math::vector3d new_position(position);
+	camera->set_world_translation(new_position);
 }
 
 void editor_camera::debug_update(float elapsed_time)
@@ -123,8 +125,8 @@ void editor_camera::debug_update(float elapsed_time)
 
 void editor_camera::on_execute()
 {
-	rotation = camera->get_rotation();
-	position = camera->get_position();
+	rotation = math::rotatorf(camera->get_spatial()->get_world_rotation().to_float4());
+	position = camera->get_spatial()->get_world_translation().to_float3();
 }
 
 #endif	//	defined(USE_IMGUI)

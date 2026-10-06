@@ -301,7 +301,7 @@ void collision_object::update()
 
 void collision_object::debug_draw()
 {
-#if defined(_DEBUG)
+#if defined(USE_IMGUI)
 	if (!bounding_object || !is_flag(flags::draw_line))
 		return;
 
@@ -383,7 +383,7 @@ void collision_object::debug_draw()
 			break;
 		}
 	}
-#endif // defined(_DEBUG)
+#endif // defined(USE_IMGUI)
 }
 
 #if defined(USE_IMGUI)

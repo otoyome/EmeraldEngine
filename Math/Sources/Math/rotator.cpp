@@ -93,7 +93,7 @@ namespace math
 	}
 
 	template<typename T>
-	bool rotator<T>::nearly_equal(const rotator& r, T tolerance) const
+	bool rotator<T>::equal(const rotator& r, T tolerance) const
 	{
 		return std::abs(angle::difference(x, r.x)) <= tolerance
 			&& std::abs(angle::difference(y, r.y)) <= tolerance

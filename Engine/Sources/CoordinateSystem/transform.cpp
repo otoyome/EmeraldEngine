@@ -32,18 +32,6 @@ transform<T> transform<T>::blend(const transform& l, const transform& r, T value
 }
 
 template<typename T>
-bool transform<T>::is_flag(flags flag) const
-{
-	return system_utility::is_bitflag(system_flags, 1 << static_cast<int>(flag));
-}
-
-template<typename T>
-void transform<T>::set_flag(flags flag, bool value)
-{
-	system_utility::set_bitflag(system_flags, 1 << static_cast<int>(flag), value);
-}
-
-template<typename T>
 const typename transform<T>::vector3& transform<T>::get_scale() const
 {
 	return scale;
@@ -53,7 +41,6 @@ template<typename T>
 void transform<T>::set_scale(const vector3& scale)
 {
 	this->scale = scale;
-	set_flag(flags::dirty, true);
 }
 
 template<typename T>
@@ -66,7 +53,6 @@ template<typename T>
 void transform<T>::set_rotation(const quaternion& rotation)
 {
 	this->rotation = rotation;
-	set_flag(flags::dirty, true);
 }
 
 template<typename T>
@@ -79,27 +65,21 @@ template<typename T>
 void transform<T>::set_translation(const vector3& translation)
 {
 	this->translation = translation;
-	set_flag(flags::dirty, true);
 }
 
 template<typename T>
-const typename transform<T>::matrix& transform<T>::get_transform() const
+typename transform<T>::matrix transform<T>::get_transform() const
 {
-	update();
-	return srt;
+	return matrix::transform(scale, rotation, translation);
 }
 
 template<typename T>
-const typename transform<T>::matrix& transform<T>::get_inverse_transform() const
+typename transform<T>::matrix transform<T>::get_inverse_transform() const
 {
-	update();
-	return inverse_srt;
-}
-
-template<typename T>
-typename transform<T>::vector3 transform<T>::get_forward() const
-{
-	return rotation.front();
+	//	姿勢行列はこれで逆行列化出来る
+	return matrix::translation(-translation)
+		 * matrix::rotation_quaternion(rotation.inverted())
+		 * matrix::scaling(vector3(1, 1, 1) / scale);
 }
 
 template<typename T>
@@ -112,6 +92,24 @@ template<typename T>
 typename transform<T>::vector3 transform<T>::get_up() const
 {
 	return rotation.up();
+}
+
+template<typename T>
+typename transform<T>::vector3 transform<T>::get_front() const
+{
+	return rotation.front();
+}
+
+template<typename T>
+math::rotator<T> transform<T>::get_euler() const
+{
+	return math::rotator<T>(rotation);
+}
+
+template<typename T>
+void transform<T>::set_euler(const math::rotator<T>& euler)
+{
+	set_rotation(euler.to_quaternion());
 }
 
 template<typename T>
@@ -134,46 +132,38 @@ void transform<T>::multiply_scale(const vector3& scale)
 
 template<typename T>
 transform<T>::transform()
-: system_flags(0)
-, scale(1, 1, 1)
+: scale(1, 1, 1)
 , rotation(quaternion::identity())
 , translation(vector3::zero())
 {
-	set_flag(flags::dirty, true);
 }
 
 template<typename T>
 transform<T>::transform(const vector3& scale, const quaternion& rotation, const vector3& translation)
-: system_flags(0)
-, scale(scale)
+: scale(scale)
 , rotation(rotation)
 , translation(translation)
 {
-	set_flag(flags::dirty, true);
 }
 
 template<typename T>
 transform<T>::transform(const transform<other_value_type>& v)
-: system_flags(0)
-, scale(v.get_scale())
+: scale(v.get_scale())
 , rotation(v.get_rotation())
 , translation(v.get_translation())
 {
-	set_flag(flags::dirty, true);
 }
 
 template<typename T>
 typename transform<T>::vector3 transform<T>::transform_point(const vector3& point) const
 {
-	update();
-	return vector3::transform_coord(point, srt);
+	return transform_vector(point) + translation;
 }
 
 template<typename T>
 typename transform<T>::vector3 transform<T>::transform_vector(const vector3& vector) const
 {
-	update();
-	return vector3::transform_normal(vector, srt);
+	return rotation.rotate(vector * scale);
 }
 
 template<typename T>
@@ -270,17 +260,6 @@ bool transform<T>::operator!=(const transform& v) const
 }
 
 template<typename T>
-void transform<T>::update() const
-{
-	if (!is_flag(flags::dirty))
-		return;
-
-	srt = matrix::transform(scale, rotation, translation);
-	inverse_srt = matrix::inverse(srt);
-	system_utility::set_bitflag(system_flags, 1 << static_cast<int>(flags::dirty), false);
-}
-
-template<typename T>
 template<class Archive>
 void transform<T>::serialize(Archive& archive, int version)
 {
@@ -289,12 +268,6 @@ void transform<T>::serialize(Archive& archive, int version)
 		cereal::make_nvp("rotation", rotation),
 		cereal::make_nvp("translation", translation)
 	);
-
-	//	読み込んだ場合は行列のキャッシュを再計算させる
-	if constexpr (Archive::is_loading::value)
-	{
-		set_flag(flags::dirty, true);
-	}
 }
 
 template class transform<float>;

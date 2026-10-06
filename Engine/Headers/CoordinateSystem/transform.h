@@ -6,20 +6,12 @@
 template<typename T>
 class transform
 {
-	enum class flags
-	{
-		dirty,	//	ÄŒvZƒtƒ‰ƒO
-	};
-
 	using vector3 = math::vector3<T>;
 	using quaternion = math::quaternion<T>;
 	using matrix = math::matrix<T>;
 	using other_value_type = std::conditional_t<std::is_same_v<T, float>, double, float>;
 
 public:
-	bool is_flag(flags flag) const;
-	void set_flag(flags flag, bool value);
-
 	const vector3& get_scale() const;
 	void set_scale(const vector3& scale);
 	const quaternion& get_rotation() const;
@@ -27,12 +19,15 @@ public:
 	const vector3& get_translation() const;
 	void set_translation(const vector3& translation);
 
-	const matrix& get_transform() const;
-	const matrix& get_inverse_transform() const;
+	matrix get_transform() const;
+	matrix get_inverse_transform() const;
 
-	vector3 get_forward() const;
 	vector3 get_right() const;
 	vector3 get_up() const;
+	vector3 get_front() const;
+
+	math::rotator<T> get_euler() const;
+	void set_euler(const math::rotator<T>& euler);
 
 public:
 	transform();
@@ -76,9 +71,6 @@ public:
 	template<class Archive>
 	void serialize(Archive& archive, int version);
 
-private:
-	void update() const;
-
 public:
 	//	’PˆÊp¨
 	static transform identity();
@@ -88,10 +80,6 @@ public:
 	static transform blend(const transform& l, const transform& r, T value);
 
 private:
-	mutable UINT system_flags;	//	ƒtƒ‰ƒO—Ş
-	mutable matrix srt;			//	SRTs—ñ
-	mutable matrix inverse_srt;	//	‹tSRTs—ñ
-
 	vector3 scale;				//	Šgk—¦
 	quaternion rotation;		//	‰ñ“]î•ñ
 	vector3 translation;		//	À•Wî•ñ

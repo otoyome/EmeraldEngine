@@ -208,13 +208,13 @@ MATH_TEST_TYPED(quaternion_exponential_rotator)
 	for (rotation_order order : { rotation_order::xyz, rotation_order::zxy, rotation_order::yxz })
 	{
 		CHECK_SAME_ROTATION(rot.to_quaternion(order), quaternion<T>(rot.to_vector3(), order), tol);
-		CHECK(rotator<T>(rot.to_quaternion(order), order).nearly_equal(rot, static_cast<T>(tol)));
+		CHECK(rotator<T>(rot.to_quaternion(order), order).equal(rot, static_cast<T>(tol)));
 	}
 	//	@tool 正規化は -π～π に折り返す
 	const T pi = constants<T>::pi;
 	const rotator<T> wrapped(static_cast<T>(0.5) + pi * 2, static_cast<T>(-0.5) - pi * 4, pi * static_cast<T>(1.5));
 	CHECK_NEAR(wrapped.normalized().to_vector3(), vector3<T>(static_cast<T>(0.5), static_cast<T>(-0.5), pi * static_cast<T>(-0.5)), tol);
-	CHECK(wrapped.nearly_equal(wrapped.normalized(), static_cast<T>(tol)));
+	CHECK(wrapped.equal(wrapped.normalized(), static_cast<T>(tol)));
 	CHECK(rotator<T>(pi * 2, -pi * 2, 0).nearly_zero(static_cast<T>(tol)));
 	CHECK(!rot.nearly_zero());
 	//	@tool クランプは各軸ごと
@@ -223,11 +223,11 @@ MATH_TEST_TYPED(quaternion_exponential_rotator)
 	//	@tool 補間は各軸ごとに最短経路（170 度 -> -170 度は 180 度を通る）
 	const rotator<T> from(0, angle::to_radian(static_cast<T>(170)), 0);
 	const rotator<T> to(0, angle::to_radian(static_cast<T>(-170)), 0);
-	CHECK(lerp(from, to, static_cast<T>(0.5)).nearly_equal(rotator<T>(0, pi, 0), static_cast<T>(tol)));
-	CHECK(lerp(from, to, static_cast<T>(1)).nearly_equal(to, static_cast<T>(tol)));
-	CHECK(rotator<T>::lerp(rot, rot, static_cast<T>(0.3)).nearly_equal(rot, static_cast<T>(tol)));
+	CHECK(lerp(from, to, static_cast<T>(0.5)).equal(rotator<T>(0, pi, 0), static_cast<T>(tol)));
+	CHECK(lerp(from, to, static_cast<T>(1)).equal(to, static_cast<T>(tol)));
+	CHECK(rotator<T>::lerp(rot, rot, static_cast<T>(0.3)).equal(rot, static_cast<T>(tol)));
 	//	@tool 回転行列からの生成はクォータニオンからの生成と同じ
-	CHECK(rotator<T>(matrix<T>(rot.to_quaternion())).nearly_equal(rot, static_cast<T>(tol)));
+	CHECK(rotator<T>(matrix<T>(rot.to_quaternion())).equal(rot, static_cast<T>(tol)));
 	//	@tool from_direction の front() は direction を向く
 	for (const vector3<T>& direction : { vector3<T>(1, -2, 3), vector3<T>(-1, 0, -1), vector3<T>(0, 1, static_cast<T>(0.2)) })
 	{

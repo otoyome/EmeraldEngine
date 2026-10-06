@@ -30,6 +30,16 @@ void spatial_object::set_local_translation(const math::vector3d& translation)
 	spatial->set_local_translation(translation);
 }
 
+math::rotatord spatial_object::get_local_euler() const
+{
+	return spatial->get_local_euler();
+}
+
+void spatial_object::set_local_euler(const math::rotatord& euler)
+{
+	spatial->set_local_euler(euler);
+}
+
 const transformd& spatial_object::get_world() const
 {
 	return spatial->get_world();
@@ -38,6 +48,41 @@ const transformd& spatial_object::get_world() const
 void spatial_object::set_world(const transformd& world)
 {
 	spatial->set_world(world);
+}
+
+math::vector3d spatial_object::get_world_translation() const
+{
+	return spatial->get_world_translation();
+}
+
+void spatial_object::set_world_translation(const math::vector3d& translation)
+{
+	spatial->set_world_translation(translation);
+}
+
+math::quaterniond spatial_object::get_world_rotation() const
+{
+	return spatial->get_world_rotation();
+}
+
+void spatial_object::set_world_rotation(const math::quaterniond& rotation)
+{
+	spatial->set_world_rotation(rotation);
+}
+
+math::rotatord spatial_object::get_world_euler() const
+{
+	return spatial->get_world_euler();
+}
+
+void spatial_object::set_world_euler(const math::rotatord& euler)
+{
+	spatial->set_world_euler(euler);
+}
+
+math::vector3d spatial_object::get_lossy_scale() const
+{
+	return spatial->get_lossy_scale();
 }
 
 bool spatial_object::attach(const std::shared_ptr<spatial_object>& parent, attach_rule rule)
@@ -87,12 +132,12 @@ void spatial_object::imgui_render_core()
 		if (ImGui::DragScalarN("translation", ImGuiDataType_Double, &translation.x, 3, 0.1f))
 			spatial->set_local_translation(translation);
 
-		const math::rotatord euler(local.get_rotation());
+		const math::rotatord euler = spatial->get_local_euler();
 		double degrees[3] = { math::angle::to_degree(euler.x), math::angle::to_degree(euler.y), math::angle::to_degree(euler.z) };
 		if (ImGui::DragScalarN("rotation", ImGuiDataType_Double, degrees, 3, 0.5f))
 		{
 			const math::rotatord edited(math::angle::to_radian(degrees[0]), math::angle::to_radian(degrees[1]), math::angle::to_radian(degrees[2]));
-			spatial->set_local_rotation(edited.to_quaternion());
+			spatial->set_local_euler(edited);
 		}
 
 		math::vector3d scale = local.get_scale();

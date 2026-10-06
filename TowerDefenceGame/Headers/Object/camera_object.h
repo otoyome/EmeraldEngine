@@ -2,24 +2,15 @@
 
 #include "camera.h"
 #include "object/game_object.h"
+#include "object/spatial_object.h"
 
 //	カメラ制御用オブジェクト
-class camera_object : public game_object
+class camera_object : public spatial_object
 {
-	GAME_OBJECT_DECRLEAR(camera_object, game_object)
+	GAME_OBJECT_DECRLEAR(camera_object, spatial_object)
 
 public:
 	camera_ptr get_camera() const {return camera;}
-
-	const math::rotatorf& get_rotation() const;
-	void set_rotation(const math::rotatorf& rotator);
-
-	const math::float3& get_position() const;
-	void set_position(const math::float3& position);
-
-	const math::float3& get_front() const;
-	const math::float3& get_right() const;
-	const math::float3& get_up() const;
 
 public:
 	camera_object(std::string_view name);
@@ -33,8 +24,8 @@ public:
 #endif	//	defined(USE_IMGUI)
 
 private:
-	camera_ptr camera;
+	void sync_from_spatial();
 
-	math::rotatorf rotation;
-	math::float3 position;
+private:
+	camera_ptr camera;
 };

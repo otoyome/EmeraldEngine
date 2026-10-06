@@ -17,14 +17,24 @@ public:
 
 	//	ローカル姿勢
 	const transformd& get_local() const;
+	math::rotatord get_local_euler() const;
 	void set_local(const transformd& local);
 	void set_local_scale(const math::vector3d& scale);
 	void set_local_rotation(const math::quaterniond& rotation);
+	void set_local_euler(const math::rotatord& euler);
 	void set_local_translation(const math::vector3d& translation);
 
 	//	ワールド姿勢
 	const transformd& get_world() const;
+	math::vector3d get_world_scale() const;
+	math::quaterniond get_world_rotation() const;
+	math::rotatord get_world_euler() const;
+	math::vector3d get_world_translation() const;
 	void set_world(const transformd& world);
+	void set_world_scale(const math::vector3d& scale);
+	void set_world_rotation(const math::quaterniond& rotation);
+	void set_world_euler(const math::rotatord& euler);
+	void set_world_translation(const math::vector3d& translation);
 
 public:
 	spatial_object(std::string_view name);

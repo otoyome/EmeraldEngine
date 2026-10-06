@@ -55,8 +55,8 @@ namespace math
 		[[nodiscard]] rotator clamped(const rotator& min_angle, const rotator& max_angle) const { rotator ret = *this; ret.clamp(min_angle, max_angle); return ret; }
 
 		//	各軸の角度の差が tolerance 以下か（2π ずれた角度は同じとみなす）
-		[[nodiscard]] bool nearly_equal(const rotator& r, T tolerance = static_cast<T>(1.0e-4)) const;
-		[[nodiscard]] bool nearly_zero(T tolerance = static_cast<T>(1.0e-4)) const { return nearly_equal(zero(), tolerance); }
+		[[nodiscard]] bool equal(const rotator& r, T tolerance = static_cast<T>(1.0e-4)) const;
+		[[nodiscard]] bool nearly_zero(T tolerance = static_cast<T>(1.0e-4)) const { return equal(zero(), tolerance); }
 
 		//	各軸ごとに最短経路で補間
 		[[nodiscard]] static rotator lerp(const rotator& l, const rotator& r, T value);

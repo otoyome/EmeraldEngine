@@ -25,6 +25,7 @@ spatial::~spatial()
 	{
 		spatial* child_spatial = static_cast<spatial*>(child.get());
 		child_spatial->local = child_spatial->local * current_world;
+		child_spatial->set_flag(flags::euler_hint, false);
 		child_spatial->mark_dirty();
 	}
 }
@@ -47,6 +48,7 @@ const transformd& spatial::get_local() const
 void spatial::set_local(const transformd& local)
 {
 	this->local = local;
+	set_flag(flags::euler_hint, false);
 	mark_dirty();
 }
 
@@ -59,12 +61,26 @@ void spatial::set_local_scale(const math::vector3d& scale)
 void spatial::set_local_rotation(const math::quaterniond& rotation)
 {
 	local.set_rotation(rotation);
+	set_flag(flags::euler_hint, false);
 	mark_dirty();
 }
 
 void spatial::set_local_translation(const math::vector3d& translation)
 {
 	local.set_translation(translation);
+	mark_dirty();
+}
+
+math::rotatord spatial::get_local_euler() const
+{
+	return is_flag(flags::euler_hint) ? local_euler_hint : local.get_euler();
+}
+
+void spatial::set_local_euler(const math::rotatord& euler)
+{
+	local.set_euler(euler);
+	local_euler_hint = euler;
+	set_flag(flags::euler_hint, true);
 	mark_dirty();
 }
 
@@ -78,6 +94,77 @@ void spatial::set_world(const transformd& world)
 {
 	const std::shared_ptr<spatial> parent = get_parent();
 	local = parent ? world.relative_to(parent->get_world()) : world;
+	set_flag(flags::euler_hint, false);
+	mark_dirty();
+}
+
+math::vector3d spatial::get_world_translation() const
+{
+	return get_world().get_translation();
+}
+
+void spatial::set_world_translation(const math::vector3d& translation)
+{
+	const std::shared_ptr<spatial> parent = get_parent();
+	local.set_translation(parent ? parent->get_world().inverse_transform_point(translation) : translation);
+	mark_dirty();
+}
+
+math::quaterniond spatial::get_world_rotation() const
+{
+	return get_world().get_rotation();
+}
+
+void spatial::set_world_rotation(const math::quaterniond& rotation)
+{
+	const std::shared_ptr<spatial> parent = get_parent();
+	local.set_rotation(parent ? math::quaterniond::concatenate(rotation, parent->get_world().get_rotation().inverted()) : rotation);
+	set_flag(flags::euler_hint, false);
+	mark_dirty();
+}
+
+math::rotatord spatial::get_world_euler() const
+{
+	return get_parent() ? get_world().get_euler() : get_local_euler();
+}
+
+void spatial::set_world_euler(const math::rotatord& euler)
+{
+	if (get_parent())
+	{
+		set_world_rotation(euler.to_quaternion());
+	}
+	else
+	{
+		set_local_euler(euler);
+	}
+}
+
+math::vector3d spatial::get_world_scale() const
+{
+	return get_world().get_scale();
+}
+
+void spatial::set_world_scale(const math::vector3d& scale)
+{
+	const std::shared_ptr<spatial> parent = get_parent();
+	if (!parent)
+	{
+		local.set_scale(scale);
+		mark_dirty();
+		return;
+	}
+
+	const math::vector3d parent_scale = parent->get_world().get_scale();
+	math::vector3d local_scale = local.get_scale();
+	for (std::int32_t i = 0; i < 3; ++i)
+	{
+		if (parent_scale[i] != 0.0)
+		{
+			local_scale[i] = scale[i] / parent_scale[i];
+		}
+	}
+	local.set_scale(local_scale);
 	mark_dirty();
 }
 
@@ -125,6 +212,7 @@ bool spatial::attach(const std::shared_ptr<spatial>& parent, attach_rule rule)
 		const transformd current_world = get_world();
 		link(parent);
 		local = parent ? current_world.relative_to(parent->get_world()) : current_world;
+		set_flag(flags::euler_hint, false);
 	}
 	else
 	{
@@ -182,6 +270,7 @@ void spatial::serialize(Archive& archive, int version)
 
 	if constexpr (Archive::is_loading::value)
 	{
+		set_flag(flags::euler_hint, false);
 		mark_dirty();
 	}
 }

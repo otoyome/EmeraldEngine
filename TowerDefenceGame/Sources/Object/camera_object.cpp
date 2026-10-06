@@ -1,48 +1,9 @@
 #include "object/camera_object.h"
 
-const math::rotatorf& camera_object::get_rotation() const
-{
-	return rotation;
-}
-
-void camera_object::set_rotation(const math::rotatorf& rotator)
-{
-	this->rotation = rotator;
-}
-
-const math::float3& camera_object::get_position() const
-{
-	return position;
-}
-
-void camera_object::set_position(const math::float3& position)
-{
-	this->position = position;
-}
-
-const math::float3& camera_object::get_front() const
-{
-	return camera->get_front();
-}
-
-const math::float3& camera_object::get_right() const
-{
-	return camera->get_right();
-}
-
-const math::float3& camera_object::get_up() const
-{
-	return camera->get_up();
-}
-
 camera_object::camera_object(std::string_view name)
-: game_object(name)
-, rotation(0, math::constants<float>::pi, 0)
-, position(0, 0, 0)
+: spatial_object(name)
 {
 	camera_manager::instance()->generate_camera(camera);
-	camera->set_rotation(rotation);
-	camera->set_position(position);
 	camera->set_screen_rect({0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT});
 }
 
@@ -52,10 +13,12 @@ camera_object::~camera_object()
 
 void camera_object::post_update(float elapsed_time)
 {
-	math::rotatorf new_rotation = rotation;
-	math::float3 new_position = position;
-	camera->set_rotation(new_rotation);
-	camera->set_position(new_position);
+	sync_from_spatial();
+
+	camera->set_rotation(get_spatial()->get_parent()
+		? math::rotatorf(get_world().get_euler())
+		: math::rotatorf(get_local_euler()));
+	camera->set_position(get_world().get_translation().to_float3());
 }
 
 void camera_object::post_render()
@@ -63,11 +26,15 @@ void camera_object::post_render()
 	camera->cache_previous_view_projection_matrix();
 }
 
+void camera_object::sync_from_spatial()
+{
+}
+
 #if defined(USE_IMGUI)
 void camera_object::imgui_render_core()
 {
-	ImGui::DragFloat3("position", &position.x, 0.01f);
-	ImGui::DragAngle3("rotation", &rotation.x, 0.01f);
+	base::imgui_render_core();
+	sync_from_spatial();
 
 	auto is_hybrid_projection = camera->is_flag(camera::flags::hybrid_projection);
 	if (ImGui::Checkbox("hybrid_projection", &is_hybrid_projection))
