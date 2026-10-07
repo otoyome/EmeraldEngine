@@ -137,7 +137,7 @@ MATH_TEST_TYPED(directxmath_matrix)
 	CHECK_NEAR(matrix<T>::scaling(scale) * matrix<T>::translation(position), from_xm<T>(DirectX::XMMatrixMultiply(DirectX::XMMatrixScaling(2, 3, 4), DirectX::XMMatrixTranslation(5, 6, 7))), tol);
 
 	//	@tool XMMatrixAffineTransformation(S, 0, R, T) ‚Í transform(S, R, T) ‚Æ“¯‚¶
-	const matrix<T> world = matrix<T>::transform(scale, rotation, position);
+	const matrix<T> world = matrix<T>::affine_transformation(scale, rotation, position);
 	const DirectX::XMMATRIX xm_world = DirectX::XMMatrixAffineTransformation(to_xm(scale), DirectX::XMVectorZero(), to_xm(rotation), to_xm(position));
 	CHECK_NEAR(world, from_xm<T>(xm_world), tol);
 	CHECK_NEAR(world.inverted(), from_xm<T>(DirectX::XMMatrixInverse(nullptr, xm_world)), tol);

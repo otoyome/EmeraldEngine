@@ -5,15 +5,16 @@
 #include "ik_resource.h"
 #include "ik_solver.h"
 #include "model_instance.h"
+#include "object/spatial_object.h"
 
 #if defined(USE_IMGUI)
 #include "Editor/editor_items.h"
 #endif	//	defined(USE_IMGUI)
 
 //	モデル表示用オブジェクト
-class model_object : public game_object
+class model_object : public spatial_object
 {
-	GAME_OBJECT_DECRLEAR(model_object, game_object)
+	GAME_OBJECT_DECRLEAR(model_object, spatial_object)
 
 public:
 	using call_back_root_animation_translation = std::function<void(const math::float3&, float)>;
@@ -40,15 +41,6 @@ public:
 	model_instance_ptr get_model_instance();
 	ik_resource_ptr get_ik_resource();
 	void set_ik_resource(ik_resource_ptr ik_resource);
-
-	const math::float3& get_scale() const;
-	void set_scale(const math::float3& scale);
-
-	const math::rotatorf& get_rotation() const;
-	void set_rotation(const math::rotatorf& rotator);
-
-	const math::float3& get_position() const;
-	void set_position(const math::float3& position);
 
 	bool get_apply_root_animation_transform() const;
 	void set_apply_root_animation_transform(bool flag);
@@ -112,9 +104,7 @@ private:
 private:
 	model_instance_ptr model_instance;
 	bool dirty = true;
-	math::float3 scale = {1.0f, 1.0f, 1.0f};
-	math::rotatorf rotator = {0.0f, 0.0f, 0.0f};
-	math::float3 position = {0.0f, 0.0f, 0.0f};
+	std::uint32_t applied_spatial_version = UINT32_MAX;
 
 	bool apply_root_animation_transform = true;
 	call_back_root_animation_translation on_root_animation_translation;
@@ -132,9 +122,9 @@ private:
 
 	//	IK情報
 	bool fixed_updated = false;
-	bool animation_foot_ik = false;	//	アニメーション側でのIKの制御フラグ
-	bool animation_hand_ik = false;	//	アニメーション側でのIKの制御フラグ
-	bool animation_aim_ik = false;	//	アニメーション側でのIKの制御フラグ
+	bool animation_foot_ik = false;
+	bool animation_hand_ik = false;
+	bool animation_aim_ik = false;
 	ik_solver_ptr ik_solver;
 	std::vector<ik_data> ik_datas;
 

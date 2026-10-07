@@ -169,7 +169,7 @@ minigame_scene::minigame_scene()
 
 		//	ルンバオブジェクト生成
 		player_object = std::make_shared<roomba_object>(RoombaObjectName, roomba_model, "player");
-		player_object->set_position(StartPosition);
+		player_object->set_position(math::float3(StartPosition));
 		player_object->set_rotation(StartRotation);
 		register_object(player_object);
 
@@ -195,7 +195,7 @@ minigame_scene::minigame_scene()
 			for (auto& block : BubbleBlock)
 			{
 				bubble_effect.emplace_back(std::make_shared<effect_instance>(resource));
-				bubble_effect.back()->set_position(block);
+				bubble_effect.back()->set_position(math::float3(block));
 				effect_manager::instance()->register_instance(bubble_effect.back());
 			}
 		}
@@ -204,7 +204,7 @@ minigame_scene::minigame_scene()
 			for (auto& block : DustBlock)
 			{
 				dust_effect.emplace_back(std::make_shared<effect_instance>(resource));
-				dust_effect.back()->set_position(block);
+				dust_effect.back()->set_position(math::float3(block));
 				effect_manager::instance()->register_instance(dust_effect.back());
 			}
 			//	Dustノードのパーティクル設定からゴミの最大数を収集する
@@ -326,7 +326,7 @@ void minigame_scene::update_core(float elapsed_time)
 			//	プレイヤーをアクティブ状態に
 			player_object->set_heat_value(0);
 			player_object->set_wet_value(0);
-			player_object->set_position(StartPosition);
+			player_object->set_position(math::float3(StartPosition));
 			player_object->set_rotation(StartRotation);
 			player_object->change_state(roomba_object::states::active);
 
@@ -514,7 +514,7 @@ void minigame_scene::update_core(float elapsed_time)
 	{
 		//	吸引座標/範囲設/イベント基準座標設定
 		{
-			auto position = player_object->get_push_box()->get_position();
+			auto position = player_object->get_push_box()->get_transform().get_translation().to_float3();
 			position.y += player_object->get_push_box()->get_local_scale().y * 0.5f;
 			for (auto& effect : bubble_effect)
 			{

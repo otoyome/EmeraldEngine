@@ -25,18 +25,8 @@ math::float4 light_object::get_color() const
 	return light->get_color();
 }
 
-void light_object::set_position(math::float3 position)
-{
-	light->set_position(position);
-}
-
-math::float3 light_object::get_position() const
-{
-	return light->get_position();
-}
-
 light_object::light_object(std::string_view name)
-: game_object(name)
+: spatial_object(name)
 {
 }
 
@@ -44,9 +34,32 @@ light_object::~light_object()
 {
 }
 
+void light_object::post_update(float elapsed_time)
+{
+	base::post_update(elapsed_time);
+	sync_to_light();
+}
+
+void light_object::sync_to_light()
+{
+	if (!light)
+		return;
+
+	const std::uint32_t spatial_version = get_spatial()->get_version();
+	if (applied_spatial_version == spatial_version)
+		return;
+
+	applied_spatial_version = spatial_version;
+	light->set_position(get_world_translation().to_float3());
+	light->set_rotation(math::rotatorf(get_world_euler()));
+}
+
 #if defined(USE_IMGUI)
 void light_object::imgui_render_core()
 {
+	base::imgui_render_core();
+	sync_to_light();
+
 	imgui_tree_inner_render();
 }
 #endif	//	defined(USE_IMGUI)
@@ -62,24 +75,15 @@ void light_object::on_deactive()
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
-void directional_light_object::set_rotation(const math::rotatorf& direction)
-{
-	light->set_rotation(direction);
-}
-
-const math::rotatorf& directional_light_object::get_rotation() const
-{
-	return light->get_rotation();
-}
-
 directional_light_object::directional_light_object(std::string_view name)
 : light_object(name)
 {
 	light_manager::instance()->generate_light(light, light_type::directional);
 	math::rotatorf rotation;
 	rotation = math::rotatorf::from_direction(math::vector3f(1, -1, -1));
-	set_rotation(rotation);
-	set_position({0, 0, 0});
+	set_world_euler(math::rotatord(rotation));
+	set_world_translation(math::vector3d::zero());
+	sync_to_light();
 }
 
 directional_light_object::~directional_light_object()
@@ -100,14 +104,6 @@ void directional_light_object::imgui_tree_inner_render()
 	bool debug_visualize_ailiasing_error_flag = light->is_flag(light::flags::debug_visualize_ailiasing_error_flag);
 	ImGui::Checkbox("debug_visualize_ailiasing_error_flag", &debug_visualize_ailiasing_error_flag);
 	light->set_flag(light::flags::debug_visualize_ailiasing_error_flag, debug_visualize_ailiasing_error_flag);
-
-	auto position = get_position();
-	ImGui::DragFloat3("position", &position.x, 0.01f);
-	set_position(position);
-
-	auto rotation = get_rotation();
-	ImGui::DragAngle3("rotation", &rotation.x, 0.01f);
-	set_rotation(rotation);
 
 	auto color = get_color();
 	ImGui::ColorPicker3("color", &color.x);
@@ -166,7 +162,8 @@ point_light_object::point_light_object(std::string_view name)
 : light_object(name)
 {
 	light_manager::instance()->generate_light(light, light_type::point);
-	set_position({0, 0, 0});
+	set_world_translation(math::vector3d::zero());
+	sync_to_light();
 	set_range(10.0f);
 }
 
@@ -181,10 +178,6 @@ void point_light_object::imgui_tree_inner_render()
 	ImGui::Checkbox("use_shadow", &use_shadow);
 	light->set_flag(light::flags::use_shadow, use_shadow);
 
-	auto position = get_position();
-	ImGui::DragFloat3("position", &position.x, 0.01f);
-	set_position(position);
-
 	auto range = get_range();
 	ImGui::DragFloat("range", &range, 0.01f);
 	set_range(range);
@@ -197,16 +190,6 @@ void point_light_object::imgui_tree_inner_render()
 #endif	//	defined(USE_IMGUI)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
-void spot_light_object::set_rotation(const math::rotatorf& rotation)
-{
-	light->set_rotation(rotation);
-}
-
-const math::rotatorf& spot_light_object::get_rotation() const
-{
-	return light->get_rotation();
-}
-
 void spot_light_object::set_range(float radius)
 {
 	light->set_range(radius);
@@ -241,7 +224,8 @@ spot_light_object::spot_light_object(std::string_view name)
 : light_object(name)
 {
 	light_manager::instance()->generate_light(light, light_type::spot);
-	set_position({0, 0, 0});
+	set_world_translation(math::vector3d::zero());
+	sync_to_light();
 	set_range(10.0f);
 	set_inner_cone(45.0f);
 	set_outer_cone(60.0f);
@@ -257,14 +241,6 @@ void spot_light_object::imgui_tree_inner_render()
 	bool use_shadow = is_flag(light::flags::use_shadow);
 	ImGui::Checkbox("use_shadow", &use_shadow);
 	set_flag(light::flags::use_shadow, use_shadow);
-
-	auto position = get_position();
-	ImGui::DragFloat3("position", &position.x, 0.01f);
-	set_position(position);
-
-	auto rotation = get_rotation();
-	ImGui::DragAngle3("rotation", &rotation.x, 0.01f);
-	set_rotation(rotation);
 
 	auto range = get_range();
 	ImGui::DragFloat("range", &range, 0.01f);
@@ -311,16 +287,6 @@ math::float4 light_probe_object::get_color() const
 	return light_probe->get_color();
 }
 
-void light_probe_object::set_position(math::float3 position)
-{
-	light_probe->set_position(position);
-}
-
-math::float3 light_probe_object::get_position() const
-{
-	return light_probe->get_position();
-}
-
 void light_probe_object::set_diffuse_ibl_texture(texture_ptr texture)
 {
 	light_probe->set_diffuse_ibl_texture(texture);
@@ -352,7 +318,7 @@ texture_ptr light_probe_object::get_lut_ggx_texture() const
 }
 
 light_probe_object::light_probe_object(std::string_view name)
-: game_object(name)
+: spatial_object(name)
 {
 }
 
@@ -360,17 +326,35 @@ light_probe_object::~light_probe_object()
 {
 }
 
+void light_probe_object::post_update(float elapsed_time)
+{
+	base::post_update(elapsed_time);
+	sync_to_light_probe();
+}
+
+void light_probe_object::sync_to_light_probe()
+{
+	if (!light_probe)
+		return;
+
+	const std::uint32_t spatial_version = get_spatial()->get_version();
+	if (applied_spatial_version == spatial_version)
+		return;
+
+	applied_spatial_version = spatial_version;
+	light_probe->set_position(get_world_translation().to_float3());
+}
+
 #if defined(USE_IMGUI)
 void light_probe_object::imgui_render_core()
 {
+	base::imgui_render_core();
+	sync_to_light_probe();
+
 	auto color = get_color();
 	ImGui::ColorPicker3("color", &color.x);
 	ImGui::DragFloat("intensity", &color.w);
 	set_color(color);
-
-	auto position = get_position();
-	ImGui::DragFloat3("position", &position.x, 0.01f);
-	set_position(position);
 
 	imgui_tree_inner_render();
 }
@@ -392,8 +376,8 @@ sky_light_object::sky_light_object(std::string_view name)
 {
 	light_manager::instance()->generate_light_probe(light_probe);
 	light_probe->set_flag(light_probe::flags::unbind, true);
-	set_position({0, 0, 0});
-	set_position({90.0f, 90.0f, 90.0f});
+	set_world_translation(math::vector3d(90.0, 90.0, 90.0));
+	sync_to_light_probe();
 }
 
 sky_light_object::~sky_light_object()
@@ -432,8 +416,8 @@ area_light_probe_object::area_light_probe_object(std::string_view name)
 {
 	light_manager::instance()->generate_light_probe(light_probe);
 	light_probe->set_flag(light_probe::flags::unbind, false);
-	set_position({0, 0, 0});
-	set_position({90.0f, 90.0f, 90.0f});
+	set_world_translation(math::vector3d(90.0, 90.0, 90.0));
+	sync_to_light_probe();
 	set_outer_range({100.0f, 100.0f, 100.0f});
 }
 

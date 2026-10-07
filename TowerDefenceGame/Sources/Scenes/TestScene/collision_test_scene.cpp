@@ -138,7 +138,7 @@ namespace
 	//	形状描画
 	void draw_shape(const collision::bounding_object& object, const math::float4& color, const math::float3& offset = { 0.0f, 0.0f, 0.0f })
 	{
-		math::float3 position = add3(math::float3(object.get_position()), offset);
+		math::float3 position = add3(object.get_position().to_float3(), offset);
 		switch (object.get_type())
 		{
 			case collision::bounding_object::types::sphere:
@@ -150,12 +150,12 @@ namespace
 			case collision::bounding_object::types::capsule:
 			{
 				auto& capsule = static_cast<const collision::bounding_capsule&>(object);
-				QUEUE_DEBUG_PRIMITIVE_CAPSULE(position, math::float4(capsule.get_rotation()), static_cast<float>(capsule.get_radius()), static_cast<float>(capsule.get_length()), color, true);
+				QUEUE_DEBUG_PRIMITIVE_CAPSULE(position, capsule.get_rotation().to_float4(), static_cast<float>(capsule.get_radius()), static_cast<float>(capsule.get_length()), color, true);
 				break;
 			}
 			case collision::bounding_object::types::box:
 			{
-				QUEUE_DEBUG_PRIMITIVE_BOX(position, math::float4(object.get_rotation()), math::float3(object.get_local_scale()), color, true);
+				QUEUE_DEBUG_PRIMITIVE_BOX(position, object.get_rotation().to_float4(), math::float3(object.get_local_scale()), color, true);
 				break;
 			}
 			case collision::bounding_object::types::mesh:
@@ -327,8 +327,8 @@ bool collision_test_scene::initialize_core()
 	{
 		main_camera = std::make_shared<camera_object>("メインカメラ");
 		main_camera->get_camera()->set_fov_y(math::angle::to_radian(45.0f));
-		main_camera->set_position(system_units::convert_m_to_unit({ 0.0f, 3.0f, 10.0f }));
-		main_camera->set_rotation({ 0.2f, math::constants<float>::pi, 0 });
+		main_camera->set_world_translation(system_units::convert_m_to_unit(math::double3(0.0, 3.0, 10.0)));
+		main_camera->set_world_euler(math::rotatord(0.2, math::constants<double>::pi, 0.0));
 		register_object(main_camera);
 		mouse::instance()->set_center_lock(false);
 		mouse::instance()->set_cursol_hide(false);
@@ -338,7 +338,7 @@ bool collision_test_scene::initialize_core()
 	//	エディターカメラ生成
 	{
 		auto camera = std::make_shared<editor_camera>(main_camera);
-		camera->set_position(system_units::convert_m_to_unit({ 0.0f, 3.0f, 10.0f }));
+		camera->set_position(system_units::convert_m_to_unit(math::float3(0.0f, 3.0f, 10.0f)));
 		camera->set_rotation({ 0.2f, math::constants<float>::pi, 0 });
 		camera->set_rotation_speed(camera->get_rotation_speed() * 0.25f);
 		camera->set_move_speed(camera->get_move_speed() * 0.25f);

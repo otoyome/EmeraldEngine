@@ -15,7 +15,7 @@ std::shared_ptr<character_object> enemy_controller_object::get_controll_object()
 
 math::float3 enemy_controller_object::get_focus_point() const
 {
-	return controll_object->get_position();
+	return controll_object->get_model_object()->get_world_translation().to_float3();
 }
 
 enemy_controller_object::enemy_controller_object(std::string_view name, std::shared_ptr<character_object> controll_object)
@@ -139,7 +139,7 @@ std::weak_ptr<character_object> enemy_controller_object::search_lockon_taget_obj
 		if (controll_object == enemy_object->get_controll_object() || !enemy_object->get_controll_object())
 			continue;
 
-		auto& position = enemy_object->get_controll_object()->get_position();
+		const math::float3 position = enemy_object->get_controll_object()->get_model_object()->get_world_translation().to_float3();
 		float square_distance = position.x * position.x + position.y * position.y + position.z * position.z;
 		if (square_distance < nearlest_distance)
 		{

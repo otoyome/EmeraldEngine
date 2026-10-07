@@ -39,7 +39,7 @@ namespace
 							  const math::float3& n,
 							  const collision::inner::axis_aligned_bounding_box& box)
 	{
-		const math::float3 box_position(box.get_position());
+		const math::float3 box_position(box.get_position().to_float3());
 		const math::float3 box_scale(box.get_local_scale());
 
 		math::float3 v[3];
@@ -1058,7 +1058,7 @@ bool bounding_mesh::intersect_sphere(const math::double3& point, double world_ra
 
 bool bounding_mesh::intersect_sphere(const bounding_sphere& sphere, intersect_data* intersect) const
 {
-	return	intersect_sphere(sphere.get_position(), sphere.get_radius(), intersect);
+	return	intersect_sphere(sphere.get_position().to_double3(), sphere.get_radius(), intersect);
 }
 
 bool bounding_mesh::intersect_capsule_inner(const bounding_capsule& local_capsule, math::vector3f CapsuleMin, math::vector3f CapsuleMax, const math::matrixd& TransformMatrix, const std::vector<size_t>& triangle_indices, intersect_data* intersect) const

@@ -105,7 +105,7 @@ public:
 
 	const collision_object_ptr& get_push_box() const;
 
-	const math::float3& get_scale() const;
+	math::float3 get_scale() const;
 	void set_scale(const math::float3& scale);
 
 	math::rotatorf get_rotation() const;
@@ -114,7 +114,7 @@ public:
 	float get_rotation_speed() const;
 	void set_rotation_speed(float rotation_speed);
 
-	const math::float3& get_position() const;
+	math::float3 get_position() const;
 	void set_position(const math::float3& position);
 
 	const math::float3& get_footstep_position() const;

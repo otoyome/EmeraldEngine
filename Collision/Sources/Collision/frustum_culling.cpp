@@ -64,7 +64,7 @@ bool frustum_culling::to_sphere(const math::float3& point, float radius) const
 
 bool frustum_culling::to_sphere(const bounding_sphere& sphere) const
 {
-    return	to_sphere(math::float3(sphere.get_position()), static_cast<float>(sphere.get_radius()));
+    return	to_sphere(sphere.get_position().to_float3(), static_cast<float>(sphere.get_radius()));
 }
 
 bool frustum_culling::to_capsule(const bounding_capsule& capsule) const

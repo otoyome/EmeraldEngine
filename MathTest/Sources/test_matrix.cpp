@@ -149,8 +149,12 @@ MATH_TEST_TYPED(matrix_inverse)
 	CHECK(matrix<T>::try_inverse(m, inverse_out));
 	CHECK_NEAR(inverse_out, m.inverted(), tol);
 
-	const matrix<T> rt = matrix<T>::concatenate(matrix<T>::rotation_xyz(static_cast<T>(0.3), static_cast<T>(1.1), static_cast<T>(-0.4)), matrix<T>::translation(5, -6, 7));
-	CHECK_NEAR(matrix<T>::inverse_for_rt(rt), rt.inverted(), tol);
+	const quaternion<T> rt_rotation = quaternion<T>::rotation_xyz(static_cast<T>(0.3), static_cast<T>(1.1), static_cast<T>(-0.4));
+	const vector3<T> rt_position(5, -6, 7);
+	const matrix<T> rt(rt_rotation, rt_position);
+	CHECK_NEAR(matrix<T>::inverse_rigid_transformation(rt_rotation, rt_position), rt.inverted(), tol);
+	const vector3<T> srt_scale(2, static_cast<T>(0.5), 3);
+	CHECK_NEAR(matrix<T>::inverse_affine_transformation(srt_scale, rt_rotation, rt_position), matrix<T>::affine_transformation(srt_scale, rt_rotation, rt_position).inverted(), tol);
 	CHECK_NEAR(matrix<T>::inverse_for_rotation(matrix<T>::rotation_z(static_cast<T>(0.5))), matrix<T>::rotation_z(static_cast<T>(-0.5)), tol);
 	CHECK_NEAR(matrix<T>::inverse_for_translation(matrix<T>::translation(1, 2, 3)), matrix<T>::translation(-1, -2, -3), tol);
 	CHECK_NEAR(matrix<T>::inverse_for_scaling(matrix<T>::scaling(2, 4, 8)), matrix<T>::scaling(static_cast<T>(0.5), static_cast<T>(0.25), static_cast<T>(0.125)), tol);
@@ -163,7 +167,7 @@ MATH_TEST_TYPED(matrix_transform_decompose)
 	const vector3<T> scale(2, 3, 4);
 	const quaternion<T> rotation = quaternion<T>::rotation_axis(vector3<T>(1, -2, 0.5).normalized(), static_cast<T>(1.3));
 	const vector3<T> position(10, -20, 30);
-	const matrix<T> srt = matrix<T>::transform(scale, rotation, position);
+	const matrix<T> srt = matrix<T>::affine_transformation(scale, rotation, position);
 
 	//	@tool ägèk -> âÒì] -> ïΩçsà⁄ìÆ
 	const vector3<T> p(1, 1, 1);
@@ -172,7 +176,7 @@ MATH_TEST_TYPED(matrix_transform_decompose)
 	CHECK_NEAR(matrix<T>(rotation, position), matrix<T>::concatenate(matrix<T>(rotation), matrix<T>::translation(position)), tol);
 
 	const vector3<T> euler(static_cast<T>(0.2), static_cast<T>(-0.5), static_cast<T>(0.9));
-	CHECK_NEAR(matrix<T>::transform(scale, euler, position), matrix<T>::transform(scale, quaternion<T>(euler), position), tol);
+	CHECK_NEAR(matrix<T>::affine_transformation(scale, euler, position), matrix<T>::affine_transformation(scale, quaternion<T>(euler), position), tol);
 
 	vector3<T> out_scale, out_position;
 	quaternion<T> out_rotation;
@@ -182,7 +186,7 @@ MATH_TEST_TYPED(matrix_transform_decompose)
 	CHECK_SAME_ROTATION(out_rotation, rotation, tol);
 
 	//	@tool ägèkÇ™ 0 ÇÃé≤Ç™Ç†Ç¡ÇƒÇ‡ï™âÇ≈Ç´ÇÈÅiëﬁâªÇµÇΩé≤ÇÃå¸Ç´ÇÕåàÇﬂÇÁÇÍÇ»Ç¢ÇΩÇﬂïÑçÜÇÕñ‚ÇÌÇ»Ç¢Åj
-	CHECK(matrix<T>::transform(vector3<T>(2, 0, 1), rotation, position).decompose(out_scale, out_rotation, out_position));
+	CHECK(matrix<T>::affine_transformation(vector3<T>(2, 0, 1), rotation, position).decompose(out_scale, out_rotation, out_position));
 	CHECK_NEAR(math::abs(out_scale), vector3<T>(2, 0, 1), tol);
 	CHECK_NEAR(out_position, position, tol);
 }
@@ -203,7 +207,7 @@ MATH_TEST_TYPED(matrix_mirror)
 //	@tool å^ïœä∑Åiäiî[èáÇÃÇ‹Ç‹ÉRÉsÅ[Ç∑ÇÈÅj
 MATH_TEST_TYPED(matrix_conversion)
 {
-	const matrix<T> m = matrix<T>::transform(vector3<T>(1, 2, 3), quaternion<T>::rotation_z(static_cast<T>(0.5)), vector3<T>(7, 8, 9));
+	const matrix<T> m = matrix<T>::affine_transformation(vector3<T>(1, 2, 3), quaternion<T>::rotation_z(static_cast<T>(0.5)), vector3<T>(7, 8, 9));
 	const float4x4 f = m.to_float4x4();
 	for (std::uint32_t i = 0; i < 16; ++i)
 	{

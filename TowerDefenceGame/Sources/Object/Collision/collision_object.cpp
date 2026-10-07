@@ -73,25 +73,36 @@ void collision_object::set_draw_hit_color(math::float4 color)
 	this->draw_hit_color = color;
 }
 
-const math::rotatorf& collision_object::get_rotation() const
+const math::rigid_transformd& collision_object::get_transform() const
 {
-	return rotation;
+	return transform;
 }
 
-void collision_object::set_rotation(const math::rotatorf& rotation)
+void collision_object::set_transform(const math::rigid_transformd& transform)
 {
-	this->rotation = rotation;
+	this->transform = transform;
 	set_flag(flags::dirty, true);
 }
 
-const math::float3& collision_object::get_position() const
+const math::rigid_transformd& collision_object::get_local_transform() const
 {
-	return position;
+	return local_transform;
 }
 
-void collision_object::set_position(const math::float3& position)
+void collision_object::set_local_transform(const math::rigid_transformd& local_transform)
 {
-	this->position = position;
+	this->local_transform = local_transform;
+	set_flag(flags::dirty, true);
+}
+
+const math::vector3d& collision_object::get_local_offset() const
+{
+	return local_transform.get_translation();
+}
+
+void collision_object::set_local_offset(const math::vector3d& offset)
+{
+	local_transform.set_translation(offset);
 	set_flag(flags::dirty, true);
 }
 
@@ -106,37 +117,13 @@ void collision_object::set_local_scale(const math::float3& scale)
 	set_flag(flags::dirty, true);
 }
 
-const math::rotatorf& collision_object::get_local_rotation() const
-{
-	return local_rotation;
-}
-
-void collision_object::set_local_rotation(const math::rotatorf& rotation)
-{
-	local_rotation = rotation;
-	set_flag(flags::dirty, true);
-}
-
-const math::float3& collision_object::get_local_offset() const
-{
-	return local_offset;
-}
-
-void collision_object::set_local_offset(const math::float3& offset)
-{
-	local_offset = offset;
-	set_flag(flags::dirty, true);
-}
-
 collision_object::collision_object()
 : filter()
 , flag_data(0)
 , mass(48.0f * 0.25f)
 , local_scale(1.0f, 1.0f, 1.0f)
-, local_rotation(0.0f, 0.0f, 0.0f)
-, local_offset(0.0f, 0.0f, 0.0f)
-, rotation(0.0f, 0.0f, 0.0f)
-, position(0.0f, 0.0f, 0.0f)
+, local_transform(math::rigid_transformd::identity())
+, transform(math::rigid_transformd::identity())
 , draw_normal_color(1.0f, 1.0f, 1.0f, 1.0f)
 , draw_hit_color(1.0f, 0.0f, 0.0f, 1.0f)
 , bounding_object()
@@ -182,12 +169,9 @@ void collision_object::solve_pushing_objects(collision::intersect_data& intersec
 	for (int index = 0; index < intersect_data.size(); ++index)
 	{
 		auto& info = intersect_data[index];
-		math::vector3f Normal(info.normal);
-		math::vector3f P1(get_position());
-		P1 = P1 + (Normal * static_cast<float>(info.length));
-		math::float3 p1;
-		p1 = P1.to_float3();
-		set_position(p1);
+		const math::vector3d pushed = transform.get_translation() + math::vector3d(info.normal) * info.length;
+		transform.set_translation(pushed);
+		set_flag(flags::dirty, true);
 	}
 }
 
@@ -286,17 +270,8 @@ void collision_object::update()
 
 	set_flag(flags::dirty, false);
 
-	const math::matrixf local_matrix = math::matrixf::rotation_quaternion(local_rotation.to_quaternion()) * math::matrixf::translation(local_offset);
-	const math::matrixf world_matrix = local_matrix * math::matrixf::rotation_quaternion(rotation.to_quaternion()) * math::matrixf::translation(position);
-	math::vector3f dummy, translation;
-	math::quaternionf quaternion;
-	world_matrix.decompose(dummy, quaternion, translation);
-
-	const math::float3 bounding_translation = translation.to_float3();
-	const math::float4 bounding_rotation = quaternion.to_float4();
 	bounding_object->set_local_scale(math::double3(local_scale));
-	bounding_object->set_rotation(math::double4(bounding_rotation));
-	bounding_object->set_position(math::double3(bounding_translation));
+	bounding_object->set_transform(local_transform * transform);
 }
 
 void collision_object::debug_draw()
@@ -312,19 +287,19 @@ void collision_object::debug_draw()
 		case collision::bounding_object::types::sphere:
 		{
 			auto object = std::static_pointer_cast<collision::bounding_sphere>(bounding_object);
-			QUEUE_DEBUG_PRIMITIVE_SPHERE(math::float3(object->get_position()), static_cast<float>(object->get_radius()), draw_color, true);
+			QUEUE_DEBUG_PRIMITIVE_SPHERE(object->get_position().to_float3(), static_cast<float>(object->get_radius()), draw_color, true);
 			break;
 		}
 		case collision::bounding_object::types::capsule:
 		{
 			auto object = std::static_pointer_cast<collision::bounding_capsule>(bounding_object);
-			QUEUE_DEBUG_PRIMITIVE_CAPSULE(math::float3(object->get_position()), math::float4(object->get_rotation()), static_cast<float>(object->get_radius()), static_cast<float>(object->get_length()), draw_color, true);
+			QUEUE_DEBUG_PRIMITIVE_CAPSULE(object->get_position().to_float3(), object->get_rotation().to_float4(), static_cast<float>(object->get_radius()), static_cast<float>(object->get_length()), draw_color, true);
 			break;
 		}
 		case collision::bounding_object::types::box:
 		{
 			auto object = std::static_pointer_cast<collision::bounding_box>(bounding_object);
-			QUEUE_DEBUG_PRIMITIVE_BOX(math::float3(object->get_position()), math::float4(object->get_rotation()), math::float3(object->get_local_scale()), draw_color, true);
+			QUEUE_DEBUG_PRIMITIVE_BOX(object->get_position().to_float3(), object->get_rotation().to_float4(), math::float3(object->get_local_scale()), draw_color, true);
 			break;
 		}
 		case collision::bounding_object::types::mesh:
@@ -387,6 +362,30 @@ void collision_object::debug_draw()
 }
 
 #if defined(USE_IMGUI)
+bool collision_object::imgui_rigid_transform(const char* label, math::rigid_transformd& transform)
+{
+	bool changed = false;
+	ImGui::PushID(label);
+	ImGui::TextUnformatted(label);
+
+	math::vector3d translation = transform.get_translation();
+	if (ImGui::DragScalarN("translation", ImGuiDataType_Double, &translation.x, 3, 0.01f))
+	{
+		transform.set_translation(translation);
+		changed = true;
+	}
+
+	math::rotatord euler = transform.get_euler();
+	if (ImGui::DragScalarN("rotation", ImGuiDataType_Double, &euler.x, 3, 0.01f))
+	{
+		transform.set_euler(euler);
+		changed = true;
+	}
+
+	ImGui::PopID();
+	return changed;
+}
+
 void collision_object::imgui_render()
 {
 	draw_mesh_color = false;
@@ -408,32 +407,26 @@ void collision_object::imgui_render()
 			case collision::bounding_object::types::sphere:
 			{
 				ImGui::DragFloat("local_radius", &local_scale.x, 0.01f);
-				ImGui::DragFloat3("local_rotation", &local_rotation.x, 0.01f);
-				ImGui::DragFloat3("local_offset", &local_offset.x, 0.01f);
+				imgui_rigid_transform("local", local_transform);
 
-				ImGui::DragFloat3("rotation", &rotation.x, 0.01f);
-				ImGui::DragFloat3("position", &position.x, 0.01f);
+				imgui_rigid_transform("world", transform);
 				break;
 			}
 			case collision::bounding_object::types::capsule:
 			{
 				ImGui::DragFloat("local_radius", &local_scale.x, 0.01f);
 				ImGui::DragFloat("local_length", &local_scale.y, 0.01f);
-				ImGui::DragFloat3("local_rotation", &local_rotation.x, 0.01f);
-				ImGui::DragFloat3("local_offset", &local_offset.x, 0.01f);
+				imgui_rigid_transform("local", local_transform);
 
-				ImGui::DragFloat3("rotation", &rotation.x, 0.01f);
-				ImGui::DragFloat3("position", &position.x, 0.01f);
+				imgui_rigid_transform("world", transform);
 				break;
 			}
 			case collision::bounding_object::types::box:
 			{
 				ImGui::DragFloat3("local_scale", &local_scale.x, 0.01f);
-				ImGui::DragFloat3("local_rotation", &local_rotation.x, 0.01f);
-				ImGui::DragFloat3("local_offset", &local_offset.x, 0.01f);
+				imgui_rigid_transform("local", local_transform);
 
-				ImGui::DragFloat3("rotation", &rotation.x, 0.01f);
-				ImGui::DragFloat3("position", &position.x, 0.01f);
+				imgui_rigid_transform("world", transform);
 				break;
 			}
 			case collision::bounding_object::types::mesh:

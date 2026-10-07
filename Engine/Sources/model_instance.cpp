@@ -56,7 +56,7 @@ void model_instance::set_node_poses(const std::vector<node_animation>& node_anim
 	{
 		auto& in = *(instance_node_ptr + index);
 		auto& an = *(animation_node_ptr + index);
-		in.local_transform = math::matrixf::transform(an.scale, math::quaternionf(an.rotation), an.translation).to_float4x4();
+		in.local_transform = math::matrixf::affine_transformation(an.scale, math::quaternionf(an.rotation), an.translation).to_float4x4();
 	}
 }
 
@@ -69,7 +69,7 @@ void model_instance::set_node_pose(size_t node_index, const node_animation& node
 	}
 
 	auto& in = nodes[node_index];
-	in.local_transform = math::matrixf::transform(node.scale, math::quaternionf(node.rotation), node.translation).to_float4x4();
+	in.local_transform = math::matrixf::affine_transformation(node.scale, math::quaternionf(node.rotation), node.translation).to_float4x4();
 }
 
 bool model_instance::set_morph(std::string_view morph_name, const morph_animation& morph)
@@ -125,7 +125,7 @@ void model_instance::build_model()
 		node instance_node;
 		instance_node.name = resource_node.name;
 		instance_node.parent_index = resource_node.parent_index;
-		const math::matrixf local_transform = math::matrixf::transform(resource_node.scale, math::quaternionf(resource_node.rotation), resource_node.translation);
+		const math::matrixf local_transform = math::matrixf::affine_transformation(resource_node.scale, math::quaternionf(resource_node.rotation), resource_node.translation);
 		instance_node.local_transform = local_transform.to_float4x4();
 		if (instance_node.parent_index != model_resource::invalid_id)
 		{

@@ -234,7 +234,7 @@ bool inner::axis_aligned_bounding_box::intersect_sphere(const math::double3& poi
 
 bool inner::axis_aligned_bounding_box::intersect_sphere(const bounding_sphere& sphere, intersect_data* intersect) const
 {
-	return intersect_sphere(sphere.get_position(), sphere.get_radius(), intersect);
+	return intersect_sphere(sphere.get_position().to_double3(), sphere.get_radius(), intersect);
 }
 
 bool inner::axis_aligned_bounding_box::intersect_capsule(const bounding_capsule& capsule, intersect_data* intersect) const
@@ -420,7 +420,7 @@ bool inner::axis_aligned_bounding_box::intersect_capsule(const bounding_capsule&
 bool inner::axis_aligned_bounding_box::intersect_box(const bounding_box& box, intersect_data* intersect) const
 {
 	(void)intersect;
-	return bounding_box(get_local_scale(), math::double4(0.0f, 0.0f, 0.0f, 1.0f), get_position()).intersect_box(box, nullptr);
+	return bounding_box(get_local_scale(), math::double4(0.0f, 0.0f, 0.0f, 1.0f), get_position().to_double3()).intersect_box(box, nullptr);
 }
 
 bool inner::axis_aligned_bounding_box::intersect_box(const axis_aligned_bounding_box& box) const
@@ -1115,7 +1115,7 @@ bool bounding_box::intersect_sphere(const math::double3& point, double radius, i
 
 bool bounding_box::intersect_sphere(const bounding_sphere& sphere, intersect_data* intersect) const
 {
-	return	intersect_sphere(sphere.get_position(), sphere.get_radius(), intersect);
+	return	intersect_sphere(sphere.get_position().to_double3(), sphere.get_radius(), intersect);
 }
 
 bool bounding_box::intersect_capsule(const bounding_capsule& capsule, intersect_data* intersect) const

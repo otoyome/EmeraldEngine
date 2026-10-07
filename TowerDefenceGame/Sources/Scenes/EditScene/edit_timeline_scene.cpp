@@ -524,9 +524,9 @@ void edit_timeline_scene::sequence_interface::Add(int type)
 		transform.end_time = std::min(owner->timeline.total_time, owner->current_time + default_length);
 		if (static_cast<std::size_t>(object_index) < owner->object_models.size() && owner->object_models[object_index])
 		{
-			transform.start.position = owner->object_models[object_index]->get_position();
+			transform.start.position = owner->object_models[object_index]->get_world_translation().to_float3();
 			transform.end.position = transform.start.position;
-			transform.start.rotation = owner->object_models[object_index]->get_rotation();
+			transform.start.rotation = math::rotatorf(owner->object_models[object_index]->get_world_euler());
 			transform.end.rotation = transform.start.rotation;
 		}
 	}
@@ -679,7 +679,7 @@ bool edit_timeline_scene::initialize_core()
 	//	エディターカメラ生成
 	{
 		auto camera = std::make_shared<editor_camera>(main_camera);
-		camera->set_position(system_units::convert_m_to_unit({ 0, 1, 8 }));
+		camera->set_position(system_units::convert_m_to_unit(math::float3(0.0f, 1.0f, 8.0f)));
 		camera->set_rotation({ 0, math::constants<float>::pi, 0 });
 		camera->set_rotation_speed(camera->get_rotation_speed() * 0.25f);
 		camera->set_move_speed(camera->get_move_speed() * 0.25f);
@@ -980,8 +980,8 @@ void edit_timeline_scene::apply_timeline_state()
 				const math::quaternionf quaternion_end = math::rotatorf(transform.end.rotation).to_quaternion();
 				const math::float4 quaternion = math::slerp(quaternion_start, quaternion_end, t).to_float4();
 
-				model->set_position(position);
-				model->set_rotation(math::rotatorf(math::quaternionf(quaternion)));
+				model->set_world_translation(math::vector3d(position));
+				model->set_world_rotation(math::quaterniond(math::quaternionf(quaternion)));
 				break;
 			}
 		}
@@ -1063,8 +1063,8 @@ void edit_timeline_scene::apply_timeline_state()
 
 		const float fov_y = entry.start.fov_y + (entry.end.fov_y - entry.start.fov_y) * t;
 
-		main_camera->set_position(position);
-		main_camera->set_rotation(math::rotatorf(math::quaternionf(quaternion)));
+		main_camera->set_world_translation(math::vector3d(position));
+		main_camera->set_world_rotation(math::quaterniond(math::quaternionf(quaternion)));
 		main_camera->get_camera()->set_fov_y(fov_y);
 	}
 	else if (editor_camera_object && !editor_camera_object->is_active())
@@ -1072,8 +1072,8 @@ void edit_timeline_scene::apply_timeline_state()
 		//	タイムライン区間から抜けたら、現在のカメラ姿勢を引き継いでフリーカメラへ戻す
 		if (main_camera)
 		{
-			editor_camera_object->set_position(main_camera->get_position());
-			editor_camera_object->set_rotation(main_camera->get_rotation());
+			editor_camera_object->set_position(main_camera->get_world_translation().to_float3());
+			editor_camera_object->set_rotation(math::rotatorf(main_camera->get_world_euler()));
 		}
 		editor_camera_object->set_active(true);
 	}
@@ -1319,8 +1319,8 @@ void edit_timeline_scene::imgui_render_selected_entry()
 			{
 				if (model)
 				{
-					entry.start.position = model->get_position();
-					entry.start.rotation = model->get_rotation();
+					entry.start.position = model->get_world_translation().to_float3();
+					entry.start.rotation = math::rotatorf(model->get_world_euler());
 				}
 			}
 
@@ -1332,8 +1332,8 @@ void edit_timeline_scene::imgui_render_selected_entry()
 			{
 				if (model)
 				{
-					entry.end.position = model->get_position();
-					entry.end.rotation = model->get_rotation();
+					entry.end.position = model->get_world_translation().to_float3();
+					entry.end.rotation = math::rotatorf(model->get_world_euler());
 				}
 			}
 
@@ -1364,8 +1364,8 @@ void edit_timeline_scene::imgui_render_selected_entry()
 			{
 				if (main_camera)
 				{
-					entry->start.position = main_camera->get_position();
-					entry->start.rotation = main_camera->get_rotation();
+					entry->start.position = main_camera->get_world_translation().to_float3();
+					entry->start.rotation = math::rotatorf(main_camera->get_world_euler());
 					entry->start.fov_y = main_camera->get_camera()->get_fov_y();
 				}
 			}
@@ -1379,8 +1379,8 @@ void edit_timeline_scene::imgui_render_selected_entry()
 			{
 				if (main_camera)
 				{
-					entry->end.position = main_camera->get_position();
-					entry->end.rotation = main_camera->get_rotation();
+					entry->end.position = main_camera->get_world_translation().to_float3();
+					entry->end.rotation = math::rotatorf(main_camera->get_world_euler());
 					entry->end.fov_y = main_camera->get_camera()->get_fov_y();
 				}
 			}

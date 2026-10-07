@@ -10,36 +10,6 @@ void stage_object::set_model_object(std::shared_ptr<model_object> model)
 	this->model = model;
 }
 
-const math::float3& stage_object::get_scale() const
-{
-	return model->get_scale();
-}
-
-void stage_object::set_scale(const math::float3& scale)
-{
-	model->set_scale(scale);
-}
-
-const math::rotatorf& stage_object::get_rotation() const
-{
-	return model->get_rotation();
-}
-
-void stage_object::set_rotation(const math::rotatorf& rotator)
-{
-	model->set_rotation(rotator);
-}
-
-const math::float3& stage_object::get_position() const
-{
-	return model->get_position();
-}
-
-void stage_object::set_position(const math::float3& position)
-{
-	model->set_position(position);
-}
-
 stage_object::stage_object(std::string_view name, std::shared_ptr<model_object> model)
 : game_object(name)
 , model(model)

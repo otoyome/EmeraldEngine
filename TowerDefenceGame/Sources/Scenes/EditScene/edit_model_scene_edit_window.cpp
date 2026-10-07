@@ -25,7 +25,7 @@ bool edit_model_scene::initialize_edit_core()
 	//	エディターカメラ生成
 	{
 		auto camera = std::make_shared<editor_camera>(main_camera);
-		camera->set_position(system_units::convert_m_to_unit({ 0, 1, 8 }));
+		camera->set_position(system_units::convert_m_to_unit(math::float3(0.0f, 1.0f, 8.0f)));
 		camera->set_rotation({ 0, math::constants<float>::pi, 0 });
 		camera->set_rotation_speed(camera->get_rotation_speed() * 0.25f);
 		camera->set_move_speed(camera->get_move_speed() * 0.25f);

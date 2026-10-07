@@ -39,7 +39,9 @@
     <ClInclude Include="Headers\Math\math_simd.h" />
     <ClInclude Include="Headers\Math\matrix.h" />
     <ClInclude Include="Headers\Math\quaternion.h" />
+    <ClInclude Include="Headers\Math\rigid_transform.h" />
     <ClInclude Include="Headers\Math\rotator.h" />
+    <ClInclude Include="Headers\Math\transform.h" />
     <ClInclude Include="Headers\Math\utility.h" />
     <ClInclude Include="Headers\Math\vector2.h" />
     <ClInclude Include="Headers\Math\vector3.h" />
@@ -49,7 +51,9 @@
     <ClCompile Include="Sources\Math\exponential_quaternion.cpp" />
     <ClCompile Include="Sources\Math\matrix.cpp" />
     <ClCompile Include="Sources\Math\quaternion.cpp" />
+    <ClCompile Include="Sources\Math\rigid_transform.cpp" />
     <ClCompile Include="Sources\Math\rotator.cpp" />
+    <ClCompile Include="Sources\Math\transform.cpp" />
     <ClCompile Include="Sources\Math\vector2.cpp" />
     <ClCompile Include="Sources\Math\vector3.cpp" />
     <ClCompile Include="Sources\Math\vector4.cpp" />
@@ -120,7 +124,7 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
-      <AdditionalIncludeDirectories>$(ProjectDir)Headers;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)Headers;$(SolutionDir)External\cereal\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">

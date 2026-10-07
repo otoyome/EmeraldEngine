@@ -58,7 +58,6 @@
     <ClInclude Include="Headers\common_pipeline_states.h" />
     <ClInclude Include="Headers\CoordinateSystem\hierarchy.h" />
     <ClInclude Include="Headers\CoordinateSystem\spatial.h" />
-    <ClInclude Include="Headers\CoordinateSystem\transform.h" />
     <ClInclude Include="Headers\custom_pipeline_state.h" />
     <ClInclude Include="Headers\data_converter.h" />
     <ClInclude Include="Headers\effect_instance.h" />
@@ -134,7 +133,6 @@
     <ClCompile Include="Sources\camera.cpp" />
     <ClCompile Include="Sources\CoordinateSystem\hierarchy.cpp" />
     <ClCompile Include="Sources\CoordinateSystem\spatial.cpp" />
-    <ClCompile Include="Sources\CoordinateSystem\transform.cpp" />
     <ClCompile Include="Sources\Graphics\cubic_sdf_buffer_pool.cpp" />
     <ClCompile Include="Sources\Graphics\hiz_buffer.cpp" />
     <ClCompile Include="Sources\Graphics\meshlet_culling_system.cpp" />

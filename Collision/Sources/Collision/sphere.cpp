@@ -130,7 +130,7 @@ bool bounding_sphere::intersect_sphere(const math::double3& point, double radius
 
 bool bounding_sphere::intersect_sphere(const bounding_sphere& sphere, intersect_data* intersect) const
 {
-	return intersect_sphere(sphere.get_position(), sphere.get_radius(), intersect);
+	return intersect_sphere(sphere.get_position().to_double3(), sphere.get_radius(), intersect);
 }
 
 bool bounding_sphere::intersect_capsule(const bounding_capsule& capsule, intersect_data* intersect) const

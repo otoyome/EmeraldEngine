@@ -65,20 +65,20 @@ public:
 	std::shared_ptr<collision::bounding_object> get_bounding_object();
 	void set_bounding_object(std::shared_ptr<collision::bounding_object> object);
 
-	const math::rotatorf& get_rotation() const;
-	void set_rotation(const math::rotatorf& rotation);
+	//	持ち主のワールド姿勢（毎フレーム同期するため、位置と回転をまとめて設定する）
+	const math::rigid_transformd& get_transform() const;
+	void set_transform(const math::rigid_transformd& transform);
 
-	const math::float3& get_position() const;
-	void set_position(const math::float3& position);
+	//	持ち主から見たローカル姿勢（回転を含めて設定する場合）
+	const math::rigid_transformd& get_local_transform() const;
+	void set_local_transform(const math::rigid_transformd& local_transform);
+
+	//	ローカル姿勢の平行移動のみを取得・設定する（回転は維持する）
+	const math::vector3d& get_local_offset() const;
+	void set_local_offset(const math::vector3d& offset);
 
 	const math::float3& get_local_scale() const;
 	void set_local_scale(const math::float3& scale);
-
-	const math::rotatorf& get_local_rotation() const;
-	void set_local_rotation(const math::rotatorf& rotation);
-
-	const math::float3& get_local_offset() const;
-	void set_local_offset(const math::float3& offset);
 
 	void set_draw_normal_color(math::float4 color);
 	void set_draw_hit_color(math::float4 color);
@@ -107,6 +107,9 @@ private:
 	void update();
 
 #if defined(USE_IMGUI)
+	//	姿勢の編集 UI
+	static bool imgui_rigid_transform(const char* label, math::rigid_transformd& transform);
+
 	std::string name;
 	bool draw_mesh_color = false;
 	INT draw_mesh_collision_x_index = -1;
@@ -126,11 +129,9 @@ private:
 	float mass; // 本体の質量
 	material::physical_datas physical_data; // 物理マテリアル
 	math::float3 local_scale; // ローカルスケール情報
-	math::rotatorf local_rotation; // ローカル回転
-	math::float3 local_offset; // ローカルオフセット
+	math::rigid_transformd local_transform;	//	持ち主から見たローカル姿勢
 
-	math::rotatorf rotation;
-	math::float3 position;
+	math::rigid_transformd transform;	//	持ち主のワールド姿勢
 
 	math::float4 draw_normal_color;
 	math::float4 draw_hit_color;

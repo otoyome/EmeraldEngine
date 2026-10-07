@@ -3,7 +3,7 @@
 #include <memory>
 
 #include "Math/math_all.h"
-#include "CoordinateSystem/transform.h"
+#include "Math/transform.h"
 #include "CoordinateSystem/hierarchy.h"
 
 //	姿勢制御
@@ -28,21 +28,21 @@ public:
 	void set_flag(flags flag, bool value);
 
 	//	ローカル姿勢
-	const transformd& get_local() const;
+	const math::transformd& get_local() const;
 	math::rotatord get_local_euler() const;
-	void set_local(const transformd& local);
+	void set_local(const math::transformd& local);
 	void set_local_scale(const math::vector3d& scale);
 	void set_local_rotation(const math::quaterniond& rotation);
 	void set_local_euler(const math::rotatord& euler);
 	void set_local_translation(const math::vector3d& translation);
 
 	//	ワールド姿勢
-	const transformd& get_world() const;
+	const math::transformd& get_world() const;
 	math::vector3d get_world_scale() const;
 	math::quaterniond get_world_rotation() const;
 	math::rotatord get_world_euler() const;
 	math::vector3d get_world_translation() const;
-	void set_world(const transformd& world);
+	void set_world(const math::transformd& world);
 	void set_world_scale(const math::vector3d& scale);
 	void set_world_rotation(const math::quaterniond& rotation);
 	void set_world_euler(const math::rotatord& euler);
@@ -56,7 +56,7 @@ public:
 
 public:
 	spatial();
-	explicit spatial(const transformd& local);
+	explicit spatial(const math::transformd& local);
 	~spatial() override;
 
 	//	親子関係の付け替え
@@ -77,8 +77,8 @@ private:
 	mutable UINT system_flags;			//	フラグ類
 	std::uint32_t version;				//	変更回数
 
-	transformd local;					//	ローカル姿勢
-	mutable transformd world;			//	ワールド姿勢
+	math::transformd local;					//	ローカル姿勢
+	mutable math::transformd world;			//	ワールド姿勢
 	math::rotatord local_euler_hint;	//	最後に設定されたローカル回転のオイラー角
 };
 

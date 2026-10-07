@@ -22,39 +22,6 @@ void model_object::set_ik_resource(ik_resource_ptr ik_resource)
 	ik_datas.resize(ik_resource->get_behavior_data_list().size());
 }
 
-const math::float3& model_object::get_scale() const
-{
-	return scale;
-}
-
-void model_object::set_scale(const math::float3& scale)
-{
-	dirty = true;
-	this->scale = scale;
-}
-
-const math::rotatorf& model_object::get_rotation() const
-{
-	return rotator;
-}
-
-void model_object::set_rotation(const math::rotatorf& rotator)
-{
-	dirty = true;
-	this->rotator = rotator;
-}
-
-const math::float3& model_object::get_position() const
-{
-	return position;
-}
-
-void model_object::set_position(const math::float3& position)
-{
-	dirty = true;
-	this->position = position;
-}
-
 bool model_object::get_apply_root_animation_transform() const
 {
 	return apply_root_animation_transform;
@@ -66,7 +33,7 @@ void model_object::set_apply_root_animation_transform(bool flag)
 }
 
 model_object::model_object(std::string_view name, std::string_view file_path)
-: game_object(name)
+: spatial_object(name)
 {
 	//	モデルファイルが存在するかチェック
 	std::filesystem::path path(file_path);
@@ -101,7 +68,7 @@ model_object::model_object(std::string_view name, std::string_view file_path)
 }
 
 model_object::model_object(std::string_view name, model_resource_ptr resource)
-: game_object(name)
+: spatial_object(name)
 {
 	previous_node_animations.clear();
 	model_instance = std::make_shared<::model_instance>(resource);
@@ -200,11 +167,16 @@ bool model_object::unregister_root_animation_rotation_callback()
 
 void model_object::update_transform()
 {
-	if (!dirty || !model_instance)
+	if (!model_instance)
+		return;
+
+	const std::uint32_t spatial_version = get_spatial()->get_version();
+	if (!dirty && applied_spatial_version == spatial_version)
 		return;
 
 	dirty = false;
-	model_instance->update_transform(math::matrixf::transform(scale, rotator.to_quaternion(), position));
+	applied_spatial_version = spatial_version;
+	model_instance->update_transform(get_world().to_relative_matrix(math::vector3d::zero()));
 }
 
 void model_object::play_animation(size_t animation_index, bool loop, float blend_time)
@@ -381,7 +353,7 @@ void model_object::update_node_animation(const animation::data& animation_data, 
 		if (node_index != model_resource::invalid_id)
 		{
 			//	ワールド行列
-			const math::matrixf world_transform = math::matrixf::transform(scale, rotator.to_quaternion(), position);
+			const math::matrixf world_transform = get_world().to_relative_matrix(get_world_translation());
 
 			model_instance::node_animation& current_node_animation = current_node_animations[node_index];
 			model_instance::node_animation begin_node_animation, previous_node_animation, end_node_animation;
@@ -454,10 +426,7 @@ void model_object::update_node_animation(const animation::data& animation_data, 
 				// 位置を更新
 				if (apply_root_animation_transform)
 				{
-					position.x += world_translation.x;
-					position.y += world_translation.y;
-					position.z += world_translation.z;
-					dirty = true;
+					set_world_translation(get_world_translation() + math::vector3d(world_translation));
 				}
 
 				//	コールバック呼び出し
@@ -491,11 +460,12 @@ void model_object::update_node_animation(const animation::data& animation_data, 
 				const math::float4 local_rotation = local_rotation_quaternion.to_float4();
 				if (apply_root_animation_transform)
 				{
-					math::rotatorf local_rotator{ math::quaternionf(local_rotation) };
+					const math::rotatord local_rotator{ math::rotatorf(math::quaternionf(local_rotation)) };
+					math::rotatord rotator = get_world_euler();
 					rotator.x = math::angle::normalize(rotator.x + local_rotator.x);
 					rotator.y = math::angle::normalize(rotator.y + local_rotator.y);
 					rotator.z = math::angle::normalize(rotator.z + local_rotator.z);
-					dirty = true;
+					set_world_euler(rotator);
 				}
 				//	コールバック呼び出し
 				if (on_root_animation_rotation)
@@ -761,6 +731,8 @@ void model_object::update_ik()
 
 void model_object::imgui_render_core()
 {
+	base::imgui_render_core();
+
 	if (!model_instance)
 		return;
 
@@ -770,9 +742,6 @@ void model_object::imgui_render_core()
 	CHECK_BOX(self_shadow_off);
 	CHECK_BOX(use_capsule_shadow);
 
-	ImGui::DragFloat3("scale", &scale.x, 0.01f);
-	ImGui::DragAngle3("rotation", &rotator.x, 0.01f);
-	ImGui::DragFloat3("position", &position.x, 0.01f);
 	{
 		math::float2 lod_distance_range = get_model_instance()->get_lod_distance_range();
 		ImGui::DragFloat2("lod_distance_range", &lod_distance_range.x, 1.0f, 0.0f, 100000.0f, "%.1f");

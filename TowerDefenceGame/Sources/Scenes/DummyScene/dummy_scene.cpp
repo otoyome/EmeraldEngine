@@ -31,8 +31,8 @@ bool dummy_scene::initialize_core()
 	//	main_camera->get_camera()->set_flag(camera::flags::hybrid_projection, true);
 	//	main_camera->get_camera()->set_hybrid_rate(0.3f);	//	透視投影
 
-		main_camera->set_position({0, 10, 100.0f});
-		main_camera->set_rotation({0.1f, math::constants<float>::pi, 0});
+		main_camera->set_world_translation(math::vector3d(0.0, 10.0, 100.0));
+		main_camera->set_world_euler(math::rotatord(0.1, math::constants<double>::pi, 0.0));
 		register_object(main_camera);
 		mouse::instance()->set_center_lock(false);
 		mouse::instance()->set_cursol_hide(false);
@@ -42,7 +42,7 @@ bool dummy_scene::initialize_core()
 	//	エディターカメラ生成
 	{
 		auto camera = std::make_shared<editor_camera>(main_camera);
-		camera->set_position(system_units::convert_m_to_unit({ 0, 1, 8 }));
+		camera->set_position(system_units::convert_m_to_unit(math::float3(0.0f, 1.0f, 8.0f)));
 		camera->set_rotation({ 0, math::constants<float>::pi, 0 });
 		camera->set_rotation_speed(camera->get_rotation_speed() * 0.25f);
 		camera->set_move_speed(camera->get_move_speed() * 0.25f);
@@ -96,13 +96,13 @@ bool dummy_scene::initialize_core()
 		};
 		if (auto obj = load_model("Assets/Resources/Models/DamagedHelmet/glTF/DamagedHelmet.emo"))
 		{
-			obj->set_position({0, 25, 0});
-			obj->set_scale({25,25,25});
+			obj->set_world_translation(math::vector3d(0.0, 25.0, 0.0));
+			obj->set_world_scale(math::vector3d(25.0, 25.0, 25.0));
 		}
 		if (auto obj = load_model("Assets/Resources/Models/Cartoon_City/Cartoon_City.emo"))
 		{
-			obj->set_position({22, 0, 0});
-			obj->set_scale({3,3,3});
+			obj->set_world_translation(math::vector3d(22.0, 0.0, 0.0));
+			obj->set_world_scale(math::vector3d(3.0, 3.0, 3.0));
 		}
 	}
 

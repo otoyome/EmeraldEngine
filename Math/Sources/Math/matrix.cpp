@@ -110,6 +110,15 @@ namespace math
 	}
 
 	template<typename T>
+	void matrix<T>::identity()
+	{
+		set_storage(1, 0, 0, 0,
+					0, 1, 0, 0,
+					0, 0, 1, 0,
+					0, 0, 0, 1);
+	}
+
+	template<typename T>
 	bool matrix<T>::decompose(vector3<T>& out_scale, quaternion<T>& out_rotation, vector3<T>& out_position) const
 	{
 		const matrix& row_form = *this;
@@ -262,6 +271,77 @@ namespace math
 	}
 
 	template<typename T>
+	void matrix<T>::addition(const matrix& r)
+	{
+		if constexpr (use_simd_v<T>)
+		{
+			for (std::int32_t i = 0; i < 4; ++i)
+			{
+				reg[i] = ops::add(reg[i], r.reg[i]);
+			}
+		}
+		else
+		{
+			for (std::uint32_t i = 0; i < element_count; ++i)
+			{
+				elements[i] += r.elements[i];
+			}
+		}
+	}
+
+	template<typename T>
+	void matrix<T>::subtract(const matrix& r)
+	{
+		if constexpr (use_simd_v<T>)
+		{
+			for (std::int32_t i = 0; i < 4; ++i)
+			{
+				reg[i] = ops::sub(reg[i], r.reg[i]);
+			}
+		}
+		else
+		{
+			for (std::uint32_t i = 0; i < element_count; ++i)
+			{
+				elements[i] -= r.elements[i];
+			}
+		}
+	}
+
+	template<typename T>
+	void matrix<T>::multiply(T value)
+	{
+		if constexpr (use_simd_v<T>)
+		{
+			register_type v = ops::set1(value);
+			for (std::int32_t i = 0; i < 4; ++i)
+			{
+				reg[i] = ops::mul(reg[i], v);
+			}
+		}
+		else
+		{
+			for (std::uint32_t i = 0; i < element_count; ++i)
+			{
+				elements[i] *= value;
+			}
+		}
+	}
+
+	template<typename T>
+	void matrix<T>::multiply(const matrix& r)
+	{
+		if constexpr (is_column_vector)
+		{
+			*this = concatenate(r, *this);
+		}
+		else
+		{
+			*this = concatenate(*this, r);
+		}
+	}
+
+	template<typename T>
 	float4x4 matrix<T>::to_float4x4() const
 	{
 		float4x4 ret;
@@ -308,6 +388,30 @@ namespace math
 	}
 
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////
+	template<typename T>
+	matrix<T> matrix<T>::concatenate(const matrix& first, const matrix& second)
+	{
+		matrix ret;
+		if constexpr (use_simd_v<T>)
+		{
+			simd::multiply<ops>(first.reg, second.reg, ret.reg);
+		}
+		else
+		{
+			for (std::int32_t axis = 0; axis < 4; ++axis)
+			{
+				for (std::int32_t component = 0; component < 4; ++component)
+				{
+					ret.storage[axis][component] = first.storage[axis][0] * second.storage[0][component]
+													+ first.storage[axis][1] * second.storage[1][component]
+													+ first.storage[axis][2] * second.storage[2][component]
+													+ first.storage[axis][3] * second.storage[3][component];
+				}
+			}
+		}
+		return ret;
+	}
+
 	template<typename T>
 	T matrix<T>::determinant(const matrix& mat)
 	{
@@ -385,47 +489,6 @@ namespace math
 			out = inverse(mat);
 			return true;
 		}
-	}
-
-	template<typename T>
-	matrix<T> matrix<T>::inverse_for_scaling(const matrix& mat)
-	{
-		matrix ret;
-		ret.s11 = static_cast<T>(1) / mat.s11;
-		ret.s22 = static_cast<T>(1) / mat.s22;
-		ret.s33 = static_cast<T>(1) / mat.s33;
-		return ret;
-	}
-
-	template<typename T>
-	matrix<T> matrix<T>::inverse_for_rotation(const matrix& mat)
-	{
-		return transpose(mat);
-	}
-
-	template<typename T>
-	matrix<T> matrix<T>::inverse_for_translation(const matrix& mat)
-	{
-		matrix ret;
-		ret.set_translation(-mat.get_translation());
-		return ret;
-	}
-
-	template<typename T>
-	matrix<T> matrix<T>::inverse_for_rt(const matrix& mat)
-	{
-		const matrix& source = mat;
-		matrix rotation = source;
-		rotation.s41 = rotation.s42 = rotation.s43 = static_cast<T>(0);
-		rotation.s44 = static_cast<T>(1);
-		rotation = inverse_for_rotation(rotation);
-
-		matrix ret = rotation;
-		ret.s41 = -source.s41 * rotation.s11 - source.s42 * rotation.s21 - source.s43 * rotation.s31;
-		ret.s42 = -source.s41 * rotation.s12 - source.s42 * rotation.s22 - source.s43 * rotation.s32;
-		ret.s43 = -source.s41 * rotation.s13 - source.s42 * rotation.s23 - source.s43 * rotation.s33;
-		ret.s44 = static_cast<T>(1);
-		return ret;
 	}
 
 	template<typename T>
@@ -826,9 +889,8 @@ namespace math
 	}
 
 	template<typename T>
-	matrix<T> matrix<T>::transform(const vector3<T>& scale, const quaternion<T>& rotation, const vector3<T>& position)
+	matrix<T> matrix<T>::affine_transformation(const vector3<T>& scale, const quaternion<T>& rotation, const vector3<T>& position)
 	{
-		//	ägèkÇÃå„Ç…âÒì]ÇµÅAïΩçsà⁄ìÆÇâ¡Ç¶ÇÈ
 		matrix ret = concatenate(scaling(scale), rotation_quaternion(rotation));
 		ret.s41 = position.x;
 		ret.s42 = position.y;
@@ -838,13 +900,73 @@ namespace math
 	}
 
 	template<typename T>
-	matrix<T> matrix<T>::transform(const vector3<T>& scale, const vector3<T>& euler, const vector3<T>& position)
+	matrix<T> matrix<T>::affine_transformation(const vector3<T>& scale, const vector3<T>& euler, const vector3<T>& position)
 	{
-		//	ägèkÇÃå„Ç…âÒì]ÇµÅAïΩçsà⁄ìÆÇâ¡Ç¶ÇÈ
 		matrix ret = concatenate(scaling(scale), rotation_xyz(euler));
 		ret.s41 = position.x;
 		ret.s42 = position.y;
 		ret.s43 = position.z;
+		ret.s44 = static_cast<T>(1);
+		return ret;
+	}
+
+	template<typename T>
+	matrix<T> matrix<T>::inverse_for_scaling(const matrix& mat)
+	{
+		matrix ret;
+		ret.s11 = static_cast<T>(1) / mat.s11;
+		ret.s22 = static_cast<T>(1) / mat.s22;
+		ret.s33 = static_cast<T>(1) / mat.s33;
+		return ret;
+	}
+
+	template<typename T>
+	matrix<T> matrix<T>::inverse_for_rotation(const matrix& mat)
+	{
+		return transpose(mat);
+	}
+
+	template<typename T>
+	matrix<T> matrix<T>::inverse_for_translation(const matrix& mat)
+	{
+		matrix ret;
+		ret.set_translation(-mat.get_translation());
+		return ret;
+	}
+
+	template<typename T>
+	matrix<T> matrix<T>::inverse_affine_transformation(const vector3<T>& scale, const quaternion<T>& rotation, const vector3<T>& position)
+	{
+		//	(S * R * T)^-1 = T^-1 * R^T * S^-1 Çíºê⁄ìWäJÇ∑ÇÈ
+		const matrix r = rotation_quaternion(rotation);
+		const T inverse_x = static_cast<T>(1) / scale.x;
+		const T inverse_y = static_cast<T>(1) / scale.y;
+		const T inverse_z = static_cast<T>(1) / scale.z;
+
+		matrix ret;
+		ret.s11 = r.s11 * inverse_x;	ret.s12 = r.s21 * inverse_y;	ret.s13 = r.s31 * inverse_z;	ret.s14 = static_cast<T>(0);
+		ret.s21 = r.s12 * inverse_x;	ret.s22 = r.s22 * inverse_y;	ret.s23 = r.s32 * inverse_z;	ret.s24 = static_cast<T>(0);
+		ret.s31 = r.s13 * inverse_x;	ret.s32 = r.s23 * inverse_y;	ret.s33 = r.s33 * inverse_z;	ret.s34 = static_cast<T>(0);
+		ret.s41 = -(position.x * r.s11 + position.y * r.s12 + position.z * r.s13) * inverse_x;
+		ret.s42 = -(position.x * r.s21 + position.y * r.s22 + position.z * r.s23) * inverse_y;
+		ret.s43 = -(position.x * r.s31 + position.y * r.s32 + position.z * r.s33) * inverse_z;
+		ret.s44 = static_cast<T>(1);
+		return ret;
+	}
+
+	template<typename T>
+	matrix<T> matrix<T>::inverse_rigid_transformation(const quaternion<T>& rotation, const vector3<T>& position)
+	{
+		//	(R * T)^-1 = T^-1 * R^T Çíºê⁄ìWäJÇ∑ÇÈ
+		const matrix r = rotation_quaternion(rotation);
+
+		matrix ret;
+		ret.s11 = r.s11;	ret.s12 = r.s21;	ret.s13 = r.s31;	ret.s14 = static_cast<T>(0);
+		ret.s21 = r.s12;	ret.s22 = r.s22;	ret.s23 = r.s32;	ret.s24 = static_cast<T>(0);
+		ret.s31 = r.s13;	ret.s32 = r.s23;	ret.s33 = r.s33;	ret.s34 = static_cast<T>(0);
+		ret.s41 = -(position.x * r.s11 + position.y * r.s12 + position.z * r.s13);
+		ret.s42 = -(position.x * r.s21 + position.y * r.s22 + position.z * r.s23);
+		ret.s43 = -(position.x * r.s31 + position.y * r.s32 + position.z * r.s33);
 		ret.s44 = static_cast<T>(1);
 		return ret;
 	}

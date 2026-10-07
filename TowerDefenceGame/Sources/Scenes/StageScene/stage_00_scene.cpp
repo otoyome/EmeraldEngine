@@ -73,7 +73,7 @@ bool stage_00_scene::initialize_core()
 	{
 		auto point = std::make_shared<point_light_object>("点光源");
 		point->set_flag(light::flags::use_shadow, true);
-		point->set_position(system_units::convert_m_to_unit({ 0, 5.0f, -20 }));
+		point->set_world_translation(system_units::convert_m_to_unit(math::double3(0.0, 5.0, -20.0)));
 		point->set_range(system_units::convert_m_to_unit(10.0f));
 		point->set_color({ 1.0f, 1.0f, 1.0f, 1.0f });
 		{
@@ -122,8 +122,8 @@ bool stage_00_scene::initialize_core()
 
 		auto spot = std::make_shared<spot_light_object>("スポットライト");
 		spot->set_flag(light::flags::use_shadow, true);
-		spot->set_position(system_units::convert_m_to_unit({ 0, 5.0f, -30 }));
-		spot->set_rotation({math::constants<float>::pi * 0.2f, 0, 0});
+		spot->set_world_translation(system_units::convert_m_to_unit(math::double3(0.0, 5.0, -30.0)));
+		spot->set_world_euler(math::rotatord(math::constants<double>::pi * 0.2, 0.0, 0.0));
 		spot->set_range(system_units::convert_m_to_unit(20.0f));
 		spot->set_inner_cone(30.0f);
 		spot->set_outer_cone(60.0f);
@@ -160,7 +160,7 @@ bool stage_00_scene::initialize_core()
 		auto stage = std::make_shared<stage_object>("ステージ制御", model);
 
 		//	メッシュ分当たり判定生成
-		const math::matrixf transform = math::matrixf::transform(stage->get_scale(), stage->get_rotation().to_quaternion(), stage->get_position());
+		const math::matrixf transform = stage->get_model_object()->get_world().to_relative_matrix(math::vector3d::zero());
 		generate_model_collision(model->get_model_instance()->get_resource(), transform, separate_level);
 		generate_model_sdf(model->get_model_instance()->get_resource());
 

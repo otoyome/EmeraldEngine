@@ -13,15 +13,6 @@ public:
 	std::shared_ptr<model_object> get_model_object() const;
 	void set_model_object(std::shared_ptr<model_object> model);
 
-	const math::float3& get_scale() const;
-	void set_scale(const math::float3& scale);
-
-	const math::rotatorf& get_rotation() const;
-	void set_rotation(const math::rotatorf& rotator);
-
-	const math::float3& get_position() const;
-	void set_position(const math::float3& position);
-
 public:
 	stage_object(std::string_view name, std::shared_ptr<model_object> model);
 	~stage_object() override;

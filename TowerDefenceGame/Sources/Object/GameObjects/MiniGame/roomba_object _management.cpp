@@ -17,7 +17,7 @@ namespace
 
 	//	€–S‰Á‘¬
 	constexpr float death_spin_speed = math::angle::to_radian(720.0f);
-	constexpr math::float3 dead_impulse = system_units::convert_m_to_unit({0.0f, 10.0f, 0.0f});
+	constexpr math::float3 dead_impulse = system_units::convert_m_to_unit(math::float3(0.0f, 10.0f, 0.0f));
 
 	//	’n–Ê‚ÌŒX‚«‚ğŠp“x‚ÅZo
 	math::float3 calculate_ground_tilt(const math::float3& euler, const math::float3& normal)

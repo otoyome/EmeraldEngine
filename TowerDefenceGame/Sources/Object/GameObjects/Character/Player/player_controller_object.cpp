@@ -18,7 +18,7 @@ std::shared_ptr<character_object> player_controller_object::get_controll_object(
 
 math::float3 player_controller_object::get_focus_point() const
 {
-	return controll_object->get_position();
+	return controll_object->get_model_object()->get_world_translation().to_float3();
 }
 
 bool player_controller_object::get_input_purmit_flag() const

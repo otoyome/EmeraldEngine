@@ -159,14 +159,14 @@ bool bounding_capsule::intersect_sphere(const math::double3& point, double radiu
 
 bool bounding_capsule::intersect_sphere(const bounding_sphere& sphere, intersect_data* intersect) const
 {
-	return	intersect_sphere(sphere.get_position(), sphere.get_radius(), intersect);
+	return	intersect_sphere(sphere.get_position().to_double3(), sphere.get_radius(), intersect);
 }
 
 bool bounding_capsule::intersect_capsule(const bounding_capsule& capsule, intersect_data* intersect) const
 {
 	//	æ‚É‹…“¯m‚Å”»’è
-	bounding_sphere self_bs = bounding_sphere(get_position(), get_radius() + get_length() * 0.5f);
-	bounding_sphere capsule_bs = bounding_sphere(capsule.get_position(), capsule.get_radius() + capsule.get_length() * 0.5f);
+	bounding_sphere self_bs = bounding_sphere(get_position().to_double3(), get_radius() + get_length() * 0.5f);
+	bounding_sphere capsule_bs = bounding_sphere(capsule.get_position().to_double3(), capsule.get_radius() + capsule.get_length() * 0.5f);
 	if (!self_bs.intersect_sphere(capsule_bs))
 		return false;
 

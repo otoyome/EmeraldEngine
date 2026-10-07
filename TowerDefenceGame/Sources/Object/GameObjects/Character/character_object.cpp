@@ -148,18 +148,6 @@ void character_object::imgui_render_core()
 	ImGui::DragFloat("stagger_recovery_time", &stagger_recovery_time);
 	ImGui::DragFloat("invisile_timer", &invisile_timer);
 
-	{
-		auto scale = get_scale();
-		auto rotator = get_rotation();
-		auto position = get_position();
-		ImGui::DragFloat3("scale", &scale.x, 0.01f);
-		ImGui::DragFloat3("rotation", &rotator.x, 0.01f);
-		ImGui::DragFloat3("position", &position.x, 0.01f);
-		set_scale(scale);
-		set_rotation(rotator);
-		set_position(position);
-	}
-
 	ImGui::DragFloat3("velocity", &velocity.x, 0.01f);
 	ImGui::DragFloat("accelaration", &accelaration, 0.01f);
 	ImGui::DragFloat("breaking_deceleration", &breaking_deceleration, 0.01f);
@@ -224,28 +212,6 @@ const collision_object_ptr& character_object::get_push_box() const
 	return push_box;
 }
 
-const math::float3& character_object::get_scale() const
-{
-	return model->get_scale();
-}
-
-void character_object::set_scale(const math::float3& scale)
-{
-	model->set_scale(scale);
-}
-
-const math::rotatorf& character_object::get_rotation() const
-{
-	return model->get_rotation();
-}
-
-void character_object::set_rotation(const math::rotatorf& rotator)
-{
-	model->set_rotation(rotator);
-	if (push_box)
-		push_box->set_rotation(rotator);
-}
-
 float character_object::get_rotation_speed() const
 {
 	return rotation_speed;
@@ -256,16 +222,12 @@ void character_object::set_rotation_speed(float rotation_speed)
 	this->rotation_speed = rotation_speed;
 }
 
-const math::float3& character_object::get_position() const
+void character_object::sync_push_box()
 {
-	return model->get_position();
-}
+	if (!push_box || !model)
+		return;
 
-void character_object::set_position(const math::float3& position)
-{
-	model->set_position(position);
-	if (push_box)
-		push_box->set_position(position);
+	push_box->set_transform(model->get_world().to_rigid());
 }
 
 const math::float3& character_object::get_footstep_position() const
@@ -811,10 +773,8 @@ void character_object::generate_box_data(std::vector<bounding_inner_datas>& data
 #endif	//	defined(USE_IMGUI)
 	data.object->set_filter(collision_filter_name);
 	data.object->set_local_scale(bounding_data.desc.local_scale);
-	data.object->set_local_rotation(bounding_data.desc.local_rotator);
-	data.object->set_local_offset(bounding_data.desc.local_offset);
-	data.object->set_rotation(bounding_data.rotator);
-	data.object->set_position(bounding_data.position);
+	data.object->set_local_transform(math::rigid_transformd(math::quaterniond(bounding_data.desc.local_rotator.to_quaternion()), math::vector3d(bounding_data.desc.local_offset)));
+	data.object->set_transform(math::rigid_transformd(math::quaterniond(bounding_data.rotator.to_quaternion()), math::vector3d(bounding_data.position)));
 	data.object->set_flag(collision_object::flags::detect_only, true);
 }
 
@@ -1073,14 +1033,14 @@ void character_object::on_push_box_enter(collision_object::data data)
 {
 	//	À•WŒn‚ðÄÝ’è
 	if (!data.from->is_flag(collision_object::flags::detect_only))
-		set_position(push_box->get_position());
+		model->set_world_translation(push_box->get_transform().get_translation());
 }
 
 void character_object::on_push_box_stay(collision_object::data data)
 {
 	//	À•WŒn‚ðÄÝ’è
 	if (!data.from->is_flag(collision_object::flags::detect_only))
-		set_position(push_box->get_position());
+		model->set_world_translation(push_box->get_transform().get_translation());
 }
 
 void character_object::on_root_animation_translation(const math::float3& translation, float delta_time)
@@ -1095,10 +1055,12 @@ void character_object::on_root_animation_rotation(const math::float4& rotation, 
 {
 	float normalized_value = (system_units::convert_fps_to_sec(1.0f) / std::max(delta_time, 0.000001f));
 	math::rotatorf rotator{ math::quaternionf(rotation) };
-	rotator.x = get_rotation().x + rotator.x * normalized_value;
-	rotator.y = get_rotation().y + rotator.y * normalized_value;
-	rotator.z = get_rotation().z + rotator.z * normalized_value;
-	set_rotation(rotator);
+	const math::rotatorf current_rotator(model->get_world_euler());
+	rotator.x = current_rotator.x + rotator.x * normalized_value;
+	rotator.y = current_rotator.y + rotator.y * normalized_value;
+	rotator.z = current_rotator.z + rotator.z * normalized_value;
+	model->set_world_euler(math::rotatord(rotator));
+	sync_push_box();
 }
 
 void character_object::call_camera_transforms(const camera_transform_descs& desc)

@@ -4,11 +4,11 @@
 #include "cereal/archives/json.hpp"
 
 spatial::spatial()
-: spatial(transformd::identity())
+: spatial(math::transformd::identity())
 {
 }
 
-spatial::spatial(const transformd& local)
+spatial::spatial(const math::transformd& local)
 : system_flags(0)
 , version(0)
 , local(local)
@@ -20,7 +20,7 @@ spatial::spatial(const transformd& local)
 spatial::~spatial()
 {
 	//	子は現在のワールド姿勢を維持したままルートにする
-	const transformd& current_world = get_world();
+	const math::transformd& current_world = get_world();
 	for (const std::shared_ptr<hierarchy>& child : release_children())
 	{
 		spatial* child_spatial = static_cast<spatial*>(child.get());
@@ -40,12 +40,12 @@ void spatial::set_flag(flags flag, bool value)
 	system_utility::set_bitflag(system_flags, 1 << static_cast<int>(flag), value);
 }
 
-const transformd& spatial::get_local() const
+const math::transformd& spatial::get_local() const
 {
 	return local;
 }
 
-void spatial::set_local(const transformd& local)
+void spatial::set_local(const math::transformd& local)
 {
 	this->local = local;
 	set_flag(flags::euler_hint, false);
@@ -84,13 +84,13 @@ void spatial::set_local_euler(const math::rotatord& euler)
 	mark_dirty();
 }
 
-const transformd& spatial::get_world() const
+const math::transformd& spatial::get_world() const
 {
 	update_world();
 	return world;
 }
 
-void spatial::set_world(const transformd& world)
+void spatial::set_world(const math::transformd& world)
 {
 	const std::shared_ptr<spatial> parent = get_parent();
 	local = parent ? world.relative_to(parent->get_world()) : world;
@@ -209,7 +209,7 @@ bool spatial::attach(const std::shared_ptr<spatial>& parent, attach_rule rule)
 	const std::shared_ptr<hierarchy> self = shared_from_this();
 	if (rule == attach_rule::keep_world)
 	{
-		const transformd current_world = get_world();
+		const math::transformd current_world = get_world();
 		link(parent);
 		local = parent ? current_world.relative_to(parent->get_world()) : current_world;
 		set_flag(flags::euler_hint, false);

@@ -1,0 +1,300 @@
+#include "Math/transform.h"
+#include "Math/math_serialize.h"
+
+#include "cereal/archives/binary.hpp"
+#include "cereal/archives/json.hpp"
+
+namespace math
+{
+	template<typename T>
+	transform<T> transform<T>::identity()
+	{
+		return transform();
+	}
+
+	template<typename T>
+	transform<T> transform<T>::from_matrix(const matrix& m)
+	{
+		vector3 out_scale;
+		quaternion out_rotation;
+		vector3 out_translation;
+		if (!m.decompose(out_scale, out_rotation, out_translation))
+		{
+			return identity();
+		}
+		return transform(out_scale, out_rotation, out_translation);
+	}
+
+	template<typename T>
+	transform<T> transform<T>::blend(const transform& l, const transform& r, T value)
+	{
+		return transform(math::lerp(l.scale, r.scale, value),
+						 math::slerp(l.rotation, r.rotation, value),
+						 math::lerp(l.translation, r.translation, value));
+	}
+
+	template<typename T>
+	const typename transform<T>::vector3& transform<T>::get_scale() const
+	{
+		return scale;
+	}
+
+	template<typename T>
+	void transform<T>::set_scale(const vector3& scale)
+	{
+		this->scale = scale;
+	}
+
+	template<typename T>
+	const typename transform<T>::quaternion& transform<T>::get_rotation() const
+	{
+		return rotation;
+	}
+
+	template<typename T>
+	void transform<T>::set_rotation(const quaternion& rotation)
+	{
+		this->rotation = rotation;
+	}
+
+	template<typename T>
+	const typename transform<T>::vector3& transform<T>::get_translation() const
+	{
+		return translation;
+	}
+
+	template<typename T>
+	void transform<T>::set_translation(const vector3& translation)
+	{
+		this->translation = translation;
+	}
+
+	template<typename T>
+	typename transform<T>::matrix transform<T>::get_transform() const
+	{
+		return matrix::affine_transformation(scale, rotation, translation);
+	}
+
+	template<typename T>
+	typename transform<T>::matrix transform<T>::get_inverse_transform() const
+	{
+		//	姿勢行列はこれで逆行列化出来る
+		return matrix::inverse_affine_transformation(scale, rotation, translation);
+	}
+
+	template<typename T>
+	typename transform<T>::vector3 transform<T>::get_right() const
+	{
+		return rotation.right();
+	}
+
+	template<typename T>
+	typename transform<T>::vector3 transform<T>::get_up() const
+	{
+		return rotation.up();
+	}
+
+	template<typename T>
+	typename transform<T>::vector3 transform<T>::get_front() const
+	{
+		return rotation.front();
+	}
+
+	template<typename T>
+	math::rotator<T> transform<T>::get_euler() const
+	{
+		return math::rotator<T>(rotation);
+	}
+
+	template<typename T>
+	void transform<T>::set_euler(const math::rotator<T>& euler)
+	{
+		set_rotation(euler.to_quaternion());
+	}
+
+	template<typename T>
+	void transform<T>::translate(const vector3& offset)
+	{
+		set_translation(translation + offset);
+	}
+
+	template<typename T>
+	void transform<T>::rotate(const quaternion& rotation)
+	{
+		set_rotation(quaternion::concatenate(this->rotation, rotation));
+	}
+
+	template<typename T>
+	void transform<T>::multiply_scale(const vector3& scale)
+	{
+		set_scale(this->scale * scale);
+	}
+
+	template<typename T>
+	transform<T>::transform()
+	: scale(1, 1, 1)
+	, rotation(quaternion::identity())
+	, translation(vector3::zero())
+	{
+	}
+
+	template<typename T>
+	transform<T>::transform(const vector3& scale, const quaternion& rotation, const vector3& translation)
+	: scale(scale)
+	, rotation(rotation)
+	, translation(translation)
+	{
+	}
+
+	template<typename T>
+	transform<T>::transform(const transform<other_value_type>& v)
+	: scale(v.get_scale())
+	, rotation(v.get_rotation())
+	, translation(v.get_translation())
+	{
+	}
+
+	template<typename T>
+	transform<T>::transform(const rigid_transform<T>& rigid)
+	: scale(1, 1, 1)
+	, rotation(rigid.get_rotation())
+	, translation(rigid.get_translation())
+	{
+	}
+
+	template<typename T>
+	typename transform<T>::vector3 transform<T>::transform_point(const vector3& point) const
+	{
+		return transform_vector(point) + translation;
+	}
+
+	template<typename T>
+	typename transform<T>::vector3 transform<T>::transform_vector(const vector3& vector) const
+	{
+		return rotation.rotate(vector * scale);
+	}
+
+	template<typename T>
+	typename transform<T>::vector3 transform<T>::transform_direction(const vector3& direction) const
+	{
+		return rotation.rotate(direction);
+	}
+
+	template<typename T>
+	typename transform<T>::vector3 transform<T>::inverse_transform_point(const vector3& point) const
+	{
+		return inverse_transform_vector(point - translation);
+	}
+
+	template<typename T>
+	typename transform<T>::vector3 transform<T>::inverse_transform_vector(const vector3& vector) const
+	{
+		return inverse_transform_direction(vector) / scale;
+	}
+
+	template<typename T>
+	typename transform<T>::vector3 transform<T>::inverse_transform_direction(const vector3& direction) const
+	{
+		return rotation.inverted().rotate(direction);
+	}
+
+	template<typename T>
+	transform<T> transform<T>::multiply(const transform& parent) const
+	{
+		return transform(scale * parent.scale,
+						 quaternion::concatenate(rotation, parent.rotation),
+						 parent.rotation.rotate(translation * parent.scale) + parent.translation);
+	}
+
+	template<typename T>
+	transform<T> transform<T>::inverse() const
+	{
+		const vector3 inverse_scale = vector3(1, 1, 1) / scale;
+		const quaternion inverse_rotation = rotation.inverted();
+		return transform(inverse_scale,
+						 inverse_rotation,
+						 inverse_rotation.rotate(-translation) * inverse_scale);
+	}
+
+	template<typename T>
+	transform<T> transform<T>::relative_to(const transform& parent) const
+	{
+		const quaternion inverse_parent_rotation = parent.rotation.inverted();
+		return transform(scale / parent.scale,
+						 quaternion::concatenate(rotation, inverse_parent_rotation),
+						 inverse_parent_rotation.rotate(translation - parent.translation) / parent.scale);
+	}
+
+	template<typename T>
+	rigid_transform<T> transform<T>::to_rigid() const
+	{
+		return rigid_transform<T>(rotation, translation);
+	}
+
+	template<typename T>
+	math::matrixf transform<T>::to_relative_matrix(const vector3& origin) const
+	{
+		return math::matrixf::affine_transformation(math::vector3f(scale),
+										math::quaternionf(rotation),
+										math::vector3f(translation - origin));
+	}
+
+	template<typename T>
+	bool transform<T>::equal(const transform& v, T tolerance) const
+	{
+		//	q と -q は同じ回転を表すため、回転は内積の絶対値で比較する
+		return math::nearly_equal(scale, v.scale, tolerance)
+			&& math::nearly_equal(translation, v.translation, tolerance)
+			&& std::abs(rotation.normalized().dot(v.rotation.normalized())) >= static_cast<T>(1) - tolerance;
+	}
+
+	template<typename T>
+	transform<T> transform<T>::operator*(const transform& parent) const
+	{
+		return multiply(parent);
+	}
+
+	template<typename T>
+	transform<T>& transform<T>::operator*=(const transform& parent)
+	{
+		*this = multiply(parent);
+		return *this;
+	}
+
+	template<typename T>
+	bool transform<T>::operator==(const transform& v) const
+	{
+		return scale == v.scale && rotation == v.rotation && translation == v.translation;
+	}
+
+	template<typename T>
+	bool transform<T>::operator!=(const transform& v) const
+	{
+		return !(*this == v);
+	}
+
+	template<typename T>
+	template<class Archive>
+	void transform<T>::serialize(Archive& archive, int version)
+	{
+		archive(
+			cereal::make_nvp("scale", scale),
+			cereal::make_nvp("rotation", rotation),
+			cereal::make_nvp("translation", translation)
+		);
+	}
+
+	template class transform<float>;
+	template class transform<double>;
+
+	//	serialize は cpp で定義しているため、使用するアーカイブごとに明示的に実体化
+	template void transform<float>::serialize<cereal::BinaryInputArchive>(cereal::BinaryInputArchive&, int);
+	template void transform<float>::serialize<cereal::BinaryOutputArchive>(cereal::BinaryOutputArchive&, int);
+	template void transform<float>::serialize<cereal::JSONInputArchive>(cereal::JSONInputArchive&, int);
+	template void transform<float>::serialize<cereal::JSONOutputArchive>(cereal::JSONOutputArchive&, int);
+	template void transform<double>::serialize<cereal::BinaryInputArchive>(cereal::BinaryInputArchive&, int);
+	template void transform<double>::serialize<cereal::BinaryOutputArchive>(cereal::BinaryOutputArchive&, int);
+	template void transform<double>::serialize<cereal::JSONInputArchive>(cereal::JSONInputArchive&, int);
+	template void transform<double>::serialize<cereal::JSONOutputArchive>(cereal::JSONOutputArchive&, int);
+
+}	//	namespace math

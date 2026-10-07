@@ -267,9 +267,6 @@
     <ClInclude Include="Headers\Graphics\cubic_sdf_buffer_pool.h">
       <Filter>Headers\Graphics</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\CoordinateSystem\transform.h">
-      <Filter>Headers\CoordinateSystem</Filter>
-    </ClInclude>
     <ClInclude Include="Headers\CoordinateSystem\hierarchy.h">
       <Filter>Headers\CoordinateSystem</Filter>
     </ClInclude>
@@ -457,9 +454,6 @@
     </ClCompile>
     <ClCompile Include="Sources\Graphics\cubic_sdf_buffer_pool.cpp">
       <Filter>Sources\Graphics</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\CoordinateSystem\transform.cpp">
-      <Filter>Sources\CoordinateSystem</Filter>
     </ClCompile>
     <ClCompile Include="Sources\CoordinateSystem\hierarchy.cpp">
       <Filter>Sources\CoordinateSystem</Filter>

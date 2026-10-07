@@ -74,7 +74,7 @@ game_main_scene::game_main_scene()
 	{
 		main_camera = std::make_shared<camera_object>("メインカメラ");
 		main_camera->get_camera()->set_fov_y(math::angle::to_radian(30.0f));
-		main_camera->set_position({0, 10, 40});
+		main_camera->set_world_translation(math::vector3d(0.0, 10.0, 40.0));
 		register_object(main_camera);
 	}
 
@@ -104,8 +104,8 @@ game_main_scene::game_main_scene()
 		}
 
 		auto player1 = std::make_shared<kuroko_object>(hero_model, weapon_model, "player");
-		player1->set_position(system_units::convert_m_to_unit({0, 0, -50}));
-		player1->set_rotation({0.0f, 0.0f, 0.0f});
+		player1->get_model_object()->set_world_translation(system_units::convert_m_to_unit(math::double3(0.0, 0.0, -50.0)));
+		player1->get_model_object()->set_world_euler(math::rotatord(0.0, 0.0, 0.0));
 		register_object(player1);
 
 		player_controller = std::make_shared<player_controller_object>("プレイヤー入力", player1, main_camera);
@@ -123,8 +123,8 @@ game_main_scene::game_main_scene()
 
 		auto enemy1 = std::make_shared<boss_seraphim_object>(boss_model, "enemy");
 		enemy1->set_active(false);
-		enemy1->set_position(system_units::convert_m_to_unit({0, -1000, 0}));
-		enemy1->set_rotation({ 0.0f, math::constants<float>::pi, 0.0f });
+		enemy1->get_model_object()->set_world_translation(system_units::convert_m_to_unit(math::double3(0.0, -1000.0, 0.0)));
+		enemy1->get_model_object()->set_world_euler(math::rotatord(0.0, math::constants<double>::pi, 0.0));
 		register_object(enemy1);
 
 		auto controller = std::make_shared<boss_seraphim_controller_object>("ボスセラフィム制御用クラス", enemy1);
@@ -178,7 +178,7 @@ void game_main_scene::update_core(float elapsed_time)
 	if (star_dust && player_controller)
 	{
 		//	吸引座標とイベント基準座標設定
-		auto position = player_controller->get_controll_object()->get_push_box()->get_position();
+		auto position = player_controller->get_controll_object()->get_push_box()->get_transform().get_translation().to_float3();
 		position.y += player_controller->get_controll_object()->get_push_box()->get_local_scale().y;
 		star_dust->set_attract_position(position);
 		star_dust->set_event_position(position);

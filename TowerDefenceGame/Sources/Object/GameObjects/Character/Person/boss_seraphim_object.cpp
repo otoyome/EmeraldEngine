@@ -11,7 +11,7 @@ namespace setup_data
 	constexpr float capsule_push_radius = system_units::convert_m_to_unit(0.4f); // 押し合い判定半径
 	constexpr float capsule_hit_radius = system_units::convert_m_to_unit(0.2f); // 当たり判定半径
 	constexpr float capsule_length = system_units::convert_m_to_unit(1.4f); // 当たり判定長さ
-	constexpr math::float3 capsule_offset = system_units::convert_m_to_unit({ 0.0f, 1.1f, 0.0f }); // 当たり判定長さオフセット
+	constexpr auto capsule_offset = system_units::convert_m_to_unit(math::float3(0.0f, 1.1f, 0.0f)); // 当たり判定長さオフセット
 
 	constexpr float friction = 0.995f;	// 摩擦係数(ゴム靴？)
 
@@ -639,7 +639,7 @@ namespace
 	constexpr math::float4 face_texture_uv = {0.0f, 0.0f, 1.0f, 1.0f};
 
 	//	カメラフォーカス位置補正
-	constexpr math::float3 focus_offset = system_units::convert_m_to_unit({0.0f, 1.6f, 0.0f});
+	constexpr math::float3 focus_offset = system_units::convert_m_to_unit(math::float3(0.0f, 1.6f, 0.0f));
 
 	//	入場
 	constexpr float entry_roar_animation_time = 55.0f / 30.0f;
@@ -706,7 +706,7 @@ boss_seraphim_object::boss_seraphim_object(std::shared_ptr<model_object> charact
 	get_push_box()->set_filter(collision_filter_name);
 	get_push_box()->set_bounding_object(std::make_shared<collision::bounding_capsule>());
 	get_push_box()->set_local_scale({setup_data::capsule_push_radius, setup_data::capsule_length, 0.0f});
-	get_push_box()->set_local_offset(setup_data::capsule_offset);
+	get_push_box()->set_local_offset(math::vector3d(setup_data::capsule_offset));
 	get_push_box()->set_physical_data({setup_data::friction});
 	get_push_box()->set_mass(setup_data::mass);
 
@@ -817,7 +817,7 @@ void boss_seraphim_object::input_action_data(action_datas action_data)
 
 math::float3 boss_seraphim_object::get_focus_point() const
 {
-	math::float3 position = get_position();
+	math::float3 position = get_model_object()->get_world_translation().to_float3();
 	position.x += focus_offset.x;
 	position.y += focus_offset.y;
 	position.z += focus_offset.z;
@@ -1104,7 +1104,7 @@ void boss_seraphim_object::update_walk(float elapsed_time)
 	{
 		mx /= ml;
 		my /= ml;
-		auto front = get_model_object()->get_rotation().front().to_float3();
+		auto front = math::rotatorf(get_model_object()->get_world_euler()).front().to_float3();
 		float tx = front.x, ty = front.z;
 		float tl = sqrtf(tx * tx + ty * ty);
 		tx /= tl;
@@ -1410,8 +1410,8 @@ bool boss_seraphim_object::transition_attack(attack_id id)
 	if (taget_object)
 	{
 		auto focus = taget_object->get_focus_point();
-		focus.x -= get_position().x;
-		focus.z -= get_position().z;
+		focus.x -= get_model_object()->get_world_translation().to_float3().x;
+		focus.z -= get_model_object()->get_world_translation().to_float3().z;
 		float length = sqrtf(focus.x * focus.x + focus.z * focus.z);
 		set_turn_vector({ focus.x / length, focus.z / length });
 	}
@@ -1468,11 +1468,11 @@ void boss_seraphim_object::update_attack(float elapsed_time)
 		{
 			bounding_datas box_data;
 			box_data.desc = attack_box.bounds;
-			box_data.position = get_position();
-			box_data.rotator = get_rotation();
+			box_data.position = get_model_object()->get_world_translation().to_float3();
+			box_data.rotator = math::rotatorf(get_model_object()->get_world_euler());
 			damage_datas damage_data;
 			damage_data.desc = attack_box.attack;
-			damage_data.stagger_direction = get_rotation().front().to_float3();
+			damage_data.stagger_direction = math::rotatorf(get_model_object()->get_world_euler()).front().to_float3();
 			add_attack_box(box_data, damage_data);
 			attack_data_flags = true;
 		}
@@ -1579,7 +1579,8 @@ bool boss_seraphim_object::transition_parry(const damage_datas& data)
 	//	水平には制限しておく
 	rotation.x = 0.0f;
 	rotation.z = 0.0f;
-	set_rotation(rotation);
+	get_model_object()->set_world_euler(math::rotatord(rotation));
+	sync_push_box();
 
 	//	極限回避演出呼び出し
 	{
@@ -1727,8 +1728,8 @@ void boss_seraphim_object::update_parry_attack_1(float elapsed_time)
 	if (auto taget_object = get_lockon_taget_object().lock())
 	{
 		auto focus = taget_object->get_focus_point();
-		focus.x -= get_position().x;
-		focus.z -= get_position().z;
+		focus.x -= get_model_object()->get_world_translation().to_float3().x;
+		focus.z -= get_model_object()->get_world_translation().to_float3().z;
 		float length = sqrtf(focus.x * focus.x + focus.z * focus.z);
 		set_turn_vector({ focus.x / length, focus.z / length });
 	}
@@ -1826,23 +1827,23 @@ void boss_seraphim_object::update_parry_attack_2(float elapsed_time)
 			auto taget_object = get_lockon_taget_object().lock();
 			if (taget_object)
 			{
-				auto focus = taget_object->get_position();
-				focus.x -= get_position().x;
+				auto focus = taget_object->get_model_object()->get_world_translation().to_float3();
+				focus.x -= get_model_object()->get_world_translation().to_float3().x;
 				focus.y = 0.0f;
-				focus.z -= get_position().z;
+				focus.z -= get_model_object()->get_world_translation().to_float3().z;
 				float length = sqrtf(focus.x * focus.x + focus.z * focus.z);
-				work_float3[0] = get_position();
-				work_float3[2] = taget_object->get_position();
+				work_float3[0] = get_model_object()->get_world_translation().to_float3();
+				work_float3[2] = taget_object->get_model_object()->get_world_translation().to_float3();
 				{
 					math::vector3f front = math::vector3f(focus).normalized();
 					math::vector3f right = math::vector3f::cross(math::vector3f::up(), front);
-					right = right * (length * 0.5f) + math::vector3f(get_position());
+					right = right * (length * 0.5f) + math::vector3f(get_model_object()->get_world_translation().to_float3());
 					work_float3[1] = right.to_float3();
 				}
-				work_float3[2].x += get_rotation().front().x * parry_attack_2_takedown_point_front;
-				work_float3[2].z += get_rotation().front().z * parry_attack_2_takedown_point_front;
-				work_float3[2].x += get_rotation().right().x * parry_attack_2_takedown_point_right;
-				work_float3[2].z += get_rotation().right().z * parry_attack_2_takedown_point_right;
+				work_float3[2].x += math::rotatorf(get_model_object()->get_world_euler()).front().x * parry_attack_2_takedown_point_front;
+				work_float3[2].z += math::rotatorf(get_model_object()->get_world_euler()).front().z * parry_attack_2_takedown_point_front;
+				work_float3[2].x += math::rotatorf(get_model_object()->get_world_euler()).right().x * parry_attack_2_takedown_point_right;
+				work_float3[2].z += math::rotatorf(get_model_object()->get_world_euler()).right().z * parry_attack_2_takedown_point_right;
 			}
 			sub_state = calculate_move;
 			break;
@@ -1855,7 +1856,8 @@ void boss_seraphim_object::update_parry_attack_2(float elapsed_time)
 			float current_rate = std::max(work_float[0] / parry_attack_2_move_time, 0.0f);
 			auto p0 = math::bezier(math::vector3f(work_float3[0]), math::vector3f(work_float3[1]), math::vector3f(work_float3[2]), 1 - previous_rate).to_float3();
 			auto p1 = math::bezier(math::vector3f(work_float3[0]), math::vector3f(work_float3[1]), math::vector3f(work_float3[2]), 1 - current_rate).to_float3();
-			set_position(p1);
+			get_model_object()->set_world_translation(math::vector3d(p1));
+			sync_push_box();
 
 			//	向きを変える
 			math::float3 v;
@@ -1944,8 +1946,8 @@ bool boss_seraphim_object::fast_apprpoaching_lockon_target(float elapsed_time, c
 
 	//	ターゲットの方向に瞬間移動
 	auto focus = taget_object->get_focus_point();
-	focus.x -= get_position().x;
-	focus.z -= get_position().z;
+	focus.x -= get_model_object()->get_world_translation().to_float3().x;
+	focus.z -= get_model_object()->get_world_translation().to_float3().z;
 	float length_sq = (focus.x * focus.x + focus.z * focus.z);
 
 	//	距離制限
@@ -1969,8 +1971,8 @@ bool boss_seraphim_object::calculate_lockon_target_vector(math::float2& directio
 
 	//	ターゲットの方向に瞬間移動
 	auto focus = taget_object->get_focus_point();
-	focus.x -= get_position().x;
-	focus.z -= get_position().z;
+	focus.x -= get_model_object()->get_world_translation().to_float3().x;
+	focus.z -= get_model_object()->get_world_translation().to_float3().z;
 	float length = sqrtf(focus.x * focus.x + focus.z * focus.z);
 	direction.x = focus.x / length;
 	direction.y = focus.z / length;

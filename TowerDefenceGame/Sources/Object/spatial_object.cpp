@@ -5,12 +5,12 @@ const std::shared_ptr<::spatial>& spatial_object::get_spatial() const
 	return spatial;
 }
 
-const transformd& spatial_object::get_local() const
+const math::transformd& spatial_object::get_local() const
 {
 	return spatial->get_local();
 }
 
-void spatial_object::set_local(const transformd& local)
+void spatial_object::set_local(const math::transformd& local)
 {
 	spatial->set_local(local);
 }
@@ -40,12 +40,12 @@ void spatial_object::set_local_euler(const math::rotatord& euler)
 	spatial->set_local_euler(euler);
 }
 
-const transformd& spatial_object::get_world() const
+const math::transformd& spatial_object::get_world() const
 {
 	return spatial->get_world();
 }
 
-void spatial_object::set_world(const transformd& world)
+void spatial_object::set_world(const math::transformd& world)
 {
 	spatial->set_world(world);
 }
@@ -109,7 +109,7 @@ spatial_object::spatial_object(std::string_view name)
 {
 }
 
-spatial_object::spatial_object(std::string_view name, const transformd& local)
+spatial_object::spatial_object(std::string_view name, const math::transformd& local)
 : game_object(name)
 , spatial(std::make_shared<::spatial>(local))
 {
@@ -131,7 +131,7 @@ void spatial_object::imgui_render_core()
 	//	ƒ[ƒJƒ‹Žp¨‚Ì•ÒW
 	//if (ImGui::TreeNode("spatial"))
 	{
-		const transformd& local = spatial->get_local();
+		const math::transformd& local = spatial->get_local();
 
 		math::vector3d translation = local.get_translation();
 		if (ImGui::DragScalarN("translation", ImGuiDataType_Double, &translation.x, 3, 0.1f))

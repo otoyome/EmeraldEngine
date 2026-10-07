@@ -1,6 +1,7 @@
 #pragma once
 
 #include "object/game_object.h"
+#include "object/spatial_object.h"
 #include "post_process_volume.h"
 
 #if defined(USE_IMGUI)
@@ -9,9 +10,9 @@
 
 //	ポストプロセスボリューム制御用オブジェクト
 //	真面目には対応していない
-class post_process_volume_object : public game_object
+class post_process_volume_object : public spatial_object
 {
-	GAME_OBJECT_DECRLEAR(post_process_volume_object, game_object)
+	GAME_OBJECT_DECRLEAR(post_process_volume_object, spatial_object)
 
 public:
 	post_process_volume_ptr get_volume() const {return instance;}
@@ -19,8 +20,6 @@ public:
 	bool is_flag(post_process_volume::flags flag) const;
 	void set_flag(post_process_volume::flags flag, bool value);
 
-	math::float3 get_position() const;
-	void set_position(const math::float3& position);
 	math::float3 get_inner_range() const;
 	void set_inner_range(const math::float3& inner_range);
 	math::float3 get_outer_range() const;
@@ -51,8 +50,11 @@ private:
 	void on_active() override;
 	void on_deactive() override;
 
+	void sync_to_volume();
+
 private:
 	post_process_volume_ptr instance;
+	std::uint32_t applied_spatial_version = UINT32_MAX;
 #if defined(USE_IMGUI)
 	std::shared_ptr<editor_items::context> editor_context;
 #endif	//	defined(USE_IMGUI)

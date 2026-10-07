@@ -76,7 +76,7 @@ public:
 			case 2:
 			{
 				owner->work_float[0] = math::rand_range(1.0f, 2.0f);
-				owner->get_controll_object()->set_position(system_units::convert_m_to_unit({0, 0, 0}));
+				owner->get_controll_object()->get_model_object()->set_world_translation(system_units::convert_m_to_unit(math::double3(0.0, 0.0, 0.0)));
 				owner->get_controll_object()->set_active(true);
 				owner->get_controll_object()->change_state(character_object::state_names[character_object::state_entry]);
 				++step;
@@ -156,15 +156,15 @@ public:
 
 		//	ˆê’è”ÍˆÍ“à‚Å‚ ‚ê‚ÎUŒ‚
 		auto target_object = owner->get_controller()->search_lockon_taget_object().lock();
-		math::float3 position = owner->get_controll_object()->get_position();
+		math::float3 position = owner->get_controll_object()->get_model_object()->get_world_translation().to_float3();
 		math::float3 target_position;
 		if (target_object)
 		{
-			target_position = target_object->get_position();
+			target_position = target_object->get_model_object()->get_world_translation().to_float3();
 		}
 		else
 		{
-			target_position = owner->get_controll_object()->get_rotation().front().to_float3();
+			target_position = math::rotatorf(owner->get_controll_object()->get_model_object()->get_world_euler()).front().to_float3();
 			target_position.x += position.x;
 			target_position.y += position.y;
 			target_position.z += position.z;
@@ -219,15 +219,15 @@ public:
 				//	‹——£”»’è
 				{
 					auto target_object = owner->get_controller()->search_lockon_taget_object().lock();
-					math::float3 position = owner->get_controll_object()->get_position();
+					math::float3 position = owner->get_controll_object()->get_model_object()->get_world_translation().to_float3();
 					math::float3 target_position;
 					if (target_object)
 					{
-						target_position = target_object->get_position();
+						target_position = target_object->get_model_object()->get_world_translation().to_float3();
 					}
 					else
 					{
-						target_position = owner->get_controll_object()->get_rotation().front().to_float3();
+						target_position = math::rotatorf(owner->get_controll_object()->get_model_object()->get_world_euler()).front().to_float3();
 						target_position.x += position.x;
 						target_position.y += position.y;
 						target_position.z += position.z;
@@ -296,15 +296,15 @@ public:
 
 		//	ˆê’è”ÍˆÍ“à‚Å‚ ‚ê‚ÎUŒ‚
 		auto target_object = owner->get_controller()->search_lockon_taget_object().lock();
-		math::float3 position = owner->get_controll_object()->get_position();
+		math::float3 position = owner->get_controll_object()->get_model_object()->get_world_translation().to_float3();
 		math::float3 target_position;
 		if (target_object)
 		{
-			target_position = target_object->get_position();
+			target_position = target_object->get_model_object()->get_world_translation().to_float3();
 		}
 		else
 		{
-			target_position = owner->get_controll_object()->get_rotation().front().to_float3();
+			target_position = math::rotatorf(owner->get_controll_object()->get_model_object()->get_world_euler()).front().to_float3();
 			target_position.x += position.x;
 			target_position.y += position.y;
 			target_position.z += position.z;
@@ -346,15 +346,15 @@ public:
 			return action_interface::state::complete;
 		}
 		auto target_object = owner->get_controller()->search_lockon_taget_object().lock();
-		math::float3 position = owner->get_controll_object()->get_position();
+		math::float3 position = owner->get_controll_object()->get_model_object()->get_world_translation().to_float3();
 		math::float3 target_position;
 		if (target_object)
 		{
-			target_position = target_object->get_position();
+			target_position = target_object->get_model_object()->get_world_translation().to_float3();
 		}
 		else
 		{
-			target_position = owner->get_controll_object()->get_rotation().front().to_float3();
+			target_position = math::rotatorf(owner->get_controll_object()->get_model_object()->get_world_euler()).front().to_float3();
 			target_position.x += position.x;
 			target_position.y += position.y;
 			target_position.z += position.z;
@@ -531,15 +531,15 @@ public:
 	{
 		//	ˆê’è”ÍˆÍ“à‚Å‚ ‚ê‚ÎUŒ‚
 		auto target_object = owner->get_controller()->search_lockon_taget_object().lock();
-		math::float3 position = owner->get_controll_object()->get_position();
+		math::float3 position = owner->get_controll_object()->get_model_object()->get_world_translation().to_float3();
 		math::float3 target_position;
 		if (target_object)
 		{
-			target_position = target_object->get_position();
+			target_position = target_object->get_model_object()->get_world_translation().to_float3();
 		}
 		else
 		{
-			target_position = owner->get_controll_object()->get_rotation().front().to_float3();
+			target_position = math::rotatorf(owner->get_controll_object()->get_model_object()->get_world_euler()).front().to_float3();
 			target_position.x += position.x;
 			target_position.y += position.y;
 			target_position.z += position.z;

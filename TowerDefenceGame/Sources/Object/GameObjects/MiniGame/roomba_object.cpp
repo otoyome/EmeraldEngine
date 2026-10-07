@@ -82,7 +82,7 @@ roomba_object::roomba_object(std::string_view name, std::shared_ptr<model_object
 	push_box->set_filter(collision_filter_name);
 	push_box->set_bounding_object(std::make_shared<collision::bounding_capsule>());
 	push_box->set_local_scale({setup_data::capsule_push_radius, setup_data::capsule_length, 0.0f});
-	push_box->set_local_offset(setup_data::capsule_offset);
+	push_box->set_local_offset(math::vector3d(setup_data::capsule_offset));
 	push_box->set_physical_data({setup_data::base_friction});
 	push_box->set_mass(setup_data::mass);
 	push_box->set_draw_normal_color({0.0f, 1.0f, 0.0f, 1.0f});
@@ -192,19 +192,19 @@ const collision_object_ptr& roomba_object::get_push_box() const
 	return push_box;
 }
 
-const math::float3& roomba_object::get_scale() const
+math::float3 roomba_object::get_scale() const
 {
-	return model->get_scale();
+	return model->get_world_scale().to_float3();
 }
 
 void roomba_object::set_scale(const math::float3& scale)
 {
-	model->set_scale(scale);
+	model->set_world_scale(math::vector3d(scale));
 }
 
 math::rotatorf roomba_object::get_rotation() const
 {
-	auto rotator = model->get_rotation();
+	math::rotatorf rotator(model->get_world_euler());
 	rotator.y -= math::constants<float>::pi_half;
 	return rotator;
 }
@@ -212,9 +212,9 @@ math::rotatorf roomba_object::get_rotation() const
 void roomba_object::set_rotation(math::rotatorf rotator)
 {
 	rotator.y += math::constants<float>::pi_half;
-	model->set_rotation(rotator);
+	model->set_world_euler(math::rotatord(rotator));
 	if (push_box)
-		push_box->set_rotation(rotator);
+		push_box->set_transform(model->get_world().to_rigid());
 }
 
 float roomba_object::get_rotation_speed() const
@@ -227,16 +227,16 @@ void roomba_object::set_rotation_speed(float rotation_speed)
 	this->rotation_speed = rotation_speed;
 }
 
-const math::float3& roomba_object::get_position() const
+math::float3 roomba_object::get_position() const
 {
-	return model->get_position();
+	return model->get_world_translation().to_float3();
 }
 
 void roomba_object::set_position(const math::float3& position)
 {
-	model->set_position(position);
+	model->set_world_translation(math::vector3d(position));
 	if (push_box)
-		push_box->set_position(position);
+		push_box->set_transform(model->get_world().to_rigid());
 }
 
 math::float3 roomba_object::get_focus_point() const
@@ -516,10 +516,8 @@ void roomba_object::generate_box_data(std::vector<bounding_inner_datas>& datas, 
 #endif	//	defined(USE_IMGUI)
 	data.object->set_filter(collision_filter_name);
 	data.object->set_local_scale(bounding_data.desc.local_scale);
-	data.object->set_local_rotation(bounding_data.desc.local_rotator);
-	data.object->set_local_offset(bounding_data.desc.local_offset);
-	data.object->set_rotation(bounding_data.rotator);
-	data.object->set_position(bounding_data.position);
+	data.object->set_local_transform(math::rigid_transformd(math::quaterniond(bounding_data.desc.local_rotator.to_quaternion()), math::vector3d(bounding_data.desc.local_offset)));
+	data.object->set_transform(math::rigid_transformd(math::quaterniond(bounding_data.rotator.to_quaternion()), math::vector3d(bounding_data.position)));
 	data.object->set_flag(collision_object::flags::detect_only, true);
 }
 
@@ -527,12 +525,12 @@ void roomba_object::on_push_box_enter(collision_object::data data)
 {
 	//	À•WŒn‚ðÄÝ’è
 	if (!data.from->is_flag(collision_object::flags::detect_only))
-		set_position(push_box->get_position());
+		set_position(push_box->get_transform().get_translation().to_float3());
 }
 
 void roomba_object::on_push_box_stay(collision_object::data data)
 {
 	//	À•WŒn‚ðÄÝ’è
 	if (!data.from->is_flag(collision_object::flags::detect_only))
-		set_position(push_box->get_position());
+		set_position(push_box->get_transform().get_translation().to_float3());
 }

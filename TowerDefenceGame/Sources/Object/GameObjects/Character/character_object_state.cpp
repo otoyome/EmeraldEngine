@@ -8,6 +8,8 @@ namespace
 
 void character_object::fixed_update(float elapsed_time)
 {
+	sync_push_box();
+
 	//	時間遅延関係は除外して時間経過
 	hit_stop_time = std::max(hit_stop_time - elapsed_time, 0.0f);
 	invisile_timer = std::max(invisile_timer - elapsed_time, 0.0f);
@@ -34,7 +36,12 @@ void character_object::fixed_update(float elapsed_time)
 		return;
 
 	//	傾き破棄
-	set_rotation({get_rotation().x, get_rotation().y, 0});
+	{
+		math::rotatord rotator = model->get_world_euler();
+		rotator.z = 0.0;
+		model->set_world_euler(rotator);
+		sync_push_box();
+	}
 
 	//	各種フラグを落としておく
 	set_flag(character_object::flags::invisible, false);
@@ -65,7 +72,10 @@ void character_object::fixed_update(float elapsed_time)
 
 	//	傾き適応
 	{
-		set_rotation({get_rotation().x, get_rotation().y, roll_value});
+		math::rotatord rotator = model->get_world_euler();
+		rotator.z = roll_value;
+		model->set_world_euler(rotator);
+		sync_push_box();
 		roll_value *= 0.1f;
 	}
 
@@ -73,19 +83,18 @@ void character_object::fixed_update(float elapsed_time)
 	move_vector = {};
 	accelaration = {};
 
+	const math::rigid_transformd world_transform = model->get_world().to_rigid();
 	for (auto& box : attack_box)
 	{
 		if (!box.is_follow_self)
 			continue;
-		box.object->set_position(get_position());
-		box.object->set_rotation(get_rotation());
+		box.object->set_transform(world_transform);
 	}
 	for (auto& box : hit_box)
 	{
 		if (!box.is_follow_self)
 			continue;
-		box.object->set_position(get_position());
-		box.object->set_rotation(get_rotation());
+		box.object->set_transform(world_transform);
 	}
 }
 
@@ -238,7 +247,7 @@ void character_object::update_rotation(float elapsed_time)
 	vector.y /= length;
 
 	//	前ベクトル算出
-	math::rotatorf rotator = get_rotation();
+	math::rotatorf rotator(model->get_world_euler());
 	math::float2 front = math::float2(sinf(rotator.y), cosf(rotator.y));
 
 	//	回転量算出
@@ -250,7 +259,8 @@ void character_object::update_rotation(float elapsed_time)
 		rotation = speed;
 
 	rotator.y += ( cross < 0.0f ) ? rotation : -rotation;
-	set_rotation(rotator);
+	model->set_world_euler(math::rotatord(rotator));
+	sync_push_box();
 }
 
 float character_object::get_air_drag_coefficient() const
@@ -307,7 +317,8 @@ void character_object::update_vertical_move(float elapsed_time)
 		}
 		velocity.y = 0.0f;
 	}
-	set_position(position);
+	model->set_world_translation(math::vector3d(position));
+	sync_push_box();
 }
 
 void character_object::update_horizontal_velocity(float elapsed_time)
@@ -434,7 +445,8 @@ void character_object::update_horizontal_move(float elapsed_time)
 	//	座標算出
 	math::float3 new_position, normal;
 	calculate_position(vel, false, new_position, normal);
-	set_position(new_position);
+	model->set_world_translation(math::vector3d(new_position));
+	sync_push_box();
 }
 
 void character_object::adjustment_velocity(math::float2& move, float adjust_move_velocity_rate, bool* flip_flag)
@@ -507,7 +519,7 @@ bool character_object::calculate_position(math::float3 velocity, bool vertical, 
 	auto bounding_object = std::static_pointer_cast<collision::bounding_capsule>(collision_object->get_bounding_object());
 
 	//	初期座標
-	out_position = get_position();
+	out_position = model->get_world_translation().to_float3();
 
 	//	オフセット位置を算出
 	float height = static_cast<float>(bounding_object->get_radius() + bounding_object->get_length() * 0.5);

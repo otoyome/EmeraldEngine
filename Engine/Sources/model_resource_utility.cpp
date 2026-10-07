@@ -156,7 +156,7 @@ void model_resource_utility::combine_unskinned_meshes(model_resource& resource, 
 	//	ノードのローカル/グローバル変換
 	auto local_matrix = [](const model_resource::node& n)
 	{
-		return math::matrixf::transform(n.scale, math::quaternionf(n.rotation), n.translation);
+		return math::matrixf::affine_transformation(n.scale, math::quaternionf(n.rotation), n.translation);
 	};
 	std::function<math::matrixf(size_t)> global_matrix = [&](size_t index) -> math::matrixf
 	{

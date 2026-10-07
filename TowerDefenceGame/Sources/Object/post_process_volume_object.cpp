@@ -1,21 +1,25 @@
-ï»¿#include "object/post_process_volume_object.h"
+#include "object/post_process_volume_object.h"
 
 #include "implot/implot.h"
 
-math::float3 post_process_volume_object::get_position() const
+void post_process_volume_object::sync_to_volume()
 {
-	return instance->get_position();
-}
+	if (!instance)
+		return;
 
-void post_process_volume_object::set_position(const math::float3& position)
-{
-	instance->set_position(position);
+	const std::uint32_t spatial_version = get_spatial()->get_version();
+	if (applied_spatial_version == spatial_version)
+		return;
+
+	applied_spatial_version = spatial_version;
+	instance->set_position(get_world_translation().to_float3());
 }
 
 post_process_volume_object::post_process_volume_object(std::string_view name)
-: game_object(name)
+: spatial_object(name)
 {
 	post_process_volume_manager::instance()->generate_post_process_volume(instance);
+	sync_to_volume();
 
 #if defined(USE_IMGUI)
 	editor_context = editor_items::generate_context();
@@ -28,6 +32,7 @@ post_process_volume_object::~post_process_volume_object()
 
 void post_process_volume_object::post_update(float elapsed_time)
 {
+	sync_to_volume();
 }
 
 void post_process_volume_object::post_render()
@@ -97,14 +102,12 @@ void post_process_volume_object::set_color(const math::float4& color)
 
 void post_process_volume_object::imgui_render_core()
 {
+	base::imgui_render_core();
+	sync_to_volume();
+
 	CHECK_BOX(unbind);
-	auto position = instance->get_position();
 	auto inner_range = instance->get_inner_range();
 	auto outer_range = instance->get_outer_range();
-	if (ImGui::DragFloat3("position", &position.x, 0.01f))
-	{
-		instance->set_position(position);
-	}
 	if (ImGui::DragFloat3("inner_range", &inner_range.x, 0.01f))
 	{
 		instance->set_inner_range(inner_range);
@@ -114,28 +117,28 @@ void post_process_volume_object::imgui_render_core()
 		instance->set_outer_range(outer_range);
 	}
 
-	//	ãƒ–ãƒ«ãƒ¼ãƒ 
+	//	ƒuƒ‹[ƒ€
 	imgui_bloom();
 
-	//	ãƒ¬ãƒ³ã‚ºã‚´ãƒ¼ã‚¹ãƒˆ
+	//	ƒŒƒ“ƒYƒS[ƒXƒg
 	imgui_lens_ghost();
 
-	//	è¢«å†™ç•Œæ·±åº¦
+	//	”íÊŠE[“x
 	imgui_depth_of_field();
 
 	//	SSR
 	imgui_screen_space_reflection();
 
-	//	ãƒ¢ãƒ¼ã‚·ãƒ§ãƒ³ãƒ–ãƒ©ãƒ¼
+	//	ƒ‚[ƒVƒ‡ƒ“ƒuƒ‰[
 	imgui_motion_blur();
 
-	//	éœ²å‡ºè£œæ­£
+	//	˜Io•â³
 	imgui_exposure_compensation();
 
-	//	ãƒˆãƒ¼ãƒ³ãƒãƒƒãƒ”ãƒ³ã‚°
+	//	ƒg[ƒ“ƒ}ƒbƒsƒ“ƒO
 	imgui_tone_mapping();
 
-	//	ãƒãƒ†ãƒªã‚¢ãƒ«
+	//	ƒ}ƒeƒŠƒAƒ‹
 	for (auto& material : instance->get_materials())
 	{
 		if (ImGui::TreeNode(system_utility::convert_utf8(material->get_name()).data()))
@@ -170,7 +173,7 @@ void post_process_volume_object::imgui_bloom()
 			is_change = true;
 		}
 
-		//	ãƒ¢ãƒ¼ãƒ‰è¨­å®š
+		//	ƒ‚[ƒhİ’è
 		{
 			std::vector<std::string> row_texts;
 			std::vector<char*> combo_texts;
@@ -529,7 +532,7 @@ void post_process_volume_object::imgui_tone_mapping()
 	auto tone_mapping_constant = instance->get_tone_mapping_constant();
 	if (ImGui::TreeNode("tone_mapping"))
 	{
-		//	ãƒ¢ãƒ¼ãƒ‰è¨­å®š
+		//	ƒ‚[ƒhİ’è
 		{
 			std::vector<std::string> row_texts;
 			std::vector<char*> combo_texts;
@@ -549,7 +552,7 @@ void post_process_volume_object::imgui_tone_mapping()
 			}
 		}
 
-		//	ãƒˆãƒ¼ãƒ³ã‚«ãƒ¼ãƒ–
+		//	ƒg[ƒ“ƒJ[ƒu
 		if (ImPlot::BeginPlot("tone curve"))
 		{
 			ImPlot::SetupAxis(ImAxis_X1, "input luminance");
@@ -611,7 +614,7 @@ void post_process_volume_object::imgui_tone_mapping()
 				}
 				return x;
 			};
-			// æ¨ªè»¸ï¼šè¼åº¦å€¤, ç¸¦è»¸ï¼šãƒˆãƒ¼ãƒ³ãƒãƒƒãƒ”ãƒ³ã‚°å¾Œã®å‡ºåŠ›è¼åº¦
+			// ‰¡²F‹P“x’l, c²Fƒg[ƒ“ƒ}ƒbƒsƒ“ƒOŒã‚Ìo—Í‹P“x
 			std::vector<float> plot_buffer;
 			plot_buffer.resize(1000);
 			for (int index = 0; index < plot_buffer.size(); ++index)
@@ -621,7 +624,7 @@ void post_process_volume_object::imgui_tone_mapping()
 			ImPlot::PlotLine("", plot_buffer.data(), static_cast<int>(plot_buffer.size()), 0.01f);
 			ImPlot::EndPlot();
 		}
-		//	ãƒ¢ãƒ¼ãƒ‰æ¯ã®ãƒ‘ãƒ©ãƒ¡ãƒ¼ã‚¿ãƒ¼è¨­å®š
+		//	ƒ‚[ƒh–ˆ‚Ìƒpƒ‰ƒ[ƒ^[İ’è
 		switch (tone_mapping_constant.get_tone_map_type())
 		{
 			case tone_mapping_data::tone_mapping_type::aces_krzysztof_narkowicz:
@@ -650,7 +653,7 @@ void post_process_volume_object::imgui_tone_mapping()
 			}
 			case tone_mapping_data::tone_mapping_type::gran_turismo:
 			{
-				//	Pã¯ãƒ¢ãƒ‹ã‚¿ãƒ¼ã®æœ€å¤§è¼åº¦ãªã®ã§ã€ãƒ‡ãƒã‚¤ã‚¹ã‹ã‚‰èª¿ã¹ã¦è¨­å®šã™ã‚‹
+				//	P‚Íƒ‚ƒjƒ^[‚ÌÅ‘å‹P“x‚È‚Ì‚ÅAƒfƒoƒCƒX‚©‚ç’²‚×‚Äİ’è‚·‚é
 				if (ImGui::SliderFloat("contrast", tone_mapping_constant.tone_mapping_variables + 1, 0.0f, 2.0f, "%.6f"))
 				{
 					is_change = true;

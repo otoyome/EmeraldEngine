@@ -57,7 +57,7 @@ roomba_camera_controller_object::roomba_camera_controller_object(std::string_vie
 
 , dead_wait_time(dead_wait_lock_time)
 {
-	focus = player_controller->get_focus_point();
+	focus = math::vector3d(player_controller->get_focus_point());
 }
 
 roomba_camera_controller_object::~roomba_camera_controller_object()

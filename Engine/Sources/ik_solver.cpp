@@ -266,7 +266,7 @@ void ik_solver::solve(size_t index, math::float3 ik_target_position)
 			}
 			link_data.reset_previous_rotation = false;
 			link_data.previous_rotation = R.to_float4();
-			LocalTransform = math::matrixf::transform(S, R, T);
+			LocalTransform = math::matrixf::affine_transformation(S, R, T);
 			link_node.local_transform = LocalTransform.to_float4x4();
 		}
 
@@ -388,7 +388,7 @@ void ik_solver::solve_aim(solve_data& solve_data, math::float3 ik_target_positio
 		}
 	}
 
-	LocalTransform = math::matrixf::transform(S, NewLocalRotation, T);
+	LocalTransform = math::matrixf::affine_transformation(S, NewLocalRotation, T);
 	aim_node.local_transform = LocalTransform.to_float4x4();
 	instance->update_transform(WorldTramsform);
 }
@@ -457,7 +457,7 @@ void ik_solver::solve_limb(solve_data& solve_data, math::float3 ik_target_positi
 			math::quaternionf LocalRotationAxis = math::quaternionf::rotation_axis(LocalAxis, angle);
 			LocalTransform.decompose(S, R, T);
 			R = R * LocalRotationAxis;
-			LocalTransform = math::matrixf::transform(S, R, T);
+			LocalTransform = math::matrixf::affine_transformation(S, R, T);
 			node.local_transform = LocalTransform.to_float4x4();
 		};
 
@@ -517,7 +517,7 @@ void ik_solver::solve_limb(solve_data& solve_data, math::float3 ik_target_positi
 				math::matrixf LocalTransform(root_node.local_transform);
 				LocalTransform.decompose(S, R, T);
 				R = R * LocalRotationAxis;
-				LocalTransform = math::matrixf::transform(S, R, T);
+				LocalTransform = math::matrixf::affine_transformation(S, R, T);
 				root_node.local_transform = LocalTransform.to_float4x4();
 			}
 		}
@@ -692,7 +692,7 @@ void ik_solver::solve_ccd(solve_data& solve_data, math::float3 ik_target_positio
 				}
 			}
 
-			LocalTransform = math::matrixf::transform(S, NewLocalRotation, T);
+			LocalTransform = math::matrixf::affine_transformation(S, NewLocalRotation, T);
 			link_node.local_transform = LocalTransform.to_float4x4();
 
 			//	グローバル行列再計算
@@ -795,7 +795,7 @@ void ik_solver::solve_ccd_pmx(solve_data& solve_data, math::float3 ik_target_pos
 				}
 
 				//	影響度を適応
-				LocalTransform = math::matrixf::transform(S, NewLocalRotation, T);
+				LocalTransform = math::matrixf::affine_transformation(S, NewLocalRotation, T);
 				link_node.local_transform = LocalTransform.to_float4x4();
 			}
 			//	グローバル行列再計算
@@ -908,7 +908,7 @@ void ik_solver::solve_ccd_pmx_plane(int iteration, solve_data& solve_data, node_
 		LocalTransform.decompose(S, R, T);
 		R = math::quaternionf::rotation_axis(rotate_axis, new_angle);
 		//	影響度を適応
-		LocalTransform = math::matrixf::transform(S, R, T);
+		LocalTransform = math::matrixf::affine_transformation(S, R, T);
 		link_node.local_transform = LocalTransform.to_float4x4();
 	}
 }

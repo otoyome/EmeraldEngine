@@ -121,13 +121,7 @@ namespace math
 		matrix inverted() const { return inverse(*this); }
 
 		//	単位行列化
-		void identity()
-		{
-			set_storage(1, 0, 0, 0,
-						0, 1, 0, 0,
-						0, 0, 1, 0,
-						0, 0, 0, 1);
-		}
+		void identity();
 
 		//	S(Scale)R(Rotation)T(Translation)行列分解して各姿勢値を取得
 		bool decompose(vector3<T>& out_scale, quaternion<T>& out_rotation, vector3<T>& out_position) const;
@@ -153,76 +147,18 @@ namespace math
 
 	public:
 		//	足し算
-		void addition(const matrix& r)
-		{
-			if constexpr (use_simd_v<T>)
-			{
-				for (std::int32_t i = 0; i < 4; ++i)
-				{
-					reg[i] = ops::add(reg[i], r.reg[i]);
-				}
-			}
-			else
-			{
-				for (std::uint32_t i = 0; i < element_count; ++i)
-				{
-					elements[i] += r.elements[i];
-				}
-			}
-		}
+		void addition(const matrix& r);
 
 		//	引き算
-		void subtract(const matrix& r)
-		{
-			if constexpr (use_simd_v<T>)
-			{
-				for (std::int32_t i = 0; i < 4; ++i)
-				{
-					reg[i] = ops::sub(reg[i], r.reg[i]);
-				}
-			}
-			else
-			{
-				for (std::uint32_t i = 0; i < element_count; ++i)
-				{
-					elements[i] -= r.elements[i];
-				}
-			}
-		}
+		void subtract(const matrix& r);
 
 		//	掛け算
-		void multiply(T value)
-		{
-			if constexpr (use_simd_v<T>)
-			{
-				register_type v = ops::set1(value);
-				for (std::int32_t i = 0; i < 4; ++i)
-				{
-					reg[i] = ops::mul(reg[i], v);
-				}
-			}
-			else
-			{
-				for (std::uint32_t i = 0; i < element_count; ++i)
-				{
-					elements[i] *= value;
-				}
-			}
-		}
+		void multiply(T value);
 
-		//	掛け算（*this = *this * r）
-		void multiply(const matrix& r)
-		{
-			if constexpr (is_column_vector)
-			{
-				*this = concatenate(r, *this);
-			}
-			else
-			{
-				*this = concatenate(*this, r);
-			}
-		}
+		//	掛け算
+		void multiply(const matrix& r);
 
+		//	型変換
 		float4x4 to_float4x4() const;
 		double4x4 to_double4x4() const;
 		float4x3 to_float4x3() const;
@@ -279,28 +215,8 @@ namespace math
 		bool operator!=(const matrix& r) const { return !(*this == r); }
 
 	public:
-		static matrix concatenate(const matrix& first, const matrix& second)
-		{
-			matrix ret;
-			if constexpr (use_simd_v<T>)
-			{
-				simd::multiply<ops>(first.reg, second.reg, ret.reg);
-			}
-			else
-			{
-				for (std::int32_t axis = 0; axis < 4; ++axis)
-				{
-					for (std::int32_t component = 0; component < 4; ++component)
-					{
-						ret.storage[axis][component] = first.storage[axis][0] * second.storage[0][component]
-													 + first.storage[axis][1] * second.storage[1][component]
-													 + first.storage[axis][2] * second.storage[2][component]
-													 + first.storage[axis][3] * second.storage[3][component];
-					}
-				}
-			}
-			return ret;
-		}
+		//	乗算
+		static matrix concatenate(const matrix& first, const matrix& second);
 
 		//	行列式
 		static T determinant(const matrix& mat);
@@ -308,18 +224,6 @@ namespace math
 		//	逆行列化
 		static matrix inverse(const matrix& mat);
 		static bool try_inverse(const matrix& mat, matrix& out);
-
-		//	拡縮行列を対象とした逆行列化
-		static matrix inverse_for_scaling(const matrix& mat);
-
-		//	回転行列を対象とした逆行列化
-		static matrix inverse_for_rotation(const matrix& mat);
-
-		//	平行移動行列を対象とした逆行列化
-		static matrix inverse_for_translation(const matrix& mat);
-
-		//	拡縮しない姿勢行列を対象とした逆行列化
-		static matrix inverse_for_rt(const matrix& mat);
 
 		//	転置
 		static matrix transpose(const matrix& mat);
@@ -378,10 +282,25 @@ namespace math
 		static matrix translation(const vector4<T>& position);
 
 		//	姿勢制御行列を生成
-		static matrix transform(const vector3<T>& scale, const quaternion<T>& rotation, const vector3<T>& position);
+		static matrix affine_transformation(const vector3<T>& scale, const quaternion<T>& rotation, const vector3<T>& position);
 
 		//	姿勢制御行列を生成
-		static matrix transform(const vector3<T>& scale, const vector3<T>& euler, const vector3<T>& position);
+		static matrix affine_transformation(const vector3<T>& scale, const vector3<T>& euler, const vector3<T>& position);
+
+		//	拡縮行列を対象とした逆行列化
+		static matrix inverse_for_scaling(const matrix& mat);
+
+		//	回転行列を対象とした逆行列化
+		static matrix inverse_for_rotation(const matrix& mat);
+
+		//	平行移動行列を対象とした逆行列化
+		static matrix inverse_for_translation(const matrix& mat);
+
+		//	姿勢制御行列の逆行列を生成
+		static matrix inverse_affine_transformation(const vector3<T>& scale, const quaternion<T>& rotation, const vector3<T>& position);
+
+		//	拡縮しない姿勢制御行列の逆行列を生成
+		static matrix inverse_rigid_transformation(const quaternion<T>& rotation, const vector3<T>& position);
 
 		//	視線行列を生成
 		static matrix look_at(const vector3<T>& position, const vector3<T>& target, const vector3<T>& up_vector, coordinate_order coordinate = default_coordinate_order);
@@ -414,13 +333,9 @@ namespace math
 	public:
 		union
 		{
-			//	軸ベクトルのレジスタ（0：X 軸、1：Y 軸、2：Z 軸、3：平行移動）
 			register_type reg[4];
-			//	格納順の通し番号
 			T elements[element_count];
-			//	storage[軸][成分]
 			T storage[4][4];
-			//	格納順の要素名（行ベクトル規約の _11～_44 と同じ位置。ライブラリ内部の計算はこちらを使う）
 			struct
 			{
 				T s11, s12, s13, s14;
@@ -428,7 +343,6 @@ namespace math
 				T s31, s32, s33, s34;
 				T s41, s42, s43, s44;
 			};
-			//	数学上の要素名（_行列）
 			struct
 			{
 #if MATH_COLUMN_VECTOR

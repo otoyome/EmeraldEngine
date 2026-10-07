@@ -810,7 +810,7 @@ kuroko_object::kuroko_object(std::shared_ptr<model_object> character_model, std:
 	get_push_box()->set_filter(collision_filter_name);
 	get_push_box()->set_bounding_object(std::make_shared<collision::bounding_capsule>());
 	get_push_box()->set_local_scale({setup_data::capsule_push_radius, setup_data::capsule_length, 0.0f});
-	get_push_box()->set_local_offset(setup_data::capsule_offset);
+	get_push_box()->set_local_offset(math::vector3d(setup_data::capsule_offset));
 	get_push_box()->set_physical_data({setup_data::friction});
 	get_push_box()->set_mass(setup_data::mass);
 #if defined(USE_IMGUI)
@@ -847,7 +847,12 @@ kuroko_object::~kuroko_object()
 void kuroko_object::fixed_update(float elapsed_time)
 {
 	//	ŒX‚«”jŠü
-	set_rotation({get_rotation().x, get_rotation().y, 0});
+	{
+		math::rotatord rotator = get_model_object()->get_world_euler();
+		rotator.z = 0.0;
+		get_model_object()->set_world_euler(rotator);
+		sync_push_box();
+	}
 
 	//	Œ¸‘¬—Í‚ð—Ž‚Æ‚·
 	set_breaking_deceleration(walk_breaking_deceleration);
@@ -887,7 +892,12 @@ void kuroko_object::fixed_update(float elapsed_time)
 	}
 
 	//	ŒX‚«“K‰ž
-	set_rotation({get_rotation().x, get_rotation().y, roll_value});
+	{
+		math::rotatord rotator = get_model_object()->get_world_euler();
+		rotator.z = roll_value;
+		get_model_object()->set_world_euler(rotator);
+		sync_push_box();
+	}
 	roll_value *= 0.1f;
 
 	//	ƒAƒNƒVƒ‡ƒ“î•ñƒNƒŠƒA
@@ -911,7 +921,7 @@ void kuroko_object::post_update(float elapsed_time)
 		{
 			//	Žw’è‚Ìƒm[ƒh‚ÌŽp¨‚ðŽæ“¾
 			auto& parent_node = get_model_object()->get_model_instance()->get_nodes()[parent_node_index];
-			const math::matrixf world_transform = math::matrixf(parent_node.global_transform) * math::matrixf::transform(get_scale(), get_rotation().to_quaternion(), get_position());
+			const math::matrixf world_transform = math::matrixf(parent_node.global_transform) * get_model_object()->get_world().to_relative_matrix(math::vector3d::zero());
 
 			math::vector3f weapon_scale, weapon_translation;
 			math::quaternionf weapon_rotation;
@@ -944,8 +954,8 @@ void kuroko_object::post_update(float elapsed_time)
 	if (keyboard::instance()->get_state().is_key_state(keyboard::key_states::z) == input::state::down)
 	{
 		auto effect_instance = play_effect(static_cast<size_t>(custom_effect_id::break_attack_impact)).lock();
-		auto effect_position = get_position();
-		auto effect_rotation = get_rotation();
+		auto effect_position = get_model_object()->get_world_translation().to_float3();
+		auto effect_rotation = math::rotatorf(get_model_object()->get_world_euler());
 		auto effect_front = effect_rotation.front().to_float3();
 		auto effect_up = effect_rotation.up().to_float3();
 		effect_position.x += system_units::convert_m_to_unit(effect_front.x * 0.5f) + system_units::convert_m_to_unit(effect_up.x * 1.5f);
@@ -996,7 +1006,7 @@ int kuroko_object::get_use_special_power() const
 
 math::float3 kuroko_object::get_focus_point() const
 {
-	math::float3 position = get_position();
+	math::float3 position = get_model_object()->get_world_translation().to_float3();
 	if (check_same_state(state_names[state_break_attack]) ||
 		check_same_state(kuroko_state_names[state_break_attack_2]) ||
 		check_same_state(kuroko_state_names[state_break_attack_3]) ||
@@ -1291,7 +1301,7 @@ void kuroko_object::update_walk(float elapsed_time)
 	{
 		mx /= ml;
 		my /= ml;
-		auto front = get_model_object()->get_rotation().front().to_float3();
+		auto front = math::rotatorf(get_model_object()->get_world_euler()).front().to_float3();
 		float tx = front.x, ty = front.z;
 		float tl = sqrtf(tx * tx + ty * ty);
 		tx /= tl;
@@ -1811,8 +1821,8 @@ void kuroko_object::enter_break_attack()
 	{
 		//	ƒ^[ƒQƒbƒg‚Ì•ûŒü‚ÉC³
 		auto focus = taget_object->get_focus_point();
-		focus.x -= get_position().x;
-		focus.z -= get_position().z;
+		focus.x -= get_model_object()->get_world_translation().to_float3().x;
+		focus.z -= get_model_object()->get_world_translation().to_float3().z;
 		float length = sqrtf(focus.x * focus.x + focus.z * focus.z);
 		set_turn_vector({focus.x / length, focus.z / length});
 	}
@@ -1833,11 +1843,12 @@ void kuroko_object::enter_break_attack()
 	attack_data_flags = false;
 	current_attack_id = attack_id::break_attack;
 	set_flag(character_object::flags::invisible, work_float[3] > 0.5f);
-	set_position({get_position().x, get_position().y + 0.01f, get_position().z});
+	get_model_object()->set_world_translation(get_model_object()->get_world_translation() + math::vector3d(0.0, 0.01, 0.0));
+	sync_push_box();
 	set_gravity_scale(system_units::convert_fps_to_sec(0.0f));
 	set_flag(flags::on_ground, false);
 	get_model_object()->play_animation(index, false);
-	math::float3 front = get_rotation().front().to_float3();
+	math::float3 front = math::rotatorf(get_model_object()->get_world_euler()).front().to_float3();
 	move_stop_vector = {front.x, front.z};
 }
 
@@ -1849,8 +1860,8 @@ void kuroko_object::update_break_attack(float elapsed_time)
 	{
 		//	ƒ^[ƒQƒbƒg‚Ì•ûŒü‚ÉC³
 		auto focus = taget_object->get_focus_point();
-		focus.x -= get_position().x;
-		focus.z -= get_position().z;
+		focus.x -= get_model_object()->get_world_translation().to_float3().x;
+		focus.z -= get_model_object()->get_world_translation().to_float3().z;
 		float length = sqrtf(focus.x * focus.x + focus.z * focus.z);
 		set_turn_vector({ focus.x / length, focus.z / length });
 	}
@@ -1859,8 +1870,8 @@ void kuroko_object::update_break_attack(float elapsed_time)
 	{
 		camera_transform_descs desc;
 		desc.set_flag(camera_transform_descs::flags::set_focus_direction, true);
-		auto front = get_rotation().front().to_float3();
-		auto right = get_rotation().right().to_float3();
+		auto front = math::rotatorf(get_model_object()->get_world_euler()).front().to_float3();
+		auto right = math::rotatorf(get_model_object()->get_world_euler()).right().to_float3();
 		desc.focus_direction.x = +front.x + right.x * 0.5f;
 		desc.focus_direction.y = +front.y + right.y * 0.5f;
 		desc.focus_direction.z = +front.z + right.z * 0.5f;
@@ -1879,7 +1890,7 @@ void kuroko_object::update_break_attack(float elapsed_time)
 
 	//	“®ì’†‚Í–³“G•t—^
 	set_flag(character_object::flags::invisible, true);
-	math::float2 move = {get_rotation().front().x, get_rotation().front().z};
+	math::float2 move = {math::rotatorf(get_model_object()->get_world_euler()).front().x, math::rotatorf(get_model_object()->get_world_euler()).front().z};
 	add_move_vector(move, walk_accelaration);
 	set_max_move_speed(walk_max_speed);
 	set_breaking_deceleration(hi_dash_breaking_deceleration);
@@ -1918,7 +1929,7 @@ void kuroko_object::enter_break_attack_2()
 	work_float[0] = 0.0f;
 	set_flag(character_object::flags::invisible, true);
 	get_model_object()->play_animation(index, true, 0.1f);
-	math::float3 front = get_rotation().front().to_float3();
+	math::float3 front = math::rotatorf(get_model_object()->get_world_euler()).front().to_float3();
 	move_stop_vector = {front.x, front.z};
 }
 
@@ -1931,8 +1942,8 @@ void kuroko_object::update_break_attack_2(float elapsed_time)
 	{
 		camera_transform_descs desc;
 		desc.set_flag(camera_transform_descs::flags::set_focus_direction, true);
-		auto front = get_rotation().front().to_float3();
-		auto right = get_rotation().right().to_float3();
+		auto front = math::rotatorf(get_model_object()->get_world_euler()).front().to_float3();
+		auto right = math::rotatorf(get_model_object()->get_world_euler()).right().to_float3();
 		desc.focus_direction.x = +front.x + right.x * 0.5f;
 		desc.focus_direction.y = +front.y + right.y * 0.5f;
 		desc.focus_direction.z = +front.z + right.z * 0.5f;
@@ -1948,17 +1959,17 @@ void kuroko_object::update_break_attack_2(float elapsed_time)
 		auto taget_object = get_lockon_taget_object().lock();
 		if (taget_object)
 		{
-			target_position = taget_object->get_position();
+			target_position = taget_object->get_model_object()->get_world_translation().to_float3();
 		}
 		else
 		{
-			target_position = get_rotation().front().to_float3();
+			target_position = math::rotatorf(get_model_object()->get_world_euler()).front().to_float3();
 		}
 	
 		//	ƒ^[ƒQƒbƒg‚Ì•ûŒü‚ÉuŠÔˆÚ“®
 		auto focus = target_position;
-		focus.x -= get_position().x;
-		focus.z -= get_position().z;
+		focus.x -= get_model_object()->get_world_translation().to_float3().x;
+		focus.z -= get_model_object()->get_world_translation().to_float3().z;
 		float length = sqrtf(focus.x * focus.x + focus.z * focus.z);
 		focus.x /= length;
 		focus.z /= length;
@@ -2045,7 +2056,7 @@ void kuroko_object::update_break_attack_3(float elapsed_time)
 	//}
 
 	//	UŒ‚”»’èŠÖŒW
-	update_attack_box(animation_time, get_rotation().front().to_float3());
+	update_attack_box(animation_time, math::rotatorf(get_model_object()->get_world_euler()).front().to_float3());
 
 	//	“®ì’†‚Í–³“G•t—^
 	set_flag(character_object::flags::invisible, true);
@@ -2083,8 +2094,8 @@ void kuroko_object::update_attack(float elapsed_time)
 	{
 		//	ƒ^[ƒQƒbƒg‚Ì•ûŒü‚ÉC³
 		auto focus = taget_object->get_focus_point();
-		focus.x -= get_position().x;
-		focus.z -= get_position().z;
+		focus.x -= get_model_object()->get_world_translation().to_float3().x;
+		focus.z -= get_model_object()->get_world_translation().to_float3().z;
 		float length = sqrtf(focus.x * focus.x + focus.z * focus.z);
 		set_turn_vector({focus.x / length, focus.z / length});
 	}
@@ -2099,7 +2110,7 @@ void kuroko_object::update_attack(float elapsed_time)
 	}
 
 	//	UŒ‚”»’èŠÖŒW
-	update_attack_box(animation_time, get_rotation().front().to_float3());
+	update_attack_box(animation_time, math::rotatorf(get_model_object()->get_world_euler()).front().to_float3());
 
 	//	UŒ‚–ˆ‚Ì“ÁŽê‘Î‰ž
 	bool hide_model = false;
@@ -2135,8 +2146,8 @@ void kuroko_object::update_attack(float elapsed_time)
 				{
 					camera_transform_descs desc;
 					desc.set_flag(camera_transform_descs::flags::set_focus_direction, true);
-					auto front = get_rotation().front().to_float3();
-					auto right = get_rotation().right().to_float3();
+					auto front = math::rotatorf(get_model_object()->get_world_euler()).front().to_float3();
+					auto right = math::rotatorf(get_model_object()->get_world_euler()).right().to_float3();
 					desc.focus_direction.x = +front.x + right.x;
 					desc.focus_direction.y = +front.y + right.y;
 					desc.focus_direction.z = +front.z + right.z;
@@ -2163,8 +2174,8 @@ void kuroko_object::update_attack(float elapsed_time)
 				{
 					camera_transform_descs desc;
 					desc.set_flag(camera_transform_descs::flags::set_focus_direction, true);
-					auto front = get_rotation().front().to_float3();
-					auto right = get_rotation().right().to_float3();
+					auto front = math::rotatorf(get_model_object()->get_world_euler()).front().to_float3();
+					auto right = math::rotatorf(get_model_object()->get_world_euler()).right().to_float3();
 					desc.focus_direction.x = +front.x + right.x;
 					desc.focus_direction.y = +front.y + right.y;
 					desc.focus_direction.z = +front.z + right.z;
@@ -2204,7 +2215,7 @@ void kuroko_object::update_attack(float elapsed_time)
 	{
 		apprpoaching_effect_flag = true;
 		auto effect_position = get_focus_point();
-		auto effect_rotation = get_rotation();
+		auto effect_rotation = math::rotatorf(get_model_object()->get_world_euler());
 		//	ƒJƒƒ‰‚ðƒvƒŒƒCƒ„[‚ÌŒã‚ë‚É‘—‚é
 		math::float2 direction;
 		if (calculate_lockon_target_vector(direction))
@@ -2234,8 +2245,8 @@ void kuroko_object::enter_attack6_1()
 	{
 		//	ƒ^[ƒQƒbƒg‚Ì•ûŒü‚ÉC³
 		auto focus = taget_object->get_focus_point();
-		focus.x -= get_position().x;
-		focus.z -= get_position().z;
+		focus.x -= get_model_object()->get_world_translation().to_float3().x;
+		focus.z -= get_model_object()->get_world_translation().to_float3().z;
 		float length = sqrtf(focus.x * focus.x + focus.z * focus.z);
 		set_turn_vector({focus.x / length, focus.z / length});
 	}
@@ -2254,7 +2265,8 @@ void kuroko_object::enter_attack6_1()
 	attack_data_flags = false;
 	set_flag(character_object::flags::invisible, true);
 	set_velocity({ 0.0f, 0.0f, 0.0f });
-	set_position({get_position().x, get_position().y + 0.01f, get_position().z});
+	get_model_object()->set_world_translation(get_model_object()->get_world_translation() + math::vector3d(0.0, 0.01, 0.0));
+	sync_push_box();
 	set_gravity_scale(system_units::convert_fps_to_sec(-0.0125f));	//	‚¿‚å‚Á‚Æ•‚‚©‚¹‚é
 	set_flag(flags::on_ground, false);
 	get_model_object()->play_animation(index, false);
@@ -2276,7 +2288,7 @@ void kuroko_object::update_attack6_1(float elapsed_time)
 	set_gravity_scale(-0.025f * elapsed_time);
 
 	//	UŒ‚”»’èŠÖŒW
-	update_attack_box(animation_time, get_rotation().front().to_float3());
+	update_attack_box(animation_time, math::rotatorf(get_model_object()->get_world_euler()).front().to_float3());
 
 	//	ƒJƒƒ‰‚ðˆø‚­
 	{
@@ -2299,7 +2311,7 @@ void kuroko_object::enter_attack6_2()
 	}
 
 	set_flag(character_object::flags::invisible, true);
-	math::float3 front = get_rotation().front().to_float3();
+	math::float3 front = math::rotatorf(get_model_object()->get_world_euler()).front().to_float3();
 	move_stop_vector = {front.x, front.z};
 	attack_data_flags = false;
 	sub_state = 0;
@@ -2398,7 +2410,7 @@ void kuroko_object::update_attack6_3(float elapsed_time)
 	}
 
 	//	UŒ‚”»’èŠÖŒW
-	update_attack_box(animation_time, get_rotation().front().to_float3());
+	update_attack_box(animation_time, math::rotatorf(get_model_object()->get_world_euler()).front().to_float3());
 
 	//	“®ì’†‚Í–³“G•t—^
 	set_flag( character_object::flags::invisible, true);
@@ -2445,8 +2457,8 @@ void kuroko_object::update_special(float elapsed_time)
 	{
 		//	ƒ^[ƒQƒbƒg‚Ì•ûŒü‚ÉC³
 		auto focus = taget_object->get_focus_point();
-		focus.x -= get_position().x;
-		focus.z -= get_position().z;
+		focus.x -= get_model_object()->get_world_translation().to_float3().x;
+		focus.z -= get_model_object()->get_world_translation().to_float3().z;
 		float length = sqrtf(focus.x * focus.x + focus.z * focus.z);
 		set_turn_vector({focus.x / length, focus.z / length});
 	}
@@ -2502,7 +2514,7 @@ void kuroko_object::enter_special_2()
 
 	current_attack_id = attack_id::special_2;
 	set_flag(character_object::flags::invisible, true);
-	math::float3 front = get_rotation().front().to_float3();
+	math::float3 front = math::rotatorf(get_model_object()->get_world_euler()).front().to_float3();
 	move_stop_vector = {front.x, front.z};
 	attack_data_flags = false;
 	sub_state = 0;
@@ -2530,17 +2542,17 @@ void kuroko_object::update_special_2(float elapsed_time)
 		auto taget_object = get_lockon_taget_object().lock();
 		if (taget_object)
 		{
-			target_position = taget_object->get_position();
+			target_position = taget_object->get_model_object()->get_world_translation().to_float3();
 		}
 		else
 		{
-			target_position = get_rotation().front().to_float3();
+			target_position = math::rotatorf(get_model_object()->get_world_euler()).front().to_float3();
 		}
 	
 		//	ƒ^[ƒQƒbƒg‚Ì•ûŒü‚ÉuŠÔˆÚ“®
 		auto focus = target_position;
-		focus.x -= get_position().x;
-		focus.z -= get_position().z;
+		focus.x -= get_model_object()->get_world_translation().to_float3().x;
+		focus.z -= get_model_object()->get_world_translation().to_float3().z;
 		float length = sqrtf(focus.x * focus.x + focus.z * focus.z);
 		focus.x /= length;
 		focus.z /= length;
@@ -2549,7 +2561,7 @@ void kuroko_object::update_special_2(float elapsed_time)
 
 	//	UŒ‚”»’èŠÖŒW
 	{
-		update_attack_box(animation_time - work_float[0], get_rotation().front().to_float3());
+		update_attack_box(animation_time - work_float[0], math::rotatorf(get_model_object()->get_world_euler()).front().to_float3());
 		if (sub_attack_id != 0)
 		{
 			work_float[0] = animation_time;
@@ -2587,8 +2599,8 @@ void kuroko_object::enter_special_3()
 	{
 		//	ƒ^[ƒQƒbƒg‚Ì•ûŒü‚ÉC³
 		auto focus = taget_object->get_focus_point();
-		focus.x -= get_position().x;
-		focus.z -= get_position().z;
+		focus.x -= get_model_object()->get_world_translation().to_float3().x;
+		focus.z -= get_model_object()->get_world_translation().to_float3().z;
 		float length = sqrtf(focus.x * focus.x + focus.z * focus.z);
 		set_turn_vector({focus.x / length, focus.z / length});
 	}
@@ -2609,11 +2621,12 @@ void kuroko_object::enter_special_3()
 	attack_data_flags = false;
 	current_attack_id = attack_id::special_3;
 	set_flag(character_object::flags::invisible, true);
-	set_position({get_position().x, get_position().y + 0.01f, get_position().z});
+	get_model_object()->set_world_translation(get_model_object()->get_world_translation() + math::vector3d(0.0, 0.01, 0.0));
+	sync_push_box();
 	set_gravity_scale(system_units::convert_fps_to_sec(0.0f));
 	set_flag(flags::on_ground, false);
 	get_model_object()->play_animation(index, false);
-	math::float3 front = get_rotation().front().to_float3();
+	math::float3 front = math::rotatorf(get_model_object()->get_world_euler()).front().to_float3();
 	move_stop_vector = {front.x, front.z};
 }
 
@@ -2630,7 +2643,7 @@ void kuroko_object::update_special_3(float elapsed_time)
 	set_gravity_scale(0.0f);
 
 	//	UŒ‚”»’èŠÖŒW
-	update_attack_box(animation_time, get_rotation().front().to_float3());
+	update_attack_box(animation_time, math::rotatorf(get_model_object()->get_world_euler()).front().to_float3());
 
 	//	ƒJƒƒ‰‚ðˆø‚­
 	{
@@ -2664,7 +2677,7 @@ void kuroko_object::enter_special_4()
 	current_attack_id = attack_id::special_4;
 	set_flag(character_object::flags::invisible, true);
 	get_model_object()->play_animation(index, true, 0.0f);
-	math::float3 front = get_rotation().front().to_float3();
+	math::float3 front = math::rotatorf(get_model_object()->get_world_euler()).front().to_float3();
 	move_stop_vector = {front.x, front.z};
 }
 
@@ -2679,7 +2692,7 @@ void kuroko_object::update_special_4(float elapsed_time)
 
 	//	UŒ‚”»’èŠÖŒW
 	{
-		update_attack_box(animation_time - work_float[0], get_rotation().front().to_float3());
+		update_attack_box(animation_time - work_float[0], math::rotatorf(get_model_object()->get_world_euler()).front().to_float3());
 		if (sub_attack_id != 0)
 		{
 			work_float[0] = animation_time;
@@ -2768,7 +2781,7 @@ void kuroko_object::update_special_5(float elapsed_time)
 	}
 
 	//	UŒ‚”»’èŠÖŒW
-	update_attack_box(animation_time, get_rotation().front().to_float3());
+	update_attack_box(animation_time, math::rotatorf(get_model_object()->get_world_euler()).front().to_float3());
 
 	//	“®ì’†‚Í–³“G•t—^
 	set_flag( character_object::flags::invisible, true);
@@ -2858,7 +2871,8 @@ bool kuroko_object::transition_parry(const damage_datas& data)
 	//	…•½‚É‚Í§ŒÀ‚µ‚Ä‚¨‚­
 	rotation.x = 0.0f;
 	rotation.z = 0.0f;
-	set_rotation(rotation);
+	get_model_object()->set_world_euler(math::rotatord(rotation));
+	sync_push_box();
 
 	//	ƒGƒtƒFƒNƒgÄ¶
 	//{
@@ -2985,8 +2999,8 @@ void kuroko_object::update_attack_box(float animation_time, math::float3 stagger
 		{
 			bounding_datas box_data;
 			box_data.desc = attack_box.bounds;
-			box_data.position = get_position();
-			box_data.rotator = get_rotation();
+			box_data.position = get_model_object()->get_world_translation().to_float3();
+			box_data.rotator = math::rotatorf(get_model_object()->get_world_euler());
 			damage_datas damage_data;
 			damage_data.desc = attack_box.attack;
 			damage_data.stagger_direction = stagger_direction;
@@ -3011,9 +3025,9 @@ bool kuroko_object::fast_apprpoaching_lockon_target(float elapsed_time, const ma
 		return false;
 	
 	//	ƒ^[ƒQƒbƒg‚Ì•ûŒü‚ÉuŠÔˆÚ“®
-	auto focus = taget_object->get_position();
-	focus.x -= get_position().x;
-	focus.z -= get_position().z;
+	auto focus = taget_object->get_model_object()->get_world_translation().to_float3();
+	focus.x -= get_model_object()->get_world_translation().to_float3().x;
+	focus.z -= get_model_object()->get_world_translation().to_float3().z;
 	float length_sq = (focus.x * focus.x + focus.z * focus.z);
 
 	//	‹——£§ŒÀ
@@ -3037,8 +3051,8 @@ bool kuroko_object::calculate_lockon_target_vector(math::float2& direction, floa
 	
 	//	ƒ^[ƒQƒbƒg‚Ì•ûŒü‚ÉuŠÔˆÚ“®
 	auto focus = taget_object->get_focus_point();
-	focus.x -= get_position().x;
-	focus.z -= get_position().z;
+	focus.x -= get_model_object()->get_world_translation().to_float3().x;
+	focus.z -= get_model_object()->get_world_translation().to_float3().z;
 	float length = sqrtf(focus.x * focus.x + focus.z * focus.z);
 	direction.x = focus.x / length;
 	direction.y = focus.z / length;

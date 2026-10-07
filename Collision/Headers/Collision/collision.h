@@ -4,6 +4,7 @@
 #include <memory>
 #include <type_traits>
 #include "Math/math_all.h"
+#include "Math/rigid_transform.h"
 
 namespace collision
 {
@@ -75,11 +76,14 @@ namespace collision
 		virtual const math::double3& get_local_scale() const;
 		virtual void set_local_scale(const math::double3& scale);
 
-		const math::double4& get_rotation() const;
-		void set_rotation(const math::double4& rotation);
+		const math::rigid_transformd& get_transform() const;
+		void set_transform(const math::rigid_transformd& transform);
 
-		const math::double3& get_position() const;
-		void set_position(const math::double3& position);
+		const math::quaterniond& get_rotation() const;
+		void set_rotation(const math::quaterniond& rotation);
+
+		const math::vector3d& get_position() const;
+		void set_position(const math::vector3d& position);
 
 		math::float4x4 get_transform_float4x4() const;
 		math::matrixd get_transform_matrix() const;
@@ -127,8 +131,7 @@ namespace collision
 
 	private:
 		math::double3 local_scale;
-		math::double4 rotation;
-		math::double3 position;
+		math::rigid_transformd transform;
 		math::double4x4 transform_matrix;
 		math::double4x4 inverse_transform_matrix;
 	};

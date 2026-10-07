@@ -1,11 +1,12 @@
 #pragma once
 
 #include "collision/collision.h"
+#include "object/spatial_object.h"
 
 //	ライトオブジェクト
-class light_object : public game_object
+class light_object : public spatial_object
 {
-	GAME_OBJECT_DECRLEAR(light_object, game_object)
+	GAME_OBJECT_DECRLEAR(light_object, spatial_object)
 
 public:
 	light_ptr get_light() const;
@@ -16,12 +17,11 @@ public:
 	void set_color(math::float4 color);
 	math::float4 get_color() const;
 
-	void set_position(math::float3 position);
-	math::float3 get_position() const;
-
 public:
 	light_object(std::string_view name);
 	~light_object() override;
+
+	void post_update(float elapsed_time) override;
 
 #if defined(USE_IMGUI)
 	void imgui_render_core() override;
@@ -32,18 +32,19 @@ protected:
 	void on_active() override;
 	void on_deactive() override;
 
+	void sync_to_light();
+
 protected:
 	light_ptr light;
+
+private:
+	std::uint32_t applied_spatial_version = UINT32_MAX;
 };
 
 //	平行光源オブジェクト
 class directional_light_object : public light_object
 {
 	GAME_OBJECT_DECRLEAR(directional_light_object, light_object)
-
-public:
-	void set_rotation(const math::rotatorf& rotation);
-	const math::rotatorf& get_rotation() const;
 
 public:
 	directional_light_object(std::string_view name);
@@ -78,9 +79,6 @@ class spot_light_object : public light_object
 	GAME_OBJECT_DECRLEAR(spot_light_object, light_object)
 
 public:
-	void set_rotation(const math::rotatorf& rotation);
-	const math::rotatorf& get_rotation() const;
-
 	void set_range(float radius);
 	float get_range() const;
 
@@ -100,18 +98,15 @@ public:
 };
 
 //	ライトプローブオブジェクト
-class light_probe_object : public game_object
+class light_probe_object : public spatial_object
 {
-	GAME_OBJECT_DECRLEAR(light_probe_object, game_object)
+	GAME_OBJECT_DECRLEAR(light_probe_object, spatial_object)
 
 public:
 	light_probe_ptr get_light_probe() const;
 
 	void set_flag(light_probe::flags flag, bool value);
 	bool is_flag(light_probe::flags flag) const;
-
-	void set_position(math::float3 position);
-	math::float3 get_position() const;
 
 	void set_color(math::float4 color);
 	math::float4 get_color() const;
@@ -130,6 +125,8 @@ public:
 	light_probe_object(std::string_view name);
 	~light_probe_object() override;
 
+	void post_update(float elapsed_time) override;
+
 #if defined(USE_IMGUI)
 	void imgui_render_core() override;
 	virtual void imgui_tree_inner_render() = 0;
@@ -139,8 +136,13 @@ protected:
 	void on_active() override;
 	void on_deactive() override;
 
+	void sync_to_light_probe();
+
 protected:
 	light_probe_ptr light_probe;
+
+private:
+	std::uint32_t applied_spatial_version = UINT32_MAX;
 };
 
 //	スカイライトオブジェクト

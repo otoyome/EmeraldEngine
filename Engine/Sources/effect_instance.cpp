@@ -303,7 +303,7 @@ void effect_instance::update(float elapsed_time)
 	//	初期姿勢に変換
 	for (auto& node : nodes)
 	{
-		node.local_transform = math::matrixf::transform(node.scale, math::rotatorf(math::vector3f(node.rotation)).to_quaternion(), node.position).to_float4x4();
+		node.local_transform = math::matrixf::affine_transformation(node.scale, math::rotatorf(math::vector3f(node.rotation)).to_quaternion(), node.position).to_float4x4();
 	}
 
 	//	アニメーション更新
@@ -334,12 +334,12 @@ void effect_instance::update(float elapsed_time)
 
 			node_animations[index] = an;
 			auto& in = nodes[index];
-			in.local_transform = math::matrixf::transform(an.scale, math::quaternionf(an.rotation), an.translation).to_float4x4();
+			in.local_transform = math::matrixf::affine_transformation(an.scale, math::quaternionf(an.rotation), an.translation).to_float4x4();
 		}
 	}
 
 	//	姿勢情報
-	const math::matrixf world_transform = math::matrixf::transform(scale, rotation.to_quaternion(), position);
+	const math::matrixf world_transform = math::matrixf::affine_transformation(scale, rotation.to_quaternion(), position);
 
 	//	ノード更新
 	for (auto& node : nodes)

@@ -99,8 +99,8 @@ math::float3 roomba_controller_object::get_move_vector()
 	if (y_axis == 0 && x_axis == 0)
 		return math::float3(0, 0, 0);
 
-	float camera_right_x = camera->get_right().x;
-	float camera_right_z = camera->get_right().z;
+	float camera_right_x = camera->get_world().get_right().x;
+	float camera_right_z = camera->get_world().get_right().z;
 	float camera_right_length = sqrtf(camera_right_x * camera_right_x + camera_right_z * camera_right_z);
 	if (camera_right_length > 0.0f)
 	{
@@ -108,8 +108,8 @@ math::float3 roomba_controller_object::get_move_vector()
 		camera_right_z /= camera_right_length;
 	}
 
-	float camera_front_x = camera->get_front().x;
-	float camera_front_z = camera->get_front().z;
+	float camera_front_x = camera->get_world().get_front().x;
+	float camera_front_z = camera->get_world().get_front().z;
 	float camera_front_length = sqrtf(camera_front_x * camera_front_x + camera_front_z * camera_front_z);
 	if (camera_front_length > 0.0f)
 	{

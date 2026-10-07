@@ -110,25 +110,36 @@ void bounding_object::set_local_scale(const math::double3& scale)
 	on_change_parameter();
 }
 
-const math::double4& bounding_object::get_rotation() const
+const math::rigid_transformd& bounding_object::get_transform() const
 {
-	return	rotation;
+	return transform;
 }
 
-void bounding_object::set_rotation(const math::double4& rotation)
+void bounding_object::set_transform(const math::rigid_transformd& transform)
 {
-	this->rotation = rotation;
+	this->transform = transform;
 	on_change_parameter();
 }
 
-const math::double3& bounding_object::get_position() const
+const math::quaterniond& bounding_object::get_rotation() const
 {
-	return position;
+	return	transform.get_rotation();
 }
 
-void bounding_object::set_position(const math::double3& position)
+void bounding_object::set_rotation(const math::quaterniond& rotation)
 {
-	this->position	= position;
+	transform.set_rotation(rotation);
+	on_change_parameter();
+}
+
+const math::vector3d& bounding_object::get_position() const
+{
+	return transform.get_translation();
+}
+
+void bounding_object::set_position(const math::vector3d& position)
+{
+	transform.set_translation(position);
 	on_change_parameter();
 }
 
@@ -154,16 +165,14 @@ math::matrixd bounding_object::get_inverse_transform_matrix() const
 
 bounding_object::bounding_object()
 : local_scale( 1, 1, 1 )
-, rotation( 0, 0, 0, 1 )
-, position( 0, 0, 0 )
+, transform(math::rigid_transformd::identity())
 {
 	on_change_parameter();
 }
 
 bounding_object::bounding_object(const math::double3& local_scale, const math::double4& rotation, const math::double3& position)
 : local_scale(local_scale)
-, rotation(rotation)
-, position(position)
+, transform(math::quaterniond(rotation), math::vector3d(position))
 {
 	on_change_parameter();
 }
@@ -246,12 +255,8 @@ bool bounding_object::intersect_capsule_cast_by_axis_spheres(const math::double3
 
 void bounding_object::on_change_parameter()
 {
-	math::matrixd Rotation = math::matrixd::rotation_quaternion(math::quaterniond(rotation));
-	math::matrixd Translation = math::matrixd::translation(position.x, position.y, position.z);
-
-	math::matrixd TransformMatrix = Rotation * Translation;
-	transform_matrix = TransformMatrix.to_double4x4();
-	inverse_transform_matrix = TransformMatrix.inverted().to_double4x4();
+	transform_matrix = transform.get_transform().to_double4x4();
+	inverse_transform_matrix = transform.get_inverse_transform().to_double4x4();
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
