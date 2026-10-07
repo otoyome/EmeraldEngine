@@ -486,7 +486,7 @@ protected:
 
 	virtual bool register_effect(size_t effect_id, std::string_view file_path);
 	virtual void adjustment_velocity(math::float2& move, float adjust_move_velocity_rate, bool* flip_flag);
-	virtual bool calculate_position(math::float3 velocity, bool vertical, math::float3& out_position, math::float3& out_normal, float* out_friction = nullptr);
+	virtual bool calculate_position(math::float3 velocity, bool vertical, math::vector3d& out_position, math::float3& out_normal, float* out_friction = nullptr);
 	void sync_push_box();
 #define DECLEAR_STATE(STATE) \
 	virtual void enter_##STATE(){}; \

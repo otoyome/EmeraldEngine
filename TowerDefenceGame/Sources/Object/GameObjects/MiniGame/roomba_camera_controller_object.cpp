@@ -216,8 +216,8 @@ void roomba_camera_controller_object::fixed_update_default(float elapsed_time)
 		{
 			collision_world::sphere_cast_descs desc;
 			desc.filter = collision_filter_manager::instance()->search_filter("camera");
-			desc.start = camera_focus.to_float3();
-			desc.end = camera_position.to_float3();
+			desc.start = camera_focus.to_double3();
+			desc.end = camera_position.to_double3();
 			desc.radius = system_units::convert_m_to_unit(0.5);
 
 			//	ƒqƒbƒgˆ—

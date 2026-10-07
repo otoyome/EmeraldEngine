@@ -520,13 +520,14 @@ void roomba_object::update_velocity(float elapsed_time)
 
 void roomba_object::update_move(float elapsed_time)
 {
-	math::float3 start_position = get_position();
+	const math::vector3d start_position = model->get_world_translation();
 
 	ground_friction = 1.0f;
 	ground_normal = {};
 	set_flag(flags::on_ground, false);
 
-	math::float3 resolved_position, hit_normal;
+	math::vector3d resolved_position;
+	math::float3 hit_normal;
 	float friction = 0.0f;
 	if (calculate_position(velocity, elapsed_time, resolved_position, hit_normal, &friction))
 	{
@@ -535,23 +536,30 @@ void roomba_object::update_move(float elapsed_time)
 		ground_friction = friction;
 	}
 
-	set_position(resolved_position);
+	//	@tool 座標は double のまま反映する（float の set_position を経由すると原点から遠い位置で丸められるため）
+	model->set_world_translation(resolved_position);
+	if (push_box)
+		push_box->set_transform(model->get_world().to_rigid());
 
 	//	実際に進めた変位から速度を再算出
 	if (elapsed_time > FLT_EPSILON)
 	{
-		velocity.x = (resolved_position.x - start_position.x) / elapsed_time;
-		velocity.y = (resolved_position.y - start_position.y) / elapsed_time;
-		velocity.z = (resolved_position.z - start_position.z) / elapsed_time;
+		//	@tool 変位は double で求めてから float にする
+		const math::float3 displacement = (resolved_position - start_position).to_float3();
+		velocity.x = displacement.x / elapsed_time;
+		velocity.y = displacement.y / elapsed_time;
+		velocity.z = displacement.z / elapsed_time;
 	}
 }
 
-bool roomba_object::calculate_position(math::float3 velocity, float elapsed_time, math::float3& out_position, math::float3& out_normal, float* out_friction)
+bool roomba_object::calculate_position(math::float3 velocity, float elapsed_time, math::vector3d& out_position, math::float3& out_normal, float* out_friction)
 {
 	auto collision_object = get_push_box();
 	auto bounding_object = std::static_pointer_cast<collision::bounding_capsule>(collision_object->get_bounding_object());
 
-	out_position = get_position();
+	//	@tool 以降は初期座標を原点とした相対座標（float）で計算し、最後に double の初期座標へ足し込む
+	const math::vector3d base_position = model->get_world_translation();
+	math::float3 relative_position = { 0.0f, 0.0f, 0.0f };
 
 	float height = static_cast<float>(bounding_object->get_radius() + bounding_object->get_length() * 0.5);
 	math::vector3f Offset(0.0f, height, 0.0f);
@@ -582,10 +590,11 @@ bool roomba_object::calculate_position(math::float3 velocity, float elapsed_time
 		float travel_distance = speed * remaining_time + SkinStep;
 		math::vector3f MoveVector = NormalizedVelocity * travel_distance;
 
-		math::vector3f From = math::vector3f(out_position) + Offset;
+		math::vector3f From = math::vector3f(relative_position) + Offset;
 		math::vector3f To = From + MoveVector;
-		desc.start = From.to_float3();
-		desc.end = To.to_float3();
+		//	@tool 判定はワールド座標（double）で行う
+		desc.start = (base_position + math::vector3d(From)).to_double3();
+		desc.end = (base_position + math::vector3d(To)).to_double3();
 
 		collision::intersect_data intersect_data;
 		collision_object_ptr hit_collision_object;
@@ -599,7 +608,7 @@ bool roomba_object::calculate_position(math::float3 velocity, float elapsed_time
 			float hit_distance = std::max(static_cast<float>(intersect_data[0].length) - SkinStep, 0.0f);
 			math::vector3f Position = From + (NormalizedVelocity * hit_distance);
 			Position = Position + (Normal * SkinStep);
-			out_position = (Position - Offset).to_float3();
+			relative_position = (Position - Offset).to_float3();
 
 			if (out_friction)
 				*out_friction = hit_collision_object->get_physical_data().friction;
@@ -615,10 +624,12 @@ bool roomba_object::calculate_position(math::float3 velocity, float elapsed_time
 		}
 		else
 		{
-			out_position = ((From + MoveVector) - Offset).to_float3();
+			relative_position = ((From + MoveVector) - Offset).to_float3();
 			break;
 		}
 	}
+
+	out_position = base_position + math::vector3d(relative_position);
 	return hit_flag;
 }
 

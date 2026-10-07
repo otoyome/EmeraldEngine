@@ -226,7 +226,7 @@ private:	//	épê®êßå‰
 	void update_velocity(float elapsed_time);
 	void update_move(float elapsed_time);
 
-	bool calculate_position(math::float3 velocity, float elapsed_time, math::float3& out_position, math::float3& out_normal, float* out_friction = nullptr);
+	bool calculate_position(math::float3 velocity, float elapsed_time, math::vector3d& out_position, math::float3& out_normal, float* out_friction = nullptr);
 
 private:
 	void generate_box_data(std::vector<bounding_inner_datas>& datas, const bounding_datas& bounding_data);

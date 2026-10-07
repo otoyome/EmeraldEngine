@@ -15,8 +15,8 @@ class collision_world
 public:
 	struct ray_cast_descs
 	{
-		math::float3 start;
-		math::float3 end;
+		math::double3 start;
+		math::double3 end;
 		collision_filter_ptr filter;
 		std::vector<collision_object_ptr> exclude_objects;
 	};

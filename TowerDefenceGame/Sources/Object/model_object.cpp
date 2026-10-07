@@ -597,7 +597,7 @@ void model_object::update_ik()
 					right_ray_data.filter = collision_filter_manager::instance()->search_filter("ik");
 
 					left_ray_data.start =
-					left_ray_data.end = math::float3(left_world_matrix._41, left_world_matrix._42, left_world_matrix._43);
+					left_ray_data.end = math::double3(left_world_matrix._41, left_world_matrix._42, left_world_matrix._43);
 					left_ray_data.start.x -= foot_ik_direction.x * foot_data.ray_origin_offsets[0];
 					left_ray_data.start.y -= foot_ik_direction.y * foot_data.ray_origin_offsets[0];
 					left_ray_data.start.z -= foot_ik_direction.z * foot_data.ray_origin_offsets[0];
@@ -606,7 +606,7 @@ void model_object::update_ik()
 					left_ray_data.end.z += foot_ik_direction.z * (foot_data.ray_origin_offsets[0] + foot_data.ray_length);
 
 					right_ray_data.start =
-					right_ray_data.end = math::float3(right_world_matrix._41, right_world_matrix._42, right_world_matrix._43);
+					right_ray_data.end = math::double3(right_world_matrix._41, right_world_matrix._42, right_world_matrix._43);
 					right_ray_data.start.x -= foot_ik_direction.x * foot_data.ray_origin_offsets[1];
 					right_ray_data.start.y -= foot_ik_direction.y * foot_data.ray_origin_offsets[1];
 					right_ray_data.start.z -= foot_ik_direction.z * foot_data.ray_origin_offsets[1];

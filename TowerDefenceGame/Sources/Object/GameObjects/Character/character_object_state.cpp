@@ -302,7 +302,8 @@ void character_object::update_vertical_move(float elapsed_time)
 	math::float3 vel = math::float3(0.0f, velocity.y * elapsed_time + root_motion_velocity.y, 0.0f);
 
 	//	座標算出
-	math::float3 position, normal;
+	math::vector3d position;
+	math::float3 normal;
 	float fricition = 0;
 	if (calculate_position(vel, true, position, normal, &fricition))
 	{
@@ -310,14 +311,14 @@ void character_object::update_vertical_move(float elapsed_time)
 		{
 			set_flag(flags::on_ground, true);
 			ground_normal = normal;
-			footstep_position = position;
+			footstep_position = position.to_float3();
 			slope_rate = normal.y / ( sqrtf(normal.x * normal.x + normal.z * normal.z) + normal.y);
 			slope_rate = 1.0f - slope_rate;
 			ground_friction	= fricition;
 		}
 		velocity.y = 0.0f;
 	}
-	model->set_world_translation(math::vector3d(position));
+	model->set_world_translation(position);
 	sync_push_box();
 }
 
@@ -443,9 +444,10 @@ void character_object::update_horizontal_move(float elapsed_time)
 		return;
 
 	//	座標算出
-	math::float3 new_position, normal;
+	math::vector3d new_position;
+	math::float3 normal;
 	calculate_position(vel, false, new_position, normal);
-	model->set_world_translation(math::vector3d(new_position));
+	model->set_world_translation(new_position);
 	sync_push_box();
 }
 
@@ -513,13 +515,16 @@ void character_object::adjustment_velocity(math::float2& move, float adjust_move
 	}
 }
 
-bool character_object::calculate_position(math::float3 velocity, bool vertical, math::float3& out_position, math::float3& out_normal, float* out_friction)
+bool character_object::calculate_position(math::float3 velocity, bool vertical, math::vector3d& out_position, math::float3& out_normal, float* out_friction)
 {
 	auto collision_object = get_push_box();
 	auto bounding_object = std::static_pointer_cast<collision::bounding_capsule>(collision_object->get_bounding_object());
 
 	//	初期座標
-	out_position = model->get_world_translation().to_float3();
+	//	@tool 以降は初期座標を原点とした相対座標（float）で計算し、最後に double の初期座標へ足し込む
+	//	@tool （原点から遠い位置でも、小さな移動量が float の刻み幅で丸められて消えないようにする）
+	const math::vector3d base_position = model->get_world_translation();
+	math::float3 relative_position = { 0.0f, 0.0f, 0.0f };
 
 	//	オフセット位置を算出
 	float height = static_cast<float>(bounding_object->get_radius() + bounding_object->get_length() * 0.5);
@@ -555,7 +560,7 @@ bool character_object::calculate_position(math::float3 velocity, bool vertical, 
 		math::vector3f NormalizedVelocity = Velocity.normalized();
 		math::vector3f MoveVector = NormalizedVelocity * distance;
 		math::vector3f From, To;
-		From = math::vector3f(out_position);
+		From = math::vector3f(relative_position);
 		From = From + Offset;
 		To = From + MoveVector;
 		if (vertical)
@@ -566,8 +571,9 @@ bool character_object::calculate_position(math::float3 velocity, bool vertical, 
 				To = To + Offset;
 		}
 
-		desc.start = From.to_float3();
-		desc.end = To.to_float3();
+		//	@tool 判定はワールド座標（double）で行う
+		desc.start = (base_position + math::vector3d(From)).to_double3();
+		desc.end = (base_position + math::vector3d(To)).to_double3();
 
 		//	ヒット処理
 		collision::intersect_data intersect_data;
@@ -587,7 +593,8 @@ bool character_object::calculate_position(math::float3 velocity, bool vertical, 
 					: math::vector3f(0.0f, 2.0f * height - desc.radius, 0.0f);
 			}
 
-			math::vector3f Position(intersect_data[0].point);
+			//	@tool 接触点（ワールド座標）を初期座標からの相対座標に変換する
+			math::vector3f Position((math::vector3d(intersect_data[0].point) - base_position).to_float3());
 			math::vector3f OffsetNormal = Normal;
 			if (!vertical)
 			{
@@ -610,7 +617,7 @@ bool character_object::calculate_position(math::float3 velocity, bool vertical, 
 			}
 			Position = Position + (OffsetNormal * SkinStep);
 			Position = Position - PositionOffset;
-			out_position = Position.to_float3();
+			relative_position = Position.to_float3();
 
 			//	摩擦係数を物理マテリアルから取得してくる
 			if (out_friction)
@@ -652,10 +659,12 @@ bool character_object::calculate_position(math::float3 velocity, bool vertical, 
 		else
 		{
 			math::vector3f Position = From + Velocity;
-			out_position = (Position - Offset).to_float3();
+			relative_position = (Position - Offset).to_float3();
 			hit_flag = false;
 			break;
 		}
 	}
+
+	out_position = base_position + math::vector3d(relative_position);
 	return hit_flag;
 }
