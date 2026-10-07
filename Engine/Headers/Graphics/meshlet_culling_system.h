@@ -74,7 +74,7 @@ public:
 	meshlet_culling_system();
 	~meshlet_culling_system();
 
-	//	可視サブメッシュをマテリアル単位でグループ化してカリング処理
+	//	マテリアル単位でグループ化してカリング
 	void build_and_cull(graphics_context& context, const std::vector<std::size_t>& visible_draw_indices, const std::vector<float>& lengths, hiz_buffer& hiz);
 
 	//	build_and_cull()の結果からマテリアルに対応する結果を取得する

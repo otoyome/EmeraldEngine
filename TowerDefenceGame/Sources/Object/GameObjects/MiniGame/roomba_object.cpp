@@ -41,7 +41,7 @@ namespace setup_data
 }
 
 roomba_object::roomba_object(std::string_view name, std::shared_ptr<model_object> model, std::string_view collision_filter_name)
-: game_object(name)
+: spatial_object(name)
 , model(model)
 , flag_data(0)
 , collision_filter_name(std::string(collision_filter_name))
@@ -99,7 +99,7 @@ roomba_object::roomba_object(std::string_view name, std::shared_ptr<model_object
 	register_effects();
 
 	//	‹N“®Žž‚Í‘Ò‹@ƒXƒe[ƒg
-	change_state(roomba_object::state_names[state_active]);
+	change_state(magic_enum::enum_name(roomba_object::states::active));
 }
 
 roomba_object::~roomba_object()
@@ -353,7 +353,7 @@ float roomba_object::get_heat_rate() const
 float roomba_object::get_attract_range() const
 {
 	//	Ž€–SŽž‚Í‹z‚¢ž‚Ü‚È‚¢
-	if (check_same_state(state_names[state_dead]))
+	if (check_same_state(roomba_object::states::dead))
 		return 0.0f;
 
 	auto velocity = get_velocity();
@@ -412,7 +412,7 @@ float roomba_object::get_current_friction() const
 	//	Šî–{–€ŽCŒW”
 	float friction = setup_data::base_friction;
 
-	if (check_same_state(state_names[state_dead]))
+	if (check_same_state(roomba_object::states::dead))
 	{
 		//	Ž€–SŽž‚Í‹}Œƒ‚ÉŒ¸‘¬‚³‚¹‚é
 		friction = setup_data::dead_friction;

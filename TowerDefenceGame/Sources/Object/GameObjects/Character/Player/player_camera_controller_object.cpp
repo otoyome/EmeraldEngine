@@ -48,24 +48,24 @@ namespace
 	constexpr std::string_view OnControllObjectDead = "CONTROLL_OBJECT_DEAD";
 }
 
-const math::rotatorf& player_camera_controller_object::get_rotation() const
+math::rotatorf player_camera_controller_object::get_rotation() const
 {
-	return camera->get_rotation();
+	return math::rotatorf(camera->get_world_euler());
 }
 
 void player_camera_controller_object::set_rotation(const math::rotatorf& rotator)
 {
-	camera->set_rotation(rotator);
+	camera->set_world_euler(math::rotatord(rotator));
 }
 
-const math::float3& player_camera_controller_object::get_position() const
+math::float3 player_camera_controller_object::get_position() const
 {
-	return camera->get_position();
+	return camera->get_world_translation().to_float3();
 }
 
 void player_camera_controller_object::set_position(const math::float3& position)
 {
-	camera->set_position(position);
+	camera->set_world_translation(math::vector3d(position));
 }
 
 void player_camera_controller_object::set_input_purmit_flag(bool flag)

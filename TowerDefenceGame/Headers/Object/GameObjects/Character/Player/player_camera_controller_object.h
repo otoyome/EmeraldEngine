@@ -36,10 +36,10 @@ public:
 public:
 	std::shared_ptr<camera_object> get_camera_object() const {return camera;}
 
-	const math::rotatorf& get_rotation() const;
+	math::rotatorf get_rotation() const;
 	void set_rotation(const math::rotatorf& rotator);
 
-	const math::float3& get_position() const;
+	math::float3 get_position() const;
 	void set_position(const math::float3& position);
 
 	void set_input_purmit_flag(bool flag);

@@ -13,24 +13,18 @@
 #include "effect_instance.h"
 
 //	ルンバ制御用基底オブジェクト
-class roomba_object : public game_object
+class roomba_object : public spatial_object
 {
-	GAME_OBJECT_DECRLEAR(roomba_object, game_object)
+	GAME_OBJECT_DECRLEAR(roomba_object, spatial_object)
 
 public:
 	// 共通ステートId
-	enum state_ids
+	enum class states
 	{
-		state_active,
-		state_dead,
+		active,
+		dead,
 
-		state_max,
-	};
-
-	static constexpr std::string_view state_names[] =
-	{
-		"state_active",
-		"state_dead",
+		max,
 	};
 
 	//	移動段階
@@ -191,7 +185,9 @@ public:	//	入力情報設定
 public:	//	ステート関係
 	std::string_view get_current_state() const;
 	bool check_same_state(std::string_view state_name) const;
+	bool check_same_state(states state) const;
 	bool change_state(std::string_view state_id);
+	bool change_state(states state);
 
 	bool register_change_state_callback(std::string_view state_id, std::string_view identifier, call_back_change_state callback);
 	bool unregister_change_state_callback(std::string_view state_id, std::string_view identifier);

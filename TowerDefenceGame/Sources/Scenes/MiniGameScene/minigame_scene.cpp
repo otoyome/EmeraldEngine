@@ -36,7 +36,7 @@ namespace
 	};
 
 	//	開始座標
-	constexpr math::float3 StartPosition = system_units::convert_m_to_unit({0, 0, -60});
+	constexpr math::double3 StartPosition = system_units::convert_m_to_unit(math::double3(0.0, 0.0, -60.0));
 	constexpr math::rotatorf StartRotation = {0, 0, 0};
 	constexpr float WarmingUpTimer = 4.0f;
 	constexpr float DeadStopWaitTimer = 7.0f;
@@ -45,20 +45,20 @@ namespace
 	constexpr int WetDamage = 400;
 	constexpr float DustSetLength = 40;
 	constexpr float BubbleSetLength = DustSetLength / 2;
-	constexpr math::float3 DustBlock[] =
+	constexpr math::double3 DustBlock[] =
 	{
-		system_units::convert_m_to_unit({-DustSetLength, 0, -DustSetLength}),
-		system_units::convert_m_to_unit({+DustSetLength, 0, -DustSetLength}),
-		system_units::convert_m_to_unit({0, 0, 0}),
-		system_units::convert_m_to_unit({-DustSetLength, 0, +DustSetLength}),
-		system_units::convert_m_to_unit({+DustSetLength, 0, +DustSetLength}),
+		system_units::convert_m_to_unit(math::double3(-DustSetLength, 0.0, -DustSetLength)),
+		system_units::convert_m_to_unit(math::double3(+DustSetLength, 0.0, -DustSetLength)),
+		system_units::convert_m_to_unit(math::double3(           0.0, 0.0,            0.0)),
+		system_units::convert_m_to_unit(math::double3(-DustSetLength, 0.0, +DustSetLength)),
+		system_units::convert_m_to_unit(math::double3(+DustSetLength, 0.0, +DustSetLength)),
 	};
-	constexpr math::float3 BubbleBlock[] =
+	constexpr math::double3 BubbleBlock[] =
 	{
-		system_units::convert_m_to_unit({-BubbleSetLength, 0, -BubbleSetLength}),
-		system_units::convert_m_to_unit({+BubbleSetLength, 0, -BubbleSetLength}),
-		system_units::convert_m_to_unit({-BubbleSetLength, 0, +BubbleSetLength}),
-		system_units::convert_m_to_unit({+BubbleSetLength, 0, +BubbleSetLength}),
+		system_units::convert_m_to_unit(math::double3(-BubbleSetLength, 0, -BubbleSetLength)),
+		system_units::convert_m_to_unit(math::double3(+BubbleSetLength, 0, -BubbleSetLength)),
+		system_units::convert_m_to_unit(math::double3(-BubbleSetLength, 0, +BubbleSetLength)),
+		system_units::convert_m_to_unit(math::double3(+BubbleSetLength, 0, +BubbleSetLength)),
 	};
 
 	//	各種名前
@@ -79,7 +79,7 @@ minigame_scene::minigame_scene()
 	{
 		main_camera = object_manager::instance()->search_object<camera_object>("メインカメラ");
 		main_camera->get_camera()->set_fov_y(math::angle::to_radian(30.0f));
-		main_camera->set_position({0, 10, 40});
+		main_camera->set_world_translation(math::double3(0, 10, 40));
 	}
 
 	//	遷移フェードコントローラーにプレイを要求
@@ -328,7 +328,7 @@ void minigame_scene::update_core(float elapsed_time)
 			player_object->set_wet_value(0);
 			player_object->set_position(StartPosition);
 			player_object->set_rotation(StartRotation);
-			player_object->change_state(roomba_object::state_names[roomba_object::state_active]);
+			player_object->change_state(roomba_object::states::active);
 
 			//	カウントダウン中はプレイヤー入力を止める
 			if (auto controller = object_manager::instance()->search_object<roomba_controller_object>(RoombaControllerObjectName))
@@ -402,7 +402,7 @@ void minigame_scene::update_core(float elapsed_time)
 			}
 
 			//	プレイヤー死亡でリスタート処理へ
-			if (player_object && player_object->check_same_state(roomba_object::state_names[roomba_object::state_dead]))
+			if (player_object && player_object->check_same_state(roomba_object::states::dead))
 			{
 				countdown_timer = 0.0f;
 				game_state = game_states::dead_stop_wait;

@@ -50,14 +50,14 @@ void spatial_object::set_world(const transformd& world)
 	spatial->set_world(world);
 }
 
-math::vector3d spatial_object::get_world_translation() const
+math::vector3d spatial_object::get_world_scale() const
 {
-	return spatial->get_world_translation();
+	return spatial->get_world_scale();
 }
 
-void spatial_object::set_world_translation(const math::vector3d& translation)
+void spatial_object::set_world_scale(const math::vector3d& scale)
 {
-	spatial->set_world_translation(translation);
+	spatial->set_world_scale(scale);
 }
 
 math::quaterniond spatial_object::get_world_rotation() const
@@ -80,9 +80,14 @@ void spatial_object::set_world_euler(const math::rotatord& euler)
 	spatial->set_world_euler(euler);
 }
 
-math::vector3d spatial_object::get_lossy_scale() const
+math::vector3d spatial_object::get_world_translation() const
 {
-	return spatial->get_lossy_scale();
+	return spatial->get_world_translation();
+}
+
+void spatial_object::set_world_translation(const math::vector3d& translation)
+{
+	spatial->set_world_translation(translation);
 }
 
 bool spatial_object::attach(const std::shared_ptr<spatial_object>& parent, attach_rule rule)

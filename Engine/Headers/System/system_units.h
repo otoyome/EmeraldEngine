@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Math/element.h"
+#include <concepts>
 #include <string>
 #include <string_view>
 
@@ -59,7 +60,10 @@ public:
 	}
 
 private:
-	static constexpr float length_factor(length_units origin, length_units dest)
+	//	係数は double リテラルで定義し、T へキャストして返す
+	//	(float の場合は 1e-4f と同じ値になる)
+	template<std::floating_point T>
+	static constexpr T length_factor(length_units origin, length_units dest)
 	{
 		switch (origin)
 		{
@@ -67,11 +71,11 @@ private:
 			{
 				switch (dest)
 				{
-				case length_units::milli_meter:	return 0.001f;
-				case length_units::centi_meter:	return 1e-4f;
-				case length_units::meter:		return 1e-6f;
-				case length_units::unit:		return 1e-5f;
-
+					case length_units::milli_meter:	return static_cast<T>(0.001);
+					case length_units::centi_meter:	return static_cast<T>(1e-4);
+					case length_units::meter:		return static_cast<T>(1e-6);
+					case length_units::unit:		return static_cast<T>(1e-5);
+					default: break;
 				}
 				break;
 			}
@@ -79,10 +83,11 @@ private:
 			{
 				switch (dest)
 				{
-					case length_units::micro_meter:	return 1000.0f;
-					case length_units::centi_meter:	return 0.1f;
-					case length_units::meter:		return 0.001f;
-					case length_units::unit:		return 0.01f;
+					case length_units::micro_meter:	return static_cast<T>(1000.0);
+					case length_units::centi_meter:	return static_cast<T>(0.1);
+					case length_units::meter:		return static_cast<T>(0.001);
+					case length_units::unit:		return static_cast<T>(0.01);
+					default: break;
 				}
 				break;
 			}
@@ -90,10 +95,11 @@ private:
 			{
 				switch (dest)
 				{
-					case length_units::micro_meter:	return 10000.0f;
-					case length_units::milli_meter:	return 10.0f;
-					case length_units::meter:		return 0.01f;
-					case length_units::unit:		return 0.1f;
+					case length_units::micro_meter:	return static_cast<T>(10000.0);
+					case length_units::milli_meter:	return static_cast<T>(10.0);
+					case length_units::meter:		return static_cast<T>(0.01);
+					case length_units::unit:		return static_cast<T>(0.1);
+					default: break;
 				}
 				break;
 			}
@@ -101,10 +107,11 @@ private:
 			{
 				switch (dest)
 				{
-					case length_units::micro_meter:	return 1000000.0f;
-					case length_units::milli_meter:	return 1000.0f;
-					case length_units::centi_meter:	return 100.0f;
-					case length_units::unit:		return 10.0f;
+					case length_units::micro_meter:	return static_cast<T>(1000000.0);
+					case length_units::milli_meter:	return static_cast<T>(1000.0);
+					case length_units::centi_meter:	return static_cast<T>(100.0);
+					case length_units::unit:		return static_cast<T>(10.0);
+					default: break;
 				}
 				break;
 			}
@@ -112,18 +119,20 @@ private:
 			{
 				switch (dest)
 				{
-					case length_units::micro_meter:	return 100000.0f;
-					case length_units::milli_meter:	return 100.0f;
-					case length_units::centi_meter:	return 10.0f;
-					case length_units::meter:		return 0.1f;
+					case length_units::micro_meter:	return static_cast<T>(100000.0);
+					case length_units::milli_meter:	return static_cast<T>(100.0);
+					case length_units::centi_meter:	return static_cast<T>(10.0);
+					case length_units::meter:		return static_cast<T>(0.1);
+					default: break;
 				}
 				break;
 			}
 		}
-		return 1.0f;
+		return static_cast<T>(1.0);
 	}
 
-	static constexpr float mass_factor(mass_units origin, mass_units dest)
+	template<std::floating_point T>
+	static constexpr T mass_factor(mass_units origin, mass_units dest)
 	{
 		switch (origin)
 		{
@@ -131,10 +140,11 @@ private:
 			{
 				switch (dest)
 				{
-					case mass_units::milli_gram:	return 0.001f;
-					case mass_units::gram:			return 1e-6f;
-					case mass_units::kilogram:		return 1e-9f;
-					case mass_units::unit:			return 1e-9f;
+					case mass_units::milli_gram:	return static_cast<T>(0.001);
+					case mass_units::gram:			return static_cast<T>(1e-6);
+					case mass_units::kilogram:		return static_cast<T>(1e-9);
+					case mass_units::unit:			return static_cast<T>(1e-9);
+					default: break;
 				}
 				break;
 			}
@@ -142,10 +152,11 @@ private:
 			{
 				switch (dest)
 				{
-					case mass_units::micro_gram:	return 1000.0f;
-					case mass_units::gram:			return 0.001f;
-					case mass_units::kilogram:		return 1e-6f;
-					case mass_units::unit:			return 1e-6f;
+					case mass_units::micro_gram:	return static_cast<T>(1000.0);
+					case mass_units::gram:			return static_cast<T>(0.001);
+					case mass_units::kilogram:		return static_cast<T>(1e-6);
+					case mass_units::unit:			return static_cast<T>(1e-6);
+					default: break;
 				}
 				break;
 			}
@@ -153,10 +164,11 @@ private:
 			{
 				switch (dest)
 				{
-					case mass_units::micro_gram:	return 1000000.0f;
-					case mass_units::milli_gram:	return 1000.0f;
-					case mass_units::kilogram:		return 0.001f;
-					case mass_units::unit:			return 0.001f;
+					case mass_units::micro_gram:	return static_cast<T>(1000000.0);
+					case mass_units::milli_gram:	return static_cast<T>(1000.0);
+					case mass_units::kilogram:		return static_cast<T>(0.001);
+					case mass_units::unit:			return static_cast<T>(0.001);
+					default: break;
 				}
 				break;
 			}
@@ -164,10 +176,11 @@ private:
 			{
 				switch (dest)
 				{
-					case mass_units::micro_gram:	return 1000000000.0f;
-					case mass_units::milli_gram:	return 1000000.0f;
-					case mass_units::gram:			return 1000.0f;
-					case mass_units::unit:			return 1.0f;
+					case mass_units::micro_gram:	return static_cast<T>(1000000000.0);
+					case mass_units::milli_gram:	return static_cast<T>(1000000.0);
+					case mass_units::gram:			return static_cast<T>(1000.0);
+					case mass_units::unit:			return static_cast<T>(1.0);
+					default: break;
 				}
 				break;
 			}
@@ -175,43 +188,46 @@ private:
 			{
 				switch (dest)
 				{
-					case mass_units::micro_gram:	return 1000000000.0f;
-					case mass_units::milli_gram:	return 1000000.0f;
-					case mass_units::gram:			return 1000.0f;
-					case mass_units::kilogram:		return 1.0f;
+					case mass_units::micro_gram:	return static_cast<T>(1000000000.0);
+					case mass_units::milli_gram:	return static_cast<T>(1000000.0);
+					case mass_units::gram:			return static_cast<T>(1000.0);
+					case mass_units::kilogram:		return static_cast<T>(1.0);
+					default: break;
 				}
 				break;
 			}
 		}
-		return 1.0f;
+		return static_cast<T>(1.0);
 	}
+
 public:
 	//	マイクロメートル <> ミリメートル変換
-	static constexpr float convert_um_to_mm(float value) { return value * length_factor(length_units::micro_meter, length_units::milli_meter); }
-	static constexpr float convert_mm_to_um(float value) { return value * length_factor(length_units::milli_meter, length_units::micro_meter); }
+	template<std::floating_point T> static constexpr T convert_um_to_mm(T value) { return value * length_factor<T>(length_units::micro_meter, length_units::milli_meter); }
+	template<std::floating_point T> static constexpr T convert_mm_to_um(T value) { return value * length_factor<T>(length_units::milli_meter, length_units::micro_meter); }
 
 	//	ミリメートル <> センチメートル変換
-	static constexpr float convert_mm_to_cm(float value) { return value * length_factor(length_units::milli_meter, length_units::centi_meter); }
-	static constexpr float convert_cm_to_mm(float value) { return value * length_factor(length_units::centi_meter, length_units::milli_meter); }
+	template<std::floating_point T> static constexpr T convert_mm_to_cm(T value) { return value * length_factor<T>(length_units::milli_meter, length_units::centi_meter); }
+	template<std::floating_point T> static constexpr T convert_cm_to_mm(T value) { return value * length_factor<T>(length_units::centi_meter, length_units::milli_meter); }
 
 	//	メートル <> センチメートル変換
-	static constexpr float convert_cm_to_m(float value){ return value * length_factor(length_units::centi_meter, length_units::meter); }
-	static constexpr float convert_m_to_cm(float value){ return value * length_factor(length_units::meter, length_units::centi_meter); }
+	template<std::floating_point T> static constexpr T convert_cm_to_m(T value) { return value * length_factor<T>(length_units::centi_meter, length_units::meter); }
+	template<std::floating_point T> static constexpr T convert_m_to_cm(T value) { return value * length_factor<T>(length_units::meter, length_units::centi_meter); }
 
 	//	ミリメートル <> メートル変換
-	static constexpr float convert_mm_to_m(float value) { return value * length_factor(length_units::milli_meter, length_units::meter); }
-	static constexpr float convert_m_to_mm(float value) { return value * length_factor(length_units::meter, length_units::milli_meter); }
+	template<std::floating_point T> static constexpr T convert_mm_to_m(T value) { return value * length_factor<T>(length_units::milli_meter, length_units::meter); }
+	template<std::floating_point T> static constexpr T convert_m_to_mm(T value) { return value * length_factor<T>(length_units::meter, length_units::milli_meter); }
 
 	//	各単位系での距離をゲーム単位へ変換
-	static constexpr float convert_um_to_unit(float value) { return value * length_factor(length_units::micro_meter, length_units::unit); }
-	static constexpr float convert_mm_to_unit(float value) { return value * length_factor(length_units::milli_meter, length_units::unit); }
-	static constexpr float convert_cm_to_unit(float value) { return value * length_factor(length_units::centi_meter, length_units::unit); }
-	static constexpr float convert_m_to_unit(float value) { return value * length_factor(length_units::meter, length_units::unit); }
-	static constexpr float convert_unit_to_um(float value) { return value * length_factor(length_units::unit, length_units::micro_meter); }
-	static constexpr float convert_unit_to_mm(float value) { return value * length_factor(length_units::unit, length_units::milli_meter); }
-	static constexpr float convert_unit_to_cm(float value) { return value * length_factor(length_units::unit, length_units::centi_meter); }
-	static constexpr float convert_unit_to_m(float value) { return value * length_factor(length_units::unit, length_units::meter); }
+	template<std::floating_point T> static constexpr T convert_um_to_unit(T value) { return value * length_factor<T>(length_units::micro_meter, length_units::unit); }
+	template<std::floating_point T> static constexpr T convert_mm_to_unit(T value) { return value * length_factor<T>(length_units::milli_meter, length_units::unit); }
+	template<std::floating_point T> static constexpr T convert_cm_to_unit(T value) { return value * length_factor<T>(length_units::centi_meter, length_units::unit); }
+	template<std::floating_point T> static constexpr T convert_m_to_unit(T value) { return value * length_factor<T>(length_units::meter, length_units::unit); }
+	template<std::floating_point T> static constexpr T convert_unit_to_um(T value) { return value * length_factor<T>(length_units::unit, length_units::micro_meter); }
+	template<std::floating_point T> static constexpr T convert_unit_to_mm(T value) { return value * length_factor<T>(length_units::unit, length_units::milli_meter); }
+	template<std::floating_point T> static constexpr T convert_unit_to_cm(T value) { return value * length_factor<T>(length_units::unit, length_units::centi_meter); }
+	template<std::floating_point T> static constexpr T convert_unit_to_m(T value) { return value * length_factor<T>(length_units::unit, length_units::meter); }
 
+	//	ベクトル版
 	static constexpr math::float2 convert_m_to_unit(math::float2 value)
 	{
 		return {convert_m_to_unit(value.x), convert_m_to_unit(value.y)};
@@ -224,41 +240,53 @@ public:
 	{
 		return {convert_m_to_unit(value.x), convert_m_to_unit(value.y), convert_m_to_unit(value.z), convert_m_to_unit(value.w)};
 	}
+	static constexpr math::double2 convert_m_to_unit(math::double2 value)
+	{
+		return {convert_m_to_unit(value.x), convert_m_to_unit(value.y)};
+	}
+	static constexpr math::double3 convert_m_to_unit(math::double3 value)
+	{
+		return {convert_m_to_unit(value.x), convert_m_to_unit(value.y), convert_m_to_unit(value.z)};
+	}
+	static constexpr math::double4 convert_m_to_unit(math::double4 value)
+	{
+		return {convert_m_to_unit(value.x), convert_m_to_unit(value.y), convert_m_to_unit(value.z), convert_m_to_unit(value.w)};
+	}
 
 public:
 	//	マイクログラムの<>ミリグラム変換
-	static constexpr float convert_ug_to_mg(float value) { return value * mass_factor(mass_units::micro_gram, mass_units::milli_gram); }
-	static constexpr float convert_mg_to_ug(float value) { return value * mass_factor(mass_units::milli_gram, mass_units::micro_gram); }
+	template<std::floating_point T> static constexpr T convert_ug_to_mg(T value) { return value * mass_factor<T>(mass_units::micro_gram, mass_units::milli_gram); }
+	template<std::floating_point T> static constexpr T convert_mg_to_ug(T value) { return value * mass_factor<T>(mass_units::milli_gram, mass_units::micro_gram); }
 
 	//	ミリグラムの<>グラム変換
-	static constexpr float convert_mg_to_g(float value) { return value * mass_factor(mass_units::milli_gram, mass_units::gram); }
-	static constexpr float convert_g_to_mg(float value) { return value * mass_factor(mass_units::gram, mass_units::milli_gram); }
+	template<std::floating_point T> static constexpr T convert_mg_to_g(T value) { return value * mass_factor<T>(mass_units::milli_gram, mass_units::gram); }
+	template<std::floating_point T> static constexpr T convert_g_to_mg(T value) { return value * mass_factor<T>(mass_units::gram, mass_units::milli_gram); }
 
 	//	グラムの<>キログラム変換
-	static constexpr float convert_g_to_kg(float value) { return value * mass_factor(mass_units::gram, mass_units::kilogram); }
-	static constexpr float convert_kg_to_g(float value) { return value * mass_factor(mass_units::kilogram, mass_units::gram); }
+	template<std::floating_point T> static constexpr T convert_g_to_kg(T value) { return value * mass_factor<T>(mass_units::gram, mass_units::kilogram); }
+	template<std::floating_point T> static constexpr T convert_kg_to_g(T value) { return value * mass_factor<T>(mass_units::kilogram, mass_units::gram); }
 
 	//	各単位系での質量をゲーム単位へ変換
-	static constexpr float convert_ug_to_unit(float value) { return value * mass_factor(mass_units::micro_gram, mass_units::unit); }
-	static constexpr float convert_mg_to_unit(float value) { return value * mass_factor(mass_units::milli_gram, mass_units::unit); }
-	static constexpr float convert_g_to_unit(float value) { return value * mass_factor(mass_units::gram, mass_units::unit); }
-	static constexpr float convert_kg_to_unit(float value) { return value * mass_factor(mass_units::kilogram, mass_units::unit); }
-	static constexpr float convert_unit_to_ug(float value) { return value * mass_factor(mass_units::unit, mass_units::micro_gram); }
-	static constexpr float convert_unit_to_mg(float value) { return value * mass_factor(mass_units::unit, mass_units::milli_gram); }
-	static constexpr float convert_unit_to_g(float value) { return value * mass_factor(mass_units::unit, mass_units::gram); }
-	static constexpr float convert_unit_to_kg(float value) { return value * mass_factor(mass_units::unit, mass_units::kilogram); }
+	template<std::floating_point T> static constexpr T convert_ug_to_unit(T value) { return value * mass_factor<T>(mass_units::micro_gram, mass_units::unit); }
+	template<std::floating_point T> static constexpr T convert_mg_to_unit(T value) { return value * mass_factor<T>(mass_units::milli_gram, mass_units::unit); }
+	template<std::floating_point T> static constexpr T convert_g_to_unit(T value) { return value * mass_factor<T>(mass_units::gram, mass_units::unit); }
+	template<std::floating_point T> static constexpr T convert_kg_to_unit(T value) { return value * mass_factor<T>(mass_units::kilogram, mass_units::unit); }
+	template<std::floating_point T> static constexpr T convert_unit_to_ug(T value) { return value * mass_factor<T>(mass_units::unit, mass_units::micro_gram); }
+	template<std::floating_point T> static constexpr T convert_unit_to_mg(T value) { return value * mass_factor<T>(mass_units::unit, mass_units::milli_gram); }
+	template<std::floating_point T> static constexpr T convert_unit_to_g(T value) { return value * mass_factor<T>(mass_units::unit, mass_units::gram); }
+	template<std::floating_point T> static constexpr T convert_unit_to_kg(T value) { return value * mass_factor<T>(mass_units::unit, mass_units::kilogram); }
 
 	//	秒 <> ミリ秒変換
-	static constexpr float convert_sec_to_millisec(float value) { return value * 1000.0f; }
-	static constexpr float convert_millisec_to_sec(float value) { return value / 1000.0f; }
+	template<std::floating_point T> static constexpr T convert_sec_to_millisec(T value) { return value * static_cast<T>(1000); }
+	template<std::floating_point T> static constexpr T convert_millisec_to_sec(T value) { return value / static_cast<T>(1000); }
 	//	秒 <> 分変換
-	static constexpr float convert_sec_to_minute(float value) { return value * 60.0f; }
-	static constexpr float convert_minute_to_sec(float value) { return value / 60.0f; }
+	template<std::floating_point T> static constexpr T convert_sec_to_minute(T value) { return value * static_cast<T>(60); }
+	template<std::floating_point T> static constexpr T convert_minute_to_sec(T value) { return value / static_cast<T>(60); }
 	//	秒 <> 時変換
-	static constexpr float convert_sec_to_hour(float value) { return value * 3600.0f; }
-	static constexpr float convert_hour_to_sec(float value) { return value / 3600.0f; }
+	template<std::floating_point T> static constexpr T convert_sec_to_hour(T value) { return value * static_cast<T>(3600); }
+	template<std::floating_point T> static constexpr T convert_hour_to_sec(T value) { return value / static_cast<T>(3600); }
 
 	//	フレーム <> 秒
-	static constexpr float convert_sec_to_fps(float value) { return value * frame_per_sec; }
-	static constexpr float convert_fps_to_sec(float value) { return value / frame_per_sec; }
+	template<std::floating_point T> static constexpr T convert_sec_to_fps(T value) { return value * static_cast<T>(frame_per_sec); }
+	template<std::floating_point T> static constexpr T convert_fps_to_sec(T value) { return value / static_cast<T>(frame_per_sec); }
 };

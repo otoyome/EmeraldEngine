@@ -92,23 +92,23 @@ void roomba_object::fixed_update(float elapsed_time)
 	//	Šeíƒ‰ƒCƒtî•ñXV
 	{
 		//	…•ª—Ê‚ÉŠñ‚é€–S”»’è
-		if (!check_same_state(state_names[state_dead]) && get_wet_rate() >= 1.0f)
+		if (!check_same_state(roomba_object::states::dead) && get_wet_rate() >= 1.0f)
 		{
-			change_state(state_names[state_dead]);
+			change_state(roomba_object::states::dead);
 		}
 
 		//	”M—Ê/…•ª—ÊXV
 		update_values(elapsed_time);
 
 		//	”M—Ê‚ÉŠñ‚é€–S”»’è
-		if (!check_same_state(state_names[state_dead]) && get_heat_rate() >= 1.0f)
+		if (!check_same_state(roomba_object::states::dead) && get_heat_rate() >= 1.0f)
 		{
-			change_state(state_names[state_dead]);
+			change_state(roomba_object::states::dead);
 		}
 	}
 
 	//	ŒX‚«“K‰
-	if (check_same_state(state_names[state_dead]))
+	if (check_same_state(roomba_object::states::dead))
 	{
 		//	€–S‚ÍƒXƒsƒ“‚³‚¹‚é
 		auto velocity = get_velocity();
@@ -205,6 +205,11 @@ bool roomba_object::check_same_state(std::string_view state_name) const
 	return get_current_state() == state_name;
 }
 
+bool roomba_object::check_same_state(states state) const
+{
+	return check_same_state(magic_enum::enum_name(state));
+}
+
 bool roomba_object::change_state(std::string_view state_id)
 {
 	if (state_machine.change_state(state_id))
@@ -221,6 +226,11 @@ bool roomba_object::change_state(std::string_view state_id)
 		return true;
 	}
 	return false;
+}
+
+bool roomba_object::change_state(states state)
+{
+	return change_state(magic_enum::enum_name(state));
 }
 
 bool roomba_object::register_change_state_callback(std::string_view state_id, std::string_view identifier, call_back_change_state callback)
@@ -261,7 +271,7 @@ bool roomba_object::unregister_change_state_callback(std::string_view state_id, 
 void roomba_object::register_states()
 {
 #define REGISTER_MACRO(STATE) \
-	register_state<function_finite_state_node>("state_"###STATE, \
+	register_state<function_finite_state_node>(#STATE, \
 												[this](){enter_##STATE();}, \
 												[this](float elapsed_time) {update_##STATE(elapsed_time);}, \
 												[this](){exit_##STATE();});
@@ -677,7 +687,7 @@ void roomba_object::update_effects(float elapsed_time)
 	}
 
 	//	€–S”»’è
-	bool dead_flag = check_same_state(state_names[state_dead]);
+	bool dead_flag = check_same_state(roomba_object::states::dead);
 	float dead_rate = 0.5f;
 	//	˜R“d‚É‚æ‚éƒXƒp[ƒN‘Î‰
 	if (spark_effect_instance)
