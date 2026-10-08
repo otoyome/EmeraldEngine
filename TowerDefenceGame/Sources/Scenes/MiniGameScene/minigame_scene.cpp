@@ -76,7 +76,7 @@ minigame_scene::minigame_scene()
 	std::shared_ptr<camera_object> main_camera;
 	{
 		main_camera = object_manager::instance()->search_object<camera_object>("ƒƒCƒ“ƒJƒƒ‰");
-		main_camera->get_camera()->set_fov_y(math::angle::to_radian(30.0f));
+		main_camera->get_camera()->get_parameters().fov_y = math::angle::to_radian(30.0f);
 		main_camera->set_world_translation(math::double3(0, 10, 40));
 	}
 

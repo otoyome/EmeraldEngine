@@ -18,25 +18,24 @@ occlusion_culling_renderer::~occlusion_culling_renderer()
 
 void occlusion_culling_renderer::render(renderer_context& context)
 {
-	if (!render_targets || !context.occlusion_culling_system || !context.hiz_buffer || !context.meshlet_culling_system)
+	if (!render_targets || !context.current_view_state)
 		return;
 
-	//	カメラ毎の occlusion_culling_system / hiz_buffer / meshlet_culling_system を使う
-	auto occlusion = context.occlusion_culling_system;
-	auto hiz = context.hiz_buffer;
-	auto meshlet_culling = context.meshlet_culling_system;
+	const auto& state = *context.current_view_state;
+	auto occlusion = state.get_occlusion_culling();
+	auto hiz = state.get_hiz_buffer();
+	auto meshlet_culling = state.get_meshlet_culling();
 	if (!occlusion || !hiz || !meshlet_culling)
 		return;
 
-	//	Hi-Z バッファをシーン深度に合わせる
 	auto depth_texture = std::static_pointer_cast<texture2d>(render_targets->scene_depth_stencil_texture);
 	if (depth_texture)
 		hiz->resize_buffer(static_cast<int>(depth_texture->get_desc().Width), static_cast<int>(depth_texture->get_desc().Height));
 
-	float animation_test_distance = context.occlusion_animation_distance;
+	float animation_test_distance = state.get_occlusion_animation_distance();
 
 #if defined(USE_IMGUI)
-	bool freeze_culling = context.freeze_culling;
+	bool freeze_culling = state.is_freeze_culling();
 #endif	//	defined(USE_IMGUI)
 
 	//	メッシュレットカリング情報
@@ -59,12 +58,13 @@ void occlusion_culling_renderer::render(renderer_context& context)
 
 		context.scene_depth_texture = render_targets->scene_depth_stencil_texture;
 
-		//	Hi-Z構築
+		//	階層Zバッファ構築
 		hiz->build(context);
 
 		//	オクルージョンカリング実行
 		occlusion->update(context, animation_test_distance, *hiz);
 
+		//	メッシュレットカリング実行
 #if defined(USE_IMGUI)
 		if (!freeze_culling && render_mesh_indices)
 #else	//	defined(USE_IMGUI)

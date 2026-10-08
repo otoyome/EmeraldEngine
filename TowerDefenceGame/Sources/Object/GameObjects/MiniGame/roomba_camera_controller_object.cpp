@@ -245,7 +245,7 @@ void roomba_camera_controller_object::fixed_update_default(float elapsed_time)
 		update_fov_rate_inner = math::lerp(update_fov_rate_inner, rate, alpha);
 
 		rate = math::easing::calculate(update_fov_rate_inner, fov_ease);
-		camera->get_camera()->set_fov_y(math::lerp(fov_range.x, fov_range.y, static_cast<double>(rate)));
+		camera->get_camera()->get_parameters().fov_y = static_cast<float>(math::lerp(fov_range.x, fov_range.y, static_cast<double>(rate)));
 	}
 }
 

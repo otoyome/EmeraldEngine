@@ -102,6 +102,9 @@
     <ClInclude Include="Headers\camera.h">
       <Filter>Headers</Filter>
     </ClInclude>
+    <ClInclude Include="Headers\view_parameters.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
     <ClInclude Include="Headers\Input\mouse.h">
       <Filter>Headers\Input</Filter>
     </ClInclude>
@@ -262,6 +265,12 @@
       <Filter>Headers\Graphics</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Graphics\hiz_buffer.h">
+      <Filter>Headers\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Graphics\scene_view.h">
+      <Filter>Headers\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Graphics\scene_view_state.h">
       <Filter>Headers\Graphics</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Graphics\cubic_sdf_buffer_pool.h">
@@ -450,6 +459,12 @@
       <Filter>Sources\Graphics</Filter>
     </ClCompile>
     <ClCompile Include="Sources\Graphics\hiz_buffer.cpp">
+      <Filter>Sources\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Graphics\scene_view.cpp">
+      <Filter>Sources\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Graphics\scene_view_state.cpp">
       <Filter>Sources\Graphics</Filter>
     </ClCompile>
     <ClCompile Include="Sources\Graphics\cubic_sdf_buffer_pool.cpp">

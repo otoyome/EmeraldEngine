@@ -580,12 +580,21 @@ edit_timeline_scene::~edit_timeline_scene()
 {
 }
 
+const view_parameters* edit_timeline_scene::find_current_view_parameters() const
+{
+	if (editor_camera_object && editor_camera_object->is_active())
+		return &editor_camera_object->get_camera()->get_parameters();
+	if (main_camera)
+		return &main_camera->get_camera()->get_parameters();
+	return nullptr;
+}
+
 bool edit_timeline_scene::initialize_core()
 {
 	//	メインカメラ生成
 	{
 		main_camera = std::make_shared<camera_object>("メインカメラ");
-		main_camera->get_camera()->set_fov_y(math::angle::to_radian(30.0f));
+		main_camera->get_camera()->get_parameters().fov_y = math::angle::to_radian(30.0f);
 		register_object(main_camera);
 		mouse::instance()->set_center_lock(false);
 		mouse::instance()->set_cursol_hide(false);
@@ -1065,7 +1074,7 @@ void edit_timeline_scene::apply_timeline_state()
 
 		main_camera->set_world_translation(math::vector3d(position));
 		main_camera->set_world_rotation(math::quaterniond(math::quaternionf(quaternion)));
-		main_camera->get_camera()->set_fov_y(fov_y);
+		main_camera->get_camera()->get_parameters().fov_y = fov_y;
 	}
 	else if (editor_camera_object && !editor_camera_object->is_active())
 	{
@@ -1362,11 +1371,11 @@ void edit_timeline_scene::imgui_render_selected_entry()
 			ImGui::SliderAngle("start_fov_y", &entry->start.fov_y, 1.0f, 179.0f);
 			if (ImGui::Button("Set Start = Current Camera"))
 			{
-				if (main_camera)
+				if (auto current = find_current_view_parameters())
 				{
-					entry->start.position = main_camera->get_world_translation().to_float3();
-					entry->start.rotation = math::rotatorf(main_camera->get_world_euler());
-					entry->start.fov_y = main_camera->get_camera()->get_fov_y();
+					entry->start.position = current->position.to_float3();
+					entry->start.rotation = current->rotation;
+					entry->start.fov_y = current->fov_y;
 				}
 			}
 
@@ -1377,11 +1386,11 @@ void edit_timeline_scene::imgui_render_selected_entry()
 			ImGui::SliderAngle("end_fov_y", &entry->end.fov_y, 1.0f, 179.0f);
 			if (ImGui::Button("Set End = Current Camera"))
 			{
-				if (main_camera)
+				if (auto current = find_current_view_parameters())
 				{
-					entry->end.position = main_camera->get_world_translation().to_float3();
-					entry->end.rotation = math::rotatorf(main_camera->get_world_euler());
-					entry->end.fov_y = main_camera->get_camera()->get_fov_y();
+					entry->end.position = current->position.to_float3();
+					entry->end.rotation = current->rotation;
+					entry->end.fov_y = current->fov_y;
 				}
 			}
 

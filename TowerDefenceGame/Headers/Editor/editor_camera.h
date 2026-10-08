@@ -16,15 +16,7 @@ public:
 	};
 
 public:
-	editor_camera(std::shared_ptr<camera_object> camera);
-	~editor_camera();
-
-	void fixed_update(float elapsed_time) override;
-	void debug_update(float elapsed_time) override;
-
-	void on_execute();
-
-	inline std::shared_ptr<camera_object> get_camera() {return camera;}
+	inline camera_ptr get_camera() const {return camera;}
 	void set_rotation(const math::rotatorf& rotation) {this->rotation = rotation;}
 	const math::rotatorf& get_rotation() {return rotation;}
 	void set_position(const math::float3& position) { this->position = position; }
@@ -35,8 +27,22 @@ public:
 	void set_move_speed(float move_speed) { this->move_speed = move_speed; }
 	float get_move_speed() { return move_speed; }
 
+public:
+	editor_camera(std::shared_ptr<camera_object> source);
+	~editor_camera();
+
+	void debug_update(float elapsed_time) override;
+	void pre_render() override;
+
+	void on_execute();
+
+protected:
+	void on_active() override;
+	void on_deactive() override;
+
 private:
-	std::shared_ptr<camera_object> camera;
+	std::shared_ptr<camera_object> source;
+	camera_ptr camera;
 
 	bool execute;
 	bool is_auto_rotate = false;

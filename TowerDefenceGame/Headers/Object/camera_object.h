@@ -17,11 +17,14 @@ public:
 	~camera_object() override;
 
 	void post_update(float elapsed_time) override;
-	void post_render() override;
 
 #if defined(USE_IMGUI)
 	void imgui_render_core() override;
 #endif	//	defined(USE_IMGUI)
+
+protected:
+	void on_active() override;
+	void on_deactive() override;
 
 private:
 	void sync_from_spatial();

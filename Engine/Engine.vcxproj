@@ -55,6 +55,7 @@
     <ClInclude Include="Headers\animation_resource.h" />
     <ClInclude Include="Headers\buffer_view.h" />
     <ClInclude Include="Headers\camera.h" />
+    <ClInclude Include="Headers\view_parameters.h" />
     <ClInclude Include="Headers\common_pipeline_states.h" />
     <ClInclude Include="Headers\CoordinateSystem\hierarchy.h" />
     <ClInclude Include="Headers\CoordinateSystem\spatial.h" />
@@ -71,6 +72,8 @@
     <ClInclude Include="Headers\Graphics\fast_fourier_transform.h" />
     <ClInclude Include="Headers\Graphics\gpu_timer.h" />
     <ClInclude Include="Headers\Graphics\hiz_buffer.h" />
+    <ClInclude Include="Headers\Graphics\scene_view.h" />
+    <ClInclude Include="Headers\Graphics\scene_view_state.h" />
     <ClInclude Include="Headers\Graphics\meshlet_culling_system.h" />
     <ClInclude Include="Headers\Graphics\occlusion_culling_system.h" />
     <ClInclude Include="Headers\Graphics\particle_resource.h" />
@@ -135,6 +138,8 @@
     <ClCompile Include="Sources\CoordinateSystem\spatial.cpp" />
     <ClCompile Include="Sources\Graphics\cubic_sdf_buffer_pool.cpp" />
     <ClCompile Include="Sources\Graphics\hiz_buffer.cpp" />
+    <ClCompile Include="Sources\Graphics\scene_view.cpp" />
+    <ClCompile Include="Sources\Graphics\scene_view_state.cpp" />
     <ClCompile Include="Sources\Graphics\meshlet_culling_system.cpp" />
     <ClCompile Include="Sources\Graphics\occlusion_culling_system.cpp" />
     <ClCompile Include="Sources\custom_pipeline_state.cpp" />

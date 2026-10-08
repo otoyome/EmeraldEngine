@@ -30,6 +30,7 @@ bool edit_model_scene::initialize_edit_core()
 		camera->set_rotation_speed(camera->get_rotation_speed() * 0.25f);
 		camera->set_move_speed(camera->get_move_speed() * 0.25f);
 		register_object(camera);
+		editor_camera_object = camera;
 	}
 
 	//	エディターアイテム用コンテキスト生成
@@ -537,8 +538,13 @@ void edit_model_scene::on_mouse_left_down_and_hold(void* data_ptr)
 
 	auto data = static_cast<editor_camera::mouse_position_data*>(data_ptr);
 
-	const math::matrixf view(main_camera->get_camera()->get_view_matrix());
-	const math::matrixf projection(main_camera->get_camera()->get_projection_matrix());
+	if (!editor_camera_object)
+		return;
+
+	//	表示しているエディターカメラの視点からレイを作る
+	const view_parameters& parameters = editor_camera_object->get_camera()->get_parameters();
+	const math::matrixf view = parameters.make_view_matrix(math::vector3d::zero());
+	const math::matrixf projection = parameters.make_projection_matrix();
 	const math::matrixf viewport = math::matrixf::viewport(0, static_cast<float>(SCREEN_WIDTH), 0, static_cast<float>(SCREEN_HEIGHT), 0, 1);
 
 	const math::float3 start_position = math::vector3f::calc_screen_to_world(data->position.x, data->position.y, 0, view, projection, viewport).to_float3();

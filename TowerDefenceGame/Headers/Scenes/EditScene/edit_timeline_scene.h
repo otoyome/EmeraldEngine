@@ -99,6 +99,9 @@ private:
 	};
 
 private:
+	const view_parameters* find_current_view_parameters() const;
+
+private:
 	std::shared_ptr<camera_object> main_camera;
 	std::shared_ptr<editor_camera> editor_camera_object;
 	std::shared_ptr<post_process_volume_object> post_process_volume;

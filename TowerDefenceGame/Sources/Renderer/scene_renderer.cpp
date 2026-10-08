@@ -88,8 +88,8 @@ void depth_prepass_renderer::render(renderer_context& renderer_context)
 		context.device_context->RSSetViewports(1, &viewport);
 
 		//	ƒ‚ƒfƒ‹—Þ•`‰æ
-		scene_renderer_commons::model_render_indirect(context, renderer_context.render_mesh_indices->opaque, renderer_context.render_mesh_indices->lengths, material::surface_paths::depth_write_pass, *renderer_context.meshlet_culling_system);
-		scene_renderer_commons::model_render_indirect(context, renderer_context.render_mesh_indices->mask, renderer_context.render_mesh_indices->lengths, material::surface_paths::depth_write_pass, *renderer_context.meshlet_culling_system);
+		scene_renderer_commons::model_render_indirect(context, renderer_context.render_mesh_indices->opaque, renderer_context.render_mesh_indices->lengths, material::surface_paths::depth_write_pass, *renderer_context.current_view_state->get_meshlet_culling());
+		scene_renderer_commons::model_render_indirect(context, renderer_context.render_mesh_indices->mask, renderer_context.render_mesh_indices->lengths, material::surface_paths::depth_write_pass, *renderer_context.current_view_state->get_meshlet_culling());
 		scene_renderer_commons::particle_render(context, renderer_context.render_particle_indices->opaque, material::surface_paths::depth_write_pass);
 		scene_renderer_commons::particle_render(context, renderer_context.render_particle_indices->mask, material::surface_paths::depth_write_pass);
 
@@ -151,8 +151,8 @@ void gbuffer_renderer::render(renderer_context& renderer_context)
 		context.device_context->RSSetViewports(1, &viewport);
 
 		//	ƒ‚ƒfƒ‹—Þ•`‰æ
-		scene_renderer_commons::model_render_indirect(context, renderer_context.render_mesh_indices->opaque, renderer_context.render_mesh_indices->lengths, material::surface_paths::g_buffer_pass, *renderer_context.meshlet_culling_system);
-		scene_renderer_commons::model_render_indirect(context, renderer_context.render_mesh_indices->mask, renderer_context.render_mesh_indices->lengths, material::surface_paths::g_buffer_pass, *renderer_context.meshlet_culling_system);
+		scene_renderer_commons::model_render_indirect(context, renderer_context.render_mesh_indices->opaque, renderer_context.render_mesh_indices->lengths, material::surface_paths::g_buffer_pass, *renderer_context.current_view_state->get_meshlet_culling());
+		scene_renderer_commons::model_render_indirect(context, renderer_context.render_mesh_indices->mask, renderer_context.render_mesh_indices->lengths, material::surface_paths::g_buffer_pass, *renderer_context.current_view_state->get_meshlet_culling());
 		scene_renderer_commons::particle_render(context, renderer_context.render_particle_indices->opaque, material::surface_paths::g_buffer_pass);
 		scene_renderer_commons::particle_render(context, renderer_context.render_particle_indices->mask, material::surface_paths::g_buffer_pass);
 

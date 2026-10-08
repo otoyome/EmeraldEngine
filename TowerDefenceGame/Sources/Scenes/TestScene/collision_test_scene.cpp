@@ -326,7 +326,7 @@ bool collision_test_scene::initialize_core()
 	std::shared_ptr<camera_object> main_camera;
 	{
 		main_camera = std::make_shared<camera_object>("ƒƒCƒ“ƒJƒƒ‰");
-		main_camera->get_camera()->set_fov_y(math::angle::to_radian(45.0f));
+		main_camera->get_camera()->get_parameters().fov_y = math::angle::to_radian(45.0f);
 		main_camera->set_world_translation(system_units::convert_m_to_unit(math::double3(0.0, 3.0, 10.0)));
 		main_camera->set_world_euler(math::rotatord(0.2, math::constants<double>::pi, 0.0));
 		register_object(main_camera);

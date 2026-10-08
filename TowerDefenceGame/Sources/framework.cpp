@@ -38,6 +38,12 @@
 
 #include "Editor/detail_profiler.h"
 
+namespace
+{
+	//	view_stateの破棄フレーム数
+	constexpr uint64_t scene_view_state_keep_frames = 60;
+}
+
 framework::framework(HWND hwnd) : hwnd(hwnd)
 {
 	logger::create_instance();
@@ -458,6 +464,15 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 	{
 		DETAIL_PROFILE_CPU_SCOPE("render.collect_render_data");
 
+		//	視点の候補から今フレームのメイン視点を選ぶ
+		view_selection selection;
+		main_view_camera_cut = false;
+		if (camera_manager::instance()->select_view(selection))
+		{
+			main_view_parameters = selection.parameters;
+			main_view_camera_cut = selection.camera_cut;
+		}
+
 		//	ライト情報収集
 		light_manager::instance()->get_container(render_data->light_container);
 
@@ -549,11 +564,12 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 
 		static float total_time = 0;
 
-		//	カメラ分描画(仮)
-		camera_container camera_container;
-		camera_manager::instance()->get_container(camera_container);
-		for (auto& camera : camera_container.cameras)
+		//	メイン視点で描画
 		{
+			const scene_view_state_ptr& main_state = scene_view_states.acquire(main_scene_view_state_key, render_frame_index);
+			const scene_view_ptr main_view = std::make_shared<const scene_view>(scene_view::from_parameters(main_view_parameters, camera_relative_rendering));
+			main_state->begin_frame(*main_view, main_view_camera_cut);
+
 			//	レンダラーコンテキスト準備
 			renderer_context context = {};
 			{
@@ -561,18 +577,18 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 				context.render_mesh_indices = std::make_shared<render_mesh_indices>();
 				context.render_particle_indices = render_particle_indices;
 				context.render_decal_indices = std::make_shared<render_decal_indices>();
-				prepare_renderer_context(context, camera, render_data, render_particle_indices, total_time, total_time + elapsed_time);
+				prepare_renderer_context(context, main_view, main_state, main_scene_constant_buffer, render_data, render_particle_indices, total_time, total_time + elapsed_time);
 			}
 
 			//	オクルージョンカリング結果を読み出す
 			std::unordered_map<UINT, uint8_t> occlusion_visible;
-			if (auto occlusion = camera.camera->get_occlusion_culling())
+			if (const auto& occlusion = main_state->get_occlusion_culling())
 				occlusion->read_last_frame(occlusion_visible);
 
 			//	描画メッシュ／デカールのカリング・ソート
 			{
 				DETAIL_PROFILE_CPU_SCOPE("render.build_render_lists");
-				build_render_lists(*render_data, *camera.camera, camera.camera->get_frustum_culling(), occlusion_visible,
+				build_render_lists(*render_data, *main_state, main_view->get_frustum_culling(), occlusion_visible,
 					*context.render_mesh_indices, *context.render_decal_indices);
 			}
 
@@ -600,6 +616,9 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 					render->render(context);
 				}
 			}
+
+			//	描画終了処理
+			main_state->end_frame(*main_view);
 		}
 
 		//	UI描画
@@ -636,83 +655,43 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 	{
 		object_manager::instance()->post_render();
 	}
+
+	//	使われなくなった view_state を破棄
+	scene_view_states.release_unused(render_frame_index, scene_view_state_keep_frames);
+	++render_frame_index;
 }
 
 void framework::prepare_renderer_context(
 	renderer_context& context,
-	const camera_container::camera_data& camera,
+	const scene_view_ptr& target_view,
+	const scene_view_state_ptr& target_state,
+	const Microsoft::WRL::ComPtr<ID3D11Buffer>& scene_constant_buffer,
 	const std::shared_ptr<render_data_context>& render_data,
 	const std::shared_ptr<render_particle_indices>& particle_indices,
 	float previous_time, float current_time)
 {
 	//	シーン定数バッファ設定
 	{
-		context.scene_constant_buffer = camera.constant_buffer;
+		context.scene_constant_buffer = scene_constant_buffer;
 		context.scene_constant.time_data.x = current_time;
 		context.scene_constant.time_data.y = previous_time;
 #if defined(USE_IMGUI)
-		context.scene_constant.time_data.z = camera.camera->is_debug_visualize_meshlets() ? 1.0f : 0.0f;
+		context.scene_constant.time_data.z = target_state->is_debug_visualize_meshlets() ? 1.0f : 0.0f;
 #endif	//	defined(USE_IMGUI)
 
-		const math::float3 relative_camera_position = camera.camera->get_relative_position();
-		context.scene_constant.camera_position.x = relative_camera_position.x;
-		context.scene_constant.camera_position.y = relative_camera_position.y;
-		context.scene_constant.camera_position.z = relative_camera_position.z;
-		context.scene_constant.camera_position.w = camera.camera->get_fov_y();
-
-		context.scene_constant.camera_right.x = camera.camera->get_right().x;
-		context.scene_constant.camera_right.y = camera.camera->get_right().y;
-		context.scene_constant.camera_right.z = camera.camera->get_right().z;
-		context.scene_constant.camera_right.w = tanf(camera.camera->get_fov_y() * 0.5f);
-
-		context.scene_constant.camera_up.x = camera.camera->get_up().x;
-		context.scene_constant.camera_up.y = camera.camera->get_up().y;
-		context.scene_constant.camera_up.z = camera.camera->get_up().z;
-		context.scene_constant.camera_up.w = 0.0f;
-
-		context.scene_constant.camera_direction.x = camera.camera->get_front().x;
-		context.scene_constant.camera_direction.y = camera.camera->get_front().y;
-		context.scene_constant.camera_direction.z = camera.camera->get_front().z;
-		context.scene_constant.camera_direction.w = 0.0f;
-
-		context.scene_constant.viewport_rect = camera.camera->get_screen_rect();
-
-		context.scene_constant.camera_clip_distance.x = camera.camera->get_effective_clip_distance().x;
-		context.scene_constant.camera_clip_distance.y = camera.camera->get_effective_clip_distance().y;
-		context.scene_constant.camera_clip_distance.z = camera.camera->get_effective_clip_distance().x * camera.camera->get_effective_clip_distance().y;
-		context.scene_constant.camera_clip_distance.w = camera.camera->get_effective_clip_distance().y - camera.camera->get_effective_clip_distance().x;
-
-		context.scene_constant.z_buffer_parameteres.y = 1.0f;
-		context.scene_constant.z_buffer_parameteres.x = camera.camera->get_effective_clip_distance().y / camera.camera->get_effective_clip_distance().x - 1.0f;
-		context.scene_constant.z_buffer_parameteres.z = 1.0f / camera.camera->get_effective_clip_distance().x - 1.0f / camera.camera->get_effective_clip_distance().y;
-		context.scene_constant.z_buffer_parameteres.w = 1.0f / camera.camera->get_effective_clip_distance().y;
-
-		context.scene_constant.view_transform = camera.camera->get_view_matrix();
-		context.scene_constant.projection_transform = camera.camera->get_projection_matrix();
-		context.scene_constant.view_projection_transform = camera.camera->get_view_projection_matrix();
-
-		context.scene_constant.inverse_view_transform = math::matrixf(context.scene_constant.view_transform).inverted().to_float4x4();
-		context.scene_constant.inverse_projection_transform = math::matrixf(context.scene_constant.projection_transform).inverted().to_float4x4();
-		context.scene_constant.inverse_view_projection_transform = math::matrixf(context.scene_constant.view_projection_transform).inverted().to_float4x4();
-
-		context.scene_constant.previous_view_projection_transform = camera.camera->get_previous_view_projection_matrix();
+		target_view->fill_scene_constants(context.scene_constant, target_state.get());
 	}
 
-	//	オクルージョンカリング情報設定
+	//	描画視点情報と描画制御情報設定
 	{
-		context.hiz_buffer = camera.camera->get_hiz_buffer();
-		context.occlusion_culling_system = camera.camera->get_occlusion_culling();
-		context.meshlet_culling_system = camera.camera->get_meshlet_culling();
-		context.occlusion_animation_distance = camera.camera->get_occlusion_animation_distance();
-#if defined(USE_IMGUI)
-		context.freeze_culling = camera.camera->is_freeze_culling();
-#endif	//	defined(USE_IMGUI)
+		context.current_view = target_view;
+		context.current_view_state = target_state;
 	}
 }
 
 void framework::build_render_lists(
 	const render_data_context& render_data,
-	camera& target_camera,
+	scene_view_state& target_state,
 	const collision::frustum_culling& frustum_culling,
 	const std::unordered_map<UINT, uint8_t>& occlusion_visible,
 	render_mesh_indices& mesh_indices,
@@ -755,7 +734,7 @@ void framework::build_render_lists(
 
 #if defined(USE_IMGUI)
 			//	判定結果を過去のもので固定
-			visible = target_camera.resolve_debug_visible(buffer_data->unique_id, visible);
+			visible = target_state.resolve_debug_visible(buffer_data->unique_id, visible);
 #endif	//	defined(USE_IMGUI)
 			if (!visible)
 				return;
@@ -938,6 +917,18 @@ bool framework::create_buffers()
 		common_pipeline_states::scene_constants ui_scene_constant{};
 		ui_scene_constant.viewport_rect = { 0.0f, 0.0f, static_cast<float>(scene_width), static_cast<float>(scene_height) };
 		render_data::instance()->get_immediate_context()->UpdateSubresource(ui_scene_constant_buffer.Get(), 0, 0, &ui_scene_constant, 0, 0);
+	}
+
+	//	メイン視点のシーン定数バッファ生成
+	{
+		HRESULT hr;
+		D3D11_BUFFER_DESC buffer_desc{};
+		buffer_desc.Usage = D3D11_USAGE_DEFAULT;
+		buffer_desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+		buffer_desc.CPUAccessFlags = 0;
+		buffer_desc.ByteWidth = sizeof(common_pipeline_states::scene_constants);
+		hr = render_data::instance()->get_device()->CreateBuffer(&buffer_desc, nullptr, main_scene_constant_buffer.ReleaseAndGetAddressOf());
+		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
 	}
 	{
 		D3D11_TEXTURE2D_DESC texture2d_desc{};

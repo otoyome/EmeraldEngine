@@ -210,22 +210,14 @@ void framework::imgui_render_infos_window()
 
 		ImGui::Checkbox("draw_collision", &draw_collision);
 
-		if (camera_manager::is_valid())
+		if (auto main_state = scene_view_states.find(main_scene_view_state_key))
 		{
-			camera_container container;
-			camera_manager::instance()->get_container(container);
-			int index = 0;
-			for (auto& camera_data : container.cameras)
-			{
-				ImGui::PushID(index++);
-				bool freeze_culling = camera_data.camera->is_freeze_culling();
-				if (ImGui::Checkbox("freeze_culling", &freeze_culling))
-					camera_data.camera->set_freeze_culling(freeze_culling);
-				bool debug_visualize_meshlets = camera_data.camera->is_debug_visualize_meshlets();
-				if (ImGui::Checkbox("debug_visualize_meshlets", &debug_visualize_meshlets))
-					camera_data.camera->set_debug_visualize_meshlets(debug_visualize_meshlets);
-				ImGui::PopID();
-			}
+			bool freeze_culling = main_state->is_freeze_culling();
+			if (ImGui::Checkbox("freeze_culling", &freeze_culling))
+				main_state->set_freeze_culling(freeze_culling);
+			bool debug_visualize_meshlets = main_state->is_debug_visualize_meshlets();
+			if (ImGui::Checkbox("debug_visualize_meshlets", &debug_visualize_meshlets))
+				main_state->set_debug_visualize_meshlets(debug_visualize_meshlets);
 		}
 	}
 	ImGui::End();

@@ -3,6 +3,8 @@
 #include "graphics/occlusion_culling_system.h"
 #include "graphics/hiz_buffer.h"
 #include "graphics/meshlet_culling_system.h"
+#include "graphics/scene_view.h"
+#include "graphics/scene_view_state.h"
 
 //	メッシュ描画順序リスト
 struct render_mesh_indices
@@ -60,12 +62,6 @@ struct renderer_context
 	std::shared_ptr<render_particle_indices> render_particle_indices;	//	パーティクル描画データ
 	std::shared_ptr<render_decal_indices> render_decal_indices;			//	デカール描画データ
 
-	std::shared_ptr<hiz_buffer> hiz_buffer;								//	階層Zバッファ
-	std::shared_ptr<occlusion_culling_system> occlusion_culling_system;	//	オクルージョンカリングシステム
-	float occlusion_animation_distance;									//	アニメーションモデル対象にする為の距離情報
-	std::shared_ptr<meshlet_culling_system> meshlet_culling_system;		//	メッシュレットカリングシステム
-
-#if defined(USE_IMGUI)
-	bool freeze_culling = false;										//	メッシュレットカリング固定化フラグ
-#endif	//	defined(USE_IMGUI)
+	scene_view_ptr current_view;										//	描画視点情報
+	scene_view_state_ptr current_view_state;							//	描画制御情報
 };

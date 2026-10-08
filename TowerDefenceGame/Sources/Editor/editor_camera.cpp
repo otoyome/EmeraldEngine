@@ -2,27 +2,54 @@
 
 #if	defined(USE_IMGUI)
 
-editor_camera::editor_camera(std::shared_ptr<camera_object> camera)
+editor_camera::editor_camera(std::shared_ptr<camera_object> source)
 : game_object("editor_camera")
-, camera(camera)
+, source(source)
+, camera(std::make_shared<::camera>())
 
 , execute(false)
 
 , rotation(0, 0, 0)
 , position(0, 0, 0)
 {
+	//	パラメーターコピー
+	if (source)
+		camera->get_parameters() = source->get_camera()->get_parameters();
+
+	//	生成時点で視点の候補にする
+	camera_manager::instance()->push_view_target(camera);
 }
 
 editor_camera::~editor_camera()
 {
+	if (camera_manager::is_valid())
+	{
+		camera_manager::instance()->remove_view_target(camera);
+	}
 }
 
-void editor_camera::fixed_update(float elapsed_time)
+void editor_camera::on_active()
 {
-	math::rotatord new_rotation(rotation);
-	camera->set_world_euler(new_rotation);
-	math::vector3d new_position(position);
-	camera->set_world_translation(new_position);
+	game_object::on_active();
+	camera_manager::instance()->push_view_target(camera);
+}
+
+void editor_camera::on_deactive()
+{
+	game_object::on_deactive();
+	camera_manager::instance()->remove_view_target(camera);
+}
+
+void editor_camera::pre_render()
+{
+	game_object::pre_render();
+
+	//	視点姿勢を視点パラメーターに反映反映
+	auto& parameters = camera->get_parameters();
+	if (source)
+		parameters = source->get_camera()->get_parameters();
+	parameters.rotation = rotation;
+	parameters.position = math::vector3d(position);
 }
 
 void editor_camera::debug_update(float elapsed_time)
@@ -125,8 +152,8 @@ void editor_camera::debug_update(float elapsed_time)
 
 void editor_camera::on_execute()
 {
-	rotation = math::rotatorf(camera->get_spatial()->get_world_rotation().to_float4());
-	position = camera->get_spatial()->get_world_translation().to_float3();
+	rotation = math::rotatorf(source->get_spatial()->get_world_rotation().to_float4());
+	position = source->get_spatial()->get_world_translation().to_float3();
 }
 
 #endif	//	defined(USE_IMGUI)

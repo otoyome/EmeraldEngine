@@ -21,6 +21,8 @@ extern ImWchar glyphRangesJapanese[];
 #include "Renderer/scene_render_targets.h"
 #include "Renderer/occlusion_culling_renderer.h"
 #include "camera.h"
+#include "graphics/scene_view.h"
+#include "graphics/scene_view_state.h"
 
 namespace collision { class frustum_culling; }
 struct render_data_context;
@@ -54,14 +56,16 @@ private:
 
 	void prepare_renderer_context(
 		renderer_context& context,
-		const camera_container::camera_data& camera,
+		const scene_view_ptr& target_view,
+		const scene_view_state_ptr& target_state,
+		const Microsoft::WRL::ComPtr<ID3D11Buffer>& scene_constant_buffer,
 		const std::shared_ptr<render_data_context>& render_data,
 		const std::shared_ptr<render_particle_indices>& particle_indices,
 		float previous_time, float current_time);
 
 	void build_render_lists(
 		const render_data_context& render_data,
-		camera& target_camera,
+		scene_view_state& target_state,
 		const collision::frustum_culling& frustum_culling,
 		const std::unordered_map<UINT, uint8_t>& occlusion_visible,
 		render_mesh_indices& mesh_indices,
@@ -83,6 +87,19 @@ private:
 
 	//	UI描画用のシーン定数バッファ(viewport_rectのみ使用)
 	Microsoft::WRL::ComPtr<ID3D11Buffer> ui_scene_constant_buffer;
+
+private:
+	//	メイン視点情報
+	static constexpr scene_view_state_key main_scene_view_state_key = scene_view_state_cache::make_key("main");
+	view_parameters main_view_parameters;
+	bool main_view_camera_cut = false;
+	Microsoft::WRL::ComPtr<ID3D11Buffer> main_scene_constant_buffer;
+
+	//	カメラ相対座標での描画フラグ
+	bool camera_relative_rendering = false;
+
+	scene_view_state_cache scene_view_states;
+	uint64_t render_frame_index = 0;
 
 private:	//	描画情報振り分け
 	struct cull_bucket

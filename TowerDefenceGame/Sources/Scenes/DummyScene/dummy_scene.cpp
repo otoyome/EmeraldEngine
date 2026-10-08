@@ -27,7 +27,7 @@ bool dummy_scene::initialize_core()
 	std::shared_ptr<camera_object> main_camera;
 	{
 		main_camera = std::make_shared<camera_object>("ƒƒCƒ“ƒJƒƒ‰");
-		main_camera->get_camera()->set_fov_y(math::angle::to_radian(45.0f));
+		main_camera->get_camera()->get_parameters().fov_y = math::angle::to_radian(45.0f);
 	//	main_camera->get_camera()->set_flag(camera::flags::hybrid_projection, true);
 	//	main_camera->get_camera()->set_hybrid_rate(0.3f);	//	“§Ž‹“Š‰e
 

@@ -17,6 +17,8 @@
 
 #include "effect_instance.h"
 
+class editor_camera;
+
 class edit_model_scene : public scene_base
 {
 	SCENE_DECRLEAR(edit_model_scene, scene_base);
@@ -84,6 +86,7 @@ private:
 
 private:
 	std::shared_ptr<camera_object> main_camera;
+	std::shared_ptr<editor_camera> editor_camera_object;
 	std::shared_ptr<post_process_volume_object> post_process_volume;
 
 private:
