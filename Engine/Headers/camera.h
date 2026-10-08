@@ -21,14 +21,23 @@ public:
 		update_previous_matrix,
 
 		hybrid_projection,
+
+		camera_relative,
 	};
 
 public:
 	bool is_flag(flags flag) const;
 	void set_flag(flags flag, bool value);
 
-	const math::float3& get_position() const;
-	void set_position(const math::float3& position);
+	//	ワールド座標
+	const math::vector3d& get_position() const;
+	void set_position(const math::vector3d& position);
+
+	//	描画の原点
+	math::vector3d get_render_origin() const;
+
+	//	描画の原点から見たカメラ位置
+	math::float3 get_relative_position() const;
 
 	const math::rotatorf& get_rotation() const;
 	void set_rotation(const math::rotatorf& rotation);
@@ -83,7 +92,7 @@ private:
 
 private:
 	UINT system_flags;
-	math::float3 position;
+	math::vector3d position;
 	math::rotatorf rotation;
 	math::float3 right;
 	math::float3 up;
@@ -92,6 +101,11 @@ private:
 	math::float4x4 projection_matrix;
 	math::float4x4 view_projection_matrix;
 	math::float4x4 previous_view_projection_matrix;
+
+	//	前フレームの姿勢と射影
+	math::vector3d previous_position;
+	math::quaternionf previous_rotation;
+	math::float4x4 previous_projection_matrix;
 
 	float fov_y;
 	math::float4 screen_rect;

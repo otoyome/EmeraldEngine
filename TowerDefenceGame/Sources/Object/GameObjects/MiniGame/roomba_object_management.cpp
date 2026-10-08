@@ -536,7 +536,6 @@ void roomba_object::update_move(float elapsed_time)
 		ground_friction = friction;
 	}
 
-	//	@tool 座標は double のまま反映する（float の set_position を経由すると原点から遠い位置で丸められるため）
 	model->set_world_translation(resolved_position);
 	if (push_box)
 		push_box->set_transform(model->get_world().to_rigid());
@@ -544,7 +543,6 @@ void roomba_object::update_move(float elapsed_time)
 	//	実際に進めた変位から速度を再算出
 	if (elapsed_time > FLT_EPSILON)
 	{
-		//	@tool 変位は double で求めてから float にする
 		const math::float3 displacement = (resolved_position - start_position).to_float3();
 		velocity.x = displacement.x / elapsed_time;
 		velocity.y = displacement.y / elapsed_time;
@@ -557,7 +555,6 @@ bool roomba_object::calculate_position(math::float3 velocity, float elapsed_time
 	auto collision_object = get_push_box();
 	auto bounding_object = std::static_pointer_cast<collision::bounding_capsule>(collision_object->get_bounding_object());
 
-	//	@tool 以降は初期座標を原点とした相対座標（float）で計算し、最後に double の初期座標へ足し込む
 	const math::vector3d base_position = model->get_world_translation();
 	math::float3 relative_position = { 0.0f, 0.0f, 0.0f };
 
@@ -592,7 +589,7 @@ bool roomba_object::calculate_position(math::float3 velocity, float elapsed_time
 
 		math::vector3f From = math::vector3f(relative_position) + Offset;
 		math::vector3f To = From + MoveVector;
-		//	@tool 判定はワールド座標（double）で行う
+
 		desc.start = (base_position + math::vector3d(From)).to_double3();
 		desc.end = (base_position + math::vector3d(To)).to_double3();
 

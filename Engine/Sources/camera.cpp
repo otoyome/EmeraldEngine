@@ -13,6 +13,10 @@ camera::camera()
 , view_matrix()
 , projection_matrix()
 
+, previous_position(0.0, 0.0, 0.0)
+, previous_rotation(math::quaternionf::identity())
+, previous_projection_matrix()
+
 , fov_y(math::angle::to_radian(45.0f))
 , screen_rect(0.0f, 0.0f, 1920.0f, 1080.0f)
 , clip_distance(1.0f, 10000.0f)
@@ -39,18 +43,34 @@ void camera::set_flag(flags flag, bool value)
 		set_flag(flags::dirty, true);
 	}
 
+	if (flag == flags::camera_relative && value != is_flag(flags::camera_relative))
+	{
+		//	描画の原点が変わるため作り直す
+		set_flag(flags::dirty, true);
+	}
+
 	system_utility::set_bitflag(system_flags, 1 << static_cast<UINT>(flag), value);
 }
 
-const math::float3& camera::get_position() const
+const math::vector3d& camera::get_position() const
 {
 	return position;
 }
 
-void camera::set_position(const math::float3& position)
+void camera::set_position(const math::vector3d& position)
 {
 	set_flag(flags::dirty, true);
 	this->position = position;
+}
+
+math::vector3d camera::get_render_origin() const
+{
+	return is_flag(flags::camera_relative) ? position : math::vector3d::zero();
+}
+
+math::float3 camera::get_relative_position() const
+{
+	return (position - get_render_origin()).to_float3();
 }
 
 const math::rotatorf& camera::get_rotation() const
@@ -158,13 +178,29 @@ const math::float4x4& camera::get_view_projection_matrix()
 const math::float4x4& camera::get_previous_view_projection_matrix()
 {
 	update_parameters();
+
+	//	前回の情報が無い場合は現在の行列を使う
+	if (is_flag(flags::update_previous_matrix))
+	{
+		previous_view_projection_matrix = view_projection_matrix;
+		return previous_view_projection_matrix;
+	}
+
+	//	前回の視線行列は、現在の描画の原点から見た前回のカメラ位置で作り直す
+	const math::vector3f previous_relative_position((previous_position - get_render_origin()).to_float3());
+	const math::matrixf previous_view = math::matrixf::inverse_rigid_transformation(previous_rotation, previous_relative_position);
+	previous_view_projection_matrix = (previous_view * math::matrixf(previous_projection_matrix)).to_float4x4();
 	return previous_view_projection_matrix;
 }
 
 void camera::cache_previous_view_projection_matrix()
 {
+	update_parameters();
+
 	set_flag(flags::update_previous_matrix, false);
-	previous_view_projection_matrix = view_projection_matrix;
+	previous_position = position;
+	previous_rotation = rotation.to_quaternion();
+	previous_projection_matrix = projection_matrix;
 }
 
 const collision::frustum_culling& camera::get_frustum_culling()
@@ -180,12 +216,15 @@ void camera::update_parameters()
 
 	set_flag(flags::dirty, false);
 
-	const math::matrixf rotation_matrix = math::matrixf::rotation_quaternion(rotation.to_quaternion());
+	const math::quaternionf rotation_quaternion = rotation.to_quaternion();
+	const math::matrixf rotation_matrix = math::matrixf::rotation_quaternion(rotation_quaternion);
 	right = rotation_matrix.to_vector3(0).to_float3();
 	up = rotation_matrix.to_vector3(1).to_float3();
 	front = rotation_matrix.to_vector3(2).to_float3();
 
-	const math::matrixf view = (rotation_matrix * math::matrixf::translation(position)).inverted();
+	//	描画の原点からの相対位置で視線行列を作る
+	const math::vector3f relative_position(get_relative_position());
+	const math::matrixf view = math::matrixf::inverse_rigid_transformation(rotation_quaternion, relative_position);
 	view_matrix = view.to_float4x4();
 
 	const float aspect_ratio = static_cast<float>(screen_rect.z - screen_rect.x) / static_cast<float>(screen_rect.w - screen_rect.y);

@@ -18,7 +18,7 @@ void camera_object::post_update(float elapsed_time)
 	camera->set_rotation(get_spatial()->get_parent()
 		? math::rotatorf(get_world().get_euler())
 		: math::rotatorf(get_local_euler()));
-	camera->set_position(get_world().get_translation().to_float3());
+	camera->set_position(get_world().get_translation());
 }
 
 void camera_object::post_render()
