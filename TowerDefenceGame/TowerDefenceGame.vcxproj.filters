@@ -186,18 +186,6 @@
     <Filter Include="Headers\Object\GameObjects\Character">
       <UniqueIdentifier>{cf63aead-bb39-4659-b06e-e019cd065cd0}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Headers\Object\GameObjects\Character\Person">
-      <UniqueIdentifier>{7d872142-99bd-4053-9747-201102535e7e}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Headers\Object\GameObjects\Character\Player">
-      <UniqueIdentifier>{850a7695-2489-4518-9cf2-a88fec47a393}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Sources\Object\GameObjects\Character\Player">
-      <UniqueIdentifier>{f77f04db-8040-400e-b08e-4cb47d159593}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Sources\Object\GameObjects\Character\Person">
-      <UniqueIdentifier>{6d657d7e-0f45-42ad-b1f8-77b959522c7a}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Shaders\DeferredDecal">
       <UniqueIdentifier>{8d61a350-fb00-43f6-9fc7-ef0da761e29f}</UniqueIdentifier>
     </Filter>
@@ -209,18 +197,6 @@
     </Filter>
     <Filter Include="Shaders\Surface">
       <UniqueIdentifier>{07c7506c-d536-4cd4-81cc-dacaa9a569bd}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Headers\Object\GameObjects\Character\Enemy">
-      <UniqueIdentifier>{85b813c9-9f28-46df-9654-c5e0d858e25a}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Headers\Object\GameObjects\Character\BossSeraphim">
-      <UniqueIdentifier>{793487cc-ab84-4e9d-9393-ee33c23cae27}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Sources\Object\GameObjects\Character\Enemy">
-      <UniqueIdentifier>{a0a70d5c-ffc3-48ae-8355-6dd2f3da5712}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Sources\Object\GameObjects\Character\Enemy\BossSeraphim">
-      <UniqueIdentifier>{4b67ba2f-2932-456c-8a16-932af9bf2699}</UniqueIdentifier>
     </Filter>
     <Filter Include="Headers\Object\GameObjects\UI">
       <UniqueIdentifier>{af0e756c-0ee5-4ab0-8389-b9ddf2bc0784}</UniqueIdentifier>
@@ -440,9 +416,6 @@
     <ClCompile Include="Sources\Object\Collision\collision_octree.cpp">
       <Filter>Sources\Object\Collision</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Scenes\GameScene\game_main_scene.cpp">
-      <Filter>Sources\Scenes\GameScene</Filter>
-    </ClCompile>
     <ClCompile Include="Sources\Scenes\StageScene\stage_00_scene.cpp">
       <Filter>Sources\Scenes\StageScene</Filter>
     </ClCompile>
@@ -461,47 +434,8 @@
     <ClCompile Include="Sources\Scenes\EditScene\edit_timeline_scene.cpp">
       <Filter>Sources\Scenes\EditScene</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Object\GameObjects\Character\character_object_resource.cpp">
-      <Filter>Sources\Object\GameObjects\Character</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Object\GameObjects\Character\character_object_state.cpp">
-      <Filter>Sources\Object\GameObjects\Character</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Object\GameObjects\Character\character_object.cpp">
-      <Filter>Sources\Object\GameObjects\Character</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Object\GameObjects\Character\Player\player_camera_controller_object.cpp">
-      <Filter>Sources\Object\GameObjects\Character\Player</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Object\GameObjects\Character\Player\player_camera_controller_object_animation_states.cpp">
-      <Filter>Sources\Object\GameObjects\Character\Player</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Object\GameObjects\Character\Player\player_controller_object.cpp">
-      <Filter>Sources\Object\GameObjects\Character\Player</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Object\GameObjects\Character\Person\kuroko_object_resource_setup.cpp">
-      <Filter>Sources\Object\GameObjects\Character\Person</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Object\GameObjects\Character\Person\kuroko_object.cpp">
-      <Filter>Sources\Object\GameObjects\Character\Person</Filter>
-    </ClCompile>
     <ClCompile Include="Sources\PipelineState\deferred_decal_pipeline_state.cpp">
       <Filter>Sources\PipelineState</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Object\GameObjects\Character\Person\boss_seraphim_object_resource_setup.cpp">
-      <Filter>Sources\Object\GameObjects\Character\Person</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Object\GameObjects\Character\Person\boss_seraphim_object.cpp">
-      <Filter>Sources\Object\GameObjects\Character\Person</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Object\GameObjects\Character\Enemy\enemy_controller_object.cpp">
-      <Filter>Sources\Object\GameObjects\Character\Enemy</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Object\GameObjects\Character\Enemy\BossSeraphim\boss_seraphim_controller_object.cpp">
-      <Filter>Sources\Object\GameObjects\Character\Enemy\BossSeraphim</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Object\GameObjects\Cinematics\cinematics_object.cpp">
-      <Filter>Sources\Object\GameObjects\Cinematics</Filter>
     </ClCompile>
     <ClCompile Include="Sources\Object\GameObjects\UI\Common\fade_controller_object.cpp">
       <Filter>Sources\Object\GameObjects\UI\Common</Filter>
@@ -512,34 +446,10 @@
     <ClCompile Include="Sources\Object\GameObjects\UI\Common\transition_fade_controller.cpp">
       <Filter>Sources\Object\GameObjects\UI\Common</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Object\GameObjects\UI\HUD\battle_hud_controller_object.cpp">
-      <Filter>Sources\Object\GameObjects\UI\HUD</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Object\GameObjects\UI\HUD\break_hud_controller_object.cpp">
-      <Filter>Sources\Object\GameObjects\UI\HUD</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Object\GameObjects\UI\HUD\face_image_controller_object.cpp">
-      <Filter>Sources\Object\GameObjects\UI\HUD</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Object\GameObjects\UI\HUD\hp_bar_controller_object.cpp">
-      <Filter>Sources\Object\GameObjects\UI\HUD</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Object\GameObjects\UI\HUD\hud_controller_object.cpp">
-      <Filter>Sources\Object\GameObjects\UI\HUD</Filter>
-    </ClCompile>
     <ClCompile Include="Sources\Object\GameObjects\UI\HUD\key_icon_controller_object.cpp">
       <Filter>Sources\Object\GameObjects\UI\HUD</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Object\GameObjects\UI\HUD\retry_hud_controller_object.cpp">
-      <Filter>Sources\Object\GameObjects\UI\HUD</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Object\GameObjects\UI\HUD\sp_bar_controller_object.cpp">
-      <Filter>Sources\Object\GameObjects\UI\HUD</Filter>
-    </ClCompile>
     <ClCompile Include="Sources\Object\GameObjects\UI\HUD\timer_controller_object.cpp">
-      <Filter>Sources\Object\GameObjects\UI\HUD</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Object\GameObjects\UI\HUD\trunk_bar_controller_object.cpp">
       <Filter>Sources\Object\GameObjects\UI\HUD</Filter>
     </ClCompile>
     <ClCompile Include="Sources\Object\GameObjects\UI\ui_button.cpp">
@@ -563,7 +473,7 @@
     <ClCompile Include="Sources\Object\GameObjects\MiniGame\roomba_camera_controller_object.cpp">
       <Filter>Sources\Object\GameObjects\MiniGame</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Object\GameObjects\MiniGame\roomba_object _management.cpp">
+    <ClCompile Include="Sources\Object\GameObjects\MiniGame\roomba_object_management.cpp">
       <Filter>Sources\Object\GameObjects\MiniGame</Filter>
     </ClCompile>
     <ClCompile Include="Sources\Object\GameObjects\MiniGame\roomba_hud_controller_object.cpp">
@@ -790,9 +700,6 @@
     <ClInclude Include="Headers\Object\Collision\collision_octree.h">
       <Filter>Headers\Object\Collision</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Scenes\GameScene\game_main_scene.h">
-      <Filter>Headers\Scenes\GameScene</Filter>
-    </ClInclude>
     <ClInclude Include="Headers\Scenes\StageScene\stage_00_scene.h">
       <Filter>Headers\Scenes\StageScene</Filter>
     </ClInclude>
@@ -808,29 +715,8 @@
     <ClInclude Include="Headers\Scenes\EditScene\edit_timeline_scene.h">
       <Filter>Headers\Scenes\EditScene</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Object\GameObjects\Character\Player\player_camera_controller_object.h">
-      <Filter>Headers\Object\GameObjects\Character\Player</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Object\GameObjects\Character\Player\player_controller_object.h">
-      <Filter>Headers\Object\GameObjects\Character\Player</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Object\GameObjects\Character\Person\kuroko_object.h">
-      <Filter>Headers\Object\GameObjects\Character\Person</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Object\GameObjects\Character\character_object.h">
-      <Filter>Headers\Object\GameObjects\Character</Filter>
-    </ClInclude>
     <ClInclude Include="Headers\PipelineState\deferred_decal_pipeline_state.h">
       <Filter>Headers\PipelineState</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Object\GameObjects\Character\Person\boss_seraphim_object.h">
-      <Filter>Headers\Object\GameObjects\Character\Person</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Object\GameObjects\Character\Enemy\enemy_controller_object.h">
-      <Filter>Headers\Object\GameObjects\Character\Enemy</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Object\GameObjects\Character\Enemy\BossSeraphim\boss_seraphim_controller_object.h">
-      <Filter>Headers\Object\GameObjects\Character\BossSeraphim</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Object\GameObjects\UI\ui_image.h">
       <Filter>Headers\Object\GameObjects\UI</Filter>
@@ -844,34 +730,10 @@
     <ClInclude Include="Headers\Object\GameObjects\UI\ui_button.h">
       <Filter>Headers\Object\GameObjects\UI</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Object\GameObjects\UI\HUD\sp_bar_controller_object.h">
-      <Filter>Headers\Object\GameObjects\UI\HUD</Filter>
-    </ClInclude>
     <ClInclude Include="Headers\Object\GameObjects\UI\HUD\timer_controller_object.h">
       <Filter>Headers\Object\GameObjects\UI\HUD</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Object\GameObjects\UI\HUD\trunk_bar_controller_object.h">
-      <Filter>Headers\Object\GameObjects\UI\HUD</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Object\GameObjects\UI\HUD\battle_hud_controller_object.h">
-      <Filter>Headers\Object\GameObjects\UI\HUD</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Object\GameObjects\UI\HUD\break_hud_controller_object.h">
-      <Filter>Headers\Object\GameObjects\UI\HUD</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Object\GameObjects\UI\HUD\face_image_controller_object.h">
-      <Filter>Headers\Object\GameObjects\UI\HUD</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Object\GameObjects\UI\HUD\hp_bar_controller_object.h">
-      <Filter>Headers\Object\GameObjects\UI\HUD</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Object\GameObjects\UI\HUD\hud_controller_object.h">
-      <Filter>Headers\Object\GameObjects\UI\HUD</Filter>
-    </ClInclude>
     <ClInclude Include="Headers\Object\GameObjects\UI\HUD\key_icon_controller_object.h">
-      <Filter>Headers\Object\GameObjects\UI\HUD</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Object\GameObjects\UI\HUD\retry_hud_controller_object.h">
       <Filter>Headers\Object\GameObjects\UI\HUD</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Object\GameObjects\UI\Common\fade_controller_object.h">
@@ -882,9 +744,6 @@
     </ClInclude>
     <ClInclude Include="Headers\Object\GameObjects\UI\Common\transition_fade_controller.h">
       <Filter>Headers\Object\GameObjects\UI\Common</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Object\GameObjects\Cinematics\cinematics_object.h">
-      <Filter>Headers\Object\GameObjects\Cinematics</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Renderer\occlusion_culling_renderer.h">
       <Filter>Headers</Filter>

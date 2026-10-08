@@ -2,8 +2,6 @@
 
 #include "object/camera_object.h"
 
-#include "object/gameobjects/cinematics/cinematics_object.h"
-
 #include "object/gameobjects/ui/ui_image.h"
 #include "object/gameobjects/ui/common/transition_fade_controller.h"
 
@@ -15,13 +13,6 @@ stationed_scene::stationed_scene()
 	{
 		main_camera = std::make_shared<camera_object>("メインカメラ");
 		register_object(main_camera);
-	}
-
-	//	演出オブジェクト生成
-	std::shared_ptr<cinematics_object> main_cinematics;
-	{
-		main_cinematics = std::make_shared<cinematics_object>("演出管理オブジェクト", main_camera);
-		register_object(main_cinematics);
 	}
 
 	//	フェードイン/アウト用オブジェクト生成

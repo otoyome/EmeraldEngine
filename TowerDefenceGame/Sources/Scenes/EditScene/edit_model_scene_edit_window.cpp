@@ -128,7 +128,7 @@ void edit_model_scene::imgui_render_morph()
 
 		//	リスト調整
 		bool edit = false;
-		int morph_list_size = morphs.size();
+		int morph_list_size = static_cast<int>(morphs.size());
 		ImGui::DragInt("List Size", &morph_list_size, 1);
 		if (morph_list_size != morphs.size())
 		{
@@ -185,7 +185,7 @@ void edit_model_scene::imgui_render_morph()
 				}
 
 				//	リスト調整
-				int list_size = morph.parts.size();
+				int list_size = static_cast<int>(morph.parts.size());
 				ImGui::DragInt("List Size", &list_size, 1);
 				if (list_size != morph.parts.size())
 				{

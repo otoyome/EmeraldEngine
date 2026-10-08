@@ -5,6 +5,21 @@
 #include <string>
 #include <string_view>
 
+namespace system_units_detail
+{
+	//	成分が浮動小数点型であるか
+	template<typename V> concept has_fp_x = requires(V v) { requires std::floating_point<std::remove_cvref_t<decltype(v.x)>>; };
+	template<typename V> concept has_y = requires(V v) { v.y; };
+	template<typename V> concept has_z = requires(V v) { v.z; };
+	template<typename V> concept has_w = requires(V v) { v.w; };
+ 
+	//	成分数で判別
+	template<typename V> concept vector2_like = has_fp_x<V> && has_y<V> && !has_z<V> && !has_w<V>;
+	template<typename V> concept vector3_like = has_fp_x<V> && has_y<V> && has_z<V> && !has_w<V>;
+	template<typename V> concept vector4_like = has_fp_x<V> && has_y<V> && has_z<V> && has_w<V>;
+}
+ 
+
 class system_units
 {
 public:
@@ -228,30 +243,30 @@ public:
 	template<std::floating_point T> static constexpr T convert_unit_to_m(T value) { return value * length_factor<T>(length_units::unit, length_units::meter); }
 
 	//	ベクトル版
-	static constexpr math::float2 convert_m_to_unit(math::float2 value)
-	{
-		return {convert_m_to_unit(value.x), convert_m_to_unit(value.y)};
-	}
-	static constexpr math::float3 convert_m_to_unit(math::float3 value)
-	{
-		return {convert_m_to_unit(value.x), convert_m_to_unit(value.y), convert_m_to_unit(value.z)};
-	}
-	static constexpr math::float4 convert_m_to_unit(math::float4 value)
-	{
-		return {convert_m_to_unit(value.x), convert_m_to_unit(value.y), convert_m_to_unit(value.z), convert_m_to_unit(value.w)};
-	}
-	static constexpr math::double2 convert_m_to_unit(math::double2 value)
-	{
-		return {convert_m_to_unit(value.x), convert_m_to_unit(value.y)};
-	}
-	static constexpr math::double3 convert_m_to_unit(math::double3 value)
-	{
-		return {convert_m_to_unit(value.x), convert_m_to_unit(value.y), convert_m_to_unit(value.z)};
-	}
-	static constexpr math::double4 convert_m_to_unit(math::double4 value)
-	{
-		return {convert_m_to_unit(value.x), convert_m_to_unit(value.y), convert_m_to_unit(value.z), convert_m_to_unit(value.w)};
-	}
+	template<system_units_detail::vector2_like V> static constexpr V convert_um_to_unit(V value) { return V{convert_um_to_unit(value.x), convert_um_to_unit(value.y)}; }
+	template<system_units_detail::vector3_like V> static constexpr V convert_um_to_unit(V value) { return V{convert_um_to_unit(value.x), convert_um_to_unit(value.y), convert_um_to_unit(value.z)}; }
+	template<system_units_detail::vector4_like V> static constexpr V convert_um_to_unit(V value) { return V{convert_um_to_unit(value.x), convert_um_to_unit(value.y), convert_um_to_unit(value.z), convert_um_to_unit(value.w)}; }
+	template<system_units_detail::vector2_like V> static constexpr V convert_mm_to_unit(V value) { return V{convert_mm_to_unit(value.x), convert_mm_to_unit(value.y)}; }
+	template<system_units_detail::vector3_like V> static constexpr V convert_mm_to_unit(V value) { return V{convert_mm_to_unit(value.x), convert_mm_to_unit(value.y), convert_mm_to_unit(value.z)}; }
+	template<system_units_detail::vector4_like V> static constexpr V convert_mm_to_unit(V value) { return V{convert_mm_to_unit(value.x), convert_mm_to_unit(value.y), convert_mm_to_unit(value.z), convert_mm_to_unit(value.w)}; }
+	template<system_units_detail::vector2_like V> static constexpr V convert_cm_to_unit(V value) { return V{convert_cm_to_unit(value.x), convert_cm_to_unit(value.y)}; }
+	template<system_units_detail::vector3_like V> static constexpr V convert_cm_to_unit(V value) { return V{convert_cm_to_unit(value.x), convert_cm_to_unit(value.y), convert_cm_to_unit(value.z)}; }
+	template<system_units_detail::vector4_like V> static constexpr V convert_cm_to_unit(V value) { return V{convert_cm_to_unit(value.x), convert_cm_to_unit(value.y), convert_cm_to_unit(value.z), convert_cm_to_unit(value.w)}; }
+	template<system_units_detail::vector2_like V> static constexpr V convert_m_to_unit(V value) { return V{convert_m_to_unit(value.x), convert_m_to_unit(value.y)}; }
+	template<system_units_detail::vector3_like V> static constexpr V convert_m_to_unit(V value) { return V{convert_m_to_unit(value.x), convert_m_to_unit(value.y), convert_m_to_unit(value.z)}; }
+	template<system_units_detail::vector4_like V> static constexpr V convert_m_to_unit(V value) { return V{convert_m_to_unit(value.x), convert_m_to_unit(value.y), convert_m_to_unit(value.z), convert_m_to_unit(value.w)}; }
+	template<system_units_detail::vector2_like V> static constexpr V convert_unit_to_um(V value) { return V{convert_unit_to_um(value.x), convert_unit_to_um(value.y)}; }
+	template<system_units_detail::vector3_like V> static constexpr V convert_unit_to_um(V value) { return V{convert_unit_to_um(value.x), convert_unit_to_um(value.y), convert_unit_to_um(value.z)}; }
+	template<system_units_detail::vector4_like V> static constexpr V convert_unit_to_um(V value) { return V{convert_unit_to_um(value.x), convert_unit_to_um(value.y), convert_unit_to_um(value.z), convert_unit_to_um(value.w)}; }
+	template<system_units_detail::vector2_like V> static constexpr V convert_unit_to_mm(V value) { return V{convert_unit_to_mm(value.x), convert_unit_to_mm(value.y)}; }
+	template<system_units_detail::vector3_like V> static constexpr V convert_unit_to_mm(V value) { return V{convert_unit_to_mm(value.x), convert_unit_to_mm(value.y), convert_unit_to_mm(value.z)}; }
+	template<system_units_detail::vector4_like V> static constexpr V convert_unit_to_mm(V value) { return V{convert_unit_to_mm(value.x), convert_unit_to_mm(value.y), convert_unit_to_mm(value.z), convert_unit_to_mm(value.w)}; }
+	template<system_units_detail::vector2_like V> static constexpr V convert_unit_to_cm(V value) { return V{convert_unit_to_cm(value.x), convert_unit_to_cm(value.y)}; }
+	template<system_units_detail::vector3_like V> static constexpr V convert_unit_to_cm(V value) { return V{convert_unit_to_cm(value.x), convert_unit_to_cm(value.y), convert_unit_to_cm(value.z)}; }
+	template<system_units_detail::vector4_like V> static constexpr V convert_unit_to_cm(V value) { return V{convert_unit_to_cm(value.x), convert_unit_to_cm(value.y), convert_unit_to_cm(value.z), convert_unit_to_cm(value.w)}; }
+	template<system_units_detail::vector2_like V> static constexpr V convert_unit_to_m(V value) { return V{convert_unit_to_m(value.x), convert_unit_to_m(value.y)}; }
+	template<system_units_detail::vector3_like V> static constexpr V convert_unit_to_m(V value) { return V{convert_unit_to_m(value.x), convert_unit_to_m(value.y), convert_unit_to_m(value.z)}; }
+	template<system_units_detail::vector4_like V> static constexpr V convert_unit_to_m(V value) { return V{convert_unit_to_m(value.x), convert_unit_to_m(value.y), convert_unit_to_m(value.z), convert_unit_to_m(value.w)}; }
 
 public:
 	//	マイクログラムの<>ミリグラム変換

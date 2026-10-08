@@ -1,7 +1,5 @@
 #include "object/gameobjects/MiniGame/roomba_camera_controller_object.h"
 
-#include "object/gameobjects/cinematics/cinematics_object.h"
-
 namespace
 {
 	//	ƒˆ[‰ñ“]‘¬“x
@@ -208,8 +206,8 @@ void roomba_camera_controller_object::fixed_update_default(float elapsed_time)
 		double dist = focus_distance - offset;
 		auto camera_focus = focus - camera_front * offset;
 		auto camera_position = camera_focus - camera_front * dist;
-		float min_y_offset = math::linearstep(0.0, pitch_limit_angle.x, camera_rotation.x);
-		float max_y_offset = math::linearstep(0.0, pitch_limit_angle.y, camera_rotation.x);
+		double min_y_offset = math::linearstep(0.0, pitch_limit_angle.x, camera_rotation.x);
+		double max_y_offset = math::linearstep(0.0, pitch_limit_angle.y, camera_rotation.x);
 		camera_position.y += min_y_offset * focus_y_min_offset + max_y_offset * focus_y_max_offset;
 
 		//	•¨‘Ì‚Æ“–‚½‚è”»’è
@@ -226,11 +224,7 @@ void roomba_camera_controller_object::fixed_update_default(float elapsed_time)
 			if (object_manager::instance()->get_world().sphere_cast(desc, intersect_data, hit_collision_object))
 			{
 				float length = static_cast<float>(intersect_data[0].length);
-				math::float3 vector;
-				vector.x = camera_position.x - camera_focus.x;
-				vector.y = camera_position.y - camera_focus.y;
-				vector.z = camera_position.z - camera_focus.z;
-				vector = math::vector3f(vector).normalized().to_float3();
+				auto vector = camera_position - camera_focus;
 
 				camera_position.x = camera_focus.x + vector.x * length;
 				camera_position.y = camera_focus.y + vector.y * length;
@@ -251,7 +245,7 @@ void roomba_camera_controller_object::fixed_update_default(float elapsed_time)
 		update_fov_rate_inner = math::lerp(update_fov_rate_inner, rate, alpha);
 
 		rate = math::easing::calculate(update_fov_rate_inner, fov_ease);
-		camera->get_camera()->set_fov_y(math::lerp(fov_range.x, fov_range.y, rate));
+		camera->get_camera()->set_fov_y(math::lerp(fov_range.x, fov_range.y, static_cast<double>(rate)));
 	}
 }
 

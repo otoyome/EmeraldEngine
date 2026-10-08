@@ -1036,7 +1036,7 @@ namespace ImGui
         for (unsigned i = 0; i < keyframes.size(); i++)
             c_keyframes[i] = &keyframes[i];
 
-        return BeginNeoTimeline(label, c_keyframes.data(), c_keyframes.size(), open, flags);
+        return BeginNeoTimeline(label, c_keyframes.data(), static_cast<UINT>(c_keyframes.size()), open, flags);
     }
 
 #endif

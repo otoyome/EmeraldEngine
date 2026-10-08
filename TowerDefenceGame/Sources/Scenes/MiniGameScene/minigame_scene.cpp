@@ -10,8 +10,6 @@
 #include "object/gameobjects/minigame/roomba_controller_object.h"
 #include "object/gameobjects/minigame/roomba_camera_controller_object.h"
 
-#include "object/gameobjects/cinematics/cinematics_object.h"
-
 #include "Scenes/MiniGameScene/minigame_result_scene.h"
 #include "object/gameobjects/ui/common/transition_fade_controller.h"
 #include "object/gameobjects/ui/hud/countdown_controller_object.h"

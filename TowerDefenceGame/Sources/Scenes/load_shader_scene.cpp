@@ -2,8 +2,6 @@
 
 #include "custom_pipeline_state.h"
 
-#include "scenes/gamescene/game_main_scene.h"
-
 #include "scenes/minigamescene/minigame_scene.h"
 #include "scenes/minigamescene/minigame_title_scene.h"
 #include "Scenes/setup_scene.h"

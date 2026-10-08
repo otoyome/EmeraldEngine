@@ -4,7 +4,6 @@
 #include "object/gameobjects/ui/ui_image.h"
 #include "object/gameobjects/ui/ui_text.h"
 #include "object/gameobjects/ui/ui_button.h"
-#include "object/gameobjects/character/character_object.h"
 
 //	キーアイコンオブジェクト
 class key_icon_object : public game_object

@@ -4,15 +4,7 @@
 #include "object/gameobjects/ui/ui_image.h"
 
 #include "object/gameobjects/ui/common/fade_controller_object.h"
-
-#include "object/gameobjects/ui/hud/hp_bar_controller_object.h"
-#include "object/gameobjects/ui/hud/sp_bar_controller_object.h"
-#include "object/gameobjects/ui/hud/trunk_bar_controller_object.h"
-#include "object/gameobjects/ui/hud/face_image_controller_object.h"
 #include "object/gameobjects/ui/hud/key_icon_controller_object.h"
-
-#include "object/gameobjects/character/enemy/enemy_controller_object.h"
-#include "object/gameobjects/character/player/player_controller_object.h"
 
 //	タイマーUI制御用オブジェクト
 class timer_controller_object : public game_object

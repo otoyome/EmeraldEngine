@@ -1305,7 +1305,7 @@ bool gltf_loader::Load(std::string_view filepath)
 		{
 			std::string content((std::istreambuf_iterator<char>(istream)),std::istreambuf_iterator<char>());
 			std::string directry = path.parent_path().string();
-			result = gltf.LoadASCIIFromString(&gltf_model, &error, &warning, content.data(), content.size(), directry);
+			result = gltf.LoadASCIIFromString(&gltf_model, &error, &warning, content.data(), static_cast<UINT>(content.size()), directry);
 		}
 	}
 
@@ -1505,7 +1505,7 @@ void gltf_loader::load_meshes(std::vector<mesh_data>& meshes, const std::vector<
 				{
 					vertex_buffer,
 					vertices,
-					gltf_accessor.count,
+					static_cast<int>(gltf_accessor.count),
 					gltf_accessor.type,
 					gltf_accessor.componentType,
 					std::string(semantic.get_name())
@@ -1550,7 +1550,7 @@ void gltf_loader::load_meshes(std::vector<mesh_data>& meshes, const std::vector<
 							{
 								vertex_buffer,
 								vertices,
-								target_accessor.count,
+								static_cast<int>(target_accessor.count),
 								target_accessor.type,
 								target_accessor.componentType,
 								std::string(semantic.get_name())
