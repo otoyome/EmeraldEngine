@@ -172,9 +172,10 @@ void gbuffer_renderer::render(renderer_context& renderer_context)
 
 			//	間接光の情報を設定
 			light_probes probe;
-			probe.position.x = light_probe->get_position().x;
-			probe.position.y = light_probe->get_position().y;
-			probe.position.z = light_probe->get_position().z;
+			const math::float3 probe_position = light_probe->get_relative_position(context.render_data->render_origin);
+			probe.position.x = probe_position.x;
+			probe.position.y = probe_position.y;
+			probe.position.z = probe_position.z;
 			probe.inner_area.x = light_probe->get_inner_range().x;
 			probe.inner_area.y = light_probe->get_inner_range().y;
 			probe.inner_area.z = light_probe->get_inner_range().z;
@@ -647,9 +648,10 @@ void deffered_lighting_renderer::render_indirect(renderer_context& context)
 
 			//	間接光の情報を設定
 			light_probes probe;
-			probe.position.x = light_probe->get_position().x;
-			probe.position.y = light_probe->get_position().y;
-			probe.position.z = light_probe->get_position().z;
+			const math::float3 probe_position = light_probe->get_relative_position(context.render_data->render_origin);
+			probe.position.x = probe_position.x;
+			probe.position.y = probe_position.y;
+			probe.position.z = probe_position.z;
 			probe.inner_area.x = light_probe->get_inner_range().x;
 			probe.inner_area.y = light_probe->get_inner_range().y;
 			probe.inner_area.z = light_probe->get_inner_range().z;
@@ -706,7 +708,7 @@ void deffered_lighting_renderer::render_directional(const light& light, common_p
 		lighting_pass.activate(context.device_context);
 
 		//	コンテキストに情報登録
-		context.deferred_light_constant.light_data = light.convert_light_data();
+		context.deferred_light_constant.light_data = light.convert_light_data(context.render_data->render_origin);
 		context.deferred_light_constant.light_attribute = light.get_attribute();
 		context.shadow_map_texture = render_targets->shadowmap_depth_texture;
 		context.shadow_map_constant = shadow_map_constant;
@@ -741,10 +743,9 @@ void deffered_lighting_renderer::render_directional(const light& light, common_p
 void deffered_lighting_renderer::render_directional_shadow_map(const light& light, common_pipeline_states::shadow_map_constants& shadow_map_constant, renderer_context& context)
 {
 	math::float4 rotation = light.get_rotation().to_quaternion().to_float4();
-	math::float3 position = light.get_position();
 	math::matrixf CameraTransformMatrix = math::matrixf(context.scene_constant.view_transform).inverted();
-	math::matrixf LightTransformMatrix = math::matrixf::rotation_quaternion(math::quaternionf(rotation)) * 
-												math::matrixf::translation(position.x, position.y, position.z);
+	//	@tool 平行光源は軸だけ使う（位置は下で視錐台から決め直すため、ライトの絶対座標は使わない）
+	math::matrixf LightTransformMatrix = math::matrixf::rotation_quaternion(math::quaternionf(rotation));
 	math::matrixf InverseProjectionTransform;
 	InverseProjectionTransform = math::matrixf(context.scene_constant.inverse_projection_transform);
 
@@ -753,6 +754,11 @@ void deffered_lighting_renderer::render_directional_shadow_map(const light& ligh
 	LightUp = LightTransformMatrix.to_vector3(1);
 	LightFront = LightTransformMatrix.to_vector3(2);
 	LightPosition = LightTransformMatrix.to_vector3(3);
+
+	//	@tool Stable CSM のスナップ格子は描画原点が動いてもずれないよう、描画原点のライト軸成分を double で求めておく
+	const math::vector3d& render_origin = context.render_data->render_origin;
+	const double origin_x = math::vector3d::dot(render_origin, math::vector3d(LightRight));
+	const double origin_y = math::vector3d::dot(render_origin, math::vector3d(LightUp));
 
 	//	クリップ距離を算出
 	float near_clip = context.scene_constant.camera_clip_distance.x;
@@ -888,8 +894,11 @@ void deffered_lighting_renderer::render_directional_shadow_map(const light& ligh
 				float center_x = math::vector3f::dot(Center, LightRight);
 				float center_y = math::vector3f::dot(Center, LightUp);
 				float center_z = math::vector3f::dot(Center, LightFront);
-				float X = floorf(center_x / texel_size_x) * texel_size_x;
-				float Y = floorf(center_y / texel_size_y) * texel_size_y;
+				//	@tool 絶対座標でスナップしてから描画原点からの相対値に戻す
+				const double snapped_x = std::floor((origin_x + center_x) / texel_size_x) * texel_size_x;
+				const double snapped_y = std::floor((origin_y + center_y) / texel_size_y) * texel_size_y;
+				float X = static_cast<float>(snapped_x - origin_x);
+				float Y = static_cast<float>(snapped_y - origin_y);
 
 				//	near側はcasterを含めるためAABB最小値まで延長、far側はレシーバー範囲
 				float receiver_near_z = center_z - radius;
@@ -973,7 +982,7 @@ void deffered_lighting_renderer::render_point(const light& light, common_pipelin
 		//	描画先設定
 		lighting_pass.activate(context.device_context);
 
-		context.deferred_light_constant.light_data = light.convert_light_data();
+		context.deferred_light_constant.light_data = light.convert_light_data(context.render_data->render_origin);
 		context.deferred_light_constant.light_attribute = light.get_attribute();
 		context.shadow_map_texture = render_targets->shadowmap_depth_texture;
 		context.shadow_map_constant = shadow_map_constant;
@@ -1007,7 +1016,7 @@ void deffered_lighting_renderer::render_point(const light& light, common_pipelin
 
 void deffered_lighting_renderer::render_point_shadow_map(const light& light, common_pipeline_states::shadow_map_constants& shadow_map_constant, renderer_context& context)
 {
-	math::float3 position = light.get_position();
+	math::float3 position = light.get_relative_position(context.render_data->render_origin);
 	math::vector3f position_vector(position);
 	float range = light.get_range();
 
@@ -1089,7 +1098,7 @@ void deffered_lighting_renderer::render_spot(const light& light, common_pipeline
 		//	描画先設定
 		lighting_pass.activate(context.device_context);
 
-		context.deferred_light_constant.light_data = light.convert_light_data();
+		context.deferred_light_constant.light_data = light.convert_light_data(context.render_data->render_origin);
 		context.deferred_light_constant.light_attribute = light.get_attribute();
 		context.shadow_map_texture = render_targets->shadowmap_depth_texture;
 		context.shadow_map_constant = shadow_map_constant;
@@ -1126,7 +1135,7 @@ void deffered_lighting_renderer::render_spot_shadow_map(const light& light, comm
 	auto reserve_scene_constant = context.scene_constant;
 
 	math::float4 rotation = light.get_rotation().to_quaternion().to_float4();
-	math::float3 position = light.get_position();
+	math::float3 position = light.get_relative_position(context.render_data->render_origin);
 	math::matrixf TransformMatrix, ViewMatrix, ProjectionMatrix;
 	TransformMatrix = math::matrixf::rotation_quaternion(math::quaternionf(rotation))
 					* math::matrixf::translation(position.x, position.y, position.z);

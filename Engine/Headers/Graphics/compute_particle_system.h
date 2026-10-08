@@ -376,6 +376,10 @@ public:
 
 	void set_cubic_sdf_gpu_resource(std::shared_ptr<cubic_sdf_buffer_pool> resource);
 
+	//	@tool シミュレーション空間の原点（GPU上のパーティクル座標はこの原点からの相対値）
+	//	@tool 現状は原点固定。描画時に描画原点との差分を加えて相対座標にする
+	const math::vector3d& get_simulation_origin() const { return simulation_origin; }
+
 private:
 	bool read_particle_event_staging(ID3D11DeviceContext* device_context, UINT slot, bool wait, std::vector<particle_event>& out_events);
 
@@ -387,6 +391,7 @@ private:
 	bool one_shot_initialize;
 	bool update_stop = false;
 	bool pending_reset = false;
+	math::vector3d simulation_origin;
 	UINT current_buffer_index = 0;
 	variable_position_allocator emitter_binary_allocator;
 	variable_position_allocator particle_binary_allocator;

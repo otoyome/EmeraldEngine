@@ -196,7 +196,7 @@ void tone_mapping_data::set_tone_map_type(tone_mapping_type type)
 post_process_volume::post_process_volume()
 : system_flags(0)
 
-, position(0.0f, 0.0f, 0.0f)
+, position(math::vector3d::zero())
 , inner_range(50.0f, 50.0f, 50.0f)
 , outer_range(100.0f, 100.0f, 100.0f)
 , color(1, 1, 1, 1)
@@ -208,12 +208,12 @@ post_process_volume::~post_process_volume()
 {
 }
 
-math::float3 post_process_volume::get_position() const
+const math::vector3d& post_process_volume::get_position() const
 {
 	return position;
 }
 
-void post_process_volume::set_position(const math::float3& position)
+void post_process_volume::set_position(const math::vector3d& position)
 {
 	this->position = position;
 }
@@ -394,8 +394,8 @@ void post_process_volume_manager::get_container(post_process_volume_container& c
 
 			math::float4 rotation = { 0.0f, 0.0f, 0.0f, 1.0f };
 			math::float4 color = { 0.0f, 1.0f, 0.0f, 1.0f };
-			QUEUE_DEBUG_PRIMITIVE_BOX(instance->get_position(), rotation, instance->get_outer_range(), color, true);
-			QUEUE_DEBUG_PRIMITIVE_BOX(instance->get_position(), rotation, instance->get_inner_range(), color, true);
+			QUEUE_DEBUG_PRIMITIVE_BOX(instance->get_position().to_double3(), rotation, instance->get_outer_range(), color, true);
+			QUEUE_DEBUG_PRIMITIVE_BOX(instance->get_position().to_double3(), rotation, instance->get_inner_range(), color, true);
 		}
 	}
 #endif	//	defined(USE_IMGUI)

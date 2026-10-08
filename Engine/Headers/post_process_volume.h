@@ -190,8 +190,8 @@ public:
 	bool is_flag(flags flag) const { return system_utility::is_bitflag(system_flags, 1 << static_cast<UINT>(flag)); }
 	void set_flag(flags flag, bool value){ system_utility::set_bitflag(system_flags, 1 << static_cast<UINT>(flag), value); }
 
-	math::float3 get_position() const;
-	void set_position(const math::float3& position);
+	const math::vector3d& get_position() const;
+	void set_position(const math::vector3d& position);
 	math::float3 get_inner_range() const;
 	void set_inner_range(const math::float3& inner_range);
 	math::float3 get_outer_range() const;
@@ -234,7 +234,7 @@ private:
 	tone_mapping_data tone_mapping_constant;
 	std::vector<std::shared_ptr<material>> postprocess_materials;
 
-	math::float3 position;
+	math::vector3d position;
 	math::float3 inner_range;
 	math::float3 outer_range;
 	math::float4 color;

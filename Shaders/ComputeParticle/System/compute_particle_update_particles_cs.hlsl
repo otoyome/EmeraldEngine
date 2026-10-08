@@ -66,7 +66,7 @@ void main(uint3 dispatch_thread_id : SV_DispatchThreadID)
     //  ヘッダー更新
     {
         header.tag = set_particle_header_tag(alive, emitter_id, particle_index);
-        header.depth = mul(float4(pt_common.translation, 1), view_transform).z;
+        header.depth = mul(float4(pt_common.translation + simulation_to_render_offset, 1), view_transform).z;
         //  不透明/半透明用に逆深度ソート対応
         header.depth = em_context.reverse_depth ? -header.depth : header.depth;	//	遠クリップを使わず符号反転で逆順にする
         particle_header_buffer[header_index] = header;

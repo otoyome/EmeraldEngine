@@ -67,7 +67,7 @@ namespace
 		UINT				total_emitter_spawn_count;					//	エミッター発生数合計(spawn_offsetの合計)
 
 		UINT				erase_id_count;								//	破棄Id数
-		math::uint3	common_constant_dummy;
+		math::float3	simulation_to_render_offset;					//	@tool シミュレーション空間から描画空間（描画原点からの相対）へのオフセット
 		math::uint4	erase_id_list[max_erase_particle_list / 4];	//	エミッター破棄Idリスト
 	};
 
@@ -825,6 +825,7 @@ void compute_particle_system::update(graphics_context& context, float elapsed_ti
 		constant.total_cpu_spawn_count = total_spawn_cpu_particle_count + max_particle_event;
 		constant.total_emitter_spawn_count = total_spawn_cpu_particle_count;	//	イベント用の割り当て開始位置算出用
 		constant.erase_id_count = erase_id_count;
+		constant.simulation_to_render_offset = (simulation_origin - context.render_data->render_origin).to_float3();
 		for (UINT index = 0; index < constant.erase_id_count; ++index)
 			(&constant.erase_id_list[0].x)[index] = erase_id_list[index];
 		context.device_context->UpdateSubresource(common_constant_buffer.Get(), 0, nullptr, &constant, 0, 0);

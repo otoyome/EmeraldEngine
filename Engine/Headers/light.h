@@ -37,10 +37,13 @@ public:
 	bool is_flag(flags flag) const { return system_utility::is_bitflag(system_flags, 1 << static_cast<UINT>(flag)); }
 	void set_flag(flags flag, bool value){ system_utility::set_bitflag(system_flags, 1 << static_cast<UINT>(flag), value); }
 
-	light_data convert_light_data() const;
+	//	@tool 描画原点からの相対座標でGPU用のライト情報を作る
+	light_data convert_light_data(const math::vector3d& render_origin) const;
 	light_type get_light_type() const;
-	math::float3 get_position() const;
-	void set_position(const math::float3& position);
+	const math::vector3d& get_position() const;
+	void set_position(const math::vector3d& position);
+	//	@tool 描画原点からの相対座標
+	math::float3 get_relative_position(const math::vector3d& render_origin) const;
 	const math::rotatorf& get_rotation() const;
 	void set_rotation(const math::rotatorf& rotation);
 	const math::float4& get_color() const;
@@ -68,7 +71,7 @@ private:
 
 	//	ライトパラメーター
 	light_type type;
-	math::float3 position;
+	math::vector3d position;
 	math::rotatorf rotation;
 	math::float4 color;
 	math::float3 parameter;
@@ -105,8 +108,10 @@ public:
 	void set_specular_ibl_texture(texture_ptr texture);
 	void set_lut_ggx_texture(texture_ptr texture);
 
-	math::float3 get_position() const;
-	void set_position(const math::float3& position);
+	const math::vector3d& get_position() const;
+	void set_position(const math::vector3d& position);
+	//	@tool 描画原点からの相対座標
+	math::float3 get_relative_position(const math::vector3d& render_origin) const;
 	math::float3 get_inner_range() const;
 	void set_inner_range(const math::float3& inner_range);
 	math::float3 get_outer_range() const;
@@ -120,7 +125,7 @@ private:
 	texture_ptr specular_texture;
 	texture_ptr lut_ggx_texture;
 
-	math::float3 position;
+	math::vector3d position;
 	math::float3 inner_range;
 	math::float3 outer_range;
 	math::float4 color;

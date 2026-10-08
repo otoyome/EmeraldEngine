@@ -20,7 +20,7 @@ public:
 	~occlusion_culling_system();
 
 	//	GPU上でカリング判定
-	void update(graphics_context& context, float animation_test_distance, hiz_buffer& hiz);
+	void update(graphics_context& context, hiz_buffer& hiz);
 
 	//	前フレームの判定結果取得
 	void read_last_frame(std::unordered_map<UINT, uint8_t>& out_visibility);

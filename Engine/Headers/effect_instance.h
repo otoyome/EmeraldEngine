@@ -35,6 +35,7 @@ public:
 
 		math::float4x4 local_transform = {1, 0, 0, 0,  0, 1, 0, 0,  0, 0, 1, 0,  0, 0, 0, 1};
 		math::float4x4 global_transform = { 1, 0, 0, 0,  0, 1, 0, 0,  0, 0, 1, 0,  0, 0, 0, 1 };
+		//	@tool インスタンス位置（double）を原点とした相対の姿勢
 		math::float4x4 world_transform = { 1, 0, 0, 0,  0, 1, 0, 0,  0, 0, 1, 0,  0, 0, 0, 1 };
 
 		math::float4x4 previous_world_transform = { 1, 0, 0, 0,  0, 1, 0, 0,  0, 0, 1, 0,  0, 0, 0, 1 };
@@ -73,14 +74,14 @@ public:
 	const math::rotatorf& get_rotation() const;
 	void set_rotation(const math::rotatorf& rotator);
 
-	const math::float3& get_position() const;
-	void set_position(const math::float3& position);
+	const math::vector3d& get_position() const;
+	void set_position(const math::vector3d& position);
 
-	const math::float3& get_attract_position() const;
-	void set_attract_position(const math::float3& position);
+	const math::vector3d& get_attract_position() const;
+	void set_attract_position(const math::vector3d& position);
 
-	const math::float3& get_event_position() const;
-	void set_event_position(const math::float3& position);
+	const math::vector3d& get_event_position() const;
+	void set_event_position(const math::vector3d& position);
 
 	float get_animation_time() const;
 	void set_animation_time(float animation_time);
@@ -135,14 +136,14 @@ private:
 	//	姿勢情報
 	math::float3 scale = {1, 1, 1};
 	math::rotatorf rotation = {0, 0, 0};
-	math::float3 position = {0, 0, 0};
+	math::vector3d position;
 	math::float4x4 previous_world_transform = {1, 0, 0, 0,  0, 1, 0, 0,  0, 0, 1, 0,  0, 0, 0, 1};
 
 	//	吸引座標
-	math::float3 attract_position = {0, 0, 0};
+	math::vector3d attract_position;
 
 	//	イベント座標
-	math::float3 event_position = {0, 0, 0};
+	math::vector3d event_position;
 
 	//	アニメーション関連
 	float animation_time = 0.0f;
@@ -194,7 +195,8 @@ public:
 	bool register_instance(effect_instance_ptr instance);
 	bool unregister_instance(effect_instance_ptr instance);
 
-	void get_container(effect_container& effects, decal_container& decals);
+	//	@tool デカールは描画原点からの相対座標で格納する
+	void get_container(effect_container& effects, decal_container& decals, const math::vector3d& render_origin);
 
 	uint32_t add_cubic_sdf(ID3D11DeviceContext* device_context, collision::cubic_sdf& sdf);
 	void remove_cubic_sdf(ID3D11DeviceContext* device_context, uint32_t sdf_id);

@@ -356,7 +356,7 @@ void roomba_object::enter_dead()
 	auto effect = play_effect(static_cast<size_t>(effect_id::dead)).lock();
 	if (effect)
 	{
-		effect->set_position(get_position());
+		effect->set_position(math::vector3d(get_position()));
 	}
 }
 
@@ -704,7 +704,7 @@ void roomba_object::update_effects(float elapsed_time)
 			spark_effect_instance->set_flag(effect_instance::flags::spawn_stop, false);
 		else
 			spark_effect_instance->set_flag(effect_instance::flags::spawn_stop, get_wet_rate() < 0.5f);
-		spark_effect_instance->set_position(get_position());
+		spark_effect_instance->set_position(math::vector3d(get_position()));
 		float scale = dead_flag ? dead_rate : get_wet_rate() * 1.5f;
 		spark_effect_instance->set_scale({scale, scale, scale});
 	}
@@ -716,7 +716,7 @@ void roomba_object::update_effects(float elapsed_time)
 			spark_smoke_effect_instance->set_flag(effect_instance::flags::spawn_stop, false);
 		else
 			spark_smoke_effect_instance->set_flag(effect_instance::flags::spawn_stop, get_wet_rate() < 0.5f);
-		spark_smoke_effect_instance->set_position(get_position());
+		spark_smoke_effect_instance->set_position(math::vector3d(get_position()));
 		float scale = dead_flag ? dead_rate : get_heat_rate() * 1.5f;
 		spark_smoke_effect_instance->set_scale({scale, scale, scale});
 	}

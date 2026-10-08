@@ -1015,7 +1015,7 @@ void edit_timeline_scene::apply_timeline_state()
 			if (effect_resource_manager::instance()->load(resource, effect_entry->effect_path))
 			{
 				auto instance = std::make_shared<effect_instance>(resource);
-				instance->set_position(effect_entry->position);
+				instance->set_position(math::vector3d(effect_entry->position));
 				effect_manager::instance()->register_instance(instance);
 				active_effects.emplace(object_index, instance);
 			}
@@ -1029,7 +1029,7 @@ void edit_timeline_scene::apply_timeline_state()
 		{
 			const float local_time = current_time - effect_entry->start_time;
 			it->second->set_animation_time(local_time);
-			it->second->set_position(effect_entry->position);
+			it->second->set_position(math::vector3d(effect_entry->position));
 		}
 	}
 

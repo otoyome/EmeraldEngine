@@ -180,6 +180,9 @@ struct debug_draw_primitive_container
 //	描画データコンテキスト
 struct render_data_context
 {
+	//	@tool 描画データ収集時の描画原点（メッシュ・ライト等の相対座標の基準）
+	math::vector3d render_origin;
+
 	light_container light_container;
 	post_process_volume_container post_process_volume_container;
 	mesh_container mesh_container;

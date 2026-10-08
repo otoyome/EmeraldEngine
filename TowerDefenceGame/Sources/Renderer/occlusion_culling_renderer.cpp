@@ -32,8 +32,6 @@ void occlusion_culling_renderer::render(renderer_context& context)
 	if (depth_texture)
 		hiz->resize_buffer(static_cast<int>(depth_texture->get_desc().Width), static_cast<int>(depth_texture->get_desc().Height));
 
-	float animation_test_distance = state.get_occlusion_animation_distance();
-
 #if defined(USE_IMGUI)
 	bool freeze_culling = state.is_freeze_culling();
 #endif	//	defined(USE_IMGUI)
@@ -48,7 +46,7 @@ void occlusion_culling_renderer::render(renderer_context& context)
 	}
 
 	auto render_mesh_indices = context.render_mesh_indices;
-	job_executor.execute([this, occlusion, hiz, meshlet_culling, animation_test_distance, visible_draw_indices, render_mesh_indices
+	job_executor.execute([this, occlusion, hiz, meshlet_culling, visible_draw_indices, render_mesh_indices
 #if defined(USE_IMGUI)
 		, freeze_culling
 #endif	//	defined(USE_IMGUI)
@@ -62,7 +60,7 @@ void occlusion_culling_renderer::render(renderer_context& context)
 		hiz->build(context);
 
 		//	オクルージョンカリング実行
-		occlusion->update(context, animation_test_distance, *hiz);
+		occlusion->update(context, *hiz);
 
 		//	メッシュレットカリング実行
 #if defined(USE_IMGUI)

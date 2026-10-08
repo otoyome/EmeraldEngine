@@ -61,9 +61,10 @@ namespace
 						continue;
 
 					auto& data = light_data.light.point_light_data[light_data.light.light_counts.y];
-					data.position.x = light->get_position().x;
-					data.position.y = light->get_position().y;
-					data.position.z = light->get_position().z;
+					const math::float3 relative_position = light->get_relative_position(context.render_data->render_origin);
+					data.position.x = relative_position.x;
+					data.position.y = relative_position.y;
+					data.position.z = relative_position.z;
 					data.position.w = 1.0f;
 					data.range = light->get_range();
 					data.color = light->get_color();
@@ -76,10 +77,11 @@ namespace
 						continue;
 
 					auto& data = light_data.light.spot_light_data[light_data.light.light_counts.z];
+					const math::float3 relative_position = light->get_relative_position(context.render_data->render_origin);
 					auto direction = light->get_rotation().front();
-					data.position.x = light->get_position().x;
-					data.position.y = light->get_position().y;
-					data.position.z = light->get_position().z;
+					data.position.x = relative_position.x;
+					data.position.y = relative_position.y;
+					data.position.z = relative_position.z;
 					data.position.w = 1.0f;
 					data.direction.x = direction.x;
 					data.direction.y = direction.y;
@@ -111,9 +113,10 @@ namespace
 
 			//	ŠÔÚŒõ‚Ìî•ñ‚ğİ’è
 			light_probes probe;
-			probe.position.x = light_probe->get_position().x;
-			probe.position.y = light_probe->get_position().y;
-			probe.position.z = light_probe->get_position().z;
+			const math::float3 probe_position = light_probe->get_relative_position(context.render_data->render_origin);
+			probe.position.x = probe_position.x;
+			probe.position.y = probe_position.y;
+			probe.position.z = probe_position.z;
 			probe.inner_area.x = light_probe->get_inner_range().x;
 			probe.inner_area.y = light_probe->get_inner_range().y;
 			probe.inner_area.z = light_probe->get_inner_range().z;

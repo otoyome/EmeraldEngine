@@ -4,7 +4,7 @@
 light::light(light_type type)
 : system_flags(0)
 , type(type)
-, position(0, 0, 0)
+, position(math::vector3d::zero())
 , rotation(0, 0, 0)
 , color(1, 1, 1, 1)
 , parameter(10.0f, math::angle::to_radian(30.0f), math::angle::to_radian(45.0f))
@@ -61,8 +61,9 @@ light::~light()
 {
 }
 
-light_data light::convert_light_data() const
+light_data light::convert_light_data(const math::vector3d& render_origin) const
 {
+	const math::float3 relative_position = get_relative_position(render_origin);
 	light_data data{};
 	switch(type)
 	{
@@ -81,9 +82,9 @@ light_data light::convert_light_data() const
 		case light_type::point:
 		{
 			point_lights light;
-			light.position.x = position.x;
-			light.position.y = position.y;
-			light.position.z = position.z;
+			light.position.x = relative_position.x;
+			light.position.y = relative_position.y;
+			light.position.z = relative_position.z;
 			light.position.w = 1.0f;
 			light.color = color;
 			light.range = parameter.x;
@@ -94,9 +95,9 @@ light_data light::convert_light_data() const
 		{
 			spot_lights light;
 			math::float3 direction = rotation.front().to_float3();
-			light.position.x = position.x;
-			light.position.y = position.y;
-			light.position.z = position.z;
+			light.position.x = relative_position.x;
+			light.position.y = relative_position.y;
+			light.position.z = relative_position.z;
 			light.position.w = 1.0f;
 			light.direction.x = direction.x;
 			light.direction.y = direction.y;
@@ -118,14 +119,19 @@ light_type light::get_light_type() const
 	return type;
 }
 
-math::float3 light::get_position() const
+const math::vector3d& light::get_position() const
 {
 	return position;
 }
 
-void light::set_position(const math::float3& position)
+void light::set_position(const math::vector3d& position)
 {
 	this->position = position;
+}
+
+math::float3 light::get_relative_position(const math::vector3d& render_origin) const
+{
+	return (position - render_origin).to_float3();
 }
 
 const math::rotatorf& light::get_rotation() const
@@ -226,7 +232,7 @@ light_probe::light_probe()
 , diffuse_texture()
 , specular_texture()
 , lut_ggx_texture()
-, position(0.0f, 0.0f, 0.0f)
+, position(math::vector3d::zero())
 , inner_range(50.0f, 50.0f, 50.0f)
 , outer_range(100.0f, 100.0f, 100.0f)
 , color(1, 1, 1, 1)
@@ -268,14 +274,19 @@ void light_probe::set_lut_ggx_texture(texture_ptr texture)
 	lut_ggx_texture = texture;
 }
 
-math::float3 light_probe::get_position() const
+const math::vector3d& light_probe::get_position() const
 {
 	return position;
 }
 
-void light_probe::set_position(const math::float3& position)
+void light_probe::set_position(const math::vector3d& position)
 {
 	this->position = position;
+}
+
+math::float3 light_probe::get_relative_position(const math::vector3d& render_origin) const
+{
+	return (position - render_origin).to_float3();
 }
 
 math::float3 light_probe::get_inner_range() const

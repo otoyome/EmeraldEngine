@@ -33,7 +33,7 @@ debug_primitive_manager::~debug_primitive_manager()
 {
 }
 
-void debug_primitive_manager::get_container(debug_draw_primitive_container& container)
+void debug_primitive_manager::get_container(debug_draw_primitive_container& container, const math::vector3d& render_origin)
 {
 	auto immediate_context = render_data::instance()->get_immediate_context();
 
@@ -48,11 +48,21 @@ void debug_primitive_manager::get_container(debug_draw_primitive_container& cont
 		auto& main_mesh = container.line_buffer_datas[index].color_meshs.emplace_back();
 		auto& view = vertex_buffer_views[index].begin()->second;
 
+		//	@tool 描画原点からの相対座標に変換して転送する
+		upload_vertices.clear();
+		upload_vertices.reserve(vertices[index].size());
+		for (const auto& queued : vertices[index])
+		{
+			auto& upload = upload_vertices.emplace_back();
+			upload.position = (math::vector3d(queued.position) - render_origin).to_float3();
+			upload.color = queued.color;
+		}
+
 		const UINT copy_count = static_cast<UINT>(std::min<size_t>(VertexCount, vertices[index].size()));
 		const UINT copy_bytes = copy_count * sizeof(vertex);
 		D3D11_BOX dst_box = { 0, 0, 0, copy_bytes, 1, 1 };
 		immediate_context->UpdateSubresource(view.buffer.Get(), 0, &dst_box,
-											 vertices[index].data(), copy_bytes, 0);
+											 upload_vertices.data(), copy_bytes, 0);
 
 		//	頂点数の設定
 		view.size_in_bytes = view.stride_in_bytes * vertices[index].size();
@@ -63,13 +73,13 @@ void debug_primitive_manager::get_container(debug_draw_primitive_container& cont
 	}
 }
 
-void debug_primitive_manager::queue_line(const math::float3 start, const math::float3 end, const math::float4 color, bool depth_write)
+void debug_primitive_manager::queue_line(const math::double3 start, const math::double3 end, const math::float4 color, bool depth_write)
 {
 	int index = depth_write ? 0 : 1;
 	if (vertices[index].size() + 2 >= VertexCount)
 		return;
 
-	vertex vertex;
+	queued_vertex vertex;
 	vertex.position = start;
 	vertex.color = color;
 	vertices[index].emplace_back(vertex);
@@ -78,10 +88,10 @@ void debug_primitive_manager::queue_line(const math::float3 start, const math::f
 	vertices[index].emplace_back(vertex);
 }
 
-void debug_primitive_manager::queue_sphere(const math::float3 center, float radius, const math::float4 color, bool depth_write)
+void debug_primitive_manager::queue_sphere(const math::double3 center, float radius, const math::float4 color, bool depth_write)
 {
 	//	球の形状を登録
-	std::vector<math::float3> vertices;
+	std::vector<math::double3> vertices;
 	vertices.emplace_back(center.x, center.y + radius, center.z);
 
 	static constexpr uint32_t stacks = 8;
@@ -94,7 +104,7 @@ void debug_primitive_manager::queue_sphere(const math::float3 center, float radi
 		for (uint32_t j = 0; j <= slices; ++j)
 		{
 			float theta{ j * theta_step };
-			math::float3 position;
+			math::double3 position;
 			position.x = center.x + radius * sinf(phi) * cosf(theta);
 			position.y = center.y + radius * cosf(phi);
 			position.z = center.z + radius * sinf(phi) * sinf(theta);
@@ -140,71 +150,66 @@ void debug_primitive_manager::queue_sphere(const math::float3 center, float radi
 	}
 }
 
-void debug_primitive_manager::queue_capsule(const math::float3 center, const math::float4 rotation, float radius, float length, const math::float4& color, bool depth_write)
+void debug_primitive_manager::queue_capsule(const math::double3 center, const math::float4 rotation, float radius, float length, const math::float4& color, bool depth_write)
 {
 	//	カプセル形状を登録
 	const math::quaternionf quaternion = math::quaternionf(rotation).normalized();
-	const math::vector3f Center(center);
-	math::float3 work = quaternion.up().to_float3();
-	const math::vector3f Up(work);
-	work = quaternion.right().to_float3();
-	const math::vector3f Right(work);
-	work = quaternion.front().to_float3();
-	const math::vector3f Front(work);
+	//	@tool 中心が絶対座標なので double で組み立てる
+	const math::vector3d Center(center);
+	const math::vector3d Up(quaternion.up());
+	const math::vector3d Right(quaternion.right());
+	const math::vector3d Front(quaternion.front());
 
-	const math::vector3f Botom = Center + Up * (-length / 2);
-	const math::vector3f Top = Center + Up * (+length / 2);
+	const math::vector3d Botom = Center + Up * (-length / 2);
+	const math::vector3d Top = Center + Up * (+length / 2);
 
-	math::float3 position, position2;
-	position = Botom.to_float3();
+	math::double3 position, position2;
+	position = Botom.to_double3();
 	queue_sphere(position, radius, color, depth_write);
-	position = Top.to_float3();
+	position = Top.to_double3();
 	queue_sphere(position, radius, color, depth_write);
 
-	position = (Botom + Right * radius).to_float3();
-	position2 = (Top + Right * radius).to_float3();
+	position = (Botom + Right * radius).to_double3();
+	position2 = (Top + Right * radius).to_double3();
 	queue_line(position, position2, color, depth_write);
 
-	position = (Botom + Right * -radius).to_float3();
-	position2 = (Top + Right * -radius).to_float3();
+	position = (Botom + Right * -radius).to_double3();
+	position2 = (Top + Right * -radius).to_double3();
 	queue_line(position, position2, color, depth_write);
 
-	position = (Botom + Front * radius).to_float3();
-	position2 = (Top + Front * radius).to_float3();
+	position = (Botom + Front * radius).to_double3();
+	position2 = (Top + Front * radius).to_double3();
 	queue_line(position, position2, color, depth_write);
 
-	position = (Botom + Front * -radius).to_float3();
-	position2 = (Top + Front * -radius).to_float3();
+	position = (Botom + Front * -radius).to_double3();
+	position2 = (Top + Front * -radius).to_double3();
 	queue_line(position, position2, color, depth_write);
 
-	const math::vector3f Direction1 = (Right + Front).normalized();
-	const math::vector3f Direction2 = (Right - Front).normalized();
+	const math::vector3d Direction1 = (Right + Front).normalized();
+	const math::vector3d Direction2 = (Right - Front).normalized();
 
-	position = (Botom + Direction1 * radius).to_float3();
-	position2 = (Top + Direction1 * radius).to_float3();
+	position = (Botom + Direction1 * radius).to_double3();
+	position2 = (Top + Direction1 * radius).to_double3();
 	queue_line(position, position2, color, depth_write);
 
-	position = (Botom + Direction1 * -radius).to_float3();
-	position2 = (Top + Direction1 * -radius).to_float3();
+	position = (Botom + Direction1 * -radius).to_double3();
+	position2 = (Top + Direction1 * -radius).to_double3();
 	queue_line(position, position2, color, depth_write);
 
-	position = (Botom + Direction2 * radius).to_float3();
-	position2 = (Top + Direction2 * radius).to_float3();
+	position = (Botom + Direction2 * radius).to_double3();
+	position2 = (Top + Direction2 * radius).to_double3();
 	queue_line(position, position2, color, depth_write);
 
-	position = (Botom + Direction2 * -radius).to_float3();
-	position2 = (Top + Direction2 * -radius).to_float3();
+	position = (Botom + Direction2 * -radius).to_double3();
+	position2 = (Top + Direction2 * -radius).to_double3();
 	queue_line(position, position2, color, depth_write);
 }
 
-void debug_primitive_manager::queue_box(const math::float3 position, const math::float4 rotation, const math::float3 scale, const math::float4& color, bool depth_write)
+void debug_primitive_manager::queue_box(const math::double3 position, const math::float4 rotation, const math::float3 scale, const math::float4& color, bool depth_write)
 {
-	collision::bounding_box box{math::double3(scale), math::double4(rotation), math::double3(position)};
-	math::double3 box_vertices[8];
-	box.calculate_vertex(box_vertices, 8);
-	math::float3 vertices[8];
-	for (size_t index = 0; index < 8; ++index)
-		vertices[index] = math::float3(box_vertices[index]);
+	collision::bounding_box box{math::double3(scale), math::double4(rotation), position};
+	math::double3 vertices[8];
+	box.calculate_vertex(vertices, 8);
 
 	queue_line(vertices[0], vertices[1], color, depth_write);
 	queue_line(vertices[1], vertices[2], color, depth_write);
@@ -220,6 +225,28 @@ void debug_primitive_manager::queue_box(const math::float3 position, const math:
 	queue_line(vertices[1], vertices[5], color, depth_write);
 	queue_line(vertices[2], vertices[6], color, depth_write);
 	queue_line(vertices[3], vertices[7], color, depth_write);
+}
+
+
+//	@tool 単精度座標用の受け口（絶対座標として扱う）
+void debug_primitive_manager::queue_line(const math::float3 start, const math::float3 end, const math::float4 color, bool depth_write)
+{
+	queue_line(math::double3(start), math::double3(end), color, depth_write);
+}
+
+void debug_primitive_manager::queue_sphere(const math::float3 center, float radius, const math::float4 color, bool depth_write)
+{
+	queue_sphere(math::double3(center), radius, color, depth_write);
+}
+
+void debug_primitive_manager::queue_capsule(const math::float3 center, const math::float4 rotation, float radius, float length, const math::float4& color, bool depth_write)
+{
+	queue_capsule(math::double3(center), rotation, radius, length, color, depth_write);
+}
+
+void debug_primitive_manager::queue_box(const math::float3 position, const math::float4 rotation, const math::float3 scale, const math::float4& color, bool depth_write)
+{
+	queue_box(math::double3(position), rotation, scale, color, depth_write);
 }
 
 #endif	//	defined(USE_IMGUI)

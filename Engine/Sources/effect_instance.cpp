@@ -25,6 +25,7 @@ namespace
 		float elapsed_time,
 		UINT deterministic_seed,
 		ID3D11DeviceContext* device_context,
+		const math::vector3d& simulation_origin,
 		UINT emit_target_system_index = invalid_emitter_id)
 	{
 		auto renderer = particle_data.get_item<::particle::item::renderer>();
@@ -50,7 +51,8 @@ namespace
 			math::matrixf(node_data.world_transform).decompose(scale, rotation, translation);
 			common_data.scale = scale.to_float3();
 			common_data.rotation = rotation.to_float4();
-			common_data.translation = translation.to_float3();
+			//	@tool ノードはインスタンス位置からの相対なので、double で絶対座標に戻してからシミュレーション空間へ変換する
+			common_data.translation = (instance.get_position() + math::vector3d(translation) - simulation_origin).to_float3();
 
 			if (spawn)
 			{
@@ -148,7 +150,7 @@ namespace
 			attract_item.falloff = attract->falloff;
 			attract_item.kill_radius = attract->kill_radius;
 			attract_item.damping = attract->damping;
-			attract_item.position = calculate_local_position(instance.get_attract_position());
+			attract_item.position = calculate_local_position((instance.get_attract_position() - simulation_origin).to_float3());
 
 			append(&attract_item, sizeof(attract_item));
 			common_data.active_items |= 1 << particle_system_item::emitter::attract::data_id;
@@ -165,7 +167,7 @@ namespace
 			if (event->is_state(::particle::item::event::states::sweep_collision))
 				event_state |= static_cast<UINT>(particle_system_item::emitter::event::state::sweep_collision);
 			event_item.state = event_state;
-			event_item.center = calculate_local_position(instance.get_event_position());
+			event_item.center = calculate_local_position((instance.get_event_position() - simulation_origin).to_float3());
 			event_item.radius = event->radius;
 			event_item.target_emitter_id = emit_target_system_index;
 
@@ -213,32 +215,32 @@ void effect_instance::set_rotation(const math::rotatorf& rotator)
 	this->rotation = rotator;
 }
 
-const math::float3& effect_instance::get_position() const
+const math::vector3d& effect_instance::get_position() const
 {
 	return position;
 }
 
-void effect_instance::set_position(const math::float3& position)
+void effect_instance::set_position(const math::vector3d& position)
 {
 	this->position = position;
 }
 
-const math::float3& effect_instance::get_attract_position() const
+const math::vector3d& effect_instance::get_attract_position() const
 {
 	return attract_position;
 }
 
-void effect_instance::set_attract_position(const math::float3& position)
+void effect_instance::set_attract_position(const math::vector3d& position)
 {
 	this->attract_position = position;
 }
 
-const math::float3& effect_instance::get_event_position() const
+const math::vector3d& effect_instance::get_event_position() const
 {
 	return event_position;
 }
 
-void effect_instance::set_event_position(const math::float3& position)
+void effect_instance::set_event_position(const math::vector3d& position)
 {
 	this->event_position = position;
 }
@@ -339,7 +341,8 @@ void effect_instance::update(float elapsed_time)
 	}
 
 	//	姿勢情報
-	const math::matrixf world_transform = math::matrixf::affine_transformation(scale, rotation.to_quaternion(), position);
+	//	@tool 位置は double で別に持つため、ノードにはインスタンス位置を原点とした相対の姿勢を入れる
+	const math::matrixf world_transform = math::matrixf::affine_transformation(math::vector3f(scale), rotation.to_quaternion(), math::vector3f::zero());
 
 	//	ノード更新
 	for (auto& node : nodes)
@@ -357,7 +360,9 @@ void effect_instance::update(float elapsed_time)
 	//	モデルの姿勢更新
 	for (auto& model : models)
 	{
-		model.instance->update_transform(math::transformd(math::transformf::from_matrix(math::matrixf(nodes[model.node_index].world_transform))));
+		math::transformd model_world(math::transformf::from_matrix(math::matrixf(nodes[model.node_index].world_transform)));
+		model_world.set_translation(model_world.get_translation() + position);
+		model.instance->update_transform(model_world);
 	}
 }
 
@@ -633,7 +638,7 @@ void effect_manager::update_gpu(graphics_context& context, float elapsed_time)
 				//	乱数値を生成
 				UINT seed = instance->get_particle_simulation_step() * 2654435761u + emitter_item.system_index;
 
-				auto data = build_emitter_update_data(*instance, particle_data.particle, node_data, step_elapsed, seed, context.device_context, emit_target);
+				auto data = build_emitter_update_data(*instance, particle_data.particle, node_data, step_elapsed, seed, context.device_context, particle_system->get_simulation_origin(), emit_target);
 				particle_system->update_emitter(emitter_item.system_index, data);
 			}
 
@@ -668,7 +673,7 @@ void effect_manager::update_gpu(graphics_context& context, float elapsed_time)
 	}
 }
 
-void effect_manager::get_container(effect_container& effects, decal_container& decals)
+void effect_manager::get_container(effect_container& effects, decal_container& decals, const math::vector3d& render_origin)
 {
 	effects.clear();
 
@@ -700,7 +705,8 @@ void effect_manager::get_container(effect_container& effects, decal_container& d
 			math::quaternionf rotation;
 			math::matrixf(node_data.world_transform).decompose(scale, rotation, position);
 			decal.scale = scale.to_float3();
-			decal.position = position.to_float3();
+			//	@tool ノードはインスタンス位置からの相対なので、描画原点からの相対に直す
+			decal.position = (instance->get_position() + math::vector3d(position) - render_origin).to_float3();
 			decal.rotation = math::rotatorf(rotation);
 			decal.box = collision::bounding_box(math::double3(decal.scale), rotation.to_double4(), math::double3(decal.position));
 			decal.material.material = decal_data.material.get();

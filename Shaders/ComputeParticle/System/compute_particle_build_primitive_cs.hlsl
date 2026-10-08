@@ -64,7 +64,8 @@ void register_vertex(uint vertex_buffer_index, inout uint vertex_buffer_byte_off
     for (uint i = 0; i < index_size; i++)
     {
         uint index = index_list[i];
-        float3 position = vertex_positions[index].xyz;
+        //	@tool シミュレーション空間から描画空間へ移す
+        float3 position = vertex_positions[index].xyz + simulation_to_render_offset;
         float4 color = vertex_color[index];
         float2 texcoord = vertex_texcoord[index];
         store3(vertex_buffer_index, vertex_buffer_byte_offset, asuint(position));

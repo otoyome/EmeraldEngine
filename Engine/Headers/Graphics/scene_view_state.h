@@ -32,10 +32,6 @@ public:
 	//	メッシュレットカリングシステム
 	const std::shared_ptr<meshlet_culling_system>& get_meshlet_culling() const { return meshlet_culling; }
 
-	//	オクルージョンカリング
-	float get_occlusion_animation_distance() const { return occlusion_animation_distance; }
-	void set_occlusion_animation_distance(float distance) { occlusion_animation_distance = distance; }
-
 #if defined(USE_IMGUI)
 	//	デバッグ用にカリング結果を固定する
 	bool is_freeze_culling() const { return freeze_culling; }
@@ -64,7 +60,6 @@ private:
 	std::shared_ptr<occlusion_culling_system> occlusion_culling;
 	std::shared_ptr<hiz_buffer> hiz;
 	std::shared_ptr<meshlet_culling_system> meshlet_culling;
-	float occlusion_animation_distance = system_units::convert_cm_to_unit(1.0f);
 
 	uint64_t last_used_frame = 0;
 

@@ -36,6 +36,16 @@ public:
 		void serialize(Archive& archive, int version);
 	} antialias;
 
+	//	@tool 描画関係の情報
+	struct rendering_data
+	{
+		//	@tool カメラ相対描画（描画原点をカメラ位置にする）を有効にするか
+		bool camera_relative_rendering = false;
+
+		template<class Archive>
+		void serialize(Archive& archive, int version);
+	} rendering;
+
 private:
 	engine_config_data();
 	~engine_config_data();

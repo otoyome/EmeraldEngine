@@ -50,7 +50,7 @@ void light_object::sync_to_light()
 		return;
 
 	applied_spatial_version = spatial_version;
-	light->set_position(get_world_translation().to_float3());
+	light->set_position(get_world_translation());
 	light->set_rotation(math::rotatorf(get_world_euler()));
 }
 
@@ -342,7 +342,7 @@ void light_probe_object::sync_to_light_probe()
 		return;
 
 	applied_spatial_version = spatial_version;
-	light_probe->set_position(get_world_translation().to_float3());
+	light_probe->set_position(get_world_translation());
 }
 
 #if defined(USE_IMGUI)

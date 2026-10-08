@@ -95,9 +95,6 @@ private:
 	bool main_view_camera_cut = false;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> main_scene_constant_buffer;
 
-	//	カメラ相対座標での描画フラグ
-	bool camera_relative_rendering = false;
-
 	scene_view_state_cache scene_view_states;
 	uint64_t render_frame_index = 0;
 

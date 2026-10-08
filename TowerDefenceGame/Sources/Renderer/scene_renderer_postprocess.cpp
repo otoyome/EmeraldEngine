@@ -18,6 +18,8 @@ namespace
 	//	ポストプロセスボリューム取得
 	post_process_volume_ptr search_volume(const math::float3& camera_position, const render_data_context& context)
 	{
+		//	@tool カメラ座標は描画原点からの相対値なので、絶対座標に戻してボリュームと比較する
+		const math::double3 camera_world = (context.render_origin + math::vector3d(math::double3(camera_position))).to_double3();
 		float length = FLT_MAX;
 		post_process_volume_ptr result, unblind;
 		for (auto& volume : context.post_process_volume_container.volumes)
@@ -29,8 +31,8 @@ namespace
 			}
 
 			//	箱との距離を算出して最も近いのをとりあえず入れておく
-			auto box = collision::inner::axis_aligned_bounding_box(math::double3(volume->get_outer_range()), math::double3(volume->get_position()));
-			float box_to_length = static_cast<float>(box.calculate_point_to_length(math::double3(camera_position)));
+			auto box = collision::inner::axis_aligned_bounding_box(math::double3(volume->get_outer_range()), volume->get_position().to_double3());
+			float box_to_length = static_cast<float>(box.calculate_point_to_length(camera_world));
 			if (box_to_length < length)
 			{
 				length = box_to_length;

@@ -474,7 +474,8 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 		}
 
 		//	相対描画用の描画原点
-		const math::vector3d render_origin = scene_view::compute_render_origin(main_view_parameters, camera_relative_rendering);
+		const math::vector3d render_origin = scene_view::compute_render_origin(main_view_parameters, engine_config_data::instance()->rendering.camera_relative_rendering);
+		render_data->render_origin = render_origin;
 
 		//	ライト情報収集
 		light_manager::instance()->get_container(render_data->light_container);
@@ -486,7 +487,7 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 		model_instance_manger::instance()->get_container(render_data->mesh_container, render_origin);
 
 		//	エフェクトコンテナ取得
-		effect_manager::instance()->get_container(render_data->effect_container, render_data->decal_container);
+		effect_manager::instance()->get_container(render_data->effect_container, render_data->decal_container, render_origin);
 
 		//	UIオブジェクトコンテナ収集
 		{
@@ -543,7 +544,7 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 #if defined(USE_IMGUI)
 		//	デバッグ情報取得
 		build_debug_primitives(*render_data);
-		debug_primitive_manager::instance()->get_container(render_data->debug_draw_container);
+		debug_primitive_manager::instance()->get_container(render_data->debug_draw_container, render_data->render_origin);
 #endif // defined(USE_IMGUI)
 	}
 
@@ -570,7 +571,7 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 		//	メイン視点で描画
 		{
 			const scene_view_state_ptr& main_state = scene_view_states.acquire(main_scene_view_state_key, render_frame_index);
-			const scene_view_ptr main_view = std::make_shared<const scene_view>(scene_view::from_parameters(main_view_parameters, camera_relative_rendering));
+			const scene_view_ptr main_view = std::make_shared<const scene_view>(scene_view::from_parameters(main_view_parameters, engine_config_data::instance()->rendering.camera_relative_rendering));
 			main_state->begin_frame(*main_view, main_view_camera_cut);
 
 			//	レンダラーコンテキスト準備

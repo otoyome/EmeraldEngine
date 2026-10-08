@@ -37,6 +37,12 @@ void engine_config_data::antialias_data::serialize(Archive& archive, int version
 	archive(CEREAL_NVP(mode));
 }
 
+template<class Archive>
+void engine_config_data::rendering_data::serialize(Archive& archive, int version)
+{
+	archive(CEREAL_NVP(camera_relative_rendering));
+}
+
 engine_config_data::engine_config_data() 
 {
 	std::ifstream istream(file_path.data());
@@ -46,7 +52,7 @@ engine_config_data::engine_config_data()
 
 		try
 		{
-			archive(CEREAL_NVP(windows), CEREAL_NVP(antialias));
+			archive(CEREAL_NVP(windows), CEREAL_NVP(antialias), CEREAL_NVP(rendering));
 		}
 		catch (...)
 		{
@@ -68,7 +74,7 @@ engine_config_data::~engine_config_data()
 
 		try
 		{
-			archive(CEREAL_NVP(windows), CEREAL_NVP(antialias));
+			archive(CEREAL_NVP(windows), CEREAL_NVP(antialias), CEREAL_NVP(rendering));
 		}
 		catch (...)
 		{

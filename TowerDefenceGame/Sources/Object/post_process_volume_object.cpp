@@ -12,7 +12,7 @@ void post_process_volume_object::sync_to_volume()
 		return;
 
 	applied_spatial_version = spatial_version;
-	instance->set_position(get_world_translation().to_float3());
+	instance->set_position(get_world_translation());
 }
 
 post_process_volume_object::post_process_volume_object(std::string_view name)
