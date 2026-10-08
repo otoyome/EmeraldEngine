@@ -45,7 +45,7 @@ public:
 public:
 	//	視点の設定値から作る
 	static scene_view from_parameters(const view_parameters& parameters, bool camera_relative);
-	//	@tool 描画原点を求める（from_parameters と同じ規則。描画データの収集時にも同じ原点を使うため）
+	//	描画原点を求める
 	static math::vector3d compute_render_origin(const view_parameters& parameters, bool camera_relative);
 
 private:

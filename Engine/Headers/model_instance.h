@@ -73,12 +73,11 @@ public:
 	inline std::vector<mesh>& get_meshes() { return meshes; }
 	inline const std::vector<morph>& get_morphes() const { return morphes; }
 	inline std::vector<morph>& get_morphes() { return morphes; }
-	//	@tool ワールド姿勢（double）。描画時に描画の原点からの相対行列へ変換する
+
 	const math::transformd& get_world() const { return world; }
 	const math::transformd& get_previous_world() const { return previous_world; }
 	void set_previous_world(const math::transformd& world) { previous_world = world; }
 
-	//	@tool ワールドの絶対座標での float 行列（原点から遠いと精度が落ちる。IK・エディタの移行が済むまでの互換用）
 	math::float4x4 get_world_transform() const { return world.to_relative_matrix(math::vector3d::zero()).to_float4x4(); }
 
 #if defined(USE_IMGUI)
@@ -98,9 +97,7 @@ public:
 	void set_node_poses(const std::vector<node_animation>& nodes);
 	void set_node_pose(size_t node_index, const node_animation& node);
 	bool set_morph(std::string_view morph_name, const morph_animation& morph);
-	//	@tool ワールド姿勢を設定し、ノードのグローバル行列を更新する
 	void update_transform(const math::transformd& world);
-	//	@tool ワールド姿勢は変えずに、ノードのグローバル行列（モデル空間）だけを更新する
 	void update_node_transforms();
 
 private:
@@ -112,8 +109,8 @@ private:
 	UINT unique_id = 0;
 	math::float2 lod_distance_range = {0.0f, 10000.0f};
 	model_resource_ptr resource;
-	math::transformd world;				//	@tool ワールド姿勢
-	math::transformd previous_world;	//	@tool 前フレームのワールド姿勢（モーションベクトル用）
+	math::transformd world;
+	math::transformd previous_world;
 
 	std::vector<material> materials;
 	std::vector<node> nodes;
@@ -142,7 +139,6 @@ private:
 public:
 	void registered(std::weak_ptr<model_instance> instance);
 
-	//	@tool ワールド行列は render_origin からの相対行列として作る
 	void get_container(mesh_container& container, const math::vector3d& render_origin);
 
 private:

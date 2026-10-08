@@ -238,8 +238,8 @@ void model_instance_manger::get_container(mesh_container& container, const math:
 		}
 
 		//	ワールド行列等生成
-		//	@tool 描画の原点からの相対行列にする（差分は double で求めてから float にする）
-		//	@tool 前フレームの姿勢も、現在の描画の原点から見た相対行列にする（モーションベクトルの整合のため）
+		//	描画原点からの相対行列にする
+		//	前フレームの姿勢も、現在の描画原点から見た相対行列にする
 		const math::matrixf WorldTransform = instance->get_world().to_relative_matrix(render_origin);
 		const math::matrixf PreviousWorldTransform = instance->get_previous_world().to_relative_matrix(render_origin);
 

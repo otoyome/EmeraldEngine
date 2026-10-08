@@ -473,7 +473,7 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 			main_view_camera_cut = selection.camera_cut;
 		}
 
-		//	@tool メイン視点の描画原点（以降の描画データはこの原点からの相対座標で作る）
+		//	相対描画用の描画原点
 		const math::vector3d render_origin = scene_view::compute_render_origin(main_view_parameters, camera_relative_rendering);
 
 		//	ライト情報収集
