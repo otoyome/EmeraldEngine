@@ -7,6 +7,8 @@
 #include "collision/capsule.h"
 #include "collision/box.h"
 
+#include "Math/transform.h"
+
 //	モデルインスタンス
 class model_instance
 {
@@ -71,10 +73,13 @@ public:
 	inline std::vector<mesh>& get_meshes() { return meshes; }
 	inline const std::vector<morph>& get_morphes() const { return morphes; }
 	inline std::vector<morph>& get_morphes() { return morphes; }
-	inline math::float4x4& get_world_transform() { return world_transform; }
-	inline const math::float4x4& get_world_transform() const { return world_transform; }
-	inline const math::float4x4& get_previous_world_transform() const { return previous_world_transform; }
-	inline void set_previous_world_transform(const math::float4x4& transform){ previous_world_transform = transform; }
+	//	@tool ワールド姿勢（double）。描画時に描画の原点からの相対行列へ変換する
+	const math::transformd& get_world() const { return world; }
+	const math::transformd& get_previous_world() const { return previous_world; }
+	void set_previous_world(const math::transformd& world) { previous_world = world; }
+
+	//	@tool ワールドの絶対座標での float 行列（原点から遠いと精度が落ちる。IK・エディタの移行が済むまでの互換用）
+	math::float4x4 get_world_transform() const { return world.to_relative_matrix(math::vector3d::zero()).to_float4x4(); }
 
 #if defined(USE_IMGUI)
 	inline model_resource_ptr get_resource_for_editor() { return resource; }
@@ -93,8 +98,10 @@ public:
 	void set_node_poses(const std::vector<node_animation>& nodes);
 	void set_node_pose(size_t node_index, const node_animation& node);
 	bool set_morph(std::string_view morph_name, const morph_animation& morph);
-	void update_transform(const math::float4x4& world_transform);
-	void update_transform(const math::matrixf& world_transform);
+	//	@tool ワールド姿勢を設定し、ノードのグローバル行列を更新する
+	void update_transform(const math::transformd& world);
+	//	@tool ワールド姿勢は変えずに、ノードのグローバル行列（モデル空間）だけを更新する
+	void update_node_transforms();
 
 private:
 	void build_model();
@@ -105,8 +112,8 @@ private:
 	UINT unique_id = 0;
 	math::float2 lod_distance_range = {0.0f, 10000.0f};
 	model_resource_ptr resource;
-	math::float4x4 world_transform = { 1, 0, 0, 0,  0, 1, 0, 0,  0, 0, 1, 0,  0, 0, 0, 1 };
-	math::float4x4 previous_world_transform = { 1, 0, 0, 0,  0, 1, 0, 0,  0, 0, 1, 0,  0, 0, 0, 1 };
+	math::transformd world;				//	@tool ワールド姿勢
+	math::transformd previous_world;	//	@tool 前フレームのワールド姿勢（モーションベクトル用）
 
 	std::vector<material> materials;
 	std::vector<node> nodes;
@@ -135,7 +142,8 @@ private:
 public:
 	void registered(std::weak_ptr<model_instance> instance);
 
-	void get_container(mesh_container& container);
+	//	@tool ワールド行列は render_origin からの相対行列として作る
+	void get_container(mesh_container& container, const math::vector3d& render_origin);
 
 private:
 	model_instances instances;

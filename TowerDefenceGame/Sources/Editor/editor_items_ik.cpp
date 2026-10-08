@@ -781,7 +781,7 @@ namespace
 									pelvis_node.local_transform._42 += local_direction.y;
 									pelvis_node.local_transform._43 += local_direction.z;
 								}
-								model_instance->update_transform(model_instance->get_world_transform());
+								model_instance->update_node_transforms();
 							}
 
 							//	ƒqƒbƒgˆÊ’u‚É‘«‚ğ•â³

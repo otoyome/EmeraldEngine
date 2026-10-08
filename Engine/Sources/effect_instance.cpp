@@ -357,7 +357,8 @@ void effect_instance::update(float elapsed_time)
 	//	モデルの姿勢更新
 	for (auto& model : models)
 	{
-		model.instance->update_transform(nodes[model.node_index].world_transform);
+		//	@tool エフェクトの姿勢はまだ float のため、行列を姿勢に分解して渡す（エフェクトの double 化は別途対応）
+		model.instance->update_transform(math::transformd(math::transformf::from_matrix(math::matrixf(nodes[model.node_index].world_transform))));
 	}
 }
 

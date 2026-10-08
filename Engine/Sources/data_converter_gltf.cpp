@@ -759,8 +759,8 @@ namespace
 				dest_model_instance.set_node_poses(dest_animation_nodes);
 				source_model_instance.set_node_poses(source_nodes);
 
-				dest_model_instance.update_transform(math::matrixf());
-				source_model_instance.update_transform(math::matrixf());
+				dest_model_instance.update_transform(math::transformd::identity());
+				source_model_instance.update_transform(math::transformd::identity());
 			}
 
 			//	バインド行列を生成
@@ -803,7 +803,7 @@ namespace
 				source_model_instance.compute_animation_nodes(nodes, source_animation_index, sampling_time);
 				animation_node_adjust(source_model_instance, nodes);
 				source_model_instance.set_node_poses(nodes);
-				source_model_instance.update_transform(math::matrixf());
+				source_model_instance.update_transform(math::transformd::identity());
 
 				//	親の初期行列からの差分を求めて納入
 				math::matrixf LocalMatrix(source_instance_node.local_transform);

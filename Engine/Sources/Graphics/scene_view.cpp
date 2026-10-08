@@ -4,7 +4,7 @@
 scene_view scene_view::from_parameters(const view_parameters& parameters, bool camera_relative)
 {
 	scene_view ret;
-	ret.render_origin = camera_relative ? parameters.position : math::vector3d::zero();
+	ret.render_origin = compute_render_origin(parameters, camera_relative);
 	ret.relative_position = (parameters.position - ret.render_origin).to_float3();
 
 	const math::matrixf rotation_matrix = math::matrixf::rotation_quaternion(parameters.rotation.to_quaternion());
@@ -27,6 +27,11 @@ scene_view scene_view::from_parameters(const view_parameters& parameters, bool c
 	ret.frustum_culling.create_planes(ret.view_projection_matrix);
 	ret.frustum_culling.create_frustum_corners(view_projection_matrix.inverted().to_float4x4());
 	return ret;
+}
+
+math::vector3d scene_view::compute_render_origin(const view_parameters& parameters, bool camera_relative)
+{
+	return camera_relative ? parameters.position : math::vector3d::zero();
 }
 
 void scene_view::fill_scene_constants(common_pipeline_states::scene_constants& constants, const scene_view_state* state) const

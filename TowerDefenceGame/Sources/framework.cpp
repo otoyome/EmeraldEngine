@@ -473,6 +473,9 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 			main_view_camera_cut = selection.camera_cut;
 		}
 
+		//	@tool メイン視点の描画原点（以降の描画データはこの原点からの相対座標で作る）
+		const math::vector3d render_origin = scene_view::compute_render_origin(main_view_parameters, camera_relative_rendering);
+
 		//	ライト情報収集
 		light_manager::instance()->get_container(render_data->light_container);
 
@@ -480,7 +483,7 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 		post_process_volume_manager::instance()->get_container(render_data->post_process_volume_container);
 
 		//	メッシュ取得
-		model_instance_manger::instance()->get_container(render_data->mesh_container);
+		model_instance_manger::instance()->get_container(render_data->mesh_container, render_origin);
 
 		//	エフェクトコンテナ取得
 		effect_manager::instance()->get_container(render_data->effect_container, render_data->decal_container);

@@ -85,9 +85,14 @@ bool model_instance::set_morph(std::string_view morph_name, const morph_animatio
 	return false;
 }
 
-void model_instance::update_transform(const math::float4x4& world_transform)
+void model_instance::update_transform(const math::transformd& world)
 {
-	this->world_transform = world_transform;
+	this->world = world;
+	update_node_transforms();
+}
+
+void model_instance::update_node_transforms()
+{
 	for (auto& node : nodes)
 	{
 		math::matrixf global_transform(node.local_transform);
@@ -98,11 +103,6 @@ void model_instance::update_transform(const math::float4x4& world_transform)
 		}
 		node.global_transform = global_transform.to_float4x4();
 	}
-}
-
-void model_instance::update_transform(const math::matrixf& world_transform)
-{
-	update_transform(world_transform.to_float4x4());
 }
 
 void model_instance::build_model()
@@ -194,7 +194,7 @@ void model_instance_manger::registered(std::weak_ptr<model_instance> instance)
 	instances.emplace_back(instance);
 }
 
-void model_instance_manger::get_container(mesh_container& container)
+void model_instance_manger::get_container(mesh_container& container, const math::vector3d& render_origin)
 {
 	const semantic tangent_semantic("TANGENT", 0);
 	const semantic position_semantic("POSITION", 0);
@@ -233,13 +233,15 @@ void model_instance_manger::get_container(mesh_container& container)
 		{
 			for (auto& node : instance->get_nodes())
 				node.previous_global_transform = node.global_transform;
-			instance->set_previous_world_transform(instance->get_world_transform());
+			instance->set_previous_world(instance->get_world());
 			continue;
 		}
 
 		//	ワールド行列等生成
-		const math::matrixf WorldTransform(instance->get_world_transform());
-		const math::matrixf PreviousWorldTransform(instance->get_previous_world_transform());
+		//	@tool 描画の原点からの相対行列にする（差分は double で求めてから float にする）
+		//	@tool 前フレームの姿勢も、現在の描画の原点から見た相対行列にする（モーションベクトルの整合のため）
+		const math::matrixf WorldTransform = instance->get_world().to_relative_matrix(render_origin);
+		const math::matrixf PreviousWorldTransform = instance->get_previous_world().to_relative_matrix(render_origin);
 
 		//	ノードサイズ調整
 		if (NodeWorldTransforms.size() <= instance->get_nodes().size())
@@ -494,12 +496,11 @@ void model_instance_manger::get_container(mesh_container& container)
 
 		//	過去行列を保存
 		{
-			const math::matrixf WorldTransform(instance->get_world_transform());
 			for (auto& node : instance->get_nodes())
 			{
 				node.previous_global_transform = node.global_transform;
 			}
-			instance->set_previous_world_transform(instance->get_world_transform());
+			instance->set_previous_world(instance->get_world());
 		}
 	}
 

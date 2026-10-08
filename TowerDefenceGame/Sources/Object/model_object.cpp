@@ -43,7 +43,7 @@ model_object::model_object(std::string_view name, std::string_view file_path)
 		if (model_resource_manager::instance()->load(resource, file_path))
 		{
 			model_instance = std::make_shared<::model_instance>(resource);
-			model_instance->update_transform(math::matrixf());
+			model_instance->update_transform(math::transformd::identity());
 			model_instance_manger::instance()->registered(model_instance);
 		}
 	}
@@ -73,7 +73,7 @@ model_object::model_object(std::string_view name, model_resource_ptr resource)
 	previous_node_animations.clear();
 	model_instance = std::make_shared<::model_instance>(resource);
 	play_animation(animation_index, animation_loop, 0.0f);
-	model_instance->update_transform(math::matrixf());
+	model_instance->update_transform(math::transformd::identity());
 	model_instance_manger::instance()->registered(model_instance);
 
 	//	IK情報チェック
@@ -176,7 +176,7 @@ void model_object::update_transform()
 
 	dirty = false;
 	applied_spatial_version = spatial_version;
-	model_instance->update_transform(get_world().to_relative_matrix(math::vector3d::zero()));
+	model_instance->update_transform(get_world());
 }
 
 void model_object::play_animation(size_t animation_index, bool loop, float blend_time)
@@ -652,7 +652,7 @@ void model_object::update_ik()
 						pelvis_node.local_transform._42 += local_direction.y;
 						pelvis_node.local_transform._43 += local_direction.z;
 					}
-					model_instance->update_transform(model_instance->get_world_transform());
+					model_instance->update_node_transforms();
 				}
 
 				//	ヒット位置に足を補正

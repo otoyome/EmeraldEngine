@@ -271,7 +271,7 @@ void ik_solver::solve(size_t index, math::float3 ik_target_position)
 		}
 
 		//	グローバル行列再計算
-		instance->update_transform(WorldTramsform);
+		instance->update_node_transforms();
 	}
 }
 
@@ -302,7 +302,7 @@ void ik_solver::solve_aim(solve_data& solve_data, math::float3 ik_target_positio
 	auto WorldTramsform = math::matrixf(instance->get_world_transform());
 	auto InverseWorldTramsform = WorldTramsform.inverted();
 	IKTargetPosition = math::vector3f::transform_coord(IKTargetPosition, InverseWorldTramsform);
-	instance->update_transform(WorldTramsform);
+	instance->update_node_transforms();
 
 	auto InverseAimGlobalTransform = math::matrixf(aim_node.global_transform).inverted();
 	IKTargetPosition = math::vector3f::transform_coord(IKTargetPosition, InverseAimGlobalTransform);
@@ -390,7 +390,7 @@ void ik_solver::solve_aim(solve_data& solve_data, math::float3 ik_target_positio
 
 	LocalTransform = math::matrixf::affine_transformation(S, NewLocalRotation, T);
 	aim_node.local_transform = LocalTransform.to_float4x4();
-	instance->update_transform(WorldTramsform);
+	instance->update_node_transforms();
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -406,7 +406,7 @@ void ik_solver::solve_limb(solve_data& solve_data, math::float3 ik_target_positi
 	auto WorldTramsform = math::matrixf(instance->get_world_transform());
 	auto InverseWorldTramsform = WorldTramsform.inverted();
 	IKTargetPosition = math::vector3f::transform_coord(IKTargetPosition, InverseWorldTramsform);
-	instance->update_transform(WorldTramsform);
+	instance->update_node_transforms();
 
 	auto& root_node = instance_node_list[nodes[solve_data.node_list[0]].source_node_index];
 	auto& middle_node = instance_node_list[nodes[solve_data.node_list[1]].source_node_index];
@@ -522,7 +522,7 @@ void ik_solver::solve_limb(solve_data& solve_data, math::float3 ik_target_positi
 			}
 		}
 
-		instance->update_transform(WorldTramsform);
+		instance->update_node_transforms();
 
 		MiddleGlobalTransform = math::matrixf(middle_node.global_transform);
 		MiddleGlobalPosition = MiddleGlobalTransform.to_vector3(3);
@@ -535,7 +535,7 @@ void ik_solver::solve_limb(solve_data& solve_data, math::float3 ik_target_positi
 		math::vector3f MiddleTargetDirection = MiddleTargetVec.normalized();
 
 		calculate_rotate_bone(middle_node, MiddleTipDirection, MiddleTargetDirection);
-		instance->update_transform(WorldTramsform);
+		instance->update_node_transforms();
 	}
 }
 
@@ -696,7 +696,7 @@ void ik_solver::solve_ccd(solve_data& solve_data, math::float3 ik_target_positio
 			link_node.local_transform = LocalTransform.to_float4x4();
 
 			//	グローバル行列再計算
-			instance->update_transform(WorldTramsform);
+			instance->update_node_transforms();
 		}
 	}
 }
@@ -799,7 +799,7 @@ void ik_solver::solve_ccd_pmx(solve_data& solve_data, math::float3 ik_target_pos
 				link_node.local_transform = LocalTransform.to_float4x4();
 			}
 			//	グローバル行列再計算
-			instance->update_transform(WorldTramsform);
+			instance->update_node_transforms();
 		}
 	}
 }
