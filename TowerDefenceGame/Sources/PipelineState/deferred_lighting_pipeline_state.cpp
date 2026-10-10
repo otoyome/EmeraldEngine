@@ -38,7 +38,7 @@ deferred_indirect_lighting_pipeline_state::deferred_indirect_lighting_pipeline_s
 		buffer_desc.MiscFlags = 0;
 		buffer_desc.StructureByteStride = 0;
 		{
-			buffer_desc.ByteWidth = sizeof(common_pipeline_states::deferred_light_constants);
+			buffer_desc.ByteWidth = sizeof(common_pipeline_states::deferred_light_probe_constants);
 			hr = render_data::instance()->get_device()->CreateBuffer(&buffer_desc, nullptr, lcbv.GetAddressOf());
 			_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
 		}
@@ -127,8 +127,8 @@ void deferred_indirect_lighting_pipeline_state::begin(const graphics_context& co
 	context.device_context->PSSetSamplers(IBLSamplerIndex, 1, render_data::instance()->get_sampler_states(render_data::SAMPLER_STATE::LINEAR).GetAddressOf());
 
 	//	ライト情報設定
-	context.device_context->UpdateSubresource(lcbv.Get(), 0, 0, &context.deferred_light_constant, 0, 0);
-	context.device_context->PSSetConstantBuffers(common_pipeline_states::light_cbv_index, 1, lcbv.GetAddressOf());
+	context.device_context->UpdateSubresource(lcbv.Get(), 0, 0, &context.deferred_light_probe_constant, 0, 0);
+	context.device_context->PSSetConstantBuffers(common_pipeline_states::light_probe_cbv_index, 1, lcbv.GetAddressOf());
 }
 
 void deferred_indirect_lighting_pipeline_state::update_parameters(const graphics_context& context, const material& material, const buffer_datas* buffer_data)
@@ -681,7 +681,7 @@ skybox_pipeline_state::skybox_pipeline_state()
 		buffer_desc.MiscFlags = 0;
 		buffer_desc.StructureByteStride = 0;
 		{
-			buffer_desc.ByteWidth = sizeof(common_pipeline_states::deferred_light_constants);
+			buffer_desc.ByteWidth = sizeof(common_pipeline_states::deferred_light_probe_constants);
 			hr = render_data::instance()->get_device()->CreateBuffer(&buffer_desc, nullptr, lcbv.GetAddressOf());
 			_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
 		}
@@ -764,8 +764,8 @@ void skybox_pipeline_state::begin(const graphics_context& context)
 	context.device_context->PSSetSamplers(SkyboxSamplerIndex, 1, render_data::instance()->get_sampler_states(render_data::SAMPLER_STATE::LINEAR).GetAddressOf());
 
 	//	ライト情報設定
-	context.device_context->UpdateSubresource(lcbv.Get(), 0, 0, &context.deferred_light_constant, 0, 0);
-	context.device_context->PSSetConstantBuffers(common_pipeline_states::light_cbv_index, 1, lcbv.GetAddressOf());
+	context.device_context->UpdateSubresource(lcbv.Get(), 0, 0, &context.deferred_light_probe_constant, 0, 0);
+	context.device_context->PSSetConstantBuffers(common_pipeline_states::light_probe_cbv_index, 1, lcbv.GetAddressOf());
 }
 
 void skybox_pipeline_state::update_parameters(const graphics_context& context, const material& material, const buffer_datas* buffer_data)

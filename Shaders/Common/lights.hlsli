@@ -4,8 +4,10 @@
 // 平行光源
 struct directional_lights
 {
-    float4 direction;
-    float4 color;
+	float3	direction;	//	向き
+	float	dummy;
+	float3	color;		//	色 × 強さ
+	uint	attribute;	//	ライトフラグ
 };
 
 // 点光源
@@ -61,9 +63,9 @@ struct light_probes
 };
 
 //  ライト種別ID
-static const int light_kind_directional_light = 1; //  平行光源
-static const int light_kind_point_light = 2; //  点光源
-static const int light_kind_spot_light = 3; //  スポットライト
+static const uint light_type_directional = 0; //  平行光源
+static const uint light_type_point = 1; //  点光源
+static const uint light_type_spot = 2; //  スポットライト
 
 //  ライト系のマスク値
 static const uint light_flag_active = 1 << 0;
@@ -72,12 +74,35 @@ static const uint light_flag_use_shadow = 1 << 1;
 static const uint light_flag_debug_csm_area_flag = 1 << 20;
 static const uint light_flag_debug_visualize_ailiasing_error_flag = 1 << 21;
 
+//	attribute のビット構成
+//	0～7byte : ライトフラグ
+//	8～19byte : 影番号
+//	20～21byte : デバッグフラグ
+//	24～27byte : ライト種別
+static const uint light_attribute_shadow_index_shift = 8;
+static const uint light_attribute_shadow_index_mask = 0xfff;
+static const uint light_attribute_invalid_shadow_index = 0xfff;
+static const uint light_attribute_type_shift = 24;
+static const uint light_attribute_type_mask = 0xf;
+
+//	attribute からライト種別を取り出す
+uint get_light_type(uint attribute)
+{
+    return (attribute >> light_attribute_type_shift) & light_attribute_type_mask;
+}
+
+//	attribute から影番号を取り出す
+uint get_light_shadow_index(uint attribute)
+{
+    return (attribute >> light_attribute_shadow_index_shift) & light_attribute_shadow_index_mask;
+}
+
 //  纏めたライト情報
 struct compund_lights
 {
     //  共有の情報
-    //  work_data[3].w は共有でライトの種別番号を入れておく
-    float4 work_data[4];
+	//	work_data[1].w は共有で attribute を入れておく
+    float4 work_data[3];
 };
 
 #endif	//	__LIGHTS_HLSLI__

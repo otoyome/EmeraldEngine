@@ -170,9 +170,9 @@ void gbuffer_renderer::render(renderer_context& renderer_context)
 			context.lut_ggx_texture = light_probe.lut_ggx_texture;
 
 			//	ŠÔÚŒõ‚Ìî•ñ‚ğİ’è
-			context.deferred_light_constant = {};
-			context.deferred_light_constant.light_data = light_data_utility::convert_light_data(light_probe.data);
-			context.deferred_light_constant.light_attribute = light_probe.attribute;
+			context.deferred_light_probe_constant = {};
+			context.deferred_light_probe_constant.light_probe_data = light_probe.data;
+			context.deferred_light_probe_constant.light_probe_attribute = light_probe.attribute;
 
 			//	‘S‰æ–Ê•`‰æ
 			skybox_pipeline_states->begin(context);
@@ -632,9 +632,9 @@ void deffered_lighting_renderer::render_indirect(renderer_context& context)
 				continue;
 
 			//	ŠÔÚŒõ‚Ìî•ñ‚ğİ’è
-			context.deferred_light_constant = {};
-			context.deferred_light_constant.light_data = light_data_utility::convert_light_data(light_probe.data);
-			context.deferred_light_constant.light_attribute = light_probe.attribute;
+			context.deferred_light_probe_constant = {};
+			context.deferred_light_probe_constant.light_probe_data = light_probe.data;
+			context.deferred_light_probe_constant.light_probe_attribute = light_probe.attribute;
 
 			if (light_probe.is_flag(light_probe::flags::unbind))
 			{

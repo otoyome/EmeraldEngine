@@ -260,6 +260,7 @@ struct graphics_context
 
 	//	遅延ライティング処理用情報
 	common_pipeline_states::deferred_light_constants deferred_light_constant;
+	common_pipeline_states::deferred_light_probe_constants deferred_light_probe_constant;
 
 	//	シャドウマップ用情報
 	bool is_shadow_rendering = false;	//	影生成描画処理中判定

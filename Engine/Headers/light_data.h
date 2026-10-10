@@ -10,11 +10,26 @@ enum class light_type
 	light_probe,	//	ライトプローブ
 };
 
+//	attribute のビット構成
+//	0～7byte : ライトフラグ
+//	8～19byte : 影番号
+//	20～21byte : デバッグフラグ
+//	24～27byte : ライト種別
+constexpr UINT light_attribute_flags_mask = 0x003000ffu;		//	ライトフラグとデバッグフラグ
+constexpr UINT light_attribute_shadow_index_shift = 8;
+constexpr UINT light_attribute_shadow_index_mask = 0xfffu;
+constexpr UINT light_attribute_invalid_shadow_index = 0xfffu;	//	影無し
+constexpr UINT light_attribute_type_shift = 24;
+constexpr UINT light_attribute_type_mask = 0xfu;
+
 struct directional_lights
 {
-	math::float4 direction{ 1.0f, -1.0f, -1.0f, 1.0f };
-	math::float4 color{ 1.0f, 1.0f, 1.0f, 1.0f };
+	math::float3 direction{ 1.0f, -1.0f, -1.0f };	//	向き
+	float dummy{ 0 };
+	math::float3 color{ 1, 1, 1 };					//	色 × 強さ
+	UINT attribute{ 0 };							//	ライトフラグ
 };
+static_assert(sizeof(directional_lights) == 32, "directional_lights must be 32 bytes");
 
 struct point_lights
 {
@@ -47,9 +62,10 @@ struct light_probes
 struct light_data
 {
 	//  共有の情報
-	//  work_data[3].w は共有でライトの種別番号を入れておく
-	math::float4 work_data[4];
+	//	work_data[1].w は共有で attribute を入れておく
+	math::float4 work_data[3];
 };
+static_assert(sizeof(light_data) == 48, "light_data must be 48 bytes");
 
 namespace light_data_utility
 {
@@ -59,17 +75,19 @@ namespace light_data_utility
 
 	spot_lights convert_spot_lights(const light_data& data);
 
-	light_probes convert_light_probes(const light_data& data);
-
 	light_data convert_light_data(const directional_lights& light);
 
 	light_data convert_light_data(const point_lights& light);
 
 	light_data convert_light_data(const spot_lights& light);
 
-	light_data convert_light_data(const light_probes& light_probe);
-
 	light_type get_light_type(const light_data& data);
+
+	UINT make_light_attribute(UINT flags, light_type type, UINT shadow_index = light_attribute_invalid_shadow_index);
+
+	light_type get_light_type(UINT attribute);
+
+	UINT get_shadow_index(UINT attribute);
 
 	math::float3 get_position(const light_data& data);
 

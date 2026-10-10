@@ -12,16 +12,18 @@ cbuffer DEFERREDLIGHT_CONSTANT_BUFFER : register(b3)
 };
 
 //  ƒ‰ƒCƒgŽí•Ê‚ÌŽæ“¾
-int get_light_kinds()
+uint get_light_kinds()
 {
-    return (int) (compund_light_data.work_data[3].w + 0.5f);
+    return get_light_type(asuint(compund_light_data.work_data[1].w));
 }
 
 directional_lights convert_directional_lights()
 {
     directional_lights data;
-    data.direction = compund_light_data.work_data[0];
-    data.color = compund_light_data.work_data[1];
+    data.direction = compund_light_data.work_data[0].xyz;
+    data.dummy = 0.0f;
+    data.color = compund_light_data.work_data[1].xyz;
+    data.attribute = asuint(compund_light_data.work_data[1].w);
     return data;
 }
 
@@ -45,16 +47,6 @@ spot_lights convert_spot_lights()
     data.direction = compund_light_data.work_data[2].xyz;
     data.cone = asuint(compund_light_data.work_data[2].w);
     return data;
-}
-
-light_probes convert_light_probes()
-{
-    light_probes light_probe;
-    light_probe.position = compund_light_data.work_data[0];
-    light_probe.color = compund_light_data.work_data[1];
-    light_probe.inner_area = compund_light_data.work_data[2];
-    light_probe.outer_area = compund_light_data.work_data[3];
-    return light_probe;
 }
 
 #endif  //  __DEFERRED_LIGHT_HLSLI__

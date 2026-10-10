@@ -45,13 +45,7 @@ namespace
 					if (light_data.light.light_counts.x >= common_pipeline_states::directional_light_count)
 						continue;
 
-					auto& data = light_data.light.directional_light_data[light_data.light.light_counts.x];
-					data.color = light.color;
-					const auto& direction = light.direction;
-					data.direction.x = direction.x;
-					data.direction.y = direction.y;
-					data.direction.z = direction.z;
-					data.direction.w = 0.0f;
+					light_data.light.directional_light_data[light_data.light.light_counts.x] = light_data_utility::convert_directional_lights(light.data);
 					++light_data.light.light_counts.x;
 					break;
 				}
@@ -359,6 +353,7 @@ void graphics_custom_pipeline_state::begin(const graphics_context& context)
 	for (auto& data : parameter_buffer_data) data.use = false;
 	primitive_data.use = false;
 	deferred_light_buffer_data.use = false;
+	deferred_light_probe_buffer_data.use = false;
 	forward_light_buffer_data.use = false;
 	shadow_map_buffer_data.use = false;
 }
@@ -447,6 +442,7 @@ void graphics_custom_pipeline_state::update_parameters(const graphics_context& c
 	for (auto& data : parameter_buffer_data) data.use = false;
 	primitive_data.use = false;
 	deferred_light_buffer_data.use = false;
+	deferred_light_probe_buffer_data.use = false;
 	forward_light_buffer_data.use = false;
 	shadow_map_buffer_data.use = false;
 
@@ -489,6 +485,11 @@ void graphics_custom_pipeline_state::update_parameters(const graphics_context& c
 			{
 				deferred_light_buffer_data.use = true;
 				constant_buffer = deferred_light_buffer_data.buffer.Get();
+			}
+			else if (cbv_key == common_pipeline_states::deferred_light_probe_constant_buffer_hash_key)
+			{
+				deferred_light_probe_buffer_data.use = true;
+				constant_buffer = deferred_light_probe_buffer_data.buffer.Get();
 			}
 			else if (cbv_key == common_pipeline_states::forward_light_constant_buffer_hash_key)
 			{
@@ -682,6 +683,10 @@ void graphics_custom_pipeline_state::update_parameters(const graphics_context& c
 		if (deferred_light_buffer_data.use)
 		{
 			context.device_context->UpdateSubresource(deferred_light_buffer_data.buffer.Get(), 0, 0, &context.deferred_light_constant, 0, 0);
+		}
+		if (deferred_light_probe_buffer_data.use)
+		{
+			context.device_context->UpdateSubresource(deferred_light_probe_buffer_data.buffer.Get(), 0, 0, &context.deferred_light_probe_constant, 0, 0);
 		}
 		if (forward_light_buffer_data.use)
 		{
@@ -963,6 +968,16 @@ void graphics_custom_pipeline_state::update_register_datas()
 
 						buffer_desc.ByteWidth = sizeof(common_pipeline_states::deferred_light_constants);
 						hr = device->CreateBuffer(&buffer_desc, nullptr, deferred_light_buffer_data.buffer.ReleaseAndGetAddressOf());
+						_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+						break;
+					}
+					case	common_pipeline_states::deferred_light_probe_constant_buffer_hash_key:
+					{
+						if (deferred_light_probe_buffer_data.buffer)
+							break;
+
+						buffer_desc.ByteWidth = sizeof(common_pipeline_states::deferred_light_probe_constants);
+						hr = device->CreateBuffer(&buffer_desc, nullptr, deferred_light_probe_buffer_data.buffer.ReleaseAndGetAddressOf());
 						_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
 						break;
 					}

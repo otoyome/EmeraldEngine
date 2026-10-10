@@ -24,8 +24,9 @@ namespace
 directional_lights light_data_utility::convert_directional_lights(const light_data& data)
 {
 	directional_lights light;
-	light.direction = data.work_data[0];
-	light.color = data.work_data[1];
+	light.direction = { data.work_data[0].x, data.work_data[0].y, data.work_data[0].z };
+	light.color = { data.work_data[1].x, data.work_data[1].y, data.work_data[1].z };
+	light.attribute = as_uint(data.work_data[1].w);
 	return light;
 }
 
@@ -51,22 +52,11 @@ spot_lights light_data_utility::convert_spot_lights(const light_data& data)
 	return light;
 }
 
-light_probes light_data_utility::convert_light_probes(const light_data& data)
-{
-	light_probes light_probe;
-	light_probe.position = data.work_data[0];
-	light_probe.color = data.work_data[1];
-	light_probe.inner_area = data.work_data[2];
-	light_probe.outer_area = data.work_data[3];
-	return light_probe;
-}
-
 light_data light_data_utility::convert_light_data(const directional_lights& light)
 {
-	light_data data;
-	data.work_data[0] = light.direction;
-	data.work_data[1] = light.color;
-	data.work_data[3].w = static_cast<int>(light_type::directional);
+	light_data data{};
+	data.work_data[0] = { light.direction.x, light.direction.y, light.direction.z, 0.0f };
+	data.work_data[1] = { light.color.x, light.color.y, light.color.z, as_float(light.attribute) };
 	return data;
 }
 
@@ -75,7 +65,6 @@ light_data light_data_utility::convert_light_data(const point_lights& light)
 	light_data data{};
 	data.work_data[0] = { light.position.x, light.position.y, light.position.z, light.inv_range };
 	data.work_data[1] = { light.color.x, light.color.y, light.color.z, as_float(light.attribute) };
-	data.work_data[3].w = static_cast<int>(light_type::point);
 	return data;
 }
 
@@ -85,31 +74,19 @@ light_data light_data_utility::convert_light_data(const spot_lights& light)
 	data.work_data[0] = { light.position.x, light.position.y, light.position.z, light.inv_range };
 	data.work_data[1] = { light.color.x, light.color.y, light.color.z, as_float(light.attribute) };
 	data.work_data[2] = { light.direction.x, light.direction.y, light.direction.z, as_float(light.cone) };
-	data.work_data[3].w = static_cast<int>(light_type::spot);
-	return data;
-}
-
-light_data light_data_utility::convert_light_data(const light_probes& light_probe)
-{
-	light_data data;
-	data.work_data[0] = light_probe.position;
-	data.work_data[1] = light_probe.color;
-	data.work_data[2] = light_probe.inner_area;
-	data.work_data[3] = light_probe.outer_area;
-	data.work_data[3].w = static_cast<int>(light_type::light_probe);
 	return data;
 }
 
 light_type light_data_utility::get_light_type(const light_data& data)
 {
-	return static_cast<light_type>(data.work_data[3].w + 0.5f);
+	return get_light_type(as_uint(data.work_data[1].w));
 }
 
 math::float3 light_data_utility::get_position(const light_data& data)
 {
 	switch (get_light_type(data))
 	{
-	case light_type::directional: return  math::float3(data.work_data[2].x, data.work_data[2].y, data.work_data[2].z);
+	case light_type::directional: return  math::float3(0.0f, 0.0f, 0.0f);
 	case light_type::point: return  math::float3(data.work_data[0].x, data.work_data[0].y, data.work_data[0].z);
 	case light_type::spot: return  math::float3(data.work_data[0].x, data.work_data[0].y, data.work_data[0].z);
 	}
@@ -131,11 +108,28 @@ math::float4 light_data_utility::get_color(const light_data& data)
 {
 	switch (get_light_type(data))
 	{
-	case light_type::directional: return  data.work_data[1];
+	case light_type::directional: return  math::float4(data.work_data[1].x, data.work_data[1].y, data.work_data[1].z, 1.0f);
 	case light_type::point: return  math::float4(data.work_data[1].x, data.work_data[1].y, data.work_data[1].z, 1.0f);
 	case light_type::spot: return  math::float4(data.work_data[1].x, data.work_data[1].y, data.work_data[1].z, 1.0f);
 	}
 	return math::float4(0, 0, 0, 0);
+}
+
+UINT light_data_utility::make_light_attribute(UINT flags, light_type type, UINT shadow_index)
+{
+	return (flags & light_attribute_flags_mask)
+		| ((shadow_index & light_attribute_shadow_index_mask) << light_attribute_shadow_index_shift)
+		| ((static_cast<UINT>(type) & light_attribute_type_mask) << light_attribute_type_shift);
+}
+
+light_type light_data_utility::get_light_type(UINT attribute)
+{
+	return static_cast<light_type>((attribute >> light_attribute_type_shift) & light_attribute_type_mask);
+}
+
+UINT light_data_utility::get_shadow_index(UINT attribute)
+{
+	return (attribute >> light_attribute_shadow_index_shift) & light_attribute_shadow_index_mask;
 }
 
 float light_data_utility::convert_inv_range(float range)

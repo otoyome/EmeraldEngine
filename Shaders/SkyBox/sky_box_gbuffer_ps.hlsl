@@ -1,6 +1,6 @@
 #include "sky_box.hlsli"
 
-#include "deferred_light_data.hlsli"
+#include "deferred_light_probe_data.hlsli"
 #include "common_gbuffer_writer.hlsli"
 
 TextureCube specular_pmrem : register(t0);
@@ -9,7 +9,7 @@ SamplerState samplerstate : register(s0);
 PS_GBUFFER_OUT main(VS_OUT pin)
 {
     //  ライトプローブ
-    light_probes light_probe = convert_light_probes();
+    light_probes light_probe = light_probe_data;
 
     //	視線ベクトル
     float3 E = normalize(pin.world_position.xyz - camera_position.xyz);

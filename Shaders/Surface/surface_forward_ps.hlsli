@@ -46,7 +46,7 @@ float4 main(VS_OUT pin, bool is_front_face : SV_IsFrontFace) : SV_TARGET
         lighting_data.shading_attenuation = shading_attenuation;
         lighting_data.shadowing_attenuation = shadowing_attenuation;
         lighting_data.direction = L;
-        lighting_data.color = directional_light.color.rgb * directional_light.color.a;
+        lighting_data.color = directional_light.color;
         lighting_data.camera_position = camera_position.xyz;
         DirectLighting result = integrate_bxdf(data, lighting_data);
         total_diffuse += result.diffuse;

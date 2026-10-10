@@ -140,6 +140,7 @@ private:
 		Microsoft::WRL::ComPtr<ID3D11Buffer> buffer;
 	};
 	constant_buffer_data deferred_light_buffer_data;
+	constant_buffer_data deferred_light_probe_buffer_data;
 	constant_buffer_data forward_light_buffer_data;
 	constant_buffer_data shadow_map_buffer_data;
 	constant_buffer_data parameter_buffer_data[static_cast<int>(arrangement::max)];

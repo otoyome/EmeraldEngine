@@ -1157,6 +1157,9 @@
     <None Include="..\Shaders\Model\deferred_light_data.hlsli">
       <Filter>Shaders\Model</Filter>
     </None>
+    <None Include="..\Shaders\Model\deferred_light_probe_data.hlsli">
+      <Filter>Shaders\Model</Filter>
+    </None>
     <None Include="..\Shaders\Model\model_depth_write_ps.hlsli">
       <Filter>Shaders\Model</Filter>
     </None>

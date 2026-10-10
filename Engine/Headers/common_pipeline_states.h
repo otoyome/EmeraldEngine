@@ -20,6 +20,7 @@ namespace common_pipeline_states
 	constexpr UINT light_cbv_index = 3;					//	ライトの定数バッファ番号
 	constexpr UINT shadowmap_cbv_index = 4;				//	シャドウマップの定数バッファ番号
 	constexpr UINT meshlet_cbv_index = 5;				//	メッシュレット定数バッファ番号
+	constexpr UINT light_probe_cbv_index = 6;			//	ライトプローブの定数バッファ番号
 	constexpr UINT shadowmap_srv_index = 10;			//	シャドウマップのSRV番号
 	constexpr UINT shadowmap_sampler_index = 10;		//	シャドウマップのSampler番号
 
@@ -80,6 +81,16 @@ namespace common_pipeline_states
 		light_data light_data;
 		UINT light_attribute;
 		math::float3 light_data_dummy;
+	};
+
+	//	ライトプローブ定数バッファ構造体
+	constexpr std::string_view deferred_light_probe_constant_buffer_name = "DEFERRED_LIGHT_PROBE_CONSTANT_BUFFER";
+	constexpr system_utility::hash_key deferred_light_probe_constant_buffer_hash_key = system_utility::generate_hash(deferred_light_probe_constant_buffer_name);
+	struct deferred_light_probe_constants
+	{
+		light_probes light_probe_data;
+		UINT light_probe_attribute;
+		math::float3 light_probe_dummy;
 	};
 
 	//	フォワード用ライト定数バッファ構造体
@@ -341,6 +352,7 @@ namespace common_pipeline_states
 		primitive_constant_buffer_name,
 		shadow_map_constant_buffer_name,
 		deferred_light_constant_buffer_name,
+		deferred_light_probe_constant_buffer_name,
 		forward_light_constant_buffer_name,
 		parameter_constant_buffer_name,
 

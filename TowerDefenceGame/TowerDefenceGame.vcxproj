@@ -1271,6 +1271,7 @@ xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y</Command>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseEditor|x64'">true</ExcludedFromBuild>
     </None>
     <None Include="..\Shaders\Model\deferred_light_data.hlsli" />
+    <None Include="..\Shaders\Model\deferred_light_probe_data.hlsli" />
     <None Include="..\Shaders\Model\forward_light_data.hlsli" />
     <None Include="..\Shaders\Model\material_parameter_constant_buffer.hlsli" />
     <None Include="..\Shaders\Model\model_cascade_shadow_map.hlsli" />

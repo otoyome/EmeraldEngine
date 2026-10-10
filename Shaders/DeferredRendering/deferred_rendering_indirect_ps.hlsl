@@ -1,4 +1,5 @@
 #include "deferred_rendering.hlsli"
+#include "deferred_light_probe_data.hlsli"
 
 //  IBL用テクスチャ
 TextureCube diffuse_iem : register(t33);
@@ -29,7 +30,7 @@ float4 main(VS_OUT pin) : SV_TARGET
         float3 F0 = lerp(0.0f, albedo.rgb, data.metalness);
 
         //  ライトプローブ
-        light_probes light_probe = convert_light_probes();
+        light_probes light_probe = light_probe_data;
         float3 color_adjust = light_probe.color.rgb * light_probe.color.a;
 
         switch (data.shading_model)
