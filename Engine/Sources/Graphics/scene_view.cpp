@@ -1,10 +1,20 @@
 #include "graphics/scene_view.h"
 #include "graphics/scene_view_state.h"
 
-scene_view scene_view::from_parameters(const view_parameters& parameters, bool camera_relative)
+namespace
+{
+	//	render_origin からの相対座標系の視線行列生成
+	math::matrixf make_view_matrix(const view_parameters& parameters, const math::vector3d& render_origin)
+	{
+		const math::vector3f relative_position((parameters.position - render_origin).to_float3());
+		return math::matrixf::inverse_rigid_transformation(parameters.rotation.to_quaternion(), relative_position);
+	}
+}
+
+scene_view scene_view::from_parameters(const view_parameters& parameters, const math::vector3d& render_origin)
 {
 	scene_view ret;
-	ret.render_origin = compute_render_origin(parameters, camera_relative);
+	ret.render_origin = render_origin;
 	ret.relative_position = (parameters.position - ret.render_origin).to_float3();
 
 	const math::matrixf rotation_matrix = math::matrixf::rotation_quaternion(parameters.rotation.to_quaternion());
@@ -13,7 +23,7 @@ scene_view scene_view::from_parameters(const view_parameters& parameters, bool c
 	ret.front = rotation_matrix.to_vector3(2).to_float3();
 
 	//	描画原点からの相対位置で視線行列を作る
-	const math::matrixf view_matrix = parameters.make_view_matrix(ret.render_origin);
+	const math::matrixf view_matrix = make_view_matrix(parameters, ret.render_origin);
 	const math::matrixf projection_matrix = parameters.make_projection_matrix();
 	const math::matrixf view_projection_matrix = view_matrix * projection_matrix;
 	ret.view_matrix = view_matrix.to_float4x4();

@@ -17,7 +17,7 @@
 
 #include "effect_instance.h"
 
-class editor_camera;
+#include "Editor/editor_camera.h"
 
 class edit_model_scene : public scene_base
 {
@@ -86,7 +86,7 @@ private:
 
 private:
 	std::shared_ptr<camera_object> main_camera;
-	std::shared_ptr<editor_camera> editor_camera_object;
+	editor_camera_manager::scene_request_ptr editor_camera_request;
 	std::shared_ptr<post_process_volume_object> post_process_volume;
 
 private:

@@ -33,9 +33,8 @@ public:
 		math::float3 rotation = {0, 0, 0};
 		math::float3 position = {0, 0, 0};
 
-		math::float4x4 local_transform = {1, 0, 0, 0,  0, 1, 0, 0,  0, 0, 1, 0,  0, 0, 0, 1};
+		math::float4x4 local_transform = { 1, 0, 0, 0,  0, 1, 0, 0,  0, 0, 1, 0,  0, 0, 0, 1 };
 		math::float4x4 global_transform = { 1, 0, 0, 0,  0, 1, 0, 0,  0, 0, 1, 0,  0, 0, 0, 1 };
-		//	@tool インスタンス位置（double）を原点とした相対の姿勢
 		math::float4x4 world_transform = { 1, 0, 0, 0,  0, 1, 0, 0,  0, 0, 1, 0,  0, 0, 0, 1 };
 
 		math::float4x4 previous_world_transform = { 1, 0, 0, 0,  0, 1, 0, 0,  0, 0, 1, 0,  0, 0, 0, 1 };
@@ -195,7 +194,6 @@ public:
 	bool register_instance(effect_instance_ptr instance);
 	bool unregister_instance(effect_instance_ptr instance);
 
-	//	@tool デカールは描画原点からの相対座標で格納する
 	void get_container(effect_container& effects, decal_container& decals, const math::vector3d& render_origin);
 
 	uint32_t add_cubic_sdf(ID3D11DeviceContext* device_context, collision::cubic_sdf& sdf);

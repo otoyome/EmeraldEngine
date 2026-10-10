@@ -993,6 +993,9 @@
     <FxCompile Include="..\Shaders\ComputeParticle\System\compute_particle_build_primitive_cs.hlsl">
       <Filter>Shaders\ComputeParticle\System</Filter>
     </FxCompile>
+    <FxCompile Include="..\Shaders\ComputeParticle\System\compute_particle_rebase_particles_cs.hlsl">
+      <Filter>Shaders\ComputeParticle\System</Filter>
+    </FxCompile>
     <FxCompile Include="..\Shaders\ComputeParticle\System\compute_particle_clear_particles_cs.hlsl">
       <Filter>Shaders\ComputeParticle\System</Filter>
     </FxCompile>

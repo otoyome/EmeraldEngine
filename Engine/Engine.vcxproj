@@ -116,6 +116,8 @@
     <ClInclude Include="Headers\System\behavior_tree.h" />
     <ClInclude Include="Headers\System\cpu_timer.h" />
     <ClInclude Include="Headers\System\engine_config_data.h" />
+    <ClInclude Include="Headers\System\console_manager.h" />
+    <ClInclude Include="Headers\System\editor_config_data.h" />
     <ClInclude Include="Headers\System\enum_class_attribute.h" />
     <ClInclude Include="Headers\System\finite_state_machine.h" />
     <ClInclude Include="Headers\System\fixed_size_pool.h" />
@@ -195,6 +197,8 @@
     <ClCompile Include="Sources\System\behavior_tree.cpp" />
     <ClCompile Include="Sources\System\cpu_timer.cpp" />
     <ClCompile Include="Sources\System\engine_config_data.cpp" />
+    <ClCompile Include="Sources\System\console_manager.cpp" />
+    <ClCompile Include="Sources\System\editor_config_data.cpp" />
     <ClCompile Include="Sources\System\finite_state_machine.cpp" />
     <ClCompile Include="Sources\System\fixed_size_pool.cpp" />
     <ClCompile Include="Sources\System\logger.cpp" />

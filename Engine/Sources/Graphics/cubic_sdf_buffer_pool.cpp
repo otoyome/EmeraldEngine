@@ -27,6 +27,8 @@ cubic_sdf_buffer_pool::cubic_sdf_buffer_pool(ID3D11Device* device, UINT voxel_po
 	//	ヘッダーバッファ
 	{
 		headers.assign(header_capacity, sdf_header{});
+		world_bounds_min.assign(header_capacity, math::vector3d::zero());
+		world_bounds_max.assign(header_capacity, math::vector3d::zero());
 		free_header_ids.resize(header_capacity);
 		for (UINT index = 0; index < header_capacity; ++index)
 			free_header_ids[index] = header_capacity - 1 - index;
@@ -97,8 +99,11 @@ uint32_t cubic_sdf_buffer_pool::register_sdf(ID3D11DeviceContext* device_context
 	sdf_header header;
 	header.voxel_offset = voxel_byte_offset / sizeof(float);
 	header.resolution = sdf.resolution;
-	header.bounds_min = sdf.bounds_min;
-	header.bounds_max = sdf.bounds_max;
+	//	GPU には基準原点からの相対で渡す
+	world_bounds_min[sdf_id] = math::vector3d(sdf.bounds_min);
+	world_bounds_max[sdf_id] = math::vector3d(sdf.bounds_max);
+	header.bounds_min = (world_bounds_min[sdf_id] - space_origin).to_float3();
+	header.bounds_max = (world_bounds_max[sdf_id] - space_origin).to_float3();
 	headers[sdf_id] = header;
 
 	D3D11_BOX header_write_box = {};
@@ -134,4 +139,19 @@ void cubic_sdf_buffer_pool::unregister_sdf(ID3D11DeviceContext* device_context, 
 	header_write_box.front = 0;
 	header_write_box.back = 1;
 	device_context->UpdateSubresource(header_buffer.Get(), 0, &header_write_box, &header, sizeof(sdf_header), 0);
+}
+
+void cubic_sdf_buffer_pool::set_space_origin(ID3D11DeviceContext* device_context, const math::vector3d& origin)
+{
+	space_origin = origin;
+	for (size_t sdf_id = 0; sdf_id < headers.size(); ++sdf_id)
+	{
+		auto& header = headers[sdf_id];
+		if (header.resolution == 0)
+			continue;
+
+		header.bounds_min = (world_bounds_min[sdf_id] - space_origin).to_float3();
+		header.bounds_max = (world_bounds_max[sdf_id] - space_origin).to_float3();
+	}
+	device_context->UpdateSubresource(header_buffer.Get(), 0, nullptr, headers.data(), 0, 0);
 }

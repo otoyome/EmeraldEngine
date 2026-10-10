@@ -8,6 +8,7 @@
 
 #include "object/camera_object.h"
 #include "object/post_process_volume_object.h"
+#include "Editor/editor_camera.h"
 
 class edit_particle_scene : public scene_base
 {
@@ -32,6 +33,7 @@ private:
 private:
 	std::shared_ptr<camera_object> main_camera;
 	std::shared_ptr<post_process_volume_object> post_process_volume;
+	editor_camera_manager::scene_request_ptr editor_camera_request;
 
 private:
 	std::shared_ptr<editor_items::context> editor_context;

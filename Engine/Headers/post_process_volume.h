@@ -247,6 +247,7 @@ using post_process_volume_ptr = std::shared_ptr<post_process_volume>;
 struct post_process_volume_container
 {
 	std::vector<post_process_volume_ptr> volumes;
+	post_process_volume_ptr selected_volume;
 };
 
 //	ポストプロセスボリューム管理クラス
@@ -260,7 +261,7 @@ private:
 
 public:
 	bool generate_post_process_volume(post_process_volume_ptr& out_post_process_volume);
-	void get_container(post_process_volume_container& container);
+	void get_container(post_process_volume_container& container, const math::vector3d& view_position);
 
 private:
 	std::vector<std::weak_ptr<post_process_volume>> post_process_volumes;

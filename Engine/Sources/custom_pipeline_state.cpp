@@ -38,7 +38,7 @@ namespace
 		//	テキトーに近くのライトを詰める
 		for (auto& light : context.render_data->light_container.lights)
 		{
-			switch(light->get_light_type())
+			switch(light.type)
 			{
 				case light_type::directional:
 				{
@@ -46,8 +46,8 @@ namespace
 						continue;
 
 					auto& data = light_data.light.directional_light_data[light_data.light.light_counts.x];
-					data.color = light->get_color();
-					auto direction = light->get_rotation().front();
+					data.color = light.color;
+					const auto& direction = light.direction;
 					data.direction.x = direction.x;
 					data.direction.y = direction.y;
 					data.direction.z = direction.z;
@@ -61,13 +61,13 @@ namespace
 						continue;
 
 					auto& data = light_data.light.point_light_data[light_data.light.light_counts.y];
-					const math::float3 relative_position = light->get_relative_position(context.render_data->render_origin);
+					const math::float3& relative_position = light.position;
 					data.position.x = relative_position.x;
 					data.position.y = relative_position.y;
 					data.position.z = relative_position.z;
 					data.position.w = 1.0f;
-					data.range = light->get_range();
-					data.color = light->get_color();
+					data.range = light.range;
+					data.color = light.color;
 					++light_data.light.light_counts.y;
 					break;
 				}
@@ -77,8 +77,8 @@ namespace
 						continue;
 
 					auto& data = light_data.light.spot_light_data[light_data.light.light_counts.z];
-					const math::float3 relative_position = light->get_relative_position(context.render_data->render_origin);
-					auto direction = light->get_rotation().front();
+					const math::float3& relative_position = light.position;
+					const auto& direction = light.direction;
 					data.position.x = relative_position.x;
 					data.position.y = relative_position.y;
 					data.position.z = relative_position.z;
@@ -87,10 +87,10 @@ namespace
 					data.direction.y = direction.y;
 					data.direction.z = direction.z;
 					data.direction.w = 0.0f;
-					data.range = light->get_range();
-					data.inner_corn = light->get_inner_cone();
-					data.outer_corn = light->get_outer_cone();
-					data.color = light->get_color();
+					data.range = light.range;
+					data.inner_corn = light.inner_cone;
+					data.outer_corn = light.outer_cone;
+					data.color = light.color;
 					++light_data.light.light_counts.z;
 					break;
 				}
@@ -98,33 +98,20 @@ namespace
 		}
 
 		//	IBL
-		for (const auto& data : context.render_data->light_container.light_probes)
+		for (const auto& light_probe : context.render_data->light_container.light_probes)
 		{
-			const light_probe* light_probe = data.get();
-			if (!light_probe->is_flag(light_probe::flags::active) || !light_probe->is_flag(light_probe::flags::unbind))
+			if (!light_probe.is_flag(light_probe::flags::active) || !light_probe.is_flag(light_probe::flags::unbind))
 			{
 				continue;
 			}
 
 			//	IBLテクスチャ設定
-			light_data.diffuse_ibl_texture = light_probe->get_diffuse_ibl_texture();
-			light_data.specluar_ibl_texture = light_probe->get_specular_ibl_texture();
-			light_data.lut_ggx_texture = light_probe->get_lut_ggx_texture();
+			light_data.diffuse_ibl_texture = light_probe.diffuse_ibl_texture;
+			light_data.specluar_ibl_texture = light_probe.specular_ibl_texture;
+			light_data.lut_ggx_texture = light_probe.lut_ggx_texture;
 
 			//	間接光の情報を設定
-			light_probes probe;
-			const math::float3 probe_position = light_probe->get_relative_position(context.render_data->render_origin);
-			probe.position.x = probe_position.x;
-			probe.position.y = probe_position.y;
-			probe.position.z = probe_position.z;
-			probe.inner_area.x = light_probe->get_inner_range().x;
-			probe.inner_area.y = light_probe->get_inner_range().y;
-			probe.inner_area.z = light_probe->get_inner_range().z;
-			probe.outer_area.x = light_probe->get_outer_range().x;
-			probe.outer_area.y = light_probe->get_outer_range().y;
-			probe.outer_area.z = light_probe->get_outer_range().z;
-			probe.color = light_probe->get_color();
-			light_data.light.light_probe_data = probe;
+			light_data.light.light_probe_data = light_probe.data;
 			break;
 		}
 		return light_data;

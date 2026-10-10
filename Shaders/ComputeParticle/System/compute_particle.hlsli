@@ -92,7 +92,9 @@ cbuffer COMMON_CONSTANTS : register(b10)
     uint total_emitter_spawn_count; // エミッター発生数合計(spawn_offsetの合計)
 
     uint erase_id_count; //	破棄Id数
-    float3 simulation_to_render_offset; //	@tool シミュレーション空間から描画空間（描画原点からの相対）へのオフセット
+    float3 simulation_to_render_offset; //	シミュレーション空間から描画空間へのオフセット
+    float3 simulation_rebase_offset; //	シミュレーション原点の移動量
+    uint common_constant_dummy;
     uint4 erase_id_list[128 / 4]; //	エミッター破棄Idリスト
 };
 

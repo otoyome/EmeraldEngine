@@ -12,6 +12,29 @@ namespace
 		}
 		return 0;
 	}
+
+	struct input_text_callback_chain
+	{
+		std::string* str;
+		ImGuiInputTextCallback callback;
+		void* user_data;
+	};
+	int input_text_chain_callback(ImGuiInputTextCallbackData* data)
+	{
+		auto* chain = reinterpret_cast<input_text_callback_chain*>(data->UserData);
+		if (data->EventFlag == ImGuiInputTextFlags_CallbackResize)
+		{
+			chain->str->resize(data->BufTextLen);
+			data->Buf = chain->str->data();
+			return 0;
+		}
+		if (!chain->callback)
+			return 0;
+		data->UserData = chain->user_data;
+		const int result = chain->callback(data);
+		data->UserData = chain;
+		return result;
+	}
 }
 
 bool ImGui::Combo(const char* label, int& current_item_index, const std::vector<std::string_view>& items)
@@ -162,6 +185,21 @@ bool ImGui::InputText(const char* label, std::string& str, ImGuiInputTextFlags f
 		input_text_callback,
 		&str
 	);
+}
+
+bool ImGui::InputText(const char* label, std::string& str, ImGuiInputTextFlags flags, ImGuiInputTextCallback callback, void* user_data)
+{
+	flags |= ImGuiInputTextFlags_CallbackResize;
+
+	input_text_callback_chain chain{ &str, callback, user_data };
+	return ImGui::InputText(label, str.data(), str.capacity() + 1, flags, input_text_chain_callback, &chain);
+}
+
+bool ImGui::InputTextWithHint(const char* label, const char* hint, std::string& str, ImGuiInputTextFlags flags)
+{
+	flags |= ImGuiInputTextFlags_CallbackResize;
+
+	return ImGui::InputTextWithHint(label, hint, str.data(), str.capacity() + 1, flags, input_text_callback, &str);
 }
 
 bool ImGui::InputTextUtf8(const char* label, std::string& str, ImGuiInputTextFlags flags)

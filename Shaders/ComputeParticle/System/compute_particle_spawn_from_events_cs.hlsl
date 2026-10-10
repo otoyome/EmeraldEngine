@@ -72,7 +72,7 @@ void main(uint3 dispatch_thread_id : SV_DispatchThreadID)
     float scale_value = lerp(em_common.spawn_scale_range.x, em_common.spawn_scale_range.y, x_or_shift_random(random_seed));
     pt_common.scale = em_common.scale * scale_value.xxx;
     pt_common.rotation = em_common.rotation;
-    pt_common.translation = ev.position;   //  イベント発生位置
+    pt_common.translation = ev.position - simulation_rebase_offset;   //  イベント発生位置
     pt_common.color = 1;
 
     uint particle_binary_offset = em_header.particle_binary_head + em_header.particle_size * particle_index;

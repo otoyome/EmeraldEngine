@@ -14,7 +14,7 @@ public:
 	bool is_active() const { return active; }
 	void set_active(bool active) { this->active = active; }
 
-	//	視点情報
+	//	シーンビュー情報
 	const view_parameters& get_parameters() const { return parameters; }
 	view_parameters& get_parameters() { return parameters; }
 
@@ -36,7 +36,7 @@ private:
 
 using camera_ptr = std::shared_ptr<camera>;
 
-//	視点情報
+//	シーンビュー情報
 struct view_selection
 {
 	view_parameters parameters;
@@ -54,14 +54,23 @@ private:
 	~camera_manager();
 
 public:
-	//	視点の候補を登録/解除
+	//	シーンビューの候補を登録/解除
 	void push_view_target(const camera_ptr& source);
 	void remove_view_target(const camera_ptr& source);
 
-	//	有効な視点を選ぶ
+	//	有効なシーンビューを選ぶ
 	bool select_view(view_selection& selection);
+
+	//	シーンビューの上書き
+	void set_override_view(const camera_ptr& source);
+
+	//	直近のシーンビュー
+	const view_parameters* get_game_view() const { return has_game_view ? &game_view : nullptr; }
 
 private:
 	std::vector<std::weak_ptr<camera>> view_targets;	//	視点候補（後ろほど優先）
 	uint64_t current_source_id = 0;						//	前回ID
+	std::weak_ptr<camera> override_view;				//	上書きシーンビュー
+	view_parameters game_view;							//	直近のゲーム側のシーンビュー
+	bool has_game_view = false;
 };

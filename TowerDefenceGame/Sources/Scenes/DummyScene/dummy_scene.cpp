@@ -8,10 +8,6 @@
 
 #include "custom_pipeline_state.h"
 
-#if defined(USE_IMGUI)
-#include "Editor/editor_camera.h"
-#endif // defined(USE_IMGUI)
-
 dummy_scene::dummy_scene()
 : scene_base()
 {
@@ -37,18 +33,6 @@ bool dummy_scene::initialize_core()
 		mouse::instance()->set_center_lock(false);
 		mouse::instance()->set_cursol_hide(false);
 	}
-
-#if defined(USE_IMGUI)
-	//	エディターカメラ生成
-	{
-		auto camera = std::make_shared<editor_camera>(main_camera);
-		camera->set_position(system_units::convert_m_to_unit(math::float3(0.0f, 1.0f, 8.0f)));
-		camera->set_rotation({ 0, math::constants<float>::pi, 0 });
-		camera->set_rotation_speed(camera->get_rotation_speed() * 0.25f);
-		camera->set_move_speed(camera->get_move_speed() * 0.25f);
-		register_object(camera);
-	}
-#endif // defined(USE_IMGUI)
 
 	//	ライト生成
 	{

@@ -53,6 +53,8 @@ namespace ImGui
     }
 
     bool InputText(const char* label, std::string& str, ImGuiInputTextFlags flags = 0);
+    bool InputText(const char* label, std::string& str, ImGuiInputTextFlags flags, ImGuiInputTextCallback callback, void* user_data = nullptr);
+    bool InputTextWithHint(const char* label, const char* hint, std::string& str, ImGuiInputTextFlags flags = 0);
 
     //  SJIS>UTF8‚É“à•”‚Å•ÏŠ·‚·‚éƒ^ƒCƒv
     bool InputTextUtf8(const char* label, std::string& str, ImGuiInputTextFlags flags = 0);

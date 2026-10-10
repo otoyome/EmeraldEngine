@@ -134,7 +134,6 @@ void occlusion_culling_system::update(graphics_context& context, hiz_buffer& hiz
 		instance_aabb_cpu a{};
 		a.bmin = bd.bounds_min;
 		a.bmax = bd.bounds_max;
-		//	@tool アニメーションの有無に関わらず、カリング指定されたものを判定対象にする
 		a.testable = system_utility::is_bitflag(bd.system_flags, buffer_datas::flags::culling) ? 1.0f : 0.0f;
 		aabbs.emplace_back(a);
 		last_unique_ids.emplace_back(bd.unique_id);

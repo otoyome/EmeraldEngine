@@ -41,6 +41,11 @@ void camera_manager::remove_view_target(const camera_ptr& source)
 		[&source](const std::weak_ptr<camera>& target) { return target.expired() || target.lock() == source; }), view_targets.end());
 }
 
+void camera_manager::set_override_view(const camera_ptr& source)
+{
+	override_view = source;
+}
+
 bool camera_manager::select_view(view_selection& selection)
 {
 	//	ÅŒã”ö‚Ì—LŒø‚È•¨‚ðŽ‹“_‚É‚·‚é
@@ -57,6 +62,16 @@ bool camera_manager::select_view(view_selection& selection)
 			break;
 		}
 	}
+
+	//	ã‘‚«‘O‚ÌƒQ[ƒ€‘¤‚ÌŽ‹“_‚ðT‚¦‚Ä‚¨‚­
+	has_game_view = source != nullptr;
+	if (source)
+		game_view = source->parameters;
+
+	//	ã‘‚«Ž‹“_‚ª‚ ‚ê‚Î—Dæ‚·‚é
+	if (auto override_source = override_view.lock(); override_source && override_source->is_active())
+		source = override_source;
+
 	if (!source)
 		return false;
 

@@ -3,6 +3,9 @@
 #include "scenes/scene_base.h"
 #include "collision/collision.h"
 
+#if defined(USE_IMGUI)
+#include "Editor/editor_camera.h"
+
 //	当たり判定確認シーン
 class collision_test_scene : public scene_base
 {
@@ -89,6 +92,8 @@ private:
 	cast_desc cast;
 	bool draw_ghost = true;
 
+	editor_camera_manager::scene_request_ptr editor_camera_request;
+
 	//	表示用の判定結果
 	bool hit_ab = false;
 	bool hit_ab_without_data = false;
@@ -102,3 +107,4 @@ private:
 	std::vector<test_result> test_results;
 	size_t test_passed_count = 0;
 };
+#endif	//	defined(USE_IMGUI)

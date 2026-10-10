@@ -29,6 +29,8 @@ public:
 	uint32_t register_sdf(ID3D11DeviceContext* device_context, const collision::cubic_sdf& sdf);
 	void unregister_sdf(ID3D11DeviceContext* device_context, uint32_t sdf_id);
 
+	void set_space_origin(ID3D11DeviceContext* device_context, const math::vector3d& origin);
+
 	ID3D11ShaderResourceView* get_voxel_shader_resource_view() const { return voxel_shader_resource_view.Get(); }
 	ID3D11ShaderResourceView* get_header_shader_resource_view() const { return header_shader_resource_view.Get(); }
 
@@ -41,5 +43,8 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> header_shader_resource_view;
 
 	std::vector<sdf_header> headers;
+	std::vector<math::vector3d> world_bounds_min;
+	std::vector<math::vector3d> world_bounds_max;
+	math::vector3d space_origin;
 	std::vector<uint32_t> free_header_ids;
 };

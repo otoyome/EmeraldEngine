@@ -4,7 +4,7 @@
 #include "pmx_rendering.hlsli"
 #include "gbuffer.hlsli"
 
-//  è¼ªéƒ­ç·šç®—å‡ºé–¢æ•°
+//  —ÖŠsüZoŠÖ”
 float3 calculate_outline_position(float3 w_position, float3 w_normal)
 {
     return w_position + w_normal * outline_size;

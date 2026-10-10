@@ -12,8 +12,8 @@ class collision_octree
 public:
 	struct aabb
 	{
-		math::float3 min;
-		math::float3 max;
+		math::double3 min;
+		math::double3 max;
 
 		//	2‚Â‚ÌAABB‚ªŒğ·‚µ‚Ä‚¢‚é‚©
 		static bool intersects(const aabb& lhs, const aabb& rhs)
@@ -61,17 +61,17 @@ private:
 	//	”ª•ª–Øƒm[ƒh
 	struct node
 	{
-		math::float3 center;
-		float half_size;
+		math::double3 center;
+		double half_size;
 		std::vector<entry> entries;
 		size_t children[8];
 	};
 
 private:
-	size_t allocate_node(const math::float3& center, float half_size);
+	size_t allocate_node(const math::double3& center, double half_size);
 	void insert_recursive(std::size_t node_index, int depth, const entry& item);
 	int  child_octant_containing(const node& parent, const aabb& bounds) const;
-	void child_bounds(const node& parent, int octant, math::float3& out_center, float& out_half) const;
+	void child_bounds(const node& parent, int octant, math::double3& out_center, double& out_half) const;
 	void collect_recursive(std::size_t node_index, std::vector<const entry*>& ancestors, std::vector<object_pair>& out_pairs) const;
 	void query_recursive(std::size_t node_index, const aabb& bounds, std::vector<collision_object*>& out_objects) const;
 

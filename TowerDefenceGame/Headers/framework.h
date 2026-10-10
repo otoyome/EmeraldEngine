@@ -125,14 +125,6 @@ private:	//	その他
 	render_pass imgui_rendering_pass;
 	D3D11_VIEWPORT imgui_viewport;
 
-	//	3D空間にグリッド表示用
-	bool display_grid_xz{ true };
-	bool display_grid_xy{ false };
-	bool display_grid_yz{ false };
-	int display_grid_length{ 100 };
-	bool draw_mesh_aabb{ false };
-	bool draw_collision{ false };
-
 	//	ログ系
 	logger::categorys display_log_category = logger::categorys::max;
 	UINT display_log_flags = (1 << static_cast<UINT>(logger::levels::error)) | (1 << static_cast<UINT>(logger::levels::warning));
@@ -149,6 +141,9 @@ private:	//	その他
 	void imgui_memory_allocator_window();
 	void imgui_textures_window();
 	void imgui_scene_change();
+
+	void imgui_console_window();
+	void imgui_console_commands_window();
 
 	void build_debug_primitives(const render_data_context& render_data);
 #endif // defined(USE_IMGUI)

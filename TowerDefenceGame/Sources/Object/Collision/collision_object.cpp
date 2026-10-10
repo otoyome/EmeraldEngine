@@ -287,19 +287,19 @@ void collision_object::debug_draw()
 		case collision::bounding_object::types::sphere:
 		{
 			auto object = std::static_pointer_cast<collision::bounding_sphere>(bounding_object);
-			QUEUE_DEBUG_PRIMITIVE_SPHERE(object->get_position().to_float3(), static_cast<float>(object->get_radius()), draw_color, true);
+			QUEUE_DEBUG_PRIMITIVE_SPHERE(object->get_position().to_double3(), static_cast<float>(object->get_radius()), draw_color, true);
 			break;
 		}
 		case collision::bounding_object::types::capsule:
 		{
 			auto object = std::static_pointer_cast<collision::bounding_capsule>(bounding_object);
-			QUEUE_DEBUG_PRIMITIVE_CAPSULE(object->get_position().to_float3(), object->get_rotation().to_float4(), static_cast<float>(object->get_radius()), static_cast<float>(object->get_length()), draw_color, true);
+			QUEUE_DEBUG_PRIMITIVE_CAPSULE(object->get_position().to_double3(), object->get_rotation().to_float4(), static_cast<float>(object->get_radius()), static_cast<float>(object->get_length()), draw_color, true);
 			break;
 		}
 		case collision::bounding_object::types::box:
 		{
 			auto object = std::static_pointer_cast<collision::bounding_box>(bounding_object);
-			QUEUE_DEBUG_PRIMITIVE_BOX(object->get_position().to_float3(), object->get_rotation().to_float4(), math::float3(object->get_local_scale()), draw_color, true);
+			QUEUE_DEBUG_PRIMITIVE_BOX(object->get_position().to_double3(), object->get_rotation().to_float4(), math::float3(object->get_local_scale()), draw_color, true);
 			break;
 		}
 		case collision::bounding_object::types::mesh:
@@ -347,9 +347,9 @@ void collision_object::debug_draw()
 				for (UINT index = 0;index < block.triangles.size(); ++index)
 				{
 					auto triangle = t + ti[index];
-					auto a = (positions + triangle->a)->to_float3();
-					auto b = (positions + triangle->b)->to_float3();
-					auto c = (positions + triangle->c)->to_float3();
+					auto a = (positions + triangle->a)->to_double3();
+					auto b = (positions + triangle->b)->to_double3();
+					auto c = (positions + triangle->c)->to_double3();
 					QUEUE_DEBUG_PRIMITIVE_LINE(a, b, draw_color, true);
 					QUEUE_DEBUG_PRIMITIVE_LINE(c, b, draw_color, true);
 					QUEUE_DEBUG_PRIMITIVE_LINE(a, c, draw_color, true);

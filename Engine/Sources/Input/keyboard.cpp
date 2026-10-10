@@ -52,6 +52,8 @@ namespace
 		VK_F10,
 		VK_F11,
 		VK_F12,
+
+		VK_OEM_3,
 	};
 }
 

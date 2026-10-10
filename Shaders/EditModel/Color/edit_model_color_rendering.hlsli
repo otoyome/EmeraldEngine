@@ -8,7 +8,7 @@
 
 #include "material_parameter_constant_buffer.hlsli"
 
-//  ãƒãƒ†ãƒªã‚¢ãƒ«æƒ…å ±
+//  ƒ}ƒeƒŠƒAƒ‹î•ñ
 cbuffer MATERIAL_CONSTANT_BUFFER
 {
 	float line_factor;

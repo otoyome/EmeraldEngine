@@ -51,7 +51,6 @@ namespace
 			math::matrixf(node_data.world_transform).decompose(scale, rotation, translation);
 			common_data.scale = scale.to_float3();
 			common_data.rotation = rotation.to_float4();
-			//	@tool ノードはインスタンス位置からの相対なので、double で絶対座標に戻してからシミュレーション空間へ変換する
 			common_data.translation = (instance.get_position() + math::vector3d(translation) - simulation_origin).to_float3();
 
 			if (spawn)
@@ -341,7 +340,6 @@ void effect_instance::update(float elapsed_time)
 	}
 
 	//	姿勢情報
-	//	@tool 位置は double で別に持つため、ノードにはインスタンス位置を原点とした相対の姿勢を入れる
 	const math::matrixf world_transform = math::matrixf::affine_transformation(math::vector3f(scale), rotation.to_quaternion(), math::vector3f::zero());
 
 	//	ノード更新
@@ -549,6 +547,9 @@ void effect_manager::update_gpu(graphics_context& context, float elapsed_time)
 	if (!particle_system)
 		return;
 
+	//	エミッター情報を作る前にシミュレーション原点を確定させる
+	particle_system->update_simulation_origin(context.render_data->render_origin);
+
 	//	パーティクルイベントクリア
 	particle_events.clear();
 
@@ -705,7 +706,6 @@ void effect_manager::get_container(effect_container& effects, decal_container& d
 			math::quaternionf rotation;
 			math::matrixf(node_data.world_transform).decompose(scale, rotation, position);
 			decal.scale = scale.to_float3();
-			//	@tool ノードはインスタンス位置からの相対なので、描画原点からの相対に直す
 			decal.position = (instance->get_position() + math::vector3d(position) - render_origin).to_float3();
 			decal.rotation = math::rotatorf(rotation);
 			decal.box = collision::bounding_box(math::double3(decal.scale), rotation.to_double4(), math::double3(decal.position));

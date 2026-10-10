@@ -1,6 +1,6 @@
 #pragma once
 
-//	視点パラメーター
+//	シーンビューパラメーター
 struct view_parameters
 {
 	math::vector3d position = math::vector3d(0.0, 0.0, 0.0);				//	ワールド座標
@@ -28,13 +28,6 @@ struct view_parameters
 	float get_aspect_ratio() const
 	{
 		return static_cast<float>(screen_rect.z - screen_rect.x) / static_cast<float>(screen_rect.w - screen_rect.y);
-	}
-
-	//	render_origin からの相対座標系の視線行列生成
-	math::matrixf make_view_matrix(const math::vector3d& render_origin) const
-	{
-		const math::vector3f relative_position((position - render_origin).to_float3());
-		return math::matrixf::inverse_rigid_transformation(rotation.to_quaternion(), relative_position);
 	}
 
 	//	透視投影行列生成

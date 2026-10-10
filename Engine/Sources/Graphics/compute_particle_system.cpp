@@ -15,6 +15,9 @@ namespace
 	static constexpr UINT max_erase_particle_list = 128;	//	一度に破棄できるエミッター数
 	static constexpr UINT max_particle_event = 1024;		//	最大パーティクルイベント数
 
+	//	シミュレーション原点を移す距離
+	static constexpr float simulation_rebase_distance = system_units::convert_m_to_unit(1024.0f);
+
 	//	その他定数
 	static constexpr UINT number_of_vertices_per_particle = 6;	//	triangle_listで描画するので
 	static constexpr UINT max_emitter = 1 << 10;	//	システム的なエミッター最大数
@@ -61,14 +64,16 @@ namespace
 	//	汎用情報定義
 	struct common_constants
 	{
-		UINT				total_emitter_count;						//	エミッター最大数
-		UINT				total_particle_count;						//	パーティクル最大数
-		UINT				total_cpu_spawn_count;						//	CPU側での発生予定パーティクル数(厳密にはシェーダー側で管理)
-		UINT				total_emitter_spawn_count;					//	エミッター発生数合計(spawn_offsetの合計)
+		UINT			total_emitter_count;						//	エミッター最大数
+		UINT			total_particle_count;						//	パーティクル最大数
+		UINT			total_cpu_spawn_count;						//	CPU側での発生予定パーティクル数(厳密にはシェーダー側で管理)
+		UINT			total_emitter_spawn_count;					//	エミッター発生数合計(spawn_offsetの合計)
 
-		UINT				erase_id_count;								//	破棄Id数
-		math::float3	simulation_to_render_offset;					//	@tool シミュレーション空間から描画空間（描画原点からの相対）へのオフセット
-		math::uint4	erase_id_list[max_erase_particle_list / 4];	//	エミッター破棄Idリスト
+		UINT			erase_id_count;								//	破棄Id数
+		math::float3	simulation_to_render_offset;				//	シミュレーション空間から描画空間へのオフセット
+		math::float3	simulation_rebase_offset;					//	シミュレーション原点の移動量
+		UINT			common_constant_dummy;
+		math::uint4		erase_id_list[max_erase_particle_list / 4];	//	エミッター破棄Idリスト
 	};
 
 	//	汎用情報定義
@@ -126,6 +131,8 @@ namespace
 		"Shaders/ComputeParticle/System/compute_particle_end_update_cs.hlsl",
 
 		"Shaders/ComputeParticle/System/compute_particle_build_primitive_cs.hlsl",
+
+		"Shaders/ComputeParticle/System/compute_particle_rebase_particles_cs.hlsl",
 	};
 }
 
@@ -594,6 +601,22 @@ void compute_particle_system::set_cubic_sdf_gpu_resource(std::shared_ptr<cubic_s
 	sdf_buffer_pool = resource;
 }
 
+void compute_particle_system::update_simulation_origin(const math::vector3d& render_origin)
+{
+	const math::vector3d delta = render_origin - simulation_origin;
+	const double rebase_distance = static_cast<double>(simulation_rebase_distance);
+	if (delta.square_length() <= rebase_distance * rebase_distance)
+		return;
+
+	//	GPU 上のパーティクルは次の update でまとめてずらすので、移動量を貯めておく
+	const math::float3 offset = delta.to_float3();
+	pending_rebase_offset.x += offset.x;
+	pending_rebase_offset.y += offset.y;
+	pending_rebase_offset.z += offset.z;
+	pending_rebase = true;
+	simulation_origin = render_origin;
+}
+
 void compute_particle_system::reset()
 {
 	pending_reset = true;
@@ -826,6 +849,8 @@ void compute_particle_system::update(graphics_context& context, float elapsed_ti
 		constant.total_emitter_spawn_count = total_spawn_cpu_particle_count;	//	イベント用の割り当て開始位置算出用
 		constant.erase_id_count = erase_id_count;
 		constant.simulation_to_render_offset = (simulation_origin - context.render_data->render_origin).to_float3();
+		constant.simulation_rebase_offset = pending_rebase ? pending_rebase_offset : math::float3(0.0f, 0.0f, 0.0f);
+		constant.common_constant_dummy = 0;
 		for (UINT index = 0; index < constant.erase_id_count; ++index)
 			(&constant.erase_id_list[0].x)[index] = erase_id_list[index];
 		context.device_context->UpdateSubresource(common_constant_buffer.Get(), 0, nullptr, &constant, 0, 0);
@@ -919,6 +944,25 @@ void compute_particle_system::update(graphics_context& context, float elapsed_ti
 			initialize_buffer.data(),
 			sizeof(UINT) * static_cast<UINT>(initialize_buffer.size()),
 			0);
+	}
+
+	//	シミュレーション原点の移動分、生存パーティクルの座標をずらす
+	if (pending_rebase)
+	{
+		context.device_context->CSSetUnorderedAccessViews(0, 1, particle_binary_unordered_access_view[current_buffer_index].GetAddressOf(), nullptr);
+		context.device_context->CSSetShaderResources(0, 1, emitter_header_shader_resource_view.GetAddressOf());
+		context.device_context->CSSetShaderResources(1, 1, emitter_binary_shader_resource_view[current_buffer_index].GetAddressOf());
+		context.device_context->CSSetShaderResources(2, 1, particle_header_shader_resource_view.GetAddressOf());
+		context.device_context->CSSetShader(compute_shaderes[static_cast<int>(dispatch_shaderes::rebase_particles)]->get_shader().Get(), nullptr, 0);
+		context.device_context->Dispatch(total_particle_count / NumDispatchThread, 1, 1);
+		clear_resources(context.device_context);
+
+		//	SDF の範囲もシミュレーション空間に合わせる
+		if (sdf_buffer_pool)
+			sdf_buffer_pool->set_space_origin(context.device_context, simulation_origin);
+
+		pending_rebase = false;
+		pending_rebase_offset = { 0.0f, 0.0f, 0.0f };
 	}
 
 	//	更新開始処理

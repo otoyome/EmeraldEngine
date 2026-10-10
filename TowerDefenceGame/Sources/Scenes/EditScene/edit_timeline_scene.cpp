@@ -582,8 +582,8 @@ edit_timeline_scene::~edit_timeline_scene()
 
 const view_parameters* edit_timeline_scene::find_current_view_parameters() const
 {
-	if (editor_camera_object && editor_camera_object->is_active())
-		return &editor_camera_object->get_camera()->get_parameters();
+	if (editor_camera_manager::instance()->is_enabled())
+		return &editor_camera_manager::instance()->get_camera()->get_camera()->get_parameters();
 	if (main_camera)
 		return &main_camera->get_camera()->get_parameters();
 	return nullptr;
@@ -687,13 +687,10 @@ bool edit_timeline_scene::initialize_core()
 
 	//	エディターカメラ生成
 	{
-		auto camera = std::make_shared<editor_camera>(main_camera);
-		camera->set_position(system_units::convert_m_to_unit(math::float3(0.0f, 1.0f, 8.0f)));
-		camera->set_rotation({ 0, math::constants<float>::pi, 0 });
-		camera->set_rotation_speed(camera->get_rotation_speed() * 0.25f);
-		camera->set_move_speed(camera->get_move_speed() * 0.25f);
-		register_object(camera);
-		editor_camera_object = camera;
+		editor_camera_request = editor_camera_manager::instance()->request(
+			system_units::convert_m_to_unit(math::vector3d(0.0, 1.0, 8.0)),
+			{ 0, math::constants<float>::pi, 0 },
+			0.25f);
 	}
 
 	//	エディターアイテム用コンテキスト生成
@@ -710,6 +707,7 @@ bool edit_timeline_scene::uninitialize_core()
 {
 	clear_active_effects();
 	clear_object_models();
+	editor_camera_request.reset();
 	return true;
 }
 
@@ -1053,8 +1051,9 @@ void edit_timeline_scene::apply_timeline_state()
 	{
 		auto& entry = *active_camera_entry;
 
-		if (editor_camera_object && editor_camera_object->is_active())
-			editor_camera_object->set_active(false);
+		//	タイムラインのカメラを見せるためエディターカメラを一時停止
+		if (editor_camera_request)
+			editor_camera_request->set_suspended(true);
 
 		const float denom = std::max(0.0001f, entry.end_time - entry.start_time);
 		const float t = math::saturate((current_time - entry.start_time) / denom);
@@ -1076,15 +1075,11 @@ void edit_timeline_scene::apply_timeline_state()
 		main_camera->set_world_rotation(math::quaterniond(math::quaternionf(quaternion)));
 		main_camera->get_camera()->get_parameters().fov_y = fov_y;
 	}
-	else if (editor_camera_object && !editor_camera_object->is_active())
+	else if (editor_camera_request && editor_camera_request->is_suspended())
 	{
 		//	タイムライン区間から抜けたら、現在のカメラ姿勢を引き継いでフリーカメラへ戻す
-		if (main_camera)
-		{
-			editor_camera_object->set_position(main_camera->get_world_translation().to_float3());
-			editor_camera_object->set_rotation(math::rotatorf(main_camera->get_world_euler()));
-		}
-		editor_camera_object->set_active(true);
+		//	再開時にエディターカメラ側が直前のゲーム視点（メインカメラ）を引き継ぐ
+		editor_camera_request->set_suspended(false);
 	}
 
 	if (is_playing)

@@ -9,7 +9,7 @@ debug_primitive_manager::debug_primitive_manager()
 	HRESULT hr;
 	auto device = render_data::instance()->get_device();
 
-	//	é ‚ç‚¹ãƒãƒƒãƒ•ã‚¡
+	//	’¸“_ƒoƒbƒtƒ@
 	for (auto& vertex_buffer_view : vertex_buffer_views)
 	{
 		buffer_view vertex_buffer;
@@ -37,7 +37,7 @@ void debug_primitive_manager::get_container(debug_draw_primitive_container& cont
 {
 	auto immediate_context = render_data::instance()->get_immediate_context();
 
-	//	æç”»ç™»éŒ²
+	//	•`‰æ“o˜^
 	HRESULT hr{ S_OK };
 	for (UINT index = 0; index < static_cast<int>(debug_draw_primitive_container::line_buffer_id::max); ++index)
 	{
@@ -48,7 +48,7 @@ void debug_primitive_manager::get_container(debug_draw_primitive_container& cont
 		auto& main_mesh = container.line_buffer_datas[index].color_meshs.emplace_back();
 		auto& view = vertex_buffer_views[index].begin()->second;
 
-		//	@tool æç”»åŸç‚¹ã‹ã‚‰ã®ç›¸å¯¾åº§æ¨™ã«å¤‰æ›ã—ã¦è»¢é€ã™ã‚‹
+		//	•`‰æŒ´“_‚©‚ç‚Ì‘Š‘ÎÀ•W‚É•ÏŠ·‚µ‚Ä“]‘—
 		upload_vertices.clear();
 		upload_vertices.reserve(vertices[index].size());
 		for (const auto& queued : vertices[index])
@@ -64,10 +64,10 @@ void debug_primitive_manager::get_container(debug_draw_primitive_container& cont
 		immediate_context->UpdateSubresource(view.buffer.Get(), 0, &dst_box,
 											 upload_vertices.data(), copy_bytes, 0);
 
-		//	é ‚ç‚¹æ•°ã®è¨­å®š
+		//	’¸“_”‚Ìİ’è
 		view.size_in_bytes = view.stride_in_bytes * vertices[index].size();
 
-		//	ã‚³ãƒ³ãƒ†ãƒŠã«ç™»éŒ²
+		//	ƒRƒ“ƒeƒi‚É“o˜^
 		main_mesh.vertex_buffer_views = &vertex_buffer_views[index];
 		vertices[index].clear();
 	}
@@ -90,7 +90,7 @@ void debug_primitive_manager::queue_line(const math::double3 start, const math::
 
 void debug_primitive_manager::queue_sphere(const math::double3 center, float radius, const math::float4 color, bool depth_write)
 {
-	//	çƒã®å½¢çŠ¶ã‚’ç™»éŒ²
+	//	‹…‚ÌŒ`ó‚ğ“o˜^
 	std::vector<math::double3> vertices;
 	vertices.emplace_back(center.x, center.y + radius, center.z);
 
@@ -152,9 +152,8 @@ void debug_primitive_manager::queue_sphere(const math::double3 center, float rad
 
 void debug_primitive_manager::queue_capsule(const math::double3 center, const math::float4 rotation, float radius, float length, const math::float4& color, bool depth_write)
 {
-	//	ã‚«ãƒ—ã‚»ãƒ«å½¢çŠ¶ã‚’ç™»éŒ²
+	//	ƒJƒvƒZƒ‹Œ`ó‚ğ“o˜^
 	const math::quaternionf quaternion = math::quaternionf(rotation).normalized();
-	//	@tool ä¸­å¿ƒãŒçµ¶å¯¾åº§æ¨™ãªã®ã§ double ã§çµ„ã¿ç«‹ã¦ã‚‹
 	const math::vector3d Center(center);
 	const math::vector3d Up(quaternion.up());
 	const math::vector3d Right(quaternion.right());
@@ -228,7 +227,6 @@ void debug_primitive_manager::queue_box(const math::double3 position, const math
 }
 
 
-//	@tool å˜ç²¾åº¦åº§æ¨™ç”¨ã®å—ã‘å£ï¼ˆçµ¶å¯¾åº§æ¨™ã¨ã—ã¦æ‰±ã†ï¼‰
 void debug_primitive_manager::queue_line(const math::float3 start, const math::float3 end, const math::float4 color, bool depth_write)
 {
 	queue_line(math::double3(start), math::double3(end), color, depth_write);

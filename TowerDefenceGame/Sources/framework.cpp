@@ -32,16 +32,47 @@
 #include "System/engine_config_data.h"
 
 #if defined(USE_IMGUI)
+#include "System/editor_config_data.h"
+#include "System/console_manager.h"
 #include "Graphics/debug_primitive_collector.h"
 #include "Editor/editor_items.h"
+#include "Editor/editor_camera.h"
 #endif // defined(USE_IMGUI)
 
 #include "Editor/detail_profiler.h"
+#include "System/console_manager.h"
 
 namespace
 {
 	//	view_stateの破棄フレーム数
 	constexpr uint64_t scene_view_state_keep_frames = 60;
+
+#if defined(USE_IMGUI)
+	//	描画関係のデバッグ設定
+	console_variable<bool> single_thread_variable("r.single_thread", false, "描画処理をシングルスレッドで行う");
+
+	console_variable<bool> freeze_culling_variable("r.culling.freeze", false, "カリング結果を固定する（メイン視点）");
+	console_variable<bool> visualize_meshlets_variable("r.meshlet.visualize", false, "メッシュレット単位で色分け表示する（メイン視点）");
+
+	//	ゲーム進行のデバッグコマンド
+	console_command pause_command("game.pause", "一時停止を切り替える（game.pause [0|1]）",
+		[](const console_command::arguments& args)
+		{
+			if (!object_manager::is_valid())
+				return;
+			bool pause = !object_manager::instance()->get_pause();
+			if (!args.empty())
+				console_detail::from_string(args[0], pause);
+			object_manager::instance()->set_pause(pause);
+			console_manager::instance().print(pause ? "pause : 1" : "pause : 0");
+		});
+	console_command step_command("game.step", "一時停止中に1フレーム進める",
+		[](const console_command::arguments&)
+		{
+			if (object_manager::is_valid())
+				object_manager::instance()->called_step();
+		});
+#endif	//	defined(USE_IMGUI)
 }
 
 framework::framework(HWND hwnd) : hwnd(hwnd)
@@ -211,10 +242,10 @@ bool framework::initialize()
 	ik_resource_manager::create_instance();
 	minigame_record_data::create_instance();
 #if defined(USE_IMGUI)
-	debug_primitive_manager::create_instance();
+	editor_config_data::create_instance();
 	detail_profiler::create_instance();
-#endif // defined(USE_IMGUI)
-#if defined(USE_IMGUI)
+	debug_primitive_manager::create_instance();
+	editor_camera_manager::create_instance();
 	editor_items::initialize();
 #endif // defined(USE_IMGUI)
 
@@ -347,6 +378,11 @@ void framework::update(float elapsed_time/*Elapsed seconds from last frame*/)
 		keyboard::instance()->update_state();
 	}
 
+#if defined(USE_IMGUI)
+	//	キー割り当てされたコンソールコマンドを実行
+	console_manager::instance().update_bindings();
+#endif //	defined(USE_IMGUI)
+
 	//	シーン内の更新
 	if (scene_manager::is_valid())
 	{
@@ -367,6 +403,14 @@ void framework::update(float elapsed_time/*Elapsed seconds from last frame*/)
 		DETAIL_PROFILE_CPU_SCOPE("update.effect_manager");
 		effect_manager::instance()->update(elapsed_time);
 	}
+
+#if defined(USE_IMGUI)
+	//	エディターカメラ更新
+	if (editor_camera_manager::is_valid())
+	{
+		editor_camera_manager::instance()->update(elapsed_time);
+	}
+#endif //	defined(USE_IMGUI)
 
 #if defined(USE_IMGUI)
 	//	ImGuiウィンドウ構築の計測
@@ -412,9 +456,12 @@ void framework::update(float elapsed_time/*Elapsed seconds from last frame*/)
 
 	//	シーン変更
 	imgui_scene_change();
+
+	//	コンソール
+	imgui_console_window();
+	imgui_console_commands_window();
 #endif // defined(USE_IMGUI)
 }
-
 
 void framework::build_particle_render_lists(const render_data_context& render_data, render_particle_indices& particle_indices)
 {
@@ -446,11 +493,15 @@ void framework::build_particle_render_lists(const render_data_context& render_da
 	}
 }
 
-
 void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 {
 	//	描画処理全体の計測
 	DETAIL_PROFILE_CPU_SCOPE("render");
+
+#if defined(USE_IMGUI)
+	//	コンソール変数の反映
+	render_executor->set_single_thread_mode(single_thread_variable.get());
+#endif	//	defined(USE_IMGUI)
 
 	//	描画前処理
 	if (object_manager::is_valid())
@@ -478,10 +529,10 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 		render_data->render_origin = render_origin;
 
 		//	ライト情報収集
-		light_manager::instance()->get_container(render_data->light_container);
+		light_manager::instance()->get_container(render_data->light_container, render_origin);
 
 		//	ポストプロセスボリューム取得
-		post_process_volume_manager::instance()->get_container(render_data->post_process_volume_container);
+		post_process_volume_manager::instance()->get_container(render_data->post_process_volume_container, main_view_parameters.position);
 
 		//	メッシュ取得
 		model_instance_manger::instance()->get_container(render_data->mesh_container, render_origin);
@@ -571,7 +622,11 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 		//	メイン視点で描画
 		{
 			const scene_view_state_ptr& main_state = scene_view_states.acquire(main_scene_view_state_key, render_frame_index);
-			const scene_view_ptr main_view = std::make_shared<const scene_view>(scene_view::from_parameters(main_view_parameters, engine_config_data::instance()->rendering.camera_relative_rendering));
+#if defined(USE_IMGUI)
+			main_state->set_freeze_culling(freeze_culling_variable.get());
+			main_state->set_debug_visualize_meshlets(visualize_meshlets_variable.get());
+#endif	//	defined(USE_IMGUI)
+			const scene_view_ptr main_view = std::make_shared<const scene_view>(scene_view::from_parameters(main_view_parameters, render_data->render_origin));
 			main_state->begin_frame(*main_view, main_view_camera_cut);
 
 			//	レンダラーコンテキスト準備
@@ -865,9 +920,9 @@ bool framework::uninitialize()
 
 #if defined(USE_IMGUI)
 	editor_items::terminate();
-#endif // defined(USE_IMGUI)
-#if defined(USE_IMGUI)
+	editor_camera_manager::delete_instance();
 	debug_primitive_manager::delete_instance();
+	editor_config_data::delete_instance();
 	detail_profiler::delete_instance();
 #endif // defined(USE_IMGUI)
 	ik_resource_manager::delete_instance();

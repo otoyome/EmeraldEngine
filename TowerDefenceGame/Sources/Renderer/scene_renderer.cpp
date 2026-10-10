@@ -157,35 +157,22 @@ void gbuffer_renderer::render(renderer_context& renderer_context)
 		scene_renderer_commons::particle_render(context, renderer_context.render_particle_indices->mask, material::surface_paths::g_buffer_pass);
 
 		//	スカイライト処理
-		for (const auto& data : context.render_data->light_container.light_probes)
+		for (const auto& light_probe : context.render_data->light_container.light_probes)
 		{
-			const light_probe* light_probe = data.get();
-			if (!light_probe->is_flag(light_probe::flags::active) || !light_probe->is_flag(light_probe::flags::unbind))
+			if (!light_probe.is_flag(light_probe::flags::active) || !light_probe.is_flag(light_probe::flags::unbind))
 			{
 				continue;
 			}
 
 			//	IBLテクスチャ設定
-			context.diffuse_ibl_texture = light_probe->get_diffuse_ibl_texture();
-			context.specluar_ibl_texture = light_probe->get_specular_ibl_texture();
-			context.lut_ggx_texture = light_probe->get_lut_ggx_texture();
+			context.diffuse_ibl_texture = light_probe.diffuse_ibl_texture;
+			context.specluar_ibl_texture = light_probe.specular_ibl_texture;
+			context.lut_ggx_texture = light_probe.lut_ggx_texture;
 
 			//	間接光の情報を設定
-			light_probes probe;
-			const math::float3 probe_position = light_probe->get_relative_position(context.render_data->render_origin);
-			probe.position.x = probe_position.x;
-			probe.position.y = probe_position.y;
-			probe.position.z = probe_position.z;
-			probe.inner_area.x = light_probe->get_inner_range().x;
-			probe.inner_area.y = light_probe->get_inner_range().y;
-			probe.inner_area.z = light_probe->get_inner_range().z;
-			probe.outer_area.x = light_probe->get_outer_range().x;
-			probe.outer_area.y = light_probe->get_outer_range().y;
-			probe.outer_area.z = light_probe->get_outer_range().z;
-			probe.color = light_probe->get_color();
 			context.deferred_light_constant = {};
-			context.deferred_light_constant.light_data = light_data_utility::convert_light_data(probe);
-			context.deferred_light_constant.light_attribute = light_probe->get_attribute();
+			context.deferred_light_constant.light_data = light_data_utility::convert_light_data(light_probe.data);
+			context.deferred_light_constant.light_attribute = light_probe.attribute;
 
 			//	全画面描画
 			skybox_pipeline_states->begin(context);
@@ -568,51 +555,50 @@ void deffered_lighting_renderer::render(renderer_context& context)
 	render_indirect(context);
 
 	//	ライティング処理
-	for (const auto& data : context.render_data->light_container.lights)
+	for (const auto& light : context.render_data->light_container.lights)
 	{
-		const light* light = data.get();
-		if (!light->is_flag(light::flags::active))
+		if (!light.is_flag(light::flags::active))
 			continue;
 
-		switch (light->get_light_type())
+		switch (light.type)
 		{
 			case light_type::directional:
 			{
 				//	シャドウマップ生成
 				common_pipeline_states::shadow_map_constants shadow_map_constant{};
-				if (light->is_flag(light::flags::use_shadow))
+				if (light.is_flag(light::flags::use_shadow))
 				{
-					render_directional_shadow_map(*light, shadow_map_constant, context);
+					render_directional_shadow_map(light, shadow_map_constant, context);
 				}
 
 				//	ライティング処理
-				render_directional(*light, shadow_map_constant, context);
+				render_directional(light, shadow_map_constant, context);
 				break;
 			}
 			case light_type::point:
 			{
 				//	シャドウマップ生成
 				common_pipeline_states::shadow_map_constants shadow_map_constant{};
-				if (light->is_flag(light::flags::use_shadow))
+				if (light.is_flag(light::flags::use_shadow))
 				{
-					render_point_shadow_map(*light, shadow_map_constant, context);
+					render_point_shadow_map(light, shadow_map_constant, context);
 				}
 
 				//	ライティング処理
-				render_point(*light, shadow_map_constant, context);
+				render_point(light, shadow_map_constant, context);
 				break;
 			}
 			case light_type::spot:
 			{
 				//	シャドウマップ生成
 				common_pipeline_states::shadow_map_constants shadow_map_constant{};
-				if (light->is_flag(light::flags::use_shadow))
+				if (light.is_flag(light::flags::use_shadow))
 				{
-					render_spot_shadow_map(*light, shadow_map_constant, context);
+					render_spot_shadow_map(light, shadow_map_constant, context);
 				}
 
 				//	ライティング処理
-				render_spot(*light, shadow_map_constant, context);
+				render_spot(light, shadow_map_constant, context);
 				break;
 			}
 		}
@@ -640,37 +626,24 @@ void deffered_lighting_renderer::render_indirect(renderer_context& context)
 		context.device_context->RSSetViewports(1, &lighting_pass_viewport);
 
 		//	間接光
-		for (const auto& data : context.render_data->light_container.light_probes)
+		for (const auto& light_probe : context.render_data->light_container.light_probes)
 		{
-			const light_probe* light_probe = data.get();
-			if (!light_probe->is_flag(light_probe::flags::active))
+			if (!light_probe.is_flag(light_probe::flags::active))
 				continue;
 
 			//	間接光の情報を設定
-			light_probes probe;
-			const math::float3 probe_position = light_probe->get_relative_position(context.render_data->render_origin);
-			probe.position.x = probe_position.x;
-			probe.position.y = probe_position.y;
-			probe.position.z = probe_position.z;
-			probe.inner_area.x = light_probe->get_inner_range().x;
-			probe.inner_area.y = light_probe->get_inner_range().y;
-			probe.inner_area.z = light_probe->get_inner_range().z;
-			probe.outer_area.x = light_probe->get_outer_range().x;
-			probe.outer_area.y = light_probe->get_outer_range().y;
-			probe.outer_area.z = light_probe->get_outer_range().z;
-			probe.color = light_probe->get_color();
 			context.deferred_light_constant = {};
-			context.deferred_light_constant.light_data = light_data_utility::convert_light_data(probe);
-			context.deferred_light_constant.light_attribute = light_probe->get_attribute();
+			context.deferred_light_constant.light_data = light_data_utility::convert_light_data(light_probe.data);
+			context.deferred_light_constant.light_attribute = light_probe.attribute;
 
-			if (light_probe->is_flag(light_probe::flags::unbind))
+			if (light_probe.is_flag(light_probe::flags::unbind))
 			{
 				//	全画面描画
 #if defined(USE_CUSTOM_PIPELINE)
 				//	IBLテクスチャ設定
-				deferred_lighting_material->set_texture("diffuse_iem", light_probe->get_diffuse_ibl_texture());
-				deferred_lighting_material->set_texture("specular_pmrem", light_probe->get_specular_ibl_texture());
-				deferred_lighting_material->set_texture("lut_ggx", light_probe->get_lut_ggx_texture());
+				deferred_lighting_material->set_texture("diffuse_iem", light_probe.diffuse_ibl_texture);
+				deferred_lighting_material->set_texture("specular_pmrem", light_probe.specular_ibl_texture);
+				deferred_lighting_material->set_texture("lut_ggx", light_probe.lut_ggx_texture);
 
 				auto pipeline_state =
 					deferred_lighting_material->get_pipeline_state(material::system_paths::deferred_indirect);
@@ -681,9 +654,9 @@ void deffered_lighting_renderer::render_indirect(renderer_context& context)
 				pipeline_state->end(context);
 #else	//	defined(USE_CUSTOM_PIPELINE)
 				//	IBLテクスチャ設定
-				context.diffuse_ibl_texture = light_probe->get_diffuse_ibl_texture();
-				context.specluar_ibl_texture = light_probe->get_specular_ibl_texture();
-				context.lut_ggx_texture = light_probe->get_lut_ggx_texture();
+				context.diffuse_ibl_texture = light_probe.diffuse_ibl_texture;
+				context.specluar_ibl_texture = light_probe.specular_ibl_texture;
+				context.lut_ggx_texture = light_probe.lut_ggx_texture;
 
 				indirect_lighting_pipeline_state->begin(context);
 				scene_renderer_commons::draw(context, indirect_lighting_pipeline_state, 4);
@@ -700,7 +673,7 @@ void deffered_lighting_renderer::render_indirect(renderer_context& context)
 	}, "render_indirect_pass", context, get_render_basis_sort_order() + register_index++);
 }
 
-void deffered_lighting_renderer::render_directional(const light& light, common_pipeline_states::shadow_map_constants& shadow_map_constant, renderer_context& context)
+void deffered_lighting_renderer::render_directional(const light_render_data& light, common_pipeline_states::shadow_map_constants& shadow_map_constant, renderer_context& context)
 {
 	job_executor.execute([this, light, shadow_map_constant](graphics_context& context)
 	{
@@ -708,8 +681,8 @@ void deffered_lighting_renderer::render_directional(const light& light, common_p
 		lighting_pass.activate(context.device_context);
 
 		//	コンテキストに情報登録
-		context.deferred_light_constant.light_data = light.convert_light_data(context.render_data->render_origin);
-		context.deferred_light_constant.light_attribute = light.get_attribute();
+		context.deferred_light_constant.light_data = light.data;
+		context.deferred_light_constant.light_attribute = light.attribute;
 		context.shadow_map_texture = render_targets->shadowmap_depth_texture;
 		context.shadow_map_constant = shadow_map_constant;
 
@@ -740,11 +713,10 @@ void deffered_lighting_renderer::render_directional(const light& light, common_p
 	}, "render_directional_pass", context, get_render_basis_sort_order() + register_index++);
 }
 
-void deffered_lighting_renderer::render_directional_shadow_map(const light& light, common_pipeline_states::shadow_map_constants& shadow_map_constant, renderer_context& context)
+void deffered_lighting_renderer::render_directional_shadow_map(const light_render_data& light, common_pipeline_states::shadow_map_constants& shadow_map_constant, renderer_context& context)
 {
-	math::float4 rotation = light.get_rotation().to_quaternion().to_float4();
+	math::float4 rotation = light.rotation.to_quaternion().to_float4();
 	math::matrixf CameraTransformMatrix = math::matrixf(context.scene_constant.view_transform).inverted();
-	//	@tool 平行光源は軸だけ使う（位置は下で視錐台から決め直すため、ライトの絶対座標は使わない）
 	math::matrixf LightTransformMatrix = math::matrixf::rotation_quaternion(math::quaternionf(rotation));
 	math::matrixf InverseProjectionTransform;
 	InverseProjectionTransform = math::matrixf(context.scene_constant.inverse_projection_transform);
@@ -755,7 +727,6 @@ void deffered_lighting_renderer::render_directional_shadow_map(const light& ligh
 	LightFront = LightTransformMatrix.to_vector3(2);
 	LightPosition = LightTransformMatrix.to_vector3(3);
 
-	//	@tool Stable CSM のスナップ格子は描画原点が動いてもずれないよう、描画原点のライト軸成分を double で求めておく
 	const math::vector3d& render_origin = context.render_data->render_origin;
 	const double origin_x = math::vector3d::dot(render_origin, math::vector3d(LightRight));
 	const double origin_y = math::vector3d::dot(render_origin, math::vector3d(LightUp));
@@ -794,13 +765,13 @@ void deffered_lighting_renderer::render_directional_shadow_map(const light& ligh
 	}
 
 	//	CSM用に遠クリップ面に対して距離制限をかける
-	float far_clip = std::max(near_clip, std::min(light.get_csm_distance(), camera_far_clip));
+	float far_clip = std::max(near_clip, std::min(light.csm_distance, camera_far_clip));
 	float projection_near_clip = scene_renderer_commons::convert_view_depth_to_projection_depth(near_clip, near_clip, camera_far_clip);
 	float projection_far_clip = scene_renderer_commons::convert_view_depth_to_projection_depth(far_clip, near_clip, camera_far_clip);
 
 	//	シャドウマップ情報算出
 	shadow_map_constant.shadow_map_count = directional_shadow_map_count;
-	shadow_map_constant.shadow_attenuation = light.get_shadow_attenuation();
+	shadow_map_constant.shadow_attenuation = light.shadow_attenuation;
 	shadow_map_constant.shadow_mask = 0;
 	collision::frustum_culling frustum_culling;
 	{
@@ -859,7 +830,7 @@ void deffered_lighting_renderer::render_directional_shadow_map(const light& ligh
 		std::vector<float> split_distance;
 		split_distance.resize(directional_shadow_map_count + 1);
 		{
-			float split_weight = light.get_pssm_split_weight();
+			float split_weight = light.pssm_split_weight;
 			float weight = math::lerp(0.1f, 0.9f, split_weight);
 			float divN = far_clip / near_clip, subN = far_clip - near_clip;
 
@@ -878,7 +849,7 @@ void deffered_lighting_renderer::render_directional_shadow_map(const light& ligh
 		//	視錐台を距離で分割してライトビュープロジェクション行列を生成
 		for (UINT index = 0; index < directional_shadow_map_count; ++index)
 		{
-			//	AABBを囲む球体を算出（半径はカメラの回転に依存せず、near/far/FOV/aspectのみで決まる＝Stableな値）
+			//	AABBを囲む球体を算出
 			math::vector3f Center;
 			float radius;
 			compute_frustum_bounding_sphere(scene_renderer_commons::convert_view_depth_to_projection_depth(split_distance[index + 0], near_clip, camera_far_clip),
@@ -894,7 +865,8 @@ void deffered_lighting_renderer::render_directional_shadow_map(const light& ligh
 				float center_x = math::vector3f::dot(Center, LightRight);
 				float center_y = math::vector3f::dot(Center, LightUp);
 				float center_z = math::vector3f::dot(Center, LightFront);
-				//	@tool 絶対座標でスナップしてから描画原点からの相対値に戻す
+
+				//	絶対座標でスナップしてから描画原点からの相対値に戻す
 				const double snapped_x = std::floor((origin_x + center_x) / texel_size_x) * texel_size_x;
 				const double snapped_y = std::floor((origin_y + center_y) / texel_size_y) * texel_size_y;
 				float X = static_cast<float>(snapped_x - origin_x);
@@ -975,15 +947,15 @@ void deffered_lighting_renderer::render_directional_shadow_map(const light& ligh
 	}, "render_directional_shadow_map_pass", context, get_render_basis_sort_order() + register_index++, true);
 }
 
-void deffered_lighting_renderer::render_point(const light& light, common_pipeline_states::shadow_map_constants& shadow_map_constant, renderer_context& context)
+void deffered_lighting_renderer::render_point(const light_render_data& light, common_pipeline_states::shadow_map_constants& shadow_map_constant, renderer_context& context)
 {
 	job_executor.execute([this, light, shadow_map_constant](graphics_context& context)
 	{
 		//	描画先設定
 		lighting_pass.activate(context.device_context);
 
-		context.deferred_light_constant.light_data = light.convert_light_data(context.render_data->render_origin);
-		context.deferred_light_constant.light_attribute = light.get_attribute();
+		context.deferred_light_constant.light_data = light.data;
+		context.deferred_light_constant.light_attribute = light.attribute;
 		context.shadow_map_texture = render_targets->shadowmap_depth_texture;
 		context.shadow_map_constant = shadow_map_constant;
 
@@ -1014,11 +986,11 @@ void deffered_lighting_renderer::render_point(const light& light, common_pipelin
 	}, "render_point_pass", context, get_render_basis_sort_order() + register_index++);
 }
 
-void deffered_lighting_renderer::render_point_shadow_map(const light& light, common_pipeline_states::shadow_map_constants& shadow_map_constant, renderer_context& context)
+void deffered_lighting_renderer::render_point_shadow_map(const light_render_data& light, common_pipeline_states::shadow_map_constants& shadow_map_constant, renderer_context& context)
 {
-	math::float3 position = light.get_relative_position(context.render_data->render_origin);
+	math::float3 position = light.position;
 	math::vector3f position_vector(position);
-	float range = light.get_range();
+	float range = light.range;
 
 	//	キューブマップ6面分の視線方向・上方向(0:+X, 1:-X, 2:+Y, 3:-Y, 4:+Z, 5:-Z)
 	static const math::float3 cube_face_directions[6] =
@@ -1044,7 +1016,7 @@ void deffered_lighting_renderer::render_point_shadow_map(const light& light, com
 
 	//	定数バッファ設定
 	shadow_map_constant.shadow_map_count = 6;
-	shadow_map_constant.shadow_attenuation = light.get_shadow_attenuation();
+	shadow_map_constant.shadow_attenuation = light.shadow_attenuation;
 	shadow_map_constant.shadow_mask = 0;
 
 	for (UINT face = 0; face < 6; ++face)
@@ -1091,15 +1063,15 @@ void deffered_lighting_renderer::render_point_shadow_map(const light& light, com
 
 
 
-void deffered_lighting_renderer::render_spot(const light& light, common_pipeline_states::shadow_map_constants& shadow_map_constant, renderer_context& context)
+void deffered_lighting_renderer::render_spot(const light_render_data& light, common_pipeline_states::shadow_map_constants& shadow_map_constant, renderer_context& context)
 {
 	job_executor.execute([this, light, shadow_map_constant](graphics_context& context)
 	{
 		//	描画先設定
 		lighting_pass.activate(context.device_context);
 
-		context.deferred_light_constant.light_data = light.convert_light_data(context.render_data->render_origin);
-		context.deferred_light_constant.light_attribute = light.get_attribute();
+		context.deferred_light_constant.light_data = light.data;
+		context.deferred_light_constant.light_attribute = light.attribute;
 		context.shadow_map_texture = render_targets->shadowmap_depth_texture;
 		context.shadow_map_constant = shadow_map_constant;
 
@@ -1130,21 +1102,21 @@ void deffered_lighting_renderer::render_spot(const light& light, common_pipeline
 	}, "render_spot_pass", context, get_render_basis_sort_order() + register_index++);
 }
 
-void deffered_lighting_renderer::render_spot_shadow_map(const light& light, common_pipeline_states::shadow_map_constants& shadow_map_constant, renderer_context& context)
+void deffered_lighting_renderer::render_spot_shadow_map(const light_render_data& light, common_pipeline_states::shadow_map_constants& shadow_map_constant, renderer_context& context)
 {
 	auto reserve_scene_constant = context.scene_constant;
 
-	math::float4 rotation = light.get_rotation().to_quaternion().to_float4();
-	math::float3 position = light.get_relative_position(context.render_data->render_origin);
+	math::float4 rotation = light.rotation.to_quaternion().to_float4();
+	math::float3 position = light.position;
 	math::matrixf TransformMatrix, ViewMatrix, ProjectionMatrix;
 	TransformMatrix = math::matrixf::rotation_quaternion(math::quaternionf(rotation))
 					* math::matrixf::translation(position.x, position.y, position.z);
 	ViewMatrix = TransformMatrix.inverted();
-	ProjectionMatrix = math::matrixf::perspective_fov(light.get_outer_cone() * 2.0f, 1.0f, 1.0f, light.get_range());
+	ProjectionMatrix = math::matrixf::perspective_fov(light.outer_cone * 2.0f, 1.0f, 1.0f, light.range);
 
 	//	定数バッファ情報設定
 	shadow_map_constant.shadow_map_count = 1;
-	shadow_map_constant.shadow_attenuation = light.get_shadow_attenuation();
+	shadow_map_constant.shadow_attenuation = light.shadow_attenuation;
 	shadow_map_constant.shadow_split_distance[0].x = -1.0f;
 	shadow_map_constant.shadow_split_distance[0].y = -1.0f;
 	shadow_map_constant.shadow_split_distance[0].z = FLT_MAX;
@@ -1154,7 +1126,7 @@ void deffered_lighting_renderer::render_spot_shadow_map(const light& light, comm
 	{
 		//	ライトの範囲で処理
 		float near_clip = 0.1f;
-		float far_clip = near_clip + light.get_range();
+		float far_clip = near_clip + light.range;
 
 		auto& bias_data = light.get_shadow_bias(0);
 		float depth_bias, slope_depth_bias;

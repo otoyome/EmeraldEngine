@@ -44,6 +44,50 @@ enum class blendable_locations : std::uint8_t
 	unknown,
 };
 
+//	ライト描画情報
+struct light_render_data
+{
+	//	ライト情報
+	light_type type = light_type::directional;
+	UINT attribute = 0;
+	math::float3 position = {0, 0, 0};
+	math::rotatorf rotation = {0, 0, 0};
+	math::float3 direction = {0, 0, 1};
+	math::float4 color = {1, 1, 1, 1};
+	float range = 0.0f;
+	float inner_cone = 0.0f;
+	float outer_cone = 0.0f;
+	light_data data = {};
+
+	//	影関係
+	math::float3 shadow_attenuation = {0, 0, 0};
+	float csm_distance = 0.0f;
+	float pssm_split_weight = 0.0f;
+	light::shadow_map_bias_data bias_data[common_pipeline_states::shadow_map_max];
+
+	bool is_flag(light::flags flag) const { return system_utility::is_bitflag(attribute, 1 << static_cast<UINT>(flag)); }
+	const light::shadow_map_bias_data& get_shadow_bias(int index) const { return bias_data[math::clamp(index, 0, static_cast<int>(common_pipeline_states::shadow_map_max) - 1)]; }
+};
+
+//	ライトプローブ描画情報
+struct light_probe_render_data
+{
+	UINT attribute = 0;
+	light_probes data;
+	texture_ptr diffuse_ibl_texture;
+	texture_ptr specular_ibl_texture;
+	texture_ptr lut_ggx_texture;
+
+	bool is_flag(light_probe::flags flag) const { return system_utility::is_bitflag(attribute, 1 << static_cast<UINT>(flag)); }
+};
+
+//	ライトコンテナ
+struct light_container
+{
+	std::vector<light_render_data> lights;
+	std::vector<light_probe_render_data> light_probes;
+};
+
 //	材質
 class material;
 struct material_datas
@@ -180,8 +224,7 @@ struct debug_draw_primitive_container
 //	描画データコンテキスト
 struct render_data_context
 {
-	//	@tool 描画データ収集時の描画原点（メッシュ・ライト等の相対座標の基準）
-	math::vector3d render_origin;
+	math::vector3d render_origin;	//	描画データ収集時の描画原点
 
 	light_container light_container;
 	post_process_volume_container post_process_volume_container;

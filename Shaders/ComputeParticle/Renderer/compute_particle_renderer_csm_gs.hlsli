@@ -4,7 +4,7 @@
 #include "compute_particle_csm.hlsli"
 #include "scene_constant_buffer.hlsli"
 
-//  å¾®å°ãƒãƒªã‚´ãƒ³ã‚«ãƒªãƒ³ã‚°
+//  ”÷¬ƒ|ƒŠƒSƒ“ƒJƒŠƒ“ƒO
 bool minimum_primitive_culling(float4 pos[3])
 {
     float2 min_position = min(pos[0].xy, min(pos[1].xy, pos[2].xy));
@@ -25,7 +25,7 @@ void main(triangle VS_IN input[3], inout TriangleStream<GS_CSM_OUT> output)
             break;
 
         float4x4 view_projection = light_view_projection_transform[k];
-        //	ã‚«ãƒªãƒ³ã‚°
+        //	ƒJƒŠƒ“ƒO
         float4 positions[3], s_positions[3];
         [unroll] for (i = 0; i < 3; i++)
         {
@@ -33,11 +33,11 @@ void main(triangle VS_IN input[3], inout TriangleStream<GS_CSM_OUT> output)
             s_positions[i] = positions[i] / positions[i].w;
         }
 
-        //  å¾®å°ãƒãƒªã‚´ãƒ³ã¯ã‚«ãƒªãƒ³ã‚°ã™ã‚‹
+        //  ”÷¬ƒ|ƒŠƒSƒ“‚ÍƒJƒŠƒ“ƒO‚·‚é
         if (minimum_primitive_culling(s_positions))
             continue;
 
-        //  ã‚·ãƒ£ãƒ‰ã‚¦ãƒãƒƒãƒ—é©å¿œ
+        //  ƒVƒƒƒhƒEƒ}ƒbƒv“K‰
         float4 offset_parameter = shadow_bias[k];
         [unroll] for (i = 0; i < 3; i++)
         {

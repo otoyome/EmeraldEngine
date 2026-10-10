@@ -23,8 +23,8 @@ namespace
 
 		//	ルート領域を求めつつ、各オブジェクトのAABBを控えておく
 		bool has_any = false;
-		math::float3 world_min{};
-		math::float3 world_max{};
+		math::double3 world_min{};
+		math::double3 world_max{};
 		for (auto& object : objects)
 		{
 			if (!object->is_flag(collision_object::flags::active))
@@ -37,8 +37,8 @@ namespace
 			math::double3 world_min_corner;
 			math::double3 world_max_corner;
 			bounding->include_corner(world_min_corner, world_max_corner);
-			const math::float3 min_corner(world_min_corner);
-			const math::float3 max_corner(world_max_corner);
+			const math::double3& min_corner = world_min_corner;
+			const math::double3& max_corner = world_max_corner;
 
 			collision_octree::aabb box{};
 			box.min = { min_corner.x - broadphase_margin, min_corner.y - broadphase_margin, min_corner.z - broadphase_margin };
@@ -143,8 +143,8 @@ void collision_world::inner_step_simulation(float elapsed_time)
 					math::double3 min1, max1, min2, max2;
 					bounding1->include_corner(min1, max1);
 					bounding2->include_corner(min2, max2);
-					box1.min = math::float3(min1); box1.max = math::float3(max1);
-					box2.min = math::float3(min2); box2.max = math::float3(max2);
+					box1.min = min1; box1.max = max1;
+					box2.min = min2; box2.max = max2;
 				}
 				if (!collision_octree::aabb::intersects(box1, box2))
 					continue;

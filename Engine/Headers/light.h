@@ -37,13 +37,10 @@ public:
 	bool is_flag(flags flag) const { return system_utility::is_bitflag(system_flags, 1 << static_cast<UINT>(flag)); }
 	void set_flag(flags flag, bool value){ system_utility::set_bitflag(system_flags, 1 << static_cast<UINT>(flag), value); }
 
-	//	@tool 描画原点からの相対座標でGPU用のライト情報を作る
-	light_data convert_light_data(const math::vector3d& render_origin) const;
 	light_type get_light_type() const;
+
 	const math::vector3d& get_position() const;
 	void set_position(const math::vector3d& position);
-	//	@tool 描画原点からの相対座標
-	math::float3 get_relative_position(const math::vector3d& render_origin) const;
 	const math::rotatorf& get_rotation() const;
 	void set_rotation(const math::rotatorf& rotation);
 	const math::float4& get_color() const;
@@ -110,8 +107,6 @@ public:
 
 	const math::vector3d& get_position() const;
 	void set_position(const math::vector3d& position);
-	//	@tool 描画原点からの相対座標
-	math::float3 get_relative_position(const math::vector3d& render_origin) const;
 	math::float3 get_inner_range() const;
 	void set_inner_range(const math::float3& inner_range);
 	math::float3 get_outer_range() const;
@@ -135,12 +130,7 @@ ENUM_ATTR_BITFLAG(light_probe::flags);
 using light_ptr = std::shared_ptr<light>;
 using light_probe_ptr = std::shared_ptr<light_probe>;
 
-//	ライトコンテナ
-struct light_container
-{
-	std::vector<light_ptr> lights;
-	std::vector<light_probe_ptr> light_probes;
-};
+struct light_container;
 
 //	ライト管理クラス
 class light_manager
@@ -154,7 +144,7 @@ private:
 public:
 	bool generate_light(light_ptr& out_light, light_type type);
 	bool generate_light_probe(light_probe_ptr& out_light_probe);
-	void get_container(light_container& container);
+	void get_container(light_container& container, const math::vector3d& render_origin);
 
 private:
 	std::vector<std::weak_ptr<light>> lights;

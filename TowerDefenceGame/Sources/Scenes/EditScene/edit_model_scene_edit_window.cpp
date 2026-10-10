@@ -2,6 +2,7 @@
 
 #include "model_instance.h"
 #include "camera.h"
+#include "graphics/scene_view.h"
 
 #include "object/light_object.h"
 
@@ -24,13 +25,10 @@ bool edit_model_scene::initialize_edit_core()
 {
 	//	エディターカメラ生成
 	{
-		auto camera = std::make_shared<editor_camera>(main_camera);
-		camera->set_position(system_units::convert_m_to_unit(math::float3(0.0f, 1.0f, 8.0f)));
-		camera->set_rotation({ 0, math::constants<float>::pi, 0 });
-		camera->set_rotation_speed(camera->get_rotation_speed() * 0.25f);
-		camera->set_move_speed(camera->get_move_speed() * 0.25f);
-		register_object(camera);
-		editor_camera_object = camera;
+		editor_camera_request = editor_camera_manager::instance()->request(
+			system_units::convert_m_to_unit(math::vector3d(0.0, 1.0, 8.0)),
+			{ 0, math::constants<float>::pi, 0 },
+			0.25f);
 	}
 
 	//	エディターアイテム用コンテキスト生成
@@ -54,6 +52,8 @@ bool edit_model_scene::uninitialize_edit_core()
 
 	if (!uninitialize_animation())
 		return false;
+
+	editor_camera_request.reset();
 
 	return true;
 }
@@ -538,13 +538,14 @@ void edit_model_scene::on_mouse_left_down_and_hold(void* data_ptr)
 
 	auto data = static_cast<editor_camera::mouse_position_data*>(data_ptr);
 
-	if (!editor_camera_object)
+	if (!editor_camera_request)
 		return;
 
 	//	表示しているエディターカメラの視点からレイを作る
-	const view_parameters& parameters = editor_camera_object->get_camera()->get_parameters();
-	const math::matrixf view = parameters.make_view_matrix(math::vector3d::zero());
-	const math::matrixf projection = parameters.make_projection_matrix();
+	const view_parameters& parameters = editor_camera_manager::instance()->get_camera()->get_camera()->get_parameters();
+	const scene_view picking_view = scene_view::from_parameters(parameters, math::vector3d::zero());
+	const math::matrixf view(picking_view.get_view_matrix());
+	const math::matrixf projection(picking_view.get_projection_matrix());
 	const math::matrixf viewport = math::matrixf::viewport(0, static_cast<float>(SCREEN_WIDTH), 0, static_cast<float>(SCREEN_HEIGHT), 0, 1);
 
 	const math::float3 start_position = math::vector3f::calc_screen_to_world(data->position.x, data->position.y, 0, view, projection, viewport).to_float3();

@@ -207,6 +207,12 @@
     <ClInclude Include="Headers\System\engine_config_data.h">
       <Filter>Headers\System</Filter>
     </ClInclude>
+    <ClInclude Include="Headers\System\console_manager.h">
+      <Filter>Headers\System</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\System\editor_config_data.h">
+      <Filter>Headers\System</Filter>
+    </ClInclude>
     <ClInclude Include="Headers\Graphics\compute_particle_system.h">
       <Filter>Headers\Graphics</Filter>
     </ClInclude>
@@ -405,6 +411,12 @@
       <Filter>Sources</Filter>
     </ClCompile>
     <ClCompile Include="Sources\System\engine_config_data.cpp">
+      <Filter>Sources\System</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\System\console_manager.cpp">
+      <Filter>Sources\System</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\System\editor_config_data.cpp">
       <Filter>Sources\System</Filter>
     </ClCompile>
     <ClCompile Include="Sources\data_converter_mmd.cpp">

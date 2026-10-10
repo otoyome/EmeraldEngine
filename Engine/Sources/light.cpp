@@ -1,5 +1,108 @@
 #include "light.h"
 #include "texture.h"
+#include "graphics_context.h"
+
+namespace
+{
+	//	シェーダー用のライト情報に変換
+	light_data convert_light_data(const light_render_data& light)
+	{
+		light_data data{};
+		switch(light.type)
+		{
+			case light_type::directional:
+			{
+				directional_lights directional;
+				directional.direction.x = light.direction.x;
+				directional.direction.y = light.direction.y;
+				directional.direction.z = light.direction.z;
+				directional.direction.w = 0;
+				directional.color = light.color;
+				data = light_data_utility::convert_light_data(directional);
+				break;
+			}
+			case light_type::point:
+			{
+				point_lights point;
+				point.position.x = light.position.x;
+				point.position.y = light.position.y;
+				point.position.z = light.position.z;
+				point.position.w = 1.0f;
+				point.color = light.color;
+				point.range = light.range;
+				data = light_data_utility::convert_light_data(point);
+				break;
+			}
+			case light_type::spot:
+			{
+				spot_lights spot;
+				spot.position.x = light.position.x;
+				spot.position.y = light.position.y;
+				spot.position.z = light.position.z;
+				spot.position.w = 1.0f;
+				spot.direction.x = light.direction.x;
+				spot.direction.y = light.direction.y;
+				spot.direction.z = light.direction.z;
+				spot.direction.w = 0;
+				spot.color = light.color;
+				spot.range = light.range;
+				spot.inner_corn = light.inner_cone;
+				spot.outer_corn = light.outer_cone;
+				data = light_data_utility::convert_light_data(spot);
+				break;
+			}
+		}
+		return data;
+	}
+
+	//	ライトの描画情報を描画原点からの相対座標で作る
+	light_render_data make_light_render_data(const light& source, const math::vector3d& render_origin)
+	{
+		light_render_data ret;
+		ret.type = source.get_light_type();
+		ret.attribute = source.get_attribute();
+		ret.position = (source.get_position() - render_origin).to_float3();
+		ret.rotation = source.get_rotation();
+		ret.direction = source.get_rotation().front().to_float3();
+		ret.color = source.get_color();
+		ret.range = source.get_range();
+		ret.inner_cone = source.get_inner_cone();
+		ret.outer_cone = source.get_outer_cone();
+		ret.shadow_attenuation = source.get_shadow_attenuation();
+		ret.csm_distance = source.get_csm_distance();
+		ret.pssm_split_weight = source.get_pssm_split_weight();
+		for (int index = 0; index < static_cast<int>(common_pipeline_states::shadow_map_max); ++index)
+			ret.bias_data[index] = source.get_shadow_bias(index);
+		ret.data = convert_light_data(ret);
+		return ret;
+	}
+
+	//	ライトプローブの描画情報を描画原点からの相対座標で作る
+	light_probe_render_data make_light_probe_render_data(const light_probe& source, const math::vector3d& render_origin)
+	{
+		light_probe_render_data ret;
+		ret.attribute = source.get_attribute();
+
+		const math::float3 position = (source.get_position() - render_origin).to_float3();
+		const math::float3 inner_range = source.get_inner_range();
+		const math::float3 outer_range = source.get_outer_range();
+		ret.data.position.x = position.x;
+		ret.data.position.y = position.y;
+		ret.data.position.z = position.z;
+		ret.data.inner_area.x = inner_range.x;
+		ret.data.inner_area.y = inner_range.y;
+		ret.data.inner_area.z = inner_range.z;
+		ret.data.outer_area.x = outer_range.x;
+		ret.data.outer_area.y = outer_range.y;
+		ret.data.outer_area.z = outer_range.z;
+		ret.data.color = source.get_color();
+
+		ret.diffuse_ibl_texture = source.get_diffuse_ibl_texture();
+		ret.specular_ibl_texture = source.get_specular_ibl_texture();
+		ret.lut_ggx_texture = source.get_lut_ggx_texture();
+		return ret;
+	}
+}
 
 light::light(light_type type)
 : system_flags(0)
@@ -61,59 +164,6 @@ light::~light()
 {
 }
 
-light_data light::convert_light_data(const math::vector3d& render_origin) const
-{
-	const math::float3 relative_position = get_relative_position(render_origin);
-	light_data data{};
-	switch(type)
-	{
-		case light_type::directional:
-		{
-			directional_lights light;
-			math::float3 direction = rotation.front().to_float3();
-			light.direction.x = direction.x;
-			light.direction.y = direction.y;
-			light.direction.z = direction.z;
-			light.direction.w = 0;
-			light.color = color;
-			data = light_data_utility::convert_light_data(light);
-			break;
-		}
-		case light_type::point:
-		{
-			point_lights light;
-			light.position.x = relative_position.x;
-			light.position.y = relative_position.y;
-			light.position.z = relative_position.z;
-			light.position.w = 1.0f;
-			light.color = color;
-			light.range = parameter.x;
-			data = light_data_utility::convert_light_data(light);
-			break;
-		}
-		case light_type::spot:
-		{
-			spot_lights light;
-			math::float3 direction = rotation.front().to_float3();
-			light.position.x = relative_position.x;
-			light.position.y = relative_position.y;
-			light.position.z = relative_position.z;
-			light.position.w = 1.0f;
-			light.direction.x = direction.x;
-			light.direction.y = direction.y;
-			light.direction.z = direction.z;
-			light.direction.w = 0;
-			light.color = color;
-			light.range = parameter.x;
-			light.inner_corn = parameter.y;
-			light.outer_corn = parameter.z;
-			data = light_data_utility::convert_light_data(light);
-			break;
-		}
-	}
-	return data;
-}
-
 light_type light::get_light_type() const
 {
 	return type;
@@ -127,11 +177,6 @@ const math::vector3d& light::get_position() const
 void light::set_position(const math::vector3d& position)
 {
 	this->position = position;
-}
-
-math::float3 light::get_relative_position(const math::vector3d& render_origin) const
-{
-	return (position - render_origin).to_float3();
 }
 
 const math::rotatorf& light::get_rotation() const
@@ -284,11 +329,6 @@ void light_probe::set_position(const math::vector3d& position)
 	this->position = position;
 }
 
-math::float3 light_probe::get_relative_position(const math::vector3d& render_origin) const
-{
-	return (position - render_origin).to_float3();
-}
-
 math::float3 light_probe::get_inner_range() const
 {
 	return inner_range;
@@ -342,7 +382,7 @@ bool light_manager::generate_light_probe(light_probe_ptr& out_light_probe)
 	return true;
 }
 
-void light_manager::get_container(light_container& container)
+void light_manager::get_container(light_container& container, const math::vector3d& render_origin)
 {
 	//	ライト
 	{
@@ -355,7 +395,7 @@ void light_manager::get_container(light_container& container)
 				it = lights.erase(it);
 				continue;
 			}
-			container.lights.emplace_back(it->lock());
+			container.lights.emplace_back(make_light_render_data(*it->lock(), render_origin));
 			++it;
 		}
 	}
@@ -370,7 +410,7 @@ void light_manager::get_container(light_container& container)
 				it = light_probes.erase(it);
 				continue;
 			}
-			container.light_probes.emplace_back(it->lock());
+			container.light_probes.emplace_back(make_light_probe_render_data(*it->lock(), render_origin));
 			++it;
 		}
 	}

@@ -102,12 +102,12 @@ public:
 
 private:
 	void render_indirect(renderer_context& context);
-	void render_directional(const light& light, common_pipeline_states::shadow_map_constants& shadow_map_constant, renderer_context& context);
-	void render_directional_shadow_map(const light& light, common_pipeline_states::shadow_map_constants& shadow_map_constant, renderer_context& context);
-	void render_point(const light& light, common_pipeline_states::shadow_map_constants& shadow_map_constant, renderer_context& context);
-	void render_point_shadow_map(const light& light, common_pipeline_states::shadow_map_constants& shadow_map_constant, renderer_context& context);
-	void render_spot(const light& light, common_pipeline_states::shadow_map_constants& shadow_map_constant, renderer_context& context);
-	void render_spot_shadow_map(const light& light, common_pipeline_states::shadow_map_constants& shadow_map_constant, renderer_context& context);
+	void render_directional(const light_render_data& light, common_pipeline_states::shadow_map_constants& shadow_map_constant, renderer_context& context);
+	void render_directional_shadow_map(const light_render_data& light, common_pipeline_states::shadow_map_constants& shadow_map_constant, renderer_context& context);
+	void render_point(const light_render_data& light, common_pipeline_states::shadow_map_constants& shadow_map_constant, renderer_context& context);
+	void render_point_shadow_map(const light_render_data& light, common_pipeline_states::shadow_map_constants& shadow_map_constant, renderer_context& context);
+	void render_spot(const light_render_data& light, common_pipeline_states::shadow_map_constants& shadow_map_constant, renderer_context& context);
+	void render_spot_shadow_map(const light_render_data& light, common_pipeline_states::shadow_map_constants& shadow_map_constant, renderer_context& context);
 
 	void resize_shadow_buffer(int width, int height);
 

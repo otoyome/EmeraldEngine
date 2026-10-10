@@ -5,7 +5,7 @@
 namespace
 {
 	//	ƒ‹[ƒg—Ìˆæ‚ª‘Ş‰»‚µ‚Ä‚¢‚Ä‚àÅ’áŒÀ‚Ì‘å‚«‚³‚ğŠm•Û‚·‚é
-	static constexpr float min_root_half = 0.5f;
+	static constexpr double min_root_half = 0.5;
 }
 
 collision_octree::collision_octree()
@@ -26,17 +26,17 @@ void collision_octree::reset(const aabb& world_bounds, int depth_limit)
 	entry_count = 0;
 	max_depth = (std::max)(depth_limit, 0);
 
-	math::float3 center
+	math::double3 center
 	{
-		(world_bounds.min.x + world_bounds.max.x) * 0.5f,
-		(world_bounds.min.y + world_bounds.max.y) * 0.5f,
-		(world_bounds.min.z + world_bounds.max.z) * 0.5f,
+		(world_bounds.min.x + world_bounds.max.x) * 0.5,
+		(world_bounds.min.y + world_bounds.max.y) * 0.5,
+		(world_bounds.min.z + world_bounds.max.z) * 0.5,
 	};
 
-	float half = min_root_half;
-	half = (std::max)(half, (world_bounds.max.x - world_bounds.min.x) * 0.5f);
-	half = (std::max)(half, (world_bounds.max.y - world_bounds.min.y) * 0.5f);
-	half = (std::max)(half, (world_bounds.max.z - world_bounds.min.z) * 0.5f);
+	double half = min_root_half;
+	half = (std::max)(half, (world_bounds.max.x - world_bounds.min.x) * 0.5);
+	half = (std::max)(half, (world_bounds.max.y - world_bounds.min.y) * 0.5);
+	half = (std::max)(half, (world_bounds.max.z - world_bounds.min.z) * 0.5);
 
 	nodes.reserve(64);
 	allocate_node(center, half);
@@ -50,7 +50,7 @@ void collision_octree::clear()
 	ready = false;
 }
 
-size_t collision_octree::allocate_node(const math::float3& center, float half_size)
+size_t collision_octree::allocate_node(const math::double3& center, double half_size)
 {
 	node created{};
 	created.center = center;
@@ -85,8 +85,8 @@ void collision_octree::insert_recursive(std::size_t node_index, int depth, const
 		{
 			if (nodes[node_index].children[octant] == invalid_node)
 			{
-				math::float3 child_center;
-				float child_half;
+				math::double3 child_center;
+				double child_half;
 				child_bounds(nodes[node_index], octant, child_center, child_half);
 
 				std::size_t created = allocate_node(child_center, child_half);
@@ -117,9 +117,9 @@ int collision_octree::child_octant_containing(const node& parent, const aabb& bo
 	return octant;
 }
 
-void collision_octree::child_bounds(const node& parent, int octant, math::float3& out_center, float& out_half) const
+void collision_octree::child_bounds(const node& parent, int octant, math::double3& out_center, double& out_half) const
 {
-	out_half = parent.half_size * 0.5f;
+	out_half = parent.half_size * 0.5;
 	out_center.x = parent.center.x + ((octant & 1) ? out_half : -out_half);
 	out_center.y = parent.center.y + ((octant & 2) ? out_half : -out_half);
 	out_center.z = parent.center.z + ((octant & 4) ? out_half : -out_half);

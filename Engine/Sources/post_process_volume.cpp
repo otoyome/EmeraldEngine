@@ -349,7 +349,7 @@ bool post_process_volume_manager::generate_post_process_volume(post_process_volu
 	return true;
 }
 
-void post_process_volume_manager::get_container(post_process_volume_container& container)
+void post_process_volume_manager::get_container(post_process_volume_container& container, const math::vector3d& view_position)
 {
 	//	ボリュームリストを生成
 	{
@@ -373,6 +373,36 @@ void post_process_volume_manager::get_container(post_process_volume_container& c
 			container.volumes.emplace_back(instance);
 			++it;
 		}
+	}
+
+	//	ポストプロセスボリューム取得
+	{
+		const math::double3 camera_world = view_position.to_double3();
+		float length = FLT_MAX;
+		post_process_volume_ptr result, unblind;
+		for (auto& volume : container.volumes)
+		{
+			if (volume->is_flag(post_process_volume::flags::unbind))
+			{
+				unblind = volume;
+				continue;
+			}
+
+			//	箱との距離を算出して最も近いのをとりあえず入れておく
+			auto box = collision::inner::axis_aligned_bounding_box(math::double3(volume->get_outer_range()), volume->get_position().to_double3());
+			float box_to_length = static_cast<float>(box.calculate_point_to_length(camera_world));
+			if (box_to_length < length)
+			{
+				length = box_to_length;
+				result = volume;
+			}
+		}
+
+		if (!result)
+		{
+			result = unblind;
+		}
+		container.selected_volume = result;
 	}
 
 #if defined(USE_IMGUI)

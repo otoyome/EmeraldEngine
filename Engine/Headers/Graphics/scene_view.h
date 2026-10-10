@@ -44,7 +44,7 @@ public:
 
 public:
 	//	‹“_‚Ìİ’è’l‚©‚çì‚é
-	static scene_view from_parameters(const view_parameters& parameters, bool camera_relative);
+	static scene_view from_parameters(const view_parameters& parameters, const math::vector3d& render_origin);
 	//	•`‰æŒ´“_‚ğ‹‚ß‚é
 	static math::vector3d compute_render_origin(const view_parameters& parameters, bool camera_relative);
 

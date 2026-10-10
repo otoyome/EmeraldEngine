@@ -376,9 +376,11 @@ public:
 
 	void set_cubic_sdf_gpu_resource(std::shared_ptr<cubic_sdf_buffer_pool> resource);
 
-	//	@tool シミュレーション空間の原点（GPU上のパーティクル座標はこの原点からの相対値）
-	//	@tool 現状は原点固定。描画時に描画原点との差分を加えて相対座標にする
+	//	シミュレーション空間の原点
 	const math::vector3d& get_simulation_origin() const { return simulation_origin; }
+
+	//	描画原点から一定以上離れていたらシミュレーション原点を描画原点へ移す
+	void update_simulation_origin(const math::vector3d& render_origin);
 
 private:
 	bool read_particle_event_staging(ID3D11DeviceContext* device_context, UINT slot, bool wait, std::vector<particle_event>& out_events);
@@ -392,6 +394,8 @@ private:
 	bool update_stop = false;
 	bool pending_reset = false;
 	math::vector3d simulation_origin;
+	math::float3 pending_rebase_offset = { 0.0f, 0.0f, 0.0f };
+	bool pending_rebase = false;
 	UINT current_buffer_index = 0;
 	variable_position_allocator emitter_binary_allocator;
 	variable_position_allocator particle_binary_allocator;
@@ -487,6 +491,8 @@ private:
 		end_update,
 
 		build_primitive,
+
+		rebase_particles,
 
 		max,
 	};

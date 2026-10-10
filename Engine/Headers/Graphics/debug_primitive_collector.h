@@ -18,7 +18,6 @@ class debug_primitive_manager
 		math::float4 color;
 	};
 
-	//	@tool 登録時の頂点（絶対座標）
 	struct queued_vertex
 	{
 		math::double3 position;
@@ -30,14 +29,13 @@ private:
 	~debug_primitive_manager();
 
 public:
-	//	@tool 描画原点からの相対座標で頂点バッファを作る
 	void get_container(debug_draw_primitive_container& container, const math::vector3d& render_origin);
 
 	void queue_line(const math::double3 start, const math::double3 end, const math::float4 color, bool depth_write = true);
 	void queue_sphere(const math::double3 center, float radius, const math::float4 color, bool depth_write = true);
 	void queue_capsule(const math::double3 center, const math::float4 rotation, float radius, float length, const math::float4& color, bool depth_write = true);
 	void queue_box(const math::double3 position, const math::float4 rotation, const math::float3 scale, const math::float4& color, bool depth_write = true);
-	//	@tool 単精度座標用（絶対座標として扱う）
+
 	void queue_line(const math::float3 start, const math::float3 end, const math::float4 color, bool depth_write = true);
 	void queue_sphere(const math::float3 center, float radius, const math::float4 color, bool depth_write = true);
 	void queue_capsule(const math::float3 center, const math::float4 rotation, float radius, float length, const math::float4& color, bool depth_write = true);
