@@ -11,23 +11,45 @@ struct directional_lights
 // 点光源
 struct point_lights
 {
-	float4	position;
-	float4	color;
-	float	range;
-	float3	dummy;
+	float3	position;	//	座標
+	float	inv_range;	//	1 / 影響範囲
+	float3	color;		//	色 × 強さ
+	uint	attribute;	//	ライトフラグ
 };
 
 // スポットライト
 struct spot_lights
 {
-	float4	position;
-	float4	direction;
-	float4	color;
-	float	range;
-	float	innerCorn;
-	float	outerCorn;
-	float	dummy;
+	float3	position;	//	座標
+	float	inv_range;	//	1 / 影響範囲
+	float3	color;		//	色 × 強さ
+	uint	attribute;	//	ライトフラグ
+	float3	direction;	//	向き
+	uint	cone;		//	16byte : インナーcos, 16byte : アウターcos
 };
+
+//	距離減衰
+float calc_light_distance_attenuation(float distance, float inv_range)
+{
+	float attenuate_length = saturate(1.0f - distance * inv_range);
+	return attenuate_length * attenuate_length;
+}
+
+//	角度取り出し関数
+float2 decode_spot_cone(uint cone)
+{
+	int inner = ((int) (cone << 16)) >> 16;
+	int outer = ((int) cone) >> 16;
+	return max(float2(inner, outer) / 32767.0f, -1.0f);
+}
+
+//	スポットライトの角度減衰
+float calc_spot_cone_attenuation(spot_lights light, float3 L)
+{
+	float2 cone = decode_spot_cone(light.cone);
+	float area = cone.x - cone.y;
+	return saturate(1.0f - (cone.x - dot(light.direction, L)) / area);
+}
 
 // ライトプローブ
 struct light_probes
@@ -55,30 +77,6 @@ struct compund_lights
 {
     //  共有の情報
     //  work_data[3].w は共有でライトの種別番号を入れておく
-
-    //  平行光源の場合
-    //  work_data[0] = xyz = direction, w = dummy
-    //  work_data[1] = color
-    //  work_data[2] = dummy
-    //  work_data[3] = xyz = dummy, w = ライト種別
-
-    //  点光源の場合
-    //  work_data[0] = xyz = position, w = dummy
-    //  work_data[1] = color
-    //  work_data[2] = x = range, yzw = dummy
-    //  work_data[3] = xyz = dummy, w = ライト種別
-
-    //  スポットライトの場合
-    //  work_data[0] = xyz = position, w = dummy
-    //  work_data[1] = xyz = direction, w = dummy
-    //  work_data[2] = color
-    //  work_data[3] = x = range, y = inner cone, z = outer cone, w = ライト種別
-
-	//	プローブの場合
-	//  work_data[0] = xyz = position, w = dummy
-	//  work_data[1] = color
-	//  work_data[2] = xyz = inner area, w = dummy
-	//  work_data[3] = xyz = outer area, w = ライト種別
     float4 work_data[4];
 };
 

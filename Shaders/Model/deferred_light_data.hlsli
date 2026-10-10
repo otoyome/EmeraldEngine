@@ -28,21 +28,22 @@ directional_lights convert_directional_lights()
 point_lights convert_point_lights()
 {
     point_lights data;
-    data.position = compund_light_data.work_data[0];
-    data.color = compund_light_data.work_data[1];
-    data.range = compund_light_data.work_data[2].x;
+    data.position = compund_light_data.work_data[0].xyz;
+    data.inv_range = compund_light_data.work_data[0].w;
+    data.color = compund_light_data.work_data[1].xyz;
+    data.attribute = asuint(compund_light_data.work_data[1].w);
     return data;
 }
 
 spot_lights convert_spot_lights()
 {
     spot_lights data;
-    data.position = compund_light_data.work_data[0];
-    data.direction = compund_light_data.work_data[1];
-    data.color = compund_light_data.work_data[2];
-    data.range = compund_light_data.work_data[3].x;
-    data.innerCorn = compund_light_data.work_data[3].y;
-    data.outerCorn = compund_light_data.work_data[3].z;
+    data.position = compund_light_data.work_data[0].xyz;
+    data.inv_range = compund_light_data.work_data[0].w;
+    data.color = compund_light_data.work_data[1].xyz;
+    data.attribute = asuint(compund_light_data.work_data[1].w);
+    data.direction = compund_light_data.work_data[2].xyz;
+    data.cone = asuint(compund_light_data.work_data[2].w);
     return data;
 }
 

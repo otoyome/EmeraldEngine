@@ -18,22 +18,23 @@ struct directional_lights
 
 struct point_lights
 {
-	math::float4 position{ 0, 0, 0, 0 };
-	math::float4 color{ 1, 1, 1, 1 };
-	float range{ 0 };
-	math::float3 dummy;
+	math::float3 position{ 0, 0, 0 };	//	座標
+	float inv_range{ 0 };				//	1 / 影響範囲
+	math::float3 color{ 1, 1, 1 };		//	色 × 強さ
+	UINT attribute{ 0 };				//	ライトフラグ
 };
+static_assert(sizeof(point_lights) == 32, "point_lights must be 32 bytes");
 
 struct spot_lights
 {
-	math::float4 position{ 0, 0, 0, 0 };
-	math::float4 direction{ 0, 0, 1, 0 };
-	math::float4 color{ 1, 1, 1, 1 };
-	float range{ 0 };
-	float inner_corn{ math::angle::to_radian(30.0f) };
-	float outer_corn{ math::angle::to_radian(45.0f) };
-	float dummy;
+	math::float3 position{ 0, 0, 0 };	//	座標
+	float inv_range{ 0 };				//	1 / 影響範囲
+	math::float3 color{ 1, 1, 1 };		//	色 × 強さ
+	UINT attribute{ 0 };				//	ライトフラグ
+	math::float3 direction{ 0, 0, 1 };	//	向き
+	UINT cone{ 0 };						//	16byte : インナーcos, 16byte : アウターcos
 };
+static_assert(sizeof(spot_lights) == 48, "spot_lights must be 48 bytes");
 
 struct light_probes
 {
@@ -47,30 +48,6 @@ struct light_data
 {
 	//  共有の情報
 	//  work_data[3].w は共有でライトの種別番号を入れておく
-
-	//  平行光源の場合
-	//  work_data[0] = direction
-	//  work_data[1] = color
-	//  work_data[2] = dummy
-	//  work_data[3] = xyz = dummy, w = ライト種別
-
-	//  点光源の場合
-	//  work_data[0] = position
-	//  work_data[1] = color
-	//  work_data[2] = x = range, yzw = dummy
-	//  work_data[3] = xyz = dummy, w = ライト種別
-
-	//  スポットライトの場合
-	//  work_data[0] = position
-	//  work_data[1] = direction
-	//  work_data[2] = color
-	//  work_data[3] = x = range, y = inner cone, z = outer cone, w = ライト種別
-
-	//	プローブの場合
-	//  work_data[0] = xyz = position, w = dummy
-	//  work_data[1] = color
-	//  work_data[2] = xyz = inner area, w = dummy
-	//  work_data[3] = xyz = outer area, w = ライト種別
 	math::float4 work_data[4];
 };
 
@@ -99,5 +76,11 @@ namespace light_data_utility
 	math::float3 get_direction(const light_data& data);
 
 	math::float4 get_color(const light_data& data);
+
+	float convert_inv_range(float range);
+
+	UINT encode_spot_cone(float inner_cone, float outer_cone);
+
+	math::float2 decode_spot_cone(UINT cone);
 
 }	//	namespace light_data_utility

@@ -24,30 +24,22 @@ namespace
 			case light_type::point:
 			{
 				point_lights point;
-				point.position.x = light.position.x;
-				point.position.y = light.position.y;
-				point.position.z = light.position.z;
-				point.position.w = 1.0f;
-				point.color = light.color;
-				point.range = light.range;
+				point.position = light.position;
+				point.inv_range = light_data_utility::convert_inv_range(light.range);
+				point.color = { light.color.x * light.color.w, light.color.y * light.color.w, light.color.z * light.color.w };
+				point.attribute = light.attribute;
 				data = light_data_utility::convert_light_data(point);
 				break;
 			}
 			case light_type::spot:
 			{
 				spot_lights spot;
-				spot.position.x = light.position.x;
-				spot.position.y = light.position.y;
-				spot.position.z = light.position.z;
-				spot.position.w = 1.0f;
-				spot.direction.x = light.direction.x;
-				spot.direction.y = light.direction.y;
-				spot.direction.z = light.direction.z;
-				spot.direction.w = 0;
-				spot.color = light.color;
-				spot.range = light.range;
-				spot.inner_corn = light.inner_cone;
-				spot.outer_corn = light.outer_cone;
+				spot.position = light.position;
+				spot.inv_range = light_data_utility::convert_inv_range(light.range);
+				spot.color = { light.color.x * light.color.w, light.color.y * light.color.w, light.color.z * light.color.w };
+				spot.attribute = light.attribute;
+				spot.direction = math::vector3f(light.direction).normalized().to_float3();
+				spot.cone = light_data_utility::encode_spot_cone(light.inner_cone, light.outer_cone);
 				data = light_data_utility::convert_light_data(spot);
 				break;
 			}

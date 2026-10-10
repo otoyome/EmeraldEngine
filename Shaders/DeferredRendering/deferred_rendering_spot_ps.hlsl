@@ -11,17 +11,11 @@ float4 main(VS_OUT pin) : SV_TARGET
         spot_lights spot_light = convert_spot_lights();
         float3 L = data.w_position.xyz - spot_light.position.xyz;
         float len = length(L);
-        if (len < spot_light.range)
+        if (len * spot_light.inv_range < 1.0f)
         {
-            float attenuateLength = saturate(1.0f - len / spot_light.range);
-            float shading_attenuation = attenuateLength * attenuateLength;
+            float shading_attenuation = calc_light_distance_attenuation(len, spot_light.inv_range);
             L /= len;
-            float3 spotDirection = normalize(spot_light.direction.xyz);
-            float innerCorn = cos(spot_light.innerCorn);
-            float outerCorn = cos(spot_light.outerCorn);
-            float angle = dot(spotDirection, L);
-            float area = innerCorn - outerCorn;
-            shading_attenuation *= saturate(1.0f - (innerCorn - angle) / area);
+            shading_attenuation *= calc_spot_cone_attenuation(spot_light, L);
 
             float3 shadowing_attenuation = 1;
             if (IsGBufferFlags(data, material_attribute_shadow_receiver))
@@ -36,7 +30,7 @@ float4 main(VS_OUT pin) : SV_TARGET
             lighting_data.shading_attenuation = shading_attenuation;
             lighting_data.shadowing_attenuation = shadowing_attenuation;
             lighting_data.direction = L;
-            lighting_data.color = spot_light.color.rgb * spot_light.color.a;
+            lighting_data.color = spot_light.color;
             lighting_data.camera_position = camera_position.xyz;
             DirectLighting result = integrate_bxdf(data, lighting_data);
             total_diffuse += result.diffuse;

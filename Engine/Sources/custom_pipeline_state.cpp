@@ -60,14 +60,7 @@ namespace
 					if (light_data.light.light_counts.y >= common_pipeline_states::point_light_count)
 						continue;
 
-					auto& data = light_data.light.point_light_data[light_data.light.light_counts.y];
-					const math::float3& relative_position = light.position;
-					data.position.x = relative_position.x;
-					data.position.y = relative_position.y;
-					data.position.z = relative_position.z;
-					data.position.w = 1.0f;
-					data.range = light.range;
-					data.color = light.color;
+					light_data.light.point_light_data[light_data.light.light_counts.y] = light_data_utility::convert_point_lights(light.data);
 					++light_data.light.light_counts.y;
 					break;
 				}
@@ -76,21 +69,7 @@ namespace
 					if (light_data.light.light_counts.z >= common_pipeline_states::spot_light_count)
 						continue;
 
-					auto& data = light_data.light.spot_light_data[light_data.light.light_counts.z];
-					const math::float3& relative_position = light.position;
-					const auto& direction = light.direction;
-					data.position.x = relative_position.x;
-					data.position.y = relative_position.y;
-					data.position.z = relative_position.z;
-					data.position.w = 1.0f;
-					data.direction.x = direction.x;
-					data.direction.y = direction.y;
-					data.direction.z = direction.z;
-					data.direction.w = 0.0f;
-					data.range = light.range;
-					data.inner_corn = light.inner_cone;
-					data.outer_corn = light.outer_cone;
-					data.color = light.color;
+					light_data.light.spot_light_data[light_data.light.light_counts.z] = light_data_utility::convert_spot_lights(light.data);
 					++light_data.light.light_counts.z;
 					break;
 				}
