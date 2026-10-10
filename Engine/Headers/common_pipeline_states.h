@@ -79,8 +79,6 @@ namespace common_pipeline_states
 	struct deferred_light_constants
 	{
 		light_data light_data;
-		UINT light_attribute;
-		math::float3 light_data_dummy;
 	};
 
 	//	ライトプローブ定数バッファ構造体
@@ -102,9 +100,9 @@ namespace common_pipeline_states
 	struct forward_light_constants
 	{
 		math::uint4 light_counts;
-		directional_lights directional_light_data[directional_light_count];
-		point_lights point_light_data[point_light_count];
-		spot_lights spot_light_data[spot_light_count];
+		light_data directional_light_data[directional_light_count];
+		light_data point_light_data[point_light_count];
+		light_data spot_light_data[spot_light_count];
 		light_probes light_probe_data;
 	};
 

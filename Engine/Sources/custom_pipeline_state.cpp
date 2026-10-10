@@ -45,7 +45,7 @@ namespace
 					if (light_data.light.light_counts.x >= common_pipeline_states::directional_light_count)
 						continue;
 
-					light_data.light.directional_light_data[light_data.light.light_counts.x] = light_data_utility::convert_directional_lights(light.data);
+					light_data.light.directional_light_data[light_data.light.light_counts.x] = light.data;
 					++light_data.light.light_counts.x;
 					break;
 				}
@@ -54,7 +54,7 @@ namespace
 					if (light_data.light.light_counts.y >= common_pipeline_states::point_light_count)
 						continue;
 
-					light_data.light.point_light_data[light_data.light.light_counts.y] = light_data_utility::convert_point_lights(light.data);
+					light_data.light.point_light_data[light_data.light.light_counts.y] = light.data;
 					++light_data.light.light_counts.y;
 					break;
 				}
@@ -63,7 +63,7 @@ namespace
 					if (light_data.light.light_counts.z >= common_pipeline_states::spot_light_count)
 						continue;
 
-					light_data.light.spot_light_data[light_data.light.light_counts.z] = light_data_utility::convert_spot_lights(light.data);
+					light_data.light.spot_light_data[light_data.light.light_counts.z] = light.data;
 					++light_data.light.light_counts.z;
 					break;
 				}

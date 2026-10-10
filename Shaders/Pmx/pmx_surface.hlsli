@@ -44,7 +44,7 @@ SurfaceData surface(VS_OUT pin, bool is_front_face)
         //  平行光源を一つだけ処理してライティング
         if (1 >= forward_only_light_counts.x)
         {
-            directional_lights directional_light = forward_only_directional_light_data[0];
+            light_data directional_light = forward_only_directional_light_data[0];
             float3 L = directional_light.direction.xyz;
             L = normalize(L);
             float2 ramp_texcoord = float2(0.5f, saturate(dot(L, data.w_normal.xyz) * 0.5f + threshold_offset));

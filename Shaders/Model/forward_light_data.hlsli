@@ -10,9 +10,9 @@ static const uint spot_light_count = 8;
 cbuffer FORWARD_LIGHTS_CONSTANT_BUFFER : register(b3)
 {
     uint4 forward_only_light_counts; //  x : 平行光源, y : 点光源, z : スポットライト, w : 空き
-    directional_lights forward_only_directional_light_data[directional_light_count];
-    point_lights forward_only_point_light_data[point_light_count];
-    spot_lights forward_only_spot_light_data[spot_light_count];
+    light_data forward_only_directional_light_data[directional_light_count];
+    light_data forward_only_point_light_data[point_light_count];
+    light_data forward_only_spot_light_data[spot_light_count];
     light_probes forward_only_light_probe_data;
 };
 

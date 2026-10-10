@@ -682,7 +682,6 @@ void deffered_lighting_renderer::render_directional(const light_render_data& lig
 
 		//	コンテキストに情報登録
 		context.deferred_light_constant.light_data = light.data;
-		context.deferred_light_constant.light_attribute = light.attribute;
 		context.shadow_map_texture = render_targets->shadowmap_depth_texture;
 		context.shadow_map_constant = shadow_map_constant;
 
@@ -955,7 +954,6 @@ void deffered_lighting_renderer::render_point(const light_render_data& light, co
 		lighting_pass.activate(context.device_context);
 
 		context.deferred_light_constant.light_data = light.data;
-		context.deferred_light_constant.light_attribute = light.attribute;
 		context.shadow_map_texture = render_targets->shadowmap_depth_texture;
 		context.shadow_map_constant = shadow_map_constant;
 
@@ -1071,7 +1069,6 @@ void deffered_lighting_renderer::render_spot(const light_render_data& light, com
 		lighting_pass.activate(context.device_context);
 
 		context.deferred_light_constant.light_data = light.data;
-		context.deferred_light_constant.light_attribute = light.attribute;
 		context.shadow_map_texture = render_targets->shadowmap_depth_texture;
 		context.shadow_map_constant = shadow_map_constant;
 

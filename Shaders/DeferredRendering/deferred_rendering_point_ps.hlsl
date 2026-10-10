@@ -8,7 +8,7 @@ float4 main(VS_OUT pin) : SV_TARGET
     float3 total_diffuse = (float3) 0, total_specular = (float3) 0;
     if (data.shading_model != shading_model_unlit)
     {
-        point_lights point_light = convert_point_lights();
+        light_data point_light = deferred_light_data;
         float3 L = data.w_position.xyz - point_light.position.xyz;
         float len = length(L);
         if (len * point_light.inv_range < 1.0f)
@@ -20,7 +20,7 @@ float4 main(VS_OUT pin) : SV_TARGET
             float3 shadowing_attenuation = 1;
             if (IsGBufferFlags(data, material_attribute_shadow_receiver))
             {
-                if (light_attribute & light_flag_use_shadow)
+                if (deferred_light_data.attribute & light_flag_use_shadow)
                 {
                     shadowing_attenuation = shadowing_process_point(data.w_position, point_light.position.xyz).rgb;
                 }

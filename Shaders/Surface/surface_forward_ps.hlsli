@@ -30,7 +30,7 @@ float4 main(VS_OUT pin, bool is_front_face : SV_IsFrontFace) : SV_TARGET
         if (index >= forward_only_light_counts.x)
             break;
 
-        directional_lights directional_light = forward_only_directional_light_data[index];
+        light_data directional_light = forward_only_directional_light_data[index];
         float3 L = normalize(directional_light.direction.xyz);
 
         float shading_attenuation = 1.0f;
@@ -60,7 +60,7 @@ float4 main(VS_OUT pin, bool is_front_face : SV_IsFrontFace) : SV_TARGET
         if (index >= forward_only_light_counts.y)
             break;
         
-        point_lights point_light = forward_only_point_light_data[index];
+        light_data point_light = forward_only_point_light_data[index];
         float3 L = data.w_position.xyz - point_light.position.xyz;
         float len = length(L);
         if (!(len * point_light.inv_range < 1.0f))
@@ -88,7 +88,7 @@ float4 main(VS_OUT pin, bool is_front_face : SV_IsFrontFace) : SV_TARGET
         if (index >= forward_only_light_counts.z)
             break;
 
-        spot_lights spot_light = forward_only_spot_light_data[index];
+        light_data spot_light = forward_only_spot_light_data[index];
         float3 L = data.w_position.xyz - spot_light.position.xyz;
         float len = length(L);
         if (!(len * spot_light.inv_range < 1.0f))
