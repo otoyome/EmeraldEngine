@@ -65,15 +65,14 @@ public:
 	std::shared_ptr<collision::bounding_object> get_bounding_object();
 	void set_bounding_object(std::shared_ptr<collision::bounding_object> object);
 
-	//	持ち主のワールド姿勢（毎フレーム同期するため、位置と回転をまとめて設定する）
+	bool get_world_bounds(math::double3& out_min, math::double3& out_max);
+
 	const math::rigid_transformd& get_transform() const;
 	void set_transform(const math::rigid_transformd& transform);
 
-	//	持ち主から見たローカル姿勢（回転を含めて設定する場合）
 	const math::rigid_transformd& get_local_transform() const;
 	void set_local_transform(const math::rigid_transformd& local_transform);
 
-	//	ローカル姿勢の平行移動のみを取得・設定する（回転は維持する）
 	const math::vector3d& get_local_offset() const;
 	void set_local_offset(const math::vector3d& offset);
 
@@ -129,14 +128,19 @@ private:
 	float mass; // 本体の質量
 	material::physical_datas physical_data; // 物理マテリアル
 	math::float3 local_scale; // ローカルスケール情報
-	math::rigid_transformd local_transform;	//	持ち主から見たローカル姿勢
+	math::rigid_transformd local_transform;	//	ローカル姿勢
 
-	math::rigid_transformd transform;	//	持ち主のワールド姿勢
+	math::rigid_transformd transform;	//	ワールド姿勢
 
 	math::float4 draw_normal_color;
 	math::float4 draw_hit_color;
 
 	std::shared_ptr<collision::bounding_object> bounding_object;
+
+	//	ワールドAABBのキャッシュ
+	math::double3 world_bounds_min;
+	math::double3 world_bounds_max;
+	bool world_bounds_valid;
 
 	on_collision_enter collision_enter;
 	on_collision_stay collision_stay;

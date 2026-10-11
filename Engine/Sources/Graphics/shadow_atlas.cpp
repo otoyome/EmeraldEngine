@@ -10,27 +10,18 @@
 namespace
 {
 	//	コンソール変数
-#if defined(USE_IMGUI)
-	console_variable<bool> enable_variable("r.shadow.atlas.enable", true, "影を落とす点光源/スポットライトのシャドウマップをシャドウマップアトラスにまとめる");
-	console_variable<int> resolution_variable("r.shadow.atlas.resolution", 512, "シャドウマップアトラスの1スライスの解像度");
-	console_variable<int> slices_variable("r.shadow.atlas.slices", 64, "シャドウマップアトラスのスライス数（点光源は6、スポットライトは1使う）");
-	console_variable<int> max_lights_variable("r.shadow.atlas.max_lights", 32, "シャドウマップアトラスを割り当てるライトの最大数（入らないライトは従来の共有シャドウマップで描く）");
-	console_variable<bool> cache_variable("r.shadow.atlas.cache", true, "ライトや影を落とすメッシュが変わっていなければ影を描き直さない");
-	console_variable<int> keep_frames_variable("r.shadow.atlas.keep_frames", 120, "使われなくなったライトのスライスを持ち続けるフレーム数");
+	console_variable<bool> enable_variable("r.shadow.atlas.enable", true, "影を落とす点光源/スポットライトのシャドウマップをシャドウマップアトラスにまとめる", console_flags::user_setting);
+	console_variable<int> resolution_variable("r.shadow.atlas.resolution", 512, "シャドウマップアトラスの1スライスの解像度", console_flags::user_setting);
+	console_variable<int> slices_variable("r.shadow.atlas.slices", 64, "シャドウマップアトラスのスライス数（点光源は6、スポットライトは1使う）", console_flags::user_setting);
+	console_variable<int> max_lights_variable("r.shadow.atlas.max_lights", 32, "シャドウマップアトラスを割り当てるライトの最大数（入らないライトは従来の共有シャドウマップで描く）", console_flags::user_setting);
+	console_variable<bool> cache_variable("r.shadow.atlas.cache", true, "ライトや影を落とすメッシュが変わっていなければ影を描き直さない", console_flags::user_setting);
+	console_variable<int> keep_frames_variable("r.shadow.atlas.keep_frames", 120, "使われなくなったライトのスライスを持ち続けるフレーム数", console_flags::user_setting);
 	bool get_enable() { return enable_variable.get(); }
 	UINT get_resolution() { return static_cast<UINT>(std::clamp(resolution_variable.get(), 64, 4096)); }
 	UINT get_slices() { return static_cast<UINT>(std::clamp(slices_variable.get(), 6, 2048)); }
 	UINT get_max_lights_value() { return static_cast<UINT>((std::max)(max_lights_variable.get(), 0)); }
 	bool get_cache() { return cache_variable.get(); }
 	std::uint64_t get_keep_frames() { return static_cast<std::uint64_t>((std::max)(keep_frames_variable.get(), 0)); }
-#else	//	defined(USE_IMGUI)
-	bool get_enable() { return true; }
-	UINT get_resolution() { return 512; }
-	UINT get_slices() { return 64; }
-	UINT get_max_lights_value() { return 32; }
-	bool get_cache() { return true; }
-	std::uint64_t get_keep_frames() { return 120; }
-#endif	//	defined(USE_IMGUI)
 
 	shadow_atlas::statistics last_statistics;
 }

@@ -3,7 +3,7 @@
 namespace
 {
 	//	ヨー回転速度
-	constexpr double rotation_speed = math::angle::to_radian(90.0);
+	constexpr float rotation_speed = math::angle::to_radian(90.0f);
 	//	±ピッチ制限角度
 	constexpr math::double2 pitch_limit_angle = { math::angle::to_radian(+5.0), math::angle::to_radian(45.0) };
 	//	開始距離
@@ -14,8 +14,8 @@ namespace
 	//	フォーカス追従制限
 	constexpr double focus_limit_range_max = system_units::convert_m_to_unit(2.0); // 基本フォーカス
 	//	ダッシュ中の視野角制御
-	constexpr double fov_follow_rate = 6.0;
-	constexpr math::double2 fov_range = {math::angle::to_radian(30.0), math::angle::to_radian(60.0)};
+	constexpr float fov_follow_rate = 6.0f;
+	constexpr math::float2 fov_range = {math::angle::to_radian(30.0f), math::angle::to_radian(60.0f)};
 	constexpr math::easing::type fov_ease = math::easing::type::lerp;
 
 	//	死亡時のカメラ停止時間
@@ -37,9 +37,9 @@ roomba_camera_controller_object::roomba_camera_controller_object(std::string_vie
 , work_float(0.0f)
 , input_purmit_flag(true)
 
-, minimum_distance(system_units::convert_m_to_unit(2.0))
+, minimum_distance(system_units::convert_m_to_unit(2.0f))
 , current_distance(default_distance)
-, maximum_distance(system_units::convert_m_to_unit(10.0))
+, maximum_distance(system_units::convert_m_to_unit(10.0f))
 , game_distance_scale(1.0f)
 , game_distance_scale_inner(1.0f)
 , game_distance_scale_rate(0.0f)
@@ -216,7 +216,7 @@ void roomba_camera_controller_object::fixed_update_default(float elapsed_time)
 			desc.filter = collision_filter_manager::instance()->search_filter("camera");
 			desc.start = camera_focus.to_double3();
 			desc.end = camera_position.to_double3();
-			desc.radius = system_units::convert_m_to_unit(0.5);
+			desc.radius = system_units::convert_m_to_unit(0.5f);
 
 			//	ヒット処理
 			collision::intersect_data intersect_data;

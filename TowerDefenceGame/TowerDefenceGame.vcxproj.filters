@@ -320,6 +320,9 @@
     <ClCompile Include="Sources\framework_imgui.cpp">
       <Filter>Sources</Filter>
     </ClCompile>
+    <ClCompile Include="Sources\framework_console_window.cpp">
+      <Filter>Sources</Filter>
+    </ClCompile>
     <ClCompile Include="Sources\PipelineState\fullscreen_quad_pipeline_state.cpp">
       <Filter>Sources\PipelineState</Filter>
     </ClCompile>

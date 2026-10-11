@@ -135,7 +135,7 @@ DirectLighting integrate_bxdf(in GBufferData gbuffer_data, in LightingData light
             float3 shadow_factor = lighting_data.shadowing_attenuation * shading_factor;
 
             //  拡散反射光
-            result.diffuse = lerp(shade_color, base_and_specular_color, shadow_factor);
+            result.diffuse = lerp(shade_color, base_and_specular_color, shadow_factor * lighting_data.shading_attenuation);
             break;
         }
 //	[エンジン改造:シェーディング]

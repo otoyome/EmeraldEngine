@@ -31,10 +31,10 @@
 #include "Object/GameObjects/MiniGame/minigame_record_data.h"
 
 #include "System/engine_config_data.h"
+#include "System/game_config_data.h"
 
 #if defined(USE_IMGUI)
 #include "System/editor_config_data.h"
-#include "System/console_manager.h"
 #include "Graphics/debug_primitive_collector.h"
 #include "Editor/editor_items.h"
 #include "Editor/editor_camera.h"
@@ -48,10 +48,11 @@ namespace
 	//	view_stateの破棄フレーム数
 	constexpr uint64_t scene_view_state_keep_frames = 60;
 
+	//	描画関係の設定
+	console_variable<bool> single_thread_variable("r.single_thread", false, "描画処理をシングルスレッドで行う", console_flags::user_setting);
+
 #if defined(USE_IMGUI)
 	//	描画関係のデバッグ設定
-	console_variable<bool> single_thread_variable("r.single_thread", false, "描画処理をシングルスレッドで行う");
-
 	console_variable<bool> freeze_culling_variable("r.culling.freeze", false, "カリング結果を固定する（メイン視点）");
 	console_variable<bool> visualize_meshlets_variable("r.meshlet.visualize", false, "メッシュレット単位で色分け表示する（メイン視点）");
 
@@ -242,6 +243,7 @@ bool framework::initialize()
 	effect_manager::create_instance();
 	ik_resource_manager::create_instance();
 	minigame_record_data::create_instance();
+	game_config_data::create_instance();
 #if defined(USE_IMGUI)
 	editor_config_data::create_instance();
 	detail_profiler::create_instance();
@@ -422,9 +424,6 @@ void framework::update(float elapsed_time/*Elapsed seconds from last frame*/)
 	ImGui::NewFrame();
 	editor_items::begin_contexts();
 
-	//	メインウィンドウ
-	imgui_main_window();
-
 	//	シーン情報表示
 	if (scene_manager::is_valid())
 	{
@@ -442,9 +441,6 @@ void framework::update(float elapsed_time/*Elapsed seconds from last frame*/)
 
 	//	GPU計測時間表示
 	imgui_profiler_window();
-
-	//	描画系情報
-	imgui_render_infos_window();
 
 	//	モデルバッファプール使用量表示
 	imgui_model_buffer_pool_window();
@@ -499,10 +495,8 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 	//	描画処理全体の計測
 	DETAIL_PROFILE_CPU_SCOPE("render");
 
-#if defined(USE_IMGUI)
 	//	コンソール変数の反映
 	render_executor->set_single_thread_mode(single_thread_variable.get());
-#endif	//	defined(USE_IMGUI)
 
 	//	描画前処理
 	if (object_manager::is_valid())
@@ -938,6 +932,7 @@ bool framework::uninitialize()
 	editor_config_data::delete_instance();
 	detail_profiler::delete_instance();
 #endif // defined(USE_IMGUI)
+	game_config_data::delete_instance();
 	ik_resource_manager::delete_instance();
 	effect_manager::delete_instance();
 	effect_resource_manager::delete_instance();

@@ -11,21 +11,20 @@
 namespace
 {
 	//	コンソール変数
-#if defined(USE_IMGUI)
-	console_variable<bool> enable_variable("r.clustered.enable", true, "影無しの点光源/スポットライトをクラスタードライティングで描画する");
-	console_variable<float> far_variable("r.clustered.far", system_units::convert_m_to_unit(500.0f), "クラスターの奥行き分割を行う最大距離（以降は最後の分割にまとめる）");
-	console_variable<bool> depth_culling_variable("r.clustered.depth_culling", true, "タイル内で最も奥の面より奥のクラスターにはライトを割り当てない");
-	console_variable<bool> visualize_variable("r.clustered.visualize", false, "クラスターごとのライト数をヒートマップで表示する");
-	console_variable<float> visualize_max_variable("r.clustered.visualize_max", 32.0f, "ヒートマップで最大色になるライト数");
+	console_variable<bool> enable_variable("r.clustered.enable", true, "影無しの点光源/スポットライトをクラスタードライティングで描画する", console_flags::user_setting);
+	console_variable<float> far_variable("r.clustered.far", system_units::convert_m_to_unit(500.0f), "クラスターの奥行き分割を行う最大距離（以降は最後の分割にまとめる）", console_flags::user_setting);
+	console_variable<bool> depth_culling_variable("r.clustered.depth_culling", true, "タイル内で最も奥の面より奥のクラスターにはライトを割り当てない", console_flags::user_setting);
 	bool get_enable() { return enable_variable.get(); }
 	float get_far() { return far_variable.get(); }
 	bool get_depth_culling() { return depth_culling_variable.get(); }
+
+	//	デバッグ表示用のコンソール変数
+#if defined(USE_IMGUI)
+	console_variable<bool> visualize_variable("r.clustered.visualize", false, "クラスターごとのライト数をヒートマップで表示する");
+	console_variable<float> visualize_max_variable("r.clustered.visualize_max", 32.0f, "ヒートマップで最大色になるライト数");
 	bool get_visualize() { return visualize_variable.get(); }
 	float get_visualize_max() { return (std::max)(visualize_max_variable.get(), 1.0f); }
 #else	//	defined(USE_IMGUI)
-	bool get_enable() { return true; }
-	float get_far() { return system_units::convert_m_to_unit(500.0f); }
-	bool get_depth_culling() { return true; }
 	bool get_visualize() { return false; }
 	float get_visualize_max() { return 32.0f; }
 #endif	//	defined(USE_IMGUI)

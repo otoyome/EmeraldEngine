@@ -1,7 +1,5 @@
 #include "System/console_manager.h"
 
-#if	defined(USE_IMGUI)
-
 #include <cctype>
 #include <charconv>
 #include <fstream>
@@ -58,6 +56,7 @@ namespace
 		return text;
 	}
 
+#if	defined(USE_IMGUI)
 	//	組み込みコマンド
 	console_command help_command("help", "コンソール要素のリストを表示する（help フィルター）",
 		[](const console_command::arguments& args)
@@ -183,6 +182,7 @@ namespace
 		{
 			console_manager::instance().clear_output();
 		});
+#endif	//	defined(USE_IMGUI)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -396,6 +396,7 @@ void console_manager::execute_statement(std::string_view statement)
 	print(describe(*variable));
 }
 
+#if	defined(USE_IMGUI)
 bool console_manager::bind(std::string_view key, std::string_view command)
 {
 	const std::string key_name = to_lower(key);
@@ -441,6 +442,7 @@ void console_manager::update_bindings()
 	for (auto& command : commands)
 		execute(command);
 }
+#endif	//	defined(USE_IMGUI)
 
 void console_manager::print(std::string_view text)
 {
@@ -448,5 +450,3 @@ void console_manager::print(std::string_view text)
 	if (output.size() > max_output_lines)
 		output.erase(output.begin(), output.begin() + (output.size() - max_output_lines));
 }
-
-#endif	//	defined(USE_IMGUI)

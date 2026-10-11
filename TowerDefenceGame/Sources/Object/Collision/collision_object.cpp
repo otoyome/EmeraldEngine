@@ -61,6 +61,23 @@ std::shared_ptr<collision::bounding_object> collision_object::get_bounding_objec
 void collision_object::set_bounding_object(std::shared_ptr<collision::bounding_object> object)
 {
 	bounding_object = object;
+	world_bounds_valid = false;
+}
+
+bool collision_object::get_world_bounds(math::double3& out_min, math::double3& out_max)
+{
+	update();
+	if (!bounding_object)
+		return false;
+
+	if (!world_bounds_valid)
+	{
+		bounding_object->include_corner(world_bounds_min, world_bounds_max);
+		world_bounds_valid = true;
+	}
+	out_min = world_bounds_min;
+	out_max = world_bounds_max;
+	return true;
 }
 
 void collision_object::set_draw_normal_color(math::float4 color)
@@ -127,6 +144,9 @@ collision_object::collision_object()
 , draw_normal_color(1.0f, 1.0f, 1.0f, 1.0f)
 , draw_hit_color(1.0f, 0.0f, 0.0f, 1.0f)
 , bounding_object()
+, world_bounds_min()
+, world_bounds_max()
+, world_bounds_valid(false)
 , collision_enter()
 , collision_stay()
 , collision_end()
@@ -272,6 +292,7 @@ void collision_object::update()
 
 	bounding_object->set_local_scale(math::double3(local_scale));
 	bounding_object->set_transform(local_transform * transform);
+	world_bounds_valid = false;
 }
 
 void collision_object::debug_draw()

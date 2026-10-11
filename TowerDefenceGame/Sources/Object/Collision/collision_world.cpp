@@ -75,6 +75,26 @@ namespace
 		for (auto& entry : scratch)
 			tree.insert(entry.first, entry.second);
 	}
+
+	//	始点から終点までの移動範囲AABBを求める
+	collision_octree::aabb calculate_cast_bounds(const math::double3& start, const math::double3& end, double extent)
+	{
+		extent += broadphase_margin;
+
+		collision_octree::aabb bounds{};
+		bounds.min = { std::min(start.x, end.x) - extent, std::min(start.y, end.y) - extent, std::min(start.z, end.z) - extent };
+		bounds.max = { std::max(start.x, end.x) + extent, std::max(start.y, end.y) + extent, std::max(start.z, end.z) + extent };
+		return bounds;
+	}
+
+	//	キャスト範囲のAABBと重なるか
+	bool overlaps_cast_bounds(collision_object& object, const collision_octree::aabb& cast_bounds)
+	{
+		collision_octree::aabb object_bounds{};
+		if (!object.get_world_bounds(object_bounds.min, object_bounds.max))
+			return false;
+		return collision_octree::aabb::intersects(object_bounds, cast_bounds);
+	}
 }
 
 collision_world::collision_world()
@@ -369,6 +389,9 @@ bool collision_world::unregister_object(collision_object_ptr object)
 
 bool collision_world::ray_cast(const ray_cast_descs& desc, collision::intersect_data& intersect_data, collision_object_ptr& out_collision)
 {
+	//	移動範囲のAABBで候補を絞り込む
+	const collision_octree::aabb cast_bounds = calculate_cast_bounds(desc.start, desc.end, 0.0);
+
 	collision::intersect_data data;
 	for (auto& object : collision_objects)
 	{
@@ -378,6 +401,10 @@ bool collision_world::ray_cast(const ray_cast_descs& desc, collision::intersect_
 
 		//	カテゴリーチェック
 		if (!desc.filter->is_flag(object->get_filter()->get_category()))
+			continue;
+
+		//	AABBが重ならなければ詳細判定しない
+		if (!overlaps_cast_bounds(*object, cast_bounds))
 			continue;
 
 		//	除外オブジェクトチェック
@@ -411,6 +438,9 @@ bool collision_world::ray_cast(const ray_cast_descs& desc, collision::intersect_
 
 bool collision_world::sphere_cast(const sphere_cast_descs& desc, collision::intersect_data& intersect_data, collision_object_ptr& out_collision)
 {
+	//	移動範囲のAABBで候補を絞り込む
+	const collision_octree::aabb cast_bounds = calculate_cast_bounds(desc.start, desc.end, desc.radius);
+
 	collision::intersect_data data;
 	for (auto& object : collision_objects)
 	{
@@ -420,6 +450,10 @@ bool collision_world::sphere_cast(const sphere_cast_descs& desc, collision::inte
 
 		//	カテゴリーチェック
 		if (!desc.filter->is_flag(object->get_filter()->get_category()))
+			continue;
+
+		//	AABBが重ならなければ詳細判定しない
+		if (!overlaps_cast_bounds(*object, cast_bounds))
 			continue;
 
 		//	除外オブジェクトチェック
@@ -448,6 +482,9 @@ bool collision_world::sphere_cast(const sphere_cast_descs& desc, collision::inte
 
 bool collision_world::capsule_cast(const capsule_cast_descs& desc, collision::intersect_data& intersect_data, collision_object_ptr& out_collision)
 {
+	//	移動範囲のAABBで候補を絞り込む
+	const collision_octree::aabb cast_bounds = calculate_cast_bounds(desc.start, desc.end, desc.radius + desc.length * 0.5);
+
 	collision::intersect_data data;
 	for (auto& object : collision_objects)
 	{
@@ -457,6 +494,10 @@ bool collision_world::capsule_cast(const capsule_cast_descs& desc, collision::in
 
 		//	カテゴリーチェック
 		if (!desc.filter->is_flag(object->get_filter()->get_category()))
+			continue;
+
+		//	AABBが重ならなければ詳細判定しない
+		if (!overlaps_cast_bounds(*object, cast_bounds))
 			continue;
 
 		//	除外オブジェクトチェック

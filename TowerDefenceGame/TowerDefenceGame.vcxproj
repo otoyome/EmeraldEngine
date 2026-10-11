@@ -629,6 +629,7 @@ xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y</Command>
     <ClCompile Include="Sources\Editor\detail_profiler.cpp" />
     <ClCompile Include="Sources\framework.cpp" />
     <ClCompile Include="Sources\framework_imgui.cpp" />
+    <ClCompile Include="Sources\framework_console_window.cpp" />
     <ClCompile Include="Sources\main.cpp" />
     <ClCompile Include="Sources\Object\camera_object.cpp" />
     <ClCompile Include="Sources\Object\Collision\collision_filter.cpp" />

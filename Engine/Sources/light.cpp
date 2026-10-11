@@ -11,21 +11,14 @@
 namespace
 {
 	//	LOD と空間分割の設定
-#if defined(USE_IMGUI)
-	console_variable<float> max_draw_distance_variable("r.light.max_draw_distance", system_units::convert_m_to_unit(500.0f), "点光源/スポットライトを描画する最大距離（0 以下で無制限。ライトごとの設定はこれ以下に制限される）");
-	console_variable<float> fade_ratio_variable("r.light.fade_ratio", 0.1f, "最大距離・最小サイズに近づいたときにフェードアウトさせる割合");
-	console_variable<float> min_screen_size_variable("r.light.min_screen_size", 0.002f, "画面上の大きさ（半径 / 画面の半分の高さ）がこれより小さいライトは描画しない");
-	console_variable<float> grid_cell_size_variable("r.light.grid_cell_size", system_units::convert_m_to_unit(32.0f), "ライト用の空間分割のセルの大きさ");
+	console_variable<float> max_draw_distance_variable("r.light.max_draw_distance", system_units::convert_m_to_unit(500.0f), "点光源/スポットライトを描画する最大距離（0 以下で無制限。ライトごとの設定はこれ以下に制限される）", console_flags::user_setting);
+	console_variable<float> fade_ratio_variable("r.light.fade_ratio", 0.1f, "最大距離・最小サイズに近づいたときにフェードアウトさせる割合", console_flags::user_setting);
+	console_variable<float> min_screen_size_variable("r.light.min_screen_size", 0.002f, "画面上の大きさ（半径 / 画面の半分の高さ）がこれより小さいライトは描画しない", console_flags::user_setting);
+	console_variable<float> grid_cell_size_variable("r.light.grid_cell_size", system_units::convert_m_to_unit(32.0f), "ライト用の空間分割のセルの大きさ", console_flags::user_setting);
 	float get_max_draw_distance() { return max_draw_distance_variable.get(); }
 	float get_fade_ratio() { return (std::max)(fade_ratio_variable.get(), 1.0e-4f); }
 	float get_min_screen_size() { return (std::max)(min_screen_size_variable.get(), 0.0f); }
 	double get_grid_cell_size() { return (std::max)(static_cast<double>(grid_cell_size_variable.get()), 1.0e-3); }
-#else	//	defined(USE_IMGUI)
-	float get_max_draw_distance() { return system_units::convert_m_to_unit(500.0f); }
-	float get_fade_ratio() { return 0.1f; }
-	float get_min_screen_size() { return 0.002f; }
-	double get_grid_cell_size() { return system_units::convert_m_to_unit(32.0); }
-#endif	//	defined(USE_IMGUI)
 
 	//	これより多くのセルを跨ぐライトは空間分割に入れず常に候補にする
 	constexpr std::int64_t large_light_cell_count = 512;

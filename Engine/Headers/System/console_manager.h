@@ -7,13 +7,13 @@
 #include <string_view>
 #include <vector>
 
-#if defined(USE_IMGUI)
 //	コンソールフラグ
 namespace console_flags
 {
 	static constexpr uint32_t none = 0;
-	static constexpr uint32_t persist = 1 << 0;		//	エディター設定に保存する
+	static constexpr uint32_t persist = 1 << 0;		//	エディター設定に保存
 	static constexpr uint32_t read_only = 1 << 1;	//	コンソールからは変更できない
+	static constexpr uint32_t user_setting = 1 << 2;	//	ゲーム設定に保存
 }
 
 //	値と文字列の変換
@@ -130,12 +130,14 @@ public:
 	//	「;」で区切って複数書ける
 	void execute(std::string_view line);
 
+#if defined(USE_IMGUI)
 	//	キー割り当て
 	bool bind(std::string_view key, std::string_view command);
 	bool unbind(std::string_view key);
 	void clear_bindings();
 	const std::map<std::string, std::string>& get_bindings() const { return bindings; }
 	void update_bindings();
+#endif	//	defined(USE_IMGUI)
 
 	void print(std::string_view text);
 	const std::vector<std::string>& get_output() const { return output; }
@@ -151,8 +153,8 @@ private:
 
 private:
 	std::map<std::string, console_object*, std::less<>> objects;
+#if defined(USE_IMGUI)
 	std::map<std::string, std::string> bindings;
+#endif	//	defined(USE_IMGUI)
 	std::vector<std::string> output;
 };
-
-#endif	//	defined(USE_IMGUI)

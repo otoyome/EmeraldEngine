@@ -132,11 +132,9 @@ private:	//	‚»‚Ì‘¼
 
 	void imgui_initialize();
 	void imgui_terminate();
-	void imgui_main_window();
 	void imgui_engine_config_window();
 	void imgui_log_window();
 	void imgui_profiler_window();
-	void imgui_render_infos_window();
 	void imgui_model_buffer_pool_window();
 	void imgui_memory_allocator_window();
 	void imgui_textures_window();
