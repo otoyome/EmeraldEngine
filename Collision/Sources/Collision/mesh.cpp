@@ -13,6 +13,7 @@
 
 #include <thread>
 #include <fstream>
+#include <functional>
 
 #if !defined(NOMINMAX)
 #define NOMINMAX
@@ -118,82 +119,140 @@ namespace
 		return true;
 	}
 
-	inline std::uint32_t calculate_array_index_from_point(const math::float3& point, const math::float3& area_min, const math::float3& area_unit, math::uint3 separate_count)
+	//	@tool BVH構築パラメータ
+	constexpr std::uint32_t bvh_max_leaf_triangles = 4;		//	@tool 葉に入れる三角形の目安
+	constexpr std::uint32_t bvh_force_leaf_triangles = 16;	//	@tool 分割しても得をしない場合に葉で許す上限
+	constexpr int bvh_max_depth = 48;						//	@tool 構築の最大深度（走査スタックの上限を兼ねる）
+	constexpr int bvh_bin_count = 16;						//	@tool SAH評価の分割候補数
+	constexpr int bvh_stack_size = bvh_max_depth * 2 + 2;
+
+	inline bool aabb_overlap(const math::float3& min1, const math::float3& max1, const math::float3& min2, const math::float3& max2)
 	{
-		auto cell = [](float value, float amin, float unit, std::uint32_t count) -> int
-		{
-			int i = static_cast<int>(floorf((value - amin) / unit));
-			return std::clamp(i, 0, static_cast<int>(count) - 1);
-		};
-		const std::uint32_t ix = static_cast<std::uint32_t>(cell(point.x, area_min.x, area_unit.x, separate_count.x));
-		const std::uint32_t iy = static_cast<std::uint32_t>(cell(point.y, area_min.y, area_unit.y, separate_count.y));
-		const std::uint32_t iz = static_cast<std::uint32_t>(cell(point.z, area_min.z, area_unit.z, separate_count.z));
-		return ix + iy * separate_count.x + iz * separate_count.x * separate_count.y;
+		return min1.x <= max2.x && max1.x >= min2.x
+			&& min1.y <= max2.y && max1.y >= min2.y
+			&& min1.z <= max2.z && max1.z >= min2.z;
 	}
 
-	//	AABB と重なるブロックの範囲
-	struct check_block_range
+	inline float aabb_surface_area(const math::float3& min, const math::float3& max)
 	{
-		int x0, x1;
-		int y0, y1;
-		int z0, z1;
-	};
+		const float x = max.x - min.x;
+		const float y = max.y - min.y;
+		const float z = max.z - min.z;
+		return 2.0f * (x * y + y * z + z * x);
+	}
 
-	//	AABB と重なるブロックの範囲を求める
-	bool calculate_check_block_range(const math::float3& min, const math::float3& max, const math::float3& area_min, const math::float3& area_unit, math::uint3 separate_count, check_block_range& out_range)
+	inline void aabb_include(math::float3& min, math::float3& max, const math::float3& point_min, const math::float3& point_max)
 	{
-		auto cell = [](float value, float amin, float unit, std::uint32_t count) -> int
+		min.x = std::min(min.x, point_min.x); min.y = std::min(min.y, point_min.y); min.z = std::min(min.z, point_min.z);
+		max.x = std::max(max.x, point_max.x); max.y = std::max(max.y, point_max.y); max.z = std::max(max.z, point_max.z);
+	}
+
+	//	@tool 線分(start→end)が、margin だけ膨らませたAABBと交わるか（スラブ法）
+	inline bool segment_overlap_aabb(const math::float3& start, const math::float3& end, const math::float3& min, const math::float3& max, float margin)
+	{
+		const float s[3] = { start.x, start.y, start.z };
+		const float d[3] = { end.x - start.x, end.y - start.y, end.z - start.z };
+		const float bmin[3] = { min.x - margin, min.y - margin, min.z - margin };
+		const float bmax[3] = { max.x + margin, max.y + margin, max.z + margin };
+
+		float t_min = 0.0f;
+		float t_max = 1.0f;
+		for (int axis = 0; axis < 3; ++axis)
 		{
-			int i = static_cast<int>(floorf((value - amin) / unit));
-			return std::clamp(i, 0, static_cast<int>(count) - 1);
-		};
+			if (fabsf(d[axis]) < 1e-12f)
+			{
+				if (s[axis] < bmin[axis] || s[axis] > bmax[axis])
+					return false;
+				continue;
+			}
 
-		const float grid_max_x = area_min.x + area_unit.x * static_cast<float>(separate_count.x);
-		const float grid_max_y = area_min.y + area_unit.y * static_cast<float>(separate_count.y);
-		const float grid_max_z = area_min.z + area_unit.z * static_cast<float>(separate_count.z);
-		if (max.x < area_min.x || min.x > grid_max_x ||
-			max.y < area_min.y || min.y > grid_max_y ||
-			max.z < area_min.z || min.z > grid_max_z)
-			return false;
-
-		out_range.x0 = cell(min.x, area_min.x, area_unit.x, separate_count.x);
-		out_range.x1 = cell(max.x, area_min.x, area_unit.x, separate_count.x);
-		out_range.y0 = cell(min.y, area_min.y, area_unit.y, separate_count.y);
-		out_range.y1 = cell(max.y, area_min.y, area_unit.y, separate_count.y);
-		out_range.z0 = cell(min.z, area_min.z, area_unit.z, separate_count.z);
-		out_range.z1 = cell(max.z, area_min.z, area_unit.z, separate_count.z);
+			const float inv = 1.0f / d[axis];
+			float t1 = (bmin[axis] - s[axis]) * inv;
+			float t2 = (bmax[axis] - s[axis]) * inv;
+			if (t1 > t2)
+				std::swap(t1, t2);
+			t_min = std::max(t_min, t1);
+			t_max = std::min(t_max, t2);
+			if (t_min > t_max)
+				return false;
+		}
 		return true;
 	}
 
-	template<typename Function>
-	bool for_each_check_block(const math::float3& min, const math::float3& max, const math::float3& area_min, const math::float3& area_unit, math::uint3 separate_count, Function&& func)
+	//	@tool 点とAABBの最短距離の2乗
+	inline float point_aabb_distance_square(const math::float3& point, const math::float3& min, const math::float3& max)
 	{
-		check_block_range range;
-		if (!calculate_check_block_range(min, max, area_min, area_unit, separate_count, range))
+		const float dx = std::max({ min.x - point.x, 0.0f, point.x - max.x });
+		const float dy = std::max({ min.y - point.y, 0.0f, point.y - max.y });
+		const float dz = std::max({ min.z - point.z, 0.0f, point.z - max.z });
+		return dx * dx + dy * dy + dz * dz;
+	}
+
+	//	@tool BVHを走査する（node_test が false のノードは子孫ごと飛ばす。leaf が true を返したら打ち切り）
+	template<typename NodeTest, typename LeafFunction>
+	bool traverse_bvh(const std::vector<collision::bounding_mesh::bvh_node>& nodes, NodeTest&& node_test, LeafFunction&& leaf)
+	{
+		if (nodes.empty())
 			return false;
 
-		for (int z = range.z0; z <= range.z1; ++z)
+		std::uint32_t stack[bvh_stack_size];
+		int stack_count = 0;
+		stack[stack_count++] = 0;
+		while (stack_count > 0)
 		{
-			for (int y = range.y0; y <= range.y1; ++y)
+			const std::uint32_t node_index = stack[--stack_count];
+			const auto& node = nodes[node_index];
+			if (!node_test(node))
+				continue;
+
+			if (node.is_leaf())
 			{
-				for (int x = range.x0; x <= range.x1; ++x)
-				{
-					if (func(static_cast<std::uint32_t>(x)
-						+ static_cast<std::uint32_t>(y) * separate_count.x
-						+ static_cast<std::uint32_t>(z) * separate_count.x * separate_count.y))
-						return true;
-				}
+				if (leaf(node))
+					return true;
+				continue;
 			}
+
+			stack[stack_count++] = node.offset;		//	右の子
+			stack[stack_count++] = node_index + 1;	//	左の子
 		}
 		return false;
 	}
 
-	size_t count_check_block(const math::float3& min, const math::float3& max, const math::float3& area_min, const math::float3& area_unit, math::uint3 separate_count)
+	//	@tool 指定範囲と重なる葉から、範囲と重なる三角形番号だけを集める（BVHでは三角形の重複は無い）
+	template<typename NodeTest>
+	void gather_bvh_triangles(const std::vector<collision::bounding_mesh::bvh_node>& nodes,
+							  const std::vector<std::uint32_t>& triangle_indices,
+							  const std::vector<collision::bounding_mesh::triangle>& triangles,
+							  const math::float3& query_min, const math::float3& query_max,
+							  NodeTest&& node_test, std::vector<size_t>& out)
 	{
-		check_block_range range;
-		if (!calculate_check_block_range(min, max, area_min, area_unit, separate_count, range))
-			return 0;
-		return static_cast<size_t>(range.x1 - range.x0 + 1) * (range.y1 - range.y0 + 1) * (range.z1 - range.z0 + 1);
+		out.clear();
+		traverse_bvh(nodes,
+			[&](const collision::bounding_mesh::bvh_node& node)
+			{
+				return aabb_overlap(node.min, node.max, query_min, query_max) && node_test(node);
+			},
+			[&](const collision::bounding_mesh::bvh_node& node)
+			{
+				for (std::uint32_t index = node.offset; index < node.offset + node.count; ++index)
+				{
+					const std::uint32_t triangle_index = triangle_indices[index];
+					const auto& triangle = triangles[triangle_index];
+					if (aabb_overlap(triangle.min.to_float3(), triangle.max.to_float3(), query_min, query_max))
+						out.push_back(triangle_index);
+				}
+				return false;
+			});
+	}
+
+	inline void gather_bvh_triangles(const std::vector<collision::bounding_mesh::bvh_node>& nodes,
+									 const std::vector<std::uint32_t>& triangle_indices,
+									 const std::vector<collision::bounding_mesh::triangle>& triangles,
+									 const math::float3& query_min, const math::float3& query_max,
+									 std::vector<size_t>& out)
+	{
+		gather_bvh_triangles(nodes, triangle_indices, triangles, query_min, query_max,
+							 [](const collision::bounding_mesh::bvh_node&) { return true; }, out);
 	}
 
 
@@ -367,9 +426,34 @@ namespace
 
 using namespace collision;
 
+namespace
+{
+	//	@tool 旧形式（均一グリッド）のブロック情報。旧ファイルの読み飛ばし専用
+	struct legacy_block_data
+	{
+		math::float3 center;
+		std::vector<size_t> triangles;
+
+		template<class Archive>
+		void serialize(Archive& archive, int version)
+		{
+			archive(CEREAL_NVP(center), CEREAL_NVP(triangles));
+		}
+	};
+
+	//	@tool BVH形式のファイル先頭に置く識別値（旧形式の先頭は頂点数なので重ならない）
+	constexpr std::uint64_t bvh_format_magic = 0x3148564245424D45ull;
+
+	inline float get_axis(const math::float3& value, int axis)
+	{
+		return axis == 0 ? value.x : (axis == 1 ? value.y : value.z);
+	}
+}
+
 // CEREALバージョン定義
 CEREAL_CLASS_VERSION(bounding_mesh::triangle, 1)
-CEREAL_CLASS_VERSION(bounding_mesh::block_data, 1)
+CEREAL_CLASS_VERSION(bounding_mesh::bvh_node, 1)
+CEREAL_CLASS_VERSION(legacy_block_data, 1)
 
 template<class Archive>
 void bounding_mesh::triangle::serialize(Archive& archive, int version)
@@ -378,9 +462,9 @@ void bounding_mesh::triangle::serialize(Archive& archive, int version)
 }
 
 template<class Archive>
-void bounding_mesh::block_data::serialize(Archive& archive, int version)
+void bounding_mesh::bvh_node::serialize(Archive& archive, int version)
 {
-	archive(CEREAL_NVP(center), CEREAL_NVP(triangles));
+	archive(CEREAL_NVP(min), CEREAL_NVP(max), CEREAL_NVP(offset), CEREAL_NVP(count));
 }
 
 const math::double3& bounding_mesh::get_local_scale() const
@@ -403,17 +487,17 @@ bounding_mesh::bounding_mesh(std::vector<math::vector3f>& positions, std::vector
 	: bounding_object({1, 1, 1}, {0, 0, 0, 1}, {0, 0, 0})
 	, positions(positions)
 	, triangles(triangles)
-	, separate_count(1, 1, 1)
 {
+	(void)separate_level;
+
 	//	頂点が無い場合は空のまま
 	if (positions.empty())
 	{
-		area_min = area_max = area_size = area_unit = math::float3(0.0f, 0.0f, 0.0f);
+		area_min = area_max = math::float3(0.0f, 0.0f, 0.0f);
 		return;
 	}
 
 	//	幅算出
-	//include_corner(area_min, area_max);
 	area_min = area_max = positions[0].to_float3();
 	for (auto& position : positions)
 	{
@@ -428,186 +512,209 @@ bounding_mesh::bounding_mesh(std::vector<math::vector3f>& positions, std::vector
 	area_min.x -= 1.0f; area_min.y -= 1.0f; area_min.z -= 1.0f;
 	area_max.x += 1.0f; area_max.y += 1.0f; area_max.z += 1.0f;
 
-	area_size.x = area_max.x - area_min.x;
-	area_size.y = area_max.y - area_min.y;
-	area_size.z = area_max.z - area_min.z;
-
-	if (triangles.size() <= 1024)
-		separate_level = 0;
-
-	{
-		std::uint32_t temp_separate_count = 1u << separate_level;
-		separate_count.x = temp_separate_count;
-		separate_count.y = temp_separate_count;
-		separate_count.z = temp_separate_count;
-		for (; separate_count.x >= 1; --separate_count.x)
-		{
-			float temp = area_size.x / static_cast<float>(separate_count.x);
-			if (temp >= separate_level) break;
-		}
-		for (; separate_count.y >= 1; --separate_count.y)
-		{
-			float temp = area_size.y / static_cast<float>(separate_count.y);
-			if (temp >= separate_level) break;
-		}
-		for (; separate_count.z >= 1; --separate_count.z)
-		{
-			float temp = area_size.z / static_cast<float>(separate_count.z);
-			if (temp >= separate_level) break;
-		}
-		if (separate_count.x < 1) separate_count.x = 1;
-		if (separate_count.y < 1) separate_count.y = 1;
-		if (separate_count.z < 1) separate_count.z = 1;
-		area_unit.x = area_size.x / static_cast<float>(separate_count.x);
-		area_unit.y = area_size.y / static_cast<float>(separate_count.y);
-		area_unit.z = area_size.z / static_cast<float>(separate_count.z);
-	}
-
-	//	ブロック本体を先に全部構築（AABBだけ。三角形リストは後で埋める）
-	block_datas.resize(static_cast<size_t>(separate_count.x) * separate_count.y * separate_count.z);
-
-	//	三角形の事前計算
-	struct triangle_cache
-	{
-		math::vector3f a, b, c;
-		math::vector3f triangle_min, triangle_max;
-	};
-	std::vector<triangle_cache> triangle_caches(triangles.size());
-	{
-		auto p = positions.data();
-		auto t = triangles.data();
-		for (size_t index = 0; index < triangles.size(); ++index)
-		{
-			auto* tri = t + index;
-			auto& tc = triangle_caches[index];
-			tc.a = p[tri->a];
-			tc.b = p[tri->b];
-			tc.c = p[tri->c];
-			tc.triangle_min = (math::min)((math::min)(tc.a, tc.b), tc.c);
-			tc.triangle_max = (math::max)((math::max)(tc.a, tc.b), tc.c);
-		}
-	}
-
-	{
-		math::float3 extent = area_unit;
-		extent.x *= 0.5f; extent.y *= 0.5f; extent.z *= 0.5f;
-
-		for (std::uint32_t z = 0; z < separate_count.z; ++z)
-		{
-			for (std::uint32_t y = 0; y < separate_count.y; ++y)
-			{
-				for (std::uint32_t x = 0; x < separate_count.x; ++x)
-				{
-					std::uint32_t block_index = x + y * separate_count.x + z * separate_count.x * separate_count.y;
-					block_data& data = block_datas[block_index];
-					data.center = area_min;
-					data.center.x += area_unit.x * (static_cast<float>(x) + 0.5f);
-					data.center.y += area_unit.y * (static_cast<float>(y) + 0.5f);
-					data.center.z += area_unit.z * (static_cast<float>(z) + 0.5f);
-					data.bounds = inner::axis_aligned_bounding_box(math::double3(extent), math::double3(data.center));
-				}
-			}
-		}
-	}
-
-	// 三角形ごとに「重なりうるブロック範囲」だけを見る（B×T → 大幅削減）
-	auto clamp_index = [](int v, int lo, int hi) { return v < lo ? lo : (v > hi ? hi : v); };
-
-	auto process_range = [&](size_t begin, size_t end, std::vector<std::pair<std::uint32_t, std::uint32_t>>& out /* block_index, tri_index */)
-	{
-		auto t = triangles.data();
-		for (size_t index = begin; index < end; ++index)
-		{
-			auto& tc = triangle_caches[index];
-
-			math::float3 tmin, tmax;
-			tmin = math::vector3f(tc.triangle_min).to_float3();
-			tmax = math::vector3f(tc.triangle_max).to_float3();
-
-			int x0 = clamp_index(static_cast<int>((tmin.x - area_min.x) / area_unit.x) - 1, 0, static_cast<int>(separate_count.x) - 1);
-			int x1 = clamp_index(static_cast<int>((tmax.x - area_min.x) / area_unit.x) + 1, 0, static_cast<int>(separate_count.x) - 1);
-			int y0 = clamp_index(static_cast<int>((tmin.y - area_min.y) / area_unit.y) - 1, 0, static_cast<int>(separate_count.y) - 1);
-			int y1 = clamp_index(static_cast<int>((tmax.y - area_min.y) / area_unit.y) + 1, 0, static_cast<int>(separate_count.y) - 1);
-			int z0 = clamp_index(static_cast<int>((tmin.z - area_min.z) / area_unit.z) - 1, 0, static_cast<int>(separate_count.z) - 1);
-			int z1 = clamp_index(static_cast<int>((tmax.z - area_min.z) / area_unit.z) + 1, 0, static_cast<int>(separate_count.z) - 1);
-
-			auto* tri = t + index;
-			for (int z = z0; z <= z1; ++z)
-			{
-				for (int y = y0; y <= y1; ++y)
-				{
-					for (int x = x0; x <= x1; ++x)
-					{
-						std::uint32_t block_index = static_cast<std::uint32_t>(x) +
-											static_cast<std::uint32_t>(y) * separate_count.x +
-											static_cast<std::uint32_t>(z) * separate_count.x * separate_count.y;
-
-						block_data& data = block_datas[block_index];
-
-						math::vector3d BoundsMin, BoundsMax;
-						data.bounds.include_corner(BoundsMin, BoundsMax);
-						math::vector3f BoxMin(BoundsMin), BoxMax(BoundsMax);
-
-						if (math::any_greater(tc.triangle_min, BoxMax) || math::any_greater(BoxMin, tc.triangle_max))
-							continue;
-
-						if (triangle_aabb(tc.a.to_float3(), tc.b.to_float3(), tc.c.to_float3(), tri->normal.to_float3(), data.bounds))
-							out.emplace_back(block_index, static_cast<std::uint32_t>(index));
-					}
-				}
-			}
-		}
-	};
-
-	size_t triangle_count = triangles.size();
-	if (triangle_count == 0)
-		return;
-
-	std::uint32_t thread_count = std::max(1u, std::min(std::thread::hardware_concurrency(), 16u));
-	thread_count = static_cast<std::uint32_t>(std::min<size_t>(thread_count, triangle_count));
-
-	std::vector<std::vector<std::pair<std::uint32_t, std::uint32_t>>> results(thread_count);
-	{
-		std::vector<std::thread> workers;
-		size_t chunk = (triangle_count + thread_count - 1) / thread_count;
-		for (std::uint32_t i = 0; i < thread_count; ++i)
-		{
-			size_t begin = i * chunk;
-			size_t end = std::min(triangle_count, begin + chunk);
-			if (begin >= end)
-				continue;
-			workers.emplace_back(process_range, begin, end, std::ref(results[i]));
-		}
-		for (auto& w : workers)
-		{
-			w.join();
-		}
-	}
-
-	//	マージ
-	std::vector<size_t> counts(block_datas.size(), 0);
-	for (auto& r : results)
-	{
-		for (auto& p : r)
-		{
-			counts[p.first]++;
-		}
-	}
-	for (size_t i = 0; i < block_datas.size(); ++i)
-	{
-		block_datas[i].triangles.reserve(counts[i]);
-	}
-	for (auto& r : results)
-	{
-		for (auto& p : r)
-		{
-			block_datas[p.first].triangles.emplace_back(p.second);
-		}
-	}
+	//	@tool BVHは三角形の範囲を使うので、渡された三角形の事前計算に頼らず計算し直す
+	precompute_triangles();
+	build_bvh();
 }
 
 bounding_mesh::~bounding_mesh()
 {
+}
+
+void bounding_mesh::precompute_triangles()
+{
+	//	事前計算
+	auto p = positions.data();
+	for (auto& triangle : triangles)
+	{
+		const auto& A = *(p  + triangle.a);
+		const auto& B = *(p  + triangle.b);
+		const auto& C = *(p  + triangle.c);
+		auto AB = B - A;
+		auto BC = C - B;
+		auto CA = A - C;
+		triangle.ab = AB;
+		triangle.bc = BC;
+		triangle.ca = CA;
+
+		auto Normal = math::vector3f::cross(AB, BC);
+		triangle.normal = Normal.normalized();
+
+		auto Min = (math::min)(A, (math::min)(B, C));
+		auto Max = (math::max)(A, (math::max)(B, C));
+		triangle.min = Min;
+		triangle.max = Max;
+		triangle.lab = collision::linef(collision::linef::types::segment, A.to_float3(), B.to_float3());
+		triangle.lbc = collision::linef(collision::linef::types::segment, B.to_float3(), C.to_float3());
+		triangle.lca = collision::linef(collision::linef::types::segment, C.to_float3(), A.to_float3());
+	}
+}
+
+void bounding_mesh::build_bvh()
+{
+	bvh_nodes.clear();
+	bvh_triangle_indices.clear();
+	if (triangles.empty())
+		return;
+
+	const std::uint32_t triangle_count = static_cast<std::uint32_t>(triangles.size());
+
+	//	@tool 三角形毎の範囲と中心を控えておく
+	std::vector<math::float3> triangle_mins(triangle_count);
+	std::vector<math::float3> triangle_maxs(triangle_count);
+	std::vector<math::float3> triangle_centers(triangle_count);
+	bvh_triangle_indices.resize(triangle_count);
+	for (std::uint32_t index = 0; index < triangle_count; ++index)
+	{
+		triangle_mins[index] = triangles[index].min.to_float3();
+		triangle_maxs[index] = triangles[index].max.to_float3();
+		triangle_centers[index] =
+		{
+			(triangle_mins[index].x + triangle_maxs[index].x) * 0.5f,
+			(triangle_mins[index].y + triangle_maxs[index].y) * 0.5f,
+			(triangle_mins[index].z + triangle_maxs[index].z) * 0.5f,
+		};
+		bvh_triangle_indices[index] = index;
+	}
+	bvh_nodes.reserve(static_cast<size_t>(triangle_count) * 2 / bvh_max_leaf_triangles + 1);
+
+	struct bin
+	{
+		math::float3 min = { FLT_MAX, FLT_MAX, FLT_MAX };
+		math::float3 max = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
+		std::uint32_t count = 0;
+	};
+
+	std::function<std::uint32_t(std::uint32_t, std::uint32_t, int)> build_node =
+		[&](std::uint32_t begin, std::uint32_t end, int depth) -> std::uint32_t
+	{
+		const std::uint32_t node_index = static_cast<std::uint32_t>(bvh_nodes.size());
+		bvh_nodes.emplace_back();
+
+		//	@tool ノードの範囲と、三角形中心の範囲を求める
+		math::float3 bounds_min = { FLT_MAX, FLT_MAX, FLT_MAX };
+		math::float3 bounds_max = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
+		math::float3 center_min = bounds_min;
+		math::float3 center_max = bounds_max;
+		for (std::uint32_t index = begin; index < end; ++index)
+		{
+			const std::uint32_t triangle_index = bvh_triangle_indices[index];
+			aabb_include(bounds_min, bounds_max, triangle_mins[triangle_index], triangle_maxs[triangle_index]);
+			aabb_include(center_min, center_max, triangle_centers[triangle_index], triangle_centers[triangle_index]);
+		}
+		bvh_nodes[node_index].min = bounds_min;
+		bvh_nodes[node_index].max = bounds_max;
+
+		const std::uint32_t count = end - begin;
+		auto make_leaf = [&]()
+		{
+			bvh_nodes[node_index].offset = begin;
+			bvh_nodes[node_index].count = count;
+			return node_index;
+		};
+		if (count <= bvh_max_leaf_triangles || depth >= bvh_max_depth)
+			return make_leaf();
+
+		//	@tool 三角形中心の広がりが最大の軸で分割する
+		int axis = 0;
+		{
+			const float extent_x = center_max.x - center_min.x;
+			const float extent_y = center_max.y - center_min.y;
+			const float extent_z = center_max.z - center_min.z;
+			if (extent_y > extent_x && extent_y >= extent_z) axis = 1;
+			else if (extent_z > extent_x && extent_z > extent_y) axis = 2;
+		}
+		const float axis_min = get_axis(center_min, axis);
+		const float axis_extent = get_axis(center_max, axis) - axis_min;
+
+		std::uint32_t middle = begin;
+		if (axis_extent > 1e-12f)
+		{
+			//	@tool ビン分割でSAHコストが最小になる位置を探す
+			bin bins[bvh_bin_count];
+			const float scale = static_cast<float>(bvh_bin_count) / axis_extent;
+			auto calculate_bin = [&](std::uint32_t triangle_index)
+			{
+				const int bin_index = static_cast<int>((get_axis(triangle_centers[triangle_index], axis) - axis_min) * scale);
+				return std::clamp(bin_index, 0, bvh_bin_count - 1);
+			};
+			for (std::uint32_t index = begin; index < end; ++index)
+			{
+				const std::uint32_t triangle_index = bvh_triangle_indices[index];
+				bin& target = bins[calculate_bin(triangle_index)];
+				aabb_include(target.min, target.max, triangle_mins[triangle_index], triangle_maxs[triangle_index]);
+				++target.count;
+			}
+
+			float left_areas[bvh_bin_count - 1];
+			std::uint32_t left_counts[bvh_bin_count - 1];
+			{
+				bin accumulate;
+				for (int split = 0; split < bvh_bin_count - 1; ++split)
+				{
+					if (bins[split].count > 0)
+						aabb_include(accumulate.min, accumulate.max, bins[split].min, bins[split].max);
+					accumulate.count += bins[split].count;
+					left_counts[split] = accumulate.count;
+					left_areas[split] = accumulate.count > 0 ? aabb_surface_area(accumulate.min, accumulate.max) : 0.0f;
+				}
+			}
+
+			float best_cost = FLT_MAX;
+			int best_split = -1;
+			{
+				bin accumulate;
+				for (int split = bvh_bin_count - 2; split >= 0; --split)
+				{
+					if (bins[split + 1].count > 0)
+						aabb_include(accumulate.min, accumulate.max, bins[split + 1].min, bins[split + 1].max);
+					accumulate.count += bins[split + 1].count;
+					if (left_counts[split] == 0 || accumulate.count == 0)
+						continue;
+
+					const float cost = left_areas[split] * static_cast<float>(left_counts[split])
+									 + aabb_surface_area(accumulate.min, accumulate.max) * static_cast<float>(accumulate.count);
+					if (cost < best_cost)
+					{
+						best_cost = cost;
+						best_split = split;
+					}
+				}
+			}
+
+			//	@tool 分割しても得をしない少数の三角形はそのまま葉にする
+			const float leaf_cost = aabb_surface_area(bounds_min, bounds_max) * static_cast<float>(count);
+			if (best_split < 0 || (best_cost >= leaf_cost && count <= bvh_force_leaf_triangles))
+			{
+				if (count <= bvh_force_leaf_triangles)
+					return make_leaf();
+			}
+			else
+			{
+				auto it = std::partition(bvh_triangle_indices.begin() + begin, bvh_triangle_indices.begin() + end,
+										 [&](std::uint32_t triangle_index) { return calculate_bin(triangle_index) <= best_split; });
+				middle = static_cast<std::uint32_t>(it - bvh_triangle_indices.begin());
+			}
+		}
+
+		//	@tool 分割できなかった場合は中心位置の中央値で半分にする
+		if (middle == begin || middle == end)
+		{
+			if (count <= bvh_force_leaf_triangles)
+				return make_leaf();
+
+			middle = begin + count / 2;
+			std::nth_element(bvh_triangle_indices.begin() + begin, bvh_triangle_indices.begin() + middle, bvh_triangle_indices.begin() + end,
+							 [&](std::uint32_t lhs, std::uint32_t rhs) { return get_axis(triangle_centers[lhs], axis) < get_axis(triangle_centers[rhs], axis); });
+		}
+
+		build_node(begin, middle, depth + 1);
+		const std::uint32_t right_index = build_node(middle, end, depth + 1);
+		bvh_nodes[node_index].offset = right_index;
+		bvh_nodes[node_index].count = 0;
+		return node_index;
+	};
+	build_node(0, triangle_count, 0);
 }
 
 bool bounding_mesh::serialize(std::string_view file_path)
@@ -619,15 +726,15 @@ bool bounding_mesh::serialize(std::string_view file_path)
 
 		try
 		{
-			archive(CEREAL_NVP(positions),
+			std::uint64_t format_magic = bvh_format_magic;
+			archive(CEREAL_NVP(format_magic),
+					CEREAL_NVP(positions),
 					CEREAL_NVP(triangles),
 
 					CEREAL_NVP(area_min),
 					CEREAL_NVP(area_max),
-					CEREAL_NVP(area_size),
-					CEREAL_NVP(area_unit),
-					CEREAL_NVP(separate_count),
-					CEREAL_NVP(block_datas));
+					CEREAL_NVP(bvh_nodes),
+					CEREAL_NVP(bvh_triangle_indices));
 		}
 		catch (...)
 		{
@@ -645,19 +752,46 @@ bool bounding_mesh::deserialize(std::string_view file_path)
 	std::ifstream istream(file_path.data(), std::ios::binary);
 	if (istream.is_open())
 	{
+		//	@tool 先頭の識別値で、BVH形式か旧形式（均一グリッド）かを判別する
+		std::uint64_t head = 0;
+		istream.read(reinterpret_cast<char*>(&head), sizeof(head));
+		istream.clear();
+		istream.seekg(0);
+		const bool is_bvh_format = head == bvh_format_magic;
+
 		cereal::BinaryInputArchive archive(istream);
 
 		try
 		{
-			archive(CEREAL_NVP(positions),
-					CEREAL_NVP(triangles),
+			if (is_bvh_format)
+			{
+				std::uint64_t format_magic = 0;
+				archive(CEREAL_NVP(format_magic),
+						CEREAL_NVP(positions),
+						CEREAL_NVP(triangles),
 
-					CEREAL_NVP(area_min),
-					CEREAL_NVP(area_max),
-					CEREAL_NVP(area_size),
-					CEREAL_NVP(area_unit),
-					CEREAL_NVP(separate_count),
-					CEREAL_NVP(block_datas));
+						CEREAL_NVP(area_min),
+						CEREAL_NVP(area_max),
+						CEREAL_NVP(bvh_nodes),
+						CEREAL_NVP(bvh_triangle_indices));
+			}
+			else
+			{
+				//	@tool 旧形式は三角形まで使い、グリッド情報は読み捨ててBVHを作り直す
+				math::float3 area_size;
+				math::float3 area_unit;
+				math::uint3 separate_count;
+				std::vector<legacy_block_data> block_datas;
+				archive(CEREAL_NVP(positions),
+						CEREAL_NVP(triangles),
+
+						CEREAL_NVP(area_min),
+						CEREAL_NVP(area_max),
+						CEREAL_NVP(area_size),
+						CEREAL_NVP(area_unit),
+						CEREAL_NVP(separate_count),
+						CEREAL_NVP(block_datas));
+			}
 		}
 		catch (...)
 		{
@@ -665,41 +799,9 @@ bool bounding_mesh::deserialize(std::string_view file_path)
 			return false;
 		}
 
-		//	インデックスブロック内部のバウンディングボックス生成
-		math::float3 extent;
-		extent.x = area_unit.x * 0.5f;
-		extent.y = area_unit.y * 0.5f;
-		extent.z = area_unit.z * 0.5f;
-		for (auto& node : block_datas)
-		{
-			node.bounds = inner::axis_aligned_bounding_box(math::double3(extent), math::double3(node.center));
-		}
-
-		//	事前計算
-		auto p = positions.data();
-		for (auto& triangle : triangles)
-		{
-			const auto& A = *(p  + triangle.a);
-			const auto& B = *(p  + triangle.b);
-			const auto& C = *(p  + triangle.c);
-			auto AB = B - A;
-			auto BC = C - B;
-			auto CA = A - C;
-			triangle.ab = AB;
-			triangle.bc = BC;
-			triangle.ca = CA;
-
-			auto Normal = math::vector3f::cross(AB, BC);
-			triangle.normal = Normal.normalized();
-
-			auto Min = (math::min)(A, (math::min)(B, C));
-			auto Max = (math::max)(A, (math::max)(B, C));
-			triangle.min = Min;
-			triangle.max = Max;
-			triangle.lab = collision::linef(collision::linef::types::segment, A.to_float3(), B.to_float3());
-			triangle.lbc = collision::linef(collision::linef::types::segment, B.to_float3(), C.to_float3());
-			triangle.lca = collision::linef(collision::linef::types::segment, C.to_float3(), A.to_float3());
-		}
+		precompute_triangles();
+		if (!is_bvh_format)
+			build_bvh();
 		return true;
 	}
 	OutputDebugStringA(file_path.data());
@@ -745,17 +847,14 @@ bool bounding_mesh::intersect_point(const math::double3& point) const
 
 	float nearlest = FLT_MAX;
 
-	auto index = calculate_array_index_from_point(local_point, area_min, area_unit, separate_count);
-	if (index >= block_datas.size())
-		return false;
+	//	@tool 点を含む葉の三角形だけを判定する（面上判定の誤差分だけ範囲を広げる）
+	constexpr float point_margin = 1e-3f;
+	const math::float3 min = { local_point.x - point_margin, local_point.y - point_margin, local_point.z - point_margin };
+	const math::float3 max = { local_point.x + point_margin, local_point.y + point_margin, local_point.z + point_margin };
 
-	auto& node = block_datas[index];
-	if (node.bounds.intersect_point(math::double3(local_point)))
-	{
-		if (intersect_point_inner(local_point, nearlest, node.triangles))
-			return true;
-	}
-	return false;
+	thread_local std::vector<size_t> candidates;
+	gather_bvh_triangles(bvh_nodes, bvh_triangle_indices, triangles, min, max, candidates);
+	return intersect_point_inner(local_point, nearlest, candidates);
 }
 
 bool bounding_mesh::intersect_segment_inner(const math::float3& start, const math::float3& end, const std::vector<size_t>& triangle_indices, intersect_data* intersect) const
@@ -916,45 +1015,24 @@ bool bounding_mesh::intersect_segment(const math::double3& start, const math::do
 		return false;
 
 
-	bool hit = false;
-	intersect_data data, best;
-	if (for_each_check_block(min, max, area_min, area_unit, separate_count, [&](std::uint32_t node_index)
-	{
-		auto& node = block_datas[node_index];
-		if (node.triangles.empty())
-			return false;
+	//	@tool 線分が通る葉の三角形を集め、まとめて最も近い交点を求める
+	thread_local std::vector<size_t> candidates;
+	gather_bvh_triangles(bvh_nodes, bvh_triangle_indices, triangles, min, max,
+		[&](const bvh_node& node) { return segment_overlap_aabb(local_start, local_end, node.min, node.max, 0.0f); },
+		candidates);
 
-		if (!node.bounds.intersect_segment(math::double3(local_start), math::double3(local_end)))
-			return false;
+	if (!intersect)
+		return intersect_segment_inner_moller(local_start, local_end, candidates);
 
-		if (intersect)
-		{
-			data.clear();
-			if (intersect_segment_inner_moller(local_start, local_end, node.triangles, &data))
-			{
-				//	最も近い交点を採用
-				if (best.size() == 0 || data[0].length < best[0].length)
-					best.swap(data);
-				hit = true;
-			}
-		}
-		else
-		{
-			if (intersect_segment_inner_moller(local_start, local_end, node.triangles))
-				return true;
-		}
+	intersect_data best;
+	if (!intersect_segment_inner_moller(local_start, local_end, candidates, &best))
 		return false;
-	}))
-		return true;
 
 	//	ローカル空間からワールド空間へ変換
-	if (hit && intersect)
-	{
-		size_t begin = intersect->size();
-		intersect->append(best);
-		intersect->multiply_matrices(begin, get_transform_matrix());
-	}
-	return hit;
+	size_t begin = intersect->size();
+	intersect->append(best);
+	intersect->multiply_matrices(begin, get_transform_matrix());
+	return true;
 }
 
 bool bounding_mesh::intersect_sphere_inner(const math::float3& point, float radius, const std::vector<size_t>& triangle_indices, intersect_data* intersect) const
@@ -1022,38 +1100,22 @@ bool bounding_mesh::intersect_sphere(const math::double3& point, double world_ra
 	max.y = local_point.y + radius;
 	max.z = local_point.z + radius;
 
-	bool hit = false;
-	intersect_data data, best;
-	if (for_each_check_block(min, max, area_min, area_unit, separate_count, [&](std::uint32_t node_index)
-	{
-		auto& node = block_datas[node_index];
-		if (!intersect)
-		{
-			if (intersect_sphere_inner(local_point, radius, node.triangles, nullptr))
-				return true;
-			return false;
-		}
+	//	@tool 球の範囲と重なる葉の三角形を集め、まとめて最も深い接触を求める
+	thread_local std::vector<size_t> candidates;
+	gather_bvh_triangles(bvh_nodes, bvh_triangle_indices, triangles, min, max, candidates);
 
-		//	全ブロックから最も深い接触を採用
-		data.clear();
-		if (intersect_sphere_inner(local_point, radius, node.triangles, &data))
-		{
-			if (best.size() == 0 || data[0].length > best[0].length)
-				best.swap(data);
-			hit = true;
-		}
+	if (!intersect)
+		return intersect_sphere_inner(local_point, radius, candidates, nullptr);
+
+	intersect_data best;
+	if (!intersect_sphere_inner(local_point, radius, candidates, &best))
 		return false;
-	}))
-		return true;
 
-	if (hit && intersect)
-	{
-		//	ワールドへ変換
-		size_t begin = intersect->size();
-		intersect->append(best);
-		intersect->multiply_matrices(begin, get_transform_matrix());
-	}
-	return hit;
+	//	ワールドへ変換
+	size_t begin = intersect->size();
+	intersect->append(best);
+	intersect->multiply_matrices(begin, get_transform_matrix());
+	return true;
 }
 
 bool bounding_mesh::intersect_sphere(const bounding_sphere& sphere, intersect_data* intersect) const
@@ -1217,40 +1279,19 @@ bool bounding_mesh::intersect_capsule(const bounding_capsule& capsule, intersect
 	Max = math::vector3f(max);
 
 
-	bool hit = false;
-	intersect_data data, best;
-	if (for_each_check_block(min, max, area_min, area_unit, separate_count, [&](std::uint32_t node_index)
-	{
-		auto& node = block_datas[node_index];
-		if (node.triangles.empty())
-			return false;
+	//	@tool カプセルの範囲と重なる葉の三角形を集め、まとめて最も深い接触を求める
+	thread_local std::vector<size_t> candidates;
+	gather_bvh_triangles(bvh_nodes, bvh_triangle_indices, triangles, min, max, candidates);
 
-		if (!node.bounds.intersect_capsule(local_capsule))
-			return false;
+	if (!intersect)
+		return intersect_capsule_inner(local_capsule, Min, Max, get_transform_matrix(), candidates, nullptr);
 
-		if (intersect)
-		{
-			data.clear();
-			if (intersect_capsule_inner(local_capsule, Min, Max, get_transform_matrix(), node.triangles, &data))
-			{
-				//	最も深い接触を採用
-				if (best.size() == 0 || data[0].length > best[0].length)
-					best.swap(data);
-				hit = true;
-			}
-		}
-		else
-		{
-			if (intersect_capsule_inner(local_capsule, Min, Max, get_transform_matrix(), node.triangles, intersect))
-				return true;
-		}
+	intersect_data best;
+	if (!intersect_capsule_inner(local_capsule, Min, Max, get_transform_matrix(), candidates, &best))
 		return false;
-	}))
-		return true;
 
-	if (hit && intersect)
-		intersect->append(best);
-	return hit;
+	intersect->append(best);
+	return true;
 }
 
 bool bounding_mesh::intersect_box_inner(math::vector3f Center, math::vector3f AxisX, math::vector3f AxisY, math::vector3f AxisZ,
@@ -1370,52 +1411,22 @@ bool bounding_mesh::intersect_box(const bounding_box& box, intersect_data* inter
 	max = BoxMax.to_float3();
 
 
-	//	ローカル空間の箱
-	math::double4 local_rotation;
-	math::double3 local_position;
-	local_rotation = Rotation.to_double4();
-	local_position = Translation.to_double3();
-	bounding_box local_box(box.get_local_scale(), local_rotation, local_position);
+	//	@tool 箱の範囲と重なる葉の三角形を集め、まとめて最も深い接触を求める
+	thread_local std::vector<size_t> candidates;
+	gather_bvh_triangles(bvh_nodes, bvh_triangle_indices, triangles, min, max, candidates);
 
-	bool hit = false;
-	intersect_data data, best;
-	if (for_each_check_block(min, max, area_min, area_unit, separate_count, [&](std::uint32_t node_index)
-	{
-		auto& node = block_datas[node_index];
-		if (node.triangles.empty())
-			return false;
+	if (!intersect)
+		return intersect_box_inner(Center, AxisX, AxisY, AxisZ, half_extent, BoxMin, BoxMax, candidates, nullptr);
 
-		if (!node.bounds.intersect_box(local_box))
-			return false;
-
-		if (intersect)
-		{
-			data.clear();
-			if (intersect_box_inner(Center, AxisX, AxisY, AxisZ, half_extent, BoxMin, BoxMax, node.triangles, &data))
-			{
-				//	最も深い接触を採用
-				if (best.size() == 0 || data[0].length > best[0].length)
-					best.swap(data);
-				hit = true;
-			}
-		}
-		else
-		{
-			if (intersect_box_inner(Center, AxisX, AxisY, AxisZ, half_extent, BoxMin, BoxMax, node.triangles, nullptr))
-				return true;
-		}
+	intersect_data best;
+	if (!intersect_box_inner(Center, AxisX, AxisY, AxisZ, half_extent, BoxMin, BoxMax, candidates, &best))
 		return false;
-	}))
-		return true;
 
-	if (hit && intersect)
-	{
-		//	ワールドへ変換
-		size_t begin = intersect->size();
-		intersect->append(best);
-		intersect->multiply_matrices(begin, get_transform_matrix());
-	}
-	return hit;
+	//	ワールドへ変換
+	size_t begin = intersect->size();
+	intersect->append(best);
+	intersect->multiply_matrices(begin, get_transform_matrix());
+	return true;
 }
 
 bool bounding_mesh::intersect_mesh(const bounding_mesh& mesh, intersect_data* intersect) const
@@ -1628,43 +1639,24 @@ bool bounding_mesh::intersect_sphere_cast(const math::double3& start, const math
 
 	collision::linef sweep_line(collision::linef::types::segment, local_start, local_end);
 
-	bool hit = false;
-	intersect_data data, best;
-	if (for_each_check_block(min, max, area_min, area_unit, separate_count, [&](std::uint32_t node_index)
-	{
-		auto& node = block_datas[node_index];
-		if (node.triangles.empty())
-			return false;
+	//	@tool 移動する球が通り得る葉（線分が半径分膨らませたノードを通る）の三角形を集め、まとめて最も近い交点を求める
+	thread_local std::vector<size_t> candidates;
+	gather_bvh_triangles(bvh_nodes, bvh_triangle_indices, triangles, min, max,
+		[&](const bvh_node& node) { return segment_overlap_aabb(local_start, local_end, node.min, node.max, radius); },
+		candidates);
 
-		if (intersect)
-		{
-			data.clear();
-			if (intersect_sphere_cast_inner(sweep_line, radius, node.triangles, &data))
-			{
-				//	最も近い交点を採用
-				if (best.size() == 0 || data[0].length < best[0].length)
-					best.swap(data);
-				hit = true;
-			}
-		}
-		else
-		{
-			if (intersect_sphere_cast_inner(sweep_line, radius, node.triangles, nullptr))
-				return true;
-		}
+	if (!intersect)
+		return intersect_sphere_cast_inner(sweep_line, radius, candidates, nullptr);
+
+	intersect_data best;
+	if (!intersect_sphere_cast_inner(sweep_line, radius, candidates, &best))
 		return false;
-	}))
-		return true;
 
 	//	結果をローカル空間からワールド空間へ変換
-	if (hit && intersect)
-	{
-		size_t begin = intersect->size();
-		intersect->append(best);
-		intersect->multiply_matrices(begin, get_transform_matrix());
-	}
-
-	return hit;
+	size_t begin = intersect->size();
+	intersect->append(best);
+	intersect->multiply_matrices(begin, get_transform_matrix());
+	return true;
 }
 
 bool bounding_mesh::intersect_capsule_cast(const math::double3& start, const math::double3& end,
@@ -1820,7 +1812,7 @@ float bounding_mesh::calculate_segment_distance(const collision::linef& line,
 
 bool bounding_mesh::is_point_inside(const math::double3& point) const
 {
-	if (triangles.empty() || block_datas.empty())
+	if (triangles.empty() || bvh_nodes.empty())
 		return false;
 
 	math::float3 local_point;
@@ -1835,7 +1827,7 @@ bool bounding_mesh::is_point_inside(const math::double3& point) const
 
 	math::float3 grid_extent = { area_max.x - area_min.x, area_max.y - area_min.y, area_max.z - area_min.z };
 	float ray_length = sqrtf(grid_extent.x * grid_extent.x + grid_extent.y * grid_extent.y + grid_extent.z * grid_extent.z)
-		+ std::max({ area_unit.x, area_unit.y, area_unit.z });
+		+ 1.0f;	//	@tool 範囲の外まで確実に伸ばすための余裕（旧: グリッド1マス分）
 
 	auto p = positions.data();
 	std::vector<size_t> candidate_triangles;
@@ -1848,20 +1840,10 @@ bool bounding_mesh::is_point_inside(const math::double3& point) const
 		min.x = std::min(min.x, local_end.x); min.y = std::min(min.y, local_end.y); min.z = std::min(min.z, local_end.z);
 		max.x = std::max(max.x, local_end.x); max.y = std::max(max.y, local_end.y); max.z = std::max(max.z, local_end.z);
 
-		candidate_triangles.clear();
-		for_each_check_block(min, max, area_min, area_unit, separate_count, [&](std::uint32_t node_index)
-		{
-			auto& node = block_datas[node_index];
-			if (node.triangles.empty())
-				return false;
-			if (!node.bounds.intersect_segment(math::double3(local_point), math::double3(local_end)))
-				return false;
-
-			candidate_triangles.insert(candidate_triangles.end(), node.triangles.begin(), node.triangles.end());
-			return false;
-		});
-		std::sort(candidate_triangles.begin(), candidate_triangles.end());
-		candidate_triangles.erase(std::unique(candidate_triangles.begin(), candidate_triangles.end()), candidate_triangles.end());
+		//	@tool レイが通る葉の三角形を集める（BVHでは三角形が重複しないので重複除去は不要）
+		gather_bvh_triangles(bvh_nodes, bvh_triangle_indices, triangles, min, max,
+			[&](const bvh_node& node) { return segment_overlap_aabb(local_point, local_end, node.min, node.max, 0.0f); },
+			candidate_triangles);
 
 		for (auto triangle_index : candidate_triangles)
 		{
@@ -1886,7 +1868,7 @@ bool bounding_mesh::is_point_inside(const math::double3& point) const
 
 bool bounding_mesh::distance_to_point(const math::double3& point, double& out_distance, math::double3* out_nearest_point, math::double3* out_normal) const
 {
-	if (triangles.empty() || block_datas.empty())
+	if (triangles.empty() || bvh_nodes.empty())
 		return false;
 
 	math::float3 local_point;
@@ -1896,32 +1878,22 @@ bool bounding_mesh::distance_to_point(const math::double3& point, double& out_di
 	auto p = positions.data();
 	auto t = triangles.data();
 
-	std::vector<bool> checked(block_datas.size(), false);
-
 	float nearest_sq = FLT_MAX;
 	math::vector3f nearest_point_v = P;
 	math::float3 nearest_normal = { 0.0f, 1.0f, 0.0f };
 
-	float search_radius = std::max({ area_unit.x, area_unit.y, area_unit.z });
-	if (search_radius <= 0.0f)
-		search_radius = 1.0f;
-
-	for (int safety = 0; safety < 32; ++safety)
+	//	@tool 現在の最短距離より遠いノードは子孫ごと飛ばしながら、最も近い三角形を探す
 	{
-		math::float3 min = { local_point.x - search_radius, local_point.y - search_radius, local_point.z - search_radius };
-		math::float3 max = { local_point.x + search_radius, local_point.y + search_radius, local_point.z + search_radius };
-		bool covers_whole_grid = count_check_block(min, max, area_min, area_unit, separate_count) >= block_datas.size();
-
-		for_each_check_block(min, max, area_min, area_unit, separate_count, [&](std::uint32_t node_index)
-		{
-			if (checked[node_index])
-				return false;
-			checked[node_index] = true;
-
-			auto& node = block_datas[node_index];
-			for (auto triangle_index : node.triangles)
+		traverse_bvh(bvh_nodes,
+			[&](const bvh_node& node)
 			{
-				auto& triangle = t[triangle_index];
+				return point_aabb_distance_square(local_point, node.min, node.max) < nearest_sq;
+			},
+			[&](const bvh_node& node)
+		{
+			for (std::uint32_t leaf_index = node.offset; leaf_index < node.offset + node.count; ++leaf_index)
+			{
+				auto& triangle = t[bvh_triangle_indices[leaf_index]];
 				math::vector3f A(*(p + triangle.a));
 				math::vector3f B(*(p + triangle.b));
 				math::vector3f C(*(p + triangle.c));
@@ -1942,13 +1914,6 @@ bool bounding_mesh::distance_to_point(const math::double3& point, double& out_di
 			}
 			return false;
 		});
-
-		if (nearest_sq < FLT_MAX && sqrtf(nearest_sq) <= search_radius)
-			break;
-		if (covers_whole_grid)
-			break;
-
-		search_radius *= 2.0f;
 	}
 
 	if (nearest_sq >= FLT_MAX)

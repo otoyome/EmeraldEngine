@@ -1,6 +1,7 @@
 #pragma once
 
 #include <mutex>
+#include <functional>
 
 //	ゲーム用オブジェクト
 class game_object : public std::enable_shared_from_this<game_object>
@@ -41,7 +42,8 @@ public:
 	bool is_display_inspector() { return display_inspector; }
 	void set_display_inspector(bool flag) { display_inspector = flag; }
 
-	void imgui_render();
+	//	@tool render_children は自身のツリーノード内で子を描画する
+	void imgui_render(const std::function<void()>& render_children = nullptr);
 	virtual void imgui_render_core();
 #endif	//	defined(USE_IMGUI)
 

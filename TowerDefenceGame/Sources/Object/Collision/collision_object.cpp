@@ -9,7 +9,7 @@
 #include "Graphics/debug_primitive_collector.h"
 #endif	//	defined(_DEBUG)
 
-collision_filter_ptr collision_object::get_filter() const
+const collision_filter_ptr& collision_object::get_filter() const
 {
 	return filter;
 }
@@ -350,24 +350,27 @@ void collision_object::debug_draw()
 			};
 
 			math::float4 rotation = {0, 0, 0, 1};
-			INT draw_mesh_collision_index = draw_mesh_collision_x_index +
-				draw_mesh_collision_y_index * object->get_separate_count().x +
-				draw_mesh_collision_z_index * object->get_separate_count().x * object->get_separate_count().y;
-			math::float3 extent = object->get_area_unit();
-			extent.x *= 0.5f;
-			extent.y *= 0.5f;
-			extent.z *= 0.5f;
-			for (UINT index = 0; index < object->get_block_datas().size(); ++index)
+			const auto& nodes = object->get_bvh_nodes();
+			const auto& triangle_indices = object->get_bvh_triangle_indices();
+			for (UINT index = 0; index < nodes.size(); ++index)
 			{
-				auto& block = object->get_block_datas()[index];
+				//	@tool 葉ノードと、指定ノードだけ描画する
+				auto& node = nodes[index];
+				const bool is_selected = static_cast<INT>(index) == draw_mesh_collision_node_index;
+				if (!node.is_leaf() && !is_selected)
+					continue;
 
-				math::float4 draw_color = index == draw_mesh_collision_index ? draw_hit_color : draw_normal_color;
-				QUEUE_DEBUG_PRIMITIVE_BOX(block.center, rotation, extent, draw_color, true);
-				auto ti = block.triangles.data();
+				math::float4 draw_color = is_selected ? draw_hit_color : draw_normal_color;
+				math::float3 center = { (node.min.x + node.max.x) * 0.5f, (node.min.y + node.max.y) * 0.5f, (node.min.z + node.max.z) * 0.5f };
+				math::float3 extent = { (node.max.x - node.min.x) * 0.5f, (node.max.y - node.min.y) * 0.5f, (node.max.z - node.min.z) * 0.5f };
+				QUEUE_DEBUG_PRIMITIVE_BOX(center, rotation, extent, draw_color, true);
+				if (!node.is_leaf())
+					continue;
+
 				auto t = object->get_triangles().data();
-				for (UINT index = 0;index < block.triangles.size(); ++index)
+				for (UINT leaf_index = node.offset; leaf_index < node.offset + node.count; ++leaf_index)
 				{
-					auto triangle = t + ti[index];
+					auto triangle = t + triangle_indices[leaf_index];
 					auto a = (positions + triangle->a)->to_double3();
 					auto b = (positions + triangle->b)->to_double3();
 					auto c = (positions + triangle->c)->to_double3();
@@ -453,11 +456,9 @@ void collision_object::imgui_render()
 			case collision::bounding_object::types::mesh:
 			{
 				auto bo = std::static_pointer_cast<collision::bounding_mesh>(bounding_object);
-				if (bo->get_block_datas().size() > 0)
+				if (bo->get_bvh_nodes().size() > 0)
 				{
-					ImGui::DragInt("draw_mesh_collision_x_index", &draw_mesh_collision_x_index, 1, -1, bo->get_separate_count().x - 1);
-					ImGui::DragInt("draw_mesh_collision_y_index", &draw_mesh_collision_y_index, 1, -1, bo->get_separate_count().y - 1);
-					ImGui::DragInt("draw_mesh_collision_z_index", &draw_mesh_collision_z_index, 1, -1, bo->get_separate_count().z - 1);
+					ImGui::DragInt("draw_mesh_collision_node_index", &draw_mesh_collision_node_index, 1, -1, static_cast<int>(bo->get_bvh_nodes().size()) - 1);
 				}
 				draw_mesh_color = true;
 				break;

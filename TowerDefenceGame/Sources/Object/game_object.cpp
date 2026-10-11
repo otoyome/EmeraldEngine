@@ -65,10 +65,15 @@ void game_object::post_render()
 }
 
 #if defined(USE_IMGUI)
-void game_object::imgui_render()
+void game_object::imgui_render(const std::function<void()>& render_children)
 {
 	if (!display_inspector)
+	{
+		//	@tool 自身が非表示でも子は表示する
+		if (render_children)
+			render_children();
 		return;
+	}
 
 	ImGui::PushID(0x10203040 + static_cast<int>(id));
 	if (ImGui::TreeNode(name.get<utf8_cache>().data()))
@@ -82,6 +87,9 @@ void game_object::imgui_render()
 		}
 
 		imgui_render_core();
+
+		if (render_children)
+			render_children();
 
 		ImGui::TreePop();
 	}

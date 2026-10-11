@@ -26,12 +26,16 @@ namespace collision
 			void serialize(Archive& archive, int version);
 		};
 
-		struct block_data
+		//	@tool BVHノード（深さ優先で並べ、左の子は常に自分の直後）
+		struct bvh_node
 		{
-			math::float3 center;
-			std::vector<size_t> triangles;
+			math::float3 min;
+			math::float3 max;
+			std::uint32_t offset = 0;	//	@tool 葉: bvh_triangle_indices の開始位置 / 内部: 右の子のノード番号
+			std::uint32_t count = 0;	//	@tool 葉: 三角形数 / 内部: 0
 
-			inner::axis_aligned_bounding_box bounds;
+			bool is_leaf() const { return count > 0; }
+
 			template<class Archive>
 			void serialize(Archive& archive, int version);
 		};
@@ -44,12 +48,12 @@ namespace collision
 
 		const std::vector<math::vector3f>& get_positions() const {return positions;}
 		const std::vector<triangle>& get_triangles() const {return triangles;}
-		const std::vector<block_data>& get_block_datas() const {return block_datas;}
-		const math::float3& get_area_unit() const {return area_unit;}
-		const math::uint3& get_separate_count() const {return separate_count;}
+		const std::vector<bvh_node>& get_bvh_nodes() const {return bvh_nodes;}
+		const std::vector<std::uint32_t>& get_bvh_triangle_indices() const {return bvh_triangle_indices;}
 
 	public:
 		bounding_mesh();
+		//	@tool separate_level は均一グリッド時代の名残で未使用（呼び出し側の互換のため残している）
 		bounding_mesh(std::vector<math::vector3f>& positions, std::vector<triangle>& triangles, std::uint32_t separate_level = 4);
 		~bounding_mesh() override;
 
@@ -88,16 +92,19 @@ namespace collision
 		float calculate_segment_distance(const collision::linef& line, const triangle& triangle,
 										 math::float3& nearlest_point_segment, math::float3& nearlest_point_triangle, bool& nearlest_point_edghFlg) const;
 
+		//	@tool 三角形の事前計算（辺・法線・範囲）
+		void precompute_triangles();
+		//	@tool 三角形からBVHを構築
+		void build_bvh();
+
 	private:
 		std::vector<math::vector3f> positions;
 		std::vector<triangle> triangles;
 
 		math::float3 area_min;
 		math::float3 area_max;
-		math::float3 area_size;
-		math::float3 area_unit;
-		math::uint3 separate_count;
-		std::vector<block_data> block_datas;
+		std::vector<bvh_node> bvh_nodes;
+		std::vector<std::uint32_t> bvh_triangle_indices;	//	@tool 葉ノードが参照する三角形番号（葉毎に連続）
 	};
 
 }	//	namespace collision

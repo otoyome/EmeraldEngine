@@ -47,7 +47,7 @@ public:
 	using on_collision_end = std::function<void(const data& data)>;
 
 public:
-	collision_filter_ptr get_filter() const;
+	const collision_filter_ptr& get_filter() const;
 	void set_filter(std::string_view name);
 
 	bool is_flag(flags flag) const { return system_utility::is_bitflag(flag_data, 1 << static_cast<UINT>(flag)); }
@@ -111,9 +111,7 @@ private:
 
 	std::string name;
 	bool draw_mesh_color = false;
-	INT draw_mesh_collision_x_index = -1;
-	INT draw_mesh_collision_y_index = -1;
-	INT draw_mesh_collision_z_index = -1;
+	INT draw_mesh_collision_node_index = -1;	//	@tool 強調表示するBVHノード番号（-1で無し）
 
 public:
 	std::string_view get_name() const {return name;}

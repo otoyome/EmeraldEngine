@@ -1,4 +1,5 @@
 #include "Object/object_manager.h"
+#include "Object/spatial_object.h"
 
 namespace
 {
@@ -242,9 +243,61 @@ void object_manager::imgui_render()
 {
 	if (ImGui::Begin("objects"))
 	{
+		//	@tool 姿勢とオブジェクトを相互に引けるようにする
+		std::unordered_map<const hierarchy*, game_object*> owners;
+		std::unordered_map<const game_object*, const hierarchy*> nodes;
 		for (auto& object : game_objects)
 		{
-			object->imgui_render();
+			if (!object->check_type(spatial_object::type_name()))
+				continue;
+			const hierarchy* node = static_cast<spatial_object*>(object.get())->get_spatial().get();
+			owners.emplace(node, object.get());
+			nodes.emplace(object.get(), node);
+		}
+
+		//	@tool 子孫のうち最も近いオブジェクトを描画する（オブジェクトを持たない姿勢は飛ばして辿る）
+		std::function<void(const hierarchy*)> render_children;
+		auto render_object = [&](game_object* object)
+		{
+			auto it = nodes.find(object);
+			if (it == nodes.end())
+			{
+				object->imgui_render();
+				return;
+			}
+			const hierarchy* node = it->second;
+			object->imgui_render([&render_children, node]() { render_children(node); });
+		};
+		render_children = [&](const hierarchy* node)
+		{
+			for (auto& child : node->get_children())
+			{
+				auto it = owners.find(child.get());
+				if (it != owners.end())
+					render_object(it->second);
+				else
+					render_children(child.get());
+			}
+		};
+
+		//	@tool 祖先にオブジェクトを持たないものをルートとして描画する
+		for (auto& object : game_objects)
+		{
+			bool is_root = true;
+			auto it = nodes.find(object.get());
+			if (it != nodes.end())
+			{
+				for (auto parent = it->second->get_parent(); parent; parent = parent->get_parent())
+				{
+					if (owners.find(parent.get()) != owners.end())
+					{
+						is_root = false;
+						break;
+					}
+				}
+			}
+			if (is_root)
+				render_object(object.get());
 		}
 	}
 	ImGui::End();
