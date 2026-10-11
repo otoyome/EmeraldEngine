@@ -1,5 +1,9 @@
 #include "scenes/editscene/edit_model_scene.h"
 
+#include <algorithm>
+#include <map>
+#include <tuple>
+
 #include "model_instance.h"
 #include "model_collision_builder.h"
 #include "camera.h"
@@ -324,6 +328,12 @@ void edit_model_scene::generate_bounding_mesh_asset()
 	if (!resource)
 		return;
 
+	if (bounding_mesh_option.combine)
+	{
+		generate_combined_bounding_mesh_asset();
+		return;
+	}
+
 	std::filesystem::path model_path{ std::string(resource->get_file_path()) };
 	for (size_t mesh_index = 0; mesh_index < resource->get_meshes().size(); ++mesh_index)
 	{
@@ -341,6 +351,105 @@ void edit_model_scene::generate_bounding_mesh_asset()
 		out_path.replace_extension(std::to_string(mesh_index) + "." + std::string(collision::bounding_mesh::extension));
 		out_mesh.serialize(out_path.string());
 	}
+}
+
+void edit_model_scene::generate_combined_bounding_mesh_asset()
+{
+	if (!edit_model)
+		return;
+
+	auto resource = edit_model->get_model_instance()->get_resource();
+	if (!resource)
+		return;
+
+	collision::generate_bounding_mesh_data data;
+	data.WorldMatrix = math::matrixf();
+	data.reverse_flag = bounding_mesh_option.reverse_flag;
+	data.separate_level = static_cast<UINT>(bounding_mesh_option.separate_level);
+	data.lod_level = bounding_mesh_option.use_lod ? bounding_mesh_option.lod_level : -1;
+
+	const auto& meshes = resource->get_meshes();
+	const auto& materials = resource->get_materials();
+
+	//	@tool 各メッシュの中心と、全体の範囲を求める
+	struct mesh_center
+	{
+		size_t mesh_index;
+		math::float3 center;
+	};
+	std::vector<mesh_center> centers;
+	math::float3 all_min = { FLT_MAX, FLT_MAX, FLT_MAX };
+	math::float3 all_max = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
+	for (size_t mesh_index = 0; mesh_index < meshes.size(); ++mesh_index)
+	{
+		math::float3 mesh_min, mesh_max;
+		if (!collision::calculate_bounding_mesh_bounds(resource, mesh_index, data, mesh_min, mesh_max))
+			continue;
+
+		centers.push_back({ mesh_index, { (mesh_min.x + mesh_max.x) * 0.5f, (mesh_min.y + mesh_max.y) * 0.5f, (mesh_min.z + mesh_max.z) * 0.5f } });
+		all_min = { std::min(all_min.x, mesh_min.x), std::min(all_min.y, mesh_min.y), std::min(all_min.z, mesh_min.z) };
+		all_max = { std::max(all_max.x, mesh_max.x), std::max(all_max.y, mesh_max.y), std::max(all_max.z, mesh_max.z) };
+	}
+	if (centers.empty())
+		return;
+
+	//	@tool 中心が入るグリッドセルの番号（範囲が潰れている軸は0）
+	const math::int3 divisions =
+	{
+		std::max(bounding_mesh_option.combine_grid_divisions.x, 1),
+		std::max(bounding_mesh_option.combine_grid_divisions.y, 1),
+		std::max(bounding_mesh_option.combine_grid_divisions.z, 1),
+	};
+	auto calculate_cell = [](float value, float min, float max, int division)
+	{
+		const float size = max - min;
+		if (size <= FLT_EPSILON)
+			return 0;
+		return std::clamp(static_cast<int>((value - min) / size * static_cast<float>(division)), 0, division - 1);
+	};
+
+	//	@tool 摩擦係数とセルが同じメッシュを1グループにまとめる（物理情報は代表マテリアルから取る）
+	using group_key = std::tuple<float, int, int, int>;
+	std::map<group_key, size_t> group_lookup;
+	std::vector<std::vector<size_t>> groups;
+	std::vector<std::uint32_t> group_materials;
+	for (auto& mesh : centers)
+	{
+		const size_t material_index = meshes[mesh.mesh_index].material_index;
+		const bool has_material = material_index < materials.size();
+		const float friction = has_material ? materials[material_index].get_physical_data().friction : material::physical_datas{}.friction;
+
+		group_key key
+		{
+			friction,
+			calculate_cell(mesh.center.x, all_min.x, all_max.x, divisions.x),
+			calculate_cell(mesh.center.y, all_min.y, all_max.y, divisions.y),
+			calculate_cell(mesh.center.z, all_min.z, all_max.z, divisions.z),
+		};
+		auto [it, inserted] = group_lookup.try_emplace(key, groups.size());
+		if (inserted)
+		{
+			groups.emplace_back();
+			group_materials.push_back(has_material ? static_cast<std::uint32_t>(material_index) : collision::combined_bounding_mesh_info::invalid_material);
+		}
+		groups[it->second].push_back(mesh.mesh_index);
+	}
+
+	//	@tool グループ毎に統合メッシュを出力し、最後に一覧情報を書き出す
+	const std::string_view model_path = resource->get_file_path();
+	collision::combined_bounding_mesh_info info;
+	for (size_t group_index = 0; group_index < groups.size(); ++group_index)
+	{
+		collision::bounding_mesh out_mesh;
+		if (!collision::generate_combined_bounding_mesh(out_mesh, resource, groups[group_index], data))
+			continue;
+
+		const std::filesystem::path out_path = collision::combined_bounding_mesh_info::make_mesh_path(model_path, info.material_indices.size());
+		if (!out_mesh.serialize(out_path.string()))
+			continue;
+		info.material_indices.push_back(group_materials[group_index]);
+	}
+	info.serialize(collision::combined_bounding_mesh_info::make_info_path(model_path).string());
 }
 
 void edit_model_scene::generate_cubic_sdf_asset()

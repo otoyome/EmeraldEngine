@@ -9,6 +9,7 @@
 #include "object/model_object.h"
 #include "object/gameobjects/stage_object.h"
 #include "effect_instance.h"
+#include "model_collision_builder.h"
 
 stage_00_scene::stage_00_scene()
 : scene_base()
@@ -202,6 +203,10 @@ void stage_00_scene::imgui_render_core()
 
 void stage_00_scene::generate_model_collision(model_resource_ptr resource, const math::matrixf& transform, UINT separate_level)
 {
+	//	@tool 統合済みの当たり判定があればメッシュ毎のファイルより優先する
+	if (generate_combined_model_collision(resource))
+		return;
+
 	std::string file_path = std::string(resource->get_file_path());
 	std::filesystem::path collision_mesh_path(file_path);
 
@@ -228,6 +233,45 @@ void stage_00_scene::generate_model_collision(model_resource_ptr resource, const
 		}
 
 	}
+}
+
+bool stage_00_scene::generate_combined_model_collision(model_resource_ptr resource)
+{
+	const std::string_view file_path = resource->get_file_path();
+	const std::filesystem::path info_path = collision::combined_bounding_mesh_info::make_info_path(file_path);
+	if (!std::filesystem::exists(info_path))
+		return false;
+
+	collision::combined_bounding_mesh_info info;
+	if (!info.deserialize(info_path.string()))
+		return false;
+
+	const auto& materials = resource->get_materials();
+	for (size_t combined_index = 0; combined_index < info.material_indices.size(); ++combined_index)
+	{
+		std::shared_ptr<collision::bounding_mesh> mesh = std::make_shared<collision::bounding_mesh>();
+		const std::filesystem::path mesh_path = collision::combined_bounding_mesh_info::make_mesh_path(file_path, combined_index);
+		if (!std::filesystem::exists(mesh_path) || !mesh->deserialize(mesh_path.string()))
+			continue;
+
+		//	@tool 物理情報は統合時の代表マテリアルから取得する
+		const std::uint32_t material_index = info.material_indices[combined_index];
+		const bool has_material = material_index != collision::combined_bounding_mesh_info::invalid_material && material_index < materials.size();
+
+		collision_object_ptr collision = std::make_shared<collision_object>();
+#if defined(USE_IMGUI)
+		std::string name = has_material ? std::string(materials[material_index].get_name()) : std::string("combined");
+		name += " [" + std::to_string(combined_index) + "]";
+		collision->set_name(name);
+#endif	//	defined(USE_IMGUI)
+		collision->set_bounding_object(mesh);
+		collision->set_filter("stage");
+		collision->set_flag(collision_object::flags::static_object, true);
+		if (has_material)
+			collision->set_physical_data(materials[material_index].get_physical_data());
+		register_object(collision);
+	}
+	return true;
 }
 
 void stage_00_scene::generate_model_sdf(model_resource_ptr resource)

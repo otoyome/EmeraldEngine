@@ -39,6 +39,7 @@ private:
 	void save_model();
 	void generate_lod();
 	void generate_bounding_mesh_asset();
+	void generate_combined_bounding_mesh_asset();
 	void generate_cubic_sdf_asset();
 	void generate_shadow_mesh_asset();
 	void discard_lod();
@@ -110,6 +111,11 @@ private:
 		bool reverse_flag = true;
 		bool use_lod = false;
 		int lod_level = 0;
+
+		//	@tool 当たり判定用にメッシュを統合する（摩擦係数が同じ、かつ同じグリッドセルにあるメッシュを1つにまとめる）
+		//	@tool メッシュ内部はBVHなので大きくても判定コストは増えにくい。既定は摩擦係数毎に1つ
+		bool combine = true;
+		math::int3 combine_grid_divisions = { 1, 1, 1 };
 	};
 	bounding_mesh_option bounding_mesh_option;
 
