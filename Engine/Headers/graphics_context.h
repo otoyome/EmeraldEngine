@@ -237,6 +237,8 @@ struct render_data_context
 #endif // defined(USE_IMGUI)
 };
 
+class clustered_lighting_system;
+
 //	描画コンテキスト
 struct graphics_context
 {
@@ -273,6 +275,9 @@ struct graphics_context
 
 	//	スクリーン空間反射用情報
 	common_pipeline_states::screen_space_reflection_constants screen_space_reflection_constant;
+
+	//	クラスタードライティング
+	std::shared_ptr<clustered_lighting_system> clustered_lighting;
 
 public:
 	//	ラスタライザーステート設定

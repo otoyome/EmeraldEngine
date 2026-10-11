@@ -10,6 +10,7 @@
 #include "font_data.h"
 #include "camera.h"
 #include "graphics/occlusion_culling_system.h"
+#include "graphics/clustered_lighting_system.h"
 #include "model_resource.h"
 #include "model_buffer_pool.h"
 #include "model_instance.h"
@@ -643,6 +644,10 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 			std::unordered_map<UINT, uint8_t> occlusion_visible;
 			if (const auto& occlusion = main_state->get_occlusion_culling())
 				occlusion->read_last_frame(occlusion_visible);
+
+			//	クラスタードライティングのライト番号総数を読み出す
+			if (const auto& clustered_lighting = main_state->get_clustered_lighting())
+				clustered_lighting->read_statistics();
 
 			//	描画メッシュ／デカールのカリング・ソート
 			{

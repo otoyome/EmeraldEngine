@@ -9,6 +9,7 @@
 
 class scene_view;
 class meshlet_culling_system;
+class clustered_lighting_system;
 
 using scene_view_state_key = system_utility::hash_key;
 
@@ -31,6 +32,9 @@ public:
 
 	//	メッシュレットカリングシステム
 	const std::shared_ptr<meshlet_culling_system>& get_meshlet_culling() const { return meshlet_culling; }
+
+	//	クラスタードライティングシステム
+	const std::shared_ptr<clustered_lighting_system>& get_clustered_lighting() const { return clustered_lighting; }
 
 #if defined(USE_IMGUI)
 	//	デバッグ用にカリング結果を固定する
@@ -60,6 +64,7 @@ private:
 	std::shared_ptr<occlusion_culling_system> occlusion_culling;
 	std::shared_ptr<hiz_buffer> hiz;
 	std::shared_ptr<meshlet_culling_system> meshlet_culling;
+	std::shared_ptr<clustered_lighting_system> clustered_lighting;
 
 	uint64_t last_used_frame = 0;
 

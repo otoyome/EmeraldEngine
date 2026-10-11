@@ -2,6 +2,8 @@
 #include <thread>
 
 #include "Editor/detail_profiler.h"
+#include "Renderer/renderer_context.h"
+#include "graphics/clustered_lighting_system.h"
 
 #if defined(USE_IMGUI)
 #include "imgui.h"
@@ -56,6 +58,7 @@ void render_job_executor::execute(std::function<render_job_function> task, std::
 		g_context.render_data = context.render_data;
 		g_context.scene_constant = context.scene_constant;
 		g_context.scene_constant_buffer = context.scene_constant_buffer;
+		g_context.clustered_lighting = context.current_view_state ? context.current_view_state->get_clustered_lighting() : nullptr;
 
 		DETAIL_PROFILE_GPU_SCOPE_BEGIN();
 		{
@@ -83,6 +86,7 @@ void render_job_executor::execute(std::function<render_job_function> task, std::
 				g_context.render_data = context.render_data;
 				g_context.scene_constant = context.scene_constant;
 				g_context.scene_constant_buffer = context.scene_constant_buffer;
+				g_context.clustered_lighting = context.current_view_state ? context.current_view_state->get_clustered_lighting() : nullptr;
 				g_context.debug_begin_event(system_utility::convert_utf16(name_text).data());
 				{
 					DETAIL_PROFILE_RENDER_JOB_SCOPE(owner_text, name_text);
@@ -105,6 +109,7 @@ void render_job_executor::execute(std::function<render_job_function> task, std::
 				g_context.render_data = context.render_data;
 				g_context.scene_constant = context.scene_constant;
 				g_context.scene_constant_buffer = context.scene_constant_buffer;
+				g_context.clustered_lighting = context.current_view_state ? context.current_view_state->get_clustered_lighting() : nullptr;
 				g_context.debug_begin_event(system_utility::convert_utf16(name_text).data());
 				{
 					DETAIL_PROFILE_RENDER_JOB_SCOPE(owner_text, name_text);

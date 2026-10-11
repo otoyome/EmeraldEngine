@@ -147,6 +147,19 @@ namespace common_pipeline_states
 	constexpr system_utility::hash_key shadow_maps_sampler_state_hash_key = system_utility::generate_hash(shadow_maps_sampler_state_name);
 
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////
+	//	クラスタードライティング情報
+	constexpr std::string_view clustered_lighting_constant_buffer_name = "CLUSTERED_LIGHTING_CONSTANT_BUFFER";
+	constexpr system_utility::hash_key clustered_lighting_constant_buffer_hash_key = system_utility::generate_hash(clustered_lighting_constant_buffer_name);
+	constexpr std::string_view clustered_lights_name = "clustered_lights";
+	constexpr system_utility::hash_key clustered_lights_hash_key = system_utility::generate_hash(clustered_lights_name);
+	constexpr std::string_view cluster_counts_name = "cluster_counts";
+	constexpr system_utility::hash_key cluster_counts_hash_key = system_utility::generate_hash(cluster_counts_name);
+	constexpr std::string_view cluster_offsets_name = "cluster_offsets";
+	constexpr system_utility::hash_key cluster_offsets_hash_key = system_utility::generate_hash(cluster_offsets_name);
+	constexpr std::string_view cluster_light_indices_name = "cluster_light_indices";
+	constexpr system_utility::hash_key cluster_light_indices_hash_key = system_utility::generate_hash(cluster_light_indices_name);
+
+	///////////////////////////////////////////////////////////////////////////////////////////////////////////
 	//	プリミティブ定数バッファ構造体
 	constexpr UINT mesh_bone_max = 500;	//	1メッシュ500本あれば大丈夫かな？
 	constexpr UINT morph_max = 8;
@@ -351,6 +364,7 @@ namespace common_pipeline_states
 		shadow_map_constant_buffer_name,
 		deferred_light_constant_buffer_name,
 		deferred_light_probe_constant_buffer_name,
+		clustered_lighting_constant_buffer_name,
 		forward_light_constant_buffer_name,
 		parameter_constant_buffer_name,
 
@@ -386,6 +400,11 @@ namespace common_pipeline_states
 		forward_only_diffuse_iem_name,
 		forward_only_specular_pmrem_name,
 		forward_only_lut_ggx_name,
+
+		clustered_lights_name,
+		cluster_counts_name,
+		cluster_offsets_name,
+		cluster_light_indices_name,
 
 		shadow_maps_name,
 

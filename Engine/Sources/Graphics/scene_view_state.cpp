@@ -1,11 +1,13 @@
 #include "graphics/scene_view_state.h"
 #include "graphics/scene_view.h"
 #include "graphics/meshlet_culling_system.h"
+#include "graphics/clustered_lighting_system.h"
 
 scene_view_state::scene_view_state()
 : occlusion_culling(std::make_shared<occlusion_culling_system>())
 , hiz(std::make_shared<hiz_buffer>())
 , meshlet_culling(std::make_shared<meshlet_culling_system>())
+, clustered_lighting(std::make_shared<clustered_lighting_system>())
 {
 }
 

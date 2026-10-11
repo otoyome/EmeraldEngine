@@ -1,6 +1,7 @@
 #include "custom_pipeline_state.h"
 
 #include "render_data.h"
+#include "graphics/clustered_lighting_system.h"
 
 namespace
 {
@@ -38,6 +39,10 @@ namespace
 		//	テキトーに近くのライトを詰める
 		for (auto& light : context.render_data->light_container.lights)
 		{
+			//	クラスタードライティング対象はクラスターから参照するので詰めない
+			if (context.clustered_lighting && clustered_lighting_system::is_target(light))
+				continue;
+
 			switch(light.type)
 			{
 				case light_type::directional:
@@ -491,6 +496,10 @@ void graphics_custom_pipeline_state::update_parameters(const graphics_context& c
 				deferred_light_probe_buffer_data.use = true;
 				constant_buffer = deferred_light_probe_buffer_data.buffer.Get();
 			}
+			else if (cbv_key == common_pipeline_states::clustered_lighting_constant_buffer_hash_key)
+			{
+				constant_buffer = context.clustered_lighting ? context.clustered_lighting->get_constant_buffer() : nullptr;
+			}
 			else if (cbv_key == common_pipeline_states::forward_light_constant_buffer_hash_key)
 			{
 				if (!buffer_data)
@@ -565,6 +574,33 @@ void graphics_custom_pipeline_state::update_parameters(const graphics_context& c
 						shader_resource_view_flags[register_index % 4] = srv_flag;
 					}
 				};
+				//	クラスタードライティングのバッファ
+				{
+					ID3D11ShaderResourceView* clustered_srv = nullptr;
+					bool is_clustered = true;
+					if (srv_key == common_pipeline_states::clustered_lights_hash_key)
+						clustered_srv = context.clustered_lighting ? context.clustered_lighting->get_light_srv() : nullptr;
+					else if (srv_key == common_pipeline_states::cluster_counts_hash_key)
+						clustered_srv = context.clustered_lighting ? context.clustered_lighting->get_count_srv() : nullptr;
+					else if (srv_key == common_pipeline_states::cluster_offsets_hash_key)
+						clustered_srv = context.clustered_lighting ? context.clustered_lighting->get_offset_srv() : nullptr;
+					else if (srv_key == common_pipeline_states::cluster_light_indices_hash_key)
+						clustered_srv = context.clustered_lighting ? context.clustered_lighting->get_index_srv() : nullptr;
+					else
+						is_clustered = false;
+
+					if (is_clustered)
+					{
+						for (UINT index = 0; index < static_cast<int>(arrangement::max); ++index)
+						{
+							if (srv.second.ids[index] == -1)
+								continue;
+							(context.device_context->*set_shader_resource_funcs[index])(srv.second.ids[index], 1, &clustered_srv);
+						}
+						continue;
+					}
+				}
+
 				//	contextから設定系
 				{
 					bool is_updated = false;

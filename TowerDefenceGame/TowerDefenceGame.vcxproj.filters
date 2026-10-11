@@ -404,6 +404,9 @@
     <ClCompile Include="Sources\Scenes\TestScene\collision_test_scene.cpp">
       <Filter>Sources\Scenes\TestScene</Filter>
     </ClCompile>
+    <ClCompile Include="Sources\Scenes\TestScene\clustered_lighting_test_scene.cpp">
+      <Filter>Sources\Scenes\TestScene</Filter>
+    </ClCompile>
     <ClCompile Include="Sources\Object\Collision\collision_filter.cpp">
       <Filter>Sources\Object\Collision</Filter>
     </ClCompile>
@@ -686,6 +689,9 @@
       <Filter>Headers\Scenes\DummyScene</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Scenes\TestScene\collision_test_scene.h">
+      <Filter>Headers\Scenes\TestScene</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Scenes\TestScene\clustered_lighting_test_scene.h">
       <Filter>Headers\Scenes\TestScene</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Object\Collision\collision_filter.h">

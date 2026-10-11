@@ -102,6 +102,7 @@ public:
 
 private:
 	void render_indirect(renderer_context& context);
+	void render_clustered(renderer_context& context);
 	void render_directional(const light_render_data& light, common_pipeline_states::shadow_map_constants& shadow_map_constant, renderer_context& context);
 	void render_directional_shadow_map(const light_render_data& light, common_pipeline_states::shadow_map_constants& shadow_map_constant, renderer_context& context);
 	void render_point(const light_render_data& light, common_pipeline_states::shadow_map_constants& shadow_map_constant, renderer_context& context);

@@ -5,6 +5,7 @@
 #include "gbuffer.hlsli"
 #include "shading_models.hlsli"
 #include "forward_light_data.hlsli"
+#include "clustered_lighting_shading.hlsli"
 
 float4 main(VS_OUT pin, bool is_front_face : SV_IsFrontFace) : SV_TARGET
 {
@@ -108,6 +109,9 @@ float4 main(VS_OUT pin, bool is_front_face : SV_IsFrontFace) : SV_TARGET
         total_diffuse += result.diffuse;
         total_specular += result.specular;
     }
+
+    //  クラスタードライティング対象の点光源/スポットライトを処理
+    accumulate_clustered_lights(data, total_diffuse, total_specular);
 
     //  IBL
     if (!IsGBufferFlags(data, material_attribute_indirect_lighting_off))

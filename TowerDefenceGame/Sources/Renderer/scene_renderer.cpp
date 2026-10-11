@@ -4,6 +4,7 @@
 
 #include "custom_pipeline_state.h"
 #include "PipelineState/deferred_lighting_pipeline_state.h"
+#include "graphics/clustered_lighting_system.h"
 #include "PipelineState/fullscreen_quad_pipeline_state.h"
 #include "PipelineState/debug_draw_line_pipeline_state.h"
 
@@ -560,6 +561,10 @@ void deffered_lighting_renderer::render(renderer_context& context)
 		if (!light.is_flag(light::flags::active))
 			continue;
 
+		//	クラスタードライティング対象は後でまとめて描画する
+		if (clustered_lighting_system::is_target(light))
+			continue;
+
 		switch (light.type)
 		{
 			case light_type::directional:
@@ -603,6 +608,47 @@ void deffered_lighting_renderer::render(renderer_context& context)
 			}
 		}
 	}
+
+	//	影無しの点光源/スポットライト
+	render_clustered(context);
+}
+
+void deffered_lighting_renderer::render_clustered(renderer_context& context)
+{
+	if (!context.current_view_state)
+		return;
+
+	const std::shared_ptr<clustered_lighting_system> clustered_lighting = context.current_view_state->get_clustered_lighting();
+	if (!clustered_lighting)
+		return;
+
+	//	対象ライトの収集とバッファ準備はメインスレッドで行う
+	clustered_lighting->prepare(*context.render_data, context.scene_constant);
+
+	job_executor.execute([this, clustered_lighting](graphics_context& context)
+	{
+		//	クラスター構築
+		clustered_lighting->build(context);
+		if (clustered_lighting->get_light_count() == 0)
+			return;
+
+		//	描画先設定
+		lighting_pass.activate(context.device_context);
+
+		//	G-Bufferテクスチャ設定
+		for (UINT index = 0; index < static_cast<UINT>(common_pipeline_states::gbuffer_id::max); ++index)
+		{
+			context.g_buffer_textures[index] = render_targets->g_buffer_textures[index];
+		}
+
+		//	ビューポートの設定
+		context.device_context->RSSetViewports(1, &lighting_pass_viewport);
+
+		//	クラスター内のライトでライティング
+		clustered_lighting->render(context);
+
+		lighting_pass.deactivate(context.device_context);
+	}, "render_clustered_pass", context, get_render_basis_sort_order() + register_index++);
 }
 
 void deffered_lighting_renderer::render_indirect(renderer_context& context)
