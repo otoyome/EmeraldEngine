@@ -1,8 +1,6 @@
 #ifndef __CLUSTERED_LIGHTING_SHADING_HLSLI__
 #define __CLUSTERED_LIGHTING_SHADING_HLSLI__
 
-//  @tool クラスタードライティングのライト評価（ディファード/フォワード共通）
-//  @tool scene_constant_buffer.hlsli と shading_models.hlsli（integrate_bxdf）を先に include しておくこと
 #include "clustered_lighting.hlsli"
 
 StructuredBuffer<light_data> clustered_lights : register(t40);
@@ -11,7 +9,7 @@ StructuredBuffer<uint> cluster_offsets : register(t42);
 StructuredBuffer<uint> cluster_light_indices : register(t43);
 
 
-//  @tool クラスター内のライト数
+//  クラスター内のライト数取得
 uint get_clustered_light_count(float2 texcoord, float view_z)
 {
     if (cluster_light_count == 0)
@@ -23,7 +21,7 @@ uint get_clustered_light_count(float2 texcoord, float view_z)
     return (offset < cluster_index_capacity) ? min(count, cluster_index_capacity - offset) : 0;
 }
 
-//  @tool ライト数をヒートマップの色にする（0 : 黒, 少 : 青 → 緑 → 黄 → 赤 : cluster_visualize_max 以上）
+//  ライト数をヒートマップの色にする
 float3 get_clustered_heatmap_color(uint count)
 {
     if (count == 0)
@@ -33,13 +31,13 @@ float3 get_clustered_heatmap_color(uint count)
     return saturate(float3(1.5f - abs(4.0f * t - 3.0f), 1.5f - abs(4.0f * t - 2.0f), 1.5f - abs(4.0f * t - 1.0f)));
 }
 
-//  @tool クラスター内のライトでライティングを積算する
+//  クラスター内のライトでライティング
 void accumulate_clustered_lights(GBufferData data, float2 texcoord, float view_z, inout float3 total_diffuse, inout float3 total_specular)
 {
     if (cluster_light_count == 0)
         return;
 
-    //  @tool ピクセルが属するクラスターのライト一覧
+    //  ピクセルが属するクラスターのライトリスト
     uint cluster_index = get_cluster_index(get_cluster(texcoord, view_z));
     uint offset = cluster_offsets[cluster_index];
     uint count = cluster_counts[cluster_index];
@@ -70,7 +68,7 @@ void accumulate_clustered_lights(GBufferData data, float2 texcoord, float view_z
     }
 }
 
-//  @tool 座標からクラスターを求めて積算する（フォワード描画用）
+//  ワールド座標からクラスターを求めて積算する
 void accumulate_clustered_lights(GBufferData data, inout float3 total_diffuse, inout float3 total_specular)
 {
     float4 clip = mul(float4(data.w_position.xyz, 1.0f), view_projection_transform);

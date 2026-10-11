@@ -111,7 +111,7 @@ private:
 	UINT cluster_capacity = 0;
 	UINT cluster_total = 0;
 
-	//	タイルごとの最も奥の奥行き分割
+	//	タイルごとの最も奥の深度分割
 	Microsoft::WRL::ComPtr<ID3D11Buffer> tile_depth_buffer;
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> tile_depth_srv;
 	Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> tile_depth_uav;

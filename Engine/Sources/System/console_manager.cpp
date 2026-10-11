@@ -59,7 +59,7 @@ namespace
 	}
 
 	//	組み込みコマンド
-	console_command help_command("help", "コンソール要素の一覧を表示する（help フィルター）",
+	console_command help_command("help", "コンソール要素のリストを表示する（help フィルター）",
 		[](const console_command::arguments& args)
 		{
 			auto& manager = console_manager::instance();
@@ -170,7 +170,7 @@ namespace
 				manager.print("usage: unbind 割り当て済みのキー");
 		});
 
-	console_command bindings_command("bindings", "キー割り当ての一覧を表示する",
+	console_command bindings_command("bindings", "キー割り当てのリストを表示する",
 		[](const console_command::arguments&)
 		{
 			auto& manager = console_manager::instance();

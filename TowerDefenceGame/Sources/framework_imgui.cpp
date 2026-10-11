@@ -85,8 +85,8 @@ namespace
 				console_input.pop_back();
 		});
 
-	//	コンソール要素一覧ウィンドウの状態
-	console_variable<bool> console_commands_window_variable("editor.window.console_commands", true, "コンソール要素一覧ウィンドウの表示", console_flags::persist);
+	//	コンソール要素リストウィンドウの状態
+	console_variable<bool> console_commands_window_variable("editor.window.console_commands", true, "コンソール要素リストウィンドウの表示", console_flags::persist);
 	std::string console_commands_filter;
 	bool console_commands_changed_only = false;
 	std::unordered_map<std::string, std::string> console_command_arguments;

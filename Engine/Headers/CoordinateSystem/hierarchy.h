@@ -33,7 +33,7 @@ protected:
 	//	自身を親から外す
 	void unlink();
 
-	//	すべての子の親を解除し、子の一覧を返す
+	//	すべての子の親を解除して子のリストを返す
 	children_type release_children();
 
 protected:

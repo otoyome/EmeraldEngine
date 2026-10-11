@@ -888,7 +888,7 @@ bool editor_items::edit_effect_particle(std::shared_ptr<context>& context, effec
 			}
 			if (event)
 			{
-				//	対象パーティクルが付いているノード名の一覧
+				//	対象パーティクルが付いているノード名のリスト
 				auto& effect_nodes = effect_resource->get_nodes_for_editor();
 				auto& effect_particles = effect_resource->get_particles_for_editor();
 				std::vector<std::string> target_node_names;

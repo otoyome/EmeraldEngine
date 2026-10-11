@@ -18,7 +18,7 @@ float3 unproject(float2 ndc, float ndc_z)
     return view.xyz / view.w;
 }
 
-//  2点を通る直線上で視線空間の奥行きが view_z になる点
+//  2点を通る直線上で視線空間の深度が view_z になる点
 float3 point_at_depth(float3 a, float3 b, float view_z)
 {
     float t = (view_z - a.z) / (b.z - a.z);
@@ -44,7 +44,7 @@ void main(uint3 dispatch_id : SV_DispatchThreadID)
     float2 ndc_min = float2(uv_min.x * 2.0f - 1.0f, 1.0f - uv_max.y * 2.0f);
     float2 ndc_max = float2(uv_max.x * 2.0f - 1.0f, 1.0f - uv_min.y * 2.0f);
 
-    //  奥行き範囲算出
+    //  深度範囲算出
     float depth_min = (cluster.z == 0) ? min(camera_clip_distance.x, cluster_near) : get_cluster_slice_depth(cluster.z);
     float depth_max = (cluster.z == cluster_count.z - 1) ? gbuffer_max_linear_depth : get_cluster_slice_depth(cluster.z + 1);
 

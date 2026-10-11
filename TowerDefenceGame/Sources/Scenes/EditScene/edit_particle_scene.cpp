@@ -683,7 +683,7 @@ void edit_particle_scene::imgui_render_sdf()
 		}
 	}
 
-	//	“o˜^Ï‚İˆê——
+	//	“o˜^Ï‚İƒŠƒXƒg
 	for (size_t index = 0; index < edit_sdfs.size(); )
 	{
 		ImGui::PushID(static_cast<int>(index));

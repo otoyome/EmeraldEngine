@@ -3,27 +3,27 @@
 
 #include "lights.hlsli"
 
-//  @tool クラスタードライティング定数（clustered_lighting_system.h の clustered_constants と一致させる）
+//  クラスタードライティング定数
 cbuffer CLUSTERED_LIGHTING_CONSTANT_BUFFER : register(b7)
 {
-    uint3 cluster_count;            //  @tool クラスター数（x : 横, y : 縦, z : 奥行き）
-    uint cluster_light_count;       //  @tool ライト数
-    float2 cluster_screen_size;     //  @tool 画面サイズ（ピクセル）
-    float cluster_tile_size;        //  @tool タイルの大きさ（ピクセル）
-    uint cluster_index_capacity;    //  @tool ライト番号リストの容量
-    float cluster_near;             //  @tool 奥行き分割の開始距離
-    float cluster_far;              //  @tool 奥行き分割の終了距離（以降は最後の分割にまとめる）
-    float cluster_slice_scale;      //  @tool 分割番号 = log(奥行き) * scale + bias
+    uint3 cluster_count;            //  クラスター数（x : 横, y : 縦, z : 深度）
+    uint cluster_light_count;       //  ライト数
+    float2 cluster_screen_size;     //  画面サイズ
+    float cluster_tile_size;        //  タイルの大きさ
+    uint cluster_index_capacity;    //  ライト番号リストの容量
+    float cluster_near;             //  深度分割の開始距離
+    float cluster_far;              //  深度分割の終了距離
+    float cluster_slice_scale;      //  分割番号 = log(深度) * scale + bias
     float cluster_slice_bias;
-    uint cluster_flags;             //  @tool clustered_flag_xxx
-    float cluster_visualize_max;    //  @tool ヒートマップで最大色になるライト数
+    uint cluster_flags;             //  clustered_flag_xxx
+    float cluster_visualize_max;    //  ヒートマップで最大色になるライト数
     float2 cluster_dummy;
 };
 
-//  @tool cluster_flags（clustered_lighting_system.cpp と一致させる）
-static const uint clustered_flag_depth_culling = 1 << 0;   //  @tool タイル内の最も奥の面より奥のクラスターを除く
+//  クラスターフラグ
+static const uint clustered_flag_depth_culling = 1 << 0;   //  タイル内の最も奥の面より奥のクラスターを除く
 
-//  @tool クラスターの view 空間 AABB
+//  クラスターの視線空間AABB
 struct cluster_aabb
 {
     float3 bmin;
@@ -32,32 +32,33 @@ struct cluster_aabb
     float dummy1;
 };
 
-//  @tool view 空間の奥行きから奥行き分割番号を求める
+//  視線空間深度から深度分割番号を求める
 uint get_cluster_slice(float view_z)
 {
     float slice = log(max(view_z, cluster_near)) * cluster_slice_scale + cluster_slice_bias;
     return (uint) clamp(slice, 0.0f, (float) (cluster_count.z - 1));
 }
 
-//  @tool 奥行き分割の境界の奥行き（slice = 0 から cluster_count.z まで）
+//  深度分割の境界の深度
+//  slice = 0 から cluster_count.z まで
 float get_cluster_slice_depth(uint slice)
 {
     return cluster_near * pow(cluster_far / cluster_near, (float) slice / (float) cluster_count.z);
 }
 
-//  @tool クラスター番号
+//  クラスター番号取得
 uint get_cluster_index(uint3 cluster)
 {
     return cluster.x + (cluster.y + cluster.z * cluster_count.y) * cluster_count.x;
 }
 
-//  @tool タイル番号
+//  タイル番号取得
 uint get_cluster_tile_index(uint2 tile)
 {
     return tile.x + tile.y * cluster_count.x;
 }
 
-//  @tool テクスチャ座標と view 空間の奥行きからクラスターを求める
+//  UV座標と視線空間深度からクラスターを求める
 uint3 get_cluster(float2 texcoord, float view_z)
 {
     uint2 tile = (uint2) max(texcoord * cluster_screen_size / cluster_tile_size, 0.0f);
