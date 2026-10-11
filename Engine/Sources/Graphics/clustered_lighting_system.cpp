@@ -14,12 +14,24 @@ namespace
 #if defined(USE_IMGUI)
 	console_variable<bool> enable_variable("r.clustered.enable", true, "影無しの点光源/スポットライトをクラスタードライティングで描画する");
 	console_variable<float> far_variable("r.clustered.far", system_units::convert_m_to_unit(500.0f), "クラスターの奥行き分割を行う最大距離（以降は最後の分割にまとめる）");
+	console_variable<bool> depth_culling_variable("r.clustered.depth_culling", true, "タイル内で最も奥の面より奥のクラスターにはライトを割り当てない");
+	console_variable<bool> visualize_variable("r.clustered.visualize", false, "クラスターごとのライト数をヒートマップで表示する");
+	console_variable<float> visualize_max_variable("r.clustered.visualize_max", 32.0f, "ヒートマップで最大色になるライト数");
 	bool get_enable() { return enable_variable.get(); }
 	float get_far() { return far_variable.get(); }
+	bool get_depth_culling() { return depth_culling_variable.get(); }
+	bool get_visualize() { return visualize_variable.get(); }
+	float get_visualize_max() { return (std::max)(visualize_max_variable.get(), 1.0f); }
 #else	//	defined(USE_IMGUI)
 	bool get_enable() { return true; }
 	float get_far() { return system_units::convert_m_to_unit(500.0f); }
+	bool get_depth_culling() { return true; }
+	bool get_visualize() { return false; }
+	float get_visualize_max() { return 32.0f; }
 #endif	//	defined(USE_IMGUI)
+
+	//	定数バッファのフラグ
+	constexpr UINT clustered_flag_depth_culling = 1u << 0;
 
 	//	クラスター分割
 	constexpr UINT tile_size = 64;		//	タイルの大きさ（ピクセル）
@@ -27,6 +39,7 @@ namespace
 
 	//	ディスパッチ
 	constexpr UINT bounds_thread_count = 64;
+	constexpr UINT depth_thread_size = 16;
 	constexpr UINT dispatch_width = 65535;
 
 	//	ライトリストの初期容量
@@ -58,6 +71,21 @@ namespace
 #endif	//	defined(_DEBUG)
 		std::shared_ptr<compute_shader> shader;
 		shader_manager::instance()->load_shader<compute_shader>(shader, desc);
+		return shader;
+	}
+
+	std::shared_ptr<pixel_shader> load_ps(std::string_view path, bool visualize)
+	{
+		load_shader_file desc{};
+		desc.file_path = path;
+		if (visualize)
+			desc.defines.emplace_back("CLUSTERED_VISUALIZE", "1");
+#if defined(_DEBUG)
+		system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
+		system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
+#endif	//	defined(_DEBUG)
+		std::shared_ptr<pixel_shader> shader;
+		shader_manager::instance()->load_shader<pixel_shader>(shader, desc);
 		return shader;
 	}
 
@@ -120,20 +148,14 @@ clustered_lighting_system::clustered_lighting_system()
 	count_cs = load_cs("Shaders/ClusteredLighting/clustered_lighting_assign_cs.hlsl", false);
 	fill_cs = load_cs("Shaders/ClusteredLighting/clustered_lighting_assign_cs.hlsl", true);
 	scan_cs = load_cs("Shaders/ClusteredLighting/clustered_lighting_scan_cs.hlsl", false);
+	depth_cs = load_cs("Shaders/ClusteredLighting/clustered_lighting_depth_cs.hlsl", false);
 	{
 		load_shader_cso desc;
 		desc.file_path = "Assets/CSO/fullscreen_quad_vs.cso";
 		shader_manager::instance()->load_shader<vertex_shader>(fullscreen_vs, desc);
 	}
-	{
-		load_shader_file desc{};
-		desc.file_path = "Shaders/ClusteredLighting/deferred_rendering_clustered_ps.hlsl";
-#if defined(_DEBUG)
-		system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
-		system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
-#endif	//	defined(_DEBUG)
-		shader_manager::instance()->load_shader<pixel_shader>(lighting_ps, desc);
-	}
+	lighting_ps = load_ps("Shaders/ClusteredLighting/deferred_rendering_clustered_ps.hlsl", false);
+	visualize_ps = load_ps("Shaders/ClusteredLighting/deferred_rendering_clustered_ps.hlsl", true);
 
 	//	定数バッファ
 	{
@@ -175,6 +197,12 @@ clustered_lighting_system::clustered_lighting_system()
 		hr = device->CreateBlendState(&blend_desc, blend_state.GetAddressOf());
 		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
 
+		D3D11_BLEND_DESC visualize_blend_desc{};
+		visualize_blend_desc.RenderTarget[0].BlendEnable = FALSE;
+		visualize_blend_desc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+		hr = device->CreateBlendState(&visualize_blend_desc, visualize_blend_state.GetAddressOf());
+		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+
 		D3D11_DEPTH_STENCIL_DESC depth_stencil_desc{};
 		depth_stencil_desc.DepthEnable = FALSE;
 		hr = device->CreateDepthStencilState(&depth_stencil_desc, depth_stencil_state.GetAddressOf());
@@ -199,6 +227,11 @@ clustered_lighting_system::~clustered_lighting_system()
 bool clustered_lighting_system::is_enable()
 {
 	return get_enable();
+}
+
+bool clustered_lighting_system::is_visualize()
+{
+	return get_visualize();
 }
 
 bool clustered_lighting_system::is_target(const light_render_data& light)
@@ -233,6 +266,15 @@ void clustered_lighting_system::generate_cluster_buffers(UINT count)
 	create_structured_buffer(sizeof(UINT), cluster_capacity, read_write, count_buffer, &count_srv, &count_uav);
 	create_structured_buffer(sizeof(UINT), cluster_capacity, read_write, offset_buffer, &offset_srv, &offset_uav);
 	create_structured_buffer(sizeof(UINT), cluster_capacity, D3D11_BIND_UNORDERED_ACCESS, cursor_buffer, nullptr, &cursor_uav);
+}
+
+void clustered_lighting_system::generate_tile_buffer(UINT count)
+{
+	if (count <= tile_capacity && tile_depth_buffer)
+		return;
+
+	tile_capacity = round_up_power_of_two(count, 256);
+	create_structured_buffer(sizeof(UINT), tile_capacity, D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS, tile_depth_buffer, &tile_depth_srv, &tile_depth_uav);
 }
 
 void clustered_lighting_system::generate_index_buffer(UINT capacity)
@@ -281,12 +323,14 @@ void clustered_lighting_system::prepare(const render_data_context& render_data, 
 		(static_cast<UINT>(screen_height) + tile_size - 1) / tile_size,
 		slice_count);
 	cluster_total = cluster_count.x * cluster_count.y * cluster_count.z;
+	tile_total = cluster_count.x * cluster_count.y;
 
 	//	バッファ準備
 	if (light_count > 0)
 	{
 		generate_light_buffer(light_count);
 		generate_cluster_buffers(cluster_total);
+		generate_tile_buffer(tile_total);
 		if (required_index_count > index_capacity)
 			generate_index_buffer(required_index_count + required_index_count / 4);
 	}
@@ -308,6 +352,8 @@ void clustered_lighting_system::prepare(const render_data_context& render_data, 
 	constants.cluster_far = cluster_far;
 	constants.slice_scale = static_cast<float>(slice_count) / std::log(cluster_far / cluster_near);
 	constants.slice_bias = -std::log(cluster_near) * constants.slice_scale;
+	constants.flags = get_depth_culling() ? clustered_flag_depth_culling : 0u;
+	constants.visualize_max = get_visualize_max();
 }
 
 void clustered_lighting_system::build(graphics_context& context)
@@ -345,13 +391,39 @@ void clustered_lighting_system::build(graphics_context& context)
 		context.clear_unordered_access_views();
 	}
 
+	//	タイルごとの最も奥の奥行き分割を G-Buffer の深度から求める
+	if (constants.flags & clustered_flag_depth_culling)
+	{
+		const texture_ptr& normal_depth = context.g_buffer_textures[static_cast<UINT>(common_pipeline_states::gbuffer_id::normal_depth)];
+		if (normal_depth)
+		{
+			const UINT zero[4] = {};
+			dc->ClearUnorderedAccessViewUint(tile_depth_uav.Get(), zero);
+
+			const UINT width = static_cast<UINT>(normal_depth->get_width());
+			const UINT height = static_cast<UINT>(normal_depth->get_height());
+			dc->CSSetShader(depth_cs->get_shader().Get(), nullptr, 0);
+			dc->CSSetShaderResources(0, 1, normal_depth->get_shader_resource_view().GetAddressOf());
+			dc->CSSetUnorderedAccessViews(0, 1, tile_depth_uav.GetAddressOf(), nullptr);
+			dc->Dispatch((width + depth_thread_size - 1) / depth_thread_size, (height + depth_thread_size - 1) / depth_thread_size, 1);
+			context.clear_unordered_access_views();
+			context.clear_shader_resorce_views();
+		}
+		else
+		{
+			//	深度が無ければ全クラスターを対象にする
+			const UINT all_slices[4] = { slice_count - 1, slice_count - 1, slice_count - 1, slice_count - 1 };
+			dc->ClearUnorderedAccessViewUint(tile_depth_uav.Get(), all_slices);
+		}
+	}
+
 	//	クラスターごとのライト数を数える
 	{
 		const UINT zero[4] = {};
 		dc->ClearUnorderedAccessViewUint(count_uav.Get(), zero);
 		dc->ClearUnorderedAccessViewUint(cursor_uav.Get(), zero);
 
-		ID3D11ShaderResourceView* srvs[] = { light_srv.Get(), bounds_srv.Get() };
+		ID3D11ShaderResourceView* srvs[] = { light_srv.Get(), bounds_srv.Get(), nullptr, tile_depth_srv.Get() };
 		dc->CSSetShader(count_cs->get_shader().Get(), nullptr, 0);
 		dc->CSSetShaderResources(0, ARRAYSIZE(srvs), srvs);
 		dc->CSSetUnorderedAccessViews(0, 1, count_uav.GetAddressOf(), nullptr);
@@ -373,7 +445,7 @@ void clustered_lighting_system::build(graphics_context& context)
 
 	//	ライト番号を書き込む
 	{
-		ID3D11ShaderResourceView* srvs[] = { light_srv.Get(), bounds_srv.Get(), offset_srv.Get() };
+		ID3D11ShaderResourceView* srvs[] = { light_srv.Get(), bounds_srv.Get(), offset_srv.Get(), tile_depth_srv.Get() };
 		ID3D11UnorderedAccessView* uavs[] = { cursor_uav.Get(), index_uav.Get() };
 		dc->CSSetShader(fill_cs->get_shader().Get(), nullptr, 0);
 		dc->CSSetShaderResources(0, ARRAYSIZE(srvs), srvs);
@@ -396,7 +468,8 @@ void clustered_lighting_system::build(graphics_context& context)
 
 void clustered_lighting_system::render(graphics_context& context)
 {
-	if (light_count == 0)
+	const bool visualize = is_visualize();
+	if (light_count == 0 && !visualize)
 		return;
 
 	auto dc = context.device_context;
@@ -406,9 +479,9 @@ void clustered_lighting_system::render(graphics_context& context)
 	dc->HSSetShader(nullptr, nullptr, 0);
 	dc->DSSetShader(nullptr, nullptr, 0);
 	dc->GSSetShader(nullptr, nullptr, 0);
-	dc->PSSetShader(lighting_ps->get_shader().Get(), nullptr, 0);
+	dc->PSSetShader((visualize ? visualize_ps : lighting_ps)->get_shader().Get(), nullptr, 0);
 	dc->IASetInputLayout(fullscreen_vs->get_input_layout().Get());
-	dc->OMSetBlendState(blend_state.Get(), nullptr, 0xFFFFFFFF);
+	dc->OMSetBlendState((visualize ? visualize_blend_state : blend_state).Get(), nullptr, 0xFFFFFFFF);
 	dc->OMSetDepthStencilState(depth_stencil_state.Get(), 0);
 	dc->RSSetState(rasterizer_state.Get());
 

@@ -8,6 +8,8 @@
 //	ƒJƒƒ‰î•ñ
 class camera
 {
+	friend class camera_manager;
+
 public:
 	uint64_t get_id() const { return id; }
 
@@ -26,8 +28,6 @@ public:
 	~camera();
 
 private:
-	friend class camera_manager;
-
 	view_parameters parameters;
 	uint64_t id;
 	bool active = true;

@@ -18,6 +18,10 @@
 
 #include "Renderer/scene_renderer_common.h"
 
+#include <cmath>
+#include <cstdint>
+#include <cstring>
+
 namespace
 {
     void compute_bounding_sphere(const math::vector3f* corners, UINT size, math::vector3f& out_center, float& out_radius)
@@ -58,6 +62,74 @@ namespace
         };
 		compute_bounding_sphere(corners, 8, out_center, out_radius);
     }
+
+	//	シャドウキャッシュキー生成
+	std::uint64_t compute_shadow_signature(const light_render_data& light, const render_data_context& render_data, bool& out_dynamic)
+	{
+		std::uint64_t hash = 1469598103934665603ull;
+		auto mix = [&hash](std::uint64_t value) { hash ^= value + 0x9e3779b97f4a7c15ull + (hash << 6) + (hash >> 2); };
+		auto mix_quantized = [&mix](double value, double scale) { mix(static_cast<std::uint64_t>(std::llround(value * scale))); };
+		auto mix_float = [&mix](float value)
+		{
+			std::uint32_t bits;
+			std::memcpy(&bits, &value, sizeof(bits));
+			mix(bits);
+		};
+
+		//	ライト
+		const math::vector3d& origin = render_data.render_origin;
+		mix(static_cast<std::uint64_t>(light.type));
+		mix_quantized(origin.x + light.position.x, 100.0);
+		mix_quantized(origin.y + light.position.y, 100.0);
+		mix_quantized(origin.z + light.position.z, 100.0);
+		mix_quantized(light.direction.x, 10000.0);
+		mix_quantized(light.direction.y, 10000.0);
+		mix_quantized(light.direction.z, 10000.0);
+		mix_float(light.range);
+		mix_float(light.outer_cone);
+		for (const auto& bias : light.bias_data)
+		{
+			mix_float(bias.depth_bias);
+			mix_float(bias.slope_depth_bias_scale);
+			mix_float(bias.max_depth_bias);
+			mix_float(bias.slope_depth_bias);
+			mix_float(bias.max_slope_depth_bias);
+			mix_float(bias.sigma_factor);
+		}
+
+		//	影響範囲内のメッシュ
+		const auto& mesh_container = render_data.mesh_container;
+		const float range_square = light.range * light.range;
+		for (auto draw_index : mesh_container.shadow_datas)
+		{
+			const auto& draw_data = mesh_container.draw_datas[draw_index];
+			const auto& buffer_data = mesh_container.buffer_datas[draw_data.buffer_index];
+
+			const float dx = (std::max)((std::max)(buffer_data.bounds_min.x - light.position.x, light.position.x - buffer_data.bounds_max.x), 0.0f);
+			const float dy = (std::max)((std::max)(buffer_data.bounds_min.y - light.position.y, light.position.y - buffer_data.bounds_max.y), 0.0f);
+			const float dz = (std::max)((std::max)(buffer_data.bounds_min.z - light.position.z, light.position.z - buffer_data.bounds_max.z), 0.0f);
+			if (dx * dx + dy * dy + dz * dz > range_square)
+				continue;
+
+			if (!system_utility::is_bitflag(buffer_data.system_flags, buffer_datas::flags::static_mesh))
+				out_dynamic = true;
+
+			mix(buffer_data.unique_id);
+			const math::matrixf world(buffer_data.world_transform);
+			for (UINT row = 0; row < 3; ++row)
+			{
+				const math::vector3f axis = world.to_vector3(row);
+				mix_quantized(axis.x, 10000.0);
+				mix_quantized(axis.y, 10000.0);
+				mix_quantized(axis.z, 10000.0);
+			}
+			const math::vector3f translation = world.to_vector3(3);
+			mix_quantized(origin.x + translation.x, 100.0);
+			mix_quantized(origin.y + translation.y, 100.0);
+			mix_quantized(origin.z + translation.z, 100.0);
+		}
+		return hash;
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -555,6 +627,49 @@ void deffered_lighting_renderer::render(renderer_context& context)
 	//	間接光
 	render_indirect(context);
 
+	//	影を落とす点光源/スポットライトにシャドウマップアトラスを割り当てる
+	struct atlas_slot
+	{
+		UINT first_slice = 0;
+		bool needs_render = true;
+	};
+	std::unordered_map<const light_render_data*, atlas_slot> atlas_slots;
+	atlas.begin_frame();
+	if (shadow_atlas::is_enable())
+	{
+		struct atlas_candidate
+		{
+			const light_render_data* light;
+			float priority;
+		};
+		std::vector<atlas_candidate> candidates;
+		const math::vector3f camera(context.scene_constant.camera_position.x, context.scene_constant.camera_position.y, context.scene_constant.camera_position.z);
+		for (const auto& light : context.render_data->light_container.lights)
+		{
+			if (!light.is_flag(light::flags::active) || !light.is_flag(light::flags::use_shadow) || clustered_lighting_system::is_target(light))
+				continue;
+			if (light.type != light_type::point && light.type != light_type::spot)
+				continue;
+			const float distance = (math::vector3f(light.position) - camera).length();
+			candidates.push_back({ &light, light.range / (std::max)(distance, light.range * 0.1f) });
+		}
+		std::stable_sort(candidates.begin(), candidates.end(), [](const atlas_candidate& l, const atlas_candidate& r) { return l.priority > r.priority; });
+
+		const UINT max_lights = shadow_atlas::get_max_lights();
+		for (const auto& candidate : candidates)
+		{
+			if (atlas.get_allocated_lights() >= max_lights)
+				break;
+
+			bool dynamic = false;
+			const std::uint64_t signature = compute_shadow_signature(*candidate.light, *context.render_data, dynamic);
+			atlas_slot slot;
+			if (atlas.acquire(candidate.light->id, candidate.light->type == light_type::point ? 6u : 1u, signature, dynamic, slot.first_slice, slot.needs_render))
+				atlas_slots[candidate.light] = slot;
+		}
+	}
+	atlas.end_frame();
+
 	//	ライティング処理
 	for (const auto& light : context.render_data->light_container.lights)
 	{
@@ -584,26 +699,32 @@ void deffered_lighting_renderer::render(renderer_context& context)
 			{
 				//	シャドウマップ生成
 				common_pipeline_states::shadow_map_constants shadow_map_constant{};
+				const auto atlas_it = atlas_slots.find(&light);
+				const int atlas_slice = (atlas_it != atlas_slots.end()) ? static_cast<int>(atlas_it->second.first_slice) : -1;
+				const bool render_shadow = (atlas_it == atlas_slots.end()) || atlas_it->second.needs_render;
 				if (light.is_flag(light::flags::use_shadow))
 				{
-					render_point_shadow_map(light, shadow_map_constant, context);
+					render_point_shadow_map(light, shadow_map_constant, context, atlas_slice, render_shadow);
 				}
 
 				//	ライティング処理
-				render_point(light, shadow_map_constant, context);
+				render_point(light, shadow_map_constant, context, atlas_slice >= 0);
 				break;
 			}
 			case light_type::spot:
 			{
 				//	シャドウマップ生成
 				common_pipeline_states::shadow_map_constants shadow_map_constant{};
+				const auto atlas_it = atlas_slots.find(&light);
+				const int atlas_slice = (atlas_it != atlas_slots.end()) ? static_cast<int>(atlas_it->second.first_slice) : -1;
+				const bool render_shadow = (atlas_it == atlas_slots.end()) || atlas_it->second.needs_render;
 				if (light.is_flag(light::flags::use_shadow))
 				{
-					render_spot_shadow_map(light, shadow_map_constant, context);
+					render_spot_shadow_map(light, shadow_map_constant, context, atlas_slice, render_shadow);
 				}
 
 				//	ライティング処理
-				render_spot(light, shadow_map_constant, context);
+				render_spot(light, shadow_map_constant, context, atlas_slice >= 0);
 				break;
 			}
 		}
@@ -627,19 +748,19 @@ void deffered_lighting_renderer::render_clustered(renderer_context& context)
 
 	job_executor.execute([this, clustered_lighting](graphics_context& context)
 	{
-		//	クラスター構築
-		clustered_lighting->build(context);
-		if (clustered_lighting->get_light_count() == 0)
-			return;
-
-		//	描画先設定
-		lighting_pass.activate(context.device_context);
-
 		//	G-Bufferテクスチャ設定
 		for (UINT index = 0; index < static_cast<UINT>(common_pipeline_states::gbuffer_id::max); ++index)
 		{
 			context.g_buffer_textures[index] = render_targets->g_buffer_textures[index];
 		}
+
+		//	クラスター構築
+		clustered_lighting->build(context);
+		if (clustered_lighting->get_light_count() == 0 && !clustered_lighting_system::is_visualize())
+			return;
+
+		//	描画先設定
+		lighting_pass.activate(context.device_context);
 
 		//	ビューポートの設定
 		context.device_context->RSSetViewports(1, &lighting_pass_viewport);
@@ -992,15 +1113,17 @@ void deffered_lighting_renderer::render_directional_shadow_map(const light_rende
 	}, "render_directional_shadow_map_pass", context, get_render_basis_sort_order() + register_index++, true);
 }
 
-void deffered_lighting_renderer::render_point(const light_render_data& light, common_pipeline_states::shadow_map_constants& shadow_map_constant, renderer_context& context)
+void deffered_lighting_renderer::render_point(const light_render_data& light, common_pipeline_states::shadow_map_constants& shadow_map_constant, renderer_context& context, bool use_atlas)
 {
-	job_executor.execute([this, light, shadow_map_constant](graphics_context& context)
+	//	シャドウマップアトラスに描いた場合はアトラスを参照する
+	const texture_ptr shadow_texture = use_atlas ? atlas.get_texture() : render_targets->shadowmap_depth_texture;
+	job_executor.execute([this, light, shadow_map_constant, shadow_texture](graphics_context& context)
 	{
 		//	描画先設定
 		lighting_pass.activate(context.device_context);
 
 		context.deferred_light_constant.light_data = light.data;
-		context.shadow_map_texture = render_targets->shadowmap_depth_texture;
+		context.shadow_map_texture = shadow_texture;
 		context.shadow_map_constant = shadow_map_constant;
 
 		//	G-Bufferテクスチャ設定
@@ -1030,7 +1153,27 @@ void deffered_lighting_renderer::render_point(const light_render_data& light, co
 	}, "render_point_pass", context, get_render_basis_sort_order() + register_index++);
 }
 
-void deffered_lighting_renderer::render_point_shadow_map(const light_render_data& light, common_pipeline_states::shadow_map_constants& shadow_map_constant, renderer_context& context)
+void deffered_lighting_renderer::begin_shadow_target(graphics_context& context, ID3D11DepthStencilView* atlas_depth_stencil_view)
+{
+	if (atlas_depth_stencil_view)
+	{
+		context.device_context->OMSetRenderTargets(0, nullptr, atlas_depth_stencil_view);
+		context.device_context->ClearDepthStencilView(atlas_depth_stencil_view, D3D11_CLEAR_DEPTH, common_pipeline_states::depth_clear_value, 0);
+	}
+	else
+	{
+		shadow_map_pass.activate(context.device_context);
+	}
+}
+
+void deffered_lighting_renderer::end_shadow_target(graphics_context& context, ID3D11DepthStencilView* atlas_depth_stencil_view)
+{
+	if (atlas_depth_stencil_view)
+		context.device_context->OMSetRenderTargets(0, nullptr, nullptr);
+	else
+		shadow_map_pass.deactivate(context.device_context);
+}
+void deffered_lighting_renderer::render_point_shadow_map(const light_render_data& light, common_pipeline_states::shadow_map_constants& shadow_map_constant, renderer_context& context, int atlas_slice, bool render_shadow)
 {
 	math::float3 position = light.position;
 	math::vector3f position_vector(position);
@@ -1062,6 +1205,7 @@ void deffered_lighting_renderer::render_point_shadow_map(const light_render_data
 	shadow_map_constant.shadow_map_count = 6;
 	shadow_map_constant.shadow_attenuation = light.shadow_attenuation;
 	shadow_map_constant.shadow_mask = 0;
+	shadow_map_constant.shadow_slice_offset = (atlas_slice >= 0) ? static_cast<UINT>(atlas_slice) : 0;
 
 	for (UINT face = 0; face < 6; ++face)
 	{
@@ -1089,33 +1233,42 @@ void deffered_lighting_renderer::render_point_shadow_map(const light_render_data
 		shadow_map_constant.shadow_bias[face].w = bias_data.sigma_factor; // 分散値
 	}
 
-	job_executor.execute([this, shadow_map_constant, position, range](graphics_context& context)
+	//	影のキャッシュが使える場合は描き直さない
+	if (!render_shadow)
+		return;
+
+	//	シャドウマップアトラスに描く場合は割り当てられたスライス範囲に書き込む
+	ID3D11DepthStencilView* atlas_depth_stencil_view = (atlas_slice >= 0) ? atlas.get_depth_stencil_view(static_cast<UINT>(atlas_slice), 6) : nullptr;
+	const D3D11_VIEWPORT atlas_viewport = atlas.get_viewport();
+	job_executor.execute([this, shadow_map_constant, position, range, atlas_depth_stencil_view, atlas_viewport](graphics_context& context)
 	{
-		shadow_map_pass.activate(context.device_context);
+		begin_shadow_target(context, atlas_depth_stencil_view);
 
 		context.shadow_map_constant = shadow_map_constant;
 
-		context.device_context->RSSetViewports(1, &shadow_map_pass_viewport);
+		context.device_context->RSSetViewports(1, atlas_depth_stencil_view ? &atlas_viewport : &shadow_map_pass_viewport);
 
 		context.is_shadow_rendering = true;
 		scene_renderer_commons::model_render_shadow_batched(context, context.render_data->mesh_container.shadow_datas, position, range, material::surface_paths::shadow_write_pass);
 		context.is_shadow_rendering = false;
 
-		shadow_map_pass.deactivate(context.device_context);
+		end_shadow_target(context, atlas_depth_stencil_view);
 	}, "render_point_shadow_map_pass", context, get_render_basis_sort_order() + register_index++, true);
 }
 
 
 
-void deffered_lighting_renderer::render_spot(const light_render_data& light, common_pipeline_states::shadow_map_constants& shadow_map_constant, renderer_context& context)
+void deffered_lighting_renderer::render_spot(const light_render_data& light, common_pipeline_states::shadow_map_constants& shadow_map_constant, renderer_context& context, bool use_atlas)
 {
-	job_executor.execute([this, light, shadow_map_constant](graphics_context& context)
+	//	シャドウマップアトラスに描いた場合はアトラスを参照する
+	const texture_ptr shadow_texture = use_atlas ? atlas.get_texture() : render_targets->shadowmap_depth_texture;
+	job_executor.execute([this, light, shadow_map_constant, shadow_texture](graphics_context& context)
 	{
 		//	描画先設定
 		lighting_pass.activate(context.device_context);
 
 		context.deferred_light_constant.light_data = light.data;
-		context.shadow_map_texture = render_targets->shadowmap_depth_texture;
+		context.shadow_map_texture = shadow_texture;
 		context.shadow_map_constant = shadow_map_constant;
 
 		//	G-Bufferテクスチャ設定
@@ -1145,7 +1298,7 @@ void deffered_lighting_renderer::render_spot(const light_render_data& light, com
 	}, "render_spot_pass", context, get_render_basis_sort_order() + register_index++);
 }
 
-void deffered_lighting_renderer::render_spot_shadow_map(const light_render_data& light, common_pipeline_states::shadow_map_constants& shadow_map_constant, renderer_context& context)
+void deffered_lighting_renderer::render_spot_shadow_map(const light_render_data& light, common_pipeline_states::shadow_map_constants& shadow_map_constant, renderer_context& context, int atlas_slice, bool render_shadow)
 {
 	auto reserve_scene_constant = context.scene_constant;
 
@@ -1184,30 +1337,43 @@ void deffered_lighting_renderer::render_spot_shadow_map(const light_render_data&
 	}
 
 	shadow_map_constant.shadow_mask = 0;
+	//	シャドウマップアトラスの先頭スライス
+	shadow_map_constant.shadow_slice_offset = (atlas_slice >= 0) ? static_cast<UINT>(atlas_slice) : 0;
 	shadow_map_constant.light_view_projection_transform[0] = (ViewMatrix * ProjectionMatrix).to_float4x4();
 
 	//	モデル類描画
 	collision::frustum_culling frustum_culling;
 	{
 		frustum_culling.create_planes(shadow_map_constant.light_view_projection_transform[0]);
-		frustum_culling.create_frustum_corners(math::matrixf(context.scene_constant.view_projection_transform).inverted());
+		//	シャドウマップアトラスではカメラに依存しないよう、ライト自身の視錐台の頂点を使う
+		if (atlas_slice >= 0)
+			frustum_culling.create_frustum_corners(math::matrixf(shadow_map_constant.light_view_projection_transform[0]).inverted());
+		else
+			frustum_culling.create_frustum_corners(math::matrixf(context.scene_constant.view_projection_transform).inverted());
 	}
 
-	job_executor.execute([this, shadow_map_constant, frustum_culling](graphics_context& context)
+	//	影のキャッシュが使える場合は描き直さない
+	if (!render_shadow)
+		return;
+
+	//	シャドウマップアトラスに描く場合は割り当てられたスライス範囲に書き込む
+	ID3D11DepthStencilView* atlas_depth_stencil_view = (atlas_slice >= 0) ? atlas.get_depth_stencil_view(static_cast<UINT>(atlas_slice), 1) : nullptr;
+	const D3D11_VIEWPORT atlas_viewport = atlas.get_viewport();
+	job_executor.execute([this, shadow_map_constant, frustum_culling, atlas_depth_stencil_view, atlas_viewport](graphics_context& context)
 	{
-		shadow_map_pass.activate(context.device_context);
+		begin_shadow_target(context, atlas_depth_stencil_view);
 
 		context.shadow_map_constant = shadow_map_constant;
 
 		//	ビューポートの設定
-		context.device_context->RSSetViewports(1, &shadow_map_pass_viewport);
+		context.device_context->RSSetViewports(1, atlas_depth_stencil_view ? &atlas_viewport : &shadow_map_pass_viewport);
 
 		context.is_shadow_rendering = true;
 		scene_renderer_commons::model_render_shadow_batched(context, context.render_data->mesh_container.shadow_datas, frustum_culling, material::surface_paths::shadow_write_pass);
 		//scene_renderer_commons::particle_render(context, context.render_data->effect_container.sprite_trail_shadow_datas, material::surface_paths::shadow_write_pass);
 		context.is_shadow_rendering = false;
 
-		shadow_map_pass.deactivate(context.device_context);
+		end_shadow_target(context, atlas_depth_stencil_view);
 	}, "render_spot_shadow_map_pass", context, get_render_basis_sort_order() + register_index++, true);
 	context.scene_constant = reserve_scene_constant;
 }

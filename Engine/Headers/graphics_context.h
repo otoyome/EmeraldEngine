@@ -48,6 +48,7 @@ enum class blendable_locations : std::uint8_t
 struct light_render_data
 {
 	//	ƒ‰ƒCƒgî•ñ
+	UINT id = 0;
 	light_type type = light_type::directional;
 	UINT attribute = 0;
 	math::float3 position = {0, 0, 0};

@@ -23,6 +23,9 @@ class clustered_lighting_system
 		float cluster_far;
 		float slice_scale;
 		float slice_bias;
+		UINT flags;				//	clustered_flag_xxx
+		float visualize_max;	//	ヒートマップで最大色になるライト数
+		math::float2 dummy;
 	};
 
 public:
@@ -59,9 +62,13 @@ public:
 	//	クラスタードライティングで描画するライトか
 	static bool is_target(const light_render_data& light);
 
+	//	ライト数のヒートマップ表示中か
+	static bool is_visualize();
+
 private:
 	void generate_light_buffer(UINT count);
 	void generate_cluster_buffers(UINT count);
+	void generate_tile_buffer(UINT count);
 	void generate_index_buffer(UINT capacity);
 
 private:
@@ -69,10 +76,13 @@ private:
 	std::shared_ptr<compute_shader> count_cs;
 	std::shared_ptr<compute_shader> scan_cs;
 	std::shared_ptr<compute_shader> fill_cs;
+	std::shared_ptr<compute_shader> depth_cs;
 	std::shared_ptr<vertex_shader> fullscreen_vs;
 	std::shared_ptr<pixel_shader> lighting_ps;
+	std::shared_ptr<pixel_shader> visualize_ps;
 
 	Microsoft::WRL::ComPtr<ID3D11BlendState> blend_state;
+	Microsoft::WRL::ComPtr<ID3D11BlendState> visualize_blend_state;
 	Microsoft::WRL::ComPtr<ID3D11DepthStencilState> depth_stencil_state;
 	Microsoft::WRL::ComPtr<ID3D11RasterizerState> rasterizer_state;
 
@@ -100,6 +110,13 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> cursor_uav;
 	UINT cluster_capacity = 0;
 	UINT cluster_total = 0;
+
+	//	タイルごとの最も奥の奥行き分割
+	Microsoft::WRL::ComPtr<ID3D11Buffer> tile_depth_buffer;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> tile_depth_srv;
+	Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> tile_depth_uav;
+	UINT tile_capacity = 0;
+	UINT tile_total = 0;
 
 	//	ライト番号リスト
 	Microsoft::WRL::ComPtr<ID3D11Buffer> index_buffer;

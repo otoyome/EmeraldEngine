@@ -13,7 +13,8 @@ cbuffer SHADOW_MAP_CONSTANT_BUFFER : register(b4)
     float4 shadow_split_distance[shadow_map_max];
     row_major float4x4 light_view_projection_transform[shadow_map_max];
     uint shadow_mask;
-    float3 shadow_dummy;
+    uint shadow_slice_offset;
+    float2 shadow_dummy;
 };
 
 //  シャドウマップ
@@ -23,7 +24,7 @@ SamplerState shadow_maps_sampler_state : register(s10);
 //	シャドウサンプル関数
 float3 shadowmap_fetch(int index, float3 texcoord)
 {
-    float3 texcoordUVW = float3(texcoord.xy, index);
+    float3 texcoordUVW = float3(texcoord.xy, index + shadow_slice_offset);
     float depth = shadow_maps.Sample(shadow_maps_sampler_state, texcoordUVW).r;
     float factor = step(depth - shadow_map_constant_bias, texcoord.z);
     return lerp(shadow_attenuation, float3(1.0f, 1.0f, 1.0f), factor);
@@ -63,7 +64,7 @@ float3 shadowmap_fetch_pcf(int index, float3 texcoord, float2x2 rotation_matrix,
     {
         float2 offset = (mul(rotation_matrix, poisson_disk[poisson_index]) / tex_size.xy) * radius;
 
-        float3 texcoordUVW = float3(texcoord.xy + offset, index);
+        float3 texcoordUVW = float3(texcoord.xy + offset, index + shadow_slice_offset);
         float depth = shadow_maps.SampleLevel(shadow_maps_sampler_state, texcoordUVW, 0).r;
         float value = step(depth - shadow_map_constant_bias, texcoord.z);
         attenuation += value.xxx;

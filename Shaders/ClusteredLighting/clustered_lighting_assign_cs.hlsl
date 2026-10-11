@@ -14,6 +14,7 @@ RWStructuredBuffer<uint> cluster_light_indices : register(u1);
 #else // defined(CLUSTERED_FILL)
 RWStructuredBuffer<uint> cluster_counts : register(u0);
 #endif // defined(CLUSTERED_FILL)
+StructuredBuffer<uint> tile_max_slices : register(t3);  //  @tool タイルごとの最も奥の面がある奥行き分割
 
 static const uint assign_thread_count = 64;
 static const uint dispatch_width = 65535;
@@ -51,7 +52,8 @@ void main(uint3 group_id : SV_GroupID, uint group_index : SV_GroupIndex)
         {
             //  ライトの判定
             light_data light = clustered_lights[light_index];
-            float radius = 1.0f / light.inv_range;
+            //  @tool 影響範囲の球で判定する（境界の誤差に備えてわずかに広げる）
+            float radius = (1.0f / light.inv_range) * 1.001f;
             float3 center = mul(float4(light.position, 1.0f), view_transform).xyz;
             shared_sphere = float4(center, radius);
 
@@ -111,6 +113,11 @@ void main(uint3 group_id : SV_GroupID, uint group_index : SV_GroupIndex)
     for (uint index = group_index; index < cluster_total; index += assign_thread_count)
     {
         uint3 cluster = cluster_min + uint3(index % range.x, (index / range.x) % range.y, index / (range.x * range.y));
+
+        //  @tool タイル内の最も奥の面より奥のクラスターは照らす面が無いので除く
+        if ((cluster_flags & clustered_flag_depth_culling) && cluster.z > tile_max_slices[get_cluster_tile_index(cluster.xy)])
+            continue;
+
         uint cluster_index = get_cluster_index(cluster);
         //  クラスターAABBとライトの球体判定
         cluster_aabb aabb = cluster_bounds[cluster_index];

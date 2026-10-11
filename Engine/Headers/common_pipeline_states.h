@@ -139,7 +139,8 @@ namespace common_pipeline_states
 		math::float4 shadow_split_distance[shadow_map_max];
 		math::float4x4 light_view_projection_transform[shadow_map_max];
 		UINT shadow_mask;	//	8ビットまで
-		math::float3 shadow_dummy;
+		UINT shadow_slice_offset;	//	シャドウマップアトラスを使うときの先頭スライス
+		math::float2 shadow_dummy;
 	};
 	constexpr std::string_view shadow_maps_name = "shadow_maps";
 	constexpr system_utility::hash_key shadow_maps_hash_key = system_utility::generate_hash(shadow_maps_name);

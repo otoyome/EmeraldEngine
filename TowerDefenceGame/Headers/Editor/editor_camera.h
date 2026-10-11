@@ -58,13 +58,14 @@ public:
 	//	エディターカメラにリクエストを送る中継コマンド
 	class scene_request
 	{
+		friend class editor_camera_manager;
+
 	public:
 		//	一時停止
 		void set_suspended(bool suspended) { this->suspended = suspended; }
 		bool is_suspended() const { return suspended; }
 
 	private:
-		friend class editor_camera_manager;
 		bool suspended = false;
 	};
 	using scene_request_ptr = std::shared_ptr<scene_request>;

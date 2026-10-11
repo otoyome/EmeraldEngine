@@ -28,6 +28,8 @@ public:
 		float intensity = 4.0f;			//	強さ
 		float spot_inner_cone = 20.0f;	//	スポットライトの内側角
 		float spot_outer_cone = 35.0f;	//	スポットライトの外側角
+		float shadow_ratio = 0.0f;		//	影を落とすライトの割合
+		bool stratified = true;			//	配置範囲を格子に分けて各マスに1つずつ置く
 		int seed = 1;					//	乱数の種
 	};
 

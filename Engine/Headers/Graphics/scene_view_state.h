@@ -16,6 +16,8 @@ using scene_view_state_key = system_utility::hash_key;
 //	描画制御情報
 class scene_view_state
 {
+	friend class scene_view_state_cache;
+
 public:
 	//	描画前後に呼ぶ
 	void begin_frame(const scene_view& current, bool camera_cut);
@@ -52,8 +54,6 @@ public:
 	~scene_view_state();
 
 private:
-	friend class scene_view_state_cache;
-
 	//	前フレームの情報
 	bool has_previous = false;
 	math::vector3d previous_render_origin;

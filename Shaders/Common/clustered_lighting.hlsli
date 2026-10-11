@@ -15,7 +15,13 @@ cbuffer CLUSTERED_LIGHTING_CONSTANT_BUFFER : register(b7)
     float cluster_far;              //  @tool 奥行き分割の終了距離（以降は最後の分割にまとめる）
     float cluster_slice_scale;      //  @tool 分割番号 = log(奥行き) * scale + bias
     float cluster_slice_bias;
+    uint cluster_flags;             //  @tool clustered_flag_xxx
+    float cluster_visualize_max;    //  @tool ヒートマップで最大色になるライト数
+    float2 cluster_dummy;
 };
+
+//  @tool cluster_flags（clustered_lighting_system.cpp と一致させる）
+static const uint clustered_flag_depth_culling = 1 << 0;   //  @tool タイル内の最も奥の面より奥のクラスターを除く
 
 //  @tool クラスターの view 空間 AABB
 struct cluster_aabb
@@ -43,6 +49,12 @@ float get_cluster_slice_depth(uint slice)
 uint get_cluster_index(uint3 cluster)
 {
     return cluster.x + (cluster.y + cluster.z * cluster_count.y) * cluster_count.x;
+}
+
+//  @tool タイル番号
+uint get_cluster_tile_index(uint2 tile)
+{
+    return tile.x + tile.y * cluster_count.x;
 }
 
 //  @tool テクスチャ座標と view 空間の奥行きからクラスターを求める

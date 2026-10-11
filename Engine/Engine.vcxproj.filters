@@ -270,6 +270,9 @@
     <ClInclude Include="Headers\Graphics\clustered_lighting_system.h">
       <Filter>Headers\Graphics</Filter>
     </ClInclude>
+    <ClInclude Include="Headers\Graphics\shadow_atlas.h">
+      <Filter>Headers\Graphics</Filter>
+    </ClInclude>
     <ClInclude Include="Headers\Graphics\meshlet_culling_system.h">
       <Filter>Headers\Graphics</Filter>
     </ClInclude>
@@ -471,6 +474,9 @@
       <Filter>Sources\Graphics</Filter>
     </ClCompile>
     <ClCompile Include="Sources\Graphics\clustered_lighting_system.cpp">
+      <Filter>Sources\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Graphics\shadow_atlas.cpp">
       <Filter>Sources\Graphics</Filter>
     </ClCompile>
     <ClCompile Include="Sources\Graphics\meshlet_culling_system.cpp">

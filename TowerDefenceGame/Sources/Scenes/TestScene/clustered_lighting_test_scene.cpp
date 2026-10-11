@@ -9,9 +9,13 @@
 #include "object/model_object.h"
 
 #include "System/console_manager.h"
+#include "graphics/shadow_atlas.h"
 
 #include <cmath>
+#include <algorithm>
+#include <cstdint>
 #include <random>
+#include <vector>
 
 namespace
 {
@@ -113,29 +117,47 @@ void clustered_lighting_test_scene::rebuild_lights()
 {
 	lights.clear();
 
-	std::mt19937 random(static_cast<std::mt19937::result_type>(settings.seed));
-	std::uniform_real_distribution<float> random_01(0.0f, 1.0f);
+	std::seed_seq seed_sequence{ static_cast<std::uint32_t>(settings.seed), 0x9e3779b9u, 0x85ebca6bu, 0xc2b2ae35u };
+	std::mt19937 random(seed_sequence);
+	std::uniform_real_distribution<double> random_01(0.0, 1.0);
 
 	const int count = (std::max)(settings.light_count, 0);
+
+	//	格子に分けて各マスに1つずつ置く
+	const int grid = (std::max)(1, static_cast<int>(std::ceil(std::sqrt(static_cast<double>((std::max)(count, 1))))));
+	std::vector<int> cell_order(static_cast<size_t>(grid * grid));
+	for (int index = 0; index < static_cast<int>(cell_order.size()); ++index)
+		cell_order[static_cast<size_t>(index)] = index;
+	std::shuffle(cell_order.begin(), cell_order.end(), random);
+
 	lights.reserve(static_cast<size_t>(count));
 	for (int index = 0; index < count; ++index)
 	{
 		const bool spot = random_01(random) < settings.spot_ratio;
+		const bool shadow = random_01(random) < settings.shadow_ratio;
 
 		light_entry entry;
 		if (!light_manager::instance()->generate_light(entry.light, spot ? light_type::spot : light_type::point))
 			continue;
 
 		//	配置範囲内にばらまく
-		const double x = (random_01(random) - 0.5) * settings.area_size;
-		const double z = (random_01(random) - 0.5) * settings.area_size;
+		double u = random_01(random);
+		double v = random_01(random);
+		if (settings.stratified)
+		{
+			const int cell = cell_order[static_cast<size_t>(index)];
+			u = (static_cast<double>(cell % grid) + u) / static_cast<double>(grid);
+			v = (static_cast<double>(cell / grid) + v) / static_cast<double>(grid);
+		}
+		const double x = (u - 0.5) * settings.area_size;
+		const double z = (v - 0.5) * settings.area_size;
 		entry.base_position = system_units::convert_m_to_unit(math::vector3d(x, settings.height, z));
-		entry.phase = random_01(random) * math::constants<float>::pi * 2.0f;
+		entry.phase = static_cast<float>(random_01(random)) * math::constants<float>::pi * 2.0f;
 
-		const math::float3 color = hue_to_color(random_01(random));
+		const math::float3 color = hue_to_color(static_cast<float>(random_01(random)));
 		entry.light->set_color({ color.x, color.y, color.z, settings.intensity });
 		entry.light->set_range(system_units::convert_m_to_unit(settings.range));
-		entry.light->set_flag(light::flags::use_shadow, false);
+		entry.light->set_flag(light::flags::use_shadow, shadow);
 		if (spot)
 		{
 			//	真下に向ける
@@ -179,8 +201,93 @@ void clustered_lighting_test_scene::imgui_render_core()
 		if (ImGui::DragFloat("cluster far [m] (r.clustered.far)", &value, 1.0f, 1.0f, 100000.0f))
 			far_distance->set(system_units::convert_m_to_unit(value));
 	}
+	if (auto depth_culling = find_variable<bool>("r.clustered.depth_culling"))
+	{
+		bool value = depth_culling->get();
+		if (ImGui::Checkbox("depth culling (r.clustered.depth_culling)", &value))
+			depth_culling->set(value);
+	}
+
+	//	ライト数のヒートマップ表示
+	if (auto visualize = find_variable<bool>("r.clustered.visualize"))
+	{
+		bool value = visualize->get();
+		if (ImGui::Checkbox("heatmap (r.clustered.visualize)", &value))
+			visualize->set(value);
+	}
+	if (auto visualize_max = find_variable<float>("r.clustered.visualize_max"))
+	{
+		float value = visualize_max->get();
+		if (ImGui::DragFloat("heatmap max lights (r.clustered.visualize_max)", &value, 0.5f, 1.0f, 4096.0f))
+			visualize_max->set(value);
+		ImGui::TextDisabled("black : 0, blue -> green -> yellow -> red : max");
+	}
+
+	//	ライトの LOD と空間分割
+	ImGui::Separator();
+	{
+		const auto& statistics = light_manager::instance()->get_statistics();
+		ImGui::Text("light manager : total %u / candidates %u / visible %u / cells %u",
+			statistics.total_lights, statistics.candidate_lights, statistics.visible_lights, statistics.occupied_cells);
+	}
+	auto drag_meter = [](const char* label, std::string_view name, float speed)
+	{
+		if (auto variable = find_variable<float>(name))
+		{
+			float value = system_units::convert_unit_to_m(variable->get());
+			if (ImGui::DragFloat(label, &value, speed, 0.0f, 100000.0f))
+				variable->set(system_units::convert_m_to_unit(value));
+		}
+	};
+	drag_meter("light max draw distance [m] (r.light.max_draw_distance)", "r.light.max_draw_distance", 1.0f);
+	drag_meter("light grid cell size [m] (r.light.grid_cell_size)", "r.light.grid_cell_size", 0.5f);
+	if (auto variable = find_variable<float>("r.light.fade_ratio"))
+	{
+		float value = variable->get();
+		if (ImGui::SliderFloat("light fade ratio (r.light.fade_ratio)", &value, 0.0f, 1.0f))
+			variable->set(value);
+	}
+	if (auto variable = find_variable<float>("r.light.min_screen_size"))
+	{
+		float value = variable->get();
+		if (ImGui::DragFloat("light min screen size (r.light.min_screen_size)", &value, 0.0001f, 0.0f, 1.0f, "%.4f"))
+			variable->set(value);
+	}
+
+	//	シャドウマップアトラス
+	if (auto variable = find_variable<bool>("r.shadow.atlas.enable"))
+	{
+		bool value = variable->get();
+		if (ImGui::Checkbox("shadow atlas (r.shadow.atlas.enable)", &value))
+			variable->set(value);
+	}
+	auto drag_int = [](const char* label, std::string_view name, int minimum, int maximum)
+	{
+		if (auto variable = find_variable<int>(name))
+		{
+			int value = variable->get();
+			if (ImGui::DragInt(label, &value, 1.0f, minimum, maximum))
+				variable->set(value);
+		}
+	};
+	drag_int("shadow atlas resolution (r.shadow.atlas.resolution)", "r.shadow.atlas.resolution", 64, 4096);
+	drag_int("shadow atlas slices (r.shadow.atlas.slices)", "r.shadow.atlas.slices", 6, 2048);
+	drag_int("shadow atlas max lights (r.shadow.atlas.max_lights)", "r.shadow.atlas.max_lights", 0, 2048);
+	if (auto variable = find_variable<bool>("r.shadow.atlas.cache"))
+	{
+		bool value = variable->get();
+		if (ImGui::Checkbox("shadow cache (r.shadow.atlas.cache)", &value))
+			variable->set(value);
+	}
+	drag_int("shadow cache keep frames (r.shadow.atlas.keep_frames)", "r.shadow.atlas.keep_frames", 0, 100000);
+	{
+		const auto& statistics = shadow_atlas::get_last_statistics();
+		ImGui::Text("shadow atlas : lights %u (rendered %u) / cached %u / slices %u / %u",
+			statistics.allocated_lights, statistics.rendered_lights, statistics.cached_lights, statistics.used_slices, statistics.slice_count);
+	}
 
 	//	平行光源
+	ImGui::Separator();
 	if (ImGui::SliderFloat("directional intensity", &directional_intensity, 0.0f, 2.0f) && directional_light)
 	{
 		auto color = directional_light->get_color();
@@ -194,6 +301,8 @@ void clustered_lighting_test_scene::imgui_render_core()
 	bool changed = false;
 	changed |= ImGui::DragInt("light count", &settings.light_count, 4.0f, 0, 65536);
 	changed |= ImGui::SliderFloat("spot ratio", &settings.spot_ratio, 0.0f, 1.0f);
+	changed |= ImGui::SliderFloat("shadow ratio", &settings.shadow_ratio, 0.0f, 1.0f);
+	changed |= ImGui::Checkbox("stratified placement", &settings.stratified);
 	changed |= ImGui::DragFloat("area size [m]", &settings.area_size, 0.5f, 1.0f, 10000.0f);
 	changed |= ImGui::DragFloat("height [m]", &settings.height, 0.1f, -100.0f, 1000.0f);
 	changed |= ImGui::DragFloat("range [m]", &settings.range, 0.1f, 0.1f, 1000.0f);

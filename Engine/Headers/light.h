@@ -4,9 +4,17 @@
 #include "common_pipeline_states.h"
 #include "texture.h"
 
+#include <cstdint>
+#include <memory>
+#include <mutex>
+#include <unordered_map>
+#include <vector>
+
 //	ライト情報
 class light
 {
+	friend class light_manager;
+
 public:
 	enum class flags
 	{
@@ -63,8 +71,20 @@ public:
 	const shadow_map_bias_data& get_shadow_bias(int index) const;
 	void set_shadow_bias(int index, const shadow_map_bias_data& bias_data);
 
+	//	LOD
+	float get_max_draw_distance() const { return max_draw_distance; }
+	void set_max_draw_distance(float distance) { max_draw_distance = distance; }
+
+	//	ライト管理で使う識別番号
+	UINT get_id() const { return id; }
+
+private:
+	void notify_bounds_changed();
+
 private:
 	UINT system_flags;
+	UINT id = 0;
+	float max_draw_distance = 0.0f;
 
 	//	ライトパラメーター
 	light_type type;
@@ -131,11 +151,53 @@ using light_ptr = std::shared_ptr<light>;
 using light_probe_ptr = std::shared_ptr<light_probe>;
 
 struct light_container;
+namespace collision { class frustum_culling; }
+
+//	ライト収集時の視点情報
+struct light_view_info
+{
+	math::vector3d position;								//	視点のワールド座標
+	float tan_half_fov_y = 1.0f;							//	tan(視野角 / 2)
+	const collision::frustum_culling* frustum = nullptr;	//	描画原点からの相対座標の視錐台
+};
 
 //	ライト管理クラス
 class light_manager
 {
 	SINGLETON(light_manager);
+
+	friend class light;
+
+	//	統計情報
+	struct statistics
+	{
+		UINT total_lights = 0;		//	登録されているライト数
+		UINT candidate_lights = 0;	//	空間分割から候補になったライト数
+		UINT visible_lights = 0;	//	LOD とカリング後に描画するライト数
+		UINT occupied_cells = 0;	//	ライトが入っているセル数
+	};
+
+	//	空間分割のセル
+	struct cell_key
+	{
+		std::int64_t x, y, z;
+		bool operator==(const cell_key& other) const { return x == other.x && y == other.y && z == other.z; }
+	};
+	struct cell_key_hash
+	{
+		size_t operator()(const cell_key& key) const;
+	};
+
+	//	登録ライト
+	struct light_record
+	{
+		std::weak_ptr<light> pointer;
+		cell_key cell_min = { 0, 0, 0 };
+		cell_key cell_max = { 0, 0, -1 };
+		bool large = false;
+		bool dirty = true;
+		UINT visit_stamp = 0;
+	};
 
 private:
 	light_manager();
@@ -144,9 +206,33 @@ private:
 public:
 	bool generate_light(light_ptr& out_light, light_type type);
 	bool generate_light_probe(light_probe_ptr& out_light_probe);
-	void get_container(light_container& container, const math::vector3d& render_origin);
+
+	void get_container(light_container& container, const math::vector3d& render_origin, const light_view_info& view);
+
+	const statistics& get_statistics() const { return last_statistics; }
 
 private:
-	std::vector<std::weak_ptr<light>> lights;
+
+	void on_bounds_changed(UINT id);
+	void on_destroyed(UINT id);
+	void update_dirty_records();
+	void insert_record(UINT id, light_record& record);
+	void remove_record(UINT id, light_record& record);
+	cell_key to_cell(const math::vector3d& position) const;
+
+private:
 	std::vector<std::weak_ptr<light_probe>> light_probes;
+
+	std::unordered_map<UINT, light_record> records;
+	std::unordered_map<cell_key, std::vector<UINT>, cell_key_hash> cells;
+	std::vector<UINT> large_lights;
+	std::vector<UINT> directional_lights;
+	std::vector<UINT> dirty_ids;
+	std::mutex dirty_mutex;
+	UINT next_id = 1;
+	UINT visit_stamp = 0;
+	double cell_size = 0.0;
+
+	std::vector<UINT> candidate_ids;
+	statistics last_statistics;
 };

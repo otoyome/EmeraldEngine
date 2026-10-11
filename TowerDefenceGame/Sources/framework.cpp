@@ -530,7 +530,15 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 		render_data->render_origin = render_origin;
 
 		//	ライト情報収集
-		light_manager::instance()->get_container(render_data->light_container, render_origin);
+		{
+			//	メイン視点の視錐台と距離・画面上の大きさで間引く
+			const scene_view collect_view = scene_view::from_parameters(main_view_parameters, render_origin);
+			light_view_info view_info;
+			view_info.position = main_view_parameters.position;
+			view_info.tan_half_fov_y = std::tan(main_view_parameters.fov_y * 0.5f);
+			view_info.frustum = &collect_view.get_frustum_culling();
+			light_manager::instance()->get_container(render_data->light_container, render_origin, view_info);
+		}
 
 		//	ポストプロセスボリューム取得
 		post_process_volume_manager::instance()->get_container(render_data->post_process_volume_container, main_view_parameters.position);
