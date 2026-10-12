@@ -130,7 +130,7 @@ namespace
 			triangle.lbc = collision::linef(collision::linef::types::segment, B.to_float3(), C.to_float3());
 			triangle.lca = collision::linef(collision::linef::types::segment, C.to_float3(), A.to_float3());
 		}
-		return std::make_shared<collision::bounding_mesh>(positions, triangles, 0);
+		return std::make_shared<collision::bounding_mesh>(positions, triangles);
 	}
 
 #if defined(USE_IMGUI)

@@ -27,7 +27,6 @@ public:
 	void generate_model_sdf(model_resource_ptr resource);
 
 private:
-	//	@tool 統合済みの当たり判定メッシュを登録する（統合ファイルが無ければ false）
 	bool generate_combined_model_collision(model_resource_ptr resource);
 
 private:

@@ -69,7 +69,6 @@ void game_object::imgui_render(const std::function<void()>& render_children)
 {
 	if (!display_inspector)
 	{
-		//	@tool 自身が非表示でも子は表示する
 		if (render_children)
 			render_children();
 		return;

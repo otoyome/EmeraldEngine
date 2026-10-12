@@ -354,7 +354,7 @@ void collision_object::debug_draw()
 			const auto& triangle_indices = object->get_bvh_triangle_indices();
 			for (UINT index = 0; index < nodes.size(); ++index)
 			{
-				//	@tool 葉ノードと、指定ノードだけ描画する
+				//	葉ノードと、指定ノードだけ描画する
 				auto& node = nodes[index];
 				const bool is_selected = static_cast<INT>(index) == draw_mesh_collision_node_index;
 				if (!node.is_leaf() && !is_selected)

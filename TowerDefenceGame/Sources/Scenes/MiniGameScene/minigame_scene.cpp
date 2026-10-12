@@ -34,7 +34,7 @@ namespace
 	};
 
 	//	äJénç¿ïW
-	constexpr math::double3 StartPosition = system_units::convert_m_to_unit(math::double3(0.0, 10.0, -150.0));
+	constexpr math::double3 StartPosition = system_units::convert_m_to_unit(math::double3(0.0, 0.0, -60.0));
 	constexpr math::rotatorf StartRotation = {0, 0, 0};
 	constexpr float WarmingUpTimer = 4.0f;
 	constexpr float DeadStopWaitTimer = 7.0f;

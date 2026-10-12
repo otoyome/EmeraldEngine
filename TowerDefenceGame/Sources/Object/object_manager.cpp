@@ -243,7 +243,6 @@ void object_manager::imgui_render()
 {
 	if (ImGui::Begin("objects"))
 	{
-		//	@tool 姿勢とオブジェクトを相互に引けるようにする
 		std::unordered_map<const hierarchy*, game_object*> owners;
 		std::unordered_map<const game_object*, const hierarchy*> nodes;
 		for (auto& object : game_objects)
@@ -255,7 +254,7 @@ void object_manager::imgui_render()
 			nodes.emplace(object.get(), node);
 		}
 
-		//	@tool 子孫のうち最も近いオブジェクトを描画する（オブジェクトを持たない姿勢は飛ばして辿る）
+		//	子孫のうち最も近いオブジェクトを描画
 		std::function<void(const hierarchy*)> render_children;
 		auto render_object = [&](game_object* object)
 		{
@@ -280,7 +279,7 @@ void object_manager::imgui_render()
 			}
 		};
 
-		//	@tool 祖先にオブジェクトを持たないものをルートとして描画する
+		//	祖先にオブジェクトを持たないものをルートとして描画
 		for (auto& object : game_objects)
 		{
 			bool is_root = true;

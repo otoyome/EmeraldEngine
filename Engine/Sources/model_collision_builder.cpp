@@ -5,7 +5,7 @@
 
 namespace
 {
-	//	@tool メッシュ1つ分の頂点（と三角形）を配列の末尾へ追加する（三角形の頂点番号は追加前の頂点数だけずらす）
+	//	メッシュ1つ分の頂点と三角形を配列の末尾へ追加
 	bool append_mesh_geometry(std::vector<math::vector3f>& positions, std::vector<collision::bounding_mesh::triangle>* triangles,
 							  model_resource_ptr resource, size_t index, const collision::generate_bounding_mesh_data& data)
 	{
@@ -110,7 +110,7 @@ namespace
 		return true;
 	}
 
-	//	@tool ワールド行列の回転と平行移動を当たり判定メッシュへ設定する（スケールは頂点へ焼き込み済み）
+	//	ワールド行列の回転と平行移動を当たり判定メッシュへ設定する
 	void apply_world_transform(collision::bounding_mesh& out_mesh, const collision::generate_bounding_mesh_data& data)
 	{
 		math::vector3f WorldScale, WorldTranslation;
@@ -135,7 +135,7 @@ bool collision::generate_bounding_mesh(bounding_mesh& out_mesh, model_resource_p
 	if (!append_mesh_geometry(positions, &triangles, resource, index, data))
 		return false;
 
-	out_mesh = collision::bounding_mesh(positions, triangles, data.separate_level);
+	out_mesh = collision::bounding_mesh(positions, triangles);
 	apply_world_transform(out_mesh, data);
 	return true;
 }
@@ -146,13 +146,13 @@ bool collision::generate_combined_bounding_mesh(bounding_mesh& out_mesh, model_r
 	std::vector<bounding_mesh::triangle> triangles;
 	for (size_t index : indices)
 	{
-		//	@tool 生成できないメッシュ（インデックス無し等）は飛ばす
+		//	生成できないメッシュは飛ばす
 		append_mesh_geometry(positions, &triangles, resource, index, data);
 	}
 	if (triangles.empty())
 		return false;
 
-	out_mesh = collision::bounding_mesh(positions, triangles, data.separate_level);
+	out_mesh = collision::bounding_mesh(positions, triangles);
 	apply_world_transform(out_mesh, data);
 	return true;
 }

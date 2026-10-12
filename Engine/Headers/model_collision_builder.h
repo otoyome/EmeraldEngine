@@ -12,18 +12,17 @@ namespace collision
 	{
 		math::matrixf WorldMatrix;	// ワールド行列
 		bool reverse_flag = true;	// ポリゴン反転処理フラグ
-		UINT separate_level = 4;	// 空間分割数
 		int lod_level = -1;			// LODメッシュから生成 -1: ベースメッシュ / 0以上: lod_meshs[lod_level] のインデックスから生成
 	};
 	bool generate_bounding_mesh(bounding_mesh& out_mesh, model_resource_ptr resource, size_t index, generate_bounding_mesh_data data);
 
-	//	@tool 複数メッシュを1つの当たり判定メッシュへ統合して生成
+	//	複数メッシュを1つの当たり判定メッシュへ統合して生成
 	bool generate_combined_bounding_mesh(bounding_mesh& out_mesh, model_resource_ptr resource, const std::vector<size_t>& indices, generate_bounding_mesh_data data);
 
-	//	@tool 当たり判定メッシュにした時の頂点範囲（モデル空間）を求める
+	//	当たり判定メッシュにした時の頂点範囲を求める
 	bool calculate_bounding_mesh_bounds(model_resource_ptr resource, size_t index, const generate_bounding_mesh_data& data, math::float3& out_min, math::float3& out_max);
 
-	//	@tool 統合した当たり判定メッシュの一覧情報（統合メッシュ毎の代表マテリアル番号）
+	//	統合した当たり判定メッシュのリスト情報
 	struct combined_bounding_mesh_info
 	{
 		static constexpr std::string_view extension = "ebmc";
@@ -31,7 +30,7 @@ namespace collision
 
 		std::vector<std::uint32_t> material_indices;
 
-		//	@tool 統合メッシュ本体のファイルパス（モデルパスの拡張子を置き換える）
+		//	統合メッシュ本体のファイルパス
 		static std::filesystem::path make_mesh_path(std::string_view model_path, size_t combined_index);
 		static std::filesystem::path make_info_path(std::string_view model_path);
 

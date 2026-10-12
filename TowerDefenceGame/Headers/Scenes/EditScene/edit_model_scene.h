@@ -107,13 +107,11 @@ private:
 	//	当たり判定メッシュ生成情報
 	struct bounding_mesh_option
 	{
-		int separate_level = 4;
 		bool reverse_flag = true;
 		bool use_lod = false;
 		int lod_level = 0;
 
-		//	@tool 当たり判定用にメッシュを統合する（摩擦係数が同じ、かつ同じグリッドセルにあるメッシュを1つにまとめる）
-		//	@tool メッシュ内部はBVHなので大きくても判定コストは増えにくい。既定は摩擦係数毎に1つ
+		//	当たり判定用にメッシュを統合する
 		bool combine = true;
 		math::int3 combine_grid_divisions = { 1, 1, 1 };
 	};

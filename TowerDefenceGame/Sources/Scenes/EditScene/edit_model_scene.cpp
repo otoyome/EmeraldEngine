@@ -340,7 +340,6 @@ void edit_model_scene::generate_bounding_mesh_asset()
 		collision::generate_bounding_mesh_data data;
 		data.WorldMatrix = math::matrixf();
 		data.reverse_flag = bounding_mesh_option.reverse_flag;
-		data.separate_level = static_cast<UINT>(bounding_mesh_option.separate_level);
 		data.lod_level = bounding_mesh_option.use_lod ? bounding_mesh_option.lod_level : -1;
 
 		collision::bounding_mesh out_mesh;
@@ -365,13 +364,12 @@ void edit_model_scene::generate_combined_bounding_mesh_asset()
 	collision::generate_bounding_mesh_data data;
 	data.WorldMatrix = math::matrixf();
 	data.reverse_flag = bounding_mesh_option.reverse_flag;
-	data.separate_level = static_cast<UINT>(bounding_mesh_option.separate_level);
 	data.lod_level = bounding_mesh_option.use_lod ? bounding_mesh_option.lod_level : -1;
 
 	const auto& meshes = resource->get_meshes();
 	const auto& materials = resource->get_materials();
 
-	//	@tool 各メッシュの中心と、全体の範囲を求める
+	//	各メッシュの中心と全体の範囲を求める
 	struct mesh_center
 	{
 		size_t mesh_index;
@@ -393,7 +391,7 @@ void edit_model_scene::generate_combined_bounding_mesh_asset()
 	if (centers.empty())
 		return;
 
-	//	@tool 中心が入るグリッドセルの番号（範囲が潰れている軸は0）
+	//	中心が入るグリッドセルの番号
 	const math::int3 divisions =
 	{
 		std::max(bounding_mesh_option.combine_grid_divisions.x, 1),
@@ -408,7 +406,7 @@ void edit_model_scene::generate_combined_bounding_mesh_asset()
 		return std::clamp(static_cast<int>((value - min) / size * static_cast<float>(division)), 0, division - 1);
 	};
 
-	//	@tool 摩擦係数とセルが同じメッシュを1グループにまとめる（物理情報は代表マテリアルから取る）
+	//	摩擦係数とセルが同じメッシュを1グループにまとめる
 	using group_key = std::tuple<float, int, int, int>;
 	std::map<group_key, size_t> group_lookup;
 	std::vector<std::vector<size_t>> groups;
@@ -435,7 +433,7 @@ void edit_model_scene::generate_combined_bounding_mesh_asset()
 		groups[it->second].push_back(mesh.mesh_index);
 	}
 
-	//	@tool グループ毎に統合メッシュを出力し、最後に一覧情報を書き出す
+	//	グループ毎に統合メッシュを出力して最後にリスト情報を書き出す
 	const std::string_view model_path = resource->get_file_path();
 	collision::combined_bounding_mesh_info info;
 	for (size_t group_index = 0; group_index < groups.size(); ++group_index)
@@ -467,7 +465,6 @@ void edit_model_scene::generate_cubic_sdf_asset()
 		collision::generate_bounding_mesh_data data;
 		data.WorldMatrix = math::matrixf();
 		data.reverse_flag = bounding_mesh_option.reverse_flag;
-		data.separate_level = static_cast<UINT>(bounding_mesh_option.separate_level);
 		data.lod_level = bounding_mesh_option.use_lod ? bounding_mesh_option.lod_level : -1;
 
 		collision::cubic_sdf out_sdf;

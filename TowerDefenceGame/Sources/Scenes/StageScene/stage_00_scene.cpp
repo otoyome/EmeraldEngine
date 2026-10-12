@@ -148,8 +148,8 @@ bool stage_00_scene::initialize_core()
 	//	ステージ
 	//	動かさない事前提
 	{
-		//auto file_path = "Assets/Resources/Models/バーダス・コロシアム/バーダス・コロシアム.emo";
-		auto file_path = "Assets/Resources/Models/StylizedEgypt/StylizedEgypt.emo";
+		auto file_path = "Assets/Resources/Models/バーダス・コロシアム/バーダス・コロシアム.emo";
+		//auto file_path = "Assets/Resources/Models/StylizedEgypt/StylizedEgypt.emo";
 		UINT separate_level = 6;
 		std::filesystem::path path(file_path);
 		assert (std::filesystem::exists(path));
@@ -203,7 +203,7 @@ void stage_00_scene::imgui_render_core()
 
 void stage_00_scene::generate_model_collision(model_resource_ptr resource, const math::matrixf& transform, UINT separate_level)
 {
-	//	@tool 統合済みの当たり判定があればメッシュ毎のファイルより優先する
+	//	統合済みの当たり判定があればメッシュ毎のファイルより優先する
 	if (generate_combined_model_collision(resource))
 		return;
 
@@ -254,7 +254,7 @@ bool stage_00_scene::generate_combined_model_collision(model_resource_ptr resour
 		if (!std::filesystem::exists(mesh_path) || !mesh->deserialize(mesh_path.string()))
 			continue;
 
-		//	@tool 物理情報は統合時の代表マテリアルから取得する
+		//	物理情報は統合時の代表マテリアルから取得する
 		const std::uint32_t material_index = info.material_indices[combined_index];
 		const bool has_material = material_index != collision::combined_bounding_mesh_info::invalid_material && material_index < materials.size();
 

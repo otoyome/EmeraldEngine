@@ -119,11 +119,11 @@ namespace
 		return true;
 	}
 
-	//	@tool BVH構築パラメータ
-	constexpr std::uint32_t bvh_max_leaf_triangles = 4;		//	@tool 葉に入れる三角形の目安
-	constexpr std::uint32_t bvh_force_leaf_triangles = 16;	//	@tool 分割しても得をしない場合に葉で許す上限
-	constexpr int bvh_max_depth = 48;						//	@tool 構築の最大深度（走査スタックの上限を兼ねる）
-	constexpr int bvh_bin_count = 16;						//	@tool SAH評価の分割候補数
+	//	BVH構築パラメータ
+	constexpr std::uint32_t bvh_max_leaf_triangles = 4;		//	葉に入れる三角形の目安
+	constexpr std::uint32_t bvh_force_leaf_triangles = 16;	//	分割しても得をしない場合に葉で許す上限
+	constexpr int bvh_max_depth = 48;						//	構築の最大深度（走査スタックの上限を兼ねる）
+	constexpr int bvh_bin_count = 16;						//	SAH評価の分割候補数
 	constexpr int bvh_stack_size = bvh_max_depth * 2 + 2;
 
 	inline bool aabb_overlap(const math::float3& min1, const math::float3& max1, const math::float3& min2, const math::float3& max2)
@@ -147,7 +147,7 @@ namespace
 		max.x = std::max(max.x, point_max.x); max.y = std::max(max.y, point_max.y); max.z = std::max(max.z, point_max.z);
 	}
 
-	//	@tool 線分(start→end)が、margin だけ膨らませたAABBと交わるか（スラブ法）
+	//	線分がmargin だけ膨らませたAABBと交わるか
 	inline bool segment_overlap_aabb(const math::float3& start, const math::float3& end, const math::float3& min, const math::float3& max, float margin)
 	{
 		const float s[3] = { start.x, start.y, start.z };
@@ -179,7 +179,7 @@ namespace
 		return true;
 	}
 
-	//	@tool 点とAABBの最短距離の2乗
+	//	点とAABBの最短距離の2乗
 	inline float point_aabb_distance_square(const math::float3& point, const math::float3& min, const math::float3& max)
 	{
 		const float dx = std::max({ min.x - point.x, 0.0f, point.x - max.x });
@@ -188,7 +188,7 @@ namespace
 		return dx * dx + dy * dy + dz * dz;
 	}
 
-	//	@tool BVHを走査する（node_test が false のノードは子孫ごと飛ばす。leaf が true を返したら打ち切り）
+	//	BVHを走査
 	template<typename NodeTest, typename LeafFunction>
 	bool traverse_bvh(const std::vector<collision::bounding_mesh::bvh_node>& nodes, NodeTest&& node_test, LeafFunction&& leaf)
 	{
@@ -212,13 +212,13 @@ namespace
 				continue;
 			}
 
-			stack[stack_count++] = node.offset;		//	右の子
-			stack[stack_count++] = node_index + 1;	//	左の子
+			stack[stack_count++] = node.offset;		//	右
+			stack[stack_count++] = node_index + 1;	//	左
 		}
 		return false;
 	}
 
-	//	@tool 指定範囲と重なる葉から、範囲と重なる三角形番号だけを集める（BVHでは三角形の重複は無い）
+	//	指定範囲と重なる葉から範囲と重なる番号を収集
 	template<typename NodeTest>
 	void gather_bvh_triangles(const std::vector<collision::bounding_mesh::bvh_node>& nodes,
 							  const std::vector<std::uint32_t>& triangle_indices,
@@ -428,7 +428,7 @@ using namespace collision;
 
 namespace
 {
-	//	@tool 旧形式（均一グリッド）のブロック情報。旧ファイルの読み飛ばし専用
+	//	旧形式のブロック情報。旧ファイルの読み飛ばし専用
 	struct legacy_block_data
 	{
 		math::float3 center;
@@ -441,7 +441,7 @@ namespace
 		}
 	};
 
-	//	@tool BVH形式のファイル先頭に置く識別値（旧形式の先頭は頂点数なので重ならない）
+	//	BVH形式のファイル先頭に置く識別値
 	constexpr std::uint64_t bvh_format_magic = 0x3148564245424D45ull;
 
 	inline float get_axis(const math::float3& value, int axis)
@@ -483,13 +483,11 @@ bounding_mesh::bounding_mesh()
 {
 }
 
-bounding_mesh::bounding_mesh(std::vector<math::vector3f>& positions, std::vector<triangle>& triangles, std::uint32_t separate_level)
-	: bounding_object({1, 1, 1}, {0, 0, 0, 1}, {0, 0, 0})
-	, positions(positions)
-	, triangles(triangles)
+bounding_mesh::bounding_mesh(std::vector<math::vector3f>& positions, std::vector<triangle>& triangles)
+: bounding_object({1, 1, 1}, {0, 0, 0, 1}, {0, 0, 0})
+, positions(positions)
+, triangles(triangles)
 {
-	(void)separate_level;
-
 	//	頂点が無い場合は空のまま
 	if (positions.empty())
 	{
@@ -512,7 +510,6 @@ bounding_mesh::bounding_mesh(std::vector<math::vector3f>& positions, std::vector
 	area_min.x -= 1.0f; area_min.y -= 1.0f; area_min.z -= 1.0f;
 	area_max.x += 1.0f; area_max.y += 1.0f; area_max.z += 1.0f;
 
-	//	@tool BVHは三角形の範囲を使うので、渡された三角形の事前計算に頼らず計算し直す
 	precompute_triangles();
 	build_bvh();
 }
@@ -559,7 +556,7 @@ void bounding_mesh::build_bvh()
 
 	const std::uint32_t triangle_count = static_cast<std::uint32_t>(triangles.size());
 
-	//	@tool 三角形毎の範囲と中心を控えておく
+	//	三角形毎の範囲と中心を控えておく
 	std::vector<math::float3> triangle_mins(triangle_count);
 	std::vector<math::float3> triangle_maxs(triangle_count);
 	std::vector<math::float3> triangle_centers(triangle_count);
@@ -591,7 +588,7 @@ void bounding_mesh::build_bvh()
 		const std::uint32_t node_index = static_cast<std::uint32_t>(bvh_nodes.size());
 		bvh_nodes.emplace_back();
 
-		//	@tool ノードの範囲と、三角形中心の範囲を求める
+		//	ノードの範囲と中心の範囲を求める
 		math::float3 bounds_min = { FLT_MAX, FLT_MAX, FLT_MAX };
 		math::float3 bounds_max = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
 		math::float3 center_min = bounds_min;
@@ -615,7 +612,7 @@ void bounding_mesh::build_bvh()
 		if (count <= bvh_max_leaf_triangles || depth >= bvh_max_depth)
 			return make_leaf();
 
-		//	@tool 三角形中心の広がりが最大の軸で分割する
+		//	三角形中心の広がりを最大の軸で分割
 		int axis = 0;
 		{
 			const float extent_x = center_max.x - center_min.x;
@@ -630,7 +627,7 @@ void bounding_mesh::build_bvh()
 		std::uint32_t middle = begin;
 		if (axis_extent > 1e-12f)
 		{
-			//	@tool ビン分割でSAHコストが最小になる位置を探す
+			//	ビン分割でSAHコストが最小になる位置を探す
 			bin bins[bvh_bin_count];
 			const float scale = static_cast<float>(bvh_bin_count) / axis_extent;
 			auto calculate_bin = [&](std::uint32_t triangle_index)
@@ -682,7 +679,7 @@ void bounding_mesh::build_bvh()
 				}
 			}
 
-			//	@tool 分割しても得をしない少数の三角形はそのまま葉にする
+			//	分割しても意味の無い少数の三角形はそのまま葉に
 			const float leaf_cost = aabb_surface_area(bounds_min, bounds_max) * static_cast<float>(count);
 			if (best_split < 0 || (best_cost >= leaf_cost && count <= bvh_force_leaf_triangles))
 			{
@@ -697,7 +694,7 @@ void bounding_mesh::build_bvh()
 			}
 		}
 
-		//	@tool 分割できなかった場合は中心位置の中央値で半分にする
+		//	分割できなかった場合
 		if (middle == begin || middle == end)
 		{
 			if (count <= bvh_force_leaf_triangles)
@@ -752,7 +749,7 @@ bool bounding_mesh::deserialize(std::string_view file_path)
 	std::ifstream istream(file_path.data(), std::ios::binary);
 	if (istream.is_open())
 	{
-		//	@tool 先頭の識別値で、BVH形式か旧形式（均一グリッド）かを判別する
+		//	先頭の識別値で、BVH形式か旧形式（均一グリッド）かを判別する
 		std::uint64_t head = 0;
 		istream.read(reinterpret_cast<char*>(&head), sizeof(head));
 		istream.clear();
@@ -777,7 +774,7 @@ bool bounding_mesh::deserialize(std::string_view file_path)
 			}
 			else
 			{
-				//	@tool 旧形式は三角形まで使い、グリッド情報は読み捨ててBVHを作り直す
+				//	旧形式は三角形まで使い、グリッド情報は読み捨ててBVHを作り直す
 				math::float3 area_size;
 				math::float3 area_unit;
 				math::uint3 separate_count;
@@ -847,7 +844,7 @@ bool bounding_mesh::intersect_point(const math::double3& point) const
 
 	float nearlest = FLT_MAX;
 
-	//	@tool 点を含む葉の三角形だけを判定する（面上判定の誤差分だけ範囲を広げる）
+	//	点を含む葉だけを判定
 	constexpr float point_margin = 1e-3f;
 	const math::float3 min = { local_point.x - point_margin, local_point.y - point_margin, local_point.z - point_margin };
 	const math::float3 max = { local_point.x + point_margin, local_point.y + point_margin, local_point.z + point_margin };
@@ -1015,7 +1012,7 @@ bool bounding_mesh::intersect_segment(const math::double3& start, const math::do
 		return false;
 
 
-	//	@tool 線分が通る葉の三角形を集め、まとめて最も近い交点を求める
+	//	線分が通る葉を集めて最も近い交点を求める
 	thread_local std::vector<size_t> candidates;
 	gather_bvh_triangles(bvh_nodes, bvh_triangle_indices, triangles, min, max,
 		[&](const bvh_node& node) { return segment_overlap_aabb(local_start, local_end, node.min, node.max, 0.0f); },
@@ -1100,7 +1097,7 @@ bool bounding_mesh::intersect_sphere(const math::double3& point, double world_ra
 	max.y = local_point.y + radius;
 	max.z = local_point.z + radius;
 
-	//	@tool 球の範囲と重なる葉の三角形を集め、まとめて最も深い接触を求める
+	//	球の範囲と重なる葉を集めて接触点を算出
 	thread_local std::vector<size_t> candidates;
 	gather_bvh_triangles(bvh_nodes, bvh_triangle_indices, triangles, min, max, candidates);
 
@@ -1278,8 +1275,7 @@ bool bounding_mesh::intersect_capsule(const bounding_capsule& capsule, intersect
 	Min = math::vector3f(min);
 	Max = math::vector3f(max);
 
-
-	//	@tool カプセルの範囲と重なる葉の三角形を集め、まとめて最も深い接触を求める
+	//	カプセルの範囲と重なる葉を集めて接触点を算出
 	thread_local std::vector<size_t> candidates;
 	gather_bvh_triangles(bvh_nodes, bvh_triangle_indices, triangles, min, max, candidates);
 
@@ -1410,8 +1406,7 @@ bool bounding_mesh::intersect_box(const bounding_box& box, intersect_data* inter
 	min = BoxMin.to_float3();
 	max = BoxMax.to_float3();
 
-
-	//	@tool 箱の範囲と重なる葉の三角形を集め、まとめて最も深い接触を求める
+	//	箱の範囲と重なる葉を集めて接触点を算出
 	thread_local std::vector<size_t> candidates;
 	gather_bvh_triangles(bvh_nodes, bvh_triangle_indices, triangles, min, max, candidates);
 
@@ -1639,7 +1634,7 @@ bool bounding_mesh::intersect_sphere_cast(const math::double3& start, const math
 
 	collision::linef sweep_line(collision::linef::types::segment, local_start, local_end);
 
-	//	@tool 移動する球が通り得る葉（線分が半径分膨らませたノードを通る）の三角形を集め、まとめて最も近い交点を求める
+	//	移動する球が通り得る葉を集めて交点を求める
 	thread_local std::vector<size_t> candidates;
 	gather_bvh_triangles(bvh_nodes, bvh_triangle_indices, triangles, min, max,
 		[&](const bvh_node& node) { return segment_overlap_aabb(local_start, local_end, node.min, node.max, radius); },
@@ -1826,8 +1821,7 @@ bool bounding_mesh::is_point_inside(const math::double3& point) const
 		directions[index] = math::vector3f(inside_test_ray_directions[index]);
 
 	math::float3 grid_extent = { area_max.x - area_min.x, area_max.y - area_min.y, area_max.z - area_min.z };
-	float ray_length = sqrtf(grid_extent.x * grid_extent.x + grid_extent.y * grid_extent.y + grid_extent.z * grid_extent.z)
-		+ 1.0f;	//	@tool 範囲の外まで確実に伸ばすための余裕（旧: グリッド1マス分）
+	float ray_length = sqrtf(grid_extent.x * grid_extent.x + grid_extent.y * grid_extent.y + grid_extent.z * grid_extent.z) + 1.0f;
 
 	auto p = positions.data();
 	std::vector<size_t> candidate_triangles;
@@ -1840,7 +1834,7 @@ bool bounding_mesh::is_point_inside(const math::double3& point) const
 		min.x = std::min(min.x, local_end.x); min.y = std::min(min.y, local_end.y); min.z = std::min(min.z, local_end.z);
 		max.x = std::max(max.x, local_end.x); max.y = std::max(max.y, local_end.y); max.z = std::max(max.z, local_end.z);
 
-		//	@tool レイが通る葉の三角形を集める（BVHでは三角形が重複しないので重複除去は不要）
+		//	レイが通る葉の三角形を集める
 		gather_bvh_triangles(bvh_nodes, bvh_triangle_indices, triangles, min, max,
 			[&](const bvh_node& node) { return segment_overlap_aabb(local_point, local_end, node.min, node.max, 0.0f); },
 			candidate_triangles);
@@ -1882,39 +1876,37 @@ bool bounding_mesh::distance_to_point(const math::double3& point, double& out_di
 	math::vector3f nearest_point_v = P;
 	math::float3 nearest_normal = { 0.0f, 1.0f, 0.0f };
 
-	//	@tool 現在の最短距離より遠いノードは子孫ごと飛ばしながら、最も近い三角形を探す
-	{
-		traverse_bvh(bvh_nodes,
-			[&](const bvh_node& node)
-			{
-				return point_aabb_distance_square(local_point, node.min, node.max) < nearest_sq;
-			},
-			[&](const bvh_node& node)
+	//	最も近い三角形を探す
+	traverse_bvh(bvh_nodes,
+		[&](const bvh_node& node)
 		{
-			for (std::uint32_t leaf_index = node.offset; leaf_index < node.offset + node.count; ++leaf_index)
-			{
-				auto& triangle = t[bvh_triangle_indices[leaf_index]];
-				math::vector3f A(*(p + triangle.a));
-				math::vector3f B(*(p + triangle.b));
-				math::vector3f C(*(p + triangle.c));
-				math::vector3f AB(triangle.ab);
-				math::vector3f BC(triangle.bc);
-				math::vector3f CA(triangle.ca);
-				math::vector3f AC = -CA;
+			return point_aabb_distance_square(local_point, node.min, node.max) < nearest_sq;
+		},
+		[&](const bvh_node& node)
+	{
+		for (std::uint32_t leaf_index = node.offset; leaf_index < node.offset + node.count; ++leaf_index)
+		{
+			auto& triangle = t[bvh_triangle_indices[leaf_index]];
+			math::vector3f A(*(p + triangle.a));
+			math::vector3f B(*(p + triangle.b));
+			math::vector3f C(*(p + triangle.c));
+			math::vector3f AB(triangle.ab);
+			math::vector3f BC(triangle.bc);
+			math::vector3f CA(triangle.ca);
+			math::vector3f AC = -CA;
 
-				math::vector3f NP;
-				calculate_nearlest_point(P, A, B, C, AB, BC, AC, NP);
-				float d = (NP - P).square_length();
-				if (d < nearest_sq)
-				{
-					nearest_sq = d;
-					nearest_point_v = NP;
-					nearest_normal = triangle.normal.to_float3();
-				}
+			math::vector3f NP;
+			calculate_nearlest_point(P, A, B, C, AB, BC, AC, NP);
+			float d = (NP - P).square_length();
+			if (d < nearest_sq)
+			{
+				nearest_sq = d;
+				nearest_point_v = NP;
+				nearest_normal = triangle.normal.to_float3();
 			}
-			return false;
-		});
-	}
+		}
+		return false;
+	});
 
 	if (nearest_sq >= FLT_MAX)
 		return false;

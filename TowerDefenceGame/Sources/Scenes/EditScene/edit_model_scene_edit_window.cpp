@@ -409,7 +409,6 @@ void edit_model_scene::imgui_model_loader_window()
 		{
 			ImGui::Separator();
 			ImGui::Text("Bounding Mesh");
-			ImGui::SliderInt("separate_level", &bounding_mesh_option.separate_level, 1, 8);
 			ImGui::Checkbox("cull_reverse_flag", &bounding_mesh_option.reverse_flag);
 			ImGui::Checkbox("use_lod", &bounding_mesh_option.use_lod);
 			if (bounding_mesh_option.use_lod)

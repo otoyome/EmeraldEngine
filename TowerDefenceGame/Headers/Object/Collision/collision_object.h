@@ -111,7 +111,7 @@ private:
 
 	std::string name;
 	bool draw_mesh_color = false;
-	INT draw_mesh_collision_node_index = -1;	//	@tool 強調表示するBVHノード番号（-1で無し）
+	INT draw_mesh_collision_node_index = -1;	//	強調表示するBVHノード番号
 
 public:
 	std::string_view get_name() const {return name;}

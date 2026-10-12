@@ -26,13 +26,13 @@ namespace collision
 			void serialize(Archive& archive, int version);
 		};
 
-		//	@tool BVHノード（深さ優先で並べ、左の子は常に自分の直後）
+		//	BVHノード
 		struct bvh_node
 		{
 			math::float3 min;
 			math::float3 max;
-			std::uint32_t offset = 0;	//	@tool 葉: bvh_triangle_indices の開始位置 / 内部: 右の子のノード番号
-			std::uint32_t count = 0;	//	@tool 葉: 三角形数 / 内部: 0
+			std::uint32_t offset = 0;
+			std::uint32_t count = 0;
 
 			bool is_leaf() const { return count > 0; }
 
@@ -53,13 +53,14 @@ namespace collision
 
 	public:
 		bounding_mesh();
-		//	@tool separate_level は均一グリッド時代の名残で未使用（呼び出し側の互換のため残している）
-		bounding_mesh(std::vector<math::vector3f>& positions, std::vector<triangle>& triangles, std::uint32_t separate_level = 4);
+		bounding_mesh(std::vector<math::vector3f>& positions, std::vector<triangle>& triangles);
 		~bounding_mesh() override;
 
 		bool serialize(std::string_view file_path);
 		bool deserialize(std::string_view file_path);
 
+	public:
+		//	各情報と交差判定
 		bool intersect_point(const math::double3& point) const override;
 		bool intersect_segment(const math::double3& start, const math::double3& end, intersect_data* intersect = nullptr) const override;
 		bool intersect_sphere(const math::double3& point, double radius, intersect_data* intersect = nullptr) const;
@@ -68,9 +69,11 @@ namespace collision
 		bool intersect_box(const bounding_box& box, intersect_data* intersect = nullptr) const override;
 		bool intersect_mesh(const bounding_mesh& mesh, intersect_data* intersect = nullptr) const override;
 
+		//	キャスト処理
 		bool intersect_sphere_cast(const math::double3& start, const math::double3& end, double radius, intersect_data* intersect = nullptr) const override;
 		bool intersect_capsule_cast(const math::double3& start, const math::double3& end, double radius, double length, const math::double4& rotation, intersect_data* intersect = nullptr) const override;
 
+		//	コーナー取得
 		void include_corner(math::double3& min, math::double3& max) const override;
 
 	public:
@@ -92,9 +95,7 @@ namespace collision
 		float calculate_segment_distance(const collision::linef& line, const triangle& triangle,
 										 math::float3& nearlest_point_segment, math::float3& nearlest_point_triangle, bool& nearlest_point_edghFlg) const;
 
-		//	@tool 三角形の事前計算（辺・法線・範囲）
 		void precompute_triangles();
-		//	@tool 三角形からBVHを構築
 		void build_bvh();
 
 	private:
@@ -104,7 +105,7 @@ namespace collision
 		math::float3 area_min;
 		math::float3 area_max;
 		std::vector<bvh_node> bvh_nodes;
-		std::vector<std::uint32_t> bvh_triangle_indices;	//	@tool 葉ノードが参照する三角形番号（葉毎に連続）
+		std::vector<std::uint32_t> bvh_triangle_indices;
 	};
 
 }	//	namespace collision
