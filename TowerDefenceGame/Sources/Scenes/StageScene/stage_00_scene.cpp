@@ -148,9 +148,8 @@ bool stage_00_scene::initialize_core()
 	//	ステージ
 	//	動かさない事前提
 	{
-		auto file_path = "Assets/Resources/Models/バーダス・コロシアム/バーダス・コロシアム.emo";
-		//auto file_path = "Assets/Resources/Models/StylizedEgypt/StylizedEgypt.emo";
-		UINT separate_level = 6;
+		//auto file_path = "Assets/Resources/Models/バーダス・コロシアム/バーダス・コロシアム.emo";
+		auto file_path = "Assets/Resources/Models/StylizedEgypt/StylizedEgypt.emo";
 		std::filesystem::path path(file_path);
 		assert (std::filesystem::exists(path));
 
@@ -162,7 +161,7 @@ bool stage_00_scene::initialize_core()
 
 		//	メッシュ分当たり判定生成
 		const math::matrixf transform = stage->get_model_object()->get_world().to_relative_matrix(math::vector3d::zero());
-		generate_model_collision(model->get_model_instance()->get_resource(), transform, separate_level);
+		generate_model_collision(model->get_model_instance()->get_resource(), transform);
 		generate_model_sdf(model->get_model_instance()->get_resource());
 
 		register_object(model);
@@ -201,50 +200,17 @@ void stage_00_scene::imgui_render_core()
 }
 #endif	//	defined(USE_IMGUI)
 
-void stage_00_scene::generate_model_collision(model_resource_ptr resource, const math::matrixf& transform, UINT separate_level)
+void stage_00_scene::generate_model_collision(model_resource_ptr resource, const math::matrixf& transform)
 {
-	//	統合済みの当たり判定があればメッシュ毎のファイルより優先する
-	if (generate_combined_model_collision(resource))
-		return;
-
-	std::string file_path = std::string(resource->get_file_path());
-	std::filesystem::path collision_mesh_path(file_path);
-
-	for (size_t mesh_index = 0; mesh_index < resource->get_meshes().size(); ++mesh_index)
-	{
-		std::shared_ptr<collision::bounding_mesh> mesh = std::make_shared<collision::bounding_mesh>();
-
-		//	シリアライズ済みファイルがあるか確認
-		std::string extension = std::to_string(mesh_index) + "." + std::string(collision::bounding_mesh::extension);
-		collision_mesh_path = file_path;
-		collision_mesh_path.replace_extension(extension);
-		if (std::filesystem::exists(collision_mesh_path) && mesh->deserialize(collision_mesh_path.string()))
-		{
-			//	モデル登録
-			collision_object_ptr collision = std::make_shared<collision_object>();
-#if defined(USE_IMGUI)
-			collision->set_name(resource->get_materials()[resource->get_meshes()[mesh_index].material_index].get_name());
-#endif	//	defined(USE_IMGUI)
-			collision->set_bounding_object(mesh);
-			collision->set_filter("stage");
-			collision->set_flag(collision_object::flags::static_object, true);
-			collision->set_physical_data(resource->get_materials()[resource->get_meshes()[mesh_index].material_index].get_physical_data());
-			register_object(collision);
-		}
-
-	}
-}
-
-bool stage_00_scene::generate_combined_model_collision(model_resource_ptr resource)
-{
+	//	@tool 当たり判定はエディタで統合生成したファイルからのみ読み込む
 	const std::string_view file_path = resource->get_file_path();
 	const std::filesystem::path info_path = collision::combined_mesh::make_info_path(file_path);
-	if (!std::filesystem::exists(info_path))
-		return false;
-
 	collision::combined_mesh info;
-	if (!info.deserialize(info_path.string()))
-		return false;
+	if (!std::filesystem::exists(info_path) || !info.deserialize(info_path.string()))
+	{
+		DEBUG_LOG_CATEGORY(logger::categorys::model, "Load Failed CombinedMesh[%s]", info_path.string().c_str());
+		return;
+	}
 
 	const auto& materials = resource->get_materials();
 	for (size_t combined_index = 0; combined_index < info.material_indices.size(); ++combined_index)
@@ -271,7 +237,6 @@ bool stage_00_scene::generate_combined_model_collision(model_resource_ptr resour
 			collision->set_physical_data(materials[material_index].get_physical_data());
 		register_object(collision);
 	}
-	return true;
 }
 
 void stage_00_scene::generate_model_sdf(model_resource_ptr resource)

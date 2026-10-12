@@ -39,7 +39,6 @@ private:
 	void save_model();
 	void generate_lod();
 	void generate_bounding_mesh_asset();
-	void generate_combined_bounding_mesh_asset();
 	void generate_cubic_sdf_asset();
 	void generate_shadow_mesh_asset();
 	void discard_lod();
@@ -112,7 +111,6 @@ private:
 		int lod_level = 0;
 
 		//	“–‚½‚è”»’è—p‚ÉƒƒbƒVƒ…‚ğ“‡‚·‚é
-		bool combine = true;
 		math::int3 combine_grid_divisions = { 1, 1, 1 };
 	};
 	bounding_mesh_option bounding_mesh_option;

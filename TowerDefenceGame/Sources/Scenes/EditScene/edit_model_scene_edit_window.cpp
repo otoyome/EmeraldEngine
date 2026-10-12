@@ -418,11 +418,7 @@ void edit_model_scene::imgui_model_loader_window()
 				ImGui::SliderInt("bm_lod_level", &bounding_mesh_option.lod_level, 0, lod_max > 0 ? lod_max - 1 : 0);
 				ImGui::EndDisabled();
 			}
-			ImGui::Checkbox("bm_combine", &bounding_mesh_option.combine);
-			if (bounding_mesh_option.combine)
-			{
-				ImGui::DragInt3("bm_combine_grid_divisions", &bounding_mesh_option.combine_grid_divisions.x, 0.1f, 1, 64);
-			}
+			ImGui::DragInt3("bm_combine_grid_divisions", &bounding_mesh_option.combine_grid_divisions.x, 0.1f, 1, 64);
 			if (ImGui::Button("Generate Bounding Mesh"))
 			{
 				generate_bounding_mesh_asset();

@@ -2,10 +2,6 @@
 
 #include "texture.h"
 
-//	@tool ActionGame の post_process_volume が持っていたポストプロセス用パラメータ群を
-//	@tool こちら（TowerDefenceGame）へ移植したもの。Renderer 側で定数バッファを直接書くのではなく、
-//	@tool cinematics_object が post_process_volume のマテリアルへ effect 単位で push する。
-
 namespace postprocess
 {
 	//	色相補正パーツ
