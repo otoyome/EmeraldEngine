@@ -400,6 +400,7 @@ void model_resource::build_model()
 	HRESULT hr;
 
 	//	テクスチャの枚数が多いと重いので並列読込するように
+	std::vector<texture_ptr> preloaded_textures;
 	{
 		std::vector<std::string> texture_path_storage;
 		for (auto& material : materials)
@@ -417,8 +418,7 @@ void model_resource::build_model()
 		if (!texture_path_storage.empty())
 		{
 			std::vector<std::string_view> texture_path_views(texture_path_storage.begin(), texture_path_storage.end());
-			std::vector<texture_ptr> loaded_textures;
-			texture_manager::instance()->load_textures_from_files(loaded_textures, texture_path_views);
+			texture_manager::instance()->load_textures_from_files(preloaded_textures, texture_path_views);
 		}
 	}
 
@@ -427,6 +427,7 @@ void model_resource::build_model()
 	{
 		material.build();
 	}
+	preloaded_textures.clear();
 	//	頂点バッファ
 	for (auto& mesh : meshes)
 	{

@@ -905,7 +905,149 @@ bool texture_manager::decode_texture_from_file(texture_ptr& out_texture, std::st
 	return load_texture_from_file_inner(out_texture, file_path);
 }
 
-bool texture_manager::convert_texture_to_dds(std::string_view source_file_path, std::string_view dds_file_path, bool generate_mipmaps)
+namespace
+{
+	//	最大解像度に収まるよう縮小
+	HRESULT fit_to_max_size(DirectX::ScratchImage& image, size_t max_size, bool& out_changed)
+	{
+		out_changed = false;
+		const DirectX::TexMetadata meta = image.GetMetadata();
+		if (max_size == 0 || (meta.width <= max_size && meta.height <= max_size))
+			return S_OK;
+		if (meta.dimension == DirectX::TEX_DIMENSION_TEXTURE3D)
+			return E_NOTIMPL;
+
+		auto mip_size = [](size_t size, size_t level) { return std::max<size_t>(size >> level, 1); };
+
+		//	収まるミップ段を探す
+		size_t skip = 0;
+		while (skip < meta.mipLevels && (mip_size(meta.width, skip) > max_size || mip_size(meta.height, skip) > max_size))
+			++skip;
+
+		if (skip < meta.mipLevels)
+		{
+			DirectX::TexMetadata dropped_meta = meta;
+			dropped_meta.width = mip_size(meta.width, skip);
+			dropped_meta.height = mip_size(meta.height, skip);
+			dropped_meta.mipLevels = meta.mipLevels - skip;
+
+			DirectX::ScratchImage dropped;
+			HRESULT hr = dropped.Initialize(dropped_meta);
+			if (FAILED(hr))
+				return hr;
+
+			for (size_t item = 0; item < meta.arraySize; ++item)
+			{
+				for (size_t mip = 0; mip < dropped_meta.mipLevels; ++mip)
+				{
+					const DirectX::Image* source = image.GetImage(mip + skip, item, 0);
+					const DirectX::Image* destination = dropped.GetImage(mip, item, 0);
+					if (!source || !destination || source->slicePitch != destination->slicePitch)
+						return E_UNEXPECTED;
+					memcpy(destination->pixels, source->pixels, source->slicePitch);
+				}
+			}
+			image = std::move(dropped);
+			out_changed = true;
+			return S_OK;
+		}
+
+		//	ミップが足りない場合は作り直す
+		const bool is_compressed = DirectX::IsCompressed(meta.format);
+		DirectX::ScratchImage decompressed;
+		const DirectX::ScratchImage* source = &image;
+		if (is_compressed)
+		{
+			HRESULT hr = DirectX::Decompress(image.GetImages(), image.GetImageCount(), meta, DXGI_FORMAT_UNKNOWN, decompressed);
+			if (FAILED(hr))
+				return hr;
+			source = &decompressed;
+		}
+
+		//	アスペクト比を保って縮小
+		const double scale = std::min(static_cast<double>(max_size) / meta.width, static_cast<double>(max_size) / meta.height);
+		size_t width = std::max<size_t>(static_cast<size_t>(meta.width * scale), 1);
+		size_t height = std::max<size_t>(static_cast<size_t>(meta.height * scale), 1);
+		if (is_compressed)
+		{
+			width = std::max<size_t>(width & ~size_t(3), 4);
+			height = std::max<size_t>(height & ~size_t(3), 4);
+		}
+
+		std::vector<DirectX::Image> top_images;
+		for (size_t item = 0; item < meta.arraySize; ++item)
+			top_images.push_back(*source->GetImage(0, item, 0));
+		DirectX::TexMetadata top_meta = source->GetMetadata();
+		top_meta.mipLevels = 1;
+
+		DirectX::ScratchImage resized;
+		HRESULT hr = DirectX::Resize(top_images.data(), top_images.size(), top_meta, width, height, DirectX::TEX_FILTER_DEFAULT | DirectX::TEX_FILTER_FORCE_NON_WIC, resized);
+		if (FAILED(hr))
+			return hr;
+
+		if (meta.mipLevels > 1)
+		{
+			DirectX::ScratchImage mip_chain;
+			hr = DirectX::GenerateMipMaps(resized.GetImages(), resized.GetImageCount(), resized.GetMetadata(), DirectX::TEX_FILTER_DEFAULT | DirectX::TEX_FILTER_FORCE_NON_WIC, 0, mip_chain);
+			if (FAILED(hr))
+				return hr;
+			resized = std::move(mip_chain);
+		}
+
+		if (is_compressed)
+		{
+			DirectX::ScratchImage compressed;
+			hr = DirectX::Compress(resized.GetImages(), resized.GetImageCount(), resized.GetMetadata(),
+								   meta.format, DirectX::TEX_COMPRESS_PARALLEL, DirectX::TEX_THRESHOLD_DEFAULT, compressed);
+			if (FAILED(hr))
+				return hr;
+			resized = std::move(compressed);
+		}
+
+		image = std::move(resized);
+		out_changed = true;
+		return S_OK;
+	}
+}
+
+bool texture_manager::limit_dds_resolution(std::string_view dds_file_path, UINT max_size, bool* out_changed)
+{
+	if (out_changed)
+		*out_changed = false;
+
+	std::filesystem::path path(dds_file_path);
+	DirectX::TexMetadata tex_meta_data;
+	DirectX::ScratchImage scratch_image;
+	if (FAILED(DirectX::LoadFromDDSFile(path.wstring().data(), DirectX::DDS_FLAGS_NONE, &tex_meta_data, scratch_image)))
+		return false;
+
+	bool changed = false;
+	if (FAILED(fit_to_max_size(scratch_image, max_size, changed)))
+		return false;
+	if (!changed)
+		return true;
+
+	std::filesystem::path temp_path = path;
+	temp_path += L".tmp";
+	HRESULT hr = DirectX::SaveToDDSFile(scratch_image.GetImages(), scratch_image.GetImageCount(), scratch_image.GetMetadata(),
+										DirectX::DDS_FLAGS_NONE, temp_path.wstring().data());
+	if (FAILED(hr))
+		return false;
+
+	std::error_code error;
+	std::filesystem::rename(temp_path, path, error);
+	if (error)
+	{
+		std::filesystem::remove(temp_path, error);
+		return false;
+	}
+
+	if (out_changed)
+		*out_changed = true;
+	return true;
+}
+
+bool texture_manager::convert_texture_to_dds(std::string_view source_file_path, std::string_view dds_file_path, bool generate_mipmaps, UINT max_size)
 {
 	std::filesystem::path source_path(source_file_path);
 
@@ -913,6 +1055,13 @@ bool texture_manager::convert_texture_to_dds(std::string_view source_file_path, 
 	DirectX::ScratchImage scratch_image;
 	if (!load_image_file(source_path.wstring().data(), tex_meta_data, scratch_image))
 		return false;
+
+	//	最大解像度に収まるよう縮小
+	{
+		bool changed = false;
+		if (FAILED(fit_to_max_size(scratch_image, max_size, changed)))
+			return false;
+	}
 
 	if (generate_mipmaps)
 	{

@@ -40,6 +40,7 @@ private:
 	void generate_lod();
 	void generate_bounding_mesh_asset();
 	void generate_cubic_sdf_asset();
+	void limit_texture_resolution_asset();
 	void generate_shadow_mesh_asset();
 	void discard_lod();
 	void discard_shadow_mesh();
@@ -122,6 +123,9 @@ private:
 		float bounds_padding_rate = 0.1f;
 	};
 	cubic_sdf_option cubic_sdf_option;
+
+	//	テクスチャの最大解像度
+	int texture_max_resolution = 2048;
 
 	//	変換情報
 	std::string load_model_path;

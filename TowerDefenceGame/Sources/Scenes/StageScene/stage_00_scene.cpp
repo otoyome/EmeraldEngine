@@ -202,7 +202,6 @@ void stage_00_scene::imgui_render_core()
 
 void stage_00_scene::generate_model_collision(model_resource_ptr resource, const math::matrixf& transform)
 {
-	//	@tool 当たり判定はエディタで統合生成したファイルからのみ読み込む
 	const std::string_view file_path = resource->get_file_path();
 	const std::filesystem::path info_path = collision::combined_mesh::make_info_path(file_path);
 	collision::combined_mesh info;

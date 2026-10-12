@@ -265,6 +265,9 @@ void edit_model_scene::imgui_model_loader_window()
 				ImGui::Checkbox("change_coordinate_system_indices", &convert_option_data.gltf.is_change_coordinate_system_indices);
 				ImGui::Separator();
 				ImGui::Checkbox("convert_texture_to_dds", &convert_option_data.gltf.is_convert_texture_to_dds);
+				ImGui::BeginDisabled(!convert_option_data.gltf.is_convert_texture_to_dds);
+				ImGui::DragInt("max_texture_size(0=unlimited)", &convert_option_data.gltf.max_texture_size, 16.0f, 0, 16384);
+				ImGui::EndDisabled();
 
 				//	[エンジン改造:接線に再計算法線を含める対応]
 				ImGui::Separator();
@@ -422,6 +425,18 @@ void edit_model_scene::imgui_model_loader_window()
 			if (ImGui::Button("Generate Bounding Mesh"))
 			{
 				generate_bounding_mesh_asset();
+			}
+		}
+
+		//	テクスチャの最大解像度制限
+		if (edit_model)
+		{
+			ImGui::Separator();
+			ImGui::Text("Texture Resolution");
+			ImGui::DragInt("texture_max_resolution", &texture_max_resolution, 16.0f, 4, 16384);
+			if (ImGui::Button("Limit Texture Resolution"))
+			{
+				limit_texture_resolution_asset();
 			}
 		}
 

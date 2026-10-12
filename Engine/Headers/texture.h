@@ -161,7 +161,9 @@ public:
 #if defined(USE_IMGUI)
 	bool decode_texture_from_file(texture_ptr& out_texture, std::string_view file_path);
 
-	bool convert_texture_to_dds(std::string_view source_file_path, std::string_view dds_file_path, bool generate_mipmaps);
+	bool convert_texture_to_dds(std::string_view source_file_path, std::string_view dds_file_path, bool generate_mipmaps, UINT max_resolution = 0);
+
+	bool limit_dds_resolution(std::string_view dds_file_path, UINT max_size, bool* out_changed = nullptr);
 #endif	//	defined(USE_IMGUI)
 
 private:

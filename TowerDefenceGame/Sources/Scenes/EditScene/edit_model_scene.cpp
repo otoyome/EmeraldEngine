@@ -1,7 +1,9 @@
 #include "scenes/editscene/edit_model_scene.h"
 
 #include <algorithm>
+#include <cctype>
 #include <map>
+#include <set>
 #include <tuple>
 
 #include "model_instance.h"
@@ -328,7 +330,7 @@ void edit_model_scene::generate_bounding_mesh_asset()
 	if (!resource)
 		return;
 
-	//	@tool 当たり判定メッシュは常に統合して出力する
+	//	当たり判定メッシュは常に統合して出力
 	collision::generate_bounding_mesh_data data;
 	data.WorldMatrix = math::matrixf();
 	data.reverse_flag = bounding_mesh_option.reverse_flag;
@@ -444,6 +446,54 @@ void edit_model_scene::generate_cubic_sdf_asset()
 		out_path.replace_extension(std::to_string(mesh_index) + "." + std::string(collision::cubic_sdf::extension));
 		out_sdf.serialize(out_path.string());
 	}
+}
+
+void edit_model_scene::limit_texture_resolution_asset()
+{
+	if (!edit_model)
+		return;
+
+	auto resource = edit_model->get_model_instance()->get_resource();
+	if (!resource)
+		return;
+
+	//	マテリアルが参照しているDDSを収集
+	std::set<std::string> dds_paths;
+	for (const auto& material : resource->get_materials())
+	{
+		for (const auto& shader_resource : material.get_shader_resources())
+		{
+			for (const auto& texture_resource : shader_resource.second.resources)
+			{
+				if (!texture_resource.is_file_path_or_key || texture_resource.path.empty())
+					continue;
+
+				std::string extension = std::filesystem::path(texture_resource.path).extension().string();
+				std::transform(extension.begin(), extension.end(), extension.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+				if (extension == ".dds")
+					dds_paths.insert(texture_resource.path);
+			}
+		}
+	}
+
+	//	最大解像度を超えるものだけ縮小して上書き
+	const UINT max_size = static_cast<UINT>(std::max(texture_max_resolution, 4));
+	size_t changed_count = 0;
+	size_t failed_count = 0;
+	for (const auto& path : dds_paths)
+	{
+		bool changed = false;
+		if (!texture_manager::instance()->limit_dds_resolution(path, max_size, &changed))
+		{
+			++failed_count;
+			DEBUG_LOG_CATEGORY(logger::categorys::model, "Limit Texture Resolution Failed[%s]", path.c_str());
+			continue;
+		}
+		if (changed)
+			++changed_count;
+	}
+	DEBUG_LOG_CATEGORY(logger::categorys::model, "Limit Texture Resolution[max=%u] dds=%zu changed=%zu failed=%zu",
+					   max_size, dds_paths.size(), changed_count, failed_count);
 }
 
 void edit_model_scene::generate_shadow_mesh_asset()

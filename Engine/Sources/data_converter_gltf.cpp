@@ -519,7 +519,8 @@ namespace
 					bool converted = converted_texture_paths.count(source_key) != 0;
 					if (!converted)
 					{
-						converted = texture_manager::instance()->convert_texture_to_dds(source_key, dds_path.string(), true);
+						converted = texture_manager::instance()->convert_texture_to_dds(source_key, dds_path.string(), true,
+																						 static_cast<UINT>(std::max(convert_data.max_texture_size, 0)));
 						if (converted)
 							converted_texture_paths.insert(source_key);
 					}
