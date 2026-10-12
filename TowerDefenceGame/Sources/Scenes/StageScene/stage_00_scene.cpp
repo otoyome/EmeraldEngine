@@ -238,11 +238,11 @@ void stage_00_scene::generate_model_collision(model_resource_ptr resource, const
 bool stage_00_scene::generate_combined_model_collision(model_resource_ptr resource)
 {
 	const std::string_view file_path = resource->get_file_path();
-	const std::filesystem::path info_path = collision::combined_bounding_mesh_info::make_info_path(file_path);
+	const std::filesystem::path info_path = collision::combined_mesh::make_info_path(file_path);
 	if (!std::filesystem::exists(info_path))
 		return false;
 
-	collision::combined_bounding_mesh_info info;
+	collision::combined_mesh info;
 	if (!info.deserialize(info_path.string()))
 		return false;
 
@@ -250,13 +250,13 @@ bool stage_00_scene::generate_combined_model_collision(model_resource_ptr resour
 	for (size_t combined_index = 0; combined_index < info.material_indices.size(); ++combined_index)
 	{
 		std::shared_ptr<collision::bounding_mesh> mesh = std::make_shared<collision::bounding_mesh>();
-		const std::filesystem::path mesh_path = collision::combined_bounding_mesh_info::make_mesh_path(file_path, combined_index);
+		const std::filesystem::path mesh_path = collision::combined_mesh::make_mesh_path(file_path, combined_index);
 		if (!std::filesystem::exists(mesh_path) || !mesh->deserialize(mesh_path.string()))
 			continue;
 
 		//	物理情報は統合時の代表マテリアルから取得する
 		const std::uint32_t material_index = info.material_indices[combined_index];
-		const bool has_material = material_index != collision::combined_bounding_mesh_info::invalid_material && material_index < materials.size();
+		const bool has_material = material_index != collision::combined_mesh::invalid_material && material_index < materials.size();
 
 		collision_object_ptr collision = std::make_shared<collision_object>();
 #if defined(USE_IMGUI)

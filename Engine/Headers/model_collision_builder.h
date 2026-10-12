@@ -4,6 +4,8 @@
 
 #include "Collision/mesh.h"
 #include "Collision/cubic_sdf.h"
+#include "Collision/combined_mesh.h"
+
 #include "model_resource.h"
 
 namespace collision
@@ -21,22 +23,6 @@ namespace collision
 
 	//	当たり判定メッシュにした時の頂点範囲を求める
 	bool calculate_bounding_mesh_bounds(model_resource_ptr resource, size_t index, const generate_bounding_mesh_data& data, math::float3& out_min, math::float3& out_max);
-
-	//	統合した当たり判定メッシュのリスト情報
-	struct combined_bounding_mesh_info
-	{
-		static constexpr std::string_view extension = "ebmc";
-		static constexpr std::uint32_t invalid_material = 0xFFFFFFFF;
-
-		std::vector<std::uint32_t> material_indices;
-
-		//	統合メッシュ本体のファイルパス
-		static std::filesystem::path make_mesh_path(std::string_view model_path, size_t combined_index);
-		static std::filesystem::path make_info_path(std::string_view model_path);
-
-		bool serialize(std::string_view file_path) const;
-		bool deserialize(std::string_view file_path);
-	};
 
 	//	 model_resourceから cubic Signed Distance Field を生成
 	bool create_cubic_sdf(cubic_sdf& out_sdf, model_resource_ptr resource, size_t index, const generate_bounding_mesh_data& mesh_data, uint32_t resolution = 32, float bounds_padding_rate = 0.1f);

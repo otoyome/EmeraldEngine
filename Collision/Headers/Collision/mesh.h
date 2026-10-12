@@ -17,8 +17,8 @@ namespace collision
 			std::uint32_t a, b, c;	//	座標番号
 
 			//	事前計算
-			math::vector3f normal;		//	法線
-			math::vector3f ab, bc, ca;	//	辺
+			math::vector3f normal;			//	法線
+			math::vector3f ab, bc, ca;		//	辺
 			math::vector3f min, max;		//	最小最大
 			collision::linef lab, lbc, lca;	//	線分
 

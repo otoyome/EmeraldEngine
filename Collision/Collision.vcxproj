@@ -30,6 +30,7 @@
     <ClInclude Include="Headers\Collision\box.h" />
     <ClInclude Include="Headers\Collision\capsule.h" />
     <ClInclude Include="Headers\Collision\collision.h" />
+    <ClInclude Include="Headers\Collision\combined_mesh.h" />
     <ClInclude Include="Headers\Collision\cubic_sdf.h" />
     <ClInclude Include="Headers\Collision\frustum_culling.h" />
     <ClInclude Include="Headers\Collision\line.h" />
@@ -49,6 +50,7 @@
     <ClCompile Include="Sources\Collision\box.cpp" />
     <ClCompile Include="Sources\Collision\capsule.cpp" />
     <ClCompile Include="Sources\Collision\collision.cpp" />
+    <ClCompile Include="Sources\Collision\combined_mesh.cpp" />
     <ClCompile Include="Sources\Collision\cubic_sdf.cpp" />
     <ClCompile Include="Sources\Collision\frustum_culling.cpp" />
     <ClCompile Include="Sources\Collision\line.cpp" />

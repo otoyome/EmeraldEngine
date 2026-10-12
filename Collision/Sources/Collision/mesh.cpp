@@ -422,27 +422,7 @@ namespace
 		{ 0.5773503f,  0.5773503f,  0.5773503f},
 		{ 0.7071068f, -0.7071068f,  0.4082483f},
 		{-0.4082483f,  0.5773503f, -0.7071068f},
-	};}
-
-using namespace collision;
-
-namespace
-{
-	//	旧形式のブロック情報。旧ファイルの読み飛ばし専用
-	struct legacy_block_data
-	{
-		math::float3 center;
-		std::vector<size_t> triangles;
-
-		template<class Archive>
-		void serialize(Archive& archive, int version)
-		{
-			archive(CEREAL_NVP(center), CEREAL_NVP(triangles));
-		}
 	};
-
-	//	BVH形式のファイル先頭に置く識別値
-	constexpr std::uint64_t bvh_format_magic = 0x3148564245424D45ull;
 
 	inline float get_axis(const math::float3& value, int axis)
 	{
@@ -450,10 +430,11 @@ namespace
 	}
 }
 
+using namespace collision;
+
 // CEREALバージョン定義
 CEREAL_CLASS_VERSION(bounding_mesh::triangle, 1)
 CEREAL_CLASS_VERSION(bounding_mesh::bvh_node, 1)
-CEREAL_CLASS_VERSION(legacy_block_data, 1)
 
 template<class Archive>
 void bounding_mesh::triangle::serialize(Archive& archive, int version)
@@ -723,9 +704,7 @@ bool bounding_mesh::serialize(std::string_view file_path)
 
 		try
 		{
-			std::uint64_t format_magic = bvh_format_magic;
-			archive(CEREAL_NVP(format_magic),
-					CEREAL_NVP(positions),
+			archive(CEREAL_NVP(positions),
 					CEREAL_NVP(triangles),
 
 					CEREAL_NVP(area_min),
@@ -749,46 +728,17 @@ bool bounding_mesh::deserialize(std::string_view file_path)
 	std::ifstream istream(file_path.data(), std::ios::binary);
 	if (istream.is_open())
 	{
-		//	先頭の識別値で、BVH形式か旧形式（均一グリッド）かを判別する
-		std::uint64_t head = 0;
-		istream.read(reinterpret_cast<char*>(&head), sizeof(head));
-		istream.clear();
-		istream.seekg(0);
-		const bool is_bvh_format = head == bvh_format_magic;
-
 		cereal::BinaryInputArchive archive(istream);
 
 		try
 		{
-			if (is_bvh_format)
-			{
-				std::uint64_t format_magic = 0;
-				archive(CEREAL_NVP(format_magic),
-						CEREAL_NVP(positions),
-						CEREAL_NVP(triangles),
+			archive(CEREAL_NVP(positions),
+					CEREAL_NVP(triangles),
 
-						CEREAL_NVP(area_min),
-						CEREAL_NVP(area_max),
-						CEREAL_NVP(bvh_nodes),
-						CEREAL_NVP(bvh_triangle_indices));
-			}
-			else
-			{
-				//	旧形式は三角形まで使い、グリッド情報は読み捨ててBVHを作り直す
-				math::float3 area_size;
-				math::float3 area_unit;
-				math::uint3 separate_count;
-				std::vector<legacy_block_data> block_datas;
-				archive(CEREAL_NVP(positions),
-						CEREAL_NVP(triangles),
-
-						CEREAL_NVP(area_min),
-						CEREAL_NVP(area_max),
-						CEREAL_NVP(area_size),
-						CEREAL_NVP(area_unit),
-						CEREAL_NVP(separate_count),
-						CEREAL_NVP(block_datas));
-			}
+					CEREAL_NVP(area_min),
+					CEREAL_NVP(area_max),
+					CEREAL_NVP(bvh_nodes),
+					CEREAL_NVP(bvh_triangle_indices));
 		}
 		catch (...)
 		{
@@ -797,8 +747,6 @@ bool bounding_mesh::deserialize(std::string_view file_path)
 		}
 
 		precompute_triangles();
-		if (!is_bvh_format)
-			build_bvh();
 		return true;
 	}
 	OutputDebugStringA(file_path.data());

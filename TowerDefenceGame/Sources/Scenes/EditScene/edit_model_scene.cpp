@@ -428,26 +428,26 @@ void edit_model_scene::generate_combined_bounding_mesh_asset()
 		if (inserted)
 		{
 			groups.emplace_back();
-			group_materials.push_back(has_material ? static_cast<std::uint32_t>(material_index) : collision::combined_bounding_mesh_info::invalid_material);
+			group_materials.push_back(has_material ? static_cast<std::uint32_t>(material_index) : collision::combined_mesh::invalid_material);
 		}
 		groups[it->second].push_back(mesh.mesh_index);
 	}
 
 	//	グループ毎に統合メッシュを出力して最後にリスト情報を書き出す
 	const std::string_view model_path = resource->get_file_path();
-	collision::combined_bounding_mesh_info info;
+	collision::combined_mesh info;
 	for (size_t group_index = 0; group_index < groups.size(); ++group_index)
 	{
 		collision::bounding_mesh out_mesh;
 		if (!collision::generate_combined_bounding_mesh(out_mesh, resource, groups[group_index], data))
 			continue;
 
-		const std::filesystem::path out_path = collision::combined_bounding_mesh_info::make_mesh_path(model_path, info.material_indices.size());
+		const std::filesystem::path out_path = collision::combined_mesh::make_mesh_path(model_path, info.material_indices.size());
 		if (!out_mesh.serialize(out_path.string()))
 			continue;
 		info.material_indices.push_back(group_materials[group_index]);
 	}
-	info.serialize(collision::combined_bounding_mesh_info::make_info_path(model_path).string());
+	info.serialize(collision::combined_mesh::make_info_path(model_path).string());
 }
 
 void edit_model_scene::generate_cubic_sdf_asset()

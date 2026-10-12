@@ -34,6 +34,9 @@
     <ClInclude Include="Headers\stdafx_collision.h">
       <Filter>Headers</Filter>
     </ClInclude>
+    <ClInclude Include="Headers\Collision\combined_mesh.h">
+      <Filter>Headers\Collision</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Headers">
@@ -78,6 +81,9 @@
       <Filter>Souorces\Collision</Filter>
     </ClCompile>
     <ClCompile Include="Sources\Collision\sphere.cpp">
+      <Filter>Souorces\Collision</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Collision\combined_mesh.cpp">
       <Filter>Souorces\Collision</Filter>
     </ClCompile>
   </ItemGroup>
