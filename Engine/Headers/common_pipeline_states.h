@@ -166,17 +166,16 @@ namespace common_pipeline_states
 	constexpr UINT morph_max = 8;
 	constexpr std::string_view primitive_constant_buffer_name = "PRIMITIVE_CONSTANT_BUFFER";
 	constexpr system_utility::hash_key primitive_constant_buffer_hash_key = system_utility::generate_hash(primitive_constant_buffer_name);
-	struct primitive_constants
+	struct primitive_header
 	{
-		math::uint4 primitive_parameter = {};	//	x : 接線を所持しているかどうか, yzw : 空き
+		math::uint4 primitive_parameter = {};		//	x : 接線有無, y : 位置モーフ数, z : 法線モーフ数, w : 未使用
+		UINT bone_offset = 0;						//	今回ボーン先頭位置
+		UINT previous_bone_offset = 0;				//	前回ボーン先頭位置
+		UINT bone_count = 0;						//	ボーン数
+		UINT base_vertex = 0;						//	先頭頂点番号
 
-		UINT bone_offset = 0;			//	現在ボーン先頭位置
-		UINT previous_bone_offset = 0;	//	前フレームボーン先頭位置
-		UINT bone_count = 0;			//	ボーン数
-		UINT base_vertex = 0;			//	先頭頂点番号
-
-		math::float4 position_morph[morph_max / 4];
-		math::float4 normal_morph[morph_max / 4];
+		math::float4 position_morph[morph_max / 4];	//	座標モーフオフセット
+		math::float4 normal_morph[morph_max / 4];	//	法線オフセット
 	};
 
 	//	メッシュレットインスタンス情報

@@ -123,7 +123,7 @@ struct mesh_container
 	Microsoft::WRL::ComPtr<ID3D11Buffer> bone_matrix_buffer;
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> bone_matrix_srv;
 	UINT bone_matrix_capacity = 0;
-	std::vector<common_pipeline_states::primitive_constants> primitive_header_scratch;
+	std::vector<common_pipeline_states::primitive_header> primitive_header_scratch;
 	std::vector<math::float4x4> bone_matrix_scratch;
 
 	void build_transform_buffers();

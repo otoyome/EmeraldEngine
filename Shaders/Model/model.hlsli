@@ -152,10 +152,10 @@ static const uint morph_max = 8; // 8個もブレンドするかな？
 struct PrimitiveHeader
 {
     uint4 header_primitive_parameter;	//	x : 接線有無, y : 位置モーフ数, z : 法線モーフ数, w : 未使用
-    uint  bone_offset;			//	bone_matrices 内の現在ボーン先頭
-    uint  previous_bone_offset;	//	bone_matrices 内の前フレームボーン先頭
-    uint  bone_count;			//	ボーン数
-    uint  base_vertex;
+    uint  bone_offset;			        //	今回ボーン先頭位置
+    uint  previous_bone_offset;	        //	前回ボーン先頭位置
+    uint  bone_count;			        //	ボーン数
+    uint  base_vertex;                  //  先頭頂点番号
 
     float4 header_position_morph[morph_max / 4];
     float4 header_normal_morph[morph_max / 4];

@@ -391,7 +391,7 @@ void model_instance_manger::get_container(mesh_container& container, const math:
 
 			//	変換行列・プリミティブヘッダを登録
 			{
-				common_pipeline_states::primitive_constants& header = container.primitive_header_scratch.emplace_back();
+				common_pipeline_states::primitive_header& header = container.primitive_header_scratch.emplace_back();
 
 				//	接線の有無
 				if (!buffer_data.color_meshs.empty())
