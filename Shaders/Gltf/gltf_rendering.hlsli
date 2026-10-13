@@ -20,9 +20,6 @@ REGISTER_SHADER_RESOURCE_VIEW(Texture2D, OcclusionMap, 4);
 //  UV座標
 static const uint BaseTexcoord = 0;
 
-//  サンプラーステート
-SamplerState linear_sampler_state : register(s0);
-
 //  マテリアル情報
 cbuffer GLTF_MATERIAL_CONSTANT_BUFFER
 {

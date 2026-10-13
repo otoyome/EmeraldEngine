@@ -25,9 +25,6 @@ static const uint SssTexcoord = 0;
 static const uint DetailTexcoord = 1;
 static const uint EmissiveTexcoord = 0;
 
-//  サンプラーステート
-SamplerState linear_sampler_state : register(s0);
-
 //  マテリアル情報
 cbuffer TOON_MATERIAL_CONSTANT_BUFFER
 {

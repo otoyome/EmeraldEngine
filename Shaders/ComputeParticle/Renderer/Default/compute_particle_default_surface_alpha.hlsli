@@ -10,7 +10,7 @@ float surface(VS_OUT pin, bool is_front_face)
     float4 color = pin.color;
     if (HAS_RESOURCE(BaseColorMap))
     {
-        color *= TEXTURE2D_SAMPLE(BaseColorMap, linear_sampler_state, pin.texcoord);
+        color *= TEXTURE2D_SAMPLE(BaseColorMap, GET_SAMPLER_STATE_INDEX(BaseColorMap), pin.texcoord);
     }
     return color.a;
 }

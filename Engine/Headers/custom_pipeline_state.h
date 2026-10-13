@@ -73,11 +73,13 @@ class graphics_custom_pipeline_state : public graphics_pipeline_state
 		std::vector<std::pair<std::string, indices>> cbv;
 		std::vector<std::pair<std::string, indices>> srv;
 		std::vector<std::pair<std::string, indices>> sampler;
+		std::vector<int> sampler_srv_indices;
 		void clear()
 		{
 			cbv.clear();
 			srv.clear();
 			sampler.clear();
+			sampler_srv_indices.clear();
 		}
 	};
 
@@ -128,6 +130,7 @@ private:
 	std::shared_ptr<pixel_shader> ps;
 
 	index_map index_map;
+	std::vector<const texture*> srv_textures;
 	std::vector<input_resource_desc> input_resource_desces;
 
 	Microsoft::WRL::ComPtr<ID3D11DepthStencilState> depth_stencil_states[static_cast<int>(depth_stencil_state::max)];

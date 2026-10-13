@@ -85,7 +85,8 @@ float4 TextureCubeSample(TextureCube srv, uint resource_id, SamplerState samp, f
 //  シェーダーリソース登録用マクロ
 #define REGISTER_SHADER_RESOURCE_VIEW(TYPE, NAME, INDEX) \
 static const uint GET_SHADER_RESOURCE_VIEW_INDEX(NAME) = INDEX; \
-TYPE NAME : register(t##INDEX);
+TYPE NAME : register(t##INDEX); \
+SamplerState GET_SAMPLER_STATE_INDEX(NAME);
 
 //  サンプラーステート名前構築
 #define GET_SAMPLER_STATE_INDEX(NAME) NAME##State

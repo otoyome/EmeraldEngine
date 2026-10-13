@@ -25,6 +25,12 @@
     <Filter Include="Sources\ModelFormat">
       <UniqueIdentifier>{6507c3bd-d416-44ff-89cf-7cfcfb2c0305}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Headers\Resource">
+      <UniqueIdentifier>{e2034042-e441-4f19-8638-887fa419a125}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Sources\Resource">
+      <UniqueIdentifier>{d9450165-f0ab-4c4a-8a8e-8343cbe79a87}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Headers\System">
       <UniqueIdentifier>{ef7754fe-60ab-420e-93e2-dc09748c829e}</UniqueIdentifier>
     </Filter>
@@ -261,6 +267,18 @@
     <ClInclude Include="Headers\System\simple_helper.h">
       <Filter>Headers\System</Filter>
     </ClInclude>
+    <ClInclude Include="Headers\Resource\resource_loader.h">
+      <Filter>Headers\Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Resource\resource_manager.h">
+      <Filter>Headers\Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Resource\resource_operation.h">
+      <Filter>Headers\Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Resource\resource_operation_state.h">
+      <Filter>Headers\Resource</Filter>
+    </ClInclude>
     <ClInclude Include="Headers\System\parallel_for_executor.h">
       <Filter>Headers\System</Filter>
     </ClInclude>
@@ -403,6 +421,12 @@
     </ClCompile>
     <ClCompile Include="Sources\model_resource_utility.cpp">
       <Filter>Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Resource\resource_manager.cpp">
+      <Filter>Sources\Resource</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Resource\resource_operation.cpp">
+      <Filter>Sources\Resource</Filter>
     </ClCompile>
     <ClCompile Include="Sources\System\cpu_timer.cpp">
       <Filter>Sources\System</Filter>

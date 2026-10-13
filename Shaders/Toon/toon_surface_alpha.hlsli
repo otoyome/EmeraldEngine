@@ -11,7 +11,7 @@ float surface(VS_OUT pin, bool is_front_face)
     float alpha = material_base_color.a;
     if (HAS_RESOURCE(BaseMap))
     {
-        alpha *= TEXTURE2D_SAMPLE(BaseMap, linear_sampler_state, pin.texcoord[BaseTexcoord]).a;
+        alpha *= TEXTURE2D_SAMPLE(BaseMap, GET_SAMPLER_STATE_INDEX(BaseMap), pin.texcoord[BaseTexcoord]).a;
     }
     return alpha;
 }

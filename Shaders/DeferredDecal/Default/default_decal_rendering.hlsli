@@ -7,9 +7,6 @@
 REGISTER_SHADER_RESOURCE_VIEW(Texture2D, BaseColorMap, 0)
 REGISTER_SHADER_RESOURCE_VIEW(Texture2D, NormalMap, 1);
 
-//  サンプラーステート
-SamplerState sampler_states : register(s0);
-
 //  マテリアル情報
 cbuffer DEFAULT_MATERIAL_CONSTANT_BUFFER
 {

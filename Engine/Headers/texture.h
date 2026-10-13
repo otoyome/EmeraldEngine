@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <chrono>
 #include "system/parallel_for_executor.h"
 
@@ -9,11 +10,52 @@ enum class texture_data_types
 	normal,	//	法線マップ
 };
 
+//	サンプラー設定
+struct texture_sampler_desc
+{
+	//	フィルタ
+	enum class filters
+	{
+		point,			//	ポイント
+		linear,			//	リニア
+		anisotropic,	//	異方性
+
+		max,
+	};
+
+	//	アドレスモード
+	enum class address_modes
+	{
+		wrap,			//	繰り返し
+		mirror,			//	反転して繰り返し
+		clamp,			//	端の色で引き伸ばし
+		border,			//	境界色
+		mirror_once,	//	一度だけ反転して以降は端の色
+
+		max,
+	};
+
+	filters filter = filters::linear;
+	address_modes address_u = address_modes::wrap;
+	address_modes address_v = address_modes::wrap;
+	address_modes address_w = address_modes::wrap;
+	UINT max_anisotropy = 16;
+	float mip_lod_bias = 0.0f;
+	float min_lod = 0.0f;
+	float max_lod = D3D11_FLOAT32_MAX;
+	std::array<float, 4> border_color{ 0.0f, 0.0f, 0.0f, 0.0f };
+
+	D3D11_SAMPLER_DESC to_d3d11_desc() const;
+};
+
 //	簡易的なテクスチャのメタデータ
 struct texture_meta_data
 {
+	static constexpr uint32_t current_version = 1;
+
 	texture_data_types type;
 	UINT system_flags;
+	texture_sampler_desc sampler;
 
 	bool serialize(std::string_view file_path);
 	bool deserialize(std::string_view file_path);
@@ -54,6 +96,10 @@ public:
 	bool is_flag(flags flag) const { return system_utility::is_bitflag(system_flags, 1 << static_cast<UINT>(flag)); }
 	void set_flag(flags flag, bool value) { system_utility::set_bitflag(system_flags, 1 << static_cast<UINT>(flag), value); }
 
+	//	サンプラー設定
+	const texture_sampler_desc& get_sampler_desc() const { return sampler_desc; }
+	void set_sampler_desc(const texture_sampler_desc& desc) { sampler_desc = desc; }
+
 	virtual int get_width() const = 0;	//	テクスチャ幅取得
 	virtual int get_height() const = 0;	//	テクスチャ高さ取得
 	virtual int get_depth_or_array_size() const = 0;	//	テクスチャ深度/配列数取得
@@ -81,6 +127,7 @@ protected:
 	D3D11_RESOURCE_DIMENSION dimension;
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> shader_resource_view;
 	Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> unordered_access_view;
+	texture_sampler_desc sampler_desc;
 
 #if defined(USE_IMGUI)
 	file_time_type last_write_time;

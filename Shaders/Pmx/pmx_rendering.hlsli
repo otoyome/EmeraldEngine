@@ -19,9 +19,6 @@ REGISTER_SHADER_RESOURCE_VIEW(Texture2D, RampMap, 2)
 //  UV座標
 static const uint BaseTexcoord = 0;
 
-//  サンプラーステート
-SamplerState linear_sampler_state : register(s0);
-
 //  マテリアル情報
 cbuffer TOON_MATERIAL_CONSTANT_BUFFER
 {

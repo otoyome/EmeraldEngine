@@ -1,5 +1,8 @@
 #pragma once
 
+#include <map>
+#include <mutex>
+
 CONST LONG SCREEN_WIDTH{ 1280 };
 CONST LONG SCREEN_HEIGHT{ 720 };
 CONST BOOL FULLSCREEN{ FALSE };
@@ -37,6 +40,13 @@ public:
 	Microsoft::WRL::ComPtr<IDXGISwapChain> get_swap_chain() const { return swap_chain; }
 
 	Microsoft::WRL::ComPtr<ID3D11SamplerState> get_sampler_states(SAMPLER_STATE index) const { return sampler_states[static_cast<int>(index)]; }
+	Microsoft::WRL::ComPtr<ID3D11SamplerState> get_sampler_state(const D3D11_SAMPLER_DESC& desc);
+
+private:
+	struct sampler_desc_less
+	{
+		bool operator()(const D3D11_SAMPLER_DESC& l, const D3D11_SAMPLER_DESC& r) const { return memcmp(&l, &r, sizeof(D3D11_SAMPLER_DESC)) < 0; }
+	};
 
 private:
 	render_data(CONST HWND hwnd);
@@ -50,4 +60,7 @@ private:
 	Microsoft::WRL::ComPtr<IDXGISwapChain> swap_chain;
 
 	Microsoft::WRL::ComPtr<ID3D11SamplerState> sampler_states[8];
+
+	std::mutex sampler_state_cache_mutex;
+	std::map<D3D11_SAMPLER_DESC, Microsoft::WRL::ComPtr<ID3D11SamplerState>, sampler_desc_less> sampler_state_cache;
 };

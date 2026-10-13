@@ -118,3 +118,21 @@ render_data::render_data(CONST HWND hwnd)
 render_data::~render_data()
 {
 }
+
+Microsoft::WRL::ComPtr<ID3D11SamplerState> render_data::get_sampler_state(const D3D11_SAMPLER_DESC& desc)
+{
+	std::lock_guard<std::mutex> lock(sampler_state_cache_mutex);
+
+	auto it = sampler_state_cache.find(desc);
+	if (it != sampler_state_cache.end())
+		return it->second;
+
+	Microsoft::WRL::ComPtr<ID3D11SamplerState> sampler_state;
+	HRESULT hr = device->CreateSamplerState(&desc, sampler_state.GetAddressOf());
+	_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+	if (FAILED(hr))
+		return nullptr;
+
+	sampler_state_cache.emplace(desc, sampler_state);
+	return sampler_state;
+}

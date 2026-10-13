@@ -545,14 +545,19 @@ void graphics_custom_pipeline_state::update_parameters(const graphics_context& c
 		{
 			const material::shader_resource_map& shader_resources = material.get_shader_resources();
 
+			//	描画毎に登録したテクスチャを集め直す
+			srv_textures.assign(index_map.srv.size(), nullptr);
+
 			for (auto& srv : index_map.srv)
 			{
 				system_utility::hash_key srv_key = srv.second.hash;
+				const size_t srv_index = static_cast<size_t>(&srv - index_map.srv.data());
 				//	登録用関数
 				auto register_srv_function = [&](const texture_ptr& srv_ptr)
 				{
 					if (!srv_ptr)
 						return;
+					srv_textures[srv_index] = srv_ptr.get();
 					UINT srv_flag = 0;
 					for (auto& flag : convert_texture_flags)
 					{
@@ -685,9 +690,21 @@ void graphics_custom_pipeline_state::update_parameters(const graphics_context& c
 		}
 
 		//	サンプラステート登録
-		ID3D11SamplerState* sampler_state = render_data::instance()->get_sampler_states(render_data::SAMPLER_STATE::LINEAR).Get();
-		for (auto& sampler : index_map.sampler)
+		auto render_data_instance = render_data::instance();
+		Microsoft::WRL::ComPtr<ID3D11SamplerState> default_sampler_state = render_data_instance->get_sampler_states(render_data::SAMPLER_STATE::LINEAR);
+		for (size_t sampler_index = 0; sampler_index < index_map.sampler.size(); ++sampler_index)
 		{
+			auto& sampler = index_map.sampler[sampler_index];
+
+			//	対応するテクスチャがあればその設定のサンプラーを render_data から取得し、無ければ既定の LINEAR を使う
+			Microsoft::WRL::ComPtr<ID3D11SamplerState> texture_sampler_state;
+			int srv_index = index_map.sampler_srv_indices[sampler_index];
+			if (srv_index >= 0 && srv_textures[srv_index])
+			{
+				texture_sampler_state = render_data_instance->get_sampler_state(srv_textures[srv_index]->get_sampler_desc().to_d3d11_desc());
+			}
+			ID3D11SamplerState* sampler_state = texture_sampler_state ? texture_sampler_state.Get() : default_sampler_state.Get();
+
 			for (UINT index = 0; index < static_cast<int>(arrangement::max); ++index)
 			{
 				if (sampler.second.ids[index] == -1)
@@ -946,6 +963,28 @@ void graphics_custom_pipeline_state::update_register_datas()
 						it = std::find_if(index_map.sampler.begin(), index_map.sampler.end(), search_func);
 					}
 					it->second.ids[index] = rv.register_index;
+				}
+			}
+		}
+
+		{
+			constexpr std::string_view sampler_suffix = "State";
+			index_map.sampler_srv_indices.assign(index_map.sampler.size(), -1);
+			for (size_t sampler_index = 0; sampler_index < index_map.sampler.size(); ++sampler_index)
+			{
+				std::string_view sampler_name = index_map.sampler[sampler_index].first;
+				if (sampler_name.size() <= sampler_suffix.size() ||
+					sampler_name.substr(sampler_name.size() - sampler_suffix.size()) != sampler_suffix)
+					continue;
+
+				std::string_view srv_name = sampler_name.substr(0, sampler_name.size() - sampler_suffix.size());
+				for (size_t srv_index = 0; srv_index < index_map.srv.size(); ++srv_index)
+				{
+					if (index_map.srv[srv_index].first == srv_name)
+					{
+						index_map.sampler_srv_indices[sampler_index] = static_cast<int>(srv_index);
+						break;
+					}
 				}
 			}
 		}

@@ -128,6 +128,10 @@
     <ClInclude Include="Headers\System\logger.h" />
     <ClInclude Include="Headers\System\memory_allocator.h" />
     <ClInclude Include="Headers\System\misc.h" />
+    <ClInclude Include="Headers\Resource\resource_loader.h" />
+    <ClInclude Include="Headers\Resource\resource_manager.h" />
+    <ClInclude Include="Headers\Resource\resource_operation.h" />
+    <ClInclude Include="Headers\Resource\resource_operation_state.h" />
     <ClInclude Include="Headers\System\parallel_for_executor.h" />
     <ClInclude Include="Headers\System\simple_helper.h" />
     <ClInclude Include="Headers\System\singleton.h" />
@@ -200,6 +204,8 @@
     <ClCompile Include="Sources\System\BehaviorTree\behavior_data.cpp" />
     <ClCompile Include="Sources\System\BehaviorTree\node_base.cpp" />
     <ClCompile Include="Sources\System\behavior_tree.cpp" />
+    <ClCompile Include="Sources\Resource\resource_manager.cpp" />
+    <ClCompile Include="Sources\Resource\resource_operation.cpp" />
     <ClCompile Include="Sources\System\cpu_timer.cpp" />
     <ClCompile Include="Sources\System\engine_config_data.cpp" />
     <ClCompile Include="Sources\System\console_manager.cpp" />

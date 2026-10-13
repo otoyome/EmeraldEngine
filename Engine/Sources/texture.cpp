@@ -266,6 +266,99 @@ namespace
 	}
 }
 
+namespace
+{
+	//	バージョン付きメタデータの識別子
+	constexpr uint32_t meta_data_signature = 'E' | ('T' << 8) | ('M' << 16) | ('T' << 24);
+
+	//	アドレスモード変換テーブル
+	constexpr D3D11_TEXTURE_ADDRESS_MODE address_mode_table[] =
+	{
+		D3D11_TEXTURE_ADDRESS_WRAP,
+		D3D11_TEXTURE_ADDRESS_MIRROR,
+		D3D11_TEXTURE_ADDRESS_CLAMP,
+		D3D11_TEXTURE_ADDRESS_BORDER,
+		D3D11_TEXTURE_ADDRESS_MIRROR_ONCE,
+	};
+	static_assert(ARRAYSIZE(address_mode_table) == static_cast<size_t>(texture_sampler_desc::address_modes::max));
+
+	D3D11_TEXTURE_ADDRESS_MODE to_d3d11_address_mode(texture_sampler_desc::address_modes mode)
+	{
+		size_t index = static_cast<size_t>(mode);
+		return index < ARRAYSIZE(address_mode_table) ? address_mode_table[index] : D3D11_TEXTURE_ADDRESS_WRAP;
+	}
+
+	//	サンプラー設定の読み書き（列挙型は幅を固定するため uint32_t で扱う）
+	template<class Archive>
+	void save_sampler_desc(Archive& archive, const texture_sampler_desc& desc)
+	{
+		archive(
+			static_cast<uint32_t>(desc.filter),
+			static_cast<uint32_t>(desc.address_u),
+			static_cast<uint32_t>(desc.address_v),
+			static_cast<uint32_t>(desc.address_w),
+			desc.max_anisotropy,
+			desc.mip_lod_bias,
+			desc.min_lod,
+			desc.max_lod,
+			desc.border_color[0], desc.border_color[1], desc.border_color[2], desc.border_color[3]);
+	}
+
+	template<class Archive>
+	void load_sampler_desc(Archive& archive, texture_sampler_desc& desc)
+	{
+		uint32_t filter = 0, address_u = 0, address_v = 0, address_w = 0;
+		archive(
+			filter,
+			address_u,
+			address_v,
+			address_w,
+			desc.max_anisotropy,
+			desc.mip_lod_bias,
+			desc.min_lod,
+			desc.max_lod,
+			desc.border_color[0], desc.border_color[1], desc.border_color[2], desc.border_color[3]);
+
+		auto to_filter = [](uint32_t value)
+		{
+			return value < static_cast<uint32_t>(texture_sampler_desc::filters::max) ? static_cast<texture_sampler_desc::filters>(value) : texture_sampler_desc::filters::linear;
+		};
+		auto to_address = [](uint32_t value)
+		{
+			return value < static_cast<uint32_t>(texture_sampler_desc::address_modes::max) ? static_cast<texture_sampler_desc::address_modes>(value) : texture_sampler_desc::address_modes::wrap;
+		};
+		desc.filter = to_filter(filter);
+		desc.address_u = to_address(address_u);
+		desc.address_v = to_address(address_v);
+		desc.address_w = to_address(address_w);
+	}
+}
+
+D3D11_SAMPLER_DESC texture_sampler_desc::to_d3d11_desc() const
+{
+	D3D11_SAMPLER_DESC desc{};
+	switch (filter)
+	{
+		case filters::point:		desc.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;	break;
+		case filters::anisotropic:	desc.Filter = D3D11_FILTER_ANISOTROPIC;			break;
+		case filters::linear:
+		default:					desc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;	break;
+	}
+	desc.AddressU = to_d3d11_address_mode(address_u);
+	desc.AddressV = to_d3d11_address_mode(address_v);
+	desc.AddressW = to_d3d11_address_mode(address_w);
+	desc.MipLODBias = mip_lod_bias;
+	desc.MaxAnisotropy = std::clamp<UINT>(max_anisotropy, 1, D3D11_REQ_MAXANISOTROPY);
+	desc.ComparisonFunc = D3D11_COMPARISON_ALWAYS;
+	for (size_t index = 0; index < border_color.size(); ++index)
+	{
+		desc.BorderColor[index] = border_color[index];
+	}
+	desc.MinLOD = min_lod;
+	desc.MaxLOD = max_lod;
+	return desc;
+}
+
 bool texture_meta_data::serialize(std::string_view file_path)
 {
 	std::ofstream ostream(file_path.data(), std::ios::binary);
@@ -275,7 +368,10 @@ bool texture_meta_data::serialize(std::string_view file_path)
 
 		try
 		{
+			//	@remainder	本来は不要な対応。識別子とバージョンを先頭に書く
+			archive(meta_data_signature, current_version);
 			archive(CEREAL_NVP(type), CEREAL_NVP(system_flags));
+			save_sampler_desc(archive, sampler);
 		}
 		catch (...)
 		{
@@ -299,7 +395,33 @@ bool texture_meta_data::deserialize(std::string_view file_path)
 
 		try
 		{
+			//	識別子が無ければ旧形式として先頭から読み直す
+			uint32_t signature = 0;
+			archive(signature);
+
+			uint32_t version = 0;
+			if (signature == meta_data_signature)
+			{
+				archive(version);
+				if (version > current_version)
+				{
+					DEBUG_ERROR("texture_meta_data unknown version[%s][%u]", file_path.data(), version);
+					return false;
+				}
+			}
+			else
+			{
+				istream.clear();
+				istream.seekg(0, std::ios::beg);
+			}
+
 			archive(CEREAL_NVP(type), CEREAL_NVP(system_flags));
+
+			sampler = texture_sampler_desc();
+			if (version >= 1)
+			{
+				load_sampler_desc(archive, sampler);
+			}
 		}
 		catch (...)
 		{
@@ -382,6 +504,7 @@ texture::texture(D3D11_RESOURCE_DIMENSION dimension, Microsoft::WRL::ComPtr<ID3D
 , dimension(dimension)
 , shader_resource_view(shader_resource_view)
 , unordered_access_view(unordered_access_view)
+, sampler_desc()
 {
 	set_flag(flags::srgb, false);
 }
@@ -416,6 +539,7 @@ void texture::reload()
 		this->dimension = fresh->dimension;
 		this->type = fresh->type;
 		this->system_flags = fresh->system_flags;
+		this->sampler_desc = fresh->sampler_desc;
 		on_reload();
 		update_last_write_time();
 	}
@@ -718,6 +842,7 @@ bool texture_manager::load_texture_from_file_inner(texture_ptr& out_texture, std
 			{
 				out_texture->set_type(meta_data.type);
 				out_texture->set_system_flags(meta_data.system_flags);
+				out_texture->set_sampler_desc(meta_data.sampler);
 			}
 		}
 	}
@@ -891,6 +1016,7 @@ bool texture_manager::save_texture(const texture_ptr& texture, bool save_row_tex
 		texture_meta_data meta_data;
 		meta_data.type = texture->get_type();
 		meta_data.system_flags = texture->get_system_flags();
+		meta_data.sampler = texture->get_sampler_desc();
 
 		file_path.replace_extension(extension);
 		return meta_data.serialize(file_path.string());

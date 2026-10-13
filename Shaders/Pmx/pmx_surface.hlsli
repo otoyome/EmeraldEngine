@@ -37,7 +37,7 @@ SurfaceData surface(VS_OUT pin, bool is_front_face)
         float4 base_color = base_color_factor;
         if (HAS_RESOURCE(BaseMap))
         {
-            base_color *= TEXTURE2D_SAMPLE(BaseMap, linear_sampler_state, pin.texcoord[BaseTexcoord]);
+            base_color *= TEXTURE2D_SAMPLE(BaseMap, GET_SAMPLER_STATE_INDEX(BaseMap), pin.texcoord[BaseTexcoord]);
         }
         data.base_color = base_color;
 
@@ -51,7 +51,7 @@ SurfaceData surface(VS_OUT pin, bool is_front_face)
             float3 ramp_color = 1.0f;
             if (HAS_RESOURCE(RampMap))
             {
-                ramp_color = TEXTURE2D_SAMPLE(RampMap, linear_sampler_state, ramp_texcoord).rgb;
+                ramp_color = TEXTURE2D_SAMPLE(RampMap, GET_SAMPLER_STATE_INDEX(RampMap), ramp_texcoord).rgb;
             }
             data.base_color.rgb *= ramp_color;
         }

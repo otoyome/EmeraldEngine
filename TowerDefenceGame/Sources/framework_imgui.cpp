@@ -306,6 +306,57 @@ void framework::imgui_textures_window()
 				{
 					texture_ptr->set_flag(texture::flags::srgb, srgb);
 				}
+
+				if (ImGui::TreeNode("sampler"))
+				{
+					static constexpr const char* filter_texts[] = { "point", "linear", "anisotropic" };
+					static constexpr const char* address_texts[] = { "wrap", "mirror", "clamp", "border", "mirror_once" };
+					static_assert(ARRAYSIZE(filter_texts) == static_cast<size_t>(texture_sampler_desc::filters::max));
+					static_assert(ARRAYSIZE(address_texts) == static_cast<size_t>(texture_sampler_desc::address_modes::max));
+
+					texture_sampler_desc sampler_desc = texture_ptr->get_sampler_desc();
+					bool changed = false;
+
+					int filter = static_cast<int>(sampler_desc.filter);
+					if (ImGui::Combo("filter", &filter, filter_texts, ARRAYSIZE(filter_texts)))
+					{
+						sampler_desc.filter = static_cast<texture_sampler_desc::filters>(filter);
+						changed = true;
+					}
+
+					auto address_combo = [&](const char* label, texture_sampler_desc::address_modes& mode)
+					{
+						int value = static_cast<int>(mode);
+						if (ImGui::Combo(label, &value, address_texts, ARRAYSIZE(address_texts)))
+						{
+							mode = static_cast<texture_sampler_desc::address_modes>(value);
+							changed = true;
+						}
+					};
+					address_combo("address_u", sampler_desc.address_u);
+					address_combo("address_v", sampler_desc.address_v);
+					address_combo("address_w", sampler_desc.address_w);
+
+					if (sampler_desc.filter == texture_sampler_desc::filters::anisotropic)
+					{
+						int max_anisotropy = static_cast<int>(sampler_desc.max_anisotropy);
+						if (ImGui::SliderInt("max_anisotropy", &max_anisotropy, 1, D3D11_REQ_MAXANISOTROPY))
+						{
+							sampler_desc.max_anisotropy = static_cast<UINT>(max_anisotropy);
+							changed = true;
+						}
+					}
+					changed |= ImGui::DragFloat("mip_lod_bias", &sampler_desc.mip_lod_bias, 0.01f, -16.0f, 15.99f);
+					changed |= ImGui::DragFloat("min_lod", &sampler_desc.min_lod, 0.1f, 0.0f, D3D11_FLOAT32_MAX);
+					changed |= ImGui::DragFloat("max_lod", &sampler_desc.max_lod, 0.1f, 0.0f, D3D11_FLOAT32_MAX);
+					changed |= ImGui::ColorEdit4("border_color", sampler_desc.border_color.data());
+
+					if (changed)
+					{
+						texture_ptr->set_sampler_desc(sampler_desc);
+					}
+					ImGui::TreePop();
+				}
 			}
 			if (!texture_ptr->is_flag(texture::flags::cube_map))
 			{
