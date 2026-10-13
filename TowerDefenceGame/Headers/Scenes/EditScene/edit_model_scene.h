@@ -46,6 +46,7 @@ private:
 	void discard_shadow_mesh();
 	void optimize_mesh_asset();
 	void generate_meshlet_asset();
+	void strip_white_vertex_color_asset();
 
 	void combine_meshes();
 	void clear_combined_meshes();

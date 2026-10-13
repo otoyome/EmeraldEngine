@@ -2,10 +2,12 @@
 #include "render_data.h"
 #include "common_pipeline_states.h"
 
+#include <iterator>
+
 namespace
 {
-	//	頂点・インデックスバッファの初期容量
-	constexpr UINT vertex_slot_capacity = 3 * 1000 * 1000;
+	//	属性毎の頂点プールの初期容量
+	constexpr UINT vertex_pool_initial_capacity = 256 * 1024;
 
 	//	メッシュレット用頂点・三角形バッファの初期容量
 	constexpr UINT meshlet_vertex_pool_capacity = 500 * 1000;
@@ -111,9 +113,6 @@ model_buffer_pool_manager::model_buffer_pool_manager()
 : meshlet_vertex_buffer(std::make_unique<model_gpu_buffer>(D3D11_BIND_SHADER_RESOURCE, static_cast<UINT>(meshlet_vertex_pool_capacity * sizeof(UINT)), static_cast<UINT>(sizeof(UINT))))
 , meshlet_triangle_buffer(std::make_unique<model_gpu_buffer>(D3D11_BIND_SHADER_RESOURCE, static_cast<UINT>(meshlet_triangle_pool_capacity * sizeof(UINT)), static_cast<UINT>(sizeof(UINT))))
 {
-	vertex_slot_allocator.initialize(vertex_slot_capacity);
-	vertex_slot_capacity_current = vertex_slot_capacity;
-
 	meshlet_vertex_allocator.initialize(meshlet_vertex_pool_capacity);
 	meshlet_vertex_capacity_current = meshlet_vertex_pool_capacity;
 
@@ -126,46 +125,68 @@ model_buffer_pool_manager::~model_buffer_pool_manager()
 {
 }
 
-UINT model_buffer_pool_manager::allocate_vertex_slots(UINT vertex_count)
+common_pipeline_states::vertex_elements model_buffer_pool_manager::find_vertex_element(const semantic& target_semantic)
 {
-	UINT base_vertex = vertex_slot_allocator.allocate(vertex_count);
-	if (base_vertex == variable_position_allocator::allocate_failed_code)
+	using common_pipeline_states::vertex_elements;
+
+	static const semantic element_semantics[] =
 	{
-		UINT growth = vertex_slot_capacity_current > vertex_count ? vertex_slot_capacity_current : vertex_count;
-		grow_vertex_capacity(growth);
-		base_vertex = vertex_slot_allocator.allocate(vertex_count);
+		semantic("POSITION", 0),
+		semantic("NORMAL", 0),
+		semantic("TANGENT", 0),
+		semantic("COLOR", 0),
+		semantic("TEXCOORD", 0),
+		semantic("TEXCOORD", 1),
+		semantic("JOINTS", 0),
+		semantic("JOINTS", 1),
+		semantic("JOINTS", 2),
+		semantic("JOINTS", 3),
+		semantic("WEIGHTS", 0),
+		semantic("WEIGHTS", 1),
+		semantic("WEIGHTS", 2),
+		semantic("WEIGHTS", 3),
+	};
+	static_assert(std::size(element_semantics) == static_cast<size_t>(vertex_elements::max));
+
+	for (UINT index = 0; index < static_cast<UINT>(vertex_elements::max); ++index)
+	{
+		if (element_semantics[index] == target_semantic)
+			return static_cast<vertex_elements>(index);
 	}
-	_ASSERT_EXPR(base_vertex != variable_position_allocator::allocate_failed_code, L"model_buffer_pool_manager allocate failed");
-	return base_vertex;
+	return vertex_elements::max;
 }
 
-void model_buffer_pool_manager::free_vertex_slots(UINT base_vertex)
-{
-	vertex_slot_allocator.deallocate(base_vertex);
-}
-
-model_gpu_buffer& model_buffer_pool_manager::get_vertex_buffer_pool(const semantic& target_semantic, UINT stride_in_bytes)
+model_buffer_pool_manager::vertex_pool& model_buffer_pool_manager::get_vertex_pool(const semantic& target_semantic, UINT stride_in_bytes)
 {
 	auto it = vertex_buffers.find(target_semantic);
 	if (it == vertex_buffers.end())
 	{
-		UINT capacity_in_bytes = vertex_slot_capacity_current * stride_in_bytes;
-		it = vertex_buffers.emplace(target_semantic, std::make_unique<model_gpu_buffer>(D3D11_BIND_VERTEX_BUFFER, capacity_in_bytes, stride_in_bytes)).first;
+		it = vertex_buffers.emplace(target_semantic, vertex_pool{}).first;
+		vertex_pool& pool = it->second;
+		pool.capacity = vertex_pool_initial_capacity;
+		pool.allocator.initialize(pool.capacity);
+		pool.buffer = std::make_unique<model_gpu_buffer>(D3D11_BIND_VERTEX_BUFFER, pool.capacity * stride_in_bytes, stride_in_bytes);
 	}
-	return *it->second;
+	return it->second;
 }
 
-void model_buffer_pool_manager::grow_vertex_capacity(UINT additional_vertex_count)
+UINT model_buffer_pool_manager::allocate_vertices(vertex_pool& pool, UINT vertex_count)
 {
-	if (!vertex_slot_allocator.grow(additional_vertex_count))
+	UINT base_vertex = pool.allocator.allocate(vertex_count);
+	if (base_vertex == variable_position_allocator::allocate_failed_code)
 	{
-		_ASSERT_EXPR(false, L"model_buffer_pool_manager: failed to grow vertex slot allocator");
-		return;
+		UINT growth = pool.capacity > vertex_count ? pool.capacity : vertex_count;
+		if (!pool.allocator.grow(growth))
+		{
+			_ASSERT_EXPR(false, L"model_buffer_pool_manager: failed to grow vertex pool allocator");
+			return variable_position_allocator::allocate_failed_code;
+		}
+		pool.capacity += growth;
+		pool.buffer->grow(pool.capacity * pool.buffer->get_stride_in_bytes());
+		base_vertex = pool.allocator.allocate(vertex_count);
 	}
-	vertex_slot_capacity_current += additional_vertex_count;
-
-	for (auto& pool : vertex_buffers)
-		pool.second->grow(vertex_slot_capacity_current * pool.second->get_stride_in_bytes());
+	_ASSERT_EXPR(base_vertex != variable_position_allocator::allocate_failed_code, L"model_buffer_pool_manager allocate failed");
+	return base_vertex;
 }
 
 UINT model_buffer_pool_manager::allocate_meshlet_vertices(UINT count)
@@ -226,43 +247,46 @@ void model_buffer_pool_manager::grow_meshlet_triangle_capacity(UINT additional_c
 	meshlet_triangle_buffer->grow(meshlet_triangle_capacity_current * sizeof(UINT));
 }
 
-void model_buffer_pool_manager::queue_vertex_upload(const semantic& target_semantic, UINT byte_offset, const void* data, UINT size_in_bytes, UINT stride_in_bytes)
-{
-	get_vertex_buffer_pool(target_semantic, stride_in_bytes).queue_upload(byte_offset, data, size_in_bytes);
-}
-
 void model_buffer_pool_manager::build_vertex_buffers(std::unordered_map<semantic, buffer_view>& vertex_buffer_views)
 {
-	if (vertex_buffer_views.empty())
-		return;
-
-	auto& first_view = vertex_buffer_views.begin()->second;
-	UINT vertex_count = static_cast<UINT>(first_view.count());
-	UINT base_vertex = allocate_vertex_slots(vertex_count);
-
 	for (auto& view : vertex_buffer_views)
 	{
+		if (find_vertex_element(view.first) == common_pipeline_states::vertex_elements::max)
+			continue;
+		if (view.second.stride_in_bytes == 0 || view.second.size_in_bytes == 0)
+			continue;
+
 		UINT stride_in_bytes = static_cast<UINT>(view.second.stride_in_bytes);
+		vertex_pool& pool = get_vertex_pool(view.first, stride_in_bytes);
+		_ASSERT_EXPR(pool.buffer->get_stride_in_bytes() == stride_in_bytes, L"model_buffer_pool_manager: stride mismatch in the same semantic");
+
+		UINT base_vertex = allocate_vertices(pool, static_cast<UINT>(view.second.count()));
+		if (base_vertex == variable_position_allocator::allocate_failed_code)
+			continue;
+
 		view.second.offset_in_bytes = static_cast<size_t>(base_vertex) * stride_in_bytes;
-		queue_vertex_upload(view.first, static_cast<UINT>(view.second.offset_in_bytes),
-			view.second.row_data.data(), static_cast<UINT>(view.second.size_in_bytes), stride_in_bytes);
+		pool.buffer->queue_upload(static_cast<UINT>(view.second.offset_in_bytes),
+								  view.second.row_data.data(), static_cast<UINT>(view.second.size_in_bytes));
 	}
 }
 
 void model_buffer_pool_manager::free_vertex_buffers(const std::unordered_map<semantic, buffer_view>& vertex_buffer_views)
 {
-	if (vertex_buffer_views.empty())
-		return;
+	for (auto& view : vertex_buffer_views)
+	{
+		auto it = vertex_buffers.find(view.first);
+		if (it == vertex_buffers.end() || view.second.stride_in_bytes == 0 || view.second.size_in_bytes == 0)
+			continue;
 
-	UINT base_vertex = static_cast<UINT>(vertex_buffer_views.begin()->second.offset());
-	free_vertex_slots(base_vertex);
+		it->second.allocator.deallocate(static_cast<UINT>(view.second.offset()));
+	}
 }
 
 ID3D11Buffer* model_buffer_pool_manager::get_vertex_buffer(const semantic& target_semantic)
 {
 	auto it = vertex_buffers.find(target_semantic);
 	_ASSERT_EXPR(it != vertex_buffers.end(), L"model_buffer_pool_manager unmanaged semantics");
-	return it->second->get_buffer();
+	return it->second.buffer->get_buffer();
 }
 
 ID3D11ShaderResourceView* model_buffer_pool_manager::get_vertex_buffer_srv(const semantic& target_semantic)
@@ -270,7 +294,7 @@ ID3D11ShaderResourceView* model_buffer_pool_manager::get_vertex_buffer_srv(const
 	auto it = vertex_buffers.find(target_semantic);
 	if (it == vertex_buffers.end())
 		return nullptr;
-	return it->second->get_srv();
+	return it->second.buffer->get_srv();
 }
 
 void model_buffer_pool_manager::build_meshlet_data(const std::vector<UINT>& meshlet_vertices, const std::vector<uint8_t>& meshlet_triangles, UINT& out_vertex_base, UINT& out_triangle_base)
@@ -350,7 +374,7 @@ void model_buffer_pool_manager::flush_uploads()
 {
 	for (auto& pool : vertex_buffers)
 	{
-		pool.second->flush_uploads();
+		pool.second.buffer->flush_uploads();
 	}
 	meshlet_vertex_buffer->flush_uploads();
 	meshlet_triangle_buffer->flush_uploads();
@@ -361,13 +385,12 @@ std::vector<model_buffer_pool_manager::pool_usage> model_buffer_pool_manager::ge
 	std::vector<pool_usage> usages;
 	usages.reserve(vertex_buffers.size());
 
-	UINT used_vertex_slots = vertex_slot_allocator.get_used_size();
 	for (auto& pool : vertex_buffers)
 	{
 		pool_usage usage;
 		usage.label = std::string(pool.first.get_name()) + std::to_string(pool.first.get_index());
-		usage.used_in_bytes = used_vertex_slots * pool.second->get_stride_in_bytes();
-		usage.capacity_in_bytes = pool.second->get_capacity_in_bytes();
+		usage.used_in_bytes = pool.second.allocator.get_used_size() * pool.second.buffer->get_stride_in_bytes();
+		usage.capacity_in_bytes = pool.second.buffer->get_capacity_in_bytes();
 		usages.emplace_back(std::move(usage));
 	}
 

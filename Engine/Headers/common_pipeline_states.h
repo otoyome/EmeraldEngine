@@ -166,17 +166,43 @@ namespace common_pipeline_states
 	constexpr UINT morph_max = 8;
 	constexpr std::string_view primitive_constant_buffer_name = "PRIMITIVE_CONSTANT_BUFFER";
 	constexpr system_utility::hash_key primitive_constant_buffer_hash_key = system_utility::generate_hash(primitive_constant_buffer_name);
+	//	頂点属性の番号
+	enum class vertex_elements : UINT
+	{
+		position,
+		normal,
+		tangent,
+		color0,
+		texcoord0,
+		texcoord1,
+		joints0,
+		joints1,
+		joints2,
+		joints3,
+		weights0,
+		weights1,
+		weights2,
+		weights3,
+
+		max,
+	};
+	constexpr UINT vertex_element_capacity = 16;	//	static_cast<UINT>(vertex_elements::max);
+
+	//	属性の所持ビット
+	constexpr UINT vertex_element_bit(vertex_elements element) { return 1u << static_cast<UINT>(element); }
+
 	struct primitive_header
 	{
-		math::uint4 primitive_parameter = {};		//	x : 接線有無, y : 位置モーフ数, z : 法線モーフ数, w : 未使用
-		UINT bone_offset = 0;						//	今回ボーン先頭位置
-		UINT previous_bone_offset = 0;				//	前回ボーン先頭位置
-		UINT bone_count = 0;						//	ボーン数
-		UINT base_vertex = 0;						//	先頭頂点番号
-
-		math::float4 position_morph[morph_max / 4];	//	座標モーフオフセット
-		math::float4 normal_morph[morph_max / 4];	//	法線オフセット
+		math::uint4 primitive_parameter = {};							//	x : 未使用（接線有無は has_element へ移行）, y : 位置モーフ数, z : 法線モーフ数, w : 未使用
+		UINT bone_offset = 0;											//	今回ボーン先頭位置
+		UINT previous_bone_offset = 0;									//	前回ボーン先頭位置
+		UINT bone_count = 0;											//	ボーン数
+		UINT has_element = 0;											//	頂点属性の所持ビット
+		math::uint4 element_bases[vertex_element_capacity / 4] = {};	//	属性毎の頂点プール内での先頭位置
+		math::float4 position_morph[morph_max / 4];						//	座標モーフオフセット
+		math::float4 normal_morph[morph_max / 4];						//	法線オフセット
 	};
+	static_assert(sizeof(primitive_header) % 16 == 0, "primitive_header must be 16 byte aligned (StructuredBuffer stride must match HLSL PrimitiveHeader)");
 
 	//	メッシュレットインスタンス情報
 	struct meshlet_instance_record

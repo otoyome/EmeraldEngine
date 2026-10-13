@@ -1,5 +1,6 @@
 #include "model_instance.h"
 #include "texture.h"
+#include "model_buffer_pool.h"
 
 #if defined(USE_IMGUI)
 #include "Graphics/debug_primitive_collector.h"
@@ -196,7 +197,6 @@ void model_instance_manger::registered(std::weak_ptr<model_instance> instance)
 
 void model_instance_manger::get_container(mesh_container& container, const math::vector3d& render_origin)
 {
-	const semantic tangent_semantic("TANGENT", 0);
 	const semantic position_semantic("POSITION", 0);
 	const semantic normal_semantic("NORMAL", 0);
 
@@ -393,11 +393,20 @@ void model_instance_manger::get_container(mesh_container& container, const math:
 			{
 				common_pipeline_states::primitive_header& header = container.primitive_header_scratch.emplace_back();
 
-				//	接線の有無
+				//	頂点属性の所持判定、属性毎の先頭頂点番号記録
+				for (auto& view : mesh.vertex_buffer_views)
+				{
+					const auto element = model_buffer_pool_manager::find_vertex_element(view.first);
+					if (element == common_pipeline_states::vertex_elements::max || view.second.stride_in_bytes == 0 || view.second.size_in_bytes == 0)
+						continue;
+
+					const UINT element_index = static_cast<UINT>(element);
+					header.has_element |= common_pipeline_states::vertex_element_bit(element);
+					(&header.element_bases[element_index / 4].x)[element_index % 4] = static_cast<UINT>(view.second.offset());
+				}
+
 				if (!buffer_data.color_meshs.empty())
 				{
-					header.primitive_parameter.x = buffer_data.color_meshs[0].vertex_buffer_views->find(tangent_semantic) != buffer_data.color_meshs[0].vertex_buffer_views->end();
-
 					//	モーフ重み
 					for (auto& morph_mesh : buffer_data.color_meshs[0].morph_meshes)
 					{
@@ -436,15 +445,6 @@ void model_instance_manger::get_container(mesh_container& container, const math:
 					container.bone_matrix_scratch.push_back((NodeOffsetTransform * PreviousNodeWorldTransforms[bone.node_index]).to_float4x4());
 				}
 				header.bone_count = bone_count;
-
-				//	先頭頂点番号取得
-				{
-					auto it = mesh.vertex_buffer_views.find(position_semantic);
-					if (it != mesh.vertex_buffer_views.end())
-					{
-						header.base_vertex = static_cast<UINT>(it->second.offset());
-					}
-				}
 			}
 
 			//	マテリアル情報構築

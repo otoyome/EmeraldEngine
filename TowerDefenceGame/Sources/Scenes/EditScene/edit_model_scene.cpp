@@ -19,6 +19,7 @@
 #include "collision/cubic_sdf.h"
 
 #include "model_resource_utility.h"
+#include "model_buffer_pool.h"
 
 #include "custom_pipeline_state.h"
 
@@ -555,6 +556,63 @@ void edit_model_scene::generate_meshlet_asset()
 		return;
 
 	model_resource_utility::generate_meshlets(*resource);
+}
+
+void edit_model_scene::strip_white_vertex_color_asset()
+{
+	if (!edit_model)
+		return;
+
+	auto resource = edit_model->get_model_instance()->get_resource();
+	if (!resource)
+		return;
+
+	//	全頂点が白の COLOR0 は削除
+	static const semantic color0_semantic("COLOR", 0);
+	size_t stripped_count = 0;
+	size_t kept_count = 0;
+	auto strip = [&](std::unordered_map<semantic, buffer_view>& vertex_buffer_views)
+	{
+		auto it = vertex_buffer_views.find(color0_semantic);
+		if (it == vertex_buffer_views.end())
+			return;
+
+		const buffer_view& view = it->second;
+		bool is_white = view.format == DXGI_FORMAT_R32G32B32A32_FLOAT && view.stride_in_bytes == sizeof(float) * 4 && !view.row_data.empty();
+		if (is_white)
+		{
+			const float* colors = reinterpret_cast<const float*>(view.row_data.data());
+			const size_t component_count = view.row_data.size() / sizeof(float);
+			for (size_t index = 0; index < component_count; ++index)
+			{
+				if (colors[index] != 1.0f)
+				{
+					is_white = false;
+					break;
+				}
+			}
+		}
+		if (!is_white)
+		{
+			++kept_count;
+			return;
+		}
+
+		//	頂点プールの領域を返却してから削除
+		std::unordered_map<semantic, buffer_view> released;
+		released.emplace(it->first, std::move(it->second));
+		vertex_buffer_views.erase(it);
+		model_buffer_pool_manager::instance()->free_vertex_buffers(released);
+		++stripped_count;
+	};
+
+	for (auto& mesh : resource->get_meshes_for_editor())
+	{
+		strip(mesh.vertex_buffer_views);
+		for (auto& lod_mesh : mesh.lod_meshs)
+			strip(lod_mesh.vertex_buffer_views);
+	}
+	DEBUG_LOG_CATEGORY(logger::categorys::model, "Strip White Vertex Color stripped=%zu kept=%zu", stripped_count, kept_count);
 }
 
 void edit_model_scene::combine_meshes()

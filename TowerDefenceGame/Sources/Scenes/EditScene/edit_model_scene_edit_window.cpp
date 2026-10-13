@@ -383,6 +383,11 @@ void edit_model_scene::imgui_model_loader_window()
 			{
 				generate_meshlet_asset();
 			}
+			//	全頂点が白の頂点カラーを削除
+			if (ImGui::Button("Strip White Vertex Color"))
+			{
+				strip_white_vertex_color_asset();
+			}
 		}
 
 		//	スキンなしメッシュの空間グリッド結合

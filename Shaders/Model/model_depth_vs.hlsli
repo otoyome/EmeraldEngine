@@ -7,37 +7,37 @@
 VS_DEPTH_IN load_vertex_pulled(MeshletContext meshlet_context, uint vertex_id)
 {
     VS_DEPTH_IN vin = (VS_DEPTH_IN)0;
-    uint global_vertex_index = meshlet_resolve_global_vertex_index(meshlet_context, vertex_id);
+    uint local_vertex_index = meshlet_resolve_local_vertex_index(meshlet_context, vertex_id);
 
-    vin.position = meshlet_load_position(global_vertex_index);
-    vin.normal = meshlet_load_normal(global_vertex_index);
+    vin.position = meshlet_load_position(meshlet_context, local_vertex_index);
+    vin.normal = meshlet_load_normal(meshlet_context, local_vertex_index);
 #if defined(HAS_TANGENT)
-    vin.tangent = meshlet_load_tangent(global_vertex_index);
+    vin.tangent = meshlet_load_tangent(meshlet_context, local_vertex_index);
 #endif  //  defined(HAS_TANGENT)
 #if VERTEX_COLOR_MAX > 0
-    vin.color[0] = meshlet_load_color0(global_vertex_index);
+    vin.color[0] = meshlet_load_color0(meshlet_context, local_vertex_index);
 #endif  //  VERTEX_COLOR_MAX > 0
 #if TEXCOORD_MAX > 0
-    vin.texcoord[0] = meshlet_load_texcoord0(global_vertex_index);
+    vin.texcoord[0] = meshlet_load_texcoord0(meshlet_context, local_vertex_index);
 #endif  //  TEXCOORD_MAX > 0
 #if TEXCOORD_MAX > 1
-    vin.texcoord[1] = meshlet_load_texcoord1(global_vertex_index);
+    vin.texcoord[1] = meshlet_load_texcoord1(meshlet_context, local_vertex_index);
 #endif  //  TEXCOORD_MAX > 1
 #if BONE_MAX > 0
-    vin.joints[0] = meshlet_load_joints0(global_vertex_index);
-    vin.weights[0] = meshlet_load_weights0(global_vertex_index);
+    vin.joints[0] = meshlet_load_joints0(meshlet_context, local_vertex_index);
+    vin.weights[0] = meshlet_load_weights0(meshlet_context, local_vertex_index);
 #endif  //  BONE_MAX > 0
 #if BONE_MAX > 4
-    vin.joints[1] = meshlet_load_joints1(global_vertex_index);
-    vin.weights[1] = meshlet_load_weights1(global_vertex_index);
+    vin.joints[1] = meshlet_load_joints1(meshlet_context, local_vertex_index);
+    vin.weights[1] = meshlet_load_weights1(meshlet_context, local_vertex_index);
 #endif  //  BONE_MAX > 4
 #if BONE_MAX > 8
-    vin.joints[2] = meshlet_load_joints2(global_vertex_index);
-    vin.weights[2] = meshlet_load_weights2(global_vertex_index);
+    vin.joints[2] = meshlet_load_joints2(meshlet_context, local_vertex_index);
+    vin.weights[2] = meshlet_load_weights2(meshlet_context, local_vertex_index);
 #endif  //  BONE_MAX > 8
 #if BONE_MAX > 12
-    vin.joints[3] = meshlet_load_joints3(global_vertex_index);
-    vin.weights[3] = meshlet_load_weights3(global_vertex_index);
+    vin.joints[3] = meshlet_load_joints3(meshlet_context, local_vertex_index);
+    vin.weights[3] = meshlet_load_weights3(meshlet_context, local_vertex_index);
 #endif  //  BONE_MAX > 12
 
     return vin;
@@ -60,9 +60,9 @@ VS_DEPTH_OUT main(uint vertex_id : SV_VertexID, uint instance_id : SV_InstanceID
     VS_DEPTH_IN vin = load_vertex_pulled(meshlet_context, vertex_id);
 
 #if defined(HAS_MORPH)  //  モーフィング対応
-    uint global_vertex_index_for_morph = meshlet_resolve_global_vertex_index(meshlet_context, vertex_id);
-    apply_morph_position(meshlet_context, vin.position, global_vertex_index_for_morph);
-    apply_morph_normal(meshlet_context, vin.normal, global_vertex_index_for_morph);
+    uint local_vertex_index_for_morph = meshlet_resolve_local_vertex_index(meshlet_context, vertex_id);
+    apply_morph_position(meshlet_context, vin.position, local_vertex_index_for_morph);
+    apply_morph_normal(meshlet_context, vin.normal, local_vertex_index_for_morph);
 #endif  //  defined(HAS_MORPH)
 
 #if BONE_MAX > 0

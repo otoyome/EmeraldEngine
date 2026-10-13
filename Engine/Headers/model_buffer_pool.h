@@ -50,6 +50,14 @@ class model_buffer_pool_manager
 {
 	SINGLETON(model_buffer_pool_manager)
 
+	//	属性毎の頂点プール
+	struct vertex_pool
+	{
+		std::unique_ptr<model_gpu_buffer> buffer;
+		variable_position_allocator allocator;
+		UINT capacity = 0;
+	};
+
 	//	プロファイラー表示用の使用量情報
 	struct pool_usage
 	{
@@ -63,11 +71,10 @@ private:
 	~model_buffer_pool_manager();
 
 public:
-	//	頂点バッファ
-	UINT allocate_vertex_slots(UINT vertex_count);
-	void free_vertex_slots(UINT base_vertex);
+	//	メッシュレットで読む頂点属性の番号を取得
+	static common_pipeline_states::vertex_elements find_vertex_element(const semantic& target_semantic);
 
-	void queue_vertex_upload(const semantic& target_semantic, UINT byte_offset, const void* data, UINT size_in_bytes, UINT stride_in_bytes);
+	//	頂点バッファ
 	void build_vertex_buffers(std::unordered_map<semantic, buffer_view>& vertex_buffer_views);
 	void free_vertex_buffers(const std::unordered_map<semantic, buffer_view>& vertex_buffer_views);
 
@@ -89,9 +96,9 @@ public:
 	std::vector<pool_usage> get_pool_usages() const;
 
 private:
-	model_gpu_buffer& get_vertex_buffer_pool(const semantic& target_semantic, UINT stride_in_bytes);
+	vertex_pool& get_vertex_pool(const semantic& target_semantic, UINT stride_in_bytes);
+	UINT allocate_vertices(vertex_pool& pool, UINT vertex_count);
 
-	void grow_vertex_capacity(UINT additional_vertex_count);
 	UINT allocate_meshlet_vertices(UINT count);
 	void free_meshlet_vertices(UINT base);
 	UINT allocate_meshlet_triangles(UINT count);
@@ -100,9 +107,7 @@ private:
 	void grow_meshlet_triangle_capacity(UINT additional_count);
 
 	//	頂点バッファ
-	variable_position_allocator vertex_slot_allocator;
-	std::unordered_map<semantic, std::unique_ptr<model_gpu_buffer>> vertex_buffers;
-	UINT vertex_slot_capacity_current = 0;
+	std::unordered_map<semantic, vertex_pool> vertex_buffers;
 
 	//	メッシュレットバッファ
 	variable_position_allocator meshlet_vertex_allocator;

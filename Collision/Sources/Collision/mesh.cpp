@@ -1082,25 +1082,10 @@ bool bounding_mesh::intersect_capsule_inner(const bounding_capsule& local_capsul
 	auto LineA = math::vector3f(local_capsule_line[0]);
 	auto LineB = math::vector3f(local_capsule_line[1]);
 
-	//	接触の種類
-	enum contact_kinds
-	{
-		contact_front,		//	軸の最近点が面の表側、または軸が三角形を貫通
-		contact_back_face,	//	軸の最近点が面の裏側で、投影が三角形の内側（球部分を超えて沈んでいる）
-		contact_back_edge,	//	軸の最近点が面の裏側で、投影が三角形の外側（辺・頂点との接触）
-		contact_kind_count,
-	};
-	struct contact
-	{
-		bool valid = false;
-		float depth = -FLT_MAX;
-		math::vector3f PushDirection = {};
-		math::float3 point_segment = {};
-		math::float3 point_triangle = {};
-	};
-	contact contacts[contact_kind_count];
-
-	bool hit = false;
+	math::float3 nearlest_point_segment = {}, nearlest_point_triangle = {};
+	bool nearlest_point_edghFlg = false;
+	float nearlest = FLT_MAX;
+	size_t nealest_face_index = -1;
 	for (size_t index = 0; index < triangle_indices.size(); ++index)
 	{
 		auto triangle = t + ti[index];
@@ -1111,98 +1096,102 @@ bool bounding_mesh::intersect_capsule_inner(const bounding_capsule& local_capsul
 		if (math::any_greater(CapsuleMin, Max) || math::any_greater(Min, CapsuleMax))
 			continue;
 
+		//	平面距離判定
+		if (nearlest < FLT_MAX)
+		{
+			auto TriA = math::vector3f(*(p + triangle->a));
+			auto Normal = math::vector3f(triangle->normal);
+
+			float dA = math::vector3f::dot(Normal, LineA - TriA);
+			float dB = math::vector3f::dot(Normal, LineB - TriA);
+
+			if (dA * dB > 0.0f)
+			{
+				if (std::min(fabsf(dA), fabsf(dB)) >= nearlest)
+					continue;
+			}
+		}
+
 		//	距離算出
 		math::float3 near_point_segment, near_point_triangle;
 		bool near_point_edghFlg;
 		float t = calculate_segment_distance(local_capsule_line, *triangle, near_point_segment, near_point_triangle, near_point_edghFlg);
-		if (t >= radius)
-			continue;
-
-		hit = true;
-		if (!intersect)
-			break;
-
-		math::vector3f TriangleA(*(p + triangle->a));
-		math::vector3f Normal(triangle->normal);
-		math::vector3f PointA(near_point_segment);
-		math::vector3f PointB(near_point_triangle);
-		math::vector3f Vector = PointA - PointB;
-		const bool has_normal = math::vector3f::dot(Normal, Normal) > 0.5f;
-
-		//	軸の両端と最近点の距離
-		const float distanceA = math::vector3f::dot(Normal, LineA - TriangleA);
-		const float distanceB = math::vector3f::dot(Normal, LineB - TriangleA);
-		const float distance_nearest = math::vector3f::dot(Normal, PointA - TriangleA);
-
-		contact_kinds kind = contact_front;
-		float depth = radius - t;
-		math::vector3f PushDirection = Vector.normalized();
-		if (has_normal && t <= 0.0f)
+		if (t < nearlest)
 		{
-			//	軸が三角形を貫通している場合は面の法線方向へ押し戻す
-			depth = radius - std::min(distanceA, distanceB);
-			PushDirection = Normal;
-		}
-		else if (has_normal && distance_nearest < 0.0f)
-		{
-			math::vector3f TriangleB(*(p + triangle->b));
-			math::vector3f TriangleC(*(p + triangle->c));
-			math::vector3f Projection;
-			if (calculate_nearlest_point(PointA, TriangleA, TriangleB, TriangleC,
-										 math::vector3f(triangle->ab), math::vector3f(triangle->bc), -math::vector3f(triangle->ca), Projection))
-			{
-				//	面の裏に沈んでいる場合は法線方向へ押し戻す
-				kind = contact_back_face;
-				depth = radius - std::min(distanceA, distanceB);
-				PushDirection = Normal;
-			}
-			else
-			{
-				kind = contact_back_edge;
-			}
-		}
-
-		//	法線が手に入らなかった場合は三角形の面を納入
-		if (math::vector3f::dot(PushDirection, PushDirection) <= FLT_EPSILON)
-			PushDirection = Normal;
-
-		contact& current = contacts[kind];
-		if (!current.valid || depth > current.depth)
-		{
-			current.valid = true;
-			current.depth = depth;
-			current.PushDirection = PushDirection;
-			current.point_segment = near_point_segment;
-			current.point_triangle = near_point_triangle;
+			nearlest = t;
+			nealest_face_index = index;
+			nearlest_point_segment = near_point_segment;
+			nearlest_point_triangle = near_point_triangle;
+			nearlest_point_edghFlg = near_point_edghFlg;
 		}
 	}
 
-	if (hit && intersect)
+	if (nearlest < radius && intersect)
 	{
-		const contact* selected = nullptr;
-		for (auto& candidate : contacts)
-		{
-			if (candidate.valid)
-			{
-				selected = &candidate;
-				break;
-			}
-		}
+		auto triangle = t + ti[nealest_face_index];
+		math::vector3f TriangleA(*(p + triangle->a));
+		math::vector3f TriangleB(*(p + triangle->b));
+		math::vector3f TriangleC(*(p + triangle->c));
+		math::vector3f PointA(nearlest_point_segment);
+		math::vector3f PointB(nearlest_point_triangle);
+
+		math::vector3f Position(local_capsule_line[0]);
+		math::vector3f End(local_capsule_line[1]);
+		math::vector3f Direction = (Position - End).normalized();
 
 		collision::intersect_data::infomation infomation;
-		infomation.point = math::double3(selected->point_segment);
-		infomation.point2 = math::double3(selected->point_triangle);
-		infomation.length = selected->depth;
+		infomation.point = math::double3(nearlest_point_segment);
+		infomation.point2 = math::double3(nearlest_point_triangle);
+		math::vector3f Vector = PointA - PointB;
+
+		//	最短点が面上の場合
+		math::vector3f Normal(triangle->normal);
+
+		if (!nearlest_point_edghFlg)
+		{
+			//	線分が三角形を貫通している場合
+			if (nearlest == 0)
+			{
+				//	両端の表裏判定
+				float d = math::vector3f::dot(Normal, Direction);
+				math::vector3f BackPoint = d > 0 ? End : Position;
+
+				//	裏側の点から交点へのベクトルを算出し、カプセルのポジションに加算
+				//	さらに法線の単位ベクトルにカプセルの半径を掛けたベクトルを用意し、カプセルのポジションに加算する
+				Vector = (PointB - BackPoint) + (Normal * radius);
+
+				infomation.length = Vector.length();
+				Normal = Vector.normalized();
+			}
+			else
+			{
+				infomation.length = radius - Vector.length();
+				Normal = Vector.normalized();
+			}
+		}
+		else
+		{
+			//	最短点が辺上の場合
+			infomation.length = radius - nearlest;
+		//	infomation.length = radius - DirectX::XMVectorGetX(DirectX::XMVector3Length(Vector));
+			Normal = Vector.normalized();
+		}
+
+		//	法線が手に入らなかった場合は三角形の面を納入
+		if (math::vector3f::dot(Normal, Normal) <= FLT_EPSILON)
+		{
+			Normal = math::vector3f(triangle->normal);
+		}
 
 		//	法線を反転しておく
-		infomation.normal = math::double3((-selected->PushDirection).to_float3());
+		infomation.normal = math::double3((-Normal).to_float3());
 
 		infomation.point = (math::vector3d::transform_coord(math::vector3d(infomation.point), TransformMatrix)).to_double3();
 		infomation.point2 = (math::vector3d::transform_coord(math::vector3d(infomation.point2), TransformMatrix)).to_double3();
 		infomation.normal = ((math::vector3d::transform_normal(math::vector3d(infomation.normal), TransformMatrix)).normalized()).to_double3();
 		intersect->add(infomation);
 	}
-	return hit;
+	return nearlest < radius;
 }
 
 bool bounding_mesh::intersect_capsule(const bounding_capsule& capsule, intersect_data* intersect) const

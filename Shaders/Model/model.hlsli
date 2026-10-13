@@ -146,20 +146,37 @@ struct VS_FORWARD_OUT
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-//  ボーン対応する必要のあるモデルの計算
+//  プリミティブヘッダー
+static const uint vertex_element_capacity = 16; // 頂点エレメント最大数
 static const uint mesh_bone_max = 500;	//	1メッシュ500本あれば大丈夫？
 static const uint morph_max = 8; // 8個もブレンドするかな？
 struct PrimitiveHeader
 {
-    uint4 header_primitive_parameter;	//	x : 接線有無, y : 位置モーフ数, z : 法線モーフ数, w : 未使用
-    uint  bone_offset;			        //	今回ボーン先頭位置
-    uint  previous_bone_offset;	        //	前回ボーン先頭位置
-    uint  bone_count;			        //	ボーン数
-    uint  base_vertex;                  //  先頭頂点番号
-
-    float4 header_position_morph[morph_max / 4];
-    float4 header_normal_morph[morph_max / 4];
+    uint4 header_primitive_parameter;	                //	x : 未使用（接線有無は has_element へ移行）, y : 位置モーフ数, z : 法線モーフ数, w : 未使用
+    uint  bone_offset;			                        //	今回ボーン先頭位置
+    uint  previous_bone_offset;	                        //	前回ボーン先頭位置
+    uint  bone_count;			                        //	ボーン数
+    uint  has_element;                                  //  頂点属性の所持ビット
+    uint4 element_bases[vertex_element_capacity / 4];   //  属性毎の頂点プール内での先頭位置
+    float4 header_position_morph[morph_max / 4];        //	座標モーフオフセット
+    float4 header_normal_morph[morph_max / 4];	        //	法線オフセット
 };
+
+//	頂点属性の番号
+#define VERTEX_ELEMENT_POSITION     0
+#define VERTEX_ELEMENT_NORMAL       1
+#define VERTEX_ELEMENT_TANGENT      2
+#define VERTEX_ELEMENT_COLOR0       3
+#define VERTEX_ELEMENT_TEXCOORD0    4
+#define VERTEX_ELEMENT_TEXCOORD1    5
+#define VERTEX_ELEMENT_JOINTS0      6
+#define VERTEX_ELEMENT_JOINTS1      7
+#define VERTEX_ELEMENT_JOINTS2      8
+#define VERTEX_ELEMENT_JOINTS3      9
+#define VERTEX_ELEMENT_WEIGHTS0     10
+#define VERTEX_ELEMENT_WEIGHTS1     11
+#define VERTEX_ELEMENT_WEIGHTS2     12
+#define VERTEX_ELEMENT_WEIGHTS3     13
 
 struct BoneMatrix
 {
@@ -173,7 +190,6 @@ StructuredBuffer<BoneMatrix> bone_matrices : register(t101);
 struct MeshletContext
 {
 	uint primitive_index;
-	uint mesh_base_vertex;
 	uint meshlet_vertex_offset;
 	uint meshlet_triangle_offset;
 };
@@ -198,9 +214,8 @@ StructuredBuffer<float3> morph_normals[morph_max] : register(t88);
 #define position_morph(context)      (primitive_headers[(context).primitive_index].header_position_morph)
 #define normal_morph(context)        (primitive_headers[(context).primitive_index].header_normal_morph)
 
-void apply_morph_position(MeshletContext context, inout float3 position, uint vertex_id)
+void apply_morph_position(MeshletContext context, inout float3 position, uint local_vertex_id)
 {
-    uint local_vertex_id = vertex_id - context.mesh_base_vertex;
     [unroll] for (uint index = 0; index < morph_max; ++index)
     {
         if (index >= primitive_parameter(context).y)
@@ -211,9 +226,8 @@ void apply_morph_position(MeshletContext context, inout float3 position, uint ve
     }
 }
 
-void apply_morph_normal(MeshletContext context, inout float3 normal, uint vertex_id)
+void apply_morph_normal(MeshletContext context, inout float3 normal, uint local_vertex_id)
 {
-    uint local_vertex_id = vertex_id - context.mesh_base_vertex;
     [unroll] for (uint index = 0; index < morph_max; ++index)
     {
         if (index >= primitive_parameter(context).z)
@@ -267,7 +281,6 @@ MeshletContext meshlet_build_context(uint instance_id, uint vertex_id, out bool 
 
 	MeshletContext context;
 	context.primitive_index = record.primitive_index;
-	context.mesh_base_vertex = primitive_headers[record.primitive_index].base_vertex;
 	context.meshlet_vertex_offset = record.vertex_offset;
 	context.meshlet_triangle_offset = record.triangle_offset;
 
@@ -275,29 +288,109 @@ MeshletContext meshlet_build_context(uint instance_id, uint vertex_id, out bool 
 	return context;
 }
 
-//	SV_VertexIDから、このメッシュレット内のローカル頂点番号を経由してグローバル頂点番号を求める
-uint meshlet_resolve_global_vertex_index(MeshletContext context, uint vertex_id)
+//	SV_VertexIDからメッシュレット内のローカル頂点番号を経由してメッシュ内の頂点番号を算出
+uint meshlet_resolve_local_vertex_index(MeshletContext context, uint vertex_id)
 {
 	uint triangle_index_pool_index = context.meshlet_triangle_offset + vertex_id;
 	uint local_vertex_index = meshlet_triangle_indices.Load(triangle_index_pool_index * 4);
-	uint mesh_local_vertex_index = meshlet_vertex_indices.Load((context.meshlet_vertex_offset + local_vertex_index) * 4);
-	return context.mesh_base_vertex + mesh_local_vertex_index;
+	return meshlet_vertex_indices.Load((context.meshlet_vertex_offset + local_vertex_index) * 4);
 }
 
-float3 meshlet_load_position(uint vertex_index) { return asfloat(meshlet_positions.Load3(vertex_index * 12)); }
-float3 meshlet_load_normal(uint vertex_index) { return asfloat(meshlet_normals.Load3(vertex_index * 12)); }
-float4 meshlet_load_tangent(uint vertex_index) { return asfloat(meshlet_tangents.Load4(vertex_index * 16)); }
-float4 meshlet_load_color0(uint vertex_index) { return asfloat(meshlet_colors0.Load4(vertex_index * 16)); }
-float2 meshlet_load_texcoord0(uint vertex_index) { return asfloat(meshlet_texcoords0.Load2(vertex_index * 8)); }
-float2 meshlet_load_texcoord1(uint vertex_index) { return asfloat(meshlet_texcoords1.Load2(vertex_index * 8)); }
-uint4 meshlet_load_joints0(uint vertex_index) { return meshlet_joints0.Load4(vertex_index * 16); }
-uint4 meshlet_load_joints1(uint vertex_index) { return meshlet_joints1.Load4(vertex_index * 16); }
-uint4 meshlet_load_joints2(uint vertex_index) { return meshlet_joints2.Load4(vertex_index * 16); }
-uint4 meshlet_load_joints3(uint vertex_index) { return meshlet_joints3.Load4(vertex_index * 16); }
-float4 meshlet_load_weights0(uint vertex_index) { return asfloat(meshlet_weights0.Load4(vertex_index * 16)); }
-float4 meshlet_load_weights1(uint vertex_index) { return asfloat(meshlet_weights1.Load4(vertex_index * 16)); }
-float4 meshlet_load_weights2(uint vertex_index) { return asfloat(meshlet_weights2.Load4(vertex_index * 16)); }
-float4 meshlet_load_weights3(uint vertex_index) { return asfloat(meshlet_weights3.Load4(vertex_index * 16)); }
+//	頂点属性を所持しているか
+bool meshlet_has_element(MeshletContext context, uint element)
+{
+	return (primitive_headers[context.primitive_index].has_element & (1u << element)) != 0;
+}
+
+//	属性毎のプール内での頂点番号
+uint meshlet_element_vertex_index(MeshletContext context, uint element, uint local_vertex_index)
+{
+	return primitive_headers[context.primitive_index].element_bases[element / 4][element % 4] + local_vertex_index;
+}
+
+//	頂点属性の読み出し（所持していない属性は既定値を返す）
+float3 meshlet_load_position(MeshletContext context, uint local_vertex_index)
+{
+	return asfloat(meshlet_positions.Load3(meshlet_element_vertex_index(context, VERTEX_ELEMENT_POSITION, local_vertex_index) * 12));
+}
+float3 meshlet_load_normal(MeshletContext context, uint local_vertex_index)
+{
+	if (!meshlet_has_element(context, VERTEX_ELEMENT_NORMAL))
+		return float3(0, 1, 0);
+	return asfloat(meshlet_normals.Load3(meshlet_element_vertex_index(context, VERTEX_ELEMENT_NORMAL, local_vertex_index) * 12));
+}
+float4 meshlet_load_tangent(MeshletContext context, uint local_vertex_index)
+{
+	if (!meshlet_has_element(context, VERTEX_ELEMENT_TANGENT))
+		return float4(1, 0, 0, 1);
+	return asfloat(meshlet_tangents.Load4(meshlet_element_vertex_index(context, VERTEX_ELEMENT_TANGENT, local_vertex_index) * 16));
+}
+float4 meshlet_load_color0(MeshletContext context, uint local_vertex_index)
+{
+	if (!meshlet_has_element(context, VERTEX_ELEMENT_COLOR0))
+		return float4(1, 1, 1, 1);
+	return asfloat(meshlet_colors0.Load4(meshlet_element_vertex_index(context, VERTEX_ELEMENT_COLOR0, local_vertex_index) * 16));
+}
+float2 meshlet_load_texcoord0(MeshletContext context, uint local_vertex_index)
+{
+	if (!meshlet_has_element(context, VERTEX_ELEMENT_TEXCOORD0))
+		return float2(0, 0);
+	return asfloat(meshlet_texcoords0.Load2(meshlet_element_vertex_index(context, VERTEX_ELEMENT_TEXCOORD0, local_vertex_index) * 8));
+}
+float2 meshlet_load_texcoord1(MeshletContext context, uint local_vertex_index)
+{
+	if (!meshlet_has_element(context, VERTEX_ELEMENT_TEXCOORD1))
+		return float2(0, 0);
+	return asfloat(meshlet_texcoords1.Load2(meshlet_element_vertex_index(context, VERTEX_ELEMENT_TEXCOORD1, local_vertex_index) * 8));
+}
+uint4 meshlet_load_joints0(MeshletContext context, uint local_vertex_index)
+{
+	if (!meshlet_has_element(context, VERTEX_ELEMENT_JOINTS0))
+		return uint4(0, 0, 0, 0);
+	return meshlet_joints0.Load4(meshlet_element_vertex_index(context, VERTEX_ELEMENT_JOINTS0, local_vertex_index) * 16);
+}
+uint4 meshlet_load_joints1(MeshletContext context, uint local_vertex_index)
+{
+	if (!meshlet_has_element(context, VERTEX_ELEMENT_JOINTS1))
+		return uint4(0, 0, 0, 0);
+	return meshlet_joints1.Load4(meshlet_element_vertex_index(context, VERTEX_ELEMENT_JOINTS1, local_vertex_index) * 16);
+}
+uint4 meshlet_load_joints2(MeshletContext context, uint local_vertex_index)
+{
+	if (!meshlet_has_element(context, VERTEX_ELEMENT_JOINTS2))
+		return uint4(0, 0, 0, 0);
+	return meshlet_joints2.Load4(meshlet_element_vertex_index(context, VERTEX_ELEMENT_JOINTS2, local_vertex_index) * 16);
+}
+uint4 meshlet_load_joints3(MeshletContext context, uint local_vertex_index)
+{
+	if (!meshlet_has_element(context, VERTEX_ELEMENT_JOINTS3))
+		return uint4(0, 0, 0, 0);
+	return meshlet_joints3.Load4(meshlet_element_vertex_index(context, VERTEX_ELEMENT_JOINTS3, local_vertex_index) * 16);
+}
+float4 meshlet_load_weights0(MeshletContext context, uint local_vertex_index)
+{
+	if (!meshlet_has_element(context, VERTEX_ELEMENT_WEIGHTS0))
+		return float4(1, 0, 0, 0);
+	return asfloat(meshlet_weights0.Load4(meshlet_element_vertex_index(context, VERTEX_ELEMENT_WEIGHTS0, local_vertex_index) * 16));
+}
+float4 meshlet_load_weights1(MeshletContext context, uint local_vertex_index)
+{
+	if (!meshlet_has_element(context, VERTEX_ELEMENT_WEIGHTS1))
+		return float4(0, 0, 0, 0);
+	return asfloat(meshlet_weights1.Load4(meshlet_element_vertex_index(context, VERTEX_ELEMENT_WEIGHTS1, local_vertex_index) * 16));
+}
+float4 meshlet_load_weights2(MeshletContext context, uint local_vertex_index)
+{
+	if (!meshlet_has_element(context, VERTEX_ELEMENT_WEIGHTS2))
+		return float4(0, 0, 0, 0);
+	return asfloat(meshlet_weights2.Load4(meshlet_element_vertex_index(context, VERTEX_ELEMENT_WEIGHTS2, local_vertex_index) * 16));
+}
+float4 meshlet_load_weights3(MeshletContext context, uint local_vertex_index)
+{
+	if (!meshlet_has_element(context, VERTEX_ELEMENT_WEIGHTS3))
+		return float4(0, 0, 0, 0);
+	return asfloat(meshlet_weights3.Load4(meshlet_element_vertex_index(context, VERTEX_ELEMENT_WEIGHTS3, local_vertex_index) * 16));
+}
 
 
 
