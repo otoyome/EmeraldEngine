@@ -279,6 +279,9 @@
     <ClInclude Include="Headers\Resource\resource_operation_state.h">
       <Filter>Headers\Resource</Filter>
     </ClInclude>
+    <ClInclude Include="Headers\Resource\data_compression.h">
+      <Filter>Headers\Resource</Filter>
+    </ClInclude>
     <ClInclude Include="Headers\System\parallel_for_executor.h">
       <Filter>Headers\System</Filter>
     </ClInclude>
@@ -426,6 +429,9 @@
       <Filter>Sources\Resource</Filter>
     </ClCompile>
     <ClCompile Include="Sources\Resource\resource_operation.cpp">
+      <Filter>Sources\Resource</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Resource\data_compression.cpp">
       <Filter>Sources\Resource</Filter>
     </ClCompile>
     <ClCompile Include="Sources\System\cpu_timer.cpp">
