@@ -121,7 +121,10 @@ bool minigame_stage_00_scene::initialize_core()
 		auto model = std::make_shared<model_object>("ステージ", path.string());
 		model->get_model_instance()->set_flag(model_instance::flags::culling, true);
 		model->get_model_instance()->set_flag(model_instance::flags::shadow_caster, true);
+		register_object(model);
+
 		auto stage = std::make_shared<stage_object>("ステージ制御", model);
+		register_object(stage);
 
 		//	メッシュ分当たり判定生成
 		//	動かさない事前提
@@ -129,15 +132,74 @@ bool minigame_stage_00_scene::initialize_core()
 		generate_model_collision(model->get_model_instance()->get_resource(), transform);
 		generate_model_sdf(model->get_model_instance()->get_resource());
 
-		//	スタートポイント設定
-		auto point = std::make_shared<start_point_object>("開始位置 0", "");
-		point->set_world_translation(system_units::convert_m_to_unit(math::double3(0.0, 12.0, -60.0)));
-		point->set_world_rotation(math::rotatord(0, 3.6477, 0));
-		point->attach(model);
+		//	プレイヤースタートポイント設定
+		{
+			auto player_point = std::make_shared<start_point_object>("プレイヤー開始位置 0", "Player Start 0");
+			player_point->set_world_translation(system_units::convert_m_to_unit(math::double3(0.0, 0.0, -50.0)));
+			player_point->set_world_rotation(math::rotatord(0, 0, 0));
+			player_point->attach(model);
+			register_object(player_point);
+		}
+		{
+			auto player_point = std::make_shared<start_point_object>("プレイヤー開始位置 1", "Player Start 1");
+			player_point->set_world_translation(system_units::convert_m_to_unit(math::double3(-50.0, 0.0, 0.0)));
+			player_point->set_world_rotation(math::rotatord(0, 0, 0));
+			player_point->attach(model);
+			register_object(player_point);
+		}
+		{
+			auto player_point = std::make_shared<start_point_object>("プレイヤー開始位置 2", "Player Start 2");
+			player_point->set_world_translation(system_units::convert_m_to_unit(math::double3(0.0, 0.0, +50.0)));
+			player_point->set_world_rotation(math::rotatord(0, 0, 0));
+			player_point->attach(model);
+			register_object(player_point);
+		}
+		{
+			auto player_point = std::make_shared<start_point_object>("プレイヤー開始位置 3", "Player Start 3");
+			player_point->set_world_translation(system_units::convert_m_to_unit(math::double3(+50.0, 0.0, 0.0)));
+			player_point->set_world_rotation(math::rotatord(0, 0, 0));
+			player_point->attach(model);
+			register_object(player_point);
+		}
 
-		register_object(model);
-		register_object(stage);
-		register_object(point);
+		//	パーティクルポイント設定
+		static constexpr float DustSetLength = 40;
+		static constexpr float BubbleSetLength = DustSetLength / 2;
+		static constexpr math::double3 DustBlock[] =
+		{
+			system_units::convert_m_to_unit(math::double3(-DustSetLength, 0.0, -DustSetLength)),
+			system_units::convert_m_to_unit(math::double3(+DustSetLength, 0.0, -DustSetLength)),
+			system_units::convert_m_to_unit(math::double3(           0.0, 0.0,            0.0)),
+			system_units::convert_m_to_unit(math::double3(-DustSetLength, 0.0, +DustSetLength)),
+			system_units::convert_m_to_unit(math::double3(+DustSetLength, 0.0, +DustSetLength)),
+		};
+		static constexpr math::double3 BubbleBlock[] =
+		{
+			system_units::convert_m_to_unit(math::double3(-BubbleSetLength, 0, -BubbleSetLength)),
+			system_units::convert_m_to_unit(math::double3(+BubbleSetLength, 0, -BubbleSetLength)),
+			system_units::convert_m_to_unit(math::double3(-BubbleSetLength, 0, +BubbleSetLength)),
+			system_units::convert_m_to_unit(math::double3(+BubbleSetLength, 0, +BubbleSetLength)),
+		};
+		for (int index = 0; index < ARRAYSIZE(DustBlock); ++index)
+		{
+			std::string name = "ゴミ発生位置 " + std::to_string(index);
+			std::string tag = "Dust Point " + std::to_string(index);
+			auto particle_point = std::make_shared<start_point_object>(name, tag);
+			particle_point->set_world_translation(DustBlock[index]);
+			particle_point->set_world_rotation(math::rotatord(0, 0, 0));
+			particle_point->attach(model);
+			register_object(particle_point);
+		}
+		for (int index = 0; index < ARRAYSIZE(BubbleBlock); ++index)
+		{
+			std::string name = "泡発生位置 " + std::to_string(index);
+			std::string tag = "Bubble Point " + std::to_string(index);
+			auto particle_point = std::make_shared<start_point_object>(name, tag);
+			particle_point->set_world_translation(BubbleBlock[index]);
+			particle_point->set_world_rotation(math::rotatord(0, 0, 0));
+			particle_point->attach(model);
+			register_object(particle_point);
+		}
 	}
 
 	return true;
