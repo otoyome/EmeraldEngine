@@ -141,7 +141,7 @@ private:
 
 public:
 	float adapt_rate = 0.05f;
-	math::float2 luminance_range = {2.0f, 1000.0f};
+	math::float2 luminance_range = {1.0f, 1000.0f};
 
 public:
 	bool is_active() const;

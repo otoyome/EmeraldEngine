@@ -4,7 +4,9 @@
 #include "Scenes/stationed_scene.h"
 
 #include "minigame_ui_scene.h"
-#include "Scenes/StageScene/stage_00_scene.h"
+//#include "Scenes/StageScene/stage_00_scene.h"
+#include "Scenes/MiniGameScene/minigame_stage_00_scene.h"
+#include "Scenes/MiniGameScene/minigame_stage_01_scene.h"
 
 #include "object/gameobjects/minigame/roomba_object.h"
 #include "object/camera_object.h"
@@ -13,8 +15,7 @@
 //	ゲームメインシーン
 class minigame_scene : public scene_base
 {
-	//SCENE_DECRLEAR(minigame_scene, scene_base);
-	SCENE_ADD_CHILDREN_DECRLEAR(minigame_scene, scene_base, stationed_scene, stage_00_scene, minigame_ui_scene);
+	SCENE_ADD_CHILDREN_DECRLEAR(minigame_scene, scene_base, stationed_scene, minigame_stage_01_scene, minigame_ui_scene);
 
 public:
 	enum class game_states
@@ -50,6 +51,9 @@ private:
 	std::shared_ptr<roomba_object> player_object;
 	std::shared_ptr<material> postprocess_material;
 
+	effect_resource_ptr global_bubble_effect_resource;
+	effect_resource_ptr bubble_effect_resource;
+	effect_resource_ptr dust_effect_resource;
 	std::vector<std::shared_ptr<effect_instance>> bubble_effect;
 	std::vector<std::shared_ptr<effect_instance>> dust_effect;
 	std::vector<UINT> bubble_emitter_ids;

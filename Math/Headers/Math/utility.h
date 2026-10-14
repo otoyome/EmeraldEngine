@@ -444,22 +444,6 @@ namespace math
 		return static_cast<T>(0);
 	}
 
-	//	秒からミリ秒へ
-	template<typename T>
-	constexpr T second_to_millisecond(T second) { return second * static_cast<T>(1000); }
-
-	//	ミリ秒から秒へ
-	template<typename T>
-	constexpr T millisecond_to_second(T millisecond) { return millisecond / static_cast<T>(1000); }
-
-	//	メートルからミリメートルへ
-	template<typename T>
-	constexpr T meter_to_millimeter(T meter) { return meter * static_cast<T>(1000); }
-
-	//	ミリメートルからメートルへ
-	template<typename T>
-	constexpr T millimeter_to_meter(T millimeter) { return millimeter / static_cast<T>(1000); }
-
 	//	次の二乗値を算出
 	constexpr std::uint32_t calc_next_power_of_two(std::uint32_t value)
 	{

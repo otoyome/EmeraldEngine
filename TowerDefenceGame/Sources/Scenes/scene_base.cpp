@@ -98,6 +98,46 @@ void scene_manager::remove_all_scene()
 	scenes.clear();
 }
 
+std::vector<std::string_view> scene_manager::get_valid_scene_names() const
+{
+	std::vector<std::string_view> texts;
+	for (auto& scene : scenes)
+	{
+		texts.emplace_back(scene.first);
+	}
+	for (auto& scene : add_scenes)
+	{
+		texts.emplace_back(scene.name);
+	}
+
+	return texts;
+}
+
+bool scene_manager::remove_scene(std::string_view scene_name)
+{
+	if (std::find_if(remove_scenes.begin(),
+		remove_scenes.end(),
+		[&](std::string_view name) {return name == scene_name; }) != remove_scenes.end())
+	{
+		return true;
+	}
+
+	if (scenes.find(scene_name) == scenes.end())
+		return false;
+
+	remove_scenes.emplace_back(scene_name);
+	return true;
+}
+
+bool scene_manager::valid_scene(std::string_view scene_name)
+{
+	if (std::find_if(add_scenes.begin(), add_scenes.end(),
+					 [&](add_scene_data& data) {return data.name == scene_name; }) != add_scenes.end())
+		return true;
+
+	return scenes.find(scene_name) != scenes.end();
+}
+
 #if defined(USE_IMGUI)
 void scene_manager::imgui_render()
 {

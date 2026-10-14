@@ -165,6 +165,50 @@ point_light_object::point_light_object(std::string_view name)
 	set_world_translation(math::vector3d::zero());
 	sync_to_light();
 	set_range(10.0f);
+
+	//	バイアスなどの指定
+	{
+		int index = 0;
+		auto bias = light->get_shadow_bias(index);
+		bias.depth_bias = 0;
+		bias.sigma_factor = 1.0f;
+		light->set_shadow_bias(index, bias);
+	}
+	{
+		int index = 1;
+		auto bias = light->get_shadow_bias(index);
+		bias.depth_bias = 0;
+		bias.sigma_factor = 1.0f;
+		light->set_shadow_bias(index, bias);
+	}
+	{
+		int index = 2;
+		auto bias = light->get_shadow_bias(index);
+		bias.depth_bias = 0;
+		bias.sigma_factor = 1.0f;
+		light->set_shadow_bias(index, bias);
+	}
+	{
+		int index = 3;
+		auto bias = light->get_shadow_bias(index);
+		bias.depth_bias = 0.0f;
+		bias.sigma_factor = 1.0f;
+		light->set_shadow_bias(index, bias);
+	}
+	{
+		int index = 4;
+		auto bias = light->get_shadow_bias(index);
+		bias.depth_bias = 0.0f;
+		bias.sigma_factor = 1.0f;
+		light->set_shadow_bias(index, bias);
+	}
+	{
+		int index = 5;
+		auto bias = light->get_shadow_bias(index);
+		bias.depth_bias = 0.0f;
+		bias.sigma_factor = 1.0f;
+		light->set_shadow_bias(index, bias);
+	}
 }
 
 point_light_object::~point_light_object()

@@ -115,19 +115,19 @@ public:
 	template<typename scene_type>
 	bool remove_scene()
 	{
-		if (std::find_if(remove_scenes.begin(),
-			remove_scenes.end(),
-			[&](std::string_view name) {return name == scene_type::type_name(); }) != remove_scenes.end())
-		{
-			return false;
-		}
-
-		if (scenes.find(scene_type::type_name()) == scenes.end())
-			return false;
-
-		remove_scenes.emplace_back(scene_type::type_name());
-		return true;
+		return remove_scene(scene_type::type_name());
 	}
+
+	template<typename scene_type>
+	bool valid_scene()
+	{
+		return valid_scene(scene_type::type_name());
+	}
+
+public:
+	bool remove_scene(std::string_view scene_name);
+	bool valid_scene(std::string_view scene_name);
+	std::vector<std::string_view> get_valid_scene_names() const;
 
 public:
 #if defined(USE_IMGUI)

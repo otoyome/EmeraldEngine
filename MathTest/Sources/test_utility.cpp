@@ -2,6 +2,23 @@
 
 using namespace math;
 
+//	秒からミリ秒へ
+template<typename T>
+constexpr T second_to_millisecond(T second) { return second * static_cast<T>(1000); }
+
+//	ミリ秒から秒へ
+template<typename T>
+constexpr T millisecond_to_second(T millisecond) { return millisecond / static_cast<T>(1000); }
+
+//	メートルからミリメートルへ
+template<typename T>
+constexpr T meter_to_millimeter(T meter) { return meter * static_cast<T>(1000); }
+
+//	ミリメートルからメートルへ
+template<typename T>
+constexpr T millimeter_to_meter(T millimeter) { return millimeter / static_cast<T>(1000); }
+
+
 //	@tool ベクトルの min / max / clamp / saturate / abs
 MATH_TEST_TYPED(utility_vector_elementwise)
 {

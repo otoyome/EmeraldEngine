@@ -647,6 +647,7 @@ xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y</Command>
     <ClCompile Include="Sources\Object\GameObjects\MiniGame\roomba_trash_controller_object.cpp" />
     <ClCompile Include="Sources\Object\GameObjects\MiniGame\roomba_tutorial_controller_object.cpp" />
     <ClCompile Include="Sources\Object\GameObjects\stage_object.cpp" />
+    <ClCompile Include="Sources\Object\GameObjects\System\start_point_object.cpp" />
     <ClCompile Include="Sources\Object\GameObjects\UI\Common\fade_controller_object.cpp" />
     <ClCompile Include="Sources\Object\GameObjects\UI\Common\result_hud_controller.cpp" />
     <ClCompile Include="Sources\Object\GameObjects\UI\Common\transition_fade_controller.cpp" />
@@ -679,6 +680,9 @@ xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y</Command>
     <ClCompile Include="Sources\Renderer\scene_renderer_forward.cpp" />
     <ClCompile Include="Sources\Renderer\scene_renderer_postprocess.cpp" />
     <ClCompile Include="Sources\Scenes\DummyScene\dummy_scene.cpp" />
+    <ClCompile Include="Sources\Scenes\MiniGameScene\minigame_stage_00_scene.cpp" />
+    <ClCompile Include="Sources\Scenes\MiniGameScene\minigame_stage_01_scene.cpp" />
+    <ClCompile Include="Sources\Scenes\StageScene\stage_01_scene.cpp" />
     <ClCompile Include="Sources\Scenes\TestScene\collision_test_scene.cpp" />
     <ClCompile Include="Sources\Scenes\TestScene\clustered_lighting_test_scene.cpp" />
     <ClCompile Include="Sources\Scenes\TestScene\light_shadow_test_scene.cpp" />
@@ -757,6 +761,7 @@ xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y</Command>
     <ClInclude Include="Headers\Object\GameObjects\MiniGame\roomba_trash_controller_object.h" />
     <ClInclude Include="Headers\Object\GameObjects\MiniGame\roomba_tutorial_controller_object.h" />
     <ClInclude Include="Headers\Object\GameObjects\stage_object.h" />
+    <ClInclude Include="Headers\Object\GameObjects\System\start_point_object.h" />
     <ClInclude Include="Headers\Object\GameObjects\UI\Common\fade_controller_object.h" />
     <ClInclude Include="Headers\Object\GameObjects\UI\Common\result_hud_controller.h" />
     <ClInclude Include="Headers\Object\GameObjects\UI\Common\transition_fade_controller.h" />
@@ -793,6 +798,9 @@ xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y</Command>
     <ClInclude Include="Headers\Renderer\ui_renderer.h" />
     <ClInclude Include="Headers\Renderer\scene_renderer.h" />
     <ClInclude Include="Headers\Scenes\DummyScene\dummy_scene.h" />
+    <ClInclude Include="Headers\Scenes\MiniGameScene\minigame_stage_00_scene.h" />
+    <ClInclude Include="Headers\Scenes\MiniGameScene\minigame_stage_01_scene.h" />
+    <ClInclude Include="Headers\Scenes\StageScene\stage_01_scene.h" />
     <ClInclude Include="Headers\Scenes\TestScene\collision_test_scene.h" />
     <ClInclude Include="Headers\Scenes\TestScene\clustered_lighting_test_scene.h" />
     <ClInclude Include="Headers\Scenes\TestScene\light_shadow_test_scene.h" />

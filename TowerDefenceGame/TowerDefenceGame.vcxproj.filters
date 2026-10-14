@@ -183,9 +183,6 @@
     <Filter Include="Sources\Object\GameObjects\Character">
       <UniqueIdentifier>{eabd3e71-6217-4562-8589-f1b4f77735ff}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Headers\Object\GameObjects\Character">
-      <UniqueIdentifier>{cf63aead-bb39-4659-b06e-e019cd065cd0}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Shaders\DeferredDecal">
       <UniqueIdentifier>{8d61a350-fb00-43f6-9fc7-ef0da761e29f}</UniqueIdentifier>
     </Filter>
@@ -206,9 +203,6 @@
     </Filter>
     <Filter Include="Headers\Object\GameObjects\UI\HUD">
       <UniqueIdentifier>{be64279e-d83f-4344-a861-308f9cf34825}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Headers\Object\GameObjects\Cinematics">
-      <UniqueIdentifier>{d6e61d08-49f9-48ed-bb3c-71fa9162c0db}</UniqueIdentifier>
     </Filter>
     <Filter Include="Sources\Object\GameObjects\Cinematics">
       <UniqueIdentifier>{35302188-f99f-458b-9dfe-64ebc2e330dc}</UniqueIdentifier>
@@ -236,6 +230,12 @@
     </Filter>
     <Filter Include="Headers\Scenes\MiniGameScene">
       <UniqueIdentifier>{6dd0dba5-ed7d-4b5e-bb77-7e945655164d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Sources\Object\System">
+      <UniqueIdentifier>{97f4cb40-8157-4750-ab6b-d63463e2d2b6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Headers\Object\GameObjects\System">
+      <UniqueIdentifier>{4b8848de-8c61-4d5a-b1a5-2585bcde5296}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -526,6 +526,18 @@
     </ClCompile>
     <ClCompile Include="Sources\Object\spatial_object.cpp">
       <Filter>Sources\Object</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Object\GameObjects\System\start_point_object.cpp">
+      <Filter>Sources\Object\System</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Scenes\StageScene\stage_01_scene.cpp">
+      <Filter>Sources\Scenes\StageScene</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Scenes\MiniGameScene\minigame_stage_01_scene.cpp">
+      <Filter>Sources\Scenes\MiniGameScene</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Scenes\MiniGameScene\minigame_stage_00_scene.cpp">
+      <Filter>Sources\Scenes\MiniGameScene</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -819,6 +831,18 @@
     </ClInclude>
     <ClInclude Include="Headers\Object\spatial_object.h">
       <Filter>Headers\Object</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Object\GameObjects\System\start_point_object.h">
+      <Filter>Headers\Object\GameObjects\System</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Scenes\StageScene\stage_01_scene.h">
+      <Filter>Headers\Scenes\StageScene</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Scenes\MiniGameScene\minigame_stage_00_scene.h">
+      <Filter>Headers\Scenes\MiniGameScene</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Scenes\MiniGameScene\minigame_stage_01_scene.h">
+      <Filter>Headers\Scenes\MiniGameScene</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -31,15 +31,6 @@ CEREAL_CLASS_VERSION(model_resource, 1)
 
 namespace
 {
-	//	@tool メモリ上のバイト列を istream として読むためのバッファ
-	struct memory_streambuf : public std::streambuf
-	{
-		memory_streambuf(char* begin, size_t size)
-		{
-			setg(begin, begin, begin + size);
-		}
-	};
-
 	template<class Type>
 	void free_meshlet_data(Type& holder)
 	{
@@ -339,7 +330,6 @@ size_t model_resource::get_mesh_index_from_name(std::string_view name) const
 
 bool model_resource::serialize(std::string_view file_path)
 {
-	//	@tool 一旦メモリへ書き出してから圧縮してファイルへ保存する
 	std::ostringstream buffer_stream(std::ios::binary);
 	{
 		cereal::BinaryOutputArchive archive(buffer_stream);
@@ -362,7 +352,7 @@ bool model_resource::serialize(std::string_view file_path)
 
 	const std::string serialized_data = buffer_stream.str();
 	std::vector<char> file_data;
-	if (!data_compression::compress(serialized_data.data(), serialized_data.size(), file_data))
+	if (!resource::compress(serialized_data.data(), serialized_data.size(), file_data))
 	{
 		DEBUG_LOG_CATEGORY(logger::categorys::model, "model_resource compress failed[%s]", file_path.data());
 		return false;
@@ -391,7 +381,6 @@ bool model_resource::deserialize(std::string_view file_path)
 	std::ifstream file_stream(file_path.data(), std::ios::binary);
 	if(file_stream.is_open())
 	{
-		//	@tool ファイル全体を読み込み、圧縮形式なら展開する（非圧縮のファイルはそのまま読む）
 		file_stream.seekg(0, std::ios::end);
 		std::vector<char> file_data(static_cast<size_t>(file_stream.tellg()));
 		file_stream.seekg(0, std::ios::beg);
@@ -400,9 +389,9 @@ bool model_resource::deserialize(std::string_view file_path)
 
 		std::vector<char> decompressed_data;
 		std::vector<char>* source_data = &file_data;
-		if (data_compression::is_compressed(file_data.data(), file_data.size()))
+		if (resource::is_compressed(file_data.data(), file_data.size()))
 		{
-			if (!data_compression::decompress(file_data.data(), file_data.size(), decompressed_data))
+			if (!resource::decompress(file_data.data(), file_data.size(), decompressed_data))
 			{
 				DEBUG_ERROR_CATEGORY(logger::categorys::model, "model_resource decompress failed[%s]", file_path.data());
 				return false;
@@ -411,7 +400,7 @@ bool model_resource::deserialize(std::string_view file_path)
 			source_data = &decompressed_data;
 		}
 
-		memory_streambuf stream_buffer(source_data->data(), source_data->size());
+		resource::memory_streambuf stream_buffer(source_data->data(), source_data->size());
 		std::istream istream(&stream_buffer);
 		cereal::BinaryInputArchive archive(istream);
 

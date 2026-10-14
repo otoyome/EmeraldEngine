@@ -2,6 +2,8 @@
 
 #include "custom_pipeline_state.h"
 
+#include "Scenes/MiniGameScene/minigame_result_scene.h"
+
 #include "object/camera_object.h"
 #include "object/model_object.h"
 #include "object/post_process_volume_object.h"
@@ -9,12 +11,13 @@
 #include "object/gameobjects/minigame/roomba_object.h"
 #include "object/gameobjects/minigame/roomba_controller_object.h"
 #include "object/gameobjects/minigame/roomba_camera_controller_object.h"
-
-#include "Scenes/MiniGameScene/minigame_result_scene.h"
-#include "object/gameobjects/ui/common/transition_fade_controller.h"
-#include "object/gameobjects/ui/hud/countdown_controller_object.h"
 #include "object/gameobjects/minigame/roomba_tutorial_controller_object.h"
 #include "object/gameobjects/minigame/minigame_record_data.h"
+
+#include "object/gameobjects/ui/common/transition_fade_controller.h"
+#include "object/gameobjects/ui/hud/countdown_controller_object.h"
+
+#include "object/gameobjects/system/start_point_object.h"
 
 namespace
 {
@@ -34,30 +37,11 @@ namespace
 	};
 
 	//	開始座標
-	constexpr math::double3 StartPosition = system_units::convert_m_to_unit(math::double3(0.0, 10.0, -60.0));
-	constexpr math::rotatorf StartRotation = {0, 0, 0};
 	constexpr float WarmingUpTimer = 4.0f;
 	constexpr float DeadStopWaitTimer = 7.0f;
 	constexpr float DeadWaitTimer = 3.0f;
 	constexpr float ResultTimer = 5.0f;
 	constexpr int WetDamage = 400;
-	constexpr float DustSetLength = 40;
-	constexpr float BubbleSetLength = DustSetLength / 2;
-	constexpr math::double3 DustBlock[] =
-	{
-		system_units::convert_m_to_unit(math::double3(-DustSetLength, 0.0, -DustSetLength)),
-		system_units::convert_m_to_unit(math::double3(+DustSetLength, 0.0, -DustSetLength)),
-		system_units::convert_m_to_unit(math::double3(           0.0, 0.0,            0.0)),
-		system_units::convert_m_to_unit(math::double3(-DustSetLength, 0.0, +DustSetLength)),
-		system_units::convert_m_to_unit(math::double3(+DustSetLength, 0.0, +DustSetLength)),
-	};
-	constexpr math::double3 BubbleBlock[] =
-	{
-		system_units::convert_m_to_unit(math::double3(-BubbleSetLength, 0, -BubbleSetLength)),
-		system_units::convert_m_to_unit(math::double3(+BubbleSetLength, 0, -BubbleSetLength)),
-		system_units::convert_m_to_unit(math::double3(-BubbleSetLength, 0, +BubbleSetLength)),
-		system_units::convert_m_to_unit(math::double3(+BubbleSetLength, 0, +BubbleSetLength)),
-	};
 
 	//	各種名前
 	constexpr std::string_view RoombaObjectName = "ルンバ 制御";
@@ -89,23 +73,10 @@ minigame_scene::minigame_scene()
 		auto post_process_volume = std::make_shared<post_process_volume_object>("ポストプロセスボリューム");
 		post_process_volume->set_flag(post_process_volume::flags::unbind, true);
 		{
-			auto bloom_constant = post_process_volume->get_volume()->get_bloom_constant();
-			auto lens_ghosts_constant = post_process_volume->get_volume()->get_lens_ghosts_constant();
 			auto depth_of_field_constant = post_process_volume->get_volume()->get_depth_of_field_constant();
-			auto screen_space_reflection_constant = post_process_volume->get_volume()->get_screen_space_reflection_constant();
-			auto motion_blur_constant = post_process_volume->get_volume()->get_motion_blur_constant();
-			auto exposure_compensation_constant = post_process_volume->get_volume()->get_exposure_compensation_constant();
-			bloom_constant.set_active(false);
-			lens_ghosts_constant.set_active(false);
-			depth_of_field_constant.set_active(false);
-			screen_space_reflection_constant.set_active(false);
-			exposure_compensation_constant.set_active(false);
-			post_process_volume->get_volume()->set_bloom_constant(bloom_constant);
-			post_process_volume->get_volume()->set_lens_ghosts_constant(lens_ghosts_constant);
+			auto tone_mapping_constant = post_process_volume->get_volume()->get_tone_mapping_constant();
+			tone_mapping_constant.set_tone_map_type(tone_mapping_data::tone_mapping_type::aces_krzysztof_narkowicz);
 			post_process_volume->get_volume()->set_depth_of_field_constant(depth_of_field_constant);
-			post_process_volume->get_volume()->set_screen_space_reflection_constant(screen_space_reflection_constant);
-			post_process_volume->get_volume()->set_motion_blur_constant(motion_blur_constant);
-			post_process_volume->get_volume()->set_exposure_compensation_constant(exposure_compensation_constant);
 		}
 		register_object(post_process_volume);
 
@@ -167,60 +138,18 @@ minigame_scene::minigame_scene()
 
 		//	ルンバオブジェクト生成
 		player_object = std::make_shared<roomba_object>(RoombaObjectName, roomba_model, "player");
-		player_object->set_position(math::float3(StartPosition));
-		player_object->set_rotation(StartRotation);
 		register_object(player_object);
 
 		//	ルンバ制御オブジェクト生成
 		auto roomba_controller = std::make_shared<roomba_controller_object>(RoombaControllerObjectName, player_object, main_camera);
 		register_object(roomba_controller);
-
-		//	ルンバカメラ制御オブジェクト
-		auto camera_controller = std::make_shared<roomba_camera_controller_object>(RoombaCameraControllerObjectName, roomba_controller, main_camera);
-		register_object(camera_controller);
 	}
 
 	//	ゲーム用エフェクト類生成
 	{
-		effect_resource_ptr resource;
-		if (effect_resource_manager::instance()->load(resource, "Assets/Resources/Effects/GlobalBubble.eme"))
-		{
-			bubble_effect.emplace_back(std::make_shared<effect_instance>(resource));
-			effect_manager::instance()->register_instance(bubble_effect.back());
-		}
-		if (effect_resource_manager::instance()->load(resource, "Assets/Resources/Effects/BubbleBlock.eme"))
-		{
-			for (auto& block : BubbleBlock)
-			{
-				bubble_effect.emplace_back(std::make_shared<effect_instance>(resource));
-				bubble_effect.back()->set_position(math::vector3d(block));
-				effect_manager::instance()->register_instance(bubble_effect.back());
-			}
-		}
-		if (effect_resource_manager::instance()->load(resource, "Assets/Resources/Effects/DustBlock.eme"))
-		{
-			for (auto& block : DustBlock)
-			{
-				dust_effect.emplace_back(std::make_shared<effect_instance>(resource));
-				dust_effect.back()->set_position(math::vector3d(block));
-				effect_manager::instance()->register_instance(dust_effect.back());
-			}
-			//	Dustノードのパーティクル設定からゴミの最大数を収集する
-			for (auto& effect : dust_effect)
-			{
-				auto dust_index = effect->search_node_index_by_name("Dust");
-				for (auto& particle : effect->get_particles())
-				{
-					if (particle.node_index != dust_index)
-						continue;
-
-					if (auto renderer = particle.particle.get_item<particle::item::renderer>())
-					{
-						trash_max += static_cast<int>(renderer->total_particle_count);
-					}
-				}
-			}
-		}
+		effect_resource_manager::instance()->load(global_bubble_effect_resource, "Assets/Resources/Effects/GlobalBubble.eme");
+		effect_resource_manager::instance()->load(bubble_effect_resource, "Assets/Resources/Effects/BubbleBlock.eme");
+		effect_resource_manager::instance()->load(dust_effect_resource, "Assets/Resources/Effects/DustBlock.eme");
 	}
 
 	//	タイマーリセット
@@ -271,16 +200,73 @@ void minigame_scene::update_core(float elapsed_time)
 				trash_object->set_getter([this](){ return trash_count; }, [this](){ return trash_max; });
 			}
 
+			//	開始処理
+			{
+				auto start_points = object_manager::instance()->search_objects<start_point_object>();
+				for (auto& start_point : start_points)
+				{
+					if (start_point->get_tag().find("Player Start") != std::string::npos)
+					{
+						player_object->set_position(start_point->get_world_translation().to_float3());
+						auto rot = math::rotatorf(start_point->get_world_euler());
+						rot.y -= math::constants<float>::pi_half;
+						player_object->set_rotation(rot);
+						player_object->get_model_object()->update_transform();
+					}
+					else if (start_point->get_tag().find("Bubble Point") != std::string::npos)
+					{
+						bubble_effect.emplace_back(std::make_shared<effect_instance>(bubble_effect_resource));
+						bubble_effect.back()->set_position(start_point->get_world_translation());
+						bubble_effect.back()->set_rotation(math::rotatorf(start_point->get_world_euler()));
+						effect_manager::instance()->register_instance(bubble_effect.back());
+					}
+					else if (start_point->get_tag().find("Dust Point") != std::string::npos)
+					{
+						dust_effect.emplace_back(std::make_shared<effect_instance>(dust_effect_resource));
+						dust_effect.back()->set_position(start_point->get_world_translation());
+						dust_effect.back()->set_rotation(math::rotatorf(start_point->get_world_euler()));
+						effect_manager::instance()->register_instance(dust_effect.back());
+					}
+				}
+
+				//	グローバルバブルを作成
+				{
+					bubble_effect.emplace_back(std::make_shared<effect_instance>(global_bubble_effect_resource));
+					effect_manager::instance()->register_instance(bubble_effect.back());
+				}
+
+				//	Dustノードのパーティクル設定からゴミの最大数を収集する
+				for (auto& effect : dust_effect)
+				{
+					auto dust_index = effect->search_node_index_by_name("Dust");
+					for (auto& particle : effect->get_particles())
+					{
+						if (particle.node_index != dust_index)
+							continue;
+
+						if (auto renderer = particle.particle.get_item<particle::item::renderer>())
+						{
+							trash_max += static_cast<int>(renderer->total_particle_count);
+						}
+					}
+				}
+			}
+
 			//	プレイヤー入力を止める
 			if (auto controller = object_manager::instance()->search_object<roomba_controller_object>(RoombaControllerObjectName))
 			{
 				controller->set_input_purmit_flag(false);
+
+				//	このタイミングでカメラを作成
+				if (auto main_camera = object_manager::instance()->search_object<camera_object>("メインカメラ"))
+				{
+					auto camera_controller = std::make_shared<roomba_camera_controller_object>(RoombaCameraControllerObjectName, controller, main_camera);
+					camera_controller->set_input_purmit_flag(false);
+					camera_controller->change_state(roomba_camera_controller_object::states::entry);
+					register_object(camera_controller);
+				}
 			}
-			if (auto controller = object_manager::instance()->search_object<roomba_camera_controller_object>(RoombaCameraControllerObjectName))
-			{
-				controller->set_input_purmit_flag(false);
-				controller->change_state(roomba_camera_controller_object::states::entry);
-			}
+
 			countdown_timer = 0.0f;
 			game_state = game_states::warming_up;
 			break;
@@ -324,8 +310,11 @@ void minigame_scene::update_core(float elapsed_time)
 			//	プレイヤーをアクティブ状態に
 			player_object->set_heat_value(0);
 			player_object->set_wet_value(0);
-			player_object->set_position(math::float3(StartPosition));
-			player_object->set_rotation(StartRotation);
+			if (auto start_point = object_manager::instance()->search_object<start_point_object>())
+			{
+				player_object->set_position(start_point->get_world_translation().to_float3());
+				player_object->set_rotation(math::rotatorf(start_point->get_world_euler()));
+			}
 			player_object->change_state(roomba_object::states::active);
 
 			//	カウントダウン中はプレイヤー入力を止める
@@ -479,9 +468,17 @@ void minigame_scene::update_core(float elapsed_time)
 		{
 			if (!transition_fade_controller::instance()->is_processing())
 			{
-				scene_manager::instance()->remove_scene<stage_00_scene>();
-				scene_manager::instance()->remove_scene<minigame_ui_scene>();
-				scene_manager::instance()->remove_scene<minigame_scene>();
+				//	不要なシーンを破棄
+				auto scene_names = scene_manager::instance()->get_valid_scene_names();
+				for (auto& name : scene_names)
+				{
+					if (name.find("minigame_stage") != std::string::npos ||
+						name.find("minigame_ui_scene") != std::string::npos ||
+						name.find("minigame_scene") != std::string::npos)
+					{
+						scene_manager::instance()->remove_scene(name);
+					}
+				}
 
 				//	リザルトシーンへ成績を渡す
 				minigame_result_scene::result_data result;

@@ -4,12 +4,15 @@
 
 #include "model_instance.h"
 #include "camera.h"
+#include "effect_instance.h"
+
+#include "Collision/cubic_sdf.h"
+#include "Collision/combined_mesh.h"
 
 #include "object/light_object.h"
 #include "object/model_object.h"
 #include "object/gameobjects/stage_object.h"
-#include "effect_instance.h"
-#include "model_collision_builder.h"
+#include "object/gameobjects/system/start_point_object.h"
 
 stage_00_scene::stage_00_scene()
 : scene_base()
@@ -25,7 +28,12 @@ bool stage_00_scene::initialize_core()
 	//	平行光源生成
 	{
 		auto directional = std::make_shared<directional_light_object>("平行光源");
-		//directional->get_light()->set_csm_distance_factor(0.25f);
+		directional->set_world_euler(math::rotatord(math::angle::to_radian(34.0), math::angle::to_radian(21.0), math::angle::to_radian(0.0)));
+		auto color = directional->get_light()->get_color();
+		color.w = 30.0f;
+		directional->get_light()->set_color(color);
+		directional->get_light()->set_pssm_split_weight(0.95f);
+		directional->get_light()->set_csm_distance(system_units::convert_m_to_unit(50000.0f));
 		{
 			int index = 0;
 			auto bias = directional->get_light()->get_shadow_bias(index);
@@ -77,48 +85,6 @@ bool stage_00_scene::initialize_core()
 		point->set_world_translation(system_units::convert_m_to_unit(math::double3(0.0, 5.0, -20.0)));
 		point->set_range(system_units::convert_m_to_unit(10.0f));
 		point->set_color({ 1.0f, 1.0f, 1.0f, 1.0f });
-		{
-			int index = 0;
-			auto bias = point->get_light()->get_shadow_bias(index);
-			bias.depth_bias = 0;
-			bias.sigma_factor = 1.0f;
-			point->get_light()->set_shadow_bias(index, bias);
-		}
-		{
-			int index = 1;
-			auto bias = point->get_light()->get_shadow_bias(index);
-			bias.depth_bias = 0;
-			bias.sigma_factor = 1.0f;
-			point->get_light()->set_shadow_bias(index, bias);
-		}
-		{
-			int index = 2;
-			auto bias = point->get_light()->get_shadow_bias(index);
-			bias.depth_bias = 0;
-			bias.sigma_factor = 1.0f;
-			point->get_light()->set_shadow_bias(index, bias);
-		}
-		{
-			int index = 3;
-			auto bias = point->get_light()->get_shadow_bias(index);
-			bias.depth_bias = 0.0f;
-			bias.sigma_factor = 1.0f;
-			point->get_light()->set_shadow_bias(index, bias);
-		}
-		{
-			int index = 4;
-			auto bias = point->get_light()->get_shadow_bias(index);
-			bias.depth_bias = 0.0f;
-			bias.sigma_factor = 1.0f;
-			point->get_light()->set_shadow_bias(index, bias);
-		}
-		{
-			int index = 5;
-			auto bias = point->get_light()->get_shadow_bias(index);
-			bias.depth_bias = 0.0f;
-			bias.sigma_factor = 1.0f;
-			point->get_light()->set_shadow_bias(index, bias);
-		}
 		register_object(point);
 
 		auto spot = std::make_shared<spot_light_object>("スポットライト");
@@ -146,9 +112,7 @@ bool stage_00_scene::initialize_core()
 	}
 
 	//	ステージ
-	//	動かさない事前提
 	{
-		//auto file_path = "Assets/Resources/Models/バーダス・コロシアム/バーダス・コロシアム.emo";
 		auto file_path = "Assets/Resources/Models/StylizedEgypt/StylizedEgypt.emo";
 		std::filesystem::path path(file_path);
 		assert (std::filesystem::exists(path));
@@ -160,12 +124,20 @@ bool stage_00_scene::initialize_core()
 		auto stage = std::make_shared<stage_object>("ステージ制御", model);
 
 		//	メッシュ分当たり判定生成
+		//	動かさない事前提
 		const math::matrixf transform = stage->get_model_object()->get_world().to_relative_matrix(math::vector3d::zero());
 		generate_model_collision(model->get_model_instance()->get_resource(), transform);
 		generate_model_sdf(model->get_model_instance()->get_resource());
 
+		//	スタートポイント設定
+		auto point = std::make_shared<start_point_object>("開始位置 0", "");
+		point->set_world_translation(system_units::convert_m_to_unit(math::double3(0.0, 12.0, -60.0)));
+		point->set_world_rotation(math::rotatord(0, 3.6477, 0));
+		point->attach(model);
+
 		register_object(model);
 		register_object(stage);
+		register_object(point);
 	}
 
 	return true;
