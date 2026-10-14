@@ -13,14 +13,14 @@ SurfaceData surface(VS_OUT pin, bool is_front_face)
     data.base_color = base_color_factor;
     if (HAS_RESOURCE(BaseColorMap))
     {
-        data.base_color *= TEXTURE2D_SAMPLE(BaseColorMap, GET_SAMPLER_STATE_INDEX(BaseColorMap), pin.texcoord[BaseTexcoord]);
+        data.base_color *= TEXTURE2D_SAMPLE(BaseColorMap, pin.texcoord[BaseTexcoord]);
     }
 
     //	自己発光色を取得
     data.emissive_color = emissive_color_factor;
     if (HAS_RESOURCE(EmissiveMap))
     {
-        data.emissive_color *= TEXTURE2D_SAMPLE(EmissiveMap, GET_SAMPLER_STATE_INDEX(EmissiveMap), pin.texcoord[BaseTexcoord]).rgb;
+        data.emissive_color *= TEXTURE2D_SAMPLE(EmissiveMap, pin.texcoord[BaseTexcoord]).rgb;
     }
     else
     {
@@ -43,7 +43,7 @@ SurfaceData surface(VS_OUT pin, bool is_front_face)
     //	法線マッピング
     if (HAS_RESOURCE(NormalMap))
     {
-        float4 sampled = TEXTURE2D_SAMPLE(NormalMap, GET_SAMPLER_STATE_INDEX(NormalMap), pin.texcoord[BaseTexcoord]);
+        float4 sampled = TEXTURE2D_SAMPLE(NormalMap, pin.texcoord[BaseTexcoord]);
         float3 normal_factor = (sampled.xyz * 2.0f) - 1.0f;
         normal_factor = normalize(normal_factor * float3(normal_map_scale, normal_map_scale, 1.0f));
         N = normalize((normal_factor.x * T) + (normal_factor.y * B) + (normal_factor.z * N));
@@ -55,7 +55,7 @@ SurfaceData surface(VS_OUT pin, bool is_front_face)
     data.metalness = saturate(metallic_factor);
     if (HAS_RESOURCE(RoughnessMetallicMap))
     {
-        float4 sampled = TEXTURE2D_SAMPLE(RoughnessMetallicMap, GET_SAMPLER_STATE_INDEX(RoughnessMetallicMap), pin.texcoord[BaseTexcoord]);
+        float4 sampled = TEXTURE2D_SAMPLE(RoughnessMetallicMap, pin.texcoord[BaseTexcoord]);
         data.roughness *= sampled.g;
         data.metalness *= sampled.b;
     }
@@ -64,7 +64,7 @@ SurfaceData surface(VS_OUT pin, bool is_front_face)
     data.occlusion_factor = 1.0f;
     if (HAS_RESOURCE(OcclusionMap))
     {
-        float4 sampled = TEXTURE2D_SAMPLE(OcclusionMap, GET_SAMPLER_STATE_INDEX(OcclusionMap), pin.texcoord[BaseTexcoord]);
+        float4 sampled = TEXTURE2D_SAMPLE(OcclusionMap, pin.texcoord[BaseTexcoord]);
         data.occlusion_factor *= sampled.r;
     }
     data.occlusion_strength = occlusion_strength;

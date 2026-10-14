@@ -540,24 +540,43 @@ void graphics_custom_pipeline_state::update_parameters(const graphics_context& c
 			}
 		}
 
+		//	サンプラステート登録
+		ID3D11SamplerState* sampler_state = render_data::instance()->get_sampler_states(render_data::SAMPLER_STATE::LINEAR).Get();
+		for (auto& sampler : index_map.sampler)
+		{
+			for (UINT index = 0; index < static_cast<int>(arrangement::max); ++index)
+			{
+				if (sampler.second.ids[index] == -1)
+					continue;
+
+				UINT register_index = sampler.second.ids[index];
+				(context.device_context->*set_samppler_funcs[index])(register_index, 1, &sampler_state);
+			}
+		}
+
 		//	シェーダーリソースビュー登録
 		common_pipeline_states::parameter_constants parameter_constant_buffer[static_cast<int>(arrangement::max)];
 		{
 			const material::shader_resource_map& shader_resources = material.get_shader_resources();
 
-			//	描画毎に登録したテクスチャを集め直す
-			srv_textures.assign(index_map.srv.size(), nullptr);
-
 			for (auto& srv : index_map.srv)
 			{
 				system_utility::hash_key srv_key = srv.second.hash;
-				const size_t srv_index = static_cast<size_t>(&srv - index_map.srv.data());
+				const int paired_sampler_index = index_map.srv_sampler_indices[static_cast<size_t>(&srv - index_map.srv.data())];
+
 				//	登録用関数
 				auto register_srv_function = [&](const texture_ptr& srv_ptr)
 				{
 					if (!srv_ptr)
 						return;
-					srv_textures[srv_index] = srv_ptr.get();
+
+					Microsoft::WRL::ComPtr<ID3D11SamplerState> texture_sampler_state;
+					if (paired_sampler_index >= 0)
+					{
+						texture_sampler_state = render_data::instance()->get_sampler_state(srv_ptr->get_sampler_desc().to_d3d11_desc());
+					}
+					ID3D11SamplerState* texture_sampler = texture_sampler_state.Get();
+
 					UINT srv_flag = 0;
 					for (auto& flag : convert_texture_flags)
 					{
@@ -577,6 +596,16 @@ void graphics_custom_pipeline_state::update_parameters(const graphics_context& c
 						UINT* shader_resource_view_flags = &parameter_constant_buffer[index].shader_resource_view_flags[register_index / 4].x;
 						shader_resource_view_index[register_index % 4] = 1;
 						shader_resource_view_flags[register_index % 4] = srv_flag;
+
+						//	同じステージの対になるサンプラーも設定する
+						if (texture_sampler)
+						{
+							UINT sampler_register_index = index_map.sampler[paired_sampler_index].second.ids[index];
+							if (sampler_register_index != -1)
+							{
+								(context.device_context->*set_samppler_funcs[index])(sampler_register_index, 1, &texture_sampler);
+							}
+						}
 					}
 				};
 				//	クラスタードライティングのバッファ
@@ -686,32 +715,6 @@ void graphics_custom_pipeline_state::update_parameters(const graphics_context& c
 
 				ID3D11Buffer* constant_buffer = data.buffer.Get();
 				context.device_context->UpdateSubresource(constant_buffer, 0, 0, &cb_data, 0, 0);
-			}
-		}
-
-		//	サンプラステート登録
-		auto render_data_instance = render_data::instance();
-		Microsoft::WRL::ComPtr<ID3D11SamplerState> default_sampler_state = render_data_instance->get_sampler_states(render_data::SAMPLER_STATE::LINEAR);
-		for (size_t sampler_index = 0; sampler_index < index_map.sampler.size(); ++sampler_index)
-		{
-			auto& sampler = index_map.sampler[sampler_index];
-
-			//	対応するテクスチャがあればその設定のサンプラーを render_data から取得し、無ければ既定の LINEAR を使う
-			Microsoft::WRL::ComPtr<ID3D11SamplerState> texture_sampler_state;
-			int srv_index = index_map.sampler_srv_indices[sampler_index];
-			if (srv_index >= 0 && srv_textures[srv_index])
-			{
-				texture_sampler_state = render_data_instance->get_sampler_state(srv_textures[srv_index]->get_sampler_desc().to_d3d11_desc());
-			}
-			ID3D11SamplerState* sampler_state = texture_sampler_state ? texture_sampler_state.Get() : default_sampler_state.Get();
-
-			for (UINT index = 0; index < static_cast<int>(arrangement::max); ++index)
-			{
-				if (sampler.second.ids[index] == -1)
-					continue;
-
-				UINT register_index = sampler.second.ids[index];
-				(context.device_context->*set_samppler_funcs[index])(register_index, 1, &sampler_state);
 			}
 		}
 
@@ -967,22 +970,18 @@ void graphics_custom_pipeline_state::update_register_datas()
 			}
 		}
 
+		//	SRV毎に対になるサンプラーを探す
 		{
 			constexpr std::string_view sampler_suffix = "State";
-			index_map.sampler_srv_indices.assign(index_map.sampler.size(), -1);
-			for (size_t sampler_index = 0; sampler_index < index_map.sampler.size(); ++sampler_index)
+			index_map.srv_sampler_indices.assign(index_map.srv.size(), -1);
+			for (size_t srv_index = 0; srv_index < index_map.srv.size(); ++srv_index)
 			{
-				std::string_view sampler_name = index_map.sampler[sampler_index].first;
-				if (sampler_name.size() <= sampler_suffix.size() ||
-					sampler_name.substr(sampler_name.size() - sampler_suffix.size()) != sampler_suffix)
-					continue;
-
-				std::string_view srv_name = sampler_name.substr(0, sampler_name.size() - sampler_suffix.size());
-				for (size_t srv_index = 0; srv_index < index_map.srv.size(); ++srv_index)
+				const std::string sampler_name = index_map.srv[srv_index].first + std::string(sampler_suffix);
+				for (size_t sampler_index = 0; sampler_index < index_map.sampler.size(); ++sampler_index)
 				{
-					if (index_map.srv[srv_index].first == srv_name)
+					if (index_map.sampler[sampler_index].first == sampler_name)
 					{
-						index_map.sampler_srv_indices[sampler_index] = static_cast<int>(srv_index);
+						index_map.srv_sampler_indices[srv_index] = static_cast<int>(sampler_index);
 						break;
 					}
 				}

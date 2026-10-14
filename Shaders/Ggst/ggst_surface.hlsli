@@ -25,7 +25,7 @@ SurfaceData surface(VS_OUT pin, bool is_front_face)
     data.base_color = base_color_factor;
     if (HAS_RESOURCE(BaseMap))
     {
-        data.base_color *= TEXTURE2D_SAMPLE(BaseMap, GET_SAMPLER_STATE_INDEX(BaseMap), pin.texcoord[BaseTexcoord]);
+        data.base_color *= TEXTURE2D_SAMPLE(BaseMap, pin.texcoord[BaseTexcoord]);
     }
 
     data.roughness = roughness;

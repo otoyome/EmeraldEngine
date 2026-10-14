@@ -29,7 +29,7 @@ SurfaceData surface(VS_OUT pin, bool is_front_face)
     data.base_color = material_base_color;
     if (HAS_RESOURCE(BaseMap))
     {
-        data.base_color *= TEXTURE2D_SAMPLE(BaseMap, GET_SAMPLER_STATE_INDEX(BaseMap), pin.texcoord[BaseTexcoord]);
+        data.base_color *= TEXTURE2D_SAMPLE(BaseMap, pin.texcoord[BaseTexcoord]);
     }
 
     if (is_outline_pixel)
@@ -45,7 +45,7 @@ SurfaceData surface(VS_OUT pin, bool is_front_face)
         data.shade_color = material_sss_color.rgb;
         if (HAS_RESOURCE(SssMap))
         {
-            data.shade_color *= TEXTURE2D_SAMPLE(SssMap, GET_SAMPLER_STATE_INDEX(SssMap), pin.texcoord[SssTexcoord]);
+            data.shade_color *= TEXTURE2D_SAMPLE(SssMap, pin.texcoord[SssTexcoord]);
         }
         //  ä¬ã´åıÇÃêFÇÕâAïîÇ…ÇÃÇ›ìKâû
         //data.shade_color.rgb = apply_light_modifications(data.shade_color.rgb, fake_ambient_color.rgb);
@@ -59,7 +59,7 @@ SurfaceData surface(VS_OUT pin, bool is_front_face)
         data.ilm_color = float4(0, 1, 0, 0);
         if (HAS_RESOURCE(IlmMap))
         {
-            data.ilm_color = TEXTURE2D_SAMPLE(IlmMap, GET_SAMPLER_STATE_INDEX(IlmMap), pin.texcoord[IlmTexcoord]);
+            data.ilm_color = TEXTURE2D_SAMPLE(IlmMap, pin.texcoord[IlmTexcoord]);
         }
 
         data.roughness = material_parameters.x;
@@ -68,7 +68,7 @@ SurfaceData surface(VS_OUT pin, bool is_front_face)
         //  è⁄ç◊èÓïÒ
         if (HAS_RESOURCE(DetailMap))
         {
-            float4 detail_color = TEXTURE2D_SAMPLE(DetailMap, GET_SAMPLER_STATE_INDEX(DetailMap), pin.texcoord[DetailTexcoord]);
+            float4 detail_color = TEXTURE2D_SAMPLE(DetailMap, pin.texcoord[DetailTexcoord]);
             data.base_color.rgb *= detail_color.rgb;
             data.shade_color.rgb *= detail_color.rgb;
         }

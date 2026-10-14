@@ -10,7 +10,7 @@ float surface(VS_OUT pin, bool is_front_face)
     float alpha = base_color_factor.a;
     if (HAS_RESOURCE(BaseColorMap))
     {
-        alpha *= TEXTURE2D_SAMPLE(BaseColorMap, GET_SAMPLER_STATE_INDEX(BaseColorMap), pin.texcoord[BaseTexcoord]).a;
+        alpha *= TEXTURE2D_SAMPLE(BaseColorMap, pin.texcoord[BaseTexcoord]).a;
     }
     return alpha;
 }
