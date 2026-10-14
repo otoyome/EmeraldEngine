@@ -3,12 +3,12 @@
 #include "model_instance.h"
 
 #include "custom_pipeline_state.h"
-#include "PipelineState/deferred_lighting_pipeline_state.h"
-#include "graphics/clustered_lighting_system.h"
+#include "PipelineState/skybox_pipeline_state.h"
 #include "PipelineState/fullscreen_quad_pipeline_state.h"
 #include "PipelineState/debug_draw_line_pipeline_state.h"
-
 #include "PipelineState/post_process_pipeline_state.h"
+
+#include "graphics/clustered_lighting_system.h"
 
 #if defined(USE_IMGUI)
 #include "imgui.h"
@@ -543,7 +543,6 @@ deffered_lighting_renderer::deffered_lighting_renderer(render_job_registrar job_
 			"deferred_spot_lighting",
 		};
 		//	
-#if defined(USE_CUSTOM_PIPELINE)
 		deferred_lighting_material = std::make_shared<material>();
 		deferred_lighting_material->set_domain(material::domains::system);
 		deferred_lighting_material->set_flag(material::flags::two_sided, true);
@@ -606,12 +605,6 @@ deffered_lighting_renderer::deffered_lighting_renderer(render_job_registrar job_
 			}
 			deferred_lighting_material->set_pipeline_state(system_paths_list[index], shader_names[index]);
 		}
-#else
-		instance->generate_pipeline_state<deferred_indirect_lighting_pipeline_state>(shader_names[0], &indirect_lighting_pipeline_state);
-		instance->generate_pipeline_state<deferred_directional_lighting_pipeline_state>(shader_names[1], &directional_lighting_pipeline_state);
-		instance->generate_pipeline_state<deferred_point_lighting_pipeline_state>(shader_names[2], &point_lighting_pipeline_state);
-		instance->generate_pipeline_state<deferred_spot_lighting_pipeline_state>(shader_names[3], &spot_lighting_pipeline_state);
-#endif
 	}
 }
 
@@ -806,7 +799,6 @@ void deffered_lighting_renderer::render_indirect(renderer_context& context)
 			if (light_probe.is_flag(light_probe::flags::unbind))
 			{
 				//	全画面描画
-#if defined(USE_CUSTOM_PIPELINE)
 				//	IBLテクスチャ設定
 				deferred_lighting_material->set_texture("diffuse_iem", light_probe.diffuse_ibl_texture);
 				deferred_lighting_material->set_texture("specular_pmrem", light_probe.specular_ibl_texture);
@@ -819,16 +811,6 @@ void deffered_lighting_renderer::render_indirect(renderer_context& context)
 				pipeline_state->update_parameters(context, *deferred_lighting_material, nullptr);
 				scene_renderer_commons::draw(context, pipeline_state, 4);
 				pipeline_state->end(context);
-#else	//	defined(USE_CUSTOM_PIPELINE)
-				//	IBLテクスチャ設定
-				context.diffuse_ibl_texture = light_probe.diffuse_ibl_texture;
-				context.specluar_ibl_texture = light_probe.specular_ibl_texture;
-				context.lut_ggx_texture = light_probe.lut_ggx_texture;
-
-				indirect_lighting_pipeline_state->begin(context);
-				scene_renderer_commons::draw(context, indirect_lighting_pipeline_state, 4);
-				indirect_lighting_pipeline_state->end(context);
-#endif	//	defined(USE_CUSTOM_PIPELINE)
 			}
 			else
 			{
@@ -861,7 +843,6 @@ void deffered_lighting_renderer::render_directional(const light_render_data& lig
 		//	ビューポートの設定
 		context.device_context->RSSetViewports(1, &lighting_pass_viewport);
 		{
-#if defined(USE_CUSTOM_PIPELINE)
 			auto pipeline_state =
 				deferred_lighting_material->get_pipeline_state(material::system_paths::deferred_directional);
 
@@ -869,11 +850,6 @@ void deffered_lighting_renderer::render_directional(const light_render_data& lig
 			pipeline_state->update_parameters(context, *deferred_lighting_material, nullptr);
 			scene_renderer_commons::draw(context, pipeline_state, 4);
 			pipeline_state->end(context);
-#else	//	defined(USE_CUSTOM_PIPELINE)
-			directional_lighting_pipeline_state->begin(context);
-			scene_renderer_commons::draw(context, directional_lighting_pipeline_state, 4);
-			directional_lighting_pipeline_state->end(context);
-#endif	//	defined(USE_CUSTOM_PIPELINE)
 		}
 		lighting_pass.deactivate(context.device_context);
 	}, "render_directional_pass", context, get_render_basis_sort_order() + register_index++);
@@ -1135,7 +1111,6 @@ void deffered_lighting_renderer::render_point(const light_render_data& light, co
 		//	ビューポートの設定
 		context.device_context->RSSetViewports(1, &lighting_pass_viewport);
 		{
-#if defined(USE_CUSTOM_PIPELINE)
 			auto pipeline_state =
 				deferred_lighting_material->get_pipeline_state(material::system_paths::deferred_point);
 
@@ -1143,11 +1118,6 @@ void deffered_lighting_renderer::render_point(const light_render_data& light, co
 			pipeline_state->update_parameters(context, *deferred_lighting_material, nullptr);
 			scene_renderer_commons::draw(context, pipeline_state, 4);
 			pipeline_state->end(context);
-#else	//	defined(USE_CUSTOM_PIPELINE)
-			point_lighting_pipeline_state->begin(context);
-			scene_renderer_commons::draw(context, point_lighting_pipeline_state, 4);
-			point_lighting_pipeline_state->end(context);
-#endif	//	defined(USE_CUSTOM_PIPELINE)
 		}
 		lighting_pass.deactivate(context.device_context);
 	}, "render_point_pass", context, get_render_basis_sort_order() + register_index++);
@@ -1280,7 +1250,6 @@ void deffered_lighting_renderer::render_spot(const light_render_data& light, com
 		//	ビューポートの設定
 		context.device_context->RSSetViewports(1, &lighting_pass_viewport);
 		{
-#if defined(USE_CUSTOM_PIPELINE)
 			auto pipeline_state =
 				deferred_lighting_material->get_pipeline_state(material::system_paths::deferred_spot);
 
@@ -1288,11 +1257,6 @@ void deffered_lighting_renderer::render_spot(const light_render_data& light, com
 			pipeline_state->update_parameters(context, *deferred_lighting_material, nullptr);
 			scene_renderer_commons::draw(context, pipeline_state, 4);
 			pipeline_state->end(context);
-#else	//	defined(USE_CUSTOM_PIPELINE)
-			spot_lighting_pipeline_state->begin(context);
-			scene_renderer_commons::draw(context, spot_lighting_pipeline_state, 4);
-			spot_lighting_pipeline_state->end(context);
-#endif	//	defined(USE_CUSTOM_PIPELINE)
 		}
 		lighting_pass.deactivate(context.device_context);
 	}, "render_spot_pass", context, get_render_basis_sort_order() + register_index++);

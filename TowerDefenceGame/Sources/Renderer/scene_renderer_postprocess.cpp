@@ -3,12 +3,8 @@
 #include "model_instance.h"
 
 #include "custom_pipeline_state.h"
-#include "PipelineState/deferred_lighting_pipeline_state.h"
 #include "PipelineState/fullscreen_quad_pipeline_state.h"
-#include "PipelineState/debug_draw_line_pipeline_state.h"
-
 #include "PipelineState/post_process_pipeline_state.h"
-
 #include "PipelineState/anti_alias_pipeline_state.h"
 
 #include "System/engine_config_data.h"

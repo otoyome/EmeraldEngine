@@ -201,11 +201,7 @@ void roomba_camera_controller_object::fixed_update_default(float elapsed_time)
 	{
 		auto camera_rotation = camera->get_world_euler();
 		auto camera_front = camera_rotation.front();
-
-		double offset = system_units::convert_m_to_unit(1.0f);
-		double dist = focus_distance - offset;
-		auto camera_focus = focus - camera_front * offset;
-		auto camera_position = camera_focus - camera_front * dist;
+		auto camera_position = focus - camera_front * focus_distance;
 		double min_y_offset = math::linearstep(0.0, pitch_limit_angle.x, camera_rotation.x);
 		double max_y_offset = math::linearstep(0.0, pitch_limit_angle.y, camera_rotation.x);
 		camera_position.y += min_y_offset * focus_y_min_offset + max_y_offset * focus_y_max_offset;
@@ -214,7 +210,7 @@ void roomba_camera_controller_object::fixed_update_default(float elapsed_time)
 		{
 			collision_world::sphere_cast_descs desc;
 			desc.filter = collision_filter_manager::instance()->search_filter("camera");
-			desc.start = camera_focus.to_double3();
+			desc.start = focus.to_double3();
 			desc.end = camera_position.to_double3();
 			desc.radius = system_units::convert_m_to_unit(0.5f);
 
@@ -224,11 +220,8 @@ void roomba_camera_controller_object::fixed_update_default(float elapsed_time)
 			if (object_manager::instance()->get_world().sphere_cast(desc, intersect_data, hit_collision_object))
 			{
 				float length = static_cast<float>(intersect_data[0].length);
-				auto vector = camera_position - camera_focus;
-
-				camera_position.x = camera_focus.x + vector.x * length;
-				camera_position.y = camera_focus.y + vector.y * length;
-				camera_position.z = camera_focus.z + vector.z * length;
+				auto vector = (camera_position - focus).normalized();
+				camera_position = focus + vector * length;
 			}
 		}
 		camera->set_world_euler(camera_rotation);

@@ -287,7 +287,7 @@
     <ClCompile Include="Sources\Scenes\load_shader_scene.cpp">
       <Filter>Sources\Scenes</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\PipelineState\deferred_lighting_pipeline_state.cpp">
+    <ClCompile Include="Sources\PipelineState\skybox_pipeline_state.cpp">
       <Filter>Sources\PipelineState</Filter>
     </ClCompile>
     <ClCompile Include="Sources\PipelineState\debug_draw_line_pipeline_state.cpp">
@@ -583,7 +583,7 @@
     <ClInclude Include="Headers\Renderer\scene_render_targets.h">
       <Filter>Headers\Renderer</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\PipelineState\deferred_lighting_pipeline_state.h">
+    <ClInclude Include="Headers\PipelineState\skybox_pipeline_state.h">
       <Filter>Headers\PipelineState</Filter>
     </ClInclude>
     <ClInclude Include="Headers\PipelineState\debug_draw_line_pipeline_state.h">

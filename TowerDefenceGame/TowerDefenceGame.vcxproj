@@ -668,7 +668,7 @@ xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y</Command>
     <ClCompile Include="Sources\PipelineState\anti_alias_pipeline_state.cpp" />
     <ClCompile Include="Sources\PipelineState\debug_draw_line_pipeline_state.cpp" />
     <ClCompile Include="Sources\PipelineState\deferred_decal_pipeline_state.cpp" />
-    <ClCompile Include="Sources\PipelineState\deferred_lighting_pipeline_state.cpp" />
+    <ClCompile Include="Sources\PipelineState\skybox_pipeline_state.cpp" />
     <ClCompile Include="Sources\PipelineState\fullscreen_quad_pipeline_state.cpp" />
     <ClCompile Include="Sources\PipelineState\post_process_pipeline_state.cpp" />
     <ClCompile Include="Sources\Renderer\renderer.cpp" />
@@ -783,7 +783,7 @@ xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y</Command>
     <ClInclude Include="Headers\PipelineState\anti_alias_pipeline_state.h" />
     <ClInclude Include="Headers\PipelineState\debug_draw_line_pipeline_state.h" />
     <ClInclude Include="Headers\PipelineState\deferred_decal_pipeline_state.h" />
-    <ClInclude Include="Headers\PipelineState\deferred_lighting_pipeline_state.h" />
+    <ClInclude Include="Headers\PipelineState\skybox_pipeline_state.h" />
     <ClInclude Include="Headers\PipelineState\fullscreen_quad_pipeline_state.h" />
     <ClInclude Include="Headers\PipelineState\post_process_pipeline_state.h" />
     <ClInclude Include="Headers\Renderer\renderer_context.h" />

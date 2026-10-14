@@ -10,10 +10,6 @@
 #include "collision/frustum_culling.h"
 #include "graphics/shadow_atlas.h"
 
-#if defined(USE_IMGUI)
-#define USE_CUSTOM_PIPELINE
-#endif	//	defined(USE_IMGUI)
-
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 //	深度プリパス
 class depth_prepass_renderer : public renderer
@@ -126,16 +122,7 @@ private:
 	D3D11_VIEWPORT shadow_map_pass_viewport;
 
 	shadow_atlas atlas;
-
-#if defined(USE_CUSTOM_PIPELINE)
 	std::shared_ptr<material> deferred_lighting_material;
-#else	//	defined(USE_CUSTOM_PIPELINE)
-	graphics_pipeline_state_ptr indirect_lighting_pipeline_state;
-	graphics_pipeline_state_ptr directional_lighting_pipeline_state;
-	graphics_pipeline_state_ptr point_lighting_pipeline_state;
-	graphics_pipeline_state_ptr spot_lighting_pipeline_state;
-	graphics_pipeline_state_ptr shadow_light_pipeline_state;
-#endif	//	defined(USE_CUSTOM_PIPELINE)
 };
 
 #if defined(USE_IMGUI)
