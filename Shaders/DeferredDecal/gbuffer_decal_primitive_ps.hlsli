@@ -1,5 +1,6 @@
-Texture2D<float4> gbuffer_normal_depth;
-Texture2D<uint4> gbuffer_unique_data;
+//	@tool パス層（シェーダーリソースは t64-t95）
+Texture2D<float4> gbuffer_normal_depth : register(t65);
+Texture2D<uint4> gbuffer_unique_data : register(t68);
 
 PSDecalOut main(VS_OUT pin)
 {

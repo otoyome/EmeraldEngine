@@ -1,5 +1,6 @@
 #include "model_buffer_pool.h"
 #include "render_data.h"
+#include "graphics_context.h"
 #include "common_pipeline_states.h"
 
 #include <iterator>
@@ -45,21 +46,14 @@ void model_gpu_buffer::queue_upload(UINT offset_in_bytes, const void* data, UINT
 	pending_uploads.emplace_back(std::move(upload));
 }
 
-void model_gpu_buffer::flush_uploads()
+void model_gpu_buffer::flush_uploads(gpu_upload_list& out_uploads)
 {
 	if (pending_uploads.empty())
 		return;
 
 	for (auto& upload : pending_uploads)
 	{
-		D3D11_BOX box{};
-		box.left = upload.offset_in_bytes;
-		box.right = upload.offset_in_bytes + static_cast<UINT>(upload.data.size());
-		box.top = 0;
-		box.bottom = 1;
-		box.front = 0;
-		box.back = 1;
-		render_data::instance()->get_immediate_context()->UpdateSubresource(buffer.Get(), 0, &box, upload.data.data(), 0, 0);
+		out_uploads.add_owned(buffer, true, upload.offset_in_bytes, std::move(upload.data));
 	}
 	pending_uploads.clear();
 }
@@ -68,6 +62,9 @@ void model_gpu_buffer::grow(UINT new_capacity_in_bytes)
 {
 	if (new_capacity_in_bytes <= capacity_in_bytes)
 		return;
+
+	//	@tool 描画中のフレームが古いバッファを参照しているので、描き終わるのを待ってから差し替える
+	render_data::instance()->flush_rendering();
 
 	D3D11_BUFFER_DESC buffer_desc{};
 	buffer_desc.ByteWidth = new_capacity_in_bytes;
@@ -88,7 +85,10 @@ void model_gpu_buffer::grow(UINT new_capacity_in_bytes)
 	box.bottom = 1;
 	box.front = 0;
 	box.back = 1;
-	render_data::instance()->get_immediate_context()->CopySubresourceRegion(new_buffer.Get(), 0, 0, 0, 0, buffer.Get(), 0, &box);
+	{
+		std::lock_guard<std::recursive_mutex> lock(render_data::instance()->get_immediate_context_mutex());
+		render_data::instance()->get_immediate_context()->CopySubresourceRegion(new_buffer.Get(), 0, 0, 0, 0, buffer.Get(), 0, &box);
+	}
 
 	buffer = new_buffer;
 	capacity_in_bytes = new_capacity_in_bytes;
@@ -282,6 +282,15 @@ void model_buffer_pool_manager::free_vertex_buffers(const std::unordered_map<sem
 	}
 }
 
+void model_buffer_pool_manager::update_vertex_buffer(const semantic& target_semantic, const buffer_view& view)
+{
+	auto it = vertex_buffers.find(target_semantic);
+	if (it == vertex_buffers.end() || view.stride_in_bytes == 0 || view.size_in_bytes == 0 || view.row_data.size() < view.size_in_bytes)
+		return;
+
+	it->second.buffer->queue_upload(static_cast<UINT>(view.offset_in_bytes), view.row_data.data(), static_cast<UINT>(view.size_in_bytes));
+}
+
 ID3D11Buffer* model_buffer_pool_manager::get_vertex_buffer(const semantic& target_semantic)
 {
 	auto it = vertex_buffers.find(target_semantic);
@@ -370,14 +379,14 @@ void model_buffer_pool_manager::get_meshlet_instance_batch(UINT min_capacity, ID
 	*out_srv = meshlet_instance_batch_srv.Get();
 }
 
-void model_buffer_pool_manager::flush_uploads()
+void model_buffer_pool_manager::flush_uploads(gpu_upload_list& out_uploads)
 {
 	for (auto& pool : vertex_buffers)
 	{
-		pool.second.buffer->flush_uploads();
+		pool.second.buffer->flush_uploads(out_uploads);
 	}
-	meshlet_vertex_buffer->flush_uploads();
-	meshlet_triangle_buffer->flush_uploads();
+	meshlet_vertex_buffer->flush_uploads(out_uploads);
+	meshlet_triangle_buffer->flush_uploads(out_uploads);
 }
 
 std::vector<model_buffer_pool_manager::pool_usage> model_buffer_pool_manager::get_pool_usages() const

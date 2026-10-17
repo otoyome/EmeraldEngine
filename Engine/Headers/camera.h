@@ -47,7 +47,7 @@ struct view_selection
 //	カメラマネージャー
 class camera_manager
 {
-	SINGLETON(camera_manager)
+	WORLD_SINGLETON(camera_manager)
 
 private:
 	camera_manager();

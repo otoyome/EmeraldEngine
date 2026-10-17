@@ -28,11 +28,11 @@ debug_draw_line_pipeline_state::debug_draw_line_pipeline_state(bool depth_test)
 		register_input_element_vertex(vs_desc.input_element_desc, "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, byte_offset);
 		register_input_element_vertex(vs_desc.input_element_desc, "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, byte_offset);
 	}
-	shader_manager::instance()->load_shader<vertex_shader>(vs, vs_desc);
+	shader_manager::instance()->load_shader<vertex_shader>(shaders.vs, vs_desc);
 
 	load_shader_cso ps_desc;
 	ps_desc.file_path = "Assets/CSO/debug_draw_line_ps.cso";
-	shader_manager::instance()->load_shader<pixel_shader>(ps, ps_desc);
+	shader_manager::instance()->load_shader<pixel_shader>(shaders.ps, ps_desc);
 
 	//	深度ステンシルステート
 	{
@@ -40,7 +40,7 @@ debug_draw_line_pipeline_state::debug_draw_line_pipeline_state(bool depth_test)
 		depth_stencil_desc.DepthEnable = TRUE;
 		depth_stencil_desc.DepthWriteMask = depth_test ? D3D11_DEPTH_WRITE_MASK_ALL : D3D11_DEPTH_WRITE_MASK_ZERO;
 		depth_stencil_desc.DepthFunc = depth_test ? common_pipeline_states::depth_comparison_func : D3D11_COMPARISON_ALWAYS;
-		hr = render_data::instance()->get_device()->CreateDepthStencilState(&depth_stencil_desc, depth_stencil_states.GetAddressOf());
+		hr = render_data::instance()->get_device()->CreateDepthStencilState(&depth_stencil_desc, depth_stencil_state.GetAddressOf());
 		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
 	}
 
@@ -57,7 +57,7 @@ debug_draw_line_pipeline_state::debug_draw_line_pipeline_state(bool depth_test)
 		blend_desc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_INV_SRC_ALPHA;
 		blend_desc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
 		blend_desc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-		hr = render_data::instance()->get_device()->CreateBlendState(&blend_desc, blend_states.GetAddressOf());
+		hr = render_data::instance()->get_device()->CreateBlendState(&blend_desc, blend_state.GetAddressOf());
 		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
 	}
 
@@ -74,9 +74,14 @@ debug_draw_line_pipeline_state::debug_draw_line_pipeline_state(bool depth_test)
 		rasterizer_desc.ScissorEnable = FALSE;
 		rasterizer_desc.MultisampleEnable = FALSE;
 		rasterizer_desc.AntialiasedLineEnable = FALSE;
-		hr = render_data::instance()->get_device()->CreateRasterizerState(&rasterizer_desc, rasterizer_states.GetAddressOf());
+		hr = render_data::instance()->get_device()->CreateRasterizerState(&rasterizer_desc, rasterizer_state.GetAddressOf());
 		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
 	}
+
+	//	@tool 描画設定と割り当て配置（描画時は command_recorder がこれを解釈して設定する）
+	primitive_topology = D3D11_PRIMITIVE_TOPOLOGY_LINELIST;
+	layout.add_constant_buffer(shader_stage::vertex, common_pipeline_states::scene_cbv_index, common_pipeline_states::scene_constant_buffer_hash_key);
+	layout.add_constant_buffer(shader_stage::pixel, common_pipeline_states::scene_cbv_index, common_pipeline_states::scene_constant_buffer_hash_key);
 }
 
 debug_draw_line_pipeline_state::debug_draw_line_pipeline_state()
@@ -86,41 +91,6 @@ debug_draw_line_pipeline_state::debug_draw_line_pipeline_state()
 
 debug_draw_line_pipeline_state::~debug_draw_line_pipeline_state()
 {
-}
-
-void debug_draw_line_pipeline_state::begin(const graphics_context& context)
-{
-	//	シェーダー設定
-	context.device_context->VSSetShader(vs->get_shader().Get(), nullptr, 0);
-	context.device_context->HSSetShader(nullptr, nullptr, 0);
-	context.device_context->DSSetShader(nullptr, nullptr, 0);
-	context.device_context->GSSetShader(nullptr, nullptr, 0);
-	context.device_context->PSSetShader(ps->get_shader().Get(), nullptr, 0);
-	context.device_context->IASetInputLayout(vs->get_input_layout().Get());
-	context.device_context->IASetPrimitiveTopology(D3D10_PRIMITIVE_TOPOLOGY_LINELIST);
-
-	//	ステート設定
-	context.device_context->OMSetBlendState(blend_states.Get(), nullptr, 0xFFFFFFFF);
-	context.device_context->OMSetDepthStencilState(depth_stencil_states.Get(), 0);
-	context.device_context->RSSetState(rasterizer_states.Get());
-
-	//	シーン定数バッファ設定
-	context.device_context->VSSetConstantBuffers(common_pipeline_states::scene_cbv_index, 1, context.scene_constant_buffer.GetAddressOf());
-	context.device_context->PSSetConstantBuffers(common_pipeline_states::scene_cbv_index, 1, context.scene_constant_buffer.GetAddressOf());
-}
-
-void debug_draw_line_pipeline_state::update_parameters(const graphics_context& context, const material& material, const buffer_datas* buffer_data)
-{
-}
-
-void debug_draw_line_pipeline_state::end(const graphics_context& context)
-{
-	context.clear_vertex_buffer();
-	context.clear_index_buffer();
-	context.clear_shader_slots();
-	context.clear_shader_resorce_views();
-	context.clear_sampler();
-	context.clear_constant_buffers();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////

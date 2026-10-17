@@ -2,6 +2,7 @@
 
 #include "render_data.h"
 #include "System/misc.h"
+#include "graphics/clustered_lighting_system.h"
 
 namespace
 {
@@ -51,6 +52,57 @@ namespace
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+void gpu_upload_list::add_copy(const Microsoft::WRL::ComPtr<ID3D11Buffer>& buffer, bool use_box, UINT offset_in_bytes, const void* data, UINT size_in_bytes)
+{
+	std::vector<uint8_t> copied(static_cast<const uint8_t*>(data), static_cast<const uint8_t*>(data) + size_in_bytes);
+	add_owned(buffer, use_box, offset_in_bytes, std::move(copied));
+}
+
+void gpu_upload_list::add_owned(const Microsoft::WRL::ComPtr<ID3D11Buffer>& buffer, bool use_box, UINT offset_in_bytes, std::vector<uint8_t>&& data)
+{
+	auto& target = commands.emplace_back();
+	target.buffer = buffer;
+	target.use_box = use_box;
+	target.offset_in_bytes = offset_in_bytes;
+	target.size_in_bytes = static_cast<UINT>(data.size());
+	target.owned_data = std::move(data);
+}
+
+void gpu_upload_list::add_reference(const Microsoft::WRL::ComPtr<ID3D11Buffer>& buffer, bool use_box, UINT offset_in_bytes, const void* data, UINT size_in_bytes)
+{
+	auto& target = commands.emplace_back();
+	target.buffer = buffer;
+	target.use_box = use_box;
+	target.offset_in_bytes = offset_in_bytes;
+	target.data = data;
+	target.size_in_bytes = size_in_bytes;
+}
+
+void gpu_upload_list::upload(ID3D11DeviceContext* context) const
+{
+	for (const auto& target : commands)
+	{
+		if (!target.buffer || target.size_in_bytes == 0)
+			continue;
+
+		const void* source = target.owned_data.empty() ? target.data : target.owned_data.data();
+		if (target.use_box)
+		{
+			D3D11_BOX box{};
+			box.left = target.offset_in_bytes;
+			box.right = target.offset_in_bytes + target.size_in_bytes;
+			box.bottom = 1;
+			box.back = 1;
+			context->UpdateSubresource(target.buffer.Get(), 0, &box, source, 0, 0);
+		}
+		else
+		{
+			context->UpdateSubresource(target.buffer.Get(), 0, nullptr, source, 0, 0);
+		}
+	}
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void mesh_container::build_transform_buffers()
 {
 	if (primitive_header_scratch.empty())
@@ -58,162 +110,142 @@ void mesh_container::build_transform_buffers()
 	if (bone_matrix_scratch.empty())
 		bone_matrix_scratch.emplace_back();
 
+	//	バッファ生成判定
 	regenerate_structured_buffer(primitive_header_buffer, primitive_header_srv, primitive_header_capacity,
 		sizeof(common_pipeline_states::primitive_header), primitive_header_scratch.size());
 	regenerate_structured_buffer(bone_matrix_buffer, bone_matrix_srv, bone_matrix_capacity,
 		sizeof(math::float4x4), bone_matrix_scratch.size());
 
-	auto immediate_context = render_data::instance()->get_immediate_context();
-
-	auto upload_range = [&](ID3D11Buffer* buffer, const void* source, UINT byte_size)
-	{
-		D3D11_BOX box = {};
-		box.right = byte_size;
-		box.bottom = 1;
-		box.back = 1;
-		immediate_context->UpdateSubresource(buffer, 0, &box, source, 0, 0);
-	};
-	upload_range(primitive_header_buffer.Get(), primitive_header_scratch.data(),
+	//	転送は描画の最初のパスで行う
+	transform_uploads.commands.clear();
+	transform_uploads.add_reference(primitive_header_buffer, true, 0, primitive_header_scratch.data(),
 		static_cast<UINT>(primitive_header_scratch.size() * sizeof(common_pipeline_states::primitive_header)));
-	upload_range(bone_matrix_buffer.Get(), bone_matrix_scratch.data(),
+	transform_uploads.add_reference(bone_matrix_buffer, true, 0, bone_matrix_scratch.data(),
 		static_cast<UINT>(bone_matrix_scratch.size() * sizeof(math::float4x4)));
 }
 
+void mesh_container::clear()
+{
+	draw_datas.clear();
+	shadow_datas.clear();
+	color_datas.clear();
+	primitive_header_scratch.clear();
+	bone_matrix_scratch.clear();
+}
+
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void graphics_context::set_rasterizer_state(ID3D11RasterizerState* state) const
+namespace
 {
-	if (chache_rasterizer_state == state)
-		return;
-	device_context->RSSetState(state);
-	chache_rasterizer_state = state;
-}
-
-void graphics_context::set_depth_stencil_state(ID3D11DepthStencilState* state, UINT stencil_ref) const
-{
-	if (chache_depth_stencil_state == state && chache_stencil_ref == stencil_ref)
-		return;
-	device_context->OMSetDepthStencilState(state, stencil_ref);
-	chache_depth_stencil_state = state;
-	chache_stencil_ref = stencil_ref;
-}
-
-void graphics_context::set_blend_state(ID3D11BlendState* state) const
-{
-	if (chache_blend_state == state)
-		return;
-	device_context->OMSetBlendState(state, nullptr, 0xFFFFFFFF);
-	chache_blend_state = state;
-}
-
-void graphics_context::set_primitive_topology(D3D_PRIMITIVE_TOPOLOGY topology) const
-{
-	if (chache_primitive_topology == topology)
-		return;
-	device_context->IASetPrimitiveTopology(topology);
-	chache_primitive_topology = topology;
-}
-
-void graphics_context::set_vertex_buffers(UINT start_slot, UINT num_buffers, ID3D11Buffer* const* buffers, const UINT* strides, const UINT* offsets) const
-{
-	bool is_same = (chache_vertex_buffer_start_slot == start_slot) && (chache_vertex_buffer_count == num_buffers);
-	for (UINT index = 0; is_same && index < num_buffers; ++index)
+	//	フォワード描画用のライト情報
+	struct forward_light_data
 	{
-		if (chache_vertex_buffers[index] != buffers[index] ||
-			chache_vertex_buffer_strides[index] != strides[index] ||
-			chache_vertex_buffer_offsets[index] != offsets[index])
+		common_pipeline_states::forward_light_constants light;
+
+		//	IBL情報
+		texture_ptr diffuse_ibl_texture;
+		texture_ptr specluar_ibl_texture;
+		texture_ptr lut_ggx_texture;
+	};
+
+	//	近距離のライトを集める
+	forward_light_data search_neighborhood_light(const graphics_context& context)
+	{
+		forward_light_data light_data = {};
+		//	テキトーに近くのライトを詰める
+		for (auto& light : context.render_data->light_container.lights)
 		{
-			is_same = false;
+			//	クラスタードライティング対象はクラスターから参照するので詰めない
+			if (context.clustered_lighting && clustered_lighting_system::is_target(light, context.render_data->settings))
+				continue;
+
+			switch(light.type)
+			{
+				case light_type::directional:
+				{
+					if (light_data.light.light_counts.x >= common_pipeline_states::directional_light_count)
+						continue;
+
+					light_data.light.directional_light_data[light_data.light.light_counts.x] = light.data;
+					++light_data.light.light_counts.x;
+					break;
+				}
+				case light_type::point:
+				{
+					if (light_data.light.light_counts.y >= common_pipeline_states::point_light_count)
+						continue;
+
+					light_data.light.point_light_data[light_data.light.light_counts.y] = light.data;
+					++light_data.light.light_counts.y;
+					break;
+				}
+				case light_type::spot:
+				{
+					if (light_data.light.light_counts.z >= common_pipeline_states::spot_light_count)
+						continue;
+
+					light_data.light.spot_light_data[light_data.light.light_counts.z] = light.data;
+					++light_data.light.light_counts.z;
+					break;
+				}
+			}
 		}
+
+		//	IBL
+		for (const auto& light_probe : context.render_data->light_container.light_probes)
+		{
+			if (!light_probe.is_flag(light_probe::flags::active) || !light_probe.is_flag(light_probe::flags::unbind))
+			{
+				continue;
+			}
+
+			//	IBLテクスチャ設定
+			light_data.diffuse_ibl_texture = light_probe.diffuse_ibl_texture;
+			light_data.specluar_ibl_texture = light_probe.specular_ibl_texture;
+			light_data.lut_ggx_texture = light_probe.lut_ggx_texture;
+
+			//	間接光の情報を設定
+			light_data.light.light_probe_data = light_probe.data;
+			break;
+		}
+		return light_data;
 	}
-	if (is_same)
-		return;
+}
 
-	device_context->IASetVertexBuffers(start_slot, num_buffers, buffers, strides, offsets);
+void graphics_context::register_frame_bind_table()
+{
+	constexpr resource_view_bind_layer layer = resource_view_bind_layer::frame_view;
+	bind_table.clear(layer);
 
-	chache_vertex_buffer_start_slot = start_slot;
-	chache_vertex_buffer_count = num_buffers;
-	for (UINT index = 0; index < num_buffers; ++index)
+	//	シーン定数
+	if (scene_constant_buffer)
+		bind_table.set_constant_buffer(layer, common_pipeline_states::scene_constant_buffer_hash_key, scene_constant_buffer);
+
+	//	変換行列のバッファ
+	if (render_data)
 	{
-		chache_vertex_buffers[index] = buffers[index];
-		chache_vertex_buffer_strides[index] = strides[index];
-		chache_vertex_buffer_offsets[index] = offsets[index];
+		bind_table.set_shader_resource_view(layer, common_pipeline_states::primitive_headers_hash_key, render_data->mesh_container.primitive_header_srv.Get());
+		bind_table.set_shader_resource_view(layer, common_pipeline_states::bone_matrices_hash_key, render_data->mesh_container.bone_matrix_srv.Get());
 	}
-}
 
-void graphics_context::set_index_buffer(ID3D11Buffer* buffer, DXGI_FORMAT format, UINT offset) const
-{
-	if (chache_index_buffer == buffer && chache_index_buffer_format == format && chache_index_buffer_offset == offset)
-		return;
-	device_context->IASetIndexBuffer(buffer, format, offset);
-	chache_index_buffer = buffer;
-	chache_index_buffer_format = format;
-	chache_index_buffer_offset = offset;
-}
+	//	クラスタードライティング設定
+	if (clustered_lighting)
+	{
+		bind_table.set_constant_buffer(layer, common_pipeline_states::clustered_lighting_constant_buffer_hash_key, clustered_lighting->get_constant_buffer());
+		bind_table.set_shader_resource_view(layer, common_pipeline_states::clustered_lights_hash_key, clustered_lighting->get_light_srv());
+		bind_table.set_shader_resource_view(layer, common_pipeline_states::cluster_counts_hash_key, clustered_lighting->get_count_srv());
+		bind_table.set_shader_resource_view(layer, common_pipeline_states::cluster_offsets_hash_key, clustered_lighting->get_offset_srv());
+		bind_table.set_shader_resource_view(layer, common_pipeline_states::cluster_light_indices_hash_key, clustered_lighting->get_index_srv());
+	}
 
-void graphics_context::clear_shader_slots() const
-{
-	device_context->VSSetShader(nullptr, nullptr, 0);
-	device_context->HSSetShader(nullptr, nullptr, 0);
-	device_context->DSSetShader(nullptr, nullptr, 0);
-	device_context->GSSetShader(nullptr, nullptr, 0);
-	device_context->PSSetShader(nullptr, nullptr, 0);
-	device_context->CSSetShader(nullptr, nullptr, 0);
-}
-
-void graphics_context::clear_vertex_buffer() const
-{
-	ID3D11Buffer* vbs[D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT] = {};
-	UINT dummy[D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT] = {};
-	set_vertex_buffers(0, D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT, vbs, dummy, dummy);
-}
-
-void graphics_context::clear_index_buffer() const
-{
-	set_index_buffer(nullptr, DXGI_FORMAT_UNKNOWN, 0);
-}
-
-void graphics_context::clear_render_target_slots() const
-{
-	device_context->OMSetRenderTargets(0, nullptr, nullptr);
-}
-
-void graphics_context::clear_constant_buffers(int start_slot, int num) const
-{
-	ID3D11Buffer* clear_constant_bufferes[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT]{};
-	device_context->VSSetConstantBuffers(start_slot, num, clear_constant_bufferes);
-	device_context->HSSetConstantBuffers(start_slot, num, clear_constant_bufferes);
-	device_context->DSSetConstantBuffers(start_slot, num, clear_constant_bufferes);
-	device_context->GSSetConstantBuffers(start_slot, num, clear_constant_bufferes);
-	device_context->PSSetConstantBuffers(start_slot, num, clear_constant_bufferes);
-	device_context->CSSetConstantBuffers(start_slot, num, clear_constant_bufferes);
-}
-
-void graphics_context::clear_shader_resorce_views(int start_slot, int num) const
-{
-	ID3D11ShaderResourceView* clear_shader_resource_view[D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT]{};
-	device_context->VSSetShaderResources(start_slot, num, clear_shader_resource_view);
-	device_context->HSSetShaderResources(start_slot, num, clear_shader_resource_view);
-	device_context->DSSetShaderResources(start_slot, num, clear_shader_resource_view);
-	device_context->GSSetShaderResources(start_slot, num, clear_shader_resource_view);
-	device_context->PSSetShaderResources(start_slot, num, clear_shader_resource_view);
-	device_context->CSSetShaderResources(start_slot, num, clear_shader_resource_view);
-}
-
-void graphics_context::clear_unordered_access_views(int start_slot, int num) const
-{
-	ID3D11UnorderedAccessView* clear_unordered_access_view[8]{};
-	device_context->CSSetUnorderedAccessViews(start_slot, num, clear_unordered_access_view, nullptr);
-}
-
-void graphics_context::clear_sampler(int start_slot, int num) const
-{
-	ID3D11SamplerState* clear_sampler[D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT]{};
-	device_context->VSSetSamplers(start_slot, num, clear_sampler);
-	device_context->HSSetSamplers(start_slot, num, clear_sampler);
-	device_context->DSSetSamplers(start_slot, num, clear_sampler);
-	device_context->GSSetSamplers(start_slot, num, clear_sampler);
-	device_context->PSSetSamplers(start_slot, num, clear_sampler);
-	device_context->CSSetSamplers(start_slot, num, clear_sampler);
+	//	フォワード描画用のライト
+	if (render_data)
+	{
+		const forward_light_data light_data = search_neighborhood_light(*this);
+		bind_table.set_constants(layer, common_pipeline_states::forward_light_constant_buffer_hash_key, light_data.light, true);
+		bind_table.set_texture(layer, common_pipeline_states::forward_only_diffuse_iem_hash_key, light_data.diffuse_ibl_texture);
+		bind_table.set_texture(layer, common_pipeline_states::forward_only_specular_pmrem_hash_key, light_data.specluar_ibl_texture);
+		bind_table.set_texture(layer, common_pipeline_states::forward_only_lut_ggx_hash_key, light_data.lut_ggx_texture);
+	}
 }
 
 #if defined(USE_IMGUI)
@@ -242,7 +274,7 @@ namespace
 void graphics_context::debug_begin_event(const wchar_t* event_name)
 {
 #if defined(USE_IMGUI)
-	if (ID3DUserDefinedAnnotation* annotation = get_user_defined_annotation(device_context))
+	if (ID3DUserDefinedAnnotation* annotation = get_user_defined_annotation(recorder.get_device_context()))
 		annotation->BeginEvent(event_name);
 #endif	//	defined(USE_IMGUI)
 }
@@ -250,7 +282,7 @@ void graphics_context::debug_begin_event(const wchar_t* event_name)
 void graphics_context::debug_end_event()
 {
 #if defined(USE_IMGUI)
-	if (ID3DUserDefinedAnnotation* annotation = get_user_defined_annotation(device_context))
+	if (ID3DUserDefinedAnnotation* annotation = get_user_defined_annotation(recorder.get_device_context()))
 		annotation->EndEvent();
 #endif	//	defined(USE_IMGUI)
 }

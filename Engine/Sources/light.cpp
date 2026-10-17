@@ -24,7 +24,7 @@ namespace
 	constexpr std::int64_t large_light_cell_count = 512;
 
 	//	シェーダー用のライト情報に変換
-	light_data convert_light_data(const light_render_data& light)
+	light_data convert_light_data(const light_render_proxy& light)
 	{
 		light_data data{};
 		data.color = { light.color.x * light.color.w, light.color.y * light.color.w, light.color.z * light.color.w };
@@ -55,9 +55,9 @@ namespace
 	}
 
 	//	ライトの描画情報を描画原点からの相対座標で作る
-	light_render_data make_light_render_data(const light& source, const math::vector3d& render_origin, float fade = 1.0f)
+	light_render_proxy make_light_render_proxy(const light& source, const math::vector3d& render_origin, float fade = 1.0f)
 	{
-		light_render_data ret;
+		light_render_proxy ret;
 		ret.type = source.get_light_type();
 		ret.attribute = source.get_attribute();
 		ret.id = source.get_id();
@@ -79,9 +79,9 @@ namespace
 	}
 
 	//	ライトプローブの描画情報を描画原点からの相対座標で作る
-	light_probe_render_data make_light_probe_render_data(const light_probe& source, const math::vector3d& render_origin)
+	light_probe_render_proxy make_light_probe_render_proxy(const light_probe& source, const math::vector3d& render_origin)
 	{
-		light_probe_render_data ret;
+		light_probe_render_proxy ret;
 		ret.attribute = source.get_attribute();
 
 		const math::float3 position = (source.get_position() - render_origin).to_float3();
@@ -607,7 +607,7 @@ void light_manager::get_container(light_container& container, const math::vector
 		if (it == records.end())
 			continue;
 		if (auto pointer = it->second.pointer.lock())
-			container.lights.emplace_back(make_light_render_data(*pointer, render_origin));
+			container.lights.emplace_back(make_light_render_proxy(*pointer, render_origin));
 	}
 
 	UINT candidate_count = 0;
@@ -650,7 +650,7 @@ void light_manager::get_container(light_container& container, const math::vector
 		if (view.frustum && !view.frustum->to_sphere((pointer->get_position() - render_origin).to_float3(), range))
 			continue;
 
-		container.lights.emplace_back(make_light_render_data(*pointer, render_origin, fade));
+		container.lights.emplace_back(make_light_render_proxy(*pointer, render_origin, fade));
 	}
 
 	//	プローブ
@@ -664,7 +664,7 @@ void light_manager::get_container(light_container& container, const math::vector
 				it = light_probes.erase(it);
 				continue;
 			}
-			container.light_probes.emplace_back(make_light_probe_render_data(*it->lock(), render_origin));
+			container.light_probes.emplace_back(make_light_probe_render_proxy(*it->lock(), render_origin));
 			++it;
 		}
 	}

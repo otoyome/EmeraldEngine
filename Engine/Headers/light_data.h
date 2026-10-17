@@ -22,6 +22,18 @@ constexpr UINT light_attribute_invalid_shadow_index = 0xfffu;	//	影無し
 constexpr UINT light_attribute_type_shift = 24;
 constexpr UINT light_attribute_type_mask = 0xfu;
 
+//	ライト情報
+struct light_data
+{
+	math::float3 position{ 0, 0, 0 };	//	座標
+	float inv_range{ 0 };				//	1 / 影響範囲
+	math::float3 color{ 1, 1, 1 };		//	色 * 強さ
+	UINT attribute{ 0 };				//	ライトフラグ
+	math::float3 direction{ 0, 0, 1 };	//	向き
+	UINT cone{ 0 };						//	16byte : インナーcos, 16byte : アウターcos
+};
+
+//	ライトプローブ情報
 struct light_probes
 {
 	math::float4 position{ 0, 0, 0, 0 };
@@ -29,19 +41,6 @@ struct light_probes
 	math::float4 inner_area{ 100, 100, 100, 0 };
 	math::float4 outer_area{ 200, 200, 200, 0 };
 };
-
-//	ライト情報
-//	平行光源は position / inv_range、点光源は direction / cone を使わない
-struct light_data
-{
-	math::float3 position{ 0, 0, 0 };	//	座標
-	float inv_range{ 0 };				//	1 / 影響範囲
-	math::float3 color{ 1, 1, 1 };		//	色 × 強さ
-	UINT attribute{ 0 };				//	ライトフラグ
-	math::float3 direction{ 0, 0, 1 };	//	向き
-	UINT cone{ 0 };						//	16byte : インナーcos, 16byte : アウターcos
-};
-static_assert(sizeof(light_data) == 48, "light_data must be 48 bytes");
 
 namespace light_data_utility
 {

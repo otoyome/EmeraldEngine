@@ -10,11 +10,11 @@ write_back_pipeline_state::write_back_pipeline_state()
 	load_shader_cso vs_desc;
 	vs_desc.file_path = "Assets/CSO/fullscreen_quad_vs.cso";
 	vs_desc.input_element_desc;
-	shader_manager::instance()->load_shader<vertex_shader>(vs, vs_desc);
+	shader_manager::instance()->load_shader<vertex_shader>(shaders.vs, vs_desc);
 
 	load_shader_cso ps_desc;
 	ps_desc.file_path = "Assets/CSO/fullscreen_quad_ps.cso";
-	shader_manager::instance()->load_shader<pixel_shader>(ps, ps_desc);
+	shader_manager::instance()->load_shader<pixel_shader>(shaders.ps, ps_desc);
 
 	// ブレンドステートの生成
 	{
@@ -29,7 +29,7 @@ write_back_pipeline_state::write_back_pipeline_state()
 		blend_desc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ONE;
 		blend_desc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
 		blend_desc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-		hr = render_data::instance()->get_device()->CreateBlendState(&blend_desc, blend_states.GetAddressOf());
+		hr = render_data::instance()->get_device()->CreateBlendState(&blend_desc, blend_state.GetAddressOf());
 		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
 	}
 
@@ -46,43 +46,18 @@ write_back_pipeline_state::write_back_pipeline_state()
 		rasterizer_desc.ScissorEnable = FALSE;
 		rasterizer_desc.MultisampleEnable = FALSE;
 		rasterizer_desc.AntialiasedLineEnable = FALSE;
-		hr = render_data::instance()->get_device()->CreateRasterizerState(&rasterizer_desc, rasterizer_states.GetAddressOf());
+		hr = render_data::instance()->get_device()->CreateRasterizerState(&rasterizer_desc, rasterizer_state.GetAddressOf());
 		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
 	}
+
+	//	@tool 描画設定と割り当て配置（描画時は command_recorder がこれを解釈して設定する）
+	primitive_topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP;
+	layout.add_shader_resource(shader_stage::pixel, common_pipeline_states::scene_color_map_srv_index, common_pipeline_states::scene_color_map_hash_key);
+	layout.add_sampler(shader_stage::pixel, 0, render_data::instance()->get_sampler_states(render_data::SAMPLER_STATE::POINT));
 }
 
 write_back_pipeline_state::~write_back_pipeline_state()
 {
-}
-
-void write_back_pipeline_state::begin(const graphics_context& context)
-{
-	//	シェーダー設定
-	context.device_context->VSSetShader(vs->get_shader().Get(), nullptr, 0);
-	context.device_context->HSSetShader(nullptr, nullptr, 0);
-	context.device_context->DSSetShader(nullptr, nullptr, 0);
-	context.device_context->GSSetShader(nullptr, nullptr, 0);
-	context.device_context->PSSetShader(ps->get_shader().Get(), nullptr, 0);
-	context.device_context->IASetInputLayout(vs->get_input_layout().Get());
-	context.device_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-
-	//	ステート設定
-	context.device_context->OMSetBlendState(blend_states.Get(), nullptr, 0xFFFFFFFF);
-	context.device_context->OMSetDepthStencilState(nullptr, 0);
-	context.device_context->RSSetState(rasterizer_states.Get());
-
-	context.device_context->PSSetShaderResources(0, 1, context.scene_color_texture->get_shader_resource_view().GetAddressOf());
-	context.device_context->PSSetSamplers(0, 1, render_data::instance()->get_sampler_states(render_data::SAMPLER_STATE::POINT).GetAddressOf());
-}
-
-void write_back_pipeline_state::end(const graphics_context& context)
-{
-	context.clear_vertex_buffer();
-	context.clear_index_buffer();
-	context.clear_shader_slots();
-	context.clear_shader_resorce_views();
-	context.clear_sampler();
-	context.clear_constant_buffers();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -95,11 +70,11 @@ compress_rgb_to_log_pipeline_state::compress_rgb_to_log_pipeline_state()
 	load_shader_cso vs_desc;
 	vs_desc.file_path = "Assets/CSO/fullscreen_quad_vs.cso";
 	vs_desc.input_element_desc;
-	shader_manager::instance()->load_shader<vertex_shader>(vs, vs_desc);
+	shader_manager::instance()->load_shader<vertex_shader>(shaders.vs, vs_desc);
 
 	load_shader_cso ps_desc;
 	ps_desc.file_path = "Assets/CSO/compress_rgb_to_log_ps.cso";
-	shader_manager::instance()->load_shader<pixel_shader>(ps, ps_desc);
+	shader_manager::instance()->load_shader<pixel_shader>(shaders.ps, ps_desc);
 
 	// ブレンドステートの生成
 	{
@@ -114,7 +89,7 @@ compress_rgb_to_log_pipeline_state::compress_rgb_to_log_pipeline_state()
 		blend_desc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ONE;
 		blend_desc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
 		blend_desc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-		hr = render_data::instance()->get_device()->CreateBlendState(&blend_desc, blend_states.GetAddressOf());
+		hr = render_data::instance()->get_device()->CreateBlendState(&blend_desc, blend_state.GetAddressOf());
 		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
 	}
 
@@ -131,43 +106,18 @@ compress_rgb_to_log_pipeline_state::compress_rgb_to_log_pipeline_state()
 		rasterizer_desc.ScissorEnable = FALSE;
 		rasterizer_desc.MultisampleEnable = FALSE;
 		rasterizer_desc.AntialiasedLineEnable = FALSE;
-		hr = render_data::instance()->get_device()->CreateRasterizerState(&rasterizer_desc, rasterizer_states.GetAddressOf());
+		hr = render_data::instance()->get_device()->CreateRasterizerState(&rasterizer_desc, rasterizer_state.GetAddressOf());
 		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
 	}
+
+	//	@tool 描画設定と割り当て配置（描画時は command_recorder がこれを解釈して設定する）
+	primitive_topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP;
+	layout.add_shader_resource(shader_stage::pixel, common_pipeline_states::scene_color_map_srv_index, common_pipeline_states::scene_color_map_hash_key);
+	layout.add_sampler(shader_stage::pixel, 0, render_data::instance()->get_sampler_states(render_data::SAMPLER_STATE::POINT));
 }
 
 compress_rgb_to_log_pipeline_state::~compress_rgb_to_log_pipeline_state()
 {
-}
-
-void compress_rgb_to_log_pipeline_state::begin(const graphics_context& context)
-{
-	//	シェーダー設定
-	context.device_context->VSSetShader(vs->get_shader().Get(), nullptr, 0);
-	context.device_context->HSSetShader(nullptr, nullptr, 0);
-	context.device_context->DSSetShader(nullptr, nullptr, 0);
-	context.device_context->GSSetShader(nullptr, nullptr, 0);
-	context.device_context->PSSetShader(ps->get_shader().Get(), nullptr, 0);
-	context.device_context->IASetInputLayout(vs->get_input_layout().Get());
-	context.device_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-
-	//	ステート設定
-	context.device_context->OMSetBlendState(blend_states.Get(), nullptr, 0xFFFFFFFF);
-	context.device_context->OMSetDepthStencilState(nullptr, 0);
-	context.device_context->RSSetState(rasterizer_states.Get());
-
-	context.device_context->PSSetShaderResources(0, 1, context.scene_color_texture->get_shader_resource_view().GetAddressOf());
-	context.device_context->PSSetSamplers(0, 1, render_data::instance()->get_sampler_states(render_data::SAMPLER_STATE::POINT).GetAddressOf());
-}
-
-void compress_rgb_to_log_pipeline_state::end(const graphics_context& context)
-{
-	context.clear_vertex_buffer();
-	context.clear_index_buffer();
-	context.clear_shader_slots();
-	context.clear_shader_resorce_views();
-	context.clear_sampler();
-	context.clear_constant_buffers();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -180,11 +130,11 @@ decompress_rgb_to_log_pipeline_state::decompress_rgb_to_log_pipeline_state()
 	load_shader_cso vs_desc;
 	vs_desc.file_path = "Assets/CSO/fullscreen_quad_vs.cso";
 	vs_desc.input_element_desc;
-	shader_manager::instance()->load_shader<vertex_shader>(vs, vs_desc);
+	shader_manager::instance()->load_shader<vertex_shader>(shaders.vs, vs_desc);
 
 	load_shader_cso ps_desc;
 	ps_desc.file_path = "Assets/CSO/decompress_rgb_to_log_ps.cso";
-	shader_manager::instance()->load_shader<pixel_shader>(ps, ps_desc);
+	shader_manager::instance()->load_shader<pixel_shader>(shaders.ps, ps_desc);
 
 	// ブレンドステートの生成
 	{
@@ -199,7 +149,7 @@ decompress_rgb_to_log_pipeline_state::decompress_rgb_to_log_pipeline_state()
 		blend_desc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ONE;
 		blend_desc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
 		blend_desc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-		hr = render_data::instance()->get_device()->CreateBlendState(&blend_desc, blend_states.GetAddressOf());
+		hr = render_data::instance()->get_device()->CreateBlendState(&blend_desc, blend_state.GetAddressOf());
 		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
 	}
 
@@ -216,56 +166,34 @@ decompress_rgb_to_log_pipeline_state::decompress_rgb_to_log_pipeline_state()
 		rasterizer_desc.ScissorEnable = FALSE;
 		rasterizer_desc.MultisampleEnable = FALSE;
 		rasterizer_desc.AntialiasedLineEnable = FALSE;
-		hr = render_data::instance()->get_device()->CreateRasterizerState(&rasterizer_desc, rasterizer_states.GetAddressOf());
+		hr = render_data::instance()->get_device()->CreateRasterizerState(&rasterizer_desc, rasterizer_state.GetAddressOf());
 		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
 	}
+
+	//	@tool 描画設定と割り当て配置（描画時は command_recorder がこれを解釈して設定する）
+	primitive_topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP;
+	layout.add_shader_resource(shader_stage::pixel, common_pipeline_states::scene_color_map_srv_index, common_pipeline_states::scene_color_map_hash_key);
+	layout.add_sampler(shader_stage::pixel, 0, render_data::instance()->get_sampler_states(render_data::SAMPLER_STATE::POINT));
 }
 
 decompress_rgb_to_log_pipeline_state::~decompress_rgb_to_log_pipeline_state()
 {
 }
 
-void decompress_rgb_to_log_pipeline_state::begin(const graphics_context& context)
-{
-	//	シェーダー設定
-	context.device_context->VSSetShader(vs->get_shader().Get(), nullptr, 0);
-	context.device_context->HSSetShader(nullptr, nullptr, 0);
-	context.device_context->DSSetShader(nullptr, nullptr, 0);
-	context.device_context->GSSetShader(nullptr, nullptr, 0);
-	context.device_context->PSSetShader(ps->get_shader().Get(), nullptr, 0);
-	context.device_context->IASetInputLayout(vs->get_input_layout().Get());
-	context.device_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-
-	//	ステート設定
-	context.device_context->OMSetBlendState(blend_states.Get(), nullptr, 0xFFFFFFFF);
-	context.device_context->OMSetDepthStencilState(nullptr, 0);
-	context.device_context->RSSetState(rasterizer_states.Get());
-
-	context.device_context->PSSetShaderResources(0, 1, context.scene_color_texture->get_shader_resource_view().GetAddressOf());
-	context.device_context->PSSetSamplers(0, 1, render_data::instance()->get_sampler_states(render_data::SAMPLER_STATE::POINT).GetAddressOf());
-}
-
-void decompress_rgb_to_log_pipeline_state::end(const graphics_context& context)
-{
-	context.clear_vertex_buffer();
-	context.clear_index_buffer();
-	context.clear_shader_slots();
-	context.clear_shader_resorce_views();
-	context.clear_sampler();
-	context.clear_constant_buffers();
-}
-
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 namespace ssr
 {
-	constexpr UINT cbv_index = 1;
-	constexpr UINT gbuffer_srv_start = 0;
+	//	@tool パス層の番号（シェーダーの register と合わせる）
+	constexpr UINT cbv_index = 7;
+	constexpr UINT gbuffer_srv_start = common_pipeline_states::gbuffer_srv_start;
+	constexpr UINT gbuffer_sampler_index = 0;
 
-	constexpr UINT ssr_uv_srv_index = 10;
+	constexpr UINT ssr_uv_srv_index = common_pipeline_states::work_texture_srv_start + 0;
+	constexpr UINT ssr_uv_sampler_index = 10;
 	constexpr UINT linear_boarder_black_index = 11;
 
-	constexpr UINT ssr_merge_color_srv_index = 10;
-	constexpr UINT ssr_merge_bokeh_srv_index = 11;
+	constexpr UINT ssr_merge_color_srv_index = common_pipeline_states::work_texture_srv_start + 0;
+	constexpr UINT ssr_merge_bokeh_srv_index = common_pipeline_states::work_texture_srv_start + 1;
 	constexpr UINT ssr_merge_bokeh_sampler_index = 11;
 	constexpr UINT ssr_merge_skymap_srv_index = 12;
 
@@ -292,11 +220,11 @@ screen_space_reflection_uv_pipeline_state::screen_space_reflection_uv_pipeline_s
 	load_shader_cso vs_desc;
 	vs_desc.file_path = "Assets/CSO/fullscreen_quad_vs.cso";
 	vs_desc.input_element_desc;
-	shader_manager::instance()->load_shader<vertex_shader>(vs, vs_desc);
+	shader_manager::instance()->load_shader<vertex_shader>(shaders.vs, vs_desc);
 
 	load_shader_cso ps_desc;
 	ps_desc.file_path = "Assets/CSO/screen_space_reflection_uv_ps.cso";
-	shader_manager::instance()->load_shader<pixel_shader>(ps, ps_desc);
+	shader_manager::instance()->load_shader<pixel_shader>(shaders.ps, ps_desc);
 
 	// ブレンドステートの生成
 	{
@@ -311,7 +239,7 @@ screen_space_reflection_uv_pipeline_state::screen_space_reflection_uv_pipeline_s
 		blend_desc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
 		blend_desc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
 		blend_desc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-		hr = device->CreateBlendState(&blend_desc, blend_states.GetAddressOf());
+		hr = device->CreateBlendState(&blend_desc, blend_state.GetAddressOf());
 		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
 	}
 
@@ -328,73 +256,23 @@ screen_space_reflection_uv_pipeline_state::screen_space_reflection_uv_pipeline_s
 		rasterizer_desc.ScissorEnable = FALSE;
 		rasterizer_desc.MultisampleEnable = FALSE;
 		rasterizer_desc.AntialiasedLineEnable = FALSE;
-		hr = device->CreateRasterizerState(&rasterizer_desc, rasterizer_states.GetAddressOf());
+		hr = device->CreateRasterizerState(&rasterizer_desc, rasterizer_state.GetAddressOf());
 		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
 	}
 
-	//	定数バッファ生成
+
+	//	@tool 描画設定と割り当て配置（描画時は command_recorder がこれを解釈して設定する）
+	for (UINT index = 0; index < static_cast<UINT>(common_pipeline_states::gbuffer_id::max); ++index)
 	{
-		D3D11_BUFFER_DESC buffer_desc{};
-		buffer_desc.Usage = D3D11_USAGE_DEFAULT;
-		buffer_desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-		buffer_desc.CPUAccessFlags = 0;
-		buffer_desc.MiscFlags = 0;
-		buffer_desc.StructureByteStride = 0;
-		buffer_desc.ByteWidth = sizeof(common_pipeline_states::screen_space_reflection_constants);
-		hr = device->CreateBuffer(&buffer_desc, nullptr, constant_buffer.GetAddressOf());
-		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+		layout.add_shader_resource(shader_stage::pixel, ssr::gbuffer_srv_start + index, common_pipeline_states::gbuffer_hash_keys[index]);
 	}
+	layout.add_sampler(shader_stage::pixel, ssr::gbuffer_sampler_index, render_data::instance()->get_sampler_states(render_data::SAMPLER_STATE::POINT));
+	layout.add_constant_buffer(shader_stage::pixel, common_pipeline_states::scene_cbv_index, common_pipeline_states::scene_constant_buffer_hash_key);
+	layout.add_constant_buffer(shader_stage::pixel, ssr::cbv_index, common_pipeline_states::screen_space_reflection_constant_buffer_hash_key);
 }
 
 screen_space_reflection_uv_pipeline_state::~screen_space_reflection_uv_pipeline_state()
 {
-}
-
-void screen_space_reflection_uv_pipeline_state::begin(const graphics_context& context)
-{
-	//	シェーダー設定
-	context.device_context->VSSetShader(vs->get_shader().Get(), nullptr, 0);
-	context.device_context->HSSetShader(nullptr, nullptr, 0);
-	context.device_context->DSSetShader(nullptr, nullptr, 0);
-	context.device_context->GSSetShader(nullptr, nullptr, 0);
-	context.device_context->PSSetShader(ps->get_shader().Get(), nullptr, 0);
-	context.device_context->IASetInputLayout(vs->get_input_layout().Get());
-
-	//	ステート設定
-	context.device_context->OMSetBlendState(blend_states.Get(), nullptr, 0xFFFFFFFF);
-	context.device_context->OMSetDepthStencilState(nullptr, 0);
-	context.device_context->RSSetState(rasterizer_states.Get());
-
-	ID3D11ShaderResourceView* g_buffer_srvs[static_cast<UINT>(common_pipeline_states::gbuffer_id::max)];
-	for (UINT index = 0; index < static_cast<UINT>(common_pipeline_states::gbuffer_id::max); ++index)
-	{
-		g_buffer_srvs[index] = context.g_buffer_textures[index]->get_shader_resource_view().Get();
-	}
-	context.device_context->PSSetShaderResources(ssr::gbuffer_srv_start, ARRAYSIZE(g_buffer_srvs), g_buffer_srvs);
-	context.device_context->PSSetSamplers(ssr::gbuffer_srv_start, 1, render_data::instance()->get_sampler_states(render_data::SAMPLER_STATE::POINT).GetAddressOf());
-
-	//	定数バッファ設定
-	context.device_context->PSSetConstantBuffers(common_pipeline_states::scene_cbv_index, 1, context.scene_constant_buffer.GetAddressOf());
-	context.device_context->PSSetConstantBuffers(ssr::cbv_index, 1, constant_buffer.GetAddressOf());
-
-	ssr::constant_buffer cb;
-	cb.ray_flags = context.screen_space_reflection_constant.ray_flags;
-	cb.ray_max_distance = context.screen_space_reflection_constant.ray_max_distance;
-	cb.ray_resolution = context.screen_space_reflection_constant.ray_resolution;
-	cb.ray_substep_iteration_max = context.screen_space_reflection_constant.ray_substep_iteration_max;
-	cb.ray_tickness = context.screen_space_reflection_constant.ray_tickness;
-	cb.viewport_size = context.screen_space_reflection_constant.viewport_size;
-	context.device_context->UpdateSubresource(constant_buffer.Get(), 0, nullptr, &cb, 0, 0);
-}
-
-void screen_space_reflection_uv_pipeline_state::end(const graphics_context& context)
-{
-	context.clear_vertex_buffer();
-	context.clear_index_buffer();
-	context.clear_shader_slots();
-	context.clear_shader_resorce_views();
-	context.clear_sampler();
-	context.clear_constant_buffers();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -408,11 +286,11 @@ screen_space_reflection_color_pipeline_state::screen_space_reflection_color_pipe
 	load_shader_cso vs_desc;
 	vs_desc.file_path = "Assets/CSO/fullscreen_quad_vs.cso";
 	vs_desc.input_element_desc;
-	shader_manager::instance()->load_shader<vertex_shader>(vs, vs_desc);
+	shader_manager::instance()->load_shader<vertex_shader>(shaders.vs, vs_desc);
 
 	load_shader_cso ps_desc;
 	ps_desc.file_path = "Assets/CSO/screen_space_reflection_color_ps.cso";
-	shader_manager::instance()->load_shader<pixel_shader>(ps, ps_desc);
+	shader_manager::instance()->load_shader<pixel_shader>(shaders.ps, ps_desc);
 
 	// ブレンドステートの生成
 	{
@@ -427,7 +305,7 @@ screen_space_reflection_color_pipeline_state::screen_space_reflection_color_pipe
 		blend_desc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
 		blend_desc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
 		blend_desc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-		hr = device->CreateBlendState(&blend_desc, blend_states.GetAddressOf());
+		hr = device->CreateBlendState(&blend_desc, blend_state.GetAddressOf());
 		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
 	}
 
@@ -444,77 +322,26 @@ screen_space_reflection_color_pipeline_state::screen_space_reflection_color_pipe
 		rasterizer_desc.ScissorEnable = FALSE;
 		rasterizer_desc.MultisampleEnable = FALSE;
 		rasterizer_desc.AntialiasedLineEnable = FALSE;
-		hr = device->CreateRasterizerState(&rasterizer_desc, rasterizer_states.GetAddressOf());
+		hr = device->CreateRasterizerState(&rasterizer_desc, rasterizer_state.GetAddressOf());
 		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
 	}
 
-	//	定数バッファ生成
+
+	//	@tool 描画設定と割り当て配置（描画時は command_recorder がこれを解釈して設定する）
+	for (UINT index = 0; index < static_cast<UINT>(common_pipeline_states::gbuffer_id::max); ++index)
 	{
-		D3D11_BUFFER_DESC buffer_desc{};
-		buffer_desc.Usage = D3D11_USAGE_DEFAULT;
-		buffer_desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-		buffer_desc.CPUAccessFlags = 0;
-		buffer_desc.MiscFlags = 0;
-		buffer_desc.StructureByteStride = 0;
-		buffer_desc.ByteWidth = sizeof(common_pipeline_states::screen_space_reflection_constants);
-		hr = device->CreateBuffer(&buffer_desc, nullptr, constant_buffer.GetAddressOf());
-		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+		layout.add_shader_resource(shader_stage::pixel, ssr::gbuffer_srv_start + index, common_pipeline_states::gbuffer_hash_keys[index]);
 	}
+	layout.add_sampler(shader_stage::pixel, ssr::gbuffer_sampler_index, render_data::instance()->get_sampler_states(render_data::SAMPLER_STATE::POINT));
+	layout.add_shader_resource(shader_stage::pixel, ssr::ssr_uv_srv_index, common_pipeline_states::work_texture_hash_keys[0]);
+	layout.add_sampler(shader_stage::pixel, ssr::ssr_uv_sampler_index, render_data::instance()->get_sampler_states(render_data::SAMPLER_STATE::LINEAR));
+	layout.add_sampler(shader_stage::pixel, ssr::linear_boarder_black_index, render_data::instance()->get_sampler_states(render_data::SAMPLER_STATE::LINEAR_BORDER_BLACK));
+	layout.add_constant_buffer(shader_stage::pixel, common_pipeline_states::scene_cbv_index, common_pipeline_states::scene_constant_buffer_hash_key);
+	layout.add_constant_buffer(shader_stage::pixel, ssr::cbv_index, common_pipeline_states::screen_space_reflection_constant_buffer_hash_key);
 }
 
 screen_space_reflection_color_pipeline_state::~screen_space_reflection_color_pipeline_state()
 {
-}
-
-void screen_space_reflection_color_pipeline_state::begin(const graphics_context& context)
-{
-	//	シェーダー設定
-	context.device_context->VSSetShader(vs->get_shader().Get(), nullptr, 0);
-	context.device_context->HSSetShader(nullptr, nullptr, 0);
-	context.device_context->DSSetShader(nullptr, nullptr, 0);
-	context.device_context->GSSetShader(nullptr, nullptr, 0);
-	context.device_context->PSSetShader(ps->get_shader().Get(), nullptr, 0);
-	context.device_context->IASetInputLayout(vs->get_input_layout().Get());
-
-	//	ステート設定
-	context.device_context->OMSetBlendState(blend_states.Get(), nullptr, 0xFFFFFFFF);
-	context.device_context->OMSetDepthStencilState(nullptr, 0);
-	context.device_context->RSSetState(rasterizer_states.Get());
-
-	ID3D11ShaderResourceView* g_buffer_srvs[static_cast<UINT>(common_pipeline_states::gbuffer_id::max)];
-	for (UINT index = 0; index < static_cast<UINT>(common_pipeline_states::gbuffer_id::max); ++index)
-	{
-		g_buffer_srvs[index] = context.g_buffer_textures[index]->get_shader_resource_view().Get();
-	}
-	context.device_context->PSSetShaderResources(ssr::gbuffer_srv_start, ARRAYSIZE(g_buffer_srvs), g_buffer_srvs);
-	context.device_context->PSSetSamplers(ssr::gbuffer_srv_start, 1, render_data::instance()->get_sampler_states(render_data::SAMPLER_STATE::POINT).GetAddressOf());
-	
-	context.device_context->PSSetShaderResources(ssr::ssr_uv_srv_index, 1, context.work_texture[0]->get_shader_resource_view().GetAddressOf());
-	context.device_context->PSSetSamplers(ssr::ssr_uv_srv_index, 1, render_data::instance()->get_sampler_states(render_data::SAMPLER_STATE::LINEAR).GetAddressOf());
-	context.device_context->PSSetSamplers(ssr::linear_boarder_black_index, 1, render_data::instance()->get_sampler_states(render_data::SAMPLER_STATE::LINEAR_BORDER_BLACK).GetAddressOf());
-
-	//	定数バッファ設定
-	context.device_context->PSSetConstantBuffers(common_pipeline_states::scene_cbv_index, 1, context.scene_constant_buffer.GetAddressOf());
-	context.device_context->PSSetConstantBuffers(ssr::cbv_index, 1, constant_buffer.GetAddressOf());
-
-	ssr::constant_buffer cb;
-	cb.ray_flags = context.screen_space_reflection_constant.ray_flags;
-	cb.ray_max_distance = context.screen_space_reflection_constant.ray_max_distance;
-	cb.ray_resolution = context.screen_space_reflection_constant.ray_resolution;
-	cb.ray_substep_iteration_max = context.screen_space_reflection_constant.ray_substep_iteration_max;
-	cb.ray_tickness = context.screen_space_reflection_constant.ray_tickness;
-	cb.viewport_size = context.screen_space_reflection_constant.viewport_size;
-	context.device_context->UpdateSubresource(constant_buffer.Get(), 0, nullptr, &cb, 0, 0);
-}
-
-void screen_space_reflection_color_pipeline_state::end(const graphics_context& context)
-{
-	context.clear_vertex_buffer();
-	context.clear_index_buffer();
-	context.clear_shader_slots();
-	context.clear_shader_resorce_views();
-	context.clear_sampler();
-	context.clear_constant_buffers();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -528,11 +355,11 @@ screen_space_reflection_composite_pipeline_state::screen_space_reflection_compos
 	load_shader_cso vs_desc;
 	vs_desc.file_path = "Assets/CSO/fullscreen_quad_vs.cso";
 	vs_desc.input_element_desc;
-	shader_manager::instance()->load_shader<vertex_shader>(vs, vs_desc);
+	shader_manager::instance()->load_shader<vertex_shader>(shaders.vs, vs_desc);
 
 	load_shader_cso ps_desc;
 	ps_desc.file_path = "Assets/CSO/screen_space_reflection_composite_ps.cso";
-	shader_manager::instance()->load_shader<pixel_shader>(ps, ps_desc);
+	shader_manager::instance()->load_shader<pixel_shader>(shaders.ps, ps_desc);
 
 	// ブレンドステートの生成
 	{
@@ -547,7 +374,7 @@ screen_space_reflection_composite_pipeline_state::screen_space_reflection_compos
 		blend_desc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
 		blend_desc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
 		blend_desc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-		hr = device->CreateBlendState(&blend_desc, blend_states.GetAddressOf());
+		hr = device->CreateBlendState(&blend_desc, blend_state.GetAddressOf());
 		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
 	}
 
@@ -564,49 +391,22 @@ screen_space_reflection_composite_pipeline_state::screen_space_reflection_compos
 		rasterizer_desc.ScissorEnable = FALSE;
 		rasterizer_desc.MultisampleEnable = FALSE;
 		rasterizer_desc.AntialiasedLineEnable = FALSE;
-		hr = device->CreateRasterizerState(&rasterizer_desc, rasterizer_states.GetAddressOf());
+		hr = device->CreateRasterizerState(&rasterizer_desc, rasterizer_state.GetAddressOf());
 		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
 	}
+
+	//	@tool 描画設定と割り当て配置（描画時は command_recorder がこれを解釈して設定する）
+	for (UINT index = 0; index < static_cast<UINT>(common_pipeline_states::gbuffer_id::max); ++index)
+	{
+		layout.add_shader_resource(shader_stage::pixel, ssr::gbuffer_srv_start + index, common_pipeline_states::gbuffer_hash_keys[index]);
+	}
+	layout.add_shader_resource(shader_stage::pixel, ssr::ssr_merge_color_srv_index, common_pipeline_states::work_texture_hash_keys[0]);
+	layout.add_sampler(shader_stage::pixel, ssr::gbuffer_sampler_index, render_data::instance()->get_sampler_states(render_data::SAMPLER_STATE::POINT));
+	layout.add_sampler(shader_stage::pixel, ssr::ssr_merge_bokeh_sampler_index, render_data::instance()->get_sampler_states(render_data::SAMPLER_STATE::LINEAR_CLAMP));
+	layout.add_constant_buffer(shader_stage::pixel, common_pipeline_states::scene_cbv_index, common_pipeline_states::scene_constant_buffer_hash_key);
 }
 
 screen_space_reflection_composite_pipeline_state::~screen_space_reflection_composite_pipeline_state()
 {
 }
 
-void screen_space_reflection_composite_pipeline_state::begin(const graphics_context& context)
-{
-	//	シェーダー設定
-	context.device_context->VSSetShader(vs->get_shader().Get(), nullptr, 0);
-	context.device_context->HSSetShader(nullptr, nullptr, 0);
-	context.device_context->DSSetShader(nullptr, nullptr, 0);
-	context.device_context->GSSetShader(nullptr, nullptr, 0);
-	context.device_context->PSSetShader(ps->get_shader().Get(), nullptr, 0);
-	context.device_context->IASetInputLayout(vs->get_input_layout().Get());
-
-	//	ステート設定
-	context.device_context->OMSetBlendState(blend_states.Get(), nullptr, 0xFFFFFFFF);
-	context.device_context->OMSetDepthStencilState(nullptr, 0);
-	context.device_context->RSSetState(rasterizer_states.Get());
-
-	ID3D11ShaderResourceView* g_buffer_srvs[static_cast<UINT>(common_pipeline_states::gbuffer_id::max)];
-	for (UINT index = 0; index < static_cast<UINT>(common_pipeline_states::gbuffer_id::max); ++index)
-	{
-		g_buffer_srvs[index] = context.g_buffer_textures[index]->get_shader_resource_view().Get();
-	}
-	context.device_context->PSSetShaderResources(ssr::gbuffer_srv_start, ARRAYSIZE(g_buffer_srvs), g_buffer_srvs);
-	context.device_context->PSSetShaderResources(ssr::ssr_merge_color_srv_index, 1, context.work_texture[0]->get_shader_resource_view().GetAddressOf());
-	context.device_context->PSSetSamplers(ssr::gbuffer_srv_start, 1, render_data::instance()->get_sampler_states(render_data::SAMPLER_STATE::POINT).GetAddressOf());
-	context.device_context->PSSetSamplers(ssr::ssr_merge_bokeh_sampler_index, 1, render_data::instance()->get_sampler_states(render_data::SAMPLER_STATE::LINEAR_CLAMP).GetAddressOf());
-
-	context.device_context->PSSetConstantBuffers(common_pipeline_states::scene_cbv_index, 1, context.scene_constant_buffer.GetAddressOf());
-}
-
-void screen_space_reflection_composite_pipeline_state::end(const graphics_context& context)
-{
-	context.clear_vertex_buffer();
-	context.clear_index_buffer();
-	context.clear_shader_slots();
-	context.clear_shader_resorce_views();
-	context.clear_sampler();
-	context.clear_constant_buffers();
-}

@@ -161,11 +161,14 @@ public:
 	inline const std::vector<morph>& get_morphes() { return morphes; }
 	inline const std::vector<animation::data>& get_animations() const {return animations;}
 	inline const std::vector<capsule_shadow>& get_capsule_shadows() const {return capsule_shadows;}
+	//	@tool メッシュを書き換えた回数（描画用プロキシの作り直しの判定に使う）
+	UINT get_mesh_revision() const { return mesh_revision; }
 
 #if defined(USE_IMGUI)
 	inline std::vector<material>& get_materials_for_editor() { return materials; }
 	inline std::vector<node>& get_nodes_for_editor() { return nodes; }
-	inline std::vector<mesh>& get_meshes_for_editor() { return meshes; }
+	//	@tool メッシュを書き換える場合はここから取得する（描画中のフレームを待ち、描画用プロキシを作り直させる）
+	std::vector<mesh>& get_meshes_for_editor();
 	inline std::vector<morph>& get_morphes_for_editor() { return morphes; }
 	inline std::vector<animation::data>& get_animations_for_editor() { return animations; }
 	inline std::vector<capsule_shadow>& get_capsule_shadows_for_editor() {return capsule_shadows;}
@@ -189,6 +192,10 @@ public:
 
 	void paste_materials(const std::vector<material>& materials);
 
+	//	@tool メッシュの頂点データ（ある属性の row_data 全体）を書き換えて、GPU 側（モデル用の共有プール）へ反映する
+	//	@tool 頂点数・形式は変えない前提なので、描画の完了待ちや描画用プロキシの作り直しは要らない。大きさが違う場合は書き換えない
+	bool update_vertex_attribute(size_t mesh_index, const semantic& target_semantic, const void* data, size_t size_in_bytes);
+
 	void rebuild_meshlet_data();
 
 private:
@@ -198,6 +205,7 @@ private:
 	std::string file_path;
 
 	std::vector<material> materials;
+	UINT mesh_revision = 0;
 	std::vector<node> nodes;
 	std::vector<mesh> meshes;
 	std::vector<morph> morphes;

@@ -1,6 +1,7 @@
 #include "subpixel_morphological_anti_aliasing.hlsli"
 
-Texture2D color_map : register(t0);
+//	@tool パス層（シェーダーリソースは t64-t95）
+Texture2D color_map : register(t71);
 
 float2 main(EDGE_DETECTION_OUT pin) : SV_TARGET0
 {

@@ -3,10 +3,11 @@
 
 #include "clustered_lighting.hlsli"
 
-StructuredBuffer<light_data> clustered_lights : register(t40);
-StructuredBuffer<uint> cluster_counts : register(t41);
-StructuredBuffer<uint> cluster_offsets : register(t42);
-StructuredBuffer<uint> cluster_light_indices : register(t43);
+//	@tool フレーム・視点層（シェーダーリソースは t96-t127）
+StructuredBuffer<light_data> clustered_lights : register(t119);
+StructuredBuffer<uint> cluster_counts : register(t120);
+StructuredBuffer<uint> cluster_offsets : register(t121);
+StructuredBuffer<uint> cluster_light_indices : register(t122);
 
 
 //  クラスター内のライト数取得

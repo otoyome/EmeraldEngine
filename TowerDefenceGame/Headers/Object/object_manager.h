@@ -14,7 +14,7 @@ using game_object_ptr = std::shared_ptr<game_object>;
 //	オブジェクトマネージャー
 class object_manager
 {
-	SINGLETON(object_manager)
+	WORLD_SINGLETON(object_manager)
 
 private:
 	object_manager();
@@ -31,7 +31,8 @@ public:
 	collision_world& get_world() {return world;}
 
 #if defined(USE_IMGUI)
-	void imgui_render();
+	//	@tool window_name はワールドごとにウィンドウを分ける時に指定する
+	void imgui_render(const char* window_name = "objects");
 
 	bool get_fixed_update_count() const;
 

@@ -3,7 +3,8 @@
 
 #include "common_gbuffer_loader.hlsli"
 
-Texture2D<float4> screen_space_reflection_uv_map : register(t10);
+//	@tool パス層（シェーダーリソースは t64-t95）
+Texture2D<float4> screen_space_reflection_uv_map : register(t73);
 SamplerState screen_space_reflection_uv_sampler : register(s10);
 SamplerState linear_boarder_black_sampler : register(s11);
 

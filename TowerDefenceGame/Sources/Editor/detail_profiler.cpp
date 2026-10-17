@@ -592,7 +592,7 @@ void detail_profiler::imgui_render_renderer_table()
 		rows.emplace_back(row);
 	}
 	ImGui::Text("cpu total (issue + job) : %.3f ms   gpu total : %.3f ms", cpu_total, gpu_total);
-	ImGui::TextDisabled("issue : renderer::render() on main thread / job : command recording on worker threads");
+	ImGui::TextDisabled("issue : renderer::render() on render thread / job : command recording on worker threads");
 
 	constexpr ImGuiTableFlags flags = ImGuiTableFlags_Sortable | ImGuiTableFlags_SortMulti | ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV | ImGuiTableFlags_Resizable | ImGuiTableFlags_ScrollY | ImGuiTableFlags_SizingFixedFit;
 	if (ImGui::BeginTable("renderer_table", 6, flags))

@@ -1,6 +1,7 @@
 #include "graphics/meshlet_culling_system.h"
 
 #include "render_data.h"
+#include "material.h"
 #include "Math/math_all.h"
 
 namespace
@@ -173,7 +174,8 @@ void meshlet_culling_system::build_and_cull(graphics_context& context, const std
 			continue;
 
 		//	モーフィング持ちは別で処理
-		if (!sub_mesh.morph_meshes.empty())
+		//	@tool モーフは先頭のメッシュ（LOD 0）にだけ付く
+		if (lod_mesh_index == 0 && !buffer_data.morph_meshes.empty())
 			continue;
 
 		//	サブメッシュのワールド行列を設定
@@ -185,7 +187,7 @@ void meshlet_culling_system::build_and_cull(graphics_context& context, const std
 
 		//	メッシュレット分登録
 		UINT primitive_index = draw_data->buffer_index;
-		auto& instances = material_scratch_buffer[material_data->material];
+		auto& instances = material_scratch_buffer[material_data->material.get()];
 		for (auto& meshlet : *sub_mesh.meshlets)
 		{
 			auto& instance = instances.emplace_back();
@@ -211,7 +213,7 @@ void meshlet_culling_system::build_and_cull(graphics_context& context, const std
 		box.right = static_cast<UINT>(sizeof(math::float4x4) * submesh_transform_scratch.size());
 		box.bottom = 1;
 		box.back = 1;
-		context.device_context->UpdateSubresource(submesh_transform_buffer.Get(), 0, &box, submesh_transform_scratch.data(), 0, 0);
+		context.recorder.get_device_context()->UpdateSubresource(submesh_transform_buffer.Get(), 0, &box, submesh_transform_scratch.data(), 0, 0);
 	}
 
 	//	マテリアルグループ毎にカリング
@@ -221,15 +223,15 @@ void meshlet_culling_system::build_and_cull(graphics_context& context, const std
 	}
 }
 
-void meshlet_culling_system::cull_material_group(graphics_context& context, material* material, const std::vector<meshlet_instance_gpu>& instances, hiz_buffer& hiz)
+void meshlet_culling_system::cull_material_group(graphics_context& context, const material_render_proxy* material, const std::vector<meshlet_instance_gpu>& instances, hiz_buffer& hiz)
 {
 	if (instances.empty())
 		return;
 
-	auto dc = context.device_context;
+	auto dc = context.recorder.get_device_context();
 
 	//	マテリアル単位のリソース取得
-	material_resources& resource = material_resource_map[material];
+	material_resources& resource = material_resource_map[material->get_source_id()];
 	UINT instance_count = static_cast<UINT>(instances.size());
 	generate_meshlet_instance_buffer(resource, instance_count);
 	generate_visible_meshlet_buffer(resource, instance_count);
@@ -272,16 +274,16 @@ void meshlet_culling_system::cull_material_group(graphics_context& context, mate
 	cull_result result{};
 	result.visible_meshlet_srv = resource.visible_meshlet_srv.Get();
 	result.indirect_args_buffer = resource.indirect_args_buffer.Get();
-	current_results[material] = result;
+	current_results[material->get_source_id()] = result;
 
 	context.clear_unordered_access_views();
 	context.clear_shader_resorce_views();
 	dc->CSSetShader(nullptr, nullptr, 0);
 }
 
-const meshlet_culling_system::cull_result* meshlet_culling_system::find_result(material* mat) const
+const meshlet_culling_system::cull_result* meshlet_culling_system::find_result(const material_render_proxy* mat) const
 {
-	auto it = current_results.find(mat);
+	auto it = current_results.find(mat->get_source_id());
 	if (it == current_results.end())
 		return nullptr;
 	return &it->second;

@@ -2105,7 +2105,11 @@ void shader_manager::check_shader_update_and_recompile()
 	{
 		auto ptr = check_snapshot[check_cursor].lock();
 		if (ptr && ptr->is_reload())
+		{
+			//	@tool 描画中のフレームが使っているシェーダーを差し替えるので、描き終わるのを待つ
+			render_data::instance()->flush_rendering();
 			ptr->reload();
+		}
 	}
 #endif	//	defined(USE_IMGUI)
 }

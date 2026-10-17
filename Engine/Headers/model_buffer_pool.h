@@ -10,6 +10,8 @@
 #include "common_pipeline_states.h"
 #include "System/variable_position_allocator.h"
 
+struct gpu_upload_list;
+
 //	GPUバッファの実体とアップロードキューだけを持つクラス
 class model_gpu_buffer
 {
@@ -18,7 +20,8 @@ public:
 	~model_gpu_buffer();
 
 	void queue_upload(UINT offset_in_bytes, const void* data, UINT size_in_bytes);
-	void flush_uploads();
+	//	@tool 溜まった転送をフレームの転送一覧へ移す（実際の転送は描画の最初のパスで行う）
+	void flush_uploads(gpu_upload_list& out_uploads);
 
 	void grow(UINT new_capacity_in_bytes);
 
@@ -77,6 +80,9 @@ public:
 	//	頂点バッファ
 	void build_vertex_buffers(std::unordered_map<semantic, buffer_view>& vertex_buffer_views);
 	void free_vertex_buffers(const std::unordered_map<semantic, buffer_view>& vertex_buffer_views);
+	//	@tool 確保済みの頂点データ（row_data）を書き換えた時に、プールへの転送を積む（次に抽出するフレームの先頭で転送される）
+	//	@tool 頂点データを持つ model_resource から呼ぶ（エディターなどは model_resource::update_vertex_attribute を使う）
+	void update_vertex_buffer(const semantic& target_semantic, const buffer_view& view);
 
 	ID3D11Buffer* get_vertex_buffer(const semantic& target_semantic);
 	ID3D11ShaderResourceView* get_vertex_buffer_srv(const semantic& target_semantic);
@@ -91,7 +97,7 @@ public:
 	void get_meshlet_instance_batch(UINT min_capacity, ID3D11Buffer** out_buffer, ID3D11ShaderResourceView** out_srv);
 
 public:
-	void flush_uploads();
+	void flush_uploads(gpu_upload_list& out_uploads);
 
 	std::vector<pool_usage> get_pool_usages() const;
 

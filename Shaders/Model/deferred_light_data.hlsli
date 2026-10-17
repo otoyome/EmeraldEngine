@@ -4,7 +4,8 @@
 #include "lights.hlsli"
 
 //  光源情報
-cbuffer DEFERREDLIGHT_CONSTANT_BUFFER : register(b3)
+//	@tool パス層（定数バッファは b7-b11）
+cbuffer DEFERREDLIGHT_CONSTANT_BUFFER : register(b8)
 {
     light_data deferred_light_data;
 };

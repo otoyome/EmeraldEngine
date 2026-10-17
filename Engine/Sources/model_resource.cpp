@@ -430,6 +430,33 @@ bool model_resource::deserialize(std::string_view file_path)
 	return false;
 }
 
+#if defined(USE_IMGUI)
+std::vector<model_resource::mesh>& model_resource::get_meshes_for_editor()
+{
+	//	@tool 描画中のフレームがメッシュを参照しているので、描き終わるのを待ってから渡す
+	render_data::instance()->flush_rendering();
+	++mesh_revision;
+	return meshes;
+}
+#endif	//	defined(USE_IMGUI)
+
+bool model_resource::update_vertex_attribute(size_t mesh_index, const semantic& target_semantic, const void* data, size_t size_in_bytes)
+{
+	if (mesh_index >= meshes.size())
+		return false;
+
+	auto& vertex_buffer_views = meshes[mesh_index].vertex_buffer_views;
+	auto it = vertex_buffer_views.find(target_semantic);
+	if (it == vertex_buffer_views.end() || it->second.row_data.size() != size_in_bytes)
+		return false;
+
+	memcpy(it->second.row_data.data(), data, size_in_bytes);
+
+	//	@tool 頂点はモデル用の共有プールに確保してあるので、このメッシュの範囲へ転送を依頼する（次に抽出するフレームの先頭で転送される）
+	model_buffer_pool_manager::instance()->update_vertex_buffer(target_semantic, it->second);
+	return true;
+}
+
 void model_resource::paste_materials(const std::vector<material>& materials)
 {
 	for (size_t index = 0; index < materials.size(); ++index)

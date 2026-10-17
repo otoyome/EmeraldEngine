@@ -1,9 +1,10 @@
 #include "subpixel_morphological_anti_aliasing.hlsli"
 
-Texture2D color_map : register(t0);
-Texture2D blend_map : register(t1);
+//	@tool パス層（シェーダーリソースは t64-t95）
+Texture2D color_map : register(t71);
+Texture2D blend_map : register(t73);
 
-Texture2D edge_map : register(t2);
+Texture2D edge_map : register(t74);
 
 float4 main(NEIGHBORHOOD_BLENDING_OUT pin) : SV_TARGET0
 {

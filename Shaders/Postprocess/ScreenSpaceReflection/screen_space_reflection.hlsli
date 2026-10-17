@@ -5,7 +5,8 @@
 #include "scene_constant_buffer.hlsli"
 #include "gbuffer.hlsli"
 
-cbuffer SCREEN_SPACE_REFLECTION_CONSTANT_BUFFER : register(b1)
+//	@tool パス層（定数バッファは b7-b11）
+cbuffer SCREEN_SPACE_REFLECTION_CONSTANT_BUFFER : register(b7)
 {
     float ray_max_distance;         //  反射最大距離
     float ray_resolution;           //  レイのステップ解像度

@@ -8,7 +8,7 @@
 //	ﾃｷﾄｰ('ω')-ﾄｷﾃ
 class debug_primitive_manager
 {
-	SINGLETON(debug_primitive_manager);
+	WORLD_SINGLETON(debug_primitive_manager);
 
 	static constexpr size_t VertexCount = 0x000FFFFF;
 
@@ -29,7 +29,8 @@ private:
 	~debug_primitive_manager();
 
 public:
-	void get_container(debug_draw_primitive_container& container, const math::vector3d& render_origin);
+	//	@tool 頂点の転送は out_uploads に積む（フレームの提出時に順番通りに転送される）
+	void get_container(debug_draw_primitive_container& container, const math::vector3d& render_origin, gpu_upload_list& out_uploads);
 
 	void queue_line(const math::double3 start, const math::double3 end, const math::float4 color, bool depth_write = true);
 	void queue_sphere(const math::double3 center, float radius, const math::float4 color, bool depth_write = true);

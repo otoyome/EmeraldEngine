@@ -2,9 +2,10 @@
 #include "deferred_light_probe_data.hlsli"
 
 //  IBL用テクスチャ
-TextureCube diffuse_iem : register(t33);
-TextureCube specular_pmrem : register(t34);
-Texture2D lut_ggx : register(t35);
+//	@tool パス層（シェーダーリソースは t64-t95）
+TextureCube diffuse_iem : register(t81);
+TextureCube specular_pmrem : register(t82);
+Texture2D lut_ggx : register(t83);
 SamplerState ibl_sampler_state : register(s1);
 
 float4 main(VS_OUT pin) : SV_TARGET

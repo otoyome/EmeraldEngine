@@ -243,17 +243,47 @@ ENUM_ATTR_BITFLAG(post_process_volume::flags);
 
 using post_process_volume_ptr = std::shared_ptr<post_process_volume>;
 
+//	@tool 描画側が参照するポストプロセスの設定（抽出時点の複製。作成後は変更しない）
+//	@tool ゲーム側でボリュームを変更しても、描画側はこの複製を参照するので競合しない
+class material_render_proxy;
+class post_process_volume_snapshot
+{
+public:
+	explicit post_process_volume_snapshot(const post_process_volume& source);
+
+	const bloom_data& get_bloom_constant() const { return bloom_constant; }
+	const lens_ghosts_data& get_lens_ghosts_constant() const { return lens_ghosts_constant; }
+	const depth_of_field_data& get_depth_of_field_constant() const { return depth_of_field_constant; }
+	const screen_space_reflection_data& get_screen_space_reflection_constant() const { return screen_space_reflection_constant; }
+	const motion_blur_data& get_motion_blur_constant() const { return motion_blur_constant; }
+	const exposure_compensation_data& get_exposure_compensation_constant() const { return exposure_compensation_constant; }
+	const tone_mapping_data& get_tone_mapping_constant() const { return tone_mapping_constant; }
+	const std::vector<std::shared_ptr<const material_render_proxy>>& get_materials() const { return materials; }
+
+private:
+	bloom_data bloom_constant;
+	lens_ghosts_data lens_ghosts_constant;
+	depth_of_field_data depth_of_field_constant;
+	screen_space_reflection_data screen_space_reflection_constant;
+	motion_blur_data motion_blur_constant;
+	exposure_compensation_data exposure_compensation_constant;
+	tone_mapping_data tone_mapping_constant;
+	std::vector<std::shared_ptr<const material_render_proxy>> materials;
+};
+using post_process_volume_snapshot_ptr = std::shared_ptr<const post_process_volume_snapshot>;
+
 //	ポストプロセスボリュームコンテナ
 struct post_process_volume_container
 {
 	std::vector<post_process_volume_ptr> volumes;
-	post_process_volume_ptr selected_volume;
+	//	@tool 描画側は選ばれたボリュームの複製を参照する
+	post_process_volume_snapshot_ptr selected_volume;
 };
 
 //	ポストプロセスボリューム管理クラス
 class post_process_volume_manager
 {
-	SINGLETON(post_process_volume_manager);
+	WORLD_SINGLETON(post_process_volume_manager);
 
 private:
 	post_process_volume_manager();

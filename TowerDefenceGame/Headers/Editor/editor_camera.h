@@ -52,7 +52,7 @@ private:
 //	エディターカメラの管理
 class editor_camera_manager
 {
-	SINGLETON(editor_camera_manager)
+	WORLD_SINGLETON(editor_camera_manager)
 
 public:
 	//	エディターカメラにリクエストを送る中継コマンド

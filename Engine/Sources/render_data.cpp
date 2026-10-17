@@ -37,6 +37,9 @@ render_data::render_data(CONST HWND hwnd)
 	if (!swap_chain)
 		return;
 
+	//	@tool デバイスの対応状況を調べる
+	check_feature_supports();
+
 	// サンプラステートの生成
 	{
 		D3D11_SAMPLER_DESC sampler_desc{};
@@ -117,6 +120,23 @@ render_data::render_data(CONST HWND hwnd)
 
 render_data::~render_data()
 {
+}
+
+void render_data::check_feature_supports()
+{
+	D3D11_FEATURE_DATA_THREADING threading{};
+	if (SUCCEEDED(device->CheckFeatureSupport(D3D11_FEATURE_THREADING, &threading, sizeof(threading))))
+	{
+		features.driver_concurrent_creates = threading.DriverConcurrentCreates != FALSE;
+		features.driver_command_lists = threading.DriverCommandLists != FALSE;
+	}
+
+	D3D11_FEATURE_DATA_D3D11_OPTIONS options{};
+	if (SUCCEEDED(device->CheckFeatureSupport(D3D11_FEATURE_D3D11_OPTIONS, &options, sizeof(options))))
+	{
+		features.constant_buffer_offsetting = options.ConstantBufferOffsetting != FALSE;
+		features.map_no_overwrite_on_dynamic_constant_buffer = options.MapNoOverwriteOnDynamicConstantBuffer != FALSE;
+	}
 }
 
 Microsoft::WRL::ComPtr<ID3D11SamplerState> render_data::get_sampler_state(const D3D11_SAMPLER_DESC& desc)

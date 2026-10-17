@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <atomic>
 #include <chrono>
 #include "system/parallel_for_executor.h"
 
@@ -78,8 +79,9 @@ public:
 
 public:
 	D3D11_RESOURCE_DIMENSION	get_dimension() const;
-	const Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>& get_shader_resource_view() const;
-	const Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView>& get_unordered_access_view() const;
+	//	@tool 取得時点のビューを返す（再読み込みで差し替わっても、受け取った側が持っている間は有効）
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> get_shader_resource_view() const;
+	Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> get_unordered_access_view() const;
 
 	texture_data_types get_type() const;
 	void set_type(texture_data_types type);
@@ -92,13 +94,17 @@ public:
 	void set_data_key(std::string_view key);
 
 	UINT get_system_flags() const { return system_flags; }
-	void set_system_flags(UINT flags) { system_flags = flags; }
+	void set_system_flags(UINT flags) { system_flags = flags; ++revision; }
 	bool is_flag(flags flag) const { return system_utility::is_bitflag(system_flags, 1 << static_cast<UINT>(flag)); }
-	void set_flag(flags flag, bool value) { system_utility::set_bitflag(system_flags, 1 << static_cast<UINT>(flag), value); }
+	void set_flag(flags flag, bool value) { system_utility::set_bitflag(system_flags, 1 << static_cast<UINT>(flag), value); ++revision; }
 
 	//	サンプラー設定
 	const texture_sampler_desc& get_sampler_desc() const { return sampler_desc; }
-	void set_sampler_desc(const texture_sampler_desc& desc) { sampler_desc = desc; }
+	void set_sampler_desc(const texture_sampler_desc& desc) { sampler_desc = desc; ++revision; }
+
+	//	@tool 描画に関わる内容（ビュー・フラグ・サンプラー設定）を変えた回数
+	//	@tool 描画側の複製（マテリアルのプロキシなど）が作り直しの判定に使う。メインスレッドでのみ読み書きする
+	UINT get_revision() const { return revision; }
 
 	virtual int get_width() const = 0;	//	テクスチャ幅取得
 	virtual int get_height() const = 0;	//	テクスチャ高さ取得
@@ -125,9 +131,15 @@ protected:
 	texture_data_types type;
 	UINT system_flags;
 	D3D11_RESOURCE_DIMENSION dimension;
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> shader_resource_view;
-	Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> unordered_access_view;
+	//	@tool ビュー一式（再読み込みでは丸ごと差し替える。描画スレッドからも読むので atomic に読み書きする）
+	struct view_set
+	{
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> shader_resource_view;
+		Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> unordered_access_view;
+	};
+	std::atomic<std::shared_ptr<const view_set>> views;
 	texture_sampler_desc sampler_desc;
+	UINT revision = 0;
 
 #if defined(USE_IMGUI)
 	file_time_type last_write_time;
@@ -157,6 +169,8 @@ public:
 	bool generate_texture2d(texture_ptr& out_texture, std::string_view key, D3D11_TEXTURE2D_DESC desc, D3D11_SHADER_RESOURCE_VIEW_DESC* srv_desc = nullptr, D3D11_UNORDERED_ACCESS_VIEW_DESC* uav_desc = nullptr);
 	bool generate_texture2d(texture_ptr& out_texture, std::string_view key, D3D11_TEXTURE2D_DESC desc, DWORD init_value, D3D11_SHADER_RESOURCE_VIEW_DESC* srv_desc = nullptr, D3D11_UNORDERED_ACCESS_VIEW_DESC* uav_desc = nullptr);
 	bool generate_texture2d(texture_ptr& out_texture, std::string_view key, D3D11_TEXTURE2D_DESC desc, D3D11_SUBRESOURCE_DATA subresource_data, D3D11_SHADER_RESOURCE_VIEW_DESC* srv_desc = nullptr, D3D11_UNORDERED_ACCESS_VIEW_DESC* uav_desc = nullptr);
+	//	@tool 名前で登録しないテクスチャを作る（持ち主が破棄を管理する作業用・描画先用）
+	bool generate_unregistered_texture2d(texture_ptr& out_texture, D3D11_TEXTURE2D_DESC desc, D3D11_SHADER_RESOURCE_VIEW_DESC* srv_desc = nullptr, D3D11_UNORDERED_ACCESS_VIEW_DESC* uav_desc = nullptr);
 	bool load_texture_from_file(texture_ptr& out_texture, std::string_view file_path, bool force_load = false);
 	void load_textures_from_files(std::vector<texture_ptr>& out_textures, const std::vector<std::string_view>& file_pathes, bool force_load = false);
 	bool load_texture_from_memory(texture_ptr& out_texture, std::string_view key, const void* data, size_t size);
@@ -201,6 +215,8 @@ public:
 	};
 	bool save_texture(const save_texture_desc& desc);
 	bool save_texture(const texture_ptr& texture, bool save_row_texture = false);
+	//	@tool GPU のリソースを読み戻して画像ファイルに保存する（immediate context を使うのでメインスレッド専用）
+	bool save_resource(ID3D11Resource* resource, std::string_view file_path, save_texture_desc::data_formats data_format);
 
 	texture_ptr	search(std::string_view name);
 	texture_map	get_textures() const;

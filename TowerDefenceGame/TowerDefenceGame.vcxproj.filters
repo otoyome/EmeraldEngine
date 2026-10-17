@@ -269,18 +269,6 @@
     <ClCompile Include="Sources\framework.cpp">
       <Filter>Sources</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Renderer\occlusion_culling_renderer.cpp">
-      <Filter>Sources\Renderer</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Renderer\ui_renderer.cpp">
-      <Filter>Sources\Renderer</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Renderer\scene_renderer.cpp">
-      <Filter>Sources\Renderer</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Renderer\renderer.cpp">
-      <Filter>Sources\Renderer</Filter>
-    </ClCompile>
     <ClCompile Include="Sources\stdafx.cpp">
       <Filter>Sources</Filter>
     </ClCompile>
@@ -335,12 +323,6 @@
     <ClCompile Include="Sources\Editor\detail_profiler.cpp">
       <Filter>Sources\Editor</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Renderer\scene_renderer_forward.cpp">
-      <Filter>Sources\Renderer</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Renderer\scene_renderer_postprocess.cpp">
-      <Filter>Sources\Renderer</Filter>
-    </ClCompile>
     <ClCompile Include="Sources\PipelineState\anti_alias_pipeline_state.cpp">
       <Filter>Sources\PipelineState</Filter>
     </ClCompile>
@@ -354,6 +336,24 @@
       <Filter>External\imtimeline</Filter>
     </ClCompile>
     <ClCompile Include="Sources\Renderer\render_job_executor.cpp">
+      <Filter>Sources\Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Renderer\frame_graph.cpp">
+      <Filter>Sources\Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Renderer\scene_render_features.cpp">
+      <Filter>Sources\Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Renderer\scene_passes_deferred.cpp">
+      <Filter>Sources\Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Renderer\scene_passes_postprocess.cpp">
+      <Filter>Sources\Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Renderer\scene_passes_output.cpp">
+      <Filter>Sources\Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Renderer\ui_passes.cpp">
       <Filter>Sources\Renderer</Filter>
     </ClCompile>
     <ClCompile Include="Sources\Object\messenger.cpp">
@@ -571,12 +571,6 @@
     <ClInclude Include="Headers\framework.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Renderer\scene_renderer.h">
-      <Filter>Headers\Renderer</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Renderer\renderer.h">
-      <Filter>Headers\Renderer</Filter>
-    </ClInclude>
     <ClInclude Include="Headers\Scenes\load_shader_scene.h">
       <Filter>Headers\Scenes</Filter>
     </ClInclude>
@@ -637,12 +631,6 @@
     <ClInclude Include="Headers\PipelineState\anti_alias_pipeline_state.h">
       <Filter>Headers\PipelineState</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Renderer\scene_renderer_postprocess.h">
-      <Filter>Headers\Renderer</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Renderer\scene_renderer_forward.h">
-      <Filter>Headers\Renderer</Filter>
-    </ClInclude>
     <ClInclude Include="..\External\implot\implot.h">
       <Filter>External\implot</Filter>
     </ClInclude>
@@ -655,10 +643,13 @@
     <ClInclude Include="Headers\Renderer\renderer_context.h">
       <Filter>Headers\Renderer</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Renderer\renderer_domain.h">
+    <ClInclude Include="Headers\Renderer\render_job_executor.h">
       <Filter>Headers\Renderer</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Renderer\render_job_executor.h">
+    <ClInclude Include="Headers\Renderer\frame_graph.h">
+      <Filter>Headers\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Renderer\scene_render_features.h">
       <Filter>Headers\Renderer</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Object\messenger.h">
@@ -771,12 +762,6 @@
     </ClInclude>
     <ClInclude Include="Headers\Object\GameObjects\UI\Common\transition_fade_controller.h">
       <Filter>Headers\Object\GameObjects\UI\Common</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Renderer\occlusion_culling_renderer.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Renderer\ui_renderer.h">
-      <Filter>Headers\Renderer</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Object\GameObjects\MiniGame\roomba_object.h">
       <Filter>Headers\Object\GameObjects\MiniGame</Filter>

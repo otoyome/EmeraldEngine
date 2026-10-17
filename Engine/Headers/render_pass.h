@@ -36,6 +36,6 @@ struct render_pass
 	render_pass();
 	~render_pass();
 
-	void activate(ID3D11DeviceContext* context);
-	void deactivate(ID3D11DeviceContext* context);
+	void activate(ID3D11DeviceContext* context) const;
+	void deactivate(ID3D11DeviceContext* context) const;
 };

@@ -454,14 +454,16 @@ D3D11_RESOURCE_DIMENSION texture::get_dimension() const
 	return dimension;
 }
 
-const Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>& texture::get_shader_resource_view() const
+Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> texture::get_shader_resource_view() const
 {
-	return shader_resource_view;
+	const std::shared_ptr<const view_set> current = views.load();
+	return current ? current->shader_resource_view : nullptr;
 }
 
-const Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView>& texture::get_unordered_access_view() const
+Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> texture::get_unordered_access_view() const
 {
-	return unordered_access_view;
+	const std::shared_ptr<const view_set> current = views.load();
+	return current ? current->unordered_access_view : nullptr;
 }
 
 texture_data_types texture::get_type() const
@@ -502,8 +504,7 @@ texture::texture(D3D11_RESOURCE_DIMENSION dimension, Microsoft::WRL::ComPtr<ID3D
 , type(texture_data_types::color)
 , system_flags(0)
 , dimension(dimension)
-, shader_resource_view(shader_resource_view)
-, unordered_access_view(unordered_access_view)
+, views(std::make_shared<const view_set>(view_set{ shader_resource_view, unordered_access_view }))
 , sampler_desc()
 {
 	set_flag(flags::srgb, false);
@@ -534,12 +535,13 @@ void texture::reload()
 	texture_ptr fresh;
 	if (texture_manager::instance()->decode_texture_from_file(fresh, file_path_or_key))
 	{
-		this->shader_resource_view = fresh->shader_resource_view;
-		this->unordered_access_view = fresh->unordered_access_view;
+		//	@tool ビュー一式を差し替える（描画側が保持している古いビューは、使い終わるまで解放されない）
+		this->views.store(fresh->views.load());
 		this->dimension = fresh->dimension;
 		this->type = fresh->type;
 		this->system_flags = fresh->system_flags;
 		this->sampler_desc = fresh->sampler_desc;
+		++revision;
 		on_reload();
 		update_last_write_time();
 	}
@@ -613,7 +615,11 @@ void texture_manager::check_update_and_reload()
 	for (auto& ptr : alive)
 	{
 		if (ptr->is_reload())
+		{
+			//	@tool 描画中のフレームがテクスチャの情報（大きさなど）を参照しているので、描き終わるのを待つ
+			render_data::instance()->flush_rendering();
 			ptr->reload();
+		}
 	}
 #endif	//	defined(USE_IMGUI)
 }
@@ -630,6 +636,14 @@ bool texture_manager::generate_texture2d(texture_ptr& out_texture, std::string_v
 		return true;
 	}
 	out_texture	= nullptr;
+	return false;
+}
+
+bool texture_manager::generate_unregistered_texture2d(texture_ptr& out_texture, D3D11_TEXTURE2D_DESC desc, D3D11_SHADER_RESOURCE_VIEW_DESC* srv_desc, D3D11_UNORDERED_ACCESS_VIEW_DESC* uav_desc)
+{
+	if (generate_texture2d_core(out_texture, desc, nullptr, srv_desc, uav_desc))
+		return true;
+	out_texture = nullptr;
 	return false;
 }
 
@@ -990,6 +1004,40 @@ bool texture_manager::save_texture(const save_texture_desc& desc)
 	return save_image_file(texture_filepath.wstring().data(), desc.data_format, scratch_image);
 }
 
+bool texture_manager::save_resource(ID3D11Resource* resource, std::string_view file_path, save_texture_desc::data_formats data_format)
+{
+	if (!resource)
+		return false;
+
+	auto device = render_data::instance()->get_device();
+	auto immediate_context = render_data::instance()->get_immediate_context();
+	//	@tool immediate context は提出スレッドと共有しているので排他する
+	std::lock_guard<std::recursive_mutex> immediate_lock(render_data::instance()->get_immediate_context_mutex());
+
+	DirectX::ScratchImage image;
+	if (FAILED(DirectX::CaptureTexture(device.Get(), immediate_context.Get(), resource, image)))
+		return false;
+
+	//	@tool バックバッファのアルファは不定なので、画像として見やすいようアルファを捨てた形式にする
+	const DXGI_FORMAT format = image.GetMetadata().format;
+	if (data_format != save_texture_desc::data_formats::dds && !DirectX::IsCompressed(format) && DirectX::HasAlpha(format))
+	{
+		DirectX::ScratchImage converted;
+		if (SUCCEEDED(DirectX::Convert(image.GetImages(), image.GetImageCount(), image.GetMetadata(), DXGI_FORMAT_B8G8R8X8_UNORM, DirectX::TEX_FILTER_DEFAULT | DirectX::TEX_FILTER_FORCE_NON_WIC, DirectX::TEX_THRESHOLD_DEFAULT, converted)))
+		{
+			image = std::move(converted);
+		}
+	}
+
+	//	@tool 保存先のフォルダが無ければ作る
+	std::filesystem::path path = file_path;
+	std::error_code error;
+	if (path.has_parent_path())
+		std::filesystem::create_directories(path.parent_path(), error);
+
+	return save_image_file(path.wstring().data(), data_format, image);
+}
+
 bool texture_manager::save_texture(const texture_ptr& texture, bool save_row_texture)
 {
 	std::filesystem::path file_path = texture->get_file_path_or_key();
@@ -999,6 +1047,8 @@ bool texture_manager::save_texture(const texture_ptr& texture, bool save_row_tex
 	{
 		auto device = render_data::instance()->get_device();
 		auto immediate_context = render_data::instance()->get_immediate_context();
+		//	@tool immediate context は提出スレッドと共有しているので排他する
+		std::lock_guard<std::recursive_mutex> immediate_lock(render_data::instance()->get_immediate_context_mutex());
 
 		Microsoft::WRL::ComPtr<ID3D11Resource> resource;
 		texture->get_shader_resource_view()->GetResource(resource.GetAddressOf());
@@ -1263,7 +1313,7 @@ void texture2d::on_reload()
 {
 	//	Desc更新
 	Microsoft::WRL::ComPtr<ID3D11Resource> resource;
-	shader_resource_view->GetResource(resource.GetAddressOf());
+	get_shader_resource_view()->GetResource(resource.GetAddressOf());
 	Microsoft::WRL::ComPtr<ID3D11Texture2D> texture;
 	resource.As(&texture);
 

@@ -1,5 +1,9 @@
 #pragma once
 
+#include "System/world_singleton.h"
+#include "render_data.h"
+#include "view_parameters.h"
+
 class scene_manager;
 
 struct scene_generates
@@ -57,7 +61,7 @@ private:
 
 class scene_manager
 {
-	SINGLETON(scene_manager)
+	WORLD_SINGLETON(scene_manager)
 
 private:
 	scene_manager();
@@ -131,7 +135,7 @@ public:
 
 public:
 #if defined(USE_IMGUI)
-	void imgui_render();
+	void imgui_render(const char* window_name = "scenes");
 
 	//	全てのシーンを破棄して一つのシーンを読み込む
 	template<typename scene_type>

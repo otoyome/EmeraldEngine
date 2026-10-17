@@ -5,6 +5,7 @@
 #include "graphics/meshlet_culling_system.h"
 #include "graphics/scene_view.h"
 #include "graphics/scene_view_state.h"
+#include "System/engine_config_data.h"
 
 //	メッシュ描画順序リスト
 struct render_mesh_indices

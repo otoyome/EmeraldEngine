@@ -24,32 +24,36 @@ namespace
 	std::uint64_t get_keep_frames() { return static_cast<std::uint64_t>((std::max)(keep_frames_variable.get(), 0)); }
 
 	shadow_atlas::statistics last_statistics;
+	//	@tool last_statistics は描画スレッドが書き、表示（メインスレッド）が読むので排他する
+	std::mutex last_statistics_mutex;
 }
 
-bool shadow_atlas::is_enable()
+void shadow_atlas::capture_settings(render_settings::shadow_atlas_settings& out_settings)
 {
-	return get_enable();
+	out_settings.enable = get_enable();
+	out_settings.resolution = get_resolution();
+	out_settings.slices = get_slices();
+	out_settings.max_lights = get_max_lights_value();
+	out_settings.cache = get_cache();
+	out_settings.keep_frames = get_keep_frames();
 }
 
-UINT shadow_atlas::get_max_lights()
+shadow_atlas::statistics shadow_atlas::get_last_statistics()
 {
-	return get_max_lights_value();
-}
-
-const shadow_atlas::statistics& shadow_atlas::get_last_statistics()
-{
+	std::lock_guard<std::mutex> lock(last_statistics_mutex);
 	return last_statistics;
 }
 
-void shadow_atlas::begin_frame()
+void shadow_atlas::begin_frame(const render_settings::shadow_atlas_settings& settings)
 {
 	++frame;
 	frame_statistics = {};
-	if (!is_enable())
+	frame_settings = settings;
+	if (!frame_settings.enable)
 		return;
 
-	const UINT desired_resolution = get_resolution();
-	const UINT desired_slices = get_slices();
+	const UINT desired_resolution = frame_settings.resolution;
+	const UINT desired_slices = frame_settings.slices;
 	if (texture && resolution == desired_resolution && slice_count == desired_slices)
 		return;
 
@@ -127,7 +131,7 @@ bool shadow_atlas::acquire(UINT light_id, UINT count, std::uint64_t signature, b
 	if (it != entries.end() && it->second.slice_count == count)
 	{
 		entry& current = it->second;
-		out_needs_render = force_render || !get_cache() || current.signature != signature;
+		out_needs_render = force_render || !frame_settings.cache || current.signature != signature;
 		current.signature = signature;
 		current.last_used_frame = frame;
 		out_first_slice = current.first_slice;
@@ -184,7 +188,7 @@ bool shadow_atlas::acquire(UINT light_id, UINT count, std::uint64_t signature, b
 void shadow_atlas::end_frame()
 {
 	//	しばらく使われていないライトのスライスを解放する
-	const std::uint64_t keep_frames = get_keep_frames();
+	const std::uint64_t keep_frames = frame_settings.keep_frames;
 	std::vector<UINT> expired;
 	for (const auto& pair : entries)
 	{
@@ -198,7 +202,10 @@ void shadow_atlas::end_frame()
 	frame_statistics.cached_lights = static_cast<UINT>(entries.size());
 	frame_statistics.used_slices = static_cast<UINT>(std::count_if(slice_owners.begin(), slice_owners.end(), [](UINT owner) { return owner != 0; }));
 	frame_statistics.slice_count = slice_count;
-	last_statistics = frame_statistics;
+	{
+		std::lock_guard<std::mutex> lock(last_statistics_mutex);
+		last_statistics = frame_statistics;
+	}
 }
 
 ID3D11DepthStencilView* shadow_atlas::get_depth_stencil_view(UINT first_slice, UINT count)

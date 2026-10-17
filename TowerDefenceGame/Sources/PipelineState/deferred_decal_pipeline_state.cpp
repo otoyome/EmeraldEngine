@@ -38,11 +38,11 @@ deferred_decal_stencil_write_pipeline_state::deferred_decal_stencil_write_pipeli
 		register_input_element_stream_vertex(vs_desc.input_element_desc, "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, stream_index);
 		register_input_element_stream_vertex(vs_desc.input_element_desc, "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, stream_index);
 	}
-	shader_manager::instance()->load_shader<vertex_shader>(vs, vs_desc);
+	shader_manager::instance()->load_shader<vertex_shader>(shaders.vs, vs_desc);
 
 	//	セマンティックリスト作成
 	semantic_list.clear();
-	for (auto& element_desc : vs->get_input_element_desc())
+	for (auto& element_desc : shaders.vs->get_input_element_desc())
 	{
 		semantic_list.emplace_back(std::make_pair(semantic(element_desc.SemanticName, element_desc.SemanticIndex), graphics_utility::get_byte_offset_from_format(element_desc.Format)));
 	}
@@ -64,7 +64,7 @@ deferred_decal_stencil_write_pipeline_state::deferred_decal_stencil_write_pipeli
 		depth_stencil_desc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_ZERO;
 		depth_stencil_desc.FrontFace.StencilFailOp = D3D11_STENCIL_OP_ZERO;
 		depth_stencil_desc.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_ZERO;
-		hr = render_data::instance()->get_device()->CreateDepthStencilState(&depth_stencil_desc, depth_stencil_states.GetAddressOf());
+		hr = render_data::instance()->get_device()->CreateDepthStencilState(&depth_stencil_desc, depth_stencil_state.GetAddressOf());
 		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
 	}
 
@@ -81,7 +81,7 @@ deferred_decal_stencil_write_pipeline_state::deferred_decal_stencil_write_pipeli
 		blend_desc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
 		blend_desc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
 		blend_desc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-		hr = render_data::instance()->get_device()->CreateBlendState(&blend_desc, blend_states.GetAddressOf());
+		hr = render_data::instance()->get_device()->CreateBlendState(&blend_desc, blend_state.GetAddressOf());
 		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
 	}
 
@@ -98,48 +98,18 @@ deferred_decal_stencil_write_pipeline_state::deferred_decal_stencil_write_pipeli
 		rasterizer_desc.ScissorEnable = FALSE;
 		rasterizer_desc.MultisampleEnable = FALSE;
 		rasterizer_desc.AntialiasedLineEnable = TRUE;
-		hr = render_data::instance()->get_device()->CreateRasterizerState(&rasterizer_desc, rasterizer_states.GetAddressOf());
+		hr = render_data::instance()->get_device()->CreateRasterizerState(&rasterizer_desc, rasterizer_state.GetAddressOf());
 		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
 	}
+
+	//	@tool 描画設定と割り当て配置（描画時は command_recorder がこれを解釈して設定する）
+	primitive_topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+	stencil_ref = common_pipeline_states::decal_stencil_ref;
+	layout.add_constant_buffer(shader_stage::vertex, common_pipeline_states::scene_cbv_index, common_pipeline_states::scene_constant_buffer_hash_key);
+	layout.add_constant_buffer(shader_stage::vertex, common_pipeline_states::primitive_cbv_index, common_pipeline_states::primitive_constant_buffer_hash_key, binding_source::primitive);
 }
 
 deferred_decal_stencil_write_pipeline_state::~deferred_decal_stencil_write_pipeline_state()
 {
 }
 
-void deferred_decal_stencil_write_pipeline_state::begin(const graphics_context& context)
-{
-	//	シェーダー設定
-	context.device_context->VSSetShader(vs->get_shader().Get(), nullptr, 0);
-	context.device_context->HSSetShader(nullptr, nullptr, 0);
-	context.device_context->DSSetShader(nullptr, nullptr, 0);
-	context.device_context->GSSetShader(nullptr, nullptr, 0);
-	context.device_context->PSSetShader(nullptr, nullptr, 0);
-	context.device_context->IASetInputLayout(vs->get_input_layout().Get());
-	context.device_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-	//	ステート設定
-	context.device_context->OMSetBlendState(blend_states.Get(), nullptr, 0xFFFFFFFF);
-	context.device_context->OMSetDepthStencilState(depth_stencil_states.Get(), common_pipeline_states::decal_stencil_ref);
-	context.device_context->RSSetState(rasterizer_states.Get());
-
-	//	シーン定数バッファ設定
-	context.device_context->VSSetConstantBuffers(common_pipeline_states::scene_cbv_index, 1, context.scene_constant_buffer.GetAddressOf());
-}
-
-void deferred_decal_stencil_write_pipeline_state::update_parameters(const graphics_context& context, const material& material, const buffer_datas* buffer_data)
-{
-	if (!buffer_data)
-		return;
-	context.device_context->VSSetConstantBuffers(common_pipeline_states::primitive_cbv_index, 1, buffer_data->primitive_buffer.GetAddressOf());
-}
-
-void deferred_decal_stencil_write_pipeline_state::end(const graphics_context& context)
-{
-	context.clear_vertex_buffer();
-	context.clear_index_buffer();
-	context.clear_shader_slots();
-	context.clear_shader_resorce_views();
-	context.clear_sampler();
-	context.clear_constant_buffers();
-}

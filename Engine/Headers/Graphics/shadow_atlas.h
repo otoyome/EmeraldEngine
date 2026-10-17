@@ -9,6 +9,7 @@
 #include <wrl.h>
 
 #include "texture.h"
+#include "Graphics/render_settings.h"
 
 //	シャドウマップアトラス
 class shadow_atlas
@@ -25,18 +26,17 @@ public:
 	};
 
 public:
-	//	アトラスを使うか
-	static bool is_enable();
-
-	//	アトラスを割り当てるライトの最大数
-	static UINT get_max_lights();
+	//	@tool 現在のコンソール変数の値を写す（メインスレッドで、描画データの抽出時に呼ぶ）
+	static void capture_settings(render_settings::shadow_atlas_settings& out_settings);
 
 	//	直近の統計（デバッグ表示用）
-	static const statistics& get_last_statistics();
+	//	@tool 描画スレッドが更新するので複製を返す
+	static statistics get_last_statistics();
 
 public:
 	//	フレームの最初に呼ぶ
-	void begin_frame();
+	//	@tool 設定は抽出時点の値を使い、このフレームの間は持っておく
+	void begin_frame(const render_settings::shadow_atlas_settings& settings);
 
 	//	ライトのスライスを確保
 	bool acquire(UINT light_id, UINT slice_count, std::uint64_t signature, bool force_render, UINT& out_first_slice, bool& out_needs_render);
@@ -80,4 +80,6 @@ private:
 	std::vector<UINT> slice_owners;
 	std::uint64_t frame = 0;
 	statistics frame_statistics;
+	//	@tool このフレームの設定（begin_frame で受け取る）
+	render_settings::shadow_atlas_settings frame_settings;
 };

@@ -264,29 +264,70 @@ private:
 ENUM_ATTR_BITFLAG(pipeline_state_base::cbv_flags);
 ENUM_ATTR_BITFLAG(pipeline_state_base::view_flags);
 
+//	@tool 描画パイプラインのシェーダー一式
+struct graphics_pipeline_shaders
+{
+	std::shared_ptr<vertex_shader> vs;
+	std::shared_ptr<hull_shader> hs;
+	std::shared_ptr<domain_shader> ds;
+	std::shared_ptr<geometry_shader> gs;
+	std::shared_ptr<pixel_shader> ps;
+};
+
 //	描画用パイプラインステート
+//	@tool 描画に必要な情報（シェーダー・ステート・割り当て配置）だけを持つデータ
+//	@tool 設定と割り当ては command_recorder がこの情報を解釈して行う（graphics_context::set_pipeline / bind_draw / end_pipeline）
+//	@tool 描画ジョブからは読むだけ。書き換えは prepare（メインスレッド）か生成時に行う
 class graphics_pipeline_state : public pipeline_state_base
 {
+public:
+	//	@tool ラスタライザー・ブレンド・深度ステンシルステートの決め方
+	enum class render_state_modes : std::uint8_t
+	{
+		fixed,		//	パイプラインに設定したものを使う
+		material,	//	マテリアルの設定（両面・ワイヤー・ブレンドモード・ドメイン）から描画毎に選ぶ
+	};
+
 public:
 	graphics_pipeline_state(){}
 	virtual ~graphics_pipeline_state() {}
 
-	virtual	const std::vector<std::pair<semantic, UINT>>& get_semantic_list() const
-	{
-		static const std::vector<std::pair<semantic, UINT>> dummy;
-		return dummy;
-	}
-
-	virtual	void begin(const graphics_context& context) = 0;
-	virtual	void update_parameters(const graphics_context& context, const material& material, const buffer_datas* buffer_data)
-	{
-		assert(!"not compatible set_parameters");
-	}
-	virtual	void end(const graphics_context& context) = 0;
+	//	@tool 描画前の準備（メインスレッドで、描画ジョブを積む前に呼ばれる）
+	//	@tool シェーダー再生成後の割り当て配置の作り直しなど、メンバを書き換える処理はここで行う
+	virtual	void prepare() {}
+	//	@tool prepare で作り直す物があるか（描画中のフレームを待つ必要があるかの判定に使う）
+	virtual	bool needs_prepare() const { return false; }
 
 #if defined(USE_IMGUI)
-	virtual	bool is_failed() {return false;}
+	//	@tool シェーダーの読み込みに失敗しているか
+	virtual	bool is_failed();
 #endif	//	defined(USE_IMGUI)
+
+public:
+	const graphics_pipeline_shaders& get_shaders() const { return shaders; }
+	const pipeline_layout& get_layout() const { return layout; }
+	const std::vector<std::pair<semantic, UINT>>& get_semantic_list() const { return semantic_list; }
+
+	render_state_modes get_render_state_mode() const { return render_state_mode; }
+	ID3D11RasterizerState* get_rasterizer_state() const { return rasterizer_state.Get(); }
+	ID3D11BlendState* get_blend_state() const { return blend_state.Get(); }
+	ID3D11DepthStencilState* get_depth_stencil_state() const { return depth_stencil_state.Get(); }
+	UINT get_stencil_ref() const { return stencil_ref; }
+
+	//	@tool D3D11_PRIMITIVE_TOPOLOGY_UNDEFINED のときは変更しない（描画側で設定する）
+	D3D11_PRIMITIVE_TOPOLOGY get_primitive_topology() const { return primitive_topology; }
+
+protected:
+	graphics_pipeline_shaders shaders;
+	pipeline_layout layout;
+	std::vector<std::pair<semantic, UINT>> semantic_list;
+
+	render_state_modes render_state_mode = render_state_modes::fixed;
+	Microsoft::WRL::ComPtr<ID3D11RasterizerState> rasterizer_state;
+	Microsoft::WRL::ComPtr<ID3D11BlendState> blend_state;
+	Microsoft::WRL::ComPtr<ID3D11DepthStencilState> depth_stencil_state;
+	UINT stencil_ref = 0;
+	D3D11_PRIMITIVE_TOPOLOGY primitive_topology = D3D11_PRIMITIVE_TOPOLOGY_UNDEFINED;
 };
 
 using graphics_pipeline_state_ptr = std::shared_ptr<graphics_pipeline_state>;
@@ -345,6 +386,9 @@ public:
 	}
 	graphics_pipeline_state_ptr	search(std::string_view key);
 	std::vector<graphics_pipeline_state_ptr> get_domain_lists(pipeline_state_base::domains domain);
+
+	//	@tool 登録済みの全パイプラインステートの描画前準備（メインスレッドで描画ジョブを積む前に呼ぶ）
+	void	prepare_pipeline_states();
 
 private:
 	bool	register_pipeline_state(const graphics_pipeline_state_ptr& pipeline_state);

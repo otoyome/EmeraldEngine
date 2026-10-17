@@ -384,6 +384,18 @@ void framework::imgui_scene_change()
 		change_scene<edit_particle_scene>();
 		change_scene<edit_timeline_scene>();
 		change_scene<setup_scene>();
+
+		//	@tool モデル編集を別のワールドで開く（メイン画面はゲームのワールドを映し続け、モデル編集はドッキングウィンドウに映す）
+		ImGui::Separator();
+		if (!model_editor)
+		{
+			if (ImGui::Button("open model editor view"))
+				model_editor_open_requested = true;
+		}
+		else if (ImGui::Button("close model editor view"))
+		{
+			model_editor_close_requested = true;
+		}
 	}
 	ImGui::End();
 }
@@ -391,6 +403,16 @@ void framework::imgui_scene_change()
 ////////////////////////////////////////////////////////////////////////////////////////////
 void framework::imgui_profiler_window()
 {
+	//	@tool レンダーグラフ（直前のフレームの描画パス一覧）
+	if (frame_render_graph)
+	{
+		if (ImGui::Begin("render graph"))
+		{
+			frame_render_graph->imgui_render();
+		}
+		ImGui::End();
+	}
+
 	//	詳細プロファイラー(オブジェクト関数/シーンレンダラー/GPUスコープ単位)
 	if (detail_profiler::is_valid())
 	{

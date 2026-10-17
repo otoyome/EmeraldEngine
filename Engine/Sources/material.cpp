@@ -1,6 +1,7 @@
 #include "material.h"
 #include "texture.h"
 #include "render_data.h"
+#include "graphics_context.h"
 
 #include "cereal/archives/binary.hpp"
 #include "cereal/archives/json.hpp"
@@ -83,6 +84,13 @@ void material::physical_datas::serialize(Archive& archive, int version)
 	archive(CEREAL_NVP(friction));
 }
 
+namespace
+{
+	//	定数バッファの転送待ちマテリアル
+	std::mutex upload_requested_materials_mutex;
+	std::vector<material*> upload_requested_materials;
+}
+
 material::material()
 : name()
 , domain(domains::unknown)
@@ -125,6 +133,17 @@ material& material::operator =(const material& material)
 
 material::~material()
 {
+	//	転送待ちに残っていれば外す
+	{
+		std::lock_guard<std::mutex> lock(upload_requested_materials_mutex);
+		if (upload_requested)
+		{
+			auto it = std::find(upload_requested_materials.begin(), upload_requested_materials.end(), this);
+			if (it != upload_requested_materials.end())
+				upload_requested_materials.erase(it);
+		}
+	}
+
 #if defined(USE_IMGUI)
 	//	パイプラインステート側への検知関数登録解除
 	for (auto& pipeline_state : pipeline_states)
@@ -135,25 +154,111 @@ material::~material()
 #endif	//	defined(USE_IMGUI)
 }
 
-void material::update_parameters(const graphics_context& context)
+std::shared_ptr<const material_render_proxy> material::get_render_proxy() const
 {
-#if defined(USE_IMGUI)
-	if (is_error())
-	{
-		return;
-	}
-#endif	//	defined(USE_IMGUI)
+	if (render_proxy && render_proxy_version == render_state_version && !is_texture_revision_changed(*render_proxy))
+		return render_proxy;
 
-	//	定数バッファ設定
-	for (auto& cb : constant_buffers)
+	//	描画に必要な情報だけを複製
+	auto proxy = std::make_shared<material_render_proxy>();
+	proxy->source_id = this;
+	proxy->name = name;
+	proxy->domain = domain;
+	proxy->blend_mode = blend_mode;
+	proxy->shading_model = shading_model;
+	proxy->blendable_location = blendable_location;
+	proxy->translucency_path = translucency_path;
+	proxy->system_flags = system_flags;
+	proxy->alpha_clip_threshold = alpha_clip_threshold;
+
+	proxy->pipeline_states.reserve(pipeline_states.size());
+	for (UINT index = 0; index < static_cast<UINT>(pipeline_states.size()); ++index)
 	{
-		if (cb.second.dirty)
+		proxy->pipeline_states.emplace_back(get_pipeline_state(domain, index));
+	}
+
+	proxy->constant_buffers.reserve(constant_buffers.size());
+	for (const auto& cb : constant_buffers)
+	{
+		proxy->constant_buffers.emplace_back(system_utility::generate_hash(cb.first), cb.second.buffer);
+	}
+
+	proxy->textures.reserve(shader_resources.size());
+	for (const auto& resource : shader_resources)
+	{
+		std::vector<texture_bind> values;
+		values.reserve(resource.second.resources.size());
+		for (const auto& value : resource.second.resources)
 		{
-			context.device_context->UpdateSubresource(cb.second.buffer.Get(), 0, 0, cb.second.data_buffer.data(), 0, 0);
+			//	ビュー・サンプラー・フラグをここで確定させる
+			proxy->texture_revisions.emplace_back(value.value ? value.value->get_revision() : 0);
+			if (value.value)
+				values.emplace_back(texture_bind::from_texture(*value.value));
+		}
+		proxy->textures.emplace_back(system_utility::generate_hash(resource.first), std::move(values));
+	}
+
+	render_proxy = proxy;
+	render_proxy_version = render_state_version;
+	return render_proxy;
+}
+
+void material::flush_parameters(gpu_upload_list& out_uploads)
+{
+	std::lock_guard<std::mutex> lock(upload_requested_materials_mutex);
+
+	for (material* target : upload_requested_materials)
+	{
+		target->upload_requested = false;
+
+		//	定数バッファ設定
+		for (auto& cb : target->constant_buffers)
+		{
+			//	バッファが未生成なら dirty のまま残す
+			if (!cb.second.dirty || !cb.second.buffer)
+				continue;
+
+			out_uploads.add_copy(cb.second.buffer, false, 0, cb.second.data_buffer.data(), static_cast<UINT>(cb.second.data_buffer.size()));
 			cb.second.dirty = false;
 		}
 	}
+	upload_requested_materials.clear();
 }
+
+void material::request_upload()
+{
+	//	次の flush_parameters で定数バッファを転送するよう登録
+	std::lock_guard<std::mutex> lock(upload_requested_materials_mutex);
+	if (upload_requested)
+		return;
+
+	upload_requested = true;
+	upload_requested_materials.emplace_back(this);
+}
+
+void material::mark_render_proxy_dirty()
+{
+	//	描画側の複製を作り直す
+	++render_state_version;
+}
+
+bool material::is_texture_revision_changed(const material_render_proxy& proxy) const
+{
+	//	参照しているテクスチャの内容が変わったか?
+	size_t index = 0;
+	for (const auto& resource : shader_resources)
+	{
+		for (const auto& value : resource.second.resources)
+		{
+			const UINT revision = value.value ? value.value->get_revision() : 0;
+			if (index >= proxy.texture_revisions.size() || proxy.texture_revisions[index] != revision)
+				return true;
+			++index;
+		}
+	}
+	return index != proxy.texture_revisions.size();
+}
+
 
 template<class Archive>
 void material::serialize(Archive& archive, int version)
@@ -245,7 +350,13 @@ void material::build()
 
 void material::build_parameters()
 {
+	//	描画側の複製を作り直す
+	mark_render_proxy_dirty();
+
 #if defined(USE_IMGUI)
+	//	パイプラインの差し替え・シェーダー再生成は必ずここを通るので、エラー状態もここで求めておく
+	update_error_state();
+
 	if (is_error())
 	{
 		//	エラーならビルドしない
@@ -463,10 +574,14 @@ void material::build_parameters()
 			}
 		}
 	}
+
+	request_upload();
 }
 
 void material::set_name(std::string_view name)
 {
+	mark_render_proxy_dirty();
+
 	this->name = std::string(name);
 }
 
@@ -482,6 +597,8 @@ material::domains material::get_domain() const
 
 void material::set_domain(material::domains domain)
 {
+	mark_render_proxy_dirty();
+
 	if (this->domain == domain)
 		return;
 
@@ -522,6 +639,8 @@ material::blend_modes material::get_blend_mode() const
 
 void material::set_blend_mode(blend_modes blend_mode)
 {
+	mark_render_proxy_dirty();
+
 	this->blend_mode = blend_mode;
 }
 
@@ -532,6 +651,8 @@ material::shading_models material::get_shading_model() const
 
 void material::set_shading_model(shading_models shading_model)
 {
+	mark_render_proxy_dirty();
+
 	this->shading_model = shading_model;
 }
 
@@ -542,6 +663,8 @@ material::blendable_locations material::get_blendable_location() const
 
 void material::set_blendable_location(blendable_locations location)
 {
+	mark_render_proxy_dirty();
+
 	if (domain == domains::post_process) blendable_location = location;
 }
 
@@ -555,6 +678,8 @@ material::translucency_paths material::get_translucency_path() const
 
 void material::set_translucency_path(translucency_paths pass)
 {
+	mark_render_proxy_dirty();
+
 	if (domain == domains::surface && blend_mode == blend_modes::translucent ||
 		domain == domains::particle && blend_mode == blend_modes::translucent)
 		translucency_path = pass;
@@ -573,17 +698,24 @@ const material::shader_resource_map& material::get_shader_resources() const
 #if defined(USE_IMGUI)
 material::constant_buffer_map& material::get_constant_buffers_for_editor()
 {
+	mark_render_proxy_dirty();
+
+	request_upload();
 	return constant_buffers;
 }
 
 material::shader_resource_map& material::get_shader_resources_for_editor()
 {
+	mark_render_proxy_dirty();
+
 	return shader_resources;
 }
 #endif	//	defined(USE_IMGUI)
 
 bool material::set_pipeline_state(const set_surface_pipeline_states_desc* descs, UINT size)
 {
+	mark_render_proxy_dirty();
+
 	//	ドメインが違えば登録させない
 	if (domain != domains::surface && domain != domains::particle)
 		return false;
@@ -629,6 +761,8 @@ bool material::set_pipeline_state(const set_surface_pipeline_states_desc* descs,
 
 bool material::set_pipeline_state(domains domain, UINT index, std::string_view pipeline_state_name)
 {
+	mark_render_proxy_dirty();
+
 	//	ドメインが違えば登録させない
 	if(this->domain != domain)
 		return false;
@@ -834,8 +968,14 @@ bool material::set_data(std::string_view key_name, void* data, std::size_t data_
 
 			std::size_t buffer_size = cb.data_buffer.size() - start_offset;
 			void* buffer = cb.data_buffer.data() + start_offset;
-			memcpy_s(buffer, buffer_size, data, std::min(buffer_size, data_size));
+
+			const std::size_t copy_size = std::min(buffer_size, data_size);
+			if (memcmp(buffer, data, copy_size) == 0)
+				return true;
+
+			memcpy_s(buffer, buffer_size, data, copy_size);
 			cb.dirty = true;
+			request_upload();
 			return true;
 		}
 		++it;
@@ -875,6 +1015,8 @@ bool material::get_data(std::string_view key_name, void* data, std::size_t data_
 
 bool material::set_texture(std::string_view key_name, texture_ptr value)
 {
+	mark_render_proxy_dirty();
+
 	std::string key = std::string(key_name);
 	UINT array_element = 0;
 	split_array_element(key, array_element);
@@ -974,8 +1116,12 @@ void material::deserialize_stream(std::stringstream& istream)
 #if defined(USE_IMGUI)
 bool material::is_error() const
 {
-	if (error_state_cached_)
-		return false;
+	return error_state;
+}
+
+void material::update_error_state()
+{
+	error_state = true;
 
 	std::size_t size = 0;
 	switch (domain)
@@ -994,21 +1140,40 @@ bool material::is_error() const
 		auto& pipeline_state = pipeline_states[index];
 
 		if (!pipeline_state.value)
-			return true;
+			return;
 
 		if (pipeline_state.value->is_failed())
-			return true;
+			return;
 	}
 
-	error_state_cached_ = true;
-	return false;
+	error_state = false;
 }
 void material::on_updates(const pipeline_state_base* ps)
 {
-	error_state_cached_ = false;
 	//	パラメーター再生成
 	build_parameters();
 }
 
 #endif	//	defined(USE_IMGUI)
 
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
+ID3D11Buffer* material_render_proxy::find_constant_buffer(system_utility::hash_key key) const
+{
+	for (const auto& cb : constant_buffers)
+	{
+		if (cb.first == key)
+			return cb.second.Get();
+	}
+	return nullptr;
+}
+
+const std::vector<texture_bind>* material_render_proxy::find_textures(system_utility::hash_key key) const
+{
+	for (const auto& texture : textures)
+	{
+		if (texture.first == key)
+			return &texture.second;
+	}
+	return nullptr;
+}

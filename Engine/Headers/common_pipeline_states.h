@@ -17,12 +17,24 @@ namespace common_pipeline_states
 	constexpr UINT primitive_cbv_index = 1;				//	プリミティブ定数バッファ番号
 	constexpr UINT geometric_primitive_cbv_index = 1;	//	ジオメトリックプリミティブ定数バッファ番号
 	constexpr UINT parameter_cbv_index = 2;				//	パラメーター定数バッファ番号
-	constexpr UINT light_cbv_index = 3;					//	ライトの定数バッファ番号
-	constexpr UINT shadowmap_cbv_index = 4;				//	シャドウマップの定数バッファ番号
+	constexpr UINT light_cbv_index = 8;					//	ライトの定数バッファ番号
+	constexpr UINT shadowmap_cbv_index = 9;				//	シャドウマップの定数バッファ番号
 	constexpr UINT meshlet_cbv_index = 5;				//	メッシュレット定数バッファ番号
-	constexpr UINT light_probe_cbv_index = 6;			//	ライトプローブの定数バッファ番号
-	constexpr UINT shadowmap_srv_index = 10;			//	シャドウマップのSRV番号
-	constexpr UINT shadowmap_sampler_index = 10;		//	シャドウマップのSampler番号
+	constexpr UINT light_probe_cbv_index = 10;			//	ライトプローブの定数バッファ番号
+	constexpr UINT shadowmap_srv_index = 84;			//	シャドウマップのSRV番号
+	constexpr UINT shadowmap_sampler_index = 12;		//	シャドウマップのSampler番号
+
+	//	@tool 割り当ての層ごとの番号の範囲（シェーダーの register と合わせる。D3D12 ではルートシグネチャのテーブル1つに対応させる）
+	//	@tool フレーム・視点 : 定数バッファ b0, b12-b13 / シェーダーリソース t96-t127 / サンプラー s14-s15
+	//	@tool パス           : 定数バッファ b7-b11      / シェーダーリソース t64-t95  / サンプラー s12-s13
+	//	@tool 描画           : 定数バッファ b1, b3-b6   / シェーダーリソース t48-t63
+	//	@tool マテリアル     : 定数バッファ b2          / シェーダーリソース t0-t47（番号を書かずコンパイラーの自動割り当てに任せる） / サンプラー s0-s11
+	//	@tool （light_cbv_index はディファードのライト。フォワード描画のライトは描画層の b3）
+	constexpr UINT gbuffer_srv_start = 64;				//	@tool G-Buffer の先頭の SRV 番号（t64-t70）
+	constexpr UINT scene_color_map_srv_index = 71;		//	@tool シーンカラーの SRV 番号
+	constexpr UINT scene_depth_map_srv_index = 72;		//	@tool シーン深度の SRV 番号
+	constexpr UINT work_texture_srv_start = 73;			//	@tool 作業用テクスチャの先頭の SRV 番号（t73-t80）
+	constexpr UINT deferred_ibl_srv_start = 81;			//	@tool 間接光の IBL テクスチャの先頭の SRV 番号（t81-t83）
 
 	//	デカールステンシルID
 	constexpr UINT decal_stencil_ref = 0x80;
@@ -112,6 +124,15 @@ namespace common_pipeline_states
 	constexpr system_utility::hash_key forward_only_specular_pmrem_hash_key = system_utility::generate_hash(forward_only_specular_pmrem_name);
 	constexpr std::string_view forward_only_lut_ggx_name = "forward_only_lut_ggx";
 	constexpr system_utility::hash_key forward_only_lut_ggx_hash_key = system_utility::generate_hash(forward_only_lut_ggx_name);
+
+	//	@tool 遅延ライティング（間接光）用 IBL テクスチャ
+	//	@tool graphics_context の diffuse_ibl_texture 等が設定されていればそちらを使い、無ければマテリアル側を使う
+	constexpr std::string_view deferred_diffuse_iem_name = "diffuse_iem";
+	constexpr system_utility::hash_key deferred_diffuse_iem_hash_key = system_utility::generate_hash(deferred_diffuse_iem_name);
+	constexpr std::string_view deferred_specular_pmrem_name = "specular_pmrem";
+	constexpr system_utility::hash_key deferred_specular_pmrem_hash_key = system_utility::generate_hash(deferred_specular_pmrem_name);
+	constexpr std::string_view deferred_lut_ggx_name = "lut_ggx";
+	constexpr system_utility::hash_key deferred_lut_ggx_hash_key = system_utility::generate_hash(deferred_lut_ggx_name);
 
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////
 	//	影カテゴリー
@@ -218,7 +239,8 @@ namespace common_pipeline_states
 		UINT pipeline_group = 0;
 		UINT padding = 0;
 	};
-	constexpr UINT morph_srv_position_index = 80;	//	モーフィング用座標
+	//	@tool 描画層（t48-t63。model.hlsli の morph_positions / morph_normals と合わせる）
+	constexpr UINT morph_srv_position_index = 48;	//	モーフィング用座標
 	constexpr UINT morph_srv_normal_index = morph_srv_position_index + morph_max * 1;		//	モーフィング用法線
 	constexpr std::string_view morph_positions_name = "morph_positions";
 	constexpr system_utility::hash_key morph_positions_hash_key = system_utility::generate_hash(morph_positions_name);
@@ -316,6 +338,20 @@ namespace common_pipeline_states
 	constexpr std::string_view scene_depth_map_name = "scene_depth_map";
 	constexpr system_utility::hash_key scene_color_map_hash_key = system_utility::generate_hash(scene_color_map_name);
 	constexpr system_utility::hash_key scene_depth_map_hash_key = system_utility::generate_hash(scene_depth_map_name);
+
+	//	@tool 作業用テクスチャ（固定のパイプラインステートが参照する。割り当て表に登録する名前）
+	constexpr std::string_view work_texture_names[] =
+	{
+		"work_texture0", "work_texture1", "work_texture2", "work_texture3",
+		"work_texture4", "work_texture5", "work_texture6", "work_texture7",
+	};
+	constexpr system_utility::hash_key work_texture_hash_keys[] =
+	{
+		system_utility::generate_hash(work_texture_names[0]), system_utility::generate_hash(work_texture_names[1]),
+		system_utility::generate_hash(work_texture_names[2]), system_utility::generate_hash(work_texture_names[3]),
+		system_utility::generate_hash(work_texture_names[4]), system_utility::generate_hash(work_texture_names[5]),
+		system_utility::generate_hash(work_texture_names[6]), system_utility::generate_hash(work_texture_names[7]),
+	};
 	//	G-Buffer関連
 	constexpr std::string_view gbuffer_base_color = "gbuffer_base_color";
 	constexpr std::string_view gbuffer_normal_depth = "gbuffer_normal_depth";
@@ -362,6 +398,10 @@ namespace common_pipeline_states
 	};
 
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////
+	//	@tool スクリーン空間反射の定数（割り当て表に登録する名前）
+	constexpr std::string_view screen_space_reflection_constant_buffer_name = "SCREEN_SPACE_REFLECTION_CONSTANT_BUFFER";
+	constexpr system_utility::hash_key screen_space_reflection_constant_buffer_hash_key = system_utility::generate_hash(screen_space_reflection_constant_buffer_name);
+
 	//	スクリーン空間反射用情報
 	//	ﾃｷﾄｰ('ω')ｰﾄｷﾃ
 	struct screen_space_reflection_constants

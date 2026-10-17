@@ -183,6 +183,7 @@ struct BoneMatrix
     row_major float4x4 transform;
 };
 
+//	@tool 以下 t100-t118 はフレーム・視点層（シェーダーリソースは t96-t127）
 StructuredBuffer<PrimitiveHeader> primitive_headers : register(t100);
 StructuredBuffer<BoneMatrix> bone_matrices : register(t101);
 
@@ -208,8 +209,9 @@ float4x4 get_previous_bone_transform(MeshletContext context, uint bone_index)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 #if defined(HAS_MORPH)
-StructuredBuffer<float3> morph_positions[morph_max] : register(t80);
-StructuredBuffer<float3> morph_normals[morph_max] : register(t88);
+//	@tool 描画層（シェーダーリソースは t48-t63。common_pipeline_states の morph_srv_position_index / morph_srv_normal_index と合わせる）
+StructuredBuffer<float3> morph_positions[morph_max] : register(t48);
+StructuredBuffer<float3> morph_normals[morph_max] : register(t56);
 
 #define position_morph(context)      (primitive_headers[(context).primitive_index].header_position_morph)
 #define normal_morph(context)        (primitive_headers[(context).primitive_index].header_normal_morph)

@@ -45,9 +45,11 @@ namespace
 	constexpr UINT initial_index_capacity = 1u << 18;
 
 	//	シェーダーのリソース番号
-	constexpr UINT gbuffer_srv_index = 0;
-	constexpr UINT clustered_cbv_index = 7;
-	constexpr UINT clustered_srv_index = 40;
+	constexpr UINT gbuffer_srv_index = common_pipeline_states::gbuffer_srv_start;
+	constexpr UINT gbuffer_sampler_index = 0;
+	//	@tool フレーム・視点層の番号（シェーダーの clustered_lighting.hlsli / clustered_lighting_shading.hlsli と合わせる）
+	constexpr UINT clustered_cbv_index = 12;
+	constexpr UINT clustered_srv_index = 119;
 
 	//	クラスターAABB
 	struct cluster_aabb
@@ -223,19 +225,18 @@ clustered_lighting_system::~clustered_lighting_system()
 {
 }
 
-bool clustered_lighting_system::is_enable()
+void clustered_lighting_system::capture_settings(render_settings::clustered_lighting_settings& out_settings)
 {
-	return get_enable();
+	out_settings.enable = get_enable();
+	out_settings.far_distance = get_far();
+	out_settings.depth_culling = get_depth_culling();
+	out_settings.visualize = get_visualize();
+	out_settings.visualize_max = get_visualize_max();
 }
 
-bool clustered_lighting_system::is_visualize()
+bool clustered_lighting_system::is_target(const light_render_proxy& light, const render_settings& settings)
 {
-	return get_visualize();
-}
-
-bool clustered_lighting_system::is_target(const light_render_data& light)
-{
-	if (!is_enable())
+	if (!settings.clustered_lighting.enable)
 		return false;
 	//	点光源とスポットライト
 	if (light.type != light_type::point && light.type != light_type::spot)
@@ -288,6 +289,8 @@ void clustered_lighting_system::generate_index_buffer(UINT capacity)
 void clustered_lighting_system::read_statistics()
 {
 	auto dc = render_data::instance()->get_immediate_context();
+	//	@tool immediate context は提出スレッドと共有しているので排他する
+	std::lock_guard<std::recursive_mutex> immediate_lock(render_data::instance()->get_immediate_context_mutex());
 	for (UINT index = 0; index < readback_count; ++index)
 	{
 		if (!statistics_pending[index])
@@ -309,7 +312,7 @@ void clustered_lighting_system::prepare(const render_data_context& render_data, 
 	lights.clear();
 	for (const auto& light : render_data.light_container.lights)
 	{
-		if (is_target(light))
+		if (is_target(light, render_data.settings))
 			lights.emplace_back(light.data);
 	}
 	light_count = static_cast<UINT>(lights.size());
@@ -336,7 +339,7 @@ void clustered_lighting_system::prepare(const render_data_context& render_data, 
 
 	//	奥行き分割距離算出
 	const float cluster_near = (std::max)(scene.camera_clip_distance.x, 1.0e-4f);
-	float cluster_far = get_far();
+	float cluster_far = render_data.settings.clustered_lighting.far_distance;
 	if (std::isfinite(scene.camera_clip_distance.y))
 		cluster_far = (std::min)(cluster_far, scene.camera_clip_distance.y);
 	cluster_far = (std::max)(cluster_far, cluster_near * 2.0f);
@@ -351,13 +354,13 @@ void clustered_lighting_system::prepare(const render_data_context& render_data, 
 	constants.cluster_far = cluster_far;
 	constants.slice_scale = static_cast<float>(slice_count) / std::log(cluster_far / cluster_near);
 	constants.slice_bias = -std::log(cluster_near) * constants.slice_scale;
-	constants.flags = get_depth_culling() ? clustered_flag_depth_culling : 0u;
-	constants.visualize_max = get_visualize_max();
+	constants.flags = render_data.settings.clustered_lighting.depth_culling ? clustered_flag_depth_culling : 0u;
+	constants.visualize_max = render_data.settings.clustered_lighting.visualize_max;
 }
 
 void clustered_lighting_system::build(graphics_context& context)
 {
-	auto dc = context.device_context;
+	auto dc = context.recorder.get_device_context();
 
 	//	ライトが無くてもフォワード描画がライト数を参照できるよう定数は毎回更新する
 	dc->UpdateSubresource(constant_buffer.Get(), 0, nullptr, &constants, 0, 0);
@@ -393,7 +396,7 @@ void clustered_lighting_system::build(graphics_context& context)
 	//	タイルごとの最も奥の奥行き分割を G-Buffer の深度から求める
 	if (constants.flags & clustered_flag_depth_culling)
 	{
-		const texture_ptr& normal_depth = context.g_buffer_textures[static_cast<UINT>(common_pipeline_states::gbuffer_id::normal_depth)];
+		const texture_ptr normal_depth = context.bind_table.get_texture(common_pipeline_states::gbuffer_hash_keys[static_cast<UINT>(common_pipeline_states::gbuffer_id::normal_depth)]);
 		if (normal_depth)
 		{
 			const UINT zero[4] = {};
@@ -467,11 +470,11 @@ void clustered_lighting_system::build(graphics_context& context)
 
 void clustered_lighting_system::render(graphics_context& context)
 {
-	const bool visualize = is_visualize();
+	const bool visualize = context.render_data->settings.clustered_lighting.visualize;
 	if (light_count == 0 && !visualize)
 		return;
 
-	auto dc = context.device_context;
+	auto dc = context.recorder.get_device_context();
 	context.debug_begin_event(L"clustered_lighting");
 
 	dc->VSSetShader(fullscreen_vs->get_shader().Get(), nullptr, 0);
@@ -491,10 +494,10 @@ void clustered_lighting_system::render(graphics_context& context)
 	ID3D11ShaderResourceView* g_buffer_srvs[static_cast<UINT>(common_pipeline_states::gbuffer_id::max)];
 	for (UINT index = 0; index < static_cast<UINT>(common_pipeline_states::gbuffer_id::max); ++index)
 	{
-		g_buffer_srvs[index] = context.g_buffer_textures[index]->get_shader_resource_view().Get();
+		g_buffer_srvs[index] = context.bind_table.get_texture(common_pipeline_states::gbuffer_hash_keys[index])->get_shader_resource_view().Get();
 	}
 	dc->PSSetShaderResources(gbuffer_srv_index, ARRAYSIZE(g_buffer_srvs), g_buffer_srvs);
-	dc->PSSetSamplers(gbuffer_srv_index, 1, render_data::instance()->get_sampler_states(render_data::SAMPLER_STATE::LINEAR).GetAddressOf());
+	dc->PSSetSamplers(gbuffer_sampler_index, 1, render_data::instance()->get_sampler_states(render_data::SAMPLER_STATE::LINEAR).GetAddressOf());
 
 	ID3D11ShaderResourceView* cluster_srvs[] = { light_srv.Get(), count_srv.Get(), offset_srv.Get(), index_srv.Get() };
 	dc->PSSetShaderResources(clustered_srv_index, ARRAYSIZE(cluster_srvs), cluster_srvs);

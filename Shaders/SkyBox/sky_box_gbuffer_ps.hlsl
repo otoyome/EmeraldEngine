@@ -3,7 +3,8 @@
 #include "deferred_light_probe_data.hlsli"
 #include "common_gbuffer_writer.hlsli"
 
-TextureCube specular_pmrem : register(t0);
+//	@tool パス層（シェーダーリソースは t64-t95）
+TextureCube specular_pmrem : register(t82);
 SamplerState samplerstate : register(s0);
 
 PS_GBUFFER_OUT main(VS_OUT pin)

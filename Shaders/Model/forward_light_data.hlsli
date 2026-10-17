@@ -17,9 +17,10 @@ cbuffer FORWARD_LIGHTS_CONSTANT_BUFFER : register(b3)
 };
 
 //  フォワード用IBLテクスチャ
-TextureCube forward_only_diffuse_iem : register(t33);
-TextureCube forward_only_specular_pmrem : register(t34);
-Texture2D forward_only_lut_ggx : register(t35);
-SamplerState forward_only_ibl_sampler_state : register(s1);
+//	@tool フレーム・視点層（シェーダーリソースは t96-t127、サンプラーは s14-s15）
+TextureCube forward_only_diffuse_iem : register(t123);
+TextureCube forward_only_specular_pmrem : register(t124);
+Texture2D forward_only_lut_ggx : register(t125);
+SamplerState forward_only_ibl_sampler_state : register(s14);
 
 #endif  //  __FORWARD_LIGHT_DATA_HLSLI__

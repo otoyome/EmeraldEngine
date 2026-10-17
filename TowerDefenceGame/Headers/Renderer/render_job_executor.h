@@ -1,76 +1,86 @@
 #pragma once
 
 #include <queue>
+#include <deque>
 
-#include "renderer_domain.h"
 #include "renderer_context.h"
+#include "frame_graph.h"
 
 using render_job_function = void(graphics_context&);
+
+//	描画コマンドリスト
+class render_command_list
+{
+public:
+	struct item
+	{
+		std::string name;										//	名前
+		std::string owner_name;									//	オーナー名
+		Microsoft::WRL::ComPtr<ID3D11CommandList> command_list;	//	deferred context で記録したもの
+		std::function<void()> immediate_task;					//	immediate context で実行するもの
+		bool wait_for_recordings = true;						//	immediate_task の実行前に、このフレームの記録が全て終わるのを待つか
+		bool ready = false;
+	};
+
+public:
+	UINT reserve(std::string_view name, std::string_view owner_name, bool is_recording);
+
+	void set_command_list(UINT index, const Microsoft::WRL::ComPtr<ID3D11CommandList>& command_list);
+	void set_immediate_task(UINT index, std::function<void()> task, bool wait_for_recordings);
+	void close();
+
+	void execute(ID3D11DeviceContext* immediate_context);
+
+private:
+	std::mutex mutex;
+	std::condition_variable condition;
+	std::deque<item> items;
+	UINT pending_recordings = 0;
+	bool closed = false;
+};
 
 //	描画用ジョブ実行者
 //	☆ﾃｷﾄｰ('ω')ｰﾄｷﾃ☆
 class render_job_executor
 {
-	struct render_command_data
-	{
-		std::string name;
-		std::string owner_name;
-		UINT sort_order;
-		Microsoft::WRL::ComPtr<ID3D11CommandList> command_list;
-		std::function<void()> task;
-	};
-
 public:
 	render_job_executor(UINT num_threads);
 	~render_job_executor();
 
-	void execute(std::function<render_job_function> task, std::string_view name, renderer_context& context, UINT sort_order, bool use_immediate_context = false, std::string_view owner_name = "framework");
+	//	コマンドリスト生成開始
+	void begin_command_list();
 
-	void begin();
-	void render();
-	void end();
+	//	パスをコマンドリストに積む
+	void execute(std::function<render_job_function> task, std::string_view name, renderer_context& context, bool use_immediate_context = false, bool wait_for_recordings = true, std::string_view owner_name = "framework");
 
-	bool is_single_thread_mode() const { return single_thread_mode; }
-	void set_single_thread_mode(bool flag) { single_thread_mode = flag; }
-
-	//	全描画コマンド実行後に実行する関数
-	void register_post_rendering(std::function<void()> function)
-	{
-		post_render_function = function;
-	}
+	//	コマンドリスト生成終了
+	std::shared_ptr<render_command_list> end_command_list();
 
 private:
+	//	@tool 記録に使うコンテキストごとの資源
+	struct recording_resources
+	{
+		Microsoft::WRL::ComPtr<ID3D11DeviceContext1> device_context1;
+		std::unique_ptr<immediate_constant_allocator> constant_allocator;
+	};
+	static void create_recording_resources(ID3D11DeviceContext* device_context, recording_resources& out_resources);
+
+	//	@tool ジョブ開始時の graphics_context の設定（immediate / deferred で共通）
+	static void setup_graphics_context(graphics_context& g_context, ID3D11DeviceContext* device_context, recording_resources& resources, const renderer_context& context);
+
 	void run(UINT context_index);
-	void register_command(render_command_data& command_data);
 
 private:
 	std::mutex mutex;
 	std::condition_variable condition;
-	std::condition_variable completion_condition;
 	std::vector<std::thread> worker_threads;
 	std::vector<Microsoft::WRL::ComPtr<ID3D11DeviceContext>> deferred_contexts;
+	std::vector<recording_resources> deferred_recording_resources;	//	@tool deferred_contexts と同じ並び
+	recording_resources immediate_recording_resources;				//	@tool 提出スレッドでのみ使う
 
-	std::queue<std::function<void(ID3D11DeviceContext*)>> tasks;
-	std::atomic_int running_threads;
+	std::queue<std::function<void(ID3D11DeviceContext*, recording_resources&)>> tasks;
 	bool running;
-	bool single_thread_mode;
-	std::function<void()> post_render_function;
 
-	std::vector<render_command_data> render_command_list;
+	std::shared_ptr<render_command_list> current_command_list;
 };
 
-class render_job_registrar
-{
-public:
-	render_job_registrar(std::shared_ptr<render_job_executor> executor);
-
-	void execute(std::function<render_job_function> task, std::string_view name, renderer_context& context, UINT sort_order, bool use_immediate_context = false);
-
-	//	発行する描画ジョブの所有者名
-	std::string_view get_owner_name() const { return owner_name; }
-	void set_owner_name(std::string_view name) { owner_name = name; }
-
-private:
-	std::shared_ptr<render_job_executor> executor;
-	std::string owner_name = "renderer";
-};

@@ -79,3 +79,15 @@ void sprite::update_transform(float dx, float dy, float dw, float dh,
 	transform_matrix._43 = b;
 	transform_matrix._44 = a;
 }
+
+std::shared_ptr<const sprite_render_proxy> sprite::make_render_proxy() const
+{
+	auto snapshot = std::make_shared<sprite_render_proxy>();
+	snapshot->positions = positions;
+	snapshot->colors = colors;
+	snapshot->texcoords = texcoords;
+	snapshot->indices = indices;
+	snapshot->transform_matrix = transform_matrix;
+	snapshot->material = material.get_render_proxy();
+	return snapshot;
+}

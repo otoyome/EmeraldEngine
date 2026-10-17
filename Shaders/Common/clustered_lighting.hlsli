@@ -4,7 +4,8 @@
 #include "lights.hlsli"
 
 //  クラスタードライティング定数
-cbuffer CLUSTERED_LIGHTING_CONSTANT_BUFFER : register(b7)
+//	@tool フレーム・視点層（定数バッファは b0, b12-b13）
+cbuffer CLUSTERED_LIGHTING_CONSTANT_BUFFER : register(b12)
 {
     uint3 cluster_count;            //  クラスター数（x : 横, y : 縦, z : 深度）
     uint cluster_light_count;       //  ライト数

@@ -55,6 +55,7 @@
     <ClInclude Include="Headers\animation_resource.h" />
     <ClInclude Include="Headers\buffer_view.h" />
     <ClInclude Include="Headers\camera.h" />
+    <ClInclude Include="Headers\System\world_singleton.h" />
     <ClInclude Include="Headers\view_parameters.h" />
     <ClInclude Include="Headers\common_pipeline_states.h" />
     <ClInclude Include="Headers\CoordinateSystem\hierarchy.h" />
@@ -71,6 +72,12 @@
     <ClInclude Include="Headers\Graphics\direct_x_helper.h" />
     <ClInclude Include="Headers\Graphics\fast_fourier_transform.h" />
     <ClInclude Include="Headers\Graphics\gpu_timer.h" />
+    <ClInclude Include="Headers\Graphics\immediate_constant_allocator.h" />
+    <ClInclude Include="Headers\Graphics\binding_table.h" />
+    <ClInclude Include="Headers\Graphics\render_command_recorder.h" />
+    <ClInclude Include="Headers\Graphics\pipeline_layout.h" />
+    <ClInclude Include="Headers\Graphics\render_settings.h" />
+    <ClInclude Include="Headers\Graphics\material_render_states.h" />
     <ClInclude Include="Headers\Graphics\hiz_buffer.h" />
     <ClInclude Include="Headers\Graphics\scene_view.h" />
     <ClInclude Include="Headers\Graphics\scene_view_state.h" />
@@ -136,6 +143,8 @@
     <ClInclude Include="Headers\System\parallel_for_executor.h" />
     <ClInclude Include="Headers\System\simple_helper.h" />
     <ClInclude Include="Headers\System\singleton.h" />
+    <ClInclude Include="Headers\System\engine_world.h" />
+    <ClInclude Include="Headers\System\world_viewport.h" />
     <ClInclude Include="Headers\System\system_units.h" />
     <ClInclude Include="Headers\System\system_utility.h" />
     <ClInclude Include="Headers\System\variable_position_allocator.h" />
@@ -166,6 +175,11 @@
     <ClCompile Include="Sources\Graphics\debug_primitive_collector.cpp" />
     <ClCompile Include="Sources\Graphics\fast_fourier_transform.cpp" />
     <ClCompile Include="Sources\Graphics\gpu_timer.cpp" />
+    <ClCompile Include="Sources\Graphics\immediate_constant_allocator.cpp" />
+    <ClCompile Include="Sources\Graphics\binding_table.cpp" />
+    <ClCompile Include="Sources\Graphics\render_command_recorder.cpp" />
+    <ClCompile Include="Sources\Graphics\pipeline_layout.cpp" />
+    <ClCompile Include="Sources\Graphics\material_render_states.cpp" />
     <ClCompile Include="Sources\Graphics\particle_resource.cpp" />
     <ClCompile Include="Sources\Graphics\variable_position_allocator.cpp" />
     <ClCompile Include="Sources\graphics_context.cpp" />
@@ -191,6 +205,7 @@
     <ClCompile Include="Sources\render_pass.cpp" />
     <ClCompile Include="Sources\retarget_profile.cpp" />
     <ClCompile Include="Sources\System\cache_string.cpp" />
+    <ClCompile Include="Sources\System\engine_world.cpp" />
     <ClCompile Include="Sources\timeline_resource.cpp" />
     <ClCompile Include="Sources\shader.cpp" />
     <ClCompile Include="Sources\sprite.cpp" />

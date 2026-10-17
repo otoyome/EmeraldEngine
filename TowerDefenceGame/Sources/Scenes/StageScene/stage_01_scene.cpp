@@ -142,6 +142,8 @@ bool stage_01_scene::uninitialize_core()
 	if (!sdf_ids.empty() && effect_manager::is_valid())
 	{
 		auto device_context = render_data::instance()->get_immediate_context();
+		//	@tool immediate context は提出スレッドと共有しているので排他する
+		std::lock_guard<std::recursive_mutex> immediate_lock(render_data::instance()->get_immediate_context_mutex());
 		for (auto sdf_id : sdf_ids)
 		{
 			effect_manager::instance()->remove_cubic_sdf(device_context.Get(), sdf_id);
@@ -210,6 +212,8 @@ void stage_01_scene::generate_model_sdf(model_resource_ptr resource)
 	std::filesystem::path sdf_path(file_path);
 
 	auto device_context = render_data::instance()->get_immediate_context();
+	//	@tool immediate context は提出スレッドと共有しているので排他する
+	std::lock_guard<std::recursive_mutex> immediate_lock(render_data::instance()->get_immediate_context_mutex());
 	for (size_t mesh_index = 0; mesh_index < resource->get_meshes().size(); ++mesh_index)
 	{
 		//	シリアライズ済みファイルがあるか確認

@@ -33,19 +33,19 @@ debug_primitive_manager::~debug_primitive_manager()
 {
 }
 
-void debug_primitive_manager::get_container(debug_draw_primitive_container& container, const math::vector3d& render_origin)
+void debug_primitive_manager::get_container(debug_draw_primitive_container& container, const math::vector3d& render_origin, gpu_upload_list& out_uploads)
 {
-	auto immediate_context = render_data::instance()->get_immediate_context();
-
 	//	描画登録
 	HRESULT hr{ S_OK };
 	for (UINT index = 0; index < static_cast<int>(debug_draw_primitive_container::line_buffer_id::max); ++index)
 	{
-		container.line_buffer_datas[index].color_meshs.clear();
+		container.line_meshes[index].clear();
+		container.line_buffer_datas[index].color_meshs = {};
 		if (vertices[index].empty())
 			continue;
 
-		auto& main_mesh = container.line_buffer_datas[index].color_meshs.emplace_back();
+		auto& main_mesh = container.line_meshes[index].emplace_back();
+		container.line_buffer_datas[index].color_meshs = container.line_meshes[index];
 		auto& view = vertex_buffer_views[index].begin()->second;
 
 		//	描画原点からの相対座標に変換して転送
@@ -60,15 +60,15 @@ void debug_primitive_manager::get_container(debug_draw_primitive_container& cont
 
 		const UINT copy_count = static_cast<UINT>(std::min<size_t>(VertexCount, vertices[index].size()));
 		const UINT copy_bytes = copy_count * sizeof(vertex);
-		D3D11_BOX dst_box = { 0, 0, 0, copy_bytes, 1, 1 };
-		immediate_context->UpdateSubresource(view.buffer.Get(), 0, &dst_box,
-											 upload_vertices.data(), copy_bytes, 0);
+		out_uploads.add_copy(view.buffer, true, 0, upload_vertices.data(), copy_bytes);
 
 		//	頂点数の設定
 		view.size_in_bytes = view.stride_in_bytes * vertices[index].size();
 
 		//	コンテナに登録
-		main_mesh.vertex_buffer_views = &vertex_buffer_views[index];
+		//	@tool 頂点数はフレームで変わるので、このフレームの情報を複製して参照させる
+		container.line_vertex_buffer_views[index] = vertex_buffer_views[index];
+		main_mesh.vertex_buffer_views = &container.line_vertex_buffer_views[index];
 		vertices[index].clear();
 	}
 }

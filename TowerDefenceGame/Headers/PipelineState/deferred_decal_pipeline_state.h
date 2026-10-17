@@ -16,20 +16,4 @@ class deferred_decal_stencil_write_pipeline_state : public graphics_pipeline_sta
 public:
 	deferred_decal_stencil_write_pipeline_state();
 	~deferred_decal_stencil_write_pipeline_state() override;
-
-	void begin(const graphics_context& context) override;
-	void update_parameters(const graphics_context& context, const material& material, const buffer_datas* buffer_data) override;
-	void end(const graphics_context& context) override;
-
-	const std::vector<std::pair<semantic, UINT>>& get_semantic_list() const {return semantic_list;}
-
-private:
-	std::shared_ptr<vertex_shader> vs;
-	std::vector<std::pair<semantic, UINT>> semantic_list;
-
-	Microsoft::WRL::ComPtr<ID3D11DepthStencilState> depth_stencil_states;
-	Microsoft::WRL::ComPtr<ID3D11BlendState> blend_states;
-	Microsoft::WRL::ComPtr<ID3D11RasterizerState> rasterizer_states;
-
-	Microsoft::WRL::ComPtr<ID3D11Buffer> ocbv;
 };

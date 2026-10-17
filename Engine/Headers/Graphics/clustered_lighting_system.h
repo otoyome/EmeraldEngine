@@ -56,14 +56,12 @@ public:
 	void read_statistics();
 
 public:
-	//	クラスタードライティングが有効か
-	static bool is_enable();
+	//	@tool 現在のコンソール変数の値を写す（メインスレッドで、描画データの抽出時に呼ぶ）
+	static void capture_settings(render_settings::clustered_lighting_settings& out_settings);
 
 	//	クラスタードライティングで描画するライトか
-	static bool is_target(const light_render_data& light);
-
-	//	ライト数のヒートマップ表示中か
-	static bool is_visualize();
+	//	@tool 設定は抽出時点の値（render_data_context::settings）を使う
+	static bool is_target(const light_render_proxy& light, const render_settings& settings);
 
 private:
 	void generate_light_buffer(UINT count);

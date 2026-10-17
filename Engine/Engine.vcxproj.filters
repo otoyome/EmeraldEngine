@@ -183,6 +183,12 @@
     <ClInclude Include="Headers\System\singleton.h">
       <Filter>Headers\System</Filter>
     </ClInclude>
+    <ClInclude Include="Headers\System\engine_world.h">
+      <Filter>Headers\System</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\System\world_viewport.h">
+      <Filter>Headers\System</Filter>
+    </ClInclude>
     <ClInclude Include="Headers\ModelFormat\gltf_loader.h">
       <Filter>Headers\ModelFormat</Filter>
     </ClInclude>
@@ -196,6 +202,24 @@
       <Filter>Headers\Graphics</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Graphics\gpu_timer.h">
+      <Filter>Headers\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Graphics\immediate_constant_allocator.h">
+      <Filter>Headers\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Graphics\render_command_recorder.h">
+      <Filter>Headers\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Graphics\pipeline_layout.h">
+      <Filter>Headers\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Graphics\render_settings.h">
+      <Filter>Headers\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Graphics\material_render_states.h">
+      <Filter>Headers\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Graphics\binding_table.h">
       <Filter>Headers\Graphics</Filter>
     </ClInclude>
     <ClInclude Include="Headers\System\cpu_timer.h">
@@ -318,6 +342,9 @@
     <ClInclude Include="Headers\CoordinateSystem\spatial.h">
       <Filter>Headers\CoordinateSystem</Filter>
     </ClInclude>
+    <ClInclude Include="Headers\System\world_singleton.h">
+      <Filter>Headers\System</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Sources\geometric_primitive.cpp">
@@ -401,6 +428,9 @@
     <ClCompile Include="Sources\ModelFormat\vmd_loader.cpp">
       <Filter>Sources\ModelFormat</Filter>
     </ClCompile>
+    <ClCompile Include="Sources\System\engine_world.cpp">
+      <Filter>Sources\System</Filter>
+    </ClCompile>
     <ClCompile Include="Sources\System\logger.cpp">
       <Filter>Sources\System</Filter>
     </ClCompile>
@@ -420,6 +450,21 @@
       <Filter>Sources\Graphics</Filter>
     </ClCompile>
     <ClCompile Include="Sources\Graphics\gpu_timer.cpp">
+      <Filter>Sources\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Graphics\immediate_constant_allocator.cpp">
+      <Filter>Sources\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Graphics\render_command_recorder.cpp">
+      <Filter>Sources\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Graphics\pipeline_layout.cpp">
+      <Filter>Sources\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Graphics\material_render_states.cpp">
+      <Filter>Sources\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Graphics\binding_table.cpp">
       <Filter>Sources\Graphics</Filter>
     </ClCompile>
     <ClCompile Include="Sources\model_resource_utility.cpp">

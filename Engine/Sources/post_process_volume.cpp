@@ -402,7 +402,8 @@ void post_process_volume_manager::get_container(post_process_volume_container& c
 		{
 			result = unblind;
 		}
-		container.selected_volume = result;
+		//	@tool •`‰æ‘¤‚É‚Íİ’è‚Ì•¡»‚ğ“n‚·
+		container.selected_volume = result ? std::make_shared<post_process_volume_snapshot>(*result) : nullptr;
 	}
 
 #if defined(USE_IMGUI)
@@ -431,3 +432,21 @@ void post_process_volume_manager::get_container(post_process_volume_container& c
 #endif	//	defined(USE_IMGUI)
 }
 
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
+post_process_volume_snapshot::post_process_volume_snapshot(const post_process_volume& source)
+: bloom_constant(source.get_bloom_constant())
+, lens_ghosts_constant(source.get_lens_ghosts_constant())
+, depth_of_field_constant(source.get_depth_of_field_constant())
+, screen_space_reflection_constant(source.get_screen_space_reflection_constant())
+, motion_blur_constant(source.get_motion_blur_constant())
+, exposure_compensation_constant(source.get_exposure_compensation_constant())
+, tone_mapping_constant(source.get_tone_mapping_constant())
+{
+	materials.reserve(source.get_materials().size());
+	for (const auto& material : source.get_materials())
+	{
+		if (material)
+			materials.emplace_back(material->get_render_proxy());
+	}
+}

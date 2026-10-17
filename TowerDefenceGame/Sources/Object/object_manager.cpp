@@ -239,9 +239,9 @@ void object_manager::finalize()
 }
 
 #if defined(USE_IMGUI)
-void object_manager::imgui_render()
+void object_manager::imgui_render(const char* window_name)
 {
-	if (ImGui::Begin("objects"))
+	if (ImGui::Begin(window_name))
 	{
 		std::unordered_map<const hierarchy*, game_object*> owners;
 		std::unordered_map<const game_object*, const hierarchy*> nodes;

@@ -4,7 +4,8 @@
 #include "lights.hlsli"
 
 //  ライトプローブ情報
-cbuffer DEFERRED_LIGHT_PROBE_CONSTANT_BUFFER : register(b6)
+//	@tool パス層（定数バッファは b7-b11）
+cbuffer DEFERRED_LIGHT_PROBE_CONSTANT_BUFFER : register(b10)
 {
     light_probes light_probe_data;
     uint light_probe_attribute;

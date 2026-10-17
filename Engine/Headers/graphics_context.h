@@ -1,5 +1,7 @@
 #pragma once
 
+#include <optional>
+
 #include "light.h"
 #include "texture.h"
 #include "buffer_view.h"
@@ -9,6 +11,8 @@
 #include "post_process_volume.h"
 
 #include "common_pipeline_states.h"
+#include "Graphics/render_command_recorder.h"
+#include "Graphics/render_settings.h"
 
 //	表面描画パス
 enum class surface_paths : std::uint8_t
@@ -45,7 +49,7 @@ enum class blendable_locations : std::uint8_t
 };
 
 //	ライト描画情報
-struct light_render_data
+struct light_render_proxy
 {
 	//	ライト情報
 	UINT id = 0;
@@ -71,7 +75,7 @@ struct light_render_data
 };
 
 //	ライトプローブ描画情報
-struct light_probe_render_data
+struct light_probe_render_proxy
 {
 	UINT attribute = 0;
 	light_probes data;
@@ -85,34 +89,66 @@ struct light_probe_render_data
 //	ライトコンテナ
 struct light_container
 {
-	std::vector<light_render_data> lights;
-	std::vector<light_probe_render_data> light_probes;
+	std::vector<light_render_proxy> lights;
+	std::vector<light_probe_render_proxy> light_probes;
+};
+
+//	転送データリスト
+struct gpu_upload_list
+{
+	struct command
+	{
+		Microsoft::WRL::ComPtr<ID3D11Buffer> buffer;
+		bool use_box = false;				//	範囲指定で書き込むか（偽ならバッファ全体）
+		UINT offset_in_bytes = 0;			//	オフセット
+		std::vector<uint8_t> owned_data;	//	データ
+		const void* data = nullptr;			//	このフレームの描画データが所有するデータ
+		UINT size_in_bytes = 0;
+	};
+	std::vector<command> commands;
+
+	//	データを複製して積む
+	void add_copy(const Microsoft::WRL::ComPtr<ID3D11Buffer>& buffer, bool use_box, UINT offset_in_bytes, const void* data, UINT size_in_bytes);
+
+	//	データの所有権を移して積む
+	void add_owned(const Microsoft::WRL::ComPtr<ID3D11Buffer>& buffer, bool use_box, UINT offset_in_bytes, std::vector<uint8_t>&& data);
+
+	//	このフレームの描画データ内のデータを参照して積む
+	void add_reference(const Microsoft::WRL::ComPtr<ID3D11Buffer>& buffer, bool use_box, UINT offset_in_bytes, const void* data, UINT size_in_bytes);
+
+	//	GPU転送処理
+	void upload(ID3D11DeviceContext* context) const;
+
+	//	空判定
+	bool empty() const { return commands.empty(); }
 };
 
 //	材質
-class material;
+class material_render_proxy;
 struct material_datas
 {
-	material* material;
+	std::shared_ptr<const material_render_proxy> material;
 };
 
 //	メッシュ描画情報コンテナ
 struct mesh_container
 {
-	//	カプセルシャドウ情報
-	struct capsule_shadow_datas
-	{
-		collision::bounding_capsule capsule;
-	};
-	std::vector<buffer_datas> buffer_datas;
-	std::vector<material_datas> material_datas;
-	std::vector<capsule_shadow_datas> capsule_shadow_datas;
 	//	描画情報
 	struct draw_datas
 	{
 		UINT buffer_index;
 		UINT material_index;
 	};
+
+	//	カプセルシャドウ情報
+	struct capsule_shadow_datas
+	{
+		collision::bounding_capsule capsule;
+	};
+
+	std::vector<buffer_datas> buffer_datas;
+	std::vector<material_datas> material_datas;
+	std::vector<capsule_shadow_datas> capsule_shadow_datas;
 	std::vector<draw_datas> draw_datas;
 	std::vector<std::size_t> color_datas;
 	std::vector<std::size_t> shadow_datas;
@@ -125,72 +161,67 @@ struct mesh_container
 	UINT bone_matrix_capacity = 0;
 	std::vector<common_pipeline_states::primitive_header> primitive_header_scratch;
 	std::vector<math::float4x4> bone_matrix_scratch;
+	std::vector<std::shared_ptr<const void>> keep_alive_objects;
+
+	gpu_upload_list transform_uploads;
 
 	void build_transform_buffers();
-
-	void clear()
-	{
-		draw_datas.clear();
-		shadow_datas.clear();
-		color_datas.clear();
-		primitive_header_scratch.clear();
-		bone_matrix_scratch.clear();
-	}
+	void clear();
 };
 
 //	スプライト情報コンテナ
-class sprite;
+struct sprite_render_proxy;
 struct sprite_datas
 {
 	int sort_key;
 	int sort_order;
-	const sprite* sprite;
+	std::shared_ptr<const sprite_render_proxy> sprite;
 };
 struct sprite_container
 {
 	std::vector<sprite_datas> sprite_datas;
 };
 
+//	パーティクル描画プロキシー
+struct particle_render_proxy
+{
+	//	バッファビュー
+	struct buffer_view
+	{
+		Microsoft::WRL::ComPtr<ID3D11Buffer> vertex_buffer;
+		std::vector<UINT> strides_for_vertex;
+		std::vector<UINT> offsets_for_vertex;
+
+		Microsoft::WRL::ComPtr<ID3D11Buffer> indirect_buffer;
+		UINT offset_for_args = 0;
+
+		buffer_view() = default;
+		~buffer_view() {}
+	};
+
+	buffer_view vertex_buffer_view;	//	頂点バッファビュー
+	material_datas material_data;	//	マテリアル情報
+	D3D_PRIMITIVE_TOPOLOGY primitive_topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+};
+
 //	エフェクト情報コンテナ
 struct effect_container
 {
-	//	パーティクルバッファ情報
-	struct sprite_trail
-	{
-		//	バッファビュー
-		struct buffer_view
-		{
-			Microsoft::WRL::ComPtr<ID3D11Buffer> vertex_buffer;
-			std::vector<UINT> strides_for_vertex;
-			std::vector<UINT> offsets_for_vertex;
-
-			Microsoft::WRL::ComPtr<ID3D11Buffer> indirect_buffer;
-			UINT offset_for_args = 0;
-
-			buffer_view() = default;
-			~buffer_view() {}
-		};
-
-		buffer_view vertex_buffer_view;	//	頂点バッファビュー
-		material_datas material_data;	//	マテリアル情報
-		D3D_PRIMITIVE_TOPOLOGY primitive_topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-	};
-
-	std::vector<sprite_trail> sprite_trail_draw_datas;
-	std::vector<std::size_t> sprite_trail_color_datas;
-	std::vector<std::size_t> sprite_trail_shadow_datas;
+	std::vector<particle_render_proxy> particle_proxies;
+	std::vector<std::size_t> particle_color_datas;
+	std::vector<std::size_t> particle_shadow_datas;
 
 	void clear()
 	{
-		sprite_trail_draw_datas.clear();
-		sprite_trail_color_datas.clear();
-		sprite_trail_shadow_datas.clear();
+		particle_proxies.clear();
+		particle_color_datas.clear();
+		particle_shadow_datas.clear();
 	}
 };
 
 //	デカール情報
 //	@remaidner	時間が無いのでレンダラー側にモデルを持たせている
-struct decal_datas
+struct decal_render_proxy
 {
 	math::float3 scale = {1, 1, 1};
 	math::rotatorf rotation = {0, 0, 0};
@@ -200,10 +231,10 @@ struct decal_datas
 };
 struct decal_container
 {
-	std::vector<decal_datas> decal_datas;
+	std::vector<decal_render_proxy> proxies;
 	void clear()
 	{
-		decal_datas.clear();
+		proxies.clear();
 	}
 };
 
@@ -219,6 +250,8 @@ struct debug_draw_primitive_container
 		max,
 	};
 	buffer_datas line_buffer_datas[static_cast<int>(line_buffer_id::max)];
+	std::vector<buffer_datas::sub_mesh> line_meshes[static_cast<int>(line_buffer_id::max)];
+	std::unordered_map<semantic, buffer_view> line_vertex_buffer_views[static_cast<int>(line_buffer_id::max)];
 };
 #endif // defined(USE_IMGUI)
 
@@ -226,7 +259,10 @@ struct debug_draw_primitive_container
 struct render_data_context
 {
 	math::vector3d render_origin;	//	描画データ収集時の描画原点
+	render_settings settings;		//	描画設定
+	gpu_upload_list upload_list;	//	描画データのGPU転送リスト
 
+	//	各種描画コンテナ
 	light_container light_container;
 	post_process_volume_container post_process_volume_container;
 	mesh_container mesh_container;
@@ -243,106 +279,93 @@ class clustered_lighting_system;
 //	描画コンテキスト
 struct graphics_context
 {
-	ID3D11DeviceContext* device_context;
-	std::shared_ptr<render_data_context> render_data;
+	std::shared_ptr<render_data_context> render_data;	//	描画データ
+	render_command_recorder recorder;	//	描画コマンドレコーダー
+
+	//	リソースバインドテーブル
+	resource_view_bind_table bind_table;
 
 	//	シーン情報
 	common_pipeline_states::scene_constants scene_constant;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> scene_constant_buffer;
 
-	//	IBL関係
-	texture_ptr diffuse_ibl_texture;
-	texture_ptr specluar_ibl_texture;
-	texture_ptr lut_ggx_texture;
-
-	//	シーンテクスチャ
-	texture_ptr scene_color_texture;
-	texture_ptr scene_depth_texture;
-	texture_ptr g_buffer_textures[static_cast<UINT>(common_pipeline_states::gbuffer_id::max)];
-	texture_ptr work_texture[8];
-
-	//	遅延ライティング処理用情報
-	common_pipeline_states::deferred_light_constants deferred_light_constant;
-	common_pipeline_states::deferred_light_probe_constants deferred_light_probe_constant;
-
 	//	シャドウマップ用情報
 	bool is_shadow_rendering = false;	//	影生成描画処理中判定
-	common_pipeline_states::shadow_map_constants shadow_map_constant;
-	texture_ptr shadow_map_texture;
 
 	//	強制設定フラグ
 	bool is_force_material_wire_draw = false;
 	bool is_force_material_both_draw = false;
 
-	//	スクリーン空間反射用情報
-	common_pipeline_states::screen_space_reflection_constants screen_space_reflection_constant;
-
 	//	クラスタードライティング
 	std::shared_ptr<clustered_lighting_system> clustered_lighting;
 
 public:
+	//	バインドテーブルにフレーム・視点層のリソースを登録
+	void register_frame_bind_table();
+
+public:
+	//	パイプラインステート登録
+	void set_pipeline(const graphics_pipeline_state& pipeline) const { recorder.set_pipeline(pipeline, bind_table); }
+
+	//	描画コマンド登録
+	void bind_draw(const graphics_pipeline_state& pipeline, const material_render_proxy& material, const buffer_datas* buffer_data) const
+	{
+		render_state_overrides overrides;
+		overrides.is_shadow_rendering = is_shadow_rendering;
+		overrides.force_wire = is_force_material_wire_draw;
+		overrides.force_two_sided = is_force_material_both_draw;
+		recorder.bind_draw(pipeline, bind_table, material, buffer_data, overrides);
+	}
+	void end_pipeline() const { recorder.end_pipeline(); }
+
+public:
+	//	@tool 以下は recorder への中継（既存の呼び出し元のため）
 	//	ラスタライザーステート設定
-	void set_rasterizer_state(ID3D11RasterizerState* state) const;
+	void set_rasterizer_state(ID3D11RasterizerState* state) const { recorder.set_rasterizer_state(state); }
 
 	//	深度ステンシルステート設定
-	void set_depth_stencil_state(ID3D11DepthStencilState* state, UINT stencil_ref) const;
+	void set_depth_stencil_state(ID3D11DepthStencilState* state, UINT stencil_ref) const { recorder.set_depth_stencil_state(state, stencil_ref); }
 
 	//	ブレンドステート設定
-	void set_blend_state(ID3D11BlendState* state) const;
+	void set_blend_state(ID3D11BlendState* state) const { recorder.set_blend_state(state); }
 
 	//	図形設定
-	void set_primitive_topology(D3D_PRIMITIVE_TOPOLOGY topology) const;
+	void set_primitive_topology(D3D_PRIMITIVE_TOPOLOGY topology) const { recorder.set_primitive_topology(topology); }
 
 	//	頂点バッファ設定
-	void set_vertex_buffers(UINT start_slot, UINT num_buffers, ID3D11Buffer* const* buffers, const UINT* strides, const UINT* offsets) const;
+	void set_vertex_buffers(UINT start_slot, UINT num_buffers, ID3D11Buffer* const* buffers, const UINT* strides, const UINT* offsets) const { recorder.set_vertex_buffers(start_slot, num_buffers, buffers, strides, offsets); }
 
 	//	インデックスバッファ設定
-	void set_index_buffer(ID3D11Buffer* buffer, DXGI_FORMAT format, UINT offset) const;
+	void set_index_buffer(ID3D11Buffer* buffer, DXGI_FORMAT format, UINT offset) const { recorder.set_index_buffer(buffer, format, offset); }
 
 	//	設定していたシェーダーを全て解除する
-	void clear_shader_slots() const;
+	void clear_shader_slots() const { recorder.clear_shader_slots(); }
 
 	//	設定されている頂点バッファを外す
-	void clear_vertex_buffer() const;
+	void clear_vertex_buffer() const { recorder.clear_vertex_buffer(); }
 
 	//	設定されているインデックスバッファを外す
-	void clear_index_buffer() const;
+	void clear_index_buffer() const { recorder.clear_index_buffer(); }
 
 	//	描画ターゲットのクリア
-	void clear_render_target_slots() const;
+	void clear_render_target_slots() const { recorder.clear_render_target_slots(); }
 
 	//	CBVのクリア設定
-	void clear_constant_buffers(int start_slot = 0, int num = D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT) const;
+	void clear_constant_buffers(int start_slot = 0, int num = D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT) const { recorder.clear_constant_buffers(start_slot, num); }
 
 	//	設定していたSRVを全て解除する
-	void clear_shader_resorce_views(int start_slot = 0, int num = D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT) const;
+	void clear_shader_resorce_views(int start_slot = 0, int num = D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT) const { recorder.clear_shader_resorce_views(start_slot, num); }
 
 	//	設定していたUAVを全て解除する
 	//	FEATURELEVELが11.1ならnumはD3D11_1_UAV_SLOT_COUNTになる
-	void clear_unordered_access_views(int start_slot = 0, int num = 8) const;
+	void clear_unordered_access_views(int start_slot = 0, int num = 8) const { recorder.clear_unordered_access_views(start_slot, num); }
 
 	//	設定していたSamplerを全て解除する
-	void clear_sampler(int start_slot = 0, int num = D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT) const;
+	void clear_sampler(int start_slot = 0, int num = D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT) const { recorder.clear_sampler(start_slot, num); }
 
 	//	デバッグイベント開始
 	void debug_begin_event(const wchar_t* event_name);
 
 	//	デバッグイベント終了
 	void debug_end_event();
-
-private:
-	//	キャッシュ情報
-	mutable ID3D11RasterizerState* chache_rasterizer_state = nullptr;
-	mutable ID3D11DepthStencilState* chache_depth_stencil_state = nullptr;
-	mutable ID3D11BlendState* chache_blend_state = nullptr;
-	mutable UINT chache_stencil_ref = 0xFFFFFFFF;
-	mutable D3D_PRIMITIVE_TOPOLOGY chache_primitive_topology = D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
-	mutable UINT chache_vertex_buffer_start_slot = 0xFFFFFFFF;
-	mutable UINT chache_vertex_buffer_count = 0;
-	mutable ID3D11Buffer* chache_vertex_buffers[D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT] = {};
-	mutable UINT chache_vertex_buffer_strides[D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT] = {};
-	mutable UINT chache_vertex_buffer_offsets[D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT] = {};
-	mutable ID3D11Buffer* chache_index_buffer = nullptr;
-	mutable DXGI_FORMAT chache_index_buffer_format = DXGI_FORMAT_UNKNOWN;
-	mutable UINT chache_index_buffer_offset = 0xFFFFFFFF;
 };

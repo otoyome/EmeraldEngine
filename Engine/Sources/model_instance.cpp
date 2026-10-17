@@ -10,7 +10,7 @@ model_instance::model_instance()
 : system_flags(0)
 , lod_index(-1)
 , resource()
-, materials()
+, override_materials()
 , nodes()
 {
 	unique_id = ++id_counter;
@@ -106,18 +106,66 @@ void model_instance::update_node_transforms()
 	}
 }
 
+size_t model_instance::get_material_count() const
+{
+	return resource ? resource->get_materials().size() : 0;
+}
+
+const material& model_instance::get_material(size_t index) const
+{
+	if (index < override_materials.size() && override_materials[index])
+		return *override_materials[index];
+
+	_ASSERT_EXPR(index < get_material_count(), L"model_instance::get_material index out of range");
+	return resource->get_materials()[index];
+}
+
+material& model_instance::get_override_material(size_t index)
+{
+	_ASSERT_EXPR(index < get_material_count(), L"model_instance::get_override_material index out of range");
+	if (override_materials.size() < get_material_count())
+		override_materials.resize(get_material_count());
+
+	auto& override_material = override_materials[index];
+	if (!override_material)
+	{
+		override_material = std::make_unique<material>();
+		resource->get_materials()[index].duplicate(*override_material);
+	}
+	return *override_material;
+}
+
+void model_instance::set_override_material(size_t index, const material& value)
+{
+	_ASSERT_EXPR(index < get_material_count(), L"model_instance::set_override_material index out of range");
+	if (override_materials.size() < get_material_count())
+		override_materials.resize(get_material_count());
+
+	auto& override_material = override_materials[index];
+	if (!override_material)
+		override_material = std::make_unique<material>();
+	value.duplicate(*override_material);
+}
+
+void model_instance::reset_override_material(size_t index)
+{
+	if (index < override_materials.size())
+		override_materials[index].reset();
+}
+
+bool model_instance::is_material_overridden(size_t index) const
+{
+	return index < override_materials.size() && override_materials[index] != nullptr;
+}
+
 void model_instance::build_model()
 {
 	if(!resource)
 		return;
 
-	//	マテリアルをコピーしておく
-	materials.reserve(resource->get_materials().size());
-	for (auto& resource_material : resource->get_materials())
-	{
-		materials.emplace_back();
-		resource_material.duplicate(materials.back());
-	}
+	//	@tool マテリアルはリソースのものを共有する（上書きする時だけ複製する）
+	override_materials.clear();
+	override_materials.resize(resource->get_materials().size());
 
 	//	ノード構築
 	nodes.reserve(resource->get_nodes().size());
@@ -195,6 +243,148 @@ void model_instance_manger::registered(std::weak_ptr<model_instance> instance)
 	instances.emplace_back(instance);
 }
 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
+bool model_instance::is_render_proxy_valid(const model_render_proxy& proxy) const
+{
+	//	@tool 構成（リソース・LOD・フラグ・表示状態・マテリアル）が作成時と同じか
+	if (proxy.resource != resource || proxy.lod_index != lod_index || proxy.system_flags != system_flags)
+		return false;
+	if (resource && proxy.resource_mesh_revision != resource->get_mesh_revision())
+		return false;
+
+	if (proxy.mesh_visibles.size() != meshes.size())
+		return false;
+	for (size_t index = 0; index < meshes.size(); ++index)
+	{
+		if (proxy.mesh_visibles[index] != (meshes[index].mesh && meshes[index].visible))
+			return false;
+	}
+
+	const size_t material_count = get_material_count();
+	if (proxy.materials.size() != material_count)
+		return false;
+	for (size_t index = 0; index < material_count; ++index)
+	{
+		if (proxy.materials[index] != get_material(index).get_render_proxy())
+			return false;
+	}
+	return true;
+}
+
+std::shared_ptr<const model_render_proxy> model_instance::get_render_proxy() const
+{
+	if (render_proxy && is_render_proxy_valid(*render_proxy))
+		return render_proxy;
+
+	auto proxy = std::make_shared<model_render_proxy>();
+	proxy->resource = resource;
+	proxy->resource_mesh_revision = resource ? resource->get_mesh_revision() : 0;
+	proxy->lod_index = lod_index;
+	proxy->system_flags = system_flags;
+
+	proxy->mesh_visibles.reserve(meshes.size());
+	for (auto& instance_mesh : meshes)
+	{
+		proxy->mesh_visibles.emplace_back(instance_mesh.mesh && instance_mesh.visible);
+	}
+
+	const size_t material_count = get_material_count();
+	proxy->materials.reserve(material_count);
+	for (size_t index = 0; index < material_count; ++index)
+	{
+		proxy->materials.emplace_back(get_material(index).get_render_proxy());
+	}
+
+	//	描画情報構築
+	UINT submesh_index = 0;
+	for (auto& instance_mesh : meshes)
+	{
+		UINT current_submesh_index = submesh_index++;
+		if (!instance_mesh.mesh || !instance_mesh.visible)
+			continue;
+		auto& mesh = *instance_mesh.mesh;
+		if (mesh.material_index == model_resource::invalid_id)
+			continue;
+
+		auto& entry = proxy->meshes.emplace_back();
+		entry.mesh = &mesh;
+		entry.material = proxy->materials[mesh.material_index];
+
+		system_utility::set_bitflag(entry.system_flags, buffer_datas::flags::culling, is_flag(model_instance::flags::culling));
+		system_utility::set_bitflag(entry.system_flags, buffer_datas::flags::static_mesh, mesh.bones.empty());
+		{
+			UINT combined = get_unique_id();
+			combined ^= current_submesh_index + 0x9e3779b9u + (combined << 6) + (combined >> 2);
+			entry.unique_id = combined;
+		}
+
+		//	頂点バッファ系列登録
+		{
+			auto& main_mesh = entry.color_meshs.emplace_back();
+			main_mesh.vertex_buffer_views = &mesh.vertex_buffer_views;
+			main_mesh.primitive_topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+			main_mesh.meshlets = &mesh.meshlet_draw_infos;
+		}
+
+		if (lod_index == -1)
+		{
+			//	LODメッシュがあれば登録
+			for (auto& lod_mesh : mesh.lod_meshs)
+			{
+				auto& sub_mesh = entry.color_meshs.emplace_back();
+				sub_mesh.vertex_buffer_views = &lod_mesh.vertex_buffer_views;
+				if (lod_mesh.vertex_buffer_views.empty())
+				{
+					sub_mesh.vertex_buffer_views = &mesh.vertex_buffer_views;
+				}
+				sub_mesh.meshlets = lod_mesh.meshlet_draw_infos.empty() ? &mesh.meshlet_draw_infos : &lod_mesh.meshlet_draw_infos;
+				sub_mesh.primitive_topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+			}
+		}
+		else if (!mesh.lod_meshs.empty() && lod_index > 0)
+		{
+			//	LODメッシュを強制適用
+			int index = std::min(lod_index - 1, static_cast<int>(mesh.lod_meshs.size() - 1));
+			auto& sub_mesh = entry.color_meshs.back();
+			if (!mesh.lod_meshs[index].vertex_buffer_views.empty())
+			{
+				sub_mesh.vertex_buffer_views = &mesh.lod_meshs[index].vertex_buffer_views;
+			}
+			sub_mesh.meshlets = mesh.lod_meshs[index].meshlet_draw_infos.empty() ? &mesh.meshlet_draw_infos : &mesh.lod_meshs[index].meshlet_draw_infos;
+		}
+
+		//	頂点属性の所持判定、属性毎の先頭頂点番号記録
+		for (auto& view : mesh.vertex_buffer_views)
+		{
+			const auto element = model_buffer_pool_manager::find_vertex_element(view.first);
+			if (element == common_pipeline_states::vertex_elements::max || view.second.stride_in_bytes == 0 || view.second.size_in_bytes == 0)
+				continue;
+
+			const UINT element_index = static_cast<UINT>(element);
+			entry.header.has_element |= common_pipeline_states::vertex_element_bit(element);
+			(&entry.header.element_bases[element_index / 4].x)[element_index % 4] = static_cast<UINT>(view.second.offset());
+		}
+
+		//	影描画するなら登録
+		entry.shadow_caster = is_flag(model_instance::flags::shadow_caster) && entry.material->is_flag(material::flags::shadow_caster);
+		if (entry.shadow_caster)
+		{
+			//	影メッシュがあれば登録
+			entry.shadow_mesh.vertex_buffer_views = &mesh.shadow_mesh.vertex_buffer_views;
+			if (mesh.shadow_mesh.vertex_buffer_views.empty())
+			{
+				entry.shadow_mesh.vertex_buffer_views = &mesh.vertex_buffer_views;
+			}
+			entry.shadow_mesh.meshlets = mesh.shadow_mesh.meshlet_draw_infos.empty() ? &mesh.meshlet_draw_infos : &mesh.shadow_mesh.meshlet_draw_infos;
+			entry.shadow_mesh.primitive_topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+		}
+	}
+
+	render_proxy = proxy;
+	return render_proxy;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
 void model_instance_manger::get_container(mesh_container& container, const math::vector3d& render_origin)
 {
 	const semantic position_semantic("POSITION", 0);
@@ -210,6 +400,7 @@ void model_instance_manger::get_container(mesh_container& container, const math:
 	container.buffer_datas.clear();
 	container.buffer_datas.reserve(256);
 	container.material_datas.clear();
+	container.keep_alive_objects.clear();
 	container.material_datas.reserve(256);
 
 	//	メッシュコンテナ生成
@@ -237,6 +428,11 @@ void model_instance_manger::get_container(mesh_container& container, const math:
 			continue;
 		}
 
+		//	@tool 構成が変わっていなければ前回のプロキシをそのまま使う（変わる物は行列・モーフ重み・ボーンだけ）
+		//	@tool 描画側はインスタンスではなくプロキシ（とリソース）を参照するので、こちらを破棄させないようにする
+		const std::shared_ptr<const model_render_proxy> proxy = instance->get_render_proxy();
+		container.keep_alive_objects.emplace_back(proxy);
+
 		//	ワールド行列等生成
 		//	描画原点からの相対行列にする
 		//	前フレームの姿勢も、現在の描画原点から見た相対行列にする
@@ -251,15 +447,9 @@ void model_instance_manger::get_container(mesh_container& container, const math:
 		}
 
 		//	描画情報構築
-		UINT submesh_index = 0;
-		for (auto& instance_mesh : instance->get_meshes())
+		for (auto& entry : proxy->meshes)
 		{
-			UINT current_submesh_index = submesh_index++;
-			if (!instance_mesh.mesh || !instance_mesh.visible)
-				continue;
-			auto& mesh = *instance_mesh.mesh;
-			if (mesh.material_index == model_resource::invalid_id)
-				continue;
+			auto& mesh = *entry.mesh;
 
 			//	必要な行列生成
 			{
@@ -310,105 +500,54 @@ void model_instance_manger::get_container(mesh_container& container, const math:
 			}
 
 			//	バッファ情報構築
+			//	@tool LOD・影メッシュ・フラグはプロキシのものを写す
 			auto& buffer_data = container.buffer_datas.emplace_back();
 			UINT buffer_index = static_cast<UINT>(container.buffer_datas.size() - 1);
 			buffer_data.lod_distance_range = instance->get_lod_distance_range();
 			buffer_data.bounds_min = bounds_min;
 			buffer_data.bounds_max = bounds_max;
 			buffer_data.world_transform = (NodeWorldTransforms[mesh.node_index]).to_float4x4();
-			buffer_data.system_flags = 0;
-			system_utility::set_bitflag(buffer_data.system_flags, buffer_datas::flags::culling, instance->is_flag(model_instance::flags::culling));
-			system_utility::set_bitflag(buffer_data.system_flags, buffer_datas::flags::static_mesh, mesh.bones.empty());
-			{
-				UINT combined = instance->get_unique_id();
-				combined ^= current_submesh_index + 0x9e3779b9u + (combined << 6) + (combined >> 2);
-				buffer_data.unique_id = combined;
-			}
-			buffer_data.color_meshs.clear();
-			buffer_data.shadow_mesh.vertex_buffer_views = nullptr;
-			buffer_data.shadow_mesh.morph_meshes.clear();
+			buffer_data.system_flags = entry.system_flags;
+			buffer_data.unique_id = entry.unique_id;
+			buffer_data.color_meshs = entry.color_meshs;	//	@tool プロキシのものを参照する（プロキシは keep_alive_objects で保持）
+			buffer_data.shadow_mesh = entry.shadow_mesh;
 
-			//	頂点バッファ系列登録
+			//	モーフバッファ登録
+			//	@tool 重みで対象が変わるので毎回求める
+			if (!instance->get_morphes().empty() && !mesh.morph_indices.empty())
 			{
-				auto& main_mesh = buffer_data.color_meshs.emplace_back();
-				main_mesh.vertex_buffer_views = &mesh.vertex_buffer_views;
-				main_mesh.primitive_topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-				main_mesh.meshlets = &mesh.meshlet_draw_infos;
-
-				//	モーフバッファ登録
-				if (!instance->get_morphes().empty() && !mesh.morph_indices.empty())
+				UINT morph_count = static_cast<UINT>(instance->get_morphes().size());
+				for (UINT index = 0; index < morph_count; ++index)
 				{
-					UINT morph_count = static_cast<UINT>(instance->get_morphes().size());
-					for (UINT index = 0; index < morph_count; ++index)
+					auto& morph = instance->get_morphes()[index];
+					if (morph.weight < 0.001f)
+						continue;
+
+					UINT part_count = static_cast<UINT>(morph.morph->parts.size());
+					for (UINT part_index = 0; part_index < part_count; ++part_index)
 					{
-						auto& morph = instance->get_morphes()[index];
-						if (morph.weight < 0.001f)
+						auto& morph_part = morph.morph->parts[part_index];
+						auto morph_it = mesh.morph_indices.find(morph_part.mesh_name);
+						if (morph_it == mesh.morph_indices.end())
 							continue;
 
-						UINT part_count = static_cast<UINT>(morph.morph->parts.size());
-						for (UINT part_index = 0; part_index < part_count; ++part_index)
-						{
-							auto& morph_part = morph.morph->parts[part_index];
-							auto morph_it = mesh.morph_indices.find(morph_part.mesh_name);
-							if (morph_it == mesh.morph_indices.end())
-								continue;
-
-							auto& morph_mesh = main_mesh.morph_meshes.emplace_back();
-							morph_mesh.vertex_buffer_views = &mesh.morph_meshes[morph_it->second].vertex_buffer_views;
-							morph_mesh.weight = morph.weight;
-							break;
-						}
+						auto& morph_mesh = buffer_data.morph_meshes.emplace_back();
+						morph_mesh.vertex_buffer_views = &mesh.morph_meshes[morph_it->second].vertex_buffer_views;
+						morph_mesh.weight = morph.weight;
+						break;
 					}
 				}
-			}
-
-			if (instance->get_lod_index() == -1)
-			{
-				//	LODメッシュがあれば登録
-				for (auto& lod_mesh : mesh.lod_meshs)
-				{
-					auto& sub_mesh = buffer_data.color_meshs.emplace_back();
-					sub_mesh.vertex_buffer_views = &lod_mesh.vertex_buffer_views;
-					if (lod_mesh.vertex_buffer_views.empty())
-					{
-						sub_mesh.vertex_buffer_views = &mesh.vertex_buffer_views;
-					}
-					sub_mesh.meshlets = lod_mesh.meshlet_draw_infos.empty() ? &mesh.meshlet_draw_infos : &lod_mesh.meshlet_draw_infos;
-					sub_mesh.primitive_topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-				}
-			}
-			else if (!mesh.lod_meshs.empty() && instance->get_lod_index() > 0)
-			{
-				//	LODメッシュを強制適用
-				int index = std::min(instance->get_lod_index() - 1, static_cast<int>(mesh.lod_meshs.size() - 1));
-				auto& sub_mesh = buffer_data.color_meshs.back();
-				if (!mesh.lod_meshs[index].vertex_buffer_views.empty())
-				{
-					sub_mesh.vertex_buffer_views = &mesh.lod_meshs[index].vertex_buffer_views;
-				}
-				sub_mesh.meshlets = mesh.lod_meshs[index].meshlet_draw_infos.empty() ? &mesh.meshlet_draw_infos : &mesh.lod_meshs[index].meshlet_draw_infos;
 			}
 
 			//	変換行列・プリミティブヘッダを登録
 			{
-				common_pipeline_states::primitive_header& header = container.primitive_header_scratch.emplace_back();
-
-				//	頂点属性の所持判定、属性毎の先頭頂点番号記録
-				for (auto& view : mesh.vertex_buffer_views)
-				{
-					const auto element = model_buffer_pool_manager::find_vertex_element(view.first);
-					if (element == common_pipeline_states::vertex_elements::max || view.second.stride_in_bytes == 0 || view.second.size_in_bytes == 0)
-						continue;
-
-					const UINT element_index = static_cast<UINT>(element);
-					header.has_element |= common_pipeline_states::vertex_element_bit(element);
-					(&header.element_bases[element_index / 4].x)[element_index % 4] = static_cast<UINT>(view.second.offset());
-				}
+				//	@tool 頂点属性の情報はプロキシで求めてある
+				common_pipeline_states::primitive_header& header = container.primitive_header_scratch.emplace_back(entry.header);
 
 				if (!buffer_data.color_meshs.empty())
 				{
 					//	モーフ重み
-					for (auto& morph_mesh : buffer_data.color_meshs[0].morph_meshes)
+					for (auto& morph_mesh : buffer_data.morph_meshes)
 					{
 						if (morph_mesh.vertex_buffer_views->find(position_semantic) != morph_mesh.vertex_buffer_views->end())
 						{
@@ -450,7 +589,8 @@ void model_instance_manger::get_container(mesh_container& container, const math:
 			//	マテリアル情報構築
 			auto& material_data = container.material_datas.emplace_back();
 			UINT material_index = static_cast<UINT>(container.material_datas.size() - 1);
-			material_data.material = instance->get_materials().data() + mesh.material_index;
+			//	@tool 描画側にはマテリアルの複製を渡す
+			material_data.material = entry.material;
 
 			//	描画情報構築
 			container.draw_datas.emplace_back();
@@ -463,34 +603,9 @@ void model_instance_manger::get_container(mesh_container& container, const math:
 			}
 
 			//	影描画するなら登録
-			if (instance->is_flag(model_instance::flags::shadow_caster) &&
-				material_data.material->is_flag(material::flags::shadow_caster))
+			if (entry.shadow_caster)
 			{
-				//	影メッシュがあれば登録
-				buffer_data.shadow_mesh.vertex_buffer_views = &mesh.shadow_mesh.vertex_buffer_views;
-				if (mesh.shadow_mesh.vertex_buffer_views.empty())
-				{
-					buffer_data.shadow_mesh.vertex_buffer_views = &mesh.vertex_buffer_views;
-				}
-				buffer_data.shadow_mesh.meshlets = mesh.shadow_mesh.meshlet_draw_infos.empty() ? &mesh.meshlet_draw_infos : &mesh.shadow_mesh.meshlet_draw_infos;
-				buffer_data.shadow_mesh.primitive_topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-
 				container.shadow_datas.emplace_back(container.draw_datas.size() - 1);
-
-				//if (instance->get_resource()->get_capsule_shadows().empty())
-				//{
-				//	//	カプセルシャドウオブジェクトがなければ通常シャドウ
-				//	container.shadow_datas.emplace_back(container.shadow_datas.size() - 1);
-				//}
-				//else if (!in_sight)	//	カプセルシャドウは、メッシュが見えている場合のみ登録
-				//{
-				//	for (auto& capsule : instance->get_resource()->get_capsule_shadows())
-				//	{
-				//		math::float4x4 node_world_transform = instance->get_nodes()[capsule.node_index].world_transform;
-				//		capsule.capsule.
-				//		container.capsule_shadow_datas.emplace_back();
-				//	}
-				//}
 			}
 		}
 
@@ -505,5 +620,20 @@ void model_instance_manger::get_container(mesh_container& container, const math:
 	}
 
 	//	Transform 行列をGPUへ転送
+	//	@tool バッファは使い回す（描画中のフレームと重ならないよう、複数を順番に使う。大きさが足りない時だけ作り直す）
+	transform_buffer_set& buffer_set = transform_buffer_sets[transform_buffer_set_index];
+	transform_buffer_set_index = (transform_buffer_set_index + 1) % transform_buffer_set_count;
+	container.primitive_header_buffer = buffer_set.primitive_header_buffer;
+	container.primitive_header_srv = buffer_set.primitive_header_srv;
+	container.primitive_header_capacity = buffer_set.primitive_header_capacity;
+	container.bone_matrix_buffer = buffer_set.bone_matrix_buffer;
+	container.bone_matrix_srv = buffer_set.bone_matrix_srv;
+	container.bone_matrix_capacity = buffer_set.bone_matrix_capacity;
 	container.build_transform_buffers();
+	buffer_set.primitive_header_buffer = container.primitive_header_buffer;
+	buffer_set.primitive_header_srv = container.primitive_header_srv;
+	buffer_set.primitive_header_capacity = container.primitive_header_capacity;
+	buffer_set.bone_matrix_buffer = container.bone_matrix_buffer;
+	buffer_set.bone_matrix_srv = container.bone_matrix_srv;
+	buffer_set.bone_matrix_capacity = container.bone_matrix_capacity;
 }

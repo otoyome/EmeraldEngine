@@ -482,6 +482,22 @@ void pipeline_state_base::unregister_reload_callback(UINT id)
 #endif	//	defined(USE_IMGUI)
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
+#if defined(USE_IMGUI)
+bool graphics_pipeline_state::is_failed()
+{
+	if ((shaders.vs && shaders.vs->is_failed()) ||
+		(shaders.hs && shaders.hs->is_failed()) ||
+		(shaders.ds && shaders.ds->is_failed()) ||
+		(shaders.gs && shaders.gs->is_failed()) ||
+		(shaders.ps && shaders.ps->is_failed()))
+	{
+		return true;
+	}
+	return false;
+}
+#endif	//	defined(USE_IMGUI)
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////
 bool pipeline_state_manager::register_pipeline_state(const graphics_pipeline_state_ptr& pipeline_state)
 {
 	std::string key_name = std::string(pipeline_state->get_name());
@@ -505,6 +521,29 @@ graphics_pipeline_state_ptr	pipeline_state_manager::search(std::string_view key)
 	}
 
 	return	nullptr;
+}
+
+void pipeline_state_manager::prepare_pipeline_states()
+{
+	//	@tool 作り直しが必要なものがあれば、描画中のフレームが使い終わるのを待ってから行う
+	bool needs_prepare = false;
+	for (auto& it : graphics_pipeline_state_map)
+	{
+		if (it.second && it.second->needs_prepare())
+		{
+			needs_prepare = true;
+			break;
+		}
+	}
+	if (!needs_prepare)
+		return;
+
+	render_data::instance()->flush_rendering();
+	for (auto& it : graphics_pipeline_state_map)
+	{
+		if (it.second)
+			it.second->prepare();
+	}
 }
 
 std::vector<graphics_pipeline_state_ptr> pipeline_state_manager::get_domain_lists(pipeline_state_base::domains domain)

@@ -358,7 +358,7 @@ public:
 	void build_primitives(graphics_context& context);
 
 	//	•`‰æî•ñ‚ğ\’z
-	void generate_render_data(UINT emitter_id, effect_container::sprite_trail& data);
+	void generate_render_data(UINT emitter_id, particle_render_proxy& data);
 
 	//	ƒŠƒZƒbƒgˆ—
 	void reset();

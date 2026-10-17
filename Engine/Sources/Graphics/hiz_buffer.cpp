@@ -127,7 +127,7 @@ void hiz_buffer::build(graphics_context& context)
 	if (!hiz_texture || hiz_mip_count == 0)
 		return;
 
-	auto dc = context.device_context;
+	auto dc = context.recorder.get_device_context();
 
 	//	ƒ~ƒbƒv0¶¬
 	hiz_constants constant{};
@@ -136,7 +136,7 @@ void hiz_buffer::build(graphics_context& context)
 	dc->UpdateSubresource(hiz_constant_buffer.Get(), 0, nullptr, &constant, 0, 0);
 	dc->CSSetConstantBuffers(0, 1, hiz_constant_buffer.GetAddressOf());
 	dc->CSSetShader(hiz_copy_cs->get_shader().Get(), nullptr, 0);
-	dc->CSSetShaderResources(0, 1, context.scene_depth_texture->get_shader_resource_view().GetAddressOf());
+	dc->CSSetShaderResources(0, 1, context.bind_table.get_texture(common_pipeline_states::scene_depth_map_hash_key)->get_shader_resource_view().GetAddressOf());
 	dc->CSSetUnorderedAccessViews(0, 1, hiz_mip_uavs[0].GetAddressOf(), nullptr);
 	dc->Dispatch((hiz_mip_sizes[0].x + 7) / 8, (hiz_mip_sizes[0].y + 7) / 8, 1);
 	context.clear_unordered_access_views();

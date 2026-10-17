@@ -4,13 +4,14 @@
 #include "gbuffer.hlsli"
 #include "scene_constant_buffer.hlsli"
 
-Texture2D<float4> gbuffer_base_color : register(t0);
-Texture2D<float4> gbuffer_normal_depth : register(t1);
-Texture2D<float4> gbuffer_parameter : register(t2);
-Texture2D<float4> gbuffer_velocity : register(t3);
-Texture2D<uint4> gbuffer_unique_data : register(t4);
-Texture2D<float4> gbuffer_shade_color : register(t5); //  [エンジン改造:G-Buffer]
-Texture2D<float4> gbuffer_ilm_color : register(t6); //  [エンジン改造:G-Buffer]
+//	@tool パス層（シェーダーリソースは t64-t95）
+Texture2D<float4> gbuffer_base_color : register(t64);
+Texture2D<float4> gbuffer_normal_depth : register(t65);
+Texture2D<float4> gbuffer_parameter : register(t66);
+Texture2D<float4> gbuffer_velocity : register(t67);
+Texture2D<uint4> gbuffer_unique_data : register(t68);
+Texture2D<float4> gbuffer_shade_color : register(t69); //  [エンジン改造:G-Buffer]
+Texture2D<float4> gbuffer_ilm_color : register(t70); //  [エンジン改造:G-Buffer]
 
 SamplerState sampler_states : register(s0);
 

@@ -142,7 +142,7 @@ void occlusion_culling_system::update(graphics_context& context, hiz_buffer& hiz
 
 	math::float4x4 view_projection = context.scene_constant.view_projection_transform;
 
-	auto dc = context.device_context;
+	auto dc = context.recorder.get_device_context();
 
 	//	判定リソース更新
 	D3D11_BOX box{};
@@ -185,6 +185,8 @@ void occlusion_culling_system::read_last_frame(std::unordered_map<UINT, uint8_t>
 		return;
 
 	auto dc = render_data::instance()->get_immediate_context();
+	//	@tool immediate context は提出スレッドと共有しているので排他する
+	std::lock_guard<std::recursive_mutex> immediate_lock(render_data::instance()->get_immediate_context_mutex());
 	D3D11_MAPPED_SUBRESOURCE mapped{};
 	if (FAILED(dc->Map(visibility_staging.Get(), 0, D3D11_MAP_READ, 0, &mapped)))
 		return;

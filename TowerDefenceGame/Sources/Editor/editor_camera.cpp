@@ -3,6 +3,7 @@
 #if	defined(USE_IMGUI)
 #include "Object/object_manager.h"
 #include "System/console_manager.h"
+#include "System/world_viewport.h"
 
 namespace
 {
@@ -55,7 +56,8 @@ void editor_camera::update(float elapsed_time)
 	};
 
 	//	キーボード操作
-	if (mouse_state.is_key_state(mouse::key_states::right) == input::state::hold)
+	//	@tool 入力はこのワールドを映している画面が受け付けている時だけ使う
+	if (world_viewport::instance()->accepts_keyboard() && mouse_state.is_key_state(mouse::key_states::right) == input::state::hold)
 	{
 		int x = 0, y = 0, z = 0;
 		if (keyboard_state.is_key_state(keyboard::key_states::w) == input::state::hold)
@@ -100,7 +102,7 @@ void editor_camera::update(float elapsed_time)
 	}
 
 	// マウス操作
-	if (!ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow))
+	if (world_viewport::instance()->accepts_mouse())
 	{
 		math::float2 move;
 		move.x = static_cast<float>(mouse::instance()->get_move_cursol().x);
@@ -131,9 +133,9 @@ void editor_camera::update(float elapsed_time)
 		if (mouse_state.is_key_state(mouse::key_states::left) != input::state::none)
 		{
 			//	座標情報を送る
+			//	@tool 座標はこのワールドを映している画面の中の座標にする
 			mouse_position_data data;
-			data.position.x = static_cast<float>(mouse_state.position.position.x);
-			data.position.y = static_cast<float>(mouse_state.position.position.y);
+			data.position = world_viewport::instance()->to_view_position({ static_cast<float>(mouse_state.position.position.x), static_cast<float>(mouse_state.position.position.y) });
 			if (mouse_state.is_key_state(mouse::key_states::left) == input::state::down)
 				object_manager::instance()->get_messenger().send_data(left_click_down_identifier, &data);
 			else if (mouse_state.is_key_state(mouse::key_states::left) == input::state::hold)

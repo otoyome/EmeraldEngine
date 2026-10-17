@@ -10,7 +10,8 @@ SamplerState linear_sampler : register(s1);
 //  プリセット情報
 #define SMAA_PRESET_ULTRA
 #else
-cbuffer SMAA_CONSTANT_BUFER : register(b2)
+//	@tool パス層（定数バッファは b7-b11）
+cbuffer SMAA_CONSTANT_BUFER : register(b11)
 {
 	float smaa_threshold;
     uint smaa_max_search_steps;

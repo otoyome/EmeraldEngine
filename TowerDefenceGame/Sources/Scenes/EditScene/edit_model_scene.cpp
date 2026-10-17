@@ -298,10 +298,12 @@ void edit_model_scene::save_model()
 
 	//	マテリアルの上書き
 	auto& resource_materials = resource->get_materials_for_editor();
-	auto& instance_materials = edit_model->get_model_instance()->get_materials();
+	//	@tool インスタンスで上書きしたものだけを書き戻す（上書きしていない物はリソースのものと同じ）
+	auto instance = edit_model->get_model_instance();
 	for (UINT material_index = 0; material_index < resource_materials.size(); ++material_index)
 	{
-		resource_materials[material_index] = instance_materials[material_index];
+		if (instance->is_material_overridden(material_index))
+			resource_materials[material_index] = instance->get_material(material_index);
 	}
 
 	//	保存

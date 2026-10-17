@@ -610,6 +610,7 @@ void effect_manager::update_gpu(graphics_context& context, float elapsed_time)
 	}
 
 	//	固定ステップで更新
+	auto dc = context.recorder.get_device_context();
 	for (int step = 0; ; ++step)
 	{
 		//	何か一つでも更新するか判定
@@ -639,7 +640,7 @@ void effect_manager::update_gpu(graphics_context& context, float elapsed_time)
 				//	乱数値を生成
 				UINT seed = instance->get_particle_simulation_step() * 2654435761u + emitter_item.system_index;
 
-				auto data = build_emitter_update_data(*instance, particle_data.particle, node_data, step_elapsed, seed, context.device_context, particle_system->get_simulation_origin(), emit_target);
+				auto data = build_emitter_update_data(*instance, particle_data.particle, node_data, step_elapsed, seed, dc, particle_system->get_simulation_origin(), emit_target);
 				particle_system->update_emitter(emitter_item.system_index, data);
 			}
 
@@ -679,7 +680,7 @@ void effect_manager::get_container(effect_container& effects, decal_container& d
 	effects.clear();
 
 	//	バッファ/マテリアルの配列生成
-	effects.sprite_trail_draw_datas.reserve(256);
+	effects.particle_proxies.reserve(256);
 
 	//	コンテナ生成
 	for (auto& item : items)
@@ -701,7 +702,7 @@ void effect_manager::get_container(effect_container& effects, decal_container& d
 
 			auto& node_data = item.effect_instance->get_nodes()[decal_data.node_index];
 
-			auto& decal = decals.decal_datas.emplace_back();
+			auto& decal = decals.proxies.emplace_back();
 			math::vector3f scale, position;
 			math::quaternionf rotation;
 			math::matrixf(node_data.world_transform).decompose(scale, rotation, position);
@@ -709,7 +710,7 @@ void effect_manager::get_container(effect_container& effects, decal_container& d
 			decal.position = (instance->get_position() + math::vector3d(position) - render_origin).to_float3();
 			decal.rotation = math::rotatorf(rotation);
 			decal.box = collision::bounding_box(math::double3(decal.scale), rotation.to_double4(), math::double3(decal.position));
-			decal.material.material = decal_data.material.get();
+			decal.material.material = decal_data.material ? decal_data.material->get_render_proxy() : nullptr;
 		}
 
 		//	パーティクル描画情報構築
@@ -724,24 +725,24 @@ void effect_manager::get_container(effect_container& effects, decal_container& d
 			auto renderer = particle_data.particle.get_item<particle::item::renderer>();
 			if (renderer && renderer->material)
 			{
-				UINT data_index = static_cast<UINT>(effects.sprite_trail_draw_datas.size());
+				UINT data_index = static_cast<UINT>(effects.particle_proxies.size());
 
 				//	情報構築
-				auto& data = effects.sprite_trail_draw_datas.emplace_back();
+				auto& data = effects.particle_proxies.emplace_back();
 				particle_system->generate_render_data(emitter_item.system_index, data);
-				data.material_data.material = renderer->material.get();
+				data.material_data.material = renderer->material->get_render_proxy();
 
 				//	色描画登録
 				if (instance->is_flag(effect_instance::flags::color_render))
 				{
-					effects.sprite_trail_color_datas.emplace_back(data_index);
+					effects.particle_color_datas.emplace_back(data_index);
 				}
 
 				//	影描画登録
 				if (instance->is_flag(effect_instance::flags::shadow_caster) &&
 					data.material_data.material->is_flag(material::flags::shadow_caster))
 				{
-					effects.sprite_trail_shadow_datas.emplace_back(data_index);
+					effects.particle_shadow_datas.emplace_back(data_index);
 				}
 			}
 		}

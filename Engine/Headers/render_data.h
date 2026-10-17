@@ -2,6 +2,7 @@
 
 #include <map>
 #include <mutex>
+#include <functional>
 
 CONST LONG SCREEN_WIDTH{ 1280 };
 CONST LONG SCREEN_HEIGHT{ 720 };
@@ -42,6 +43,28 @@ public:
 	Microsoft::WRL::ComPtr<ID3D11SamplerState> get_sampler_states(SAMPLER_STATE index) const { return sampler_states[static_cast<int>(index)]; }
 	Microsoft::WRL::ComPtr<ID3D11SamplerState> get_sampler_state(const D3D11_SAMPLER_DESC& desc);
 
+	//	マルチスレッド描画に関わるデバイスの対応状況
+	struct feature_supports
+	{
+		bool driver_concurrent_creates = false;						//	リソース生成をドライバーが並列に処理できるか
+		bool driver_command_lists = false;							//	コマンドリストをドライバーが直接扱えるか
+		bool constant_buffer_offsetting = false;					//	*SetConstantBuffers1 で定数バッファの一部を割り当てられるか
+		bool map_no_overwrite_on_dynamic_constant_buffer = false;	//	DYNAMIC 定数バッファに NO_OVERWRITE で Map できるか
+	};
+	const feature_supports& get_feature_supports() const { return features; }
+
+	//	@tool immediate context の排他（提出スレッドはフレームを提出している間ずっと保持する）
+	//	@tool 他のスレッドから immediate context を使う場合（読み戻し・転送・コピーなど）は、これを取ってから使う
+	std::recursive_mutex& get_immediate_context_mutex() { return immediate_context_mutex; }
+
+	//	@tool 描画中のフレームが全て提出し終わるまで待つ（描画側が参照している資源を書き換える前に、メインスレッドから呼ぶ）
+	void set_flush_rendering_function(std::function<void()> function) { flush_rendering_function = std::move(function); }
+	void flush_rendering() const { if (flush_rendering_function) flush_rendering_function(); }
+
+private:
+	//	@tool デバイスの対応状況を調べてログに出す
+	void check_feature_supports();
+
 private:
 	struct sampler_desc_less
 	{
@@ -60,6 +83,11 @@ private:
 	Microsoft::WRL::ComPtr<IDXGISwapChain> swap_chain;
 
 	Microsoft::WRL::ComPtr<ID3D11SamplerState> sampler_states[8];
+
+	feature_supports features;
+
+	std::recursive_mutex immediate_context_mutex;
+	std::function<void()> flush_rendering_function;
 
 	std::mutex sampler_state_cache_mutex;
 	std::map<D3D11_SAMPLER_DESC, Microsoft::WRL::ComPtr<ID3D11SamplerState>, sampler_desc_less> sampler_state_cache;

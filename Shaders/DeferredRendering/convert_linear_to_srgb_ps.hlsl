@@ -1,7 +1,8 @@
 #include "fullscreen_quad.hlsli"
 #include "shading_functions.hlsli"
 
-Texture2D color_map : register(t0);
+//	@tool パス層（シェーダーリソースは t64-t95）
+Texture2D color_map : register(t71);
 SamplerState sampler_states : register(s0);
 
 float4 main(VS_OUT pin) : SV_TARGET

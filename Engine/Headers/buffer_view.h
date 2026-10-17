@@ -1,5 +1,7 @@
 #pragma once
 
+#include <span>
+
 //	バッファビュー
 struct buffer_view
 {
@@ -108,13 +110,13 @@ struct buffer_datas
 	{
 		const std::unordered_map<semantic, buffer_view>* vertex_buffer_views;
 		D3D_PRIMITIVE_TOPOLOGY primitive_topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-		std::vector<morph_mesh> morph_meshes;
 		const std::vector<meshlet_draw_data>* meshlets = nullptr;
 	};
 
 	UINT vertex_count;										//	Drawで使用する際の頂点数
 	UINT system_flags = 0;									//	モデルフラグ類
-	std::vector<sub_mesh> color_meshs;						//	色描画メッシュ
+	std::span<const sub_mesh> color_meshs;					//	色描画メッシュ
+	std::vector<morph_mesh> morph_meshes;					//	モーフ用メッシュ
 	sub_mesh shadow_mesh;									//	影用描画メッシュ
 	math::float2 lod_distance_range = {0.0f, 10000.0f};		//	LOD距離範囲
 	UINT unique_id = 0xFFFFFFFF;							//	ユニークID

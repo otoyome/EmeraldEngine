@@ -1,5 +1,6 @@
 #pragma once
 
+#include "System/world_singleton.h"
 #include "light_data.h"
 #include "common_pipeline_states.h"
 #include "texture.h"
@@ -164,7 +165,7 @@ struct light_view_info
 //	ライト管理クラス
 class light_manager
 {
-	SINGLETON(light_manager);
+	WORLD_SINGLETON(light_manager);
 
 	friend class light;
 

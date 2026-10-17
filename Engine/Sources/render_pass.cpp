@@ -43,12 +43,12 @@ render_pass::~render_pass()
 {
 }
 
-void render_pass::activate(ID3D11DeviceContext* context)
+void render_pass::activate(ID3D11DeviceContext* context) const
 {
 	ID3D11RenderTargetView*	rtvs[D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT];
 	ID3D11DepthStencilView* dsv = depth_stencil.view.Get();
 	int count = 0;
-	for (auto& rt : render_targets)
+	for (const auto& rt : render_targets)
 	{
 		rtvs[count++] = rt.view.Get();
 		if (rt.clear_color)
@@ -69,7 +69,7 @@ void render_pass::activate(ID3D11DeviceContext* context)
 	context->OMSetRenderTargets(count, rtvs, dsv);
 }
 
-void render_pass::deactivate(ID3D11DeviceContext* context)
+void render_pass::deactivate(ID3D11DeviceContext* context) const
 {
 	ID3D11RenderTargetView* rtvs[D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT] = {nullptr};
 	ID3D11DepthStencilView* dsv = nullptr;

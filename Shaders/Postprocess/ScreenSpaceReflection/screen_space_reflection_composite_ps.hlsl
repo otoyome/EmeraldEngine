@@ -3,8 +3,9 @@
 
 #include "common_gbuffer_loader.hlsli"
 
-Texture2D<float4> screen_space_reflection_map : register(t10);
-Texture2D<float4> screen_space_reflection_bokeh_map : register(t11);
+//	@tool パス層（シェーダーリソースは t64-t95）
+Texture2D<float4> screen_space_reflection_map : register(t73);
+Texture2D<float4> screen_space_reflection_bokeh_map : register(t74);
 SamplerState screen_space_reflection_bokeh_sampler : register(s11);
 
 float4 main(VS_OUT pin) : SV_TARGET

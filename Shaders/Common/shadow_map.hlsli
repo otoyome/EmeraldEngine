@@ -5,7 +5,8 @@ static const uint shadow_map_max = 6;
 static const float shadow_map_constant_bias = 0.0001f;
 
 //  シャドウマップ情報
-cbuffer SHADOW_MAP_CONSTANT_BUFFER : register(b4)
+//	@tool パス層（定数バッファは b7-b11）
+cbuffer SHADOW_MAP_CONSTANT_BUFFER : register(b9)
 {
     uint shadow_map_count;
     float3 shadow_attenuation;
@@ -18,8 +19,9 @@ cbuffer SHADOW_MAP_CONSTANT_BUFFER : register(b4)
 };
 
 //  シャドウマップ
-Texture2DArray<float> shadow_maps : register(t10);
-SamplerState shadow_maps_sampler_state : register(s10);
+//	@tool パス層（シェーダーリソースは t64-t95、サンプラーは s12-s13）
+Texture2DArray<float> shadow_maps : register(t84);
+SamplerState shadow_maps_sampler_state : register(s12);
 
 //	シャドウサンプル関数
 float3 shadowmap_fetch(int index, float3 texcoord)

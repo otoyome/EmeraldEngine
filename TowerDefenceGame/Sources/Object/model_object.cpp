@@ -766,11 +766,16 @@ void model_object::imgui_render_core()
 	//	マテリアル
 	if (ImGui::TreeNode("material list"))
 	{
-		for (auto& material : model_instance->get_materials())
+		for (size_t material_index = 0; material_index < model_instance->get_material_count(); ++material_index)
 		{
-			if (ImGui::TreeNode(system_utility::convert_utf8(material.get_name()).data()))
+			if (ImGui::TreeNode(system_utility::convert_utf8(model_instance->get_material(material_index).get_name()).data()))
 			{
-				editor_items::edit_material(editor_context, material);
+				//	@tool 開いた時にインスタンス専用の複製を作って編集する（閉じている物はリソースのマテリアルを共有する）
+				//	@tool Revert で編集内容を捨ててリソースのマテリアルに戻す
+				if (model_instance->is_material_overridden(material_index) && ImGui::Button("Revert"))
+					model_instance->reset_override_material(material_index);
+				else
+					editor_items::edit_material(editor_context, model_instance->get_override_material(material_index));
 				ImGui::TreePop();
 			}
 		}

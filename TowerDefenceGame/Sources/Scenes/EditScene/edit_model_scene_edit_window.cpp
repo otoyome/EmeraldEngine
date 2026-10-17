@@ -12,6 +12,7 @@
 
 #if defined(USE_IMGUI)
 #include "Editor/editor_camera.h"
+#include "System/world_viewport.h"
 
 namespace
 {
@@ -227,11 +228,17 @@ void edit_model_scene::imgui_render_material_window()
 {
 	if (ImGui::Begin("Material Window"))
 	{
-		for (auto& material : edit_model->get_model_instance()->get_materials())
+		auto instance = edit_model->get_model_instance();
+		for (size_t material_index = 0; material_index < instance->get_material_count(); ++material_index)
 		{
-			if (ImGui::TreeNode(system_utility::convert_utf8(material.get_name()).data()))
+			if (ImGui::TreeNode(system_utility::convert_utf8(instance->get_material(material_index).get_name()).data()))
 			{
-				editor_items::edit_material(editor_context, material);
+				//	@tool 開いた時にインスタンス専用の複製を作って編集する（保存時にリソースへ書き戻す）
+				//	@tool Revert で編集内容を捨ててリソースのマテリアルに戻す
+				if (instance->is_material_overridden(material_index) && ImGui::Button("Revert"))
+					instance->reset_override_material(material_index);
+				else
+					editor_items::edit_material(editor_context, instance->get_override_material(material_index));
 				ImGui::TreePop();
 			}
 		}
@@ -562,11 +569,14 @@ void edit_model_scene::on_mouse_left_down_and_hold(void* data_ptr)
 		return;
 
 	//	表示しているエディターカメラの視点からレイを作る
-	const view_parameters& parameters = editor_camera_manager::instance()->get_camera()->get_camera()->get_parameters();
+	//	@tool 投影と画面の大きさは、このワールドを映している画面に合わせる
+	view_parameters parameters = editor_camera_manager::instance()->get_camera()->get_camera()->get_parameters();
+	const world_viewport* target_viewport = world_viewport::instance();
+	target_viewport->apply_screen_rect(parameters);
 	const scene_view picking_view = scene_view::from_parameters(parameters, math::vector3d::zero());
 	const math::matrixf view(picking_view.get_view_matrix());
 	const math::matrixf projection(picking_view.get_projection_matrix());
-	const math::matrixf viewport = math::matrixf::viewport(0, static_cast<float>(SCREEN_WIDTH), 0, static_cast<float>(SCREEN_HEIGHT), 0, 1);
+	const math::matrixf viewport = math::matrixf::viewport(0, target_viewport->get_width(), 0, target_viewport->get_height(), 0, 1);
 
 	const math::float3 start_position = math::vector3f::calc_screen_to_world(data->position.x, data->position.y, 0, view, projection, viewport).to_float3();
 	const math::float3 end_position = math::vector3f::calc_screen_to_world(data->position.x, data->position.y, 1, view, projection, viewport).to_float3();
@@ -606,21 +616,31 @@ void edit_model_scene::on_mouse_left_down_and_hold(void* data_ptr)
 	if (vertex_hit_length < FLT_MAX)
 	{
 		brush_data.on = true;
+
+		//	@tool 頂点データの書き換えはリソースに頼む（GPU 側への反映もリソースが行う）
+		const model_resource_ptr resource = edit_model->get_model_instance()->get_resource();
+		const auto& resource_meshes = resource->get_meshes();
 		for (auto& instance_mesh : edit_model->get_model_instance()->get_meshes())
 		{
 			if (!instance_mesh.mesh || !instance_mesh.visible)
 				continue;
 
-			auto& mesh = *const_cast<model_resource::mesh*>(instance_mesh.mesh);
+			const auto& mesh = *instance_mesh.mesh;
 			auto position_view = mesh.vertex_buffer_views.find(semantic("POSITION", 0));
 			auto color_view = mesh.vertex_buffer_views.find(semantic("COLOR", 0));
 			if (position_view == mesh.vertex_buffer_views.end() || color_view == mesh.vertex_buffer_views.end())
 				continue;
+			if (color_view->second.stride_in_bytes != sizeof(math::float4))
+				continue;
+
+			//	@tool row_data はメッシュ単体の頂点を先頭から持つ（offset はプール内の位置なので使わない）
+			const auto positions = reinterpret_cast<const math::float3*>(position_view->second.row_data.data());
+			std::vector<math::float4> colors(color_view->second.row_data.size() / sizeof(math::float4));
+			memcpy(colors.data(), color_view->second.row_data.data(), colors.size() * sizeof(math::float4));
 
 			bool is_change = false;
-			auto positions = reinterpret_cast<math::float3*>(position_view->second.row_data.data());
-			auto colors = reinterpret_cast<math::float4*>(color_view->second.row_data.data());
-			for (size_t index = position_view->second.offset(); index < position_view->second.count(); ++index)
+			const size_t vertex_count = (std::min)(position_view->second.count(), colors.size());
+			for (size_t index = 0; index < vertex_count; ++index)
 			{
 				auto p = positions + index;
 				math::float3 d;
@@ -638,8 +658,8 @@ void edit_model_scene::on_mouse_left_down_and_hold(void* data_ptr)
 			}
 			if (is_change)
 			{
-				auto device_context = render_data::instance()->get_immediate_context();
-				device_context->UpdateSubresource(color_view->second.buffer.Get(), 0, nullptr, colors, 0, 0);
+				const size_t mesh_index = static_cast<size_t>(&mesh - resource_meshes.data());
+				resource->update_vertex_attribute(mesh_index, color_view->first, colors.data(), colors.size() * sizeof(math::float4));
 			}
 		}
 	}
@@ -704,9 +724,9 @@ void edit_model_scene::on_model_setup()
 	//	ポイントモデルを生成表示
 	{
 		vertex_color_edit_model = std::make_shared<model_object>("point_model", edit_model->get_model_instance()->get_resource());
-		for (UINT index = 0; index < vertex_color_edit_model->get_model_instance()->get_materials().size(); ++index)
+		for (UINT index = 0; index < vertex_color_edit_model->get_model_instance()->get_material_count(); ++index)
 		{
-			vertex_color_edit_model->get_model_instance()->get_materials()[index] = *vertex_color_edit_material;
+			vertex_color_edit_model->get_model_instance()->set_override_material(index, *vertex_color_edit_material);
 		}
 		vertex_color_edit_model->set_display_inspector(false);
 		vertex_color_edit_model->set_active(is_edit_vertex_color);
