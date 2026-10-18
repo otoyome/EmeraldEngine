@@ -628,8 +628,12 @@ xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y</Command>
     <ClCompile Include="Sources\Editor\editor_items_ik.cpp" />
     <ClCompile Include="Sources\Editor\detail_profiler.cpp" />
     <ClCompile Include="Sources\framework.cpp" />
-    <ClCompile Include="Sources\framework_imgui.cpp" />
-    <ClCompile Include="Sources\framework_console_window.cpp" />
+    <ClCompile Include="Sources\Editor\editor_host.cpp" />
+    <ClCompile Include="Sources\Editor\editor_host_console_window.cpp" />
+    <ClCompile Include="Sources\Editor\editor_window.cpp" />
+    <ClCompile Include="Sources\Editor\imgui_present.cpp" />
+    <ClCompile Include="Sources\Framework\app_window.cpp" />
+    <ClCompile Include="Sources\Framework\asset_watcher.cpp" />
     <ClCompile Include="Sources\main.cpp" />
     <ClCompile Include="Sources\Object\camera_object.cpp" />
     <ClCompile Include="Sources\Object\Collision\collision_filter.cpp" />
@@ -672,6 +676,7 @@ xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y</Command>
     <ClCompile Include="Sources\PipelineState\fullscreen_quad_pipeline_state.cpp" />
     <ClCompile Include="Sources\PipelineState\post_process_pipeline_state.cpp" />
     <ClCompile Include="Sources\Renderer\render_job_executor.cpp" />
+    <ClCompile Include="Sources\Renderer\render_system.cpp" />
     <ClCompile Include="Sources\Renderer\frame_graph.cpp" />
     <ClCompile Include="Sources\Renderer\scene_render_features.cpp" />
     <ClCompile Include="Sources\Renderer\scene_passes_deferred.cpp" />
@@ -746,6 +751,11 @@ xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y</Command>
     <ClInclude Include="Headers\Editor\editor_items.h" />
     <ClInclude Include="Headers\Editor\detail_profiler.h" />
     <ClInclude Include="Headers\framework.h" />
+    <ClInclude Include="Headers\Editor\editor_host.h" />
+    <ClInclude Include="Headers\Editor\editor_window.h" />
+    <ClInclude Include="Headers\Editor\imgui_present.h" />
+    <ClInclude Include="Headers\Framework\app_window.h" />
+    <ClInclude Include="Headers\Framework\asset_watcher.h" />
     <ClInclude Include="Headers\Object\camera_object.h" />
     <ClInclude Include="Headers\Object\Collision\collision_filter.h" />
     <ClInclude Include="Headers\Object\Collision\collision_world.h" />
@@ -788,10 +798,10 @@ xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y</Command>
     <ClInclude Include="Headers\PipelineState\post_process_pipeline_state.h" />
     <ClInclude Include="Headers\Renderer\renderer_context.h" />
     <ClInclude Include="Headers\Renderer\render_job_executor.h" />
+    <ClInclude Include="Headers\Renderer\render_system.h" />
     <ClInclude Include="Headers\Renderer\frame_graph.h" />
     <ClInclude Include="Headers\Renderer\scene_render_features.h" />
     <ClInclude Include="Headers\Renderer\scene_renderer_common.h" />
-    <ClInclude Include="Headers\Renderer\scene_render_targets.h" />
     <ClInclude Include="Headers\Scenes\DummyScene\dummy_scene.h" />
     <ClInclude Include="Headers\Scenes\MiniGameScene\minigame_stage_00_scene.h" />
     <ClInclude Include="Headers\Scenes\MiniGameScene\minigame_stage_01_scene.h" />

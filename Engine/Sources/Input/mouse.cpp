@@ -72,22 +72,27 @@ bool mouse::get_cursol_hide() const
 	return cursol_hide;
 }
 
-mouse::mouse(HWND hwnd)
-: hwnd(hwnd)
-, window_center_lock(false)
+mouse::mouse()
+: window_center_lock(false)
 , cursol_hide(false)
+, cursol_hide_inner(false)
 , wheel_value(0)
 , viewport_size()
 , position_state()
 {
-	RECT rc;
-	GetClientRect(hwnd, &rc);
-	viewport_size.x = rc.right - rc.left;
-	viewport_size.y = rc.bottom - rc.top;
 }
 
 mouse::~mouse()
 {
+}
+
+void mouse::set_window(HWND hwnd)
+{
+	this->hwnd = hwnd;
+	RECT rc;
+	GetClientRect(hwnd, &rc);
+	viewport_size.x = rc.right - rc.left;
+	viewport_size.y = rc.bottom - rc.top;
 }
 
 void mouse::set_viewport_size(const math::int2& size)
@@ -97,6 +102,10 @@ void mouse::set_viewport_size(const math::int2& size)
 
 void mouse::update_state()
 {
+	//	@tool ウィンドウを結び付けるまでは入力を受け付けない
+	if (!hwnd)
+		return;
+
 #if defined(USE_IMGUI)
 	bool window_center_lock = this->window_center_lock;
 	bool cursol_hide = this->cursol_hide;
@@ -212,7 +221,6 @@ void mouse::update_state()
 	}
 
 	//	カーソル表示/非表示処理
-	static bool cursol_hide_inner = !cursol_hide;
 	if (cursol_hide_inner != current_cursol_hide)
 	{
 		cursol_hide_inner = current_cursol_hide;

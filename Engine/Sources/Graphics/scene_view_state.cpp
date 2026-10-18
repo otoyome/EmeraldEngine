@@ -38,6 +38,19 @@ void scene_view_state::end_frame(const scene_view& current)
 	previous_projection_matrix = current.get_projection_matrix();
 }
 
+pooled_texture_ref_ptr scene_view_state::get_history(view_history_key key) const
+{
+	auto it = histories.find(key);
+	if (it == histories.end() || !it->second || !it->second->texture)
+		return nullptr;
+	return it->second;
+}
+
+void scene_view_state::set_history(view_history_key key, pooled_texture_ref_ptr texture)
+{
+	histories[key] = std::move(texture);
+}
+
 #if defined(USE_IMGUI)
 bool scene_view_state::resolve_debug_visible(UINT unique_id, bool current_visible)
 {

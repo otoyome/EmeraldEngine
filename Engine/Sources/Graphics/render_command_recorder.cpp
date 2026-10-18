@@ -3,15 +3,72 @@
 #include "pipeline_state.h"
 #include "material.h"
 #include "render_data.h"
+#include "graphics/render_pass_begin_info.h"
 #include "Graphics/material_render_states.h"
+#include "System/misc.h"
 
-void render_command_recorder::begin(ID3D11DeviceContext* device_context, ID3D11DeviceContext1* device_context1, immediate_constant_allocator* constant_allocator)
+#include <algorithm>
+
+void render_command_recorder::initialize(const Microsoft::WRL::ComPtr<ID3D11DeviceContext>& device_context)
 {
-	*this = render_command_recorder();
 	this->device_context = device_context;
-	this->device_context1 = device_context1;
-	this->constant_allocator = constant_allocator;
+	HRESULT hr = device_context.As(&device_context1);
+	_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+
+	auto render_data = render_data::instance();
+	constant_allocator = std::make_unique<immediate_constant_allocator>();
+	constant_allocator->initialize(render_data->get_device().Get(), render_data->get_feature_supports().constant_buffer_offsetting);
+
+#if defined(USE_IMGUI)
+	//	@tool 取得できなければデバッグイベントを出さない
+	annotation.Reset();
+	device_context.As(&annotation);
+#endif	//	defined(USE_IMGUI)
+}
+
+void render_command_recorder::begin()
+{
+	_ASSERT_EXPR(device_context, L"initialize is not called.");
+
+	//	@tool 新しいコマンドリストの記録開始
+	constant_allocator->begin();
+
+	//	@tool 前の記録のキャッシュを捨てる
+	cache_rasterizer_state = nullptr;
+	cache_depth_stencil_state = nullptr;
+	cache_blend_state = nullptr;
+	cache_stencil_ref = 0xFFFFFFFF;
+	cache_primitive_topology = D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
+	cache_vertex_buffer_start_slot = 0xFFFFFFFF;
+	cache_vertex_buffer_count = 0;
+	std::fill(std::begin(cache_vertex_buffers), std::end(cache_vertex_buffers), nullptr);
+	std::fill(std::begin(cache_vertex_buffer_strides), std::end(cache_vertex_buffer_strides), 0u);
+	std::fill(std::begin(cache_vertex_buffer_offsets), std::end(cache_vertex_buffer_offsets), 0u);
+	cache_index_buffer = nullptr;
+	cache_index_buffer_format = DXGI_FORMAT_UNKNOWN;
+	cache_index_buffer_offset = 0xFFFFFFFF;
+	parameter_cache.clear();
+	current_layout = nullptr;
+
+	bind_table = resource_view_bind_table();
+	state_overrides = render_state_overrides();
 	invalidate_bind_table(false);
+}
+
+void render_command_recorder::end()
+{
+	//	@tool 割り当て表が持つ資源の参照を次の記録まで残さない
+	bind_table = resource_view_bind_table();
+	state_overrides = render_state_overrides();
+	parameter_cache.clear();
+	current_layout = nullptr;
+}
+
+Microsoft::WRL::ComPtr<ID3D11CommandList> render_command_recorder::finish_command_list() const
+{
+	Microsoft::WRL::ComPtr<ID3D11CommandList> command_list;
+	device_context->FinishCommandList(false, command_list.GetAddressOf());
+	return command_list;
 }
 
 void render_command_recorder::invalidate_bind_table(bool keep_frame_layer) const
@@ -187,7 +244,7 @@ constant_range render_command_recorder::upload_constants(const void* data, UINT 
 	_ASSERT_EXPR(constant_allocator, L"constant_allocator is not set.");
 	if (!constant_allocator)
 		return {};
-	return constant_allocator->allocate(device_context, data, size);
+	return constant_allocator->allocate(device_context.Get(), data, size);
 }
 
 bool render_command_recorder::resolve_constant_buffer(const resource_view_bind_entry& entry, bool has_draw_data, constant_range& out_range) const
@@ -335,7 +392,7 @@ namespace
 	};
 }
 
-void render_command_recorder::set_pipeline(const graphics_pipeline_state& pipeline, const resource_view_bind_table& bindings) const
+void render_command_recorder::set_pipeline(const graphics_pipeline_state& pipeline) const
 {
 	invalidate_bind_table(true);
 	current_layout = &pipeline.get_layout();
@@ -384,7 +441,7 @@ void render_command_recorder::set_pipeline(const graphics_pipeline_state& pipeli
 		if (binding.source != binding_source::table)
 			continue;
 
-		const resource_view_bind_entry* entry = bindings.find(binding.key);
+		const resource_view_bind_entry* entry = bind_table.find(binding.key);
 		constant_range range;
 		if (!entry || !resolve_constant_buffer(*entry, false, range))
 			continue;
@@ -406,7 +463,7 @@ void render_command_recorder::set_pipeline(const graphics_pipeline_state& pipeli
 		}
 		else if (binding.source == binding_source::table)
 		{
-			const resource_view_bind_entry* entry = bindings.find(binding.key);
+			const resource_view_bind_entry* entry = bind_table.find(binding.key);
 			if (!entry || (entry->kind != resource_view_bind_entry::kinds::texture && entry->kind != resource_view_bind_entry::kinds::shader_resource_view))
 				continue;
 			view = entry->view.shader_resource_view;
@@ -519,10 +576,10 @@ void render_command_recorder::apply_material_render_states(const graphics_pipeli
 	}
 }
 
-void render_command_recorder::bind_draw(const graphics_pipeline_state& pipeline, const resource_view_bind_table& bindings, const material_render_proxy& material, const buffer_datas* buffer_data, const render_state_overrides& overrides) const
+void render_command_recorder::bind_draw(const graphics_pipeline_state& pipeline, const material_render_proxy& material, const mesh_draw_item* draw_item) const
 {
 	if (pipeline.get_render_state_mode() == graphics_pipeline_state::render_state_modes::material)
-		apply_material_render_states(pipeline, material, overrides);
+		apply_material_render_states(pipeline, material, state_overrides);
 
 	constexpr UINT stage_count = graphics_shader_stage_count;
 	const pipeline_layout& layout = pipeline.get_layout();
@@ -541,10 +598,10 @@ void render_command_recorder::bind_draw(const graphics_pipeline_state& pipeline,
 			}
 			case binding_source::primitive:
 			{
-				if (!buffer_data)
+				if (!draw_item)
 					break;
 
-				ID3D11Buffer* primitive_buffer = buffer_data->primitive_buffer.Get();
+				ID3D11Buffer* primitive_buffer = draw_item->primitive_buffer.Get();
 				for (UINT index = 0; index < stage_count; ++index)
 				{
 					if (binding.slots[index] != pipeline_binding::unused_slot)
@@ -555,10 +612,10 @@ void render_command_recorder::bind_draw(const graphics_pipeline_state& pipeline,
 			case binding_source::material:
 			{
 				//	@tool 割り当て表（パス層 → フレーム・視点層）に有ればそれを、無ければマテリアルのものを使う
-				if (const resource_view_bind_entry* entry = bindings.find(binding.key))
+				if (const resource_view_bind_entry* entry = bind_table.find(binding.key))
 				{
 					constant_range range;
-					if (!resolve_constant_buffer(*entry, buffer_data != nullptr, range))
+					if (!resolve_constant_buffer(*entry, draw_item != nullptr, range))
 						break;
 
 					for (UINT index = 0; index < stage_count; ++index)
@@ -641,7 +698,7 @@ void render_command_recorder::bind_draw(const graphics_pipeline_state& pipeline,
 		};
 
 		//	@tool 割り当て表（G-Buffer、シーンテクスチャ、シャドウマップ、IBL、クラスターなど）に有ればそれを、無ければマテリアルのテクスチャを使う
-		if (const resource_view_bind_entry* entry = bindings.find(binding.key))
+		if (const resource_view_bind_entry* entry = bind_table.find(binding.key))
 		{
 			if (entry->kind == resource_view_bind_entry::kinds::texture || entry->kind == resource_view_bind_entry::kinds::shader_resource_view)
 				register_srv_function(entry->view);
@@ -663,7 +720,7 @@ void render_command_recorder::bind_draw(const graphics_pipeline_state& pipeline,
 	if (parameter_binding)
 	{
 		//	@tool 同じ記録の中で、マテリアル・パイプライン・割り当て表の内容が同じなら、前に書き込んだ範囲を使い回す
-		const parameter_cache_key cache_key{ &material, &pipeline, &bindings, bindings.get_revision() };
+		const parameter_cache_key cache_key{ &material, &pipeline, &bind_table, bind_table.get_revision() };
 		if (auto it = parameter_cache.find(cache_key); it != parameter_cache.end())
 		{
 			for (UINT index = 0; index < stage_count; ++index)
@@ -752,4 +809,273 @@ void render_command_recorder::end_pipeline() const
 	current_layout = nullptr;
 
 	invalidate_bind_table(true);
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+void render_command_recorder::set_vertex_shader(ID3D11VertexShader* shader) const
+{
+	device_context->VSSetShader(shader, nullptr, 0);
+}
+
+void render_command_recorder::set_hull_shader(ID3D11HullShader* shader) const
+{
+	device_context->HSSetShader(shader, nullptr, 0);
+}
+
+void render_command_recorder::set_domain_shader(ID3D11DomainShader* shader) const
+{
+	device_context->DSSetShader(shader, nullptr, 0);
+}
+
+void render_command_recorder::set_geometry_shader(ID3D11GeometryShader* shader) const
+{
+	device_context->GSSetShader(shader, nullptr, 0);
+}
+
+void render_command_recorder::set_pixel_shader(ID3D11PixelShader* shader) const
+{
+	device_context->PSSetShader(shader, nullptr, 0);
+}
+
+void render_command_recorder::set_compute_shader(ID3D11ComputeShader* shader) const
+{
+	device_context->CSSetShader(shader, nullptr, 0);
+}
+
+void render_command_recorder::set_input_layout(ID3D11InputLayout* layout) const
+{
+	device_context->IASetInputLayout(layout);
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+void render_command_recorder::set_constant_buffers(shader_stage stage, UINT start_slot, UINT count, ID3D11Buffer* const* buffers) const
+{
+	switch (stage)
+	{
+		case shader_stage::vertex:		device_context->VSSetConstantBuffers(start_slot, count, buffers); break;
+		case shader_stage::hull:		device_context->HSSetConstantBuffers(start_slot, count, buffers); break;
+		case shader_stage::domain:		device_context->DSSetConstantBuffers(start_slot, count, buffers); break;
+		case shader_stage::geometry:	device_context->GSSetConstantBuffers(start_slot, count, buffers); break;
+		case shader_stage::pixel:		device_context->PSSetConstantBuffers(start_slot, count, buffers); break;
+		case shader_stage::compute:		device_context->CSSetConstantBuffers(start_slot, count, buffers); break;
+		default: break;
+	}
+}
+
+void render_command_recorder::set_shader_resource_views(shader_stage stage, UINT start_slot, UINT count, ID3D11ShaderResourceView* const* views) const
+{
+	switch (stage)
+	{
+		case shader_stage::vertex:		device_context->VSSetShaderResources(start_slot, count, views); break;
+		case shader_stage::hull:		device_context->HSSetShaderResources(start_slot, count, views); break;
+		case shader_stage::domain:		device_context->DSSetShaderResources(start_slot, count, views); break;
+		case shader_stage::geometry:	device_context->GSSetShaderResources(start_slot, count, views); break;
+		case shader_stage::pixel:		device_context->PSSetShaderResources(start_slot, count, views); break;
+		case shader_stage::compute:		device_context->CSSetShaderResources(start_slot, count, views); break;
+		default: break;
+	}
+}
+
+void render_command_recorder::set_samplers(shader_stage stage, UINT start_slot, UINT count, ID3D11SamplerState* const* samplers) const
+{
+	switch (stage)
+	{
+		case shader_stage::vertex:		device_context->VSSetSamplers(start_slot, count, samplers); break;
+		case shader_stage::hull:		device_context->HSSetSamplers(start_slot, count, samplers); break;
+		case shader_stage::domain:		device_context->DSSetSamplers(start_slot, count, samplers); break;
+		case shader_stage::geometry:	device_context->GSSetSamplers(start_slot, count, samplers); break;
+		case shader_stage::pixel:		device_context->PSSetSamplers(start_slot, count, samplers); break;
+		case shader_stage::compute:		device_context->CSSetSamplers(start_slot, count, samplers); break;
+		default: break;
+	}
+}
+
+void render_command_recorder::set_unordered_access_views(UINT start_slot, UINT count, ID3D11UnorderedAccessView* const* views, const UINT* initial_counts) const
+{
+	device_context->CSSetUnorderedAccessViews(start_slot, count, views, initial_counts);
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+void render_command_recorder::begin_render_pass(const render_pass_begin_info& info) const
+{
+	//	@tool 開始時のクリアを行ってから描画先を設定する
+	ID3D11RenderTargetView* views[D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT] = {};
+	UINT count = 0;
+	for (const auto& target : info.color_targets)
+	{
+		if (count >= D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT)
+			break;
+		views[count++] = target.view.Get();
+		if (target.clear)
+			device_context->ClearRenderTargetView(target.view.Get(), target.clear_value.data());
+	}
+
+	const render_pass_depth_target& depth = info.depth_target;
+	if (depth.view && (depth.clear_depth || depth.clear_stencil))
+	{
+		UINT flags = 0;
+		if (depth.clear_depth)
+			flags |= D3D11_CLEAR_DEPTH;
+		if (depth.clear_stencil)
+			flags |= D3D11_CLEAR_STENCIL;
+		device_context->ClearDepthStencilView(depth.view.Get(), flags, depth.clear_depth_value, depth.clear_stencil_value);
+	}
+	device_context->OMSetRenderTargets(count, views, depth.view.Get());
+}
+
+void render_command_recorder::end_render_pass() const
+{
+	//	@tool 描画先を外す（後のパスでシェーダーリソースとして読む時に、描画先として残らないようにする）
+	ID3D11RenderTargetView* views[D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT] = {};
+	device_context->OMSetRenderTargets(D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT, views, nullptr);
+}
+
+void render_command_recorder::set_render_targets(UINT count, ID3D11RenderTargetView* const* views, ID3D11DepthStencilView* depth_stencil_view) const
+{
+	device_context->OMSetRenderTargets(count, views, depth_stencil_view);
+}
+
+void render_command_recorder::set_viewport(const D3D11_VIEWPORT& viewport) const
+{
+	device_context->RSSetViewports(1, &viewport);
+}
+
+void render_command_recorder::clear_render_target_view(ID3D11RenderTargetView* view, const FLOAT color[4]) const
+{
+	device_context->ClearRenderTargetView(view, color);
+}
+
+void render_command_recorder::clear_depth_stencil_view(ID3D11DepthStencilView* view, UINT clear_flags, FLOAT depth, UINT8 stencil) const
+{
+	device_context->ClearDepthStencilView(view, clear_flags, depth, stencil);
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+void render_command_recorder::draw(UINT vertex_count, UINT start_vertex_location) const
+{
+	device_context->Draw(vertex_count, start_vertex_location);
+}
+
+void render_command_recorder::draw_indexed(UINT index_count, UINT start_index_location, INT base_vertex_location) const
+{
+	device_context->DrawIndexed(index_count, start_index_location, base_vertex_location);
+}
+
+void render_command_recorder::draw_instanced(UINT vertex_count_per_instance, UINT instance_count, UINT start_vertex_location, UINT start_instance_location) const
+{
+	device_context->DrawInstanced(vertex_count_per_instance, instance_count, start_vertex_location, start_instance_location);
+}
+
+void render_command_recorder::draw_instanced_indirect(ID3D11Buffer* args_buffer, UINT aligned_byte_offset) const
+{
+	device_context->DrawInstancedIndirect(args_buffer, aligned_byte_offset);
+}
+
+void render_command_recorder::dispatch(UINT thread_group_x, UINT thread_group_y, UINT thread_group_z) const
+{
+	device_context->Dispatch(thread_group_x, thread_group_y, thread_group_z);
+}
+
+void render_command_recorder::dispatch_indirect(ID3D11Buffer* args_buffer, UINT aligned_byte_offset) const
+{
+	device_context->DispatchIndirect(args_buffer, aligned_byte_offset);
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+void render_command_recorder::update_subresource(ID3D11Resource* resource, UINT subresource, const D3D11_BOX* box, const void* data, UINT row_pitch, UINT depth_pitch) const
+{
+	device_context->UpdateSubresource(resource, subresource, box, data, row_pitch, depth_pitch);
+}
+
+HRESULT render_command_recorder::map_write_discard(ID3D11Resource* resource, D3D11_MAPPED_SUBRESOURCE& out_mapped) const
+{
+	return device_context->Map(resource, 0, D3D11_MAP_WRITE_DISCARD, 0, &out_mapped);
+}
+
+void render_command_recorder::unmap(ID3D11Resource* resource) const
+{
+	device_context->Unmap(resource, 0);
+}
+
+void render_command_recorder::copy_resource(ID3D11Resource* destination, ID3D11Resource* source) const
+{
+	device_context->CopyResource(destination, source);
+}
+
+void render_command_recorder::copy_subresource_region(ID3D11Resource* destination, UINT destination_subresource, UINT x, UINT y, UINT z, ID3D11Resource* source, UINT source_subresource, const D3D11_BOX* source_box) const
+{
+	device_context->CopySubresourceRegion(destination, destination_subresource, x, y, z, source, source_subresource, source_box);
+}
+
+void render_command_recorder::copy_structure_count(ID3D11Buffer* destination, UINT destination_aligned_byte_offset, ID3D11UnorderedAccessView* source) const
+{
+	device_context->CopyStructureCount(destination, destination_aligned_byte_offset, source);
+}
+
+void render_command_recorder::clear_unordered_access_view_uint(ID3D11UnorderedAccessView* view, const UINT values[4]) const
+{
+	device_context->ClearUnorderedAccessViewUint(view, values);
+}
+
+void render_command_recorder::clear_unordered_access_view_float(ID3D11UnorderedAccessView* view, const FLOAT values[4]) const
+{
+	device_context->ClearUnorderedAccessViewFloat(view, values);
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+void render_command_recorder::begin_event(const wchar_t* name) const
+{
+#if defined(USE_IMGUI)
+	if (annotation)
+		annotation->BeginEvent(name);
+#else
+	name;
+#endif	//	defined(USE_IMGUI)
+}
+
+void render_command_recorder::end_event() const
+{
+#if defined(USE_IMGUI)
+	if (annotation)
+		annotation->EndEvent();
+#endif	//	defined(USE_IMGUI)
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+bool render_command_recorder::read_back(const gpu_readback_buffer& target, std::initializer_list<gpu_readback_source> sources, gpu_readback_receiver receiver) const
+{
+	const auto& pool = target.get_pool();
+	if (!pool || sources.size() != pool->part_sizes.size())
+	{
+		_ASSERT_EXPR(false, L"read_back : sources do not match the readback buffer.");
+		return false;
+	}
+
+	gpu_readback_pool::slot* slot = pool->acquire();
+	if (!slot)
+		return false;
+
+	UINT part = 0;
+	for (const auto& source : sources)
+	{
+		ID3D11Buffer* destination = slot->buffers[part++].Get();
+		if (source.structure_count)
+			device_context->CopyStructureCount(destination, 0, source.structure_count);
+		else if (source.resource)
+			device_context->CopyResource(destination, source.resource);
+	}
+
+	gpu_readback_request request;
+	request.pool = pool;
+	request.slot = slot;
+	request.receiver = std::move(receiver);
+	readback_requests.emplace_back(std::move(request));
+	return true;
+}
+
+std::vector<gpu_readback_request> render_command_recorder::take_readback_requests() const
+{
+	std::vector<gpu_readback_request> result;
+	result.swap(readback_requests);
+	return result;
 }

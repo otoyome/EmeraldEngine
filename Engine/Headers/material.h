@@ -2,11 +2,11 @@
 
 #include "texture.h"
 #include "pipeline_state.h"
+#include "Graphics/material_constant_buffer_pool.h"
 
 //	マテリアル
 //	☆ﾃｷﾄｰ('ω')ｰﾄｷﾃ☆
 class material_render_proxy;
-struct gpu_upload_list;
 
 class material
 {
@@ -130,11 +130,9 @@ public:
 			template<class Archive>
 			void serialize(Archive& archive, int version);
 		};
-		bool dirty = true;
 		std::vector<unsigned char> data_buffer;						//	バッファ情報
 		std::vector<subset> subsets;								//	識別子オフセット
 		std::unordered_map<std::string, std::size_t> identifieres;	//	識別子事の番号
-		Microsoft::WRL::ComPtr<ID3D11Buffer> buffer;				//	定数バッファリソース
 
 		template<class Archive>
 		void serialize(Archive& archive, int version);
@@ -258,6 +256,9 @@ public:
 #if defined(USE_IMGUI)
 	constant_buffer_map& get_constant_buffers_for_editor();
 	shader_resource_map& get_shader_resources_for_editor();
+
+	//	@tool エディターで書き換えた定数を転送待ちに積む
+	void apply_constant_buffer_for_editor(std::string_view name);
 #endif	//	defined(USE_IMGUI)
 
 public:
@@ -321,10 +322,6 @@ public:
 	void build();
 
 public:
-	//	変更のあったマテリアルの定数を、フレームの転送リストに登録
-	static void flush_parameters(gpu_upload_list& out_uploads);
-
-public:
 	material& operator =(const material& material);
 
 private:
@@ -337,7 +334,11 @@ private:
 
 	void build_parameters();
 
-	void request_upload();
+	//	@tool 定数バッファの番号を描画側へ返す
+	void release_constant_buffer_handles();
+
+	//	@tool 定数の内容を描画側の転送待ちに積む（次に抽出するフレームの先頭で転送される）
+	void queue_constant_buffer_upload(const std::string& name, const constant_buffer& cb) const;
 
 	void mark_render_proxy_dirty();
 
@@ -366,7 +367,8 @@ private:
 	shader_resource_map shader_resources;
 	constant_buffer_map constant_buffers;
 
-	bool upload_requested = false;
+	//	@tool 定数バッファごとの描画側の番号（GPU バッファの実体は material_constant_buffer_pool が持つ）
+	std::unordered_map<std::string, material_constant_buffer_pool::handle> constant_buffer_handles;
 
 	//	描画側の複製情報
 	UINT render_state_version = 0;

@@ -13,6 +13,7 @@
 #include "system/variable_position_allocator.h"
 
 #include "graphics/cubic_sdf_buffer_pool.h"
+#include "Graphics/gpu_readback.h"
 
 namespace particle_system_item
 {
@@ -354,18 +355,18 @@ public:
 	~compute_particle_system();
 
 	//	更新
-	void update(graphics_context& context, float elapsed_time);
-	void build_primitives(graphics_context& context);
+	void update(render_job_context& context, float elapsed_time);
+	void build_primitives(render_job_context& context);
 
 	//	描画情報を構築
-	void generate_render_data(UINT emitter_id, particle_render_proxy& data);
+	void generate_render_data(UINT emitter_id, particle_draw_item& data);
 
 	//	リセット処理
 	void reset();
 	void reset_emitter(UINT emitter_id);
 
 	//	パーティクルイベント取得
-	void fetch_events(graphics_context& context, std::vector<particle_event>& out_events);
+	void fetch_events(render_job_context& context, std::vector<particle_event>& out_events);
 
 	//	エミッター登録/解除
 	UINT register_emitter(ID3D11Device* device, const particle_system_item::emitter_resource& emitter_resource);
@@ -381,9 +382,6 @@ public:
 
 	//	描画原点から一定以上離れていたらシミュレーション原点を描画原点へ移す
 	void update_simulation_origin(const math::vector3d& render_origin);
-
-private:
-	bool read_particle_event_staging(ID3D11DeviceContext* device_context, UINT slot, bool wait, std::vector<particle_event>& out_events);
 
 private:
 	UINT total_emitter_count;
@@ -455,12 +453,15 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11Buffer> particle_event_buffer;
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> particle_event_shader_resource_view;
 	Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> particle_event_append_uav;
-	static constexpr UINT particle_event_staging_count = 8;	//	読み出し用リング数
-	Microsoft::WRL::ComPtr<ID3D11Buffer> particle_event_staging[particle_event_staging_count];
-	Microsoft::WRL::ComPtr<ID3D11Buffer> particle_event_count_staging[particle_event_staging_count];
-	UINT particle_event_staging_head = 0;	//	読み出し待ち先頭
-	UINT particle_event_staging_pending = 0;	//	読み出し待ち数
-	std::vector<particle_event> particle_event_overflow;	//	同期読み出し済みイベント
+	//	@tool イベントの読み戻し（受け取り関数は提出スレッドで呼ばれ、受け取り箱へ入れる）
+	struct particle_event_inbox
+	{
+		std::mutex mutex;
+		std::vector<particle_event> events;
+		UINT generation = 0;	//	@tool リセットで増やし、それより前に記録した読み戻しを捨てる
+	};
+	gpu_readback_buffer particle_event_readback;
+	std::shared_ptr<particle_event_inbox> particle_event_received = std::make_shared<particle_event_inbox>();
 	Microsoft::WRL::ComPtr<ID3D11Buffer> particle_event_count_buffer;
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> particle_event_count_shader_resource_view;
 

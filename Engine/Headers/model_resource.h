@@ -75,7 +75,7 @@ public:
 			//	以下、シリアライズ対象外データ
 			UINT meshlet_vertex_base = 0;
 			UINT meshlet_triangle_base = 0;
-			std::vector<meshlet_draw_data> meshlet_draw_infos;
+			std::vector<pooled_meshlet> pooled_meshlets;
 
 			bool is_valid() const
 			{
@@ -120,7 +120,7 @@ public:
 		//	以下、シリアライズ対象外データ
 		UINT meshlet_vertex_base = 0;
 		UINT meshlet_triangle_base = 0;
-		std::vector<meshlet_draw_data> meshlet_draw_infos;
+		std::vector<pooled_meshlet> pooled_meshlets;
 
 		template<class Archive>
 		void serialize(Archive& archive, int version);

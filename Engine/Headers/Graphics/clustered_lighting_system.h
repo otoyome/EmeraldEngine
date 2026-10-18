@@ -1,12 +1,14 @@
 #pragma once
 
+#include <atomic>
 #include <memory>
 #include <vector>
 
 #include <d3d11.h>
 #include <wrl.h>
 
-#include "graphics_context.h"
+#include "render_job_context.h"
+#include "Graphics/gpu_readback.h"
 #include "shader.h"
 
 //	クラスタードライティングシステム
@@ -44,13 +46,13 @@ public:
 	~clustered_lighting_system();
 
 	//	対象ライトの収集とバッファの準備
-	void prepare(const render_data_context& render_data, const common_pipeline_states::scene_constants& scene);
+	void prepare(const view_render_data& render_data, const common_pipeline_states::scene_constants& scene);
 
 	//	クラスター構築
-	void build(graphics_context& context);
+	void build(render_job_context& context);
 
 	//	クラスター内のライトでライティングする
-	void render(graphics_context& context);
+	void render(render_job_context& context);
 
 	//	前回以前のライト番号総数を読み出す
 	void read_statistics();
@@ -60,8 +62,11 @@ public:
 	static void capture_settings(render_settings::clustered_lighting_settings& out_settings);
 
 	//	クラスタードライティングで描画するライトか
-	//	@tool 設定は抽出時点の値（render_data_context::settings）を使う
+	//	@tool 設定は抽出時点の値（view_render_data::settings）を使う
 	static bool is_target(const light_render_proxy& light, const render_settings& settings);
+
+	//	@tool クラスターごとのライト数をヒートマップで表示するか（デバッグ機能。USE_IMGUI が無い構成では常に false）
+	static bool is_visualize(const render_settings& settings);
 
 private:
 	void generate_light_buffer(UINT count);
@@ -77,10 +82,8 @@ private:
 	std::shared_ptr<compute_shader> depth_cs;
 	std::shared_ptr<vertex_shader> fullscreen_vs;
 	std::shared_ptr<pixel_shader> lighting_ps;
-	std::shared_ptr<pixel_shader> visualize_ps;
 
 	Microsoft::WRL::ComPtr<ID3D11BlendState> blend_state;
-	Microsoft::WRL::ComPtr<ID3D11BlendState> visualize_blend_state;
 	Microsoft::WRL::ComPtr<ID3D11DepthStencilState> depth_stencil_state;
 	Microsoft::WRL::ComPtr<ID3D11RasterizerState> rasterizer_state;
 
@@ -126,11 +129,16 @@ private:
 	static constexpr UINT readback_count = 3;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> statistics_buffer;
 	Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> statistics_uav;
-	Microsoft::WRL::ComPtr<ID3D11Buffer> statistics_staging[readback_count];
-	bool statistics_pending[readback_count] = {};
-	UINT readback_index = 0;
+	gpu_readback_buffer statistics_readback;	//	@tool ライト番号総数の読み戻し先
+	std::shared_ptr<std::atomic<UINT>> received_index_count = std::make_shared<std::atomic<UINT>>(0);	//	@tool 読み戻しで届いた必要数の最大（提出スレッドで書き込まれる）
 	UINT required_index_count = 0;
 
 	//	今回の描画情報
 	UINT light_count = 0;
+
+#if defined(USE_IMGUI)
+	//	@tool ヒートマップ表示（デバッグ機能）用のシェーダーとブレンドステート
+	std::shared_ptr<pixel_shader> visualize_ps;
+	Microsoft::WRL::ComPtr<ID3D11BlendState> visualize_blend_state;
+#endif	//	defined(USE_IMGUI)
 };

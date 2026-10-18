@@ -122,41 +122,41 @@ void hiz_buffer::resize_buffer(int width, int height)
 	}
 }
 
-void hiz_buffer::build(graphics_context& context)
+void hiz_buffer::build(render_job_context& context)
 {
 	if (!hiz_texture || hiz_mip_count == 0)
 		return;
 
-	auto dc = context.recorder.get_device_context();
+	const auto& recorder = context.recorder;
 
 	//	ミップ0生成
 	hiz_constants constant{};
 	constant.dst_size = hiz_mip_sizes[0];
 	constant.src_size = { static_cast<UINT>(last_width), static_cast<UINT>(last_height) };
-	dc->UpdateSubresource(hiz_constant_buffer.Get(), 0, nullptr, &constant, 0, 0);
-	dc->CSSetConstantBuffers(0, 1, hiz_constant_buffer.GetAddressOf());
-	dc->CSSetShader(hiz_copy_cs->get_shader().Get(), nullptr, 0);
-	dc->CSSetShaderResources(0, 1, context.bind_table.get_texture(common_pipeline_states::scene_depth_map_hash_key)->get_shader_resource_view().GetAddressOf());
-	dc->CSSetUnorderedAccessViews(0, 1, hiz_mip_uavs[0].GetAddressOf(), nullptr);
-	dc->Dispatch((hiz_mip_sizes[0].x + 7) / 8, (hiz_mip_sizes[0].y + 7) / 8, 1);
-	context.clear_unordered_access_views();
-	context.clear_shader_resorce_views();
+	recorder.update_subresource(hiz_constant_buffer.Get(), 0, nullptr, &constant, 0, 0);
+	recorder.set_constant_buffers(shader_stage::compute, 0, 1, hiz_constant_buffer.GetAddressOf());
+	recorder.set_compute_shader(hiz_copy_cs->get_shader().Get());
+	recorder.set_shader_resource_views(shader_stage::compute, 0, 1, context.recorder.get_bind_table().get_texture(common_pipeline_states::scene_depth_map_hash_key)->get_shader_resource_view().GetAddressOf());
+	recorder.set_unordered_access_views(0, 1, hiz_mip_uavs[0].GetAddressOf());
+	recorder.dispatch((hiz_mip_sizes[0].x + 7) / 8, (hiz_mip_sizes[0].y + 7) / 8, 1);
+	context.recorder.clear_unordered_access_views();
+	context.recorder.clear_shader_resorce_views();
 
 	//	ミップ1以降生成
-	dc->CSSetShader(hiz_downsample_cs->get_shader().Get(), nullptr, 0);
+	recorder.set_compute_shader(hiz_downsample_cs->get_shader().Get());
 	for (UINT mip = 1; mip < hiz_mip_count; ++mip)
 	{
 		hiz_constants constant{};
 		constant.dst_size = hiz_mip_sizes[mip];
 		constant.src_size = hiz_mip_sizes[mip - 1];
-		dc->UpdateSubresource(hiz_constant_buffer.Get(), 0, nullptr, &constant, 0, 0);
-		dc->CSSetConstantBuffers(0, 1, hiz_constant_buffer.GetAddressOf());
-		dc->CSSetShaderResources(0, 1, hiz_mip_srvs[mip - 1].GetAddressOf());
-		dc->CSSetUnorderedAccessViews(0, 1, hiz_mip_uavs[mip].GetAddressOf(), nullptr);
-		dc->Dispatch((hiz_mip_sizes[mip].x + 7) / 8, (hiz_mip_sizes[mip].y + 7) / 8, 1);
-		context.clear_unordered_access_views();
-		context.clear_shader_resorce_views();
+		recorder.update_subresource(hiz_constant_buffer.Get(), 0, nullptr, &constant, 0, 0);
+		recorder.set_constant_buffers(shader_stage::compute, 0, 1, hiz_constant_buffer.GetAddressOf());
+		recorder.set_shader_resource_views(shader_stage::compute, 0, 1, hiz_mip_srvs[mip - 1].GetAddressOf());
+		recorder.set_unordered_access_views(0, 1, hiz_mip_uavs[mip].GetAddressOf());
+		recorder.dispatch((hiz_mip_sizes[mip].x + 7) / 8, (hiz_mip_sizes[mip].y + 7) / 8, 1);
+		context.recorder.clear_unordered_access_views();
+		context.recorder.clear_shader_resorce_views();
 	}
 
-	dc->CSSetShader(nullptr, nullptr, 0);
+	recorder.set_compute_shader(nullptr);
 }

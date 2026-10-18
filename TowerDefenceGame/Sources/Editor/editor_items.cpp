@@ -227,7 +227,6 @@ namespace
 							{
 								if (bool_item(name, subset, reinterpret_cast<bool*>(top)))
 								{
-									constant_buffer.dirty = true;
 									edit_flag = true;
 								}
 								break;
@@ -236,7 +235,6 @@ namespace
 							{
 								if (int_item(name, subset, reinterpret_cast<int*>(top)))
 								{
-									constant_buffer.dirty = true;
 									edit_flag = true;
 								}
 								break;
@@ -245,7 +243,6 @@ namespace
 							{
 								if (uint_item(name, subset, reinterpret_cast<UINT*>(top)))
 								{
-									constant_buffer.dirty = true;
 									edit_flag = true;
 								}
 								break;
@@ -254,7 +251,6 @@ namespace
 							{
 								if (float_item(name, subset, reinterpret_cast<float*>(top)))
 								{
-									constant_buffer.dirty = true;
 									edit_flag = true;
 								}
 								break;
@@ -290,7 +286,6 @@ namespace
 						{
 							if (bool_item(key, subset, reinterpret_cast<bool*>(top)))
 							{
-								constant_buffer.dirty = true;
 								edit_flag = true;
 							}
 							break;
@@ -299,7 +294,6 @@ namespace
 						{
 							if (int_item(key, subset, reinterpret_cast<int*>(top)))
 							{
-								constant_buffer.dirty = true;
 								edit_flag = true;
 							}
 							break;
@@ -308,7 +302,6 @@ namespace
 						{
 							if (uint_item(key, subset, reinterpret_cast<UINT*>(top)))
 							{
-								constant_buffer.dirty = true;
 								edit_flag = true;
 							}
 							break;
@@ -317,7 +310,6 @@ namespace
 						{
 							if (float_item(key, subset, reinterpret_cast<float*>(top)))
 							{
-								constant_buffer.dirty = true;
 								edit_flag = true;
 							}
 							break;
@@ -626,6 +618,8 @@ bool editor_items::edit_material(std::shared_ptr<context>& context, material& ma
 
 				if (add_item_function(constant_buffer, identifier.first, subset))
 				{
+					//	@tool ‘‚«Š·‚¦‚½’è”‚ğ“]‘—‘Ò‚¿‚ÉÏ‚Ş
+					material.apply_constant_buffer_for_editor(it.first);
 					edit_flag = true;
 				}
 			}

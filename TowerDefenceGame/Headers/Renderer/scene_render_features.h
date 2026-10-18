@@ -1,18 +1,28 @@
 #pragma once
 
 #include "Renderer/frame_graph.h"
-#include "Renderer/scene_render_targets.h"
 #include "Renderer/scene_renderer_common.h"
 #include "geometric_primitive.h"
 #include "graphics/fast_fourier_transform.h"
 
 namespace scene_rendering
 {
+	//	@tool 視点の最終的な出力先（作り置き。描画中のフレームは複製を持つ）
+	struct scene_output
+	{
+		texture_ptr texture;	//	@tool null はバックバッファ（エディターの画面などはテクスチャへ出力して ImGui で表示する）
+		Microsoft::WRL::ComPtr<ID3D11RenderTargetView> view;
+		D3D11_VIEWPORT viewport{};
+	};
+
 	//	視点のフレーム描画情報
+	//	@tool 視点ごとに引き継ぐ情報は context.current_view_state（scene_view_state）が持つ
 	struct scene_frame
 	{
 		renderer_context context;
-		std::shared_ptr<scene_render_targets> targets;
+		scene_renderer_commons::scene_textures_config config;
+		scene_output output;
+		texture_ptr shadow_map;	//	@tool 方向光源と、アトラスに入らない点光源・スポットライトのシャドウマップ（全視点で共有する）
 		scene_renderer_commons::scene_texture_handles textures;
 	};
 
@@ -171,7 +181,7 @@ namespace scene_rendering
 	void add_scene_passes(frame_graph& graph, scene_frame& frame, const scene_render_features& features);
 
 	//	@tool UI のパスを足す（メイン画面だけに描く）
-	void add_ui_pass(frame_graph& graph, const renderer_context& context, const std::shared_ptr<const scene_render_targets>& targets, const scene_render_features& features);
+	void add_ui_pass(frame_graph& graph, const renderer_context& context, const scene_output& output, const scene_render_features& features);
 
 	//	@tool 共有資源の生成（scene_render_features のコンストラクターから呼ぶ）
 	void initialize_deferred_features(scene_render_features& features);

@@ -1,4 +1,5 @@
 #include	"graphics/cubic_sdf_buffer_pool.h"
+#include	"Graphics/render_command_recorder.h"
 
 cubic_sdf_buffer_pool::cubic_sdf_buffer_pool(ID3D11Device* device, UINT voxel_pool_size, UINT header_capacity)
 {
@@ -61,8 +62,9 @@ cubic_sdf_buffer_pool::~cubic_sdf_buffer_pool()
 	free_header_ids.clear();
 }
 
-uint32_t cubic_sdf_buffer_pool::register_sdf(ID3D11DeviceContext* device_context, const collision::cubic_sdf& sdf)
+uint32_t cubic_sdf_buffer_pool::register_sdf(const collision::cubic_sdf& sdf)
 {
+	std::lock_guard<std::mutex> lock(mutex);
 	if (!sdf.is_valid())
 	{
 		DEBUG_ERROR_CATEGORY(logger::categorys::model, "cubic_sdf_gpu_resource::register_sdf failed : sdf is not valid");
@@ -93,7 +95,8 @@ uint32_t cubic_sdf_buffer_pool::register_sdf(ID3D11DeviceContext* device_context
 	voxel_write_box.bottom = 1;
 	voxel_write_box.front = 0;
 	voxel_write_box.back = 1;
-	device_context->UpdateSubresource(voxel_buffer.Get(), 0, &voxel_write_box, sdf.voxels.data(), voxel_byte_size, 0);
+	const uint8_t* voxel_bytes = reinterpret_cast<const uint8_t*>(sdf.voxels.data());
+	pending_voxel_writes.push_back({ voxel_write_box, std::vector<uint8_t>(voxel_bytes, voxel_bytes + voxel_byte_size) });
 
 	//	ヘッダーバッファ更新
 	sdf_header header;
@@ -113,13 +116,14 @@ uint32_t cubic_sdf_buffer_pool::register_sdf(ID3D11DeviceContext* device_context
 	header_write_box.bottom = 1;
 	header_write_box.front = 0;
 	header_write_box.back = 1;
-	device_context->UpdateSubresource(header_buffer.Get(), 0, &header_write_box, &header, sizeof(sdf_header), 0);
+	dirty_header_ids.push_back(sdf_id);
 
 	return sdf_id;
 }
 
-void cubic_sdf_buffer_pool::unregister_sdf(ID3D11DeviceContext* device_context, uint32_t sdf_id)
+void cubic_sdf_buffer_pool::unregister_sdf(uint32_t sdf_id)
 {
+	std::lock_guard<std::mutex> lock(mutex);
 	if (sdf_id >= headers.size())
 		return;
 
@@ -138,11 +142,12 @@ void cubic_sdf_buffer_pool::unregister_sdf(ID3D11DeviceContext* device_context, 
 	header_write_box.bottom = 1;
 	header_write_box.front = 0;
 	header_write_box.back = 1;
-	device_context->UpdateSubresource(header_buffer.Get(), 0, &header_write_box, &header, sizeof(sdf_header), 0);
+	dirty_header_ids.push_back(sdf_id);
 }
 
-void cubic_sdf_buffer_pool::set_space_origin(ID3D11DeviceContext* device_context, const math::vector3d& origin)
+void cubic_sdf_buffer_pool::set_space_origin(const render_command_recorder& recorder, const math::vector3d& origin)
 {
+	std::lock_guard<std::mutex> lock(mutex);
 	space_origin = origin;
 	for (size_t sdf_id = 0; sdf_id < headers.size(); ++sdf_id)
 	{
@@ -153,5 +158,25 @@ void cubic_sdf_buffer_pool::set_space_origin(ID3D11DeviceContext* device_context
 		header.bounds_min = (world_bounds_min[sdf_id] - space_origin).to_float3();
 		header.bounds_max = (world_bounds_max[sdf_id] - space_origin).to_float3();
 	}
-	device_context->UpdateSubresource(header_buffer.Get(), 0, nullptr, headers.data(), 0, 0);
+	recorder.update_subresource(header_buffer.Get(), 0, nullptr, headers.data(), 0, 0);
+}
+
+void cubic_sdf_buffer_pool::flush_uploads(const render_command_recorder& recorder)
+{
+	std::lock_guard<std::mutex> lock(mutex);
+	for (const auto& write : pending_voxel_writes)
+		recorder.update_subresource(voxel_buffer.Get(), 0, &write.box, write.data.data(), static_cast<UINT>(write.data.size()), 0);
+	pending_voxel_writes.clear();
+
+	//	@tool ヘッダーは今の内容を書く（登録後に基準原点が変わっても正しい値になる）
+	for (uint32_t sdf_id : dirty_header_ids)
+	{
+		D3D11_BOX box = {};
+		box.left = static_cast<UINT>(sizeof(sdf_header) * sdf_id);
+		box.right = box.left + static_cast<UINT>(sizeof(sdf_header));
+		box.bottom = 1;
+		box.back = 1;
+		recorder.update_subresource(header_buffer.Get(), 0, &box, &headers[sdf_id], sizeof(sdf_header), 0);
+	}
+	dirty_header_ids.clear();
 }

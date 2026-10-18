@@ -231,7 +231,10 @@ void    ImGui_ImplWin32_Shutdown()
     IM_ASSERT(bd != nullptr && "No platform backend to shutdown, or already shutdown?");
     ImGuiIO& io = ImGui::GetIO();
 
-    ImGui_ImplWin32_ShutdownPlatformInterface();
+    // [TowerDefenceGame] @tool Only a context using multi-viewports registered the platform window class.
+    // Other contexts (editor windows) must not unregister it while the main context still uses it.
+    if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+        ImGui_ImplWin32_ShutdownPlatformInterface();
 
     // Unload XInput library
 #ifndef IMGUI_IMPL_WIN32_DISABLE_GAMEPAD

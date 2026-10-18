@@ -1,10 +1,12 @@
 #pragma once
 
 #include "input.h"
+#include "System/world_singleton.h"
 
+//	@tool ワールドごとに持つ（set_window で結び付けたウィンドウが前面にある時だけ入力を受け付ける）
 class mouse
 {
-	SINGLETON_DECREATE(mouse)
+	WORLD_SINGLETON(mouse)
 
 public:
 	enum class key_states
@@ -46,17 +48,13 @@ public:
 	bool get_cursol_hide() const;
 
 private:
-	mouse(HWND hwnd);
+	mouse();
 	~mouse();
 
 public:
-	static	inline	void	create_instance(HWND hwnd)
-	{
-		if (!instance_ptr)
-		{
-			instance_ptr = new mouse(hwnd);
-		}
-	}
+	//	@tool 入力を受け取るウィンドウを結び付ける（描画領域の大きさも取り直す）
+	void set_window(HWND hwnd);
+	HWND get_window() const { return hwnd; }
 
 	void set_viewport_size(const math::int2& size);
 
@@ -65,9 +63,11 @@ public:
 	LRESULT window_proccess(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 private:
-	HWND hwnd;
+	HWND hwnd = nullptr;
 	bool window_center_lock;
 	bool cursol_hide;
+	//	@tool 最後に反映したカーソルの表示状態（ワールドごとに持ち、他のワールドの状態と打ち消し合わないようにする）
+	bool cursol_hide_inner;
 	int wheel_value;
 	math::int2 viewport_size;
 	math::int2 move_vector;

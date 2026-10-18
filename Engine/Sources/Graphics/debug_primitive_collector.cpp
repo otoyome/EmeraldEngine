@@ -40,12 +40,12 @@ void debug_primitive_manager::get_container(debug_draw_primitive_container& cont
 	for (UINT index = 0; index < static_cast<int>(debug_draw_primitive_container::line_buffer_id::max); ++index)
 	{
 		container.line_meshes[index].clear();
-		container.line_buffer_datas[index].color_meshs = {};
+		container.line_draw_items[index].color_meshs = {};
 		if (vertices[index].empty())
 			continue;
 
 		auto& main_mesh = container.line_meshes[index].emplace_back();
-		container.line_buffer_datas[index].color_meshs = container.line_meshes[index];
+		container.line_draw_items[index].color_meshs = container.line_meshes[index];
 		auto& view = vertex_buffer_views[index].begin()->second;
 
 		//	•`‰æŒ´“_‚©‚ç‚Ì‘Š‘ÎÀ•W‚É•ÏŠ·‚µ‚Ä“]‘—

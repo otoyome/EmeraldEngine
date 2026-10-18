@@ -1,10 +1,12 @@
 #pragma once
 
 #include "input.h"
+#include "System/world_singleton.h"
 
+//	@tool ワールドごとに持つ（set_window で結び付けたウィンドウか、それが持つウィンドウが前面にある時だけ入力を受け付ける）
 class keyboard
 {
-	SINGLETON(keyboard)
+	WORLD_SINGLETON(keyboard)
 
 public:
 	enum class key_states
@@ -81,8 +83,13 @@ private:
 public:
 	void update_state();
 
+	//	@tool 入力を受け取るウィンドウを結び付ける
+	void set_window(HWND hwnd) { this->hwnd = hwnd; }
+	HWND get_window() const { return hwnd; }
+
 private:
 	states state;
+	HWND hwnd = nullptr;
 };
 
 ENUM_ATTR_BITFLAG(keyboard::key_states);

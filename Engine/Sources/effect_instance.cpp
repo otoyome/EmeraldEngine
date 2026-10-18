@@ -24,7 +24,6 @@ namespace
 		const effect_instance::node& node_data,
 		float elapsed_time,
 		UINT deterministic_seed,
-		ID3D11DeviceContext* device_context,
 		const math::vector3d& simulation_origin,
 		UINT emit_target_system_index = invalid_emitter_id)
 	{
@@ -512,15 +511,15 @@ effect_manager::~effect_manager()
 	cubic_sdf_resource.reset();
 }
 
-uint32_t effect_manager::add_cubic_sdf(ID3D11DeviceContext* device_context, collision::cubic_sdf& sdf)
+uint32_t effect_manager::add_cubic_sdf(collision::cubic_sdf& sdf)
 {
-	return cubic_sdf_resource->register_sdf(device_context, sdf);
+	return cubic_sdf_resource->register_sdf(sdf);
 }
 
-void effect_manager::remove_cubic_sdf(ID3D11DeviceContext* device_context, uint32_t sdf_id)
+void effect_manager::remove_cubic_sdf(uint32_t sdf_id)
 {
 	if (cubic_sdf_resource)
-		cubic_sdf_resource->unregister_sdf(device_context, sdf_id);
+		cubic_sdf_resource->unregister_sdf(sdf_id);
 }
 
 void effect_manager::update(float elapsed_time)
@@ -541,7 +540,7 @@ void effect_manager::update(float elapsed_time)
 }
 
 //	パーティクルのGPU更新
-void effect_manager::update_gpu(graphics_context& context, float elapsed_time)
+void effect_manager::update_gpu(render_job_context& context, float elapsed_time)
 {
 	(void) elapsed_time;
 	if (!particle_system)
@@ -610,7 +609,6 @@ void effect_manager::update_gpu(graphics_context& context, float elapsed_time)
 	}
 
 	//	固定ステップで更新
-	auto dc = context.recorder.get_device_context();
 	for (int step = 0; ; ++step)
 	{
 		//	何か一つでも更新するか判定
@@ -640,7 +638,7 @@ void effect_manager::update_gpu(graphics_context& context, float elapsed_time)
 				//	乱数値を生成
 				UINT seed = instance->get_particle_simulation_step() * 2654435761u + emitter_item.system_index;
 
-				auto data = build_emitter_update_data(*instance, particle_data.particle, node_data, step_elapsed, seed, dc, particle_system->get_simulation_origin(), emit_target);
+				auto data = build_emitter_update_data(*instance, particle_data.particle, node_data, step_elapsed, seed, particle_system->get_simulation_origin(), emit_target);
 				particle_system->update_emitter(emitter_item.system_index, data);
 			}
 
@@ -680,7 +678,7 @@ void effect_manager::get_container(effect_container& effects, decal_container& d
 	effects.clear();
 
 	//	バッファ/マテリアルの配列生成
-	effects.particle_proxies.reserve(256);
+	effects.particle_draw_items.reserve(256);
 
 	//	コンテナ生成
 	for (auto& item : items)
@@ -702,7 +700,7 @@ void effect_manager::get_container(effect_container& effects, decal_container& d
 
 			auto& node_data = item.effect_instance->get_nodes()[decal_data.node_index];
 
-			auto& decal = decals.proxies.emplace_back();
+			auto& decal = decals.draw_items.emplace_back();
 			math::vector3f scale, position;
 			math::quaternionf rotation;
 			math::matrixf(node_data.world_transform).decompose(scale, rotation, position);
@@ -710,7 +708,7 @@ void effect_manager::get_container(effect_container& effects, decal_container& d
 			decal.position = (instance->get_position() + math::vector3d(position) - render_origin).to_float3();
 			decal.rotation = math::rotatorf(rotation);
 			decal.box = collision::bounding_box(math::double3(decal.scale), rotation.to_double4(), math::double3(decal.position));
-			decal.material.material = decal_data.material ? decal_data.material->get_render_proxy() : nullptr;
+			decal.material = decal_data.material ? decal_data.material->get_render_proxy() : nullptr;
 		}
 
 		//	パーティクル描画情報構築
@@ -725,24 +723,24 @@ void effect_manager::get_container(effect_container& effects, decal_container& d
 			auto renderer = particle_data.particle.get_item<particle::item::renderer>();
 			if (renderer && renderer->material)
 			{
-				UINT data_index = static_cast<UINT>(effects.particle_proxies.size());
+				UINT data_index = static_cast<UINT>(effects.particle_draw_items.size());
 
 				//	情報構築
-				auto& data = effects.particle_proxies.emplace_back();
+				auto& data = effects.particle_draw_items.emplace_back();
 				particle_system->generate_render_data(emitter_item.system_index, data);
-				data.material_data.material = renderer->material->get_render_proxy();
+				data.material = renderer->material->get_render_proxy();
 
 				//	色描画登録
 				if (instance->is_flag(effect_instance::flags::color_render))
 				{
-					effects.particle_color_datas.emplace_back(data_index);
+					effects.particle_color_items.emplace_back(data_index);
 				}
 
 				//	影描画登録
 				if (instance->is_flag(effect_instance::flags::shadow_caster) &&
-					data.material_data.material->is_flag(material::flags::shadow_caster))
+					data.material->is_flag(material::flags::shadow_caster))
 				{
-					effects.particle_shadow_datas.emplace_back(data_index);
+					effects.particle_shadow_items.emplace_back(data_index);
 				}
 			}
 		}

@@ -34,14 +34,14 @@ namespace
 	template<class Type>
 	void free_meshlet_data(Type& holder)
 	{
-		if (holder.meshlet_draw_infos.empty())
+		if (holder.pooled_meshlets.empty())
 			return;
 
 		model_buffer_pool_manager::instance()->free_meshlet_data(
 			holder.meshlet_vertex_base, static_cast<UINT>(holder.meshlet_vertices.size()),
 			holder.meshlet_triangle_base, static_cast<UINT>(holder.meshlet_triangles.size()));
 
-		holder.meshlet_draw_infos.clear();
+		holder.pooled_meshlets.clear();
 	}
 
 	template<class Type>
@@ -55,16 +55,16 @@ namespace
 		model_buffer_pool_manager::instance()->build_meshlet_data(holder.meshlet_vertices, holder.meshlet_triangles,
 			holder.meshlet_vertex_base, holder.meshlet_triangle_base);
 
-		holder.meshlet_draw_infos.reserve(holder.meshlets.size());
+		holder.pooled_meshlets.reserve(holder.meshlets.size());
 		for (auto& meshlet : holder.meshlets)
 		{
-			meshlet_draw_data draw_info{};
-			draw_info.vertex_offset = holder.meshlet_vertex_base + meshlet.vertex_offset;
-			draw_info.triangle_offset = holder.meshlet_triangle_base + meshlet.triangle_offset;
-			draw_info.triangle_count = meshlet.triangle_count;
-			draw_info.bounds_center = meshlet.bounds_center;
-			draw_info.bounds_radius = meshlet.bounds_radius;
-			holder.meshlet_draw_infos.emplace_back(draw_info);
+			pooled_meshlet pooled{};
+			pooled.vertex_offset = holder.meshlet_vertex_base + meshlet.vertex_offset;
+			pooled.triangle_offset = holder.meshlet_triangle_base + meshlet.triangle_offset;
+			pooled.triangle_count = meshlet.triangle_count;
+			pooled.bounds_center = meshlet.bounds_center;
+			pooled.bounds_radius = meshlet.bounds_radius;
+			holder.pooled_meshlets.emplace_back(pooled);
 		}
 	}
 }

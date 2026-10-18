@@ -69,13 +69,10 @@
     <ClInclude Include="Headers\texture.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\render_pass.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
     <ClInclude Include="Headers\graphics_utility.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\graphics_context.h">
+    <ClInclude Include="Headers\render_job_context.h">
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="Headers\light.h">
@@ -210,6 +207,9 @@
     <ClInclude Include="Headers\Graphics\render_command_recorder.h">
       <Filter>Headers\Graphics</Filter>
     </ClInclude>
+    <ClInclude Include="Headers\Graphics\gpu_readback.h">
+      <Filter>Headers\Graphics</Filter>
+    </ClInclude>
     <ClInclude Include="Headers\Graphics\pipeline_layout.h">
       <Filter>Headers\Graphics</Filter>
     </ClInclude>
@@ -333,7 +333,16 @@
     <ClInclude Include="Headers\Graphics\scene_view_state.h">
       <Filter>Headers\Graphics</Filter>
     </ClInclude>
+    <ClInclude Include="Headers\Graphics\pooled_texture.h">
+      <Filter>Headers\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Graphics\render_pass_begin_info.h">
+      <Filter>Headers\Graphics</Filter>
+    </ClInclude>
     <ClInclude Include="Headers\Graphics\cubic_sdf_buffer_pool.h">
+      <Filter>Headers\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Graphics\material_constant_buffer_pool.h">
       <Filter>Headers\Graphics</Filter>
     </ClInclude>
     <ClInclude Include="Headers\CoordinateSystem\hierarchy.h">
@@ -362,9 +371,6 @@
     <ClCompile Include="Sources\texture.cpp">
       <Filter>Sources</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\render_pass.cpp">
-      <Filter>Sources</Filter>
-    </ClCompile>
     <ClCompile Include="Sources\light_data.cpp">
       <Filter>Sources</Filter>
     </ClCompile>
@@ -389,7 +395,7 @@
     <ClCompile Include="Sources\pipeline_state.cpp">
       <Filter>Sources</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\graphics_context.cpp">
+    <ClCompile Include="Sources\render_job_context.cpp">
       <Filter>Sources</Filter>
     </ClCompile>
     <ClCompile Include="Sources\camera.cpp">
@@ -456,6 +462,9 @@
       <Filter>Sources\Graphics</Filter>
     </ClCompile>
     <ClCompile Include="Sources\Graphics\render_command_recorder.cpp">
+      <Filter>Sources\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Graphics\gpu_readback.cpp">
       <Filter>Sources\Graphics</Filter>
     </ClCompile>
     <ClCompile Include="Sources\Graphics\pipeline_layout.cpp">
@@ -573,6 +582,9 @@
       <Filter>Sources\Graphics</Filter>
     </ClCompile>
     <ClCompile Include="Sources\Graphics\cubic_sdf_buffer_pool.cpp">
+      <Filter>Sources\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Graphics\material_constant_buffer_pool.cpp">
       <Filter>Sources\Graphics</Filter>
     </ClCompile>
     <ClCompile Include="Sources\CoordinateSystem\hierarchy.cpp">

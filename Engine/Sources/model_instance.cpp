@@ -310,8 +310,8 @@ std::shared_ptr<const model_render_proxy> model_instance::get_render_proxy() con
 		entry.mesh = &mesh;
 		entry.material = proxy->materials[mesh.material_index];
 
-		system_utility::set_bitflag(entry.system_flags, buffer_datas::flags::culling, is_flag(model_instance::flags::culling));
-		system_utility::set_bitflag(entry.system_flags, buffer_datas::flags::static_mesh, mesh.bones.empty());
+		system_utility::set_bitflag(entry.system_flags, mesh_draw_item::flags::culling, is_flag(model_instance::flags::culling));
+		system_utility::set_bitflag(entry.system_flags, mesh_draw_item::flags::static_mesh, mesh.bones.empty());
 		{
 			UINT combined = get_unique_id();
 			combined ^= current_submesh_index + 0x9e3779b9u + (combined << 6) + (combined >> 2);
@@ -323,7 +323,7 @@ std::shared_ptr<const model_render_proxy> model_instance::get_render_proxy() con
 			auto& main_mesh = entry.color_meshs.emplace_back();
 			main_mesh.vertex_buffer_views = &mesh.vertex_buffer_views;
 			main_mesh.primitive_topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-			main_mesh.meshlets = &mesh.meshlet_draw_infos;
+			main_mesh.meshlets = &mesh.pooled_meshlets;
 		}
 
 		if (lod_index == -1)
@@ -337,7 +337,7 @@ std::shared_ptr<const model_render_proxy> model_instance::get_render_proxy() con
 				{
 					sub_mesh.vertex_buffer_views = &mesh.vertex_buffer_views;
 				}
-				sub_mesh.meshlets = lod_mesh.meshlet_draw_infos.empty() ? &mesh.meshlet_draw_infos : &lod_mesh.meshlet_draw_infos;
+				sub_mesh.meshlets = lod_mesh.pooled_meshlets.empty() ? &mesh.pooled_meshlets : &lod_mesh.pooled_meshlets;
 				sub_mesh.primitive_topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 			}
 		}
@@ -350,7 +350,7 @@ std::shared_ptr<const model_render_proxy> model_instance::get_render_proxy() con
 			{
 				sub_mesh.vertex_buffer_views = &mesh.lod_meshs[index].vertex_buffer_views;
 			}
-			sub_mesh.meshlets = mesh.lod_meshs[index].meshlet_draw_infos.empty() ? &mesh.meshlet_draw_infos : &mesh.lod_meshs[index].meshlet_draw_infos;
+			sub_mesh.meshlets = mesh.lod_meshs[index].pooled_meshlets.empty() ? &mesh.pooled_meshlets : &mesh.lod_meshs[index].pooled_meshlets;
 		}
 
 		//	頂点属性の所持判定、属性毎の先頭頂点番号記録
@@ -375,7 +375,7 @@ std::shared_ptr<const model_render_proxy> model_instance::get_render_proxy() con
 			{
 				entry.shadow_mesh.vertex_buffer_views = &mesh.vertex_buffer_views;
 			}
-			entry.shadow_mesh.meshlets = mesh.shadow_mesh.meshlet_draw_infos.empty() ? &mesh.meshlet_draw_infos : &mesh.shadow_mesh.meshlet_draw_infos;
+			entry.shadow_mesh.meshlets = mesh.shadow_mesh.pooled_meshlets.empty() ? &mesh.pooled_meshlets : &mesh.shadow_mesh.pooled_meshlets;
 			entry.shadow_mesh.primitive_topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 		}
 	}
@@ -397,11 +397,9 @@ void model_instance_manger::get_container(mesh_container& container, const math:
 	PreviousNodeWorldTransforms.resize(common_pipeline_states::mesh_bone_max);
 
 	//	バッファ/マテリアルの配列生成
-	container.buffer_datas.clear();
-	container.buffer_datas.reserve(256);
-	container.material_datas.clear();
+	container.draw_items.clear();
+	container.draw_items.reserve(256);
 	container.keep_alive_objects.clear();
-	container.material_datas.reserve(256);
 
 	//	メッシュコンテナ生成
 	auto it = instances.begin();
@@ -501,16 +499,16 @@ void model_instance_manger::get_container(mesh_container& container, const math:
 
 			//	バッファ情報構築
 			//	@tool LOD・影メッシュ・フラグはプロキシのものを写す
-			auto& buffer_data = container.buffer_datas.emplace_back();
-			UINT buffer_index = static_cast<UINT>(container.buffer_datas.size() - 1);
-			buffer_data.lod_distance_range = instance->get_lod_distance_range();
-			buffer_data.bounds_min = bounds_min;
-			buffer_data.bounds_max = bounds_max;
-			buffer_data.world_transform = (NodeWorldTransforms[mesh.node_index]).to_float4x4();
-			buffer_data.system_flags = entry.system_flags;
-			buffer_data.unique_id = entry.unique_id;
-			buffer_data.color_meshs = entry.color_meshs;	//	@tool プロキシのものを参照する（プロキシは keep_alive_objects で保持）
-			buffer_data.shadow_mesh = entry.shadow_mesh;
+			auto& draw_item = container.draw_items.emplace_back();
+			const std::size_t item_index = container.draw_items.size() - 1;
+			draw_item.lod_distance_range = instance->get_lod_distance_range();
+			draw_item.bounds_min = bounds_min;
+			draw_item.bounds_max = bounds_max;
+			draw_item.world_transform = (NodeWorldTransforms[mesh.node_index]).to_float4x4();
+			draw_item.system_flags = entry.system_flags;
+			draw_item.unique_id = entry.unique_id;
+			draw_item.color_meshs = entry.color_meshs;	//	@tool プロキシのものを参照する（プロキシは keep_alive_objects で保持）
+			draw_item.shadow_mesh = entry.shadow_mesh;
 
 			//	モーフバッファ登録
 			//	@tool 重みで対象が変わるので毎回求める
@@ -531,7 +529,7 @@ void model_instance_manger::get_container(mesh_container& container, const math:
 						if (morph_it == mesh.morph_indices.end())
 							continue;
 
-						auto& morph_mesh = buffer_data.morph_meshes.emplace_back();
+						auto& morph_mesh = draw_item.morph_meshes.emplace_back();
 						morph_mesh.vertex_buffer_views = &mesh.morph_meshes[morph_it->second].vertex_buffer_views;
 						morph_mesh.weight = morph.weight;
 						break;
@@ -544,10 +542,10 @@ void model_instance_manger::get_container(mesh_container& container, const math:
 				//	@tool 頂点属性の情報はプロキシで求めてある
 				common_pipeline_states::primitive_header& header = container.primitive_header_scratch.emplace_back(entry.header);
 
-				if (!buffer_data.color_meshs.empty())
+				if (!draw_item.color_meshs.empty())
 				{
 					//	モーフ重み
-					for (auto& morph_mesh : buffer_data.morph_meshes)
+					for (auto& morph_mesh : draw_item.morph_meshes)
 					{
 						if (morph_mesh.vertex_buffer_views->find(position_semantic) != morph_mesh.vertex_buffer_views->end())
 						{
@@ -587,25 +585,18 @@ void model_instance_manger::get_container(mesh_container& container, const math:
 			}
 
 			//	マテリアル情報構築
-			auto& material_data = container.material_datas.emplace_back();
-			UINT material_index = static_cast<UINT>(container.material_datas.size() - 1);
 			//	@tool 描画側にはマテリアルの複製を渡す
-			material_data.material = entry.material;
+			draw_item.material = entry.material;
 
-			//	描画情報構築
-			container.draw_datas.emplace_back();
-			auto& draw_data = container.draw_datas.back();
-			draw_data.buffer_index = buffer_index;
-			draw_data.material_index = material_index;
 			if (instance->is_flag(model_instance::flags::color_render))
 			{
-				container.color_datas.emplace_back(container.draw_datas.size() - 1);
+				container.color_items.emplace_back(item_index);
 			}
 
 			//	影描画するなら登録
 			if (entry.shadow_caster)
 			{
-				container.shadow_datas.emplace_back(container.draw_datas.size() - 1);
+				container.shadow_items.emplace_back(item_index);
 			}
 		}
 

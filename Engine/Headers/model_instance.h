@@ -18,9 +18,9 @@ struct model_render_proxy
 	{
 		const model_resource::mesh* mesh = nullptr;
 		UINT unique_id = 0;
-		UINT system_flags = 0;									//	buffer_datas::flags
-		std::vector<buffer_datas::sub_mesh> color_meshs;		//	LOD 込み（モーフは抽出時に先頭へ足す）
-		buffer_datas::sub_mesh shadow_mesh;						//	影を生成しない場合は vertex_buffer_views が null
+		UINT system_flags = 0;									//	mesh_draw_item::flags
+		std::vector<mesh_draw_item::sub_mesh> color_meshs;		//	LOD 込み（モーフは抽出時に先頭へ足す）
+		mesh_draw_item::sub_mesh shadow_mesh;						//	影を生成しない場合は vertex_buffer_views が null
 		bool shadow_caster = false;
 		common_pipeline_states::primitive_header header{};		//	頂点属性の情報（モーフ・ボーンは抽出時に埋める）
 		std::shared_ptr<const material_render_proxy> material;

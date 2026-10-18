@@ -1,5 +1,6 @@
 #include "shader.h"
 #include "Graphics/fast_fourier_transform.h"
+#include "Graphics/render_command_recorder.h"
 
 namespace
 {
@@ -104,25 +105,25 @@ fast_fourier_transform::~fast_fourier_transform()
 {
 }
 
-void fast_fourier_transform::clear_uavs(ID3D11DeviceContext* immediate_context,
+void fast_fourier_transform::clear_uavs(const render_command_recorder& recorder,
 										 math::float4 real_clear_value,
 										 math::float4 imaginary_clear_value)
 {
 	auto* real_uav = complex_number_textures[static_cast<int>(textures::real0)]->get_unordered_access_view().Get();
 	auto* imaginary_uav = complex_number_textures[static_cast<int>(textures::imaginary0)]->get_unordered_access_view().Get();
-	immediate_context->ClearUnorderedAccessViewFloat(real_uav, &real_clear_value.x);
-	immediate_context->ClearUnorderedAccessViewFloat(imaginary_uav, &imaginary_clear_value.x);
+	recorder.clear_unordered_access_view_float(real_uav, &real_clear_value.x);
+	recorder.clear_unordered_access_view_float(imaginary_uav, &imaginary_clear_value.x);
 	current_texture_index	= 0;
 	next_texture_index		= 1;
 }
 
-void fast_fourier_transform::solve(ID3D11DeviceContext* immediate_context, modes mode)
+void fast_fourier_transform::solve(const render_command_recorder& recorder, modes mode)
 {
-	solve_core(immediate_context, mode, directions::row);
-	solve_core(immediate_context, mode, directions::col);
+	solve_core(recorder, mode, directions::row);
+	solve_core(recorder, mode, directions::col);
 }
 
-void fast_fourier_transform::solve_core(ID3D11DeviceContext* immediate_context, modes mode, directions direction)
+void fast_fourier_transform::solve_core(const render_command_recorder& recorder, modes mode, directions direction)
 {
 	ID3D11ShaderResourceView* setSRV[]	=
 	{
@@ -134,17 +135,17 @@ void fast_fourier_transform::solve_core(ID3D11DeviceContext* immediate_context, 
 		complex_number_textures[static_cast<int>(textures::real0) + 2 * next_texture_index]->get_unordered_access_view().Get(),
 		complex_number_textures[static_cast<int>(textures::imaginary0) + 2 * next_texture_index]->get_unordered_access_view().Get(),
 	};
-	immediate_context->CSSetShader(cs[static_cast<int>(mode)][static_cast<int>(direction)]->get_shader().Get(), nullptr, 0);
-	immediate_context->CSSetShaderResources(0, sizeof(setSRV) / sizeof(setSRV[0]), setSRV);
-	immediate_context->CSSetUnorderedAccessViews(0, sizeof(setUAV) / sizeof(setUAV[0]), setUAV, nullptr);
+	recorder.set_compute_shader(cs[static_cast<int>(mode)][static_cast<int>(direction)]->get_shader().Get());
+	recorder.set_shader_resource_views(shader_stage::compute, 0, sizeof(setSRV) / sizeof(setSRV[0]), setSRV);
+	recorder.set_unordered_access_views(0, sizeof(setUAV) / sizeof(setUAV[0]), setUAV);
 
-	immediate_context->Dispatch(1, texture_sizes[static_cast<int>(texture_size)], 1);
+	recorder.dispatch(1, texture_sizes[static_cast<int>(texture_size)], 1);
 
 	ID3D11ShaderResourceView* clear_srv[] = {nullptr, nullptr};
 	ID3D11UnorderedAccessView* clear_uav[] = {nullptr, nullptr};
-	immediate_context->CSSetShader( nullptr, nullptr, 0 );
-	immediate_context->CSSetShaderResources(0, 2, clear_srv);
-	immediate_context->CSSetUnorderedAccessViews(0, 2, clear_uav, nullptr);
+	recorder.set_compute_shader(nullptr);
+	recorder.set_shader_resource_views(shader_stage::compute, 0, 2, clear_srv);
+	recorder.set_unordered_access_views(0, 2, clear_uav);
 
 	int temp = current_texture_index;
 	current_texture_index = next_texture_index;

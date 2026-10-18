@@ -63,6 +63,12 @@
     <Filter Include="Sources\Editor">
       <UniqueIdentifier>{a4cfdceb-cf85-4eb2-a9d4-e863b39b7892}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Headers\Framework">
+      <UniqueIdentifier>{113db1a3-ddd7-4319-a3d3-a101a6030401}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Sources\Framework">
+      <UniqueIdentifier>{ee40789d-18d3-4f56-9a57-5134cc3bf162}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Headers\Object">
       <UniqueIdentifier>{856b83e9-0580-4d3d-83b5-6640fc2fc78d}</UniqueIdentifier>
     </Filter>
@@ -305,11 +311,26 @@
     <ClCompile Include="Sources\PipelineState\post_process_pipeline_state.cpp">
       <Filter>Sources\PipelineState</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\framework_imgui.cpp">
-      <Filter>Sources</Filter>
+    <ClCompile Include="Sources\Editor\editor_host.cpp">
+      <Filter>Sources\Editor</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\framework_console_window.cpp">
-      <Filter>Sources</Filter>
+    <ClCompile Include="Sources\Editor\editor_host_console_window.cpp">
+      <Filter>Sources\Editor</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Editor\editor_window.cpp">
+      <Filter>Sources\Editor</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Editor\imgui_present.cpp">
+      <Filter>Sources\Editor</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Framework\app_window.cpp">
+      <Filter>Sources\Framework</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Framework\asset_watcher.cpp">
+      <Filter>Sources\Framework</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Renderer\render_system.cpp">
+      <Filter>Sources\Renderer</Filter>
     </ClCompile>
     <ClCompile Include="Sources\PipelineState\fullscreen_quad_pipeline_state.cpp">
       <Filter>Sources\PipelineState</Filter>
@@ -571,11 +592,26 @@
     <ClInclude Include="Headers\framework.h">
       <Filter>Headers</Filter>
     </ClInclude>
+    <ClInclude Include="Headers\Editor\editor_host.h">
+      <Filter>Headers\Editor</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Editor\editor_window.h">
+      <Filter>Headers\Editor</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Editor\imgui_present.h">
+      <Filter>Headers\Editor</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Framework\app_window.h">
+      <Filter>Headers\Framework</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Framework\asset_watcher.h">
+      <Filter>Headers\Framework</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Renderer\render_system.h">
+      <Filter>Headers\Renderer</Filter>
+    </ClInclude>
     <ClInclude Include="Headers\Scenes\load_shader_scene.h">
       <Filter>Headers\Scenes</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Renderer\scene_render_targets.h">
-      <Filter>Headers\Renderer</Filter>
     </ClInclude>
     <ClInclude Include="Headers\PipelineState\skybox_pipeline_state.h">
       <Filter>Headers\PipelineState</Filter>

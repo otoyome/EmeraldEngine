@@ -69,9 +69,11 @@ bool camera_manager::select_view(view_selection& selection)
 		game_view = source->parameters;
 
 	//	ã‘‚«Ž‹“_‚ª‚ ‚ê‚Î—Dæ‚·‚é
-	if (auto override_source = override_view.lock(); override_source && override_source->is_active())
-		source = override_source;
-
+	{
+		auto override_source = override_view.lock();
+		if (override_source && override_source->is_active())
+			source = override_source;
+	}
 	if (!source)
 		return false;
 

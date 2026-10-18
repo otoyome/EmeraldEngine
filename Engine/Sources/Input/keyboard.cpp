@@ -88,8 +88,12 @@ keyboard::~keyboard()
 
 void keyboard::update_state()
 {
+	//	@tool 結び付けたウィンドウ（と、それが持つ ImGui の別ウィンドウ）が前面にない時は、全てのキーを離した扱いにする
+	const HWND foreground = ::GetForegroundWindow();
+	const bool focused = hwnd && foreground && (foreground == hwnd || ::GetWindow(foreground, GW_OWNER) == hwnd);
+
 	BYTE input_data[256];
-	if (!::GetKeyboardState(input_data))
+	if (!focused || !::GetKeyboardState(input_data))
 	{
 		memset(input_data, 0, sizeof(input_data));
 	}

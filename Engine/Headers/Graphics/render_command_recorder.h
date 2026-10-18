@@ -3,14 +3,17 @@
 #include "Graphics/immediate_constant_allocator.h"
 #include "Graphics/binding_table.h"
 #include "Graphics/pipeline_layout.h"
+#include "Graphics/gpu_readback.h"
 
 #include <array>
 #include <cstdint>
+#include <memory>
 #include <unordered_map>
 
 class graphics_pipeline_state;
 class material_render_proxy;
-struct buffer_datas;
+struct mesh_draw_item;
+struct render_pass_begin_info;
 
 //	描画ステートの上書き設定
 struct render_state_overrides
@@ -24,10 +27,26 @@ struct render_state_overrides
 class render_command_recorder
 {
 public:
-	//	記録の開始
-	void begin(ID3D11DeviceContext* device_context, ID3D11DeviceContext1* device_context1, immediate_constant_allocator* constant_allocator);
+	//	@tool 記録に使うデバイスコンテキストを受け取り、記録用の資源を作る（コンテキストごとに1回）
+	void initialize(const Microsoft::WRL::ComPtr<ID3D11DeviceContext>& device_context);
 
-	ID3D11DeviceContext* get_device_context() const { return device_context; }
+	//	記録の開始
+	void begin();
+
+	//	@tool 記録の終了（ジョブで設定した割り当て表などを手放す）
+	void end();
+
+	//	@tool deferred context で記録した内容をコマンドリストにする
+	Microsoft::WRL::ComPtr<ID3D11CommandList> finish_command_list() const;
+
+public:
+	//	@tool リソース割り当て表（set_pipeline / bind_draw はこの表から割り当てる）
+	resource_view_bind_table& get_bind_table() { return bind_table; }
+	const resource_view_bind_table& get_bind_table() const { return bind_table; }
+
+	//	@tool 描画ステートの上書き設定（bind_draw で使う）
+	render_state_overrides& get_render_state_overrides() { return state_overrides; }
+	const render_state_overrides& get_render_state_overrides() const { return state_overrides; }
 
 public:
 	//	ステート設定（同じものの再設定は省く）
@@ -43,10 +62,11 @@ public:
 	void clear_vertex_buffer() const;
 	void clear_index_buffer() const;
 	void clear_render_target_slots() const;
-	void clear_constant_buffers(int start_slot, int num) const;
-	void clear_shader_resorce_views(int start_slot, int num) const;
-	void clear_unordered_access_views(int start_slot, int num) const;
-	void clear_sampler(int start_slot, int num) const;
+	void clear_constant_buffers(int start_slot = 0, int num = D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT) const;
+	void clear_shader_resorce_views(int start_slot = 0, int num = D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT) const;
+	//	FEATURELEVELが11.1ならnumはD3D11_1_UAV_SLOT_COUNTになる
+	void clear_unordered_access_views(int start_slot = 0, int num = 8) const;
+	void clear_sampler(int start_slot = 0, int num = D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT) const;
 
 public:
 	//	定数を揮発性定数バッファへ書き込み、その範囲を返す
@@ -68,22 +88,86 @@ public:
 	//	@tool set_pipeline → (描画毎に bind_draw → 描画) → end_pipeline の順に呼ぶ
 
 	//	@tool シェーダー・固定のステートを設定し、割り当て表と固定のリソースを割り当てる
-	void set_pipeline(const graphics_pipeline_state& pipeline, const resource_view_bind_table& bindings) const;
+	void set_pipeline(const graphics_pipeline_state& pipeline) const;
 
 	//	@tool 描画毎の設定（マテリアル由来のステート、割り当て表 → マテリアルの順の割り当て、パラメーター定数、描画単位の定数）
-	void bind_draw(const graphics_pipeline_state& pipeline, const resource_view_bind_table& bindings, const material_render_proxy& material, const buffer_datas* buffer_data, const render_state_overrides& overrides) const;
+	void bind_draw(const graphics_pipeline_state& pipeline, const material_render_proxy& material, const mesh_draw_item* draw_item) const;
 
 	//	@tool パイプラインの使用終了（割り当てを全て外す）
 	void end_pipeline() const;
+
+public:
+	//	@tool 以下は D3D11 の呼び出しを包むだけのもの（重複設定の省略も、割り当ての記録もしない）
+	//	@tool 描画コードは device context を直接触らず、記録器を通して命令を積む
+
+	//	@tool シェーダーの設定
+	void set_vertex_shader(ID3D11VertexShader* shader) const;
+	void set_hull_shader(ID3D11HullShader* shader) const;
+	void set_domain_shader(ID3D11DomainShader* shader) const;
+	void set_geometry_shader(ID3D11GeometryShader* shader) const;
+	void set_pixel_shader(ID3D11PixelShader* shader) const;
+	void set_compute_shader(ID3D11ComputeShader* shader) const;
+	void set_input_layout(ID3D11InputLayout* layout) const;
+
+	//	@tool 資源の割り当て（番号をまとめて設定する）
+	void set_constant_buffers(shader_stage stage, UINT start_slot, UINT count, ID3D11Buffer* const* buffers) const;
+	void set_shader_resource_views(shader_stage stage, UINT start_slot, UINT count, ID3D11ShaderResourceView* const* views) const;
+	void set_samplers(shader_stage stage, UINT start_slot, UINT count, ID3D11SamplerState* const* samplers) const;
+	void set_unordered_access_views(UINT start_slot, UINT count, ID3D11UnorderedAccessView* const* views, const UINT* initial_counts = nullptr) const;
+
+	//	@tool 描画先
+	void begin_render_pass(const render_pass_begin_info& info) const;
+	void end_render_pass() const;
+	void set_render_targets(UINT count, ID3D11RenderTargetView* const* views, ID3D11DepthStencilView* depth_stencil_view) const;
+	void set_viewport(const D3D11_VIEWPORT& viewport) const;
+	void clear_render_target_view(ID3D11RenderTargetView* view, const FLOAT color[4]) const;
+	void clear_depth_stencil_view(ID3D11DepthStencilView* view, UINT clear_flags, FLOAT depth, UINT8 stencil) const;
+
+	//	@tool 描画・実行
+	void draw(UINT vertex_count, UINT start_vertex_location) const;
+	void draw_indexed(UINT index_count, UINT start_index_location, INT base_vertex_location) const;
+	void draw_instanced(UINT vertex_count_per_instance, UINT instance_count, UINT start_vertex_location, UINT start_instance_location) const;
+	void draw_instanced_indirect(ID3D11Buffer* args_buffer, UINT aligned_byte_offset) const;
+	void dispatch(UINT thread_group_x, UINT thread_group_y, UINT thread_group_z) const;
+	void dispatch_indirect(ID3D11Buffer* args_buffer, UINT aligned_byte_offset) const;
+
+	//	@tool 資源の書き込み・コピー・クリア
+	void update_subresource(ID3D11Resource* resource, UINT subresource, const D3D11_BOX* box, const void* data, UINT row_pitch, UINT depth_pitch) const;
+	HRESULT map_write_discard(ID3D11Resource* resource, D3D11_MAPPED_SUBRESOURCE& out_mapped) const;
+	void unmap(ID3D11Resource* resource) const;
+	void copy_resource(ID3D11Resource* destination, ID3D11Resource* source) const;
+	void copy_subresource_region(ID3D11Resource* destination, UINT destination_subresource, UINT x, UINT y, UINT z, ID3D11Resource* source, UINT source_subresource, const D3D11_BOX* source_box) const;
+	void copy_structure_count(ID3D11Buffer* destination, UINT destination_aligned_byte_offset, ID3D11UnorderedAccessView* source) const;
+	void clear_unordered_access_view_uint(ID3D11UnorderedAccessView* view, const UINT values[4]) const;
+	void clear_unordered_access_view_float(ID3D11UnorderedAccessView* view, const FLOAT values[4]) const;
+
+	//	@tool デバッグイベント（グラフィックスデバッガー用）
+	void begin_event(const wchar_t* name) const;
+	void end_event() const;
+
+	//	@tool 読み戻し（コピーを積むだけ。結果は提出スレッドで receiver に届く。即時・遅延のどちらのジョブでも同じ）
+	//	@tool 読み戻し先の組が足りなければ false（その回は読み戻さない）
+	bool read_back(const gpu_readback_buffer& target, std::initializer_list<gpu_readback_source> sources, gpu_readback_receiver receiver) const;
+
+	//	@tool 記録した読み戻し要求を取り出す（ジョブの終了後に executor が呼ぶ）
+	std::vector<gpu_readback_request> take_readback_requests() const;
 
 private:
 	//	@tool マテリアルの設定からステートを選んで設定する
 	void apply_material_render_states(const graphics_pipeline_state& pipeline, const material_render_proxy& material, const render_state_overrides& overrides) const;
 
 private:
-	ID3D11DeviceContext* device_context = nullptr;
-	ID3D11DeviceContext1* device_context1 = nullptr;
-	immediate_constant_allocator* constant_allocator = nullptr;
+	Microsoft::WRL::ComPtr<ID3D11DeviceContext> device_context;
+	Microsoft::WRL::ComPtr<ID3D11DeviceContext1> device_context1;
+	Microsoft::WRL::ComPtr<ID3DUserDefinedAnnotation> annotation;	//	@tool デバッグイベント用（取得できなければ空）
+	std::unique_ptr<immediate_constant_allocator> constant_allocator;
+
+	//	@tool ジョブ中の割り当て表と描画ステートの上書き設定（begin で空にする）
+	resource_view_bind_table bind_table;
+	render_state_overrides state_overrides;
+
+	//	@tool このジョブで記録した読み戻し要求
+	mutable std::vector<gpu_readback_request> readback_requests;
 
 	//	キャッシュ情報
 	mutable ID3D11RasterizerState* cache_rasterizer_state = nullptr;

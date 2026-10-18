@@ -18,12 +18,13 @@ UINT render_command_list::reserve(std::string_view name, std::string_view owner_
 	return static_cast<UINT>(items.size() - 1);
 }
 
-void render_command_list::set_command_list(UINT index, const Microsoft::WRL::ComPtr<ID3D11CommandList>& command_list)
+void render_command_list::set_command_list(UINT index, const Microsoft::WRL::ComPtr<ID3D11CommandList>& command_list, std::vector<gpu_readback_request>&& readbacks)
 {
 	{
 		std::lock_guard<std::mutex> lock(mutex);
 		auto& target = items[index];
 		target.command_list = command_list;
+		target.readbacks = std::move(readbacks);
 		target.ready = true;
 		--pending_recordings;
 	}
@@ -56,6 +57,9 @@ void render_command_list::execute(ID3D11DeviceContext* immediate_context)
 	//	常駐GPUスコープ計測フレーム開始
 	DETAIL_PROFILE_GPU_BEGIN_FRAME();
 
+	//	@tool 前のフレームまでの読み戻しで、GPU の処理が終わったものを受け取る
+	gpu_readback_queue::instance().poll(immediate_context);
+
 	for (std::size_t index = 0; ; ++index)
 	{
 		item* target = nullptr;
@@ -82,6 +86,7 @@ void render_command_list::execute(ID3D11DeviceContext* immediate_context)
 		if (target->command_list)
 		{
 			immediate_context->ExecuteCommandList(target->command_list.Get(), false);
+			gpu_readback_queue::instance().submit(std::move(target->readbacks));
 		}
 		else if (target->immediate_task)
 		{
@@ -105,47 +110,35 @@ render_job_executor::render_job_executor(UINT num_threads)
 	HRESULT hr;
 	assert(num_threads != -1);
 
-	//	@tool immediate context 用の記録資源
-	create_recording_resources(render_data::instance()->get_immediate_context().Get(), immediate_recording_resources);
+	//	@tool immediate context 用の記録器
+	immediate_recorder.initialize(render_data::instance()->get_immediate_context());
 
 	//	スレッド生成
 	worker_threads.reserve(num_threads);
-	deferred_contexts.reserve(num_threads);
-	deferred_recording_resources.resize(num_threads);
+	deferred_recorders.reserve(num_threads);
 	for (UINT index = 0; index < num_threads; ++index)
 	{
 		Microsoft::WRL::ComPtr<ID3D11DeviceContext> context;
 		hr = render_data::instance()->get_device()->CreateDeferredContext(0, context.GetAddressOf());
-		deferred_contexts.emplace_back(context);
-		//	@tool スレッド開始前に、そのスレッド用の記録資源を作っておく
-		create_recording_resources(context.Get(), deferred_recording_resources[index]);
-		worker_threads.emplace_back(std::thread(&render_job_executor::run, this, index));
+		//	@tool スレッド開始前に、そのスレッド用の記録器を作っておく
+		auto& recorder = deferred_recorders.emplace_back(std::make_unique<render_command_recorder>());
+		recorder->initialize(context);
+		worker_threads.emplace_back(std::thread(&render_job_executor::run, this, recorder.get()));
 	}
 }
 
-void render_job_executor::create_recording_resources(ID3D11DeviceContext* device_context, recording_resources& out_resources)
-{
-	HRESULT hr = device_context->QueryInterface(IID_PPV_ARGS(out_resources.device_context1.ReleaseAndGetAddressOf()));
-	_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
-
-	auto render_data = render_data::instance();
-	out_resources.constant_allocator = std::make_unique<immediate_constant_allocator>();
-	out_resources.constant_allocator->initialize(render_data->get_device().Get(), render_data->get_feature_supports().constant_buffer_offsetting);
-}
-
-void render_job_executor::setup_graphics_context(graphics_context& g_context, ID3D11DeviceContext* device_context, recording_resources& resources, const renderer_context& context)
+void render_job_executor::setup_job_context(render_job_context& job_context, const renderer_context& context)
 {
 	//	新しいコマンドリストの記録開始
-	resources.constant_allocator->begin();
-	g_context.recorder.begin(device_context, resources.device_context1.Get(), resources.constant_allocator.get());
+	job_context.recorder.begin();
 
-	g_context.render_data = context.render_data;
-	g_context.scene_constant = context.scene_constant;
-	g_context.scene_constant_buffer = context.scene_constant_buffer;
-	g_context.clustered_lighting = context.current_view_state ? context.current_view_state->get_clustered_lighting() : nullptr;
+	job_context.render_data = context.render_data;
+	job_context.scene_constant = context.scene_constant;
+	job_context.scene_constant_buffer = context.scene_constant_buffer;
+	job_context.clustered_lighting = context.current_view_state ? context.current_view_state->get_clustered_lighting() : nullptr;
 
 	//	リソースをテーブルにバインド
-	g_context.register_frame_bind_table();
+	job_context.register_frame_bind_table();
 }
 
 render_job_executor::~render_job_executor()
@@ -186,17 +179,20 @@ void render_job_executor::execute(std::function<render_job_function> task, std::
 			[task, name_text, owner_text, context, this, command_list = current_command_list.get(), index]()
 			{
 				//	描画コマンド積み込み
-				graphics_context g_context;
-				setup_graphics_context(g_context, render_data::instance()->get_immediate_context().Get(), this->immediate_recording_resources, context);
-				g_context.clear_render_target_slots();
-				g_context.clear_shader_resorce_views();
-				g_context.clear_unordered_access_views();
-				g_context.debug_begin_event(system_utility::convert_utf16(name_text).data());
+				render_command_recorder& recorder = this->immediate_recorder;
+				render_job_context job_context(recorder);
+				setup_job_context(job_context, context);
+				recorder.clear_render_target_slots();
+				recorder.clear_shader_resorce_views();
+				recorder.clear_unordered_access_views();
+				recorder.begin_event(system_utility::convert_utf16(name_text).data());
 				{
 					DETAIL_PROFILE_RENDER_JOB_SCOPE(owner_text, name_text);
-					task(g_context);
+					task(job_context);
 				}
-				g_context.debug_end_event();
+				recorder.end_event();
+				recorder.end();
+				gpu_readback_queue::instance().submit(recorder.take_readback_requests());
 			}, wait_for_recordings);
 		return;
 	}
@@ -205,22 +201,21 @@ void render_job_executor::execute(std::function<render_job_function> task, std::
 		std::lock_guard<std::mutex> lock_guard(mutex);
 		std::shared_ptr<render_command_list> render_command_list = current_command_list;
 		tasks.push(
-			[task, name_text, owner_text, context, render_command_list, index](ID3D11DeviceContext* deferred_context, recording_resources& resources)
+			[task, name_text, owner_text, context, render_command_list, index](render_command_recorder& recorder)
 			{
 				//	描画コマンド積み込み
-				graphics_context g_context;
-				setup_graphics_context(g_context, deferred_context, resources, context);
-				g_context.debug_begin_event(system_utility::convert_utf16(name_text).data());
+				render_job_context job_context(recorder);
+				setup_job_context(job_context, context);
+				recorder.begin_event(system_utility::convert_utf16(name_text).data());
 				{
 					DETAIL_PROFILE_RENDER_JOB_SCOPE(owner_text, name_text);
-					task(g_context);
+					task(job_context);
 				}
-				g_context.debug_end_event();
+				recorder.end_event();
+				recorder.end();
 
 				//	コマンドリスト生成
-				Microsoft::WRL::ComPtr<ID3D11CommandList> command_list;
-				deferred_context->FinishCommandList(false, command_list.GetAddressOf());
-				render_command_list->set_command_list(index, command_list);
+				render_command_list->set_command_list(index, recorder.finish_command_list(), recorder.take_readback_requests());
 			});
 	}
 
@@ -235,13 +230,11 @@ std::shared_ptr<render_command_list> render_job_executor::end_command_list()
 	return command_list;
 }
 
-void render_job_executor::run(UINT context_index)
+void render_job_executor::run(render_command_recorder* recorder)
 {
-	auto deferred_context = deferred_contexts[context_index];
-	auto& recording = deferred_recording_resources[context_index];
 	while (true)
 	{
-		std::function<void(ID3D11DeviceContext*, recording_resources&)> task_function;
+		std::function<void(render_command_recorder&)> task_function;
 
 		{
 			std::unique_lock<std::mutex> unique_lock(mutex);
@@ -253,7 +246,7 @@ void render_job_executor::run(UINT context_index)
 			tasks.pop();
 		}
 
-		task_function(deferred_context.Get(), recording);
+		task_function(*recorder);
 	}
 }
 

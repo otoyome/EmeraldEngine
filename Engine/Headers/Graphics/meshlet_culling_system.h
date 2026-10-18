@@ -7,7 +7,7 @@
 #include <d3d11.h>
 #include <wrl.h>
 
-#include "graphics_context.h"
+#include "render_job_context.h"
 #include "shader.h"
 
 #include "hiz_buffer.h"
@@ -75,7 +75,7 @@ public:
 	~meshlet_culling_system();
 
 	//	マテリアル単位でグループ化してカリング
-	void build_and_cull(graphics_context& context, const std::vector<std::size_t>& visible_draw_indices, const std::vector<float>& lengths, hiz_buffer& hiz);
+	void build_and_cull(render_job_context& context, const std::vector<std::size_t>& visible_draw_indices, const std::vector<float>& lengths, hiz_buffer& hiz);
 
 	//	build_and_cull()の結果からマテリアルに対応する結果を取得する
 	const cull_result* find_result(const material_render_proxy* mat) const;
@@ -85,7 +85,7 @@ private:
 	void generate_visible_meshlet_buffer(material_resources& resource, UINT count);
 	void generate_submesh_transform_buffer(UINT count);
 
-	void cull_material_group(graphics_context& context, const material_render_proxy* material, const std::vector<meshlet_instance_gpu>& instances, hiz_buffer& hiz);
+	void cull_material_group(render_job_context& context, const material_render_proxy* material, const std::vector<meshlet_instance_gpu>& instances, hiz_buffer& hiz);
 
 private:
 	std::shared_ptr<compute_shader> meshlet_culling_cs;

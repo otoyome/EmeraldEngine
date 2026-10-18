@@ -12,6 +12,7 @@
 #include "graphics/occlusion_culling_system.h"
 #include "graphics/hiz_buffer.h"
 #include "graphics/meshlet_culling_system.h"
+#include "graphics/shadow_atlas.h"
 
 #include <cmath>
 #include <cstdint>
@@ -61,7 +62,7 @@ namespace
 	}
 
 	//	シャドウキャッシュキー生成
-	std::uint64_t compute_shadow_signature(const light_render_proxy& light, const render_data_context& render_data, bool& out_dynamic)
+	std::uint64_t compute_shadow_signature(const light_render_proxy& light, const view_render_data& render_data, bool& out_dynamic)
 	{
 		std::uint64_t hash = 1469598103934665603ull;
 		auto mix = [&hash](std::uint64_t value) { hash ^= value + 0x9e3779b97f4a7c15ull + (hash << 6) + (hash >> 2); };
@@ -97,22 +98,21 @@ namespace
 		//	影響範囲内のメッシュ
 		const auto& mesh_container = render_data.mesh_container;
 		const float range_square = light.range * light.range;
-		for (auto draw_index : mesh_container.shadow_datas)
+		for (auto draw_index : mesh_container.shadow_items)
 		{
-			const auto& draw_data = mesh_container.draw_datas[draw_index];
-			const auto& buffer_data = mesh_container.buffer_datas[draw_data.buffer_index];
+			const auto& draw_item = mesh_container.draw_items[draw_index];
 
-			const float dx = (std::max)((std::max)(buffer_data.bounds_min.x - light.position.x, light.position.x - buffer_data.bounds_max.x), 0.0f);
-			const float dy = (std::max)((std::max)(buffer_data.bounds_min.y - light.position.y, light.position.y - buffer_data.bounds_max.y), 0.0f);
-			const float dz = (std::max)((std::max)(buffer_data.bounds_min.z - light.position.z, light.position.z - buffer_data.bounds_max.z), 0.0f);
+			const float dx = (std::max)((std::max)(draw_item.bounds_min.x - light.position.x, light.position.x - draw_item.bounds_max.x), 0.0f);
+			const float dy = (std::max)((std::max)(draw_item.bounds_min.y - light.position.y, light.position.y - draw_item.bounds_max.y), 0.0f);
+			const float dz = (std::max)((std::max)(draw_item.bounds_min.z - light.position.z, light.position.z - draw_item.bounds_max.z), 0.0f);
 			if (dx * dx + dy * dy + dz * dz > range_square)
 				continue;
 
-			if (!system_utility::is_bitflag(buffer_data.system_flags, buffer_datas::flags::static_mesh))
+			if (!system_utility::is_bitflag(draw_item.system_flags, mesh_draw_item::flags::static_mesh))
 				out_dynamic = true;
 
-			mix(buffer_data.unique_id);
-			const math::matrixf world(buffer_data.world_transform);
+			mix(draw_item.unique_id);
+			const math::matrixf world(draw_item.world_transform);
 			for (UINT row = 0; row < 3; ++row)
 			{
 				const math::vector3f axis = world.to_vector3(row);
@@ -139,22 +139,54 @@ namespace
 		return depth;
 	}
 
+	//	@tool 視点のシャドウマップの描画先（配列全体を、深度・ステンシルともクリアしてから描く）
+	frame_graph::depth_attachment shadow_map_attachment(const scene_frame& frame)
+	{
+		frame_graph::depth_attachment depth;
+		depth.texture = frame.textures.shadow_map;
+		depth.format = common_pipeline_states::shadow_map_depth_stencil_view_format;
+		if (auto texture = std::dynamic_pointer_cast<texture2d>(frame.shadow_map))
+			depth.array_size = texture->get_desc().ArraySize;
+		depth.clear_depth = true;
+		depth.clear_stencil = true;
+		return depth;
+	}
+
+	//	@tool 視点のシャドウマップ全体のビューポート
+	D3D11_VIEWPORT shadow_map_viewport(const scene_frame& frame)
+	{
+		D3D11_VIEWPORT viewport{};
+		viewport.TopLeftX = 0.0f;
+		viewport.TopLeftY = 0.0f;
+		viewport.Width = frame.shadow_map ? static_cast<float>(frame.shadow_map->get_width()) : 0.0f;
+		viewport.Height = frame.shadow_map ? static_cast<float>(frame.shadow_map->get_height()) : 0.0f;
+		viewport.MinDepth = 0.0f;
+		viewport.MaxDepth = 1.0f;
+		return viewport;
+	}
+
+	//	@tool 点光源・スポットライトのシャドウマップアトラス（視点の状態に持つ）
+	constexpr view_history_key shadow_atlas_key = system_utility::generate_hash("shadow_atlas");
+	shadow_atlas& get_shadow_atlas(const scene_frame& frame)
+	{
+		return frame.context.current_view_state->get_feature_state<shadow_atlas>(shadow_atlas_key);
+	}
+
 	//	@tool G-Buffer をパス層へ設定する
-	void bind_g_buffers(graphics_context& context, const scene_render_targets& targets)
+	void bind_g_buffers(render_job_context& context, const frame_graph::resources& resources, const scene_renderer_commons::scene_texture_handles& textures)
 	{
 		for (UINT index = 0; index < static_cast<UINT>(common_pipeline_states::gbuffer_id::max); ++index)
 		{
-			context.bind_table.set_texture(resource_view_bind_layer::pass, common_pipeline_states::gbuffer_hash_keys[index], targets.g_buffer_textures[index]);
+			context.recorder.get_bind_table().set_texture(resource_view_bind_layer::pass, common_pipeline_states::gbuffer_hash_keys[index], resources.get_texture(textures.g_buffers[index]));
 		}
 	}
 
 	//	@tool ライティングのパス（G-Buffer を読み、シーンに加算する）の共通の準備
 	struct lighting_pass_data
 	{
-		std::shared_ptr<const scene_render_targets> targets;
+		scene_renderer_commons::scene_texture_handles textures;
 		std::shared_ptr<const material_render_proxy> lighting_material;
 		D3D11_VIEWPORT viewport{};
-		UINT render_pass = 0;
 	};
 	void setup_lighting_pass(frame_graph::builder& builder, lighting_pass_data& data, const scene_frame& frame, frame_graph::texture_handle shadow_texture)
 	{
@@ -167,65 +199,78 @@ namespace
 		color.texture = frame.textures.scene_color;
 		color.clear = false;
 		color.clear_value = { 0.0f, 0.0f, 0.0f, 1.0f };
-		data.render_pass = builder.add_render_pass({ color });
-		data.targets = frame.targets;
-		data.viewport = frame.targets->get_scene_viewport();
+		builder.set_render_targets({ color });
+		data.textures = frame.textures;
+		data.viewport = frame.config.get_viewport();
 	}
 
-	//	@tool 影の描画先の準備（アトラスのスライス範囲、または視点のシャドウマップ）
+	//	@tool 影を描くパスのデータ
 	struct shadow_pass_data
 	{
-		std::shared_ptr<const scene_render_targets> targets;
 		common_pipeline_states::shadow_map_constants shadow_map_constant{};
 		scene_renderer_commons::shadow_draw_batch_list_ptr shadow_batches;
-		Microsoft::WRL::ComPtr<ID3D11DepthStencilView> atlas_depth_stencil_view;
+		D3D11_VIEWPORT viewport{};
+	};
+
+	//	@tool 影の描画先（アトラスのスライス範囲、または視点のシャドウマップ）
+	struct shadow_target
+	{
+		texture_ptr atlas_texture;	//	@tool null は視点のシャドウマップ
+		UINT first_slice = 0;
+		UINT slice_count = 0;
 		D3D11_VIEWPORT atlas_viewport{};
 	};
 
-	void begin_shadow_target(graphics_context& context, const shadow_pass_data& data)
+	//	@tool アトラスのスライス範囲の描画先（スライスが割り当てられていない時と、アトラスが無い時は視点のシャドウマップ）
+	shadow_target make_shadow_target(const shadow_atlas& atlas, int atlas_slice, UINT slice_count)
 	{
-		if (data.atlas_depth_stencil_view)
+		shadow_target target;
+		if (atlas_slice >= 0 && atlas.get_texture())
 		{
-			context.recorder.get_device_context()->OMSetRenderTargets(0, nullptr, data.atlas_depth_stencil_view.Get());
-			context.recorder.get_device_context()->ClearDepthStencilView(data.atlas_depth_stencil_view.Get(), D3D11_CLEAR_DEPTH, common_pipeline_states::depth_clear_value, 0);
+			target.atlas_texture = atlas.get_texture();
+			target.first_slice = static_cast<UINT>(atlas_slice);
+			target.slice_count = slice_count;
+			target.atlas_viewport = atlas.get_viewport();
 		}
-		else
-		{
-			data.targets->history.shadow_map_pass.activate(context.recorder.get_device_context());
-		}
-	}
-
-	void end_shadow_target(graphics_context& context, const shadow_pass_data& data)
-	{
-		if (data.atlas_depth_stencil_view)
-			context.recorder.get_device_context()->OMSetRenderTargets(0, nullptr, nullptr);
-		else
-			data.targets->history.shadow_map_pass.deactivate(context.recorder.get_device_context());
+		return target;
 	}
 
 	//	@tool 影を描くパス（点光源・スポットライト共通の実行処理）
-	void add_shadow_pass(frame_graph& graph, const scene_frame& frame, std::string_view name, const shadow_pass_data& source, const texture_ptr& shadow_texture)
+	void add_shadow_pass(frame_graph& graph, const scene_frame& frame, std::string_view name, const shadow_pass_data& source, const shadow_target& target)
 	{
 		graph.add_pass<shadow_pass_data>(name, frame.context, [&](frame_graph::builder& builder, shadow_pass_data& data)
 		{
 			data = source;
-			builder.write(graph.import_texture("shadow_map", shadow_texture), frame_graph::texture_usage::depth_write);
+			if (target.atlas_texture)
+			{
+				//	@tool アトラスは割り当てたスライスだけを深度クリアしてから描く（他のスライスはキャッシュとして残す）
+				frame_graph::depth_attachment depth;
+				depth.texture = graph.import_texture("shadow_map", target.atlas_texture);
+				depth.format = common_pipeline_states::shadow_map_depth_stencil_view_format;
+				depth.first_slice = target.first_slice;
+				depth.array_size = target.slice_count;
+				depth.clear_depth = true;
+				depth.clear_stencil = false;
+				builder.set_render_targets({}, depth);
+				data.viewport = target.atlas_viewport;
+			}
+			else
+			{
+				builder.set_render_targets({}, shadow_map_attachment(frame));
+				data.viewport = shadow_map_viewport(frame);
+			}
 			builder.use_immediate_context();
 		},
-		[](const shadow_pass_data& data, const frame_graph::resources&, graphics_context& context)
+		[](const shadow_pass_data& data, const frame_graph::resources&, render_job_context& context)
 		{
-			begin_shadow_target(context, data);
-
-			context.bind_table.set_constants(resource_view_bind_layer::pass, common_pipeline_states::shadow_map_constant_buffer_hash_key, data.shadow_map_constant);
+			context.recorder.get_bind_table().set_constants(resource_view_bind_layer::pass, common_pipeline_states::shadow_map_constant_buffer_hash_key, data.shadow_map_constant);
 
 			//	ビューポートの設定
-			context.recorder.get_device_context()->RSSetViewports(1, data.atlas_depth_stencil_view ? &data.atlas_viewport : &data.targets->history.shadow_map_viewport);
+			context.recorder.set_viewport(data.viewport);
 
-			context.is_shadow_rendering = true;
+			context.recorder.get_render_state_overrides().is_shadow_rendering = true;
 			scene_renderer_commons::execute_shadow_draw_batches(context, *data.shadow_batches);
-			context.is_shadow_rendering = false;
-
-			end_shadow_target(context, data);
+			context.recorder.get_render_state_overrides().is_shadow_rendering = false;
 		});
 	}
 
@@ -236,45 +281,39 @@ namespace
 		{
 			light_render_proxy light;
 			common_pipeline_states::shadow_map_constants shadow_map_constant{};
-			texture_ptr shadow_texture;
+			frame_graph::texture_handle shadow_map;
 			material::system_paths path = material::system_paths::deferred_point;
 		};
 		graph.add_pass<pass_data>(name, frame.context, [&](frame_graph::builder& builder, pass_data& data)
 		{
-			setup_lighting_pass(builder, data, frame, graph.import_texture("shadow_map", shadow_texture));
+			data.shadow_map = graph.import_texture("shadow_map", shadow_texture);
+			setup_lighting_pass(builder, data, frame, data.shadow_map);
 			//	@tool 描画側はマテリアルの複製を参照する（ジョブ内で共有マテリアルに触れない）
 			data.lighting_material = resources.deferred_lighting_material->get_render_proxy();
 			data.light = light;
 			data.shadow_map_constant = shadow_map_constant;
-			data.shadow_texture = shadow_texture;
 			data.path = path;
 		},
-		[](const pass_data& data, const frame_graph::resources& resources, graphics_context& context)
+		[](const pass_data& data, const frame_graph::resources& resources, render_job_context& context)
 		{
-			const render_pass& lighting_pass = resources.get_render_pass(data.render_pass);
-
-			//	描画先設定
-			lighting_pass.activate(context.recorder.get_device_context());
-
-			context.bind_table.set_constants(resource_view_bind_layer::pass, common_pipeline_states::deferred_light_constant_buffer_hash_key, common_pipeline_states::deferred_light_constants{ data.light.data });
-			context.bind_table.set_texture(resource_view_bind_layer::pass, common_pipeline_states::shadow_maps_hash_key, data.shadow_texture);
-			context.bind_table.set_constants(resource_view_bind_layer::pass, common_pipeline_states::shadow_map_constant_buffer_hash_key, data.shadow_map_constant);
+			context.recorder.get_bind_table().set_constants(resource_view_bind_layer::pass, common_pipeline_states::deferred_light_constant_buffer_hash_key, common_pipeline_states::deferred_light_constants{ data.light.data });
+			context.recorder.get_bind_table().set_texture(resource_view_bind_layer::pass, common_pipeline_states::shadow_maps_hash_key, resources.get_texture(data.shadow_map));
+			context.recorder.get_bind_table().set_constants(resource_view_bind_layer::pass, common_pipeline_states::shadow_map_constant_buffer_hash_key, data.shadow_map_constant);
 
 			//	G-Bufferテクスチャ設定
-			bind_g_buffers(context, *data.targets);
+			bind_g_buffers(context, resources, data.textures);
 
 			//	ビューポートの設定
-			context.recorder.get_device_context()->RSSetViewports(1, &data.viewport);
+			context.recorder.set_viewport(data.viewport);
 			{
 				auto pipeline_state =
 					data.lighting_material->get_pipeline_state(data.path);
 
-				context.set_pipeline(*pipeline_state);
-				context.bind_draw(*pipeline_state, *data.lighting_material, nullptr);
+				context.recorder.set_pipeline(*pipeline_state);
+				context.recorder.bind_draw(*pipeline_state, *data.lighting_material, nullptr);
 				scene_renderer_commons::draw(context, pipeline_state, 4);
-				context.end_pipeline();
+				context.recorder.end_pipeline();
 			}
-			lighting_pass.deactivate(context.recorder.get_device_context());
 		});
 	}
 
@@ -287,22 +326,17 @@ namespace
 			//	@tool 描画側はマテリアルの複製を参照する（ジョブ内で共有マテリアルに触れない）
 			data.lighting_material = resources.deferred_lighting_material->get_render_proxy();
 		},
-		[](const lighting_pass_data& data, const frame_graph::resources& resources, graphics_context& context)
+		[](const lighting_pass_data& data, const frame_graph::resources& resources, render_job_context& context)
 		{
-			const render_pass& lighting_pass = resources.get_render_pass(data.render_pass);
-
 			//	G-Bufferテクスチャ設定
-			bind_g_buffers(context, *data.targets);
+			bind_g_buffers(context, resources, data.textures);
 
 			//	AOバッファ生成
 			{
 			}
 
-			//	描画先設定
-			lighting_pass.activate(context.recorder.get_device_context());
-
 			//	ビューポートの設定
-			context.recorder.get_device_context()->RSSetViewports(1, &data.viewport);
+			context.recorder.set_viewport(data.viewport);
 
 			//	間接光
 			for (const auto& light_probe : context.render_data->light_container.light_probes)
@@ -314,32 +348,30 @@ namespace
 				common_pipeline_states::deferred_light_probe_constants deferred_light_probe_constant{};
 				deferred_light_probe_constant.light_probe_data = light_probe.data;
 				deferred_light_probe_constant.light_probe_attribute = light_probe.attribute;
-				context.bind_table.set_constants(resource_view_bind_layer::pass, common_pipeline_states::deferred_light_probe_constant_buffer_hash_key, deferred_light_probe_constant);
+				context.recorder.get_bind_table().set_constants(resource_view_bind_layer::pass, common_pipeline_states::deferred_light_probe_constant_buffer_hash_key, deferred_light_probe_constant);
 
 				if (light_probe.is_flag(light_probe::flags::unbind))
 				{
 					//	全画面描画
 					//	IBLテクスチャ設定
 					//	@tool 共有マテリアルは書き換えず、context 経由でパイプラインに渡す
-					context.bind_table.set_texture(resource_view_bind_layer::pass, common_pipeline_states::deferred_diffuse_iem_hash_key, light_probe.diffuse_ibl_texture);
-					context.bind_table.set_texture(resource_view_bind_layer::pass, common_pipeline_states::deferred_specular_pmrem_hash_key, light_probe.specular_ibl_texture);
-					context.bind_table.set_texture(resource_view_bind_layer::pass, common_pipeline_states::deferred_lut_ggx_hash_key, light_probe.lut_ggx_texture);
+					context.recorder.get_bind_table().set_texture(resource_view_bind_layer::pass, common_pipeline_states::deferred_diffuse_iem_hash_key, light_probe.diffuse_ibl_texture);
+					context.recorder.get_bind_table().set_texture(resource_view_bind_layer::pass, common_pipeline_states::deferred_specular_pmrem_hash_key, light_probe.specular_ibl_texture);
+					context.recorder.get_bind_table().set_texture(resource_view_bind_layer::pass, common_pipeline_states::deferred_lut_ggx_hash_key, light_probe.lut_ggx_texture);
 
 					auto pipeline_state =
 						data.lighting_material->get_pipeline_state(material::system_paths::deferred_indirect);
 
-					context.set_pipeline(*pipeline_state);
-					context.bind_draw(*pipeline_state, *data.lighting_material, nullptr);
+					context.recorder.set_pipeline(*pipeline_state);
+					context.recorder.bind_draw(*pipeline_state, *data.lighting_material, nullptr);
 					scene_renderer_commons::draw(context, pipeline_state, 4);
-					context.end_pipeline();
+					context.recorder.end_pipeline();
 				}
 				else
 				{
 					//	範囲制限をかける
 				}
 			}
-
-			lighting_pass.deactivate(context.recorder.get_device_context());
 		});
 	}
 
@@ -360,33 +392,43 @@ namespace
 		{
 			std::shared_ptr<clustered_lighting_system> clustered_lighting;
 		};
+
+		//	クラスター構築
+		//	@tool 描画先を持たないパスに分ける（結果はクラスタードライティングのバッファ（グラフの外）に残す）
+		graph.add_pass<pass_data>("build_clustered_pass", frame.context, [&](frame_graph::builder& builder, pass_data& data)
+		{
+			for (const auto& handle : frame.textures.g_buffers)
+				builder.read(handle);
+			builder.side_effect();
+			data.textures = frame.textures;
+			data.clustered_lighting = clustered_lighting;
+		},
+		[](const pass_data& data, const frame_graph::resources& resources, render_job_context& context)
+		{
+			//	G-Bufferテクスチャ設定
+			bind_g_buffers(context, resources, data.textures);
+
+			data.clustered_lighting->build(context);
+		});
+
 		graph.add_pass<pass_data>("render_clustered_pass", frame.context, [&](frame_graph::builder& builder, pass_data& data)
 		{
 			setup_lighting_pass(builder, data, frame, {});
 			data.clustered_lighting = clustered_lighting;
 		},
-		[](const pass_data& data, const frame_graph::resources& resources, graphics_context& context)
+		[](const pass_data& data, const frame_graph::resources& resources, render_job_context& context)
 		{
-			const render_pass& lighting_pass = resources.get_render_pass(data.render_pass);
-
-			//	G-Bufferテクスチャ設定
-			bind_g_buffers(context, *data.targets);
-
-			//	クラスター構築
-			data.clustered_lighting->build(context);
-			if (data.clustered_lighting->get_light_count() == 0 && !context.render_data->settings.clustered_lighting.visualize)
+			if (data.clustered_lighting->get_light_count() == 0 && !clustered_lighting_system::is_visualize(context.render_data->settings))
 				return;
 
-			//	描画先設定
-			lighting_pass.activate(context.recorder.get_device_context());
+			//	G-Bufferテクスチャ設定
+			bind_g_buffers(context, resources, data.textures);
 
 			//	ビューポートの設定
-			context.recorder.get_device_context()->RSSetViewports(1, &data.viewport);
+			context.recorder.set_viewport(data.viewport);
 
 			//	クラスター内のライトでライティング
 			data.clustered_lighting->render(context);
-
-			lighting_pass.deactivate(context.recorder.get_device_context());
 		});
 	}
 
@@ -395,7 +437,7 @@ namespace
 	{
 		constexpr UINT directional_shadow_map_count = deferred_lighting_resources::directional_shadow_map_count;
 		const renderer_context& context = frame.context;
-		const D3D11_VIEWPORT& shadow_map_pass_viewport = frame.targets->history.shadow_map_viewport;
+		const D3D11_VIEWPORT shadow_map_pass_viewport = shadow_map_viewport(frame);
 
 		math::float4 rotation = light.rotation.to_quaternion().to_float4();
 		math::matrixf CameraTransformMatrix = math::matrixf(context.scene_constant.view_transform).inverted();
@@ -420,14 +462,12 @@ namespace
 		//	シーンのAABBを算出
 		math::float3 scene_min = {FLT_MAX, FLT_MAX, FLT_MAX}, scene_max = {-FLT_MAX, -FLT_MAX, -FLT_MAX};
 		{
-			auto draw_data_ptr = context.render_data->mesh_container.draw_datas.data();
-			auto buffer_data_ptr = context.render_data->mesh_container.buffer_datas.data();
-			for (auto& draw_index : context.render_data->mesh_container.shadow_datas)
+			auto draw_item_ptr = context.render_data->mesh_container.draw_items.data();
+			for (auto& draw_index : context.render_data->mesh_container.shadow_items)
 			{
-				auto draw_data = draw_data_ptr + draw_index;
-				auto buffer_data = buffer_data_ptr + draw_data->buffer_index;
-				scene_min = math::min(math::vector3f(buffer_data->bounds_min), math::vector3f(scene_min)).to_float3();
-				scene_max = math::max(math::vector3f(buffer_data->bounds_max), math::vector3f(scene_max)).to_float3();
+				auto draw_item = draw_item_ptr + draw_index;
+				scene_min = math::min(math::vector3f(draw_item->bounds_min), math::vector3f(scene_min)).to_float3();
+				scene_max = math::max(math::vector3f(draw_item->bounds_max), math::vector3f(scene_max)).to_float3();
 			}
 		}
 		const bool has_scene_aabb = (scene_min.x <= scene_max.x) && (scene_min.y <= scene_max.y) && (scene_min.z <= scene_max.z);
@@ -606,38 +646,39 @@ namespace
 		//	@tool 影の描画コマンドはパスを追加する時に作っておく（カリングとマテリアル毎のまとめもここで行う）
 		struct pass_data
 		{
-			std::shared_ptr<const scene_render_targets> targets;
+			scene_renderer_commons::scene_texture_handles textures;
 			scene_renderer_commons::shadow_draw_batch_list_ptr shadow_batches;
 			common_pipeline_states::shadow_map_constants shadow_map_constant{};
+			D3D11_VIEWPORT viewport{};
 		};
 		graph.add_pass<pass_data>("render_directional_shadow_map_pass", frame.context, [&](frame_graph::builder& builder, pass_data& data)
 		{
-			builder.write(frame.textures.shadow_map, frame_graph::texture_usage::depth_write);
+			builder.set_render_targets({}, shadow_map_attachment(frame));
+			//	@tool G-Buffer も割り当てるので、読みとして宣言しておく
+			for (const auto& handle : frame.textures.g_buffers)
+				builder.read(handle);
 			builder.use_immediate_context();
-			data.targets = frame.targets;
-			data.shadow_batches = scene_renderer_commons::build_shadow_draw_batches(*context.render_data, context.render_data->mesh_container.shadow_datas, frustum_culling, material::surface_paths::shadow_write_pass);
+			data.textures = frame.textures;
+			data.viewport = shadow_map_pass_viewport;
+			data.shadow_batches = scene_renderer_commons::build_shadow_draw_batches(*context.render_data, context.render_data->mesh_container.shadow_items, frustum_culling, material::surface_paths::shadow_write_pass);
 			data.shadow_map_constant = shadow_map_constant;
 		},
-		[](const pass_data& data, const frame_graph::resources&, graphics_context& context)
+		[](const pass_data& data, const frame_graph::resources& resources, render_job_context& context)
 		{
-			data.targets->history.shadow_map_pass.activate(context.recorder.get_device_context());
-
 			//	定数バッファ情報設定
-			context.bind_table.set_constants(resource_view_bind_layer::pass, common_pipeline_states::shadow_map_constant_buffer_hash_key, data.shadow_map_constant);
+			context.recorder.get_bind_table().set_constants(resource_view_bind_layer::pass, common_pipeline_states::shadow_map_constant_buffer_hash_key, data.shadow_map_constant);
 
 			//	G-Bufferテクスチャ設定
-			bind_g_buffers(context, *data.targets);
+			bind_g_buffers(context, resources, data.textures);
 
 			//	ビューポートの設定
-			context.recorder.get_device_context()->RSSetViewports(1, &data.targets->history.shadow_map_viewport);
+			context.recorder.set_viewport(data.viewport);
 
 			//	モデル類描画
-			context.is_shadow_rendering = true;
+			context.recorder.get_render_state_overrides().is_shadow_rendering = true;
 			scene_renderer_commons::execute_shadow_draw_batches(context, *data.shadow_batches);
 			//scene_renderer_commons::particle_render(context, context.render_data->effect_container.sprite_trail_shadow_datas, material::surface_paths::shadow_write_pass);
-			context.is_shadow_rendering = false;
-
-			data.targets->history.shadow_map_pass.deactivate(context.recorder.get_device_context());
+			context.recorder.get_render_state_overrides().is_shadow_rendering = false;
 		});
 	}
 
@@ -657,33 +698,27 @@ namespace
 			data.light = light;
 			data.shadow_map_constant = shadow_map_constant;
 		},
-		[](const pass_data& data, const frame_graph::resources& resources, graphics_context& context)
+		[](const pass_data& data, const frame_graph::resources& resources, render_job_context& context)
 		{
-			const render_pass& lighting_pass = resources.get_render_pass(data.render_pass);
-
-			//	描画先設定
-			lighting_pass.activate(context.recorder.get_device_context());
-
 			//	コンテキストに情報登録
-			context.bind_table.set_constants(resource_view_bind_layer::pass, common_pipeline_states::deferred_light_constant_buffer_hash_key, common_pipeline_states::deferred_light_constants{ data.light.data });
-			context.bind_table.set_texture(resource_view_bind_layer::pass, common_pipeline_states::shadow_maps_hash_key, data.targets->shadowmap_depth_texture);
-			context.bind_table.set_constants(resource_view_bind_layer::pass, common_pipeline_states::shadow_map_constant_buffer_hash_key, data.shadow_map_constant);
+			context.recorder.get_bind_table().set_constants(resource_view_bind_layer::pass, common_pipeline_states::deferred_light_constant_buffer_hash_key, common_pipeline_states::deferred_light_constants{ data.light.data });
+			context.recorder.get_bind_table().set_texture(resource_view_bind_layer::pass, common_pipeline_states::shadow_maps_hash_key, resources.get_texture(data.textures.shadow_map));
+			context.recorder.get_bind_table().set_constants(resource_view_bind_layer::pass, common_pipeline_states::shadow_map_constant_buffer_hash_key, data.shadow_map_constant);
 
 			//	G-Bufferテクスチャ設定
-			bind_g_buffers(context, *data.targets);
+			bind_g_buffers(context, resources, data.textures);
 
 			//	ビューポートの設定
-			context.recorder.get_device_context()->RSSetViewports(1, &data.viewport);
+			context.recorder.set_viewport(data.viewport);
 			{
 				auto pipeline_state =
 					data.lighting_material->get_pipeline_state(material::system_paths::deferred_directional);
 
-				context.set_pipeline(*pipeline_state);
-				context.bind_draw(*pipeline_state, *data.lighting_material, nullptr);
+				context.recorder.set_pipeline(*pipeline_state);
+				context.recorder.bind_draw(*pipeline_state, *data.lighting_material, nullptr);
 				scene_renderer_commons::draw(context, pipeline_state, 4);
-				context.end_pipeline();
+				context.recorder.end_pipeline();
 			}
-			lighting_pass.deactivate(context.recorder.get_device_context());
 		});
 	}
 
@@ -753,15 +788,12 @@ namespace
 			return;
 
 		//	シャドウマップアトラスに描く場合は割り当てられたスライス範囲に書き込む
-		shadow_atlas& atlas = frame.targets->history.atlas;
+		shadow_atlas& atlas = get_shadow_atlas(frame);
 		shadow_pass_data source;
-		source.targets = frame.targets;
 		source.shadow_map_constant = shadow_map_constant;
-		source.atlas_depth_stencil_view = (atlas_slice >= 0) ? atlas.get_depth_stencil_view(static_cast<UINT>(atlas_slice), 6) : nullptr;
-		source.atlas_viewport = atlas.get_viewport();
 		//	@tool 影の描画コマンドはパスを追加する時に作っておく（カリングとマテリアル毎のまとめもここで行う）
-		source.shadow_batches = scene_renderer_commons::build_shadow_draw_batches(*frame.context.render_data, frame.context.render_data->mesh_container.shadow_datas, position, range, material::surface_paths::shadow_write_pass);
-		add_shadow_pass(graph, frame, "render_point_shadow_map_pass", source, source.atlas_depth_stencil_view ? atlas.get_texture() : frame.targets->shadowmap_depth_texture);
+		source.shadow_batches = scene_renderer_commons::build_shadow_draw_batches(*frame.context.render_data, frame.context.render_data->mesh_container.shadow_items, position, range, material::surface_paths::shadow_write_pass);
+		add_shadow_pass(graph, frame, "render_point_shadow_map_pass", source, make_shadow_target(atlas, atlas_slice, 6));
 	}
 
 	//	@tool スポットライトのシャドウマップ（定数を求め、描き直す場合はパスを追加する）
@@ -824,43 +856,14 @@ namespace
 			return;
 
 		//	シャドウマップアトラスに描く場合は割り当てられたスライス範囲に書き込む
-		shadow_atlas& atlas = frame.targets->history.atlas;
+		shadow_atlas& atlas = get_shadow_atlas(frame);
 		shadow_pass_data source;
-		source.targets = frame.targets;
 		source.shadow_map_constant = shadow_map_constant;
-		source.atlas_depth_stencil_view = (atlas_slice >= 0) ? atlas.get_depth_stencil_view(static_cast<UINT>(atlas_slice), 1) : nullptr;
-		source.atlas_viewport = atlas.get_viewport();
 		//	@tool 影の描画コマンドはパスを追加する時に作っておく（カリングとマテリアル毎のまとめもここで行う）
-		source.shadow_batches = scene_renderer_commons::build_shadow_draw_batches(*frame.context.render_data, frame.context.render_data->mesh_container.shadow_datas, frustum_culling, material::surface_paths::shadow_write_pass);
-		add_shadow_pass(graph, frame, "render_spot_shadow_map_pass", source, source.atlas_depth_stencil_view ? atlas.get_texture() : frame.targets->shadowmap_depth_texture);
+		source.shadow_batches = scene_renderer_commons::build_shadow_draw_batches(*frame.context.render_data, frame.context.render_data->mesh_container.shadow_items, frustum_culling, material::surface_paths::shadow_write_pass);
+		add_shadow_pass(graph, frame, "render_spot_shadow_map_pass", source, make_shadow_target(atlas, atlas_slice, 1));
 	}
 
-	//	@tool 視点のシャドウマップの描画先を用意する（初回だけ作る）
-	void prepare_shadow_map_pass(scene_render_targets& targets)
-	{
-		auto& history = targets.history;
-		if (history.shadow_map_pass.depth_stencil.view || !targets.shadowmap_depth_texture)
-			return;
-
-		D3D11_SHADER_RESOURCE_VIEW_DESC srv_desc;
-		targets.shadowmap_depth_texture->get_shader_resource_view()->GetDesc(&srv_desc);
-		//	シャドウマップパス生成
-		D3D11_DEPTH_STENCIL_VIEW_DESC depth_stencil_view_desc{};
-		depth_stencil_view_desc.Format = common_pipeline_states::shadow_map_depth_stencil_view_format;
-		depth_stencil_view_desc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DARRAY;
-		depth_stencil_view_desc.Texture2DArray.ArraySize = srv_desc.Texture2DArray.ArraySize;
-		depth_stencil_view_desc.Texture2DArray.FirstArraySlice = 0;
-		depth_stencil_view_desc.Texture2DArray.MipSlice = 0;
-		history.shadow_map_pass.depth_stencil = depth_stencil_view(targets.shadowmap_depth_texture, &depth_stencil_view_desc);
-
-		// ビューポートの設定
-		history.shadow_map_viewport.TopLeftX = 0.0f;
-		history.shadow_map_viewport.TopLeftY = 0.0f;
-		history.shadow_map_viewport.Width = static_cast<float>(targets.shadowmap_depth_texture->get_width());
-		history.shadow_map_viewport.Height = static_cast<float>(targets.shadowmap_depth_texture->get_height());
-		history.shadow_map_viewport.MinDepth = 0.0f;
-		history.shadow_map_viewport.MaxDepth = 1.0f;
-	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -875,39 +878,31 @@ void scene_rendering::add_depth_prepass(frame_graph& graph, const scene_frame& f
 		scene_renderer_commons::mesh_draw_command_list_ptr particle_opaque_commands;
 		scene_renderer_commons::mesh_draw_command_list_ptr particle_mask_commands;
 		D3D11_VIEWPORT viewport{};
-		UINT render_pass = 0;
 	};
 	graph.add_pass<pass_data>("depth_pre_pass", frame.context, [&](frame_graph::builder& builder, pass_data& data)
 	{
-		data.render_pass = builder.add_render_pass({}, scene_depth_attachment(frame, true, true));
-		data.viewport = frame.targets->get_scene_viewport();
+		builder.set_render_targets({}, scene_depth_attachment(frame, true, true));
+		data.viewport = frame.config.get_viewport();
 
 		//	描画コマンドはパスを追加する時に作っておく
 		const renderer_context& renderer_context = frame.context;
-		const render_data_context& frame_data = *renderer_context.render_data;
+		const view_render_data& frame_data = *renderer_context.render_data;
 		data.context = renderer_context;
 		data.opaque_commands = scene_renderer_commons::build_model_indirect_draw_commands(frame_data, renderer_context.render_mesh_indices->opaque, renderer_context.render_mesh_indices->lengths, material::surface_paths::depth_write_pass);
 		data.mask_commands = scene_renderer_commons::build_model_indirect_draw_commands(frame_data, renderer_context.render_mesh_indices->mask, renderer_context.render_mesh_indices->lengths, material::surface_paths::depth_write_pass);
 		data.particle_opaque_commands = scene_renderer_commons::build_particle_draw_commands(frame_data, renderer_context.render_particle_indices->opaque, material::surface_paths::depth_write_pass);
 		data.particle_mask_commands = scene_renderer_commons::build_particle_draw_commands(frame_data, renderer_context.render_particle_indices->mask, material::surface_paths::depth_write_pass);
 	},
-	[](const pass_data& data, const frame_graph::resources& resources, graphics_context& context)
+	[](const pass_data& data, const frame_graph::resources&, render_job_context& context)
 	{
-		const render_pass& rendering_pass = resources.get_render_pass(data.render_pass);
-
-		//	描画先設定
-		rendering_pass.activate(context.recorder.get_device_context());
-
 		//	ビューポートの設定
-		context.recorder.get_device_context()->RSSetViewports(1, &data.viewport);
+		context.recorder.set_viewport(data.viewport);
 
 		//	モデル類描画
 		scene_renderer_commons::execute_model_indirect_draw_commands(context, *data.opaque_commands, *data.context.current_view_state->get_meshlet_culling());
 		scene_renderer_commons::execute_model_indirect_draw_commands(context, *data.mask_commands, *data.context.current_view_state->get_meshlet_culling());
 		scene_renderer_commons::execute_particle_draw_commands(context, *data.particle_opaque_commands);
 		scene_renderer_commons::execute_particle_draw_commands(context, *data.particle_mask_commands);
-
-		rendering_pass.deactivate(context.recorder.get_device_context());
 	});
 }
 
@@ -926,11 +921,11 @@ void scene_rendering::add_occlusion_culling_pass(frame_graph& graph, const scene
 	if (!occlusion || !hiz || !meshlet_culling)
 		return;
 
-	hiz->resize_buffer(static_cast<int>(frame.targets->get_width()), static_cast<int>(frame.targets->get_height()));
+	hiz->resize_buffer(static_cast<int>(frame.config.width), static_cast<int>(frame.config.height));
 
 	struct pass_data
 	{
-		std::shared_ptr<const scene_render_targets> targets;
+		frame_graph::texture_handle scene_depth;
 		std::shared_ptr<occlusion_culling_system> occlusion;
 		std::shared_ptr<hiz_buffer> hiz;
 		std::shared_ptr<meshlet_culling_system> meshlet_culling;
@@ -941,11 +936,10 @@ void scene_rendering::add_occlusion_culling_pass(frame_graph& graph, const scene
 	graph.add_pass<pass_data>("occlusion_culling_pass", frame.context, [&](frame_graph::builder& builder, pass_data& data)
 	{
 		//	@tool 深度を読み、結果は視点の状態（GPU 側）に残す
-		builder.read(frame.textures.scene_depth);
+		data.scene_depth = builder.read(frame.textures.scene_depth);
 		builder.side_effect();
 		builder.use_immediate_context();
 
-		data.targets = frame.targets;
 		data.occlusion = occlusion;
 		data.hiz = hiz;
 		data.meshlet_culling = meshlet_culling;
@@ -962,11 +956,11 @@ void scene_rendering::add_occlusion_culling_pass(frame_graph& graph, const scene
 			data.visible_draw_indices.insert(data.visible_draw_indices.end(), context.render_mesh_indices->mask.begin(), context.render_mesh_indices->mask.end());
 		}
 	},
-	[](const pass_data& data, const frame_graph::resources&, graphics_context& context)
+	[](const pass_data& data, const frame_graph::resources& resources, render_job_context& context)
 	{
-		context.debug_begin_event(L"occlusion_culling");
+		context.recorder.begin_event(L"occlusion_culling");
 
-		context.bind_table.set_texture(resource_view_bind_layer::pass, common_pipeline_states::scene_depth_map_hash_key, data.targets->scene_depth_stencil_texture);
+		context.recorder.get_bind_table().set_texture(resource_view_bind_layer::pass, common_pipeline_states::scene_depth_map_hash_key, resources.get_texture(data.scene_depth));
 
 		//	階層Zバッファ構築
 		data.hiz->build(context);
@@ -980,9 +974,9 @@ void scene_rendering::add_occlusion_culling_pass(frame_graph& graph, const scene
 			data.meshlet_culling->build_and_cull(context, data.visible_draw_indices, data.render_mesh_indices->lengths, *data.hiz);
 		}
 
-		context.bind_table.set_texture(resource_view_bind_layer::pass, common_pipeline_states::scene_depth_map_hash_key, nullptr);
+		context.recorder.get_bind_table().set_texture(resource_view_bind_layer::pass, common_pipeline_states::scene_depth_map_hash_key, nullptr);
 
-		context.debug_end_event();
+		context.recorder.end_event();
 	});
 }
 
@@ -999,7 +993,6 @@ void scene_rendering::add_gbuffer_pass(frame_graph& graph, const scene_frame& fr
 		scene_renderer_commons::mesh_draw_command_list_ptr particle_opaque_commands;
 		scene_renderer_commons::mesh_draw_command_list_ptr particle_mask_commands;
 		D3D11_VIEWPORT viewport{};
-		UINT render_pass = 0;
 	};
 	graph.add_pass<pass_data>("gbuffer_pass", frame.context, [&](frame_graph::builder& builder, pass_data& data)
 	{
@@ -1028,28 +1021,23 @@ void scene_rendering::add_gbuffer_pass(frame_graph& graph, const scene_frame& fr
 			color.texture = frame.textures.scene_color;
 			color.clear = true;
 		}
-		data.render_pass = builder.add_render_pass(std::move(colors), scene_depth_attachment(frame, false, true));
-		data.viewport = frame.targets->get_scene_viewport();
+		builder.set_render_targets(std::move(colors), scene_depth_attachment(frame, false, true));
+		data.viewport = frame.config.get_viewport();
 		data.resources = resources;
 
 		//	@tool 描画コマンドはパスを追加する時に作っておく（描画ジョブは実行するだけ）
 		const renderer_context& renderer_context = frame.context;
-		const render_data_context& frame_data = *renderer_context.render_data;
+		const view_render_data& frame_data = *renderer_context.render_data;
 		data.context = renderer_context;
 		data.opaque_commands = scene_renderer_commons::build_model_indirect_draw_commands(frame_data, renderer_context.render_mesh_indices->opaque, renderer_context.render_mesh_indices->lengths, material::surface_paths::g_buffer_pass);
 		data.mask_commands = scene_renderer_commons::build_model_indirect_draw_commands(frame_data, renderer_context.render_mesh_indices->mask, renderer_context.render_mesh_indices->lengths, material::surface_paths::g_buffer_pass);
 		data.particle_opaque_commands = scene_renderer_commons::build_particle_draw_commands(frame_data, renderer_context.render_particle_indices->opaque, material::surface_paths::g_buffer_pass);
 		data.particle_mask_commands = scene_renderer_commons::build_particle_draw_commands(frame_data, renderer_context.render_particle_indices->mask, material::surface_paths::g_buffer_pass);
 	},
-	[](const pass_data& data, const frame_graph::resources& resources, graphics_context& context)
+	[](const pass_data& data, const frame_graph::resources&, render_job_context& context)
 	{
-		const render_pass& rendering_pass = resources.get_render_pass(data.render_pass);
-
-		//	描画先設定
-		rendering_pass.activate(context.recorder.get_device_context());
-
 		//	ビューポートの設定
-		context.recorder.get_device_context()->RSSetViewports(1, &data.viewport);
+		context.recorder.set_viewport(data.viewport);
 
 		//	モデル類描画
 		scene_renderer_commons::execute_model_indirect_draw_commands(context, *data.opaque_commands, *data.context.current_view_state->get_meshlet_culling());
@@ -1066,24 +1054,22 @@ void scene_rendering::add_gbuffer_pass(frame_graph& graph, const scene_frame& fr
 			}
 
 			//	IBLテクスチャ設定
-			context.bind_table.set_texture(resource_view_bind_layer::pass, common_pipeline_states::deferred_diffuse_iem_hash_key, light_probe.diffuse_ibl_texture);
-			context.bind_table.set_texture(resource_view_bind_layer::pass, common_pipeline_states::deferred_specular_pmrem_hash_key, light_probe.specular_ibl_texture);
-			context.bind_table.set_texture(resource_view_bind_layer::pass, common_pipeline_states::deferred_lut_ggx_hash_key, light_probe.lut_ggx_texture);
+			context.recorder.get_bind_table().set_texture(resource_view_bind_layer::pass, common_pipeline_states::deferred_diffuse_iem_hash_key, light_probe.diffuse_ibl_texture);
+			context.recorder.get_bind_table().set_texture(resource_view_bind_layer::pass, common_pipeline_states::deferred_specular_pmrem_hash_key, light_probe.specular_ibl_texture);
+			context.recorder.get_bind_table().set_texture(resource_view_bind_layer::pass, common_pipeline_states::deferred_lut_ggx_hash_key, light_probe.lut_ggx_texture);
 
 			//	間接光の情報を設定
 			common_pipeline_states::deferred_light_probe_constants deferred_light_probe_constant{};
 			deferred_light_probe_constant.light_probe_data = light_probe.data;
 			deferred_light_probe_constant.light_probe_attribute = light_probe.attribute;
-			context.bind_table.set_constants(resource_view_bind_layer::pass, common_pipeline_states::deferred_light_probe_constant_buffer_hash_key, deferred_light_probe_constant);
+			context.recorder.get_bind_table().set_constants(resource_view_bind_layer::pass, common_pipeline_states::deferred_light_probe_constant_buffer_hash_key, deferred_light_probe_constant);
 
 			//	全画面描画
-			context.set_pipeline(*data.resources->skybox_pipeline_states);
+			context.recorder.set_pipeline(*data.resources->skybox_pipeline_states);
 			scene_renderer_commons::draw(context, data.resources->skybox_pipeline_states, 4);
-			context.end_pipeline();
+			context.recorder.end_pipeline();
 			break;
 		}
-
-		rendering_pass.deactivate(context.recorder.get_device_context());
 	});
 }
 
@@ -1097,51 +1083,56 @@ void scene_rendering::add_gbuffer_decal_pass(frame_graph& graph, const scene_fra
 	struct pass_data
 	{
 		std::shared_ptr<const decal_resources> resources;
-		std::shared_ptr<const scene_render_targets> targets;
 		std::shared_ptr<render_decal_indices> render_decal_indices;
+		frame_graph::texture_handle normal_depth;
+		frame_graph::texture_handle unique_data;
 		frame_graph::texture_handle normal_depth_copy;
 		D3D11_VIEWPORT viewport{};
-		UINT render_pass = 0;
 	};
+
+	//	@tool 法線/深度の複製先は一時テクスチャとして要求する（G-Buffer の法線/深度と同じ形式）
+	const frame_graph::texture_handle normal_depth_copy = graph.create_texture("decal_normal_depth_copy", scene_renderer_commons::make_work_texture_desc(frame.config, DXGI_FORMAT_R32G32B32A32_FLOAT));
+
+	//	法線/深度コピー
+	//	@tool 描画先を持たないパスに分ける（デカールのパスでは法線/深度が描画先になるため）
+	graph.add_pass<pass_data>("gbuffer_decal_copy_pass", frame.context, [&](frame_graph::builder& builder, pass_data& data)
+	{
+		data.normal_depth = builder.read(frame.textures.g_buffer(common_pipeline_states::gbuffer_id::normal_depth), frame_graph::texture_usage::copy_source);
+		data.normal_depth_copy = builder.write(normal_depth_copy, frame_graph::texture_usage::copy_destination);
+	},
+	[](const pass_data& data, const frame_graph::resources& resources, render_job_context& context)
+	{
+		Microsoft::WRL::ComPtr<ID3D11Resource> destination, source;
+		resources.get_texture(data.normal_depth_copy)->get_shader_resource_view()->GetResource(destination.ReleaseAndGetAddressOf());
+		resources.get_texture(data.normal_depth)->get_shader_resource_view()->GetResource(source.ReleaseAndGetAddressOf());
+		context.recorder.copy_resource(destination.Get(), source.Get());
+	});
+
 	graph.add_pass<pass_data>("gbuffer_decal_pass", frame.context, [&](frame_graph::builder& builder, pass_data& data)
 	{
-		//	@tool 法線/深度の複製先は一時テクスチャとして要求する（G-Buffer の法線/深度と同じ形式）
-		data.normal_depth_copy = builder.create("decal_normal_depth_copy", scene_renderer_commons::make_work_texture_desc(*frame.targets, DXGI_FORMAT_R32G32B32A32_FLOAT));
-		builder.read(frame.textures.g_buffer(common_pipeline_states::gbuffer_id::normal_depth), frame_graph::texture_usage::copy_source);
-		builder.write(data.normal_depth_copy, frame_graph::texture_usage::copy_destination);
-		builder.read(data.normal_depth_copy);
-		builder.read(frame.textures.g_buffer(common_pipeline_states::gbuffer_id::unique_data));
+		data.normal_depth_copy = builder.read(normal_depth_copy);
+		data.unique_data = builder.read(frame.textures.g_buffer(common_pipeline_states::gbuffer_id::unique_data));
+		data.normal_depth = frame.textures.g_buffer(common_pipeline_states::gbuffer_id::normal_depth);
 
 		//	GBufferパス生成
 		frame_graph::color_attachment base_color;
 		base_color.texture = frame.textures.g_buffer(common_pipeline_states::gbuffer_id::base_color);
 		frame_graph::color_attachment normal_depth;
 		normal_depth.texture = frame.textures.g_buffer(common_pipeline_states::gbuffer_id::normal_depth);
-		data.render_pass = builder.add_render_pass({ base_color, normal_depth }, scene_depth_attachment(frame, false, true));
-		data.viewport = frame.targets->get_scene_viewport();
+		builder.set_render_targets({ base_color, normal_depth }, scene_depth_attachment(frame, false, true));
+		data.viewport = frame.config.get_viewport();
 		data.resources = resources;
-		data.targets = frame.targets;
 		data.render_decal_indices = frame.context.render_decal_indices;
 	},
-	[](const pass_data& data, const frame_graph::resources& resources, graphics_context& context)
+	[](const pass_data& data, const frame_graph::resources& resources, render_job_context& context)
 	{
-		const render_pass& rendering_pass = resources.get_render_pass(data.render_pass);
 		//	@tool 一時テクスチャの実体は記録時に取得する
 		const texture_ptr normal_depth_copy_texture = resources.get_texture(data.normal_depth_copy);
-
-		//	法線/深度コピー
-		{
-			Microsoft::WRL::ComPtr<ID3D11Resource> destination, source;
-			normal_depth_copy_texture->get_shader_resource_view()->GetResource(destination.ReleaseAndGetAddressOf());
-			data.targets->g_buffer_textures[static_cast<UINT>(common_pipeline_states::gbuffer_id::normal_depth)]->get_shader_resource_view()->GetResource(source.ReleaseAndGetAddressOf());
-			context.recorder.get_device_context()->CopyResource(destination.Get(), source.Get());
-		}
-
-		//	描画先設定
-		rendering_pass.activate(context.recorder.get_device_context());
+		const texture_ptr normal_depth_texture = resources.get_texture(data.normal_depth);
+		const texture_ptr unique_data_texture = resources.get_texture(data.unique_data);
 
 		//	ビューポートの設定
-		context.recorder.get_device_context()->RSSetViewports(1, &data.viewport);
+		context.recorder.set_viewport(data.viewport);
 
 		//	デカール
 		{
@@ -1157,17 +1148,17 @@ void scene_rendering::add_gbuffer_decal_pass(frame_graph& graph, const scene_fra
 
 			//	必要なテクスチャを設定
 			{
-				context.bind_table.set_texture(resource_view_bind_layer::pass, common_pipeline_states::gbuffer_hash_keys[static_cast<UINT>(common_pipeline_states::gbuffer_id::normal_depth)], normal_depth_copy_texture);
-				context.bind_table.set_texture(resource_view_bind_layer::pass, common_pipeline_states::gbuffer_hash_keys[static_cast<UINT>(common_pipeline_states::gbuffer_id::unique_data)], data.targets->g_buffer_textures[static_cast<UINT>(common_pipeline_states::gbuffer_id::unique_data)]);
+				context.recorder.get_bind_table().set_texture(resource_view_bind_layer::pass, common_pipeline_states::gbuffer_hash_keys[static_cast<UINT>(common_pipeline_states::gbuffer_id::normal_depth)], normal_depth_copy_texture);
+				context.recorder.get_bind_table().set_texture(resource_view_bind_layer::pass, common_pipeline_states::gbuffer_hash_keys[static_cast<UINT>(common_pipeline_states::gbuffer_id::unique_data)], unique_data_texture);
 			}
 
 			//	デカール描画
 			for (auto& decal_index : data.render_decal_indices->draw_list)
 			{
-				auto& decal = context.render_data->decal_container.proxies[decal_index];
+				auto& decal = context.render_data->decal_container.draw_items[decal_index];
 
 				//	バッファ情報生成
-				buffer_datas buffer_data;
+				mesh_draw_item draw_item;
 				{
 					const math::matrixf W = math::matrixf::scaling(decal.scale.x, decal.scale.y, decal.scale.z)
 										* math::matrixf::rotation_quaternion(decal.rotation.to_quaternion())
@@ -1182,44 +1173,42 @@ void scene_rendering::add_gbuffer_decal_pass(frame_graph& graph, const scene_fra
 						dpc.decal_direction.z = front.z;
 						dpc.decal_direction.w = 0;
 						dpc.decal_inverse_transform = W.inverted().to_float4x4();
-						context.recorder.get_device_context()->UpdateSubresource(data.resources->decal_primitive_primitive_buffer.Get(), 0, 0, &dpc, 0, 0);
+						context.recorder.update_subresource(data.resources->decal_primitive_primitive_buffer.Get(), 0, 0, &dpc, 0, 0);
 					}
-					buffer_data.primitive_buffer = data.resources->decal_primitive_primitive_buffer;
+					draw_item.primitive_buffer = data.resources->decal_primitive_primitive_buffer;
 				}
 
 				//	ステンシル書き込み
 				{
-					context.set_pipeline(*data.resources->stencil_write_pipeline_state);
-					context.bind_draw(*data.resources->stencil_write_pipeline_state, *decal.material.material, &buffer_data);
+					context.recorder.set_pipeline(*data.resources->stencil_write_pipeline_state);
+					context.recorder.bind_draw(*data.resources->stencil_write_pipeline_state, *decal.material, &draw_item);
 					scene_renderer_commons::draw_geometric_primitive(context, *data.resources->cube);
-					context.end_pipeline();
+					context.recorder.end_pipeline();
 				}
 
 				//	デカール書き込み
 				auto pass = sphere.intersection(&decal.box) ? material::decal_paths::fullscreen : material::decal_paths::primitive;
-				if (auto pipeline_state = decal.material.material->get_pipeline_state(pass))
+				if (auto pipeline_state = decal.material->get_pipeline_state(pass))
 				{
-					context.set_pipeline(*pipeline_state);
+					context.recorder.set_pipeline(*pipeline_state);
 					if (pass == material::decal_paths::fullscreen)
 					{
-						context.is_force_material_both_draw = true;
-						context.bind_draw(*pipeline_state, *decal.material.material, &buffer_data);
+						context.recorder.get_render_state_overrides().force_two_sided = true;
+						context.recorder.bind_draw(*pipeline_state, *decal.material, &draw_item);
 						scene_renderer_commons::draw(context, pipeline_state, 4);
-						context.is_force_material_both_draw = false;
+						context.recorder.get_render_state_overrides().force_two_sided = false;
 					}
 					else
 					{
-						context.bind_draw(*pipeline_state, *decal.material.material, &buffer_data);
+						context.recorder.bind_draw(*pipeline_state, *decal.material, &draw_item);
 						scene_renderer_commons::draw_geometric_primitive(context, *data.resources->cube);
 					}
-					context.end_pipeline();
+					context.recorder.end_pipeline();
 				}
 			}
-
-			rendering_pass.deactivate(context.recorder.get_device_context());
 		}
 
-		context.bind_table.set_texture(resource_view_bind_layer::pass, common_pipeline_states::gbuffer_hash_keys[static_cast<UINT>(common_pipeline_states::gbuffer_id::normal_depth)], data.targets->g_buffer_textures[static_cast<UINT>(common_pipeline_states::gbuffer_id::normal_depth)]);
+		context.recorder.get_bind_table().set_texture(resource_view_bind_layer::pass, common_pipeline_states::gbuffer_hash_keys[static_cast<UINT>(common_pipeline_states::gbuffer_id::normal_depth)], normal_depth_texture);
 	});
 }
 
@@ -1228,7 +1217,9 @@ void scene_rendering::add_gbuffer_decal_pass(frame_graph& graph, const scene_fra
 void scene_rendering::add_deferred_lighting_passes(frame_graph& graph, scene_frame& frame, const std::shared_ptr<const deferred_lighting_resources>& resources)
 {
 	const renderer_context& context = frame.context;
-	prepare_shadow_map_pass(*frame.targets);
+	//	@tool シャドウマップアトラスは視点の状態に持つ（視点の状態は framework が必ず用意する）
+	if (!context.current_view_state)
+		return;
 
 	//	間接光
 	add_indirect_pass(graph, frame, *resources);
@@ -1242,7 +1233,7 @@ void scene_rendering::add_deferred_lighting_passes(frame_graph& graph, scene_fra
 	std::unordered_map<const light_render_proxy*, atlas_slot> atlas_slots;
 	//	@tool 設定は抽出時点の値を使う
 	const render_settings& settings = context.render_data->settings;
-	shadow_atlas& atlas = frame.targets->history.atlas;
+	shadow_atlas& atlas = get_shadow_atlas(frame);
 	atlas.begin_frame(settings.shadow_atlas);
 	if (settings.shadow_atlas.enable)
 	{
@@ -1318,7 +1309,7 @@ void scene_rendering::add_deferred_lighting_passes(frame_graph& graph, scene_fra
 
 				//	ライティング処理
 				//	シャドウマップアトラスに描いた場合はアトラスを参照する
-				const texture_ptr shadow_texture = (atlas_slice >= 0) ? atlas.get_texture() : frame.targets->shadowmap_depth_texture;
+				const texture_ptr shadow_texture = (atlas_slice >= 0) ? atlas.get_texture() : frame.shadow_map;
 				add_light_pass(graph, frame, *resources, "render_point_pass", light, shadow_map_constant, shadow_texture, material::system_paths::deferred_point);
 				break;
 			}
@@ -1336,7 +1327,7 @@ void scene_rendering::add_deferred_lighting_passes(frame_graph& graph, scene_fra
 
 				//	ライティング処理
 				//	シャドウマップアトラスに描いた場合はアトラスを参照する
-				const texture_ptr shadow_texture = (atlas_slice >= 0) ? atlas.get_texture() : frame.targets->shadowmap_depth_texture;
+				const texture_ptr shadow_texture = (atlas_slice >= 0) ? atlas.get_texture() : frame.shadow_map;
 				add_light_pass(graph, frame, *resources, "render_spot_pass", light, shadow_map_constant, shadow_texture, material::system_paths::deferred_spot);
 				break;
 			}
@@ -1356,46 +1347,39 @@ void scene_rendering::add_debug_draw_pass(frame_graph& graph, const scene_frame&
 	{
 		std::shared_ptr<const debug_draw_resources> resources;
 		D3D11_VIEWPORT viewport{};
-		UINT render_pass = 0;
 	};
 	graph.add_pass<pass_data>("debug_draw_pass", frame.context, [&](frame_graph::builder& builder, pass_data& data)
 	{
 		//	@tool 出力先（バックバッファ、またはビューの出力テクスチャ）へ重ねて描く
 		frame_graph::color_attachment output;
 		output.texture = frame.textures.output;
-		output.external_view = frame.targets->output_view.view;
+		output.external_view = frame.output.view;
 		output.clear = false;
-		data.render_pass = builder.add_render_pass({ output }, scene_depth_attachment(frame, false, true));
-		data.viewport = frame.targets->output_viewport;
+		builder.set_render_targets({ output }, scene_depth_attachment(frame, false, true));
+		data.viewport = frame.output.viewport;
 		data.resources = resources;
 	},
-	[](const pass_data& data, const frame_graph::resources& resources, graphics_context& context)
+	[](const pass_data& data, const frame_graph::resources&, render_job_context& context)
 	{
-		const render_pass& rendering_pass = resources.get_render_pass(data.render_pass);
-
-		//	描画先設定
-		rendering_pass.activate(context.recorder.get_device_context());
-
 		//	ビューポートの設定
-		context.recorder.get_device_context()->RSSetViewports(1, &data.viewport);
+		context.recorder.set_viewport(data.viewport);
 
 		//	ライン描画
 		for (UINT index = 0; index < static_cast<int>(debug_draw_primitive_container::line_buffer_id::max); ++index)
 		{
-			context.set_pipeline(*data.resources->debug_draw_line_pipeline_states[index]);
-			if (!context.render_data->debug_draw_container.line_buffer_datas[index].color_meshs.empty())
+			context.recorder.set_pipeline(*data.resources->debug_draw_line_pipeline_states[index]);
+			if (!context.render_data->debug_draw_container.line_draw_items[index].color_meshs.empty())
 			{
-				auto& mesh = context.render_data->debug_draw_container.line_buffer_datas[index].color_meshs[0];
+				auto& mesh = context.render_data->debug_draw_container.line_draw_items[index].color_meshs[0];
 				auto it = mesh.vertex_buffer_views->begin();
 				UINT stride = static_cast<UINT>(it->second.stride_in_bytes);
 				UINT offset = static_cast<UINT>(it->second.offset());
-				context.set_vertex_buffers(0, 1, it->second.buffer.GetAddressOf(), &stride, &offset);
+				context.recorder.set_vertex_buffers(0, 1, it->second.buffer.GetAddressOf(), &stride, &offset);
 
-				context.recorder.get_device_context()->Draw(static_cast<UINT>(it->second.count()), 0);
+				context.recorder.draw(static_cast<UINT>(it->second.count()), 0);
 			}
-			context.end_pipeline();
+			context.recorder.end_pipeline();
 		}
-		rendering_pass.deactivate(context.recorder.get_device_context());
 	});
 }
 #endif // defined(USE_IMGUI)

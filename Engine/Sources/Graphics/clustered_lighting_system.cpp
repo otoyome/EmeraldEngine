@@ -24,9 +24,6 @@ namespace
 	console_variable<float> visualize_max_variable("r.clustered.visualize_max", 32.0f, "ヒートマップで最大色になるライト数");
 	bool get_visualize() { return visualize_variable.get(); }
 	float get_visualize_max() { return (std::max)(visualize_max_variable.get(), 1.0f); }
-#else	//	defined(USE_IMGUI)
-	bool get_visualize() { return false; }
-	float get_visualize_max() { return 32.0f; }
 #endif	//	defined(USE_IMGUI)
 
 	//	定数バッファのフラグ
@@ -156,7 +153,9 @@ clustered_lighting_system::clustered_lighting_system()
 		shader_manager::instance()->load_shader<vertex_shader>(fullscreen_vs, desc);
 	}
 	lighting_ps = load_ps("Shaders/ClusteredLighting/deferred_rendering_clustered_ps.hlsl", false);
+#if defined(USE_IMGUI)
 	visualize_ps = load_ps("Shaders/ClusteredLighting/deferred_rendering_clustered_ps.hlsl", true);
+#endif	//	defined(USE_IMGUI)
 
 	//	定数バッファ
 	{
@@ -173,15 +172,7 @@ clustered_lighting_system::clustered_lighting_system()
 	//	ライト番号総数の読み戻し用
 	{
 		create_structured_buffer(sizeof(UINT), 1, D3D11_BIND_UNORDERED_ACCESS, statistics_buffer, nullptr, &statistics_uav);
-		for (auto& staging : statistics_staging)
-		{
-			D3D11_BUFFER_DESC bd{};
-			bd.ByteWidth = sizeof(UINT);
-			bd.Usage = D3D11_USAGE_STAGING;
-			bd.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
-			hr = device->CreateBuffer(&bd, nullptr, staging.GetAddressOf());
-			_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
-		}
+		statistics_readback.initialize(device.Get(), { static_cast<UINT>(sizeof(UINT)) }, readback_count, 8);
 	}
 
 	//	ステート
@@ -198,11 +189,13 @@ clustered_lighting_system::clustered_lighting_system()
 		hr = device->CreateBlendState(&blend_desc, blend_state.GetAddressOf());
 		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
 
+#if defined(USE_IMGUI)
 		D3D11_BLEND_DESC visualize_blend_desc{};
 		visualize_blend_desc.RenderTarget[0].BlendEnable = FALSE;
 		visualize_blend_desc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 		hr = device->CreateBlendState(&visualize_blend_desc, visualize_blend_state.GetAddressOf());
 		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+#endif	//	defined(USE_IMGUI)
 
 		D3D11_DEPTH_STENCIL_DESC depth_stencil_desc{};
 		depth_stencil_desc.DepthEnable = FALSE;
@@ -230,8 +223,20 @@ void clustered_lighting_system::capture_settings(render_settings::clustered_ligh
 	out_settings.enable = get_enable();
 	out_settings.far_distance = get_far();
 	out_settings.depth_culling = get_depth_culling();
+#if defined(USE_IMGUI)
 	out_settings.visualize = get_visualize();
 	out_settings.visualize_max = get_visualize_max();
+#endif	//	defined(USE_IMGUI)
+}
+
+bool clustered_lighting_system::is_visualize(const render_settings& settings)
+{
+#if defined(USE_IMGUI)
+	return settings.clustered_lighting.visualize;
+#else	//	defined(USE_IMGUI)
+	(void)settings;
+	return false;
+#endif	//	defined(USE_IMGUI)
 }
 
 bool clustered_lighting_system::is_target(const light_render_proxy& light, const render_settings& settings)
@@ -288,25 +293,11 @@ void clustered_lighting_system::generate_index_buffer(UINT capacity)
 
 void clustered_lighting_system::read_statistics()
 {
-	auto dc = render_data::instance()->get_immediate_context();
-	//	@tool immediate context は提出スレッドと共有しているので排他する
-	std::lock_guard<std::recursive_mutex> immediate_lock(render_data::instance()->get_immediate_context_mutex());
-	for (UINT index = 0; index < readback_count; ++index)
-	{
-		if (!statistics_pending[index])
-			continue;
-
-		D3D11_MAPPED_SUBRESOURCE mapped{};
-		if (FAILED(dc->Map(statistics_staging[index].Get(), 0, D3D11_MAP_READ, D3D11_MAP_FLAG_DO_NOT_WAIT, &mapped)))
-			continue;
-
-		required_index_count = (std::max)(required_index_count, *static_cast<const UINT*>(mapped.pData));
-		dc->Unmap(statistics_staging[index].Get(), 0);
-		statistics_pending[index] = false;
-	}
+	//	@tool 読み戻しで届いた必要数を取り込む（受け取りは提出スレッドで行われる）
+	required_index_count = (std::max)(required_index_count, received_index_count->exchange(0));
 }
 
-void clustered_lighting_system::prepare(const render_data_context& render_data, const common_pipeline_states::scene_constants& scene)
+void clustered_lighting_system::prepare(const view_render_data& render_data, const common_pipeline_states::scene_constants& scene)
 {
 	//	ライト収集
 	lights.clear();
@@ -355,31 +346,33 @@ void clustered_lighting_system::prepare(const render_data_context& render_data, 
 	constants.slice_scale = static_cast<float>(slice_count) / std::log(cluster_far / cluster_near);
 	constants.slice_bias = -std::log(cluster_near) * constants.slice_scale;
 	constants.flags = render_data.settings.clustered_lighting.depth_culling ? clustered_flag_depth_culling : 0u;
+#if defined(USE_IMGUI)
 	constants.visualize_max = render_data.settings.clustered_lighting.visualize_max;
+#endif	//	defined(USE_IMGUI)
 }
 
-void clustered_lighting_system::build(graphics_context& context)
+void clustered_lighting_system::build(render_job_context& context)
 {
-	auto dc = context.recorder.get_device_context();
+	const auto& recorder = context.recorder;
 
 	//	ライトが無くてもフォワード描画がライト数を参照できるよう定数は毎回更新する
-	dc->UpdateSubresource(constant_buffer.Get(), 0, nullptr, &constants, 0, 0);
+	recorder.update_subresource(constant_buffer.Get(), 0, nullptr, &constants, 0, 0);
 	if (light_count == 0)
 		return;
 
-	context.debug_begin_event(L"clustered_lighting_build");
+	context.recorder.begin_event(L"clustered_lighting_build");
 
 	{
 		D3D11_BOX box{};
 		box.right = static_cast<UINT>(sizeof(light_data) * light_count);
 		box.bottom = 1;
 		box.back = 1;
-		dc->UpdateSubresource(light_buffer.Get(), 0, &box, lights.data(), 0, 0);
+		recorder.update_subresource(light_buffer.Get(), 0, &box, lights.data(), 0, 0);
 	}
 
 	ID3D11Buffer* constant_buffers[] = { context.scene_constant_buffer.Get() };
-	dc->CSSetConstantBuffers(common_pipeline_states::scene_cbv_index, 1, constant_buffers);
-	dc->CSSetConstantBuffers(clustered_cbv_index, 1, constant_buffer.GetAddressOf());
+	recorder.set_constant_buffers(shader_stage::compute, common_pipeline_states::scene_cbv_index, 1, constant_buffers);
+	recorder.set_constant_buffers(shader_stage::compute, clustered_cbv_index, 1, constant_buffer.GetAddressOf());
 
 	const UINT light_group_x = (std::min)(light_count, dispatch_width);
 	const UINT light_group_y = (light_count + dispatch_width - 1) / dispatch_width;
@@ -387,131 +380,148 @@ void clustered_lighting_system::build(graphics_context& context)
 	//	クラスターの範囲
 	//  クラスターごとの view 空間 AABB を求める
 	{
-		dc->CSSetShader(bounds_cs->get_shader().Get(), nullptr, 0);
-		dc->CSSetUnorderedAccessViews(0, 1, bounds_uav.GetAddressOf(), nullptr);
-		dc->Dispatch((cluster_total + bounds_thread_count - 1) / bounds_thread_count, 1, 1);
-		context.clear_unordered_access_views();
+		recorder.set_compute_shader(bounds_cs->get_shader().Get());
+		recorder.set_unordered_access_views(0, 1, bounds_uav.GetAddressOf());
+		recorder.dispatch((cluster_total + bounds_thread_count - 1) / bounds_thread_count, 1, 1);
+		context.recorder.clear_unordered_access_views();
 	}
 
 	//	タイルごとの最も奥の奥行き分割を G-Buffer の深度から求める
 	if (constants.flags & clustered_flag_depth_culling)
 	{
-		const texture_ptr normal_depth = context.bind_table.get_texture(common_pipeline_states::gbuffer_hash_keys[static_cast<UINT>(common_pipeline_states::gbuffer_id::normal_depth)]);
+		const texture_ptr normal_depth = context.recorder.get_bind_table().get_texture(common_pipeline_states::gbuffer_hash_keys[static_cast<UINT>(common_pipeline_states::gbuffer_id::normal_depth)]);
 		if (normal_depth)
 		{
 			const UINT zero[4] = {};
-			dc->ClearUnorderedAccessViewUint(tile_depth_uav.Get(), zero);
+			recorder.clear_unordered_access_view_uint(tile_depth_uav.Get(), zero);
 
 			const UINT width = static_cast<UINT>(normal_depth->get_width());
 			const UINT height = static_cast<UINT>(normal_depth->get_height());
-			dc->CSSetShader(depth_cs->get_shader().Get(), nullptr, 0);
-			dc->CSSetShaderResources(0, 1, normal_depth->get_shader_resource_view().GetAddressOf());
-			dc->CSSetUnorderedAccessViews(0, 1, tile_depth_uav.GetAddressOf(), nullptr);
-			dc->Dispatch((width + depth_thread_size - 1) / depth_thread_size, (height + depth_thread_size - 1) / depth_thread_size, 1);
-			context.clear_unordered_access_views();
-			context.clear_shader_resorce_views();
+			recorder.set_compute_shader(depth_cs->get_shader().Get());
+			recorder.set_shader_resource_views(shader_stage::compute, 0, 1, normal_depth->get_shader_resource_view().GetAddressOf());
+			recorder.set_unordered_access_views(0, 1, tile_depth_uav.GetAddressOf());
+			recorder.dispatch((width + depth_thread_size - 1) / depth_thread_size, (height + depth_thread_size - 1) / depth_thread_size, 1);
+			context.recorder.clear_unordered_access_views();
+			context.recorder.clear_shader_resorce_views();
 		}
 		else
 		{
 			//	深度が無ければ全クラスターを対象にする
 			const UINT all_slices[4] = { slice_count - 1, slice_count - 1, slice_count - 1, slice_count - 1 };
-			dc->ClearUnorderedAccessViewUint(tile_depth_uav.Get(), all_slices);
+			recorder.clear_unordered_access_view_uint(tile_depth_uav.Get(), all_slices);
 		}
 	}
 
 	//	クラスターごとのライト数を数える
 	{
 		const UINT zero[4] = {};
-		dc->ClearUnorderedAccessViewUint(count_uav.Get(), zero);
-		dc->ClearUnorderedAccessViewUint(cursor_uav.Get(), zero);
+		recorder.clear_unordered_access_view_uint(count_uav.Get(), zero);
+		recorder.clear_unordered_access_view_uint(cursor_uav.Get(), zero);
 
 		ID3D11ShaderResourceView* srvs[] = { light_srv.Get(), bounds_srv.Get(), nullptr, tile_depth_srv.Get() };
-		dc->CSSetShader(count_cs->get_shader().Get(), nullptr, 0);
-		dc->CSSetShaderResources(0, ARRAYSIZE(srvs), srvs);
-		dc->CSSetUnorderedAccessViews(0, 1, count_uav.GetAddressOf(), nullptr);
-		dc->Dispatch(light_group_x, light_group_y, 1);
-		context.clear_unordered_access_views();
-		context.clear_shader_resorce_views();
+		recorder.set_compute_shader(count_cs->get_shader().Get());
+		recorder.set_shader_resource_views(shader_stage::compute, 0, ARRAYSIZE(srvs), srvs);
+		recorder.set_unordered_access_views(0, 1, count_uav.GetAddressOf());
+		recorder.dispatch(light_group_x, light_group_y, 1);
+		context.recorder.clear_unordered_access_views();
+		context.recorder.clear_shader_resorce_views();
 	}
 
 	//	↑で数えたので書き込み開始位置を決める
 	{
 		ID3D11UnorderedAccessView* uavs[] = { offset_uav.Get(), statistics_uav.Get() };
-		dc->CSSetShader(scan_cs->get_shader().Get(), nullptr, 0);
-		dc->CSSetShaderResources(0, 1, count_srv.GetAddressOf());
-		dc->CSSetUnorderedAccessViews(0, ARRAYSIZE(uavs), uavs, nullptr);
-		dc->Dispatch(1, 1, 1);
-		context.clear_unordered_access_views();
-		context.clear_shader_resorce_views();
+		recorder.set_compute_shader(scan_cs->get_shader().Get());
+		recorder.set_shader_resource_views(shader_stage::compute, 0, 1, count_srv.GetAddressOf());
+		recorder.set_unordered_access_views(0, ARRAYSIZE(uavs), uavs);
+		recorder.dispatch(1, 1, 1);
+		context.recorder.clear_unordered_access_views();
+		context.recorder.clear_shader_resorce_views();
 	}
 
 	//	ライト番号を書き込む
 	{
 		ID3D11ShaderResourceView* srvs[] = { light_srv.Get(), bounds_srv.Get(), offset_srv.Get(), tile_depth_srv.Get() };
 		ID3D11UnorderedAccessView* uavs[] = { cursor_uav.Get(), index_uav.Get() };
-		dc->CSSetShader(fill_cs->get_shader().Get(), nullptr, 0);
-		dc->CSSetShaderResources(0, ARRAYSIZE(srvs), srvs);
-		dc->CSSetUnorderedAccessViews(0, ARRAYSIZE(uavs), uavs, nullptr);
-		dc->Dispatch(light_group_x, light_group_y, 1);
-		context.clear_unordered_access_views();
-		context.clear_shader_resorce_views();
+		recorder.set_compute_shader(fill_cs->get_shader().Get());
+		recorder.set_shader_resource_views(shader_stage::compute, 0, ARRAYSIZE(srvs), srvs);
+		recorder.set_unordered_access_views(0, ARRAYSIZE(uavs), uavs);
+		recorder.dispatch(light_group_x, light_group_y, 1);
+		context.recorder.clear_unordered_access_views();
+		context.recorder.clear_shader_resorce_views();
 	}
 
-	dc->CSSetShader(nullptr, nullptr, 0);
-	context.clear_constant_buffers();
+	recorder.set_compute_shader(nullptr);
+	context.recorder.clear_constant_buffers();
 
 	//	ライト番号総数をコピー
-	dc->CopyResource(statistics_staging[readback_index].Get(), statistics_buffer.Get());
-	statistics_pending[readback_index] = true;
-	readback_index = (readback_index + 1) % readback_count;
+	recorder.read_back(statistics_readback, { { statistics_buffer.Get(), nullptr } },
+		[received = received_index_count](const gpu_readback_data& data)
+		{
+			const UINT count = *data.get<UINT>(0);
+			UINT current = received->load();
+			while (count > current && !received->compare_exchange_weak(current, count))
+			{
+			}
+		});
 
-	context.debug_end_event();
+	context.recorder.end_event();
 }
 
-void clustered_lighting_system::render(graphics_context& context)
+void clustered_lighting_system::render(render_job_context& context)
 {
-	const bool visualize = context.render_data->settings.clustered_lighting.visualize;
+	const bool visualize = is_visualize(context.render_data->settings);
 	if (light_count == 0 && !visualize)
 		return;
 
-	auto dc = context.recorder.get_device_context();
-	context.debug_begin_event(L"clustered_lighting");
+	//	@tool ヒートマップ表示（デバッグ機能）の時は専用のシェーダーとブレンドステートを使う
+	pixel_shader* ps = lighting_ps.get();
+	ID3D11BlendState* blend = blend_state.Get();
+#if defined(USE_IMGUI)
+	if (visualize)
+	{
+		ps = visualize_ps.get();
+		blend = visualize_blend_state.Get();
+	}
+#endif	//	defined(USE_IMGUI)
 
-	dc->VSSetShader(fullscreen_vs->get_shader().Get(), nullptr, 0);
-	dc->HSSetShader(nullptr, nullptr, 0);
-	dc->DSSetShader(nullptr, nullptr, 0);
-	dc->GSSetShader(nullptr, nullptr, 0);
-	dc->PSSetShader((visualize ? visualize_ps : lighting_ps)->get_shader().Get(), nullptr, 0);
-	dc->IASetInputLayout(fullscreen_vs->get_input_layout().Get());
-	dc->OMSetBlendState((visualize ? visualize_blend_state : blend_state).Get(), nullptr, 0xFFFFFFFF);
-	dc->OMSetDepthStencilState(depth_stencil_state.Get(), 0);
-	dc->RSSetState(rasterizer_state.Get());
+	const auto& recorder = context.recorder;
+	context.recorder.begin_event(L"clustered_lighting");
 
-	dc->VSSetConstantBuffers(common_pipeline_states::scene_cbv_index, 1, context.scene_constant_buffer.GetAddressOf());
-	dc->PSSetConstantBuffers(common_pipeline_states::scene_cbv_index, 1, context.scene_constant_buffer.GetAddressOf());
-	dc->PSSetConstantBuffers(clustered_cbv_index, 1, constant_buffer.GetAddressOf());
+	recorder.set_vertex_shader(fullscreen_vs->get_shader().Get());
+	recorder.set_hull_shader(nullptr);
+	recorder.set_domain_shader(nullptr);
+	recorder.set_geometry_shader(nullptr);
+	recorder.set_pixel_shader(ps->get_shader().Get());
+	recorder.set_input_layout(fullscreen_vs->get_input_layout().Get());
+	recorder.set_blend_state(blend);
+	recorder.set_depth_stencil_state(depth_stencil_state.Get(), 0);
+	recorder.set_rasterizer_state(rasterizer_state.Get());
+
+	recorder.set_constant_buffers(shader_stage::vertex, common_pipeline_states::scene_cbv_index, 1, context.scene_constant_buffer.GetAddressOf());
+	recorder.set_constant_buffers(shader_stage::pixel, common_pipeline_states::scene_cbv_index, 1, context.scene_constant_buffer.GetAddressOf());
+	recorder.set_constant_buffers(shader_stage::pixel, clustered_cbv_index, 1, constant_buffer.GetAddressOf());
 
 	ID3D11ShaderResourceView* g_buffer_srvs[static_cast<UINT>(common_pipeline_states::gbuffer_id::max)];
 	for (UINT index = 0; index < static_cast<UINT>(common_pipeline_states::gbuffer_id::max); ++index)
 	{
-		g_buffer_srvs[index] = context.bind_table.get_texture(common_pipeline_states::gbuffer_hash_keys[index])->get_shader_resource_view().Get();
+		g_buffer_srvs[index] = context.recorder.get_bind_table().get_texture(common_pipeline_states::gbuffer_hash_keys[index])->get_shader_resource_view().Get();
 	}
-	dc->PSSetShaderResources(gbuffer_srv_index, ARRAYSIZE(g_buffer_srvs), g_buffer_srvs);
-	dc->PSSetSamplers(gbuffer_sampler_index, 1, render_data::instance()->get_sampler_states(render_data::SAMPLER_STATE::LINEAR).GetAddressOf());
+	recorder.set_shader_resource_views(shader_stage::pixel, gbuffer_srv_index, ARRAYSIZE(g_buffer_srvs), g_buffer_srvs);
+	recorder.set_samplers(shader_stage::pixel, gbuffer_sampler_index, 1, render_data::instance()->get_sampler_states(render_data::SAMPLER_STATE::LINEAR).GetAddressOf());
 
 	ID3D11ShaderResourceView* cluster_srvs[] = { light_srv.Get(), count_srv.Get(), offset_srv.Get(), index_srv.Get() };
-	dc->PSSetShaderResources(clustered_srv_index, ARRAYSIZE(cluster_srvs), cluster_srvs);
+	recorder.set_shader_resource_views(shader_stage::pixel, clustered_srv_index, ARRAYSIZE(cluster_srvs), cluster_srvs);
 
-	context.set_index_buffer(nullptr, DXGI_FORMAT_UNKNOWN, 0);
-	context.set_primitive_topology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-	dc->Draw(4, 0);
+	context.recorder.set_index_buffer(nullptr, DXGI_FORMAT_UNKNOWN, 0);
+	context.recorder.set_primitive_topology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+	recorder.draw(4, 0);
 
-	context.clear_vertex_buffer();
-	context.clear_index_buffer();
-	context.clear_shader_slots();
-	context.clear_shader_resorce_views();
-	context.clear_sampler();
-	context.clear_constant_buffers();
+	context.recorder.clear_vertex_buffer();
+	context.recorder.clear_index_buffer();
+	context.recorder.clear_shader_slots();
+	context.recorder.clear_shader_resorce_views();
+	context.recorder.clear_sampler();
+	context.recorder.clear_constant_buffers();
 
-	context.debug_end_event();
+	context.recorder.end_event();
 }

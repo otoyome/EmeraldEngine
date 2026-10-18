@@ -134,3 +134,10 @@ namespace ImGui
     void MyFunction(const char* name, MyMatrix44* mtx);
 }
 */
+
+//---- [TowerDefenceGame] @tool Keep the current ImGui context per thread.
+// The main thread switches between the contexts of the editor windows, while the submit thread always draws with the main context.
+// The variable is defined in TowerDefenceGame/Sources/Editor/editor_host.cpp.
+struct ImGuiContext;
+extern thread_local ImGuiContext* imgui_thread_context;
+#define GImGui imgui_thread_context

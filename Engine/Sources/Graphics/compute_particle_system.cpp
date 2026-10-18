@@ -53,12 +53,12 @@ namespace
 	}
 	;
 	//	クリア関数
-	void clear_resources(ID3D11DeviceContext* immediate_context)
+	void clear_resources(const render_command_recorder& recorder)
 	{
 		ID3D11UnorderedAccessView* clear_uavs[D3D11_1_UAV_SLOT_COUNT]{};
 		ID3D11ShaderResourceView* clear_srvs[D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT]{};
-		immediate_context->CSSetUnorderedAccessViews(0, D3D11_1_UAV_SLOT_COUNT, clear_uavs, nullptr);
-		immediate_context->CSSetShaderResources(0, D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT, clear_srvs);
+		recorder.set_unordered_access_views(0, D3D11_1_UAV_SLOT_COUNT, clear_uavs);
+		recorder.set_shader_resource_views(shader_stage::compute, 0, D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT, clear_srvs);
 	};
 
 	//	汎用情報定義
@@ -444,25 +444,8 @@ compute_particle_system::compute_particle_system(ID3D11Device* device,
 		hr = device->CreateShaderResourceView(particle_event_count_buffer.Get(), &count_srv_desc, particle_event_count_shader_resource_view.GetAddressOf());
 		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
 
-		D3D11_BUFFER_DESC staging_desc = {};
-		staging_desc.ByteWidth = sizeof(particle_event) * max_particle_event;
-		staging_desc.Usage = D3D11_USAGE_STAGING;
-		staging_desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
-		for (UINT index = 0; index < particle_event_staging_count; ++index)
-		{
-			hr = device->CreateBuffer(&staging_desc, nullptr, particle_event_staging[index].GetAddressOf());
-			_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
-		}
-
-		D3D11_BUFFER_DESC count_desc = {};
-		count_desc.ByteWidth = sizeof(UINT);
-		count_desc.Usage = D3D11_USAGE_STAGING;
-		count_desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
-		for (UINT index = 0; index < particle_event_staging_count; ++index)
-		{
-			hr = device->CreateBuffer(&count_desc, nullptr, particle_event_count_staging[index].GetAddressOf());
-			_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
-		}
+		//	@tool イベントの読み戻し先（個数, イベント本体）
+		particle_event_readback.initialize(device, { static_cast<UINT>(sizeof(UINT)), static_cast<UINT>(sizeof(particle_event) * max_particle_event) }, 3, 32);
 	}
 	//	コンピュートシェーダー読み込み
 	for (int index = 0; index < static_cast<int>(dispatch_shaderes::max); ++index)
@@ -627,11 +610,15 @@ void compute_particle_system::reset_emitter(UINT emitter_id)
 	reset_emitter_ids.push_back(emitter_id);
 }
 
-void compute_particle_system::update(graphics_context& context, float elapsed_time)
+void compute_particle_system::update(render_job_context& context, float elapsed_time)
 {
-	auto dc = context.recorder.get_device_context();
+	const auto& recorder = context.recorder;
+
+	//	@tool シーンから登録・解除された SDF を GPU へ書き込む
+	if (sdf_buffer_pool)
+		sdf_buffer_pool->flush_uploads(recorder);
 	//	定数バッファ設定
-	dc->CSSetConstantBuffers(common_pipeline_states::scene_cbv_index, 1, context.scene_constant_buffer.GetAddressOf());
+	recorder.set_constant_buffers(shader_stage::compute, common_pipeline_states::scene_cbv_index, 1, context.scene_constant_buffer.GetAddressOf());
 
 	//	エミッターガベージコレクション
 	bool change_emitter_id_table = !additional_emitter_ids.empty();
@@ -672,7 +659,7 @@ void compute_particle_system::update(graphics_context& context, float elapsed_ti
 			//	GPU側エミッター情報も無効化
 			emitter_data em_data = {};
 			D3D11_BOX box = { sizeof(emitter_data) * remove_emitter_id, 0, 0, sizeof(emitter_data) * (remove_emitter_id + 1), 1, 1 };
-			dc->UpdateSubresource(emitter_data_buffer.Get(), 0, &box, &em_data, sizeof(em_data), 0);
+			recorder.update_subresource(emitter_data_buffer.Get(), 0, &box, &em_data, sizeof(em_data), 0);
 
 			emitter_id_stack.push(remove_emitter_id);
 		}
@@ -705,21 +692,21 @@ void compute_particle_system::update(graphics_context& context, float elapsed_ti
 			{
 				D3D11_BOX box = { emitter_header.emitter_binary_head, 0, 0,
 					emitter_header.emitter_binary_head + data.emitter_binary_size, 1, 1 };
-				dc->CopySubresourceRegion(
+				recorder.copy_subresource_region(
 					emitter_binary_buffer[new_buffer_index].Get(), 0, emitter_binary_position, 0, 0,
 					emitter_binary_buffer[old_buffer_index].Get(), 0, &box);
 			}
 			{
 				D3D11_BOX box = { emitter_header.particle_binary_head, 0, 0,
 					emitter_header.particle_binary_head + data.particle_binary_size, 1, 1 };
-				dc->CopySubresourceRegion(
+				recorder.copy_subresource_region(
 					particle_binary_buffer[new_buffer_index].Get(), 0, particle_binary_position, 0, 0,
 					particle_binary_buffer[old_buffer_index].Get(), 0, &box);
 			}
 			{
 				D3D11_BOX box = { emitter_header.particle_index_head * sizeof(UINT), 0, 0,
 					(emitter_header.particle_index_head + data.total_particle_count) * sizeof(UINT), 1, 1};
-				dc->CopySubresourceRegion(
+				recorder.copy_subresource_region(
 					particle_index_buffer[new_buffer_index].Get(), 0, particle_index_position * sizeof(UINT), 0, 0,
 					particle_index_buffer[old_buffer_index].Get(), 0, &box);
 			}
@@ -739,7 +726,7 @@ void compute_particle_system::update(graphics_context& context, float elapsed_ti
 			write_box.bottom = 1;
 			write_box.front = 0;
 			write_box.back = 1;
-			dc->UpdateSubresource(emitter_header_buffer.Get(),
+			recorder.update_subresource(emitter_header_buffer.Get(),
 				0,
 				&write_box,
 				emitter_headers.data(),
@@ -781,7 +768,7 @@ void compute_particle_system::update(graphics_context& context, float elapsed_ti
 			emitter_data em_data = {};
 			em_data.particle_max = emitter_resources[reset_id].resource.system.total_particle_count;
 			D3D11_BOX box = { sizeof(emitter_data) * reset_id, 0, 0, sizeof(emitter_data) * (reset_id + 1), 1, 1 };
-			dc->UpdateSubresource(emitter_data_buffer.Get(), 0, &box, &em_data, sizeof(em_data), 0);
+			recorder.update_subresource(emitter_data_buffer.Get(), 0, &box, &em_data, sizeof(em_data), 0);
 		}
 		reset_emitter_ids.clear();
 	}
@@ -820,7 +807,7 @@ void compute_particle_system::update(graphics_context& context, float elapsed_ti
 		write_box.bottom = 1;
 		write_box.front = 0;
 		write_box.back = 1;
-		dc->UpdateSubresource(emitter_binary_buffer[current_buffer_index].Get(),
+		recorder.update_subresource(emitter_binary_buffer[current_buffer_index].Get(),
 			0,
 			&write_box,
 			data_buffer.data(),
@@ -854,8 +841,8 @@ void compute_particle_system::update(graphics_context& context, float elapsed_ti
 		constant.common_constant_dummy = 0;
 		for (UINT index = 0; index < constant.erase_id_count; ++index)
 			(&constant.erase_id_list[0].x)[index] = erase_id_list[index];
-		dc->UpdateSubresource(common_constant_buffer.Get(), 0, nullptr, &constant, 0, 0);
-		dc->CSSetConstantBuffers(common_constant_buffer_index, 1, common_constant_buffer.GetAddressOf());
+		recorder.update_subresource(common_constant_buffer.Get(), 0, nullptr, &constant, 0, 0);
+		recorder.set_constant_buffers(shader_stage::compute, common_constant_buffer_index, 1, common_constant_buffer.GetAddressOf());
 	}
 
 	//	システム初期化処理
@@ -865,19 +852,19 @@ void compute_particle_system::update(graphics_context& context, float elapsed_ti
 
 		//	システム初期化
 		{
-			dc->CSSetUnorderedAccessViews(0, 1, indirect_data_unordered_access_view.GetAddressOf(), nullptr);
-			dc->CSSetUnorderedAccessViews(1, 1, emitter_data_unordered_access_view.GetAddressOf(), nullptr);
-			dc->CSSetShader(compute_shaderes[static_cast<int>(dispatch_shaderes::clear_system_shader)]->get_shader().Get(), nullptr, 0);
-			dc->Dispatch(1, 1, 1);
-			clear_resources(dc);
+			recorder.set_unordered_access_views(0, 1, indirect_data_unordered_access_view.GetAddressOf());
+			recorder.set_unordered_access_views(1, 1, emitter_data_unordered_access_view.GetAddressOf());
+			recorder.set_compute_shader(compute_shaderes[static_cast<int>(dispatch_shaderes::clear_system_shader)]->get_shader().Get());
+			recorder.dispatch(1, 1, 1);
+			clear_resources(recorder);
 		}
 
 		//	パーティクルリストクリア
 		{
-			dc->CSSetUnorderedAccessViews(0, 1, particle_header_unordered_access_view.GetAddressOf(), nullptr);
-			dc->CSSetShader(compute_shaderes[static_cast<int>(dispatch_shaderes::clear_particles)]->get_shader().Get(), nullptr, 0);
-			dc->Dispatch(total_particle_count / NumDispatchThread, 1, 1);
-			clear_resources(dc);
+			recorder.set_unordered_access_views(0, 1, particle_header_unordered_access_view.GetAddressOf());
+			recorder.set_compute_shader(compute_shaderes[static_cast<int>(dispatch_shaderes::clear_particles)]->get_shader().Get());
+			recorder.dispatch(total_particle_count / NumDispatchThread, 1, 1);
+			clear_resources(recorder);
 		}
 	}
 
@@ -887,24 +874,27 @@ void compute_particle_system::update(graphics_context& context, float elapsed_ti
 		pending_reset = false;
 
 		//	未読イベント破棄
-		particle_event_staging_pending = 0;
-		particle_event_overflow.clear();
+		{
+			std::lock_guard<std::mutex> lock(particle_event_received->mutex);
+			particle_event_received->events.clear();
+			++particle_event_received->generation;
+		}
 
 		//	システム情報クリア
 		{
-			dc->CSSetUnorderedAccessViews(0, 1, indirect_data_unordered_access_view.GetAddressOf(), nullptr);
-			dc->CSSetUnorderedAccessViews(1, 1, emitter_data_unordered_access_view.GetAddressOf(), nullptr);
-			dc->CSSetShader(compute_shaderes[static_cast<int>(dispatch_shaderes::clear_system_shader)]->get_shader().Get(), nullptr, 0);
-			dc->Dispatch(1, 1, 1);
-			clear_resources(dc);
+			recorder.set_unordered_access_views(0, 1, indirect_data_unordered_access_view.GetAddressOf());
+			recorder.set_unordered_access_views(1, 1, emitter_data_unordered_access_view.GetAddressOf());
+			recorder.set_compute_shader(compute_shaderes[static_cast<int>(dispatch_shaderes::clear_system_shader)]->get_shader().Get());
+			recorder.dispatch(1, 1, 1);
+			clear_resources(recorder);
 		}
 
 		//	パーティクルリストクリア
 		{
-			dc->CSSetUnorderedAccessViews(0, 1, particle_header_unordered_access_view.GetAddressOf(), nullptr);
-			dc->CSSetShader(compute_shaderes[static_cast<int>(dispatch_shaderes::clear_particles)]->get_shader().Get(), nullptr, 0);
-			dc->Dispatch(total_particle_count / NumDispatchThread, 1, 1);
-			clear_resources(dc);
+			recorder.set_unordered_access_views(0, 1, particle_header_unordered_access_view.GetAddressOf());
+			recorder.set_compute_shader(compute_shaderes[static_cast<int>(dispatch_shaderes::clear_particles)]->get_shader().Get());
+			recorder.dispatch(total_particle_count / NumDispatchThread, 1, 1);
+			clear_resources(recorder);
 		}
 
 		for (UINT reset_emitter_id : emitter_id_table)
@@ -922,7 +912,7 @@ void compute_particle_system::update(graphics_context& context, float elapsed_ti
 			write_box.bottom = 1;
 			write_box.front = 0;
 			write_box.back = 1;
-			dc->UpdateSubresource(emitter_data_buffer.Get(), 0, &write_box, &em_data, sizeof(em_data), 0);
+			recorder.update_subresource(emitter_data_buffer.Get(), 0, &write_box, &em_data, sizeof(em_data), 0);
 		}
 	}
 
@@ -939,7 +929,7 @@ void compute_particle_system::update(graphics_context& context, float elapsed_ti
 		{
 			initialize_buffer[index] = invalid_tag;
 		}
-		dc->UpdateSubresource(emitter_table_buffer.Get(),
+		recorder.update_subresource(emitter_table_buffer.Get(),
 			0,
 			nullptr,
 			initialize_buffer.data(),
@@ -950,17 +940,17 @@ void compute_particle_system::update(graphics_context& context, float elapsed_ti
 	//	シミュレーション原点の移動分、生存パーティクルの座標をずらす
 	if (pending_rebase)
 	{
-		dc->CSSetUnorderedAccessViews(0, 1, particle_binary_unordered_access_view[current_buffer_index].GetAddressOf(), nullptr);
-		dc->CSSetShaderResources(0, 1, emitter_header_shader_resource_view.GetAddressOf());
-		dc->CSSetShaderResources(1, 1, emitter_binary_shader_resource_view[current_buffer_index].GetAddressOf());
-		dc->CSSetShaderResources(2, 1, particle_header_shader_resource_view.GetAddressOf());
-		dc->CSSetShader(compute_shaderes[static_cast<int>(dispatch_shaderes::rebase_particles)]->get_shader().Get(), nullptr, 0);
-		dc->Dispatch(total_particle_count / NumDispatchThread, 1, 1);
-		clear_resources(dc);
+		recorder.set_unordered_access_views(0, 1, particle_binary_unordered_access_view[current_buffer_index].GetAddressOf());
+		recorder.set_shader_resource_views(shader_stage::compute, 0, 1, emitter_header_shader_resource_view.GetAddressOf());
+		recorder.set_shader_resource_views(shader_stage::compute, 1, 1, emitter_binary_shader_resource_view[current_buffer_index].GetAddressOf());
+		recorder.set_shader_resource_views(shader_stage::compute, 2, 1, particle_header_shader_resource_view.GetAddressOf());
+		recorder.set_compute_shader(compute_shaderes[static_cast<int>(dispatch_shaderes::rebase_particles)]->get_shader().Get());
+		recorder.dispatch(total_particle_count / NumDispatchThread, 1, 1);
+		clear_resources(recorder);
 
 		//	SDF の範囲もシミュレーション空間に合わせる
 		if (sdf_buffer_pool)
-			sdf_buffer_pool->set_space_origin(dc, simulation_origin);
+			sdf_buffer_pool->set_space_origin(recorder, simulation_origin);
 
 		pending_rebase = false;
 		pending_rebase_offset = { 0.0f, 0.0f, 0.0f };
@@ -968,10 +958,10 @@ void compute_particle_system::update(graphics_context& context, float elapsed_ti
 
 	//	更新開始処理
 	{
-		dc->CSSetUnorderedAccessViews(0, 1, indirect_data_unordered_access_view.GetAddressOf(), nullptr);
-		dc->CSSetShader(compute_shaderes[static_cast<int>(dispatch_shaderes::begin_update)]->get_shader().Get(), nullptr, 0);
-		dc->Dispatch(1, 1, 1);
-		clear_resources(dc);
+		recorder.set_unordered_access_views(0, 1, indirect_data_unordered_access_view.GetAddressOf());
+		recorder.set_compute_shader(compute_shaderes[static_cast<int>(dispatch_shaderes::begin_update)]->get_shader().Get());
+		recorder.dispatch(1, 1, 1);
+		clear_resources(recorder);
 	}
 
 	//	エミッター生成時に初期化時の処理
@@ -993,7 +983,7 @@ void compute_particle_system::update(graphics_context& context, float elapsed_ti
 			write_box.bottom = 1;
 			write_box.front = 0;
 			write_box.back = 1;
-			dc->UpdateSubresource(emitter_header_buffer.Get(),
+			recorder.update_subresource(emitter_header_buffer.Get(),
 				0,
 				&write_box,
 				emitter_headers.data() + additional_emitter_id,
@@ -1016,7 +1006,7 @@ void compute_particle_system::update(graphics_context& context, float elapsed_ti
 			write_box.bottom = 1;
 			write_box.front = 0;
 			write_box.back = 1;
-			dc->UpdateSubresource(emitter_data_buffer.Get(),
+			recorder.update_subresource(emitter_data_buffer.Get(),
 				0,
 				&write_box,
 				&emitter_data,
@@ -1030,18 +1020,18 @@ void compute_particle_system::update(graphics_context& context, float elapsed_ti
 			constant.emitter_particle_index_head = header.particle_index_head;
 			constant.emitter_particle_index_end = header.particle_index_head
 												+ resource.resource.system.total_particle_count;
-			dc->UpdateSubresource(fill_unused_index_constant_buffer.Get(), 0, nullptr, &constant, 0, 0);
-			dc->CSSetConstantBuffers(fill_unused_index_constant_buffer_index, 1, fill_unused_index_constant_buffer.GetAddressOf());
+			recorder.update_subresource(fill_unused_index_constant_buffer.Get(), 0, nullptr, &constant, 0, 0);
+			recorder.set_constant_buffers(shader_stage::compute, fill_unused_index_constant_buffer_index, 1, fill_unused_index_constant_buffer.GetAddressOf());
 		}
 
 		//	パーティクルヘッダーの範囲を未使用インデックスとして埋める
 		{
-			dc->CSSetUnorderedAccessViews(0, 1, particle_index_unordered_access_view[current_buffer_index].GetAddressOf(), nullptr);
-			dc->CSSetShader(compute_shaderes[static_cast<int>(dispatch_shaderes::fill_unused_index)]->get_shader().Get(), nullptr, 0);
+			recorder.set_unordered_access_views(0, 1, particle_index_unordered_access_view[current_buffer_index].GetAddressOf());
+			recorder.set_compute_shader(compute_shaderes[static_cast<int>(dispatch_shaderes::fill_unused_index)]->get_shader().Get());
 			UINT particle_count = resource.resource.system.total_particle_count;
 			particle_count += ((NumDispatchThread - particle_count) % NumDispatchThread);
-			dc->Dispatch(particle_count / NumDispatchThread, 1, 1);
-			clear_resources(dc);
+			recorder.dispatch(particle_count / NumDispatchThread, 1, 1);
+			clear_resources(recorder);
 		}
 	}
 
@@ -1049,205 +1039,204 @@ void compute_particle_system::update(graphics_context& context, float elapsed_ti
 	{
 		//	初期パーティクル割り当て
 		{
-			dc->CSSetUnorderedAccessViews(0, 1, particle_header_unordered_access_view.GetAddressOf(), nullptr);
-			dc->CSSetUnorderedAccessViews(1, 1, emitter_range_unordered_access_view.GetAddressOf(), nullptr);
-			dc->CSSetUnorderedAccessViews(2, 1, emitter_data_unordered_access_view.GetAddressOf(), nullptr);
-			dc->CSSetUnorderedAccessViews(3, 1, indirect_data_unordered_access_view.GetAddressOf(), nullptr);
+			recorder.set_unordered_access_views(0, 1, particle_header_unordered_access_view.GetAddressOf());
+			recorder.set_unordered_access_views(1, 1, emitter_range_unordered_access_view.GetAddressOf());
+			recorder.set_unordered_access_views(2, 1, emitter_data_unordered_access_view.GetAddressOf());
+			recorder.set_unordered_access_views(3, 1, indirect_data_unordered_access_view.GetAddressOf());
 
-			dc->CSSetShaderResources(0, 1, emitter_table_shader_resource_view.GetAddressOf());
-			dc->CSSetShaderResources(1, 1, emitter_header_shader_resource_view.GetAddressOf());
-			dc->CSSetShaderResources(2, 1, emitter_binary_shader_resource_view[current_buffer_index].GetAddressOf());
+			recorder.set_shader_resource_views(shader_stage::compute, 0, 1, emitter_table_shader_resource_view.GetAddressOf());
+			recorder.set_shader_resource_views(shader_stage::compute, 1, 1, emitter_header_shader_resource_view.GetAddressOf());
+			recorder.set_shader_resource_views(shader_stage::compute, 2, 1, emitter_binary_shader_resource_view[current_buffer_index].GetAddressOf());
 
-			dc->CSSetShader(compute_shaderes[static_cast<int>(dispatch_shaderes::spawn_particles)]->get_shader().Get(), nullptr, 0);
-			dc->Dispatch(static_cast<UINT>(emitter_id_table.size()), 1, 1);
-			clear_resources(dc);
+			recorder.set_compute_shader(compute_shaderes[static_cast<int>(dispatch_shaderes::spawn_particles)]->get_shader().Get());
+			recorder.dispatch(static_cast<UINT>(emitter_id_table.size()), 1, 1);
+			clear_resources(recorder);
 		}
 
 		//	生成したパーティクルの初期化
 		{
-			dc->CSSetUnorderedAccessViews(0, 1, particle_header_unordered_access_view.GetAddressOf(), nullptr);
-			dc->CSSetUnorderedAccessViews(1, 1, emitter_data_unordered_access_view.GetAddressOf(), nullptr);
-			dc->CSSetUnorderedAccessViews(2, 1, particle_index_unordered_access_view[current_buffer_index].GetAddressOf(), nullptr);
-			dc->CSSetUnorderedAccessViews(3, 1, particle_binary_unordered_access_view[current_buffer_index].GetAddressOf(), nullptr);
+			recorder.set_unordered_access_views(0, 1, particle_header_unordered_access_view.GetAddressOf());
+			recorder.set_unordered_access_views(1, 1, emitter_data_unordered_access_view.GetAddressOf());
+			recorder.set_unordered_access_views(2, 1, particle_index_unordered_access_view[current_buffer_index].GetAddressOf());
+			recorder.set_unordered_access_views(3, 1, particle_binary_unordered_access_view[current_buffer_index].GetAddressOf());
 
-			dc->CSSetShaderResources(0, 1, emitter_table_shader_resource_view.GetAddressOf());
-			dc->CSSetShaderResources(1, 1, emitter_header_shader_resource_view.GetAddressOf());
-			dc->CSSetShaderResources(2, 1, emitter_binary_shader_resource_view[current_buffer_index].GetAddressOf());
+			recorder.set_shader_resource_views(shader_stage::compute, 0, 1, emitter_table_shader_resource_view.GetAddressOf());
+			recorder.set_shader_resource_views(shader_stage::compute, 1, 1, emitter_header_shader_resource_view.GetAddressOf());
+			recorder.set_shader_resource_views(shader_stage::compute, 2, 1, emitter_binary_shader_resource_view[current_buffer_index].GetAddressOf());
 
-			dc->CSSetShader(compute_shaderes[static_cast<int>(dispatch_shaderes::initialize_particles)]->get_shader().Get(), nullptr, 0);
-			dc->Dispatch(static_cast<UINT>(emitter_id_table.size()), 1, 1);
-			clear_resources(dc);
+			recorder.set_compute_shader(compute_shaderes[static_cast<int>(dispatch_shaderes::initialize_particles)]->get_shader().Get());
+			recorder.dispatch(static_cast<UINT>(emitter_id_table.size()), 1, 1);
+			clear_resources(recorder);
 		}
 
 		//	イベントからスポーン
 		{
-			dc->CSSetUnorderedAccessViews(0, 1, particle_header_unordered_access_view.GetAddressOf(), nullptr);
-			dc->CSSetUnorderedAccessViews(1, 1, emitter_data_unordered_access_view.GetAddressOf(), nullptr);
-			dc->CSSetUnorderedAccessViews(2, 1, particle_index_unordered_access_view[current_buffer_index].GetAddressOf(), nullptr);
-			dc->CSSetUnorderedAccessViews(3, 1, particle_binary_unordered_access_view[current_buffer_index].GetAddressOf(), nullptr);
-			dc->CSSetUnorderedAccessViews(4, 1, indirect_data_unordered_access_view.GetAddressOf(), nullptr);
+			recorder.set_unordered_access_views(0, 1, particle_header_unordered_access_view.GetAddressOf());
+			recorder.set_unordered_access_views(1, 1, emitter_data_unordered_access_view.GetAddressOf());
+			recorder.set_unordered_access_views(2, 1, particle_index_unordered_access_view[current_buffer_index].GetAddressOf());
+			recorder.set_unordered_access_views(3, 1, particle_binary_unordered_access_view[current_buffer_index].GetAddressOf());
+			recorder.set_unordered_access_views(4, 1, indirect_data_unordered_access_view.GetAddressOf());
 
-			dc->CSSetShaderResources(0, 1, emitter_header_shader_resource_view.GetAddressOf());
-			dc->CSSetShaderResources(1, 1, emitter_binary_shader_resource_view[current_buffer_index].GetAddressOf());
-			dc->CSSetShaderResources(2, 1, particle_event_shader_resource_view.GetAddressOf());
-			dc->CSSetShaderResources(3, 1, particle_event_count_shader_resource_view.GetAddressOf());
+			recorder.set_shader_resource_views(shader_stage::compute, 0, 1, emitter_header_shader_resource_view.GetAddressOf());
+			recorder.set_shader_resource_views(shader_stage::compute, 1, 1, emitter_binary_shader_resource_view[current_buffer_index].GetAddressOf());
+			recorder.set_shader_resource_views(shader_stage::compute, 2, 1, particle_event_shader_resource_view.GetAddressOf());
+			recorder.set_shader_resource_views(shader_stage::compute, 3, 1, particle_event_count_shader_resource_view.GetAddressOf());
 
-			dc->CSSetShader(compute_shaderes[static_cast<int>(dispatch_shaderes::spawn_from_events)]->get_shader().Get(), nullptr, 0);
-			dc->Dispatch(max_particle_event / NumDispatchThread, 1, 1);
-			clear_resources(dc);
+			recorder.set_compute_shader(compute_shaderes[static_cast<int>(dispatch_shaderes::spawn_from_events)]->get_shader().Get());
+			recorder.dispatch(max_particle_event / NumDispatchThread, 1, 1);
+			clear_resources(recorder);
 		}
 	}
 
 	//	パーティクル更新処理
 	{
 		UINT event_initial_count = 0;
-		dc->CSSetUnorderedAccessViews(0, 1, particle_header_unordered_access_view.GetAddressOf(), nullptr);
-		dc->CSSetUnorderedAccessViews(1, 1, particle_binary_unordered_access_view[current_buffer_index].GetAddressOf(), nullptr);
-		dc->CSSetUnorderedAccessViews(2, 1, particle_event_append_uav.GetAddressOf(), &event_initial_count);	//	毎フレームゼロリセットするので
+		recorder.set_unordered_access_views(0, 1, particle_header_unordered_access_view.GetAddressOf());
+		recorder.set_unordered_access_views(1, 1, particle_binary_unordered_access_view[current_buffer_index].GetAddressOf());
+		recorder.set_unordered_access_views(2, 1, particle_event_append_uav.GetAddressOf(), &event_initial_count);	//	毎フレームゼロリセットするので
 
-		dc->CSSetShaderResources(0, 1, emitter_header_shader_resource_view.GetAddressOf());
-		dc->CSSetShaderResources(1, 1, emitter_binary_shader_resource_view[current_buffer_index].GetAddressOf());
+		recorder.set_shader_resource_views(shader_stage::compute, 0, 1, emitter_header_shader_resource_view.GetAddressOf());
+		recorder.set_shader_resource_views(shader_stage::compute, 1, 1, emitter_binary_shader_resource_view[current_buffer_index].GetAddressOf());
 
 		//	SDF衝突判定用バッファ
 		{
 			ID3D11ShaderResourceView* cubic_sdf_header_srv = sdf_buffer_pool ? sdf_buffer_pool->get_header_shader_resource_view() : nullptr;
 			ID3D11ShaderResourceView* cubic_sdf_voxel_srv = sdf_buffer_pool ? sdf_buffer_pool->get_voxel_shader_resource_view() : nullptr;
-			dc->CSSetShaderResources(2, 1, &cubic_sdf_header_srv);
-			dc->CSSetShaderResources(3, 1, &cubic_sdf_voxel_srv);
+			recorder.set_shader_resource_views(shader_stage::compute, 2, 1, &cubic_sdf_header_srv);
+			recorder.set_shader_resource_views(shader_stage::compute, 3, 1, &cubic_sdf_voxel_srv);
 		}
 
-		dc->CSSetShader(compute_shaderes[static_cast<int>(dispatch_shaderes::update_particles)]->get_shader().Get(), nullptr, 0);
-		dc->DispatchIndirect(indirect_data_buffer.Get(), UpdateParticleDispatchIndirect);
-		clear_resources(dc);
+		recorder.set_compute_shader(compute_shaderes[static_cast<int>(dispatch_shaderes::update_particles)]->get_shader().Get());
+		recorder.dispatch_indirect(indirect_data_buffer.Get(), UpdateParticleDispatchIndirect);
+		clear_resources(recorder);
 
-		//	書き込み先が未読なら同期読み出し
-		if (particle_event_staging_pending >= particle_event_staging_count)
-		{
-			read_particle_event_staging(dc, particle_event_staging_head, true, particle_event_overflow);
-			particle_event_staging_head = (particle_event_staging_head + 1) % particle_event_staging_count;
-			--particle_event_staging_pending;
-		}
-		UINT staging_index = (particle_event_staging_head + particle_event_staging_pending) % particle_event_staging_count;
-
-		//	パーティクルイベントをCPUで読みだすためコピー
-		dc->CopyStructureCount(particle_event_count_staging[staging_index].Get(), 0, particle_event_append_uav.Get());
-		dc->CopyStructureCount(particle_event_count_buffer.Get(), 0, particle_event_append_uav.Get());
-		dc->CopyResource(particle_event_staging[staging_index].Get(), particle_event_buffer.Get());
-		++particle_event_staging_pending;
+		//	@tool パーティクルイベントを CPU で受け取るため読み戻す（個数とイベント本体を同じ回に読む）
+		recorder.copy_structure_count(particle_event_count_buffer.Get(), 0, particle_event_append_uav.Get());
+		recorder.read_back(particle_event_readback,
+			{ { nullptr, particle_event_append_uav.Get() }, { particle_event_buffer.Get(), nullptr } },
+			[received = particle_event_received, generation = particle_event_received->generation](const gpu_readback_data& data)
+			{
+				const UINT event_count = (std::min)(*data.get<UINT>(0), max_particle_event);
+				const particle_event* events = data.get<particle_event>(1);
+				std::lock_guard<std::mutex> lock(received->mutex);
+				if (received->generation != generation)
+					return;
+				received->events.insert(received->events.end(), events, events + event_count);
+			});
 	}
 
 	//	ソート処理
 	{
 		//	バイトニックソート
 		//	https://www.bealto.com/gpu-sorting_parallel-bitonic-1.html
-		dc->CSSetUnorderedAccessViews(0, 1, particle_header_unordered_access_view.GetAddressOf(), nullptr);
-		dc->CSSetConstantBuffers(bitonic_sort_constant_buffer_index, 1, bitonic_sort_constant_buffer.GetAddressOf());
+		recorder.set_unordered_access_views(0, 1, particle_header_unordered_access_view.GetAddressOf());
+		recorder.set_constant_buffers(shader_stage::compute, bitonic_sort_constant_buffer_index, 1, bitonic_sort_constant_buffer.GetAddressOf());
 		UINT exponent = static_cast<UINT>(ceilf(log2f(static_cast<float>(total_particle_count))) + 0.5f);
 		for (UINT i = 0; i < exponent; ++i)
 		{
-			dc->CSSetShader(compute_shaderes[static_cast<int>(dispatch_shaderes::sort_b2)]->get_shader().Get(), nullptr, 0);
+			recorder.set_compute_shader(compute_shaderes[static_cast<int>(dispatch_shaderes::sort_b2)]->get_shader().Get());
 			UINT increment = 1 << i;
 			for (UINT j = 0; j < i + 1; ++j)
 			{
 				bitonic_sort_constants	constant;
 				constant.increment = increment;
 				constant.direction = 2 << i;
-				dc->UpdateSubresource(bitonic_sort_constant_buffer.Get(), 0, nullptr, &constant, 0, 0);
+				recorder.update_subresource(bitonic_sort_constant_buffer.Get(), 0, nullptr, &constant, 0, 0);
 
 				if (increment <= BitonicSortC2Thread)
 				{
-					dc->CSSetShader(compute_shaderes[static_cast<int>(dispatch_shaderes::sort_c2)]->get_shader().Get(), nullptr, 0);
-					dc->Dispatch(total_particle_count / 2 / BitonicSortC2Thread, 1, 1);
+					recorder.set_compute_shader(compute_shaderes[static_cast<int>(dispatch_shaderes::sort_c2)]->get_shader().Get());
+					recorder.dispatch(total_particle_count / 2 / BitonicSortC2Thread, 1, 1);
 					break;
 				}
 
-				dc->Dispatch(total_particle_count / 2 / BitonicSortB2Thread, 1, 1);
+				recorder.dispatch(total_particle_count / 2 / BitonicSortB2Thread, 1, 1);
 				increment /= 2;
 			}
 		}
-		clear_resources(dc);
+		clear_resources(recorder);
 	}
 
 	//	範囲調査
 	{
-		dc->CSSetUnorderedAccessViews(0, 1, emitter_range_unordered_access_view.GetAddressOf(), nullptr);
+		recorder.set_unordered_access_views(0, 1, emitter_range_unordered_access_view.GetAddressOf());
 
-		dc->CSSetShaderResources(0, 1, particle_header_shader_resource_view.GetAddressOf());
+		recorder.set_shader_resource_views(shader_stage::compute, 0, 1, particle_header_shader_resource_view.GetAddressOf());
 
-		dc->CSSetConstantBuffers(range_particles_constant_buffer_index, 1, range_particles_constant_buffer.GetAddressOf());
+		recorder.set_constant_buffers(shader_stage::compute, range_particles_constant_buffer_index, 1, range_particles_constant_buffer.GetAddressOf());
 
-		dc->CSSetShader(compute_shaderes[static_cast<int>(dispatch_shaderes::range_particles)]->get_shader().Get(), nullptr, 0);
+		recorder.set_compute_shader(compute_shaderes[static_cast<int>(dispatch_shaderes::range_particles)]->get_shader().Get());
 
 		//	全パーティクルをなめて範囲チェック
 		for (int index = 0; index < 2; ++index)
 		{
 			range_particles_constants constant;
 			constant.offset_index = index;
-			dc->UpdateSubresource(range_particles_constant_buffer.Get(), 0, nullptr, &constant, 0, 0);
+			recorder.update_subresource(range_particles_constant_buffer.Get(), 0, nullptr, &constant, 0, 0);
 
-			dc->Dispatch(total_particle_count / NumDispatchThread / 2, 1, 1);
+			recorder.dispatch(total_particle_count / NumDispatchThread / 2, 1, 1);
 		}
-		clear_resources(dc);
+		clear_resources(recorder);
 	}
 
 	//	死亡パーティクルの番号をパーティクルインデックスバッファに返していく
 	{
-		dc->CSSetUnorderedAccessViews(0, 1, particle_index_unordered_access_view[current_buffer_index].GetAddressOf(), nullptr);
-		dc->CSSetUnorderedAccessViews(1, 1, emitter_data_unordered_access_view.GetAddressOf(), nullptr);
-		dc->CSSetUnorderedAccessViews(2, 1, particle_header_unordered_access_view.GetAddressOf(), nullptr);
+		recorder.set_unordered_access_views(0, 1, particle_index_unordered_access_view[current_buffer_index].GetAddressOf());
+		recorder.set_unordered_access_views(1, 1, emitter_data_unordered_access_view.GetAddressOf());
+		recorder.set_unordered_access_views(2, 1, particle_header_unordered_access_view.GetAddressOf());
 
-		dc->CSSetShaderResources(0, 1, emitter_table_shader_resource_view.GetAddressOf());
-		dc->CSSetShaderResources(1, 1, emitter_header_shader_resource_view.GetAddressOf());
-		dc->CSSetShaderResources(2, 1, emitter_range_shader_resource_view.GetAddressOf());
+		recorder.set_shader_resource_views(shader_stage::compute, 0, 1, emitter_table_shader_resource_view.GetAddressOf());
+		recorder.set_shader_resource_views(shader_stage::compute, 1, 1, emitter_header_shader_resource_view.GetAddressOf());
+		recorder.set_shader_resource_views(shader_stage::compute, 2, 1, emitter_range_shader_resource_view.GetAddressOf());
 
 		//	パーティクルインデックスリスト更新
-		dc->CSSetShader(compute_shaderes[static_cast<int>(dispatch_shaderes::terminate_particles)]->get_shader().Get(), nullptr, 0);
-		dc->Dispatch(total_particle_count / NumDispatchThread, 1, 1);
-		clear_resources(dc);
+		recorder.set_compute_shader(compute_shaderes[static_cast<int>(dispatch_shaderes::terminate_particles)]->get_shader().Get());
+		recorder.dispatch(total_particle_count / NumDispatchThread, 1, 1);
+		clear_resources(recorder);
 	}
 
 	//	エミッター毎の描画情報を構築していく
 	{
-		dc->CSSetUnorderedAccessViews(0, 1, particle_index_unordered_access_view[current_buffer_index].GetAddressOf(), nullptr);
-		dc->CSSetUnorderedAccessViews(1, 1, emitter_data_unordered_access_view.GetAddressOf(), nullptr);
-		dc->CSSetUnorderedAccessViews(2, 1, indirect_data_unordered_access_view.GetAddressOf(), nullptr);
+		recorder.set_unordered_access_views(0, 1, particle_index_unordered_access_view[current_buffer_index].GetAddressOf());
+		recorder.set_unordered_access_views(1, 1, emitter_data_unordered_access_view.GetAddressOf());
+		recorder.set_unordered_access_views(2, 1, indirect_data_unordered_access_view.GetAddressOf());
 
-		dc->CSSetShaderResources(0, 1, emitter_table_shader_resource_view.GetAddressOf());
-		dc->CSSetShaderResources(1, 1, emitter_header_shader_resource_view.GetAddressOf());
-		dc->CSSetShaderResources(2, 1, emitter_range_shader_resource_view.GetAddressOf());
-		dc->CSSetShaderResources(3, 1, emitter_binary_shader_resource_view[current_buffer_index].GetAddressOf());
-		dc->CSSetShaderResources(4, 1, particle_header_shader_resource_view.GetAddressOf());
+		recorder.set_shader_resource_views(shader_stage::compute, 0, 1, emitter_table_shader_resource_view.GetAddressOf());
+		recorder.set_shader_resource_views(shader_stage::compute, 1, 1, emitter_header_shader_resource_view.GetAddressOf());
+		recorder.set_shader_resource_views(shader_stage::compute, 2, 1, emitter_range_shader_resource_view.GetAddressOf());
+		recorder.set_shader_resource_views(shader_stage::compute, 3, 1, emitter_binary_shader_resource_view[current_buffer_index].GetAddressOf());
+		recorder.set_shader_resource_views(shader_stage::compute, 4, 1, particle_header_shader_resource_view.GetAddressOf());
 
-		dc->CSSetShader(compute_shaderes[static_cast<int>(dispatch_shaderes::build_emitter_draw_arguments)]->get_shader().Get(), nullptr, 0);
-		dc->Dispatch(1, 1, 1);	//	エミッターを並列で処理させる
-		clear_resources(dc);
+		recorder.set_compute_shader(compute_shaderes[static_cast<int>(dispatch_shaderes::build_emitter_draw_arguments)]->get_shader().Get());
+		recorder.dispatch(1, 1, 1);	//	エミッターを並列で処理させる
+		clear_resources(recorder);
 	}
 
 	//	更新終了処理
 	{
-		dc->CSSetUnorderedAccessViews(0, 1, indirect_data_unordered_access_view.GetAddressOf(), nullptr);
-		dc->CSSetShaderResources(0, 1, emitter_table_shader_resource_view.GetAddressOf());
-		dc->CSSetShaderResources(1, 1, emitter_data_shader_resource_view.GetAddressOf());
-		dc->CSSetShader(compute_shaderes[static_cast<int>(dispatch_shaderes::end_update)]->get_shader().Get(), nullptr, 0);
-		dc->Dispatch(1, 1, 1);
-		clear_resources(dc);
+		recorder.set_unordered_access_views(0, 1, indirect_data_unordered_access_view.GetAddressOf());
+		recorder.set_shader_resource_views(shader_stage::compute, 0, 1, emitter_table_shader_resource_view.GetAddressOf());
+		recorder.set_shader_resource_views(shader_stage::compute, 1, 1, emitter_data_shader_resource_view.GetAddressOf());
+		recorder.set_compute_shader(compute_shaderes[static_cast<int>(dispatch_shaderes::end_update)]->get_shader().Get());
+		recorder.dispatch(1, 1, 1);
+		clear_resources(recorder);
 	}
 }
 
-void compute_particle_system::build_primitives(graphics_context& context)
+void compute_particle_system::build_primitives(render_job_context& context)
 {
-	auto dc = context.recorder.get_device_context();
-	dc->CSSetConstantBuffers(common_pipeline_states::scene_cbv_index, 1, context.scene_constant_buffer.GetAddressOf());
-	dc->CSSetConstantBuffers(common_constant_buffer_index, 1, common_constant_buffer.GetAddressOf());
+	const auto& recorder = context.recorder;
+	recorder.set_constant_buffers(shader_stage::compute, common_pipeline_states::scene_cbv_index, 1, context.scene_constant_buffer.GetAddressOf());
+	recorder.set_constant_buffers(shader_stage::compute, common_constant_buffer_index, 1, common_constant_buffer.GetAddressOf());
 
 	//	頂点バッファ構築
 	{
-		dc->CSSetShaderResources(0, 1, emitter_range_shader_resource_view.GetAddressOf());
-		dc->CSSetShaderResources(1, 1, emitter_header_shader_resource_view.GetAddressOf());
-		dc->CSSetShaderResources(2, 1, emitter_binary_shader_resource_view[current_buffer_index].GetAddressOf());
-		dc->CSSetShaderResources(3, 1, particle_header_shader_resource_view.GetAddressOf());
-		dc->CSSetShaderResources(4, 1, particle_binary_shader_resource_view[current_buffer_index].GetAddressOf());
-		dc->CSSetShader(compute_shaderes[static_cast<int>(dispatch_shaderes::build_primitive)]->get_shader().Get(), nullptr, 0);
+		recorder.set_shader_resource_views(shader_stage::compute, 0, 1, emitter_range_shader_resource_view.GetAddressOf());
+		recorder.set_shader_resource_views(shader_stage::compute, 1, 1, emitter_header_shader_resource_view.GetAddressOf());
+		recorder.set_shader_resource_views(shader_stage::compute, 2, 1, emitter_binary_shader_resource_view[current_buffer_index].GetAddressOf());
+		recorder.set_shader_resource_views(shader_stage::compute, 3, 1, particle_header_shader_resource_view.GetAddressOf());
+		recorder.set_shader_resource_views(shader_stage::compute, 4, 1, particle_binary_shader_resource_view[current_buffer_index].GetAddressOf());
+		recorder.set_compute_shader(compute_shaderes[static_cast<int>(dispatch_shaderes::build_primitive)]->get_shader().Get());
 
 		//	頂点バッファの登録ごとに処理
 		for (UINT index = 0; index < emitter_id_table.size(); index += vertex_buffer_uav_max)
@@ -1268,18 +1257,18 @@ void compute_particle_system::build_primitives(graphics_context& context)
 				(&constant.emitter_ids[0].x)[id] = emitter_id;
 				uavs[id] = emitter_resources[emitter_id].unordered_access_view.Get();
 			}
-			dc->UpdateSubresource(build_primitive_constant_buffer.Get(), 0, nullptr, &constant, 0, 0);
-			dc->CSSetConstantBuffers(build_primitive_constant_buffer_index, 1, build_primitive_constant_buffer.GetAddressOf());
-			dc->CSSetUnorderedAccessViews(0, vertex_buffer_uav_max, uavs, nullptr);
+			recorder.update_subresource(build_primitive_constant_buffer.Get(), 0, nullptr, &constant, 0, 0);
+			recorder.set_constant_buffers(shader_stage::compute, build_primitive_constant_buffer_index, 1, build_primitive_constant_buffer.GetAddressOf());
+			recorder.set_unordered_access_views(0, vertex_buffer_uav_max, uavs);
 
 			//	処理
-			dc->DispatchIndirect(indirect_data_buffer.Get(), UpdateParticleDispatchIndirect);
+			recorder.dispatch_indirect(indirect_data_buffer.Get(), UpdateParticleDispatchIndirect);
 		}
-		clear_resources(dc);
+		clear_resources(recorder);
 	}
 }
 
-void compute_particle_system::generate_render_data(UINT emitter_id, particle_render_proxy& data)
+void compute_particle_system::generate_render_data(UINT emitter_id, particle_draw_item& data)
 {
 	emitter_id;
 	UINT strides[] = { sizeof(vertex_data) };
@@ -1294,51 +1283,12 @@ void compute_particle_system::generate_render_data(UINT emitter_id, particle_ren
 	data.vertex_buffer_view.offset_for_args = FixedIndirectDataSize + sizeof(draw_indirect) * emitter_id;
 }
 
-void compute_particle_system::fetch_events(graphics_context& context, std::vector<particle_event>& out_events)
+void compute_particle_system::fetch_events(render_job_context& context, std::vector<particle_event>& out_events)
 {
+	context;
+
+	//	@tool 読み戻しで届いたイベントを取り出す（記録から 1～2 フレーム後に届く）
 	out_events.clear();
-	out_events.swap(particle_event_overflow);
-
-	//	完了済みのみ読み出し
-	while (particle_event_staging_pending > 0)
-	{
-		if (!read_particle_event_staging(context.recorder.get_device_context(), particle_event_staging_head, false, out_events))
-			break;
-
-		particle_event_staging_head = (particle_event_staging_head + 1) % particle_event_staging_count;
-		--particle_event_staging_pending;
-	}
-}
-
-bool compute_particle_system::read_particle_event_staging(ID3D11DeviceContext* device_context, UINT slot, bool wait, std::vector<particle_event>& out_events)
-{
-	UINT map_flags = wait ? 0 : D3D11_MAP_FLAG_DO_NOT_WAIT;
-
-	UINT event_count = 0;
-	{
-		D3D11_MAPPED_SUBRESOURCE mapped = {};
-		HRESULT hr = device_context->Map(particle_event_count_staging[slot].Get(), 0, D3D11_MAP_READ, map_flags, &mapped);
-		if (hr == DXGI_ERROR_WAS_STILL_DRAWING)
-			return false;
-		if (SUCCEEDED(hr))
-		{
-			event_count = *reinterpret_cast<const UINT*>(mapped.pData);
-			device_context->Unmap(particle_event_count_staging[slot].Get(), 0);
-		}
-	}
-	event_count = std::min(event_count, max_particle_event);
-	if (event_count == 0)
-		return true;
-
-	D3D11_MAPPED_SUBRESOURCE mapped = {};
-	HRESULT hr = device_context->Map(particle_event_staging[slot].Get(), 0, D3D11_MAP_READ, map_flags, &mapped);
-	if (hr == DXGI_ERROR_WAS_STILL_DRAWING)
-		return false;
-	if (SUCCEEDED(hr))
-	{
-		const particle_event* src = reinterpret_cast<const particle_event*>(mapped.pData);
-		out_events.insert(out_events.end(), src, src + event_count);
-		device_context->Unmap(particle_event_staging[slot].Get(), 0);
-	}
-	return true;
+	std::lock_guard<std::mutex> lock(particle_event_received->mutex);
+	out_events.swap(particle_event_received->events);
 }

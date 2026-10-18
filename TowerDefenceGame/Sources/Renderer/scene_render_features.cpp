@@ -28,7 +28,6 @@ void scene_rendering::add_forward_pass(frame_graph& graph, const scene_frame& fr
 		scene_renderer_commons::mesh_draw_command_list_ptr model_commands;
 		scene_renderer_commons::mesh_draw_command_list_ptr particle_commands;
 		D3D11_VIEWPORT viewport{};
-		UINT render_pass = 0;
 	};
 	graph.add_pass<pass_data>(pass_name, frame.context, [&](frame_graph::builder& builder, pass_data& data)
 	{
@@ -41,29 +40,22 @@ void scene_rendering::add_forward_pass(frame_graph& graph, const scene_frame& fr
 		depth.format = common_pipeline_states::scene_depth_stencil_view_format;
 		depth.clear_depth = false;
 		depth.clear_stencil = true;
-		data.render_pass = builder.add_render_pass({ color }, depth);
-		data.viewport = frame.targets->get_scene_viewport();
+		builder.set_render_targets({ color }, depth);
+		data.viewport = frame.config.get_viewport();
 
 		//	@tool 描画コマンドはパスを追加する時に作っておく（描画ジョブは実行するだけ）
-		const render_data_context& frame_data = *renderer_context.render_data;
+		const view_render_data& frame_data = *renderer_context.render_data;
 		data.model_commands = scene_renderer_commons::build_model_draw_commands(frame_data, renderer_context.render_mesh_indices->forward[forward_index], renderer_context.render_mesh_indices->lengths, material::surface_paths::forward_pass);
 		data.particle_commands = scene_renderer_commons::build_particle_draw_commands(frame_data, renderer_context.render_particle_indices->forward[forward_index], material::surface_paths::forward_pass);
 	},
-	[](const pass_data& data, const frame_graph::resources& resources, graphics_context& context)
+	[](const pass_data& data, const frame_graph::resources&, render_job_context& context)
 	{
-		const render_pass& rendering_pass = resources.get_render_pass(data.render_pass);
-
-		//	描画先設定
-		rendering_pass.activate(context.recorder.get_device_context());
-
 		//	ビューポートの設定
-		context.recorder.get_device_context()->RSSetViewports(1, &data.viewport);
+		context.recorder.set_viewport(data.viewport);
 
 		//	モデル類描画
 		scene_renderer_commons::execute_model_draw_commands(context, *data.model_commands);
 		scene_renderer_commons::execute_particle_draw_commands(context, *data.particle_commands);
-
-		rendering_pass.deactivate(context.recorder.get_device_context());
 	});
 }
 

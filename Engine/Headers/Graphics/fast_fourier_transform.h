@@ -1,5 +1,7 @@
 #pragma once
 
+class render_command_recorder;
+
 //	高速フーリエ変換クラス
 class fast_fourier_transform
 {
@@ -44,12 +46,12 @@ public:
 	~fast_fourier_transform();
 
 	//	UAVのクリア
-	void clear_uavs(ID3D11DeviceContext* immediate_context,
+	void clear_uavs(const render_command_recorder& recorder,
 					math::float4 real_clear_value = {0.0f, 0.0f, 0.0f, 0.0f},
 					math::float4 imaginary_clear_value = {0.0f, 0.0f, 0.0f, 1.0f});
 
 	//	フーリエ変換
-	void solve(ID3D11DeviceContext* immediate_context, modes mode);
+	void solve(const render_command_recorder& recorder, modes mode);
 
 	//	複素数テクスチャの取得
 	const texture_ptr& get_complex_real() const;
@@ -57,7 +59,7 @@ public:
 
 private:
 	//	各方向に対してのフーリエ変換
-	void solve_core(ID3D11DeviceContext* context, modes mode, directions direction);
+	void solve_core(const render_command_recorder& recorder, modes mode, directions direction);
 
 private:
 	std::shared_ptr<compute_shader> cs[static_cast<int>(modes::max)][static_cast<int>(directions::max)];

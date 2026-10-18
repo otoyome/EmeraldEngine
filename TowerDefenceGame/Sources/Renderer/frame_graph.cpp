@@ -40,17 +40,9 @@ frame_graph::builder::builder(frame_graph& graph, UINT pass_index) : graph(graph
 {
 }
 
-frame_graph::texture_handle frame_graph::builder::create(std::string_view name, const D3D11_TEXTURE2D_DESC& desc)
+frame_graph::texture_handle frame_graph::builder::create(std::string_view name, const D3D11_TEXTURE2D_DESC& desc, DXGI_FORMAT srv_format)
 {
-	auto& target = graph.textures.emplace_back();
-	target.name = name;
-	target.desc = desc;
-	target.transient = true;
-
-	auto& node = graph.nodes.emplace_back();
-	node.texture = static_cast<UINT>(graph.textures.size() - 1);
-	node.version = 0;
-	return { static_cast<UINT>(graph.textures.size() - 1) };
+	return graph.create_texture(name, desc, srv_format);
 }
 
 frame_graph::texture_handle frame_graph::builder::read(texture_handle handle, texture_usage usage)
@@ -67,8 +59,10 @@ frame_graph::texture_handle frame_graph::builder::write(texture_handle handle, t
 	return handle;
 }
 
-UINT frame_graph::builder::add_render_pass(std::vector<color_attachment> colors, std::optional<depth_attachment> depth)
+void frame_graph::builder::set_render_targets(std::vector<color_attachment> colors, std::optional<depth_attachment> depth)
 {
+	_ASSERT_EXPR(!graph.passes[pass_index].render_targets, L"frame_graph : render targets are already set in this pass (split the pass to switch render targets)");
+
 	for (const auto& color : colors)
 	{
 		//	@tool グラフの外の描画先に描くパスは除かない
@@ -91,10 +85,9 @@ UINT frame_graph::builder::add_render_pass(std::vector<color_attachment> colors,
 		graph.record_access(pass_index, depth->texture, texture_usage::depth_write);
 	}
 
-	auto& target = graph.passes[pass_index].render_passes.emplace_back();
+	auto& target = graph.passes[pass_index].render_targets.emplace();
 	target.colors = std::move(colors);
 	target.depth = depth;
-	return static_cast<UINT>(graph.passes[pass_index].render_passes.size() - 1);
 }
 
 void frame_graph::builder::side_effect()
@@ -132,11 +125,6 @@ D3D11_VIEWPORT frame_graph::resources::get_viewport(texture_handle handle) const
 	viewport.Width = static_cast<float>(target.desc.Width);
 	viewport.Height = static_cast<float>(target.desc.Height);
 	return viewport;
-}
-
-const render_pass& frame_graph::resources::get_render_pass(UINT index) const
-{
-	return frame->render_passes[pass_index][index];
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -179,6 +167,41 @@ frame_graph::texture_handle frame_graph::import_texture(std::string_view name, c
 	node.texture = static_cast<UINT>(textures.size() - 1);
 	node.version = 0;
 	return { static_cast<UINT>(textures.size() - 1) };
+}
+
+frame_graph::texture_handle frame_graph::create_texture(std::string_view name, const D3D11_TEXTURE2D_DESC& desc, DXGI_FORMAT srv_format)
+{
+	auto& target = textures.emplace_back();
+	target.name = name;
+	target.desc = desc;
+	target.srv_format = srv_format;
+	target.transient = true;
+
+	auto& node = nodes.emplace_back();
+	node.texture = static_cast<UINT>(textures.size() - 1);
+	node.version = 0;
+	return { static_cast<UINT>(textures.size() - 1) };
+}
+
+frame_graph::texture_handle frame_graph::register_external_texture(std::string_view name, const pooled_texture_ref_ptr& texture, const D3D11_TEXTURE2D_DESC& expected_desc)
+{
+	if (!texture || !texture->texture || !is_same_desc(texture->desc, expected_desc))
+		return {};
+
+	const texture_handle handle = import_texture(name, texture->texture);
+	textures[handle.index].external = texture;
+	return handle;
+}
+
+pooled_texture_ref_ptr frame_graph::queue_extraction(texture_handle handle)
+{
+	if (!handle.is_valid() || handle.index >= textures.size())
+		return nullptr;
+
+	auto& target = textures[handle.index];
+	if (!target.extraction)
+		target.extraction = std::make_shared<pooled_texture_ref>();
+	return target.extraction;
 }
 
 UINT frame_graph::begin_pass(std::string_view name, const renderer_context& context)
@@ -288,12 +311,13 @@ void frame_graph::build_transitions()
 void frame_graph::cull_passes()
 {
 	//	取り込んだテクスチャの最終版はグラフの外で使われるので、読まれたものとして扱う
+	//	@tool 抜き出すテクスチャの最終版も同じ扱いにする
 	std::vector<UINT> read_counts(nodes.size());
 	for (UINT index = 0; index < static_cast<UINT>(nodes.size()); ++index)
 	{
 		read_counts[index] = nodes[index].read_count;
 		const auto& texture = textures[nodes[index].texture];
-		if (!texture.transient && nodes[index].version == texture.version)
+		if ((!texture.transient || texture.extraction) && nodes[index].version == texture.version)
 			++read_counts[index];
 	}
 
@@ -389,7 +413,10 @@ void frame_graph::allocate_transient_textures()
 		{
 			if (busy_until[pool_index] >= static_cast<std::int64_t>(first_use[index]))
 				continue;
-			if (!is_same_desc(texture_pool[pool_index].desc, target.desc))
+			//	@tool 抜き出した先が持っている物（前のフレームからの履歴など）は使わない
+			if (!texture_pool[pool_index].owner.expired())
+				continue;
+			if (!is_same_desc(texture_pool[pool_index].desc, target.desc) || texture_pool[pool_index].srv_format != target.srv_format)
 				continue;
 			found = pool_index;
 			break;
@@ -400,6 +427,7 @@ void frame_graph::allocate_transient_textures()
 		{
 			pooled_texture created;
 			created.desc = target.desc;
+			created.srv_format = target.srv_format;
 
 			Microsoft::WRL::ComPtr<ID3D11Texture2D> resource;
 			HRESULT hr = device->CreateTexture2D(&target.desc, nullptr, resource.GetAddressOf());
@@ -410,7 +438,14 @@ void frame_graph::allocate_transient_textures()
 			Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> shader_resource_view;
 			if (system_utility::is_bitflag(target.desc.BindFlags, D3D11_BIND_SHADER_RESOURCE))
 			{
-				hr = device->CreateShaderResourceView(resource.Get(), nullptr, shader_resource_view.GetAddressOf());
+				//	@tool 形式の指定がある物（型の無い深度など）は、配列でない2Dテクスチャのビューとして作る
+				D3D11_SHADER_RESOURCE_VIEW_DESC srv_desc{};
+				srv_desc.Format = target.srv_format;
+				srv_desc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+				srv_desc.Texture2D.MostDetailedMip = 0;
+				srv_desc.Texture2D.MipLevels = target.desc.MipLevels;
+				_ASSERT_EXPR(target.srv_format == DXGI_FORMAT_UNKNOWN || target.desc.ArraySize == 1, L"frame_graph : srv_format supports only non-array 2D textures");
+				hr = device->CreateShaderResourceView(resource.Get(), target.srv_format != DXGI_FORMAT_UNKNOWN ? &srv_desc : nullptr, shader_resource_view.GetAddressOf());
 				_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
 			}
 			Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> unordered_access_view;
@@ -432,12 +467,31 @@ void frame_graph::allocate_transient_textures()
 
 		target.texture = pooled.texture;
 		target.pool_index = found;
+
+		//	@tool 抜き出す物は実体を渡し、受け取った側が持っている間はプールが使い回さないようにする
+		if (target.extraction)
+		{
+			target.extraction->texture = pooled.texture;
+			target.extraction->desc = target.desc;
+			pooled.owner = target.extraction;
+		}
+	}
+
+	//	@tool 取り込んだテクスチャを抜き出す場合は、そのまま渡す
+	for (auto& target : textures)
+	{
+		if (!target.transient && target.extraction)
+		{
+			target.extraction->texture = target.texture;
+			target.extraction->desc = target.desc;
+		}
 	}
 
 	//	@tool しばらく使われていない物を破棄する（記録中・提出中のフレームは実体を参照し続けているので、そちらが持っている間は残る）
+	//	@tool 抜き出した先が持っている物は破棄しない
 	texture_pool.erase(std::remove_if(texture_pool.begin(), texture_pool.end(), [&](const pooled_texture& pooled)
 	{
-		return frame_count - pooled.last_used_frame > keep_frames;
+		return pooled.owner.expired() && frame_count - pooled.last_used_frame > keep_frames;
 	}), texture_pool.end());
 }
 
@@ -458,28 +512,39 @@ ID3D11RenderTargetView* frame_graph::acquire_render_target_view(const texture_pt
 	return target.render_target_view.Get();
 }
 
-ID3D11DepthStencilView* frame_graph::acquire_depth_stencil_view(const texture_ptr& texture, DXGI_FORMAT format)
+ID3D11DepthStencilView* frame_graph::acquire_depth_stencil_view(const texture_ptr& texture, DXGI_FORMAT format, UINT first_slice, UINT array_size)
 {
 	Microsoft::WRL::ComPtr<ID3D11Resource> resource = get_resource(texture);
 	if (!resource)
 		return nullptr;
 
-	auto& target = view_cache[{ resource.Get(), format }];
+	auto& target = view_cache[{ resource.Get(), format, array_size, array_size > 0 ? first_slice : 0 }];
 	target.last_used_frame = frame_count;
 	if (!target.depth_stencil_view)
 	{
 		target.resource = resource;
 		D3D11_DEPTH_STENCIL_VIEW_DESC desc{};
 		desc.Format = format;
-		desc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
-		desc.Texture2D.MipSlice = 0;
+		if (array_size > 0)
+		{
+			//	@tool 配列の first_slice から array_size 枚（シャドウマップ・シャドウマップアトラスなど）
+			desc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DARRAY;
+			desc.Texture2DArray.ArraySize = array_size;
+			desc.Texture2DArray.FirstArraySlice = first_slice;
+			desc.Texture2DArray.MipSlice = 0;
+		}
+		else
+		{
+			desc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+			desc.Texture2D.MipSlice = 0;
+		}
 		HRESULT hr = render_data::instance()->get_device()->CreateDepthStencilView(resource.Get(), &desc, target.depth_stencil_view.GetAddressOf());
 		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
 	}
 	return target.depth_stencil_view.Get();
 }
 
-void frame_graph::build_render_passes()
+void frame_graph::build_render_targets()
 {
 	frame->textures.resize(textures.size());
 	for (UINT index = 0; index < static_cast<UINT>(textures.size()); ++index)
@@ -488,37 +553,28 @@ void frame_graph::build_render_passes()
 		frame->textures[index].desc = textures[index].desc;
 	}
 
-	frame->render_passes.resize(passes.size());
+	frame->render_targets.resize(passes.size());
 	for (UINT pass_index = 0; pass_index < static_cast<UINT>(passes.size()); ++pass_index)
 	{
 		const auto& target = passes[pass_index];
-		if (target.culled)
+		if (target.culled || !target.render_targets)
 			continue;
-		auto& out_passes = frame->render_passes[pass_index];
-		for (const auto& desc : target.render_passes)
+		const render_targets_desc& desc = *target.render_targets;
+		render_pass_begin_info& out = frame->render_targets[pass_index].emplace();
+		for (const auto& color : desc.colors)
 		{
-			render_pass& out = out_passes.emplace_back();
-			for (const auto& color : desc.colors)
-			{
-				render_target_view& view = out.render_targets.emplace_back();
-				view.view = color.texture.is_valid() ? acquire_render_target_view(textures[color.texture.index].texture) : color.external_view.Get();
-				view.clear_color = color.clear;
-				for (int component = 0; component < 4; ++component)
-					view.clear_color_value[component] = color.clear_value[component];
-			}
-			if (desc.depth)
-			{
-				out.depth_stencil.view = acquire_depth_stencil_view(textures[desc.depth->texture.index].texture, desc.depth->format);
-				out.depth_stencil.clear_depth = desc.depth->clear_depth;
-				out.depth_stencil.clear_stencil = desc.depth->clear_stencil;
-				out.depth_stencil.clear_depth_value = desc.depth->clear_depth_value;
-				out.depth_stencil.clear_stencil_value = desc.depth->clear_stencil_value;
-			}
-			else
-			{
-				out.depth_stencil.clear_depth = false;
-				out.depth_stencil.clear_stencil = false;
-			}
+			render_pass_color_target& view = out.color_targets.emplace_back();
+			view.view = color.texture.is_valid() ? acquire_render_target_view(textures[color.texture.index].texture) : color.external_view.Get();
+			view.clear = color.clear;
+			view.clear_value = color.clear_value;
+		}
+		if (desc.depth)
+		{
+			out.depth_target.view = acquire_depth_stencil_view(textures[desc.depth->texture.index].texture, desc.depth->format, desc.depth->first_slice, desc.depth->array_size);
+			out.depth_target.clear_depth = desc.depth->clear_depth;
+			out.depth_target.clear_stencil = desc.depth->clear_stencil;
+			out.depth_target.clear_depth_value = desc.depth->clear_depth_value;
+			out.depth_target.clear_stencil_value = desc.depth->clear_stencil_value;
 		}
 	}
 
@@ -537,7 +593,7 @@ void frame_graph::execute(render_job_executor& executor)
 	cull_passes();
 	build_transitions();
 	allocate_transient_textures();
-	build_render_passes();
+	build_render_targets();
 
 	std::vector<report_pass> executed_passes;
 	executed_passes.reserve(passes.size());
@@ -562,9 +618,15 @@ void frame_graph::execute(render_job_executor& executor)
 		if (target.culled)
 			continue;
 
-		executor.execute([frame_resources, pass_index, execute = std::move(target.execute)](graphics_context& context)
+		//	@tool 描画先を宣言したパスは、グラフが execute の前に描画先を設定し（クリアも行う）、後で外す
+		executor.execute([frame_resources, pass_index, execute = std::move(target.execute)](render_job_context& context)
 		{
+			const std::optional<render_pass_begin_info>& render_targets = frame_resources->render_targets[pass_index];
+			if (render_targets)
+				context.recorder.begin_render_pass(*render_targets);
 			execute(resources(frame_resources, pass_index), context);
+			if (render_targets)
+				context.recorder.end_render_pass();
 		}, target.name, target.context, target.use_immediate_context, target.wait_for_recordings, target.owner_name);
 	}
 	passes.clear();

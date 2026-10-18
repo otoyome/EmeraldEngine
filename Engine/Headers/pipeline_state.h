@@ -1,6 +1,6 @@
 #pragma once
 
-#include "graphics_context.h"
+#include "render_job_context.h"
 #include "shader.h"
 
 #include <d3d11shader.h>
@@ -276,7 +276,7 @@ struct graphics_pipeline_shaders
 
 //	描画用パイプラインステート
 //	@tool 描画に必要な情報（シェーダー・ステート・割り当て配置）だけを持つデータ
-//	@tool 設定と割り当ては command_recorder がこの情報を解釈して行う（graphics_context::set_pipeline / bind_draw / end_pipeline）
+//	@tool 設定と割り当ては command_recorder がこの情報を解釈して行う（render_command_recorder::set_pipeline / bind_draw / end_pipeline）
 //	@tool 描画ジョブからは読むだけ。書き換えは prepare（メインスレッド）か生成時に行う
 class graphics_pipeline_state : public pipeline_state_base
 {

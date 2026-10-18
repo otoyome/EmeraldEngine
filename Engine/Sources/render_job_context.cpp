@@ -1,4 +1,4 @@
-#include "graphics_context.h"
+#include "render_job_context.h"
 
 #include "render_data.h"
 #include "System/misc.h"
@@ -78,7 +78,7 @@ void gpu_upload_list::add_reference(const Microsoft::WRL::ComPtr<ID3D11Buffer>& 
 	target.size_in_bytes = size_in_bytes;
 }
 
-void gpu_upload_list::upload(ID3D11DeviceContext* context) const
+void gpu_upload_list::upload(const render_command_recorder& recorder) const
 {
 	for (const auto& target : commands)
 	{
@@ -93,11 +93,11 @@ void gpu_upload_list::upload(ID3D11DeviceContext* context) const
 			box.right = target.offset_in_bytes + target.size_in_bytes;
 			box.bottom = 1;
 			box.back = 1;
-			context->UpdateSubresource(target.buffer.Get(), 0, &box, source, 0, 0);
+			recorder.update_subresource(target.buffer.Get(), 0, &box, source, 0, 0);
 		}
 		else
 		{
-			context->UpdateSubresource(target.buffer.Get(), 0, nullptr, source, 0, 0);
+			recorder.update_subresource(target.buffer.Get(), 0, nullptr, source, 0, 0);
 		}
 	}
 }
@@ -126,9 +126,9 @@ void mesh_container::build_transform_buffers()
 
 void mesh_container::clear()
 {
-	draw_datas.clear();
-	shadow_datas.clear();
-	color_datas.clear();
+	draw_items.clear();
+	shadow_items.clear();
+	color_items.clear();
 	primitive_header_scratch.clear();
 	bone_matrix_scratch.clear();
 }
@@ -148,7 +148,7 @@ namespace
 	};
 
 	//	近距離のライトを集める
-	forward_light_data search_neighborhood_light(const graphics_context& context)
+	forward_light_data search_neighborhood_light(const render_job_context& context)
 	{
 		forward_light_data light_data = {};
 		//	テキトーに近くのライトを詰める
@@ -211,9 +211,10 @@ namespace
 	}
 }
 
-void graphics_context::register_frame_bind_table()
+void render_job_context::register_frame_bind_table()
 {
 	constexpr resource_view_bind_layer layer = resource_view_bind_layer::frame_view;
+	resource_view_bind_table& bind_table = recorder.get_bind_table();
 	bind_table.clear(layer);
 
 	//	シーン定数
@@ -246,43 +247,4 @@ void graphics_context::register_frame_bind_table()
 		bind_table.set_texture(layer, common_pipeline_states::forward_only_specular_pmrem_hash_key, light_data.specluar_ibl_texture);
 		bind_table.set_texture(layer, common_pipeline_states::forward_only_lut_ggx_hash_key, light_data.lut_ggx_texture);
 	}
-}
-
-#if defined(USE_IMGUI)
-namespace
-{
-	ID3DUserDefinedAnnotation* get_user_defined_annotation(ID3D11DeviceContext* device_context)
-	{
-		thread_local ID3D11DeviceContext* cached_context = nullptr;
-		thread_local Microsoft::WRL::ComPtr<ID3DUserDefinedAnnotation> cached_annotation;
-		if (cached_context != device_context)
-		{
-			cached_annotation.Reset();
-			if (FAILED(device_context->QueryInterface(__uuidof(ID3DUserDefinedAnnotation),
-				reinterpret_cast<void**>(cached_annotation.GetAddressOf()))))
-			{
-				cached_context = nullptr;
-				return nullptr;
-			}
-			cached_context = device_context;
-		}
-		return cached_annotation.Get();
-	}
-}
-#endif	//	defined(USE_IMGUI)
-
-void graphics_context::debug_begin_event(const wchar_t* event_name)
-{
-#if defined(USE_IMGUI)
-	if (ID3DUserDefinedAnnotation* annotation = get_user_defined_annotation(recorder.get_device_context()))
-		annotation->BeginEvent(event_name);
-#endif	//	defined(USE_IMGUI)
-}
-
-void graphics_context::debug_end_event()
-{
-#if defined(USE_IMGUI)
-	if (ID3DUserDefinedAnnotation* annotation = get_user_defined_annotation(recorder.get_device_context()))
-		annotation->EndEvent();
-#endif	//	defined(USE_IMGUI)
 }

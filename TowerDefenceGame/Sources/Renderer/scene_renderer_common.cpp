@@ -4,7 +4,7 @@
 namespace
 {
 	//	メッシュレット用の属性SRV設定
-	void bind_meshlet_attribute_srvs(const graphics_context& context)
+	void bind_meshlet_attribute_srvs(const render_job_context& context)
 	{
 		static const semantic position_semantic("POSITION", 0);
 		static const semantic normal_semantic("NORMAL", 0);
@@ -41,7 +41,7 @@ namespace
 			pool->get_meshlet_vertex_buffer_srv(),
 			pool->get_meshlet_triangle_buffer_srv(),
 		};
-		context.recorder.get_device_context()->VSSetShaderResources(102, 16, attribute_srvs);
+		context.recorder.set_shader_resource_views(shader_stage::vertex, 102, 16, attribute_srvs);
 	}
 
 	//	ローカル空間のメッシュレット境界球をワールド変換し、視錐台と交差するか判定する
@@ -128,46 +128,46 @@ float scene_renderer_commons::convert_view_depth_to_projection_depth(float view_
 	}
 }
 
-void scene_renderer_commons::draw(const graphics_context& context,
+void scene_renderer_commons::draw(const render_job_context& context,
 			graphics_pipeline_state_ptr pipeline_state,
 			UINT vertex_count,
 			D3D_PRIMITIVE_TOPOLOGY primitive_topology,
 			UINT vertex_offset)
 {
-	context.set_index_buffer(nullptr, DXGI_FORMAT_UNKNOWN, 0);
-	context.set_primitive_topology(primitive_topology);
-	context.recorder.get_device_context()->Draw(vertex_count, vertex_offset);
+	context.recorder.set_index_buffer(nullptr, DXGI_FORMAT_UNKNOWN, 0);
+	context.recorder.set_primitive_topology(primitive_topology);
+	context.recorder.draw(vertex_count, vertex_offset);
 }
 
-void scene_renderer_commons::draw_indexed(const graphics_context& context,
+void scene_renderer_commons::draw_indexed(const render_job_context& context,
 					float mesh_length,
-					const buffer_datas& buffer_data,
+					const mesh_draw_item& draw_item,
 					UINT primitive_index,
 					graphics_pipeline_state_ptr pipeline_state,
 					const collision::frustum_culling* meshlet_frustum_culling)
 {
-	const buffer_datas::sub_mesh* draw_mesh = nullptr;
+	const mesh_draw_item::sub_mesh* draw_mesh = nullptr;
 	ID3D11ShaderResourceView* morph_positions[common_pipeline_states::morph_max] = {};
 	ID3D11ShaderResourceView* morph_normals[common_pipeline_states::morph_max] = {};
-	if (context.is_shadow_rendering)
+	if (context.recorder.get_render_state_overrides().is_shadow_rendering)
 	{
 		//	シャドウメッシュ対応
-		draw_mesh = &buffer_data.shadow_mesh;
+		draw_mesh = &draw_item.shadow_mesh;
 	}
 	else
 	{
 		//	LOD対応
-		std::size_t lod_mesh_index = buffer_data.select_lod_mesh_index(mesh_length);
-		draw_mesh = &buffer_data.color_meshs[lod_mesh_index];
+		std::size_t lod_mesh_index = draw_item.select_lod_mesh_index(mesh_length);
+		draw_mesh = &draw_item.color_meshs[lod_mesh_index];
 
 		//	モーフィング対応
 		//	@tool モーフは先頭のメッシュ（LOD 0）にだけ付く
-		if (lod_mesh_index == 0 && !buffer_data.morph_meshes.empty())
+		if (lod_mesh_index == 0 && !draw_item.morph_meshes.empty())
 		{
 			static const semantic position_semantic("POSITION", 0);
 			static const semantic normal_semantic("NORMAL", 0);
 			int position_count = 0, normal_count = 0;
-			for (auto& morph_mesh : buffer_data.morph_meshes)
+			for (auto& morph_mesh : draw_item.morph_meshes)
 			{
 				auto& vbv = morph_mesh.vertex_buffer_views;
 
@@ -186,29 +186,29 @@ void scene_renderer_commons::draw_indexed(const graphics_context& context,
 		return;
 
 	//	モーフィングバッファ設定
-	context.recorder.get_device_context()->VSSetShaderResources(common_pipeline_states::morph_srv_position_index,
+	context.recorder.set_shader_resource_views(shader_stage::vertex, common_pipeline_states::morph_srv_position_index,
 												 common_pipeline_states::morph_max, morph_positions);
-	context.recorder.get_device_context()->VSSetShaderResources(common_pipeline_states::morph_srv_normal_index,
+	context.recorder.set_shader_resource_views(shader_stage::vertex, common_pipeline_states::morph_srv_normal_index,
 												 common_pipeline_states::morph_max, morph_normals);
 
 	//	頂点バッファ登録
 	bind_meshlet_attribute_srvs(context);
 
 	//	メッシュレット単位で描画するので通常の頂点バッファ入力は使用しない
-	context.set_vertex_buffers(0, 0, nullptr, nullptr, nullptr);
-	context.set_index_buffer(nullptr, DXGI_FORMAT_UNKNOWN, 0);
-	context.set_primitive_topology(draw_mesh->primitive_topology);
+	context.recorder.set_vertex_buffers(0, 0, nullptr, nullptr, nullptr);
+	context.recorder.set_index_buffer(nullptr, DXGI_FORMAT_UNKNOWN, 0);
+	context.recorder.set_primitive_topology(draw_mesh->primitive_topology);
 
 	auto pool = model_buffer_pool_manager::instance();
 
 	bool apply_meshlet_frustum_culling = meshlet_frustum_culling != nullptr &&
-		system_utility::is_bitflag(buffer_data.system_flags, buffer_datas::flags::culling);
+		system_utility::is_bitflag(draw_item.system_flags, mesh_draw_item::flags::culling);
 
 	std::vector<common_pipeline_states::meshlet_instance_record> instance_records;
 	instance_records.reserve(draw_mesh->meshlets->size());
 	for (auto& meshlet : *draw_mesh->meshlets)
 	{
-		if (apply_meshlet_frustum_culling && !is_meshlet_visible(*meshlet_frustum_culling, buffer_data.world_transform, meshlet.bounds_center, meshlet.bounds_radius))
+		if (apply_meshlet_frustum_culling && !is_meshlet_visible(*meshlet_frustum_culling, draw_item.world_transform, meshlet.bounds_center, meshlet.bounds_radius))
 			continue;
 
 		auto& record = instance_records.emplace_back();
@@ -229,13 +229,13 @@ void scene_renderer_commons::draw_indexed(const graphics_context& context,
 	box.right = static_cast<UINT>(sizeof(common_pipeline_states::meshlet_instance_record) * instance_records.size());
 	box.bottom = 1;
 	box.back = 1;
-	context.recorder.get_device_context()->UpdateSubresource(batch_buffer, 0, &box, instance_records.data(), 0, 0);
+	context.recorder.update_subresource(batch_buffer, 0, &box, instance_records.data(), 0, 0);
 
-	context.recorder.get_device_context()->VSSetShaderResources(118, 1, &batch_srv);
-	context.recorder.get_device_context()->DrawInstanced(meshlet_culling_system::max_meshlet_vertices_per_draw, static_cast<UINT>(instance_records.size()), 0, 0);
+	context.recorder.set_shader_resource_views(shader_stage::vertex, 118, 1, &batch_srv);
+	context.recorder.draw_instanced(meshlet_culling_system::max_meshlet_vertices_per_draw, static_cast<UINT>(instance_records.size()), 0, 0);
 }
 
-void scene_renderer_commons::draw_geometric_primitive(const graphics_context& context, const geometric_primitive& primitive)
+void scene_renderer_commons::draw_geometric_primitive(const render_job_context& context, const geometric_primitive& primitive)
 {
 	static const semantic position_semantic("POSITION", 0);
 	static const semantic texcoord_semantic("TEXCOORD", 0);
@@ -258,14 +258,14 @@ void scene_renderer_commons::draw_geometric_primitive(const graphics_context& co
 	};
 	UINT offsets[2] = { 0, 0 };
 
-	context.set_vertex_buffers(0, 2, buffers, strides, offsets);
-	context.set_index_buffer(index_buffer_view.buffer.Get(), index_buffer_view.format, 0);
-	context.set_primitive_topology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	context.recorder.get_device_context()->DrawIndexed(static_cast<UINT>(index_buffer_view.count()), 0, 0);
+	context.recorder.set_vertex_buffers(0, 2, buffers, strides, offsets);
+	context.recorder.set_index_buffer(index_buffer_view.buffer.Get(), index_buffer_view.format, 0);
+	context.recorder.set_primitive_topology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	context.recorder.draw_indexed(static_cast<UINT>(index_buffer_view.count()), 0, 0);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
-scene_renderer_commons::mesh_draw_command_list_ptr scene_renderer_commons::build_model_draw_commands(const render_data_context& render_data,
+scene_renderer_commons::mesh_draw_command_list_ptr scene_renderer_commons::build_model_draw_commands(const view_render_data& render_data,
 					const std::vector<std::size_t>& mesh_indices,
 					const std::vector<float>& mesh_lengths,
 					material::surface_paths surface_path)
@@ -276,8 +276,7 @@ scene_renderer_commons::mesh_draw_command_list_ptr scene_renderer_commons::build
 	const auto& mesh_container = render_data.mesh_container;
 	for (auto& draw_index : mesh_indices)
 	{
-		const auto& draw_data = mesh_container.draw_datas[draw_index];
-		const material_render_proxy* material = mesh_container.material_datas[draw_data.material_index].material.get();
+		const material_render_proxy* material = mesh_container.draw_items[draw_index].material.get();
 
 		//	@tool パイプラインの無いものは描画しない
 		auto pipeline_state = material->get_pipeline_state(surface_path);
@@ -287,13 +286,13 @@ scene_renderer_commons::mesh_draw_command_list_ptr scene_renderer_commons::build
 		auto& command = commands->emplace_back();
 		command.pipeline = pipeline_state.get();
 		command.material = material;
-		command.data_index = draw_data.buffer_index;
+		command.data_index = static_cast<UINT>(draw_index);
 		command.mesh_length = mesh_lengths[draw_index];
 	}
 	return commands;
 }
 
-scene_renderer_commons::mesh_draw_command_list_ptr scene_renderer_commons::build_model_indirect_draw_commands(const render_data_context& render_data,
+scene_renderer_commons::mesh_draw_command_list_ptr scene_renderer_commons::build_model_indirect_draw_commands(const view_render_data& render_data,
 					const std::vector<std::size_t>& mesh_indices,
 					const std::vector<float>& mesh_lengths,
 					material::surface_paths surface_path)
@@ -304,9 +303,8 @@ scene_renderer_commons::mesh_draw_command_list_ptr scene_renderer_commons::build
 	const auto& mesh_container = render_data.mesh_container;
 	for (auto& draw_index : mesh_indices)
 	{
-		const auto& draw_data = mesh_container.draw_datas[draw_index];
-		const auto& buffer_data = mesh_container.buffer_datas[draw_data.buffer_index];
-		const material_render_proxy* material = mesh_container.material_datas[draw_data.material_index].material.get();
+		const auto& draw_item = mesh_container.draw_items[draw_index];
+		const material_render_proxy* material = draw_item.material.get();
 
 		//	パイプラインの無いものは描画しない
 		auto pipeline_state = material->get_pipeline_state(surface_path);
@@ -316,24 +314,24 @@ scene_renderer_commons::mesh_draw_command_list_ptr scene_renderer_commons::build
 		auto& command = commands->emplace_back();
 		command.pipeline = pipeline_state.get();
 		command.material = material;
-		command.data_index = draw_data.buffer_index;
+		command.data_index = static_cast<UINT>(draw_index);
 		command.mesh_length = mesh_lengths[draw_index];
 
 		//	モーフ持ちは別パス
-		if (!buffer_data.color_meshs.empty())
+		if (!draw_item.color_meshs.empty())
 		{
-			std::size_t lod_mesh_index = buffer_data.select_lod_mesh_index(mesh_lengths[draw_index]);
-			command.fallback = lod_mesh_index == 0 && !buffer_data.morph_meshes.empty();
+			std::size_t lod_mesh_index = draw_item.select_lod_mesh_index(mesh_lengths[draw_index]);
+			command.fallback = lod_mesh_index == 0 && !draw_item.morph_meshes.empty();
 		}
 	}
 	return commands;
 }
 
-void scene_renderer_commons::execute_model_draw_commands(graphics_context& context,
+void scene_renderer_commons::execute_model_draw_commands(render_job_context& context,
 					const mesh_draw_command_list& commands,
 					const collision::frustum_culling* meshlet_frustum_culling)
 {
-	auto buffer_data_ptr = context.render_data->mesh_container.buffer_datas.data();
+	auto draw_item_ptr = context.render_data->mesh_container.draw_items.data();
 
 	//	モデル類描画
 	const graphics_pipeline_state* current_pipeline_state = nullptr;
@@ -342,31 +340,31 @@ void scene_renderer_commons::execute_model_draw_commands(graphics_context& conte
 		if (command.pipeline != current_pipeline_state)
 		{
 			if (current_pipeline_state)
-				context.end_pipeline();
+				context.recorder.end_pipeline();
 
 			current_pipeline_state = command.pipeline;
-			context.set_pipeline(*current_pipeline_state);
+			context.recorder.set_pipeline(*current_pipeline_state);
 		}
 
-		auto buffer_data = buffer_data_ptr + command.data_index;
+		auto draw_item = draw_item_ptr + command.data_index;
 
-		context.bind_draw(*current_pipeline_state, *command.material, buffer_data);
-		draw_indexed(context, command.mesh_length, *buffer_data, command.data_index, nullptr, meshlet_frustum_culling);
+		context.recorder.bind_draw(*current_pipeline_state, *command.material, draw_item);
+		draw_indexed(context, command.mesh_length, *draw_item, command.data_index, nullptr, meshlet_frustum_culling);
 	}
 	if (current_pipeline_state)
-		context.end_pipeline();
+		context.recorder.end_pipeline();
 }
 
-void scene_renderer_commons::execute_model_indirect_draw_commands(graphics_context& context,
+void scene_renderer_commons::execute_model_indirect_draw_commands(render_job_context& context,
 					const mesh_draw_command_list& commands,
 					meshlet_culling_system& meshlet_culling)
 {
-	auto buffer_data_ptr = context.render_data->mesh_container.buffer_datas.data();
+	auto draw_item_ptr = context.render_data->mesh_container.draw_items.data();
 
 	//	メッシュレットの描画の場合は使わない
-	context.set_vertex_buffers(0, 0, nullptr, nullptr, nullptr);
-	context.set_index_buffer(nullptr, DXGI_FORMAT_UNKNOWN, 0);
-	context.set_primitive_topology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	context.recorder.set_vertex_buffers(0, 0, nullptr, nullptr, nullptr);
+	context.recorder.set_index_buffer(nullptr, DXGI_FORMAT_UNKNOWN, 0);
+	context.recorder.set_primitive_topology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 	std::unordered_set<const material_render_proxy*> drawn;
 	mesh_draw_command_list fallback_commands;
@@ -390,16 +388,16 @@ void scene_renderer_commons::execute_model_indirect_draw_commands(graphics_conte
 		if (!drawn.insert(command.material).second)
 			continue;	//	このマテリアルは既に描画済み
 
-		context.set_pipeline(*command.pipeline);
-		context.bind_draw(*command.pipeline, *command.material, buffer_data_ptr + command.data_index);
+		context.recorder.set_pipeline(*command.pipeline);
+		context.recorder.bind_draw(*command.pipeline, *command.material, draw_item_ptr + command.data_index);
 
 		//	メッシュレットバインド
 		bind_meshlet_attribute_srvs(context);
-		context.recorder.get_device_context()->VSSetShaderResources(118, 1, &result->visible_meshlet_srv);
+		context.recorder.set_shader_resource_views(shader_stage::vertex, 118, 1, &result->visible_meshlet_srv);
 
-		context.recorder.get_device_context()->DrawInstancedIndirect(result->indirect_args_buffer, 0);
+		context.recorder.draw_instanced_indirect(result->indirect_args_buffer, 0);
 
-		context.end_pipeline();
+		context.recorder.end_pipeline();
 	}
 
 	if (!fallback_commands.empty())
@@ -412,7 +410,7 @@ namespace
 {
 	//	影の描画をマテリアル単位でまとめる
 	template<typename MeshTest, typename MeshletTest>
-	scene_renderer_commons::shadow_draw_batch_list_ptr build_shadow_draw_batches_core(const render_data_context& render_data,
+	scene_renderer_commons::shadow_draw_batch_list_ptr build_shadow_draw_batches_core(const view_render_data& render_data,
 						const std::vector<std::size_t>& mesh_indices,
 						material::surface_paths surface_path,
 						MeshTest is_visible_mesh,
@@ -424,36 +422,35 @@ namespace
 		std::unordered_map<const material_render_proxy*, scene_renderer_commons::shadow_draw_batch> batches;
 		for (auto& draw_index : mesh_indices)
 		{
-			const auto& draw_data = mesh_container.draw_datas[draw_index];
-			const auto& buffer_data = mesh_container.buffer_datas[draw_data.buffer_index];
-			if (!is_visible_mesh(buffer_data))
+			const auto& draw_item = mesh_container.draw_items[draw_index];
+			if (!is_visible_mesh(draw_item))
 				continue;
 
-			const material_render_proxy* mat = mesh_container.material_datas[draw_data.material_index].material.get();
+			const material_render_proxy* mat = draw_item.material.get();
 			auto pipeline_state = mat->get_pipeline_state(surface_path);
 			if (!pipeline_state)
 				continue;
 
 			//	影メッシュが無ければ対象外
-			const buffer_datas::sub_mesh& draw_mesh = buffer_data.shadow_mesh;
+			const mesh_draw_item::sub_mesh& draw_mesh = draw_item.shadow_mesh;
 			if (!draw_mesh.meshlets || draw_mesh.meshlets->empty())
 				continue;
 
 			//	メッシュレット単位のカリングと収集
-			bool apply_meshlet_culling = system_utility::is_bitflag(buffer_data.system_flags, buffer_datas::flags::culling);
+			bool apply_meshlet_culling = system_utility::is_bitflag(draw_item.system_flags, mesh_draw_item::flags::culling);
 			auto& batch = batches[mat];
 			batch.pipeline = pipeline_state.get();
 			batch.material = mat;
 			for (auto& meshlet : *draw_mesh.meshlets)
 			{
-				if (apply_meshlet_culling && !is_visible_meshlet(buffer_data, meshlet))
+				if (apply_meshlet_culling && !is_visible_meshlet(draw_item, meshlet))
 					continue;
 
 				auto& record = batch.instance_records.emplace_back();
 				record.vertex_offset = meshlet.vertex_offset;
 				record.triangle_offset = meshlet.triangle_offset;
 				record.triangle_count = meshlet.triangle_count;
-				record.primitive_index = draw_data.buffer_index;
+				record.primitive_index = static_cast<UINT>(draw_index);
 			}
 		}
 
@@ -468,19 +465,19 @@ namespace
 	}
 }
 
-scene_renderer_commons::shadow_draw_batch_list_ptr scene_renderer_commons::build_shadow_draw_batches(const render_data_context& render_data,
+scene_renderer_commons::shadow_draw_batch_list_ptr scene_renderer_commons::build_shadow_draw_batches(const view_render_data& render_data,
 					const std::vector<std::size_t>& mesh_indices,
 					const collision::frustum_culling& frustum_culling,
 					material::surface_paths surface_path)
 {
 	return build_shadow_draw_batches_core(render_data, mesh_indices, surface_path,
 		//	AABB判定
-		[&](const buffer_datas& buffer_data) { return frustum_culling.to_aabb(buffer_data.bounds_min, buffer_data.bounds_max); },
+		[&](const mesh_draw_item& draw_item) { return frustum_culling.to_aabb(draw_item.bounds_min, draw_item.bounds_max); },
 		//	メッシュレット単位のフラスタムカリング
-		[&](const buffer_datas& buffer_data, const meshlet_draw_data& meshlet) { return is_meshlet_visible(frustum_culling, buffer_data.world_transform, meshlet.bounds_center, meshlet.bounds_radius); });
+		[&](const mesh_draw_item& draw_item, const pooled_meshlet& meshlet) { return is_meshlet_visible(frustum_culling, draw_item.world_transform, meshlet.bounds_center, meshlet.bounds_radius); });
 }
 
-scene_renderer_commons::shadow_draw_batch_list_ptr scene_renderer_commons::build_shadow_draw_batches(const render_data_context& render_data,
+scene_renderer_commons::shadow_draw_batch_list_ptr scene_renderer_commons::build_shadow_draw_batches(const view_render_data& render_data,
 					const std::vector<std::size_t>& mesh_indices,
 					const math::float3& sphere_center,
 					float sphere_radius,
@@ -488,12 +485,12 @@ scene_renderer_commons::shadow_draw_batch_list_ptr scene_renderer_commons::build
 {
 	return build_shadow_draw_batches_core(render_data, mesh_indices, surface_path,
 		//	球との交差判定
-		[&](const buffer_datas& buffer_data) { return aabb_intersects_sphere(buffer_data.bounds_min, buffer_data.bounds_max, sphere_center, sphere_radius); },
+		[&](const mesh_draw_item& draw_item) { return aabb_intersects_sphere(draw_item.bounds_min, draw_item.bounds_max, sphere_center, sphere_radius); },
 		//	メッシュレット単位の球カリング
-		[&](const buffer_datas& buffer_data, const meshlet_draw_data& meshlet) { return is_meshlet_visible_sphere(sphere_center, sphere_radius, buffer_data.world_transform, meshlet.bounds_center, meshlet.bounds_radius); });
+		[&](const mesh_draw_item& draw_item, const pooled_meshlet& meshlet) { return is_meshlet_visible_sphere(sphere_center, sphere_radius, draw_item.world_transform, meshlet.bounds_center, meshlet.bounds_radius); });
 }
 
-void scene_renderer_commons::execute_shadow_draw_batches(graphics_context& context, const shadow_draw_batch_list& batches)
+void scene_renderer_commons::execute_shadow_draw_batches(render_job_context& context, const shadow_draw_batch_list& batches)
 {
 	//	マテリアル単位でまとめて描画
 	if (batches.empty())
@@ -501,9 +498,9 @@ void scene_renderer_commons::execute_shadow_draw_batches(graphics_context& conte
 
 	auto pool = model_buffer_pool_manager::instance();
 
-	context.set_vertex_buffers(0, 0, nullptr, nullptr, nullptr);
-	context.set_index_buffer(nullptr, DXGI_FORMAT_UNKNOWN, 0);
-	context.set_primitive_topology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	context.recorder.set_vertex_buffers(0, 0, nullptr, nullptr, nullptr);
+	context.recorder.set_index_buffer(nullptr, DXGI_FORMAT_UNKNOWN, 0);
+	context.recorder.set_primitive_topology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 	for (const auto& batch : batches)
 	{
@@ -511,8 +508,8 @@ void scene_renderer_commons::execute_shadow_draw_batches(graphics_context& conte
 		if (batch.instance_records.empty())
 			continue;
 
-		context.set_pipeline(*batch.pipeline);
-		context.bind_draw(*batch.pipeline, *batch.material, nullptr);
+		context.recorder.set_pipeline(*batch.pipeline);
+		context.recorder.bind_draw(*batch.pipeline, *batch.material, nullptr);
 
 		bind_meshlet_attribute_srvs(context);
 
@@ -524,16 +521,16 @@ void scene_renderer_commons::execute_shadow_draw_batches(graphics_context& conte
 		box.right = static_cast<UINT>(sizeof(common_pipeline_states::meshlet_instance_record) * batch.instance_records.size());
 		box.bottom = 1;
 		box.back = 1;
-		context.recorder.get_device_context()->UpdateSubresource(batch_buffer, 0, &box, batch.instance_records.data(), 0, 0);
+		context.recorder.update_subresource(batch_buffer, 0, &box, batch.instance_records.data(), 0, 0);
 
-		context.recorder.get_device_context()->VSSetShaderResources(118, 1, &batch_srv);
-		context.recorder.get_device_context()->DrawInstanced(meshlet_culling_system::max_meshlet_vertices_per_draw, static_cast<UINT>(batch.instance_records.size()), 0, 0);
+		context.recorder.set_shader_resource_views(shader_stage::vertex, 118, 1, &batch_srv);
+		context.recorder.draw_instanced(meshlet_culling_system::max_meshlet_vertices_per_draw, static_cast<UINT>(batch.instance_records.size()), 0, 0);
 
-		context.end_pipeline();
+		context.recorder.end_pipeline();
 	}
 }
 
-scene_renderer_commons::mesh_draw_command_list_ptr scene_renderer_commons::build_particle_draw_commands(const render_data_context& render_data,
+scene_renderer_commons::mesh_draw_command_list_ptr scene_renderer_commons::build_particle_draw_commands(const view_render_data& render_data,
 					const std::vector<std::size_t>& draw_indices,
 					material::surface_paths surface_path)
 {
@@ -541,10 +538,10 @@ scene_renderer_commons::mesh_draw_command_list_ptr scene_renderer_commons::build
 	commands->reserve(draw_indices.size());
 
 	//	スプライト/トレイルパーティクル
-	const auto& draw_datas = render_data.effect_container.particle_proxies;
+	const auto& draw_items = render_data.effect_container.particle_draw_items;
 	for (auto& draw_index : draw_indices)
 	{
-		const material_render_proxy* material = draw_datas[draw_index].material_data.material.get();
+		const material_render_proxy* material = draw_items[draw_index].material.get();
 		auto pipeline_state = material->get_pipeline_state(surface_path);
 		if (!pipeline_state)
 			continue;
@@ -557,41 +554,41 @@ scene_renderer_commons::mesh_draw_command_list_ptr scene_renderer_commons::build
 	return commands;
 }
 
-void scene_renderer_commons::execute_particle_draw_commands(graphics_context& context,
+void scene_renderer_commons::execute_particle_draw_commands(render_job_context& context,
 					const mesh_draw_command_list& commands)
 {
 	//	スプライト/トレイルパーティクル
-	auto draw_data_ptr = context.render_data->effect_container.particle_proxies.data();
+	auto draw_item_ptr = context.render_data->effect_container.particle_draw_items.data();
 
 	//	パーティクル類描画
 	const graphics_pipeline_state* current_pipeline_state = nullptr;
 	for (const auto& command : commands)
 	{
-		auto draw_data = draw_data_ptr + command.data_index;
+		auto draw_item = draw_item_ptr + command.data_index;
 
 		if (command.pipeline != current_pipeline_state)
 		{
 			if (current_pipeline_state)
-				context.end_pipeline();
+				context.recorder.end_pipeline();
 
 			current_pipeline_state = command.pipeline;
-			context.set_pipeline(*current_pipeline_state);
+			context.recorder.set_pipeline(*current_pipeline_state);
 		}
 
-		context.bind_draw(*current_pipeline_state, *command.material, nullptr);
+		context.recorder.bind_draw(*current_pipeline_state, *command.material, nullptr);
 
-		auto vertex_buffer = draw_data->vertex_buffer_view.vertex_buffer;
-		auto strides = draw_data->vertex_buffer_view.strides_for_vertex.data();
-		auto offsets = draw_data->vertex_buffer_view.offsets_for_vertex.data();
-		auto indirect_buffer = draw_data->vertex_buffer_view.indirect_buffer;
-		auto offset_for_args = draw_data->vertex_buffer_view.offset_for_args;
+		auto vertex_buffer = draw_item->vertex_buffer_view.vertex_buffer;
+		auto strides = draw_item->vertex_buffer_view.strides_for_vertex.data();
+		auto offsets = draw_item->vertex_buffer_view.offsets_for_vertex.data();
+		auto indirect_buffer = draw_item->vertex_buffer_view.indirect_buffer;
+		auto offset_for_args = draw_item->vertex_buffer_view.offset_for_args;
 
-		context.recorder.get_device_context()->IASetVertexBuffers(0, 1, vertex_buffer.GetAddressOf(), strides, offsets);
-		context.recorder.get_device_context()->IASetPrimitiveTopology(draw_data->primitive_topology);
-		context.recorder.get_device_context()->DrawInstancedIndirect(indirect_buffer.Get(), offset_for_args);
+		context.recorder.set_vertex_buffers(0, 1, vertex_buffer.GetAddressOf(), strides, offsets);
+		context.recorder.set_primitive_topology(draw_item->primitive_topology);
+		context.recorder.draw_instanced_indirect(indirect_buffer.Get(), offset_for_args);
 	}
 	if (current_pipeline_state)
-		context.end_pipeline();
+		context.recorder.end_pipeline();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -601,33 +598,74 @@ void scene_renderer_commons::scene_texture_handles::append_g_buffers(std::vector
 		handles.emplace_back(handle);
 }
 
-scene_renderer_commons::scene_texture_handles scene_renderer_commons::import_scene_textures(frame_graph& graph, const scene_render_targets& targets)
+D3D11_VIEWPORT scene_renderer_commons::scene_textures_config::get_viewport() const
+{
+	D3D11_VIEWPORT viewport{};
+	viewport.Width = static_cast<float>(width);
+	viewport.Height = static_cast<float>(height);
+	viewport.MinDepth = 0.0f;
+	viewport.MaxDepth = 1.0f;
+	return viewport;
+}
+
+scene_renderer_commons::scene_texture_handles scene_renderer_commons::create_scene_textures(frame_graph& graph, const scene_textures_config& config, const texture_ptr& shadow_map, const texture_ptr& output)
 {
 	scene_texture_handles handles;
-	handles.scene_color = graph.import_texture("scene_color", targets.scene_color_texture);
-	handles.scene_depth = graph.import_texture("scene_depth", targets.scene_depth_stencil_texture);
-	handles.shadow_map = graph.import_texture("shadow_map", targets.shadowmap_depth_texture);
-	for (UINT index = 0; index < static_cast<UINT>(common_pipeline_states::gbuffer_id::max) && index < targets.g_buffer_textures.size(); ++index)
-		handles.g_buffers[index] = graph.import_texture(common_pipeline_states::gbuffer_names[index], targets.g_buffer_textures[index]);
-	for (UINT index = 0; index < 2; ++index)
+
+	D3D11_TEXTURE2D_DESC desc{};
+	desc.Width = config.width;
+	desc.Height = config.height;
+	desc.MipLevels = 1;
+	desc.ArraySize = 1;
+	desc.SampleDesc.Count = 1;
+	desc.SampleDesc.Quality = 0;
+	desc.Usage = D3D11_USAGE_DEFAULT;
+	desc.CPUAccessFlags = 0;
+	desc.MiscFlags = 0;
+
+	//	@tool シーン色
+	desc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
+	desc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
+	handles.scene_color = graph.create_texture("scene_color", desc);
+
+	//	@tool 深度・ステンシル（型の無い形式で作り、シェーダーからは深度として読む）
+	desc.Format = common_pipeline_states::scene_depth_texture_format;
+	desc.BindFlags = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
+	handles.scene_depth = graph.create_texture("scene_depth", desc, common_pipeline_states::scene_depth_shader_resource_view_format);
+
+	//	@tool G-Buffer
+	static constexpr DXGI_FORMAT g_buffer_formats[] =
 	{
-		handles.ssr_accumlate[index] = graph.import_texture(index == 0 ? "ssr_accumlate[0]" : "ssr_accumlate[1]", targets.ssr_accumlate_textures[index]);
-		handles.ssr_counter[index] = graph.import_texture(index == 0 ? "ssr_counter[0]" : "ssr_counter[1]", targets.ssr_counter_textures[index]);
+		DXGI_FORMAT_R8G8B8A8_UNORM,			//	BaseColor
+		DXGI_FORMAT_R32G32B32A32_FLOAT,		//	Normal_Depth
+		DXGI_FORMAT_R8G8B8A8_UNORM,			//	Parameters
+		DXGI_FORMAT_R32G32B32A32_FLOAT,		//	Velocity
+		DXGI_FORMAT_R32G32B32A32_UINT,		//	UniqueData
+
+		DXGI_FORMAT_R8G8B8A8_UNORM,			//	[エンジン改造:G-Buffer]
+		DXGI_FORMAT_R8G8B8A8_UNORM,			//	[エンジン改造:G-Buffer]
+	};
+	static_assert(ARRAYSIZE(g_buffer_formats) == static_cast<UINT>(common_pipeline_states::gbuffer_id::max));
+	desc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
+	for (UINT index = 0; index < static_cast<UINT>(common_pipeline_states::gbuffer_id::max); ++index)
+	{
+		desc.Format = g_buffer_formats[index];
+		handles.g_buffers[index] = graph.create_texture(common_pipeline_states::gbuffer_names[index], desc);
 	}
-	if (targets.output_texture)
-		handles.output = graph.import_texture("output", targets.output_texture);
+
+	//	@tool シャドウマップ（全視点で共有する）と出力先（null はバックバッファ）は取り込む
+	handles.shadow_map = graph.import_texture("shadow_map", shadow_map);
+	if (output)
+		handles.output = graph.import_texture("output", output);
 	return handles;
 }
 
-D3D11_TEXTURE2D_DESC scene_renderer_commons::make_work_texture_desc(const scene_render_targets& targets, DXGI_FORMAT format, UINT divisor)
+D3D11_TEXTURE2D_DESC scene_renderer_commons::make_work_texture_desc(const scene_textures_config& config, DXGI_FORMAT format, UINT divisor)
 {
 	//	@tool 以前のレンダーターゲット集の作業用テクスチャと同じ形式にする
 	D3D11_TEXTURE2D_DESC desc{};
-	if (auto scene_color = std::dynamic_pointer_cast<texture2d>(targets.scene_color_texture))
-	{
-		desc.Width = scene_color->get_desc().Width / divisor;
-		desc.Height = scene_color->get_desc().Height / divisor;
-	}
+	desc.Width = config.width / divisor;
+	desc.Height = config.height / divisor;
 	desc.MipLevels = 1;
 	desc.ArraySize = 1;
 	desc.Format = format;

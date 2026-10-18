@@ -403,7 +403,7 @@ void post_process_volume_manager::get_container(post_process_volume_container& c
 			result = unblind;
 		}
 		//	@tool ï`âÊë§Ç…ÇÕê›íËÇÃï°êªÇìnÇ∑
-		container.selected_volume = result ? std::make_shared<post_process_volume_snapshot>(*result) : nullptr;
+		container.selected_volume = result ? std::make_shared<post_process_volume_render_proxy>(*result) : nullptr;
 	}
 
 #if defined(USE_IMGUI)
@@ -434,7 +434,7 @@ void post_process_volume_manager::get_container(post_process_volume_container& c
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
-post_process_volume_snapshot::post_process_volume_snapshot(const post_process_volume& source)
+post_process_volume_render_proxy::post_process_volume_render_proxy(const post_process_volume& source)
 : bloom_constant(source.get_bloom_constant())
 , lens_ghosts_constant(source.get_lens_ghosts_constant())
 , depth_of_field_constant(source.get_depth_of_field_constant())

@@ -103,20 +103,14 @@ void occlusion_culling_system::generate_instance_buffers(UINT count)
 		hr = device->CreateUnorderedAccessView(visibility_buffer.Get(), &ud, visibility_uav.ReleaseAndGetAddressOf());
 		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
 	}
-	{
-		D3D11_BUFFER_DESC bd{};
-		bd.ByteWidth = sizeof(UINT) * cap;
-		bd.Usage = D3D11_USAGE_STAGING;
-		bd.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
-		hr = device->CreateBuffer(&bd, nullptr, visibility_staging.ReleaseAndGetAddressOf());
-		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
-	}
+	//	@tool 判定結果の読み戻し先（大きさが変わったら作り直す。読み戻し中の組は要求が持っている）
+	visibility_readback.initialize(device.Get(), { static_cast<UINT>(sizeof(UINT) * cap) }, 3, 8);
 }
 
-void occlusion_culling_system::update(graphics_context& context, hiz_buffer& hiz)
+void occlusion_culling_system::update(render_job_context& context, hiz_buffer& hiz)
 {
-	auto& buffer_datas = context.render_data->mesh_container.buffer_datas;
-	UINT count = static_cast<UINT>(buffer_datas.size());
+	auto& draw_items = context.render_data->mesh_container.draw_items;
+	UINT count = static_cast<UINT>(draw_items.size());
 
 	last_unique_ids.clear();
 	last_instance_count = count;
@@ -129,12 +123,12 @@ void occlusion_culling_system::update(graphics_context& context, hiz_buffer& hiz
 	std::vector<instance_aabb_cpu> aabbs;
 	aabbs.reserve(count);
 	last_unique_ids.reserve(count);
-	for (auto& bd : buffer_datas)
+	for (auto& bd : draw_items)
 	{
 		instance_aabb_cpu a{};
 		a.bmin = bd.bounds_min;
 		a.bmax = bd.bounds_max;
-		a.testable = system_utility::is_bitflag(bd.system_flags, buffer_datas::flags::culling) ? 1.0f : 0.0f;
+		a.testable = system_utility::is_bitflag(bd.system_flags, mesh_draw_item::flags::culling) ? 1.0f : 0.0f;
 		aabbs.emplace_back(a);
 		last_unique_ids.emplace_back(bd.unique_id);
 	}
@@ -142,14 +136,14 @@ void occlusion_culling_system::update(graphics_context& context, hiz_buffer& hiz
 
 	math::float4x4 view_projection = context.scene_constant.view_projection_transform;
 
-	auto dc = context.recorder.get_device_context();
+	const auto& recorder = context.recorder;
 
 	//	判定リソース更新
 	D3D11_BOX box{};
 	box.right = static_cast<UINT>(sizeof(instance_aabb_cpu) * count);
 	box.bottom = 1;
 	box.back = 1;
-	dc->UpdateSubresource(instance_buffer.Get(), 0, &box, aabbs.data(), 0, 0);
+	recorder.update_subresource(instance_buffer.Get(), 0, &box, aabbs.data(), 0, 0);
 
 	//	オクルージョン判定
 	{
@@ -161,43 +155,39 @@ void occlusion_culling_system::update(graphics_context& context, hiz_buffer& hiz
 		constant.hiz_size = math::float2(static_cast<float>(hiz_size.x), static_cast<float>(hiz_size.y));
 		constant.clip_near_far = { context.scene_constant.camera_clip_distance.x, context.scene_constant.camera_clip_distance.y };
 		constant.depth_bias = 5.0f;
-		dc->UpdateSubresource(cull_constant_buffer.Get(), 0, nullptr, &constant, 0, 0);
-		dc->CSSetConstantBuffers(0, 1, cull_constant_buffer.GetAddressOf());
-		dc->CSSetShader(occlusion_culling_cs->get_shader().Get(), nullptr, 0);
+		recorder.update_subresource(cull_constant_buffer.Get(), 0, nullptr, &constant, 0, 0);
+		recorder.set_constant_buffers(shader_stage::compute, 0, 1, cull_constant_buffer.GetAddressOf());
+		recorder.set_compute_shader(occlusion_culling_cs->get_shader().Get());
 
 		ID3D11ShaderResourceView* srvs[2] = { instance_srv.Get(), hiz.get_srv() };
-		dc->CSSetShaderResources(0, 2, srvs);
+		recorder.set_shader_resource_views(shader_stage::compute, 0, 2, srvs);
 		ID3D11SamplerState* sampler = render_data::instance()->get_sampler_states(render_data::SAMPLER_STATE::POINT_CLAMP).Get();
-		dc->CSSetSamplers(0, 1, &sampler);
-		dc->CSSetUnorderedAccessViews(0, 1, visibility_uav.GetAddressOf(), nullptr);
-		dc->Dispatch((count + 63u) / 64u, 1, 1);
-		context.clear_unordered_access_views();
-		context.clear_shader_resorce_views();
+		recorder.set_samplers(shader_stage::compute, 0, 1, &sampler);
+		recorder.set_unordered_access_views(0, 1, visibility_uav.GetAddressOf());
+		recorder.dispatch((count + 63u) / 64u, 1, 1);
+		context.recorder.clear_unordered_access_views();
+		context.recorder.clear_shader_resorce_views();
 	}
 
-	dc->CSSetShader(nullptr, nullptr, 0);
-	dc->CopyResource(visibility_staging.Get(), visibility_buffer.Get());
+	recorder.set_compute_shader(nullptr);
+	//	@tool 判定結果を読み戻す（どのインスタンスの結果かは記録時の番号表で決める）
+	recorder.read_back(visibility_readback, { { visibility_buffer.Get(), nullptr } },
+		[received = received_visibility, ids = last_unique_ids, count](const gpu_readback_data& data)
+		{
+			const UINT* visible = data.get<UINT>(0);
+			UINT n = (std::min)(count, static_cast<UINT>(ids.size()));
+			n = (std::min)(n, data.size(0) / static_cast<UINT>(sizeof(UINT)));
+			std::lock_guard<std::mutex> lock(received->mutex);
+			received->visibility.clear();
+			for (UINT i = 0; i < n; ++i)
+				received->visibility.emplace_back(ids[i], visible[i] != 0 ? uint8_t(1) : uint8_t(0));
+		});
 }
 
 void occlusion_culling_system::read_last_frame(std::unordered_map<UINT, uint8_t>& out_visibility)
 {
-	if (last_instance_count == 0 || !visibility_staging)
-		return;
-
-	auto dc = render_data::instance()->get_immediate_context();
-	//	@tool immediate context は提出スレッドと共有しているので排他する
-	std::lock_guard<std::recursive_mutex> immediate_lock(render_data::instance()->get_immediate_context_mutex());
-	D3D11_MAPPED_SUBRESOURCE mapped{};
-	if (FAILED(dc->Map(visibility_staging.Get(), 0, D3D11_MAP_READ, 0, &mapped)))
-		return;
-
-	const UINT* v = static_cast<const UINT*>(mapped.pData);
-	UINT n = last_instance_count;
-	if (n > static_cast<UINT>(last_unique_ids.size())) n = static_cast<UINT>(last_unique_ids.size());
-	for (UINT i = 0; i < n; ++i)
-	{
-		out_visibility[last_unique_ids[i]] = (v[i] != 0) ? uint8_t(1) : uint8_t(0);
-	}
-
-	dc->Unmap(visibility_staging.Get(), 0);
+	//	@tool 最後に届いた判定結果を使う（記録から 1～2 フレーム遅れ。待たない）
+	std::lock_guard<std::mutex> lock(received_visibility->mutex);
+	for (const auto& [unique_id, visible] : received_visibility->visibility)
+		out_visibility[unique_id] = visible;
 }

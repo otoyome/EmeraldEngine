@@ -2,6 +2,7 @@
 
 #include "graphics/hiz_buffer.h"
 #include "graphics/occlusion_culling_system.h"
+#include "graphics/pooled_texture.h"
 
 #include <memory>
 #include <mutex>
@@ -12,6 +13,8 @@ class meshlet_culling_system;
 class clustered_lighting_system;
 
 using scene_view_state_key = system_utility::hash_key;
+//	@tool 視点ごとに引き継ぐ情報の名前（描画機能ごとに定数で持つ）
+using view_history_key = system_utility::hash_key;
 
 //	描画制御情報
 class scene_view_state
@@ -37,6 +40,22 @@ public:
 
 	//	クラスタードライティングシステム
 	const std::shared_ptr<clustered_lighting_system>& get_clustered_lighting() const { return clustered_lighting; }
+
+	//	@tool 前のフレームから引き継ぐテクスチャ（UE の FSceneViewState が持つ履歴に相当。描画スレッドでのみ使う）
+	//	@tool 前のフレームで抜き出した物を返す（無い場合と、中身が入っていない場合は null）
+	pooled_texture_ref_ptr get_history(view_history_key key) const;
+	//	@tool 次のフレームへ引き継ぐ物を差し替える（frame_graph::queue_extraction の戻り値を渡す）
+	void set_history(view_history_key key, pooled_texture_ref_ptr texture);
+
+	//	@tool 描画機能ごとの視点の情報（初回に作る。中身の型は機能側で決め、同じ名前は同じ型で使う。描画スレッドでのみ使う）
+	template<class T>
+	T& get_feature_state(view_history_key key)
+	{
+		auto& state = feature_states[key];
+		if (!state)
+			state = std::make_shared<T>();
+		return *std::static_pointer_cast<T>(state);
+	}
 
 #if defined(USE_IMGUI)
 	//	デバッグ用にカリング結果を固定する
@@ -65,6 +84,10 @@ private:
 	std::shared_ptr<hiz_buffer> hiz;
 	std::shared_ptr<meshlet_culling_system> meshlet_culling;
 	std::shared_ptr<clustered_lighting_system> clustered_lighting;
+
+	//	@tool 前のフレームから引き継ぐテクスチャと、描画機能ごとの情報
+	std::unordered_map<view_history_key, pooled_texture_ref_ptr> histories;
+	std::unordered_map<view_history_key, std::shared_ptr<void>> feature_states;
 
 	uint64_t last_used_frame = 0;
 

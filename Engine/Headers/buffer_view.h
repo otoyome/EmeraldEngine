@@ -84,7 +84,7 @@ private:
 };
 
 //	メッシュレット情報
-struct meshlet_draw_data
+struct pooled_meshlet
 {
 	UINT vertex_offset = 0;
 	UINT triangle_offset = 0;
@@ -93,8 +93,10 @@ struct meshlet_draw_data
 	float bounds_radius = 0.0f;
 };
 
+class material_render_proxy;
+
 //	描画バッファ情報
-struct buffer_datas
+struct mesh_draw_item
 {
 	enum class flags
 	{
@@ -110,7 +112,7 @@ struct buffer_datas
 	{
 		const std::unordered_map<semantic, buffer_view>* vertex_buffer_views;
 		D3D_PRIMITIVE_TOPOLOGY primitive_topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-		const std::vector<meshlet_draw_data>* meshlets = nullptr;
+		const std::vector<pooled_meshlet>* meshlets = nullptr;
 	};
 
 	UINT vertex_count;										//	Drawで使用する際の頂点数
@@ -123,6 +125,7 @@ struct buffer_datas
 	math::float3 bounds_min, bounds_max;					//	AABB範囲
 	math::float4x4 world_transform = {};					//	ワールド変換行列
 	Microsoft::WRL::ComPtr<ID3D11Buffer> primitive_buffer;	//	プリミティブバッファ
+	std::shared_ptr<const material_render_proxy> material;		//	@tool マテリアル
 
 	//	LOD選択
 	std::size_t select_lod_mesh_index(float mesh_length) const

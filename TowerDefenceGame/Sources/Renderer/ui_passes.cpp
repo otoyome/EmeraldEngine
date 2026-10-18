@@ -33,13 +33,13 @@ namespace
 		buffer_view views[3];
 	};
 
-	void sprite_render(graphics_context& context, const ui_resources& ui, const std::vector<sprite_buffer_views>& vbvs, const std::vector<buffer_view>& ibvs)
+	void sprite_render(render_job_context& context, const ui_resources& ui, const std::vector<sprite_buffer_views>& vbvs, const std::vector<buffer_view>& ibvs)
 	{
 		static const semantic base_vertex_semantic("POSITION", 0);
 
 		UINT buffer_index = 0;
 		graphics_pipeline_state_ptr current_pipeline_state;
-		for (auto& sprite_data : context.render_data->sprite_container.sprite_datas)
+		for (auto& sprite_data : context.render_data->sprite_container.draw_items)
 		{
 			auto& vbs = vbvs[buffer_index];
 			auto& ibs = ibvs[buffer_index];
@@ -59,19 +59,19 @@ namespace
 			if (pipeline_state != current_pipeline_state)
 			{
 				if (current_pipeline_state)
-					context.end_pipeline();
+					context.recorder.end_pipeline();
 
 				current_pipeline_state = pipeline_state;
-				context.set_pipeline(*current_pipeline_state);
+				context.recorder.set_pipeline(*current_pipeline_state);
 			}
 
 			//	プリミティブ定数バッファ更新
 			math::float4x4 transform_matrix = sprite->get_transform_matrix();
-			context.recorder.get_device_context()->UpdateSubresource(ui.primitive_constant_buffer.Get(), 0, nullptr, &transform_matrix, 0, 0);
+			context.recorder.update_subresource(ui.primitive_constant_buffer.Get(), 0, nullptr, &transform_matrix, 0, 0);
 
-			buffer_datas buffer_data{};
-			buffer_data.primitive_buffer = ui.primitive_constant_buffer;
-			context.bind_draw(*current_pipeline_state, sprite->get_material(), &buffer_data);
+			mesh_draw_item draw_item{};
+			draw_item.primitive_buffer = ui.primitive_constant_buffer;
+			context.recorder.bind_draw(*current_pipeline_state, sprite->get_material(), &draw_item);
 
 			//	頂点ストリーム設定
 			ID3D11Buffer* stream_buffers[D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT] = {};
@@ -102,15 +102,15 @@ namespace
 				++stream_index;
 			}
 			if (stream_index > 0)
-				context.set_vertex_buffers(0, stream_index, stream_buffers, stream_strides, stream_offsets);
+				context.recorder.set_vertex_buffers(0, stream_index, stream_buffers, stream_strides, stream_offsets);
 
 			//	描画
-			context.set_index_buffer(ibs.buffer.Get(), ibs.format, 0);
-			context.set_primitive_topology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-			context.recorder.get_device_context()->DrawIndexed(static_cast<UINT>(ibs.count()), static_cast<UINT>(ibs.offset()), base_vertex_location);
+			context.recorder.set_index_buffer(ibs.buffer.Get(), ibs.format, 0);
+			context.recorder.set_primitive_topology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+			context.recorder.draw_indexed(static_cast<UINT>(ibs.count()), static_cast<UINT>(ibs.offset()), base_vertex_location);
 		}
 		if (current_pipeline_state)
-			context.end_pipeline();
+			context.recorder.end_pipeline();
 	}
 }
 
@@ -178,35 +178,30 @@ std::shared_ptr<const ui_resources> scene_rendering::create_ui_resources()
 }
 
 //	UIパス
-void scene_rendering::add_ui_pass(frame_graph& graph, const renderer_context& context, const std::shared_ptr<const scene_render_targets>& targets, const scene_render_features& features)
+void scene_rendering::add_ui_pass(frame_graph& graph, const renderer_context& context, const scene_output& output_target, const scene_render_features& features)
 {
 	struct pass_data
 	{
 		std::shared_ptr<const ui_resources> resources;
 		D3D11_VIEWPORT viewport{};
-		UINT render_pass = 0;
 	};
 	graph.add_pass<pass_data>("ui_rendering_pass", context, [&](frame_graph::builder& builder, pass_data& data)
 	{
 		//	@tool 出力先（バックバッファ）へ重ねて描く
 		frame_graph::color_attachment output;
-		output.external_view = targets->output_view.view;
+		output.external_view = output_target.view;
 		output.clear = false;
-		data.render_pass = builder.add_render_pass({ output });
-		data.viewport = targets->output_viewport;
+		builder.set_render_targets({ output });
+		data.viewport = output_target.viewport;
 		data.resources = features.ui;
 	},
-	[](const pass_data& data, const frame_graph::resources& resources, graphics_context& context)
+	[](const pass_data& data, const frame_graph::resources&, render_job_context& context)
 	{
 		const ui_resources& ui = *data.resources;
-		const render_pass& rendering_pass = resources.get_render_pass(data.render_pass);
-		context.debug_begin_event(L"ui_rendering");
-
-		//	描画先設定
-		rendering_pass.activate(context.recorder.get_device_context());
+		context.recorder.begin_event(L"ui_rendering");
 
 		//	ビューポートの設定
-		context.recorder.get_device_context()->RSSetViewports(1, &data.viewport);
+		context.recorder.set_viewport(data.viewport);
 
 		//	バッファ生成
 		std::vector<sprite_buffer_views> vbvs;
@@ -218,14 +213,14 @@ void scene_rendering::add_ui_pass(frame_graph& graph, const renderer_context& co
 			for (auto& it : ui.vertex_buffer_views)
 			{
 				if (it.first == format_datas[format_id::position].s)
-					hr = context.recorder.get_device_context()->Map(it.second.buffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_vertices[format_id::position]);
+					hr = context.recorder.map_write_discard(it.second.buffer.Get(), mapped_vertices[format_id::position]);
 				else if (it.first == format_datas[format_id::color_0].s)
-					hr = context.recorder.get_device_context()->Map(it.second.buffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_vertices[format_id::color_0]);
+					hr = context.recorder.map_write_discard(it.second.buffer.Get(), mapped_vertices[format_id::color_0]);
 				else if (it.first == format_datas[format_id::texcoord_0].s)
-					hr = context.recorder.get_device_context()->Map(it.second.buffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_vertices[format_id::texcoord_0]);
+					hr = context.recorder.map_write_discard(it.second.buffer.Get(), mapped_vertices[format_id::texcoord_0]);
 				_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
 			}
-			hr = context.recorder.get_device_context()->Map(ui.index_buffer_view.buffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_indices);
+			hr = context.recorder.map_write_discard(ui.index_buffer_view.buffer.Get(), mapped_indices);
 			_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
 
 			math::float3* positions = static_cast<math::float3*>(mapped_vertices[format_id::position].pData);
@@ -246,7 +241,7 @@ void scene_rendering::add_ui_pass(frame_graph& graph, const renderer_context& co
 			}
 
 			//	スプライト数分をまとめて確保
-			size_t sprite_count = context.render_data->sprite_container.sprite_datas.size();
+			size_t sprite_count = context.render_data->sprite_container.draw_items.size();
 			vbvs.reserve(sprite_count);
 			ibvs.reserve(sprite_count);
 
@@ -254,7 +249,7 @@ void scene_rendering::add_ui_pass(frame_graph& graph, const renderer_context& co
 			sprite_buffer_views views;
 			buffer_view ibv;
 			UINT vertex_size = 0, index_size = 0;
-			for (auto& sprite_data : context.render_data->sprite_container.sprite_datas)
+			for (auto& sprite_data : context.render_data->sprite_container.draw_items)
 			{
 				auto& sprite = sprite_data.sprite;
 
@@ -302,15 +297,13 @@ void scene_rendering::add_ui_pass(frame_graph& graph, const renderer_context& co
 			}
 
 			for (auto& it : ui.vertex_buffer_views)
-				context.recorder.get_device_context()->Unmap(it.second.buffer.Get(), 0);
-			context.recorder.get_device_context()->Unmap(ui.index_buffer_view.buffer.Get(), 0);
+				context.recorder.unmap(it.second.buffer.Get());
+			context.recorder.unmap(ui.index_buffer_view.buffer.Get());
 		}
 
 		//	描画
 		sprite_render(context, ui, vbvs, ibvs);
 
-		rendering_pass.deactivate(context.recorder.get_device_context());
-
-		context.debug_end_event();
+		context.recorder.end_event();
 	});
 }

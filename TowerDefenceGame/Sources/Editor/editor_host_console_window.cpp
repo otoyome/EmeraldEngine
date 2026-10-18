@@ -1,4 +1,4 @@
-#include "framework.h"
+#include "Editor/editor_host.h"
 
 #if defined(USE_IMGUI)
 #include "imgui.h"
@@ -213,7 +213,7 @@ namespace
 	}
 }
 
-void framework::imgui_console_window()
+void editor_host::imgui_console_window()
 {
 	if (!console_visible)
 		return;
@@ -323,7 +323,7 @@ void framework::imgui_console_window()
 	ImGui::End();
 }
 
-void framework::imgui_console_commands_window()
+void editor_host::imgui_console_commands_window()
 {
 	if (!console_commands_window_variable.get())
 		return;

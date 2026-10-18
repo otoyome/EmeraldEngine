@@ -246,10 +246,10 @@ using post_process_volume_ptr = std::shared_ptr<post_process_volume>;
 //	@tool 描画側が参照するポストプロセスの設定（抽出時点の複製。作成後は変更しない）
 //	@tool ゲーム側でボリュームを変更しても、描画側はこの複製を参照するので競合しない
 class material_render_proxy;
-class post_process_volume_snapshot
+class post_process_volume_render_proxy
 {
 public:
-	explicit post_process_volume_snapshot(const post_process_volume& source);
+	explicit post_process_volume_render_proxy(const post_process_volume& source);
 
 	const bloom_data& get_bloom_constant() const { return bloom_constant; }
 	const lens_ghosts_data& get_lens_ghosts_constant() const { return lens_ghosts_constant; }
@@ -270,14 +270,14 @@ private:
 	tone_mapping_data tone_mapping_constant;
 	std::vector<std::shared_ptr<const material_render_proxy>> materials;
 };
-using post_process_volume_snapshot_ptr = std::shared_ptr<const post_process_volume_snapshot>;
+using post_process_volume_render_proxy_ptr = std::shared_ptr<const post_process_volume_render_proxy>;
 
 //	ポストプロセスボリュームコンテナ
 struct post_process_volume_container
 {
 	std::vector<post_process_volume_ptr> volumes;
 	//	@tool 描画側は選ばれたボリュームの複製を参照する
-	post_process_volume_snapshot_ptr selected_volume;
+	post_process_volume_render_proxy_ptr selected_volume;
 };
 
 //	ポストプロセスボリューム管理クラス

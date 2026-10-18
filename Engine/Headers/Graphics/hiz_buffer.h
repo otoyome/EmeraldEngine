@@ -6,7 +6,7 @@
 #include <d3d11.h>
 #include <wrl.h>
 
-#include "graphics_context.h"
+#include "render_job_context.h"
 #include "shader.h"
 
 //	ŠK‘w[“xƒoƒbƒtƒ@
@@ -18,7 +18,7 @@ public:
 
 	void resize_buffer(int width, int height);
 
-	void build(graphics_context& context);
+	void build(render_job_context& context);
 
 	ID3D11ShaderResourceView* get_srv() const { return hiz_srv.Get(); }
 	UINT get_mip_count() const { return hiz_mip_count; }

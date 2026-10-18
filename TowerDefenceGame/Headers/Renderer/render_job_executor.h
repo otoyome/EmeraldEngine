@@ -6,7 +6,7 @@
 #include "renderer_context.h"
 #include "frame_graph.h"
 
-using render_job_function = void(graphics_context&);
+using render_job_function = void(render_job_context&);
 
 //	描画コマンドリスト
 class render_command_list
@@ -20,12 +20,13 @@ public:
 		std::function<void()> immediate_task;					//	immediate context で実行するもの
 		bool wait_for_recordings = true;						//	immediate_task の実行前に、このフレームの記録が全て終わるのを待つか
 		bool ready = false;
+		std::vector<gpu_readback_request> readbacks;			//	@tool command_list の実行後に登録する読み戻し要求
 	};
 
 public:
 	UINT reserve(std::string_view name, std::string_view owner_name, bool is_recording);
 
-	void set_command_list(UINT index, const Microsoft::WRL::ComPtr<ID3D11CommandList>& command_list);
+	void set_command_list(UINT index, const Microsoft::WRL::ComPtr<ID3D11CommandList>& command_list, std::vector<gpu_readback_request>&& readbacks);
 	void set_immediate_task(UINT index, std::function<void()> task, bool wait_for_recordings);
 	void close();
 
@@ -57,28 +58,19 @@ public:
 	std::shared_ptr<render_command_list> end_command_list();
 
 private:
-	//	@tool 記録に使うコンテキストごとの資源
-	struct recording_resources
-	{
-		Microsoft::WRL::ComPtr<ID3D11DeviceContext1> device_context1;
-		std::unique_ptr<immediate_constant_allocator> constant_allocator;
-	};
-	static void create_recording_resources(ID3D11DeviceContext* device_context, recording_resources& out_resources);
+	//	@tool ジョブ開始時の記録開始と render_job_context の設定（immediate / deferred で共通）
+	static void setup_job_context(render_job_context& job_context, const renderer_context& context);
 
-	//	@tool ジョブ開始時の graphics_context の設定（immediate / deferred で共通）
-	static void setup_graphics_context(graphics_context& g_context, ID3D11DeviceContext* device_context, recording_resources& resources, const renderer_context& context);
-
-	void run(UINT context_index);
+	void run(render_command_recorder* recorder);
 
 private:
 	std::mutex mutex;
 	std::condition_variable condition;
 	std::vector<std::thread> worker_threads;
-	std::vector<Microsoft::WRL::ComPtr<ID3D11DeviceContext>> deferred_contexts;
-	std::vector<recording_resources> deferred_recording_resources;	//	@tool deferred_contexts と同じ並び
-	recording_resources immediate_recording_resources;				//	@tool 提出スレッドでのみ使う
+	std::vector<std::unique_ptr<render_command_recorder>> deferred_recorders;	//	@tool ワーカースレッドごとの deferred context の記録器
+	render_command_recorder immediate_recorder;	//	@tool 提出スレッドでのみ使う
 
-	std::queue<std::function<void(ID3D11DeviceContext*, recording_resources&)>> tasks;
+	std::queue<std::function<void(render_command_recorder&)>> tasks;
 	bool running;
 
 	std::shared_ptr<render_command_list> current_command_list;

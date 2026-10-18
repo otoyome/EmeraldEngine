@@ -1,7 +1,7 @@
 #include "material.h"
 #include "texture.h"
 #include "render_data.h"
-#include "graphics_context.h"
+#include "render_job_context.h"
 
 #include "cereal/archives/binary.hpp"
 #include "cereal/archives/json.hpp"
@@ -84,13 +84,6 @@ void material::physical_datas::serialize(Archive& archive, int version)
 	archive(CEREAL_NVP(friction));
 }
 
-namespace
-{
-	//	定数バッファの転送待ちマテリアル
-	std::mutex upload_requested_materials_mutex;
-	std::vector<material*> upload_requested_materials;
-}
-
 material::material()
 : name()
 , domain(domains::unknown)
@@ -133,16 +126,8 @@ material& material::operator =(const material& material)
 
 material::~material()
 {
-	//	転送待ちに残っていれば外す
-	{
-		std::lock_guard<std::mutex> lock(upload_requested_materials_mutex);
-		if (upload_requested)
-		{
-			auto it = std::find(upload_requested_materials.begin(), upload_requested_materials.end(), this);
-			if (it != upload_requested_materials.end())
-				upload_requested_materials.erase(it);
-		}
-	}
+	//	@tool 定数バッファを描画側へ返す
+	release_constant_buffer_handles();
 
 #if defined(USE_IMGUI)
 	//	パイプラインステート側への検知関数登録解除
@@ -177,10 +162,16 @@ std::shared_ptr<const material_render_proxy> material::get_render_proxy() const
 		proxy->pipeline_states.emplace_back(get_pipeline_state(domain, index));
 	}
 
+	//	@tool 定数バッファは描画側の管理クラスから受け取る
+	material_constant_buffer_pool* constant_buffer_pool = material_constant_buffer_pool::instance();
 	proxy->constant_buffers.reserve(constant_buffers.size());
 	for (const auto& cb : constant_buffers)
 	{
-		proxy->constant_buffers.emplace_back(system_utility::generate_hash(cb.first), cb.second.buffer);
+		Microsoft::WRL::ComPtr<ID3D11Buffer> buffer;
+		auto it = constant_buffer_handles.find(cb.first);
+		if (constant_buffer_pool && it != constant_buffer_handles.end())
+			buffer = constant_buffer_pool->get_buffer(it->second);
+		proxy->constant_buffers.emplace_back(system_utility::generate_hash(cb.first), std::move(buffer));
 	}
 
 	proxy->textures.reserve(shader_resources.size());
@@ -203,37 +194,26 @@ std::shared_ptr<const material_render_proxy> material::get_render_proxy() const
 	return render_proxy;
 }
 
-void material::flush_parameters(gpu_upload_list& out_uploads)
+void material::release_constant_buffer_handles()
 {
-	std::lock_guard<std::mutex> lock(upload_requested_materials_mutex);
-
-	for (material* target : upload_requested_materials)
+	if (material_constant_buffer_pool* constant_buffer_pool = material_constant_buffer_pool::instance())
 	{
-		target->upload_requested = false;
-
-		//	定数バッファ設定
-		for (auto& cb : target->constant_buffers)
+		for (const auto& it : constant_buffer_handles)
 		{
-			//	バッファが未生成なら dirty のまま残す
-			if (!cb.second.dirty || !cb.second.buffer)
-				continue;
-
-			out_uploads.add_copy(cb.second.buffer, false, 0, cb.second.data_buffer.data(), static_cast<UINT>(cb.second.data_buffer.size()));
-			cb.second.dirty = false;
+			constant_buffer_pool->release(it.second);
 		}
 	}
-	upload_requested_materials.clear();
+	constant_buffer_handles.clear();
 }
 
-void material::request_upload()
+void material::queue_constant_buffer_upload(const std::string& name, const constant_buffer& cb) const
 {
-	//	次の flush_parameters で定数バッファを転送するよう登録
-	std::lock_guard<std::mutex> lock(upload_requested_materials_mutex);
-	if (upload_requested)
+	auto it = constant_buffer_handles.find(name);
+	if (it == constant_buffer_handles.end())
 		return;
 
-	upload_requested = true;
-	upload_requested_materials.emplace_back(this);
+	if (material_constant_buffer_pool* constant_buffer_pool = material_constant_buffer_pool::instance())
+		constant_buffer_pool->queue_upload(it->second, cb.data_buffer.data(), static_cast<UINT>(cb.data_buffer.size()));
 }
 
 void material::mark_render_proxy_dirty()
@@ -369,6 +349,9 @@ void material::build_parameters()
 	auto temp_constant_buffers = constant_buffers;
 	shader_resources.clear();
 	constant_buffers.clear();
+
+	//	@tool 前回の定数バッファを描画側へ返す（描画中のフレームはプロキシーが参照を持っているので、そのまま使える）
+	release_constant_buffer_handles();
 
 	//	パイプラインステートから入力リソース情報を取得
 	input_resource_desc resource_desc;
@@ -518,17 +501,9 @@ void material::build_parameters()
 		}
 
 		//	定数バッファの生成
-		{
-			D3D11_BUFFER_DESC buffer_desc{};
-			buffer_desc.Usage = D3D11_USAGE_DEFAULT;
-			buffer_desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-			buffer_desc.CPUAccessFlags = 0;
-			buffer_desc.MiscFlags = 0;
-			buffer_desc.StructureByteStride = 0;
-			buffer_desc.ByteWidth = cbv.total_size;
-			HRESULT hr = render_data::instance()->get_device()->CreateBuffer(&buffer_desc, nullptr, cb.buffer.ReleaseAndGetAddressOf());
-			_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
-		}
+		//	@tool GPU バッファの実体は描画側の管理クラスが持ち、マテリアルは番号だけを持つ
+		if (material_constant_buffer_pool* constant_buffer_pool = material_constant_buffer_pool::instance())
+			constant_buffer_handles[cbv.name] = constant_buffer_pool->allocate(cbv.total_size);
 
 		//	定数バッファ登録
 		constant_buffers.insert(std::make_pair(cbv.name, std::move(cb)));
@@ -575,7 +550,11 @@ void material::build_parameters()
 		}
 	}
 
-	request_upload();
+	//	@tool 全ての定数を転送待ちに積む
+	for (const auto& cb : constant_buffers)
+	{
+		queue_constant_buffer_upload(cb.first, cb.second);
+	}
 }
 
 void material::set_name(std::string_view name)
@@ -700,8 +679,14 @@ material::constant_buffer_map& material::get_constant_buffers_for_editor()
 {
 	mark_render_proxy_dirty();
 
-	request_upload();
 	return constant_buffers;
+}
+
+void material::apply_constant_buffer_for_editor(std::string_view name)
+{
+	auto it = constant_buffers.find(std::string(name));
+	if (it != constant_buffers.end())
+		queue_constant_buffer_upload(it->first, it->second);
 }
 
 material::shader_resource_map& material::get_shader_resources_for_editor()
@@ -974,8 +959,7 @@ bool material::set_data(std::string_view key_name, void* data, std::size_t data_
 				return true;
 
 			memcpy_s(buffer, buffer_size, data, copy_size);
-			cb.dirty = true;
-			request_upload();
+			queue_constant_buffer_upload(it->first, cb);
 			return true;
 		}
 		++it;

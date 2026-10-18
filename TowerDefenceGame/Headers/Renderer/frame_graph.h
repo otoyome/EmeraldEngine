@@ -1,7 +1,8 @@
 #pragma once
 
 #include "renderer_context.h"
-#include "render_pass.h"
+#include "graphics/render_pass_begin_info.h"
+#include "graphics/pooled_texture.h"
 
 #include <array>
 #include <functional>
@@ -13,7 +14,7 @@
 #include <vector>
 
 class render_job_executor;
-using render_job_function = void(graphics_context&);
+using render_job_function = void(render_job_context&);
 
 //	フレームグラフ
 class frame_graph
@@ -63,6 +64,8 @@ public:
 	{
 		texture_handle texture;
 		DXGI_FORMAT format = DXGI_FORMAT_UNKNOWN;
+		UINT array_size = 0;	//	@tool 0 は配列でないビュー（1 以上は first_slice からその枚数の配列のビュー）
+		UINT first_slice = 0;	//	@tool 配列のビューの先頭のスライス（シャドウマップアトラスなど）
 		bool clear_depth = false;
 		bool clear_stencil = false;
 		FLOAT clear_depth_value = common_pipeline_states::depth_clear_value;
@@ -78,16 +81,17 @@ public:
 		builder(frame_graph& graph, UINT pass_index);
 
 		//	このフレームだけ使う一時テクスチャを要求
-		texture_handle create(std::string_view name, const D3D11_TEXTURE2D_DESC& desc);
+		texture_handle create(std::string_view name, const D3D11_TEXTURE2D_DESC& desc, DXGI_FORMAT srv_format = DXGI_FORMAT_UNKNOWN);
 
 		//	読む（既定はシェーダーリソース。コピー元などは使い方を指定する）
 		texture_handle read(texture_handle handle, texture_usage usage = texture_usage::shader_resource);
 
-		//	@tool 書く（UAV・コピー先などの使い方を必ず指定する。描画先は add_render_pass で宣言する）
+		//	@tool 書く（UAV・コピー先などの使い方を必ず指定する。描画先は set_render_targets で宣言する）
 		texture_handle write(texture_handle handle, texture_usage usage);
 
-		//	描画パスの追加
-		UINT add_render_pass(std::vector<color_attachment> colors, std::optional<depth_attachment> depth = std::nullopt);
+		//	@tool 描画先の宣言（UE の RenderTargets に相当。パス1つにつき1組だけ）
+		//	@tool グラフが execute の前に描画先の設定（とクリア）を行い、後で外す。描画先を切り替える処理はパスを分ける
+		void set_render_targets(std::vector<color_attachment> colors, std::optional<depth_attachment> depth = std::nullopt);
 
 		//	バックバッファ・GPU 側の状態などに結果を描き込むパス
 		void side_effect();
@@ -112,9 +116,6 @@ public:
 		//	テクスチャ全体を覆うビューポート
 		D3D11_VIEWPORT get_viewport(texture_handle handle) const;
 
-		//	準備で宣言した描画先
-		const render_pass& get_render_pass(UINT index) const;
-
 	private:
 		resources(std::shared_ptr<const frame_data> frame, UINT pass_index);
 
@@ -123,7 +124,7 @@ public:
 		UINT pass_index;
 	};
 
-	using execute_function = std::function<void(const resources&, graphics_context&)>;
+	using execute_function = std::function<void(const resources&, render_job_context&)>;
 
 	//	プロファイラー表示用：追加するパスの所有者名
 	class owner_scope
@@ -149,6 +150,18 @@ public:
 	//	外部のテクスチャをグラフに取り込む
 	texture_handle import_texture(std::string_view name, const texture_ptr& texture);
 
+	//	@tool このフレームだけ使う一時テクスチャを作る（複数のパスで使う物をパスの外で作る。UE の GraphBuilder.CreateTexture）
+	//	@tool srv_format はシェーダーリソースビューの形式（UNKNOWN はテクスチャと同じ。深度など型の無い形式で指定する）
+	texture_handle create_texture(std::string_view name, const D3D11_TEXTURE2D_DESC& desc, DXGI_FORMAT srv_format = DXGI_FORMAT_UNKNOWN);
+
+	//	@tool 前のフレームで抜き出したテクスチャを取り込む（UE の RegisterExternalTexture）
+	//	@tool 無い・中身が入っていない・形式が expected_desc と違う場合は無効な番号を返す
+	texture_handle register_external_texture(std::string_view name, const pooled_texture_ref_ptr& texture, const D3D11_TEXTURE2D_DESC& expected_desc);
+
+	//	@tool 実行後にテクスチャの実体を受け取る予約（UE の QueueTextureExtraction）
+	//	@tool 戻り値の中身は execute() で入る。戻り値を持っている間は、プールが別の用途に使い回さない
+	pooled_texture_ref_ptr queue_extraction(texture_handle handle);
+
 	//	パスを追加
 	template<class Data, class Setup, class Execute>
 	const Data& add_pass(std::string_view name, const renderer_context& context, Setup&& setup, Execute&& execute)
@@ -157,7 +170,7 @@ public:
 		const UINT pass_index = begin_pass(name, context);
 		builder pass_builder(*this, pass_index);
 		setup(pass_builder, *data);
-		end_pass(pass_index, [data, execute = std::forward<Execute>(execute)](const resources& pass_resources, graphics_context& graphics)
+		end_pass(pass_index, [data, execute = std::forward<Execute>(execute)](const resources& pass_resources, render_job_context& graphics)
 		{
 			execute(static_cast<const Data&>(*data), pass_resources, graphics);
 		});
@@ -182,9 +195,12 @@ private:
 		std::string name;
 		texture_ptr texture;
 		D3D11_TEXTURE2D_DESC desc{};
+		DXGI_FORMAT srv_format = DXGI_FORMAT_UNKNOWN;	//	@tool 一時テクスチャのシェーダーリソースビューの形式
 		bool transient = false;
 		int pool_index = -1;			//	@tool 割り当てた一時テクスチャのプールの番号
 		UINT version = 0;				//	@tool 追加中の最新版
+		pooled_texture_ref_ptr external;	//	@tool 取り込んだ抜き出し済みのテクスチャ（このフレームの間はプールが使い回さないように持つ）
+		pooled_texture_ref_ptr extraction;	//	@tool 実行後に実体を渡す予約
 	};
 
 	//	@tool テクスチャの版（書き込みで作られ、読まれた数を数える）
@@ -196,7 +212,8 @@ private:
 		UINT read_count = 0;
 	};
 
-	struct render_pass_desc
+	//	@tool パスの描画先の宣言
+	struct render_targets_desc
 	{
 		std::vector<color_attachment> colors;
 		std::optional<depth_attachment> depth;
@@ -214,7 +231,7 @@ private:
 		bool culled = false;
 		std::vector<UINT> reads;
 		std::vector<UINT> writes;
-		std::vector<render_pass_desc> render_passes;
+		std::optional<render_targets_desc> render_targets;
 		std::vector<std::pair<UINT, texture_usage>> accesses;
 		std::vector<texture_transition> transitions;
 	};
@@ -232,11 +249,11 @@ private:
 	//	@tool 一時テクスチャをプールから割り当てる（使用期間が重ならない物同士は同じ実体を使う）
 	void allocate_transient_textures();
 	//	@tool 描画先のビューを用意する（取り込んだテクスチャのビューは作り置きを使う）
-	void build_render_passes();
+	void build_render_targets();
 
 	//	@tool 描画先ビューの作り置き（テクスチャとビューの形式ごと）
 	ID3D11RenderTargetView* acquire_render_target_view(const texture_ptr& texture);
-	ID3D11DepthStencilView* acquire_depth_stencil_view(const texture_ptr& texture, DXGI_FORMAT format);
+	ID3D11DepthStencilView* acquire_depth_stencil_view(const texture_ptr& texture, DXGI_FORMAT format, UINT first_slice, UINT array_size);
 
 private:
 	std::vector<texture_entry> textures;
@@ -249,8 +266,10 @@ private:
 	struct pooled_texture
 	{
 		D3D11_TEXTURE2D_DESC desc{};
+		DXGI_FORMAT srv_format = DXGI_FORMAT_UNKNOWN;
 		texture_ptr texture;
 		std::uint64_t last_used_frame = 0;
+		std::weak_ptr<const pooled_texture_ref> owner;	//	@tool 抜き出した先（生きている間は使い回さない・破棄しない）
 	};
 	std::vector<pooled_texture> texture_pool;
 
@@ -266,11 +285,13 @@ private:
 	{
 		ID3D11Resource* resource = nullptr;
 		DXGI_FORMAT format = DXGI_FORMAT_UNKNOWN;	//	@tool UNKNOWN は描画先（色）
-		bool operator==(const view_key& other) const { return resource == other.resource && format == other.format; }
+		UINT array_size = 0;						//	@tool 深度の配列のビューの枚数（0 は配列でない）
+		UINT first_slice = 0;						//	@tool 深度の配列のビューの先頭のスライス
+		bool operator==(const view_key& other) const { return resource == other.resource && format == other.format && array_size == other.array_size && first_slice == other.first_slice; }
 	};
 	struct view_key_hash
 	{
-		std::size_t operator()(const view_key& key) const { return std::hash<const void*>()(key.resource) ^ (std::hash<int>()(static_cast<int>(key.format)) << 1); }
+		std::size_t operator()(const view_key& key) const { return std::hash<const void*>()(key.resource) ^ (std::hash<int>()(static_cast<int>(key.format)) << 1) ^ (std::hash<UINT>()(key.array_size) << 2) ^ (std::hash<UINT>()(key.first_slice) << 3); }
 	};
 	std::unordered_map<view_key, cached_view, view_key_hash> view_cache;
 
@@ -300,5 +321,5 @@ struct frame_graph::resources::frame_data
 		D3D11_TEXTURE2D_DESC desc{};
 	};
 	std::vector<texture_data> textures;
-	std::vector<std::vector<render_pass>> render_passes;	//	@tool パスごとの描画先
+	std::vector<std::optional<render_pass_begin_info>> render_targets;	//	@tool パスごとの描画先（グラフが execute の前後で開始・終了する。無いパスは nullopt）
 };
