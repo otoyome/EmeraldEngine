@@ -616,11 +616,44 @@ void texture_manager::check_update_and_reload()
 	{
 		if (ptr->is_reload())
 		{
-			//	@tool 描画中のフレームがテクスチャの情報（大きさなど）を参照しているので、描き終わるのを待つ
-			render_data::instance()->flush_rendering();
+			//	@tool ビュー一式は atomic に差し替わり、描画側は抽出時に作った texture_binding を使うので、描画中のフレームを待たない
 			ptr->reload();
 		}
 	}
+#endif	//	defined(USE_IMGUI)
+}
+
+bool texture_manager::reload_file(const std::filesystem::path& file_path)
+{
+#if defined(USE_IMGUI)
+	//	@tool 登録名は読み込み時の書き方のままなので、絶対パスにそろえて比べる
+	std::error_code error;
+	const auto target = std::filesystem::absolute(file_path, error).lexically_normal();
+	if (error)
+		return false;
+
+	bool reloaded = false;
+	for (auto& entry : textures)
+	{
+		auto ptr = entry.second.lock();
+		if (!ptr || !ptr->is_file_path_or_key())
+			continue;
+
+		const auto path = std::filesystem::absolute(std::filesystem::path(ptr->get_file_path_or_key()), error).lexically_normal();
+		if (error || _wcsicmp(path.c_str(), target.c_str()) != 0)
+			continue;
+
+		//	@tool 自分で書き出した場合など、読み込んだ時から変わっていなければ読み直さない
+		if (ptr->is_reload())
+		{
+			ptr->reload();
+			reloaded = true;
+		}
+	}
+	return reloaded;
+#else
+	(void)file_path;
+	return false;
 #endif	//	defined(USE_IMGUI)
 }
 

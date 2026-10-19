@@ -40,9 +40,18 @@ private:
 		std::vector<uint8_t> data;
 	};
 
+	//	@tool 大きくした時の古い中身のコピー（次に抽出するフレームの転送の先頭で行う）
+	struct pending_copy
+	{
+		Microsoft::WRL::ComPtr<ID3D11Buffer> destination;
+		Microsoft::WRL::ComPtr<ID3D11Buffer> source;
+		UINT size_in_bytes;
+	};
+
 	Microsoft::WRL::ComPtr<ID3D11Buffer> buffer;
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> srv;
 	std::vector<pending_upload> pending_uploads;
+	std::vector<pending_copy> pending_copies;
 	UINT capacity_in_bytes = 0;
 	UINT stride_in_bytes = 0;
 	UINT bind_flag = 0;

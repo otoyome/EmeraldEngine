@@ -18,6 +18,7 @@
 #include "effect_instance.h"
 
 #include "Renderer/scene_render_features.h"
+#include "Renderer/scene_renderer_common.h"
 
 #include "Object/object_manager.h"
 #include "Object/GameObjects/UI/ui_object.h"
@@ -127,6 +128,7 @@ bool render_system::initialize()
 	//	@tool 描画側が参照している資源を書き換える前に、描画中のフレームを待てるようにする
 	main_thread_id = std::this_thread::get_id();
 	render_data::instance()->set_flush_rendering_function([this] { flush_rendering(); });
+	render_data::instance()->set_retire_function([this](std::shared_ptr<const void> object) { retire_after_rendering(std::move(object)); });
 	return true;
 }
 
@@ -152,7 +154,17 @@ void render_system::begin_frame(float elapsed_time)
 #endif	//	defined(USE_IMGUI)
 	packet->sync_interval = static_cast<UINT>(engine_config_data::instance()->windows.vertical_sync);
 	packet->antialias_mode = engine_config_data::instance()->antialias.mode;
+	//	@tool これより前に抽出したフレームは、このフレームより先に提出し終わるので、このフレームと一緒に破棄すればよい
+	packet->retired_objects.swap(pending_retired_objects);
 	extracting_packet = std::move(packet);
+}
+
+void render_system::retire_after_rendering(std::shared_ptr<const void> object)
+{
+	//	@tool 描画スレッドが動いていない時は描画中のフレームが無いので、ここですぐ破棄する
+	if (!render_threads_running || std::this_thread::get_id() != main_thread_id)
+		return;
+	pending_retired_objects.emplace_back(std::move(object));
 }
 
 void render_system::add_view(const view_target_ptr& target, view_parameters& parameters, bool& camera_cut, bool in_window)
@@ -306,6 +318,8 @@ render_system::view_packet render_system::extract_view(const view_target_ptr& ta
 
 		//	モデルの頂点/インデックスバッファ確保分をGPUへ転送
 		model_buffer_pool_manager::instance()->flush_uploads(render_data->upload_list);
+		//	@tool 描画側が使うプールの SRV を写す（この後にプールが大きくなっても、このフレームは写した物を使う）
+		scene_renderer_commons::capture_meshlet_attribute_srvs(render_data->mesh_container);
 
 		//	@tool パイプラインステートの描画前準備（描画ジョブ内ではメンバを書き換えない）
 		pipeline_state_manager::instance()->prepare_pipeline_states();
@@ -585,6 +599,7 @@ void render_system::stop_render_threads()
 	render_thread.join();
 	submit_thread.join();
 	retired_packets.clear();
+	pending_retired_objects.clear();
 }
 
 void render_system::render_thread_main()

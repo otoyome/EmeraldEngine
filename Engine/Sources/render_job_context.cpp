@@ -78,12 +78,31 @@ void gpu_upload_list::add_reference(const Microsoft::WRL::ComPtr<ID3D11Buffer>& 
 	target.size_in_bytes = size_in_bytes;
 }
 
+void gpu_upload_list::add_buffer_copy(const Microsoft::WRL::ComPtr<ID3D11Buffer>& destination, const Microsoft::WRL::ComPtr<ID3D11Buffer>& source, UINT size_in_bytes)
+{
+	auto& target = commands.emplace_back();
+	target.buffer = destination;
+	target.copy_source = source;
+	target.size_in_bytes = size_in_bytes;
+}
+
 void gpu_upload_list::upload(const render_command_recorder& recorder) const
 {
 	for (const auto& target : commands)
 	{
 		if (!target.buffer || target.size_in_bytes == 0)
 			continue;
+
+		//	@tool バッファ間のコピー（先頭から size_in_bytes 分）
+		if (target.copy_source)
+		{
+			D3D11_BOX box{};
+			box.right = target.size_in_bytes;
+			box.bottom = 1;
+			box.back = 1;
+			recorder.copy_subresource_region(target.buffer.Get(), 0, 0, 0, 0, target.copy_source.Get(), 0, &box);
+			continue;
+		}
 
 		const void* source = target.owned_data.empty() ? target.data : target.owned_data.data();
 		if (target.use_box)

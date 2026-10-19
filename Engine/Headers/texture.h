@@ -165,6 +165,8 @@ public:
 	~texture_manager();
 
 	void check_update_and_reload();
+	//	@tool 更新されたファイルを読み込み済みのテクスチャへ読み直す（フォルダーの変更通知から呼ぶ。メインスレッド専用。読み直したら true）
+	bool reload_file(const std::filesystem::path& file_path);
 
 	bool generate_texture2d(texture_ptr& out_texture, std::string_view key, D3D11_TEXTURE2D_DESC desc, D3D11_SHADER_RESOURCE_VIEW_DESC* srv_desc = nullptr, D3D11_UNORDERED_ACCESS_VIEW_DESC* uav_desc = nullptr);
 	bool generate_texture2d(texture_ptr& out_texture, std::string_view key, D3D11_TEXTURE2D_DESC desc, DWORD init_value, D3D11_SHADER_RESOURCE_VIEW_DESC* srv_desc = nullptr, D3D11_UNORDERED_ACCESS_VIEW_DESC* uav_desc = nullptr);

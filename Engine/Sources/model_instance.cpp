@@ -479,6 +479,9 @@ void model_instance_manger::get_container(mesh_container& container, const math:
 		//	@tool 描画側はインスタンスではなくプロキシ（とリソース）を参照するので、こちらを破棄させないようにする
 		const std::shared_ptr<const model_render_proxy> proxy = instance->get_render_proxy();
 		container.keep_alive_objects.emplace_back(proxy);
+		//	@tool このフレームはリソースのメッシュを指すので、エディターで書き換える時は複製させる
+		if (proxy && proxy->resource)
+			proxy->resource->mark_meshes_in_use();
 
 		//	ワールド行列等生成
 		//	描画原点からの相対行列にする

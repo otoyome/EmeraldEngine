@@ -27,7 +27,12 @@ namespace
 		none,
 		model,
 		effect,
+		texture,
+		shader,
 	};
+
+	//	@tool 監視するフォルダー（作業フォルダーからの相対パス）
+	constexpr const char* watch_directories[] = { "Assets", "Shaders" };
 
 	asset_kinds get_asset_kind(const std::filesystem::path& path)
 	{
@@ -42,6 +47,17 @@ namespace
 			return asset_kinds::model;
 		if (_wcsicmp(name.data(), effect_extension.c_str()) == 0)
 			return asset_kinds::effect;
+
+		//	@tool テクスチャとして読み込める形式
+		for (const wchar_t* texture_extension : { L"png", L"dds", L"tga", L"bmp", L"hdr", L"jpg", L"jpeg" })
+		{
+			if (_wcsicmp(name.data(), texture_extension) == 0)
+				return asset_kinds::texture;
+		}
+
+		//	@tool シェーダーのソースとインクルードファイル（コンパイル結果は Shaders の外に書き出される）
+		if (_wcsicmp(name.data(), L"hlsl") == 0 || _wcsicmp(name.data(), L"hlsli") == 0)
+			return asset_kinds::shader;
 		return asset_kinds::none;
 	}
 }
@@ -204,7 +220,7 @@ asset_watcher::asset_watcher()
 asset_watcher::~asset_watcher()
 {
 #if defined(USE_IMGUI)
-	if (watch)
+	for (auto& watch : watches)
 		watch->stop();
 #endif	//	defined(USE_IMGUI)
 }
@@ -217,51 +233,58 @@ bool asset_watcher::update()
 	//	各種データの更新チェック
 	{
 		DETAIL_PROFILE_CPU_SCOPE("update.asset_hot_reload");
-		if (shader_manager::is_valid())
-		{
-			shader_manager::instance()->check_shader_update_and_recompile();
-		}
-		if (texture_manager::is_valid())
-		{
-			texture_manager::instance()->check_update_and_reload();
-		}
 
-		//	@tool 前回の読み直しで差し替えた古い中身は、全ワールドのインスタンスを作り直し終えているので破棄する
-		if (model_resource_manager::is_valid())
-			model_resource_manager::instance()->release_retired_resources();
+		//	@tool 前回の読み直しで差し替えた古いエフェクトの中身は、全ワールドのインスタンスを作り直し終えているので破棄する
+		//	@tool （モデルの古い中身は、描画中のフレームが使い終わってから render_data::retire_after_rendering で破棄される）
 		if (effect_resource_manager::is_valid())
 			effect_resource_manager::instance()->release_retired_resources();
 
 		//	@tool 監視は最初の更新で始める（作業フォルダーが確定した後）
-		if (!watch)
+		if (!watch_started)
 		{
-			watch = std::make_unique<directory_watch>();
-			if (!watch->start("Assets"))
+			watch_started = true;
+			for (const char* directory : watch_directories)
 			{
-				DEBUG_WARNING("asset_watcher: failed to watch Assets directory");
-			}
-			else
-			{
+				auto watch = std::make_unique<directory_watch>();
+				if (!watch->start(directory))
+				{
+					DEBUG_WARNING("asset_watcher: failed to watch %s directory", directory);
+					continue;
+				}
 				DEBUG_LOG("asset_watcher: watching [%ls]", watch->root.c_str());
+				watches.emplace_back(std::move(watch));
 			}
 		}
 
-		for (auto& path : watch->take_ready_files())
+		for (auto& watch : watches)
 		{
-			DEBUG_LOG("asset_watcher: changed [%ls]", path.c_str());
-			switch (get_asset_kind(path))
+			for (auto& path : watch->take_ready_files())
 			{
-			case asset_kinds::model:
-				if (model_resource_manager::is_valid() && model_resource_manager::instance()->reload_file(path))
-					model_reloaded = true;
-				break;
-			case asset_kinds::effect:
-				//	@tool エフェクトのインスタンスは各ワールドの effect_manager::update で作り直される
-				if (effect_resource_manager::is_valid())
-					effect_resource_manager::instance()->reload_file(path);
-				break;
-			default:
-				break;
+				DEBUG_LOG("asset_watcher: changed [%ls]", path.c_str());
+				switch (get_asset_kind(path))
+				{
+				case asset_kinds::model:
+					if (model_resource_manager::is_valid() && model_resource_manager::instance()->reload_file(path))
+						model_reloaded = true;
+					break;
+				case asset_kinds::effect:
+					//	@tool エフェクトのインスタンスは各ワールドの effect_manager::update で作り直される
+					if (effect_resource_manager::is_valid())
+						effect_resource_manager::instance()->reload_file(path);
+					break;
+				case asset_kinds::texture:
+					//	@tool マテリアルはテクスチャの版を見て、描画用プロキシを作り直す
+					if (texture_manager::is_valid())
+						texture_manager::instance()->reload_file(path);
+					break;
+				case asset_kinds::shader:
+					//	@tool パイプラインは再読み込みの通知を受けて、次の抽出で割り当て配置と描画側の版を作り直す
+					if (shader_manager::is_valid())
+						shader_manager::instance()->reload_file(path);
+					break;
+				default:
+					break;
+				}
 			}
 		}
 	}

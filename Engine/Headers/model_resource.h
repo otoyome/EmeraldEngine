@@ -168,11 +168,13 @@ public:
 	UINT get_content_revision() const { return content_revision; }
 	//	@tool ノード・メッシュ・モーフの配列を作り直した時に呼ぶ（各ワールドのインスタンスが次の抽出で作り直される）
 	void notify_content_changed() { ++mesh_revision; ++content_revision; }
+	//	@tool 抽出したフレームがメッシュを指している印を付ける（メインスレッドの抽出で呼ぶ。get_meshes_for_editor で複製するかの判定に使う）
+	void mark_meshes_in_use() const { meshes_in_use = true; }
 
 #if defined(USE_IMGUI)
 	inline std::vector<material>& get_materials_for_editor() { return materials; }
 	inline std::vector<node>& get_nodes_for_editor() { return nodes; }
-	//	@tool メッシュを書き換える場合はここから取得する（描画中のフレームを待ち、描画用プロキシを作り直させる）
+	//	@tool メッシュを書き換える場合はここから取得する（描画中のフレームが指す配列は残して複製を返し、描画用プロキシとインスタンスを作り直させる）
 	std::vector<mesh>& get_meshes_for_editor();
 	inline std::vector<morph>& get_morphes_for_editor() { return morphes; }
 	inline std::vector<animation::data>& get_animations_for_editor() { return animations; }
@@ -219,6 +221,7 @@ private:
 
 	std::vector<material> materials;
 	UINT mesh_revision = 0;
+	mutable bool meshes_in_use = false;	//	@tool 抽出したフレームがメッシュを指しているか
 	UINT content_revision = 0;
 	std::vector<node> nodes;
 	std::vector<mesh> meshes;
@@ -243,11 +246,9 @@ public:
 	bool load(model_resource_ptr& resource, std::string_view file_path, bool force_load = false);
 
 	//	@tool 更新されたファイルを読み込み済みのリソースへ読み直す（メインスレッド専用。読み直したら true）
+	//	@tool 差し替えた古い中身は render_data::retire_after_rendering で、描画中のフレームが使い終わってから破棄する
 	bool reload_file(const std::filesystem::path& file_path);
-	//	@tool 読み直しで差し替えた古い中身を破棄する（全ワールドのインスタンスを作り直した後に呼ぶ）
-	void release_retired_resources() { retired_resources.clear(); }
 
 private:
 	model_resource_map resources;
-	std::vector<std::shared_ptr<model_resource>> retired_resources;
 };

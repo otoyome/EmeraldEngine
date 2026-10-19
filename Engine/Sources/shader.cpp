@@ -976,6 +976,22 @@ void shader_base::unregister_reload_callback(UINT id)
 	reload_callbacks.erase(it);
 }
 
+bool shader_base::is_monitoring(const std::filesystem::path& file_path) const
+{
+	std::error_code error;
+	const auto target = std::filesystem::absolute(file_path, error).lexically_normal();
+	if (error)
+		return false;
+
+	for (auto& file : monitor_files)
+	{
+		const auto path = std::filesystem::absolute(file.file_path, error).lexically_normal();
+		if (!error && _wcsicmp(path.c_str(), target.c_str()) == 0)
+			return true;
+	}
+	return false;
+}
+
 void shader_base::claer_monitor_files()
 {
 	monitor_files.clear();
@@ -1057,8 +1073,8 @@ bool vertex_shader::load_from_cso(load_shader_cso cso_data)
 		}
 	}
 
-	this->shader = shader;
-	this->input_layout = input_layout;
+	//	@tool 描画スレッドが読んでいる間に差し替えるので、シェーダーと入力レイアウトを組にして atomic に差し替える
+	objects.store(std::make_shared<const vertex_objects>(vertex_objects{ shader, input_layout }));
 	set_reflection(reflection_data.internal_state);
 
 #if defined(USE_IMGUI)
@@ -1148,8 +1164,8 @@ bool vertex_shader::load_from_file(load_shader_file file_data)
 		}
 	}
 
-	this->shader = shader;
-	this->input_layout = input_layout;
+	//	@tool 描画スレッドが読んでいる間に差し替えるので、シェーダーと入力レイアウトを組にして atomic に差し替える
+	objects.store(std::make_shared<const vertex_objects>(vertex_objects{ shader, input_layout }));
 	set_reflection(reflection_data.internal_state);
 
 #if defined(USE_IMGUI)
@@ -2106,10 +2122,38 @@ void shader_manager::check_shader_update_and_recompile()
 		auto ptr = check_snapshot[check_cursor].lock();
 		if (ptr && ptr->is_reload())
 		{
-			//	@tool 描画中のフレームが使っているシェーダーを差し替えるので、描き終わるのを待つ
-			render_data::instance()->flush_rendering();
+			//	@tool D3D オブジェクトは atomic に差し替わり、パイプラインは描画側の版を作り直すので、描画中のフレームを待たない
 			ptr->reload();
 		}
 	}
+#endif	//	defined(USE_IMGUI)
+}
+
+bool shader_manager::reload_file(const std::filesystem::path& file_path)
+{
+#if defined(USE_IMGUI)
+	//	@tool 作り直しの途中で一覧が変わってもよいように、対象を先に集める
+	//	@tool インクルードファイルの変更は、それを読んでいる全てのシェーダーを作り直す
+	std::vector<shader_ptr> targets;
+	for (auto it = shaderes.begin(); it != shaderes.end(); )
+	{
+		auto ptr = it->second.lock();
+		if (!ptr)
+		{
+			it = shaderes.erase(it);
+			continue;
+		}
+		++it;
+
+		if (ptr->is_monitoring(file_path) && ptr->is_reload())
+			targets.emplace_back(std::move(ptr));
+	}
+
+	for (auto& target : targets)
+		target->reload();
+	return !targets.empty();
+#else
+	(void)file_path;
+	return false;
 #endif	//	defined(USE_IMGUI)
 }

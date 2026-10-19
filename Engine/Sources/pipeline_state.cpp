@@ -497,6 +497,29 @@ bool graphics_pipeline_state::is_failed()
 }
 #endif	//	defined(USE_IMGUI)
 
+void graphics_pipeline_state::publish_render_proxy()
+{
+	auto proxy = std::make_shared<render_proxy>();
+	if (shaders.vs)
+	{
+		if (const auto objects = shaders.vs->get_objects())
+		{
+			proxy->vs = objects->shader;
+			proxy->input_layout = objects->input_layout;
+		}
+	}
+	if (shaders.hs)
+		proxy->hs = shaders.hs->get_shader();
+	if (shaders.ds)
+		proxy->ds = shaders.ds->get_shader();
+	if (shaders.gs)
+		proxy->gs = shaders.gs->get_shader();
+	if (shaders.ps)
+		proxy->ps = shaders.ps->get_shader();
+	proxy->layout = layout;
+	published_render_proxy.store(std::move(proxy));
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 bool pipeline_state_manager::register_pipeline_state(const graphics_pipeline_state_ptr& pipeline_state)
 {
@@ -525,7 +548,7 @@ graphics_pipeline_state_ptr	pipeline_state_manager::search(std::string_view key)
 
 void pipeline_state_manager::prepare_pipeline_states()
 {
-	//	@tool 作り直しが必要なものがあれば、描画中のフレームが使い終わるのを待ってから行う
+	//	@tool 作り直しが必要なものがあれば行う（作り直した物は描画側の版を公開し直すので、描画中のフレームは待たない）
 	bool needs_prepare = false;
 	for (auto& it : graphics_pipeline_state_map)
 	{
@@ -538,7 +561,6 @@ void pipeline_state_manager::prepare_pipeline_states()
 	if (!needs_prepare)
 		return;
 
-	render_data::instance()->flush_rendering();
 	for (auto& it : graphics_pipeline_state_map)
 	{
 		if (it.second)

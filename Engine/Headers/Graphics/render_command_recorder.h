@@ -223,6 +223,9 @@ private:
 	static constexpr bool is_frame_layer_shader_resource(UINT slot) { return slot >= 96; }
 	static constexpr bool is_frame_layer_sampler(UINT slot) { return slot >= 14; }
 	mutable const pipeline_layout* current_layout = nullptr;
+	//	@tool 設定中のパイプラインと、読んだ描画側の版（current_layout が指す割り当て配置を記録の間生かしておく）
+	mutable const graphics_pipeline_state* current_pipeline = nullptr;
+	mutable std::shared_ptr<const void> current_render_proxy;
 	static constexpr UINT recorded_stage_count = 6;
 	struct bound_constant_buffer
 	{

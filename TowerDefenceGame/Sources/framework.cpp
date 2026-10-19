@@ -262,7 +262,7 @@ void framework::update(float elapsed_time/*Elapsed seconds from last frame*/)
 	//	@tool 前フレームのエフェクト更新（GPU）はエフェクトのインスタンスを読むので、終わるまで待ってから更新する
 	renderer->wait_effect_update();
 
-	//	@tool モデルを読み直したら、古い中身を指しているインスタンスを全ワールドで作り直す（古い中身は次の更新で破棄される）
+	//	@tool モデルを読み直したら、古い中身を指しているインスタンスを全ワールドで作り直す（古い中身は描画中のフレームが使い終わってから破棄される）
 	if (assets.update())
 	{
 		for_each_world([]

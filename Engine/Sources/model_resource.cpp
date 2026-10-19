@@ -439,8 +439,16 @@ bool model_resource::deserialize(std::string_view file_path)
 #if defined(USE_IMGUI)
 std::vector<model_resource::mesh>& model_resource::get_meshes_for_editor()
 {
-	//	@tool 描画中のフレームがメッシュを参照しているので、描き終わるのを待ってから渡す
-	render_data::instance()->flush_rendering();
+	//	@tool 抽出したフレームの描画用プロキシがメッシュを指している時は、その配列を描き終わるまで残し、複製を編集させる
+	//	@tool インスタンスもその配列を指しているので、中身の版も進めて指し直させる（次に抽出するまでの呼び出しでは複製しない）
+	if (meshes_in_use)
+	{
+		auto retired = std::make_shared<std::vector<mesh>>(std::move(meshes));
+		meshes = *retired;
+		render_data::instance()->retire_after_rendering(std::move(retired));
+		meshes_in_use = false;
+		++content_revision;
+	}
 	++mesh_revision;
 	return meshes;
 }
@@ -470,9 +478,7 @@ std::shared_ptr<model_resource> model_resource::reload()
 	if (!loaded->deserialize(file_path))
 		return nullptr;
 
-	//	@tool 描画中のフレームが今のメッシュを参照しているので、描き終わるのを待ってから入れ替える
-	render_data::instance()->flush_rendering();
-
+	//	@tool 描画中のフレームは今のメッシュを指しているが、入れ替えた古い中身（loaded）は描き終わるまで残すので待たない
 	std::swap(materials, loaded->materials);
 	std::swap(nodes, loaded->nodes);
 	std::swap(meshes, loaded->meshes);
@@ -650,7 +656,8 @@ bool model_resource_manager::reload_file(const std::filesystem::path& file_path)
 
 		if (auto retired = resource->reload())
 		{
-			retired_resources.emplace_back(std::move(retired));
+			//	@tool 古い中身は、描画中のフレームとインスタンス（この更新で作り直す）が使い終わってから破棄する
+			render_data::instance()->retire_after_rendering(std::move(retired));
 			reloaded = true;
 		}
 	}

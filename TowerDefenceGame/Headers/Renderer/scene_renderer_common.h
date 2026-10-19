@@ -118,4 +118,7 @@ namespace scene_renderer_commons
 					  float sphere_radius,
 					  material::surface_paths surface_path);
 	void execute_shadow_draw_batches(render_job_context& context, const shadow_draw_batch_list& batches);
+
+	//	@tool メッシュレットで読む頂点属性・メッシュレットのバッファの SRV を写す（メインスレッドの抽出で、モデル用プールの転送を積んだ後に呼ぶ）
+	void capture_meshlet_attribute_srvs(mesh_container& container);
 }	//	namespace scene_renderer_commons

@@ -75,6 +75,8 @@ public:
 
 	//	@tool 渡したフレームが全て提出し終わるまで待つ（メインスレッドからのみ有効）
 	void flush_rendering();
+	//	@tool 描画中のフレームが使い終わってから破棄する（次に抽出するフレームに持たせる。メインスレッドからのみ有効）
+	void retire_after_rendering(std::shared_ptr<const void> object);
 	//	@tool 直前に渡したフレームのエフェクト更新（GPU）が終わるまで待つ（ゲームの更新前に呼ぶ）
 	void wait_effect_update();
 
@@ -114,6 +116,8 @@ private:
 		engine_config_data::antialias_data::modes antialias_mode = engine_config_data::antialias_data::modes::NONE;
 		//	@tool 提出スレッドで、表示の直前にバックバッファへ重ねて描く処理（破棄はメインスレッドで行う）
 		overlay_function overlay;
+		//	@tool このフレームより前に抽出したフレームが使っていた、差し替え済みの古い中身（このフレームを破棄する時に一緒に破棄する）
+		std::vector<std::shared_ptr<const void>> retired_objects;
 #if defined(USE_IMGUI)
 		//	@tool 画面キャプチャの際に保存する、モデル編集用の画面
 		std::string view_capture_path;
@@ -180,6 +184,8 @@ private:	//	@tool 描画スレッド・提出スレッド
 	float total_time = 0.0f;
 	//	@tool 提出し終わったフレーム（破棄はメインスレッドで行う）
 	std::vector<frame_packet_ptr> retired_packets;
+	//	@tool 次に抽出するフレームに持たせる、差し替え済みの古い中身
+	std::vector<std::shared_ptr<const void>> pending_retired_objects;
 	//	@tool 抽出中のフレーム（begin_frame から end_frame まで）
 	frame_packet_ptr extracting_packet;
 	debug_primitive_builder debug_primitives;

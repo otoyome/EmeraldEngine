@@ -49,6 +49,8 @@ void render_command_recorder::begin()
 	cache_index_buffer_offset = 0xFFFFFFFF;
 	parameter_cache.clear();
 	current_layout = nullptr;
+	current_pipeline = nullptr;
+	current_render_proxy.reset();
 
 	bind_table = resource_view_bind_table();
 	state_overrides = render_state_overrides();
@@ -62,6 +64,8 @@ void render_command_recorder::end()
 	state_overrides = render_state_overrides();
 	parameter_cache.clear();
 	current_layout = nullptr;
+	current_pipeline = nullptr;
+	current_render_proxy.reset();
 }
 
 Microsoft::WRL::ComPtr<ID3D11CommandList> render_command_recorder::finish_command_list() const
@@ -395,24 +399,35 @@ namespace
 void render_command_recorder::set_pipeline(const graphics_pipeline_state& pipeline) const
 {
 	invalidate_bind_table(true);
-	current_layout = &pipeline.get_layout();
+
+	//	@tool 描画側の版を公開しているパイプラインはその版を読む（メインスレッドが作り直しても、記録中の版は変わらない）
+	const auto proxy = pipeline.get_render_proxy();
+	current_pipeline = &pipeline;
+	current_render_proxy = proxy;
+	current_layout = proxy ? &proxy->layout : &pipeline.get_layout();
 
 	//	シェーダー設定
-	const graphics_pipeline_shaders& shaders = pipeline.get_shaders();
-	if (shaders.vs)
+	if (proxy)
 	{
-		device_context->VSSetShader(shaders.vs->get_shader().Get(), nullptr, 0);
-		device_context->IASetInputLayout(shaders.vs->get_input_layout().Get());
+		device_context->VSSetShader(proxy->vs.Get(), nullptr, 0);
+		device_context->IASetInputLayout(proxy->input_layout.Get());
+		device_context->HSSetShader(proxy->hs.Get(), nullptr, 0);
+		device_context->DSSetShader(proxy->ds.Get(), nullptr, 0);
+		device_context->GSSetShader(proxy->gs.Get(), nullptr, 0);
+		device_context->PSSetShader(proxy->ps.Get(), nullptr, 0);
 	}
 	else
 	{
-		device_context->VSSetShader(nullptr, nullptr, 0);
-		device_context->IASetInputLayout(nullptr);
+		const graphics_pipeline_shaders& shaders = pipeline.get_shaders();
+		//	@tool シェーダーと入力レイアウトは組で読む（再読み込みで差し替わっても組が食い違わない）
+		const auto vertex_objects = shaders.vs ? shaders.vs->get_objects() : nullptr;
+		device_context->VSSetShader(vertex_objects ? vertex_objects->shader.Get() : nullptr, nullptr, 0);
+		device_context->IASetInputLayout(vertex_objects ? vertex_objects->input_layout.Get() : nullptr);
+		device_context->HSSetShader(shaders.hs ? shaders.hs->get_shader().Get() : nullptr, nullptr, 0);
+		device_context->DSSetShader(shaders.ds ? shaders.ds->get_shader().Get() : nullptr, nullptr, 0);
+		device_context->GSSetShader(shaders.gs ? shaders.gs->get_shader().Get() : nullptr, nullptr, 0);
+		device_context->PSSetShader(shaders.ps ? shaders.ps->get_shader().Get() : nullptr, nullptr, 0);
 	}
-	device_context->HSSetShader(shaders.hs ? shaders.hs->get_shader().Get() : nullptr, nullptr, 0);
-	device_context->DSSetShader(shaders.ds ? shaders.ds->get_shader().Get() : nullptr, nullptr, 0);
-	device_context->GSSetShader(shaders.gs ? shaders.gs->get_shader().Get() : nullptr, nullptr, 0);
-	device_context->PSSetShader(shaders.ps ? shaders.ps->get_shader().Get() : nullptr, nullptr, 0);
 
 	//	@tool 図形の指定があれば設定する（キャッシュに関わらず設定し、キャッシュも合わせる）
 	const D3D11_PRIMITIVE_TOPOLOGY topology = pipeline.get_primitive_topology();
@@ -435,7 +450,7 @@ void render_command_recorder::set_pipeline(const graphics_pipeline_state& pipeli
 	}
 
 	//	@tool 割り当て表・固定のリソースの割り当て（描画毎に変わらないもの）
-	const pipeline_layout& layout = pipeline.get_layout();
+	const pipeline_layout& layout = *current_layout;
 	for (const auto& binding : layout.get_constant_buffers())
 	{
 		if (binding.source != binding_source::table)
@@ -582,7 +597,12 @@ void render_command_recorder::bind_draw(const graphics_pipeline_state& pipeline,
 		apply_material_render_states(pipeline, material, state_overrides);
 
 	constexpr UINT stage_count = graphics_shader_stage_count;
-	const pipeline_layout& layout = pipeline.get_layout();
+	//	@tool 設定中のパイプラインなら set_pipeline で読んだ版を使う（描画毎に読み直さない）
+	std::shared_ptr<const graphics_pipeline_state::render_proxy> other_proxy;
+	if (&pipeline != current_pipeline || !current_layout)
+		other_proxy = pipeline.get_render_proxy();
+	const pipeline_layout& layout = (&pipeline == current_pipeline && current_layout) ? *current_layout
+		: (other_proxy ? other_proxy->layout : pipeline.get_layout());
 
 	//	定数バッファビュー登録
 	const pipeline_binding* parameter_binding = nullptr;
@@ -807,6 +827,8 @@ void render_command_recorder::end_pipeline() const
 		}
 	}
 	current_layout = nullptr;
+	current_pipeline = nullptr;
+	current_render_proxy.reset();
 
 	invalidate_bind_table(true);
 }

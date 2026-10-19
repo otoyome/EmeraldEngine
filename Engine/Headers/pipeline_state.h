@@ -295,8 +295,23 @@ public:
 	//	@tool 描画前の準備（メインスレッドで、描画ジョブを積む前に呼ばれる）
 	//	@tool シェーダー再生成後の割り当て配置の作り直しなど、メンバを書き換える処理はここで行う
 	virtual	void prepare() {}
-	//	@tool prepare で作り直す物があるか（描画中のフレームを待つ必要があるかの判定に使う）
+	//	@tool prepare で作り直す物があるか
 	virtual	bool needs_prepare() const { return false; }
+
+	//	@tool 描画側が読む版（D3D のシェーダーと割り当て配置の写し。作成後は変更しない）
+	//	@tool prepare で割り当て配置を作り直すパイプラインは、作り直す度に新しい版を公開する（描画中のフレームは古い版を使い続ける）
+	//	@tool 公開していないパイプラインは、生成時に決めたメンバをそのまま読む
+	struct render_proxy
+	{
+		Microsoft::WRL::ComPtr<ID3D11VertexShader> vs;
+		Microsoft::WRL::ComPtr<ID3D11InputLayout> input_layout;
+		Microsoft::WRL::ComPtr<ID3D11HullShader> hs;
+		Microsoft::WRL::ComPtr<ID3D11DomainShader> ds;
+		Microsoft::WRL::ComPtr<ID3D11GeometryShader> gs;
+		Microsoft::WRL::ComPtr<ID3D11PixelShader> ps;
+		pipeline_layout layout;
+	};
+	std::shared_ptr<const render_proxy> get_render_proxy() const { return published_render_proxy.load(); }
 
 #if defined(USE_IMGUI)
 	//	@tool シェーダーの読み込みに失敗しているか
@@ -318,6 +333,10 @@ public:
 	D3D11_PRIMITIVE_TOPOLOGY get_primitive_topology() const { return primitive_topology; }
 
 protected:
+	//	@tool 今のシェーダーと割り当て配置から描画側の版を作って公開する（メインスレッド）
+	void publish_render_proxy();
+
+protected:
 	graphics_pipeline_shaders shaders;
 	pipeline_layout layout;
 	std::vector<std::pair<semantic, UINT>> semantic_list;
@@ -328,6 +347,9 @@ protected:
 	Microsoft::WRL::ComPtr<ID3D11DepthStencilState> depth_stencil_state;
 	UINT stencil_ref = 0;
 	D3D11_PRIMITIVE_TOPOLOGY primitive_topology = D3D11_PRIMITIVE_TOPOLOGY_UNDEFINED;
+
+private:
+	std::atomic<std::shared_ptr<const render_proxy>> published_render_proxy;
 };
 
 using graphics_pipeline_state_ptr = std::shared_ptr<graphics_pipeline_state>;

@@ -61,6 +61,11 @@ public:
 	void set_flush_rendering_function(std::function<void()> function) { flush_rendering_function = std::move(function); }
 	void flush_rendering() const { if (flush_rendering_function) flush_rendering_function(); }
 
+	//	@tool 描画中のフレームが使い終わってから破棄する（差し替えた古い中身を渡す。メインスレッドから呼ぶ）
+	//	@tool 次に抽出するフレームに持たせ、そのフレームの提出が終わった後にメインスレッドで破棄する（描画スレッドが動いていない時はすぐ破棄する）
+	void set_retire_function(std::function<void(std::shared_ptr<const void>)> function) { retire_function = std::move(function); }
+	void retire_after_rendering(std::shared_ptr<const void> object) const { if (retire_function) retire_function(std::move(object)); }
+
 private:
 	//	@tool デバイスの対応状況を調べてログに出す
 	void check_feature_supports();
@@ -88,6 +93,7 @@ private:
 
 	std::recursive_mutex immediate_context_mutex;
 	std::function<void()> flush_rendering_function;
+	std::function<void(std::shared_ptr<const void>)> retire_function;
 
 	std::mutex sampler_state_cache_mutex;
 	std::map<D3D11_SAMPLER_DESC, Microsoft::WRL::ComPtr<ID3D11SamplerState>, sampler_desc_less> sampler_state_cache;

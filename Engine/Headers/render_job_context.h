@@ -103,6 +103,7 @@ struct gpu_upload_list
 		UINT offset_in_bytes = 0;			//	オフセット
 		std::vector<uint8_t> owned_data;	//	データ
 		const void* data = nullptr;			//	このフレームの描画データが所有するデータ
+		Microsoft::WRL::ComPtr<ID3D11Buffer> copy_source;	//	@tool 設定されていれば、このバッファの先頭から size_in_bytes 分を buffer へコピーする
 		UINT size_in_bytes = 0;
 	};
 	std::vector<command> commands;
@@ -115,6 +116,9 @@ struct gpu_upload_list
 
 	//	このフレームの描画データ内のデータを参照して積む
 	void add_reference(const Microsoft::WRL::ComPtr<ID3D11Buffer>& buffer, bool use_box, UINT offset_in_bytes, const void* data, UINT size_in_bytes);
+
+	//	@tool バッファ間のコピーを積む（大きくしたバッファへ古い中身を移す。前に積んだ転送より後に、GPU の順番どおりに行われる）
+	void add_buffer_copy(const Microsoft::WRL::ComPtr<ID3D11Buffer>& destination, const Microsoft::WRL::ComPtr<ID3D11Buffer>& source, UINT size_in_bytes);
 
 	//	GPU転送処理
 	void upload(const render_command_recorder& recorder) const;
@@ -149,6 +153,9 @@ struct mesh_container
 	std::vector<common_pipeline_states::primitive_header> primitive_header_scratch;
 	std::vector<math::float4x4> bone_matrix_scratch;
 	std::vector<std::shared_ptr<const void>> keep_alive_objects;
+	//	@tool メッシュレットで読む頂点属性とメッシュレットのバッファ（抽出時のモデル用プールの物。描画側はプールを直接引かない）
+	//	@tool 並びは scene_renderer_commons::capture_meshlet_attribute_srvs の物
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> meshlet_attribute_srvs[16];
 
 	gpu_upload_list transform_uploads;
 

@@ -1,7 +1,29 @@
 #pragma once
 
+#include <atomic>
 #include <chrono>
+#include <memory>
 #include <vector>
+
+//	@tool 描画スレッドからも読む D3D オブジェクト（再読み込みではメインスレッドが丸ごと差し替える。古い物は使い終わるまで解放されない）
+template<class Interface>
+class atomic_com_ptr
+{
+public:
+	Microsoft::WRL::ComPtr<Interface> get() const
+	{
+		const auto holder = value.load();
+		return holder ? *holder : Microsoft::WRL::ComPtr<Interface>();
+	}
+	atomic_com_ptr& operator=(const Microsoft::WRL::ComPtr<Interface>& object)
+	{
+		value.store(std::make_shared<const Microsoft::WRL::ComPtr<Interface>>(object));
+		return *this;
+	}
+
+private:
+	std::atomic<std::shared_ptr<const Microsoft::WRL::ComPtr<Interface>>> value;
+};
 
 enum class shader_load_type
 {
@@ -117,6 +139,8 @@ public:
 	bool is_failed();
 	bool is_reload();
 	void reload();
+	//	@tool このシェーダーがファイル（ソースかインクルード）を見ているか（パスは絶対パスにそろえて比べる）
+	bool is_monitoring(const std::filesystem::path& file_path) const;
 
 	UINT register_reload_callback(std::function<void(const shader_base*)> callback);
 	void unregister_reload_callback(UINT id);
@@ -173,9 +197,16 @@ class vertex_shader : public shader_base
 public:
 	static shader_type get_static_type() { return shader_type::vertex; }
 	shader_type get_type() const override { return get_static_type(); }
-	Microsoft::WRL::ComPtr<ID3D11VertexShader> get_shader() const { return shader; }
+	//	@tool シェーダーと入力レイアウトの組（描画スレッドからも読む。再読み込みでは組で差し替える）
+	struct vertex_objects
+	{
+		Microsoft::WRL::ComPtr<ID3D11VertexShader> shader;
+		Microsoft::WRL::ComPtr<ID3D11InputLayout> input_layout;
+	};
+	std::shared_ptr<const vertex_objects> get_objects() const { return objects.load(); }
+	Microsoft::WRL::ComPtr<ID3D11VertexShader> get_shader() const { const auto current = objects.load(); return current ? current->shader : nullptr; }
 	const std::vector<D3D11_INPUT_ELEMENT_DESC>& get_input_element_desc() const { return input_element_desc; }
-	Microsoft::WRL::ComPtr<ID3D11InputLayout> get_input_layout() const { return input_layout; }
+	Microsoft::WRL::ComPtr<ID3D11InputLayout> get_input_layout() const { const auto current = objects.load(); return current ? current->input_layout : nullptr; }
 
 public:
 	vertex_shader(load_shader_cso cso_data);
@@ -190,8 +221,7 @@ private:
 private:
 	bool is_set_input_element_desc = false;
 	std::vector<D3D11_INPUT_ELEMENT_DESC> input_element_desc;
-	Microsoft::WRL::ComPtr<ID3D11VertexShader> shader;
-	Microsoft::WRL::ComPtr<ID3D11InputLayout> input_layout;
+	std::atomic<std::shared_ptr<const vertex_objects>> objects;
 };
 
 class hull_shader : public shader_base
@@ -199,7 +229,7 @@ class hull_shader : public shader_base
 public:
 	static shader_type get_static_type() { return shader_type::hull; }
 	shader_type get_type() const override { return get_static_type(); }
-	Microsoft::WRL::ComPtr<ID3D11HullShader> get_shader() const { return shader; }
+	Microsoft::WRL::ComPtr<ID3D11HullShader> get_shader() const { return shader.get(); }
 
 public:
 	hull_shader(load_shader_cso cso_data);
@@ -211,7 +241,7 @@ private:
 	bool load_from_file(load_shader_file file_data) override;
 
 private:
-	Microsoft::WRL::ComPtr<ID3D11HullShader> shader;
+	atomic_com_ptr<ID3D11HullShader> shader;
 };
 
 class domain_shader : public shader_base
@@ -219,7 +249,7 @@ class domain_shader : public shader_base
 public:
 	static shader_type get_static_type() { return shader_type::domain; }
 	shader_type get_type() const override { return get_static_type(); }
-	Microsoft::WRL::ComPtr<ID3D11DomainShader> get_shader() const { return shader; }
+	Microsoft::WRL::ComPtr<ID3D11DomainShader> get_shader() const { return shader.get(); }
 
 public:
 	domain_shader(load_shader_cso cso_data);
@@ -231,7 +261,7 @@ private:
 	bool load_from_file(load_shader_file file_data) override;
 
 private:
-	Microsoft::WRL::ComPtr<ID3D11DomainShader> shader;
+	atomic_com_ptr<ID3D11DomainShader> shader;
 };
 
 class geometry_shader : public shader_base
@@ -239,7 +269,7 @@ class geometry_shader : public shader_base
 public:
 	static shader_type get_static_type() { return shader_type::geometry; }
 	shader_type get_type() const override { return get_static_type(); }
-	Microsoft::WRL::ComPtr<ID3D11GeometryShader> get_shader() const { return shader; }
+	Microsoft::WRL::ComPtr<ID3D11GeometryShader> get_shader() const { return shader.get(); }
 
 public:
 	geometry_shader(load_shader_cso cso_data);
@@ -251,7 +281,7 @@ private:
 	bool load_from_file(load_shader_file file_data) override;
 
 private:
-	Microsoft::WRL::ComPtr<ID3D11GeometryShader> shader;
+	atomic_com_ptr<ID3D11GeometryShader> shader;
 };
 
 class pixel_shader : public shader_base
@@ -259,7 +289,7 @@ class pixel_shader : public shader_base
 public:
 	static shader_type get_static_type() { return shader_type::pixel; }
 	shader_type get_type() const override { return get_static_type(); }
-	Microsoft::WRL::ComPtr<ID3D11PixelShader> get_shader() const { return shader; }
+	Microsoft::WRL::ComPtr<ID3D11PixelShader> get_shader() const { return shader.get(); }
 
 public:
 	pixel_shader(load_shader_cso cso_data);
@@ -271,7 +301,7 @@ private:
 	bool load_from_file(load_shader_file file_data) override;
 
 private:
-	Microsoft::WRL::ComPtr<ID3D11PixelShader> shader;
+	atomic_com_ptr<ID3D11PixelShader> shader;
 };
 
 class compute_shader : public shader_base
@@ -279,7 +309,7 @@ class compute_shader : public shader_base
 public:
 	static shader_type get_static_type() { return shader_type::compute; }
 	shader_type get_type() const override { return get_static_type(); }
-	Microsoft::WRL::ComPtr<ID3D11ComputeShader> get_shader() const { return shader; }
+	Microsoft::WRL::ComPtr<ID3D11ComputeShader> get_shader() const { return shader.get(); }
 
 public:
 	compute_shader(load_shader_cso cso_data);
@@ -291,7 +321,7 @@ private:
 	bool load_from_file(load_shader_file file_data) override;
 
 private:
-	Microsoft::WRL::ComPtr<ID3D11ComputeShader> shader;
+	atomic_com_ptr<ID3D11ComputeShader> shader;
 };
 
 using shader_ptr = std::shared_ptr<shader_base>;
@@ -330,6 +360,8 @@ public:
 	}
 
 	void check_shader_update_and_recompile();
+	//	@tool 更新されたファイルを見ているシェーダーを作り直す（フォルダーの変更通知から呼ぶ。メインスレッド専用。作り直したら true）
+	bool reload_file(const std::filesystem::path& file_path);
 
 private:
 	bool load_shader(shader_type type, shader_ptr& out_shader, load_shader_cso data);

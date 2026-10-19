@@ -18,8 +18,14 @@ graphics_custom_pipeline_state::~graphics_custom_pipeline_state()
 
 void graphics_custom_pipeline_state::prepare()
 {
+	const bool changed = needs_prepare();
+
 	//	各種データ類更新
 	update_register_datas();
+
+	//	@tool 作り直した割り当て配置と今のシェーダーを、描画側の版として公開する（描画中のフレームは古い版を使い続ける）
+	if (changed || !get_render_proxy())
+		publish_render_proxy();
 }
 
 void graphics_custom_pipeline_state::set_shader(const std::shared_ptr<vertex_shader>& shader)

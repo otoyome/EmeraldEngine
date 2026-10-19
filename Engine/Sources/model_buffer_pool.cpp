@@ -48,6 +48,13 @@ void model_gpu_buffer::queue_upload(UINT offset_in_bytes, const void* data, UINT
 
 void model_gpu_buffer::flush_uploads(gpu_upload_list& out_uploads)
 {
+	//	@tool 大きくしたバッファへの古い中身のコピーを先に積む（前のフレームの転送が古いバッファへ済んでから行われる）
+	for (auto& copy : pending_copies)
+	{
+		out_uploads.add_buffer_copy(copy.destination, copy.source, copy.size_in_bytes);
+	}
+	pending_copies.clear();
+
 	if (pending_uploads.empty())
 		return;
 
@@ -63,9 +70,8 @@ void model_gpu_buffer::grow(UINT new_capacity_in_bytes)
 	if (new_capacity_in_bytes <= capacity_in_bytes)
 		return;
 
-	//	@tool 描画中のフレームが古いバッファを参照しているので、描き終わるのを待ってから差し替える
-	render_data::instance()->flush_rendering();
-
+	//	@tool 描画中のフレームは抽出時に写した古いバッファを使い続けるので、待たずに差し替える
+	//	@tool 古い中身のコピーは次に抽出するフレームの転送として積み、GPU の順番どおりに行う（描画中のフレームの転送が古いバッファへ済んだ後になる）
 	D3D11_BUFFER_DESC buffer_desc{};
 	buffer_desc.ByteWidth = new_capacity_in_bytes;
 	buffer_desc.Usage = D3D11_USAGE_DEFAULT;
@@ -78,17 +84,8 @@ void model_gpu_buffer::grow(UINT new_capacity_in_bytes)
 	if (FAILED(hr))
 		return;
 
-	D3D11_BOX box{};
-	box.left = 0;
-	box.right = capacity_in_bytes;
-	box.top = 0;
-	box.bottom = 1;
-	box.front = 0;
-	box.back = 1;
-	{
-		std::lock_guard<std::recursive_mutex> lock(render_data::instance()->get_immediate_context_mutex());
-		render_data::instance()->get_immediate_context()->CopySubresourceRegion(new_buffer.Get(), 0, 0, 0, 0, buffer.Get(), 0, &box);
-	}
+	if (buffer && capacity_in_bytes > 0)
+		pending_copies.push_back({ new_buffer, buffer, capacity_in_bytes });
 
 	buffer = new_buffer;
 	capacity_in_bytes = new_capacity_in_bytes;

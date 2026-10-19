@@ -4,43 +4,13 @@
 namespace
 {
 	//	メッシュレット用の属性SRV設定
+	//	@tool 抽出時に写したモデル用プールの SRV を使う（描画中にプールのバッファが大きくなっても、このフレームの物を使い続ける）
 	void bind_meshlet_attribute_srvs(const render_job_context& context)
 	{
-		static const semantic position_semantic("POSITION", 0);
-		static const semantic normal_semantic("NORMAL", 0);
-		static const semantic tangent_semantic("TANGENT", 0);
-		static const semantic color0_semantic("COLOR", 0);
-		static const semantic texcoord0_semantic("TEXCOORD", 0);
-		static const semantic texcoord1_semantic("TEXCOORD", 1);
-		static const semantic joints0_semantic("JOINTS", 0);
-		static const semantic joints1_semantic("JOINTS", 1);
-		static const semantic joints2_semantic("JOINTS", 2);
-		static const semantic joints3_semantic("JOINTS", 3);
-		static const semantic weights0_semantic("WEIGHTS", 0);
-		static const semantic weights1_semantic("WEIGHTS", 1);
-		static const semantic weights2_semantic("WEIGHTS", 2);
-		static const semantic weights3_semantic("WEIGHTS", 3);
-
-		auto pool = model_buffer_pool_manager::instance();
-		ID3D11ShaderResourceView* attribute_srvs[16] =
-		{
-			pool->get_vertex_buffer_srv(position_semantic),
-			pool->get_vertex_buffer_srv(normal_semantic),
-			pool->get_vertex_buffer_srv(tangent_semantic),
-			pool->get_vertex_buffer_srv(color0_semantic),
-			pool->get_vertex_buffer_srv(texcoord0_semantic),
-			pool->get_vertex_buffer_srv(texcoord1_semantic),
-			pool->get_vertex_buffer_srv(joints0_semantic),
-			pool->get_vertex_buffer_srv(joints1_semantic),
-			pool->get_vertex_buffer_srv(joints2_semantic),
-			pool->get_vertex_buffer_srv(joints3_semantic),
-			pool->get_vertex_buffer_srv(weights0_semantic),
-			pool->get_vertex_buffer_srv(weights1_semantic),
-			pool->get_vertex_buffer_srv(weights2_semantic),
-			pool->get_vertex_buffer_srv(weights3_semantic),
-			pool->get_meshlet_vertex_buffer_srv(),
-			pool->get_meshlet_triangle_buffer_srv(),
-		};
+		const auto& srvs = context.render_data->mesh_container.meshlet_attribute_srvs;
+		ID3D11ShaderResourceView* attribute_srvs[16] = {};
+		for (UINT index = 0; index < 16; ++index)
+			attribute_srvs[index] = srvs[index].Get();
 		context.recorder.set_shader_resource_views(shader_stage::vertex, 102, 16, attribute_srvs);
 	}
 
@@ -676,4 +646,45 @@ D3D11_TEXTURE2D_DESC scene_renderer_commons::make_work_texture_desc(const scene_
 	desc.CPUAccessFlags = 0;
 	desc.MiscFlags = 0;
 	return desc;
+}
+
+void scene_renderer_commons::capture_meshlet_attribute_srvs(mesh_container& container)
+{
+	static const semantic position_semantic("POSITION", 0);
+	static const semantic normal_semantic("NORMAL", 0);
+	static const semantic tangent_semantic("TANGENT", 0);
+	static const semantic color0_semantic("COLOR", 0);
+	static const semantic texcoord0_semantic("TEXCOORD", 0);
+	static const semantic texcoord1_semantic("TEXCOORD", 1);
+	static const semantic joints0_semantic("JOINTS", 0);
+	static const semantic joints1_semantic("JOINTS", 1);
+	static const semantic joints2_semantic("JOINTS", 2);
+	static const semantic joints3_semantic("JOINTS", 3);
+	static const semantic weights0_semantic("WEIGHTS", 0);
+	static const semantic weights1_semantic("WEIGHTS", 1);
+	static const semantic weights2_semantic("WEIGHTS", 2);
+	static const semantic weights3_semantic("WEIGHTS", 3);
+
+	auto pool = model_buffer_pool_manager::instance();
+	ID3D11ShaderResourceView* attribute_srvs[16] =
+	{
+		pool->get_vertex_buffer_srv(position_semantic),
+		pool->get_vertex_buffer_srv(normal_semantic),
+		pool->get_vertex_buffer_srv(tangent_semantic),
+		pool->get_vertex_buffer_srv(color0_semantic),
+		pool->get_vertex_buffer_srv(texcoord0_semantic),
+		pool->get_vertex_buffer_srv(texcoord1_semantic),
+		pool->get_vertex_buffer_srv(joints0_semantic),
+		pool->get_vertex_buffer_srv(joints1_semantic),
+		pool->get_vertex_buffer_srv(joints2_semantic),
+		pool->get_vertex_buffer_srv(joints3_semantic),
+		pool->get_vertex_buffer_srv(weights0_semantic),
+		pool->get_vertex_buffer_srv(weights1_semantic),
+		pool->get_vertex_buffer_srv(weights2_semantic),
+		pool->get_vertex_buffer_srv(weights3_semantic),
+		pool->get_meshlet_vertex_buffer_srv(),
+		pool->get_meshlet_triangle_buffer_srv(),
+	};
+	for (UINT index = 0; index < 16; ++index)
+		container.meshlet_attribute_srvs[index] = attribute_srvs[index];
 }
