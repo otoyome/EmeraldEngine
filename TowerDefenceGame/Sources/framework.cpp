@@ -16,6 +16,7 @@
 #include "model_instance.h"
 #include "effect_resource.h"
 #include "effect_instance.h"
+#include "Audio/audio_manager.h"
 
 #include "ik_resource.h"
 
@@ -261,6 +262,7 @@ bool framework::initialize()
 	effect_resource_manager::create_instance();
 	effect_manager::create_instance();
 	ik_resource_manager::create_instance();
+	audio_manager::create_instance();
 	minigame_record_data::create_instance();
 	game_config_data::create_instance();
 #if defined(USE_IMGUI)
@@ -424,6 +426,13 @@ void framework::update(float elapsed_time/*Elapsed seconds from last frame*/)
 	{
 		DETAIL_PROFILE_CPU_SCOPE("update.effect_manager");
 		effect_manager::instance()->update(elapsed_time);
+	}
+
+	//	@tool サウンド更新（バス音量の反映と再生が終わった音の片付け）
+	if (audio_manager::is_valid())
+	{
+		DETAIL_PROFILE_CPU_SCOPE("update.audio_manager");
+		audio_manager::instance()->update(elapsed_time);
 	}
 
 #if defined(USE_IMGUI)
@@ -953,6 +962,7 @@ bool framework::uninitialize()
 	detail_profiler::delete_instance();
 #endif // defined(USE_IMGUI)
 	game_config_data::delete_instance();
+	audio_manager::delete_instance();
 	ik_resource_manager::delete_instance();
 	effect_manager::delete_instance();
 	effect_resource_manager::delete_instance();

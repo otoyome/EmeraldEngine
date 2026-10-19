@@ -49,8 +49,17 @@
     <Filter Include="Sources\CoordinateSystem">
       <UniqueIdentifier>{7a655dec-6419-4294-9d5d-b5f25c6b6a3c}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Headers\Audio">
+      <UniqueIdentifier>{4f1c2a7e-8b3d-4e65-9a0c-6d2e7f915b34}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Sources\Audio">
+      <UniqueIdentifier>{b8e3d5f1-2c7a-4b90-8e46-1a9f0c3d7e52}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Headers\Audio\audio_manager.h">
+      <Filter>Headers\Audio</Filter>
+    </ClInclude>
     <ClInclude Include="Headers\geometric_primitive.h">
       <Filter>Headers</Filter>
     </ClInclude>
@@ -433,6 +442,12 @@
     </ClCompile>
     <ClCompile Include="Sources\Resource\resource_manager.cpp">
       <Filter>Sources\Resource</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Audio\audio_manager.cpp">
+      <Filter>Sources\Audio</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Audio\miniaudio_implementation.cpp">
+      <Filter>Sources\Audio</Filter>
     </ClCompile>
     <ClCompile Include="Sources\Resource\resource_operation.cpp">
       <Filter>Sources\Resource</Filter>
