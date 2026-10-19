@@ -512,15 +512,15 @@ effect_manager::~effect_manager()
 	cubic_sdf_resource.reset();
 }
 
-uint32_t effect_manager::add_cubic_sdf(ID3D11DeviceContext* device_context, collision::cubic_sdf& sdf)
+uint32_t effect_manager::add_cubic_sdf(collision::cubic_sdf& sdf)
 {
-	return cubic_sdf_resource->register_sdf(device_context, sdf);
+	return cubic_sdf_resource->register_sdf(render_data::instance()->get_upload_list(), sdf);
 }
 
-void effect_manager::remove_cubic_sdf(ID3D11DeviceContext* device_context, uint32_t sdf_id)
+void effect_manager::remove_cubic_sdf(uint32_t sdf_id)
 {
 	if (cubic_sdf_resource)
-		cubic_sdf_resource->unregister_sdf(device_context, sdf_id);
+		cubic_sdf_resource->unregister_sdf(render_data::instance()->get_upload_list(), sdf_id);
 }
 
 void effect_manager::update(float elapsed_time)

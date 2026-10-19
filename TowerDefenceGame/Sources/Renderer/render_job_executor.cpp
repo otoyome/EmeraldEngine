@@ -13,7 +13,6 @@
 
 render_job_executor::render_job_executor(UINT num_threads)
 : running(true)
-, single_thread_mode(false)
 {
 	HRESULT hr;
 	assert(num_threads != -1);
@@ -51,24 +50,6 @@ render_job_executor::~render_job_executor()
 
 void render_job_executor::execute(std::function<render_job_function> task, std::string_view name, renderer_context& context, UINT sort_order, bool use_immediate_context, std::string_view owner_name)
 {
-	if (single_thread_mode)
-	{
-		graphics_context g_context;
-		g_context.device_context = render_data::instance()->get_immediate_context().Get();
-		g_context.render_data = context.render_data;
-		g_context.scene_constant = context.scene_constant;
-		g_context.scene_constant_buffer = context.scene_constant_buffer;
-		g_context.clustered_lighting = context.current_view_state ? context.current_view_state->get_clustered_lighting() : nullptr;
-
-		DETAIL_PROFILE_GPU_SCOPE_BEGIN();
-		{
-			DETAIL_PROFILE_RENDER_JOB_SCOPE(owner_name, name);
-			task(g_context);
-		}
-		DETAIL_PROFILE_GPU_SCOPE_END(owner_name, name);
-		return;
-	}
-
 	std::string name_text = std::string(name);
 	std::string owner_text = std::string(owner_name);
 	if (use_immediate_context)
@@ -141,6 +122,9 @@ void render_job_executor::begin()
 {
 	//	常駐GPUスコープ計測フレーム開始
 	DETAIL_PROFILE_GPU_BEGIN_FRAME();
+
+	//	1F前のGPU情報を受け取る
+	render_data::instance()->polling_gpu_readback();
 }
 
 void render_job_executor::end()
@@ -170,6 +154,15 @@ void render_job_executor::render()
 	);
 
 	ID3D11DeviceContext* immediate_context = render_data::instance()->get_immediate_context().Get();
+
+	//	GPU転送
+	{
+		DETAIL_PROFILE_GPU_SCOPE_BEGIN();
+		render_data::instance()->upload_gpu_data();
+		DETAIL_PROFILE_GPU_SCOPE_END("framework", "gpu_upload_list");
+	}
+
+	//	コマンドリスト実行
 	for (auto& command : local_command_list)
 	{
 		DETAIL_PROFILE_GPU_SCOPE_BEGIN();
@@ -183,6 +176,11 @@ void render_job_executor::render()
 		}
 		DETAIL_PROFILE_GPU_SCOPE_END(command.owner_name, command.name);
 	}
+
+	//	GPUの処理を纏めて受け取る
+	auto& readback_queue = render_data::instance()->get_readback_queue();
+	readback_queue.mark_submitted();
+	readback_queue.poll(immediate_context);
 }
 
 void render_job_executor::register_command(render_command_data& command_data)

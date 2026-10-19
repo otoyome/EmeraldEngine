@@ -293,7 +293,6 @@ void scene_renderer_commons::model_render(graphics_context& context,
 
 			auto buffer_data = buffer_data_ptr + draw_data->buffer_index;
 
-			material_data->material->update_parameters(context);
 			current_pipeline_state->update_parameters(context, *material_data->material, buffer_data);
 			draw_indexed(context, mesh_lengths[draw_index], *buffer_data, draw_data->buffer_index, current_pipeline_state, meshlet_frustum_culling);
 		}
@@ -350,7 +349,6 @@ void scene_renderer_commons::model_render_indirect(graphics_context& context,
 			continue;	//	このマテリアルは既に描画済み
 
 		pipeline_state->begin(context);
-		material->update_parameters(context);
 		pipeline_state->update_parameters(context, *material, buffer_data);
 
 		//	メッシュレットバインド
@@ -400,7 +398,6 @@ void scene_renderer_commons::model_render(graphics_context& context,
 				current_pipeline_state->begin(context);
 			}
 
-			material_data->material->update_parameters(context);
 			current_pipeline_state->update_parameters(context, *material_data->material, buffer_data);
 			float lod_center_x = (buffer_data->bounds_min.x + buffer_data->bounds_max.x) * 0.5f;
 			float lod_center_y = (buffer_data->bounds_min.y + buffer_data->bounds_max.y) * 0.5f;
@@ -496,7 +493,6 @@ void scene_renderer_commons::model_render_shadow_batched(graphics_context& conte
 				continue;
 
 			batch.pipeline_state->begin(context);
-			mat->update_parameters(context);
 			batch.pipeline_state->update_parameters(context, *mat, nullptr);
 
 			bind_meshlet_attribute_srvs(context);
@@ -606,7 +602,6 @@ void scene_renderer_commons::model_render_shadow_batched(graphics_context& conte
 				continue;
 
 			batch.pipeline_state->begin(context);
-			mat->update_parameters(context);
 			batch.pipeline_state->update_parameters(context, *mat, nullptr);
 
 			bind_meshlet_attribute_srvs(context);
@@ -649,7 +644,6 @@ void scene_renderer_commons::model_render_shadow_batched(graphics_context& conte
 					current_pipeline_state->begin(context);
 				}
 
-				material_data->material->update_parameters(context);
 				current_pipeline_state->update_parameters(context, *material_data->material, buffer_data);
 				draw_indexed(context, 0.0f, *buffer_data, draw_data->buffer_index, current_pipeline_state);
 			}
@@ -684,7 +678,6 @@ void scene_renderer_commons::particle_render(graphics_context& context,
 				current_pipeline_state->begin(context);
 			}
 
-			draw_data->material_data.material->update_parameters(context);
 			current_pipeline_state->update_parameters(context, *draw_data->material_data.material, nullptr);
 
 			auto vertex_buffer = draw_data->vertex_buffer_view.vertex_buffer;

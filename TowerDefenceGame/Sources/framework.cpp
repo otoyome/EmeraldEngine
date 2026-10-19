@@ -48,8 +48,27 @@ namespace
 	//	view_stateの破棄フレーム数
 	constexpr uint64_t scene_view_state_keep_frames = 60;
 
-	//	描画関係の設定
-	console_variable<bool> single_thread_variable("r.single_thread", false, "描画処理をシングルスレッドで行う", console_flags::user_setting);
+	void upload_material_constant_buffers(const render_data_context& data)
+	{
+		gpu_upload_list& upload_list = render_data::instance()->get_upload_list();
+		auto upload = [&upload_list](material* target)
+		{
+			if (target)
+				target->upload_constant_buffers(upload_list);
+		};
+
+		for (auto& material_data : data.mesh_container.material_datas)
+			upload(material_data.material);
+		for (auto& sprite_trail : data.effect_container.sprite_trail_draw_datas)
+			upload(sprite_trail.material_data.material);
+		for (auto& decal : data.decal_container.decal_datas)
+			upload(decal.material.material);
+		if (const auto& volume = data.post_process_volume_container.selected_volume)
+		{
+			for (auto& postprocess_material : volume->get_materials())
+				upload(postprocess_material.get());
+		}
+	}
 
 #if defined(USE_IMGUI)
 	//	描画関係のデバッグ設定
@@ -495,9 +514,6 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 	//	描画処理全体の計測
 	DETAIL_PROFILE_CPU_SCOPE("render");
 
-	//	コンソール変数の反映
-	render_executor->set_single_thread_mode(single_thread_variable.get());
-
 	//	描画前処理
 	if (object_manager::is_valid())
 	{
@@ -595,11 +611,19 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 		//	モデルの頂点/インデックスバッファ確保分をGPUへ転送
 		model_buffer_pool_manager::instance()->flush_uploads();
 
+		//	マテリアルの定数バッファをGPUへ転送
+		upload_material_constant_buffers(*render_data);
+
 #if defined(USE_IMGUI)
 		//	デバッグ情報取得
 		build_debug_primitives(*render_data);
 		debug_primitive_manager::instance()->get_container(render_data->debug_draw_container, render_data->render_origin);
 #endif // defined(USE_IMGUI)
+	}
+
+	{
+		DETAIL_PROFILE_CPU_SCOPE("render.rebuild_pipeline_bindings");
+		pipeline_state_manager::instance()->rebuild_pipeline_bindings();
 	}
 
 	//	バッファ描画
@@ -646,10 +670,6 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 			std::unordered_map<UINT, uint8_t> occlusion_visible;
 			if (const auto& occlusion = main_state->get_occlusion_culling())
 				occlusion->read_last_frame(occlusion_visible);
-
-			//	クラスタードライティングのライト番号総数を読み出す
-			if (const auto& clustered_lighting = main_state->get_clustered_lighting())
-				clustered_lighting->read_statistics();
 
 			//	描画メッシュ／デカールのカリング・ソート
 			{
@@ -978,12 +998,13 @@ bool framework::create_buffers()
 		buffer_desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 		buffer_desc.CPUAccessFlags = 0;
 		buffer_desc.ByteWidth = sizeof(common_pipeline_states::scene_constants);
-		hr = render_data::instance()->get_device()->CreateBuffer(&buffer_desc, nullptr, ui_scene_constant_buffer.ReleaseAndGetAddressOf());
-		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
 		//	viewport_rectは変化しないので初回のみアップロードしておく
 		common_pipeline_states::scene_constants ui_scene_constant{};
 		ui_scene_constant.viewport_rect = { 0.0f, 0.0f, static_cast<float>(scene_width), static_cast<float>(scene_height) };
-		render_data::instance()->get_immediate_context()->UpdateSubresource(ui_scene_constant_buffer.Get(), 0, 0, &ui_scene_constant, 0, 0);
+		D3D11_SUBRESOURCE_DATA initial_data{};
+		initial_data.pSysMem = &ui_scene_constant;
+		hr = render_data::instance()->get_device()->CreateBuffer(&buffer_desc, &initial_data, ui_scene_constant_buffer.ReleaseAndGetAddressOf());
+		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
 	}
 
 	//	メイン視点のシーン定数バッファ生成

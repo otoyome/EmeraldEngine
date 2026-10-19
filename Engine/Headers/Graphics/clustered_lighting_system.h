@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <memory>
 #include <vector>
 
@@ -44,16 +45,13 @@ public:
 	~clustered_lighting_system();
 
 	//	対象ライトの収集とバッファの準備
-	void prepare(const render_data_context& render_data, const common_pipeline_states::scene_constants& scene);
+	void setup_frame(const render_data_context& render_data, const common_pipeline_states::scene_constants& scene);
 
 	//	クラスター構築
 	void build(graphics_context& context);
 
 	//	クラスター内のライトでライティングする
 	void render(graphics_context& context);
-
-	//	前回以前のライト番号総数を読み出す
-	void read_statistics();
 
 public:
 	//	クラスタードライティングが有効か
@@ -125,13 +123,9 @@ private:
 	UINT index_capacity = 0;
 
 	//	ライト番号総数の読み戻し
-	static constexpr UINT readback_count = 3;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> statistics_buffer;
 	Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> statistics_uav;
-	Microsoft::WRL::ComPtr<ID3D11Buffer> statistics_staging[readback_count];
-	bool statistics_pending[readback_count] = {};
-	UINT readback_index = 0;
-	UINT required_index_count = 0;
+	std::shared_ptr<std::atomic<UINT>> required_index_count = std::make_shared<std::atomic<UINT>>(0);
 
 	//	今回の描画情報
 	UINT light_count = 0;

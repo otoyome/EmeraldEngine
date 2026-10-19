@@ -50,16 +50,10 @@ void model_gpu_buffer::flush_uploads()
 	if (pending_uploads.empty())
 		return;
 
+	auto& upload_list = render_data::instance()->get_upload_list();
 	for (auto& upload : pending_uploads)
 	{
-		D3D11_BOX box{};
-		box.left = upload.offset_in_bytes;
-		box.right = upload.offset_in_bytes + static_cast<UINT>(upload.data.size());
-		box.top = 0;
-		box.bottom = 1;
-		box.front = 0;
-		box.back = 1;
-		render_data::instance()->get_immediate_context()->UpdateSubresource(buffer.Get(), 0, &box, upload.data.data(), 0, 0);
+		upload_list.update_buffer(buffer.Get(), upload.offset_in_bytes, upload.data.data(), static_cast<UINT>(upload.data.size()));
 	}
 	pending_uploads.clear();
 }
@@ -81,14 +75,7 @@ void model_gpu_buffer::grow(UINT new_capacity_in_bytes)
 	if (FAILED(hr))
 		return;
 
-	D3D11_BOX box{};
-	box.left = 0;
-	box.right = capacity_in_bytes;
-	box.top = 0;
-	box.bottom = 1;
-	box.front = 0;
-	box.back = 1;
-	render_data::instance()->get_immediate_context()->CopySubresourceRegion(new_buffer.Get(), 0, 0, 0, 0, buffer.Get(), 0, &box);
+	render_data::instance()->get_upload_list().copy_buffer_region(new_buffer.Get(), 0, buffer.Get(), 0, capacity_in_bytes);
 
 	buffer = new_buffer;
 	capacity_in_bytes = new_capacity_in_bytes;

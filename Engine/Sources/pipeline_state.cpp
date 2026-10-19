@@ -507,6 +507,14 @@ graphics_pipeline_state_ptr	pipeline_state_manager::search(std::string_view key)
 	return	nullptr;
 }
 
+void pipeline_state_manager::rebuild_pipeline_bindings()
+{
+	for (auto& it : graphics_pipeline_state_map)
+	{
+		it.second->rebuild_bindings();
+	}
+}
+
 std::vector<graphics_pipeline_state_ptr> pipeline_state_manager::get_domain_lists(pipeline_state_base::domains domain)
 {
 	std::vector<graphics_pipeline_state_ptr> lists;

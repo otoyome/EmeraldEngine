@@ -3,6 +3,24 @@
 
 #include <d3d11_1.h>
 
+Microsoft::WRL::ComPtr<ID3D11SamplerState> render_data::get_sampler_state(const D3D11_SAMPLER_DESC& desc)
+{
+	std::lock_guard<std::mutex> lock(sampler_state_cache_mutex);
+
+	auto it = sampler_state_cache.find(desc);
+	if (it != sampler_state_cache.end())
+		return it->second;
+
+	Microsoft::WRL::ComPtr<ID3D11SamplerState> sampler_state;
+	HRESULT hr = device->CreateSamplerState(&desc, sampler_state.GetAddressOf());
+	_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+	if (FAILED(hr))
+		return nullptr;
+
+	sampler_state_cache.emplace(desc, sampler_state);
+	return sampler_state;
+}
+
 render_data::render_data(CONST HWND hwnd)
 : hwnd(hwnd)
 {
@@ -119,20 +137,12 @@ render_data::~render_data()
 {
 }
 
-Microsoft::WRL::ComPtr<ID3D11SamplerState> render_data::get_sampler_state(const D3D11_SAMPLER_DESC& desc)
+void render_data::upload_gpu_data()
 {
-	std::lock_guard<std::mutex> lock(sampler_state_cache_mutex);
+	upload_list.execute(immediate_context.Get());
+}
 
-	auto it = sampler_state_cache.find(desc);
-	if (it != sampler_state_cache.end())
-		return it->second;
-
-	Microsoft::WRL::ComPtr<ID3D11SamplerState> sampler_state;
-	HRESULT hr = device->CreateSamplerState(&desc, sampler_state.GetAddressOf());
-	_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
-	if (FAILED(hr))
-		return nullptr;
-
-	sampler_state_cache.emplace(desc, sampler_state);
-	return sampler_state;
+void render_data::polling_gpu_readback()
+{
+	readback_queue.poll(immediate_context.Get());
 }

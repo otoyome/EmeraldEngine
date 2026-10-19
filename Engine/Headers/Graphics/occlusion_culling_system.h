@@ -3,6 +3,7 @@
 #include <vector>
 #include <unordered_map>
 #include <memory>
+#include <mutex>
 
 #include <d3d11.h>
 #include <wrl.h>
@@ -15,6 +16,13 @@
 //	オクルージョンカリング
 class occlusion_culling_system
 {
+	struct visibility_result
+	{
+		std::mutex mutex;
+		uint64_t serial = 0;
+		std::vector<std::pair<UINT, uint8_t>> visibilities;
+	};
+
 public:
 	occlusion_culling_system();
 	~occlusion_culling_system();
@@ -37,9 +45,8 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> instance_srv;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> visibility_buffer;
 	Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> visibility_uav;
-	Microsoft::WRL::ComPtr<ID3D11Buffer> visibility_staging;
 	UINT instance_capacity = 0;
 
-	std::vector<UINT> last_unique_ids;
-	UINT last_instance_count = 0;
+	std::shared_ptr<visibility_result> latest_result = std::make_shared<visibility_result>();
+	uint64_t readback_serial = 0;
 };

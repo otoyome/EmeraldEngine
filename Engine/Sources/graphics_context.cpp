@@ -63,15 +63,10 @@ void mesh_container::build_transform_buffers()
 	regenerate_structured_buffer(bone_matrix_buffer, bone_matrix_srv, bone_matrix_capacity,
 		sizeof(math::float4x4), bone_matrix_scratch.size());
 
-	auto immediate_context = render_data::instance()->get_immediate_context();
-
+	auto& upload_list = render_data::instance()->get_upload_list();
 	auto upload_range = [&](ID3D11Buffer* buffer, const void* source, UINT byte_size)
 	{
-		D3D11_BOX box = {};
-		box.right = byte_size;
-		box.bottom = 1;
-		box.back = 1;
-		immediate_context->UpdateSubresource(buffer, 0, &box, source, 0, 0);
+		upload_list.update_buffer(buffer, 0, source, byte_size);
 	};
 	upload_range(primitive_header_buffer.Get(), primitive_header_scratch.data(),
 		static_cast<UINT>(primitive_header_scratch.size() * sizeof(common_pipeline_states::primitive_header)));

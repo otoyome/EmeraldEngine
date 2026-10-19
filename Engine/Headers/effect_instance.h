@@ -196,8 +196,8 @@ public:
 
 	void get_container(effect_container& effects, decal_container& decals, const math::vector3d& render_origin);
 
-	uint32_t add_cubic_sdf(ID3D11DeviceContext* device_context, collision::cubic_sdf& sdf);
-	void remove_cubic_sdf(ID3D11DeviceContext* device_context, uint32_t sdf_id);
+	uint32_t add_cubic_sdf(collision::cubic_sdf& sdf);
+	void remove_cubic_sdf(uint32_t sdf_id);
 
 private:
 	void add_instances();

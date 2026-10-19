@@ -638,8 +638,7 @@ void edit_model_scene::on_mouse_left_down_and_hold(void* data_ptr)
 			}
 			if (is_change)
 			{
-				auto device_context = render_data::instance()->get_immediate_context();
-				device_context->UpdateSubresource(color_view->second.buffer.Get(), 0, nullptr, colors, 0, 0);
+				render_data::instance()->get_upload_list().update_whole(color_view->second.buffer.Get(), colors, static_cast<UINT>(color_view->second.row_data.size()));
 			}
 		}
 	}

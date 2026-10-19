@@ -3,6 +3,8 @@
 #include "texture.h"
 #include "pipeline_state.h"
 
+class gpu_upload_list;
+
 //	ƒ}ƒeƒŠƒAƒ‹
 //	™Ã·Ä°('ƒÖ')°Ä·Ã™
 class material
@@ -202,7 +204,7 @@ public:
 	material(material&& material);
 	~material();
 
-	void update_parameters(const graphics_context& context);
+	void upload_constant_buffers(gpu_upload_list& upload_list);
 
 	template<class Archive>
 	void serialize(Archive& archive, int version);

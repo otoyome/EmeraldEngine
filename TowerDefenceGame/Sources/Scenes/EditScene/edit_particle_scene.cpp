@@ -264,10 +264,9 @@ bool edit_particle_scene::uninitialize_core()
 
 	if (!edit_sdfs.empty() && effect_manager::is_valid())
 	{
-		auto device_context = render_data::instance()->get_immediate_context();
 		for (auto& sdf : edit_sdfs)
 		{
-			effect_manager::instance()->remove_cubic_sdf(device_context.Get(), sdf.sdf_id);
+			effect_manager::instance()->remove_cubic_sdf(sdf.sdf_id);
 		}
 		edit_sdfs.clear();
 	}
@@ -621,14 +620,13 @@ void edit_particle_scene::imgui_render_sdf()
 		std::vector<std::string> file_paths;
 		if (editor_items::open_file_dialog_multi(SdfFileDialogFilter, file_paths))
 		{
-			auto device_context = render_data::instance()->get_immediate_context();
 			for (auto& file_path : file_paths)
 			{
 				collision::cubic_sdf sdf;
 				if (!sdf.deserialize(file_path))
 					continue;
 
-				uint32_t sdf_id = effect_manager::instance()->add_cubic_sdf(device_context.Get(), sdf);
+				uint32_t sdf_id = effect_manager::instance()->add_cubic_sdf(sdf);
 				if (sdf_id != 0xFFFFFFFF)
 				{
 					edit_sdf_data data;
@@ -694,8 +692,7 @@ void edit_particle_scene::imgui_render_sdf()
 		bool removed = false;
 		if (ImGui::Button("Remove"))
 		{
-			auto device_context = render_data::instance()->get_immediate_context();
-			effect_manager::instance()->remove_cubic_sdf(device_context.Get(), edit_sdfs[index].sdf_id);
+			effect_manager::instance()->remove_cubic_sdf(edit_sdfs[index].sdf_id);
 			edit_sdfs.erase(edit_sdfs.begin() + index);
 			removed = true;
 		}

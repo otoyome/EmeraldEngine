@@ -171,15 +171,6 @@ clustered_lighting_system::clustered_lighting_system()
 	//	ライト番号総数の読み戻し用
 	{
 		create_structured_buffer(sizeof(UINT), 1, D3D11_BIND_UNORDERED_ACCESS, statistics_buffer, nullptr, &statistics_uav);
-		for (auto& staging : statistics_staging)
-		{
-			D3D11_BUFFER_DESC bd{};
-			bd.ByteWidth = sizeof(UINT);
-			bd.Usage = D3D11_USAGE_STAGING;
-			bd.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
-			hr = device->CreateBuffer(&bd, nullptr, staging.GetAddressOf());
-			_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
-		}
 	}
 
 	//	ステート
@@ -285,25 +276,7 @@ void clustered_lighting_system::generate_index_buffer(UINT capacity)
 	create_structured_buffer(sizeof(UINT), index_capacity, D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS, index_buffer, &index_srv, &index_uav);
 }
 
-void clustered_lighting_system::read_statistics()
-{
-	auto dc = render_data::instance()->get_immediate_context();
-	for (UINT index = 0; index < readback_count; ++index)
-	{
-		if (!statistics_pending[index])
-			continue;
-
-		D3D11_MAPPED_SUBRESOURCE mapped{};
-		if (FAILED(dc->Map(statistics_staging[index].Get(), 0, D3D11_MAP_READ, D3D11_MAP_FLAG_DO_NOT_WAIT, &mapped)))
-			continue;
-
-		required_index_count = (std::max)(required_index_count, *static_cast<const UINT*>(mapped.pData));
-		dc->Unmap(statistics_staging[index].Get(), 0);
-		statistics_pending[index] = false;
-	}
-}
-
-void clustered_lighting_system::prepare(const render_data_context& render_data, const common_pipeline_states::scene_constants& scene)
+void clustered_lighting_system::setup_frame(const render_data_context& render_data, const common_pipeline_states::scene_constants& scene)
 {
 	//	ライト収集
 	lights.clear();
@@ -330,8 +303,9 @@ void clustered_lighting_system::prepare(const render_data_context& render_data, 
 		generate_light_buffer(light_count);
 		generate_cluster_buffers(cluster_total);
 		generate_tile_buffer(tile_total);
-		if (required_index_count > index_capacity)
-			generate_index_buffer(required_index_count + required_index_count / 4);
+		const UINT required = required_index_count->load();
+		if (required > index_capacity)
+			generate_index_buffer(required + required / 4);
 	}
 
 	//	奥行き分割距離算出
@@ -458,9 +432,17 @@ void clustered_lighting_system::build(graphics_context& context)
 	context.clear_constant_buffers();
 
 	//	ライト番号総数をコピー
-	dc->CopyResource(statistics_staging[readback_index].Get(), statistics_buffer.Get());
-	statistics_pending[readback_index] = true;
-	readback_index = (readback_index + 1) % readback_count;
+	render_data::instance()->get_readback_queue().read_back(dc, statistics_buffer.Get(), sizeof(UINT),
+		[required = required_index_count](const void* data, UINT size_in_bytes)
+		{
+			if (size_in_bytes < sizeof(UINT))
+				return;
+			const UINT value = *static_cast<const UINT*>(data);
+			UINT current = required->load();
+			while (current < value && !required->compare_exchange_weak(current, value))
+			{
+			}
+		});
 
 	context.debug_end_event();
 }

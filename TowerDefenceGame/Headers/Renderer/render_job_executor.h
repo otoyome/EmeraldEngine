@@ -30,9 +30,6 @@ public:
 	void render();
 	void end();
 
-	bool is_single_thread_mode() const { return single_thread_mode; }
-	void set_single_thread_mode(bool flag) { single_thread_mode = flag; }
-
 	//	全描画コマンド実行後に実行する関数
 	void register_post_rendering(std::function<void()> function)
 	{
@@ -53,7 +50,6 @@ private:
 	std::queue<std::function<void(ID3D11DeviceContext*)>> tasks;
 	std::atomic_int running_threads;
 	bool running;
-	bool single_thread_mode;
 	std::function<void()> post_render_function;
 
 	std::vector<render_command_data> render_command_list;

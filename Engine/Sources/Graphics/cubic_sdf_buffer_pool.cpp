@@ -1,4 +1,5 @@
 #include	"graphics/cubic_sdf_buffer_pool.h"
+#include "Graphics/gpu_upload_list.h"
 
 cubic_sdf_buffer_pool::cubic_sdf_buffer_pool(ID3D11Device* device, UINT voxel_pool_size, UINT header_capacity)
 {
@@ -61,7 +62,7 @@ cubic_sdf_buffer_pool::~cubic_sdf_buffer_pool()
 	free_header_ids.clear();
 }
 
-uint32_t cubic_sdf_buffer_pool::register_sdf(ID3D11DeviceContext* device_context, const collision::cubic_sdf& sdf)
+uint32_t cubic_sdf_buffer_pool::register_sdf(gpu_upload_list& upload_list, const collision::cubic_sdf& sdf)
 {
 	if (!sdf.is_valid())
 	{
@@ -93,7 +94,7 @@ uint32_t cubic_sdf_buffer_pool::register_sdf(ID3D11DeviceContext* device_context
 	voxel_write_box.bottom = 1;
 	voxel_write_box.front = 0;
 	voxel_write_box.back = 1;
-	device_context->UpdateSubresource(voxel_buffer.Get(), 0, &voxel_write_box, sdf.voxels.data(), voxel_byte_size, 0);
+	upload_list.update_buffer(voxel_buffer.Get(), voxel_write_box.left, sdf.voxels.data(), voxel_byte_size);
 
 	//	ヘッダーバッファ更新
 	sdf_header header;
@@ -113,12 +114,12 @@ uint32_t cubic_sdf_buffer_pool::register_sdf(ID3D11DeviceContext* device_context
 	header_write_box.bottom = 1;
 	header_write_box.front = 0;
 	header_write_box.back = 1;
-	device_context->UpdateSubresource(header_buffer.Get(), 0, &header_write_box, &header, sizeof(sdf_header), 0);
+	upload_list.update_buffer(header_buffer.Get(), header_write_box.left, &header, static_cast<UINT>(sizeof(sdf_header)));
 
 	return sdf_id;
 }
 
-void cubic_sdf_buffer_pool::unregister_sdf(ID3D11DeviceContext* device_context, uint32_t sdf_id)
+void cubic_sdf_buffer_pool::unregister_sdf(gpu_upload_list& upload_list, uint32_t sdf_id)
 {
 	if (sdf_id >= headers.size())
 		return;
@@ -138,7 +139,7 @@ void cubic_sdf_buffer_pool::unregister_sdf(ID3D11DeviceContext* device_context, 
 	header_write_box.bottom = 1;
 	header_write_box.front = 0;
 	header_write_box.back = 1;
-	device_context->UpdateSubresource(header_buffer.Get(), 0, &header_write_box, &header, sizeof(sdf_header), 0);
+	upload_list.update_buffer(header_buffer.Get(), header_write_box.left, &header, static_cast<UINT>(sizeof(sdf_header)));
 }
 
 void cubic_sdf_buffer_pool::set_space_origin(ID3D11DeviceContext* device_context, const math::vector3d& origin)

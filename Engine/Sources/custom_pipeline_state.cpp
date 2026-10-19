@@ -288,10 +288,15 @@ graphics_custom_pipeline_state::~graphics_custom_pipeline_state()
 {
 }
 
-void graphics_custom_pipeline_state::begin(const graphics_context& context)
+void graphics_custom_pipeline_state::rebuild_bindings()
 {
 	//	各種データ類更新
 	update_register_datas();
+}
+
+void graphics_custom_pipeline_state::begin(const graphics_context& context)
+{
+	_ASSERT_EXPR(!dirty && !dirty_input_resource_datas, L"graphics_custom_pipeline_state is dirty while rendering (rebuild_bindings was not called)");
 
 	//	シェーダー設定
 	if (vs)
@@ -353,14 +358,6 @@ void graphics_custom_pipeline_state::begin(const graphics_context& context)
 			}
 		}
 	}
-
-	//	フラグ類リセット
-	for (auto& data : parameter_buffer_data) data.use = false;
-	primitive_data.use = false;
-	deferred_light_buffer_data.use = false;
-	deferred_light_probe_buffer_data.use = false;
-	forward_light_buffer_data.use = false;
-	shadow_map_buffer_data.use = false;
 }
 
 void graphics_custom_pipeline_state::update_parameters(const graphics_context& context, const material& material, const buffer_datas* buffer_data)
@@ -443,13 +440,12 @@ void graphics_custom_pipeline_state::update_parameters(const graphics_context& c
 		context.set_blend_state(blend_states[static_cast<int>(blend_state)].Get());
 	}
 
-	//	フラグ類リセット
-	for (auto& data : parameter_buffer_data) data.use = false;
-	primitive_data.use = false;
-	deferred_light_buffer_data.use = false;
-	deferred_light_probe_buffer_data.use = false;
-	forward_light_buffer_data.use = false;
-	shadow_map_buffer_data.use = false;
+	bool parameter_buffer_used[static_cast<int>(arrangement::max)] = {};
+	primitive_datas primitive_data = {};
+	bool deferred_light_buffer_used = false;
+	bool deferred_light_probe_buffer_used = false;
+	bool forward_light_buffer_used = false;
+	bool shadow_map_buffer_used = false;
 
 
 	//	パラメーター設定
@@ -468,7 +464,7 @@ void graphics_custom_pipeline_state::update_parameters(const graphics_context& c
 					if (cbv.second.ids[index] == -1)
 						continue;
 
-					parameter_buffer_data[index].use = true;
+					parameter_buffer_used[index] = true;
 					ID3D11Buffer* constant_buffer = parameter_buffer_data[index].buffer.Get();
 					(context.device_context->*set_constant_buffer_funcs[index])(cbv.second.ids[index], 1, &constant_buffer);
 				}
@@ -483,17 +479,17 @@ void graphics_custom_pipeline_state::update_parameters(const graphics_context& c
 			}
 			else if (cbv_key == common_pipeline_states::shadow_map_constant_buffer_hash_key)
 			{
-				shadow_map_buffer_data.use = true;
+				shadow_map_buffer_used = true;
 				constant_buffer = shadow_map_buffer_data.buffer.Get();
 			}
 			else if (cbv_key == common_pipeline_states::deferred_light_constant_buffer_hash_key)
 			{
-				deferred_light_buffer_data.use = true;
+				deferred_light_buffer_used = true;
 				constant_buffer = deferred_light_buffer_data.buffer.Get();
 			}
 			else if (cbv_key == common_pipeline_states::deferred_light_probe_constant_buffer_hash_key)
 			{
-				deferred_light_probe_buffer_data.use = true;
+				deferred_light_probe_buffer_used = true;
 				constant_buffer = deferred_light_probe_buffer_data.buffer.Get();
 			}
 			else if (cbv_key == common_pipeline_states::clustered_lighting_constant_buffer_hash_key)
@@ -505,11 +501,11 @@ void graphics_custom_pipeline_state::update_parameters(const graphics_context& c
 				if (!buffer_data)
 					continue;
 
-				if (!forward_light_buffer_data.use)
+				if (!forward_light_buffer_used)
 				{
 					forward_light_data = search_neighborhood_light(context, *buffer_data);
 				}
-				forward_light_buffer_data.use = true;
+				forward_light_buffer_used = true;
 				constant_buffer = forward_light_buffer_data.buffer.Get();
 			}
 			else if (cbv_key == common_pipeline_states::primitive_constant_buffer_hash_key ||
@@ -703,7 +699,7 @@ void graphics_custom_pipeline_state::update_parameters(const graphics_context& c
 			for (UINT index = 0; index < static_cast<int>(arrangement::max); ++index)
 			{
 				constant_buffer_data& data = parameter_buffer_data[index];
-				if (!data.use)
+				if (!parameter_buffer_used[index])
 					continue;
 
 				//	定数バッファの設定
@@ -731,20 +727,20 @@ void graphics_custom_pipeline_state::update_parameters(const graphics_context& c
 			}
 		}
 		//	シャドウマップ情報設定
-		if (shadow_map_buffer_data.use)
+		if (shadow_map_buffer_used)
 		{
 			context.device_context->UpdateSubresource(shadow_map_buffer_data.buffer.Get(), 0, 0, &context.shadow_map_constant, 0, 0);
 		}
 		//	ライト情報設定
-		if (deferred_light_buffer_data.use)
+		if (deferred_light_buffer_used)
 		{
 			context.device_context->UpdateSubresource(deferred_light_buffer_data.buffer.Get(), 0, 0, &context.deferred_light_constant, 0, 0);
 		}
-		if (deferred_light_probe_buffer_data.use)
+		if (deferred_light_probe_buffer_used)
 		{
 			context.device_context->UpdateSubresource(deferred_light_probe_buffer_data.buffer.Get(), 0, 0, &context.deferred_light_probe_constant, 0, 0);
 		}
-		if (forward_light_buffer_data.use)
+		if (forward_light_buffer_used)
 		{
 			context.device_context->UpdateSubresource(forward_light_buffer_data.buffer.Get(), 0, 0, &forward_light_data.light, 0, 0);
 		}

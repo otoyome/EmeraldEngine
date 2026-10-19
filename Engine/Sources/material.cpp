@@ -135,7 +135,7 @@ material::~material()
 #endif	//	defined(USE_IMGUI)
 }
 
-void material::update_parameters(const graphics_context& context)
+void material::upload_constant_buffers(gpu_upload_list& upload_list)
 {
 #if defined(USE_IMGUI)
 	if (is_error())
@@ -149,7 +149,7 @@ void material::update_parameters(const graphics_context& context)
 	{
 		if (cb.second.dirty)
 		{
-			context.device_context->UpdateSubresource(cb.second.buffer.Get(), 0, 0, cb.second.data_buffer.data(), 0, 0);
+			upload_list.update_whole(cb.second.buffer.Get(), cb.second.data_buffer.data(), static_cast<UINT>(cb.second.data_buffer.size()));
 			cb.second.dirty = false;
 		}
 	}

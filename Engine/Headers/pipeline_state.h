@@ -284,6 +284,9 @@ public:
 	}
 	virtual	void end(const graphics_context& context) = 0;
 
+	//	ƒƒ“ƒo‚ÌÄ\’zˆ—
+	virtual	void rebuild_bindings() {}
+
 #if defined(USE_IMGUI)
 	virtual	bool is_failed() {return false;}
 #endif	//	defined(USE_IMGUI)
@@ -345,6 +348,8 @@ public:
 	}
 	graphics_pipeline_state_ptr	search(std::string_view key);
 	std::vector<graphics_pipeline_state_ptr> get_domain_lists(pipeline_state_base::domains domain);
+
+	void	rebuild_pipeline_bindings();
 
 private:
 	bool	register_pipeline_state(const graphics_pipeline_state_ptr& pipeline_state);

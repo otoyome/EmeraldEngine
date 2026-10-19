@@ -418,7 +418,6 @@ void gbuffer_decal_renderer::render(renderer_context& renderer_context)
 				}
 
 				//	マテリアル更新
-				decal.material.material->update_parameters(context);
 
 				//	ステンシル書き込み
 				{
@@ -737,7 +736,7 @@ void deffered_lighting_renderer::render_clustered(renderer_context& context)
 		return;
 
 	//	対象ライトの収集とバッファ準備はメインスレッドで行う
-	clustered_lighting->prepare(*context.render_data, context.scene_constant);
+	clustered_lighting->setup_frame(*context.render_data, context.scene_constant);
 
 	job_executor.execute([this, clustered_lighting](graphics_context& context)
 	{

@@ -87,6 +87,7 @@ public:
 	graphics_custom_pipeline_state();
 	~graphics_custom_pipeline_state() override;
 
+	void rebuild_bindings() override;
 	void begin(const graphics_context& context) override;
 	void update_parameters(const graphics_context& context, const material& material, const buffer_datas* buffer_data) override;
 	void end(const graphics_context& context) override;
@@ -138,7 +139,6 @@ private:
 
 	struct constant_buffer_data
 	{
-		bool use;
 		Microsoft::WRL::ComPtr<ID3D11Buffer> buffer;
 	};
 	constant_buffer_data deferred_light_buffer_data;
@@ -155,7 +155,6 @@ private:
 		bool use;
 		UINT cbv_indices[static_cast<int>(arrangement::max)];
 	};
-	primitive_datas primitive_data;
 
 #if defined(USE_IMGUI)
 	UINT vs_reload_callback_id = UINT_MAX;

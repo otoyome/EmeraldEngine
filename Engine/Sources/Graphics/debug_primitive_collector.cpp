@@ -35,7 +35,7 @@ debug_primitive_manager::~debug_primitive_manager()
 
 void debug_primitive_manager::get_container(debug_draw_primitive_container& container, const math::vector3d& render_origin)
 {
-	auto immediate_context = render_data::instance()->get_immediate_context();
+	auto& upload_list = render_data::instance()->get_upload_list();
 
 	//	•`‰æ“o˜^
 	HRESULT hr{ S_OK };
@@ -60,9 +60,7 @@ void debug_primitive_manager::get_container(debug_draw_primitive_container& cont
 
 		const UINT copy_count = static_cast<UINT>(std::min<size_t>(VertexCount, vertices[index].size()));
 		const UINT copy_bytes = copy_count * sizeof(vertex);
-		D3D11_BOX dst_box = { 0, 0, 0, copy_bytes, 1, 1 };
-		immediate_context->UpdateSubresource(view.buffer.Get(), 0, &dst_box,
-											 upload_vertices.data(), copy_bytes, 0);
+		upload_list.update_buffer(view.buffer.Get(), 0, upload_vertices.data(), copy_bytes);
 
 		//	’¸“_”‚Ìİ’è
 		view.size_in_bytes = view.stride_in_bytes * vertices[index].size();

@@ -103,14 +103,6 @@ void occlusion_culling_system::generate_instance_buffers(UINT count)
 		hr = device->CreateUnorderedAccessView(visibility_buffer.Get(), &ud, visibility_uav.ReleaseAndGetAddressOf());
 		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
 	}
-	{
-		D3D11_BUFFER_DESC bd{};
-		bd.ByteWidth = sizeof(UINT) * cap;
-		bd.Usage = D3D11_USAGE_STAGING;
-		bd.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
-		hr = device->CreateBuffer(&bd, nullptr, visibility_staging.ReleaseAndGetAddressOf());
-		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
-	}
 }
 
 void occlusion_culling_system::update(graphics_context& context, hiz_buffer& hiz)
@@ -118,17 +110,21 @@ void occlusion_culling_system::update(graphics_context& context, hiz_buffer& hiz
 	auto& buffer_datas = context.render_data->mesh_container.buffer_datas;
 	UINT count = static_cast<UINT>(buffer_datas.size());
 
-	last_unique_ids.clear();
-	last_instance_count = count;
-	if (count == 0)
+	//	判定ごとに番号を振り、読み戻しが前後しても新しい結果を残す
+	const uint64_t serial = ++readback_serial;
+	if (count == 0 || !hiz.get_srv() || hiz.get_mip_count() == 0)
+	{
+		std::lock_guard<std::mutex> lock(latest_result->mutex);
+		latest_result->serial = serial;
+		latest_result->visibilities.clear();
 		return;
-	if (!hiz.get_srv() || hiz.get_mip_count() == 0)
-		return;
+	}
 
 	//	GPU側でオクルージョンカリングを行う対象を積み込む
 	std::vector<instance_aabb_cpu> aabbs;
+	std::vector<UINT> unique_ids;
 	aabbs.reserve(count);
-	last_unique_ids.reserve(count);
+	unique_ids.reserve(count);
 	for (auto& bd : buffer_datas)
 	{
 		instance_aabb_cpu a{};
@@ -136,7 +132,7 @@ void occlusion_culling_system::update(graphics_context& context, hiz_buffer& hiz
 		a.bmax = bd.bounds_max;
 		a.testable = system_utility::is_bitflag(bd.system_flags, buffer_datas::flags::culling) ? 1.0f : 0.0f;
 		aabbs.emplace_back(a);
-		last_unique_ids.emplace_back(bd.unique_id);
+		unique_ids.emplace_back(bd.unique_id);
 	}
 	generate_instance_buffers(count);
 
@@ -176,26 +172,31 @@ void occlusion_culling_system::update(graphics_context& context, hiz_buffer& hiz
 	}
 
 	dc->CSSetShader(nullptr, nullptr, 0);
-	dc->CopyResource(visibility_staging.Get(), visibility_buffer.Get());
+
+	render_data::instance()->get_readback_queue().read_back(dc, visibility_buffer.Get(), static_cast<UINT>(sizeof(UINT) * count),
+		[result = latest_result, serial, unique_ids = std::move(unique_ids)](const void* data, UINT size_in_bytes)
+		{
+			const UINT* v = static_cast<const UINT*>(data);
+			const size_t n = (std::min)(unique_ids.size(), static_cast<size_t>(size_in_bytes / sizeof(UINT)));
+
+			std::lock_guard<std::mutex> lock(result->mutex);
+			if (serial < result->serial)
+				return;
+			result->serial = serial;
+			result->visibilities.clear();
+			result->visibilities.reserve(n);
+			for (size_t i = 0; i < n; ++i)
+			{
+				result->visibilities.emplace_back(unique_ids[i], (v[i] != 0) ? uint8_t(1) : uint8_t(0));
+			}
+		});
 }
 
 void occlusion_culling_system::read_last_frame(std::unordered_map<UINT, uint8_t>& out_visibility)
 {
-	if (last_instance_count == 0 || !visibility_staging)
-		return;
-
-	auto dc = render_data::instance()->get_immediate_context();
-	D3D11_MAPPED_SUBRESOURCE mapped{};
-	if (FAILED(dc->Map(visibility_staging.Get(), 0, D3D11_MAP_READ, 0, &mapped)))
-		return;
-
-	const UINT* v = static_cast<const UINT*>(mapped.pData);
-	UINT n = last_instance_count;
-	if (n > static_cast<UINT>(last_unique_ids.size())) n = static_cast<UINT>(last_unique_ids.size());
-	for (UINT i = 0; i < n; ++i)
+	std::lock_guard<std::mutex> lock(latest_result->mutex);
+	for (const auto& [unique_id, visible] : latest_result->visibilities)
 	{
-		out_visibility[last_unique_ids[i]] = (v[i] != 0) ? uint8_t(1) : uint8_t(0);
+		out_visibility[unique_id] = visible;
 	}
-
-	dc->Unmap(visibility_staging.Get(), 0);
 }

@@ -8,6 +8,8 @@
 #include "System/variable_position_allocator.h"
 #include "Collision/cubic_sdf.h"
 
+class gpu_upload_list;
+
 class cubic_sdf_buffer_pool
 {
 public:
@@ -26,8 +28,8 @@ public:
 	cubic_sdf_buffer_pool(ID3D11Device* device, UINT voxel_pool_size, UINT header_capacity);
 	~cubic_sdf_buffer_pool();
 
-	uint32_t register_sdf(ID3D11DeviceContext* device_context, const collision::cubic_sdf& sdf);
-	void unregister_sdf(ID3D11DeviceContext* device_context, uint32_t sdf_id);
+	uint32_t register_sdf(gpu_upload_list& upload_list, const collision::cubic_sdf& sdf);
+	void unregister_sdf(gpu_upload_list& upload_list, uint32_t sdf_id);
 
 	void set_space_origin(ID3D11DeviceContext* device_context, const math::vector3d& origin);
 
