@@ -416,10 +416,33 @@ std::size_t effect_instance::search_node_index_by_name(std::string_view data_nam
 	return invalid_id;
 }
 
+bool effect_instance::is_resource_outdated() const
+{
+	return resource && resource_content_revision != resource->get_content_revision();
+}
+
+void effect_instance::rebuild()
+{
+	nodes.clear();
+	models.clear();
+	particles.clear();
+	decals.clear();
+	node_animations.clear();
+
+	reset_to_initial_state();
+	previous_animation_time = 0.0f;
+	reset_particle_simulation_time();
+	reset_particle_simulation_step();
+
+	build();
+}
+
 void effect_instance::build()
 {
 	if(!resource)
 		return;
+
+	resource_content_revision = resource->get_content_revision();
 
 	//	ノード構築
 	for (auto& node : resource->get_nodes())
@@ -526,6 +549,7 @@ void effect_manager::update(float elapsed_time)
 {
 	remove_instances();
 	add_instances();
+	rebuild_outdated_instances();
 
 	//	更新
 	for (auto& item : items)
@@ -629,6 +653,9 @@ void effect_manager::update_gpu(render_job_context& context, float elapsed_time)
 			for (UINT index = 0; index < instance->get_particles().size(); ++index)
 			{
 				auto& emitter_item = target_item.emitter_items[index];
+				if (emitter_item.system_index == invalid_emitter_id)
+					continue;
+
 				auto& particle_data = instance->get_particles()[index];
 				auto& node_data = instance->get_nodes()[particle_data.node_index];
 
@@ -692,7 +719,8 @@ void effect_manager::get_container(effect_container& effects, decal_container& d
 			continue;
 
 		//	デカール情報構築
-		for (UINT index = 0; index < item.effect_instance->get_resource()->get_decals().size(); ++index)
+		//	@tool リソースのデカールとインスタンスのノードを合わせて使うので、作り直し待ち（更新後にエディターで編集された）のフレームは飛ばす
+		for (UINT index = 0; !instance->is_resource_outdated() && index < item.effect_instance->get_resource()->get_decals().size(); ++index)
 		{
 			auto& decal_data = item.effect_instance->get_resource()->get_decals()[index];
 			if (!decal_data.is_valid())
@@ -793,34 +821,64 @@ void effect_manager::add_instances()
 	{
 		auto& item = items.emplace_back();
 		item.effect_instance = instance;
-
-		//	モデル登録
-		for (auto& model_data : item.effect_instance->get_models())
-		{
-			model_instance_manger::instance()->registered(model_data.instance);
-		}
-
-		//	パーティクル情報生成
-		item.emitter_items.reserve(item.effect_instance->get_particles().size());
-		for (auto& particle_data : item.effect_instance->get_particles())
-		{
-			if (!particle_data.particle.is_valid())
-				continue;
-
-			auto renderer = particle_data.particle.get_item<particle::item::renderer>();
-			if (!renderer)
-				continue;
-
-			if (renderer->total_particle_count == 0)
-				continue;
-
-			auto emitter_resource = particle_data.particle.constract_system_resource();
-			auto& emitter_item = item.emitter_items.emplace_back();
-			emitter_item.system_index = particle_system->register_emitter(render_data::instance()->get_device().Get(),
-																		  emitter_resource);
-		}
+		register_item(item);
 	}
 	system_utility::std_vector_swap_clear(instances_add);
+}
+
+void effect_manager::register_item(item& item)
+{
+	//	モデル登録
+	for (auto& model_data : item.effect_instance->get_models())
+	{
+		model_instance_manger::instance()->registered(model_data.instance);
+	}
+
+	//	パーティクル情報生成
+	//	@tool emitter_items はパーティクルと同じ番号で引くので、登録しない物も invalid_emitter_id のまま要素を作る
+	item.emitter_items.reserve(item.effect_instance->get_particles().size());
+	for (auto& particle_data : item.effect_instance->get_particles())
+	{
+		auto& emitter_item = item.emitter_items.emplace_back();
+		if (!particle_data.particle.is_valid())
+			continue;
+
+		auto renderer = particle_data.particle.get_item<particle::item::renderer>();
+		if (!renderer)
+			continue;
+
+		if (renderer->total_particle_count == 0)
+			continue;
+
+		auto emitter_resource = particle_data.particle.constract_system_resource();
+		emitter_item.system_index = particle_system->register_emitter(render_data::instance()->get_device().Get(),
+																	  emitter_resource);
+	}
+}
+
+void effect_manager::unregister_item(item& item)
+{
+	//	@tool 登録したエミッターだけを1回ずつ外す
+	for (auto& emitter_item : item.emitter_items)
+	{
+		if (emitter_item.system_index != invalid_emitter_id)
+			particle_system->unregister_emitter(emitter_item.system_index);
+	}
+	item.emitter_items.clear();
+}
+
+void effect_manager::rebuild_outdated_instances()
+{
+	for (auto& item : items)
+	{
+		if (!item.effect_instance || !item.effect_instance->is_resource_outdated())
+			continue;
+
+		//	@tool 古いエミッターを外してから作り直す（モデルは古いインスタンスが破棄されると自動で外れる）
+		unregister_item(item);
+		item.effect_instance->rebuild();
+		register_item(item);
+	}
 }
 
 void effect_manager::remove_instances()
@@ -838,16 +896,7 @@ void effect_manager::remove_instances()
 			//	@remainer	自動破棄される
 
 			//	パーティクル情報解除
-			for (auto& particle_data : item.effect_instance->get_particles())
-			{
-				if (!particle_data.particle.is_valid())
-					continue;
-
-				for (auto& emitter_item : item.emitter_items)
-				{
-					particle_system->unregister_emitter(emitter_item.system_index);
-				}
-			}
+			unregister_item(item);
 
 			items.erase(it);
 		}

@@ -368,6 +368,11 @@ bool model_resource::serialize(std::string_view file_path)
 			return false;
 		}
 
+		//	@tool 自分で保存したファイルを読み直さないように、閉じてから更新時刻を覚えておく
+		ostream.close();
+		if (file_path == this->file_path)
+			update_file_write_time();
+
 		DEBUG_LOG_CATEGORY(logger::categorys::model, "model_resource serialize successed[%s]", file_path.data());
 		return true;
 	}
@@ -421,6 +426,7 @@ bool model_resource::deserialize(std::string_view file_path)
 
 		//	モデル構築
 		this->file_path = file_path;
+		update_file_write_time();
 		build_model();
 		DEBUG_LOG_CATEGORY(logger::categorys::model, "model_resource deserialize successed[%s]", file_path.data());
 		return true;
@@ -439,6 +445,48 @@ std::vector<model_resource::mesh>& model_resource::get_meshes_for_editor()
 	return meshes;
 }
 #endif	//	defined(USE_IMGUI)
+
+void model_resource::update_file_write_time()
+{
+	std::error_code error;
+	const auto write_time = std::filesystem::last_write_time(std::filesystem::path(file_path), error);
+	file_write_time = error ? std::filesystem::file_time_type{} : write_time;
+}
+
+bool model_resource::is_file_changed() const
+{
+	std::error_code error;
+	const auto write_time = std::filesystem::last_write_time(std::filesystem::path(file_path), error);
+	return !error && write_time != file_write_time;
+}
+
+std::shared_ptr<model_resource> model_resource::reload()
+{
+	if (file_path.empty() || !is_file_changed())
+		return nullptr;
+
+	//	@tool 別のリソースへ読み込んでから中身を入れ替える（読み込みに失敗したら今の中身のまま）
+	auto loaded = std::make_shared<model_resource>();
+	if (!loaded->deserialize(file_path))
+		return nullptr;
+
+	//	@tool 描画中のフレームが今のメッシュを参照しているので、描き終わるのを待ってから入れ替える
+	render_data::instance()->flush_rendering();
+
+	std::swap(materials, loaded->materials);
+	std::swap(nodes, loaded->nodes);
+	std::swap(meshes, loaded->meshes);
+	std::swap(morphes, loaded->morphes);
+	std::swap(animations, loaded->animations);
+	std::swap(capsule_shadows, loaded->capsule_shadows);
+	file_write_time = loaded->file_write_time;
+	notify_content_changed();
+
+	DEBUG_LOG_CATEGORY(logger::categorys::model, "model_resource reload successed[%s]", file_path.data());
+
+	//	@tool loaded は古い中身を持つ（インスタンスが古いメッシュ・モーフを指しているので、作り直すまで破棄しない）
+	return loaded;
+}
 
 bool model_resource::update_vertex_attribute(size_t mesh_index, const semantic& target_semantic, const void* data, size_t size_in_bytes)
 {
@@ -579,4 +627,32 @@ bool model_resource_manager::load(model_resource_ptr& resource, std::string_view
 	resource = new_resource;
 	resources[key] = resource;
 	return true;
+}
+
+bool model_resource_manager::reload_file(const std::filesystem::path& file_path)
+{
+	//	@tool 登録名は読み込み時の書き方のままなので、絶対パスにそろえて比べる
+	std::error_code error;
+	const auto target = std::filesystem::absolute(file_path, error).lexically_normal();
+	if (error)
+		return false;
+
+	bool reloaded = false;
+	for (auto& [key, weak_resource] : resources)
+	{
+		const auto path = std::filesystem::absolute(std::filesystem::path(key), error).lexically_normal();
+		if (error || _wcsicmp(path.c_str(), target.c_str()) != 0)
+			continue;
+
+		auto resource = weak_resource.lock();
+		if (!resource)
+			continue;
+
+		if (auto retired = resource->reload())
+		{
+			retired_resources.emplace_back(std::move(retired));
+			reloaded = true;
+		}
+	}
+	return reloaded;
 }

@@ -128,6 +128,19 @@ void edit_model_scene::imgui_render_morph()
 		int edeit_id = 0x0FF1F38F;
 		auto& morphs = edit_model->get_model_instance()->get_resource()->get_morphes_for_editor();
 
+		//	@tool インスタンスのモーフはリソースのモーフを指しているので、配列を作り直したら指し直す
+		auto rebuild_instance_morphes = [&]()
+		{
+			auto& morphes = edit_model->get_model_instance()->get_morphes();
+			morphes.clear();
+			for (UINT index = 0; index < static_cast<UINT>(edit_model->get_model_instance()->get_resource()->get_morphes().size()); ++index)
+			{
+				auto& morph = morphes.emplace_back();
+				morph.morph = &edit_model->get_model_instance()->get_resource()->get_morphes()[index];
+				morph.weight = 0;
+			}
+		};
+
 		//	リスト調整
 		bool edit = false;
 		int morph_list_size = static_cast<int>(morphs.size());
@@ -137,6 +150,9 @@ void edit_model_scene::imgui_render_morph()
 			morphs.resize(morph_list_size);
 			morphs.shrink_to_fit();
 			edit = true;
+
+			//	@tool 下の一覧表示でインスタンスのモーフを読むので、ここで指し直しておく（古い配列はもう無い）
+			rebuild_instance_morphes();
 		}
 		ImGui::Separator();
 
@@ -211,14 +227,9 @@ void edit_model_scene::imgui_render_morph()
 
 		if (edit)
 		{
-			auto& morphes = edit_model->get_model_instance()->get_morphes();
-			morphes.clear();
-			for (UINT index = 0; index < static_cast<UINT>(edit_model->get_model_instance()->get_resource()->get_morphes().size()); ++index)
-			{
-				auto& morph = morphes.emplace_back();
-				morph.morph = &edit_model->get_model_instance()->get_resource()->get_morphes()[index];
-				morph.weight = 0;
-			}
+			//	@tool モーフの配列を作り直したので、同じリソースを使う他のワールドのインスタンスも作り直させる
+			edit_model->get_model_instance()->get_resource()->notify_content_changed();
+			rebuild_instance_morphes();
 		}
 	}
 	ImGui::End();
@@ -229,16 +240,33 @@ void edit_model_scene::imgui_render_material_window()
 	if (ImGui::Begin("Material Window"))
 	{
 		auto instance = edit_model->get_model_instance();
-		for (size_t material_index = 0; material_index < instance->get_material_count(); ++material_index)
+		auto resource = instance->get_resource_for_editor();
+
+		//	@tool リソースの中身が差し替わった（ファイルの読み直しなど）ら、番号が合わないので控えを捨てる
+		if (resource && material_backup_content_revision != resource->get_content_revision())
+		{
+			material_backups.clear();
+			material_backup_content_revision = resource->get_content_revision();
+		}
+
+		for (size_t material_index = 0; resource && material_index < instance->get_material_count(); ++material_index)
 		{
 			if (ImGui::TreeNode(system_utility::convert_utf8(instance->get_material(material_index).get_name()).data()))
 			{
-				//	@tool 開いた時にインスタンス専用の複製を作って編集する（保存時にリソースへ書き戻す）
-				//	@tool Revert で編集内容を捨ててリソースのマテリアルに戻す
-				if (instance->is_material_overridden(material_index) && ImGui::Button("Revert"))
-					instance->reset_override_material(material_index);
+				//	@tool リソースのマテリアルを直接編集する（同じリソースを使う全ワールドに即反映。保存でファイルへ書き出す）
+				//	@tool 開いた時点の内容を控えておき、Revert でそこへ戻す
+				auto& resource_material = resource->get_materials_for_editor()[material_index];
+				auto& backup = material_backups[material_index];
+				if (!backup)
+				{
+					backup = std::make_unique<material>();
+					resource_material.duplicate(*backup);
+				}
+
+				if (ImGui::Button("Revert"))
+					backup->duplicate(resource_material);
 				else
-					editor_items::edit_material(editor_context, instance->get_override_material(material_index));
+					editor_items::edit_material(editor_context, resource_material);
 				ImGui::TreePop();
 			}
 		}
@@ -675,6 +703,7 @@ void edit_model_scene::on_model_release()
 	selected_bones.clear();
 	model_bone_names.clear();
 	edit_model_meshes.clear();
+	material_backups.clear();
 	if (vertex_color_edit_model)
 	{
 		vertex_color_edit_model->set_active(false);

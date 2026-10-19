@@ -113,6 +113,12 @@ public:
 
 	void update(float elapsed_time);
 
+	//	@tool リソースの中身が作った時から変わっているか
+	bool is_resource_outdated() const;
+	//	@tool リソースから作り直す（姿勢・フラグは引き継ぎ、アニメーション・シミュレーションは初期状態に戻す）
+	//	@tool パーティクルのエミッター登録は effect_manager が行う
+	void rebuild();
+
 	void reset_to_initial_state();
 	void reset_particle_simulation_time();
 	void reset_particle_simulation_step();
@@ -126,6 +132,7 @@ private:
 	std::string name;
 	UINT system_flags;
 	effect_resource_ptr resource;
+	UINT resource_content_revision = 0;	//	@tool 作った時のリソースの中身の版
 
 	std::vector<node> nodes;
 	std::vector<model> models;
@@ -202,6 +209,12 @@ public:
 private:
 	void add_instances();
 	void remove_instances();
+	//	@tool モデルとパーティクルのエミッターを登録する
+	void register_item(item& item);
+	//	@tool 登録したパーティクルのエミッターを外す
+	void unregister_item(item& item);
+	//	@tool リソースの中身が変わったインスタンスを作り直し、エミッターを登録し直す
+	void rebuild_outdated_instances();
 
 private:
 	std::shared_ptr<compute_particle_system> particle_system;

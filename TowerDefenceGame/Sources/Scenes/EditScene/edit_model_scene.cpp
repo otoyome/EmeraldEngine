@@ -262,6 +262,9 @@ void edit_model_scene::update_core(float elapsed_time)
 				{
 					model_resource_utility::optimize_meshs(*resource);
 					model_resource_utility::generate_meshlets(*resource);
+
+					//	@tool .emo は他のワールドと共有しているので、そちらのインスタンスも作り直させる
+					resource->notify_content_changed();
 				}
 
 				//	モデル生成
@@ -640,6 +643,9 @@ void edit_model_scene::combine_meshes()
 
 	model_resource_utility::combine_unskinned_meshes(*resource, combine_grid_divisions);
 
+	//	@tool メッシュ・ノードの配列を作り直したので、同じリソースを使う他のワールドのインスタンスも作り直させる
+	resource->notify_content_changed();
+
 	std::string path(resource->get_file_path());
 	on_model_release();
 	edit_model = std::make_shared<model_object>(path, resource);
@@ -660,6 +666,9 @@ void edit_model_scene::clear_combined_meshes()
 	combine_backup_meshes.clear();
 	combine_backup_nodes.clear();
 	has_combine_backup = false;
+
+	//	@tool メッシュ・ノードの配列を戻したので、同じリソースを使う他のワールドのインスタンスも作り直させる
+	resource->notify_content_changed();
 
 	std::string path(resource->get_file_path());
 	on_model_release();

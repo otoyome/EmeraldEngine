@@ -399,6 +399,10 @@ bool editor_items::edit_effect_noeds(std::shared_ptr<context>& context, effect_i
 		}
 	}
 
+	//	@tool 同じリソースを使う他のワールドのインスタンスにも反映させる
+	if (edit_flag)
+		effect_resource->notify_content_changed();
+
 	return edit_flag;
 }
 
@@ -456,6 +460,10 @@ bool editor_items::edit_effect_animation(std::shared_ptr<context>& context, effe
 		editor_items::edit_animation_data_timeline(context, animation_data);
 	}
 	ImGui::End();
+
+	//	@tool 同じリソースを使う他のワールドのインスタンスにも反映させる
+	if (edit_flag)
+		effect_resource->notify_content_changed();
 	return edit_flag;
 }
 

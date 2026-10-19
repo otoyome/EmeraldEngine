@@ -144,8 +144,13 @@ public:
 	void update_transform(const math::transformd& world);
 	void update_node_transforms();
 
+	//	@tool リソースの中身が差し替わっていたら作り直す（メインスレッド専用。作り直したら true）
+	//	@tool 姿勢・フラグ・LOD・上書きマテリアル（番号が有効な物）は引き継ぎ、ノード・モーフは初期状態に戻す
+	bool sync_resource();
+
 private:
 	void build_model();
+	void build_structure();
 	bool is_render_proxy_valid(const model_render_proxy& proxy) const;
 
 private:
@@ -154,6 +159,7 @@ private:
 	UINT unique_id = 0;
 	math::float2 lod_distance_range = {0.0f, 10000.0f};
 	model_resource_ptr resource;
+	UINT resource_content_revision = 0;	//	@tool 作った時のリソースの中身の版
 	math::transformd world;
 	math::transformd previous_world;
 
@@ -187,6 +193,9 @@ private:
 
 public:
 	void registered(std::weak_ptr<model_instance> instance);
+
+	//	@tool 中身が差し替わったリソースを使うインスタンスを作り直す（メインスレッド専用）
+	void sync_resources();
 
 	void get_container(mesh_container& container, const math::vector3d& render_origin);
 

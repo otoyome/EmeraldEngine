@@ -262,7 +262,15 @@ void framework::update(float elapsed_time/*Elapsed seconds from last frame*/)
 	//	@tool 前フレームのエフェクト更新（GPU）はエフェクトのインスタンスを読むので、終わるまで待ってから更新する
 	renderer->wait_effect_update();
 
-	assets.update();
+	//	@tool モデルを読み直したら、古い中身を指しているインスタンスを全ワールドで作り直す（古い中身は次の更新で破棄される）
+	if (assets.update())
+	{
+		for_each_world([]
+		{
+			if (model_instance_manger::is_valid())
+				model_instance_manger::instance()->sync_resources();
+		});
+	}
 
 	//	入力関係の更新
 	//	@tool 入力はワールドごとに持つ（それぞれのウィンドウが前面にある時だけ受け付ける）

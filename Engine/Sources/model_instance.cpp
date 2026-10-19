@@ -75,6 +75,9 @@ void model_instance::set_node_pose(size_t node_index, const node_animation& node
 
 bool model_instance::set_morph(std::string_view morph_name, const morph_animation& morph)
 {
+	//	@tool リソースのモーフを指しているので、差し替わっていたら先に作り直す
+	sync_resource();
+
 	for (auto& entry : morphes)
 	{
 		if (entry.morph && entry.morph->name == morph_name)
@@ -167,6 +170,40 @@ void model_instance::build_model()
 	override_materials.clear();
 	override_materials.resize(resource->get_materials().size());
 
+	build_structure();
+}
+
+bool model_instance::sync_resource()
+{
+	if (!resource || resource_content_revision == resource->get_content_revision())
+		return false;
+
+	//	@tool 上書きマテリアルは番号が残っている物だけ引き継ぐ
+	override_materials.resize(resource->get_materials().size());
+
+	//	@tool メッシュの数が変わらなければ表示状態を引き継ぐ
+	std::vector<bool> mesh_visibles;
+	if (meshes.size() == resource->get_meshes().size())
+	{
+		for (auto& mesh : meshes)
+			mesh_visibles.emplace_back(mesh.visible);
+	}
+
+	nodes.clear();
+	meshes.clear();
+	morphes.clear();
+	render_proxy.reset();
+	build_structure();
+
+	for (size_t index = 0; index < mesh_visibles.size() && index < meshes.size(); ++index)
+		meshes[index].visible = mesh_visibles[index];
+	return true;
+}
+
+void model_instance::build_structure()
+{
+	resource_content_revision = resource->get_content_revision();
+
 	//	ノード構築
 	nodes.reserve(resource->get_nodes().size());
 	for (auto& resource_node : resource->get_nodes())
@@ -241,6 +278,15 @@ void model_instance_manger::registered(std::weak_ptr<model_instance> instance)
 		return;
 
 	instances.emplace_back(instance);
+}
+
+void model_instance_manger::sync_resources()
+{
+	for (auto& weak_instance : instances)
+	{
+		if (auto instance = weak_instance.lock())
+			instance->sync_resource();
+	}
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -389,6 +435,9 @@ void model_instance_manger::get_container(mesh_container& container, const math:
 {
 	const semantic position_semantic("POSITION", 0);
 	const semantic normal_semantic("NORMAL", 0);
+
+	//	@tool エディターでの編集（ファイルの読み直しは framework で先に済ませる）でリソースの中身が変わっていれば作り直してから集める
+	sync_resources();
 
 	container.clear();
 

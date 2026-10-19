@@ -105,6 +105,11 @@ private:
 	std::vector<model_resource::node> combine_backup_nodes;
 	bool has_combine_backup = false;
 
+	//	@tool マテリアルはリソースのものを直接編集する（同じリソースを使う全ワールドに即反映）
+	//	@tool 編集を始めた時点の内容を番号ごとに控えておき、Revert でそこへ戻す。リソースの中身が差し替わったら控えを捨てる
+	std::unordered_map<size_t, std::unique_ptr<material>> material_backups;
+	UINT material_backup_content_revision = 0;
+
 	//	当たり判定メッシュ生成情報
 	struct bounding_mesh_option
 	{

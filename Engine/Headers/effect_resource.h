@@ -1,5 +1,6 @@
 #pragma once
 
+#include <filesystem>
 #include <unordered_map>
 
 #include "texture.h"
@@ -78,6 +79,11 @@ public:
 	inline const std::vector<decal>& get_decals() const {return decals;}
 	inline const std::vector<animation::data>& get_animations() const {return animations;}
 
+	//	@tool 中身を書き換えた回数（インスタンスの作り直しの判定に使う）
+	UINT get_content_revision() const { return content_revision; }
+	//	@tool エディターで中身を書き換えた時に呼ぶ（各ワールドのインスタンスが次の更新で作り直される）
+	void notify_content_changed() { ++content_revision; }
+
 #if defined(USE_IMGUI)
 	inline std::vector<node>& get_nodes_for_editor() {return nodes;}
 	inline std::vector<model>& get_models_for_editor() {return models;}
@@ -100,11 +106,20 @@ public:
 	bool serialize(std::string_view file_path);
 	bool deserialize(std::string_view file_path);
 
+	//	@tool ファイルを読み直して中身を差し替える（同じ shared_ptr のまま。メインスレッド専用）
+	//	@tool 戻り値は差し替える前の中身を持つ物（失敗・未変更なら null）
+	std::shared_ptr<effect_resource> reload();
+	//	@tool 読み込んだ（または保存した）後にファイルが更新されたか
+	bool is_file_changed() const;
+
 private:
 	void build();
+	void update_file_write_time();
 
 private:
 	std::string file_path;
+	std::filesystem::file_time_type file_write_time{};	//	@tool 読み込んだ（保存した）時のファイルの更新時刻
+	UINT content_revision = 0;
 
 	std::vector<node> nodes;					//	ノード情報
 	std::vector<model> models;					//	モデル情報
@@ -128,6 +143,12 @@ private:
 public:
 	bool load(effect_resource_ptr& resource, std::string_view file_path, bool force_load = false);
 
+	//	@tool 更新されたファイルを読み込み済みのリソースへ読み直す（メインスレッド専用。読み直したら true）
+	bool reload_file(const std::filesystem::path& file_path);
+	//	@tool 読み直しで差し替えた古い中身を破棄する
+	void release_retired_resources() { retired_resources.clear(); }
+
 private:
 	effect_resource_map resources;
+	std::vector<std::shared_ptr<effect_resource>> retired_resources;
 };

@@ -182,6 +182,11 @@ bool effect_resource::serialize(std::string_view file_path)
 			return false;
 		}
 
+		//	@tool 自分で保存したファイルを読み直さないように、閉じてから更新時刻を覚えておく
+		ostream.close();
+		if (file_path == this->file_path)
+			update_file_write_time();
+
 		DEBUG_LOG_CATEGORY(logger::categorys::model, "effect_resource serialize successed[%s]", file_path.data());
 		return true;
 	}
@@ -213,6 +218,7 @@ bool effect_resource::deserialize(std::string_view file_path)
 
 		//	構築
 		this->file_path = file_path;
+		update_file_write_time();
 		build();
 		DEBUG_LOG_CATEGORY(logger::categorys::model, "effect_resource deserialize successed[%s]", file_path.data());
 		return true;
@@ -220,6 +226,43 @@ bool effect_resource::deserialize(std::string_view file_path)
 
 	DEBUG_ERROR_CATEGORY(logger::categorys::model, "effect_resource open failed[%s]", file_path.data());
 	return false;
+}
+
+void effect_resource::update_file_write_time()
+{
+	std::error_code error;
+	const auto write_time = std::filesystem::last_write_time(std::filesystem::path(file_path), error);
+	file_write_time = error ? std::filesystem::file_time_type{} : write_time;
+}
+
+bool effect_resource::is_file_changed() const
+{
+	std::error_code error;
+	const auto write_time = std::filesystem::last_write_time(std::filesystem::path(file_path), error);
+	return !error && write_time != file_write_time;
+}
+
+std::shared_ptr<effect_resource> effect_resource::reload()
+{
+	if (file_path.empty() || !is_file_changed())
+		return nullptr;
+
+	//	@tool 別のリソースへ読み込んでから中身を入れ替える（読み込みに失敗したら今の中身のまま）
+	//	@tool インスタンスは中身を複製して持つので、描画の完了を待つ必要はない
+	auto loaded = std::make_shared<effect_resource>();
+	if (!loaded->deserialize(file_path))
+		return nullptr;
+
+	std::swap(nodes, loaded->nodes);
+	std::swap(models, loaded->models);
+	std::swap(particles, loaded->particles);
+	std::swap(decals, loaded->decals);
+	std::swap(animations, loaded->animations);
+	file_write_time = loaded->file_write_time;
+	notify_content_changed();
+
+	DEBUG_LOG_CATEGORY(logger::categorys::model, "effect_resource reload successed[%s]", file_path.data());
+	return loaded;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -257,4 +300,32 @@ bool effect_resource_manager::load(effect_resource_ptr& resource, std::string_vi
 	resource = new_resource;
 	resources[key] = resource;
 	return true;
+}
+
+bool effect_resource_manager::reload_file(const std::filesystem::path& file_path)
+{
+	//	@tool 登録名は読み込み時の書き方のままなので、絶対パスにそろえて比べる
+	std::error_code error;
+	const auto target = std::filesystem::absolute(file_path, error).lexically_normal();
+	if (error)
+		return false;
+
+	bool reloaded = false;
+	for (auto& [key, weak_resource] : resources)
+	{
+		const auto path = std::filesystem::absolute(std::filesystem::path(key), error).lexically_normal();
+		if (error || _wcsicmp(path.c_str(), target.c_str()) != 0)
+			continue;
+
+		auto resource = weak_resource.lock();
+		if (!resource)
+			continue;
+
+		if (auto retired = resource->reload())
+		{
+			retired_resources.emplace_back(std::move(retired));
+			reloaded = true;
+		}
+	}
+	return reloaded;
 }

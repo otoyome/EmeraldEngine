@@ -1,5 +1,6 @@
 #pragma once
 
+#include <filesystem>
 #include <unordered_map>
 
 #include "texture.h"
@@ -163,6 +164,10 @@ public:
 	inline const std::vector<capsule_shadow>& get_capsule_shadows() const {return capsule_shadows;}
 	//	@tool メッシュを書き換えた回数（描画用プロキシの作り直しの判定に使う）
 	UINT get_mesh_revision() const { return mesh_revision; }
+	//	@tool 中身（ノード・メッシュ・モーフ・マテリアル数など）を差し替えた回数（インスタンスの作り直しの判定に使う）
+	UINT get_content_revision() const { return content_revision; }
+	//	@tool ノード・メッシュ・モーフの配列を作り直した時に呼ぶ（各ワールドのインスタンスが次の抽出で作り直される）
+	void notify_content_changed() { ++mesh_revision; ++content_revision; }
 
 #if defined(USE_IMGUI)
 	inline std::vector<material>& get_materials_for_editor() { return materials; }
@@ -190,6 +195,12 @@ public:
 	bool serialize(std::string_view file_path);
 	bool deserialize(std::string_view file_path);
 
+	//	@tool ファイルを読み直して中身を差し替える（同じ shared_ptr のまま。描画中のフレームの完了を待ってから差し替える）
+	//	@tool 戻り値は差し替える前の中身を持つ物。インスタンスが作り直されるまで生かしておくこと（失敗・未変更なら null）
+	std::shared_ptr<model_resource> reload();
+	//	@tool 読み込んだ（または保存した）後にファイルが更新されたか
+	bool is_file_changed() const;
+
 	void paste_materials(const std::vector<material>& materials);
 
 	//	@tool メッシュの頂点データ（ある属性の row_data 全体）を書き換えて、GPU 側（モデル用の共有プール）へ反映する
@@ -200,12 +211,15 @@ public:
 
 private:
 	void build_model();
+	void update_file_write_time();
 
 private:
 	std::string file_path;
+	std::filesystem::file_time_type file_write_time{};	//	@tool 読み込んだ（保存した）時のファイルの更新時刻
 
 	std::vector<material> materials;
 	UINT mesh_revision = 0;
+	UINT content_revision = 0;
 	std::vector<node> nodes;
 	std::vector<mesh> meshes;
 	std::vector<morph> morphes;
@@ -228,6 +242,12 @@ private:
 public:
 	bool load(model_resource_ptr& resource, std::string_view file_path, bool force_load = false);
 
+	//	@tool 更新されたファイルを読み込み済みのリソースへ読み直す（メインスレッド専用。読み直したら true）
+	bool reload_file(const std::filesystem::path& file_path);
+	//	@tool 読み直しで差し替えた古い中身を破棄する（全ワールドのインスタンスを作り直した後に呼ぶ）
+	void release_retired_resources() { retired_resources.clear(); }
+
 private:
 	model_resource_map resources;
+	std::vector<std::shared_ptr<model_resource>> retired_resources;
 };
