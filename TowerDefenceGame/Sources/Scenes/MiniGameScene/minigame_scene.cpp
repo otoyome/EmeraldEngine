@@ -599,6 +599,8 @@ void minigame_scene::update_core(float elapsed_time)
 			}
 
 			//	カウンター関係処理
+			int bubble_hits = 0;
+			int dust_hits = 0;
 			for (auto& event_info : particle_events)
 			{
 				//	泡の場合はそのまま濡れカウントとして
@@ -614,6 +616,7 @@ void minigame_scene::update_core(float elapsed_time)
 				if (is_bubble)
 				{
 					player_object->on_wet(WetDamage);
+					++bubble_hits;
 					continue;
 				}
 
@@ -629,10 +632,18 @@ void minigame_scene::update_core(float elapsed_time)
 				}
 				if (is_dust)
 				{
+					player_object->on_wet(1);
 					++trash_count;
+					++dust_hits;
 					continue;
 				}
 			}
+
+			//	音は1フレーム分をまとめて渡す
+			if (bubble_hits > 0)
+				player_object->on_bubble(bubble_hits);
+			if (dust_hits > 0)
+				player_object->on_trash(dust_hits);
 		}
 
 		//	エフェクトと連動

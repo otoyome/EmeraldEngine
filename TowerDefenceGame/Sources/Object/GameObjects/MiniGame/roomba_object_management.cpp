@@ -23,9 +23,14 @@ namespace
 	constexpr std::string_view accelerate_sound_path = "Assets/Resources/Sounds/roomba_accelerate.wav";
 	constexpr std::string_view slide_sound_path = "Assets/Resources/Sounds/roomba_brake.wav";
 	constexpr std::string_view explosion_sound_path = "Assets/Resources/Sounds/roomba_explosion.wav";
+	constexpr std::string_view wet_sound_path = "Assets/Resources/Sounds/roomba_wet.wav";
+	constexpr std::string_view trash_sound_path = "Assets/Resources/Sounds/roomba_trash.wav";
 	constexpr float slide_sound_min_speed = 5.0f;	//	‰¡ŠŠ‚è‰¹‚ð–Â‚ç‚·Å’á‚Ì‰¡•ûŒü‘¬“x(m/s)
 	constexpr float slide_sound_max_speed = 15.0f;	//	‰¡ŠŠ‚è‰¹‚ªÅ‘å‰¹—Ê‚É‚È‚é‰¡•ûŒü‘¬“x(m/s)
 	constexpr float slide_sound_min_slip_rate = 0.34f;	//	‰¡ŠŠ‚è‰¹‚ð–Â‚ç‚·Å’á‚Ì‰¡ŠŠ‚è—¦i‰¡•ûŒü‘¬“x/‘¬‚³j
+	constexpr float wet_sound_interval = 0.15f;		//	”G‚ê‚é‰¹‚ð–Â‚ç‚·Å’Z‚ÌŠÔŠui•bj
+	constexpr float trash_sound_interval = 0.08f;	//	ƒSƒ~‚ðE‚Á‚½‰¹‚ð–Â‚ç‚·Å’Z‚ÌŠÔŠui•bj
+	constexpr float hit_sound_full_count = 8.0f;	//	ŠÔŠu“à‚É‚±‚Ì”‚¾‚¯‚Ü‚Æ‚Ü‚é‚ÆÅ‘å‰¹—Ê‚Å–Â‚ç‚·
 
 	//	’n–Ê‚ÌŒX‚«‚ðŠp“x‚ÅŽZo
 	math::float3 calculate_ground_tilt(const math::float3& euler, const math::float3& normal)
@@ -186,7 +191,7 @@ void roomba_object::fixed_update(float elapsed_time)
 void roomba_object::post_update(float elapsed_time)
 {
 	update_effects(elapsed_time);
-	update_sounds();
+	update_sounds(elapsed_time);
 }
 
 void roomba_object::input_action_data(action_datas data)
@@ -371,7 +376,7 @@ void roomba_object::enter_dead()
 		effect->set_position(math::vector3d(get_position()));
 	}
 
-	//	@tool ”š”­‰¹i–Â‚ç‚µ‚«‚è‚È‚Ì‚Åƒnƒ“ƒhƒ‹‚ÍŽ‚½‚È‚¢j
+	//	”š”­‰¹
 	if (audio_manager::is_valid())
 	{
 		audio_manager::instance()->play(explosion_sound_path);
@@ -390,6 +395,18 @@ void roomba_object::exit_dead()
 void roomba_object::on_wet(float rate)
 {
 	set_wet_value(get_wet_value() + rate);
+}
+
+void roomba_object::on_trash(int count)
+{
+	//	‰¹‚Í update_sounds() ‚Å‚Ü‚Æ‚ß‚Ä–Â‚ç‚·
+	trash_sound_requests += count;
+}
+
+void roomba_object::on_bubble(int count)
+{
+	//	‰¹‚Í update_sounds() ‚Å‚Ü‚Æ‚ß‚Ä–Â‚ç‚·
+	wet_sound_requests += count;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -798,7 +815,7 @@ std::weak_ptr<effect_instance> roomba_object::play_effect(size_t effect_id)
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void roomba_object::update_sounds()
+void roomba_object::update_sounds(float elapsed_time)
 {
 	if (!audio_manager::is_valid())
 		return;
@@ -852,6 +869,31 @@ void roomba_object::update_sounds()
 		audio->stop(slide_sound, 0.15f);
 		slide_sound = {};
 	}
+
+	//	–AEƒSƒ~‚Ì‰¹Fˆê“x‚É‘å—Ê‚É“–‚½‚Á‚Ä‚àŠÔŠu‚ð‚ ‚¯‚Ä 1 ‰ñ‚¸‚Â–Â‚ç‚µA‚Ü‚Æ‚Ü‚Á‚½”‚É‰ž‚¶‚Ä‰¹—Ê‚ðã‚°‚é
+	auto play_hit_sound = [&](std::string_view path, audio::sound_handle& handle, int& requests, float& cooldown, float interval)
+	{
+		cooldown = cooldown > elapsed_time ? cooldown - elapsed_time : 0.0f;
+		if (!active)
+		{
+			requests = 0;
+			return;
+		}
+		if (requests <= 0 || cooldown > 0.0f)
+			return;
+
+		if (handle.is_valid())
+			audio->stop(handle, 0.05f);
+
+		audio::play_parameters parameters;
+		parameters.volume = math::lerp(0.4f, 1.0f, math::saturate(static_cast<float>(requests) / hit_sound_full_count));
+		parameters.pitch = math::lerp(0.9f, 1.1f, static_cast<float>(rand()) / RAND_MAX);
+		handle = audio->play(path, parameters);
+		requests = 0;
+		cooldown = interval;
+	};
+	play_hit_sound(wet_sound_path, wet_sound, wet_sound_requests, wet_sound_cooldown, wet_sound_interval);
+	play_hit_sound(trash_sound_path, trash_sound, trash_sound_requests, trash_sound_cooldown, trash_sound_interval);
 }
 
 void roomba_object::stop_sounds()
@@ -860,9 +902,15 @@ void roomba_object::stop_sounds()
 	{
 		audio_manager::instance()->stop(accelerate_sound, 0.1f);
 		audio_manager::instance()->stop(slide_sound, 0.1f);
+		audio_manager::instance()->stop(wet_sound, 0.1f);
+		audio_manager::instance()->stop(trash_sound, 0.1f);
 	}
 	accelerate_sound = {};
 	slide_sound = {};
+	wet_sound = {};
+	trash_sound = {};
+	wet_sound_requests = 0;
+	trash_sound_requests = 0;
 }
 
 

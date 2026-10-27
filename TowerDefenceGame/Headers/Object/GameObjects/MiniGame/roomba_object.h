@@ -195,6 +195,8 @@ public:	//	ステート関係
 
 public:	//	当たり関係
 	void on_wet(float rate);
+	void on_trash(int count);
+	void on_bubble(int count);
 
 private:	//	内部ステート系
 	template<typename Type, typename ... Arguments>
@@ -223,7 +225,7 @@ private:	//	エフェクト系
 	std::weak_ptr<effect_instance> play_effect(size_t effect_id);
 
 private:	//	サウンド系
-	void update_sounds();
+	void update_sounds(float elapsed_time);
 	void stop_sounds();
 
 private:	//	姿勢制御
@@ -290,4 +292,10 @@ private:
 	bool last_dash_input = false;	//	直前の固定更新のダッシュ入力
 	audio::sound_handle accelerate_sound;	//	加速音
 	audio::sound_handle slide_sound;		//	横滑り音
+	audio::sound_handle wet_sound;			//	濡れる音
+	audio::sound_handle trash_sound;		//	ゴミを拾った音
+	int wet_sound_requests = 0;				//	まだ鳴らしていない濡れる音の要求数
+	int trash_sound_requests = 0;			//	まだ鳴らしていないゴミを拾った音の要求数
+	float wet_sound_cooldown = 0.0f;		//	次に濡れる音を鳴らせるまでの時間（秒）
+	float trash_sound_cooldown = 0.0f;		//	次にゴミを拾った音を鳴らせるまでの時間（秒）
 };
