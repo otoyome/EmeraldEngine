@@ -174,7 +174,7 @@ void audio_manager::update(float elapsed_time)
 
 	apply_volumes();
 
-	//	@tool 積まれた命令を積まれた順に実行する（実行中に積まれた命令は次の update() で実行する）
+	//	積まれた命令を積まれた順に実行する
 	{
 		std::lock_guard lock(mutex);
 		executing_commands.swap(commands);
@@ -217,7 +217,6 @@ void audio_manager::stop(audio::sound_handle handle, float fade_out_time)
 
 void audio_manager::stop_bus(audio::bus target_bus, float fade_out_time)
 {
-	//	@tool 呼んだ時点で確保されている音だけを止める（後から積まれた再生は止めない）
 	std::lock_guard lock(mutex);
 	for (uint32_t index = 0; index < voices.size(); ++index)
 	{
@@ -319,7 +318,6 @@ float audio_manager::get_master_volume() const
 
 void audio_manager::set_master_volume(float volume)
 {
-	//	@tool 反映は update() で行う
 	master_volume_variable.set(clamp_volume(volume));
 }
 
@@ -330,7 +328,6 @@ float audio_manager::get_bus_volume(audio::bus target_bus) const
 
 void audio_manager::set_bus_volume(audio::bus target_bus, float volume)
 {
-	//	@tool 反映は update() で行う
 	get_bus_variable(target_bus).set(clamp_volume(volume));
 }
 
@@ -391,7 +388,7 @@ audio::sound_handle audio_manager::allocate_voice(std::string_view file_path, co
 		return {};
 	}
 
-	//	@tool 枠だけ先に確保してハンドルを返す。音の生成は update() で行う
+	//	枠だけ先に確保してハンドルを返す。音の生成は update() で行う
 	const uint32_t index = free_indices.back();
 	free_indices.pop_back();
 
@@ -424,13 +421,14 @@ void audio_manager::push_stop(audio::sound_handle handle, float fade_out_time)
 
 void audio_manager::execute_command(command& item)
 {
-	//	@tool 再生はファイルの読込があるので mutex の外で行う
+	//	再生のみ
 	if (item.type == command::types::play)
 	{
 		execute_play(item);
 		return;
 	}
 
+	//	コマンド処理
 	std::lock_guard lock(mutex);
 	switch (item.type)
 	{
@@ -484,7 +482,7 @@ void audio_manager::execute_play(command& item)
 	const size_t bus_index = static_cast<size_t>(parameters.target_bus);
 	const std::wstring path = system_utility::convert_utf16(file_path);
 
-	//	@tool 生成に失敗したら枠を返す（ハンドルは無効になる）
+	//	生成に失敗したら枠を返す
 	auto fail = [this, &item]()
 	{
 		std::lock_guard lock(mutex);
@@ -540,7 +538,6 @@ void audio_manager::execute_play(command& item)
 		return;
 	}
 
-	//	@tool 枠は update() の中でしか返さないので、ここでは必ず確保されたまま残っている
 	std::lock_guard lock(mutex);
 	if (voice* target = find_voice(item.handle))
 		target->sound = std::move(sound);

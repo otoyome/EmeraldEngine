@@ -118,7 +118,6 @@ void roomba_object::on_finalize()
 
 void roomba_object::on_deactive()
 {
-	//	@tool 非アクティブの間は post_update が呼ばれず止められないので、ここで止める
 	stop_sounds();
 	base::on_deactive();
 }

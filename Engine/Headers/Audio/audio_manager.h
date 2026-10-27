@@ -126,13 +126,12 @@ public:
 	void stop_bgm(float fade_time = 1.0f);
 
 	//	音量調整
-	//	@tool 音量はゲーム設定（コンソール変数）と共有しているので、設定はメインスレッドから行う（反映は update()）
 	float get_master_volume() const;
 	void set_master_volume(float volume);
 	float get_bus_volume(audio::bus target_bus) const;
 	void set_bus_volume(audio::bus target_bus, float volume);
 
-	//	キャッシュした展開済みの音を解放する（再生中の音はそのまま鳴り続ける）
+	//	キャッシュした展開済みの音を解放する
 	void clear_cache();
 
 	//	再生数を取得

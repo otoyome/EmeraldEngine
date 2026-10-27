@@ -21,9 +21,10 @@ namespace
 
 	//	サウンド
 	constexpr std::string_view accelerate_sound_path = "Assets/Resources/Sounds/roomba_accelerate.wav";
-	constexpr std::string_view brake_sound_path = "Assets/Resources/Sounds/roomba_brake.wav";
-	constexpr float brake_sound_min_speed = 1.0f;	//	ブレーキ音を鳴らす最低速度(m/s)
-	constexpr float brake_sound_max_speed = 10.0f;	//	ブレーキ音が最大音量になる速度(m/s)
+	constexpr std::string_view slide_sound_path = "Assets/Resources/Sounds/roomba_brake.wav";
+	constexpr float slide_sound_min_speed = 1.0f;	//	横滑り音を鳴らす最低の横方向速度(m/s)
+	constexpr float slide_sound_max_speed = 6.0f;	//	横滑り音が最大音量になる横方向速度(m/s)
+	constexpr float slide_sound_min_slip_rate = 0.17f;	//	横滑り音を鳴らす最低の横滑り率（横方向速度/速さ。約 10 度）
 
 	//	地面の傾きを角度で算出
 	math::float3 calculate_ground_tilt(const math::float3& euler, const math::float3& normal)
@@ -176,7 +177,6 @@ void roomba_object::fixed_update(float elapsed_time)
 
 	//	サウンド制御用に入力状態を残しておく
 	last_dash_input = (action_data.move.x != 0 || action_data.move.z != 0) && action_data.dash;
-	last_brake_input = action_data.brake;
 
 	//	アクション情報クリア
 	action_data = {};
@@ -823,24 +823,27 @@ void roomba_object::update_sounds()
 		accelerate_sound = {};
 	}
 
-	//	ブレーキ音：接地中にブレーキで減速している間だけループさせ、速いほど大きく鳴らす
-	if (active && last_brake_input && is_flag(flags::on_ground) && speed_m_s >= brake_sound_min_speed)
+	//	横滑り音：接地中に向きと横方向へ滑っている間だけループさせ、横方向に速いほど大きく鳴らす
+	float yaw = get_rotation().y;
+	float lateral_m_s = fabsf(system_units::convert_unit_to_m(velocity.x * cosf(yaw) - velocity.z * sinf(yaw)));
+	bool sliding = lateral_m_s >= slide_sound_min_speed && lateral_m_s >= speed_m_s * slide_sound_min_slip_rate;
+	if (active && is_flag(flags::on_ground) && sliding)
 	{
-		if (!audio->is_playing(brake_sound))
+		if (!audio->is_playing(slide_sound))
 		{
 			audio::play_parameters parameters;
 			parameters.loop = true;
 			parameters.fade_in_time = 0.05f;
-			brake_sound = audio->play(brake_sound_path, parameters);
+			slide_sound = audio->play(slide_sound_path, parameters);
 		}
-		float speed_rate = math::saturate((speed_m_s - brake_sound_min_speed) / (brake_sound_max_speed - brake_sound_min_speed));
-		audio->set_pitch(brake_sound, math::lerp(0.9f, 1.1f, speed_rate));
-		audio->set_volume(brake_sound, math::lerp(0.3f, 1.0f, speed_rate));
+		float slide_rate = math::saturate((lateral_m_s - slide_sound_min_speed) / (slide_sound_max_speed - slide_sound_min_speed));
+		audio->set_pitch(slide_sound, math::lerp(0.9f, 1.1f, slide_rate));
+		audio->set_volume(slide_sound, math::lerp(0.3f, 1.0f, slide_rate));
 	}
-	else if (brake_sound.is_valid())
+	else if (slide_sound.is_valid())
 	{
-		audio->stop(brake_sound, 0.15f);
-		brake_sound = {};
+		audio->stop(slide_sound, 0.15f);
+		slide_sound = {};
 	}
 }
 
@@ -849,10 +852,10 @@ void roomba_object::stop_sounds()
 	if (audio_manager::is_valid())
 	{
 		audio_manager::instance()->stop(accelerate_sound, 0.1f);
-		audio_manager::instance()->stop(brake_sound, 0.1f);
+		audio_manager::instance()->stop(slide_sound, 0.1f);
 	}
 	accelerate_sound = {};
-	brake_sound = {};
+	slide_sound = {};
 }
 
 

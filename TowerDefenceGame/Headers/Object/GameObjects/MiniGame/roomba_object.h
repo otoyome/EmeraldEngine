@@ -222,7 +222,7 @@ private:	//	エフェクト系
 	bool register_effect(size_t effect_id, std::string_view file_path);
 	std::weak_ptr<effect_instance> play_effect(size_t effect_id);
 
-private:	//	@tool サウンド系
+private:	//	サウンド系
 	void update_sounds();
 	void stop_sounds();
 
@@ -287,8 +287,7 @@ private:
 	effect_instance_ptr spark_smoke_effect_instance;
 	size_t dash_effect_instance_node_index[2];
 
-	bool last_dash_input = false;	//	@tool 直前の固定更新のダッシュ入力
-	bool last_brake_input = false;	//	@tool 直前の固定更新のブレーキ入力
-	audio::sound_handle accelerate_sound;	//	@tool 加速音（ダッシュ中ループ）
-	audio::sound_handle brake_sound;		//	@tool ブレーキ音（ブレーキ中ループ）
+	bool last_dash_input = false;	//	直前の固定更新のダッシュ入力
+	audio::sound_handle accelerate_sound;	//	加速音
+	audio::sound_handle slide_sound;		//	横滑り音
 };
