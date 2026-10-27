@@ -22,9 +22,10 @@ namespace
 	//	サウンド
 	constexpr std::string_view accelerate_sound_path = "Assets/Resources/Sounds/roomba_accelerate.wav";
 	constexpr std::string_view slide_sound_path = "Assets/Resources/Sounds/roomba_brake.wav";
-	constexpr float slide_sound_min_speed = 1.0f;	//	横滑り音を鳴らす最低の横方向速度(m/s)
-	constexpr float slide_sound_max_speed = 6.0f;	//	横滑り音が最大音量になる横方向速度(m/s)
-	constexpr float slide_sound_min_slip_rate = 0.17f;	//	横滑り音を鳴らす最低の横滑り率（横方向速度/速さ。約 10 度）
+	constexpr std::string_view explosion_sound_path = "Assets/Resources/Sounds/roomba_explosion.wav";
+	constexpr float slide_sound_min_speed = 5.0f;	//	横滑り音を鳴らす最低の横方向速度(m/s)
+	constexpr float slide_sound_max_speed = 15.0f;	//	横滑り音が最大音量になる横方向速度(m/s)
+	constexpr float slide_sound_min_slip_rate = 0.34f;	//	横滑り音を鳴らす最低の横滑り率（横方向速度/速さ）
 
 	//	地面の傾きを角度で算出
 	math::float3 calculate_ground_tilt(const math::float3& euler, const math::float3& normal)
@@ -368,6 +369,12 @@ void roomba_object::enter_dead()
 	if (effect)
 	{
 		effect->set_position(math::vector3d(get_position()));
+	}
+
+	//	@tool 爆発音（鳴らしきりなのでハンドルは持たない）
+	if (audio_manager::is_valid())
+	{
+		audio_manager::instance()->play(explosion_sound_path);
 	}
 }
 
