@@ -4,14 +4,12 @@
 #include "System/logger.h"
 #include "System/system_utility.h"
 
-#include "miniaudio/miniaudio.h"
-
 #include <algorithm>
 #include <array>
 
 namespace
 {
-	//	@tool コンソール変数（ゲーム設定に保存）
+	//	コンソール変数
 	console_variable<float> master_volume_variable("audio.volume.master", 1.0f, "全体の音量（0～1）", console_flags::user_setting);
 	console_variable<float> bgm_volume_variable("audio.volume.bgm", 1.0f, "BGM の音量（0～1）", console_flags::user_setting);
 	console_variable<float> se_volume_variable("audio.volume.se", 1.0f, "効果音の音量（0～1）", console_flags::user_setting);
@@ -51,7 +49,7 @@ namespace
 		return true;
 	}
 
-	//	@tool 動作確認用のコンソールコマンド
+	//	動作確認用のコンソールコマンド
 	console_command play_command("audio.play", "音を再生する（audio.play ファイル [bgm|se|ui]）",
 		[](const console_command::arguments& args)
 		{
@@ -108,24 +106,6 @@ namespace
 #endif	//	defined(USE_IMGUI)
 }
 
-//	@tool miniaudio のエンジンとバスごとのグループ
-struct audio_manager::backend
-{
-	ma_engine engine{};
-	std::array<ma_sound_group, audio::bus_count> groups{};
-	bool initialized = false;
-};
-
-//	@tool 再生中の音の枠
-//	@tool ma_sound はオーディオスレッドから参照されるのでアドレスを固定するために個別に確保する
-struct audio_manager::voice
-{
-	std::unique_ptr<ma_sound> sound;
-	uint32_t generation = 0;
-	audio::bus target_bus = audio::bus::se;
-	bool paused = false;
-};
-
 audio_manager::audio_manager()
 : impl(std::make_unique<backend>())
 {
@@ -166,12 +146,14 @@ audio_manager::~audio_manager()
 	if (!is_available())
 		return;
 
+	std::lock_guard lock(mutex);
+	commands.clear();
 	for (uint32_t index = 0; index < voices.size(); ++index)
 	{
-		if (voices[index].sound)
+		if (voices[index].allocated)
 			release_voice(index);
 	}
-	clear_cache();
+	release_cache();
 
 	for (auto& group : impl->groups)
 		ma_sound_group_uninit(&group);
@@ -183,14 +165,27 @@ bool audio_manager::is_available() const
 	return impl && impl->initialized;
 }
 
-void audio_manager::update(float /*elapsed_time*/)
+void audio_manager::update(float elapsed_time)
 {
+	(void)elapsed_time;
+
 	if (!is_available())
 		return;
 
 	apply_volumes();
 
-	//	@tool 再生が終わった音を片付ける（一時停止中は除く）
+	//	@tool 積まれた命令を積まれた順に実行する（実行中に積まれた命令は次の update() で実行する）
+	{
+		std::lock_guard lock(mutex);
+		executing_commands.swap(commands);
+	}
+	for (auto& item : executing_commands)
+		execute_command(item);
+	executing_commands.clear();
+
+	std::lock_guard lock(mutex);
+
+	//	再生が終わった音を片付ける
 	for (uint32_t index = 0; index < voices.size(); ++index)
 	{
 		voice& target = voices[index];
@@ -210,138 +205,83 @@ audio::sound_handle audio_manager::play(std::string_view file_path, const audio:
 	if (!is_available() || file_path.empty())
 		return {};
 
-	const size_t bus_index = static_cast<size_t>(parameters.target_bus);
-	if (bus_index >= audio::bus_count)
-		return {};
-
-	if (free_indices.empty())
-	{
-		DEBUG_WARNING_CATEGORY(logger::categorys::system, "Audio Voice Limit[%s]", std::string(file_path).c_str());
-		return {};
-	}
-
-	const std::wstring path = system_utility::convert_utf16(file_path);
-
-	//	@tool 2D 再生（3D の減衰・定位は使わない）
-	ma_uint32 flags = MA_SOUND_FLAG_NO_SPATIALIZATION;
-	if (parameters.stream)
-	{
-		flags |= MA_SOUND_FLAG_STREAM;
-	}
-	else
-	{
-		flags |= MA_SOUND_FLAG_DECODE;
-
-		//	@tool 初回は展開してキャッシュに登録する（以降の再生は展開済みのデータを共有する）
-		if (!cached_files.contains(path))
-		{
-			ma_result result = ma_resource_manager_register_file_w(ma_engine_get_resource_manager(&impl->engine), path.c_str(), MA_RESOURCE_MANAGER_DATA_SOURCE_FLAG_DECODE);
-			if (result != MA_SUCCESS)
-			{
-				DEBUG_WARNING_CATEGORY(logger::categorys::system, "Audio Load Failed[%s][%s]", std::string(file_path).c_str(), ma_result_description(result));
-				return {};
-			}
-			cached_files.insert(path);
-		}
-	}
-
-	auto sound = std::make_unique<ma_sound>();
-	ma_result result = ma_sound_init_from_file_w(&impl->engine, path.c_str(), flags, &impl->groups[bus_index], nullptr, sound.get());
-	if (result != MA_SUCCESS)
-	{
-		DEBUG_WARNING_CATEGORY(logger::categorys::system, "Audio Load Failed[%s][%s]", std::string(file_path).c_str(), ma_result_description(result));
-		return {};
-	}
-
-	ma_sound_set_volume(sound.get(), (std::max)(parameters.volume, 0.0f));
-	ma_sound_set_pitch(sound.get(), (std::max)(parameters.pitch, 0.01f));
-	ma_sound_set_looping(sound.get(), parameters.loop ? MA_TRUE : MA_FALSE);
-	if (parameters.fade_in_time > 0.0f)
-		ma_sound_set_fade_in_milliseconds(sound.get(), 0.0f, 1.0f, to_milliseconds(parameters.fade_in_time));
-
-	result = ma_sound_start(sound.get());
-	if (result != MA_SUCCESS)
-	{
-		DEBUG_WARNING_CATEGORY(logger::categorys::system, "Audio Start Failed[%s][%s]", std::string(file_path).c_str(), ma_result_description(result));
-		ma_sound_uninit(sound.get());
-		return {};
-	}
-
-	const uint32_t index = free_indices.back();
-	free_indices.pop_back();
-
-	voice& target = voices[index];
-	target.sound = std::move(sound);
-	target.target_bus = parameters.target_bus;
-	target.paused = false;
-	return { index, target.generation };
+	std::lock_guard lock(mutex);
+	return allocate_voice(file_path, parameters);
 }
 
 void audio_manager::stop(audio::sound_handle handle, float fade_out_time)
 {
-	voice* target = find_voice(handle);
-	if (!target)
-		return;
-
-	//	@tool フェード無し/一時停止中はすぐに解放する。フェード有りは止まった後に update() で解放する
-	if (fade_out_time <= 0.0f || target->paused)
-	{
-		release_voice(handle.index);
-		return;
-	}
-	ma_sound_stop_with_fade_in_milliseconds(target->sound.get(), to_milliseconds(fade_out_time));
+	std::lock_guard lock(mutex);
+	push_stop(handle, fade_out_time);
 }
 
 void audio_manager::stop_bus(audio::bus target_bus, float fade_out_time)
 {
+	//	@tool 呼んだ時点で確保されている音だけを止める（後から積まれた再生は止めない）
+	std::lock_guard lock(mutex);
 	for (uint32_t index = 0; index < voices.size(); ++index)
 	{
 		const voice& target = voices[index];
-		if (target.sound && target.target_bus == target_bus)
-			stop({ index, target.generation }, fade_out_time);
+		if (target.allocated && target.target_bus == target_bus)
+			push_stop({ index, target.generation }, fade_out_time);
 	}
 }
 
 void audio_manager::stop_all(float fade_out_time)
 {
+	std::lock_guard lock(mutex);
 	for (uint32_t index = 0; index < voices.size(); ++index)
 	{
 		const voice& target = voices[index];
-		if (target.sound)
-			stop({ index, target.generation }, fade_out_time);
+		if (target.allocated)
+			push_stop({ index, target.generation }, fade_out_time);
 	}
 }
 
 bool audio_manager::is_playing(audio::sound_handle handle) const
 {
+	std::lock_guard lock(mutex);
 	const voice* target = find_voice(handle);
-	return target && !target->paused && ma_sound_is_playing(target->sound.get());
+	return target && !target->paused;
 }
 
 void audio_manager::set_paused(audio::sound_handle handle, bool paused)
 {
-	voice* target = find_voice(handle);
-	if (!target || target->paused == paused)
+	std::lock_guard lock(mutex);
+	if (!find_voice(handle))
 		return;
 
-	//	@tool ma_sound_stop は再生位置を保持するので、再開は ma_sound_start で続きから鳴る
-	if (paused)
-		ma_sound_stop(target->sound.get());
-	else
-		ma_sound_start(target->sound.get());
-	target->paused = paused;
+	command item;
+	item.type = command::types::set_paused;
+	item.handle = handle;
+	item.flag = paused;
+	commands.push_back(std::move(item));
 }
 
 void audio_manager::set_volume(audio::sound_handle handle, float volume)
 {
-	if (voice* target = find_voice(handle))
-		ma_sound_set_volume(target->sound.get(), (std::max)(volume, 0.0f));
+	std::lock_guard lock(mutex);
+	if (!find_voice(handle))
+		return;
+
+	command item;
+	item.type = command::types::set_volume;
+	item.handle = handle;
+	item.value = (std::max)(volume, 0.0f);
+	commands.push_back(std::move(item));
 }
 
 void audio_manager::set_pitch(audio::sound_handle handle, float pitch)
 {
-	if (voice* target = find_voice(handle))
-		ma_sound_set_pitch(target->sound.get(), (std::max)(pitch, 0.01f));
+	std::lock_guard lock(mutex);
+	if (!find_voice(handle))
+		return;
+
+	command item;
+	item.type = command::types::set_pitch;
+	item.handle = handle;
+	item.value = (std::max)(pitch, 0.01f);
+	commands.push_back(std::move(item));
 }
 
 void audio_manager::play_bgm(std::string_view file_path, float fade_time)
@@ -349,23 +289,25 @@ void audio_manager::play_bgm(std::string_view file_path, float fade_time)
 	if (!is_available())
 		return;
 
+	std::lock_guard lock(mutex);
 	if (bgm_file_path == file_path && find_voice(bgm_handle))
 		return;
 
-	stop(bgm_handle, fade_time);
+	push_stop(bgm_handle, fade_time);
 
 	audio::play_parameters parameters;
 	parameters.target_bus = audio::bus::bgm;
 	parameters.loop = true;
 	parameters.stream = true;
 	parameters.fade_in_time = fade_time;
-	bgm_handle = play(file_path, parameters);
+	bgm_handle = allocate_voice(file_path, parameters);
 	bgm_file_path = bgm_handle.is_valid() ? std::string(file_path) : std::string();
 }
 
 void audio_manager::stop_bgm(float fade_time)
 {
-	stop(bgm_handle, fade_time);
+	std::lock_guard lock(mutex);
+	push_stop(bgm_handle, fade_time);
 	bgm_handle = {};
 	bgm_file_path.clear();
 }
@@ -377,9 +319,8 @@ float audio_manager::get_master_volume() const
 
 void audio_manager::set_master_volume(float volume)
 {
+	//	@tool 反映は update() で行う
 	master_volume_variable.set(clamp_volume(volume));
-	if (is_available())
-		apply_volumes();
 }
 
 float audio_manager::get_bus_volume(audio::bus target_bus) const
@@ -389,9 +330,8 @@ float audio_manager::get_bus_volume(audio::bus target_bus) const
 
 void audio_manager::set_bus_volume(audio::bus target_bus, float volume)
 {
+	//	@tool 反映は update() で行う
 	get_bus_variable(target_bus).set(clamp_volume(volume));
-	if (is_available())
-		apply_volumes();
 }
 
 void audio_manager::clear_cache()
@@ -399,14 +339,15 @@ void audio_manager::clear_cache()
 	if (!is_available())
 		return;
 
-	ma_resource_manager* resource_manager = ma_engine_get_resource_manager(&impl->engine);
-	for (const auto& path : cached_files)
-		ma_resource_manager_unregister_file_w(resource_manager, path.c_str());
-	cached_files.clear();
+	std::lock_guard lock(mutex);
+	command item;
+	item.type = command::types::clear_cache;
+	commands.push_back(std::move(item));
 }
 
 size_t audio_manager::get_playing_count() const
 {
+	std::lock_guard lock(mutex);
 	return voices.size() - free_indices.size();
 }
 
@@ -416,7 +357,7 @@ audio_manager::voice* audio_manager::find_voice(audio::sound_handle handle)
 		return nullptr;
 
 	voice& target = voices[handle.index];
-	return (target.sound && target.generation == handle.generation) ? &target : nullptr;
+	return (target.allocated && target.generation == handle.generation) ? &target : nullptr;
 }
 
 const audio_manager::voice* audio_manager::find_voice(audio::sound_handle handle) const
@@ -427,11 +368,207 @@ const audio_manager::voice* audio_manager::find_voice(audio::sound_handle handle
 void audio_manager::release_voice(uint32_t index)
 {
 	voice& target = voices[index];
-	ma_sound_uninit(target.sound.get());
-	target.sound.reset();
+	if (target.sound)
+	{
+		ma_sound_uninit(target.sound.get());
+		target.sound.reset();
+	}
+	target.allocated = false;
 	target.paused = false;
 	++target.generation;
 	free_indices.push_back(index);
+}
+
+audio::sound_handle audio_manager::allocate_voice(std::string_view file_path, const audio::play_parameters& parameters)
+{
+	const size_t bus_index = static_cast<size_t>(parameters.target_bus);
+	if (bus_index >= magic_enum::enum_count<audio::bus>())
+		return {};
+
+	if (free_indices.empty())
+	{
+		DEBUG_WARNING_CATEGORY(logger::categorys::system, "Audio Voice Limit[%s]", std::string(file_path).c_str());
+		return {};
+	}
+
+	//	@tool 枠だけ先に確保してハンドルを返す。音の生成は update() で行う
+	const uint32_t index = free_indices.back();
+	free_indices.pop_back();
+
+	voice& target = voices[index];
+	target.allocated = true;
+	target.target_bus = parameters.target_bus;
+	target.paused = false;
+	const audio::sound_handle handle = { index, target.generation };
+
+	command item;
+	item.type = command::types::play;
+	item.handle = handle;
+	item.file_path = std::string(file_path);
+	item.parameters = parameters;
+	commands.push_back(std::move(item));
+	return handle;
+}
+
+void audio_manager::push_stop(audio::sound_handle handle, float fade_out_time)
+{
+	if (!find_voice(handle))
+		return;
+
+	command item;
+	item.type = command::types::stop;
+	item.handle = handle;
+	item.value = fade_out_time;
+	commands.push_back(std::move(item));
+}
+
+void audio_manager::execute_command(command& item)
+{
+	//	@tool 再生はファイルの読込があるので mutex の外で行う
+	if (item.type == command::types::play)
+	{
+		execute_play(item);
+		return;
+	}
+
+	std::lock_guard lock(mutex);
+	switch (item.type)
+	{
+		case command::types::stop:
+		{
+			execute_stop(item.handle, item.value);
+			break;
+		}
+		case command::types::set_paused:
+		{
+			voice* target = find_voice(item.handle);
+			if (!target || !target->sound || target->paused == item.flag)
+				break;
+
+			//	ma_sound_stop は再生位置を保持するので、再開は ma_sound_start で続きから鳴る
+			if (item.flag)
+				ma_sound_stop(target->sound.get());
+			else
+				ma_sound_start(target->sound.get());
+			target->paused = item.flag;
+			break;
+		}
+		case command::types::set_volume:
+		{
+			voice* target = find_voice(item.handle);
+			if (target && target->sound)
+				ma_sound_set_volume(target->sound.get(), item.value);
+			break;
+		}
+		case command::types::set_pitch:
+		{
+			voice* target = find_voice(item.handle);
+			if (target && target->sound)
+				ma_sound_set_pitch(target->sound.get(), item.value);
+			break;
+		}
+		case command::types::clear_cache:
+		{
+			release_cache();
+			break;
+		}
+		default:
+			break;
+	}
+}
+
+void audio_manager::execute_play(command& item)
+{
+	const std::string& file_path = item.file_path;
+	const audio::play_parameters& parameters = item.parameters;
+	const size_t bus_index = static_cast<size_t>(parameters.target_bus);
+	const std::wstring path = system_utility::convert_utf16(file_path);
+
+	//	@tool 生成に失敗したら枠を返す（ハンドルは無効になる）
+	auto fail = [this, &item]()
+	{
+		std::lock_guard lock(mutex);
+		if (find_voice(item.handle))
+			release_voice(item.handle.index);
+	};
+
+	//	2D 再生
+	ma_uint32 flags = MA_SOUND_FLAG_NO_SPATIALIZATION;
+	if (parameters.stream)
+	{
+		flags |= MA_SOUND_FLAG_STREAM;
+	}
+	else
+	{
+		flags |= MA_SOUND_FLAG_DECODE;
+
+		//	初回は展開してキャッシュに登録する
+		if (!cached_files.contains(path))
+		{
+			ma_result result = ma_resource_manager_register_file_w(ma_engine_get_resource_manager(&impl->engine), path.c_str(), MA_RESOURCE_MANAGER_DATA_SOURCE_FLAG_DECODE);
+			if (result != MA_SUCCESS)
+			{
+				DEBUG_WARNING_CATEGORY(logger::categorys::system, "Audio Load Failed[%s][%s]", file_path.c_str(), ma_result_description(result));
+				fail();
+				return;
+			}
+			cached_files.insert(path);
+		}
+	}
+
+	auto sound = std::make_unique<ma_sound>();
+	ma_result result = ma_sound_init_from_file_w(&impl->engine, path.c_str(), flags, &impl->groups[bus_index], nullptr, sound.get());
+	if (result != MA_SUCCESS)
+	{
+		DEBUG_WARNING_CATEGORY(logger::categorys::system, "Audio Load Failed[%s][%s]", file_path.c_str(), ma_result_description(result));
+		fail();
+		return;
+	}
+
+	ma_sound_set_volume(sound.get(), (std::max)(parameters.volume, 0.0f));
+	ma_sound_set_pitch(sound.get(), (std::max)(parameters.pitch, 0.01f));
+	ma_sound_set_looping(sound.get(), parameters.loop ? MA_TRUE : MA_FALSE);
+	if (parameters.fade_in_time > 0.0f)
+		ma_sound_set_fade_in_milliseconds(sound.get(), 0.0f, 1.0f, to_milliseconds(parameters.fade_in_time));
+
+	result = ma_sound_start(sound.get());
+	if (result != MA_SUCCESS)
+	{
+		DEBUG_WARNING_CATEGORY(logger::categorys::system, "Audio Start Failed[%s][%s]", file_path.c_str(), ma_result_description(result));
+		ma_sound_uninit(sound.get());
+		fail();
+		return;
+	}
+
+	//	@tool 枠は update() の中でしか返さないので、ここでは必ず確保されたまま残っている
+	std::lock_guard lock(mutex);
+	if (voice* target = find_voice(item.handle))
+		target->sound = std::move(sound);
+	else
+		ma_sound_uninit(sound.get());
+}
+
+void audio_manager::execute_stop(audio::sound_handle handle, float fade_out_time)
+{
+	voice* target = find_voice(handle);
+	if (!target)
+		return;
+
+	//	フェード無し/一時停止中はすぐに解放する。フェード有りは止まった後に update() で解放する
+	if (fade_out_time <= 0.0f || target->paused || !target->sound)
+	{
+		release_voice(handle.index);
+		return;
+	}
+	ma_sound_stop_with_fade_in_milliseconds(target->sound.get(), to_milliseconds(fade_out_time));
+}
+
+void audio_manager::release_cache()
+{
+	ma_resource_manager* resource_manager = ma_engine_get_resource_manager(&impl->engine);
+	for (const auto& path : cached_files)
+		ma_resource_manager_unregister_file_w(resource_manager, path.c_str());
+	cached_files.clear();
 }
 
 void audio_manager::apply_volumes()

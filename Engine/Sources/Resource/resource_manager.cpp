@@ -179,7 +179,7 @@ std::wstring resource_manager::make_key(std::string_view file_path)
 size_t resource_manager::to_index(resource::load_priority priority)
 {
 	const size_t index = static_cast<size_t>(priority);
-	return index < resource::load_priority_count ? index : static_cast<size_t>(resource::load_priority::normal);
+	return index < magic_enum::enum_count<resource::load_priority>() ? index : static_cast<size_t>(resource::load_priority::normal);
 }
 
 void resource_manager::request_load(const std::shared_ptr<resource::load_operation_base>& operation, resource::load_priority priority, bool force_load, loader_factory factory)
@@ -565,7 +565,7 @@ void resource_manager::worker_loop()
 				break;
 
 			//	@tool —Dæ“x‚Ì‚‚¢•¨‚©‚çŽæ‚èo‚·
-			for (size_t index = resource::load_priority_count; index-- > 0; )
+			for (size_t index = magic_enum::enum_count<resource::load_priority>(); index-- > 0; )
 			{
 				auto& queue = pending_queues[index];
 				if (!queue.empty())

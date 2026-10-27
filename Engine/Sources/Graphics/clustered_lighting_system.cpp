@@ -470,8 +470,8 @@ void clustered_lighting_system::render(graphics_context& context)
 	dc->PSSetConstantBuffers(common_pipeline_states::scene_cbv_index, 1, context.scene_constant_buffer.GetAddressOf());
 	dc->PSSetConstantBuffers(clustered_cbv_index, 1, constant_buffer.GetAddressOf());
 
-	ID3D11ShaderResourceView* g_buffer_srvs[static_cast<UINT>(common_pipeline_states::gbuffer_id::max)];
-	for (UINT index = 0; index < static_cast<UINT>(common_pipeline_states::gbuffer_id::max); ++index)
+	ID3D11ShaderResourceView* g_buffer_srvs[magic_enum::enum_count<common_pipeline_states::gbuffer_id>()];
+	for (UINT index = 0; index < magic_enum::enum_count<common_pipeline_states::gbuffer_id>(); ++index)
 	{
 		g_buffer_srvs[index] = context.g_buffer_textures[index]->get_shader_resource_view().Get();
 	}

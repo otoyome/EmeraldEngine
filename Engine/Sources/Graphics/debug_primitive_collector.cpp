@@ -39,7 +39,7 @@ void debug_primitive_manager::get_container(debug_draw_primitive_container& cont
 
 	//	•`‰æ“o˜^
 	HRESULT hr{ S_OK };
-	for (UINT index = 0; index < static_cast<int>(debug_draw_primitive_container::line_buffer_id::max); ++index)
+	for (UINT index = 0; index < magic_enum::enum_count<debug_draw_primitive_container::line_buffer_id>(); ++index)
 	{
 		container.line_buffer_datas[index].color_meshs.clear();
 		if (vertices[index].empty())

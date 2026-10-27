@@ -2,15 +2,14 @@
 #define __LIGHTS_HLSLI__
 
 //	ライト情報
-//	平行光源は position / inv_range、点光源は direction / cone を使わない
 struct light_data
 {
 	float3	position;	//	座標
 	float	inv_range;	//	1 / 影響範囲
-	float3	color;		//	色 × 強さ
+	float3	color;		//	色 x 強さ
 	uint	attribute;	//	ライトフラグ
 	float3	direction;	//	向き
-	uint	cone;		//	16byte : インナーcos, 16byte : アウターcos
+	uint	cone;		//	インナー/アウターcos(各16byte)
 };
 
 //	距離減衰

@@ -24,10 +24,7 @@ namespace resource
 		low,
 		normal,
 		high,
-
-		max,
 	};
-	static constexpr size_t load_priority_count = static_cast<size_t>(load_priority::max);
 
 	//	@tool ˆ—‚ªI—¹‚µ‚Ä‚¢‚é‚©(¬”Û‚Í–â‚í‚È‚¢)
 	inline bool is_finished(operation_state state)

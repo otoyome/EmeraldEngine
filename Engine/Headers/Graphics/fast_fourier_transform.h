@@ -8,8 +8,6 @@ class fast_fourier_transform
 	{
 		row,
 		col,
-
-		max,
 	};
 
 	//	複素数テクスチャ番号
@@ -19,8 +17,6 @@ class fast_fourier_transform
 		imaginary0,	// 虚数部0
 		real1,		// 実数部1
 		imaginary1,	// 虚数部1
-
-		max,
 	};
 
 public:
@@ -36,7 +32,6 @@ public:
 	{
 		forward,
 		inverse,
-		max,
 	};
 
 public:
@@ -60,8 +55,8 @@ private:
 	void solve_core(ID3D11DeviceContext* context, modes mode, directions direction);
 
 private:
-	std::shared_ptr<compute_shader> cs[static_cast<int>(modes::max)][static_cast<int>(directions::max)];
-	texture_ptr complex_number_textures[static_cast<int>(textures::max)];
+	std::shared_ptr<compute_shader> cs[magic_enum::enum_count<modes>()][magic_enum::enum_count<directions>()];
+	texture_ptr complex_number_textures[magic_enum::enum_count<textures>()];
 	sizes texture_size;
 	int	current_texture_index = 0;
 	int	next_texture_index = 1;

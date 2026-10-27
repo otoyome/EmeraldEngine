@@ -24,7 +24,6 @@ public:
 		base,
 		main,
 	};
-	static constexpr size_t ui_max = magic_enum::enum_count<ui_id>();
 
 public:
 	struct shake_descs
@@ -36,7 +35,7 @@ public:
 	struct object_descs
 	{
 		std::string name;
-		std::shared_ptr<ui_image> objects[ui_max];
+		std::shared_ptr<ui_image> objects[magic_enum::enum_count<ui_id>()];
 	};
 
 public:
@@ -62,8 +61,8 @@ private:
 	float animation_speed = 0.025f;
 	shake_descs shake_desc;
 
-	std::shared_ptr<ui_image> ui[ui_max];
-	math::float4 origin_rects[ui_max];
-	math::float4 origin_colors[ui_max];
+	std::shared_ptr<ui_image> ui[magic_enum::enum_count<ui_id>()];
+	math::float4 origin_rects[magic_enum::enum_count<ui_id>()];
+	math::float4 origin_colors[magic_enum::enum_count<ui_id>()];
 	math::float2 shake_offset = {0, 0};
 };

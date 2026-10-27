@@ -19,7 +19,6 @@ enum class object_profile_function
 	post_update,
 	pre_render,
 	post_render,
-	max,
 };
 
 //	測定は以下のマクロのみで行う(USE_IMGUI未定義時は何もしない)
@@ -53,7 +52,6 @@ public:
 		renderer_gpu,		//	レンダラー単位のGPU時間
 		render_job_cpu,		//	描画ジョブ単位のCPU時間
 		gpu_scope,			//	描画ジョブ単位のGPU時間
-		max,
 	};
 
 	//	履歴の保持フレーム数
@@ -93,20 +91,18 @@ private:
 		int missing_frames = 0;
 	};
 
-	static constexpr size_t object_function_count = static_cast<size_t>(object_profile_function::max);
-
 	struct object_frame_value
 	{
 		std::string label;
 		std::string type;
-		std::array<float, object_function_count> times{};
+		std::array<float, magic_enum::enum_count<object_profile_function>()> times{};
 	};
 
 	struct object_entry
 	{
 		std::string label;
 		std::string type;
-		std::array<history, object_function_count> times;
+		std::array<history, magic_enum::enum_count<object_profile_function>()> times;
 		history total;
 		UINT instance_count = 0;
 		int missing_frames = 0;
@@ -181,9 +177,9 @@ private:
 	history frame_interval;
 
 	std::mutex mutex;
-	std::array<std::unordered_map<std::string, frame_value>, static_cast<size_t>(category::max)> frame_values;
-	std::array<bool, static_cast<size_t>(category::max)> frame_submitted{};
-	std::array<std::map<std::string, flat_entry>, static_cast<size_t>(category::max)> entries;
+	std::array<std::unordered_map<std::string, frame_value>, magic_enum::enum_count<category>()> frame_values;
+	std::array<bool, magic_enum::enum_count<category>()> frame_submitted{};
+	std::array<std::map<std::string, flat_entry>, magic_enum::enum_count<category>()> entries;
 
 	std::unordered_map<size_t, object_frame_value> object_frame_values;
 	std::map<std::string, object_entry> object_entries;

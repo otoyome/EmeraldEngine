@@ -21,8 +21,6 @@ class graphics_custom_pipeline_state : public graphics_pipeline_state
 		depth_off,
 
 		decal,
-
-		max,
 	};
 
 	enum class blend_state
@@ -31,8 +29,6 @@ class graphics_custom_pipeline_state : public graphics_pipeline_state
 		translucent,	//	îºìßñæ
 		addative,		//	â¡éZ
 		multiply,		//	èÊéZ
-
-		max,
 	};
 
 	enum class raster_state
@@ -41,8 +37,6 @@ class graphics_custom_pipeline_state : public graphics_pipeline_state
 		two_sided,
 		wire,
 		wire_two_sided,
-
-		max,
 	};
 
 	enum class arrangement
@@ -52,15 +46,13 @@ class graphics_custom_pipeline_state : public graphics_pipeline_state
 		domain,
 		geometry,
 		pixel,
-
-		max,
 	};
 
 	struct index_map
 	{
 		struct indices
 		{
-			UINT ids[static_cast<int>(arrangement::max)];
+			UINT ids[magic_enum::enum_count<arrangement>()];
 			system_utility::hash_key hash = -1;
 			indices()
 			{
@@ -133,9 +125,9 @@ private:
 	index_map index_map;
 	std::vector<input_resource_desc> input_resource_desces;
 
-	Microsoft::WRL::ComPtr<ID3D11DepthStencilState> depth_stencil_states[static_cast<int>(depth_stencil_state::max)];
-	Microsoft::WRL::ComPtr<ID3D11BlendState> blend_states[static_cast<int>(blend_state::max)];
-	Microsoft::WRL::ComPtr<ID3D11RasterizerState> rasterizer_states[static_cast<int>(raster_state::max)];
+	Microsoft::WRL::ComPtr<ID3D11DepthStencilState> depth_stencil_states[magic_enum::enum_count<depth_stencil_state>()];
+	Microsoft::WRL::ComPtr<ID3D11BlendState> blend_states[magic_enum::enum_count<blend_state>()];
+	Microsoft::WRL::ComPtr<ID3D11RasterizerState> rasterizer_states[magic_enum::enum_count<raster_state>()];
 
 	struct constant_buffer_data
 	{
@@ -145,7 +137,7 @@ private:
 	constant_buffer_data deferred_light_probe_buffer_data;
 	constant_buffer_data forward_light_buffer_data;
 	constant_buffer_data shadow_map_buffer_data;
-	constant_buffer_data parameter_buffer_data[static_cast<int>(arrangement::max)];
+	constant_buffer_data parameter_buffer_data[magic_enum::enum_count<arrangement>()];
 
 	std::vector<std::pair<semantic, UINT>> semantic_list;
 
@@ -153,7 +145,7 @@ private:
 	struct primitive_datas
 	{
 		bool use;
-		UINT cbv_indices[static_cast<int>(arrangement::max)];
+		UINT cbv_indices[magic_enum::enum_count<arrangement>()];
 	};
 
 #if defined(USE_IMGUI)

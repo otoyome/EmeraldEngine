@@ -215,10 +215,8 @@ struct debug_draw_primitive_container
 	{
 		normal,
 		disable_depth_test,
-
-		max,
 	};
-	buffer_datas line_buffer_datas[static_cast<int>(line_buffer_id::max)];
+	buffer_datas line_buffer_datas[magic_enum::enum_count<line_buffer_id>()];
 };
 #endif // defined(USE_IMGUI)
 
@@ -258,7 +256,7 @@ struct graphics_context
 	//	シーンテクスチャ
 	texture_ptr scene_color_texture;
 	texture_ptr scene_depth_texture;
-	texture_ptr g_buffer_textures[static_cast<UINT>(common_pipeline_states::gbuffer_id::max)];
+	texture_ptr g_buffer_textures[magic_enum::enum_count<common_pipeline_states::gbuffer_id>()];
 	texture_ptr work_texture[8];
 
 	//	遅延ライティング処理用情報

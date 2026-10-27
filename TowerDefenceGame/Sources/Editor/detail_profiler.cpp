@@ -131,7 +131,7 @@ void detail_profiler::end_frame()
 				object_frame_values.emplace(id, std::move(value));
 				continue;
 			}
-			for (size_t index = 0; index < object_function_count; ++index)
+			for (size_t index = 0; index < magic_enum::enum_count<object_profile_function>(); ++index)
 				it->second.times[index] += value.times[index];
 		}
 		buffer->values.clear();
@@ -139,7 +139,7 @@ void detail_profiler::end_frame()
 
 	if (!paused)
 	{
-		for (size_t index = 0; index < static_cast<size_t>(category::max); ++index)
+		for (size_t index = 0; index < magic_enum::enum_count<category>(); ++index)
 		{
 			auto kind = static_cast<category>(index);
 
@@ -340,25 +340,25 @@ void detail_profiler::commit_objects()
 	//	型単位に集計
 	struct type_value
 	{
-		std::array<float, object_function_count> times{};
+		std::array<float, magic_enum::enum_count<object_profile_function>()> times{};
 		UINT count = 0;
 	};
 	std::unordered_map<std::string, type_value> type_values;
 	for (auto& [id, value] : object_frame_values)
 	{
 		auto& type = type_values[value.type];
-		for (size_t index = 0; index < object_function_count; ++index)
+		for (size_t index = 0; index < magic_enum::enum_count<object_profile_function>(); ++index)
 			type.times[index] += value.times[index];
 		++type.count;
 	}
 
-	auto commit = [](std::map<std::string, object_entry>& list, const std::string& key, const std::string& label, const std::string& type, const std::array<float, object_function_count>& times, UINT count)
+	auto commit = [](std::map<std::string, object_entry>& list, const std::string& key, const std::string& label, const std::string& type, const std::array<float, magic_enum::enum_count<object_profile_function>()>& times, UINT count)
 	{
 		auto& entry = list[key];
 		entry.label = label;
 		entry.type = type;
 		float total = 0.0f;
-		for (size_t index = 0; index < object_function_count; ++index)
+		for (size_t index = 0; index < magic_enum::enum_count<object_profile_function>(); ++index)
 		{
 			entry.times[index].push(times[index]);
 			total += times[index];
@@ -635,8 +635,7 @@ void detail_profiler::imgui_render_renderer_table()
 
 void detail_profiler::imgui_render_object_table(const char* id, std::map<std::string, object_entry>& list, bool type_mode)
 {
-	constexpr int function_count = static_cast<int>(object_function_count);
-	static_assert(function_count + 2 <= table_row::max_values);
+	static_assert(magic_enum::enum_count<object_profile_function>() + 2 <= table_row::max_values);
 
 	//	行データ作成
 	std::vector<table_row> rows;
@@ -650,26 +649,26 @@ void detail_profiler::imgui_render_object_table(const char* id, std::map<std::st
 		table_row row;
 		row.texts[0] = entry.label;
 		row.texts[1] = entry.type;
-		for (int index = 0; index < function_count; ++index)
+		for (int index = 0; index < static_cast<int>(magic_enum::enum_count<object_profile_function>()); ++index)
 			row.values[index] = get_value(entry.times[index]);
-		row.values[function_count] = get_value(entry.total);
-		row.values[function_count + 1] = static_cast<float>(entry.instance_count);
+		row.values[magic_enum::enum_count<object_profile_function>()] = get_value(entry.total);
+		row.values[magic_enum::enum_count<object_profile_function>() + 1] = static_cast<float>(entry.instance_count);
 		row.history = &entry.total;
-		total += row.values[function_count];
+		total += row.values[magic_enum::enum_count<object_profile_function>()];
 		rows.emplace_back(row);
 	}
 	ImGui::Text("total : %.3f ms  (%d items)", total, static_cast<int>(rows.size()));
 	ImGui::TextDisabled("sum of per-object cpu time (objects run in parallel, so this can exceed wall time)");
 
 	//	型モード: 名前/個数/各関数/合計、個別モード: 名前/型/各関数/合計
-	const int column_count = 2 + function_count + 1;
+	const int column_count = 2 + static_cast<int>(magic_enum::enum_count<object_profile_function>()) + 1;
 	constexpr ImGuiTableFlags flags = ImGuiTableFlags_Sortable | ImGuiTableFlags_SortMulti | ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV | ImGuiTableFlags_Resizable | ImGuiTableFlags_ScrollY | ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_Hideable;
 	if (ImGui::BeginTable(id, column_count, flags))
 	{
 		ImGui::TableSetupScrollFreeze(1, 1);
 		ImGui::TableSetupColumn(type_mode ? "type" : "object", ImGuiTableColumnFlags_WidthStretch);
 		ImGui::TableSetupColumn(type_mode ? "count" : "type", type_mode ? ImGuiTableColumnFlags_PreferSortDescending : ImGuiTableColumnFlags_None);
-		for (int index = 0; index < function_count; ++index)
+		for (int index = 0; index < static_cast<int>(magic_enum::enum_count<object_profile_function>()); ++index)
 			ImGui::TableSetupColumn(magic_enum::enum_names<object_profile_function>()[index].data(), ImGuiTableColumnFlags_PreferSortDescending);
 		ImGui::TableSetupColumn("total ms", ImGuiTableColumnFlags_DefaultSort | ImGuiTableColumnFlags_PreferSortDescending);
 		ImGui::TableHeadersRow();
@@ -680,8 +679,8 @@ void detail_profiler::imgui_render_object_table(const char* id, std::map<std::st
 			for (auto& row : rows)
 			{
 				std::array<float, table_row::max_values> values{};
-				values[0] = row.values[function_count + 1];
-				for (int index = 0; index <= function_count; ++index)
+				values[0] = row.values[magic_enum::enum_count<object_profile_function>() + 1];
+				for (int index = 0; index <= static_cast<int>(magic_enum::enum_count<object_profile_function>()); ++index)
 					values[index + 1] = row.values[index];
 				row.values = values;
 			}
@@ -695,7 +694,7 @@ void detail_profiler::imgui_render_object_table(const char* id, std::map<std::st
 		const int value_offset = type_mode ? 1 : 0;
 		for (auto& row : rows)
 		{
-			const float row_total = row.values[value_offset + function_count];
+			const float row_total = row.values[value_offset + magic_enum::enum_count<object_profile_function>()];
 			ImGui::TableNextRow();
 			ImGui::TableSetColumnIndex(0);
 			ImGui::TextUnformatted(row.texts[0].data(), row.texts[0].data() + row.texts[0].size());
@@ -706,7 +705,7 @@ void detail_profiler::imgui_render_object_table(const char* id, std::map<std::st
 				ImGui::Text("%u", static_cast<UINT>(row.values[0]));
 			else
 				ImGui::TextUnformatted(row.texts[1].data(), row.texts[1].data() + row.texts[1].size());
-			for (int index = 0; index < function_count; ++index)
+			for (int index = 0; index < static_cast<int>(magic_enum::enum_count<object_profile_function>()); ++index)
 			{
 				ImGui::TableSetColumnIndex(2 + index);
 				const float value = row.values[value_offset + index];
@@ -715,7 +714,7 @@ void detail_profiler::imgui_render_object_table(const char* id, std::map<std::st
 				else
 					ImGui::TextDisabled("-");
 			}
-			ImGui::TableSetColumnIndex(2 + function_count);
+			ImGui::TableSetColumnIndex(2 + static_cast<int>(magic_enum::enum_count<object_profile_function>()));
 			time_cell(row_total, total > 0.0f ? row_total / total : 0.0f);
 		}
 		ImGui::EndTable();

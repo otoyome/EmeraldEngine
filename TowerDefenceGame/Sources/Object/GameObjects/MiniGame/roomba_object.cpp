@@ -108,11 +108,19 @@ roomba_object::~roomba_object()
 
 void roomba_object::on_finalize()
 {
+	stop_sounds();
 	unregister_effects();
 
 	object_manager::instance()->unregister_object(push_box);
 	object_manager::instance()->unregister_object(model);
 	model.reset();
+}
+
+void roomba_object::on_deactive()
+{
+	//	@tool 非アクティブの間は post_update が呼ばれず止められないので、ここで止める
+	stop_sounds();
+	base::on_deactive();
 }
 
 #if defined(USE_IMGUI)

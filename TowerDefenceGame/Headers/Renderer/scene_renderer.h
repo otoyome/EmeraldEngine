@@ -146,6 +146,6 @@ private:
 	render_pass rendering_pass;
 	D3D11_VIEWPORT viewport;
 
-	graphics_pipeline_state_ptr debug_draw_line_pipeline_states[static_cast<int>(debug_draw_primitive_container::line_buffer_id::max)];
+	graphics_pipeline_state_ptr debug_draw_line_pipeline_states[magic_enum::enum_count<debug_draw_primitive_container::line_buffer_id>()];
 };
 #endif // defined(USE_IMGUI)

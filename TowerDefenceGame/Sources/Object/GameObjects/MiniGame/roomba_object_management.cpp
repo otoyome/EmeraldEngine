@@ -19,6 +19,12 @@ namespace
 	constexpr float death_spin_speed = math::angle::to_radian(720.0f);
 	constexpr math::float3 dead_impulse = system_units::convert_m_to_unit(math::float3(0.0f, 10.0f, 0.0f));
 
+	//	サウンド
+	constexpr std::string_view accelerate_sound_path = "Assets/Resources/Sounds/roomba_accelerate.wav";
+	constexpr std::string_view brake_sound_path = "Assets/Resources/Sounds/roomba_brake.wav";
+	constexpr float brake_sound_min_speed = 1.0f;	//	ブレーキ音を鳴らす最低速度(m/s)
+	constexpr float brake_sound_max_speed = 10.0f;	//	ブレーキ音が最大音量になる速度(m/s)
+
 	//	地面の傾きを角度で算出
 	math::float3 calculate_ground_tilt(const math::float3& euler, const math::float3& normal)
 	{
@@ -168,6 +174,10 @@ void roomba_object::fixed_update(float elapsed_time)
 	//	各種速度関係の情報はクリアしておく
 	move_vector = {};
 
+	//	サウンド制御用に入力状態を残しておく
+	last_dash_input = (action_data.move.x != 0 || action_data.move.z != 0) && action_data.dash;
+	last_brake_input = action_data.brake;
+
 	//	アクション情報クリア
 	action_data = {};
 }
@@ -175,6 +185,7 @@ void roomba_object::fixed_update(float elapsed_time)
 void roomba_object::post_update(float elapsed_time)
 {
 	update_effects(elapsed_time);
+	update_sounds();
 }
 
 void roomba_object::input_action_data(action_datas data)
@@ -777,6 +788,71 @@ std::weak_ptr<effect_instance> roomba_object::play_effect(size_t effect_id)
 		effect_instances.emplace_back(instance);
 	}
 	return instance;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+void roomba_object::update_sounds()
+{
+	if (!audio_manager::is_valid())
+		return;
+
+	audio_manager* audio = audio_manager::instance();
+
+	//	生存中だけ鳴らす
+	bool active = check_same_state(roomba_object::states::active);
+	float speed_m_s = system_units::convert_unit_to_m(math::vector3f(velocity).length());
+
+	//	加速音：ダッシュ中はループさせ、速度に合わせてピッチと音量を上げる
+	if (active && last_dash_input)
+	{
+		if (!audio->is_playing(accelerate_sound))
+		{
+			audio::play_parameters parameters;
+			parameters.loop = true;
+			parameters.fade_in_time = 0.1f;
+			accelerate_sound = audio->play(accelerate_sound_path, parameters);
+		}
+		float max_speed_m_s = system_units::convert_unit_to_m(get_max_speed(move_mode::dash));
+		float speed_rate = math::saturate(speed_m_s / max_speed_m_s);
+		audio->set_pitch(accelerate_sound, math::lerp(0.8f, 2.0f, speed_rate));
+		audio->set_volume(accelerate_sound, math::lerp(0.5f, 1.0f, speed_rate));
+	}
+	else if (accelerate_sound.is_valid())
+	{
+		audio->stop(accelerate_sound, 0.3f);
+		accelerate_sound = {};
+	}
+
+	//	ブレーキ音：接地中にブレーキで減速している間だけループさせ、速いほど大きく鳴らす
+	if (active && last_brake_input && is_flag(flags::on_ground) && speed_m_s >= brake_sound_min_speed)
+	{
+		if (!audio->is_playing(brake_sound))
+		{
+			audio::play_parameters parameters;
+			parameters.loop = true;
+			parameters.fade_in_time = 0.05f;
+			brake_sound = audio->play(brake_sound_path, parameters);
+		}
+		float speed_rate = math::saturate((speed_m_s - brake_sound_min_speed) / (brake_sound_max_speed - brake_sound_min_speed));
+		audio->set_pitch(brake_sound, math::lerp(0.9f, 1.1f, speed_rate));
+		audio->set_volume(brake_sound, math::lerp(0.3f, 1.0f, speed_rate));
+	}
+	else if (brake_sound.is_valid())
+	{
+		audio->stop(brake_sound, 0.15f);
+		brake_sound = {};
+	}
+}
+
+void roomba_object::stop_sounds()
+{
+	if (audio_manager::is_valid())
+	{
+		audio_manager::instance()->stop(accelerate_sound, 0.1f);
+		audio_manager::instance()->stop(brake_sound, 0.1f);
+	}
+	accelerate_sound = {};
+	brake_sound = {};
 }
 
 

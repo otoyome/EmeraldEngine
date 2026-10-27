@@ -302,17 +302,166 @@ float convert_unit_to_m(float value)
 	return value * convert_length_factor(length_units_unit, length_units_meter);
 }
 
-float2 convert_m_to_unit(float2 value)
+//	ベクトル版
+float2 convert_um_to_unit(float2 value) { return value * convert_length_factor(length_units_micro_meter, length_units_unit); }
+float3 convert_um_to_unit(float3 value) { return value * convert_length_factor(length_units_micro_meter, length_units_unit); }
+float4 convert_um_to_unit(float4 value) { return value * convert_length_factor(length_units_micro_meter, length_units_unit); }
+float2 convert_mm_to_unit(float2 value) { return value * convert_length_factor(length_units_milli_meter, length_units_unit); }
+float3 convert_mm_to_unit(float3 value) { return value * convert_length_factor(length_units_milli_meter, length_units_unit); }
+float4 convert_mm_to_unit(float4 value) { return value * convert_length_factor(length_units_milli_meter, length_units_unit); }
+float2 convert_cm_to_unit(float2 value) { return value * convert_length_factor(length_units_centi_meter, length_units_unit); }
+float3 convert_cm_to_unit(float3 value) { return value * convert_length_factor(length_units_centi_meter, length_units_unit); }
+float4 convert_cm_to_unit(float4 value) { return value * convert_length_factor(length_units_centi_meter, length_units_unit); }
+float2 convert_m_to_unit(float2 value) { return value * convert_length_factor(length_units_meter, length_units_unit); }
+float3 convert_m_to_unit(float3 value) { return value * convert_length_factor(length_units_meter, length_units_unit); }
+float4 convert_m_to_unit(float4 value) { return value * convert_length_factor(length_units_meter, length_units_unit); }
+float2 convert_unit_to_um(float2 value) { return value * convert_length_factor(length_units_unit, length_units_micro_meter); }
+float3 convert_unit_to_um(float3 value) { return value * convert_length_factor(length_units_unit, length_units_micro_meter); }
+float4 convert_unit_to_um(float4 value) { return value * convert_length_factor(length_units_unit, length_units_micro_meter); }
+float2 convert_unit_to_mm(float2 value) { return value * convert_length_factor(length_units_unit, length_units_milli_meter); }
+float3 convert_unit_to_mm(float3 value) { return value * convert_length_factor(length_units_unit, length_units_milli_meter); }
+float4 convert_unit_to_mm(float4 value) { return value * convert_length_factor(length_units_unit, length_units_milli_meter); }
+float2 convert_unit_to_cm(float2 value) { return value * convert_length_factor(length_units_unit, length_units_centi_meter); }
+float3 convert_unit_to_cm(float3 value) { return value * convert_length_factor(length_units_unit, length_units_centi_meter); }
+float4 convert_unit_to_cm(float4 value) { return value * convert_length_factor(length_units_unit, length_units_centi_meter); }
+float2 convert_unit_to_m(float2 value) { return value * convert_length_factor(length_units_unit, length_units_meter); }
+float3 convert_unit_to_m(float3 value) { return value * convert_length_factor(length_units_unit, length_units_meter); }
+float4 convert_unit_to_m(float4 value) { return value * convert_length_factor(length_units_unit, length_units_meter); }
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//	質量単位
+static const int mass_units_micro_gram = 0;
+static const int mass_units_milli_gram = 1;
+static const int mass_units_gram = 2;
+static const int mass_units_kilogram = 3;
+static const int mass_units_unit = 4;	//	基準単位 1.0unit = 1kg
+
+//	指定の単位に変換
+float convert_mass_factor(int origin, int dest)
 {
-	return float2(convert_m_to_unit(value.x), convert_m_to_unit(value.y));
+	switch (origin)
+	{
+		case mass_units_micro_gram:
+		{
+			switch (dest)
+			{
+				case mass_units_milli_gram: return 0.001f;
+				case mass_units_gram: return 1e-6f;
+				case mass_units_kilogram: return 1e-9f;
+				case mass_units_unit: return 1e-9f;
+			}
+			break;
+		}
+		case mass_units_milli_gram:
+		{
+			switch (dest)
+			{
+				case mass_units_micro_gram: return 1000.0f;
+				case mass_units_gram: return 0.001f;
+				case mass_units_kilogram: return 1e-6f;
+				case mass_units_unit: return 1e-6f;
+			}
+			break;
+		}
+		case mass_units_gram:
+		{
+			switch (dest)
+			{
+				case mass_units_micro_gram: return 1000000.0f;
+				case mass_units_milli_gram: return 1000.0f;
+				case mass_units_kilogram: return 0.001f;
+				case mass_units_unit: return 0.001f;
+			}
+			break;
+		}
+		case mass_units_kilogram:
+		{
+			switch (dest)
+			{
+				case mass_units_micro_gram: return 1000000000.0f;
+				case mass_units_milli_gram: return 1000000.0f;
+				case mass_units_gram: return 1000.0f;
+				case mass_units_unit: return 1.0f;
+			}
+			break;
+		}
+		case mass_units_unit:
+		{
+			switch (dest)
+			{
+				case mass_units_micro_gram: return 1000000000.0f;
+				case mass_units_milli_gram: return 1000000.0f;
+				case mass_units_gram: return 1000.0f;
+				case mass_units_kilogram: return 1.0f;
+			}
+			break;
+		}
+	}
+	return 1.0f;
 }
-float3 convert_m_to_unit(float3 value)
+
+//	マイクログラム <> ミリグラム変換
+float convert_ug_to_mg(float value)
 {
-	return float3(convert_m_to_unit(value.x), convert_m_to_unit(value.y), convert_m_to_unit(value.z));
+	return value * convert_mass_factor(mass_units_micro_gram, mass_units_milli_gram);
 }
-float4 convert_m_to_unit(float4 value)
+float convert_mg_to_ug(float value)
 {
-	return float4(convert_m_to_unit(value.x), convert_m_to_unit(value.y), convert_m_to_unit(value.z), convert_m_to_unit(value.w));
+	return value * convert_mass_factor(mass_units_milli_gram, mass_units_micro_gram);
+}
+
+//	ミリグラム <> グラム変換
+float convert_mg_to_g(float value)
+{
+	return value * convert_mass_factor(mass_units_milli_gram, mass_units_gram);
+}
+float convert_g_to_mg(float value)
+{
+	return value * convert_mass_factor(mass_units_gram, mass_units_milli_gram);
+}
+
+//	グラム <> キログラム変換
+float convert_g_to_kg(float value)
+{
+	return value * convert_mass_factor(mass_units_gram, mass_units_kilogram);
+}
+float convert_kg_to_g(float value)
+{
+	return value * convert_mass_factor(mass_units_kilogram, mass_units_gram);
+}
+
+//	各単位系での質量をゲーム単位へ変換
+float convert_ug_to_unit(float value)
+{
+	return value * convert_mass_factor(mass_units_micro_gram, mass_units_unit);
+}
+float convert_mg_to_unit(float value)
+{
+	return value * convert_mass_factor(mass_units_milli_gram, mass_units_unit);
+}
+float convert_g_to_unit(float value)
+{
+	return value * convert_mass_factor(mass_units_gram, mass_units_unit);
+}
+float convert_kg_to_unit(float value)
+{
+	return value * convert_mass_factor(mass_units_kilogram, mass_units_unit);
+}
+float convert_unit_to_ug(float value)
+{
+	return value * convert_mass_factor(mass_units_unit, mass_units_micro_gram);
+}
+float convert_unit_to_mg(float value)
+{
+	return value * convert_mass_factor(mass_units_unit, mass_units_milli_gram);
+}
+float convert_unit_to_g(float value)
+{
+	return value * convert_mass_factor(mass_units_unit, mass_units_gram);
+}
+float convert_unit_to_kg(float value)
+{
+	return value * convert_mass_factor(mass_units_unit, mass_units_kilogram);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -331,21 +480,21 @@ float convert_millisec_to_sec(float value)
 //	秒 <> 分変換
 float convert_sec_to_minute(float value)
 {
-	return value * 60.0f;
+	return value / 60.0f;
 }
 float convert_minute_to_sec(float value)
 {
-	return value / 60.0f;
+	return value * 60.0f;
 }
 
 //	秒 <> 時変換
 float convert_sec_to_hour(float value)
 {
-	return value * 3600.0f;
+	return value / 3600.0f;
 }
 float convert_hour_to_sec(float value)
 {
-	return value / 3600.0f;
+	return value * 3600.0f;
 }
 
 //	フレーム <> 秒

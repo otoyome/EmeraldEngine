@@ -357,7 +357,6 @@ namespace common_pipeline_states
 		shade_color,	//	[エンジン改造:G-Buffer]
 		ilm_color,		//	[エンジン改造:G-Buffer]
 
-		max,
 		start = base_color,
 	};
 

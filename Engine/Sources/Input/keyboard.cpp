@@ -93,7 +93,7 @@ void keyboard::update_state()
 	{
 		memset(input_data, 0, sizeof(input_data));
 	}
-	for (size_t index = 0; index < static_cast<size_t>(key_states::max); ++index)
+	for (size_t index = 0; index < magic_enum::enum_count<key_states>(); ++index)
 	{
 		if (input_data[KeyMap[index]] & 0x80)
 		{

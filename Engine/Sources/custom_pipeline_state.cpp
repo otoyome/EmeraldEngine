@@ -322,7 +322,7 @@ void graphics_custom_pipeline_state::begin(const graphics_context& context)
 			if (cbv.second.hash != common_pipeline_states::scene_constant_buffer_hash_key)
 				continue;
 			ID3D11Buffer* scene_cb = context.scene_constant_buffer.Get();
-			for (UINT stage = 0; stage < static_cast<int>(arrangement::max); ++stage)
+			for (UINT stage = 0; stage < magic_enum::enum_count<arrangement>(); ++stage)
 			{
 				if (cbv.second.ids[stage] == -1)
 					continue;
@@ -348,7 +348,7 @@ void graphics_custom_pipeline_state::begin(const graphics_context& context)
 				{
 					if (srv.second.hash != transform_keys[slot])
 						continue;
-					for (UINT stage = 0; stage < static_cast<int>(arrangement::max); ++stage)
+					for (UINT stage = 0; stage < magic_enum::enum_count<arrangement>(); ++stage)
 					{
 						if (srv.second.ids[stage] == -1)
 							continue;
@@ -440,7 +440,7 @@ void graphics_custom_pipeline_state::update_parameters(const graphics_context& c
 		context.set_blend_state(blend_states[static_cast<int>(blend_state)].Get());
 	}
 
-	bool parameter_buffer_used[static_cast<int>(arrangement::max)] = {};
+	bool parameter_buffer_used[magic_enum::enum_count<arrangement>()] = {};
 	primitive_datas primitive_data = {};
 	bool deferred_light_buffer_used = false;
 	bool deferred_light_probe_buffer_used = false;
@@ -459,7 +459,7 @@ void graphics_custom_pipeline_state::update_parameters(const graphics_context& c
 			if (cbv_key == common_pipeline_states::parameter_constant_buffer_hash_key)
 			{
 				//	特定のアイテムはcontextから
-				for (UINT index = 0; index < static_cast<int>(arrangement::max); ++index)
+				for (UINT index = 0; index < magic_enum::enum_count<arrangement>(); ++index)
 				{
 					if (cbv.second.ids[index] == -1)
 						continue;
@@ -512,7 +512,7 @@ void graphics_custom_pipeline_state::update_parameters(const graphics_context& c
 					 cbv_key == common_pipeline_states::decal_primitive_constant_buffer_hash_key)
 			{
 				primitive_data.use = true;
-				for (UINT index = 0; index < static_cast<int>(arrangement::max); ++index)
+				for (UINT index = 0; index < magic_enum::enum_count<arrangement>(); ++index)
 				{
 					primitive_data.cbv_indices[index] = cbv.second.ids[index];
 				}
@@ -527,7 +527,7 @@ void graphics_custom_pipeline_state::update_parameters(const graphics_context& c
 				}
 			}
 
-			for (UINT index = 0; index < static_cast<int>(arrangement::max); ++index)
+			for (UINT index = 0; index < magic_enum::enum_count<arrangement>(); ++index)
 			{
 				if (cbv.second.ids[index] == -1)
 					continue;
@@ -540,7 +540,7 @@ void graphics_custom_pipeline_state::update_parameters(const graphics_context& c
 		ID3D11SamplerState* sampler_state = render_data::instance()->get_sampler_states(render_data::SAMPLER_STATE::LINEAR).Get();
 		for (auto& sampler : index_map.sampler)
 		{
-			for (UINT index = 0; index < static_cast<int>(arrangement::max); ++index)
+			for (UINT index = 0; index < magic_enum::enum_count<arrangement>(); ++index)
 			{
 				if (sampler.second.ids[index] == -1)
 					continue;
@@ -551,7 +551,7 @@ void graphics_custom_pipeline_state::update_parameters(const graphics_context& c
 		}
 
 		//	シェーダーリソースビュー登録
-		common_pipeline_states::parameter_constants parameter_constant_buffer[static_cast<int>(arrangement::max)];
+		common_pipeline_states::parameter_constants parameter_constant_buffer[magic_enum::enum_count<arrangement>()];
 		{
 			const material::shader_resource_map& shader_resources = material.get_shader_resources();
 
@@ -581,7 +581,7 @@ void graphics_custom_pipeline_state::update_parameters(const graphics_context& c
 
 					ID3D11ShaderResourceView* shader_resource_view = srv_ptr ? srv_ptr->get_shader_resource_view().Get() : nullptr;
 
-					for (UINT index = 0; index < static_cast<int>(arrangement::max); ++index)
+					for (UINT index = 0; index < magic_enum::enum_count<arrangement>(); ++index)
 					{
 						if (srv.second.ids[index] == -1)
 							continue;
@@ -621,7 +621,7 @@ void graphics_custom_pipeline_state::update_parameters(const graphics_context& c
 
 					if (is_clustered)
 					{
-						for (UINT index = 0; index < static_cast<int>(arrangement::max); ++index)
+						for (UINT index = 0; index < magic_enum::enum_count<arrangement>(); ++index)
 						{
 							if (srv.second.ids[index] == -1)
 								continue;
@@ -696,7 +696,7 @@ void graphics_custom_pipeline_state::update_parameters(const graphics_context& c
 			{
 				system_utility::set_bitflag(material_flag, flag.second, material.is_flag(flag.first));
 			}
-			for (UINT index = 0; index < static_cast<int>(arrangement::max); ++index)
+			for (UINT index = 0; index < magic_enum::enum_count<arrangement>(); ++index)
 			{
 				constant_buffer_data& data = parameter_buffer_data[index];
 				if (!parameter_buffer_used[index])
@@ -717,7 +717,7 @@ void graphics_custom_pipeline_state::update_parameters(const graphics_context& c
 		//	プリミティブ情報設定
 		if (primitive_data.use && buffer_data)
 		{
-			for (UINT shader_index = 0; shader_index < static_cast<int>(arrangement::max); ++shader_index)
+			for (UINT shader_index = 0; shader_index < magic_enum::enum_count<arrangement>(); ++shader_index)
 			{
 				UINT cbv_index = primitive_data.cbv_indices[shader_index];
 				if (cbv_index == -1)
@@ -863,7 +863,7 @@ void graphics_custom_pipeline_state::generate_input_resource_descs(std::vector<i
 	{
 		dirty_input_resource_datas = false;
 		input_resource_desces.clear();
-		input_resource_desc resource_descs[static_cast<int>(arrangement::max)];
+		input_resource_desc resource_descs[magic_enum::enum_count<arrangement>()];
 		generate_input_resource_desc(resource_descs[static_cast<int>(arrangement::vertex)], vs.get());
 		generate_input_resource_desc(resource_descs[static_cast<int>(arrangement::hull)], hs.get());
 		generate_input_resource_desc(resource_descs[static_cast<int>(arrangement::domain)], ds.get());
@@ -889,7 +889,7 @@ void graphics_custom_pipeline_state::update_register_datas()
 	{
 		dirty_input_resource_datas = false;
 		input_resource_desces.clear();
-		input_resource_desc resource_descs[static_cast<int>(arrangement::max)];
+		input_resource_desc resource_descs[magic_enum::enum_count<arrangement>()];
 		generate_input_resource_desc(resource_descs[static_cast<int>(arrangement::vertex)], vs.get());
 		generate_input_resource_desc(resource_descs[static_cast<int>(arrangement::hull)], hs.get());
 		generate_input_resource_desc(resource_descs[static_cast<int>(arrangement::domain)], ds.get());
@@ -905,7 +905,7 @@ void graphics_custom_pipeline_state::update_register_datas()
 	{
 		dirty = false;
 		index_map.clear();
-		shader_base* shaders[static_cast<int>(arrangement::max)] =
+		shader_base* shaders[magic_enum::enum_count<arrangement>()] =
 		{
 			vs.get(),
 			hs.get(),

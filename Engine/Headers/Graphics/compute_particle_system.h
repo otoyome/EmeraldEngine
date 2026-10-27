@@ -493,8 +493,6 @@ private:
 		build_primitive,
 
 		rebase_particles,
-
-		max,
 	};
-	std::shared_ptr<compute_shader> compute_shaderes[static_cast<int>(dispatch_shaderes::max)];
+	std::shared_ptr<compute_shader> compute_shaderes[magic_enum::enum_count<dispatch_shaderes>()];
 };

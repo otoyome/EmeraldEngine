@@ -295,11 +295,11 @@ public:
 	template<std::floating_point T> static constexpr T convert_sec_to_millisec(T value) { return value * static_cast<T>(1000); }
 	template<std::floating_point T> static constexpr T convert_millisec_to_sec(T value) { return value / static_cast<T>(1000); }
 	//	•b <> •ª•ÏŠ·
-	template<std::floating_point T> static constexpr T convert_sec_to_minute(T value) { return value * static_cast<T>(60); }
-	template<std::floating_point T> static constexpr T convert_minute_to_sec(T value) { return value / static_cast<T>(60); }
+	template<std::floating_point T> static constexpr T convert_sec_to_minute(T value) { return value / static_cast<T>(60); }
+	template<std::floating_point T> static constexpr T convert_minute_to_sec(T value) { return value * static_cast<T>(60); }
 	//	•b <> •ÏŠ·
-	template<std::floating_point T> static constexpr T convert_sec_to_hour(T value) { return value * static_cast<T>(3600); }
-	template<std::floating_point T> static constexpr T convert_hour_to_sec(T value) { return value / static_cast<T>(3600); }
+	template<std::floating_point T> static constexpr T convert_sec_to_hour(T value) { return value / static_cast<T>(3600); }
+	template<std::floating_point T> static constexpr T convert_hour_to_sec(T value) { return value * static_cast<T>(3600); }
 
 	//	ƒtƒŒ[ƒ€ <> •b
 	template<std::floating_point T> static constexpr T convert_sec_to_fps(T value) { return value * static_cast<T>(frame_per_sec); }

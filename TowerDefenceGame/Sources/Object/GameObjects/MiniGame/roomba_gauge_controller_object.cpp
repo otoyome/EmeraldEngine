@@ -7,7 +7,7 @@ namespace
 roomba_gauge_controller_object::roomba_gauge_controller_object(const object_descs& object_desc)
 : game_object(object_desc.name)
 {
-	for (int index = 0; index < ui_max; ++index)
+	for (int index = 0; index < magic_enum::enum_count<ui_id>(); ++index)
 	{
 		ui[index] = object_desc.objects[index];
 		if (ui[index])
@@ -59,7 +59,7 @@ void roomba_gauge_controller_object::post_update(float elapsed_time)
 	{
 		if (shake_desc.time > -10000.0f)
 		{
-			for (int index = 0; index < ui_max; ++index)
+			for (int index = 0; index < magic_enum::enum_count<ui_id>(); ++index)
 			{
 				if (ui[index])
 				{
@@ -78,7 +78,7 @@ void roomba_gauge_controller_object::post_update(float elapsed_time)
 
 	float direction_x = shake_desc.power * static_cast<float>(rand() % 3 - 1);
 	float direction_y = shake_desc.power * static_cast<float>(rand() % 3 - 1);
-	for (int index = 0; index < ui_max; ++index)
+	for (int index = 0; index < magic_enum::enum_count<ui_id>(); ++index)
 	{
 		if (ui[index])
 		{
@@ -108,7 +108,7 @@ void roomba_gauge_controller_object::call_shake(const shake_descs& shake_desc)
 
 void roomba_gauge_controller_object::set_alpha(float alpha)
 {
-	for (int index = 0; index < ui_max; ++index)
+	for (int index = 0; index < magic_enum::enum_count<ui_id>(); ++index)
 	{
 		if (!ui[index])
 			continue;

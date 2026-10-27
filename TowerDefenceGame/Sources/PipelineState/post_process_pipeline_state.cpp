@@ -365,8 +365,8 @@ void screen_space_reflection_uv_pipeline_state::begin(const graphics_context& co
 	context.device_context->OMSetDepthStencilState(nullptr, 0);
 	context.device_context->RSSetState(rasterizer_states.Get());
 
-	ID3D11ShaderResourceView* g_buffer_srvs[static_cast<UINT>(common_pipeline_states::gbuffer_id::max)];
-	for (UINT index = 0; index < static_cast<UINT>(common_pipeline_states::gbuffer_id::max); ++index)
+	ID3D11ShaderResourceView* g_buffer_srvs[magic_enum::enum_count<common_pipeline_states::gbuffer_id>()];
+	for (UINT index = 0; index < magic_enum::enum_count<common_pipeline_states::gbuffer_id>(); ++index)
 	{
 		g_buffer_srvs[index] = context.g_buffer_textures[index]->get_shader_resource_view().Get();
 	}
@@ -481,8 +481,8 @@ void screen_space_reflection_color_pipeline_state::begin(const graphics_context&
 	context.device_context->OMSetDepthStencilState(nullptr, 0);
 	context.device_context->RSSetState(rasterizer_states.Get());
 
-	ID3D11ShaderResourceView* g_buffer_srvs[static_cast<UINT>(common_pipeline_states::gbuffer_id::max)];
-	for (UINT index = 0; index < static_cast<UINT>(common_pipeline_states::gbuffer_id::max); ++index)
+	ID3D11ShaderResourceView* g_buffer_srvs[magic_enum::enum_count<common_pipeline_states::gbuffer_id>()];
+	for (UINT index = 0; index < magic_enum::enum_count<common_pipeline_states::gbuffer_id>(); ++index)
 	{
 		g_buffer_srvs[index] = context.g_buffer_textures[index]->get_shader_resource_view().Get();
 	}
@@ -588,8 +588,8 @@ void screen_space_reflection_composite_pipeline_state::begin(const graphics_cont
 	context.device_context->OMSetDepthStencilState(nullptr, 0);
 	context.device_context->RSSetState(rasterizer_states.Get());
 
-	ID3D11ShaderResourceView* g_buffer_srvs[static_cast<UINT>(common_pipeline_states::gbuffer_id::max)];
-	for (UINT index = 0; index < static_cast<UINT>(common_pipeline_states::gbuffer_id::max); ++index)
+	ID3D11ShaderResourceView* g_buffer_srvs[magic_enum::enum_count<common_pipeline_states::gbuffer_id>()];
+	for (UINT index = 0; index < magic_enum::enum_count<common_pipeline_states::gbuffer_id>(); ++index)
 	{
 		g_buffer_srvs[index] = context.g_buffer_textures[index]->get_shader_resource_view().Get();
 	}

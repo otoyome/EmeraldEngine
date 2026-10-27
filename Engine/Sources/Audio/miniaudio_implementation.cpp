@@ -1,5 +1,5 @@
-//	@tool miniaudio の実装を展開するファイル（プリコンパイルヘッダー・強制インクルードは使わない）
-//	@tool OGG(Vorbis) の読込に stb_vorbis を使う（miniaudio の推奨手順の通り、ヘッダー部→miniaudio→実装部の順に読む）
+//	miniaudio の実装を展開するファイル
+//	OGG(Vorbis) の読込に stb_vorbis を使う
 #define	STB_VORBIS_HEADER_ONLY
 #include "miniaudio/stb_vorbis.c"
 

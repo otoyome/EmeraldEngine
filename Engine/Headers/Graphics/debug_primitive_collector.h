@@ -42,8 +42,8 @@ public:
 	void queue_box(const math::float3 position, const math::float4 rotation, const math::float3 scale, const math::float4& color, bool depth_write = true);
 
 private:
-	std::vector<queued_vertex> vertices[static_cast<int>(debug_draw_primitive_container::line_buffer_id::max)];
-	std::unordered_map<semantic, buffer_view> vertex_buffer_views[static_cast<int>(debug_draw_primitive_container::line_buffer_id::max)];
+	std::vector<queued_vertex> vertices[magic_enum::enum_count<debug_draw_primitive_container::line_buffer_id>()];
+	std::unordered_map<semantic, buffer_view> vertex_buffer_views[magic_enum::enum_count<debug_draw_primitive_container::line_buffer_id>()];
 	std::vector<vertex> upload_vertices;
 };
 

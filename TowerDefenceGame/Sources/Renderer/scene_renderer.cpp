@@ -276,7 +276,7 @@ void gbuffer_renderer::resize_buffer(int width, int height)
 			{ 0.0f, 0.0f, 0.0f, 0.0f },		//	ilm_color [エンジン改造:G-Buffer]
 		};
 		rendering_pass.render_targets.clear();
-		for (int i = 0; i < static_cast<int>(common_pipeline_states::gbuffer_id::max); ++i)
+		for (int i = 0; i < static_cast<int>(magic_enum::enum_count<common_pipeline_states::gbuffer_id>()); ++i)
 		{
 			rendering_pass.render_targets.emplace_back(render_targets->g_buffer_textures[i]);
 			auto& rtv = rendering_pass.render_targets.back();
@@ -486,7 +486,7 @@ void gbuffer_decal_renderer::resize_buffer(int width, int height)
 
 			{ 0.0f, 0.0f, 0.0f, 0.0f },
 		};
-		for (int i = 0; i < static_cast<int>(common_pipeline_states::gbuffer_id::max); ++i)
+		for (int i = 0; i < static_cast<int>(magic_enum::enum_count<common_pipeline_states::gbuffer_id>()); ++i)
 		{
 			rendering_pass.render_targets.emplace_back(render_targets->g_buffer_textures[i]);
 			auto& rtv = rendering_pass.render_targets.back();
@@ -741,7 +741,7 @@ void deffered_lighting_renderer::render_clustered(renderer_context& context)
 	job_executor.execute([this, clustered_lighting](graphics_context& context)
 	{
 		//	G-Bufferテクスチャ設定
-		for (UINT index = 0; index < static_cast<UINT>(common_pipeline_states::gbuffer_id::max); ++index)
+		for (UINT index = 0; index < magic_enum::enum_count<common_pipeline_states::gbuffer_id>(); ++index)
 		{
 			context.g_buffer_textures[index] = render_targets->g_buffer_textures[index];
 		}
@@ -769,7 +769,7 @@ void deffered_lighting_renderer::render_indirect(renderer_context& context)
 	job_executor.execute([this](graphics_context& context)
 	{
 		//	G-Bufferテクスチャ設定
-		for (UINT index = 0; index < static_cast<UINT>(common_pipeline_states::gbuffer_id::max); ++index)
+		for (UINT index = 0; index < magic_enum::enum_count<common_pipeline_states::gbuffer_id>(); ++index)
 		{
 			context.g_buffer_textures[index] = render_targets->g_buffer_textures[index];
 		}
@@ -834,7 +834,7 @@ void deffered_lighting_renderer::render_directional(const light_render_data& lig
 		context.shadow_map_constant = shadow_map_constant;
 
 		//	G-Bufferテクスチャ設定
-		for (UINT index = 0; index < static_cast<UINT>(common_pipeline_states::gbuffer_id::max); ++index)
+		for (UINT index = 0; index < magic_enum::enum_count<common_pipeline_states::gbuffer_id>(); ++index)
 		{
 			context.g_buffer_textures[index] = render_targets->g_buffer_textures[index];
 		}
@@ -1070,7 +1070,7 @@ void deffered_lighting_renderer::render_directional_shadow_map(const light_rende
 		context.shadow_map_constant = shadow_map_constant;
 
 		//	G-Bufferテクスチャ設定
-		for (UINT index = 0; index < static_cast<UINT>(common_pipeline_states::gbuffer_id::max); ++index)
+		for (UINT index = 0; index < magic_enum::enum_count<common_pipeline_states::gbuffer_id>(); ++index)
 		{
 			context.g_buffer_textures[index] = render_targets->g_buffer_textures[index];
 		}
@@ -1102,7 +1102,7 @@ void deffered_lighting_renderer::render_point(const light_render_data& light, co
 		context.shadow_map_constant = shadow_map_constant;
 
 		//	G-Bufferテクスチャ設定
-		for (UINT index = 0; index < static_cast<UINT>(common_pipeline_states::gbuffer_id::max); ++index)
+		for (UINT index = 0; index < magic_enum::enum_count<common_pipeline_states::gbuffer_id>(); ++index)
 		{
 			context.g_buffer_textures[index] = render_targets->g_buffer_textures[index];
 		}
@@ -1241,7 +1241,7 @@ void deffered_lighting_renderer::render_spot(const light_render_data& light, com
 		context.shadow_map_constant = shadow_map_constant;
 
 		//	G-Bufferテクスチャ設定
-		for (UINT index = 0; index < static_cast<UINT>(common_pipeline_states::gbuffer_id::max); ++index)
+		for (UINT index = 0; index < magic_enum::enum_count<common_pipeline_states::gbuffer_id>(); ++index)
 		{
 			context.g_buffer_textures[index] = render_targets->g_buffer_textures[index];
 		}
@@ -1433,7 +1433,7 @@ void debug_draw_pass_renderer::render(renderer_context& context)
 		context.device_context->RSSetViewports(1, &viewport);
 
 		//	ライン描画
-		for (UINT index = 0; index < static_cast<int>(debug_draw_primitive_container::line_buffer_id::max); ++index)
+		for (UINT index = 0; index < magic_enum::enum_count<debug_draw_primitive_container::line_buffer_id>(); ++index)
 		{
 			debug_draw_line_pipeline_states[index]->begin(context);
 			if (!context.render_data->debug_draw_container.line_buffer_datas[index].color_meshs.empty())

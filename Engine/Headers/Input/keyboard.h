@@ -58,13 +58,11 @@ public:
 		f11,
 		f12,
 		at,
-
-		max,
 	};
 
 	struct states
 	{
-		input::state key_state[static_cast<size_t>(key_states::max)];
+		input::state key_state[magic_enum::enum_count<key_states>()];
 
 		input::state is_key_state(key_states state) const;
 		void set_key_state(key_states state, input::state flag);

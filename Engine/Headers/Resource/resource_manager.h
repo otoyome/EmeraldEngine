@@ -184,7 +184,7 @@ private:
 	//	@tool 以下はミューテックスで保護
 	std::unordered_map<std::wstring, cache_entry> caches;
 	std::unordered_map<std::wstring, request_ptr> processing_requests;	//	@tool 相乗り対象のリクエスト
-	std::array<std::deque<request_ptr>, resource::load_priority_count> pending_queues;
+	std::array<std::deque<request_ptr>, magic_enum::enum_count<resource::load_priority>()> pending_queues;
 	std::vector<request_ptr> loaded_requests;
 	std::vector<std::weak_ptr<resource::load_operation_base>> dispatch_operations;
 	bool shutting_down = false;

@@ -12,6 +12,8 @@
 #include "effect_resource.h"
 #include "effect_instance.h"
 
+#include "Audio/audio_manager.h"
+
 //	ルンバ制御用基底オブジェクト
 class roomba_object : public spatial_object
 {
@@ -23,8 +25,6 @@ public:
 	{
 		active,
 		dead,
-
-		max,
 	};
 
 	//	移動段階
@@ -88,6 +88,7 @@ public:
 	void post_update(float elapsed_time) override;
 
 	void on_finalize() override;
+	void on_deactive() override;
 
 #if defined(USE_IMGUI)
 	void imgui_render_core() override;
@@ -221,6 +222,10 @@ private:	//	エフェクト系
 	bool register_effect(size_t effect_id, std::string_view file_path);
 	std::weak_ptr<effect_instance> play_effect(size_t effect_id);
 
+private:	//	@tool サウンド系
+	void update_sounds();
+	void stop_sounds();
+
 private:	//	姿勢制御
 	void update_rotation(float elapsed_time);
 	void update_velocity(float elapsed_time);
@@ -281,4 +286,9 @@ private:
 	effect_instance_ptr spark_effect_instance;
 	effect_instance_ptr spark_smoke_effect_instance;
 	size_t dash_effect_instance_node_index[2];
+
+	bool last_dash_input = false;	//	@tool 直前の固定更新のダッシュ入力
+	bool last_brake_input = false;	//	@tool 直前の固定更新のブレーキ入力
+	audio::sound_handle accelerate_sound;	//	@tool 加速音（ダッシュ中ループ）
+	audio::sound_handle brake_sound;		//	@tool ブレーキ音（ブレーキ中ループ）
 };

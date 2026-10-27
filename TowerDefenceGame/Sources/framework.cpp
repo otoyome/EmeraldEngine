@@ -428,7 +428,7 @@ void framework::update(float elapsed_time/*Elapsed seconds from last frame*/)
 		effect_manager::instance()->update(elapsed_time);
 	}
 
-	//	@tool サウンド更新（バス音量の反映と再生が終わった音の片付け）
+	//	サウンド更新
 	if (audio_manager::is_valid())
 	{
 		DETAIL_PROFILE_CPU_SCOPE("update.audio_manager");
@@ -1081,7 +1081,7 @@ bool framework::create_buffers()
 				DXGI_FORMAT_R8G8B8A8_UNORM,			//	[エンジン改造:G-Buffer]
 				DXGI_FORMAT_R8G8B8A8_UNORM,			//	[エンジン改造:G-Buffer]
 			};
-			for (int index = 0; index < static_cast<int>(common_pipeline_states::gbuffer_id::max); ++index)
+			for (int index = 0; index < static_cast<int>(magic_enum::enum_count<common_pipeline_states::gbuffer_id>()); ++index)
 			{
 				texture_ptr texture;
 				texture2d_desc.Format = formats[index];

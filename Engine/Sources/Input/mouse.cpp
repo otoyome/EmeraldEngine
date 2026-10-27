@@ -122,11 +122,11 @@ void mouse::update_state()
 		GetClientRect(hwnd, &rc);
 		UINT screen_width = rc.right - rc.left;
 		UINT screen_height = rc.bottom - rc.top;
-		bool input_key_state[static_cast<int>(key_states::max)];
+		bool input_key_state[magic_enum::enum_count<key_states>()];
 		if (::GetForegroundWindow() == hwnd)
 		{
 			//	“ü—Íó‹µ
-			for (size_t index = 0; index < static_cast<size_t>(key_states::max); ++index)
+			for (size_t index = 0; index < magic_enum::enum_count<key_states>(); ++index)
 			{
 				input_key_state[index] = ::GetAsyncKeyState(KeyMap[index]) & 0x8000;
 			}
@@ -184,7 +184,7 @@ void mouse::update_state()
 		}
 
 		//	“ü—Íó‹µ‚ğ•Û‘¶
-		for (size_t index = 0; index < static_cast<size_t>(key_states::max); ++index)
+		for (size_t index = 0; index < magic_enum::enum_count<key_states>(); ++index)
 		{
 			if (input_key_state[index])
 			{

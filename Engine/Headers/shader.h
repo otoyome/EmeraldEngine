@@ -7,8 +7,6 @@ enum class shader_load_type
 {
 	cso,
 	file,
-
-	max,
 };
 
 enum class shader_type
@@ -19,16 +17,12 @@ enum class shader_type
 	geometry,
 	pixel,
 	compute,
-
-	max,
 };
 
 enum class shader_model
 {
 	_5_0,
 	_6_0,
-
-	max,
 };
 
 enum class shader_compiler_type

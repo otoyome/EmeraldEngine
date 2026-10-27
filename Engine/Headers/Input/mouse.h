@@ -14,8 +14,6 @@ public:
 		right,
 		x_button_1,
 		x_button_2,
-
-		max
 	};
 	struct position_states
 	{
@@ -26,7 +24,7 @@ public:
 	struct states
 	{
 		position_states position;
-		input::state key_state[static_cast<int>(key_states::max)] = {};
+		input::state key_state[magic_enum::enum_count<key_states>()] = {};
 
 		input::state is_key_state(key_states state) const;
 		void set_key_state(key_states state, input::state flag);
@@ -72,7 +70,7 @@ private:
 	math::int2 viewport_size;
 	math::int2 move_vector;
 	position_states position_state;
-	input::state key_state[static_cast<int>(key_states::max)];
+	input::state key_state[magic_enum::enum_count<key_states>()];
 };
 
 ENUM_ATTR_BITFLAG(mouse::key_states);

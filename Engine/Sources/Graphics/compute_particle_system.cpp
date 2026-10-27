@@ -465,7 +465,7 @@ compute_particle_system::compute_particle_system(ID3D11Device* device,
 		}
 	}
 	//	コンピュートシェーダー読み込み
-	for (int index = 0; index < static_cast<int>(dispatch_shaderes::max); ++index)
+	for (int index = 0; index < static_cast<int>(magic_enum::enum_count<dispatch_shaderes>()); ++index)
 	{
 		load_shader_file desc;
 		desc.file_path = compute_shader_path[index];

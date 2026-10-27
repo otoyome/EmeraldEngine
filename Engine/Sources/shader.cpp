@@ -19,7 +19,7 @@ namespace
 {
 	constexpr std::string_view	compiled_directory = "Assets/CSO/";
 	constexpr std::string_view	compiled_extension = ".cso";
-	constexpr std::wstring_view	shader_types[static_cast<UINT>(shader_type::max)]	=
+	constexpr std::wstring_view	shader_types[magic_enum::enum_count<shader_type>()]	=
 	{
 		L"vs",	//  Vertex Shader
 		L"hs",	//  Hull Shader
@@ -29,7 +29,7 @@ namespace
 		L"cs",	//  Compute Shader
 	};
 
-	constexpr std::wstring_view	shader_models[static_cast<UINT>(shader_model::max)]	=
+	constexpr std::wstring_view	shader_models[magic_enum::enum_count<shader_model>()]	=
 	{
 		L"5_0",
 		L"6_0",

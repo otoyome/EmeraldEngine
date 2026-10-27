@@ -87,7 +87,7 @@ fast_fourier_transform::fast_fourier_transform(sizes size)
 		texture2d_desc.CPUAccessFlags = 0;
 		texture2d_desc.MiscFlags = 0;
 		texture2d_desc.BindFlags = D3D11_BIND_UNORDERED_ACCESS | D3D11_BIND_SHADER_RESOURCE;
-		for (size_t index = 0; index < static_cast<int>(textures::max); ++index)
+		for (size_t index = 0; index < magic_enum::enum_count<textures>(); ++index)
 		{
 			std::string name = std::string(complex_texture) + std::to_string(texture_counter++);
 			if (!texture_manager::instance()->generate_texture2d(complex_number_textures[index],

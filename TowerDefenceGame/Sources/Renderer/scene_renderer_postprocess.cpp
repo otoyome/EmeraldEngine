@@ -321,7 +321,7 @@ void screen_space_reflection_renderer::render_reflection(graphics_context& conte
 		context.device_context->RSSetViewports(1, &ssr_uv_pass_viewport);
 
 		//	SRVê›íË
-		for (UINT index = 0; index < static_cast<UINT>(common_pipeline_states::gbuffer_id::max); ++index)
+		for (UINT index = 0; index < magic_enum::enum_count<common_pipeline_states::gbuffer_id>(); ++index)
 		{
 			context.g_buffer_textures[index] = render_targets->g_buffer_textures[index];
 		}
@@ -343,7 +343,7 @@ void screen_space_reflection_renderer::render_reflection(graphics_context& conte
 		context.device_context->RSSetViewports(1, &ssr_color_pass_viewport);
 
 		//	SRVê›íË
-		for (UINT index = 0; index < static_cast<UINT>(common_pipeline_states::gbuffer_id::max); ++index)
+		for (UINT index = 0; index < magic_enum::enum_count<common_pipeline_states::gbuffer_id>(); ++index)
 		{
 			context.g_buffer_textures[index] = render_targets->g_buffer_textures[index];
 		}
@@ -453,7 +453,7 @@ void screen_space_reflection_renderer::render_composite(graphics_context& contex
 		context.device_context->RSSetViewports(1, &ssr_composite_pass_viewport);
 
 		//	SRVê›íË
-		for (UINT index = 0; index < static_cast<UINT>(common_pipeline_states::gbuffer_id::max); ++index)
+		for (UINT index = 0; index < magic_enum::enum_count<common_pipeline_states::gbuffer_id>(); ++index)
 		{
 			context.g_buffer_textures[index] = render_targets->g_buffer_textures[index];
 		}

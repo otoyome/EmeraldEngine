@@ -1,6 +1,7 @@
 #include "Scenes/MiniGameScene/minigame_scene.h"
 
 #include "custom_pipeline_state.h"
+#include "Audio/audio_manager.h"
 
 #include "Scenes/MiniGameScene/minigame_result_scene.h"
 
@@ -42,6 +43,9 @@ namespace
 	constexpr float DeadWaitTimer = 3.0f;
 	constexpr float ResultTimer = 5.0f;
 	constexpr int WetDamage = 400;
+
+	//	@tool サウンド
+	constexpr std::string_view BgmSoundPath = "Assets/Resources/Sounds/minigame_bgm.wav";
 
 	//	各種名前
 	constexpr std::string_view RoombaObjectName = "ルンバ 制御";
@@ -171,6 +175,12 @@ bool minigame_scene::initialize_core()
 
 bool minigame_scene::uninitialize_core()
 {
+	//	@tool BGM を止める
+	if (audio_manager::is_valid())
+	{
+		audio_manager::instance()->stop_bgm(0.5f);
+	}
+
 	player_object = nullptr;
 	for (auto& effect : bubble_effect)
 	{
@@ -191,6 +201,12 @@ void minigame_scene::update_core(float elapsed_time)
 	{	
 		case game_states::startup:
 		{
+			//	@tool BGM 開始
+			if (audio_manager::is_valid())
+			{
+				audio_manager::instance()->play_bgm(BgmSoundPath, 1.0f);
+			}
+
 			//	フェードイン開始
 			transition_fade_controller::instance()->play(fade::directions::in, 0.5f, fade::modes::black);
 
@@ -459,6 +475,12 @@ void minigame_scene::update_core(float elapsed_time)
 			{
 				//	フェードアウト開始
 				transition_fade_controller::instance()->play(fade::directions::out, 0.5f, fade::modes::black);
+
+				//	@tool フェードアウトに合わせて BGM も止める
+				if (audio_manager::is_valid())
+				{
+					audio_manager::instance()->stop_bgm(0.5f);
+				}
 				game_state = game_states::result_fade_out;
 			}
 

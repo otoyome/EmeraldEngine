@@ -20,8 +20,6 @@ namespace
 		utf_16,
 		utf_16le,
 		utf_16be,
-
-		max,
 	};
 	constexpr const char* charset_texts[] =
 	{
@@ -390,7 +388,7 @@ namespace
 		}
 
 	private:
-		UConverter* converters[static_cast<int>(charset::max)] = {};
+		UConverter* converters[magic_enum::enum_count<charset>()] = {};
 		std::vector<UChar> work_uchar_buffer;
 		std::string work_string;
 	};
