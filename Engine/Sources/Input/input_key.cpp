@@ -17,11 +17,17 @@ namespace input
 		switch (k.source)
 		{
 			case sources::keyboard:
+			{
 				return keyboard::is_valid() ? keyboard::instance()->get_state().is_key_state(static_cast<keyboard::key_states>(k.code)) : state::none;
+			}
 			case sources::mouse:
+			{
 				return mouse::is_valid() ? mouse::instance()->get_state().is_key_state(static_cast<mouse::key_states>(k.code)) : state::none;
+			}
 			case sources::mouse_axis:
+			{
 				return mouse::is_valid() ? mouse::instance()->get_axis_state(static_cast<mouse::axis_states>(k.code)) : state::none;
+			}
 			case sources::gamepad:
 			{
 				const gamepad::states* pad = find_gamepad_state(pad_index);
@@ -41,7 +47,9 @@ namespace input
 		switch (k.source)
 		{
 			case sources::mouse_axis:
+			{
 				return mouse::is_valid() ? mouse::instance()->get_axis(static_cast<mouse::axis_states>(k.code)) : 0.0f;
+			}
 			case sources::gamepad_axis:
 			{
 				const gamepad::states* pad = find_gamepad_state(pad_index);

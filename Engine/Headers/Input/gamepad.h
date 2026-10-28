@@ -2,6 +2,8 @@
 
 #include "input.h"
 
+struct SDL_Gamepad;
+
 //	ゲームパッド
 class gamepad
 {
@@ -61,6 +63,7 @@ public:
 public:
 	const states& get_state(size_t index) const;
 	void set_vibration(size_t index, float low_frequency, float high_frequency);
+	std::string_view get_name(size_t index) const;
 
 private:
 	gamepad();
@@ -70,8 +73,19 @@ public:
 	void update_state();
 
 private:
+	struct slot
+	{
+		SDL_Gamepad* handle = nullptr;
+		uint32_t id = 0;
+		std::string name;
+	};
+
+	void update_slots();
+
+private:
 	states pad_states[max_count];
-	uint32_t retry_counts[max_count];
+	slot slots[max_count];
+	bool initialized;
 };
 
 ENUM_ATTR_BITFLAG(gamepad::key_states);

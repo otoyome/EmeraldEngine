@@ -142,6 +142,7 @@ private:	//	‚»‚Ì‘¼
 
 	void imgui_console_window();
 	void imgui_console_commands_window();
+	void imgui_gamepad_window();
 
 	void build_debug_primitives(const render_data_context& render_data);
 #endif // defined(USE_IMGUI)

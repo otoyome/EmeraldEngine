@@ -292,6 +292,8 @@ private:
 	bool last_dash_input = false;	//	直前の固定更新のダッシュ入力
 	audio::sound_handle accelerate_sound;	//	加速音
 	audio::sound_handle slide_sound;		//	横滑り音
+	audio::sound_handle hydroplane_sound;	//	ハイドロプレーニング音
+	audio::sound_handle braking_sound;		//	ブレーキ音
 	audio::sound_handle wet_sound;			//	濡れる音
 	audio::sound_handle trash_sound;		//	ゴミを拾った音
 	int wet_sound_requests = 0;				//	まだ鳴らしていない濡れる音の要求数

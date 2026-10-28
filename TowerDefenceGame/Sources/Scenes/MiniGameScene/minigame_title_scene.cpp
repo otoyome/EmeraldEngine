@@ -89,6 +89,11 @@ bool minigame_title_scene::initialize_core()
 
 bool minigame_title_scene::uninitialize_core()
 {
+	//	@tool ImGui ‚È‚Ç‚Å“r’†‚©‚çƒV[ƒ“‚ğØ‚è‘Ö‚¦‚Ä‚à BGM ‚ªc‚ç‚È‚¢‚æ‚¤‚É~‚ß‚é
+	if (audio_manager::is_valid())
+	{
+		audio_manager::instance()->stop_bgm(0.5f);
+	}
 	return true;
 }
 

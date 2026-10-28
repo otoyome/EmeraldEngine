@@ -490,6 +490,9 @@ void framework::update(float elapsed_time/*Elapsed seconds from last frame*/)
 	//	コンソール
 	imgui_console_window();
 	imgui_console_commands_window();
+
+	//	ゲームパッドの入力状況
+	imgui_gamepad_window();
 #endif // defined(USE_IMGUI)
 }
 

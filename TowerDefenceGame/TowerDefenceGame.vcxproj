@@ -356,7 +356,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories);$(SolutionDir)DirectXTK-master\Bin\Desktop_2019\x64\$(Configuration);$(SolutionDir)Engine\Bin\x64\$(Configuration);$(SolutionDir)Math\Bin\x64\$(Configuration);$(SolutionDir)Collision\Bin\x64\$(Configuration);$(SolutionDir)External\Effekseer170\Lib\x64\$(Configuration);$(SolutionDir)External\Effekseer170\lib;$(SolutionDir)External\DirectXTex\lib\$(Configuration);$(SolutionDir)External\meshoptimizer\lib\$(Configuration);$(SolutionDir)External\icu\lib64;%(AdditionalDependencies)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories);$(SolutionDir)DirectXTK-master\Bin\Desktop_2019\x64\$(Configuration);$(SolutionDir)Engine\Bin\x64\$(Configuration);$(SolutionDir)Math\Bin\x64\$(Configuration);$(SolutionDir)Collision\Bin\x64\$(Configuration);$(SolutionDir)External\Effekseer170\Lib\x64\$(Configuration);$(SolutionDir)External\Effekseer170\lib;$(SolutionDir)External\DirectXTex\lib\$(Configuration);$(SolutionDir)External\meshoptimizer\lib\$(Configuration);$(SolutionDir)External\icu\lib64;$(SolutionDir)External\SDL3\lib;%(AdditionalDependencies)</AdditionalLibraryDirectories>
       <AdditionalDependencies>DirectXTex.lib;d3d11.lib;dxgi.lib;Engine.lib;Collision.lib;Math.lib;dxguid.lib;dxcompiler.lib;d3dcompiler.lib;meshoptimizer.lib;icudt.lib;icuind.lib;icuiod.lib;icutud.lib;icuucd.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <FxCompile>
@@ -367,7 +367,8 @@
     <PostBuildEvent>
       <Command>xcopy "$(SolutionDir)External\DirectXShaderCompiler\bin\x64\dxcompiler.dll" "$(OutDir)" /y
 xcopy "$(SolutionDir)External\DirectXShaderCompiler\bin\x64\dxil.dll" "$(OutDir)" /y
-xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y</Command>
+xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y
+xcopy "$(SolutionDir)External\SDL3\lib\SDL3.dll" "$(OutDir)" /y</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugEditor|x64'">
@@ -388,7 +389,7 @@ xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y</Command>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories);$(SolutionDir)DirectXTK-master\Bin\Desktop_2019\x64\$(Configuration);$(SolutionDir)Engine\Bin\x64\$(Configuration);$(SolutionDir)Math\Bin\x64\$(Configuration);$(SolutionDir)Collision\Bin\x64\$(Configuration);$(SolutionDir)External\Effekseer170\Lib\x64\$(Configuration);$(SolutionDir)External\Effekseer170\lib;$(SolutionDir)External\DirectXTex\lib\$(Configuration);$(SolutionDir)External\meshoptimizer\lib\$(Configuration);$(SolutionDir)External\icu\lib64;%(AdditionalDependencies)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories);$(SolutionDir)DirectXTK-master\Bin\Desktop_2019\x64\$(Configuration);$(SolutionDir)Engine\Bin\x64\$(Configuration);$(SolutionDir)Math\Bin\x64\$(Configuration);$(SolutionDir)Collision\Bin\x64\$(Configuration);$(SolutionDir)External\Effekseer170\Lib\x64\$(Configuration);$(SolutionDir)External\Effekseer170\lib;$(SolutionDir)External\DirectXTex\lib\$(Configuration);$(SolutionDir)External\meshoptimizer\lib\$(Configuration);$(SolutionDir)External\icu\lib64;$(SolutionDir)External\SDL3\lib;%(AdditionalDependencies)</AdditionalLibraryDirectories>
       <AdditionalDependencies>DirectXTex.lib;d3d11.lib;dxgi.lib;Engine.lib;Collision.lib;Math.lib;dxguid.lib;dxcompiler.lib;d3dcompiler.lib;meshoptimizer.lib;icudt.lib;icuind.lib;icuiod.lib;icutud.lib;icuucd.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <FxCompile>
@@ -399,7 +400,8 @@ xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y</Command>
     <PostBuildEvent>
       <Command>xcopy "$(SolutionDir)External\DirectXShaderCompiler\bin\x64\dxcompiler.dll" "$(OutDir)" /y
 xcopy "$(SolutionDir)External\DirectXShaderCompiler\bin\x64\dxil.dll" "$(OutDir)" /y
-xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y</Command>
+xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y
+xcopy "$(SolutionDir)External\SDL3\lib\SDL3.dll" "$(OutDir)" /y</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">
@@ -423,7 +425,7 @@ xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y</Command>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)DirectXTK-master\Bin\Desktop_2019\x64\$(Configuration);$(SolutionDir)Engine\Bin\x64\$(Configuration);$(SolutionDir)Math\Bin\x64\$(Configuration);$(SolutionDir)Collision\Bin\x64\$(Configuration);$(SolutionDir)External\Effekseer170\Lib\x64\$(Configuration);$(SolutionDir)External\Effekseer170\lib;$(SolutionDir)External\DirectXTex\lib\$(Configuration);$(SolutionDir)External\meshoptimizer\lib\$(Configuration);$(SolutionDir)External\uchardet\lib\$(Configuration);$(SolutionDir)External\icu\lib64;%(AdditionalDependencies);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)DirectXTK-master\Bin\Desktop_2019\x64\$(Configuration);$(SolutionDir)Engine\Bin\x64\$(Configuration);$(SolutionDir)Math\Bin\x64\$(Configuration);$(SolutionDir)Collision\Bin\x64\$(Configuration);$(SolutionDir)External\Effekseer170\Lib\x64\$(Configuration);$(SolutionDir)External\Effekseer170\lib;$(SolutionDir)External\DirectXTex\lib\$(Configuration);$(SolutionDir)External\meshoptimizer\lib\$(Configuration);$(SolutionDir)External\uchardet\lib\$(Configuration);$(SolutionDir)External\icu\lib64;$(SolutionDir)External\SDL3\lib;%(AdditionalDependencies);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>DirectXTex.lib;d3d11.lib;dxgi.lib;Engine.lib;Collision.lib;Math.lib;dxguid.lib;dxcompiler.lib;d3dcompiler.lib;meshoptimizer.lib;icudt.lib;icuin.lib;icuio.lib;icutu.lib;icuuc.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <FxCompile>
@@ -434,7 +436,8 @@ xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y</Command>
     <PostBuildEvent>
       <Command>xcopy "$(SolutionDir)External\DirectXShaderCompiler\bin\x64\dxcompiler.dll" "$(OutDir)" /y
 xcopy "$(SolutionDir)External\DirectXShaderCompiler\bin\x64\dxil.dll" "$(OutDir)" /y
-xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y</Command>
+xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y
+xcopy "$(SolutionDir)External\SDL3\lib\SDL3.dll" "$(OutDir)" /y</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DevelopEditor|x64'">
@@ -458,7 +461,7 @@ xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y</Command>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)DirectXTK-master\Bin\Desktop_2019\x64\$(Configuration);$(SolutionDir)Engine\Bin\x64\$(Configuration);$(SolutionDir)Math\Bin\x64\$(Configuration);$(SolutionDir)Collision\Bin\x64\$(Configuration);$(SolutionDir)External\Effekseer170\Lib\x64\$(Configuration);$(SolutionDir)External\Effekseer170\lib;$(SolutionDir)External\DirectXTex\lib\$(Configuration);$(SolutionDir)External\meshoptimizer\lib\$(Configuration);$(SolutionDir)External\uchardet\lib\$(Configuration);$(SolutionDir)External\icu\lib64;%(AdditionalDependencies);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)DirectXTK-master\Bin\Desktop_2019\x64\$(Configuration);$(SolutionDir)Engine\Bin\x64\$(Configuration);$(SolutionDir)Math\Bin\x64\$(Configuration);$(SolutionDir)Collision\Bin\x64\$(Configuration);$(SolutionDir)External\Effekseer170\Lib\x64\$(Configuration);$(SolutionDir)External\Effekseer170\lib;$(SolutionDir)External\DirectXTex\lib\$(Configuration);$(SolutionDir)External\meshoptimizer\lib\$(Configuration);$(SolutionDir)External\uchardet\lib\$(Configuration);$(SolutionDir)External\icu\lib64;$(SolutionDir)External\SDL3\lib;%(AdditionalDependencies);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>DirectXTex.lib;d3d11.lib;dxgi.lib;Engine.lib;Collision.lib;Math.lib;dxguid.lib;dxcompiler.lib;d3dcompiler.lib;meshoptimizer.lib;icudt.lib;icuin.lib;icuio.lib;icutu.lib;icuuc.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <FxCompile>
@@ -469,7 +472,8 @@ xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y</Command>
     <PostBuildEvent>
       <Command>xcopy "$(SolutionDir)External\DirectXShaderCompiler\bin\x64\dxcompiler.dll" "$(OutDir)" /y
 xcopy "$(SolutionDir)External\DirectXShaderCompiler\bin\x64\dxil.dll" "$(OutDir)" /y
-xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y</Command>
+xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y
+xcopy "$(SolutionDir)External\SDL3\lib\SDL3.dll" "$(OutDir)" /y</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -551,7 +555,7 @@ xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y</Command>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>DirectXTex.lib;d3d11.lib;dxgi.lib;Engine.lib;Collision.lib;Math.lib;dxguid.lib;dxcompiler.lib;d3dcompiler.lib;meshoptimizer.lib;icudt.lib;icuin.lib;icuio.lib;icutu.lib;icuuc.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories);$(SolutionDir)DirectXTK-master\Bin\Desktop_2019\x64\$(Configuration);$(SolutionDir)Engine\Bin\x64\$(Configuration);$(SolutionDir)Math\Bin\x64\$(Configuration);$(SolutionDir)Collision\Bin\x64\$(Configuration);$(SolutionDir)External\Effekseer170\Lib\x64\$(Configuration);$(SolutionDir)External\Effekseer170\lib;$(SolutionDir)External\DirectXTex\lib\$(Configuration);$(SolutionDir)External\meshoptimizer\lib\$(Configuration);$(SolutionDir)External\icu\lib64;%(AdditionalDependencies)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories);$(SolutionDir)DirectXTK-master\Bin\Desktop_2019\x64\$(Configuration);$(SolutionDir)Engine\Bin\x64\$(Configuration);$(SolutionDir)Math\Bin\x64\$(Configuration);$(SolutionDir)Collision\Bin\x64\$(Configuration);$(SolutionDir)External\Effekseer170\Lib\x64\$(Configuration);$(SolutionDir)External\Effekseer170\lib;$(SolutionDir)External\DirectXTex\lib\$(Configuration);$(SolutionDir)External\meshoptimizer\lib\$(Configuration);$(SolutionDir)External\icu\lib64;$(SolutionDir)External\SDL3\lib;%(AdditionalDependencies)</AdditionalLibraryDirectories>
     </Link>
     <FxCompile>
       <ShaderModel>5.0</ShaderModel>
@@ -561,7 +565,8 @@ xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y</Command>
     <PostBuildEvent>
       <Command>xcopy "$(SolutionDir)External\DirectXShaderCompiler\bin\x64\dxcompiler.dll" "$(OutDir)" /y
 xcopy "$(SolutionDir)External\DirectXShaderCompiler\bin\x64\dxil.dll" "$(OutDir)" /y
-xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y</Command>
+xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y
+xcopy "$(SolutionDir)External\SDL3\lib\SDL3.dll" "$(OutDir)" /y</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseEditor|x64'">
@@ -587,7 +592,7 @@ xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y</Command>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>DirectXTex.lib;d3d11.lib;dxgi.lib;Engine.lib;Collision.lib;Math.lib;dxguid.lib;dxcompiler.lib;d3dcompiler.lib;meshoptimizer.lib;icudt.lib;icuin.lib;icuio.lib;icutu.lib;icuuc.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories);$(SolutionDir)DirectXTK-master\Bin\Desktop_2019\x64\$(Configuration);$(SolutionDir)Engine\Bin\x64\$(Configuration);$(SolutionDir)Math\Bin\x64\$(Configuration);$(SolutionDir)Collision\Bin\x64\$(Configuration);$(SolutionDir)External\Effekseer170\Lib\x64\$(Configuration);$(SolutionDir)External\Effekseer170\lib;$(SolutionDir)External\DirectXTex\lib\$(Configuration);$(SolutionDir)External\meshoptimizer\lib\$(Configuration);$(SolutionDir)External\icu\lib64;%(AdditionalDependencies)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories);$(SolutionDir)DirectXTK-master\Bin\Desktop_2019\x64\$(Configuration);$(SolutionDir)Engine\Bin\x64\$(Configuration);$(SolutionDir)Math\Bin\x64\$(Configuration);$(SolutionDir)Collision\Bin\x64\$(Configuration);$(SolutionDir)External\Effekseer170\Lib\x64\$(Configuration);$(SolutionDir)External\Effekseer170\lib;$(SolutionDir)External\DirectXTex\lib\$(Configuration);$(SolutionDir)External\meshoptimizer\lib\$(Configuration);$(SolutionDir)External\icu\lib64;$(SolutionDir)External\SDL3\lib;%(AdditionalDependencies)</AdditionalLibraryDirectories>
     </Link>
     <FxCompile>
       <ShaderModel>5.0</ShaderModel>
@@ -597,7 +602,8 @@ xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y</Command>
     <PostBuildEvent>
       <Command>xcopy "$(SolutionDir)External\DirectXShaderCompiler\bin\x64\dxcompiler.dll" "$(OutDir)" /y
 xcopy "$(SolutionDir)External\DirectXShaderCompiler\bin\x64\dxil.dll" "$(OutDir)" /y
-xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y</Command>
+xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y
+xcopy "$(SolutionDir)External\SDL3\lib\SDL3.dll" "$(OutDir)" /y</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -630,6 +636,7 @@ xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y</Command>
     <ClCompile Include="Sources\framework.cpp" />
     <ClCompile Include="Sources\framework_imgui.cpp" />
     <ClCompile Include="Sources\framework_console_window.cpp" />
+    <ClCompile Include="Sources\framework_gamepad_window.cpp" />
     <ClCompile Include="Sources\main.cpp" />
     <ClCompile Include="Sources\Object\camera_object.cpp" />
     <ClCompile Include="Sources\Object\Collision\collision_filter.cpp" />

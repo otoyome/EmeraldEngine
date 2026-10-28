@@ -26,9 +26,15 @@ namespace
 	constexpr std::string_view wet_sound_path = "Assets/Resources/Sounds/roomba_wet.wav";
 	constexpr std::string_view trash_sound_path = "Assets/Resources/Sounds/roomba_trash.wav";
 	constexpr std::string_view landing_sound_path = "Assets/Resources/Sounds/roomba_landing.wav";
+	constexpr std::string_view hydroplane_sound_path = "Assets/Resources/Sounds/roomba_hydroplane.wav";
+	constexpr std::string_view braking_sound_path = "Assets/Resources/Sounds/roomba_braking.wav";
 	constexpr float slide_sound_min_speed = 5.0f;	//	横滑り音を鳴らす最低の横方向速度(m/s)
 	constexpr float slide_sound_max_speed = 15.0f;	//	横滑り音が最大音量になる横方向速度(m/s)
 	constexpr float slide_sound_min_slip_rate = 0.34f;	//	横滑り音を鳴らす最低の横滑り率（横方向速度/速さ）
+	constexpr float hydroplane_blend_start_wet_rate = 0.2f;	//	ハイドロプレーニング音を混ぜ始める濡れ率
+	constexpr float hydroplane_blend_end_wet_rate = 0.7f;	//	ハイドロプレーニング音だけになる濡れ率
+	constexpr float braking_sound_min_speed = 1.0f;		//	ブレーキ音を鳴らす最低の速さ(m/s)
+	constexpr float braking_sound_max_speed = 10.0f;	//	ブレーキ音が最大音量になる速さ(m/s)
 	constexpr float wet_sound_interval = 0.15f;		//	濡れる音を鳴らす最短の間隔（秒）
 	constexpr float trash_sound_interval = 0.08f;	//	ゴミを拾った音を鳴らす最短の間隔（秒）
 	constexpr float hit_sound_full_count = 8.0f;	//	間隔内にこの数だけまとまると最大音量で鳴らす
@@ -866,21 +872,49 @@ void roomba_object::update_sounds(float elapsed_time)
 	bool sliding = lateral_m_s >= slide_sound_min_speed && lateral_m_s >= speed_m_s * slide_sound_min_slip_rate;
 	if (active && is_flag(flags::on_ground) && sliding)
 	{
+		audio::play_parameters parameters;
+		parameters.loop = true;
+		parameters.fade_in_time = 0.05f;
 		if (!audio->is_playing(slide_sound))
+			slide_sound = audio->play(slide_sound_path, parameters);
+		if (!audio->is_playing(hydroplane_sound))
+			hydroplane_sound = audio->play(hydroplane_sound_path, parameters);
+
+		//	濡れ率に応じて横滑り音とハイドロプレーニング音を混ぜる。両方ループさせたまま音量だけ変える（等パワー）
+		float wet_blend = math::saturate((get_wet_rate() - hydroplane_blend_start_wet_rate) / (hydroplane_blend_end_wet_rate - hydroplane_blend_start_wet_rate));
+		float slide_rate = math::saturate((lateral_m_s - slide_sound_min_speed) / (slide_sound_max_speed - slide_sound_min_speed));
+		float volume = math::lerp(0.3f, 1.0f, slide_rate);
+		audio->set_pitch(slide_sound, math::lerp(0.9f, 1.1f, slide_rate));
+		audio->set_volume(slide_sound, volume * sqrtf(1.0f - wet_blend));
+		audio->set_pitch(hydroplane_sound, math::lerp(0.9f, 1.15f, slide_rate));
+		audio->set_volume(hydroplane_sound, volume * sqrtf(wet_blend));
+	}
+	else if (slide_sound.is_valid() || hydroplane_sound.is_valid())
+	{
+		audio->stop(slide_sound, 0.15f);
+		audio->stop(hydroplane_sound, 0.15f);
+		slide_sound = {};
+		hydroplane_sound = {};
+	}
+
+	//	ブレーキ音：接地中にブレーキしている間だけループさせ、速いほど大きく高く鳴らす
+	if (active && is_flag(flags::on_ground) && action_data.brake && speed_m_s >= braking_sound_min_speed)
+	{
+		if (!audio->is_playing(braking_sound))
 		{
 			audio::play_parameters parameters;
 			parameters.loop = true;
 			parameters.fade_in_time = 0.05f;
-			slide_sound = audio->play(slide_sound_path, parameters);
+			braking_sound = audio->play(braking_sound_path, parameters);
 		}
-		float slide_rate = math::saturate((lateral_m_s - slide_sound_min_speed) / (slide_sound_max_speed - slide_sound_min_speed));
-		audio->set_pitch(slide_sound, math::lerp(0.9f, 1.1f, slide_rate));
-		audio->set_volume(slide_sound, math::lerp(0.3f, 1.0f, slide_rate));
+		float braking_rate = math::saturate((speed_m_s - braking_sound_min_speed) / (braking_sound_max_speed - braking_sound_min_speed));
+		audio->set_pitch(braking_sound, math::lerp(0.8f, 1.2f, braking_rate));
+		audio->set_volume(braking_sound, math::lerp(0.2f, 1.0f, braking_rate));
 	}
-	else if (slide_sound.is_valid())
+	else if (braking_sound.is_valid())
 	{
-		audio->stop(slide_sound, 0.15f);
-		slide_sound = {};
+		audio->stop(braking_sound, 0.2f);
+		braking_sound = {};
 	}
 
 	//	泡・ゴミの音：一度に大量に当たっても間隔をあけて 1 回ずつ鳴らし、まとまった数に応じて音量を上げる
@@ -926,11 +960,15 @@ void roomba_object::stop_sounds()
 	{
 		audio_manager::instance()->stop(accelerate_sound, 0.1f);
 		audio_manager::instance()->stop(slide_sound, 0.1f);
+		audio_manager::instance()->stop(hydroplane_sound, 0.1f);
+		audio_manager::instance()->stop(braking_sound, 0.1f);
 		audio_manager::instance()->stop(wet_sound, 0.1f);
 		audio_manager::instance()->stop(trash_sound, 0.1f);
 	}
 	accelerate_sound = {};
 	slide_sound = {};
+	hydroplane_sound = {};
+	braking_sound = {};
 	wet_sound = {};
 	trash_sound = {};
 	wet_sound_requests = 0;
