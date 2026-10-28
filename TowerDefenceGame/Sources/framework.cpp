@@ -249,6 +249,7 @@ bool framework::initialize()
 	render_data::create_instance(hwnd);
 	mouse::create_instance(hwnd);
 	keyboard::create_instance();
+	gamepad::create_instance();
 	texture_manager::create_instance();
 	font_data_manager::create_instance();
 	shader_manager::create_instance();
@@ -400,6 +401,10 @@ void framework::update(float elapsed_time/*Elapsed seconds from last frame*/)
 	if (keyboard::is_valid())
 	{
 		keyboard::instance()->update_state();
+	}
+	if (gamepad::is_valid())
+	{
+		gamepad::instance()->update_state();
 	}
 
 #if defined(USE_IMGUI)
@@ -977,6 +982,7 @@ bool framework::uninitialize()
 	font_data_manager::delete_instance();
 	minigame_record_data::delete_instance();
 	texture_manager::delete_instance();
+	gamepad::delete_instance();
 	keyboard::delete_instance();
 	mouse::delete_instance();
 	render_data::delete_instance();

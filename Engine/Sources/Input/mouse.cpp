@@ -52,6 +52,25 @@ int mouse::get_wheel_value() const
 	return position_state.wheel;
 }
 
+float mouse::get_axis(axis_states state) const
+{
+	switch (state)
+	{
+		case axis_states::x:
+			return static_cast<float>(move_vector.x);
+		case axis_states::y:
+			return static_cast<float>(move_vector.y);
+		case axis_states::wheel:
+			return static_cast<float>(position_state.wheel);
+	}
+	return 0.0f;
+}
+
+input::state mouse::get_axis_state(axis_states state) const
+{
+	return axis_key_state[static_cast<size_t>(state)];
+}
+
 void mouse::set_center_lock(bool lock)
 {
 	this->window_center_lock = lock;
@@ -186,28 +205,7 @@ void mouse::update_state()
 		//	“ü—Íó‹µ‚ğ•Û‘¶
 		for (size_t index = 0; index < magic_enum::enum_count<key_states>(); ++index)
 		{
-			if (input_key_state[index])
-			{
-				if (key_state[index] == input::state::none || key_state[index] == input::state::release)
-				{
-					key_state[index] = input::state::down;
-				}
-				else if (key_state[index] == input::state::down)
-				{
-					key_state[index] = input::state::hold;
-				}
-			}
-			else
-			{
-				if (key_state[index] == input::state::down || key_state[index] == input::state::hold)
-				{
-					key_state[index] = input::state::release;
-				}
-				else
-				{
-					key_state[index] = input::state::none;
-				}
-			}
+			key_state[index] = input::next_state(key_state[index], input_key_state[index]);
 		}
 	}
 
@@ -226,6 +224,13 @@ void mouse::update_state()
 	}
 
 	position_state = new_position_state;
+
+	//	²‚ğ‰Ÿ‰º‚Æ‚İ‚È‚µ‚½ó‘Ô
+	for (size_t index = 0; index < magic_enum::enum_count<axis_states>(); ++index)
+	{
+		const bool pressed = std::abs(get_axis(static_cast<axis_states>(index))) >= input::pressed_threshold;
+		axis_key_state[index] = input::next_state(axis_key_state[index], pressed);
+	}
 }
 
 LRESULT mouse::window_proccess(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)

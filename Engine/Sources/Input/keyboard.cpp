@@ -95,28 +95,6 @@ void keyboard::update_state()
 	}
 	for (size_t index = 0; index < magic_enum::enum_count<key_states>(); ++index)
 	{
-		if (input_data[KeyMap[index]] & 0x80)
-		{
-			
-			if (state.key_state[index] == input::state::none || state.key_state[index] == input::state::release)
-			{
-				state.key_state[index] = input::state::down;
-			}
-			else if (state.key_state[index] == input::state::down)
-			{
-				state.key_state[index] = input::state::hold;
-			}
-		}
-		else
-		{
-			if (state.key_state[index] == input::state::down || state.key_state[index] == input::state::hold)
-			{
-				state.key_state[index] = input::state::release;
-			}
-			else
-			{
-				state.key_state[index] = input::state::none;
-			}
-		}
+		state.key_state[index] = input::next_state(state.key_state[index], (input_data[KeyMap[index]] & 0x80) != 0);
 	}
 }

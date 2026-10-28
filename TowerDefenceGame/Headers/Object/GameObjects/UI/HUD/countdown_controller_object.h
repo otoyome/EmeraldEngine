@@ -27,6 +27,19 @@ public:
 	void hide();
 
 private:
+	//	表示が切り替わったときだけ音を鳴らす
+	enum class displays
+	{
+		none,
+		count,
+		start,
+		finish,
+	};
+	void change_display(displays display, int count = 0);
+
+private:
+	displays current_display = displays::none;	//	今の表示
+	int current_count = 0;						//	今表示しているカウント
 	std::shared_ptr<ui_text> text;
 	std::shared_ptr<ui_image> start_image;
 	std::shared_ptr<ui_image> finish_image;

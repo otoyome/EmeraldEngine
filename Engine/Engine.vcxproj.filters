@@ -120,6 +120,12 @@
     <ClInclude Include="Headers\view_parameters.h">
       <Filter>Headers</Filter>
     </ClInclude>
+    <ClInclude Include="Headers\Input\gamepad.h">
+      <Filter>Headers\Input</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Input\input_key.h">
+      <Filter>Headers\Input</Filter>
+    </ClInclude>
     <ClInclude Include="Headers\Input\mouse.h">
       <Filter>Headers\Input</Filter>
     </ClInclude>
@@ -382,6 +388,12 @@
     </ClCompile>
     <ClCompile Include="Sources\camera.cpp">
       <Filter>Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Input\gamepad.cpp">
+      <Filter>Sources\Input</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Input\input_key.cpp">
+      <Filter>Sources\Input</Filter>
     </ClCompile>
     <ClCompile Include="Sources\Input\mouse.cpp">
       <Filter>Sources\Input</Filter>

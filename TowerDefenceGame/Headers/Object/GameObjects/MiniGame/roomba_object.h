@@ -298,4 +298,5 @@ private:
 	int trash_sound_requests = 0;			//	まだ鳴らしていないゴミを拾った音の要求数
 	float wet_sound_cooldown = 0.0f;		//	次に濡れる音を鳴らせるまでの時間（秒）
 	float trash_sound_cooldown = 0.0f;		//	次にゴミを拾った音を鳴らせるまでの時間（秒）
+	float landing_sound_request = 0.0f;		//	まだ鳴らしていない着地音の衝突速度(m/s)
 };

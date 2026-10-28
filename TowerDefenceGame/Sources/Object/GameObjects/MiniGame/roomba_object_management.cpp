@@ -25,12 +25,16 @@ namespace
 	constexpr std::string_view explosion_sound_path = "Assets/Resources/Sounds/roomba_explosion.wav";
 	constexpr std::string_view wet_sound_path = "Assets/Resources/Sounds/roomba_wet.wav";
 	constexpr std::string_view trash_sound_path = "Assets/Resources/Sounds/roomba_trash.wav";
+	constexpr std::string_view landing_sound_path = "Assets/Resources/Sounds/roomba_landing.wav";
 	constexpr float slide_sound_min_speed = 5.0f;	//	横滑り音を鳴らす最低の横方向速度(m/s)
 	constexpr float slide_sound_max_speed = 15.0f;	//	横滑り音が最大音量になる横方向速度(m/s)
 	constexpr float slide_sound_min_slip_rate = 0.34f;	//	横滑り音を鳴らす最低の横滑り率（横方向速度/速さ）
 	constexpr float wet_sound_interval = 0.15f;		//	濡れる音を鳴らす最短の間隔（秒）
 	constexpr float trash_sound_interval = 0.08f;	//	ゴミを拾った音を鳴らす最短の間隔（秒）
 	constexpr float hit_sound_full_count = 8.0f;	//	間隔内にこの数だけまとまると最大音量で鳴らす
+	constexpr float landing_sound_min_speed = 2.0f;		//	着地音を鳴らす最低の衝突速度（法線方向、m/s）
+	constexpr float landing_sound_max_speed = 10.0f;	//	着地音が最大音量になる衝突速度（法線方向、m/s）
+	constexpr float landing_ground_min_normal_y = 0.5f;	//	地面とみなす接触法線の上向き成分（これ未満は壁）
 
 	//	地面の傾きを角度で算出
 	math::float3 calculate_ground_tilt(const math::float3& euler, const math::float3& normal)
@@ -100,7 +104,16 @@ void roomba_object::fixed_update(float elapsed_time)
 	//	速度更新
 	update_rotation(elapsed_time);
 	update_velocity(elapsed_time);
+	bool was_on_ground = is_flag(flags::on_ground);
+	math::vector3f MoveVelocity(velocity);
 	update_move(elapsed_time);
+
+	//	爆発で浮いた後に地面へ落ちたら、衝突速度を着地音の要求として残す
+	if (check_same_state(roomba_object::states::dead) && !was_on_ground && is_flag(flags::on_ground) && ground_normal.y >= landing_ground_min_normal_y)
+	{
+		float impact_speed = system_units::convert_unit_to_m(-math::vector3f::dot(MoveVelocity, math::vector3f(ground_normal)));
+		landing_sound_request = std::max(landing_sound_request, impact_speed);
+	}
 
 	//	各種ライフ情報更新
 	{
@@ -476,7 +489,7 @@ void roomba_object::update_velocity(float elapsed_time)
 	//	重力処理
 	{
 		float scale = push_box->get_mass() * gravity_scale * elapsed_time;
-		drive_force.y += scale * world_gravity.x;
+		drive_force.x += scale * world_gravity.x;
 		drive_force.y += scale * world_gravity.y;
 		drive_force.z += scale * world_gravity.z;
 	}
@@ -894,6 +907,17 @@ void roomba_object::update_sounds(float elapsed_time)
 	};
 	play_hit_sound(wet_sound_path, wet_sound, wet_sound_requests, wet_sound_cooldown, wet_sound_interval);
 	play_hit_sound(trash_sound_path, trash_sound, trash_sound_requests, trash_sound_cooldown, trash_sound_interval);
+
+	//	着地音：死亡後に地面へ落ちた瞬間に 1 回鳴らし、衝突速度が速いほど大きく低く鳴らす
+	if (landing_sound_request >= landing_sound_min_speed)
+	{
+		float impact_rate = math::saturate((landing_sound_request - landing_sound_min_speed) / (landing_sound_max_speed - landing_sound_min_speed));
+		audio::play_parameters parameters;
+		parameters.volume = math::lerp(0.4f, 1.0f, impact_rate);
+		parameters.pitch = math::lerp(1.1f, 0.9f, impact_rate) * math::lerp(0.95f, 1.05f, static_cast<float>(rand()) / RAND_MAX);
+		audio->play(landing_sound_path, parameters);
+	}
+	landing_sound_request = 0.0f;
 }
 
 void roomba_object::stop_sounds()

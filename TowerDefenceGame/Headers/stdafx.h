@@ -37,6 +37,8 @@
 
 #include "input/mouse.h"
 #include "input/keyboard.h"
+#include "input/gamepad.h"
+#include "input/input_key.h"
 
 #include "Graphics/direct_x_helper.h"
 

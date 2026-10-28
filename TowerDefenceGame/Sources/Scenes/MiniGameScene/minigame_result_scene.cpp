@@ -6,8 +6,13 @@
 
 #include "Object/GameObjects/MiniGame/minigame_record_data.h"
 
+#include "Audio/audio_manager.h"
+
 namespace
 {
+	constexpr std::string_view BgmSoundPath = "Assets/Resources/Sounds/minigame_result_bgm.wav";
+	constexpr std::string_view DecideSoundPath = "Assets/Resources/Sounds/ui_decide.wav";
+
 	//	リザルト背景配置位置
 	static constexpr math::float2 result_back_position = { 0, 0 };
 	static constexpr math::float2 result_back_size = { SCREEN_WIDTH, SCREEN_HEIGHT };
@@ -138,6 +143,12 @@ minigame_result_scene::minigame_result_scene()
 
 	//	遷移プレイ
 	transition_fade_controller::instance()->play(fade::directions::in, 0.5f, fade::modes::black);
+
+	//	BGM 開始
+	if (audio_manager::is_valid())
+	{
+		audio_manager::instance()->play_bgm(BgmSoundPath, 0.5f);
+	}
 }
 
 minigame_result_scene::~minigame_result_scene()
@@ -173,6 +184,12 @@ void minigame_result_scene::update_core(float elapsed_time)
 				|| mouse::instance()->get_state().is_key_state(mouse::key_states::left) == input::state::down;
 			if (continue_input)
 			{
+				//	決定音を鳴らし、フェードアウトに合わせて BGM も止める
+				if (audio_manager::is_valid())
+				{
+					audio_manager::instance()->play(DecideSoundPath, { audio::bus::ui });
+					audio_manager::instance()->stop_bgm(0.5f);
+				}
 				transition_fade_controller::instance()->play(fade::directions::out, 0.5f, fade::modes::black);
 				state = states::fade_out_wait;
 			}
