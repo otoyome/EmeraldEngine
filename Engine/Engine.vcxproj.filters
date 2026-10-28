@@ -57,6 +57,12 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Headers\Audio\sound_bank.h">
+      <Filter>Headers\Audio</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Audio\sound_player.h">
+      <Filter>Headers\Audio</Filter>
+    </ClInclude>
     <ClInclude Include="Headers\Audio\audio_manager.h">
       <Filter>Headers\Audio</Filter>
     </ClInclude>
@@ -187,6 +193,9 @@
       <Filter>Headers\System</Filter>
     </ClInclude>
     <ClInclude Include="Headers\System\system_units.h">
+      <Filter>Headers\System</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\System\signals.h">
       <Filter>Headers\System</Filter>
     </ClInclude>
     <ClInclude Include="Headers\System\system_utility.h">
@@ -455,6 +464,12 @@
     <ClCompile Include="Sources\Resource\resource_manager.cpp">
       <Filter>Sources\Resource</Filter>
     </ClCompile>
+    <ClCompile Include="Sources\Audio\sound_bank.cpp">
+      <Filter>Sources\Audio</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Audio\sound_player.cpp">
+      <Filter>Sources\Audio</Filter>
+    </ClCompile>
     <ClCompile Include="Sources\Audio\audio_manager.cpp">
       <Filter>Sources\Audio</Filter>
     </ClCompile>
@@ -496,6 +511,9 @@
     </ClCompile>
     <ClCompile Include="Sources\data_converter_mmd.cpp">
       <Filter>Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\System\signals.cpp">
+      <Filter>Sources\System</Filter>
     </ClCompile>
     <ClCompile Include="Sources\System\system_utility.cpp">
       <Filter>Sources\System</Filter>

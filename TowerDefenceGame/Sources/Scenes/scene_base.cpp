@@ -40,6 +40,11 @@ void scene_base::imgui_render()
 }
 #endif
 
+signals::broadcaster& scene_base::get_broadcaster()
+{
+	return scene_manager::instance()->get_broadcaster();
+}
+
 void scene_base::register_object(game_object_ptr object)
 {
 	game_objects.emplace_back(object);
@@ -81,6 +86,9 @@ void scene_manager::updates(float elapsed_time)
 	}
 	remove_scenes.clear();
 	add_scenes.clear();
+
+	//	@tool 前のフレームからこのフレームのシーンの追加までに post された通知を配る
+	broadcaster.dispatch_posted();
 
 	for (auto& scene : scenes)
 	{

@@ -15,6 +15,9 @@
     <Filter Include="Sources\Scenes">
       <UniqueIdentifier>{6d50cf44-5ce5-4d61-9d00-bce772a8bf3d}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Headers\Sound">
+      <UniqueIdentifier>{6f1d3c2a-8b4e-4a7f-9c15-2e8d7b3a9f41}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Headers\Scenes">
       <UniqueIdentifier>{c2845836-93a2-447c-8c3d-ae32aa15c5d7}</UniqueIdentifier>
     </Filter>
@@ -320,6 +323,9 @@
     <ClCompile Include="Sources\framework_imgui.cpp">
       <Filter>Sources</Filter>
     </ClCompile>
+    <ClCompile Include="Sources\framework_sound_bank_window.cpp">
+      <Filter>Sources</Filter>
+    </ClCompile>
     <ClCompile Include="Sources\framework_gamepad_window.cpp">
       <Filter>Sources</Filter>
     </ClCompile>
@@ -504,6 +510,9 @@
       <Filter>Sources\Scenes\MiniGameScene</Filter>
     </ClCompile>
     <ClCompile Include="Sources\Scenes\MiniGameScene\minigame_scene.cpp">
+      <Filter>Sources\Scenes\MiniGameScene</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Scenes\MiniGameScene\minigame_title_sound.cpp">
       <Filter>Sources\Scenes\MiniGameScene</Filter>
     </ClCompile>
     <ClCompile Include="Sources\Scenes\MiniGameScene\minigame_title_scene.cpp">
@@ -806,6 +815,15 @@
       <Filter>Headers\Scenes\MiniGameScene</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Scenes\MiniGameScene\minigame_scene.h">
+      <Filter>Headers\Scenes\MiniGameScene</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Sound\common_sounds.h">
+      <Filter>Headers\Sound</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Scenes\MiniGameScene\minigame_title_sound.h">
+      <Filter>Headers\Scenes\MiniGameScene</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Scenes\MiniGameScene\minigame_title_topics.h">
       <Filter>Headers\Scenes\MiniGameScene</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Scenes\MiniGameScene\minigame_title_scene.h">

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "System/signals.h"
+
 class scene_manager;
 
 struct scene_generates
@@ -45,6 +47,10 @@ protected:
 #if defined(USE_IMGUI)
 	virtual void imgui_render_core() {}
 #endif	//	defined(USE_IMGUI)
+
+protected:
+	//	@tool シーン全体で共有する通知
+	signals::broadcaster& get_broadcaster();
 
 protected:
 	void register_object(game_object_ptr object);
@@ -125,6 +131,11 @@ public:
 	}
 
 public:
+	//	@tool シーン全体で共有する通知と問い合わせ
+	signals::broadcaster& get_broadcaster() { return broadcaster; }
+	signals::inquiry_desk& get_inquiry_desk() { return inquiry_desk; }
+
+public:
 	bool remove_scene(std::string_view scene_name);
 	bool valid_scene(std::string_view scene_name);
 	std::vector<std::string_view> get_valid_scene_names() const;
@@ -163,6 +174,10 @@ private:
 		{
 		}
 	};
+	//	@tool シーンより後に破棄されるよう、scenes より前に置く
+	signals::broadcaster broadcaster;
+	signals::inquiry_desk inquiry_desk;
+
 	std::vector<add_scene_data> add_scenes;
 	std::vector<std::string_view> remove_scenes;
 	std::unordered_map<std::string_view, std::unique_ptr<scene_base>> scenes;

@@ -17,6 +17,8 @@
 #include "effect_resource.h"
 #include "effect_instance.h"
 #include "Audio/audio_manager.h"
+#include "Audio/sound_player.h"
+#include "Sound/common_sounds.h"
 
 #include "ik_resource.h"
 
@@ -264,6 +266,8 @@ bool framework::initialize()
 	effect_manager::create_instance();
 	ik_resource_manager::create_instance();
 	audio_manager::create_instance();
+	audio::sound_player::create_instance();
+	common_sound_bank = audio::sound_player::instance()->load_bank(common_sounds::bank_path);
 	minigame_record_data::create_instance();
 	game_config_data::create_instance();
 #if defined(USE_IMGUI)
@@ -493,6 +497,9 @@ void framework::update(float elapsed_time/*Elapsed seconds from last frame*/)
 
 	//	ゲームパッドの入力状況
 	imgui_gamepad_window();
+
+	//	@tool サウンドバンクの編集
+	imgui_sound_bank_window();
 #endif // defined(USE_IMGUI)
 }
 
@@ -970,6 +977,8 @@ bool framework::uninitialize()
 	detail_profiler::delete_instance();
 #endif // defined(USE_IMGUI)
 	game_config_data::delete_instance();
+	common_sound_bank.release();
+	audio::sound_player::delete_instance();
 	audio_manager::delete_instance();
 	ik_resource_manager::delete_instance();
 	effect_manager::delete_instance();

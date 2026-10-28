@@ -73,12 +73,14 @@ class audio_manager
 	{
 		enum class types : uint8_t
 		{
-			play,
-			stop,
-			set_paused,
-			set_volume,
-			set_pitch,
-			clear_cache,
+			play,			//	音を作って鳴らす（SE は初回に展開してキャッシュ、BGM はストリーム）
+			stop,			//	止める（フェード有りは鳴り終わった後に枠を返す）
+			set_paused,		//	一時停止・再開（再生位置は残る）
+			set_volume,		//	音量を変える
+			set_pitch,		//	ピッチを変える
+			clear_cache,	//	キャッシュクリア
+			preload,		//	展開してキャッシュに載せる
+			release,		//	キャッシュから外す
 		};
 
 		types type = types::play;
@@ -122,7 +124,7 @@ public:
 	void set_pitch(audio::sound_handle handle, float pitch);
 
 	//	BGM
-	void play_bgm(std::string_view file_path, float fade_time = 1.0f);
+	audio::sound_handle play_bgm(std::string_view file_path, float fade_time = 1.0f, float volume = 1.0f);
 	void stop_bgm(float fade_time = 1.0f);
 
 	//	音量調整
@@ -133,6 +135,10 @@ public:
 
 	//	キャッシュした展開済みの音を解放する
 	void clear_cache();
+
+	//	ファイル単位でキャッシュに載せる／外す
+	void preload(std::string_view file_path);
+	void release(std::string_view file_path);
 
 	//	再生数を取得
 	size_t get_playing_count() const;
@@ -147,6 +153,7 @@ private:
 
 	void execute_command(command& item);
 	void execute_play(command& item);
+	bool cache_file(const std::string& file_path);
 
 	void release_cache();
 	void apply_volumes();

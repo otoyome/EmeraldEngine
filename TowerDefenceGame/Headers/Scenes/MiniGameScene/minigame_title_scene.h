@@ -5,6 +5,8 @@
 
 #include "object/gameobjects/ui/ui_image.h"
 
+#include "Scenes/MiniGameScene/minigame_title_sound.h"
+
 //	タイトルシーン
 class minigame_title_scene : public scene_base
 {
@@ -34,4 +36,6 @@ protected:
 
 private:
 	states state = states::fade_in_wait;
+
+	minigame_title_sound sound;	//	@tool 購読を持つので最後に置く
 };

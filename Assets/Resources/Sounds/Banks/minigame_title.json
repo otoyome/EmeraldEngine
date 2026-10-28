@@ -1,0 +1,19 @@
+{
+    "cues": [
+        {
+            "cereal_class_version": 1,
+            "name": "minigame_title.bgm",
+            "files": [
+                "Assets/Resources/Sounds/minigame_title_bgm.wav"
+            ],
+            "bus": "bgm",
+            "volume": 1.0,
+            "pitch": 1.0,
+            "volume_random": 0.0,
+            "pitch_random": 0.0,
+            "loop": true,
+            "fade_in_time": 0.5,
+            "fade_out_time": 0.5
+        }
+    ]
+}

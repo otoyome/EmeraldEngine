@@ -283,14 +283,14 @@ void audio_manager::set_pitch(audio::sound_handle handle, float pitch)
 	commands.push_back(std::move(item));
 }
 
-void audio_manager::play_bgm(std::string_view file_path, float fade_time)
+audio::sound_handle audio_manager::play_bgm(std::string_view file_path, float fade_time, float volume)
 {
 	if (!is_available())
-		return;
+		return {};
 
 	std::lock_guard lock(mutex);
 	if (bgm_file_path == file_path && find_voice(bgm_handle))
-		return;
+		return bgm_handle;
 
 	push_stop(bgm_handle, fade_time);
 
@@ -299,8 +299,10 @@ void audio_manager::play_bgm(std::string_view file_path, float fade_time)
 	parameters.loop = true;
 	parameters.stream = true;
 	parameters.fade_in_time = fade_time;
+	parameters.volume = volume;
 	bgm_handle = allocate_voice(file_path, parameters);
 	bgm_file_path = bgm_handle.is_valid() ? std::string(file_path) : std::string();
+	return bgm_handle;
 }
 
 void audio_manager::stop_bgm(float fade_time)
@@ -339,6 +341,30 @@ void audio_manager::clear_cache()
 	std::lock_guard lock(mutex);
 	command item;
 	item.type = command::types::clear_cache;
+	commands.push_back(std::move(item));
+}
+
+void audio_manager::preload(std::string_view file_path)
+{
+	if (!is_available() || file_path.empty())
+		return;
+
+	std::lock_guard lock(mutex);
+	command item;
+	item.type = command::types::preload;
+	item.file_path = std::string(file_path);
+	commands.push_back(std::move(item));
+}
+
+void audio_manager::release(std::string_view file_path)
+{
+	if (!is_available() || file_path.empty())
+		return;
+
+	std::lock_guard lock(mutex);
+	command item;
+	item.type = command::types::release;
+	item.file_path = std::string(file_path);
 	commands.push_back(std::move(item));
 }
 
@@ -428,6 +454,13 @@ void audio_manager::execute_command(command& item)
 		return;
 	}
 
+	//	@tool 展開は時間がかかるので、再生と同じくロックの外で行う
+	if (item.type == command::types::preload)
+	{
+		cache_file(item.file_path);
+		return;
+	}
+
 	//	コマンド処理
 	std::lock_guard lock(mutex);
 	switch (item.type)
@@ -470,6 +503,14 @@ void audio_manager::execute_command(command& item)
 			release_cache();
 			break;
 		}
+		case command::types::release:
+		{
+			//	@tool 再生中の音は miniaudio 側の参照で残るので、鳴り終わるまで使える
+			const std::wstring path = system_utility::convert_utf16(item.file_path);
+			if (cached_files.erase(path) > 0)
+				ma_resource_manager_unregister_file_w(ma_engine_get_resource_manager(&impl->engine), path.c_str());
+			break;
+		}
 		default:
 			break;
 	}
@@ -501,16 +542,10 @@ void audio_manager::execute_play(command& item)
 		flags |= MA_SOUND_FLAG_DECODE;
 
 		//	初回は展開してキャッシュに登録する
-		if (!cached_files.contains(path))
+		if (!cache_file(file_path))
 		{
-			ma_result result = ma_resource_manager_register_file_w(ma_engine_get_resource_manager(&impl->engine), path.c_str(), MA_RESOURCE_MANAGER_DATA_SOURCE_FLAG_DECODE);
-			if (result != MA_SUCCESS)
-			{
-				DEBUG_WARNING_CATEGORY(logger::categorys::system, "Audio Load Failed[%s][%s]", file_path.c_str(), ma_result_description(result));
-				fail();
-				return;
-			}
-			cached_files.insert(path);
+			fail();
+			return;
 		}
 	}
 
@@ -543,6 +578,22 @@ void audio_manager::execute_play(command& item)
 		target->sound = std::move(sound);
 	else
 		ma_sound_uninit(sound.get());
+}
+
+bool audio_manager::cache_file(const std::string& file_path)
+{
+	const std::wstring path = system_utility::convert_utf16(file_path);
+	if (cached_files.contains(path))
+		return true;
+
+	ma_result result = ma_resource_manager_register_file_w(ma_engine_get_resource_manager(&impl->engine), path.c_str(), MA_RESOURCE_MANAGER_DATA_SOURCE_FLAG_DECODE);
+	if (result != MA_SUCCESS)
+	{
+		DEBUG_WARNING_CATEGORY(logger::categorys::system, "Audio Load Failed[%s][%s]", file_path.c_str(), ma_result_description(result));
+		return false;
+	}
+	cached_files.insert(path);
+	return true;
 }
 
 void audio_manager::execute_stop(audio::sound_handle handle, float fade_out_time)

@@ -1,0 +1,19 @@
+{
+    "cues": [
+        {
+            "cereal_class_version": 1,
+            "name": "common.decide",
+            "files": [
+                "Assets/Resources/Sounds/ui_decide.wav"
+            ],
+            "bus": "ui",
+            "volume": 1.0,
+            "pitch": 1.0,
+            "volume_random": 0.0,
+            "pitch_random": 0.0,
+            "loop": false,
+            "fade_in_time": 0.0,
+            "fade_out_time": 0.0
+        }
+    ]
+}

@@ -4,14 +4,10 @@
 
 #include "object/gameobjects/ui/common/transition_fade_controller.h"
 
-#include "Audio/audio_manager.h"
+#include "Scenes/MiniGameScene/minigame_title_topics.h"
 
 namespace
 {
-	//	サウンド
-	constexpr std::string_view BgmSoundPath = "Assets/Resources/Sounds/minigame_title_bgm.wav";
-	constexpr std::string_view DecideSoundPath = "Assets/Resources/Sounds/ui_decide.wav";
-
 	//	タイトルロゴ配置位置
 	static constexpr math::float2 title_logo_position = { 60, 180 };
 	static constexpr math::float2 title_logo_size = { 640, 270 };
@@ -28,6 +24,7 @@ namespace
 
 minigame_title_scene::minigame_title_scene()
 : scene_base()
+, sound(get_broadcaster())
 {
 	//	マウスカーソルを表示する
 	mouse::instance()->set_center_lock(false);
@@ -71,11 +68,8 @@ minigame_title_scene::minigame_title_scene()
 	//	遷移フェードコントローラーにプレイを要求
 	transition_fade_controller::instance()->play(fade::directions::in, 0.5f, fade::modes::black);
 
-	//	BGM 開始
-	if (audio_manager::is_valid())
-	{
-		audio_manager::instance()->play_bgm(BgmSoundPath, 0.5f);
-	}
+	//	@tool タイトルが開いたことを知らせる（BGM は minigame_title_sound が鳴らす）
+	get_broadcaster().post(minigame_title_topics::opened);
 }
 
 minigame_title_scene::~minigame_title_scene()
@@ -89,11 +83,8 @@ bool minigame_title_scene::initialize_core()
 
 bool minigame_title_scene::uninitialize_core()
 {
-	//	@tool ImGui などで途中からシーンを切り替えても BGM が残らないように止める
-	if (audio_manager::is_valid())
-	{
-		audio_manager::instance()->stop_bgm(0.5f);
-	}
+	//	@tool この後すぐ受け手（sound）も破棄されるので、閉じたことはその場で知らせる
+	get_broadcaster().publish(minigame_title_topics::closed);
 	return true;
 }
 
@@ -119,12 +110,8 @@ void minigame_title_scene::update_core(float elapsed_time)
 				|| input::get_key_state(gamepad::key_states::a) == input::state::down;
 			if (start_input)
 			{
-				//	決定音を鳴らし、フェードアウトに合わせて BGM も止める
-				if (audio_manager::is_valid())
-				{
-					audio_manager::instance()->play(DecideSoundPath, { audio::bus::ui });
-					audio_manager::instance()->stop_bgm(0.5f);
-				}
+				//	@tool 決定を知らせる（決定音と BGM の停止は minigame_title_sound が行う）
+				get_broadcaster().post(minigame_title_topics::decided);
 				transition_fade_controller::instance()->play(fade::directions::out, 0.5f, fade::modes::black);
 				state = states::fade_out_wait;
 			}

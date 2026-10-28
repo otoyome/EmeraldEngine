@@ -141,10 +141,13 @@
     <ClInclude Include="Headers\System\simple_helper.h" />
     <ClInclude Include="Headers\System\singleton.h" />
     <ClInclude Include="Headers\System\system_units.h" />
+    <ClInclude Include="Headers\System\signals.h" />
     <ClInclude Include="Headers\System\system_utility.h" />
     <ClInclude Include="Headers\System\variable_position_allocator.h" />
     <ClInclude Include="Headers\texture.h" />
     <ClInclude Include="Headers\Audio\audio_manager.h" />
+    <ClInclude Include="Headers\Audio\sound_bank.h" />
+    <ClInclude Include="Headers\Audio\sound_player.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Sources\animation_resource.cpp" />
@@ -216,6 +219,8 @@
     <ClCompile Include="Sources\System\behavior_tree.cpp" />
     <ClCompile Include="Sources\Resource\resource_manager.cpp" />
     <ClCompile Include="Sources\Audio\audio_manager.cpp" />
+    <ClCompile Include="Sources\Audio\sound_bank.cpp" />
+    <ClCompile Include="Sources\Audio\sound_player.cpp" />
     <ClCompile Include="Sources\Audio\miniaudio_implementation.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <ForcedIncludeFiles>
@@ -236,6 +241,7 @@
     <ClCompile Include="Sources\System\memory_allocator.cpp" />
     <ClCompile Include="Sources\System\simple_helper.cpp" />
     <ClCompile Include="Sources\System\system_units.cpp" />
+    <ClCompile Include="Sources\System\signals.cpp" />
     <ClCompile Include="Sources\System\system_utility.cpp" />
     <ClCompile Include="Sources\texture.cpp" />
   </ItemGroup>
