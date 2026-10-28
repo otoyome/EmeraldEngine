@@ -113,8 +113,10 @@ void minigame_title_scene::update_core(float elapsed_time)
 		case states::input_wait:
 		{
 			//	スペースキーか左クリックでゲームを開始する
-			bool start_input = keyboard::instance()->get_state().is_key_state(keyboard::key_states::space) == input::state::down
-				|| mouse::instance()->get_state().is_key_state(mouse::key_states::left) == input::state::down;
+			//	@tool パッドは a（PS の ×）
+			bool start_input = input::get_key_state(keyboard::key_states::space) == input::state::down
+				|| input::get_key_state(mouse::key_states::left) == input::state::down
+				|| input::get_key_state(gamepad::key_states::a) == input::state::down;
 			if (start_input)
 			{
 				//	決定音を鳴らし、フェードアウトに合わせて BGM も止める

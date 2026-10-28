@@ -49,8 +49,6 @@ roomba_controller_object::~roomba_controller_object()
 void roomba_controller_object::fixed_update(float elapsed_time)
 {
 	//	入力記録
-	auto keyboard_state = keyboard::instance()->get_state();
-	auto mouse_state = mouse::instance()->get_state();
 	switch (mode)
 	{
 		case modes::normal:
@@ -60,10 +58,12 @@ void roomba_controller_object::fixed_update(float elapsed_time)
 				action_datas[index] = action_datas[index - 1];
 			}
 			action_datas[0].move = get_move_vector();
-			action_datas[0].dash = keyboard_state.is_key_state(keyboard::key_states::shift) == input::state::hold ||
-								   mouse_state.is_key_state(mouse::key_states::left) == input::state::hold;
-			action_datas[0].brake = keyboard_state.is_key_state(keyboard::key_states::ctrl) == input::state::hold ||
-								   mouse_state.is_key_state(mouse::key_states::right) == input::state::hold;
+			action_datas[0].dash = input::get_key_state(keyboard::key_states::shift) == input::state::hold ||
+								   input::get_key_state(mouse::key_states::left) == input::state::hold ||
+								   input::get_key_state(gamepad::key_states::rt) == input::state::hold;
+			action_datas[0].brake = input::get_key_state(keyboard::key_states::ctrl) == input::state::hold ||
+								   input::get_key_state(mouse::key_states::right) == input::state::hold ||
+								   input::get_key_state(gamepad::key_states::lt) == input::state::hold;
 
 			//	アクション情報引き渡し
 			static constexpr size_t check_frame = static_cast<size_t>(system_units::convert_sec_to_fps(0.1f) + 0.1f);
@@ -91,13 +91,18 @@ void roomba_controller_object::fixed_update(float elapsed_time)
 
 math::float3 roomba_controller_object::get_move_vector()
 {
-	auto keyboard_state = keyboard::instance()->get_state();
-	int y_axis  = (keyboard_state.is_key_state(keyboard::key_states::w) == input::state::hold)
-				- (keyboard_state.is_key_state(keyboard::key_states::s) == input::state::hold);
-	int x_axis  = (keyboard_state.is_key_state(keyboard::key_states::d) == input::state::hold)
-				- (keyboard_state.is_key_state(keyboard::key_states::a) == input::state::hold);
-	if (y_axis == 0 && x_axis == 0)
+	//	@tool キーボードの -1/0/1 にパッドの左スティックの量を足す
+	float y_axis = static_cast<float>((input::get_key_state(keyboard::key_states::w) == input::state::hold)
+				 - (input::get_key_state(keyboard::key_states::s) == input::state::hold))
+				 + input::get_key_value(gamepad::axis_states::left_y);
+	float x_axis = static_cast<float>((input::get_key_state(keyboard::key_states::d) == input::state::hold)
+				 - (input::get_key_state(keyboard::key_states::a) == input::state::hold))
+				 + input::get_key_value(gamepad::axis_states::left_x);
+	if (y_axis == 0.0f && x_axis == 0.0f)
 		return math::float3(0, 0, 0);
+
+	//	@tool 倒した量を残す（キーボードの斜めは 1 になる）
+	const float input_length = std::min(sqrtf(x_axis * x_axis + y_axis * y_axis), 1.0f);
 
 	float camera_right_x = static_cast<float>(camera->get_world().get_right().x);
 	float camera_right_z = static_cast<float>(camera->get_world().get_right().z);
@@ -122,8 +127,8 @@ math::float3 roomba_controller_object::get_move_vector()
 	vector.y = 0.0f;
 	vector.z = (camera_right_z * x_axis) + (camera_front_z * y_axis);
 	float vector_length = sqrtf(vector.x * vector.x + vector.z * vector.z);
-	vector.x /= vector_length;
-	vector.z /= vector_length;
+	vector.x *= input_length / vector_length;
+	vector.z *= input_length / vector_length;
 	return vector;
 }
 

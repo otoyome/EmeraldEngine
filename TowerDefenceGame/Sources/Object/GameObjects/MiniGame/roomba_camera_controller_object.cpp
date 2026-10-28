@@ -250,8 +250,13 @@ void roomba_camera_controller_object::update(float elapsed_time)
 
 	//	旋回加速処理
 	math::float2 move;
-	move.x = static_cast<float>(mouse::instance()->get_move_cursol().x);
-	move.y = static_cast<float>(mouse::instance()->get_move_cursol().y);
+	move.x = input::get_key_value(mouse::axis_states::x);
+	move.y = input::get_key_value(mouse::axis_states::y);
+
+	//	@tool 右スティックはマウスの移動量に換算する（倒し切りで毎秒 120 度、下に倒すとマウスを下に動かした時と同じ向き）
+	constexpr float stick_move_per_second = 1200.0f;
+	move.x += input::get_key_value(gamepad::axis_states::right_x) * stick_move_per_second * elapsed_time;
+	move.y -= input::get_key_value(gamepad::axis_states::right_y) * stick_move_per_second * elapsed_time;
 	float move_length = (move.x * move.x + move.y * move.y);
 	if (move_length > 0.001f * 0.001f)
 	{
