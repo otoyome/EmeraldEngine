@@ -5,7 +5,7 @@
 
 //  シェーディングモデル定数
 static const uint shading_model_unlit       = 0;    //  シェーディング計算：ライティング無し
-static const uint shading_model_default_lit = 1; //  シェーディング計算：基本計算
+static const uint shading_model_default_lit = 1;    //  シェーディング計算：基本計算
 //	[エンジン改造:シェーディング]
 static const uint shading_model_ggst_lit    = 2;    //  シェーディング計算：トゥーン計算
 static const uint shading_model_toon_lit    = 3;    //  シェーディング計算：トゥーン計算
