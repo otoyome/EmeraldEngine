@@ -1,6 +1,7 @@
 #include "object/gameobjects/MiniGame/roomba_controller_object.h"
 
 #include "object/game_constant.h"
+#include "Input/input_action.h"
 
 namespace
 {
@@ -9,6 +10,20 @@ namespace
 	constexpr std::string_view ControllObjectDeadComplete = "CONTROLL_OBJECT_DEAD_COMPLETE";
 
 	constexpr std::string_view OnStaggerEnterId = "STAGGER_ENTER_CALLBACK";
+
+	//	ルンバ操作の入力アクション
+	const input::action dash_action("roomba.dash", { keyboard::key_states::shift, mouse::key_states::left, gamepad::key_states::rt });
+	const input::action brake_action("roomba.brake", { keyboard::key_states::ctrl, mouse::key_states::right, gamepad::key_states::lt });
+	const input::axis_action move_x_action("roomba.move_x", {
+		{ keyboard::key_states::d, +1.0f },
+		{ keyboard::key_states::a, -1.0f },
+		{ gamepad::axis_states::left_x, 1.0f },
+	});
+	const input::axis_action move_y_action("roomba.move_y", {
+		{ keyboard::key_states::w, +1.0f },
+		{ keyboard::key_states::s, -1.0f },
+		{ gamepad::axis_states::left_y, 1.0f },
+	});
 }
 
 std::shared_ptr<roomba_object> roomba_controller_object::get_controll_object() const
@@ -58,12 +73,8 @@ void roomba_controller_object::fixed_update(float elapsed_time)
 				action_datas[index] = action_datas[index - 1];
 			}
 			action_datas[0].move = get_move_vector();
-			action_datas[0].dash = input::get_key_state(keyboard::key_states::shift) == input::state::hold ||
-								   input::get_key_state(mouse::key_states::left) == input::state::hold ||
-								   input::get_key_state(gamepad::key_states::rt) == input::state::hold;
-			action_datas[0].brake = input::get_key_state(keyboard::key_states::ctrl) == input::state::hold ||
-								   input::get_key_state(mouse::key_states::right) == input::state::hold ||
-								   input::get_key_state(gamepad::key_states::lt) == input::state::hold;
+			action_datas[0].dash = dash_action.is_pressed();
+			action_datas[0].brake = brake_action.is_pressed();
 
 			//	アクション情報引き渡し
 			static constexpr size_t check_frame = static_cast<size_t>(system_units::convert_sec_to_fps(0.1f) + 0.1f);
@@ -91,12 +102,8 @@ void roomba_controller_object::fixed_update(float elapsed_time)
 
 math::float3 roomba_controller_object::get_move_vector()
 {
-	float y_axis = static_cast<float>((input::get_key_state(keyboard::key_states::w) == input::state::hold)
-				 - (input::get_key_state(keyboard::key_states::s) == input::state::hold))
-				 + input::get_key_value(gamepad::axis_states::left_y);
-	float x_axis = static_cast<float>((input::get_key_state(keyboard::key_states::d) == input::state::hold)
-				 - (input::get_key_state(keyboard::key_states::a) == input::state::hold))
-				 + input::get_key_value(gamepad::axis_states::left_x);
+	float y_axis = move_y_action.get_value();
+	float x_axis = move_x_action.get_value();
 	if (y_axis == 0.0f && x_axis == 0.0f)
 		return math::float3(0, 0, 0);
 

@@ -6,8 +6,8 @@
 
 namespace input
 {
-	//	キーの出どころ
-	enum class sources : uint8_t
+	//	キーデバイスタイプ
+	enum class devices : uint8_t
 	{
 		keyboard,
 		mouse,
@@ -16,19 +16,19 @@ namespace input
 		gamepad_axis,
 	};
 
-	//	キー情報尾
+	//	キー情報
 	struct key
 	{
-		sources source;	//	デバイス指定
+		devices device;	//	デバイス指定
 		uint8_t code;	//	キーコード
 
-		constexpr key(keyboard::key_states value) : source(sources::keyboard), code(static_cast<uint8_t>(value)) {}
-		constexpr key(mouse::key_states value) : source(sources::mouse), code(static_cast<uint8_t>(value)) {}
-		constexpr key(mouse::axis_states value) : source(sources::mouse_axis), code(static_cast<uint8_t>(value)) {}
-		constexpr key(gamepad::key_states value) : source(sources::gamepad), code(static_cast<uint8_t>(value)) {}
-		constexpr key(gamepad::axis_states value) : source(sources::gamepad_axis), code(static_cast<uint8_t>(value)) {}
+		constexpr key(keyboard::key_states value) : device(devices::keyboard), code(static_cast<uint8_t>(value)) {}
+		constexpr key(mouse::key_states value) : device(devices::mouse), code(static_cast<uint8_t>(value)) {}
+		constexpr key(mouse::axis_states value) : device(devices::mouse_axis), code(static_cast<uint8_t>(value)) {}
+		constexpr key(gamepad::key_states value) : device(devices::gamepad), code(static_cast<uint8_t>(value)) {}
+		constexpr key(gamepad::axis_states value) : device(devices::gamepad_axis), code(static_cast<uint8_t>(value)) {}
 
-		constexpr bool operator==(const key& other) const { return source == other.source && code == other.code; }
+		constexpr bool operator==(const key& other) const { return device == other.device && code == other.code; }
 		constexpr bool operator!=(const key& other) const { return !(*this == other); }
 	};
 

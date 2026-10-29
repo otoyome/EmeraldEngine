@@ -13,7 +13,7 @@ namespace input
 	//	—Ê‚ğ‚Â“ü—Í‚ğ‰Ÿ‰º‚Æ‚İ‚È‚·—Ê
 	constexpr float pressed_threshold = 0.5f;
 
-	//	‰Ÿ‚³‚ê‚Ä‚¢‚é‚©‚©‚çŸ‚Ìó‘Ô‚ğ‹‚ß‚é
+	//	Œ»İ‚Ìó‘Ô‚©‚çŸ‚Ìó‘Ô‚ğ‹‚ß‚é
 	inline state next_state(state current, bool pressed)
 	{
 		if (pressed)

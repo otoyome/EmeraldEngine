@@ -132,6 +132,12 @@
     <ClInclude Include="Headers\Input\input_key.h">
       <Filter>Headers\Input</Filter>
     </ClInclude>
+    <ClInclude Include="Headers\Input\input_action.h">
+      <Filter>Headers\Input</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Input\input_layer.h">
+      <Filter>Headers\Input</Filter>
+    </ClInclude>
     <ClInclude Include="Headers\Input\mouse.h">
       <Filter>Headers\Input</Filter>
     </ClInclude>
@@ -402,6 +408,12 @@
       <Filter>Sources\Input</Filter>
     </ClCompile>
     <ClCompile Include="Sources\Input\input_key.cpp">
+      <Filter>Sources\Input</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Input\input_action.cpp">
+      <Filter>Sources\Input</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Input\input_layer.cpp">
       <Filter>Sources\Input</Filter>
     </ClCompile>
     <ClCompile Include="Sources\Input\mouse.cpp">

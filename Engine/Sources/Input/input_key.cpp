@@ -14,26 +14,26 @@ namespace input
 {
 	state get_key_state(key k, size_t pad_index)
 	{
-		switch (k.source)
+		switch (k.device)
 		{
-			case sources::keyboard:
+			case devices::keyboard:
 			{
 				return keyboard::is_valid() ? keyboard::instance()->get_state().is_key_state(static_cast<keyboard::key_states>(k.code)) : state::none;
 			}
-			case sources::mouse:
+			case devices::mouse:
 			{
 				return mouse::is_valid() ? mouse::instance()->get_state().is_key_state(static_cast<mouse::key_states>(k.code)) : state::none;
 			}
-			case sources::mouse_axis:
+			case devices::mouse_axis:
 			{
 				return mouse::is_valid() ? mouse::instance()->get_axis_state(static_cast<mouse::axis_states>(k.code)) : state::none;
 			}
-			case sources::gamepad:
+			case devices::gamepad:
 			{
 				const gamepad::states* pad = find_gamepad_state(pad_index);
 				return pad ? pad->is_key_state(static_cast<gamepad::key_states>(k.code)) : state::none;
 			}
-			case sources::gamepad_axis:
+			case devices::gamepad_axis:
 			{
 				const gamepad::states* pad = find_gamepad_state(pad_index);
 				return pad ? pad->get_axis_state(static_cast<gamepad::axis_states>(k.code)) : state::none;
@@ -44,13 +44,13 @@ namespace input
 
 	float get_key_value(key k, size_t pad_index)
 	{
-		switch (k.source)
+		switch (k.device)
 		{
-			case sources::mouse_axis:
+			case devices::mouse_axis:
 			{
 				return mouse::is_valid() ? mouse::instance()->get_axis(static_cast<mouse::axis_states>(k.code)) : 0.0f;
 			}
-			case sources::gamepad_axis:
+			case devices::gamepad_axis:
 			{
 				const gamepad::states* pad = find_gamepad_state(pad_index);
 				return pad ? pad->get_axis(static_cast<gamepad::axis_states>(k.code)) : 0.0f;

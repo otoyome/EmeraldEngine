@@ -90,6 +90,8 @@
     <ClInclude Include="Headers\Input\mouse.h" />
     <ClInclude Include="Headers\Input\gamepad.h" />
     <ClInclude Include="Headers\Input\input_key.h" />
+    <ClInclude Include="Headers\Input\input_action.h" />
+    <ClInclude Include="Headers\Input\input_layer.h" />
     <ClInclude Include="Headers\light.h" />
     <ClInclude Include="Headers\light_data.h" />
     <ClInclude Include="Headers\material.h" />
@@ -185,6 +187,8 @@
     <ClCompile Include="Sources\Input\mouse.cpp" />
     <ClCompile Include="Sources\Input\gamepad.cpp" />
     <ClCompile Include="Sources\Input\input_key.cpp" />
+    <ClCompile Include="Sources\Input\input_action.cpp" />
+    <ClCompile Include="Sources\Input\input_layer.cpp" />
     <ClCompile Include="Sources\light.cpp" />
     <ClCompile Include="Sources\light_data.cpp" />
     <ClCompile Include="Sources\material.cpp" />
