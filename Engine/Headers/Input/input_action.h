@@ -2,9 +2,25 @@
 
 #include "input_key.h"
 #include "input_layer.h"
+#include "System/signals.h"
 
 namespace input
 {
+	//	アクションフェーズ
+	enum class action_phases : uint8_t
+	{
+		pressed,	//	押された
+		released,	//	離された
+		canceled,	//	押されたまま無効になった（レイヤーで止められた・外された）
+	};
+
+	//	アクションの通知に載せる内容
+	struct action_event
+	{
+		action_phases phase;
+		size_t pad_index;
+	};
+
 	//	入力アクション
 	class action
 	{
@@ -21,11 +37,20 @@ namespace input
 		std::string_view get_name() const;
 		const std::vector<key>& get_keys() const;
 
+		[[nodiscard]] signals::connection subscribe(signals::broadcaster& target, std::function<void(const action_event&)> function,
+			std::source_location location = std::source_location::current()) const;
+
 	private:
+		friend void update_actions(signals::broadcaster& target);
+
 		std::string name;
 		std::vector<key> keys;
-		const layer* owner = nullptr;	//	所属レイヤー。nullptr ならいつでも有効
+		signals::topic<action_event> topic;
+		const layer* owner = nullptr;
 	};
+
+	//	入力アクション更新
+	void update_actions(signals::broadcaster& target);
 
 	//	軸アクション
 	class axis_action
@@ -52,6 +77,6 @@ namespace input
 	private:
 		std::string name;
 		std::vector<mapping> mappings;	
-		const layer* owner = nullptr;		//	所属レイヤー。nullptr ならいつでも有効
+		const layer* owner = nullptr;
 	};
 }

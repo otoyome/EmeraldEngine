@@ -18,7 +18,7 @@
 #include "effect_instance.h"
 #include "Audio/audio_manager.h"
 #include "Audio/sound_player.h"
-#include "Input/input_layer.h"
+#include "Input/input_action.h"
 
 #include "ik_resource.h"
 
@@ -435,6 +435,10 @@ void framework::update(float elapsed_time/*Elapsed seconds from last frame*/)
 		gamepad::instance()->update_state();
 	}
 	input::update_layers();
+	if (scene_manager::is_valid())
+	{
+		input::update_actions(scene_manager::instance()->get_broadcaster());
+	}
 
 #if defined(USE_IMGUI)
 	//	キー割り当てされたコンソールコマンドを実行

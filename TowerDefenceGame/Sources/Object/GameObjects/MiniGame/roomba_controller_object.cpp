@@ -2,6 +2,7 @@
 
 #include "object/game_constant.h"
 #include "Input/input_action.h"
+#include "scenes/scene_base.h"
 
 namespace
 {
@@ -54,7 +55,19 @@ roomba_controller_object::roomba_controller_object(std::string_view name, std::s
 , controll_object(controll_object)
 , mode(modes::normal)
 , action_datas()
+, dash_pressed(false)
+, brake_pressed(false)
 {
+	//	“ü—Íw“Ç
+	signals::broadcaster& broadcaster = scene_manager::instance()->get_broadcaster();
+	connections += dash_action.subscribe(broadcaster, [this](const input::action_event& event)
+	{
+		dash_pressed = event.phase == input::action_phases::pressed;
+	});
+	connections += brake_action.subscribe(broadcaster, [this](const input::action_event& event)
+	{
+		brake_pressed = event.phase == input::action_phases::pressed;
+	});
 }
 
 roomba_controller_object::~roomba_controller_object()
@@ -73,8 +86,8 @@ void roomba_controller_object::fixed_update(float elapsed_time)
 				action_datas[index] = action_datas[index - 1];
 			}
 			action_datas[0].move = get_move_vector();
-			action_datas[0].dash = dash_action.is_pressed();
-			action_datas[0].brake = brake_action.is_pressed();
+			action_datas[0].dash = dash_pressed;
+			action_datas[0].brake = brake_pressed;
 
 			//	ƒAƒNƒVƒ‡ƒ“î•ñˆø‚«“n‚µ
 			static constexpr size_t check_frame = static_cast<size_t>(system_units::convert_sec_to_fps(0.1f) + 0.1f);

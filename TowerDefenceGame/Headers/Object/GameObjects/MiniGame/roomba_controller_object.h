@@ -1,6 +1,7 @@
 #pragma once
 
 #include "object/gameobjects/MiniGame/roomba_object.h"
+#include "System/signals.h"
 
 //	ルンバ用コントローラーオブジェクト
 class roomba_controller_object : public game_object
@@ -39,4 +40,8 @@ private:
 
 	modes mode;
 	roomba_object::action_datas action_datas[system_units::frame_per_sec];
+
+	bool dash_pressed;
+	bool brake_pressed;
+	signals::connection_list connections;
 };

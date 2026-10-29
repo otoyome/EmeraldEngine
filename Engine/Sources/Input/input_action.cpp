@@ -11,23 +11,38 @@ namespace
 		}
 		return keys;
 	}
+
+	struct action_record
+	{
+		input::action* target;
+		input::state last_state = input::state::none;
+	};
+
+	std::vector<action_record>& action_records()
+	{
+		static std::vector<action_record> records;
+		return records;
+	}
 }
 
 namespace input
 {
 	action::action(std::string_view name, std::initializer_list<key> keys)
-		: name(name), keys(keys)
+		: name(name), keys(keys), topic(this->name)
 	{
+		action_records().push_back({ this });
 	}
 
 	action::action(const layer& owner, std::string_view name, std::initializer_list<key> keys)
-		: name(name), keys(keys), owner(&owner)
+		: name(name), keys(keys), topic(this->name), owner(&owner)
 	{
+		action_records().push_back({ this });
 		detail::add_layer_keys(owner, this->keys);
 	}
 
 	action::~action()
 	{
+		std::erase_if(action_records(), [this](const action_record& record) { return record.target == this; });
 		if (owner)
 			detail::remove_layer_keys(*owner, keys);
 	}
@@ -64,6 +79,12 @@ namespace input
 	const std::vector<key>& action::get_keys() const
 	{
 		return keys;
+	}
+
+	signals::connection action::subscribe(signals::broadcaster& target, std::function<void(const action_event&)> function,
+		std::source_location location) const
+	{
+		return target.subscribe(topic, std::move(function), location);
 	}
 
 	axis_action::axis_action(std::string_view name, std::initializer_list<mapping> mappings)
@@ -106,5 +127,26 @@ namespace input
 	const std::vector<axis_action::mapping>& axis_action::get_mappings() const
 	{
 		return mappings;
+	}
+
+	void update_actions(signals::broadcaster& target)
+	{
+		std::vector<action_record>& records = action_records();
+
+		for (size_t index = 0; index < records.size(); ++index)
+		{
+			action* current_action = records[index].target;
+			const state last = records[index].last_state;
+			const state current = current_action->get_state();
+			records[index].last_state = current;
+
+			const bool was_pressed = last == state::down || last == state::hold;
+			if (current == state::down)
+				target.publish(current_action->topic, { action_phases::pressed, 0 });
+			else if (current == state::release && was_pressed)
+				target.publish(current_action->topic, { action_phases::released, 0 });
+			else if (current == state::none && was_pressed)
+				target.publish(current_action->topic, { action_phases::canceled, 0 });
+		}
 	}
 }
