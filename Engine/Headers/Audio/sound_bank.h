@@ -13,16 +13,16 @@ namespace audio
 	//	サウンドキュー
 	struct sound_cue_desc
 	{
-		std::string name;						//	「バンク名.音の名前」の形を推奨
-		std::vector<std::string> files;			//	候補。鳴らすたびにランダムに 1 つ選ぶ
-		bus target_bus = bus::se;				//	bgm は BGM として鳴らす（ストリーム・ループ・クロスフェード）
-		float volume = 1.0f;
-		float pitch = 1.0f;
-		float volume_random = 0.0f;				//	鳴らすたびの音量の揺らぎ（±）
-		float pitch_random = 0.0f;				//	鳴らすたびのピッチの揺らぎ（±）
-		bool loop = false;
-		float fade_in_time = 0.0f;				//	秒。BGM はクロスフェードの時間
-		float fade_out_time = 0.0f;				//	秒。止める時
+		std::string name;				//	バンク名
+		std::vector<std::string> files;	//	再生候補リスト
+		bus target_bus = bus::se;		//	バス指定
+		float volume = 1.0f;			//	音量
+		float pitch = 1.0f;				//	ピッチ
+		float volume_random = 0.0f;		//	音量の揺らぎ
+		float pitch_random = 0.0f;		//	ピッチの揺らぎ
+		bool loop = false;				//	ループ再生
+		float fade_in_time = 0.0f;		//	フェードイン時間
+		float fade_out_time = 0.0f;		//	フェードアウト時間
 
 		template<class Archive>
 		void save(Archive& archive, std::uint32_t const version) const;
@@ -39,12 +39,12 @@ namespace audio
 		bool save_file(std::string_view file_path) const;
 	};
 
-	//	鳴らす音の名前
+	//	サウンドキュー
 	struct sound_cue
 	{
-		constexpr explicit sound_cue(std::string_view name) : name(name), id(system_utility::generate_hash(name)) {}
-
 		std::string_view name;
 		system_utility::hash_key id;
+
+		constexpr explicit sound_cue(std::string_view name) : name(name), id(system_utility::generate_hash(name)) {}
 	};
 }

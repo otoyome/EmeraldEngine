@@ -248,39 +248,65 @@ bool framework::initialize()
 	//	文字コード変換器所持
 	system_utility::initialize_charset_converter();
 
-	render_data::create_instance(hwnd);
-	mouse::create_instance(hwnd);
-	keyboard::create_instance();
-	gamepad::create_instance();
-	texture_manager::create_instance();
-	font_data_manager::create_instance();
-	shader_manager::create_instance();
-	pipeline_state_manager::create_instance();
-	light_manager::create_instance();
-	post_process_volume_manager::create_instance();
-	camera_manager::create_instance();
-	model_buffer_pool_manager::create_instance();
-	model_resource_manager::create_instance();
-	model_instance_manger::create_instance();
-	effect_resource_manager::create_instance();
-	effect_manager::create_instance();
-	ik_resource_manager::create_instance();
-	audio_manager::create_instance();
-	audio::sound_player::create_instance();
-	common_sound_bank = audio::sound_player::instance()->load_bank(common_sounds::bank_path);
-	minigame_record_data::create_instance();
-	game_config_data::create_instance();
+	//	ゲームコンフィグ初期化
+	{
+		//	@remainder	内部でコンソールマネージャーに情報を受け渡しているだけ。
+		game_config_data::create_instance();
+	}
+
+	//	入力関係初期化
+	{
+		mouse::create_instance(hwnd);
+		keyboard::create_instance();
+		gamepad::create_instance();
+	}
+
+	{
+		render_data::create_instance(hwnd);
+		texture_manager::create_instance();
+		font_data_manager::create_instance();
+		shader_manager::create_instance();
+		pipeline_state_manager::create_instance();
+		light_manager::create_instance();
+		post_process_volume_manager::create_instance();
+		camera_manager::create_instance();
+		model_buffer_pool_manager::create_instance();
+		model_resource_manager::create_instance();
+		model_instance_manger::create_instance();
+		ik_resource_manager::create_instance();
+	}
+
+	//	エフェクト関係
+	{
+		effect_resource_manager::create_instance();
+		effect_manager::create_instance();
+	}
+
 #if defined(USE_IMGUI)
-	editor_config_data::create_instance();
-	detail_profiler::create_instance();
-	debug_primitive_manager::create_instance();
-	editor_camera_manager::create_instance();
-	editor_items::initialize();
+	//	エディター/デバッグ関係
+	{
+		editor_config_data::create_instance();
+		detail_profiler::create_instance();
+		debug_primitive_manager::create_instance();
+		editor_camera_manager::create_instance();
+		editor_items::initialize();
+	}
 #endif // defined(USE_IMGUI)
 
-	collision_filter_manager::create_instance();
-	object_manager::create_instance();
-	scene_manager::create_instance();
+	//	サウンド関係
+	{
+		audio_manager::create_instance();
+		audio::sound_player::create_instance();
+		common_sound_bank = audio::sound_player::instance()->load_bank(common_sounds::bank_path);
+		minigame_record_data::create_instance();	//	@DDDD これは不要
+	}
+
+	//	シーン関係
+	{
+		collision_filter_manager::create_instance();
+		object_manager::create_instance();
+		scene_manager::create_instance();
+	}
 
 	//	各種バッファ用意
 	render_targets = std::make_shared<scene_render_targets>();
@@ -450,9 +476,7 @@ void framework::update(float elapsed_time/*Elapsed seconds from last frame*/)
 	{
 		editor_camera_manager::instance()->update(elapsed_time);
 	}
-#endif //	defined(USE_IMGUI)
 
-#if defined(USE_IMGUI)
 	//	ImGuiウィンドウ構築の計測
 	DETAIL_PROFILE_CPU_SCOPE("update.imgui");
 
@@ -498,7 +522,7 @@ void framework::update(float elapsed_time/*Elapsed seconds from last frame*/)
 	//	ゲームパッドの入力状況
 	imgui_gamepad_window();
 
-	//	@tool サウンドバンクの編集
+	//	サウンドバンクの編集
 	imgui_sound_bank_window();
 #endif // defined(USE_IMGUI)
 }

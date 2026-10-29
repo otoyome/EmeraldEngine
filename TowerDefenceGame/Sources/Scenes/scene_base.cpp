@@ -45,6 +45,11 @@ signals::broadcaster& scene_base::get_broadcaster()
 	return scene_manager::instance()->get_broadcaster();
 }
 
+signals::contactor& scene_base::get_contactor()
+{
+	return scene_manager::instance()->get_contactor();
+}
+
 void scene_base::register_object(game_object_ptr object)
 {
 	game_objects.emplace_back(object);

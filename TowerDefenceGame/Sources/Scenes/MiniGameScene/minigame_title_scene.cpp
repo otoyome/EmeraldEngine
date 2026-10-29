@@ -68,7 +68,7 @@ minigame_title_scene::minigame_title_scene()
 	//	遷移フェードコントローラーにプレイを要求
 	transition_fade_controller::instance()->play(fade::directions::in, 0.5f, fade::modes::black);
 
-	//	@tool タイトルが開いたことを知らせる（BGM は minigame_title_sound が鳴らす）
+	//	タイトルが開いたことを知らせる
 	get_broadcaster().post(minigame_title_topics::opened);
 }
 
@@ -83,7 +83,7 @@ bool minigame_title_scene::initialize_core()
 
 bool minigame_title_scene::uninitialize_core()
 {
-	//	@tool この後すぐ受け手（sound）も破棄されるので、閉じたことはその場で知らせる
+	//	閉じたことを知らせる
 	get_broadcaster().publish(minigame_title_topics::closed);
 	return true;
 }
@@ -104,7 +104,6 @@ void minigame_title_scene::update_core(float elapsed_time)
 		case states::input_wait:
 		{
 			//	スペースキーか左クリックでゲームを開始する
-			//	@tool パッドは a（PS の ×）
 			bool start_input = input::get_key_state(keyboard::key_states::space) == input::state::down
 				|| input::get_key_state(mouse::key_states::left) == input::state::down
 				|| input::get_key_state(gamepad::key_states::a) == input::state::down;

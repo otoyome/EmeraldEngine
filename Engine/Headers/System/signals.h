@@ -12,46 +12,46 @@
 
 #include "System/system_utility.h"
 
-//	@tool シグナル：通知（topic）と問い合わせ（inquiry）で、送る側と受ける側が互いを知らずにやり取りする
 namespace signals
 {
-	//	@tool 宛先のハッシュ（名前の文字列から作る）
+	//	宛先型
 	using address = system_utility::hash_key;
 
 	namespace detail
 	{
-		//	@tool 型ごとの印（同じプロセスの中でだけ一意）
 		using type_id = const void*;
 		template<typename... Types>
+
 		struct type_list {};
 		template<typename Type>
+
 		type_id type_of()
 		{
 			static const char tag = 0;
 			return &tag;
 		}
 
-		//	@tool 受け手 1 つ分
+		//	エントリー
 		struct entry
 		{
 			uint64_t key = 0;
-			std::function<void(const void* argument, void* result)> invoke;	//	@tool 引数と答えは型を消して渡す
-			std::source_location location;										//	@tool 購読した場所
+			std::function<void(const void* argument, void* result)> invoke;	//	引数と答えは型を消して渡す
+			std::source_location location;	//	購読した場所
 			bool alive = true;
 		};
 
-		//	@tool 宛先 1 つ分
+		//	スロット
 		struct slot
 		{
-			std::string_view name;							//	@tool 文字列リテラルを指す
+			std::string_view name;	//	文字列リテラルを指す
 			type_id type = nullptr;
-			std::vector<std::shared_ptr<entry>> entries;	//	@tool 登録した順に呼ぶ
+			std::vector<std::shared_ptr<entry>> entries;	//	登録した順に呼ぶ
 		};
 
 		class registry;
 	}
 
-	//	@tool 購読の解除役。破棄されると購読が外れる
+	//	接続オブジェクト
 	class connection
 	{
 	public:
@@ -67,12 +67,12 @@ namespace signals
 		bool is_connected() const;
 
 	private:
-		std::weak_ptr<detail::registry> owner;	//	@tool 送る側が先に消えても安全
+		std::weak_ptr<detail::registry> owner;
 		address target = 0;
 		uint64_t key = 0;
 	};
 
-	//	@tool connection をまとめて持つ。持ち主のメンバーの最後に置く（最初に外れる）
+	//	接続オブジェクトをまとめて持つ
 	class connection_list
 	{
 	public:
@@ -89,13 +89,13 @@ namespace signals
 
 	namespace detail
 	{
-		//	@tool 宛先と受け手の表。broadcaster と inquiry_desk の共通の土台
+		//	イベントの識別情報と受信の登録先を管理するクラス
 		class registry
 		{
 		public:
 			static constexpr uint32_t max_depth = 16;
 
-			//	@tool 入れ子の深さを数える
+			//	循環参照ガード
 			class depth_guard
 			{
 			public:
@@ -113,7 +113,7 @@ namespace signals
 		public:
 			registry();
 
-			//	@tool 型の違う同名の宛先なら nullptr
+			//	型の違う同名の宛先なら nullptr
 			slot* find_or_add(address target, std::string_view name, type_id type);
 			std::vector<std::shared_ptr<entry>> snapshot(const slot& target) const;
 			void remove(address target, uint64_t key);
@@ -130,14 +130,12 @@ namespace signals
 		};
 	}
 
-	//////////////////////////////////////////////////////////////////////////
-	//	@tool 通知
-	//////////////////////////////////////////////////////////////////////////
-
-	//	@tool 通知の宛先。載せるのは構造体 1 つか、何も載せない（void）
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	//	通知の宛先指定
 	template<typename Payload = void>
 	struct topic
 	{
+		//	載せるのは構造体1つか、何も載せない（void）
 		static_assert(std::is_void_v<Payload> || (std::is_class_v<Payload> && std::is_copy_constructible_v<Payload>),
 			"topic に載せるのはコピーできる構造体 1 つ");
 
@@ -147,10 +145,11 @@ namespace signals
 		address target;
 	};
 
+	//	配信クラス
 	class broadcaster
 	{
 	public:
-		//	@tool dispatch_posted で、配っている最中に積まれた分を同じフレームで回す回数
+		//	dispatch_posted で、配っている最中に積まれた分を同じフレームで回す回数
 		static constexpr uint32_t max_post_rounds = 8;
 
 	public:
@@ -159,7 +158,7 @@ namespace signals
 		broadcaster(const broadcaster&) = delete;
 		broadcaster& operator=(const broadcaster&) = delete;
 
-		//	@tool 後で配る：dispatch_posted でまとめて配る（既定はこちら）
+		//	予約配信
 		template<typename Payload>
 		void post(const topic<Payload>& target, const std::type_identity_t<Payload>& payload)
 		{
@@ -170,7 +169,7 @@ namespace signals
 			posted.push_back([this, target]() { publish(target); });
 		}
 
-		//	@tool すぐに配る：その宛先の受け手を登録順に全て呼ぶ
+		//	即時配信
 		template<typename Payload>
 		void publish(const topic<Payload>& target, const std::type_identity_t<Payload>& payload)
 		{
@@ -181,10 +180,10 @@ namespace signals
 			dispatch(target.target, target.name, detail::type_of<detail::type_list<void>>(), nullptr);
 		}
 
-		//	@tool post で積んだ分を配る。持ち主が毎フレーム呼ぶ
+		//	予約配信処理
 		void dispatch_posted();
 
-		//	@tool 購読
+		//	配信購読
 		template<typename Payload, typename Function>
 		[[nodiscard]] connection subscribe(const topic<Payload>& target, Function&& function,
 			std::source_location location = std::source_location::current())
@@ -215,20 +214,20 @@ namespace signals
 		std::vector<std::function<void()>> posted;
 	};
 
-	//////////////////////////////////////////////////////////////////////////
-	//	@tool 問い合わせ
-	//////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	//	複数の回答者
+	struct single {};	//	回答者は一人のはず(複数ある場合はアサート)
+	struct all_of {};	//	全員が true なら true
+	struct any_of {};	//	誰かが true なら true
+	struct collect {};	//	全員の答えを集める
 
-	//	@tool 答える相手が複数いる時のまとめ方
-	struct single {};	//	@tool 答えるのは 1 つだけ（2 つ目は assert）
-	struct all_of {};	//	@tool 全員が true なら true
-	struct any_of {};	//	@tool 誰かが true なら true
-	struct collect {};	//	@tool 全員の答えを集める
-
-	//	@tool 問い合わせの宛先
+	//	問い合わせの宛先指定
 	template<typename Result, typename Request = void, typename Policy = single>
 	struct inquiry
 	{
+		//	Result : 回答の型
+		//	Request : 問い合わせ時に渡すデータ
+		//	Policy : 複数の回答者をどう扱うか
 		static_assert(!std::is_void_v<Result>, "答えの無いものは topic を使う");
 		static_assert(std::is_void_v<Request> || std::is_class_v<Request>, "問い合わせに載せるのは構造体 1 つ");
 		static_assert(!(std::is_same_v<Policy, all_of> || std::is_same_v<Policy, any_of>) || std::is_same_v<Result, bool>,
@@ -240,15 +239,19 @@ namespace signals
 		address target;
 	};
 
-	class inquiry_desk
+	//	問い合わせと回答の取得
+	class contactor
 	{
 	public:
-		inquiry_desk();
-		~inquiry_desk();
-		inquiry_desk(const inquiry_desk&) = delete;
-		inquiry_desk& operator=(const inquiry_desk&) = delete;
+		contactor();
+		~contactor() = default;
+		contactor(const contactor&) = delete;
+		contactor& operator=(const contactor&) = delete;
 
-		//	@tool 問い合わせる。single は std::optional<Result>、all_of / any_of は std::optional<bool>、collect は std::vector<Result>
+		//	問い合わせ
+		//	single = std::optional<Result>
+		//	all_of / any_of = std::optional<bool>
+		//	collect = std::vector<Result>
 		template<typename Result, typename Request, typename Policy>
 		auto ask(const inquiry<Result, Request, Policy>& target, const std::type_identity_t<Request>& request)
 		{
@@ -260,7 +263,7 @@ namespace signals
 			return ask_core(target, nullptr);
 		}
 
-		//	@tool 答える側の登録
+		//	答える側の登録
 		template<typename Result, typename Request, typename Policy, typename Function>
 		[[nodiscard]] connection answer(const inquiry<Result, Request, Policy>& target, Function&& function,
 			std::source_location location = std::source_location::current())
@@ -294,7 +297,7 @@ namespace signals
 		auto ask_core(const inquiry<Result, Request, Policy>& target, const void* request)
 		{
 			core->check_thread();
-			const std::shared_ptr<detail::registry> keep_alive = core;	//	@tool 答える側が inquiry_desk を消しても中身を残す
+			const std::shared_ptr<detail::registry> keep_alive = core;
 			const detail::slot* found = keep_alive->find_or_add(target.target, target.name, type_of_inquiry<Result, Request, Policy>());
 			std::vector<std::shared_ptr<detail::entry>> receivers;
 			if (found)
@@ -329,7 +332,7 @@ namespace signals
 			}
 			else
 			{
-				//	@tool all_of は false、any_of は true が出た時点で打ち切る
+				//	all_of は false、any_of は true が出た時点で打ち切る
 				constexpr bool stop_value = std::is_same_v<Policy, any_of>;
 				std::optional<bool> result;
 				for (const auto& receiver : receivers)

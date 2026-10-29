@@ -49,8 +49,8 @@ protected:
 #endif	//	defined(USE_IMGUI)
 
 protected:
-	//	@tool シーン全体で共有する通知
 	signals::broadcaster& get_broadcaster();
+	signals::contactor& get_contactor();
 
 protected:
 	void register_object(game_object_ptr object);
@@ -131,9 +131,9 @@ public:
 	}
 
 public:
-	//	@tool シーン全体で共有する通知と問い合わせ
+	//	シーン全体で共有する通知と問い合わせ
 	signals::broadcaster& get_broadcaster() { return broadcaster; }
-	signals::inquiry_desk& get_inquiry_desk() { return inquiry_desk; }
+	signals::contactor& get_contactor() { return contactor; }
 
 public:
 	bool remove_scene(std::string_view scene_name);
@@ -174,9 +174,9 @@ private:
 		{
 		}
 	};
-	//	@tool シーンより後に破棄されるよう、scenes より前に置く
+
 	signals::broadcaster broadcaster;
-	signals::inquiry_desk inquiry_desk;
+	signals::contactor contactor;
 
 	std::vector<add_scene_data> add_scenes;
 	std::vector<std::string_view> remove_scenes;
