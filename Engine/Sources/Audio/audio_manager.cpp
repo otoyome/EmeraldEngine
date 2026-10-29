@@ -454,7 +454,7 @@ void audio_manager::execute_command(command& item)
 		return;
 	}
 
-	//	@tool 展開は時間がかかるので、再生と同じくロックの外で行う
+	//	展開は時間がかかるので、再生と同じくロックの外で行う
 	if (item.type == command::types::preload)
 	{
 		cache_file(item.file_path);
@@ -505,7 +505,7 @@ void audio_manager::execute_command(command& item)
 		}
 		case command::types::release:
 		{
-			//	@tool 再生中の音は miniaudio 側の参照で残るので、鳴り終わるまで使える
+			//	再生中の音は miniaudio 側の参照で残るので、鳴り終わるまで使える
 			const std::wstring path = system_utility::convert_utf16(item.file_path);
 			if (cached_files.erase(path) > 0)
 				ma_resource_manager_unregister_file_w(ma_engine_get_resource_manager(&impl->engine), path.c_str());

@@ -37,5 +37,5 @@ protected:
 private:
 	states state = states::fade_in_wait;
 
-	minigame_title_sound sound;	//	@tool w“Ç‚ğ‚Â‚Ì‚ÅÅŒã‚É’u‚­
+	minigame_title_sound sound;	//	w“Ç‚ğ‚Â‚Ì‚ÅÅŒã‚É’u‚­
 };

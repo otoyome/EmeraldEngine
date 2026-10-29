@@ -162,7 +162,6 @@ bool minigame_result_scene::initialize_core()
 
 bool minigame_result_scene::uninitialize_core()
 {
-	//	@tool ImGui などで途中からシーンを切り替えても BGM が残らないように止める
 	if (audio_manager::is_valid())
 	{
 		audio_manager::instance()->stop_bgm(0.5f);
@@ -185,7 +184,6 @@ void minigame_result_scene::update_core(float elapsed_time)
 		case states::input_wait:
 		{
 			//	スペースキーか左クリックでタイトルへ戻る
-			//	@tool パッドは a（PS の ×）
 			bool continue_input = input::get_key_state(keyboard::key_states::space) == input::state::down
 				|| input::get_key_state(mouse::key_states::left) == input::state::down
 				|| input::get_key_state(gamepad::key_states::a) == input::state::down;

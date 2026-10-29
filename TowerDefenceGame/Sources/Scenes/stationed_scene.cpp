@@ -5,9 +5,23 @@
 #include "object/gameobjects/ui/ui_image.h"
 #include "object/gameobjects/ui/common/transition_fade_controller.h"
 
+#include "Object/GameObjects/MiniGame/minigame_record_data.h"
+
+#include "Sound/common_sounds.h"
+
 stationed_scene::stationed_scene()
 : scene_base()
 {
+	//	ミニゲーム用の記録情報
+	{
+		minigame_record_data::create_instance();
+	}
+
+	//	サウンドバンク準備
+	{
+		common_sound_bank = audio::sound_player::instance()->load_bank(common_sounds::bank_path);
+	}
+
 	//	メインカメラ生成
 	std::shared_ptr<camera_object> main_camera;
 	{
@@ -44,6 +58,8 @@ bool stationed_scene::initialize_core()
 
 bool stationed_scene::uninitialize_core()
 {
+	minigame_record_data::delete_instance();
+	common_sound_bank.release();
 	transition_fade_controller::delete_instance();
 	return true;
 }

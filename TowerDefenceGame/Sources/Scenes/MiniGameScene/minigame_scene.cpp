@@ -383,7 +383,6 @@ void minigame_scene::update_core(float elapsed_time)
 			//	スペースキーを押している間だけチュートリアルを表示する
 			if (auto tutorial = object_manager::instance()->search_object<roomba_tutorial_controller_object>("ルンバUI：チュートリアル表示コントローラー"))
 			{
-				//	@tool パッドは back（PS の Create）
 				auto space_state = input::get_key_state(keyboard::key_states::space);
 				auto pad_state = input::get_key_state(gamepad::key_states::back);
 				bool space_held = space_state == input::state::down || space_state == input::state::hold ||

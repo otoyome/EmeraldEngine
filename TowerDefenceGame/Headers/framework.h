@@ -17,7 +17,6 @@ extern ImWchar glyphRangesJapanese[];
 #include "render_pass.h"
 
 #include "Scenes/scene_base.h"
-#include "Audio/sound_player.h"
 #include "Renderer/renderer.h"
 #include "Renderer/scene_render_targets.h"
 #include "Renderer/occlusion_culling_renderer.h"
@@ -120,9 +119,6 @@ private:	//	描画情報振り分け
 private:	//	その他
 	float wheel{ 0 };
 	high_resolution_timer tictoc;
-
-	//	@tool どのシーンでも使う音（common バンク）
-	audio::sound_bank_handle common_sound_bank;
 
 #if defined(USE_IMGUI)
 	//	ImGui用

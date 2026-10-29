@@ -109,7 +109,6 @@ void minigame_title_scene::update_core(float elapsed_time)
 				|| input::get_key_state(gamepad::key_states::a) == input::state::down;
 			if (start_input)
 			{
-				//	@tool 決定を知らせる（決定音と BGM の停止は minigame_title_sound が行う）
 				get_broadcaster().post(minigame_title_topics::decided);
 				transition_fade_controller::instance()->play(fade::directions::out, 0.5f, fade::modes::black);
 				state = states::fade_out_wait;

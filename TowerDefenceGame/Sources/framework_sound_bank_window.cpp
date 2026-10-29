@@ -8,13 +8,13 @@
 
 namespace
 {
-	//	@tool サウンドバンク編集ウィンドウの状態
+	//	サウンドバンク編集ウィンドウの状態
 	console_variable<bool> sound_bank_window_variable("editor.window.sound_bank", true, "サウンドバンク編集ウィンドウの表示", console_flags::persist);
 
 	constexpr std::string_view bank_directory = "Assets/Resources/Sounds/Banks";
 	constexpr std::string_view sound_directory = "Assets/Resources/Sounds";
 
-	//	@tool 編集中のバンク
+	//	編集中のバンク
 	struct sound_bank_editor
 	{
 		std::vector<std::string> bank_files;
@@ -32,7 +32,7 @@ namespace
 	};
 	sound_bank_editor editor;
 
-	//	@tool 指定ディレクトリ直下の、指定拡張子のファイルを「/」区切りの相対パスで集める
+	//	指定ディレクトリ直下の、指定拡張子のファイルを「/」区切りの相対パスで集める
 	std::vector<std::string> collect_files(std::string_view directory, std::initializer_list<std::string_view> extensions)
 	{
 		std::vector<std::string> files;
@@ -85,7 +85,7 @@ namespace
 		editor.dirty = false;
 		editor.message = "saved: " + editor.file_path;
 
-		//	@tool ゲームで読み込み中なら作り直して、編集をすぐ反映する
+		//	ゲームで読み込み中なら作り直して、編集をすぐ反映する
 		if (audio::sound_player::is_valid() && audio::sound_player::instance()->reload_bank(editor.file_path))
 			editor.message += " (reloaded)";
 	}
@@ -115,7 +115,7 @@ namespace
 		scan_files();
 	}
 
-	//	@tool std::string を固定長の入力欄で編集する
+	//	std::string を固定長の入力欄で編集する
 	bool input_string(const char* label, std::string& text)
 	{
 		char buffer[256] = {};
@@ -126,7 +126,7 @@ namespace
 		return true;
 	}
 
-	//	@tool 音のファイルを一覧から選ぶ
+	//	音のファイルを一覧から選ぶ
 	bool select_sound_file(const char* label, std::string& file_path)
 	{
 		bool changed = false;
@@ -230,7 +230,7 @@ namespace
 		bool changed = false;
 		changed |= input_string("name", cue.name);
 
-		//	@tool バス
+		//	バス
 		if (ImGui::BeginCombo("bus", std::string(magic_enum::enum_name(cue.target_bus)).c_str()))
 		{
 			for (const auto value : magic_enum::enum_values<audio::bus>())
@@ -244,7 +244,7 @@ namespace
 			ImGui::EndCombo();
 		}
 
-		//	@tool 候補のファイル
+		//	候補のファイル
 		ImGui::SeparatorText("files (random)");
 		for (size_t index = 0; index < cue.files.size(); ++index)
 		{
@@ -274,7 +274,7 @@ namespace
 		changed |= ImGui::SliderFloat("pitch random", &cue.pitch_random, 0.0f, 1.0f);
 		if (cue.target_bus == audio::bus::bgm)
 		{
-			//	@tool BGM は常にループする
+			//	BGM は常にループする
 			ImGui::BeginDisabled();
 			bool loop = true;
 			ImGui::Checkbox("loop (bgm always)", &loop);
@@ -308,7 +308,7 @@ void framework::imgui_sound_bank_window()
 {
 	if (!sound_bank_window_variable.get())
 	{
-		//	@tool 閉じたら試し再生を止める
+		//	閉じたら試し再生を止める
 		editor.preview = {};
 		return;
 	}

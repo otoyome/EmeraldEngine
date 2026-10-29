@@ -3,7 +3,7 @@
 #include "System/signals.h"
 #include "Audio/sound_player.h"
 
-//	@tool タイトルのサウンド。タイトルシーンの出来事を購読して鳴らす
+//	タイトルのサウンド
 class minigame_title_sound
 {
 public:
@@ -12,6 +12,6 @@ public:
 	minigame_title_sound& operator=(const minigame_title_sound&) = delete;
 
 private:
-	audio::sound_bank_handle bank;			//	@tool タイトルの間だけ読み込む
+	audio::sound_bank_handle bank;
 	signals::connection_list connections;
 };

@@ -34,7 +34,6 @@ minigame_title_sound::minigame_title_sound(signals::broadcaster& broadcaster)
 		player->stop_bgm();
 	});
 
-	//	@tool ImGui ‚È‚Ç‚Å“r’†‚©‚çƒV[ƒ“‚ðØ‚è‘Ö‚¦‚Ä‚à BGM ‚ªŽc‚ç‚È‚¢‚æ‚¤‚ÉŽ~‚ß‚é
 	connections += broadcaster.subscribe(minigame_title_topics::closed, [player]()
 	{
 		player->stop_bgm();

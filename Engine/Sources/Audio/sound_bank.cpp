@@ -16,7 +16,6 @@ namespace audio
 	template<class Archive>
 	void sound_cue_desc::save(Archive& archive, std::uint32_t const version) const
 	{
-		//	@tool バスは名前で書く
 		const std::string bus_name(magic_enum::enum_name(target_bus));
 		archive(CEREAL_NVP(name),
 			CEREAL_NVP(files),
@@ -83,7 +82,6 @@ namespace audio
 
 		try
 		{
-			//	@tool archive の破棄で閉じ括弧まで書き出される
 			cereal::JSONOutputArchive archive(ostream);
 			archive(CEREAL_NVP(cues));
 		}

@@ -91,7 +91,6 @@ void roomba_controller_object::fixed_update(float elapsed_time)
 
 math::float3 roomba_controller_object::get_move_vector()
 {
-	//	@tool キーボードの -1/0/1 にパッドの左スティックの量を足す
 	float y_axis = static_cast<float>((input::get_key_state(keyboard::key_states::w) == input::state::hold)
 				 - (input::get_key_state(keyboard::key_states::s) == input::state::hold))
 				 + input::get_key_value(gamepad::axis_states::left_y);
@@ -101,7 +100,7 @@ math::float3 roomba_controller_object::get_move_vector()
 	if (y_axis == 0.0f && x_axis == 0.0f)
 		return math::float3(0, 0, 0);
 
-	//	@tool 倒した量を残す（キーボードの斜めは 1 になる）
+	//	倒した量を残す
 	const float input_length = std::min(sqrtf(x_axis * x_axis + y_axis * y_axis), 1.0f);
 
 	float camera_right_x = static_cast<float>(camera->get_world().get_right().x);

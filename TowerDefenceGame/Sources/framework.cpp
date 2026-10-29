@@ -18,7 +18,6 @@
 #include "effect_instance.h"
 #include "Audio/audio_manager.h"
 #include "Audio/sound_player.h"
-#include "Sound/common_sounds.h"
 
 #include "ik_resource.h"
 
@@ -31,7 +30,6 @@
 
 #include "Object/object_manager.h"
 #include "Object/GameObjects/UI/ui_object.h"
-#include "Object/GameObjects/MiniGame/minigame_record_data.h"
 
 #include "System/engine_config_data.h"
 #include "System/game_config_data.h"
@@ -254,17 +252,10 @@ bool framework::initialize()
 		game_config_data::create_instance();
 	}
 
-	//	入力関係初期化
-	{
-		mouse::create_instance(hwnd);
-		keyboard::create_instance();
-		gamepad::create_instance();
-	}
-
+	//	描画関係初期化
 	{
 		render_data::create_instance(hwnd);
 		texture_manager::create_instance();
-		font_data_manager::create_instance();
 		shader_manager::create_instance();
 		pipeline_state_manager::create_instance();
 		light_manager::create_instance();
@@ -273,7 +264,15 @@ bool framework::initialize()
 		model_buffer_pool_manager::create_instance();
 		model_resource_manager::create_instance();
 		model_instance_manger::create_instance();
-		ik_resource_manager::create_instance();
+		ik_resource_manager::create_instance();	//	@remainder	これは不要では？
+		font_data_manager::create_instance();
+	}
+
+	//	入力関係初期化
+	{
+		mouse::create_instance(hwnd);
+		keyboard::create_instance();
+		gamepad::create_instance();
 	}
 
 	//	エフェクト関係
@@ -297,8 +296,6 @@ bool framework::initialize()
 	{
 		audio_manager::create_instance();
 		audio::sound_player::create_instance();
-		common_sound_bank = audio::sound_player::instance()->load_bank(common_sounds::bank_path);
-		minigame_record_data::create_instance();	//	@DDDD これは不要
 	}
 
 	//	シーン関係
@@ -985,43 +982,63 @@ void framework::build_render_lists(
 
 bool framework::uninitialize()
 {
-	scene_manager::delete_instance();
-	if (object_manager::is_valid())
+	//	シーン関係
 	{
-		object_manager::instance()->finalize();
-		object_manager::delete_instance();
+		collision_filter_manager::delete_instance();
+		if (object_manager::is_valid())
+		{
+			object_manager::instance()->finalize();
+			object_manager::delete_instance();
+		}
+		scene_manager::delete_instance();
 	}
-	collision_filter_manager::delete_instance();
+
+	//	サウンド関係
+	{
+		audio::sound_player::delete_instance();
+		audio_manager::delete_instance();
+	}
 
 #if defined(USE_IMGUI)
-	editor_items::terminate();
-	editor_camera_manager::delete_instance();
-	debug_primitive_manager::delete_instance();
-	editor_config_data::delete_instance();
-	detail_profiler::delete_instance();
+	//	エディター/デバッグ関係
+	{
+		editor_items::terminate();
+		editor_camera_manager::delete_instance();
+		debug_primitive_manager::delete_instance();
+		editor_config_data::delete_instance();
+		detail_profiler::delete_instance();
+	}
 #endif // defined(USE_IMGUI)
-	game_config_data::delete_instance();
-	common_sound_bank.release();
-	audio::sound_player::delete_instance();
-	audio_manager::delete_instance();
-	ik_resource_manager::delete_instance();
-	effect_manager::delete_instance();
-	effect_resource_manager::delete_instance();
-	model_instance_manger::delete_instance();
-	model_resource_manager::delete_instance();
-	model_buffer_pool_manager::delete_instance();
-	camera_manager::delete_instance();
-	post_process_volume_manager::delete_instance();
-	light_manager::delete_instance();
-	pipeline_state_manager::delete_instance();
-	shader_manager::delete_instance();
-	font_data_manager::delete_instance();
-	minigame_record_data::delete_instance();
-	texture_manager::delete_instance();
-	gamepad::delete_instance();
-	keyboard::delete_instance();
-	mouse::delete_instance();
-	render_data::delete_instance();
+
+	//	描画関係
+	{
+		font_data_manager::delete_instance();
+		ik_resource_manager::delete_instance();
+		effect_manager::delete_instance();
+		effect_resource_manager::delete_instance();
+		model_instance_manger::delete_instance();
+		model_resource_manager::delete_instance();
+		model_buffer_pool_manager::delete_instance();
+		camera_manager::delete_instance();
+		post_process_volume_manager::delete_instance();
+		light_manager::delete_instance();
+		pipeline_state_manager::delete_instance();
+		shader_manager::delete_instance();
+		texture_manager::delete_instance();
+		render_data::delete_instance();
+	}
+
+	//	入力関係終了
+	{
+		gamepad::delete_instance();
+		keyboard::delete_instance();
+		mouse::delete_instance();
+	}
+
+	//	ゲームコンフィグ終了
+	{
+		game_config_data::delete_instance();
+	}
 
 	//	文字コード変換器破棄
 	system_utility::uninitialize_charset_converter();

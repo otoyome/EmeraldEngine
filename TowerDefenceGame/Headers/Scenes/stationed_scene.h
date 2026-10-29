@@ -2,6 +2,8 @@
 
 #include "Scenes/scene_base.h"
 
+#include "Audio/sound_player.h"
+
 //	シーンをまたいで常駐させるシーン(フェード管理などを担う)
 class stationed_scene : public scene_base
 {
@@ -20,4 +22,7 @@ protected:
 #ifdef USE_IMGUI
 	virtual void imgui_render_core() override;
 #endif
+
+private:
+	audio::sound_bank_handle common_sound_bank;	//	共通サウンドバンク
 };

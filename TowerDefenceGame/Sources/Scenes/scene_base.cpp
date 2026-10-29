@@ -92,7 +92,7 @@ void scene_manager::updates(float elapsed_time)
 	remove_scenes.clear();
 	add_scenes.clear();
 
-	//	@tool 前のフレームからこのフレームのシーンの追加までに post された通知を配る
+	//	予約配信処理
 	broadcaster.dispatch_posted();
 
 	for (auto& scene : scenes)
