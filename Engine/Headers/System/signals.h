@@ -1,11 +1,13 @@
 #pragma once
 
+#include <atomic>
+#include <cstdint>
 #include <functional>
 #include <memory>
+#include <mutex>
 #include <optional>
 #include <source_location>
 #include <string_view>
-#include <thread>
 #include <type_traits>
 #include <unordered_map>
 #include <vector>
@@ -35,9 +37,27 @@ namespace signals
 		struct entry
 		{
 			uint64_t key = 0;
-			std::function<void(const void* argument, void* result)> invoke;	//	引数と答えは型を消して渡す
+			std::function<void(const void* argument, void* result)> invoke;
 			std::source_location location;	//	購読した場所
-			bool alive = true;
+			std::atomic<bool> alive{ true };
+			std::recursive_mutex call_mutex;
+
+			//	生きていれば呼ぶ。呼んだら true
+			bool call(const void* argument, void* result)
+			{
+				std::lock_guard<std::recursive_mutex> lock(call_mutex);
+				if (!alive.load())
+					return false;
+				invoke(argument, result);
+				return true;
+			}
+
+			//	以後は呼ばれないようにして、実行中の呼び出しがあれば終わるのを待つ
+			void retire()
+			{
+				alive.store(false);
+				std::lock_guard<std::recursive_mutex> lock(call_mutex);
+			}
 		};
 
 		//	スロット
@@ -89,44 +109,44 @@ namespace signals
 
 	namespace detail
 	{
-		//	イベントの識別情報と受信の登録先を管理するクラス
+		//	宛先と受け手の表。broadcaster と contactor の共通の土台
 		class registry
 		{
 		public:
 			static constexpr uint32_t max_depth = 16;
 
-			//	循環参照ガード
+			//	入れ子の深さを数える（スレッドごと）
 			class depth_guard
 			{
 			public:
-				explicit depth_guard(registry& owner);
+				depth_guard();
 				~depth_guard();
 				depth_guard(const depth_guard&) = delete;
 				depth_guard& operator=(const depth_guard&) = delete;
 				explicit operator bool() const { return entered; }
 
 			private:
-				registry& owner;
 				bool entered;
 			};
 
 		public:
 			registry();
 
-			//	型の違う同名の宛先なら nullptr
-			slot* find_or_add(address target, std::string_view name, type_id type);
-			std::vector<std::shared_ptr<entry>> snapshot(const slot& target) const;
+			//	受け手の写しを取る。型の違う同名の宛先なら false
+			bool snapshot(address target, std::string_view name, type_id type, std::vector<std::shared_ptr<entry>>& out);
 			void remove(address target, uint64_t key);
-			void check_thread() const;
 
 			static connection connect(const std::shared_ptr<registry>& self, address target, std::string_view name, type_id type,
 				std::function<void(const void*, void*)> invoke, std::source_location location, bool exclusive);
 
 		private:
+			//	mutex を持った状態で呼ぶこと
+			slot* find_or_add_locked(address target, std::string_view name, type_id type);
+
+		private:
+			std::mutex mutex;
 			std::unordered_map<address, slot> slots;
 			uint64_t next_key = 1;
-			uint32_t depth = 0;
-			std::thread::id owner_thread;
 		};
 	}
 
@@ -158,15 +178,15 @@ namespace signals
 		broadcaster(const broadcaster&) = delete;
 		broadcaster& operator=(const broadcaster&) = delete;
 
-		//	予約配信
+		//	予約配信（どのスレッドからでも積める）
 		template<typename Payload>
 		void post(const topic<Payload>& target, const std::type_identity_t<Payload>& payload)
 		{
-			posted.push_back([this, target, payload]() { publish(target, payload); });
+			push_posted([this, target, payload]() { publish(target, payload); });
 		}
 		void post(const topic<void>& target)
 		{
-			posted.push_back([this, target]() { publish(target); });
+			push_posted([this, target]() { publish(target); });
 		}
 
 		//	即時配信
@@ -180,7 +200,7 @@ namespace signals
 			dispatch(target.target, target.name, detail::type_of<detail::type_list<void>>(), nullptr);
 		}
 
-		//	予約配信処理
+		//	予約配信処理（呼んだスレッドの上で配る）
 		void dispatch_posted();
 
 		//	配信購読
@@ -208,10 +228,12 @@ namespace signals
 
 	private:
 		void dispatch(address target, std::string_view name, detail::type_id type, const void* payload);
+		void push_posted(std::function<void()> item);
 
 	private:
-		std::shared_ptr<detail::registry> core;
-		std::vector<std::function<void()>> posted;
+		std::shared_ptr<detail::registry> core;	//	構築後は変わらない
+		std::mutex posted_mutex;
+		std::vector<std::function<void()>> posted;	//	posted_mutex で保護
 	};
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -296,23 +318,21 @@ namespace signals
 		template<typename Result, typename Request, typename Policy>
 		auto ask_core(const inquiry<Result, Request, Policy>& target, const void* request)
 		{
-			core->check_thread();
 			const std::shared_ptr<detail::registry> keep_alive = core;
-			const detail::slot* found = keep_alive->find_or_add(target.target, target.name, type_of_inquiry<Result, Request, Policy>());
 			std::vector<std::shared_ptr<detail::entry>> receivers;
-			if (found)
-				receivers = keep_alive->snapshot(*found);
-			detail::registry::depth_guard guard(*keep_alive);
+			keep_alive->snapshot(target.target, target.name, type_of_inquiry<Result, Request, Policy>(), receivers);
+			detail::registry::depth_guard guard;
 
 			if constexpr (std::is_same_v<Policy, collect>)
 			{
 				std::vector<Result> results;
+				if (!guard)
+					return results;
 				for (const auto& receiver : receivers)
 				{
-					if (!guard || !receiver->alive)
-						continue;
 					std::optional<Result> answer;
-					receiver->invoke(request, &answer);
+					if (!receiver->call(request, &answer))
+						continue;
 					if (answer)
 						results.push_back(std::move(*answer));
 				}
@@ -321,12 +341,12 @@ namespace signals
 			else if constexpr (std::is_same_v<Policy, single>)
 			{
 				std::optional<Result> answer;
+				if (!guard)
+					return answer;
 				for (const auto& receiver : receivers)
 				{
-					if (!guard || !receiver->alive)
-						continue;
-					receiver->invoke(request, &answer);
-					break;
+					if (receiver->call(request, &answer))
+						break;
 				}
 				return answer;
 			}
@@ -335,12 +355,13 @@ namespace signals
 				//	all_of は false、any_of は true が出た時点で打ち切る
 				constexpr bool stop_value = std::is_same_v<Policy, any_of>;
 				std::optional<bool> result;
+				if (!guard)
+					return result;
 				for (const auto& receiver : receivers)
 				{
-					if (!guard || !receiver->alive)
-						continue;
 					std::optional<bool> answer;
-					receiver->invoke(request, &answer);
+					if (!receiver->call(request, &answer))
+						continue;
 					if (!answer)
 						continue;
 					result = *answer;
@@ -352,6 +373,6 @@ namespace signals
 		}
 
 	private:
-		std::shared_ptr<detail::registry> core;
+		std::shared_ptr<detail::registry> core;	//	構築後は変わらない
 	};
 }

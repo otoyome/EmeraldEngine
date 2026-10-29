@@ -985,12 +985,12 @@ bool framework::uninitialize()
 	//	シーン関係
 	{
 		collision_filter_manager::delete_instance();
+		scene_manager::delete_instance();
 		if (object_manager::is_valid())
 		{
 			object_manager::instance()->finalize();
 			object_manager::delete_instance();
 		}
-		scene_manager::delete_instance();
 	}
 
 	//	サウンド関係

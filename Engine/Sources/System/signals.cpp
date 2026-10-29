@@ -1,6 +1,14 @@
 #include "System/signals.h"
 
+#include <algorithm>
+
 #include "System/logger.h"
+
+namespace
+{
+	//	入れ子の深さはスレッドごとに数える
+	thread_local uint32_t t_depth = 0;
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 signals::connection::connection(std::weak_ptr<detail::registry> owner, address target, uint64_t key)
@@ -51,29 +59,23 @@ bool signals::connection::is_connected() const
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-signals::detail::registry::depth_guard::depth_guard(registry& owner)
-: owner(owner)
-, entered(owner.depth < max_depth)
+signals::detail::registry::depth_guard::depth_guard()
+: entered(t_depth < max_depth)
 {
 	_ASSERT_EXPR_A(entered, "signals: 通知の入れ子が深すぎます");
 	if (entered)
-		++owner.depth;
+		++t_depth;
 }
 
 signals::detail::registry::depth_guard::~depth_guard()
 {
 	if (entered)
-		--owner.depth;
+		--t_depth;
 }
 
-signals::detail::registry::registry()
-: slots()
-, owner_thread(std::this_thread::get_id())
-{
-}
+signals::detail::registry::registry() = default;
 
-signals::detail::slot* signals::detail::registry::find_or_add(address target, std::string_view name, type_id type)
+signals::detail::slot* signals::detail::registry::find_or_add_locked(address target, std::string_view name, type_id type)
 {
 	auto [it, added] = slots.try_emplace(target);
 	slot& found = it->second;
@@ -89,94 +91,115 @@ signals::detail::slot* signals::detail::registry::find_or_add(address target, st
 	return found.type == type ? &found : nullptr;
 }
 
-std::vector<std::shared_ptr<signals::detail::entry>> signals::detail::registry::snapshot(const slot& target) const
+bool signals::detail::registry::snapshot(address target, std::string_view name, type_id type, std::vector<std::shared_ptr<entry>>& out)
 {
-	return target.entries;
+	std::lock_guard<std::mutex> lock(mutex);
+	const slot* found = find_or_add_locked(target, name, type);
+	if (!found)
+		return false;
+	out = found->entries;
+	return true;
 }
 
 void signals::detail::registry::remove(address target, uint64_t key)
 {
-	check_thread();
-	auto it = slots.find(target);
-	if (it == slots.end())
-		return;
+	std::shared_ptr<entry> removed;
+	{
+		std::lock_guard<std::mutex> lock(mutex);
+		auto it = slots.find(target);
+		if (it == slots.end())
+			return;
 
-	auto& entries = it->second.entries;
-	auto found = std::find_if(entries.begin(), entries.end(), [key](const auto& value) { return value->key == key; });
-	if (found == entries.end())
-		return;
+		auto& entries = it->second.entries;
+		auto found = std::find_if(entries.begin(), entries.end(), [key](const auto& value) { return value->key == key; });
+		if (found == entries.end())
+			return;
 
-	//	配っている最中の写しは alive を見て飛ばす
-	(*found)->alive = false;
-	entries.erase(found);
-}
+		removed = *found;
+		entries.erase(found);
+	}
 
-void signals::detail::registry::check_thread() const
-{
-	_ASSERT_EXPR_A(std::this_thread::get_id() == owner_thread, "signals: 作ったスレッド以外から使われました");
+	//	配っている最中の写しは alive を見て飛ばす。実行中の呼び出しがあれば終わるまで待つ
+	//	（表のロックは手放してから待つので、受け手の中での購読・解除とは競合しない）
+	removed->retire();
 }
 
 signals::connection signals::detail::registry::connect(const std::shared_ptr<registry>& self, address target, std::string_view name, type_id type,
 	std::function<void(const void*, void*)> invoke, std::source_location location, bool exclusive)
 {
-	self->check_thread();
-	slot* found = self->find_or_add(target, name, type);
-	if (!found)
-		return connection();
-
-	_ASSERT_EXPR_A(!exclusive || found->entries.empty(), "signals: single の問い合わせに答える相手が 2 つ目です");
-
 	auto value = std::make_shared<entry>();
-	value->key = self->next_key++;
 	value->invoke = std::move(invoke);
 	value->location = location;
-	found->entries.push_back(value);
+
+	{
+		std::lock_guard<std::mutex> lock(self->mutex);
+		slot* found = self->find_or_add_locked(target, name, type);
+		if (!found)
+			return connection();
+
+		_ASSERT_EXPR_A(!exclusive || found->entries.empty(), "signals: single の問い合わせに答える相手が 2 つ目です");
+
+		value->key = self->next_key++;
+		found->entries.push_back(value);
+	}
 	return connection(self, target, value->key);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 signals::broadcaster::broadcaster()
 : core(std::make_shared<detail::registry>())
-, posted()
 {
 }
 
 signals::broadcaster::~broadcaster() = default;
 
+void signals::broadcaster::push_posted(std::function<void()> item)
+{
+	std::lock_guard<std::mutex> lock(posted_mutex);
+	posted.push_back(std::move(item));
+}
+
 void signals::broadcaster::dispatch_posted()
 {
-	core->check_thread();
-
-	//	配っている最中に積まれた分も、回数の上限まで同じフレームで配る
-	for (uint32_t round = 0; round < max_post_rounds && !posted.empty(); ++round)
+	//	予約配信
+	for (uint32_t round = 0; round < max_post_rounds; ++round)
 	{
 		std::vector<std::function<void()>> current;
-		current.swap(posted);
+		{
+			std::lock_guard<std::mutex> lock(posted_mutex);
+			if (posted.empty())
+				break;
+			current.swap(posted);
+		}
 		for (auto& item : current)
 		{
 			item();
 		}
 	}
-	DEBUG_CHECK_WARNING(!posted.empty(), "signals: 後で配る通知が連鎖しすぎたため、残りは次のフレームに回します\n");
+
+	bool remaining = false;
+	{
+		std::lock_guard<std::mutex> lock(posted_mutex);
+		remaining = !posted.empty();
+	}
+	DEBUG_CHECK_WARNING(remaining, "signals: 後で配る通知が連鎖しすぎたため、残りは次のフレームに回します\n");
 }
 
 void signals::broadcaster::dispatch(address target, std::string_view name, detail::type_id type, const void* payload)
 {
-	core->check_thread();
 	const std::shared_ptr<detail::registry> keep_alive = core;	//	受け手が broadcaster を消しても中身を残す
-	const detail::slot* found = keep_alive->find_or_add(target, name, type);
-	if (!found)
-		return;
 
 	//	写しを回すので、受け手の中での購読・解除は安全
-	const auto receivers = keep_alive->snapshot(*found);
-	detail::registry::depth_guard guard(*keep_alive);
+	std::vector<std::shared_ptr<detail::entry>> receivers;
+	if (!keep_alive->snapshot(target, name, type, receivers))
+		return;
+
+	detail::registry::depth_guard guard;
 	if (!guard)
 		return;
 	for (const auto& receiver : receivers)
 	{
-		if (receiver->alive)
-			receiver->invoke(payload, nullptr);
+		receiver->call(payload, nullptr);
 	}
 }
 
@@ -185,4 +208,3 @@ signals::contactor::contactor()
 : core(std::make_shared<detail::registry>())
 {
 }
-
