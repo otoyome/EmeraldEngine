@@ -11,7 +11,7 @@
 
 namespace
 {
-	//	@tool コールバック内での追加登録を同フレームで処理する最大回数
+	//	コールバック内での追加登録を同フレームで処理する最大回数
 	constexpr int dispatch_pass_max = 8;
 }
 
@@ -38,7 +38,7 @@ resource_manager::~resource_manager()
 			worker.join();
 	}
 
-	//	@tool 未完了のリクエストを回収(ローダーの破棄はこのスレッドで行う)
+	//	未完了のリクエストを回収(ローダーの破棄はこのスレッドで行う)
 	std::vector<request_ptr> remaining;
 	{
 		std::lock_guard<std::mutex> lock(mutex);
@@ -53,7 +53,7 @@ resource_manager::~resource_manager()
 		dispatch_operations.clear();
 	}
 
-	//	@tool 終了処理中なのでコールバックは呼び出さずに中断扱いで完了させる
+	//	終了処理中なのでコールバックは呼び出さずに中断扱いで完了させる
 	for (auto& target : remaining)
 	{
 		for (auto& waiter : target->waiters)
@@ -93,7 +93,7 @@ void resource_manager::update()
 	if (!is_main_thread())
 		return;
 
-	//	@tool 構築処理(時間上限付き。最低1件は処理する)
+	//	構築処理(時間上限付き。最低1件は処理する)
 	{
 		using clock = std::chrono::steady_clock;
 		const clock::time_point start_time = clock::now();
@@ -112,7 +112,7 @@ void resource_manager::update()
 						break;
 				}
 
-				//	@tool 依存リソースが揃った物から順に構築する
+				//	依存リソースが揃った物から順に構築する
 				for (auto it = loaded_requests.begin(); it != loaded_requests.end(); ++it)
 				{
 					if (is_buildable(**it))
@@ -131,10 +131,10 @@ void resource_manager::update()
 		}
 	}
 
-	//	@tool 完了コールバック呼び出し
+	//	完了コールバック呼び出し
 	dispatch_callbacks();
 
-	//	@tool 解放済みキャッシュの掃除
+	//	解放済みキャッシュの掃除
 	if (++frame_count % expired_cache_cleanup_interval == 0)
 	{
 		remove_expired_caches();
@@ -155,8 +155,8 @@ void resource_manager::remove_expired_caches()
 
 std::wstring resource_manager::make_key(std::string_view file_path)
 {
-	//	@tool 区切り文字/相対表記/大文字小文字の違いを吸収する
-	//	@tool SJISの2バイト目に'\\'等が含まれるため、バイト単位ではなくワイド文字に変換してから正規化する
+	//	区切り文字/相対表記/大文字小文字の違いを吸収する
+	//	SJISの2バイト目に'\\'等が含まれるため、バイト単位ではなくワイド文字に変換してから正規化する
 	std::wstring key;
 	try
 	{
@@ -197,7 +197,7 @@ void resource_manager::request_load(const std::shared_ptr<resource::load_operati
 		}
 		else if (!force_load)
 		{
-			//	@tool 読込済み
+			//	読込済み
 			auto cache_it = caches.find(key);
 			if (cache_it != caches.end())
 			{
@@ -217,7 +217,7 @@ void resource_manager::request_load(const std::shared_ptr<resource::load_operati
 				}
 			}
 
-			//	@tool 読込中のリクエストに相乗り
+			//	読込中のリクエストに相乗り
 			if (immediate_state == resource::operation_state::idle)
 			{
 				auto it = processing_requests.find(key);
@@ -236,7 +236,7 @@ void resource_manager::request_load(const std::shared_ptr<resource::load_operati
 			}
 		}
 
-		//	@tool 新規リクエスト
+		//	新規リクエスト
 		if (immediate_state == resource::operation_state::idle)
 		{
 			auto new_request = std::make_shared<request>(operation->get_file_path(), key, operation->get_type(), factory(), priority, force_load);
@@ -273,7 +273,7 @@ std::shared_ptr<void> resource_manager::search_raw(std::string_view file_path, s
 
 void resource_manager::join_request(const request_ptr& target, const std::shared_ptr<resource::load_operation_base>& operation, resource::load_priority priority)
 {
-	//	@tool 解放済みの待機者を掃除してから追加
+	//	解放済みの待機者を掃除してから追加
 	auto& waiters = target->waiters;
 	waiters.erase(std::remove_if(waiters.begin(), waiters.end(), [](const std::weak_ptr<resource::load_operation_base>& waiter) { return waiter.expired(); }), waiters.end());
 	waiters.emplace_back(operation);
@@ -281,7 +281,7 @@ void resource_manager::join_request(const request_ptr& target, const std::shared
 	operation->set_processing();
 	operation->request_link = target;
 
-	//	@tool 未着手であれば優先度を引き上げる
+	//	未着手であれば優先度を引き上げる
 	if (target->phase == request_phases::pending && to_index(priority) > to_index(target->priority))
 	{
 		if (remove_pending(target))
@@ -305,7 +305,7 @@ bool resource_manager::has_live_waiters(const request& target) const
 
 bool resource_manager::is_buildable(const request& target) const
 {
-	//	@tool 失敗/中断していれば依存を待たずに完了させる
+	//	失敗/中断していれば依存を待たずに完了させる
 	if (target.load_state != resource::operation_state::success || !has_live_waiters(target))
 		return true;
 
@@ -350,7 +350,7 @@ void resource_manager::load_request(request& target)
 
 bool resource_manager::wait_request(const request_ptr& target)
 {
-	//	@tool 循環依存の検出
+	//	循環依存の検出
 	if (std::find(waiting_requests.begin(), waiting_requests.end(), target.get()) != waiting_requests.end())
 		return false;
 
@@ -359,7 +359,7 @@ bool resource_manager::wait_request(const request_ptr& target)
 		std::unique_lock<std::mutex> lock(mutex);
 		if (target->phase == request_phases::pending)
 		{
-			//	@tool ワーカーが未着手ならこのスレッドで読み込む
+			//	ワーカーが未着手ならこのスレッドで読み込む
 			remove_pending(target);
 			target->phase = request_phases::loading;
 			load_here = true;
@@ -371,7 +371,7 @@ bool resource_manager::wait_request(const request_ptr& target)
 				loaded_condition.wait(lock, [&target] { return target->phase == request_phases::loaded; });
 			}
 
-			//	@tool 構築待ちから取り出す。見つからない場合は既に構築処理中
+			//	構築待ちから取り出す。見つからない場合は既に構築処理中
 			auto it = std::find(loaded_requests.begin(), loaded_requests.end(), target);
 			if (it == loaded_requests.end())
 				return false;
@@ -388,7 +388,7 @@ bool resource_manager::wait_request(const request_ptr& target)
 		target->phase = request_phases::loaded;
 	}
 
-	//	@tool 依存リソースの完了待ち
+	//	依存リソースの完了待ち
 	if (target->load_state == resource::operation_state::success)
 	{
 		for (auto& dependency : target->loader->get_dependencies())
@@ -417,7 +417,7 @@ void resource_manager::finalize(const request_ptr& target)
 		std::lock_guard<std::mutex> lock(mutex);
 		wanted = has_live_waiters(current);
 
-		//	@tool 読込中に同じリソースがキャッシュされた場合はそちらを優先する
+		//	読込中に同じリソースがキャッシュされた場合はそちらを優先する
 		if (result == resource::operation_state::success && wanted && !current.force_load)
 		{
 			auto it = caches.find(current.key);
@@ -438,7 +438,7 @@ void resource_manager::finalize(const request_ptr& target)
 	if (result == resource::operation_state::success && !wanted)
 		result = resource::operation_state::canceled;
 
-	//	@tool 構築
+	//	構築
 	if (result == resource::operation_state::success && !resource)
 	{
 		for (auto& dependency : current.loader->get_dependencies())
@@ -479,8 +479,8 @@ void resource_manager::finalize(const request_ptr& target)
 			message = current.loader->get_error_message();
 	}
 
-	//	@tool キャッシュ登録と待機者の回収
-	//	@tool 構築中に相乗りした待機者も含めるため、構築後にまとめて行う
+	//	キャッシュ登録と待機者の回収
+	//	構築中に相乗りした待機者も含めるため、構築後にまとめて行う
 	std::vector<std::shared_ptr<resource::load_operation_base>> waiters;
 	{
 		std::lock_guard<std::mutex> lock(mutex);
@@ -541,7 +541,7 @@ void resource_manager::dispatch_callbacks()
 
 void resource_manager::worker_loop()
 {
-	//	@tool WIC等を使う読込処理のためにCOMを初期化
+	//	WIC等を使う読込処理のためにCOMを初期化
 	const HRESULT com_result = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
 
 	for (;;)
@@ -564,7 +564,7 @@ void resource_manager::worker_loop()
 			if (shutting_down)
 				break;
 
-			//	@tool 優先度の高い物から取り出す
+			//	優先度の高い物から取り出す
 			for (size_t index = magic_enum::enum_count<resource::load_priority>(); index-- > 0; )
 			{
 				auto& queue = pending_queues[index];
@@ -582,13 +582,13 @@ void resource_manager::worker_loop()
 				current->skipped = true;
 		}
 
-		//	@tool 待機者が居なければ読込自体を省略する
+		//	待機者が居なければ読込自体を省略する
 		if (wanted)
 			load_request(*current);
 		else
 			current->load_state = resource::operation_state::canceled;
 
-		//	@tool 構築とローダーの破棄はメインスレッドで行うため、所有権ごと受け渡す
+		//	構築とローダーの破棄はメインスレッドで行うため、所有権ごと受け渡す
 		{
 			std::lock_guard<std::mutex> lock(mutex);
 			current->phase = request_phases::loaded;

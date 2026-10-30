@@ -16,11 +16,7 @@ class resource_manager;
 
 namespace resource
 {
-	//	@tool リソース読込操作(要求者ごとに1つ生成される)
-	//	@tool ・状態/リソースの取得、中断、コールバックの登録/解除はどのスレッドからでも行える
-	//	@tool ・完了コールバックは必ずresource_manager::update()内(メインスレッド)で呼ばれる(登録時に完了済みでもその場では呼ばれない)
-	//	@tool ・操作を破棄するとその要求は中断扱いになり、コールバックも呼ばれない
-	//	@tool   コールバックで参照するオブジェクトと同じ寿命で保持すること
+	//	リソース読込操作
 	class load_operation_base : public std::enable_shared_from_this<load_operation_base>
 	{
 		friend class ::resource_manager;
@@ -41,8 +37,7 @@ namespace resource
 		std::shared_ptr<void> get_raw_resource() const;
 		std::string get_error_message() const;
 
-		//	@tool この要求のみ中断する(同じリソースを待っている他の要求には影響しない)
-		//	@tool 完了前であれば状態はcanceledになり、登録済みのコールバックは呼ばれない
+		//	この要求のみ中断する
 		void cancel();
 
 		void remove_completed_callback(callback_id id);
@@ -61,7 +56,7 @@ namespace resource
 		callback_id add_raw_completed_callback(raw_callback callback);
 
 	private:
-		//	@tool 以下はresource_managerから呼ばれる
+		//	リソースマネージャーから呼び出す
 		void set_processing();
 		void complete(std::shared_ptr<void> result, operation_state result_state, std::string message);
 		void invoke_callbacks();
@@ -80,11 +75,11 @@ namespace resource
 		callback_id next_callback_id = invalid_callback_id;
 		bool dispatch_queued = false;
 
-		//	@tool 待機中のリクエスト(resource_managerのミューテックスで保護)
+		//	待機中のリクエストリンク
 		std::weak_ptr<void> request_link;
 	};
 
-	//	@tool 型付きのリソース読込操作
+	//	型付きのリソース読込操作
 	template<class Type>
 	class load_operation : public load_operation_base
 	{
@@ -97,8 +92,8 @@ namespace resource
 			return std::static_pointer_cast<Type>(get_raw_resource());
 		}
 
-		//	@tool 完了時(成功/失敗)に1度だけ呼ばれるコールバックを登録する
-		//	@tool 中断済み/中断された場合は呼ばれない
+		//	完了時(成功/失敗)に1度だけ呼ばれるコールバックを登録する
+		//	中断済み/中断された場合は呼ばれない
 		callback_id add_completed_callback(callback function)
 		{
 			return add_raw_completed_callback(

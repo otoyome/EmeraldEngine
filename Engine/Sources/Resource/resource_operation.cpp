@@ -62,7 +62,7 @@ namespace resource
 			id = ++next_callback_id;
 			callbacks.emplace_back(id, std::move(callback));
 
-			//	@tool 完了済みの場合は次のupdate()で呼び出す
+			//	完了済みの場合は次のupdate()で呼び出す
 			if (is_done() && !dispatch_queued)
 			{
 				dispatch_queued = true;
@@ -87,7 +87,7 @@ namespace resource
 		{
 			std::lock_guard<std::mutex> lock(mutex);
 
-			//	@tool 中断/完了済みの場合は結果を受け取らない
+			//	中断/完了済みの場合は結果を受け取らない
 			if (is_done())
 				return;
 
@@ -117,7 +117,7 @@ namespace resource
 			invoke_list.swap(callbacks);
 		}
 
-		//	@tool コールバック内で読込要求やコールバック登録を行えるようにロック外で呼び出す
+		//	コールバック内で読込要求やコールバック登録を行えるようにロック外で呼び出す
 		for (auto& callback : invoke_list)
 		{
 			callback.second(*this);
