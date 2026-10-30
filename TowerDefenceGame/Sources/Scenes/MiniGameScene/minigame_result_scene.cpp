@@ -45,7 +45,24 @@ void minigame_result_scene::set_result(const result_data& result)
 
 minigame_result_scene::minigame_result_scene()
 : scene_base()
+, decide_action("decide", { keyboard::key_states::space, mouse::key_states::left, gamepad::key_states::a })
 {
+	//	入力購読
+	connections += decide_action.subscribe(get_broadcaster(), [this](const input::action_event& event)
+	{
+		if (state != states::input_wait)
+			return;
+
+		//	決定音を鳴らし、フェードアウトに合わせて BGM も止める
+		if (audio_manager::is_valid())
+		{
+			audio_manager::instance()->play(DecideSoundPath, { audio::bus::ui });
+			audio_manager::instance()->stop_bgm(0.5f);
+		}
+		transition_fade_controller::instance()->play(fade::directions::out, 0.5f, fade::modes::black);
+		state = states::fade_out_wait;
+	});
+
 	//	マウスカーソルを表示する
 	mouse::instance()->set_center_lock(false);
 	mouse::instance()->set_cursol_hide(false);
@@ -183,21 +200,6 @@ void minigame_result_scene::update_core(float elapsed_time)
 		}
 		case states::input_wait:
 		{
-			//	スペースキーか左クリックでタイトルへ戻る
-			bool continue_input = input::get_key_state(keyboard::key_states::space) == input::state::down
-				|| input::get_key_state(mouse::key_states::left) == input::state::down
-				|| input::get_key_state(gamepad::key_states::a) == input::state::down;
-			if (continue_input)
-			{
-				//	決定音を鳴らし、フェードアウトに合わせて BGM も止める
-				if (audio_manager::is_valid())
-				{
-					audio_manager::instance()->play(DecideSoundPath, { audio::bus::ui });
-					audio_manager::instance()->stop_bgm(0.5f);
-				}
-				transition_fade_controller::instance()->play(fade::directions::out, 0.5f, fade::modes::black);
-				state = states::fade_out_wait;
-			}
 			break;
 		}
 		case states::fade_out_wait:

@@ -138,6 +138,9 @@
     <ClInclude Include="Headers\Input\input_layer.h">
       <Filter>Headers\Input</Filter>
     </ClInclude>
+    <ClInclude Include="Headers\Input\input_action_system.h">
+      <Filter>Headers\Input</Filter>
+    </ClInclude>
     <ClInclude Include="Headers\Input\mouse.h">
       <Filter>Headers\Input</Filter>
     </ClInclude>
@@ -414,6 +417,9 @@
       <Filter>Sources\Input</Filter>
     </ClCompile>
     <ClCompile Include="Sources\Input\input_layer.cpp">
+      <Filter>Sources\Input</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Input\input_action_system.cpp">
       <Filter>Sources\Input</Filter>
     </ClCompile>
     <ClCompile Include="Sources\Input\mouse.cpp">

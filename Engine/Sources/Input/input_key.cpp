@@ -2,6 +2,15 @@
 
 namespace
 {
+	bool is_keyboard_blocked()
+	{
+#if defined(USE_IMGUI)
+		return ImGui::GetCurrentContext() && ImGui::GetIO().WantTextInput;
+#else
+		return false;
+#endif
+	}
+
 	const gamepad::states* find_gamepad_state(size_t pad_index)
 	{
 		if (!gamepad::is_valid() || pad_index >= gamepad::max_count)
@@ -18,7 +27,7 @@ namespace input
 		{
 			case devices::keyboard:
 			{
-				return keyboard::is_valid() ? keyboard::instance()->get_state().is_key_state(static_cast<keyboard::key_states>(k.code)) : state::none;
+				return keyboard::is_valid() && !is_keyboard_blocked() ? keyboard::instance()->get_state().is_key_state(static_cast<keyboard::key_states>(k.code)) : state::none;
 			}
 			case devices::mouse:
 			{

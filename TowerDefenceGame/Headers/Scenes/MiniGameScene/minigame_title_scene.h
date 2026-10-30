@@ -6,6 +6,7 @@
 #include "object/gameobjects/ui/ui_image.h"
 
 #include "Scenes/MiniGameScene/minigame_title_sound.h"
+#include "Input/input_action.h"
 
 //	タイトルシーン
 class minigame_title_scene : public scene_base
@@ -36,6 +37,8 @@ protected:
 
 private:
 	states state = states::fade_in_wait;
+	input::action decide_action;
+	signals::connection_list connections;
 
-	minigame_title_sound sound;	//	購読を持つので最後に置く
+	minigame_title_sound sound;		//	購読を持つので最後に置く
 };

@@ -25,7 +25,19 @@ namespace
 minigame_title_scene::minigame_title_scene()
 : scene_base()
 , sound(get_broadcaster())
+, decide_action("decide", { keyboard::key_states::e, mouse::key_states::left, gamepad::key_states::a })
 {
+	//	入力購読
+	connections += decide_action.subscribe(get_broadcaster(), [this](const input::action_event& event)
+	{
+		if (state != states::input_wait)
+			return;
+
+		get_broadcaster().post(minigame_title_topics::decided);
+		transition_fade_controller::instance()->play(fade::directions::out, 0.5f, fade::modes::black);
+		state = states::fade_out_wait;
+	});
+
 	//	マウスカーソルを表示する
 	mouse::instance()->set_center_lock(false);
 	mouse::instance()->set_cursol_hide(false);
@@ -103,16 +115,6 @@ void minigame_title_scene::update_core(float elapsed_time)
 		}
 		case states::input_wait:
 		{
-			//	スペースキーか左クリックでゲームを開始する
-			bool start_input = input::get_key_state(keyboard::key_states::space) == input::state::down
-				|| input::get_key_state(mouse::key_states::left) == input::state::down
-				|| input::get_key_state(gamepad::key_states::a) == input::state::down;
-			if (start_input)
-			{
-				get_broadcaster().post(minigame_title_topics::decided);
-				transition_fade_controller::instance()->play(fade::directions::out, 0.5f, fade::modes::black);
-				state = states::fade_out_wait;
-			}
 			break;
 		}
 		case states::fade_out_wait:

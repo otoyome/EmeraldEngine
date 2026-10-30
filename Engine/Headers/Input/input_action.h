@@ -6,6 +6,8 @@
 
 namespace input
 {
+	class action_system;
+
 	//	アクションフェーズ
 	enum class action_phases : uint8_t
 	{
@@ -14,10 +16,17 @@ namespace input
 		canceled,	//	押されたまま無効になった（レイヤーで止められた・外された）
 	};
 
-	//	アクションの通知に載せる内容
+	//	アクションイベント
 	struct action_event
 	{
 		action_phases phase;
+		size_t pad_index;
+	};
+
+	//	軸アクションイベント
+	struct axis_event
+	{
+		float value;
 		size_t pad_index;
 	};
 
@@ -41,16 +50,15 @@ namespace input
 			std::source_location location = std::source_location::current()) const;
 
 	private:
-		friend void update_actions(signals::broadcaster& target);
+		friend class action_system;
 
-		std::string name;
+		action(const layer* owner, std::string_view name, std::initializer_list<key> keys);
+
+		std::string_view name;
 		std::vector<key> keys;
 		signals::topic<action_event> topic;
 		const layer* owner = nullptr;
 	};
-
-	//	入力アクション更新
-	void update_actions(signals::broadcaster& target);
 
 	//	軸アクション
 	class axis_action
@@ -74,9 +82,17 @@ namespace input
 		std::string_view get_name() const;
 		const std::vector<mapping>& get_mappings() const;
 
+		[[nodiscard]] signals::connection subscribe(signals::broadcaster& target, std::function<void(const axis_event&)> function,
+			std::source_location location = std::source_location::current()) const;
+
 	private:
-		std::string name;
-		std::vector<mapping> mappings;	
+		friend class action_system;
+
+		axis_action(const layer* owner, std::string_view name, std::initializer_list<mapping> mappings);
+
+		std::string_view name;
+		std::vector<mapping> mappings;
+		signals::topic<axis_event> topic;
 		const layer* owner = nullptr;
 	};
 }

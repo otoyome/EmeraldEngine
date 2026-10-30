@@ -18,7 +18,7 @@
 #include "effect_instance.h"
 #include "Audio/audio_manager.h"
 #include "Audio/sound_player.h"
-#include "Input/input_action.h"
+#include "Input/input_action_system.h"
 
 #include "ik_resource.h"
 
@@ -274,6 +274,7 @@ bool framework::initialize()
 		mouse::create_instance(hwnd);
 		keyboard::create_instance();
 		gamepad::create_instance();
+		input::action_system::create_instance();
 	}
 
 	//	エフェクト関係
@@ -434,10 +435,9 @@ void framework::update(float elapsed_time/*Elapsed seconds from last frame*/)
 	{
 		gamepad::instance()->update_state();
 	}
-	input::update_layers();
-	if (scene_manager::is_valid())
+	if (input::action_system::is_valid() && scene_manager::is_valid())
 	{
-		input::update_actions(scene_manager::instance()->get_broadcaster());
+		input::action_system::instance()->update(scene_manager::instance()->get_broadcaster());
 	}
 
 #if defined(USE_IMGUI)
@@ -1036,6 +1036,7 @@ bool framework::uninitialize()
 
 	//	入力関係終了
 	{
+		input::action_system::delete_instance();
 		gamepad::delete_instance();
 		keyboard::delete_instance();
 		mouse::delete_instance();

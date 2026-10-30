@@ -4,21 +4,21 @@
 
 namespace resource
 {
-	//	@tool リソース操作の状況
+	//	リソース操作の状況
 	enum class operation_state
 	{
-		idle,				//	@tool 待機
-		processing,			//	@tool 処理中
-		success,			//	@tool 成功
-		not_found,			//	@tool ファイルが見つからない
-		type_mismatch,		//	@tool 同じパスが別の型で読込済み/読込中
-		deserialize_failed,	//	@tool デシリアライズに失敗
-		build_failed,		//	@tool 構築に失敗
-		dependency_failed,	//	@tool 依存リソースが完了しなかった(循環依存など)
-		canceled,			//	@tool 中断
+		idle,				//	待機
+		processing,			//	処理中
+		success,			//	成功
+		not_found,			//	ファイルが見つからない
+		type_mismatch,		//	同じパスが別の型で読込済み/読込中
+		deserialize_failed,	//	デシリアライズに失敗
+		build_failed,		//	構築に失敗
+		dependency_failed,	//	依存リソースが完了しなかった(循環依存など)
+		canceled,			//	中断
 	};
 
-	//	@tool 読込優先度(ワーカーは高い物から処理する)
+	//	読込優先度
 	enum class load_priority
 	{
 		low,
@@ -26,13 +26,13 @@ namespace resource
 		high,
 	};
 
-	//	@tool 処理が終了しているか(成否は問わない)
+	//	処理が終了しているか?
 	inline bool is_finished(operation_state state)
 	{
 		return state != operation_state::idle && state != operation_state::processing;
 	}
 
-	//	@tool 表示用の名前
+	//	表示用の名前
 	inline const char* to_string(operation_state state)
 	{
 		switch (state)
@@ -50,7 +50,7 @@ namespace resource
 		return "unknown";
 	}
 
-	//	@tool 表示用の名前
+	//	表示用の名前取得
 	inline const char* to_string(load_priority priority)
 	{
 		switch (priority)

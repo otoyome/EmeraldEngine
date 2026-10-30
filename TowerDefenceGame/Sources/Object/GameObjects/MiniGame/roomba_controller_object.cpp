@@ -11,20 +11,6 @@ namespace
 	constexpr std::string_view ControllObjectDeadComplete = "CONTROLL_OBJECT_DEAD_COMPLETE";
 
 	constexpr std::string_view OnStaggerEnterId = "STAGGER_ENTER_CALLBACK";
-
-	//	ルンバ操作の入力アクション
-	const input::action dash_action("roomba.dash", { keyboard::key_states::shift, mouse::key_states::left, gamepad::key_states::rt });
-	const input::action brake_action("roomba.brake", { keyboard::key_states::ctrl, mouse::key_states::right, gamepad::key_states::lt });
-	const input::axis_action move_x_action("roomba.move_x", {
-		{ keyboard::key_states::d, +1.0f },
-		{ keyboard::key_states::a, -1.0f },
-		{ gamepad::axis_states::left_x, 1.0f },
-	});
-	const input::axis_action move_y_action("roomba.move_y", {
-		{ keyboard::key_states::w, +1.0f },
-		{ keyboard::key_states::s, -1.0f },
-		{ gamepad::axis_states::left_y, 1.0f },
-	});
 }
 
 std::shared_ptr<roomba_object> roomba_controller_object::get_controll_object() const
@@ -55,8 +41,22 @@ roomba_controller_object::roomba_controller_object(std::string_view name, std::s
 , controll_object(controll_object)
 , mode(modes::normal)
 , action_datas()
+, dash_action("roomba.dash", { keyboard::key_states::shift, mouse::key_states::left, gamepad::key_states::rt })
+, brake_action("roomba.brake", { keyboard::key_states::ctrl, mouse::key_states::right, gamepad::key_states::lt })
+, move_x_action("roomba.move_x", {
+	{ keyboard::key_states::d, +1.0f },
+	{ keyboard::key_states::a, -1.0f },
+	{ gamepad::axis_states::left_x, 1.0f },
+})
+, move_y_action("roomba.move_y", {
+	{ keyboard::key_states::w, +1.0f },
+	{ keyboard::key_states::s, -1.0f },
+	{ gamepad::axis_states::left_y, 1.0f },
+})
 , dash_pressed(false)
 , brake_pressed(false)
+, move_x(0.0f)
+, move_y(0.0f)
 {
 	//	入力購読
 	signals::broadcaster& broadcaster = scene_manager::instance()->get_broadcaster();
@@ -67,6 +67,14 @@ roomba_controller_object::roomba_controller_object(std::string_view name, std::s
 	connections += brake_action.subscribe(broadcaster, [this](const input::action_event& event)
 	{
 		brake_pressed = event.phase == input::action_phases::pressed;
+	});
+	connections += move_x_action.subscribe(broadcaster, [this](const input::axis_event& event)
+	{
+		move_x = event.value;
+	});
+	connections += move_y_action.subscribe(broadcaster, [this](const input::axis_event& event)
+	{
+		move_y = event.value;
 	});
 }
 
@@ -115,8 +123,8 @@ void roomba_controller_object::fixed_update(float elapsed_time)
 
 math::float3 roomba_controller_object::get_move_vector()
 {
-	float y_axis = move_y_action.get_value();
-	float x_axis = move_x_action.get_value();
+	float y_axis = move_y;
+	float x_axis = move_x;
 	if (y_axis == 0.0f && x_axis == 0.0f)
 		return math::float3(0, 0, 0);
 

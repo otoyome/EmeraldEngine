@@ -20,4 +20,15 @@ namespace input
 			return current == state::none || current == state::release ? state::down : state::hold;
 		return current == state::down || current == state::hold ? state::release : state::none;
 	}
+
+	//	自プロセスの窓が前面か
+	inline bool is_process_foreground()
+	{
+		HWND foreground = ::GetForegroundWindow();
+		if (!foreground)
+			return false;
+		DWORD process_id = 0;
+		::GetWindowThreadProcessId(foreground, &process_id);
+		return process_id == ::GetCurrentProcessId();
+	}
 }

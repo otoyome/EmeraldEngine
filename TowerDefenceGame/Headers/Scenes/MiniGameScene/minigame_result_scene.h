@@ -6,6 +6,8 @@
 #include "object/gameobjects/ui/ui_image.h"
 #include "object/gameobjects/ui/ui_text.h"
 
+#include "Input/input_action.h"
+
 //	リザルトシーン
 class minigame_result_scene : public scene_base
 {
@@ -46,5 +48,7 @@ protected:
 
 private:
 	states state = states::fade_in_wait;
+	input::action decide_action;
+	signals::connection_list connections;
 	static result_data result;
 };

@@ -52,9 +52,81 @@ namespace
 		VK_F10,
 		VK_F11,
 		VK_F12,
-
 		VK_OEM_3,
+
+		'0',
+		'1',
+		'2',
+		'3',
+		'4',
+		'5',
+		'6',
+		'7',
+		'8',
+		'9',
+
+		VK_LMENU,
+		VK_RMENU,
+		VK_LWIN,
+		VK_RWIN,
+		VK_APPS,
+
+		VK_RETURN,
+		VK_ESCAPE,
+		VK_TAB,
+		VK_BACK,
+		VK_CAPITAL,
+
+		VK_UP,
+		VK_DOWN,
+		VK_LEFT,
+		VK_RIGHT,
+
+		VK_INSERT,
+		VK_DELETE,
+		VK_HOME,
+		VK_END,
+		VK_PRIOR,
+		VK_NEXT,
+
+		VK_NUMPAD0,
+		VK_NUMPAD1,
+		VK_NUMPAD2,
+		VK_NUMPAD3,
+		VK_NUMPAD4,
+		VK_NUMPAD5,
+		VK_NUMPAD6,
+		VK_NUMPAD7,
+		VK_NUMPAD8,
+		VK_NUMPAD9,
+		VK_ADD,
+		VK_SUBTRACT,
+		VK_MULTIPLY,
+		VK_DIVIDE,
+		VK_DECIMAL,
+		VK_NUMLOCK,
+
+		VK_OEM_MINUS,
+		VK_OEM_PLUS,
+		VK_OEM_COMMA,
+		VK_OEM_PERIOD,
+		VK_OEM_1,
+		VK_OEM_2,
+		VK_OEM_4,
+		VK_OEM_5,
+		VK_OEM_6,
+		VK_OEM_7,
+		VK_OEM_102,
+
+		VK_CONVERT,
+		VK_NONCONVERT,
+
+		VK_SCROLL,
+		VK_PAUSE,
 	};
+
+	static_assert(std::size(KeyMap) == magic_enum::enum_count<keyboard::key_states>(), "keyboard::key_states Ç∆ KeyMap ÇÃêîÇ™çáÇ¡ÇƒÇ¢Ç»Ç¢");
+	static_assert(static_cast<size_t>(keyboard::key_states::pause) + 1 == std::size(KeyMap), "keyboard::key_states ÇÃç≈å„ÇÃílÇ™ KeyMap Ç∆çáÇ¡ÇƒÇ¢Ç»Ç¢");
 }
 
 input::state keyboard::states::is_key_state(key_states state) const
@@ -89,7 +161,7 @@ keyboard::~keyboard()
 void keyboard::update_state()
 {
 	BYTE input_data[256];
-	if (!::GetKeyboardState(input_data))
+	if (!input::is_process_foreground() || !::GetKeyboardState(input_data))
 	{
 		memset(input_data, 0, sizeof(input_data));
 	}

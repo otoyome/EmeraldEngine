@@ -63,17 +63,6 @@ namespace
 		const float normalized = std::clamp(static_cast<float>(value) / 32767.0f, 0.0f, 1.0f);
 		return std::clamp((normalized - trigger_dead_zone) / (1.0f - trigger_dead_zone), 0.0f, 1.0f);
 	}
-
-	//	自プロセスの窓が前面か
-	bool is_process_foreground()
-	{
-		HWND foreground = ::GetForegroundWindow();
-		if (!foreground)
-			return false;
-		DWORD process_id = 0;
-		::GetWindowThreadProcessId(foreground, &process_id);
-		return process_id == ::GetCurrentProcessId();
-	}
 }
 
 input::state gamepad::states::is_key_state(key_states state) const
@@ -193,7 +182,7 @@ void gamepad::update_state()
 	if (initialized)
 		update_slots();
 
-	const bool active = is_process_foreground();
+	const bool active = input::is_process_foreground();
 	for (size_t index = 0; index < max_count; ++index)
 	{
 		states& state = pad_states[index];

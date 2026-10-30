@@ -2,6 +2,7 @@
 
 #include "object/gameobjects/MiniGame/roomba_object.h"
 #include "System/signals.h"
+#include "Input/input_action.h"
 
 //	ルンバ用コントローラーオブジェクト
 class roomba_controller_object : public game_object
@@ -41,7 +42,15 @@ private:
 	modes mode;
 	roomba_object::action_datas action_datas[system_units::frame_per_sec];
 
+	//	ルンバ操作の入力アクション
+	input::action dash_action;
+	input::action brake_action;
+	input::axis_action move_x_action;
+	input::axis_action move_y_action;
+
 	bool dash_pressed;
 	bool brake_pressed;
+	float move_x;
+	float move_y;
 	signals::connection_list connections;
 };
