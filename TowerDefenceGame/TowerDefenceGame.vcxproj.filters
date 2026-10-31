@@ -36,9 +36,6 @@
     <Filter Include="Shaders\GeometricPrimitive">
       <UniqueIdentifier>{98d38c74-0966-410f-ab2a-89951dd104da}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Shaders\Gltf">
-      <UniqueIdentifier>{1ab635d9-bf1b-449a-ad7c-5767e91a1d09}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Shaders\SkyBox">
       <UniqueIdentifier>{7a001cd2-1f8f-4fc5-a370-f2284bb046b2}</UniqueIdentifier>
     </Filter>
@@ -122,9 +119,6 @@
     </Filter>
     <Filter Include="External\ImGuiCurveEditor">
       <UniqueIdentifier>{67033007-a9b8-4e31-b138-568b579eef40}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Shaders\Ggst">
-      <UniqueIdentifier>{2ae2696a-de80-44ce-bfd1-668add20aafc}</UniqueIdentifier>
     </Filter>
     <Filter Include="External\im-neo-sequencer">
       <UniqueIdentifier>{abc8fb22-69a9-41fa-8f7f-9ed166858373}</UniqueIdentifier>
@@ -918,38 +912,11 @@
     <FxCompile Include="..\Shaders\DeferredRendering\convert_srgb_to_linear_ps.hlsl">
       <Filter>Shaders\DeferredRendering</Filter>
     </FxCompile>
-    <FxCompile Include="..\Shaders\Gltf\gltf_csm_vs.hlsl">
-      <Filter>Shaders\Gltf</Filter>
-    </FxCompile>
-    <FxCompile Include="..\Shaders\Gltf\gltf_depth_vs.hlsl">
-      <Filter>Shaders\Gltf</Filter>
-    </FxCompile>
-    <FxCompile Include="..\Shaders\Gltf\gltf_forward_ps.hlsl">
-      <Filter>Shaders\Gltf</Filter>
-    </FxCompile>
-    <FxCompile Include="..\Shaders\Gltf\gltf_forward_vs.hlsl">
-      <Filter>Shaders\Gltf</Filter>
-    </FxCompile>
-    <FxCompile Include="..\Shaders\Gltf\gltf_gbuffer_ps.hlsl">
-      <Filter>Shaders\Gltf</Filter>
-    </FxCompile>
-    <FxCompile Include="..\Shaders\Gltf\gltf_gbuffer_vs.hlsl">
-      <Filter>Shaders\Gltf</Filter>
-    </FxCompile>
-    <FxCompile Include="..\Shaders\Gltf\gltf_csm_gs.hlsl">
-      <Filter>Shaders\Gltf</Filter>
-    </FxCompile>
     <FxCompile Include="..\Shaders\FullscreenQuad\decompress_rgb_to_log_ps.hlsl">
       <Filter>Shaders\FullscreenQuad</Filter>
     </FxCompile>
     <FxCompile Include="..\Shaders\FullscreenQuad\compress_rgb_to_log_ps.hlsl">
       <Filter>Shaders\FullscreenQuad</Filter>
-    </FxCompile>
-    <FxCompile Include="..\Shaders\Gltf\gltf_depth_ps.hlsl">
-      <Filter>Shaders\Gltf</Filter>
-    </FxCompile>
-    <FxCompile Include="..\Shaders\Gltf\gltf_csm_ps.hlsl">
-      <Filter>Shaders\Gltf</Filter>
     </FxCompile>
     <FxCompile Include="..\Shaders\Postprocess\DepthOfField\dof_filter_setup_cs.hlsl">
       <Filter>Shaders\Postprocess\DepthOfField</Filter>
@@ -1196,12 +1163,6 @@
     <None Include="..\Shaders\Common\common_post_process.hlsli">
       <Filter>Shaders\Common</Filter>
     </None>
-    <None Include="..\Shaders\Gltf\gltf_rendering.hlsli">
-      <Filter>Shaders\Gltf</Filter>
-    </None>
-    <None Include="..\Shaders\Gltf\gltf_surface.hlsli">
-      <Filter>Shaders\Gltf</Filter>
-    </None>
     <None Include="..\Shaders\Model\material_parameter_constant_buffer.hlsli">
       <Filter>Shaders\Model</Filter>
     </None>
@@ -1244,9 +1205,6 @@
     <None Include="..\Shaders\Postprocess\ColorGrading\tone_mapping.hlsli">
       <Filter>Shaders\Postprocess\ColorGrading</Filter>
     </None>
-    <None Include="..\Shaders\Gltf\gltf_surface_alpha.hlsli">
-      <Filter>Shaders\Gltf</Filter>
-    </None>
     <None Include="..\Shaders\DeferredRendering\common_gbuffer_writer.hlsli">
       <Filter>Shaders\DeferredRendering</Filter>
     </None>
@@ -1255,15 +1213,6 @@
     </None>
     <None Include="..\Shaders\Postprocess\Bloom\bloom.hlsli">
       <Filter>Shaders\Postprocess\Bloom</Filter>
-    </None>
-    <None Include="..\Shaders\Ggst\ggst_rendering.hlsli">
-      <Filter>Shaders\Ggst</Filter>
-    </None>
-    <None Include="..\Shaders\Ggst\ggst_surface.hlsli">
-      <Filter>Shaders\Ggst</Filter>
-    </None>
-    <None Include="..\Shaders\Ggst\ggst_surface_alpha.hlsli">
-      <Filter>Shaders\Ggst</Filter>
     </None>
     <None Include="..\Shaders\ComputeParticle\compute_particle_system_item_emitter.hlsli">
       <Filter>Shaders\ComputeParticle</Filter>

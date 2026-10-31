@@ -1,7 +1,41 @@
-#ifndef __GLTF_SURFACE_HLSLI__
-#define __GLTF_SURFACE_HLSLI__
+//	glTF(PBR)のマテリアルシェーダー
+//	MATERIAL_SURFACE			: surface()
+//	MATERIAL_SURFACE_OPACITY	: surface_opacity()
+#ifndef __GLTF_HLSL__
+#define __GLTF_HLSL__
 
-#include "gltf_rendering.hlsli"
+#define HAS_TANGENT
+#define VERTEX_COLOR_MAX    1
+#define TEXCOORD_MAX        1
+#define BONE_MAX            16
+#define HAS_MORPH
+#include "model.hlsli"
+
+#include "material_parameter_constant_buffer.hlsli"
+
+//  テクスチャ類登録
+REGISTER_SHADER_RESOURCE_VIEW(Texture2D, BaseColorMap, 0)
+REGISTER_SHADER_RESOURCE_VIEW(Texture2D, RoughnessMetallicMap, 1);
+REGISTER_SHADER_RESOURCE_VIEW(Texture2D, NormalMap, 2);
+REGISTER_SHADER_RESOURCE_VIEW(Texture2D, EmissiveMap, 3);
+REGISTER_SHADER_RESOURCE_VIEW(Texture2D, OcclusionMap, 4);
+
+//  UV座標
+static const uint BaseTexcoord = 0;
+
+//  マテリアル情報
+cbuffer GLTF_MATERIAL_CONSTANT_BUFFER
+{
+	float4  base_color_factor;		//	ベースカラー
+	float3  emissive_color_factor;	//	自己発光ファクター
+	float normal_map_scale;			//	法線マップのスケーリング値
+
+	float roughness_factor;			//	粗さ
+	float metallic_factor;			//	金属質
+	float occlusion_strength;		//	光の遮蔽強度
+};
+
+#if defined(MATERIAL_SURFACE)
 #include "gbuffer.hlsli"
 
 //  面情報
@@ -77,5 +111,23 @@ SurfaceData surface(VS_OUT pin, bool is_front_face)
     data.unique_parameter = 0;
     return data;
 }
+#endif	//	defined(MATERIAL_SURFACE)
 
-#endif	//	__GLTF_SURFACE_HLSLI__
+#if defined(MATERIAL_SURFACE_OPACITY)
+#include "gbuffer.hlsli"
+
+//	不透明度(depth_write / shadow_write パスのマスク処理用)
+float surface_opacity(VS_OUT pin, bool is_front_face)
+{
+    float alpha = base_color_factor.a;
+    if (HAS_RESOURCE(BaseColorMap))
+    {
+        alpha *= TEXTURE2D_SAMPLE(BaseColorMap, pin.texcoord[BaseTexcoord]).a;
+    }
+    return alpha;
+}
+#endif	//	defined(MATERIAL_SURFACE_OPACITY)
+
+#endif	//	__GLTF_HLSL__
+
+#include "surface_pass.hlsli"

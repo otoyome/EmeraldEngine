@@ -130,6 +130,8 @@ void material_geometry(triangle VS_OUT input[3], inout TriangleStream<VS_OUT> ou
 - `material_shader_desc::geometry_passes` に指定したパスだけ、パステンプレートの GS が `material_geometry()` を呼ぶ。マテリアル側は `#if defined(MATERIAL_GEOMETRY)` の中に `MATERIAL_GEOMETRY_MAX_VERTEX_COUNT` と関数を書く。
 - csm は元々エンジンの GS(カスケード展開)がある。Toon は影に輪郭線を出していないので段階1では合成せず、shadow_write へのフック指定はエラーにしている。必要になったらテンプレート側で「カスケード展開 + フック」を合成する。
 - 段階1(Toon)で、最適化ありのコンパイル結果が旧ラッパーと完全一致することを確認済み。最適化なし(Debug)では GS だけ関数呼び出しの分だけ命令列が異なる(動作は同じ)。
+- 段階2(Gltf / Pmx / Ggst / EditModel / 3d_failed)も、最適化ありで VS / PS / GS が旧ラッパーと一致。例外は Pmx の GS で、早期 `return` が関数内に入ったため分岐の向きだけ変わる(命令は同じ)。最適化なしは段階1と同じく GS だけ異なる。
+- EditModel の GS は輪郭線の追加ではなく面の置き換え(`MATERIAL_GEOMETRY_MAX_VERTEX_COUNT` = 3)。
 
 ## 5. 静的パラメーターとパーミュテーション
 
@@ -187,6 +189,9 @@ void material_geometry(triangle VS_OUT input[3], inout TriangleStream<VS_OUT> ou
 
 1. **パステンプレート + シェーダーマップ**:Toon だけを新方式に移す。生成 PSO を既存と同じ名前で登録し、見た目が変わらないことを autotest で確認する。GS フックもここで検証する。
 2. **他シェーディングの移行**:Gltf / Pmx / Ggst / EditModel / Editor の failed 系を移し、ラッパーと `load_shader_scene` の surface 登録を削除する。
+   - 実施済み。`surface_depth_write_ps.hlsli` は `surface_opacity()` を呼ぶ形にし、テンプレートの橋渡し(`#define surface surface_opacity`)を削除した。パーティクルの α 関数も `surface_opacity()` に改名。
+   - PSO 名は `<名前>_depth` / `_shadowmap` / `_gbuffer` / `_forward` にそろうため、頂点カラー編集用は `edit_model_color_depth_write` / `edit_model_color_csm` から `edit_model_color_depth` / `edit_model_color_shadowmap` に変わった(参照はコードのみ)。
+   - 3d_failed の shadow_write は、旧登録ではカスケード展開の GS を読み込んでいなかった。テンプレートでは常に GS が付く。
 3. **マテリアルが PSO 名ではなくシェーダーパス + 静的パラメーターを持つ**:シリアライズのバージョンを上げ、変換処理(`data_converter_gltf` / `data_converter_mmd`)と編集窓を更新する。
 4. **マテリアルインスタンスと非同期ローダー**:書き換え時複製、バージョン番号での伝播、`resource::loader<material_resource>`、コンパイルのワーカー化。
 

@@ -26,110 +26,15 @@ bool load_shader_scene::initialize_core()
 	//	@remainder	失敗時のデカールとUIパイプラインステートの実装
 #if	defined(USE_IMGUI)
 
-#pragma	region	3Dモデルエラー用デフォルトパイプラインステート
+	//	3Dモデルエラー用デフォルトパイプラインステート
 	{
-		//	error_model_color_depth_write
-		{
-			std::shared_ptr<graphics_custom_pipeline_state> pso;
-			instance->generate_pipeline_state<graphics_custom_pipeline_state>("3d_failed_depth", &pso);
-			pso->set_domain(pipeline_state_base::domains::surface);
-			pso->set_flag(pipeline_state_base::flags::hidden, true);
-			//	頂点シェーダー読み込み
-			{
-				load_shader_file desc;
-				desc.file_path = "Shaders/Editor/3d_failed_depth_vs.hlsl";
-
-				std::shared_ptr<vertex_shader> shader;
-				shader_manager::instance()->load_shader<vertex_shader>(shader, desc);
-				pso->set_shader(shader);
-			}
-			//	ピクセルシェーダー読み込み
-			{
-				load_shader_file desc;
-				desc.file_path = "Shaders/Editor/3d_failed_depth_ps.hlsl";
-
-				std::shared_ptr<pixel_shader> shader;
-				shader_manager::instance()->load_shader<pixel_shader>(shader, desc);
-				pso->set_shader(shader);
-			}
-		}
-		//	3d_failed_csm
-		{
-			std::shared_ptr<graphics_custom_pipeline_state> pso;
-			instance->generate_pipeline_state<graphics_custom_pipeline_state>("3d_failed_shadowmap", &pso);
-			pso->set_domain(pipeline_state_base::domains::surface);
-			pso->set_flag(pipeline_state_base::flags::hidden, true);
-			//	頂点シェーダー読み込み
-			{
-				load_shader_file desc;
-				desc.file_path = "Shaders/Editor/3d_failed_csm_vs.hlsl";
-
-				std::shared_ptr<vertex_shader> shader;
-				shader_manager::instance()->load_shader<vertex_shader>(shader, desc);
-				pso->set_shader(shader);
-			}
-			//	ピクセルシェーダー読み込み
-			{
-				load_shader_file desc;
-				desc.file_path = "Shaders/Editor/3d_failed_csm_ps.hlsl";
-
-				std::shared_ptr<pixel_shader> shader;
-				shader_manager::instance()->load_shader<pixel_shader>(shader, desc);
-				pso->set_shader(shader);
-			}
-		}
-		//	3d_failed_gbuffer
-		{
-			std::shared_ptr<graphics_custom_pipeline_state> pso;
-			instance->generate_pipeline_state<graphics_custom_pipeline_state>("3d_failed_gbuffer", &pso);
-			pso->set_domain(pipeline_state_base::domains::surface);
-			pso->set_flag(pipeline_state_base::flags::hidden, true);
-			//	頂点シェーダー読み込み
-			{
-				load_shader_file desc;
-				desc.file_path = "Shaders/Editor/3d_failed_gbuffer_vs.hlsl";
-
-				std::shared_ptr<vertex_shader> shader;
-				shader_manager::instance()->load_shader<vertex_shader>(shader, desc);
-				pso->set_shader(shader);
-			}
-			//	ピクセルシェーダー読み込み
-			{
-				load_shader_file desc;
-				desc.file_path = "Shaders/Editor/3d_failed_gbuffer_ps.hlsl";
-
-				std::shared_ptr<pixel_shader> shader;
-				shader_manager::instance()->load_shader<pixel_shader>(shader, desc);
-				pso->set_shader(shader);
-			}
-		}
-		//	3d_failed_forward
-		{
-			std::shared_ptr<graphics_custom_pipeline_state> pso;
-			instance->generate_pipeline_state<graphics_custom_pipeline_state>("3d_failed_forward", &pso);
-			pso->set_domain(pipeline_state_base::domains::surface);
-			pso->set_flag(pipeline_state_base::flags::hidden, true);
-			//	頂点シェーダー読み込み
-			{
-				load_shader_file desc;
-				desc.file_path = "Shaders/Editor/3d_failed_forward_vs.hlsl";
-
-				std::shared_ptr<vertex_shader> shader;
-				shader_manager::instance()->load_shader<vertex_shader>(shader, desc);
-				pso->set_shader(shader);
-			}
-			//	ピクセルシェーダー読み込み
-			{
-				load_shader_file desc;
-				desc.file_path = "Shaders/Editor/3d_failed_forward_ps.hlsl";
-
-				std::shared_ptr<pixel_shader> shader;
-				shader_manager::instance()->load_shader<pixel_shader>(shader, desc);
-				pso->set_shader(shader);
-			}
-		}
+		material_shader_map::material_shader_desc desc;
+		desc.name = "3d_failed";
+		desc.file_path = "Shaders/Materials/3d_failed.hlsl";
+		desc.domain = pipeline_state_base::domains::surface;
+		desc.hidden = true;
+		material_shader_map::instance()->generate(desc);
 	}
-#pragma	endregion	//	3Dモデルエラー用デフォルトパイプラインステート
 
 #pragma	region	ポストプロセスエラー用デフォルトパイプラインステート
 	{
@@ -274,181 +179,17 @@ bool load_shader_scene::initialize_core()
 	}
 #pragma	endregion	//	コンピュートスプライト/トレイルパーティクル用デフォルトパイプラインステート
 
-#pragma	region	頂点カラー編集用デフォルトパイプラインステート
+	//	頂点カラー編集用デフォルトパイプラインステート
 	{
-		//	edit_model_color_depth_write
-		{
-			std::shared_ptr<graphics_custom_pipeline_state> pso;
-			instance->generate_pipeline_state<graphics_custom_pipeline_state>("edit_model_color_depth_write", &pso);
-			pso->set_domain(pipeline_state_base::domains::surface);
-			pso->set_flag(pipeline_state_base::flags::hidden, true);
-			//	頂点シェーダー読み込み
-			{
-				load_shader_file desc;
-				desc.file_path = "Shaders/EditModel/Color/edit_model_color_depth_vs.hlsl";
-#if defined(_DEBUG)
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
-#endif	//	defined(_DEBUG)
-
-				std::shared_ptr<vertex_shader> shader;
-				shader_manager::instance()->load_shader<vertex_shader>(shader, desc);
-				pso->set_shader(shader);
-			}
-			//	ジオメトリシェーダー読み込み
-			{
-				load_shader_file desc;
-				desc.file_path = "Shaders/EditModel/Color/edit_model_color_depth_line_gs.hlsl";
-#if defined(_DEBUG)
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
-#endif	//	defined(_DEBUG)
-
-				std::shared_ptr<geometry_shader> shader;
-				shader_manager::instance()->load_shader<geometry_shader>(shader, desc);
-				pso->set_shader(shader);
-			}
-			//	ピクセルシェーダー読み込み
-			{
-				load_shader_file desc;
-				desc.file_path = "Shaders/EditModel/Color/edit_model_color_depth_ps.hlsl";
-#if defined(_DEBUG)
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
-#endif	//	defined(_DEBUG)
-
-				std::shared_ptr<pixel_shader> shader;
-				shader_manager::instance()->load_shader<pixel_shader>(shader, desc);
-				pso->set_shader(shader);
-			}
-		}
-		//	edit_model_color_csm
-		{
-			std::shared_ptr<graphics_custom_pipeline_state> pso;
-			instance->generate_pipeline_state<graphics_custom_pipeline_state>("edit_model_color_csm", &pso);
-			pso->set_domain(pipeline_state_base::domains::surface);
-			pso->set_flag(pipeline_state_base::flags::hidden, true);
-			//	頂点シェーダー読み込み
-			{
-				load_shader_file desc;
-				desc.file_path = "Shaders/EditModel/Color/edit_model_color_csm_vs.hlsl";
-#if defined(_DEBUG)
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
-#endif	//	defined(_DEBUG)
-
-				std::shared_ptr<vertex_shader> shader;
-				shader_manager::instance()->load_shader<vertex_shader>(shader, desc);
-				pso->set_shader(shader);
-			}
-			//	ジオメトリシェーダー読み込み
-			{
-				load_shader_file desc;
-				desc.file_path = "Shaders/EditModel/Color/edit_model_color_csm_gs.hlsl";
-#if defined(_DEBUG)
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
-#endif	//	defined(_DEBUG)
-
-				std::shared_ptr<geometry_shader> shader;
-				shader_manager::instance()->load_shader<geometry_shader>(shader, desc);
-				pso->set_shader(shader);
-			}
-			//	ピクセルシェーダー読み込み
-			{
-				load_shader_file desc;
-				desc.file_path = "Shaders/EditModel/Color/edit_model_color_csm_ps.hlsl";
-#if defined(_DEBUG)
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
-#endif	//	defined(_DEBUG)
-
-				std::shared_ptr<pixel_shader> shader;
-				shader_manager::instance()->load_shader<pixel_shader>(shader, desc);
-				pso->set_shader(shader);
-			}
-		}
-		//	edit_model_color_gbuffer
-		{
-			std::shared_ptr<graphics_custom_pipeline_state> pso;
-			instance->generate_pipeline_state<graphics_custom_pipeline_state>("edit_model_color_gbuffer", &pso);
-			pso->set_domain(pipeline_state_base::domains::surface);
-			pso->set_flag(pipeline_state_base::flags::hidden, true);
-			//	頂点シェーダー読み込み
-			{
-				load_shader_file desc;
-				desc.file_path = "Shaders/EditModel/Color/edit_model_color_gbuffer_vs.hlsl";
-#if defined(_DEBUG)
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
-#endif	//	defined(_DEBUG)
-
-				std::shared_ptr<vertex_shader> shader;
-				shader_manager::instance()->load_shader<vertex_shader>(shader, desc);
-				pso->set_shader(shader);
-			}
-			//	ジオメトリシェーダー読み込み
-			{
-				load_shader_file desc;
-				desc.file_path = "Shaders/EditModel/Color/edit_model_color_gbuffer_line_gs.hlsl";
-#if defined(_DEBUG)
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
-#endif	//	defined(_DEBUG)
-
-				std::shared_ptr<geometry_shader> shader;
-				shader_manager::instance()->load_shader<geometry_shader>(shader, desc);
-				pso->set_shader(shader);
-			}
-			//	ピクセルシェーダー読み込み
-			{
-				load_shader_file desc;
-				desc.file_path = "Shaders/EditModel/Color/edit_model_color_gbuffer_ps.hlsl";
-#if defined(_DEBUG)
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
-#endif	//	defined(_DEBUG)
-
-				std::shared_ptr<pixel_shader> shader;
-				shader_manager::instance()->load_shader<pixel_shader>(shader, desc);
-				pso->set_shader(shader);
-			}
-		}
-		//	edit_model_color_forward
-		{
-			std::shared_ptr<graphics_custom_pipeline_state> pso;
-			instance->generate_pipeline_state<graphics_custom_pipeline_state>("edit_model_color_forward", &pso);
-			pso->set_domain(pipeline_state_base::domains::surface);
-			pso->set_flag(pipeline_state_base::flags::hidden, true);
-			//	頂点シェーダー読み込み
-			{
-				load_shader_file desc;
-				desc.file_path = "Shaders/EditModel/Color/edit_model_color_forward_vs.hlsl";
-#if defined(_DEBUG)
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
-#endif	//	defined(_DEBUG)
-
-				std::shared_ptr<vertex_shader> shader;
-				shader_manager::instance()->load_shader<vertex_shader>(shader, desc);
-				pso->set_shader(shader);
-			}
-			//	ピクセルシェーダー読み込み
-			{
-				load_shader_file desc;
-				desc.file_path = "Shaders/EditModel/Color/edit_model_color_forward_ps.hlsl";
-#if defined(_DEBUG)
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
-#endif	//	defined(_DEBUG)
-
-				std::shared_ptr<pixel_shader> shader;
-				shader_manager::instance()->load_shader<pixel_shader>(shader, desc);
-				pso->set_shader(shader);
-			}
-		}
+		material_shader_map::material_shader_desc desc;
+		desc.name = "edit_model_color";
+		desc.file_path = "Shaders/Materials/edit_model_color.hlsl";
+		desc.domain = pipeline_state_base::domains::surface;
+		desc.geometry_passes = material_shader_map::to_bit(material_shader_map::surface_passes::depth_write)
+							 | material_shader_map::to_bit(material_shader_map::surface_passes::g_buffer);
+		desc.hidden = true;
+		material_shader_map::instance()->generate(desc);
 	}
-#pragma	endregion	//	頂点カラー編集用デフォルトパイプラインステート
 
 #pragma	region	GBufferDecalエラー用デフォルトパイプラインステート
 	{
@@ -548,151 +289,14 @@ bool load_shader_scene::initialize_core()
 	}
 #pragma endregion	//	UI用デフォルトパイプラインステート
 
-#pragma	region	GLTF用デフォルトパイプラインステート
+	//	GLTF用デフォルトパイプラインステート
 	{
-		//	深度プリパス
-		{
-			std::shared_ptr<graphics_custom_pipeline_state> pso;
-			instance->generate_pipeline_state<graphics_custom_pipeline_state>("gltf_depth", &pso);
-			pso->set_domain(pipeline_state_base::domains::surface);
-			//	頂点シェーダー読み込み
-			{
-				load_shader_file desc;
-				desc.file_path = "Shaders/Gltf/gltf_depth_vs.hlsl";
-#if defined(_DEBUG)
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
-#endif	//	defined(_DEBUG)
-
-				std::shared_ptr<vertex_shader> shader;
-				shader_manager::instance()->load_shader<vertex_shader>(shader, desc);
-				pso->set_shader(shader);
-			}
-			//	ピクセルシェーダー読み込み
-			{
-				load_shader_file desc;
-				desc.file_path = "Shaders/Gltf/gltf_depth_ps.hlsl";
-#if defined(_DEBUG)
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
-#endif	//	defined(_DEBUG)
-
-				std::shared_ptr<pixel_shader> shader;
-				shader_manager::instance()->load_shader<pixel_shader>(shader, desc);
-				pso->set_shader(shader);
-			}
-		}
-		//	シャドウマップ生成
-		{
-			std::shared_ptr<graphics_custom_pipeline_state> pso;
-			instance->generate_pipeline_state<graphics_custom_pipeline_state>("gltf_shadowmap", &pso);
-			pso->set_domain(pipeline_state_base::domains::surface);
-			//	頂点シェーダー読み込み
-			{
-				load_shader_file desc;
-				desc.file_path = "Shaders/Gltf/gltf_csm_vs.hlsl";
-#if defined(_DEBUG)
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
-#endif	//	defined(_DEBUG)
-
-				std::shared_ptr<vertex_shader> shader;
-				shader_manager::instance()->load_shader<vertex_shader>(shader, desc);
-				pso->set_shader(shader);
-			}
-			//	ジオメトリシェーダー読み込み
-			{
-				load_shader_file desc;
-				desc.file_path = "Shaders/Gltf/gltf_csm_gs.hlsl";
-#if defined(_DEBUG)
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
-#endif	//	defined(_DEBUG)
-
-				std::shared_ptr<geometry_shader> shader;
-				shader_manager::instance()->load_shader<geometry_shader>(shader, desc);
-				pso->set_shader(shader);
-			}
-			//	ピクセルシェーダー読み込み
-			{
-				load_shader_file desc;
-				desc.file_path = "Shaders/Gltf/gltf_csm_ps.hlsl";
-#if defined(_DEBUG)
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
-#endif	//	defined(_DEBUG)
-
-				std::shared_ptr<pixel_shader> shader;
-				shader_manager::instance()->load_shader<pixel_shader>(shader, desc);
-				pso->set_shader(shader);
-			}
-		}
-		//	G-Buffer生成
-		{
-			std::shared_ptr<graphics_custom_pipeline_state> pso;
-			instance->generate_pipeline_state<graphics_custom_pipeline_state>("gltf_gbuffer", &pso);
-			pso->set_domain(pipeline_state_base::domains::surface);
-			//	頂点シェーダー読み込み
-			{
-				load_shader_file desc;
-				desc.file_path = "Shaders/Gltf/gltf_gbuffer_vs.hlsl";
-#if defined(_DEBUG)
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
-#endif	//	defined(_DEBUG)
-
-				std::shared_ptr<vertex_shader> shader;
-				shader_manager::instance()->load_shader<vertex_shader>(shader, desc);
-				pso->set_shader(shader);
-			}
-			//	ピクセルシェーダー読み込み
-			{
-				load_shader_file desc;
-				desc.file_path = "Shaders/Gltf/gltf_gbuffer_ps.hlsl";
-#if defined(_DEBUG)
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
-#endif	//	defined(_DEBUG)
-
-				std::shared_ptr<pixel_shader> shader;
-				shader_manager::instance()->load_shader<pixel_shader>(shader, desc);
-				pso->set_shader(shader);
-			}
-		}
-		//	gltf_forward
-		{
-			std::shared_ptr<graphics_custom_pipeline_state> pso;
-			instance->generate_pipeline_state<graphics_custom_pipeline_state>("gltf_forward", &pso);
-			pso->set_domain(pipeline_state_base::domains::surface);
-			//	頂点シェーダー読み込み
-			{
-				load_shader_file desc;
-				desc.file_path = "Shaders/Gltf/gltf_forward_vs.hlsl";
-#if defined(_DEBUG)
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
-#endif	//	defined(_DEBUG)
-
-				std::shared_ptr<vertex_shader> shader;
-				shader_manager::instance()->load_shader<vertex_shader>(shader, desc);
-				pso->set_shader(shader);
-			}
-			//	ピクセルシェーダー読み込み
-			{
-				load_shader_file desc;
-				desc.file_path = "Shaders/Gltf/gltf_forward_ps.hlsl";
-#if defined(_DEBUG)
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
-#endif	//	defined(_DEBUG)
-
-				std::shared_ptr<pixel_shader> shader;
-				shader_manager::instance()->load_shader<pixel_shader>(shader, desc);
-				pso->set_shader(shader);
-			}
-		}
+		material_shader_map::material_shader_desc desc;
+		desc.name = "gltf";
+		desc.file_path = "Shaders/Materials/gltf.hlsl";
+		desc.domain = pipeline_state_base::domains::surface;
+		material_shader_map::instance()->generate(desc);
 	}
-#pragma	endregion	//	GLTF用デフォルトパイプラインステート
 
 #pragma	region	コンピュートスプライト/トレイルパーティクル用デフォルトパイプラインステート
 	{
@@ -840,353 +444,30 @@ bool load_shader_scene::initialize_core()
 	}
 #pragma	endregion	//	コンピュートスプライト/トレイルパーティクル用デフォルトパイプラインステート
 
-#pragma	region	PMX用デフォルトパイプラインステート
+	//	PMX用デフォルトパイプラインステート
 	{
-		//	pmx_depth
-		{
-			std::shared_ptr<graphics_custom_pipeline_state> pso;
-			instance->generate_pipeline_state<graphics_custom_pipeline_state>("pmx_depth", &pso);
-			pso->set_domain(pipeline_state_base::domains::surface);
-			//	頂点シェーダー読み込み
-			{
-				load_shader_file desc;
-				desc.file_path = "Shaders/Pmx/pmx_depth_vs.hlsl";
-#if defined(_DEBUG)
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
-#endif	//	defined(_DEBUG)
-
-				std::shared_ptr<vertex_shader> shader;
-				shader_manager::instance()->load_shader<vertex_shader>(shader, desc);
-				pso->set_shader(shader);
-			}
-			//	ジオメトリシェーダー読み込み
-			{
-				load_shader_file desc;
-				desc.file_path = "Shaders/Pmx/pmx_depth_outline_gs.hlsl";
-#if defined(_DEBUG)
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
-#endif	//	defined(_DEBUG)
-
-				std::shared_ptr<geometry_shader> shader;
-				shader_manager::instance()->load_shader<geometry_shader>(shader, desc);
-				pso->set_shader(shader);
-			}
-			//	ピクセルシェーダー読み込み
-			{
-				load_shader_file desc;
-				desc.file_path = "Shaders/Pmx/pmx_depth_ps.hlsl";
-#if defined(_DEBUG)
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
-#endif	//	defined(_DEBUG)
-
-				std::shared_ptr<pixel_shader> shader;
-				shader_manager::instance()->load_shader<pixel_shader>(shader, desc);
-				pso->set_shader(shader);
-			}
-		}
-		//	pmx_shadowmap
-		{
-			std::shared_ptr<graphics_custom_pipeline_state> pso;
-			instance->generate_pipeline_state<graphics_custom_pipeline_state>("pmx_shadowmap", &pso);
-			pso->set_domain(pipeline_state_base::domains::surface);
-			//	頂点シェーダー読み込み
-			{
-				load_shader_file desc;
-				desc.file_path = "Shaders/Pmx/pmx_csm_vs.hlsl";
-#if defined(_DEBUG)
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
-#endif	//	defined(_DEBUG)
-
-				std::shared_ptr<vertex_shader> shader;
-				shader_manager::instance()->load_shader<vertex_shader>(shader, desc);
-				pso->set_shader(shader);
-			}
-			//	ジオメトリシェーダー読み込み
-			{
-				load_shader_file desc;
-				desc.file_path = "Shaders/Pmx/pmx_csm_gs.hlsl";
-#if defined(_DEBUG)
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
-#endif	//	defined(_DEBUG)
-
-				std::shared_ptr<geometry_shader> shader;
-				shader_manager::instance()->load_shader<geometry_shader>(shader, desc);
-				pso->set_shader(shader);
-			}
-			//	ピクセルシェーダー読み込み
-			{
-				load_shader_file desc;
-				desc.file_path = "Shaders/Pmx/pmx_csm_ps.hlsl";
-#if defined(_DEBUG)
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
-#endif	//	defined(_DEBUG)
-
-				std::shared_ptr<pixel_shader> shader;
-				shader_manager::instance()->load_shader<pixel_shader>(shader, desc);
-				pso->set_shader(shader);
-			}
-		}
-		//	pmx_gbuffer
-		{
-			std::shared_ptr<graphics_custom_pipeline_state> pso;
-			instance->generate_pipeline_state<graphics_custom_pipeline_state>("pmx_gbuffer", &pso);
-			pso->set_domain(pipeline_state_base::domains::surface);
-			//	頂点シェーダー読み込み
-			{
-				load_shader_file desc;
-				desc.file_path = "Shaders/Pmx/pmx_gbuffer_vs.hlsl";
-#if defined(_DEBUG)
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
-#endif	//	defined(_DEBUG)
-
-				std::shared_ptr<vertex_shader> shader;
-				shader_manager::instance()->load_shader<vertex_shader>(shader, desc);
-				pso->set_shader(shader);
-			}
-			//	ジオメトリシェーダー読み込み
-			{
-				load_shader_file desc;
-				desc.file_path = "Shaders/Pmx/pmx_gbuffer_outline_gs.hlsl";
-#if defined(_DEBUG)
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
-#endif	//	defined(_DEBUG)
-
-				std::shared_ptr<geometry_shader> shader;
-				shader_manager::instance()->load_shader<geometry_shader>(shader, desc);
-				pso->set_shader(shader);
-			}
-			//	ピクセルシェーダー読み込み
-			{
-				load_shader_file desc;
-				desc.file_path = "Shaders/Pmx/pmx_gbuffer_ps.hlsl";
-#if defined(_DEBUG)
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
-#endif	//	defined(_DEBUG)
-
-				std::shared_ptr<pixel_shader> shader;
-				shader_manager::instance()->load_shader<pixel_shader>(shader, desc);
-				pso->set_shader(shader);
-			}
-		}
-		//	pmx_forward
-		{
-			std::shared_ptr<graphics_custom_pipeline_state> pso;
-			instance->generate_pipeline_state<graphics_custom_pipeline_state>("pmx_forward", &pso);
-			pso->set_domain(pipeline_state_base::domains::surface);
-			//	頂点シェーダー読み込み
-			{
-				load_shader_file desc;
-				desc.file_path = "Shaders/Pmx/pmx_forward_vs.hlsl";
-#if defined(_DEBUG)
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
-#endif	//	defined(_DEBUG)
-
-				std::shared_ptr<vertex_shader> shader;
-				shader_manager::instance()->load_shader<vertex_shader>(shader, desc);
-				pso->set_shader(shader);
-			}
-			//	ピクセルシェーダー読み込み
-			{
-				load_shader_file desc;
-				desc.file_path = "Shaders/Pmx/pmx_forward_ps.hlsl";
-#if defined(_DEBUG)
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
-#endif	//	defined(_DEBUG)
-
-				std::shared_ptr<pixel_shader> shader;
-				shader_manager::instance()->load_shader<pixel_shader>(shader, desc);
-				pso->set_shader(shader);
-			}
-		}
+		material_shader_map::material_shader_desc desc;
+		desc.name = "pmx";
+		desc.file_path = "Shaders/Materials/pmx.hlsl";
+		desc.domain = pipeline_state_base::domains::surface;
+		desc.geometry_passes = material_shader_map::to_bit(material_shader_map::surface_passes::depth_write)
+							 | material_shader_map::to_bit(material_shader_map::surface_passes::g_buffer);
+		material_shader_map::instance()->generate(desc);
 	}
-#pragma	endregion	//	PMX用デフォルトパイプラインステート
 
-#pragma	region	トゥーンシェーディング用デフォルトパイプラインステート
+	//	GGSTシェーディング用デフォルトパイプラインステート
 	{
-		//	ggst_depth
-		{
-			std::shared_ptr<graphics_custom_pipeline_state> pso;
-			instance->generate_pipeline_state<graphics_custom_pipeline_state>("ggst_depth", &pso);
-			pso->set_domain(pipeline_state_base::domains::surface);
-			//	頂点シェーダー読み込み
-			{
-				load_shader_file desc;
-				desc.file_path = "Shaders/Ggst/ggst_depth_vs.hlsl";
-#if defined(_DEBUG)
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
-#endif	//	defined(_DEBUG)
-
-				std::shared_ptr<vertex_shader> shader;
-				shader_manager::instance()->load_shader<vertex_shader>(shader, desc);
-				pso->set_shader(shader);
-			}
-			//	ジオメトリシェーダー読み込み
-			{
-				load_shader_file desc;
-				desc.file_path = "Shaders/Ggst/ggst_depth_outline_gs.hlsl";
-#if defined(_DEBUG)
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
-#endif	//	defined(_DEBUG)
-
-				std::shared_ptr<geometry_shader> shader;
-				shader_manager::instance()->load_shader<geometry_shader>(shader, desc);
-				pso->set_shader(shader);
-			}
-			//	ピクセルシェーダー読み込み
-			{
-				load_shader_file desc;
-				desc.file_path = "Shaders/Ggst/ggst_depth_ps.hlsl";
-#if defined(_DEBUG)
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
-#endif	//	defined(_DEBUG)
-
-				std::shared_ptr<pixel_shader> shader;
-				shader_manager::instance()->load_shader<pixel_shader>(shader, desc);
-				pso->set_shader(shader);
-			}
-		}
-		//	ggst_shadowmap
-		{
-			std::shared_ptr<graphics_custom_pipeline_state> pso;
-			instance->generate_pipeline_state<graphics_custom_pipeline_state>("ggst_shadowmap", &pso);
-			pso->set_domain(pipeline_state_base::domains::surface);
-			//	頂点シェーダー読み込み
-			{
-				load_shader_file desc;
-				desc.file_path = "Shaders/Ggst/ggst_csm_vs.hlsl";
-#if defined(_DEBUG)
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
-#endif	//	defined(_DEBUG)
-
-				std::shared_ptr<vertex_shader> shader;
-				shader_manager::instance()->load_shader<vertex_shader>(shader, desc);
-				pso->set_shader(shader);
-			}
-			//	ジオメトリシェーダー読み込み
-			{
-				load_shader_file desc;
-				desc.file_path = "Shaders/Ggst/ggst_csm_gs.hlsl";
-#if defined(_DEBUG)
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
-#endif	//	defined(_DEBUG)
-
-				std::shared_ptr<geometry_shader> shader;
-				shader_manager::instance()->load_shader<geometry_shader>(shader, desc);
-				pso->set_shader(shader);
-			}
-			//	ピクセルシェーダー読み込み
-			{
-				load_shader_file desc;
-				desc.file_path = "Shaders/Ggst/ggst_csm_ps.hlsl";
-#if defined(_DEBUG)
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
-#endif	//	defined(_DEBUG)
-
-				std::shared_ptr<pixel_shader> shader;
-				shader_manager::instance()->load_shader<pixel_shader>(shader, desc);
-				pso->set_shader(shader);
-			}
-		}
-		//	ggst_gbuffer
-		{
-			std::shared_ptr<graphics_custom_pipeline_state> pso;
-			instance->generate_pipeline_state<graphics_custom_pipeline_state>("ggst_gbuffer", &pso);
-			pso->set_domain(pipeline_state_base::domains::surface);
-			//	頂点シェーダー読み込み
-			{
-				load_shader_file desc;
-				desc.file_path = "Shaders/Ggst/ggst_gbuffer_vs.hlsl";
-#if defined(_DEBUG)
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
-#endif	//	defined(_DEBUG)
-
-				std::shared_ptr<vertex_shader> shader;
-				shader_manager::instance()->load_shader<vertex_shader>(shader, desc);
-				pso->set_shader(shader);
-			}
-			//	ジオメトリシェーダー読み込み
-			{
-				load_shader_file desc;
-				desc.file_path = "Shaders/Ggst/ggst_gbuffer_outline_gs.hlsl";
-#if defined(_DEBUG)
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
-#endif	//	defined(_DEBUG)
-
-				std::shared_ptr<geometry_shader> shader;
-				shader_manager::instance()->load_shader<geometry_shader>(shader, desc);
-				pso->set_shader(shader);
-			}
-			//	ピクセルシェーダー読み込み
-			{
-				load_shader_file desc;
-				desc.file_path = "Shaders/Ggst/ggst_gbuffer_ps.hlsl";
-#if defined(_DEBUG)
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
-#endif	//	defined(_DEBUG)
-
-				std::shared_ptr<pixel_shader> shader;
-				shader_manager::instance()->load_shader<pixel_shader>(shader, desc);
-				pso->set_shader(shader);
-			}
-		}
-		//	ggst_forward
-		{
-			std::shared_ptr<graphics_custom_pipeline_state> pso;
-			instance->generate_pipeline_state<graphics_custom_pipeline_state>("ggst_forward", &pso);
-			pso->set_domain(pipeline_state_base::domains::surface);
-			//	頂点シェーダー読み込み
-			{
-				load_shader_file desc;
-				desc.file_path = "Shaders/Ggst/ggst_forward_vs.hlsl";
-#if defined(_DEBUG)
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
-#endif	//	defined(_DEBUG)
-
-				std::shared_ptr<vertex_shader> shader;
-				shader_manager::instance()->load_shader<vertex_shader>(shader, desc);
-				pso->set_shader(shader);
-			}
-			//	ピクセルシェーダー読み込み
-			{
-				load_shader_file desc;
-				desc.file_path = "Shaders/Ggst/ggst_forward_ps.hlsl";
-#if defined(_DEBUG)
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
-#endif	//	defined(_DEBUG)
-
-				std::shared_ptr<pixel_shader> shader;
-				shader_manager::instance()->load_shader<pixel_shader>(shader, desc);
-				pso->set_shader(shader);
-			}
-		}
+		material_shader_map::material_shader_desc desc;
+		desc.name = "ggst";
+		desc.file_path = "Shaders/Materials/ggst.hlsl";
+		desc.domain = pipeline_state_base::domains::surface;
+		desc.geometry_passes = material_shader_map::to_bit(material_shader_map::surface_passes::depth_write)
+							 | material_shader_map::to_bit(material_shader_map::surface_passes::g_buffer);
+		material_shader_map::instance()->generate(desc);
 	}
-#pragma	endregion	//	トゥーンシェーディング用デフォルトパイプラインステート
 
-#pragma	region	完品トゥーンシェーディング用パイプラインステート
+	//	トゥーンシェーディング用パイプラインステート
 	{
-		//	マテリアルシェーダーとパステンプレートから toon_depth / toon_shadowmap / toon_gbuffer / toon_forward を生成する
 		material_shader_map::material_shader_desc desc;
 		desc.name = "toon";
 		desc.file_path = "Shaders/Materials/toon.hlsl";
@@ -1195,7 +476,6 @@ bool load_shader_scene::initialize_core()
 							 | material_shader_map::to_bit(material_shader_map::surface_passes::g_buffer);
 		material_shader_map::instance()->generate(desc);
 	}
-#pragma	endregion	//	完品トゥーンシェーディング用パイプラインステート
 
 #pragma	region	GBufferDecal用デフォルトパイプラインステート
 	{

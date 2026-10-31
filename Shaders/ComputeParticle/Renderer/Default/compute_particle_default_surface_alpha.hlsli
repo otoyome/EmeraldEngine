@@ -5,7 +5,7 @@
 #include "compute_particle_default_rendering.hlsli"
 
 //  –Êî•ñ(ƒ¿’l‚Ì‚İ)
-float surface(VS_OUT pin, bool is_front_face)
+float surface_opacity(VS_OUT pin, bool is_front_face)
 {
     float4 color = pin.color;
     if (HAS_RESOURCE(BaseColorMap))

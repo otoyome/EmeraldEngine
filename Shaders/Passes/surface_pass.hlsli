@@ -35,9 +35,6 @@ void main(triangle VS_OUT input[3], inout TriangleStream<VS_OUT> output)
 #elif defined(SURFACE_STAGE_PIXEL)
 
 #if defined(SURFACE_PASS_DEPTH_WRITE) || defined(SURFACE_PASS_SHADOW_WRITE)
-//	surface_depth_write_ps.hlsli は surface() を呼ぶので surface_opacity() へ橋渡しする
-//	全シェーディングの移行後に surface_depth_write_ps.hlsli 側を surface_opacity() 呼び出しへ変更してこの定義を消す
-#define surface surface_opacity
 #include "surface_depth_write_ps.hlsli"
 #elif defined(SURFACE_PASS_G_BUFFER)
 #include "surface_gbuffer_ps.hlsli"

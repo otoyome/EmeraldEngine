@@ -1,6 +1,0 @@
-#include "3d_failed_rendering.hlsli"
-
-#define VS_OUT VS_DEPTH_OUT
-#include "3d_failed_surface_alpha.hlsli"
-
-#include "surface_depth_write_ps.hlsli"
