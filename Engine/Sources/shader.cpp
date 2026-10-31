@@ -1000,15 +1000,11 @@ void shader_base::register_monitor_file(std::string_view file_path)
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 vertex_shader::vertex_shader(load_shader_cso cso_data)
 : shader_base(cso_data)
-, is_set_input_element_desc(cso_data.input_element_desc.empty() ? false : true)
-, input_element_desc(cso_data.input_element_desc)
 {
 }
 
 vertex_shader::vertex_shader(load_shader_file file_data)
 : shader_base(file_data)
-, is_set_input_element_desc(file_data.input_element_desc.empty() ? false : true)
-, input_element_desc(file_data.input_element_desc)
 {
 }
 
@@ -1038,27 +1034,7 @@ bool vertex_shader::load_from_cso(load_shader_cso cso_data)
 	reflection_output reflection_data;
 	generate_reflection(compile_data.compiler_type, compile_data.blob, reflection_data);
 
-	//	入力レイアウト生成
-	if (!is_set_input_element_desc)
-	{
-		input_element_desc.clear();
-		generate_input_layout(reflection_data.internal_state);
-	}
-
-	Microsoft::WRL::ComPtr<ID3D11InputLayout> input_layout;
-	if (!input_element_desc.empty())
-	{
-		hr = render_data::instance()->get_device()->CreateInputLayout(input_element_desc.data(), static_cast<UINT>(input_element_desc.size()),
-			compile_data.shader_data, compile_data.shader_size, input_layout.GetAddressOf());
-		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
-		if (FAILED(hr))
-		{
-			return false;
-		}
-	}
-
 	this->shader = shader;
-	this->input_layout = input_layout;
 	set_reflection(reflection_data.internal_state);
 
 #if defined(USE_IMGUI)
@@ -1128,28 +1104,7 @@ bool vertex_shader::load_from_file(load_shader_file file_data)
 	reflection_output reflection_data;
 	generate_reflection(compile_data.compiler_type, compile_data.blob, reflection_data);
 
-	//	入力レイアウト生成
-	if (!is_set_input_element_desc)
-	{
-		input_element_desc.clear();
-		generate_input_layout(reflection_data.internal_state);
-	}
-
-	Microsoft::WRL::ComPtr<ID3D11InputLayout> input_layout;
-	if (!input_element_desc.empty())
-	{
-		hr = render_data::instance()->get_device()->CreateInputLayout(input_element_desc.data(), static_cast<UINT>(input_element_desc.size()),
-																		compile_data.shader_data, compile_data.shader_size, input_layout.GetAddressOf());
-		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
-		if (FAILED(hr))
-		{
-			//set_blob(reserve_blob);
-			return false;
-		}
-	}
-
 	this->shader = shader;
-	this->input_layout = input_layout;
 	set_reflection(reflection_data.internal_state);
 
 #if defined(USE_IMGUI)
@@ -1160,161 +1115,6 @@ bool vertex_shader::load_from_file(load_shader_file file_data)
 	DEBUG_LOG_CATEGORY(logger::categorys::shader, text.data());
 #endif	//	defined(USE_IMGUI)
 
-	return true;
-}
-
-bool vertex_shader::generate_input_layout(std::shared_ptr<void> shader_reflection)
-{
-	auto reflection_ptr = std::static_pointer_cast<Microsoft::WRL::ComPtr<ID3D11ShaderReflection>>(shader_reflection);
-	auto reflection = (*reflection_ptr);
-
-	D3D11_SHADER_DESC shader_desc;
-	reflection->GetDesc(&shader_desc);
-
-	//	入力スロット
-	std::vector<UINT> input_slots_align_byte_offset(1);
-	input_slots_align_byte_offset[0] = 0;
-	{
-		UINT size = 0;
-		for (UINT index = 0; index < shader_desc.InputParameters; index++)
-		{
-			D3D11_SIGNATURE_PARAMETER_DESC desc;
-			reflection->GetInputParameterDesc(index, &desc);
-
-			//	システムセマンティクスは無視する
-			if (desc.SystemValueType != D3D_NAME_UNDEFINED)
-				continue;
-			++size;
-		}
-		input_element_desc.reserve(size);
-	}
-
-	//	設定処理
-	UINT input_slot_index = 0;
-	UINT previous_semantic_index = 0;
-	const char* previous_semantic_name = nullptr;
-	for (UINT index = 0; index < shader_desc.InputParameters; index++)
-	{
-		D3D11_SIGNATURE_PARAMETER_DESC desc;
-		reflection->GetInputParameterDesc(index, &desc);
-
-		//	システムセマンティクスは無視する
-		if (desc.SystemValueType != D3D_NAME_UNDEFINED)
-			continue;
-
-		//	何らかのルールを決めて、インスタンシングで利用するエレメントか判断してこの辺りを変えると良い
-		D3D11_INPUT_CLASSIFICATION input_slot_class = D3D11_INPUT_PER_VERTEX_DATA;
-		UINT instance_data_step_rate = 0;
-
-		//	入力レイアウト要素設定
-		input_element_desc.emplace_back();
-		auto& element_desc = input_element_desc.back();
-		element_desc.SemanticName			= desc.SemanticName;
-		element_desc.SemanticIndex			= desc.SemanticIndex;
-		element_desc.InputSlot				= input_slot_index;
-		element_desc.AlignedByteOffset		= input_slots_align_byte_offset[input_slot_index];
-		element_desc.InputSlotClass			= input_slot_class;
-		element_desc.InstanceDataStepRate	= instance_data_step_rate;
-
-		BYTE element_count	= desc.Mask;
-		element_count = ( ( element_count & 0xA ) >> 1 ) + ( ( element_count & 0x5 ) );
-		element_count = ( ( element_count & 0xC ) >> 2 ) + ( ( element_count & 0x3 ) );
-		switch (desc.MinPrecision)
-		{
-			default:
-			case	D3D_MIN_PRECISION_DEFAULT:
-			{
-				constexpr DXGI_FORMAT FormatList[4][3]	=
-				{
-					{ DXGI_FORMAT_R32_UINT, DXGI_FORMAT_R32_SINT, DXGI_FORMAT_R32_FLOAT },
-					{ DXGI_FORMAT_R32G32_UINT, DXGI_FORMAT_R32G32_SINT, DXGI_FORMAT_R32G32_FLOAT },
-					{ DXGI_FORMAT_R32G32B32_UINT, DXGI_FORMAT_R32G32B32_SINT, DXGI_FORMAT_R32G32B32_FLOAT },
-					{ DXGI_FORMAT_R32G32B32A32_UINT, DXGI_FORMAT_R32G32B32A32_SINT, DXGI_FORMAT_R32G32B32A32_FLOAT },
-				};
-				element_desc.Format = FormatList[element_count - 1][desc.ComponentType - 1];
-				break;
-			}
-			case	D3D_MIN_PRECISION_FLOAT_16:
-			{
-				constexpr	DXGI_FORMAT	FormatList[4]	=
-				{
-					DXGI_FORMAT_R16_FLOAT, DXGI_FORMAT_R16G16_FLOAT, DXGI_FORMAT_UNKNOWN, DXGI_FORMAT_R16G16B16A16_FLOAT,
-				};
-				element_desc.Format = FormatList[element_count - 1];
-				break;
-			}
-			case	D3D_MIN_PRECISION_SINT_16:
-			{
-				constexpr	DXGI_FORMAT	FormatList[4]	=
-				{
-					DXGI_FORMAT_R16_SINT,
-					DXGI_FORMAT_R16G16_SINT,
-					DXGI_FORMAT_UNKNOWN,
-					DXGI_FORMAT_R16G16B16A16_SINT,
-				};
-				assert(FormatList[element_count - 1] != DXGI_FORMAT_UNKNOWN);
-				element_desc.Format = FormatList[element_count - 1];
-				break;
-			}
-			case	D3D_MIN_PRECISION_UINT_16:
-			{
-				constexpr	DXGI_FORMAT	FormatList[4]	=
-				{
-					DXGI_FORMAT_R16_UINT,
-					DXGI_FORMAT_R16G16_UINT,
-					DXGI_FORMAT_UNKNOWN,
-					DXGI_FORMAT_R16G16B16A16_UINT,
-				};
-				assert(FormatList[element_count - 1] != DXGI_FORMAT_UNKNOWN);
-				element_desc.Format = FormatList[element_count - 1];
-				break;
-			}
-			case	D3D_MIN_PRECISION_ANY_16:
-			{
-				/*	一応これで変換できるとは思うが、そもそも設定できないはず。
-				constexpr	DXGI_FORMAT	FormatList[4]	=
-				{
-					DXGI_FORMAT_R16_TYPELESS,
-					DXGI_FORMAT_R16G16_TYPELESS,
-					DXGI_FORMAT_UNKNOWN,
-					DXGI_FORMAT_R16G16B16A16_TYPELESS,
-				};
-				assert(FormatList[element_count - 1] != DXGI_FORMAT_UNKNOWN);
-				element_desc.Format = FormatList[element_count - 1];
-				break;
-				*/
-			}
-			case	D3D_MIN_PRECISION_ANY_10:
-			case	D3D_MIN_PRECISION_FLOAT_2_8:
-			{
-				assert(!L"DXGI_FORMATとしては存在しない" );
-				break;
-			}
-		}
-
-		//	フォーマット毎のオフセット値を設定
-		input_slots_align_byte_offset[input_slot_index] += direct_x_helper::get_format_stride(element_desc.Format);
-
-		//	入力スロットの変更
-		if (previous_semantic_name == nullptr ||
-			strcmp(previous_semantic_name, desc.SemanticName) != 0)
-		{
-			previous_semantic_name = desc.SemanticName;
-			previous_semantic_index = -1;
-		}
-		if (previous_semantic_index != desc.SemanticIndex)
-		{
-			previous_semantic_index = desc.SemanticIndex;
-			++input_slot_index;
-		}
-
-		//	新しいスロット用のバッファを追加
-		if( input_slot_index >= input_slots_align_byte_offset.size() )
-		{
-			input_slots_align_byte_offset.resize(input_slot_index + 1);
-			input_slots_align_byte_offset[input_slot_index]	= 0;
-		}
-	}
 	return true;
 }
 

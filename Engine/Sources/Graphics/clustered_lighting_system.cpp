@@ -461,7 +461,7 @@ void clustered_lighting_system::render(graphics_context& context)
 	dc->DSSetShader(nullptr, nullptr, 0);
 	dc->GSSetShader(nullptr, nullptr, 0);
 	dc->PSSetShader((visualize ? visualize_ps : lighting_ps)->get_shader().Get(), nullptr, 0);
-	dc->IASetInputLayout(fullscreen_vs->get_input_layout().Get());
+	dc->IASetInputLayout(nullptr);
 	dc->OMSetBlendState((visualize ? visualize_blend_state : blend_state).Get(), nullptr, 0xFFFFFFFF);
 	dc->OMSetDepthStencilState(depth_stencil_state.Get(), 0);
 	dc->RSSetState(rasterizer_state.Get());

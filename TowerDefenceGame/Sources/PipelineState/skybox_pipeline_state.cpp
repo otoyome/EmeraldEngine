@@ -86,7 +86,7 @@ void skybox_pipeline_state::begin(const graphics_context& context)
 	context.device_context->DSSetShader(nullptr, nullptr, 0);
 	context.device_context->GSSetShader(nullptr, nullptr, 0);
 	context.device_context->PSSetShader(ps->get_shader().Get(), nullptr, 0);
-	context.device_context->IASetInputLayout(vs->get_input_layout().Get());
+	context.device_context->IASetInputLayout(nullptr);
 	context.device_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
 	//	ステート設定

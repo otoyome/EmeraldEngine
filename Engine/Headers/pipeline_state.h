@@ -271,12 +271,6 @@ public:
 	graphics_pipeline_state(){}
 	virtual ~graphics_pipeline_state() {}
 
-	virtual	const std::vector<std::pair<semantic, UINT>>& get_semantic_list() const
-	{
-		static const std::vector<std::pair<semantic, UINT>> dummy;
-		return dummy;
-	}
-
 	virtual	void begin(const graphics_context& context) = 0;
 	virtual	void update_parameters(const graphics_context& context, const material& material, const buffer_datas* buffer_data)
 	{

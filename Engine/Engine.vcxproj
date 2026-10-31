@@ -96,6 +96,7 @@
     <ClInclude Include="Headers\light.h" />
     <ClInclude Include="Headers\light_data.h" />
     <ClInclude Include="Headers\material.h" />
+    <ClInclude Include="Headers\material_shader_map.h" />
     <ClInclude Include="Headers\ModelFormat\gltf_loader.h" />
     <ClInclude Include="Headers\ModelFormat\pmx_definision.h" />
     <ClInclude Include="Headers\ModelFormat\pmx_loader.h" />
@@ -194,6 +195,7 @@
     <ClCompile Include="Sources\light.cpp" />
     <ClCompile Include="Sources\light_data.cpp" />
     <ClCompile Include="Sources\material.cpp" />
+    <ClCompile Include="Sources\material_shader_map.cpp" />
     <ClCompile Include="Sources\ModelFormat\gltf_loader.cpp" />
     <ClCompile Include="Sources\ModelFormat\pmx_loader.cpp" />
     <ClCompile Include="Sources\ModelFormat\pmx_model.cpp" />

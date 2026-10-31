@@ -299,16 +299,8 @@ void graphics_custom_pipeline_state::begin(const graphics_context& context)
 	_ASSERT_EXPR(!dirty && !dirty_input_resource_datas, L"graphics_custom_pipeline_state is dirty while rendering (rebuild_bindings was not called)");
 
 	//	シェーダー設定
-	if (vs)
-	{
-		context.device_context->VSSetShader(vs->get_shader().Get(), nullptr, 0);
-		context.device_context->IASetInputLayout(vs->get_input_layout().Get());
-	}
-	else
-	{
-		context.device_context->VSSetShader(nullptr, nullptr, 0);
-		context.device_context->IASetInputLayout(nullptr);
-	}
+	context.device_context->VSSetShader(vs ? vs->get_shader().Get() : nullptr, nullptr, 0);
+	context.device_context->IASetInputLayout(nullptr);
 	context.device_context->HSSetShader(hs ? hs->get_shader().Get() : nullptr, nullptr, 0);
 	context.device_context->DSSetShader(ds ? ds->get_shader().Get() : nullptr, nullptr, 0);
 	context.device_context->GSSetShader(gs ? gs->get_shader().Get() : nullptr, nullptr, 0);
@@ -981,15 +973,6 @@ void graphics_custom_pipeline_state::update_register_datas()
 						break;
 					}
 				}
-			}
-		}
-
-		semantic_list.clear();
-		if (vs)
-		{
-			for (auto& element_desc : vs->get_input_element_desc())
-			{
-				semantic_list.emplace_back(std::make_pair(semantic(element_desc.SemanticName, element_desc.SemanticIndex), graphics_utility::get_byte_offset_from_format(element_desc.Format)));
 			}
 		}
 

@@ -1,6 +1,7 @@
 #include "Scenes/load_shader_scene.h"
 
 #include "custom_pipeline_state.h"
+#include "material_shader_map.h"
 
 #include "scenes/minigamescene/minigame_scene.h"
 #include "scenes/minigamescene/minigame_title_scene.h"
@@ -161,15 +162,6 @@ bool load_shader_scene::initialize_core()
 
 #pragma	region	コンピュートスプライト/トレイルパーティクル用デフォルトパイプラインステート
 	{
-		//	コンピュートパーティクル用
-		auto generate_input_elements = [](std::vector<D3D11_INPUT_ELEMENT_DESC>& ied)
-		{
-			ied.reserve(3);
-			ied.push_back({ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 });
-			ied.push_back({ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 });
-			ied.push_back({ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 });
-		};
-
 		//	深度プリパス
 		{
 			std::shared_ptr<graphics_custom_pipeline_state> pso;
@@ -180,7 +172,6 @@ bool load_shader_scene::initialize_core()
 			{
 				load_shader_file desc;
 				desc.file_path = "Shaders/ComputeParticle/Renderer/Default/compute_particle_default_depth_write_vs.hlsl";
-				generate_input_elements(desc.input_element_desc);
 
 				std::shared_ptr<vertex_shader> shader;
 				shader_manager::instance()->load_shader<vertex_shader>(shader, desc);
@@ -206,7 +197,6 @@ bool load_shader_scene::initialize_core()
 			{
 				load_shader_file desc;
 				desc.file_path = "Shaders/ComputeParticle/Renderer/Default/compute_particle_default_csm_vs.hlsl";
-				generate_input_elements(desc.input_element_desc);
 
 				std::shared_ptr<vertex_shader> shader;
 				shader_manager::instance()->load_shader<vertex_shader>(shader, desc);
@@ -241,7 +231,6 @@ bool load_shader_scene::initialize_core()
 			{
 				load_shader_file desc;
 				desc.file_path = "Shaders/ComputeParticle/Renderer/Default/compute_particle_default_vs.hlsl";
-				generate_input_elements(desc.input_element_desc);
 
 				std::shared_ptr<vertex_shader> shader;
 				shader_manager::instance()->load_shader<vertex_shader>(shader, desc);
@@ -267,7 +256,6 @@ bool load_shader_scene::initialize_core()
 			{
 				load_shader_file desc;
 				desc.file_path = "Shaders/ComputeParticle/Renderer/Default/compute_particle_default_vs.hlsl";
-				generate_input_elements(desc.input_element_desc);
 
 				std::shared_ptr<vertex_shader> shader;
 				shader_manager::instance()->load_shader<vertex_shader>(shader, desc);
@@ -464,16 +452,6 @@ bool load_shader_scene::initialize_core()
 
 #pragma	region	GBufferDecalエラー用デフォルトパイプラインステート
 	{
-		//	ジオメトリックプリミティブ用
-		//	@remainder	TEXCOORDが無駄
-		//				自由にモデルを使う場合は色々と対応が必要
-		auto generate_input_elements = [](std::vector<D3D11_INPUT_ELEMENT_DESC>& ied)
-		{
-			ied.reserve(2);
-			ied.push_back({ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 });
-			ied.push_back({ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 });
-		};
-
 		//	プリミティブ
 		{
 			std::shared_ptr<graphics_custom_pipeline_state> pso;
@@ -483,7 +461,6 @@ bool load_shader_scene::initialize_core()
 			{
 				load_shader_file desc;
 				desc.file_path = "Shaders/DeferredDecal/gbuffer_decal_primitive_vs.hlsl";
-				generate_input_elements(desc.input_element_desc);
 #if defined(_DEBUG)
 				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
 				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
@@ -516,7 +493,6 @@ bool load_shader_scene::initialize_core()
 			{
 				load_shader_file desc;
 				desc.file_path = "Shaders/DeferredDecal/gbuffer_decal_fullscreen_vs.hlsl";
-				generate_input_elements(desc.input_element_desc);
 #if defined(_DEBUG)
 				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
 				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
@@ -720,15 +696,6 @@ bool load_shader_scene::initialize_core()
 
 #pragma	region	コンピュートスプライト/トレイルパーティクル用デフォルトパイプラインステート
 	{
-		//	コンピュートパーティクル用
-		auto generate_input_elements = [](std::vector<D3D11_INPUT_ELEMENT_DESC>& ied)
-		{
-			ied.reserve(3);
-			ied.push_back({ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 });
-			ied.push_back({ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 });
-			ied.push_back({ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 });
-		};
-
 		//	深度プリパス
 		{
 			std::shared_ptr<graphics_custom_pipeline_state> pso;
@@ -738,7 +705,6 @@ bool load_shader_scene::initialize_core()
 			{
 				load_shader_file desc;
 				desc.file_path = "Shaders/ComputeParticle/Renderer/Default/compute_particle_default_depth_write_vs.hlsl";
-				generate_input_elements(desc.input_element_desc);
 #if defined(_DEBUG)
 				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
 				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
@@ -771,7 +737,6 @@ bool load_shader_scene::initialize_core()
 			{
 				load_shader_file desc;
 				desc.file_path = "Shaders/ComputeParticle/Renderer/Default/compute_particle_default_csm_vs.hlsl";
-				generate_input_elements(desc.input_element_desc);
 #if defined(_DEBUG)
 				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
 				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
@@ -817,7 +782,6 @@ bool load_shader_scene::initialize_core()
 			{
 				load_shader_file desc;
 				desc.file_path = "Shaders/ComputeParticle/Renderer/Default/compute_particle_default_vs.hlsl";
-				generate_input_elements(desc.input_element_desc);
 #if defined(_DEBUG)
 				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
 				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
@@ -850,7 +814,6 @@ bool load_shader_scene::initialize_core()
 			{
 				load_shader_file desc;
 				desc.file_path = "Shaders/ComputeParticle/Renderer/Default/compute_particle_default_vs.hlsl";
-				generate_input_elements(desc.input_element_desc);
 #if defined(_DEBUG)
 				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
 				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
@@ -1223,192 +1186,19 @@ bool load_shader_scene::initialize_core()
 
 #pragma	region	完品トゥーンシェーディング用パイプラインステート
 	{
-		//	toon_depth_write
-		{
-			std::shared_ptr<graphics_custom_pipeline_state> pso;
-			instance->generate_pipeline_state<graphics_custom_pipeline_state>("toon_depth", &pso);
-			pso->set_domain(pipeline_state_base::domains::surface);
-			pso->set_flag(pipeline_state_base::flags::hidden, false);
-			//	頂点シェーダー読み込み
-			{
-				load_shader_file desc;
-				desc.file_path = "Shaders/Toon/toon_depth_vs.hlsl";
-#if defined(_DEBUG)
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
-#endif	//	defined(_DEBUG)
-
-				std::shared_ptr<vertex_shader> shader;
-				shader_manager::instance()->load_shader<vertex_shader>(shader, desc);
-				pso->set_shader(shader);
-			}
-			//	ジオメトリシェーダー読み込み
-			{
-				load_shader_file desc;
-				desc.file_path = "Shaders/Toon/toon_depth_outline_gs.hlsl";
-#if defined(_DEBUG)
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
-#endif	//	defined(_DEBUG)
-
-				std::shared_ptr<geometry_shader> shader;
-				shader_manager::instance()->load_shader<geometry_shader>(shader, desc);
-				pso->set_shader(shader);
-			}
-			//	ピクセルシェーダー読み込み
-			{
-				load_shader_file desc;
-				desc.file_path = "Shaders/Toon/toon_depth_ps.hlsl";
-#if defined(_DEBUG)
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
-#endif	//	defined(_DEBUG)
-
-				std::shared_ptr<pixel_shader> shader;
-				shader_manager::instance()->load_shader<pixel_shader>(shader, desc);
-				pso->set_shader(shader);
-			}
-		}
-		//	toon_csm_write
-		{
-			std::shared_ptr<graphics_custom_pipeline_state> pso;
-			instance->generate_pipeline_state<graphics_custom_pipeline_state>("toon_shadowmap", &pso);
-			pso->set_domain(pipeline_state_base::domains::surface);
-			pso->set_flag(pipeline_state_base::flags::hidden, false);
-			//	頂点シェーダー読み込み
-			{
-				load_shader_file desc;
-				desc.file_path = "Shaders/Toon/toon_csm_vs.hlsl";
-#if defined(_DEBUG)
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
-#endif	//	defined(_DEBUG)
-
-				std::shared_ptr<vertex_shader> shader;
-				shader_manager::instance()->load_shader<vertex_shader>(shader, desc);
-				pso->set_shader(shader);
-			}
-			//	ジオメトリシェーダー読み込み
-			{
-				load_shader_file desc;
-				desc.file_path = "Shaders/Toon/toon_csm_gs.hlsl";
-#if defined(_DEBUG)
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
-#endif	//	defined(_DEBUG)
-
-				std::shared_ptr<geometry_shader> shader;
-				shader_manager::instance()->load_shader<geometry_shader>(shader, desc);
-				pso->set_shader(shader);
-			}
-			//	ピクセルシェーダー読み込み
-			{
-				load_shader_file desc;
-				desc.file_path = "Shaders/Toon/toon_csm_ps.hlsl";
-#if defined(_DEBUG)
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
-#endif	//	defined(_DEBUG)
-
-				std::shared_ptr<pixel_shader> shader;
-				shader_manager::instance()->load_shader<pixel_shader>(shader, desc);
-				pso->set_shader(shader);
-			}
-		}
-		//	toon_gbuffer
-		{
-			std::shared_ptr<graphics_custom_pipeline_state> pso;
-			instance->generate_pipeline_state<graphics_custom_pipeline_state>("toon_gbuffer", &pso);
-			pso->set_domain(pipeline_state_base::domains::surface);
-			pso->set_flag(pipeline_state_base::flags::hidden, false);
-			//	頂点シェーダー読み込み
-			{
-				load_shader_file desc;
-				desc.file_path = "Shaders/Toon/toon_gbuffer_vs.hlsl";
-#if defined(_DEBUG)
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
-#endif	//	defined(_DEBUG)
-
-				std::shared_ptr<vertex_shader> shader;
-				shader_manager::instance()->load_shader<vertex_shader>(shader, desc);
-				pso->set_shader(shader);
-			}
-			//	ジオメトリシェーダー読み込み
-			{
-				load_shader_file desc;
-				desc.file_path = "Shaders/Toon/toon_gbuffer_outline_gs.hlsl";
-#if defined(_DEBUG)
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
-#endif	//	defined(_DEBUG)
-
-				std::shared_ptr<geometry_shader> shader;
-				shader_manager::instance()->load_shader<geometry_shader>(shader, desc);
-				pso->set_shader(shader);
-			}
-			//	ピクセルシェーダー読み込み
-			{
-				load_shader_file desc;
-				desc.file_path = "Shaders/Toon/toon_gbuffer_ps.hlsl";
-#if defined(_DEBUG)
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
-#endif	//	defined(_DEBUG)
-
-				std::shared_ptr<pixel_shader> shader;
-				shader_manager::instance()->load_shader<pixel_shader>(shader, desc);
-				pso->set_shader(shader);
-			}
-		}
-		//	toon_forward
-		{
-			std::shared_ptr<graphics_custom_pipeline_state> pso;
-			instance->generate_pipeline_state<graphics_custom_pipeline_state>("toon_forward", &pso);
-			pso->set_domain(pipeline_state_base::domains::surface);
-			pso->set_flag(pipeline_state_base::flags::hidden, false);
-			//	頂点シェーダー読み込み
-			{
-				load_shader_file desc;
-				desc.file_path = "Shaders/Toon/toon_forward_vs.hlsl";
-#if defined(_DEBUG)
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
-#endif	//	defined(_DEBUG)
-
-				std::shared_ptr<vertex_shader> shader;
-				shader_manager::instance()->load_shader<vertex_shader>(shader, desc);
-				pso->set_shader(shader);
-			}
-			//	ピクセルシェーダー読み込み
-			{
-				load_shader_file desc;
-				desc.file_path = "Shaders/Toon/toon_forward_ps.hlsl";
-#if defined(_DEBUG)
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
-#endif	//	defined(_DEBUG)
-
-				std::shared_ptr<pixel_shader> shader;
-				shader_manager::instance()->load_shader<pixel_shader>(shader, desc);
-				pso->set_shader(shader);
-			}
-		}
+		//	マテリアルシェーダーとパステンプレートから toon_depth / toon_shadowmap / toon_gbuffer / toon_forward を生成する
+		material_shader_map::material_shader_desc desc;
+		desc.name = "toon";
+		desc.file_path = "Shaders/Materials/toon.hlsl";
+		desc.domain = pipeline_state_base::domains::surface;
+		desc.geometry_passes = material_shader_map::to_bit(material_shader_map::surface_passes::depth_write)
+							 | material_shader_map::to_bit(material_shader_map::surface_passes::g_buffer);
+		material_shader_map::instance()->generate(desc);
 	}
 #pragma	endregion	//	完品トゥーンシェーディング用パイプラインステート
 
 #pragma	region	GBufferDecal用デフォルトパイプラインステート
 	{
-		//	ジオメトリックプリミティブ用
-		//	@remainder	TEXCOORDが無駄
-		//				自由にモデルを使う場合は色々と対応が必要
-		auto generate_input_elements = [](std::vector<D3D11_INPUT_ELEMENT_DESC>& ied)
-		{
-			ied.reserve(2);
-			ied.push_back({ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 });
-			ied.push_back({ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 });
-		};
-
 		//	プリミティブ
 		{
 			std::shared_ptr<graphics_custom_pipeline_state> pso;
@@ -1418,7 +1208,6 @@ bool load_shader_scene::initialize_core()
 			{
 				load_shader_file desc;
 				desc.file_path = "Shaders/DeferredDecal/gbuffer_decal_primitive_vs.hlsl";
-				generate_input_elements(desc.input_element_desc);
 #if defined(_DEBUG)
 				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
 				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
@@ -1451,7 +1240,6 @@ bool load_shader_scene::initialize_core()
 			{
 				load_shader_file desc;
 				desc.file_path = "Shaders/DeferredDecal/gbuffer_decal_fullscreen_vs.hlsl";
-				generate_input_elements(desc.input_element_desc);
 #if defined(_DEBUG)
 				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
 				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);

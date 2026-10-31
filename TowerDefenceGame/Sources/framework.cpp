@@ -6,6 +6,7 @@
 #include <thread>
 
 #include "shader.h"
+#include "material_shader_map.h"
 #include "texture.h"
 #include "font_data.h"
 #include "camera.h"
@@ -259,6 +260,7 @@ bool framework::initialize()
 		texture_manager::create_instance();
 		shader_manager::create_instance();
 		pipeline_state_manager::create_instance();
+		material_shader_map::create_instance();
 		light_manager::create_instance();
 		post_process_volume_manager::create_instance();
 		camera_manager::create_instance();
@@ -1028,6 +1030,7 @@ bool framework::uninitialize()
 		camera_manager::delete_instance();
 		post_process_volume_manager::delete_instance();
 		light_manager::delete_instance();
+		material_shader_map::delete_instance();
 		pipeline_state_manager::delete_instance();
 		shader_manager::delete_instance();
 		texture_manager::delete_instance();

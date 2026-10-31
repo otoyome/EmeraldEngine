@@ -56,18 +56,29 @@ void geometric_primitive::create_com_buffers(ID3D11Device* device,
 	D3D11_SUBRESOURCE_DATA subresource_data{};
 	buffer_desc.Usage = D3D11_USAGE_DEFAULT;
 	{
-		buffer_desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-		buffer_desc.ByteWidth = static_cast<UINT>(views[format_id::position].size_in_bytes);
-		subresource_data.pSysMem = positions;
-		hr = device->CreateBuffer(&buffer_desc, &subresource_data, views[format_id::position].buffer.ReleaseAndGetAddressOf());
-		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
-		vertex_buffer_views.insert_or_assign(format_datas[format_id::position].s, views[format_id::position]);
+		//	í∏ì_ÇÕ SV_VertexID Ç≈ì«ÇﬁÇÃÇ≈ SRV(ByteAddressBuffer)Ç∆ÇµÇƒçÏÇÈ
+		buffer_desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+		buffer_desc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_ALLOW_RAW_VIEWS;
+		const void* sources[] = { positions, texcoords };
+		const format_id ids[] = { format_id::position, format_id::texcoord_0 };
+		for (size_t index = 0; index < ARRAYSIZE(ids); ++index)
+		{
+			auto& view = views[ids[index]];
+			buffer_desc.ByteWidth = static_cast<UINT>(view.size_in_bytes);
+			subresource_data.pSysMem = sources[index];
+			hr = device->CreateBuffer(&buffer_desc, &subresource_data, view.buffer.ReleaseAndGetAddressOf());
+			_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
 
-		buffer_desc.ByteWidth = static_cast<UINT>(views[format_id::texcoord_0].size_in_bytes);
-		subresource_data.pSysMem = texcoords;
-		hr = device->CreateBuffer(&buffer_desc, &subresource_data, views[format_id::texcoord_0].buffer.ReleaseAndGetAddressOf());
-		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
-		vertex_buffer_views.insert_or_assign(format_datas[format_id::texcoord_0].s, views[format_id::texcoord_0]);
+			D3D11_SHADER_RESOURCE_VIEW_DESC srv_desc{};
+			srv_desc.Format = DXGI_FORMAT_R32_TYPELESS;
+			srv_desc.ViewDimension = D3D11_SRV_DIMENSION_BUFFEREX;
+			srv_desc.BufferEx.NumElements = static_cast<UINT>(view.size_in_bytes / sizeof(UINT));
+			srv_desc.BufferEx.Flags = D3D11_BUFFEREX_SRV_FLAG_RAW;
+			hr = device->CreateShaderResourceView(view.buffer.Get(), &srv_desc, view.srv.ReleaseAndGetAddressOf());
+			_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+			vertex_buffer_views.insert_or_assign(format_datas[ids[index]].s, view);
+		}
+		buffer_desc.MiscFlags = 0;
 	}
 
 	{

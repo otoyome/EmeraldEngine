@@ -1,8 +1,15 @@
 #include "sprite.hlsli"
+#include "sprite_vertex.hlsli"
 
-VS_OUT main(float3 position : POSITION, float4 color : COLOR, float2 texcoord : TEXCOORD)
+VS_OUT main(uint vertex_id : SV_VertexID)
 {
     VS_OUT vout;
+
+    //	í∏ì_ì«çû
+    SPRITE_VERTEX vin = load_sprite_vertex(vertex_id);
+    float3 position = vin.position;
+    float4 color = vin.color;
+    float2 texcoord = vin.texcoord;
     
     float2 screen_size = viewport_rect.zw - viewport_rect.xy;
     

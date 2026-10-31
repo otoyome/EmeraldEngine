@@ -9,7 +9,6 @@ write_back_pipeline_state::write_back_pipeline_state()
 
 	load_shader_cso vs_desc;
 	vs_desc.file_path = "Assets/CSO/fullscreen_quad_vs.cso";
-	vs_desc.input_element_desc;
 	shader_manager::instance()->load_shader<vertex_shader>(vs, vs_desc);
 
 	load_shader_cso ps_desc;
@@ -63,7 +62,7 @@ void write_back_pipeline_state::begin(const graphics_context& context)
 	context.device_context->DSSetShader(nullptr, nullptr, 0);
 	context.device_context->GSSetShader(nullptr, nullptr, 0);
 	context.device_context->PSSetShader(ps->get_shader().Get(), nullptr, 0);
-	context.device_context->IASetInputLayout(vs->get_input_layout().Get());
+	context.device_context->IASetInputLayout(nullptr);
 	context.device_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
 	//	ステート設定
@@ -94,7 +93,6 @@ compress_rgb_to_log_pipeline_state::compress_rgb_to_log_pipeline_state()
 
 	load_shader_cso vs_desc;
 	vs_desc.file_path = "Assets/CSO/fullscreen_quad_vs.cso";
-	vs_desc.input_element_desc;
 	shader_manager::instance()->load_shader<vertex_shader>(vs, vs_desc);
 
 	load_shader_cso ps_desc;
@@ -148,7 +146,7 @@ void compress_rgb_to_log_pipeline_state::begin(const graphics_context& context)
 	context.device_context->DSSetShader(nullptr, nullptr, 0);
 	context.device_context->GSSetShader(nullptr, nullptr, 0);
 	context.device_context->PSSetShader(ps->get_shader().Get(), nullptr, 0);
-	context.device_context->IASetInputLayout(vs->get_input_layout().Get());
+	context.device_context->IASetInputLayout(nullptr);
 	context.device_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
 	//	ステート設定
@@ -179,7 +177,6 @@ decompress_rgb_to_log_pipeline_state::decompress_rgb_to_log_pipeline_state()
 
 	load_shader_cso vs_desc;
 	vs_desc.file_path = "Assets/CSO/fullscreen_quad_vs.cso";
-	vs_desc.input_element_desc;
 	shader_manager::instance()->load_shader<vertex_shader>(vs, vs_desc);
 
 	load_shader_cso ps_desc;
@@ -233,7 +230,7 @@ void decompress_rgb_to_log_pipeline_state::begin(const graphics_context& context
 	context.device_context->DSSetShader(nullptr, nullptr, 0);
 	context.device_context->GSSetShader(nullptr, nullptr, 0);
 	context.device_context->PSSetShader(ps->get_shader().Get(), nullptr, 0);
-	context.device_context->IASetInputLayout(vs->get_input_layout().Get());
+	context.device_context->IASetInputLayout(nullptr);
 	context.device_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
 	//	ステート設定
@@ -291,7 +288,6 @@ screen_space_reflection_uv_pipeline_state::screen_space_reflection_uv_pipeline_s
 
 	load_shader_cso vs_desc;
 	vs_desc.file_path = "Assets/CSO/fullscreen_quad_vs.cso";
-	vs_desc.input_element_desc;
 	shader_manager::instance()->load_shader<vertex_shader>(vs, vs_desc);
 
 	load_shader_cso ps_desc;
@@ -358,7 +354,7 @@ void screen_space_reflection_uv_pipeline_state::begin(const graphics_context& co
 	context.device_context->DSSetShader(nullptr, nullptr, 0);
 	context.device_context->GSSetShader(nullptr, nullptr, 0);
 	context.device_context->PSSetShader(ps->get_shader().Get(), nullptr, 0);
-	context.device_context->IASetInputLayout(vs->get_input_layout().Get());
+	context.device_context->IASetInputLayout(nullptr);
 
 	//	ステート設定
 	context.device_context->OMSetBlendState(blend_states.Get(), nullptr, 0xFFFFFFFF);
@@ -407,7 +403,6 @@ screen_space_reflection_color_pipeline_state::screen_space_reflection_color_pipe
 
 	load_shader_cso vs_desc;
 	vs_desc.file_path = "Assets/CSO/fullscreen_quad_vs.cso";
-	vs_desc.input_element_desc;
 	shader_manager::instance()->load_shader<vertex_shader>(vs, vs_desc);
 
 	load_shader_cso ps_desc;
@@ -474,7 +469,7 @@ void screen_space_reflection_color_pipeline_state::begin(const graphics_context&
 	context.device_context->DSSetShader(nullptr, nullptr, 0);
 	context.device_context->GSSetShader(nullptr, nullptr, 0);
 	context.device_context->PSSetShader(ps->get_shader().Get(), nullptr, 0);
-	context.device_context->IASetInputLayout(vs->get_input_layout().Get());
+	context.device_context->IASetInputLayout(nullptr);
 
 	//	ステート設定
 	context.device_context->OMSetBlendState(blend_states.Get(), nullptr, 0xFFFFFFFF);
@@ -527,7 +522,6 @@ screen_space_reflection_composite_pipeline_state::screen_space_reflection_compos
 
 	load_shader_cso vs_desc;
 	vs_desc.file_path = "Assets/CSO/fullscreen_quad_vs.cso";
-	vs_desc.input_element_desc;
 	shader_manager::instance()->load_shader<vertex_shader>(vs, vs_desc);
 
 	load_shader_cso ps_desc;
@@ -581,7 +575,7 @@ void screen_space_reflection_composite_pipeline_state::begin(const graphics_cont
 	context.device_context->DSSetShader(nullptr, nullptr, 0);
 	context.device_context->GSSetShader(nullptr, nullptr, 0);
 	context.device_context->PSSetShader(ps->get_shader().Get(), nullptr, 0);
-	context.device_context->IASetInputLayout(vs->get_input_layout().Get());
+	context.device_context->IASetInputLayout(nullptr);
 
 	//	ステート設定
 	context.device_context->OMSetBlendState(blend_states.Get(), nullptr, 0xFFFFFFFF);

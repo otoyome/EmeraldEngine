@@ -1,7 +1,10 @@
 #include "compute_particle_renderer.hlsli"
+#include "compute_particle_vertex.hlsli"
 
-PS_IN main(VS_IN vin)
+PS_IN main(uint vertex_id : SV_VertexID)
 {
+    VS_IN vin = load_particle_vertex(vertex_id);
+
     PS_IN vout;
     vout.position = mul(float4(vin.position, 1), view_projection_transform);
     vout.color = vin.color;

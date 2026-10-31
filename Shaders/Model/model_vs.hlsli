@@ -4,52 +4,10 @@
 //#include "model.hlsli"
 
 #if defined(FORWARD_RENDERING)
-#define VS_IN VS_FORWARD_IN
 #define VS_OUT VS_FORWARD_OUT
 #else // defined(FORWARD_RENDERING)
-#define VS_IN VS_GBUFFER_IN
 #define VS_OUT VS_GBUFFER_OUT
 #endif // defined(FORWARD_RENDERING)
-
-//	メッシュレット頂点情報読込
-VS_IN load_vertex_pulled(MeshletContext meshlet_context, uint vertex_id)
-{
-    VS_IN vin = (VS_IN)0;
-    uint local_vertex_index = meshlet_resolve_local_vertex_index(meshlet_context, vertex_id);
-
-    vin.position = meshlet_load_position(meshlet_context, local_vertex_index);
-    vin.normal = meshlet_load_normal(meshlet_context, local_vertex_index);
-#if defined(HAS_TANGENT)
-    vin.tangent = meshlet_load_tangent(meshlet_context, local_vertex_index);
-#endif  //  defined(HAS_TANGENT)
-#if VERTEX_COLOR_MAX > 0
-    vin.color[0] = meshlet_load_color0(meshlet_context, local_vertex_index);
-#endif  //  VERTEX_COLOR_MAX > 0
-#if TEXCOORD_MAX > 0
-    vin.texcoord[0] = meshlet_load_texcoord0(meshlet_context, local_vertex_index);
-#endif  //  TEXCOORD_MAX > 0
-#if TEXCOORD_MAX > 1
-    vin.texcoord[1] = meshlet_load_texcoord1(meshlet_context, local_vertex_index);
-#endif  //  TEXCOORD_MAX > 1
-#if BONE_MAX > 0
-    vin.joints[0] = meshlet_load_joints0(meshlet_context, local_vertex_index);
-    vin.weights[0] = meshlet_load_weights0(meshlet_context, local_vertex_index);
-#endif  //  BONE_MAX > 0
-#if BONE_MAX > 4
-    vin.joints[1] = meshlet_load_joints1(meshlet_context, local_vertex_index);
-    vin.weights[1] = meshlet_load_weights1(meshlet_context, local_vertex_index);
-#endif  //  BONE_MAX > 4
-#if BONE_MAX > 8
-    vin.joints[2] = meshlet_load_joints2(meshlet_context, local_vertex_index);
-    vin.weights[2] = meshlet_load_weights2(meshlet_context, local_vertex_index);
-#endif  //  BONE_MAX > 8
-#if BONE_MAX > 12
-    vin.joints[3] = meshlet_load_joints3(meshlet_context, local_vertex_index);
-    vin.weights[3] = meshlet_load_weights3(meshlet_context, local_vertex_index);
-#endif  //  BONE_MAX > 12
-
-    return vin;
-}
 
 VS_OUT main(uint vertex_id : SV_VertexID, uint instance_id : SV_InstanceID)
 {
@@ -73,53 +31,19 @@ VS_OUT main(uint vertex_id : SV_VertexID, uint instance_id : SV_InstanceID)
 	vout.meshlet_debug_id = meshlet_context.primitive_index * 1000003u + meshlet_context.meshlet_triangle_offset;
 #endif	//	!defined(FORWARD_RENDERING)
 
-    VS_IN vin = load_vertex_pulled(meshlet_context, vertex_id);
+    //	頂点読込・モーフ・スキニング
+    VS_MODEL_IN vin = load_model_vertex(meshlet_context, vertex_id);
+    ModelVertex vertex = skin_model_vertex(meshlet_context, vin);
+    float3 previous_position = skin_previous_position(meshlet_context, vin);
 
-#if defined(HAS_MORPH)  //  モーフィング対応
-    uint local_vertex_index_for_morph = meshlet_resolve_local_vertex_index(meshlet_context, vertex_id);
-    apply_morph_position(meshlet_context, vin.position, local_vertex_index_for_morph);
-    apply_morph_normal(meshlet_context, vin.normal, local_vertex_index_for_morph);
-#endif  //  defined(HAS_MORPH)
-
-#if BONE_MAX > 0
-
-    float3 current_position = 0, normal = 0, previous_position = 0;
-#if defined(HAS_TANGENT)
-    float3 tangent = 0;
-#endif  //  defined(HAS_TANGENT)
-    [unroll] for (index = 0; index < BoneMax; ++index)
-    {
-        uint row = index / 4u;
-        uint col = index % 4u;
-        uint bone_index = vin.joints[row][col];
-        float bone_weight = vin.weights[row][col];
-        current_position += mul(float4(vin.position, 1), get_bone_transform(meshlet_context, bone_index)).xyz * bone_weight;
-        normal += mul(float4(vin.normal, 0), get_bone_transform(meshlet_context, bone_index)).xyz * bone_weight;
-#if defined(HAS_TANGENT)
-        tangent += mul(float4(vin.tangent.xyz, 0), get_bone_transform(meshlet_context, bone_index)).xyz * bone_weight;
-#endif  //  defined(HAS_TANGENT)
-
-        previous_position += mul(float4(vin.position, 1), get_previous_bone_transform(meshlet_context, bone_index)).xyz * bone_weight;
-    }
-
-#else  //  BONE_MAX > 0
-
-    float3 current_position = vin.position.xyz;
-    float3 normal = vin.normal.xyz;
-    float3 previous_position = vin.position.xyz;
-#if defined(HAS_TANGENT)
-    float3 tangent = vin.tangent.xyz;
-#endif  //  defined(HAS_TANGENT)
-
-#endif  //  BONE_MAX > 0
-
-    vout.w_position.xyz = current_position;
+    vout.w_position.xyz = vertex.position;
     vout.w_position.w = 1.0f;
-    vout.w_normal.xyz = normalize(normal).xyz;
+    vout.w_normal.xyz = normalize(vertex.normal).xyz;
     vout.w_normal.w = 0.0f;
 
 #if defined(HAS_TANGENT)
 
+    float3 tangent = vertex.tangent;
 #if defined(HAS_MORPH)
 	//	法線に対して接線を再直交化
     tangent = tangent - dot(tangent, vout.w_normal.xyz) * vout.w_normal.xyz;

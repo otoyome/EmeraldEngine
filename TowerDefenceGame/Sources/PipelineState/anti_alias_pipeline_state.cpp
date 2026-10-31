@@ -27,7 +27,6 @@ fxaa_pipeline_state::fxaa_pipeline_state()
 
 	load_shader_cso vs_desc;
 	vs_desc.file_path = "Assets/CSO/fullscreen_quad_vs.cso";
-	vs_desc.input_element_desc;
 	shader_manager::instance()->load_shader<vertex_shader>(vs, vs_desc);
 
 	load_shader_cso ps_desc;
@@ -81,7 +80,7 @@ void fxaa_pipeline_state::begin(const graphics_context& context)
 	context.device_context->DSSetShader(nullptr, nullptr, 0);
 	context.device_context->GSSetShader(nullptr, nullptr, 0);
 	context.device_context->PSSetShader(ps->get_shader().Get(), nullptr, 0);
-	context.device_context->IASetInputLayout(vs->get_input_layout().Get());
+	context.device_context->IASetInputLayout(nullptr);
 	context.device_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
 	//	ステート設定
@@ -115,7 +114,6 @@ smaa_edge_detection_pipeline_state::smaa_edge_detection_pipeline_state()
 
 	load_shader_cso vs_desc;
 	vs_desc.file_path = "Assets/CSO/smaa_edge_detection_vs.cso";
-	vs_desc.input_element_desc;
 	shader_manager::instance()->load_shader<vertex_shader>(vs, vs_desc);
 
 	load_shader_cso ps_desc;
@@ -169,7 +167,7 @@ void smaa_edge_detection_pipeline_state::begin(const graphics_context& context)
 	context.device_context->DSSetShader(nullptr, nullptr, 0);
 	context.device_context->GSSetShader(nullptr, nullptr, 0);
 	context.device_context->PSSetShader(ps->get_shader().Get(), nullptr, 0);
-	context.device_context->IASetInputLayout(vs->get_input_layout().Get());
+	context.device_context->IASetInputLayout(nullptr);
 	context.device_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
 	//	ステート設定
@@ -203,7 +201,6 @@ smaa_blending_weight_calculation_pipeline_state::smaa_blending_weight_calculatio
 
 	load_shader_cso vs_desc;
 	vs_desc.file_path = "Assets/CSO/smaa_blending_weight_calculation_vs.cso";
-	vs_desc.input_element_desc;
 	shader_manager::instance()->load_shader<vertex_shader>(vs, vs_desc);
 
 	load_shader_cso ps_desc;
@@ -294,7 +291,7 @@ void smaa_blending_weight_calculation_pipeline_state::begin(const graphics_conte
 	context.device_context->DSSetShader(nullptr, nullptr, 0);
 	context.device_context->GSSetShader(nullptr, nullptr, 0);
 	context.device_context->PSSetShader(ps->get_shader().Get(), nullptr, 0);
-	context.device_context->IASetInputLayout(vs->get_input_layout().Get());
+	context.device_context->IASetInputLayout(nullptr);
 	context.device_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
 	//	ステート設定
@@ -330,7 +327,6 @@ smaa_neighborhood_blending_pipeline_state::smaa_neighborhood_blending_pipeline_s
 
 	load_shader_cso vs_desc;
 	vs_desc.file_path = "Assets/CSO/smaa_neighborhood_blending_vs.cso";
-	vs_desc.input_element_desc;
 	shader_manager::instance()->load_shader<vertex_shader>(vs, vs_desc);
 
 	load_shader_cso ps_desc;
@@ -384,7 +380,7 @@ void smaa_neighborhood_blending_pipeline_state::begin(const graphics_context& co
 	context.device_context->DSSetShader(nullptr, nullptr, 0);
 	context.device_context->GSSetShader(nullptr, nullptr, 0);
 	context.device_context->PSSetShader(ps->get_shader().Get(), nullptr, 0);
-	context.device_context->IASetInputLayout(vs->get_input_layout().Get());
+	context.device_context->IASetInputLayout(nullptr);
 	context.device_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
 	//	ステート設定

@@ -245,19 +245,12 @@ void scene_renderer_commons::draw_geometric_primitive(const graphics_context& co
 	auto position_it = vertex_buffer_views.find(position_semantic);
 	auto texcoord_it = vertex_buffer_views.find(texcoord_semantic);
 
-	ID3D11Buffer* buffers[2] =
+	ID3D11ShaderResourceView* streams[2] =
 	{
-		position_it != vertex_buffer_views.end() ? position_it->second.buffer.Get() : nullptr,
-		texcoord_it != vertex_buffer_views.end() ? texcoord_it->second.buffer.Get() : nullptr,
+		position_it != vertex_buffer_views.end() ? position_it->second.srv.Get() : nullptr,
+		texcoord_it != vertex_buffer_views.end() ? texcoord_it->second.srv.Get() : nullptr,
 	};
-	UINT strides[2] =
-	{
-		position_it != vertex_buffer_views.end() ? static_cast<UINT>(position_it->second.stride_in_bytes) : 0,
-		texcoord_it != vertex_buffer_views.end() ? static_cast<UINT>(texcoord_it->second.stride_in_bytes) : 0,
-	};
-	UINT offsets[2] = { 0, 0 };
-
-	context.set_vertex_buffers(0, 2, buffers, strides, offsets);
+	context.set_vertex_streams(2, streams);
 	context.set_index_buffer(index_buffer_view.buffer.Get(), index_buffer_view.format, 0);
 	context.set_primitive_topology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	context.device_context->DrawIndexed(static_cast<UINT>(index_buffer_view.count()), 0, 0);
@@ -680,13 +673,11 @@ void scene_renderer_commons::particle_render(graphics_context& context,
 
 			current_pipeline_state->update_parameters(context, *draw_data->material_data.material, nullptr);
 
-			auto vertex_buffer = draw_data->vertex_buffer_view.vertex_buffer;
-			auto strides = draw_data->vertex_buffer_view.strides_for_vertex.data();
-			auto offsets = draw_data->vertex_buffer_view.offsets_for_vertex.data();
+			auto& vertex_stream = draw_data->vertex_buffer_view.vertex_stream;
 			auto indirect_buffer = draw_data->vertex_buffer_view.indirect_buffer;
 			auto offset_for_args = draw_data->vertex_buffer_view.offset_for_args;
 
-			context.device_context->IASetVertexBuffers(0, 1, vertex_buffer.GetAddressOf(), strides, offsets);
+			context.set_vertex_streams(1, vertex_stream.GetAddressOf());
 			context.device_context->IASetPrimitiveTopology(draw_data->primitive_topology);
 			context.device_context->DrawInstancedIndirect(indirect_buffer.Get(), offset_for_args);
 		}

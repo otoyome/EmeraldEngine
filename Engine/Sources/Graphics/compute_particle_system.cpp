@@ -537,7 +537,7 @@ UINT compute_particle_system::register_emitter(ID3D11Device* device, const parti
 	//	’¸“_ƒoƒbƒtƒ@Šm•Û
 	{
 		D3D11_BUFFER_DESC desc = {};
-		desc.BindFlags = D3D11_BIND_VERTEX_BUFFER | D3D11_BIND_UNORDERED_ACCESS;
+		desc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
 		desc.ByteWidth = emitter_resource.system.total_particle_count * number_of_vertices_per_particle;
 		//	‹OÕ‚Ìê‡‚Í•Ê“r‹OÕ”‚ð‰ÁŽZ
 		if (emitter_resource.render.renderer_type == particle_system_item::renderer_types::ribon)
@@ -556,6 +556,16 @@ UINT compute_particle_system::register_emitter(ID3D11Device* device, const parti
 		uav_desc.Buffer.NumElements = desc.ByteWidth / sizeof(UINT);
 		uav_desc.Buffer.Flags = D3D11_BUFFER_UAV_FLAG_RAW;
 		hr = device->CreateUnorderedAccessView(em_resource.buffer.Get(), &uav_desc, em_resource.unordered_access_view.GetAddressOf());
+		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+
+		//	•`‰æŽž‚ÉSV_VertexID‚Å“Ç‚Þ‚½‚ß‚ÌByteAddressBuffer‚ð¶¬
+		D3D11_SHADER_RESOURCE_VIEW_DESC srv_desc = {};
+		srv_desc.ViewDimension = D3D11_SRV_DIMENSION_BUFFEREX;
+		srv_desc.Format = DXGI_FORMAT_R32_TYPELESS;
+		srv_desc.BufferEx.FirstElement = 0;
+		srv_desc.BufferEx.NumElements = desc.ByteWidth / sizeof(UINT);
+		srv_desc.BufferEx.Flags = D3D11_BUFFEREX_SRV_FLAG_RAW;
+		hr = device->CreateShaderResourceView(em_resource.buffer.Get(), &srv_desc, em_resource.shader_resource_view.GetAddressOf());
 		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
 	}
 
@@ -1279,14 +1289,8 @@ void compute_particle_system::build_primitives(graphics_context& context)
 
 void compute_particle_system::generate_render_data(UINT emitter_id, effect_container::sprite_trail& data)
 {
-	emitter_id;
-	UINT strides[] = { sizeof(vertex_data) };
-	UINT offsets[] = { 0 };
-
 	auto& emitter_resource = emitter_resources[emitter_id];
-	data.vertex_buffer_view.vertex_buffer = emitter_resource.buffer;
-	data.vertex_buffer_view.strides_for_vertex.emplace_back(static_cast<UINT>(sizeof(vertex_data)));
-	data.vertex_buffer_view.offsets_for_vertex.emplace_back(0);
+	data.vertex_buffer_view.vertex_stream = emitter_resource.shader_resource_view;
 
 	data.vertex_buffer_view.indirect_buffer = indirect_data_buffer;
 	data.vertex_buffer_view.offset_for_args = FixedIndirectDataSize + sizeof(draw_indirect) * emitter_id;

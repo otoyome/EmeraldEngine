@@ -17,9 +17,18 @@ debug_primitive_manager::debug_primitive_manager()
 		D3D11_BUFFER_DESC buffer_desc{};
 		buffer_desc.ByteWidth = static_cast<UINT>(VertexCount * sizeof(vertex));
 		buffer_desc.Usage = D3D11_USAGE_DEFAULT;
-		buffer_desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+		buffer_desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+		buffer_desc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_ALLOW_RAW_VIEWS;
 		buffer_desc.CPUAccessFlags = 0;
 		hr = device->CreateBuffer(&buffer_desc, nullptr, vertex_buffer.buffer.ReleaseAndGetAddressOf());
+		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+
+		D3D11_SHADER_RESOURCE_VIEW_DESC srv_desc{};
+		srv_desc.Format = DXGI_FORMAT_R32_TYPELESS;
+		srv_desc.ViewDimension = D3D11_SRV_DIMENSION_BUFFEREX;
+		srv_desc.BufferEx.NumElements = buffer_desc.ByteWidth / sizeof(UINT);
+		srv_desc.BufferEx.Flags = D3D11_BUFFEREX_SRV_FLAG_RAW;
+		hr = device->CreateShaderResourceView(vertex_buffer.buffer.Get(), &srv_desc, vertex_buffer.srv.ReleaseAndGetAddressOf());
 		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
 
 		vertex_buffer.format = DXGI_FORMAT_UNKNOWN;

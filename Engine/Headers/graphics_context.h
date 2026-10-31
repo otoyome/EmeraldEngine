@@ -160,10 +160,7 @@ struct effect_container
 		//	バッファビュー
 		struct buffer_view
 		{
-			Microsoft::WRL::ComPtr<ID3D11Buffer> vertex_buffer;
-			std::vector<UINT> strides_for_vertex;
-			std::vector<UINT> offsets_for_vertex;
-
+			Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> vertex_stream;
 			Microsoft::WRL::ComPtr<ID3D11Buffer> indirect_buffer;
 			UINT offset_for_args = 0;
 
@@ -296,6 +293,9 @@ public:
 
 	//	インデックスバッファ設定
 	void set_index_buffer(ID3D11Buffer* buffer, DXGI_FORMAT format, UINT offset) const;
+
+	//	頂点ストリーム設定
+	void set_vertex_streams(UINT num_streams, ID3D11ShaderResourceView* const* streams) const;
 
 	//	設定していたシェーダーを全て解除する
 	void clear_shader_slots() const;

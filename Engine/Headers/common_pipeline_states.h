@@ -262,6 +262,12 @@ namespace common_pipeline_states
 	constexpr system_utility::hash_key meshlet_triangle_indices_hash_key = system_utility::generate_hash(meshlet_triangle_indices_name);
 	constexpr std::string_view visible_meshlet_instances_name = "visible_meshlet_instances";
 	constexpr system_utility::hash_key visible_meshlet_instances_hash_key = system_utility::generate_hash(visible_meshlet_instances_name);
+	//	@tool モデル以外の頂点ストリーム(SV_VertexID で読む。Shaders/Common/vertex_stream.hlsli と合わせる)
+	constexpr UINT vertex_stream_srv_index = 96;	//	@tool 先頭の SRV 番号
+	constexpr UINT vertex_stream_max = 3;			//	@tool ストリーム数
+	constexpr std::string_view vertex_stream0_name = "vertex_stream0";
+	constexpr std::string_view vertex_stream1_name = "vertex_stream1";
+	constexpr std::string_view vertex_stream2_name = "vertex_stream2";
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////
 	//	パラメーター定数バッファ構造体
 	constexpr std::string_view parameter_constant_buffer_name = "PARAMETER_CONSTANT_BUFFER";
@@ -421,6 +427,9 @@ namespace common_pipeline_states
 		meshlet_vertex_indices_name,
 		meshlet_triangle_indices_name,
 		visible_meshlet_instances_name,
+		vertex_stream0_name,
+		vertex_stream1_name,
+		vertex_stream2_name,
 
 		forward_only_diffuse_iem_name,
 		forward_only_specular_pmrem_name,

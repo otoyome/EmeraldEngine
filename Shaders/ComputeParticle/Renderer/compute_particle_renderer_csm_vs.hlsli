@@ -1,6 +1,7 @@
 #include "compute_particle_renderer.hlsli"
+#include "compute_particle_vertex.hlsli"
 
-VS_IN main(VS_IN vin)
+VS_IN main(uint vertex_id : SV_VertexID)
 {
-    return vin;
+    return load_particle_vertex(vertex_id);
 }

@@ -5,22 +5,18 @@
 namespace
 {
 	//	頂点フォーマット
-	struct format_data
-	{
-		semantic s;
-		DXGI_FORMAT f;
-	};
 	enum format_id
 	{
 		position,
 		color_0,
 		texcoord_0,
+		format_max,
 	};
-	const format_data format_datas[] =
+	constexpr UINT format_strides[format_max] =
 	{
-		{{"POSITION", 0}, DXGI_FORMAT_R32G32B32_FLOAT},
-		{{"COLOR", 0}, DXGI_FORMAT_R32G32B32A32_FLOAT},
-		{{"TEXCOORD", 0}, DXGI_FORMAT_R32G32_FLOAT},
+		sizeof(math::float3),
+		sizeof(math::float4),
+		sizeof(math::float2),
 	};
 }
 
@@ -36,23 +32,29 @@ ui_renderer::ui_renderer(render_job_registrar job_executor, std::shared_ptr<scen
 
 	//	頂点バッファビュー生成
 	{
-		for (auto& format : format_datas)
+		for (int format_index = 0; format_index < format_max; ++format_index)
 		{
-			buffer_view view;
-			view.format = format.f;
-			view.stride_in_bytes = graphics_utility::get_byte_offset_from_format(view.format);
+			auto& view = vertex_buffer_views[format_index];
+			view.stride_in_bytes = format_strides[format_index];
 			view.size_in_bytes = view.stride_in_bytes * vertex_max;
 
 			D3D11_BUFFER_DESC buffer_desc{};
 			buffer_desc.ByteWidth = static_cast<UINT>(view.size_in_bytes);
 			buffer_desc.Usage = D3D11_USAGE_DYNAMIC;
-			buffer_desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+			buffer_desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
 			buffer_desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+			buffer_desc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_ALLOW_RAW_VIEWS;
 
 			hr = device->CreateBuffer(&buffer_desc, nullptr, view.buffer.ReleaseAndGetAddressOf());
 			_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
 
-			vertex_buffer_views.insert_or_assign(format.s, view);
+			D3D11_SHADER_RESOURCE_VIEW_DESC srv_desc{};
+			srv_desc.Format = DXGI_FORMAT_R32_TYPELESS;
+			srv_desc.ViewDimension = D3D11_SRV_DIMENSION_BUFFEREX;
+			srv_desc.BufferEx.NumElements = static_cast<UINT>(view.size_in_bytes / sizeof(UINT));
+			srv_desc.BufferEx.Flags = D3D11_BUFFEREX_SRV_FLAG_RAW;
+			hr = device->CreateShaderResourceView(view.buffer.Get(), &srv_desc, view.srv.ReleaseAndGetAddressOf());
+			_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
 		}
 	}
 
@@ -103,20 +105,14 @@ void ui_renderer::render(renderer_context& context)
 		context.device_context->RSSetViewports(1, &viewport);
 
 		//	バッファ生成
-		std::vector<sprite_buffer_views> vbvs;
 		std::vector<buffer_view> ibvs;
 		{
 			HRESULT hr;
-			D3D11_MAPPED_SUBRESOURCE mapped_vertices[3];
+			D3D11_MAPPED_SUBRESOURCE mapped_vertices[format_max];
 			D3D11_MAPPED_SUBRESOURCE mapped_indices;
-			for (auto& it : vertex_buffer_views)
+			for (int format_index = 0; format_index < format_max; ++format_index)
 			{
-				if (it.first == format_datas[format_id::position].s)
-					hr = context.device_context->Map(it.second.buffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_vertices[format_id::position]);
-				else if (it.first == format_datas[format_id::color_0].s)
-					hr = context.device_context->Map(it.second.buffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_vertices[format_id::color_0]);
-				else if (it.first == format_datas[format_id::texcoord_0].s)
-					hr = context.device_context->Map(it.second.buffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_vertices[format_id::texcoord_0]);
+				hr = context.device_context->Map(vertex_buffer_views[format_index].buffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_vertices[format_index]);
 				_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
 			}
 			hr = context.device_context->Map(index_buffer_view.buffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_indices);
@@ -127,25 +123,11 @@ void ui_renderer::render(renderer_context& context)
 			math::float2* texcoords = static_cast<math::float2*>(mapped_vertices[format_id::texcoord_0].pData);
 			UINT* indices = static_cast<UINT*>(mapped_indices.pData);
 
-			//	各セマンティックのバッファ/フォーマット/ストライドはフレーム内で共通
-			buffer_view view_templates[3];
-			for (auto& it : vertex_buffer_views)
-			{
-				if (it.first == format_datas[format_id::position].s)
-					view_templates[format_id::position] = it.second;
-				else if (it.first == format_datas[format_id::color_0].s)
-					view_templates[format_id::color_0] = it.second;
-				else if (it.first == format_datas[format_id::texcoord_0].s)
-					view_templates[format_id::texcoord_0] = it.second;
-			}
-
 			//	スプライト数分をまとめて確保
 			size_t sprite_count = context.render_data->sprite_container.sprite_datas.size();
-			vbvs.reserve(sprite_count);
 			ibvs.reserve(sprite_count);
 
 			//	各バッファに詰め込む
-			sprite_buffer_views views;
 			buffer_view ibv;
 			UINT vertex_size = 0, index_size = 0;
 			for (auto& sprite_data : context.render_data->sprite_container.sprite_datas)
@@ -169,23 +151,12 @@ void ui_renderer::render(renderer_context& context)
 				index_size += static_cast<UINT>(sprite->get_indices().size());
 				assert(index_size < index_max);
 				{
-					memcpy_s(indices + index_offset, sizeof(UINT) * (index_max - index_offset),
-								sprite->get_indices().data(), sizeof(UINT) * (index_size - index_offset));
+					const auto& sprite_indices = sprite->get_indices();
+					for (size_t index = 0; index < sprite_indices.size(); ++index)
+						indices[index_offset + index] = sprite_indices[index] + static_cast<UINT>(vertex_offset);
 				}
 				//	各view構築
 				{
-					for (int format_index = 0; format_index < 3; ++format_index)
-					{
-						auto& view = views.views[format_index];
-						auto& view_template = view_templates[format_index];
-						view.format = view_template.format;
-						view.buffer = view_template.buffer;
-						view.stride_in_bytes = view_template.stride_in_bytes;
-						view.size_in_bytes = (vertex_size - vertex_offset) * view_template.stride_in_bytes;
-						view.offset_in_bytes = vertex_offset * view_template.stride_in_bytes;
-					}
-					vbvs.emplace_back(views);
-
 					ibv.format = index_buffer_view.format;
 					ibv.buffer = index_buffer_view.buffer;
 					ibv.stride_in_bytes = index_buffer_view.stride_in_bytes;
@@ -195,13 +166,13 @@ void ui_renderer::render(renderer_context& context)
 				}
 			}
 
-			for (auto& it : vertex_buffer_views)
-				context.device_context->Unmap(it.second.buffer.Get(), 0);
+			for (auto& view : vertex_buffer_views)
+				context.device_context->Unmap(view.buffer.Get(), 0);
 			context.device_context->Unmap(index_buffer_view.buffer.Get(), 0);
 		}
 
 		//	描画
-		sprite_render(context, vbvs, ibvs);
+		sprite_render(context, ibvs);
 
 		rendering_pass.deactivate(context.device_context);
 
@@ -209,15 +180,17 @@ void ui_renderer::render(renderer_context& context)
 	}, "ui_rendering_pass", context, get_render_basis_sort_order());
 }
 
-void ui_renderer::sprite_render(graphics_context& context, const std::vector<sprite_buffer_views>& vbvs, const std::vector<buffer_view>& ibvs)
+void ui_renderer::sprite_render(graphics_context& context, const std::vector<buffer_view>& ibvs)
 {
-	static const semantic base_vertex_semantic("POSITION", 0);
+	//	頂点ストリーム
+	ID3D11ShaderResourceView* vertex_streams[format_max] = {};
+	for (int format_index = 0; format_index < format_max; ++format_index)
+		vertex_streams[format_index] = vertex_buffer_views[format_index].srv.Get();
 
 	UINT buffer_index = 0;
 	graphics_pipeline_state_ptr current_pipeline_state;
 	for (auto& sprite_data : context.render_data->sprite_container.sprite_datas)
 	{
-		auto& vbs = vbvs[buffer_index];
 		auto& ibs = ibvs[buffer_index];
 		++buffer_index;
 
@@ -250,40 +223,12 @@ void ui_renderer::sprite_render(graphics_context& context, const std::vector<spr
 		current_pipeline_state->update_parameters(context, sprite->get_material(), &buffer_data);
 
 		//	頂点ストリーム設定
-		ID3D11Buffer* stream_buffers[D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT] = {};
-		UINT stream_strides[D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT] = {};
-		UINT stream_offsets[D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT] = {};
-		UINT stream_index = 0;
-		UINT base_vertex_location = 0;
-		for (auto& semantic : current_pipeline_state->get_semantic_list())
-		{
-			if (stream_index >= D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT)
-				break;
-			const buffer_view* view = nullptr;
-			if (semantic.first == format_datas[format_id::position].s)
-				view = &vbs.views[format_id::position];
-			else if (semantic.first == format_datas[format_id::color_0].s)
-				view = &vbs.views[format_id::color_0];
-			else if (semantic.first == format_datas[format_id::texcoord_0].s)
-				view = &vbs.views[format_id::texcoord_0];
-
-			if (view && view->buffer)
-			{
-				stream_buffers[stream_index] = view->buffer.Get();
-				stream_strides[stream_index] = static_cast<UINT>(view->stride_in_bytes);
-				stream_offsets[stream_index] = 0;
-				if (semantic.first == base_vertex_semantic)
-					base_vertex_location = static_cast<UINT>(view->offset());
-			}
-			++stream_index;
-		}
-		if (stream_index > 0)
-			context.set_vertex_buffers(0, stream_index, stream_buffers, stream_strides, stream_offsets);
+		context.set_vertex_streams(format_max, vertex_streams);
 
 		//	描画
 		context.set_index_buffer(ibs.buffer.Get(), ibs.format, 0);
 		context.set_primitive_topology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		context.device_context->DrawIndexed(static_cast<UINT>(ibs.count()), static_cast<UINT>(ibs.offset()), base_vertex_location);
+		context.device_context->DrawIndexed(static_cast<UINT>(ibs.count()), static_cast<UINT>(ibs.offset()), 0);
 	}
 	if (current_pipeline_state)
 		current_pipeline_state->end(context);

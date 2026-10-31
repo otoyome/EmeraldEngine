@@ -52,7 +52,6 @@ struct shader_define
 struct load_shader_cso
 {
 	std::string_view file_path;
-	std::vector<D3D11_INPUT_ELEMENT_DESC> input_element_desc;
 };
 
 struct load_shader_file
@@ -63,8 +62,6 @@ struct load_shader_file
 	UINT compile_flags;
 	std::vector<std::string_view> include_directries;	//	追加のインクルードディレクトリ
 	std::vector<shader_define> defines;	//	マクロ
-
-	std::vector<D3D11_INPUT_ELEMENT_DESC> input_element_desc;
 };
 
 struct shader_meta_data
@@ -168,8 +165,6 @@ public:
 	static shader_type get_static_type() { return shader_type::vertex; }
 	shader_type get_type() const override { return get_static_type(); }
 	Microsoft::WRL::ComPtr<ID3D11VertexShader> get_shader() const { return shader; }
-	const std::vector<D3D11_INPUT_ELEMENT_DESC>& get_input_element_desc() const { return input_element_desc; }
-	Microsoft::WRL::ComPtr<ID3D11InputLayout> get_input_layout() const { return input_layout; }
 
 public:
 	vertex_shader(load_shader_cso cso_data);
@@ -179,13 +174,9 @@ public:
 private:
 	bool load_from_cso(load_shader_cso cso_data) override;
 	bool load_from_file(load_shader_file file_data) override;
-	bool generate_input_layout(std::shared_ptr<void> shader_reflection);
 
 private:
-	bool is_set_input_element_desc = false;
-	std::vector<D3D11_INPUT_ELEMENT_DESC> input_element_desc;
 	Microsoft::WRL::ComPtr<ID3D11VertexShader> shader;
-	Microsoft::WRL::ComPtr<ID3D11InputLayout> input_layout;
 };
 
 class hull_shader : public shader_base

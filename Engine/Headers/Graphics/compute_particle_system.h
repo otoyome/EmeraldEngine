@@ -338,6 +338,7 @@ public:
 		particle_system_item::emitter_resource resource;
 		Microsoft::WRL::ComPtr<ID3D11Buffer> buffer;
 		Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> unordered_access_view;
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> shader_resource_view;
 	};
 
 	//	パーティクルイベント情報

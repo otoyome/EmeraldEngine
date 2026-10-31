@@ -54,8 +54,8 @@ static const uint BoneMax = BONE_MAX;
 #endif  //  defined(HAS_TANGENT)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-//  深度書き込み用
-struct VS_DEPTH_IN
+//  頂点入力(全パス共通。頂点はメッシュレット経由で読み込む)
+struct VS_MODEL_IN
 {
     float3 position;
     float3 normal;
@@ -66,6 +66,8 @@ struct VS_DEPTH_IN
     DECLARATION_IN_WEIGHTS
 };
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+//  深度書き込み用
 struct VS_DEPTH_OUT
 {
     float4 position : SV_POSITION;
@@ -78,16 +80,6 @@ struct VS_DEPTH_OUT
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 //  シャドウマップ生成用
-struct VS_SHADOW_MAP_IN
-{
-    float3 position;
-    float3 normal;
-    DECLARATION_IN_COLOR
-    DECLARATION_IN_TEXCOORD
-    DECLARATION_IN_JOINTS
-    DECLARATION_IN_WEIGHTS
-};
-
 struct VS_SHADOW_MAP_OUT
 {
     float4 position : SV_POSITION;
@@ -99,17 +91,6 @@ struct VS_SHADOW_MAP_OUT
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 //  GBuffer生成用
-struct VS_GBUFFER_IN
-{
-    float3 position;
-    float3 normal;
-    DECLARATION_IN_TANGENT
-    DECLARATION_IN_COLOR
-    DECLARATION_IN_TEXCOORD
-    DECLARATION_IN_JOINTS
-    DECLARATION_IN_WEIGHTS
-};
-
 struct VS_GBUFFER_OUT
 {
     float4 position : SV_POSITION;
@@ -128,8 +109,6 @@ struct VS_GBUFFER_OUT
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 //  フォワードレンダリング用
-#define VS_FORWARD_IN VS_GBUFFER_IN
-
 struct VS_FORWARD_OUT
 {
     float4 position : SV_POSITION;
@@ -390,6 +369,118 @@ float4 meshlet_load_weights3(MeshletContext context, uint local_vertex_index)
 	if (!meshlet_has_element(context, VERTEX_ELEMENT_WEIGHTS3))
 		return float4(0, 0, 0, 0);
 	return asfloat(meshlet_weights3.Load4(meshlet_element_vertex_index(context, VERTEX_ELEMENT_WEIGHTS3, local_vertex_index) * 16));
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+//	メッシュレット頂点情報読込
+VS_MODEL_IN load_vertex_pulled(MeshletContext meshlet_context, uint vertex_id)
+{
+    VS_MODEL_IN vin = (VS_MODEL_IN)0;
+    uint local_vertex_index = meshlet_resolve_local_vertex_index(meshlet_context, vertex_id);
+
+    vin.position = meshlet_load_position(meshlet_context, local_vertex_index);
+    vin.normal = meshlet_load_normal(meshlet_context, local_vertex_index);
+#if defined(HAS_TANGENT)
+    vin.tangent = meshlet_load_tangent(meshlet_context, local_vertex_index);
+#endif  //  defined(HAS_TANGENT)
+#if VERTEX_COLOR_MAX > 0
+    vin.color[0] = meshlet_load_color0(meshlet_context, local_vertex_index);
+#endif  //  VERTEX_COLOR_MAX > 0
+#if TEXCOORD_MAX > 0
+    vin.texcoord[0] = meshlet_load_texcoord0(meshlet_context, local_vertex_index);
+#endif  //  TEXCOORD_MAX > 0
+#if TEXCOORD_MAX > 1
+    vin.texcoord[1] = meshlet_load_texcoord1(meshlet_context, local_vertex_index);
+#endif  //  TEXCOORD_MAX > 1
+#if BONE_MAX > 0
+    vin.joints[0] = meshlet_load_joints0(meshlet_context, local_vertex_index);
+    vin.weights[0] = meshlet_load_weights0(meshlet_context, local_vertex_index);
+#endif  //  BONE_MAX > 0
+#if BONE_MAX > 4
+    vin.joints[1] = meshlet_load_joints1(meshlet_context, local_vertex_index);
+    vin.weights[1] = meshlet_load_weights1(meshlet_context, local_vertex_index);
+#endif  //  BONE_MAX > 4
+#if BONE_MAX > 8
+    vin.joints[2] = meshlet_load_joints2(meshlet_context, local_vertex_index);
+    vin.weights[2] = meshlet_load_weights2(meshlet_context, local_vertex_index);
+#endif  //  BONE_MAX > 8
+#if BONE_MAX > 12
+    vin.joints[3] = meshlet_load_joints3(meshlet_context, local_vertex_index);
+    vin.weights[3] = meshlet_load_weights3(meshlet_context, local_vertex_index);
+#endif  //  BONE_MAX > 12
+
+    return vin;
+}
+
+//	頂点を読み込んでモーフを適用する(全パス共通)
+VS_MODEL_IN load_model_vertex(MeshletContext meshlet_context, uint vertex_id)
+{
+    VS_MODEL_IN vin = load_vertex_pulled(meshlet_context, vertex_id);
+
+#if defined(HAS_MORPH)  //  モーフィング対応
+    uint local_vertex_index_for_morph = meshlet_resolve_local_vertex_index(meshlet_context, vertex_id);
+    apply_morph_position(meshlet_context, vin.position, local_vertex_index_for_morph);
+    apply_morph_normal(meshlet_context, vin.normal, local_vertex_index_for_morph);
+#endif  //  defined(HAS_MORPH)
+
+    return vin;
+}
+
+//	スキニング後のワールド空間の頂点(正規化はパスごとに行う)
+struct ModelVertex
+{
+    float3 position;
+    float3 normal;
+#if defined(HAS_TANGENT)
+    float3 tangent;
+#endif  //  defined(HAS_TANGENT)
+};
+
+//	現在のボーンでスキニングする(全パス共通)
+ModelVertex skin_model_vertex(MeshletContext meshlet_context, VS_MODEL_IN vin)
+{
+    ModelVertex vertex;
+#if BONE_MAX > 0
+    vertex.position = 0;
+    vertex.normal = 0;
+#if defined(HAS_TANGENT)
+    vertex.tangent = 0;
+#endif  //  defined(HAS_TANGENT)
+    [unroll] for (uint index = 0; index < BoneMax; ++index)
+    {
+        uint bone_index = vin.joints[index / 4][index % 4];
+        float bone_weight = vin.weights[index / 4][index % 4];
+        vertex.position += mul(float4(vin.position, 1), get_bone_transform(meshlet_context, bone_index)).xyz * bone_weight;
+        vertex.normal += mul(float4(vin.normal, 0), get_bone_transform(meshlet_context, bone_index)).xyz * bone_weight;
+#if defined(HAS_TANGENT)
+        vertex.tangent += mul(float4(vin.tangent.xyz, 0), get_bone_transform(meshlet_context, bone_index)).xyz * bone_weight;
+#endif  //  defined(HAS_TANGENT)
+    }
+#else  //  BONE_MAX > 0
+    vertex.position = vin.position;
+    vertex.normal = vin.normal;
+#if defined(HAS_TANGENT)
+    vertex.tangent = vin.tangent.xyz;
+#endif  //  defined(HAS_TANGENT)
+#endif  //  BONE_MAX > 0
+    return vertex;
+}
+
+//	前フレームのボーンでスキニングした座標
+float3 skin_previous_position(MeshletContext meshlet_context, VS_MODEL_IN vin)
+{
+#if BONE_MAX > 0
+    float3 previous_position = 0;
+    [unroll] for (uint index = 0; index < BoneMax; ++index)
+    {
+        uint bone_index = vin.joints[index / 4][index % 4];
+        float bone_weight = vin.weights[index / 4][index % 4];
+        previous_position += mul(float4(vin.position, 1), get_previous_bone_transform(meshlet_context, bone_index)).xyz * bone_weight;
+    }
+    return previous_position;
+#else  //  BONE_MAX > 0
+    return vin.position;
+#endif  //  BONE_MAX > 0
 }
 
 

@@ -96,6 +96,9 @@
     <ClInclude Include="Headers\light.h">
       <Filter>Headers</Filter>
     </ClInclude>
+    <ClInclude Include="Headers\material_shader_map.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
     <ClInclude Include="Headers\material.h">
       <Filter>Headers</Filter>
     </ClInclude>
@@ -393,6 +396,9 @@
       <Filter>Sources</Filter>
     </ClCompile>
     <ClCompile Include="Sources\model_collision_builder.cpp">
+      <Filter>Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\material_shader_map.cpp">
       <Filter>Sources</Filter>
     </ClCompile>
     <ClCompile Include="Sources\material.cpp">

@@ -98,8 +98,6 @@ public:
 	template<typename Shader>
 	inline std::shared_ptr<Shader>& get_shader() const {return get_internal_shader<Shader>();}
 
-	const std::vector<std::pair<semantic, UINT>>& get_semantic_list() const {return semantic_list;}
-
 	void set_stencil_ref(UINT stencil_ref) {this->stencil_ref = stencil_ref;}
 	UINT get_stencil_ref() const { return stencil_ref; }
 
@@ -138,8 +136,6 @@ private:
 	constant_buffer_data forward_light_buffer_data;
 	constant_buffer_data shadow_map_buffer_data;
 	constant_buffer_data parameter_buffer_data[magic_enum::enum_count<arrangement>()];
-
-	std::vector<std::pair<semantic, UINT>> semantic_list;
 
 	//	–{—ˆ‚Í–³‚­‚Ä—Ç‚¢B—Ç‚¢‚Ì‚¾‚ª–Ê“|‚È‚Ì‚Å‚±‚±‚Å‚â‚é
 	struct primitive_datas

@@ -21,11 +21,8 @@ public:
 	void update_parameters(const graphics_context& context, const material& material, const buffer_datas* buffer_data) override;
 	void end(const graphics_context& context) override;
 
-	const std::vector<std::pair<semantic, UINT>>& get_semantic_list() const {return semantic_list;}
-
 private:
 	std::shared_ptr<vertex_shader> vs;
-	std::vector<std::pair<semantic, UINT>> semantic_list;
 
 	Microsoft::WRL::ComPtr<ID3D11DepthStencilState> depth_stencil_states;
 	Microsoft::WRL::ComPtr<ID3D11BlendState> blend_states;

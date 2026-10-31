@@ -16,13 +16,6 @@ namespace
 	static constexpr UINT BaseMapIndex = 10;
 	static constexpr UINT NormalDepthMapIndex = 11;
 	static constexpr UINT UniqueMapIndex = 12;
-
-	//	☆ﾃｷﾄｰ('ω')ｰﾄｷﾃ☆
-	void register_input_element_stream_vertex(std::vector<D3D11_INPUT_ELEMENT_DESC>& descs, LPCSTR semantic_name, UINT semantic_index, DXGI_FORMAT format, UINT& stream_index)
-	{
-		descs.emplace_back(D3D11_INPUT_ELEMENT_DESC{ semantic_name, semantic_index, format, stream_index, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 });
-		++stream_index;
-	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -33,19 +26,7 @@ deferred_decal_stencil_write_pipeline_state::deferred_decal_stencil_write_pipeli
 
 	load_shader_cso vs_desc;
 	vs_desc.file_path = "Assets/CSO/gbuffer_decal_primitive_vs.cso";
-	{
-		UINT stream_index = 0;
-		register_input_element_stream_vertex(vs_desc.input_element_desc, "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, stream_index);
-		register_input_element_stream_vertex(vs_desc.input_element_desc, "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, stream_index);
-	}
 	shader_manager::instance()->load_shader<vertex_shader>(vs, vs_desc);
-
-	//	セマンティックリスト作成
-	semantic_list.clear();
-	for (auto& element_desc : vs->get_input_element_desc())
-	{
-		semantic_list.emplace_back(std::make_pair(semantic(element_desc.SemanticName, element_desc.SemanticIndex), graphics_utility::get_byte_offset_from_format(element_desc.Format)));
-	}
 
 	//	深度ステンシルステート
 	{
@@ -115,7 +96,7 @@ void deferred_decal_stencil_write_pipeline_state::begin(const graphics_context& 
 	context.device_context->DSSetShader(nullptr, nullptr, 0);
 	context.device_context->GSSetShader(nullptr, nullptr, 0);
 	context.device_context->PSSetShader(nullptr, nullptr, 0);
-	context.device_context->IASetInputLayout(vs->get_input_layout().Get());
+	context.device_context->IASetInputLayout(nullptr);
 	context.device_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 	//	ステート設定

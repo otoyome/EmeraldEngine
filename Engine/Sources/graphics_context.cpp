@@ -145,6 +145,11 @@ void graphics_context::set_index_buffer(ID3D11Buffer* buffer, DXGI_FORMAT format
 	chache_index_buffer_offset = offset;
 }
 
+void graphics_context::set_vertex_streams(UINT num_streams, ID3D11ShaderResourceView* const* streams) const
+{
+	device_context->VSSetShaderResources(common_pipeline_states::vertex_stream_srv_index, num_streams, streams);
+}
+
 void graphics_context::clear_shader_slots() const
 {
 	device_context->VSSetShader(nullptr, nullptr, 0);

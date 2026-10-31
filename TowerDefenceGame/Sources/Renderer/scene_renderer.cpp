@@ -1440,9 +1440,7 @@ void debug_draw_pass_renderer::render(renderer_context& context)
 			{
 				auto& mesh = context.render_data->debug_draw_container.line_buffer_datas[index].color_meshs[0];
 				auto it = mesh.vertex_buffer_views->begin();
-				UINT stride = static_cast<UINT>(it->second.stride_in_bytes);
-				UINT offset = static_cast<UINT>(it->second.offset());
-				context.set_vertex_buffers(0, 1, it->second.buffer.GetAddressOf(), &stride, &offset);
+				context.set_vertex_streams(1, it->second.srv.GetAddressOf());
 
 				context.device_context->Draw(static_cast<UINT>(it->second.count()), 0);
 			}

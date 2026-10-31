@@ -1,20 +1,5 @@
 #include "PipelineState/debug_draw_line_pipeline_state.h"
 
-namespace
-{
-	//	☆ﾃｷﾄｰ('ω')ｰﾄｷﾃ☆
-	void register_input_element_vertex(std::vector<D3D11_INPUT_ELEMENT_DESC>& descs, LPCSTR semantic_name, UINT semantic_index, DXGI_FORMAT format, UINT& byte_offset)
-	{
-		descs.emplace_back(D3D11_INPUT_ELEMENT_DESC{ semantic_name, semantic_index, format, 0, byte_offset, D3D11_INPUT_PER_VERTEX_DATA, 0 });
-		byte_offset += graphics_utility::get_byte_offset_from_format(format);
-	}
-	void register_input_element_stream_vertex(std::vector<D3D11_INPUT_ELEMENT_DESC>& descs, LPCSTR semantic_name, UINT semantic_index, DXGI_FORMAT format, UINT& stream_index)
-	{
-		descs.emplace_back(D3D11_INPUT_ELEMENT_DESC{ semantic_name, semantic_index, format, stream_index, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 });
-		++stream_index;
-	}
-}
-
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 debug_draw_line_pipeline_state::debug_draw_line_pipeline_state(bool depth_test)
 : graphics_pipeline_state()
@@ -23,11 +8,6 @@ debug_draw_line_pipeline_state::debug_draw_line_pipeline_state(bool depth_test)
 
 	load_shader_cso vs_desc;
 	vs_desc.file_path = "Assets/CSO/debug_draw_line_vs.cso";
-	{
-		UINT byte_offset = 0;
-		register_input_element_vertex(vs_desc.input_element_desc, "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, byte_offset);
-		register_input_element_vertex(vs_desc.input_element_desc, "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, byte_offset);
-	}
 	shader_manager::instance()->load_shader<vertex_shader>(vs, vs_desc);
 
 	load_shader_cso ps_desc;
@@ -96,7 +76,7 @@ void debug_draw_line_pipeline_state::begin(const graphics_context& context)
 	context.device_context->DSSetShader(nullptr, nullptr, 0);
 	context.device_context->GSSetShader(nullptr, nullptr, 0);
 	context.device_context->PSSetShader(ps->get_shader().Get(), nullptr, 0);
-	context.device_context->IASetInputLayout(vs->get_input_layout().Get());
+	context.device_context->IASetInputLayout(nullptr);
 	context.device_context->IASetPrimitiveTopology(D3D10_PRIMITIVE_TOPOLOGY_LINELIST);
 
 	//	ステート設定
