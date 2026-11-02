@@ -4,11 +4,6 @@
 #ifndef __GLTF_HLSL__
 #define __GLTF_HLSL__
 
-#define HAS_TANGENT
-#define VERTEX_COLOR_MAX    1
-#define TEXCOORD_MAX        1
-#define BONE_MAX            16
-#define HAS_MORPH
 #include "model.hlsli"
 
 #include "material_parameter_constant_buffer.hlsli"
@@ -52,7 +47,7 @@ SurfaceData surface(VS_OUT pin, bool is_front_face)
 
     //	自己発光色を取得
     data.emissive_color = emissive_color_factor;
-    if (HAS_RESOURCE(EmissiveMap))
+    if (HAS_TEXTURE(EmissiveMap))
     {
         data.emissive_color *= TEXTURE2D_SAMPLE(EmissiveMap, pin.texcoord[BaseTexcoord]).rgb;
     }
@@ -75,7 +70,7 @@ SurfaceData surface(VS_OUT pin, bool is_front_face)
         N = -N;
     }
     //	法線マッピング
-    if (HAS_RESOURCE(NormalMap))
+    if (HAS_TEXTURE(NormalMap))
     {
         float4 sampled = TEXTURE2D_SAMPLE(NormalMap, pin.texcoord[BaseTexcoord]);
         float3 normal_factor = (sampled.xyz * 2.0f) - 1.0f;
@@ -87,7 +82,7 @@ SurfaceData surface(VS_OUT pin, bool is_front_face)
 	//	金属質/粗さを取得
     data.roughness = saturate(roughness_factor);
     data.metalness = saturate(metallic_factor);
-    if (HAS_RESOURCE(RoughnessMetallicMap))
+    if (HAS_TEXTURE(RoughnessMetallicMap))
     {
         float4 sampled = TEXTURE2D_SAMPLE(RoughnessMetallicMap, pin.texcoord[BaseTexcoord]);
         data.roughness *= sampled.g;
@@ -96,7 +91,7 @@ SurfaceData surface(VS_OUT pin, bool is_front_face)
 
 	//	光の遮蔽値を取得
     data.occlusion_factor = 1.0f;
-    if (HAS_RESOURCE(OcclusionMap))
+    if (HAS_TEXTURE(OcclusionMap))
     {
         float4 sampled = TEXTURE2D_SAMPLE(OcclusionMap, pin.texcoord[BaseTexcoord]);
         data.occlusion_factor *= sampled.r;
@@ -129,5 +124,3 @@ float surface_opacity(VS_OUT pin, bool is_front_face)
 #endif	//	defined(MATERIAL_SURFACE_OPACITY)
 
 #endif	//	__GLTF_HLSL__
-
-#include "surface_pass.hlsli"

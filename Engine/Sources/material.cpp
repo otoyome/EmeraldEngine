@@ -1,4 +1,5 @@
 #include "material.h"
+#include "material_shader_map.h"
 #include "texture.h"
 #include "render_data.h"
 
@@ -30,6 +31,37 @@ namespace
 		}
 		return false;
 	}
+
+	//	マテリアルが使えない時に表示するマテリアルシェーダー
+	constexpr std::string_view failed_shader_path = "Shaders/Materials/3d_failed.hlsl";
+
+	//	material::surface_paths(マテリアルでの並び)を material_shader_map::surface_passes に変換
+	material_shader_map::surface_passes to_surface_pass(material::surface_paths path)
+	{
+		switch (path)
+		{
+			case material::surface_paths::depth_write_pass: return material_shader_map::surface_passes::depth_write;
+			case material::surface_paths::shadow_write_pass: return material_shader_map::surface_passes::shadow_write;
+			case material::surface_paths::forward_pass: return material_shader_map::surface_passes::forward;
+			default: return material_shader_map::surface_passes::g_buffer;
+		}
+	}
+
+	//	旧形式(バージョン1)の PSO 名の接頭辞と、移行先のマテリアルシェーダー
+	struct legacy_pipeline_state_prefix
+	{
+		std::string_view prefix;
+		std::string_view shader_path;
+	};
+	constexpr legacy_pipeline_state_prefix legacy_pipeline_state_prefixes[] =
+	{
+		{ "toon_",				"Shaders/Materials/toon.hlsl" },
+		{ "gltf_",				"Shaders/Materials/gltf.hlsl" },
+		{ "pmx_",				"Shaders/Materials/pmx.hlsl" },
+		{ "ggst_",				"Shaders/Materials/ggst.hlsl" },
+		{ "edit_model_color_",	"Shaders/Materials/edit_model_color.hlsl" },
+		{ "3d_failed_",			"Shaders/Materials/3d_failed.hlsl" },
+	};
 }
 
 // CEREALバージョン定義
@@ -39,7 +71,7 @@ CEREAL_CLASS_VERSION(material::constant_buffer, 1)
 CEREAL_CLASS_VERSION(material::shader_resource, 1)
 CEREAL_CLASS_VERSION(material::shader_resource::resource, 1)
 CEREAL_CLASS_VERSION(material::physical_datas, 1)
-CEREAL_CLASS_VERSION(material, 1)
+CEREAL_CLASS_VERSION(material, 2)
 
 template<class Archive>
 void material::pipeline_state::serialize(Archive& archive, int version)
@@ -171,6 +203,15 @@ void material::serialize(Archive& archive, int version)
 			CEREAL_NVP(pipeline_states),
 			CEREAL_NVP(shader_resources),
 			CEREAL_NVP(constant_buffers));
+
+	//	バージョン2:マテリアルシェーダーと静的スイッチ
+	if (version >= 2)
+		archive(CEREAL_NVP(shader_path), CEREAL_NVP(static_switches));
+	if constexpr (Archive::is_loading::value)
+	{
+		if (version < 2)
+			convert_legacy_pipeline_state_names();
+	}
 }
 
 template<>
@@ -189,6 +230,10 @@ void material::serialize<cereal::BinaryOutputArchive>(cereal::BinaryOutputArchiv
 			CEREAL_NVP(pipeline_states),
 			CEREAL_NVP(shader_resources),
 			CEREAL_NVP(constant_buffers));
+
+	//	バージョン2:マテリアルシェーダーと静的スイッチ
+	if (version >= 2)
+		archive(CEREAL_NVP(shader_path), CEREAL_NVP(static_switches));
 }
 
 template<>
@@ -207,6 +252,12 @@ void material::serialize<cereal::BinaryInputArchive>(cereal::BinaryInputArchive&
 			CEREAL_NVP(pipeline_states),
 			CEREAL_NVP(shader_resources),
 			CEREAL_NVP(constant_buffers));
+
+	//	バージョン2:マテリアルシェーダーと静的スイッチ
+	if (version >= 2)
+		archive(CEREAL_NVP(shader_path), CEREAL_NVP(static_switches));
+	else
+		convert_legacy_pipeline_state_names();
 }
 
 void material::duplicate(material& material) const
@@ -214,11 +265,20 @@ void material::duplicate(material& material) const
 	std::stringstream iostream;
 	serialize_stream(iostream);
 	material.deserialize_stream(iostream);
+	material.vertex_format = vertex_format;
 	material.build();
 }
 
 void material::build()
 {
+	//	マテリアルシェーダーを使う場合は、シェーダーパスと静的パラメーターからパイプラインステートを決める
+	if (uses_material_shader())
+	{
+		refresh_pipeline_states();
+		build_parameters();
+		return;
+	}
+
 	//	パイプラインステート登録
 	for (auto& pipeline_state : pipeline_states)
 	{
@@ -259,15 +319,27 @@ void material::build_parameters()
 	shader_resources.clear();
 	constant_buffers.clear();
 
+	//	パラメーター構成の元にするパイプラインステート(マテリアルシェーダーは全スイッチ ON の構成から取る)
+	std::vector<graphics_pipeline_state_ptr> parameter_sources;
+	if (uses_material_shader())
+	{
+		material_shader_map::instance()->get_parameter_pipeline_states(shader_path, parameter_sources);
+	}
+	else
+	{
+		for (auto& pipeline_state : pipeline_states)
+		{
+			if (pipeline_state.is_valid())
+				parameter_sources.emplace_back(pipeline_state.value);
+		}
+	}
+
 	//	パイプラインステートから入力リソース情報を取得
 	input_resource_desc resource_desc;
-	for (auto& pipeline_state : pipeline_states)
+	for (auto& parameter_source : parameter_sources)
 	{
-		if (!pipeline_state.is_valid())
-			continue;
-
 		std::vector<input_resource_desc> descs;
-		pipeline_state.value->generate_input_resource_descs(descs);
+		parameter_source->generate_input_resource_descs(descs);
 
 		//	名前が一緒の物は除外するようにしておく
 		for (auto& desc : descs)
@@ -513,6 +585,10 @@ void material::set_domain(material::domains domain)
 	}
 
 	pipeline_states.resize(size);
+
+	//	マテリアルシェーダーを設定済みなら取り直す
+	if (uses_material_shader())
+		refresh_pipeline_states();
 }
 
 material::blend_modes material::get_blend_mode() const
@@ -522,7 +598,210 @@ material::blend_modes material::get_blend_mode() const
 
 void material::set_blend_mode(blend_modes blend_mode)
 {
+	if (this->blend_mode == blend_mode)
+		return;
+
 	this->blend_mode = blend_mode;
+
+	//	ブレンドモードで使うパスと PS の有無が変わる
+	if (uses_material_shader())
+		refresh_pipeline_states();
+}
+
+void material::set_flag(flags flag, bool value)
+{
+	const bool changed = is_flag(flag) != value;
+	system_utility::set_bitflag(system_flags, 1 << static_cast<UINT>(flag), value);
+
+	//	影を落とすかで影のパスを使うかが変わる
+	if (changed && flag == flags::shadow_caster && uses_material_shader())
+		refresh_pipeline_states();
+}
+
+bool material::uses_material_shader() const
+{
+	return domain == domains::surface && !shader_path.empty();
+}
+
+void material::set_shader_path(std::string_view path)
+{
+	std::string value = std::string(path);
+	std::replace(value.begin(), value.end(), '\\', '/');
+	if (shader_path == value)
+		return;
+
+	shader_path = std::move(value);
+	static_switches.clear();
+
+	//	前に設定されていたパイプラインステートは使わない
+	for (UINT index = 0; index < static_cast<UINT>(pipeline_states.size()); ++index)
+		assign_pipeline_state(index, "", nullptr, true);
+
+	if (uses_material_shader())
+	{
+		refresh_pipeline_states();
+		build_parameters();
+	}
+}
+
+void material::set_static_switch(std::string_view name, bool value)
+{
+	const auto* shader_declaration = material_shader_map::instance()->find_declaration(shader_path);
+	if (!shader_declaration)
+		return;
+
+	auto it = std::find_if(shader_declaration->static_switches.begin(), shader_declaration->static_switches.end(),
+		[&](const material_shader_map::static_switch_declaration& item) { return item.name == name; });
+	if (it == shader_declaration->static_switches.end() || !it->texture.empty())
+		return;
+
+	//	既定値と同じなら設定を残さない
+	if (value == it->default_value)
+		static_switches.erase(it->name);
+	else
+		static_switches[it->name] = value;
+
+	refresh_pipeline_states();
+}
+
+void material::set_vertex_format(const material_shader_map::vertex_format& value)
+{
+	if (vertex_format == value)
+		return;
+
+	vertex_format = value;
+	refresh_pipeline_states();
+}
+
+bool material::get_static_switch(std::string_view name) const
+{
+	const auto* shader_declaration = material_shader_map::instance()->find_declaration(shader_path);
+	if (!shader_declaration)
+		return false;
+
+	for (auto& item : shader_declaration->static_switches)
+	{
+		if (item.name != name)
+			continue;
+
+		//	テクスチャで決まるスイッチは、テクスチャが設定されているか
+		if (!item.texture.empty())
+		{
+			auto it = shader_resources.find(item.texture);
+			return it != shader_resources.end() && !it->second.resources.empty() && !it->second.resources[0].path.empty();
+		}
+
+		auto it = static_switches.find(item.name);
+		return it != static_switches.end() ? it->second : item.default_value;
+	}
+	return false;
+}
+
+void material::refresh_pipeline_states()
+{
+	if (!uses_material_shader())
+		return;
+
+	material_shader_map* shader_map = material_shader_map::instance();
+	const auto* shader_declaration = shader_map->find_declaration(shader_path);
+
+	//	静的スイッチを宣言の並び順のビットにする
+	std::uint64_t switch_bits = 0;
+	if (shader_declaration)
+	{
+		for (std::size_t index = 0; index < shader_declaration->static_switches.size(); ++index)
+		{
+			if (get_static_switch(shader_declaration->static_switches[index].name))
+				switch_bits |= 1ull << index;
+		}
+	}
+
+	const bool is_opaque = blend_mode == blend_modes::opaque || blend_mode == blend_modes::mask;
+	const bool is_translucent = blend_mode == blend_modes::translucent || blend_mode == blend_modes::addative;
+
+	const std::size_t size = magic_enum::enum_count<surface_paths>() + 1;
+	if (pipeline_states.size() < size)
+		pipeline_states.resize(size);
+
+	for (auto path : magic_enum::enum_values<surface_paths>())
+	{
+		//	描画で使うパスだけ生成
+		bool required = false;
+		switch (path)
+		{
+			case surface_paths::depth_write_pass:
+			case surface_paths::g_buffer_pass: required = is_opaque; break;
+			case surface_paths::forward_pass: required = is_translucent; break;
+			case surface_paths::shadow_write_pass: required = is_flag(flags::shadow_caster); break;
+		}
+
+		graphics_pipeline_state_ptr value;
+		if (required && shader_declaration)
+		{
+			material_shader_map::request request;
+			request.shader_path = shader_path;
+			request.pass = to_surface_pass(path);
+			request.switch_bits = switch_bits;
+			request.vertex = vertex_format;
+			request.pixel = blend_mode == blend_modes::mask;
+			value = shader_map->get_pipeline_state(request);
+		}
+		assign_pipeline_state(static_cast<UINT>(path), value ? value->get_name() : "", value, required);
+	}
+
+#if defined(USE_IMGUI)
+	error_state_cached_ = false;
+#endif	//	defined(USE_IMGUI)
+}
+
+void material::assign_pipeline_state(UINT index, std::string_view name, graphics_pipeline_state_ptr value, bool required)
+{
+	if (index >= pipeline_states.size())
+		pipeline_states.resize(index + 1);
+
+	auto& target = pipeline_states[index];
+	target.name = std::string(name);
+	target.required = required;
+	if (target.value == value)
+		return;
+
+#if defined(USE_IMGUI)
+	if (target.value)
+		target.value->unregister_reload_callback(target.reload_callback_id);
+#endif	//	defined(USE_IMGUI)
+
+	target.value = value;
+
+#if defined(USE_IMGUI)
+	if (target.value)
+		target.reload_callback_id = target.value->register_reload_callback([this](const pipeline_state_base* ps) { on_updates(ps); });
+#endif	//	defined(USE_IMGUI)
+}
+
+void material::convert_legacy_pipeline_state_names()
+{
+	if (domain != domains::surface || !shader_path.empty())
+		return;
+
+	for (auto& pipeline_state : pipeline_states)
+	{
+		for (auto& legacy : legacy_pipeline_state_prefixes)
+		{
+			if (pipeline_state.name.compare(0, legacy.prefix.size(), legacy.prefix) == 0)
+			{
+				shader_path = std::string(legacy.shader_path);
+				break;
+			}
+		}
+		if (!shader_path.empty())
+			break;
+	}
+
+	if (!shader_path.empty())
+	{
+		for (auto& pipeline_state : pipeline_states)
+			pipeline_state.name.clear();
+	}
 }
 
 material::shading_models material::get_shading_model() const
@@ -770,14 +1049,13 @@ graphics_pipeline_state_ptr material::get_pipeline_state(domains domain, UINT in
 		{
 			case domains::surface:
 			{
-				switch (index)
-				{
-					case static_cast<UINT>(surface_paths::depth_write_pass): return instance->search("3d_failed_depth");
-					case static_cast<UINT>(surface_paths::shadow_write_pass): return instance->search("3d_failed_shadowmap");
-					case static_cast<UINT>(surface_paths::g_buffer_pass): return instance->search("3d_failed_gbuffer");
-					case static_cast<UINT>(surface_paths::forward_pass): return instance->search("3d_failed_forward");
-				}
-				break;
+				//	エラー表示用のマテリアルシェーダーで描く
+				material_shader_map::request request;
+				request.shader_path = failed_shader_path;
+				request.pass = to_surface_pass(static_cast<surface_paths>(index));
+				request.vertex = vertex_format;
+				request.pixel = false;
+				return material_shader_map::instance()->get_pipeline_state(request);
 			}
 			case domains::deferred_decal:
 			{
@@ -890,6 +1168,10 @@ bool material::set_texture(std::string_view key_name, texture_ptr value)
 		resource.is_file_path_or_key = value->is_file_path_or_key();
 		resource.path = std::string(value->get_file_path_or_key());
 		resource.value = value;
+
+		//	テクスチャの有無で決まる静的スイッチがあるので取り直す
+		if (uses_material_shader())
+			refresh_pipeline_states();
 		return true;
 	}
 	return false;
@@ -933,7 +1215,9 @@ void material::serialize_stream(std::stringstream& ostream) const
 				CEREAL_NVP(system_flags),
 				CEREAL_NVP(alpha_clip_threshold),
 				CEREAL_NVP(shader_resources),
-				CEREAL_NVP(constant_buffers));
+				CEREAL_NVP(constant_buffers),
+				CEREAL_NVP(shader_path),
+				CEREAL_NVP(static_switches));
 	}
 	catch (...)
 	{
@@ -961,7 +1245,9 @@ void material::deserialize_stream(std::stringstream& istream)
 				CEREAL_NVP(system_flags),
 				CEREAL_NVP(alpha_clip_threshold),
 				CEREAL_NVP(shader_resources),
-				CEREAL_NVP(constant_buffers));
+				CEREAL_NVP(constant_buffers),
+				CEREAL_NVP(shader_path),
+				CEREAL_NVP(static_switches));
 	}
 	catch (...)
 	{
@@ -992,6 +1278,10 @@ bool material::is_error() const
 	for (UINT index = 0; index < size; ++index)
 	{
 		auto& pipeline_state = pipeline_states[index];
+
+		//	描画で使わないパスは調べない
+		if (!pipeline_state.required)
+			continue;
 
 		if (!pipeline_state.value)
 			return true;

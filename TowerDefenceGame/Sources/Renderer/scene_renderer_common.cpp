@@ -44,6 +44,38 @@ namespace
 		context.device_context->VSSetShaderResources(102, 16, attribute_srvs);
 	}
 
+	//	@tool 1つのメッシュレットを描くビューの数(影はカスケードの数だけインスタンスを増やして描く)
+	UINT get_view_count(const graphics_context& context)
+	{
+		if (!context.is_shadow_rendering)
+			return 1;
+		return std::max(context.shadow_map_constant.shadow_map_count, 1u);
+	}
+
+	//	@tool 影の VS がカスケードごとにカリングできるよう、ワールド空間の境界球をレコードに入れる
+	void set_record_bounds(common_pipeline_states::meshlet_instance_record& record,
+						   const math::float4x4& world_transform,
+						   const math::float3& local_center,
+						   float local_radius,
+						   bool apply_culling)
+	{
+		if (!apply_culling)
+		{
+			record.no_cull = 1;
+			return;
+		}
+
+		record.bounds_center = math::vector3f::transform_coord(local_center, world_transform).to_float3();
+
+		float scale_x = sqrtf(world_transform._11 * world_transform._11 + world_transform._12 * world_transform._12 + world_transform._13 * world_transform._13);
+		float scale_y = sqrtf(world_transform._21 * world_transform._21 + world_transform._22 * world_transform._22 + world_transform._23 * world_transform._23);
+		float scale_z = sqrtf(world_transform._31 * world_transform._31 + world_transform._32 * world_transform._32 + world_transform._33 * world_transform._33);
+		float scale = scale_x;
+		if (scale_y > scale) scale = scale_y;
+		if (scale_z > scale) scale = scale_z;
+		record.bounds_radius = local_radius * scale;
+	}
+
 	//	ローカル空間のメッシュレット境界球をワールド変換し、視錐台と交差するか判定する
 	bool is_meshlet_visible(const collision::frustum_culling& frustum_culling,
 							 const math::float4x4& world_transform,
@@ -215,6 +247,7 @@ void scene_renderer_commons::draw_indexed(const graphics_context& context,
 		record.triangle_offset = meshlet.triangle_offset;
 		record.triangle_count = meshlet.triangle_count;
 		record.primitive_index = primitive_index;
+		set_record_bounds(record, buffer_data.world_transform, meshlet.bounds_center, meshlet.bounds_radius, apply_meshlet_frustum_culling);
 	}
 
 	if (instance_records.empty())
@@ -231,7 +264,7 @@ void scene_renderer_commons::draw_indexed(const graphics_context& context,
 	context.device_context->UpdateSubresource(batch_buffer, 0, &box, instance_records.data(), 0, 0);
 
 	context.device_context->VSSetShaderResources(118, 1, &batch_srv);
-	context.device_context->DrawInstanced(meshlet_culling_system::max_meshlet_vertices_per_draw, static_cast<UINT>(instance_records.size()), 0, 0);
+	context.device_context->DrawInstanced(meshlet_culling_system::max_meshlet_vertices_per_draw, static_cast<UINT>(instance_records.size()) * get_view_count(context), 0, 0);
 }
 
 void scene_renderer_commons::draw_geometric_primitive(const graphics_context& context, const geometric_primitive& primitive)
@@ -465,6 +498,7 @@ void scene_renderer_commons::model_render_shadow_batched(graphics_context& conte
 			record.triangle_offset = meshlet.triangle_offset;
 			record.triangle_count = meshlet.triangle_count;
 			record.primitive_index = draw_data->buffer_index;
+			set_record_bounds(record, buffer_data->world_transform, meshlet.bounds_center, meshlet.bounds_radius, apply_meshlet_frustum_culling);
 		}
 	}
 
@@ -501,7 +535,7 @@ void scene_renderer_commons::model_render_shadow_batched(graphics_context& conte
 			context.device_context->UpdateSubresource(batch_buffer, 0, &box, batch.instance_records.data(), 0, 0);
 
 			context.device_context->VSSetShaderResources(118, 1, &batch_srv);
-			context.device_context->DrawInstanced(meshlet_culling_system::max_meshlet_vertices_per_draw, static_cast<UINT>(batch.instance_records.size()), 0, 0);
+			context.device_context->DrawInstanced(meshlet_culling_system::max_meshlet_vertices_per_draw, static_cast<UINT>(batch.instance_records.size()) * get_view_count(context), 0, 0);
 
 			batch.pipeline_state->end(context);
 		}
@@ -574,6 +608,7 @@ void scene_renderer_commons::model_render_shadow_batched(graphics_context& conte
 			record.triangle_offset = meshlet.triangle_offset;
 			record.triangle_count = meshlet.triangle_count;
 			record.primitive_index = draw_data->buffer_index;
+			set_record_bounds(record, buffer_data->world_transform, meshlet.bounds_center, meshlet.bounds_radius, apply_meshlet_culling);
 		}
 	}
 
@@ -610,7 +645,7 @@ void scene_renderer_commons::model_render_shadow_batched(graphics_context& conte
 			context.device_context->UpdateSubresource(batch_buffer, 0, &box, batch.instance_records.data(), 0, 0);
 
 			context.device_context->VSSetShaderResources(118, 1, &batch_srv);
-			context.device_context->DrawInstanced(meshlet_culling_system::max_meshlet_vertices_per_draw, static_cast<UINT>(batch.instance_records.size()), 0, 0);
+			context.device_context->DrawInstanced(meshlet_culling_system::max_meshlet_vertices_per_draw, static_cast<UINT>(batch.instance_records.size()) * get_view_count(context), 0, 0);
 
 			batch.pipeline_state->end(context);
 		}

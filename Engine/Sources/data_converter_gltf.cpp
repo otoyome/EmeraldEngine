@@ -572,14 +572,7 @@ namespace
 			material.set_flag(material::flags::two_sided, gltf_material.double_sided);
 
 			//	デフォルトシェーダー設定
-			material::set_surface_pipeline_states_desc descs[] =
-			{
-				{material::surface_paths::depth_write_pass, "gltf_depth"},
-				{material::surface_paths::g_buffer_pass, "gltf_gbuffer"},
-				{material::surface_paths::shadow_write_pass, "gltf_shadowmap"},
-				{material::surface_paths::forward_pass, "gltf_forward"},
-			};
-			material.set_pipeline_state(descs, ARRAYSIZE(descs));
+			material.set_shader_path("Shaders/Materials/gltf.hlsl");
 
 			material.set_float4("base_color_factor", gltf_material.base_color);
 			if (slots.base_texture)

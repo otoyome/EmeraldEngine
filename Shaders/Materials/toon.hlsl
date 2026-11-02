@@ -6,11 +6,6 @@
 #ifndef __TOON_HLSL__
 #define __TOON_HLSL__
 
-#define HAS_TANGENT
-#define VERTEX_COLOR_MAX    1
-#define TEXCOORD_MAX        2
-#define BONE_MAX            8
-#define HAS_MORPH
 #include "model.hlsli"
 
 #include "material_parameter_constant_buffer.hlsli"
@@ -134,7 +129,7 @@ SurfaceData surface(VS_OUT pin, bool is_front_face)
         //  RGB : 陰色
         //  A : 空き
         data.shade_color = material_sss_color.rgb;
-        if (HAS_RESOURCE(SssMap))
+        if (HAS_TEXTURE(SssMap))
         {
             data.shade_color *= TEXTURE2D_SAMPLE(SssMap, pin.texcoord[SssTexcoord]);
         }
@@ -148,7 +143,7 @@ SurfaceData surface(VS_OUT pin, bool is_front_face)
         //  B : ハイライトの入りやすさ
         //  A :
         data.ilm_color = float4(0, 1, 0, 0);
-        if (HAS_RESOURCE(IlmMap))
+        if (HAS_TEXTURE(IlmMap))
         {
             data.ilm_color = TEXTURE2D_SAMPLE(IlmMap, pin.texcoord[IlmTexcoord]);
         }
@@ -157,7 +152,7 @@ SurfaceData surface(VS_OUT pin, bool is_front_face)
         data.metalness = material_parameters.y;
 
         //  詳細情報
-        if (HAS_RESOURCE(DetailMap))
+        if (HAS_TEXTURE(DetailMap))
         {
             float4 detail_color = TEXTURE2D_SAMPLE(DetailMap, pin.texcoord[DetailTexcoord]);
             data.base_color.rgb *= detail_color.rgb;
@@ -194,7 +189,8 @@ float surface_opacity(VS_OUT pin, bool is_front_face)
 }
 #endif	//	defined(MATERIAL_SURFACE_OPACITY)
 
-#if defined(MATERIAL_GEOMETRY)
+//	@tool 深度と G-Buffer のパスだけで GS を使う(定義があるパスでは自動で GS が付く)
+#if defined(MATERIAL_GEOMETRY) && (defined(SURFACE_PASS_DEPTH_WRITE) || defined(SURFACE_PASS_G_BUFFER))
 //	ジオメトリシェーダーの最大出力頂点数(表面 3 + 輪郭線 3)
 #define MATERIAL_GEOMETRY_MAX_VERTEX_COUNT	6
 
@@ -232,8 +228,6 @@ void material_geometry(VS_OUT input[3], inout TriangleStream<VS_OUT> output)
 
     output.RestartStrip();
 }
-#endif	//	defined(MATERIAL_GEOMETRY)
+#endif	//	defined(MATERIAL_GEOMETRY) && (defined(SURFACE_PASS_DEPTH_WRITE) || defined(SURFACE_PASS_G_BUFFER))
 
 #endif	//	__TOON_HLSL__
-
-#include "surface_pass.hlsli"

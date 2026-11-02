@@ -62,6 +62,7 @@ struct load_shader_file
 	UINT compile_flags;
 	std::vector<std::string_view> include_directries;	//	追加のインクルードディレクトリ
 	std::vector<shader_define> defines;	//	マクロ
+	std::string source_text;	//	空でなければファイルの代わりにこの文字列をコンパイルする
 };
 
 struct shader_meta_data

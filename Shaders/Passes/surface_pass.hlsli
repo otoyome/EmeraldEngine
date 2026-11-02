@@ -21,16 +21,12 @@
 
 #elif defined(SURFACE_STAGE_GEOMETRY)
 
-#if defined(SURFACE_PASS_SHADOW_WRITE)
-//	カスケード展開(マテリアルのジオメトリフックとの合成は未対応)
-#include "model_cascade_shadow_map_gs.hlsli"
-#else
+//	@tool 影のパスでは VS_OUT の render_target_array_index(カスケード)を書き換えずに出力すること
 [maxvertexcount(MATERIAL_GEOMETRY_MAX_VERTEX_COUNT)]
 void main(triangle VS_OUT input[3], inout TriangleStream<VS_OUT> output)
 {
     material_geometry(input, output);
 }
-#endif
 
 #elif defined(SURFACE_STAGE_PIXEL)
 

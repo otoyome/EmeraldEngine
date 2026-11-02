@@ -1148,13 +1148,7 @@
     <None Include="..\Shaders\GeometricPrimitive\debug_draw_line.hlsli">
       <Filter>Shaders\GeometricPrimitive</Filter>
     </None>
-    <None Include="..\Shaders\Model\model_cascade_shadow_map_gs.hlsli">
-      <Filter>Shaders\Model</Filter>
-    </None>
     <None Include="..\Shaders\Model\model_cascade_shadow_map_vs.hlsli">
-      <Filter>Shaders\Model</Filter>
-    </None>
-    <None Include="..\Shaders\Model\model_cascade_shadow_map.hlsli">
       <Filter>Shaders\Model</Filter>
     </None>
     <None Include="..\Shaders\Common\shadow_map.hlsli">

@@ -45,6 +45,7 @@ namespace
 		shader_model model;									//  シェーダーモデル
 		std::vector<std::string_view> include_directries;	//  インクルードディレクトリ
 		std::vector<shader_define> defines;					//  マクロ情報
+		std::string_view source_text;						//	空でなければファイルの代わりにコンパイルする文字列
 	};
 
 	//	シェーダーコンパイル出力情報
@@ -107,9 +108,15 @@ namespace
 
 		HRESULT Open(D3D_INCLUDE_TYPE IncludeType, LPCSTR pFileName, LPCVOID pParentData, LPCVOID* ppData, UINT* pBytes) override
 		{
+			//	作業ディレクトリからの相対パス(生成した入口が書くマテリアルシェーダーのパス)を先に探す
+			std::vector<std::wstring> search_paths;
+			if (std::string_view(pFileName).find_first_of("/\\") != std::string_view::npos)
+				search_paths.emplace_back(system_utility::convert_shift_jis_to_utf16(pFileName));
 			for (auto& include_directry : include_directries)
+				search_paths.emplace_back(include_directry + L"\\" + std::wstring(pFileName, pFileName + strlen(pFileName)));
+
+			for (auto& fullPath : search_paths)
 			{
-				std::wstring fullPath = include_directry + L"\\" + std::wstring(pFileName, pFileName + strlen(pFileName));
 				FILE* file = nullptr;
 				_wfopen_s(&file, fullPath.c_str(), L"rb");
 				if (!file)
@@ -217,6 +224,8 @@ namespace
 	{
 		auto key_hash = system_utility::generate_hash(input_data.file_path);
 		key_hash += system_utility::generate_hash(input_data.entry_point);
+		if (!input_data.source_text.empty())
+			key_hash += system_utility::generate_hash(input_data.source_text);
 		for (auto& define : input_data.defines)
 		{
 			key_hash += system_utility::generate_hash(define.name);
@@ -232,6 +241,8 @@ namespace
 	{
 		auto key_hash = system_utility::generate_hash(input_data.file_path);
 		key_hash += system_utility::generate_hash(input_data.entry_point);
+		if (!input_data.source_text.empty())
+			key_hash += system_utility::generate_hash(input_data.source_text);
 		for (auto& define : input_data.defines)
 		{
 			key_hash += system_utility::generate_hash(define.name);
@@ -391,6 +402,20 @@ namespace
 
 		//	D3DBlob生成
 		Microsoft::WRL::ComPtr<ID3DBlob> blob;
+		if (!input_data.source_text.empty())
+		{
+			//	生成した入口の文字列をそのまま使う
+			if (FAILED(D3DCreateBlob(input_data.source_text.size(), blob.GetAddressOf())))
+			{
+				output_data.error_message = std::string("Shader Create Blob Failed [")
+					+ std::string(input_data.file_path)
+					+ std::string("]\n");
+				DEBUG_ERROR_CATEGORY(logger::categorys::shader, output_data.error_message.data());
+				return false;
+			}
+			memcpy_s(blob->GetBufferPointer(), blob->GetBufferSize(), input_data.source_text.data(), input_data.source_text.size());
+		}
+		else
 		{
 			FILE* fp{ nullptr };
 			fopen_s(&fp, input_data.file_path.data(), "rb");
@@ -607,7 +632,15 @@ namespace
 
 		//	ファイル読み込み
 		Microsoft::WRL::ComPtr<IDxcBlobEncoding> source;
-		if (FAILED(library_handle->CreateBlobFromFile(file_path.data(), nullptr, source.GetAddressOf())))
+		if (!input_data.source_text.empty())
+		{
+			//	@tool 生成した入口の文字列をそのまま使う
+			if (FAILED(dxc_utility->CreateBlob(input_data.source_text.data(), static_cast<UINT32>(input_data.source_text.size()), DXC_CP_UTF8, source.GetAddressOf())))
+			{
+				return	false;
+			}
+		}
+		else if (FAILED(library_handle->CreateBlobFromFile(file_path.data(), nullptr, source.GetAddressOf())))
 		{
 			return	false;
 		}
@@ -1068,6 +1101,7 @@ bool vertex_shader::load_from_file(load_shader_file file_data)
 		input_data.include_directries = file_data.include_directries;
 		input_data.compile_flags = file_data.compile_flags;
 		input_data.type = shader_type::vertex;
+		input_data.source_text = file_data.source_text;
 	}
 
 	compile_output compile_data;
@@ -1189,6 +1223,7 @@ bool hull_shader::load_from_file(load_shader_file file_data)
 		input_data.include_directries = file_data.include_directries;
 		input_data.compile_flags = file_data.compile_flags;
 		input_data.type = shader_type::hull;
+		input_data.source_text = file_data.source_text;
 	}
 
 	compile_output compile_data;
@@ -1308,6 +1343,7 @@ bool domain_shader::load_from_file(load_shader_file file_data)
 		input_data.include_directries = file_data.include_directries;
 		input_data.compile_flags = file_data.compile_flags;
 		input_data.type = shader_type::domain;
+		input_data.source_text = file_data.source_text;
 	}
 
 	compile_output compile_data;
@@ -1427,6 +1463,7 @@ bool geometry_shader::load_from_file(load_shader_file file_data)
 		input_data.include_directries = file_data.include_directries;
 		input_data.compile_flags = file_data.compile_flags;
 		input_data.type = shader_type::geometry;
+		input_data.source_text = file_data.source_text;
 	}
 
 	compile_output compile_data;
@@ -1569,6 +1606,7 @@ bool pixel_shader::load_from_file(load_shader_file file_data)
 		input_data.include_directries = file_data.include_directries;
 		input_data.compile_flags = file_data.compile_flags;
 		input_data.type = shader_type::pixel;
+		input_data.source_text = file_data.source_text;
 	}
 
 	compile_output compile_data;
@@ -1689,6 +1727,7 @@ bool compute_shader::load_from_file(load_shader_file file_data)
 		input_data.include_directries = file_data.include_directries;
 		input_data.compile_flags = file_data.compile_flags;
 		input_data.type = shader_type::compute;
+		input_data.source_text = file_data.source_text;
 	}
 
 	compile_output compile_data;

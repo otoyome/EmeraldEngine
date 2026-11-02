@@ -1,7 +1,10 @@
 #pragma once
 
+#include <map>
+
 #include "texture.h"
 #include "pipeline_state.h"
+#include "material_shader_map.h"
 
 class gpu_upload_list;
 
@@ -84,6 +87,7 @@ public:
 	{
 		std::string name{ "" };
 		graphics_pipeline_state_ptr value{ nullptr };
+		bool required = true;
 
 #if defined(USE_IMGUI)
 		UINT reload_callback_id = UINT_MAX;
@@ -176,6 +180,8 @@ public:
 		//	追加する場合はシェーダーとの連携用コードがあるので修正必要
 		ligting_xz_plane,		//	[エンジン改造:ライティング計算時にXZ平面で適応]
 		//	[エンジン改造]
+
+		disable_depth_test,		//	深度テストを行わない(半透明・加算のみ)
 	};
 
 	//	物理マテリアル
@@ -242,7 +248,7 @@ public:
 
 	//	システムフラグ類設定
 	bool is_flag(flags flag) const { return system_utility::is_bitflag(system_flags, 1 << static_cast<UINT>(flag)); }
-	void set_flag(flags flag, bool value) { system_utility::set_bitflag(system_flags, 1 << static_cast<UINT>(flag), value); }
+	void set_flag(flags flag, bool value);
 
 	//	アルファクリップの閾値取得/設定
 	float get_alpha_clip_threshold() const { return alpha_clip_threshold; }
@@ -251,6 +257,21 @@ public:
 	//	物理マテリアルの取得/設定
 	inline const physical_datas& get_physical_data() const { return physical_data; }
 	void set_physical_data(const physical_datas& value) { physical_data = value; }
+
+	//	マテリアルシェーダー(Shaders/Materials 以下)の取得/設定
+	//	設定するとパイプラインステートはシェーダーパス・静的パラメーターから自動で決まる
+	bool uses_material_shader() const;
+	void set_shader_path(std::string_view shader_path);
+	std::string_view get_shader_path() const { return shader_path; }
+
+	//	静的スイッチの取得/設定
+	void set_static_switch(std::string_view name, bool value);
+	bool get_static_switch(std::string_view name) const;
+	const std::map<std::string, bool>& get_static_switches() const { return static_switches; }
+
+	//	@tool 描くメッシュの頂点の構成(モデルの読込時にメッシュから決める)
+	void set_vertex_format(const material_shader_map::vertex_format& value);
+	const material_shader_map::vertex_format& get_vertex_format() const { return vertex_format; }
 
 	//	パイプラインステート取得・設定
 	bool set_pipeline_state(const set_surface_pipeline_states_desc* descs, UINT size);
@@ -328,6 +349,13 @@ private:
 
 	void build_parameters();
 
+	//	マテリアルシェーダーから各パスのパイプラインステートを取り直す
+	void refresh_pipeline_states();
+	//	パイプラインステートを差し替える(ホットリロードの検知も付け替える)
+	void assign_pipeline_state(UINT index, std::string_view name, graphics_pipeline_state_ptr value, bool required);
+	//	旧形式(PSO 名)からマテリアルシェーダーのパスへ変換する
+	void convert_legacy_pipeline_state_names();
+
 #if defined(USE_IMGUI)
 	bool is_error() const;
 	void on_updates(const pipeline_state_base* ps);
@@ -346,6 +374,9 @@ private:
 
 	physical_datas physical_data;
 	pipeline_state_array pipeline_states;
+	std::string shader_path;
+	std::map<std::string, bool> static_switches;
+	material_shader_map::vertex_format vertex_format;	//	@tool シリアライズしない(モデルの読込時に決まる)
 	shader_resource_map shader_resources;
 	constant_buffer_map constant_buffers;
 };

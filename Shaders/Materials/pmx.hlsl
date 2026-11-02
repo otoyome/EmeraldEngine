@@ -5,11 +5,6 @@
 #ifndef __PMX_HLSL__
 #define __PMX_HLSL__
 
-//#define HAS_TANGENT
-//#define VERTEX_COLOR_MAX  0
-#define TEXCOORD_MAX        1
-#define BONE_MAX            4
-#define HAS_MORPH
 #include "model.hlsli"
 
 
@@ -85,7 +80,7 @@ SurfaceData surface(VS_OUT pin, bool is_front_face)
             L = normalize(L);
             float2 ramp_texcoord = float2(0.5f, saturate(dot(L, data.w_normal.xyz) * 0.5f + threshold_offset));
             float3 ramp_color = 1.0f;
-            if (HAS_RESOURCE(RampMap))
+            if (HAS_TEXTURE(RampMap))
             {
                 ramp_color = TEXTURE2D_SAMPLE(RampMap, ramp_texcoord).rgb;
             }
@@ -113,7 +108,8 @@ float surface_opacity(VS_OUT pin, bool is_front_face)
 }
 #endif	//	defined(MATERIAL_SURFACE_OPACITY)
 
-#if defined(MATERIAL_GEOMETRY)
+//	@tool 深度と G-Buffer のパスだけで GS を使う(定義があるパスでは自動で GS が付く)
+#if defined(MATERIAL_GEOMETRY) && (defined(SURFACE_PASS_DEPTH_WRITE) || defined(SURFACE_PASS_G_BUFFER))
 #include "gbuffer.hlsli"
 
 //	ジオメトリシェーダーの最大出力頂点数(表面 3 + 輪郭線 3)
@@ -162,8 +158,6 @@ void material_geometry(VS_OUT input[3], inout TriangleStream<VS_OUT> output)
 
     output.RestartStrip();
 }
-#endif	//	defined(MATERIAL_GEOMETRY)
+#endif	//	defined(MATERIAL_GEOMETRY) && (defined(SURFACE_PASS_DEPTH_WRITE) || defined(SURFACE_PASS_G_BUFFER))
 
 #endif	//	__PMX_HLSL__
-
-#include "surface_pass.hlsli"

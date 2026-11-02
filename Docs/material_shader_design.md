@@ -100,7 +100,6 @@ void material_geometry(triangle VS_OUT input[3], inout TriangleStream<VS_OUT> ou
 | 全ステージ | `SURFACE_PASS_xxx`、`SURFACE_STAGE_xxx`、forward のみ `FORWARD_RENDERING` |
 | VS | なし(`VS_OUT` は `model_*_vs.hlsli` 側で決まる) |
 | GS(フック時) | `MATERIAL_GEOMETRY`、`VS_OUT` |
-| GS(shadow_write) | なし(カスケード展開) |
 | PS | `MATERIAL_SURFACE` または `MATERIAL_SURFACE_OPACITY`、`VS_OUT` |
 
 - define はハッシュキーに含まれるので、.cso はパス・ステージ・マテリアルごとに別になる。マテリアルシェーダーが入口なので、.meta とホットリロードも通常のシェーダーと同じ仕組みで動く。
@@ -118,7 +117,7 @@ void material_geometry(triangle VS_OUT input[3], inout TriangleStream<VS_OUT> ou
 | パス | VS | GS | PS | 使う関数 |
 |---|---|---|---|---|
 | depth_write | `model_depth_vs` | フック時のみ | `surface_depth_write_ps`(mask 時のみ) | `surface_opacity` |
-| shadow_write | `model_cascade_shadow_map_vs` | `model_cascade_shadow_map_gs`(常時) | `surface_depth_write_ps`(mask 時のみ) | `surface_opacity` |
+| shadow_write | `model_cascade_shadow_map_vs`(インスタンシングでカスケード展開) | フック時のみ | `surface_depth_write_ps`(mask 時のみ) | `surface_opacity` |
 | g_buffer | `model_vs` | フック時のみ | `surface_gbuffer_ps` | `surface` |
 | forward | `model_vs`(`FORWARD_RENDERING`) | フック時のみ | `surface_forward_ps` | `surface` |
 
@@ -127,11 +126,18 @@ void material_geometry(triangle VS_OUT input[3], inout TriangleStream<VS_OUT> ou
 ### ジオメトリシェーダーのフック
 
 - Toon のアウトラインは depth / gbuffer / csm でほぼ同じ処理を別ファイルで持っている。
-- `material_shader_desc::geometry_passes` に指定したパスだけ、パステンプレートの GS が `material_geometry()` を呼ぶ。マテリアル側は `#if defined(MATERIAL_GEOMETRY)` の中に `MATERIAL_GEOMETRY_MAX_VERTEX_COUNT` と関数を書く。
+- `material_geometry()` が定義されているパスだけ、パステンプレートの GS が `material_geometry()` を呼ぶ(パスごとのプリプロセスで自動判定。10章の段階3を参照)。マテリアル側は `#if defined(MATERIAL_GEOMETRY)` の中に `MATERIAL_GEOMETRY_MAX_VERTEX_COUNT` と関数を書く。
 - csm は元々エンジンの GS(カスケード展開)がある。Toon は影に輪郭線を出していないので段階1では合成せず、shadow_write へのフック指定はエラーにしている。必要になったらテンプレート側で「カスケード展開 + フック」を合成する。
 - 段階1(Toon)で、最適化ありのコンパイル結果が旧ラッパーと完全一致することを確認済み。最適化なし(Debug)では GS だけ関数呼び出しの分だけ命令列が異なる(動作は同じ)。
 - 段階2(Gltf / Pmx / Ggst / EditModel / 3d_failed)も、最適化ありで VS / PS / GS が旧ラッパーと一致。例外は Pmx の GS で、早期 `return` が関数内に入ったため分岐の向きだけ変わる(命令は同じ)。最適化なしは段階1と同じく GS だけ異なる。
 - EditModel の GS は輪郭線の追加ではなく面の置き換え(`MATERIAL_GEOMETRY_MAX_VERTEX_COUNT` = 3)。
+- カスケード展開は GS をやめ、インスタンシングに置き換えた(上の csm の記述は経緯)。これで shadow_write でもフックを使える。
+  - 影の描画ではインスタンス数を「メッシュレット数 × `shadow_map_count`」にし、VS が `meshlet_decode_instance()` でレコード番号とカスケード番号に分ける。`shadow_map_count` は定数バッファにあるので描画ごとの定数は増えない。
+  - VS が光源の行列で変換・深度補正し、`SV_RenderTargetArrayIndex` を出力する。D3D11.3 の任意機能 `VPAndRTArrayIndexFromAnyShaderFeedingRasterizer` が必要で、起動時に調べ、非対応ならエラーで終了する。
+  - VS の先頭で、カスケードの視錐台(左右上下の4平面)とメッシュレットの境界球を比べ、外れていれば頂点を読む前に縮退させる。境界球はワールド座標で、CPU のカリングと同じ計算でレコードに入れる(カリングしないメッシュは `no_cull`)。
+  - GS が行っていた微小ポリゴンのカリングは無くなった。
+  - 影のパスでフックを使うときは、`VS_OUT` の `render_target_array_index` を書き換えずに出力し、クリップ座標は `view_projection_transform` ではなく `light_view_projection_transform[render_target_array_index]` で求める必要がある。Toon / Ggst の輪郭線は `w_tangent` を使うので、今のままでは影のパスに使えない。
+  - `SV_InstanceID` には `StartInstanceLocation` が足されないので、ずらして描く場合はオフセットを定数で渡す必要がある。
 
 ## 5. 静的パラメーターとパーミュテーション
 
@@ -142,7 +148,7 @@ void material_geometry(triangle VS_OUT input[3], inout TriangleStream<VS_OUT> ou
 ```
 
 - テンプレートには `PASS_xxx` / `BLEND_MODE_xxx` / `SHADING_MODEL_xxx` / 静的スイッチを define として渡す。
-- 頂点要件(タンジェント・ボーン数・モーフ)は今どおりマテリアルシェーダーの宣言で静的に決める。キーには入れない。
+- 頂点要件は、接線・カラー・UV を常に読み、ボーン数とモーフはメッシュから決める(10章の段階3を参照)。ボーン数とモーフはキーに入る。
 - 静的スイッチは「法線マップあり/なし」のようにシェーダー分岐を消したいものに限る。値で済むものは定数バッファに置く。
 - PSO の状態(ブレンド・カリング・深度)は静的パラメーターから決まるので、インスタンスでは変更不可。
 
@@ -193,14 +199,25 @@ void material_geometry(triangle VS_OUT input[3], inout TriangleStream<VS_OUT> ou
    - PSO 名は `<名前>_depth` / `_shadowmap` / `_gbuffer` / `_forward` にそろうため、頂点カラー編集用は `edit_model_color_depth_write` / `edit_model_color_csm` から `edit_model_color_depth` / `edit_model_color_shadowmap` に変わった(参照はコードのみ)。
    - 3d_failed の shadow_write は、旧登録ではカスケード展開の GS を読み込んでいなかった。テンプレートでは常に GS が付く。
 3. **マテリアルが PSO 名ではなくシェーダーパス + 静的パラメーターを持つ**:シリアライズのバージョンを上げ、変換処理(`data_converter_gltf` / `data_converter_mmd`)と編集窓を更新する。
+   - surface ドメインは実施済み(他ドメインのテンプレート化は未着手)。
+   - 入口はエンジンがメモリ上で生成する(`load_shader_file::source_text`)。マテリアルシェーダーはテンプレートを include しない。
+   - 機能宣言の行(`//@material`)は廃止した。必要な情報はマテリアルとメッシュ、マテリアルシェーダーの中身から決める。
+     - ドメイン:マテリアルの `domain`(マテリアルシェーダーを使うのは surface のとき)。
+     - 頂点要件:接線・頂点カラー1つ・UV 2つは常に読む(メッシュに無い要素はシェーダーの `meshlet_has_element()` で 0 になる)。ボーン数(`JOINTS` の組数 × 4)とモーフの有無はメッシュから決める。`model_resource::build_model()` が、マテリアルを使うメッシュを合わせた構成を `material::set_vertex_format()` で渡す。どのメッシュにも使われていないマテリアルは全部入り(ボーン16・モーフあり)。
+     - GS フック:パスごとにマテリアルシェーダーを GS のステージとして `D3DPreprocess` し(インクルード先は空にする)、`material_geometry(` が残るパスで GS を付ける。使うパスは `#if defined(MATERIAL_GEOMETRY) && (defined(SURFACE_PASS_DEPTH_WRITE) || ...)` のように条件で書く。スイッチの値はこの判定に使わないので、GS の有無をスイッチで変えることはできない。
+     - 静的スイッチ:マテリアルシェーダーに書かれた `HAS_TEXTURE(テクスチャ名)`(テクスチャの有無で決まる)と `MATERIAL_SWITCH(名前)`(マテリアルの設定で切り替える、既定 OFF)を書かれている順に集める。入口でそれぞれ `HAS_TEXTURE_名前` / `MATERIAL_SWITCH_名前` を 0/1 で define する。`#if` でも式でも使える。実行時にテクスチャの有無を調べる `HAS_RESOURCE()` とは別物。
+   - パーミュテーションキーは「シェーダーパス × パス × PS の有無 × スイッチのビット × ボーン数 × モーフの有無」。ブレンドモードとシェーディングモデルは静的パラメーターとして持つが、シェーダーには今までどおり定数で渡す(キーに入れない)。
+   - 最適化:深度・影の PS はマスクのときだけ付ける。VS はマテリアルを含めずに生成し、頂点の構成(ボーン数・モーフ)が同じマテリアル間で共有する。描画で使うパス(不透明・マスク=深度/G-Buffer、半透明・加算=フォワード、影=shadow_caster)だけ生成する。パラメーター構成は全スイッチ ON の G-Buffer / 深度から取る。
+   - 旧形式(バージョン1)のマテリアルは、読み込み時に PSO 名の接頭辞(toon_ / gltf_ / pmx_ / ggst_ / edit_model_color_ / 3d_failed_)からシェーダーパスへ変換する。`asset.resave_models` コマンドで Assets 以下の .emo を新形式で保存し直せる。
+   - 深度テスト無効(`flags::disable_depth_test`)を追加。半透明・加算のときだけ効く。
 4. **マテリアルインスタンスと非同期ローダー**:書き換え時複製、バージョン番号での伝播、`resource::loader<material_resource>`、コンパイルのワーカー化。
 
 ## 11. 未決事項
 
-- csm のカスケード展開と GS フックの合成(必要になった時点で)。
+- パーティクルの影(`compute_particle_default_csm_gs.hlsl`)はまだ GS でカスケード展開している。間接描画なので、インスタンス数を掛ける処理が別に要る。
 - D3D11 の間は FXC のみ使う(DXC の出力 DXIL は D3D11 で使えない)。D3D12 / Vulkan 移行時に DXC でのコンパイルを確認する。既存の `common.hlsli` / `gbuffer.hlsli` には、HLSL 2021 で禁止されたベクトル条件の三項演算子がある。
 - マテリアルの関数を囲むガード(`MATERIAL_SURFACE` など)をなくすには、パス間で `VS_OUT` の型をそろえる必要がある。
-- 「GS フックあり」などの機能宣言をどこに置くか。案:マテリアルリソースの静的パラメーターに置き、シェーダー側に関数が無ければテンプレートの `#error` で検出する。
+- ホットリロードでマテリアルシェーダーのスイッチや GS の有無が変わると、シェーダーマップのキャッシュは捨てるが、マテリアルが持っているパイプラインステートは差し替わらない(機能宣言の行があったころから同じ)。
 - ブレンドモードごとに生成するパスの一覧(現状のレンダラーの選択と突き合わせる)。
 - パーミュテーション数の上限と、リリースビルドで事前コンパイルする一覧の作り方。
 - particle ドメインを同じ仕組みに乗せるか。

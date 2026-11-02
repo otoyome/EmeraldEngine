@@ -55,6 +55,13 @@ render_data::render_data(CONST HWND hwnd)
 	if (!swap_chain)
 		return;
 
+	//	VS から描き込み先の配列番号を出力できるかチェック
+	{
+		D3D11_FEATURE_DATA_D3D11_OPTIONS3 options{};
+		hr = device->CheckFeatureSupport(D3D11_FEATURE_D3D11_OPTIONS3, &options, sizeof(options));
+		supported_device = SUCCEEDED(hr) && options.VPAndRTArrayIndexFromAnyShaderFeedingRasterizer;
+	}
+
 	// サンプラステートの生成
 	{
 		D3D11_SAMPLER_DESC sampler_desc{};

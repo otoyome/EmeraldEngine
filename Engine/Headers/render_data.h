@@ -46,6 +46,9 @@ public:
 	Microsoft::WRL::ComPtr<ID3D11DeviceContext> get_immediate_context() const { return immediate_context; }
 	Microsoft::WRL::ComPtr<IDXGISwapChain> get_swap_chain() const { return swap_chain; }
 
+	//	このエンジンの描画に必要な機能を GPU が持っているか
+	bool is_supported_device() const { return supported_device; }
+
 	Microsoft::WRL::ComPtr<ID3D11SamplerState> get_sampler_states(SAMPLER_STATE index) const { return sampler_states[static_cast<int>(index)]; }
 	Microsoft::WRL::ComPtr<ID3D11SamplerState> get_sampler_state(const D3D11_SAMPLER_DESC& desc);
 
@@ -66,6 +69,7 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11Device> device;
 	Microsoft::WRL::ComPtr<ID3D11DeviceContext> immediate_context;
 	Microsoft::WRL::ComPtr<IDXGISwapChain> swap_chain;
+	bool supported_device = false;
 
 	Microsoft::WRL::ComPtr<ID3D11SamplerState> sampler_states[8];
 

@@ -474,10 +474,7 @@ bool edit_model_scene::initialize_vertex_color_edit()
 		mat->set_shading_model(material::shading_models::unlit);
 		mat->set_flag(material::flags::wire, true);
 
-		mat->set_pipeline_state(material::surface_paths::depth_write_pass, "edit_model_color_depth");
-		mat->set_pipeline_state(material::surface_paths::g_buffer_pass, "edit_model_color_gbuffer");
-		mat->set_pipeline_state(material::surface_paths::forward_pass, "edit_model_color_forward");
-		mat->set_pipeline_state(material::surface_paths::shadow_write_pass, "edit_model_color_shadowmap");
+		mat->set_shader_path("Shaders/Materials/edit_model_color.hlsl");
 		mat->set_float("line_factor", 0.001f);
 		mat->set_float3("line_color", { 0, 1, 0 });
 		vertex_color_edit_material = mat;

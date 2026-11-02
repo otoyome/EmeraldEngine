@@ -4,6 +4,8 @@
 #include <commdlg.h>
 #include <random>
 
+#include "material_shader_map.h"
+
 namespace
 {
 	constexpr std::string_view domain_texts[] =
@@ -393,8 +395,53 @@ bool editor_items::edit_material(std::shared_ptr<context>& context, material& ma
 		case material::domains::surface:
 		case material::domains::particle:
 		{
+			if (material.get_domain() == material::domains::surface)
+			{
+				//	@tool マテリアルシェーダーの選択(パスごとのパイプラインステートはシェーダーと静的パラメーターから決まる)
+				auto shader_paths = material_shader_map::instance()->collect_shader_paths();
+				std::vector<const char*> combo_texts;
+				combo_texts.reserve(shader_paths.size() + 1);
+				combo_texts.emplace_back("[BLANK]");
+				int selected_index = 0;
+				for (std::size_t index = 0; index < shader_paths.size(); ++index)
+				{
+					combo_texts.emplace_back(shader_paths[index].data());
+					if (shader_paths[index] == material.get_shader_path())
+						selected_index = static_cast<int>(index) + 1;
+				}
+				if (ImGui::Combo("shader", &selected_index, combo_texts.data(), static_cast<int>(combo_texts.size())))
+				{
+					material.set_shader_path(selected_index == 0 ? std::string_view() : std::string_view(shader_paths[selected_index - 1]));
+					edit_flag = true;
+				}
+
+				//	@tool 静的スイッチ(テクスチャで決まるものは表示のみ)
+				if (auto shader_declaration = material_shader_map::instance()->find_declaration(material.get_shader_path()))
+				{
+					if (!shader_declaration->is_valid())
+						ImGui::TextColored(ImVec4(1.0f, 0.3f, 0.3f, 1.0f), "%s", shader_declaration->error.data());
+
+					for (auto& item : shader_declaration->static_switches)
+					{
+						bool value = material.get_static_switch(item.name);
+						if (!item.texture.empty())
+						{
+							ImGui::BeginDisabled();
+							ImGui::Checkbox(item.name.data(), &value);
+							ImGui::EndDisabled();
+							ImGui::SameLine();
+							ImGui::TextDisabled("(%s)", item.texture.data());
+						}
+						else if (ImGui::Checkbox(item.name.data(), &value))
+						{
+							material.set_static_switch(item.name, value);
+							edit_flag = true;
+						}
+					}
+				}
+			}
 			//	適応タイミング毎のシェーダーの設定
-			if (ImGui::TreeNode("shaders"))
+			else if (ImGui::TreeNode("shaders"))
 			{
 				auto pso_list = pipeline_state_manager::instance()->get_domain_lists(material.get_domain());
 				std::vector<const char*> combo_texts;

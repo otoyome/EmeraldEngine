@@ -5,9 +5,6 @@
 #ifndef __EDIT_MODEL_COLOR_HLSL__
 #define __EDIT_MODEL_COLOR_HLSL__
 
-#define VERTEX_COLOR_MAX    1
-#define BONE_MAX            8
-#define TEXCOORD_MAX        0
 #include "model.hlsli"
 
 #include "material_parameter_constant_buffer.hlsli"
@@ -47,7 +44,8 @@ float surface_opacity(VS_OUT pin, bool is_front_face)
 }
 #endif	//	defined(MATERIAL_SURFACE_OPACITY)
 
-#if defined(MATERIAL_GEOMETRY)
+//	@tool 深度と G-Buffer のパスだけで GS を使う(定義があるパスでは自動で GS が付く)
+#if defined(MATERIAL_GEOMETRY) && (defined(SURFACE_PASS_DEPTH_WRITE) || defined(SURFACE_PASS_G_BUFFER))
 #define MATERIAL_GEOMETRY_MAX_VERTEX_COUNT	3
 
 //	面を法線方向へずらし、頂点カラーに線の色を掛けた面に置き換える
@@ -98,8 +96,6 @@ void material_geometry(VS_OUT input[3], inout TriangleStream<VS_OUT> output)
 
     output.RestartStrip();
 }
-#endif	//	defined(MATERIAL_GEOMETRY)
+#endif	//	defined(MATERIAL_GEOMETRY) && (defined(SURFACE_PASS_DEPTH_WRITE) || defined(SURFACE_PASS_G_BUFFER))
 
 #endif	//	__EDIT_MODEL_COLOR_HLSL__
-
-#include "surface_pass.hlsli"

@@ -96,6 +96,33 @@ namespace
 			if (object_manager::is_valid())
 				object_manager::instance()->called_step();
 		});
+
+	//	@tool アセットの保存し直し(データ形式を変えた後、古い形式のファイルをまとめて新しい形式にする)
+	console_command resave_models_command("asset.resave_models", "Assets 以下のモデル(.emo)を読み込み直し、最新の形式で保存し直す",
+		[](const console_command::arguments&)
+		{
+			int saved_count = 0;
+			int failed_count = 0;
+			std::error_code error;
+			for (auto& file : std::filesystem::recursive_directory_iterator("Assets", error))
+			{
+				if (!file.is_regular_file() || file.path().extension() != ".emo")
+					continue;
+
+				const std::string path = file.path().string();
+				model_resource_ptr resource;
+				if (model_resource_manager::instance()->load(resource, path, true) && resource->serialize(path))
+				{
+					++saved_count;
+				}
+				else
+				{
+					++failed_count;
+					console_manager::instance().print("failed : " + path);
+				}
+			}
+			console_manager::instance().print("asset.resave_models : saved " + std::to_string(saved_count) + " / failed " + std::to_string(failed_count));
+		});
 #endif	//	defined(USE_IMGUI)
 }
 
@@ -257,6 +284,11 @@ bool framework::initialize()
 	//	描画関係初期化
 	{
 		render_data::create_instance(hwnd);
+		if (!render_data::instance()->is_supported_device())
+		{
+			MessageBoxW(hwnd, L"この GPU は必要な機能(VS からの描画先配列番号の出力)に対応していないため起動できません。", L"起動エラー", MB_OK | MB_ICONERROR);
+			return false;
+		}
 		texture_manager::create_instance();
 		shader_manager::create_instance();
 		pipeline_state_manager::create_instance();

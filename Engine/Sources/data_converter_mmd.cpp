@@ -352,16 +352,7 @@ namespace
 			material.set_blend_mode(material::blend_modes::mask);
 			material.set_alpha_clip_threshold(0.5f);
 			material.set_shading_model(material::shading_models::default_lit);
-			{
-				material::set_surface_pipeline_states_desc descs[] =
-				{
-					{material::surface_paths::depth_write_pass, "pmx_depth"},
-					{material::surface_paths::g_buffer_pass, "pmx_gbuffer"},
-					{material::surface_paths::shadow_write_pass, "pmx_shadowmap"},
-					{material::surface_paths::forward_pass, "pmx_forward"},
-				};
-				material.set_pipeline_state(descs, ARRAYSIZE(descs));
-			}
+			material.set_shader_path("Shaders/Materials/pmx.hlsl");
 			material.set_flag(material::flags::two_sided, system_utility::is_bitflag(pmx_material.draw_flag, pmx_material_draw_bitflag::cull_both));
 			material.set_flag(material::flags::shadow_caster, system_utility::is_bitflag(pmx_material.draw_flag, pmx_material_draw_bitflag::use_shadow));
 			material.set_flag(material::flags::shadow_receiver, system_utility::is_bitflag(pmx_material.draw_flag, pmx_material_draw_bitflag::use_shadow));

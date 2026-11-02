@@ -412,13 +412,13 @@ void graphics_custom_pipeline_state::update_parameters(const graphics_context& c
 				case material::blend_modes::translucent:
 				{
 					blend_state = blend_state::translucent;
-					depth_stencil_state = depth_stencil_state::depth_test_only;
+					depth_stencil_state = material.is_flag(material::flags::disable_depth_test) ? depth_stencil_state::depth_off : depth_stencil_state::depth_test_only;
 					break;
 				}
 				case material::blend_modes::addative:
 				{
 					blend_state = blend_state::addative;
-					depth_stencil_state = depth_stencil_state::depth_test_only;
+					depth_stencil_state = material.is_flag(material::flags::disable_depth_test) ? depth_stencil_state::depth_off : depth_stencil_state::depth_test_only;
 					break;
 				}
 				//case material::blend_modes::modulate:

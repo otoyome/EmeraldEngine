@@ -1272,8 +1272,6 @@ xcopy "$(SolutionDir)External\SDL3\lib\SDL3.dll" "$(OutDir)" /y</Command>
     <None Include="..\Shaders\Model\deferred_light_probe_data.hlsli" />
     <None Include="..\Shaders\Model\forward_light_data.hlsli" />
     <None Include="..\Shaders\Model\material_parameter_constant_buffer.hlsli" />
-    <None Include="..\Shaders\Model\model_cascade_shadow_map.hlsli" />
-    <None Include="..\Shaders\Model\model_cascade_shadow_map_gs.hlsli" />
     <None Include="..\Shaders\Model\model_cascade_shadow_map_vs.hlsli" />
     <None Include="..\Shaders\Model\model_depth_vs.hlsli">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>

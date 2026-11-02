@@ -1,7 +1,6 @@
 #include "Scenes/load_shader_scene.h"
 
 #include "custom_pipeline_state.h"
-#include "material_shader_map.h"
 
 #include "scenes/minigamescene/minigame_scene.h"
 #include "scenes/minigamescene/minigame_title_scene.h"
@@ -25,16 +24,6 @@ bool load_shader_scene::initialize_core()
 
 	//	@remainder	失敗時のデカールとUIパイプラインステートの実装
 #if	defined(USE_IMGUI)
-
-	//	3Dモデルエラー用デフォルトパイプラインステート
-	{
-		material_shader_map::material_shader_desc desc;
-		desc.name = "3d_failed";
-		desc.file_path = "Shaders/Materials/3d_failed.hlsl";
-		desc.domain = pipeline_state_base::domains::surface;
-		desc.hidden = true;
-		material_shader_map::instance()->generate(desc);
-	}
 
 #pragma	region	ポストプロセスエラー用デフォルトパイプラインステート
 	{
@@ -179,18 +168,6 @@ bool load_shader_scene::initialize_core()
 	}
 #pragma	endregion	//	コンピュートスプライト/トレイルパーティクル用デフォルトパイプラインステート
 
-	//	頂点カラー編集用デフォルトパイプラインステート
-	{
-		material_shader_map::material_shader_desc desc;
-		desc.name = "edit_model_color";
-		desc.file_path = "Shaders/Materials/edit_model_color.hlsl";
-		desc.domain = pipeline_state_base::domains::surface;
-		desc.geometry_passes = material_shader_map::to_bit(material_shader_map::surface_passes::depth_write)
-							 | material_shader_map::to_bit(material_shader_map::surface_passes::g_buffer);
-		desc.hidden = true;
-		material_shader_map::instance()->generate(desc);
-	}
-
 #pragma	region	GBufferDecalエラー用デフォルトパイプラインステート
 	{
 		//	プリミティブ
@@ -288,15 +265,6 @@ bool load_shader_scene::initialize_core()
 		}
 	}
 #pragma endregion	//	UI用デフォルトパイプラインステート
-
-	//	GLTF用デフォルトパイプラインステート
-	{
-		material_shader_map::material_shader_desc desc;
-		desc.name = "gltf";
-		desc.file_path = "Shaders/Materials/gltf.hlsl";
-		desc.domain = pipeline_state_base::domains::surface;
-		material_shader_map::instance()->generate(desc);
-	}
 
 #pragma	region	コンピュートスプライト/トレイルパーティクル用デフォルトパイプラインステート
 	{
@@ -443,39 +411,6 @@ bool load_shader_scene::initialize_core()
 		}
 	}
 #pragma	endregion	//	コンピュートスプライト/トレイルパーティクル用デフォルトパイプラインステート
-
-	//	PMX用デフォルトパイプラインステート
-	{
-		material_shader_map::material_shader_desc desc;
-		desc.name = "pmx";
-		desc.file_path = "Shaders/Materials/pmx.hlsl";
-		desc.domain = pipeline_state_base::domains::surface;
-		desc.geometry_passes = material_shader_map::to_bit(material_shader_map::surface_passes::depth_write)
-							 | material_shader_map::to_bit(material_shader_map::surface_passes::g_buffer);
-		material_shader_map::instance()->generate(desc);
-	}
-
-	//	GGSTシェーディング用デフォルトパイプラインステート
-	{
-		material_shader_map::material_shader_desc desc;
-		desc.name = "ggst";
-		desc.file_path = "Shaders/Materials/ggst.hlsl";
-		desc.domain = pipeline_state_base::domains::surface;
-		desc.geometry_passes = material_shader_map::to_bit(material_shader_map::surface_passes::depth_write)
-							 | material_shader_map::to_bit(material_shader_map::surface_passes::g_buffer);
-		material_shader_map::instance()->generate(desc);
-	}
-
-	//	トゥーンシェーディング用パイプラインステート
-	{
-		material_shader_map::material_shader_desc desc;
-		desc.name = "toon";
-		desc.file_path = "Shaders/Materials/toon.hlsl";
-		desc.domain = pipeline_state_base::domains::surface;
-		desc.geometry_passes = material_shader_map::to_bit(material_shader_map::surface_passes::depth_write)
-							 | material_shader_map::to_bit(material_shader_map::surface_passes::g_buffer);
-		material_shader_map::instance()->generate(desc);
-	}
 
 #pragma	region	GBufferDecal用デフォルトパイプラインステート
 	{
