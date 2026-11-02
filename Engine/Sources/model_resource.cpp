@@ -465,7 +465,7 @@ void model_resource::build_model()
 		}
 	}
 
-	//	@tool マテリアルを使うメッシュの頂点からスキニングとモーフの構成を決める(複数のメッシュで使う場合は合わせた構成)
+	//	マテリアルを使うメッシュの頂点からスキニングとモーフの構成を決める
 	{
 		std::vector<material_shader_map::vertex_format> vertex_formats(materials.size(), material_shader_map::vertex_format{ 0, false });
 		std::vector<bool> used(materials.size(), false);
@@ -488,7 +488,7 @@ void model_resource::build_model()
 		}
 		for (size_t index = 0; index < materials.size(); ++index)
 		{
-			//	@tool どのメッシュにも使われていなければ既定(全部入り)のまま
+			//	どのメッシュにも使われていなければ既定(全部入り)のまま
 			if (used[index])
 				materials[index].set_vertex_format(vertex_formats[index]);
 		}

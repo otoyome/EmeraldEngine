@@ -97,7 +97,7 @@ namespace
 				object_manager::instance()->called_step();
 		});
 
-	//	@tool アセットの保存し直し(データ形式を変えた後、古い形式のファイルをまとめて新しい形式にする)
+	//	アセットの保存し直し(データ形式を変えた後、古い形式のファイルをまとめて新しい形式にする)
 	console_command resave_models_command("asset.resave_models", "Assets 以下のモデル(.emo)を読み込み直し、最新の形式で保存し直す",
 		[](const console_command::arguments&)
 		{
@@ -122,6 +122,31 @@ namespace
 				}
 			}
 			console_manager::instance().print("asset.resave_models : saved " + std::to_string(saved_count) + " / failed " + std::to_string(failed_count));
+		});
+	console_command resave_effects_command("asset.resave_effects", "Assets 以下のエフェクト(.eme)を読み込み直し、最新の形式で保存し直す",
+		[](const console_command::arguments&)
+		{
+			int saved_count = 0;
+			int failed_count = 0;
+			std::error_code error;
+			for (auto& file : std::filesystem::recursive_directory_iterator("Assets", error))
+			{
+				if (!file.is_regular_file() || file.path().extension() != ".eme")
+					continue;
+
+				const std::string path = file.path().string();
+				effect_resource_ptr resource;
+				if (effect_resource_manager::instance()->load(resource, path, true) && resource->serialize(path))
+				{
+					++saved_count;
+				}
+				else
+				{
+					++failed_count;
+					console_manager::instance().print("failed : " + path);
+				}
+			}
+			console_manager::instance().print("asset.resave_effects : saved " + std::to_string(saved_count) + " / failed " + std::to_string(failed_count));
 		});
 #endif	//	defined(USE_IMGUI)
 }

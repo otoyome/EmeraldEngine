@@ -28,17 +28,17 @@ static const uint EmissiveTexcoord = 0;
 //  マテリアル情報
 cbuffer TOON_MATERIAL_CONSTANT_BUFFER
 {
-    float4  material_base_color;            //  ベースカラー
-    float4  material_sss_color;             //  SSS乗算カラー
-    float4  material_parameters;            //  r : 粗さ, g : 金属質, b : 陰影閾値, a : 陰影オフセット
+    float4  base_color;                     //  ベースカラー
+    float4  sss_color;                      //  SSS乗算カラー
+    float   roughness;                      //  粗さ
+    float   metallic;                       //  金属質
+    float   shade_threshold;                //  陰影閾値
+    float   shade_offset;                   //  陰影オフセット
     float4  fake_ambient_color;             //  疑似的な環境光色
 
     //  背面法による輪郭線情報
     float   outline_thickness;              //  輪郭線の厚み
     float   outline_depth_offset_distance;  //  輪郭線の深度オフセット距離(固定値でも良いと思う)
-
-    //  顔マテリアル判別用
-    bool face_material_flag;                //  顔
 };
 
 //	基底の範囲で0～1を算出する関数
@@ -112,7 +112,7 @@ SurfaceData surface(VS_OUT pin, bool is_front_face)
     data.stencil = material_flags;
 
     //  ベースカラー
-    data.base_color = material_base_color;
+    data.base_color = base_color;
     if (HAS_RESOURCE(BaseMap))
     {
         data.base_color *= TEXTURE2D_SAMPLE(BaseMap, pin.texcoord[BaseTexcoord]);
@@ -128,7 +128,7 @@ SurfaceData surface(VS_OUT pin, bool is_front_face)
         //  SSSカラー
         //  RGB : 陰色
         //  A : 空き
-        data.shade_color = material_sss_color.rgb;
+        data.shade_color = sss_color.rgb;
         if (HAS_TEXTURE(SssMap))
         {
             data.shade_color *= TEXTURE2D_SAMPLE(SssMap, pin.texcoord[SssTexcoord]);
@@ -148,8 +148,8 @@ SurfaceData surface(VS_OUT pin, bool is_front_face)
             data.ilm_color = TEXTURE2D_SAMPLE(IlmMap, pin.texcoord[IlmTexcoord]);
         }
 
-        data.roughness = material_parameters.x;
-        data.metalness = material_parameters.y;
+        data.roughness = roughness;
+        data.metalness = metallic;
 
         //  詳細情報
         if (HAS_TEXTURE(DetailMap))
@@ -161,8 +161,8 @@ SurfaceData surface(VS_OUT pin, bool is_front_face)
 
         //  シェーディングモデル側にパラメーター引き渡し
         float2 shading_threshold_and_offset;
-        shading_threshold_and_offset.x = saturate(material_parameters.z);
-        shading_threshold_and_offset.y = saturate(material_parameters.w);
+        shading_threshold_and_offset.x = saturate(shade_threshold);
+        shading_threshold_and_offset.y = saturate(shade_offset);
         data.unique_parameter.x = PackFloat2ToFloat(shading_threshold_and_offset);
         data.unique_parameter.y = 0;
         data.unique_data.x = asuint(pin.color[0].r); // 赤色がシェーディング補正値なので格納
@@ -180,7 +180,7 @@ SurfaceData surface(VS_OUT pin, bool is_front_face)
 float surface_opacity(VS_OUT pin, bool is_front_face)
 {
     //  ベースカラー
-    float alpha = material_base_color.a;
+    float alpha = base_color.a;
     if (HAS_RESOURCE(BaseMap))
     {
         alpha *= TEXTURE2D_SAMPLE(BaseMap, pin.texcoord[BaseTexcoord]).a;
@@ -189,7 +189,7 @@ float surface_opacity(VS_OUT pin, bool is_front_face)
 }
 #endif	//	defined(MATERIAL_SURFACE_OPACITY)
 
-//	@tool 深度と G-Buffer のパスだけで GS を使う(定義があるパスでは自動で GS が付く)
+//	深度と G-Buffer のパスだけで GS を使う
 #if defined(MATERIAL_GEOMETRY) && (defined(SURFACE_PASS_DEPTH_WRITE) || defined(SURFACE_PASS_G_BUFFER))
 //	ジオメトリシェーダーの最大出力頂点数(表面 3 + 輪郭線 3)
 #define MATERIAL_GEOMETRY_MAX_VERTEX_COUNT	6

@@ -9,13 +9,6 @@
 
 namespace
 {
-	static constexpr material::set_surface_pipeline_states_desc pso_descs[] =
-	{
-		{material::surface_paths::depth_write_pass, "compute_patricle_sprite_depth"},
-		{material::surface_paths::g_buffer_pass, "compute_patricle_sprite_gbuffer"},
-		{material::surface_paths::shadow_write_pass, "compute_patricle_sprite_shadowmap"},
-		{material::surface_paths::forward_pass, "compute_patricle_sprite_forward"},
-	};
  
     //  nodes を親のインデックスが若い順に並べ替え
     void sort_nodes(effect_resource_ptr& effect_resource)
@@ -491,7 +484,7 @@ bool editor_items::edit_effect_particle(std::shared_ptr<context>& context, effec
 		material->set_flag(material::flags::indirect_lighting_off, true);
 
 		//	デフォルトシェーダー設定
-		material->set_pipeline_state(pso_descs, ARRAYSIZE(pso_descs));
+		material->set_shader_path(material::default_particle_shader_path);
 
 		//	パラメーター設定
 		material->set_float4("base_color_factor", math::float4(1, 1, 1, 1));
@@ -963,8 +956,7 @@ bool editor_items::edit_effect_decal(std::shared_ptr<context>& context, effect_r
 		material->set_flag(material::flags::indirect_lighting_off, true);
 
 		//	デフォルトシェーダー設定
-		material->set_pipeline_state(material::decal_paths::primitive, "deferred_decal_default_primitive");
-		material->set_pipeline_state(material::decal_paths::fullscreen, "deferred_decal_default_fullscreen");
+		material->set_shader_path(material::default_decal_shader_path);
 
 		//	パラメーター設定
 		material->set_float4("base_color_factor", math::float4(1, 1, 1, 1));

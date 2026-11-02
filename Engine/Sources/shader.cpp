@@ -634,7 +634,7 @@ namespace
 		Microsoft::WRL::ComPtr<IDxcBlobEncoding> source;
 		if (!input_data.source_text.empty())
 		{
-			//	@tool ¶¬‚µ‚½“üŒû‚Ì•¶Žš—ñ‚ð‚»‚Ì‚Ü‚ÜŽg‚¤
+			//	¶¬‚µ‚½“üŒû‚Ì•¶Žš—ñ‚ð‚»‚Ì‚Ü‚ÜŽg‚¤
 			if (FAILED(dxc_utility->CreateBlob(input_data.source_text.data(), static_cast<UINT32>(input_data.source_text.size()), DXC_CP_UTF8, source.GetAddressOf())))
 			{
 				return	false;

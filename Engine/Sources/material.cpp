@@ -33,17 +33,43 @@ namespace
 	}
 
 	//	マテリアルが使えない時に表示するマテリアルシェーダー
-	constexpr std::string_view failed_shader_path = "Shaders/Materials/3d_failed.hlsl";
+	std::string_view get_failed_shader_path(material::domains domain)
+	{
+		switch (domain)
+		{
+			case material::domains::surface: return "Shaders/Materials/3d_failed.hlsl";
+			case material::domains::particle: return material::default_particle_shader_path;
+			case material::domains::deferred_decal: return "Shaders/Materials/DeferredDecal/decal_failed.hlsl";
+			case material::domains::post_process: return "Shaders/Materials/PostProcess/post_process_failed.hlsl";
+			case material::domains::user_interface: return material::default_user_interface_shader_path;
+			default: return "";
+		}
+	}
 
-	//	material::surface_paths(マテリアルでの並び)を material_shader_map::surface_passes に変換
-	material_shader_map::surface_passes to_surface_pass(material::surface_paths path)
+	//	material::surface_pathsを material_shader_map::surface_passes に変換
+	UINT to_surface_pass(material::surface_paths path)
 	{
 		switch (path)
 		{
-			case material::surface_paths::depth_write_pass: return material_shader_map::surface_passes::depth_write;
-			case material::surface_paths::shadow_write_pass: return material_shader_map::surface_passes::shadow_write;
-			case material::surface_paths::forward_pass: return material_shader_map::surface_passes::forward;
-			default: return material_shader_map::surface_passes::g_buffer;
+			case material::surface_paths::depth_write_pass: return static_cast<UINT>(material_shader_map::surface_passes::depth_write);
+			case material::surface_paths::shadow_write_pass: return static_cast<UINT>(material_shader_map::surface_passes::shadow_write);
+			case material::surface_paths::forward_pass: return static_cast<UINT>(material_shader_map::surface_passes::forward);
+			default: return static_cast<UINT>(material_shader_map::surface_passes::g_buffer);
+		}
+	}
+
+	//	マテリアルでのパスの番号を material_shader_map のパスの番号に変換
+	UINT to_shader_map_pass(material::domains domain, UINT index)
+	{
+		switch (domain)
+		{
+			case material::domains::surface:
+			case material::domains::particle:
+				return to_surface_pass(static_cast<material::surface_paths>(index));
+			case material::domains::deferred_decal:
+				return index == static_cast<UINT>(material::decal_paths::fullscreen) ? static_cast<UINT>(material_shader_map::decal_passes::fullscreen) : static_cast<UINT>(material_shader_map::decal_passes::primitive);
+			default:
+				return 0;
 		}
 	}
 
@@ -61,6 +87,12 @@ namespace
 		{ "ggst_",				"Shaders/Materials/ggst.hlsl" },
 		{ "edit_model_color_",	"Shaders/Materials/edit_model_color.hlsl" },
 		{ "3d_failed_",			"Shaders/Materials/3d_failed.hlsl" },
+		{ "compute_patricle_sprite_",	material::default_particle_shader_path },
+		{ "particle_failed_",			material::default_particle_shader_path },
+		{ "deferred_decal_default_",	material::default_decal_shader_path },
+		{ "deferred_decal_failed_",		"Shaders/Materials/DeferredDecal/decal_failed.hlsl" },
+		{ "default_ui",					material::default_user_interface_shader_path },
+		{ "postprocess_failed",			"Shaders/Materials/PostProcess/post_process_failed.hlsl" },
 	};
 }
 
@@ -71,7 +103,7 @@ CEREAL_CLASS_VERSION(material::constant_buffer, 1)
 CEREAL_CLASS_VERSION(material::shader_resource, 1)
 CEREAL_CLASS_VERSION(material::shader_resource::resource, 1)
 CEREAL_CLASS_VERSION(material::physical_datas, 1)
-CEREAL_CLASS_VERSION(material, 2)
+CEREAL_CLASS_VERSION(material, 3)
 
 template<class Archive>
 void material::pipeline_state::serialize(Archive& archive, int version)
@@ -199,9 +231,13 @@ void material::serialize(Archive& archive, int version)
 			CEREAL_NVP(system_flags),
 			CEREAL_NVP(alpha_clip_threshold),
 
-			CEREAL_NVP(physical_data),
-			CEREAL_NVP(pipeline_states),
-			CEREAL_NVP(shader_resources),
+			CEREAL_NVP(physical_data));
+
+	//	バージョン3:PSO 名は system ドメインだけ保存する(それ以外はシェーダーパスから決まる)
+	if (version < 3 || domain == domains::system)
+		archive(CEREAL_NVP(pipeline_states));
+
+	archive(CEREAL_NVP(shader_resources),
 			CEREAL_NVP(constant_buffers));
 
 	//	バージョン2:マテリアルシェーダーと静的スイッチ
@@ -209,7 +245,7 @@ void material::serialize(Archive& archive, int version)
 		archive(CEREAL_NVP(shader_path), CEREAL_NVP(static_switches));
 	if constexpr (Archive::is_loading::value)
 	{
-		if (version < 2)
+		if (version < 3)
 			convert_legacy_pipeline_state_names();
 	}
 }
@@ -226,9 +262,13 @@ void material::serialize<cereal::BinaryOutputArchive>(cereal::BinaryOutputArchiv
 			CEREAL_NVP(system_flags),
 			CEREAL_NVP(alpha_clip_threshold),
 
-			CEREAL_NVP(physical_data),
-			CEREAL_NVP(pipeline_states),
-			CEREAL_NVP(shader_resources),
+			CEREAL_NVP(physical_data));
+
+	//	バージョン3:PSO 名は system ドメインだけ保存する(それ以外はシェーダーパスから決まる)
+	if (version < 3 || domain == domains::system)
+		archive(CEREAL_NVP(pipeline_states));
+
+	archive(CEREAL_NVP(shader_resources),
 			CEREAL_NVP(constant_buffers));
 
 	//	バージョン2:マテリアルシェーダーと静的スイッチ
@@ -248,15 +288,19 @@ void material::serialize<cereal::BinaryInputArchive>(cereal::BinaryInputArchive&
 			CEREAL_NVP(system_flags),
 			CEREAL_NVP(alpha_clip_threshold),
 
-			CEREAL_NVP(physical_data),
-			CEREAL_NVP(pipeline_states),
-			CEREAL_NVP(shader_resources),
+			CEREAL_NVP(physical_data));
+
+	//	バージョン3:PSO 名は system ドメインだけ保存する(それ以外はシェーダーパスから決まる)
+	if (version < 3 || domain == domains::system)
+		archive(CEREAL_NVP(pipeline_states));
+
+	archive(CEREAL_NVP(shader_resources),
 			CEREAL_NVP(constant_buffers));
 
 	//	バージョン2:マテリアルシェーダーと静的スイッチ
 	if (version >= 2)
 		archive(CEREAL_NVP(shader_path), CEREAL_NVP(static_switches));
-	else
+	if (version < 3)
 		convert_legacy_pipeline_state_names();
 }
 
@@ -272,7 +316,8 @@ void material::duplicate(material& material) const
 void material::build()
 {
 	//	マテリアルシェーダーを使う場合は、シェーダーパスと静的パラメーターからパイプラインステートを決める
-	if (uses_material_shader())
+	//	PSO を名前で持つのは system ドメインだけ
+	if (domain != domains::system)
 	{
 		refresh_pipeline_states();
 		build_parameters();
@@ -321,9 +366,9 @@ void material::build_parameters()
 
 	//	パラメーター構成の元にするパイプラインステート(マテリアルシェーダーは全スイッチ ON の構成から取る)
 	std::vector<graphics_pipeline_state_ptr> parameter_sources;
-	if (uses_material_shader())
+	if (domain != domains::system)
 	{
-		material_shader_map::instance()->get_parameter_pipeline_states(shader_path, parameter_sources);
+		material_shader_map::instance()->get_parameter_pipeline_states(shader_path, domain, parameter_sources);
 	}
 	else
 	{
@@ -587,8 +632,7 @@ void material::set_domain(material::domains domain)
 	pipeline_states.resize(size);
 
 	//	マテリアルシェーダーを設定済みなら取り直す
-	if (uses_material_shader())
-		refresh_pipeline_states();
+	refresh_pipeline_states();
 }
 
 material::blend_modes material::get_blend_mode() const
@@ -604,8 +648,7 @@ void material::set_blend_mode(blend_modes blend_mode)
 	this->blend_mode = blend_mode;
 
 	//	ブレンドモードで使うパスと PS の有無が変わる
-	if (uses_material_shader())
-		refresh_pipeline_states();
+	refresh_pipeline_states();
 }
 
 void material::set_flag(flags flag, bool value)
@@ -614,13 +657,8 @@ void material::set_flag(flags flag, bool value)
 	system_utility::set_bitflag(system_flags, 1 << static_cast<UINT>(flag), value);
 
 	//	影を落とすかで影のパスを使うかが変わる
-	if (changed && flag == flags::shadow_caster && uses_material_shader())
+	if (changed && flag == flags::shadow_caster)
 		refresh_pipeline_states();
-}
-
-bool material::uses_material_shader() const
-{
-	return domain == domains::surface && !shader_path.empty();
 }
 
 void material::set_shader_path(std::string_view path)
@@ -637,7 +675,7 @@ void material::set_shader_path(std::string_view path)
 	for (UINT index = 0; index < static_cast<UINT>(pipeline_states.size()); ++index)
 		assign_pipeline_state(index, "", nullptr, true);
 
-	if (uses_material_shader())
+	if (domain != domains::system)
 	{
 		refresh_pipeline_states();
 		build_parameters();
@@ -646,7 +684,7 @@ void material::set_shader_path(std::string_view path)
 
 void material::set_static_switch(std::string_view name, bool value)
 {
-	const auto* shader_declaration = material_shader_map::instance()->find_declaration(shader_path);
+	const auto* shader_declaration = material_shader_map::instance()->find_declaration(shader_path, domain);
 	if (!shader_declaration)
 		return;
 
@@ -675,7 +713,7 @@ void material::set_vertex_format(const material_shader_map::vertex_format& value
 
 bool material::get_static_switch(std::string_view name) const
 {
-	const auto* shader_declaration = material_shader_map::instance()->find_declaration(shader_path);
+	const auto* shader_declaration = material_shader_map::instance()->find_declaration(shader_path, domain);
 	if (!shader_declaration)
 		return false;
 
@@ -699,11 +737,12 @@ bool material::get_static_switch(std::string_view name) const
 
 void material::refresh_pipeline_states()
 {
-	if (!uses_material_shader())
+	//	system ドメインは PSO を名前で持つので取り直さない
+	if (domain == domains::system)
 		return;
 
 	material_shader_map* shader_map = material_shader_map::instance();
-	const auto* shader_declaration = shader_map->find_declaration(shader_path);
+	const auto* shader_declaration = shader_map->find_declaration(shader_path, domain);
 
 	//	静的スイッチを宣言の並び順のビットにする
 	std::uint64_t switch_bits = 0;
@@ -719,20 +758,29 @@ void material::refresh_pipeline_states()
 	const bool is_opaque = blend_mode == blend_modes::opaque || blend_mode == blend_modes::mask;
 	const bool is_translucent = blend_mode == blend_modes::translucent || blend_mode == blend_modes::addative;
 
-	const std::size_t size = magic_enum::enum_count<surface_paths>() + 1;
-	if (pipeline_states.size() < size)
-		pipeline_states.resize(size);
+	//	ドメインごとのパス数
+	UINT path_count = 1;
+	if (domain == domains::surface || domain == domains::particle)
+		path_count = static_cast<UINT>(magic_enum::enum_count<surface_paths>());
+	else if (domain == domains::deferred_decal)
+		path_count = static_cast<UINT>(magic_enum::enum_count<decal_paths>());
 
-	for (auto path : magic_enum::enum_values<surface_paths>())
+	if (pipeline_states.size() < path_count)
+		pipeline_states.resize(path_count);
+
+	for (UINT index = 0; index < path_count; ++index)
 	{
 		//	描画で使うパスだけ生成
-		bool required = false;
-		switch (path)
+		bool required = true;
+		if (domain == domains::surface || domain == domains::particle)
 		{
-			case surface_paths::depth_write_pass:
-			case surface_paths::g_buffer_pass: required = is_opaque; break;
-			case surface_paths::forward_pass: required = is_translucent; break;
-			case surface_paths::shadow_write_pass: required = is_flag(flags::shadow_caster); break;
+			switch (static_cast<surface_paths>(index))
+			{
+				case surface_paths::depth_write_pass:
+				case surface_paths::g_buffer_pass: required = is_opaque; break;
+				case surface_paths::forward_pass: required = is_translucent; break;
+				case surface_paths::shadow_write_pass: required = is_flag(flags::shadow_caster); break;
+			}
 		}
 
 		graphics_pipeline_state_ptr value;
@@ -740,13 +788,14 @@ void material::refresh_pipeline_states()
 		{
 			material_shader_map::request request;
 			request.shader_path = shader_path;
-			request.pass = to_surface_pass(path);
+			request.domain = domain;
+			request.pass = to_shader_map_pass(domain, index);
 			request.switch_bits = switch_bits;
 			request.vertex = vertex_format;
 			request.pixel = blend_mode == blend_modes::mask;
 			value = shader_map->get_pipeline_state(request);
 		}
-		assign_pipeline_state(static_cast<UINT>(path), value ? value->get_name() : "", value, required);
+		assign_pipeline_state(index, value ? value->get_name() : "", value, required);
 	}
 
 #if defined(USE_IMGUI)
@@ -780,7 +829,7 @@ void material::assign_pipeline_state(UINT index, std::string_view name, graphics
 
 void material::convert_legacy_pipeline_state_names()
 {
-	if (domain != domains::surface || !shader_path.empty())
+	if (!material_shader_map::is_supported_domain(domain) || !shader_path.empty())
 		return;
 
 	for (auto& pipeline_state : pipeline_states)
@@ -861,51 +910,6 @@ material::shader_resource_map& material::get_shader_resources_for_editor()
 }
 #endif	//	defined(USE_IMGUI)
 
-bool material::set_pipeline_state(const set_surface_pipeline_states_desc* descs, UINT size)
-{
-	//	ドメインが違えば登録させない
-	if (domain != domains::surface && domain != domains::particle)
-		return false;
-
-	bool registered = false;
-	for (UINT desc_index = 0; desc_index < size; ++desc_index)
-	{
-		UINT index = static_cast<int>(descs[desc_index].type);
-		std::string name = std::string(descs[desc_index].pipeline_state_name);
-
-		if (pipeline_states.size() >= index)
-		{
-			pipeline_states.resize(index + 1);
-		}
-
-		if (pipeline_states[index].name != name)
-		{
-			if (auto pipeline_state = pipeline_state_manager::instance()->search(name))
-			{
-				pipeline_states[index].name = name;
-#if defined(USE_IMGUI)
-				if (pipeline_states[index].value)
-					pipeline_states[index].value->unregister_reload_callback(pipeline_states[index].reload_callback_id);
-#endif	//	defined(USE_IMGUI)
-
-				pipeline_states[index].value = pipeline_state;
-
-#if defined(USE_IMGUI)
-				if (pipeline_states[index].value)
-					pipeline_states[index].reload_callback_id = pipeline_states[index].value->register_reload_callback([this](const pipeline_state_base* ps) { this->on_updates(ps); });
-#endif	//	defined(USE_IMGUI)
-				registered = true;
-			}
-		}
-	}
-
-	//	マテリアルパラメーターの更新
-	if (registered)
-		build_parameters();
-
-	return registered;
-}
-
 bool material::set_pipeline_state(domains domain, UINT index, std::string_view pipeline_state_name)
 {
 	//	ドメインが違えば登録させない
@@ -952,53 +956,9 @@ bool material::set_pipeline_state(domains domain, UINT index, std::string_view p
 	return false;
 }
 
-bool material::set_pipeline_state(surface_paths type, std::string_view pipeline_state_name)
-{
-	return set_pipeline_state(domains::surface, static_cast<UINT>(type), pipeline_state_name);
-}
-
-bool material::set_pipeline_state(decal_paths type, std::string_view pipeline_state_name)
-{
-	return set_pipeline_state(domains::deferred_decal, static_cast<UINT>(type), pipeline_state_name);
-}
-
 bool material::set_pipeline_state(system_paths type, std::string_view pipeline_state_name)
 {
 	return set_pipeline_state(domains::system, static_cast<UINT>(type), pipeline_state_name);
-}
-
-bool material::set_pipeline_state(std::string_view pipeline_state_name)
-{
-	assert(domain != domains::surface ||
-		   domain != domains::deferred_decal ||
-		   domain != domains::particle ||
-		   domain != domains::system);
-	return set_pipeline_state(domain, 0, pipeline_state_name);
-}
-
-std::string_view material::get_pipeline_state_name(surface_paths type) const
-{
-	assert(domain != domains::surface || domain != domains::particle);
-	return get_pipeline_state_name(domain, static_cast<UINT>(type));
-}
-
-std::string_view material::get_pipeline_state_name(decal_paths type) const
-{
-	return get_pipeline_state_name(domains::deferred_decal, static_cast<UINT>(type));
-}
-
-std::string_view material::get_pipeline_state_name(system_paths type) const
-{
-	return get_pipeline_state_name(domains::system, static_cast<UINT>(type));
-}
-
-std::string_view material::get_pipeline_state_name() const
-{
-	assert(domain == domains::surface ||
-		   domain == domains::deferred_decal ||
-		   domain == domains::particle ||
-		   domain == domains::system);
-	return get_pipeline_state_name(domain, 0);
 }
 
 graphics_pipeline_state_ptr material::get_pipeline_state(surface_paths value) const
@@ -1028,13 +988,6 @@ graphics_pipeline_state_ptr material::get_pipeline_state() const
 	return get_pipeline_state(domain, 0);
 }
 
-std::string_view material::get_pipeline_state_name(domains domain, UINT index) const
-{
-	if(this->domain != domain)
-		return "";
-	return pipeline_states[index].name;
-}
-
 graphics_pipeline_state_ptr material::get_pipeline_state(domains domain, UINT index) const
 {
 	if (this->domain != domain)
@@ -1044,48 +997,15 @@ graphics_pipeline_state_ptr material::get_pipeline_state(domains domain, UINT in
 	//	エラーチェック
 	if (is_error())
 	{
-		pipeline_state_manager* instance = pipeline_state_manager::instance();
-		switch (this->domain)
-		{
-			case domains::surface:
-			{
-				//	エラー表示用のマテリアルシェーダーで描く
-				material_shader_map::request request;
-				request.shader_path = failed_shader_path;
-				request.pass = to_surface_pass(static_cast<surface_paths>(index));
-				request.vertex = vertex_format;
-				request.pixel = false;
-				return material_shader_map::instance()->get_pipeline_state(request);
-			}
-			case domains::deferred_decal:
-			{
-				switch (index)
-				{
-					case static_cast<UINT>(decal_paths::primitive): return instance->search("deferred_decal_failed_primitive");
-					case static_cast<UINT>(decal_paths::fullscreen): return instance->search("deferred_decal_failed_fullscreen");
-				}
-				break;
-			}
-			case domains::post_process:
-			{
-				return instance->search("postprocess_failed");
-			}
-			case domains::user_interface:
-			{
-				return instance->search("default_ui");
-			}
-			case domains::particle:
-			{
-				switch (index)
-				{
-					case static_cast<UINT>(surface_paths::depth_write_pass): return instance->search("particle_failed_depth");
-					case static_cast<UINT>(surface_paths::shadow_write_pass): return instance->search("particle_failed_shadowmap");
-					case static_cast<UINT>(surface_paths::g_buffer_pass): return instance->search("particle_failed_gbuffer");
-					case static_cast<UINT>(surface_paths::forward_pass): return instance->search("particle_failed_forward");
-				}
-				break;
-			}
-		}
+		//	エラー表示用のマテリアルシェーダーで描く
+		material_shader_map::request request;
+		request.shader_path = get_failed_shader_path(this->domain);
+		request.domain = this->domain;
+		request.pass = to_shader_map_pass(this->domain, index);
+		request.vertex = vertex_format;
+		request.pixel = this->domain == domains::particle;
+		if (auto failed = material_shader_map::instance()->get_pipeline_state(request))
+			return failed;
 		assert(!"Not Comaptible Failed Shader.");
 	}
 #endif	//	defined(USE_IMGUI)
@@ -1170,8 +1090,7 @@ bool material::set_texture(std::string_view key_name, texture_ptr value)
 		resource.value = value;
 
 		//	テクスチャの有無で決まる静的スイッチがあるので取り直す
-		if (uses_material_shader())
-			refresh_pipeline_states();
+		refresh_pipeline_states();
 		return true;
 	}
 	return false;

@@ -3,8 +3,7 @@
 
 //#include "model.hlsli"
 
-//	@tool 境界球がビュー(カスケード)の視錐台の外にあるか
-//	@tool 左右上下の4平面だけで判定する(奥行き方向は視錐台の外にある物も影を落とすので判定しない)
+//	境界球がビュー(カスケード)の視錐台の外にあるか
 bool shadow_meshlet_is_outside(float3 center, float radius, float4x4 view_projection)
 {
     float4 column_x = float4(view_projection[0].x, view_projection[1].x, view_projection[2].x, view_projection[3].x);
@@ -27,12 +26,12 @@ VS_SHADOW_MAP_OUT main(uint vertex_id : SV_VertexID, uint instance_id : SV_Insta
     uint index;
     VS_SHADOW_MAP_OUT vout = (VS_SHADOW_MAP_OUT)0;
 
-    //	@tool インスタンス番号をメッシュレットとカスケードに分ける
+    //	インスタンス番号をメッシュレットとカスケードに分ける
     uint record_index, cascade_index;
     meshlet_decode_instance(instance_id, shadow_map_count, record_index, cascade_index);
     vout.render_target_array_index = cascade_index;
 
-    //	@tool カスケードの範囲外のメッシュレットは、頂点を読む前に縮退ポリゴン化する
+    //	カスケードの範囲外のメッシュレットは、頂点を読む前に縮退ポリゴン化する
     float4x4 view_projection = light_view_projection_transform[cascade_index];
     MeshletInstanceRecord record = visible_meshlet_instances[record_index];
     if (record.no_cull == 0 && record.bounds_radius > 0.0f && shadow_meshlet_is_outside(record.bounds_center, record.bounds_radius, view_projection))

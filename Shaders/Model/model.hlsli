@@ -87,7 +87,7 @@ struct VS_SHADOW_MAP_OUT
     float4 w_normal : NORMAL; //  xyz : ワールド法線, w = 空き
     DECLARATION_OUT_COLOR
     DECLARATION_OUT_TEXCOORD
-    uint render_target_array_index : SV_RENDERTARGETARRAYINDEX;   //  @tool 書き込むカスケード(シャドウマップの配列番号)
+    uint render_target_array_index : SV_RENDERTARGETARRAYINDEX;   //  レンダーターゲットの番号
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -254,8 +254,8 @@ struct MeshletInstanceRecord
 };
 StructuredBuffer<MeshletInstanceRecord> visible_meshlet_instances : register(t118);
 
-//	@tool インスタンス番号からメッシュレットのレコード番号とビュー番号(カスケード等)を取り出す
-//	@tool 1つのメッシュレットを複数のビューに描くときは、インスタンス数を「レコード数 × ビュー数」にして同じレコードのビューを連続させる
+//	インスタンス番号からメッシュレットのレコード番号とビュー番号(カスケード等)を取り出す
+//	1つのメッシュレットを複数のビューに描くときは、インスタンス数を「レコード数 × ビュー数」にして同じレコードのビューを連続させる
 void meshlet_decode_instance(uint instance_id, uint view_count, out uint record_index, out uint view_index)
 {
 	view_count = max(view_count, 1);

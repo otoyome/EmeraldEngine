@@ -44,7 +44,7 @@ float surface_opacity(VS_OUT pin, bool is_front_face)
 }
 #endif	//	defined(MATERIAL_SURFACE_OPACITY)
 
-//	@tool 深度と G-Buffer のパスだけで GS を使う(定義があるパスでは自動で GS が付く)
+//	深度と G-Buffer のパスだけで GS を使う
 #if defined(MATERIAL_GEOMETRY) && (defined(SURFACE_PASS_DEPTH_WRITE) || defined(SURFACE_PASS_G_BUFFER))
 #define MATERIAL_GEOMETRY_MAX_VERTEX_COUNT	3
 

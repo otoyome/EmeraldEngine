@@ -10,22 +10,13 @@
 
 namespace
 {
-	//	surface ドメインのパステンプレート
-	constexpr std::string_view surface_pass_template_path = "surface_pass.hlsli";
-
-	//	VS はマテリアルシェーダーを含まないので、更新時刻・キャッシュ名・監視はテンプレートのファイルで行う
-	constexpr std::string_view surface_pass_template_file_path = "Shaders/Passes/surface_pass.hlsli";
-
-	//	頂点要件の define を受け取るヘッダー
-	constexpr std::string_view model_header_path = "model.hlsli";
-
-	//	@tool 接線・カラー・UV は常に読む(メッシュに無い要素はシェーダーで 0 になる)
+	//	接線・カラー・UV は常に読む(メッシュに無い要素はシェーダーで 0 になる)
 	constexpr std::string_view fixed_vertex_defines =
 		"#define HAS_TANGENT\n"
 		"#define VERTEX_COLOR_MAX 1\n"
 		"#define TEXCOORD_MAX 2\n";
 
-	//	@tool 静的スイッチを書くためのマクロ(値はスイッチごとの define で渡す)
+	//	静的スイッチを書くためのマクロ(値はスイッチごとの define で渡す)
 	constexpr std::string_view switch_macro_definitions =
 		"#define HAS_TEXTURE(name) HAS_TEXTURE_##name\n"
 		"#define MATERIAL_SWITCH(name) MATERIAL_SWITCH_##name\n";
@@ -33,34 +24,118 @@ namespace
 	//	マテリアルシェーダーの置き場所
 	constexpr std::string_view material_shader_directory = "Shaders/Materials";
 
-	//	ステージを指定する define 名
-	constexpr std::string_view surface_stage_vertex = "SURFACE_STAGE_VERTEX";
-	constexpr std::string_view surface_stage_geometry = "SURFACE_STAGE_GEOMETRY";
-	constexpr std::string_view surface_stage_pixel = "SURFACE_STAGE_PIXEL";
-
-	//	surface ドメインのパスごとの設定
-	struct surface_pass_template
+	//	ドメインのパスごとの設定
+	struct pass_template
 	{
 		std::string_view suffix;			//	パイプラインステート名の接尾辞
 		std::string_view pass_define;		//	パスを指定する define 名
-		std::string_view vs_out;			//	GS / PS の入力型(VS は model_*_vs.hlsli 側で決まる)
+		std::string_view vs_out;			//	GS / PS の入力型(空なら define しない。テンプレート側で VS_OUT 構造体を定義するドメイン)
 		std::string_view pixel_define;		//	PS で有効にするマテリアル関数の define 名
 		std::string_view option_define;		//	全ステージに追加する define 名(空なら無し)
 		bool hook_geometry;					//	マテリアルのジオメトリフックを使えるか
+		bool fixed_geometry;				//	常にテンプレートの GS を使うか
 		bool optional_pixel;				//	PS を省略できるか(マスク以外は深度だけ書けばよい)
 	};
 
 	//	material_shader_map::surface_passes の順に並べる
-	constexpr surface_pass_template surface_pass_templates[] =
+	constexpr pass_template surface_pass_templates[] =
 	{
-		{ "_depth",		"SURFACE_PASS_DEPTH_WRITE",		"VS_DEPTH_OUT",			"MATERIAL_SURFACE_OPACITY",	"",						true,	true },
-		{ "_shadowmap",	"SURFACE_PASS_SHADOW_WRITE",	"VS_SHADOW_MAP_OUT",	"MATERIAL_SURFACE_OPACITY",	"",						true,	true },
-		{ "_gbuffer",	"SURFACE_PASS_G_BUFFER",		"VS_GBUFFER_OUT",		"MATERIAL_SURFACE",			"",						true,	false },
-		{ "_forward",	"SURFACE_PASS_FORWARD",			"VS_FORWARD_OUT",		"MATERIAL_SURFACE",			"FORWARD_RENDERING",	true,	false },
+		{ "_depth",		"SURFACE_PASS_DEPTH_WRITE",		"VS_DEPTH_OUT",			"MATERIAL_SURFACE_OPACITY",	"",						true,	false,	true },
+		{ "_shadowmap",	"SURFACE_PASS_SHADOW_WRITE",	"VS_SHADOW_MAP_OUT",	"MATERIAL_SURFACE_OPACITY",	"",						true,	false,	true },
+		{ "_gbuffer",	"SURFACE_PASS_G_BUFFER",		"VS_GBUFFER_OUT",		"MATERIAL_SURFACE",			"",						true,	false,	false },
+		{ "_forward",	"SURFACE_PASS_FORWARD",			"VS_FORWARD_OUT",		"MATERIAL_SURFACE",			"FORWARD_RENDERING",	true,	false,	false },
 	};
 	static_assert(std::size(surface_pass_templates) == magic_enum::enum_count<material_shader_map::surface_passes>());
 
-	//	@tool コメントを取り除く(改行は残す)
+	//	particle ドメイン(surface と同じパス。影はまだ GS でカスケード展開する)
+	constexpr pass_template particle_pass_templates[] =
+	{
+		{ "_depth",		"PARTICLE_PASS_DEPTH_WRITE",	"PS_IN",	"MATERIAL_SURFACE_OPACITY",	"",	false,	false,	true },
+		{ "_shadowmap",	"PARTICLE_PASS_SHADOW_WRITE",	"PS_IN",	"MATERIAL_SURFACE_OPACITY",	"",	false,	true,	true },
+		{ "_gbuffer",	"PARTICLE_PASS_G_BUFFER",		"PS_IN",	"MATERIAL_SURFACE",			"",	false,	false,	false },
+		{ "_forward",	"PARTICLE_PASS_FORWARD",		"PS_IN",	"MATERIAL_SURFACE",			"",	false,	false,	false },
+	};
+	static_assert(std::size(particle_pass_templates) == magic_enum::enum_count<material_shader_map::surface_passes>());
+
+	//	deferred_decal ドメイン(material_shader_map::decal_passes の順)
+	constexpr pass_template decal_pass_templates[] =
+	{
+		{ "_primitive",		"DECAL_PASS_PRIMITIVE",		"",	"MATERIAL_DECAL",	"",	false,	false,	false },
+		{ "_fullscreen",	"DECAL_PASS_FULLSCREEN",	"",	"MATERIAL_DECAL",	"",	false,	false,	false },
+	};
+	static_assert(std::size(decal_pass_templates) == magic_enum::enum_count<material_shader_map::decal_passes>());
+
+	//	post_process / user_interface ドメイン(1パス)
+	constexpr pass_template post_process_pass_templates[] =
+	{
+		{ "",	"POST_PROCESS_PASS",	"",	"MATERIAL_POST_PROCESS",	"",	false,	false,	false },
+	};
+	constexpr pass_template user_interface_pass_templates[] =
+	{
+		{ "",	"USER_INTERFACE_PASS",	"",	"MATERIAL_USER_INTERFACE",	"",	false,	false,	false },
+	};
+
+	//	ドメインごとの設定
+	struct domain_template
+	{
+		material_shader_map::domains domain;
+		std::string_view directory;				//	マテリアルシェーダーを置くフォルダ(material_shader_directory からの相対。surface は直下)
+		std::string_view template_path;			//	パステンプレート(入口で include する名前)
+		std::string_view template_file_path;	//	パステンプレートのファイル(マテリアルを含まないステージの更新時刻・キャッシュ名・監視に使う)
+		std::string_view header_path;			//	マテリアルシェーダーより先に include するヘッダー(空なら無し)
+		std::string_view stage_vertex;			//	ステージを指定する define 名
+		std::string_view stage_geometry;
+		std::string_view stage_pixel;
+		bool uses_vertex_format;				//	メッシュの頂点の構成(ボーン数・モーフ)を使うか
+		const pass_template* passes;
+		UINT pass_count;
+	};
+
+	constexpr domain_template domain_templates[] =
+	{
+		{
+			material_shader_map::domains::surface, "",
+			"surface_pass.hlsli", "Shaders/Passes/surface_pass.hlsli", "model.hlsli",
+			"SURFACE_STAGE_VERTEX", "SURFACE_STAGE_GEOMETRY", "SURFACE_STAGE_PIXEL",
+			true, surface_pass_templates, static_cast<UINT>(std::size(surface_pass_templates)),
+		},
+		{
+			material_shader_map::domains::particle, "Particle",
+			"particle_pass.hlsli", "Shaders/Passes/particle_pass.hlsli", "compute_particle_renderer.hlsli",
+			"PARTICLE_STAGE_VERTEX", "PARTICLE_STAGE_GEOMETRY", "PARTICLE_STAGE_PIXEL",
+			false, particle_pass_templates, static_cast<UINT>(std::size(particle_pass_templates)),
+		},
+		{
+			material_shader_map::domains::deferred_decal, "DeferredDecal",
+			"deferred_decal_pass.hlsli", "Shaders/Passes/deferred_decal_pass.hlsli", "",
+			"DECAL_STAGE_VERTEX", "DECAL_STAGE_GEOMETRY", "DECAL_STAGE_PIXEL",
+			false, decal_pass_templates, static_cast<UINT>(std::size(decal_pass_templates)),
+		},
+		{
+			material_shader_map::domains::post_process, "PostProcess",
+			"post_process_pass.hlsli", "Shaders/Passes/post_process_pass.hlsli", "fullscreen_quad.hlsli",
+			"POST_PROCESS_STAGE_VERTEX", "POST_PROCESS_STAGE_GEOMETRY", "POST_PROCESS_STAGE_PIXEL",
+			false, post_process_pass_templates, static_cast<UINT>(std::size(post_process_pass_templates)),
+		},
+		{
+			material_shader_map::domains::user_interface, "UserInterface",
+			"user_interface_pass.hlsli", "Shaders/Passes/user_interface_pass.hlsli", "sprite.hlsli",
+			"USER_INTERFACE_STAGE_VERTEX", "USER_INTERFACE_STAGE_GEOMETRY", "USER_INTERFACE_STAGE_PIXEL",
+			false, user_interface_pass_templates, static_cast<UINT>(std::size(user_interface_pass_templates)),
+		},
+	};
+
+	const domain_template* find_domain_template(material_shader_map::domains domain)
+	{
+		for (auto& item : domain_templates)
+		{
+			if (item.domain == domain)
+				return &item;
+		}
+		return nullptr;
+	}
+
+	//	コメントを取り除く(改行は残す)
 	std::string remove_comments(const std::string& text)
 	{
 		std::string result;
@@ -101,7 +176,7 @@ namespace
 
 	//	マテリアルシェーダーをパスとステージを指定してコンパイルし、パイプラインステートに設定する
 	template<class Shader>
-	bool load_pass_shader(graphics_custom_pipeline_state& pipeline_state, std::string_view file_path, std::string source_text, const surface_pass_template& pass_template, std::string_view stage_define, bool hook_geometry)
+	bool load_pass_shader(graphics_custom_pipeline_state& pipeline_state, std::string_view file_path, std::string source_text, const domain_template& domain, const pass_template& pass_template, std::string_view stage_define, bool hook_geometry)
 	{
 		load_shader_file desc;
 		desc.file_path = file_path;
@@ -116,15 +191,18 @@ namespace
 		if (!pass_template.option_define.empty())
 			desc.defines.emplace_back(pass_template.option_define, "1");
 
-		if (stage_define == surface_stage_pixel)
+		if (stage_define == domain.stage_pixel)
 		{
-			desc.defines.emplace_back(pass_template.pixel_define, "1");
-			desc.defines.emplace_back("VS_OUT", pass_template.vs_out);
+			if (!pass_template.pixel_define.empty())
+				desc.defines.emplace_back(pass_template.pixel_define, "1");
+			if (!pass_template.vs_out.empty())
+				desc.defines.emplace_back("VS_OUT", pass_template.vs_out);
 		}
-		else if (stage_define == surface_stage_geometry && hook_geometry)
+		else if (stage_define == domain.stage_geometry && hook_geometry)
 		{
 			desc.defines.emplace_back("MATERIAL_GEOMETRY", "1");
-			desc.defines.emplace_back("VS_OUT", pass_template.vs_out);
+			if (!pass_template.vs_out.empty())
+				desc.defines.emplace_back("VS_OUT", pass_template.vs_out);
 		}
 
 		std::shared_ptr<Shader> shader;
@@ -135,13 +213,12 @@ namespace
 		return true;
 	}
 
-	//	@tool インクルードを空にする(マテリアルシェーダー本体の条件分岐だけを見たい)
+	//	インクルードを空にする
 	class empty_include_handler : public ID3DInclude
 	{
 	public:
 		HRESULT __stdcall Open(D3D_INCLUDE_TYPE, LPCSTR, LPCVOID, LPCVOID* data, UINT* bytes) override
 		{
-			//	@tool 長さ 0 だと D3DPreprocess が失敗するので改行だけを返す
 			static const char empty[] = "\n";
 			*data = empty;
 			*bytes = 1;
@@ -153,20 +230,21 @@ namespace
 		}
 	};
 
-	//	@tool マテリアルシェーダーを GS のステージとしてプリプロセスする(インクルード先は展開しない)
-	bool preprocess_geometry_stage(const std::string& shader_path, const std::string& source_text, const surface_pass_template& pass_template, std::string& out, std::string& error)
+	//	マテリアルシェーダーを GS のステージとしてプリプロセスする
+	bool preprocess_geometry_stage(const std::string& shader_path, const std::string& source_text, const domain_template& domain, const pass_template& pass_template, std::string& out, std::string& error)
 	{
 		const std::string source = std::string(switch_macro_definitions) + source_text;
 		const std::string pass_define(pass_template.pass_define);
 		const std::string vs_out(pass_template.vs_out);
 		const std::string option_define(pass_template.option_define);
-		const std::string stage_define(surface_stage_geometry);
+		const std::string stage_define(domain.stage_geometry);
 
 		std::vector<D3D_SHADER_MACRO> defines;
 		defines.push_back({ pass_define.data(), "1" });
 		defines.push_back({ stage_define.data(), "1" });
 		defines.push_back({ "MATERIAL_GEOMETRY", "1" });
-		defines.push_back({ "VS_OUT", vs_out.data() });
+		if (!vs_out.empty())
+			defines.push_back({ "VS_OUT", vs_out.data() });
 		if (!option_define.empty())
 			defines.push_back({ option_define.data(), "1" });
 		defines.push_back({ nullptr, nullptr });
@@ -195,15 +273,26 @@ material_shader_map::~material_shader_map()
 {
 }
 
-const material_shader_map::declaration* material_shader_map::find_declaration(std::string_view shader_path)
+const material_shader_map::declaration* material_shader_map::find_declaration(std::string_view shader_path, domains domain)
 {
-	entry* target = find_entry(shader_path);
+	entry* target = find_entry(shader_path, domain);
 	return target ? &target->shader_declaration : nullptr;
 }
 
-material_shader_map::entry* material_shader_map::find_entry(std::string_view shader_path)
+bool material_shader_map::is_supported_domain(domains domain)
 {
-	if (shader_path.empty())
+	return find_domain_template(domain) != nullptr;
+}
+
+UINT material_shader_map::get_pass_count(domains domain)
+{
+	const domain_template* target = find_domain_template(domain);
+	return target ? target->pass_count : 0;
+}
+
+material_shader_map::entry* material_shader_map::find_entry(std::string_view shader_path, domains domain)
+{
+	if (shader_path.empty() || !is_supported_domain(domain))
 		return nullptr;
 
 	std::string key = std::string(shader_path);
@@ -215,11 +304,18 @@ material_shader_map::entry* material_shader_map::find_entry(std::string_view sha
 	auto it = entries.find(key);
 	if (it != entries.end())
 	{
+		//	1つのマテリアルシェーダーは1つのドメインでしか使えない
+		if (it->second->domain != domain)
+		{
+			DEBUG_ERROR_CATEGORY(logger::categorys::shader, "material_shader_map domain mismatch [%s]", key.data());
+			return nullptr;
+		}
+
 		//	ファイルが更新されていれば宣言を読み直す(生成済みのパイプラインステートは宣言が変わると使えないので破棄する)
 		if (!error && it->second->write_time != write_time)
 		{
 			declaration latest;
-			parse_declaration(it->second->shader_path, latest);
+			parse_declaration(it->second->shader_path, domain, latest);
 			const auto& current = it->second->shader_declaration;
 			const bool changed = latest.geometry_passes != current.geometry_passes ||
 								 latest.static_switches.size() != current.static_switches.size() ||
@@ -244,12 +340,13 @@ material_shader_map::entry* material_shader_map::find_entry(std::string_view sha
 
 	auto target = std::make_unique<entry>();
 	target->shader_path = key;
+	target->domain = domain;
 	target->write_time = write_time;
-	parse_declaration(target->shader_path, target->shader_declaration);
+	parse_declaration(target->shader_path, domain, target->shader_declaration);
 	return entries.emplace(key, std::move(target)).first->second.get();
 }
 
-void material_shader_map::parse_declaration(const std::string& shader_path, declaration& out)
+void material_shader_map::parse_declaration(const std::string& shader_path, domains domain, declaration& out)
 {
 	out = declaration{};
 
@@ -262,7 +359,7 @@ void material_shader_map::parse_declaration(const std::string& shader_path, decl
 	}
 	const std::string source_text((std::istreambuf_iterator<char>(stream)), std::istreambuf_iterator<char>());
 
-	//	@tool 静的スイッチ:HAS_TEXTURE(テクスチャ名) / MATERIAL_SWITCH(名前) を書かれている順に集める
+	//	静的スイッチ:HAS_TEXTURE(テクスチャ名) / MATERIAL_SWITCH(名前) を書かれている順に集める
 	static const std::regex switch_pattern(R"(\b(HAS_TEXTURE|MATERIAL_SWITCH)\s*\(\s*(\w+)\s*\))");
 	const std::string code = remove_comments(source_text);
 	for (auto it = std::sregex_iterator(code.begin(), code.end(), switch_pattern); it != std::sregex_iterator(); ++it)
@@ -288,19 +385,20 @@ void material_shader_map::parse_declaration(const std::string& shader_path, decl
 		out.static_switches.emplace_back(std::move(item));
 	}
 
-	//	@tool ジオメトリ:パスごとにプリプロセスして、material_geometry() が残るパスで GS を使う
+	//	ジオメトリ:パスごとにプリプロセスして、material_geometry() が残るパスで GS を使う
 	static const std::regex geometry_pattern(R"(\bmaterial_geometry\s*\()");
-	for (auto pass : magic_enum::enum_values<surface_passes>())
+	const domain_template& domain_setting = *find_domain_template(domain);
+	for (UINT pass = 0; pass < domain_setting.pass_count; ++pass)
 	{
-		const surface_pass_template& pass_template = surface_pass_templates[static_cast<UINT>(pass)];
+		const pass_template& pass_template = domain_setting.passes[pass];
 		if (!pass_template.hook_geometry)
 			continue;
 
 		std::string preprocessed;
 		std::string error;
-		if (!preprocess_geometry_stage(shader_path, source_text, pass_template, preprocessed, error))
+		if (!preprocess_geometry_stage(shader_path, source_text, domain_setting, pass_template, preprocessed, error))
 		{
-			out.error += "preprocess failed (" + std::string(magic_enum::enum_name(pass)) + ") : " + error + "\n";
+			out.error += "preprocess failed (" + std::string(pass_template.pass_define) + ") : " + error + "\n";
 			continue;
 		}
 		if (std::regex_search(preprocessed, geometry_pattern))
@@ -315,12 +413,18 @@ void material_shader_map::parse_declaration(const std::string& shader_path, decl
 
 std::string material_shader_map::generate_source(const entry& target, const vertex_format& vertex, bool include_material, const std::uint64_t* switch_bits)
 {
+	const domain_template& domain_setting = *find_domain_template(target.domain);
+
 	//	頂点要件 → 静的スイッチ → model.hlsli → マテリアルシェーダー → パステンプレートの順に並べる
-	std::string source(fixed_vertex_defines);
-	if (vertex.bone_max > 0)
-		source += "#define BONE_MAX " + std::to_string(vertex.bone_max) + "\n";
-	if (vertex.morph)
-		source += "#define HAS_MORPH\n";
+	std::string source;
+	if (domain_setting.uses_vertex_format)
+	{
+		source += fixed_vertex_defines;
+		if (vertex.bone_max > 0)
+			source += "#define BONE_MAX " + std::to_string(vertex.bone_max) + "\n";
+		if (vertex.morph)
+			source += "#define HAS_MORPH\n";
+	}
 	source += switch_macro_definitions;
 	if (switch_bits)
 	{
@@ -330,29 +434,35 @@ std::string material_shader_map::generate_source(const entry& target, const vert
 			source += "#define " + switches[index].name + (((*switch_bits >> index) & 1ull) ? " 1\n" : " 0\n");
 		}
 	}
-	source += "#include \"" + std::string(model_header_path) + "\"\n";
+	if (!domain_setting.header_path.empty())
+		source += "#include \"" + std::string(domain_setting.header_path) + "\"\n";
 	if (include_material)
 		source += "#include \"" + target.shader_path + "\"\n";
-	source += "#include \"" + std::string(surface_pass_template_path) + "\"\n";
+	source += "#include \"" + std::string(domain_setting.template_path) + "\"\n";
 	return source;
 }
 
 graphics_pipeline_state_ptr material_shader_map::get_pipeline_state(const request& request)
 {
-	entry* target = find_entry(request.shader_path);
+	entry* target = find_entry(request.shader_path, request.domain);
 	if (!target || !target->shader_declaration.is_valid())
 		return nullptr;
 
 	const declaration& shader_declaration = target->shader_declaration;
+	const domain_template& domain_setting = *find_domain_template(request.domain);
+	if (request.pass >= domain_setting.pass_count)
+		return nullptr;
 
-	const UINT pass_index = static_cast<UINT>(request.pass);
-	const surface_pass_template& pass_template = surface_pass_templates[pass_index];
+	const UINT pass_index = request.pass;
+	const pass_template& pass_template = domain_setting.passes[pass_index];
 	const bool use_pixel = !pass_template.optional_pixel || request.pixel;
 	const std::uint64_t switch_bits = request.switch_bits & switch_mask(shader_declaration.static_switches.size());
 
-	//	@tool ボーン数は 4 の倍数で 0～16 にそろえる
+	//	ボーン数は 4 の倍数で 0～16 にそろえる(頂点の構成を使わないドメインは固定)
 	vertex_format vertex = request.vertex;
 	vertex.bone_max = std::min((vertex.bone_max + 3u) / 4u * 4u, 16u);
+	if (!domain_setting.uses_vertex_format)
+		vertex = vertex_format{ 0, false };
 
 	const auto key = std::make_tuple(switch_bits, pass_index, use_pixel, vertex.bone_max, vertex.morph);
 	auto it = target->pipeline_states.find(key);
@@ -369,33 +479,42 @@ graphics_pipeline_state_ptr material_shader_map::get_pipeline_state(const reques
 		hex << std::hex << switch_bits;
 		name += "_" + hex.str();
 	}
-	name += "_b" + std::to_string(vertex.bone_max);
-	if (vertex.morph)
-		name += "_m";
+	if (domain_setting.uses_vertex_format)
+	{
+		name += "_b" + std::to_string(vertex.bone_max);
+		if (vertex.morph)
+			name += "_m";
+	}
 
 	std::shared_ptr<graphics_custom_pipeline_state> pipeline_state;
 	if (!pipeline_state_manager::instance()->generate_pipeline_state<graphics_custom_pipeline_state>(name, &pipeline_state))
 		return nullptr;
-	pipeline_state->set_domain(domains::surface);
+	pipeline_state->set_domain(request.domain);
 	pipeline_state->set_flag(pipeline_state_base::flags::hidden, true);
 
-	const bool use_hook_geometry = system_utility::is_bitflag(shader_declaration.geometry_passes, to_bit(request.pass));
+	const bool use_hook_geometry = system_utility::is_bitflag(shader_declaration.geometry_passes, to_bit(pass_index));
 
 	bool result = true;
 
 	//	VS は頂点要件だけで決まるので、マテリアルシェーダーを含めずに同じ頂点要件のマテリアルと共有する
-	if (!load_pass_shader<vertex_shader>(*pipeline_state, surface_pass_template_file_path, generate_source(*target, vertex, false, nullptr), pass_template, surface_stage_vertex, false))
+	if (!load_pass_shader<vertex_shader>(*pipeline_state, domain_setting.template_file_path, generate_source(*target, vertex, false, nullptr), domain_setting, pass_template, domain_setting.stage_vertex, false))
 		result = false;
 
 	if (use_hook_geometry)
 	{
-		if (!load_pass_shader<geometry_shader>(*pipeline_state, target->shader_path, generate_source(*target, vertex, true, &switch_bits), pass_template, surface_stage_geometry, true))
+		if (!load_pass_shader<geometry_shader>(*pipeline_state, target->shader_path, generate_source(*target, vertex, true, &switch_bits), domain_setting, pass_template, domain_setting.stage_geometry, true))
+			result = false;
+	}
+	else if (pass_template.fixed_geometry)
+	{
+		//	テンプレートの GS もマテリアルを含まないので VS と同じく共有する
+		if (!load_pass_shader<geometry_shader>(*pipeline_state, domain_setting.template_file_path, generate_source(*target, vertex, false, nullptr), domain_setting, pass_template, domain_setting.stage_geometry, false))
 			result = false;
 	}
 
 	if (use_pixel)
 	{
-		if (!load_pass_shader<pixel_shader>(*pipeline_state, target->shader_path, generate_source(*target, vertex, true, &switch_bits), pass_template, surface_stage_pixel, false))
+		if (!load_pass_shader<pixel_shader>(*pipeline_state, target->shader_path, generate_source(*target, vertex, true, &switch_bits), domain_setting, pass_template, domain_setting.stage_pixel, false))
 			result = false;
 	}
 
@@ -408,18 +527,27 @@ graphics_pipeline_state_ptr material_shader_map::get_pipeline_state(const reques
 	return pipeline_state;
 }
 
-void material_shader_map::get_parameter_pipeline_states(std::string_view shader_path, std::vector<graphics_pipeline_state_ptr>& out)
+void material_shader_map::get_parameter_pipeline_states(std::string_view shader_path, domains domain, std::vector<graphics_pipeline_state_ptr>& out)
 {
-	entry* target = find_entry(shader_path);
+	entry* target = find_entry(shader_path, domain);
 	if (!target || !target->shader_declaration.is_valid())
 		return;
 
 	//	スイッチで使われなくなるテクスチャや定数も編集できるよう、全スイッチ ON の構成から取る
 	request parameter_request;
 	parameter_request.shader_path = target->shader_path;
+	parameter_request.domain = domain;
 	parameter_request.switch_bits = switch_mask(target->shader_declaration.static_switches.size());
 	parameter_request.pixel = true;
-	for (auto pass : { surface_passes::g_buffer, surface_passes::depth_write })
+
+	//	surface / particle は G-Buffer と深度、それ以外は先頭のパスから取る
+	std::vector<UINT> passes;
+	if (domain == domains::surface || domain == domains::particle)
+		passes = { static_cast<UINT>(surface_passes::g_buffer), static_cast<UINT>(surface_passes::depth_write) };
+	else
+		passes = { 0 };
+
+	for (auto pass : passes)
 	{
 		parameter_request.pass = pass;
 		if (auto pipeline_state = get_pipeline_state(parameter_request))
@@ -428,18 +556,35 @@ void material_shader_map::get_parameter_pipeline_states(std::string_view shader_
 }
 
 #if defined(USE_IMGUI)
-std::vector<std::string> material_shader_map::collect_shader_paths() const
+std::vector<std::string> material_shader_map::collect_shader_paths(domains domain) const
 {
 	std::vector<std::string> paths;
-	std::error_code error;
-	for (auto& file : std::filesystem::recursive_directory_iterator(material_shader_directory, error))
+	const domain_template* domain_setting = find_domain_template(domain);
+	if (!domain_setting)
+		return paths;
+
+	auto add_path = [&](const std::filesystem::directory_entry& file)
 	{
 		if (!file.is_regular_file() || file.path().extension() != ".hlsl")
-			continue;
+			return;
 
 		std::string path = file.path().string();
 		std::replace(path.begin(), path.end(), '\\', '/');
 		paths.emplace_back(path);
+	};
+
+	//	surface は直下のファイルだけ、それ以外はドメインのフォルダ以下
+	std::error_code error;
+	if (domain_setting->directory.empty())
+	{
+		for (auto& file : std::filesystem::directory_iterator(material_shader_directory, error))
+			add_path(file);
+	}
+	else
+	{
+		const std::filesystem::path directory = std::filesystem::path(material_shader_directory) / domain_setting->directory;
+		for (auto& file : std::filesystem::recursive_directory_iterator(directory, error))
+			add_path(file);
 	}
 	std::sort(paths.begin(), paths.end());
 	return paths;

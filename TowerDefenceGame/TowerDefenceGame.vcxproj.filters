@@ -894,9 +894,6 @@
     <FxCompile Include="..\Shaders\Sprite\sprite_vs.hlsl">
       <Filter>Shaders\Sprite</Filter>
     </FxCompile>
-    <FxCompile Include="..\Shaders\Sprite\sprite_ps.hlsl">
-      <Filter>Shaders\Sprite</Filter>
-    </FxCompile>
     <FxCompile Include="..\Shaders\SkyBox\sky_box_gbuffer_ps.hlsl">
       <Filter>Shaders\SkyBox</Filter>
     </FxCompile>
@@ -1047,41 +1044,8 @@
     <FxCompile Include="..\Shaders\ComputeParticle\System\compute_particle_begin_update_cs.hlsl">
       <Filter>Shaders\ComputeParticle\System</Filter>
     </FxCompile>
-    <FxCompile Include="..\Shaders\ComputeParticle\Renderer\Default\compute_particle_default_g_buffer_ps.hlsl">
-      <Filter>Shaders\ComputeParticle\Renderer\Default</Filter>
-    </FxCompile>
-    <FxCompile Include="..\Shaders\ComputeParticle\Renderer\Default\compute_particle_default_ps.hlsl">
-      <Filter>Shaders\ComputeParticle\Renderer\Default</Filter>
-    </FxCompile>
-    <FxCompile Include="..\Shaders\ComputeParticle\Renderer\Default\compute_particle_default_vs.hlsl">
-      <Filter>Shaders\ComputeParticle\Renderer\Default</Filter>
-    </FxCompile>
-    <FxCompile Include="..\Shaders\ComputeParticle\Renderer\Default\compute_particle_default_csm_gs.hlsl">
-      <Filter>Shaders\ComputeParticle\Renderer\Default</Filter>
-    </FxCompile>
-    <FxCompile Include="..\Shaders\ComputeParticle\Renderer\Default\compute_particle_default_csm_vs.hlsl">
-      <Filter>Shaders\ComputeParticle\Renderer\Default</Filter>
-    </FxCompile>
-    <FxCompile Include="..\Shaders\ComputeParticle\Renderer\Default\compute_particle_default_depth_write_ps.hlsl">
-      <Filter>Shaders\ComputeParticle\Renderer\Default</Filter>
-    </FxCompile>
-    <FxCompile Include="..\Shaders\ComputeParticle\Renderer\Default\compute_particle_default_depth_write_vs.hlsl">
-      <Filter>Shaders\ComputeParticle\Renderer\Default</Filter>
-    </FxCompile>
     <FxCompile Include="..\Shaders\ComputeParticle\System\compute_particle_end_update_cs.hlsl">
       <Filter>Shaders\ComputeParticle\System</Filter>
-    </FxCompile>
-    <FxCompile Include="..\Shaders\DeferredDecal\Default\default_decal_fullscreen_ps.hlsl">
-      <Filter>Shaders\DeferredDecal\Default</Filter>
-    </FxCompile>
-    <FxCompile Include="..\Shaders\DeferredDecal\Default\default_decal_primitive_ps.hlsl">
-      <Filter>Shaders\DeferredDecal\Default</Filter>
-    </FxCompile>
-    <FxCompile Include="..\Shaders\DeferredDecal\Failed\failed_decal_fullscreen_ps.hlsl">
-      <Filter>Shaders\DeferredDecal\Failed</Filter>
-    </FxCompile>
-    <FxCompile Include="..\Shaders\DeferredDecal\Failed\failed_decal_primitive_ps.hlsl">
-      <Filter>Shaders\DeferredDecal\Failed</Filter>
     </FxCompile>
     <FxCompile Include="..\Shaders\DeferredDecal\gbuffer_decal_primitive_vs.hlsl">
       <Filter>Shaders\DeferredDecal</Filter>

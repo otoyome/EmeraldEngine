@@ -28,7 +28,7 @@ sprite::sprite()
 
 	material.set_domain(material::domains::user_interface);
 	material.set_blend_mode(material::blend_modes::translucent);
-	material.set_pipeline_state("default_ui");
+	material.set_shader_path(::material::default_user_interface_shader_path);
 
 	material.set_texture(base_texture_name, texture_manager::instance()->search(texture_manager::white_texture2d_name));
 }

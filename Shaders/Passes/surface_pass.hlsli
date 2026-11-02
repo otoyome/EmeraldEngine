@@ -21,7 +21,7 @@
 
 #elif defined(SURFACE_STAGE_GEOMETRY)
 
-//	@tool 影のパスでは VS_OUT の render_target_array_index(カスケード)を書き換えずに出力すること
+//	影のパスでは VS_OUT の render_target_array_index(カスケード)を書き換えずに出力すること
 [maxvertexcount(MATERIAL_GEOMETRY_MAX_VERTEX_COUNT)]
 void main(triangle VS_OUT input[3], inout TriangleStream<VS_OUT> output)
 {

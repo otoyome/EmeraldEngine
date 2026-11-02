@@ -19,7 +19,7 @@ cbuffer COLOR_FILTER_CONSTANT_BUFFER
 };
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-float4 main(VS_OUT pin) : SV_TARGET
+float4 post_process(VS_OUT pin)
 {
     //  GBufferテクスチャから情報をデコードする
     //PSGBufferTextures gbuffer_textures = get_gbuffer_textures();

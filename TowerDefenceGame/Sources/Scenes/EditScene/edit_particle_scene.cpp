@@ -17,15 +17,6 @@
 
 namespace
 {
-	//	エフェクト登録
-	static constexpr material::set_surface_pipeline_states_desc pso_descs[] =
-	{
-		{material::surface_paths::depth_write_pass, "compute_patricle_sprite_depth"},
-		{material::surface_paths::g_buffer_pass, "compute_patricle_sprite_gbuffer"},
-		{material::surface_paths::shadow_write_pass, "compute_patricle_sprite_shadowmap"},
-		{material::surface_paths::forward_pass, "compute_patricle_sprite_forward"},
-	};
-
 	//	テストコード
 	static constexpr std::string_view file_pathes[] =
 	{
@@ -52,36 +43,26 @@ namespace
 		material::blendable_locations::before_bloom,
 		material::blendable_locations::after_tone_mapping,
 	};
-	constexpr std::string_view postprocess_material_texts_list[ARRAYSIZE(postprocess_material_path_list)][4] =
+	constexpr std::string_view postprocess_material_texts_list[ARRAYSIZE(postprocess_material_path_list)][2] =
 	{
 		{
-			"before_translucent_color_filter",
-			"Shaders/FullscreenQuad/fullscreen_quad_vs.hlsl",
-			"Shaders/Postprocess/color_filter_before_dof_ps.hlsl",
+			"Shaders/Materials/PostProcess/color_filter_before_dof.hlsl",
 			"被写界深度前ポストプロセスマテリアル",
 		},
 		{
-			"before_tonemapping_color_filter",
-			"Shaders/FullscreenQuad/fullscreen_quad_vs.hlsl",
-			"Shaders/Postprocess/color_filter_after_dof_ps.hlsl",
+			"Shaders/Materials/PostProcess/color_filter_after_dof.hlsl",
 			"被写界深度後ポストプロセスマテリアル",
 		},
 		{
-			"before_tonemapping_color_filter",
-			"Shaders/FullscreenQuad/fullscreen_quad_vs.hlsl",
-			"Shaders/Postprocess/color_filter_after_dof_translucency_ps.hlsl",
+			"Shaders/Materials/PostProcess/color_filter_after_dof_translucency.hlsl",
 			"被写界深度後半透明描画ポストプロセスマテリアル",
 		},
 		{
-			"after_tonemapping_color_filter",
-			"Shaders/FullscreenQuad/fullscreen_quad_vs.hlsl",
-			"Shaders/Postprocess/color_filter_before_bloom_ps.hlsl",
+			"Shaders/Materials/PostProcess/color_filter_before_bloom.hlsl",
 			"ブルーム前ポストプロセスマテリアル",
 		},
 		{
-			"after_tonemapping_color_filter",
-			"Shaders/FullscreenQuad/fullscreen_quad_vs.hlsl",
-			"Shaders/Postprocess/color_filter_after_tone_mapping_ps.hlsl",
+			"Shaders/Materials/PostProcess/color_filter_after_tone_mapping.hlsl",
 			"トーンマッピング後ポストプロセスマテリアル",
 		}
 	};
@@ -192,45 +173,13 @@ bool edit_particle_scene::initialize_core()
 
 		for (UINT index = 0; index < ARRAYSIZE(postprocess_material_path_list); ++index)
 		{
-			std::shared_ptr<graphics_custom_pipeline_state> pso;
-			instance->generate_pipeline_state<graphics_custom_pipeline_state>(postprocess_material_texts_list[index][0], &pso);
-			pso->set_domain(pipeline_state_base::domains::post_process);
-
-			//	頂点シェーダー読み込み
-			{
-				load_shader_file desc;
-				desc.file_path = postprocess_material_texts_list[index][1];
-#if defined(_DEBUG)
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
-#endif	//	defined(_DEBUG)
-
-				std::shared_ptr<vertex_shader> shader;
-				shader_manager::instance()->load_shader<vertex_shader>(shader, desc);
-				pso->set_shader(shader);
-			}
-
-			//	ピクセルシェーダー読み込み
-			{
-				load_shader_file desc;
-				desc.file_path = postprocess_material_texts_list[index][2];
-#if defined(_DEBUG)
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
-#endif	//	defined(_DEBUG)
-
-				std::shared_ptr<pixel_shader> shader;
-				shader_manager::instance()->load_shader<pixel_shader>(shader, desc);
-				pso->set_shader(shader);
-			}
-
 			std::shared_ptr<material> post_process_material = std::make_shared<material>();
-			post_process_material->set_name(postprocess_material_texts_list[index][3]);
+			post_process_material->set_name(postprocess_material_texts_list[index][1]);
 			post_process_material->set_domain(material::domains::post_process);
 			post_process_material->set_flag(material::flags::two_sided, true);
 			post_process_material->set_blend_mode(material::blend_modes::opaque);
 			post_process_material->set_blendable_location(postprocess_material_path_list[index]);
-			post_process_material->set_pipeline_state(postprocess_material_texts_list[index][0]);
+			post_process_material->set_shader_path(postprocess_material_texts_list[index][0]);
 
 			//	マテリアル登録
 			post_process_volume->get_volume()->register_postprocess_materials(post_process_material);
@@ -419,7 +368,7 @@ void edit_particle_scene::generate_default_effect()
 						material->set_flag(material::flags::indirect_lighting_off, true);
 
 						//	デフォルトシェーダー設定
-						material->set_pipeline_state(pso_descs, ARRAYSIZE(pso_descs));
+						material->set_shader_path(material::default_particle_shader_path);
 
 						//	パラメーター設定
 						material->set_float4("base_color_factor", math::float4(1, 1, 1, 1));
@@ -531,7 +480,7 @@ void edit_particle_scene::generate_default_effect()
 						material->set_flag(material::flags::indirect_lighting_off, true);
 
 						//	デフォルトシェーダー設定
-						material->set_pipeline_state(pso_descs, ARRAYSIZE(pso_descs));
+						material->set_shader_path(material::default_particle_shader_path);
 
 						//	パラメーター設定
 						material->set_float4("base_color_factor", math::float4(1, 1, 1, 1));

@@ -389,108 +389,59 @@ bool editor_items::edit_material(std::shared_ptr<context>& context, material& ma
 		}
 	}
 
+	//	マテリアルシェーダーの選択(パスごとのパイプラインステートはシェーダーと静的パラメーターから決まる)
+	//	候補はドメインのフォルダにあるマテリアルシェーダー
+	if (material_shader_map::is_supported_domain(material.get_domain()))
+	{
+		auto shader_paths = material_shader_map::instance()->collect_shader_paths(material.get_domain());
+		std::vector<const char*> combo_texts;
+		combo_texts.reserve(shader_paths.size() + 1);
+		combo_texts.emplace_back("[BLANK]");
+		int selected_index = 0;
+		for (std::size_t index = 0; index < shader_paths.size(); ++index)
+		{
+			combo_texts.emplace_back(shader_paths[index].data());
+			if (shader_paths[index] == material.get_shader_path())
+				selected_index = static_cast<int>(index) + 1;
+		}
+		if (ImGui::Combo("shader", &selected_index, combo_texts.data(), static_cast<int>(combo_texts.size())))
+		{
+			material.set_shader_path(selected_index == 0 ? std::string_view() : std::string_view(shader_paths[selected_index - 1]));
+			edit_flag = true;
+		}
+
+		//	静的スイッチ(テクスチャで決まるものは表示のみ)
+		if (auto shader_declaration = material_shader_map::instance()->find_declaration(material.get_shader_path(), material.get_domain()))
+		{
+			if (!shader_declaration->is_valid())
+				ImGui::TextColored(ImVec4(1.0f, 0.3f, 0.3f, 1.0f), "%s", shader_declaration->error.data());
+
+			for (auto& item : shader_declaration->static_switches)
+			{
+				bool value = material.get_static_switch(item.name);
+				if (!item.texture.empty())
+				{
+					ImGui::BeginDisabled();
+					ImGui::Checkbox(item.name.data(), &value);
+					ImGui::EndDisabled();
+					ImGui::SameLine();
+					ImGui::TextDisabled("(%s)", item.texture.data());
+				}
+				else if (ImGui::Checkbox(item.name.data(), &value))
+				{
+					material.set_static_switch(item.name, value);
+					edit_flag = true;
+				}
+			}
+		}
+	}
+
 	//	ドメインごとの編集項目
 	switch (material.get_domain())
 	{
 		case material::domains::surface:
 		case material::domains::particle:
 		{
-			if (material.get_domain() == material::domains::surface)
-			{
-				//	@tool マテリアルシェーダーの選択(パスごとのパイプラインステートはシェーダーと静的パラメーターから決まる)
-				auto shader_paths = material_shader_map::instance()->collect_shader_paths();
-				std::vector<const char*> combo_texts;
-				combo_texts.reserve(shader_paths.size() + 1);
-				combo_texts.emplace_back("[BLANK]");
-				int selected_index = 0;
-				for (std::size_t index = 0; index < shader_paths.size(); ++index)
-				{
-					combo_texts.emplace_back(shader_paths[index].data());
-					if (shader_paths[index] == material.get_shader_path())
-						selected_index = static_cast<int>(index) + 1;
-				}
-				if (ImGui::Combo("shader", &selected_index, combo_texts.data(), static_cast<int>(combo_texts.size())))
-				{
-					material.set_shader_path(selected_index == 0 ? std::string_view() : std::string_view(shader_paths[selected_index - 1]));
-					edit_flag = true;
-				}
-
-				//	@tool 静的スイッチ(テクスチャで決まるものは表示のみ)
-				if (auto shader_declaration = material_shader_map::instance()->find_declaration(material.get_shader_path()))
-				{
-					if (!shader_declaration->is_valid())
-						ImGui::TextColored(ImVec4(1.0f, 0.3f, 0.3f, 1.0f), "%s", shader_declaration->error.data());
-
-					for (auto& item : shader_declaration->static_switches)
-					{
-						bool value = material.get_static_switch(item.name);
-						if (!item.texture.empty())
-						{
-							ImGui::BeginDisabled();
-							ImGui::Checkbox(item.name.data(), &value);
-							ImGui::EndDisabled();
-							ImGui::SameLine();
-							ImGui::TextDisabled("(%s)", item.texture.data());
-						}
-						else if (ImGui::Checkbox(item.name.data(), &value))
-						{
-							material.set_static_switch(item.name, value);
-							edit_flag = true;
-						}
-					}
-				}
-			}
-			//	適応タイミング毎のシェーダーの設定
-			else if (ImGui::TreeNode("shaders"))
-			{
-				auto pso_list = pipeline_state_manager::instance()->get_domain_lists(material.get_domain());
-				std::vector<const char*> combo_texts;
-				combo_texts.reserve(pso_list.size());
-				combo_texts.emplace_back("[BLANK]");
-				for (auto& pso : pso_list)
-				{
-					combo_texts.emplace_back(pso->get_name().data());
-				}
-
-				for (auto& name : magic_enum::enum_names<material::surface_paths>())
-				{
-					auto enum_value = magic_enum::enum_cast<material::surface_paths>(name);
-					if (!enum_value)
-					{
-						assert(!L"!enum_value");
-						continue;
-					}
-
-					UINT enum_index = static_cast<UINT>(enum_value.value());
-
-					//	選択番号取得
-					int selected_index = 0;
-					auto selected_pso = material.get_pipeline_state_name(enum_value.value());
-					for (auto& pso : pso_list)
-					{
-						if (pso->get_name() == selected_pso)
-							break;
-
-						++selected_index;
-					}
-					//	選択できなかった場合は解除する
-					if (selected_index >= pso_list.size())
-					{
-						selected_index = 0;
-					}
-					else
-					{
-						++selected_index;	//	BLANK分ずらす
-					}
-					if (ImGui::Combo(name.data(), &selected_index, combo_texts.data(), static_cast<int>(combo_texts.size())))
-					{
-						material.set_pipeline_state(enum_value.value(), combo_texts[selected_index]);
-						edit_flag = true;
-					}
-				}
-				ImGui::TreePop();
-			}
-
 			ImGui::Separator();
 
 			//	シェーディングモデル設定
@@ -598,45 +549,6 @@ bool editor_items::edit_material(std::shared_ptr<context>& context, material& ma
 		}
 		case material::domains::post_process:
 		{
-			//	適応タイミング毎のシェーダーの設定
-			{
-				auto pso_list = pipeline_state_manager::instance()->get_domain_lists(material::domains::post_process);
-				std::vector<const char*> combo_texts;
-				combo_texts.reserve(pso_list.size());
-				combo_texts.emplace_back("[BLANK]");
-				for (auto& pso : pso_list)
-				{
-					combo_texts.emplace_back(pso->get_name().data());
-				}
-
-				{
-					//	選択番号取得
-					int selected_index = 0;
-					auto selected_pso = material.get_pipeline_state_name();
-					for (auto& pso : pso_list)
-					{
-						if (pso->get_name() == selected_pso)
-							break;
-
-						++selected_index;
-					}
-					//	選択できなかった場合は解除する
-					if (selected_index >= pso_list.size())
-					{
-						selected_index = 0;
-					}
-					else
-					{
-						++selected_index;	//	BLANK分ずらす
-					}
-					if (ImGui::Combo("pipeline_state", &selected_index, combo_texts.data(), static_cast<int>(combo_texts.size())))
-					{
-						material.set_pipeline_state(combo_texts[selected_index]);
-						edit_flag = true;
-					}
-				}
-			}
-
 			//	ブレンドモード設定
 			{
 				std::vector<std::string> row_texts;

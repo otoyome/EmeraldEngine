@@ -44,7 +44,7 @@ namespace
 		context.device_context->VSSetShaderResources(102, 16, attribute_srvs);
 	}
 
-	//	@tool 1つのメッシュレットを描くビューの数(影はカスケードの数だけインスタンスを増やして描く)
+	//	1つのメッシュレットを描くビューの数(影はカスケードの数だけインスタンスを増やして描く)
 	UINT get_view_count(const graphics_context& context)
 	{
 		if (!context.is_shadow_rendering)
@@ -52,7 +52,7 @@ namespace
 		return std::max(context.shadow_map_constant.shadow_map_count, 1u);
 	}
 
-	//	@tool 影の VS がカスケードごとにカリングできるよう、ワールド空間の境界球をレコードに入れる
+	//	影の VS がカスケードごとにカリングできるよう、ワールド空間の境界球をレコードに入れる
 	void set_record_bounds(common_pipeline_states::meshlet_instance_record& record,
 						   const math::float4x4& world_transform,
 						   const math::float3& local_center,

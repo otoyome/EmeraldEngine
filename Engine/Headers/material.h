@@ -16,6 +16,11 @@ public:
 	//	マテリアルの処理系統
 	using domains = pipeline_state_base::domains;
 
+	//	@tool ドメインごとの既定のマテリアルシェーダー
+	static constexpr std::string_view default_particle_shader_path = "Shaders/Materials/Particle/particle_default.hlsl";
+	static constexpr std::string_view default_decal_shader_path = "Shaders/Materials/DeferredDecal/decal_default.hlsl";
+	static constexpr std::string_view default_user_interface_shader_path = "Shaders/Materials/UserInterface/sprite_default.hlsl";
+
 	//	表面描画パス
 	enum class surface_paths : std::uint8_t
 	{
@@ -192,12 +197,6 @@ public:
 		void serialize(Archive& archive, int version);
 	};
 
-	struct set_surface_pipeline_states_desc
-	{
-		surface_paths type;
-		std::string_view pipeline_state_name;
-	};
-
 	using pipeline_state_array = std::vector<pipeline_state>;
 	using constant_buffer_map = std::unordered_map<std::string, constant_buffer>;
 	using constant_buffer_desc_map = std::unordered_map<std::string, constant_buffer_desc>;
@@ -260,7 +259,7 @@ public:
 
 	//	マテリアルシェーダー(Shaders/Materials 以下)の取得/設定
 	//	設定するとパイプラインステートはシェーダーパス・静的パラメーターから自動で決まる
-	bool uses_material_shader() const;
+	//	@tool system ドメイン以外はすべてマテリアルシェーダーで描く
 	void set_shader_path(std::string_view shader_path);
 	std::string_view get_shader_path() const { return shader_path; }
 
@@ -274,16 +273,9 @@ public:
 	const material_shader_map::vertex_format& get_vertex_format() const { return vertex_format; }
 
 	//	パイプラインステート取得・設定
-	bool set_pipeline_state(const set_surface_pipeline_states_desc* descs, UINT size);
-	bool set_pipeline_state(surface_paths type, std::string_view pipeline_state_name);
-	bool set_pipeline_state(decal_paths type, std::string_view pipeline_state_name);
+	//	@tool 名前で設定できるのは system ドメイン(エンジン内部の描画)だけ
 	bool set_pipeline_state(system_paths type, std::string_view pipeline_state_name);
-	bool set_pipeline_state(std::string_view pipeline_state_name);
 
-	std::string_view get_pipeline_state_name(surface_paths type) const;
-	std::string_view get_pipeline_state_name(decal_paths type) const;
-	std::string_view get_pipeline_state_name(system_paths type) const;
-	std::string_view get_pipeline_state_name() const;
 	graphics_pipeline_state_ptr get_pipeline_state(surface_paths value) const;
 	graphics_pipeline_state_ptr get_pipeline_state(decal_paths value) const;
 	graphics_pipeline_state_ptr get_pipeline_state(system_paths value) const;
@@ -341,7 +333,6 @@ public:
 
 private:
 	bool set_pipeline_state(domains domain, UINT index, std::string_view pipeline_state_name);
-	std::string_view get_pipeline_state_name(domains domain, UINT index) const;
 	graphics_pipeline_state_ptr get_pipeline_state(domains domain, UINT index) const;
 
 	void serialize_stream(std::stringstream& ostream) const;
@@ -376,7 +367,7 @@ private:
 	pipeline_state_array pipeline_states;
 	std::string shader_path;
 	std::map<std::string, bool> static_switches;
-	material_shader_map::vertex_format vertex_format;	//	@tool シリアライズしない(モデルの読込時に決まる)
+	material_shader_map::vertex_format vertex_format;
 	shader_resource_map shader_resources;
 	constant_buffer_map constant_buffers;
 };

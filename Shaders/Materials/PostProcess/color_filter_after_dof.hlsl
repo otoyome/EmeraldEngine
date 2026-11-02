@@ -188,7 +188,7 @@ float2 rain_drops(float2 uv, float t, float l0, float l1, float l2)
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-float4 main(VS_OUT pin) : SV_TARGET
+float4 post_process(VS_OUT pin)
 {
 	float2 map_size;
 	scene_color_map.GetDimensions(map_size.x, map_size.y);
