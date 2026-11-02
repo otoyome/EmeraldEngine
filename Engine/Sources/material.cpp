@@ -225,7 +225,6 @@ void material::duplicate(material& material) const
 	std::stringstream iostream;
 	serialize_stream(iostream);
 	material.deserialize_stream(iostream);
-	material.vertex_format = vertex_format;
 	material.build();
 }
 
@@ -621,15 +620,6 @@ void material::set_static_switch(std::string_view name, bool value)
 	refresh_pipeline_states();
 }
 
-void material::set_vertex_format(const material_shader_map::vertex_format& value)
-{
-	if (vertex_format == value)
-		return;
-
-	vertex_format = value;
-	refresh_pipeline_states();
-}
-
 bool material::get_static_switch(std::string_view name) const
 {
 	const auto* shader_declaration = material_shader_map::instance()->find_declaration(shader_path, domain);
@@ -714,7 +704,6 @@ void material::refresh_pipeline_states()
 			request.domain = domain;
 			request.pass = to_shader_map_pass(domain, index);
 			request.switch_bits = switch_bits;
-			request.vertex = vertex_format;
 			request.pixel = blend_mode == blend_modes::mask;
 			value = shader_map->get_pipeline_state(request);
 		}
@@ -905,7 +894,6 @@ graphics_pipeline_state_ptr material::get_pipeline_state(domains domain, UINT in
 		request.shader_path = get_failed_shader_path(this->domain);
 		request.domain = this->domain;
 		request.pass = to_shader_map_pass(this->domain, index);
-		request.vertex = vertex_format;
 		request.pixel = this->domain == domains::particle;
 		if (auto failed = material_shader_map::instance()->get_pipeline_state(request))
 			return failed;

@@ -110,20 +110,37 @@ float4 shadowing_process(float3 world_position, float4x4 view_matrix)
     return float4(light_attenuation, sm_index);
 }
 
-//	ポイントライト用シャドウサンプル
-float4 shadowing_process_point(float3 world_position, float3 light_position)
+//	面選択(0:+X, 1:-X, 2:+Y, 3:-Y, 4:+Z, 5:-Z)
+uint select_point_shadow_face(float3 L)
 {
-    float3 L = world_position - light_position;
     float3 absL = abs(L);
-
-    //	面選択(0:+X, 1:-X, 2:+Y, 3:-Y, 4:+Z, 5:-Z)
-    uint index;
     if (absL.x >= absL.y && absL.x >= absL.z)
-        index = (L.x > 0.0f) ? 0 : 1;
+        return (L.x > 0.0f) ? 0 : 1;
     else if (absL.y >= absL.z)
-        index = (L.y > 0.0f) ? 2 : 3;
+        return (L.y > 0.0f) ? 2 : 3;
     else
-        index = (L.z > 0.0f) ? 4 : 5;
+        return (L.z > 0.0f) ? 4 : 5;
+}
+
+//	ポイントライト用シャドウサンプル
+float4 shadowing_process_point(float3 world_position, float3 world_normal, float3 light_position)
+{
+    //	法線オフセット：PCFで周囲のテクセルを参照しても自己遮蔽しないよう、受け手を法線方向へずらす
+    //	ずらす量は1テクセルのワールドサイズ(90度FOVなので 2×面の深度÷解像度)×(PCF半径+1)
+    {
+        float3 L = world_position - light_position;
+        uint face = select_point_shadow_face(L);
+        float3 absL = abs(L);
+        float face_depth = max(absL.x, max(absL.y, absL.z));
+
+        float3 tex_size;
+        shadow_maps.GetDimensions(tex_size.x, tex_size.y, tex_size.z);
+        float texel_world_size = 2.0f * face_depth / tex_size.x;
+        world_position += world_normal * texel_world_size * (shadow_bias[face].w + 1.0f);
+    }
+
+    //	ずらした位置で面を選び直す(面の境目で範囲外にならないように)
+    uint index = select_point_shadow_face(world_position - light_position);
 
     float angle = frac(sin(dot(world_position.xy, float2(12.9898f, 78.233f))) * 43758.5453f) * 3.14159265f * 2;
     float2x2 rot = { cos(angle), -sin(angle), sin(angle), cos(angle) };

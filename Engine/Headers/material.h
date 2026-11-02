@@ -4,7 +4,6 @@
 
 #include "texture.h"
 #include "pipeline_state.h"
-#include "material_shader_map.h"
 
 class gpu_upload_list;
 
@@ -275,11 +274,6 @@ public:
 	bool get_static_switch(std::string_view name) const;
 	const std::map<std::string, bool>& get_static_switches() const { return static_switches; }
 
-	//	メッシュの頂点の構成
-	//	モデルの読込時にメッシュから決める
-	void set_vertex_format(const material_shader_map::vertex_format& value);
-	const material_shader_map::vertex_format& get_vertex_format() const { return vertex_format; }
-
 	//	パイプラインステート取得・設定
 	bool set_pipeline_state(system_paths type, std::string_view pipeline_state_name);
 
@@ -373,7 +367,6 @@ private:
 	pipeline_state_array pipeline_states;
 	std::string shader_path;
 	std::map<std::string, bool> static_switches;
-	material_shader_map::vertex_format vertex_format;
 	shader_resource_map shader_resources;
 	constant_buffer_map constant_buffers;
 };

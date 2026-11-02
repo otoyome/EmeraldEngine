@@ -45,7 +45,6 @@ public:
 
 	//	静的スイッチの宣言
 	//	マテリアルシェーダーに書かれた MATERIAL_SWITCH(名前) から自動で作る
-	//	@tool テクスチャの有無は静的スイッチにせず、シェーダー内で HAS_RESOURCE(テクスチャ名) で調べる
 	struct static_switch_declaration
 	{
 		std::string name;			//	シェーダーに渡す define 名
@@ -62,16 +61,6 @@ public:
 		bool is_valid() const { return error.empty(); }
 	};
 
-	//	メッシュから決まる頂点の構成
-	struct vertex_format
-	{
-		UINT bone_max = 16;		//	1頂点に影響するボーンの最大数(4 の倍数、0 ならスキニングしない)
-		bool morph = true;		//	モーフを適用するか
-
-		bool operator==(const vertex_format& other) const { return bone_max == other.bone_max && morph == other.morph; }
-		bool operator!=(const vertex_format& other) const { return !(*this == other); }
-	};
-
 	//	パイプラインステートの要求
 	struct request
 	{
@@ -79,7 +68,6 @@ public:
 		domains domain = domains::surface;			//	マテリアルのドメイン
 		UINT pass = 0;								//	ドメインのパスの番号(surface_passes / particle_passes / decal_passes、1パスのドメインは 0)
 		std::uint64_t switch_bits = 0;				//	static_switches の並び順のビット
-		vertex_format vertex;						//	描くメッシュの頂点の構成(surface のみ)
 		bool pixel = true;							//	depth_write / shadow_write で PS を付けるか(マスク時のみ必要)
 	};
 
@@ -98,7 +86,7 @@ private:
 		domains domain = domains::surface;
 		std::filesystem::file_time_type write_time;
 		declaration shader_declaration;
-		std::map<std::tuple<std::uint64_t, UINT, bool, UINT, bool>, graphics_pipeline_state_ptr> pipeline_states;	//	キーごとのパイプラインステート
+		std::map<std::tuple<std::uint64_t, UINT, bool>, graphics_pipeline_state_ptr> pipeline_states;	//	キーごとのパイプラインステート
 	};
 
 private:
@@ -129,7 +117,7 @@ public:
 private:
 	entry* find_entry(std::string_view shader_path, domains domain);
 	static void parse_declaration(const std::string& shader_path, domains domain, declaration& out);
-	static std::string generate_source(const entry& target, const vertex_format& vertex, bool include_material, const std::uint64_t* switch_bits);
+	static std::string generate_source(const entry& target, bool include_material, const std::uint64_t* switch_bits);
 
 private:
 	std::unordered_map<std::string, std::unique_ptr<entry>> entries;

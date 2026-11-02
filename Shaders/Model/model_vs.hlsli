@@ -44,10 +44,8 @@ VS_OUT main(uint vertex_id : SV_VertexID, uint instance_id : SV_InstanceID)
 #if defined(HAS_TANGENT)
 
     float3 tangent = vertex.tangent;
-#if defined(HAS_MORPH)
 	//	–@ü‚É‘Î‚µ‚ÄÚü‚ğÄ’¼Œğ‰»
     tangent = tangent - dot(tangent, vout.w_normal.xyz) * vout.w_normal.xyz;
-#endif  //  defined(HAS_MORPH)
 
     vout.w_tangent.xyz = normalize(tangent).xyz;
     vout.w_tangent.w = vin.tangent.w;

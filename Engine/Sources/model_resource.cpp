@@ -465,35 +465,6 @@ void model_resource::build_model()
 		}
 	}
 
-	//	マテリアルを使うメッシュの頂点からスキニングとモーフの構成を決める
-	{
-		std::vector<material_shader_map::vertex_format> vertex_formats(materials.size(), material_shader_map::vertex_format{ 0, false });
-		std::vector<bool> used(materials.size(), false);
-		for (auto& mesh : meshes)
-		{
-			if (mesh.material_index >= materials.size())
-				continue;
-
-			UINT joint_count = 0;
-			for (UINT index = 0; index < 4; ++index)
-			{
-				if (mesh.vertex_buffer_views.find(semantic("JOINTS", index)) != mesh.vertex_buffer_views.end())
-					joint_count = index + 1;
-			}
-
-			auto& vertex_format = vertex_formats[mesh.material_index];
-			vertex_format.bone_max = std::max(vertex_format.bone_max, joint_count * 4);
-			vertex_format.morph = vertex_format.morph || !mesh.morph_meshes.empty();
-			used[mesh.material_index] = true;
-		}
-		for (size_t index = 0; index < materials.size(); ++index)
-		{
-			//	どのメッシュにも使われていなければ既定(全部入り)のまま
-			if (used[index])
-				materials[index].set_vertex_format(vertex_formats[index]);
-		}
-	}
-
 	//	マテリアル
 	for (auto& material : materials)
 	{

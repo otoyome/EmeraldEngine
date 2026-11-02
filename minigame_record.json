@@ -2,6 +2,12 @@
     "records": [
         {
             "cereal_class_version": 0,
+            "clear_time": 40.12352752685547,
+            "max_speed_kmh": 146.50025939941407,
+            "trash_count": 248,
+            "trash_max": 250
+        },
+        {
             "clear_time": 42.078453063964847,
             "max_speed_kmh": 101.21511840820313,
             "trash_count": 248,
@@ -22,12 +28,6 @@
         {
             "clear_time": 41.843994140625,
             "max_speed_kmh": 136.72637939453126,
-            "trash_count": 248,
-            "trash_max": 250
-        },
-        {
-            "clear_time": 44.078338623046878,
-            "max_speed_kmh": 116.16806030273438,
             "trash_count": 248,
             "trash_max": 250
         }

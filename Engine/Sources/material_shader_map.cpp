@@ -74,7 +74,7 @@ namespace
 		{ "",	"USER_INTERFACE_PASS",	"",	"MATERIAL_USER_INTERFACE",	"",	false,	false },
 	};
 
-	//	ドメインごとの設定
+	//	ドメインごとの生成テンプレート
 	struct domain_template
 	{
 		material_shader_map::domains domain;
@@ -82,12 +82,12 @@ namespace
 		std::string_view template_path;			//	パステンプレート(入口で include する名前)
 		std::string_view template_file_path;	//	パステンプレートのファイル(マテリアルを含まないステージの更新時刻・キャッシュ名・監視に使う)
 		std::string_view header_path;			//	マテリアルシェーダーより先に include するヘッダー(空なら無し)
-		std::string_view stage_vertex;			//	ステージを指定する define 名
-		std::string_view stage_geometry;
-		std::string_view stage_pixel;
-		bool uses_vertex_format;				//	メッシュの頂点の構成(ボーン数・モーフ)を使うか
-		const pass_template* passes;
-		UINT pass_count;
+		std::string_view stage_vertex;			//	頂点ステージを指定
+		std::string_view stage_geometry;		//	ジオメトリステージを指定
+		std::string_view stage_pixel;			//	ピクセルステージを指定
+		bool uses_model_vertex;					//	model.hlsli の頂点の define(接線・カラー・UV)を渡すか
+		const pass_template* passes;			//	パステンプレート
+		UINT pass_count;						//	パス数
 	};
 
 	constexpr domain_template domain_templates[] =
@@ -408,20 +408,14 @@ void material_shader_map::parse_declaration(const std::string& shader_path, doma
 	}
 }
 
-std::string material_shader_map::generate_source(const entry& target, const vertex_format& vertex, bool include_material, const std::uint64_t* switch_bits)
+std::string material_shader_map::generate_source(const entry& target, bool include_material, const std::uint64_t* switch_bits)
 {
 	const domain_template& domain_setting = *find_domain_template(target.domain);
 
 	//	頂点要件 → 静的スイッチ → model.hlsli → マテリアルシェーダー → パステンプレートの順に並べる
 	std::string source;
-	if (domain_setting.uses_vertex_format)
-	{
+	if (domain_setting.uses_model_vertex)
 		source += fixed_vertex_defines;
-		if (vertex.bone_max > 0)
-			source += "#define BONE_MAX " + std::to_string(vertex.bone_max) + "\n";
-		if (vertex.morph)
-			source += "#define HAS_MORPH\n";
-	}
 	source += switch_macro_definitions;
 	if (switch_bits)
 	{
@@ -455,13 +449,7 @@ graphics_pipeline_state_ptr material_shader_map::get_pipeline_state(const reques
 	const bool use_pixel = !pass_template.optional_pixel || request.pixel;
 	const std::uint64_t switch_bits = request.switch_bits & switch_mask(shader_declaration.static_switches.size());
 
-	//	ボーン数は 4 の倍数で 0～16 にそろえる(頂点の構成を使わないドメインは固定)
-	vertex_format vertex = request.vertex;
-	vertex.bone_max = std::min((vertex.bone_max + 3u) / 4u * 4u, 16u);
-	if (!domain_setting.uses_vertex_format)
-		vertex = vertex_format{ 0, false };
-
-	const auto key = std::make_tuple(switch_bits, pass_index, use_pixel, vertex.bone_max, vertex.morph);
+	const auto key = std::make_tuple(switch_bits, pass_index, use_pixel);
 	auto it = target->pipeline_states.find(key);
 	if (it != target->pipeline_states.end())
 		return it->second;
@@ -476,12 +464,6 @@ graphics_pipeline_state_ptr material_shader_map::get_pipeline_state(const reques
 		hex << std::hex << switch_bits;
 		name += "_" + hex.str();
 	}
-	if (domain_setting.uses_vertex_format)
-	{
-		name += "_b" + std::to_string(vertex.bone_max);
-		if (vertex.morph)
-			name += "_m";
-	}
 
 	std::shared_ptr<graphics_custom_pipeline_state> pipeline_state;
 	if (!pipeline_state_manager::instance()->generate_pipeline_state<graphics_custom_pipeline_state>(name, &pipeline_state))
@@ -494,18 +476,18 @@ graphics_pipeline_state_ptr material_shader_map::get_pipeline_state(const reques
 	bool result = true;
 
 	//	VS は頂点要件だけで決まるので、マテリアルシェーダーを含めずに同じ頂点要件のマテリアルと共有する
-	if (!load_pass_shader<vertex_shader>(*pipeline_state, domain_setting.template_file_path, generate_source(*target, vertex, false, nullptr), domain_setting, pass_template, domain_setting.stage_vertex, false))
+	if (!load_pass_shader<vertex_shader>(*pipeline_state, domain_setting.template_file_path, generate_source(*target, false, nullptr), domain_setting, pass_template, domain_setting.stage_vertex, false))
 		result = false;
 
 	if (use_hook_geometry)
 	{
-		if (!load_pass_shader<geometry_shader>(*pipeline_state, target->shader_path, generate_source(*target, vertex, true, &switch_bits), domain_setting, pass_template, domain_setting.stage_geometry, true))
+		if (!load_pass_shader<geometry_shader>(*pipeline_state, target->shader_path, generate_source(*target, true, &switch_bits), domain_setting, pass_template, domain_setting.stage_geometry, true))
 			result = false;
 	}
 
 	if (use_pixel)
 	{
-		if (!load_pass_shader<pixel_shader>(*pipeline_state, target->shader_path, generate_source(*target, vertex, true, &switch_bits), domain_setting, pass_template, domain_setting.stage_pixel, false))
+		if (!load_pass_shader<pixel_shader>(*pipeline_state, target->shader_path, generate_source(*target, true, &switch_bits), domain_setting, pass_template, domain_setting.stage_pixel, false))
 			result = false;
 	}
 

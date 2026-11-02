@@ -2,8 +2,6 @@
 //  #define HAS_TANGENT         : 接線を所持しているかどうか
 //  #define VERTEX_COLOR_MAX    : 頂点カラー数
 //  #define TEXCOORD_MAX        : UV座標数
-//  #define BONE_MAX            : ボーンの最大数
-//  #define HAS_MORPH           : モーフィングするかどうか
 //  #define FORWARD_RENDERING   : フォワードレンダリング用の計算を行う
 #ifndef __MODEL_HLSLI__
 #define __MODEL_HLSLI__
@@ -35,15 +33,10 @@ static const uint TexcoordMax = TEXCOORD_MAX;
 #define DECLARATION_OUT_TEXCOORD
 #endif  //  TEXCOORD_MAX > 0
 
-#if BONE_MAX > 0
-static const uint AlignmentBoneMax = alignment( BONE_MAX, 4 ) / 4;
-static const uint BoneMax = BONE_MAX;
-#define DECLARATION_IN_JOINTS   uint4 joints[AlignmentBoneMax];
-#define DECLARATION_IN_WEIGHTS  float4 weights[AlignmentBoneMax];
-#else   //  BONE_MAX > 0
-#define DECLARATION_IN_JOINTS
-#define DECLARATION_IN_WEIGHTS
-#endif  //  BONE_MAX > 0
+//	ボーンの影響は最大 4 組(16 本)まで持てる。実際に使う組数はメッシュが持つ JOINTS から実行時に決める
+static const uint BoneSetMax = 4;
+#define DECLARATION_IN_JOINTS   uint4 joints[BoneSetMax];
+#define DECLARATION_IN_WEIGHTS  float4 weights[BoneSetMax];
 
 #if defined(HAS_TANGENT)
 #define DECLARATION_IN_TANGENT  float4 tangent;
@@ -187,7 +180,6 @@ float4x4 get_previous_bone_transform(MeshletContext context, uint bone_index)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-#if defined(HAS_MORPH)
 StructuredBuffer<float3> morph_positions[morph_max] : register(t80);
 StructuredBuffer<float3> morph_normals[morph_max] : register(t88);
 
@@ -217,7 +209,6 @@ void apply_morph_normal(MeshletContext context, inout float3 normal, uint local_
         normal = lerp(normal, morph_normals[index][local_vertex_id], weight);
     }
 }
-#endif  //  defined(HAS_MORPH)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 //	メッシュレット頂点プールバッファ
@@ -289,6 +280,18 @@ uint meshlet_resolve_local_vertex_index(MeshletContext context, uint vertex_id)
 bool meshlet_has_element(MeshletContext context, uint element)
 {
 	return (primitive_headers[context.primitive_index].has_element & (1u << element)) != 0;
+}
+
+//	ボーン影響数(JOINTSの数)
+uint meshlet_bone_set_count(MeshletContext context)
+{
+	uint count = 0;
+	[unroll] for (uint index = 0; index < BoneSetMax; ++index)
+	{
+		if (meshlet_has_element(context, VERTEX_ELEMENT_JOINTS0 + index))
+			count = index + 1;
+	}
+	return count;
 }
 
 //	属性毎のプール内での頂点番号
@@ -402,22 +405,29 @@ VS_MODEL_IN load_vertex_pulled(MeshletContext meshlet_context, uint vertex_id)
 #if TEXCOORD_MAX > 1
     vin.texcoord[1] = meshlet_load_texcoord1(meshlet_context, local_vertex_index);
 #endif  //  TEXCOORD_MAX > 1
-#if BONE_MAX > 0
-    vin.joints[0] = meshlet_load_joints0(meshlet_context, local_vertex_index);
-    vin.weights[0] = meshlet_load_weights0(meshlet_context, local_vertex_index);
-#endif  //  BONE_MAX > 0
-#if BONE_MAX > 4
-    vin.joints[1] = meshlet_load_joints1(meshlet_context, local_vertex_index);
-    vin.weights[1] = meshlet_load_weights1(meshlet_context, local_vertex_index);
-#endif  //  BONE_MAX > 4
-#if BONE_MAX > 8
-    vin.joints[2] = meshlet_load_joints2(meshlet_context, local_vertex_index);
-    vin.weights[2] = meshlet_load_weights2(meshlet_context, local_vertex_index);
-#endif  //  BONE_MAX > 8
-#if BONE_MAX > 12
-    vin.joints[3] = meshlet_load_joints3(meshlet_context, local_vertex_index);
-    vin.weights[3] = meshlet_load_weights3(meshlet_context, local_vertex_index);
-#endif  //  BONE_MAX > 12
+
+    //	メッシュが持つ組だけ読む
+    uint bone_set_count = meshlet_bone_set_count(meshlet_context);
+    if (bone_set_count > 0)
+    {
+        vin.joints[0] = meshlet_load_joints0(meshlet_context, local_vertex_index);
+        vin.weights[0] = meshlet_load_weights0(meshlet_context, local_vertex_index);
+    }
+    if (bone_set_count > 1)
+    {
+        vin.joints[1] = meshlet_load_joints1(meshlet_context, local_vertex_index);
+        vin.weights[1] = meshlet_load_weights1(meshlet_context, local_vertex_index);
+    }
+    if (bone_set_count > 2)
+    {
+        vin.joints[2] = meshlet_load_joints2(meshlet_context, local_vertex_index);
+        vin.weights[2] = meshlet_load_weights2(meshlet_context, local_vertex_index);
+    }
+    if (bone_set_count > 3)
+    {
+        vin.joints[3] = meshlet_load_joints3(meshlet_context, local_vertex_index);
+        vin.weights[3] = meshlet_load_weights3(meshlet_context, local_vertex_index);
+    }
 
     return vin;
 }
@@ -427,11 +437,13 @@ VS_MODEL_IN load_model_vertex(MeshletContext meshlet_context, uint vertex_id)
 {
     VS_MODEL_IN vin = load_vertex_pulled(meshlet_context, vertex_id);
 
-#if defined(HAS_MORPH)  //  モーフィング対応
-    uint local_vertex_index_for_morph = meshlet_resolve_local_vertex_index(meshlet_context, vertex_id);
-    apply_morph_position(meshlet_context, vin.position, local_vertex_index_for_morph);
-    apply_morph_normal(meshlet_context, vin.normal, local_vertex_index_for_morph);
-#endif  //  defined(HAS_MORPH)
+    //	モーフィング対応
+    if (primitive_parameter(meshlet_context).y > 0 || primitive_parameter(meshlet_context).z > 0)
+    {
+        uint local_vertex_index_for_morph = meshlet_resolve_local_vertex_index(meshlet_context, vertex_id);
+        apply_morph_position(meshlet_context, vin.position, local_vertex_index_for_morph);
+        apply_morph_normal(meshlet_context, vin.normal, local_vertex_index_for_morph);
+    }
 
     return vin;
 }
@@ -450,47 +462,61 @@ struct ModelVertex
 ModelVertex skin_model_vertex(MeshletContext meshlet_context, VS_MODEL_IN vin)
 {
     ModelVertex vertex;
-#if BONE_MAX > 0
-    vertex.position = 0;
-    vertex.normal = 0;
-#if defined(HAS_TANGENT)
-    vertex.tangent = 0;
-#endif  //  defined(HAS_TANGENT)
-    [unroll] for (uint index = 0; index < BoneMax; ++index)
-    {
-        uint bone_index = vin.joints[index / 4][index % 4];
-        float bone_weight = vin.weights[index / 4][index % 4];
-        vertex.position += mul(float4(vin.position, 1), get_bone_transform(meshlet_context, bone_index)).xyz * bone_weight;
-        vertex.normal += mul(float4(vin.normal, 0), get_bone_transform(meshlet_context, bone_index)).xyz * bone_weight;
-#if defined(HAS_TANGENT)
-        vertex.tangent += mul(float4(vin.tangent.xyz, 0), get_bone_transform(meshlet_context, bone_index)).xyz * bone_weight;
-#endif  //  defined(HAS_TANGENT)
-    }
-#else  //  BONE_MAX > 0
     vertex.position = vin.position;
     vertex.normal = vin.normal;
 #if defined(HAS_TANGENT)
     vertex.tangent = vin.tangent.xyz;
 #endif  //  defined(HAS_TANGENT)
-#endif  //  BONE_MAX > 0
+
+    uint bone_set_count = meshlet_bone_set_count(meshlet_context);
+    if (bone_set_count == 0)
+        return vertex;
+
+    vertex.position = 0;
+    vertex.normal = 0;
+#if defined(HAS_TANGENT)
+    vertex.tangent = 0;
+#endif  //  defined(HAS_TANGENT)
+    [unroll] for (uint set_index = 0; set_index < BoneSetMax; ++set_index)
+    {
+        if (set_index >= bone_set_count)
+            break;
+
+        [unroll] for (uint element = 0; element < 4; ++element)
+        {
+            uint bone_index = vin.joints[set_index][element];
+            float bone_weight = vin.weights[set_index][element];
+            vertex.position += mul(float4(vin.position, 1), get_bone_transform(meshlet_context, bone_index)).xyz * bone_weight;
+            vertex.normal += mul(float4(vin.normal, 0), get_bone_transform(meshlet_context, bone_index)).xyz * bone_weight;
+#if defined(HAS_TANGENT)
+            vertex.tangent += mul(float4(vin.tangent.xyz, 0), get_bone_transform(meshlet_context, bone_index)).xyz * bone_weight;
+#endif  //  defined(HAS_TANGENT)
+        }
+    }
     return vertex;
 }
 
 //	前フレームのボーンでスキニングした座標
 float3 skin_previous_position(MeshletContext meshlet_context, VS_MODEL_IN vin)
 {
-#if BONE_MAX > 0
+    uint bone_set_count = meshlet_bone_set_count(meshlet_context);
+    if (bone_set_count == 0)
+        return vin.position;
+
     float3 previous_position = 0;
-    [unroll] for (uint index = 0; index < BoneMax; ++index)
+    [unroll] for (uint set_index = 0; set_index < BoneSetMax; ++set_index)
     {
-        uint bone_index = vin.joints[index / 4][index % 4];
-        float bone_weight = vin.weights[index / 4][index % 4];
-        previous_position += mul(float4(vin.position, 1), get_previous_bone_transform(meshlet_context, bone_index)).xyz * bone_weight;
+        if (set_index >= bone_set_count)
+            break;
+
+        [unroll] for (uint element = 0; element < 4; ++element)
+        {
+            uint bone_index = vin.joints[set_index][element];
+            float bone_weight = vin.weights[set_index][element];
+            previous_position += mul(float4(vin.position, 1), get_previous_bone_transform(meshlet_context, bone_index)).xyz * bone_weight;
+        }
     }
     return previous_position;
-#else  //  BONE_MAX > 0
-    return vin.position;
-#endif  //  BONE_MAX > 0
 }
 
 

@@ -22,7 +22,7 @@ float4 main(VS_OUT pin) : SV_TARGET
             {
                 if (deferred_light_data.attribute & light_flag_use_shadow)
                 {
-                    shadowing_attenuation = shadowing_process_point(data.w_position, point_light.position.xyz).rgb;
+                    shadowing_attenuation = shadowing_process_point(data.w_position, normalize(data.w_normal), point_light.position.xyz).rgb;
                 }
             }
             
