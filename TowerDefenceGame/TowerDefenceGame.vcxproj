@@ -1134,10 +1134,7 @@ xcopy "$(SolutionDir)External\SDL3\lib\SDL3.dll" "$(OutDir)" /y</Command>
     <None Include="..\Shaders\ComputeParticle\compute_particle_system_item_emitter.hlsli" />
     <None Include="..\Shaders\ComputeParticle\compute_particle_system_item_particle.hlsli" />
     <None Include="..\Shaders\ComputeParticle\compute_particle_update_items.hlsli" />
-    <None Include="..\Shaders\ComputeParticle\Renderer\compute_particle_csm.hlsli" />
     <None Include="..\Shaders\ComputeParticle\Renderer\compute_particle_renderer.hlsli" />
-    <None Include="..\Shaders\ComputeParticle\Renderer\compute_particle_renderer_csm_gs.hlsli" />
-    <None Include="..\Shaders\ComputeParticle\Renderer\compute_particle_renderer_csm_vs.hlsli" />
     <None Include="..\Shaders\ComputeParticle\Renderer\compute_particle_renderer_vs.hlsli" />
     <None Include="..\Shaders\ComputeParticle\Renderer\Default\compute_particle_default.hlsli" />
     <None Include="..\Shaders\ComputeParticle\System\compute_particle.hlsli" />

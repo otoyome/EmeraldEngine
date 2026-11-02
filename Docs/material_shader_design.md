@@ -188,7 +188,7 @@ void material_geometry(triangle VS_OUT input[3], inout TriangleStream<VS_OUT> ou
 | post_process | 同じ仕組み。パスは 1 つ、VS は `fullscreen_quad_vs` 固定。マテリアルは `float4 post_process(VS_OUT pin)` を定義する |
 | user_interface | 同じ仕組み。パスは 1 つ、VS は `sprite_vs` 固定。マテリアルは `float4 user_interface(VS_OUT pin)` を定義する |
 | deferred_decal | 同じ仕組み。パスは primitive / fullscreen。マテリアルは `DecalData decal_ps(DecalIn din)` を定義する |
-| particle | 同じ仕組み。パスは surface と同じ 4 つ、VS は `compute_particle_renderer_vs`。マテリアルは `surface()` / `surface_opacity()` を定義する(`VS_OUT` = `PS_IN`)。影はまだテンプレートの GS でカスケード展開する |
+| particle | 同じ仕組み。パスは `particle_passes`(depth_write / g_buffer / forward の 3 つ。マテリアル側も同じ並びの `material::particle_paths` を持ち、描画側は `particle_render(..., material::particle_paths::xxx)` で取る)、VS は `compute_particle_renderer_vs`。マテリアルは `surface()` / `surface_opacity()` を定義する(`VS_OUT` = `PS_IN`)。影は描かない(スプライト・トレイルの影は不要と判断し、カスケード展開の GS と `compute_particle_*csm*.hlsli` を削除した) |
 | system / compute | 対象外。今どおり手動登録(遅延ライティングのマテリアルは PSO 名を持つ) |
 
 - 実施済み。パステンプレートは `Shaders/Passes/<ドメイン>_pass.hlsli`、マテリアルシェーダーは surface が `Shaders/Materials` 直下、それ以外は `Shaders/Materials/<Particle|DeferredDecal|PostProcess|UserInterface>/`。編集窓のシェーダーの候補はドメインのフォルダから出す。
@@ -211,18 +211,19 @@ void material_geometry(triangle VS_OUT input[3], inout TriangleStream<VS_OUT> ou
      - ドメイン:マテリアルの `domain`(system 以外はすべてマテリアルシェーダーで描く)。
      - 頂点要件:接線・頂点カラー1つ・UV 2つは常に読む(メッシュに無い要素はシェーダーの `meshlet_has_element()` で 0 になる)。ボーン数(`JOINTS` の組数 × 4)とモーフの有無はメッシュから決める。`model_resource::build_model()` が、マテリアルを使うメッシュを合わせた構成を `material::set_vertex_format()` で渡す。どのメッシュにも使われていないマテリアルは全部入り(ボーン16・モーフあり)。
      - GS フック:パスごとにマテリアルシェーダーを GS のステージとして `D3DPreprocess` し(インクルード先は空にする)、`material_geometry(` が残るパスで GS を付ける。使うパスは `#if defined(MATERIAL_GEOMETRY) && (defined(SURFACE_PASS_DEPTH_WRITE) || ...)` のように条件で書く。スイッチの値はこの判定に使わないので、GS の有無をスイッチで変えることはできない。
-     - 静的スイッチ:マテリアルシェーダーに書かれた `HAS_TEXTURE(テクスチャ名)`(テクスチャの有無で決まる)と `MATERIAL_SWITCH(名前)`(マテリアルの設定で切り替える、既定 OFF)を書かれている順に集める。入口でそれぞれ `HAS_TEXTURE_名前` / `MATERIAL_SWITCH_名前` を 0/1 で define する。`#if` でも式でも使える。実行時にテクスチャの有無を調べる `HAS_RESOURCE()` とは別物。
+     - 静的スイッチ:マテリアルシェーダーに書かれた `MATERIAL_SWITCH(名前)`(マテリアルの設定で切り替える、既定 OFF)を書かれている順に集める。入口で `MATERIAL_SWITCH_名前` を 0/1 で define する。`#if` でも式でも使える。
+     - テクスチャの有無は静的スイッチにしない(2026-11-02 に `HAS_TEXTURE()` を廃止)。シェーダー内で `HAS_RESOURCE(テクスチャ名)` を使い、テクスチャがあれば使い、なければ使わない(定数バッファのフラグを見る動的分岐。ドローコール単位でそろうので、通らない側のサンプリングは実行されない)。組み合わせごとの PSO が無くなり、テクスチャを差し替えても PSO を作り直さない。代わりに PS は全部ありの静的版より命令数が増える(G-Buffer の PS:glTF 120→139、Toon 105→118、PMX 90→95)。
    - パーミュテーションキーは「シェーダーパス × パス × PS の有無 × スイッチのビット × ボーン数 × モーフの有無」。ブレンドモードとシェーディングモデルは静的パラメーターとして持つが、シェーダーには今までどおり定数で渡す(キーに入れない)。
    - 最適化:深度・影の PS はマスクのときだけ付ける。VS はマテリアルを含めずに生成し、頂点の構成(ボーン数・モーフ)が同じマテリアル間で共有する。描画で使うパス(不透明・マスク=深度/G-Buffer、半透明・加算=フォワード、影=shadow_caster)だけ生成する。パラメーター構成は全スイッチ ON の G-Buffer / 深度から取る。
-   - 旧形式(バージョン1・2)のマテリアルは、読み込み時に PSO 名の接頭辞(toon_ / gltf_ / pmx_ / ggst_ / edit_model_color_ / 3d_failed_ / compute_patricle_sprite_ / particle_failed_ / deferred_decal_default_ / deferred_decal_failed_ / default_ui / postprocess_failed)からシェーダーパスへ変換する。`asset.resave_models` / `asset.resave_effects` コマンドで Assets 以下の .emo / .eme を新形式で保存し直せる。
-   - バージョン3:PSO 名は system ドメインだけ保存する。PSO 名で設定する API(`set_pipeline_state(名前)` など)と `get_pipeline_state_name()`、`uses_material_shader()` は削除した。名前で設定できるのは `set_pipeline_state(system_paths, 名前)` だけ。旧形式を読むために、読み込み時の PSO 名と変換処理は残している。
-   - 2026-11-02 に Assets 以下の .emo 11 個と .eme 14 個をバージョン3で保存し直した。`BossDestroy.eme` はエフェクト本体の形式がバージョン2(今のコードはバージョン1まで)で、以前から読み込めないので保存し直していない。
+   - `asset.resave_models` / `asset.resave_effects` コマンドで Assets 以下の .emo / .eme を最新の形式で保存し直せる。
+   - バージョン3:PSO 名は保存しない(system ドメインのマテリアルはコードで作り、ファイルには保存しない)。旧形式を読まなくなったので、シリアライズはバージョンによる分岐の無い 1 つのテンプレートにし、Binary の入出力で明示的にインスタンス化している。PSO 名で設定する API(`set_pipeline_state(名前)` など)と `get_pipeline_state_name()`、`uses_material_shader()` は削除した。名前で設定できるのは `set_pipeline_state(system_paths, 名前)` だけ。
+   - 2026-11-02 に Assets 以下の .emo 11 個と .eme 14 個をバージョン3で保存し直し、旧形式(PSO 名の接頭辞からシェーダーパスへ)の変換処理を削除した。旧形式のファイルは、読めるがシェーダーパスが空になる(エラー表示のシェーダーで描かれる)。読み込めなかった `BossDestroy.eme`(エフェクト本体がバージョン2)は削除した。
    - 深度テスト無効(`flags::disable_depth_test`)を追加。半透明・加算のときだけ効く。
 4. **マテリアルインスタンスと非同期ローダー**:書き換え時複製、バージョン番号での伝播、`resource::loader<material_resource>`、コンパイルのワーカー化。
 
 ## 11. 未決事項
 
-- パーティクルの影(`particle_pass.hlsli` の GS = `compute_particle_renderer_csm_gs.hlsli`)はまだ GS でカスケード展開している。間接描画なので、インスタンス数を掛ける処理が別に要る。
+- 2026-11-02 時点で、この章の事項は保留としている。
 - D3D11 の間は FXC のみ使う(DXC の出力 DXIL は D3D11 で使えない)。D3D12 / Vulkan 移行時に DXC でのコンパイルを確認する。既存の `common.hlsli` / `gbuffer.hlsli` には、HLSL 2021 で禁止されたベクトル条件の三項演算子がある。
 - マテリアルの関数を囲むガード(`MATERIAL_SURFACE` など)をなくすには、パス間で `VS_OUT` の型をそろえる必要がある。
 - ホットリロードでマテリアルシェーダーのスイッチや GS の有無が変わると、シェーダーマップのキャッシュは捨てるが、マテリアルが持っているパイプラインステートは差し替わらない(機能宣言の行があったころから同じ)。

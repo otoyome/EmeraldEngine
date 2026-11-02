@@ -129,7 +129,7 @@ SurfaceData surface(VS_OUT pin, bool is_front_face)
         //  RGB : 陰色
         //  A : 空き
         data.shade_color = sss_color.rgb;
-        if (HAS_TEXTURE(SssMap))
+        if (HAS_RESOURCE(SssMap))
         {
             data.shade_color *= TEXTURE2D_SAMPLE(SssMap, pin.texcoord[SssTexcoord]);
         }
@@ -143,7 +143,7 @@ SurfaceData surface(VS_OUT pin, bool is_front_face)
         //  B : ハイライトの入りやすさ
         //  A :
         data.ilm_color = float4(0, 1, 0, 0);
-        if (HAS_TEXTURE(IlmMap))
+        if (HAS_RESOURCE(IlmMap))
         {
             data.ilm_color = TEXTURE2D_SAMPLE(IlmMap, pin.texcoord[IlmTexcoord]);
         }
@@ -152,7 +152,7 @@ SurfaceData surface(VS_OUT pin, bool is_front_face)
         data.metalness = metallic;
 
         //  詳細情報
-        if (HAS_TEXTURE(DetailMap))
+        if (HAS_RESOURCE(DetailMap))
         {
             float4 detail_color = TEXTURE2D_SAMPLE(DetailMap, pin.texcoord[DetailTexcoord]);
             data.base_color.rgb *= detail_color.rgb;

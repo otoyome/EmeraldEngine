@@ -1205,16 +1205,7 @@
     <None Include="..\Shaders\ComputeParticle\System\compute_particle_base_stream_item.hlsli">
       <Filter>Shaders\ComputeParticle\System</Filter>
     </None>
-    <None Include="..\Shaders\ComputeParticle\Renderer\compute_particle_renderer_csm_gs.hlsli">
-      <Filter>Shaders\ComputeParticle\Renderer</Filter>
-    </None>
-    <None Include="..\Shaders\ComputeParticle\Renderer\compute_particle_renderer_csm_vs.hlsli">
-      <Filter>Shaders\ComputeParticle\Renderer</Filter>
-    </None>
     <None Include="..\Shaders\ComputeParticle\Renderer\compute_particle_renderer_vs.hlsli">
-      <Filter>Shaders\ComputeParticle\Renderer</Filter>
-    </None>
-    <None Include="..\Shaders\ComputeParticle\Renderer\compute_particle_csm.hlsli">
       <Filter>Shaders\ComputeParticle\Renderer</Filter>
     </None>
     <None Include="..\Shaders\ComputeParticle\Renderer\compute_particle_renderer.hlsli">

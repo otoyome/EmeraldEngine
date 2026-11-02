@@ -18,7 +18,6 @@ namespace
 
 	//	静的スイッチを書くためのマクロ(値はスイッチごとの define で渡す)
 	constexpr std::string_view switch_macro_definitions =
-		"#define HAS_TEXTURE(name) HAS_TEXTURE_##name\n"
 		"#define MATERIAL_SWITCH(name) MATERIAL_SWITCH_##name\n";
 
 	//	マテリアルシェーダーの置き場所
@@ -33,46 +32,46 @@ namespace
 		std::string_view pixel_define;		//	PS で有効にするマテリアル関数の define 名
 		std::string_view option_define;		//	全ステージに追加する define 名(空なら無し)
 		bool hook_geometry;					//	マテリアルのジオメトリフックを使えるか
-		bool fixed_geometry;				//	常にテンプレートの GS を使うか
 		bool optional_pixel;				//	PS を省略できるか(マスク以外は深度だけ書けばよい)
 	};
 
-	//	material_shader_map::surface_passes の順に並べる
+	//	サーフェイス・テンプレート
 	constexpr pass_template surface_pass_templates[] =
 	{
-		{ "_depth",		"SURFACE_PASS_DEPTH_WRITE",		"VS_DEPTH_OUT",			"MATERIAL_SURFACE_OPACITY",	"",						true,	false,	true },
-		{ "_shadowmap",	"SURFACE_PASS_SHADOW_WRITE",	"VS_SHADOW_MAP_OUT",	"MATERIAL_SURFACE_OPACITY",	"",						true,	false,	true },
-		{ "_gbuffer",	"SURFACE_PASS_G_BUFFER",		"VS_GBUFFER_OUT",		"MATERIAL_SURFACE",			"",						true,	false,	false },
-		{ "_forward",	"SURFACE_PASS_FORWARD",			"VS_FORWARD_OUT",		"MATERIAL_SURFACE",			"FORWARD_RENDERING",	true,	false,	false },
+		{ "_depth",		"SURFACE_PASS_DEPTH_WRITE",		"VS_DEPTH_OUT",			"MATERIAL_SURFACE_OPACITY",	"",						true,	true },
+		{ "_shadowmap",	"SURFACE_PASS_SHADOW_WRITE",	"VS_SHADOW_MAP_OUT",	"MATERIAL_SURFACE_OPACITY",	"",						true,	true },
+		{ "_gbuffer",	"SURFACE_PASS_G_BUFFER",		"VS_GBUFFER_OUT",		"MATERIAL_SURFACE",			"",						true,	false },
+		{ "_forward",	"SURFACE_PASS_FORWARD",			"VS_FORWARD_OUT",		"MATERIAL_SURFACE",			"FORWARD_RENDERING",	true,	false },
 	};
 	static_assert(std::size(surface_pass_templates) == magic_enum::enum_count<material_shader_map::surface_passes>());
 
-	//	particle ドメイン(surface と同じパス。影はまだ GS でカスケード展開する)
+	//	パーティクル・テンプレート
 	constexpr pass_template particle_pass_templates[] =
 	{
-		{ "_depth",		"PARTICLE_PASS_DEPTH_WRITE",	"PS_IN",	"MATERIAL_SURFACE_OPACITY",	"",	false,	false,	true },
-		{ "_shadowmap",	"PARTICLE_PASS_SHADOW_WRITE",	"PS_IN",	"MATERIAL_SURFACE_OPACITY",	"",	false,	true,	true },
-		{ "_gbuffer",	"PARTICLE_PASS_G_BUFFER",		"PS_IN",	"MATERIAL_SURFACE",			"",	false,	false,	false },
-		{ "_forward",	"PARTICLE_PASS_FORWARD",		"PS_IN",	"MATERIAL_SURFACE",			"",	false,	false,	false },
+		{ "_depth",		"PARTICLE_PASS_DEPTH_WRITE",	"PS_IN",	"MATERIAL_SURFACE_OPACITY",	"",	false,	true },
+		{ "_gbuffer",	"PARTICLE_PASS_G_BUFFER",		"PS_IN",	"MATERIAL_SURFACE",			"",	false,	false },
+		{ "_forward",	"PARTICLE_PASS_FORWARD",		"PS_IN",	"MATERIAL_SURFACE",			"",	false,	false },
 	};
-	static_assert(std::size(particle_pass_templates) == magic_enum::enum_count<material_shader_map::surface_passes>());
+	static_assert(std::size(particle_pass_templates) == magic_enum::enum_count<material_shader_map::particle_passes>());
 
-	//	deferred_decal ドメイン(material_shader_map::decal_passes の順)
+	//	遅延デカール・テンプレート
 	constexpr pass_template decal_pass_templates[] =
 	{
-		{ "_primitive",		"DECAL_PASS_PRIMITIVE",		"",	"MATERIAL_DECAL",	"",	false,	false,	false },
-		{ "_fullscreen",	"DECAL_PASS_FULLSCREEN",	"",	"MATERIAL_DECAL",	"",	false,	false,	false },
+		{ "_primitive",		"DECAL_PASS_PRIMITIVE",		"",	"MATERIAL_DECAL",	"",	false,	false },
+		{ "_fullscreen",	"DECAL_PASS_FULLSCREEN",	"",	"MATERIAL_DECAL",	"",	false,	false },
 	};
 	static_assert(std::size(decal_pass_templates) == magic_enum::enum_count<material_shader_map::decal_passes>());
 
-	//	post_process / user_interface ドメイン(1パス)
+	//	ポストプロセス・テンプレート
 	constexpr pass_template post_process_pass_templates[] =
 	{
-		{ "",	"POST_PROCESS_PASS",	"",	"MATERIAL_POST_PROCESS",	"",	false,	false,	false },
+		{ "",	"POST_PROCESS_PASS",	"",	"MATERIAL_POST_PROCESS",	"",	false,	false },
 	};
+
+	//	UIテンプレート
 	constexpr pass_template user_interface_pass_templates[] =
 	{
-		{ "",	"USER_INTERFACE_PASS",	"",	"MATERIAL_USER_INTERFACE",	"",	false,	false,	false },
+		{ "",	"USER_INTERFACE_PASS",	"",	"MATERIAL_USER_INTERFACE",	"",	false,	false },
 	};
 
 	//	ドメインごとの設定
@@ -322,7 +321,7 @@ material_shader_map::entry* material_shader_map::find_entry(std::string_view sha
 								 !std::equal(latest.static_switches.begin(), latest.static_switches.end(), current.static_switches.begin(),
 									[](const static_switch_declaration& a, const static_switch_declaration& b)
 									{
-										return a.name == b.name && a.default_value == b.default_value && a.texture == b.texture;
+										return a.name == b.name && a.default_value == b.default_value;
 									});
 			if (changed)
 				it->second->pipeline_states.clear();
@@ -359,8 +358,8 @@ void material_shader_map::parse_declaration(const std::string& shader_path, doma
 	}
 	const std::string source_text((std::istreambuf_iterator<char>(stream)), std::istreambuf_iterator<char>());
 
-	//	静的スイッチ:HAS_TEXTURE(テクスチャ名) / MATERIAL_SWITCH(名前) を書かれている順に集める
-	static const std::regex switch_pattern(R"(\b(HAS_TEXTURE|MATERIAL_SWITCH)\s*\(\s*(\w+)\s*\))");
+	//	静的スイッチ:MATERIAL_SWITCH(名前) を書かれている順に集める
+	static const std::regex switch_pattern(R"(\b(MATERIAL_SWITCH)\s*\(\s*(\w+)\s*\))");
 	const std::string code = remove_comments(source_text);
 	for (auto it = std::sregex_iterator(code.begin(), code.end(), switch_pattern); it != std::sregex_iterator(); ++it)
 	{
@@ -369,8 +368,6 @@ void material_shader_map::parse_declaration(const std::string& shader_path, doma
 
 		static_switch_declaration item;
 		item.name = macro + "_" + argument;
-		if (macro == "HAS_TEXTURE")
-			item.texture = argument;
 
 		auto found = std::find_if(out.static_switches.begin(), out.static_switches.end(),
 			[&](const static_switch_declaration& current) { return current.name == item.name; });
@@ -505,12 +502,6 @@ graphics_pipeline_state_ptr material_shader_map::get_pipeline_state(const reques
 		if (!load_pass_shader<geometry_shader>(*pipeline_state, target->shader_path, generate_source(*target, vertex, true, &switch_bits), domain_setting, pass_template, domain_setting.stage_geometry, true))
 			result = false;
 	}
-	else if (pass_template.fixed_geometry)
-	{
-		//	テンプレートの GS もマテリアルを含まないので VS と同じく共有する
-		if (!load_pass_shader<geometry_shader>(*pipeline_state, domain_setting.template_file_path, generate_source(*target, vertex, false, nullptr), domain_setting, pass_template, domain_setting.stage_geometry, false))
-			result = false;
-	}
 
 	if (use_pixel)
 	{
@@ -542,8 +533,10 @@ void material_shader_map::get_parameter_pipeline_states(std::string_view shader_
 
 	//	surface / particle は G-Buffer と深度、それ以外は先頭のパスから取る
 	std::vector<UINT> passes;
-	if (domain == domains::surface || domain == domains::particle)
+	if (domain == domains::surface)
 		passes = { static_cast<UINT>(surface_passes::g_buffer), static_cast<UINT>(surface_passes::depth_write) };
+	else if (domain == domains::particle)
+		passes = { static_cast<UINT>(particle_passes::g_buffer), static_cast<UINT>(particle_passes::depth_write) };
 	else
 		passes = { 0 };
 

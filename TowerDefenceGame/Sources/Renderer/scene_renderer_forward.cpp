@@ -48,7 +48,7 @@ void before_dof_forward_renderer::render(renderer_context& renderer_context)
 					 material::surface_paths::forward_pass);
 		scene_renderer_commons::particle_render(context,
 					 renderer_context.render_particle_indices->forward[forward_index],
-					 material::surface_paths::forward_pass);
+					 material::particle_paths::forward_pass);
 
 		rendering_pass.deactivate(context.device_context);
 	}, "forward_pass : before_dof", renderer_context, get_render_basis_sort_order());
@@ -121,7 +121,7 @@ void after_dof_forward_renderer::render(renderer_context& renderer_context)
 					material::surface_paths::forward_pass);
 		scene_renderer_commons::particle_render(context,
 					 renderer_context.render_particle_indices->forward[forward_index],
-					 material::surface_paths::forward_pass);
+					 material::particle_paths::forward_pass);
 
 		rendering_pass.deactivate(context.device_context);
 	}, "forward_pass : after_dof", renderer_context, get_render_basis_sort_order());
@@ -194,7 +194,7 @@ void after_motion_blur_forward_renderer::render(renderer_context& renderer_conte
 					 material::surface_paths::forward_pass);
 		scene_renderer_commons::particle_render(context,
 					 renderer_context.render_particle_indices->forward[forward_index],
-					 material::surface_paths::forward_pass);
+					 material::particle_paths::forward_pass);
 
 		rendering_pass.deactivate(context.device_context);
 	}, "forward_pass: after_motion_blur", renderer_context, get_render_basis_sort_order());

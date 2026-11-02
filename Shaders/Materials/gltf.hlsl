@@ -47,7 +47,7 @@ SurfaceData surface(VS_OUT pin, bool is_front_face)
 
     //	自己発光色を取得
     data.emissive_color = emissive_color_factor;
-    if (HAS_TEXTURE(EmissiveMap))
+    if (HAS_RESOURCE(EmissiveMap))
     {
         data.emissive_color *= TEXTURE2D_SAMPLE(EmissiveMap, pin.texcoord[BaseTexcoord]).rgb;
     }
@@ -70,7 +70,7 @@ SurfaceData surface(VS_OUT pin, bool is_front_face)
         N = -N;
     }
     //	法線マッピング
-    if (HAS_TEXTURE(NormalMap))
+    if (HAS_RESOURCE(NormalMap))
     {
         float4 sampled = TEXTURE2D_SAMPLE(NormalMap, pin.texcoord[BaseTexcoord]);
         float3 normal_factor = (sampled.xyz * 2.0f) - 1.0f;
@@ -82,7 +82,7 @@ SurfaceData surface(VS_OUT pin, bool is_front_face)
 	//	金属質/粗さを取得
     data.roughness = saturate(roughness_factor);
     data.metalness = saturate(metallic_factor);
-    if (HAS_TEXTURE(RoughnessMetallicMap))
+    if (HAS_RESOURCE(RoughnessMetallicMap))
     {
         float4 sampled = TEXTURE2D_SAMPLE(RoughnessMetallicMap, pin.texcoord[BaseTexcoord]);
         data.roughness *= sampled.g;
@@ -91,7 +91,7 @@ SurfaceData surface(VS_OUT pin, bool is_front_face)
 
 	//	光の遮蔽値を取得
     data.occlusion_factor = 1.0f;
-    if (HAS_TEXTURE(OcclusionMap))
+    if (HAS_RESOURCE(OcclusionMap))
     {
         float4 sampled = TEXTURE2D_SAMPLE(OcclusionMap, pin.texcoord[BaseTexcoord]);
         data.occlusion_factor *= sampled.r;

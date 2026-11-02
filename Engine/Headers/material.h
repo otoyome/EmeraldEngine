@@ -16,7 +16,7 @@ public:
 	//	マテリアルの処理系統
 	using domains = pipeline_state_base::domains;
 
-	//	@tool ドメインごとの既定のマテリアルシェーダー
+	//	ドメインごとの既定のマテリアルシェーダー
 	static constexpr std::string_view default_particle_shader_path = "Shaders/Materials/Particle/particle_default.hlsl";
 	static constexpr std::string_view default_decal_shader_path = "Shaders/Materials/DeferredDecal/decal_default.hlsl";
 	static constexpr std::string_view default_user_interface_shader_path = "Shaders/Materials/UserInterface/sprite_default.hlsl";
@@ -27,6 +27,14 @@ public:
 		depth_write_pass,	//	深度書き込みパス
 		g_buffer_pass,		//	G-Buffer生成パス
 		shadow_write_pass,	//	シャドウマップ生成パス
+		forward_pass,		//	フォワードレンダリングパス
+	};
+
+	//	パーティクル描画パス
+	enum class particle_paths : std::uint8_t
+	{
+		depth_write_pass,	//	深度書き込みパス
+		g_buffer_pass,		//	G-Buffer生成パス
 		forward_pass,		//	フォワードレンダリングパス
 	};
 
@@ -259,7 +267,6 @@ public:
 
 	//	マテリアルシェーダー(Shaders/Materials 以下)の取得/設定
 	//	設定するとパイプラインステートはシェーダーパス・静的パラメーターから自動で決まる
-	//	@tool system ドメイン以外はすべてマテリアルシェーダーで描く
 	void set_shader_path(std::string_view shader_path);
 	std::string_view get_shader_path() const { return shader_path; }
 
@@ -268,15 +275,16 @@ public:
 	bool get_static_switch(std::string_view name) const;
 	const std::map<std::string, bool>& get_static_switches() const { return static_switches; }
 
-	//	@tool 描くメッシュの頂点の構成(モデルの読込時にメッシュから決める)
+	//	メッシュの頂点の構成
+	//	モデルの読込時にメッシュから決める
 	void set_vertex_format(const material_shader_map::vertex_format& value);
 	const material_shader_map::vertex_format& get_vertex_format() const { return vertex_format; }
 
 	//	パイプラインステート取得・設定
-	//	@tool 名前で設定できるのは system ドメイン(エンジン内部の描画)だけ
 	bool set_pipeline_state(system_paths type, std::string_view pipeline_state_name);
 
 	graphics_pipeline_state_ptr get_pipeline_state(surface_paths value) const;
+	graphics_pipeline_state_ptr get_pipeline_state(particle_paths value) const;
 	graphics_pipeline_state_ptr get_pipeline_state(decal_paths value) const;
 	graphics_pipeline_state_ptr get_pipeline_state(system_paths value) const;
 	graphics_pipeline_state_ptr get_pipeline_state() const;
@@ -344,8 +352,6 @@ private:
 	void refresh_pipeline_states();
 	//	パイプラインステートを差し替える(ホットリロードの検知も付け替える)
 	void assign_pipeline_state(UINT index, std::string_view name, graphics_pipeline_state_ptr value, bool required);
-	//	旧形式(PSO 名)からマテリアルシェーダーのパスへ変換する
-	void convert_legacy_pipeline_state_names();
 
 #if defined(USE_IMGUI)
 	bool is_error() const;

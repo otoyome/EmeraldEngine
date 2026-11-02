@@ -60,5 +60,5 @@ namespace scene_renderer_commons
 
 	void particle_render(graphics_context& context,
 						 const std::vector<std::size_t>& mesh_indices,
-						 material::surface_paths surface_path);
+						 material::particle_paths particle_path);
 }	//	namespace scene_renderer_commons

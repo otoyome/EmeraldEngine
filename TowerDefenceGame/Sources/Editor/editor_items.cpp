@@ -410,7 +410,7 @@ bool editor_items::edit_material(std::shared_ptr<context>& context, material& ma
 			edit_flag = true;
 		}
 
-		//	静的スイッチ(テクスチャで決まるものは表示のみ)
+		//	静的スイッチ
 		if (auto shader_declaration = material_shader_map::instance()->find_declaration(material.get_shader_path(), material.get_domain()))
 		{
 			if (!shader_declaration->is_valid())
@@ -419,15 +419,7 @@ bool editor_items::edit_material(std::shared_ptr<context>& context, material& ma
 			for (auto& item : shader_declaration->static_switches)
 			{
 				bool value = material.get_static_switch(item.name);
-				if (!item.texture.empty())
-				{
-					ImGui::BeginDisabled();
-					ImGui::Checkbox(item.name.data(), &value);
-					ImGui::EndDisabled();
-					ImGui::SameLine();
-					ImGui::TextDisabled("(%s)", item.texture.data());
-				}
-				else if (ImGui::Checkbox(item.name.data(), &value))
+				if (ImGui::Checkbox(item.name.data(), &value))
 				{
 					material.set_static_switch(item.name, value);
 					edit_flag = true;

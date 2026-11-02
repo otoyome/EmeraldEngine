@@ -80,7 +80,7 @@ SurfaceData surface(VS_OUT pin, bool is_front_face)
             L = normalize(L);
             float2 ramp_texcoord = float2(0.5f, saturate(dot(L, data.w_normal.xyz) * 0.5f + threshold_offset));
             float3 ramp_color = 1.0f;
-            if (HAS_TEXTURE(RampMap))
+            if (HAS_RESOURCE(RampMap))
             {
                 ramp_color = TEXTURE2D_SAMPLE(RampMap, ramp_texcoord).rgb;
             }

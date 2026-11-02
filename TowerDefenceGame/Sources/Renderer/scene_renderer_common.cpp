@@ -684,7 +684,7 @@ void scene_renderer_commons::model_render_shadow_batched(graphics_context& conte
 
 void scene_renderer_commons::particle_render(graphics_context& context,
 					const std::vector<std::size_t>& draw_indices,
-					material::surface_paths surface_path)
+					material::particle_paths particle_path)
 {
 	//	スプライト/トレイルパーティクル
 	auto draw_data_ptr = context.render_data->effect_container.sprite_trail_draw_datas.data();
@@ -695,7 +695,7 @@ void scene_renderer_commons::particle_render(graphics_context& context,
 	{
 		auto draw_data = draw_data_ptr + draw_index;
 
-		if (auto pipeline_state = draw_data->material_data.material->get_pipeline_state(surface_path))
+		if (auto pipeline_state = draw_data->material_data.material->get_pipeline_state(particle_path))
 		{
 			if (pipeline_state != current_pipeline_state)
 			{

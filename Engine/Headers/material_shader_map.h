@@ -19,7 +19,7 @@ class material_shader_map
 public:
 	using domains = pipeline_state_base::domains;
 
-	//	surface / particle ドメインのパス
+	//	surface ドメインのパス
 	enum class surface_passes : std::uint8_t
 	{
 		depth_write,	//	深度書き込み
@@ -28,20 +28,28 @@ public:
 		forward,		//	フォワードレンダリング
 	};
 
+	//	particle ドメインのパス
+	enum class particle_passes : std::uint8_t
+	{
+		depth_write,	//	深度書き込み
+		g_buffer,		//	G-Buffer生成
+		forward,		//	フォワードレンダリング
+	};
+
 	//	deferred_decal ドメインのパス
 	enum class decal_passes : std::uint8_t
 	{
-		primitive,		//	@tool プリミティブで書き込む
-		fullscreen,		//	@tool 全画面で書き込む
+		primitive,		//	プリミティブで書き込む
+		fullscreen,		//	全画面で書き込む
 	};
 
 	//	静的スイッチの宣言
-	//	マテリアルシェーダーに書かれた HAS_TEXTURE(テクスチャ名) / MATERIAL_SWITCH(名前) から自動で作る
+	//	マテリアルシェーダーに書かれた MATERIAL_SWITCH(名前) から自動で作る
+	//	@tool テクスチャの有無は静的スイッチにせず、シェーダー内で HAS_RESOURCE(テクスチャ名) で調べる
 	struct static_switch_declaration
 	{
 		std::string name;			//	シェーダーに渡す define 名
 		bool default_value = false;	//	既定値
-		std::string texture;		//	空でなければ、このテクスチャが設定されているかで値が決まる
 	};
 
 	//	マテリアルシェーダーの機能宣言
@@ -69,7 +77,7 @@ public:
 	{
 		std::string_view shader_path;				//	マテリアルシェーダーのパス
 		domains domain = domains::surface;			//	マテリアルのドメイン
-		UINT pass = 0;								//	ドメインのパスの番号(surface_passes / decal_passes、1パスのドメインは 0)
+		UINT pass = 0;								//	ドメインのパスの番号(surface_passes / particle_passes / decal_passes、1パスのドメインは 0)
 		std::uint64_t switch_bits = 0;				//	static_switches の並び順のビット
 		vertex_format vertex;						//	描くメッシュの頂点の構成(surface のみ)
 		bool pixel = true;							//	depth_write / shadow_write で PS を付けるか(マスク時のみ必要)
@@ -107,10 +115,10 @@ public:
 	//	マテリアルのパラメーター構成に使うパイプラインステートを取得
 	void get_parameter_pipeline_states(std::string_view shader_path, domains domain, std::vector<graphics_pipeline_state_ptr>& out);
 
-	//	@tool ドメインがマテリアルシェーダーで描けるか
+	//	ドメインがマテリアルシェーダーで描けるか
 	static bool is_supported_domain(domains domain);
 
-	//	@tool ドメインのパスの数(1パスのドメインは 1)
+	//	ドメインのパスの数(1パスのドメインは 1)
 	static UINT get_pass_count(domains domain);
 
 #if defined(USE_IMGUI)
