@@ -104,23 +104,23 @@ void material_instance::set_resource(material_resource_ptr resource)
 	rebuild();
 }
 
-void material_instance::update()
+void material_instance::sync_from_resource()
 {
 	if (!resource)
 		return;
 
-	resource->update();
+	resource->sync_shader_reloads();
 
 	if (!built || resource_version != resource->get_version())
 		rebuild();
 }
 
-void material_instance::upload_constant_buffers(gpu_upload_list& upload_list)
+void material_instance::flush_constant_buffers(gpu_upload_list& upload_list)
 {
 	if (!resource)
 		return;
 
-	resource->upload_constant_buffers(upload_list);
+	resource->flush_constant_buffers(upload_list);
 
 	for (auto& constant_buffer : constant_buffers)
 	{

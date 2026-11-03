@@ -49,8 +49,8 @@ public:
 	material_instance(material_instance&& other);
 	~material_instance();
 
-	void update();
-	void upload_constant_buffers(gpu_upload_list& upload_list);
+	void sync_from_resource();
+	void flush_constant_buffers(gpu_upload_list& upload_list);
 
 	//	インスタンス側で情報を上書きしたか
 	bool has_overrides() const { return !data_overrides.empty() || !texture_overrides.empty(); }

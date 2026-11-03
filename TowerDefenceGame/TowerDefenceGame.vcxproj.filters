@@ -443,6 +443,9 @@
     <ClCompile Include="Sources\Scenes\EditScene\edit_particle_scene.cpp">
       <Filter>Sources\Scenes\EditScene</Filter>
     </ClCompile>
+    <ClCompile Include="Sources\Scenes\EditScene\edit_material_scene.cpp">
+      <Filter>Sources\Scenes\EditScene</Filter>
+    </ClCompile>
     <ClCompile Include="Sources\Scenes\EditScene\edit_timeline_scene.cpp">
       <Filter>Sources\Scenes\EditScene</Filter>
     </ClCompile>
@@ -743,6 +746,9 @@
       <Filter>Headers\Renderer</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Scenes\EditScene\edit_particle_scene.h">
+      <Filter>Headers\Scenes\EditScene</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Scenes\EditScene\edit_material_scene.h">
       <Filter>Headers\Scenes\EditScene</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Scenes\EditScene\edit_timeline_scene.h">

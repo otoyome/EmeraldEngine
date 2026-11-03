@@ -24,6 +24,7 @@ extern ImWchar glyphRangesJapanese[];
 
 #include "scenes/editscene/edit_model_scene.h"
 #include "scenes/editscene/edit_particle_scene.h"
+#include "scenes/editscene/edit_material_scene.h"
 #include "scenes/editscene/edit_timeline_scene.h"
 #include "scenes/DummyScene/dummy_scene.h"
 #include "scenes/TestScene/collision_test_scene.h"
@@ -382,6 +383,7 @@ void framework::imgui_scene_change()
 		change_scene<clustered_lighting_test_scene>();
 		change_scene<light_shadow_test_scene>();
 		change_scene<edit_particle_scene>();
+		change_scene<edit_material_scene>();
 		change_scene<edit_timeline_scene>();
 		change_scene<setup_scene>();
 	}

@@ -170,7 +170,7 @@ material_resource::~material_resource()
 {
 }
 
-void material_resource::upload_constant_buffers(gpu_upload_list& upload_list)
+void material_resource::flush_constant_buffers(gpu_upload_list& upload_list)
 {
 #if defined(USE_IMGUI)
 	if (is_error())
@@ -245,7 +245,7 @@ void material_resource::build()
 	build_parameters();
 }
 
-void material_resource::update()
+void material_resource::sync_shader_reloads()
 {
 	//	パイプラインステートが読み直されたか
 	bool reloaded = false;

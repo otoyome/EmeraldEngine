@@ -215,7 +215,7 @@ public:
 	material_resource(material_resource&& material);
 	~material_resource();
 
-	void upload_constant_buffers(gpu_upload_list& upload_list);
+	void flush_constant_buffers(gpu_upload_list& upload_list);
 
 	template<class Archive>
 	void serialize(Archive& archive, int version);
@@ -224,7 +224,7 @@ public:
 
 	void build();
 
-	void update();
+	void sync_shader_reloads();
 
 	material_resource& operator =(const material_resource& material);
 

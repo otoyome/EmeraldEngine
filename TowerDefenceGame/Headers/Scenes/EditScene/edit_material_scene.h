@@ -1,0 +1,82 @@
+#pragma once
+
+#include "scenes/scene_base.h"
+
+#if defined(USE_IMGUI)
+#include "model_resource.h"
+#include "effect_resource.h"
+#include "effect_instance.h"
+
+#include "object/model_object.h"
+#include "object/camera_object.h"
+#include "object/post_process_volume_object.h"
+#include "Editor/editor_items.h"
+#include "Editor/editor_camera.h"
+
+//	マテリアル編集シーン
+class edit_material_scene : public scene_base
+{
+	SCENE_DECRLEAR(edit_material_scene, scene_base);
+
+public:
+	edit_material_scene();
+	edit_material_scene(const edit_material_scene&) = delete;
+	edit_material_scene(edit_material_scene&&) = delete;
+	~edit_material_scene() override;
+
+protected:
+	bool initialize_core() override;
+	bool uninitialize_core() override;
+	void update_core(float elapsed_time) override;
+	void imgui_render_core() override;
+
+private:
+	//	編集対象のマテリアル
+	struct material_entry
+	{
+		std::string label;
+		material_resource_ptr material;
+	};
+
+private:
+	void open_source(const std::string& file_path, bool force_load);
+	void save_source();
+	void collect_materials();
+	material_resource_ptr get_selected_material() const;
+
+	void scan_preview_models();
+	void change_preview_model(const std::string& file_path);
+	void apply_preview_materials();
+	void restart_preview_effect();
+	void clear_preview_effect();
+
+	void imgui_render_source();
+	void imgui_render_preview();
+	void imgui_render_material_list();
+	void imgui_render_material_detail();
+
+private:
+	std::shared_ptr<camera_object> main_camera;
+	editor_camera_manager::scene_request_ptr editor_camera_request;
+	std::shared_ptr<editor_items::context> editor_context;
+
+private:
+	std::string source_file_path;
+	model_resource_ptr source_model;
+	effect_resource_ptr source_effect;
+
+	std::vector<material_entry> materials;
+	int selected_material = -1;
+	bool dirty = false;
+	std::string message;
+
+private:
+	std::vector<std::string> preview_model_files;
+	std::string preview_model_path;
+	std::shared_ptr<model_object> preview_model;
+	bool override_preview_slots = true;
+
+	effect_instance_ptr preview_effect;
+	bool loop_preview_effect = true;
+};
+#endif // defined(USE_IMGUI)

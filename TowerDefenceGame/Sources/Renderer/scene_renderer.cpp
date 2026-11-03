@@ -620,7 +620,7 @@ void deffered_lighting_renderer::render(renderer_context& context)
 	register_index = 0;
 
 	//	描画ジョブを積む前に、パイプラインステートの読み直しをマテリアルへ反映する
-	deferred_lighting_material_instance.update();
+	deferred_lighting_material_instance.sync_from_resource();
 
 	//	間接光
 	render_indirect(context);

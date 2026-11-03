@@ -61,8 +61,8 @@ namespace
 			if (!target)
 				return;
 
-			target->update();
-			target->upload_constant_buffers(upload_list);
+			target->sync_from_resource();
+			target->flush_constant_buffers(upload_list);
 		};
 
 		for (auto& material_data : data.mesh_container.material_datas)
