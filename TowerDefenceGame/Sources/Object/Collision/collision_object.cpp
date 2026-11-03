@@ -42,12 +42,12 @@ void collision_object::set_mass(float mass)
 	this->mass = mass;
 }
 
-const material::physical_datas& collision_object::get_physical_data() const
+const material_resource::physical_datas& collision_object::get_physical_data() const
 {
 	return physical_data;
 }
 
-void collision_object::set_physical_data(const material::physical_datas& data)
+void collision_object::set_physical_data(const material_resource::physical_datas& data)
 {
 	physical_data = data;
 }

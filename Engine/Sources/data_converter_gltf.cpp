@@ -558,18 +558,18 @@ namespace
 		{
 			auto& gltf_material = gltf_materials[material_index];
 			auto& slots = material_textures[material_index];
-			auto& material = *materials.emplace_back(std::make_shared<::material>());
+			auto& material = *materials.emplace_back(std::make_shared<::material_resource>());
 			material.set_name(gltf_material.name);
-			material.set_domain(material::domains::surface);
+			material.set_domain(material_resource::domains::surface);
 			material.set_alpha_clip_threshold(gltf_material.alpha_cutoff);
-			material.set_shading_model(material::shading_models::default_lit);
+			material.set_shading_model(material_resource::shading_models::default_lit);
 			if (gltf_material.alpha_mode == gltf_loader::alpha_modes::opaque)
-				material.set_blend_mode(material::blend_modes::opaque);
+				material.set_blend_mode(material_resource::blend_modes::opaque);
 			if (gltf_material.alpha_mode == gltf_loader::alpha_modes::mask)
-				material.set_blend_mode(material::blend_modes::mask);
+				material.set_blend_mode(material_resource::blend_modes::mask);
 			if (gltf_material.alpha_mode == gltf_loader::alpha_modes::translucent)
-				material.set_blend_mode(material::blend_modes::translucent);
-			material.set_flag(material::flags::two_sided, gltf_material.double_sided);
+				material.set_blend_mode(material_resource::blend_modes::translucent);
+			material.set_flag(material_resource::flags::two_sided, gltf_material.double_sided);
 
 			//	デフォルトシェーダー設定
 			material.set_shader_path("Shaders/Materials/gltf.hlsl");

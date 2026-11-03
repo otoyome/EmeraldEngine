@@ -323,10 +323,10 @@ const std::vector<std::shared_ptr<material_instance>>& post_process_volume::get_
 	return postprocess_materials;
 }
 
-bool post_process_volume::register_postprocess_materials(std::shared_ptr<material> material_ptr)
+bool post_process_volume::register_postprocess_materials(std::shared_ptr<material_resource> material_ptr)
 {
-	assert(material_ptr->get_domain() == material::domains::post_process);
-	if (material_ptr->get_domain() != material::domains::post_process)
+	assert(material_ptr->get_domain() == material_resource::domains::post_process);
+	if (material_ptr->get_domain() != material_resource::domains::post_process)
 		return false;
 
 	postprocess_materials.push_back(std::make_shared<material_instance>(material_ptr));

@@ -62,7 +62,7 @@ void post_process_renderer_base::render(renderer_context& renderer_context)
 	bool is_find = false;
 	for (auto& material : inner_volume->get_materials())
 	{
-		if (material->get_domain() != material::domains::post_process ||
+		if (material->get_domain() != material_resource::domains::post_process ||
 			material->get_blendable_location() != get_material_blendable_locations())
 			continue;
 		is_find = true;
@@ -80,7 +80,7 @@ void post_process_renderer_base::render(renderer_context& renderer_context)
 		int rendering_count = 0;
 		for (auto& material : inner_volume->get_materials())
 		{
-			if (material->get_domain() != material::domains::post_process ||
+			if (material->get_domain() != material_resource::domains::post_process ||
 				material->get_blendable_location() != get_material_blendable_locations())
 				continue;
 

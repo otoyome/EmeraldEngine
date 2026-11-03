@@ -12,7 +12,7 @@
 class forward_renderer_base : public renderer
 {
 public:
-	virtual material::translucency_paths get_material_translucency_path() const = 0;
+	virtual material_resource::translucency_paths get_material_translucency_path() const = 0;
 
 public:
 	forward_renderer_base(render_job_registrar job_executor, std::shared_ptr<scene_render_targets> render_targets);

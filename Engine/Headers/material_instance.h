@@ -2,27 +2,27 @@
 
 #include <map>
 
-#include "material.h"
+#include "material_resource.h"
 
 //	マテリアルインスタンス
 class material_instance
 {
 public:
-	using domains = material::domains;
-	using surface_paths = material::surface_paths;
-	using particle_paths = material::particle_paths;
-	using decal_paths = material::decal_paths;
-	using system_paths = material::system_paths;
-	using shading_models = material::shading_models;
-	using blend_modes = material::blend_modes;
-	using blendable_locations = material::blendable_locations;
-	using translucency_paths = material::translucency_paths;
-	using flags = material::flags;
+	using domains = material_resource::domains;
+	using surface_paths = material_resource::surface_paths;
+	using particle_paths = material_resource::particle_paths;
+	using decal_paths = material_resource::decal_paths;
+	using system_paths = material_resource::system_paths;
+	using shading_models = material_resource::shading_models;
+	using blend_modes = material_resource::blend_modes;
+	using blendable_locations = material_resource::blendable_locations;
+	using translucency_paths = material_resource::translucency_paths;
+	using flags = material_resource::flags;
 
 public:
 	//	リソースの取得/設定
-	const material_ptr& get_resource() const { return resource; }
-	void set_resource(material_ptr resource);
+	const material_resource_ptr& get_resource() const { return resource; }
+	void set_resource(material_resource_ptr resource);
 	bool is_valid() const { return resource != nullptr; }
 
 	std::string_view get_name() const { return resource ? resource->get_name() : std::string_view(); }
@@ -33,7 +33,7 @@ public:
 	translucency_paths get_translucency_path() const { return resource ? resource->get_translucency_path() : translucency_paths::unknown; }
 	bool is_flag(flags flag) const { return resource ? resource->is_flag(flag) : false; }
 	float get_alpha_clip_threshold() const { return resource ? resource->get_alpha_clip_threshold() : 0.0f; }
-	const material::physical_datas& get_physical_data() const;
+	const material_resource::physical_datas& get_physical_data() const;
 
 	graphics_pipeline_state_ptr get_pipeline_state(surface_paths value) const { return resource ? resource->get_pipeline_state(value) : nullptr; }
 	graphics_pipeline_state_ptr get_pipeline_state(particle_paths value) const { return resource ? resource->get_pipeline_state(value) : nullptr; }
@@ -44,7 +44,7 @@ public:
 
 public:
 	material_instance();
-	explicit material_instance(material_ptr parent);
+	explicit material_instance(material_resource_ptr parent);
 	material_instance(const material_instance& other);
 	material_instance(material_instance&& other);
 	~material_instance();
@@ -60,8 +60,8 @@ public:
 	void reset_texture(std::string_view key_name);
 	void clear_overrides();
 
-	const material::constant_buffer* find_constant_buffer(const std::string& name) const;
-	const material::shader_resource* find_shader_resource(const std::string& name) const;
+	const material_resource::constant_buffer* find_constant_buffer(const std::string& name) const;
+	const material_resource::shader_resource* find_shader_resource(const std::string& name) const;
 
 public:
 	//	パラメーター設定/取得
@@ -115,21 +115,21 @@ private:
 	void rebuild();
 
 	const std::string* find_resource_constant_buffer_name(const std::string& identifier) const;
-	material::constant_buffer* prepare_constant_buffer(const std::string& constant_buffer_name);
-	material::shader_resource* prepare_shader_resource(const std::string& resource_name);
+	material_resource::constant_buffer* prepare_constant_buffer(const std::string& constant_buffer_name);
+	material_resource::shader_resource* prepare_shader_resource(const std::string& resource_name);
 
 	bool write_data(const std::string& key_name, const void* data, std::size_t data_size);
-	bool write_texture(const std::string& key_name, const material::shader_resource::resource& value);
+	bool write_texture(const std::string& key_name, const material_resource::shader_resource::resource& value);
 
 private:
-	material_ptr resource;
+	material_resource_ptr resource;
 	std::uint32_t resource_version = 0;
 	bool built = false;
 
 	//	上書きした値
 	std::map<std::string, std::vector<unsigned char>> data_overrides;
-	std::map<std::string, material::shader_resource::resource> texture_overrides;
-	material::constant_buffer_map constant_buffers;
-	material::shader_resource_map shader_resources;
-	material::constant_buffer_map previous_constant_buffers;
+	std::map<std::string, material_resource::shader_resource::resource> texture_overrides;
+	material_resource::constant_buffer_map constant_buffers;
+	material_resource::shader_resource_map shader_resources;
+	material_resource::constant_buffer_map previous_constant_buffers;
 };

@@ -605,18 +605,18 @@ void framework::build_particle_render_lists(const render_data_context& render_da
 		//	”Ô†“o˜^
 		switch (material->get_blend_mode())
 		{
-			case material::blend_modes::opaque:
+			case material_resource::blend_modes::opaque:
 			{
 				particle_indices.opaque.push_back(particle_index);
 				break;
 			}
-			case material::blend_modes::mask:
+			case material_resource::blend_modes::mask:
 			{
 				particle_indices.mask.push_back(particle_index);
 				break;
 			}
-			case material::blend_modes::translucent:
-			case material::blend_modes::addative:
+			case material_resource::blend_modes::translucent:
+			case material_resource::blend_modes::addative:
 			{
 				int index = static_cast<int>(material->get_translucency_path());
 				particle_indices.forward[index].push_back(particle_index);
@@ -952,16 +952,16 @@ void framework::build_render_lists(
 		//	”Ô†“o˜^
 		switch (material->get_blend_mode())
 		{
-			case material::blend_modes::opaque:
-				sort_pipeline_keys[mesh_index] = reinterpret_cast<std::uintptr_t>(material->get_pipeline_state(material::surface_paths::g_buffer_pass).get());
+			case material_resource::blend_modes::opaque:
+				sort_pipeline_keys[mesh_index] = reinterpret_cast<std::uintptr_t>(material->get_pipeline_state(material_resource::surface_paths::g_buffer_pass).get());
 				bucket.opaque.push_back(mesh_index);
 				break;
-			case material::blend_modes::mask:
-				sort_pipeline_keys[mesh_index] = reinterpret_cast<std::uintptr_t>(material->get_pipeline_state(material::surface_paths::g_buffer_pass).get());
+			case material_resource::blend_modes::mask:
+				sort_pipeline_keys[mesh_index] = reinterpret_cast<std::uintptr_t>(material->get_pipeline_state(material_resource::surface_paths::g_buffer_pass).get());
 				bucket.mask.push_back(mesh_index);
 				break;
-			case material::blend_modes::translucent:
-			case material::blend_modes::addative:
+			case material_resource::blend_modes::translucent:
+			case material_resource::blend_modes::addative:
 			{
 				int path = static_cast<int>(material->get_translucency_path());
 				bucket.forward[path].push_back(mesh_index);

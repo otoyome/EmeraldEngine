@@ -45,6 +45,6 @@ private:
 	material_instance material;
 
 private:
-	static material_ptr acquire_default_material();
-	inline static std::weak_ptr<::material> default_material;
+	static material_resource_ptr acquire_default_material();
+	inline static std::weak_ptr<::material_resource> default_material;
 };

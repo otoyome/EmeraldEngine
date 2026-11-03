@@ -123,7 +123,7 @@ private:
 	D3D11_VIEWPORT shadow_map_pass_viewport;
 
 	shadow_atlas atlas;
-	std::shared_ptr<material> deferred_lighting_material;
+	std::shared_ptr<material_resource> deferred_lighting_material;
 	material_instance deferred_lighting_material_instance;
 };
 

@@ -293,7 +293,7 @@ void scene_renderer_commons::draw_geometric_primitive(const graphics_context& co
 void scene_renderer_commons::model_render(graphics_context& context,
 					const std::vector<std::size_t>& mesh_indices,
 					const std::vector<float>& mesh_lengths,
-					material::surface_paths surface_path,
+					material_resource::surface_paths surface_path,
 					const collision::frustum_culling* meshlet_frustum_culling)
 {
 	auto draw_data_ptr = context.render_data->mesh_container.draw_datas.data();
@@ -331,7 +331,7 @@ void scene_renderer_commons::model_render(graphics_context& context,
 void scene_renderer_commons::model_render_indirect(graphics_context& context,
 					const std::vector<std::size_t>& mesh_indices,
 					const std::vector<float>& mesh_lengths,
-					material::surface_paths surface_path,
+					material_resource::surface_paths surface_path,
 					meshlet_culling_system& meshlet_culling)
 {
 	auto draw_data_ptr = context.render_data->mesh_container.draw_datas.data();
@@ -396,7 +396,7 @@ void scene_renderer_commons::model_render_indirect(graphics_context& context,
 void scene_renderer_commons::model_render(graphics_context& context,
 					const std::vector<std::size_t>& mesh_indices,
 					const collision::frustum_culling& frustum_culling,
-					material::surface_paths surface_path)
+					material_resource::surface_paths surface_path)
 {
 	auto draw_data_ptr = context.render_data->mesh_container.draw_datas.data();
 	auto material_data_ptr = context.render_data->mesh_container.material_datas.data();
@@ -443,7 +443,7 @@ void scene_renderer_commons::model_render(graphics_context& context,
 void scene_renderer_commons::model_render_shadow_batched(graphics_context& context,
 					const std::vector<std::size_t>& mesh_indices,
 					const collision::frustum_culling& frustum_culling,
-					material::surface_paths surface_path)
+					material_resource::surface_paths surface_path)
 {
 	auto draw_data_ptr = context.render_data->mesh_container.draw_datas.data();
 	auto material_data_ptr = context.render_data->mesh_container.material_datas.data();
@@ -553,7 +553,7 @@ void scene_renderer_commons::model_render_shadow_batched(graphics_context& conte
 					const std::vector<std::size_t>& mesh_indices,
 					const math::float3& sphere_center,
 					float sphere_radius,
-					material::surface_paths surface_path)
+					material_resource::surface_paths surface_path)
 {
 	auto draw_data_ptr = context.render_data->mesh_container.draw_datas.data();
 	auto material_data_ptr = context.render_data->mesh_container.material_datas.data();
@@ -685,7 +685,7 @@ void scene_renderer_commons::model_render_shadow_batched(graphics_context& conte
 
 void scene_renderer_commons::particle_render(graphics_context& context,
 					const std::vector<std::size_t>& draw_indices,
-					material::particle_paths particle_path)
+					material_resource::particle_paths particle_path)
 {
 	//	スプライト/トレイルパーティクル
 	auto draw_data_ptr = context.render_data->effect_container.sprite_trail_draw_datas.data();

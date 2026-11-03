@@ -35,7 +35,7 @@ material_instance::material_instance()
 {
 }
 
-material_instance::material_instance(material_ptr resource)
+material_instance::material_instance(material_resource_ptr resource)
 : resource(std::move(resource))
 {
 	rebuild();
@@ -95,7 +95,7 @@ material_instance& material_instance::operator =(material_instance&& other)
 	return *this;
 }
 
-void material_instance::set_resource(material_ptr resource)
+void material_instance::set_resource(material_resource_ptr resource)
 {
 	if (this->resource == resource)
 		return;
@@ -132,14 +132,14 @@ void material_instance::upload_constant_buffers(gpu_upload_list& upload_list)
 	}
 }
 
-const material::physical_datas& material_instance::get_physical_data() const
+const material_resource::physical_datas& material_instance::get_physical_data() const
 {
-	static const material::physical_datas default_physical_data{};
+	static const material_resource::physical_datas default_physical_data{};
 
 	return resource ? resource->get_physical_data() : default_physical_data;
 }
 
-const material::constant_buffer* material_instance::find_constant_buffer(const std::string& name) const
+const material_resource::constant_buffer* material_instance::find_constant_buffer(const std::string& name) const
 {
 	if (!constant_buffers.empty())
 	{
@@ -155,7 +155,7 @@ const material::constant_buffer* material_instance::find_constant_buffer(const s
 	return it != resource->constant_buffers.end() ? &it->second : nullptr;
 }
 
-const material::shader_resource* material_instance::find_shader_resource(const std::string& name) const
+const material_resource::shader_resource* material_instance::find_shader_resource(const std::string& name) const
 {
 	if (!shader_resources.empty())
 	{
@@ -226,7 +226,7 @@ bool material_instance::set_texture(std::string_view key_name, texture_ptr value
 	if (!built || resource_version != resource->get_version())
 		rebuild();
 
-	material::shader_resource::resource resource;
+	material_resource::shader_resource::resource resource;
 	resource.is_file_path_or_key = value->is_file_path_or_key();
 	resource.path = std::string(value->get_file_path_or_key());
 	resource.value = value;
@@ -343,7 +343,7 @@ const std::string* material_instance::find_resource_constant_buffer_name(const s
 	return nullptr;
 }
 
-material::constant_buffer* material_instance::prepare_constant_buffer(const std::string& constant_buffer_name)
+material_resource::constant_buffer* material_instance::prepare_constant_buffer(const std::string& constant_buffer_name)
 {
 	auto it = constant_buffers.find(constant_buffer_name);
 	if (it != constant_buffers.end())
@@ -354,7 +354,7 @@ material::constant_buffer* material_instance::prepare_constant_buffer(const std:
 		return nullptr;
 
 	//	上書きの無い値は親の値を使うので、親の内容を丸ごと写してから上書きを書き込む
-	material::constant_buffer constant_buffer;
+	material_resource::constant_buffer constant_buffer;
 	constant_buffer.data_buffer = it_resource->second.data_buffer;
 	constant_buffer.subsets = it_resource->second.subsets;
 	constant_buffer.identifieres = it_resource->second.identifieres;
@@ -369,13 +369,13 @@ material::constant_buffer* material_instance::prepare_constant_buffer(const std:
 	}
 	else
 	{
-		material::create_constant_buffer_resource(constant_buffer);
+		material_resource::create_constant_buffer_resource(constant_buffer);
 	}
 
 	return &constant_buffers.emplace(constant_buffer_name, std::move(constant_buffer)).first->second;
 }
 
-material::shader_resource* material_instance::prepare_shader_resource(const std::string& resource_name)
+material_resource::shader_resource* material_instance::prepare_shader_resource(const std::string& resource_name)
 {
 	auto it = shader_resources.find(resource_name);
 	if (it != shader_resources.end())
@@ -398,7 +398,7 @@ bool material_instance::write_data(const std::string& key_name, const void* data
 	if (!constant_buffer_name)
 		return false;
 
-	material::constant_buffer* constant_buffer = prepare_constant_buffer(*constant_buffer_name);
+	material_resource::constant_buffer* constant_buffer = prepare_constant_buffer(*constant_buffer_name);
 	if (!constant_buffer)
 		return false;
 
@@ -413,13 +413,13 @@ bool material_instance::write_data(const std::string& key_name, const void* data
 	return true;
 }
 
-bool material_instance::write_texture(const std::string& key_name, const material::shader_resource::resource& value)
+bool material_instance::write_texture(const std::string& key_name, const material_resource::shader_resource::resource& value)
 {
 	std::string name;
 	UINT array_element = 0;
 	split_key(key_name, name, array_element);
 
-	material::shader_resource* shader_resource = prepare_shader_resource(name);
+	material_resource::shader_resource* shader_resource = prepare_shader_resource(name);
 	if (!shader_resource || shader_resource->resources.size() <= array_element)
 		return false;
 

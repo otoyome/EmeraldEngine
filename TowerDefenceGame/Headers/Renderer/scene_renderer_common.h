@@ -33,32 +33,32 @@ namespace scene_renderer_commons
 	void model_render(graphics_context& context,
 					  const std::vector<std::size_t>& mesh_indices,
 					  const std::vector<float>& mesh_lengths,
-					  material::surface_paths surface_path,
+					  material_resource::surface_paths surface_path,
 					  const collision::frustum_culling* meshlet_frustum_culling = nullptr);
 
 	void model_render(graphics_context& context,
 					  const std::vector<std::size_t>& mesh_indices,
 					  const collision::frustum_culling& frustum_culling,
-					  material::surface_paths surface_path);
+					  material_resource::surface_paths surface_path);
 
 	void model_render_shadow_batched(graphics_context& context,
 					  const std::vector<std::size_t>& mesh_indices,
 					  const collision::frustum_culling& frustum_culling,
-					  material::surface_paths surface_path);
+					  material_resource::surface_paths surface_path);
 
 	void model_render_shadow_batched(graphics_context& context,
 					  const std::vector<std::size_t>& mesh_indices,
 					  const math::float3& sphere_center,
 					  float sphere_radius,
-					  material::surface_paths surface_path);
+					  material_resource::surface_paths surface_path);
 
 	void model_render_indirect(graphics_context& context,
 					  const std::vector<std::size_t>& mesh_indices,
 					  const std::vector<float>& mesh_lengths,
-					  material::surface_paths surface_path,
+					  material_resource::surface_paths surface_path,
 					  meshlet_culling_system& meshlet_culling);
 
 	void particle_render(graphics_context& context,
 						 const std::vector<std::size_t>& mesh_indices,
-						 material::particle_paths particle_path);
+						 material_resource::particle_paths particle_path);
 }	//	namespace scene_renderer_commons

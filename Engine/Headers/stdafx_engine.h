@@ -32,7 +32,7 @@
 #include "shader.h"
 #include "graphics_utility.h"
 
-#include "material.h"
+#include "material_resource.h"
 
 #include "input/mouse.h"
 #include "input/keyboard.h"

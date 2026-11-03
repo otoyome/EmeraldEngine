@@ -59,8 +59,8 @@ public:
 	float get_mass() const;
 	void set_mass(float mass);
 
-	const material::physical_datas& get_physical_data() const;
-	void set_physical_data(const material::physical_datas& data);
+	const material_resource::physical_datas& get_physical_data() const;
+	void set_physical_data(const material_resource::physical_datas& data);
 
 	std::shared_ptr<collision::bounding_object> get_bounding_object();
 	void set_bounding_object(std::shared_ptr<collision::bounding_object> object);
@@ -124,7 +124,7 @@ private:
 	int flag_data;
 	user_datas user_data;
 	float mass; // 本体の質量
-	material::physical_datas physical_data; // 物理マテリアル
+	material_resource::physical_datas physical_data; // 物理マテリアル
 	math::float3 local_scale; // ローカルスケール情報
 	math::rigid_transformd local_transform;	//	ローカル姿勢
 

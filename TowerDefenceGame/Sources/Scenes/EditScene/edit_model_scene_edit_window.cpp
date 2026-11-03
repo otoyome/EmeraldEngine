@@ -467,12 +467,12 @@ bool edit_model_scene::initialize_vertex_color_edit()
 	//	頂点表示マテリアル
 	if (pipeline_state_manager* instance = pipeline_state_manager::instance())
 	{
-		auto mat = std::make_shared<material>();
-		mat->set_domain(material::domains::surface);
-		mat->set_blend_mode(material::blend_modes::translucent);
+		auto mat = std::make_shared<material_resource>();
+		mat->set_domain(material_resource::domains::surface);
+		mat->set_blend_mode(material_resource::blend_modes::translucent);
 		mat->set_alpha_clip_threshold(-1.0f);
-		mat->set_shading_model(material::shading_models::unlit);
-		mat->set_flag(material::flags::wire, true);
+		mat->set_shading_model(material_resource::shading_models::unlit);
+		mat->set_flag(material_resource::flags::wire, true);
 
 		mat->set_shader_path("Shaders/Materials/edit_model_color.hlsl");
 		mat->set_float("line_factor", 0.001f);

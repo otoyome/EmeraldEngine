@@ -5,7 +5,7 @@
 
 #include <d3d11shader.h>
 
-class material;
+class material_resource;
 class material_instance;
 
 //	基底パイプラインステート

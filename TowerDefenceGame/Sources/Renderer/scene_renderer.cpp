@@ -161,10 +161,10 @@ void depth_prepass_renderer::render(renderer_context& renderer_context)
 		context.device_context->RSSetViewports(1, &viewport);
 
 		//	モデル類描画
-		scene_renderer_commons::model_render_indirect(context, renderer_context.render_mesh_indices->opaque, renderer_context.render_mesh_indices->lengths, material::surface_paths::depth_write_pass, *renderer_context.current_view_state->get_meshlet_culling());
-		scene_renderer_commons::model_render_indirect(context, renderer_context.render_mesh_indices->mask, renderer_context.render_mesh_indices->lengths, material::surface_paths::depth_write_pass, *renderer_context.current_view_state->get_meshlet_culling());
-		scene_renderer_commons::particle_render(context, renderer_context.render_particle_indices->opaque, material::particle_paths::depth_write_pass);
-		scene_renderer_commons::particle_render(context, renderer_context.render_particle_indices->mask, material::particle_paths::depth_write_pass);
+		scene_renderer_commons::model_render_indirect(context, renderer_context.render_mesh_indices->opaque, renderer_context.render_mesh_indices->lengths, material_resource::surface_paths::depth_write_pass, *renderer_context.current_view_state->get_meshlet_culling());
+		scene_renderer_commons::model_render_indirect(context, renderer_context.render_mesh_indices->mask, renderer_context.render_mesh_indices->lengths, material_resource::surface_paths::depth_write_pass, *renderer_context.current_view_state->get_meshlet_culling());
+		scene_renderer_commons::particle_render(context, renderer_context.render_particle_indices->opaque, material_resource::particle_paths::depth_write_pass);
+		scene_renderer_commons::particle_render(context, renderer_context.render_particle_indices->mask, material_resource::particle_paths::depth_write_pass);
 
 		rendering_pass.deactivate(context.device_context);
 	}, "depth_pre_pass", renderer_context, get_render_basis_sort_order());
@@ -224,10 +224,10 @@ void gbuffer_renderer::render(renderer_context& renderer_context)
 		context.device_context->RSSetViewports(1, &viewport);
 
 		//	モデル類描画
-		scene_renderer_commons::model_render_indirect(context, renderer_context.render_mesh_indices->opaque, renderer_context.render_mesh_indices->lengths, material::surface_paths::g_buffer_pass, *renderer_context.current_view_state->get_meshlet_culling());
-		scene_renderer_commons::model_render_indirect(context, renderer_context.render_mesh_indices->mask, renderer_context.render_mesh_indices->lengths, material::surface_paths::g_buffer_pass, *renderer_context.current_view_state->get_meshlet_culling());
-		scene_renderer_commons::particle_render(context, renderer_context.render_particle_indices->opaque, material::particle_paths::g_buffer_pass);
-		scene_renderer_commons::particle_render(context, renderer_context.render_particle_indices->mask, material::particle_paths::g_buffer_pass);
+		scene_renderer_commons::model_render_indirect(context, renderer_context.render_mesh_indices->opaque, renderer_context.render_mesh_indices->lengths, material_resource::surface_paths::g_buffer_pass, *renderer_context.current_view_state->get_meshlet_culling());
+		scene_renderer_commons::model_render_indirect(context, renderer_context.render_mesh_indices->mask, renderer_context.render_mesh_indices->lengths, material_resource::surface_paths::g_buffer_pass, *renderer_context.current_view_state->get_meshlet_culling());
+		scene_renderer_commons::particle_render(context, renderer_context.render_particle_indices->opaque, material_resource::particle_paths::g_buffer_pass);
+		scene_renderer_commons::particle_render(context, renderer_context.render_particle_indices->mask, material_resource::particle_paths::g_buffer_pass);
 
 		//	スカイライト処理
 		for (const auto& light_probe : context.render_data->light_container.light_probes)
@@ -428,11 +428,11 @@ void gbuffer_decal_renderer::render(renderer_context& renderer_context)
 				}
 
 				//	デカール書き込み
-				auto pass = sphere.intersection(&decal.box) ? material::decal_paths::fullscreen : material::decal_paths::primitive;
+				auto pass = sphere.intersection(&decal.box) ? material_resource::decal_paths::fullscreen : material_resource::decal_paths::primitive;
 				if (auto pipeline_state = decal.material.material->get_pipeline_state(pass))
 				{
 					pipeline_state->begin(context);
-					if (pass == material::decal_paths::fullscreen)
+					if (pass == material_resource::decal_paths::fullscreen)
 					{
 						context.is_force_material_both_draw = true;
 						pipeline_state->update_parameters(context, *decal.material.material, &buffer_data);
@@ -542,10 +542,10 @@ deffered_lighting_renderer::deffered_lighting_renderer(render_job_registrar job_
 			"deferred_spot_lighting",
 		};
 		//	
-		deferred_lighting_material = std::make_shared<material>();
-		deferred_lighting_material->set_domain(material::domains::system);
-		deferred_lighting_material->set_flag(material::flags::two_sided, true);
-		deferred_lighting_material->set_blend_mode(material::blend_modes::addative);	//	加算合成
+		deferred_lighting_material = std::make_shared<material_resource>();
+		deferred_lighting_material->set_domain(material_resource::domains::system);
+		deferred_lighting_material->set_flag(material_resource::flags::two_sided, true);
+		deferred_lighting_material->set_blend_mode(material_resource::blend_modes::addative);	//	加算合成
 
 		static constexpr std::string_view vs_path_list[] =
 		{
@@ -561,12 +561,12 @@ deffered_lighting_renderer::deffered_lighting_renderer(render_job_registrar job_
 			"Shaders/DeferredRendering/deferred_rendering_point_ps.hlsl",
 			"Shaders/DeferredRendering/deferred_rendering_spot_ps.hlsl",
 		};
-		static constexpr material::system_paths system_paths_list[] =
+		static constexpr material_resource::system_paths system_paths_list[] =
 		{
-			material::system_paths::deferred_indirect,
-			material::system_paths::deferred_directional,
-			material::system_paths::deferred_point,
-			material::system_paths::deferred_spot,
+			material_resource::system_paths::deferred_indirect,
+			material_resource::system_paths::deferred_directional,
+			material_resource::system_paths::deferred_point,
+			material_resource::system_paths::deferred_spot,
 		};
 			
 		//	deferred_indirect_lighting
@@ -810,7 +810,7 @@ void deffered_lighting_renderer::render_indirect(renderer_context& context)
 				deferred_lighting_material_instance.set_texture("lut_ggx", light_probe.lut_ggx_texture);
 
 				auto pipeline_state =
-					deferred_lighting_material_instance.get_pipeline_state(material::system_paths::deferred_indirect);
+					deferred_lighting_material_instance.get_pipeline_state(material_resource::system_paths::deferred_indirect);
 
 				pipeline_state->begin(context);
 				pipeline_state->update_parameters(context, deferred_lighting_material_instance, nullptr);
@@ -849,7 +849,7 @@ void deffered_lighting_renderer::render_directional(const light_render_data& lig
 		context.device_context->RSSetViewports(1, &lighting_pass_viewport);
 		{
 			auto pipeline_state =
-				deferred_lighting_material_instance.get_pipeline_state(material::system_paths::deferred_directional);
+				deferred_lighting_material_instance.get_pipeline_state(material_resource::system_paths::deferred_directional);
 
 			pipeline_state->begin(context);
 			pipeline_state->update_parameters(context, deferred_lighting_material_instance, nullptr);
@@ -1086,7 +1086,7 @@ void deffered_lighting_renderer::render_directional_shadow_map(const light_rende
 
 		//	モデル類描画
 		context.is_shadow_rendering = true;
-		scene_renderer_commons::model_render_shadow_batched(context, context.render_data->mesh_container.shadow_datas, frustum_culling, material::surface_paths::shadow_write_pass);
+		scene_renderer_commons::model_render_shadow_batched(context, context.render_data->mesh_container.shadow_datas, frustum_culling, material_resource::surface_paths::shadow_write_pass);
 		context.is_shadow_rendering = false;
 
 		shadow_map_pass.deactivate(context.device_context);
@@ -1116,7 +1116,7 @@ void deffered_lighting_renderer::render_point(const light_render_data& light, co
 		context.device_context->RSSetViewports(1, &lighting_pass_viewport);
 		{
 			auto pipeline_state =
-				deferred_lighting_material_instance.get_pipeline_state(material::system_paths::deferred_point);
+				deferred_lighting_material_instance.get_pipeline_state(material_resource::system_paths::deferred_point);
 
 			pipeline_state->begin(context);
 			pipeline_state->update_parameters(context, deferred_lighting_material_instance, nullptr);
@@ -1223,7 +1223,7 @@ void deffered_lighting_renderer::render_point_shadow_map(const light_render_data
 		context.device_context->RSSetViewports(1, atlas_depth_stencil_view ? &atlas_viewport : &shadow_map_pass_viewport);
 
 		context.is_shadow_rendering = true;
-		scene_renderer_commons::model_render_shadow_batched(context, context.render_data->mesh_container.shadow_datas, position, range, material::surface_paths::shadow_write_pass);
+		scene_renderer_commons::model_render_shadow_batched(context, context.render_data->mesh_container.shadow_datas, position, range, material_resource::surface_paths::shadow_write_pass);
 		context.is_shadow_rendering = false;
 
 		end_shadow_target(context, atlas_depth_stencil_view);
@@ -1255,7 +1255,7 @@ void deffered_lighting_renderer::render_spot(const light_render_data& light, com
 		context.device_context->RSSetViewports(1, &lighting_pass_viewport);
 		{
 			auto pipeline_state =
-				deferred_lighting_material_instance.get_pipeline_state(material::system_paths::deferred_spot);
+				deferred_lighting_material_instance.get_pipeline_state(material_resource::system_paths::deferred_spot);
 
 			pipeline_state->begin(context);
 			pipeline_state->update_parameters(context, deferred_lighting_material_instance, nullptr);
@@ -1337,7 +1337,7 @@ void deffered_lighting_renderer::render_spot_shadow_map(const light_render_data&
 		context.device_context->RSSetViewports(1, atlas_depth_stencil_view ? &atlas_viewport : &shadow_map_pass_viewport);
 
 		context.is_shadow_rendering = true;
-		scene_renderer_commons::model_render_shadow_batched(context, context.render_data->mesh_container.shadow_datas, frustum_culling, material::surface_paths::shadow_write_pass);
+		scene_renderer_commons::model_render_shadow_batched(context, context.render_data->mesh_container.shadow_datas, frustum_culling, material_resource::surface_paths::shadow_write_pass);
 		context.is_shadow_rendering = false;
 
 		end_shadow_target(context, atlas_depth_stencil_view);

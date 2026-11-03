@@ -90,7 +90,7 @@ struct light_container
 };
 
 //	Ş¿
-class material;
+class material_resource;
 class material_instance;
 struct material_datas
 {

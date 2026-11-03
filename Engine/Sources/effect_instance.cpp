@@ -749,7 +749,7 @@ void effect_manager::get_container(effect_container& effects, decal_container& d
 
 				//	‰e•`‰æ“o˜^
 				if (instance->is_flag(effect_instance::flags::shadow_caster) &&
-					data.material_data.material->is_flag(material::flags::shadow_caster))
+					data.material_data.material->is_flag(material_resource::flags::shadow_caster))
 				{
 					effects.sprite_trail_shadow_datas.emplace_back(data_index);
 				}

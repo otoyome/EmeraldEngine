@@ -49,7 +49,7 @@ protected:
 
 private:
 	std::shared_ptr<roomba_object> player_object;
-	std::shared_ptr<material> postprocess_material;
+	std::shared_ptr<material_resource> postprocess_material;
 
 	effect_resource_ptr global_bubble_effect_resource;
 	effect_resource_ptr bubble_effect_resource;

@@ -417,7 +417,7 @@ bool model_resource::deserialize(std::string_view file_path)
 			materials.reserve(static_cast<size_t>(material_count));
 			for (cereal::size_type index = 0; index < material_count; ++index)
 			{
-				auto& material = materials.emplace_back(std::make_shared<::material>());
+				auto& material = materials.emplace_back(std::make_shared<::material_resource>());
 				archive(*material);
 			}
 
@@ -444,7 +444,7 @@ bool model_resource::deserialize(std::string_view file_path)
 	return false;
 }
 
-void model_resource::paste_materials(const std::vector<material_ptr>& materials)
+void model_resource::paste_materials(const std::vector<material_resource_ptr>& materials)
 {
 	for (size_t index = 0; index < materials.size(); ++index)
 	{

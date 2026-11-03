@@ -130,21 +130,21 @@ bool edit_model_scene::initialize_core()
 				"トーンマッピング後ポストプロセスマテリアル",
 			}
 		};
-		material::blendable_locations path_list[] =
+		material_resource::blendable_locations path_list[] =
 		{
-			material::blendable_locations::before_dof,
-			material::blendable_locations::after_dof,
-			material::blendable_locations::after_dof_translucency,
-			material::blendable_locations::before_bloom,
-			material::blendable_locations::after_tone_mapping,
+			material_resource::blendable_locations::before_dof,
+			material_resource::blendable_locations::after_dof,
+			material_resource::blendable_locations::after_dof_translucency,
+			material_resource::blendable_locations::before_bloom,
+			material_resource::blendable_locations::after_tone_mapping,
 		};
 		for (UINT index = 0; index < ARRAYSIZE(path_list); ++index)
 		{
-			std::shared_ptr<material> post_process_material = std::make_shared<material>();
+			std::shared_ptr<material_resource> post_process_material = std::make_shared<material_resource>();
 			post_process_material->set_name(texts_list[index][1]);
-			post_process_material->set_domain(material::domains::post_process);
-			post_process_material->set_flag(material::flags::two_sided, true);
-			post_process_material->set_blend_mode(material::blend_modes::opaque);
+			post_process_material->set_domain(material_resource::domains::post_process);
+			post_process_material->set_flag(material_resource::flags::two_sided, true);
+			post_process_material->set_blend_mode(material_resource::blend_modes::opaque);
 			post_process_material->set_blendable_location(path_list[index]);
 			post_process_material->set_shader_path(texts_list[index][0]);
 
@@ -342,7 +342,7 @@ void edit_model_scene::generate_bounding_mesh_asset()
 	{
 		const size_t material_index = meshes[mesh.mesh_index].material_index;
 		const bool has_material = material_index < materials.size();
-		const float friction = has_material ? materials[material_index]->get_physical_data().friction : material::physical_datas{}.friction;
+		const float friction = has_material ? materials[material_index]->get_physical_data().friction : material_resource::physical_datas{}.friction;
 
 		group_key key
 		{

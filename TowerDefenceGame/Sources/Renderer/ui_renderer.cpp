@@ -197,8 +197,8 @@ void ui_renderer::sprite_render(graphics_context& context, const std::vector<buf
 		auto& sprite = sprite_data.sprite;
 
 		//	ドメイン&ブレンドモードチェック
-		if (sprite->get_material().get_domain() != material::domains::user_interface ||
-			sprite->get_material().get_blend_mode() != material::blend_modes::translucent)
+		if (sprite->get_material().get_domain() != material_resource::domains::user_interface ||
+			sprite->get_material().get_blend_mode() != material_resource::blend_modes::translucent)
 			continue;
 
 		auto pipeline_state = sprite->get_material().get_pipeline_state();

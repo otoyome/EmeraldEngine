@@ -3,7 +3,7 @@
 #include <unordered_map>
 
 #include "texture.h"
-#include "material.h"
+#include "material_resource.h"
 
 #include "model_resource.h"
 #include "animation_resource.h"
@@ -49,7 +49,7 @@ public:
 	struct decal
 	{
 		size_t node_index = -1;
-		std::shared_ptr<material> material;
+		std::shared_ptr<material_resource> material;
 
 		bool is_valid() const;
 

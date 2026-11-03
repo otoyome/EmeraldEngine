@@ -33,15 +33,15 @@ sprite::~sprite()
 {
 }
 
-material_ptr sprite::acquire_default_material()
+material_resource_ptr sprite::acquire_default_material()
 {
 	if (auto value = default_material.lock())
 		return value;
 
-	auto value = std::make_shared<::material>();
-	value->set_domain(::material::domains::user_interface);
-	value->set_blend_mode(::material::blend_modes::translucent);
-	value->set_shader_path(::material::default_user_interface_shader_path);
+	auto value = std::make_shared<::material_resource>();
+	value->set_domain(::material_resource::domains::user_interface);
+	value->set_blend_mode(::material_resource::blend_modes::translucent);
+	value->set_shader_path(::material_resource::default_user_interface_shader_path);
 
 	value->set_texture(base_texture_name, texture_manager::instance()->search(texture_manager::white_texture2d_name));
 

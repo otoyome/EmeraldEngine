@@ -1,4 +1,4 @@
-#include "material.h"
+#include "material_resource.h"
 #include "material_shader_map.h"
 #include "texture.h"
 #include "render_data.h"
@@ -33,42 +33,42 @@ namespace
 	}
 
 	//	マテリアルが使えない時に表示するマテリアルシェーダー
-	std::string_view get_failed_shader_path(material::domains domain)
+	std::string_view get_failed_shader_path(material_resource::domains domain)
 	{
 		switch (domain)
 		{
-			case material::domains::surface: return "Shaders/Materials/3d_failed.hlsl";
-			case material::domains::particle: return material::default_particle_shader_path;
-			case material::domains::deferred_decal: return "Shaders/Materials/DeferredDecal/decal_failed.hlsl";
-			case material::domains::post_process: return "Shaders/Materials/PostProcess/post_process_failed.hlsl";
-			case material::domains::user_interface: return material::default_user_interface_shader_path;
+			case material_resource::domains::surface: return "Shaders/Materials/3d_failed.hlsl";
+			case material_resource::domains::particle: return material_resource::default_particle_shader_path;
+			case material_resource::domains::deferred_decal: return "Shaders/Materials/DeferredDecal/decal_failed.hlsl";
+			case material_resource::domains::post_process: return "Shaders/Materials/PostProcess/post_process_failed.hlsl";
+			case material_resource::domains::user_interface: return material_resource::default_user_interface_shader_path;
 			default: return "";
 		}
 	}
 
 	//	サーフェイスパスへ変換
-	UINT to_surface_pass(material::surface_paths path)
+	UINT to_surface_pass(material_resource::surface_paths path)
 	{
 		switch (path)
 		{
-			case material::surface_paths::depth_write_pass: return static_cast<UINT>(material_shader_map::surface_passes::depth_write);
-			case material::surface_paths::shadow_write_pass: return static_cast<UINT>(material_shader_map::surface_passes::shadow_write);
-			case material::surface_paths::forward_pass: return static_cast<UINT>(material_shader_map::surface_passes::forward);
+			case material_resource::surface_paths::depth_write_pass: return static_cast<UINT>(material_shader_map::surface_passes::depth_write);
+			case material_resource::surface_paths::shadow_write_pass: return static_cast<UINT>(material_shader_map::surface_passes::shadow_write);
+			case material_resource::surface_paths::forward_pass: return static_cast<UINT>(material_shader_map::surface_passes::forward);
 			default: return static_cast<UINT>(material_shader_map::surface_passes::g_buffer);
 		}
 	}
 
 	//	マテリアルでのパスの番号を material_shader_map のパスの番号に変換
-	UINT to_shader_map_pass(material::domains domain, UINT index)
+	UINT to_shader_map_pass(material_resource::domains domain, UINT index)
 	{
 		switch (domain)
 		{
-			case material::domains::surface:
-				return to_surface_pass(static_cast<material::surface_paths>(index));
-			case material::domains::particle:
+			case material_resource::domains::surface:
+				return to_surface_pass(static_cast<material_resource::surface_paths>(index));
+			case material_resource::domains::particle:
 				return index;
-			case material::domains::deferred_decal:
-				return index == static_cast<UINT>(material::decal_paths::fullscreen) ? static_cast<UINT>(material_shader_map::decal_passes::fullscreen) : static_cast<UINT>(material_shader_map::decal_passes::primitive);
+			case material_resource::domains::deferred_decal:
+				return index == static_cast<UINT>(material_resource::decal_paths::fullscreen) ? static_cast<UINT>(material_shader_map::decal_passes::fullscreen) : static_cast<UINT>(material_shader_map::decal_passes::primitive);
 			default:
 				return 0;
 		}
@@ -76,22 +76,22 @@ namespace
 }
 
 // CEREALバージョン定義
-CEREAL_CLASS_VERSION(material::pipeline_state, 1)
-CEREAL_CLASS_VERSION(material::constant_buffer::subset, 1)
-CEREAL_CLASS_VERSION(material::constant_buffer, 1)
-CEREAL_CLASS_VERSION(material::shader_resource, 1)
-CEREAL_CLASS_VERSION(material::shader_resource::resource, 1)
-CEREAL_CLASS_VERSION(material::physical_datas, 1)
-CEREAL_CLASS_VERSION(material, 3)
+CEREAL_CLASS_VERSION(material_resource::pipeline_state, 1)
+CEREAL_CLASS_VERSION(material_resource::constant_buffer::subset, 1)
+CEREAL_CLASS_VERSION(material_resource::constant_buffer, 1)
+CEREAL_CLASS_VERSION(material_resource::shader_resource, 1)
+CEREAL_CLASS_VERSION(material_resource::shader_resource::resource, 1)
+CEREAL_CLASS_VERSION(material_resource::physical_datas, 1)
+CEREAL_CLASS_VERSION(material_resource, 3)
 
 template<class Archive>
-void material::pipeline_state::serialize(Archive& archive, int version)
+void material_resource::pipeline_state::serialize(Archive& archive, int version)
 {
 	archive(CEREAL_NVP(name));
 }
 
 template<class Archive>
-void material::constant_buffer::subset::serialize(Archive& archive, int version)
+void material_resource::constant_buffer::subset::serialize(Archive& archive, int version)
 {
 	archive(CEREAL_NVP(start_offset),
 			CEREAL_NVP(size),
@@ -103,30 +103,30 @@ void material::constant_buffer::subset::serialize(Archive& archive, int version)
 }
 
 template<class Archive>
-void material::constant_buffer::serialize(Archive& archive, int version)
+void material_resource::constant_buffer::serialize(Archive& archive, int version)
 {
 	archive(CEREAL_NVP(data_buffer), CEREAL_NVP(subsets), CEREAL_NVP(identifieres));
 }
 
 template<class Archive>
-void material::shader_resource::resource::serialize(Archive& archive, int version)
+void material_resource::shader_resource::resource::serialize(Archive& archive, int version)
 {
 	archive(CEREAL_NVP(is_file_path_or_key), CEREAL_NVP(path));
 }
 
 template<class Archive>
-void material::shader_resource::serialize(Archive& archive, int version)
+void material_resource::shader_resource::serialize(Archive& archive, int version)
 {
 	archive(CEREAL_NVP(resources));
 }
 
 template<class Archive>
-void material::physical_datas::serialize(Archive& archive, int version)
+void material_resource::physical_datas::serialize(Archive& archive, int version)
 {
 	archive(CEREAL_NVP(friction));
 }
 
-material::material()
+material_resource::material_resource()
 : name()
 , domain(domains::unknown)
 , blend_mode(blend_modes::opaque)
@@ -144,33 +144,33 @@ material::material()
 	set_flag(flags::shadow_receiver, true);
 }
 
-material::material(std::string_view name)
-: material()
+material_resource::material_resource(std::string_view name)
+: material_resource()
 {
 	this->name = name;
 }
 
-material::material(const material& material)
+material_resource::material_resource(const material_resource& material)
 {
 	material.duplicate(*this);
 }
 
-material::material(material&& material)
+material_resource::material_resource(material_resource&& material)
 {
 	material.duplicate(*this);
 }
 
-material& material::operator =(const material& material)
+material_resource& material_resource::operator =(const material_resource& material)
 {
 	material.duplicate(*this);
 	return *this;
 }
 
-material::~material()
+material_resource::~material_resource()
 {
 }
 
-void material::upload_constant_buffers(gpu_upload_list& upload_list)
+void material_resource::upload_constant_buffers(gpu_upload_list& upload_list)
 {
 #if defined(USE_IMGUI)
 	if (is_error())
@@ -191,7 +191,7 @@ void material::upload_constant_buffers(gpu_upload_list& upload_list)
 }
 
 template<class Archive>
-void material::serialize(Archive& archive, int version)
+void material_resource::serialize(Archive& archive, int version)
 {
 	archive(CEREAL_NVP(name),
 			CEREAL_NVP(domain),
@@ -209,10 +209,10 @@ void material::serialize(Archive& archive, int version)
 }
 
 //	モデル・エフェクトのファイルはバイナリで読み書きする
-template void material::serialize<cereal::BinaryOutputArchive>(cereal::BinaryOutputArchive& archive, int version);
-template void material::serialize<cereal::BinaryInputArchive>(cereal::BinaryInputArchive& archive, int version);
+template void material_resource::serialize<cereal::BinaryOutputArchive>(cereal::BinaryOutputArchive& archive, int version);
+template void material_resource::serialize<cereal::BinaryInputArchive>(cereal::BinaryInputArchive& archive, int version);
 
-void material::duplicate(material& material) const
+void material_resource::duplicate(material_resource& material) const
 {
 	std::stringstream iostream;
 	serialize_stream(iostream);
@@ -220,7 +220,7 @@ void material::duplicate(material& material) const
 	material.build();
 }
 
-void material::build()
+void material_resource::build()
 {
 	//	マテリアルシェーダーを使う場合は、シェーダーパスと静的パラメーターからパイプラインステートを決める
 	//	PSO を名前で持つのは system ドメインだけ
@@ -245,7 +245,7 @@ void material::build()
 	build_parameters();
 }
 
-void material::update()
+void material_resource::update()
 {
 	//	パイプラインステートが読み直されたか
 	bool reloaded = false;
@@ -273,7 +273,7 @@ void material::update()
 	build_parameters();
 }
 
-void material::create_constant_buffer_resource(constant_buffer& target)
+void material_resource::create_constant_buffer_resource(constant_buffer& target)
 {
 	D3D11_BUFFER_DESC buffer_desc{};
 	buffer_desc.Usage = D3D11_USAGE_DEFAULT;
@@ -287,7 +287,7 @@ void material::create_constant_buffer_resource(constant_buffer& target)
 	target.dirty = true;
 }
 
-void material::build_parameters()
+void material_resource::build_parameters()
 {
 	//	構成が変わるのでインスタンスに作り直させる
 	++version;
@@ -514,22 +514,22 @@ void material::build_parameters()
 	}
 }
 
-void material::set_name(std::string_view name)
+void material_resource::set_name(std::string_view name)
 {
 	this->name = std::string(name);
 }
 
-std::string_view material::get_name() const
+std::string_view material_resource::get_name() const
 {
 	return name;
 }
 
-material::domains material::get_domain() const
+material_resource::domains material_resource::get_domain() const
 {
 	return domain;
 }
 
-void material::set_domain(material::domains domain)
+void material_resource::set_domain(material_resource::domains domain)
 {
 	if (this->domain == domain)
 		return;
@@ -539,24 +539,24 @@ void material::set_domain(material::domains domain)
 	std::size_t size = 0; 
 	switch (domain)
 	{
-		case material::domains::surface:
+		case material_resource::domains::surface:
 			size = magic_enum::enum_count<surface_paths>() + 1;
 			break;
 
-		case material::domains::particle:
+		case material_resource::domains::particle:
 			size = magic_enum::enum_count<particle_paths>() + 1;
 			break;
 
-		case material::domains::deferred_decal:
+		case material_resource::domains::deferred_decal:
 			size = magic_enum::enum_count<decal_paths>() + 1;
 			break;
 
-		case material::domains::post_process:
-		case material::domains::user_interface:
+		case material_resource::domains::post_process:
+		case material_resource::domains::user_interface:
 			size = 1;
 			break;
 
-		case material::domains::system:
+		case material_resource::domains::system:
 			size = magic_enum::enum_count<system_paths>() + 1;
 			break;
 		default:
@@ -570,12 +570,12 @@ void material::set_domain(material::domains domain)
 	refresh_pipeline_states();
 }
 
-material::blend_modes material::get_blend_mode() const
+material_resource::blend_modes material_resource::get_blend_mode() const
 {
 	return blend_mode;
 }
 
-void material::set_blend_mode(blend_modes blend_mode)
+void material_resource::set_blend_mode(blend_modes blend_mode)
 {
 	if (this->blend_mode == blend_mode)
 		return;
@@ -586,7 +586,7 @@ void material::set_blend_mode(blend_modes blend_mode)
 	refresh_pipeline_states();
 }
 
-void material::set_flag(flags flag, bool value)
+void material_resource::set_flag(flags flag, bool value)
 {
 	const bool changed = is_flag(flag) != value;
 	system_utility::set_bitflag(system_flags, 1 << static_cast<UINT>(flag), value);
@@ -596,7 +596,7 @@ void material::set_flag(flags flag, bool value)
 		refresh_pipeline_states();
 }
 
-void material::set_shader_path(std::string_view path)
+void material_resource::set_shader_path(std::string_view path)
 {
 	std::string value = std::string(path);
 	std::replace(value.begin(), value.end(), '\\', '/');
@@ -617,7 +617,7 @@ void material::set_shader_path(std::string_view path)
 	}
 }
 
-void material::set_static_switch(std::string_view name, bool value)
+void material_resource::set_static_switch(std::string_view name, bool value)
 {
 	const auto* shader_declaration = material_shader_map::instance()->find_declaration(shader_path, domain);
 	if (!shader_declaration)
@@ -637,7 +637,7 @@ void material::set_static_switch(std::string_view name, bool value)
 	refresh_pipeline_states();
 }
 
-bool material::get_static_switch(std::string_view name) const
+bool material_resource::get_static_switch(std::string_view name) const
 {
 	const auto* shader_declaration = material_shader_map::instance()->find_declaration(shader_path, domain);
 	if (!shader_declaration)
@@ -654,7 +654,7 @@ bool material::get_static_switch(std::string_view name) const
 	return false;
 }
 
-void material::refresh_pipeline_states()
+void material_resource::refresh_pipeline_states()
 {
 	//	system ドメインは PSO を名前で持つので取り直さない
 	if (domain == domains::system)
@@ -735,7 +735,7 @@ void material::refresh_pipeline_states()
 #endif	//	defined(USE_IMGUI)
 }
 
-void material::assign_pipeline_state(UINT index, std::string_view name, graphics_pipeline_state_ptr value, bool required)
+void material_resource::assign_pipeline_state(UINT index, std::string_view name, graphics_pipeline_state_ptr value, bool required)
 {
 	if (index >= pipeline_states.size())
 		pipeline_states.resize(index + 1);
@@ -750,27 +750,27 @@ void material::assign_pipeline_state(UINT index, std::string_view name, graphics
 	target.reload_version = value ? value->get_reload_version() : 0;
 }
 
-material::shading_models material::get_shading_model() const
+material_resource::shading_models material_resource::get_shading_model() const
 {
 	return shading_model;
 }
 
-void material::set_shading_model(shading_models shading_model)
+void material_resource::set_shading_model(shading_models shading_model)
 {
 	this->shading_model = shading_model;
 }
 
-material::blendable_locations material::get_blendable_location() const
+material_resource::blendable_locations material_resource::get_blendable_location() const
 {
 	return domain == domains::post_process ? blendable_location : blendable_locations::unknown;
 }
 
-void material::set_blendable_location(blendable_locations location)
+void material_resource::set_blendable_location(blendable_locations location)
 {
 	if (domain == domains::post_process) blendable_location = location;
 }
 
-material::translucency_paths material::get_translucency_path() const
+material_resource::translucency_paths material_resource::get_translucency_path() const
 {
 	if ((domain == domains::surface || domain == domains::particle) && (blend_mode == blend_modes::translucent || blend_mode == blend_modes::addative))
 		return translucency_path;
@@ -778,32 +778,32 @@ material::translucency_paths material::get_translucency_path() const
 	return translucency_paths::unknown;
 }
 
-void material::set_translucency_path(translucency_paths pass)
+void material_resource::set_translucency_path(translucency_paths pass)
 {
 	if (domain == domains::surface && blend_mode == blend_modes::translucent ||
 		domain == domains::particle && blend_mode == blend_modes::translucent)
 		translucency_path = pass;
 }
 
-const material::constant_buffer_map& material::get_constant_buffers() const
+const material_resource::constant_buffer_map& material_resource::get_constant_buffers() const
 {
 	return constant_buffers;
 }
 
-const material::shader_resource_map& material::get_shader_resources() const
+const material_resource::shader_resource_map& material_resource::get_shader_resources() const
 {
 	return shader_resources;
 }
 
 #if defined(USE_IMGUI)
-material::constant_buffer_map& material::get_constant_buffers_for_editor()
+material_resource::constant_buffer_map& material_resource::get_constant_buffers_for_editor()
 {
 	//	書き換えられる前提でインスタンスに作り直させる
 	++version;
 	return constant_buffers;
 }
 
-material::shader_resource_map& material::get_shader_resources_for_editor()
+material_resource::shader_resource_map& material_resource::get_shader_resources_for_editor()
 {
 	//	書き換えられる前提でインスタンスに作り直させる
 	++version;
@@ -811,7 +811,7 @@ material::shader_resource_map& material::get_shader_resources_for_editor()
 }
 #endif	//	defined(USE_IMGUI)
 
-bool material::set_pipeline_state(domains domain, UINT index, std::string_view pipeline_state_name)
+bool material_resource::set_pipeline_state(domains domain, UINT index, std::string_view pipeline_state_name)
 {
 	//	ドメインが違えば登録させない
 	if(this->domain != domain)
@@ -844,36 +844,36 @@ bool material::set_pipeline_state(domains domain, UINT index, std::string_view p
 	return false;
 }
 
-bool material::set_pipeline_state(system_paths type, std::string_view pipeline_state_name)
+bool material_resource::set_pipeline_state(system_paths type, std::string_view pipeline_state_name)
 {
 	return set_pipeline_state(domains::system, static_cast<UINT>(type), pipeline_state_name);
 }
 
-graphics_pipeline_state_ptr material::get_pipeline_state(surface_paths value) const
+graphics_pipeline_state_ptr material_resource::get_pipeline_state(surface_paths value) const
 {
 	assert(domain == domains::surface);
 	return get_pipeline_state(domains::surface, static_cast<UINT>(value));
 }
 
-graphics_pipeline_state_ptr material::get_pipeline_state(particle_paths value) const
+graphics_pipeline_state_ptr material_resource::get_pipeline_state(particle_paths value) const
 {
 	assert(domain == domains::particle);
 	return get_pipeline_state(domains::particle, static_cast<UINT>(value));
 }
 
-graphics_pipeline_state_ptr material::get_pipeline_state(decal_paths value) const
+graphics_pipeline_state_ptr material_resource::get_pipeline_state(decal_paths value) const
 {
 	assert(domain == domains::deferred_decal);
 	return get_pipeline_state(domains::deferred_decal, static_cast<UINT>(value));
 }
 
-graphics_pipeline_state_ptr material::get_pipeline_state(system_paths value) const
+graphics_pipeline_state_ptr material_resource::get_pipeline_state(system_paths value) const
 {
 	assert(domain == domains::system);
 	return get_pipeline_state(domains::system, static_cast<UINT>(value));
 }
 
-graphics_pipeline_state_ptr material::get_pipeline_state() const
+graphics_pipeline_state_ptr material_resource::get_pipeline_state() const
 {
 	assert(domain != domains::surface ||
 		   domain != domains::deferred_decal ||
@@ -882,7 +882,7 @@ graphics_pipeline_state_ptr material::get_pipeline_state() const
 	return get_pipeline_state(domain, 0);
 }
 
-graphics_pipeline_state_ptr material::get_pipeline_state(domains domain, UINT index) const
+graphics_pipeline_state_ptr material_resource::get_pipeline_state(domains domain, UINT index) const
 {
 	if (this->domain != domain)
 		return nullptr;
@@ -906,7 +906,7 @@ graphics_pipeline_state_ptr material::get_pipeline_state(domains domain, UINT in
 	return pipeline_states[index].value;
 }
 
-bool material::set_data(std::string_view key_name, void* data, std::size_t data_size)
+bool material_resource::set_data(std::string_view key_name, void* data, std::size_t data_size)
 {
 	std::string key = std::string(key_name);
 	UINT array_element = 0;
@@ -935,7 +935,7 @@ bool material::set_data(std::string_view key_name, void* data, std::size_t data_
 	return false;
 }
 
-bool material::get_data(std::string_view key_name, void* data, std::size_t data_size) const
+bool material_resource::get_data(std::string_view key_name, void* data, std::size_t data_size) const
 {
 	std::string key = std::string(key_name);
 	UINT array_element = 0;
@@ -965,7 +965,7 @@ bool material::get_data(std::string_view key_name, void* data, std::size_t data_
 	return false;
 }
 
-bool material::set_texture(std::string_view key_name, texture_ptr value)
+bool material_resource::set_texture(std::string_view key_name, texture_ptr value)
 {
 	std::string key = std::string(key_name);
 	UINT array_element = 0;
@@ -988,7 +988,7 @@ bool material::set_texture(std::string_view key_name, texture_ptr value)
 	return false;
 }
 
-bool material::get_texture(std::string_view key_name, texture_ptr& value) const
+bool material_resource::get_texture(std::string_view key_name, texture_ptr& value) const
 {
 	std::string key = std::string(key_name);
 	UINT array_element = 0;
@@ -1008,7 +1008,7 @@ bool material::get_texture(std::string_view key_name, texture_ptr& value) const
 	return false;
 }
 
-void material::serialize_stream(std::stringstream& ostream) const
+void material_resource::serialize_stream(std::stringstream& ostream) const
 {
 	cereal::JSONOutputArchive archive(ostream);
 
@@ -1038,7 +1038,7 @@ void material::serialize_stream(std::stringstream& ostream) const
 	DEBUG_LOG_CATEGORY(logger::categorys::model, "material serialize_stream succeeded[%s]", name.data());
 }
 
-void material::deserialize_stream(std::stringstream& istream)
+void material_resource::deserialize_stream(std::stringstream& istream)
 {
 	cereal::JSONInputArchive archive(istream);
 
@@ -1069,7 +1069,7 @@ void material::deserialize_stream(std::stringstream& istream)
 }
 
 #if defined(USE_IMGUI)
-bool material::is_error() const
+bool material_resource::is_error() const
 {
 	if (error_state_cached_)
 		return false;
@@ -1077,13 +1077,13 @@ bool material::is_error() const
 	std::size_t size = 0;
 	switch (domain)
 	{
-		case material::domains::surface: size = magic_enum::enum_count<surface_paths>(); break;
-		case material::domains::post_process: size = 1; break;
-		case material::domains::deferred_decal: size = magic_enum::enum_count<decal_paths>(); break;
-		case material::domains::user_interface: size = 1; break;
-		case material::domains::particle: size = magic_enum::enum_count<particle_paths>(); break;
+		case material_resource::domains::surface: size = magic_enum::enum_count<surface_paths>(); break;
+		case material_resource::domains::post_process: size = 1; break;
+		case material_resource::domains::deferred_decal: size = magic_enum::enum_count<decal_paths>(); break;
+		case material_resource::domains::user_interface: size = 1; break;
+		case material_resource::domains::particle: size = magic_enum::enum_count<particle_paths>(); break;
 
-		case material::domains::system: size = magic_enum::enum_count<system_paths>(); break;
+		case material_resource::domains::system: size = magic_enum::enum_count<system_paths>(); break;
 		default: assert(!L"Not Compatible."); break;
 	}
 	for (UINT index = 0; index < size; ++index)

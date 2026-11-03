@@ -1,7 +1,7 @@
 #pragma once
 
 #include "texture.h"
-#include "material.h"
+#include "material_resource.h"
 #include "animation_resource.h"
 #include "collision/capsule.h"
 #include "collision/box.h"
@@ -98,7 +98,7 @@ namespace particle
 			UINT state = 0;
 			types type = types::sprite;		//	レンダラータイプ
 			UINT total_particle_count = 1;	//	最大パーティクル数
-			std::shared_ptr<material> material;	//	表示マテリアル
+			std::shared_ptr<material_resource> material;	//	表示マテリアル
 
 			trails trail;	//	軌跡
 			texcoords uv;	//	UV

@@ -9,7 +9,7 @@ class gpu_upload_list;
 
 //	マテリアル
 //	☆ﾃｷﾄｰ('ω')ｰﾄｷﾃ☆
-class material
+class material_resource
 {
 	friend class material_instance;
 
@@ -209,24 +209,24 @@ public:
 	using shader_resource_map = std::unordered_map<std::string, shader_resource>;
 
 public:
-	material();
-	material(std::string_view name);
-	material(const material& material);
-	material(material&& material);
-	~material();
+	material_resource();
+	material_resource(std::string_view name);
+	material_resource(const material_resource& material);
+	material_resource(material_resource&& material);
+	~material_resource();
 
 	void upload_constant_buffers(gpu_upload_list& upload_list);
 
 	template<class Archive>
 	void serialize(Archive& archive, int version);
 
-	void duplicate(material& material) const;
+	void duplicate(material_resource& material) const;
 
 	void build();
 
 	void update();
 
-	material& operator =(const material& material);
+	material_resource& operator =(const material_resource& material);
 
 public:
 	//	名前取得・設定
@@ -380,4 +380,4 @@ private:
 	std::uint32_t shader_map_version = 0;
 };
 
-using material_ptr = std::shared_ptr<material>;
+using material_resource_ptr = std::shared_ptr<material_resource>;

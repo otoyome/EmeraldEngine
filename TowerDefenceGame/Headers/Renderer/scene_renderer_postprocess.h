@@ -14,7 +14,7 @@
 class post_process_renderer_base : public renderer
 {
 public:
-	virtual material::blendable_locations get_material_blendable_locations() const = 0;
+	virtual material_resource::blendable_locations get_material_blendable_locations() const = 0;
 
 public:
 	post_process_renderer_base(render_job_registrar job_executor, std::shared_ptr<scene_render_targets> render_targets);
@@ -86,7 +86,7 @@ class before_dof_post_process_renderer : public post_process_renderer_base
 {
 public:
 	renderer_domain get_domain() const override { return renderer_domain::before_dof_post_process_pass; }
-	material::blendable_locations get_material_blendable_locations() const override { return material::blendable_locations::before_dof; }
+	material_resource::blendable_locations get_material_blendable_locations() const override { return material_resource::blendable_locations::before_dof; }
 
 public:
 	before_dof_post_process_renderer(render_job_registrar job_executor, std::shared_ptr<scene_render_targets> render_targets)
@@ -134,7 +134,7 @@ class after_dof_post_process_renderer : public post_process_renderer_base
 {
 public:
 	renderer_domain get_domain() const override { return renderer_domain::after_dof_post_process_pass; }
-	material::blendable_locations get_material_blendable_locations() const override { return material::blendable_locations::after_dof; }
+	material_resource::blendable_locations get_material_blendable_locations() const override { return material_resource::blendable_locations::after_dof; }
 
 public:
 	after_dof_post_process_renderer(render_job_registrar job_executor, std::shared_ptr<scene_render_targets> render_targets)
@@ -147,7 +147,7 @@ class after_translucency_post_process_renderer : public post_process_renderer_ba
 {
 public:
 	renderer_domain get_domain() const override { return renderer_domain::after_translucency_post_process_pass; }
-	material::blendable_locations get_material_blendable_locations() const override { return material::blendable_locations::after_dof_translucency; }
+	material_resource::blendable_locations get_material_blendable_locations() const override { return material_resource::blendable_locations::after_dof_translucency; }
 
 public:
 	after_translucency_post_process_renderer(render_job_registrar job_executor, std::shared_ptr<scene_render_targets> render_targets)
@@ -187,7 +187,7 @@ class before_bloom_post_process_renderer : public post_process_renderer_base
 {
 public:
 	renderer_domain get_domain() const override { return renderer_domain::before_bloom_post_process_pass; }
-	material::blendable_locations get_material_blendable_locations() const override { return material::blendable_locations::before_bloom; }
+	material_resource::blendable_locations get_material_blendable_locations() const override { return material_resource::blendable_locations::before_bloom; }
 
 public:
 	before_bloom_post_process_renderer(render_job_registrar job_executor, std::shared_ptr<scene_render_targets> render_targets)
@@ -257,7 +257,7 @@ class after_tone_mapping_post_process_renderer : public post_process_renderer_ba
 {
 public:
 	renderer_domain get_domain() const override { return renderer_domain::after_tone_mapping_post_process_pass; }
-	material::blendable_locations get_material_blendable_locations() const override { return material::blendable_locations::after_tone_mapping; }
+	material_resource::blendable_locations get_material_blendable_locations() const override { return material_resource::blendable_locations::after_tone_mapping; }
 
 public:
 	after_tone_mapping_post_process_renderer(render_job_registrar job_executor, std::shared_ptr<scene_render_targets> render_targets)

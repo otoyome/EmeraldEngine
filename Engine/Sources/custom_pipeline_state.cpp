@@ -6,13 +6,13 @@
 namespace
 {
 	//  マテリアルフラグの対応表
-	constexpr std::pair<material::flags, UINT> convert_material_flags[] =
+	constexpr std::pair<material_resource::flags, UINT> convert_material_flags[] =
 	{
-		{material::flags::indirect_lighting_off, common_pipeline_states::material_attribute_indirect_lighting_off},
-		{material::flags::shadow_receiver, common_pipeline_states::material_attribute_shadow_receiver},
-		{material::flags::decal_off, common_pipeline_states::material_attribute_decal_off},
+		{material_resource::flags::indirect_lighting_off, common_pipeline_states::material_attribute_indirect_lighting_off},
+		{material_resource::flags::shadow_receiver, common_pipeline_states::material_attribute_shadow_receiver},
+		{material_resource::flags::decal_off, common_pipeline_states::material_attribute_decal_off},
 		//	[エンジン改造]
-		{material::flags::ligting_xz_plane, common_pipeline_states::material_attribute_ligting_xz_plane},
+		{material_resource::flags::ligting_xz_plane, common_pipeline_states::material_attribute_ligting_xz_plane},
 		//	[エンジン改造]
 	};
 
@@ -356,13 +356,13 @@ void graphics_custom_pipeline_state::update_parameters(const graphics_context& c
 {
 	//	ラスタライザーステート設定
 	{
-		bool is_two_sided = material.is_flag(material::flags::two_sided);
-		if (material.get_domain() == material::domains::user_interface || context.is_force_material_both_draw)
+		bool is_two_sided = material.is_flag(material_resource::flags::two_sided);
+		if (material.get_domain() == material_resource::domains::user_interface || context.is_force_material_both_draw)
 		{
 			is_two_sided = true;
 		}
 
-		bool is_wire = material.is_flag(material::flags::wire);
+		bool is_wire = material.is_flag(material_resource::flags::wire);
 		if (context.is_force_material_wire_draw)
 		{
 			is_wire = true;
@@ -393,7 +393,7 @@ void graphics_custom_pipeline_state::update_parameters(const graphics_context& c
 			blend_state = blend_state::opaque;
 			stencil_ref_value = 0;
 		}
-		else if (material.get_domain() == material::domains::deferred_decal)
+		else if (material.get_domain() == material_resource::domains::deferred_decal)
 		{
 			//	デカール処理
 			depth_stencil_state = depth_stencil_state::decal;
@@ -404,24 +404,24 @@ void graphics_custom_pipeline_state::update_parameters(const graphics_context& c
 		{
 			switch (material.get_blend_mode())
 			{
-				case material::blend_modes::opaque:
-				case material::blend_modes::mask:
+				case material_resource::blend_modes::opaque:
+				case material_resource::blend_modes::mask:
 				{
 					break;
 				}
-				case material::blend_modes::translucent:
+				case material_resource::blend_modes::translucent:
 				{
 					blend_state = blend_state::translucent;
-					depth_stencil_state = material.is_flag(material::flags::disable_depth_test) ? depth_stencil_state::depth_off : depth_stencil_state::depth_test_only;
+					depth_stencil_state = material.is_flag(material_resource::flags::disable_depth_test) ? depth_stencil_state::depth_off : depth_stencil_state::depth_test_only;
 					break;
 				}
-				case material::blend_modes::addative:
+				case material_resource::blend_modes::addative:
 				{
 					blend_state = blend_state::addative;
-					depth_stencil_state = material.is_flag(material::flags::disable_depth_test) ? depth_stencil_state::depth_off : depth_stencil_state::depth_test_only;
+					depth_stencil_state = material.is_flag(material_resource::flags::disable_depth_test) ? depth_stencil_state::depth_off : depth_stencil_state::depth_test_only;
 					break;
 				}
-				//case material::blend_modes::modulate:
+				//case material_resource::blend_modes::modulate:
 				//{
 				//	blend_state = blend_state::multiply;
 				//	break;
@@ -511,7 +511,7 @@ void graphics_custom_pipeline_state::update_parameters(const graphics_context& c
 			}
 			else
 			{
-				if (const material::constant_buffer* material_constant_buffer = material.find_constant_buffer(cbv.first))
+				if (const material_resource::constant_buffer* material_constant_buffer = material.find_constant_buffer(cbv.first))
 				{
 					constant_buffer = material_constant_buffer->buffer.Get();
 				}
@@ -665,7 +665,7 @@ void graphics_custom_pipeline_state::update_parameters(const graphics_context& c
 						continue;
 				}
 
-				const material::shader_resource* shader_resource = material.find_shader_resource(srv.first);
+				const material_resource::shader_resource* shader_resource = material.find_shader_resource(srv.first);
 				if (!shader_resource)
 					continue;
 

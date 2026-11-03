@@ -2,7 +2,7 @@
 
 #include "texture.h"
 
-class material;
+class material_resource;
 class material_instance;
 
 //	ƒuƒ‹[ƒ€—pî•ñ
@@ -222,7 +222,7 @@ public:
 	void set_tone_mapping_constant(const tone_mapping_data& data);
 
 	const std::vector<std::shared_ptr<material_instance>>& get_materials() const;
-	bool register_postprocess_materials(std::shared_ptr<material> material_ptr);
+	bool register_postprocess_materials(std::shared_ptr<material_resource> material_ptr);
 
 private:
 	UINT system_flags;

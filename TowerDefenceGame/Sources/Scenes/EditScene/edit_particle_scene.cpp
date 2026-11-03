@@ -35,13 +35,13 @@ namespace
 		すべてのファイル (*.*)\0*.*\0";
 
 	//	ポストプロセスマテリアル
-	constexpr material::blendable_locations postprocess_material_path_list[] =
+	constexpr material_resource::blendable_locations postprocess_material_path_list[] =
 	{
-		material::blendable_locations::before_dof,
-		material::blendable_locations::after_dof,
-		material::blendable_locations::after_dof_translucency,
-		material::blendable_locations::before_bloom,
-		material::blendable_locations::after_tone_mapping,
+		material_resource::blendable_locations::before_dof,
+		material_resource::blendable_locations::after_dof,
+		material_resource::blendable_locations::after_dof_translucency,
+		material_resource::blendable_locations::before_bloom,
+		material_resource::blendable_locations::after_tone_mapping,
 	};
 	constexpr std::string_view postprocess_material_texts_list[ARRAYSIZE(postprocess_material_path_list)][2] =
 	{
@@ -173,11 +173,11 @@ bool edit_particle_scene::initialize_core()
 
 		for (UINT index = 0; index < ARRAYSIZE(postprocess_material_path_list); ++index)
 		{
-			std::shared_ptr<material> post_process_material = std::make_shared<material>();
+			std::shared_ptr<material_resource> post_process_material = std::make_shared<material_resource>();
 			post_process_material->set_name(postprocess_material_texts_list[index][1]);
-			post_process_material->set_domain(material::domains::post_process);
-			post_process_material->set_flag(material::flags::two_sided, true);
-			post_process_material->set_blend_mode(material::blend_modes::opaque);
+			post_process_material->set_domain(material_resource::domains::post_process);
+			post_process_material->set_flag(material_resource::flags::two_sided, true);
+			post_process_material->set_blend_mode(material_resource::blend_modes::opaque);
 			post_process_material->set_blendable_location(postprocess_material_path_list[index]);
 			post_process_material->set_shader_path(postprocess_material_texts_list[index][0]);
 
@@ -354,21 +354,21 @@ void edit_particle_scene::generate_default_effect()
 
 					//	マテリアル設定
 					{
-						renderer->material = std::make_shared<material>("default");
+						renderer->material = std::make_shared<material_resource>("default");
 						auto material = renderer->material;
-						material->set_domain(material::domains::particle);
+						material->set_domain(material_resource::domains::particle);
 						material->set_alpha_clip_threshold(0.5f);
-						material->set_shading_model(material::shading_models::unlit);
-						material->set_blend_mode(material::blend_modes::mask);
+						material->set_shading_model(material_resource::shading_models::unlit);
+						material->set_blend_mode(material_resource::blend_modes::mask);
 
 						//	フラグ類設定
-						material->set_flag(material::flags::two_sided, true);
-					//	material->set_flag(material::flags::shadow_caster, true);
-					//	material->set_flag(material::flags::shadow_receiver, true);
-						material->set_flag(material::flags::indirect_lighting_off, true);
+						material->set_flag(material_resource::flags::two_sided, true);
+					//	material->set_flag(material_resource::flags::shadow_caster, true);
+					//	material->set_flag(material_resource::flags::shadow_receiver, true);
+						material->set_flag(material_resource::flags::indirect_lighting_off, true);
 
 						//	デフォルトシェーダー設定
-						material->set_shader_path(material::default_particle_shader_path);
+						material->set_shader_path(material_resource::default_particle_shader_path);
 
 						//	パラメーター設定
 						material->set_float4("base_color_factor", math::float4(1, 1, 1, 1));
@@ -466,21 +466,21 @@ void edit_particle_scene::generate_default_effect()
 
 					//	マテリアル設定
 					{
-						renderer->material = std::make_shared<material>("default");
+						renderer->material = std::make_shared<material_resource>("default");
 						auto material = renderer->material;
-						material->set_domain(material::domains::particle);
+						material->set_domain(material_resource::domains::particle);
 						material->set_alpha_clip_threshold(0.01f);
-						material->set_shading_model(material::shading_models::unlit);
-						material->set_blend_mode(material::blend_modes::translucent);
+						material->set_shading_model(material_resource::shading_models::unlit);
+						material->set_blend_mode(material_resource::blend_modes::translucent);
 
 						//	フラグ類設定
-						material->set_flag(material::flags::two_sided, true);
-					//	material->set_flag(material::flags::shadow_caster, true);
-					//	material->set_flag(material::flags::shadow_receiver, true);
-						material->set_flag(material::flags::indirect_lighting_off, true);
+						material->set_flag(material_resource::flags::two_sided, true);
+					//	material->set_flag(material_resource::flags::shadow_caster, true);
+					//	material->set_flag(material_resource::flags::shadow_receiver, true);
+						material->set_flag(material_resource::flags::indirect_lighting_off, true);
 
 						//	デフォルトシェーダー設定
-						material->set_shader_path(material::default_particle_shader_path);
+						material->set_shader_path(material_resource::default_particle_shader_path);
 
 						//	パラメーター設定
 						material->set_float4("base_color_factor", math::float4(1, 1, 1, 1));

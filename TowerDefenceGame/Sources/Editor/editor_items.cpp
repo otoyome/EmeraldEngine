@@ -25,7 +25,7 @@ namespace
 	//	"addative"		//	加算合成
 	};
 
-	bool bool_item(std::string_view name, material::constant_buffer::subset subset, bool* pbool)
+	bool bool_item(std::string_view name, material_resource::constant_buffer::subset subset, bool* pbool)
 	{
 		if (subset.columns == 1)
 		{
@@ -55,7 +55,7 @@ namespace
 		}
 		return change_flag;
 	}
-	bool int_item(std::string_view name, material::constant_buffer::subset subset, int* pint)
+	bool int_item(std::string_view name, material_resource::constant_buffer::subset subset, int* pint)
 	{
 		int limit_min = subset.editor_info.int_range.min;
 		int limit_max = subset.editor_info.int_range.max;
@@ -89,7 +89,7 @@ namespace
 		}
 		return change_flag;
 	}
-	bool uint_item(std::string_view name, material::constant_buffer::subset subset, UINT* puint)
+	bool uint_item(std::string_view name, material_resource::constant_buffer::subset subset, UINT* puint)
 	{
 		int limit_min = std::max(subset.editor_info.uint_range.min, 0);
 		int limit_max = subset.editor_info.uint_range.max;
@@ -163,7 +163,7 @@ namespace
 		}
 		return change_flag;
 	}
-	bool float_item(std::string_view name, material::constant_buffer::subset subset, float* pfloat)
+	bool float_item(std::string_view name, material_resource::constant_buffer::subset subset, float* pfloat)
 	{
 		float limit_min = subset.editor_info.float_range.min;
 		float limit_max = subset.editor_info.float_range.max;
@@ -197,14 +197,14 @@ namespace
 		}
 		return change_flag;
 	}
-	bool add_item_function(material::constant_buffer& constant_buffer, std::string_view name, material::constant_buffer::subset subset)
+	bool add_item_function(material_resource::constant_buffer& constant_buffer, std::string_view name, material_resource::constant_buffer::subset subset)
 	{
 		unsigned char* buffer_top = constant_buffer.data_buffer.data() + subset.start_offset;
 		bool edit_flag = false;
 		switch (subset.kind)
 		{
-			case material::variable_kind::MatrixRows:
-			case material::variable_kind::MatrixColumns:
+			case material_resource::variable_kind::MatrixRows:
+			case material_resource::variable_kind::MatrixColumns:
 			{
 				UINT array_max = subset.size / subset.stride;
 				bool is_array = array_max > 1;
@@ -225,7 +225,7 @@ namespace
 						ImGui::PushID(static_cast<int>(reinterpret_cast<std::size_t>(top)));
 						switch (subset.type)
 						{
-							case material::variable_type::Bool:
+							case material_resource::variable_type::Bool:
 							{
 								if (bool_item(name, subset, reinterpret_cast<bool*>(top)))
 								{
@@ -234,7 +234,7 @@ namespace
 								}
 								break;
 							}
-							case material::variable_type::Int:
+							case material_resource::variable_type::Int:
 							{
 								if (int_item(name, subset, reinterpret_cast<int*>(top)))
 								{
@@ -243,7 +243,7 @@ namespace
 								}
 								break;
 							}
-							case material::variable_type::UInt:
+							case material_resource::variable_type::UInt:
 							{
 								if (uint_item(name, subset, reinterpret_cast<UINT*>(top)))
 								{
@@ -252,7 +252,7 @@ namespace
 								}
 								break;
 							}
-							case material::variable_type::Float:
+							case material_resource::variable_type::Float:
 							{
 								if (float_item(name, subset, reinterpret_cast<float*>(top)))
 								{
@@ -271,8 +271,8 @@ namespace
 
 				break;
 			}
-			case material::variable_kind::Vector:
-			case material::variable_kind::Scalar:
+			case material_resource::variable_kind::Vector:
+			case material_resource::variable_kind::Scalar:
 			{
 				UINT array_max = subset.size / subset.stride;
 				bool is_array = array_max > 1;
@@ -288,7 +288,7 @@ namespace
 					unsigned char* top = buffer_top + array_count * subset.stride;
 					switch (subset.type)
 					{
-						case material::variable_type::Bool:
+						case material_resource::variable_type::Bool:
 						{
 							if (bool_item(key, subset, reinterpret_cast<bool*>(top)))
 							{
@@ -297,7 +297,7 @@ namespace
 							}
 							break;
 						}
-						case material::variable_type::Int:
+						case material_resource::variable_type::Int:
 						{
 							if (int_item(key, subset, reinterpret_cast<int*>(top)))
 							{
@@ -306,7 +306,7 @@ namespace
 							}
 							break;
 						}
-						case material::variable_type::UInt:
+						case material_resource::variable_type::UInt:
 						{
 							if (uint_item(key, subset, reinterpret_cast<UINT*>(top)))
 							{
@@ -315,7 +315,7 @@ namespace
 							}
 							break;
 						}
-						case material::variable_type::Float:
+						case material_resource::variable_type::Float:
 						{
 							if (float_item(key, subset, reinterpret_cast<float*>(top)))
 							{
@@ -369,7 +369,7 @@ void editor_items::begin_contexts()
 	}
 }
 
-bool editor_items::edit_material(std::shared_ptr<context>& context, material& material)
+bool editor_items::edit_material(std::shared_ptr<context>& context, material_resource& material)
 {
 	bool edit_flag = false;
 	float alpha_clip_threshold = material.get_alpha_clip_threshold();
@@ -385,7 +385,7 @@ bool editor_items::edit_material(std::shared_ptr<context>& context, material& ma
 		int domain = static_cast<int>(material.get_domain());
 		if (ImGui::Combo("domain", &domain, combo_texts.data(), static_cast<int>(combo_texts.size())))
 		{
-			material.set_domain(static_cast<material::domains>(domain));
+			material.set_domain(static_cast<material_resource::domains>(domain));
 		}
 	}
 
@@ -431,8 +431,8 @@ bool editor_items::edit_material(std::shared_ptr<context>& context, material& ma
 	//	ドメインごとの編集項目
 	switch (material.get_domain())
 	{
-		case material::domains::surface:
-		case material::domains::particle:
+		case material_resource::domains::surface:
+		case material_resource::domains::particle:
 		{
 			ImGui::Separator();
 
@@ -440,7 +440,7 @@ bool editor_items::edit_material(std::shared_ptr<context>& context, material& ma
 			{
 				std::vector<std::string> row_texts;
 				std::vector<char*> combo_texts;
-				for (auto& name : magic_enum::enum_names<material::shading_models>())
+				for (auto& name : magic_enum::enum_names<material_resource::shading_models>())
 				{
 					row_texts.emplace_back(name);
 				}
@@ -451,7 +451,7 @@ bool editor_items::edit_material(std::shared_ptr<context>& context, material& ma
 				int blend_mode = static_cast<int>(material.get_shading_model());
 				if (ImGui::Combo("shading_model", &blend_mode, combo_texts.data(), static_cast<int>(combo_texts.size())))
 				{
-					material.set_shading_model(static_cast<material::shading_models>(blend_mode));
+					material.set_shading_model(static_cast<material_resource::shading_models>(blend_mode));
 					edit_flag = true;
 				}
 			}
@@ -460,7 +460,7 @@ bool editor_items::edit_material(std::shared_ptr<context>& context, material& ma
 			{
 				std::vector<std::string> row_texts;
 				std::vector<char*> combo_texts;
-				for (auto& name : magic_enum::enum_names<material::blend_modes>())
+				for (auto& name : magic_enum::enum_names<material_resource::blend_modes>())
 				{
 					row_texts.emplace_back(name);
 				}
@@ -471,18 +471,18 @@ bool editor_items::edit_material(std::shared_ptr<context>& context, material& ma
 				int value = static_cast<int>(material.get_blend_mode());
 				if (ImGui::Combo("blend_mode", &value, combo_texts.data(), static_cast<int>(combo_texts.size())))
 				{
-					material.set_blend_mode(static_cast<material::blend_modes>(value));
+					material.set_blend_mode(static_cast<material_resource::blend_modes>(value));
 					edit_flag = true;
 				}
 			}
 
 			//	ブレンドモードごとの対応
-			if (material.get_blend_mode() == material::blend_modes::translucent ||
-				material.get_blend_mode() == material::blend_modes::addative)
+			if (material.get_blend_mode() == material_resource::blend_modes::translucent ||
+				material.get_blend_mode() == material_resource::blend_modes::addative)
 			{
 				std::vector<std::string> row_texts;
 				std::vector<char*> combo_texts;
-				for (auto& name : magic_enum::enum_names<material::translucency_paths>())
+				for (auto& name : magic_enum::enum_names<material_resource::translucency_paths>())
 				{
 					row_texts.emplace_back(name);
 				}
@@ -493,7 +493,7 @@ bool editor_items::edit_material(std::shared_ptr<context>& context, material& ma
 				int value = static_cast<int>(material.get_translucency_path());
 				if (ImGui::Combo("translucency_path", &value, combo_texts.data(), static_cast<int>(combo_texts.size())))
 				{
-					material.set_translucency_path(static_cast<material::translucency_paths>(value));
+					material.set_translucency_path(static_cast<material_resource::translucency_paths>(value));
 					edit_flag = true;
 				}
 			}
@@ -510,7 +510,7 @@ bool editor_items::edit_material(std::shared_ptr<context>& context, material& ma
 			//	物理マテリアル
 			if (ImGui::TreeNode("physical material"))
 			{
-				material::physical_datas physical_data = material.get_physical_data();
+				material_resource::physical_datas physical_data = material.get_physical_data();
 
 				if (ImGui::DragFloat("friction", &physical_data.friction, 1.0f, 0.0f, 1000.0f))
 				{
@@ -526,7 +526,7 @@ bool editor_items::edit_material(std::shared_ptr<context>& context, material& ma
 			//	マテリアルフラグ
 			if (ImGui::TreeNode("flags"))
 			{
-				for (auto data : magic_enum::enum_values<material::flags>())
+				for (auto data : magic_enum::enum_values<material_resource::flags>())
 				{
 					bool flag = material.is_flag(data);
 					if (ImGui::Checkbox(magic_enum::enum_name(data).data(), &flag))
@@ -539,13 +539,13 @@ bool editor_items::edit_material(std::shared_ptr<context>& context, material& ma
 			}
 			break;
 		}
-		case material::domains::post_process:
+		case material_resource::domains::post_process:
 		{
 			//	ブレンドモード設定
 			{
 				std::vector<std::string> row_texts;
 				std::vector<char*> combo_texts;
-				for (auto& name : magic_enum::enum_names<material::blendable_locations>())
+				for (auto& name : magic_enum::enum_names<material_resource::blendable_locations>())
 				{
 					row_texts.emplace_back(name);
 				}
@@ -556,7 +556,7 @@ bool editor_items::edit_material(std::shared_ptr<context>& context, material& ma
 				int blend_mode = static_cast<int>(material.get_blendable_location());
 				if (ImGui::Combo("blendable_locations", &blend_mode, combo_texts.data(), static_cast<int>(combo_texts.size())))
 				{
-					material.set_blendable_location(static_cast<material::blendable_locations>(blend_mode));
+					material.set_blendable_location(static_cast<material_resource::blendable_locations>(blend_mode));
 					edit_flag = true;
 				}
 			}
@@ -568,7 +568,7 @@ bool editor_items::edit_material(std::shared_ptr<context>& context, material& ma
 	//	パラメーター
 	for (auto& it : material.get_constant_buffers_for_editor())
 	{
-		material::constant_buffer& constant_buffer = it.second;
+		material_resource::constant_buffer& constant_buffer = it.second;
 		if (ImGui::TreeNode(it.first.data()))
 		{
 			for (auto& identifier : constant_buffer.identifieres)
@@ -587,7 +587,7 @@ bool editor_items::edit_material(std::shared_ptr<context>& context, material& ma
 	//	リソース
 	for (auto& it : material.get_shader_resources_for_editor())
 	{
-		material::shader_resource& shader_resource = it.second;
+		material_resource::shader_resource& shader_resource = it.second;
 		{
 			ImGui::Text(it.first.data());
 			UINT index = 0;
@@ -629,7 +629,7 @@ bool editor_items::edit_material(std::shared_ptr<context>& context, material& ma
 
 bool editor_items::edit_material_instance(std::shared_ptr<context>& context, material_instance& instance)
 {
-	const material_ptr& parent = instance.get_resource();
+	const material_resource_ptr& parent = instance.get_resource();
 	if (!parent)
 	{
 		ImGui::TextDisabled("no parent material");
@@ -654,13 +654,13 @@ bool editor_items::edit_material_instance(std::shared_ptr<context>& context, mat
 	//	パラメーター
 	for (auto& it : parent->get_constant_buffers())
 	{
-		const material::constant_buffer* current = instance.find_constant_buffer(it.first);
+		const material_resource::constant_buffer* current = instance.find_constant_buffer(it.first);
 		if (!current)
 			continue;
 
 		if (ImGui::TreeNode(it.first.data()))
 		{
-			material::constant_buffer work_buffer;
+			material_resource::constant_buffer work_buffer;
 			work_buffer.data_buffer = current->data_buffer;
 			work_buffer.subsets = current->subsets;
 			work_buffer.identifieres = current->identifieres;
@@ -695,7 +695,7 @@ bool editor_items::edit_material_instance(std::shared_ptr<context>& context, mat
 	//	リソース
 	for (auto& it : parent->get_shader_resources())
 	{
-		const material::shader_resource* current = instance.find_shader_resource(it.first);
+		const material_resource::shader_resource* current = instance.find_shader_resource(it.first);
 		if (!current)
 			continue;
 

@@ -1,7 +1,7 @@
 #pragma once
 
 #if defined(USE_IMGUI)
-#include "material.h"
+#include "material_resource.h"
 #include "animation_resource.h"
 #include "ik_resource.h"
 #include "model_instance.h"
@@ -100,7 +100,7 @@ public:	//	表示系
 	static void render_model_select_bones(const model_instance& model_instance, const char** selected_bones, std::size_t selected_bone_size);
 
 public:	//	編集アイテム系
-	static bool edit_material(std::shared_ptr<context>& context, material& material);
+	static bool edit_material(std::shared_ptr<context>& context, material_resource& material);
 	static bool edit_material_instance(std::shared_ptr<context>& context, material_instance& instance);
 	static bool edit_texture_item(std::shared_ptr<context>& context, texture_ptr& resource, bool* selected_file = nullptr);
 	static bool edit_model_resource_item(std::shared_ptr<context>& context, model_resource_ptr& resource, std::string* selected_file_path = nullptr);

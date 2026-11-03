@@ -470,21 +470,21 @@ bool editor_items::edit_effect_particle(std::shared_ptr<context>& context, effec
 {
 	auto generate_material = [&]()
 	{
-		auto material_ptr = std::make_shared<material>("default");
+		auto material_ptr = std::make_shared<material_resource>("default");
 		auto material = material_ptr;
-		material->set_domain(material::domains::particle);
+		material->set_domain(material_resource::domains::particle);
 		material->set_alpha_clip_threshold(0.01f);
-		material->set_shading_model(material::shading_models::unlit);
-		material->set_blend_mode(material::blend_modes::translucent);
+		material->set_shading_model(material_resource::shading_models::unlit);
+		material->set_blend_mode(material_resource::blend_modes::translucent);
 
 		//	フラグ類設定
-		material->set_flag(material::flags::two_sided, true);
-	//	material->set_flag(material::flags::shadow_caster, true);
-	//	material->set_flag(material::flags::shadow_receiver, true);
-		material->set_flag(material::flags::indirect_lighting_off, true);
+		material->set_flag(material_resource::flags::two_sided, true);
+	//	material->set_flag(material_resource::flags::shadow_caster, true);
+	//	material->set_flag(material_resource::flags::shadow_receiver, true);
+		material->set_flag(material_resource::flags::indirect_lighting_off, true);
 
 		//	デフォルトシェーダー設定
-		material->set_shader_path(material::default_particle_shader_path);
+		material->set_shader_path(material_resource::default_particle_shader_path);
 
 		//	パラメーター設定
 		material->set_float4("base_color_factor", math::float4(1, 1, 1, 1));
@@ -944,19 +944,19 @@ bool editor_items::edit_effect_decal(std::shared_ptr<context>& context, effect_r
 {
 	auto generate_material = [&]()
 	{
-		auto material_ptr = std::make_shared<material>("default");
+		auto material_ptr = std::make_shared<material_resource>("default");
 		auto material = material_ptr;
-		material->set_domain(material::domains::deferred_decal);
+		material->set_domain(material_resource::domains::deferred_decal);
 		material->set_alpha_clip_threshold(0.01f);
-		material->set_shading_model(material::shading_models::default_lit);
-		material->set_blend_mode(material::blend_modes::mask);
+		material->set_shading_model(material_resource::shading_models::default_lit);
+		material->set_blend_mode(material_resource::blend_modes::mask);
 
 		//	フラグ類設定
-		//material->set_flag(material::flags::two_sided, true);
-		material->set_flag(material::flags::indirect_lighting_off, true);
+		//material->set_flag(material_resource::flags::two_sided, true);
+		material->set_flag(material_resource::flags::indirect_lighting_off, true);
 
 		//	デフォルトシェーダー設定
-		material->set_shader_path(material::default_decal_shader_path);
+		material->set_shader_path(material_resource::default_decal_shader_path);
 
 		//	パラメーター設定
 		material->set_float4("base_color_factor", math::float4(1, 1, 1, 1));

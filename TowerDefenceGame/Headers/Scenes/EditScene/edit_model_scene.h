@@ -169,7 +169,7 @@ private:
 private:	//	頂点カラー編集系
 	bool is_edit_vertex_color = false;
 	std::shared_ptr<model_object> vertex_color_edit_model;
-	std::shared_ptr<material> vertex_color_edit_material;
+	std::shared_ptr<material_resource> vertex_color_edit_material;
 
 	//	ブラシ情報
 	struct brush_data

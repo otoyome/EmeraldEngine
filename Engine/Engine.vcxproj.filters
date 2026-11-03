@@ -99,7 +99,7 @@
     <ClInclude Include="Headers\material_shader_map.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\material.h">
+    <ClInclude Include="Headers\material_resource.h">
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="Headers\material_instance.h">
@@ -404,7 +404,7 @@
     <ClCompile Include="Sources\material_shader_map.cpp">
       <Filter>Sources</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\material.cpp">
+    <ClCompile Include="Sources\material_resource.cpp">
       <Filter>Sources</Filter>
     </ClCompile>
     <ClCompile Include="Sources\material_instance.cpp">

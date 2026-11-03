@@ -463,7 +463,7 @@ void model_instance_manger::get_container(mesh_container& container, const math:
 
 			//	‰e•`‰æ‚·‚é‚È‚ç“o˜^
 			if (instance->is_flag(model_instance::flags::shadow_caster) &&
-				material_data.material->is_flag(material::flags::shadow_caster))
+				material_data.material->is_flag(material_resource::flags::shadow_caster))
 			{
 				//	‰eƒƒbƒVƒ…‚ª‚ ‚ê‚Î“o˜^
 				buffer_data.shadow_mesh.vertex_buffer_views = &mesh.shadow_mesh.vertex_buffer_views;

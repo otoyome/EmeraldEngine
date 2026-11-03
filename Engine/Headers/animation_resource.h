@@ -4,7 +4,7 @@
 #include <type_traits>
 
 #include "texture.h"
-#include "material.h"
+#include "material_resource.h"
 #include "ModelFormat/pmx_model.h"
 #include "collision/capsule.h"
 #include "collision/box.h"
