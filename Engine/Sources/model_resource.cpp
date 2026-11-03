@@ -29,9 +29,9 @@
 // CEREALバージョン定義
 CEREAL_CLASS_VERSION(model_resource::node, 1)
 CEREAL_CLASS_VERSION(model_resource::bone, 1)
-CEREAL_CLASS_VERSION(model_resource::mesh, 4)
+CEREAL_CLASS_VERSION(model_resource::mesh, 1)
 CEREAL_CLASS_VERSION(model_resource::mesh::meshlet, 1)
-CEREAL_CLASS_VERSION(model_resource::mesh::sub_mesh, 2)
+CEREAL_CLASS_VERSION(model_resource::mesh::sub_mesh, 1)
 CEREAL_CLASS_VERSION(model_resource::mesh::morph_mesh, 1)
 CEREAL_CLASS_VERSION(model_resource::capsule_shadow, 1)
 CEREAL_CLASS_VERSION(model_resource, 1)
@@ -97,30 +97,11 @@ void model_resource::bone::serialize(Archive& archive, int version)
 template<class Archive>
 void model_resource::mesh::sub_mesh::serialize(Archive& archive, int version)
 {
-	switch (version)
-	{
-		case 1:
-		{
-			archive(CEREAL_NVP(vertex_buffer_views),
-					CEREAL_NVP(index_buffer_view));
-			break;
-		}
-		case 2:
-		{
-			archive(CEREAL_NVP(vertex_buffer_views),
-					CEREAL_NVP(index_buffer_view),
-					CEREAL_NVP(meshlets),
-					CEREAL_NVP(meshlet_vertices),
-					CEREAL_NVP(meshlet_triangles));
-			break;
-		}
-		default:
-		{
-			archive(CEREAL_NVP(vertex_buffer_views),
-					CEREAL_NVP(index_buffer_view));
-			break;
-		}
-	}
+	archive(CEREAL_NVP(vertex_buffer_views),
+			CEREAL_NVP(index_buffer_view),
+			CEREAL_NVP(meshlets),
+			CEREAL_NVP(meshlet_vertices),
+			CEREAL_NVP(meshlet_triangles));
 }
 
 template<class Archive>
@@ -158,63 +139,19 @@ void model_resource::morph::serialize(Archive& archive, int version)
 template<class Archive>
 void model_resource::mesh::serialize(Archive& archive, int version)
 {
-	switch (version)
-	{
-		case 2:
-		{
-			archive(CEREAL_NVP(bones),
-					CEREAL_NVP(material_index),
-					CEREAL_NVP(node_index),
-					CEREAL_NVP(vertex_buffer_views),
-					CEREAL_NVP(index_buffer_view),
-					CEREAL_NVP(bounds_min),
-					CEREAL_NVP(bounds_max),
-					CEREAL_NVP(lod_meshs));
-			break;
-		}
-		case 3:
-		{
-			archive(CEREAL_NVP(bones),
-					CEREAL_NVP(material_index),
-					CEREAL_NVP(node_index),
-					CEREAL_NVP(vertex_buffer_views),
-					CEREAL_NVP(index_buffer_view),
-					CEREAL_NVP(morph_meshes),
-					CEREAL_NVP(morph_indices),
-					CEREAL_NVP(bounds_min),
-					CEREAL_NVP(bounds_max),
-					CEREAL_NVP(lod_meshs));
-			break;
-		}
-		case 4:
-		{
-			archive(CEREAL_NVP(bones),
-					CEREAL_NVP(material_index),
-					CEREAL_NVP(node_index),
-					CEREAL_NVP(vertex_buffer_views),
-					CEREAL_NVP(index_buffer_view),
-					CEREAL_NVP(morph_meshes),
-					CEREAL_NVP(morph_indices),
-					CEREAL_NVP(bounds_min),
-					CEREAL_NVP(bounds_max),
-					CEREAL_NVP(lod_meshs),
-					CEREAL_NVP(meshlets),
-					CEREAL_NVP(meshlet_vertices),
-					CEREAL_NVP(meshlet_triangles));
-			break;
-		}
-		default:
-		{
-			archive(CEREAL_NVP(bones),
-					CEREAL_NVP(material_index),
-					CEREAL_NVP(node_index),
-					CEREAL_NVP(vertex_buffer_views),
-					CEREAL_NVP(index_buffer_view),
-					CEREAL_NVP(bounds_min),
-					CEREAL_NVP(bounds_max));
-			break;
-		}
-	}
+	archive(CEREAL_NVP(bones),
+			CEREAL_NVP(material_index),
+			CEREAL_NVP(node_index),
+			CEREAL_NVP(vertex_buffer_views),
+			CEREAL_NVP(index_buffer_view),
+			CEREAL_NVP(morph_meshes),
+			CEREAL_NVP(morph_indices),
+			CEREAL_NVP(bounds_min),
+			CEREAL_NVP(bounds_max),
+			CEREAL_NVP(lod_meshs),
+			CEREAL_NVP(meshlets),
+			CEREAL_NVP(meshlet_vertices),
+			CEREAL_NVP(meshlet_triangles));
 }
 
 template<class Archive>
@@ -420,65 +357,40 @@ bool model_resource::load_file(std::string_view file_path, std::vector<resource:
 		file_stream.close();
 
 		resource::asset_file_header header;
-		const bool has_header = resource::read_asset_header(file_data.data(), file_data.size(), header);
-		if (has_header)
-			file_data.erase(file_data.begin(), file_data.begin() + resource::asset_file_header::size);
+		if (!resource::read_asset_header(file_data.data(), file_data.size(), header) || header.type != resource::asset_types::model)
+		{
+			DEBUG_ERROR_CATEGORY(logger::categorys::model, "model_resource invalid header[%s]", file_path.data());
+			return false;
+		}
+		file_data.erase(file_data.begin(), file_data.begin() + resource::asset_file_header::size);
 
 		std::vector<char> decompressed_data;
-		std::vector<char>* source_data = &file_data;
-		if (resource::is_compressed(file_data.data(), file_data.size()))
+		if (!resource::decompress(file_data.data(), file_data.size(), decompressed_data))
 		{
-			if (!resource::decompress(file_data.data(), file_data.size(), decompressed_data))
-			{
-				DEBUG_ERROR_CATEGORY(logger::categorys::model, "model_resource decompress failed[%s]", file_path.data());
-				return false;
-			}
-			std::vector<char>().swap(file_data);
-			source_data = &decompressed_data;
+			DEBUG_ERROR_CATEGORY(logger::categorys::model, "model_resource decompress failed[%s]", file_path.data());
+			return false;
 		}
+		std::vector<char>().swap(file_data);
 
-		resource::memory_streambuf stream_buffer(source_data->data(), source_data->size());
+		resource::memory_streambuf stream_buffer(decompressed_data.data(), decompressed_data.size());
 		std::istream istream(&stream_buffer);
 		cereal::BinaryInputArchive archive(istream);
 
 		try
 		{
-			std::uint64_t head = 0;
-			archive(head);
-			materials.clear();
-			out_material_references.clear();
-			if (head == file_signature)
+			std::uint64_t signature = 0;
+			std::uint32_t format_version = 0;
+			archive(signature, format_version);
+			if (signature != file_signature)
 			{
-				std::uint32_t format_version = 0;
-				archive(format_version);
-				if (format_version >= 3)
-				{
-					archive(out_material_references);
-				}
-				else
-				{
-					if (format_version == 2)
-						archive(get_uuid_for_serialize());
+				DEBUG_ERROR_CATEGORY(logger::categorys::model, "model_resource invalid signature[%s]", file_path.data());
+				return false;
+			}
 
-					std::vector<std::string> material_paths;
-					archive(material_paths);
-					for (auto& path : material_paths)
-					{
-						const universally_unique_identifier uuid = asset_registry::is_valid() && !path.empty() ? asset_registry::instance()->find_uuid(path) : universally_unique_identifier{};
-						out_material_references.push_back({ uuid, std::move(path) });
-					}
-				}
-				materials.resize(out_material_references.size());
-			}
-			else
-			{
-				for (std::uint64_t index = 0; index < head; ++index)
-				{
-					auto& material = materials.emplace_back(std::make_shared<::material_resource>());
-					archive(*material);
-				}
-				out_material_references.resize(materials.size());
-			}
+			out_material_references.clear();
+			archive(out_material_references);
+			materials.clear();
+			materials.resize(out_material_references.size());
 
 			archive(CEREAL_NVP(nodes),
 					CEREAL_NVP(meshes),
@@ -492,8 +404,7 @@ bool model_resource::load_file(std::string_view file_path, std::vector<resource:
 			return false;
 		}
 
-		if (has_header)
-			inherit_uuid(header.uuid);
+		inherit_uuid(header.uuid);
 		set_file_path(file_path);
 		DEBUG_LOG_CATEGORY(logger::categorys::model, "model_resource deserialize successed[%s]", file_path.data());
 		return true;

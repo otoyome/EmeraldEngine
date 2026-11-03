@@ -16,18 +16,16 @@
 
 #include "animation_data_version.h"
 
-#include "Resource/asset_registry.h"
-
 // CEREALバージョン定義
-CEREAL_CLASS_VERSION(particle::item::renderer::trails, 3)
+CEREAL_CLASS_VERSION(particle::item::renderer::trails, 1)
 CEREAL_CLASS_VERSION(particle::item::renderer::texcoords, 1)
-CEREAL_CLASS_VERSION(particle::item::renderer::colors, 2)
-CEREAL_CLASS_VERSION(particle::item::renderer, 3)
+CEREAL_CLASS_VERSION(particle::item::renderer::colors, 1)
+CEREAL_CLASS_VERSION(particle::item::renderer, 1)
 
 CEREAL_CLASS_VERSION(particle::item::spawn, 1)
-CEREAL_CLASS_VERSION(particle::item::velocity, 2)
+CEREAL_CLASS_VERSION(particle::item::velocity, 1)
 CEREAL_CLASS_VERSION(particle::item::attract, 1)
-CEREAL_CLASS_VERSION(particle::item::event, 2)
+CEREAL_CLASS_VERSION(particle::item::event, 1)
 
 CEREAL_CLASS_VERSION(particle::data, 1);
 
@@ -42,25 +40,7 @@ void particle::item::renderer::trails::set_state(states flag, bool value)
 template<class Archive>
 void particle::item::renderer::trails::serialize(Archive& archive, int version)
 {
-	switch (version)
-	{
-		case 1:
-		{
-			archive(max);
-			break;
-		}
-		case 2:
-		{
-			math::float2 unused_time_fade_rate;
-			archive(state, max, unused_time_fade_rate);
-			break;
-		}
-		case 3:
-		{
-			archive(state, max);
-			break;
-		}
-	}
+	archive(state, max);
 }
 
 bool particle::item::renderer::texcoords::is_state(states flag) const
@@ -88,19 +68,7 @@ void particle::item::renderer::colors::set_state(states flag, bool value)
 template<class Archive>
 void particle::item::renderer::colors::serialize(Archive& archive, int version)
 {
-	switch (version)
-	{
-		case 1:
-		{
-			archive(state, color_min, color_max);
-			break;
-		}
-		case 2:
-		{
-			archive(state, color_min, color_max, fade_range);
-			break;
-		}
-	}
+	archive(state, color_min, color_max, fade_range);
 }
 
 bool particle::item::renderer::is_state(states flag) const
@@ -114,26 +82,7 @@ void particle::item::renderer::set_state(states flag, bool value)
 template<class Archive>
 void particle::item::renderer::serialize(Archive& archive, int version)
 {
-	if constexpr (Archive::is_saving::value)
-	{
-		archive(state, type, total_particle_count, material, trail, uv, color);
-	}
-	else if (version < 2)
-	{
-		archive(state, type, total_particle_count);
-		material = material_resource::load_embedded_legacy(archive);
-		archive(trail, uv, color);
-	}
-	else if (version < 3)
-	{
-		std::string path;
-		archive(state, type, total_particle_count, path, trail, uv, color);
-		material.set_legacy_path(std::move(path));
-	}
-	else
-	{
-		archive(state, type, total_particle_count, material, trail, uv, color);
-	}
+	archive(state, type, total_particle_count, material, trail, uv, color);
 }
 
 bool particle::item::spawn::is_state(states flag) const
@@ -161,28 +110,11 @@ void particle::item::velocity::set_state(states flag, bool value)
 template<class Archive>
 void particle::item::velocity::serialize(Archive& archive, int version)
 {
-	switch (version)
-	{
-		case 1:
-		{
-			math::float3 unused_deceleration_min, unused_deceleration_max;
-			archive(state,
-					direction, angle_range, power_range,
-					acceleration_min, acceleration_max,
-					unused_deceleration_min, unused_deceleration_max,
-					gravity_scale);
-			break;
-		}
-		case 2:
-		{
-			archive(state,
-					direction, angle_range, power_range,
-					acceleration_min, acceleration_max,
-					damping_min, damping_max,
-					gravity_scale);
-			break;
-		}
-	}
+	archive(state,
+			direction, angle_range, power_range,
+			acceleration_min, acceleration_max,
+			damping_min, damping_max,
+			gravity_scale);
 }
 
 template<class Archive>
@@ -206,19 +138,7 @@ void particle::item::event::set_state(states flag, bool value)
 template<class Archive>
 void particle::item::event::serialize(Archive& archive, int version)
 {
-	switch (version)
-	{
-		case 1:
-		{
-			archive(node_name, radius);
-			break;
-		}
-		case 2:
-		{
-			archive(state, node_name, radius);
-			break;
-		}
-	}
+	archive(state, node_name, radius);
 }
 
 

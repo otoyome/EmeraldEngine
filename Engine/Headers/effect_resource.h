@@ -115,7 +115,7 @@ private:
 
 private:
 	static constexpr std::uint64_t file_signature = 0x454D455F48454144ull;
-	static constexpr std::uint32_t file_format_version = 2;	//	@tool 2:UUID はファイル先頭のヘッダーへ移動
+	static constexpr std::uint32_t file_format_version = 1;
 
 	std::vector<node> nodes;					//	ノード情報
 	std::vector<model> models;					//	モデル情報

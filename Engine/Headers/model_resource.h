@@ -211,7 +211,7 @@ private:
 
 private:
 	static constexpr std::uint64_t file_signature = 0x454D4F5F4D415452ull;
-	static constexpr std::uint32_t file_format_version = 3;	//	@tool 3:UUID はファイル先頭のヘッダーへ移動し、マテリアルを UUID で参照
+	static constexpr std::uint32_t file_format_version = 1;
 
 	std::vector<material_resource_ptr> materials;
 	std::vector<node> nodes;

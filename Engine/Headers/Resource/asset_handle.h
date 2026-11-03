@@ -5,7 +5,6 @@
 #include <string_view>
 
 #include "Resource/asset_reference.h"
-#include "Resource/asset_registry.h"
 
 namespace resource
 {
@@ -30,12 +29,6 @@ namespace resource
 		{
 			resource.reset();
 			reference = std::move(value);
-		}
-
-		void set_legacy_path(std::string path)
-		{
-			const universally_unique_identifier uuid = ::asset_registry::is_valid() && !path.empty() ? ::asset_registry::instance()->find_uuid(path) : universally_unique_identifier{};
-			set_reference({ uuid, std::move(path) });
 		}
 
 		asset_reference<Type> get_reference() const

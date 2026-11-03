@@ -90,7 +90,7 @@ CEREAL_CLASS_VERSION(material_resource::constant_buffer, 1)
 CEREAL_CLASS_VERSION(material_resource::shader_resource, 1)
 CEREAL_CLASS_VERSION(material_resource::shader_resource::resource, 1)
 CEREAL_CLASS_VERSION(material_resource::physical_datas, 1)
-CEREAL_CLASS_VERSION(material_resource, 5)
+CEREAL_CLASS_VERSION(material_resource, 1)
 
 template<class Archive>
 void material_resource::pipeline_state::serialize(Archive& archive, int version)
@@ -209,24 +209,11 @@ void material_resource::serialize(Archive& archive, int version)
 			CEREAL_NVP(translucency_path),
 			CEREAL_NVP(system_flags),
 			CEREAL_NVP(alpha_clip_threshold),
-			CEREAL_NVP(physical_data));
-
-	//	@tool 旧形式は PSO 名を持つ(版3は system ドメインだけ)。今の形式では保存しない
-	if constexpr (Archive::is_loading::value)
-	{
-		if (version < 3 || (version == 3 && domain == domains::system))
-			archive(CEREAL_NVP(pipeline_states));
-	}
-
-	archive(CEREAL_NVP(shader_resources),
-			CEREAL_NVP(constant_buffers));
-
-	//	@tool 版2より前はマテリアルシェーダーと静的スイッチを持たない
-	if (version >= 2)
-		archive(CEREAL_NVP(shader_path), CEREAL_NVP(static_switches));
-
-	if (version == 4)
-		archive(cereal::make_nvp("uuid", get_uuid_for_serialize()));
+			CEREAL_NVP(physical_data),
+			CEREAL_NVP(shader_resources),
+			CEREAL_NVP(constant_buffers),
+			CEREAL_NVP(shader_path),
+			CEREAL_NVP(static_switches));
 }
 
 //	モデル・エフェクトのファイルはバイナリで読み書きする
@@ -1141,23 +1128,21 @@ bool material_resource::load_file(std::string_view file_path)
 	file_stream.close();
 
 	::resource::asset_file_header header;
-	const bool has_header = ::resource::read_asset_header(file_data.data(), file_data.size(), header);
-	if (has_header)
-		file_data.erase(file_data.begin(), file_data.begin() + ::resource::asset_file_header::size);
+	if (!::resource::read_asset_header(file_data.data(), file_data.size(), header) || header.type != ::resource::asset_types::material)
+	{
+		DEBUG_ERROR_CATEGORY(logger::categorys::model, "material_resource invalid header[%s]", std::string(file_path).c_str());
+		return false;
+	}
+	file_data.erase(file_data.begin(), file_data.begin() + ::resource::asset_file_header::size);
 
 	std::vector<char> decompressed_data;
-	std::vector<char>* source_data = &file_data;
-	if (::resource::is_compressed(file_data.data(), file_data.size()))
+	if (!::resource::decompress(file_data.data(), file_data.size(), decompressed_data))
 	{
-		if (!::resource::decompress(file_data.data(), file_data.size(), decompressed_data))
-		{
-			DEBUG_ERROR_CATEGORY(logger::categorys::model, "material_resource decompress failed[%s]", std::string(file_path).c_str());
-			return false;
-		}
-		source_data = &decompressed_data;
+		DEBUG_ERROR_CATEGORY(logger::categorys::model, "material_resource decompress failed[%s]", std::string(file_path).c_str());
+		return false;
 	}
 
-	::resource::memory_streambuf stream_buffer(source_data->data(), source_data->size());
+	::resource::memory_streambuf stream_buffer(decompressed_data.data(), decompressed_data.size());
 	std::istream istream(&stream_buffer);
 	try
 	{
@@ -1170,8 +1155,7 @@ bool material_resource::load_file(std::string_view file_path)
 		return false;
 	}
 
-	if (has_header)
-		inherit_uuid(header.uuid);
+	inherit_uuid(header.uuid);
 	set_file_path(file_path);
 	missing = false;
 	return true;
@@ -1217,6 +1201,7 @@ bool material_resource::save_file(std::string_view file_path)
 	}
 	::resource::asset_file_header header;
 	header.type = ::resource::asset_types::material;
+	header.version = file_format_version;
 	header.uuid = get_uuid();
 	::resource::write_asset_header(ostream, header);
 	ostream.write(file_data.data(), static_cast<std::streamsize>(file_data.size()));

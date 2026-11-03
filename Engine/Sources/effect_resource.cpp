@@ -27,8 +27,8 @@
 
 // CEREALバージョン定義
 CEREAL_CLASS_VERSION(effect_resource::node, 1)
-CEREAL_CLASS_VERSION(effect_resource::model, 3)
-CEREAL_CLASS_VERSION(effect_resource::decal, 3)
+CEREAL_CLASS_VERSION(effect_resource::model, 1)
+CEREAL_CLASS_VERSION(effect_resource::decal, 1)
 CEREAL_CLASS_VERSION(effect_resource::particle, 1)
 CEREAL_CLASS_VERSION(effect_resource, 1)
 
@@ -46,27 +46,7 @@ bool effect_resource::model::is_valid() const
 template<class Archive>
 void effect_resource::model::serialize(Archive& archive, int version)
 {
-	if constexpr (Archive::is_saving::value)
-	{
-		archive(node_index, resource);
-	}
-	else if (version < 2)
-	{
-		std::string file_path;
-		archive(node_index, file_path);
-		resource.set_legacy_path(std::move(file_path));
-	}
-	else if (version < 3)
-	{
-		std::string file_path;
-		universally_unique_identifier uuid;
-		archive(node_index, file_path, uuid);
-		resource.set_reference({ uuid, std::move(file_path) });
-	}
-	else
-	{
-		archive(node_index, resource);
-	}
+	archive(node_index, resource);
 }
 
 bool effect_resource::decal::is_valid() const
@@ -77,25 +57,7 @@ bool effect_resource::decal::is_valid() const
 template<class Archive>
 void effect_resource::decal::serialize(Archive& archive, int version)
 {
-	if constexpr (Archive::is_saving::value)
-	{
-		archive(node_index, material);
-	}
-	else if (version < 2)
-	{
-		archive(node_index);
-		material = material_resource::load_embedded_legacy(archive);
-	}
-	else if (version < 3)
-	{
-		std::string path;
-		archive(node_index, path);
-		material.set_legacy_path(std::move(path));
-	}
-	else
-	{
-		archive(node_index, material);
-	}
+	archive(node_index, material);
 }
 
 bool effect_resource::particle::is_valid() const
@@ -268,37 +230,27 @@ bool effect_resource::load_file(std::string_view file_path)
 	if(istream.is_open())
 	{
 		resource::asset_file_header header;
-		const bool has_header = resource::read_asset_header(istream, header);
-		if (!has_header)
+		if (!resource::read_asset_header(istream, header) || header.type != resource::asset_types::effect)
 		{
-			istream.clear();
-			istream.seekg(0, std::ios::beg);
+			DEBUG_ERROR_CATEGORY(logger::categorys::model, "effect_resource invalid header[%s]", file_path.data());
+			return false;
 		}
 
 		cereal::BinaryInputArchive archive(istream);
 
 		try
 		{
-			std::uint64_t head = 0;
-			archive(head);
-			if (head == file_signature)
+			std::uint64_t signature = 0;
+			std::uint32_t format_version = 0;
+			archive(signature, format_version);
+			if (signature != file_signature)
 			{
-				std::uint32_t format_version = 0;
-				archive(format_version);
-				if (format_version == 1)
-					archive(get_uuid_for_serialize());
-				archive(CEREAL_NVP(nodes));
-			}
-			else
-			{
-				nodes.resize(static_cast<size_t>(head));
-				for (auto& node_data : nodes)
-				{
-					archive(node_data);
-				}
+				DEBUG_ERROR_CATEGORY(logger::categorys::model, "effect_resource invalid signature[%s]", file_path.data());
+				return false;
 			}
 
-			archive(CEREAL_NVP(models),
+			archive(CEREAL_NVP(nodes),
+					CEREAL_NVP(models),
 					CEREAL_NVP(particles),
 					CEREAL_NVP(decals),
 					CEREAL_NVP(animations));
@@ -309,8 +261,7 @@ bool effect_resource::load_file(std::string_view file_path)
 			return false;
 		}
 
-		if (has_header)
-			inherit_uuid(header.uuid);
+		inherit_uuid(header.uuid);
 		set_file_path(file_path);
 		DEBUG_LOG_CATEGORY(logger::categorys::model, "effect_resource deserialize successed[%s]", file_path.data());
 		return true;
