@@ -7,6 +7,7 @@
 
 #include "Resource/resource_base.h"
 #include "Resource/resource_loader.h"
+#include "Resource/asset_reference.h"
 
 class gpu_upload_list;
 
@@ -242,14 +243,14 @@ public:
 	bool revert_file();
 
 	//	参照先の .emr が無い時の代わりのマテリアル
-	static std::shared_ptr<material_resource> create_missing(std::string_view file_path, domains domain);
+	static std::shared_ptr<material_resource> create_missing(const resource::asset_reference<material_resource>& reference, domains domain);
 	bool is_missing() const { return missing; }
 
 	//	.emr の非同期読込を要求する
-	static resource::load_operation_ptr<material_resource> request_load(std::string_view file_path);
+	static resource::load_operation_ptr<material_resource> request_load(const resource::asset_reference<material_resource>& reference);
 
 	//	読込結果を取り出す。失敗していれば代わりのマテリアルを作る
-	static std::shared_ptr<material_resource> resolve(const resource::load_operation_ptr<material_resource>& operation, std::string_view file_path, domains domain);
+	static std::shared_ptr<material_resource> resolve(const resource::load_operation_ptr<material_resource>& operation, const resource::asset_reference<material_resource>& reference, domains domain);
 
 	//	自分のパスへ .emr として保存し、同じパスの読込で共有されるよう登録する
 	//	代わりのマテリアルは保存しない。パスが無ければ失敗する(パスはコンバート時に付ける)

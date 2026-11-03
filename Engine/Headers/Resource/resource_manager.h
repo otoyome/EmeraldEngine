@@ -18,6 +18,8 @@
 #include "Resource/resource_operation_state.h"
 #include "Resource/resource_operation.h"
 #include "Resource/resource_loader.h"
+#include "Resource/asset_reference.h"
+#include "Resource/asset_registry.h"
 
 //	リソース管理クラス
 class resource_manager
@@ -61,6 +63,13 @@ public:
 		return operation;
 	}
 
+	template<class Type, class Loader = resource::loader<Type>>
+	[[nodiscard]] resource::load_operation_ptr<Type> load_async(const resource::asset_reference<Type>& reference, resource::load_priority priority = resource::load_priority::normal, bool force_load = false)
+	{
+		const std::string file_path = asset_registry::is_valid() ? asset_registry::instance()->resolve_path(reference.uuid, reference.path) : reference.path;
+		return load_async<Type, Loader>(std::string_view(file_path), priority, force_load);
+	}
+
 	//	読込済みリソースの検索
 	template<class Type>
 	[[nodiscard]] std::shared_ptr<Type> search(std::string_view file_path)
@@ -87,6 +96,8 @@ public:
 	void remove_expired_caches();
 
 	bool is_main_thread() const { return std::this_thread::get_id() == main_thread_id; }
+
+	static std::wstring make_path_key(std::string_view file_path);
 
 #if defined(USE_IMGUI)
 	void imgui_render();

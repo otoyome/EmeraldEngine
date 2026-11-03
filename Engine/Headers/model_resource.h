@@ -13,6 +13,7 @@
 
 #include "Resource/resource_base.h"
 #include "Resource/resource_loader.h"
+#include "Resource/asset_reference.h"
 
 class model_resource;
 
@@ -204,13 +205,13 @@ public:
 private:
 	//	ファイル読込(ワーカースレッドから呼ばれる)。参照するマテリアルのパスを返す
 	//	旧形式(マテリアルを中に持つ)の場合はパスが空になり、materials に読み込まれる
-	bool load_file(std::string_view file_path, std::vector<std::string>& out_material_paths);
+	bool load_file(std::string_view file_path, std::vector<resource::asset_reference<material_resource>>& out_material_references);
 
 	void build_model();
 
 private:
 	static constexpr std::uint64_t file_signature = 0x454D4F5F4D415452ull;
-	static constexpr std::uint32_t file_format_version = 2;
+	static constexpr std::uint32_t file_format_version = 3;	//	@tool 3:UUID はファイル先頭のヘッダーへ移動し、マテリアルを UUID で参照
 
 	std::vector<material_resource_ptr> materials;
 	std::vector<node> nodes;
@@ -234,7 +235,7 @@ namespace resource
 
 	private:
 		model_resource_ptr resource;
-		std::vector<std::string> material_paths;
+		std::vector<asset_reference<material_resource>> material_references;
 		std::vector<load_operation_ptr<material_resource>> material_operations;
 	};
 }	//	namespace resource

@@ -17,6 +17,7 @@
 
 #include "Resource/data_compression.h"
 #include "Resource/resource_manager.h"
+#include "Resource/asset_file_header.h"
 
 #if defined(USE_IMGUI)
 #include "data_converter.h"
@@ -338,8 +339,8 @@ bool model_resource::serialize(std::string_view file_path)
 #if defined(USE_IMGUI)
 	data_converter::assign_material_paths(materials, file_path);
 #endif	//	defined(USE_IMGUI)
-	std::vector<std::string> material_paths;
-	material_paths.reserve(materials.size());
+	std::vector<resource::asset_reference<material_resource>> material_references;
+	material_references.reserve(materials.size());
 	for (auto& material : materials)
 	{
 		if (material && !material_resource::save_asset(material))
@@ -347,8 +348,11 @@ bool model_resource::serialize(std::string_view file_path)
 			DEBUG_LOG_CATEGORY(logger::categorys::model, "model_resource material save failed[%s][%s]", file_path.data(), material->get_name().data());
 			return false;
 		}
-		material_paths.emplace_back(material ? std::string(material->get_file_path()) : std::string());
+		material_references.emplace_back(resource::asset_reference<material_resource>::from(material));
 	}
+
+	if (asset_registry::is_valid())
+		asset_registry::instance()->prepare_save(*this, file_path);
 
 	std::ostringstream buffer_stream(std::ios::binary);
 	{
@@ -356,7 +360,7 @@ bool model_resource::serialize(std::string_view file_path)
 
 		try
 		{
-			archive(file_signature, file_format_version, get_uuid_for_serialize(), material_paths);
+			archive(file_signature, file_format_version, material_references);
 
 			archive(CEREAL_NVP(nodes),
 					CEREAL_NVP(meshes),
@@ -382,6 +386,11 @@ bool model_resource::serialize(std::string_view file_path)
 	std::ofstream ostream(file_path.data(), std::ios::binary);
 	if(ostream.is_open())
 	{
+		resource::asset_file_header header;
+		header.type = resource::asset_types::model;
+		header.version = file_format_version;
+		header.uuid = get_uuid();
+		resource::write_asset_header(ostream, header);
 		ostream.write(file_data.data(), static_cast<std::streamsize>(file_data.size()));
 		if (!ostream.good())
 		{
@@ -389,6 +398,8 @@ bool model_resource::serialize(std::string_view file_path)
 			return false;
 		}
 
+		if (asset_registry::is_valid())
+			asset_registry::instance()->register_asset(get_uuid(), header.type, file_path);
 		DEBUG_LOG_CATEGORY(logger::categorys::model, "model_resource serialize successed[%s]", file_path.data());
 		return true;
 	}
@@ -397,7 +408,7 @@ bool model_resource::serialize(std::string_view file_path)
 	return false;
 }
 
-bool model_resource::load_file(std::string_view file_path, std::vector<std::string>& out_material_paths)
+bool model_resource::load_file(std::string_view file_path, std::vector<resource::asset_reference<material_resource>>& out_material_references)
 {
 	std::ifstream file_stream(file_path.data(), std::ios::binary);
 	if(file_stream.is_open())
@@ -407,6 +418,11 @@ bool model_resource::load_file(std::string_view file_path, std::vector<std::stri
 		file_stream.seekg(0, std::ios::beg);
 		file_stream.read(file_data.data(), static_cast<std::streamsize>(file_data.size()));
 		file_stream.close();
+
+		resource::asset_file_header header;
+		const bool has_header = resource::read_asset_header(file_data.data(), file_data.size(), header);
+		if (has_header)
+			file_data.erase(file_data.begin(), file_data.begin() + resource::asset_file_header::size);
 
 		std::vector<char> decompressed_data;
 		std::vector<char>* source_data = &file_data;
@@ -430,15 +446,29 @@ bool model_resource::load_file(std::string_view file_path, std::vector<std::stri
 			std::uint64_t head = 0;
 			archive(head);
 			materials.clear();
-			out_material_paths.clear();
+			out_material_references.clear();
 			if (head == file_signature)
 			{
 				std::uint32_t format_version = 0;
 				archive(format_version);
-				if (format_version >= 2)
-					archive(get_uuid_for_serialize());
-				archive(out_material_paths);
-				materials.resize(out_material_paths.size());
+				if (format_version >= 3)
+				{
+					archive(out_material_references);
+				}
+				else
+				{
+					if (format_version == 2)
+						archive(get_uuid_for_serialize());
+
+					std::vector<std::string> material_paths;
+					archive(material_paths);
+					for (auto& path : material_paths)
+					{
+						const universally_unique_identifier uuid = asset_registry::is_valid() && !path.empty() ? asset_registry::instance()->find_uuid(path) : universally_unique_identifier{};
+						out_material_references.push_back({ uuid, std::move(path) });
+					}
+				}
+				materials.resize(out_material_references.size());
 			}
 			else
 			{
@@ -447,7 +477,7 @@ bool model_resource::load_file(std::string_view file_path, std::vector<std::stri
 					auto& material = materials.emplace_back(std::make_shared<::material_resource>());
 					archive(*material);
 				}
-				out_material_paths.resize(materials.size());
+				out_material_references.resize(materials.size());
 			}
 
 			archive(CEREAL_NVP(nodes),
@@ -462,6 +492,8 @@ bool model_resource::load_file(std::string_view file_path, std::vector<std::stri
 			return false;
 		}
 
+		if (has_header)
+			inherit_uuid(header.uuid);
 		set_file_path(file_path);
 		DEBUG_LOG_CATEGORY(logger::categorys::model, "model_resource deserialize successed[%s]", file_path.data());
 		return true;
@@ -594,14 +626,14 @@ namespace resource
 		}
 
 		resource = std::make_shared<model_resource>();
-		if (!resource->load_file(file_path, material_paths))
+		if (!resource->load_file(file_path, material_references))
 			return operation_state::deserialize_failed;
 
 		//	参照するマテリアルを依存リソースとして読み込む
-		material_operations.resize(material_paths.size());
-		for (size_t index = 0; index < material_paths.size(); ++index)
+		material_operations.resize(material_references.size());
+		for (size_t index = 0; index < material_references.size(); ++index)
 		{
-			material_operations[index] = material_resource::request_load(material_paths[index]);
+			material_operations[index] = material_resource::request_load(material_references[index]);
 			add_dependency(material_operations[index]);
 		}
 		return operation_state::success;
@@ -609,10 +641,10 @@ namespace resource
 
 	operation_state loader<model_resource>::build()
 	{
-		for (size_t index = 0; index < material_paths.size(); ++index)
+		for (size_t index = 0; index < material_references.size(); ++index)
 		{
-			if (!material_paths[index].empty())
-				resource->materials[index] = material_resource::resolve(material_operations[index], material_paths[index], material_resource::domains::surface);
+			if (!material_references[index].is_empty())
+				resource->materials[index] = material_resource::resolve(material_operations[index], material_references[index], material_resource::domains::surface);
 		}
 		material_operations.clear();
 

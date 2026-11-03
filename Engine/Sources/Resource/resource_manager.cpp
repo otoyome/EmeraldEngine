@@ -155,6 +155,21 @@ void resource_manager::remove_expired_caches()
 
 std::wstring resource_manager::make_key(std::string_view file_path)
 {
+	//	UUID が引けるアセットは UUID をキーにする(移動・名前変更しても同じリソースになる)
+	if (asset_registry::is_valid())
+	{
+		const universally_unique_identifier uuid = asset_registry::instance()->find_uuid(file_path);
+		if (!uuid.is_empty())
+		{
+			const std::string text = uuid.to_string();
+			return L"uuid:" + std::wstring(text.begin(), text.end());
+		}
+	}
+	return make_path_key(file_path);
+}
+
+std::wstring resource_manager::make_path_key(std::string_view file_path)
+{
 	//	区切り文字/相対表記/大文字小文字の違いを吸収する
 	//	SJISの2バイト目に'\\'等が含まれるため、バイト単位ではなくワイド文字に変換してから正規化する
 	std::wstring key;
@@ -640,6 +655,12 @@ void resource_manager::imgui_render()
 			const char* phase_name = target.phase == request_phases::pending ? "pending" : target.phase == request_phases::loading ? "loading" : "loaded";
 			ImGui::Text("%s [%s][%s] waiters:%zu", system_utility::convert_utf8(target.file_path).data(), phase_name, resource::to_string(target.priority), target.waiters.size());
 		}
+		ImGui::TreePop();
+	}
+
+	if (asset_registry::is_valid() && ImGui::TreeNode("assets"))
+	{
+		asset_registry::instance()->imgui_render();
 		ImGui::TreePop();
 	}
 }

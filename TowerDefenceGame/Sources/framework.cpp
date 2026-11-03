@@ -331,6 +331,8 @@ bool framework::initialize()
 		post_process_volume_manager::create_instance();
 		camera_manager::create_instance();
 		model_buffer_pool_manager::create_instance();
+		asset_registry::create_instance();
+		asset_registry::instance()->scan();
 		resource_manager::create_instance();
 		model_resource_manager::create_instance();
 		model_instance_manger::create_instance();
@@ -1103,6 +1105,7 @@ bool framework::uninitialize()
 		effect_resource_manager::delete_instance();
 		model_instance_manger::delete_instance();
 		resource_manager::delete_instance();
+		asset_registry::delete_instance();
 		model_resource_manager::delete_instance();
 		model_buffer_pool_manager::delete_instance();
 		camera_manager::delete_instance();

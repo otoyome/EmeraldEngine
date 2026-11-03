@@ -9,6 +9,7 @@
 
 #include "Resource/resource_manager.h"
 #include "Resource/data_compression.h"
+#include "Resource/asset_file_header.h"
 
 #include "cereal/archives/binary.hpp"
 #include "cereal/archives/json.hpp"
@@ -89,7 +90,7 @@ CEREAL_CLASS_VERSION(material_resource::constant_buffer, 1)
 CEREAL_CLASS_VERSION(material_resource::shader_resource, 1)
 CEREAL_CLASS_VERSION(material_resource::shader_resource::resource, 1)
 CEREAL_CLASS_VERSION(material_resource::physical_datas, 1)
-CEREAL_CLASS_VERSION(material_resource, 4)
+CEREAL_CLASS_VERSION(material_resource, 5)
 
 template<class Archive>
 void material_resource::pipeline_state::serialize(Archive& archive, int version)
@@ -214,7 +215,7 @@ void material_resource::serialize(Archive& archive, int version)
 			CEREAL_NVP(shader_path),
 			CEREAL_NVP(static_switches));
 
-	if (version >= 4)
+	if (version == 4)
 		archive(cereal::make_nvp("uuid", get_uuid_for_serialize()));
 }
 
@@ -1129,6 +1130,11 @@ bool material_resource::load_file(std::string_view file_path)
 	std::vector<char> file_data((std::istreambuf_iterator<char>(file_stream)), std::istreambuf_iterator<char>());
 	file_stream.close();
 
+	::resource::asset_file_header header;
+	const bool has_header = ::resource::read_asset_header(file_data.data(), file_data.size(), header);
+	if (has_header)
+		file_data.erase(file_data.begin(), file_data.begin() + ::resource::asset_file_header::size);
+
 	std::vector<char> decompressed_data;
 	std::vector<char>* source_data = &file_data;
 	if (::resource::is_compressed(file_data.data(), file_data.size()))
@@ -1154,6 +1160,8 @@ bool material_resource::load_file(std::string_view file_path)
 		return false;
 	}
 
+	if (has_header)
+		inherit_uuid(header.uuid);
 	set_file_path(file_path);
 	missing = false;
 	return true;
@@ -1161,6 +1169,9 @@ bool material_resource::load_file(std::string_view file_path)
 
 bool material_resource::save_file(std::string_view file_path)
 {
+	if (asset_registry::is_valid())
+		asset_registry::instance()->prepare_save(*this, file_path);
+
 	std::ostringstream buffer_stream(std::ios::binary);
 	try
 	{
@@ -1194,6 +1205,10 @@ bool material_resource::save_file(std::string_view file_path)
 		DEBUG_ERROR_CATEGORY(logger::categorys::model, "material_resource open failed[%s]", std::string(file_path).c_str());
 		return false;
 	}
+	::resource::asset_file_header header;
+	header.type = ::resource::asset_types::material;
+	header.uuid = get_uuid();
+	::resource::write_asset_header(ostream, header);
 	ostream.write(file_data.data(), static_cast<std::streamsize>(file_data.size()));
 	if (!ostream.good())
 	{
@@ -1203,6 +1218,8 @@ bool material_resource::save_file(std::string_view file_path)
 
 	set_file_path(file_path);
 	missing = false;
+	if (asset_registry::is_valid())
+		asset_registry::instance()->register_asset(get_uuid(), header.type, file_path);
 	DEBUG_LOG_CATEGORY(logger::categorys::model, "material_resource serialize successed[%s]", std::string(file_path).c_str());
 	return true;
 }
@@ -1220,34 +1237,35 @@ bool material_resource::revert_file()
 	return true;
 }
 
-material_resource_ptr material_resource::create_missing(std::string_view file_path, domains domain)
+material_resource_ptr material_resource::create_missing(const ::resource::asset_reference<material_resource>& reference, domains domain)
 {
-	DEBUG_ERROR_CATEGORY(logger::categorys::model, "material_resource missing[%s]", std::string(file_path).c_str());
+	DEBUG_ERROR_CATEGORY(logger::categorys::model, "material_resource missing[%s][%s]", reference.path.c_str(), reference.uuid.to_string().c_str());
 
-	auto material = std::make_shared<material_resource>(std::filesystem::path(std::string(file_path)).stem().string());
+	auto material = std::make_shared<material_resource>(std::filesystem::path(reference.path).stem().string());
 	material->set_domain(domain);
 	material->set_shader_path(get_failed_shader_path(domain));
-	material->set_file_path(file_path);
+	material->set_file_path(reference.path);
+	material->inherit_uuid(reference.uuid);
 	material->missing = true;
 	material->build();
 	return material;
 }
 
-::resource::load_operation_ptr<material_resource> material_resource::request_load(std::string_view file_path)
+::resource::load_operation_ptr<material_resource> material_resource::request_load(const ::resource::asset_reference<material_resource>& reference)
 {
-	if (file_path.empty() || !resource_manager::is_valid())
+	if (reference.is_empty() || !resource_manager::is_valid())
 		return nullptr;
-	return resource_manager::instance()->load_async<material_resource>(file_path, ::resource::load_priority::high);
+	return resource_manager::instance()->load_async(reference, ::resource::load_priority::high);
 }
 
-material_resource_ptr material_resource::resolve(const ::resource::load_operation_ptr<material_resource>& operation, std::string_view file_path, domains domain)
+material_resource_ptr material_resource::resolve(const ::resource::load_operation_ptr<material_resource>& operation, const ::resource::asset_reference<material_resource>& reference, domains domain)
 {
 	if (operation && operation->is_succeeded())
 	{
 		if (auto material = operation->get_resource())
 			return material;
 	}
-	return create_missing(file_path, domain);
+	return create_missing(reference, domain);
 }
 
 bool material_resource::save_asset(const material_resource_ptr& material)

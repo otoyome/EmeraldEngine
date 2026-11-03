@@ -312,6 +312,15 @@
     <ClInclude Include="Headers\System\simple_helper.h">
       <Filter>Headers\System</Filter>
     </ClInclude>
+    <ClInclude Include="Headers\Resource\asset_file_header.h">
+      <Filter>Headers\Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Resource\asset_reference.h">
+      <Filter>Headers\Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Resource\asset_registry.h">
+      <Filter>Headers\Resource</Filter>
+    </ClInclude>
     <ClInclude Include="Headers\Resource\resource_base.h">
       <Filter>Headers\Resource</Filter>
     </ClInclude>
@@ -499,6 +508,12 @@
     </ClCompile>
     <ClCompile Include="Sources\model_resource_utility.cpp">
       <Filter>Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Resource\asset_file_header.cpp">
+      <Filter>Sources\Resource</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Resource\asset_registry.cpp">
+      <Filter>Sources\Resource</Filter>
     </ClCompile>
     <ClCompile Include="Sources\Resource\resource_manager.cpp">
       <Filter>Sources\Resource</Filter>

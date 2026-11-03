@@ -16,11 +16,13 @@
 
 #include "animation_data_version.h"
 
+#include "Resource/asset_registry.h"
+
 // CEREALバージョン定義
 CEREAL_CLASS_VERSION(particle::item::renderer::trails, 3)
 CEREAL_CLASS_VERSION(particle::item::renderer::texcoords, 1)
 CEREAL_CLASS_VERSION(particle::item::renderer::colors, 2)
-CEREAL_CLASS_VERSION(particle::item::renderer, 2)
+CEREAL_CLASS_VERSION(particle::item::renderer, 3)
 
 CEREAL_CLASS_VERSION(particle::item::spawn, 1)
 CEREAL_CLASS_VERSION(particle::item::velocity, 2)
@@ -120,12 +122,18 @@ void particle::item::renderer::serialize(Archive& archive, int version)
 
 	if constexpr (Archive::is_saving::value)
 	{
-		std::string path = material ? std::string(material->get_file_path()) : material_path;
+		const auto reference = material ? ::resource::asset_reference<material_resource>::from(material) : material_reference;
+		archive(state, type, total_particle_count, reference, trail, uv, color);
+	}
+	else if (version < 3)
+	{
+		std::string path;
 		archive(state, type, total_particle_count, path, trail, uv, color);
+		material_reference = { asset_registry::is_valid() && !path.empty() ? asset_registry::instance()->find_uuid(path) : universally_unique_identifier{}, std::move(path) };
 	}
 	else
 	{
-		archive(state, type, total_particle_count, material_path, trail, uv, color);
+		archive(state, type, total_particle_count, material_reference, trail, uv, color);
 	}
 }
 

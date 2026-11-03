@@ -51,6 +51,7 @@ public:
 	{
 		size_t node_index = -1;
 		std::string file_path;
+		universally_unique_identifier model_uuid;
 		model_resource_ptr resource;
 
 		bool is_valid() const;
@@ -63,7 +64,7 @@ public:
 	{
 		size_t node_index = -1;
 		std::shared_ptr<material_resource> material;
-		std::string material_path;
+		::resource::asset_reference<material_resource> material_reference;
 
 		bool is_valid() const;
 
@@ -116,7 +117,7 @@ private:
 
 private:
 	static constexpr std::uint64_t file_signature = 0x454D455F48454144ull;
-	static constexpr std::uint32_t file_format_version = 1;
+	static constexpr std::uint32_t file_format_version = 2;	//	@tool 2:UUID はファイル先頭のヘッダーへ移動
 
 	std::vector<node> nodes;					//	ノード情報
 	std::vector<model> models;					//	モデル情報

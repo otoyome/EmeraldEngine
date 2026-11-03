@@ -22,6 +22,10 @@ namespace resource
 
 		const universally_unique_identifier& get_uuid() const { return resource_uuid; }
 
+		void inherit_uuid(const universally_unique_identifier& value) { resource_uuid = value; }
+
+		void regenerate_uuid() { resource_uuid = universally_unique_identifier::generate(); }
+
 	protected:
 		universally_unique_identifier& get_uuid_for_serialize() { return resource_uuid; }
 
