@@ -25,6 +25,9 @@ namespace data_converter
 	//	同じ名前のファイルがある(または今回付けた)場合は番号を付ける。保存はしない
 	void assign_material_paths(const std::vector<material_resource_ptr>& materials, std::string_view owner_file_path);
 
+	//	変換先に .emo が既にあれば、モデルの UUID と同じ名前のマテリアルを引き継ぐ
+	void inherit_existing_model(model_resource& resource);
+
 	//	GLTF形式の変換関数
 	namespace gltf
 	{

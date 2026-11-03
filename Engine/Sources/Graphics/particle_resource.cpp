@@ -114,26 +114,25 @@ void particle::item::renderer::set_state(states flag, bool value)
 template<class Archive>
 void particle::item::renderer::serialize(Archive& archive, int version)
 {
-	if (version < 2)
-	{
-		archive(state, type, total_particle_count, material, trail, uv, color);
-		return;
-	}
-
 	if constexpr (Archive::is_saving::value)
 	{
-		const auto reference = material ? ::resource::asset_reference<material_resource>::from(material) : material_reference;
-		archive(state, type, total_particle_count, reference, trail, uv, color);
+		archive(state, type, total_particle_count, material, trail, uv, color);
+	}
+	else if (version < 2)
+	{
+		std::shared_ptr<material_resource> embedded_material;
+		archive(state, type, total_particle_count, embedded_material, trail, uv, color);
+		material = embedded_material;
 	}
 	else if (version < 3)
 	{
 		std::string path;
 		archive(state, type, total_particle_count, path, trail, uv, color);
-		material_reference = { asset_registry::is_valid() && !path.empty() ? asset_registry::instance()->find_uuid(path) : universally_unique_identifier{}, std::move(path) };
+		material.set_legacy_path(std::move(path));
 	}
 	else
 	{
-		archive(state, type, total_particle_count, material_reference, trail, uv, color);
+		archive(state, type, total_particle_count, material, trail, uv, color);
 	}
 }
 

@@ -13,6 +13,7 @@
 #include "collision/box.h"
 
 #include "Resource/resource_base.h"
+#include "Resource/asset_handle.h"
 #include "Resource/resource_loader.h"
 
 class effect_resource;
@@ -50,9 +51,7 @@ public:
 	struct model
 	{
 		size_t node_index = -1;
-		std::string file_path;
-		universally_unique_identifier model_uuid;
-		model_resource_ptr resource;
+		::resource::asset_handle<model_resource> resource;
 
 		bool is_valid() const;
 
@@ -63,8 +62,7 @@ public:
 	struct decal
 	{
 		size_t node_index = -1;
-		std::shared_ptr<material_resource> material;
-		::resource::asset_reference<material_resource> material_reference;
+		::resource::asset_handle<material_resource> material;
 
 		bool is_valid() const;
 

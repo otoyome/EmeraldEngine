@@ -318,6 +318,9 @@
     <ClInclude Include="Headers\Resource\asset_reference.h">
       <Filter>Headers\Resource</Filter>
     </ClInclude>
+    <ClInclude Include="Headers\Resource\asset_handle.h">
+      <Filter>Headers\Resource</Filter>
+    </ClInclude>
     <ClInclude Include="Headers\Resource\asset_registry.h">
       <Filter>Headers\Resource</Filter>
     </ClInclude>

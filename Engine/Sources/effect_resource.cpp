@@ -27,7 +27,7 @@
 
 // CEREALバージョン定義
 CEREAL_CLASS_VERSION(effect_resource::node, 1)
-CEREAL_CLASS_VERSION(effect_resource::model, 2)
+CEREAL_CLASS_VERSION(effect_resource::model, 3)
 CEREAL_CLASS_VERSION(effect_resource::decal, 3)
 CEREAL_CLASS_VERSION(effect_resource::particle, 1)
 CEREAL_CLASS_VERSION(effect_resource, 1)
@@ -40,57 +40,62 @@ void effect_resource::node::serialize(Archive& archive, int version)
 
 bool effect_resource::model::is_valid() const
 {
-	return resource != nullptr;
+	return resource.get() != nullptr;
 }
 
 template<class Archive>
 void effect_resource::model::serialize(Archive& archive, int version)
 {
-	if (version < 2)
-	{
-		archive(node_index, file_path);
-		return;
-	}
-
 	if constexpr (Archive::is_saving::value)
 	{
-		const universally_unique_identifier uuid = resource ? resource->get_uuid() : model_uuid;
+		archive(node_index, resource);
+	}
+	else if (version < 2)
+	{
+		std::string file_path;
+		archive(node_index, file_path);
+		resource.set_legacy_path(std::move(file_path));
+	}
+	else if (version < 3)
+	{
+		std::string file_path;
+		universally_unique_identifier uuid;
 		archive(node_index, file_path, uuid);
+		resource.set_reference({ uuid, std::move(file_path) });
 	}
 	else
 	{
-		archive(node_index, file_path, model_uuid);
+		archive(node_index, resource);
 	}
 }
 
 bool effect_resource::decal::is_valid() const
 {
-	return material != nullptr;
+	return material.get() != nullptr;
 }
 
 template<class Archive>
 void effect_resource::decal::serialize(Archive& archive, int version)
 {
-	if (version < 2)
-	{
-		archive(node_index, material);
-		return;
-	}
-
 	if constexpr (Archive::is_saving::value)
 	{
-		const auto reference = material ? ::resource::asset_reference<material_resource>::from(material) : material_reference;
-		archive(node_index, reference);
+		archive(node_index, material);
+	}
+	else if (version < 2)
+	{
+		std::shared_ptr<material_resource> embedded_material;
+		archive(node_index, embedded_material);
+		material = embedded_material;
 	}
 	else if (version < 3)
 	{
 		std::string path;
 		archive(node_index, path);
-		material_reference = { asset_registry::is_valid() && !path.empty() ? asset_registry::instance()->find_uuid(path) : universally_unique_identifier{}, std::move(path) };
+		material.set_legacy_path(std::move(path));
 	}
 	else
 	{
-		archive(node_index, material_reference);
+		archive(node_index, material);
 	}
 }
 
@@ -353,20 +358,23 @@ namespace resource
 		for (auto& model_data : resource->models)
 		{
 			auto& operation = model_operations.emplace_back();
-			const asset_reference<model_resource> reference{ model_data.model_uuid, model_data.file_path };
-			if (!reference.is_empty())
-				operation = resource_manager::instance()->load_async(reference, load_priority::high);
+			if (!model_data.resource && !model_data.resource.is_empty())
+				operation = resource_manager::instance()->load_async(model_data.resource.get_reference(), load_priority::high);
 			add_dependency(operation);
 		}
 		for (auto& decal_data : resource->decals)
 		{
-			auto& operation = decal_material_operations.emplace_back(material_resource::request_load(decal_data.material_reference));
+			auto& operation = decal_material_operations.emplace_back();
+			if (!decal_data.material)
+				operation = material_resource::request_load(decal_data.material.get_reference());
 			add_dependency(operation);
 		}
 		for (auto& particle_data : resource->particles)
 		{
 			auto renderer = particle_data.particle.get_item<::particle::item::renderer>();
-			auto& operation = particle_material_operations.emplace_back(renderer ? material_resource::request_load(renderer->material_reference) : nullptr);
+			auto& operation = particle_material_operations.emplace_back();
+			if (renderer && !renderer->material)
+				operation = material_resource::request_load(renderer->material.get_reference());
 			add_dependency(operation);
 		}
 		return operation_state::success;
@@ -378,23 +386,21 @@ namespace resource
 		{
 			auto& operation = model_operations[index];
 			auto& model_data = resource->models[index];
-			model_data.resource = operation && operation->is_succeeded() ? operation->get_resource() : nullptr;
-
-			if (model_data.resource)
-				model_data.file_path = model_data.resource->get_file_path();
+			if (operation && operation->is_succeeded())
+				model_data.resource = operation->get_resource();
 		}
 
 		for (size_t index = 0; index < resource->decals.size(); ++index)
 		{
 			auto& decal_data = resource->decals[index];
-			if (!decal_data.material_reference.is_empty())
-				decal_data.material = material_resource::resolve(decal_material_operations[index], decal_data.material_reference, material_resource::domains::deferred_decal);
+			if (!decal_data.material && !decal_data.material.is_empty())
+				decal_data.material = material_resource::resolve(decal_material_operations[index], decal_data.material.get_reference(), material_resource::domains::deferred_decal);
 		}
 		for (size_t index = 0; index < resource->particles.size(); ++index)
 		{
 			auto renderer = resource->particles[index].particle.get_item<::particle::item::renderer>();
-			if (renderer && !renderer->material_reference.is_empty())
-				renderer->material = material_resource::resolve(particle_material_operations[index], renderer->material_reference, material_resource::domains::particle);
+			if (renderer && !renderer->material && !renderer->material.is_empty())
+				renderer->material = material_resource::resolve(particle_material_operations[index], renderer->material.get_reference(), material_resource::domains::particle);
 		}
 		model_operations.clear();
 		decal_material_operations.clear();

@@ -516,6 +516,9 @@ namespace
 		path.replace_extension(model_resource::extension);
 		resource.set_file_path(path.string());
 
+		//	コンバートし直しの時は既存の .emo から UUID とマテリアルを引き継ぐ
+		data_converter::inherit_existing_model(resource);
+
 		data_converter::assign_material_paths(resource.get_materials_for_editor(), resource.get_file_path());
 		return true;
 	}

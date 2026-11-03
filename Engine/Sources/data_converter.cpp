@@ -6,6 +6,9 @@
 
 #include "animation_data_version.h"
 
+#include "Resource/resource_manager.h"
+#include "Resource/asset_file_header.h"
+
 #if defined(USE_IMGUI)
 
 #include <filesystem>
@@ -43,6 +46,39 @@ void data_converter::assign_material_paths(const std::vector<material_resource_p
 		}
 		assigned_paths.insert(path.generic_wstring());
 		material->set_file_path(std::filesystem::path(path.generic_wstring()).string());
+	}
+}
+
+void data_converter::inherit_existing_model(model_resource& resource)
+{
+	const std::string file_path(resource.get_file_path());
+	::resource::asset_file_header header;
+	if (file_path.empty() || !::resource::read_asset_header(std::filesystem::path(file_path), header) || header.type != ::resource::asset_types::model)
+		return;
+
+	resource.inherit_uuid(header.uuid);
+
+	auto operation = resource_manager::instance()->load<model_resource>(file_path);
+	if (!operation->is_succeeded())
+		return;
+
+	std::unordered_set<const material_resource*> used_materials;
+	for (auto& material : resource.get_materials_for_editor())
+	{
+		if (!material)
+			continue;
+
+		for (auto& existing_material : operation->get_resource()->get_materials())
+		{
+			if (!existing_material || existing_material->is_missing() || used_materials.contains(existing_material.get()))
+				continue;
+			if (existing_material->get_name() != material->get_name())
+				continue;
+
+			used_materials.insert(existing_material.get());
+			material = existing_material;
+			break;
+		}
 	}
 }
 

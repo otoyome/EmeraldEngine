@@ -139,6 +139,7 @@
     <ClInclude Include="Headers\System\memory_allocator.h" />
     <ClInclude Include="Headers\System\misc.h" />
     <ClInclude Include="Headers\Resource\asset_file_header.h" />
+    <ClInclude Include="Headers\Resource\asset_handle.h" />
     <ClInclude Include="Headers\Resource\asset_reference.h" />
     <ClInclude Include="Headers\Resource\asset_registry.h" />
     <ClInclude Include="Headers\Resource\resource_base.h" />

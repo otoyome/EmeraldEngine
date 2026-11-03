@@ -1,13 +1,22 @@
 #pragma once
 
+#include <concepts>
 #include <memory>
 #include <string>
+#include <string_view>
 
 #include "System/universally_unique_identifier.h"
 
 namespace resource
 {
-	//	UUID によるアセットの参照
+	//	UUID とパスを持つアセットのリソース型
+	template<class Type>
+	concept asset_resource = requires(const Type& value)
+	{
+		{ value.get_uuid() } -> std::convertible_to<const universally_unique_identifier&>;
+		{ value.get_file_path() } -> std::convertible_to<std::string_view>;
+	};
+
 	template<class Type>
 	struct asset_reference
 	{
@@ -16,9 +25,9 @@ namespace resource
 
 		bool is_empty() const { return uuid.is_empty() && path.empty(); }
 
-		//	読み込み済みのリソースから作る
 		static asset_reference from(const std::shared_ptr<Type>& value)
 		{
+			static_assert(asset_resource<Type>);
 			if (!value)
 				return {};
 			return { value->get_uuid(), std::string(value->get_file_path()) };

@@ -456,11 +456,10 @@ bool editor_items::edit_effect_model(std::shared_ptr<context>& context, effect_r
 {
 	bool edit_flag = false;
 	model_resource_ptr resource = model.resource;
-	std::string file_path = model.file_path;
+	std::string file_path = model.resource.get_reference().path;
 	if (edit_model_resource_item(context, resource, &file_path))
 	{
 		model.resource = resource;
-		model.file_path = file_path;
 		edit_flag = true;
 	}
 	return edit_flag;
