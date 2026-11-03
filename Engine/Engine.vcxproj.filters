@@ -258,6 +258,9 @@
     <ClInclude Include="Headers\System\editor_config_data.h">
       <Filter>Headers\System</Filter>
     </ClInclude>
+    <ClInclude Include="Headers\System\asset_browser.h">
+      <Filter>Headers\System</Filter>
+    </ClInclude>
     <ClInclude Include="Headers\System\game_config_data.h">
       <Filter>Headers\System</Filter>
     </ClInclude>
@@ -534,6 +537,9 @@
       <Filter>Sources\System</Filter>
     </ClCompile>
     <ClCompile Include="Sources\System\editor_config_data.cpp">
+      <Filter>Sources\System</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\System\asset_browser.cpp">
       <Filter>Sources\System</Filter>
     </ClCompile>
     <ClCompile Include="Sources\System\game_config_data.cpp">

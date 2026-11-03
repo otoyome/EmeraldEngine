@@ -1,4 +1,5 @@
 #include "scenes/editscene/edit_timeline_scene.h"
+#include "System/asset_browser.h"
 
 #if defined(USE_IMGUI)
 #include <algorithm>
@@ -671,6 +672,12 @@ bool edit_timeline_scene::uninitialize_core()
 
 void edit_timeline_scene::update_core(float elapsed_time)
 {
+	{
+		std::string file_path;
+		if (asset_browser::is_valid() && asset_browser::instance()->take_open_request(type_name(), file_path))
+			open_timeline(file_path);
+	}
+
 	advance_playback(elapsed_time);
 	apply_timeline_state();
 }
@@ -837,6 +844,11 @@ void edit_timeline_scene::load_timeline()
 	if (!editor_items::open_file_dialog(TimelineFileDialogFilter, file_path))
 		return;
 
+	open_timeline(file_path);
+}
+
+void edit_timeline_scene::open_timeline(const std::string& file_path)
+{
 	timeline_resource loaded;
 	if (!loaded.deserialize(file_path))
 		return;

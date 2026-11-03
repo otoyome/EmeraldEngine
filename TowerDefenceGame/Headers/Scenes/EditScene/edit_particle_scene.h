@@ -29,6 +29,7 @@ protected:
 private:
 	void on_new();
 	void generate_default_effect();
+	void open_effect(const std::string& file_path);
 
 private:
 	std::shared_ptr<camera_object> main_camera;

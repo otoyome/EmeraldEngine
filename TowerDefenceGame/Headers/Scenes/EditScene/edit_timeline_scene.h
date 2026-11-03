@@ -47,6 +47,7 @@ private:
 
 	void new_timeline();
 	void load_timeline();
+	void open_timeline(const std::string& file_path);
 	void save_timeline();
 
 	void advance_playback(float elapsed_time);

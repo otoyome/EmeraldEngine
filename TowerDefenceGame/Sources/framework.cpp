@@ -42,6 +42,7 @@
 #include "Editor/editor_items.h"
 #include "Editor/editor_camera.h"
 #endif // defined(USE_IMGUI)
+#include "System/asset_browser.h"
 
 #include "Editor/detail_profiler.h"
 #include "System/console_manager.h"
@@ -593,6 +594,9 @@ void framework::update(float elapsed_time/*Elapsed seconds from last frame*/)
 
 	//	サウンドバンクの編集
 	imgui_sound_bank_window();
+
+	//	アセットブラウザ
+	asset_browser::instance()->imgui_render();
 #endif // defined(USE_IMGUI)
 }
 

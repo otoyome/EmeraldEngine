@@ -20,6 +20,7 @@ extern ImWchar glyphRangesJapanese[];
 #include "Editor/detail_profiler.h"
 #include "Editor/editor_camera.h"
 #include "System/console_manager.h"
+#include "System/asset_browser.h"
 
 
 #include "scenes/editscene/edit_model_scene.h"
@@ -44,6 +45,22 @@ namespace
 		{
 			scene_manager::instance()->change_scene_for_imgui<Type>();
 		}
+	}
+
+	//	アセットブラウザでダブルクリックしたファイルを、シーンを切り替えて開く
+	template<typename Type>
+	void register_asset_open_handler(std::string_view label, std::vector<cache_string> extensions)
+	{
+		asset_browser::open_handler handler;
+		handler.name = Type::type_name();
+		handler.label = label;
+		handler.extensions = std::move(extensions);
+		handler.activate = []()
+		{
+			if (!scene_manager::instance()->valid_scene<Type>())
+				scene_manager::instance()->change_scene_for_imgui<Type>();
+		};
+		asset_browser::instance()->register_open_handler(std::move(handler));
 	}
 
 	//	デバッグ表示の設定
@@ -73,10 +90,19 @@ void framework::imgui_initialize()
 		style.WindowRounding = 0.0f;
 		style.Colors[ImGuiCol_WindowBg].w = 1.0f;
 	}
+
+	//	アセットブラウザの開き先
+	asset_browser::create_instance();
+	register_asset_open_handler<edit_model_scene>("Model Editor", { ".emo", ".pmx", ".gltf", ".glb" });
+	register_asset_open_handler<edit_particle_scene>("Particle Editor", { ".eme" });
+	register_asset_open_handler<edit_timeline_scene>("Timeline Editor", { ".etl" });
+	register_asset_open_handler<edit_material_scene>("Material Editor", { ".emo", ".eme" });
 }
 
 void framework::imgui_terminate()
 {
+	asset_browser::delete_instance();
+
 	ImGui::ShutdownNeoSequencer();
 
 	ImGui_ImplDX11_Shutdown();

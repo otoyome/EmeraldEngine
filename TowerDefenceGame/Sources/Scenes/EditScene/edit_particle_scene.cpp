@@ -1,4 +1,5 @@
 #include "scenes/editscene/edit_particle_scene.h"
+#include "System/asset_browser.h"
 
 #include "model_instance.h"
 #include "camera.h"
@@ -225,7 +226,26 @@ bool edit_particle_scene::uninitialize_core()
 
 void edit_particle_scene::update_core(float elapsed_time)
 {
+	{
+		std::string file_path;
+		if (asset_browser::is_valid() && asset_browser::instance()->take_open_request(type_name(), file_path))
+			open_effect(file_path);
+	}
+
 	draw_sdf_debug_primitives();
+}
+
+void edit_particle_scene::open_effect(const std::string& file_path)
+{
+	effect_resource_ptr resource;
+	if (!effect_resource_manager::instance()->load(resource, file_path))
+		return;
+
+	if (edit_instance)
+		effect_manager::instance()->unregister_instance(edit_instance);
+	edit_resource = resource;
+	edit_instance = std::make_shared<effect_instance>(edit_resource);
+	effect_manager::instance()->register_instance(edit_instance);
 }
 
 void edit_particle_scene::imgui_render_core()
@@ -239,15 +259,7 @@ void edit_particle_scene::imgui_render_core()
 			std::string file_path;
 			if (editor_items::open_file_dialog(EffectFileDialogFilter, file_path))
 			{
-				effect_resource_ptr resource;
-				if (effect_resource_manager::instance()->load(resource, file_path))
-				{
-					if (edit_instance)
-						effect_manager::instance()->unregister_instance(edit_instance);
-					edit_resource = resource;
-					edit_instance = std::make_shared<effect_instance>(edit_resource);
-					effect_manager::instance()->register_instance(edit_instance);
-				}
+				open_effect(file_path);
 			}
 		}
 

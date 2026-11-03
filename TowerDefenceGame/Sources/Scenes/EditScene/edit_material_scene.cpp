@@ -1,4 +1,5 @@
 #include "scenes/editscene/edit_material_scene.h"
+#include "System/asset_browser.h"
 
 #include <algorithm>
 #include <cctype>
@@ -166,6 +167,12 @@ bool edit_material_scene::uninitialize_core()
 
 void edit_material_scene::update_core(float elapsed_time)
 {
+	{
+		std::string file_path;
+		if (asset_browser::is_valid() && asset_browser::instance()->take_open_request(type_name(), file_path))
+			open_source(file_path, false);
+	}
+
 	apply_preview_materials();
 
 	//	エフェクトは最後まで再生したら最初から流し直す
