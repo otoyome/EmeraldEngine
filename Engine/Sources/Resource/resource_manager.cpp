@@ -197,7 +197,7 @@ size_t resource_manager::to_index(resource::load_priority priority)
 	return index < magic_enum::enum_count<resource::load_priority>() ? index : static_cast<size_t>(resource::load_priority::normal);
 }
 
-void resource_manager::request_load(const std::shared_ptr<resource::load_operation_base>& operation, resource::load_priority priority, bool force_load, loader_factory factory)
+void resource_manager::request_load(const std::shared_ptr<resource::load_operation_base>& operation, resource::load_priority priority, bool force_load, loader_factory factory, path_assigner assign_path)
 {
 	const std::wstring key = make_key(operation->get_file_path());
 
@@ -254,7 +254,7 @@ void resource_manager::request_load(const std::shared_ptr<resource::load_operati
 		//	新規リクエスト
 		if (immediate_state == resource::operation_state::idle)
 		{
-			auto new_request = std::make_shared<request>(operation->get_file_path(), key, operation->get_type(), factory(), priority, force_load);
+			auto new_request = std::make_shared<request>(operation->get_file_path(), key, operation->get_type(), factory(), priority, force_load, assign_path);
 			join_request(new_request, operation, priority);
 			pending_queues[to_index(priority)].push_back(new_request);
 			processing_requests.insert_or_assign(key, std::move(new_request));
@@ -286,7 +286,7 @@ std::shared_ptr<void> resource_manager::search_raw(std::string_view file_path, s
 	return it->second.resource.lock();
 }
 
-void resource_manager::register_raw(std::string_view file_path, std::type_index type, std::shared_ptr<void> value)
+void resource_manager::register_raw(std::string_view file_path, std::type_index type, std::shared_ptr<void> value, path_assigner assign_path)
 {
 	if (!value)
 		return;
@@ -294,7 +294,71 @@ void resource_manager::register_raw(std::string_view file_path, std::type_index 
 	const std::wstring key = make_key(file_path);
 
 	std::lock_guard<std::mutex> lock(mutex);
-	caches.insert_or_assign(key, cache_entry{ std::string(file_path), type, value });
+	caches.insert_or_assign(key, cache_entry{ std::string(file_path), type, value, assign_path });
+}
+
+void resource_manager::move_path(std::string_view old_path, std::string_view new_path)
+{
+	_ASSERT_EXPR(is_main_thread(), L"resource_manager::move_path must be called from main thread");
+
+	struct moved_resource
+	{
+		std::shared_ptr<void> resource;
+		path_assigner assign_path;
+		std::string file_path;
+	};
+	std::vector<moved_resource> moved_resources;
+	{
+		std::lock_guard<std::mutex> lock(mutex);
+
+		//	@tool パスのキーは移動先で変わるので、外してから入れ直す
+		std::vector<std::pair<std::wstring, cache_entry>> moved_entries;
+		for (auto it = caches.begin(); it != caches.end(); )
+		{
+			std::string moved_path;
+			if (!replace_base_path(it->second.file_path, old_path, new_path, moved_path))
+			{
+				++it;
+				continue;
+			}
+
+			cache_entry entry = std::move(it->second);
+			it = caches.erase(it);
+
+			entry.file_path = moved_path;
+			if (auto resource = entry.resource.lock(); resource && entry.assign_path)
+				moved_resources.push_back({ std::move(resource), entry.assign_path, moved_path });
+			moved_entries.emplace_back(make_key(moved_path), std::move(entry));
+		}
+		for (auto& [key, entry] : moved_entries)
+			caches.insert_or_assign(key, std::move(entry));
+	}
+
+	for (auto& moved : moved_resources)
+		moved.assign_path(moved.resource.get(), moved.file_path);
+
+	DEBUG_LOG_CATEGORY(logger::categorys::system, "resource_manager move_path[%s] -> [%s] resources:%zu", std::string(old_path).c_str(), std::string(new_path).c_str(), moved_resources.size());
+}
+
+bool resource_manager::replace_base_path(std::string_view path, std::string_view base_path, std::string_view new_base_path, std::string& out_path)
+{
+	if (path.empty() || base_path.empty())
+		return false;
+
+	const std::string normalized_path = std::filesystem::path(std::string(path)).lexically_normal().generic_string();
+	std::string normalized_base = std::filesystem::path(std::string(base_path)).lexically_normal().generic_string();
+	while (!normalized_base.empty() && normalized_base.back() == '/')
+		normalized_base.pop_back();
+
+	if (normalized_path.size() < normalized_base.size())
+		return false;
+	if (normalized_path.size() > normalized_base.size() && normalized_path[normalized_base.size()] != '/')
+		return false;
+	if (make_path_key(std::string_view(normalized_path).substr(0, normalized_base.size())) != make_path_key(normalized_base))
+		return false;
+
+	out_path = std::filesystem::path(std::string(new_base_path)).lexically_normal().generic_string() + normalized_path.substr(normalized_base.size());
+	return true;
 }
 
 void resource_manager::join_request(const request_ptr& target, const std::shared_ptr<resource::load_operation_base>& operation, resource::load_priority priority)
@@ -512,7 +576,7 @@ void resource_manager::finalize(const request_ptr& target)
 		std::lock_guard<std::mutex> lock(mutex);
 		if (result == resource::operation_state::success)
 		{
-			caches.insert_or_assign(current.key, cache_entry{ current.file_path, current.type, resource });
+			caches.insert_or_assign(current.key, cache_entry{ current.file_path, current.type, resource, current.assign_path });
 		}
 
 		auto it = processing_requests.find(current.key);

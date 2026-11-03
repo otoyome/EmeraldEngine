@@ -41,6 +41,7 @@ public:
 	//	アセット登録
 	void register_asset(const universally_unique_identifier& uuid, resource::asset_types type, std::string_view path);
 	void unregister_path(std::string_view path);
+	//	@tool old_path がフォルダならその下のアセットもまとめて移す
 	void move_path(std::string_view old_path, std::string_view new_path);
 
 	//	以下はワーカースレッドからも呼ばれる

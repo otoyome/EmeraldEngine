@@ -256,6 +256,23 @@ public:
 	//	代わりのマテリアルは保存しない。パスが無ければ失敗する(パスはコンバート時に付ける)
 	static bool save_asset(const std::shared_ptr<material_resource>& material);
 
+	//	@tool 旧形式で shared_ptr のまま埋め込まれたマテリアルを読む
+	//	@tool resource_base(仮想デストラクタ)の派生になり多態型になったため、cereal の shared_ptr 読込では形式がずれる
+	template<class Archive>
+	static std::shared_ptr<material_resource> load_embedded_legacy(Archive& archive)
+	{
+		std::uint32_t id = 0;
+		archive(id);
+		if (id & 0x80000000u)
+		{
+			auto material = std::make_shared<material_resource>();
+			archive.registerSharedPointer(id, material);
+			archive(*material);
+			return material;
+		}
+		return std::static_pointer_cast<material_resource>(archive.getSharedPointer(id));
+	}
+
 public:
 	//	名前取得・設定
 	void set_name(std::string_view name);

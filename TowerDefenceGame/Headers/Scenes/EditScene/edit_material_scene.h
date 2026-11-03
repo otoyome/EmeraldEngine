@@ -46,6 +46,9 @@ private:
 	void collect_materials();
 	material_resource_ptr get_selected_material() const;
 
+	//	@tool 開いているリソースの今のパス(ブラウザで移動・名前変更されても追従する)
+	std::string get_source_file_path() const;
+
 	void scan_preview_models();
 	void change_preview_model(const std::string& file_path);
 	void change_preview_shape(model_resource_utility::primitive_shapes shape);
@@ -66,7 +69,6 @@ private:
 	std::shared_ptr<editor_items::context> editor_context;
 
 private:
-	std::string source_file_path;
 	model_resource_ptr source_model;
 	effect_resource_ptr source_effect;
 	material_resource_ptr source_material;

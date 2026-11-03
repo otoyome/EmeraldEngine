@@ -9,6 +9,7 @@
 #include <string>
 #include <string_view>
 #include <thread>
+#include <type_traits>
 #include <typeindex>
 #include <unordered_map>
 #include <vector>
@@ -20,6 +21,7 @@
 #include "Resource/resource_loader.h"
 #include "Resource/asset_reference.h"
 #include "Resource/asset_registry.h"
+#include "Resource/resource_base.h"
 
 //	リソース管理クラス
 class resource_manager
@@ -59,7 +61,7 @@ public:
 	[[nodiscard]] resource::load_operation_ptr<Type> load_async(std::string_view file_path, resource::load_priority priority = resource::load_priority::normal, bool force_load = false)
 	{
 		auto operation = std::make_shared<resource::load_operation<Type>>(file_path);
-		request_load(operation, priority, force_load, &create_loader<Loader>);
+		request_load(operation, priority, force_load, &create_loader<Loader>, &assign_file_path<Type>);
 		return operation;
 	}
 
@@ -81,8 +83,15 @@ public:
 	template<class Type>
 	void register_resource(std::string_view file_path, const std::shared_ptr<Type>& value)
 	{
-		register_raw(file_path, std::type_index(typeid(Type)), value);
+		register_raw(file_path, std::type_index(typeid(Type)), value, &assign_file_path<Type>);
 	}
+
+	//	@tool ファイルの移動・名前変更をキャッシュと読込済みリソースのパスへ反映する(メインスレッド専用)
+	//	@tool old_path がフォルダならその下のリソースもまとめて移す。対応表(asset_registry)は先に更新しておくこと
+	void move_path(std::string_view old_path, std::string_view new_path);
+
+	//	@tool path が base_path と同じか、その下にあれば、base_path の部分を new_base_path に置き換える
+	static bool replace_base_path(std::string_view path, std::string_view base_path, std::string_view new_base_path, std::string& out_path);
 
 	//	1フレームあたりの構築処理の時間(ミリ秒)。
 	//	0以下で無制限。最低1件は必ず構築する
@@ -105,11 +114,20 @@ public:
 
 private:
 	using loader_factory = std::unique_ptr<resource::loader_base>(*)();
+	using path_assigner = void(*)(void*, std::string_view);
 
 	template<class Loader>
 	static std::unique_ptr<resource::loader_base> create_loader()
 	{
 		return std::make_unique<Loader>();
+	}
+
+	//	@tool 型を消したリソースへパスを設定する(resource_base の派生だけ)
+	template<class Type>
+	static void assign_file_path(void* value, std::string_view file_path)
+	{
+		if constexpr (std::is_base_of_v<resource::resource_base, Type>)
+			static_cast<Type*>(value)->set_file_path(file_path);
 	}
 
 	enum class request_phases
@@ -129,6 +147,7 @@ private:
 		std::vector<std::weak_ptr<resource::load_operation_base>> waiters;
 		resource::load_priority priority;
 		bool force_load;
+		path_assigner assign_path;
 
 		//	以下はミューテックスで保護
 		request_phases phase = request_phases::pending;
@@ -138,13 +157,14 @@ private:
 		resource::operation_state load_state = resource::operation_state::processing;
 		std::string error_message;
 
-		request(std::string_view file_path, std::wstring key, std::type_index type, std::unique_ptr<resource::loader_base> loader, resource::load_priority priority, bool force_load)
+		request(std::string_view file_path, std::wstring key, std::type_index type, std::unique_ptr<resource::loader_base> loader, resource::load_priority priority, bool force_load, path_assigner assign_path)
 		: file_path(file_path)
 		, key(std::move(key))
 		, type(type)
 		, loader(std::move(loader))
 		, priority(priority)
 		, force_load(force_load)
+		, assign_path(assign_path)
 		{
 		}
 	};
@@ -155,15 +175,16 @@ private:
 		std::string file_path;
 		std::type_index type;
 		std::weak_ptr<void> resource;
+		path_assigner assign_path = nullptr;
 	};
 
 private:
 	static std::wstring make_key(std::string_view file_path);
 	static size_t to_index(resource::load_priority priority);
 
-	void request_load(const std::shared_ptr<resource::load_operation_base>& operation, resource::load_priority priority, bool force_load, loader_factory factory);
+	void request_load(const std::shared_ptr<resource::load_operation_base>& operation, resource::load_priority priority, bool force_load, loader_factory factory, path_assigner assign_path);
 	std::shared_ptr<void> search_raw(std::string_view file_path, std::type_index type);
-	void register_raw(std::string_view file_path, std::type_index type, std::shared_ptr<void> value);
+	void register_raw(std::string_view file_path, std::type_index type, std::shared_ptr<void> value, path_assigner assign_path);
 
 	void join_request(const request_ptr& target, const std::shared_ptr<resource::load_operation_base>& operation, resource::load_priority priority);
 	bool has_live_waiters(const request& target) const;

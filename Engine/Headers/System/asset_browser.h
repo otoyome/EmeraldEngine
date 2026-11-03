@@ -6,11 +6,13 @@
 #include <functional>
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
 
 #include "System/cache_string.h"
+#include "System/universally_unique_identifier.h"
 
 class texture;
 
@@ -41,6 +43,9 @@ public:
 
 	//	開く要求を受け取る
 	bool take_open_request(std::string_view name, std::string& out_file_path);
+
+	//	@tool UUID のアセットを既定の開き先で開く(パスは対応表から引く)
+	bool open_asset(const universally_unique_identifier& uuid);
 
 	void imgui_render();
 
@@ -73,6 +78,13 @@ private:
 		std::uint64_t frame = 0;
 	};
 
+	//	@tool 描画の後に行う移動・名前変更
+	struct move_request
+	{
+		std::string source_path;		//	@tool 移動元(Shift-JIS、「/」区切り)
+		std::string destination_path;	//	@tool 移動先(Shift-JIS、「/」区切り)
+	};
+
 private:
 	void refresh();
 	void build_directory_tree(directory_node& node);
@@ -89,12 +101,25 @@ private:
 	void imgui_render_entries();
 	void imgui_render_entry(entry& target, float cell_width, float cell_height);
 	void imgui_render_entry_context_menu(const entry& target);
+	void imgui_render_rename_popup();
+
+	//	@tool ドラッグされたエントリーをフォルダへ落とした時の移動要求
+	void accept_move_drop(const cache_string& directory);
+
+	//	@tool ファイル/フォルダを移動し、対応表と読込済みリソースのパスも合わせる
+	bool move_entry(const std::string& source_path, const std::string& destination_path);
 
 	void load_thumbnail(entry& target);
 
 private:
 	std::vector<open_handler> handlers;
-	std::map<std::string, std::string, std::less<>> open_requests;
+	//	@tool 開く要求。シーンの切り替え中に移動されても開けるよう UUID も持つ
+	struct open_request
+	{
+		universally_unique_identifier uuid;
+		std::string file_path;
+	};
+	std::map<std::string, open_request, std::less<>> open_requests;
 
 	directory_node root;
 	cache_string current_directory;
@@ -108,6 +133,13 @@ private:
 
 	cache_string pending_directory;
 	bool pending_refresh = false;
+	std::optional<move_request> pending_move;
+
+	//	@tool 名前変更
+	std::string rename_source_path;
+	char rename_buffer[256] = {};	//	@tool UTF-8
+	bool open_rename_popup = false;
+	bool rename_invalid = false;
 
 	ImGuiTextFilter filter;
 };

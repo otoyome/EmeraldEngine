@@ -209,11 +209,21 @@ void material_resource::serialize(Archive& archive, int version)
 			CEREAL_NVP(translucency_path),
 			CEREAL_NVP(system_flags),
 			CEREAL_NVP(alpha_clip_threshold),
-			CEREAL_NVP(physical_data),
-			CEREAL_NVP(shader_resources),
-			CEREAL_NVP(constant_buffers),
-			CEREAL_NVP(shader_path),
-			CEREAL_NVP(static_switches));
+			CEREAL_NVP(physical_data));
+
+	//	@tool 旧形式は PSO 名を持つ(版3は system ドメインだけ)。今の形式では保存しない
+	if constexpr (Archive::is_loading::value)
+	{
+		if (version < 3 || (version == 3 && domain == domains::system))
+			archive(CEREAL_NVP(pipeline_states));
+	}
+
+	archive(CEREAL_NVP(shader_resources),
+			CEREAL_NVP(constant_buffers));
+
+	//	@tool 版2より前はマテリアルシェーダーと静的スイッチを持たない
+	if (version >= 2)
+		archive(CEREAL_NVP(shader_path), CEREAL_NVP(static_switches));
 
 	if (version == 4)
 		archive(cereal::make_nvp("uuid", get_uuid_for_serialize()));

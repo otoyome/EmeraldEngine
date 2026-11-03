@@ -83,9 +83,8 @@ void effect_resource::decal::serialize(Archive& archive, int version)
 	}
 	else if (version < 2)
 	{
-		std::shared_ptr<material_resource> embedded_material;
-		archive(node_index, embedded_material);
-		material = embedded_material;
+		archive(node_index);
+		material = material_resource::load_embedded_legacy(archive);
 	}
 	else if (version < 3)
 	{

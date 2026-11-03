@@ -244,7 +244,6 @@ void edit_material_scene::open_source(const std::string& file_path, bool force_l
 		return;
 	}
 
-	source_file_path = file_path;
 	source_model = model;
 	source_effect = effect;
 	source_material = material;
@@ -258,7 +257,7 @@ void edit_material_scene::open_source(const std::string& file_path, bool force_l
 	if (source_model)
 	{
 		clear_preview_effect();
-		change_preview_model(source_file_path);
+		change_preview_model(get_source_file_path());
 	}
 	else
 	{
@@ -270,6 +269,7 @@ void edit_material_scene::open_source(const std::string& file_path, bool force_l
 
 void edit_material_scene::save_source()
 {
+	const std::string source_file_path = get_source_file_path();
 	bool saved = false;
 	if (source_material)
 		saved = source_material->save_file(source_file_path);
@@ -289,6 +289,17 @@ void edit_material_scene::save_source()
 	message = "saved: " + to_display(source_file_path);
 }
 
+std::string edit_material_scene::get_source_file_path() const
+{
+	if (source_material)
+		return std::string(source_material->get_file_path());
+	if (source_model)
+		return std::string(source_model->get_file_path());
+	if (source_effect)
+		return std::string(source_effect->get_file_path());
+	return {};
+}
+
 void edit_material_scene::revert_source()
 {
 	//	.emr のマテリアルはファイルから読み直す
@@ -305,11 +316,11 @@ void edit_material_scene::revert_source()
 
 	if (reload_source && !source_material)
 	{
-		open_source(std::string(source_file_path), true);
+		open_source(get_source_file_path(), true);
 		return;
 	}
 	dirty = false;
-	message = "reverted: " + to_display(source_file_path);
+	message = "reverted: " + to_display(get_source_file_path());
 }
 
 void edit_material_scene::collect_materials()
@@ -397,8 +408,8 @@ void edit_material_scene::scan_preview_models()
 	std::sort(preview_model_files.begin(), preview_model_files.end());
 
 	//	編集中のモデルが一覧の外にあっても選べるようにする
-	if (source_model && std::find(preview_model_files.begin(), preview_model_files.end(), source_file_path) == preview_model_files.end())
-		preview_model_files.insert(preview_model_files.begin(), source_file_path);
+	if (source_model && std::find(preview_model_files.begin(), preview_model_files.end(), get_source_file_path()) == preview_model_files.end())
+		preview_model_files.insert(preview_model_files.begin(), get_source_file_path());
 }
 
 void edit_material_scene::change_preview_model(const std::string& file_path)
@@ -408,7 +419,7 @@ void edit_material_scene::change_preview_model(const std::string& file_path)
 
 	//	編集中のモデルは、編集しているリソースそのものを表示する
 	model_resource_ptr resource;
-	if (source_model && file_path == source_file_path)
+	if (source_model && file_path == get_source_file_path())
 		resource = source_model;
 	else if (!model_resource_manager::instance()->load(resource, file_path))
 	{
@@ -515,7 +526,7 @@ void edit_material_scene::imgui_render_source()
 			open_source(file_path, false);
 	}
 
-	if (!source_file_path.empty())
+	if (!get_source_file_path().empty())
 	{
 		ImGui::SameLine();
 		ImGui::BeginDisabled(!dirty);
@@ -528,7 +539,7 @@ void edit_material_scene::imgui_render_source()
 		ImGui::EndDisabled();
 
 		ImGui::SameLine();
-		ImGui::Text("%s%s", to_display(source_file_path).c_str(), dirty ? " *" : "");
+		ImGui::Text("%s%s", to_display(get_source_file_path()).c_str(), dirty ? " *" : "");
 	}
 	else
 	{
@@ -559,7 +570,7 @@ void edit_material_scene::imgui_render_preview()
 		{
 			const bool selected = preview_kind == preview_kinds::file && file_path == preview_model_path;
 			std::string label = to_display(file_path);
-			if (source_model && file_path == source_file_path)
+			if (source_model && file_path == get_source_file_path())
 				label += " (editing)";
 			if (ImGui::Selectable(label.c_str(), selected))
 				change_preview_model(file_path);

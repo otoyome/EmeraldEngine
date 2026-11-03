@@ -78,13 +78,17 @@ void asset_registry::unregister_path(std::string_view path)
 void asset_registry::move_path(std::string_view old_path, std::string_view new_path)
 {
 	std::unique_lock lock(mutex);
-	const auto it = path_to_uuid.find(resource_manager::make_path_key(old_path));
-	if (it == path_to_uuid.end())
-		return;
 
-	const universally_unique_identifier uuid = it->second;
-	const resource::asset_types type = entries[uuid].type;
-	register_locked(uuid, type, new_path);
+	//	@tool old_path がフォルダの場合も、その下のアセットをまとめて移す
+	std::vector<std::pair<universally_unique_identifier, std::string>> moved_entries;
+	for (const auto& [uuid, value] : entries)
+	{
+		std::string moved_path;
+		if (resource_manager::replace_base_path(value.path, old_path, new_path, moved_path))
+			moved_entries.emplace_back(uuid, std::move(moved_path));
+	}
+	for (const auto& [uuid, moved_path] : moved_entries)
+		register_locked(uuid, entries[uuid].type, moved_path);
 }
 
 universally_unique_identifier asset_registry::find_uuid(std::string_view path) const

@@ -8,11 +8,20 @@
 
 #include "System/console_manager.h"
 #include "texture.h"
+#include "Resource/resource_manager.h"
+#include "Resource/asset_registry.h"
+#include "system/logger.h"
 
 namespace
 {
 	//	一覧の起点
 	constexpr std::string_view root_directory = "Assets";
+
+	//	@tool ドラッグ&ドロップの種類名
+	constexpr const char* move_payload_type = "ASSET_BROWSER_PATH";
+
+	//	@tool 本体のファイル名の後ろに付けた名前の付属ファイル(本体と一緒に移動する)
+	constexpr std::string_view sidecar_extensions[] = { ".meta" };
 
 	//	一覧に出さないフォルダ
 	constexpr std::string_view excluded_directories[] = { "Assets/CSO" };
@@ -120,14 +129,34 @@ bool asset_browser::take_open_request(std::string_view name, std::string& out_fi
 	if (it == open_requests.end())
 		return false;
 
-	out_file_path = std::move(it->second);
+	//	@tool 要求してから受け取るまでに移動されていても、UUID から今のパスを引く
+	const open_request request = std::move(it->second);
 	open_requests.erase(it);
+	out_file_path = asset_registry::is_valid() ? asset_registry::instance()->resolve_path(request.uuid, request.file_path) : request.file_path;
+	return true;
+}
+
+bool asset_browser::open_asset(const universally_unique_identifier& uuid)
+{
+	const std::string file_path = asset_registry::is_valid() ? asset_registry::instance()->find_path(uuid) : std::string{};
+	if (file_path.empty())
+	{
+		DEBUG_WARNING_CATEGORY(logger::categorys::system, "asset_browser asset not found[%s]", uuid.to_string().c_str());
+		return false;
+	}
+
+	const auto handler = find_default_handler(to_lower(system_utility::convert_utf16_to_shift_jis(to_filesystem_path(file_path).extension().wstring())));
+	if (!handler)
+		return false;
+
+	request_open(*handler, file_path);
 	return true;
 }
 
 void asset_browser::request_open(const open_handler& handler, const cache_string& file_path)
 {
-	open_requests.insert_or_assign(handler.name.str(), file_path.str());
+	const universally_unique_identifier uuid = asset_registry::is_valid() ? asset_registry::instance()->find_uuid(file_path.view()) : universally_unique_identifier{};
+	open_requests.insert_or_assign(handler.name.str(), open_request{ uuid, file_path.str() });
 	if (handler.activate)
 		handler.activate();
 }
@@ -317,8 +346,16 @@ void asset_browser::imgui_render()
 
 			ImGui::EndTable();
 		}
+
+		imgui_render_rename_popup();
 	}
 	ImGui::End();
+
+	if (pending_move)
+	{
+		move_entry(pending_move->source_path, pending_move->destination_path);
+		pending_move.reset();
+	}
 
 	if (pending_refresh)
 	{
@@ -407,6 +444,7 @@ void asset_browser::imgui_render_directory_tree(const directory_node& node)
 	const bool opened = ImGui::TreeNodeEx(node.path.c_str(), flags, "%s", node.name.get<utf8_cache>().c_str());
 	if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
 		pending_directory = node.path;
+	accept_move_drop(node.path);
 
 	if (opened)
 	{
@@ -490,6 +528,16 @@ void asset_browser::imgui_render_entry(entry& target, float cell_width, float ce
 		}
 	}
 	const bool visible = ImGui::IsItemVisible();
+
+	//	@tool ドラッグでフォルダへ移動
+	if (ImGui::BeginDragDropSource())
+	{
+		ImGui::SetDragDropPayload(move_payload_type, target.path.c_str(), target.path.str().size() + 1);
+		ImGui::TextUnformatted(target.name.get<utf8_cache>().c_str());
+		ImGui::EndDragDropSource();
+	}
+	if (target.is_directory)
+		accept_move_drop(target.path);
 
 	if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal) && ImGui::BeginTooltip())
 	{
@@ -599,6 +647,14 @@ void asset_browser::imgui_render_entry_context_menu(const entry& target)
 			ImGui::Separator();
 	}
 
+	if (ImGui::MenuItem("Rename"))
+	{
+		rename_source_path = target.path.str();
+		strncpy_s(rename_buffer, target.name.get<utf8_cache>().c_str(), _TRUNCATE);
+		rename_invalid = false;
+		open_rename_popup = true;
+	}
+
 	if (ImGui::MenuItem("Copy Path"))
 		ImGui::SetClipboardText(target.path.get<utf8_cache>().c_str());
 
@@ -611,5 +667,121 @@ void asset_browser::imgui_render_entry_context_menu(const entry& target)
 	}
 
 	ImGui::EndPopup();
+}
+
+void asset_browser::imgui_render_rename_popup()
+{
+	constexpr const char* popup_name = "Rename##asset_browser";
+	if (open_rename_popup)
+	{
+		ImGui::OpenPopup(popup_name);
+		open_rename_popup = false;
+	}
+
+	if (!ImGui::BeginPopupModal(popup_name, nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+		return;
+
+	if (ImGui::IsWindowAppearing())
+		ImGui::SetKeyboardFocusHere();
+	ImGui::SetNextItemWidth(320.0f);
+	bool accepted = ImGui::InputText("##name", rename_buffer, IM_ARRAYSIZE(rename_buffer), ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_AutoSelectAll);
+	if (rename_invalid)
+		ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.4f, 1.0f), "Invalid name");
+
+	accepted |= ImGui::Button("OK");
+	ImGui::SameLine();
+	const bool canceled = ImGui::Button("Cancel") || ImGui::IsKeyPressed(ImGuiKey_Escape);
+
+	if (accepted)
+	{
+		//	@tool 区切り文字などファイル名に使えない文字は受け付けない
+		const std::wstring name = system_utility::convert_utf8_to_utf16(rename_buffer);
+		rename_invalid = name.empty() || name == L"." || name == L".." ||
+			std::any_of(name.begin(), name.end(), [](wchar_t c) { return c < 0x20 || std::wstring_view(L"\\/:*?\"<>|").find(c) != std::wstring_view::npos; });
+		if (!rename_invalid)
+		{
+			const std::string parent = rename_source_path.substr(0, rename_source_path.rfind('/'));
+			pending_move = move_request{ rename_source_path, parent + "/" + system_utility::convert_utf16_to_shift_jis(name) };
+			ImGui::CloseCurrentPopup();
+		}
+	}
+	else if (canceled)
+	{
+		ImGui::CloseCurrentPopup();
+	}
+	ImGui::EndPopup();
+}
+
+void asset_browser::accept_move_drop(const cache_string& directory)
+{
+	if (!ImGui::BeginDragDropTarget())
+		return;
+
+	if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(move_payload_type))
+	{
+		const std::string source_path(static_cast<const char*>(payload->Data));
+		const std::string name = source_path.substr(source_path.rfind('/') + 1);
+		pending_move = move_request{ source_path, directory.str() + "/" + name };
+	}
+	ImGui::EndDragDropTarget();
+}
+
+bool asset_browser::move_entry(const std::string& source_path, const std::string& destination_path)
+{
+	if (resource_manager::make_path_key(source_path) == resource_manager::make_path_key(destination_path))
+		return false;
+
+	//	@tool フォルダを自分の下へは移せない
+	std::string unused;
+	if (resource_manager::replace_base_path(destination_path, source_path, source_path, unused))
+	{
+		DEBUG_WARNING_CATEGORY(logger::categorys::system, "asset_browser cannot move into itself[%s] -> [%s]", source_path.c_str(), destination_path.c_str());
+		return false;
+	}
+
+	const std::filesystem::path source = to_filesystem_path(source_path);
+	const std::filesystem::path destination = to_filesystem_path(destination_path);
+	std::error_code error;
+	if (std::filesystem::exists(destination, error))
+	{
+		DEBUG_WARNING_CATEGORY(logger::categorys::system, "asset_browser destination already exists[%s]", destination_path.c_str());
+		return false;
+	}
+
+	const bool is_directory = std::filesystem::is_directory(source, error);
+	std::filesystem::rename(source, destination, error);
+	if (error)
+	{
+		DEBUG_ERROR_CATEGORY(logger::categorys::system, "asset_browser move failed[%s] -> [%s] %s", source_path.c_str(), destination_path.c_str(), error.message().c_str());
+		return false;
+	}
+
+	if (!is_directory)
+	{
+		for (auto extension : sidecar_extensions)
+		{
+			std::filesystem::path sidecar_source = source;
+			sidecar_source += std::filesystem::path(std::string(extension));
+			if (!std::filesystem::exists(sidecar_source, error))
+				continue;
+
+			std::filesystem::path sidecar_destination = destination;
+			sidecar_destination += std::filesystem::path(std::string(extension));
+			std::filesystem::rename(sidecar_source, sidecar_destination, error);
+		}
+	}
+
+	//	@tool 対応表を先に更新する(キャッシュのキーは対応表の UUID から作るため)
+	if (asset_registry::is_valid())
+		asset_registry::instance()->move_path(source_path, destination_path);
+	if (resource_manager::is_valid())
+		resource_manager::instance()->move_path(source_path, destination_path);
+
+	DEBUG_LOG_CATEGORY(logger::categorys::system, "asset_browser moved[%s] -> [%s]", source_path.c_str(), destination_path.c_str());
+
+	if (resource_manager::make_path_key(selected_path.view()) == resource_manager::make_path_key(source_path))
+		selected_path = destination_path;
+	pending_refresh = true;
+	return true;
 }
 #endif	//	defined(USE_IMGUI)

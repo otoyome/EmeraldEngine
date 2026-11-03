@@ -120,9 +120,9 @@ void particle::item::renderer::serialize(Archive& archive, int version)
 	}
 	else if (version < 2)
 	{
-		std::shared_ptr<material_resource> embedded_material;
-		archive(state, type, total_particle_count, embedded_material, trail, uv, color);
-		material = embedded_material;
+		archive(state, type, total_particle_count);
+		material = material_resource::load_embedded_legacy(archive);
+		archive(trail, uv, color);
 	}
 	else if (version < 3)
 	{
