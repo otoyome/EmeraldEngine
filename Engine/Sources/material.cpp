@@ -168,14 +168,6 @@ material& material::operator =(const material& material)
 
 material::~material()
 {
-#if defined(USE_IMGUI)
-	//	パイプラインステート側への検知関数登録解除
-	for (auto& pipeline_state : pipeline_states)
-	{
-		if (pipeline_state.value)
-			pipeline_state.value->unregister_reload_callback(pipeline_state.reload_callback_id);
-	}
-#endif	//	defined(USE_IMGUI)
 }
 
 void material::upload_constant_buffers(gpu_upload_list& upload_list)
@@ -244,18 +236,8 @@ void material::build()
 	{
 		if (auto state = pipeline_state_manager::instance()->search(pipeline_state.name))
 		{
-#if defined(USE_IMGUI)
-			if (pipeline_state.value)
-				pipeline_state.value->unregister_reload_callback(pipeline_state.reload_callback_id);
-#endif	//	defined(USE_IMGUI)
-
 			pipeline_state.value = state;
-
-#if defined(USE_IMGUI)
-			if (pipeline_state.value)
-				pipeline_state.reload_callback_id = pipeline_state.value->register_reload_callback(
-				[this](const pipeline_state_base* ps) { on_updates(ps); });
-#endif	//	defined(USE_IMGUI)
+			pipeline_state.reload_version = state->get_reload_version();
 		}
 	}
 
@@ -263,8 +245,53 @@ void material::build()
 	build_parameters();
 }
 
+void material::update()
+{
+	//	パイプラインステートが読み直されたか
+	bool reloaded = false;
+	for (auto& pipeline_state : pipeline_states)
+	{
+		const std::uint32_t current = pipeline_state.value ? pipeline_state.value->get_reload_version() : 0;
+		if (pipeline_state.reload_version != current)
+		{
+			pipeline_state.reload_version = current;
+			reloaded = true;
+		}
+	}
+
+	//	シェーダーマップが生成済みのパイプラインステートを捨てたか(スイッチや GS の有無が変わった)
+	const bool shader_map_changed = domain != domains::system && shader_map_version != material_shader_map::instance()->get_version();
+	if (!reloaded && !shader_map_changed)
+		return;
+
+#if defined(USE_IMGUI)
+	error_state_cached_ = false;
+#endif	//	defined(USE_IMGUI)
+
+	//	取り直しの中でシェーダーマップが宣言を読み直す(宣言が変わっていれば他のマテリアルにも番号で伝わる)
+	refresh_pipeline_states();
+	build_parameters();
+}
+
+void material::create_constant_buffer_resource(constant_buffer& target)
+{
+	D3D11_BUFFER_DESC buffer_desc{};
+	buffer_desc.Usage = D3D11_USAGE_DEFAULT;
+	buffer_desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	buffer_desc.CPUAccessFlags = 0;
+	buffer_desc.MiscFlags = 0;
+	buffer_desc.StructureByteStride = 0;
+	buffer_desc.ByteWidth = static_cast<UINT>(target.data_buffer.size());
+	HRESULT hr = render_data::instance()->get_device()->CreateBuffer(&buffer_desc, nullptr, target.buffer.ReleaseAndGetAddressOf());
+	_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+	target.dirty = true;
+}
+
 void material::build_parameters()
 {
+	//	構成が変わるのでインスタンスに作り直させる
+	++version;
+
 #if defined(USE_IMGUI)
 	if (is_error())
 	{
@@ -439,17 +466,7 @@ void material::build_parameters()
 		}
 
 		//	定数バッファの生成
-		{
-			D3D11_BUFFER_DESC buffer_desc{};
-			buffer_desc.Usage = D3D11_USAGE_DEFAULT;
-			buffer_desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-			buffer_desc.CPUAccessFlags = 0;
-			buffer_desc.MiscFlags = 0;
-			buffer_desc.StructureByteStride = 0;
-			buffer_desc.ByteWidth = cbv.total_size;
-			HRESULT hr = render_data::instance()->get_device()->CreateBuffer(&buffer_desc, nullptr, cb.buffer.ReleaseAndGetAddressOf());
-			_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
-		}
+		create_constant_buffer_resource(cb);
 
 		//	定数バッファ登録
 		constant_buffers.insert(std::make_pair(cbv.name, std::move(cb)));
@@ -710,6 +727,9 @@ void material::refresh_pipeline_states()
 		assign_pipeline_state(index, value ? value->get_name() : "", value, required);
 	}
 
+	//	取り直しの途中で宣言が読み直されることがあるので、最後に番号を覚える
+	shader_map_version = shader_map->get_version();
+
 #if defined(USE_IMGUI)
 	error_state_cached_ = false;
 #endif	//	defined(USE_IMGUI)
@@ -726,17 +746,8 @@ void material::assign_pipeline_state(UINT index, std::string_view name, graphics
 	if (target.value == value)
 		return;
 
-#if defined(USE_IMGUI)
-	if (target.value)
-		target.value->unregister_reload_callback(target.reload_callback_id);
-#endif	//	defined(USE_IMGUI)
-
 	target.value = value;
-
-#if defined(USE_IMGUI)
-	if (target.value)
-		target.reload_callback_id = target.value->register_reload_callback([this](const pipeline_state_base* ps) { on_updates(ps); });
-#endif	//	defined(USE_IMGUI)
+	target.reload_version = value ? value->get_reload_version() : 0;
 }
 
 material::shading_models material::get_shading_model() const
@@ -787,11 +798,15 @@ const material::shader_resource_map& material::get_shader_resources() const
 #if defined(USE_IMGUI)
 material::constant_buffer_map& material::get_constant_buffers_for_editor()
 {
+	//	書き換えられる前提でインスタンスに作り直させる
+	++version;
 	return constant_buffers;
 }
 
 material::shader_resource_map& material::get_shader_resources_for_editor()
 {
+	//	書き換えられる前提でインスタンスに作り直させる
+	++version;
 	return shader_resources;
 }
 #endif	//	defined(USE_IMGUI)
@@ -808,17 +823,8 @@ bool material::set_pipeline_state(domains domain, UINT index, std::string_view p
 		if (auto pipeline_state = pipeline_state_manager::instance()->search(name))
 		{
 			pipeline_states[index].name = name;
-#if defined(USE_IMGUI)
-			if (pipeline_states[index].value)
-				pipeline_states[index].value->unregister_reload_callback(pipeline_states[index].reload_callback_id);
-#endif	//	defined(USE_IMGUI)
-
 			pipeline_states[index].value = pipeline_state;
-
-#if defined(USE_IMGUI)
-			if (pipeline_states[index].value)
-				pipeline_states[index].reload_callback_id = pipeline_states[index].value->register_reload_callback([this](const pipeline_state_base* ps) { on_updates(ps); });
-#endif	//	defined(USE_IMGUI)
+			pipeline_states[index].reload_version = pipeline_state->get_reload_version();
 
 			//	マテリアルパラメーターの更新
 			build_parameters();
@@ -828,12 +834,8 @@ bool material::set_pipeline_state(domains domain, UINT index, std::string_view p
 		{
 			//	見つからない場合は解除する
 			pipeline_states[index].name = name;
-#if defined(USE_IMGUI)
-			if (pipeline_states[index].value)
-				pipeline_states[index].value->unregister_reload_callback(pipeline_states[index].reload_callback_id);
-#endif	//	defined(USE_IMGUI)
-
 			pipeline_states[index].value = pipeline_state;
+			pipeline_states[index].reload_version = 0;
 
 			//	マテリアルパラメーターの更新
 			build_parameters();
@@ -925,6 +927,7 @@ bool material::set_data(std::string_view key_name, void* data, std::size_t data_
 			void* buffer = cb.data_buffer.data() + start_offset;
 			memcpy_s(buffer, buffer_size, data, std::min(buffer_size, data_size));
 			cb.dirty = true;
+			++version;
 			return true;
 		}
 		++it;
@@ -979,6 +982,7 @@ bool material::set_texture(std::string_view key_name, texture_ptr value)
 		resource.is_file_path_or_key = value->is_file_path_or_key();
 		resource.path = std::string(value->get_file_path_or_key());
 		resource.value = value;
+		++version;
 		return true;
 	}
 	return false;
@@ -1099,12 +1103,6 @@ bool material::is_error() const
 
 	error_state_cached_ = true;
 	return false;
-}
-void material::on_updates(const pipeline_state_base* ps)
-{
-	error_state_cached_ = false;
-	//	パラメーター再生成
-	build_parameters();
 }
 
 #endif	//	defined(USE_IMGUI)

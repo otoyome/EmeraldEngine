@@ -1,5 +1,6 @@
 #include "Renderer/scene_renderer_common.h"
 #include "model_buffer_pool.h"
+#include "material_instance.h"
 
 namespace
 {
@@ -342,13 +343,13 @@ void scene_renderer_commons::model_render_indirect(graphics_context& context,
 	context.set_index_buffer(nullptr, DXGI_FORMAT_UNKNOWN, 0);
 	context.set_primitive_topology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-	std::unordered_set<material*> drawn;
+	std::unordered_set<material_instance*> drawn;
 	std::vector<std::size_t> fallback_indices;
 	for (auto& draw_index : mesh_indices)
 	{
 		auto draw_data = draw_data_ptr + draw_index;
 		auto material_data = material_data_ptr + draw_data->material_index;
-		material* material = material_data->material;
+		material_instance* material = material_data->material;
 
 		//	モーフ持ちは別パス
 		auto buffer_data = buffer_data_ptr + draw_data->buffer_index;
@@ -453,7 +454,7 @@ void scene_renderer_commons::model_render_shadow_batched(graphics_context& conte
 		graphics_pipeline_state_ptr pipeline_state;
 		std::vector<common_pipeline_states::meshlet_instance_record> instance_records;
 	};
-	std::unordered_map<material*, material_batch> batches;
+	std::unordered_map<material_instance*, material_batch> batches;
 	std::vector<std::size_t> fallback_indices;
 
 	//	マテリアル単位でメッシュレットをまとめて描画
@@ -467,7 +468,7 @@ void scene_renderer_commons::model_render_shadow_batched(graphics_context& conte
 		if (!frustum_culling.to_aabb(buffer_data->bounds_min, buffer_data->bounds_max))
 			continue;
 
-		material* mat = material_data->material;
+		material_instance* mat = material_data->material;
 		auto pipeline_state = mat->get_pipeline_state(surface_path);
 		if (!pipeline_state)
 			continue;
@@ -513,7 +514,7 @@ void scene_renderer_commons::model_render_shadow_batched(graphics_context& conte
 
 		for (auto& pair : batches)
 		{
-			material* mat = pair.first;
+			material_instance* mat = pair.first;
 			auto& batch = pair.second;
 			//	メッシュレット無し
 			if (batch.instance_records.empty())
@@ -563,7 +564,7 @@ void scene_renderer_commons::model_render_shadow_batched(graphics_context& conte
 		graphics_pipeline_state_ptr pipeline_state;
 		std::vector<common_pipeline_states::meshlet_instance_record> instance_records;
 	};
-	std::unordered_map<material*, material_batch> batches;
+	std::unordered_map<material_instance*, material_batch> batches;
 	std::vector<std::size_t> fallback_indices;
 
 	//	マテリアル単位でメッシュレットをまとめて描画
@@ -577,7 +578,7 @@ void scene_renderer_commons::model_render_shadow_batched(graphics_context& conte
 		if (!aabb_intersects_sphere(buffer_data->bounds_min, buffer_data->bounds_max, sphere_center, sphere_radius))
 			continue;
 
-		material* mat = material_data->material;
+		material_instance* mat = material_data->material;
 		auto pipeline_state = mat->get_pipeline_state(surface_path);
 		if (!pipeline_state)
 			continue;
@@ -623,7 +624,7 @@ void scene_renderer_commons::model_render_shadow_batched(graphics_context& conte
 
 		for (auto& pair : batches)
 		{
-			material* mat = pair.first;
+			material_instance* mat = pair.first;
 			auto& batch = pair.second;
 			//	このマテリアルは生存メッシュレット無し
 			if (batch.instance_records.empty())

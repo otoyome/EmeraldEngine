@@ -26,15 +26,27 @@ sprite::sprite()
 	indices.emplace_back(2);
 	transform_matrix = math::float4x4();
 
-	material.set_domain(material::domains::user_interface);
-	material.set_blend_mode(material::blend_modes::translucent);
-	material.set_shader_path(::material::default_user_interface_shader_path);
-
-	material.set_texture(base_texture_name, texture_manager::instance()->search(texture_manager::white_texture2d_name));
+	material.set_resource(acquire_default_material());
 }
 
 sprite::~sprite()
 {
+}
+
+material_ptr sprite::acquire_default_material()
+{
+	if (auto value = default_material.lock())
+		return value;
+
+	auto value = std::make_shared<::material>();
+	value->set_domain(::material::domains::user_interface);
+	value->set_blend_mode(::material::blend_modes::translucent);
+	value->set_shader_path(::material::default_user_interface_shader_path);
+
+	value->set_texture(base_texture_name, texture_manager::instance()->search(texture_manager::white_texture2d_name));
+
+	default_material = value;
+	return value;
 }
 
 void sprite::update_vertices(const std::vector<vertex>& vertices, const std::vector<UINT>& indices)

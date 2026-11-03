@@ -91,7 +91,7 @@ void convert_linear_to_srgb_pipeline_state::begin(const graphics_context& contex
 	context.device_context->PSSetSamplers(SceneSamplerIndex, 1, render_data::instance()->get_sampler_states(render_data::SAMPLER_STATE::LINEAR).GetAddressOf());
 }
 
-void convert_linear_to_srgb_pipeline_state::update_parameters(const graphics_context& context, const material& material, const buffer_datas* buffer_data)
+void convert_linear_to_srgb_pipeline_state::update_parameters(const graphics_context& context, const material_instance& material, const buffer_datas* buffer_data)
 {
 }
 
@@ -188,7 +188,7 @@ void convert_srgb_to_linear_pipeline_state::begin(const graphics_context& contex
 	context.device_context->PSSetSamplers(SceneSamplerIndex, 1, render_data::instance()->get_sampler_states(render_data::SAMPLER_STATE::LINEAR).GetAddressOf());
 }
 
-void convert_srgb_to_linear_pipeline_state::update_parameters(const graphics_context& context, const material& material, const buffer_datas* buffer_data)
+void convert_srgb_to_linear_pipeline_state::update_parameters(const graphics_context& context, const material_instance& material, const buffer_datas* buffer_data)
 {
 }
 

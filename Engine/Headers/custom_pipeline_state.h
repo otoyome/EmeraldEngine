@@ -1,7 +1,7 @@
 #pragma once
 
 #include "common_pipeline_states.h"
-#include "material.h"
+#include "material_instance.h"
 
 //	描画用カスタムパイプラインステート
 class graphics_custom_pipeline_state : public graphics_pipeline_state
@@ -81,7 +81,7 @@ public:
 
 	void rebuild_bindings() override;
 	void begin(const graphics_context& context) override;
-	void update_parameters(const graphics_context& context, const material& material, const buffer_datas* buffer_data) override;
+	void update_parameters(const graphics_context& context, const material_instance& material, const buffer_datas* buffer_data) override;
 	void end(const graphics_context& context) override;
 
 	void generate_input_resource_descs(std::vector<input_resource_desc>& out_data) override;

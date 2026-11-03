@@ -4,6 +4,7 @@
 #include "render_pass.h"
 #include "scene_render_targets.h"
 #include "geometric_primitive.h"
+#include "material_instance.h"
 
 #include "PipelineState/deferred_decal_pipeline_state.h"
 
@@ -123,6 +124,7 @@ private:
 
 	shadow_atlas atlas;
 	std::shared_ptr<material> deferred_lighting_material;
+	material_instance deferred_lighting_material_instance;
 };
 
 #if defined(USE_IMGUI)

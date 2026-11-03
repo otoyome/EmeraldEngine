@@ -604,6 +604,9 @@ deffered_lighting_renderer::deffered_lighting_renderer(render_job_registrar job_
 			}
 			deferred_lighting_material->set_pipeline_state(system_paths_list[index], shader_names[index]);
 		}
+
+		//	描画ではインスタンスを使う(ライトプローブのテクスチャはインスタンスで差し替える)
+		deferred_lighting_material_instance.set_resource(deferred_lighting_material);
 	}
 }
 
@@ -615,6 +618,9 @@ void deffered_lighting_renderer::render(renderer_context& context)
 {
 	//	描画番号
 	register_index = 0;
+
+	//	描画ジョブを積む前に、パイプラインステートの読み直しをマテリアルへ反映する
+	deferred_lighting_material_instance.update();
 
 	//	間接光
 	render_indirect(context);
@@ -799,15 +805,15 @@ void deffered_lighting_renderer::render_indirect(renderer_context& context)
 			{
 				//	全画面描画
 				//	IBLテクスチャ設定
-				deferred_lighting_material->set_texture("diffuse_iem", light_probe.diffuse_ibl_texture);
-				deferred_lighting_material->set_texture("specular_pmrem", light_probe.specular_ibl_texture);
-				deferred_lighting_material->set_texture("lut_ggx", light_probe.lut_ggx_texture);
+				deferred_lighting_material_instance.set_texture("diffuse_iem", light_probe.diffuse_ibl_texture);
+				deferred_lighting_material_instance.set_texture("specular_pmrem", light_probe.specular_ibl_texture);
+				deferred_lighting_material_instance.set_texture("lut_ggx", light_probe.lut_ggx_texture);
 
 				auto pipeline_state =
-					deferred_lighting_material->get_pipeline_state(material::system_paths::deferred_indirect);
+					deferred_lighting_material_instance.get_pipeline_state(material::system_paths::deferred_indirect);
 
 				pipeline_state->begin(context);
-				pipeline_state->update_parameters(context, *deferred_lighting_material, nullptr);
+				pipeline_state->update_parameters(context, deferred_lighting_material_instance, nullptr);
 				scene_renderer_commons::draw(context, pipeline_state, 4);
 				pipeline_state->end(context);
 			}
@@ -843,10 +849,10 @@ void deffered_lighting_renderer::render_directional(const light_render_data& lig
 		context.device_context->RSSetViewports(1, &lighting_pass_viewport);
 		{
 			auto pipeline_state =
-				deferred_lighting_material->get_pipeline_state(material::system_paths::deferred_directional);
+				deferred_lighting_material_instance.get_pipeline_state(material::system_paths::deferred_directional);
 
 			pipeline_state->begin(context);
-			pipeline_state->update_parameters(context, *deferred_lighting_material, nullptr);
+			pipeline_state->update_parameters(context, deferred_lighting_material_instance, nullptr);
 			scene_renderer_commons::draw(context, pipeline_state, 4);
 			pipeline_state->end(context);
 		}
@@ -1110,10 +1116,10 @@ void deffered_lighting_renderer::render_point(const light_render_data& light, co
 		context.device_context->RSSetViewports(1, &lighting_pass_viewport);
 		{
 			auto pipeline_state =
-				deferred_lighting_material->get_pipeline_state(material::system_paths::deferred_point);
+				deferred_lighting_material_instance.get_pipeline_state(material::system_paths::deferred_point);
 
 			pipeline_state->begin(context);
-			pipeline_state->update_parameters(context, *deferred_lighting_material, nullptr);
+			pipeline_state->update_parameters(context, deferred_lighting_material_instance, nullptr);
 			scene_renderer_commons::draw(context, pipeline_state, 4);
 			pipeline_state->end(context);
 		}
@@ -1249,10 +1255,10 @@ void deffered_lighting_renderer::render_spot(const light_render_data& light, com
 		context.device_context->RSSetViewports(1, &lighting_pass_viewport);
 		{
 			auto pipeline_state =
-				deferred_lighting_material->get_pipeline_state(material::system_paths::deferred_spot);
+				deferred_lighting_material_instance.get_pipeline_state(material::system_paths::deferred_spot);
 
 			pipeline_state->begin(context);
-			pipeline_state->update_parameters(context, *deferred_lighting_material, nullptr);
+			pipeline_state->update_parameters(context, deferred_lighting_material_instance, nullptr);
 			scene_renderer_commons::draw(context, pipeline_state, 4);
 			pipeline_state->end(context);
 		}

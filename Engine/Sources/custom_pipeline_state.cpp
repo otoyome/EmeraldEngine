@@ -352,7 +352,7 @@ void graphics_custom_pipeline_state::begin(const graphics_context& context)
 	}
 }
 
-void graphics_custom_pipeline_state::update_parameters(const graphics_context& context, const material& material, const buffer_datas* buffer_data)
+void graphics_custom_pipeline_state::update_parameters(const graphics_context& context, const material_instance& material, const buffer_datas* buffer_data)
 {
 	//	ラスタライザーステート設定
 	{
@@ -443,7 +443,6 @@ void graphics_custom_pipeline_state::update_parameters(const graphics_context& c
 	//	パラメーター設定
 	{
 		//	定数バッファビュー登録
-		const material::constant_buffer_map& constant_buffers = material.get_constant_buffers();
 		forward_light_data forward_light_data;
 		for (auto& cbv : index_map.cbv)
 		{
@@ -512,10 +511,9 @@ void graphics_custom_pipeline_state::update_parameters(const graphics_context& c
 			}
 			else
 			{
-				auto it = constant_buffers.find(cbv.first);
-				if (it != constant_buffers.end())
+				if (const material::constant_buffer* material_constant_buffer = material.find_constant_buffer(cbv.first))
 				{
-					constant_buffer = it->second.buffer.Get();
+					constant_buffer = material_constant_buffer->buffer.Get();
 				}
 			}
 
@@ -545,8 +543,6 @@ void graphics_custom_pipeline_state::update_parameters(const graphics_context& c
 		//	シェーダーリソースビュー登録
 		common_pipeline_states::parameter_constants parameter_constant_buffer[magic_enum::enum_count<arrangement>()];
 		{
-			const material::shader_resource_map& shader_resources = material.get_shader_resources();
-
 			for (auto& srv : index_map.srv)
 			{
 				system_utility::hash_key srv_key = srv.second.hash;
@@ -669,11 +665,11 @@ void graphics_custom_pipeline_state::update_parameters(const graphics_context& c
 						continue;
 				}
 
-				auto it = shader_resources.find(srv.first);
-				if (it == shader_resources.end())
+				const material::shader_resource* shader_resource = material.find_shader_resource(srv.first);
+				if (!shader_resource)
 					continue;
 
-				auto& shader_resources = it->second.resources;
+				auto& shader_resources = shader_resource->resources;
 				for (UINT srv_index = 0; srv_index < shader_resources.size(); ++srv_index)
 				{
 					register_srv_function(shader_resources[srv_index].value);

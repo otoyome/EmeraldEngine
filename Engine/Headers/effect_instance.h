@@ -48,14 +48,15 @@ public:
 
 	struct decal
 	{
-		size_t node_index;
-		std::shared_ptr<material> material;
+		size_t node_index = invalid_id;
+		material_instance material;
 	};
 
 	struct particle
 	{
 		size_t node_index;
 		::particle::data particle;
+		material_instance material;
 	};
 
 public:

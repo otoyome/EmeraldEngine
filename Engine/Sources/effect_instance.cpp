@@ -453,18 +453,17 @@ void effect_instance::build()
 		auto& data = particles.emplace_back();
 		data.node_index = particle.node_index;
 		data.particle = particle.particle;
+		if (auto renderer = data.particle.get_item<::particle::item::renderer>())
+			data.material.set_resource(renderer->material);
 	}
 
 	//	デカール構築
 	for (auto& decal : resource->get_decals())
 	{
-		if (!decal.is_valid())
-			continue;
-
 		auto& data = decals.emplace_back();
 		data.node_index = decal.node_index;
-		data.material = std::make_shared<material>();
-		decal.material->duplicate(*data.material);
+		if (decal.is_valid())
+			data.material.set_resource(decal.material);
 	}
 }
 
@@ -693,11 +692,19 @@ void effect_manager::get_container(effect_container& effects, decal_container& d
 			continue;
 
 		//	デカール情報構築
+		auto& instance_decals = item.effect_instance->get_decals();
 		for (UINT index = 0; index < item.effect_instance->get_resource()->get_decals().size(); ++index)
 		{
 			auto& decal_data = item.effect_instance->get_resource()->get_decals()[index];
 			if (!decal_data.is_valid())
 				continue;
+
+			//	マテリアルインスタンス生成
+			if (instance_decals.size() <= index)
+				instance_decals.resize(index + 1);
+			auto& instance_decal = instance_decals[index];
+			instance_decal.node_index = decal_data.node_index;
+			instance_decal.material.set_resource(decal_data.material);
 
 			auto& node_data = item.effect_instance->get_nodes()[decal_data.node_index];
 
@@ -709,7 +716,7 @@ void effect_manager::get_container(effect_container& effects, decal_container& d
 			decal.position = (instance->get_position() + math::vector3d(position) - render_origin).to_float3();
 			decal.rotation = math::rotatorf(rotation);
 			decal.box = collision::bounding_box(math::double3(decal.scale), rotation.to_double4(), math::double3(decal.position));
-			decal.material.material = decal_data.material.get();
+			decal.material.material = &instance_decal.material;
 		}
 
 		//	パーティクル描画情報構築
@@ -729,7 +736,10 @@ void effect_manager::get_container(effect_container& effects, decal_container& d
 				//	情報構築
 				auto& data = effects.sprite_trail_draw_datas.emplace_back();
 				particle_system->generate_render_data(emitter_item.system_index, data);
-				data.material_data.material = renderer->material.get();
+
+				//	マテリアルインスタンス生成
+				particle_data.material.set_resource(renderer->material);
+				data.material_data.material = &particle_data.material;
 
 				//	色描画登録
 				if (instance->is_flag(effect_instance::flags::color_render))

@@ -3,6 +3,7 @@
 #include "texture.h"
 
 class material;
+class material_instance;
 
 //	ƒuƒ‹[ƒ€—pî•ñ
 //	Ã·Ä°('ƒÖ')°Ä·Ã
@@ -220,7 +221,7 @@ public:
 	const tone_mapping_data& get_tone_mapping_constant() const;
 	void set_tone_mapping_constant(const tone_mapping_data& data);
 
-	const std::vector<std::shared_ptr<material>>& get_materials() const;
+	const std::vector<std::shared_ptr<material_instance>>& get_materials() const;
 	bool register_postprocess_materials(std::shared_ptr<material> material_ptr);
 
 private:
@@ -232,7 +233,7 @@ private:
 	motion_blur_data motion_blur_constant;
 	exposure_compensation_data exposure_compensation_constant;
 	tone_mapping_data tone_mapping_constant;
-	std::vector<std::shared_ptr<material>> postprocess_materials;
+	std::vector<std::shared_ptr<material_instance>> postprocess_materials;
 
 	math::vector3d position;
 	math::float3 inner_range;

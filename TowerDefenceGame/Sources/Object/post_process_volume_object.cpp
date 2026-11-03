@@ -143,7 +143,7 @@ void post_process_volume_object::imgui_render_core()
 	{
 		if (ImGui::TreeNode(system_utility::convert_utf8(material->get_name()).data()))
 		{
-			editor_items::edit_material(editor_context, *material);
+			editor_items::edit_material_instance(editor_context, *material);
 			ImGui::TreePop();
 		}
 	}

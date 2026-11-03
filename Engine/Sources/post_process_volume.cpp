@@ -1,6 +1,6 @@
 #include "post_process_volume.h"
 #include "texture.h"
-#include "material.h"
+#include "material_instance.h"
 #include "collision/box.h"
 
 #if defined(USE_IMGUI)
@@ -318,7 +318,7 @@ void post_process_volume::set_tone_mapping_constant(const tone_mapping_data& dat
 	tone_mapping_constant = data;
 }
 
-const std::vector<std::shared_ptr<material>>& post_process_volume::get_materials() const
+const std::vector<std::shared_ptr<material_instance>>& post_process_volume::get_materials() const
 {
 	return postprocess_materials;
 }
@@ -329,7 +329,7 @@ bool post_process_volume::register_postprocess_materials(std::shared_ptr<materia
 	if (material_ptr->get_domain() != material::domains::post_process)
 		return false;
 
-	postprocess_materials.push_back(material_ptr);
+	postprocess_materials.push_back(std::make_shared<material_instance>(material_ptr));
 	return true;
 }
 

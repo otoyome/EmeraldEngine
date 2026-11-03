@@ -336,8 +336,13 @@ bool model_resource::serialize(std::string_view file_path)
 
 		try
 		{
-			archive(CEREAL_NVP(materials),
-					CEREAL_NVP(nodes),
+			archive(cereal::make_size_tag(static_cast<cereal::size_type>(materials.size())));
+			for (auto& material : materials)
+			{
+				archive(*material);
+			}
+
+			archive(CEREAL_NVP(nodes),
 					CEREAL_NVP(meshes),
 					CEREAL_NVP(morphes),
 					CEREAL_NVP(animations),
@@ -406,8 +411,17 @@ bool model_resource::deserialize(std::string_view file_path)
 
 		try
 		{
-			archive(CEREAL_NVP(materials),
-					CEREAL_NVP(nodes),
+			cereal::size_type material_count = 0;
+			archive(cereal::make_size_tag(material_count));
+			materials.clear();
+			materials.reserve(static_cast<size_t>(material_count));
+			for (cereal::size_type index = 0; index < material_count; ++index)
+			{
+				auto& material = materials.emplace_back(std::make_shared<::material>());
+				archive(*material);
+			}
+
+			archive(CEREAL_NVP(nodes),
 					CEREAL_NVP(meshes),
 					CEREAL_NVP(morphes),
 					CEREAL_NVP(animations),
@@ -430,11 +444,11 @@ bool model_resource::deserialize(std::string_view file_path)
 	return false;
 }
 
-void model_resource::paste_materials(const std::vector<material>& materials)
+void model_resource::paste_materials(const std::vector<material_ptr>& materials)
 {
 	for (size_t index = 0; index < materials.size(); ++index)
 	{
-		materials[index].duplicate(this->materials[index]);
+		materials[index]->duplicate(*this->materials[index]);
 	}
 }
 
@@ -448,7 +462,7 @@ void model_resource::build_model()
 		std::vector<std::string> texture_path_storage;
 		for (auto& material : materials)
 		{
-			for (auto& shader_resource : material.get_shader_resources())
+			for (auto& shader_resource : material->get_shader_resources())
 			{
 				for (auto& resource : shader_resource.second.resources)
 				{
@@ -468,7 +482,7 @@ void model_resource::build_model()
 	//	マテリアル
 	for (auto& material : materials)
 	{
-		material.build();
+		material->build();
 	}
 	preloaded_textures.clear();
 	//	頂点バッファ

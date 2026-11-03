@@ -258,7 +258,7 @@ void minigame_stage_00_scene::generate_model_collision(model_resource_ptr resour
 
 		collision_object_ptr collision = std::make_shared<collision_object>();
 #if defined(USE_IMGUI)
-		std::string name = has_material ? std::string(materials[material_index].get_name()) : std::string("combined");
+		std::string name = has_material ? std::string(materials[material_index]->get_name()) : std::string("combined");
 		name += " [" + std::to_string(combined_index) + "]";
 		collision->set_name(name);
 #endif	//	defined(USE_IMGUI)
@@ -266,7 +266,7 @@ void minigame_stage_00_scene::generate_model_collision(model_resource_ptr resour
 		collision->set_filter("stage");
 		collision->set_flag(collision_object::flags::static_object, true);
 		if (has_material)
-			collision->set_physical_data(materials[material_index].get_physical_data());
+			collision->set_physical_data(materials[material_index]->get_physical_data());
 		register_object(collision);
 	}
 }

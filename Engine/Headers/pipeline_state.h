@@ -6,6 +6,7 @@
 #include <d3d11shader.h>
 
 class material;
+class material_instance;
 
 //	基底パイプラインステート
 //	☆ﾃｷﾄｰ('ω')ｰﾄｷﾃ☆
@@ -235,31 +236,20 @@ public:
 	virtual void generate_input_resource_descs(std::vector<input_resource_desc>& out_data) {}
 	void generate_input_resource_desc(input_resource_desc& out_data, shader_base* shader);
 
+	//	リロードバージョン
+	std::uint32_t get_reload_version() const { return reload_version; }
+
 #if defined(USE_IMGUI)
 	void on_updates(const shader_base* shader_base);
 
 	virtual void on_update_core(const shader_base* shader_base) {}
-
-public:
-	UINT register_reload_callback(std::function<void(const pipeline_state_base*)> callback);
-	void unregister_reload_callback(UINT id);
-
-private:
-	struct callback_data
-	{
-		UINT id;
-		std::function<void(const pipeline_state_base*)> callback;
-		callback_data(UINT id, std::function<void(const pipeline_state_base*)> callback) : id(id), callback(callback){}
-	};
-
-	UINT callback_id_counter = 0;
-	std::vector<callback_data> reload_callbacks;
 #endif	//	defined(USE_IMGUI)
 
 private:
 	std::string name;
 	UINT system_flags;
 	domains domain;
+	std::uint32_t reload_version = 0;
 };
 ENUM_ATTR_BITFLAG(pipeline_state_base::cbv_flags);
 ENUM_ATTR_BITFLAG(pipeline_state_base::view_flags);
@@ -272,7 +262,7 @@ public:
 	virtual ~graphics_pipeline_state() {}
 
 	virtual	void begin(const graphics_context& context) = 0;
-	virtual	void update_parameters(const graphics_context& context, const material& material, const buffer_datas* buffer_data)
+	virtual	void update_parameters(const graphics_context& context, const material_instance& material, const buffer_datas* buffer_data)
 	{
 		assert(!"not compatible set_parameters");
 	}

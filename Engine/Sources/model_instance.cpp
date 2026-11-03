@@ -111,12 +111,11 @@ void model_instance::build_model()
 	if(!resource)
 		return;
 
-	//	マテリアルをコピーしておく
+	//	マテリアルインスタンス構築
 	materials.reserve(resource->get_materials().size());
 	for (auto& resource_material : resource->get_materials())
 	{
-		materials.emplace_back();
-		resource_material.duplicate(materials.back());
+		materials.emplace_back(resource_material);
 	}
 
 	//	ノード構築

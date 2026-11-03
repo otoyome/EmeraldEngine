@@ -310,7 +310,7 @@ material_shader_map::entry* material_shader_map::find_entry(std::string_view sha
 			return nullptr;
 		}
 
-		//	ファイルが更新されていれば宣言を読み直す(生成済みのパイプラインステートは宣言が変わると使えないので破棄する)
+		//	リロード
 		if (!error && it->second->write_time != write_time)
 		{
 			declaration latest;
@@ -324,7 +324,10 @@ material_shader_map::entry* material_shader_map::find_entry(std::string_view sha
 										return a.name == b.name && a.default_value == b.default_value;
 									});
 			if (changed)
+			{
 				it->second->pipeline_states.clear();
+				++version;
+			}
 			it->second->shader_declaration = std::move(latest);
 			it->second->write_time = write_time;
 		}

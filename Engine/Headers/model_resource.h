@@ -155,7 +155,7 @@ public:
 	inline void set_file_path(std::string_view path) { file_path = path; }
 	inline std::string_view get_file_path() const {return file_path;}
 
-	inline const std::vector<material>& get_materials() const {return materials;}
+	inline const std::vector<material_ptr>& get_materials() const {return materials;}
 	inline const std::vector<node>& get_nodes() const {return nodes;}
 	inline const std::vector<mesh>& get_meshes() const {return  meshes;}
 	inline const std::vector<morph>& get_morphes() { return morphes; }
@@ -163,7 +163,7 @@ public:
 	inline const std::vector<capsule_shadow>& get_capsule_shadows() const {return capsule_shadows;}
 
 #if defined(USE_IMGUI)
-	inline std::vector<material>& get_materials_for_editor() { return materials; }
+	inline std::vector<material_ptr>& get_materials_for_editor() { return materials; }
 	inline std::vector<node>& get_nodes_for_editor() { return nodes; }
 	inline std::vector<mesh>& get_meshes_for_editor() { return meshes; }
 	inline std::vector<morph>& get_morphes_for_editor() { return morphes; }
@@ -187,7 +187,7 @@ public:
 	bool serialize(std::string_view file_path);
 	bool deserialize(std::string_view file_path);
 
-	void paste_materials(const std::vector<material>& materials);
+	void paste_materials(const std::vector<material_ptr>& materials);
 
 	void rebuild_meshlet_data();
 
@@ -197,7 +197,7 @@ private:
 private:
 	std::string file_path;
 
-	std::vector<material> materials;
+	std::vector<material_ptr> materials;
 	std::vector<node> nodes;
 	std::vector<mesh> meshes;
 	std::vector<morph> morphes;

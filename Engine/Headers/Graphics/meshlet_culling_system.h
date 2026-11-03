@@ -12,7 +12,7 @@
 
 #include "hiz_buffer.h"
 
-class material;
+class material_instance;
 
 //	メッシュレットカリングシステム
 class meshlet_culling_system
@@ -78,14 +78,14 @@ public:
 	void build_and_cull(graphics_context& context, const std::vector<std::size_t>& visible_draw_indices, const std::vector<float>& lengths, hiz_buffer& hiz);
 
 	//	build_and_cull()の結果からマテリアルに対応する結果を取得する
-	const cull_result* find_result(material* mat) const;
+	const cull_result* find_result(material_instance* mat) const;
 
 private:
 	void generate_meshlet_instance_buffer(material_resources& resource, UINT count);
 	void generate_visible_meshlet_buffer(material_resources& resource, UINT count);
 	void generate_submesh_transform_buffer(UINT count);
 
-	void cull_material_group(graphics_context& context, material* material, const std::vector<meshlet_instance_gpu>& instances, hiz_buffer& hiz);
+	void cull_material_group(graphics_context& context, material_instance* material, const std::vector<meshlet_instance_gpu>& instances, hiz_buffer& hiz);
 
 private:
 	std::shared_ptr<compute_shader> meshlet_culling_cs;
@@ -96,10 +96,10 @@ private:
 
 	Microsoft::WRL::ComPtr<ID3D11Buffer> cull_constant_buffer;
 
-	std::unordered_map<material*, material_resources> material_resource_map;
-	std::unordered_map<material*, cull_result> current_results;
+	std::unordered_map<material_instance*, material_resources> material_resource_map;
+	std::unordered_map<material_instance*, cull_result> current_results;
 
 	//	スクラッチバッファ
 	std::vector<math::float4x4> submesh_transform_scratch;
-	std::unordered_map<material*, std::vector<meshlet_instance_gpu>> material_scratch_buffer;
+	std::unordered_map<material_instance*, std::vector<meshlet_instance_gpu>> material_scratch_buffer;
 };

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "model_resource.h"
+#include "material_instance.h"
 #include "collision/frustum_culling.h"
 
 #include "collision/sphere.h"
@@ -67,8 +68,8 @@ public:
 	inline const model_resource_ptr get_resource() const { return resource; }
 	inline const std::vector<node>& get_nodes() const { return nodes; }
 	inline std::vector<node>& get_nodes() { return nodes; }
-	inline const std::vector<material>& get_materials() const { return materials; }
-	inline std::vector<material>& get_materials() { return materials; }
+	inline const std::vector<material_instance>& get_materials() const { return materials; }
+	inline std::vector<material_instance>& get_materials() { return materials; }
 	inline const std::vector<mesh>& get_meshes() const { return meshes; }
 	inline std::vector<mesh>& get_meshes() { return meshes; }
 	inline const std::vector<morph>& get_morphes() const { return morphes; }
@@ -82,7 +83,7 @@ public:
 
 #if defined(USE_IMGUI)
 	inline model_resource_ptr get_resource_for_editor() { return resource; }
-	inline void set_materials_for_editor(const std::vector<material>& materials) { this->materials = materials; }
+	inline void set_materials_for_editor(const std::vector<material_instance>& materials) { this->materials = materials; }
 #endif	//	defined(USE_IMGUI)
 
 	size_t get_node_index_by_name(std::string_view node_name) const;
@@ -112,7 +113,7 @@ private:
 	math::transformd world;
 	math::transformd previous_world;
 
-	std::vector<material> materials;
+	std::vector<material_instance> materials;
 	std::vector<node> nodes;
 	std::vector<mesh> meshes;
 	std::vector<morph> morphes;

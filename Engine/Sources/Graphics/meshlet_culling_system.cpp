@@ -221,7 +221,7 @@ void meshlet_culling_system::build_and_cull(graphics_context& context, const std
 	}
 }
 
-void meshlet_culling_system::cull_material_group(graphics_context& context, material* material, const std::vector<meshlet_instance_gpu>& instances, hiz_buffer& hiz)
+void meshlet_culling_system::cull_material_group(graphics_context& context, material_instance* material, const std::vector<meshlet_instance_gpu>& instances, hiz_buffer& hiz)
 {
 	if (instances.empty())
 		return;
@@ -279,7 +279,7 @@ void meshlet_culling_system::cull_material_group(graphics_context& context, mate
 	dc->CSSetShader(nullptr, nullptr, 0);
 }
 
-const meshlet_culling_system::cull_result* meshlet_culling_system::find_result(material* mat) const
+const meshlet_culling_system::cull_result* meshlet_culling_system::find_result(material_instance* mat) const
 {
 	auto it = current_results.find(mat);
 	if (it == current_results.end())

@@ -255,11 +255,9 @@ void edit_model_scene::save_model()
 	auto resource = edit_model->get_model_instance()->get_resource_for_editor();
 
 	//	ƒ}ƒeƒŠƒAƒ‹‚Ìã‘‚«
-	auto& resource_materials = resource->get_materials_for_editor();
-	auto& instance_materials = edit_model->get_model_instance()->get_materials();
-	for (UINT material_index = 0; material_index < resource_materials.size(); ++material_index)
+	for (auto& instance_material : edit_model->get_model_instance()->get_materials())
 	{
-		resource_materials[material_index] = instance_materials[material_index];
+		instance_material.apply_overrides_to_resource();
 	}
 
 	//	•Û‘¶
@@ -344,7 +342,7 @@ void edit_model_scene::generate_bounding_mesh_asset()
 	{
 		const size_t material_index = meshes[mesh.mesh_index].material_index;
 		const bool has_material = material_index < materials.size();
-		const float friction = has_material ? materials[material_index].get_physical_data().friction : material::physical_datas{}.friction;
+		const float friction = has_material ? materials[material_index]->get_physical_data().friction : material::physical_datas{}.friction;
 
 		group_key key
 		{
@@ -420,7 +418,7 @@ void edit_model_scene::limit_texture_resolution_asset()
 	std::set<std::string> dds_paths;
 	for (const auto& material : resource->get_materials())
 	{
-		for (const auto& shader_resource : material.get_shader_resources())
+		for (const auto& shader_resource : material->get_shader_resources())
 		{
 			for (const auto& texture_resource : shader_resource.second.resources)
 			{

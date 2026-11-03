@@ -346,7 +346,7 @@ namespace
 		//	ƒ}ƒeƒŠƒAƒ‹¶¬
 		for(auto& pmx_material : loader.get_materials())
 		{
-			auto& material = materials.emplace_back();
+			auto& material = *materials.emplace_back(std::make_shared<::material>());
 			material.set_name(pmx_material.name);
 			material.set_domain(material::domains::surface);
 			material.set_blend_mode(material::blend_modes::mask);

@@ -51,13 +51,18 @@ namespace
 	//	view_stateの破棄フレーム数
 	constexpr uint64_t scene_view_state_keep_frames = 60;
 
+	//	マテリアルの定数バッファ等を一気に更新&GPUへ転送
 	void upload_material_constant_buffers(const render_data_context& data)
 	{
 		gpu_upload_list& upload_list = render_data::instance()->get_upload_list();
-		auto upload = [&upload_list](material* target)
+
+		auto upload = [&upload_list](material_instance* target)
 		{
-			if (target)
-				target->upload_constant_buffers(upload_list);
+			if (!target)
+				return;
+
+			target->update();
+			target->upload_constant_buffers(upload_list);
 		};
 
 		for (auto& material_data : data.mesh_container.material_datas)
@@ -66,6 +71,8 @@ namespace
 			upload(sprite_trail.material_data.material);
 		for (auto& decal : data.decal_container.decal_datas)
 			upload(decal.material.material);
+		for (auto& sprite_data : data.sprite_container.sprite_datas)
+			upload(&sprite_data.sprite->get_material());
 		if (const auto& volume = data.post_process_volume_container.selected_volume)
 		{
 			for (auto& postprocess_material : volume->get_materials())

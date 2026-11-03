@@ -456,28 +456,7 @@ void pipeline_state_base::on_updates(const shader_base* shader_base)
 {
 	on_update_core(shader_base);
 
-	for (auto& data : reload_callbacks)
-	{
-		data.callback(this);
-	}
-}
-
-UINT pipeline_state_base::register_reload_callback(std::function<void(const pipeline_state_base*)> callback)
-{
-	reload_callbacks.emplace_back(callback_id_counter++, callback);
-	return reload_callbacks.back().id;
-}
-
-void pipeline_state_base::unregister_reload_callback(UINT id)
-{
-	auto it = std::find_if(
-		reload_callbacks.begin(),
-		reload_callbacks.end(),
-		[id](const callback_data& data) { return data.id == id; }
-	);
-	if (it == reload_callbacks.end())
-		return;
-	reload_callbacks.erase(it);
+	++reload_version;
 }
 #endif	//	defined(USE_IMGUI)
 

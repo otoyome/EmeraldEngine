@@ -558,7 +558,7 @@ namespace
 		{
 			auto& gltf_material = gltf_materials[material_index];
 			auto& slots = material_textures[material_index];
-			auto& material = materials.emplace_back();
+			auto& material = *materials.emplace_back(std::make_shared<::material>());
 			material.set_name(gltf_material.name);
 			material.set_domain(material::domains::surface);
 			material.set_alpha_clip_threshold(gltf_material.alpha_cutoff);

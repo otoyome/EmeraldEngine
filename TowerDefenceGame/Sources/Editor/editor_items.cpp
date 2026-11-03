@@ -627,6 +627,113 @@ bool editor_items::edit_material(std::shared_ptr<context>& context, material& ma
 	return edit_flag;
 }
 
+bool editor_items::edit_material_instance(std::shared_ptr<context>& context, material_instance& instance)
+{
+	const material_ptr& parent = instance.get_resource();
+	if (!parent)
+	{
+		ImGui::TextDisabled("no parent material");
+		return false;
+	}
+
+	bool edit_flag = false;
+	ImGui::PushID(context->get_item_id());
+
+	ImGui::TextDisabled("shader : %s", parent->get_shader_path().data());
+	ImGui::TextDisabled("domain : %s", magic_enum::enum_name(parent->get_domain()).data());
+	ImGui::TextDisabled("blend_mode : %s", magic_enum::enum_name(parent->get_blend_mode()).data());
+
+	ImGui::BeginDisabled(!instance.has_overrides());
+	if (ImGui::Button("reset all overrides"))
+	{
+		instance.clear_overrides();
+		edit_flag = true;
+	}
+	ImGui::EndDisabled();
+
+	//	パラメーター
+	for (auto& it : parent->get_constant_buffers())
+	{
+		const material::constant_buffer* current = instance.find_constant_buffer(it.first);
+		if (!current)
+			continue;
+
+		if (ImGui::TreeNode(it.first.data()))
+		{
+			material::constant_buffer work_buffer;
+			work_buffer.data_buffer = current->data_buffer;
+			work_buffer.subsets = current->subsets;
+			work_buffer.identifieres = current->identifieres;
+
+			for (auto& identifier : work_buffer.identifieres)
+			{
+				auto& subset = work_buffer.subsets[identifier.second];
+				ImGui::PushID(identifier.first.data());
+
+				if (add_item_function(work_buffer, identifier.first, subset))
+				{
+					instance.set_data(identifier.first, work_buffer.data_buffer.data() + subset.start_offset, subset.size);
+					edit_flag = true;
+				}
+
+				if (instance.is_data_overridden(identifier.first))
+				{
+					ImGui::SameLine();
+					if (ImGui::SmallButton("reset"))
+					{
+						instance.reset_data(identifier.first);
+						edit_flag = true;
+					}
+				}
+
+				ImGui::PopID();
+			}
+			ImGui::TreePop();
+		}
+	}
+
+	//	リソース
+	for (auto& it : parent->get_shader_resources())
+	{
+		const material::shader_resource* current = instance.find_shader_resource(it.first);
+		if (!current)
+			continue;
+
+		ImGui::Text(it.first.data());
+		for (UINT index = 0; index < static_cast<UINT>(current->resources.size()); ++index)
+		{
+			const std::string key = it.first + "[" + std::to_string(index) + "]";
+			texture_ptr value = current->resources[index].value;
+
+			ImGui::PushID(context->get_item_id());
+			ImGui::Text((std::string("[") + std::to_string(index) + std::string("]")).data());
+			ImGui::SameLine();
+			if (edit_texture_item(context, value))
+			{
+				if (value)
+					instance.set_texture(key, value);
+				else
+					instance.reset_texture(key);
+				edit_flag = true;
+			}
+
+			if (instance.is_texture_overridden(key))
+			{
+				ImGui::SameLine();
+				if (ImGui::SmallButton("reset"))
+				{
+					instance.reset_texture(key);
+					edit_flag = true;
+				}
+			}
+			ImGui::PopID();
+		}
+	}
+
+	ImGui::PopID();
+	return edit_flag;
+}
+
 bool editor_items::edit_texture_item(std::shared_ptr<context>& context, texture_ptr& resource, bool* selected_file)
 {
 	bool edit_flag = false;

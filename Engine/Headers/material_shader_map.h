@@ -109,6 +109,9 @@ public:
 	//	ドメインのパスの数(1パスのドメインは 1)
 	static UINT get_pass_count(domains domain);
 
+	//	生成済みのパイプラインステートを捨てた回数
+	std::uint32_t get_version() const { return version; }
+
 #if defined(USE_IMGUI)
 	//	編集窓用:Shaders/Materials 以下のマテリアルシェーダーの一覧
 	std::vector<std::string> collect_shader_paths(domains domain) const;
@@ -121,4 +124,5 @@ private:
 
 private:
 	std::unordered_map<std::string, std::unique_ptr<entry>> entries;
+	std::uint32_t version = 0;
 };

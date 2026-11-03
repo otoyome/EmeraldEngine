@@ -102,6 +102,9 @@
     <ClInclude Include="Headers\material.h">
       <Filter>Headers</Filter>
     </ClInclude>
+    <ClInclude Include="Headers\material_instance.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
     <ClInclude Include="Headers\model_instance.h">
       <Filter>Headers</Filter>
     </ClInclude>
@@ -402,6 +405,9 @@
       <Filter>Sources</Filter>
     </ClCompile>
     <ClCompile Include="Sources\material.cpp">
+      <Filter>Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\material_instance.cpp">
       <Filter>Sources</Filter>
     </ClCompile>
     <ClCompile Include="Sources\pipeline_state.cpp">

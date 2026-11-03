@@ -227,11 +227,11 @@ void edit_model_scene::imgui_render_material_window()
 {
 	if (ImGui::Begin("Material Window"))
 	{
-		for (auto& material : edit_model->get_model_instance()->get_materials())
+		for (auto& material : edit_model->get_model_instance()->get_resource_for_editor()->get_materials_for_editor())
 		{
-			if (ImGui::TreeNode(system_utility::convert_utf8(material.get_name()).data()))
+			if (ImGui::TreeNode(system_utility::convert_utf8(material->get_name()).data()))
 			{
-				editor_items::edit_material(editor_context, material);
+				editor_items::edit_material(editor_context, *material);
 				ImGui::TreePop();
 			}
 		}
@@ -702,7 +702,7 @@ void edit_model_scene::on_model_setup()
 		vertex_color_edit_model = std::make_shared<model_object>("point_model", edit_model->get_model_instance()->get_resource());
 		for (UINT index = 0; index < vertex_color_edit_model->get_model_instance()->get_materials().size(); ++index)
 		{
-			vertex_color_edit_model->get_model_instance()->get_materials()[index] = *vertex_color_edit_material;
+			vertex_color_edit_model->get_model_instance()->get_materials()[index] = material_instance(vertex_color_edit_material);
 		}
 		vertex_color_edit_model->set_display_inspector(false);
 		vertex_color_edit_model->set_active(is_edit_vertex_color);

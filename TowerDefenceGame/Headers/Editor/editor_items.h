@@ -101,6 +101,7 @@ public:	//	表示系
 
 public:	//	編集アイテム系
 	static bool edit_material(std::shared_ptr<context>& context, material& material);
+	static bool edit_material_instance(std::shared_ptr<context>& context, material_instance& instance);
 	static bool edit_texture_item(std::shared_ptr<context>& context, texture_ptr& resource, bool* selected_file = nullptr);
 	static bool edit_model_resource_item(std::shared_ptr<context>& context, model_resource_ptr& resource, std::string* selected_file_path = nullptr);
 

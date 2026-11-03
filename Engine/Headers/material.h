@@ -11,6 +11,8 @@ class gpu_upload_list;
 //	☆ﾃｷﾄｰ('ω')ｰﾄｷﾃ☆
 class material
 {
+	friend class material_instance;
+
 public:
 	//	マテリアルの処理系統
 	using domains = pipeline_state_base::domains;
@@ -100,10 +102,7 @@ public:
 		std::string name{ "" };
 		graphics_pipeline_state_ptr value{ nullptr };
 		bool required = true;
-
-#if defined(USE_IMGUI)
-		UINT reload_callback_id = UINT_MAX;
-#endif	//	defined(USE_IMGUI)
+		std::uint32_t reload_version = 0;
 
 		bool is_valid() const { return value != nullptr && !name.empty(); }
 
@@ -225,6 +224,8 @@ public:
 
 	void build();
 
+	void update();
+
 	material& operator =(const material& material);
 
 public:
@@ -282,6 +283,9 @@ public:
 	graphics_pipeline_state_ptr get_pipeline_state(decal_paths value) const;
 	graphics_pipeline_state_ptr get_pipeline_state(system_paths value) const;
 	graphics_pipeline_state_ptr get_pipeline_state() const;
+
+	//	バージョン取得
+	std::uint32_t get_version() const { return version; }
 
 public:
 	//	パラメーター群取得
@@ -344,12 +348,14 @@ private:
 
 	//	マテリアルシェーダーから各パスのパイプラインステートを取り直す
 	void refresh_pipeline_states();
-	//	パイプラインステートを差し替える(ホットリロードの検知も付け替える)
+	//	パイプラインステートを差し替える
 	void assign_pipeline_state(UINT index, std::string_view name, graphics_pipeline_state_ptr value, bool required);
+
+	//	定数バッファのリソースを作る
+	static void create_constant_buffer_resource(constant_buffer& target);
 
 #if defined(USE_IMGUI)
 	bool is_error() const;
-	void on_updates(const pipeline_state_base* ps);
 	mutable bool error_state_cached_ = false;
 #endif	//	defined(USE_IMGUI)
 
@@ -369,4 +375,9 @@ private:
 	std::map<std::string, bool> static_switches;
 	shader_resource_map shader_resources;
 	constant_buffer_map constant_buffers;
+
+	std::uint32_t version = 0;
+	std::uint32_t shader_map_version = 0;
 };
+
+using material_ptr = std::shared_ptr<material>;

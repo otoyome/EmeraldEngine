@@ -91,9 +91,10 @@ struct light_container
 
 //	材質
 class material;
+class material_instance;
 struct material_datas
 {
-	material* material;
+	material_instance* material;
 };
 
 //	メッシュ描画情報コンテナ
@@ -144,7 +145,7 @@ struct sprite_datas
 {
 	int sort_key;
 	int sort_order;
-	const sprite* sprite;
+	sprite* sprite;
 };
 struct sprite_container
 {

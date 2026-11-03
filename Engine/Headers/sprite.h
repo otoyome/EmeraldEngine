@@ -2,7 +2,7 @@
 
 #define	NOMINMAX
 #include "texture.h"
-#include "material.h"
+#include "material_instance.h"
 
 class sprite
 {
@@ -15,8 +15,8 @@ public:
 	const std::vector<math::float2>& get_texcoords() const { return texcoords; }
 	const std::vector<UINT>& get_indices() const {return indices;}
 	math::float4x4 get_transform_matrix() const { return transform_matrix; }
-	material& get_material() {return material;}
-	const material& get_material() const {return material;}
+	material_instance& get_material() {return material;}
+	const material_instance& get_material() const {return material;}
 
 public:
 	sprite();
@@ -42,5 +42,9 @@ private:
 	std::vector<math::float2> texcoords;
 	std::vector<UINT> indices;
 	math::float4x4 transform_matrix;
-	material material;
+	material_instance material;
+
+private:
+	static material_ptr acquire_default_material();
+	inline static std::weak_ptr<::material> default_material;
 };
