@@ -866,4 +866,335 @@ void model_resource_utility::generate_meshlets(model_resource& resource)
 	//	GPU側へ反映
 	resource.rebuild_meshlet_data();
 }
+
+namespace
+{
+	//	プリミティブ生成用の頂点
+	struct primitive_vertex
+	{
+		math::float3 position;
+		math::float3 normal;
+		math::float2 texcoord;
+	};
+
+	//	プリミティブ生成用のメッシュ
+	struct primitive_geometry
+	{
+		std::vector<primitive_vertex> vertices;
+		std::vector<UINT> indices;
+
+		UINT add_vertex(const math::float3& position, const math::float3& normal, const math::float2& texcoord)
+		{
+			vertices.push_back({ position, normal, texcoord });
+			return static_cast<UINT>(vertices.size() - 1);
+		}
+
+		//	三角形を追加する(向きは finalize でそろえるので、ここでは気にしない)
+		void add_triangle(UINT a, UINT b, UINT c)
+		{
+			indices.push_back(a);
+			indices.push_back(b);
+			indices.push_back(c);
+		}
+
+		//	a-b-c-d の順に並んだ四角形を追加する
+		void add_quad(UINT a, UINT b, UINT c, UINT d)
+		{
+			add_triangle(a, b, c);
+			add_triangle(a, c, d);
+		}
+	};
+
+	//	左手座標系で FrontCounterClockwise = TRUE なので、表の三角形は外積 (b-a)x(c-a) が法線と逆向きになる
+	constexpr bool front_face_cross_against_normal = true;
+
+	math::float3 sub3(const math::float3& l, const math::float3& r) { return { l.x - r.x, l.y - r.y, l.z - r.z }; }
+	math::float3 cross3(const math::float3& l, const math::float3& r) { return { l.y * r.z - l.z * r.y, l.z * r.x - l.x * r.z, l.x * r.y - l.y * r.x }; }
+	float dot3(const math::float3& l, const math::float3& r) { return l.x * r.x + l.y * r.y + l.z * r.z; }
+	math::float3 normalize3(const math::float3& value)
+	{
+		const float length = std::sqrt(dot3(value, value));
+		if (length <= 1e-12f)
+			return { 0, 0, 0 };
+		return { value.x / length, value.y / length, value.z / length };
+	}
+
+	//	面積の無い三角形を除き、表の向きをそろえる
+	void orient_triangles(primitive_geometry& geometry)
+	{
+		std::vector<UINT> indices;
+		indices.reserve(geometry.indices.size());
+		for (size_t index = 0; index + 2 < geometry.indices.size(); index += 3)
+		{
+			UINT a = geometry.indices[index + 0];
+			UINT b = geometry.indices[index + 1];
+			UINT c = geometry.indices[index + 2];
+			const auto& va = geometry.vertices[a];
+			const auto& vb = geometry.vertices[b];
+			const auto& vc = geometry.vertices[c];
+
+			const math::float3 face = cross3(sub3(vb.position, va.position), sub3(vc.position, va.position));
+			if (dot3(face, face) <= 1e-12f)
+				continue;
+
+			const math::float3 normal = { va.normal.x + vb.normal.x + vc.normal.x, va.normal.y + vb.normal.y + vc.normal.y, va.normal.z + vb.normal.z + vc.normal.z };
+			const bool against = dot3(face, normal) < 0.0f;
+			if (against != front_face_cross_against_normal)
+				std::swap(b, c);
+
+			indices.push_back(a);
+			indices.push_back(b);
+			indices.push_back(c);
+		}
+		geometry.indices = std::move(indices);
+	}
+
+	//	UV から接線を求める(w は従法線 = cross(法線, 接線) * w の向き)
+	std::vector<math::float4> compute_primitive_tangents(const primitive_geometry& geometry)
+	{
+		std::vector<math::float3> tangents(geometry.vertices.size(), math::float3(0, 0, 0));
+		std::vector<math::float3> bitangents(geometry.vertices.size(), math::float3(0, 0, 0));
+		for (size_t index = 0; index + 2 < geometry.indices.size(); index += 3)
+		{
+			const UINT ids[3] = { geometry.indices[index + 0], geometry.indices[index + 1], geometry.indices[index + 2] };
+			const auto& v0 = geometry.vertices[ids[0]];
+			const auto& v1 = geometry.vertices[ids[1]];
+			const auto& v2 = geometry.vertices[ids[2]];
+
+			const math::float3 e1 = sub3(v1.position, v0.position);
+			const math::float3 e2 = sub3(v2.position, v0.position);
+			const float du1 = v1.texcoord.x - v0.texcoord.x;
+			const float dv1 = v1.texcoord.y - v0.texcoord.y;
+			const float du2 = v2.texcoord.x - v0.texcoord.x;
+			const float dv2 = v2.texcoord.y - v0.texcoord.y;
+			const float determinant = du1 * dv2 - du2 * dv1;
+			if (std::abs(determinant) <= 1e-12f)
+				continue;
+
+			const float r = 1.0f / determinant;
+			const math::float3 tangent = { (e1.x * dv2 - e2.x * dv1) * r, (e1.y * dv2 - e2.y * dv1) * r, (e1.z * dv2 - e2.z * dv1) * r };
+			const math::float3 bitangent = { (e2.x * du1 - e1.x * du2) * r, (e2.y * du1 - e1.y * du2) * r, (e2.z * du1 - e1.z * du2) * r };
+			for (UINT id : ids)
+			{
+				tangents[id] = { tangents[id].x + tangent.x, tangents[id].y + tangent.y, tangents[id].z + tangent.z };
+				bitangents[id] = { bitangents[id].x + bitangent.x, bitangents[id].y + bitangent.y, bitangents[id].z + bitangent.z };
+			}
+		}
+
+		std::vector<math::float4> result(geometry.vertices.size());
+		for (size_t index = 0; index < geometry.vertices.size(); ++index)
+		{
+			const math::float3& normal = geometry.vertices[index].normal;
+			//	法線に直交させる
+			const float d = dot3(normal, tangents[index]);
+			math::float3 tangent = normalize3({ tangents[index].x - normal.x * d, tangents[index].y - normal.y * d, tangents[index].z - normal.z * d });
+			if (dot3(tangent, tangent) <= 0.0f)
+				tangent = normalize3(cross3(std::abs(normal.y) < 0.99f ? math::float3(0, 1, 0) : math::float3(1, 0, 0), normal));
+			const float w = dot3(cross3(normal, tangent), bitangents[index]) < 0.0f ? -1.0f : 1.0f;
+			result[index] = { tangent.x, tangent.y, tangent.z, w };
+		}
+		return result;
+	}
+
+	//	球(中心は高さ radius)
+	void build_sphere(primitive_geometry& geometry, float radius, UINT segments)
+	{
+		const UINT rings = (std::max)(segments / 2, 2u);
+		std::vector<UINT> grid((rings + 1) * (segments + 1));
+		for (UINT ring = 0; ring <= rings; ++ring)
+		{
+			const float theta = math::constants<float>::pi * ring / rings;
+			for (UINT segment = 0; segment <= segments; ++segment)
+			{
+				const float phi = math::constants<float>::pi * 2.0f * segment / segments;
+				const math::float3 normal = { std::sin(theta) * std::cos(phi), std::cos(theta), std::sin(theta) * std::sin(phi) };
+				const math::float3 position = { normal.x * radius, normal.y * radius + radius, normal.z * radius };
+				grid[ring * (segments + 1) + segment] = geometry.add_vertex(position, normal, { static_cast<float>(segment) / segments, static_cast<float>(ring) / rings });
+			}
+		}
+		for (UINT ring = 0; ring < rings; ++ring)
+		{
+			for (UINT segment = 0; segment < segments; ++segment)
+			{
+				const UINT a = grid[ring * (segments + 1) + segment];
+				const UINT b = grid[ring * (segments + 1) + segment + 1];
+				const UINT c = grid[(ring + 1) * (segments + 1) + segment + 1];
+				const UINT d = grid[(ring + 1) * (segments + 1) + segment];
+				geometry.add_quad(a, b, c, d);
+			}
+		}
+	}
+
+	//	四角い面を1枚追加する(center を中心に、u_axis・v_axis 方向へ半分ずつ広げる)
+	void add_face(primitive_geometry& geometry, const math::float3& center, const math::float3& normal, const math::float3& u_axis, const math::float3& v_axis)
+	{
+		auto corner = [&](float u, float v)
+		{
+			return math::float3(center.x + u_axis.x * u + v_axis.x * v, center.y + u_axis.y * u + v_axis.y * v, center.z + u_axis.z * u + v_axis.z * v);
+		};
+		const UINT a = geometry.add_vertex(corner(-1, -1), normal, { 0, 1 });
+		const UINT b = geometry.add_vertex(corner(+1, -1), normal, { 1, 1 });
+		const UINT c = geometry.add_vertex(corner(+1, +1), normal, { 1, 0 });
+		const UINT d = geometry.add_vertex(corner(-1, +1), normal, { 0, 0 });
+		geometry.add_quad(a, b, c, d);
+	}
+
+	//	立方体(底面は高さ0)
+	void build_cube(primitive_geometry& geometry, float size)
+	{
+		const float h = size * 0.5f;
+		add_face(geometry, { 0, h, -h }, { 0, 0, -1 }, { h, 0, 0 }, { 0, h, 0 });
+		add_face(geometry, { 0, h, +h }, { 0, 0, +1 }, { -h, 0, 0 }, { 0, h, 0 });
+		add_face(geometry, { -h, h, 0 }, { -1, 0, 0 }, { 0, 0, -h }, { 0, h, 0 });
+		add_face(geometry, { +h, h, 0 }, { +1, 0, 0 }, { 0, 0, h }, { 0, h, 0 });
+		add_face(geometry, { 0, size, 0 }, { 0, 1, 0 }, { h, 0, 0 }, { 0, 0, h });
+		add_face(geometry, { 0, 0, 0 }, { 0, -1, 0 }, { h, 0, 0 }, { 0, 0, -h });
+	}
+
+	//	平面(高さ0で上向き)
+	void build_plane(primitive_geometry& geometry, float size)
+	{
+		const float h = size * 0.5f;
+		add_face(geometry, { 0, 0, 0 }, { 0, 1, 0 }, { h, 0, 0 }, { 0, 0, h });
+	}
+
+	//	円柱(直径・高さとも size、底面は高さ0)
+	void build_cylinder(primitive_geometry& geometry, float size, UINT segments)
+	{
+		const float radius = size * 0.5f;
+		std::vector<UINT> bottom(segments + 1), top(segments + 1);
+		for (UINT segment = 0; segment <= segments; ++segment)
+		{
+			const float phi = math::constants<float>::pi * 2.0f * segment / segments;
+			const math::float3 normal = { std::cos(phi), 0, std::sin(phi) };
+			const float u = static_cast<float>(segment) / segments;
+			bottom[segment] = geometry.add_vertex({ normal.x * radius, 0, normal.z * radius }, normal, { u, 1 });
+			top[segment] = geometry.add_vertex({ normal.x * radius, size, normal.z * radius }, normal, { u, 0 });
+		}
+		for (UINT segment = 0; segment < segments; ++segment)
+		{
+			geometry.add_quad(bottom[segment], bottom[segment + 1], top[segment + 1], top[segment]);
+		}
+
+		//	上下のふた
+		for (int side = 0; side < 2; ++side)
+		{
+			const float y = side == 0 ? size : 0.0f;
+			const math::float3 normal = { 0, side == 0 ? 1.0f : -1.0f, 0 };
+			const UINT center = geometry.add_vertex({ 0, y, 0 }, normal, { 0.5f, 0.5f });
+			std::vector<UINT> ring(segments + 1);
+			for (UINT segment = 0; segment <= segments; ++segment)
+			{
+				const float phi = math::constants<float>::pi * 2.0f * segment / segments;
+				const float x = std::cos(phi), z = std::sin(phi);
+				ring[segment] = geometry.add_vertex({ x * radius, y, z * radius }, normal, { 0.5f + x * 0.5f, 0.5f - z * 0.5f });
+			}
+			for (UINT segment = 0; segment < segments; ++segment)
+			{
+				geometry.add_triangle(center, ring[segment], ring[segment + 1]);
+			}
+		}
+	}
+
+	//	頂点バッファビューを1つ作る
+	template<typename Type>
+	buffer_view make_vertex_view(DXGI_FORMAT format, const std::vector<Type>& values)
+	{
+		buffer_view view;
+		view.format = format;
+		view.stride_in_bytes = graphics_utility::get_byte_offset_from_format(format);
+		view.size_in_bytes = view.stride_in_bytes * values.size();
+		view.row_data.resize(view.size_in_bytes);
+		memcpy_s(view.row_data.data(), view.row_data.size(), values.data(), values.size() * sizeof(Type));
+		return view;
+	}
+}
+
+void model_resource_utility::generate_primitive_model(model_resource& resource, primitive_shapes shape, float size, UINT segments)
+{
+	segments = (std::max)(segments, 3u);
+
+	primitive_geometry geometry;
+	switch (shape)
+	{
+		case primitive_shapes::sphere:		build_sphere(geometry, size * 0.5f, segments);	break;
+		case primitive_shapes::cube:		build_cube(geometry, size);						break;
+		case primitive_shapes::plane:		build_plane(geometry, size);					break;
+		case primitive_shapes::cylinder:	build_cylinder(geometry, size, segments);		break;
+	}
+	orient_triangles(geometry);
+	const std::vector<math::float4> tangents = compute_primitive_tangents(geometry);
+
+	auto& nodes = resource.get_nodes_for_editor();
+	auto& meshes = resource.get_meshes_for_editor();
+	auto& materials = resource.get_materials_for_editor();
+	nodes.clear();
+	meshes.clear();
+	materials.clear();
+
+	//	ルートノード
+	{
+		auto& node = nodes.emplace_back();
+		node.name = std::string(magic_enum::enum_name(shape));
+		node.parent_index = model_resource::invalid_id;
+	}
+
+	//	既定のマテリアル(gltf 変換と同じシェーダー)
+	{
+		auto& material = *materials.emplace_back(std::make_shared<::material_resource>());
+		material.set_name("default");
+		material.set_domain(material_resource::domains::surface);
+		material.set_shading_model(material_resource::shading_models::default_lit);
+		material.set_blend_mode(material_resource::blend_modes::opaque);
+		material.set_flag(material_resource::flags::shadow_caster, true);
+		material.set_flag(material_resource::flags::shadow_receiver, true);
+		material.set_shader_path("Shaders/Materials/gltf.hlsl");
+		material.set_float4("base_color_factor", { 0.8f, 0.8f, 0.8f, 1.0f });
+		material.set_float("roughness_factor", 0.5f);
+		material.set_float("metallic_factor", 0.0f);
+	}
+
+	//	メッシュ
+	{
+		auto& mesh = meshes.emplace_back();
+		mesh.material_index = 0;
+		mesh.node_index = 0;
+
+		//	ボーンが無いので、メッシュのノードを0番ボーンとして指す
+		mesh.bones.emplace_back().node_index = mesh.node_index;
+
+		const size_t vertex_count = geometry.vertices.size();
+		std::vector<math::float3> positions(vertex_count);
+		std::vector<math::float3> normals(vertex_count);
+		std::vector<math::float2> texcoords(vertex_count);
+		mesh.bounds_min = { +FLT_MAX, +FLT_MAX, +FLT_MAX };
+		mesh.bounds_max = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
+		for (size_t index = 0; index < vertex_count; ++index)
+		{
+			const auto& vertex = geometry.vertices[index];
+			positions[index] = vertex.position;
+			normals[index] = vertex.normal;
+			texcoords[index] = vertex.texcoord;
+			mesh.bounds_min = { (std::min)(mesh.bounds_min.x, vertex.position.x), (std::min)(mesh.bounds_min.y, vertex.position.y), (std::min)(mesh.bounds_min.z, vertex.position.z) };
+			mesh.bounds_max = { (std::max)(mesh.bounds_max.x, vertex.position.x), (std::max)(mesh.bounds_max.y, vertex.position.y), (std::max)(mesh.bounds_max.z, vertex.position.z) };
+		}
+
+		//	gltf 変換と同じく、シェーダーが参照する分は全て埋めておく
+		mesh.vertex_buffer_views.insert(std::make_pair(semantic("POSITION", 0), make_vertex_view(DXGI_FORMAT_R32G32B32_FLOAT, positions)));
+		mesh.vertex_buffer_views.insert(std::make_pair(semantic("NORMAL", 0), make_vertex_view(DXGI_FORMAT_R32G32B32_FLOAT, normals)));
+		mesh.vertex_buffer_views.insert(std::make_pair(semantic("TANGENT", 0), make_vertex_view(DXGI_FORMAT_R32G32B32A32_FLOAT, tangents)));
+		mesh.vertex_buffer_views.insert(std::make_pair(semantic("TEXCOORD", 0), make_vertex_view(DXGI_FORMAT_R32G32_FLOAT, texcoords)));
+		mesh.vertex_buffer_views.insert(std::make_pair(semantic("COLOR", 0), make_vertex_view(DXGI_FORMAT_R32G32B32A32_FLOAT, std::vector<math::float4>(vertex_count, math::float4(1, 1, 1, 1)))));
+		mesh.vertex_buffer_views.insert(std::make_pair(semantic("JOINTS", 0), make_vertex_view(DXGI_FORMAT_R32G32B32A32_UINT, std::vector<math::uint4>(vertex_count, math::uint4(0, 0, 0, 0)))));
+		mesh.vertex_buffer_views.insert(std::make_pair(semantic("WEIGHTS", 0), make_vertex_view(DXGI_FORMAT_R32G32B32A32_FLOAT, std::vector<math::float4>(vertex_count, math::float4(1, 0, 0, 0)))));
+
+		mesh.index_buffer_view = make_vertex_view(DXGI_FORMAT_R32_UINT, geometry.indices);
+
+		model_buffer_pool_manager::instance()->build_vertex_buffers(mesh.vertex_buffer_views);
+	}
+
+	//	モデル編集シーンの変換後と同じく、最適化してメッシュレットを作る
+	optimize_meshs(resource);
+	generate_meshlets(resource);
+}
 #endif	//	defined(USE_IMGUI)

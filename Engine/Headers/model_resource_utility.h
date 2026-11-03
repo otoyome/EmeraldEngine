@@ -23,5 +23,17 @@ namespace model_resource_utility
 	void optimize_meshs(model_resource& resource);
 	//	メッシュレット生成
 	void generate_meshlets(model_resource& resource);
+
+	//	プリミティブ形状
+	enum class primitive_shapes
+	{
+		sphere,		//	球
+		cube,		//	立方体
+		plane,		//	平面(上向き)
+		cylinder,	//	円柱
+	};
+
+	//	プリミティブ形状のモデルを生成
+	void generate_primitive_model(model_resource& resource, primitive_shapes shape, float size, UINT segments = 48);
 #endif	//	defined(USE_IMGUI)
 }

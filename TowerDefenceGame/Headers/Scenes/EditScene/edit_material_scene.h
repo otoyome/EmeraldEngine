@@ -4,6 +4,7 @@
 
 #if defined(USE_IMGUI)
 #include "model_resource.h"
+#include "model_resource_utility.h"
 #include "effect_resource.h"
 #include "effect_instance.h"
 
@@ -46,6 +47,9 @@ private:
 
 	void scan_preview_models();
 	void change_preview_model(const std::string& file_path);
+	void change_preview_shape(model_resource_utility::primitive_shapes shape);
+	void set_preview_resource(const model_resource_ptr& resource, double lift);
+	std::string get_preview_label() const;
 	void apply_preview_materials();
 	void restart_preview_effect();
 	void clear_preview_effect();
@@ -71,6 +75,19 @@ private:
 	std::string message;
 
 private:
+	enum class preview_kinds
+	{
+		shape,
+		file,
+	};
+	preview_kinds preview_kind = preview_kinds::shape;
+	model_resource_utility::primitive_shapes preview_shape = model_resource_utility::primitive_shapes::sphere;
+	std::array<model_resource_ptr, magic_enum::enum_count<model_resource_utility::primitive_shapes>()> shape_resources;
+
+	model_resource_ptr floor_resource;
+	std::shared_ptr<model_object> floor_model;
+	bool show_floor = true;
+
 	std::vector<std::string> preview_model_files;
 	std::string preview_model_path;
 	std::shared_ptr<model_object> preview_model;

@@ -25,6 +25,13 @@ namespace
 	constexpr std::string_view preview_model_directory = "Assets/Resources/Models";
 	constexpr std::string_view default_preview_model_path = "Assets/Resources/Models/Roomba/roomba.emo";
 
+	//	内蔵の形の大きさ(直径・一辺)と床の大きさ
+	const float preview_shape_size = system_units::convert_m_to_unit(1.0f);
+	const float floor_size = system_units::convert_m_to_unit(10.0f);
+
+	//	平面を床と重ならないよう浮かせる高さ
+	const double plane_lift = system_units::convert_m_to_unit(0.01);
+
 	//	ファイルパスを ImGui 表示用の UTF-8 にする
 	std::string to_display(std::string_view text)
 	{
@@ -123,14 +130,19 @@ bool edit_material_scene::initialize_core()
 		editor_context = editor_items::generate_context();
 	}
 
+	//	床
+	{
+		floor_resource = std::make_shared<model_resource>();
+		model_resource_utility::generate_primitive_model(*floor_resource, model_resource_utility::primitive_shapes::plane, floor_size);
+		floor_model = std::make_shared<model_object>("床", floor_resource);
+		floor_model->set_active(show_floor);
+		object_manager::instance()->register_object(floor_model);
+	}
+
 	//	プレビューモデル
 	{
 		scan_preview_models();
-		auto it = std::find(preview_model_files.begin(), preview_model_files.end(), default_preview_model_path);
-		if (it != preview_model_files.end())
-			change_preview_model(*it);
-		else if (!preview_model_files.empty())
-			change_preview_model(preview_model_files.front());
+		change_preview_shape(model_resource_utility::primitive_shapes::sphere);
 	}
 	return true;
 }
@@ -143,6 +155,11 @@ bool edit_material_scene::uninitialize_core()
 	{
 		object_manager::instance()->unregister_object(preview_model);
 		preview_model.reset();
+	}
+	if (floor_model)
+	{
+		object_manager::instance()->unregister_object(floor_model);
+		floor_model.reset();
 	}
 	return true;
 }
@@ -251,6 +268,24 @@ void edit_material_scene::collect_materials()
 {
 	materials.clear();
 
+	if (!source_model && !source_effect)
+	{
+		auto instance = preview_model ? preview_model->get_model_instance() : nullptr;
+		auto resource = instance ? instance->get_resource_for_editor() : nullptr;
+		if (!resource)
+			return;
+
+		auto& resource_materials = resource->get_materials_for_editor();
+		for (size_t index = 0; index < resource_materials.size(); ++index)
+		{
+			auto& material = resource_materials[index];
+			if (!material)
+				continue;
+			materials.push_back({ "preview [" + std::to_string(index) + "] " + system_utility::convert_utf8(material->get_name()), material });
+		}
+		return;
+	}
+
 	if (source_model)
 	{
 		auto& resource_materials = source_model->get_materials_for_editor();
@@ -327,18 +362,52 @@ void edit_material_scene::change_preview_model(const std::string& file_path)
 		return;
 	}
 
-	if (preview_model)
-		object_manager::instance()->unregister_object(preview_model);
-
+	preview_kind = preview_kinds::file;
 	preview_model_path = file_path;
-	preview_model = std::make_shared<model_object>("プレビューモデル", resource);
-	preview_model->set_active(true);
-	object_manager::instance()->register_object(preview_model);
-
 	if (std::find(preview_model_files.begin(), preview_model_files.end(), file_path) == preview_model_files.end())
 		preview_model_files.insert(preview_model_files.begin(), file_path);
 
+	set_preview_resource(resource, 0.0);
+}
+
+void edit_material_scene::change_preview_shape(model_resource_utility::primitive_shapes shape)
+{
+	auto& resource = shape_resources[static_cast<size_t>(shape)];
+	if (!resource)
+	{
+		resource = std::make_shared<model_resource>();
+		model_resource_utility::generate_primitive_model(*resource, shape, preview_shape_size);
+	}
+
+	preview_kind = preview_kinds::shape;
+	preview_shape = shape;
+	set_preview_resource(resource, shape == model_resource_utility::primitive_shapes::plane ? plane_lift : 0.0);
+}
+
+void edit_material_scene::set_preview_resource(const model_resource_ptr& resource, double lift)
+{
+	if (preview_model)
+		object_manager::instance()->unregister_object(preview_model);
+
+	preview_model = std::make_shared<model_object>("プレビューモデル", resource);
+	preview_model->set_world_translation({ 0.0, lift, 0.0 });
+	preview_model->set_active(true);
+	object_manager::instance()->register_object(preview_model);
+
+	if (!source_model && !source_effect)
+	{
+		collect_materials();
+		selected_material = materials.empty() ? -1 : 0;
+	}
+
 	apply_preview_materials();
+}
+
+std::string edit_material_scene::get_preview_label() const
+{
+	if (preview_kind == preview_kinds::shape)
+		return std::string(magic_enum::enum_name(preview_shape)) + " (built-in)";
+	return preview_model_path.empty() ? std::string("(none)") : to_display(preview_model_path);
 }
 
 void edit_material_scene::apply_preview_materials()
@@ -419,12 +488,22 @@ void edit_material_scene::imgui_render_source()
 
 void edit_material_scene::imgui_render_preview()
 {
-	const std::string preview_label = preview_model_path.empty() ? std::string("(none)") : to_display(preview_model_path);
-	if (ImGui::BeginCombo("preview model", preview_label.c_str()))
+	if (ImGui::BeginCombo("preview model", get_preview_label().c_str()))
 	{
+		for (const auto shape : magic_enum::enum_values<model_resource_utility::primitive_shapes>())
+		{
+			const bool selected = preview_kind == preview_kinds::shape && preview_shape == shape;
+			const std::string label = std::string(magic_enum::enum_name(shape)) + " (built-in)";
+			if (ImGui::Selectable(label.c_str(), selected))
+				change_preview_shape(shape);
+			if (selected)
+				ImGui::SetItemDefaultFocus();
+		}
+		ImGui::Separator();
+
 		for (const auto& file_path : preview_model_files)
 		{
-			const bool selected = file_path == preview_model_path;
+			const bool selected = preview_kind == preview_kinds::file && file_path == preview_model_path;
 			std::string label = to_display(file_path);
 			if (source_model && file_path == source_file_path)
 				label += " (editing)";
@@ -440,6 +519,9 @@ void edit_material_scene::imgui_render_preview()
 		scan_preview_models();
 
 	ImGui::Checkbox("apply selected surface material to all slots", &override_preview_slots);
+	ImGui::SameLine();
+	if (ImGui::Checkbox("floor", &show_floor) && floor_model)
+		floor_model->set_active(show_floor);
 
 	if (source_effect)
 	{
@@ -479,6 +561,8 @@ void edit_material_scene::imgui_render_material_detail()
 	ImGui::TextDisabled("domain: %s", std::string(magic_enum::enum_name(material->get_domain())).c_str());
 	if (material->get_domain() != material_resource::domains::surface && preview_model && override_preview_slots)
 		ImGui::TextDisabled("(not a surface material: preview model keeps its own materials)");
+	if (!source_model && !source_effect)
+		ImGui::TextDisabled("preview material: changes are not saved (Load a .emo / .eme to save)");
 
 	//	リソースを直接編集するので、同じマテリアルを使う全てのインスタンスへバージョン番号で伝わる
 	if (editor_items::edit_material(editor_context, *material))
