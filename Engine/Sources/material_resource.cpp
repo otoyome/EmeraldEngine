@@ -3,6 +3,13 @@
 #include "texture.h"
 #include "render_data.h"
 
+#include <filesystem>
+#include <fstream>
+#include <sstream>
+
+#include "Resource/resource_manager.h"
+#include "Resource/data_compression.h"
+
 #include "cereal/archives/binary.hpp"
 #include "cereal/archives/json.hpp"
 #include "cereal/types/string.hpp"
@@ -82,7 +89,7 @@ CEREAL_CLASS_VERSION(material_resource::constant_buffer, 1)
 CEREAL_CLASS_VERSION(material_resource::shader_resource, 1)
 CEREAL_CLASS_VERSION(material_resource::shader_resource::resource, 1)
 CEREAL_CLASS_VERSION(material_resource::physical_datas, 1)
-CEREAL_CLASS_VERSION(material_resource, 3)
+CEREAL_CLASS_VERSION(material_resource, 4)
 
 template<class Archive>
 void material_resource::pipeline_state::serialize(Archive& archive, int version)
@@ -206,6 +213,9 @@ void material_resource::serialize(Archive& archive, int version)
 			CEREAL_NVP(constant_buffers),
 			CEREAL_NVP(shader_path),
 			CEREAL_NVP(static_switches));
+
+	if (version >= 4)
+		archive(cereal::make_nvp("uuid", get_uuid_for_serialize()));
 }
 
 //	モデル・エフェクトのファイルはバイナリで読み書きする
@@ -1107,3 +1117,179 @@ bool material_resource::is_error() const
 
 #endif	//	defined(USE_IMGUI)
 
+
+bool material_resource::load_file(std::string_view file_path)
+{
+	std::ifstream file_stream(std::filesystem::path(std::string(file_path)), std::ios::binary);
+	if (!file_stream.is_open())
+	{
+		DEBUG_ERROR_CATEGORY(logger::categorys::model, "material_resource open failed[%s]", std::string(file_path).c_str());
+		return false;
+	}
+	std::vector<char> file_data((std::istreambuf_iterator<char>(file_stream)), std::istreambuf_iterator<char>());
+	file_stream.close();
+
+	std::vector<char> decompressed_data;
+	std::vector<char>* source_data = &file_data;
+	if (::resource::is_compressed(file_data.data(), file_data.size()))
+	{
+		if (!::resource::decompress(file_data.data(), file_data.size(), decompressed_data))
+		{
+			DEBUG_ERROR_CATEGORY(logger::categorys::model, "material_resource decompress failed[%s]", std::string(file_path).c_str());
+			return false;
+		}
+		source_data = &decompressed_data;
+	}
+
+	::resource::memory_streambuf stream_buffer(source_data->data(), source_data->size());
+	std::istream istream(&stream_buffer);
+	try
+	{
+		cereal::BinaryInputArchive archive(istream);
+		archive(*this);
+	}
+	catch (...)
+	{
+		DEBUG_ERROR_CATEGORY(logger::categorys::model, "material_resource deserialize failed[%s]", std::string(file_path).c_str());
+		return false;
+	}
+
+	set_file_path(file_path);
+	missing = false;
+	return true;
+}
+
+bool material_resource::save_file(std::string_view file_path)
+{
+	std::ostringstream buffer_stream(std::ios::binary);
+	try
+	{
+		cereal::BinaryOutputArchive archive(buffer_stream);
+		archive(*this);
+	}
+	catch (...)
+	{
+		DEBUG_ERROR_CATEGORY(logger::categorys::model, "material_resource serialize failed[%s]", std::string(file_path).c_str());
+		return false;
+	}
+
+	const std::string serialized_data = buffer_stream.str();
+	std::vector<char> file_data;
+	if (!::resource::compress(serialized_data.data(), serialized_data.size(), file_data))
+	{
+		DEBUG_ERROR_CATEGORY(logger::categorys::model, "material_resource compress failed[%s]", std::string(file_path).c_str());
+		return false;
+	}
+
+	const std::filesystem::path path{ std::string(file_path) };
+	if (path.has_parent_path())
+	{
+		std::error_code error;
+		std::filesystem::create_directories(path.parent_path(), error);
+	}
+
+	std::ofstream ostream(path, std::ios::binary);
+	if (!ostream.is_open())
+	{
+		DEBUG_ERROR_CATEGORY(logger::categorys::model, "material_resource open failed[%s]", std::string(file_path).c_str());
+		return false;
+	}
+	ostream.write(file_data.data(), static_cast<std::streamsize>(file_data.size()));
+	if (!ostream.good())
+	{
+		DEBUG_ERROR_CATEGORY(logger::categorys::model, "material_resource write failed[%s]", std::string(file_path).c_str());
+		return false;
+	}
+
+	set_file_path(file_path);
+	missing = false;
+	DEBUG_LOG_CATEGORY(logger::categorys::model, "material_resource serialize successed[%s]", std::string(file_path).c_str());
+	return true;
+}
+
+bool material_resource::revert_file()
+{
+	if (missing || get_file_path().empty())
+		return false;
+
+	material_resource loaded;
+	if (!loaded.load_file(get_file_path()))
+		return false;
+
+	loaded.duplicate(*this);
+	return true;
+}
+
+material_resource_ptr material_resource::create_missing(std::string_view file_path, domains domain)
+{
+	DEBUG_ERROR_CATEGORY(logger::categorys::model, "material_resource missing[%s]", std::string(file_path).c_str());
+
+	auto material = std::make_shared<material_resource>(std::filesystem::path(std::string(file_path)).stem().string());
+	material->set_domain(domain);
+	material->set_shader_path(get_failed_shader_path(domain));
+	material->set_file_path(file_path);
+	material->missing = true;
+	material->build();
+	return material;
+}
+
+::resource::load_operation_ptr<material_resource> material_resource::request_load(std::string_view file_path)
+{
+	if (file_path.empty() || !resource_manager::is_valid())
+		return nullptr;
+	return resource_manager::instance()->load_async<material_resource>(file_path, ::resource::load_priority::high);
+}
+
+material_resource_ptr material_resource::resolve(const ::resource::load_operation_ptr<material_resource>& operation, std::string_view file_path, domains domain)
+{
+	if (operation && operation->is_succeeded())
+	{
+		if (auto material = operation->get_resource())
+			return material;
+	}
+	return create_missing(file_path, domain);
+}
+
+bool material_resource::save_asset(const material_resource_ptr& material)
+{
+	if (!material || material->is_missing())
+		return true;
+
+	const std::string file_path(material->get_file_path());
+	if (file_path.empty())
+	{
+		DEBUG_ERROR_CATEGORY(logger::categorys::model, "material_resource has no file path[%s]", material->get_name().data());
+		return false;
+	}
+
+	if (!material->save_file(file_path))
+		return false;
+
+	if (resource_manager::is_valid())
+		resource_manager::instance()->register_resource(file_path, material);
+	return true;
+}
+
+namespace resource
+{
+	operation_state loader<material_resource>::load(std::string_view file_path)
+	{
+		std::error_code error;
+		if (!std::filesystem::exists(std::filesystem::path(std::string(file_path)), error))
+		{
+			set_error_message("file not found");
+			return operation_state::not_found;
+		}
+
+		resource = std::make_shared<material_resource>();
+		if (!resource->load_file(file_path))
+			return operation_state::deserialize_failed;
+		return operation_state::success;
+	}
+
+	operation_state loader<material_resource>::build()
+	{
+		resource->build();
+		return operation_state::success;
+	}
+}	//	namespace resource

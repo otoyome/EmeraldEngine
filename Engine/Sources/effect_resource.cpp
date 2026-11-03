@@ -16,10 +16,18 @@
 
 #include "animation_data_version.h"
 
+#include <filesystem>
+
+#include "Resource/resource_manager.h"
+
+#if defined(USE_IMGUI)
+#include "data_converter.h"
+#endif	//	defined(USE_IMGUI)
+
 // CEREALバージョン定義
 CEREAL_CLASS_VERSION(effect_resource::node, 1)
 CEREAL_CLASS_VERSION(effect_resource::model, 1)
-CEREAL_CLASS_VERSION(effect_resource::decal, 1)
+CEREAL_CLASS_VERSION(effect_resource::decal, 2)
 CEREAL_CLASS_VERSION(effect_resource::particle, 1)
 CEREAL_CLASS_VERSION(effect_resource, 1)
 
@@ -48,7 +56,21 @@ bool effect_resource::decal::is_valid() const
 template<class Archive>
 void effect_resource::decal::serialize(Archive& archive, int version)
 {
-	archive(node_index, material);
+	if (version < 2)
+	{
+		archive(node_index, material);
+		return;
+	}
+
+	if constexpr (Archive::is_saving::value)
+	{
+		std::string path = material ? std::string(material->get_file_path()) : material_path;
+		archive(node_index, path);
+	}
+	else
+	{
+		archive(node_index, material_path);
+	}
 }
 
 bool effect_resource::particle::is_valid() const
@@ -64,8 +86,7 @@ void effect_resource::particle::serialize(Archive& archive, int version)
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 effect_resource::effect_resource()
-: file_path()
-, nodes()
+: nodes()
 , models()
 , particles()
 , decals()
@@ -74,13 +95,13 @@ effect_resource::effect_resource()
 }
 
 effect_resource::effect_resource(std::string_view file_path)
-: file_path(file_path)
-, nodes()
+: nodes()
 , models()
 , particles()
 , decals()
 , animations()
 {
+	set_file_path(file_path);
 }
 
 effect_resource::~effect_resource()
@@ -121,17 +142,11 @@ bool effect_resource::compute_animation_node(animation::node& node, size_t anima
 
 void effect_resource::build()
 {
-	//	モデル情報の構築
-	for (auto& model_data : models)
-	{
-		model_resource_manager::instance()->load(model_data.resource, model_data.file_path);
-	}
-
 	//	デカール情報の構築
 	for (auto& decal_data : decals)
 	{
 		//	マテリアル構築
-		if (decal_data.material)
+		if (decal_data.material && decal_data.material->get_file_path().empty())
 			decal_data.material->build();
 	}
 
@@ -145,7 +160,7 @@ void effect_resource::build()
 		if (auto renderer = particle_data.particle.get_item<::particle::item::renderer>())
 		{
 			//	マテリアル構築
-			if (renderer->material)
+			if (renderer->material && renderer->material->get_file_path().empty())
 				renderer->material->build();
 		}
 	}
@@ -153,16 +168,35 @@ void effect_resource::build()
 
 bool effect_resource::serialize()
 {
-	return serialize(file_path);
-}
-
-bool effect_resource::deserialize()
-{
-	return deserialize(file_path);
+	return serialize(std::string(get_file_path()));
 }
 
 bool effect_resource::serialize(std::string_view file_path)
 {
+	std::vector<material_resource_ptr> save_materials;
+	for (auto& decal_data : decals)
+	{
+		if (decal_data.material)
+			save_materials.emplace_back(decal_data.material);
+	}
+	for (auto& particle_data : particles)
+	{
+		auto renderer = particle_data.particle.get_item<::particle::item::renderer>();
+		if (renderer && renderer->material)
+			save_materials.emplace_back(renderer->material);
+	}
+#if defined(USE_IMGUI)
+	data_converter::assign_material_paths(save_materials, file_path);
+#endif	//	defined(USE_IMGUI)
+	for (auto& material : save_materials)
+	{
+		if (!material_resource::save_asset(material))
+		{
+			DEBUG_LOG_CATEGORY(logger::categorys::model, "effect_resource material save failed[%s][%s]", file_path.data(), material->get_name().data());
+			return false;
+		}
+	}
+
 	std::ofstream ostream(file_path.data(), std::ios::binary);
 	if(ostream.is_open())
 	{
@@ -170,6 +204,8 @@ bool effect_resource::serialize(std::string_view file_path)
 
 		try
 		{
+			archive(file_signature, file_format_version, get_uuid_for_serialize());
+
 			archive(CEREAL_NVP(nodes),
 					CEREAL_NVP(models),
 					CEREAL_NVP(particles),
@@ -190,7 +226,7 @@ bool effect_resource::serialize(std::string_view file_path)
 	return false;
 }
 
-bool effect_resource::deserialize(std::string_view file_path)
+bool effect_resource::load_file(std::string_view file_path)
 {
 	std::ifstream istream(file_path.data(), std::ios::binary);
 	if(istream.is_open())
@@ -199,8 +235,24 @@ bool effect_resource::deserialize(std::string_view file_path)
 
 		try
 		{
-			archive(CEREAL_NVP(nodes),
-					CEREAL_NVP(models),
+			std::uint64_t head = 0;
+			archive(head);
+			if (head == file_signature)
+			{
+				std::uint32_t format_version = 0;
+				archive(format_version, get_uuid_for_serialize());
+				archive(CEREAL_NVP(nodes));
+			}
+			else
+			{
+				nodes.resize(static_cast<size_t>(head));
+				for (auto& node_data : nodes)
+				{
+					archive(node_data);
+				}
+			}
+
+			archive(CEREAL_NVP(models),
 					CEREAL_NVP(particles),
 					CEREAL_NVP(decals),
 					CEREAL_NVP(animations));
@@ -211,9 +263,7 @@ bool effect_resource::deserialize(std::string_view file_path)
 			return false;
 		}
 
-		//	構築
-		this->file_path = file_path;
-		build();
+		set_file_path(file_path);
 		DEBUG_LOG_CATEGORY(logger::categorys::model, "effect_resource deserialize successed[%s]", file_path.data());
 		return true;
 	}
@@ -233,28 +283,75 @@ effect_resource_manager::~effect_resource_manager()
 
 bool effect_resource_manager::load(effect_resource_ptr& resource, std::string_view file_path, bool force_load)
 {
-	std::string key(file_path);
-
-	if (!force_load)
-	{
-		auto it = resources.find(key);
-		if (it != resources.end())
-		{
-			if (effect_resource_ptr cached = it->second.lock())
-			{
-				resource = cached;
-				return true;
-			}
-
-			resources.erase(it);
-		}
-	}
-
-	auto new_resource = std::make_shared<effect_resource>();
-	if (!new_resource->deserialize(file_path))
+	auto operation = resource_manager::instance()->load<effect_resource>(file_path, force_load);
+	if (!operation->is_succeeded())
 		return false;
 
-	resource = new_resource;
-	resources[key] = resource;
+	resource = operation->get_resource();
 	return true;
 }
+
+namespace resource
+{
+	operation_state loader<effect_resource>::load(std::string_view file_path)
+	{
+		std::error_code error;
+		if (!std::filesystem::exists(std::filesystem::path(std::string(file_path)), error))
+		{
+			set_error_message("file not found");
+			return operation_state::not_found;
+		}
+
+		resource = std::make_shared<effect_resource>();
+		if (!resource->load_file(file_path))
+			return operation_state::deserialize_failed;
+
+		for (auto& model_data : resource->models)
+		{
+			auto& operation = model_operations.emplace_back();
+			if (!model_data.file_path.empty())
+				operation = resource_manager::instance()->load_async<model_resource>(model_data.file_path, load_priority::high);
+			add_dependency(operation);
+		}
+		for (auto& decal_data : resource->decals)
+		{
+			auto& operation = decal_material_operations.emplace_back(material_resource::request_load(decal_data.material_path));
+			add_dependency(operation);
+		}
+		for (auto& particle_data : resource->particles)
+		{
+			auto renderer = particle_data.particle.get_item<::particle::item::renderer>();
+			auto& operation = particle_material_operations.emplace_back(renderer ? material_resource::request_load(renderer->material_path) : nullptr);
+			add_dependency(operation);
+		}
+		return operation_state::success;
+	}
+
+	operation_state loader<effect_resource>::build()
+	{
+		for (size_t index = 0; index < resource->models.size(); ++index)
+		{
+			auto& operation = model_operations[index];
+			resource->models[index].resource = operation && operation->is_succeeded() ? operation->get_resource() : nullptr;
+		}
+
+		for (size_t index = 0; index < resource->decals.size(); ++index)
+		{
+			auto& decal_data = resource->decals[index];
+			if (!decal_data.material_path.empty())
+				decal_data.material = material_resource::resolve(decal_material_operations[index], decal_data.material_path, material_resource::domains::deferred_decal);
+		}
+		for (size_t index = 0; index < resource->particles.size(); ++index)
+		{
+			auto renderer = resource->particles[index].particle.get_item<::particle::item::renderer>();
+			if (renderer && !renderer->material_path.empty())
+				renderer->material = material_resource::resolve(particle_material_operations[index], renderer->material_path, material_resource::domains::particle);
+		}
+		model_operations.clear();
+		decal_material_operations.clear();
+		particle_material_operations.clear();
+
+		resource->build();
+		return operation_state::success;
+	}
+}	//	namespace resource

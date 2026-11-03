@@ -11,9 +11,22 @@
 
 #include "retarget_profile.h"
 
-//	モデルリソース
-class model_resource
+#include "Resource/resource_base.h"
+#include "Resource/resource_loader.h"
+
+class model_resource;
+
+namespace resource
 {
+	template<>
+	class loader<model_resource>;
+}	//	namespace resource
+
+//	モデルリソース
+class model_resource : public resource::resource_base
+{
+	friend class resource::loader<model_resource>;
+
 public:
 	static constexpr std::string_view extension = "emo";
 
@@ -152,9 +165,6 @@ public:
 	};
 
 public:
-	inline void set_file_path(std::string_view path) { file_path = path; }
-	inline std::string_view get_file_path() const {return file_path;}
-
 	inline const std::vector<material_resource_ptr>& get_materials() const {return materials;}
 	inline const std::vector<node>& get_nodes() const {return nodes;}
 	inline const std::vector<mesh>& get_meshes() const {return  meshes;}
@@ -184,18 +194,23 @@ public:
 	size_t get_mesh_index_from_name(std::string_view name) const;
 
 public:
+	//	マテリアルは .emr として保存し、パスで参照する
 	bool serialize(std::string_view file_path);
-	bool deserialize(std::string_view file_path);
 
 	void paste_materials(const std::vector<material_resource_ptr>& materials);
 
 	void rebuild_meshlet_data();
 
 private:
+	//	ファイル読込(ワーカースレッドから呼ばれる)。参照するマテリアルのパスを返す
+	//	旧形式(マテリアルを中に持つ)の場合はパスが空になり、materials に読み込まれる
+	bool load_file(std::string_view file_path, std::vector<std::string>& out_material_paths);
+
 	void build_model();
 
 private:
-	std::string file_path;
+	static constexpr std::uint64_t file_signature = 0x454D4F5F4D415452ull;
+	static constexpr std::uint32_t file_format_version = 2;
 
 	std::vector<material_resource_ptr> materials;
 	std::vector<node> nodes;
@@ -207,11 +222,26 @@ private:
 
 using model_resource_ptr	= std::shared_ptr<model_resource>;
 
+namespace resource
+{
+	template<>
+	class loader<model_resource> : public loader_base
+	{
+	public:
+		operation_state load(std::string_view file_path) override;
+		operation_state build() override;
+		std::shared_ptr<void> get_resource() const override { return resource; }
+
+	private:
+		model_resource_ptr resource;
+		std::vector<std::string> material_paths;
+		std::vector<load_operation_ptr<material_resource>> material_operations;
+	};
+}	//	namespace resource
+
 class model_resource_manager
 {
 	SINGLETON(model_resource_manager)
-
-	using model_resource_map = std::unordered_map<std::string, std::weak_ptr<model_resource>>;
 
 private:
 	model_resource_manager();
@@ -219,7 +249,4 @@ private:
 
 public:
 	bool load(model_resource_ptr& resource, std::string_view file_path, bool force_load = false);
-
-private:
-	model_resource_map resources;
 };

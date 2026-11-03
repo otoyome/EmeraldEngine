@@ -68,6 +68,13 @@ public:
 		return std::static_pointer_cast<Type>(search_raw(file_path, std::type_index(typeid(Type))));
 	}
 
+	//	読込以外で作ったリソースを登録
+	template<class Type>
+	void register_resource(std::string_view file_path, const std::shared_ptr<Type>& value)
+	{
+		register_raw(file_path, std::type_index(typeid(Type)), value);
+	}
+
 	//	1フレームあたりの構築処理の時間(ミリ秒)。
 	//	0以下で無制限。最低1件は必ず構築する
 	void set_build_time_budget(float milliseconds) { build_time_budget = milliseconds; }
@@ -145,6 +152,7 @@ private:
 
 	void request_load(const std::shared_ptr<resource::load_operation_base>& operation, resource::load_priority priority, bool force_load, loader_factory factory);
 	std::shared_ptr<void> search_raw(std::string_view file_path, std::type_index type);
+	void register_raw(std::string_view file_path, std::type_index type, std::shared_ptr<void> value);
 
 	void join_request(const request_ptr& target, const std::shared_ptr<resource::load_operation_base>& operation, resource::load_priority priority);
 	bool has_live_waiters(const request& target) const;

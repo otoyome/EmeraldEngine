@@ -6,6 +6,7 @@
 #include <filesystem>
 
 #include "model_instance.h"
+#include "Resource/resource_manager.h"
 #include "camera.h"
 
 #include "object/light_object.h"
@@ -17,7 +18,8 @@ namespace
 {
 	//	マテリアルを含むファイル
 	constexpr const TCHAR* SourceFileDialogFilter =
-		L"マテリアルを含むファイル (*.emo;*.eme)\0*.emo;*.eme;\0"
+		L"マテリアルを含むファイル (*.emr;*.emo;*.eme)\0*.emr;*.emo;*.eme;\0"
+		L"マテリアルファイル (*.emr)\0*.emr;\0"
 		L"モデルファイル (*.emo)\0*.emo;\0"
 		L"エフェクトファイル (*.eme)\0*.eme;\0"
 		L"すべてのファイル (*.*)\0*.*\0";
@@ -209,7 +211,18 @@ void edit_material_scene::open_source(const std::string& file_path, bool force_l
 {
 	model_resource_ptr model;
 	effect_resource_ptr effect;
-	if (has_extension(file_path, ".emo"))
+	material_resource_ptr material;
+	if (has_extension(file_path, ".emr"))
+	{
+		auto operation = resource_manager::instance()->load<material_resource>(file_path, force_load);
+		if (!operation->is_succeeded())
+		{
+			message = "load failed: " + to_display(file_path);
+			return;
+		}
+		material = operation->get_resource();
+	}
+	else if (has_extension(file_path, ".emo"))
 	{
 		if (!model_resource_manager::instance()->load(model, file_path, force_load))
 		{
@@ -234,6 +247,7 @@ void edit_material_scene::open_source(const std::string& file_path, bool force_l
 	source_file_path = file_path;
 	source_model = model;
 	source_effect = effect;
+	source_material = material;
 	dirty = false;
 	message.clear();
 
@@ -250,12 +264,16 @@ void edit_material_scene::open_source(const std::string& file_path, bool force_l
 	{
 		restart_preview_effect();
 	}
+
+	apply_preview_materials();
 }
 
 void edit_material_scene::save_source()
 {
 	bool saved = false;
-	if (source_model)
+	if (source_material)
+		saved = source_material->save_file(source_file_path);
+	else if (source_model)
 		saved = source_model->serialize(source_file_path);
 	else if (source_effect)
 		saved = source_effect->serialize(source_file_path);
@@ -271,9 +289,38 @@ void edit_material_scene::save_source()
 	message = "saved: " + to_display(source_file_path);
 }
 
+void edit_material_scene::revert_source()
+{
+	//	.emr のマテリアルはファイルから読み直す
+	bool reload_source = false;
+	for (auto& entry : materials)
+	{
+		if (!entry.material || entry.material->is_missing())
+			continue;
+		if (entry.material->get_file_path().empty())
+			reload_source = true;
+		else
+			entry.material->revert_file();
+	}
+
+	if (reload_source && !source_material)
+	{
+		open_source(std::string(source_file_path), true);
+		return;
+	}
+	dirty = false;
+	message = "reverted: " + to_display(source_file_path);
+}
+
 void edit_material_scene::collect_materials()
 {
 	materials.clear();
+
+	if (source_material)
+	{
+		materials.push_back({ system_utility::convert_utf8(source_material->get_name()), source_material });
+		return;
+	}
 
 	if (!source_model && !source_effect)
 	{
@@ -401,7 +448,7 @@ void edit_material_scene::set_preview_resource(const model_resource_ptr& resourc
 	preview_model->set_active(true);
 	object_manager::instance()->register_object(preview_model);
 
-	if (!source_model && !source_effect)
+	if (!source_model && !source_effect && !source_material)
 	{
 		collect_materials();
 		selected_material = materials.empty() ? -1 : 0;
@@ -477,7 +524,7 @@ void edit_material_scene::imgui_render_source()
 		ImGui::SameLine();
 		//	ファイルから読み直して編集を捨てる
 		if (ImGui::Button("Revert"))
-			open_source(std::string(source_file_path), true);
+			revert_source();
 		ImGui::EndDisabled();
 
 		ImGui::SameLine();
@@ -486,7 +533,7 @@ void edit_material_scene::imgui_render_source()
 	else
 	{
 		ImGui::SameLine();
-		ImGui::TextDisabled("load a .emo / .eme file");
+		ImGui::TextDisabled("load a .emr / .emo / .eme file");
 	}
 
 	if (!message.empty())
@@ -568,11 +615,11 @@ void edit_material_scene::imgui_render_material_detail()
 	ImGui::TextDisabled("domain: %s", std::string(magic_enum::enum_name(material->get_domain())).c_str());
 	if (material->get_domain() != material_resource::domains::surface && preview_model && override_preview_slots)
 		ImGui::TextDisabled("(not a surface material: preview model keeps its own materials)");
-	if (!source_model && !source_effect)
-		ImGui::TextDisabled("preview material: changes are not saved (Load a .emo / .eme to save)");
+	if (!source_model && !source_effect && !source_material)
+		ImGui::TextDisabled("preview material: changes are not saved (Load a .emr / .emo / .eme to save)");
 
 	//	リソースを直接編集するので、同じマテリアルを使う全てのインスタンスへバージョン番号で伝わる
-	if (editor_items::edit_material(editor_context, *material))
+	if (editor_items::edit_shared_material(editor_context, material))
 		dirty = true;
 }
 #endif // defined(USE_IMGUI)

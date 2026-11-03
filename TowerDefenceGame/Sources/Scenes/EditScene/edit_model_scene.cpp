@@ -265,12 +265,6 @@ void edit_model_scene::save_model()
 	//	EMO形式で吐き出す
 	auto resource = edit_model->get_model_instance()->get_resource_for_editor();
 
-	//	マテリアルの上書き
-	for (auto& instance_material : edit_model->get_model_instance()->get_materials())
-	{
-		instance_material.apply_overrides_to_resource();
-	}
-
 	//	保存
 	resource->serialize(resource->get_file_path());
 }

@@ -96,7 +96,7 @@ void framework::imgui_initialize()
 	register_asset_open_handler<edit_model_scene>("Model Editor", { ".emo", ".pmx", ".gltf", ".glb" });
 	register_asset_open_handler<edit_particle_scene>("Particle Editor", { ".eme" });
 	register_asset_open_handler<edit_timeline_scene>("Timeline Editor", { ".etl" });
-	register_asset_open_handler<edit_material_scene>("Material Editor", { ".emo", ".eme" });
+	register_asset_open_handler<edit_material_scene>("Material Editor", { ".emo", ".eme", ".emr" });
 }
 
 void framework::imgui_terminate()

@@ -287,26 +287,6 @@ void material_instance::clear_overrides()
 	rebuild();
 }
 
-#if defined(USE_IMGUI)
-void material_instance::apply_overrides_to_resource()
-{
-	if (!resource)
-		return;
-
-	for (auto& data_override : data_overrides)
-	{
-		resource->set_data(data_override.first, data_override.second.data(), data_override.second.size());
-	}
-	for (auto& texture_override : texture_overrides)
-	{
-		if (texture_override.second.value)
-			resource->set_texture(texture_override.first, texture_override.second.value);
-	}
-
-	clear_overrides();
-}
-#endif	//	defined(USE_IMGUI)
-
 void material_instance::rebuild()
 {
 	//	リソースから上書き用情報を生成

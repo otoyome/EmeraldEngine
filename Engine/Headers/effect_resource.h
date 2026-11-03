@@ -12,9 +12,22 @@
 #include "collision/capsule.h"
 #include "collision/box.h"
 
-//	エフェクトリソース
-class effect_resource
+#include "Resource/resource_base.h"
+#include "Resource/resource_loader.h"
+
+class effect_resource;
+
+namespace resource
 {
+	template<>
+	class loader<effect_resource>;
+}	//	namespace resource
+
+//	エフェクトリソース
+class effect_resource : public resource::resource_base
+{
+	friend class resource::loader<effect_resource>;
+
 public:
 	static constexpr std::string_view extension = "eme";
 
@@ -50,6 +63,7 @@ public:
 	{
 		size_t node_index = -1;
 		std::shared_ptr<material_resource> material;
+		std::string material_path;
 
 		bool is_valid() const;
 
@@ -69,9 +83,6 @@ public:
 	};
 
 public:
-	inline void set_file_path(std::string_view path) { file_path = path; }
-	inline std::string_view get_file_path() const {return file_path;}
-
 	inline const std::vector<node>& get_nodes() const {return nodes;}
 	inline const std::vector<model>& get_models() const {return models;}
 	inline const std::vector<particle>& get_particles() const {return particles;}
@@ -96,15 +107,16 @@ public:
 
 public:
 	bool serialize();
-	bool deserialize();
 	bool serialize(std::string_view file_path);
-	bool deserialize(std::string_view file_path);
 
 private:
+	bool load_file(std::string_view file_path);
+
 	void build();
 
 private:
-	std::string file_path;
+	static constexpr std::uint64_t file_signature = 0x454D455F48454144ull;
+	static constexpr std::uint32_t file_format_version = 1;
 
 	std::vector<node> nodes;					//	ノード情報
 	std::vector<model> models;					//	モデル情報
@@ -115,11 +127,27 @@ private:
 
 using effect_resource_ptr	= std::shared_ptr<effect_resource>;
 
+namespace resource
+{
+	template<>
+	class loader<effect_resource> : public loader_base
+	{
+	public:
+		operation_state load(std::string_view file_path) override;
+		operation_state build() override;
+		std::shared_ptr<void> get_resource() const override { return resource; }
+
+	private:
+		effect_resource_ptr resource;
+		std::vector<load_operation_ptr<model_resource>> model_operations;
+		std::vector<load_operation_ptr<material_resource>> decal_material_operations;
+		std::vector<load_operation_ptr<material_resource>> particle_material_operations;
+	};
+}	//	namespace resource
+
 class effect_resource_manager
 {
 	SINGLETON(effect_resource_manager)
-
-	using effect_resource_map = std::unordered_map<std::string, std::weak_ptr<effect_resource>>;
 
 private:
 	effect_resource_manager();
@@ -127,7 +155,4 @@ private:
 
 public:
 	bool load(effect_resource_ptr& resource, std::string_view file_path, bool force_load = false);
-
-private:
-	effect_resource_map resources;
 };

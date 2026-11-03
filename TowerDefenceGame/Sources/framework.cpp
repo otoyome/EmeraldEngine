@@ -12,6 +12,7 @@
 #include "camera.h"
 #include "graphics/occlusion_culling_system.h"
 #include "graphics/clustered_lighting_system.h"
+#include "Resource/resource_manager.h"
 #include "model_resource.h"
 #include "model_buffer_pool.h"
 #include "model_instance.h"
@@ -330,6 +331,7 @@ bool framework::initialize()
 		post_process_volume_manager::create_instance();
 		camera_manager::create_instance();
 		model_buffer_pool_manager::create_instance();
+		resource_manager::create_instance();
 		model_resource_manager::create_instance();
 		model_instance_manger::create_instance();
 		ik_resource_manager::create_instance();	//	@remainder	これは不要では？
@@ -511,6 +513,13 @@ void framework::update(float elapsed_time/*Elapsed seconds from last frame*/)
 	//	キー割り当てされたコンソールコマンドを実行
 	console_manager::instance().update_bindings();
 #endif //	defined(USE_IMGUI)
+
+	//	リソースの構築と読込完了の通知
+	if (resource_manager::is_valid())
+	{
+		DETAIL_PROFILE_CPU_SCOPE("update.resource_manager");
+		resource_manager::instance()->update();
+	}
 
 	//	シーン内の更新
 	if (scene_manager::is_valid())
@@ -1093,6 +1102,7 @@ bool framework::uninitialize()
 		effect_manager::delete_instance();
 		effect_resource_manager::delete_instance();
 		model_instance_manger::delete_instance();
+		resource_manager::delete_instance();
 		model_resource_manager::delete_instance();
 		model_buffer_pool_manager::delete_instance();
 		camera_manager::delete_instance();

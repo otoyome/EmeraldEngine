@@ -20,7 +20,7 @@
 CEREAL_CLASS_VERSION(particle::item::renderer::trails, 3)
 CEREAL_CLASS_VERSION(particle::item::renderer::texcoords, 1)
 CEREAL_CLASS_VERSION(particle::item::renderer::colors, 2)
-CEREAL_CLASS_VERSION(particle::item::renderer, 1)
+CEREAL_CLASS_VERSION(particle::item::renderer, 2)
 
 CEREAL_CLASS_VERSION(particle::item::spawn, 1)
 CEREAL_CLASS_VERSION(particle::item::velocity, 2)
@@ -112,7 +112,21 @@ void particle::item::renderer::set_state(states flag, bool value)
 template<class Archive>
 void particle::item::renderer::serialize(Archive& archive, int version)
 {
-	archive(state, type, total_particle_count, material, trail, uv, color);
+	if (version < 2)
+	{
+		archive(state, type, total_particle_count, material, trail, uv, color);
+		return;
+	}
+
+	if constexpr (Archive::is_saving::value)
+	{
+		std::string path = material ? std::string(material->get_file_path()) : material_path;
+		archive(state, type, total_particle_count, path, trail, uv, color);
+	}
+	else
+	{
+		archive(state, type, total_particle_count, material_path, trail, uv, color);
+	}
 }
 
 bool particle::item::spawn::is_state(states flag) const

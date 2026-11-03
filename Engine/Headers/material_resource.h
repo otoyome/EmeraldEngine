@@ -5,13 +5,18 @@
 #include "texture.h"
 #include "pipeline_state.h"
 
+#include "Resource/resource_base.h"
+#include "Resource/resource_loader.h"
+
 class gpu_upload_list;
 
-//	マテリアル
-//	☆ﾃｷﾄｰ('ω')ｰﾄｷﾃ☆
-class material_resource
+//	マテリアルリソース
+class material_resource : public resource::resource_base
 {
 	friend class material_instance;
+
+public:
+	static constexpr std::string_view extension = "emr";
 
 public:
 	//	マテリアルの処理系統
@@ -229,6 +234,28 @@ public:
 	material_resource& operator =(const material_resource& material);
 
 public:
+	//	.emr ファイルの読込/保存
+	bool load_file(std::string_view file_path);
+	bool save_file(std::string_view file_path);
+
+	//	ファイルから読み直し
+	bool revert_file();
+
+	//	参照先の .emr が無い時の代わりのマテリアル
+	static std::shared_ptr<material_resource> create_missing(std::string_view file_path, domains domain);
+	bool is_missing() const { return missing; }
+
+	//	.emr の非同期読込を要求する
+	static resource::load_operation_ptr<material_resource> request_load(std::string_view file_path);
+
+	//	読込結果を取り出す。失敗していれば代わりのマテリアルを作る
+	static std::shared_ptr<material_resource> resolve(const resource::load_operation_ptr<material_resource>& operation, std::string_view file_path, domains domain);
+
+	//	自分のパスへ .emr として保存し、同じパスの読込で共有されるよう登録する
+	//	代わりのマテリアルは保存しない。パスが無ければ失敗する(パスはコンバート時に付ける)
+	static bool save_asset(const std::shared_ptr<material_resource>& material);
+
+public:
 	//	名前取得・設定
 	void set_name(std::string_view name);
 	std::string_view get_name() const;
@@ -378,6 +405,23 @@ private:
 
 	std::uint32_t version = 0;
 	std::uint32_t shader_map_version = 0;
+
+	bool missing = false;
 };
 
 using material_resource_ptr = std::shared_ptr<material_resource>;
+
+namespace resource
+{
+	template<>
+	class loader<material_resource> : public loader_base
+	{
+	public:
+		operation_state load(std::string_view file_path) override;
+		operation_state build() override;
+		std::shared_ptr<void> get_resource() const override { return resource; }
+
+	private:
+		material_resource_ptr resource;
+	};
+}	//	namespace resource

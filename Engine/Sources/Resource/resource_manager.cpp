@@ -271,6 +271,17 @@ std::shared_ptr<void> resource_manager::search_raw(std::string_view file_path, s
 	return it->second.resource.lock();
 }
 
+void resource_manager::register_raw(std::string_view file_path, std::type_index type, std::shared_ptr<void> value)
+{
+	if (!value)
+		return;
+
+	const std::wstring key = make_key(file_path);
+
+	std::lock_guard<std::mutex> lock(mutex);
+	caches.insert_or_assign(key, cache_entry{ std::string(file_path), type, value });
+}
+
 void resource_manager::join_request(const request_ptr& target, const std::shared_ptr<resource::load_operation_base>& operation, resource::load_priority priority)
 {
 	//	‰ğ•úÏ‚İ‚Ì‘Ò‹@Ò‚ğ‘|œ‚µ‚Ä‚©‚ç’Ç‰Á

@@ -210,6 +210,9 @@
     <ClInclude Include="Headers\System\system_units.h">
       <Filter>Headers\System</Filter>
     </ClInclude>
+    <ClInclude Include="Headers\System\universally_unique_identifier.h">
+      <Filter>Headers\System</Filter>
+    </ClInclude>
     <ClInclude Include="Headers\System\signals.h">
       <Filter>Headers\System</Filter>
     </ClInclude>
@@ -308,6 +311,9 @@
     </ClInclude>
     <ClInclude Include="Headers\System\simple_helper.h">
       <Filter>Headers\System</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Resource\resource_base.h">
+      <Filter>Headers\Resource</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Resource\resource_loader.h">
       <Filter>Headers\Resource</Filter>
@@ -591,6 +597,9 @@
       <Filter>Sources\System</Filter>
     </ClCompile>
     <ClCompile Include="Sources\System\cache_string.cpp">
+      <Filter>Sources\System</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\System\universally_unique_identifier.cpp">
       <Filter>Sources\System</Filter>
     </ClCompile>
     <ClCompile Include="Sources\Graphics\occlusion_culling_system.cpp">

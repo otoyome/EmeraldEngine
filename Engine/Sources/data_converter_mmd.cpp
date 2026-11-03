@@ -515,6 +515,8 @@ namespace
 		//	EMOに変換したのでファイルパスを改めて設定
 		path.replace_extension(model_resource::extension);
 		resource.set_file_path(path.string());
+
+		data_converter::assign_material_paths(resource.get_materials_for_editor(), resource.get_file_path());
 		return true;
 	}
 

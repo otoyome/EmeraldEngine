@@ -107,10 +107,6 @@ public:
 	material_instance& operator =(const material_instance& other);
 	material_instance& operator =(material_instance&& other);
 
-#if defined(USE_IMGUI)
-	void apply_overrides_to_resource();
-#endif	//	defined(USE_IMGUI)
-
 private:
 	void rebuild();
 

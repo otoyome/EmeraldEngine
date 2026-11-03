@@ -377,15 +377,25 @@ bool editor_items::edit_material(std::shared_ptr<context>& context, material_res
 
 	//	ドメイン
 	{
-		std::vector<const char*> combo_texts;
-		for (auto& name : domain_texts)
+		auto get_domain_text = [](material_resource::domains value) -> std::string_view
 		{
-			combo_texts.emplace_back(name.data());
-		}
-		int domain = static_cast<int>(material.get_domain());
-		if (ImGui::Combo("domain", &domain, combo_texts.data(), static_cast<int>(combo_texts.size())))
+			const size_t index = static_cast<size_t>(value);
+			return index < std::size(domain_texts) ? domain_texts[index] : magic_enum::enum_name(value);
+		};
+		const material_resource::domains current_domain = material.get_domain();
+		if (ImGui::BeginCombo("domain", std::string(get_domain_text(current_domain)).c_str()))
 		{
-			material.set_domain(static_cast<material_resource::domains>(domain));
+			for (auto value : magic_enum::enum_values<material_resource::domains>())
+			{
+				if (value == material_resource::domains::unknown)
+					continue;
+				if (ImGui::Selectable(std::string(get_domain_text(value)).c_str(), value == current_domain) && value != current_domain)
+				{
+					material.set_domain(value);
+					edit_flag = true;
+				}
+			}
+			ImGui::EndCombo();
 		}
 	}
 
@@ -562,6 +572,28 @@ bool editor_items::edit_material(std::shared_ptr<context>& context, material_res
 			}
 			break;
 		}
+		case material_resource::domains::deferred_decal:
+		case material_resource::domains::user_interface:
+		{
+			break;
+		}
+		case material_resource::domains::system:
+		{
+			ImGui::Separator();
+			for (auto path : magic_enum::enum_values<material_resource::system_paths>())
+			{
+				auto pipeline_state = material.get_pipeline_state(path);
+				std::string pipeline_state_name = pipeline_state ? std::string(pipeline_state->get_name()) : std::string();
+				if (ImGui::InputText(magic_enum::enum_name(path).data(), pipeline_state_name, ImGuiInputTextFlags_EnterReturnsTrue))
+				{
+					if (material.set_pipeline_state(path, pipeline_state_name))
+						edit_flag = true;
+				}
+			}
+			break;
+		}
+		default:
+			break;
 	}
 
 
@@ -627,113 +659,50 @@ bool editor_items::edit_material(std::shared_ptr<context>& context, material_res
 	return edit_flag;
 }
 
-bool editor_items::edit_material_instance(std::shared_ptr<context>& context, material_instance& instance)
+bool editor_items::edit_shared_material(std::shared_ptr<context>& context, const material_resource_ptr& material)
 {
-	const material_resource_ptr& parent = instance.get_resource();
-	if (!parent)
+	if (!material)
 	{
-		ImGui::TextDisabled("no parent material");
+		ImGui::TextDisabled("no material");
 		return false;
 	}
 
 	bool edit_flag = false;
 	ImGui::PushID(context->get_item_id());
 
-	ImGui::TextDisabled("shader : %s", parent->get_shader_path().data());
-	ImGui::TextDisabled("domain : %s", magic_enum::enum_name(parent->get_domain()).data());
-	ImGui::TextDisabled("blend_mode : %s", magic_enum::enum_name(parent->get_blend_mode()).data());
-
-	ImGui::BeginDisabled(!instance.has_overrides());
-	if (ImGui::Button("reset all overrides"))
+	const std::string file_path = system_utility::convert_utf8(material->get_file_path());
+	if (material->is_missing())
 	{
-		instance.clear_overrides();
+		ImGui::TextColored(ImVec4(1.0f, 0.3f, 0.3f, 1.0f), "missing : %s", file_path.c_str());
+	}
+	else if (file_path.empty())
+	{
+		ImGui::TextDisabled("not saved (saved as .emr together with its model / effect)");
+	}
+	else
+	{
+		ImGui::TextDisabled("%s", file_path.c_str());
+		ImGui::TextDisabled("shared : edits affect every user of this material");
+		if (ImGui::Button("save .emr"))
+			material->save_file(material->get_file_path());
+		ImGui::SameLine();
+		if (ImGui::Button("revert"))
+		{
+			material->revert_file();
+			edit_flag = true;
+		}
+	}
+
+	ImGui::TextDisabled("uuid : %s", material->get_uuid().to_string().c_str());
+
+	ImGui::BeginDisabled(material->is_missing());
+	if (edit_material(context, *material))
 		edit_flag = true;
-	}
 	ImGui::EndDisabled();
-
-	//	パラメーター
-	for (auto& it : parent->get_constant_buffers())
-	{
-		const material_resource::constant_buffer* current = instance.find_constant_buffer(it.first);
-		if (!current)
-			continue;
-
-		if (ImGui::TreeNode(it.first.data()))
-		{
-			material_resource::constant_buffer work_buffer;
-			work_buffer.data_buffer = current->data_buffer;
-			work_buffer.subsets = current->subsets;
-			work_buffer.identifieres = current->identifieres;
-
-			for (auto& identifier : work_buffer.identifieres)
-			{
-				auto& subset = work_buffer.subsets[identifier.second];
-				ImGui::PushID(identifier.first.data());
-
-				if (add_item_function(work_buffer, identifier.first, subset))
-				{
-					instance.set_data(identifier.first, work_buffer.data_buffer.data() + subset.start_offset, subset.size);
-					edit_flag = true;
-				}
-
-				if (instance.is_data_overridden(identifier.first))
-				{
-					ImGui::SameLine();
-					if (ImGui::SmallButton("reset"))
-					{
-						instance.reset_data(identifier.first);
-						edit_flag = true;
-					}
-				}
-
-				ImGui::PopID();
-			}
-			ImGui::TreePop();
-		}
-	}
-
-	//	リソース
-	for (auto& it : parent->get_shader_resources())
-	{
-		const material_resource::shader_resource* current = instance.find_shader_resource(it.first);
-		if (!current)
-			continue;
-
-		ImGui::Text(it.first.data());
-		for (UINT index = 0; index < static_cast<UINT>(current->resources.size()); ++index)
-		{
-			const std::string key = it.first + "[" + std::to_string(index) + "]";
-			texture_ptr value = current->resources[index].value;
-
-			ImGui::PushID(context->get_item_id());
-			ImGui::Text((std::string("[") + std::to_string(index) + std::string("]")).data());
-			ImGui::SameLine();
-			if (edit_texture_item(context, value))
-			{
-				if (value)
-					instance.set_texture(key, value);
-				else
-					instance.reset_texture(key);
-				edit_flag = true;
-			}
-
-			if (instance.is_texture_overridden(key))
-			{
-				ImGui::SameLine();
-				if (ImGui::SmallButton("reset"))
-				{
-					instance.reset_texture(key);
-					edit_flag = true;
-				}
-			}
-			ImGui::PopID();
-		}
-	}
 
 	ImGui::PopID();
 	return edit_flag;
 }
-
 bool editor_items::edit_texture_item(std::shared_ptr<context>& context, texture_ptr& resource, bool* selected_file)
 {
 	bool edit_flag = false;

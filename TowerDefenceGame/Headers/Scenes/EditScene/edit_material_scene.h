@@ -42,6 +42,7 @@ private:
 private:
 	void open_source(const std::string& file_path, bool force_load);
 	void save_source();
+	void revert_source();
 	void collect_materials();
 	material_resource_ptr get_selected_material() const;
 
@@ -68,6 +69,7 @@ private:
 	std::string source_file_path;
 	model_resource_ptr source_model;
 	effect_resource_ptr source_effect;
+	material_resource_ptr source_material;
 
 	std::vector<material_entry> materials;
 	int selected_material = -1;

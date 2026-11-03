@@ -16,7 +16,13 @@
 #include "animation_data_version.h"
 
 #include "Resource/data_compression.h"
+#include "Resource/resource_manager.h"
 
+#if defined(USE_IMGUI)
+#include "data_converter.h"
+#endif	//	defined(USE_IMGUI)
+
+#include <filesystem>
 #include <sstream>
 
 // CEREALバージョン定義
@@ -221,17 +227,16 @@ void model_resource::capsule_shadow::serialize(Archive& archive, int version)
 }
 
 model_resource::model_resource()
-: file_path()
-, materials()
+: materials()
 , meshes()
 {
 }
 
 model_resource::model_resource(std::string_view file_path)
-: file_path(file_path)
-, materials()
+: materials()
 , meshes()
 {
+	set_file_path(file_path);
 }
 
 model_resource::~model_resource()
@@ -330,17 +335,28 @@ size_t model_resource::get_mesh_index_from_name(std::string_view name) const
 
 bool model_resource::serialize(std::string_view file_path)
 {
+#if defined(USE_IMGUI)
+	data_converter::assign_material_paths(materials, file_path);
+#endif	//	defined(USE_IMGUI)
+	std::vector<std::string> material_paths;
+	material_paths.reserve(materials.size());
+	for (auto& material : materials)
+	{
+		if (material && !material_resource::save_asset(material))
+		{
+			DEBUG_LOG_CATEGORY(logger::categorys::model, "model_resource material save failed[%s][%s]", file_path.data(), material->get_name().data());
+			return false;
+		}
+		material_paths.emplace_back(material ? std::string(material->get_file_path()) : std::string());
+	}
+
 	std::ostringstream buffer_stream(std::ios::binary);
 	{
 		cereal::BinaryOutputArchive archive(buffer_stream);
 
 		try
 		{
-			archive(cereal::make_size_tag(static_cast<cereal::size_type>(materials.size())));
-			for (auto& material : materials)
-			{
-				archive(*material);
-			}
+			archive(file_signature, file_format_version, get_uuid_for_serialize(), material_paths);
 
 			archive(CEREAL_NVP(nodes),
 					CEREAL_NVP(meshes),
@@ -381,7 +397,7 @@ bool model_resource::serialize(std::string_view file_path)
 	return false;
 }
 
-bool model_resource::deserialize(std::string_view file_path)
+bool model_resource::load_file(std::string_view file_path, std::vector<std::string>& out_material_paths)
 {
 	std::ifstream file_stream(file_path.data(), std::ios::binary);
 	if(file_stream.is_open())
@@ -411,14 +427,27 @@ bool model_resource::deserialize(std::string_view file_path)
 
 		try
 		{
-			cereal::size_type material_count = 0;
-			archive(cereal::make_size_tag(material_count));
+			std::uint64_t head = 0;
+			archive(head);
 			materials.clear();
-			materials.reserve(static_cast<size_t>(material_count));
-			for (cereal::size_type index = 0; index < material_count; ++index)
+			out_material_paths.clear();
+			if (head == file_signature)
 			{
-				auto& material = materials.emplace_back(std::make_shared<::material_resource>());
-				archive(*material);
+				std::uint32_t format_version = 0;
+				archive(format_version);
+				if (format_version >= 2)
+					archive(get_uuid_for_serialize());
+				archive(out_material_paths);
+				materials.resize(out_material_paths.size());
+			}
+			else
+			{
+				for (std::uint64_t index = 0; index < head; ++index)
+				{
+					auto& material = materials.emplace_back(std::make_shared<::material_resource>());
+					archive(*material);
+				}
+				out_material_paths.resize(materials.size());
 			}
 
 			archive(CEREAL_NVP(nodes),
@@ -433,9 +462,7 @@ bool model_resource::deserialize(std::string_view file_path)
 			return false;
 		}
 
-		//	モデル構築
-		this->file_path = file_path;
-		build_model();
+		set_file_path(file_path);
 		DEBUG_LOG_CATEGORY(logger::categorys::model, "model_resource deserialize successed[%s]", file_path.data());
 		return true;
 	}
@@ -462,6 +489,9 @@ void model_resource::build_model()
 		std::vector<std::string> texture_path_storage;
 		for (auto& material : materials)
 		{
+			if (!material || !material->get_file_path().empty())
+				continue;
+
 			for (auto& shader_resource : material->get_shader_resources())
 			{
 				for (auto& resource : shader_resource.second.resources)
@@ -482,7 +512,8 @@ void model_resource::build_model()
 	//	マテリアル
 	for (auto& material : materials)
 	{
-		material->build();
+		if (material && material->get_file_path().empty())
+			material->build();
 	}
 	preloaded_textures.clear();
 	//	頂点バッファ
@@ -543,27 +574,49 @@ model_resource_manager::~model_resource_manager()
 
 bool model_resource_manager::load(model_resource_ptr& resource, std::string_view file_path, bool force_load)
 {
-	std::string key(file_path);
-
-	if (!force_load)
-	{
-		auto it = resources.find(key);
-		if (it != resources.end())
-		{
-			if (model_resource_ptr cached = it->second.lock())
-			{
-				resource = cached;
-				return true;
-			}
-			resources.erase(it);
-		}
-	}
-
-	auto new_resource = std::make_shared<model_resource>();
-	if (!new_resource->deserialize(file_path))
+	auto operation = resource_manager::instance()->load<model_resource>(file_path, force_load);
+	if (!operation->is_succeeded())
 		return false;
 
-	resource = new_resource;
-	resources[key] = resource;
+	resource = operation->get_resource();
 	return true;
 }
+
+namespace resource
+{
+	operation_state loader<model_resource>::load(std::string_view file_path)
+	{
+		std::error_code error;
+		if (!std::filesystem::exists(std::filesystem::path(std::string(file_path)), error))
+		{
+			set_error_message("file not found");
+			return operation_state::not_found;
+		}
+
+		resource = std::make_shared<model_resource>();
+		if (!resource->load_file(file_path, material_paths))
+			return operation_state::deserialize_failed;
+
+		//	参照するマテリアルを依存リソースとして読み込む
+		material_operations.resize(material_paths.size());
+		for (size_t index = 0; index < material_paths.size(); ++index)
+		{
+			material_operations[index] = material_resource::request_load(material_paths[index]);
+			add_dependency(material_operations[index]);
+		}
+		return operation_state::success;
+	}
+
+	operation_state loader<model_resource>::build()
+	{
+		for (size_t index = 0; index < material_paths.size(); ++index)
+		{
+			if (!material_paths[index].empty())
+				resource->materials[index] = material_resource::resolve(material_operations[index], material_paths[index], material_resource::domains::surface);
+		}
+		material_operations.clear();
+
+		resource->build_model();
+		return operation_state::success;
+	}
+}	//	namespace resource

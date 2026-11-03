@@ -99,6 +99,7 @@ namespace particle
 			types type = types::sprite;		//	レンダラータイプ
 			UINT total_particle_count = 1;	//	最大パーティクル数
 			std::shared_ptr<material_resource> material;	//	表示マテリアル
+			std::string material_path;
 
 			trails trail;	//	軌跡
 			texcoords uv;	//	UV
