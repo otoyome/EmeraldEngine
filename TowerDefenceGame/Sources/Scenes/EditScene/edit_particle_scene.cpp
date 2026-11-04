@@ -1,5 +1,6 @@
 #include "scenes/editscene/edit_particle_scene.h"
 #include "System/asset_browser.h"
+#include "Resource/resource_manager.h"
 
 #include "model_instance.h"
 #include "camera.h"
@@ -270,10 +271,10 @@ void edit_particle_scene::imgui_render_core()
 			if (ImGui::Button("Save"))
 			{
 				std::string file_path;
-				const std::wstring default_extension = L"." + std::wstring(effect_resource::extension.begin(), effect_resource::extension.end());
+				const std::wstring default_extension = L"." + system_utility::convert_shift_jis_to_utf16(effect_resource::extension);
 				if (editor_items::save_file_dialog(EffectFileDialogFilter, file_path, default_extension.c_str()))
 				{
-					edit_resource->serialize(file_path);
+					resource_manager::instance()->save(edit_resource, file_path);
 				}
 			}
 		}
@@ -432,7 +433,7 @@ void edit_particle_scene::generate_default_effect()
 				}
 			}
 			//	ファイル保存
-			resource->serialize(file_pathes[0]);
+			resource_manager::instance()->save(resource, file_pathes[0]);
 		}
 	}
 
@@ -567,7 +568,7 @@ void edit_particle_scene::generate_default_effect()
 			}
 
 			//	ファイル保存
-			resource->serialize(file_pathes[1]);
+			resource_manager::instance()->save(resource, file_pathes[1]);
 		}
 	}
 }

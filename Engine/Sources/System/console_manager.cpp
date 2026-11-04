@@ -1,4 +1,5 @@
 #include "System/console_manager.h"
+#include "System/system_utility.h"
 
 #include <cctype>
 #include <charconv>
@@ -8,14 +9,6 @@ namespace
 {
 	//	èoóÕÇ∆ÇµÇƒécÇ∑ç≈ëÂçsêî
 	static constexpr size_t max_output_lines = 1024;
-
-	std::string to_lower(std::string_view text)
-	{
-		std::string result(text);
-		for (auto& c : result)
-			c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
-		return result;
-	}
 
 	std::string_view trim(std::string_view text)
 	{
@@ -201,7 +194,7 @@ namespace console_detail
 
 	bool from_string(std::string_view text, bool& value)
 	{
-		const std::string lower = to_lower(trim(text));
+		const std::string lower = system_utility::to_lower(trim(text));
 		if (lower == "1" || lower == "true" || lower == "on")
 		{
 			value = true;
@@ -399,7 +392,7 @@ void console_manager::execute_statement(std::string_view statement)
 #if	defined(USE_IMGUI)
 bool console_manager::bind(std::string_view key, std::string_view command)
 {
-	const std::string key_name = to_lower(key);
+	const std::string key_name = system_utility::to_lower(key);
 	if (!magic_enum::enum_cast<keyboard::key_states>(key_name).has_value())
 		return false;
 	bindings.insert_or_assign(key_name, std::string(command));
@@ -408,7 +401,7 @@ bool console_manager::bind(std::string_view key, std::string_view command)
 
 bool console_manager::unbind(std::string_view key)
 {
-	return bindings.erase(to_lower(key)) > 0;
+	return bindings.erase(system_utility::to_lower(key)) > 0;
 }
 
 void console_manager::clear_bindings()

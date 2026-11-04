@@ -79,7 +79,6 @@ void asset_registry::move_path(std::string_view old_path, std::string_view new_p
 {
 	std::unique_lock lock(mutex);
 
-	//	@tool old_path がフォルダの場合も、その下のアセットをまとめて移す
 	std::vector<std::pair<universally_unique_identifier, std::string>> moved_entries;
 	for (const auto& [uuid, value] : entries)
 	{

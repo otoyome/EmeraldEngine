@@ -26,9 +26,6 @@ namespace resource
 
 		void regenerate_uuid() { resource_uuid = universally_unique_identifier::generate(); }
 
-	protected:
-		universally_unique_identifier& get_uuid_for_serialize() { return resource_uuid; }
-
 	private:
 		std::string file_path;
 		universally_unique_identifier resource_uuid;

@@ -145,6 +145,7 @@
     <ClInclude Include="Headers\Resource\resource_base.h" />
     <ClInclude Include="Headers\Resource\resource_loader.h" />
     <ClInclude Include="Headers\Resource\resource_manager.h" />
+    <ClInclude Include="Headers\Resource\resource_saver.h" />
     <ClInclude Include="Headers\Resource\resource_operation.h" />
     <ClInclude Include="Headers\Resource\resource_operation_state.h" />
     <ClInclude Include="Headers\Resource\data_compression.h" />

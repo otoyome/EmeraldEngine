@@ -166,6 +166,14 @@ namespace	system_utility
 	std::string convert_utf8(std::string_view text);
 	std::string convert_utf8(std::wstring_view text);
 
+	//	大文字・小文字変換(Shift-JIS)
+	std::string to_lower(std::string_view shift_jis);
+	std::string to_upper(std::string_view shift_jis);
+
+	//	大文字・小文字変換(UTF-16)
+	std::wstring to_lower(std::wstring_view utf16);
+	std::wstring to_upper(std::wstring_view utf16);
+
 	//	相対・絶対パス変換系
 	std::string convert_to_absolute_path(std::string_view relative_path);
 	std::string convert_to_relative_path(std::string_view absolute_path);
@@ -173,7 +181,6 @@ namespace	system_utility
 	//	「/」に変換
 	std::string	preferred_path(std::string_view path);
 
-	const char* str_case_str(const char* text, const char* pattern);
 
 	std::string to_display_time_string(float time);
 

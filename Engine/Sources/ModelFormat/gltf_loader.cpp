@@ -1283,8 +1283,7 @@ gltf_loader::gltf_loader()
 bool gltf_loader::Load(std::string_view filepath)
 {
 	file_path = std::string(filepath);
-	std::string extension = file_path.extension().string();
-	std::transform(extension.begin(), extension.end(), extension.begin(), tolower);	// è¨ï∂éöâª
+	const std::string extension = system_utility::to_lower(file_path.extension().string());	// è¨ï∂éöâª
 
 	tinygltf::TinyGLTF gltf = {};
 	gltf.SetImageLoader(load_image_function, this);

@@ -17,9 +17,11 @@
 #include "animation_data_version.h"
 
 #include <filesystem>
+#include <sstream>
 
 #include "Resource/resource_manager.h"
 #include "Resource/asset_file_header.h"
+#include "Resource/data_compression.h"
 
 #if defined(USE_IMGUI)
 #include "data_converter.h"
@@ -153,55 +155,14 @@ void effect_resource::build()
 	}
 }
 
-bool effect_resource::serialize()
+bool effect_resource::save_file(std::string_view file_path)
 {
-	return serialize(std::string(get_file_path()));
-}
-
-bool effect_resource::serialize(std::string_view file_path)
-{
-	std::vector<material_resource_ptr> save_materials;
-	for (auto& decal_data : decals)
+	std::ostringstream buffer_stream(std::ios::binary);
 	{
-		if (decal_data.material)
-			save_materials.emplace_back(decal_data.material);
-	}
-	for (auto& particle_data : particles)
-	{
-		auto renderer = particle_data.particle.get_item<::particle::item::renderer>();
-		if (renderer && renderer->material)
-			save_materials.emplace_back(renderer->material);
-	}
-#if defined(USE_IMGUI)
-	data_converter::assign_material_paths(save_materials, file_path);
-#endif	//	defined(USE_IMGUI)
-	for (auto& material : save_materials)
-	{
-		if (!material_resource::save_asset(material))
-		{
-			DEBUG_LOG_CATEGORY(logger::categorys::model, "effect_resource material save failed[%s][%s]", file_path.data(), material->get_name().data());
-			return false;
-		}
-	}
-
-	if (asset_registry::is_valid())
-		asset_registry::instance()->prepare_save(*this, file_path);
-
-	std::ofstream ostream(file_path.data(), std::ios::binary);
-	if(ostream.is_open())
-	{
-		resource::asset_file_header header;
-		header.type = resource::asset_types::effect;
-		header.version = file_format_version;
-		header.uuid = get_uuid();
-		resource::write_asset_header(ostream, header);
-
-		cereal::BinaryOutputArchive archive(ostream);
+		cereal::BinaryOutputArchive archive(buffer_stream);
 
 		try
 		{
-			archive(file_signature, file_format_version);
-
 			archive(CEREAL_NVP(nodes),
 					CEREAL_NVP(models),
 					CEREAL_NVP(particles),
@@ -213,64 +174,45 @@ bool effect_resource::serialize(std::string_view file_path)
 			DEBUG_LOG_CATEGORY(logger::categorys::model, "effect_resource serialize failed[%s]", file_path.data());
 			return false;
 		}
-
-		if (asset_registry::is_valid())
-			asset_registry::instance()->register_asset(get_uuid(), header.type, file_path);
-		DEBUG_LOG_CATEGORY(logger::categorys::model, "effect_resource serialize successed[%s]", file_path.data());
-		return true;
 	}
 
-	DEBUG_LOG_CATEGORY(logger::categorys::model, "effect_resource open failed[%s]", file_path.data());
-	return false;
+	if (!resource::write_asset_file(*this, resource::asset_types::effect, file_path, buffer_stream.str()))
+		return false;
+
+	DEBUG_LOG_CATEGORY(logger::categorys::model, "effect_resource serialize successed[%s]", file_path.data());
+	return true;
 }
 
 bool effect_resource::load_file(std::string_view file_path)
 {
-	std::ifstream istream(file_path.data(), std::ios::binary);
-	if(istream.is_open())
+	resource::asset_file_header header;
+	std::vector<char> body;
+	if (!resource::read_asset_file(file_path, resource::asset_types::effect, header, body))
+		return false;
+
+	resource::memory_streambuf stream_buffer(body.data(), body.size());
+	std::istream istream(&stream_buffer);
+	cereal::BinaryInputArchive archive(istream);
+
+	try
 	{
-		resource::asset_file_header header;
-		if (!resource::read_asset_header(istream, header) || header.type != resource::asset_types::effect)
-		{
-			DEBUG_ERROR_CATEGORY(logger::categorys::model, "effect_resource invalid header[%s]", file_path.data());
-			return false;
-		}
-
-		cereal::BinaryInputArchive archive(istream);
-
-		try
-		{
-			std::uint64_t signature = 0;
-			std::uint32_t format_version = 0;
-			archive(signature, format_version);
-			if (signature != file_signature)
-			{
-				DEBUG_ERROR_CATEGORY(logger::categorys::model, "effect_resource invalid signature[%s]", file_path.data());
-				return false;
-			}
-
-			archive(CEREAL_NVP(nodes),
-					CEREAL_NVP(models),
-					CEREAL_NVP(particles),
-					CEREAL_NVP(decals),
-					CEREAL_NVP(animations));
-		}
-		catch (...)
-		{
-			DEBUG_ERROR_CATEGORY(logger::categorys::model, "effect_resource deserialize failed[%s]", file_path.data());
-			return false;
-		}
-
-		inherit_uuid(header.uuid);
-		set_file_path(file_path);
-		DEBUG_LOG_CATEGORY(logger::categorys::model, "effect_resource deserialize successed[%s]", file_path.data());
-		return true;
+		archive(CEREAL_NVP(nodes),
+				CEREAL_NVP(models),
+				CEREAL_NVP(particles),
+				CEREAL_NVP(decals),
+				CEREAL_NVP(animations));
+	}
+	catch (...)
+	{
+		DEBUG_ERROR_CATEGORY(logger::categorys::model, "effect_resource deserialize failed[%s]", file_path.data());
+		return false;
 	}
 
-	DEBUG_ERROR_CATEGORY(logger::categorys::model, "effect_resource open failed[%s]", file_path.data());
-	return false;
+	inherit_uuid(header.uuid);
+	set_file_path(file_path);
+	DEBUG_LOG_CATEGORY(logger::categorys::model, "effect_resource deserialize successed[%s]", file_path.data());
+	return true;
 }
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 effect_resource_manager::effect_resource_manager()
 {
@@ -358,5 +300,33 @@ namespace resource
 
 		resource->build();
 		return operation_state::success;
+	}
+
+	bool saver<effect_resource>::save(effect_resource& resource, std::string_view file_path)
+	{
+		std::vector<material_resource_ptr> save_materials;
+		for (auto& decal_data : resource.decals)
+		{
+			if (decal_data.material)
+				save_materials.emplace_back(decal_data.material);
+		}
+		for (auto& particle_data : resource.particles)
+		{
+			auto renderer = particle_data.particle.get_item<::particle::item::renderer>();
+			if (renderer && renderer->material)
+				save_materials.emplace_back(renderer->material);
+		}
+#if defined(USE_IMGUI)
+		data_converter::assign_material_paths(save_materials, file_path);
+#endif	//	defined(USE_IMGUI)
+		for (auto& material : save_materials)
+		{
+			if (!material->is_missing() && !resource_manager::instance()->save(material))
+			{
+				DEBUG_LOG_CATEGORY(logger::categorys::model, "effect_resource material save failed[%s][%s]", file_path.data(), material->get_name().data());
+				return false;
+			}
+		}
+		return resource.save_file(file_path);
 	}
 }	//	namespace resource

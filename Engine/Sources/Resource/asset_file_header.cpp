@@ -1,10 +1,15 @@
 #include "Resource/asset_file_header.h"
 
 #include <array>
-#include <cctype>
 #include <cstring>
 #include <fstream>
 #include <string>
+
+#include "Resource/asset_registry.h"
+#include "Resource/data_compression.h"
+#include "Resource/resource_base.h"
+#include "system/logger.h"
+#include "System/system_utility.h"
 
 namespace
 {
@@ -98,9 +103,7 @@ namespace resource
 
 	asset_types get_asset_type_from_extension(std::string_view extension)
 	{
-		std::string lower(extension);
-		for (auto& c : lower)
-			c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+		const std::string lower = system_utility::to_lower(extension);
 
 		if (lower == ".emo")
 			return asset_types::model;
@@ -109,5 +112,72 @@ namespace resource
 		if (lower == ".eme")
 			return asset_types::effect;
 		return asset_types::unknown;
+	}
+
+	bool write_asset_file(resource_base& target, asset_types type, std::string_view file_path, std::string_view body)
+	{
+		if (asset_registry::is_valid())
+			asset_registry::instance()->prepare_save(target, file_path);
+
+		std::vector<char> compressed_body;
+		if (!compress(body.data(), body.size(), compressed_body))
+		{
+			DEBUG_ERROR_CATEGORY(logger::categorys::system, "asset file compress failed[%s]", std::string(file_path).c_str());
+			return false;
+		}
+
+		const std::filesystem::path path{ std::string(file_path) };
+		if (path.has_parent_path())
+		{
+			std::error_code error;
+			std::filesystem::create_directories(path.parent_path(), error);
+		}
+
+		std::ofstream stream(path, std::ios::binary);
+		if (!stream.is_open())
+		{
+			DEBUG_ERROR_CATEGORY(logger::categorys::system, "asset file open failed[%s]", std::string(file_path).c_str());
+			return false;
+		}
+
+		asset_file_header header;
+		header.type = type;
+		header.uuid = target.get_uuid();
+		write_asset_header(stream, header);
+		stream.write(compressed_body.data(), static_cast<std::streamsize>(compressed_body.size()));
+		if (!stream.good())
+		{
+			DEBUG_ERROR_CATEGORY(logger::categorys::system, "asset file write failed[%s]", std::string(file_path).c_str());
+			return false;
+		}
+
+		target.set_file_path(file_path);
+		if (asset_registry::is_valid())
+			asset_registry::instance()->register_asset(header.uuid, type, file_path);
+		return true;
+	}
+
+	bool read_asset_file(std::string_view file_path, asset_types type, asset_file_header& out_header, std::vector<char>& out_body)
+	{
+		std::ifstream stream(std::filesystem::path(std::string(file_path)), std::ios::binary);
+		if (!stream.is_open())
+		{
+			DEBUG_ERROR_CATEGORY(logger::categorys::system, "asset file open failed[%s]", std::string(file_path).c_str());
+			return false;
+		}
+		const std::vector<char> file_data((std::istreambuf_iterator<char>(stream)), std::istreambuf_iterator<char>());
+
+		if (!read_asset_header(file_data.data(), file_data.size(), out_header) || out_header.type != type)
+		{
+			DEBUG_ERROR_CATEGORY(logger::categorys::system, "asset file invalid header[%s]", std::string(file_path).c_str());
+			return false;
+		}
+
+		if (!decompress(file_data.data() + asset_file_header::size, file_data.size() - asset_file_header::size, out_body))
+		{
+			DEBUG_ERROR_CATEGORY(logger::categorys::system, "asset file decompress failed[%s]", std::string(file_path).c_str());
+			return false;
+		}
+		return true;
 	}
 }	//	namespace resource

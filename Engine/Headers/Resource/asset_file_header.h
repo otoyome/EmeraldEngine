@@ -5,11 +5,14 @@
 #include <filesystem>
 #include <iosfwd>
 #include <string_view>
+#include <vector>
 
 #include "System/universally_unique_identifier.h"
 
 namespace resource
 {
+	class resource_base;
+
 	//	アセットの種類
 	enum class asset_types : std::uint8_t
 	{
@@ -26,7 +29,7 @@ namespace resource
 		static constexpr std::size_t size = 28;					//	ファイル上の大きさ(バイト)
 
 		asset_types type = asset_types::unknown;
-		std::uint32_t version = 0;
+		std::uint32_t version = 1;
 		universally_unique_identifier uuid;
 	};
 
@@ -45,4 +48,10 @@ namespace resource
 
 	//	拡張子からアセットの種類を求める(「.」付き、大文字小文字は問わない)
 	asset_types get_asset_type_from_extension(std::string_view extension);
+
+	//	アセットファイルの保存
+	bool write_asset_file(resource_base& target, asset_types type, std::string_view file_path, std::string_view body);
+
+	//	アセットファイルの読込
+	bool read_asset_file(std::string_view file_path, asset_types type, asset_file_header& out_header, std::vector<char>& out_body);
 }	//	namespace resource

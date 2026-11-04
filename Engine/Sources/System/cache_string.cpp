@@ -12,6 +12,30 @@ utf16_cache::type utf16_cache::convert(std::string_view value)
 	return system_utility::convert_shift_jis_to_utf16(value);
 }
 
+lower_cache::type lower_cache::convert(std::string_view value)
+{
+	return system_utility::to_lower(value);
+}
+
+upper_cache::type upper_cache::convert(std::string_view value)
+{
+	return system_utility::to_upper(value);
+}
+
+extension_cache::type extension_cache::convert(std::string_view value)
+{
+	// std::filesystem::path::extension と同じく「.」「..」と先頭の「.」は拡張子にしない
+	const std::string_view name = value.substr(value.rfind('/') + 1);
+	if (name == "." || name == "..")
+		return {};
+
+	const std::size_t dot = name.rfind('.');
+	if (dot == std::string_view::npos || dot == 0)
+		return {};
+
+	return lower_cache::convert(name.substr(dot));
+}
+
 cache_string::cache_string(const char* value)
 {
 	assign(value);
@@ -27,15 +51,23 @@ cache_string::cache_string(std::string_view value)
 	assign(value);
 }
 
+cache_string::cache_string(std::wstring_view value)
+{
+	assign(value);
+}
+
 cache_string::cache_string(const cache_string& other)
 : value(other.value)
+, cache_hash(other.cache_hash)
 {
 }
 
 cache_string::cache_string(cache_string&& other) noexcept
 : value(std::move(other.value))
+, cache_hash(other.cache_hash)
 , caches(std::move(other.caches))
 {
+	other.reset_moved();
 }
 
 void cache_string::clear()
@@ -44,7 +76,7 @@ void cache_string::clear()
 		return;
 
 	value.clear();
-	cache_hash = 0;
+	update_hash();
 
 	invalidate();
 }
@@ -55,7 +87,7 @@ void cache_string::assign(std::string value)
 		return;
 
 	this->value = std::move(value);
-	cache_hash = static_cast<std::size_t>(system_utility::generate_hash(value));
+	update_hash();
 
 	invalidate();
 }
@@ -66,7 +98,7 @@ void cache_string::assign(std::string_view value)
 		return;
 
 	this->value.assign(value);
-	cache_hash = static_cast<std::size_t>(system_utility::generate_hash(value));
+	update_hash();
 
 	invalidate();
 }
@@ -79,9 +111,15 @@ void cache_string::assign(const char* value)
 		return;
 
 	this->value = value;
-	cache_hash = static_cast<std::size_t>(system_utility::generate_hash(value));
+	update_hash();
 
 	invalidate();
+}
+
+void cache_string::assign(std::wstring_view value)
+{
+	const std::string shift_jis = system_utility::convert_utf16_to_shift_jis(value);
+	assign(std::string_view(shift_jis));
 }
 
 const std::string& cache_string::str() const
@@ -106,6 +144,18 @@ std::size_t cache_string::get_hash() const
 
 void cache_string::invalidate()
 {
+	caches.clear();
+}
+
+void cache_string::update_hash()
+{
+	cache_hash = value.empty() ? 0 : static_cast<std::size_t>(system_utility::generate_hash(value));
+}
+
+void cache_string::reset_moved()
+{
+	value.clear();
+	cache_hash = 0;
 	caches.clear();
 }
 
@@ -167,6 +217,12 @@ cache_string& cache_string::operator=(std::string_view value)
 	return *this;
 }
 
+cache_string& cache_string::operator=(std::wstring_view value)
+{
+	assign(value);
+	return *this;
+}
+
 cache_string& cache_string::operator=(const cache_string& other)
 {
 	if (this != &other)
@@ -181,7 +237,9 @@ cache_string& cache_string::operator=(cache_string&& other) noexcept
 	if (this != &other)
 	{
 		value = std::move(other.value);
+		cache_hash = other.cache_hash;
 		caches = std::move(other.caches);
+		other.reset_moved();
 	}
 	return *this;
 }
@@ -191,6 +249,7 @@ cache_string& cache_string::operator+=(const char* value)
 	assert(value != nullptr);
 
 	this->value += value;
+	update_hash();
 
 	invalidate();
 
@@ -200,6 +259,7 @@ cache_string& cache_string::operator+=(const char* value)
 cache_string& cache_string::operator+=(std::string_view value)
 {
 	this->value += value;
+	update_hash();
 
 	invalidate();
 
@@ -209,6 +269,7 @@ cache_string& cache_string::operator+=(std::string_view value)
 cache_string& cache_string::operator+=(char value)
 {
 	this->value += value;
+	update_hash();
 
 	invalidate();
 

@@ -271,25 +271,12 @@ size_t model_resource::get_mesh_index_from_name(std::string_view name) const
 	return invalid_id;
 }
 
-bool model_resource::serialize(std::string_view file_path)
+bool model_resource::save_file(std::string_view file_path)
 {
-#if defined(USE_IMGUI)
-	data_converter::assign_material_paths(materials, file_path);
-#endif	//	defined(USE_IMGUI)
 	std::vector<resource::asset_reference<material_resource>> material_references;
 	material_references.reserve(materials.size());
 	for (auto& material : materials)
-	{
-		if (material && !material_resource::save_asset(material))
-		{
-			DEBUG_LOG_CATEGORY(logger::categorys::model, "model_resource material save failed[%s][%s]", file_path.data(), material->get_name().data());
-			return false;
-		}
 		material_references.emplace_back(resource::asset_reference<material_resource>::from(material));
-	}
-
-	if (asset_registry::is_valid())
-		asset_registry::instance()->prepare_save(*this, file_path);
 
 	std::ostringstream buffer_stream(std::ios::binary);
 	{
@@ -297,9 +284,8 @@ bool model_resource::serialize(std::string_view file_path)
 
 		try
 		{
-			archive(file_signature, file_format_version, material_references);
-
-			archive(CEREAL_NVP(nodes),
+			archive(CEREAL_NVP(material_references),
+					CEREAL_NVP(nodes),
 					CEREAL_NVP(meshes),
 					CEREAL_NVP(morphes),
 					CEREAL_NVP(animations),
@@ -312,116 +298,47 @@ bool model_resource::serialize(std::string_view file_path)
 		}
 	}
 
-	const std::string serialized_data = buffer_stream.str();
-	std::vector<char> file_data;
-	if (!resource::compress(serialized_data.data(), serialized_data.size(), file_data))
-	{
-		DEBUG_LOG_CATEGORY(logger::categorys::model, "model_resource compress failed[%s]", file_path.data());
+	if (!resource::write_asset_file(*this, resource::asset_types::model, file_path, buffer_stream.str()))
 		return false;
-	}
 
-	std::ofstream ostream(file_path.data(), std::ios::binary);
-	if(ostream.is_open())
-	{
-		resource::asset_file_header header;
-		header.type = resource::asset_types::model;
-		header.version = file_format_version;
-		header.uuid = get_uuid();
-		resource::write_asset_header(ostream, header);
-		ostream.write(file_data.data(), static_cast<std::streamsize>(file_data.size()));
-		if (!ostream.good())
-		{
-			DEBUG_LOG_CATEGORY(logger::categorys::model, "model_resource write failed[%s]", file_path.data());
-			return false;
-		}
-
-		if (asset_registry::is_valid())
-			asset_registry::instance()->register_asset(get_uuid(), header.type, file_path);
-		DEBUG_LOG_CATEGORY(logger::categorys::model, "model_resource serialize successed[%s]", file_path.data());
-		return true;
-	}
-
-	DEBUG_LOG_CATEGORY(logger::categorys::model, "model_resource open failed[%s]", file_path.data());
-	return false;
+	DEBUG_LOG_CATEGORY(logger::categorys::model, "model_resource serialize successed[%s]", file_path.data());
+	return true;
 }
 
 bool model_resource::load_file(std::string_view file_path, std::vector<resource::asset_reference<material_resource>>& out_material_references)
 {
-	std::ifstream file_stream(file_path.data(), std::ios::binary);
-	if(file_stream.is_open())
+	resource::asset_file_header header;
+	std::vector<char> body;
+	if (!resource::read_asset_file(file_path, resource::asset_types::model, header, body))
+		return false;
+
+	resource::memory_streambuf stream_buffer(body.data(), body.size());
+	std::istream istream(&stream_buffer);
+	cereal::BinaryInputArchive archive(istream);
+
+	try
 	{
-		file_stream.seekg(0, std::ios::end);
-		std::vector<char> file_data(static_cast<size_t>(file_stream.tellg()));
-		file_stream.seekg(0, std::ios::beg);
-		file_stream.read(file_data.data(), static_cast<std::streamsize>(file_data.size()));
-		file_stream.close();
-
-		resource::asset_file_header header;
-		if (!resource::read_asset_header(file_data.data(), file_data.size(), header) || header.type != resource::asset_types::model)
-		{
-			DEBUG_ERROR_CATEGORY(logger::categorys::model, "model_resource invalid header[%s]", file_path.data());
-			return false;
-		}
-		file_data.erase(file_data.begin(), file_data.begin() + resource::asset_file_header::size);
-
-		std::vector<char> decompressed_data;
-		if (!resource::decompress(file_data.data(), file_data.size(), decompressed_data))
-		{
-			DEBUG_ERROR_CATEGORY(logger::categorys::model, "model_resource decompress failed[%s]", file_path.data());
-			return false;
-		}
-		std::vector<char>().swap(file_data);
-
-		resource::memory_streambuf stream_buffer(decompressed_data.data(), decompressed_data.size());
-		std::istream istream(&stream_buffer);
-		cereal::BinaryInputArchive archive(istream);
-
-		try
-		{
-			std::uint64_t signature = 0;
-			std::uint32_t format_version = 0;
-			archive(signature, format_version);
-			if (signature != file_signature)
-			{
-				DEBUG_ERROR_CATEGORY(logger::categorys::model, "model_resource invalid signature[%s]", file_path.data());
-				return false;
-			}
-
-			out_material_references.clear();
-			archive(out_material_references);
-			materials.clear();
-			materials.resize(out_material_references.size());
-
-			archive(CEREAL_NVP(nodes),
-					CEREAL_NVP(meshes),
-					CEREAL_NVP(morphes),
-					CEREAL_NVP(animations),
-					CEREAL_NVP(capsule_shadows));
-		}
-		catch (...)
-		{
-			DEBUG_ERROR_CATEGORY(logger::categorys::model, "model_resource deserialize failed[%s]", file_path.data());
-			return false;
-		}
-
-		inherit_uuid(header.uuid);
-		set_file_path(file_path);
-		DEBUG_LOG_CATEGORY(logger::categorys::model, "model_resource deserialize successed[%s]", file_path.data());
-		return true;
+		out_material_references.clear();
+		archive(CEREAL_NVP(out_material_references),
+				CEREAL_NVP(nodes),
+				CEREAL_NVP(meshes),
+				CEREAL_NVP(morphes),
+				CEREAL_NVP(animations),
+				CEREAL_NVP(capsule_shadows));
+	}
+	catch (...)
+	{
+		DEBUG_ERROR_CATEGORY(logger::categorys::model, "model_resource deserialize failed[%s]", file_path.data());
+		return false;
 	}
 
-	DEBUG_ERROR_CATEGORY(logger::categorys::model, "model_resource open failed[%s]", file_path.data());
-	return false;
+	materials.clear();
+	materials.resize(out_material_references.size());
+	inherit_uuid(header.uuid);
+	set_file_path(file_path);
+	DEBUG_LOG_CATEGORY(logger::categorys::model, "model_resource deserialize successed[%s]", file_path.data());
+	return true;
 }
-
-void model_resource::paste_materials(const std::vector<material_resource_ptr>& materials)
-{
-	for (size_t index = 0; index < materials.size(); ++index)
-	{
-		materials[index]->duplicate(*this->materials[index]);
-	}
-}
-
 void model_resource::build_model()
 {
 	HRESULT hr;
@@ -561,5 +478,21 @@ namespace resource
 
 		resource->build_model();
 		return operation_state::success;
+	}
+
+	bool saver<model_resource>::save(model_resource& resource, std::string_view file_path)
+	{
+#if defined(USE_IMGUI)
+		data_converter::assign_material_paths(resource.materials, file_path);
+#endif	//	defined(USE_IMGUI)
+		for (auto& material : resource.materials)
+		{
+			if (material && !material->is_missing() && !resource_manager::instance()->save(material))
+			{
+				DEBUG_LOG_CATEGORY(logger::categorys::model, "model_resource material save failed[%s][%s]", file_path.data(), material->get_name().data());
+				return false;
+			}
+		}
+		return resource.save_file(file_path);
 	}
 }	//	namespace resource

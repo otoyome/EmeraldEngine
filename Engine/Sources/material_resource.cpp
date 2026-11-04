@@ -1118,31 +1118,12 @@ bool material_resource::is_error() const
 
 bool material_resource::load_file(std::string_view file_path)
 {
-	std::ifstream file_stream(std::filesystem::path(std::string(file_path)), std::ios::binary);
-	if (!file_stream.is_open())
-	{
-		DEBUG_ERROR_CATEGORY(logger::categorys::model, "material_resource open failed[%s]", std::string(file_path).c_str());
-		return false;
-	}
-	std::vector<char> file_data((std::istreambuf_iterator<char>(file_stream)), std::istreambuf_iterator<char>());
-	file_stream.close();
-
 	::resource::asset_file_header header;
-	if (!::resource::read_asset_header(file_data.data(), file_data.size(), header) || header.type != ::resource::asset_types::material)
-	{
-		DEBUG_ERROR_CATEGORY(logger::categorys::model, "material_resource invalid header[%s]", std::string(file_path).c_str());
+	std::vector<char> body;
+	if (!::resource::read_asset_file(file_path, ::resource::asset_types::material, header, body))
 		return false;
-	}
-	file_data.erase(file_data.begin(), file_data.begin() + ::resource::asset_file_header::size);
 
-	std::vector<char> decompressed_data;
-	if (!::resource::decompress(file_data.data(), file_data.size(), decompressed_data))
-	{
-		DEBUG_ERROR_CATEGORY(logger::categorys::model, "material_resource decompress failed[%s]", std::string(file_path).c_str());
-		return false;
-	}
-
-	::resource::memory_streambuf stream_buffer(decompressed_data.data(), decompressed_data.size());
+	::resource::memory_streambuf stream_buffer(body.data(), body.size());
 	std::istream istream(&stream_buffer);
 	try
 	{
@@ -1163,9 +1144,6 @@ bool material_resource::load_file(std::string_view file_path)
 
 bool material_resource::save_file(std::string_view file_path)
 {
-	if (asset_registry::is_valid())
-		asset_registry::instance()->prepare_save(*this, file_path);
-
 	std::ostringstream buffer_stream(std::ios::binary);
 	try
 	{
@@ -1178,47 +1156,13 @@ bool material_resource::save_file(std::string_view file_path)
 		return false;
 	}
 
-	const std::string serialized_data = buffer_stream.str();
-	std::vector<char> file_data;
-	if (!::resource::compress(serialized_data.data(), serialized_data.size(), file_data))
-	{
-		DEBUG_ERROR_CATEGORY(logger::categorys::model, "material_resource compress failed[%s]", std::string(file_path).c_str());
+	if (!::resource::write_asset_file(*this, ::resource::asset_types::material, file_path, buffer_stream.str()))
 		return false;
-	}
 
-	const std::filesystem::path path{ std::string(file_path) };
-	if (path.has_parent_path())
-	{
-		std::error_code error;
-		std::filesystem::create_directories(path.parent_path(), error);
-	}
-
-	std::ofstream ostream(path, std::ios::binary);
-	if (!ostream.is_open())
-	{
-		DEBUG_ERROR_CATEGORY(logger::categorys::model, "material_resource open failed[%s]", std::string(file_path).c_str());
-		return false;
-	}
-	::resource::asset_file_header header;
-	header.type = ::resource::asset_types::material;
-	header.version = file_format_version;
-	header.uuid = get_uuid();
-	::resource::write_asset_header(ostream, header);
-	ostream.write(file_data.data(), static_cast<std::streamsize>(file_data.size()));
-	if (!ostream.good())
-	{
-		DEBUG_ERROR_CATEGORY(logger::categorys::model, "material_resource write failed[%s]", std::string(file_path).c_str());
-		return false;
-	}
-
-	set_file_path(file_path);
 	missing = false;
-	if (asset_registry::is_valid())
-		asset_registry::instance()->register_asset(get_uuid(), header.type, file_path);
 	DEBUG_LOG_CATEGORY(logger::categorys::model, "material_resource serialize successed[%s]", std::string(file_path).c_str());
 	return true;
 }
-
 bool material_resource::revert_file()
 {
 	if (missing || get_file_path().empty())
@@ -1263,26 +1207,6 @@ material_resource_ptr material_resource::resolve(const ::resource::load_operatio
 	return create_missing(reference, domain);
 }
 
-bool material_resource::save_asset(const material_resource_ptr& material)
-{
-	if (!material || material->is_missing())
-		return true;
-
-	const std::string file_path(material->get_file_path());
-	if (file_path.empty())
-	{
-		DEBUG_ERROR_CATEGORY(logger::categorys::model, "material_resource has no file path[%s]", material->get_name().data());
-		return false;
-	}
-
-	if (!material->save_file(file_path))
-		return false;
-
-	if (resource_manager::is_valid())
-		resource_manager::instance()->register_resource(file_path, material);
-	return true;
-}
-
 namespace resource
 {
 	operation_state loader<material_resource>::load(std::string_view file_path)
@@ -1304,5 +1228,10 @@ namespace resource
 	{
 		resource->build();
 		return operation_state::success;
+	}
+
+	bool saver<material_resource>::save(material_resource& resource, std::string_view file_path)
+	{
+		return resource.save_file(file_path);
 	}
 }	//	namespace resource

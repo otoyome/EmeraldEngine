@@ -120,7 +120,7 @@ namespace
 
 				const std::string path = file.path().string();
 				model_resource_ptr resource;
-				if (model_resource_manager::instance()->load(resource, path, true) && resource->serialize(path))
+				if (model_resource_manager::instance()->load(resource, path, true) && resource_manager::instance()->save(resource, path))
 				{
 					++saved_count;
 				}
@@ -145,7 +145,7 @@ namespace
 
 				const std::string path = file.path().string();
 				effect_resource_ptr resource;
-				if (effect_resource_manager::instance()->load(resource, path, true) && resource->serialize(path))
+				if (effect_resource_manager::instance()->load(resource, path, true) && resource_manager::instance()->save(resource, path))
 				{
 					++saved_count;
 				}

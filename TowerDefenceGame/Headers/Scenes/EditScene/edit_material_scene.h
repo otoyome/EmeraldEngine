@@ -46,7 +46,7 @@ private:
 	void collect_materials();
 	material_resource_ptr get_selected_material() const;
 
-	//	@tool 開いているリソースの今のパス(ブラウザで移動・名前変更されても追従する)
+	//	開いているリソースの今のパス
 	std::string get_source_file_path() const;
 
 	void scan_preview_models();

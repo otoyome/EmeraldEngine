@@ -43,9 +43,7 @@ namespace
 
 	bool has_extension(const std::string& file_path, std::string_view extension)
 	{
-		std::string value = std::filesystem::path(file_path).extension().string();
-		std::transform(value.begin(), value.end(), value.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
-		return value == extension;
+		return system_utility::to_lower(std::filesystem::path(file_path).extension().string()) == extension;
 	}
 }
 
@@ -272,11 +270,11 @@ void edit_material_scene::save_source()
 	const std::string source_file_path = get_source_file_path();
 	bool saved = false;
 	if (source_material)
-		saved = source_material->save_file(source_file_path);
+		saved = resource_manager::instance()->save(source_material, source_file_path);
 	else if (source_model)
-		saved = source_model->serialize(source_file_path);
+		saved = resource_manager::instance()->save(source_model, source_file_path);
 	else if (source_effect)
-		saved = source_effect->serialize(source_file_path);
+		saved = resource_manager::instance()->save(source_effect, source_file_path);
 	else
 		return;
 

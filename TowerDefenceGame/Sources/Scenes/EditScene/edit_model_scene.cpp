@@ -1,5 +1,6 @@
 #include "scenes/editscene/edit_model_scene.h"
 #include "System/asset_browser.h"
+#include "Resource/resource_manager.h"
 
 #include <algorithm>
 #include <cctype>
@@ -266,7 +267,7 @@ void edit_model_scene::save_model()
 	auto resource = edit_model->get_model_instance()->get_resource_for_editor();
 
 	//	•Û‘¶
-	resource->serialize(resource->get_file_path());
+	resource_manager::instance()->save(resource);
 }
 
 void edit_model_scene::generate_lod()
@@ -430,8 +431,7 @@ void edit_model_scene::limit_texture_resolution_asset()
 				if (!texture_resource.is_file_path_or_key || texture_resource.path.empty())
 					continue;
 
-				std::string extension = std::filesystem::path(texture_resource.path).extension().string();
-				std::transform(extension.begin(), extension.end(), extension.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+				const std::string extension = system_utility::to_lower(std::filesystem::path(texture_resource.path).extension().string());
 				if (extension == ".dds")
 					dds_paths.insert(texture_resource.path);
 			}

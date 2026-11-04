@@ -162,7 +162,7 @@ std::wstring resource_manager::make_key(std::string_view file_path)
 		if (!uuid.is_empty())
 		{
 			const std::string text = uuid.to_string();
-			return L"uuid:" + std::wstring(text.begin(), text.end());
+			return L"uuid:" + system_utility::convert_shift_jis_to_utf16(text);
 		}
 	}
 	return make_path_key(file_path);
@@ -172,23 +172,16 @@ std::wstring resource_manager::make_path_key(std::string_view file_path)
 {
 	//	区切り文字/相対表記/大文字小文字の違いを吸収する
 	//	SJISの2バイト目に'\\'等が含まれるため、バイト単位ではなくワイド文字に変換してから正規化する
-	std::wstring key;
+	std::wstring key = system_utility::convert_shift_jis_to_utf16(file_path);
 	try
 	{
-		key = std::filesystem::path(std::string(file_path)).lexically_normal().generic_wstring();
+		key = std::filesystem::path(key).lexically_normal().generic_wstring();
 	}
 	catch (...)
 	{
-		key.reserve(file_path.size());
-		for (char c : file_path)
-		{
-			key.push_back(static_cast<wchar_t>(static_cast<unsigned char>(c)));
-		}
 	}
 
-	if (!key.empty())
-		CharLowerBuffW(key.data(), static_cast<DWORD>(key.size()));
-	return key;
+	return system_utility::to_lower(std::wstring_view(key));
 }
 
 size_t resource_manager::to_index(resource::load_priority priority)
@@ -311,7 +304,6 @@ void resource_manager::move_path(std::string_view old_path, std::string_view new
 	{
 		std::lock_guard<std::mutex> lock(mutex);
 
-		//	@tool パスのキーは移動先で変わるので、外してから入れ直す
 		std::vector<std::pair<std::wstring, cache_entry>> moved_entries;
 		for (auto it = caches.begin(); it != caches.end(); )
 		{

@@ -24,6 +24,30 @@ struct utf16_cache
 	static type convert(std::string_view value);
 };
 
+// ‰pš‚ğ¬•¶š
+struct lower_cache
+{
+	using type = std::string;
+
+	static type convert(std::string_view value);
+};
+
+// ‰pš‚ğ‘å•¶š
+struct upper_cache
+{
+	using type = std::string;
+
+	static type convert(std::string_view value);
+};
+
+// u/v‹æØ‚è‚ÌƒpƒX‚ÌŠg’£q
+struct extension_cache
+{
+	using type = std::string;
+
+	static type convert(std::string_view value);
+};
+
 class cache_string
 {
 	struct cache_data_base
@@ -48,6 +72,7 @@ public:
 	cache_string(const char* value);
 	cache_string(std::string value);
 	cache_string(std::string_view value);
+	cache_string(std::wstring_view value);
 	cache_string(const cache_string& other);
 	cache_string(cache_string&& other) noexcept;
 
@@ -59,6 +84,7 @@ public:
 	void assign(std::string value);
 	void assign(std::string_view value);
 	void assign(const char* value);
+	void assign(std::wstring_view value);
 
 	const std::string& str() const;
 	std::string_view view() const;
@@ -81,6 +107,7 @@ public:
 	cache_string& operator=(const char* value);
 	cache_string& operator=(std::string value);
 	cache_string& operator=(std::string_view value);
+	cache_string& operator=(std::wstring_view value);
 	cache_string& operator=(const cache_string& other);
 	cache_string& operator=(cache_string&& other) noexcept;
 
@@ -133,10 +160,12 @@ public:
 
 private:
 	void invalidate();
+	void update_hash();
+	void reset_moved();
 
 private:
 	std::string value;
-	std::size_t cache_hash;
+	std::size_t cache_hash = 0;
 
 	mutable cache_map caches;
 };

@@ -15,6 +15,7 @@
 #include "Resource/resource_base.h"
 #include "Resource/asset_handle.h"
 #include "Resource/resource_loader.h"
+#include "Resource/resource_saver.h"
 
 class effect_resource;
 
@@ -22,12 +23,16 @@ namespace resource
 {
 	template<>
 	class loader<effect_resource>;
+
+	template<>
+	class saver<effect_resource>;
 }	//	namespace resource
 
 //	エフェクトリソース
 class effect_resource : public resource::resource_base
 {
 	friend class resource::loader<effect_resource>;
+	friend class resource::saver<effect_resource>;
 
 public:
 	static constexpr std::string_view extension = "eme";
@@ -104,19 +109,13 @@ public:
 	bool compute_animation_nodes(std::vector<animation::node>& nodes, size_t animation_index, float time) const;
 	bool compute_animation_node(animation::node& node, size_t animation_index, size_t node_index, float time) const;
 
-public:
-	bool serialize();
-	bool serialize(std::string_view file_path);
-
 private:
+	bool save_file(std::string_view file_path);
 	bool load_file(std::string_view file_path);
 
 	void build();
 
 private:
-	static constexpr std::uint64_t file_signature = 0x454D455F48454144ull;
-	static constexpr std::uint32_t file_format_version = 1;
-
 	std::vector<node> nodes;					//	ノード情報
 	std::vector<model> models;					//	モデル情報
 	std::vector<particle> particles;			//	パーティクル情報
@@ -141,6 +140,13 @@ namespace resource
 		std::vector<load_operation_ptr<model_resource>> model_operations;
 		std::vector<load_operation_ptr<material_resource>> decal_material_operations;
 		std::vector<load_operation_ptr<material_resource>> particle_material_operations;
+	};
+
+	template<>
+	class saver<effect_resource>
+	{
+	public:
+		bool save(effect_resource& resource, std::string_view file_path);
 	};
 }	//	namespace resource
 

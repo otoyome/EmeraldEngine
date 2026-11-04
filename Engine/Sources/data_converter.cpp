@@ -20,7 +20,7 @@ namespace
 
 void data_converter::assign_material_paths(const std::vector<material_resource_ptr>& materials, std::string_view owner_file_path)
 {
-	const std::wstring extension = L"." + std::filesystem::path(std::string(material_resource::extension)).wstring();
+	const std::wstring extension = L"." + system_utility::convert_shift_jis_to_utf16(material_resource::extension);
 	const std::filesystem::path directory = std::filesystem::path(std::string(owner_file_path)).parent_path() / std::string(material_directory_name);
 
 	std::unordered_set<std::wstring> assigned_paths;
@@ -30,7 +30,7 @@ void data_converter::assign_material_paths(const std::vector<material_resource_p
 			continue;
 
 		//	 SJIS の2バイト目に区切り文字等が含まれるため、ワイド文字にしてから置き換える
-		std::wstring file_name = std::filesystem::path(std::string(material->get_name())).wstring();
+		std::wstring file_name = system_utility::convert_shift_jis_to_utf16(material->get_name());
 		for (auto& c : file_name)
 		{
 			if (c < 0x20 || std::wstring_view(L"\\/:*?\"<>|").find(c) != std::wstring_view::npos)
@@ -45,7 +45,7 @@ void data_converter::assign_material_paths(const std::vector<material_resource_p
 			path = directory / (file_name + L"_" + std::to_wstring(number) + extension);
 		}
 		assigned_paths.insert(path.generic_wstring());
-		material->set_file_path(std::filesystem::path(path.generic_wstring()).string());
+		material->set_file_path(system_utility::convert_utf16_to_shift_jis(path.generic_wstring()));
 	}
 }
 

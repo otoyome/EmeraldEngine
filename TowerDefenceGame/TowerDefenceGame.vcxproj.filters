@@ -144,6 +144,12 @@
     <Filter Include="Sources\Scenes\DummyScene">
       <UniqueIdentifier>{001086ae-2f26-4314-ae17-a3b4b60670de}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Headers\Scenes\NetworkScene">
+      <UniqueIdentifier>{d761f6f2-0cd1-4d02-b15c-44f0e033d006}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Sources\Scenes\NetworkScene">
+      <UniqueIdentifier>{9fca50b0-be09-4a89-b18a-d583576a8e2e}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Headers\Scenes\TestScene">
       <UniqueIdentifier>{3e1a91eb-ec24-4c9d-a6fe-7b32d76b8513}</UniqueIdentifier>
     </Filter>
@@ -406,6 +412,9 @@
     </ClCompile>
     <ClCompile Include="Sources\Scenes\DummyScene\dummy_scene.cpp">
       <Filter>Sources\Scenes\DummyScene</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Scenes\NetworkScene\network_sandbox_scene.cpp">
+      <Filter>Sources\Scenes\NetworkScene</Filter>
     </ClCompile>
     <ClCompile Include="Sources\Scenes\TestScene\collision_test_scene.cpp">
       <Filter>Sources\Scenes\TestScene</Filter>
@@ -714,6 +723,9 @@
     </ClInclude>
     <ClInclude Include="Headers\Scenes\DummyScene\dummy_scene.h">
       <Filter>Headers\Scenes\DummyScene</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Scenes\NetworkScene\network_sandbox_scene.h">
+      <Filter>Headers\Scenes\NetworkScene</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Scenes\TestScene\collision_test_scene.h">
       <Filter>Headers\Scenes\TestScene</Filter>

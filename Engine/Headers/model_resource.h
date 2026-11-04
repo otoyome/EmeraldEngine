@@ -13,6 +13,7 @@
 
 #include "Resource/resource_base.h"
 #include "Resource/resource_loader.h"
+#include "Resource/resource_saver.h"
 #include "Resource/asset_reference.h"
 
 class model_resource;
@@ -21,12 +22,16 @@ namespace resource
 {
 	template<>
 	class loader<model_resource>;
+
+	template<>
+	class saver<model_resource>;
 }	//	namespace resource
 
 //	モデルリソース
 class model_resource : public resource::resource_base
 {
 	friend class resource::loader<model_resource>;
+	friend class resource::saver<model_resource>;
 
 public:
 	static constexpr std::string_view extension = "emo";
@@ -101,7 +106,7 @@ public:
 		};
 		struct morph_mesh
 		{
-			//	@remainder	コンピュートシェーダーでSparse分だけやるようにした方が圧倒的に早いし制限を取っ払う事ができる。
+			//	@remainder	コンピュートシェーダーで必要な頂点分だけやるようにした方が早い
 			std::unordered_map<semantic, buffer_view> vertex_buffer_views;
 			bool is_valid() const
 			{
@@ -195,24 +200,15 @@ public:
 	size_t get_mesh_index_from_name(std::string_view name) const;
 
 public:
-	//	マテリアルは .emr として保存し、パスで参照する
-	bool serialize(std::string_view file_path);
-
-	void paste_materials(const std::vector<material_resource_ptr>& materials);
-
 	void rebuild_meshlet_data();
 
 private:
-	//	ファイル読込(ワーカースレッドから呼ばれる)。参照するマテリアルのパスを返す
-	//	旧形式(マテリアルを中に持つ)の場合はパスが空になり、materials に読み込まれる
+	bool save_file(std::string_view file_path);
 	bool load_file(std::string_view file_path, std::vector<resource::asset_reference<material_resource>>& out_material_references);
 
 	void build_model();
 
 private:
-	static constexpr std::uint64_t file_signature = 0x454D4F5F4D415452ull;
-	static constexpr std::uint32_t file_format_version = 1;
-
 	std::vector<material_resource_ptr> materials;
 	std::vector<node> nodes;
 	std::vector<mesh> meshes;
@@ -237,6 +233,13 @@ namespace resource
 		model_resource_ptr resource;
 		std::vector<asset_reference<material_resource>> material_references;
 		std::vector<load_operation_ptr<material_resource>> material_operations;
+	};
+
+	template<>
+	class saver<model_resource>
+	{
+	public:
+		bool save(model_resource& resource, std::string_view file_path);
 	};
 }	//	namespace resource
 

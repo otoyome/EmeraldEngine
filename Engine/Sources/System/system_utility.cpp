@@ -1,6 +1,5 @@
 #include "System/system_utility.h"
 
-#include <codecvt>
 #include	<regex>
 
 //  ICUライブラリー関係
@@ -9,6 +8,8 @@
 #include "unicode/ucnv.h"
 #include "unicode/udata.h"
 #include "unicode/unistr.h"
+#include "unicode/uchar.h"
+#include "unicode/utf16.h"
 
 namespace
 {
@@ -399,7 +400,57 @@ namespace
 			converter_container = std::make_unique<icu_converter_container>();
 		return converter_container.get();
 	}
+
+	//	UTF-16 の文字列を ICU の1文字単位の変換表で変換する
+	std::wstring convert_utf16_case(std::wstring_view utf16, UChar32(*mapping)(UChar32))
+	{
+		std::wstring mapped;
+		mapped.reserve(utf16.size());
+		const int32_t length = static_cast<int32_t>(utf16.size());
+		for (int32_t index = 0; index < length;)
+		{
+			UChar32 c;
+			U16_NEXT(utf16.data(), index, length, c);
+			c = mapping(c);
+			if (U_IS_BMP(c))
+			{
+				mapped.push_back(static_cast<wchar_t>(c));
+			}
+			else
+			{
+				mapped.push_back(static_cast<wchar_t>(U16_LEAD(c)));
+				mapped.push_back(static_cast<wchar_t>(U16_TRAIL(c)));
+			}
+		}
+		return mapped;
+	}
+
+	//	Shift-JIS の文字列を ICU の1文字単位の変換表で変換する
+	std::string convert_shift_jis_case(std::string_view shift_jis, UChar32(*mapping)(UChar32))
+	{
+		//	ASCII だけなら Shift-JIS と UTF-16 で文字の値が同じなので、変換器を通さない
+		if (std::all_of(shift_jis.begin(), shift_jis.end(), [](char c) { return static_cast<unsigned char>(c) < 0x80; }))
+		{
+			std::string result(shift_jis);
+			for (auto& c : result)
+				c = static_cast<char>(mapping(static_cast<unsigned char>(c)));
+			return result;
+		}
+
+		const std::wstring utf16 = system_utility::convert_shift_jis_to_utf16(shift_jis);
+		if (system_utility::convert_utf16_to_shift_jis(utf16) != shift_jis)
+			return std::string(shift_jis);
+
+		const std::wstring mapped = convert_utf16_case(utf16, mapping);
+
+		//	変換後の文字が Shift-JIS に無ければ変換せずに返す
+		std::string result = system_utility::convert_utf16_to_shift_jis(mapped);
+		if (system_utility::convert_shift_jis_to_utf16(result) != mapped)
+			return std::string(shift_jis);
+		return result;
+	}
 }
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 void system_utility::initialize_charset_converter()
 {
@@ -509,9 +560,30 @@ std::string system_utility::convert_utf8(std::string_view text)
 std::string system_utility::convert_utf8(std::wstring_view text)
 {
 	if (is_valid_utf16(text))
-		return convert_utf16_to_shift_jis(text);
+		return convert_utf16_to_utf8(text);
 
 	return std::string();
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+std::string system_utility::to_lower(std::string_view shift_jis)
+{
+	return convert_shift_jis_case(shift_jis, &u_tolower);
+}
+
+std::string system_utility::to_upper(std::string_view shift_jis)
+{
+	return convert_shift_jis_case(shift_jis, &u_toupper);
+}
+
+std::wstring system_utility::to_lower(std::wstring_view utf16)
+{
+	return convert_utf16_case(utf16, &u_tolower);
+}
+
+std::wstring system_utility::to_upper(std::wstring_view utf16)
+{
+	return convert_utf16_case(utf16, &u_toupper);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -553,28 +625,6 @@ std::string	system_utility::replace(std::string_view text, std::string_view targ
 std::string	system_utility::preferred_path(std::string_view path)
 {
 	return	system_utility::replace(path, "\\\\", "/");
-}
-
-const char* system_utility::str_case_str(const char* text, const char* pattern)
-{
-	if (!*pattern)
-		return	text;
-
-	for (; *text; ++text)
-	{
-		if (toupper(static_cast<unsigned char>(*text)) == toupper(static_cast<unsigned char>(*pattern)))
-		{
-			for (size_t index = 1;; ++index)
-			{
-				if (!pattern[index])
-					return	text;
-
-			if (toupper(static_cast<unsigned char>(text[index])) != toupper(static_cast<unsigned char>(pattern[index])))
-				break;
-			}
-		}
-	}
-	return	nullptr;
 }
 
 std::string system_utility::to_display_time_string(float time)

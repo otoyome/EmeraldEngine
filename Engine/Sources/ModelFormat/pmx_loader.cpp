@@ -1,9 +1,9 @@
 #include	"ModelFormat/pmx_model.h"
 
 #include	<iostream>
-#include	<locale> 
-#include	<codecvt> 
 #include	<cstdio>
+
+#include	"System/system_utility.h"
 
 namespace
 {
@@ -12,15 +12,6 @@ namespace
 	constexpr	std::string_view	MagicNumber2_0 = "PMX ";
 	constexpr	std::string_view	ToonTextureFilePath = "Data/Textures/Toon";
 	constexpr	std::string_view	ToonEmptyTextureFilePath = "toon0.bmp";
-
-	std::string	ConvertUtf8(const char* string, size_t length)
-	{
-		return	std::string(string);
-	}
-	std::string	ConvertUtf8(std::string_view string)
-	{
-		return	std::string(string);
-	}
 
 	int	MagicNumberCheck( pmx_header* header )
 	{
@@ -91,7 +82,7 @@ bool	pmx_loader::load(void* buffer, size_t buffer_size, std::string_view folder_
 		char	model_name[512];
 		char	comment[4096];
 		read_string(model_name, ARRAYSIZE(model_name) );
-		name	= ConvertUtf8(model_name);
+		name	= std::string(model_name);
 		read_string(model_name, ARRAYSIZE(model_name));
 		read_string(comment, ARRAYSIZE(comment));
 		read_string(comment, ARRAYSIZE(comment));
@@ -186,7 +177,7 @@ bool	pmx_loader::load(void* buffer, size_t buffer_size, std::string_view folder_
 		{
 			char	file_path[1024];
 			read_string(file_path, ARRAYSIZE(file_path));
-			texture_path = std::string(folder_path) + "/" + ConvertUtf8(file_path);
+			texture_path = std::string(folder_path) + "/" + std::string(file_path);
 		}
 	}
 
@@ -197,7 +188,7 @@ bool	pmx_loader::load(void* buffer, size_t buffer_size, std::string_view folder_
 		{
 			char	material_name[256], memo[4096];
 			read_string(material_name, ARRAYSIZE(material_name));
-			material.name					= ConvertUtf8(material_name);
+			material.name					= std::string(material_name);
 			read_string(material_name, ARRAYSIZE(material_name));
 			material.diffuse				= *read_buffer<math::float4>();
 			material.specular				= *read_buffer<math::float3>();
@@ -223,7 +214,7 @@ bool	pmx_loader::load(void* buffer, size_t buffer_size, std::string_view folder_
 		{
 			char	bone_name[256];
 			read_string(bone_name, ARRAYSIZE(bone_name));
-			bone.name = ConvertUtf8(bone_name);
+			bone.name = std::string(bone_name);
 			read_string(bone_name, ARRAYSIZE(bone_name));
 			bone.position		= *read_buffer<math::float3>();
 			bone.parent_index	= read_index(index_data.bone_index_size);
@@ -283,7 +274,7 @@ bool	pmx_loader::load(void* buffer, size_t buffer_size, std::string_view folder_
 		{
 			char	morph_name[256];
 			read_string(morph_name, ARRAYSIZE(morph_name));
-			morph.name = ConvertUtf8(morph_name);
+			morph.name = std::string(morph_name);
 			read_string(morph_name, ARRAYSIZE(morph_name));
 			morph.morph_category = static_cast<pmx_morph_category>(*read_buffer<unsigned char>());
 			morph.morph_type = static_cast<pmx_morph_type>(*read_buffer<unsigned char>());
@@ -424,28 +415,18 @@ void	pmx_loader::read_string( char* string, size_t string_length )
 	if (read_size == 0)
 		return;
 	
-	SIZE_T	sSize;
+	const char* source = read_buffer<char>(read_size);
+	std::string	converted;
 	switch (index_data.encoding)
 	{
 		case	0:	//	UTF16
-		{
-			setlocale(LC_CTYPE, "jpn");
-			WCHAR* work_string = read_buffer<WCHAR>(read_size);
-			std::wstring	str(work_string, read_size / 2);
-			work_string = const_cast<WCHAR*>(str.c_str());
-			wcstombs_s(&sSize, string, string_length, work_string, read_size);
+			converted = system_utility::convert_utf16_to_shift_jis(std::wstring_view(reinterpret_cast<const wchar_t*>(source), read_size / sizeof(wchar_t)));
 			break;
-		}
 		default:	//	UTF8
-		{
-			setlocale(LC_CTYPE, "jpn");
-			WCHAR* work_string = read_buffer<WCHAR>(read_size);
-			std::wstring	str(work_string, read_size / 2);
-			work_string = const_cast<WCHAR*>(str.c_str());
-			wcstombs_s(&sSize, string, string_length, work_string, read_size);
+			converted = system_utility::convert_utf8_to_shift_jis(std::string_view(source, read_size));
 			break;
-		}
 	}
+	strncpy_s(string, string_length, converted.c_str(), _TRUNCATE);
 }
 
 void	pmx_loader::set_error_code(pmx_error_code error_code)

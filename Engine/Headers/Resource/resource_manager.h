@@ -19,6 +19,7 @@
 #include "Resource/resource_operation_state.h"
 #include "Resource/resource_operation.h"
 #include "Resource/resource_loader.h"
+#include "Resource/resource_saver.h"
 #include "Resource/asset_reference.h"
 #include "Resource/asset_registry.h"
 #include "Resource/resource_base.h"
@@ -35,6 +36,20 @@ public:
 	static constexpr float default_build_time_budget = 4.0f;	//	1フレームあたりの構築処理の時間(ミリ秒)。0以下で無制限
 	static constexpr unsigned expired_cache_cleanup_interval = 120;	//	解放済みキャッシュ情報を掃除する間隔(フレーム)
 
+public:
+	//	1フレームあたりの構築処理の時間(ミリ秒)
+	void set_build_time_budget(float milliseconds) { build_time_budget = milliseconds; }
+	float get_build_time_budget() const { return build_time_budget; }
+
+	//	読込待ち/読込中/構築待ちのリクエスト数
+	size_t get_processing_count() const { return processing_count.load(std::memory_order_acquire); }
+
+	//	解放済みリソースのキャッシュ情報を削除
+	void remove_expired_caches();
+
+	//	呼び出したスレッドがメインスレッドか判定
+	bool is_main_thread() const { return std::this_thread::get_id() == main_thread_id; }
+
 private:
 	resource_manager();
 	~resource_manager();
@@ -43,7 +58,10 @@ public:	//	メインスレッド用関数
 	//	
 	void update();
 
-	//	同期読込(メインスレッド専用)
+	//	指定の操作が完了するまで待つ
+	bool wait(resource::load_operation_base& operation);
+
+	//	同期読込
 	template<class Type, class Loader = resource::loader<Type>>
 	[[nodiscard]] resource::load_operation_ptr<Type> load(std::string_view file_path, bool force_load = false)
 	{
@@ -52,8 +70,28 @@ public:	//	メインスレッド用関数
 		return operation;
 	}
 
-	//	指定の操作が完了するまで待つ(メインスレッド専用)
-	bool wait(resource::load_operation_base& operation);
+	//	同期保存
+	template<class Type, class Saver = resource::saver<Type>>
+	bool save(const std::shared_ptr<Type>& value, std::string_view file_path)
+	{
+		static_assert(std::is_base_of_v<resource::resource_base, Type>, "Type must derive from resource::resource_base");
+		if (!value || file_path.empty())
+			return false;
+
+		const std::string path(file_path);
+		Saver saver;
+		if (!saver.save(*value, std::string_view(path)))
+			return false;
+
+		register_resource<Type>(path, value);
+		return true;
+	}
+
+	template<class Type, class Saver = resource::saver<Type>>
+	bool save(const std::shared_ptr<Type>& value)
+	{
+		return value && save<Type, Saver>(value, value->get_file_path());
+	}
 
 public:
 	//	非同期読込
@@ -72,6 +110,7 @@ public:
 		return load_async<Type, Loader>(std::string_view(file_path), priority, force_load);
 	}
 
+public:
 	//	読込済みリソースの検索
 	template<class Type>
 	[[nodiscard]] std::shared_ptr<Type> search(std::string_view file_path)
@@ -86,25 +125,14 @@ public:
 		register_raw(file_path, std::type_index(typeid(Type)), value, &assign_file_path<Type>);
 	}
 
-	//	@tool ファイルの移動・名前変更をキャッシュと読込済みリソースのパスへ反映する(メインスレッド専用)
-	//	@tool old_path がフォルダならその下のリソースもまとめて移す。対応表(asset_registry)は先に更新しておくこと
+public:
+	//	ファイルの移動
+	//	対応表(asset_registry)は先に更新しておくこと
 	void move_path(std::string_view old_path, std::string_view new_path);
 
-	//	@tool path が base_path と同じか、その下にあれば、base_path の部分を new_base_path に置き換える
+public:
+	//	path が base_path と同じか、その下にあれば、base_path の部分を new_base_path に置き換える
 	static bool replace_base_path(std::string_view path, std::string_view base_path, std::string_view new_base_path, std::string& out_path);
-
-	//	1フレームあたりの構築処理の時間(ミリ秒)。
-	//	0以下で無制限。最低1件は必ず構築する
-	void set_build_time_budget(float milliseconds) { build_time_budget = milliseconds; }
-	float get_build_time_budget() const { return build_time_budget; }
-
-	//	読込待ち/読込中/構築待ちのリクエスト数
-	size_t get_processing_count() const { return processing_count.load(std::memory_order_acquire); }
-
-	//	解放済みリソースのキャッシュ情報を削除
-	void remove_expired_caches();
-
-	bool is_main_thread() const { return std::this_thread::get_id() == main_thread_id; }
 
 	static std::wstring make_path_key(std::string_view file_path);
 
@@ -122,7 +150,7 @@ private:
 		return std::make_unique<Loader>();
 	}
 
-	//	@tool 型を消したリソースへパスを設定する(resource_base の派生だけ)
+	//	型を消したリソースへパスを設定
 	template<class Type>
 	static void assign_file_path(void* value, std::string_view file_path)
 	{

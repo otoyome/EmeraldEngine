@@ -5,6 +5,7 @@
 #include <random>
 
 #include "material_shader_map.h"
+#include "Resource/resource_manager.h"
 
 namespace
 {
@@ -684,7 +685,7 @@ bool editor_items::edit_shared_material(std::shared_ptr<context>& context, const
 		ImGui::TextDisabled("%s", file_path.c_str());
 		ImGui::TextDisabled("shared : edits affect every user of this material");
 		if (ImGui::Button("save .emr"))
-			material->save_file(material->get_file_path());
+			resource_manager::instance()->save(material);
 		ImGui::SameLine();
 		if (ImGui::Button("revert"))
 		{

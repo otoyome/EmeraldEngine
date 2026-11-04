@@ -1,22 +1,7 @@
 #include	"ModelFormat/vmd_loader.h"
 
 #include	<iostream>
-#include	<locale> 
-#include	<codecvt> 
 #include	<cstdio>
-
-namespace
-{
-	std::string	ConvertUtf8(const char* string, size_t string_length)
-	{
-		return	std::string(string);
-	}
-
-	std::string	ConvertUtf8(std::string_view string)
-	{
-		return	std::string(string);
-	}
-};
 
 vmd_loader::vmd_loader()
 : error_code(vmd_error_code::unparsed)
@@ -64,7 +49,7 @@ bool	vmd_loader::load(void* buffer, unsigned int buffer_size)
 	version = atoi(magic_number + 20);
 
 	//	Ç«ÇÃÉÇÉfÉãÇ≈çÏê¨ÇµÇΩÇ©í≤ç∏ópñºëO
-	model_name = ConvertUtf8(read_buffer<char>(20));
+	model_name = std::string(read_buffer<char>(20));
 
 	unsigned int	end_frame	= 0;
 
@@ -74,7 +59,7 @@ bool	vmd_loader::load(void* buffer, unsigned int buffer_size)
 		bone_frame_list.resize(*read_buffer<unsigned int>(sizeof(unsigned int)));
 		for (auto& bone_frame : bone_frame_list)
 		{
-			bone_frame.name = ConvertUtf8(read_buffer<char>(sizeof(char) * 15));
+			bone_frame.name = std::string(read_buffer<char>(sizeof(char) * 15));
 			bone_frame.frame = *read_buffer<int>();
 			bone_frame.position = *read_buffer<math::float3>();
 			bone_frame.rotation = *read_buffer<math::float4>();
@@ -110,7 +95,7 @@ bool	vmd_loader::load(void* buffer, unsigned int buffer_size)
 		morph_frame_list.resize(*read_buffer<unsigned int>());
 		for (auto& morph_data : morph_frame_list)
 		{
-			morph_data.name = ConvertUtf8(read_buffer<char>(sizeof(char) * 15));
+			morph_data.name = std::string(read_buffer<char>(sizeof(char) * 15));
 			morph_data.frame = *read_buffer<int>();
 			morph_data.weight = *read_buffer<float>();
 			if (end_frame < morph_data.frame)

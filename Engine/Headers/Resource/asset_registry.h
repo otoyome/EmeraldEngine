@@ -41,17 +41,15 @@ public:
 	//	アセット登録
 	void register_asset(const universally_unique_identifier& uuid, resource::asset_types type, std::string_view path);
 	void unregister_path(std::string_view path);
-	//	@tool old_path がフォルダならその下のアセットもまとめて移す
 	void move_path(std::string_view old_path, std::string_view new_path);
 
-	//	以下はワーカースレッドからも呼ばれる
+	//	検索
 	universally_unique_identifier find_uuid(std::string_view path) const;
 	std::string find_path(const universally_unique_identifier& uuid) const;
 
-	//	UUID からパスを引く。引けなければ控えのパスを返す
 	std::string resolve_path(const universally_unique_identifier& uuid, std::string_view hint_path) const;
 
-	//	保存の前に呼ぶ。同じ UUID の別のファイルが残っていれば(名前を付けて保存)、新しい UUID にする
+	//	保存の前に呼ぶ
 	void prepare_save(resource::resource_base& target, std::string_view path) const;
 
 	size_t get_count() const;

@@ -7,18 +7,30 @@
 
 #include "Resource/resource_base.h"
 #include "Resource/resource_loader.h"
+#include "Resource/resource_saver.h"
 #include "Resource/asset_reference.h"
 
 class gpu_upload_list;
+class material_resource;
+
+namespace resource
+{
+	template<>
+	class loader<material_resource>;
+
+	template<>
+	class saver<material_resource>;
+}	//	namespace resource
 
 //	マテリアルリソース
 class material_resource : public resource::resource_base
 {
 	friend class material_instance;
+	friend class resource::loader<material_resource>;
+	friend class resource::saver<material_resource>;
 
 public:
 	static constexpr std::string_view extension = "emr";
-	static constexpr std::uint32_t file_format_version = 1;
 
 public:
 	//	マテリアルの処理系統
@@ -236,10 +248,6 @@ public:
 	material_resource& operator =(const material_resource& material);
 
 public:
-	//	.emr ファイルの読込/保存
-	bool load_file(std::string_view file_path);
-	bool save_file(std::string_view file_path);
-
 	//	ファイルから読み直し
 	bool revert_file();
 
@@ -253,9 +261,11 @@ public:
 	//	読込結果を取り出す。失敗していれば代わりのマテリアルを作る
 	static std::shared_ptr<material_resource> resolve(const resource::load_operation_ptr<material_resource>& operation, const resource::asset_reference<material_resource>& reference, domains domain);
 
-	//	自分のパスへ .emr として保存し、同じパスの読込で共有されるよう登録する
-	//	代わりのマテリアルは保存しない。パスが無ければ失敗する(パスはコンバート時に付ける)
-	static bool save_asset(const std::shared_ptr<material_resource>& material);
+private:
+	//	.emr ファイルの読込
+	bool load_file(std::string_view file_path);
+
+	bool save_file(std::string_view file_path);
 
 public:
 	//	名前取得・設定
@@ -425,5 +435,12 @@ namespace resource
 
 	private:
 		material_resource_ptr resource;
+	};
+
+	template<>
+	class saver<material_resource>
+	{
+	public:
+		bool save(material_resource& resource, std::string_view file_path);
 	};
 }	//	namespace resource
