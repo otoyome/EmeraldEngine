@@ -3,24 +3,6 @@
 
 #include <d3d11_1.h>
 
-Microsoft::WRL::ComPtr<ID3D11SamplerState> render_data::get_sampler_state(const D3D11_SAMPLER_DESC& desc)
-{
-	std::lock_guard<std::mutex> lock(sampler_state_cache_mutex);
-
-	auto it = sampler_state_cache.find(desc);
-	if (it != sampler_state_cache.end())
-		return it->second;
-
-	Microsoft::WRL::ComPtr<ID3D11SamplerState> sampler_state;
-	HRESULT hr = device->CreateSamplerState(&desc, sampler_state.GetAddressOf());
-	_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
-	if (FAILED(hr))
-		return nullptr;
-
-	sampler_state_cache.emplace(desc, sampler_state);
-	return sampler_state;
-}
-
 render_data::render_data(CONST HWND hwnd)
 : hwnd(hwnd)
 {
@@ -55,6 +37,8 @@ render_data::render_data(CONST HWND hwnd)
 	if (!swap_chain)
 		return;
 
+	state_cache.initialize(device.Get());
+
 	//	VS から描き込み先の配列番号を出力できるかチェック
 	{
 		D3D11_FEATURE_DATA_D3D11_OPTIONS3 options{};
@@ -78,43 +62,37 @@ render_data::render_data(CONST HWND hwnd)
 		sampler_desc.BorderColor[3] = 0;
 		sampler_desc.MinLOD = 0;
 		sampler_desc.MaxLOD = D3D11_FLOAT32_MAX;
-		hr = device->CreateSamplerState(&sampler_desc, sampler_states[static_cast<size_t>(SAMPLER_STATE::POINT)].GetAddressOf());
-		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+		sampler_states[static_cast<size_t>(SAMPLER_STATE::POINT)] = state_cache.get_sampler_state(sampler_desc);
 
 		sampler_desc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
 		sampler_desc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
 		sampler_desc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
 		sampler_desc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
-		hr = device->CreateSamplerState(&sampler_desc, sampler_states[static_cast<size_t>(SAMPLER_STATE::LINEAR)].GetAddressOf());
-		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+		sampler_states[static_cast<size_t>(SAMPLER_STATE::LINEAR)] = state_cache.get_sampler_state(sampler_desc);
 
 		sampler_desc.Filter = D3D11_FILTER_ANISOTROPIC;
 		sampler_desc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
 		sampler_desc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
 		sampler_desc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
-		hr = device->CreateSamplerState(&sampler_desc, sampler_states[static_cast<size_t>(SAMPLER_STATE::ANISOTROPIC)].GetAddressOf());
-		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+		sampler_states[static_cast<size_t>(SAMPLER_STATE::ANISOTROPIC)] = state_cache.get_sampler_state(sampler_desc);
 
 		sampler_desc.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
 		sampler_desc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
 		sampler_desc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
 		sampler_desc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
-		hr = device->CreateSamplerState(&sampler_desc, sampler_states[static_cast<size_t>(SAMPLER_STATE::POINT_CLAMP)].GetAddressOf());
-		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+		sampler_states[static_cast<size_t>(SAMPLER_STATE::POINT_CLAMP)] = state_cache.get_sampler_state(sampler_desc);
 
 		sampler_desc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
 		sampler_desc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
 		sampler_desc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
 		sampler_desc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
-		hr = device->CreateSamplerState(&sampler_desc, sampler_states[static_cast<size_t>(SAMPLER_STATE::LINEAR_CLAMP)].GetAddressOf());
-		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+		sampler_states[static_cast<size_t>(SAMPLER_STATE::LINEAR_CLAMP)] = state_cache.get_sampler_state(sampler_desc);
 
 		sampler_desc.Filter = D3D11_FILTER_ANISOTROPIC;
 		sampler_desc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
 		sampler_desc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
 		sampler_desc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
-		hr = device->CreateSamplerState(&sampler_desc, sampler_states[static_cast<size_t>(SAMPLER_STATE::ANISOTROPIC_CLAMP)].GetAddressOf());
-		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+		sampler_states[static_cast<size_t>(SAMPLER_STATE::ANISOTROPIC_CLAMP)] = state_cache.get_sampler_state(sampler_desc);
 
 		sampler_desc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
 		sampler_desc.AddressU = D3D11_TEXTURE_ADDRESS_BORDER;
@@ -124,8 +102,7 @@ render_data::render_data(CONST HWND hwnd)
 		sampler_desc.BorderColor[1] = 0;
 		sampler_desc.BorderColor[2] = 0;
 		sampler_desc.BorderColor[3] = 0;
-		hr = device->CreateSamplerState(&sampler_desc, sampler_states[static_cast<size_t>(SAMPLER_STATE::LINEAR_BORDER_BLACK)].GetAddressOf());
-		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+		sampler_states[static_cast<size_t>(SAMPLER_STATE::LINEAR_BORDER_BLACK)] = state_cache.get_sampler_state(sampler_desc);
 
 		sampler_desc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
 		sampler_desc.AddressU = D3D11_TEXTURE_ADDRESS_BORDER;
@@ -135,8 +112,7 @@ render_data::render_data(CONST HWND hwnd)
 		sampler_desc.BorderColor[1] = 1;
 		sampler_desc.BorderColor[2] = 1;
 		sampler_desc.BorderColor[3] = 1;
-		hr = device->CreateSamplerState(&sampler_desc, sampler_states[static_cast<size_t>(SAMPLER_STATE::LINEAR_BORDER_WHITE)].GetAddressOf());
-		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+		sampler_states[static_cast<size_t>(SAMPLER_STATE::LINEAR_BORDER_WHITE)] = state_cache.get_sampler_state(sampler_desc);
 	}
 }
 

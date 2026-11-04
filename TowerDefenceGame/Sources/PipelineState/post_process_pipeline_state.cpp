@@ -5,7 +5,6 @@ write_back_pipeline_state::write_back_pipeline_state()
 : graphics_pipeline_state()
 {
 	set_domain(pipeline_state_base::domains::system);
-	HRESULT hr{ S_OK };
 
 	load_shader_cso vs_desc;
 	vs_desc.file_path = "Assets/CSO/fullscreen_quad_vs.cso";
@@ -28,8 +27,7 @@ write_back_pipeline_state::write_back_pipeline_state()
 		blend_desc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ONE;
 		blend_desc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
 		blend_desc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-		hr = render_data::instance()->get_device()->CreateBlendState(&blend_desc, blend_states.GetAddressOf());
-		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+		blend_states = render_data::instance()->get_state_cache().get_blend_state(blend_desc);
 	}
 
 	// ラスタライザーステートの生成
@@ -45,8 +43,7 @@ write_back_pipeline_state::write_back_pipeline_state()
 		rasterizer_desc.ScissorEnable = FALSE;
 		rasterizer_desc.MultisampleEnable = FALSE;
 		rasterizer_desc.AntialiasedLineEnable = FALSE;
-		hr = render_data::instance()->get_device()->CreateRasterizerState(&rasterizer_desc, rasterizer_states.GetAddressOf());
-		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+		rasterizer_states = render_data::instance()->get_state_cache().get_rasterizer_state(rasterizer_desc);
 	}
 }
 
@@ -89,7 +86,6 @@ compress_rgb_to_log_pipeline_state::compress_rgb_to_log_pipeline_state()
 : graphics_pipeline_state()
 {
 	set_domain(pipeline_state_base::domains::system);
-	HRESULT hr{ S_OK };
 
 	load_shader_cso vs_desc;
 	vs_desc.file_path = "Assets/CSO/fullscreen_quad_vs.cso";
@@ -112,8 +108,7 @@ compress_rgb_to_log_pipeline_state::compress_rgb_to_log_pipeline_state()
 		blend_desc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ONE;
 		blend_desc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
 		blend_desc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-		hr = render_data::instance()->get_device()->CreateBlendState(&blend_desc, blend_states.GetAddressOf());
-		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+		blend_states = render_data::instance()->get_state_cache().get_blend_state(blend_desc);
 	}
 
 	// ラスタライザーステートの生成
@@ -129,8 +124,7 @@ compress_rgb_to_log_pipeline_state::compress_rgb_to_log_pipeline_state()
 		rasterizer_desc.ScissorEnable = FALSE;
 		rasterizer_desc.MultisampleEnable = FALSE;
 		rasterizer_desc.AntialiasedLineEnable = FALSE;
-		hr = render_data::instance()->get_device()->CreateRasterizerState(&rasterizer_desc, rasterizer_states.GetAddressOf());
-		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+		rasterizer_states = render_data::instance()->get_state_cache().get_rasterizer_state(rasterizer_desc);
 	}
 }
 
@@ -173,7 +167,6 @@ decompress_rgb_to_log_pipeline_state::decompress_rgb_to_log_pipeline_state()
 : graphics_pipeline_state()
 {
 	set_domain(pipeline_state_base::domains::system);
-	HRESULT hr{ S_OK };
 
 	load_shader_cso vs_desc;
 	vs_desc.file_path = "Assets/CSO/fullscreen_quad_vs.cso";
@@ -196,8 +189,7 @@ decompress_rgb_to_log_pipeline_state::decompress_rgb_to_log_pipeline_state()
 		blend_desc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ONE;
 		blend_desc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
 		blend_desc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-		hr = render_data::instance()->get_device()->CreateBlendState(&blend_desc, blend_states.GetAddressOf());
-		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+		blend_states = render_data::instance()->get_state_cache().get_blend_state(blend_desc);
 	}
 
 	// ラスタライザーステートの生成
@@ -213,8 +205,7 @@ decompress_rgb_to_log_pipeline_state::decompress_rgb_to_log_pipeline_state()
 		rasterizer_desc.ScissorEnable = FALSE;
 		rasterizer_desc.MultisampleEnable = FALSE;
 		rasterizer_desc.AntialiasedLineEnable = FALSE;
-		hr = render_data::instance()->get_device()->CreateRasterizerState(&rasterizer_desc, rasterizer_states.GetAddressOf());
-		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+		rasterizer_states = render_data::instance()->get_state_cache().get_rasterizer_state(rasterizer_desc);
 	}
 }
 
@@ -307,8 +298,7 @@ screen_space_reflection_uv_pipeline_state::screen_space_reflection_uv_pipeline_s
 		blend_desc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
 		blend_desc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
 		blend_desc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-		hr = device->CreateBlendState(&blend_desc, blend_states.GetAddressOf());
-		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+		blend_states = render_data::instance()->get_state_cache().get_blend_state(blend_desc);
 	}
 
 	// ラスタライザーステートの生成
@@ -324,8 +314,7 @@ screen_space_reflection_uv_pipeline_state::screen_space_reflection_uv_pipeline_s
 		rasterizer_desc.ScissorEnable = FALSE;
 		rasterizer_desc.MultisampleEnable = FALSE;
 		rasterizer_desc.AntialiasedLineEnable = FALSE;
-		hr = device->CreateRasterizerState(&rasterizer_desc, rasterizer_states.GetAddressOf());
-		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+		rasterizer_states = render_data::instance()->get_state_cache().get_rasterizer_state(rasterizer_desc);
 	}
 
 	//	定数バッファ生成
@@ -422,8 +411,7 @@ screen_space_reflection_color_pipeline_state::screen_space_reflection_color_pipe
 		blend_desc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
 		blend_desc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
 		blend_desc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-		hr = device->CreateBlendState(&blend_desc, blend_states.GetAddressOf());
-		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+		blend_states = render_data::instance()->get_state_cache().get_blend_state(blend_desc);
 	}
 
 	// ラスタライザーステートの生成
@@ -439,8 +427,7 @@ screen_space_reflection_color_pipeline_state::screen_space_reflection_color_pipe
 		rasterizer_desc.ScissorEnable = FALSE;
 		rasterizer_desc.MultisampleEnable = FALSE;
 		rasterizer_desc.AntialiasedLineEnable = FALSE;
-		hr = device->CreateRasterizerState(&rasterizer_desc, rasterizer_states.GetAddressOf());
-		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+		rasterizer_states = render_data::instance()->get_state_cache().get_rasterizer_state(rasterizer_desc);
 	}
 
 	//	定数バッファ生成
@@ -517,8 +504,6 @@ screen_space_reflection_composite_pipeline_state::screen_space_reflection_compos
 : graphics_pipeline_state()
 {
 	set_domain(pipeline_state_base::domains::system);
-	HRESULT hr{ S_OK };
-	auto device = render_data::instance()->get_device();
 
 	load_shader_cso vs_desc;
 	vs_desc.file_path = "Assets/CSO/fullscreen_quad_vs.cso";
@@ -541,8 +526,7 @@ screen_space_reflection_composite_pipeline_state::screen_space_reflection_compos
 		blend_desc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
 		blend_desc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
 		blend_desc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-		hr = device->CreateBlendState(&blend_desc, blend_states.GetAddressOf());
-		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+		blend_states = render_data::instance()->get_state_cache().get_blend_state(blend_desc);
 	}
 
 	// ラスタライザーステートの生成
@@ -558,8 +542,7 @@ screen_space_reflection_composite_pipeline_state::screen_space_reflection_compos
 		rasterizer_desc.ScissorEnable = FALSE;
 		rasterizer_desc.MultisampleEnable = FALSE;
 		rasterizer_desc.AntialiasedLineEnable = FALSE;
-		hr = device->CreateRasterizerState(&rasterizer_desc, rasterizer_states.GetAddressOf());
-		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+		rasterizer_states = render_data::instance()->get_state_cache().get_rasterizer_state(rasterizer_desc);
 	}
 }
 

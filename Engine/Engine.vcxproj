@@ -112,6 +112,7 @@
     <ClInclude Include="Headers\pipeline_state.h" />
     <ClInclude Include="Headers\post_process_volume.h" />
     <ClInclude Include="Headers\render_data.h" />
+    <ClInclude Include="Headers\render_state_cache.h" />
     <ClInclude Include="Headers\render_pass.h" />
     <ClInclude Include="Headers\retarget_profile.h" />
     <ClInclude Include="Headers\System\cache_string.h" />
@@ -218,6 +219,7 @@
     <ClCompile Include="Sources\pipeline_state.cpp" />
     <ClCompile Include="Sources\post_process_volume.cpp" />
     <ClCompile Include="Sources\render_data.cpp" />
+    <ClCompile Include="Sources\render_state_cache.cpp" />
     <ClCompile Include="Sources\render_pass.cpp" />
     <ClCompile Include="Sources\retarget_profile.cpp" />
     <ClCompile Include="Sources\System\cache_string.cpp" />

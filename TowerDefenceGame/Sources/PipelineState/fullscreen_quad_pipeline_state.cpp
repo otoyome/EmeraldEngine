@@ -13,7 +13,6 @@ convert_linear_to_srgb_pipeline_state::convert_linear_to_srgb_pipeline_state()
 : graphics_pipeline_state()
 {
 	set_domain(pipeline_state_base::domains::system);
-	HRESULT hr{ S_OK };
 
 	load_shader_cso vs_desc;
 	vs_desc.file_path = "Assets/CSO/fullscreen_quad_vs.cso";
@@ -27,8 +26,7 @@ convert_linear_to_srgb_pipeline_state::convert_linear_to_srgb_pipeline_state()
 	{
 		D3D11_DEPTH_STENCIL_DESC depth_stencil_desc{};
 		depth_stencil_desc.DepthEnable = FALSE;
-		hr = render_data::instance()->get_device()->CreateDepthStencilState(&depth_stencil_desc, depth_stencil_states.GetAddressOf());
-		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+		depth_stencil_states = render_data::instance()->get_state_cache().get_depth_stencil_state(depth_stencil_desc);
 	}
 
 	// ブレンドステートの生成
@@ -44,8 +42,7 @@ convert_linear_to_srgb_pipeline_state::convert_linear_to_srgb_pipeline_state()
 		blend_desc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
 		blend_desc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
 		blend_desc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-		hr = render_data::instance()->get_device()->CreateBlendState(&blend_desc, blend_states.GetAddressOf());
-		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+		blend_states = render_data::instance()->get_state_cache().get_blend_state(blend_desc);
 	}
 
 	// ラスタライザーステートの生成
@@ -61,8 +58,7 @@ convert_linear_to_srgb_pipeline_state::convert_linear_to_srgb_pipeline_state()
 		rasterizer_desc.ScissorEnable = FALSE;
 		rasterizer_desc.MultisampleEnable = FALSE;
 		rasterizer_desc.AntialiasedLineEnable = FALSE;
-		hr = render_data::instance()->get_device()->CreateRasterizerState(&rasterizer_desc, rasterizer_states.GetAddressOf());
-		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+		rasterizer_states = render_data::instance()->get_state_cache().get_rasterizer_state(rasterizer_desc);
 	}
 }
 
@@ -110,7 +106,6 @@ convert_srgb_to_linear_pipeline_state::convert_srgb_to_linear_pipeline_state()
 : graphics_pipeline_state()
 {
 	set_domain(pipeline_state_base::domains::system);
-	HRESULT hr{ S_OK };
 
 	load_shader_cso vs_desc;
 	vs_desc.file_path = "Assets/CSO/fullscreen_quad_vs.cso";
@@ -124,8 +119,7 @@ convert_srgb_to_linear_pipeline_state::convert_srgb_to_linear_pipeline_state()
 	{
 		D3D11_DEPTH_STENCIL_DESC depth_stencil_desc{};
 		depth_stencil_desc.DepthEnable = FALSE;
-		hr = render_data::instance()->get_device()->CreateDepthStencilState(&depth_stencil_desc, depth_stencil_states.GetAddressOf());
-		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+		depth_stencil_states = render_data::instance()->get_state_cache().get_depth_stencil_state(depth_stencil_desc);
 	}
 
 	// ブレンドステートの生成
@@ -141,8 +135,7 @@ convert_srgb_to_linear_pipeline_state::convert_srgb_to_linear_pipeline_state()
 		blend_desc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
 		blend_desc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
 		blend_desc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-		hr = render_data::instance()->get_device()->CreateBlendState(&blend_desc, blend_states.GetAddressOf());
-		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+		blend_states = render_data::instance()->get_state_cache().get_blend_state(blend_desc);
 	}
 
 	// ラスタライザーステートの生成
@@ -158,8 +151,7 @@ convert_srgb_to_linear_pipeline_state::convert_srgb_to_linear_pipeline_state()
 		rasterizer_desc.ScissorEnable = FALSE;
 		rasterizer_desc.MultisampleEnable = FALSE;
 		rasterizer_desc.AntialiasedLineEnable = FALSE;
-		hr = render_data::instance()->get_device()->CreateRasterizerState(&rasterizer_desc, rasterizer_states.GetAddressOf());
-		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+		rasterizer_states = render_data::instance()->get_state_cache().get_rasterizer_state(rasterizer_desc);
 	}
 }
 

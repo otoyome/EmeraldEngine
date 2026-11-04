@@ -22,8 +22,6 @@ namespace
 deferred_decal_stencil_write_pipeline_state::deferred_decal_stencil_write_pipeline_state()
 : graphics_pipeline_state()
 {
-	HRESULT hr{ S_OK };
-
 	load_shader_cso vs_desc;
 	vs_desc.file_path = "Assets/CSO/gbuffer_decal_primitive_vs.cso";
 	shader_manager::instance()->load_shader<vertex_shader>(vs, vs_desc);
@@ -45,8 +43,7 @@ deferred_decal_stencil_write_pipeline_state::deferred_decal_stencil_write_pipeli
 		depth_stencil_desc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_ZERO;
 		depth_stencil_desc.FrontFace.StencilFailOp = D3D11_STENCIL_OP_ZERO;
 		depth_stencil_desc.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_ZERO;
-		hr = render_data::instance()->get_device()->CreateDepthStencilState(&depth_stencil_desc, depth_stencil_states.GetAddressOf());
-		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+		depth_stencil_states = render_data::instance()->get_state_cache().get_depth_stencil_state(depth_stencil_desc);
 	}
 
 	// ブレンドステートの生成
@@ -62,8 +59,7 @@ deferred_decal_stencil_write_pipeline_state::deferred_decal_stencil_write_pipeli
 		blend_desc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
 		blend_desc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
 		blend_desc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-		hr = render_data::instance()->get_device()->CreateBlendState(&blend_desc, blend_states.GetAddressOf());
-		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+		blend_states = render_data::instance()->get_state_cache().get_blend_state(blend_desc);
 	}
 
 	// ラスタライザーステートの生成
@@ -79,8 +75,7 @@ deferred_decal_stencil_write_pipeline_state::deferred_decal_stencil_write_pipeli
 		rasterizer_desc.ScissorEnable = FALSE;
 		rasterizer_desc.MultisampleEnable = FALSE;
 		rasterizer_desc.AntialiasedLineEnable = TRUE;
-		hr = render_data::instance()->get_device()->CreateRasterizerState(&rasterizer_desc, rasterizer_states.GetAddressOf());
-		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+		rasterizer_states = render_data::instance()->get_state_cache().get_rasterizer_state(rasterizer_desc);
 	}
 }
 

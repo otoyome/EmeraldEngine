@@ -75,6 +75,9 @@
     <ClInclude Include="Headers\render_data.h">
       <Filter>Headers</Filter>
     </ClInclude>
+    <ClInclude Include="Headers\render_state_cache.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
     <ClInclude Include="Headers\shader.h">
       <Filter>Headers</Filter>
     </ClInclude>
@@ -393,6 +396,9 @@
       <Filter>Sources</Filter>
     </ClCompile>
     <ClCompile Include="Sources\render_data.cpp">
+      <Filter>Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\render_state_cache.cpp">
       <Filter>Sources</Filter>
     </ClCompile>
     <ClCompile Include="Sources\shader.cpp">

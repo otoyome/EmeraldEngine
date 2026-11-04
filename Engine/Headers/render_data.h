@@ -5,6 +5,7 @@
 
 #include "Graphics/gpu_upload_list.h"
 #include "Graphics/gpu_readback_queue.h"
+#include "render_state_cache.h"
 
 CONST LONG SCREEN_WIDTH{ 1280 };
 CONST LONG SCREEN_HEIGHT{ 720 };
@@ -26,11 +27,6 @@ public:
 		LINEAR_BORDER_BLACK,
 		LINEAR_BORDER_WHITE
 	};
-	struct sampler_desc_less
-	{
-		bool operator()(const D3D11_SAMPLER_DESC& l, const D3D11_SAMPLER_DESC& r) const { return memcmp(&l, &r, sizeof(D3D11_SAMPLER_DESC)) < 0; }
-	};
-
 public:
 	static	inline	void	create_instance(CONST HWND hwnd)
 	{
@@ -50,7 +46,9 @@ public:
 	bool is_supported_device() const { return supported_device; }
 
 	Microsoft::WRL::ComPtr<ID3D11SamplerState> get_sampler_states(SAMPLER_STATE index) const { return sampler_states[static_cast<int>(index)]; }
-	Microsoft::WRL::ComPtr<ID3D11SamplerState> get_sampler_state(const D3D11_SAMPLER_DESC& desc);
+	Microsoft::WRL::ComPtr<ID3D11SamplerState> get_sampler_state(const D3D11_SAMPLER_DESC& desc) { return state_cache.get_sampler_state(desc); }
+
+	render_state_cache& get_state_cache() { return state_cache; }
 
 	gpu_upload_list& get_upload_list() { return upload_list; }
 	gpu_readback_queue& get_readback_queue() { return readback_queue; }
@@ -73,8 +71,7 @@ private:
 
 	Microsoft::WRL::ComPtr<ID3D11SamplerState> sampler_states[8];
 
-	std::mutex sampler_state_cache_mutex;
-	std::map<D3D11_SAMPLER_DESC, Microsoft::WRL::ComPtr<ID3D11SamplerState>, sampler_desc_less> sampler_state_cache;
+	render_state_cache state_cache;
 
 	gpu_upload_list upload_list;
 	gpu_readback_queue readback_queue;

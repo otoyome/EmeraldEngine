@@ -4,8 +4,6 @@
 debug_draw_line_pipeline_state::debug_draw_line_pipeline_state(bool depth_test)
 : graphics_pipeline_state()
 {
-	HRESULT hr{ S_OK };
-
 	load_shader_cso vs_desc;
 	vs_desc.file_path = "Assets/CSO/debug_draw_line_vs.cso";
 	shader_manager::instance()->load_shader<vertex_shader>(vs, vs_desc);
@@ -20,8 +18,7 @@ debug_draw_line_pipeline_state::debug_draw_line_pipeline_state(bool depth_test)
 		depth_stencil_desc.DepthEnable = TRUE;
 		depth_stencil_desc.DepthWriteMask = depth_test ? D3D11_DEPTH_WRITE_MASK_ALL : D3D11_DEPTH_WRITE_MASK_ZERO;
 		depth_stencil_desc.DepthFunc = depth_test ? common_pipeline_states::depth_comparison_func : D3D11_COMPARISON_ALWAYS;
-		hr = render_data::instance()->get_device()->CreateDepthStencilState(&depth_stencil_desc, depth_stencil_states.GetAddressOf());
-		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+		depth_stencil_states = render_data::instance()->get_state_cache().get_depth_stencil_state(depth_stencil_desc);
 	}
 
 	// ブレンドステートの生成
@@ -37,8 +34,7 @@ debug_draw_line_pipeline_state::debug_draw_line_pipeline_state(bool depth_test)
 		blend_desc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_INV_SRC_ALPHA;
 		blend_desc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
 		blend_desc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-		hr = render_data::instance()->get_device()->CreateBlendState(&blend_desc, blend_states.GetAddressOf());
-		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+		blend_states = render_data::instance()->get_state_cache().get_blend_state(blend_desc);
 	}
 
 	// ラスタライザーステートの生成
@@ -54,8 +50,7 @@ debug_draw_line_pipeline_state::debug_draw_line_pipeline_state(bool depth_test)
 		rasterizer_desc.ScissorEnable = FALSE;
 		rasterizer_desc.MultisampleEnable = FALSE;
 		rasterizer_desc.AntialiasedLineEnable = FALSE;
-		hr = render_data::instance()->get_device()->CreateRasterizerState(&rasterizer_desc, rasterizer_states.GetAddressOf());
-		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+		rasterizer_states = render_data::instance()->get_state_cache().get_rasterizer_state(rasterizer_desc);
 	}
 }
 

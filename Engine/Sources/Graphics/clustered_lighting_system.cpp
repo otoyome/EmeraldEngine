@@ -184,27 +184,23 @@ clustered_lighting_system::clustered_lighting_system()
 		blend_desc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ONE;
 		blend_desc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
 		blend_desc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-		hr = device->CreateBlendState(&blend_desc, blend_state.GetAddressOf());
-		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+		blend_state = render_data::instance()->get_state_cache().get_blend_state(blend_desc);
 
 		D3D11_BLEND_DESC visualize_blend_desc{};
 		visualize_blend_desc.RenderTarget[0].BlendEnable = FALSE;
 		visualize_blend_desc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-		hr = device->CreateBlendState(&visualize_blend_desc, visualize_blend_state.GetAddressOf());
-		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+		visualize_blend_state = render_data::instance()->get_state_cache().get_blend_state(visualize_blend_desc);
 
 		D3D11_DEPTH_STENCIL_DESC depth_stencil_desc{};
 		depth_stencil_desc.DepthEnable = FALSE;
-		hr = device->CreateDepthStencilState(&depth_stencil_desc, depth_stencil_state.GetAddressOf());
-		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+		depth_stencil_state = render_data::instance()->get_state_cache().get_depth_stencil_state(depth_stencil_desc);
 
 		D3D11_RASTERIZER_DESC rasterizer_desc{};
 		rasterizer_desc.FillMode = D3D11_FILL_SOLID;
 		rasterizer_desc.CullMode = D3D11_CULL_NONE;
 		rasterizer_desc.FrontCounterClockwise = TRUE;
 		rasterizer_desc.DepthClipEnable = TRUE;
-		hr = device->CreateRasterizerState(&rasterizer_desc, rasterizer_state.GetAddressOf());
-		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+		rasterizer_state = render_data::instance()->get_state_cache().get_rasterizer_state(rasterizer_desc);
 	}
 
 	generate_index_buffer(initial_index_capacity);
