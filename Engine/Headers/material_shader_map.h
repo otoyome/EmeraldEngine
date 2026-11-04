@@ -103,19 +103,20 @@ public:
 	//	マテリアルのパラメーター構成に使うパイプラインステートを取得
 	void get_parameter_pipeline_states(std::string_view shader_path, domains domain, std::vector<graphics_pipeline_state_ptr>& out);
 
-	//	ドメインがマテリアルシェーダーで描けるか
-	static bool is_supported_domain(domains domain);
-
-	//	ドメインのパスの数(1パスのドメインは 1)
-	static UINT get_pass_count(domains domain);
-
-	//	生成済みのパイプラインステートを捨てた回数
+	//	バージョン情報
 	std::uint32_t get_version() const { return version; }
 
 #if defined(USE_IMGUI)
 	//	編集窓用:Shaders/Materials 以下のマテリアルシェーダーの一覧
 	std::vector<std::string> collect_shader_paths(domains domain) const;
 #endif	//	defined(USE_IMGUI)
+
+public:
+	//	ドメインがマテリアルシェーダーで描けるか
+	static bool is_supported_domain(domains domain);
+
+	//	ドメインのパスの数
+	static UINT get_pass_count(domains domain);
 
 private:
 	entry* find_entry(std::string_view shader_path, domains domain);
