@@ -461,7 +461,7 @@ namespace resource
 		material_operations.resize(material_references.size());
 		for (size_t index = 0; index < material_references.size(); ++index)
 		{
-			material_operations[index] = material_resource::request_load(material_references[index]);
+			material_operations[index] = resource_manager::instance()->load_async(material_references[index], load_priority::high);
 			add_dependency(material_operations[index]);
 		}
 		return operation_state::success;
@@ -472,7 +472,7 @@ namespace resource
 		for (size_t index = 0; index < material_references.size(); ++index)
 		{
 			if (!material_references[index].is_empty())
-				resource->materials[index] = material_resource::resolve(material_operations[index], material_references[index], material_resource::domains::surface);
+				resource->materials[index] = resource_manager::instance()->resolve(material_operations[index], material_references[index], material_resource::domains::surface);
 		}
 		material_operations.clear();
 

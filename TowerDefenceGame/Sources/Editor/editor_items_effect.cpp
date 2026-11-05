@@ -6,6 +6,7 @@
 #include <set>
 #include <algorithm>
 #include <numeric>
+#include "material_shader_map.h"
 
 namespace
 {
@@ -483,7 +484,7 @@ bool editor_items::edit_effect_particle(std::shared_ptr<context>& context, effec
 		material->set_flag(material_resource::flags::indirect_lighting_off, true);
 
 		//	デフォルトシェーダー設定
-		material->set_shader_path(material_resource::default_particle_shader_path);
+		material->set_shader_path(material_shader_map::get_default_shader_path(material_resource::domains::particle));
 
 		//	パラメーター設定
 		material->set_float4("base_color_factor", math::float4(1, 1, 1, 1));
@@ -561,6 +562,12 @@ bool editor_items::edit_effect_particle(std::shared_ptr<context>& context, effec
 						}
 						if (ImGui::TreeNode("material"))
 						{
+							material_resource_ptr slot_material = renderer->material;
+							if (editor_items::edit_material_slot(context, slot_material, material_resource::domains::particle))
+							{
+								renderer->material = slot_material;
+								edit_flag = true;
+							}
 							if (editor_items::edit_material(context, *renderer->material))
 							{
 								edit_flag = true;
@@ -578,6 +585,12 @@ bool editor_items::edit_effect_particle(std::shared_ptr<context>& context, effec
 						}
 						if (ImGui::TreeNode("material"))
 						{
+							material_resource_ptr slot_material = renderer->material;
+							if (editor_items::edit_material_slot(context, slot_material, material_resource::domains::particle))
+							{
+								renderer->material = slot_material;
+								edit_flag = true;
+							}
 							if (editor_items::edit_material(context, *renderer->material))
 							{
 								edit_flag = true;
@@ -955,7 +968,7 @@ bool editor_items::edit_effect_decal(std::shared_ptr<context>& context, effect_r
 		material->set_flag(material_resource::flags::indirect_lighting_off, true);
 
 		//	デフォルトシェーダー設定
-		material->set_shader_path(material_resource::default_decal_shader_path);
+		material->set_shader_path(material_shader_map::get_default_shader_path(material_resource::domains::deferred_decal));
 
 		//	パラメーター設定
 		material->set_float4("base_color_factor", math::float4(1, 1, 1, 1));
@@ -980,6 +993,14 @@ bool editor_items::edit_effect_decal(std::shared_ptr<context>& context, effect_r
 	if (!decal.material)
 	{
 		decal.material = generate_material();
+	}
+	{
+		material_resource_ptr slot_material = decal.material;
+		if (editor_items::edit_material_slot(context, slot_material, material_resource::domains::deferred_decal))
+		{
+			decal.material = slot_material;
+			edit_flag = true;
+		}
 	}
 	if (editor_items::edit_material(context, *decal.material))
 	{

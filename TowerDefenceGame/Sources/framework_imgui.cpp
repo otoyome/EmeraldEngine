@@ -3,6 +3,7 @@
 #if defined(USE_IMGUI)
 #include "System/engine_config_data.h"
 #include "model_buffer_pool.h"
+#include "material_resource_factory.h"
 #include "System/memory_allocator.h"
 
 #include "imgui.h"
@@ -21,6 +22,8 @@ extern ImWchar glyphRangesJapanese[];
 #include "Editor/editor_camera.h"
 #include "System/console_manager.h"
 #include "System/asset_browser.h"
+#include "Resource/resource_manager.h"
+#include "material_resource.h"
 
 
 #include "scenes/editscene/edit_model_scene.h"
@@ -64,6 +67,22 @@ namespace
 		asset_browser::instance()->register_open_handler(std::move(handler));
 	}
 
+	//	アセットブラウザの新規作成でドメインの既定のマテリアルリソースを保存する
+	void register_material_create_handler(std::string_view label, material_resource::domains domain)
+	{
+		asset_browser::create_handler handler;
+		handler.label = label;
+		handler.default_name = "NewMaterial";
+		handler.extension = std::string(".") + std::string(material_resource::extension);
+		handler.create = [domain](std::string_view file_path)
+		{
+			const std::string name = std::filesystem::path(std::string(file_path)).stem().string();
+			auto material = material_resource_factory::create_new(name, domain);
+			return resource_manager::instance()->save(material, file_path);
+		};
+		asset_browser::instance()->register_create_handler(std::move(handler));
+	}
+
 	//	デバッグ表示の設定
 	console_variable<bool> grid_xz_variable("debug.grid.xz", true, "XZ平面のグリッド表示", console_flags::persist);
 	console_variable<bool> grid_xy_variable("debug.grid.xy", false, "XY平面のグリッド表示", console_flags::persist);
@@ -98,6 +117,13 @@ void framework::imgui_initialize()
 	register_asset_open_handler<edit_particle_scene>("Particle Editor", { ".eme" });
 	register_asset_open_handler<edit_timeline_scene>("Timeline Editor", { ".etl" });
 	register_asset_open_handler<edit_material_scene>("Material Editor", { ".emo", ".eme", ".emr" });
+
+	//	アセットブラウザの新規作成
+	register_material_create_handler("Material (Surface)", material_resource::domains::surface);
+	register_material_create_handler("Material (Particle)", material_resource::domains::particle);
+	register_material_create_handler("Material (Deferred Decal)", material_resource::domains::deferred_decal);
+	register_material_create_handler("Material (Post Process)", material_resource::domains::post_process);
+	register_material_create_handler("Material (User Interface)", material_resource::domains::user_interface);
 }
 
 void framework::imgui_terminate()

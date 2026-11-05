@@ -106,8 +106,40 @@ public:
 	template<class Type, class Loader = resource::loader<Type>>
 	[[nodiscard]] resource::load_operation_ptr<Type> load_async(const resource::asset_reference<Type>& reference, resource::load_priority priority = resource::load_priority::normal, bool force_load = false)
 	{
+		if (reference.is_empty())
+			return nullptr;
+
 		const std::string file_path = asset_registry::is_valid() ? asset_registry::instance()->resolve_path(reference.uuid, reference.path) : reference.path;
 		return load_async<Type, Loader>(std::string_view(file_path), priority, force_load);
+	}
+
+	//	読込結果取得
+	template<class Type, class Loader = resource::loader<Type>, class... Args>
+	[[nodiscard]] std::shared_ptr<Type> resolve(const resource::load_operation_ptr<Type>& operation, const resource::asset_reference<Type>& reference, Args&&... args)
+	{
+		if (operation && operation->is_succeeded())
+		{
+			if (auto value = operation->get_resource())
+				return value;
+		}
+		return Loader::create_fallback(reference, std::forward<Args>(args)...);
+	}
+
+	//	Loader::revert()があるリソースのみ、読み込み済みのリソースをファイルの内容に戻す
+	template<class Type, class Loader = resource::loader<Type>>
+	bool revert(Type& target)
+	{
+		static_assert(std::is_base_of_v<resource::resource_base, Type>, "Type must derive from resource::resource_base");
+		const std::string file_path(target.get_file_path());
+		if (!is_main_thread() || file_path.empty())
+			return false;
+
+		Loader loader;
+		if (loader.load(file_path) != resource::operation_state::success)
+			return false;
+		for (auto& dependency : loader.get_dependencies())
+			wait(*dependency);
+		return loader.revert(target);
 	}
 
 public:

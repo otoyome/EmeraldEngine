@@ -6,6 +6,8 @@
 
 #include "material_shader_map.h"
 #include "Resource/resource_manager.h"
+#include "Resource/asset_file_header.h"
+#include "System/asset_browser.h"
 
 namespace
 {
@@ -421,6 +423,42 @@ bool editor_items::edit_material(std::shared_ptr<context>& context, material_res
 			edit_flag = true;
 		}
 
+		//	@tool 今のシェーダー(未設定ならドメインの既定)を写して、新しいマテリアルシェーダーを作る
+		ImGui::SameLine();
+		if (ImGui::Button("new..."))
+		{
+			context->new_shader_name[0] = '\0';
+			ImGui::OpenPopup("##new_material_shader");
+		}
+		if (ImGui::BeginPopup("##new_material_shader"))
+		{
+			if (ImGui::IsWindowAppearing())
+				ImGui::SetKeyboardFocusHere();
+			bool accepted = ImGui::InputText("name", context->new_shader_name, IM_ARRAYSIZE(context->new_shader_name), ImGuiInputTextFlags_EnterReturnsTrue);
+
+			//	@tool フォルダの区切りなどファイル名に使えない文字は受け付けない
+			const bool valid = context->new_shader_name[0] != '\0' && std::strpbrk(context->new_shader_name, "\\/:*?\"<>|.") == nullptr;
+			ImGui::BeginDisabled(!valid);
+			accepted |= ImGui::Button("create");
+			ImGui::EndDisabled();
+
+			if (accepted && valid)
+			{
+				const std::string_view source_path = material.get_shader_path().empty()
+					? material_shader_map::get_default_shader_path(material.get_domain())
+					: material.get_shader_path();
+				const std::string name = system_utility::convert_utf8_to_shift_jis(context->new_shader_name);
+				const std::string path = material_shader_map::instance()->create_shader_file(material.get_domain(), name, source_path);
+				if (!path.empty())
+				{
+					material.set_shader_path(path);
+					edit_flag = true;
+				}
+				ImGui::CloseCurrentPopup();
+			}
+			ImGui::EndPopup();
+		}
+
 		//	静的スイッチ
 		if (auto shader_declaration = material_shader_map::instance()->find_declaration(material.get_shader_path(), material.get_domain()))
 		{
@@ -689,7 +727,7 @@ bool editor_items::edit_shared_material(std::shared_ptr<context>& context, const
 		ImGui::SameLine();
 		if (ImGui::Button("revert"))
 		{
-			material->revert_file();
+			resource_manager::instance()->revert(*material);
 			edit_flag = true;
 		}
 	}
@@ -700,6 +738,57 @@ bool editor_items::edit_shared_material(std::shared_ptr<context>& context, const
 	if (edit_material(context, *material))
 		edit_flag = true;
 	ImGui::EndDisabled();
+
+	ImGui::PopID();
+	return edit_flag;
+}
+
+bool editor_items::edit_material_slot(std::shared_ptr<context>& context, material_resource_ptr& material, material_resource::domains domain)
+{
+	bool edit_flag = false;
+	ImGui::PushID(context->get_item_id());
+
+	//	@tool 今のマテリアルのファイル名(保存前は名前)
+	std::string label = "(none)";
+	if (material)
+	{
+		label = material->get_file_path().empty()
+			? "(not saved) " + system_utility::convert_utf8(material->get_name())
+			: system_utility::convert_utf8(material->get_file_path());
+	}
+	ImGui::Button(label.c_str(), ImVec2(-FLT_MIN, 0.0f));
+	if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal))
+		ImGui::SetTooltip("drop a .emr (%s) from the Asset Browser", magic_enum::enum_name(domain).data());
+
+	if (ImGui::BeginDragDropTarget())
+	{
+		if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(asset_browser::drag_payload_type))
+		{
+			const std::string file_path(static_cast<const char*>(payload->Data));
+			const std::string extension = std::filesystem::path(file_path).extension().string();
+			if (resource::get_asset_type_from_extension(extension) == resource::asset_types::material)
+			{
+				auto operation = resource_manager::instance()->load<material_resource>(file_path);
+				material_resource_ptr loaded = operation && operation->is_succeeded() ? operation->get_resource() : nullptr;
+				if (!loaded)
+				{
+					DEBUG_ERROR_CATEGORY(logger::categorys::model, "material slot load failed[%s]", file_path.c_str());
+				}
+				else if (loaded->get_domain() != domain)
+				{
+					//	@tool ドメインが違うマテリアルはその場所で描けないので受け付けない
+					DEBUG_WARNING_CATEGORY(logger::categorys::model, "material slot domain mismatch[%s] %s != %s", file_path.c_str(),
+						magic_enum::enum_name(loaded->get_domain()).data(), magic_enum::enum_name(domain).data());
+				}
+				else if (loaded != material)
+				{
+					material = loaded;
+					edit_flag = true;
+				}
+			}
+		}
+		ImGui::EndDragDropTarget();
+	}
 
 	ImGui::PopID();
 	return edit_flag;

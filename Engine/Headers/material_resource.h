@@ -36,11 +36,6 @@ public:
 	//	マテリアルの処理系統
 	using domains = pipeline_state_base::domains;
 
-	//	ドメインごとの既定のマテリアルシェーダー
-	static constexpr std::string_view default_particle_shader_path = "Shaders/Materials/Particle/particle_default.hlsl";
-	static constexpr std::string_view default_decal_shader_path = "Shaders/Materials/DeferredDecal/decal_default.hlsl";
-	static constexpr std::string_view default_user_interface_shader_path = "Shaders/Materials/UserInterface/sprite_default.hlsl";
-
 	//	表面描画パス
 	enum class surface_paths : std::uint8_t
 	{
@@ -247,24 +242,8 @@ public:
 
 	material_resource& operator =(const material_resource& material);
 
-public:
-	//	ファイルから読み直し
-	bool revert_file();
-
-	//	参照先の .emr が無い時の代わりのマテリアル
-	static std::shared_ptr<material_resource> create_missing(const resource::asset_reference<material_resource>& reference, domains domain);
-	bool is_missing() const { return missing; }
-
-	//	.emr の非同期読込を要求する
-	static resource::load_operation_ptr<material_resource> request_load(const resource::asset_reference<material_resource>& reference);
-
-	//	読込結果を取り出す。失敗していれば代わりのマテリアルを作る
-	static std::shared_ptr<material_resource> resolve(const resource::load_operation_ptr<material_resource>& operation, const resource::asset_reference<material_resource>& reference, domains domain);
-
 private:
-	//	.emr ファイルの読込
 	bool load_file(std::string_view file_path);
-
 	bool save_file(std::string_view file_path);
 
 public:
@@ -334,6 +313,9 @@ public:
 #if defined(USE_IMGUI)
 	constant_buffer_map& get_constant_buffers_for_editor();
 	shader_resource_map& get_shader_resources_for_editor();
+
+	//	エラー判定
+	bool is_error() const;
 #endif	//	defined(USE_IMGUI)
 
 public:
@@ -387,16 +369,12 @@ private:
 
 	//	マテリアルシェーダーから各パスのパイプラインステートを取り直す
 	void refresh_pipeline_states();
+
 	//	パイプラインステートを差し替える
 	void assign_pipeline_state(UINT index, std::string_view name, graphics_pipeline_state_ptr value, bool required);
 
 	//	定数バッファのリソースを作る
 	static void create_constant_buffer_resource(constant_buffer& target);
-
-#if defined(USE_IMGUI)
-	bool is_error() const;
-	mutable bool error_state_cached_ = false;
-#endif	//	defined(USE_IMGUI)
 
 private:
 	std::string name;
@@ -418,7 +396,9 @@ private:
 	std::uint32_t version = 0;
 	std::uint32_t shader_map_version = 0;
 
-	bool missing = false;
+#if defined(USE_IMGUI)
+	mutable bool pipeline_states_verified = false;
+#endif	//	defined(USE_IMGUI)
 };
 
 using material_resource_ptr = std::shared_ptr<material_resource>;
@@ -432,6 +412,10 @@ namespace resource
 		operation_state load(std::string_view file_path) override;
 		operation_state build() override;
 		std::shared_ptr<void> get_resource() const override { return resource; }
+
+		static material_resource_ptr create_fallback(const asset_reference<material_resource>& reference, material_resource::domains domain);
+
+		bool revert(material_resource& target);
 
 	private:
 		material_resource_ptr resource;

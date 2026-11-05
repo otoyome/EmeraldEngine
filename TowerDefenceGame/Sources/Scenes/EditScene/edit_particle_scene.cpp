@@ -1,6 +1,7 @@
 #include "scenes/editscene/edit_particle_scene.h"
 #include "System/asset_browser.h"
 #include "Resource/resource_manager.h"
+#include "material_shader_map.h"
 
 #include "model_instance.h"
 #include "camera.h"
@@ -381,7 +382,7 @@ void edit_particle_scene::generate_default_effect()
 						material->set_flag(material_resource::flags::indirect_lighting_off, true);
 
 						//	デフォルトシェーダー設定
-						material->set_shader_path(material_resource::default_particle_shader_path);
+						material->set_shader_path(material_shader_map::get_default_shader_path(material_resource::domains::particle));
 
 						//	パラメーター設定
 						material->set_float4("base_color_factor", math::float4(1, 1, 1, 1));
@@ -493,7 +494,7 @@ void edit_particle_scene::generate_default_effect()
 						material->set_flag(material_resource::flags::indirect_lighting_off, true);
 
 						//	デフォルトシェーダー設定
-						material->set_shader_path(material_resource::default_particle_shader_path);
+						material->set_shader_path(material_shader_map::get_default_shader_path(material_resource::domains::particle));
 
 						//	パラメーター設定
 						material->set_float4("base_color_factor", math::float4(1, 1, 1, 1));

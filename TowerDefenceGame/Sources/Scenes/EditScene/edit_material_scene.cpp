@@ -309,7 +309,7 @@ void edit_material_scene::revert_source()
 		if (entry.material->get_file_path().empty())
 			reload_source = true;
 		else
-			entry.material->revert_file();
+			resource_manager::instance()->revert(*entry.material);
 	}
 
 	if (reload_source && !source_material)

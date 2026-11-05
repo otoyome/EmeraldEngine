@@ -1,4 +1,5 @@
 #include "material_resource.h"
+#include "material_resource_factory.h"
 #include "material_shader_map.h"
 #include "texture.h"
 #include "render_data.h"
@@ -38,20 +39,6 @@ namespace
 			return true;
 		}
 		return false;
-	}
-
-	//	マテリアルが使えない時に表示するマテリアルシェーダー
-	std::string_view get_failed_shader_path(material_resource::domains domain)
-	{
-		switch (domain)
-		{
-			case material_resource::domains::surface: return "Shaders/Materials/3d_failed.hlsl";
-			case material_resource::domains::particle: return material_resource::default_particle_shader_path;
-			case material_resource::domains::deferred_decal: return "Shaders/Materials/DeferredDecal/decal_failed.hlsl";
-			case material_resource::domains::post_process: return "Shaders/Materials/PostProcess/post_process_failed.hlsl";
-			case material_resource::domains::user_interface: return material_resource::default_user_interface_shader_path;
-			default: return "";
-		}
 	}
 
 	//	サーフェイスパスへ変換
@@ -273,7 +260,7 @@ void material_resource::sync_shader_reloads()
 		return;
 
 #if defined(USE_IMGUI)
-	error_state_cached_ = false;
+	pipeline_states_verified = false;
 #endif	//	defined(USE_IMGUI)
 
 	//	取り直しの中でシェーダーマップが宣言を読み直す(宣言が変わっていれば他のマテリアルにも番号で伝わる)
@@ -739,7 +726,7 @@ void material_resource::refresh_pipeline_states()
 	shader_map_version = shader_map->get_version();
 
 #if defined(USE_IMGUI)
-	error_state_cached_ = false;
+	pipeline_states_verified = false;
 #endif	//	defined(USE_IMGUI)
 }
 
@@ -900,12 +887,7 @@ graphics_pipeline_state_ptr material_resource::get_pipeline_state(domains domain
 	if (is_error())
 	{
 		//	エラー表示用のマテリアルシェーダーで描く
-		material_shader_map::request request;
-		request.shader_path = get_failed_shader_path(this->domain);
-		request.domain = this->domain;
-		request.pass = to_shader_map_pass(this->domain, index);
-		request.pixel = this->domain == domains::particle;
-		if (auto failed = material_shader_map::instance()->get_pipeline_state(request))
+		if (auto failed = material_shader_map::instance()->get_failed_pipeline_state(this->domain, to_shader_map_pass(this->domain, index)))
 			return failed;
 		assert(!"Not Comaptible Failed Shader.");
 	}
@@ -1079,7 +1061,7 @@ void material_resource::deserialize_stream(std::stringstream& istream)
 #if defined(USE_IMGUI)
 bool material_resource::is_error() const
 {
-	if (error_state_cached_)
+	if (pipeline_states_verified)
 		return false;
 
 	std::size_t size = 0;
@@ -1109,7 +1091,7 @@ bool material_resource::is_error() const
 			return true;
 	}
 
-	error_state_cached_ = true;
+	pipeline_states_verified = true;
 	return false;
 }
 
@@ -1138,7 +1120,7 @@ bool material_resource::load_file(std::string_view file_path)
 
 	inherit_uuid(header.uuid);
 	set_file_path(file_path);
-	missing = false;
+	set_missing(false);
 	return true;
 }
 
@@ -1159,52 +1141,9 @@ bool material_resource::save_file(std::string_view file_path)
 	if (!::resource::write_asset_file(*this, ::resource::asset_types::material, file_path, buffer_stream.str()))
 		return false;
 
-	missing = false;
+	set_missing(false);
 	DEBUG_LOG_CATEGORY(logger::categorys::model, "material_resource serialize successed[%s]", std::string(file_path).c_str());
 	return true;
-}
-bool material_resource::revert_file()
-{
-	if (missing || get_file_path().empty())
-		return false;
-
-	material_resource loaded;
-	if (!loaded.load_file(get_file_path()))
-		return false;
-
-	loaded.duplicate(*this);
-	return true;
-}
-
-material_resource_ptr material_resource::create_missing(const ::resource::asset_reference<material_resource>& reference, domains domain)
-{
-	DEBUG_ERROR_CATEGORY(logger::categorys::model, "material_resource missing[%s][%s]", reference.path.c_str(), reference.uuid.to_string().c_str());
-
-	auto material = std::make_shared<material_resource>(std::filesystem::path(reference.path).stem().string());
-	material->set_domain(domain);
-	material->set_shader_path(get_failed_shader_path(domain));
-	material->set_file_path(reference.path);
-	material->inherit_uuid(reference.uuid);
-	material->missing = true;
-	material->build();
-	return material;
-}
-
-::resource::load_operation_ptr<material_resource> material_resource::request_load(const ::resource::asset_reference<material_resource>& reference)
-{
-	if (reference.is_empty() || !resource_manager::is_valid())
-		return nullptr;
-	return resource_manager::instance()->load_async(reference, ::resource::load_priority::high);
-}
-
-material_resource_ptr material_resource::resolve(const ::resource::load_operation_ptr<material_resource>& operation, const ::resource::asset_reference<material_resource>& reference, domains domain)
-{
-	if (operation && operation->is_succeeded())
-	{
-		if (auto material = operation->get_resource())
-			return material;
-	}
-	return create_missing(reference, domain);
 }
 
 namespace resource
@@ -1228,6 +1167,19 @@ namespace resource
 	{
 		resource->build();
 		return operation_state::success;
+	}
+
+	material_resource_ptr loader<material_resource>::create_fallback(const asset_reference<material_resource>& reference, material_resource::domains domain)
+	{
+		return material_resource_factory::create_missing(reference, domain);
+	}
+
+	bool loader<material_resource>::revert(material_resource& target)
+	{
+		if (target.is_missing())
+			return false;
+		resource->duplicate(target);
+		return true;
 	}
 
 	bool saver<material_resource>::save(material_resource& resource, std::string_view file_path)

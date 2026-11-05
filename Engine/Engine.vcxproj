@@ -96,6 +96,7 @@
     <ClInclude Include="Headers\light.h" />
     <ClInclude Include="Headers\light_data.h" />
     <ClInclude Include="Headers\material_resource.h" />
+    <ClInclude Include="Headers\material_resource_factory.h" />
     <ClInclude Include="Headers\material_instance.h" />
     <ClInclude Include="Headers\material_shader_map.h" />
     <ClInclude Include="Headers\ModelFormat\gltf_loader.h" />
@@ -205,6 +206,7 @@
     <ClCompile Include="Sources\light.cpp" />
     <ClCompile Include="Sources\light_data.cpp" />
     <ClCompile Include="Sources\material_resource.cpp" />
+    <ClCompile Include="Sources\material_resource_factory.cpp" />
     <ClCompile Include="Sources\material_instance.cpp" />
     <ClCompile Include="Sources\material_shader_map.cpp" />
     <ClCompile Include="Sources\ModelFormat\gltf_loader.cpp" />

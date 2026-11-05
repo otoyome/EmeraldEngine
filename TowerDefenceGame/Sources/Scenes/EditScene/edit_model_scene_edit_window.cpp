@@ -227,13 +227,24 @@ void edit_model_scene::imgui_render_material_window()
 {
 	if (ImGui::Begin("Material Window"))
 	{
-		for (auto& material : edit_model->get_model_instance()->get_resource_for_editor()->get_materials_for_editor())
+		auto& model_instance = *edit_model->get_model_instance();
+		auto& materials = model_instance.get_resource_for_editor()->get_materials_for_editor();
+		for (std::size_t index = 0; index < materials.size(); ++index)
 		{
+			auto& material = materials[index];
+			ImGui::PushID(static_cast<int>(index));
 			if (ImGui::TreeNode(system_utility::convert_utf8(material->get_name()).data()))
 			{
+				//	別のマテリアルリソースに差し替えたら、表示中のインスタンスも差し替える
+				if (editor_items::edit_material_slot(editor_context, material, material_resource::domains::surface) &&
+					index < model_instance.get_materials().size())
+				{
+					model_instance.get_materials()[index].set_resource(material);
+				}
 				editor_items::edit_material(editor_context, *material);
 				ImGui::TreePop();
 			}
+			ImGui::PopID();
 		}
 	}
 	ImGui::End();

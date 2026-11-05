@@ -11,6 +11,7 @@
 #include "texture.h"
 #include "Resource/resource_manager.h"
 #include "Resource/asset_registry.h"
+#include "Resource/asset_file_header.h"
 #include "system/logger.h"
 
 namespace
@@ -19,7 +20,7 @@ namespace
 	constexpr std::string_view root_directory = "Assets";
 
 	//	ドラッグ&ドロップの種類名
-	constexpr const char* move_payload_type = "ASSET_BROWSER_PATH";
+	constexpr const char* move_payload_type = asset_browser::drag_payload_type;
 
 	//	本体のファイル名の後ろに付けた名前の付属ファイル(本体と一緒に移動する)
 	constexpr std::string_view sidecar_extensions[] = { ".meta" };
@@ -134,6 +135,14 @@ namespace
 	{
 		return target.size() > path.size() && target.substr(0, path.size()) == path && target[path.size()] == '/';
 	}
+
+	//	@tool ファイル名に使える名前か(区切り文字などファイル名に使えない文字は受け付けない)
+	bool is_valid_file_name(const cache_string& value)
+	{
+		const std::wstring& name = value.get<utf16_cache>();
+		return !(name.empty() || name == L"." || name == L".." ||
+			std::any_of(name.begin(), name.end(), [](wchar_t c) { return c < 0x20 || std::wstring_view(L"\\/:*?\"<>|").find(c) != std::wstring_view::npos; }));
+	}
 }
 
 asset_browser::asset_browser()
@@ -151,6 +160,12 @@ void asset_browser::register_open_handler(open_handler handler)
 	for (auto& extension : handler.extensions)
 		extension = std::string(extension.get<lower_cache>());
 	handlers.emplace_back(std::move(handler));
+}
+
+void asset_browser::register_create_handler(create_handler handler)
+{
+	handler.extension = std::string(handler.extension.get<lower_cache>());
+	create_handlers.emplace_back(std::move(handler));
 }
 
 bool asset_browser::take_open_request(std::string_view name, std::string& out_file_path)
@@ -390,6 +405,13 @@ void asset_browser::imgui_render()
 			if (ImGui::BeginChild("##entries"))
 			{
 				imgui_render_entries();
+
+				//	@tool 何も無い所の右クリックで今のフォルダに作る
+				if (ImGui::BeginPopupContextWindow("##entries_context", ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_NoOpenOverItems))
+				{
+					imgui_render_create_menu(current_directory);
+					ImGui::EndPopup();
+				}
 			}
 			ImGui::EndChild();
 
@@ -397,6 +419,7 @@ void asset_browser::imgui_render()
 		}
 
 		imgui_render_rename_popup();
+		imgui_render_create_popup();
 	}
 	ImGui::End();
 
@@ -404,6 +427,18 @@ void asset_browser::imgui_render()
 	{
 		move_entry(pending_move->source_path, pending_move->destination_path);
 		pending_move.reset();
+	}
+
+	if (pending_create)
+	{
+		create_entry(*pending_create);
+		pending_create.reset();
+	}
+
+	if (pending_duplicate)
+	{
+		duplicate_entry(*pending_duplicate);
+		pending_duplicate.reset();
 	}
 
 	if (pending_refresh)
@@ -664,6 +699,7 @@ void asset_browser::imgui_render_entry_context_menu(const entry& target)
 	{
 		if (ImGui::MenuItem("Open"))
 			pending_directory = target.path;
+		imgui_render_create_menu(target.path);
 		ImGui::Separator();
 	}
 	else
@@ -681,6 +717,13 @@ void asset_browser::imgui_render_entry_context_menu(const entry& target)
 		}
 		if (found)
 			ImGui::Separator();
+	}
+
+	//	@tool UUID を持つアセットだけ複製できる
+	if (!target.is_directory && resource::get_asset_type_from_extension(target.extension.view()) != resource::asset_types::unknown)
+	{
+		if (ImGui::MenuItem("Duplicate"))
+			pending_duplicate = target.path;
 	}
 
 	if (ImGui::MenuItem("Rename"))
@@ -731,12 +774,95 @@ void asset_browser::imgui_render_rename_popup()
 	if (accepted)
 	{
 		//	区切り文字などファイル名に使えない文字は受け付けない
-		const std::wstring& name = rename_name.get<utf16_cache>();
-		rename_invalid = name.empty() || name == L"." || name == L".." ||
-			std::any_of(name.begin(), name.end(), [](wchar_t c) { return c < 0x20 || std::wstring_view(L"\\/:*?\"<>|").find(c) != std::wstring_view::npos; });
+		rename_invalid = !is_valid_file_name(rename_name);
 		if (!rename_invalid)
 		{
 			pending_move = move_request{ rename_source_path, std::string(parent_path(rename_source_path.view())) + "/" + rename_name.str() };
+			ImGui::CloseCurrentPopup();
+		}
+	}
+	else if (canceled)
+	{
+		ImGui::CloseCurrentPopup();
+	}
+	ImGui::EndPopup();
+}
+
+void asset_browser::imgui_render_create_menu(const cache_string& directory)
+{
+	if (!ImGui::BeginMenu("Create"))
+		return;
+
+	if (ImGui::MenuItem("Folder"))
+	{
+		create_directory = directory;
+		create_name = "New Folder";
+		create_handler_index = folder_handler_index;
+		create_invalid = false;
+		open_create_popup = true;
+	}
+	if (!create_handlers.empty())
+		ImGui::Separator();
+
+	for (std::size_t index = 0; index < create_handlers.size(); ++index)
+	{
+		const create_handler& handler = create_handlers[index];
+		if (ImGui::MenuItem(handler.label.get<utf8_cache>().c_str()))
+		{
+			create_directory = directory;
+			create_name = handler.default_name;
+			create_handler_index = index;
+			create_invalid = false;
+			open_create_popup = true;
+		}
+	}
+	ImGui::EndMenu();
+}
+
+void asset_browser::imgui_render_create_popup()
+{
+	constexpr const char* popup_name = "Create##asset_browser";
+	if (open_create_popup)
+	{
+		ImGui::OpenPopup(popup_name);
+		open_create_popup = false;
+	}
+
+	if (!ImGui::BeginPopupModal(popup_name, nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+		return;
+
+	const bool is_folder = create_handler_index == folder_handler_index;
+	const cache_string& label = is_folder ? cache_string("Folder") : create_handlers[create_handler_index].label;
+	const cache_string& extension = is_folder ? cache_string() : create_handlers[create_handler_index].extension;
+	ImGui::TextUnformatted(label.get<utf8_cache>().c_str());
+	ImGui::TextDisabled("%s", create_directory.get<utf8_cache>().c_str());
+
+	if (ImGui::IsWindowAppearing())
+		ImGui::SetKeyboardFocusHere();
+	ImGui::SetNextItemWidth(320.0f);
+	bool accepted = input_text_utf8("##name", create_name, ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_AutoSelectAll);
+	ImGui::SameLine();
+	ImGui::TextUnformatted(extension.get<utf8_cache>().c_str());
+
+	//	@tool 同じ名前のファイルがあれば作らない
+	const cache_string file_path = create_directory.str() + "/" + create_name.str() + extension.str();
+	std::error_code error;
+	const bool exists = std::filesystem::exists(to_filesystem_path(file_path), error);
+	if (create_invalid)
+		ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.4f, 1.0f), "Invalid name");
+	else if (exists)
+		ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.4f, 1.0f), "Already exists");
+
+	accepted |= ImGui::Button("OK");
+	ImGui::SameLine();
+	const bool canceled = ImGui::Button("Cancel") || ImGui::IsKeyPressed(ImGuiKey_Escape);
+
+	if (accepted)
+	{
+		create_invalid = !is_valid_file_name(create_name);
+		if (!create_invalid && !exists)
+		{
+			pending_create = create_request{ create_handler_index, file_path };
 			ImGui::CloseCurrentPopup();
 		}
 	}
@@ -815,6 +941,82 @@ bool asset_browser::move_entry(const cache_string& source_path, const cache_stri
 
 	if (resource_manager::make_path_key(selected_path.view()) == resource_manager::make_path_key(source_path))
 		selected_path = destination_path;
+	pending_refresh = true;
+	return true;
+}
+
+bool asset_browser::create_entry(const create_request& request)
+{
+	const bool is_folder = request.handler_index == folder_handler_index;
+	if (!is_folder && request.handler_index >= create_handlers.size())
+		return false;
+
+	std::error_code error;
+	if (std::filesystem::exists(to_filesystem_path(request.file_path), error))
+	{
+		DEBUG_WARNING_CATEGORY(logger::categorys::system, "asset_browser create target already exists[%s]", request.file_path.c_str());
+		return false;
+	}
+
+	const bool created = is_folder
+		? std::filesystem::create_directory(to_filesystem_path(request.file_path), error)
+		: create_handlers[request.handler_index].create(request.file_path.view());
+	if (!created)
+	{
+		DEBUG_ERROR_CATEGORY(logger::categorys::system, "asset_browser create failed[%s]", request.file_path.c_str());
+		return false;
+	}
+
+	DEBUG_LOG_CATEGORY(logger::categorys::system, "asset_browser created[%s]", request.file_path.c_str());
+	selected_path = request.file_path;
+	pending_refresh = true;
+	return true;
+}
+
+bool asset_browser::duplicate_entry(const cache_string& source_path)
+{
+	const std::string_view name = file_name(source_path.view());
+	const std::size_t dot = name.rfind('.');
+	if (dot == std::string_view::npos)
+		return false;
+
+	const std::string_view extension = name.substr(dot);
+	const resource::asset_types type = resource::get_asset_type_from_extension(extension);
+	if (type == resource::asset_types::unknown)
+		return false;
+
+	//	@tool 「名前_番号」で空いている名前を探す
+	const std::string base_path = std::string(parent_path(source_path.view())) + "/" + std::string(name.substr(0, dot)) + "_";
+	cache_string destination_path;
+	std::error_code error;
+	for (int number = 1; destination_path.empty(); ++number)
+	{
+		cache_string candidate = base_path + std::to_string(number) + std::string(extension);
+		if (!std::filesystem::exists(to_filesystem_path(candidate), error))
+			destination_path = std::move(candidate);
+	}
+
+	const std::filesystem::path destination = to_filesystem_path(destination_path);
+	std::filesystem::copy_file(to_filesystem_path(source_path), destination, error);
+	if (error)
+	{
+		DEBUG_ERROR_CATEGORY(logger::categorys::system, "asset_browser duplicate failed[%s] -> [%s] %s", source_path.c_str(), destination_path.c_str(), error.message().c_str());
+		return false;
+	}
+
+	//	@tool 複製は別のアセットなので UUID を振り直して対応表に載せる
+	const universally_unique_identifier uuid = universally_unique_identifier::generate();
+	if (!resource::rewrite_asset_header_uuid(destination, uuid))
+	{
+		DEBUG_ERROR_CATEGORY(logger::categorys::system, "asset_browser duplicate header rewrite failed[%s]", destination_path.c_str());
+		std::filesystem::remove(destination, error);
+		return false;
+	}
+	if (asset_registry::is_valid())
+		asset_registry::instance()->register_asset(uuid, type, destination_path.view());
+
+	DEBUG_LOG_CATEGORY(logger::categorys::system, "asset_browser duplicated[%s] -> [%s]", source_path.c_str(), destination_path.c_str());
+	selected_path = destination_path;
 	pending_refresh = true;
 	return true;
 }

@@ -26,8 +26,12 @@ namespace resource
 
 		void regenerate_uuid() { resource_uuid = universally_unique_identifier::generate(); }
 
+		bool is_missing() const { return missing; }
+		void set_missing(bool value) { missing = value; }
+
 	private:
 		std::string file_path;
 		universally_unique_identifier resource_uuid;
+		bool missing = false;
 	};
 }	//	namespace resource

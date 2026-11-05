@@ -258,7 +258,7 @@ namespace resource
 		{
 			auto& operation = decal_material_operations.emplace_back();
 			if (!decal_data.material)
-				operation = material_resource::request_load(decal_data.material.get_reference());
+				operation = resource_manager::instance()->load_async(decal_data.material.get_reference(), load_priority::high);
 			add_dependency(operation);
 		}
 		for (auto& particle_data : resource->particles)
@@ -266,7 +266,7 @@ namespace resource
 			auto renderer = particle_data.particle.get_item<::particle::item::renderer>();
 			auto& operation = particle_material_operations.emplace_back();
 			if (renderer && !renderer->material)
-				operation = material_resource::request_load(renderer->material.get_reference());
+				operation = resource_manager::instance()->load_async(renderer->material.get_reference(), load_priority::high);
 			add_dependency(operation);
 		}
 		return operation_state::success;
@@ -286,13 +286,13 @@ namespace resource
 		{
 			auto& decal_data = resource->decals[index];
 			if (!decal_data.material && !decal_data.material.is_empty())
-				decal_data.material = material_resource::resolve(decal_material_operations[index], decal_data.material.get_reference(), material_resource::domains::deferred_decal);
+				decal_data.material = resource_manager::instance()->resolve(decal_material_operations[index], decal_data.material.get_reference(), material_resource::domains::deferred_decal);
 		}
 		for (size_t index = 0; index < resource->particles.size(); ++index)
 		{
 			auto renderer = resource->particles[index].particle.get_item<::particle::item::renderer>();
 			if (renderer && !renderer->material && !renderer->material.is_empty())
-				renderer->material = material_resource::resolve(particle_material_operations[index], renderer->material.get_reference(), material_resource::domains::particle);
+				renderer->material = resource_manager::instance()->resolve(particle_material_operations[index], renderer->material.get_reference(), material_resource::domains::particle);
 		}
 		model_operations.clear();
 		decal_material_operations.clear();

@@ -69,17 +69,38 @@ class asset_browser
 		universally_unique_identifier uuid;
 		std::string file_path;
 	};
+	//	新規作成
+	struct create_request
+	{
+		std::size_t handler_index = 0;	//	作成処理の番号（folder_handler_index ならフォルダ）
+		cache_string file_path;			//	作るファイル
+	};
 public:
+	//	ドラッグ&ドロップの種類名(中身は「/」区切りの相対パス、Shift-JIS)
+	static constexpr const char* drag_payload_type = "ASSET_BROWSER_PATH";
+
 	//	開き先の登録情報
 	struct open_handler
 	{
-		cache_string name;						//	開き先の名前（開く要求の受け取りに使う）
-		cache_string label;						//	メニューの表示名（Shift-JIS）
-		std::vector<cache_string> extensions;	//	対象の拡張子（「.」付きの小文字）
-		std::function<void()> activate;			//	開き先を有効にする（シーン切替など）
+		cache_string name;						//	開き先の名前
+		cache_string label;						//	メニューの表示名
+		std::vector<cache_string> extensions;	//	対象の拡張子
+		std::function<void()> activate;			//	開く(@remainder 現状はシーンを変えているが、その内別ウィンドウを開くように対応)
+	};
+
+	//	新規作成の登録情報
+	struct create_handler
+	{
+		cache_string label;										//	メニューの表示名
+		cache_string default_name;								//	名前の初期値
+		cache_string extension;									//	作るファイルの拡張子
+		std::function<bool(std::string_view file_path)> create;	//	ファイル作成
 	};
 
 private:
+	//	作成処理の番号でフォルダを表す値
+	static constexpr std::size_t folder_handler_index = static_cast<std::size_t>(-1);
+
 	asset_browser();
 	~asset_browser();
 	asset_browser(const asset_browser&) = delete;
@@ -88,6 +109,9 @@ private:
 public:
 	//	開き先を登録する
 	void register_open_handler(open_handler handler);
+
+	//	新規作成を登録する
+	void register_create_handler(create_handler handler);
 
 	//	開く要求を受け取る
 	bool take_open_request(std::string_view name, std::string& out_file_path);
@@ -116,6 +140,12 @@ private:
 	//	ファイル/フォルダを移動し、対応表と読込済みリソースのパスも合わせる
 	bool move_entry(const cache_string& source_path, const cache_string& destination_path);
 
+	//	登録した処理でファイルを作る
+	bool create_entry(const create_request& request);
+
+	//	アセットファイルを別名で複製し、UUID を振り直す
+	bool duplicate_entry(const cache_string& source_path);
+
 	void load_thumbnail(entry& target);
 
 private:	//	IMGUI系
@@ -125,9 +155,12 @@ private:	//	IMGUI系
 	void imgui_render_entry(entry& target, float cell_width, float cell_height);
 	void imgui_render_entry_context_menu(const entry& target);
 	void imgui_render_rename_popup();
+	void imgui_render_create_menu(const cache_string& directory);
+	void imgui_render_create_popup();
 
 private:
 	std::vector<open_handler> handlers;
+	std::vector<create_handler> create_handlers;
 	std::map<std::string, open_request, std::less<>> open_requests;
 
 	directory_node root;
@@ -149,6 +182,14 @@ private:
 	cache_string rename_name;
 	bool open_rename_popup = false;
 	bool rename_invalid = false;
+
+	std::optional<create_request> pending_create;
+	std::optional<cache_string> pending_duplicate;
+	cache_string create_directory;
+	cache_string create_name;
+	std::size_t create_handler_index = 0;
+	bool open_create_popup = false;
+	bool create_invalid = false;
 
 	ImGuiTextFilter filter;
 };

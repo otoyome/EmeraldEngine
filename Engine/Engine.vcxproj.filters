@@ -105,6 +105,9 @@
     <ClInclude Include="Headers\material_resource.h">
       <Filter>Headers</Filter>
     </ClInclude>
+    <ClInclude Include="Headers\material_resource_factory.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
     <ClInclude Include="Headers\material_instance.h">
       <Filter>Headers</Filter>
     </ClInclude>
@@ -435,6 +438,9 @@
       <Filter>Sources</Filter>
     </ClCompile>
     <ClCompile Include="Sources\material_resource.cpp">
+      <Filter>Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\material_resource_factory.cpp">
       <Filter>Sources</Filter>
     </ClCompile>
     <ClCompile Include="Sources\material_instance.cpp">

@@ -23,6 +23,13 @@ namespace
 	//	マテリアルシェーダーの置き場所
 	constexpr std::string_view material_shader_directory = "Shaders/Materials";
 
+	//	ドメインごとの既定のマテリアルシェーダー
+	constexpr std::string_view default_particle_shader_path = "Shaders/Materials/Particle/particle_default.hlsl";
+	constexpr std::string_view default_decal_shader_path = "Shaders/Materials/DeferredDecal/decal_default.hlsl";
+	constexpr std::string_view default_user_interface_shader_path = "Shaders/Materials/UserInterface/sprite_default.hlsl";
+	constexpr std::string_view default_surface_shader_path = "Shaders/Materials/gltf.hlsl";
+	constexpr std::string_view default_post_process_shader_path = "Shaders/Materials/PostProcess/color_filter_after_tone_mapping.hlsl";
+
 	//	ドメインのパスごとの設定
 	struct pass_template
 	{
@@ -289,6 +296,32 @@ UINT material_shader_map::get_pass_count(domains domain)
 	return target ? target->pass_count : 0;
 }
 
+std::string_view material_shader_map::get_default_shader_path(domains domain)
+{
+	switch (domain)
+	{
+		case domains::surface: return default_surface_shader_path;
+		case domains::particle: return default_particle_shader_path;
+		case domains::deferred_decal: return default_decal_shader_path;
+		case domains::post_process: return default_post_process_shader_path;
+		case domains::user_interface: return default_user_interface_shader_path;
+		default: return "";
+	}
+}
+
+std::string_view material_shader_map::get_failed_shader_path(domains domain)
+{
+	switch (domain)
+	{
+		case domains::surface: return "Shaders/Materials/3d_failed.hlsl";
+		case domains::particle: return default_particle_shader_path;
+		case domains::deferred_decal: return "Shaders/Materials/DeferredDecal/decal_failed.hlsl";
+		case domains::post_process: return "Shaders/Materials/PostProcess/post_process_failed.hlsl";
+		case domains::user_interface: return default_user_interface_shader_path;
+		default: return "";
+	}
+}
+
 material_shader_map::entry* material_shader_map::find_entry(std::string_view shader_path, domains domain)
 {
 	if (shader_path.empty() || !is_supported_domain(domain))
@@ -503,6 +536,16 @@ graphics_pipeline_state_ptr material_shader_map::get_pipeline_state(const reques
 	return pipeline_state;
 }
 
+graphics_pipeline_state_ptr material_shader_map::get_failed_pipeline_state(domains domain, UINT pass)
+{
+	request failed_request;
+	failed_request.shader_path = get_failed_shader_path(domain);
+	failed_request.domain = domain;
+	failed_request.pass = pass;
+	failed_request.pixel = domain == domains::particle;
+	return get_pipeline_state(failed_request);
+}
+
 void material_shader_map::get_parameter_pipeline_states(std::string_view shader_path, domains domain, std::vector<graphics_pipeline_state_ptr>& out)
 {
 	entry* target = find_entry(shader_path, domain);
@@ -566,5 +609,37 @@ std::vector<std::string> material_shader_map::collect_shader_paths(domains domai
 	}
 	std::sort(paths.begin(), paths.end());
 	return paths;
+}
+
+std::string material_shader_map::create_shader_file(domains domain, std::string_view name, std::string_view source_path) const
+{
+	const domain_template* domain_setting = find_domain_template(domain);
+	if (!domain_setting || name.empty() || source_path.empty())
+		return {};
+
+	//	collect_shader_paths の候補に出るフォルダに置く
+	std::filesystem::path directory(material_shader_directory);
+	if (!domain_setting->directory.empty())
+		directory /= domain_setting->directory;
+
+	std::filesystem::path destination = directory / std::filesystem::path(std::string(name) + ".hlsl");
+	std::error_code error;
+	if (std::filesystem::exists(destination, error))
+	{
+		DEBUG_WARNING_CATEGORY(logger::categorys::shader, "material_shader_map create shader already exists[%s]", destination.string().c_str());
+		return {};
+	}
+
+	std::filesystem::copy_file(std::filesystem::path(std::string(source_path)), destination, error);
+	if (error)
+	{
+		DEBUG_ERROR_CATEGORY(logger::categorys::shader, "material_shader_map create shader failed[%s] -> [%s] %s", std::string(source_path).c_str(), destination.string().c_str(), error.message().c_str());
+		return {};
+	}
+
+	std::string path = destination.string();
+	std::replace(path.begin(), path.end(), '\\', '/');
+	DEBUG_LOG_CATEGORY(logger::categorys::shader, "material_shader_map created shader[%s]", path.c_str());
+	return path;
 }
 #endif	//	defined(USE_IMGUI)

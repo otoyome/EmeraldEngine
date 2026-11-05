@@ -100,6 +100,9 @@ public:
 	//	パイプラインステートを取得
 	graphics_pipeline_state_ptr get_pipeline_state(const request& request);
 
+	//	@tool エラー表示用のマテリアルシェーダーのパイプラインステートを取得
+	graphics_pipeline_state_ptr get_failed_pipeline_state(domains domain, UINT pass);
+
 	//	マテリアルのパラメーター構成に使うパイプラインステートを取得
 	void get_parameter_pipeline_states(std::string_view shader_path, domains domain, std::vector<graphics_pipeline_state_ptr>& out);
 
@@ -107,8 +110,11 @@ public:
 	std::uint32_t get_version() const { return version; }
 
 #if defined(USE_IMGUI)
-	//	編集窓用:Shaders/Materials 以下のマテリアルシェーダーの一覧
+	//	Shaders/Materials 以下のマテリアルシェーダーの一覧
 	std::vector<std::string> collect_shader_paths(domains domain) const;
+
+	//	元のマテリアルシェーダーを写してドメインのフォルダに新しく作る。作ったパスを返す(失敗したら空)
+	std::string create_shader_file(domains domain, std::string_view name, std::string_view source_path) const;
 #endif	//	defined(USE_IMGUI)
 
 public:
@@ -117,6 +123,12 @@ public:
 
 	//	ドメインのパスの数
 	static UINT get_pass_count(domains domain);
+
+	//	ドメインの既定のマテリアルシェーダー
+	static std::string_view get_default_shader_path(domains domain);
+
+	//	エラーマテリアルシェーダーパス取得
+	static std::string_view get_failed_shader_path(domains domain);
 
 private:
 	entry* find_entry(std::string_view shader_path, domains domain);
