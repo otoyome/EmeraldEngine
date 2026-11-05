@@ -30,7 +30,7 @@ namespace
 	constexpr std::string_view postprocess_material_texts_list[ARRAYSIZE(postprocess_material_path_list)][2] =
 	{
 		{
-			"Shaders/Materials/PostProcess/color_filter_after_dof.hlsl",
+			"Assets/Resources/Shaders/PostProcess/color_filter_after_dof.hlsl",
 			"被写界深度後ポストプロセスマテリアル",
 		},
 	};

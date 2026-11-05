@@ -130,6 +130,9 @@ public:
 	//	エラーマテリアルシェーダーパス取得
 	static std::string_view get_failed_shader_path(domains domain);
 
+	//	@tool 旧置き場所(Shaders/Materials)のパスを今の置き場所のパスに読み替える(該当しなければそのまま返す)
+	static std::string convert_legacy_shader_path(std::string_view shader_path);
+
 private:
 	entry* find_entry(std::string_view shader_path, domains domain);
 	static void parse_declaration(const std::string& shader_path, domains domain, declaration& out);

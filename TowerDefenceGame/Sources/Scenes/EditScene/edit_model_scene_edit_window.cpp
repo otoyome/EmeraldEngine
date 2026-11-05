@@ -485,7 +485,7 @@ bool edit_model_scene::initialize_vertex_color_edit()
 		mat->set_shading_model(material_resource::shading_models::unlit);
 		mat->set_flag(material_resource::flags::wire, true);
 
-		mat->set_shader_path("Shaders/Materials/edit_model_color.hlsl");
+		mat->set_shader_path("Assets/Resources/Shaders/edit_model_color.hlsl");
 		mat->set_float("line_factor", 0.001f);
 		mat->set_float3("line_color", { 0, 1, 0 });
 		vertex_color_edit_material = mat;

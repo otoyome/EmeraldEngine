@@ -572,7 +572,7 @@ namespace
 			material.set_flag(material_resource::flags::two_sided, gltf_material.double_sided);
 
 			//	デフォルトシェーダー設定
-			material.set_shader_path("Shaders/Materials/gltf.hlsl");
+			material.set_shader_path("Assets/Resources/Shaders/gltf.hlsl");
 
 			material.set_float4("base_color_factor", gltf_material.base_color);
 			if (slots.base_texture)

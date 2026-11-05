@@ -67,23 +67,23 @@ namespace
 	constexpr std::string_view postprocess_material_texts_list[ARRAYSIZE(postprocess_material_path_list)][2] =
 	{
 		{
-			"Shaders/Materials/PostProcess/color_filter_before_dof.hlsl",
+			"Assets/Resources/Shaders/PostProcess/color_filter_before_dof.hlsl",
 			"被写界深度前ポストプロセスマテリアル",
 		},
 		{
-			"Shaders/Materials/PostProcess/color_filter_after_dof.hlsl",
+			"Assets/Resources/Shaders/PostProcess/color_filter_after_dof.hlsl",
 			"被写界深度後ポストプロセスマテリアル",
 		},
 		{
-			"Shaders/Materials/PostProcess/color_filter_after_dof_translucency.hlsl",
+			"Assets/Resources/Shaders/PostProcess/color_filter_after_dof_translucency.hlsl",
 			"被写界深度後半透明描画ポストプロセスマテリアル",
 		},
 		{
-			"Shaders/Materials/PostProcess/color_filter_before_bloom.hlsl",
+			"Assets/Resources/Shaders/PostProcess/color_filter_before_bloom.hlsl",
 			"ブルーム前ポストプロセスマテリアル",
 		},
 		{
-			"Shaders/Materials/PostProcess/color_filter_after_tone_mapping.hlsl",
+			"Assets/Resources/Shaders/PostProcess/color_filter_after_tone_mapping.hlsl",
 			"トーンマッピング後ポストプロセスマテリアル",
 		}
 	};

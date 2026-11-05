@@ -19,6 +19,7 @@ namespace
 {
 	constexpr std::string_view	compiled_directory = "Assets/CSO/";
 	constexpr std::string_view	compiled_extension = ".cso";
+	constexpr std::string_view	shader_root_directory = "Shaders";	//	@tool インクルードを探すルート
 	constexpr std::wstring_view	shader_types[magic_enum::enum_count<shader_type>()]	=
 	{
 		L"vs",	//  Vertex Shader
@@ -69,12 +70,12 @@ namespace
 	class fxc_include_handler : public ID3DInclude
 	{
 	public:
-		static std::vector<std::wstring> build_directry_pass(std::wstring_view file_path)
+		//	@tool インクルードは常に Shaders 以下から探す(マテリアルシェーダーは Assets 側に置くので、ファイルのパスからは決めない)
+		static std::vector<std::wstring> build_directry_pass()
 		{
 			std::vector<std::wstring> result;
 
-			std::filesystem::path path = file_path;
-			std::filesystem::path root_path = path.begin()->c_str();
+			const std::filesystem::path root_path = shader_root_directory;
 			if (!std::filesystem::exists(root_path) || !std::filesystem::is_directory(root_path))
 			{
 				return result; // 無効なルートなら空
@@ -88,10 +89,6 @@ namespace
 				}
 			}
 			return result;
-		}
-		static std::vector<std::wstring> build_directry_pass(std::string_view file_path)
-		{
-			return build_directry_pass(system_utility::convert_shift_jis_to_utf16(file_path));
 		}
 
 		std::vector<std::wstring> include_directries;
@@ -355,7 +352,7 @@ namespace
 	{
 		HRESULT hr;
 		//	インクルードパス構築
-		std::vector<std::wstring> include_paths = fxc_include_handler::build_directry_pass(input_data.file_path);
+		std::vector<std::wstring> include_paths = fxc_include_handler::build_directry_pass();
 		for (auto& include_directry : input_data.include_directries)
 		{
 			include_paths.emplace_back(system_utility::convert_shift_jis_to_utf16(include_directry));
@@ -533,7 +530,7 @@ namespace
 	}
 	bool compile_from_file_dxc(const compile_input_file& input_data, compile_output& output_data)
 	{
-		std::vector<std::wstring> include_paths = fxc_include_handler::build_directry_pass(input_data.file_path);
+		std::vector<std::wstring> include_paths = fxc_include_handler::build_directry_pass();
 
 		HRESULT hr;
 		std::vector<std::wstring> convert_texts;

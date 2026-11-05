@@ -352,7 +352,7 @@ namespace
 			material.set_blend_mode(material_resource::blend_modes::mask);
 			material.set_alpha_clip_threshold(0.5f);
 			material.set_shading_model(material_resource::shading_models::default_lit);
-			material.set_shader_path("Shaders/Materials/pmx.hlsl");
+			material.set_shader_path("Assets/Resources/Shaders/pmx.hlsl");
 			material.set_flag(material_resource::flags::two_sided, system_utility::is_bitflag(pmx_material.draw_flag, pmx_material_draw_bitflag::cull_both));
 			material.set_flag(material_resource::flags::shadow_caster, system_utility::is_bitflag(pmx_material.draw_flag, pmx_material_draw_bitflag::use_shadow));
 			material.set_flag(material_resource::flags::shadow_receiver, system_utility::is_bitflag(pmx_material.draw_flag, pmx_material_draw_bitflag::use_shadow));

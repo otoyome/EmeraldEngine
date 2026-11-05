@@ -21,14 +21,14 @@ namespace
 		"#define MATERIAL_SWITCH(name) MATERIAL_SWITCH_##name\n";
 
 	//	マテリアルシェーダーの置き場所
-	constexpr std::string_view material_shader_directory = "Shaders/Materials";
+	constexpr std::string_view material_shader_directory = "Assets/Resources/Shaders";
 
 	//	ドメインごとの既定のマテリアルシェーダー
-	constexpr std::string_view default_particle_shader_path = "Shaders/Materials/Particle/particle_default.hlsl";
-	constexpr std::string_view default_decal_shader_path = "Shaders/Materials/DeferredDecal/decal_default.hlsl";
-	constexpr std::string_view default_user_interface_shader_path = "Shaders/Materials/UserInterface/sprite_default.hlsl";
-	constexpr std::string_view default_surface_shader_path = "Shaders/Materials/gltf.hlsl";
-	constexpr std::string_view default_post_process_shader_path = "Shaders/Materials/PostProcess/color_filter_after_tone_mapping.hlsl";
+	constexpr std::string_view default_particle_shader_path = "Assets/Resources/Shaders/Particle/particle_default.hlsl";
+	constexpr std::string_view default_decal_shader_path = "Assets/Resources/Shaders/DeferredDecal/decal_default.hlsl";
+	constexpr std::string_view default_user_interface_shader_path = "Assets/Resources/Shaders/UserInterface/sprite_default.hlsl";
+	constexpr std::string_view default_surface_shader_path = "Assets/Resources/Shaders/gltf.hlsl";
+	constexpr std::string_view default_post_process_shader_path = "Assets/Resources/Shaders/PostProcess/color_filter_after_tone_mapping.hlsl";
 
 	//	ドメインのパスごとの設定
 	struct pass_template
@@ -313,13 +313,26 @@ std::string_view material_shader_map::get_failed_shader_path(domains domain)
 {
 	switch (domain)
 	{
-		case domains::surface: return "Shaders/Materials/3d_failed.hlsl";
+		case domains::surface: return "Assets/Resources/Shaders/3d_failed.hlsl";
 		case domains::particle: return default_particle_shader_path;
-		case domains::deferred_decal: return "Shaders/Materials/DeferredDecal/decal_failed.hlsl";
-		case domains::post_process: return "Shaders/Materials/PostProcess/post_process_failed.hlsl";
+		case domains::deferred_decal: return "Assets/Resources/Shaders/DeferredDecal/decal_failed.hlsl";
+		case domains::post_process: return "Assets/Resources/Shaders/PostProcess/post_process_failed.hlsl";
 		case domains::user_interface: return default_user_interface_shader_path;
 		default: return "";
 	}
+}
+
+std::string material_shader_map::convert_legacy_shader_path(std::string_view shader_path)
+{
+	//	@tool マテリアルシェーダーを Assets 側へ移す前のフォルダ
+	constexpr std::string_view legacy_directory = "Shaders/Materials/";
+
+	std::string path(shader_path);
+	std::replace(path.begin(), path.end(), '\\', '/');
+	if (!path.starts_with(legacy_directory))
+		return std::string(shader_path);
+
+	return std::string(material_shader_directory) + "/" + path.substr(legacy_directory.size());
 }
 
 material_shader_map::entry* material_shader_map::find_entry(std::string_view shader_path, domains domain)
