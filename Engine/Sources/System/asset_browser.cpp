@@ -357,6 +357,12 @@ void asset_browser::release_retired_thumbnails()
 void asset_browser::load_thumbnail(entry& target)
 {
 	target.thumbnail_requested = true;
+
+	if (asset_thumbnail_cache::is_supported(target.path))
+	{
+		target.thumbnail = thumbnail_cache.load(target.path);
+		return;
+	}
 	if (!contains(thumbnail_extensions, target.extension))
 		return;
 

@@ -111,6 +111,8 @@ namespace resource
 			return asset_types::material;
 		if (lower == ".eme")
 			return asset_types::effect;
+		if (lower == ".etx")
+			return asset_types::texture;
 		return asset_types::unknown;
 	}
 

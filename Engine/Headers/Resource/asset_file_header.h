@@ -20,6 +20,7 @@ namespace resource
 		model,		//	.emo
 		material,	//	.emr
 		effect,		//	.eme
+		texture,	//	.etx
 	};
 
 	//	ファイルヘッダー

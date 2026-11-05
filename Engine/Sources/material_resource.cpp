@@ -202,7 +202,6 @@ void material_resource::serialize(Archive& archive, int version)
 			CEREAL_NVP(shader_path),
 			CEREAL_NVP(static_switches));
 
-	//	@tool 旧置き場所(Shaders/Materials)のパスを読み替える。保存し直すと新しいパスになる
 	if constexpr (Archive::is_loading::value)
 		shader_path = material_shader_map::convert_legacy_shader_path(shader_path);
 }
@@ -1059,7 +1058,7 @@ void material_resource::deserialize_stream(std::stringstream& istream)
 		DEBUG_LOG_CATEGORY(logger::categorys::model, "material deserialize_stream failed[%s]", name.data());
 		return;
 	}
-	shader_path = material_shader_map::convert_legacy_shader_path(shader_path);	//	@tool 旧置き場所のパスを読み替える
+	shader_path = material_shader_map::convert_legacy_shader_path(shader_path);
 	DEBUG_LOG_CATEGORY(logger::categorys::model, "material deserialize_stream succeeded[%s]", name.data());
 }
 

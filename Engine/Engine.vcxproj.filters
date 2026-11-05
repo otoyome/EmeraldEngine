@@ -87,6 +87,21 @@
     <ClInclude Include="Headers\texture.h">
       <Filter>Headers</Filter>
     </ClInclude>
+    <ClInclude Include="Headers\texture_defaults.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\texture_factory.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\texture_import_settings.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\texture_importer.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\texture_resource.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
     <ClInclude Include="Headers\render_pass.h">
       <Filter>Headers</Filter>
     </ClInclude>
@@ -270,6 +285,12 @@
     <ClInclude Include="Headers\System\asset_browser.h">
       <Filter>Headers\System</Filter>
     </ClInclude>
+    <ClInclude Include="Headers\System\asset_thumbnail_cache.h">
+      <Filter>Headers\System</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\System\project_path.h">
+      <Filter>Headers\System</Filter>
+    </ClInclude>
     <ClInclude Include="Headers\System\game_config_data.h">
       <Filter>Headers\System</Filter>
     </ClInclude>
@@ -411,6 +432,21 @@
       <Filter>Sources</Filter>
     </ClCompile>
     <ClCompile Include="Sources\texture.cpp">
+      <Filter>Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\texture_defaults.cpp">
+      <Filter>Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\texture_factory.cpp">
+      <Filter>Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\texture_import_settings.cpp">
+      <Filter>Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\texture_importer.cpp">
+      <Filter>Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\texture_resource.cpp">
       <Filter>Sources</Filter>
     </ClCompile>
     <ClCompile Include="Sources\render_pass.cpp">
@@ -579,6 +615,12 @@
       <Filter>Sources\System</Filter>
     </ClCompile>
     <ClCompile Include="Sources\System\asset_browser.cpp">
+      <Filter>Sources\System</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\System\asset_thumbnail_cache.cpp">
+      <Filter>Sources\System</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\System\project_path.cpp">
       <Filter>Sources\System</Filter>
     </ClCompile>
     <ClCompile Include="Sources\System\game_config_data.cpp">

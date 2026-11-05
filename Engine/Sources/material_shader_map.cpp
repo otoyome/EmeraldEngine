@@ -324,7 +324,6 @@ std::string_view material_shader_map::get_failed_shader_path(domains domain)
 
 std::string material_shader_map::convert_legacy_shader_path(std::string_view shader_path)
 {
-	//	@tool マテリアルシェーダーを Assets 側へ移す前のフォルダ
 	constexpr std::string_view legacy_directory = "Shaders/Materials/";
 
 	std::string path(shader_path);

@@ -8,6 +8,8 @@
 #include "shader.h"
 #include "material_shader_map.h"
 #include "texture.h"
+#include "texture_defaults.h"
+#include "texture_importer.h"
 #include "font_data.h"
 #include "camera.h"
 #include "graphics/occlusion_culling_system.h"
@@ -47,6 +49,7 @@
 
 #include "Editor/detail_profiler.h"
 #include "System/console_manager.h"
+#include "System/project_path.h"
 
 namespace
 {
@@ -309,6 +312,9 @@ bool framework::initialize()
 	//	文字コード変換器所持
 	system_utility::initialize_charset_converter();
 
+	//	プロジェクトのルートディレクトリを控える
+	project_path::initialize();
+
 	//	ゲームコンフィグ初期化
 	{
 		//	@remainder	内部でコンソールマネージャーに情報を受け渡しているだけ。
@@ -324,6 +330,10 @@ bool framework::initialize()
 			return false;
 		}
 		texture_manager::create_instance();
+		texture_defaults::create_instance();
+#if defined(USE_IMGUI)
+		texture_importer::create_instance();
+#endif	//	defined(USE_IMGUI)
 		shader_manager::create_instance();
 		pipeline_state_manager::create_instance();
 		material_shader_map::create_instance();
@@ -1114,6 +1124,10 @@ bool framework::uninitialize()
 		material_shader_map::delete_instance();
 		pipeline_state_manager::delete_instance();
 		shader_manager::delete_instance();
+#if defined(USE_IMGUI)
+		texture_importer::delete_instance();
+#endif	//	defined(USE_IMGUI)
+		texture_defaults::delete_instance();
 		texture_manager::delete_instance();
 		render_data::delete_instance();
 	}

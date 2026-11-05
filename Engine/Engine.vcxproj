@@ -132,6 +132,8 @@
     <ClInclude Include="Headers\System\console_manager.h" />
     <ClInclude Include="Headers\System\editor_config_data.h" />
     <ClInclude Include="Headers\System\asset_browser.h" />
+    <ClInclude Include="Headers\System\asset_thumbnail_cache.h" />
+    <ClInclude Include="Headers\System\project_path.h" />
     <ClInclude Include="Headers\System\game_config_data.h" />
     <ClInclude Include="Headers\System\enum_class_attribute.h" />
     <ClInclude Include="Headers\System\finite_state_machine.h" />
@@ -160,6 +162,11 @@
     <ClInclude Include="Headers\System\system_utility.h" />
     <ClInclude Include="Headers\System\variable_position_allocator.h" />
     <ClInclude Include="Headers\texture.h" />
+    <ClInclude Include="Headers\texture_defaults.h" />
+    <ClInclude Include="Headers\texture_factory.h" />
+    <ClInclude Include="Headers\texture_import_settings.h" />
+    <ClInclude Include="Headers\texture_importer.h" />
+    <ClInclude Include="Headers\texture_resource.h" />
     <ClInclude Include="Headers\Audio\audio_manager.h" />
     <ClInclude Include="Headers\Audio\sound_bank.h" />
     <ClInclude Include="Headers\Audio\sound_player.h" />
@@ -260,6 +267,8 @@
     <ClCompile Include="Sources\System\console_manager.cpp" />
     <ClCompile Include="Sources\System\editor_config_data.cpp" />
     <ClCompile Include="Sources\System\asset_browser.cpp" />
+    <ClCompile Include="Sources\System\asset_thumbnail_cache.cpp" />
+    <ClCompile Include="Sources\System\project_path.cpp" />
     <ClCompile Include="Sources\System\game_config_data.cpp" />
     <ClCompile Include="Sources\System\finite_state_machine.cpp" />
     <ClCompile Include="Sources\System\fixed_size_pool.cpp" />
@@ -270,6 +279,11 @@
     <ClCompile Include="Sources\System\signals.cpp" />
     <ClCompile Include="Sources\System\system_utility.cpp" />
     <ClCompile Include="Sources\texture.cpp" />
+    <ClCompile Include="Sources\texture_defaults.cpp" />
+    <ClCompile Include="Sources\texture_factory.cpp" />
+    <ClCompile Include="Sources\texture_import_settings.cpp" />
+    <ClCompile Include="Sources\texture_importer.cpp" />
+    <ClCompile Include="Sources\texture_resource.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Math\Math.vcxproj">

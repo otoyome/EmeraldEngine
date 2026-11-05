@@ -19,7 +19,7 @@ namespace
 {
 	constexpr std::string_view	compiled_directory = "Assets/CSO/";
 	constexpr std::string_view	compiled_extension = ".cso";
-	constexpr std::string_view	shader_root_directory = "Shaders";	//	@tool インクルードを探すルート
+	constexpr std::string_view	shader_root_directory = "Shaders";
 	constexpr std::wstring_view	shader_types[magic_enum::enum_count<shader_type>()]	=
 	{
 		L"vs",	//  Vertex Shader
@@ -70,7 +70,6 @@ namespace
 	class fxc_include_handler : public ID3DInclude
 	{
 	public:
-		//	@tool インクルードは常に Shaders 以下から探す(マテリアルシェーダーは Assets 側に置くので、ファイルのパスからは決めない)
 		static std::vector<std::wstring> build_directry_pass()
 		{
 			std::vector<std::wstring> result;

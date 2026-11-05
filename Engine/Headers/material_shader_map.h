@@ -100,7 +100,7 @@ public:
 	//	パイプラインステートを取得
 	graphics_pipeline_state_ptr get_pipeline_state(const request& request);
 
-	//	@tool エラー表示用のマテリアルシェーダーのパイプラインステートを取得
+	//	エラー表示用のマテリアルシェーダーのパイプラインステートを取得
 	graphics_pipeline_state_ptr get_failed_pipeline_state(domains domain, UINT pass);
 
 	//	マテリアルのパラメーター構成に使うパイプラインステートを取得
@@ -130,7 +130,7 @@ public:
 	//	エラーマテリアルシェーダーパス取得
 	static std::string_view get_failed_shader_path(domains domain);
 
-	//	@tool 旧置き場所(Shaders/Materials)のパスを今の置き場所のパスに読み替える(該当しなければそのまま返す)
+	//	旧置き場所(Shaders/Materials)のパスを今の置き場所のパスに読み替える
 	static std::string convert_legacy_shader_path(std::string_view shader_path);
 
 private:

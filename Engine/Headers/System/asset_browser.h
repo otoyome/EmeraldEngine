@@ -13,6 +13,7 @@
 
 #include "System/cache_string.h"
 #include "System/universally_unique_identifier.h"
+#include "System/asset_thumbnail_cache.h"
 
 class texture;
 
@@ -173,6 +174,7 @@ private:
 	std::vector<retired_thumbnail> retired_thumbnails;
 	std::uint64_t frame_index = 0;
 	std::chrono::steady_clock::time_point thumbnail_load_deadline{};
+	asset_thumbnail_cache thumbnail_cache;
 
 	cache_string pending_directory;
 	bool pending_refresh = false;
