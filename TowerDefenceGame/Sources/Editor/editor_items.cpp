@@ -423,7 +423,7 @@ bool editor_items::edit_material(std::shared_ptr<context>& context, material_res
 			edit_flag = true;
 		}
 
-		//	@tool 今のシェーダー(未設定ならドメインの既定)を写して、新しいマテリアルシェーダーを作る
+		//	今のシェーダー(未設定ならドメインの既定)を写して、新しいマテリアルシェーダーを作る
 		ImGui::SameLine();
 		if (ImGui::Button("new..."))
 		{
@@ -436,7 +436,7 @@ bool editor_items::edit_material(std::shared_ptr<context>& context, material_res
 				ImGui::SetKeyboardFocusHere();
 			bool accepted = ImGui::InputText("name", context->new_shader_name, IM_ARRAYSIZE(context->new_shader_name), ImGuiInputTextFlags_EnterReturnsTrue);
 
-			//	@tool フォルダの区切りなどファイル名に使えない文字は受け付けない
+			//	フォルダの区切りなどファイル名に使えない文字は受け付けない
 			const bool valid = context->new_shader_name[0] != '\0' && std::strpbrk(context->new_shader_name, "\\/:*?\"<>|.") == nullptr;
 			ImGui::BeginDisabled(!valid);
 			accepted |= ImGui::Button("create");
@@ -748,7 +748,7 @@ bool editor_items::edit_material_slot(std::shared_ptr<context>& context, materia
 	bool edit_flag = false;
 	ImGui::PushID(context->get_item_id());
 
-	//	@tool 今のマテリアルのファイル名(保存前は名前)
+	//	今のマテリアルのファイル名(保存前は名前)
 	std::string label = "(none)";
 	if (material)
 	{
@@ -776,7 +776,7 @@ bool editor_items::edit_material_slot(std::shared_ptr<context>& context, materia
 				}
 				else if (loaded->get_domain() != domain)
 				{
-					//	@tool ドメインが違うマテリアルはその場所で描けないので受け付けない
+					//	ドメインが違うマテリアルはその場所で描けないので受け付けない
 					DEBUG_WARNING_CATEGORY(logger::categorys::model, "material slot domain mismatch[%s] %s != %s", file_path.c_str(),
 						magic_enum::enum_name(loaded->get_domain()).data(), magic_enum::enum_name(domain).data());
 				}

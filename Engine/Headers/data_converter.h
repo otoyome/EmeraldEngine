@@ -18,14 +18,13 @@ namespace data_converter
 	//	アニメーションサンプリングレート
 	constexpr float animation_sampling_rate = system_units::convert_fps_to_sec(1.0f);
 
-	//	変換で作ったマテリアル(.emr)を置くフォルダ名(モデル/エフェクトと同じフォルダの下)
+	//	マテリアルフォルダ名
 	constexpr std::string_view material_directory_name = "Materials";
 
-	//	パスの無いマテリアルに owner_file_path と同じフォルダの Materials/名前.emr を付ける
-	//	同じ名前のファイルがある(または今回付けた)場合は番号を付ける。保存はしない
+	//	マテリアル名割当
 	void assign_material_paths(const std::vector<material_resource_ptr>& materials, std::string_view owner_file_path);
 
-	//	変換先に .emo が既にあれば、モデルの UUID と同じ名前のマテリアルを引き継ぐ
+	//	変換先にモデルリソースが既にあれば、モデルのUUIDと同じ名前のマテリアルを引き継ぐ
 	void inherit_existing_model(model_resource& resource);
 
 	//	GLTF形式の変換関数

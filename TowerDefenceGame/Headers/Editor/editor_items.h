@@ -53,7 +53,7 @@ public:
 		std::unordered_map<std::string, bool> flag_maps; // フラグ管理
 		cache_string down_allow = "↓";
 		cache_string right_allow = "→";
-		char new_shader_name[128] = {}; // @tool マテリアルシェーダー新規作成の名前(UTF-8)
+		char new_shader_name[128] = {}; // マテリアルシェーダー新規作成の名前
 
 	private:	//	アニメーション関係
 		std::unique_ptr<ibase_editor> interpolation_editor;
@@ -105,7 +105,8 @@ public:	//	編集アイテム系
 
 	//	マテリアルリソース
 	static bool edit_shared_material(std::shared_ptr<context>& context, const material_resource_ptr& material);
-	//	@tool アセットブラウザから .emr を落として差し替える欄。差し替えたら true
+
+	//	アセットブラウザから .emr を落として差し替える欄。差し替えたら true
 	static bool edit_material_slot(std::shared_ptr<context>& context, material_resource_ptr& material, material_resource::domains domain);
 	static bool edit_texture_item(std::shared_ptr<context>& context, texture_ptr& resource, bool* selected_file = nullptr);
 	static bool edit_model_resource_item(std::shared_ptr<context>& context, model_resource_ptr& resource, std::string* selected_file_path = nullptr);

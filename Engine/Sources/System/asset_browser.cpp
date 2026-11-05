@@ -136,7 +136,7 @@ namespace
 		return target.size() > path.size() && target.substr(0, path.size()) == path && target[path.size()] == '/';
 	}
 
-	//	@tool ファイル名に使える名前か(区切り文字などファイル名に使えない文字は受け付けない)
+	//	ファイル名に使える名前か(区切り文字などファイル名に使えない文字は受け付けない)
 	bool is_valid_file_name(const cache_string& value)
 	{
 		const std::wstring& name = value.get<utf16_cache>();
@@ -406,7 +406,7 @@ void asset_browser::imgui_render()
 			{
 				imgui_render_entries();
 
-				//	@tool 何も無い所の右クリックで今のフォルダに作る
+				//	何も無い所の右クリックで今のフォルダに作る
 				if (ImGui::BeginPopupContextWindow("##entries_context", ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_NoOpenOverItems))
 				{
 					imgui_render_create_menu(current_directory);
@@ -719,7 +719,7 @@ void asset_browser::imgui_render_entry_context_menu(const entry& target)
 			ImGui::Separator();
 	}
 
-	//	@tool UUID を持つアセットだけ複製できる
+	//	UUID を持つアセットだけ複製できる
 	if (!target.is_directory && resource::get_asset_type_from_extension(target.extension.view()) != resource::asset_types::unknown)
 	{
 		if (ImGui::MenuItem("Duplicate"))
@@ -844,7 +844,7 @@ void asset_browser::imgui_render_create_popup()
 	ImGui::SameLine();
 	ImGui::TextUnformatted(extension.get<utf8_cache>().c_str());
 
-	//	@tool 同じ名前のファイルがあれば作らない
+	//	同じ名前のファイルがあれば作らない
 	const cache_string file_path = create_directory.str() + "/" + create_name.str() + extension.str();
 	std::error_code error;
 	const bool exists = std::filesystem::exists(to_filesystem_path(file_path), error);
@@ -985,7 +985,7 @@ bool asset_browser::duplicate_entry(const cache_string& source_path)
 	if (type == resource::asset_types::unknown)
 		return false;
 
-	//	@tool 「名前_番号」で空いている名前を探す
+	//	「名前_番号」で空いている名前を探す
 	const std::string base_path = std::string(parent_path(source_path.view())) + "/" + std::string(name.substr(0, dot)) + "_";
 	cache_string destination_path;
 	std::error_code error;
@@ -1004,7 +1004,7 @@ bool asset_browser::duplicate_entry(const cache_string& source_path)
 		return false;
 	}
 
-	//	@tool 複製は別のアセットなので UUID を振り直して対応表に載せる
+	//	複製は別のアセットなので UUID を振り直して対応表に載せる
 	const universally_unique_identifier uuid = universally_unique_identifier::generate();
 	if (!resource::rewrite_asset_header_uuid(destination, uuid))
 	{
