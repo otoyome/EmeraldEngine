@@ -1,4 +1,6 @@
 #include "Editor/editor_items.h"
+#include "texture_defaults.h"
+#include "texture_resource_utility.h"
 
 #if defined(USE_IMGUI)
 #include <commdlg.h>
@@ -356,8 +358,8 @@ std::shared_ptr<editor_items::context> editor_items::generate_context()
 	auto context_ptr = std::make_shared<context>();
 	context_ptr->reset_item_id = rd();
 	context_ptr->inner_item_id = context_ptr->reset_item_id;
-	context_ptr->blank_texture = texture_manager::instance()->search(texture_manager::black_texture2d_name);
-	texture_manager::instance()->load_texture_from_file(context_ptr->cross_texture, "Assets/Resources/Textures/editor/cross.png");
+	context_ptr->blank_texture = texture_defaults::instance()->get_black();
+	context_ptr->cross_texture = texture_resource_utility::load_texture("Assets/Resources/Textures/editor/cross.etx");
 	instance->context_ptrs.emplace_back(context_ptr);
 	return context_ptr;
 }
@@ -845,36 +847,39 @@ bool editor_items::edit_texture_item(std::shared_ptr<context>& context, texture_
 
 	//	通常
 	const ID3D11ShaderResourceView* srv = (resource ? resource : context->blank_texture)->get_shader_resource_view().Get();
-	if (ImGui::ImageButton("", (const ImTextureID)srv, icon_size_srv))
+	ImGui::Image((ImTextureID)srv, icon_size_srv);
+
+	//	アセットブラウザからテクスチャリソースをドロップして選ぶ
+	if (ImGui::BeginDragDropTarget())
 	{
-		//	ファイルのオープンダイアログシステム
-		bool is_selected = false;
-		std::string file_path;
-		texture_ptr selected_texture;
-		if (open_file_dialog(texture_file_dialog_filter, file_path) &&
-			texture_manager::instance()->load_texture_from_file(selected_texture, file_path))
+		if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(asset_browser::drag_payload_type))
 		{
-			context->reserve_texture = resource;
-			resource = selected_texture;
-			if (selected_file)
-				*selected_file = true;
-			edit_flag = true;
+			const std::string file_path(static_cast<const char*>(payload->Data));
+			const std::string extension = std::filesystem::path(file_path).extension().string();
+			if (resource::get_asset_type_from_extension(extension) == resource::asset_types::texture)
+			{
+				if (auto selected_texture = texture_resource_utility::load_texture(file_path))
+				{
+					context->reserve_texture = resource;
+					resource = selected_texture;
+					if (selected_file)
+						*selected_file = true;
+					edit_flag = true;
+				}
+			}
 		}
+		ImGui::EndDragDropTarget();
 	}
+	if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal))
+		ImGui::SetTooltip("drop a .etx from the Asset Browser");
+
 	ImGui::SameLine();
 	//	ファイル名
 	{
-		if (resource)
-		{
-			ImGui::Text(resource->get_file_path_or_key().data());
-		}
-		else
-		{
-			ImGui::Text(context->blank_texture->get_file_path_or_key().data());
-		}
+		ImGui::Text((resource ? resource : context->blank_texture)->get_debug_name().data());
 	}
 	//	空選択
-	if (resource && resource->is_file_path_or_key())
+	if (resource)
 	{
 		ImGui::PushID(context->get_item_id());
 		ImGui::SameLine();

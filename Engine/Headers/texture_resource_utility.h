@@ -3,6 +3,7 @@
 #include <string_view>
 #include <vector>
 
+#include "texture.h"
 #include "texture_import_settings.h"
 #include "Resource/asset_file_header.h"
 
@@ -19,4 +20,7 @@ namespace texture_resource_utility
 
 	//	DirectX::ScratchImageをのみを読み込む
 	bool read_image(std::string_view file_path, DirectX::ScratchImage& out_image);
+
+	//	テクスチャリソースを同期で読み込んでテクスチャを返す
+	texture_ptr load_texture(std::string_view file_path);
 }	//	namespace texture_resource_utility

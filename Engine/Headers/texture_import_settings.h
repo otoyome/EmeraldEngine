@@ -34,6 +34,7 @@ struct texture_import_settings
 		bc4,			//	BC4(1 チャンネル)
 		bc6h,			//	BC6H(HDR)
 		float16,		//	非圧縮の浮動小数(R16G16B16A16_FLOAT)
+		source,			//	元の DDS をそのまま使う(キューブマップや作成済みの mip。DDS 以外は失敗する)
 	};
 
 	//	ミップマップ生成時の縮小フィルター

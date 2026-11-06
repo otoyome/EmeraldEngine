@@ -353,10 +353,10 @@ namespace
 		std::unordered_map<std::string, texture_resource_ptr> imported_textures;
 		auto import_texture = [&](std::size_t index) -> texture_resource_ptr
 		{
-			if (index >= loader.get_textures().size() || !loader.get_textures()[index] || !texture_importer::is_valid())
+			if (index >= loader.get_texture_names().size() || loader.get_texture_names()[index].empty() || !texture_importer::is_valid())
 				return nullptr;
 
-			const std::string source_path = project_path::to_relative(loader.get_textures()[index]->get_file_path_or_key());
+			const std::string source_path = project_path::to_relative(loader.get_texture_names()[index]);
 			auto it = imported_textures.find(source_path);
 			if (it != imported_textures.end())
 				return it->second;

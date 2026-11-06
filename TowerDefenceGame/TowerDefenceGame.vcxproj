@@ -633,6 +633,7 @@ xcopy "$(SolutionDir)External\SDL3\lib\SDL3.dll" "$(OutDir)" /y</Command>
     <ClCompile Include="Sources\Editor\editor_items_effect.cpp" />
     <ClCompile Include="Sources\Editor\editor_items_ik.cpp" />
     <ClCompile Include="Sources\Editor\detail_profiler.cpp" />
+    <ClCompile Include="Sources\Editor\texture_editor.cpp" />
     <ClCompile Include="Sources\framework.cpp" />
     <ClCompile Include="Sources\framework_imgui.cpp" />
     <ClCompile Include="Sources\framework_console_window.cpp" />
@@ -756,6 +757,7 @@ xcopy "$(SolutionDir)External\SDL3\lib\SDL3.dll" "$(OutDir)" /y</Command>
     <ClInclude Include="Headers\Editor\editor_camera.h" />
     <ClInclude Include="Headers\Editor\editor_items.h" />
     <ClInclude Include="Headers\Editor\detail_profiler.h" />
+    <ClInclude Include="Headers\Editor\texture_editor.h" />
     <ClInclude Include="Headers\framework.h" />
     <ClInclude Include="Headers\Object\camera_object.h" />
     <ClInclude Include="Headers\Object\Collision\collision_filter.h" />

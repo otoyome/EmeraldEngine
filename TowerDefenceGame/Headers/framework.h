@@ -137,7 +137,6 @@ private:	//	‚»‚Ì‘¼
 	void imgui_profiler_window();
 	void imgui_model_buffer_pool_window();
 	void imgui_memory_allocator_window();
-	void imgui_textures_window();
 	void imgui_scene_change();
 
 	void imgui_console_window();

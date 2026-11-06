@@ -2,6 +2,8 @@
 
 #if defined(USE_IMGUI)
 #include "Object/game_object.h"
+#include "texture_tracker.h"
+#include "graphics_utility.h"
 
 namespace
 {
@@ -484,10 +486,75 @@ void detail_profiler::imgui_render()
 			imgui_render_flat_table("gpu_scope_table", category::gpu_scope, "gpu ms");
 			ImGui::EndTabItem();
 		}
+		if (ImGui::BeginTabItem("textures"))
+		{
+			imgui_render_texture_table();
+			ImGui::EndTabItem();
+		}
 		ImGui::EndTabBar();
 	}
 
 	ImGui::End();
+}
+
+void detail_profiler::imgui_render_texture_table()
+{
+	if (!texture_tracker::is_valid())
+		return;
+
+	//	生成済みのテクスチャ一覧(名前順)
+	auto textures = texture_tracker::instance()->collect();
+	std::sort(textures.begin(), textures.end(),
+		[](const texture_ptr& l, const texture_ptr& r)
+		{
+			return l->get_debug_name() < r->get_debug_name();
+		});
+
+	ImGui::Text("count : %zu", textures.size());
+	constexpr ImGuiTableFlags table_flags = ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_ScrollY | ImGuiTableFlags_Resizable;
+	if (!ImGui::BeginTable("texture_table", 4, table_flags))
+		return;
+
+	ImGui::TableSetupScrollFreeze(0, 1);
+	ImGui::TableSetupColumn("name", ImGuiTableColumnFlags_WidthStretch);
+	ImGui::TableSetupColumn("size", ImGuiTableColumnFlags_WidthFixed, 120.0f);
+	ImGui::TableSetupColumn("format", ImGuiTableColumnFlags_WidthFixed, 220.0f);
+	ImGui::TableSetupColumn("mips / array", ImGuiTableColumnFlags_WidthFixed, 100.0f);
+	ImGui::TableHeadersRow();
+
+	for (auto& value : textures)
+	{
+		if (!filter.PassFilter(value->get_debug_name().data()))
+			continue;
+
+		ImGui::TableNextRow();
+		ImGui::TableSetColumnIndex(0);
+		ImGui::TextUnformatted(value->get_debug_name().data());
+
+		//	2D でキューブでなく、整数形式でなければプレビューを出す
+		if (value->get_dimension() == D3D11_RESOURCE_DIMENSION_TEXTURE2D && ImGui::IsItemHovered())
+		{
+			const auto& desc = static_cast<const texture2d*>(value.get())->get_desc();
+			if (!value->is_flag(texture::flags::cube_map) && value->get_shader_resource_view() && !graphics_utility::is_int_format(desc.Format) && ImGui::BeginTooltip())
+			{
+				const float aspect = static_cast<float>(desc.Width) / static_cast<float>((std::max)(desc.Height, 1u));
+				ImGui::Image((ImTextureID)value->get_shader_resource_view().Get(), aspect >= 1.0f ? ImVec2(256.0f, 256.0f / aspect) : ImVec2(256.0f * aspect, 256.0f));
+				ImGui::EndTooltip();
+			}
+		}
+
+		ImGui::TableSetColumnIndex(1);
+		ImGui::Text("%d x %d", value->get_width(), value->get_height());
+		if (value->get_dimension() == D3D11_RESOURCE_DIMENSION_TEXTURE2D)
+		{
+			const auto& desc = static_cast<const texture2d*>(value.get())->get_desc();
+			ImGui::TableSetColumnIndex(2);
+			ImGui::TextUnformatted(magic_enum::enum_name(desc.Format).data());
+			ImGui::TableSetColumnIndex(3);
+			ImGui::Text("%u / %u%s", desc.MipLevels, desc.ArraySize, value->is_flag(texture::flags::cube_map) ? " cube" : "");
+		}
+	}
+	ImGui::EndTable();
 }
 
 void detail_profiler::imgui_render_flat_table(const char* id, category kind, const char* time_label)

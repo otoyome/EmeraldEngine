@@ -19,6 +19,7 @@ extern ImWchar glyphRangesJapanese[];
 
 #include "Editor/editor_items.h"
 #include "Editor/detail_profiler.h"
+#include "Editor/texture_editor.h"
 #include "Editor/editor_camera.h"
 #include "System/console_manager.h"
 #include "System/asset_browser.h"
@@ -118,6 +119,10 @@ void framework::imgui_initialize()
 	register_asset_open_handler<edit_timeline_scene>("Timeline Editor", { ".etl" });
 	register_asset_open_handler<edit_material_scene>("Material Editor", { ".emo", ".eme", ".emr" });
 
+	//	テクスチャリソースは別窓で編集する
+	texture_editor::create_instance();
+	texture_editor::instance()->register_open_handler();
+
 	//	アセットブラウザの新規作成
 	register_material_create_handler("Material (Surface)", material_resource::domains::surface);
 	register_material_create_handler("Material (Particle)", material_resource::domains::particle);
@@ -128,6 +133,7 @@ void framework::imgui_initialize()
 
 void framework::imgui_terminate()
 {
+	texture_editor::delete_instance();
 	asset_browser::delete_instance();
 
 	ImGui::ShutdownNeoSequencer();
@@ -304,124 +310,6 @@ void framework::imgui_memory_allocator_window()
 
 		ImGui::Text("large pool (segments : %zu)", large_usage.segment_count);
 		ImGui::ProgressBar(large_fraction, ImVec2(-1, 0), large_text.c_str());
-	}
-	ImGui::End();
-}
-
-void framework::imgui_textures_window()
-{
-	if (ImGui::Begin("textures"))
-	{
-		auto sorted_textures = texture_manager::instance()->get_textures();
-		std::vector<std::shared_ptr<texture>> texture_list;
-		for (auto& texture_ptr : sorted_textures)
-		{
-			auto texture = texture_ptr.second.lock();
-			if (!texture)
-				continue;
-
-			if (texture->get_dimension() != D3D11_RESOURCE_DIMENSION::D3D11_RESOURCE_DIMENSION_TEXTURE2D ||
-				!texture->get_shader_resource_view())
-				continue;
-
-			texture2d* p = static_cast<texture2d*>(texture.get());
-			auto desc = p->get_desc();
-
-			if (graphics_utility::is_int_format(desc.Format))
-				continue;
-
-			texture_list.emplace_back(texture);
-		}
-
-		std::sort(texture_list.begin(), texture_list.end(),
-			[](const std::shared_ptr<texture>& l, const std::shared_ptr<texture>& r)
-			{
-				return l->get_file_path_or_key() < r->get_file_path_or_key();
-			});
-
-		for (auto& texture_ptr : texture_list)
-		{
-			ImGui::Separator();
-			ImGui::PushID(texture_ptr->get_file_path_or_key().data());
-			ImGui::Text(texture_ptr->get_file_path_or_key().data());
-			if (texture_ptr->is_file_path_or_key())
-			{
-				if (ImGui::Button("Save"))
-				{
-					texture_manager::instance()->save_texture(texture_ptr);
-				}
-				bool cube_map = texture_ptr->is_flag(texture::flags::cube_map);
-				if (ImGui::Checkbox("cube_map", &cube_map))
-				{
-					texture_ptr->set_flag(texture::flags::cube_map, cube_map);
-				}
-				bool srgb = texture_ptr->is_flag(texture::flags::srgb);
-				if (ImGui::Checkbox("srgb", &srgb))
-				{
-					texture_ptr->set_flag(texture::flags::srgb, srgb);
-				}
-
-				if (ImGui::TreeNode("sampler"))
-				{
-					static constexpr const char* filter_texts[] = { "point", "linear", "anisotropic" };
-					static constexpr const char* address_texts[] = { "wrap", "mirror", "clamp", "border", "mirror_once" };
-					static_assert(ARRAYSIZE(filter_texts) == static_cast<size_t>(texture_sampler_desc::filters::max));
-					static_assert(ARRAYSIZE(address_texts) == static_cast<size_t>(texture_sampler_desc::address_modes::max));
-
-					texture_sampler_desc sampler_desc = texture_ptr->get_sampler_desc();
-					bool changed = false;
-
-					int filter = static_cast<int>(sampler_desc.filter);
-					if (ImGui::Combo("filter", &filter, filter_texts, ARRAYSIZE(filter_texts)))
-					{
-						sampler_desc.filter = static_cast<texture_sampler_desc::filters>(filter);
-						changed = true;
-					}
-
-					auto address_combo = [&](const char* label, texture_sampler_desc::address_modes& mode)
-					{
-						int value = static_cast<int>(mode);
-						if (ImGui::Combo(label, &value, address_texts, ARRAYSIZE(address_texts)))
-						{
-							mode = static_cast<texture_sampler_desc::address_modes>(value);
-							changed = true;
-						}
-					};
-					address_combo("address_u", sampler_desc.address_u);
-					address_combo("address_v", sampler_desc.address_v);
-					address_combo("address_w", sampler_desc.address_w);
-
-					if (sampler_desc.filter == texture_sampler_desc::filters::anisotropic)
-					{
-						int max_anisotropy = static_cast<int>(sampler_desc.max_anisotropy);
-						if (ImGui::SliderInt("max_anisotropy", &max_anisotropy, 1, D3D11_REQ_MAXANISOTROPY))
-						{
-							sampler_desc.max_anisotropy = static_cast<UINT>(max_anisotropy);
-							changed = true;
-						}
-					}
-					changed |= ImGui::DragFloat("mip_lod_bias", &sampler_desc.mip_lod_bias, 0.01f, -16.0f, 15.99f);
-					changed |= ImGui::DragFloat("min_lod", &sampler_desc.min_lod, 0.1f, 0.0f, D3D11_FLOAT32_MAX);
-					changed |= ImGui::DragFloat("max_lod", &sampler_desc.max_lod, 0.1f, 0.0f, D3D11_FLOAT32_MAX);
-					changed |= ImGui::ColorEdit4("border_color", sampler_desc.border_color.data());
-
-					if (changed)
-					{
-						texture_ptr->set_sampler_desc(sampler_desc);
-					}
-					ImGui::TreePop();
-				}
-			}
-			if (!texture_ptr->is_flag(texture::flags::cube_map))
-			{
-				ImGui::Image(texture_ptr->get_shader_resource_view().Get(), { 256, 256 });
-			}
-			else
-			{
-				ImGui::Text("Not Display Image");
-			}
-			ImGui::PopID();
-		}
 	}
 	ImGui::End();
 }

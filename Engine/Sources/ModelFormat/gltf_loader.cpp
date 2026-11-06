@@ -1828,17 +1828,13 @@ void gltf_loader::load_materials(std::vector<material_data>& materials)
 				else
 				{
 					//	テクスチャ生成
-					std::string path = texture_filepath.string();
-					texture_manager::save_texture_desc desc;
-					desc.file_path = path;
-					desc.format = convert_from_tiny_image_to_direct_x_image(gltf_image);
-					desc.data_format = texture_manager::save_texture_desc::data_formats::dds;
-					auto& image = desc.images.emplace_back();
-					image.width = gltf_image.width;
-					image.height = gltf_image.height;
-					image.pixels = gltf_image.image.data();
-
-					texture_manager::instance()->save_texture(desc);
+					DirectX::Image image{};
+					image.width = static_cast<size_t>(gltf_image.width);
+					image.height = static_cast<size_t>(gltf_image.height);
+					image.format = convert_from_tiny_image_to_direct_x_image(gltf_image);
+					image.pixels = const_cast<uint8_t*>(gltf_image.image.data());
+					if (SUCCEEDED(DirectX::ComputePitch(image.format, image.width, image.height, image.rowPitch, image.slicePitch)))
+						DirectX::SaveToDDSFile(image, DirectX::DDS_FLAGS_NONE, output_filepath.wstring().c_str());
 				}
 			}
 		}

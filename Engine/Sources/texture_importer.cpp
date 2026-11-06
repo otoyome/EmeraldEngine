@@ -5,6 +5,8 @@
 #include <algorithm>
 #include <cmath>
 #include <filesystem>
+#include <fstream>
+#include <vector>
 
 #include "texture_factory.h"
 #include "Resource/asset_file_header.h"
@@ -86,48 +88,17 @@ texture_importer::~texture_importer()
 
 texture_resource_ptr texture_importer::import(std::string_view source_path, const texture_import_settings& settings)
 {
-	DirectX::ScratchImage image;
-	if (!texture_factory::decode_file(source_path, image))
-	{
-		DEBUG_ERROR_CATEGORY(logger::categorys::system, "texture_importer decode failed[%s]", std::string(source_path).c_str());
-		return nullptr;
-	}
-
 	auto imported = std::make_shared<texture_resource>();
 	imported->settings = settings;
 	imported->settings.source_path = project_path::to_relative(source_path);
 
-	if (!prepare_source(image, imported->settings) || !resize(image, imported->settings))
-	{
-		DEBUG_ERROR_CATEGORY(logger::categorys::system, "texture_importer prepare failed[%s]", std::string(source_path).c_str());
+	std::vector<char> dds_data;
+	const bool built = settings.format == texture_import_settings::gpu_formats::source
+		? read_source_dds(source_path, dds_data)
+		: convert_source(source_path, imported->settings, dds_data);
+	if (!built)
 		return nullptr;
-	}
-
-	const auto& meta_data = image.GetMetadata();
-	if (imported->settings.generate_mipmaps && (meta_data.width > 1 || meta_data.height > 1))
-	{
-		DirectX::ScratchImage mip_chain;
-		if (FAILED(DirectX::GenerateMipMaps(*image.GetImage(0, 0, 0), to_tex_filter(imported->settings.filter), 0, mip_chain)))
-		{
-			DEBUG_ERROR_CATEGORY(logger::categorys::system, "texture_importer mipmap failed[%s]", std::string(source_path).c_str());
-			return nullptr;
-		}
-		image = std::move(mip_chain);
-	}
-
-	if (!encode(image, imported->settings))
-	{
-		DEBUG_ERROR_CATEGORY(logger::categorys::system, "texture_importer encode failed[%s]", std::string(source_path).c_str());
-		return nullptr;
-	}
-
-	DirectX::Blob blob;
-	if (FAILED(DirectX::SaveToDDSMemory(image.GetImages(), image.GetImageCount(), image.GetMetadata(), DirectX::DDS_FLAGS_NONE, blob)))
-	{
-		DEBUG_ERROR_CATEGORY(logger::categorys::system, "texture_importer save dds failed[%s]", std::string(source_path).c_str());
-		return nullptr;
-	}
-	const std::string_view dds(reinterpret_cast<const char*>(blob.GetBufferPointer()), blob.GetBufferSize());
+	const std::string_view dds(dds_data.data(), dds_data.size());
 
 	std::filesystem::path path{ std::string(source_path) };
 	path.replace_extension(texture_resource::extension);
@@ -154,6 +125,81 @@ texture_resource_ptr texture_importer::import(std::string_view source_path, cons
 	}
 	auto operation = resource_manager::instance()->load<texture_resource>(output_path);
 	return operation && operation->is_succeeded() ? operation->get_resource() : nullptr;
+}
+
+bool texture_importer::convert_source(std::string_view source_path, const texture_import_settings& settings, std::vector<char>& out_dds)
+{
+	DirectX::ScratchImage image;
+	if (!texture_factory::decode_file(source_path, image))
+	{
+		DEBUG_ERROR_CATEGORY(logger::categorys::system, "texture_importer decode failed[%s]", std::string(source_path).c_str());
+		return false;
+	}
+
+	if (!prepare_source(image, settings) || !resize(image, settings))
+	{
+		DEBUG_ERROR_CATEGORY(logger::categorys::system, "texture_importer prepare failed[%s]", std::string(source_path).c_str());
+		return false;
+	}
+
+	const auto& meta_data = image.GetMetadata();
+	if (settings.generate_mipmaps && (meta_data.width > 1 || meta_data.height > 1))
+	{
+		DirectX::ScratchImage mip_chain;
+		if (FAILED(DirectX::GenerateMipMaps(*image.GetImage(0, 0, 0), to_tex_filter(settings.filter), 0, mip_chain)))
+		{
+			DEBUG_ERROR_CATEGORY(logger::categorys::system, "texture_importer mipmap failed[%s]", std::string(source_path).c_str());
+			return false;
+		}
+		image = std::move(mip_chain);
+	}
+
+	if (!encode(image, settings))
+	{
+		DEBUG_ERROR_CATEGORY(logger::categorys::system, "texture_importer encode failed[%s]", std::string(source_path).c_str());
+		return false;
+	}
+
+	DirectX::Blob blob;
+	if (FAILED(DirectX::SaveToDDSMemory(image.GetImages(), image.GetImageCount(), image.GetMetadata(), DirectX::DDS_FLAGS_NONE, blob)))
+	{
+		DEBUG_ERROR_CATEGORY(logger::categorys::system, "texture_importer save dds failed[%s]", std::string(source_path).c_str());
+		return false;
+	}
+	const char* blob_data = reinterpret_cast<const char*>(blob.GetBufferPointer());
+	out_dds.assign(blob_data, blob_data + blob.GetBufferSize());
+	return true;
+}
+
+bool texture_importer::read_source_dds(std::string_view source_path, std::vector<char>& out_dds)
+{
+	std::ifstream stream(std::filesystem::path(std::string(source_path)), std::ios::binary);
+	if (!stream.is_open())
+	{
+		DEBUG_ERROR_CATEGORY(logger::categorys::system, "texture_importer open failed[%s]", std::string(source_path).c_str());
+		return false;
+	}
+	out_dds.assign(std::istreambuf_iterator<char>(stream), std::istreambuf_iterator<char>());
+
+	DirectX::TexMetadata meta_data;
+	if (FAILED(DirectX::GetMetadataFromDDSMemory(reinterpret_cast<const std::uint8_t*>(out_dds.data()), out_dds.size(), DirectX::DDS_FLAGS_NONE, meta_data)))
+	{
+		DEBUG_ERROR_CATEGORY(logger::categorys::system, "texture_importer source is not dds[%s]", std::string(source_path).c_str());
+		return false;
+	}
+	return true;
+}
+
+bool texture_importer::update_sampler(texture_resource& target, const texture_sampler_desc& sampler)
+{
+	const texture_sampler_desc previous = target.settings.sampler;
+	target.settings.sampler = sampler;
+	if (!resource::saver<texture_resource>().save(target, target.get_file_path()))
+	{
+		target.settings.sampler = previous;
+		return false;
+	}
+	return true;
 }
 
 bool texture_importer::reimport(std::string_view etx_path)

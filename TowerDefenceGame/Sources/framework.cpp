@@ -1,4 +1,5 @@
 #include "framework.h"
+#include "texture_factory.h"
 #include "render_data.h"
 
 #include <algorithm>
@@ -10,6 +11,7 @@
 #include "texture.h"
 #include "texture_defaults.h"
 #include "texture_importer.h"
+#include "texture_tracker.h"
 #include "font_data.h"
 #include "camera.h"
 #include "graphics/occlusion_culling_system.h"
@@ -46,6 +48,7 @@
 #include "Editor/editor_camera.h"
 #endif // defined(USE_IMGUI)
 #include "System/asset_browser.h"
+#include "Editor/texture_editor.h"
 
 #include "Editor/detail_profiler.h"
 #include "System/console_manager.h"
@@ -329,9 +332,9 @@ bool framework::initialize()
 			MessageBoxW(hwnd, L"この GPU は必要な機能(VS からの描画先配列番号の出力)に対応していないため起動できません。", L"起動エラー", MB_OK | MB_ICONERROR);
 			return false;
 		}
-		texture_manager::create_instance();
 		texture_defaults::create_instance();
 #if defined(USE_IMGUI)
+		texture_tracker::create_instance();
 		texture_importer::create_instance();
 #endif	//	defined(USE_IMGUI)
 		shader_manager::create_instance();
@@ -495,10 +498,6 @@ void framework::update(float elapsed_time/*Elapsed seconds from last frame*/)
 		{
 			shader_manager::instance()->check_shader_update_and_recompile();
 		}
-		if (texture_manager::is_valid())
-		{
-			texture_manager::instance()->check_update_and_reload();
-		}
 	}
 
 #endif //	defined(USE_IMGUI)
@@ -600,9 +599,6 @@ void framework::update(float elapsed_time/*Elapsed seconds from last frame*/)
 	//	メモリアロケータ使用量表示
 	imgui_memory_allocator_window();
 
-	//	テクスチャリスト情報
-	imgui_textures_window();
-
 	//	シーン変更
 	imgui_scene_change();
 
@@ -618,6 +614,7 @@ void framework::update(float elapsed_time/*Elapsed seconds from last frame*/)
 
 	//	アセットブラウザ
 	asset_browser::instance()->imgui_render();
+	texture_editor::instance()->imgui_render();
 #endif // defined(USE_IMGUI)
 }
 
@@ -1128,7 +1125,9 @@ bool framework::uninitialize()
 		texture_importer::delete_instance();
 #endif	//	defined(USE_IMGUI)
 		texture_defaults::delete_instance();
-		texture_manager::delete_instance();
+#if defined(USE_IMGUI)
+		texture_tracker::delete_instance();
+#endif	//	defined(USE_IMGUI)
 		render_data::delete_instance();
 	}
 
@@ -1209,7 +1208,7 @@ bool framework::create_buffers()
 		{
 			texture2d_desc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
 			texture2d_desc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
-			if (!texture_manager::instance()->generate_texture2d(render_targets->scene_color_texture, common_pipeline_states::scene_color_map_name, texture2d_desc))
+			if (!texture_factory::create_texture2d(render_targets->scene_color_texture, common_pipeline_states::scene_color_map_name, texture2d_desc))
 			{
 				return false;
 			}
@@ -1225,7 +1224,7 @@ bool framework::create_buffers()
 			shader_resource_view_desc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
 			shader_resource_view_desc.Texture2D.MostDetailedMip = 0;
 			shader_resource_view_desc.Texture2D.MipLevels = 1;
-			if (!texture_manager::instance()->generate_texture2d(render_targets->scene_depth_stencil_texture, common_pipeline_states::scene_depth_map_name, texture2d_desc, &shader_resource_view_desc))
+			if (!texture_factory::create_texture2d(render_targets->scene_depth_stencil_texture, common_pipeline_states::scene_depth_map_name, texture2d_desc, &shader_resource_view_desc))
 			{
 				return false;
 			}
@@ -1249,7 +1248,7 @@ bool framework::create_buffers()
 			{
 				texture_ptr texture;
 				texture2d_desc.Format = formats[index];
-				if (texture_manager::instance()->generate_texture2d(texture,
+				if (texture_factory::create_texture2d(texture,
 																	 common_pipeline_states::gbuffer_names[index],
 																	 texture2d_desc))
 				{
@@ -1283,7 +1282,7 @@ bool framework::create_buffers()
 		shader_resource_view_desc.Texture2DArray.FirstArraySlice = 0;
 		shader_resource_view_desc.Texture2DArray.ArraySize = texture2d_desc.ArraySize;
 
-		if (!texture_manager::instance()->generate_texture2d(render_targets->shadowmap_depth_texture, common_pipeline_states::shadow_maps_name, texture2d_desc, &shader_resource_view_desc))
+		if (!texture_factory::create_texture2d(render_targets->shadowmap_depth_texture, common_pipeline_states::shadow_maps_name, texture2d_desc, &shader_resource_view_desc))
 		{
 			return false;
 		}
@@ -1310,7 +1309,7 @@ bool framework::create_buffers()
 		for (size_t index = 0; index < ARRAYSIZE(render_targets->work_buffer_scene_textures); ++index)
 		{
 			std::string name = std::string(WorkColorName) + std::to_string(index);
-			if (!texture_manager::instance()->generate_texture2d(render_targets->work_buffer_scene_textures[index], name, texture2d_desc))
+			if (!texture_factory::create_texture2d(render_targets->work_buffer_scene_textures[index], name, texture2d_desc))
 			{
 				return false;
 			}
@@ -1318,7 +1317,7 @@ bool framework::create_buffers()
 
 		static constexpr std::string_view WorkRGBA32FloatName = "Work RGBA32 Float";
 		texture2d_desc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
-		if (!texture_manager::instance()->generate_texture2d(render_targets->work_buffer_rgba32float_texture, WorkRGBA32FloatName, texture2d_desc))
+		if (!texture_factory::create_texture2d(render_targets->work_buffer_rgba32float_texture, WorkRGBA32FloatName, texture2d_desc))
 		{
 			return false;
 		}
@@ -1330,7 +1329,7 @@ bool framework::create_buffers()
 		for (size_t index = 0; index < ARRAYSIZE(render_targets->work_buffer_half_scene_textures); ++index)
 		{
 			std::string name = std::string(WorkHalfColorName) + std::to_string(index);
-			if (!texture_manager::instance()->generate_texture2d(render_targets->work_buffer_half_scene_textures[index], name, texture2d_desc))
+			if (!texture_factory::create_texture2d(render_targets->work_buffer_half_scene_textures[index], name, texture2d_desc))
 			{
 				return false;
 			}
@@ -1344,7 +1343,7 @@ bool framework::create_buffers()
 		for (size_t index = 0; index < ARRAYSIZE(render_targets->ssr_accumlate_textures); ++index)
 		{
 			std::string name = std::string(SSRAccumateTextureName) + std::to_string(index);
-			if (!texture_manager::instance()->generate_texture2d(render_targets->ssr_accumlate_textures[index], name, ssr_texture2d_desc))
+			if (!texture_factory::create_texture2d(render_targets->ssr_accumlate_textures[index], name, ssr_texture2d_desc))
 			{
 				return false;
 			}
@@ -1354,7 +1353,7 @@ bool framework::create_buffers()
 		for (size_t index = 0; index < ARRAYSIZE(render_targets->ssr_counter_textures); ++index)
 		{
 			std::string name = std::string(SSRCounterTextureName) + std::to_string(index);
-			if (!texture_manager::instance()->generate_texture2d(render_targets->ssr_counter_textures[index], name, ssr_texture2d_desc))
+			if (!texture_factory::create_texture2d(render_targets->ssr_counter_textures[index], name, ssr_texture2d_desc))
 			{
 				return false;
 			}

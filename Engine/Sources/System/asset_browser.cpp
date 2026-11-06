@@ -9,6 +9,8 @@
 
 #include "System/console_manager.h"
 #include "texture.h"
+#include "texture_factory.h"
+#include "DirectXTex.h"
 #include "Resource/resource_manager.h"
 #include "Resource/asset_registry.h"
 #include "Resource/asset_file_header.h"
@@ -366,8 +368,12 @@ void asset_browser::load_thumbnail(entry& target)
 	if (!contains(thumbnail_extensions, target.extension))
 		return;
 
-	texture_ptr loaded;
-	if (!texture_manager::instance()->load_texture_from_file(loaded, target.path) || !loaded)
+	//	Œ³‰æ‘œ‚Í‚»‚Ì‚Ü‚Ü“Ç‚Ýž‚ñ‚Å•\Ž¦‚·‚é
+	DirectX::ScratchImage image;
+	if (!texture_factory::decode_file(target.path.view(), image))
+		return;
+	texture_ptr loaded = texture_factory::create_from_image(image);
+	if (!loaded)
 		return;
 
 	if (loaded->get_dimension() != D3D11_RESOURCE_DIMENSION_TEXTURE2D ||

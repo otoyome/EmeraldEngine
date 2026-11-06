@@ -71,7 +71,7 @@ minigame_result_scene::minigame_result_scene()
 	{
 		auto back = std::make_shared<ui_image>("リザルト背景");
 		back->set_screen_rect({ result_back_position.x, result_back_position.y, result_back_size.x, result_back_size.y });
-		back->set_texture("Assets/Resources/Textures/hud/result_back.png");
+		back->set_texture("Assets/Resources/Textures/hud/result_back.etx");
 		back->set_draw_mode(ui_image::draw_modes::single);
 		back->set_sort_order(0);
 		register_object(back);
@@ -81,7 +81,7 @@ minigame_result_scene::minigame_result_scene()
 	{
 		auto message = std::make_shared<ui_image>("プレイ終了メッセージ");
 		message->set_screen_rect({ thanks_message_position.x, thanks_message_position.y, thanks_message_size.x, thanks_message_size.y });
-		message->set_texture("Assets/Resources/Textures/hud/thunk_you_for_playing.png");
+		message->set_texture("Assets/Resources/Textures/hud/thunk_you_for_playing.etx");
 		message->set_draw_mode(ui_image::draw_modes::single);
 		message->set_sort_order(1);
 		register_object(message);
@@ -152,7 +152,7 @@ minigame_result_scene::minigame_result_scene()
 	{
 		auto continue_icon = std::make_shared<ui_image>("タイトルへ戻る案内アイコン");
 		continue_icon->set_screen_rect({ continue_icon_position.x, continue_icon_position.y, continue_icon_size.x, continue_icon_size.y });
-		continue_icon->set_texture("Assets/Resources/Textures/hud/keyboard_space_icon.png");
+		continue_icon->set_texture("Assets/Resources/Textures/hud/keyboard_space_icon.etx");
 		continue_icon->set_draw_mode(ui_image::draw_modes::single);
 		continue_icon->set_sort_order(1);
 		register_object(continue_icon);

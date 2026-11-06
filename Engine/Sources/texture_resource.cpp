@@ -35,6 +35,9 @@ bool texture_resource::load_file(std::string_view file_path)
 		return false;
 	}
 	created->set_sampler_desc(settings.sampler);
+#if defined(USE_IMGUI)
+	created->set_debug_name(file_path);
+#endif	//	defined(USE_IMGUI)
 	value = std::move(created);
 
 	inherit_uuid(header.uuid);

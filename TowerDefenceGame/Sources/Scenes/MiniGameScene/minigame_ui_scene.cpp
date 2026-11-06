@@ -69,7 +69,7 @@ minigame_ui_scene::minigame_ui_scene()
 			desc.objects[index]->set_screen_rect({ heat_ui_position.x, heat_ui_position.y, heat_ui_size.x, heat_ui_size.y });
 			desc.objects[index]->set_color({ 1, 0.25f, 0.25f, 1 });
 			desc.objects[index]->set_border({0,0,1,1});
-			desc.objects[index]->set_texture("Assets/Resources/Textures/hud/HeatMeter.png");
+			desc.objects[index]->set_texture("Assets/Resources/Textures/hud/HeatMeter.etx");
 			desc.objects[index]->set_draw_mode(ui_image::draw_modes::sliced);
 			desc.objects[index]->set_sort_order(10);
 			register_object(desc.objects[index]);
@@ -80,7 +80,7 @@ minigame_ui_scene::minigame_ui_scene()
 			desc.objects[index]->set_screen_rect({ heat_ui_position.x, heat_ui_position.y, heat_ui_size.x, heat_ui_size.y });
 			desc.objects[index]->set_color({ 1, 0.25f, 0.25f, 1 });
 			desc.objects[index]->set_border({0,0,1,1});
-			desc.objects[index]->set_texture("Assets/Resources/Textures/hud/HeatMeterMain.png");
+			desc.objects[index]->set_texture("Assets/Resources/Textures/hud/HeatMeterMain.etx");
 			desc.objects[index]->set_draw_mode(ui_image::draw_modes::filled);
 			desc.objects[index]->set_fill_method(ui_image::fill_methods::axis);
 			desc.objects[index]->set_fill_origin(ui_image::fill_origins::bottom);
@@ -101,7 +101,7 @@ minigame_ui_scene::minigame_ui_scene()
 			desc.objects[index]->set_screen_rect({ wet_ui_position.x, wet_ui_position.y, wet_ui_size.x, wet_ui_size.y });
 			desc.objects[index]->set_color({ 0.25f, 0.25f, 1, 1 });
 			desc.objects[index]->set_border({0,0,1,1});
-			desc.objects[index]->set_texture("Assets/Resources/Textures/hud/WetMeter.png");
+			desc.objects[index]->set_texture("Assets/Resources/Textures/hud/WetMeter.etx");
 			desc.objects[index]->set_draw_mode(ui_image::draw_modes::sliced);
 			desc.objects[index]->set_sort_order(10);
 			register_object(desc.objects[index]);
@@ -112,7 +112,7 @@ minigame_ui_scene::minigame_ui_scene()
 			desc.objects[index]->set_screen_rect({ wet_ui_position.x, wet_ui_position.y, wet_ui_size.x, wet_ui_size.y });
 			desc.objects[index]->set_color({ 0.25f, 0.25f, 1, 1 });
 			desc.objects[index]->set_border({0,0,1,1});
-			desc.objects[index]->set_texture("Assets/Resources/Textures/hud/WetMeterMain.png");
+			desc.objects[index]->set_texture("Assets/Resources/Textures/hud/WetMeterMain.etx");
 			desc.objects[index]->set_draw_mode(ui_image::draw_modes::filled);
 			desc.objects[index]->set_fill_method(ui_image::fill_methods::axis);
 			desc.objects[index]->set_fill_origin(ui_image::fill_origins::bottom);
@@ -132,7 +132,7 @@ minigame_ui_scene::minigame_ui_scene()
 			desc.image->set_screen_rect({ trash_base_ui_position.x, trash_base_ui_position.y, trash_base_ui_size.x, trash_base_ui_size.y });
 			desc.image->set_color({ 0.25f, 0.25f, 1, 1 });
 			desc.image->set_border({0,0,1,1});
-			desc.image->set_texture("Assets/Resources/Textures/hud/DustMeter.png");
+			desc.image->set_texture("Assets/Resources/Textures/hud/DustMeter.etx");
 			desc.image->set_draw_mode(ui_image::draw_modes::sliced);
 			desc.image->set_sort_order(0);
 			register_object(desc.image);
@@ -181,7 +181,7 @@ minigame_ui_scene::minigame_ui_scene()
 
 		desc.image = std::make_shared<ui_image>("ルンバUI：速度表示：ベース");
 		desc.image->set_screen_rect({ speed_base_ui_position.x, speed_base_ui_position.y, speed_base_ui_size.x, speed_base_ui_size.y });
-		desc.image->set_texture("Assets/Resources/Textures/Hud/SpeedMeter.png");
+		desc.image->set_texture("Assets/Resources/Textures/Hud/SpeedMeter.etx");
 		desc.image->set_draw_mode(ui_image::draw_modes::sliced);
 		desc.image->set_border({0,0,0,0});
 		desc.image->set_sort_order(0);
@@ -211,7 +211,7 @@ minigame_ui_scene::minigame_ui_scene()
 		register_object(desc.text);
 
 		desc.start_image = std::make_shared<ui_image>("ルンバUI：カウントダウン表示：スタート画像");
-		desc.start_image->set_texture("Assets/Resources/Textures/hud/Start.png");
+		desc.start_image->set_texture("Assets/Resources/Textures/hud/Start.etx");
 		desc.start_image->set_screen_rect({ 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT });
 		desc.start_image->set_draw_mode(ui_image::draw_modes::single);
 		desc.start_image->set_color({ 1, 1, 1, 0 });
@@ -219,7 +219,7 @@ minigame_ui_scene::minigame_ui_scene()
 		register_object(desc.start_image);
 
 		desc.finish_image = std::make_shared<ui_image>("ルンバUI：カウントダウン表示：フィニッシュ画像");
-		desc.finish_image->set_texture("Assets/Resources/Textures/hud/Finish.png");
+		desc.finish_image->set_texture("Assets/Resources/Textures/hud/Finish.etx");
 		desc.finish_image->set_screen_rect({ 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT });
 		desc.finish_image->set_draw_mode(ui_image::draw_modes::single);
 		desc.finish_image->set_color({ 1, 1, 1, 0 });
@@ -237,7 +237,7 @@ minigame_ui_scene::minigame_ui_scene()
 		{
 			desc.base_image = std::make_shared<ui_image>("ルンバUI：チュートリアル：ベース");
 			desc.base_image->set_screen_rect({ tutorial_ui_position.x, tutorial_ui_position.y, tutorial_ui_size.x, tutorial_ui_size.y });
-			desc.base_image->set_texture("Assets/Resources/Textures/hud/NotificationWindow.png");
+			desc.base_image->set_texture("Assets/Resources/Textures/hud/NotificationWindow.etx");
 			desc.base_image->set_draw_mode(ui_image::draw_modes::sliced);
 			desc.base_image->set_color({ 1, 1, 1, 0.5f });
 			desc.base_image->set_border({ 0.25f, 0.25f, 0.75f, 0.75f });
@@ -277,7 +277,7 @@ minigame_ui_scene::minigame_ui_scene()
 		register_object(key_object);
 
 		auto main_icon = std::make_shared<ui_image>("ルンバUI：加速メインアイコン");
-		main_icon->set_texture("Assets/Resources/Textures/hud/accel_icon.png");
+		main_icon->set_texture("Assets/Resources/Textures/hud/accel_icon.etx");
 		main_icon->set_screen_rect({accel_icon_main_ui_position.x,
 									accel_icon_main_ui_position.y,
 									accel_icon_main_ui_size.x,
@@ -317,7 +317,7 @@ minigame_ui_scene::minigame_ui_scene()
 		register_object(key_object);
 
 		auto main_icon = std::make_shared<ui_image>("ルンバUI：減速メインアイコン");
-		main_icon->set_texture("Assets/Resources/Textures/hud/brake_icon.png");
+		main_icon->set_texture("Assets/Resources/Textures/hud/brake_icon.etx");
 		main_icon->set_screen_rect({brake_icon_main_ui_position.x,
 									brake_icon_main_ui_position.y,
 									brake_icon_main_ui_size.x,
@@ -357,7 +357,7 @@ minigame_ui_scene::minigame_ui_scene()
 		register_object(key_object);
 
 		auto main_icon = std::make_shared<ui_image>("ルンバUI：チュートリアルメインアイコン");
-		main_icon->set_texture("Assets/Resources/Textures/hud/tutorial_icon.png");
+		main_icon->set_texture("Assets/Resources/Textures/hud/tutorial_icon.etx");
 		main_icon->set_screen_rect({tutorial_icon_main_ui_position.x,
 									tutorial_icon_main_ui_position.y,
 									tutorial_icon_main_ui_size.x,

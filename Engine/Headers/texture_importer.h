@@ -3,6 +3,7 @@
 #if defined(USE_IMGUI)
 
 #include <string_view>
+#include <vector>
 
 #include "texture_resource.h"
 
@@ -26,7 +27,16 @@ public:
 	//	テクスチャリソースのリロード
 	bool reimport(std::string_view etx_path);
 
+	//	サンプラーだけを変えて保存
+	bool update_sampler(texture_resource& target, const texture_sampler_desc& sampler);
+
 private:
+	//	元画像を設定どおりに変換して DDS にする
+	bool convert_source(std::string_view source_path, const texture_import_settings& settings, std::vector<char>& out_dds);
+
+	//	元のDDSをそのまま読む
+	static bool read_source_dds(std::string_view source_path, std::vector<char>& out_dds);
+
 	//	settingsの形式にする
 	bool encode(DirectX::ScratchImage& image, const texture_import_settings& settings);
 

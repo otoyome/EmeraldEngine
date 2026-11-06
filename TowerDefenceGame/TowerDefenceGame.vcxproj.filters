@@ -344,6 +344,9 @@
     <ClCompile Include="Sources\Editor\detail_profiler.cpp">
       <Filter>Sources\Editor</Filter>
     </ClCompile>
+    <ClCompile Include="Sources\Editor\texture_editor.cpp">
+      <Filter>Sources\Editor</Filter>
+    </ClCompile>
     <ClCompile Include="Sources\Renderer\scene_renderer_forward.cpp">
       <Filter>Sources\Renderer</Filter>
     </ClCompile>
@@ -644,6 +647,9 @@
       <Filter>Headers\Editor</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Editor\detail_profiler.h">
+      <Filter>Headers\Editor</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Editor\texture_editor.h">
       <Filter>Headers\Editor</Filter>
     </ClInclude>
     <ClInclude Include="..\External\subpixel_morphological_anti_aliasing\textures\AreaTex.h">

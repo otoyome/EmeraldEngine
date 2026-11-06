@@ -1,4 +1,5 @@
 #include "graphics/shadow_atlas.h"
+#include "texture_factory.h"
 
 #include "render_data.h"
 #include "common_pipeline_states.h"
@@ -74,7 +75,7 @@ void shadow_atlas::begin_frame()
 	const std::string key = "shadow_atlas_" + std::to_string(desired_resolution) + "_" + std::to_string(desired_slices);
 	depth_stencil_views.clear();
 	texture.reset();
-	texture_manager::instance()->generate_texture2d(texture, key, texture_desc, &srv_desc);
+	texture_factory::create_texture2d(texture, key, texture_desc, &srv_desc);
 
 	resolution = desired_resolution;
 	slice_count = desired_slices;

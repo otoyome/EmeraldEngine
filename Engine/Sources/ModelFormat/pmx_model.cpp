@@ -211,18 +211,7 @@ void pmx_model::calculate_node_data::update_global_matrix(const math::matrixf& p
 pmx_model::pmx_model(ID3D11Device* device, pmx_loader& loader)
 {
 	//	テクスチャ読み込み
-	{
-		textures.reserve(loader.get_textures().size());
-		for (auto& filename : loader.get_textures())
-		{
-			texture_ptr texture;
-			if (texture_manager::instance()->load_texture_from_file(texture, filename))
-			{
-				texture_names.emplace_back(filename);
-				textures.emplace_back(texture);
-			}
-		}
-	}
+	texture_names = loader.get_textures();
 
 	//	マテリアル/サブセット
 	std::vector<subset> subsets;
@@ -536,22 +525,6 @@ pmx_model::pmx_model(ID3D11Device* device, pmx_loader& loader)
 	//	モーフ
 	{
 		morphs = loader.get_morphs();
-	}
-
-	//	ダミーテクスチャ生成
-	dummy_texture	= texture_manager::instance()->search(texture_manager::white_texture2d_name);
-
-	//	デフォルトランプテクスチャ生成
-	{
-		default_toon_textures.reserve(ARRAYSIZE(DefaultRampTexturePath));
-		for (auto& filename : DefaultRampTexturePath)
-		{
-			texture_ptr texture;
-			if (texture_manager::instance()->load_texture_from_file(texture, filename))
-			{
-				default_toon_textures.emplace_back(texture);
-			}
-		}
 	}
 }
 
@@ -1024,19 +997,6 @@ bool pmx_model::add_vmd_animation(const char* motion_name, const vmd_loader& loa
 	}
 	animations.insert_or_assign(animation.name, animation);
 	return true;
-}
-
-UINT pmx_model::add_texture(ID3D11Device* device, const char* filepath)
-{
-	//	テクスチャ読み込み
-	texture_ptr texture;
-	if (texture_manager::instance()->load_texture_from_file(texture, filepath))
-	{
-		textures.resize(textures.size() + 1);
-		textures.back() = texture;
-		return static_cast<UINT>(textures.size()) - 1;
-	}
-	return 0xFFFFFFFF;
 }
 
 std::vector<std::string> pmx_model::get_animation_names()

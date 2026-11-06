@@ -264,7 +264,6 @@ public:
 
 	bool add_vmd_animation(const char* motion_name, const char* filepath);
 	bool add_vmd_animation(const char* motion_name, const vmd_loader& loader);
-	UINT add_texture(ID3D11Device* device, const char* filepath);
 
 	std::vector<std::string> get_animation_names();
 	animation* search_animation(std::string_view name);
@@ -279,7 +278,6 @@ public:
 	const std::vector<ik_link_data>& get_ik_link_datas() const { return ik_link_datas; }
 	const std::vector<pmx_morph>& get_morphs() const { return morphs; }
 	const std::vector<std::string>& get_texture_names() const { return texture_names; }
-	const std::vector<texture_ptr>& get_textures() const { return textures; }
 	const std::unordered_map<std::string, animation>& get_animations() const { return animations; }
 
 private:
@@ -304,7 +302,4 @@ private:
 	std::unordered_map<std::string, animation> animations;
 
 	std::vector<std::string> texture_names;
-	std::vector<texture_ptr> textures;
-	std::vector<texture_ptr> default_toon_textures;
-	texture_ptr dummy_texture;
 };

@@ -3,6 +3,8 @@
 #include <sstream>
 
 #include "texture_factory.h"
+#include "texture_resource.h"
+#include "Resource/resource_manager.h"
 #include "Resource/data_compression.h"
 #include "system/logger.h"
 #include "DirectXTex.h"
@@ -39,4 +41,15 @@ bool texture_resource_utility::read_image(std::string_view file_path, DirectX::S
 	if (!read_file(file_path, header, settings, dds))
 		return false;
 	return texture_factory::decode_memory(dds.data(), dds.size(), out_image);
+}
+
+texture_ptr texture_resource_utility::load_texture(std::string_view file_path)
+{
+	if (!resource_manager::is_valid())
+		return nullptr;
+
+	auto operation = resource_manager::instance()->load<texture_resource>(file_path);
+	const resource::asset_reference<texture_resource> reference{ {}, std::string(file_path) };
+	auto loaded = resource_manager::instance()->resolve(operation, reference);
+	return loaded ? loaded->get_texture() : nullptr;
 }

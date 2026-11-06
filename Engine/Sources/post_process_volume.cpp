@@ -1,4 +1,5 @@
 #include "post_process_volume.h"
+#include "texture_resource_utility.h"
 #include "texture.h"
 #include "material_instance.h"
 #include "collision/box.h"
@@ -9,7 +10,7 @@
 
 bloom_data::bloom_data()
 {
-	texture_manager::instance()->load_texture_from_file(image_kernel, "Assets/Resources/Textures/comvolution_bloom_default_kernel.png");
+	image_kernel = texture_resource_utility::load_texture("Assets/Resources/Textures/comvolution_bloom_default_kernel.etx");
 }
 
 bool bloom_data::is_active() const
@@ -28,8 +29,8 @@ void bloom_data::set_active(bool flag)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 lens_ghosts_data::lens_ghosts_data()
 {
-	texture_manager::instance()->load_texture_from_file(image_kernel, "Assets/Resources/Textures/lens_ghost_default_kernel.png");
-	texture_manager::instance()->load_texture_from_file(ghost_color_lut, "Assets/Resources/Textures/lens_ghost_color_lut.png");
+	image_kernel = texture_resource_utility::load_texture("Assets/Resources/Textures/lens_ghost_default_kernel.etx");
+	ghost_color_lut = texture_resource_utility::load_texture("Assets/Resources/Textures/lens_ghost_color_lut.etx");
 }
 
 bool lens_ghosts_data::is_active() const

@@ -163,6 +163,7 @@ private:
 
 	void imgui_render_flat_table(const char* id, category kind, const char* time_label);
 	void imgui_render_renderer_table();
+	void imgui_render_texture_table();
 	void imgui_render_object_table(const char* id, std::map<std::string, object_entry>& entries, bool type_mode);
 	void imgui_render_history_tooltip(const char* label, const history& data);
 

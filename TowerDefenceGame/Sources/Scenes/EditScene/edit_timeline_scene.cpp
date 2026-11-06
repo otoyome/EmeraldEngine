@@ -1,4 +1,5 @@
 #include "scenes/editscene/edit_timeline_scene.h"
+#include "texture_resource_utility.h"
 #include "System/asset_browser.h"
 
 #if defined(USE_IMGUI)
@@ -611,11 +612,11 @@ bool edit_timeline_scene::initialize_core()
 			sky_light->set_color(color);
 
 			texture_ptr ibl_texture;
-			texture_manager::instance()->load_texture_from_file(ibl_texture, "Assets/Resources/Textures/hilly_terrain_01_puresky_4k/diffuse_iem.dds");
+			ibl_texture = texture_resource_utility::load_texture("Assets/Resources/Textures/hilly_terrain_01_puresky_4k/diffuse_iem.etx");
 			sky_light->set_diffuse_ibl_texture(ibl_texture);
-			texture_manager::instance()->load_texture_from_file(ibl_texture, "Assets/Resources/Textures/hilly_terrain_01_puresky_4k/specular_pmrem.dds");
+			ibl_texture = texture_resource_utility::load_texture("Assets/Resources/Textures/hilly_terrain_01_puresky_4k/specular_pmrem.etx");
 			sky_light->set_specular_ibl_texture(ibl_texture);
-			texture_manager::instance()->load_texture_from_file(ibl_texture, "Assets/Resources/Textures/lut_ggx.dds");
+			ibl_texture = texture_resource_utility::load_texture("Assets/Resources/Textures/lut_ggx.etx");
 			sky_light->set_lut_ggx_texture(ibl_texture);
 
 			register_object(sky_light);

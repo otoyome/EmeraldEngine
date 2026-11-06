@@ -1,4 +1,5 @@
 #include "Renderer/scene_renderer_postprocess.h"
+#include "texture_factory.h"
 
 #include "model_instance.h"
 
@@ -954,7 +955,6 @@ void motion_blur_post_process_renderer::render(renderer_context& renderer_contex
 void motion_blur_post_process_renderer::resize_buffer(int width, int height)
 {
 	auto device = render_data::instance()->get_device().Get();
-	auto tex_manager = texture_manager::instance();
 	int tile_buffer_width = (width + motion_blur::tile_size - 1) / motion_blur::tile_size;
 	int tile_buffer_height = (height+ motion_blur::tile_size - 1) / motion_blur::tile_size;
 
@@ -974,7 +974,7 @@ void motion_blur_post_process_renderer::resize_buffer(int width, int height)
 		texture2d_desc.Format = DXGI_FORMAT_R32G32_FLOAT;
 
 		reconstract_velocity_map.reset();
-		tex_manager->generate_texture2d(reconstract_velocity_map, "reconstract_velocity", texture2d_desc);
+		texture_factory::create_texture2d(reconstract_velocity_map, "reconstract_velocity", texture2d_desc);
 	}
 
 	// シーンカラー
@@ -1136,7 +1136,6 @@ bloom_and_tone_mapping_post_process_renderer::bloom_and_tone_mapping_post_proces
 	}
 
 	//	平均輝度テクスチャ
-	if (auto tex_manager = texture_manager::instance())
 	{
 		D3D11_TEXTURE2D_DESC texture2d_desc{};
 		texture2d_desc.Width = 1;
@@ -1151,14 +1150,14 @@ bloom_and_tone_mapping_post_process_renderer::bloom_and_tone_mapping_post_proces
 		texture2d_desc.MiscFlags = 0;
 		texture2d_desc.Format = DXGI_FORMAT_R32G32_FLOAT;
 
-		tex_manager->generate_texture2d(average_luminance_buffer[0], "average_luminance_buffer[0]", texture2d_desc);
-		tex_manager->generate_texture2d(average_luminance_buffer[1], "average_luminance_buffer[1]", texture2d_desc);
+		texture_factory::create_texture2d(average_luminance_buffer[0], "average_luminance_buffer[0]", texture2d_desc);
+		texture_factory::create_texture2d(average_luminance_buffer[1], "average_luminance_buffer[1]", texture2d_desc);
 		average_luminance_buffer_index = 0;
 
 		texture2d_desc.Width = FFT_TEXTURE_WIDTH;
 		texture2d_desc.Height = FFT_TEXTURE_HEIGHT;
 		texture2d_desc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
-		tex_manager->generate_texture2d(lens_ghost_luminance_map, "lens_ghost_luminance_map", texture2d_desc);
+		texture_factory::create_texture2d(lens_ghost_luminance_map, "lens_ghost_luminance_map", texture2d_desc);
 	}
 }
 
@@ -1781,7 +1780,7 @@ void anti_alias_post_process_renderer::resize_buffer(int width, int height)
 		//	Edge
 		{
 			texture2d_desc.Format = DXGI_FORMAT_R16G16_FLOAT;
-			texture_manager::instance()->generate_texture2d(smaa_edge_buffer, "smaa_edge_buffer", texture2d_desc);
+			texture_factory::create_texture2d(smaa_edge_buffer, "smaa_edge_buffer", texture2d_desc);
 			smaa_edge_buffer_rendering_pass.render_targets.clear();
 			smaa_edge_buffer_rendering_pass.render_targets.emplace_back(smaa_edge_buffer);
 			smaa_edge_buffer_viewport.TopLeftX = 0.0f;
@@ -1794,7 +1793,7 @@ void anti_alias_post_process_renderer::resize_buffer(int width, int height)
 		//	BlendWeight
 		{
 			texture2d_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-			texture_manager::instance()->generate_texture2d(smaa_blend_buffer, "smaa_blend_buffer", texture2d_desc);
+			texture_factory::create_texture2d(smaa_blend_buffer, "smaa_blend_buffer", texture2d_desc);
 			smaa_blend_buffer_rendering_pass.render_targets.clear();
 			smaa_blend_buffer_rendering_pass.render_targets.emplace_back(smaa_blend_buffer);
 			smaa_blend_buffer_viewport.TopLeftX = 0.0f;

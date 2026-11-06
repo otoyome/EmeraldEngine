@@ -105,6 +105,9 @@
     <ClInclude Include="Headers\texture_resource_utility.h">
       <Filter>Headers</Filter>
     </ClInclude>
+    <ClInclude Include="Headers\texture_tracker.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
     <ClInclude Include="Headers\render_pass.h">
       <Filter>Headers</Filter>
     </ClInclude>
@@ -453,6 +456,9 @@
       <Filter>Sources</Filter>
     </ClCompile>
     <ClCompile Include="Sources\texture_resource_utility.cpp">
+      <Filter>Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\texture_tracker.cpp">
       <Filter>Sources</Filter>
     </ClCompile>
     <ClCompile Include="Sources\render_pass.cpp">

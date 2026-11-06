@@ -1,4 +1,5 @@
 #include "PipelineState/anti_alias_pipeline_state.h"
+#include "texture_factory.h"
 
 #include "subpixel_morphological_anti_aliasing/textures/AreaTex.h"
 #include "subpixel_morphological_anti_aliasing/textures/SearchTex.h"
@@ -222,7 +223,7 @@ smaa_blending_weight_calculation_pipeline_state::smaa_blending_weight_calculatio
 			D3D11_SUBRESOURCE_DATA initialize_data = {};
 			initialize_data.pSysMem = areaTexBytes;
 			initialize_data.SysMemPitch = AREATEX_PITCH;
-			texture_manager::instance()->generate_texture2d(area_texture, "AreaTex", texture2d_desc, initialize_data);
+			texture_factory::create_texture2d(area_texture, "AreaTex", texture2d_desc, initialize_data);
 		}
 		//	Search
 		{
@@ -233,7 +234,7 @@ smaa_blending_weight_calculation_pipeline_state::smaa_blending_weight_calculatio
 			D3D11_SUBRESOURCE_DATA initialize_data = {};
 			initialize_data.pSysMem = searchTexBytes;
 			initialize_data.SysMemPitch = SEARCHTEX_PITCH;
-			texture_manager::instance()->generate_texture2d(search_texture, "SearchTex", texture2d_desc, initialize_data);
+			texture_factory::create_texture2d(search_texture, "SearchTex", texture2d_desc, initialize_data);
 		}
 	}
 

@@ -1,4 +1,5 @@
 #include "shader.h"
+#include "texture_factory.h"
 #include "Graphics/fast_fourier_transform.h"
 
 namespace
@@ -90,7 +91,7 @@ fast_fourier_transform::fast_fourier_transform(sizes size)
 		for (size_t index = 0; index < magic_enum::enum_count<textures>(); ++index)
 		{
 			std::string name = std::string(complex_texture) + std::to_string(texture_counter++);
-			if (!texture_manager::instance()->generate_texture2d(complex_number_textures[index],
+			if (!texture_factory::create_texture2d(complex_number_textures[index],
 				name, texture2d_desc))
 			{
 				_ASSERT_EXPR(!"Failed Generate Texture", "complex_texture");

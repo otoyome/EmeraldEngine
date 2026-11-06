@@ -1,14 +1,15 @@
 #include "object/gameobjects/ui/hud/key_icon_controller_object.h"
+#include "texture_resource_utility.h"
 
 namespace
 {
 	constexpr std::string_view key_icon_texture_path[] =
 	{
-		"Assets/Resources/Textures/hud/keyboard_E_click_icon.png",
-		"Assets/Resources/Textures/hud/keyboard_Q_click_icon.png",
-		"Assets/Resources/Textures/hud/keyboard_space_icon.png",
-		"Assets/Resources/Textures/hud/mouse_left_click_icon.png",
-		"Assets/Resources/Textures/hud/mouse_right_click_icon.png",
+		"Assets/Resources/Textures/hud/keyboard_E_click_icon.etx",
+		"Assets/Resources/Textures/hud/keyboard_Q_click_icon.etx",
+		"Assets/Resources/Textures/hud/keyboard_space_icon.etx",
+		"Assets/Resources/Textures/hud/mouse_left_click_icon.etx",
+		"Assets/Resources/Textures/hud/mouse_right_click_icon.etx",
 	};
 }
 
@@ -37,12 +38,8 @@ void key_icon_object::set_alpha(float alpha)
 
 void key_icon_object::set_key_icon_type(key_icon_type type)
 {
-	texture_ptr texture;
-	if (texture_manager::instance()->load_texture_from_file(texture, key_icon_texture_path[static_cast<int>(type)]))
-	{
-		if (icon)
-			icon->set_texture(texture);
-	}
+	if (icon)
+		icon->set_texture(texture_resource_utility::load_texture(key_icon_texture_path[static_cast<int>(type)]));
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////

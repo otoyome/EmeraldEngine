@@ -49,7 +49,7 @@ minigame_title_scene::minigame_title_scene()
 	{
 		auto logo = std::make_shared<ui_image>("ƒ^ƒCƒgƒ‹ƒƒS");
 		logo->set_screen_rect({ title_logo_position.x, title_logo_position.y, title_logo_size.x, title_logo_size.y });
-		logo->set_texture("Assets/Resources/Textures/hud/minigame_title.png");
+		logo->set_texture("Assets/Resources/Textures/hud/minigame_title.etx");
 		logo->set_draw_mode(ui_image::draw_modes::single);
 		logo->set_sort_order(0);
 		register_object(logo);
