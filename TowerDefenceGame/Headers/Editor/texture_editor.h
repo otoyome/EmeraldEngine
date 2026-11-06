@@ -3,6 +3,7 @@
 #if defined(USE_IMGUI)
 #include <string>
 #include <string_view>
+#include <vector>
 
 #include "texture_resource.h"
 
@@ -39,11 +40,15 @@ private:
 	void apply();
 	void revert();
 
+	void retire_current_texture();
+
 private:
 	texture_resource_ptr target;
 	texture_import_settings editing;
 	std::string source_path_utf8;
 	bool visible = false;
 	bool focus = false;
+
+	std::vector<texture_ptr> retired_textures;
 };
 #endif	//	defined(USE_IMGUI)

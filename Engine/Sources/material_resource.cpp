@@ -428,13 +428,6 @@ void material_resource::build_parameters()
 			//	空のテクスチャを登録
 			shader_resource sr = {};
 			sr.resources.resize(rv.array_size);
-			//	@remainder	ダミーで黒テクスチャを入れていたが、シェーダー側で未登録の場合は使用できないようにした
-			//for (auto& resource : sr.resources)
-			//{
-			//	resource.is_file_path_or_key = false;
-			//	resource.path = texture_manager::black_texture2d_name;
-			//	resource.value = texture_manager::instance()->search(texture_manager::black_texture2d_name);
-			//}
 			shader_resources.insert(std::make_pair(rv.name, sr));
 		}
 	}

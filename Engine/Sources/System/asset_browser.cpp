@@ -24,17 +24,11 @@ namespace
 	//	ドラッグ&ドロップの種類名
 	constexpr const char* move_payload_type = asset_browser::drag_payload_type;
 
-	//	本体のファイル名の後ろに付けた名前の付属ファイル(本体と一緒に移動する)
-	constexpr std::string_view sidecar_extensions[] = { ".meta" };
-
 	//	一覧に出さないフォルダ
 	constexpr std::string_view excluded_directories[] = { "Assets/CSO" };
 
 	//	サムネイルを読み込む拡張子
 	constexpr std::string_view thumbnail_extensions[] = { ".png", ".dds", ".tga", ".bmp", ".jpg", ".jpeg", ".hdr" };
-
-	//	一覧に出さない拡張子
-	constexpr std::string_view hidden_extensions[] = { ".meta" };
 
 	//	1フレームでサムネイルの読み込みに使う時間
 	constexpr std::chrono::milliseconds thumbnail_load_budget(4);
@@ -317,8 +311,6 @@ void asset_browser::scan_entries()
 		if (!is_directory)
 		{
 			target.extension = std::string(target.name.get<extension_cache>());
-			if (contains(hidden_extensions, target.extension))
-				continue;
 
 			std::error_code size_error;
 			target.file_size = it->file_size(size_error);
@@ -920,27 +912,11 @@ bool asset_browser::move_entry(const cache_string& source_path, const cache_stri
 		return false;
 	}
 
-	const bool is_directory = std::filesystem::is_directory(source, error);
 	std::filesystem::rename(source, destination, error);
 	if (error)
 	{
 		DEBUG_ERROR_CATEGORY(logger::categorys::system, "asset_browser move failed[%s] -> [%s] %s", source_path.c_str(), destination_path.c_str(), error.message().c_str());
 		return false;
-	}
-
-	if (!is_directory)
-	{
-		for (auto extension : sidecar_extensions)
-		{
-			std::filesystem::path sidecar_source = source;
-			sidecar_source += std::filesystem::path(std::string(extension));
-			if (!std::filesystem::exists(sidecar_source, error))
-				continue;
-
-			std::filesystem::path sidecar_destination = destination;
-			sidecar_destination += std::filesystem::path(std::string(extension));
-			std::filesystem::rename(sidecar_source, sidecar_destination, error);
-		}
 	}
 
 	//	対応表を先に更新する

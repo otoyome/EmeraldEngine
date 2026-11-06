@@ -50,6 +50,8 @@ bool texture_editor::open(std::string_view file_path)
 
 void texture_editor::imgui_render()
 {
+	retired_textures.clear();
+
 	std::string file_path;
 	if (asset_browser::is_valid() && asset_browser::instance()->take_open_request(open_handler_name, file_path))
 		open(file_path);
@@ -195,6 +197,7 @@ void texture_editor::imgui_render_buttons()
 	ImGui::SameLine();
 	if (ImGui::Button("Reimport from source"))
 	{
+		retire_current_texture();
 		if (auto reimported = texture_importer::instance()->import(editing.source_path, editing))
 		{
 			target = reimported;
@@ -222,6 +225,7 @@ void texture_editor::apply()
 
 	if (needs_reimport())
 	{
+		retire_current_texture();
 		auto reimported = texture_importer::instance()->import(editing.source_path, editing);
 		if (!reimported)
 		{
@@ -236,6 +240,12 @@ void texture_editor::apply()
 		return;
 	}
 	revert();
+}
+
+void texture_editor::retire_current_texture()
+{
+	if (target && target->get_texture())
+		retired_textures.emplace_back(target->get_texture());
 }
 
 void texture_editor::revert()

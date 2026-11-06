@@ -137,21 +137,6 @@ namespace
 		return	angle;
 	}
 
-	std::string_view DefaultRampTexturePath[] =
-	{
-		"Assets/Resources/Textures/Toon/toon0.bmp",
-		"Assets/Resources/Textures/Toon/toon01.bmp",
-		"Assets/Resources/Textures/Toon/toon02.bmp",
-		"Assets/Resources/Textures/Toon/toon03.bmp",
-		"Assets/Resources/Textures/Toon/toon04.bmp",
-		"Assets/Resources/Textures/Toon/toon05.bmp",
-		"Assets/Resources/Textures/Toon/toon06.bmp",
-		"Assets/Resources/Textures/Toon/toon07.bmp",
-		"Assets/Resources/Textures/Toon/toon08.bmp",
-		"Assets/Resources/Textures/Toon/toon09.bmp",
-		"Assets/Resources/Textures/Toon/toon10.bmp",
-	};
-
 	//	MMDÇÕ30FPSäÓèÄÇ≈çÏÇÁÇÍÇƒÇ¢ÇÈ
 	static constexpr float normalized_frame = 30.0f;
 }

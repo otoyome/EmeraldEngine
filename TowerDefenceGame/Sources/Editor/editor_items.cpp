@@ -816,6 +816,7 @@ bool editor_items::edit_material_texture_slot(std::shared_ptr<context>& context,
 				}
 				else if (loaded != slot.asset.get())
 				{
+					context->reserve_texture = slot.get_texture();
 					slot.asset = loaded;
 					edit_flag = true;
 				}
@@ -831,6 +832,7 @@ bool editor_items::edit_material_texture_slot(std::shared_ptr<context>& context,
 		ImGui::PushID("clear");
 		if (ImGui::ImageButton("", (ImTextureID)context->cross_texture->get_shader_resource_view().Get(), icon_size_srv))
 		{
+			context->reserve_texture = slot.get_texture();
 			slot.asset = nullptr;
 			edit_flag = true;
 		}
