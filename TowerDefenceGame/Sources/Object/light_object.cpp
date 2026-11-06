@@ -137,7 +137,7 @@ void light_object::on_deactive()
 directional_light_object::directional_light_object(std::string_view name)
 : light_object(name)
 {
-	light_manager::instance()->generate_light(light, light_type::directional);
+	light = std::make_shared<::light>(light_type::directional);
 	math::rotatorf rotation;
 	rotation = math::rotatorf::from_direction(math::vector3f(1, -1, -1));
 	set_world_euler(math::rotatord(rotation));
@@ -217,7 +217,7 @@ float point_light_object::get_range() const
 point_light_object::point_light_object(std::string_view name)
 : light_object(name)
 {
-	light_manager::instance()->generate_light(light, light_type::point);
+	light = std::make_shared<::light>(light_type::point);
 	set_world_translation(math::vector3d::zero());
 	sync_to_light();
 	set_range(10.0f);
@@ -320,7 +320,7 @@ float spot_light_object::get_outer_cone() const
 spot_light_object::spot_light_object(std::string_view name)
 : light_object(name)
 {
-	light_manager::instance()->generate_light(light, light_type::spot);
+	light = std::make_shared<::light>(light_type::spot);
 	set_world_translation(math::vector3d::zero());
 	sync_to_light();
 	set_range(10.0f);
@@ -481,7 +481,7 @@ void light_probe_object::on_deactive()
 sky_light_object::sky_light_object(std::string_view name)
 : light_probe_object(name)
 {
-	light_manager::instance()->generate_light_probe(light_probe);
+	light_probe = std::make_shared<::light_probe>();
 	light_probe->set_flag(light_probe::flags::unbind, true);
 	set_world_translation(math::vector3d(90.0, 90.0, 90.0));
 	sync_to_light_probe();
@@ -521,7 +521,7 @@ math::float3 area_light_probe_object::get_outer_range() const
 area_light_probe_object::area_light_probe_object(std::string_view name)
 : light_probe_object(name)
 {
-	light_manager::instance()->generate_light_probe(light_probe);
+	light_probe = std::make_shared<::light_probe>();
 	light_probe->set_flag(light_probe::flags::unbind, false);
 	set_world_translation(math::vector3d(90.0, 90.0, 90.0));
 	sync_to_light_probe();

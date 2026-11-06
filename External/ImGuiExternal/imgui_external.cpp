@@ -432,7 +432,7 @@ bool ImGui::DragUInt4(const char* label, UINT v[4], float v_speed, UINT v_min, U
 
 namespace
 {
-	//	@tool 色の数値を入力する時の表し方
+	//	色の数値を入力する時の表し方
 	enum class color_input_spaces : int
 	{
 		rec709_linear,

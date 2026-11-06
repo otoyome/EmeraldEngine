@@ -798,18 +798,24 @@ bool effect_manager::unregister_instance(effect_instance_ptr instance)
 	return true;
 }
 
+void effect_manager::collect_model_instances(std::vector<model_instance_ptr>& out_instances) const
+{
+	for (const auto& item : items)
+	{
+		for (const auto& model_data : item.effect_instance->get_models())
+		{
+			if (model_data.instance)
+				out_instances.emplace_back(model_data.instance);
+		}
+	}
+}
+
 void effect_manager::add_instances()
 {
 	for (auto& instance : instances_add)
 	{
 		auto& item = items.emplace_back();
 		item.effect_instance = instance;
-
-		//	モデル登録
-		for (auto& model_data : item.effect_instance->get_models())
-		{
-			model_instance_manger::instance()->registered(model_data.instance);
-		}
 
 		//	パーティクル情報生成
 		item.emitter_items.reserve(item.effect_instance->get_particles().size());

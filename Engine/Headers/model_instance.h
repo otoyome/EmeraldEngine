@@ -123,25 +123,8 @@ private:
 
 using model_instance_ptr = std::shared_ptr<model_instance>;
 
-//	モデルインスタンスマネージャー
-class model_instance_manger
+class mesh_collector
 {
-	SINGLETON(model_instance_manger)
-
-	using	model_instances	= std::vector<std::weak_ptr<model_instance>>;
-
 public:
-	inline const model_instances& get_instances() const { return instances; }
-
-private:
-	model_instance_manger();
-	~model_instance_manger();
-
-public:
-	void registered(std::weak_ptr<model_instance> instance);
-
-	void get_container(mesh_container& container, const math::vector3d& render_origin);
-
-private:
-	model_instances instances;
+	void collect(mesh_container& container, const std::vector<model_instance_ptr>& instances, const math::vector3d& render_origin);
 };

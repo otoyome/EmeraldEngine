@@ -26,6 +26,7 @@ extern ImWchar glyphRangesJapanese[];
 
 namespace collision { class frustum_culling; }
 struct render_data_context;
+class world;
 
 class framework
 {
@@ -81,6 +82,12 @@ private:
 	std::vector<std::unique_ptr<renderer>> scene_renderers;
 	std::vector<std::unique_ptr<renderer>> ui_renderers;
 	std::shared_ptr<render_job_executor> render_executor;
+
+	//	メインのワールド
+	std::unique_ptr<world> main_world;
+
+	//	メイン視点の選択
+	view_selector main_view_selector;
 
 	//	描画用の一部情報
 	render_pass back_buffer_clear_rendering_pass;

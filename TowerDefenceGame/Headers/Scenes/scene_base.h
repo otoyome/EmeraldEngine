@@ -63,9 +63,9 @@ private:
 
 class scene_manager
 {
-	SINGLETON(scene_manager)
+	MAIN_WORLD_SINGLETON(scene_manager)
 
-private:
+public:
 	scene_manager();
 	~scene_manager();
 

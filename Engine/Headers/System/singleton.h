@@ -57,3 +57,13 @@ public:								\
 		return	&instance_data;		\
 	}								\
 private:
+
+//	@tool 移行用：実体はメインのワールドが持ち、instance() はメインのワールドの物を返す
+//	@tool engine_context への置き換えが済んだら削除する
+#define	MAIN_WORLD_SINGLETON( T )									\
+public:																\
+	static	inline	T*		instance()			{ return instance_ptr; }	\
+	static	inline	bool	is_valid()			{ return instance_ptr != nullptr; }	\
+	static	inline	void	set_main_world_instance(T* target) { instance_ptr = target; }	\
+private:															\
+	static	inline	T*	instance_ptr = nullptr;

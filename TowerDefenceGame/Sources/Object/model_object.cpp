@@ -44,7 +44,6 @@ model_object::model_object(std::string_view name, std::string_view file_path)
 		{
 			model_instance = std::make_shared<::model_instance>(resource);
 			model_instance->update_transform(math::transformd::identity());
-			model_instance_manger::instance()->registered(model_instance);
 		}
 	}
 
@@ -74,7 +73,6 @@ model_object::model_object(std::string_view name, model_resource_ptr resource)
 	model_instance = std::make_shared<::model_instance>(resource);
 	play_animation(animation_index, animation_loop, 0.0f);
 	model_instance->update_transform(math::transformd::identity());
-	model_instance_manger::instance()->registered(model_instance);
 
 	//	IK情報チェック
 	if (model_instance)

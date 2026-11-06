@@ -171,30 +171,8 @@ size_t model_instance::get_node_index_by_name(std::string_view node_name) const
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-model_instance_manger::model_instance_manger()
-{
-}
 
-model_instance_manger::~model_instance_manger()
-{
-}
-
-void model_instance_manger::registered(std::weak_ptr<model_instance> instance)
-{
-	//	登録済みであれば登録しない
-	auto it  = std::find_if(instances.begin(),
-							instances.end(),
-							[instance](std::weak_ptr<model_instance> value)
-							{
-								return system_utility::equals(value, instance);
-							});
-	if (it != instances.end())
-		return;
-
-	instances.emplace_back(instance);
-}
-
-void model_instance_manger::get_container(mesh_container& container, const math::vector3d& render_origin)
+void mesh_collector::collect(mesh_container& container, const std::vector<model_instance_ptr>& instances, const math::vector3d& render_origin)
 {
 	const semantic position_semantic("POSITION", 0);
 	const semantic normal_semantic("NORMAL", 0);
@@ -212,17 +190,10 @@ void model_instance_manger::get_container(mesh_container& container, const math:
 	container.material_datas.reserve(256);
 
 	//	メッシュコンテナ生成
-	auto it = instances.begin();
-	while (it != instances.end())
+	for (const auto& instance : instances)
 	{
-		if (it->expired())
-		{
-			it = instances.erase(it);
+		if (!instance)
 			continue;
-		}
-
-		auto instance = it->lock();
-		++it;	//	次のインスタンスに移動させておく
 
 		if (!instance->is_flag(model_instance::flags::active))
 			continue;

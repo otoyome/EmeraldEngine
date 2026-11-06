@@ -12,6 +12,9 @@ class camera_object : public spatial_object
 public:
 	camera_ptr get_camera() const {return camera;}
 
+	//	シーンカメラオーダー
+	std::uint64_t get_view_order() const { return view_order; }
+
 public:
 	camera_object(std::string_view name);
 	~camera_object() override;
@@ -31,4 +34,7 @@ private:
 
 private:
 	camera_ptr camera;
+	std::uint64_t view_order = 0;
+
+	inline static std::atomic<std::uint64_t> view_order_counter{ 1 };
 };

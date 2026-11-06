@@ -8,6 +8,7 @@
 
 #include <vector>
 
+class light_object;
 class directional_light_object;
 class model_object;
 
@@ -54,6 +55,7 @@ protected:
 	void imgui_render_core() override;
 
 private:
+	void clear_lights();
 	void rebuild_lights();
 	void update_light_positions();
 
@@ -61,7 +63,7 @@ private:
 	//	¶¬‚µ‚½ƒ‰ƒCƒg
 	struct light_entry
 	{
-		light_ptr light;
+		std::shared_ptr<light_object> object;
 		math::vector3d base_position;	//	‰~‰^“®‚Ì’†S
 		float phase = 0.0f;				//	‰~‰^“®‚Ì‰ŠúˆÊ‘Š
 	};

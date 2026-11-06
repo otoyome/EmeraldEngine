@@ -37,6 +37,7 @@
 #include "Renderer/ui_renderer.h"
 
 #include "Object/object_manager.h"
+#include "Object/world.h"
 #include "Object/GameObjects/UI/ui_object.h"
 
 #include "System/engine_config_data.h"
@@ -342,15 +343,11 @@ bool framework::initialize()
 		shader_manager::create_instance();
 		pipeline_state_manager::create_instance();
 		material_shader_map::create_instance();
-		light_manager::create_instance();
-		post_process_volume_manager::create_instance();
-		camera_manager::create_instance();
 		model_buffer_pool_manager::create_instance();
 		asset_registry::create_instance();
 		asset_registry::instance()->scan();
 		resource_manager::create_instance();
 		model_resource_manager::create_instance();
-		model_instance_manger::create_instance();
 		ik_resource_manager::create_instance();	//	@remainder	これは不要では？
 		font_data_manager::create_instance();
 	}
@@ -366,7 +363,6 @@ bool framework::initialize()
 	//	エフェクト関係
 	{
 		effect_resource_manager::create_instance();
-		effect_manager::create_instance();
 	}
 
 #if defined(USE_IMGUI)
@@ -389,8 +385,10 @@ bool framework::initialize()
 	//	シーン関係
 	{
 		collision_filter_manager::create_instance();
-		object_manager::create_instance();
-		scene_manager::create_instance();
+
+		//	メインのワールド
+		main_world = std::make_unique<world>();
+		main_world->bind_main_world();
 	}
 
 	//	各種バッファ用意
@@ -572,7 +570,7 @@ void framework::update(float elapsed_time/*Elapsed seconds from last frame*/)
 	//	エディターカメラ更新
 	if (editor_camera_manager::is_valid())
 	{
-		editor_camera_manager::instance()->update(elapsed_time);
+		editor_camera_manager::instance()->update(elapsed_time, main_view_selector.get_game_view());
 	}
 
 	//	ImGuiウィンドウ構築の計測
@@ -676,7 +674,13 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 		//	視点の候補から今フレームのメイン視点を選ぶ
 		view_selection selection;
 		main_view_camera_cut = false;
-		if (camera_manager::instance()->select_view(selection))
+		camera_ptr override_camera;
+#if defined(USE_IMGUI)
+		if (editor_camera_manager::is_valid())
+			override_camera = editor_camera_manager::instance()->get_override_camera();
+#endif	//	defined(USE_IMGUI)
+		const camera_ptr game_camera = main_world->find_view_camera();
+		if (main_view_selector.select(game_camera.get(), override_camera.get(), selection))
 		{
 			main_view_parameters = selection.parameters;
 			main_view_camera_cut = selection.camera_cut;
@@ -694,14 +698,14 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 			view_info.position = main_view_parameters.position;
 			view_info.tan_half_fov_y = std::tan(main_view_parameters.fov_y * 0.5f);
 			view_info.frustum = &collect_view.get_frustum_culling();
-			light_manager::instance()->get_container(render_data->light_container, render_origin, view_info);
+			main_world->collect_lights(render_data->light_container, render_origin, view_info);
 		}
 
 		//	ポストプロセスボリューム取得
-		post_process_volume_manager::instance()->get_container(render_data->post_process_volume_container, main_view_parameters.position);
+		main_world->collect_post_process_volumes(render_data->post_process_volume_container, main_view_parameters.position);
 
 		//	メッシュ取得
-		model_instance_manger::instance()->get_container(render_data->mesh_container, render_origin);
+		main_world->collect_meshes(render_data->mesh_container, render_origin);
 
 		//	エフェクトコンテナ取得
 		effect_manager::instance()->get_container(render_data->effect_container, render_data->decal_container, render_origin);
@@ -1086,13 +1090,8 @@ bool framework::uninitialize()
 {
 	//	シーン関係
 	{
+		main_world.reset();
 		collision_filter_manager::delete_instance();
-		scene_manager::delete_instance();
-		if (object_manager::is_valid())
-		{
-			object_manager::instance()->finalize();
-			object_manager::delete_instance();
-		}
 	}
 
 	//	サウンド関係
@@ -1116,16 +1115,11 @@ bool framework::uninitialize()
 	{
 		font_data_manager::delete_instance();
 		ik_resource_manager::delete_instance();
-		effect_manager::delete_instance();
 		effect_resource_manager::delete_instance();
-		model_instance_manger::delete_instance();
 		resource_manager::delete_instance();
 		asset_registry::delete_instance();
 		model_resource_manager::delete_instance();
 		model_buffer_pool_manager::delete_instance();
-		camera_manager::delete_instance();
-		post_process_volume_manager::delete_instance();
-		light_manager::delete_instance();
 		material_shader_map::delete_instance();
 		pipeline_state_manager::delete_instance();
 		shader_manager::delete_instance();

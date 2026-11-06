@@ -18,7 +18,7 @@ void post_process_volume_object::sync_to_volume()
 post_process_volume_object::post_process_volume_object(std::string_view name)
 : spatial_object(name)
 {
-	post_process_volume_manager::instance()->generate_post_process_volume(instance);
+	instance = std::make_shared<post_process_volume>();
 	sync_to_volume();
 
 #if defined(USE_IMGUI)

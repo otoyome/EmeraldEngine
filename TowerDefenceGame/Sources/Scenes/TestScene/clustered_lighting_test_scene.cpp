@@ -7,6 +7,8 @@
 #include "object/light_object.h"
 #include "object/camera_object.h"
 #include "object/model_object.h"
+#include "object/object_manager.h"
+#include "object/world.h"
 
 #include "System/console_manager.h"
 #include "graphics/shadow_atlas.h"
@@ -97,7 +99,7 @@ bool clustered_lighting_test_scene::initialize_core()
 bool clustered_lighting_test_scene::uninitialize_core()
 {
 	//	ライトは参照を外すとライト管理からも外れる
-	lights.clear();
+	clear_lights();
 	editor_camera_request.reset();
 	return true;
 }
@@ -111,9 +113,16 @@ void clustered_lighting_test_scene::update_core(float elapsed_time)
 	}
 }
 
+void clustered_lighting_test_scene::clear_lights()
+{
+	for (auto& entry : lights)
+		object_manager::instance()->unregister_object(entry.object);
+	lights.clear();
+}
+
 void clustered_lighting_test_scene::rebuild_lights()
 {
-	lights.clear();
+	clear_lights();
 
 	std::seed_seq seed_sequence{ static_cast<std::uint32_t>(settings.seed), 0x9e3779b9u, 0x85ebca6bu, 0xc2b2ae35u };
 	std::mt19937 random(seed_sequence);
@@ -135,8 +144,11 @@ void clustered_lighting_test_scene::rebuild_lights()
 		const bool shadow = random_01(random) < settings.shadow_ratio;
 
 		light_entry entry;
-		if (!light_manager::instance()->generate_light(entry.light, spot ? light_type::spot : light_type::point))
-			continue;
+		const std::string name = std::string(spot ? "spot_light_" : "point_light_") + std::to_string(index);
+		if (spot)
+			entry.object = std::make_shared<spot_light_object>(name);
+		else
+			entry.object = std::make_shared<point_light_object>(name);
 
 		//	配置範囲内にばらまく
 		double u = random_01(random);
@@ -153,19 +165,28 @@ void clustered_lighting_test_scene::rebuild_lights()
 		entry.phase = static_cast<float>(random_01(random)) * math::constants<float>::pi * 2.0f;
 
 		const math::float3 color = hue_to_color(static_cast<float>(random_01(random)));
-		entry.light->set_color_mode(light::color_modes::color);
+		const light_ptr target = entry.object->get_light();
+
+		if (!spot)
+		{
+			const ::light defaults(light_type::point);
+			for (UINT bias_index = 0; bias_index < common_pipeline_states::shadow_map_max; ++bias_index)
+				target->set_shadow_bias(static_cast<int>(bias_index), defaults.get_shadow_bias(static_cast<int>(bias_index)));
+		}
+		target->set_color_mode(light::color_modes::color);
 		const math::vector3f rec2020 = color_space::convert_gamut(math::vector3f(color.x, color.y, color.z), color_space::gamuts::rec709, color_space::gamuts::rec2020);
-		entry.light->set_color({ rec2020[0], rec2020[1], rec2020[2] });
-		entry.light->set_intensity(settings.intensity);
-		entry.light->set_range(system_units::convert_m_to_unit(settings.range));
-		entry.light->set_flag(light::flags::use_shadow, shadow);
+		target->set_color({ rec2020[0], rec2020[1], rec2020[2] });
+		target->set_intensity(settings.intensity);
+		target->set_range(system_units::convert_m_to_unit(settings.range));
+		target->set_flag(light::flags::use_shadow, shadow);
 		if (spot)
 		{
 			//	真下に向ける
-			entry.light->set_rotation(math::rotatorf(math::constants<float>::pi * 0.5f, 0.0f, 0.0f));
-			entry.light->set_inner_cone(math::angle::to_radian(settings.spot_inner_cone));
-			entry.light->set_outer_cone(math::angle::to_radian(settings.spot_outer_cone));
+			entry.object->set_local_euler(math::rotatord(math::constants<double>::pi * 0.5, 0.0, 0.0));
+			target->set_inner_cone(math::angle::to_radian(settings.spot_inner_cone));
+			target->set_outer_cone(math::angle::to_radian(settings.spot_outer_cone));
 		}
+		register_object(entry.object);
 		lights.emplace_back(std::move(entry));
 	}
 
@@ -180,7 +201,7 @@ void clustered_lighting_test_scene::update_light_positions()
 	{
 		const double angle = static_cast<double>(angle_base + entry.phase);
 		const math::vector3d offset(std::cos(angle) * radius, 0.0, std::sin(angle) * radius);
-		entry.light->set_position(entry.base_position + offset);
+		entry.object->set_local_translation(entry.base_position + offset);
 	}
 }
 
@@ -227,8 +248,8 @@ void clustered_lighting_test_scene::imgui_render_core()
 	//	ライトの LOD と空間分割
 	ImGui::Separator();
 	{
-		const auto& statistics = light_manager::instance()->get_statistics();
-		ImGui::Text("light manager : total %u / candidates %u / visible %u / cells %u",
+		const auto& statistics = world::get_main_world()->get_light_collector().get_statistics();
+		ImGui::Text("light collector : total %u / candidates %u / visible %u / cells %u",
 			statistics.total_lights, statistics.candidate_lights, statistics.visible_lights, statistics.occupied_cells);
 	}
 	auto drag_meter = [](const char* label, std::string_view name, float speed)

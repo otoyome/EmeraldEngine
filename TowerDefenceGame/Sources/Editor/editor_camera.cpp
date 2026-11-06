@@ -204,7 +204,7 @@ bool editor_camera_manager::compute_enabled()
 	return enable_variable.get() || !requests.empty();
 }
 
-void editor_camera_manager::begin_camera()
+void editor_camera_manager::begin_camera(const view_parameters* game_view)
 {
 	if (has_initial_pose)
 	{
@@ -212,28 +212,25 @@ void editor_camera_manager::begin_camera()
 		camera->set_rotation(initial_rotation);
 		has_initial_pose = false;
 	}
-	else if (const view_parameters* game_view = camera_manager::instance()->get_game_view())
+	else if (game_view)
 	{
 		camera->set_position(game_view->position);
 		camera->set_rotation(game_view->rotation);
 	}
-	camera->apply_view(camera_manager::instance()->get_game_view());
-	camera_manager::instance()->set_override_view(camera->get_camera());
+	camera->apply_view(game_view);
 	enabled = true;
 }
 
 void editor_camera_manager::end_camera()
 {
-	if (camera_manager::is_valid())
-		camera_manager::instance()->set_override_view(nullptr);
 	enabled = false;
 }
 
-void editor_camera_manager::update(float elapsed_time)
+void editor_camera_manager::update(float elapsed_time, const view_parameters* game_view)
 {
 	const bool next_enabled = compute_enabled();
 	if (next_enabled && !enabled)
-		begin_camera();
+		begin_camera(game_view);
 	else if (!next_enabled && enabled)
 		end_camera();
 
@@ -241,7 +238,12 @@ void editor_camera_manager::update(float elapsed_time)
 		return;
 
 	camera->update(elapsed_time);
-	camera->apply_view(camera_manager::instance()->get_game_view());
+	camera->apply_view(game_view);
+}
+
+camera_ptr editor_camera_manager::get_override_camera() const
+{
+	return enabled ? camera->get_camera() : nullptr;
 }
 
 #endif	//	defined(USE_IMGUI)

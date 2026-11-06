@@ -8,7 +8,7 @@
 //	カメラ情報
 class camera
 {
-	friend class camera_manager;
+	friend class view_selector;
 
 public:
 	uint64_t get_id() const { return id; }
@@ -44,33 +44,18 @@ struct view_selection
 	bool camera_cut = false;
 };
 
-//	カメラマネージャー
-class camera_manager
+//	シーンビューセレクター
+class view_selector
 {
-	SINGLETON(camera_manager)
-
-private:
-	camera_manager();
-	~camera_manager();
-
 public:
-	//	シーンビューの候補を登録/解除
-	void push_view_target(const camera_ptr& source);
-	void remove_view_target(const camera_ptr& source);
-
-	//	有効なシーンビューを選ぶ
-	bool select_view(view_selection& selection);
-
-	//	シーンビューの上書き
-	void set_override_view(const camera_ptr& source);
+	//	game_source はゲーム側の視点、override_source はエディターカメラなどの上書き視点（無ければ nullptr）
+	bool select(camera* game_source, camera* override_source, view_selection& selection);
 
 	//	直近のシーンビュー
 	const view_parameters* get_game_view() const { return has_game_view ? &game_view : nullptr; }
 
 private:
-	std::vector<std::weak_ptr<camera>> view_targets;	//	視点候補（後ろほど優先）
-	uint64_t current_source_id = 0;						//	前回ID
-	std::weak_ptr<camera> override_view;				//	上書きシーンビュー
-	view_parameters game_view;							//	直近のゲーム側のシーンビュー
+	uint64_t current_source_id = 0;	//	前回ID
+	view_parameters game_view;		//	直近のゲーム側のシーンビュー
 	bool has_game_view = false;
 };

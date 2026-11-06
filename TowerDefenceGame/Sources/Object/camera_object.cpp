@@ -6,27 +6,23 @@ camera_object::camera_object(std::string_view name)
 	camera = std::make_shared<::camera>();
 	camera->get_parameters().screen_rect = {0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT};
 
-	camera_manager::instance()->push_view_target(camera);
+	view_order = view_order_counter.fetch_add(1);
 }
 
 camera_object::~camera_object()
 {
-	if (camera_manager::is_valid())
-	{
-		camera_manager::instance()->remove_view_target(camera);
-	}
 }
 
 void camera_object::on_active()
 {
 	base::on_active();
-	camera_manager::instance()->push_view_target(camera);
+
+	view_order = view_order_counter.fetch_add(1);
 }
 
 void camera_object::on_deactive()
 {
 	base::on_deactive();
-	camera_manager::instance()->remove_view_target(camera);
 }
 
 void camera_object::post_update(float elapsed_time)

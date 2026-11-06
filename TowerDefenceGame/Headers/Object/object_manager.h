@@ -14,9 +14,9 @@ using game_object_ptr = std::shared_ptr<game_object>;
 //	オブジェクトマネージャー
 class object_manager
 {
-	SINGLETON(object_manager)
+	MAIN_WORLD_SINGLETON(object_manager)
 
-private:
+public:
 	object_manager();
 	~object_manager();
 

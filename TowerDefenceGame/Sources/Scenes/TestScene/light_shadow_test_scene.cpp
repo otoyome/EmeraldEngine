@@ -7,6 +7,7 @@
 #include "object/light_object.h"
 #include "object/camera_object.h"
 #include "object/model_object.h"
+#include "object/object_manager.h"
 
 #include "System/console_manager.h"
 #include "graphics/shadow_atlas.h"
@@ -118,7 +119,7 @@ bool light_shadow_test_scene::initialize_core()
 
 bool light_shadow_test_scene::uninitialize_core()
 {
-	lights.clear();
+	clear_lights();
 	editor_camera_request.reset();
 	return true;
 }
@@ -139,9 +140,16 @@ void light_shadow_test_scene::update_core(float elapsed_time)
 		animated_character->set_animation_speed(motion.animate_character ? 1.0f : 0.0f);
 }
 
+void light_shadow_test_scene::clear_lights()
+{
+	for (auto& object : lights)
+		object_manager::instance()->unregister_object(object);
+	lights.clear();
+}
+
 void light_shadow_test_scene::rebuild_lights()
 {
-	lights.clear();
+	clear_lights();
 
 	const int count = (std::max)(settings.light_count, 0);
 	const int spot_count = static_cast<int>(std::round(static_cast<float>(count) * settings.spot_ratio));
@@ -151,23 +159,35 @@ void light_shadow_test_scene::rebuild_lights()
 		//	スポットライトと点光源を交互に近い並びにする
 		const bool spot = spot_count > 0 && (index * spot_count / (std::max)(count, 1)) != ((index + 1) * spot_count / (std::max)(count, 1));
 
-		light_ptr light;
-		if (!light_manager::instance()->generate_light(light, spot ? light_type::spot : light_type::point))
-			continue;
+		std::shared_ptr<light_object> object;
+		const std::string name = std::string(spot ? "spot_light_" : "point_light_") + std::to_string(index);
+		if (spot)
+			object = std::make_shared<spot_light_object>(name);
+		else
+			object = std::make_shared<point_light_object>(name);
+		const light_ptr target = object->get_light();
+
+		if (!spot)
+		{
+			const ::light defaults(light_type::point);
+			for (UINT bias_index = 0; bias_index < common_pipeline_states::shadow_map_max; ++bias_index)
+				target->set_shadow_bias(static_cast<int>(bias_index), defaults.get_shadow_bias(static_cast<int>(bias_index)));
+		}
 
 		const math::float3 color = hue_to_color(static_cast<float>(index) / static_cast<float>((std::max)(count, 1)));
-		light->set_color_mode(light::color_modes::color);
+		target->set_color_mode(light::color_modes::color);
 		const math::vector3f rec2020 = color_space::convert_gamut(math::vector3f(color.x, color.y, color.z), color_space::gamuts::rec709, color_space::gamuts::rec2020);
-		light->set_color({ rec2020[0], rec2020[1], rec2020[2] });
-		light->set_intensity(settings.intensity);
-		light->set_range(system_units::convert_m_to_unit(settings.range));
-		light->set_flag(light::flags::use_shadow, settings.shadow);
+		target->set_color({ rec2020[0], rec2020[1], rec2020[2] });
+		target->set_intensity(settings.intensity);
+		target->set_range(system_units::convert_m_to_unit(settings.range));
+		target->set_flag(light::flags::use_shadow, settings.shadow);
 		if (spot)
 		{
-			light->set_inner_cone(math::angle::to_radian(settings.spot_inner_cone));
-			light->set_outer_cone(math::angle::to_radian(settings.spot_outer_cone));
+			target->set_inner_cone(math::angle::to_radian(settings.spot_inner_cone));
+			target->set_outer_cone(math::angle::to_radian(settings.spot_outer_cone));
 		}
-		lights.emplace_back(light);
+		register_object(object);
+		lights.emplace_back(object);
 	}
 
 	update_lights();
@@ -183,12 +203,12 @@ void light_shadow_test_scene::update_lights()
 	{
 		const double angle = offset + math::constants<double>::pi * 2.0 * static_cast<double>(index) / static_cast<double>((std::max)(count, size_t(1)));
 		const math::vector3d position(std::cos(angle) * radius, height, std::sin(angle) * radius);
-		lights[index]->set_position(position);
+		lights[index]->set_local_translation(position);
 
-		if (lights[index]->get_light_type() == light_type::spot)
+		if (lights[index]->get_light()->get_light_type() == light_type::spot)
 		{
 			const math::vector3f direction(static_cast<float>(-position.x), static_cast<float>(-position.y), static_cast<float>(-position.z));
-			lights[index]->set_rotation(math::rotatorf::from_direction(direction));
+			lights[index]->set_local_euler(math::rotatord(math::rotatorf::from_direction(direction)));
 		}
 	}
 }

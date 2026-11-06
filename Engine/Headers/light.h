@@ -5,6 +5,7 @@
 #include "texture.h"
 #include "Graphics/color_space.h"
 
+#include <atomic>
 #include <cstdint>
 #include <memory>
 #include <mutex>
@@ -14,8 +15,6 @@
 //	ライト情報
 class light
 {
-	friend class light_manager;
-
 public:
 	enum class flags
 	{
@@ -108,6 +107,7 @@ public:
 
 	//	ライト管理で使う識別番号
 	UINT get_id() const { return id; }
+	UINT get_bounds_version() const { return bounds_version; }
 
 private:
 	void notify_bounds_changed();
@@ -115,7 +115,10 @@ private:
 private:
 	UINT system_flags;
 	UINT id = 0;
+	UINT bounds_version = 0;
 	float max_draw_distance = 0.0f;
+
+	inline static std::atomic<UINT> id_counter{ 1 };
 
 	//	ライトパラメーター
 	light_type type;
@@ -204,13 +207,9 @@ struct light_view_info
 	const collision::frustum_culling* frustum = nullptr;	//	描画原点からの相対座標の視錐台
 };
 
-//	ライト管理クラス
-class light_manager
+//	ライトコレクター
+class light_collector
 {
-	SINGLETON(light_manager);
-
-	friend class light;
-
 	//	統計情報
 	struct statistics
 	{
@@ -226,6 +225,7 @@ class light_manager
 		std::int64_t x, y, z;
 		bool operator==(const cell_key& other) const { return x == other.x && y == other.y && z == other.z; }
 	};
+
 	struct cell_key_hash
 	{
 		size_t operator()(const cell_key& key) const;
@@ -234,45 +234,32 @@ class light_manager
 	//	登録ライト
 	struct light_record
 	{
-		std::weak_ptr<light> pointer;
+		const light* pointer = nullptr;
 		cell_key cell_min = { 0, 0, 0 };
 		cell_key cell_max = { 0, 0, -1 };
 		bool large = false;
-		bool dirty = true;
+		UINT bounds_version = 0;
+		UINT seen_stamp = 0;
 		UINT visit_stamp = 0;
 	};
 
-private:
-	light_manager();
-	~light_manager();
-
 public:
-	bool generate_light(light_ptr& out_light, light_type type);
-	bool generate_light_probe(light_probe_ptr& out_light_probe);
-
-	void get_container(light_container& container, const math::vector3d& render_origin, const light_view_info& view);
+	void collect(light_container& container, const std::vector<light_ptr>& lights, const std::vector<light_probe_ptr>& light_probes, const math::vector3d& render_origin, const light_view_info& view);
 
 	const statistics& get_statistics() const { return last_statistics; }
 
 private:
-
-	void on_bounds_changed(UINT id);
-	void on_destroyed(UINT id);
-	void update_dirty_records();
+	void update_records(const std::vector<light_ptr>& lights);
 	void insert_record(UINT id, light_record& record);
 	void remove_record(UINT id, light_record& record);
 	cell_key to_cell(const math::vector3d& position) const;
 
 private:
-	std::vector<std::weak_ptr<light_probe>> light_probes;
-
 	std::unordered_map<UINT, light_record> records;
 	std::unordered_map<cell_key, std::vector<UINT>, cell_key_hash> cells;
 	std::vector<UINT> large_lights;
 	std::vector<UINT> directional_lights;
-	std::vector<UINT> dirty_ids;
-	std::mutex dirty_mutex;
-	UINT next_id = 1;
+	UINT seen_stamp = 0;
 	UINT visit_stamp = 0;
 	double cell_size = 0.0;
 

@@ -76,7 +76,7 @@ private:
 
 public:
 	//	更新
-	void update(float elapsed_time);
+	void update(float elapsed_time, const view_parameters* game_view);
 
 	//	エディターカメラでオーバーライド
 	scene_request_ptr request(const math::vector3d& position, const math::rotatorf& rotation, float speed_scale = 1.0f);
@@ -90,9 +90,12 @@ public:
 
 	const std::shared_ptr<editor_camera>& get_camera() const { return camera; }
 
+	//	視点を上書きするカメラ
+	camera_ptr get_override_camera() const;
+
 private:
 	bool compute_enabled();
-	void begin_camera();
+	void begin_camera(const view_parameters* game_view);
 	void end_camera();
 
 private:

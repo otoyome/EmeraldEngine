@@ -110,6 +110,7 @@ namespace
 
 light::light(light_type type)
 : system_flags(0)
+, id(id_counter.fetch_add(1))
 , type(type)
 , position(math::vector3d::zero())
 , rotation(0, 0, 0)
@@ -176,14 +177,11 @@ light::light(light_type type)
 
 light::~light()
 {
-	if (id != 0 && light_manager::is_valid())
-		light_manager::instance()->on_destroyed(id);
 }
 
 void light::notify_bounds_changed()
 {
-	if (id != 0 && light_manager::is_valid())
-		light_manager::instance()->on_bounds_changed(id);
+	++bounds_version;
 }
 
 light_type light::get_light_type() const
@@ -422,43 +420,7 @@ math::float3 light_probe::calculate_radiometric_color(color_space::gamuts render
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
-light_manager::light_manager()
-{
-}
-
-light_manager::~light_manager()
-{
-}
-
-bool light_manager::generate_light(light_ptr& out_light, light_type type)
-{
-	out_light = std::make_shared<light>(type);
-
-	//	識別番号を付けて登録
-	const UINT id = next_id++;
-	out_light->id = id;
-	auto& record = records[id];
-	record.pointer = out_light;
-	if (type == light_type::directional)
-	{
-		directional_lights.emplace_back(id);
-	}
-	else
-	{
-		std::lock_guard<std::mutex> lock(dirty_mutex);
-		dirty_ids.emplace_back(id);
-	}
-	return true;
-}
-
-bool light_manager::generate_light_probe(light_probe_ptr& out_light_probe)
-{
-	out_light_probe = std::make_shared<light_probe>();
-	light_probes.emplace_back(out_light_probe);
-	return true;
-}
-
-size_t light_manager::cell_key_hash::operator()(const cell_key& key) const
+size_t light_collector::cell_key_hash::operator()(const cell_key& key) const
 {
 	size_t hash = std::hash<std::int64_t>()(key.x);
 	hash ^= std::hash<std::int64_t>()(key.y) + 0x9e3779b97f4a7c15ull + (hash << 6) + (hash >> 2);
@@ -466,7 +428,7 @@ size_t light_manager::cell_key_hash::operator()(const cell_key& key) const
 	return hash;
 }
 
-light_manager::cell_key light_manager::to_cell(const math::vector3d& position) const
+light_collector::cell_key light_collector::to_cell(const math::vector3d& position) const
 {
 	return
 	{
@@ -476,26 +438,9 @@ light_manager::cell_key light_manager::to_cell(const math::vector3d& position) c
 	};
 }
 
-void light_manager::on_bounds_changed(UINT id)
+void light_collector::insert_record(UINT id, light_record& record)
 {
-	std::lock_guard<std::mutex> lock(dirty_mutex);
-	dirty_ids.emplace_back(id);
-}
-
-void light_manager::on_destroyed(UINT id)
-{
-	auto it = records.find(id);
-	if (it == records.end())
-		return;
-
-	remove_record(id, it->second);
-	records.erase(it);
-	directional_lights.erase(std::remove(directional_lights.begin(), directional_lights.end(), id), directional_lights.end());
-}
-
-void light_manager::insert_record(UINT id, light_record& record)
-{
-	auto pointer = record.pointer.lock();
+	const light* pointer = record.pointer;
 	if (!pointer || pointer->get_light_type() == light_type::directional)
 		return;
 
@@ -519,7 +464,7 @@ void light_manager::insert_record(UINT id, light_record& record)
 				cells[{ x, y, z }].emplace_back(id);
 }
 
-void light_manager::remove_record(UINT id, light_record& record)
+void light_collector::remove_record(UINT id, light_record& record)
 {
 	if (record.large)
 	{
@@ -550,44 +495,65 @@ void light_manager::remove_record(UINT id, light_record& record)
 	record.cell_max = { 0, 0, -1 };
 }
 
-void light_manager::update_dirty_records()
+void light_collector::update_records(const std::vector<light_ptr>& lights)
 {
 	//	セルの大きさが変わったら全て入れ直す
 	const double desired_cell_size = get_grid_cell_size();
-	if (desired_cell_size != cell_size)
+	const bool rebuild = desired_cell_size != cell_size;
+	if (rebuild)
 	{
 		for (auto& pair : records)
 			remove_record(pair.first, pair.second);
 		cell_size = desired_cell_size;
-		std::lock_guard<std::mutex> lock(dirty_mutex);
-		for (auto& pair : records)
-			dirty_ids.emplace_back(pair.first);
 	}
 
-	std::vector<UINT> ids;
+	//	レコードにライトを登録
+	++seen_stamp;
+	directional_lights.clear();
+	for (const auto& source : lights)
 	{
-		std::lock_guard<std::mutex> lock(dirty_mutex);
-		ids.swap(dirty_ids);
-	}
-	for (UINT id : ids)
-	{
-		auto it = records.find(id);
-		if (it == records.end())
+		if (!source)
 			continue;
-		if (it->second.pointer.expired())
+
+		const UINT id = source->get_id();
+		auto [it, inserted] = records.try_emplace(id);
+		light_record& record = it->second;
+		record.pointer = source.get();
+		record.seen_stamp = seen_stamp;
+
+		if (source->get_light_type() == light_type::directional)
 		{
-			remove_record(id, it->second);
-			records.erase(it);
+			directional_lights.emplace_back(id);
 			continue;
 		}
-		remove_record(id, it->second);
-		insert_record(id, it->second);
+
+		if (inserted || rebuild || record.bounds_version != source->get_bounds_version())
+		{
+			remove_record(id, record);
+			insert_record(id, record);
+			record.bounds_version = source->get_bounds_version();
+		}
 	}
+
+	//	レコードからライトを消す
+	for (auto it = records.begin(); it != records.end();)
+	{
+		if (it->second.seen_stamp != seen_stamp)
+		{
+			remove_record(it->first, it->second);
+			it = records.erase(it);
+			continue;
+		}
+		++it;
+	}
+
+	//	ソート
+	std::sort(directional_lights.begin(), directional_lights.end());
 }
 
-void light_manager::get_container(light_container& container, const math::vector3d& render_origin, const light_view_info& view)
+void light_collector::collect(light_container& container, const std::vector<light_ptr>& lights, const std::vector<light_probe_ptr>& light_probes, const math::vector3d& render_origin, const light_view_info& view)
 {
-	update_dirty_records();
+	update_records(lights);
 
 	const float max_draw_distance = get_max_draw_distance();
 	const float fade_ratio = get_fade_ratio();
@@ -657,7 +623,7 @@ void light_manager::get_container(light_container& container, const math::vector
 		auto it = records.find(id);
 		if (it == records.end())
 			continue;
-		if (auto pointer = it->second.pointer.lock())
+		if (const light* pointer = it->second.pointer)
 			container.lights.emplace_back(make_light_render_data(*pointer, render_origin));
 	}
 
@@ -667,7 +633,7 @@ void light_manager::get_container(light_container& container, const math::vector
 		auto it = records.find(id);
 		if (it == records.end())
 			continue;
-		auto pointer = it->second.pointer.lock();
+		const light* pointer = it->second.pointer;
 		if (!pointer || pointer->get_light_type() == light_type::directional)
 			continue;
 		++candidate_count;
@@ -707,16 +673,11 @@ void light_manager::get_container(light_container& container, const math::vector
 	//	プローブ
 	{
 		container.light_probes.clear();
-		auto it = light_probes.begin();
-		for (; it != light_probes.end();)
+		for (const auto& probe : light_probes)
 		{
-			if (it->expired())
-			{
-				it = light_probes.erase(it);
+			if (!probe)
 				continue;
-			}
-			container.light_probes.emplace_back(make_light_probe_render_data(*it->lock(), render_origin));
-			++it;
+			container.light_probes.emplace_back(make_light_probe_render_data(*probe, render_origin));
 		}
 	}
 

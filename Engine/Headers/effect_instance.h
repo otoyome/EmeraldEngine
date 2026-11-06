@@ -160,7 +160,7 @@ using effect_instance_ptr = std::shared_ptr<effect_instance>;
 //	エフェクトマネージャー
 class effect_manager
 {
-	SINGLETON(effect_manager)
+	MAIN_WORLD_SINGLETON(effect_manager)
 
 	//	パーティクルのエミッターアイテム
 	struct item
@@ -184,7 +184,7 @@ public:
 	inline std::shared_ptr<compute_particle_system> get_particle_system() const { return particle_system; }
 	inline const std::vector<compute_particle_system::particle_event>& get_particle_events() const { return particle_events; }
 
-private:
+public:
 	effect_manager();
 	~effect_manager();
 
@@ -196,6 +196,8 @@ public:
 	bool unregister_instance(effect_instance_ptr instance);
 
 	void get_container(effect_container& effects, decal_container& decals, const math::vector3d& render_origin);
+
+	void collect_model_instances(std::vector<model_instance_ptr>& out_instances) const;
 
 	uint32_t add_cubic_sdf(collision::cubic_sdf& sdf);
 	void remove_cubic_sdf(uint32_t sdf_id);

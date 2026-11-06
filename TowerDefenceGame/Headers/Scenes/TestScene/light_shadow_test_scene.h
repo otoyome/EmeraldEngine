@@ -8,6 +8,7 @@
 
 #include <vector>
 
+class light_object;
 class directional_light_object;
 class model_object;
 
@@ -56,6 +57,7 @@ protected:
 
 private:
 	//	ライトを作り直す
+	void clear_lights();
 	void rebuild_lights();
 
 	//	ライトの位置と向きを更新
@@ -67,7 +69,7 @@ private:
 private:
 	light_settings settings;
 	motion_settings motion;
-	std::vector<light_ptr> lights;
+	std::vector<std::shared_ptr<light_object>> lights;
 	float light_time = 0.0f;
 	float character_time = 0.0f;
 

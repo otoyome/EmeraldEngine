@@ -208,19 +208,9 @@ struct post_process_volume_container
 	post_process_volume_ptr selected_volume;
 };
 
-//	ポストプロセスボリューム管理クラス
-class post_process_volume_manager
+//	@tool ポストプロセスボリュームの一覧からコンテナを作り、視点に使うボリュームを選ぶ
+class post_process_volume_collector
 {
-	SINGLETON(post_process_volume_manager);
-
-private:
-	post_process_volume_manager();
-	~post_process_volume_manager();
-
 public:
-	bool generate_post_process_volume(post_process_volume_ptr& out_post_process_volume);
-	void get_container(post_process_volume_container& container, const math::vector3d& view_position);
-
-private:
-	std::vector<std::weak_ptr<post_process_volume>> post_process_volumes;
+	void collect(post_process_volume_container& container, const std::vector<post_process_volume_ptr>& volumes, const math::vector3d& view_position);
 };

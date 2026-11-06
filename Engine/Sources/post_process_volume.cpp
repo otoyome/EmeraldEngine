@@ -253,44 +253,20 @@ bool post_process_volume::register_postprocess_materials(std::shared_ptr<materia
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
-post_process_volume_manager::post_process_volume_manager()
-{
-}
-
-post_process_volume_manager::~post_process_volume_manager()
-{
-}
-
-bool post_process_volume_manager::generate_post_process_volume(post_process_volume_ptr& out_post_process_volume)
-{
-	out_post_process_volume = std::make_shared<post_process_volume>();
-	post_process_volumes.emplace_back(out_post_process_volume);
-	return true;
-}
-
-void post_process_volume_manager::get_container(post_process_volume_container& container, const math::vector3d& view_position)
+void post_process_volume_collector::collect(post_process_volume_container& container, const std::vector<post_process_volume_ptr>& volumes, const math::vector3d& view_position)
 {
 	//	ボリュームリストを生成
 	{
 		container.volumes.clear();
-		auto it = post_process_volumes.begin();
-		for (; it != post_process_volumes.end();)
+		for (const auto& instance : volumes)
 		{
-			auto instance = it->lock();
 			if (!instance)
-			{
-				it = post_process_volumes.erase(it);
 				continue;
-			}
 
 			if (!instance->is_flag(post_process_volume::flags::active))
-			{
-				++it;
 				continue;
-			}
 
 			container.volumes.emplace_back(instance);
-			++it;
 		}
 	}
 
@@ -327,10 +303,8 @@ void post_process_volume_manager::get_container(post_process_volume_container& c
 #if defined(USE_IMGUI)
 	//	範囲表示
 	{
-		auto it = post_process_volumes.begin();
-		for (; it != post_process_volumes.end(); ++it)
+		for (const auto& instance : volumes)
 		{
-			auto instance = it->lock();
 			if (!instance)
 				continue;
 

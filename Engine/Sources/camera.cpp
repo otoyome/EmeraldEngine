@@ -17,59 +17,19 @@ camera::~camera()
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
-camera_manager::camera_manager()
+bool view_selector::select(camera* game_source, camera* override_source, view_selection& selection)
 {
-}
-
-camera_manager::~camera_manager()
-{
-}
-
-void camera_manager::push_view_target(const camera_ptr& source)
-{
-	if (!source)
-		return;
-
-	//	Šù‚É“o˜^Ï‚İ‚È‚çˆê“xŠO‚µ‚ÄÅŒã”ö‚ÉÏ‚İ’¼‚·
-	remove_view_target(source);
-	view_targets.emplace_back(source);
-}
-
-void camera_manager::remove_view_target(const camera_ptr& source)
-{
-	view_targets.erase(std::remove_if(view_targets.begin(), view_targets.end(),
-		[&source](const std::weak_ptr<camera>& target) { return target.expired() || target.lock() == source; }), view_targets.end());
-}
-
-void camera_manager::set_override_view(const camera_ptr& source)
-{
-	override_view = source;
-}
-
-bool camera_manager::select_view(view_selection& selection)
-{
-	//	ÅŒã”ö‚Ì—LŒø‚È•¨‚ğ‹“_‚É‚·‚é
-	view_targets.erase(std::remove_if(view_targets.begin(), view_targets.end(),
-		[](const std::weak_ptr<camera>& target) { return target.expired(); }), view_targets.end());
-
-	camera_ptr source;
-	for (auto it = view_targets.rbegin(); it != view_targets.rend(); ++it)
-	{
-		auto target = it->lock();
-		if (target && target->is_active())
-		{
-			source = target;
-			break;
-		}
-	}
+	if (game_source && !game_source->is_active())
+		game_source = nullptr;
 
 	//	ã‘‚«‘O‚ÌƒQ[ƒ€‘¤‚Ì‹“_‚ğT‚¦‚Ä‚¨‚­
-	has_game_view = source != nullptr;
-	if (source)
-		game_view = source->parameters;
+	has_game_view = game_source != nullptr;
+	if (game_source)
+		game_view = game_source->parameters;
 
 	//	ã‘‚«‹“_‚ª‚ ‚ê‚Î—Dæ‚·‚é
-	if (auto override_source = override_view.lock(); override_source && override_source->is_active())
+	camera* source = game_source;
+	if (override_source && override_source->is_active())
 		source = override_source;
 
 	if (!source)
