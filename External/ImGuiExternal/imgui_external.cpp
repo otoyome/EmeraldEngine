@@ -1,5 +1,7 @@
 #include "ImGuiExternal/imgui_external.h"
 
+#include <algorithm>
+
 namespace
 {
 	static inline int input_text_callback(ImGuiInputTextCallbackData* data)
@@ -426,4 +428,114 @@ bool ImGui::DragUInt4(const char* label, UINT v[4], float v_speed, UINT v_min, U
 		return true;
 	}
 	return false;
+}
+
+namespace
+{
+	//	@tool 色の数値を入力する時の表し方
+	enum class color_input_spaces : int
+	{
+		rec709_linear,
+		rec2020_linear,
+		srgb,
+	};
+	constexpr const char* color_input_space_names[] = { "rec709 linear", "rec2020 linear", "sRGB" };
+
+	math::vector3f convert_to_input_space(const math::vector3f& value, color_space::gamuts value_gamut, color_input_spaces space)
+	{
+		switch (space)
+		{
+			case color_input_spaces::rec2020_linear:
+				return color_space::convert_gamut(value, value_gamut, color_space::gamuts::rec2020);
+			case color_input_spaces::srgb:
+				return color_space::convert_linear_to_srgb(color_space::convert_gamut(value, value_gamut, color_space::gamuts::rec709));
+			default:
+				return color_space::convert_gamut(value, value_gamut, color_space::gamuts::rec709);
+		}
+	}
+
+	math::vector3f convert_from_input_space(const math::vector3f& value, color_space::gamuts value_gamut, color_input_spaces space)
+	{
+		switch (space)
+		{
+			case color_input_spaces::rec2020_linear:
+				return color_space::convert_gamut(value, color_space::gamuts::rec2020, value_gamut);
+			case color_input_spaces::srgb:
+				return color_space::convert_gamut(color_space::convert_srgb_to_linear(value), color_space::gamuts::rec709, value_gamut);
+			default:
+				return color_space::convert_gamut(value, color_space::gamuts::rec709, value_gamut);
+		}
+	}
+}
+
+bool ImGui::ColorEditGamut3(const char* label, float color[3], color_space::gamuts value_gamut, ImGuiColorEditFlags flags)
+{
+	bool edited = false;
+	PushID(label);
+	BeginGroup();
+
+	const math::vector3f value(color[0], color[1], color[2]);
+	auto write = [&](const math::vector3f& result)
+	{
+		color[0] = result[0];
+		color[1] = result[1];
+		color[2] = result[2];
+		edited = true;
+	};
+
+	const ImGuiStyle& style = GetStyle();
+	const float combo_width = GetFontSize() * 7.0f;
+	const float values_width = (std::max)(CalcItemWidth() - GetFrameHeight() - combo_width - style.ItemInnerSpacing.x * 2.0f, GetFontSize() * 6.0f);
+
+	//	見本とピッカー(表示は sRGB。表示色域の外は切り詰めて見せる)
+	const math::vector3f display_linear = color_space::convert_gamut(value, value_gamut, color_space::gamuts::rec709);
+	const bool out_of_display = display_linear[0] < 0.0f || display_linear[1] < 0.0f || display_linear[2] < 0.0f;
+	const math::vector3f display = color_space::convert_linear_to_srgb(display_linear);
+	float display_color[3] = { display[0], display[1], display[2] };
+	if (ColorEdit3("##display", display_color, flags | ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel))
+	{
+		//	ピッカーで触った時だけ書き戻す(触っていない時に往復で値が変わらないように)
+		const math::vector3f edited_linear = color_space::convert_srgb_to_linear(math::vector3f(display_color[0], display_color[1], display_color[2]));
+		write(color_space::convert_gamut(edited_linear, color_space::gamuts::rec709, value_gamut));
+	}
+	if (out_of_display && IsItemHovered())
+		SetTooltip("outside the display gamut (sRGB): editing with the picker clips it");
+
+	//	数値を入力する表し方
+	ImGuiStorage* storage = GetStateStorage();
+	const ImGuiID space_id = GetID("##input_space");
+	int space = storage->GetInt(space_id, static_cast<int>(value_gamut == color_space::gamuts::rec2020 ? color_input_spaces::rec2020_linear : color_input_spaces::rec709_linear));
+	SameLine(0.0f, style.ItemInnerSpacing.x);
+	SetNextItemWidth(combo_width);
+	if (Combo("##input_space", &space, color_input_space_names, IM_ARRAYSIZE(color_input_space_names)))
+		storage->SetInt(space_id, space);
+
+	//	数値(選んだ表し方の値。範囲外の色を扱えるように範囲は制限しない)
+	const math::vector3f input = convert_to_input_space(value, value_gamut, static_cast<color_input_spaces>(space));
+	float input_values[3] = { input[0], input[1], input[2] };
+	SameLine(0.0f, style.ItemInnerSpacing.x);
+	SetNextItemWidth(values_width);
+	if (DragFloat3("##values", input_values, 0.001f, 0.0f, 0.0f, "%.4f"))
+		write(convert_from_input_space(math::vector3f(input_values[0], input_values[1], input_values[2]), value_gamut, static_cast<color_input_spaces>(space)));
+
+	//	表示色域の外なら印を出す
+	if (out_of_display)
+	{
+		SameLine(0.0f, style.ItemInnerSpacing.x);
+		TextColored(ImVec4(1.0f, 0.6f, 0.2f, 1.0f), "!");
+		if (IsItemHovered())
+			SetTooltip("outside the display gamut (sRGB)");
+	}
+
+	//	ラベル
+	const char* label_end = FindRenderedTextEnd(label);
+	if (label != label_end)
+	{
+		SameLine(0.0f, style.ItemInnerSpacing.x);
+		TextUnformatted(label, label_end);
+	}
+
+	EndGroup();
+	PopID();
+	return edited;
 }
