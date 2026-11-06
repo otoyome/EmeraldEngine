@@ -6,7 +6,7 @@
 
 #include "texture.h"
 #include "texture_factory.h"
-#include "texture_resource.h"
+#include "texture_resource_utility.h"
 #include "Resource/asset_file_header.h"
 #include "Resource/asset_registry.h"
 #include "system/logger.h"
@@ -95,7 +95,7 @@ bool asset_thumbnail_cache::read_source(const cache_string& asset_path, DirectX:
 	switch (resource::get_asset_type_from_extension(asset_path.get<extension_cache>()))
 	{
 		case resource::asset_types::texture:
-			return texture_resource::read_image(asset_path.view(), out_image);
+			return texture_resource_utility::read_image(asset_path.view(), out_image);
 		default:
 			return false;
 	}

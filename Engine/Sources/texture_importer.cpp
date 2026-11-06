@@ -25,7 +25,7 @@ namespace
 			case texture_import_settings::filters::cubic:		return DirectX::TEX_FILTER_CUBIC;
 			case texture_import_settings::filters::triangle:	return DirectX::TEX_FILTER_TRIANGLE;
 			case texture_import_settings::filters::box:
-			default:											return DirectX::TEX_FILTER_BOX;
+			default:											return DirectX::TEX_FILTER_DEFAULT;
 		}
 	}
 
@@ -84,13 +84,13 @@ texture_importer::~texture_importer()
 {
 }
 
-bool texture_importer::import(std::string_view source_path, std::string_view output_path, const texture_import_settings& settings)
+texture_resource_ptr texture_importer::import(std::string_view source_path, const texture_import_settings& settings)
 {
 	DirectX::ScratchImage image;
 	if (!texture_factory::decode_file(source_path, image))
 	{
 		DEBUG_ERROR_CATEGORY(logger::categorys::system, "texture_importer decode failed[%s]", std::string(source_path).c_str());
-		return false;
+		return nullptr;
 	}
 
 	auto imported = std::make_shared<texture_resource>();
@@ -100,7 +100,7 @@ bool texture_importer::import(std::string_view source_path, std::string_view out
 	if (!prepare_source(image, imported->settings) || !resize(image, imported->settings))
 	{
 		DEBUG_ERROR_CATEGORY(logger::categorys::system, "texture_importer prepare failed[%s]", std::string(source_path).c_str());
-		return false;
+		return nullptr;
 	}
 
 	const auto& meta_data = image.GetMetadata();
@@ -110,7 +110,7 @@ bool texture_importer::import(std::string_view source_path, std::string_view out
 		if (FAILED(DirectX::GenerateMipMaps(*image.GetImage(0, 0, 0), to_tex_filter(imported->settings.filter), 0, mip_chain)))
 		{
 			DEBUG_ERROR_CATEGORY(logger::categorys::system, "texture_importer mipmap failed[%s]", std::string(source_path).c_str());
-			return false;
+			return nullptr;
 		}
 		image = std::move(mip_chain);
 	}
@@ -118,34 +118,42 @@ bool texture_importer::import(std::string_view source_path, std::string_view out
 	if (!encode(image, imported->settings))
 	{
 		DEBUG_ERROR_CATEGORY(logger::categorys::system, "texture_importer encode failed[%s]", std::string(source_path).c_str());
-		return false;
+		return nullptr;
 	}
 
 	DirectX::Blob blob;
 	if (FAILED(DirectX::SaveToDDSMemory(image.GetImages(), image.GetImageCount(), image.GetMetadata(), DirectX::DDS_FLAGS_NONE, blob)))
 	{
 		DEBUG_ERROR_CATEGORY(logger::categorys::system, "texture_importer save dds failed[%s]", std::string(source_path).c_str());
-		return false;
+		return nullptr;
 	}
 	const std::string_view dds(reinterpret_cast<const char*>(blob.GetBufferPointer()), blob.GetBufferSize());
 
+	std::filesystem::path path{ std::string(source_path) };
+	path.replace_extension(texture_resource::extension);
+	const std::string output_path = project_path::normalize(path.string());
+
 	//	取り込み直しでも参照が切れないよう、既存のテクスチャリソースのUUIDを引き継ぐ
 	resource::asset_file_header header;
-	if (resource::read_asset_header(std::filesystem::path(std::string(output_path)), header) && header.type == resource::asset_types::texture && !header.uuid.is_empty())
+	if (resource::read_asset_header(std::filesystem::path(output_path), header) && header.type == resource::asset_types::texture && !header.uuid.is_empty())
 		imported->inherit_uuid(header.uuid);
 	imported->set_file_path(output_path);
 
 	if (!resource::saver<texture_resource>().save(*imported, output_path, dds))
-		return false;
+		return nullptr;
 
-	if (resource_manager::is_valid())
+	DEBUG_LOG_CATEGORY(logger::categorys::system, "texture_importer imported[%s]->[%s]", std::string(source_path).c_str(), output_path.c_str());
+	if (!resource_manager::is_valid())
+		return imported;
+
+	//	読み込み済みなら同じインスタンスの中身を差し替えて返す
+	if (auto loaded = resource_manager::instance()->search<texture_resource>(output_path))
 	{
-		if (auto loaded = resource_manager::instance()->search<texture_resource>(output_path))
-			resource_manager::instance()->revert(*loaded);
+		resource_manager::instance()->revert(*loaded);
+		return loaded;
 	}
-
-	DEBUG_LOG_CATEGORY(logger::categorys::system, "texture_importer imported[%s]->[%s]", std::string(source_path).c_str(), std::string(output_path).c_str());
-	return true;
+	auto operation = resource_manager::instance()->load<texture_resource>(output_path);
+	return operation && operation->is_succeeded() ? operation->get_resource() : nullptr;
 }
 
 bool texture_importer::reimport(std::string_view etx_path)
@@ -160,7 +168,7 @@ bool texture_importer::reimport(std::string_view etx_path)
 		DEBUG_WARNING_CATEGORY(logger::categorys::system, "texture_importer source not found[%s][%s]", std::string(etx_path).c_str(), current.settings.source_path.c_str());
 		return false;
 	}
-	return import(current.settings.source_path, etx_path, current.settings);
+	return import(current.settings.source_path, current.settings) != nullptr;
 }
 
 bool texture_importer::prepare_source(DirectX::ScratchImage& image, const texture_import_settings& settings)

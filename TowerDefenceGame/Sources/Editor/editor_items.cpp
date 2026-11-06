@@ -664,29 +664,13 @@ bool editor_items::edit_material(std::shared_ptr<context>& context, material_res
 			UINT index = 0;
 			for (auto& resource : shader_resource.resources)
 			{
-				const ID3D11ShaderResourceView* srv = context->blank_texture->get_shader_resource_view().Get();
-				std::string text = std::string(context->blank_texture->get_file_path_or_key());
-				if (resource.is_valid())
-				{
-					srv = resource.value->get_shader_resource_view().Get();
-					text = resource.value->get_file_path_or_key();
-					if (resource.value->is_file_path_or_key())
-					{
-						text = std::filesystem::path(text).filename().string();
-					}
-				}
 				//	テクスチャ
 				{
 					ImGui::PushID(context->get_item_id());
 					ImGui::Text((std::string("[") + std::to_string(index) + std::string("]")).data());
 					ImGui::SameLine();
-					bool is_selected_file = false;
-					if (edit_texture_item(context, resource.value, &is_selected_file))
-					{
-						resource.is_file_path_or_key = is_selected_file;
-						resource.path = resource.value ? resource.value->get_file_path_or_key() : "[BLANK]";
+					if (edit_material_texture_slot(context, resource))
 						edit_flag = true;
-					}
 					ImGui::PopID();
 				}
 				++index;
@@ -793,6 +777,66 @@ bool editor_items::edit_material_slot(std::shared_ptr<context>& context, materia
 	ImGui::PopID();
 	return edit_flag;
 }
+bool editor_items::edit_material_texture_slot(std::shared_ptr<context>& context, material_resource::shader_resource::resource& slot)
+{
+	bool edit_flag = false;
+
+	const texture_ptr& texture = slot.get_texture();
+	const ID3D11ShaderResourceView* srv = (texture ? texture : context->blank_texture)->get_shader_resource_view().Get();
+	ImGui::Image((ImTextureID)srv, icon_size_srv);
+	ImGui::SameLine();
+
+	//	テクスチャリソースパス
+	std::string label = "(none)";
+	if (slot.asset && slot.asset->get_file_path().empty())
+		label = "(runtime, not saved)";
+	else if (!slot.asset.is_empty())
+		label = system_utility::convert_utf8(slot.asset.get_reference().path);
+	if (slot.asset && slot.asset->is_missing())
+		label = "missing : " + label;
+	ImGui::Button(label.c_str(), ImVec2(-icon_size_srv.x - ImGui::GetStyle().ItemSpacing.x, 0.0f));
+	if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal))
+		ImGui::SetTooltip("drop a .etx from the Asset Browser");
+
+	if (ImGui::BeginDragDropTarget())
+	{
+		if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(asset_browser::drag_payload_type))
+		{
+			const std::string file_path(static_cast<const char*>(payload->Data));
+			const std::string extension = std::filesystem::path(file_path).extension().string();
+			if (resource::get_asset_type_from_extension(extension) == resource::asset_types::texture)
+			{
+				auto operation = resource_manager::instance()->load<texture_resource>(file_path);
+				texture_resource_ptr loaded = operation && operation->is_succeeded() ? operation->get_resource() : nullptr;
+				if (!loaded)
+				{
+					DEBUG_ERROR_CATEGORY(logger::categorys::model, "material texture slot load failed[%s]", file_path.c_str());
+				}
+				else if (loaded != slot.asset.get())
+				{
+					slot.asset = loaded;
+					edit_flag = true;
+				}
+			}
+		}
+		ImGui::EndDragDropTarget();
+	}
+
+	//	空にする
+	if (!slot.asset.is_empty())
+	{
+		ImGui::SameLine();
+		ImGui::PushID("clear");
+		if (ImGui::ImageButton("", (ImTextureID)context->cross_texture->get_shader_resource_view().Get(), icon_size_srv))
+		{
+			slot.asset = nullptr;
+			edit_flag = true;
+		}
+		ImGui::PopID();
+	}
+	return edit_flag;
+}
+
 bool editor_items::edit_texture_item(std::shared_ptr<context>& context, texture_ptr& resource, bool* selected_file)
 {
 	bool edit_flag = false;

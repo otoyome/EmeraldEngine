@@ -16,11 +16,6 @@
 class texture_resource;
 class texture_importer;
 
-namespace DirectX
-{
-	class ScratchImage;
-}
-
 namespace resource
 {
 	template<>
@@ -36,6 +31,7 @@ class texture_resource : public resource::resource_base
 	friend class resource::loader<texture_resource>;
 	friend class resource::saver<texture_resource>;
 	friend class texture_importer;
+	friend class texture_factory;
 
 public:
 	static constexpr std::string_view extension = "etx";
@@ -43,9 +39,6 @@ public:
 public:
 	const texture_ptr& get_texture() const { return value; }
 	const texture_import_settings& get_settings() const { return settings; }
-
-	//	テクスチャリソースの画像をGPUに作らずに読む
-	static bool read_image(std::string_view file_path, DirectX::ScratchImage& out_image);
 
 private:
 	bool load_file(std::string_view file_path);

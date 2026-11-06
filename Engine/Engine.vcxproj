@@ -167,6 +167,7 @@
     <ClInclude Include="Headers\texture_import_settings.h" />
     <ClInclude Include="Headers\texture_importer.h" />
     <ClInclude Include="Headers\texture_resource.h" />
+    <ClInclude Include="Headers\texture_resource_utility.h" />
     <ClInclude Include="Headers\Audio\audio_manager.h" />
     <ClInclude Include="Headers\Audio\sound_bank.h" />
     <ClInclude Include="Headers\Audio\sound_player.h" />
@@ -284,6 +285,7 @@
     <ClCompile Include="Sources\texture_import_settings.cpp" />
     <ClCompile Include="Sources\texture_importer.cpp" />
     <ClCompile Include="Sources\texture_resource.cpp" />
+    <ClCompile Include="Sources\texture_resource_utility.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Math\Math.vcxproj">

@@ -20,10 +20,10 @@ public:
 	texture_importer();
 	~texture_importer();
 
-	//	元画像を取り込んでテクスチャリソースを書き出す。既にがあれば UUID を引き継ぐ
-	bool import(std::string_view source_path, std::string_view output_path, const texture_import_settings& settings);
+	//	テクスチャリソース変換(既にあればUUIDは引き継ぐ)
+	texture_resource_ptr import(std::string_view source_path, const texture_import_settings& settings);
 
-	//	テクスチャリソースに控えた元画像と設定で取り込み直す
+	//	テクスチャリソースのリロード
 	bool reimport(std::string_view etx_path);
 
 private:

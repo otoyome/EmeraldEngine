@@ -12,7 +12,11 @@
 
 #if defined(USE_IMGUI)
 
+#include <unordered_map>
+
 #include "ModelFormat/gltf_loader.h"
+#include "texture_importer.h"
+#include "System/project_path.h"
 
 namespace
 {
@@ -486,78 +490,33 @@ namespace
 		//	マテリアル生成
 		materials.reserve(gltf_materials.size());
 
-		//	マテリアル毎に逐次ロードすると重いので一括並列ロードする
-		struct material_texture_slots
+		//	テクスチャリソース生成
+		using presets = texture_import_settings::presets;
+		const texture_import_settings color_settings = texture_import_settings::make_preset(presets::color);
+		const texture_import_settings normal_settings = texture_import_settings::make_preset(presets::normal);
+		texture_import_settings linear_settings = color_settings;
+		linear_settings.transfer_function = texture_import_settings::transfer_functions::linear;
+		linear_settings.primaries = texture_import_settings::color_primaries::none;
+
+		std::unordered_map<std::string, texture_resource_ptr> imported_textures;
+		auto import_texture = [&](std::string_view relative_path, const texture_import_settings& settings) -> texture_resource_ptr
 		{
-			texture_ptr base_texture;
-			texture_ptr emissive_texture;
-			texture_ptr roughness_metalness_texture;
-			texture_ptr normal_texture;
-			texture_ptr occlusion_texture;
+			if (relative_path.empty() || !texture_importer::is_valid())
+				return nullptr;
+
+			const std::string source_path = project_path::to_relative((path.parent_path() / relative_path).string());
+			auto it = imported_textures.find(source_path);
+			if (it != imported_textures.end())
+				return it->second;
+
+			auto imported = texture_importer::instance()->import(source_path, settings);
+			imported_textures.emplace(source_path, imported);
+			return imported;
 		};
-		std::vector<material_texture_slots> material_textures(gltf_materials.size());
-		{
-			std::vector<std::string> texture_path_storage;
-			std::vector<texture_ptr*> texture_path_targets;
-			texture_path_storage.reserve(gltf_materials.size() * 5);
-			texture_path_targets.reserve(gltf_materials.size() * 5);
-
-			std::unordered_set<std::string> converted_texture_paths;
-			auto collect_path = [&](std::string_view relative_path, texture_ptr* target)
-			{
-				if (relative_path.empty())
-					return;
-				std::filesystem::path file_path = path.parent_path() / relative_path;
-
-				//	DDS変更 & ミップマップ生成
-				if (convert_data.is_convert_texture_to_dds)
-				{
-					std::string source_key = file_path.string();
-					std::filesystem::path dds_path = file_path;
-					dds_path.replace_extension(".dds");
-
-					bool converted = converted_texture_paths.count(source_key) != 0;
-					if (!converted)
-					{
-						converted = texture_manager::instance()->convert_texture_to_dds(source_key, dds_path.string(), true,
-																						 static_cast<UINT>(std::max(convert_data.max_texture_size, 0)));
-						if (converted)
-							converted_texture_paths.insert(source_key);
-					}
-					if (converted)
-						file_path = dds_path;
-				}
-
-				texture_path_storage.emplace_back(file_path.string());
-				texture_path_targets.emplace_back(target);
-			};
-
-			for (UINT material_index = 0; material_index < gltf_materials.size(); ++material_index)
-			{
-				auto& gltf_material = gltf_materials[material_index];
-				auto& slots = material_textures[material_index];
-				collect_path(gltf_material.base_texture_path, &slots.base_texture);
-				collect_path(gltf_material.emissive_texture_path, &slots.emissive_texture);
-				collect_path(gltf_material.roughness_metalness_texture_path, &slots.roughness_metalness_texture);
-				collect_path(gltf_material.normal_texture_path, &slots.normal_texture);
-				collect_path(gltf_material.occlusion_texture_path, &slots.occlusion_texture);
-			}
-
-			std::vector<std::string_view> texture_path_views(texture_path_storage.begin(), texture_path_storage.end());
-			std::vector<texture_ptr> loaded_textures;
-			texture_manager::instance()->load_textures_from_files(loaded_textures, texture_path_views);
-
-			for (std::size_t index = 0; index < loaded_textures.size(); ++index)
-			{
-				if (loaded_textures[index])
-					*texture_path_targets[index] = loaded_textures[index];
-			}
-		}
 
 		for (UINT material_index = 0; material_index < gltf_materials.size(); ++material_index)
 		{
 			auto& gltf_material = gltf_materials[material_index];
-			auto& slots = material_textures[material_index];
 			auto& material = *materials.emplace_back(std::make_shared<::material_resource>());
 			material.set_name(gltf_material.name);
 			material.set_domain(material_resource::domains::surface);
@@ -575,41 +534,21 @@ namespace
 			material.set_shader_path("Assets/Resources/Shaders/gltf.hlsl");
 
 			material.set_float4("base_color_factor", gltf_material.base_color);
-			if (slots.base_texture)
-			{
-				slots.base_texture->set_flag(texture::flags::srgb, true);
-				material.set_texture("BaseColorMap", slots.base_texture);
-				texture_manager::instance()->save_texture(slots.base_texture);
-			}
+			if (auto texture = import_texture(gltf_material.base_texture_path, color_settings))
+				material.set_texture("BaseColorMap", texture);
 			material.set_float3("emissive_color_factor", gltf_material.emissive_color);
-			if (slots.emissive_texture)
-			{
-				slots.emissive_texture->set_flag(texture::flags::srgb, true);
-				material.set_texture("EmissiveMap", slots.emissive_texture);
-				texture_manager::instance()->save_texture(slots.emissive_texture);
-			}
+			if (auto texture = import_texture(gltf_material.emissive_texture_path, color_settings))
+				material.set_texture("EmissiveMap", texture);
 			material.set_float("roughness_factor", gltf_material.roughness);
 			material.set_float("metallic_factor", gltf_material.metalness);
-			if (slots.roughness_metalness_texture)
-			{
-				slots.roughness_metalness_texture->set_flag(texture::flags::srgb, true);
-				material.set_texture("RoughnessMetallicMap", slots.roughness_metalness_texture);
-				texture_manager::instance()->save_texture(slots.roughness_metalness_texture);
-			}
+			if (auto texture = import_texture(gltf_material.roughness_metalness_texture_path, linear_settings))
+				material.set_texture("RoughnessMetallicMap", texture);
 			material.set_float("normal_map_scale", gltf_material.normal_scale);
-			if (slots.normal_texture)
-			{
-				slots.normal_texture->set_flag(texture::flags::srgb, true);
-				material.set_texture("NormalMap", slots.normal_texture);
-				texture_manager::instance()->save_texture(slots.normal_texture);
-			}
+			if (auto texture = import_texture(gltf_material.normal_texture_path, normal_settings))
+				material.set_texture("NormalMap", texture);
 			material.set_float("occlusion_strength", gltf_material.occlusion_strength);
-			if (slots.occlusion_texture)
-			{
-				slots.occlusion_texture->set_flag(texture::flags::srgb, true);
-				material.set_texture("OcclusionMap", slots.occlusion_texture);
-				texture_manager::instance()->save_texture(slots.occlusion_texture);
-			}
+			if (auto texture = import_texture(gltf_material.occlusion_texture_path, linear_settings))
+				material.set_texture("OcclusionMap", texture);
 		}
 
 		//	アニメーション生成

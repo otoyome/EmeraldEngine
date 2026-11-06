@@ -274,11 +274,6 @@ void edit_model_scene::imgui_model_loader_window()
 
 				ImGui::Checkbox("change_coordinate_system", &convert_option_data.gltf.is_change_coordinate_system);
 				ImGui::Checkbox("change_coordinate_system_indices", &convert_option_data.gltf.is_change_coordinate_system_indices);
-				ImGui::Separator();
-				ImGui::Checkbox("convert_texture_to_dds", &convert_option_data.gltf.is_convert_texture_to_dds);
-				ImGui::BeginDisabled(!convert_option_data.gltf.is_convert_texture_to_dds);
-				ImGui::DragInt("max_texture_size(0=unlimited)", &convert_option_data.gltf.max_texture_size, 16.0f, 0, 16384);
-				ImGui::EndDisabled();
 
 				//	[エンジン改造:接線に再計算法線を含める対応]
 				ImGui::Separator();

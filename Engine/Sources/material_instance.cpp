@@ -56,7 +56,6 @@ material_instance::material_instance(material_instance&& other)
 , data_overrides(std::move(other.data_overrides))
 , texture_overrides(std::move(other.texture_overrides))
 , constant_buffers(std::move(other.constant_buffers))
-, shader_resources(std::move(other.shader_resources))
 {
 	other.built = false;
 }
@@ -74,7 +73,6 @@ material_instance& material_instance::operator =(const material_instance& other)
 	data_overrides = other.data_overrides;
 	texture_overrides = other.texture_overrides;
 	constant_buffers.clear();
-	shader_resources.clear();
 	rebuild();
 	return *this;
 }
@@ -90,7 +88,6 @@ material_instance& material_instance::operator =(material_instance&& other)
 	data_overrides = std::move(other.data_overrides);
 	texture_overrides = std::move(other.texture_overrides);
 	constant_buffers = std::move(other.constant_buffers);
-	shader_resources = std::move(other.shader_resources);
 	other.built = false;
 	return *this;
 }
@@ -155,20 +152,31 @@ const material_resource::constant_buffer* material_instance::find_constant_buffe
 	return it != resource->constant_buffers.end() ? &it->second : nullptr;
 }
 
-const material_resource::shader_resource* material_instance::find_shader_resource(const std::string& name) const
+std::size_t material_instance::get_texture_count(const std::string& name) const
 {
-	if (!shader_resources.empty())
+	if (!resource)
+		return 0;
+
+	auto it = resource->shader_resources.find(name);
+	return it != resource->shader_resources.end() ? it->second.resources.size() : 0;
+}
+
+texture_ptr material_instance::find_texture(const std::string& name, std::size_t index) const
+{
+	if (!texture_overrides.empty())
 	{
-		auto it = shader_resources.find(name);
-		if (it != shader_resources.end())
-			return &it->second;
+		auto it = texture_overrides.find(index == 0 ? name : name + "[" + std::to_string(index) + "]");
+		if (it != texture_overrides.end())
+			return it->second;
 	}
 
 	if (!resource)
 		return nullptr;
 
 	auto it = resource->shader_resources.find(name);
-	return it != resource->shader_resources.end() ? &it->second : nullptr;
+	if (it == resource->shader_resources.end() || it->second.resources.size() <= index)
+		return nullptr;
+	return it->second.resources[index].get_texture();
 }
 
 bool material_instance::set_data(std::string_view key_name, const void* data, std::size_t data_size)
@@ -223,19 +231,13 @@ bool material_instance::set_texture(std::string_view key_name, texture_ptr value
 	if (!resource || !value)
 		return false;
 
-	if (!built || resource_version != resource->get_version())
-		rebuild();
-
-	material_resource::shader_resource::resource resource;
-	resource.is_file_path_or_key = value->is_file_path_or_key();
-	resource.path = std::string(value->get_file_path_or_key());
-	resource.value = value;
-
-	std::string key = canonical_key(key_name);
-	if (!write_texture(key, resource))
+	std::string name;
+	UINT array_element = 0;
+	split_key(key_name, name, array_element);
+	if (get_texture_count(name) <= array_element)
 		return false;
 
-	texture_overrides[key] = resource;
+	texture_overrides[canonical_key(key_name)] = std::move(value);
 	return true;
 }
 
@@ -244,18 +246,11 @@ bool material_instance::get_texture(std::string_view key_name, texture_ptr& valu
 	std::string name;
 	UINT array_element = 0;
 	split_key(key_name, name, array_element);
+	if (get_texture_count(name) <= array_element)
+		return false;
 
-	auto it = shader_resources.find(name);
-	if (it != shader_resources.end())
-	{
-		if (it->second.resources.size() <= array_element)
-			return false;
-
-		value = it->second.resources[array_element].value;
-		return true;
-	}
-
-	return resource ? resource->get_texture(key_name, value) : false;
+	value = find_texture(name, array_element);
+	return true;
 }
 
 bool material_instance::is_data_overridden(std::string_view key_name) const
@@ -294,7 +289,6 @@ void material_instance::rebuild()
 
 	previous_constant_buffers = std::move(constant_buffers);
 	constant_buffers.clear();
-	shader_resources.clear();
 
 	if (resource)
 	{
@@ -303,10 +297,6 @@ void material_instance::rebuild()
 		for (auto& data_override : data_overrides)
 		{
 			write_data(data_override.first, data_override.second.data(), data_override.second.size());
-		}
-		for (auto& texture_override : texture_overrides)
-		{
-			write_texture(texture_override.first, texture_override.second);
 		}
 	}
 
@@ -355,19 +345,6 @@ material_resource::constant_buffer* material_instance::prepare_constant_buffer(c
 	return &constant_buffers.emplace(constant_buffer_name, std::move(constant_buffer)).first->second;
 }
 
-material_resource::shader_resource* material_instance::prepare_shader_resource(const std::string& resource_name)
-{
-	auto it = shader_resources.find(resource_name);
-	if (it != shader_resources.end())
-		return &it->second;
-
-	auto it_resource = resource->shader_resources.find(resource_name);
-	if (it_resource == resource->shader_resources.end())
-		return nullptr;
-
-	return &shader_resources.emplace(resource_name, it_resource->second).first->second;
-}
-
 bool material_instance::write_data(const std::string& key_name, const void* data, std::size_t data_size)
 {
 	std::string name;
@@ -390,19 +367,5 @@ bool material_instance::write_data(const std::string& key_name, const void* data
 	std::size_t buffer_size = constant_buffer->data_buffer.size() - start_offset;
 	memcpy_s(constant_buffer->data_buffer.data() + start_offset, buffer_size, data, std::min(buffer_size, data_size));
 	constant_buffer->dirty = true;
-	return true;
-}
-
-bool material_instance::write_texture(const std::string& key_name, const material_resource::shader_resource::resource& value)
-{
-	std::string name;
-	UINT array_element = 0;
-	split_key(key_name, name, array_element);
-
-	material_resource::shader_resource* shader_resource = prepare_shader_resource(name);
-	if (!shader_resource || shader_resource->resources.size() <= array_element)
-		return false;
-
-	shader_resource->resources[array_element] = value;
 	return true;
 }

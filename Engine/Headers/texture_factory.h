@@ -4,7 +4,11 @@
 #include <cstdint>
 #include <string_view>
 
+#include <memory>
+
 #include "texture.h"
+
+class texture_resource;
 
 namespace DirectX
 {
@@ -29,4 +33,7 @@ public:
 
 	//	1色で塗った2Dテクスチャを作る
 	static texture2d_ptr create_solid_color(UINT width, UINT height, std::uint32_t color);
+
+	//	ランタイム用テクスチャ生成
+	static std::shared_ptr<texture_resource> create_runtime_resource(texture_ptr value);
 };

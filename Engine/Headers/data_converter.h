@@ -38,8 +38,6 @@ namespace data_converter
 			bool is_change_coordinate_system = true;			//	座標系変換
 			bool is_change_coordinate_system_indices = false;	//	座標系変換時にインデックスを反転
 			bool is_normalize_weight = true;					//	影響度の正規化
-			bool is_convert_texture_to_dds = true;				//	テクスチャをDDS化しミップマップを生成
-			int max_texture_size = 0;							//	DDS化する際の最大解像度（0で無制限）
 
 			//	[エンジン改造:接線に再計算法線を含める対応]
 			bool is_recomputed_normal = false;					//	法線を再計算するか

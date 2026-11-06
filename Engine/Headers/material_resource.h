@@ -3,12 +3,15 @@
 #include <map>
 
 #include "texture.h"
+#include "texture_resource.h"
 #include "pipeline_state.h"
 
 #include "Resource/resource_base.h"
 #include "Resource/resource_loader.h"
 #include "Resource/resource_saver.h"
 #include "Resource/asset_reference.h"
+#include "Resource/asset_handle.h"
+#include "Resource/resource_operation.h"
 
 class gpu_upload_list;
 class material_resource;
@@ -173,13 +176,12 @@ public:
 	{
 		struct resource
 		{
-			bool is_file_path_or_key{ false };	//	ファイルパスかキー情報かどうか
-			std::string path{ "" };				//	ファイルパスかキー文字列
-			texture_ptr value{ nullptr };		//	テクスチャ本体
+			::resource::asset_handle<texture_resource> asset;
+			texture_ptr get_texture() const { return asset ? asset->get_texture() : nullptr; }
 
 			bool is_valid() const
 			{
-				return !path.empty() && value != nullptr;
+				return get_texture() != nullptr;
 			}
 
 			template<class Archive>
@@ -355,7 +357,7 @@ public:
 	bool set_float4x4(std::string_view key_name, math::float4x4 value) {return set_data(key_name, &value, sizeof(value));}
 	bool get_float4x4(std::string_view key_name, math::float4x4& value) const {return get_data(key_name, &value, sizeof(value));}
 
-	bool set_texture(std::string_view key_name, texture_ptr value);
+	bool set_texture(std::string_view key_name, texture_resource_ptr value);
 	bool get_texture(std::string_view key_name, texture_ptr& value) const;
 
 private:
@@ -418,7 +420,19 @@ namespace resource
 		bool revert(material_resource& target);
 
 	private:
+		void assign_textures();
+
+	private:
+		struct texture_operation
+		{
+			std::string name;
+			std::size_t index = 0;
+			asset_reference<texture_resource> reference;
+			load_operation_ptr<texture_resource> operation;
+		};
+
 		material_resource_ptr resource;
+		std::vector<texture_operation> texture_operations;
 	};
 
 	template<>

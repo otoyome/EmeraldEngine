@@ -1,6 +1,7 @@
 #include "scenes/editscene/edit_model_scene.h"
 #include "System/asset_browser.h"
 #include "Resource/resource_manager.h"
+#include "texture_importer.h"
 
 #include <algorithm>
 #include <cctype>
@@ -420,42 +421,42 @@ void edit_model_scene::limit_texture_resolution_asset()
 	if (!resource)
 		return;
 
-	//	マテリアルが参照しているDDSを収集
-	std::set<std::string> dds_paths;
+	//	マテリアルが参照しているテクスチャリソースを集める
+	std::set<texture_resource*> textures;
 	for (const auto& material : resource->get_materials())
 	{
 		for (const auto& shader_resource : material->get_shader_resources())
 		{
-			for (const auto& texture_resource : shader_resource.second.resources)
+			for (const auto& slot : shader_resource.second.resources)
 			{
-				if (!texture_resource.is_file_path_or_key || texture_resource.path.empty())
-					continue;
-
-				const std::string extension = system_utility::to_lower(std::filesystem::path(texture_resource.path).extension().string());
-				if (extension == ".dds")
-					dds_paths.insert(texture_resource.path);
+				if (slot.asset && !slot.asset->is_missing())
+					textures.insert(slot.asset.get().get());
 			}
 		}
 	}
 
-	//	最大解像度を超えるものだけ縮小して上書き
-	const UINT max_size = static_cast<UINT>(std::max(texture_max_resolution, 4));
+	//	最大解像度の設定を変えて元画像から取り込み直す
+	const std::uint32_t max_size = static_cast<std::uint32_t>(std::max(texture_max_resolution, 4));
 	size_t changed_count = 0;
 	size_t failed_count = 0;
-	for (const auto& path : dds_paths)
+	for (auto* texture : textures)
 	{
-		bool changed = false;
-		if (!texture_manager::instance()->limit_dds_resolution(path, max_size, &changed))
+		texture_import_settings settings = texture->get_settings();
+		if (settings.max_resolution == max_size)
+			continue;
+
+		settings.max_resolution = max_size;
+		const std::string file_path(texture->get_file_path());
+		if (!texture_importer::instance()->import(settings.source_path, settings))
 		{
 			++failed_count;
-			DEBUG_LOG_CATEGORY(logger::categorys::model, "Limit Texture Resolution Failed[%s]", path.c_str());
+			DEBUG_LOG_CATEGORY(logger::categorys::model, "Limit Texture Resolution Failed[%s]", file_path.c_str());
 			continue;
 		}
-		if (changed)
-			++changed_count;
+		++changed_count;
 	}
-	DEBUG_LOG_CATEGORY(logger::categorys::model, "Limit Texture Resolution[max=%u] dds=%zu changed=%zu failed=%zu",
-					   max_size, dds_paths.size(), changed_count, failed_count);
+	DEBUG_LOG_CATEGORY(logger::categorys::model, "Limit Texture Resolution[max=%u] textures=%zu changed=%zu failed=%zu",
+					   max_size, textures.size(), changed_count, failed_count);
 }
 
 void edit_model_scene::generate_shadow_mesh_asset()

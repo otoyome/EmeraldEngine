@@ -106,7 +106,17 @@ void material_resource::constant_buffer::serialize(Archive& archive, int version
 template<class Archive>
 void material_resource::shader_resource::resource::serialize(Archive& archive, int version)
 {
-	archive(CEREAL_NVP(is_file_path_or_key), CEREAL_NVP(path));
+	//	ファイルを持たないテクスチャリソースは参照として残せないので空で書く
+	if constexpr (Archive::is_saving::value)
+	{
+		if (asset && asset->get_file_path().empty())
+		{
+			const ::resource::asset_handle<texture_resource> empty;
+			archive(cereal::make_nvp("asset", empty));
+			return;
+		}
+	}
+	archive(CEREAL_NVP(asset));
 }
 
 template<class Archive>
@@ -215,6 +225,21 @@ void material_resource::duplicate(material_resource& material) const
 	std::stringstream iostream;
 	serialize_stream(iostream);
 	material.deserialize_stream(iostream);
+
+	for (auto& [name, source] : shader_resources)
+	{
+		auto it = material.shader_resources.find(name);
+		if (it == material.shader_resources.end())
+			continue;
+
+		const std::size_t count = (std::min)(source.resources.size(), it->second.resources.size());
+		for (std::size_t index = 0; index < count; ++index)
+		{
+			const auto& asset = source.resources[index].asset;
+			if (asset)
+				it->second.resources[index].asset = asset.get();
+		}
+	}
 	material.build();
 }
 
@@ -482,23 +507,7 @@ void material_resource::build_parameters()
 			{
 				auto& temp_resource = texture.second.resources[index];
 				auto& resource = it->second.resources[index];
-				if (temp_resource.is_valid())
-				{
-					resource = temp_resource;
-				}
-				else if (!temp_resource.path.empty())
-				{
-					resource.is_file_path_or_key = temp_resource.is_file_path_or_key;
-					resource.path = temp_resource.path;
-					if (resource.is_file_path_or_key)
-					{
-						texture_manager::instance()->load_texture_from_file(resource.value, temp_resource.path);
-					}
-					else
-					{
-						resource.value = texture_manager::instance()->search(temp_resource.path);
-					}
-				}
+				resource = temp_resource;
 			}
 		}
 		for (auto& constant_buffer : temp_constant_buffers)
@@ -958,7 +967,7 @@ bool material_resource::get_data(std::string_view key_name, void* data, std::siz
 	return false;
 }
 
-bool material_resource::set_texture(std::string_view key_name, texture_ptr value)
+bool material_resource::set_texture(std::string_view key_name, texture_resource_ptr value)
 {
 	std::string key = std::string(key_name);
 	UINT array_element = 0;
@@ -972,14 +981,13 @@ bool material_resource::set_texture(std::string_view key_name, texture_ptr value
 			return false;
 
 		auto& resource = it->second.resources[array_element];
-		resource.is_file_path_or_key = value->is_file_path_or_key();
-		resource.path = std::string(value->get_file_path_or_key());
-		resource.value = value;
+		resource.asset = std::move(value);
 		++version;
 		return true;
 	}
 	return false;
 }
+
 
 bool material_resource::get_texture(std::string_view key_name, texture_ptr& value) const
 {
@@ -995,7 +1003,7 @@ bool material_resource::get_texture(std::string_view key_name, texture_ptr& valu
 			return false;
 
 		auto& resource = it->second.resources[array_element];
-		value = resource.value;
+		value = resource.get_texture();
 		return true;
 	}
 	return false;
@@ -1164,13 +1172,44 @@ namespace resource
 		resource = std::make_shared<material_resource>();
 		if (!resource->load_file(file_path))
 			return operation_state::deserialize_failed;
+
+		//	参照するテクスチャを依存リソースとして読み込む
+		for (auto& [name, shader_resource] : resource->shader_resources)
+		{
+			for (std::size_t index = 0; index < shader_resource.resources.size(); ++index)
+			{
+				auto& slot = shader_resource.resources[index];
+				if (slot.asset || slot.asset.is_empty())
+					continue;
+
+				auto& texture = texture_operations.emplace_back();
+				texture.name = name;
+				texture.index = index;
+				texture.reference = slot.asset.get_reference();
+				texture.operation = resource_manager::instance()->load_async(texture.reference, load_priority::high);
+				add_dependency(texture.operation);
+			}
+		}
 		return operation_state::success;
 	}
 
 	operation_state loader<material_resource>::build()
 	{
+		assign_textures();
 		resource->build();
 		return operation_state::success;
+	}
+
+	void loader<material_resource>::assign_textures()
+	{
+		for (auto& texture : texture_operations)
+		{
+			auto it = resource->shader_resources.find(texture.name);
+			if (it == resource->shader_resources.end() || it->second.resources.size() <= texture.index)
+				continue;
+			it->second.resources[texture.index].asset = resource_manager::instance()->resolve(texture.operation, texture.reference);
+		}
+		texture_operations.clear();
 	}
 
 	material_resource_ptr loader<material_resource>::create_fallback(const asset_reference<material_resource>& reference, material_resource::domains domain)
@@ -1182,6 +1221,7 @@ namespace resource
 	{
 		if (target.is_missing())
 			return false;
+		assign_textures();
 		resource->duplicate(target);
 		return true;
 	}

@@ -5,6 +5,7 @@
 
 #include "texture_defaults.h"
 #include "texture_factory.h"
+#include "texture_resource_utility.h"
 #include "Resource/asset_file_header.h"
 #include "Resource/data_compression.h"
 #include "system/logger.h"
@@ -13,45 +14,11 @@
 #include "cereal/archives/binary.hpp"
 #include "cereal/types/vector.hpp"
 
-namespace
-{
-	bool read_etx(std::string_view file_path, resource::asset_file_header& out_header, texture_import_settings& out_settings, std::vector<char>& out_dds)
-	{
-		std::vector<char> body;
-		if (!resource::read_asset_file(file_path, resource::asset_types::texture, out_header, body))
-			return false;
-
-		resource::memory_streambuf stream_buffer(body.data(), body.size());
-		std::istream istream(&stream_buffer);
-		try
-		{
-			cereal::BinaryInputArchive archive(istream);
-			archive(out_settings, out_dds);
-		}
-		catch (...)
-		{
-			DEBUG_ERROR_CATEGORY(logger::categorys::system, "texture_resource deserialize failed[%s]", std::string(file_path).c_str());
-			return false;
-		}
-		return true;
-	}
-}
-
-bool texture_resource::read_image(std::string_view file_path, DirectX::ScratchImage& out_image)
-{
-	resource::asset_file_header header;
-	texture_import_settings settings;
-	std::vector<char> dds;
-	if (!read_etx(file_path, header, settings, dds))
-		return false;
-	return texture_factory::decode_memory(dds.data(), dds.size(), out_image);
-}
-
 bool texture_resource::load_file(std::string_view file_path)
 {
 	resource::asset_file_header header;
 	std::vector<char> dds;
-	if (!read_etx(file_path, header, settings, dds))
+	if (!texture_resource_utility::read_file(file_path, header, settings, dds))
 		return false;
 
 	DirectX::ScratchImage image;
@@ -150,7 +117,7 @@ namespace resource
 		asset_file_header header;
 		texture_import_settings unused_settings;
 		std::vector<char> dds;
-		if (!read_etx(source_path, header, unused_settings, dds))
+		if (!texture_resource_utility::read_file(source_path, header, unused_settings, dds))
 			return false;
 		return resource.save_file(file_path, std::string_view(dds.data(), dds.size()));
 	}

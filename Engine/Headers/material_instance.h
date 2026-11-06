@@ -61,7 +61,9 @@ public:
 	void clear_overrides();
 
 	const material_resource::constant_buffer* find_constant_buffer(const std::string& name) const;
-	const material_resource::shader_resource* find_shader_resource(const std::string& name) const;
+
+	std::size_t get_texture_count(const std::string& name) const;
+	texture_ptr find_texture(const std::string& name, std::size_t index) const;
 
 public:
 	//	パラメーター設定/取得
@@ -112,10 +114,8 @@ private:
 
 	const std::string* find_resource_constant_buffer_name(const std::string& identifier) const;
 	material_resource::constant_buffer* prepare_constant_buffer(const std::string& constant_buffer_name);
-	material_resource::shader_resource* prepare_shader_resource(const std::string& resource_name);
 
 	bool write_data(const std::string& key_name, const void* data, std::size_t data_size);
-	bool write_texture(const std::string& key_name, const material_resource::shader_resource::resource& value);
 
 private:
 	material_resource_ptr resource;
@@ -124,8 +124,7 @@ private:
 
 	//	上書きした値
 	std::map<std::string, std::vector<unsigned char>> data_overrides;
-	std::map<std::string, material_resource::shader_resource::resource> texture_overrides;
+	std::map<std::string, texture_ptr> texture_overrides;
 	material_resource::constant_buffer_map constant_buffers;
-	material_resource::shader_resource_map shader_resources;
 	material_resource::constant_buffer_map previous_constant_buffers;
 };

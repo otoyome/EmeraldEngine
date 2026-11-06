@@ -649,14 +649,10 @@ void graphics_custom_pipeline_state::update_parameters(const graphics_context& c
 						continue;
 				}
 
-				const material_resource::shader_resource* shader_resource = material.find_shader_resource(srv.first);
-				if (!shader_resource)
-					continue;
-
-				auto& shader_resources = shader_resource->resources;
-				for (UINT srv_index = 0; srv_index < shader_resources.size(); ++srv_index)
+				const std::size_t texture_count = material.get_texture_count(srv.first);
+				for (std::size_t srv_index = 0; srv_index < texture_count; ++srv_index)
 				{
-					register_srv_function(shader_resources[srv_index].value);
+					register_srv_function(material.find_texture(srv.first, srv_index));
 				}
 			}
 		}

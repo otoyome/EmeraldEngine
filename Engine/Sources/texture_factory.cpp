@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "render_data.h"
+#include "texture_resource.h"
 #include "DirectXTex.h"
 
 bool texture_factory::decode_file(std::string_view file_path, DirectX::ScratchImage& out_image)
@@ -95,4 +96,12 @@ texture2d_ptr texture_factory::create_solid_color(UINT width, UINT height, std::
 		return nullptr;
 
 	return std::make_shared<texture2d>(texture, shader_resource_view);
+}
+
+std::shared_ptr<texture_resource> texture_factory::create_runtime_resource(texture_ptr value)
+{
+	auto created = std::make_shared<texture_resource>();
+	created->value = std::move(value);
+	created->set_missing(false);
+	return created;
 }

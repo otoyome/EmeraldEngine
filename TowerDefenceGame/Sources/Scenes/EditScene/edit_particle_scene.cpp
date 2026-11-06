@@ -2,6 +2,7 @@
 #include "System/asset_browser.h"
 #include "Resource/resource_manager.h"
 #include "material_shader_map.h"
+#include "texture_importer.h"
 
 #include "model_instance.h"
 #include "camera.h"
@@ -386,16 +387,8 @@ void edit_particle_scene::generate_default_effect()
 
 						//	パラメーター設定
 						material->set_float4("base_color_factor", math::float4(1, 1, 1, 1));
-						{
-							texture_ptr texture;
-							std::filesystem::path file_path = "Assets/Resources/Textures/Explosion01_5x5.png";
-							if (texture_manager::instance()->load_texture_from_file(texture, file_path.string()))
-							{
-								texture->set_flag(texture::flags::srgb, true);
-								material->set_texture("BaseColorMap", texture);
-								texture_manager::instance()->save_texture(texture);
-							}
-						}
+						if (auto texture = texture_importer::instance()->import("Assets/Resources/Textures/Explosion01_5x5.png", texture_import_settings::make_preset(texture_import_settings::presets::color)))
+							material->set_texture("BaseColorMap", texture);
 					}
 				}
 				//	発生設定
@@ -498,17 +491,8 @@ void edit_particle_scene::generate_default_effect()
 
 						//	パラメーター設定
 						material->set_float4("base_color_factor", math::float4(1, 1, 1, 1));
-						{
-							texture_ptr texture;
-							//std::filesystem::path file_path = "Assets/Resources/Textures/trail.png";
-							std::filesystem::path file_path = "Assets/Resources/Textures/Explosion01_5x5.png";
-							if (texture_manager::instance()->load_texture_from_file(texture, file_path.string()))
-							{
-								texture->set_flag(texture::flags::srgb, true);
-								material->set_texture("BaseColorMap", texture);
-								texture_manager::instance()->save_texture(texture);
-							}
-						}
+						if (auto texture = texture_importer::instance()->import("Assets/Resources/Textures/Explosion01_5x5.png", texture_import_settings::make_preset(texture_import_settings::presets::color)))
+							material->set_texture("BaseColorMap", texture);
 					}
 				}
 				//	発生設定

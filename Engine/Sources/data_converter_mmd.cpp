@@ -9,6 +9,11 @@
 
 #if defined(USE_IMGUI)
 
+#include <unordered_map>
+
+#include "texture_importer.h"
+#include "System/project_path.h"
+
 namespace
 {
 	//	頂点フォーマット
@@ -343,6 +348,24 @@ namespace
 			}
 		}
 
+		//	テクスチャリソース生成
+		const texture_import_settings color_settings = texture_import_settings::make_preset(texture_import_settings::presets::color);
+		std::unordered_map<std::string, texture_resource_ptr> imported_textures;
+		auto import_texture = [&](std::size_t index) -> texture_resource_ptr
+		{
+			if (index >= loader.get_textures().size() || !loader.get_textures()[index] || !texture_importer::is_valid())
+				return nullptr;
+
+			const std::string source_path = project_path::to_relative(loader.get_textures()[index]->get_file_path_or_key());
+			auto it = imported_textures.find(source_path);
+			if (it != imported_textures.end())
+				return it->second;
+
+			auto imported = texture_importer::instance()->import(source_path, color_settings);
+			imported_textures.emplace(source_path, imported);
+			return imported;
+		};
+
 		//	マテリアル生成
 		for(auto& pmx_material : loader.get_materials())
 		{
@@ -372,18 +395,12 @@ namespace
 			material.set_float("roughness", 0.8f);
 			material.set_float("metalness", 0.1f);
 			material.set_float("metalness", 0.1f);
-			if(pmx_material.def.diffuse_texture_index < loader.get_textures().size())
-			{
-				material.set_texture("BaseMap", loader.get_textures()[pmx_material.def.diffuse_texture_index]);
-			}
-			if(pmx_material.def.sphere_texture_index < loader.get_textures().size())
-			{
-				material.set_texture("SphereMap", loader.get_textures()[pmx_material.def.sphere_texture_index]);
-			}
-			if(pmx_material.def.ramp_texture_index < loader.get_textures().size())
-			{
-				material.set_texture("RampMap", loader.get_textures()[pmx_material.def.ramp_texture_index]);
-			}
+			if (auto texture = import_texture(pmx_material.def.diffuse_texture_index))
+				material.set_texture("BaseMap", texture);
+			if (auto texture = import_texture(pmx_material.def.sphere_texture_index))
+				material.set_texture("SphereMap", texture);
+			if (auto texture = import_texture(pmx_material.def.ramp_texture_index))
+				material.set_texture("RampMap", texture);
 		}
 
 		//	アニメーション生成

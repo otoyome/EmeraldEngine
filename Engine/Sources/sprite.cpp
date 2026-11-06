@@ -1,5 +1,6 @@
 #include "sprite.h"
 #include "material_shader_map.h"
+#include "texture_defaults.h"
 
 #include <sstream>
 
@@ -44,7 +45,7 @@ material_resource_ptr sprite::acquire_default_material()
 	value->set_blend_mode(::material_resource::blend_modes::translucent);
 	value->set_shader_path(material_shader_map::get_default_shader_path(material_resource::domains::user_interface));
 
-	value->set_texture(base_texture_name, texture_manager::instance()->search(texture_manager::white_texture2d_name));
+	value->set_texture(base_texture_name, texture_defaults::instance()->get_white_resource());
 
 	default_material = value;
 	return value;

@@ -1,4 +1,5 @@
 #include "Editor/editor_items.h"
+#include "texture_importer.h"
 
 #if defined(USE_IMGUI)
 #include <commdlg.h>
@@ -488,16 +489,8 @@ bool editor_items::edit_effect_particle(std::shared_ptr<context>& context, effec
 
 		//	パラメーター設定
 		material->set_float4("base_color_factor", math::float4(1, 1, 1, 1));
-		{
-			texture_ptr texture;
-			std::filesystem::path file_path = "Assets/Resources/Textures/white_16x16.png";
-			if (texture_manager::instance()->load_texture_from_file(texture, file_path.string()))
-			{
-				texture->set_flag(texture::flags::srgb, true);
-				material->set_texture("BaseColorMap", texture);
-				texture_manager::instance()->save_texture(texture);
-			}
-		}
+		if (auto texture = texture_importer::instance()->import("Assets/Resources/Textures/white_16x16.png", texture_import_settings::make_preset(texture_import_settings::presets::color)))
+			material->set_texture("BaseColorMap", texture);
 		return material_ptr;
 	};
 
@@ -974,14 +967,8 @@ bool editor_items::edit_effect_decal(std::shared_ptr<context>& context, effect_r
 		material->set_float4("base_color_factor", math::float4(1, 1, 1, 1));
 		material->set_float("normal_map_scale", 1.0f);
 		{
-			texture_ptr texture;
-			std::filesystem::path file_path = "Assets/Resources/Textures/ground_crack.png";
-			if (texture_manager::instance()->load_texture_from_file(texture, file_path.string()))
-			{
-				texture->set_flag(texture::flags::srgb, true);
+			if (auto texture = texture_importer::instance()->import("Assets/Resources/Textures/ground_crack.png", texture_import_settings::make_preset(texture_import_settings::presets::color)))
 				material->set_texture("BaseColorMap", texture);
-				texture_manager::instance()->save_texture(texture);
-			}
 
 			//	法線マップがあれば
 		}
