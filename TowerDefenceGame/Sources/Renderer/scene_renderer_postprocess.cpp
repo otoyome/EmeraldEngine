@@ -9,6 +9,8 @@
 #include "PipelineState/anti_alias_pipeline_state.h"
 
 #include "System/engine_config_data.h"
+#include "Graphics/light_utility.h"
+#include "Renderer/scene_renderer_display.h"
 
 namespace
 {
@@ -992,7 +994,7 @@ void motion_blur_post_process_renderer::resize_buffer(int width, int height)
 #pragma endregion	//	MotionBlur
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-#pragma region BloomAndToneMapping
+#pragma region Bloom
 namespace luminance_extract
 {
 	struct parameter_constants
@@ -1002,14 +1004,13 @@ namespace luminance_extract
 		float lens_ghost_threshold;
 		float lens_ghost_intensity;
 
-	    bool exposure_adjust;
+		float luminance_scale;
 		math::float3 dummy;
 	};
 	constexpr int cbv_index = 0;
 	constexpr int bloom_uav_index = 0;
 	constexpr int lens_ghost_uav_index = 1;
 	constexpr int color_srv_index = 0;
-	constexpr int average_luminance_srv_index = 1;
 }
 
 namespace bloom
@@ -1039,21 +1040,6 @@ namespace bloom
 	static constexpr math::uint3 thread_count = {32, 32, 1};
 }
 
-namespace tone_mapping
-{
-	struct parameter_constants
-	{
-		//  露出補正処理
-		math::float4 exposure_compensation_data;  //  x : 使用フラグ, y : 適応レート, zw : 適応輝度範囲
-
-		//  トーンマッピング
-		math::float4 tone_mapping_variable[2]; //  0.xは種類として利用、以下は場合によりけり
-	};
-	constexpr int cbv_index = 0;
-
-	static constexpr math::uint3 max_threads = { 32, 32, 1 };
-}
-
 //	処理負荷軽減のために低解像度版でやる
 #define USE_HALF_FFT
 #if defined(USE_HALF_FFT)
@@ -1066,7 +1052,7 @@ namespace tone_mapping
 #define FFT_TEXTURE_HEIGHT (1024)
 #endif	//	defined(USE_HALF_FFT)
 
-bloom_and_tone_mapping_post_process_renderer::bloom_and_tone_mapping_post_process_renderer(render_job_registrar job_executor, std::shared_ptr<scene_render_targets> render_targets)
+bloom_post_process_renderer::bloom_post_process_renderer(render_job_registrar job_executor, std::shared_ptr<scene_render_targets> render_targets)
 : renderer(job_executor)
 , render_targets(render_targets)
 {
@@ -1086,11 +1072,6 @@ bloom_and_tone_mapping_post_process_renderer::bloom_and_tone_mapping_post_proces
 	if (shader_manager* instance = shader_manager::instance())
 	{
 		load_shader_cso desc;
-		desc.file_path = "Assets/CSO/correct_luminance_cs.cso";
-		instance->load_shader<compute_shader>(correct_luminance, desc);
-		desc.file_path = "Assets/CSO/tone_mapping_cs.cso";
-		instance->load_shader<compute_shader>(tone_mapping, desc);
-
 		desc.file_path = "Assets/CSO/fast_fourier_transform_gaussian_filter_cs.cso";
 		instance->load_shader<compute_shader>(fft_gaussian_filter, desc);
 		desc.file_path = "Assets/CSO/fast_fourier_transform_complex_multiply_cs.cso";
@@ -1118,12 +1099,8 @@ bloom_and_tone_mapping_post_process_renderer::bloom_and_tone_mapping_post_proces
 		buffer_desc.MiscFlags = 0;
 		buffer_desc.StructureByteStride = 0;
 
-		buffer_desc.ByteWidth = sizeof(tone_mapping::parameter_constants);
-		HRESULT hr = device->CreateBuffer(&buffer_desc, nullptr, tone_mapping_constant_buffer.ReleaseAndGetAddressOf());
-		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
-
 		buffer_desc.ByteWidth = sizeof(luminance_extract::parameter_constants);
-		hr = render_data::instance()->get_device()->CreateBuffer(&buffer_desc, nullptr, luminance_extract_constant_buffer.ReleaseAndGetAddressOf());
+		HRESULT hr = render_data::instance()->get_device()->CreateBuffer(&buffer_desc, nullptr, luminance_extract_constant_buffer.ReleaseAndGetAddressOf());
 		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
 
 		buffer_desc.ByteWidth = sizeof(bloom::fft_gaussian_constants);
@@ -1135,11 +1112,9 @@ bloom_and_tone_mapping_post_process_renderer::bloom_and_tone_mapping_post_proces
 		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
 	}
 
-	//	平均輝度テクスチャ
+	//	レンズゴースト用の輝度テクスチャ
 	{
 		D3D11_TEXTURE2D_DESC texture2d_desc{};
-		texture2d_desc.Width = 1;
-		texture2d_desc.Height = 1;
 		texture2d_desc.MipLevels = 1;
 		texture2d_desc.ArraySize = 1;
 		texture2d_desc.SampleDesc.Count = 1;
@@ -1148,12 +1123,6 @@ bloom_and_tone_mapping_post_process_renderer::bloom_and_tone_mapping_post_proces
 		texture2d_desc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
 		texture2d_desc.CPUAccessFlags = 0;
 		texture2d_desc.MiscFlags = 0;
-		texture2d_desc.Format = DXGI_FORMAT_R32G32_FLOAT;
-
-		texture_factory::create_texture2d(average_luminance_buffer[0], "average_luminance_buffer[0]", texture2d_desc);
-		texture_factory::create_texture2d(average_luminance_buffer[1], "average_luminance_buffer[1]", texture2d_desc);
-		average_luminance_buffer_index = 0;
-
 		texture2d_desc.Width = FFT_TEXTURE_WIDTH;
 		texture2d_desc.Height = FFT_TEXTURE_HEIGHT;
 		texture2d_desc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
@@ -1161,87 +1130,26 @@ bloom_and_tone_mapping_post_process_renderer::bloom_and_tone_mapping_post_proces
 	}
 }
 
-bloom_and_tone_mapping_post_process_renderer::~bloom_and_tone_mapping_post_process_renderer()
+bloom_post_process_renderer::~bloom_post_process_renderer()
 {
 }
 
-void bloom_and_tone_mapping_post_process_renderer::render(renderer_context& renderer_context)
+void bloom_post_process_renderer::render(renderer_context& renderer_context)
 {
 	//	ポストプロセスボリュームが無ければ適応しない
 	post_process_volume_ptr inner_volume = renderer_context.render_data->post_process_volume_container.selected_volume;
 	if (!inner_volume)
 		return;
 
-	auto& tone_mapping_constant = inner_volume->get_tone_mapping_constant();
-	auto& exposure_compensation_constant = inner_volume->get_exposure_compensation_constant();
 	auto& bloom_constant = inner_volume->get_bloom_constant();
 	auto& lens_ghosts_data = inner_volume->get_lens_ghosts_constant();
 
 	int sort_order = get_render_basis_sort_order();
-	int current_index = (average_luminance_buffer_index + 0) % 2;
-	int previous_index = (average_luminance_buffer_index + 1) % 2;
-	average_luminance_buffer_index++;
-
-	//	平均輝度
-	bool exposure_adjust = inner_volume->get_tone_mapping_constant().get_tone_map_type() != tone_mapping_data::tone_mapping_type::none;
-
-	//	平均輝度算出
-	{
-		job_executor.execute([this, inner_volume, current_index, previous_index](graphics_context& context)
-		{
-			auto& tone_mapping_constant = inner_volume->get_tone_mapping_constant();
-			auto& exposure_compensation_constant = inner_volume->get_exposure_compensation_constant();
-
-			context.clear_render_target_slots();
-			context.clear_shader_resorce_views();
-			context.clear_unordered_access_views();
-
-			//	定数バッファ更新
-			{
-				tone_mapping::parameter_constants constant;
-				constant.exposure_compensation_data.x = exposure_compensation_constant.is_active() ? 1.0f : 0.0f;
-				float elapsed_time = context.scene_constant.time_data.x - context.scene_constant.time_data.y;
-				float elapsed_frame = system_units::convert_sec_to_fps(elapsed_time);
-				constant.exposure_compensation_data.y = exposure_compensation_constant.adapt_rate * elapsed_frame;
-				constant.exposure_compensation_data.z = exposure_compensation_constant.luminance_range.x;
-				constant.exposure_compensation_data.w = exposure_compensation_constant.luminance_range.y;
-
-				constant.tone_mapping_variable[0].x = static_cast<float>(tone_mapping_constant.get_tone_map_type());
-				constant.tone_mapping_variable[0].y = tone_mapping_constant.tone_mapping_variables[0];
-				constant.tone_mapping_variable[0].z = tone_mapping_constant.tone_mapping_variables[1];
-				constant.tone_mapping_variable[0].w = tone_mapping_constant.tone_mapping_variables[2];
-				constant.tone_mapping_variable[1].x = tone_mapping_constant.tone_mapping_variables[3];
-				constant.tone_mapping_variable[1].y = tone_mapping_constant.tone_mapping_variables[4];
-				constant.tone_mapping_variable[1].z = tone_mapping_constant.tone_mapping_variables[5];
-				constant.tone_mapping_variable[1].w = tone_mapping_constant.tone_mapping_variables[6];
-
-				context.device_context->UpdateSubresource(tone_mapping_constant_buffer.Get(), 0, 0, &constant, 0, 0);
-			}
-
-			//	平均輝度算出
-			context.device_context->CSSetConstantBuffers(tone_mapping::cbv_index, 1,
-				tone_mapping_constant_buffer.GetAddressOf());
-			context.device_context->CSSetShaderResources(0, 1,
-				render_targets->scene_color_texture->get_shader_resource_view().GetAddressOf());
-			context.device_context->CSSetShaderResources(1, 1,
-				average_luminance_buffer[previous_index]->get_shader_resource_view().GetAddressOf());
-
-			context.device_context->CSSetUnorderedAccessViews(0, 1,
-				average_luminance_buffer[current_index]->get_unordered_access_view().GetAddressOf(), nullptr);
-
-			context.device_context->CSSetShader(correct_luminance->get_shader().Get(), nullptr, 0);
-			context.device_context->Dispatch(1, 1, 1);
-
-			context.clear_render_target_slots();
-			context.clear_shader_resorce_views();
-			context.clear_unordered_access_views();
-		}, "average_exposure_pass", renderer_context, sort_order++, true);
-	}
 
 	//	輝度値算出
 	if (bloom_constant.is_active() || lens_ghosts_data.is_active())
 	{
-		job_executor.execute([this, inner_volume, current_index, exposure_adjust](graphics_context& context)
+		job_executor.execute([this, inner_volume](graphics_context& context)
 		{
 			context.clear_shader_resorce_views();
 			context.clear_unordered_access_views();
@@ -1250,12 +1158,14 @@ void bloom_and_tone_mapping_post_process_renderer::render(renderer_context& rend
 
 			auto& bloom_constant = inner_volume->get_bloom_constant();
 			auto& lens_ghosts_data = inner_volume->get_lens_ghosts_constant();
-			luminance_extract::parameter_constants constant;
+			luminance_extract::parameter_constants constant{};
 			constant.bloom_threshold = bloom_constant.threshold;
 			constant.bloom_intensity = bloom_constant.is_active() ? bloom_constant.intensity : -1.0f;
 			constant.lens_ghost_threshold = lens_ghosts_data.threshold;
 			constant.lens_ghost_intensity = lens_ghosts_data.is_active() ? lens_ghosts_data.intensity : -1.0f;
-			constant.exposure_adjust = exposure_adjust;
+
+			//	しきい値はセンサーの飽和(ディスプレイの最大輝度)を 1 とした輝度で比べる
+			constant.luminance_scale = static_cast<float>(light_utility::luminous_efficacy) / sdr_reference_white_nits;
 			context.device_context->UpdateSubresource(luminance_extract_constant_buffer.Get(), 0, 0, &constant, 0, 0);
 			context.device_context->CSSetConstantBuffers(luminance_extract::cbv_index, 1, luminance_extract_constant_buffer.GetAddressOf());
 
@@ -1266,8 +1176,6 @@ void bloom_and_tone_mapping_post_process_renderer::render(renderer_context& rend
 
 			context.device_context->CSSetShaderResources(luminance_extract::color_srv_index, 1,
 						render_targets->scene_color_texture->get_shader_resource_view().GetAddressOf());
-			context.device_context->CSSetShaderResources(luminance_extract::average_luminance_srv_index, 1,
-						average_luminance_buffer[current_index]->get_shader_resource_view().GetAddressOf());
 
 			context.device_context->CSSetShader(luminance_extract->get_shader().Get(), nullptr, 0);
 			UINT x = (scene_fft->get_complex_real()->get_width() + bloom::thread_count.x - 1) / bloom::thread_count.x;
@@ -1281,9 +1189,9 @@ void bloom_and_tone_mapping_post_process_renderer::render(renderer_context& rend
 	//	ブルーム処理
 	if (bloom_constant.is_active())
 	{
-		job_executor.execute([this, inner_volume, current_index](graphics_context& context)
+		job_executor.execute([this, inner_volume](graphics_context& context)
 		{
-			bloom_pass(context, inner_volume, current_index);
+			bloom_pass(context, inner_volume);
 
 		}, "bloom_pass", renderer_context, sort_order++, true);
 	}
@@ -1291,48 +1199,14 @@ void bloom_and_tone_mapping_post_process_renderer::render(renderer_context& rend
 	//	レンズゴースト
 	if (lens_ghosts_data.is_active())
 	{
-		job_executor.execute([this, inner_volume, current_index](graphics_context& context)
+		job_executor.execute([this, inner_volume](graphics_context& context)
 		{
-			lens_ghost_pass(context, inner_volume, current_index);
+			lens_ghost_pass(context, inner_volume);
 		}, "lens_ghost_pass", renderer_context, sort_order++, true);
-	}
-
-	//	トーンマッピング
-	if (exposure_adjust)
-	{
-		job_executor.execute([this, inner_volume, current_index](graphics_context& context)
-		{
-			auto& tone_mapping_constant = inner_volume->get_tone_mapping_constant();
-			auto& exposure_compensation_constant = inner_volume->get_exposure_compensation_constant();
-
-			context.clear_render_target_slots();
-			context.clear_shader_resorce_views();
-			context.clear_unordered_access_views();
-
-			context.device_context->CSSetConstantBuffers(tone_mapping::cbv_index, 1,
-				tone_mapping_constant_buffer.GetAddressOf());
-
-			context.device_context->CSSetShaderResources(0, 1,
-				average_luminance_buffer[current_index]->get_shader_resource_view().GetAddressOf());
-
-			context.device_context->CSSetUnorderedAccessViews(0, 1,
-				render_targets->scene_color_texture->get_unordered_access_view().GetAddressOf(), nullptr);
-
-			context.device_context->CSSetShader(tone_mapping->get_shader().Get(), nullptr, 0);
-			UINT x = render_targets->scene_color_texture->get_width();
-			UINT y = render_targets->scene_color_texture->get_height();
-			x = (x + tone_mapping::max_threads.x - 1) / tone_mapping::max_threads.x;
-			y = (y + tone_mapping::max_threads.y - 1) / tone_mapping::max_threads.y;
-			context.device_context->Dispatch(x, y, 1);
-
-			context.clear_render_target_slots();
-			context.clear_shader_resorce_views();
-			context.clear_unordered_access_views();
-		}, "tone_mapping_pass", renderer_context, sort_order++, true);
 	}
 }
 
-void bloom_and_tone_mapping_post_process_renderer::bloom_pass(graphics_context& context, post_process_volume_ptr inner_volume, int average_buffer_index)
+void bloom_post_process_renderer::bloom_pass(graphics_context& context, post_process_volume_ptr inner_volume)
 {
 	auto& bloom_constant = inner_volume->get_bloom_constant();
 
@@ -1425,7 +1299,7 @@ void bloom_and_tone_mapping_post_process_renderer::bloom_pass(graphics_context& 
 	context.clear_unordered_access_views();
 }
 
-void bloom_and_tone_mapping_post_process_renderer::lens_ghost_pass(graphics_context& context, post_process_volume_ptr inner_volume, int average_buffer_index)
+void bloom_post_process_renderer::lens_ghost_pass(graphics_context& context, post_process_volume_ptr inner_volume)
 {
 	auto& ghosts_constant = inner_volume->get_lens_ghosts_constant();
 
@@ -1564,10 +1438,10 @@ void bloom_and_tone_mapping_post_process_renderer::lens_ghost_pass(graphics_cont
 	context.clear_unordered_access_views();
 }
 
-void bloom_and_tone_mapping_post_process_renderer::resize_buffer(int width, int height)
+void bloom_post_process_renderer::resize_buffer(int width, int height)
 {
 }
-#pragma endregion	//	BloomAndToneMapping
+#pragma endregion	//	Bloom
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #pragma region Antialias
@@ -1806,55 +1680,3 @@ void anti_alias_post_process_renderer::resize_buffer(int width, int height)
 	}
 }
 #pragma endregion	//	AntiAlias
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-#pragma region FinalPass
-finalpass_renderer::finalpass_renderer(render_job_registrar job_executor, std::shared_ptr<scene_render_targets> render_targets)
-: renderer(job_executor)
-, render_targets(render_targets)
-, viewport({ 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f })
-{
-	resize_buffer(0, 0);
-
-	//	パイプラインステート生成
-	pipeline_state_manager::instance()->generate_pipeline_state<convert_linear_to_srgb_pipeline_state>("convert_linear_to_srgb", &convert_linear_to_srgb_pipeline_states);
-	convert_linear_to_srgb_pipeline_states->set_domain(pipeline_state_base::domains::system);
-}
-
-finalpass_renderer::~finalpass_renderer()
-{
-}
-
-void finalpass_renderer::render(renderer_context& renderer_context)
-{
-	job_executor.execute([this](graphics_context& context)
-	{
-		rendering_pass.activate(context.device_context);
-		context.device_context->RSSetViewports(1, &viewport);
-		context.scene_color_texture = render_targets->scene_color_texture;
-
-		convert_linear_to_srgb_pipeline_states->begin(context);
-		draw(context, convert_linear_to_srgb_pipeline_states, 4);
-		convert_linear_to_srgb_pipeline_states->end(context);
-
-		rendering_pass.deactivate(context.device_context);
-	}, "final_pass", renderer_context, get_render_basis_sort_order());
-}
-
-void finalpass_renderer::resize_buffer(int width, int height)
-{
-	rendering_pass.render_targets.clear();
-	rendering_pass.render_targets.emplace_back(render_data::instance()->get_swap_chain());
-
-	DXGI_SWAP_CHAIN_DESC desc;
-	render_data::instance()->get_swap_chain()->GetDesc(&desc);
-
-	// ビューポートの設定
-	viewport.TopLeftX = 0.0f;
-	viewport.TopLeftY = 0.0f;
-	viewport.Width = static_cast<float>(desc.BufferDesc.Width);
-	viewport.Height = static_cast<float>(desc.BufferDesc.Height);
-	viewport.MinDepth = 0.0f;
-	viewport.MaxDepth = 1.0f;
-}
-#pragma endregion	//	FinalPass

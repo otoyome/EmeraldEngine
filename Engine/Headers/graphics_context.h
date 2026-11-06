@@ -54,7 +54,7 @@ struct light_render_data
 	math::float3 position = {0, 0, 0};
 	math::rotatorf rotation = {0, 0, 0};
 	math::float3 direction = {0, 0, 1};
-	math::float4 color = {1, 1, 1, 1};
+	math::float3 color = {1, 1, 1};
 	float range = 0.0f;
 	float inner_cone = 0.0f;
 	float outer_cone = 0.0f;

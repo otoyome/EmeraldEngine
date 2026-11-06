@@ -99,8 +99,14 @@
     <Filter Include="Shaders\Postprocess\MotionBlur">
       <UniqueIdentifier>{74595253-d98f-4d12-8437-1c0657c1d2d1}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Shaders\Postprocess\ColorGrading">
-      <UniqueIdentifier>{e8ba854d-507d-405f-95f0-4b874a4b7f99}</UniqueIdentifier>
+    <Filter Include="Shaders\Postprocess\Exposure">
+      <UniqueIdentifier>{be971fc2-20c3-4144-b62c-8043d90c3bf2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\Postprocess\ToneMapping">
+      <UniqueIdentifier>{d6f9d9c3-4412-4090-9ece-7a626ae5ee06}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\Postprocess\DisplayMapping">
+      <UniqueIdentifier>{406e9ce4-1a98-4df5-b14d-c5e2412382e1}</UniqueIdentifier>
     </Filter>
     <Filter Include="External\implot">
       <UniqueIdentifier>{94339a6d-92d4-4722-b429-c4f12d474c40}</UniqueIdentifier>
@@ -348,6 +354,9 @@
       <Filter>Sources\Editor</Filter>
     </ClCompile>
     <ClCompile Include="Sources\Renderer\scene_renderer_forward.cpp">
+      <Filter>Sources\Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Renderer\scene_renderer_display.cpp">
       <Filter>Sources\Renderer</Filter>
     </ClCompile>
     <ClCompile Include="Sources\Renderer\scene_renderer_postprocess.cpp">
@@ -661,6 +670,9 @@
     <ClInclude Include="Headers\PipelineState\anti_alias_pipeline_state.h">
       <Filter>Headers\PipelineState</Filter>
     </ClInclude>
+    <ClInclude Include="Headers\Renderer\scene_renderer_display.h">
+      <Filter>Headers\Renderer</Filter>
+    </ClInclude>
     <ClInclude Include="Headers\Renderer\scene_renderer_postprocess.h">
       <Filter>Headers\Renderer</Filter>
     </ClInclude>
@@ -897,9 +909,6 @@
     <FxCompile Include="..\Shaders\DeferredRendering\deferred_rendering_spot_ps.hlsl">
       <Filter>Shaders\DeferredRendering</Filter>
     </FxCompile>
-    <FxCompile Include="..\Shaders\DeferredRendering\convert_linear_to_srgb_ps.hlsl">
-      <Filter>Shaders\DeferredRendering</Filter>
-    </FxCompile>
     <FxCompile Include="..\Shaders\FullscreenQuad\fullscreen_quad_ps.hlsl">
       <Filter>Shaders\FullscreenQuad</Filter>
     </FxCompile>
@@ -990,11 +999,17 @@
     <FxCompile Include="..\Shaders\Postprocess\MotionBlur\feature_mask_cs.hlsl">
       <Filter>Shaders\Postprocess\MotionBlur</Filter>
     </FxCompile>
-    <FxCompile Include="..\Shaders\Postprocess\ColorGrading\tone_mapping_cs.hlsl">
-      <Filter>Shaders\Postprocess\ColorGrading</Filter>
+    <FxCompile Include="..\Shaders\Postprocess\Exposure\average_luminance_cs.hlsl">
+      <Filter>Shaders\Postprocess\Exposure</Filter>
     </FxCompile>
-    <FxCompile Include="..\Shaders\Postprocess\ColorGrading\correct_luminance_cs.hlsl">
-      <Filter>Shaders\Postprocess\ColorGrading</Filter>
+    <FxCompile Include="..\Shaders\Postprocess\Exposure\exposure_adjust_cs.hlsl">
+      <Filter>Shaders\Postprocess\Exposure</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shaders\Postprocess\ToneMapping\tone_mapping_cs.hlsl">
+      <Filter>Shaders\Postprocess\ToneMapping</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shaders\Postprocess\DisplayMapping\display_mapping_ps.hlsl">
+      <Filter>Shaders\Postprocess\DisplayMapping</Filter>
     </FxCompile>
     <FxCompile Include="..\Shaders\Postprocess\System\fast_fourier_transform_cs.hlsl">
       <Filter>Shaders\Postprocess\System</Filter>
@@ -1094,6 +1109,9 @@
     <None Include="..\Shaders\Common\shading_functions.hlsli">
       <Filter>Shaders\Common</Filter>
     </None>
+    <None Include="..\Shaders\Common\color_space.hlsli">
+      <Filter>Shaders\Common</Filter>
+    </None>
     <None Include="..\Shaders\Common\common.hlsli">
       <Filter>Shaders\Common</Filter>
     </None>
@@ -1184,8 +1202,8 @@
     <None Include="..\Shaders\Postprocess\MotionBlur\motion_blur.hlsli">
       <Filter>Shaders\Postprocess\MotionBlur</Filter>
     </None>
-    <None Include="..\Shaders\Postprocess\ColorGrading\tone_mapping.hlsli">
-      <Filter>Shaders\Postprocess\ColorGrading</Filter>
+    <None Include="..\Shaders\Postprocess\Exposure\exposure.hlsli">
+      <Filter>Shaders\Postprocess\Exposure</Filter>
     </None>
     <None Include="..\Shaders\DeferredRendering\common_gbuffer_writer.hlsli">
       <Filter>Shaders\DeferredRendering</Filter>

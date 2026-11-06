@@ -133,7 +133,7 @@ void post_process_volume_object::imgui_render_core()
 	imgui_motion_blur();
 
 	//	露出補正
-	imgui_exposure_compensation();
+	imgui_exposure();
 
 	//	トーンマッピング
 	imgui_tone_mapping();
@@ -492,34 +492,33 @@ void post_process_volume_object::imgui_motion_blur()
 	ImGui::PopID();
 }
 
-void post_process_volume_object::imgui_exposure_compensation()
+void post_process_volume_object::imgui_exposure()
 {
-	ImGui::PushID("##exposure_compensation");
+	ImGui::PushID("##exposure");
 	bool is_change = false;
-	auto exposure_compensation_constant = instance->get_exposure_compensation_constant();
-	bool top_tree_open = ImGui::TreeNode("");
-	ImGui::SameLine();
-	bool flag = exposure_compensation_constant.is_active();
-	if (ImGui::Checkbox("exposure", &flag))
+	auto settings = instance->get_exposure_settings();
+	if (ImGui::TreeNode("exposure"))
 	{
-		exposure_compensation_constant.set_active(flag);
-		is_change = true;
-	}
-	if (top_tree_open)
-	{
-		if (ImGui::SliderFloat("exposure_adapt_rate", &exposure_compensation_constant.adapt_rate, 0.0f, +1.0f))
+		//	自動露出(none は F値・シャッター速度・ISO感度をそのまま使う)
+		is_change |= ImGui::Combo("auto_exposure_mode", settings.auto_exposure_mode);
+		is_change |= ImGui::Combo("metering_mode", settings.metering_mode);
+		is_change |= ImGui::SliderFloat("exposure_compensation(EV)", &settings.exposure_compensation, -5.0f, 5.0f, "%.2f");
+		is_change |= ImGui::SliderFloat("adaptation_time(s)", &settings.adaptation_time, 0.0f, 5.0f, "%.2f");
+
+		//	手動の値(自動露出では初期値)
+		is_change |= ImGui::SliderFloat("f_number", &settings.f_number, exposure_controller::f_number_minimum, exposure_controller::f_number_maximum, "f/%.1f");
+		float shutter_denominator = 1.0f / settings.shutter_speed;
+		if (ImGui::SliderFloat("shutter_speed(1/s)", &shutter_denominator, 1.0f / exposure_controller::shutter_speed_maximum, 1.0f / exposure_controller::shutter_speed_minimum, "1/%.0f", ImGuiSliderFlags_Logarithmic))
 		{
+			settings.shutter_speed = 1.0f / std::max(shutter_denominator, 1.0f);
 			is_change = true;
 		}
-		if (ImGui::DragFloat2("luminance_range", &exposure_compensation_constant.luminance_range.x, 0.1f, 0, 100000))
-		{
-			is_change = true;
-		}
+		is_change |= ImGui::SliderFloat("iso_speed", &settings.iso_speed, exposure_controller::iso_speed_minimum, exposure_controller::iso_speed_maximum, "%.0f", ImGuiSliderFlags_Logarithmic);
 		ImGui::TreePop();
 	}
 	if (is_change)
 	{
-		instance->set_exposure_compensation_constant(exposure_compensation_constant);
+		instance->set_exposure_settings(settings);
 	}
 	ImGui::Separator();
 	ImGui::PopID();
@@ -528,160 +527,25 @@ void post_process_volume_object::imgui_exposure_compensation()
 void post_process_volume_object::imgui_tone_mapping()
 {
 	ImGui::PushID("##tone_mapping_constant");
-	bool is_change = false;
-	auto tone_mapping_constant = instance->get_tone_mapping_constant();
 	if (ImGui::TreeNode("tone_mapping"))
 	{
-		//	モード設定
-		{
-			std::vector<std::string> row_texts;
-			std::vector<char*> combo_texts;
-			for (auto& name : magic_enum::enum_names<tone_mapping_data::tone_mapping_type>())
-			{
-				row_texts.emplace_back(name);
-			}
-			for (auto& name : row_texts)
-			{
-				combo_texts.emplace_back(name.data());
-			}
-			int value = static_cast<int>(tone_mapping_constant.get_tone_map_type());
-			if (ImGui::Combo("tone_map_type", &value, combo_texts.data(), static_cast<int>(combo_texts.size())))
-			{
-				tone_mapping_constant.set_tone_map_type(static_cast<tone_mapping_data::tone_mapping_type>(value));
-				is_change = true;
-			}
-		}
-
-		//	トーンカーブ
+		//	今はラインハルト(白点 1)のみ。横軸・縦軸ともにディスプレイの最大輝度を 1 とした輝度
 		if (ImPlot::BeginPlot("tone curve"))
 		{
 			ImPlot::SetupAxis(ImAxis_X1, "input luminance");
 			ImPlot::SetupAxis(ImAxis_Y1, "output luminance");
-			auto function = [&](float x)
-			{
-				auto params = tone_mapping_constant.tone_mapping_variables;
-				if (tone_mapping_constant.get_tone_map_type() == tone_mapping_data::tone_mapping_type::reinhard)
-				{
-					return std::clamp(x / (1 + x), 0.0f, 1.0f);
-				}
-				if (tone_mapping_constant.get_tone_map_type() == tone_mapping_data::tone_mapping_type::aces_krzysztof_narkowicz)
-				{
-					float a = x * (params[0] * x + params[1]);
-					float b = x * (params[2] * x + params[3]) + params[4];
-					return std::clamp(a / b, 0.0f, 1.0f);
-				}
-				if (tone_mapping_constant.get_tone_map_type() == tone_mapping_data::tone_mapping_type::gran_turismo)
-				{
-					auto W_f = [](float x,float e0,float e1)
-					{
-						if (x <= e0)
-							return 0.0f;
-						if (x >= e1)
-							return 1.0f;
-						float a = (x - e0) / (e1 - e0);
-						return a * a * (3.0f - 2.0f * a);
-					};
-					auto H_f = [](float x, float e0, float e1)
-					{
-						if (x <= e0)
-							return 0.0f;
-						if (x >= e1)
-							return 1.0f;
-						return (x - e0) / (e1 - e0);
-					};
-					float P = params[0];
-					float a = params[1];
-					float m = params[2];
-					float l = params[3];
-					float c = params[4];
-					float b = params[5];
-					static const float e = 2.71828f;
-
-					float l0 = (P - m) * l / a;
-					float L0 = m - m / a;
-					float L1 = m + (1 - m) / a;
-					float L_x = m + a * (x - m);
-					float T_x = m * pow(x / m, c) + b;
-					float S0 = m + l0;
-					float S1 = m + a * l0;
-					float C2 = a * P / (P - S1);
-					float S_x = P - (P - S1) * pow(e, -(C2 * (x - S0) / P));
-					float w0_x = 1 - W_f(x, 0, m);
-					float w2_x = H_f(x, m + l0, m + l0);
-					float w1_x = 1 - w0_x - w2_x;
-					float f_x = T_x * w0_x + L_x * w1_x + S_x * w2_x;
-					return std::clamp(f_x, 0.0f, 1.0f);
-				}
-				return x;
-			};
-			// 横軸：輝度値, 縦軸：トーンマッピング後の出力輝度
+			constexpr float white_point = 1.0f;
 			std::vector<float> plot_buffer;
 			plot_buffer.resize(1000);
 			for (int index = 0; index < plot_buffer.size(); ++index)
 			{
-				plot_buffer[index]	= function(static_cast<float>(index) / 100.0f);
+				float x = static_cast<float>(index) / 100.0f;
+				plot_buffer[index] = x / (1.0f + x) * (1.0f + white_point) / white_point;
 			}
 			ImPlot::PlotLine("", plot_buffer.data(), static_cast<int>(plot_buffer.size()), 0.01f);
 			ImPlot::EndPlot();
 		}
-		//	モード毎のパラメーター設定
-		switch (tone_mapping_constant.get_tone_map_type())
-		{
-			case tone_mapping_data::tone_mapping_type::aces_krzysztof_narkowicz:
-			{
-				if (ImGui::SliderFloat("highlight", tone_mapping_constant.tone_mapping_variables + 0, 0.0f, 5.0f, "%.6f"))
-				{
-					is_change = true;
-				}
-				if (ImGui::SliderFloat("shade_offset", tone_mapping_constant.tone_mapping_variables + 1, 0.0f, 5.0f, "%.6f"))
-				{
-					is_change = true;
-				}
-				if (ImGui::SliderFloat("highlight_compression", tone_mapping_constant.tone_mapping_variables + 2, 0.0f, 5.0f, "%.6f"))
-				{
-					is_change = true;
-				}
-				if (ImGui::SliderFloat("midtone_balance", tone_mapping_constant.tone_mapping_variables + 3, 0.0f, 5.0f, "%.6f"))
-				{
-					is_change = true;
-				}
-				if (ImGui::SliderFloat("normalize_factor", tone_mapping_constant.tone_mapping_variables + 4, 0.0f, 1.0f, "%.6f"))
-				{
-					is_change = true;
-				}
-				break;
-			}
-			case tone_mapping_data::tone_mapping_type::gran_turismo:
-			{
-				//	Pはモニターの最大輝度なので、デバイスから調べて設定する
-				if (ImGui::SliderFloat("contrast", tone_mapping_constant.tone_mapping_variables + 1, 0.0f, 2.0f, "%.6f"))
-				{
-					is_change = true;
-				}
-				if (ImGui::SliderFloat("linear_start", tone_mapping_constant.tone_mapping_variables + 2, 0.0f, 2.0f, "%.6f"))
-				{
-					is_change = true;
-				}
-				if (ImGui::SliderFloat("linear_length", tone_mapping_constant.tone_mapping_variables + 3, 0.0f, 2.0f, "%.6f"))
-				{
-					is_change = true;
-				}
-				if (ImGui::SliderFloat("toe_strength", tone_mapping_constant.tone_mapping_variables + 4, 0.0f, 2.0f, "%.6f"))
-				{
-					is_change = true;
-				}
-				if (ImGui::SliderFloat("toe_offset", tone_mapping_constant.tone_mapping_variables + 5, 0.0f, 2.0f, "%.6f"))
-				{
-					is_change = true;
-				}
-				break;
-			}
-		}
 		ImGui::TreePop();
-	}
-	if (is_change)
-	{
-		instance->set_tone_mapping_constant(tone_mapping_constant);
 	}
 	ImGui::Separator();
 	ImGui::PopID();

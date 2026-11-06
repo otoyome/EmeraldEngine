@@ -41,6 +41,14 @@ template<class Archive>
 void engine_config_data::rendering_data::serialize(Archive& archive, int version)
 {
 	archive(CEREAL_NVP(camera_relative_rendering));
+
+	try
+	{
+		archive(CEREAL_NVP(rendering_gamut));
+	}
+	catch (...)
+	{
+	}
 }
 
 engine_config_data::engine_config_data() 
@@ -57,12 +65,15 @@ engine_config_data::engine_config_data()
 		catch (...)
 		{
 			DEBUG_LOG_CATEGORY(logger::categorys::system, "Load Failed EngineConfig[%s]", file_path.data());
+			active_rendering_gamut = rendering.rendering_gamut;
 			return;
 		}
 		DEBUG_LOG_CATEGORY(logger::categorys::system, "Load Succeeded EngineConfig[%s]", file_path.data());
+		active_rendering_gamut = rendering.rendering_gamut;
 		return;
 	}
 	DEBUG_LOG_CATEGORY(logger::categorys::system, "Open Failed EngineConfig[%s]", file_path.data());
+	active_rendering_gamut = rendering.rendering_gamut;
 }
 
 engine_config_data::~engine_config_data()

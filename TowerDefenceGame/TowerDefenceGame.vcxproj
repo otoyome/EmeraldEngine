@@ -688,6 +688,7 @@ xcopy "$(SolutionDir)External\SDL3\lib\SDL3.dll" "$(OutDir)" /y</Command>
     <ClCompile Include="Sources\Renderer\scene_renderer_common.cpp" />
     <ClCompile Include="Sources\Renderer\scene_renderer_forward.cpp" />
     <ClCompile Include="Sources\Renderer\scene_renderer_postprocess.cpp" />
+    <ClCompile Include="Sources\Renderer\scene_renderer_display.cpp" />
     <ClCompile Include="Sources\Scenes\DummyScene\dummy_scene.cpp" />
     <ClCompile Include="Sources\Scenes\NetworkScene\network_sandbox_scene.cpp" />
     <ClCompile Include="Sources\Scenes\MiniGameScene\minigame_stage_00_scene.cpp" />
@@ -805,6 +806,7 @@ xcopy "$(SolutionDir)External\SDL3\lib\SDL3.dll" "$(OutDir)" /y</Command>
     <ClInclude Include="Headers\Renderer\scene_renderer_common.h" />
     <ClInclude Include="Headers\Renderer\scene_renderer_forward.h" />
     <ClInclude Include="Headers\Renderer\scene_renderer_postprocess.h" />
+    <ClInclude Include="Headers\Renderer\scene_renderer_display.h" />
     <ClInclude Include="Headers\Renderer\scene_render_targets.h" />
     <ClInclude Include="Headers\Renderer\renderer.h" />
     <ClInclude Include="Headers\Renderer\occlusion_culling_renderer.h" />
@@ -1061,14 +1063,6 @@ xcopy "$(SolutionDir)External\SDL3\lib\SDL3.dll" "$(OutDir)" /y</Command>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='ReleaseEditor|x64'">Pixel</ShaderType>
     </FxCompile>
-    <FxCompile Include="..\Shaders\DeferredRendering\convert_linear_to_srgb_ps.hlsl">
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='DebugEditor|x64'">Pixel</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">Pixel</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='DevelopEditor|x64'">Pixel</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='ReleaseEditor|x64'">Pixel</ShaderType>
-    </FxCompile>
     <FxCompile Include="..\Shaders\FullscreenQuad\compress_rgb_to_log_ps.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='DebugEditor|x64'">Pixel</ShaderType>
@@ -1293,7 +1287,7 @@ xcopy "$(SolutionDir)External\SDL3\lib\SDL3.dll" "$(OutDir)" /y</Command>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Compute</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='ReleaseEditor|x64'">Compute</ShaderType>
     </FxCompile>
-    <FxCompile Include="..\Shaders\Postprocess\ColorGrading\correct_luminance_cs.hlsl">
+    <FxCompile Include="..\Shaders\Postprocess\Exposure\average_luminance_cs.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compute</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='DebugEditor|x64'">Compute</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">Compute</ShaderType>
@@ -1301,13 +1295,29 @@ xcopy "$(SolutionDir)External\SDL3\lib\SDL3.dll" "$(OutDir)" /y</Command>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Compute</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='ReleaseEditor|x64'">Compute</ShaderType>
     </FxCompile>
-    <FxCompile Include="..\Shaders\Postprocess\ColorGrading\tone_mapping_cs.hlsl">
+    <FxCompile Include="..\Shaders\Postprocess\Exposure\exposure_adjust_cs.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compute</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='DebugEditor|x64'">Compute</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">Compute</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='DevelopEditor|x64'">Compute</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Compute</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='ReleaseEditor|x64'">Compute</ShaderType>
+    </FxCompile>
+    <FxCompile Include="..\Shaders\Postprocess\ToneMapping\tone_mapping_cs.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compute</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='DebugEditor|x64'">Compute</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">Compute</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='DevelopEditor|x64'">Compute</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Compute</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='ReleaseEditor|x64'">Compute</ShaderType>
+    </FxCompile>
+    <FxCompile Include="..\Shaders\Postprocess\DisplayMapping\display_mapping_ps.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='DebugEditor|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='DevelopEditor|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='ReleaseEditor|x64'">Pixel</ShaderType>
     </FxCompile>
     <FxCompile Include="..\Shaders\Postprocess\DepthOfField\dof_filter_setup_cs.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compute</ShaderType>
@@ -1489,7 +1499,7 @@ xcopy "$(SolutionDir)External\SDL3\lib\SDL3.dll" "$(OutDir)" /y</Command>
     </FxCompile>
     <None Include="..\Shaders\Postprocess\Antialias\subpixel_morphological_anti_aliasing.hlsli" />
     <None Include="..\Shaders\Postprocess\Bloom\bloom.hlsli" />
-    <None Include="..\Shaders\Postprocess\ColorGrading\tone_mapping.hlsli" />
+    <None Include="..\Shaders\Postprocess\Exposure\exposure.hlsli" />
     <None Include="..\Shaders\Postprocess\DepthOfField\depth_of_field.hlsli" />
     <None Include="..\Shaders\Postprocess\MotionBlur\motion_blur.hlsli" />
     <None Include="..\Shaders\Postprocess\ScreenSpaceReflection\screen_space_reflection.hlsli" />
@@ -1500,6 +1510,7 @@ xcopy "$(SolutionDir)External\SDL3\lib\SDL3.dll" "$(OutDir)" /y</Command>
     <None Include="..\Shaders\Surface\surface_gbuffer_ps.hlsli" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\Shaders\Common\color_space.hlsli" />
     <None Include="..\Shaders\Common\common.hlsli" />
     <None Include="..\Shaders\Common\filter_functions.hlsli" />
     <None Include="..\Shaders\Common\lights.hlsli" />

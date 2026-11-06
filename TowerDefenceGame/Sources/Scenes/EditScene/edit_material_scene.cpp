@@ -73,18 +73,12 @@ bool edit_material_scene::initialize_core()
 		//	平行光源生成
 		{
 			auto light = std::make_shared<directional_light_object>("平行光源");
-			auto color = light->get_color();
-			color.w = 1.0f;
-			light->set_color(color);
 			register_object(light);
 		}
 
 		//	間接光生成
 		{
 			auto sky_light = std::make_shared<sky_light_object>("スカイライト");
-			auto color = sky_light->get_color();
-			color.w = 1.0f;
-			sky_light->set_color(color);
 
 			texture_ptr ibl_texture;
 			ibl_texture = texture_resource_utility::load_texture("Assets/Resources/Textures/hilly_terrain_01_puresky_4k/diffuse_iem.etx");

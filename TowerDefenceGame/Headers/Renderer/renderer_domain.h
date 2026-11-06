@@ -38,12 +38,14 @@ enum class renderer_domain
 
 	//	トーンマッピング
 	before_bloom_post_process_pass,
-	bloom_and_tone_mapping_pass,
+	exposure_pass,
+	bloom_pass,
+	tone_mapping_pass,
 	after_tone_mapping_post_process_pass,
 
 	//	最終パス
 	anti_alias_post_process_pass,
-	final_pass,	//	バックバッファへ描き戻し
+	display_mapping_pass,
 
 #if defined(USE_IMGUI)
 	//	デバッグ描画

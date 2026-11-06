@@ -65,6 +65,9 @@
     <ClInclude Include="Headers\effect_resource.h" />
     <ClInclude Include="Headers\font_data.h" />
     <ClInclude Include="Headers\geometric_primitive.h" />
+    <ClInclude Include="Headers\Graphics\color_space.h" />
+    <ClInclude Include="Headers\Graphics\light_utility.h" />
+    <ClInclude Include="Headers\Graphics\exposure_controller.h" />
     <ClInclude Include="Headers\Graphics\compute_particle_system.h" />
     <ClInclude Include="Headers\Graphics\cubic_sdf_buffer_pool.h" />
     <ClInclude Include="Headers\Graphics\gpu_upload_list.h" />
@@ -178,6 +181,9 @@
     <ClCompile Include="Sources\camera.cpp" />
     <ClCompile Include="Sources\CoordinateSystem\hierarchy.cpp" />
     <ClCompile Include="Sources\CoordinateSystem\spatial.cpp" />
+    <ClCompile Include="Sources\Graphics\color_space.cpp" />
+    <ClCompile Include="Sources\Graphics\light_utility.cpp" />
+    <ClCompile Include="Sources\Graphics\exposure_controller.cpp" />
     <ClCompile Include="Sources\Graphics\cubic_sdf_buffer_pool.cpp" />
     <ClCompile Include="Sources\Graphics\gpu_upload_list.cpp" />
     <ClCompile Include="Sources\Graphics\gpu_readback_queue.cpp" />

@@ -33,6 +33,7 @@
 #include "Renderer/scene_renderer.h"
 #include "Renderer/scene_renderer_forward.h"
 #include "Renderer/scene_renderer_postprocess.h"
+#include "Renderer/scene_renderer_display.h"
 #include "Renderer/ui_renderer.h"
 
 #include "Object/object_manager.h"
@@ -424,11 +425,14 @@ bool framework::initialize()
 		scene_renderers.emplace_back(std::make_unique<after_motion_blur_forward_renderer>(render_executor, render_targets));
 
 		scene_renderers.emplace_back(std::make_unique<before_bloom_post_process_renderer>(render_executor, render_targets));
-		scene_renderers.emplace_back(std::make_unique<bloom_and_tone_mapping_post_process_renderer>(render_executor, render_targets));
+		scene_renderers.emplace_back(std::make_unique<exposure_renderer>(render_executor, render_targets));
+		//	@tool ブルーム・レンズゴーストは作り直すまで実行しない
+		//scene_renderers.emplace_back(std::make_unique<bloom_post_process_renderer>(render_executor, render_targets));
+		scene_renderers.emplace_back(std::make_unique<tone_mapping_renderer>(render_executor, render_targets));
 		scene_renderers.emplace_back(std::make_unique<after_tone_mapping_post_process_renderer>(render_executor, render_targets));
 
 		scene_renderers.emplace_back(std::make_unique<anti_alias_post_process_renderer>(render_executor, render_targets));
-		scene_renderers.emplace_back(std::make_unique<finalpass_renderer>(render_executor, render_targets));
+		scene_renderers.emplace_back(std::make_unique<display_mapping_renderer>(render_executor, render_targets));
 
 #if defined(USE_IMGUI)
 		scene_renderers.emplace_back(std::make_unique<debug_draw_pass_renderer>(render_executor, render_targets));

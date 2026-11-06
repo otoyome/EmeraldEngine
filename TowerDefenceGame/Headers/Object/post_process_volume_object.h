@@ -42,7 +42,7 @@ public:
 	void imgui_depth_of_field();
 	void imgui_screen_space_reflection();
 	void imgui_motion_blur();
-	void imgui_exposure_compensation();
+	void imgui_exposure();
 	void imgui_tone_mapping();
 #endif	//	defined(USE_IMGUI)
 

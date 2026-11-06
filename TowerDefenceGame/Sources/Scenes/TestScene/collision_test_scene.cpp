@@ -346,9 +346,6 @@ bool collision_test_scene::initialize_core()
 	//	•½sŒõŒ¹¶¬
 	{
 		auto light = std::make_shared<directional_light_object>("•½sŒõŒ¹");
-		auto color = light->get_color();
-		color.w = 1.0f;
-		light->set_color(color);
 		light->set_flag(light::flags::use_shadow, false);
 		register_object(light);
 	}

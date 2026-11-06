@@ -122,78 +122,6 @@ void motion_blur_data::set_active(bool flag)
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-bool exposure_compensation_data::is_active() const
-{
-	return use;
-}
-
-void exposure_compensation_data::set_active(bool flag)
-{
-	if (use != flag)
-	{
-		use = flag;
-	}
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-namespace tone_mapping
-{
-	constexpr float aces_krzysztof_narkowicz[7] =
-	{
-		2.51f,
-		0.03f,
-		2.43f,
-		0.59f,
-		0.14f,
-		0,
-		0,
-	};
-	constexpr float gran_turismo[7] =
-	{
-		1.0f,
-		1.0f,
-		0.22f,
-		0.4f,
-		1.33f,
-		0.0f,
-		0,
-	};
-}
-
-tone_mapping_data::tone_mapping_data()
-{
-	set_tone_map_type(tone_mapping_type::none);
-}
-
-tone_mapping_data::tone_mapping_type tone_mapping_data::get_tone_map_type() const
-{
-	return tone_map_type;
-}
-
-void tone_mapping_data::set_tone_map_type(tone_mapping_type type)
-{
-	if (tone_map_type == type)
-		return;
-
-	tone_map_type = type;
-	switch (tone_map_type)
-	{
-		case tone_mapping_type::aces_krzysztof_narkowicz:
-		{
-			memcpy_s(tone_mapping_variables, sizeof(tone_mapping_variables),
-				tone_mapping::aces_krzysztof_narkowicz, sizeof(tone_mapping::aces_krzysztof_narkowicz));
-			break;
-		}
-		case tone_mapping_type::gran_turismo:
-		{
-			memcpy_s(tone_mapping_variables, sizeof(tone_mapping_variables),
-				tone_mapping::gran_turismo, sizeof(tone_mapping::gran_turismo));
-			break;
-		}
-	}
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
 post_process_volume::post_process_volume()
 : system_flags(0)
 
@@ -299,24 +227,14 @@ void post_process_volume::set_motion_blur_constant(const motion_blur_data& data)
 	motion_blur_constant = data;
 }
 
-const exposure_compensation_data& post_process_volume::get_exposure_compensation_constant() const
+const exposure_settings& post_process_volume::get_exposure_settings() const
 {
-	return exposure_compensation_constant;
+	return exposure_constant;
 }
 
-void post_process_volume::set_exposure_compensation_constant(const exposure_compensation_data& data)
+void post_process_volume::set_exposure_settings(const exposure_settings& data)
 {
-	exposure_compensation_constant = data;
-}
-
-const tone_mapping_data& post_process_volume::get_tone_mapping_constant() const
-{
-	return tone_mapping_constant;
-}
-
-void post_process_volume::set_tone_mapping_constant(const tone_mapping_data& data)
-{
-	tone_mapping_constant = data;
+	exposure_constant = data;
 }
 
 const std::vector<std::shared_ptr<material_instance>>& post_process_volume::get_materials() const

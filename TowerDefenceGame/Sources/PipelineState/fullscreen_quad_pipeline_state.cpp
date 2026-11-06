@@ -9,7 +9,7 @@ namespace
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
-convert_linear_to_srgb_pipeline_state::convert_linear_to_srgb_pipeline_state()
+display_mapping_pipeline_state::display_mapping_pipeline_state()
 : graphics_pipeline_state()
 {
 	set_domain(pipeline_state_base::domains::system);
@@ -19,7 +19,7 @@ convert_linear_to_srgb_pipeline_state::convert_linear_to_srgb_pipeline_state()
 	shader_manager::instance()->load_shader<vertex_shader>(vs, vs_desc);
 
 	load_shader_cso ps_desc;
-	ps_desc.file_path = "Assets/CSO/convert_linear_to_srgb_ps.cso";
+	ps_desc.file_path = "Assets/CSO/display_mapping_ps.cso";
 	shader_manager::instance()->load_shader<pixel_shader>(ps, ps_desc);
 
 	//	深度ステンシルステート
@@ -62,11 +62,11 @@ convert_linear_to_srgb_pipeline_state::convert_linear_to_srgb_pipeline_state()
 	}
 }
 
-convert_linear_to_srgb_pipeline_state::~convert_linear_to_srgb_pipeline_state()
+display_mapping_pipeline_state::~display_mapping_pipeline_state()
 {
 }
 
-void convert_linear_to_srgb_pipeline_state::begin(const graphics_context& context)
+void display_mapping_pipeline_state::begin(const graphics_context& context)
 {
 	//	シェーダー設定
 	context.device_context->VSSetShader(vs->get_shader().Get(), nullptr, 0);
@@ -87,11 +87,11 @@ void convert_linear_to_srgb_pipeline_state::begin(const graphics_context& contex
 	context.device_context->PSSetSamplers(SceneSamplerIndex, 1, render_data::instance()->get_sampler_states(render_data::SAMPLER_STATE::LINEAR).GetAddressOf());
 }
 
-void convert_linear_to_srgb_pipeline_state::update_parameters(const graphics_context& context, const material_instance& material, const buffer_datas* buffer_data)
+void display_mapping_pipeline_state::update_parameters(const graphics_context& context, const material_instance& material, const buffer_datas* buffer_data)
 {
 }
 
-void convert_linear_to_srgb_pipeline_state::end(const graphics_context& context)
+void display_mapping_pipeline_state::end(const graphics_context& context)
 {
 	context.clear_vertex_buffer();
 	context.clear_index_buffer();

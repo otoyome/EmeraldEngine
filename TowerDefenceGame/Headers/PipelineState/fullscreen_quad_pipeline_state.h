@@ -2,12 +2,12 @@
 
 #include "common_pipeline_states.h"
 
-//	リニア色空間>sRGB色空間に変換
-class convert_linear_to_srgb_pipeline_state : public graphics_pipeline_state
+//	ディスプレイマッピング(描画色域の放射輝度 > ディスプレイの信号)
+class display_mapping_pipeline_state : public graphics_pipeline_state
 {
 public:
-	convert_linear_to_srgb_pipeline_state();
-	~convert_linear_to_srgb_pipeline_state() override;
+	display_mapping_pipeline_state();
+	~display_mapping_pipeline_state() override;
 
 	void begin(const graphics_context& context) override;
 	void update_parameters(const graphics_context& context, const material_instance& material, const buffer_datas* buffer_data) override;

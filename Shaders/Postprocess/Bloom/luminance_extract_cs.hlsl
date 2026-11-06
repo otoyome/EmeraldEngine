@@ -7,12 +7,11 @@ cbuffer LUMINANCE_EXTRACT_CONSTANT_BUFFER : register(b0)
     float lens_ghost_threshold;
     float lens_ghost_intensity;
 
-    bool exposure_adjust;
+    float luminance_scale;
     float3 dummy;
 };
 
 Texture2D<float3> source_texture : register(t0);
-Texture2D<float4> average_luminance_buffer : register(t1);
 
 //	同じサイズであること
 RWTexture2D<float3> bloom_texture : register(u0);
@@ -42,13 +41,7 @@ void main(int3 dispatch_thread_id : SV_DispatchThreadID)
 
 		float3 color = (source_texture[uv00] + source_texture[uv10] + source_texture[uv01] + source_texture[uv11]) * 0.25f;
 
-		float3 normalize_color = color;
-		if (exposure_adjust)
-		{
-			float average_luminance = average_luminance_buffer[int2(0, 0)].r;
-			normalize_color = adjust_exposure_to_middle_gray(color, average_luminance);
-		}
-		float scene_luminance = convert_rgb_to_luminance(normalize_color);
+		float scene_luminance = convert_rgb_to_luminance(color) * luminance_scale;
 
 		//	ブルーム
 		if (bloom_intensity >= 0.0f)

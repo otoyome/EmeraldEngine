@@ -1,6 +1,7 @@
 #pragma once
 
 #include "texture.h"
+#include "Graphics/exposure_controller.h"
 
 class material_resource;
 class material_instance;
@@ -133,46 +134,6 @@ public:
 	void set_active(bool flag);
 };
 
-//	露出補正用情報
-//	ﾃｷﾄｰ('ω')ｰﾄｷﾃ
-struct exposure_compensation_data
-{
-private:
-	bool use = true;
-
-public:
-	float adapt_rate = 0.05f;
-	math::float2 luminance_range = {1.0f, 1000.0f};
-
-public:
-	bool is_active() const;
-	void set_active(bool flag);
-};
-
-//	トーンマッピング用情報
-//	ﾃｷﾄｰ('ω')ｰﾄｷﾃ
-struct tone_mapping_data
-{
-	enum class tone_mapping_type
-	{
-		none,
-		reinhard,
-		aces_krzysztof_narkowicz,
-		gran_turismo,
-	};
-
-private:
-	tone_mapping_type tone_map_type = tone_mapping_type::none;
-
-public:
-	float tone_mapping_variables[7];
-
-public:
-	tone_mapping_data();
-	tone_mapping_type get_tone_map_type() const;
-	void set_tone_map_type(tone_mapping_type type);
-};
-
 //	ポストプロセスボリューム情報
 class post_process_volume
 {
@@ -215,11 +176,8 @@ public:
 	const motion_blur_data& get_motion_blur_constant() const;
 	void set_motion_blur_constant(const motion_blur_data& data);
 
-	const exposure_compensation_data& get_exposure_compensation_constant() const;
-	void set_exposure_compensation_constant(const exposure_compensation_data& data);
-
-	const tone_mapping_data& get_tone_mapping_constant() const;
-	void set_tone_mapping_constant(const tone_mapping_data& data);
+	const exposure_settings& get_exposure_settings() const;
+	void set_exposure_settings(const exposure_settings& data);
 
 	const std::vector<std::shared_ptr<material_instance>>& get_materials() const;
 	bool register_postprocess_materials(std::shared_ptr<material_resource> material_ptr);
@@ -231,8 +189,7 @@ private:
 	depth_of_field_data depth_of_field_constant;
 	screen_space_reflection_data screen_space_reflection_constant;
 	motion_blur_data motion_blur_constant;
-	exposure_compensation_data exposure_compensation_constant;
-	tone_mapping_data tone_mapping_constant;
+	exposure_settings exposure_constant;
 	std::vector<std::shared_ptr<material_instance>> postprocess_materials;
 
 	math::vector3d position;

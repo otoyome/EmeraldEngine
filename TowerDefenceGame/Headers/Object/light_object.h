@@ -14,8 +14,10 @@ public:
 	void set_flag(light::flags flag, bool value);
 	bool is_flag(light::flags flag) const;
 
-	void set_color(math::float4 color);
-	math::float4 get_color() const;
+	void set_intensity(float intensity);
+	float get_intensity() const;
+	void set_color(const math::float3& color);
+	const math::float3& get_color() const;
 
 public:
 	light_object(std::string_view name);
@@ -33,6 +35,10 @@ protected:
 	void on_deactive() override;
 
 	void sync_to_light();
+
+#if defined(USE_IMGUI)
+	void imgui_render_light_parameters();
+#endif	//	defined(USE_IMGUI)
 
 protected:
 	light_ptr light;
@@ -108,8 +114,10 @@ public:
 	void set_flag(light_probe::flags flag, bool value);
 	bool is_flag(light_probe::flags flag) const;
 
-	void set_color(math::float4 color);
-	math::float4 get_color() const;
+	void set_intensity(float intensity);
+	float get_intensity() const;
+	void set_color(const math::float3& color);
+	const math::float3& get_color() const;
 
 	void set_diffuse_ibl_texture(texture_ptr texture);
 	texture_ptr get_diffuse_ibl_texture() const;

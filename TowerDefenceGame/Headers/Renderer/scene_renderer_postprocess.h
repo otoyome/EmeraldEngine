@@ -195,31 +195,26 @@ public:
 };
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
-//	ブルームとトーンマッピングパス
-class bloom_and_tone_mapping_post_process_renderer : public renderer
+//	ブルームパス
+class bloom_post_process_renderer : public renderer
 {
 public:
-	renderer_domain get_domain() const override { return renderer_domain::bloom_and_tone_mapping_pass; }
+	renderer_domain get_domain() const override { return renderer_domain::bloom_pass; }
 
 public:
-	bloom_and_tone_mapping_post_process_renderer(render_job_registrar job_executor, std::shared_ptr<scene_render_targets> render_targets);
-	~bloom_and_tone_mapping_post_process_renderer() override;
+	bloom_post_process_renderer(render_job_registrar job_executor, std::shared_ptr<scene_render_targets> render_targets);
+	~bloom_post_process_renderer() override;
 
 	void render(renderer_context& context) override;
 
 	void resize_buffer(int width, int height) override;
 
 private:
-	void bloom_pass(graphics_context& context, post_process_volume_ptr inner_volume, int average_buffer_index);
-	void lens_ghost_pass(graphics_context& context, post_process_volume_ptr inner_volume, int average_buffer_index);
+	void bloom_pass(graphics_context& context, post_process_volume_ptr inner_volume);
+	void lens_ghost_pass(graphics_context& context, post_process_volume_ptr inner_volume);
 
 private:
 	std::shared_ptr<scene_render_targets> render_targets;
-
-	//	平均輝度算出
-	std::shared_ptr<compute_shader> correct_luminance;
-	int average_luminance_buffer_index;
-	texture_ptr average_luminance_buffer[2];
 
 	//	汎用シェーダー
 	std::shared_ptr<compute_shader> copy_texture;
@@ -245,10 +240,6 @@ private:
 	std::shared_ptr<compute_shader> generate_ghost;
 	std::unique_ptr<fast_fourier_transform> lens_ghost_kernel_fft;
 	texture_ptr lens_ghost_image_kernel_texture;
-
-	//	トーンマッピング用
-	Microsoft::WRL::ComPtr<ID3D11Buffer> tone_mapping_constant_buffer;
-	std::shared_ptr<compute_shader> tone_mapping;
 };
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -298,27 +289,4 @@ private:
 	graphics_pipeline_state_ptr smaa_edge_detection;
 	graphics_pipeline_state_ptr smaa_blending_weight_calculation;
 	graphics_pipeline_state_ptr smaa_neighborhood_blending;
-};
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////
-//	ファイナルパス
-class finalpass_renderer : public renderer
-{
-public:
-	renderer_domain get_domain() const override { return renderer_domain::final_pass; }
-
-public:
-	finalpass_renderer(render_job_registrar job_executor, std::shared_ptr<scene_render_targets> render_targets);
-	~finalpass_renderer() override;
-
-	void render(renderer_context& context) override;
-
-	void resize_buffer(int width, int height) override;
-
-private:
-	std::shared_ptr<scene_render_targets> render_targets;
-	render_pass rendering_pass;
-	D3D11_VIEWPORT viewport;
-
-	graphics_pipeline_state_ptr convert_linear_to_srgb_pipeline_states;
 };

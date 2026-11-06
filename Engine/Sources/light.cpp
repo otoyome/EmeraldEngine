@@ -4,6 +4,8 @@
 #include "collision/frustum_culling.h"
 #include "System/console_manager.h"
 #include "System/system_units.h"
+#include "System/engine_config_data.h"
+#include "Graphics/light_utility.h"
 
 #include <algorithm>
 #include <cmath>
@@ -27,7 +29,7 @@ namespace
 	light_data convert_light_data(const light_render_data& light)
 	{
 		light_data data{};
-		data.color = { light.color.x * light.color.w, light.color.y * light.color.w, light.color.z * light.color.w };
+		data.color = light.color;
 		data.attribute = light_data_utility::make_light_attribute(light.attribute, light.type);
 		switch(light.type)
 		{
@@ -64,8 +66,8 @@ namespace
 		ret.position = (source.get_position() - render_origin).to_float3();
 		ret.rotation = source.get_rotation();
 		ret.direction = source.get_rotation().front().to_float3();
-		ret.color = source.get_color();
-		ret.color.w *= fade;
+		const math::float3 radiometric_color = source.calculate_radiometric_color(engine_config_data::instance()->get_active_rendering_gamut());
+		ret.color = { radiometric_color.x * fade, radiometric_color.y * fade, radiometric_color.z * fade };
 		ret.range = source.get_range();
 		ret.inner_cone = source.get_inner_cone();
 		ret.outer_cone = source.get_outer_cone();
@@ -96,7 +98,8 @@ namespace
 		ret.data.outer_area.x = outer_range.x;
 		ret.data.outer_area.y = outer_range.y;
 		ret.data.outer_area.z = outer_range.z;
-		ret.data.color = source.get_color();
+		const math::float3 radiometric_color = source.calculate_radiometric_color(engine_config_data::instance()->get_active_rendering_gamut());
+		ret.data.color = { radiometric_color.x, radiometric_color.y, radiometric_color.z, 1.0f };
 
 		ret.diffuse_ibl_texture = source.get_diffuse_ibl_texture();
 		ret.specular_ibl_texture = source.get_specular_ibl_texture();
@@ -110,9 +113,19 @@ light::light(light_type type)
 , type(type)
 , position(math::vector3d::zero())
 , rotation(0, 0, 0)
-, color(1, 1, 1, 1)
 , parameter(10.0f, math::angle::to_radian(30.0f), math::angle::to_radian(45.0f))
 {
+	//	初期値は平行光源が晴天の太陽(lx)、点光源/スポットが 60W 電球相当(lm)
+	if (type == light_type::directional)
+	{
+		unit_mode = unit_modes::lux;
+		intensity = 100000.0f;
+	}
+	else
+	{
+		unit_mode = unit_modes::lumen;
+		intensity = 800.0f;
+	}
 	set_flag(flags::active, true);
 	set_flag(flags::use_shadow, true);
 
@@ -199,14 +212,55 @@ void light::set_rotation(const math::rotatorf& rotation)
 	this->rotation = rotation;
 }
 
-const math::float4& light::get_color() const
+void light::set_unit_mode(unit_modes mode)
 {
-	return color;
+	//	平行光源は照度[lx]固定、点光源/スポットは照度では指定できない(距離で変わるため)
+	if (type == light_type::directional)
+		mode = unit_modes::lux;
+	else if (mode == unit_modes::lux)
+		return;
+	if (mode == unit_mode)
+		return;
+
+	const double cos_half_angle = std::cos(get_outer_cone());
+	if (unit_mode == unit_modes::lumen && mode == unit_modes::candela)
+	{
+		intensity = static_cast<float>(type == light_type::spot
+			? light_utility::convert_spot_light_lumen_to_candela(intensity, cos_half_angle)
+			: light_utility::convert_point_light_lumen_to_candela(intensity));
+	}
+	else if (unit_mode == unit_modes::candela && mode == unit_modes::lumen)
+	{
+		intensity = static_cast<float>(type == light_type::spot
+			? light_utility::convert_spot_light_candela_to_lumen(intensity, cos_half_angle)
+			: light_utility::convert_point_light_candela_to_lumen(intensity));
+	}
+	unit_mode = mode;
 }
 
-void light::set_color(const math::float4& color)
+math::float3 light::calculate_radiometric_color(color_space::gamuts rendering_gamut) const
 {
-	this->color = color;
+	//	色温度の色は輝度 1 に正規化済みで、フィルターは光を吸収する(輝度を下げる)ものとして掛ける
+	math::vector3f rgb(color.x, color.y, color.z);
+	if (color_mode == color_modes::filter_and_temperature)
+		rgb = rgb * light_utility::get_temperature_color(kelvin);
+	else
+		rgb = light_utility::normalize_luminance_rec2020(rgb);
+
+	float work_intensity = intensity;
+	if (unit_mode == unit_modes::lumen)
+	{
+		//	光束[lm]は光度[cd]にする(点光源は 4π sr、スポットは外側コーンの立体角)
+		if (type == light_type::spot)	//	スポットライト
+			work_intensity = static_cast<float>(light_utility::convert_spot_light_lumen_to_candela(intensity, std::cos(get_outer_cone())));
+		else	//	ポイントライト
+			work_intensity = static_cast<float>(light_utility::convert_point_light_lumen_to_candela(intensity));
+	}
+
+	//	測光量から放射量へ、Rec.2020 から描画色域へ
+	const float radiometric_value = static_cast<float>(light_utility::convert_photometric_to_radiometric(work_intensity));
+	const math::vector3f result = color_space::convert_gamut(rgb * radiometric_value, color_space::gamuts::rec2020, rendering_gamut);
+	return { result[0], result[1], result[2] };
 }
 
 float light::get_range() const
@@ -291,7 +345,6 @@ light_probe::light_probe()
 , position(math::vector3d::zero())
 , inner_range(50.0f, 50.0f, 50.0f)
 , outer_range(100.0f, 100.0f, 100.0f)
-, color(1, 1, 1, 1)
 {
 	set_flag(flags::active, true);
 }
@@ -360,14 +413,12 @@ void light_probe::set_outer_range(const math::float3& outer_range)
 	this->outer_range = outer_range;
 }
 
-const math::float4& light_probe::get_color() const
+math::float3 light_probe::calculate_radiometric_color(color_space::gamuts rendering_gamut) const
 {
-	return color;
-}
-
-void light_probe::set_color(const math::float4& color)
-{
-	this->color = color;
+	//	輝度[nit]を放射輝度にし、Rec.2020 から描画色域へ
+	const float radiometric_value = static_cast<float>(light_utility::convert_photometric_to_radiometric(intensity));
+	const math::vector3f result = color_space::convert_gamut(math::vector3f(color.x, color.y, color.z) * radiometric_value, color_space::gamuts::rec2020, rendering_gamut);
+	return { result[0], result[1], result[2] };
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////

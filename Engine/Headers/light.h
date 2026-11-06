@@ -3,6 +3,7 @@
 #include "light_data.h"
 #include "common_pipeline_states.h"
 #include "texture.h"
+#include "Graphics/color_space.h"
 
 #include <cstdint>
 #include <memory>
@@ -24,6 +25,21 @@ public:
 
 		debug_csm_area_flag = 20,
 		debug_visualize_ailiasing_error_flag = 21,
+	};
+
+	//	強さの単位(平行光源は lx 固定、点光源/スポットは lm か cd)
+	enum class unit_modes : std::uint8_t
+	{
+		lumen,		//	光源から放射される光束[lm]
+		candela,	//	ある方向への光度[cd]
+		lux,		//	面が受ける照度[lx]
+	};
+
+	//	色の指定方法
+	enum class color_modes : std::uint8_t
+	{
+		color,					//	色を直接指定(色味だけを使い、輝度 1 に正規化する)
+		filter_and_temperature,	//	色温度×フィルター(炎・太陽光・電球など。LED は色温度で指定しない)
 	};
 
 	struct	shadow_map_bias_data
@@ -51,8 +67,23 @@ public:
 	void set_position(const math::vector3d& position);
 	const math::rotatorf& get_rotation() const;
 	void set_rotation(const math::rotatorf& rotation);
-	const math::float4& get_color() const;
-	void set_color(const math::float4& color);
+
+	//	強さ
+	unit_modes get_unit_mode() const { return unit_mode; }
+	void set_unit_mode(unit_modes mode);
+	float get_intensity() const { return intensity; }
+	void set_intensity(float intensity) { this->intensity = intensity; }
+
+	//	色
+	color_modes get_color_mode() const { return color_mode; }
+	void set_color_mode(color_modes mode) { color_mode = mode; }
+	const math::float3& get_color() const { return color; }
+	void set_color(const math::float3& color) { this->color = color; }
+	int get_kelvin() const { return kelvin; }
+	void set_kelvin(int kelvin) { this->kelvin = kelvin; }
+
+	//	放射量の色
+	math::float3 calculate_radiometric_color(color_space::gamuts rendering_gamut) const;
 
 	float get_range() const;
 	void set_range(float range);
@@ -90,7 +121,11 @@ private:
 	light_type type;
 	math::vector3d position;
 	math::rotatorf rotation;
-	math::float4 color;
+	unit_modes unit_mode = unit_modes::lux;
+	float intensity = 0.0f;
+	color_modes color_mode = color_modes::filter_and_temperature;
+	math::float3 color{ 1.0f, 1.0f, 1.0f };
+	int kelvin = 5500;
 	math::float3 parameter;
 
 	//	影関係
@@ -131,8 +166,15 @@ public:
 	void set_inner_range(const math::float3& inner_range);
 	math::float3 get_outer_range() const;
 	void set_outer_range(const math::float3& outer_range);
-	const math::float4& get_color() const;
-	void set_color(const math::float4& color);
+
+	//	色(Rec.2020 リニア)と強さ(IBL の値 1.0 に対応する輝度 [nit])
+	const math::float3& get_color() const { return color; }
+	void set_color(const math::float3& color) { this->color = color; }
+	float get_intensity() const { return intensity; }
+	void set_intensity(float intensity) { this->intensity = intensity; }
+
+	//	シェーダーへ渡す IBL の倍率(描画色域の放射量)
+	math::float3 calculate_radiometric_color(color_space::gamuts rendering_gamut) const;
 
 private:
 	UINT system_flags;
@@ -143,7 +185,8 @@ private:
 	math::vector3d position;
 	math::float3 inner_range;
 	math::float3 outer_range;
-	math::float4 color;
+	math::float3 color{ 1.0f, 1.0f, 1.0f };
+	float intensity = 5000.0f;
 };
 ENUM_ATTR_BITFLAG(light_probe::flags);
 

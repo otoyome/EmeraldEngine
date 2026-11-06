@@ -30,9 +30,6 @@ bool minigame_stage_00_scene::initialize_core()
 	{
 		auto directional = std::make_shared<directional_light_object>("平行光源");
 		directional->set_world_euler(math::rotatord(math::angle::to_radian(34.0), math::angle::to_radian(21.0), math::angle::to_radian(0.0)));
-		auto color = directional->get_light()->get_color();
-		color.w = 30.0f;
-		directional->get_light()->set_color(color);
 		directional->get_light()->set_pssm_split_weight(0.95f);
 		directional->get_light()->set_csm_distance(system_units::convert_m_to_unit(50000.0f));
 		{
@@ -85,7 +82,6 @@ bool minigame_stage_00_scene::initialize_core()
 		point->set_flag(light::flags::use_shadow, true);
 		point->set_world_translation(system_units::convert_m_to_unit(math::double3(0.0, 5.0, -20.0)));
 		point->set_range(system_units::convert_m_to_unit(10.0f));
-		point->set_color({ 1.0f, 1.0f, 1.0f, 1.0f });
 		register_object(point);
 
 		auto spot = std::make_shared<spot_light_object>("スポットライト");
@@ -95,7 +91,7 @@ bool minigame_stage_00_scene::initialize_core()
 		spot->set_range(system_units::convert_m_to_unit(20.0f));
 		spot->set_inner_cone(30.0f);
 		spot->set_outer_cone(60.0f);
-		spot->set_color({ 1.0f, 1.0f, 1.0f, 10.0f });
+		spot->set_intensity(8000.0f);
 		register_object(spot);
 	}
 

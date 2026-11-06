@@ -1,5 +1,10 @@
 #include "Object/light_object.h"
 
+#include <algorithm>
+
+#include "Graphics/color_space.h"
+#include "Graphics/light_utility.h"
+
 light_ptr light_object::get_light() const
 {
 	return light;
@@ -15,15 +20,69 @@ bool light_object::is_flag(light::flags flag) const
 	return light->is_flag(flag);
 }
 
-void light_object::set_color(math::float4 color)
+void light_object::set_intensity(float intensity)
+{
+	light->set_intensity(intensity);
+}
+
+float light_object::get_intensity() const
+{
+	return light->get_intensity();
+}
+
+void light_object::set_color(const math::float3& color)
 {
 	light->set_color(color);
 }
 
-math::float4 light_object::get_color() const
+const math::float3& light_object::get_color() const
 {
 	return light->get_color();
 }
+
+#if defined(USE_IMGUI)
+void light_object::imgui_render_light_parameters()
+{
+	//	単位(平行光源は lx 固定)
+	if (light->get_light_type() != light_type::directional)
+	{
+		auto unit_mode = light->get_unit_mode();
+		if (ImGui::Combo("unit", unit_mode) && unit_mode != light::unit_modes::lux)
+			light->set_unit_mode(unit_mode);
+	}
+	float intensity = light->get_intensity();
+	if (ImGui::DragFloat("intensity", &intensity, 1.0f, 0.0f, FLT_MAX, "%.3f"))
+		light->set_intensity((std::max)(intensity, 0.0f));
+	ImGui::SameLine();
+	ImGui::TextDisabled("[%s]", magic_enum::enum_name(light->get_unit_mode()).data());
+
+	//	色
+	auto color_mode = light->get_color_mode();
+	if (ImGui::Combo("color_mode", color_mode))
+		light->set_color_mode(color_mode);
+
+	math::float3 color = light->get_color();
+	const char* color_label = color_mode == light::color_modes::filter_and_temperature ? "filter (rec2020 linear)" : "color (rec2020 linear)";
+	if (ImGui::ColorEdit3(color_label, &color.x, ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR))
+		light->set_color(color);
+
+	if (color_mode == light::color_modes::filter_and_temperature)
+	{
+		int kelvin = light->get_kelvin();
+		if (ImGui::SliderInt("kelvin", &kelvin, light_utility::kelvin_minimum, light_utility::kelvin_maximum))
+			light->set_kelvin(kelvin);
+
+		//	色温度の色見本
+		//	Rec.2020 → Rec.709 → sRGB、最大成分を 1 にして色味だけを見せる
+		math::vector3f swatch = color_space::convert_gamut(light_utility::get_temperature_color(kelvin), color_space::gamuts::rec2020, color_space::gamuts::rec709);
+		swatch = math::vector3f((std::max)(swatch[0], 0.0f), (std::max)(swatch[1], 0.0f), (std::max)(swatch[2], 0.0f));
+		const float maximum = (std::max)({ swatch[0], swatch[1], swatch[2], 1e-6f });
+		swatch = color_space::convert_linear_to_srgb(swatch * (1.0f / maximum));
+		ImGui::SameLine();
+		ImGui::ColorButton("##kelvin_color", ImVec4(swatch[0], swatch[1], swatch[2], 1.0f), ImGuiColorEditFlags_NoTooltip);
+	}
+}
+#endif	//	defined(USE_IMGUI)
 
 light_object::light_object(std::string_view name)
 : spatial_object(name)
@@ -105,10 +164,7 @@ void directional_light_object::imgui_tree_inner_render()
 	ImGui::Checkbox("debug_visualize_ailiasing_error_flag", &debug_visualize_ailiasing_error_flag);
 	light->set_flag(light::flags::debug_visualize_ailiasing_error_flag, debug_visualize_ailiasing_error_flag);
 
-	auto color = get_color();
-	ImGui::ColorPicker3("color", &color.x);
-	ImGui::DragFloat("intensity", &color.w);
-	set_color(color);
+	imgui_render_light_parameters();
 
 	auto shadow_attenuation =  light->get_shadow_attenuation();
 	ImGui::SliderFloat3("shadow_attenuation", &shadow_attenuation.x, 0.0f, 1.0f);
@@ -226,10 +282,7 @@ void point_light_object::imgui_tree_inner_render()
 	ImGui::DragFloat("range", &range, 0.01f);
 	set_range(range);
 
-	auto color = get_color();
-	ImGui::ColorPicker3("color", &color.x);
-	ImGui::DragFloat("intensity", &color.w);
-	set_color(color);
+	imgui_render_light_parameters();
 }
 #endif	//	defined(USE_IMGUI)
 
@@ -298,10 +351,7 @@ void spot_light_object::imgui_tree_inner_render()
 	ImGui::DragFloat("outer_cone", &outer_cone, 0.01f);
 	set_outer_cone(outer_cone);
 
-	auto color = get_color();
-	ImGui::ColorPicker3("color", &color.x);
-	ImGui::DragFloat("intensity", &color.w);
-	set_color(color);
+	imgui_render_light_parameters();
 }
 #endif	//	defined(USE_IMGUI)
 
@@ -321,12 +371,22 @@ bool light_probe_object::is_flag(light_probe::flags flag) const
 	return light_probe->is_flag(flag);
 }
 
-void light_probe_object::set_color(math::float4 color)
+void light_probe_object::set_intensity(float intensity)
+{
+	light_probe->set_intensity(intensity);
+}
+
+float light_probe_object::get_intensity() const
+{
+	return light_probe->get_intensity();
+}
+
+void light_probe_object::set_color(const math::float3& color)
 {
 	light_probe->set_color(color);
 }
 
-math::float4 light_probe_object::get_color() const
+const math::float3& light_probe_object::get_color() const
 {
 	return light_probe->get_color();
 }
@@ -395,10 +455,13 @@ void light_probe_object::imgui_render_core()
 	base::imgui_render_core();
 	sync_to_light_probe();
 
-	auto color = get_color();
-	ImGui::ColorPicker3("color", &color.x);
-	ImGui::DragFloat("intensity", &color.w);
-	set_color(color);
+	//	強さ
+	float intensity = get_intensity();
+	if (ImGui::DragFloat("intensity (nit)", &intensity, 10.0f, 0.0f, FLT_MAX, "%.1f"))
+		set_intensity((std::max)(intensity, 0.0f));
+	math::float3 color = get_color();
+	if (ImGui::ColorEdit3("color (rec2020 linear)", &color.x, ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR))
+		set_color(color);
 
 	imgui_tree_inner_render();
 }

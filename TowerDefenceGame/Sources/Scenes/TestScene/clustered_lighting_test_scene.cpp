@@ -74,9 +74,7 @@ bool clustered_lighting_test_scene::initialize_core()
 	//	点光源を見やすくするため暗め、影無し
 	{
 		directional_light = std::make_shared<directional_light_object>("平行光源");
-		auto color = directional_light->get_color();
-		color.w = directional_intensity;
-		directional_light->set_color(color);
+		directional_light->set_intensity(directional_intensity);
 		directional_light->set_flag(light::flags::use_shadow, false);
 		register_object(directional_light);
 	}
@@ -155,7 +153,10 @@ void clustered_lighting_test_scene::rebuild_lights()
 		entry.phase = static_cast<float>(random_01(random)) * math::constants<float>::pi * 2.0f;
 
 		const math::float3 color = hue_to_color(static_cast<float>(random_01(random)));
-		entry.light->set_color({ color.x, color.y, color.z, settings.intensity });
+		entry.light->set_color_mode(light::color_modes::color);
+		const math::vector3f rec2020 = color_space::convert_gamut(math::vector3f(color.x, color.y, color.z), color_space::gamuts::rec709, color_space::gamuts::rec2020);
+		entry.light->set_color({ rec2020[0], rec2020[1], rec2020[2] });
+		entry.light->set_intensity(settings.intensity);
 		entry.light->set_range(system_units::convert_m_to_unit(settings.range));
 		entry.light->set_flag(light::flags::use_shadow, shadow);
 		if (spot)
@@ -288,11 +289,9 @@ void clustered_lighting_test_scene::imgui_render_core()
 
 	//	平行光源
 	ImGui::Separator();
-	if (ImGui::SliderFloat("directional intensity", &directional_intensity, 0.0f, 2.0f) && directional_light)
+	if (ImGui::SliderFloat("directional intensity (lx)", &directional_intensity, 0.0f, 150000.0f, "%.0f") && directional_light)
 	{
-		auto color = directional_light->get_color();
-		color.w = directional_intensity;
-		directional_light->set_color(color);
+		directional_light->set_intensity(directional_intensity);
 	}
 
 	//	ライト配置
@@ -306,7 +305,7 @@ void clustered_lighting_test_scene::imgui_render_core()
 	changed |= ImGui::DragFloat("area size [m]", &settings.area_size, 0.5f, 1.0f, 10000.0f);
 	changed |= ImGui::DragFloat("height [m]", &settings.height, 0.1f, -100.0f, 1000.0f);
 	changed |= ImGui::DragFloat("range [m]", &settings.range, 0.1f, 0.1f, 1000.0f);
-	changed |= ImGui::DragFloat("intensity", &settings.intensity, 0.1f, 0.0f, 1000.0f);
+	changed |= ImGui::DragFloat("intensity (lm)", &settings.intensity, 10.0f, 0.0f, 100000.0f, "%.0f");
 	changed |= ImGui::SliderFloat("spot inner cone [deg]", &settings.spot_inner_cone, 0.0f, 89.0f);
 	changed |= ImGui::SliderFloat("spot outer cone [deg]", &settings.spot_outer_cone, 0.0f, 89.0f);
 	changed |= ImGui::DragInt("seed", &settings.seed);

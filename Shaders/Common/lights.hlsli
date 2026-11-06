@@ -1,6 +1,8 @@
 #ifndef __LIGHTS_HLSLI__
 #define __LIGHTS_HLSLI__
 
+#include "common.hlsli"
+
 //	ライト情報
 struct light_data
 {
@@ -15,8 +17,13 @@ struct light_data
 //	距離減衰
 float calc_light_distance_attenuation(float distance, float inv_range)
 {
-	float attenuate_length = saturate(1.0f - distance * inv_range);
-	return attenuate_length * attenuate_length;
+	const float minimum_distance = convert_cm_to_m(1.0f);
+	float d = max(convert_unit_to_m(distance), minimum_distance);
+	float inverse_square = 1.0f / (d * d);
+
+	float ratio = distance * inv_range;
+	float window = saturate(1.0f - ratio * ratio * ratio * ratio);
+	return inverse_square * window * window;
 }
 
 //	角度取り出し関数

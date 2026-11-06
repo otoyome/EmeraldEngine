@@ -76,8 +76,6 @@ minigame_scene::minigame_scene()
 		post_process_volume->set_flag(post_process_volume::flags::unbind, true);
 		{
 			auto depth_of_field_constant = post_process_volume->get_volume()->get_depth_of_field_constant();
-			auto tone_mapping_constant = post_process_volume->get_volume()->get_tone_mapping_constant();
-			tone_mapping_constant.set_tone_map_type(tone_mapping_data::tone_mapping_type::aces_krzysztof_narkowicz);
 			post_process_volume->get_volume()->set_depth_of_field_constant(depth_of_field_constant);
 		}
 		register_object(post_process_volume);

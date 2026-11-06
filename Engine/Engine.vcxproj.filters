@@ -300,6 +300,15 @@
     <ClInclude Include="Headers\System\game_config_data.h">
       <Filter>Headers\System</Filter>
     </ClInclude>
+    <ClInclude Include="Headers\Graphics\color_space.h">
+      <Filter>Headers\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Graphics\exposure_controller.h">
+      <Filter>Headers\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Graphics\light_utility.h">
+      <Filter>Headers\Graphics</Filter>
+    </ClInclude>
     <ClInclude Include="Headers\Graphics\compute_particle_system.h">
       <Filter>Headers\Graphics</Filter>
     </ClInclude>
@@ -523,6 +532,15 @@
     </ClCompile>
     <ClCompile Include="Sources\Input\keyboard.cpp">
       <Filter>Sources\Input</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Graphics\color_space.cpp">
+      <Filter>Sources\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Graphics\exposure_controller.cpp">
+      <Filter>Sources\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Graphics\light_utility.cpp">
+      <Filter>Sources\Graphics</Filter>
     </ClCompile>
     <ClCompile Include="Sources\Graphics\debug_primitive_collector.cpp">
       <Filter>Sources\Graphics</Filter>
