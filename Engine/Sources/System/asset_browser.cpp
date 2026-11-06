@@ -8,6 +8,7 @@
 #include <shellapi.h>
 
 #include "System/console_manager.h"
+#include "System/imgui_texture_keeper.h"
 #include "texture.h"
 #include "texture_factory.h"
 #include "DirectXTex.h"
@@ -655,7 +656,7 @@ void asset_browser::imgui_render_entry(entry& target, float cell_width, float ce
 			else
 				extent.x = size * aspect;
 			const ImVec2 fit_min(image_min.x + (size - extent.x) * 0.5f, image_min.y + (size - extent.y) * 0.5f);
-			draw_list->AddImage(target.thumbnail->get_shader_resource_view().Get(), fit_min, ImVec2(fit_min.x + extent.x, fit_min.y + extent.y));
+			draw_list->AddImage(imgui_texture_keeper::instance()->keep(target.thumbnail), fit_min, ImVec2(fit_min.x + extent.x, fit_min.y + extent.y));
 		}
 		else if (target.is_directory)
 		{

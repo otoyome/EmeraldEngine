@@ -49,6 +49,7 @@
 #include "Editor/editor_camera.h"
 #endif // defined(USE_IMGUI)
 #include "System/asset_browser.h"
+#include "System/imgui_texture_keeper.h"
 #include "Editor/texture_editor.h"
 
 #include "Editor/detail_profiler.h"
@@ -476,6 +477,9 @@ bool framework::initialize()
 					ImGui::UpdatePlatformWindows();
 					ImGui::RenderPlatformWindowsDefault();
 				}
+
+				//	ImGui の描画が終わったので、表示テクスチャを手放す
+				imgui_texture_keeper::instance()->release();
 			}
 #endif // defined(USE_IMGUI)
 

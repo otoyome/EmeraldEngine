@@ -23,6 +23,7 @@ extern ImWchar glyphRangesJapanese[];
 #include "Editor/editor_camera.h"
 #include "System/console_manager.h"
 #include "System/asset_browser.h"
+#include "System/imgui_texture_keeper.h"
 #include "Resource/resource_manager.h"
 #include "material_resource.h"
 
@@ -113,6 +114,7 @@ void framework::imgui_initialize()
 	}
 
 	//	アセットブラウザの開き先
+	imgui_texture_keeper::create_instance();
 	asset_browser::create_instance();
 	register_asset_open_handler<edit_model_scene>("Model Editor", { ".emo", ".pmx", ".gltf", ".glb" });
 	register_asset_open_handler<edit_particle_scene>("Particle Editor", { ".eme" });
@@ -135,6 +137,7 @@ void framework::imgui_terminate()
 {
 	texture_editor::delete_instance();
 	asset_browser::delete_instance();
+	imgui_texture_keeper::delete_instance();
 
 	ImGui::ShutdownNeoSequencer();
 

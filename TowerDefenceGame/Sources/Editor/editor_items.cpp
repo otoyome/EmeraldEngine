@@ -10,6 +10,7 @@
 #include "Resource/resource_manager.h"
 #include "Resource/asset_file_header.h"
 #include "System/asset_browser.h"
+#include "System/imgui_texture_keeper.h"
 
 namespace
 {
@@ -784,8 +785,7 @@ bool editor_items::edit_material_texture_slot(std::shared_ptr<context>& context,
 	bool edit_flag = false;
 
 	const texture_ptr& texture = slot.get_texture();
-	const ID3D11ShaderResourceView* srv = (texture ? texture : context->blank_texture)->get_shader_resource_view().Get();
-	ImGui::Image((ImTextureID)srv, icon_size_srv);
+	ImGui::Image(imgui_texture_keeper::instance()->keep(texture ? texture : context->blank_texture), icon_size_srv);
 	ImGui::SameLine();
 
 	//	テクスチャリソースパス
@@ -816,7 +816,6 @@ bool editor_items::edit_material_texture_slot(std::shared_ptr<context>& context,
 				}
 				else if (loaded != slot.asset.get())
 				{
-					context->reserve_texture = slot.get_texture();
 					slot.asset = loaded;
 					edit_flag = true;
 				}
@@ -830,9 +829,8 @@ bool editor_items::edit_material_texture_slot(std::shared_ptr<context>& context,
 	{
 		ImGui::SameLine();
 		ImGui::PushID("clear");
-		if (ImGui::ImageButton("", (ImTextureID)context->cross_texture->get_shader_resource_view().Get(), icon_size_srv))
+		if (ImGui::ImageButton("", imgui_texture_keeper::instance()->keep(context->cross_texture), icon_size_srv))
 		{
-			context->reserve_texture = slot.get_texture();
 			slot.asset = nullptr;
 			edit_flag = true;
 		}
@@ -848,8 +846,7 @@ bool editor_items::edit_texture_item(std::shared_ptr<context>& context, texture_
 		*selected_file = false;
 
 	//	通常
-	const ID3D11ShaderResourceView* srv = (resource ? resource : context->blank_texture)->get_shader_resource_view().Get();
-	ImGui::Image((ImTextureID)srv, icon_size_srv);
+	ImGui::Image(imgui_texture_keeper::instance()->keep(resource ? resource : context->blank_texture), icon_size_srv);
 
 	//	アセットブラウザからテクスチャリソースをドロップして選ぶ
 	if (ImGui::BeginDragDropTarget())
@@ -862,7 +859,6 @@ bool editor_items::edit_texture_item(std::shared_ptr<context>& context, texture_
 			{
 				if (auto selected_texture = texture_resource_utility::load_texture(file_path))
 				{
-					context->reserve_texture = resource;
 					resource = selected_texture;
 					if (selected_file)
 						*selected_file = true;
@@ -885,10 +881,8 @@ bool editor_items::edit_texture_item(std::shared_ptr<context>& context, texture_
 	{
 		ImGui::PushID(context->get_item_id());
 		ImGui::SameLine();
-		srv = context->cross_texture->get_shader_resource_view().Get();
-		if (ImGui::ImageButton("", (const ImTextureID)srv, icon_size_srv))
+		if (ImGui::ImageButton("", imgui_texture_keeper::instance()->keep(context->cross_texture), icon_size_srv))
 		{
-			context->reserve_texture = resource;
 			resource = nullptr;	//	context->blank_texture;
 			edit_flag = true;
 		}
@@ -935,8 +929,7 @@ bool editor_items::edit_model_resource_item(std::shared_ptr<context>& context, m
 	{
 		ImGui::PushID(context->get_item_id());
 		ImGui::SameLine();
-		auto srv = context->cross_texture->get_shader_resource_view().Get();
-		if (ImGui::ImageButton("", (const ImTextureID)srv, icon_size_srv))
+		if (ImGui::ImageButton("", imgui_texture_keeper::instance()->keep(context->cross_texture), icon_size_srv))
 		{
 			context->reserve_model_resource = resource;
 			resource = nullptr;

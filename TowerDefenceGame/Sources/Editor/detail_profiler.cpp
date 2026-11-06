@@ -4,6 +4,7 @@
 #include "Object/game_object.h"
 #include "texture_tracker.h"
 #include "graphics_utility.h"
+#include "System/imgui_texture_keeper.h"
 
 namespace
 {
@@ -538,7 +539,7 @@ void detail_profiler::imgui_render_texture_table()
 			if (!value->is_flag(texture::flags::cube_map) && value->get_shader_resource_view() && !graphics_utility::is_int_format(desc.Format) && ImGui::BeginTooltip())
 			{
 				const float aspect = static_cast<float>(desc.Width) / static_cast<float>((std::max)(desc.Height, 1u));
-				ImGui::Image((ImTextureID)value->get_shader_resource_view().Get(), aspect >= 1.0f ? ImVec2(256.0f, 256.0f / aspect) : ImVec2(256.0f * aspect, 256.0f));
+				ImGui::Image(imgui_texture_keeper::instance()->keep(value), aspect >= 1.0f ? ImVec2(256.0f, 256.0f / aspect) : ImVec2(256.0f * aspect, 256.0f));
 				ImGui::EndTooltip();
 			}
 		}

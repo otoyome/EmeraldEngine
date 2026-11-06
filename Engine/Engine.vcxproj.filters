@@ -291,6 +291,9 @@
     <ClInclude Include="Headers\System\asset_browser.h">
       <Filter>Headers\System</Filter>
     </ClInclude>
+    <ClInclude Include="Headers\System\imgui_texture_keeper.h">
+      <Filter>Headers\System</Filter>
+    </ClInclude>
     <ClInclude Include="Headers\System\asset_thumbnail_cache.h">
       <Filter>Headers\System</Filter>
     </ClInclude>
@@ -645,6 +648,9 @@
       <Filter>Sources\System</Filter>
     </ClCompile>
     <ClCompile Include="Sources\System\asset_browser.cpp">
+      <Filter>Sources\System</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\System\imgui_texture_keeper.cpp">
       <Filter>Sources\System</Filter>
     </ClCompile>
     <ClCompile Include="Sources\System\asset_thumbnail_cache.cpp">

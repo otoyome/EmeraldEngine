@@ -8,6 +8,7 @@
 #include "graphics_utility.h"
 #include "Resource/resource_manager.h"
 #include "System/asset_browser.h"
+#include "System/imgui_texture_keeper.h"
 #include "system/logger.h"
 
 texture_editor::texture_editor()
@@ -108,7 +109,7 @@ void texture_editor::imgui_render_preview()
 	const float size = (std::min)(ImGui::GetContentRegionAvail().x, 384.0f);
 	const float aspect = static_cast<float>(desc.Width) / static_cast<float>((std::max)(desc.Height, 1u));
 	const ImVec2 extent = aspect >= 1.0f ? ImVec2(size, size / aspect) : ImVec2(size * aspect, size);
-	ImGui::Image((ImTextureID)value->get_shader_resource_view().Get(), extent);
+	ImGui::Image(imgui_texture_keeper::instance()->keep(value), extent);
 }
 
 void texture_editor::imgui_render_settings()
