@@ -43,13 +43,6 @@ class asset_browser
 		bool thumbnail_requested = false;	//	サムネイルの読み込みを試したか
 	};
 
-	//	破棄待ちのサムネイル
-	struct retired_thumbnail
-	{
-		std::shared_ptr<texture> thumbnail;
-		std::uint64_t frame = 0;
-	};
-
 	//	描画の後に行う移動・名前変更
 	struct move_request
 	{
@@ -128,8 +121,6 @@ private:
 	void change_directory(const cache_string& path);
 	void build_breadcrumbs();
 	void scan_entries();
-	void retire_thumbnails();
-	void release_retired_thumbnails();
 
 	//	ファイルオープンリクエスト
 	void request_open(const open_handler& handler, const cache_string& file_path);
@@ -171,8 +162,6 @@ private:
 	cache_string selected_path;
 	bool reveal_current_directory = true;
 
-	std::vector<retired_thumbnail> retired_thumbnails;
-	std::uint64_t frame_index = 0;
 	std::chrono::steady_clock::time_point thumbnail_load_deadline{};
 	asset_thumbnail_cache thumbnail_cache;
 

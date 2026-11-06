@@ -34,9 +34,6 @@ namespace
 	//	1フレームでサムネイルの読み込みに使う時間
 	constexpr std::chrono::milliseconds thumbnail_load_budget(4);
 
-	//	描画が終わるまでサムネイルを保持するフレーム数
-	constexpr std::uint64_t thumbnail_keep_frames = 4;
-
 	console_variable<float> thumbnail_size_variable("editor.asset_browser.thumbnail_size", 128.0f, "アセットブラウザのサムネイルの大きさ", console_flags::persist);
 
 	template<typename List>
@@ -294,7 +291,6 @@ void asset_browser::build_breadcrumbs()
 
 void asset_browser::scan_entries()
 {
-	retire_thumbnails();
 	entries.clear();
 
 	std::error_code error;
@@ -327,26 +323,6 @@ void asset_browser::scan_entries()
 				return l.is_directory;
 			return less_name(l.name, r.name);
 		});
-}
-
-void asset_browser::retire_thumbnails()
-{
-	for (auto& target : entries)
-	{
-		if (target.thumbnail)
-			retired_thumbnails.push_back({ std::move(target.thumbnail), frame_index });
-	}
-}
-
-void asset_browser::release_retired_thumbnails()
-{
-	retired_thumbnails.erase(
-		std::remove_if(retired_thumbnails.begin(), retired_thumbnails.end(),
-			[this](const retired_thumbnail& retired)
-			{
-				return frame_index - retired.frame >= thumbnail_keep_frames;
-			}),
-		retired_thumbnails.end());
 }
 
 void asset_browser::load_thumbnail(entry& target)
@@ -383,9 +359,6 @@ void asset_browser::load_thumbnail(entry& target)
 
 void asset_browser::imgui_render()
 {
-	++frame_index;
-	release_retired_thumbnails();
-
 	ImGui::SetNextWindowSize(ImVec2(1200.0f, 700.0f), ImGuiCond_FirstUseEver);
 	if (ImGui::Begin("Asset Browser"))
 	{
