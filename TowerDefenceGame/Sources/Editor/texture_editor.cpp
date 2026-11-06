@@ -139,7 +139,7 @@ void texture_editor::imgui_render_settings()
 	}
 
 	ImGui::Combo("transfer function", editing.transfer_function);
-	ImGui::Combo("primaries", editing.primaries);
+	ImGui::Combo("gamut", editing.gamut);
 	ImGui::Combo("format", editing.format);
 	ImGui::Checkbox("generate mipmaps", &editing.generate_mipmaps);
 	ImGui::Combo("filter", editing.filter);
@@ -211,7 +211,7 @@ bool texture_editor::needs_reimport() const
 	const auto& current = target->get_settings();
 	return current.source_path != editing.source_path ||
 		current.transfer_function != editing.transfer_function ||
-		current.primaries != editing.primaries ||
+		current.gamut != editing.gamut ||
 		current.format != editing.format ||
 		current.generate_mipmaps != editing.generate_mipmaps ||
 		current.filter != editing.filter ||

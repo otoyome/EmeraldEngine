@@ -496,7 +496,7 @@ namespace
 		const texture_import_settings normal_settings = texture_import_settings::make_preset(presets::normal);
 		texture_import_settings linear_settings = color_settings;
 		linear_settings.transfer_function = texture_import_settings::transfer_functions::linear;
-		linear_settings.primaries = texture_import_settings::color_primaries::none;
+		linear_settings.gamut = texture_import_settings::color_gamuts::none;
 
 		std::unordered_map<std::string, texture_resource_ptr> imported_textures;
 		auto import_texture = [&](std::string_view relative_path, const texture_import_settings& settings) -> texture_resource_ptr

@@ -15,12 +15,11 @@ struct texture_import_settings
 		linear,	//	リニア
 	};
 
-	//	原色
-	enum class color_primaries : std::uint8_t
+	//	色域
+	enum class color_gamuts : std::uint8_t
 	{
 		none,		//	データ(色空間の変換をしない)
 		rec709,		//	Rec.709
-		display_p3,	//	Display P3
 		rec2020,	//	Rec.2020
 	};
 
@@ -56,7 +55,7 @@ struct texture_import_settings
 
 	std::string source_path;
 	transfer_functions transfer_function = transfer_functions::srgb;
-	color_primaries primaries = color_primaries::rec709;
+	color_gamuts gamut = color_gamuts::rec709;
 	gpu_formats format = gpu_formats::bc7;
 	bool generate_mipmaps = true;
 	filters filter = filters::box;
