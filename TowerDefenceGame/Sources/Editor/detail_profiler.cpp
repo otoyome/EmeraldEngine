@@ -623,7 +623,7 @@ void detail_profiler::imgui_render_flat_table(const char* id, category kind, con
 
 void detail_profiler::imgui_render_renderer_table()
 {
-	auto& issue_list = entries[static_cast<size_t>(category::renderer_issue)];
+	auto& submit_list = entries[static_cast<size_t>(category::renderer_submit)];
 	auto& job_list = entries[static_cast<size_t>(category::renderer_job_cpu)];
 	auto& gpu_list = entries[static_cast<size_t>(category::renderer_gpu)];
 
@@ -645,7 +645,7 @@ void detail_profiler::imgui_render_renderer_table()
 				row.history = &entry.time;
 		}
 	};
-	merge(issue_list, 0, -1);
+	merge(submit_list, 0, -1);
 	merge(job_list, 1, 2);
 	merge(gpu_list, 3, -1);
 
@@ -659,15 +659,15 @@ void detail_profiler::imgui_render_renderer_table()
 		gpu_total += row.values[3];
 		rows.emplace_back(row);
 	}
-	ImGui::Text("cpu total (issue + job) : %.3f ms   gpu total : %.3f ms", cpu_total, gpu_total);
-	ImGui::TextDisabled("issue : renderer::render() on main thread / job : command recording on worker threads");
+	ImGui::Text("cpu total (submit + job) : %.3f ms   gpu total : %.3f ms", cpu_total, gpu_total);
+	ImGui::TextDisabled("submit : renderer::render() on main thread / job : command recording on worker threads");
 
 	constexpr ImGuiTableFlags flags = ImGuiTableFlags_Sortable | ImGuiTableFlags_SortMulti | ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV | ImGuiTableFlags_Resizable | ImGuiTableFlags_ScrollY | ImGuiTableFlags_SizingFixedFit;
 	if (ImGui::BeginTable("renderer_table", 6, flags))
 	{
 		ImGui::TableSetupScrollFreeze(0, 1);
 		ImGui::TableSetupColumn("renderer", ImGuiTableColumnFlags_WidthStretch);
-		ImGui::TableSetupColumn("issue cpu ms", ImGuiTableColumnFlags_PreferSortDescending);
+		ImGui::TableSetupColumn("submit cpu ms", ImGuiTableColumnFlags_PreferSortDescending);
 		ImGui::TableSetupColumn("job cpu ms", ImGuiTableColumnFlags_PreferSortDescending);
 		ImGui::TableSetupColumn("jobs", ImGuiTableColumnFlags_PreferSortDescending);
 		ImGui::TableSetupColumn("gpu ms", ImGuiTableColumnFlags_DefaultSort | ImGuiTableColumnFlags_PreferSortDescending);
@@ -678,7 +678,7 @@ void detail_profiler::imgui_render_renderer_table()
 
 		for (auto& row : rows)
 		{
-			const float cpu_ratio_issue = cpu_total > 0.0f ? row.values[0] / cpu_total : 0.0f;
+			const float cpu_ratio_submit = cpu_total > 0.0f ? row.values[0] / cpu_total : 0.0f;
 			const float cpu_ratio_job = cpu_total > 0.0f ? row.values[1] / cpu_total : 0.0f;
 			const float gpu_ratio = gpu_total > 0.0f ? row.values[3] / gpu_total : 0.0f;
 			ImGui::TableNextRow();
@@ -687,7 +687,7 @@ void detail_profiler::imgui_render_renderer_table()
 			if (ImGui::IsItemHovered() && row.history)
 				imgui_render_history_tooltip(std::string(row.texts[0]).data(), *row.history);
 			ImGui::TableSetColumnIndex(1);
-			time_cell(row.values[0], cpu_ratio_issue);
+			time_cell(row.values[0], cpu_ratio_submit);
 			ImGui::TableSetColumnIndex(2);
 			time_cell(row.values[1], cpu_ratio_job);
 			ImGui::TableSetColumnIndex(3);

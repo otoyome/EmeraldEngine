@@ -362,6 +362,12 @@
     <ClCompile Include="Sources\Renderer\scene_renderer_forward.cpp">
       <Filter>Sources\Renderer</Filter>
     </ClCompile>
+    <ClCompile Include="Sources\Renderer\render_output.cpp">
+      <Filter>Sources\Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Renderer\world_renderer.cpp">
+      <Filter>Sources\Renderer</Filter>
+    </ClCompile>
     <ClCompile Include="Sources\Renderer\scene_renderer_display.cpp">
       <Filter>Sources\Renderer</Filter>
     </ClCompile>
@@ -681,6 +687,12 @@
     </ClInclude>
     <ClInclude Include="Headers\PipelineState\anti_alias_pipeline_state.h">
       <Filter>Headers\PipelineState</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Renderer\render_output.h">
+      <Filter>Headers\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Renderer\world_renderer.h">
+      <Filter>Headers\Renderer</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Renderer\scene_renderer_display.h">
       <Filter>Headers\Renderer</Filter>

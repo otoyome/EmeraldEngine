@@ -47,7 +47,7 @@ public:
 	enum class category
 	{
 		frame,				//	フレーム内の主要処理
-		renderer_issue,		//	レンダラーのrender()呼び出し(メインスレッドでのジョブ発行)
+		renderer_submit,		//	レンダラーのrender()呼び出し(メインスレッドでのジョブ発行)
 		renderer_job_cpu,	//	レンダラー単位の描画ジョブCPU時間
 		renderer_gpu,		//	レンダラー単位のGPU時間
 		render_job_cpu,		//	描画ジョブ単位のCPU時間

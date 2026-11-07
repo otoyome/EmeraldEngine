@@ -266,14 +266,12 @@ void display_mapping_renderer::render(renderer_context& renderer_context)
 void display_mapping_renderer::resize_buffer(int width, int height)
 {
 	rendering_pass.render_targets.clear();
-	rendering_pass.render_targets.emplace_back(render_data::instance()->get_swap_chain());
+	rendering_pass.render_targets.emplace_back(render_targets->output->make_render_target_view());
 
-	DXGI_SWAP_CHAIN_DESC desc;
-	render_data::instance()->get_swap_chain()->GetDesc(&desc);
 	viewport.TopLeftX = 0.0f;
 	viewport.TopLeftY = 0.0f;
-	viewport.Width = static_cast<float>(desc.BufferDesc.Width);
-	viewport.Height = static_cast<float>(desc.BufferDesc.Height);
+	viewport.Width = static_cast<float>(render_targets->output->get_width());
+	viewport.Height = static_cast<float>(render_targets->output->get_height());
 	viewport.MinDepth = 0.0f;
 	viewport.MaxDepth = 1.0f;
 }

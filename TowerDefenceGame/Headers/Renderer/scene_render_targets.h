@@ -1,6 +1,7 @@
 #pragma once
 
 #include "render_pass.h"
+#include "Renderer/render_output.h"
 
 //	レンダーターゲット集
 //	☆ﾃｷﾄｰ('ω')ｰﾄｷﾃ☆
@@ -18,4 +19,7 @@ struct scene_render_targets
 	//	SSRデノイズ用
 	texture_ptr ssr_accumlate_textures[2];
 	texture_ptr ssr_counter_textures[2];
+
+	//	@tool 最終的な出力先（バックバッファ、またはテクスチャ）
+	std::shared_ptr<render_output> output;
 };

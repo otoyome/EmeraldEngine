@@ -28,6 +28,7 @@ namespace collision { class frustum_culling; }
 struct render_data_context;
 class world;
 class console_command;
+class world_renderer;
 
 class framework
 {
@@ -56,78 +57,16 @@ private:
 	bool create_buffers();
 	bool create_collision_filters();
 
-	void prepare_renderer_context(
-		renderer_context& context,
-		const scene_view_ptr& target_view,
-		const scene_view_state_ptr& target_state,
-		const Microsoft::WRL::ComPtr<ID3D11Buffer>& scene_constant_buffer,
-		const std::shared_ptr<render_data_context>& render_data,
-		const std::shared_ptr<render_particle_indices>& particle_indices,
-		float previous_time, float current_time);
-
-	void build_render_lists(
-		const render_data_context& render_data,
-		scene_view_state& target_state,
-		const collision::frustum_culling& frustum_culling,
-		const std::unordered_map<UINT, uint8_t>& occlusion_visible,
-		render_mesh_indices& mesh_indices,
-		render_decal_indices& decal_indices);
-
-	void build_particle_render_lists(
-		const render_data_context& render_data,
-		render_particle_indices& particle_indices);
-
 private:
 	CONST HWND hwnd;
-	std::shared_ptr<scene_render_targets> render_targets;
-	std::vector<std::unique_ptr<renderer>> scene_renderers;
-	std::vector<std::unique_ptr<renderer>> ui_renderers;
-	std::shared_ptr<render_job_executor> render_executor;
-
-	//	メインのワールド
-	std::unique_ptr<world> main_world;
-
-	//	メイン視点の選択
-	view_selector main_view_selector;
+	std::shared_ptr<render_job_executor> render_executor;	//	描画ジョブ実行者
+	std::unique_ptr<world> main_world;	//	メインのワールド
+	std::unique_ptr<world_renderer> main_renderer;	//	メインのワールドの描画
 
 #if defined(USE_IMGUI)
 	std::unique_ptr<console_command> pause_command;
 	std::unique_ptr<console_command> step_command;
 #endif	//	defined(USE_IMGUI)
-
-	//	描画用の一部情報
-	render_pass back_buffer_clear_rendering_pass;
-
-	//	UI描画用のシーン定数バッファ(viewport_rectのみ使用)
-	Microsoft::WRL::ComPtr<ID3D11Buffer> ui_scene_constant_buffer;
-
-private:
-	//	メイン視点情報
-	static constexpr scene_view_state_key main_scene_view_state_key = scene_view_state_cache::make_key("main");
-	view_parameters main_view_parameters;
-	bool main_view_camera_cut = false;
-	Microsoft::WRL::ComPtr<ID3D11Buffer> main_scene_constant_buffer;
-
-	scene_view_state_cache scene_view_states;
-	uint64_t render_frame_index = 0;
-
-private:	//	描画情報振り分け
-	struct cull_bucket
-	{
-		std::vector<std::size_t> opaque;
-		std::vector<std::size_t> mask;
-		std::vector<std::size_t> forward[render_mesh_indices::forward_size];
-		void clear()
-		{
-			opaque.clear();
-			mask.clear();
-			for (auto& indices : forward)
-				indices.clear();
-		}
-	};
-	std::vector<cull_bucket> cull_buckets;
-	std::vector<std::uintptr_t> sort_pipeline_keys;
-	parallel_for_executor parallel_executor;
 
 private:	//	その他
 	float wheel{ 0 };

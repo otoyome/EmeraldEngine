@@ -237,17 +237,15 @@ void ui_renderer::sprite_render(graphics_context& context, const std::vector<buf
 void ui_renderer::resize_buffer(int width, int height)
 {
 	rendering_pass.render_targets.clear();
-	rendering_pass.render_targets.emplace_back(render_data::instance()->get_swap_chain());
+	rendering_pass.render_targets.emplace_back(render_targets->output->make_render_target_view());
 	rendering_pass.render_targets.back().clear_color = false;
 
-	DXGI_SWAP_CHAIN_DESC desc;
-	render_data::instance()->get_swap_chain()->GetDesc(&desc);
 
 	//	ビューポートの設定
 	viewport.TopLeftX = 0.0f;
 	viewport.TopLeftY = 0.0f;
-	viewport.Width = static_cast<float>(desc.BufferDesc.Width);
-	viewport.Height = static_cast<float>(desc.BufferDesc.Height);
+	viewport.Width = static_cast<float>(render_targets->output->get_width());
+	viewport.Height = static_cast<float>(render_targets->output->get_height());
 	viewport.MinDepth = 0.0f;
 	viewport.MaxDepth = 1.0f;
 }
