@@ -81,7 +81,7 @@ private:
 	using call_back_change_state_map = std::unordered_map<std::string, call_back_change_state_inner_map>;
 
 public:
-	roomba_object(std::string_view name, std::shared_ptr<model_object> model, std::string_view collision_filter_name);
+	roomba_object(engine_context& context, std::string_view name, std::shared_ptr<model_object> model, std::string_view collision_filter_name);
 	~roomba_object() override;
 
 	void fixed_update(float elapsed_time) override;

@@ -200,11 +200,11 @@ bool minigame_stage_01_scene::initialize_core()
 
 bool minigame_stage_01_scene::uninitialize_core()
 {
-	if (!sdf_ids.empty() && effect_manager::is_valid())
+	if (!sdf_ids.empty())
 	{
 		for (auto sdf_id : sdf_ids)
 		{
-			effect_manager::instance()->remove_cubic_sdf(sdf_id);
+			get_context().get_effects().remove_cubic_sdf(sdf_id);
 		}
 		sdf_ids.clear();
 	}
@@ -282,7 +282,7 @@ void minigame_stage_01_scene::generate_model_sdf(model_resource_ptr resource)
 		if (!sdf.deserialize(sdf_path.string()))
 			continue;
 
-		uint32_t sdf_id = effect_manager::instance()->add_cubic_sdf(sdf);
+		uint32_t sdf_id = get_context().get_effects().add_cubic_sdf(sdf);
 		if (sdf_id != 0xFFFFFFFF)
 			sdf_ids.push_back(sdf_id);
 	}

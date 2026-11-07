@@ -336,10 +336,11 @@ bool collision_test_scene::initialize_core()
 #if defined(USE_IMGUI)
 	//	エディターカメラ生成
 	{
-		editor_camera_request = editor_camera_manager::instance()->request(
+		editor_camera = std::make_shared<editor_camera_object>("エディターカメラ",
 			system_units::convert_m_to_unit(math::vector3d(0.0, 3.0, 10.0)),
-			{ 0.2f, math::constants<float>::pi, 0 },
+			math::rotatorf(0.2f, math::constants<float>::pi, 0),
 			0.25f);
+		register_object(editor_camera);
 	}
 #endif // defined(USE_IMGUI)
 

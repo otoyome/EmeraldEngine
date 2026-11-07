@@ -77,10 +77,11 @@ bool light_shadow_test_scene::initialize_core()
 
 	//	エディターカメラ生成
 	{
-		editor_camera_request = editor_camera_manager::instance()->request(
+		editor_camera = std::make_shared<editor_camera_object>("エディターカメラ",
 			system_units::convert_m_to_unit(math::vector3d(0.0, 10.0, 22.0)),
-			{ 0.4f, math::constants<float>::pi, 0 },
+			math::rotatorf(0.4f, math::constants<float>::pi, 0),
 			0.25f);
+		register_object(editor_camera);
 	}
 
 	//	平行光源生成
@@ -120,7 +121,7 @@ bool light_shadow_test_scene::initialize_core()
 bool light_shadow_test_scene::uninitialize_core()
 {
 	clear_lights();
-	editor_camera_request.reset();
+	editor_camera.reset();
 	return true;
 }
 
@@ -143,7 +144,7 @@ void light_shadow_test_scene::update_core(float elapsed_time)
 void light_shadow_test_scene::clear_lights()
 {
 	for (auto& object : lights)
-		object_manager::instance()->unregister_object(object);
+		get_context().get_objects().unregister_object(object);
 	lights.clear();
 }
 

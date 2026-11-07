@@ -27,6 +27,7 @@ extern ImWchar glyphRangesJapanese[];
 namespace collision { class frustum_culling; }
 struct render_data_context;
 class world;
+class console_command;
 
 class framework
 {
@@ -88,6 +89,11 @@ private:
 
 	//	メイン視点の選択
 	view_selector main_view_selector;
+
+#if defined(USE_IMGUI)
+	std::unique_ptr<console_command> pause_command;
+	std::unique_ptr<console_command> step_command;
+#endif	//	defined(USE_IMGUI)
 
 	//	描画用の一部情報
 	render_pass back_buffer_clear_rendering_pass;

@@ -32,14 +32,14 @@ void setup_scene::update_core(float elapsed_time)
 		return;
 	}
 
-	scene_manager::instance()->remove_scene<setup_scene>();
+	get_context().get_scenes().remove_scene<setup_scene>();
 #if defined(USE_IMGUI)
 	//scene_manager::instance()->add_scene<edit_model_scene>();
 	//scene_manager::instance()->add_scene<game_main_scene>();
 	//scene_manager::instance()->add_scene<edit_particle_scene>();
-	scene_manager::instance()->add_scene<minigame_title_scene>();
+	get_context().get_scenes().add_scene<minigame_title_scene>();
 #else	//	defined(USE_IMGUI)
-	scene_manager::instance()->add_scene<minigame_title_scene>();
+	get_context().get_scenes().add_scene<minigame_title_scene>();
 #endif	//	defined(USE_IMGUI)
 }
 

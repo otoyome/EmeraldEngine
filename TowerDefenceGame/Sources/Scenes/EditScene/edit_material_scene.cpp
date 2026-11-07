@@ -115,10 +115,11 @@ bool edit_material_scene::initialize_core()
 
 	//	エディターカメラ生成
 	{
-		editor_camera_request = editor_camera_manager::instance()->request(
+		editor_camera = std::make_shared<editor_camera_object>("エディターカメラ",
 			system_units::convert_m_to_unit(math::vector3d(0.0, 1.0, 8.0)),
-			{ 0, math::constants<float>::pi, 0 },
+			math::rotatorf(0, math::constants<float>::pi, 0),
 			0.25f);
+		register_object(editor_camera);
 	}
 
 	//	エディターアイテム用コンテキスト生成
@@ -132,7 +133,7 @@ bool edit_material_scene::initialize_core()
 		model_resource_utility::generate_primitive_model(*floor_resource, model_resource_utility::primitive_shapes::plane, floor_size);
 		floor_model = std::make_shared<model_object>("床", floor_resource);
 		floor_model->set_active(show_floor);
-		object_manager::instance()->register_object(floor_model);
+		get_context().get_objects().register_object(floor_model);
 	}
 
 	//	プレビューモデル
@@ -149,12 +150,12 @@ bool edit_material_scene::uninitialize_core()
 
 	if (preview_model)
 	{
-		object_manager::instance()->unregister_object(preview_model);
+		get_context().get_objects().unregister_object(preview_model);
 		preview_model.reset();
 	}
 	if (floor_model)
 	{
-		object_manager::instance()->unregister_object(floor_model);
+		get_context().get_objects().unregister_object(floor_model);
 		floor_model.reset();
 	}
 	return true;
@@ -445,12 +446,12 @@ void edit_material_scene::change_preview_shape(model_resource_utility::primitive
 void edit_material_scene::set_preview_resource(const model_resource_ptr& resource, double lift)
 {
 	if (preview_model)
-		object_manager::instance()->unregister_object(preview_model);
+		get_context().get_objects().unregister_object(preview_model);
 
 	preview_model = std::make_shared<model_object>("プレビューモデル", resource);
 	preview_model->set_world_translation({ 0.0, lift, 0.0 });
 	preview_model->set_active(true);
-	object_manager::instance()->register_object(preview_model);
+	get_context().get_objects().register_object(preview_model);
 
 	if (!source_model && !source_effect && !source_material)
 	{
@@ -497,7 +498,7 @@ void edit_material_scene::restart_preview_effect()
 		return;
 
 	preview_effect = std::make_shared<effect_instance>(source_effect);
-	effect_manager::instance()->register_instance(preview_effect);
+	get_context().get_effects().register_instance(preview_effect);
 }
 
 void edit_material_scene::clear_preview_effect()
@@ -505,8 +506,7 @@ void edit_material_scene::clear_preview_effect()
 	if (!preview_effect)
 		return;
 
-	if (effect_manager::is_valid())
-		effect_manager::instance()->unregister_instance(preview_effect);
+	get_context().get_effects().unregister_instance(preview_effect);
 	preview_effect.reset();
 }
 

@@ -25,10 +25,11 @@ bool edit_model_scene::initialize_edit_core()
 {
 	//	エディターカメラ生成
 	{
-		editor_camera_request = editor_camera_manager::instance()->request(
+		editor_camera = std::make_shared<editor_camera_object>("エディターカメラ",
 			system_units::convert_m_to_unit(math::vector3d(0.0, 1.0, 8.0)),
-			{ 0, math::constants<float>::pi, 0 },
+			math::rotatorf(0, math::constants<float>::pi, 0),
 			0.25f);
+		register_object(editor_camera);
 	}
 
 	//	エディターアイテム用コンテキスト生成
@@ -53,7 +54,7 @@ bool edit_model_scene::uninitialize_edit_core()
 	if (!uninitialize_animation())
 		return false;
 
-	editor_camera_request.reset();
+	editor_camera.reset();
 
 	return true;
 }
@@ -490,18 +491,18 @@ bool edit_model_scene::initialize_vertex_color_edit()
 	{
 		static constexpr std::string_view keys[] =
 		{
-			editor_camera::left_click_down_identifier,
-			editor_camera::left_click_hold_identifier,
+			editor_camera_object::left_click_down_identifier,
+			editor_camera_object::left_click_hold_identifier,
 		};
 		for (int index = 0; index < ARRAYSIZE(keys); ++index)
 		{
-			left_click_data_identifier[index] = object_manager::instance()->get_messenger().add_receiver(
+			left_click_data_identifier[index] = get_context().get_objects().get_messenger().add_receiver(
 				keys[index],
 				[this](void* data_ptr) { on_mouse_left_down_and_hold(data_ptr); });
 		}
 
-		left_click_data_identifier[2] = object_manager::instance()->get_messenger().add_receiver(
-			editor_camera::left_click_release_identifier,
+		left_click_data_identifier[2] = get_context().get_objects().get_messenger().add_receiver(
+			editor_camera_object::left_click_release_identifier,
 			[this](void* data_ptr) { on_mouse_left_release(data_ptr); });
 	}
 	return true;
@@ -513,7 +514,7 @@ bool edit_model_scene::uninitialize_vertex_color_edit()
 	{
 		for (auto& id : left_click_data_identifier)
 		{
-			object_manager::instance()->get_messenger().remove_receiver(id);
+			get_context().get_objects().get_messenger().remove_receiver(id);
 		}
 	}
 	return true;
@@ -559,13 +560,13 @@ void edit_model_scene::on_mouse_left_down_and_hold(void* data_ptr)
 	if (!edit_model || !is_edit_vertex_color)
 		return;
 
-	auto data = static_cast<editor_camera::mouse_position_data*>(data_ptr);
+	auto data = static_cast<editor_camera_object::mouse_position_data*>(data_ptr);
 
-	if (!editor_camera_request)
+	if (!editor_camera)
 		return;
 
 	//	表示しているエディターカメラの視点からレイを作る
-	const view_parameters& parameters = editor_camera_manager::instance()->get_camera()->get_camera()->get_parameters();
+	const view_parameters& parameters = editor_camera->get_camera()->get_parameters();
 	const scene_view picking_view = scene_view::from_parameters(parameters, math::vector3d::zero());
 	const math::matrixf view(picking_view.get_view_matrix());
 	const math::matrixf projection(picking_view.get_projection_matrix());
@@ -660,14 +661,14 @@ void edit_model_scene::on_model_release()
 	if (vertex_color_edit_model)
 	{
 		vertex_color_edit_model->set_active(false);
-		object_manager::instance()->unregister_object(vertex_color_edit_model);
+		get_context().get_objects().unregister_object(vertex_color_edit_model);
 		vertex_color_edit_model = nullptr;
 	}
 
 	if (edit_model)
 	{
 		edit_model->set_active(false);
-		object_manager::instance()->unregister_object(edit_model);
+		get_context().get_objects().unregister_object(edit_model);
 		edit_model = nullptr;
 	}
 }
@@ -678,7 +679,7 @@ void edit_model_scene::on_model_setup()
 		return;
 
 	edit_model->set_active(true);
-	object_manager::instance()->register_object(edit_model);
+	get_context().get_objects().register_object(edit_model);
 
 	//	モデルのファイルパスを取得
 	std::string file_path = std::string(edit_model->get_model_instance()->get_resource()->get_file_path());
@@ -712,7 +713,7 @@ void edit_model_scene::on_model_setup()
 		}
 		vertex_color_edit_model->set_display_inspector(false);
 		vertex_color_edit_model->set_active(is_edit_vertex_color);
-		object_manager::instance()->register_object(vertex_color_edit_model);
+		get_context().get_objects().register_object(vertex_color_edit_model);
 	}
 
 	//	編集モデルのメッシュリストを収集

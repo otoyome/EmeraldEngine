@@ -48,14 +48,8 @@ struct view_selection
 class view_selector
 {
 public:
-	//	game_source はゲーム側の視点、override_source はエディターカメラなどの上書き視点（無ければ nullptr）
-	bool select(camera* game_source, camera* override_source, view_selection& selection);
-
-	//	直近のシーンビュー
-	const view_parameters* get_game_view() const { return has_game_view ? &game_view : nullptr; }
+	bool select(camera* source, view_selection& selection);
 
 private:
 	uint64_t current_source_id = 0;	//	前回ID
-	view_parameters game_view;		//	直近のゲーム側のシーンビュー
-	bool has_game_view = false;
 };

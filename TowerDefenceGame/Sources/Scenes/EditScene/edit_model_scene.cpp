@@ -153,8 +153,8 @@ bool edit_model_scene::initialize_core()
 
 bool edit_model_scene::uninitialize_core()
 {
-	object_manager::instance()->unregister_object(edit_model);
-	object_manager::instance()->unregister_object(post_process_volume);
+	get_context().get_objects().unregister_object(edit_model);
+	get_context().get_objects().unregister_object(post_process_volume);
 	return uninitialize_edit_core();
 }
 

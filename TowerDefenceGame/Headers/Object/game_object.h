@@ -3,6 +3,8 @@
 #include <mutex>
 #include <functional>
 
+class engine_context;
+
 //	ゲーム用オブジェクト
 class game_object : public std::enable_shared_from_this<game_object>
 {
@@ -22,6 +24,10 @@ public:
 
 	bool is_active() const;
 	void set_active(bool active);
+
+	bool has_context() const { return context != nullptr; }
+	engine_context& get_context() const;
+	void set_context(engine_context& context) { this->context = &context; }
 
 public:
 	game_object(std::string_view name);
@@ -57,6 +63,7 @@ protected:
 private:
 	size_t id;
 	bool active;
+	engine_context* context = nullptr;
 #if defined(USE_IMGUI)
 	bool display_inspector = true;
 #endif	//	defined(USE_IMGUI)

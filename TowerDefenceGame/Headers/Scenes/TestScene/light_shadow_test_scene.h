@@ -79,6 +79,6 @@ private:
 	std::shared_ptr<model_object> animated_character;
 	std::shared_ptr<model_object> moving_character;
 
-	editor_camera_manager::scene_request_ptr editor_camera_request;
+	std::shared_ptr<editor_camera_object> editor_camera;
 };
 #endif	//	defined(USE_IMGUI)

@@ -76,6 +76,6 @@ private:
 	std::shared_ptr<directional_light_object> directional_light;
 	float directional_intensity = 10000.0f;	//	•½sŒõŒ¹‚Ì‹­‚³
 
-	editor_camera_manager::scene_request_ptr editor_camera_request;
+	std::shared_ptr<editor_camera_object> editor_camera;
 };
 #endif	//	defined(USE_IMGUI)

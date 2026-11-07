@@ -1,11 +1,14 @@
 #pragma once
 
 #include "camera.h"
+#include "object/camera_object.h"
 
 #if	defined(USE_IMGUI)
 //	エディターカメラ
-class editor_camera
+class editor_camera_object : public camera_object
 {
+	GAME_OBJECT_DECRLEAR(editor_camera_object, camera_object)
+
 public:
 	static constexpr std::string_view left_click_down_identifier = "editor_camera::left_click_down_identifier";
 	static constexpr std::string_view left_click_hold_identifier = "editor_camera::left_click_hold_identifier";
@@ -16,7 +19,6 @@ public:
 	};
 
 public:
-	inline camera_ptr get_camera() const {return camera;}
 	void set_rotation(const math::rotatorf& rotation) {this->rotation = rotation;}
 	const math::rotatorf& get_rotation() const {return rotation;}
 	void set_position(const math::vector3d& position) { this->position = position; }
@@ -28,18 +30,21 @@ public:
 	float get_move_speed() const { return move_speed; }
 
 public:
-	editor_camera();
-	~editor_camera();
+	editor_camera_object(std::string_view name, const math::vector3d& position, const math::rotatorf& rotation, float speed_scale = 1.0f);
+	~editor_camera_object() override;
 
-	//	入力による操作
-	void update(float elapsed_time);
+	void post_update(float elapsed_time) override;
+	void debug_update(float elapsed_time) override;
 
-	//	元になる視点を引き継ぎ、姿勢だけ自身のものにする
+protected:
+	void on_active() override;
+
+private:
+	void handle_input(float elapsed_time);
+	std::shared_ptr<camera_object> find_game_camera() const;
 	void apply_view(const view_parameters* base);
 
 private:
-	camera_ptr camera;
-
 	bool is_auto_rotate = false;
 
 	math::rotatorf rotation;
@@ -47,66 +52,6 @@ private:
 
 	float rotation_speed = 0.0f;
 	float move_speed = 0.0f;
-};
-
-//	エディターカメラの管理
-class editor_camera_manager
-{
-	SINGLETON(editor_camera_manager)
-
-public:
-	//	エディターカメラにリクエストを送る中継コマンド
-	class scene_request
-	{
-		friend class editor_camera_manager;
-
-	public:
-		//	一時停止
-		void set_suspended(bool suspended) { this->suspended = suspended; }
-		bool is_suspended() const { return suspended; }
-
-	private:
-		bool suspended = false;
-	};
-	using scene_request_ptr = std::shared_ptr<scene_request>;
-
-private:
-	editor_camera_manager();
-	~editor_camera_manager();
-
-public:
-	//	更新
-	void update(float elapsed_time, const view_parameters* game_view);
-
-	//	エディターカメラでオーバーライド
-	scene_request_ptr request(const math::vector3d& position, const math::rotatorf& rotation, float speed_scale = 1.0f);
-
-	//	エディターカメラで描画しているか？
-	bool is_enabled() const { return enabled; }
-
-	//	設定フラグ
-	bool is_user_enabled() const;
-	void set_user_enabled(bool enabled);
-
-	const std::shared_ptr<editor_camera>& get_camera() const { return camera; }
-
-	//	視点を上書きするカメラ
-	camera_ptr get_override_camera() const;
-
-private:
-	bool compute_enabled();
-	void begin_camera(const view_parameters* game_view);
-	void end_camera();
-
-private:
-	std::shared_ptr<editor_camera> camera;
-	std::vector<std::weak_ptr<scene_request>> requests;
-	bool enabled = false;
-
-	//	次に有効になったときに使う初期姿勢
-	bool has_initial_pose = false;
-	math::vector3d initial_position;
-	math::rotatorf initial_rotation;
 };
 
 #endif	//	defined(USE_IMGUI)

@@ -61,7 +61,7 @@ minigame_scene::minigame_scene()
 	//	メインカメラ生成
 	std::shared_ptr<camera_object> main_camera;
 	{
-		main_camera = object_manager::instance()->search_object<camera_object>("メインカメラ");
+		main_camera = get_context().get_objects().search_object<camera_object>("メインカメラ");
 		main_camera->get_camera()->get_parameters().fov_y = math::angle::to_radian(30.0f);
 		main_camera->set_world_translation(math::double3(0, 10, 40));
 	}
@@ -105,11 +105,11 @@ minigame_scene::minigame_scene()
 		register_object(roomba_model);
 
 		//	ルンバオブジェクト生成
-		player_object = std::make_shared<roomba_object>(RoombaObjectName, roomba_model, "player");
+		player_object = std::make_shared<roomba_object>(get_context(), RoombaObjectName, roomba_model, "player");
 		register_object(player_object);
 
 		//	ルンバ制御オブジェクト生成
-		auto roomba_controller = std::make_shared<roomba_controller_object>(RoombaControllerObjectName, player_object, main_camera);
+		auto roomba_controller = std::make_shared<roomba_controller_object>(get_context(), RoombaControllerObjectName, player_object, main_camera);
 		register_object(roomba_controller);
 	}
 
@@ -149,12 +149,12 @@ bool minigame_scene::uninitialize_core()
 	for (auto& effect : bubble_effect)
 	{
 		if (effect)
-			effect_manager::instance()->unregister_instance(effect);
+			get_context().get_effects().unregister_instance(effect);
 	}
 	for (auto& effect : dust_effect)
 	{
 		if (effect)
-			effect_manager::instance()->unregister_instance(effect);
+			get_context().get_effects().unregister_instance(effect);
 	}
 	return true;
 }
@@ -175,14 +175,14 @@ void minigame_scene::update_core(float elapsed_time)
 			transition_fade_controller::instance()->play(fade::directions::in, 0.5f, fade::modes::black);
 
 			//	関数登録
-			if (auto trash_object = object_manager::instance()->search_object<roomba_trash_controller_object>("ルンバUI：ゴミ収集率コントローラー"))
+			if (auto trash_object = get_context().get_objects().search_object<roomba_trash_controller_object>("ルンバUI：ゴミ収集率コントローラー"))
 			{
 				trash_object->set_getter([this](){ return trash_count; }, [this](){ return trash_max; });
 			}
 
 			//	開始処理
 			{
-				auto start_points = object_manager::instance()->search_objects<start_point_object>();
+				auto start_points = get_context().get_objects().search_objects<start_point_object>();
 				for (auto& start_point : start_points)
 				{
 					if (start_point->get_tag().find("Player Start") != std::string::npos)
@@ -198,21 +198,21 @@ void minigame_scene::update_core(float elapsed_time)
 						bubble_effect.emplace_back(std::make_shared<effect_instance>(bubble_effect_resource));
 						bubble_effect.back()->set_position(start_point->get_world_translation());
 						bubble_effect.back()->set_rotation(math::rotatorf(start_point->get_world_euler()));
-						effect_manager::instance()->register_instance(bubble_effect.back());
+						get_context().get_effects().register_instance(bubble_effect.back());
 					}
 					else if (start_point->get_tag().find("Dust Point") != std::string::npos)
 					{
 						dust_effect.emplace_back(std::make_shared<effect_instance>(dust_effect_resource));
 						dust_effect.back()->set_position(start_point->get_world_translation());
 						dust_effect.back()->set_rotation(math::rotatorf(start_point->get_world_euler()));
-						effect_manager::instance()->register_instance(dust_effect.back());
+						get_context().get_effects().register_instance(dust_effect.back());
 					}
 				}
 
 				//	グローバルバブルを作成
 				{
 					bubble_effect.emplace_back(std::make_shared<effect_instance>(global_bubble_effect_resource));
-					effect_manager::instance()->register_instance(bubble_effect.back());
+					get_context().get_effects().register_instance(bubble_effect.back());
 				}
 
 				//	Dustノードのパーティクル設定からゴミの最大数を収集する
@@ -233,12 +233,12 @@ void minigame_scene::update_core(float elapsed_time)
 			}
 
 			//	プレイヤー入力を止める
-			if (auto controller = object_manager::instance()->search_object<roomba_controller_object>(RoombaControllerObjectName))
+			if (auto controller = get_context().get_objects().search_object<roomba_controller_object>(RoombaControllerObjectName))
 			{
 				controller->set_input_purmit_flag(false);
 
 				//	このタイミングでカメラを作成
-				if (auto main_camera = object_manager::instance()->search_object<camera_object>("メインカメラ"))
+				if (auto main_camera = get_context().get_objects().search_object<camera_object>("メインカメラ"))
 				{
 					auto camera_controller = std::make_shared<roomba_camera_controller_object>(RoombaCameraControllerObjectName, controller, main_camera);
 					camera_controller->set_input_purmit_flag(false);
@@ -276,7 +276,7 @@ void minigame_scene::update_core(float elapsed_time)
 			}
 
 			//	カメラの入力のみ許可
-			if (auto controller = object_manager::instance()->search_object<roomba_camera_controller_object>(RoombaCameraControllerObjectName))
+			if (auto controller = get_context().get_objects().search_object<roomba_camera_controller_object>(RoombaCameraControllerObjectName))
 			{
 				controller->set_input_purmit_flag(true);
 				controller->change_state(roomba_camera_controller_object::states::free);
@@ -290,7 +290,7 @@ void minigame_scene::update_core(float elapsed_time)
 			//	プレイヤーをアクティブ状態に
 			player_object->set_heat_value(0);
 			player_object->set_wet_value(0);
-			if (auto start_point = object_manager::instance()->search_object<start_point_object>())
+			if (auto start_point = get_context().get_objects().search_object<start_point_object>())
 			{
 				player_object->set_position(start_point->get_world_translation().to_float3());
 				player_object->set_rotation(math::rotatorf(start_point->get_world_euler()));
@@ -298,7 +298,7 @@ void minigame_scene::update_core(float elapsed_time)
 			player_object->change_state(roomba_object::states::active);
 
 			//	カウントダウン中はプレイヤー入力を止める
-			if (auto controller = object_manager::instance()->search_object<roomba_controller_object>(RoombaControllerObjectName))
+			if (auto controller = get_context().get_objects().search_object<roomba_controller_object>(RoombaControllerObjectName))
 			{
 				controller->set_input_purmit_flag(false);
 			}
@@ -319,7 +319,7 @@ void minigame_scene::update_core(float elapsed_time)
 			constexpr float count_interval = 1.0f;
 			constexpr float start_display_time = 0.8f;
 			constexpr float countdown_finish_time = count_interval * 3.0f + start_display_time;
-			if (auto countdown = object_manager::instance()->search_object<countdown_controller_object>("ルンバUI：カウントダウン表示コントローラー"))
+			if (auto countdown = get_context().get_objects().search_object<countdown_controller_object>("ルンバUI：カウントダウン表示コントローラー"))
 			{
 				if (countdown_timer < count_interval * 1.0f)
 					countdown->set_count(3);
@@ -334,7 +334,7 @@ void minigame_scene::update_core(float elapsed_time)
 			}
 			if (countdown_timer >= countdown_finish_time)
 			{
-				if (auto controller = object_manager::instance()->search_object<roomba_controller_object>(RoombaControllerObjectName))
+				if (auto controller = get_context().get_objects().search_object<roomba_controller_object>(RoombaControllerObjectName))
 				{
 					controller->set_input_purmit_flag(true);
 				}
@@ -345,7 +345,7 @@ void minigame_scene::update_core(float elapsed_time)
 		case game_states::main_game:
 		{
 			//	スペースキーを押している間だけチュートリアルを表示する
-			if (auto tutorial = object_manager::instance()->search_object<roomba_tutorial_controller_object>("ルンバUI：チュートリアル表示コントローラー"))
+			if (auto tutorial = get_context().get_objects().search_object<roomba_tutorial_controller_object>("ルンバUI：チュートリアル表示コントローラー"))
 			{
 				auto space_state = input::get_key_state(keyboard::key_states::space);
 				auto pad_state = input::get_key_state(gamepad::key_states::back);
@@ -356,7 +356,7 @@ void minigame_scene::update_core(float elapsed_time)
 
 			//	時間表示更新
 			game_timer += elapsed_time;
-			if (auto timer_object = object_manager::instance()->search_object<timer_controller_object>("ルンバUI：経過時間表示コントローラー"))
+			if (auto timer_object = get_context().get_objects().search_object<timer_controller_object>("ルンバUI：経過時間表示コントローラー"))
 			{
 				timer_object->set_time(game_timer);
 			}
@@ -410,11 +410,11 @@ void minigame_scene::update_core(float elapsed_time)
 		}
 		case game_states::result_start:
 		{
-			if (auto controller = object_manager::instance()->search_object<roomba_controller_object>(RoombaControllerObjectName))
+			if (auto controller = get_context().get_objects().search_object<roomba_controller_object>(RoombaControllerObjectName))
 			{
 				controller->set_input_purmit_flag(false);
 			}
-			if (auto controller = object_manager::instance()->search_object<roomba_camera_controller_object>(RoombaCameraControllerObjectName))
+			if (auto controller = get_context().get_objects().search_object<roomba_camera_controller_object>(RoombaCameraControllerObjectName))
 			{
 				controller->set_input_purmit_flag(false);
 				//controller->change_state(roomba_camera_controller_object::states::entry);
@@ -430,7 +430,7 @@ void minigame_scene::update_core(float elapsed_time)
 			constexpr float count_interval = 1.0f;
 			constexpr float start_display_time = 0.8f;
 			constexpr float countdown_finish_time = count_interval * 4.0f + start_display_time;
-			if (auto countdown = object_manager::instance()->search_object<countdown_controller_object>("ルンバUI：カウントダウン表示コントローラー"))
+			if (auto countdown = get_context().get_objects().search_object<countdown_controller_object>("ルンバUI：カウントダウン表示コントローラー"))
 			{
 				if (countdown_timer < count_interval * 4.0f)
 					countdown->set_finish();
@@ -457,14 +457,14 @@ void minigame_scene::update_core(float elapsed_time)
 			if (!transition_fade_controller::instance()->is_processing())
 			{
 				//	不要なシーンを破棄
-				auto scene_names = scene_manager::instance()->get_valid_scene_names();
+				auto scene_names = get_context().get_scenes().get_valid_scene_names();
 				for (auto& name : scene_names)
 				{
 					if (name.find("minigame_stage") != std::string::npos ||
 						name.find("minigame_ui_scene") != std::string::npos ||
 						name.find("minigame_scene") != std::string::npos)
 					{
-						scene_manager::instance()->remove_scene(name);
+						get_context().get_scenes().remove_scene(name);
 					}
 				}
 
@@ -486,7 +486,7 @@ void minigame_scene::update_core(float elapsed_time)
 					entry.trash_max = trash_max;
 					record_data->add_record(entry);
 				}
-				scene_manager::instance()->add_scene<minigame_result_scene>();
+				get_context().get_scenes().add_scene<minigame_result_scene>();
 			}
 			break;
 		}
@@ -536,13 +536,13 @@ void minigame_scene::update_core(float elapsed_time)
 		}
 
 		//	1F前のパーティクルイベント情報を取得
-		auto particle_events = effect_manager::instance()->get_particle_events();
+		auto particle_events = get_context().get_effects().get_particle_events();
 		if (!particle_events.empty())
 		{
 			bubble_emitter_ids.clear();
 			dust_emitter_ids.clear();
 			//	ゴミか泡のイベントのみ収集
-			for (auto& item : effect_manager::instance()->get_items())
+			for (auto& item : get_context().get_effects().get_items())
 			{
 				//	泡
 				for (auto& effect : bubble_effect)

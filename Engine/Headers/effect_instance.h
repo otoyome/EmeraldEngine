@@ -160,8 +160,6 @@ using effect_instance_ptr = std::shared_ptr<effect_instance>;
 //	エフェクトマネージャー
 class effect_manager
 {
-	MAIN_WORLD_SINGLETON(effect_manager)
-
 	//	パーティクルのエミッターアイテム
 	struct item
 	{

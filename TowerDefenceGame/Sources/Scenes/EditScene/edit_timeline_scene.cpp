@@ -574,8 +574,8 @@ edit_timeline_scene::~edit_timeline_scene()
 
 const view_parameters* edit_timeline_scene::find_current_view_parameters() const
 {
-	if (editor_camera_manager::instance()->is_enabled())
-		return &editor_camera_manager::instance()->get_camera()->get_camera()->get_parameters();
+	if (editor_camera && editor_camera->is_active())
+		return &editor_camera->get_camera()->get_parameters();
 	if (main_camera)
 		return &main_camera->get_camera()->get_parameters();
 	return nullptr;
@@ -641,10 +641,11 @@ bool edit_timeline_scene::initialize_core()
 
 	//	エディターカメラ生成
 	{
-		editor_camera_request = editor_camera_manager::instance()->request(
+		editor_camera = std::make_shared<editor_camera_object>("エディターカメラ",
 			system_units::convert_m_to_unit(math::vector3d(0.0, 1.0, 8.0)),
-			{ 0, math::constants<float>::pi, 0 },
+			math::rotatorf(0, math::constants<float>::pi, 0),
 			0.25f);
+		register_object(editor_camera);
 	}
 
 	//	エディターアイテム用コンテキスト生成
@@ -661,7 +662,7 @@ bool edit_timeline_scene::uninitialize_core()
 {
 	clear_active_effects();
 	clear_object_models();
-	editor_camera_request.reset();
+	editor_camera.reset();
 	return true;
 }
 
@@ -730,14 +731,14 @@ void edit_timeline_scene::remove_object(std::size_t object_index)
 		return;
 
 	if (object_models[object_index])
-		object_manager::instance()->unregister_object(object_models[object_index]);
+		get_context().get_objects().unregister_object(object_models[object_index]);
 
 	std::unordered_map<size_t, effect_instance_ptr> shifted;
 	for (auto iterator = active_effects.begin(); iterator != active_effects.end();)
 	{
 		if (iterator->first == object_index)
 		{
-			effect_manager::instance()->unregister_instance(iterator->second);
+			get_context().get_effects().unregister_instance(iterator->second);
 			iterator = active_effects.erase(iterator);
 			continue;
 		}
@@ -764,7 +765,7 @@ void edit_timeline_scene::on_object_kind_changed(std::size_t object_index, timel
 	if (previous_kind == timeline_resource::object_entry::kind::actor &&
 		object_index < object_models.size() && object_models[object_index])
 	{
-		object_manager::instance()->unregister_object(object_models[object_index]);
+		get_context().get_objects().unregister_object(object_models[object_index]);
 		object_models[object_index] = nullptr;
 		if (object_index < last_active_animation_per_object.size())
 			last_active_animation_per_object[object_index] = -1;
@@ -775,7 +776,7 @@ void edit_timeline_scene::on_object_kind_changed(std::size_t object_index, timel
 		auto it = active_effects.find(object_index);
 		if (it != active_effects.end())
 		{
-			effect_manager::instance()->unregister_instance(it->second);
+			get_context().get_effects().unregister_instance(it->second);
 			active_effects.erase(it);
 		}
 	}
@@ -802,7 +803,7 @@ void edit_timeline_scene::rebuild_object_models()
 				if (resource)
 				{
 					model = std::make_shared<model_object>(actor->model_path, resource);
-					object_manager::instance()->register_object(model);
+					get_context().get_objects().register_object(model);
 				}
 			}
 		}
@@ -815,7 +816,7 @@ void edit_timeline_scene::clear_object_models()
 	for (auto& model : object_models)
 	{
 		if (model)
-			object_manager::instance()->unregister_object(model);
+			get_context().get_objects().unregister_object(model);
 	}
 	object_models.clear();
 	last_active_animation_per_object.clear();
@@ -979,13 +980,13 @@ void edit_timeline_scene::apply_timeline_state()
 			{
 				auto instance = std::make_shared<effect_instance>(resource);
 				instance->set_position(math::vector3d(effect_entry->position));
-				effect_manager::instance()->register_instance(instance);
+				get_context().get_effects().register_instance(instance);
 				active_effects.emplace(object_index, instance);
 			}
 		}
 		else if (!should_be_active && currently_active)
 		{
-			effect_manager::instance()->unregister_instance(it->second);
+			get_context().get_effects().unregister_instance(it->second);
 			active_effects.erase(it);
 		}
 		else if (should_be_active && currently_active)
@@ -1017,8 +1018,8 @@ void edit_timeline_scene::apply_timeline_state()
 		auto& entry = *active_camera_entry;
 
 		//	タイムラインのカメラを見せるためエディターカメラを一時停止
-		if (editor_camera_request)
-			editor_camera_request->set_suspended(true);
+		if (editor_camera)
+			editor_camera->set_active(false);
 
 		const float denom = std::max(0.0001f, entry.end_time - entry.start_time);
 		const float t = math::saturate((current_time - entry.start_time) / denom);
@@ -1040,11 +1041,11 @@ void edit_timeline_scene::apply_timeline_state()
 		main_camera->set_world_rotation(math::quaterniond(math::quaternionf(quaternion)));
 		main_camera->get_camera()->get_parameters().fov_y = fov_y;
 	}
-	else if (editor_camera_request && editor_camera_request->is_suspended())
+	else if (editor_camera && !editor_camera->is_active())
 	{
 		//	タイムライン区間から抜けたら、現在のカメラ姿勢を引き継いでフリーカメラへ戻す
 		//	再開時にエディターカメラ側が直前のゲーム視点（メインカメラ）を引き継ぐ
-		editor_camera_request->set_suspended(false);
+		editor_camera->set_active(true);
 	}
 
 	if (is_playing)
@@ -1059,7 +1060,7 @@ void edit_timeline_scene::apply_timeline_state()
 				? (event->time > previous_time && event->time <= current_time)
 				: (event->time > previous_time || event->time <= current_time);
 			if (crossed)
-				object_manager::instance()->get_messenger().send_data(event->identifier, nullptr);
+				get_context().get_objects().get_messenger().send_data(event->identifier, nullptr);
 		}
 	}
 
@@ -1069,7 +1070,7 @@ void edit_timeline_scene::apply_timeline_state()
 void edit_timeline_scene::clear_active_effects()
 {
 	for (auto& pair : active_effects)
-		effect_manager::instance()->unregister_instance(pair.second);
+		get_context().get_effects().unregister_instance(pair.second);
 	active_effects.clear();
 }
 
@@ -1131,10 +1132,10 @@ void edit_timeline_scene::imgui_render_objects()
 					if (model_resource_manager::instance()->load(resource, file_path))
 					{
 						if (object_models[index])
-							object_manager::instance()->unregister_object(object_models[index]);
+							get_context().get_objects().unregister_object(object_models[index]);
 
 						auto model = std::make_shared<model_object>(file_path, resource);
-						object_manager::instance()->register_object(model);
+						get_context().get_objects().register_object(model);
 
 						actor->model_path = file_path;
 						if (entry.name.empty())

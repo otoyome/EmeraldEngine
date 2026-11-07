@@ -17,20 +17,10 @@ camera::~camera()
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool view_selector::select(camera* game_source, camera* override_source, view_selection& selection)
+bool view_selector::select(camera* source, view_selection& selection)
 {
-	if (game_source && !game_source->is_active())
-		game_source = nullptr;
-
-	//	ã‘‚«‘O‚ÌƒQ[ƒ€‘¤‚ÌŽ‹“_‚ðT‚¦‚Ä‚¨‚­
-	has_game_view = game_source != nullptr;
-	if (game_source)
-		game_view = game_source->parameters;
-
-	//	ã‘‚«Ž‹“_‚ª‚ ‚ê‚Î—Dæ‚·‚é
-	camera* source = game_source;
-	if (override_source && override_source->is_active())
-		source = override_source;
+	if (source && !source->is_active())
+		source = nullptr;
 
 	if (!source)
 		return false;

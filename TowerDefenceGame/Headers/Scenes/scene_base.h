@@ -3,20 +3,21 @@
 #include "System/signals.h"
 
 class scene_manager;
+class engine_context;
 
 struct scene_generates
 {
-	template<typename Type>
-	static void add_scene()
+	template<typename Type, typename Manager>
+	static void add_scene(Manager& scenes)
 	{
-		scene_manager::instance()->add_scene<Type>();
+		scenes.template add_scene<Type>();
 	}
-	template<typename Type, typename ... Lists>
-	static void add_scenes()
+	template<typename Type, typename ... Lists, typename Manager>
+	static void add_scenes(Manager& scenes)
 	{
-		add_scene<Type>();
+		add_scene<Type>(scenes);
 		if constexpr (sizeof...(Lists) > 0)
-			add_scenes<Lists...>();
+			add_scenes<Lists...>(scenes);
 	}
 };
 
@@ -27,14 +28,17 @@ public:
 	virtual std::string_view get_type_name() const { return type_name(); }
 	virtual bool check_type(std::string_view text) const { return type_name() == text; }
 
+	engine_context& get_context() const;
+
 public:
 	scene_base();
 	scene_base(const scene_base&) = delete;
 	scene_base(scene_base&&) = delete;
 	virtual ~scene_base();
 
-	bool initialize();
+	bool initialize(engine_context& context);
 	bool uninitialize();
+
 	void update(float elapsed_time);
 #if defined(USE_IMGUI)
 	void imgui_render();
@@ -57,16 +61,20 @@ protected:
 	void register_object(collision_object_ptr object);
 
 private:
+	friend class scene_manager;
+
+	//	@tool scene_manager がシーンを作る間だけ入る（コンストラクタからワールドを使えるようにする）
+	inline static engine_context* constructing_context = nullptr;
+
+	engine_context* context = nullptr;
 	std::vector<std::weak_ptr<game_object>> game_objects;
 	std::vector<std::weak_ptr<collision_object>> collision_objects;
 };
 
 class scene_manager
 {
-	MAIN_WORLD_SINGLETON(scene_manager)
-
 public:
-	scene_manager();
+	explicit scene_manager(engine_context& context);
 	~scene_manager();
 
 public:
@@ -77,9 +85,13 @@ public:
 	template<typename scene_type>
 	void create_scene_function()
 	{
-		scenes.insert_or_assign(scene_type::type_name(), std::make_unique<scene_type>());
+		scene_base::constructing_context = &context;
+		auto created = std::make_unique<scene_type>();
+		scene_base::constructing_context = nullptr;
+
+		scenes.insert_or_assign(scene_type::type_name(), std::move(created));
 		auto& scene = scenes.find(scene_type::type_name())->second;
-		scene->initialize();
+		scene->initialize(context);
 	}
 
 	//	全てのシーンを破棄して一つのシーンを読み込む
@@ -114,7 +126,7 @@ public:
 		}
 
 		add_scenes.emplace_back(scene_type::type_name(), scene_type::generate_order(), [this](){ create_scene_function<scene_type>(); });
-		scene_type::on_scene_children();
+		scene_type::on_scene_children(*this);
 		return true;
 	}
 
@@ -175,6 +187,8 @@ private:
 		}
 	};
 
+	engine_context& context;
+
 	signals::broadcaster broadcaster;
 	signals::contactor contactor;
 
@@ -193,23 +207,23 @@ bool check_type(std::string_view text) const override {return type_name() == tex
 #define	SCENE_DECRLEAR(ABSTRACT_TYPE, BASE_TYPE) \
 __SCENE_DECRLEAR_INNER__(ABSTRACT_TYPE, BASE_TYPE) \
 static constexpr int generate_order(){return 0;} \
-static void on_scene_children() {} \
+static void on_scene_children(scene_manager&) {} \
 private:
 
 #define	SCENE_DECRLEAR_AND_SET_ORDER(ABSTRACT_TYPE, ORDER, BASE_TYPE)	\
 __SCENE_DECRLEAR_INNER__(ABSTRACT_TYPE, BASE_TYPE) \
 static constexpr int generate_order(){return ORDER;} \
-static void on_scene_children() {} \
+static void on_scene_children(scene_manager&) {} \
 private:
 
 #define	SCENE_ADD_CHILDREN_DECRLEAR(ABSTRACT_TYPE, BASE_TYPE, ... )	\
 __SCENE_DECRLEAR_INNER__(ABSTRACT_TYPE, BASE_TYPE) \
 static constexpr int generate_order(){return 0;} \
-static void on_scene_children() { scene_generates::add_scenes<__VA_ARGS__>(); } \
+static void on_scene_children(scene_manager& scenes) { scene_generates::add_scenes<__VA_ARGS__>(scenes); } \
 private:
 
 #define	SCENE_ADD_CHILDREN_DECRLEAR_AND_SET_ORDER(ABSTRACT_TYPE, ORDER, BASE_TYPE, ... )	\
 __SCENE_DECRLEAR_INNER__(ABSTRACT_TYPE, BASE_TYPE) \
 static constexpr int generate_order(){return ORDER;} \
-static void on_scene_children() { scene_generates::add_scenes<__VA_ARGS__>(); } \
+static void on_scene_children(scene_manager& scenes) { scene_generates::add_scenes<__VA_ARGS__>(scenes); } \
 private:

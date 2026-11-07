@@ -33,7 +33,7 @@ void roomba_controller_object::set_input_purmit_flag(bool input_purmit_flag)
 	this->input_purmit_flag = input_purmit_flag;
 }
 
-roomba_controller_object::roomba_controller_object(std::string_view name, std::shared_ptr<roomba_object> controll_object, std::shared_ptr<camera_object> camera)
+roomba_controller_object::roomba_controller_object(engine_context& context, std::string_view name, std::shared_ptr<roomba_object> controll_object, std::shared_ptr<camera_object> camera)
 : game_object(name)
 , work_time(0)
 , input_purmit_flag(true)
@@ -59,7 +59,8 @@ roomba_controller_object::roomba_controller_object(std::string_view name, std::s
 , move_y(0.0f)
 {
 	//	“ü—Íw“Ç
-	signals::broadcaster& broadcaster = scene_manager::instance()->get_broadcaster();
+	set_context(context);
+	signals::broadcaster& broadcaster = get_context().get_scenes().get_broadcaster();
 	connections += dash_action.subscribe(broadcaster, [this](const input::action_event& event)
 	{
 		dash_pressed = event.phase == input::action_phases::pressed;
@@ -161,6 +162,6 @@ math::float3 roomba_controller_object::get_move_vector()
 
 void roomba_controller_object::on_finalize()
 {
-	object_manager::instance()->unregister_object(shared_from_this());
+	get_context().get_objects().unregister_object(shared_from_this());
 	controll_object.reset();
 }

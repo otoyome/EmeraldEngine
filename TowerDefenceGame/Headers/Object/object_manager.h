@@ -9,15 +9,15 @@
 #include "system/parallel_for_executor.h"
 #include "Editor/detail_profiler.h"
 
+class engine_context;
+
 using game_object_ptr = std::shared_ptr<game_object>;
 
 //	オブジェクトマネージャー
 class object_manager
 {
-	MAIN_WORLD_SINGLETON(object_manager)
-
 public:
-	object_manager();
+	explicit object_manager(engine_context& context);
 	~object_manager();
 
 public:
@@ -139,10 +139,16 @@ private:
 	void add_objects();
 	void remove_objects();
 
+#if defined(USE_IMGUI)
+	//	デバッグ更新
+	void debug_updates(float elapsed_time);
+#endif	//	defined(USE_IMGUI)
+
 	void for_each_parallel(const std::function<void(game_object*)>& body, object_profile_function function);
 
 private:
 	std::mutex mutex;
+	engine_context& context;
 	std::vector<game_object_ptr> game_objects;
 	std::vector<game_object_ptr> game_object_add;
 	std::vector<game_object_ptr> game_object_removes;

@@ -31,8 +31,8 @@ bool load_shader_scene::uninitialize_core()
 
 void load_shader_scene::update_core(float elapsed_time)
 {
-	scene_manager::instance()->remove_scene<load_shader_scene>();
-	scene_manager::instance()->add_scene<setup_scene>();
+	get_context().get_scenes().remove_scene<load_shader_scene>();
+	get_context().get_scenes().add_scene<setup_scene>();
 }
 
 #if defined(USE_IMGUI)

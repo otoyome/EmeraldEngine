@@ -7,6 +7,7 @@
 #include "light.h"
 #include "model_instance.h"
 #include "post_process_volume.h"
+#include "Object/engine_context.h"
 
 class object_manager;
 class scene_manager;
@@ -28,13 +29,7 @@ public:
 	object_manager& get_objects() { return *objects; }
 	scene_manager& get_scenes() { return *scenes; }
 	effect_manager& get_effects() { return *effects; }
-
-	//	@tool 移行用：旧シングルトンの instance() がこのワールドの物を返すようにする
-	//	@tool engine_context への置き換えが済んだら削除する
-	void bind_main_world();
-
-	//	@tool 移行用：メインのワールド（engine_context への置き換えが済んだら削除する）
-	static world* get_main_world() { return main_world; }
+	engine_context& get_context() { return context; }
 
 public:	//	描画用の情報収集
 	//	視点にするゲームカメラの検索
@@ -48,6 +43,8 @@ public:	//	描画用の情報収集
 	const light_collector& get_light_collector() const { return lights_collector; }
 
 private:
+	engine_context context;
+
 	std::unique_ptr<effect_manager> effects;
 	std::unique_ptr<object_manager> objects;
 	std::unique_ptr<scene_manager> scenes;
@@ -60,8 +57,4 @@ private:
 	std::vector<light_probe_ptr> collected_light_probes;
 	std::vector<model_instance_ptr> collected_model_instances;
 	std::vector<post_process_volume_ptr> collected_volumes;
-
-	bool bound_main_world = false;
-
-	inline static world* main_world = nullptr;
 };

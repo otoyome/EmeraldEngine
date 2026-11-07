@@ -1,6 +1,8 @@
 #include "Scenes/scene_base.h"
+#include "Object/engine_context.h"
 
 scene_base::scene_base()
+: context(constructing_context)
 {
 }
 
@@ -8,8 +10,9 @@ scene_base::~scene_base()
 {
 }
 
-bool scene_base::initialize()
+bool scene_base::initialize(engine_context& context)
 {
+	this->context = &context;
 	return initialize_core();
 }
 
@@ -18,14 +21,20 @@ bool scene_base::uninitialize()
 	for (auto& object : game_objects)
 	{
 		if (auto obj = object.lock())
-			object_manager::instance()->unregister_object(obj);
+			get_context().get_objects().unregister_object(obj);
 	}
 	for (auto& object : collision_objects)
 	{
 		if (auto obj = object.lock())
-			object_manager::instance()->unregister_object(obj);
+			get_context().get_objects().unregister_object(obj);
 	}
 	return uninitialize_core();
+}
+
+engine_context& scene_base::get_context() const
+{
+	assert(context && "scene_manager を通さずに作ったシーンからワールドを参照した");
+	return *context;
 }
 
 void scene_base::update(float elapsed_time)
@@ -42,28 +51,29 @@ void scene_base::imgui_render()
 
 signals::broadcaster& scene_base::get_broadcaster()
 {
-	return scene_manager::instance()->get_broadcaster();
+	return get_context().get_scenes().get_broadcaster();
 }
 
 signals::contactor& scene_base::get_contactor()
 {
-	return scene_manager::instance()->get_contactor();
+	return get_context().get_scenes().get_contactor();
 }
 
 void scene_base::register_object(game_object_ptr object)
 {
 	game_objects.emplace_back(object);
-	object_manager::instance()->register_object(object);
+	get_context().get_objects().register_object(object);
 }
 
 void scene_base::register_object(collision_object_ptr object)
 {
 	collision_objects.emplace_back(object);
-	object_manager::instance()->register_object(object);
+	get_context().get_objects().register_object(object);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
-scene_manager::scene_manager()
+scene_manager::scene_manager(engine_context& context)
+: context(context)
 {
 }
 

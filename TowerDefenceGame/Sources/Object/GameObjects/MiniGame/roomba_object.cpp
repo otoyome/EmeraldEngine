@@ -40,7 +40,7 @@ namespace setup_data
 	constexpr float dead_friction = 80.0f;	// –€CŒW”
 }
 
-roomba_object::roomba_object(std::string_view name, std::shared_ptr<model_object> model, std::string_view collision_filter_name)
+roomba_object::roomba_object(engine_context& context, std::string_view name, std::shared_ptr<model_object> model, std::string_view collision_filter_name)
 : spatial_object(name)
 , model(model)
 , flag_data(0)
@@ -71,6 +71,8 @@ roomba_object::roomba_object(std::string_view name, std::shared_ptr<model_object
 , slope_limit(math::angle::to_radian(30.0f))
 , ground_friction(0.5f)
 {
+	set_context(context);
+
 	set_flag(flags::movable, true);
 	set_flag(flags::on_ground, true);
 
@@ -88,7 +90,7 @@ roomba_object::roomba_object(std::string_view name, std::shared_ptr<model_object
 	push_box->set_draw_normal_color({0.0f, 1.0f, 0.0f, 1.0f});
 	push_box->set_collision_enter([this](collision_object::data data) {on_push_box_enter(data);});
 	push_box->set_collision_stay([this](collision_object::data data) {on_push_box_stay(data);});
-	object_manager::instance()->register_object(push_box);
+	get_context().get_objects().register_object(push_box);
 
 	set_elapsed_time_scale(1.0f);
 
@@ -111,8 +113,8 @@ void roomba_object::on_finalize()
 	stop_sounds();
 	unregister_effects();
 
-	object_manager::instance()->unregister_object(push_box);
-	object_manager::instance()->unregister_object(model);
+	get_context().get_objects().unregister_object(push_box);
+	get_context().get_objects().unregister_object(model);
 	model.reset();
 }
 

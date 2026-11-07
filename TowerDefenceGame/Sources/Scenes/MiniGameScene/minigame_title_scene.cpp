@@ -121,8 +121,8 @@ void minigame_title_scene::update_core(float elapsed_time)
 		{
 			if (!transition_fade_controller::instance()->is_processing())
 			{
-				scene_manager::instance()->remove_scene<minigame_title_scene>();
-				scene_manager::instance()->add_scene<minigame_scene>();
+				get_context().get_scenes().remove_scene<minigame_title_scene>();
+				get_context().get_scenes().add_scene<minigame_scene>();
 			}
 			break;
 		}

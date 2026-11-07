@@ -8,38 +8,22 @@
 #include "effect_instance.h"
 
 world::world()
-: effects(std::make_unique<effect_manager>())
-, objects(std::make_unique<object_manager>())
-, scenes(std::make_unique<scene_manager>())
+: context(*this)
+, effects(std::make_unique<effect_manager>())
+, objects(std::make_unique<object_manager>(context))
+, scenes(std::make_unique<scene_manager>(context))
 {
 }
 
 world::~world()
 {
+	scenes->remove_all_scene();
 	scenes.reset();
-	if (bound_main_world)
-		scene_manager::set_main_world_instance(nullptr);
 
 	objects->finalize();
 	objects.reset();
-	if (bound_main_world)
-		object_manager::set_main_world_instance(nullptr);
 
 	effects.reset();
-	if (bound_main_world)
-		effect_manager::set_main_world_instance(nullptr);
-
-	if (main_world == this)
-		main_world = nullptr;
-}
-
-void world::bind_main_world()
-{
-	effect_manager::set_main_world_instance(effects.get());
-	object_manager::set_main_world_instance(objects.get());
-	scene_manager::set_main_world_instance(scenes.get());
-	bound_main_world = true;
-	main_world = this;
 }
 
 camera_ptr world::find_view_camera()

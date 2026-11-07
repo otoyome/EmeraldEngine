@@ -20,6 +20,7 @@ extern ImWchar glyphRangesJapanese[];
 #include "Editor/editor_items.h"
 #include "Editor/detail_profiler.h"
 #include "Editor/texture_editor.h"
+#include "Object/world.h"
 #include "Editor/editor_camera.h"
 #include "System/console_manager.h"
 #include "System/asset_browser.h"
@@ -45,26 +46,26 @@ extern ImWchar glyphRangesJapanese[];
 namespace
 {
 	template<typename Type>
-	void change_scene()
+	void change_scene(scene_manager& scenes)
 	{
 		if (ImGui::Button(Type::type_name().data()))
 		{
-			scene_manager::instance()->change_scene_for_imgui<Type>();
+			scenes.change_scene_for_imgui<Type>();
 		}
 	}
 
 	//	アセットブラウザでダブルクリックしたファイルを、シーンを切り替えて開く
 	template<typename Type>
-	void register_asset_open_handler(std::string_view label, std::vector<cache_string> extensions)
+	void register_asset_open_handler(scene_manager& scenes, std::string_view label, std::vector<cache_string> extensions)
 	{
 		asset_browser::open_handler handler;
 		handler.name = Type::type_name();
 		handler.label = label;
 		handler.extensions = std::move(extensions);
-		handler.activate = []()
+		handler.activate = [&scenes]()
 		{
-			if (!scene_manager::instance()->valid_scene<Type>())
-				scene_manager::instance()->change_scene_for_imgui<Type>();
+			if (!scenes.valid_scene<Type>())
+				scenes.change_scene_for_imgui<Type>();
 		};
 		asset_browser::instance()->register_open_handler(std::move(handler));
 	}
@@ -116,10 +117,10 @@ void framework::imgui_initialize()
 	//	アセットブラウザの開き先
 	imgui_texture_keeper::create_instance();
 	asset_browser::create_instance();
-	register_asset_open_handler<edit_model_scene>("Model Editor", { ".emo", ".pmx", ".gltf", ".glb" });
-	register_asset_open_handler<edit_particle_scene>("Particle Editor", { ".eme" });
-	register_asset_open_handler<edit_timeline_scene>("Timeline Editor", { ".etl" });
-	register_asset_open_handler<edit_material_scene>("Material Editor", { ".emo", ".eme", ".emr" });
+	register_asset_open_handler<edit_model_scene>(main_world->get_scenes(), "Model Editor", { ".emo", ".pmx", ".gltf", ".glb" });
+	register_asset_open_handler<edit_particle_scene>(main_world->get_scenes(), "Particle Editor", { ".eme" });
+	register_asset_open_handler<edit_timeline_scene>(main_world->get_scenes(), "Timeline Editor", { ".etl" });
+	register_asset_open_handler<edit_material_scene>(main_world->get_scenes(), "Material Editor", { ".emo", ".eme", ".emr" });
 
 	//	テクスチャリソースは別窓で編集する
 	texture_editor::create_instance();
@@ -326,16 +327,16 @@ void framework::imgui_scene_change()
 {
 	if (ImGui::Begin("Scene Change Window"))
 	{
-		change_scene<edit_model_scene>();
-		change_scene<dummy_scene>();
-		change_scene<collision_test_scene>();
-		change_scene<clustered_lighting_test_scene>();
-		change_scene<light_shadow_test_scene>();
-		change_scene<network_sandbox_scene>();
-		change_scene<edit_particle_scene>();
-		change_scene<edit_material_scene>();
-		change_scene<edit_timeline_scene>();
-		change_scene<setup_scene>();
+		change_scene<edit_model_scene>(main_world->get_scenes());
+		change_scene<dummy_scene>(main_world->get_scenes());
+		change_scene<collision_test_scene>(main_world->get_scenes());
+		change_scene<clustered_lighting_test_scene>(main_world->get_scenes());
+		change_scene<light_shadow_test_scene>(main_world->get_scenes());
+		change_scene<network_sandbox_scene>(main_world->get_scenes());
+		change_scene<edit_particle_scene>(main_world->get_scenes());
+		change_scene<edit_material_scene>(main_world->get_scenes());
+		change_scene<edit_timeline_scene>(main_world->get_scenes());
+		change_scene<setup_scene>(main_world->get_scenes());
 	}
 	ImGui::End();
 }
@@ -353,9 +354,9 @@ void framework::imgui_profiler_window()
 void framework::build_debug_primitives(const render_data_context& render_data)
 {
 	//	衝突判定のデバッグ表示
-	if (draw_collision_variable.get() && object_manager::is_valid())
+	if (draw_collision_variable.get() && main_world)
 	{
-		object_manager::instance()->get_world().debug_primitive_draw();
+		main_world->get_objects().get_world().debug_primitive_draw();
 	}
 
 	//	モデルAABBのデバッグ表示

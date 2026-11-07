@@ -217,7 +217,7 @@ void roomba_camera_controller_object::fixed_update_default(float elapsed_time)
 			//	ƒqƒbƒgˆ—
 			collision::intersect_data intersect_data;
 			collision_object_ptr hit_collision_object;
-			if (object_manager::instance()->get_world().sphere_cast(desc, intersect_data, hit_collision_object))
+			if (get_context().get_objects().get_world().sphere_cast(desc, intersect_data, hit_collision_object))
 			{
 				float length = static_cast<float>(intersect_data[0].length);
 				auto vector = (camera_position - focus).normalized();
@@ -297,6 +297,6 @@ void roomba_camera_controller_object::change_state(states state)
 
 void roomba_camera_controller_object::on_finalize()
 {
-	object_manager::instance()->unregister_object(shared_from_this());
+	get_context().get_objects().unregister_object(shared_from_this());
 	player_controller.reset();
 }

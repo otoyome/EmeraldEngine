@@ -649,7 +649,7 @@ bool roomba_object::calculate_position(math::float3 velocity, float elapsed_time
 
 		collision::intersect_data intersect_data;
 		collision_object_ptr hit_collision_object;
-		if (object_manager::instance()->get_world().capsule_cast(desc, intersect_data, hit_collision_object))
+		if (get_context().get_objects().get_world().capsule_cast(desc, intersect_data, hit_collision_object))
 		{
 			hit_flag = true;
 
@@ -782,7 +782,7 @@ void roomba_object::update_effects(float elapsed_time)
 		auto effect_instance = (*it_effect);
 		if (effect_instance->get_animation_time() >= effect_instance->get_animation_end_time())
 		{
-			effect_manager::instance()->unregister_instance(effect_instance);
+			get_context().get_effects().unregister_instance(effect_instance);
 			it_effect = effect_instances.erase(it_effect);
 		}
 		else
@@ -798,7 +798,7 @@ void roomba_object::unregister_effects()
 	auto it_effect = effect_instances.begin();
 	while (it_effect != effect_instances.end())
 	{
-		effect_manager::instance()->unregister_instance((*it_effect));
+		get_context().get_effects().unregister_instance((*it_effect));
 		++it_effect;
 	}
 	effect_instances.clear();
@@ -826,7 +826,7 @@ std::weak_ptr<effect_instance> roomba_object::play_effect(size_t effect_id)
 		return std::weak_ptr<effect_instance>();
 
 	auto instance = std::make_shared<effect_instance>(it->second);
-	if (effect_manager::instance()->register_instance(instance))
+	if (get_context().get_effects().register_instance(instance))
 	{
 		effect_instances.emplace_back(instance);
 	}

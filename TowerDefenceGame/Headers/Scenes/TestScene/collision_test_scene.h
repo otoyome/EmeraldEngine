@@ -92,7 +92,7 @@ private:
 	cast_desc cast;
 	bool draw_ghost = true;
 
-	editor_camera_manager::scene_request_ptr editor_camera_request;
+	std::shared_ptr<editor_camera_object> editor_camera;
 
 	//	•\Ž¦—p‚Ì”»’èŒ‹‰Ê
 	bool hit_ab = false;

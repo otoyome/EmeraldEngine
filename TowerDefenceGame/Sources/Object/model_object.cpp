@@ -613,8 +613,8 @@ void model_object::update_ik()
 					right_ray_data.end.z += foot_ik_direction.z * (foot_data.ray_origin_offsets[1] + foot_data.ray_length);
 
 					collision_object_ptr obj;
-					left_hit = object_manager::instance()->get_world().ray_cast(left_ray_data, left_hit_data, obj);
-					right_hit = object_manager::instance()->get_world().ray_cast(right_ray_data, right_hit_data, obj);
+					left_hit = get_context().get_objects().get_world().ray_cast(left_ray_data, left_hit_data, obj);
+					right_hit = get_context().get_objects().get_world().ray_cast(right_ray_data, right_hit_data, obj);
 				}
 
 				//	Ú’n‹——£

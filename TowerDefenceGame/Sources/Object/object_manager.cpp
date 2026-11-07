@@ -6,8 +6,9 @@ namespace
 	static constexpr float fixed_per_second = system_units::convert_fps_to_sec(1.0f);
 }
 
-object_manager::object_manager()
-: game_objects()
+object_manager::object_manager(engine_context& context)
+: context(context)
+, game_objects()
 , game_object_add()
 , game_object_removes()
 , messenger()
@@ -44,6 +45,7 @@ void object_manager::updates(float elapsed_time)
 		}
 		else
 		{
+			debug_updates(elapsed_time);
 			return;
 		}
 	}
@@ -134,28 +136,35 @@ void object_manager::updates(float elapsed_time)
 		//	デバッグ更新の計測
 		DETAIL_PROFILE_CPU_SCOPE("object.debug_update");
 
-		//	デバッグ更新
-		for (auto& object : game_objects)
-		{
-			if (!object->is_active())
-				continue;
-			object->debug_pre_update(elapsed_time);
-		}
-		for (auto& object : game_objects)
-		{
-			if (!object->is_active())
-				continue;
-			object->debug_update(elapsed_time);
-		}
-		for (auto& object : game_objects)
-		{
-			if (!object->is_active())
-				continue;
-			object->debug_post_update(elapsed_time);
-		}
+		debug_updates(elapsed_time);
 #endif	//	defined(USE_IMGUI)
 	}
 }
+
+#if defined(USE_IMGUI)
+void object_manager::debug_updates(float elapsed_time)
+{
+	//	デバッグ更新
+	for (auto& object : game_objects)
+	{
+		if (!object->is_active())
+			continue;
+		object->debug_pre_update(elapsed_time);
+	}
+	for (auto& object : game_objects)
+	{
+		if (!object->is_active())
+			continue;
+		object->debug_update(elapsed_time);
+	}
+	for (auto& object : game_objects)
+	{
+		if (!object->is_active())
+			continue;
+		object->debug_post_update(elapsed_time);
+	}
+}
+#endif	//	defined(USE_IMGUI)
 
 void object_manager::for_each_parallel(const std::function<void(game_object*)>& body, object_profile_function function)
 {
@@ -328,6 +337,8 @@ bool object_manager::register_object(game_object_ptr object)
 {
 	if (!object)
 		return false;
+
+	object->set_context(context);
 
 	std::lock_guard<std::mutex> lock(mutex);
 

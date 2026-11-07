@@ -308,6 +308,9 @@
     <ClCompile Include="Sources\Object\game_object.cpp">
       <Filter>Sources\Object</Filter>
     </ClCompile>
+    <ClCompile Include="Sources\Object\engine_context.cpp">
+      <Filter>Sources\Object</Filter>
+    </ClCompile>
     <ClCompile Include="Sources\Object\world.cpp">
       <Filter>Sources\Object</Filter>
     </ClCompile>
@@ -626,6 +629,9 @@
       <Filter>Headers\Editor</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Object\game_object.h">
+      <Filter>Headers\Object</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Object\engine_context.h">
       <Filter>Headers\Object</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Object\world.h">

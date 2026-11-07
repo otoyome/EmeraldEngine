@@ -28,7 +28,7 @@ void roomba_hud_controller_object::post_update(float elapsed_time)
 
 void roomba_hud_controller_object::on_initialize()
 {
-	roomba = object_manager::instance()->search_object<roomba_controller_object>();
+	roomba = get_context().get_objects().search_object<roomba_controller_object>();
 	heat_bar->set_getter(
 	[this]() {
 		if (auto instance = roomba.lock())

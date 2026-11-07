@@ -208,7 +208,7 @@ struct post_process_volume_container
 	post_process_volume_ptr selected_volume;
 };
 
-//	@tool ポストプロセスボリュームの一覧からコンテナを作り、視点に使うボリュームを選ぶ
+//	ポストプロセスボリュームコレクター
 class post_process_volume_collector
 {
 public:

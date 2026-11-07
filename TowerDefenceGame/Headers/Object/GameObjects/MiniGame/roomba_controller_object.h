@@ -23,7 +23,7 @@ public:
 	void set_input_purmit_flag(bool input_stop);
 
 public:
-	roomba_controller_object(std::string_view name, std::shared_ptr<roomba_object> controll_object, std::shared_ptr<camera_object> camera);
+	roomba_controller_object(engine_context& context, std::string_view name, std::shared_ptr<roomba_object> controll_object, std::shared_ptr<camera_object> camera);
 	~roomba_controller_object() override;
 
 	void fixed_update(float elapsed_time) override;

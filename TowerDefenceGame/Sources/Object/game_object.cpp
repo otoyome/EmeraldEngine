@@ -15,6 +15,12 @@ void game_object::set_name(std::string_view name)
 	this->name = name;
 }
 
+engine_context& game_object::get_context() const
+{
+	assert(context && "登録前のオブジェクトからワールドを参照した");
+	return *context;
+}
+
 bool game_object::is_active() const
 {
 	return active;

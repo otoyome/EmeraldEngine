@@ -184,10 +184,11 @@ bool edit_particle_scene::initialize_core()
 
 	//	エディターカメラ生成
 	{
-		editor_camera_request = editor_camera_manager::instance()->request(
+		editor_camera = std::make_shared<editor_camera_object>("エディターカメラ",
 			system_units::convert_m_to_unit(math::vector3d(0.0, 1.0, 8.0)),
-			{ 0, math::constants<float>::pi, 0 },
+			math::rotatorf(0, math::constants<float>::pi, 0),
 			0.25f);
+		register_object(editor_camera);
 	}
 
 	//	エディターアイテム用コンテキスト生成
@@ -205,13 +206,13 @@ bool edit_particle_scene::initialize_core()
 bool edit_particle_scene::uninitialize_core()
 {
 	if (edit_instance)
-		effect_manager::instance()->unregister_instance(edit_instance);
+		get_context().get_effects().unregister_instance(edit_instance);
 
-	if (!edit_sdfs.empty() && effect_manager::is_valid())
+	if (!edit_sdfs.empty())
 	{
 		for (auto& sdf : edit_sdfs)
 		{
-			effect_manager::instance()->remove_cubic_sdf(sdf.sdf_id);
+			get_context().get_effects().remove_cubic_sdf(sdf.sdf_id);
 		}
 		edit_sdfs.clear();
 	}
@@ -237,10 +238,10 @@ void edit_particle_scene::open_effect(const std::string& file_path)
 		return;
 
 	if (edit_instance)
-		effect_manager::instance()->unregister_instance(edit_instance);
+		get_context().get_effects().unregister_instance(edit_instance);
 	edit_resource = resource;
 	edit_instance = std::make_shared<effect_instance>(edit_resource);
-	effect_manager::instance()->register_instance(edit_instance);
+	get_context().get_effects().register_instance(edit_instance);
 }
 
 void edit_particle_scene::imgui_render_core()
@@ -301,9 +302,9 @@ void edit_particle_scene::imgui_render_core()
 			if (editor_items::edit_effect_animation(editor_context, edit_instance) || edit)
 			{
 				if (edit_instance)
-					effect_manager::instance()->unregister_instance(edit_instance);
+					get_context().get_effects().unregister_instance(edit_instance);
 				edit_instance = std::make_shared<effect_instance>(edit_resource);
-				effect_manager::instance()->register_instance(edit_instance);
+				get_context().get_effects().register_instance(edit_instance);
 			}
 		}
 		ImGui::End();
@@ -313,11 +314,11 @@ void edit_particle_scene::imgui_render_core()
 void edit_particle_scene::on_new()
 {
 	if (edit_instance)
-		effect_manager::instance()->unregister_instance(edit_instance);
+		get_context().get_effects().unregister_instance(edit_instance);
 
 	new_effect(edit_resource);
 	edit_instance = std::make_shared<effect_instance>(edit_resource);
-	effect_manager::instance()->register_instance(edit_instance);
+	get_context().get_effects().register_instance(edit_instance);
 }
 
 void edit_particle_scene::generate_default_effect()
@@ -565,7 +566,7 @@ void edit_particle_scene::imgui_render_sdf()
 				if (!sdf.deserialize(file_path))
 					continue;
 
-				uint32_t sdf_id = effect_manager::instance()->add_cubic_sdf(sdf);
+				uint32_t sdf_id = get_context().get_effects().add_cubic_sdf(sdf);
 				if (sdf_id != 0xFFFFFFFF)
 				{
 					edit_sdf_data data;
@@ -631,7 +632,7 @@ void edit_particle_scene::imgui_render_sdf()
 		bool removed = false;
 		if (ImGui::Button("Remove"))
 		{
-			effect_manager::instance()->remove_cubic_sdf(edit_sdfs[index].sdf_id);
+			get_context().get_effects().remove_cubic_sdf(edit_sdfs[index].sdf_id);
 			edit_sdfs.erase(edit_sdfs.begin() + index);
 			removed = true;
 		}

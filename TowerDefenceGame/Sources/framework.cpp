@@ -96,25 +96,6 @@ namespace
 	console_variable<bool> freeze_culling_variable("r.culling.freeze", false, "カリング結果を固定する（メイン視点）");
 	console_variable<bool> visualize_meshlets_variable("r.meshlet.visualize", false, "メッシュレット単位で色分け表示する（メイン視点）");
 
-	//	ゲーム進行のデバッグコマンド
-	console_command pause_command("game.pause", "一時停止を切り替える（game.pause [0|1]）",
-		[](const console_command::arguments& args)
-		{
-			if (!object_manager::is_valid())
-				return;
-			bool pause = !object_manager::instance()->get_pause();
-			if (!args.empty())
-				console_detail::from_string(args[0], pause);
-			object_manager::instance()->set_pause(pause);
-			console_manager::instance().print(pause ? "pause : 1" : "pause : 0");
-		});
-	console_command step_command("game.step", "一時停止中に1フレーム進める",
-		[](const console_command::arguments&)
-		{
-			if (object_manager::is_valid())
-				object_manager::instance()->called_step();
-		});
-
 	//	アセットの保存し直し(データ形式を変えた後、古い形式のファイルをまとめて新しい形式にする)
 	console_command resave_models_command("asset.resave_models", "Assets 以下のモデル(.emo)を読み込み直し、最新の形式で保存し直す",
 		[](const console_command::arguments&)
@@ -371,7 +352,6 @@ bool framework::initialize()
 		editor_config_data::create_instance();
 		detail_profiler::create_instance();
 		debug_primitive_manager::create_instance();
-		editor_camera_manager::create_instance();
 		editor_items::initialize();
 	}
 #endif // defined(USE_IMGUI)
@@ -388,7 +368,28 @@ bool framework::initialize()
 
 		//	メインのワールド
 		main_world = std::make_unique<world>();
-		main_world->bind_main_world();
+
+#if defined(USE_IMGUI)
+		//	ゲーム進行のデバッグコマンド
+		pause_command = std::make_unique<console_command>("game.pause", "一時停止を切り替える（game.pause [0|1]）",
+			[this](const console_command::arguments& args)
+			{
+				if (!main_world)
+					return;
+				object_manager& objects = main_world->get_objects();
+				bool pause = !objects.get_pause();
+				if (!args.empty())
+					console_detail::from_string(args[0], pause);
+				objects.set_pause(pause);
+				console_manager::instance().print(pause ? "pause : 1" : "pause : 0");
+			});
+		step_command = std::make_unique<console_command>("game.step", "一時停止中に1フレーム進める",
+			[this](const console_command::arguments&)
+			{
+				if (main_world)
+					main_world->get_objects().called_step();
+			});
+#endif	//	defined(USE_IMGUI)
 	}
 
 	//	各種バッファ用意
@@ -487,7 +488,7 @@ bool framework::initialize()
 		});
 
 	//	初回シーン登録
-	scene_manager::instance()->change_scene<load_shader_scene>();
+	main_world->get_scenes().change_scene<load_shader_scene>();
 	return true;
 }
 
@@ -521,9 +522,9 @@ void framework::update(float elapsed_time/*Elapsed seconds from last frame*/)
 	{
 		gamepad::instance()->update_state();
 	}
-	if (input::action_system::is_valid() && scene_manager::is_valid())
+	if (input::action_system::is_valid() && main_world)
 	{
-		input::action_system::instance()->update(scene_manager::instance()->get_broadcaster());
+		input::action_system::instance()->update(main_world->get_scenes().get_broadcaster());
 	}
 
 #if defined(USE_IMGUI)
@@ -539,24 +540,24 @@ void framework::update(float elapsed_time/*Elapsed seconds from last frame*/)
 	}
 
 	//	シーン内の更新
-	if (scene_manager::is_valid())
+	if (main_world)
 	{
 		DETAIL_PROFILE_CPU_SCOPE("update.scene_manager");
-		scene_manager::instance()->updates(elapsed_time);
+		main_world->get_scenes().updates(elapsed_time);
 	}
 
 	//	オブジェクト更新
-	if (object_manager::is_valid())
+	if (main_world)
 	{
 		DETAIL_PROFILE_CPU_SCOPE("update.object_manager");
-		object_manager::instance()->updates(elapsed_time);
+		main_world->get_objects().updates(elapsed_time);
 	}
 
 	//	エフェクト関係更新
-	if (effect_manager::is_valid())
+	if (main_world)
 	{
 		DETAIL_PROFILE_CPU_SCOPE("update.effect_manager");
-		effect_manager::instance()->update(elapsed_time);
+		main_world->get_effects().update(elapsed_time);
 	}
 
 	//	サウンド更新
@@ -567,12 +568,6 @@ void framework::update(float elapsed_time/*Elapsed seconds from last frame*/)
 	}
 
 #if defined(USE_IMGUI)
-	//	エディターカメラ更新
-	if (editor_camera_manager::is_valid())
-	{
-		editor_camera_manager::instance()->update(elapsed_time, main_view_selector.get_game_view());
-	}
-
 	//	ImGuiウィンドウ構築の計測
 	DETAIL_PROFILE_CPU_SCOPE("update.imgui");
 
@@ -582,13 +577,13 @@ void framework::update(float elapsed_time/*Elapsed seconds from last frame*/)
 	editor_items::begin_contexts();
 
 	//	シーン情報表示
-	if (scene_manager::is_valid())
+	if (main_world)
 	{
-		scene_manager::instance()->imgui_render();
+		main_world->get_scenes().imgui_render();
 	}
 
 	//	オブジェクト情報表示
-	object_manager::instance()->imgui_render();
+	main_world->get_objects().imgui_render();
 
 	//	ログ情報
 	imgui_log_window();
@@ -660,9 +655,9 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 	DETAIL_PROFILE_CPU_SCOPE("render");
 
 	//	描画前処理
-	if (object_manager::is_valid())
+	if (main_world)
 	{
-		object_manager::instance()->pre_render();
+		main_world->get_objects().pre_render();
 	}
 
 	//	描画用の情報収集
@@ -674,13 +669,8 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 		//	視点の候補から今フレームのメイン視点を選ぶ
 		view_selection selection;
 		main_view_camera_cut = false;
-		camera_ptr override_camera;
-#if defined(USE_IMGUI)
-		if (editor_camera_manager::is_valid())
-			override_camera = editor_camera_manager::instance()->get_override_camera();
-#endif	//	defined(USE_IMGUI)
 		const camera_ptr game_camera = main_world->find_view_camera();
-		if (main_view_selector.select(game_camera.get(), override_camera.get(), selection))
+		if (main_view_selector.select(game_camera.get(), selection))
 		{
 			main_view_parameters = selection.parameters;
 			main_view_camera_cut = selection.camera_cut;
@@ -708,14 +698,14 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 		main_world->collect_meshes(render_data->mesh_container, render_origin);
 
 		//	エフェクトコンテナ取得
-		effect_manager::instance()->get_container(render_data->effect_container, render_data->decal_container, render_origin);
+		main_world->get_effects().get_container(render_data->effect_container, render_data->decal_container, render_origin);
 
 		//	UIオブジェクトコンテナ収集
 		{
 			render_data->sprite_container.sprite_datas.clear();
 
 			int sort_key = 0;
-			auto ui_object_list = object_manager::instance()->search_objects<ui_object>();
+			auto ui_object_list = main_world->get_objects().search_objects<ui_object>();
 			for (auto& ui_object : ui_object_list)
 			{
 				if (!ui_object->is_active())
@@ -729,7 +719,7 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 				++sort_key;
 			}
 
-			auto ui_objects_list = object_manager::instance()->search_objects<ui_objects>();
+			auto ui_objects_list = main_world->get_objects().search_objects<ui_objects>();
 			for (auto& ui_object : ui_objects_list)
 			{
 				if (!ui_object->is_active())
@@ -838,7 +828,7 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 
 					//	エフェクト類のGPU側の更新
 					context.debug_begin_event(L"update_effect_gpu");
-					effect_manager::instance()->update_gpu(context, context.scene_constant.time_data.x - context.scene_constant.time_data.y);
+					main_world->get_effects().update_gpu(context, context.scene_constant.time_data.x - context.scene_constant.time_data.y);
 					context.debug_end_event();
 
 				}, "scene_constantract_pass", context, static_cast<UINT>(renderer_domain::scene_constantract_pass), true);
@@ -888,9 +878,9 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 	}
 
 	//	描画後処理
-	if (object_manager::is_valid())
+	if (main_world)
 	{
-		object_manager::instance()->post_render();
+		main_world->get_objects().post_render();
 	}
 
 	//	使われなくなった view_state を破棄
@@ -1090,6 +1080,10 @@ bool framework::uninitialize()
 {
 	//	シーン関係
 	{
+#if defined(USE_IMGUI)
+		pause_command.reset();
+		step_command.reset();
+#endif	//	defined(USE_IMGUI)
 		main_world.reset();
 		collision_filter_manager::delete_instance();
 	}
@@ -1104,7 +1098,6 @@ bool framework::uninitialize()
 	//	エディター/デバッグ関係
 	{
 		editor_items::terminate();
-		editor_camera_manager::delete_instance();
 		debug_primitive_manager::delete_instance();
 		editor_config_data::delete_instance();
 		detail_profiler::delete_instance();

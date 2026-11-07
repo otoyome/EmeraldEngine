@@ -52,3 +52,4 @@
 #include "Graphics/debug_primitive_collector.h"
 
 #include "object/object_manager.h"
+#include "object/engine_context.h"
