@@ -1,6 +1,6 @@
 #include "Renderer/scene_renderer_common.h"
-#include "model_buffer_pool.h"
-#include "material_instance.h"
+#include "Model/model_buffer_pool.h"
+#include "Material/material_instance.h"
 
 namespace
 {

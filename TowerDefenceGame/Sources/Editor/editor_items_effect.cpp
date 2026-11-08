@@ -1,5 +1,5 @@
 #include "Editor/editor_items.h"
-#include "texture_importer.h"
+#include "Texture/texture_importer.h"
 
 #if defined(USE_IMGUI)
 #include <commdlg.h>
@@ -7,7 +7,7 @@
 #include <set>
 #include <algorithm>
 #include <numeric>
-#include "material_shader_map.h"
+#include "Material/material_shader_map.h"
 
 namespace
 {

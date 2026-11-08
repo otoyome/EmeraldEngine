@@ -1,8 +1,8 @@
 #include "scenes/TestScene/light_shadow_test_scene.h"
 
 #if defined(USE_IMGUI)
-#include "camera.h"
-#include "model_instance.h"
+#include "Graphics/camera.h"
+#include "Model/model_instance.h"
 
 #include "object/light_object.h"
 #include "object/camera_object.h"

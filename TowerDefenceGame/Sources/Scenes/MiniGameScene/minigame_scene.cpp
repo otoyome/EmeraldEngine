@@ -1,6 +1,6 @@
 #include "Scenes/MiniGameScene/minigame_scene.h"
 
-#include "custom_pipeline_state.h"
+#include "Graphics/custom_pipeline_state.h"
 #include "Audio/audio_manager.h"
 
 #include "Scenes/MiniGameScene/minigame_result_scene.h"

@@ -1,13 +1,13 @@
 #include "scenes/DummyScene/dummy_scene.h"
-#include "texture_resource_utility.h"
-#include "camera.h"
+#include "Texture/texture_resource_utility.h"
+#include "Graphics/camera.h"
 
 #include "object/light_object.h"
 #include "object/model_object.h"
 #include "object/camera_object.h"
 #include "object/post_process_volume_object.h"
 
-#include "custom_pipeline_state.h"
+#include "Graphics/custom_pipeline_state.h"
 
 dummy_scene::dummy_scene()
 : scene_base()

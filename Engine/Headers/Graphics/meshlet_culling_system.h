@@ -7,8 +7,8 @@
 #include <d3d11.h>
 #include <wrl.h>
 
-#include "graphics_context.h"
-#include "shader.h"
+#include "Graphics/graphics_context.h"
+#include "Graphics/shader.h"
 
 #include "hiz_buffer.h"
 

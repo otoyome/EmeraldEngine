@@ -1,9 +1,9 @@
 #include <cmath>
 
 #include "graphics/particle_resource.h"
-#include "graphics_utility.h"
-#include "render_data.h"
-#include "texture.h"
+#include "Graphics/graphics_utility.h"
+#include "Graphics/render_data.h"
+#include "Texture/texture.h"
 
 #include "cereal/cereal.hpp"
 #include "cereal/types/memory.hpp"
@@ -14,7 +14,7 @@
 #include "cereal/types/unordered_map.hpp"
 #include "cereal/types/variant.hpp"
 
-#include "animation_data_version.h"
+#include "Animation/animation_data_version.h"
 
 // CEREALバージョン定義
 CEREAL_CLASS_VERSION(particle::item::renderer::trails, 1)

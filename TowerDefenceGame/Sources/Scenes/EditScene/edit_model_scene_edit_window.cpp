@@ -1,14 +1,14 @@
 #include "scenes/editscene/edit_model_scene.h"
 
-#include "model_instance.h"
-#include "camera.h"
+#include "Model/model_instance.h"
+#include "Graphics/camera.h"
 #include "graphics/scene_view.h"
 
 #include "object/light_object.h"
 
 #include "object/model_object.h"
 
-#include "custom_pipeline_state.h"
+#include "Graphics/custom_pipeline_state.h"
 
 #if defined(USE_IMGUI)
 #include "Editor/editor_camera.h"

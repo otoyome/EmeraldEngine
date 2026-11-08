@@ -4,7 +4,7 @@
 #include "Graphics/color_space.h"
 #include "Graphics/light_utility.h"
 #include "System/engine_config_data.h"
-#include "post_process_volume.h"
+#include "Graphics/post_process_volume.h"
 
 namespace
 {

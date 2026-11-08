@@ -1,5 +1,5 @@
 #include "object/gameobjects/ui/hud/key_icon_controller_object.h"
-#include "texture_resource_utility.h"
+#include "Texture/texture_resource_utility.h"
 
 namespace
 {

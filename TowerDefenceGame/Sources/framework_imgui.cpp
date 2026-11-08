@@ -2,8 +2,8 @@
 
 #if defined(USE_IMGUI)
 #include "System/engine_config_data.h"
-#include "model_buffer_pool.h"
-#include "material_resource_factory.h"
+#include "Model/model_buffer_pool.h"
+#include "Material/material_resource_factory.h"
 #include "System/memory_allocator.h"
 
 #include "imgui.h"
@@ -26,7 +26,7 @@ extern ImWchar glyphRangesJapanese[];
 #include "System/asset_browser.h"
 #include "System/imgui_texture_keeper.h"
 #include "Resource/resource_manager.h"
-#include "material_resource.h"
+#include "Material/material_resource.h"
 
 
 #include "scenes/editscene/edit_model_scene.h"

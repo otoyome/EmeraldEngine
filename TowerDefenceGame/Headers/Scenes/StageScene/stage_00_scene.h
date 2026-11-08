@@ -2,7 +2,7 @@
 
 #include "Scenes/scene_base.h"
 
-#include "model_instance.h"
+#include "Model/model_instance.h"
 
 //	ステージ00シーン
 class stage_00_scene : public scene_base

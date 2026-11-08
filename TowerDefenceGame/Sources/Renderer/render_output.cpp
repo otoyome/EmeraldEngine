@@ -1,6 +1,6 @@
 #include "Renderer/render_output.h"
-#include "render_data.h"
-#include "texture_factory.h"
+#include "Graphics/render_data.h"
+#include "Texture/texture_factory.h"
 
 DXGI_SWAP_CHAIN_DESC render_output::get_swap_chain_desc()
 {

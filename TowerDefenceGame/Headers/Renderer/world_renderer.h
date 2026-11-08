@@ -6,8 +6,8 @@
 #include <vector>
 
 #include "system/parallel_for_executor.h"
-#include "render_pass.h"
-#include "camera.h"
+#include "Graphics/render_pass.h"
+#include "Graphics/camera.h"
 #include "graphics/scene_view.h"
 #include "graphics/scene_view_state.h"
 #include "Renderer/renderer.h"

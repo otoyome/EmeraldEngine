@@ -1,6 +1,6 @@
 #pragma once
 
-#include "camera.h"
+#include "Graphics/camera.h"
 #include "object/game_object.h"
 #include "object/spatial_object.h"
 

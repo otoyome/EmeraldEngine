@@ -1,9 +1,9 @@
 #include "Renderer/scene_renderer_postprocess.h"
-#include "texture_factory.h"
+#include "Texture/texture_factory.h"
 
-#include "model_instance.h"
+#include "Model/model_instance.h"
 
-#include "custom_pipeline_state.h"
+#include "Graphics/custom_pipeline_state.h"
 #include "PipelineState/fullscreen_quad_pipeline_state.h"
 #include "PipelineState/post_process_pipeline_state.h"
 #include "PipelineState/anti_alias_pipeline_state.h"

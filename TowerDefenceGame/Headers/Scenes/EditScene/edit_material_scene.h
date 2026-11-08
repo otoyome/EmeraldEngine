@@ -3,10 +3,10 @@
 #include "scenes/scene_base.h"
 
 #if defined(USE_IMGUI)
-#include "model_resource.h"
-#include "model_resource_utility.h"
-#include "effect_resource.h"
-#include "effect_instance.h"
+#include "Model/model_resource.h"
+#include "Model/model_resource_utility.h"
+#include "Effect/effect_resource.h"
+#include "Effect/effect_instance.h"
 
 #include "object/model_object.h"
 #include "object/camera_object.h"

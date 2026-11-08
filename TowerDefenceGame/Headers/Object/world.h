@@ -3,10 +3,10 @@
 #include <memory>
 #include <vector>
 
-#include "camera.h"
-#include "light.h"
-#include "model_instance.h"
-#include "post_process_volume.h"
+#include "Graphics/camera.h"
+#include "Graphics/light.h"
+#include "Model/model_instance.h"
+#include "Graphics/post_process_volume.h"
 #include "Object/engine_context.h"
 
 class object_manager;

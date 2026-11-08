@@ -1,6 +1,6 @@
 #include "Scenes/MiniGameScene/minigame_ui_scene.h"
 
-#include "custom_pipeline_state.h"
+#include "Graphics/custom_pipeline_state.h"
 #include "object/gameobjects/ui/hud/countdown_controller_object.h"
 #include "object/gameobjects/minigame/roomba_tutorial_controller_object.h"
 

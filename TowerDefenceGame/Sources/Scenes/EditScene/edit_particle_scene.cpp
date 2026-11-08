@@ -1,20 +1,20 @@
 #include "scenes/editscene/edit_particle_scene.h"
-#include "texture_resource_utility.h"
+#include "Texture/texture_resource_utility.h"
 #include "System/asset_browser.h"
 #include "Resource/resource_manager.h"
-#include "material_shader_map.h"
-#include "texture_importer.h"
+#include "Material/material_shader_map.h"
+#include "Texture/texture_importer.h"
 
-#include "model_instance.h"
-#include "camera.h"
+#include "Model/model_instance.h"
+#include "Graphics/camera.h"
 
 #include "object/light_object.h"
 #include "object/model_object.h"
 #include "object/post_process_volume_object.h"
 
-#include "custom_pipeline_state.h"
+#include "Graphics/custom_pipeline_state.h"
 
-#include "effect_instance.h"
+#include "Effect/effect_instance.h"
 #include "Graphics/debug_primitive_collector.h"
 
 #if defined(USE_IMGUI)

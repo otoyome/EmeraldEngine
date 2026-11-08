@@ -6,8 +6,8 @@
 #include <d3d11.h>
 #include <wrl.h>
 
-#include "graphics_context.h"
-#include "shader.h"
+#include "Graphics/graphics_context.h"
+#include "Graphics/shader.h"
 
 //	階層深度バッファ
 class hiz_buffer

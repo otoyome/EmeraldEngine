@@ -1,9 +1,9 @@
 #pragma once
 
-#include "texture.h"
-#include "material_resource.h"
+#include "Texture/texture.h"
+#include "Material/material_resource.h"
 #include "Resource/asset_handle.h"
-#include "animation_resource.h"
+#include "Animation/animation_resource.h"
 #include "collision/capsule.h"
 #include "collision/box.h"
 

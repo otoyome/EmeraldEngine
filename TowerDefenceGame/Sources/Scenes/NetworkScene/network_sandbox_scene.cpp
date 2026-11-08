@@ -1,6 +1,6 @@
 #include "scenes/NetworkScene/network_sandbox_scene.h"
-#include "texture_resource_utility.h"
-#include "camera.h"
+#include "Texture/texture_resource_utility.h"
+#include "Graphics/camera.h"
 
 #include "object/light_object.h"
 #include "object/camera_object.h"

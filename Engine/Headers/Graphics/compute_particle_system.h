@@ -8,8 +8,8 @@
 #include <memory>
 #include <mutex>
 
-#include "texture.h"
-#include "shader.h"
+#include "Texture/texture.h"
+#include "Graphics/shader.h"
 #include "system/variable_position_allocator.h"
 
 #include "graphics/cubic_sdf_buffer_pool.h"

@@ -1,9 +1,9 @@
 #pragma once
 
 #include "renderer.h"
-#include "render_pass.h"
+#include "Graphics/render_pass.h"
 #include "scene_render_targets.h"
-#include "geometric_primitive.h"
+#include "Graphics/geometric_primitive.h"
 
 #include "collision/frustum_culling.h"
 

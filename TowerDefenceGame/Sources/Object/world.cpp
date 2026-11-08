@@ -5,7 +5,7 @@
 #include "Object/model_object.h"
 #include "Object/post_process_volume_object.h"
 #include "Scenes/scene_base.h"
-#include "effect_instance.h"
+#include "Effect/effect_instance.h"
 
 world::world()
 : context(*this)

@@ -25,6 +25,14 @@ float4 main(VS_OUT pin) : SV_TARGET
                     shadowing_attenuation = shadowing_process(data.w_position, view_transform).rgb;
                 }
             }
+
+//	[エンジン改造:シェーディング]
+            if (gbuffer_data.shading_model == shading_model_toon_lit)
+            {
+                //  トゥーンリットの場合はデフォルトでシェーディングさせる
+                gbuffer_data.shading_model = shading_model_default_lit;
+            }
+//	[エンジン改造:シェーディング]
             
             LightingData lighting_data;
             lighting_data.shading_attenuation = shading_attenuation;

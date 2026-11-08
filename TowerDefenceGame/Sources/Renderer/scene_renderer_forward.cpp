@@ -1,8 +1,8 @@
 #include "Renderer/scene_renderer_forward.h"
 
-#include "model_instance.h"
+#include "Model/model_instance.h"
 
-#include "custom_pipeline_state.h"
+#include "Graphics/custom_pipeline_state.h"
 
 #include "PipelineState/post_process_pipeline_state.h"
 

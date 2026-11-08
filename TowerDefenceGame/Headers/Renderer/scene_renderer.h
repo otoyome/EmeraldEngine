@@ -1,10 +1,10 @@
 #pragma once
 
 #include "renderer.h"
-#include "render_pass.h"
+#include "Graphics/render_pass.h"
 #include "scene_render_targets.h"
-#include "geometric_primitive.h"
-#include "material_instance.h"
+#include "Graphics/geometric_primitive.h"
+#include "Material/material_instance.h"
 
 #include "PipelineState/deferred_decal_pipeline_state.h"
 

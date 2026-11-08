@@ -1,6 +1,6 @@
 #include "Graphics/compute_particle_system.h"
 
-#include "custom_pipeline_state.h"
+#include "Graphics/custom_pipeline_state.h"
 #include "graphics/cubic_sdf_buffer_pool.h"
 
 namespace

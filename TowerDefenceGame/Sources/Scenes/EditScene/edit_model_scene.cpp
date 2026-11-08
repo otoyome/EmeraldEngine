@@ -1,8 +1,8 @@
 #include "scenes/editscene/edit_model_scene.h"
-#include "texture_resource_utility.h"
+#include "Texture/texture_resource_utility.h"
 #include "System/asset_browser.h"
 #include "Resource/resource_manager.h"
-#include "texture_importer.h"
+#include "Texture/texture_importer.h"
 
 #include <algorithm>
 #include <cctype>
@@ -10,9 +10,9 @@
 #include <set>
 #include <tuple>
 
-#include "model_instance.h"
-#include "model_collision_builder.h"
-#include "camera.h"
+#include "Model/model_instance.h"
+#include "Model/model_collision_builder.h"
+#include "Graphics/camera.h"
 
 #include "object/light_object.h"
 
@@ -22,12 +22,12 @@
 
 #include "collision/cubic_sdf.h"
 
-#include "model_resource_utility.h"
-#include "model_buffer_pool.h"
+#include "Model/model_resource_utility.h"
+#include "Model/model_buffer_pool.h"
 
-#include "custom_pipeline_state.h"
+#include "Graphics/custom_pipeline_state.h"
 
-#include "effect_instance.h"
+#include "Effect/effect_instance.h"
 
 #if defined(USE_IMGUI)
 

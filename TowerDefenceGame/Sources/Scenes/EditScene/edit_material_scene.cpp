@@ -1,14 +1,14 @@
 #include "scenes/editscene/edit_material_scene.h"
-#include "texture_resource_utility.h"
+#include "Texture/texture_resource_utility.h"
 #include "System/asset_browser.h"
 
 #include <algorithm>
 #include <cctype>
 #include <filesystem>
 
-#include "model_instance.h"
+#include "Model/model_instance.h"
 #include "Resource/resource_manager.h"
-#include "camera.h"
+#include "Graphics/camera.h"
 
 #include "object/light_object.h"
 

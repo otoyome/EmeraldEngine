@@ -3,7 +3,7 @@
 #include <atomic>
 
 #include "renderer.h"
-#include "render_pass.h"
+#include "Graphics/render_pass.h"
 #include "scene_render_targets.h"
 
 #include "Graphics/exposure_controller.h"

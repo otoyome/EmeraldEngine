@@ -1,8 +1,8 @@
 #include "graphics/shadow_atlas.h"
-#include "texture_factory.h"
+#include "Texture/texture_factory.h"
 
-#include "render_data.h"
-#include "common_pipeline_states.h"
+#include "Graphics/render_data.h"
+#include "Graphics/common_pipeline_states.h"
 #include "System/console_manager.h"
 
 #include <algorithm>

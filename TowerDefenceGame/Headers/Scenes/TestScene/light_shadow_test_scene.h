@@ -4,7 +4,7 @@
 
 #if defined(USE_IMGUI)
 #include "Editor/editor_camera.h"
-#include "light.h"
+#include "Graphics/light.h"
 
 #include <vector>
 
@@ -26,7 +26,7 @@ public:
 		float ring_radius = 8.0f;		//	並べる円の半径
 		float height = 4.0f;			//	高さ
 		float range = 15.0f;			//	影響範囲
-		float intensity = 800.0f;			//	強さ
+		float intensity = 20000.0f;			//	強さ
 		float spot_inner_cone = 20.0f;	//	スポットライトの内側角
 		float spot_outer_cone = 40.0f;	//	スポットライトの外側角
 		bool shadow = true;				//	影を落とすか
@@ -74,7 +74,7 @@ private:
 	float character_time = 0.0f;
 
 	std::shared_ptr<directional_light_object> directional_light;
-	float directional_intensity = 10000.0f;
+	float directional_intensity = 50.0f;
 
 	std::shared_ptr<model_object> animated_character;
 	std::shared_ptr<model_object> moving_character;

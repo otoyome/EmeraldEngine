@@ -3,8 +3,8 @@
 #include "scenes/scene_base.h"
 
 #if defined(USE_IMGUI)
-#include "effect_resource.h"
-#include "effect_instance.h"
+#include "Effect/effect_resource.h"
+#include "Effect/effect_instance.h"
 
 #include "object/camera_object.h"
 #include "object/post_process_volume_object.h"

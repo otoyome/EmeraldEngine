@@ -5,8 +5,8 @@
 #include <filesystem>
 #include <functional>
 
-#include "texture.h"
-#include "shader.h"
+#include "Texture/texture.h"
+#include "Graphics/shader.h"
 
 #include <stdio.h>
 #include <tchar.h>

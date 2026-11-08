@@ -2,9 +2,9 @@
 
 #include "collision/collision.h"
 
-#include "ik_resource.h"
-#include "ik_solver.h"
-#include "model_instance.h"
+#include "Animation/ik_resource.h"
+#include "Animation/ik_solver.h"
+#include "Model/model_instance.h"
 #include "object/spatial_object.h"
 
 #if defined(USE_IMGUI)

@@ -5,14 +5,14 @@
 #if defined(USE_IMGUI)
 #include <unordered_map>
 
-#include "timeline_resource.h"
+#include "Animation/timeline_resource.h"
 
 #include "object/model_object.h"
 #include "object/camera_object.h"
 #include "object/post_process_volume_object.h"
 
-#include "effect_resource.h"
-#include "effect_instance.h"
+#include "Effect/effect_resource.h"
+#include "Effect/effect_instance.h"
 
 #include "Editor/editor_items.h"
 #include "Editor/editor_camera.h"

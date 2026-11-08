@@ -1,6 +1,6 @@
 #include "graphics/hiz_buffer.h"
 
-#include "render_data.h"
+#include "Graphics/render_data.h"
 
 namespace
 {

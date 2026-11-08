@@ -1,7 +1,7 @@
 #include "graphics/clustered_lighting_system.h"
 
-#include "render_data.h"
-#include "light.h"
+#include "Graphics/render_data.h"
+#include "Graphics/light.h"
 #include "System/console_manager.h"
 #include "System/system_units.h"
 

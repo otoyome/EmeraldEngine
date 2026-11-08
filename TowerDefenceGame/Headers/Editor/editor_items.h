@@ -1,11 +1,11 @@
 #pragma once
 
 #if defined(USE_IMGUI)
-#include "material_resource.h"
-#include "animation_resource.h"
-#include "ik_resource.h"
-#include "model_instance.h"
-#include "effect_instance.h"
+#include "Material/material_resource.h"
+#include "Animation/animation_resource.h"
+#include "Animation/ik_resource.h"
+#include "Model/model_instance.h"
+#include "Effect/effect_instance.h"
 
 #include "ImGuizmo/ImCurveEdit.h"
 #include "ImGuizmo/ImSequencer.h"

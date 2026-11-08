@@ -1,5 +1,5 @@
 #include "scenes/editscene/edit_timeline_scene.h"
-#include "texture_resource_utility.h"
+#include "Texture/texture_resource_utility.h"
 #include "System/asset_browser.h"
 
 #if defined(USE_IMGUI)
@@ -7,15 +7,15 @@
 #include <cmath>
 #include <filesystem>
 
-#include "model_instance.h"
-#include "camera.h"
+#include "Model/model_instance.h"
+#include "Graphics/camera.h"
 
 #include "object/light_object.h"
 #include "object/model_object.h"
 #include "object/post_process_volume_object.h"
 #include "object/object_manager.h"
 
-#include "custom_pipeline_state.h"
+#include "Graphics/custom_pipeline_state.h"
 
 #include "Editor/editor_camera.h"
 

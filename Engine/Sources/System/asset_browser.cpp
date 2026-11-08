@@ -9,8 +9,8 @@
 
 #include "System/console_manager.h"
 #include "System/imgui_texture_keeper.h"
-#include "texture.h"
-#include "texture_factory.h"
+#include "Texture/texture.h"
+#include "Texture/texture_factory.h"
 #include "DirectXTex.h"
 #include "Resource/resource_manager.h"
 #include "Resource/asset_registry.h"

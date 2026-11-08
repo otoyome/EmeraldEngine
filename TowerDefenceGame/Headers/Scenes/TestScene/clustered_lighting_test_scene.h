@@ -4,7 +4,7 @@
 
 #if defined(USE_IMGUI)
 #include "Editor/editor_camera.h"
-#include "light.h"
+#include "Graphics/light.h"
 
 #include <vector>
 
@@ -26,7 +26,7 @@ public:
 		float area_size = 60.0f;		//	配置範囲（一辺）
 		float height = 2.0f;			//	配置する高さ
 		float range = 6.0f;				//	影響範囲
-		float intensity = 800.0f;			//	強さ
+		float intensity = 5000.0f;			//	強さ
 		float spot_inner_cone = 20.0f;	//	スポットライトの内側角
 		float spot_outer_cone = 35.0f;	//	スポットライトの外側角
 		float shadow_ratio = 0.0f;		//	影を落とすライトの割合
@@ -74,7 +74,7 @@ private:
 	float animation_time = 0.0f;
 
 	std::shared_ptr<directional_light_object> directional_light;
-	float directional_intensity = 10000.0f;	//	平行光源の強さ
+	float directional_intensity = 50.0f;	//	平行光源の強さ
 
 	std::shared_ptr<editor_camera_object> editor_camera;
 };

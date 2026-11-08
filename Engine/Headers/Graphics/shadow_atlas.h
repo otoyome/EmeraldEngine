@@ -8,7 +8,7 @@
 #include <d3d11.h>
 #include <wrl.h>
 
-#include "texture.h"
+#include "Texture/texture.h"
 
 //	シャドウマップアトラス
 class shadow_atlas

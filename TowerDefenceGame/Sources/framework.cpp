@@ -1,32 +1,32 @@
 #include "framework.h"
-#include "texture_factory.h"
-#include "render_data.h"
+#include "Texture/texture_factory.h"
+#include "Graphics/render_data.h"
 
 #include <algorithm>
 #include <future>
 #include <thread>
 
-#include "shader.h"
-#include "material_shader_map.h"
-#include "texture.h"
-#include "texture_defaults.h"
-#include "texture_importer.h"
-#include "texture_tracker.h"
-#include "font_data.h"
-#include "camera.h"
+#include "Graphics/shader.h"
+#include "Material/material_shader_map.h"
+#include "Texture/texture.h"
+#include "Texture/texture_defaults.h"
+#include "Texture/texture_importer.h"
+#include "Texture/texture_tracker.h"
+#include "Graphics/font_data.h"
+#include "Graphics/camera.h"
 #include "graphics/occlusion_culling_system.h"
 #include "graphics/clustered_lighting_system.h"
 #include "Resource/resource_manager.h"
-#include "model_resource.h"
-#include "model_buffer_pool.h"
-#include "model_instance.h"
-#include "effect_resource.h"
-#include "effect_instance.h"
+#include "Model/model_resource.h"
+#include "Model/model_buffer_pool.h"
+#include "Model/model_instance.h"
+#include "Effect/effect_resource.h"
+#include "Effect/effect_instance.h"
 #include "Audio/audio_manager.h"
 #include "Audio/sound_player.h"
 #include "Input/input_action_system.h"
 
-#include "ik_resource.h"
+#include "Animation/ik_resource.h"
 
 #include "scenes/load_shader_scene.h"
 

@@ -1,8 +1,8 @@
 #pragma once
 
 #if defined(USE_IMGUI)
-#include "graphics_context.h"
-#include "render_data.h"
+#include "Graphics/graphics_context.h"
+#include "Graphics/render_data.h"
 
 //	デバッグ図形描画管理クラス
 //	ﾃｷﾄｰ('ω')-ﾄｷﾃ

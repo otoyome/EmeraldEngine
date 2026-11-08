@@ -1,5 +1,5 @@
 #include "scenes/TestScene/collision_test_scene.h"
-#include "camera.h"
+#include "Graphics/camera.h"
 
 #include <cstdarg>
 #include <cmath>

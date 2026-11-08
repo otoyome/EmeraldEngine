@@ -1,12 +1,12 @@
 #include "Editor/editor_items.h"
-#include "texture_defaults.h"
-#include "texture_resource_utility.h"
+#include "Texture/texture_defaults.h"
+#include "Texture/texture_resource_utility.h"
 
 #if defined(USE_IMGUI)
 #include <commdlg.h>
 #include <random>
 
-#include "material_shader_map.h"
+#include "Material/material_shader_map.h"
 #include "Resource/resource_manager.h"
 #include "Resource/asset_file_header.h"
 #include "System/asset_browser.h"

@@ -1,6 +1,6 @@
 #include "Scenes/load_shader_scene.h"
 
-#include "custom_pipeline_state.h"
+#include "Graphics/custom_pipeline_state.h"
 
 #include "scenes/minigamescene/minigame_scene.h"
 #include "scenes/minigamescene/minigame_title_scene.h"

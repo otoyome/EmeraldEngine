@@ -1,5 +1,5 @@
 #include "PipelineState/anti_alias_pipeline_state.h"
-#include "texture_factory.h"
+#include "Texture/texture_factory.h"
 
 #include "subpixel_morphological_anti_aliasing/textures/AreaTex.h"
 #include "subpixel_morphological_anti_aliasing/textures/SearchTex.h"

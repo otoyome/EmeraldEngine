@@ -1,8 +1,8 @@
 #include "Renderer/scene_renderer.h"
 
-#include "model_instance.h"
+#include "Model/model_instance.h"
 
-#include "custom_pipeline_state.h"
+#include "Graphics/custom_pipeline_state.h"
 #include "PipelineState/skybox_pipeline_state.h"
 #include "PipelineState/fullscreen_quad_pipeline_state.h"
 #include "PipelineState/debug_draw_line_pipeline_state.h"

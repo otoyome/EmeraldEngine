@@ -1,12 +1,12 @@
 #include "Renderer/world_renderer.h"
-#include "texture_factory.h"
-#include "render_data.h"
+#include "Texture/texture_factory.h"
+#include "Graphics/render_data.h"
 
 #include <algorithm>
 
-#include "model_buffer_pool.h"
-#include "model_instance.h"
-#include "effect_instance.h"
+#include "Model/model_buffer_pool.h"
+#include "Model/model_instance.h"
+#include "Effect/effect_instance.h"
 #include "graphics/occlusion_culling_system.h"
 #include "graphics/clustered_lighting_system.h"
 

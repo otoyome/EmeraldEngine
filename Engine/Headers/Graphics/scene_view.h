@@ -1,6 +1,6 @@
 #pragma once
 
-#include "view_parameters.h"
+#include "Graphics/view_parameters.h"
 #include "collision/frustum_culling.h"
 
 #include <memory>

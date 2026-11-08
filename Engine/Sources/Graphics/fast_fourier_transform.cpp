@@ -1,5 +1,5 @@
-#include "shader.h"
-#include "texture_factory.h"
+#include "Graphics/shader.h"
+#include "Texture/texture_factory.h"
 #include "Graphics/fast_fourier_transform.h"
 
 namespace

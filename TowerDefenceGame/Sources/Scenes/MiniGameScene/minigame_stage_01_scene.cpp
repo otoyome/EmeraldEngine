@@ -1,11 +1,11 @@
 #include "Scenes/MiniGameScene/minigame_stage_01_scene.h"
-#include "texture_resource_utility.h"
+#include "Texture/texture_resource_utility.h"
 
 #include "editor/editor_camera.h"
 
-#include "model_instance.h"
-#include "camera.h"
-#include "effect_instance.h"
+#include "Model/model_instance.h"
+#include "Graphics/camera.h"
+#include "Effect/effect_instance.h"
 
 #include "Collision/cubic_sdf.h"
 #include "Collision/combined_mesh.h"

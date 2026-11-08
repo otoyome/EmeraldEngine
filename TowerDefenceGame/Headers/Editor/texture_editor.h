@@ -5,7 +5,7 @@
 #include <string_view>
 #include <vector>
 
-#include "texture_resource.h"
+#include "Texture/texture_resource.h"
 
 //	テクスチャリソースの編集画面
 class texture_editor

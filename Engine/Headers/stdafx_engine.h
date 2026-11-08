@@ -28,11 +28,11 @@
 #include <cassert>
 
 
-#include "render_data.h"
-#include "shader.h"
-#include "graphics_utility.h"
+#include "Graphics/render_data.h"
+#include "Graphics/shader.h"
+#include "Graphics/graphics_utility.h"
 
-#include "material_resource.h"
+#include "Material/material_resource.h"
 
 #include "input/mouse.h"
 #include "input/keyboard.h"

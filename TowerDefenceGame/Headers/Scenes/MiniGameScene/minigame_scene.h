@@ -10,7 +10,7 @@
 
 #include "object/gameobjects/minigame/roomba_object.h"
 #include "object/camera_object.h"
-#include "effect_instance.h"
+#include "Effect/effect_instance.h"
 
 //	ゲームメインシーン
 class minigame_scene : public scene_base

@@ -14,13 +14,13 @@ extern ImWchar glyphRangesJapanese[];
 #endif
 
 #include "system/parallel_for_executor.h"
-#include "render_pass.h"
+#include "Graphics/render_pass.h"
 
 #include "Scenes/scene_base.h"
 #include "Renderer/renderer.h"
 #include "Renderer/scene_render_targets.h"
 #include "Renderer/occlusion_culling_renderer.h"
-#include "camera.h"
+#include "Graphics/camera.h"
 #include "graphics/scene_view.h"
 #include "graphics/scene_view_state.h"
 

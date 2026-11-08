@@ -1,5 +1,5 @@
 #include "object/gameobjects/ui/ui_image.h"
-#include "texture_resource_utility.h"
+#include "Texture/texture_resource_utility.h"
 
 namespace
 {

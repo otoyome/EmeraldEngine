@@ -9,8 +9,8 @@
 
 #include "system/finite_state_machine.h"
 
-#include "effect_resource.h"
-#include "effect_instance.h"
+#include "Effect/effect_resource.h"
+#include "Effect/effect_instance.h"
 
 #include "Audio/audio_manager.h"
 

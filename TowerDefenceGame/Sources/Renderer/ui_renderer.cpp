@@ -1,6 +1,6 @@
 #include "Renderer/ui_renderer.h"
 
-#include "sprite.h"
+#include "Graphics/sprite.h"
 
 namespace
 {

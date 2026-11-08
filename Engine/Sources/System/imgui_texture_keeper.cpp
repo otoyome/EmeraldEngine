@@ -1,7 +1,7 @@
 #include "System/imgui_texture_keeper.h"
 
 #if defined(USE_IMGUI)
-#include "texture.h"
+#include "Texture/texture.h"
 
 ImTextureID imgui_texture_keeper::keep(const std::shared_ptr<texture>& value)
 {

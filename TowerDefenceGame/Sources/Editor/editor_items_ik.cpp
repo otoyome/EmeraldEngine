@@ -5,9 +5,9 @@
 #include <random>
 #include <set>
 
-#include "ik_resource.h"
-#include "ik_solver.h"
-#include "model_instance.h"
+#include "Animation/ik_resource.h"
+#include "Animation/ik_solver.h"
+#include "Model/model_instance.h"
 
 namespace
 {

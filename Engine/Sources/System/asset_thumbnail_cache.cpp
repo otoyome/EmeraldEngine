@@ -4,9 +4,9 @@
 #include <algorithm>
 #include <cmath>
 
-#include "texture.h"
-#include "texture_factory.h"
-#include "texture_resource_utility.h"
+#include "Texture/texture.h"
+#include "Texture/texture_factory.h"
+#include "Texture/texture_resource_utility.h"
 #include "Resource/asset_file_header.h"
 #include "Resource/asset_registry.h"
 #include "system/logger.h"

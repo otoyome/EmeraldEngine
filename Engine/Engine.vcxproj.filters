@@ -1,38 +1,80 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="Sources">
-      <UniqueIdentifier>{80b01986-9419-4ea3-b9a2-e9543f7bfc5a}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Headers">
       <UniqueIdentifier>{11ba890f-8786-4096-9423-f67584441e95}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Headers\Input">
-      <UniqueIdentifier>{cdce47c4-dae5-4060-b42a-5fadccabf110}</UniqueIdentifier>
+    <Filter Include="Headers\Animation">
+      <UniqueIdentifier>{a5999f88-51b8-4053-8140-6854727615c3}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Sources\Input">
-      <UniqueIdentifier>{7e3c7c6c-227e-478a-b2e5-43180f9f559e}</UniqueIdentifier>
+    <Filter Include="Headers\Audio">
+      <UniqueIdentifier>{4f1c2a7e-8b3d-4e65-9a0c-6d2e7f915b34}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Headers\CoordinateSystem">
+      <UniqueIdentifier>{3a63e2af-2a83-416f-a65d-abf5babd5c51}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Headers\Effect">
+      <UniqueIdentifier>{81a9ba36-bfac-4fd8-a4e3-113235d923ab}</UniqueIdentifier>
     </Filter>
     <Filter Include="Headers\Graphics">
       <UniqueIdentifier>{9eaa5a3c-3c5b-4da9-b65b-384a6f4bb771}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Sources\Graphics">
-      <UniqueIdentifier>{ac5af133-a154-4739-87b4-b0051487e7b7}</UniqueIdentifier>
+    <Filter Include="Headers\Input">
+      <UniqueIdentifier>{cdce47c4-dae5-4060-b42a-5fadccabf110}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Headers\Material">
+      <UniqueIdentifier>{23e29c6e-f1ca-4489-b956-89fadef25fda}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Headers\Model">
+      <UniqueIdentifier>{a36f9975-5545-49b3-862e-6cf8581f2ac4}</UniqueIdentifier>
     </Filter>
     <Filter Include="Headers\ModelFormat">
       <UniqueIdentifier>{38d5a7b7-f182-43ab-afba-40e784ccaacc}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Sources\ModelFormat">
-      <UniqueIdentifier>{6507c3bd-d416-44ff-89cf-7cfcfb2c0305}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Headers\Resource">
       <UniqueIdentifier>{e2034042-e441-4f19-8638-887fa419a125}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Sources\Resource">
-      <UniqueIdentifier>{d9450165-f0ab-4c4a-8a8e-8343cbe79a87}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Headers\System">
       <UniqueIdentifier>{ef7754fe-60ab-420e-93e2-dc09748c829e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Headers\System\BehaviorTree">
+      <UniqueIdentifier>{16213654-ea52-427f-b93d-0078ad90f3b5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Headers\Texture">
+      <UniqueIdentifier>{cf8a9b6d-ae7a-47ee-8135-9638efd510c6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Sources">
+      <UniqueIdentifier>{80b01986-9419-4ea3-b9a2-e9543f7bfc5a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Sources\Animation">
+      <UniqueIdentifier>{995e4ebf-5b03-44ea-8fdf-ad47ceb6dcca}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Sources\Audio">
+      <UniqueIdentifier>{b8e3d5f1-2c7a-4b90-8e46-1a9f0c3d7e52}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Sources\CoordinateSystem">
+      <UniqueIdentifier>{7a655dec-6419-4294-9d5d-b5f25c6b6a3c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Sources\Effect">
+      <UniqueIdentifier>{7c0f86d3-04b8-4866-ae8a-72f8da08ef0c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Sources\Graphics">
+      <UniqueIdentifier>{ac5af133-a154-4739-87b4-b0051487e7b7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Sources\Input">
+      <UniqueIdentifier>{7e3c7c6c-227e-478a-b2e5-43180f9f559e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Sources\Material">
+      <UniqueIdentifier>{2e7ae4fb-d364-455c-8b54-d47fef8b3a4e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Sources\Model">
+      <UniqueIdentifier>{4a194ad6-524c-4b79-825f-f46e1dae48b7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Sources\ModelFormat">
+      <UniqueIdentifier>{6507c3bd-d416-44ff-89cf-7cfcfb2c0305}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Sources\Resource">
+      <UniqueIdentifier>{d9450165-f0ab-4c4a-8a8e-8343cbe79a87}</UniqueIdentifier>
     </Filter>
     <Filter Include="Sources\System">
       <UniqueIdentifier>{e9ad7f50-3ef2-4dce-a355-5b19730d07e5}</UniqueIdentifier>
@@ -40,172 +82,199 @@
     <Filter Include="Sources\System\BehaviorTree">
       <UniqueIdentifier>{0b2fe897-678e-4b66-9782-633f45365d3b}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Headers\System\BehaviorTree">
-      <UniqueIdentifier>{16213654-ea52-427f-b93d-0078ad90f3b5}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Headers\CoordinateSystem">
-      <UniqueIdentifier>{3a63e2af-2a83-416f-a65d-abf5babd5c51}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Sources\CoordinateSystem">
-      <UniqueIdentifier>{7a655dec-6419-4294-9d5d-b5f25c6b6a3c}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Headers\Audio">
-      <UniqueIdentifier>{4f1c2a7e-8b3d-4e65-9a0c-6d2e7f915b34}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Sources\Audio">
-      <UniqueIdentifier>{b8e3d5f1-2c7a-4b90-8e46-1a9f0c3d7e52}</UniqueIdentifier>
+    <Filter Include="Sources\Texture">
+      <UniqueIdentifier>{f63b97c4-f157-40da-ae4e-7f7515e9cbc0}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Headers\Animation\animation_data_version.h">
+      <Filter>Headers\Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Animation\animation_resource.h">
+      <Filter>Headers\Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Animation\ik_resource.h">
+      <Filter>Headers\Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Animation\ik_solver.h">
+      <Filter>Headers\Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Animation\retarget_profile.h">
+      <Filter>Headers\Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Animation\timeline_resource.h">
+      <Filter>Headers\Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Audio\audio_manager.h">
+      <Filter>Headers\Audio</Filter>
+    </ClInclude>
     <ClInclude Include="Headers\Audio\sound_bank.h">
       <Filter>Headers\Audio</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Audio\sound_player.h">
       <Filter>Headers\Audio</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Audio\audio_manager.h">
-      <Filter>Headers\Audio</Filter>
+    <ClInclude Include="Headers\CoordinateSystem\hierarchy.h">
+      <Filter>Headers\CoordinateSystem</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\geometric_primitive.h">
-      <Filter>Headers</Filter>
+    <ClInclude Include="Headers\CoordinateSystem\spatial.h">
+      <Filter>Headers\CoordinateSystem</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\light_data.h">
-      <Filter>Headers</Filter>
+    <ClInclude Include="Headers\Effect\effect_instance.h">
+      <Filter>Headers\Effect</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\render_data.h">
-      <Filter>Headers</Filter>
+    <ClInclude Include="Headers\Effect\effect_resource.h">
+      <Filter>Headers\Effect</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\render_state_cache.h">
-      <Filter>Headers</Filter>
+    <ClInclude Include="Headers\Graphics\buffer_view.h">
+      <Filter>Headers\Graphics</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\shader.h">
-      <Filter>Headers</Filter>
+    <ClInclude Include="Headers\Graphics\camera.h">
+      <Filter>Headers\Graphics</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\sprite.h">
-      <Filter>Headers</Filter>
+    <ClInclude Include="Headers\Graphics\clustered_lighting_system.h">
+      <Filter>Headers\Graphics</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\texture.h">
-      <Filter>Headers</Filter>
+    <ClInclude Include="Headers\Graphics\color_space.h">
+      <Filter>Headers\Graphics</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\texture_defaults.h">
-      <Filter>Headers</Filter>
+    <ClInclude Include="Headers\Graphics\common_pipeline_states.h">
+      <Filter>Headers\Graphics</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\texture_factory.h">
-      <Filter>Headers</Filter>
+    <ClInclude Include="Headers\Graphics\compute_particle_system.h">
+      <Filter>Headers\Graphics</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\texture_import_settings.h">
-      <Filter>Headers</Filter>
+    <ClInclude Include="Headers\Graphics\cubic_sdf_buffer_pool.h">
+      <Filter>Headers\Graphics</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\texture_importer.h">
-      <Filter>Headers</Filter>
+    <ClInclude Include="Headers\Graphics\custom_pipeline_state.h">
+      <Filter>Headers\Graphics</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\texture_resource.h">
-      <Filter>Headers</Filter>
+    <ClInclude Include="Headers\Graphics\debug_primitive_collector.h">
+      <Filter>Headers\Graphics</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\texture_resource_utility.h">
-      <Filter>Headers</Filter>
+    <ClInclude Include="Headers\Graphics\direct_x_helper.h">
+      <Filter>Headers\Graphics</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\texture_tracker.h">
-      <Filter>Headers</Filter>
+    <ClInclude Include="Headers\Graphics\exposure_controller.h">
+      <Filter>Headers\Graphics</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\render_pass.h">
-      <Filter>Headers</Filter>
+    <ClInclude Include="Headers\Graphics\fast_fourier_transform.h">
+      <Filter>Headers\Graphics</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\graphics_utility.h">
-      <Filter>Headers</Filter>
+    <ClInclude Include="Headers\Graphics\font_data.h">
+      <Filter>Headers\Graphics</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\graphics_context.h">
-      <Filter>Headers</Filter>
+    <ClInclude Include="Headers\Graphics\geometric_primitive.h">
+      <Filter>Headers\Graphics</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\light.h">
-      <Filter>Headers</Filter>
+    <ClInclude Include="Headers\Graphics\gpu_readback_queue.h">
+      <Filter>Headers\Graphics</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\material_shader_map.h">
-      <Filter>Headers</Filter>
+    <ClInclude Include="Headers\Graphics\gpu_timer.h">
+      <Filter>Headers\Graphics</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\material_resource.h">
-      <Filter>Headers</Filter>
+    <ClInclude Include="Headers\Graphics\gpu_upload_list.h">
+      <Filter>Headers\Graphics</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\material_resource_factory.h">
-      <Filter>Headers</Filter>
+    <ClInclude Include="Headers\Graphics\graphics_context.h">
+      <Filter>Headers\Graphics</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\material_instance.h">
-      <Filter>Headers</Filter>
+    <ClInclude Include="Headers\Graphics\graphics_utility.h">
+      <Filter>Headers\Graphics</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\model_instance.h">
-      <Filter>Headers</Filter>
+    <ClInclude Include="Headers\Graphics\hiz_buffer.h">
+      <Filter>Headers\Graphics</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\model_resource.h">
-      <Filter>Headers</Filter>
+    <ClInclude Include="Headers\Graphics\light.h">
+      <Filter>Headers\Graphics</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\model_buffer_pool.h">
-      <Filter>Headers</Filter>
+    <ClInclude Include="Headers\Graphics\light_data.h">
+      <Filter>Headers\Graphics</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\model_resource_utility.h">
-      <Filter>Headers</Filter>
+    <ClInclude Include="Headers\Graphics\light_utility.h">
+      <Filter>Headers\Graphics</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\model_collision_builder.h">
-      <Filter>Headers</Filter>
+    <ClInclude Include="Headers\Graphics\meshlet_culling_system.h">
+      <Filter>Headers\Graphics</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\pipeline_state.h">
-      <Filter>Headers</Filter>
+    <ClInclude Include="Headers\Graphics\occlusion_culling_system.h">
+      <Filter>Headers\Graphics</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\buffer_view.h">
-      <Filter>Headers</Filter>
+    <ClInclude Include="Headers\Graphics\particle_resource.h">
+      <Filter>Headers\Graphics</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\camera.h">
-      <Filter>Headers</Filter>
+    <ClInclude Include="Headers\Graphics\pipeline_state.h">
+      <Filter>Headers\Graphics</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\view_parameters.h">
-      <Filter>Headers</Filter>
+    <ClInclude Include="Headers\Graphics\post_process_volume.h">
+      <Filter>Headers\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Graphics\render_data.h">
+      <Filter>Headers\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Graphics\render_pass.h">
+      <Filter>Headers\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Graphics\render_state_cache.h">
+      <Filter>Headers\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Graphics\scene_view.h">
+      <Filter>Headers\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Graphics\scene_view_state.h">
+      <Filter>Headers\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Graphics\shader.h">
+      <Filter>Headers\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Graphics\shadow_atlas.h">
+      <Filter>Headers\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Graphics\sprite.h">
+      <Filter>Headers\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Graphics\view_parameters.h">
+      <Filter>Headers\Graphics</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Input\gamepad.h">
       <Filter>Headers\Input</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Input\input_key.h">
+    <ClInclude Include="Headers\Input\input.h">
       <Filter>Headers\Input</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Input\input_action.h">
       <Filter>Headers\Input</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Input\input_layer.h">
-      <Filter>Headers\Input</Filter>
-    </ClInclude>
     <ClInclude Include="Headers\Input\input_action_system.h">
       <Filter>Headers\Input</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Input\mouse.h">
+    <ClInclude Include="Headers\Input\input_key.h">
+      <Filter>Headers\Input</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Input\input_layer.h">
       <Filter>Headers\Input</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Input\keyboard.h">
       <Filter>Headers\Input</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Graphics\debug_primitive_collector.h">
-      <Filter>Headers\Graphics</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Input\input.h">
+    <ClInclude Include="Headers\Input\mouse.h">
       <Filter>Headers\Input</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\post_process_volume.h">
-      <Filter>Headers</Filter>
+    <ClInclude Include="Headers\Material\material_instance.h">
+      <Filter>Headers\Material</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\common_pipeline_states.h">
-      <Filter>Headers</Filter>
+    <ClInclude Include="Headers\Material\material_resource.h">
+      <Filter>Headers\Material</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\font_data.h">
-      <Filter>Headers</Filter>
+    <ClInclude Include="Headers\Material\material_resource_factory.h">
+      <Filter>Headers\Material</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\animation_resource.h">
-      <Filter>Headers</Filter>
+    <ClInclude Include="Headers\Material\material_shader_map.h">
+      <Filter>Headers\Material</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\animation_data_version.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\custom_pipeline_state.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\stdafx_engine.h">
-      <Filter>Headers</Filter>
+    <ClInclude Include="Headers\ModelFormat\gltf_loader.h">
+      <Filter>Headers\ModelFormat</Filter>
     </ClInclude>
     <ClInclude Include="Headers\ModelFormat\pmx_definision.h">
       <Filter>Headers\ModelFormat</Filter>
@@ -222,122 +291,56 @@
     <ClInclude Include="Headers\ModelFormat\vmd_loader.h">
       <Filter>Headers\ModelFormat</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\System\enum_class_attribute.h">
-      <Filter>Headers\System</Filter>
+    <ClInclude Include="Headers\Model\data_converter.h">
+      <Filter>Headers\Model</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\System\logger.h">
-      <Filter>Headers\System</Filter>
+    <ClInclude Include="Headers\Model\model_buffer_pool.h">
+      <Filter>Headers\Model</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\System\memory_allocator.h">
-      <Filter>Headers\System</Filter>
+    <ClInclude Include="Headers\Model\model_collision_builder.h">
+      <Filter>Headers\Model</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\System\misc.h">
-      <Filter>Headers\System</Filter>
+    <ClInclude Include="Headers\Model\model_instance.h">
+      <Filter>Headers\Model</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\System\system_units.h">
-      <Filter>Headers\System</Filter>
+    <ClInclude Include="Headers\Model\model_resource.h">
+      <Filter>Headers\Model</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\System\universally_unique_identifier.h">
-      <Filter>Headers\System</Filter>
+    <ClInclude Include="Headers\Model\model_resource_utility.h">
+      <Filter>Headers\Model</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\System\signals.h">
-      <Filter>Headers\System</Filter>
+    <ClInclude Include="Headers\Resource\asset_file_header.h">
+      <Filter>Headers\Resource</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\System\system_utility.h">
-      <Filter>Headers\System</Filter>
+    <ClInclude Include="Headers\Resource\asset_handle.h">
+      <Filter>Headers\Resource</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\System\high_resolution_timer.h">
-      <Filter>Headers\System</Filter>
+    <ClInclude Include="Headers\Resource\asset_reference.h">
+      <Filter>Headers\Resource</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\System\singleton.h">
-      <Filter>Headers\System</Filter>
+    <ClInclude Include="Headers\Resource\asset_registry.h">
+      <Filter>Headers\Resource</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\ModelFormat\gltf_loader.h">
-      <Filter>Headers\ModelFormat</Filter>
+    <ClInclude Include="Headers\Resource\data_compression.h">
+      <Filter>Headers\Resource</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\System\variable_position_allocator.h">
-      <Filter>Headers\System</Filter>
+    <ClInclude Include="Headers\Resource\resource_base.h">
+      <Filter>Headers\Resource</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Graphics\direct_x_helper.h">
-      <Filter>Headers\Graphics</Filter>
+    <ClInclude Include="Headers\Resource\resource_loader.h">
+      <Filter>Headers\Resource</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Graphics\fast_fourier_transform.h">
-      <Filter>Headers\Graphics</Filter>
+    <ClInclude Include="Headers\Resource\resource_manager.h">
+      <Filter>Headers\Resource</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Graphics\gpu_timer.h">
-      <Filter>Headers\Graphics</Filter>
+    <ClInclude Include="Headers\Resource\resource_operation.h">
+      <Filter>Headers\Resource</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\System\cpu_timer.h">
-      <Filter>Headers\System</Filter>
+    <ClInclude Include="Headers\Resource\resource_operation_state.h">
+      <Filter>Headers\Resource</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\retarget_profile.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\timeline_resource.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\data_converter.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\System\engine_config_data.h">
-      <Filter>Headers\System</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\System\console_manager.h">
-      <Filter>Headers\System</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\System\editor_config_data.h">
-      <Filter>Headers\System</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\System\asset_browser.h">
-      <Filter>Headers\System</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\System\imgui_texture_keeper.h">
-      <Filter>Headers\System</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\System\asset_thumbnail_cache.h">
-      <Filter>Headers\System</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\System\project_path.h">
-      <Filter>Headers\System</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\System\game_config_data.h">
-      <Filter>Headers\System</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Graphics\color_space.h">
-      <Filter>Headers\Graphics</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Graphics\exposure_controller.h">
-      <Filter>Headers\Graphics</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Graphics\light_utility.h">
-      <Filter>Headers\Graphics</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Graphics\compute_particle_system.h">
-      <Filter>Headers\Graphics</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\ik_solver.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\ik_resource.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\effect_instance.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\effect_resource.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Graphics\particle_resource.h">
-      <Filter>Headers\Graphics</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\System\behavior_tree.h">
-      <Filter>Headers\System</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\System\finite_state_machine.h">
-      <Filter>Headers\System</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\System\fixed_size_pool.h">
-      <Filter>Headers\System</Filter>
+    <ClInclude Include="Headers\Resource\resource_saver.h">
+      <Filter>Headers\Resource</Filter>
     </ClInclude>
     <ClInclude Include="Headers\System\BehaviorTree\action_interface.h">
       <Filter>Headers\System\BehaviorTree</Filter>
@@ -354,214 +357,283 @@
     <ClInclude Include="Headers\System\BehaviorTree\select_rule.h">
       <Filter>Headers\System\BehaviorTree</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\System\simple_helper.h">
+    <ClInclude Include="Headers\System\asset_browser.h">
       <Filter>Headers\System</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Resource\asset_file_header.h">
-      <Filter>Headers\Resource</Filter>
+    <ClInclude Include="Headers\System\asset_thumbnail_cache.h">
+      <Filter>Headers\System</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Resource\asset_reference.h">
-      <Filter>Headers\Resource</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Resource\asset_handle.h">
-      <Filter>Headers\Resource</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Resource\asset_registry.h">
-      <Filter>Headers\Resource</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Resource\resource_base.h">
-      <Filter>Headers\Resource</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Resource\resource_loader.h">
-      <Filter>Headers\Resource</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Resource\resource_saver.h">
-      <Filter>Headers\Resource</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Resource\resource_manager.h">
-      <Filter>Headers\Resource</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Resource\resource_operation.h">
-      <Filter>Headers\Resource</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Resource\resource_operation_state.h">
-      <Filter>Headers\Resource</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Resource\data_compression.h">
-      <Filter>Headers\Resource</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\System\parallel_for_executor.h">
+    <ClInclude Include="Headers\System\behavior_tree.h">
       <Filter>Headers\System</Filter>
     </ClInclude>
     <ClInclude Include="Headers\System\cache_string.h">
       <Filter>Headers\System</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Graphics\occlusion_culling_system.h">
-      <Filter>Headers\Graphics</Filter>
+    <ClInclude Include="Headers\System\console_manager.h">
+      <Filter>Headers\System</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Graphics\clustered_lighting_system.h">
-      <Filter>Headers\Graphics</Filter>
+    <ClInclude Include="Headers\System\cpu_timer.h">
+      <Filter>Headers\System</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Graphics\shadow_atlas.h">
-      <Filter>Headers\Graphics</Filter>
+    <ClInclude Include="Headers\System\editor_config_data.h">
+      <Filter>Headers\System</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Graphics\meshlet_culling_system.h">
-      <Filter>Headers\Graphics</Filter>
+    <ClInclude Include="Headers\System\engine_config_data.h">
+      <Filter>Headers\System</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Graphics\hiz_buffer.h">
-      <Filter>Headers\Graphics</Filter>
+    <ClInclude Include="Headers\System\enum_class_attribute.h">
+      <Filter>Headers\System</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Graphics\scene_view.h">
-      <Filter>Headers\Graphics</Filter>
+    <ClInclude Include="Headers\System\finite_state_machine.h">
+      <Filter>Headers\System</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Graphics\scene_view_state.h">
-      <Filter>Headers\Graphics</Filter>
+    <ClInclude Include="Headers\System\fixed_size_pool.h">
+      <Filter>Headers\System</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Graphics\cubic_sdf_buffer_pool.h">
-      <Filter>Headers\Graphics</Filter>
+    <ClInclude Include="Headers\System\game_config_data.h">
+      <Filter>Headers\System</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Graphics\gpu_upload_list.h">
-      <Filter>Headers\Graphics</Filter>
+    <ClInclude Include="Headers\System\high_resolution_timer.h">
+      <Filter>Headers\System</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Graphics\gpu_readback_queue.h">
-      <Filter>Headers\Graphics</Filter>
+    <ClInclude Include="Headers\System\imgui_texture_keeper.h">
+      <Filter>Headers\System</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\CoordinateSystem\hierarchy.h">
-      <Filter>Headers\CoordinateSystem</Filter>
+    <ClInclude Include="Headers\System\logger.h">
+      <Filter>Headers\System</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\CoordinateSystem\spatial.h">
-      <Filter>Headers\CoordinateSystem</Filter>
+    <ClInclude Include="Headers\System\memory_allocator.h">
+      <Filter>Headers\System</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\System\misc.h">
+      <Filter>Headers\System</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\System\parallel_for_executor.h">
+      <Filter>Headers\System</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\System\project_path.h">
+      <Filter>Headers\System</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\System\signals.h">
+      <Filter>Headers\System</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\System\simple_helper.h">
+      <Filter>Headers\System</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\System\singleton.h">
+      <Filter>Headers\System</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\System\system_units.h">
+      <Filter>Headers\System</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\System\system_utility.h">
+      <Filter>Headers\System</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\System\universally_unique_identifier.h">
+      <Filter>Headers\System</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\System\variable_position_allocator.h">
+      <Filter>Headers\System</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Texture\texture.h">
+      <Filter>Headers\Texture</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Texture\texture_defaults.h">
+      <Filter>Headers\Texture</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Texture\texture_factory.h">
+      <Filter>Headers\Texture</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Texture\texture_import_settings.h">
+      <Filter>Headers\Texture</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Texture\texture_importer.h">
+      <Filter>Headers\Texture</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Texture\texture_resource.h">
+      <Filter>Headers\Texture</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Texture\texture_resource_utility.h">
+      <Filter>Headers\Texture</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Texture\texture_tracker.h">
+      <Filter>Headers\Texture</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\stdafx_engine.h">
+      <Filter>Headers</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Sources\geometric_primitive.cpp">
-      <Filter>Sources</Filter>
+    <ClCompile Include="Sources\Animation\animation_resource.cpp">
+      <Filter>Sources\Animation</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\render_data.cpp">
-      <Filter>Sources</Filter>
+    <ClCompile Include="Sources\Animation\ik_resource.cpp">
+      <Filter>Sources\Animation</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\render_state_cache.cpp">
-      <Filter>Sources</Filter>
+    <ClCompile Include="Sources\Animation\ik_solver.cpp">
+      <Filter>Sources\Animation</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\shader.cpp">
-      <Filter>Sources</Filter>
+    <ClCompile Include="Sources\Animation\retarget_profile.cpp">
+      <Filter>Sources\Animation</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\sprite.cpp">
-      <Filter>Sources</Filter>
+    <ClCompile Include="Sources\Animation\timeline_resource.cpp">
+      <Filter>Sources\Animation</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\texture.cpp">
-      <Filter>Sources</Filter>
+    <ClCompile Include="Sources\Audio\audio_manager.cpp">
+      <Filter>Sources\Audio</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\texture_defaults.cpp">
-      <Filter>Sources</Filter>
+    <ClCompile Include="Sources\Audio\miniaudio_implementation.cpp">
+      <Filter>Sources\Audio</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\texture_factory.cpp">
-      <Filter>Sources</Filter>
+    <ClCompile Include="Sources\Audio\sound_bank.cpp">
+      <Filter>Sources\Audio</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\texture_import_settings.cpp">
-      <Filter>Sources</Filter>
+    <ClCompile Include="Sources\Audio\sound_player.cpp">
+      <Filter>Sources\Audio</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\texture_importer.cpp">
-      <Filter>Sources</Filter>
+    <ClCompile Include="Sources\CoordinateSystem\hierarchy.cpp">
+      <Filter>Sources\CoordinateSystem</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\texture_resource.cpp">
-      <Filter>Sources</Filter>
+    <ClCompile Include="Sources\CoordinateSystem\spatial.cpp">
+      <Filter>Sources\CoordinateSystem</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\texture_resource_utility.cpp">
-      <Filter>Sources</Filter>
+    <ClCompile Include="Sources\Effect\effect_instance.cpp">
+      <Filter>Sources\Effect</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\texture_tracker.cpp">
-      <Filter>Sources</Filter>
+    <ClCompile Include="Sources\Effect\effect_resource.cpp">
+      <Filter>Sources\Effect</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\render_pass.cpp">
-      <Filter>Sources</Filter>
+    <ClCompile Include="Sources\Graphics\camera.cpp">
+      <Filter>Sources\Graphics</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\light_data.cpp">
-      <Filter>Sources</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\light.cpp">
-      <Filter>Sources</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\model_resource.cpp">
-      <Filter>Sources</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\model_buffer_pool.cpp">
-      <Filter>Sources</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\model_instance.cpp">
-      <Filter>Sources</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\model_collision_builder.cpp">
-      <Filter>Sources</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\material_shader_map.cpp">
-      <Filter>Sources</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\material_resource.cpp">
-      <Filter>Sources</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\material_resource_factory.cpp">
-      <Filter>Sources</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\material_instance.cpp">
-      <Filter>Sources</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\pipeline_state.cpp">
-      <Filter>Sources</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\graphics_context.cpp">
-      <Filter>Sources</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\camera.cpp">
-      <Filter>Sources</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Input\gamepad.cpp">
-      <Filter>Sources\Input</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Input\input_key.cpp">
-      <Filter>Sources\Input</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Input\input_action.cpp">
-      <Filter>Sources\Input</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Input\input_layer.cpp">
-      <Filter>Sources\Input</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Input\input_action_system.cpp">
-      <Filter>Sources\Input</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Input\mouse.cpp">
-      <Filter>Sources\Input</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Input\keyboard.cpp">
-      <Filter>Sources\Input</Filter>
+    <ClCompile Include="Sources\Graphics\clustered_lighting_system.cpp">
+      <Filter>Sources\Graphics</Filter>
     </ClCompile>
     <ClCompile Include="Sources\Graphics\color_space.cpp">
       <Filter>Sources\Graphics</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Graphics\exposure_controller.cpp">
+    <ClCompile Include="Sources\Graphics\compute_particle_system.cpp">
       <Filter>Sources\Graphics</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Graphics\light_utility.cpp">
+    <ClCompile Include="Sources\Graphics\cubic_sdf_buffer_pool.cpp">
+      <Filter>Sources\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Graphics\custom_pipeline_state.cpp">
       <Filter>Sources\Graphics</Filter>
     </ClCompile>
     <ClCompile Include="Sources\Graphics\debug_primitive_collector.cpp">
       <Filter>Sources\Graphics</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\post_process_volume.cpp">
-      <Filter>Sources</Filter>
+    <ClCompile Include="Sources\Graphics\exposure_controller.cpp">
+      <Filter>Sources\Graphics</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\font_data.cpp">
-      <Filter>Sources</Filter>
+    <ClCompile Include="Sources\Graphics\fast_fourier_transform.cpp">
+      <Filter>Sources\Graphics</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\animation_resource.cpp">
-      <Filter>Sources</Filter>
+    <ClCompile Include="Sources\Graphics\font_data.cpp">
+      <Filter>Sources\Graphics</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\custom_pipeline_state.cpp">
-      <Filter>Sources</Filter>
+    <ClCompile Include="Sources\Graphics\geometric_primitive.cpp">
+      <Filter>Sources\Graphics</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\stdafx_engine.cpp">
-      <Filter>Sources</Filter>
+    <ClCompile Include="Sources\Graphics\gpu_readback_queue.cpp">
+      <Filter>Sources\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Graphics\gpu_timer.cpp">
+      <Filter>Sources\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Graphics\gpu_upload_list.cpp">
+      <Filter>Sources\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Graphics\graphics_context.cpp">
+      <Filter>Sources\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Graphics\hiz_buffer.cpp">
+      <Filter>Sources\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Graphics\light.cpp">
+      <Filter>Sources\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Graphics\light_data.cpp">
+      <Filter>Sources\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Graphics\light_utility.cpp">
+      <Filter>Sources\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Graphics\meshlet_culling_system.cpp">
+      <Filter>Sources\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Graphics\occlusion_culling_system.cpp">
+      <Filter>Sources\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Graphics\particle_resource.cpp">
+      <Filter>Sources\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Graphics\pipeline_state.cpp">
+      <Filter>Sources\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Graphics\post_process_volume.cpp">
+      <Filter>Sources\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Graphics\render_data.cpp">
+      <Filter>Sources\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Graphics\render_pass.cpp">
+      <Filter>Sources\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Graphics\render_state_cache.cpp">
+      <Filter>Sources\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Graphics\scene_view.cpp">
+      <Filter>Sources\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Graphics\scene_view_state.cpp">
+      <Filter>Sources\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Graphics\shader.cpp">
+      <Filter>Sources\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Graphics\shadow_atlas.cpp">
+      <Filter>Sources\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Graphics\sprite.cpp">
+      <Filter>Sources\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Input\gamepad.cpp">
+      <Filter>Sources\Input</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Input\input_action.cpp">
+      <Filter>Sources\Input</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Input\input_action_system.cpp">
+      <Filter>Sources\Input</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Input\input_key.cpp">
+      <Filter>Sources\Input</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Input\input_layer.cpp">
+      <Filter>Sources\Input</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Input\keyboard.cpp">
+      <Filter>Sources\Input</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Input\mouse.cpp">
+      <Filter>Sources\Input</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Material\material_instance.cpp">
+      <Filter>Sources\Material</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Material\material_resource.cpp">
+      <Filter>Sources\Material</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Material\material_resource_factory.cpp">
+      <Filter>Sources\Material</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Material\material_shader_map.cpp">
+      <Filter>Sources\Material</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\ModelFormat\gltf_loader.cpp">
+      <Filter>Sources\ModelFormat</Filter>
     </ClCompile>
     <ClCompile Include="Sources\ModelFormat\pmx_loader.cpp">
       <Filter>Sources\ModelFormat</Filter>
@@ -572,29 +644,29 @@
     <ClCompile Include="Sources\ModelFormat\vmd_loader.cpp">
       <Filter>Sources\ModelFormat</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\System\logger.cpp">
-      <Filter>Sources\System</Filter>
+    <ClCompile Include="Sources\Model\data_converter.cpp">
+      <Filter>Sources\Model</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\System\system_units.cpp">
-      <Filter>Sources\System</Filter>
+    <ClCompile Include="Sources\Model\data_converter_gltf.cpp">
+      <Filter>Sources\Model</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\System\memory_allocator.cpp">
-      <Filter>Sources\System</Filter>
+    <ClCompile Include="Sources\Model\data_converter_mmd.cpp">
+      <Filter>Sources\Model</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\ModelFormat\gltf_loader.cpp">
-      <Filter>Sources\ModelFormat</Filter>
+    <ClCompile Include="Sources\Model\model_buffer_pool.cpp">
+      <Filter>Sources\Model</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Graphics\variable_position_allocator.cpp">
-      <Filter>Sources\System</Filter>
+    <ClCompile Include="Sources\Model\model_collision_builder.cpp">
+      <Filter>Sources\Model</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Graphics\fast_fourier_transform.cpp">
-      <Filter>Sources\Graphics</Filter>
+    <ClCompile Include="Sources\Model\model_instance.cpp">
+      <Filter>Sources\Model</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Graphics\gpu_timer.cpp">
-      <Filter>Sources\Graphics</Filter>
+    <ClCompile Include="Sources\Model\model_resource.cpp">
+      <Filter>Sources\Model</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\model_resource_utility.cpp">
-      <Filter>Sources</Filter>
+    <ClCompile Include="Sources\Model\model_resource_utility.cpp">
+      <Filter>Sources\Model</Filter>
     </ClCompile>
     <ClCompile Include="Sources\Resource\asset_file_header.cpp">
       <Filter>Sources\Resource</Filter>
@@ -602,101 +674,14 @@
     <ClCompile Include="Sources\Resource\asset_registry.cpp">
       <Filter>Sources\Resource</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Resource\resource_manager.cpp">
-      <Filter>Sources\Resource</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Audio\sound_bank.cpp">
-      <Filter>Sources\Audio</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Audio\sound_player.cpp">
-      <Filter>Sources\Audio</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Audio\audio_manager.cpp">
-      <Filter>Sources\Audio</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Audio\miniaudio_implementation.cpp">
-      <Filter>Sources\Audio</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Resource\resource_operation.cpp">
-      <Filter>Sources\Resource</Filter>
-    </ClCompile>
     <ClCompile Include="Sources\Resource\data_compression.cpp">
       <Filter>Sources\Resource</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\System\cpu_timer.cpp">
-      <Filter>Sources\System</Filter>
+    <ClCompile Include="Sources\Resource\resource_manager.cpp">
+      <Filter>Sources\Resource</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\retarget_profile.cpp">
-      <Filter>Sources</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\timeline_resource.cpp">
-      <Filter>Sources</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\data_converter_gltf.cpp">
-      <Filter>Sources</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\data_converter.cpp">
-      <Filter>Sources</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\System\engine_config_data.cpp">
-      <Filter>Sources\System</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\System\console_manager.cpp">
-      <Filter>Sources\System</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\System\editor_config_data.cpp">
-      <Filter>Sources\System</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\System\asset_browser.cpp">
-      <Filter>Sources\System</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\System\imgui_texture_keeper.cpp">
-      <Filter>Sources\System</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\System\asset_thumbnail_cache.cpp">
-      <Filter>Sources\System</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\System\project_path.cpp">
-      <Filter>Sources\System</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\System\game_config_data.cpp">
-      <Filter>Sources\System</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\data_converter_mmd.cpp">
-      <Filter>Sources</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\System\signals.cpp">
-      <Filter>Sources\System</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\System\system_utility.cpp">
-      <Filter>Sources\System</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Graphics\compute_particle_system.cpp">
-      <Filter>Sources\Graphics</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\ik_resource.cpp">
-      <Filter>Sources</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\ik_solver.cpp">
-      <Filter>Sources</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\effect_resource.cpp">
-      <Filter>Sources</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\effect_instance.cpp">
-      <Filter>Sources</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Graphics\particle_resource.cpp">
-      <Filter>Sources\Graphics</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\System\finite_state_machine.cpp">
-      <Filter>Sources\System</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\System\fixed_size_pool.cpp">
-      <Filter>Sources\System</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\System\behavior_tree.cpp">
-      <Filter>Sources\System</Filter>
+    <ClCompile Include="Sources\Resource\resource_operation.cpp">
+      <Filter>Sources\Resource</Filter>
     </ClCompile>
     <ClCompile Include="Sources\System\BehaviorTree\behavior_data.cpp">
       <Filter>Sources\System\BehaviorTree</Filter>
@@ -704,50 +689,95 @@
     <ClCompile Include="Sources\System\BehaviorTree\node_base.cpp">
       <Filter>Sources\System\BehaviorTree</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\System\simple_helper.cpp">
+    <ClCompile Include="Sources\System\asset_browser.cpp">
+      <Filter>Sources\System</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\System\asset_thumbnail_cache.cpp">
+      <Filter>Sources\System</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\System\behavior_tree.cpp">
       <Filter>Sources\System</Filter>
     </ClCompile>
     <ClCompile Include="Sources\System\cache_string.cpp">
       <Filter>Sources\System</Filter>
     </ClCompile>
+    <ClCompile Include="Sources\System\console_manager.cpp">
+      <Filter>Sources\System</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\System\cpu_timer.cpp">
+      <Filter>Sources\System</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\System\editor_config_data.cpp">
+      <Filter>Sources\System</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\System\engine_config_data.cpp">
+      <Filter>Sources\System</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\System\finite_state_machine.cpp">
+      <Filter>Sources\System</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\System\fixed_size_pool.cpp">
+      <Filter>Sources\System</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\System\game_config_data.cpp">
+      <Filter>Sources\System</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\System\imgui_texture_keeper.cpp">
+      <Filter>Sources\System</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\System\logger.cpp">
+      <Filter>Sources\System</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\System\memory_allocator.cpp">
+      <Filter>Sources\System</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\System\project_path.cpp">
+      <Filter>Sources\System</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\System\signals.cpp">
+      <Filter>Sources\System</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\System\simple_helper.cpp">
+      <Filter>Sources\System</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\System\system_units.cpp">
+      <Filter>Sources\System</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\System\system_utility.cpp">
+      <Filter>Sources\System</Filter>
+    </ClCompile>
     <ClCompile Include="Sources\System\universally_unique_identifier.cpp">
       <Filter>Sources\System</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Graphics\occlusion_culling_system.cpp">
-      <Filter>Sources\Graphics</Filter>
+    <ClCompile Include="Sources\System\variable_position_allocator.cpp">
+      <Filter>Sources\System</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Graphics\clustered_lighting_system.cpp">
-      <Filter>Sources\Graphics</Filter>
+    <ClCompile Include="Sources\Texture\texture.cpp">
+      <Filter>Sources\Texture</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Graphics\shadow_atlas.cpp">
-      <Filter>Sources\Graphics</Filter>
+    <ClCompile Include="Sources\Texture\texture_defaults.cpp">
+      <Filter>Sources\Texture</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Graphics\meshlet_culling_system.cpp">
-      <Filter>Sources\Graphics</Filter>
+    <ClCompile Include="Sources\Texture\texture_factory.cpp">
+      <Filter>Sources\Texture</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Graphics\hiz_buffer.cpp">
-      <Filter>Sources\Graphics</Filter>
+    <ClCompile Include="Sources\Texture\texture_import_settings.cpp">
+      <Filter>Sources\Texture</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Graphics\scene_view.cpp">
-      <Filter>Sources\Graphics</Filter>
+    <ClCompile Include="Sources\Texture\texture_importer.cpp">
+      <Filter>Sources\Texture</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Graphics\scene_view_state.cpp">
-      <Filter>Sources\Graphics</Filter>
+    <ClCompile Include="Sources\Texture\texture_resource.cpp">
+      <Filter>Sources\Texture</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Graphics\cubic_sdf_buffer_pool.cpp">
-      <Filter>Sources\Graphics</Filter>
+    <ClCompile Include="Sources\Texture\texture_resource_utility.cpp">
+      <Filter>Sources\Texture</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Graphics\gpu_upload_list.cpp">
-      <Filter>Sources\Graphics</Filter>
+    <ClCompile Include="Sources\Texture\texture_tracker.cpp">
+      <Filter>Sources\Texture</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Graphics\gpu_readback_queue.cpp">
-      <Filter>Sources\Graphics</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\CoordinateSystem\hierarchy.cpp">
-      <Filter>Sources\CoordinateSystem</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\CoordinateSystem\spatial.cpp">
-      <Filter>Sources\CoordinateSystem</Filter>
+    <ClCompile Include="Sources\stdafx_engine.cpp">
+      <Filter>Sources</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

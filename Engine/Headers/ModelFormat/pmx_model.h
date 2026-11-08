@@ -6,7 +6,7 @@
 #include <vector>
 #include <unordered_map>
 
-#include "texture.h"
+#include "Texture/texture.h"
 
 #include "pmx_loader.h"
 #include "vmd_loader.h"

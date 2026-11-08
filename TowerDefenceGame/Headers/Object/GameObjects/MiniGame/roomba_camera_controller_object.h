@@ -1,11 +1,11 @@
 #pragma once
 
-#include "camera.h"
+#include "Graphics/camera.h"
 #include "object/game_object.h"
 
 #include "object/gameobjects/MiniGame/roomba_controller_object.h"
 
-#include "animation_resource.h"
+#include "Animation/animation_resource.h"
 
 //	ルンバ制御用オブジェクト
 class roomba_camera_controller_object : public game_object

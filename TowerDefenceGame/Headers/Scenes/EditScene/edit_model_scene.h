@@ -2,20 +2,20 @@
 
 #include "scenes/scene_base.h"
 
-#include "model_instance.h"
+#include "Model/model_instance.h"
 
 #include "object/model_object.h"
 #include "object/camera_object.h"
 #include "object/post_process_volume_object.h"
 
 #if defined(USE_IMGUI)
-#include "data_converter.h"
+#include "Model/data_converter.h"
 
-#include "ik_solver.h"
+#include "Animation/ik_solver.h"
 
 #include "Editor/editor_items.h"
 
-#include "effect_instance.h"
+#include "Effect/effect_instance.h"
 
 #include "Editor/editor_camera.h"
 
