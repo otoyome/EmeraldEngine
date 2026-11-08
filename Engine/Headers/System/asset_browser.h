@@ -119,6 +119,9 @@ private:
 	void refresh();
 	void build_directory_tree(directory_node& node);
 	void change_directory(const cache_string& path);
+	void apply_directory(const cache_string& path);
+	void go_back();
+	void go_forward();
 	void build_breadcrumbs();
 	void scan_entries();
 
@@ -157,6 +160,8 @@ private:
 
 	directory_node root;
 	cache_string current_directory;
+	std::vector<cache_string> back_history;
+	std::vector<cache_string> forward_history;
 	std::vector<breadcrumb> breadcrumbs;
 	std::vector<entry> entries;
 	cache_string selected_path;
@@ -167,6 +172,8 @@ private:
 
 	cache_string pending_directory;
 	bool pending_refresh = false;
+	bool pending_back = false;
+	bool pending_forward = false;
 	std::optional<move_request> pending_move;
 
 	cache_string rename_source_path;

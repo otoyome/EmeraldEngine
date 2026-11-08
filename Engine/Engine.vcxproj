@@ -567,9 +567,6 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
-    <FxCompile>
-      <AdditionalIncludeDirectories>$(ProjectDir)Headers;$(ProjectDir)Shaders;$(ProjectDir)Shaders\Common;$(ProjectDir)Shaders\DeferredRendering;$(ProjectDir)Shaders\FullscreenQuad;$(ProjectDir)Shaders\GeometricPrimitive;$(ProjectDir)Shaders\Gltf;$(ProjectDir)Shaders\Pmx;$(ProjectDir)Shaders\SkyBox;$(ProjectDir)Shaders\Sprite;$(ProjectDir)Shaders\StaticMesh;</AdditionalIncludeDirectories>
-    </FxCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugEditor|x64'">
     <ClCompile>
@@ -589,9 +586,6 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
-    <FxCompile>
-      <AdditionalIncludeDirectories>$(ProjectDir)Headers;$(ProjectDir)Shaders;$(ProjectDir)Shaders\Common;$(ProjectDir)Shaders\DeferredRendering;$(ProjectDir)Shaders\FullscreenQuad;$(ProjectDir)Shaders\GeometricPrimitive;$(ProjectDir)Shaders\Gltf;$(ProjectDir)Shaders\Pmx;$(ProjectDir)Shaders\SkyBox;$(ProjectDir)Shaders\Sprite;$(ProjectDir)Shaders\StaticMesh;</AdditionalIncludeDirectories>
-    </FxCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">
     <ClCompile>
@@ -614,9 +608,6 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
-    <FxCompile>
-      <AdditionalIncludeDirectories>$(ProjectDir)Headers;$(ProjectDir)Shaders;$(ProjectDir)Shaders\Common;$(ProjectDir)Shaders\DeferredRendering;$(ProjectDir)Shaders\FullscreenQuad;$(ProjectDir)Shaders\GeometricPrimitive;$(ProjectDir)Shaders\Gltf;$(ProjectDir)Shaders\Pmx;$(ProjectDir)Shaders\SkyBox;$(ProjectDir)Shaders\Sprite;$(ProjectDir)Shaders\StaticMesh;</AdditionalIncludeDirectories>
-    </FxCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DevelopEditor|x64'">
     <ClCompile>
@@ -639,9 +630,6 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
-    <FxCompile>
-      <AdditionalIncludeDirectories>$(ProjectDir)Headers;$(ProjectDir)Shaders;$(ProjectDir)Shaders\Common;$(ProjectDir)Shaders\DeferredRendering;$(ProjectDir)Shaders\FullscreenQuad;$(ProjectDir)Shaders\GeometricPrimitive;$(ProjectDir)Shaders\Gltf;$(ProjectDir)Shaders\Pmx;$(ProjectDir)Shaders\SkyBox;$(ProjectDir)Shaders\Sprite;$(ProjectDir)Shaders\StaticMesh;</AdditionalIncludeDirectories>
-    </FxCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -666,9 +654,6 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
-    <FxCompile>
-      <AdditionalIncludeDirectories>$(ProjectDir)Headers;$(ProjectDir)Shaders;$(ProjectDir)Shaders\Common;$(ProjectDir)Shaders\DeferredRendering;$(ProjectDir)Shaders\FullscreenQuad;$(ProjectDir)Shaders\GeometricPrimitive;$(ProjectDir)Shaders\Gltf;$(ProjectDir)Shaders\Pmx;$(ProjectDir)Shaders\SkyBox;$(ProjectDir)Shaders\Sprite;$(ProjectDir)Shaders\StaticMesh;</AdditionalIncludeDirectories>
-    </FxCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseEditor|x64'">
     <ClCompile>
@@ -693,10 +678,176 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
-    <FxCompile>
-      <AdditionalIncludeDirectories>$(ProjectDir)Headers;$(ProjectDir)Shaders;$(ProjectDir)Shaders\Common;$(ProjectDir)Shaders\DeferredRendering;$(ProjectDir)Shaders\FullscreenQuad;$(ProjectDir)Shaders\GeometricPrimitive;$(ProjectDir)Shaders\Gltf;$(ProjectDir)Shaders\Pmx;$(ProjectDir)Shaders\SkyBox;$(ProjectDir)Shaders\Sprite;$(ProjectDir)Shaders\StaticMesh;</AdditionalIncludeDirectories>
-    </FxCompile>
   </ItemDefinitionGroup>
+  <ItemGroup>
+    <None Include="EngineShader\ComputeParticle\System\compute_particle_begin_update_cs.hlsl" />
+    <None Include="EngineShader\ComputeParticle\System\compute_particle_bitonic_sort_b2_cs.hlsl" />
+    <None Include="EngineShader\ComputeParticle\System\compute_particle_bitonic_sort_c2_cs.hlsl" />
+    <None Include="EngineShader\ComputeParticle\System\compute_particle_build_emitter_draw_arguments_cs.hlsl" />
+    <None Include="EngineShader\ComputeParticle\System\compute_particle_build_primitive_cs.hlsl" />
+    <None Include="EngineShader\ComputeParticle\System\compute_particle_rebase_particles_cs.hlsl" />
+    <None Include="EngineShader\ComputeParticle\System\compute_particle_clear_particles_cs.hlsl" />
+    <None Include="EngineShader\ComputeParticle\System\compute_particle_clear_system_cs.hlsl" />
+    <None Include="EngineShader\ComputeParticle\System\compute_particle_end_update_cs.hlsl" />
+    <None Include="EngineShader\ComputeParticle\System\compute_particle_fill_unused_index_cs.hlsl" />
+    <None Include="EngineShader\ComputeParticle\System\compute_particle_initialize_particles_cs.hlsl" />
+    <None Include="EngineShader\ComputeParticle\System\compute_particle_range_particles_cs.hlsl" />
+    <None Include="EngineShader\ComputeParticle\System\compute_particle_spawn_from_events_cs.hlsl" />
+    <None Include="EngineShader\ComputeParticle\System\compute_particle_spawn_particles_cs.hlsl" />
+    <None Include="EngineShader\ComputeParticle\System\compute_particle_terminate_particles_cs.hlsl" />
+    <None Include="EngineShader\ComputeParticle\System\compute_particle_update_particles_cs.hlsl" />
+    <None Include="EngineShader\DeferredDecal\gbuffer_decal_fullscreen_vs.hlsl" />
+    <None Include="EngineShader\DeferredDecal\gbuffer_decal_primitive_vs.hlsl" />
+    <None Include="EngineShader\DeferredRendering\convert_srgb_to_linear_ps.hlsl" />
+    <None Include="EngineShader\DeferredRendering\deferred_rendering_directional_ps.hlsl" />
+    <None Include="EngineShader\DeferredRendering\deferred_rendering_indirect_ps.hlsl" />
+    <None Include="EngineShader\DeferredRendering\deferred_rendering_point_ps.hlsl" />
+    <None Include="EngineShader\DeferredRendering\deferred_rendering_spot_ps.hlsl" />
+    <None Include="EngineShader\FullscreenQuad\compress_rgb_to_log_ps.hlsl" />
+    <None Include="EngineShader\FullscreenQuad\decompress_rgb_to_log_ps.hlsl" />
+    <None Include="EngineShader\FullscreenQuad\fullscreen_quad_ps.hlsl" />
+    <None Include="EngineShader\FullscreenQuad\fullscreen_quad_vs.hlsl" />
+    <None Include="EngineShader\GeometricPrimitive\debug_draw_line_ps.hlsl" />
+    <None Include="EngineShader\GeometricPrimitive\debug_draw_line_vs.hlsl" />
+    <None Include="EngineShader\GeometricPrimitive\geometric_primitive_ps.hlsl" />
+    <None Include="EngineShader\GeometricPrimitive\geometric_primitive_vs.hlsl" />
+    <None Include="EngineShader\Postprocess\Antialias\fast_approximate_anti_aliasing_ps.hlsl" />
+    <None Include="EngineShader\Postprocess\Antialias\smaa_blending_weight_calculation_ps.hlsl" />
+    <None Include="EngineShader\Postprocess\Antialias\smaa_blending_weight_calculation_vs.hlsl" />
+    <None Include="EngineShader\Postprocess\Antialias\smaa_edge_detection_ps.hlsl" />
+    <None Include="EngineShader\Postprocess\Antialias\smaa_edge_detection_vs.hlsl" />
+    <None Include="EngineShader\Postprocess\Antialias\smaa_neighborhood_blending_ps.hlsl" />
+    <None Include="EngineShader\Postprocess\Antialias\smaa_neighborhood_blending_vs.hlsl" />
+    <None Include="EngineShader\Postprocess\Bloom\bloom_additional_cs.hlsl" />
+    <None Include="EngineShader\Postprocess\Bloom\bloom_additional_half_cs.hlsl" />
+    <None Include="EngineShader\Postprocess\Bloom\generate_ghost_cs.hlsl" />
+    <None Include="EngineShader\Postprocess\Bloom\kernel_averaging_cs.hlsl" />
+    <None Include="EngineShader\Postprocess\Bloom\luminance_extract_cs.hlsl" />
+    <None Include="EngineShader\Postprocess\Exposure\average_luminance_cs.hlsl" />
+    <None Include="EngineShader\Postprocess\Exposure\exposure_adjust_cs.hlsl" />
+    <None Include="EngineShader\Postprocess\ToneMapping\tone_mapping_cs.hlsl" />
+    <None Include="EngineShader\Postprocess\DisplayMapping\display_mapping_ps.hlsl" />
+    <None Include="EngineShader\Postprocess\DepthOfField\dof_filter_setup_cs.hlsl" />
+    <None Include="EngineShader\Postprocess\DepthOfField\dof_apply_cs.hlsl" />
+    <None Include="EngineShader\Postprocess\DepthOfField\dof_vertical_integrate_cs.hlsl" />
+    <None Include="EngineShader\Postprocess\MotionBlur\feature_mask_cs.hlsl" />
+    <None Include="EngineShader\Postprocess\MotionBlur\motion_blur_cs.hlsl" />
+    <None Include="EngineShader\Postprocess\MotionBlur\reconstract_velocity_cs.hlsl" />
+    <None Include="EngineShader\Postprocess\ScreenSpaceReflection\screen_space_reflection_color_ps.hlsl" />
+    <None Include="EngineShader\Postprocess\ScreenSpaceReflection\screen_space_reflection_denoise_cs.hlsl" />
+    <None Include="EngineShader\Postprocess\ScreenSpaceReflection\screen_space_reflection_composite_ps.hlsl" />
+    <None Include="EngineShader\Postprocess\ScreenSpaceReflection\screen_space_reflection_temporal_filtering_cs.hlsl" />
+    <None Include="EngineShader\Postprocess\ScreenSpaceReflection\screen_space_reflection_uv_ps.hlsl" />
+    <None Include="EngineShader\Postprocess\System\centering_copy_cs.hlsl" />
+    <None Include="EngineShader\Postprocess\System\fast_fourier_transform_complex_multiply_cs.hlsl" />
+    <None Include="EngineShader\Postprocess\System\fast_fourier_transform_cs.hlsl" />
+    <None Include="EngineShader\Postprocess\System\fast_fourier_transform_gaussian_filter_cs.hlsl" />
+    <None Include="EngineShader\Postprocess\System\resize_copy_cs.hlsl" />
+    <None Include="EngineShader\SkyBox\sky_box_forward_ps.hlsl" />
+    <None Include="EngineShader\SkyBox\sky_box_gbuffer_ps.hlsl" />
+    <None Include="EngineShader\SkyBox\sky_box_vs.hlsl" />
+    <None Include="EngineShader\Sprite\sprite_vs.hlsl" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="EngineShader\Materials\3d_failed.hlsl" />
+    <None Include="EngineShader\Materials\DeferredDecal\decal_default.hlsl" />
+    <None Include="EngineShader\Materials\DeferredDecal\decal_failed.hlsl" />
+    <None Include="EngineShader\Materials\Particle\particle_default.hlsl" />
+    <None Include="EngineShader\Materials\PostProcess\color_filter_after_tone_mapping.hlsl" />
+    <None Include="EngineShader\Materials\PostProcess\post_process_failed.hlsl" />
+    <None Include="EngineShader\Materials\UserInterface\sprite_default.hlsl" />
+    <None Include="EngineShader\Materials\gltf.hlsl" />
+    <None Include="EngineShader\Materials\pmx.hlsl" />
+    <None Include="EngineShader\ClusteredLighting\clustered_lighting_assign_cs.hlsl" />
+    <None Include="EngineShader\ClusteredLighting\clustered_lighting_bounds_cs.hlsl" />
+    <None Include="EngineShader\ClusteredLighting\clustered_lighting_depth_cs.hlsl" />
+    <None Include="EngineShader\ClusteredLighting\clustered_lighting_scan_cs.hlsl" />
+    <None Include="EngineShader\ClusteredLighting\deferred_rendering_clustered_ps.hlsl" />
+    <None Include="EngineShader\Collision\cubic_sdf_collision.hlsli" />
+    <None Include="EngineShader\Common\clustered_lighting.hlsli" />
+    <None Include="EngineShader\Common\clustered_lighting_shading.hlsli" />
+    <None Include="EngineShader\Common\color_space.hlsli" />
+    <None Include="EngineShader\Common\common.hlsli" />
+    <None Include="EngineShader\Common\common_post_process.hlsli" />
+    <None Include="EngineShader\Common\filter_functions.hlsli" />
+    <None Include="EngineShader\Common\lights.hlsli" />
+    <None Include="EngineShader\Common\scene_constant_buffer.hlsli" />
+    <None Include="EngineShader\Common\shading_functions.hlsli" />
+    <None Include="EngineShader\Common\shadow_map.hlsli" />
+    <None Include="EngineShader\Common\summed_area_table.hlsli" />
+    <None Include="EngineShader\Common\summed_area_table_x.hlsl" />
+    <None Include="EngineShader\Common\summed_area_table_y.hlsl" />
+    <None Include="EngineShader\Common\vertex_stream.hlsli" />
+    <None Include="EngineShader\ComputeParticle\Renderer\Default\compute_particle_default_rendering.hlsli" />
+    <None Include="EngineShader\ComputeParticle\Renderer\Default\compute_particle_default_surface.hlsli" />
+    <None Include="EngineShader\ComputeParticle\Renderer\Default\compute_particle_default_surface_alpha.hlsli" />
+    <None Include="EngineShader\ComputeParticle\Renderer\compute_particle_renderer.hlsli" />
+    <None Include="EngineShader\ComputeParticle\Renderer\compute_particle_renderer_vs.hlsli" />
+    <None Include="EngineShader\ComputeParticle\Renderer\compute_particle_vertex.hlsli" />
+    <None Include="EngineShader\ComputeParticle\System\compute_particle.hlsli" />
+    <None Include="EngineShader\ComputeParticle\System\compute_particle_base_stream_item.hlsli" />
+    <None Include="EngineShader\ComputeParticle\System\compute_particle_bitonic_sort.hlsli" />
+    <None Include="EngineShader\ComputeParticle\System\compute_particle_common_stream_item_define.hlsli" />
+    <None Include="EngineShader\ComputeParticle\System\compute_particle_common_stream_item_undef.hlsli" />
+    <None Include="EngineShader\ComputeParticle\System\compute_particle_srv_stream_item.hlsli" />
+    <None Include="EngineShader\ComputeParticle\System\compute_particle_type_generate_function_stream_item.hlsli" />
+    <None Include="EngineShader\ComputeParticle\System\compute_particle_uav_stream_item.hlsli" />
+    <None Include="EngineShader\ComputeParticle\compute_particle_structs.hlsli" />
+    <None Include="EngineShader\ComputeParticle\compute_particle_system_item_emitter.hlsli" />
+    <None Include="EngineShader\ComputeParticle\compute_particle_system_item_particle.hlsli" />
+    <None Include="EngineShader\ComputeParticle\compute_particle_update_items.hlsli" />
+    <None Include="EngineShader\Culling\hiz.hlsli" />
+    <None Include="EngineShader\Culling\hiz_copy_cs.hlsl" />
+    <None Include="EngineShader\Culling\hiz_downsample_cs.hlsl" />
+    <None Include="EngineShader\Culling\meshlet_culling_cs.hlsl" />
+    <None Include="EngineShader\Culling\occlusion_culling_cs.hlsl" />
+    <None Include="EngineShader\DeferredDecal\Default\default_decal_data_ps.hlsli" />
+    <None Include="EngineShader\DeferredDecal\Default\default_decal_rendering.hlsli" />
+    <None Include="EngineShader\DeferredDecal\Failed\failed_decal_data_ps.hlsli" />
+    <None Include="EngineShader\DeferredDecal\Failed\failed_decal_rendering.hlsli" />
+    <None Include="EngineShader\DeferredDecal\gbuffer_decal.hlsli" />
+    <None Include="EngineShader\DeferredDecal\gbuffer_decal_fullscreen_ps.hlsli" />
+    <None Include="EngineShader\DeferredDecal\gbuffer_decal_primitive_ps.hlsli" />
+    <None Include="EngineShader\DeferredRendering\common_gbuffer_loader.hlsli" />
+    <None Include="EngineShader\DeferredRendering\common_gbuffer_writer.hlsli" />
+    <None Include="EngineShader\DeferredRendering\deferred_rendering.hlsli" />
+    <None Include="EngineShader\DeferredRendering\gbuffer.hlsli" />
+    <None Include="EngineShader\DeferredRendering\shading_models.hlsli" />
+    <None Include="EngineShader\FullscreenQuad\bilateral_upscaling_ps.hlsl" />
+    <None Include="EngineShader\FullscreenQuad\fullscreen_quad.hlsli" />
+    <None Include="EngineShader\GeometricPrimitive\debug_draw_line.hlsli" />
+    <None Include="EngineShader\GeometricPrimitive\geometric_primitive.hlsli" />
+    <None Include="EngineShader\GeometricPrimitive\geometric_primitive_object_data.hlsli" />
+    <None Include="EngineShader\GeometricPrimitive\geometric_primitive_vertex.hlsli" />
+    <None Include="EngineShader\Model\deferred_light_data.hlsli" />
+    <None Include="EngineShader\Model\deferred_light_probe_data.hlsli" />
+    <None Include="EngineShader\Model\dummy.hlsli" />
+    <None Include="EngineShader\Model\forward_light_data.hlsli" />
+    <None Include="EngineShader\Model\material_parameter_constant_buffer.hlsli" />
+    <None Include="EngineShader\Model\model.hlsli" />
+    <None Include="EngineShader\Model\model_cascade_shadow_map_vs.hlsli" />
+    <None Include="EngineShader\Model\model_depth_vs.hlsli" />
+    <None Include="EngineShader\Model\model_vs.hlsli" />
+    <None Include="EngineShader\Passes\deferred_decal_pass.hlsli" />
+    <None Include="EngineShader\Passes\particle_pass.hlsli" />
+    <None Include="EngineShader\Passes\post_process_pass.hlsli" />
+    <None Include="EngineShader\Passes\surface_pass.hlsli" />
+    <None Include="EngineShader\Passes\user_interface_pass.hlsli" />
+    <None Include="EngineShader\Postprocess\Antialias\subpixel_morphological_anti_aliasing.hlsli" />
+    <None Include="EngineShader\Postprocess\Bloom\bloom.hlsli" />
+    <None Include="EngineShader\Postprocess\DepthOfField\depth_of_field.hlsli" />
+    <None Include="EngineShader\Postprocess\Exposure\exposure.hlsli" />
+    <None Include="EngineShader\Postprocess\MotionBlur\motion_blur.hlsli" />
+    <None Include="EngineShader\Postprocess\ScreenSpaceReflection\screen_space_reflection.hlsli" />
+    <None Include="EngineShader\Postprocess\ScreenSpaceReflection\screen_space_reflection_denoise.hlsli" />
+    <None Include="EngineShader\SkyBox\sky_box.hlsli" />
+    <None Include="EngineShader\Sprite\sprite.hlsli" />
+    <None Include="EngineShader\Sprite\sprite_vertex.hlsli" />
+    <None Include="EngineShader\Surface\surface.hlsli" />
+    <None Include="EngineShader\Surface\surface_depth_write_ps.hlsli" />
+    <None Include="EngineShader\Surface\surface_forward_ps.hlsli" />
+    <None Include="EngineShader\Surface\surface_gbuffer_ps.hlsli" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

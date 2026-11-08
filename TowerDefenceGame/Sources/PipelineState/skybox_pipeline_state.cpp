@@ -6,12 +6,12 @@ skybox_pipeline_state::skybox_pipeline_state()
 	set_domain(pipeline_state_base::domains::system);
 	HRESULT hr{ S_OK };
 
-	load_shader_cso vs_desc;
-	vs_desc.file_path = "Assets/CSO/sky_box_vs.cso";
+	load_shader_file vs_desc{};
+	vs_desc.file_path = "Engine/EngineShader/SkyBox/sky_box_vs.hlsl";
 	shader_manager::instance()->load_shader<vertex_shader>(vs, vs_desc);
 
-	load_shader_cso ps_desc;
-	ps_desc.file_path = "Assets/CSO/sky_box_gbuffer_ps.cso";
+	load_shader_file ps_desc{};
+	ps_desc.file_path = "Engine/EngineShader/SkyBox/sky_box_gbuffer_ps.hlsl";
 	shader_manager::instance()->load_shader<pixel_shader>(ps, ps_desc);
 
 	//	定数バッファの生成

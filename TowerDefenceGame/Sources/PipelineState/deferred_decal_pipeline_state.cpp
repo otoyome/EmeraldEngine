@@ -22,8 +22,8 @@ namespace
 deferred_decal_stencil_write_pipeline_state::deferred_decal_stencil_write_pipeline_state()
 : graphics_pipeline_state()
 {
-	load_shader_cso vs_desc;
-	vs_desc.file_path = "Assets/CSO/gbuffer_decal_primitive_vs.cso";
+	load_shader_file vs_desc{};
+	vs_desc.file_path = "Engine/EngineShader/DeferredDecal/gbuffer_decal_primitive_vs.hlsl";
 	shader_manager::instance()->load_shader<vertex_shader>(vs, vs_desc);
 
 	//	深度ステンシルステート

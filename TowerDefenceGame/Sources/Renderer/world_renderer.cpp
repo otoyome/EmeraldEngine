@@ -111,11 +111,11 @@ bool world_renderer::sync_output()
 
 bool world_renderer::create_targets(int scene_width, int scene_height)
 {
-	//	@tool 中身を作り直す（描画クラスは同じ入れ物を参照している）
+	//	中身を作り直す
 	*render_targets = scene_render_targets{};
 	render_targets->output = output;
 
-	//	@tool 出力先のクリア用
+	//	出力先のクリア用
 	{
 		output_clear_rendering_pass.render_targets.clear();
 		output_clear_rendering_pass.render_targets.emplace_back(output->make_render_target_view());
@@ -583,11 +583,10 @@ void world_renderer::submit_render_jobs(world& target, float elapsed_time)
 	//	時間加算
 	total_time += elapsed_time;
 
-	//	使われなくなった view_state を破棄
+	//	その他開放
 	view_states.release_unused(render_frame_index, scene_view_state_keep_frames);
 	++render_frame_index;
 
-	//	@tool 集めた情報は積んだジョブが持っているので手放す（以前はフレームごとの一時変数だった）
 	render_data.reset();
 	particle_indices.reset();
 }

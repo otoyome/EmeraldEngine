@@ -4,12 +4,12 @@
 debug_draw_line_pipeline_state::debug_draw_line_pipeline_state(bool depth_test)
 : graphics_pipeline_state()
 {
-	load_shader_cso vs_desc;
-	vs_desc.file_path = "Assets/CSO/debug_draw_line_vs.cso";
+	load_shader_file vs_desc{};
+	vs_desc.file_path = "Engine/EngineShader/GeometricPrimitive/debug_draw_line_vs.hlsl";
 	shader_manager::instance()->load_shader<vertex_shader>(vs, vs_desc);
 
-	load_shader_cso ps_desc;
-	ps_desc.file_path = "Assets/CSO/debug_draw_line_ps.cso";
+	load_shader_file ps_desc{};
+	ps_desc.file_path = "Engine/EngineShader/GeometricPrimitive/debug_draw_line_ps.hlsl";
 	shader_manager::instance()->load_shader<pixel_shader>(ps, ps_desc);
 
 	//	深度ステンシルステート

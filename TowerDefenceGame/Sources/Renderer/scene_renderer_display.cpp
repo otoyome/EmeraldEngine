@@ -82,10 +82,10 @@ exposure_renderer::exposure_renderer(render_job_registrar job_executor, std::sha
 {
 	if (shader_manager* instance = shader_manager::instance())
 	{
-		load_shader_cso desc;
-		desc.file_path = "Assets/CSO/average_luminance_cs.cso";
+		load_shader_file desc{};
+		desc.file_path = "Engine/EngineShader/Postprocess/Exposure/average_luminance_cs.hlsl";
 		instance->load_shader<compute_shader>(average_luminance, desc);
-		desc.file_path = "Assets/CSO/exposure_adjust_cs.cso";
+		desc.file_path = "Engine/EngineShader/Postprocess/Exposure/exposure_adjust_cs.hlsl";
 		instance->load_shader<compute_shader>(exposure_adjust, desc);
 	}
 
@@ -181,8 +181,8 @@ tone_mapping_renderer::tone_mapping_renderer(render_job_registrar job_executor, 
 {
 	if (shader_manager* instance = shader_manager::instance())
 	{
-		load_shader_cso desc;
-		desc.file_path = "Assets/CSO/tone_mapping_cs.cso";
+		load_shader_file desc{};
+		desc.file_path = "Engine/EngineShader/Postprocess/ToneMapping/tone_mapping_cs.hlsl";
 		instance->load_shader<compute_shader>(tone_mapping, desc);
 	}
 	constant_buffer = create_constant_buffer(sizeof(tone_mapping_constants));

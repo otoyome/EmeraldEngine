@@ -261,6 +261,47 @@ void asset_browser::change_directory(const cache_string& path)
 	if (path == current_directory)
 		return;
 
+	back_history.push_back(current_directory);
+	forward_history.clear();
+	apply_directory(path);
+}
+
+void asset_browser::go_back()
+{
+	while (!back_history.empty())
+	{
+		const cache_string path = std::move(back_history.back());
+		back_history.pop_back();
+
+		std::error_code error;
+		if (path == current_directory || !std::filesystem::is_directory(to_filesystem_path(path), error))
+			continue;
+
+		forward_history.push_back(current_directory);
+		apply_directory(path);
+		return;
+	}
+}
+
+void asset_browser::go_forward()
+{
+	while (!forward_history.empty())
+	{
+		const cache_string path = std::move(forward_history.back());
+		forward_history.pop_back();
+
+		std::error_code error;
+		if (path == current_directory || !std::filesystem::is_directory(to_filesystem_path(path), error))
+			continue;
+
+		back_history.push_back(current_directory);
+		apply_directory(path);
+		return;
+	}
+}
+
+void asset_browser::apply_directory(const cache_string& path)
+{
 	current_directory = path;
 	selected_path.clear();
 	filter.Clear();
@@ -362,6 +403,14 @@ void asset_browser::imgui_render()
 	ImGui::SetNextWindowSize(ImVec2(1200.0f, 700.0f), ImGuiCond_FirstUseEver);
 	if (ImGui::Begin("Asset Browser"))
 	{
+		if (ImGui::IsWindowHovered(ImGuiHoveredFlags_RootAndChildWindows))
+		{
+			if (ImGui::IsMouseClicked(3))
+				pending_back = true;
+			if (ImGui::IsMouseClicked(4))
+				pending_forward = true;
+		}
+
 		imgui_render_toolbar();
 		ImGui::Separator();
 
@@ -430,6 +479,16 @@ void asset_browser::imgui_render()
 		change_directory(pending_directory);
 		pending_directory.clear();
 	}
+	else if (pending_back)
+	{
+		go_back();
+	}
+	else if (pending_forward)
+	{
+		go_forward();
+	}
+	pending_back = false;
+	pending_forward = false;
 }
 
 void asset_browser::imgui_render_toolbar()

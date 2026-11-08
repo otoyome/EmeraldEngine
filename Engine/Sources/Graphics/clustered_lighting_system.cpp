@@ -143,18 +143,18 @@ clustered_lighting_system::clustered_lighting_system()
 	auto device = render_data::instance()->get_device();
 	HRESULT hr;
 
-	bounds_cs = load_cs("Shaders/ClusteredLighting/clustered_lighting_bounds_cs.hlsl", false);
-	count_cs = load_cs("Shaders/ClusteredLighting/clustered_lighting_assign_cs.hlsl", false);
-	fill_cs = load_cs("Shaders/ClusteredLighting/clustered_lighting_assign_cs.hlsl", true);
-	scan_cs = load_cs("Shaders/ClusteredLighting/clustered_lighting_scan_cs.hlsl", false);
-	depth_cs = load_cs("Shaders/ClusteredLighting/clustered_lighting_depth_cs.hlsl", false);
+	bounds_cs = load_cs("Engine/EngineShader/ClusteredLighting/clustered_lighting_bounds_cs.hlsl", false);
+	count_cs = load_cs("Engine/EngineShader/ClusteredLighting/clustered_lighting_assign_cs.hlsl", false);
+	fill_cs = load_cs("Engine/EngineShader/ClusteredLighting/clustered_lighting_assign_cs.hlsl", true);
+	scan_cs = load_cs("Engine/EngineShader/ClusteredLighting/clustered_lighting_scan_cs.hlsl", false);
+	depth_cs = load_cs("Engine/EngineShader/ClusteredLighting/clustered_lighting_depth_cs.hlsl", false);
 	{
-		load_shader_cso desc;
-		desc.file_path = "Assets/CSO/fullscreen_quad_vs.cso";
+		load_shader_file desc{};
+		desc.file_path = "Engine/EngineShader/FullscreenQuad/fullscreen_quad_vs.hlsl";
 		shader_manager::instance()->load_shader<vertex_shader>(fullscreen_vs, desc);
 	}
-	lighting_ps = load_ps("Shaders/ClusteredLighting/deferred_rendering_clustered_ps.hlsl", false);
-	visualize_ps = load_ps("Shaders/ClusteredLighting/deferred_rendering_clustered_ps.hlsl", true);
+	lighting_ps = load_ps("Engine/EngineShader/ClusteredLighting/deferred_rendering_clustered_ps.hlsl", false);
+	visualize_ps = load_ps("Engine/EngineShader/ClusteredLighting/deferred_rendering_clustered_ps.hlsl", true);
 
 	//	定数バッファ
 	{

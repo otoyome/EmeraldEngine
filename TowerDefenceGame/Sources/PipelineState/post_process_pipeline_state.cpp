@@ -6,12 +6,12 @@ write_back_pipeline_state::write_back_pipeline_state()
 {
 	set_domain(pipeline_state_base::domains::system);
 
-	load_shader_cso vs_desc;
-	vs_desc.file_path = "Assets/CSO/fullscreen_quad_vs.cso";
+	load_shader_file vs_desc{};
+	vs_desc.file_path = "Engine/EngineShader/FullscreenQuad/fullscreen_quad_vs.hlsl";
 	shader_manager::instance()->load_shader<vertex_shader>(vs, vs_desc);
 
-	load_shader_cso ps_desc;
-	ps_desc.file_path = "Assets/CSO/fullscreen_quad_ps.cso";
+	load_shader_file ps_desc{};
+	ps_desc.file_path = "Engine/EngineShader/FullscreenQuad/fullscreen_quad_ps.hlsl";
 	shader_manager::instance()->load_shader<pixel_shader>(ps, ps_desc);
 
 	// ブレンドステートの生成
@@ -87,12 +87,12 @@ compress_rgb_to_log_pipeline_state::compress_rgb_to_log_pipeline_state()
 {
 	set_domain(pipeline_state_base::domains::system);
 
-	load_shader_cso vs_desc;
-	vs_desc.file_path = "Assets/CSO/fullscreen_quad_vs.cso";
+	load_shader_file vs_desc{};
+	vs_desc.file_path = "Engine/EngineShader/FullscreenQuad/fullscreen_quad_vs.hlsl";
 	shader_manager::instance()->load_shader<vertex_shader>(vs, vs_desc);
 
-	load_shader_cso ps_desc;
-	ps_desc.file_path = "Assets/CSO/compress_rgb_to_log_ps.cso";
+	load_shader_file ps_desc{};
+	ps_desc.file_path = "Engine/EngineShader/FullscreenQuad/compress_rgb_to_log_ps.hlsl";
 	shader_manager::instance()->load_shader<pixel_shader>(ps, ps_desc);
 
 	// ブレンドステートの生成
@@ -168,12 +168,12 @@ decompress_rgb_to_log_pipeline_state::decompress_rgb_to_log_pipeline_state()
 {
 	set_domain(pipeline_state_base::domains::system);
 
-	load_shader_cso vs_desc;
-	vs_desc.file_path = "Assets/CSO/fullscreen_quad_vs.cso";
+	load_shader_file vs_desc{};
+	vs_desc.file_path = "Engine/EngineShader/FullscreenQuad/fullscreen_quad_vs.hlsl";
 	shader_manager::instance()->load_shader<vertex_shader>(vs, vs_desc);
 
-	load_shader_cso ps_desc;
-	ps_desc.file_path = "Assets/CSO/decompress_rgb_to_log_ps.cso";
+	load_shader_file ps_desc{};
+	ps_desc.file_path = "Engine/EngineShader/FullscreenQuad/decompress_rgb_to_log_ps.hlsl";
 	shader_manager::instance()->load_shader<pixel_shader>(ps, ps_desc);
 
 	// ブレンドステートの生成
@@ -277,12 +277,12 @@ screen_space_reflection_uv_pipeline_state::screen_space_reflection_uv_pipeline_s
 	HRESULT hr{ S_OK };
 	auto device = render_data::instance()->get_device();
 
-	load_shader_cso vs_desc;
-	vs_desc.file_path = "Assets/CSO/fullscreen_quad_vs.cso";
+	load_shader_file vs_desc{};
+	vs_desc.file_path = "Engine/EngineShader/FullscreenQuad/fullscreen_quad_vs.hlsl";
 	shader_manager::instance()->load_shader<vertex_shader>(vs, vs_desc);
 
-	load_shader_cso ps_desc;
-	ps_desc.file_path = "Assets/CSO/screen_space_reflection_uv_ps.cso";
+	load_shader_file ps_desc{};
+	ps_desc.file_path = "Engine/EngineShader/Postprocess/ScreenSpaceReflection/screen_space_reflection_uv_ps.hlsl";
 	shader_manager::instance()->load_shader<pixel_shader>(ps, ps_desc);
 
 	// ブレンドステートの生成
@@ -390,12 +390,12 @@ screen_space_reflection_color_pipeline_state::screen_space_reflection_color_pipe
 	HRESULT hr{ S_OK };
 	auto device = render_data::instance()->get_device();
 
-	load_shader_cso vs_desc;
-	vs_desc.file_path = "Assets/CSO/fullscreen_quad_vs.cso";
+	load_shader_file vs_desc{};
+	vs_desc.file_path = "Engine/EngineShader/FullscreenQuad/fullscreen_quad_vs.hlsl";
 	shader_manager::instance()->load_shader<vertex_shader>(vs, vs_desc);
 
-	load_shader_cso ps_desc;
-	ps_desc.file_path = "Assets/CSO/screen_space_reflection_color_ps.cso";
+	load_shader_file ps_desc{};
+	ps_desc.file_path = "Engine/EngineShader/Postprocess/ScreenSpaceReflection/screen_space_reflection_color_ps.hlsl";
 	shader_manager::instance()->load_shader<pixel_shader>(ps, ps_desc);
 
 	// ブレンドステートの生成
@@ -505,12 +505,12 @@ screen_space_reflection_composite_pipeline_state::screen_space_reflection_compos
 {
 	set_domain(pipeline_state_base::domains::system);
 
-	load_shader_cso vs_desc;
-	vs_desc.file_path = "Assets/CSO/fullscreen_quad_vs.cso";
+	load_shader_file vs_desc{};
+	vs_desc.file_path = "Engine/EngineShader/FullscreenQuad/fullscreen_quad_vs.hlsl";
 	shader_manager::instance()->load_shader<vertex_shader>(vs, vs_desc);
 
-	load_shader_cso ps_desc;
-	ps_desc.file_path = "Assets/CSO/screen_space_reflection_composite_ps.cso";
+	load_shader_file ps_desc{};
+	ps_desc.file_path = "Engine/EngineShader/Postprocess/ScreenSpaceReflection/screen_space_reflection_composite_ps.hlsl";
 	shader_manager::instance()->load_shader<pixel_shader>(ps, ps_desc);
 
 	// ブレンドステートの生成

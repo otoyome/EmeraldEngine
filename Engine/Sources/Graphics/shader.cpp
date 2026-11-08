@@ -17,9 +17,9 @@
 
 namespace
 {
-	constexpr std::string_view	compiled_directory = "Assets/CSO/";
+	constexpr std::string_view	compiled_directory = "Intermediate/ShaderCache/";
 	constexpr std::string_view	compiled_extension = ".cso";
-	constexpr std::string_view	shader_root_directory = "Shaders";
+	constexpr std::string_view	shader_root_directory = "Engine/EngineShader";
 	constexpr std::wstring_view	shader_types[magic_enum::enum_count<shader_type>()]	=
 	{
 		L"vs",	//  Vertex Shader
@@ -80,6 +80,8 @@ namespace
 				return result; // 無効なルートなら空
 			}
 
+			//	ルート自身も入れる
+			result.push_back(root_path.wstring());
 			for (const auto& entry : std::filesystem::recursive_directory_iterator(root_path))
 			{
 				if (entry.is_directory())

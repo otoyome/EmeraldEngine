@@ -237,10 +237,10 @@ screen_space_reflection_renderer::screen_space_reflection_renderer(render_job_re
 	//	デノイズ系シェーダー準備
 	if (shader_manager* instance = shader_manager::instance())
 	{
-		load_shader_cso desc;
-		desc.file_path = "Assets/CSO/screen_space_reflection_denoise_cs.cso";
+		load_shader_file desc{};
+		desc.file_path = "Engine/EngineShader/Postprocess/ScreenSpaceReflection/screen_space_reflection_denoise_cs.hlsl";
 		instance->load_shader<compute_shader>(denoise, desc);
-		desc.file_path = "Assets/CSO/screen_space_reflection_temporal_filtering_cs.cso";
+		desc.file_path = "Engine/EngineShader/Postprocess/ScreenSpaceReflection/screen_space_reflection_temporal_filtering_cs.hlsl";
 		instance->load_shader<compute_shader>(temporal_filter, desc);
 	}
 
@@ -611,12 +611,12 @@ depth_of_field_post_process_renderer::depth_of_field_post_process_renderer(rende
 	//	コンピュートシェーダー生成関数
 	if (shader_manager* instance = shader_manager::instance())
 	{
-		load_shader_cso desc;
-		desc.file_path = "Assets/CSO/dof_filter_setup_cs.cso";
+		load_shader_file desc{};
+		desc.file_path = "Engine/EngineShader/Postprocess/DepthOfField/dof_filter_setup_cs.hlsl";
 		instance->load_shader<compute_shader>(dof_filter_setup, desc);
-		desc.file_path = "Assets/CSO/dof_vertical_integrate_cs.cso";
+		desc.file_path = "Engine/EngineShader/Postprocess/DepthOfField/dof_vertical_integrate_cs.hlsl";
 		instance->load_shader<compute_shader>(dof_vertical_integrate, desc);
-		desc.file_path = "Assets/CSO/dof_apply_cs.cso";
+		desc.file_path = "Engine/EngineShader/Postprocess/DepthOfField/dof_apply_cs.hlsl";
 		instance->load_shader<compute_shader>(dof_apply, desc);
 	}
 
@@ -837,10 +837,10 @@ motion_blur_post_process_renderer::motion_blur_post_process_renderer(render_job_
 	//	コンピュートシェーダー生成関数
 	if (shader_manager* instance = shader_manager::instance())
 	{
-		load_shader_cso desc;
-		desc.file_path = "Assets/CSO/reconstract_velocity_cs.cso";
+		load_shader_file desc{};
+		desc.file_path = "Engine/EngineShader/Postprocess/MotionBlur/reconstract_velocity_cs.hlsl";
 		instance->load_shader<compute_shader>(reconstract_velocity, desc);
-		desc.file_path = "Assets/CSO/motion_blur_cs.cso";
+		desc.file_path = "Engine/EngineShader/Postprocess/MotionBlur/motion_blur_cs.hlsl";
 		instance->load_shader<compute_shader>(motion_blur, desc);
 	}
 
@@ -1071,21 +1071,21 @@ bloom_post_process_renderer::bloom_post_process_renderer(render_job_registrar jo
 	//	コンピュートシェーダー生成関数
 	if (shader_manager* instance = shader_manager::instance())
 	{
-		load_shader_cso desc;
-		desc.file_path = "Assets/CSO/fast_fourier_transform_gaussian_filter_cs.cso";
+		load_shader_file desc{};
+		desc.file_path = "Engine/EngineShader/Postprocess/System/fast_fourier_transform_gaussian_filter_cs.hlsl";
 		instance->load_shader<compute_shader>(fft_gaussian_filter, desc);
-		desc.file_path = "Assets/CSO/fast_fourier_transform_complex_multiply_cs.cso";
+		desc.file_path = "Engine/EngineShader/Postprocess/System/fast_fourier_transform_complex_multiply_cs.hlsl";
 		instance->load_shader<compute_shader>(fft_multiply, desc);
 
-		desc.file_path = "Assets/CSO/resize_copy_cs.cso";
+		desc.file_path = "Engine/EngineShader/Postprocess/System/resize_copy_cs.hlsl";
 		instance->load_shader<compute_shader>(copy_texture, desc);
-		desc.file_path = "Assets/CSO/bloom_additional_half_cs.cso";
+		desc.file_path = "Engine/EngineShader/Postprocess/Bloom/bloom_additional_half_cs.hlsl";
 		instance->load_shader<compute_shader>(scene_additive, desc);
 
-		desc.file_path = "Assets/CSO/luminance_extract_cs.cso";
+		desc.file_path = "Engine/EngineShader/Postprocess/Bloom/luminance_extract_cs.hlsl";
 		instance->load_shader<compute_shader>(luminance_extract, desc);
 
-		desc.file_path = "Assets/CSO/generate_ghost_cs.cso";
+		desc.file_path = "Engine/EngineShader/Postprocess/Bloom/generate_ghost_cs.hlsl";
 		instance->load_shader<compute_shader>(generate_ghost, desc);
 	}
 

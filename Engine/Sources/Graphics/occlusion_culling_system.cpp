@@ -48,7 +48,7 @@ occlusion_culling_system::occlusion_culling_system()
 		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
 	}
 
-	occlusion_culling_cs = load_cs("Shaders/Culling/occlusion_culling_cs.hlsl");
+	occlusion_culling_cs = load_cs("Engine/EngineShader/Culling/occlusion_culling_cs.hlsl");
 }
 
 occlusion_culling_system::~occlusion_culling_system()

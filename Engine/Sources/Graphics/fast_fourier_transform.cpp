@@ -4,7 +4,7 @@
 
 namespace
 {
-	constexpr std::string_view shader_path = "Shaders/Postprocess/System/fast_fourier_transform_cs.hlsl";
+	constexpr std::string_view shader_path = "Engine/EngineShader/Postprocess/System/fast_fourier_transform_cs.hlsl";
 	constexpr std::string_view complex_texture = "Complex Texture ";
 	constexpr int texture_sizes[] = 
 	{

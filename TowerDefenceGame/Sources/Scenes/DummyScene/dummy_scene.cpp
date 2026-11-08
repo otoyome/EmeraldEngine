@@ -96,23 +96,23 @@ bool dummy_scene::initialize_core()
 		static constexpr std::string_view texts_list[][2] =
 		{
 			{
-				"Assets/Resources/Shaders/PostProcess/color_filter_before_dof.hlsl",
+				"Assets/GameShader/PostProcess/color_filter_before_dof.hlsl",
 				"被写界深度前ポストプロセスマテリアル",
 			},
 			{
-				"Assets/Resources/Shaders/PostProcess/color_filter_after_dof.hlsl",
+				"Assets/GameShader/PostProcess/color_filter_after_dof.hlsl",
 				"被写界深度後ポストプロセスマテリアル",
 			},
 			{
-				"Assets/Resources/Shaders/PostProcess/color_filter_after_dof_translucency.hlsl",
+				"Assets/GameShader/PostProcess/color_filter_after_dof_translucency.hlsl",
 				"被写界深度後半透明描画ポストプロセスマテリアル",
 			},
 			{
-				"Assets/Resources/Shaders/PostProcess/color_filter_before_bloom.hlsl",
+				"Assets/GameShader/PostProcess/color_filter_before_bloom.hlsl",
 				"ブルーム前ポストプロセスマテリアル",
 			},
 			{
-				"Assets/Resources/Shaders/PostProcess/color_filter_after_tone_mapping.hlsl",
+				"Engine/EngineShader/Materials/PostProcess/color_filter_after_tone_mapping.hlsl",
 				"トーンマッピング後ポストプロセスマテリアル",
 			}
 		};

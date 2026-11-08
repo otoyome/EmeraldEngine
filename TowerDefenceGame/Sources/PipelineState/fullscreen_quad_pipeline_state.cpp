@@ -14,12 +14,12 @@ display_mapping_pipeline_state::display_mapping_pipeline_state()
 {
 	set_domain(pipeline_state_base::domains::system);
 
-	load_shader_cso vs_desc;
-	vs_desc.file_path = "Assets/CSO/fullscreen_quad_vs.cso";
+	load_shader_file vs_desc{};
+	vs_desc.file_path = "Engine/EngineShader/FullscreenQuad/fullscreen_quad_vs.hlsl";
 	shader_manager::instance()->load_shader<vertex_shader>(vs, vs_desc);
 
-	load_shader_cso ps_desc;
-	ps_desc.file_path = "Assets/CSO/display_mapping_ps.cso";
+	load_shader_file ps_desc{};
+	ps_desc.file_path = "Engine/EngineShader/Postprocess/DisplayMapping/display_mapping_ps.hlsl";
 	shader_manager::instance()->load_shader<pixel_shader>(ps, ps_desc);
 
 	//	深度ステンシルステート
@@ -107,12 +107,12 @@ convert_srgb_to_linear_pipeline_state::convert_srgb_to_linear_pipeline_state()
 {
 	set_domain(pipeline_state_base::domains::system);
 
-	load_shader_cso vs_desc;
-	vs_desc.file_path = "Assets/CSO/fullscreen_quad_vs.cso";
+	load_shader_file vs_desc{};
+	vs_desc.file_path = "Engine/EngineShader/FullscreenQuad/fullscreen_quad_vs.hlsl";
 	shader_manager::instance()->load_shader<vertex_shader>(vs, vs_desc);
 
-	load_shader_cso ps_desc;
-	ps_desc.file_path = "Assets/CSO/convert_srgb_to_linear_ps.cso";
+	load_shader_file ps_desc{};
+	ps_desc.file_path = "Engine/EngineShader/DeferredRendering/convert_srgb_to_linear_ps.hlsl";
 	shader_manager::instance()->load_shader<pixel_shader>(ps, ps_desc);
 
 	//	深度ステンシルステート

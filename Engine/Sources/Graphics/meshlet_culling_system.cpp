@@ -22,7 +22,7 @@ namespace
 
 meshlet_culling_system::meshlet_culling_system()
 {
-	meshlet_culling_cs = load_cs("Shaders/Culling/meshlet_culling_cs.hlsl");
+	meshlet_culling_cs = load_cs("Engine/EngineShader/Culling/meshlet_culling_cs.hlsl");
 
 	D3D11_BUFFER_DESC bd{};
 	bd.Usage = D3D11_USAGE_DEFAULT;

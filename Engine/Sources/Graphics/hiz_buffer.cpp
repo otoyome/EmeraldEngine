@@ -33,8 +33,8 @@ hiz_buffer::hiz_buffer()
 	HRESULT hr = render_data::instance()->get_device()->CreateBuffer(&bd, nullptr, hiz_constant_buffer.GetAddressOf());
 	_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
 
-	hiz_copy_cs = load_cs("Shaders/Culling/hiz_copy_cs.hlsl");
-	hiz_downsample_cs = load_cs("Shaders/Culling/hiz_downsample_cs.hlsl");
+	hiz_copy_cs = load_cs("Engine/EngineShader/Culling/hiz_copy_cs.hlsl");
+	hiz_downsample_cs = load_cs("Engine/EngineShader/Culling/hiz_downsample_cs.hlsl");
 }
 
 hiz_buffer::~hiz_buffer()

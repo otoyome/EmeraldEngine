@@ -1,4 +1,5 @@
 #include "framework.h"
+#include "Process/boot_process.h"
 #include "Texture/texture_factory.h"
 #include "Graphics/render_data.h"
 
@@ -249,167 +250,32 @@ LRESULT framework::handle_message(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpa
 
 bool framework::initialize()
 {
-	HRESULT hr{ S_OK };
-
-	//	COMオブジェクト初期化
-	{
-		hr = CoInitializeEx(NULL, 0);
-		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
-		if (FAILED(hr))
-		{
-			return false;
-		}
-	}
-
-	//	文字コード変換器所持
-	system_utility::initialize_charset_converter();
-
-	//	プロジェクトのルートディレクトリを控える
-	project_path::initialize();
-
-	//	ゲームコンフィグ初期化
-	{
-		//	@remainder	内部でコンソールマネージャーに情報を受け渡しているだけ。
-		game_config_data::create_instance();
-	}
-
-	//	描画関係初期化
-	{
-		render_data::create_instance(hwnd);
-		if (!render_data::instance()->is_supported_device())
-		{
-			MessageBoxW(hwnd, L"この GPU は必要な機能(VS からの描画先配列番号の出力)に対応していないため起動できません。", L"起動エラー", MB_OK | MB_ICONERROR);
-			return false;
-		}
-		texture_defaults::create_instance();
-#if defined(USE_IMGUI)
-		texture_tracker::create_instance();
-		texture_importer::create_instance();
-#endif	//	defined(USE_IMGUI)
-		shader_manager::create_instance();
-		pipeline_state_manager::create_instance();
-		material_shader_map::create_instance();
-		model_buffer_pool_manager::create_instance();
-		asset_registry::create_instance();
-		asset_registry::instance()->scan();
-		resource_manager::create_instance();
-		model_resource_manager::create_instance();
-		ik_resource_manager::create_instance();	//	@remainder	これは不要では？
-		font_data_manager::create_instance();
-	}
-
-	//	入力関係初期化
-	{
-		mouse::create_instance(hwnd);
-		keyboard::create_instance();
-		gamepad::create_instance();
-		input::action_system::create_instance();
-	}
-
-	//	エフェクト関係
-	{
-		effect_resource_manager::create_instance();
-	}
-
-#if defined(USE_IMGUI)
-	//	エディター/デバッグ関係
-	{
-		editor_config_data::create_instance();
-		detail_profiler::create_instance();
-		debug_primitive_manager::create_instance();
-		editor_items::initialize();
-	}
-#endif // defined(USE_IMGUI)
-
-	//	サウンド関係
-	{
-		audio_manager::create_instance();
-		audio::sound_player::create_instance();
-	}
-
-	//	シーン関係
-	{
-		collision_filter_manager::create_instance();
-
-		//	メインのワールド
-		main_world = std::make_unique<world>();
-
-#if defined(USE_IMGUI)
-		//	ゲーム進行のデバッグコマンド
-		pause_command = std::make_unique<console_command>("game.pause", "一時停止を切り替える（game.pause [0|1]）",
-			[this](const console_command::arguments& args)
-			{
-				if (!main_world)
-					return;
-				object_manager& objects = main_world->get_objects();
-				bool pause = !objects.get_pause();
-				if (!args.empty())
-					console_detail::from_string(args[0], pause);
-				objects.set_pause(pause);
-				console_manager::instance().print(pause ? "pause : 1" : "pause : 0");
-			});
-		step_command = std::make_unique<console_command>("game.step", "一時停止中に1フレーム進める",
-			[this](const console_command::arguments&)
-			{
-				if (main_world)
-					main_world->get_objects().called_step();
-			});
-#endif	//	defined(USE_IMGUI)
-	}
-
-	//	各種バッファ用意
-	if (!create_buffers())
+	//	起動プロセスから始める
+	if (!change_process(std::make_unique<boot_process>(*this)))
 		return false;
 
-	//	当たり判定フィルター用意
-	if (!create_collision_filters())
-		return false;
+	return advance_process();
+}
 
+bool framework::change_process(std::unique_ptr<framework_process> next)
+{
+	if (current_process)
+		current_process->exit();
 
-	//	シーンレンダラー登録
-	//	@tool メインのワールドをバックバッファに描く
+	current_process = std::move(next);
+	return !current_process || current_process->enter();
+}
+
+bool framework::advance_process()
+{
+	while (current_process)
 	{
-		render_executor = std::make_shared<render_job_executor>(4);
-		main_renderer = std::make_unique<world_renderer>(render_executor, render_output::create_back_buffer());
-		if (!main_renderer->initialize())
+		std::unique_ptr<framework_process> next = current_process->next_process();
+		if (!next)
+			break;
+		if (!change_process(std::move(next)))
 			return false;
-#if defined(USE_IMGUI)
-		main_renderer->set_debug_builder([this](const render_data_context& data) { build_debug_primitives(data); });
-#endif	//	defined(USE_IMGUI)
 	}
-
-	//	全描画コマンド処理後に呼び出される関数登録
-	render_executor->register_post_rendering(
-		[this]
-		{
-#if defined(USE_IMGUI)
-			//	ImGui描画
-			{
-				imgui_rendering_pass.activate(render_data::instance()->get_immediate_context().Get());
-				render_data::instance()->get_immediate_context()->RSSetViewports(1, &imgui_viewport);
-					
-				ImGui::Render();
-				ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
-				imgui_rendering_pass.deactivate(render_data::instance()->get_immediate_context().Get());
-
-				if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
-				{
-					ImGui::UpdatePlatformWindows();
-					ImGui::RenderPlatformWindowsDefault();
-				}
-
-				//	ImGui の描画が終わったので、表示テクスチャを手放す
-				imgui_texture_keeper::instance()->release();
-			}
-#endif // defined(USE_IMGUI)
-
-			//	プレゼント
-			UINT sync_interval{ engine_config_data::instance()->windows.vertical_sync };
-			render_data::instance()->get_swap_chain()->Present(sync_interval, 0);
-		});
-
-	//	初回シーン登録
-	main_world->get_scenes().change_scene<load_shader_scene>();
 	return true;
 }
 
@@ -443,11 +309,6 @@ void framework::update(float elapsed_time/*Elapsed seconds from last frame*/)
 	{
 		gamepad::instance()->update_state();
 	}
-	if (input::action_system::is_valid() && main_world)
-	{
-		input::action_system::instance()->update(main_world->get_scenes().get_broadcaster());
-	}
-
 #if defined(USE_IMGUI)
 	//	キー割り当てされたコンソールコマンドを実行
 	console_manager::instance().update_bindings();
@@ -460,26 +321,9 @@ void framework::update(float elapsed_time/*Elapsed seconds from last frame*/)
 		resource_manager::instance()->update();
 	}
 
-	//	シーン内の更新
-	if (main_world)
-	{
-		DETAIL_PROFILE_CPU_SCOPE("update.scene_manager");
-		main_world->get_scenes().updates(elapsed_time);
-	}
-
-	//	オブジェクト更新
-	if (main_world)
-	{
-		DETAIL_PROFILE_CPU_SCOPE("update.object_manager");
-		main_world->get_objects().updates(elapsed_time);
-	}
-
-	//	エフェクト関係更新
-	if (main_world)
-	{
-		DETAIL_PROFILE_CPU_SCOPE("update.effect_manager");
-		main_world->get_effects().update(elapsed_time);
-	}
+	//	プロセス更新
+	if (current_process)
+		current_process->update(elapsed_time);
 
 	//	サウンド更新
 	if (audio_manager::is_valid())
@@ -497,14 +341,9 @@ void framework::update(float elapsed_time/*Elapsed seconds from last frame*/)
 	ImGui::NewFrame();
 	editor_items::begin_contexts();
 
-	//	シーン情報表示
-	if (main_world)
-	{
-		main_world->get_scenes().imgui_render();
-	}
-
-	//	オブジェクト情報表示
-	main_world->get_objects().imgui_render();
+	//	プロセス情報表示
+	if (current_process)
+		current_process->imgui_render();
 
 	//	ログ情報
 	imgui_log_window();
@@ -520,9 +359,6 @@ void framework::update(float elapsed_time/*Elapsed seconds from last frame*/)
 
 	//	メモリアロケータ使用量表示
 	imgui_memory_allocator_window();
-
-	//	シーン変更
-	imgui_scene_change();
 
 	//	コンソール
 	imgui_console_window();
@@ -545,58 +381,23 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 	//	描画処理全体の計測
 	DETAIL_PROFILE_CPU_SCOPE("render");
 
-	//	描画前処理
-	if (main_world)
-	{
-		main_world->get_objects().pre_render();
-	}
-
-	//	描画用の情報収集
-	main_renderer->collect(*main_world);
-
-	{
-		DETAIL_PROFILE_CPU_SCOPE("render.rebuild_pipeline_bindings");
-		pipeline_state_manager::instance()->rebuild_pipeline_bindings();
-	}
-
-	//	バッファ描画
-	{
-		//	レンダラー開始処理
-		render_executor->begin();
-
-		//	@tool ワールドごとの描画
-		main_renderer->submit_render_jobs(*main_world, elapsed_time);
-
-		//	描画コマンドを実行
-		{
-			DETAIL_PROFILE_CPU_SCOPE("render.execute_commands");
-			render_executor->render();
-		}
-
-		//	描画コマンド実行終了処理
-		{
-			DETAIL_PROFILE_CPU_SCOPE("render.imgui_and_present");
-			render_executor->end();
-		}
-	}
-
-	//	描画後処理
-	if (main_world)
-	{
-		main_world->get_objects().post_render();
-	}
+	//	プロセス描画
+	if (current_process)
+		current_process->render(elapsed_time);
 }
 
 
 bool framework::uninitialize()
 {
+	//	プロセス破棄
+	if (current_process)
+	{
+		current_process->exit();
+		current_process.reset();
+	}
+
 	//	シーン関係
 	{
-#if defined(USE_IMGUI)
-		pause_command.reset();
-		step_command.reset();
-#endif	//	defined(USE_IMGUI)
-		main_world.reset();
 		collision_filter_manager::delete_instance();
 	}
 

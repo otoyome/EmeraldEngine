@@ -1,6 +1,111 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
+    <Filter Include="EngineShader">
+      <UniqueIdentifier>{5f54eaed-d643-43c5-b10e-446681c24f55}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EngineShader\ClusteredLighting">
+      <UniqueIdentifier>{7d25125c-beb5-41b7-928c-70284fa95efd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EngineShader\Collision">
+      <UniqueIdentifier>{d62f4358-cf6b-4d92-9d69-2d13e758d04c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EngineShader\Common">
+      <UniqueIdentifier>{48fb32ca-5e66-4d40-9655-20d4741c1561}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EngineShader\ComputeParticle">
+      <UniqueIdentifier>{0c3d97e6-134b-441f-bbdd-1691ee47ccca}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EngineShader\ComputeParticle\Renderer">
+      <UniqueIdentifier>{6ae52cff-55ab-42ad-a4ec-c369d8062b4f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EngineShader\ComputeParticle\Renderer\Default">
+      <UniqueIdentifier>{dcc410b0-2cb5-45f0-8d79-caa5eac81de2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EngineShader\ComputeParticle\System">
+      <UniqueIdentifier>{f1674cb5-d3f2-435a-ab82-bbba78330e16}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EngineShader\Culling">
+      <UniqueIdentifier>{adb9dd07-1b78-4f0a-bef4-533deaa2506b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EngineShader\DeferredDecal">
+      <UniqueIdentifier>{b8f17d15-1b47-4b6e-add9-6847309489f1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EngineShader\DeferredDecal\Default">
+      <UniqueIdentifier>{01bf1231-bd80-4be5-a4d5-95bc43a58880}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EngineShader\DeferredDecal\Failed">
+      <UniqueIdentifier>{afed9190-42b0-498b-9ae4-be0c36d82611}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EngineShader\DeferredRendering">
+      <UniqueIdentifier>{06450d66-7a5d-467d-8ed4-bb52996608b3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EngineShader\FullscreenQuad">
+      <UniqueIdentifier>{88cdf803-b448-4027-be39-3063524964f1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EngineShader\GeometricPrimitive">
+      <UniqueIdentifier>{2805f50a-0392-49b7-bbca-8036b63cf6d5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EngineShader\Materials">
+      <UniqueIdentifier>{d5b4900b-298d-4a74-a7f0-38d34ce98512}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EngineShader\Materials\DeferredDecal">
+      <UniqueIdentifier>{fc05352c-43f4-48ad-bb0d-e42cd37b630c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EngineShader\Materials\Particle">
+      <UniqueIdentifier>{1e7ca3a6-7ad4-41e2-b301-bfcb59ce9b92}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EngineShader\Materials\PostProcess">
+      <UniqueIdentifier>{98ec133f-d21b-4c60-94b0-3cd02cf0c387}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EngineShader\Materials\UserInterface">
+      <UniqueIdentifier>{b4c23d0b-6c55-404d-98a6-efcc6cbaad4b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EngineShader\Model">
+      <UniqueIdentifier>{5aeab517-7bcc-42bb-8fd2-106bfb9d417b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EngineShader\Passes">
+      <UniqueIdentifier>{272c55cb-20ea-489a-a501-81a1befe2d11}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EngineShader\Postprocess">
+      <UniqueIdentifier>{de973727-0c3f-40be-8865-3e5c33b68151}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EngineShader\Postprocess\Antialias">
+      <UniqueIdentifier>{07069b29-2fbe-4cbb-b908-6f44fd91f214}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EngineShader\Postprocess\Bloom">
+      <UniqueIdentifier>{44d1adfa-f3d6-4a74-ba3a-030ea1dd52b4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EngineShader\Postprocess\DepthOfField">
+      <UniqueIdentifier>{be5ac3b7-c3d2-4732-9ce4-cd21dc6c10df}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EngineShader\Postprocess\DisplayMapping">
+      <UniqueIdentifier>{e5bd2eef-4f54-4c7b-9707-291a4399ab52}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EngineShader\Postprocess\Exposure">
+      <UniqueIdentifier>{fa78b231-3216-476d-9557-a3e00b29cfe8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EngineShader\Postprocess\MotionBlur">
+      <UniqueIdentifier>{f2a33c39-3d02-4b7e-bc7e-e1bbf71de326}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EngineShader\Postprocess\ScreenSpaceReflection">
+      <UniqueIdentifier>{6c77e19e-2976-45a2-a992-58e9c6dc4eb4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EngineShader\Postprocess\System">
+      <UniqueIdentifier>{f9583017-ea18-4799-8565-149cde37b12b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EngineShader\Postprocess\ToneMapping">
+      <UniqueIdentifier>{8ff3d6a5-e7bb-43f4-ac1f-0ed085300844}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EngineShader\SkyBox">
+      <UniqueIdentifier>{36b48350-2808-4f51-a73e-9c58109665c1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EngineShader\Sprite">
+      <UniqueIdentifier>{bd58922e-a2e6-40f6-8254-71b874c68efc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="EngineShader\Surface">
+      <UniqueIdentifier>{74300af2-325b-4449-a21b-9a02794042cc}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Headers">
       <UniqueIdentifier>{11ba890f-8786-4096-9423-f67584441e95}</UniqueIdentifier>
     </Filter>
@@ -779,5 +884,502 @@
     <ClCompile Include="Sources\stdafx_engine.cpp">
       <Filter>Sources</Filter>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="EngineShader\ClusteredLighting\clustered_lighting_assign_cs.hlsl">
+      <Filter>EngineShader\ClusteredLighting</Filter>
+    </None>
+    <None Include="EngineShader\ClusteredLighting\clustered_lighting_bounds_cs.hlsl">
+      <Filter>EngineShader\ClusteredLighting</Filter>
+    </None>
+    <None Include="EngineShader\ClusteredLighting\clustered_lighting_depth_cs.hlsl">
+      <Filter>EngineShader\ClusteredLighting</Filter>
+    </None>
+    <None Include="EngineShader\ClusteredLighting\clustered_lighting_scan_cs.hlsl">
+      <Filter>EngineShader\ClusteredLighting</Filter>
+    </None>
+    <None Include="EngineShader\ClusteredLighting\deferred_rendering_clustered_ps.hlsl">
+      <Filter>EngineShader\ClusteredLighting</Filter>
+    </None>
+    <None Include="EngineShader\Collision\cubic_sdf_collision.hlsli">
+      <Filter>EngineShader\Collision</Filter>
+    </None>
+    <None Include="EngineShader\Common\clustered_lighting.hlsli">
+      <Filter>EngineShader\Common</Filter>
+    </None>
+    <None Include="EngineShader\Common\clustered_lighting_shading.hlsli">
+      <Filter>EngineShader\Common</Filter>
+    </None>
+    <None Include="EngineShader\Common\color_space.hlsli">
+      <Filter>EngineShader\Common</Filter>
+    </None>
+    <None Include="EngineShader\Common\common.hlsli">
+      <Filter>EngineShader\Common</Filter>
+    </None>
+    <None Include="EngineShader\Common\common_post_process.hlsli">
+      <Filter>EngineShader\Common</Filter>
+    </None>
+    <None Include="EngineShader\Common\filter_functions.hlsli">
+      <Filter>EngineShader\Common</Filter>
+    </None>
+    <None Include="EngineShader\Common\lights.hlsli">
+      <Filter>EngineShader\Common</Filter>
+    </None>
+    <None Include="EngineShader\Common\scene_constant_buffer.hlsli">
+      <Filter>EngineShader\Common</Filter>
+    </None>
+    <None Include="EngineShader\Common\shading_functions.hlsli">
+      <Filter>EngineShader\Common</Filter>
+    </None>
+    <None Include="EngineShader\Common\shadow_map.hlsli">
+      <Filter>EngineShader\Common</Filter>
+    </None>
+    <None Include="EngineShader\Common\summed_area_table.hlsli">
+      <Filter>EngineShader\Common</Filter>
+    </None>
+    <None Include="EngineShader\Common\summed_area_table_x.hlsl">
+      <Filter>EngineShader\Common</Filter>
+    </None>
+    <None Include="EngineShader\Common\summed_area_table_y.hlsl">
+      <Filter>EngineShader\Common</Filter>
+    </None>
+    <None Include="EngineShader\Common\vertex_stream.hlsli">
+      <Filter>EngineShader\Common</Filter>
+    </None>
+    <None Include="EngineShader\ComputeParticle\Renderer\Default\compute_particle_default_rendering.hlsli">
+      <Filter>EngineShader\ComputeParticle\Renderer\Default</Filter>
+    </None>
+    <None Include="EngineShader\ComputeParticle\Renderer\Default\compute_particle_default_surface.hlsli">
+      <Filter>EngineShader\ComputeParticle\Renderer\Default</Filter>
+    </None>
+    <None Include="EngineShader\ComputeParticle\Renderer\Default\compute_particle_default_surface_alpha.hlsli">
+      <Filter>EngineShader\ComputeParticle\Renderer\Default</Filter>
+    </None>
+    <None Include="EngineShader\ComputeParticle\Renderer\compute_particle_renderer.hlsli">
+      <Filter>EngineShader\ComputeParticle\Renderer</Filter>
+    </None>
+    <None Include="EngineShader\ComputeParticle\Renderer\compute_particle_renderer_vs.hlsli">
+      <Filter>EngineShader\ComputeParticle\Renderer</Filter>
+    </None>
+    <None Include="EngineShader\ComputeParticle\Renderer\compute_particle_vertex.hlsli">
+      <Filter>EngineShader\ComputeParticle\Renderer</Filter>
+    </None>
+    <None Include="EngineShader\ComputeParticle\System\compute_particle.hlsli">
+      <Filter>EngineShader\ComputeParticle\System</Filter>
+    </None>
+    <None Include="EngineShader\ComputeParticle\System\compute_particle_base_stream_item.hlsli">
+      <Filter>EngineShader\ComputeParticle\System</Filter>
+    </None>
+    <None Include="EngineShader\ComputeParticle\System\compute_particle_begin_update_cs.hlsl">
+      <Filter>EngineShader\ComputeParticle\System</Filter>
+    </None>
+    <None Include="EngineShader\ComputeParticle\System\compute_particle_bitonic_sort.hlsli">
+      <Filter>EngineShader\ComputeParticle\System</Filter>
+    </None>
+    <None Include="EngineShader\ComputeParticle\System\compute_particle_bitonic_sort_b2_cs.hlsl">
+      <Filter>EngineShader\ComputeParticle\System</Filter>
+    </None>
+    <None Include="EngineShader\ComputeParticle\System\compute_particle_bitonic_sort_c2_cs.hlsl">
+      <Filter>EngineShader\ComputeParticle\System</Filter>
+    </None>
+    <None Include="EngineShader\ComputeParticle\System\compute_particle_build_emitter_draw_arguments_cs.hlsl">
+      <Filter>EngineShader\ComputeParticle\System</Filter>
+    </None>
+    <None Include="EngineShader\ComputeParticle\System\compute_particle_build_primitive_cs.hlsl">
+      <Filter>EngineShader\ComputeParticle\System</Filter>
+    </None>
+    <None Include="EngineShader\ComputeParticle\System\compute_particle_clear_particles_cs.hlsl">
+      <Filter>EngineShader\ComputeParticle\System</Filter>
+    </None>
+    <None Include="EngineShader\ComputeParticle\System\compute_particle_clear_system_cs.hlsl">
+      <Filter>EngineShader\ComputeParticle\System</Filter>
+    </None>
+    <None Include="EngineShader\ComputeParticle\System\compute_particle_common_stream_item_define.hlsli">
+      <Filter>EngineShader\ComputeParticle\System</Filter>
+    </None>
+    <None Include="EngineShader\ComputeParticle\System\compute_particle_common_stream_item_undef.hlsli">
+      <Filter>EngineShader\ComputeParticle\System</Filter>
+    </None>
+    <None Include="EngineShader\ComputeParticle\System\compute_particle_end_update_cs.hlsl">
+      <Filter>EngineShader\ComputeParticle\System</Filter>
+    </None>
+    <None Include="EngineShader\ComputeParticle\System\compute_particle_fill_unused_index_cs.hlsl">
+      <Filter>EngineShader\ComputeParticle\System</Filter>
+    </None>
+    <None Include="EngineShader\ComputeParticle\System\compute_particle_initialize_particles_cs.hlsl">
+      <Filter>EngineShader\ComputeParticle\System</Filter>
+    </None>
+    <None Include="EngineShader\ComputeParticle\System\compute_particle_range_particles_cs.hlsl">
+      <Filter>EngineShader\ComputeParticle\System</Filter>
+    </None>
+    <None Include="EngineShader\ComputeParticle\System\compute_particle_rebase_particles_cs.hlsl">
+      <Filter>EngineShader\ComputeParticle\System</Filter>
+    </None>
+    <None Include="EngineShader\ComputeParticle\System\compute_particle_spawn_from_events_cs.hlsl">
+      <Filter>EngineShader\ComputeParticle\System</Filter>
+    </None>
+    <None Include="EngineShader\ComputeParticle\System\compute_particle_spawn_particles_cs.hlsl">
+      <Filter>EngineShader\ComputeParticle\System</Filter>
+    </None>
+    <None Include="EngineShader\ComputeParticle\System\compute_particle_srv_stream_item.hlsli">
+      <Filter>EngineShader\ComputeParticle\System</Filter>
+    </None>
+    <None Include="EngineShader\ComputeParticle\System\compute_particle_terminate_particles_cs.hlsl">
+      <Filter>EngineShader\ComputeParticle\System</Filter>
+    </None>
+    <None Include="EngineShader\ComputeParticle\System\compute_particle_type_generate_function_stream_item.hlsli">
+      <Filter>EngineShader\ComputeParticle\System</Filter>
+    </None>
+    <None Include="EngineShader\ComputeParticle\System\compute_particle_uav_stream_item.hlsli">
+      <Filter>EngineShader\ComputeParticle\System</Filter>
+    </None>
+    <None Include="EngineShader\ComputeParticle\System\compute_particle_update_particles_cs.hlsl">
+      <Filter>EngineShader\ComputeParticle\System</Filter>
+    </None>
+    <None Include="EngineShader\ComputeParticle\compute_particle_structs.hlsli">
+      <Filter>EngineShader\ComputeParticle</Filter>
+    </None>
+    <None Include="EngineShader\ComputeParticle\compute_particle_system_item_emitter.hlsli">
+      <Filter>EngineShader\ComputeParticle</Filter>
+    </None>
+    <None Include="EngineShader\ComputeParticle\compute_particle_system_item_particle.hlsli">
+      <Filter>EngineShader\ComputeParticle</Filter>
+    </None>
+    <None Include="EngineShader\ComputeParticle\compute_particle_update_items.hlsli">
+      <Filter>EngineShader\ComputeParticle</Filter>
+    </None>
+    <None Include="EngineShader\Culling\hiz.hlsli">
+      <Filter>EngineShader\Culling</Filter>
+    </None>
+    <None Include="EngineShader\Culling\hiz_copy_cs.hlsl">
+      <Filter>EngineShader\Culling</Filter>
+    </None>
+    <None Include="EngineShader\Culling\hiz_downsample_cs.hlsl">
+      <Filter>EngineShader\Culling</Filter>
+    </None>
+    <None Include="EngineShader\Culling\meshlet_culling_cs.hlsl">
+      <Filter>EngineShader\Culling</Filter>
+    </None>
+    <None Include="EngineShader\Culling\occlusion_culling_cs.hlsl">
+      <Filter>EngineShader\Culling</Filter>
+    </None>
+    <None Include="EngineShader\DeferredDecal\Default\default_decal_data_ps.hlsli">
+      <Filter>EngineShader\DeferredDecal\Default</Filter>
+    </None>
+    <None Include="EngineShader\DeferredDecal\Default\default_decal_rendering.hlsli">
+      <Filter>EngineShader\DeferredDecal\Default</Filter>
+    </None>
+    <None Include="EngineShader\DeferredDecal\Failed\failed_decal_data_ps.hlsli">
+      <Filter>EngineShader\DeferredDecal\Failed</Filter>
+    </None>
+    <None Include="EngineShader\DeferredDecal\Failed\failed_decal_rendering.hlsli">
+      <Filter>EngineShader\DeferredDecal\Failed</Filter>
+    </None>
+    <None Include="EngineShader\DeferredDecal\gbuffer_decal.hlsli">
+      <Filter>EngineShader\DeferredDecal</Filter>
+    </None>
+    <None Include="EngineShader\DeferredDecal\gbuffer_decal_fullscreen_ps.hlsli">
+      <Filter>EngineShader\DeferredDecal</Filter>
+    </None>
+    <None Include="EngineShader\DeferredDecal\gbuffer_decal_fullscreen_vs.hlsl">
+      <Filter>EngineShader\DeferredDecal</Filter>
+    </None>
+    <None Include="EngineShader\DeferredDecal\gbuffer_decal_primitive_ps.hlsli">
+      <Filter>EngineShader\DeferredDecal</Filter>
+    </None>
+    <None Include="EngineShader\DeferredDecal\gbuffer_decal_primitive_vs.hlsl">
+      <Filter>EngineShader\DeferredDecal</Filter>
+    </None>
+    <None Include="EngineShader\DeferredRendering\common_gbuffer_loader.hlsli">
+      <Filter>EngineShader\DeferredRendering</Filter>
+    </None>
+    <None Include="EngineShader\DeferredRendering\common_gbuffer_writer.hlsli">
+      <Filter>EngineShader\DeferredRendering</Filter>
+    </None>
+    <None Include="EngineShader\DeferredRendering\convert_srgb_to_linear_ps.hlsl">
+      <Filter>EngineShader\DeferredRendering</Filter>
+    </None>
+    <None Include="EngineShader\DeferredRendering\deferred_rendering.hlsli">
+      <Filter>EngineShader\DeferredRendering</Filter>
+    </None>
+    <None Include="EngineShader\DeferredRendering\deferred_rendering_directional_ps.hlsl">
+      <Filter>EngineShader\DeferredRendering</Filter>
+    </None>
+    <None Include="EngineShader\DeferredRendering\deferred_rendering_indirect_ps.hlsl">
+      <Filter>EngineShader\DeferredRendering</Filter>
+    </None>
+    <None Include="EngineShader\DeferredRendering\deferred_rendering_point_ps.hlsl">
+      <Filter>EngineShader\DeferredRendering</Filter>
+    </None>
+    <None Include="EngineShader\DeferredRendering\deferred_rendering_spot_ps.hlsl">
+      <Filter>EngineShader\DeferredRendering</Filter>
+    </None>
+    <None Include="EngineShader\DeferredRendering\gbuffer.hlsli">
+      <Filter>EngineShader\DeferredRendering</Filter>
+    </None>
+    <None Include="EngineShader\DeferredRendering\shading_models.hlsli">
+      <Filter>EngineShader\DeferredRendering</Filter>
+    </None>
+    <None Include="EngineShader\FullscreenQuad\bilateral_upscaling_ps.hlsl">
+      <Filter>EngineShader\FullscreenQuad</Filter>
+    </None>
+    <None Include="EngineShader\FullscreenQuad\compress_rgb_to_log_ps.hlsl">
+      <Filter>EngineShader\FullscreenQuad</Filter>
+    </None>
+    <None Include="EngineShader\FullscreenQuad\decompress_rgb_to_log_ps.hlsl">
+      <Filter>EngineShader\FullscreenQuad</Filter>
+    </None>
+    <None Include="EngineShader\FullscreenQuad\fullscreen_quad.hlsli">
+      <Filter>EngineShader\FullscreenQuad</Filter>
+    </None>
+    <None Include="EngineShader\FullscreenQuad\fullscreen_quad_ps.hlsl">
+      <Filter>EngineShader\FullscreenQuad</Filter>
+    </None>
+    <None Include="EngineShader\FullscreenQuad\fullscreen_quad_vs.hlsl">
+      <Filter>EngineShader\FullscreenQuad</Filter>
+    </None>
+    <None Include="EngineShader\GeometricPrimitive\debug_draw_line.hlsli">
+      <Filter>EngineShader\GeometricPrimitive</Filter>
+    </None>
+    <None Include="EngineShader\GeometricPrimitive\debug_draw_line_ps.hlsl">
+      <Filter>EngineShader\GeometricPrimitive</Filter>
+    </None>
+    <None Include="EngineShader\GeometricPrimitive\debug_draw_line_vs.hlsl">
+      <Filter>EngineShader\GeometricPrimitive</Filter>
+    </None>
+    <None Include="EngineShader\GeometricPrimitive\geometric_primitive.hlsli">
+      <Filter>EngineShader\GeometricPrimitive</Filter>
+    </None>
+    <None Include="EngineShader\GeometricPrimitive\geometric_primitive_object_data.hlsli">
+      <Filter>EngineShader\GeometricPrimitive</Filter>
+    </None>
+    <None Include="EngineShader\GeometricPrimitive\geometric_primitive_ps.hlsl">
+      <Filter>EngineShader\GeometricPrimitive</Filter>
+    </None>
+    <None Include="EngineShader\GeometricPrimitive\geometric_primitive_vertex.hlsli">
+      <Filter>EngineShader\GeometricPrimitive</Filter>
+    </None>
+    <None Include="EngineShader\GeometricPrimitive\geometric_primitive_vs.hlsl">
+      <Filter>EngineShader\GeometricPrimitive</Filter>
+    </None>
+    <None Include="EngineShader\Materials\3d_failed.hlsl">
+      <Filter>EngineShader\Materials</Filter>
+    </None>
+    <None Include="EngineShader\Materials\DeferredDecal\decal_default.hlsl">
+      <Filter>EngineShader\Materials\DeferredDecal</Filter>
+    </None>
+    <None Include="EngineShader\Materials\DeferredDecal\decal_failed.hlsl">
+      <Filter>EngineShader\Materials\DeferredDecal</Filter>
+    </None>
+    <None Include="EngineShader\Materials\Particle\particle_default.hlsl">
+      <Filter>EngineShader\Materials\Particle</Filter>
+    </None>
+    <None Include="EngineShader\Materials\PostProcess\color_filter_after_tone_mapping.hlsl">
+      <Filter>EngineShader\Materials\PostProcess</Filter>
+    </None>
+    <None Include="EngineShader\Materials\PostProcess\post_process_failed.hlsl">
+      <Filter>EngineShader\Materials\PostProcess</Filter>
+    </None>
+    <None Include="EngineShader\Materials\UserInterface\sprite_default.hlsl">
+      <Filter>EngineShader\Materials\UserInterface</Filter>
+    </None>
+    <None Include="EngineShader\Materials\gltf.hlsl">
+      <Filter>EngineShader\Materials</Filter>
+    </None>
+    <None Include="EngineShader\Materials\pmx.hlsl">
+      <Filter>EngineShader\Materials</Filter>
+    </None>
+    <None Include="EngineShader\Model\deferred_light_data.hlsli">
+      <Filter>EngineShader\Model</Filter>
+    </None>
+    <None Include="EngineShader\Model\deferred_light_probe_data.hlsli">
+      <Filter>EngineShader\Model</Filter>
+    </None>
+    <None Include="EngineShader\Model\dummy.hlsli">
+      <Filter>EngineShader\Model</Filter>
+    </None>
+    <None Include="EngineShader\Model\forward_light_data.hlsli">
+      <Filter>EngineShader\Model</Filter>
+    </None>
+    <None Include="EngineShader\Model\material_parameter_constant_buffer.hlsli">
+      <Filter>EngineShader\Model</Filter>
+    </None>
+    <None Include="EngineShader\Model\model.hlsli">
+      <Filter>EngineShader\Model</Filter>
+    </None>
+    <None Include="EngineShader\Model\model_cascade_shadow_map_vs.hlsli">
+      <Filter>EngineShader\Model</Filter>
+    </None>
+    <None Include="EngineShader\Model\model_depth_vs.hlsli">
+      <Filter>EngineShader\Model</Filter>
+    </None>
+    <None Include="EngineShader\Model\model_vs.hlsli">
+      <Filter>EngineShader\Model</Filter>
+    </None>
+    <None Include="EngineShader\Passes\deferred_decal_pass.hlsli">
+      <Filter>EngineShader\Passes</Filter>
+    </None>
+    <None Include="EngineShader\Passes\particle_pass.hlsli">
+      <Filter>EngineShader\Passes</Filter>
+    </None>
+    <None Include="EngineShader\Passes\post_process_pass.hlsli">
+      <Filter>EngineShader\Passes</Filter>
+    </None>
+    <None Include="EngineShader\Passes\surface_pass.hlsli">
+      <Filter>EngineShader\Passes</Filter>
+    </None>
+    <None Include="EngineShader\Passes\user_interface_pass.hlsli">
+      <Filter>EngineShader\Passes</Filter>
+    </None>
+    <None Include="EngineShader\Postprocess\Antialias\fast_approximate_anti_aliasing_ps.hlsl">
+      <Filter>EngineShader\Postprocess\Antialias</Filter>
+    </None>
+    <None Include="EngineShader\Postprocess\Antialias\smaa_blending_weight_calculation_ps.hlsl">
+      <Filter>EngineShader\Postprocess\Antialias</Filter>
+    </None>
+    <None Include="EngineShader\Postprocess\Antialias\smaa_blending_weight_calculation_vs.hlsl">
+      <Filter>EngineShader\Postprocess\Antialias</Filter>
+    </None>
+    <None Include="EngineShader\Postprocess\Antialias\smaa_edge_detection_ps.hlsl">
+      <Filter>EngineShader\Postprocess\Antialias</Filter>
+    </None>
+    <None Include="EngineShader\Postprocess\Antialias\smaa_edge_detection_vs.hlsl">
+      <Filter>EngineShader\Postprocess\Antialias</Filter>
+    </None>
+    <None Include="EngineShader\Postprocess\Antialias\smaa_neighborhood_blending_ps.hlsl">
+      <Filter>EngineShader\Postprocess\Antialias</Filter>
+    </None>
+    <None Include="EngineShader\Postprocess\Antialias\smaa_neighborhood_blending_vs.hlsl">
+      <Filter>EngineShader\Postprocess\Antialias</Filter>
+    </None>
+    <None Include="EngineShader\Postprocess\Antialias\subpixel_morphological_anti_aliasing.hlsli">
+      <Filter>EngineShader\Postprocess\Antialias</Filter>
+    </None>
+    <None Include="EngineShader\Postprocess\Bloom\bloom.hlsli">
+      <Filter>EngineShader\Postprocess\Bloom</Filter>
+    </None>
+    <None Include="EngineShader\Postprocess\Bloom\bloom_additional_cs.hlsl">
+      <Filter>EngineShader\Postprocess\Bloom</Filter>
+    </None>
+    <None Include="EngineShader\Postprocess\Bloom\bloom_additional_half_cs.hlsl">
+      <Filter>EngineShader\Postprocess\Bloom</Filter>
+    </None>
+    <None Include="EngineShader\Postprocess\Bloom\generate_ghost_cs.hlsl">
+      <Filter>EngineShader\Postprocess\Bloom</Filter>
+    </None>
+    <None Include="EngineShader\Postprocess\Bloom\kernel_averaging_cs.hlsl">
+      <Filter>EngineShader\Postprocess\Bloom</Filter>
+    </None>
+    <None Include="EngineShader\Postprocess\Bloom\luminance_extract_cs.hlsl">
+      <Filter>EngineShader\Postprocess\Bloom</Filter>
+    </None>
+    <None Include="EngineShader\Postprocess\DepthOfField\depth_of_field.hlsli">
+      <Filter>EngineShader\Postprocess\DepthOfField</Filter>
+    </None>
+    <None Include="EngineShader\Postprocess\DepthOfField\dof_apply_cs.hlsl">
+      <Filter>EngineShader\Postprocess\DepthOfField</Filter>
+    </None>
+    <None Include="EngineShader\Postprocess\DepthOfField\dof_filter_setup_cs.hlsl">
+      <Filter>EngineShader\Postprocess\DepthOfField</Filter>
+    </None>
+    <None Include="EngineShader\Postprocess\DepthOfField\dof_vertical_integrate_cs.hlsl">
+      <Filter>EngineShader\Postprocess\DepthOfField</Filter>
+    </None>
+    <None Include="EngineShader\Postprocess\DisplayMapping\display_mapping_ps.hlsl">
+      <Filter>EngineShader\Postprocess\DisplayMapping</Filter>
+    </None>
+    <None Include="EngineShader\Postprocess\Exposure\average_luminance_cs.hlsl">
+      <Filter>EngineShader\Postprocess\Exposure</Filter>
+    </None>
+    <None Include="EngineShader\Postprocess\Exposure\exposure.hlsli">
+      <Filter>EngineShader\Postprocess\Exposure</Filter>
+    </None>
+    <None Include="EngineShader\Postprocess\Exposure\exposure_adjust_cs.hlsl">
+      <Filter>EngineShader\Postprocess\Exposure</Filter>
+    </None>
+    <None Include="EngineShader\Postprocess\MotionBlur\feature_mask_cs.hlsl">
+      <Filter>EngineShader\Postprocess\MotionBlur</Filter>
+    </None>
+    <None Include="EngineShader\Postprocess\MotionBlur\motion_blur.hlsli">
+      <Filter>EngineShader\Postprocess\MotionBlur</Filter>
+    </None>
+    <None Include="EngineShader\Postprocess\MotionBlur\motion_blur_cs.hlsl">
+      <Filter>EngineShader\Postprocess\MotionBlur</Filter>
+    </None>
+    <None Include="EngineShader\Postprocess\MotionBlur\reconstract_velocity_cs.hlsl">
+      <Filter>EngineShader\Postprocess\MotionBlur</Filter>
+    </None>
+    <None Include="EngineShader\Postprocess\ScreenSpaceReflection\screen_space_reflection.hlsli">
+      <Filter>EngineShader\Postprocess\ScreenSpaceReflection</Filter>
+    </None>
+    <None Include="EngineShader\Postprocess\ScreenSpaceReflection\screen_space_reflection_color_ps.hlsl">
+      <Filter>EngineShader\Postprocess\ScreenSpaceReflection</Filter>
+    </None>
+    <None Include="EngineShader\Postprocess\ScreenSpaceReflection\screen_space_reflection_composite_ps.hlsl">
+      <Filter>EngineShader\Postprocess\ScreenSpaceReflection</Filter>
+    </None>
+    <None Include="EngineShader\Postprocess\ScreenSpaceReflection\screen_space_reflection_denoise.hlsli">
+      <Filter>EngineShader\Postprocess\ScreenSpaceReflection</Filter>
+    </None>
+    <None Include="EngineShader\Postprocess\ScreenSpaceReflection\screen_space_reflection_denoise_cs.hlsl">
+      <Filter>EngineShader\Postprocess\ScreenSpaceReflection</Filter>
+    </None>
+    <None Include="EngineShader\Postprocess\ScreenSpaceReflection\screen_space_reflection_temporal_filtering_cs.hlsl">
+      <Filter>EngineShader\Postprocess\ScreenSpaceReflection</Filter>
+    </None>
+    <None Include="EngineShader\Postprocess\ScreenSpaceReflection\screen_space_reflection_uv_ps.hlsl">
+      <Filter>EngineShader\Postprocess\ScreenSpaceReflection</Filter>
+    </None>
+    <None Include="EngineShader\Postprocess\System\centering_copy_cs.hlsl">
+      <Filter>EngineShader\Postprocess\System</Filter>
+    </None>
+    <None Include="EngineShader\Postprocess\System\fast_fourier_transform_complex_multiply_cs.hlsl">
+      <Filter>EngineShader\Postprocess\System</Filter>
+    </None>
+    <None Include="EngineShader\Postprocess\System\fast_fourier_transform_cs.hlsl">
+      <Filter>EngineShader\Postprocess\System</Filter>
+    </None>
+    <None Include="EngineShader\Postprocess\System\fast_fourier_transform_gaussian_filter_cs.hlsl">
+      <Filter>EngineShader\Postprocess\System</Filter>
+    </None>
+    <None Include="EngineShader\Postprocess\System\resize_copy_cs.hlsl">
+      <Filter>EngineShader\Postprocess\System</Filter>
+    </None>
+    <None Include="EngineShader\Postprocess\ToneMapping\tone_mapping_cs.hlsl">
+      <Filter>EngineShader\Postprocess\ToneMapping</Filter>
+    </None>
+    <None Include="EngineShader\SkyBox\sky_box.hlsli">
+      <Filter>EngineShader\SkyBox</Filter>
+    </None>
+    <None Include="EngineShader\SkyBox\sky_box_forward_ps.hlsl">
+      <Filter>EngineShader\SkyBox</Filter>
+    </None>
+    <None Include="EngineShader\SkyBox\sky_box_gbuffer_ps.hlsl">
+      <Filter>EngineShader\SkyBox</Filter>
+    </None>
+    <None Include="EngineShader\SkyBox\sky_box_vs.hlsl">
+      <Filter>EngineShader\SkyBox</Filter>
+    </None>
+    <None Include="EngineShader\Sprite\sprite.hlsli">
+      <Filter>EngineShader\Sprite</Filter>
+    </None>
+    <None Include="EngineShader\Sprite\sprite_vertex.hlsli">
+      <Filter>EngineShader\Sprite</Filter>
+    </None>
+    <None Include="EngineShader\Sprite\sprite_vs.hlsl">
+      <Filter>EngineShader\Sprite</Filter>
+    </None>
+    <None Include="EngineShader\Surface\surface.hlsli">
+      <Filter>EngineShader\Surface</Filter>
+    </None>
+    <None Include="EngineShader\Surface\surface_depth_write_ps.hlsli">
+      <Filter>EngineShader\Surface</Filter>
+    </None>
+    <None Include="EngineShader\Surface\surface_forward_ps.hlsli">
+      <Filter>EngineShader\Surface</Filter>
+    </None>
+    <None Include="EngineShader\Surface\surface_gbuffer_ps.hlsli">
+      <Filter>EngineShader\Surface</Filter>
+    </None>
   </ItemGroup>
 </Project>

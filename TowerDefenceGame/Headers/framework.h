@@ -29,9 +29,14 @@ struct render_data_context;
 class world;
 class console_command;
 class world_renderer;
+class framework_process;
 
 class framework
 {
+	//	@tool プロセスは framework が持つ共通のサービスを使って段取りをする
+	friend class boot_process;
+	friend class game_process;
+
 public:
 	static constexpr const TCHAR* APPLICATION_NAME = _T("Sample Engine");
 
@@ -58,10 +63,18 @@ private:
 	bool create_collision_filters();
 
 private:
+	//	プロセスを切り替える
+	bool change_process(std::unique_ptr<framework_process> next);
+
+	//	今のプロセスが次のプロセスを返す間、切り替えを進める
+	bool advance_process();
+
+private:
 	CONST HWND hwnd;
 	std::shared_ptr<render_job_executor> render_executor;	//	描画ジョブ実行者
 	std::unique_ptr<world> main_world;	//	メインのワールド
 	std::unique_ptr<world_renderer> main_renderer;	//	メインのワールドの描画
+	std::unique_ptr<framework_process> current_process;	//	今のプロセス
 
 #if defined(USE_IMGUI)
 	std::unique_ptr<console_command> pause_command;

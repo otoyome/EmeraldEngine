@@ -549,17 +549,17 @@ deffered_lighting_renderer::deffered_lighting_renderer(render_job_registrar job_
 
 		static constexpr std::string_view vs_path_list[] =
 		{
-			"Shaders/FullscreenQuad/fullscreen_quad_vs.hlsl",
-			"Shaders/FullscreenQuad/fullscreen_quad_vs.hlsl",
-			"Shaders/FullscreenQuad/fullscreen_quad_vs.hlsl",
-			"Shaders/FullscreenQuad/fullscreen_quad_vs.hlsl",
+			"Engine/EngineShader/FullscreenQuad/fullscreen_quad_vs.hlsl",
+			"Engine/EngineShader/FullscreenQuad/fullscreen_quad_vs.hlsl",
+			"Engine/EngineShader/FullscreenQuad/fullscreen_quad_vs.hlsl",
+			"Engine/EngineShader/FullscreenQuad/fullscreen_quad_vs.hlsl",
 		};
 		static constexpr std::string_view ps_path_list[] =
 		{
-			"Shaders/DeferredRendering/deferred_rendering_indirect_ps.hlsl",
-			"Shaders/DeferredRendering/deferred_rendering_directional_ps.hlsl",
-			"Shaders/DeferredRendering/deferred_rendering_point_ps.hlsl",
-			"Shaders/DeferredRendering/deferred_rendering_spot_ps.hlsl",
+			"Engine/EngineShader/DeferredRendering/deferred_rendering_indirect_ps.hlsl",
+			"Engine/EngineShader/DeferredRendering/deferred_rendering_directional_ps.hlsl",
+			"Engine/EngineShader/DeferredRendering/deferred_rendering_point_ps.hlsl",
+			"Engine/EngineShader/DeferredRendering/deferred_rendering_spot_ps.hlsl",
 		};
 		static constexpr material_resource::system_paths system_paths_list[] =
 		{

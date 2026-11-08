@@ -110,29 +110,29 @@ namespace
 	//	コンピュートシェーダー
 	static constexpr std::string_view compute_shader_path[] =
 	{
-		"Shaders/ComputeParticle/System/compute_particle_clear_system_cs.hlsl",
-		"Shaders/ComputeParticle/System/compute_particle_clear_particles_cs.hlsl",
+		"Engine/EngineShader/ComputeParticle/System/compute_particle_clear_system_cs.hlsl",
+		"Engine/EngineShader/ComputeParticle/System/compute_particle_clear_particles_cs.hlsl",
 
-		"Shaders/ComputeParticle/System/compute_particle_begin_update_cs.hlsl",
-		"Shaders/ComputeParticle/System/compute_particle_fill_unused_index_cs.hlsl",
-		"Shaders/ComputeParticle/System/compute_particle_spawn_particles_cs.hlsl",
-		"Shaders/ComputeParticle/System/compute_particle_initialize_particles_cs.hlsl",
-		"Shaders/ComputeParticle/System/compute_particle_spawn_from_events_cs.hlsl",
+		"Engine/EngineShader/ComputeParticle/System/compute_particle_begin_update_cs.hlsl",
+		"Engine/EngineShader/ComputeParticle/System/compute_particle_fill_unused_index_cs.hlsl",
+		"Engine/EngineShader/ComputeParticle/System/compute_particle_spawn_particles_cs.hlsl",
+		"Engine/EngineShader/ComputeParticle/System/compute_particle_initialize_particles_cs.hlsl",
+		"Engine/EngineShader/ComputeParticle/System/compute_particle_spawn_from_events_cs.hlsl",
 
-		"Shaders/ComputeParticle/System/compute_particle_update_particles_cs.hlsl",
+		"Engine/EngineShader/ComputeParticle/System/compute_particle_update_particles_cs.hlsl",
 
-		"Shaders/ComputeParticle/System/compute_particle_bitonic_sort_b2_cs.hlsl",
-		"Shaders/ComputeParticle/System/compute_particle_bitonic_sort_c2_cs.hlsl",
+		"Engine/EngineShader/ComputeParticle/System/compute_particle_bitonic_sort_b2_cs.hlsl",
+		"Engine/EngineShader/ComputeParticle/System/compute_particle_bitonic_sort_c2_cs.hlsl",
 
-		"Shaders/ComputeParticle/System/compute_particle_range_particles_cs.hlsl",
-		"Shaders/ComputeParticle/System/compute_particle_terminate_particles_cs.hlsl",
-		"Shaders/ComputeParticle/System/compute_particle_build_emitter_draw_arguments_cs.hlsl",
+		"Engine/EngineShader/ComputeParticle/System/compute_particle_range_particles_cs.hlsl",
+		"Engine/EngineShader/ComputeParticle/System/compute_particle_terminate_particles_cs.hlsl",
+		"Engine/EngineShader/ComputeParticle/System/compute_particle_build_emitter_draw_arguments_cs.hlsl",
 
-		"Shaders/ComputeParticle/System/compute_particle_end_update_cs.hlsl",
+		"Engine/EngineShader/ComputeParticle/System/compute_particle_end_update_cs.hlsl",
 
-		"Shaders/ComputeParticle/System/compute_particle_build_primitive_cs.hlsl",
+		"Engine/EngineShader/ComputeParticle/System/compute_particle_build_primitive_cs.hlsl",
 
-		"Shaders/ComputeParticle/System/compute_particle_rebase_particles_cs.hlsl",
+		"Engine/EngineShader/ComputeParticle/System/compute_particle_rebase_particles_cs.hlsl",
 	};
 }
 
