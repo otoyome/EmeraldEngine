@@ -17,6 +17,7 @@
 #include "Editor/editor_host.h"
 #endif	//	defined(USE_IMGUI)
 #include "Editor/detail_profiler.h"
+#include "System/engine_config_data.h"
 
 framework::framework(app_window& window)
 : window(window)
@@ -59,13 +60,13 @@ int framework::run()
 {
 	MSG msg{};
 
-	//	ウィンドウ名設定
-	SetWindowTextW(hwnd, APPLICATION_NAME);
-
 	if (!initialize())
 	{
 		return uninitialize();
 	}
+
+	//	ウィンドウ名設定
+	SetWindowTextW(hwnd, engine_config_data::instance()->application.name.get<utf16_cache>().c_str());
 
 	while (WM_QUIT != msg.message)
 	{

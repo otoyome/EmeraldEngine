@@ -26,6 +26,12 @@ void serialize(Archive& archive, RECT& v)
 }
 
 template<class Archive>
+void engine_config_data::application_data::serialize(Archive& archive, int version)
+{
+	archive(CEREAL_NVP(name), CEREAL_NVP(splash_image_path));
+}
+
+template<class Archive>
 void engine_config_data::windows_data::serialize(Archive& archive, int version)
 {
 	archive(CEREAL_NVP(window_left), CEREAL_NVP(window_top), CEREAL_NVP(vertical_sync));
@@ -61,6 +67,14 @@ engine_config_data::engine_config_data()
 		try
 		{
 			archive(CEREAL_NVP(windows), CEREAL_NVP(antialias), CEREAL_NVP(rendering));
+
+			try
+			{
+				archive(CEREAL_NVP(application));
+			}
+			catch (...)
+			{
+			}
 		}
 		catch (...)
 		{
@@ -85,7 +99,7 @@ engine_config_data::~engine_config_data()
 
 		try
 		{
-			archive(CEREAL_NVP(windows), CEREAL_NVP(antialias), CEREAL_NVP(rendering));
+			archive(CEREAL_NVP(application), CEREAL_NVP(windows), CEREAL_NVP(antialias), CEREAL_NVP(rendering));
 		}
 		catch (...)
 		{

@@ -89,6 +89,15 @@ void engine_config_window::render_window(std::shared_ptr<editor_items::context>&
 {
 	if (ImGui::Begin("engine_config", &open))
 	{
+		//	アプリケーション
+		if (ImGui::TreeNode("application"))
+		{
+			ImGui::InputTextUtf8("name", engine_config_data::instance()->application.name);
+			ImGui::InputTextUtf8("splash_image_path", engine_config_data::instance()->application.splash_image_path);
+			ImGui::TextDisabled("restart to apply");
+			ImGui::TreePop();
+		}
+
 		//	垂直同期
 		ImGui::Checkbox("vertical_sync", &engine_config_data::instance()->windows.vertical_sync);
 

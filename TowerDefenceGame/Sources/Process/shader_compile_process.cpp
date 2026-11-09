@@ -6,6 +6,7 @@
 
 #include "Graphics/global_shader.h"
 #include "Material/material_shader_map.h"
+#include "System/engine_config_data.h"
 
 namespace
 {
@@ -18,9 +19,6 @@ namespace
 		material_shader_map::domains::user_interface,
 		material_shader_map::domains::particle,
 	};
-
-	//	スプラッシュウィンドウの画像
-	constexpr const wchar_t* splash_image_path = L"Assets/Resources/Textures/splash_window/splash.png";
 
 	//	進捗のうちグローバルシェーダーが占める割合(残りはマテリアル)
 	constexpr float global_shader_progress_rate = 0.9f;
@@ -37,7 +35,8 @@ bool shader_compile_process::enter()
 	start_time = std::chrono::steady_clock::now();
 
 	//	スプラッシュウィンドウ
-	splash.show(GetModuleHandleW(nullptr), splash_image_path);
+	const std::wstring& splash_image_path = engine_config_data::instance()->application.splash_image_path.get<utf16_cache>();
+	splash.show(GetModuleHandleW(nullptr), splash_image_path.c_str());
 	splash.set_text(L"シェーダーをコンパイルしています");
 
 	//	作成は別スレッドで行う

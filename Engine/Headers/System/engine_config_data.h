@@ -1,6 +1,7 @@
 #pragma	once
 
 #include <chrono>
+#include <string>
 
 #include "Graphics/color_space.h"
 
@@ -10,6 +11,16 @@ struct engine_config_data
 	SINGLETON(engine_config_data)
 
 public:
+	//	アプリケーションの情報
+	struct application_data
+	{
+		cache_string name = "Sample Engine";	//	アプリケーションの名前
+		cache_string splash_image_path = "Assets/Resources/Textures/splash_window/splash.png";	//	起動時のスプラッシュ画像
+
+		template<class Archive>
+		void serialize(Archive& archive, int version);
+	} application;
+
 	//	ウィンドウズ関係の情報
 	struct windows_data
 	{
@@ -45,7 +56,7 @@ public:
 		bool camera_relative_rendering = false;
 
 		//	描画色域
-		color_space::gamuts rendering_gamut = color_space::gamuts::rec709;
+		color_space::gamuts rendering_gamut = color_space::gamuts::rec2020;
 
 		template<class Archive>
 		void serialize(Archive& archive, int version);
