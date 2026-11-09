@@ -86,10 +86,22 @@ void editor_camera_object::debug_update(float elapsed_time)
 	if (accepts_input && input::get_key_state(mouse::key_states::left) != input::state::none)
 	{
 		//	À•Wî•ñ‚ð‘—‚é
-		auto mouse_state = mouse::instance()->get_state();
 		mouse_position_data data;
-		data.position.x = static_cast<float>(mouse_state.position.position.x);
-		data.position.y = static_cast<float>(mouse_state.position.position.y);
+		if (context.is_embedded())
+		{
+			//	‰f‚µ‚Ä‚¢‚é‰æ‘œ‚Ì’†‚ÌÀ•W‚É‚·‚é
+			const math::float4& rect = context.get_viewport_rect();
+			const ImVec2 mouse_position = ImGui::GetIO().MousePos;
+			data.position.x = mouse_position.x - rect.x;
+			data.position.y = mouse_position.y - rect.y;
+			data.viewport_size = { rect.z, rect.w };
+		}
+		else
+		{
+			auto mouse_state = mouse::instance()->get_state();
+			data.position.x = static_cast<float>(mouse_state.position.position.x);
+			data.position.y = static_cast<float>(mouse_state.position.position.y);
+		}
 		messenger& target = get_context().get_objects().get_messenger();
 		if (input::get_key_state(mouse::key_states::left) == input::state::down)
 			target.send_data(left_click_down_identifier, &data);

@@ -10,8 +10,8 @@
 
 namespace
 {
-	constexpr std::string_view BgmSoundPath = "Assets/Resources/Sounds/minigame_result_bgm.wav";
-	constexpr std::string_view DecideSoundPath = "Assets/Resources/Sounds/ui_decide.wav";
+	constexpr std::string_view BgmSoundPath = "Assets/Resources/Sounds/RawFiles/minigame_result_bgm.wav";
+	constexpr std::string_view DecideSoundPath = "Assets/Resources/Sounds/RawFiles/ui_decide.wav";
 
 	//	リザルト背景配置位置
 	static constexpr math::float2 result_back_position = { 0, 0 };

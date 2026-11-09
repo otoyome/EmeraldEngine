@@ -20,14 +20,14 @@ namespace
 	constexpr math::float3 dead_impulse = system_units::convert_m_to_unit(math::float3(0.0f, 10.0f, 0.0f));
 
 	//	サウンド
-	constexpr std::string_view accelerate_sound_path = "Assets/Resources/Sounds/roomba_accelerate.wav";
-	constexpr std::string_view slide_sound_path = "Assets/Resources/Sounds/roomba_brake.wav";
-	constexpr std::string_view explosion_sound_path = "Assets/Resources/Sounds/roomba_explosion.wav";
-	constexpr std::string_view wet_sound_path = "Assets/Resources/Sounds/roomba_wet.wav";
-	constexpr std::string_view trash_sound_path = "Assets/Resources/Sounds/roomba_trash.wav";
-	constexpr std::string_view landing_sound_path = "Assets/Resources/Sounds/roomba_landing.wav";
-	constexpr std::string_view hydroplane_sound_path = "Assets/Resources/Sounds/roomba_hydroplane.wav";
-	constexpr std::string_view braking_sound_path = "Assets/Resources/Sounds/roomba_braking.wav";
+	constexpr std::string_view accelerate_sound_path = "Assets/Resources/Sounds/RawFiles/roomba_accelerate.wav";
+	constexpr std::string_view slide_sound_path = "Assets/Resources/Sounds/RawFiles/roomba_brake.wav";
+	constexpr std::string_view explosion_sound_path = "Assets/Resources/Sounds/RawFiles/roomba_explosion.wav";
+	constexpr std::string_view wet_sound_path = "Assets/Resources/Sounds/RawFiles/roomba_wet.wav";
+	constexpr std::string_view trash_sound_path = "Assets/Resources/Sounds/RawFiles/roomba_trash.wav";
+	constexpr std::string_view landing_sound_path = "Assets/Resources/Sounds/RawFiles/roomba_landing.wav";
+	constexpr std::string_view hydroplane_sound_path = "Assets/Resources/Sounds/RawFiles/roomba_hydroplane.wav";
+	constexpr std::string_view braking_sound_path = "Assets/Resources/Sounds/RawFiles/roomba_braking.wav";
 	constexpr float slide_sound_min_speed = 5.0f;	//	横滑り音を鳴らす最低の横方向速度(m/s)
 	constexpr float slide_sound_max_speed = 15.0f;	//	横滑り音が最大音量になる横方向速度(m/s)
 	constexpr float slide_sound_min_slip_rate = 0.34f;	//	横滑り音を鳴らす最低の横滑り率（横方向速度/速さ）

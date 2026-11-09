@@ -4,9 +4,9 @@
 
 namespace
 {
-	constexpr std::string_view CountdownSoundPath = "Assets/Resources/Sounds/minigame_countdown.wav";
-	constexpr std::string_view StartSoundPath = "Assets/Resources/Sounds/minigame_start.wav";
-	constexpr std::string_view FinishSoundPath = "Assets/Resources/Sounds/minigame_finish.wav";
+	constexpr std::string_view CountdownSoundPath = "Assets/Resources/Sounds/RawFiles/minigame_countdown.wav";
+	constexpr std::string_view StartSoundPath = "Assets/Resources/Sounds/RawFiles/minigame_start.wav";
+	constexpr std::string_view FinishSoundPath = "Assets/Resources/Sounds/RawFiles/minigame_finish.wav";
 }
 
 countdown_controller_object::countdown_controller_object(const object_descs& object_desc)

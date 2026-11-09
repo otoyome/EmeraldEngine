@@ -1,4 +1,5 @@
 #include "scenes/editscene/edit_model_scene.h"
+#include "Object/engine_context.h"
 #include "Texture/texture_resource_utility.h"
 #include "System/asset_browser.h"
 #include "Resource/resource_manager.h"
@@ -163,7 +164,7 @@ void edit_model_scene::update_core(float elapsed_time)
 	if (load_model_path.empty())
 	{
 		std::string file_path;
-		if (asset_browser::is_valid() && asset_browser::instance()->take_open_request(type_name(), file_path))
+		if (get_context().take_open_file(file_path))
 		{
 			load_model_path = file_path;
 			is_edit_vertex_color = false;
@@ -202,7 +203,8 @@ void edit_model_scene::update_core(float elapsed_time)
 				}
 				case convert_option_data::kinds::emo:
 				{
-					is_load = model_resource_manager::instance()->load(resource, load_model_path);
+					resource = resource_manager::instance()->load_uncached<model_resource>(load_model_path);
+					is_load = resource != nullptr;
 					break;
 				}
 			}

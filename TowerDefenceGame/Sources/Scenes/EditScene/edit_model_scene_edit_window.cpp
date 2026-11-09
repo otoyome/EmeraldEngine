@@ -1,4 +1,5 @@
 #include "scenes/editscene/edit_model_scene.h"
+#include "Object/engine_context.h"
 
 #include "Model/model_instance.h"
 #include "Graphics/camera.h"
@@ -95,7 +96,7 @@ void edit_model_scene::imgui_render_edit_core()
 
 void edit_model_scene::imgui_render_mesh_list()
 {
-	if (ImGui::Begin("Mesh List Window"))
+	if (ImGui::Begin(get_context().make_window_name("Mesh List Window").c_str()))
 	{
 		int push_id = 0xF0D37cfc;
 		for (auto& mesh : edit_model_meshes)
@@ -123,7 +124,7 @@ void edit_model_scene::imgui_render_morph()
 	if (!edit_model)
 		return;
 
-	if (ImGui::Begin("Morph Window"))
+	if (ImGui::Begin(get_context().make_window_name("Morph Window").c_str()))
 	{
 		int edeit_id = 0x0FF1F38F;
 		auto& morphs = edit_model->get_model_instance()->get_resource()->get_morphes_for_editor();
@@ -226,7 +227,7 @@ void edit_model_scene::imgui_render_morph()
 
 void edit_model_scene::imgui_render_material_window()
 {
-	if (ImGui::Begin("Material Window"))
+	if (ImGui::Begin(get_context().make_window_name("Material Window").c_str()))
 	{
 		auto& model_instance = *edit_model->get_model_instance();
 		auto& materials = model_instance.get_resource_for_editor()->get_materials_for_editor();
@@ -267,7 +268,7 @@ void edit_model_scene::imgui_model_loader_window()
 		else if (extension == std::filesystem::path(".gltf") || extension == std::filesystem::path(".glb"))
 		{
 			bool show_flag = !load_model_path.empty();
-			if (ImGui::Begin("Convert Gltf Data", &show_flag))
+			if (ImGui::Begin(get_context().make_window_name("Convert Gltf Data").c_str(), &show_flag))
 			{
 				ImGui::Checkbox("compute_tangent", &convert_option_data.gltf.is_compute_tangent);
 				ImGui::Checkbox("populate_vertex_color", &convert_option_data.gltf.is_populate_vertex_color);
@@ -531,7 +532,7 @@ void edit_model_scene::update_vertex_color_edit()
 
 void edit_model_scene::imgui_render_vertex_color_edit()
 {
-	if (ImGui::Begin("Edit Vertex Color Window"))
+	if (ImGui::Begin(get_context().make_window_name("Edit Vertex Color Window").c_str()))
 	{
 		if (ImGui::Button("Edit Vertex Color Mode"))
 		{
@@ -570,7 +571,7 @@ void edit_model_scene::on_mouse_left_down_and_hold(void* data_ptr)
 	const scene_view picking_view = scene_view::from_parameters(parameters, math::vector3d::zero());
 	const math::matrixf view(picking_view.get_view_matrix());
 	const math::matrixf projection(picking_view.get_projection_matrix());
-	const math::matrixf viewport = math::matrixf::viewport(0, static_cast<float>(SCREEN_WIDTH), 0, static_cast<float>(SCREEN_HEIGHT), 0, 1);
+	const math::matrixf viewport = math::matrixf::viewport(0, data->viewport_size.x, 0, data->viewport_size.y, 0, 1);
 
 	const math::float3 start_position = math::vector3f::calc_screen_to_world(data->position.x, data->position.y, 0, view, projection, viewport).to_float3();
 	const math::float3 end_position = math::vector3f::calc_screen_to_world(data->position.x, data->position.y, 1, view, projection, viewport).to_float3();

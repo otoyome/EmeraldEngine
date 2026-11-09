@@ -296,10 +296,8 @@ void editor_host::imgui_initialize()
 
 void editor_host::register_asset_open_handlers(scene_manager& scenes)
 {
-	register_asset_open_handler<edit_model_scene>(scenes, "Model Editor", { ".emo", ".pmx", ".gltf", ".glb" });
 	register_asset_open_handler<edit_particle_scene>(scenes, "Particle Editor", { ".eme" });
 	register_asset_open_handler<edit_timeline_scene>(scenes, "Timeline Editor", { ".etl" });
-	register_asset_open_handler<edit_material_scene>(scenes, "Material Editor", { ".emo", ".eme", ".emr" });
 }
 
 void editor_host::imgui_terminate()

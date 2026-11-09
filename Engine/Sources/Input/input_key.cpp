@@ -3,7 +3,6 @@
 namespace
 {
 #if defined(USE_IMGUI)
-	//	@tool マウスを渡すと決めた ImGui のフレーム番号
 	int mouse_pass_through_frame = -2;
 #endif	//	defined(USE_IMGUI)
 

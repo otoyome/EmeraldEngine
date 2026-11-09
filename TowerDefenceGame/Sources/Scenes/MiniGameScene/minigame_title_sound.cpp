@@ -7,7 +7,7 @@
 namespace
 {
 	//	ƒTƒEƒ“ƒh
-	constexpr std::string_view bank_path = "Assets/Resources/Sounds/Banks/minigame_title.esb";
+	constexpr std::string_view bank_path = "Assets/Resources/Sounds/minigame_title.esb";
 	constexpr audio::sound_cue bgm{ "minigame_title.bgm" };
 }
 

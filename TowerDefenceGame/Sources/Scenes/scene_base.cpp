@@ -164,7 +164,7 @@ bool scene_manager::valid_scene(std::string_view scene_name)
 #if defined(USE_IMGUI)
 void scene_manager::imgui_render()
 {
-	if (ImGui::Begin("scenes"))
+	if (ImGui::Begin(context.make_window_name("scenes").c_str()))
 	{
 		for (auto& scene : scenes)
 		{

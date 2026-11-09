@@ -142,6 +142,28 @@ public:
 		return loader.revert(target);
 	}
 
+	//	キャッシュに載せずに読み込む
+	template<class Type, class Loader = resource::loader<Type>>
+	std::shared_ptr<Type> load_uncached(std::string_view file_path)
+	{
+		static_assert(std::is_base_of_v<resource::resource_base, Type>, "Type must derive from resource::resource_base");
+		if (!is_main_thread() || file_path.empty())
+			return nullptr;
+
+		Loader loader;
+		if (loader.load(file_path) != resource::operation_state::success)
+			return nullptr;
+		for (auto& dependency : loader.get_dependencies())
+			wait(*dependency);
+		if (loader.build() != resource::operation_state::success)
+			return nullptr;
+
+		auto value = std::static_pointer_cast<Type>(loader.get_resource());
+		if (value)
+			assign_file_path<Type>(value.get(), file_path);
+		return value;
+	}
+
 public:
 	//	読込済みリソースの検索
 	template<class Type>

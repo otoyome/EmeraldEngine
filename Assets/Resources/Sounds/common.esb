@@ -4,7 +4,7 @@
             "cereal_class_version": 1,
             "name": "common.decide",
             "files": [
-                "Assets/Resources/Sounds/ui_decide.wav"
+                "Assets/Resources/Sounds/RawFiles/ui_decide.wav"
             ],
             "bus": "ui",
             "volume": 1.0,

@@ -43,7 +43,7 @@ namespace
 	constexpr int WetDamage = 400;
 
 	//	サウンド
-	constexpr std::string_view BgmSoundPath = "Assets/Resources/Sounds/minigame_bgm.wav";
+	constexpr std::string_view BgmSoundPath = "Assets/Resources/Sounds/RawFiles/minigame_bgm.wav";
 
 	//	各種名前
 	constexpr std::string_view RoombaObjectName = "ルンバ 制御";

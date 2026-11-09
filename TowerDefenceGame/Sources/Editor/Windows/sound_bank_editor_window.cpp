@@ -11,7 +11,7 @@
 
 namespace
 {
-	constexpr std::string_view sound_directory = "Assets/Resources/Sounds";
+	constexpr std::string_view sound_directory = "Assets/Resources/Sounds/RawFiles";
 
 	//	指定ディレクトリ直下の、指定拡張子のファイルを「/」区切りの相対パスで集める
 	std::vector<std::string> collect_files(std::string_view directory, std::initializer_list<std::string_view> extensions)

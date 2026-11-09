@@ -131,6 +131,7 @@ void asset_preview_process::imgui_render()
 		ImGui::InvisibleButton("##view", image_size, ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonRight);
 		const bool hovered = ImGui::IsItemHovered() || ImGui::IsItemActive();
 		preview_world->get_context().set_viewport_hovered(hovered);
+		preview_world->get_context().set_viewport_rect({ image_position.x, image_position.y, image_size.x, image_size.y });
 		if (hovered)
 			input::pass_mouse_through_ui();
 	}

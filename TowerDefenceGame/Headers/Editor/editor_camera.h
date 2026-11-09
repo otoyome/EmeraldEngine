@@ -16,6 +16,7 @@ public:
 	struct mouse_position_data
 	{
 		math::float2 position;
+		math::float2 viewport_size = { static_cast<float>(SCREEN_WIDTH), static_cast<float>(SCREEN_HEIGHT) };
 	};
 
 public:

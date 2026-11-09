@@ -174,10 +174,7 @@ void edit_material_scene::update_core(float elapsed_time)
 	{
 		//	窓に映しているワールドではアセットプレビューから渡されたファイルを開く
 		std::string file_path;
-		const bool requested = get_context().is_embedded()
-			? get_context().take_open_file(file_path)
-			: asset_browser::is_valid() && asset_browser::instance()->take_open_request(type_name(), file_path);
-		if (requested)
+		if (get_context().take_open_file(file_path))
 			open_source(file_path, false);
 	}
 

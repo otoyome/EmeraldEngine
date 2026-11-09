@@ -39,7 +39,7 @@ namespace input
 	float get_key_value(key k, size_t pad_index = 0);
 
 #if defined(USE_IMGUI)
-	//	@tool このフレームは ImGui の上でもマウスをゲームへ渡す(ワールドを映した画像の上にいる時に呼ぶ。次のフレームまで有効)
+	//	マウスの入力を他のImGuiウィンドウに渡すための回避コード
 	void pass_mouse_through_ui();
 #endif	//	defined(USE_IMGUI)
 }

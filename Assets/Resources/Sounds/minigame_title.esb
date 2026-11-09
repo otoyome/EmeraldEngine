@@ -4,7 +4,7 @@
             "cereal_class_version": 1,
             "name": "minigame_title.bgm",
             "files": [
-                "Assets/Resources/Sounds/minigame_title_bgm.wav"
+                "Assets/Resources/Sounds/RawFiles/minigame_title_bgm.wav"
             ],
             "bus": "bgm",
             "volume": 1.0,

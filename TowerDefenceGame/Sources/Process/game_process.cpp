@@ -1,6 +1,7 @@
 #include "Process/game_process.h"
 #include "Process/asset_preview_process.h"
 #include "scenes/editscene/edit_material_scene.h"
+#include "scenes/editscene/edit_model_scene.h"
 #include "framework.h"
 #include "Texture/texture_factory.h"
 #include "Graphics/render_data.h"
@@ -119,7 +120,23 @@ bool game_process::enter()
 			self.editor->register_asset_open_handlers(main_world->get_scenes());
 
 
-		//	@tool マテリアルを別の窓で編集する(アセットプレビューにマテリアル編集のシーンを載せる。右クリックの開き先から選ぶ)
+		//	モデルエディター
+		if (asset_browser::is_valid())
+		{
+			asset_browser::open_handler handler;
+			handler.name = "model_editor_window";
+			handler.label = "Model Editor (Window)";
+			handler.extensions = { ".emo", ".pmx", ".gltf", ".glb" };
+			handler.open_file = [&self](const cache_string& file_path)
+			{
+				if (!self.has_process(asset_preview_process::make_key("model_editor", file_path)))
+					self.request_process(std::make_unique<asset_preview_process>(self, file_path, "model_editor",
+						[](scene_manager& scenes) { scenes.change_scene<edit_model_scene>(); }));
+			};
+			asset_browser::instance()->register_open_handler(std::move(handler));
+		}
+
+		//	マテリアルエディター
 		if (asset_browser::is_valid())
 		{
 			asset_browser::open_handler handler;
