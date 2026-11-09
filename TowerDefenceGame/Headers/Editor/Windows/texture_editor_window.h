@@ -5,30 +5,27 @@
 #include <string_view>
 #include <vector>
 
+#include "Editor/editor_items.h"
 #include "Texture/texture_resource.h"
 
-//	テクスチャリソースの編集画面
-class texture_editor
+//	テクスチャリソース編集ウィンドウ
+class texture_editor_window : public editor_items::ibase_editor
 {
-	SINGLETON(texture_editor)
-
 public:
-	//	アセットブラウザの開き先の名前
-	static constexpr std::string_view open_handler_name = "texture_editor";
-
-public:
-	texture_editor();
-	~texture_editor();
+	explicit texture_editor_window(std::string_view file_path);
+	~texture_editor_window() override;
 
 	//	アセットブラウザの開き先に登録する
-	void register_open_handler();
+	static void register_open_handler(std::shared_ptr<editor_items::context> context);
 
-	//	編集するテクスチャリソースを開く
-	bool open(std::string_view file_path);
-
-	void imgui_render();
+	std::string get_label() const override;
+	void render_window(std::shared_ptr<editor_items::context>& context, bool& open) override;
+	void on_file_moved(std::string_view new_file_path) override;
 
 private:
+	//	編集するテクスチャリソースを開く
+	bool load();
+
 	void imgui_render_preview();
 	void imgui_render_settings();
 	void imgui_render_sampler();
@@ -43,11 +40,10 @@ private:
 	void retire_current_texture();
 
 private:
+	std::string file_path;
 	texture_resource_ptr target;
 	texture_import_settings editing;
 	std::string source_path_utf8;
-	bool visible = false;
-	bool focus = false;
 
 	std::vector<texture_ptr> retired_textures;
 };

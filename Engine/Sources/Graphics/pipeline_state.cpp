@@ -463,6 +463,7 @@ void pipeline_state_base::on_updates(const shader_base* shader_base)
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 bool pipeline_state_manager::register_pipeline_state(const graphics_pipeline_state_ptr& pipeline_state)
 {
+	std::lock_guard<std::mutex> lock(mutex);
 	std::string key_name = std::string(pipeline_state->get_name());
 	auto it = graphics_pipeline_state_map.find(key_name);
 	if (it != graphics_pipeline_state_map.end())
@@ -476,6 +477,7 @@ bool pipeline_state_manager::register_pipeline_state(const graphics_pipeline_sta
 
 graphics_pipeline_state_ptr	pipeline_state_manager::search(std::string_view key)
 {
+	std::lock_guard<std::mutex> lock(mutex);
 	std::string key_name = std::string(key);
 	auto it = graphics_pipeline_state_map.find(key_name);
 	if (it != graphics_pipeline_state_map.end())
@@ -488,6 +490,7 @@ graphics_pipeline_state_ptr	pipeline_state_manager::search(std::string_view key)
 
 void pipeline_state_manager::rebuild_pipeline_bindings()
 {
+	std::lock_guard<std::mutex> lock(mutex);
 	for (auto& it : graphics_pipeline_state_map)
 	{
 		it.second->rebuild_bindings();
@@ -496,6 +499,7 @@ void pipeline_state_manager::rebuild_pipeline_bindings()
 
 std::vector<graphics_pipeline_state_ptr> pipeline_state_manager::get_domain_lists(pipeline_state_base::domains domain)
 {
+	std::lock_guard<std::mutex> lock(mutex);
 	std::vector<graphics_pipeline_state_ptr> lists;
 	for (const auto& it : graphics_pipeline_state_map)
 	{

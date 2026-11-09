@@ -287,6 +287,7 @@ material_shader_map::~material_shader_map()
 
 const material_shader_map::declaration* material_shader_map::find_declaration(std::string_view shader_path, domains domain)
 {
+	std::lock_guard<std::recursive_mutex> lock(mutex);
 	entry* target = find_entry(shader_path, domain);
 	return target ? &target->shader_declaration : nullptr;
 }
@@ -513,6 +514,7 @@ std::string material_shader_map::generate_source(const entry& target, bool inclu
 
 graphics_pipeline_state_ptr material_shader_map::get_pipeline_state(const request& request)
 {
+	std::lock_guard<std::recursive_mutex> lock(mutex);
 	entry* target = find_entry(request.shader_path, request.domain);
 	if (!target || !target->shader_declaration.is_valid())
 		return nullptr;
@@ -580,6 +582,7 @@ graphics_pipeline_state_ptr material_shader_map::get_pipeline_state(const reques
 
 graphics_pipeline_state_ptr material_shader_map::get_failed_pipeline_state(domains domain, UINT pass)
 {
+	std::lock_guard<std::recursive_mutex> lock(mutex);
 	request failed_request;
 	failed_request.shader_path = get_failed_shader_path(domain);
 	failed_request.domain = domain;
@@ -590,6 +593,7 @@ graphics_pipeline_state_ptr material_shader_map::get_failed_pipeline_state(domai
 
 void material_shader_map::get_parameter_pipeline_states(std::string_view shader_path, domains domain, std::vector<graphics_pipeline_state_ptr>& out)
 {
+	std::lock_guard<std::recursive_mutex> lock(mutex);
 	entry* target = find_entry(shader_path, domain);
 	if (!target || !target->shader_declaration.is_valid())
 		return;

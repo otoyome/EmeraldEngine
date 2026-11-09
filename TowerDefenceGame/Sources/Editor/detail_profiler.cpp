@@ -419,10 +419,10 @@ float detail_profiler::get_value(const history& data) const
 	}
 }
 
-void detail_profiler::imgui_render()
+void detail_profiler::imgui_render(bool& open)
 {
 	ImGui::SetNextWindowSize(ImVec2(960.0f, 640.0f), ImGuiCond_FirstUseEver);
-	if (!ImGui::Begin("detail_profiler"))
+	if (!ImGui::Begin("detail_profiler", &open))
 	{
 		ImGui::End();
 		return;

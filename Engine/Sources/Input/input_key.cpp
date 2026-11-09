@@ -11,6 +11,15 @@ namespace
 #endif
 	}
 
+	bool is_mouse_blocked()
+	{
+#if defined(USE_IMGUI)
+		return ImGui::GetCurrentContext() && ImGui::GetIO().WantCaptureMouse;
+#else
+		return false;
+#endif
+	}
+
 	const gamepad::states* find_gamepad_state(size_t pad_index)
 	{
 		if (!gamepad::is_valid() || pad_index >= gamepad::max_count)
@@ -31,11 +40,11 @@ namespace input
 			}
 			case devices::mouse:
 			{
-				return mouse::is_valid() ? mouse::instance()->get_state().is_key_state(static_cast<mouse::key_states>(k.code)) : state::none;
+				return mouse::is_valid() && !is_mouse_blocked() ? mouse::instance()->get_state().is_key_state(static_cast<mouse::key_states>(k.code)) : state::none;
 			}
 			case devices::mouse_axis:
 			{
-				return mouse::is_valid() ? mouse::instance()->get_axis_state(static_cast<mouse::axis_states>(k.code)) : state::none;
+				return mouse::is_valid() && !is_mouse_blocked() ? mouse::instance()->get_axis_state(static_cast<mouse::axis_states>(k.code)) : state::none;
 			}
 			case devices::gamepad:
 			{
@@ -57,7 +66,7 @@ namespace input
 		{
 			case devices::mouse_axis:
 			{
-				return mouse::is_valid() ? mouse::instance()->get_axis(static_cast<mouse::axis_states>(k.code)) : 0.0f;
+				return mouse::is_valid() && !is_mouse_blocked() ? mouse::instance()->get_axis(static_cast<mouse::axis_states>(k.code)) : 0.0f;
 			}
 			case devices::gamepad_axis:
 			{

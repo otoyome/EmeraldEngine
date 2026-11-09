@@ -1,8 +1,10 @@
 #pragma once
 
+#include <atomic>
 #include <filesystem>
 #include <map>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <tuple>
 #include <unordered_map>
@@ -140,5 +142,6 @@ private:
 
 private:
 	std::unordered_map<std::string, std::unique_ptr<entry>> entries;
-	std::uint32_t version = 0;
+	std::atomic<std::uint32_t> version = 0;
+	std::recursive_mutex mutex;
 };

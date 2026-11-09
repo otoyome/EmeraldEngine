@@ -162,6 +162,16 @@ void asset_browser::register_create_handler(create_handler handler)
 	create_handlers.emplace_back(std::move(handler));
 }
 
+void asset_browser::register_delete_validator(delete_validator validator)
+{
+	delete_validators.emplace_back(std::move(validator));
+}
+
+void asset_browser::register_path_listener(path_listener listener)
+{
+	path_listeners.emplace_back(std::move(listener));
+}
+
 bool asset_browser::take_open_request(std::string_view name, std::string& out_file_path)
 {
 	auto it = open_requests.find(name);
@@ -194,6 +204,12 @@ bool asset_browser::open_asset(const universally_unique_identifier& uuid)
 
 void asset_browser::request_open(const open_handler& handler, const cache_string& file_path)
 {
+	if (handler.open_file)
+	{
+		handler.open_file(file_path);
+		return;
+	}
+
 	const universally_unique_identifier uuid = asset_registry::is_valid() ? asset_registry::instance()->find_uuid(file_path.view()) : universally_unique_identifier{};
 	open_requests.insert_or_assign(handler.name.str(), open_request{ uuid, file_path.str() });
 	if (handler.activate)
@@ -398,10 +414,10 @@ void asset_browser::load_thumbnail(entry& target)
 	target.thumbnail = loaded;
 }
 
-void asset_browser::imgui_render()
+void asset_browser::imgui_render(bool& open)
 {
 	ImGui::SetNextWindowSize(ImVec2(1200.0f, 700.0f), ImGuiCond_FirstUseEver);
-	if (ImGui::Begin("Asset Browser"))
+	if (ImGui::Begin("Asset Browser", &open))
 	{
 		if (ImGui::IsWindowHovered(ImGuiHoveredFlags_RootAndChildWindows))
 		{
@@ -447,6 +463,7 @@ void asset_browser::imgui_render()
 
 		imgui_render_rename_popup();
 		imgui_render_create_popup();
+		imgui_render_delete_popup();
 	}
 	ImGui::End();
 
@@ -466,6 +483,12 @@ void asset_browser::imgui_render()
 	{
 		duplicate_entry(*pending_duplicate);
 		pending_duplicate.reset();
+	}
+
+	if (pending_delete)
+	{
+		delete_entry(*pending_delete);
+		pending_delete.reset();
 	}
 
 	if (pending_refresh)
@@ -771,6 +794,23 @@ void asset_browser::imgui_render_entry_context_menu(const entry& target)
 		open_rename_popup = true;
 	}
 
+	if (ImGui::MenuItem("Delete"))
+	{
+		//	ämîFÇÃëOÇ…çÌèúÇ≈Ç´ÇÈÇ©Çí≤Ç◊ÇƒÇ®Ç≠
+		delete_path = target.path;
+		delete_reasons.clear();
+		for (const cache_string& file_path : collect_delete_files(target.path))
+		{
+			for (auto& validator : delete_validators)
+			{
+				std::string reason;
+				if (!validator(file_path.view(), reason))
+					delete_reasons.emplace_back(file_path.get<utf8_cache>() + " : " + reason);
+			}
+		}
+		open_delete_popup = true;
+	}
+
 	if (ImGui::MenuItem("Copy Path"))
 		ImGui::SetClipboardText(target.path.get<utf8_cache>().c_str());
 
@@ -910,6 +950,44 @@ void asset_browser::imgui_render_create_popup()
 	ImGui::EndPopup();
 }
 
+void asset_browser::imgui_render_delete_popup()
+{
+	constexpr const char* popup_name = "Delete##asset_browser";
+	if (open_delete_popup)
+	{
+		ImGui::OpenPopup(popup_name);
+		open_delete_popup = false;
+	}
+
+	if (!ImGui::BeginPopupModal(popup_name, nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+		return;
+
+	ImGui::TextUnformatted(delete_path.get<utf8_cache>().c_str());
+	if (delete_reasons.empty())
+	{
+		ImGui::TextUnformatted("Move to the Recycle Bin?");
+	}
+	else
+	{
+		ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.4f, 1.0f), "Cannot delete");
+		for (const std::string& reason : delete_reasons)
+			ImGui::BulletText("%s", reason.c_str());
+	}
+
+	ImGui::BeginDisabled(!delete_reasons.empty());
+	if (ImGui::Button("Delete"))
+	{
+		pending_delete = delete_path;
+		ImGui::CloseCurrentPopup();
+	}
+	ImGui::EndDisabled();
+	ImGui::SameLine();
+	if (ImGui::Button("Cancel") || ImGui::IsKeyPressed(ImGuiKey_Escape))
+		ImGui::CloseCurrentPopup();
+
+	ImGui::EndPopup();
+}
+
 void asset_browser::accept_move_drop(const cache_string& directory)
 {
 	if (!ImGui::BeginDragDropTarget())
@@ -957,6 +1035,11 @@ bool asset_browser::move_entry(const cache_string& source_path, const cache_stri
 		asset_registry::instance()->move_path(source_path, destination_path);
 	if (resource_manager::is_valid())
 		resource_manager::instance()->move_path(source_path, destination_path);
+	for (auto& listener : path_listeners)
+	{
+		if (listener.moved)
+			listener.moved(source_path.view(), destination_path.view());
+	}
 
 	DEBUG_LOG_CATEGORY(logger::categorys::system, "asset_browser moved[%s] -> [%s]", source_path.c_str(), destination_path.c_str());
 
@@ -1038,6 +1121,67 @@ bool asset_browser::duplicate_entry(const cache_string& source_path)
 
 	DEBUG_LOG_CATEGORY(logger::categorys::system, "asset_browser duplicated[%s] -> [%s]", source_path.c_str(), destination_path.c_str());
 	selected_path = destination_path;
+	pending_refresh = true;
+	return true;
+}
+
+std::vector<cache_string> asset_browser::collect_delete_files(const cache_string& path) const
+{
+	std::vector<cache_string> files;
+	const std::filesystem::path base = to_filesystem_path(path);
+	std::error_code error;
+	if (!std::filesystem::is_directory(base, error))
+	{
+		files.emplace_back(path);
+		return files;
+	}
+
+	std::filesystem::recursive_directory_iterator it(base, error);
+	for (; !error && it != std::filesystem::recursive_directory_iterator(); it.increment(error))
+	{
+		std::error_code type_error;
+		if (!it->is_regular_file(type_error))
+			continue;
+
+		const cache_string relative(it->path().lexically_relative(base).generic_wstring());
+		files.emplace_back(path.str() + "/" + relative.str());
+	}
+	return files;
+}
+
+bool asset_browser::delete_entry(const cache_string& path)
+{
+	const std::vector<cache_string> files = collect_delete_files(path);
+
+	//	Ç≤Ç›î†Ç÷à⁄Ç∑
+	std::error_code error;
+	std::wstring from = std::filesystem::absolute(to_filesystem_path(path), error).make_preferred().wstring();
+	from.push_back(L'\0');
+
+	SHFILEOPSTRUCTW operation{};
+	operation.wFunc = FO_DELETE;
+	operation.pFrom = from.c_str();
+	operation.fFlags = FOF_ALLOWUNDO | FOF_NOCONFIRMATION | FOF_SILENT | FOF_NOERRORUI;
+	if (SHFileOperationW(&operation) != 0 || operation.fAnyOperationsAborted)
+	{
+		DEBUG_ERROR_CATEGORY(logger::categorys::system, "asset_browser delete failed[%s]", path.c_str());
+		pending_refresh = true;
+		return false;
+	}
+
+	if (asset_registry::is_valid())
+	{
+		for (const cache_string& file_path : files)
+			asset_registry::instance()->unregister_path(file_path.view());
+	}
+	for (auto& listener : path_listeners)
+	{
+		if (listener.deleted)
+			listener.deleted(path.view());
+	}
+
+	DEBUG_LOG_CATEGORY(logger::categorys::system, "asset_browser deleted[%s]", path.c_str());
+	selected_path.clear();
 	pending_refresh = true;
 	return true;
 }

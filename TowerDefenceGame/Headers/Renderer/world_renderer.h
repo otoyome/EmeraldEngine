@@ -22,7 +22,6 @@ class world;
 class world_renderer
 {
 public:
-	//	@tool デバッグ表示の収集（描画用の情報を集めた後に呼ぶ。デバッグ表示は全体で1つなので、メインの描画にだけ渡す）
 	using debug_builder = std::function<void(const render_data_context&)>;
 	
 public:

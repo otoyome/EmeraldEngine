@@ -1,6 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
+    <Filter Include="Headers\Framework">
+      <UniqueIdentifier>{72bdd064-13ca-403f-a7ae-3cf8f02c3d4d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Sources\Framework">
+      <UniqueIdentifier>{cbcbe41b-1a41-4d5b-b4cb-66e640d37c9f}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Headers\Process">
       <UniqueIdentifier>{22051094-850b-482a-82c7-a9c5d2fa88bd}</UniqueIdentifier>
     </Filter>
@@ -200,16 +206,52 @@
     <ClCompile Include="Sources\framework.cpp">
       <Filter>Sources</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Process\boot_process.cpp">
+    <ClCompile Include="Sources\Framework\app_window.cpp">
+      <Filter>Sources\Framework</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Framework\asset_watcher.cpp">
+      <Filter>Sources\Framework</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Editor\editor_host.cpp">
+      <Filter>Sources\Editor</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Renderer\render_system.cpp">
+      <Filter>Sources\Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Process\core_process.cpp">
+      <Filter>Sources\Process</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Process\graphics_process.cpp">
+      <Filter>Sources\Process</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Process\input_process.cpp">
+      <Filter>Sources\Process</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Process\audio_process.cpp">
+      <Filter>Sources\Process</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Process\asset_watch_process.cpp">
+      <Filter>Sources\Process</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Process\editor_process.cpp">
       <Filter>Sources\Process</Filter>
     </ClCompile>
     <ClCompile Include="Sources\Process\game_process.cpp">
+      <Filter>Sources\Process</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Process\boot_shader_compile_process.cpp">
+      <Filter>Sources\Process</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Process\shader_compile_process.cpp">
       <Filter>Sources\Process</Filter>
     </ClCompile>
     <ClCompile Include="Sources\Renderer\occlusion_culling_renderer.cpp">
       <Filter>Sources\Renderer</Filter>
     </ClCompile>
     <ClCompile Include="Sources\Renderer\ui_renderer.cpp">
+      <Filter>Sources\Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Renderer\ui_world_renderer.cpp">
       <Filter>Sources\Renderer</Filter>
     </ClCompile>
     <ClCompile Include="Sources\Renderer\scene_renderer.cpp">
@@ -220,9 +262,6 @@
     </ClCompile>
     <ClCompile Include="Sources\stdafx.cpp">
       <Filter>Sources</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Scenes\load_shader_scene.cpp">
-      <Filter>Sources\Scenes</Filter>
     </ClCompile>
     <ClCompile Include="Sources\PipelineState\skybox_pipeline_state.cpp">
       <Filter>Sources\PipelineState</Filter>
@@ -260,18 +299,6 @@
     <ClCompile Include="Sources\PipelineState\post_process_pipeline_state.cpp">
       <Filter>Sources\PipelineState</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\framework_imgui.cpp">
-      <Filter>Sources</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\framework_sound_bank_window.cpp">
-      <Filter>Sources</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\framework_gamepad_window.cpp">
-      <Filter>Sources</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\framework_console_window.cpp">
-      <Filter>Sources</Filter>
-    </ClCompile>
     <ClCompile Include="Sources\PipelineState\fullscreen_quad_pipeline_state.cpp">
       <Filter>Sources\PipelineState</Filter>
     </ClCompile>
@@ -284,7 +311,19 @@
     <ClCompile Include="Sources\Editor\detail_profiler.cpp">
       <Filter>Sources\Editor</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Editor\texture_editor.cpp">
+    <ClCompile Include="Sources\Editor\Windows\texture_editor_window.cpp">
+      <Filter>Sources\Editor</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Editor\Windows\debug_windows.cpp">
+      <Filter>Sources\Editor</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Editor\Windows\console_windows.cpp">
+      <Filter>Sources\Editor</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Editor\Windows\gamepad_window.cpp">
+      <Filter>Sources\Editor</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Editor\Windows\sound_bank_editor_window.cpp">
       <Filter>Sources\Editor</Filter>
     </ClCompile>
     <ClCompile Include="Sources\Renderer\scene_renderer_forward.cpp">
@@ -360,6 +399,9 @@
       <Filter>Sources\Scenes\EditScene</Filter>
     </ClCompile>
     <ClCompile Include="Sources\Editor\editor_items_ik.cpp">
+      <Filter>Sources\Editor</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Editor\editor_items_window.cpp">
       <Filter>Sources\Editor</Filter>
     </ClCompile>
     <ClCompile Include="Sources\Scenes\DummyScene\dummy_scene.cpp">
@@ -544,10 +586,43 @@
     <ClInclude Include="Headers\Process\framework_process.h">
       <Filter>Headers\Process</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Process\boot_process.h">
+    <ClInclude Include="Headers\Framework\app_window.h">
+      <Filter>Headers\Framework</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Framework\asset_watcher.h">
+      <Filter>Headers\Framework</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Editor\editor_host.h">
+      <Filter>Headers\Editor</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Renderer\render_system.h">
+      <Filter>Headers\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Process\core_process.h">
+      <Filter>Headers\Process</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Process\graphics_process.h">
+      <Filter>Headers\Process</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Process\input_process.h">
+      <Filter>Headers\Process</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Process\audio_process.h">
+      <Filter>Headers\Process</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Process\asset_watch_process.h">
+      <Filter>Headers\Process</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Process\editor_process.h">
       <Filter>Headers\Process</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Process\game_process.h">
+      <Filter>Headers\Process</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Process\boot_shader_compile_process.h">
+      <Filter>Headers\Process</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Process\shader_compile_process.h">
       <Filter>Headers\Process</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Renderer\scene_renderer.h">
@@ -555,9 +630,6 @@
     </ClInclude>
     <ClInclude Include="Headers\Renderer\renderer.h">
       <Filter>Headers\Renderer</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Scenes\load_shader_scene.h">
-      <Filter>Headers\Scenes</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Renderer\scene_render_targets.h">
       <Filter>Headers\Renderer</Filter>
@@ -613,7 +685,19 @@
     <ClInclude Include="Headers\Editor\detail_profiler.h">
       <Filter>Headers\Editor</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Editor\texture_editor.h">
+    <ClInclude Include="Headers\Editor\Windows\texture_editor_window.h">
+      <Filter>Headers\Editor</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Editor\Windows\debug_windows.h">
+      <Filter>Headers\Editor</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Editor\Windows\console_windows.h">
+      <Filter>Headers\Editor</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Editor\Windows\gamepad_window.h">
+      <Filter>Headers\Editor</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Editor\Windows\sound_bank_editor_window.h">
       <Filter>Headers\Editor</Filter>
     </ClInclude>
     <ClInclude Include="..\External\subpixel_morphological_anti_aliasing\textures\AreaTex.h">
@@ -779,6 +863,9 @@
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Renderer\ui_renderer.h">
+      <Filter>Headers\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Renderer\ui_world_renderer.h">
       <Filter>Headers\Renderer</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Object\GameObjects\MiniGame\roomba_object.h">

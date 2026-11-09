@@ -33,6 +33,8 @@ namespace audio
 	//	サウンドバンク
 	struct sound_bank_desc
 	{
+		static constexpr std::string_view extension = ".esb";
+
 		std::vector<sound_cue_desc> cues;
 
 		bool load_file(std::string_view file_path);

@@ -80,6 +80,17 @@ public:
 		cache_string label;						//	メニューの表示名
 		std::vector<cache_string> extensions;	//	対象の拡張子
 		std::function<void()> activate;			//	開く(@remainder 現状はシーンを変えているが、その内別ウィンドウを開くように対応)
+		std::function<void(const cache_string& file_path)> open_file;	//	ファイルを直接開く
+	};
+
+	//	削除してよいかを調べる関数
+	using delete_validator = std::function<bool(std::string_view file_path, std::string& out_reason)>;
+
+	//	ファイル/フォルダの移動・削除を知らせる先
+	struct path_listener
+	{
+		std::function<void(std::string_view old_path, std::string_view new_path)> moved;
+		std::function<void(std::string_view path)> deleted;
 	};
 
 	//	新規作成の登録情報
@@ -101,19 +112,25 @@ private:
 	asset_browser(asset_browser&&) = delete;
 
 public:
-	//	開き先を登録する
+	//	開き先を登録
 	void register_open_handler(open_handler handler);
 
-	//	新規作成を登録する
+	//	新規作成を登録
 	void register_create_handler(create_handler handler);
+
+	//	削除の可否を調べる処理を登録
+	void register_delete_validator(delete_validator validator);
+
+	//	移動・削除の通知先を登録
+	void register_path_listener(path_listener listener);
 
 	//	開く要求を受け取る
 	bool take_open_request(std::string_view name, std::string& out_file_path);
 
-	//	UUID のアセットを既定の開き先で開く
+	//	アセットエディターを開く
 	bool open_asset(const universally_unique_identifier& uuid);
 
-	void imgui_render();
+	void imgui_render(bool& open);
 
 private:
 	void refresh();
@@ -129,17 +146,23 @@ private:
 	void request_open(const open_handler& handler, const cache_string& file_path);
 	const open_handler* find_default_handler(std::string_view extension) const;
 
-	//	ドラッグされたエントリーを落としたフォルダへ移動
+	//	フォルダ移動
 	void accept_move_drop(const cache_string& directory);
 
-	//	ファイル/フォルダを移動し、対応表と読込済みリソースのパスも合わせる
+	//	ファイル/フォルダを移動
 	bool move_entry(const cache_string& source_path, const cache_string& destination_path);
 
-	//	登録した処理でファイルを作る
+	//	ファイル作成
 	bool create_entry(const create_request& request);
 
-	//	アセットファイルを別名で複製し、UUID を振り直す
+	//	アセットファイルを別名で複製
 	bool duplicate_entry(const cache_string& source_path);
+
+	//	削除するファイルを集める
+	std::vector<cache_string> collect_delete_files(const cache_string& path) const;
+
+	//	アセット破棄処理
+	bool delete_entry(const cache_string& path);
 
 	void load_thumbnail(entry& target);
 
@@ -152,10 +175,13 @@ private:	//	IMGUI系
 	void imgui_render_rename_popup();
 	void imgui_render_create_menu(const cache_string& directory);
 	void imgui_render_create_popup();
+	void imgui_render_delete_popup();
 
 private:
 	std::vector<open_handler> handlers;
 	std::vector<create_handler> create_handlers;
+	std::vector<delete_validator> delete_validators;
+	std::vector<path_listener> path_listeners;
 	std::map<std::string, open_request, std::less<>> open_requests;
 
 	directory_node root;
@@ -188,6 +214,11 @@ private:
 	std::size_t create_handler_index = 0;
 	bool open_create_popup = false;
 	bool create_invalid = false;
+
+	std::optional<cache_string> pending_delete;
+	cache_string delete_path;
+	std::vector<std::string> delete_reasons;
+	bool open_delete_popup = false;
 
 	ImGuiTextFilter filter;
 };

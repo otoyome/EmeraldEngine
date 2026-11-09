@@ -1779,15 +1779,18 @@ bool compute_shader::load_from_file(load_shader_file file_data)
 bool shader_manager::load_shader(shader_type type, shader_ptr& out_shader, load_shader_cso data)
 {
 	auto key_hash = generate_hash_key(data);
-	auto it = shaderes.find(key_hash);
-	if (it != shaderes.end())
 	{
-		if (auto ptr = it->second.lock())
+		std::lock_guard<std::mutex> lock(shaderes_mutex);
+		auto it = shaderes.find(key_hash);
+		if (it != shaderes.end())
 		{
-			out_shader = ptr;
-			return	true;
+			if (auto ptr = it->second.lock())
+			{
+				out_shader = ptr;
+				return	true;
+			}
+			shaderes.erase(it);
 		}
-		shaderes.erase(it);
 	}
 
 	switch(type)
@@ -1826,6 +1829,7 @@ bool shader_manager::load_shader(shader_type type, shader_ptr& out_shader, load_
 	//	シェーダー読み込み処理
 	if (out_shader && out_shader->load())
 	{
+		std::lock_guard<std::mutex> lock(shaderes_mutex);
 		shaderes.insert(std::make_pair(key_hash, std::weak_ptr<shader_base>(out_shader)));
 		return true;
 	}
@@ -1839,17 +1843,20 @@ bool shader_manager::load_shader(shader_type type, shader_ptr& out_shader, load_
 	//	キー生成
 	auto key_hash = generate_hash_key(data);
 
-	auto it = shaderes.find(key_hash);
-	if (it != shaderes.end())
 	{
-		if (auto ptr = it->second.lock())
+		std::lock_guard<std::mutex> lock(shaderes_mutex);
+		auto it = shaderes.find(key_hash);
+		if (it != shaderes.end())
 		{
-			out_shader = ptr;
-			return	true;
-		}
-		else
-		{
-			shaderes.erase(it);
+			if (auto ptr = it->second.lock())
+			{
+				out_shader = ptr;
+				return	true;
+			}
+			else
+			{
+				shaderes.erase(it);
+			}
 		}
 	}
 
@@ -1900,6 +1907,7 @@ bool shader_manager::load_shader(shader_type type, shader_ptr& out_shader, load_
 
 	if (flag)
 	{
+		std::lock_guard<std::mutex> lock(shaderes_mutex);
 		shaderes.insert(std::make_pair(key_hash, std::weak_ptr<shader_base>(out_shader)));
 		return true;
 	}
@@ -1921,6 +1929,7 @@ void shader_manager::check_shader_update_and_recompile()
 
 	if (check_cursor >= check_snapshot.size())
 	{
+		std::lock_guard<std::mutex> lock(shaderes_mutex);
 		check_snapshot.clear();
 		check_snapshot.reserve(shaderes.size());
 		for (auto it = shaderes.begin(); it != shaderes.end(); )

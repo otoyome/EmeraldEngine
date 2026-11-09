@@ -29,13 +29,14 @@
 
 #include "Animation/ik_resource.h"
 
-#include "scenes/load_shader_scene.h"
+#include "Scenes/setup_scene.h"
 
 #include "Renderer/scene_renderer.h"
 #include "Renderer/scene_renderer_forward.h"
 #include "Renderer/scene_renderer_postprocess.h"
 #include "Renderer/scene_renderer_display.h"
 #include "Renderer/ui_renderer.h"
+#include "Renderer/render_system.h"
 #include "Renderer/world_renderer.h"
 
 #include "Object/object_manager.h"
@@ -50,28 +51,43 @@
 #include "Graphics/debug_primitive_collector.h"
 #include "Editor/editor_items.h"
 #include "Editor/editor_camera.h"
+#include "Editor/editor_host.h"
 #endif // defined(USE_IMGUI)
 #include "System/asset_browser.h"
 #include "System/imgui_texture_keeper.h"
-#include "Editor/texture_editor.h"
+#include "Editor/Windows/texture_editor_window.h"
 
 #include "Editor/detail_profiler.h"
 #include "System/console_manager.h"
 #include "System/project_path.h"
 
 
+game_process::game_process(framework& owner)
+: framework_process(owner)
+{
+}
+
+game_process::~game_process()
+{
+}
+
 bool game_process::enter()
 {
 	framework& self = get_owner();
 
+	//	当たり判定フィルター生成
+	collision_filter_manager::create_instance();
+	if (!create_collision_filters())
+		return false;
+
+	//	メインワールド登録
+	self.main_world = std::make_unique<world>();
+
 	//	シーン関係
 	{
-		//	メインのワールド
-		self.main_world = std::make_unique<world>();
-
 #if defined(USE_IMGUI)
 		//	ゲーム進行のデバッグコマンド
-		self.pause_command = std::make_unique<console_command>("game.pause", "一時停止を切り替える（game.pause [0|1]）",
+		pause_command = std::make_unique<console_command>("game.pause", "一時停止を切り替える（game.pause [0|1]）",
 			[&self](const console_command::arguments& args)
 			{
 				if (!self.main_world)
@@ -83,27 +99,28 @@ bool game_process::enter()
 				objects.set_pause(pause);
 				console_manager::instance().print(pause ? "pause : 1" : "pause : 0");
 			});
-		self.step_command = std::make_unique<console_command>("game.step", "一時停止中に1フレーム進める",
+		step_command = std::make_unique<console_command>("game.step", "一時停止中に1フレーム進める",
 			[&self](const console_command::arguments&)
 			{
 				if (self.main_world)
 					self.main_world->get_objects().called_step();
 			});
-#endif	//	defined(USE_IMGUI)
-	}
 
-	//	シーンレンダラー登録
-	{
-		self.main_renderer = std::make_unique<world_renderer>(self.render_executor, render_output::create_back_buffer());
-		if (!self.main_renderer->initialize())
-			return false;
-#if defined(USE_IMGUI)
-		self.main_renderer->set_debug_builder([&self](const render_data_context& data) { self.build_debug_primitives(data); });
+		//	アセットブラウザの開き先
+		if (self.editor)
+			self.editor->register_asset_open_handlers(self.main_world->get_scenes());
+
+		//	デバッグ表示の収集
+		self.main_renderer->set_debug_builder([&self](const render_data_context& data)
+			{
+				if (self.editor)
+					self.editor->build_debug_primitives(self.main_world.get(), data);
+			});
 #endif	//	defined(USE_IMGUI)
 	}
 
 	//	初回シーン登録
-	self.main_world->get_scenes().change_scene<load_shader_scene>();
+	self.main_world->get_scenes().change_scene<setup_scene>();
 	return true;
 }
 
@@ -111,11 +128,15 @@ void game_process::exit()
 {
 	framework& self = get_owner();
 #if defined(USE_IMGUI)
-	self.pause_command.reset();
-	self.step_command.reset();
+	pause_command.reset();
+	step_command.reset();
 #endif	//	defined(USE_IMGUI)
 	self.main_world.reset();
+
 	self.main_renderer.reset();
+
+	//	シーン関係
+	collision_filter_manager::delete_instance();
 }
 
 void game_process::update(float elapsed_time)
@@ -167,26 +188,19 @@ void game_process::render(float elapsed_time)
 		pipeline_state_manager::instance()->rebuild_pipeline_bindings();
 	}
 
-	//	バッファ描画
-	{
-		//	レンダラー開始処理
-		self.render_executor->begin();
+}
 
-		//	ワールドごとの描画
-		self.main_renderer->submit_render_jobs(*self.main_world, elapsed_time);
+void game_process::submit_render_jobs(float elapsed_time)
+{
+	framework& self = get_owner();
 
-		//	描画コマンドを実行
-		{
-			DETAIL_PROFILE_CPU_SCOPE("render.execute_commands");
-			self.render_executor->render();
-		}
+	//	ワールドごとの描画
+	self.main_renderer->submit_render_jobs(*self.main_world, elapsed_time);
+}
 
-		//	描画コマンド実行終了処理
-		{
-			DETAIL_PROFILE_CPU_SCOPE("render.imgui_and_present");
-			self.render_executor->end();
-		}
-	}
+void game_process::post_render()
+{
+	framework& self = get_owner();
 
 	//	描画後処理
 	if (self.main_world)
@@ -210,6 +224,149 @@ void game_process::imgui_render()
 	self.main_world->get_objects().imgui_render();
 
 	//	シーン変更
-	self.imgui_scene_change();
+	if (self.editor)
+		self.editor->imgui_scene_change(self.main_world->get_scenes());
 }
 #endif	//	defined(USE_IMGUI)
+
+bool game_process::create_collision_filters()
+{
+	//	プレイヤー用
+	{
+		std::shared_ptr<collision_filter> filter = std::make_shared<collision_filter>();
+		filter->set_name("player");
+		filter->set_category(collision_category::player);
+		filter->set_flag(collision_category::player, false);
+		filter->set_flag(collision_category::player_attack, false);
+
+		filter->set_flag(collision_category::enemy, true);
+		filter->set_flag(collision_category::enemy_attack, false);
+
+		filter->set_flag(collision_category::stage, true);
+		filter->set_flag(collision_category::camera, false);
+
+		filter->set_flag(collision_category::ik, false);
+		collision_filter_manager::instance()->register_filter(filter);
+	}
+	//	プレイヤー攻撃用
+	{
+		std::shared_ptr<collision_filter> filter = std::make_shared<collision_filter>();
+		filter->set_name("player_attack");
+		filter->set_category(collision_category::player_attack);
+		filter->set_flag(collision_category::player, false);
+		filter->set_flag(collision_category::player_attack, false);
+
+		filter->set_flag(collision_category::enemy, true);
+		filter->set_flag(collision_category::enemy_attack, false);
+
+		filter->set_flag(collision_category::stage, false);
+		filter->set_flag(collision_category::camera, false);
+
+		filter->set_flag(collision_category::ik, false);
+		collision_filter_manager::instance()->register_filter(filter);
+	}
+	//	エネミー用
+	{
+		std::shared_ptr<collision_filter> filter = std::make_shared<collision_filter>();
+		filter->set_name("enemy");
+		filter->set_category(collision_category::enemy);
+		filter->set_flag(collision_category::player, true);
+		filter->set_flag(collision_category::player_attack, true);
+
+		filter->set_flag(collision_category::enemy, false);
+		filter->set_flag(collision_category::enemy_attack, false);
+
+		filter->set_flag(collision_category::stage, true);
+		filter->set_flag(collision_category::camera, false);
+
+		filter->set_flag(collision_category::ik, false);
+		collision_filter_manager::instance()->register_filter(filter);
+	}
+	//	エネミー攻撃用
+	{
+		std::shared_ptr<collision_filter> filter = std::make_shared<collision_filter>();
+		filter->set_name("enemy_attack");
+		filter->set_category(collision_category::enemy_attack);
+		filter->set_flag(collision_category::player, true);
+		filter->set_flag(collision_category::player_attack, false);
+
+		filter->set_flag(collision_category::enemy, false);
+		filter->set_flag(collision_category::enemy_attack, false);
+
+		filter->set_flag(collision_category::stage, true);
+		filter->set_flag(collision_category::camera, false);
+
+		filter->set_flag(collision_category::ik, false);
+		collision_filter_manager::instance()->register_filter(filter);
+	}
+	//	ステージ用
+	{
+		std::shared_ptr<collision_filter> filter = std::make_shared<collision_filter>();
+		filter->set_name("stage");
+		filter->set_category(collision_category::stage);
+		filter->set_flag(collision_category::player, true);
+		filter->set_flag(collision_category::player_attack, true);
+
+		filter->set_flag(collision_category::enemy, true);
+		filter->set_flag(collision_category::enemy_attack, true);
+
+		filter->set_flag(collision_category::stage, true);
+		filter->set_flag(collision_category::camera, true);
+
+		filter->set_flag(collision_category::ik, false);
+		collision_filter_manager::instance()->register_filter(filter);
+	}
+	//	カメラ用
+	{
+		std::shared_ptr<collision_filter> filter = std::make_shared<collision_filter>();
+		filter->set_name("camera");
+		filter->set_category(collision_category::camera);
+		filter->set_flag(collision_category::player, false);
+		filter->set_flag(collision_category::player_attack, false);
+
+		filter->set_flag(collision_category::enemy, false);
+		filter->set_flag(collision_category::enemy_attack, false);
+
+		filter->set_flag(collision_category::stage, true);
+		filter->set_flag(collision_category::camera, false);
+
+		filter->set_flag(collision_category::ik, false);
+		collision_filter_manager::instance()->register_filter(filter);
+	}
+	//	非表示中用
+	{
+		std::shared_ptr<collision_filter> filter = std::make_shared<collision_filter>();
+		filter->set_name("invisible");
+		filter->set_category(collision_category::invisible);
+		filter->set_flag(collision_category::player, false);
+		filter->set_flag(collision_category::player_attack, false);
+
+		filter->set_flag(collision_category::enemy, false);
+		filter->set_flag(collision_category::enemy_attack, false);
+
+		filter->set_flag(collision_category::stage, true);
+		filter->set_flag(collision_category::camera, false);
+
+		filter->set_flag(collision_category::ik, false);
+		collision_filter_manager::instance()->register_filter(filter);
+	}
+	//	IK用
+	{
+		std::shared_ptr<collision_filter> filter = std::make_shared<collision_filter>();
+		filter->set_name("ik");
+		filter->set_category(collision_category::ik);
+		filter->set_flag(collision_category::player, false);
+		filter->set_flag(collision_category::player_attack, false);
+
+		filter->set_flag(collision_category::enemy, false);
+		filter->set_flag(collision_category::enemy_attack, false);
+
+		filter->set_flag(collision_category::stage, true);
+		filter->set_flag(collision_category::camera, false);
+
+		filter->set_flag(collision_category::ik, false);
+		collision_filter_manager::instance()->register_filter(filter);
+	}
+
+	return true;
+}

@@ -1,4 +1,4 @@
-#include "Editor/texture_editor.h"
+#include "Editor/Windows/texture_editor_window.h"
 
 #if defined(USE_IMGUI)
 #include <algorithm>
@@ -9,68 +9,68 @@
 #include "Resource/resource_manager.h"
 #include "System/asset_browser.h"
 #include "System/imgui_texture_keeper.h"
+
 #include "system/logger.h"
 
-texture_editor::texture_editor()
+texture_editor_window::texture_editor_window(std::string_view file_path)
+	: file_path(file_path)
+{
+	load();
+}
+
+texture_editor_window::~texture_editor_window()
 {
 }
 
-texture_editor::~texture_editor()
-{
-}
-
-void texture_editor::register_open_handler()
+void texture_editor_window::register_open_handler(std::shared_ptr<editor_items::context> context)
 {
 	asset_browser::open_handler handler;
-	handler.name = std::string(open_handler_name);
+	handler.name = "texture_editor";
 	handler.label = "Texture Editor";
 	handler.extensions = { std::string(".") + std::string(texture_resource::extension) };
-	handler.activate = [this]()
+	handler.open_file = [context](const cache_string& file_path) mutable
 	{
-		visible = true;
-		focus = true;
+		editor_items::open_window<texture_editor_window>(context, file_path.view());
 	};
 	asset_browser::instance()->register_open_handler(std::move(handler));
 }
 
-bool texture_editor::open(std::string_view file_path)
+std::string texture_editor_window::get_label() const
+{
+	const std::string name = std::filesystem::path(file_path).filename().string();
+	return "Texture : " + system_utility::convert_shift_jis_to_utf8(name);
+}
+
+void texture_editor_window::on_file_moved(std::string_view new_file_path)
+{
+	file_path = std::string(new_file_path);
+}
+
+bool texture_editor_window::load()
 {
 	auto operation = resource_manager::instance()->load<texture_resource>(file_path);
 	if (!operation || !operation->is_succeeded())
 	{
-		DEBUG_ERROR_CATEGORY(logger::categorys::system, "texture_editor open failed[%s]", std::string(file_path).c_str());
+		DEBUG_ERROR_CATEGORY(logger::categorys::system, "texture_editor open failed[%s]", file_path.c_str());
 		return false;
 	}
 
 	target = operation->get_resource();
 	revert();
-	visible = true;
-	focus = true;
 	return true;
 }
 
-void texture_editor::imgui_render()
+void texture_editor_window::render_window(std::shared_ptr<editor_items::context>& /*context*/, bool& open)
 {
 	retired_textures.clear();
 
-	std::string file_path;
-	if (asset_browser::is_valid() && asset_browser::instance()->take_open_request(open_handler_name, file_path))
-		open(file_path);
-
-	if (!visible)
-		return;
-
-	if (focus)
-	{
-		ImGui::SetNextWindowFocus();
-		focus = false;
-	}
+	const std::string title = get_label() + "###texture_editor:" + system_utility::convert_shift_jis_to_utf8(file_path);
 	ImGui::SetNextWindowSize(ImVec2(720.0f, 820.0f), ImGuiCond_FirstUseEver);
-	if (ImGui::Begin("Texture Editor", &visible))
+	if (ImGui::Begin(title.c_str(), &open))
 	{
 		if (!target)
 		{
-			ImGui::TextDisabled("open a .etx from the Asset Browser");
+			ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.4f, 1.0f), "open failed : %s", system_utility::convert_shift_jis_to_utf8(file_path).c_str());
 		}
 		else
 		{
@@ -89,7 +89,7 @@ void texture_editor::imgui_render()
 	ImGui::End();
 }
 
-void texture_editor::imgui_render_preview()
+void texture_editor_window::imgui_render_preview()
 {
 	const texture_ptr& value = target->get_texture();
 	if (!value || value->get_dimension() != D3D11_RESOURCE_DIMENSION_TEXTURE2D)
@@ -112,7 +112,7 @@ void texture_editor::imgui_render_preview()
 	ImGui::Image(imgui_texture_keeper::instance()->keep(value), extent);
 }
 
-void texture_editor::imgui_render_settings()
+void texture_editor_window::imgui_render_settings()
 {
 	ImGui::TextUnformatted("import");
 
@@ -149,7 +149,7 @@ void texture_editor::imgui_render_settings()
 		editing.max_resolution = static_cast<std::uint32_t>((std::max)(max_resolution, 0));
 }
 
-void texture_editor::imgui_render_sampler()
+void texture_editor_window::imgui_render_sampler()
 {
 	if (!ImGui::TreeNode("sampler"))
 		return;
@@ -187,7 +187,7 @@ void texture_editor::imgui_render_sampler()
 	ImGui::TreePop();
 }
 
-void texture_editor::imgui_render_buttons()
+void texture_editor_window::imgui_render_buttons()
 {
 	const bool reimport = needs_reimport();
 	if (ImGui::Button(reimport ? "Apply (reimport)" : "Apply"))
@@ -207,7 +207,7 @@ void texture_editor::imgui_render_buttons()
 	}
 }
 
-bool texture_editor::needs_reimport() const
+bool texture_editor_window::needs_reimport() const
 {
 	const auto& current = target->get_settings();
 	return current.source_path != editing.source_path ||
@@ -219,7 +219,7 @@ bool texture_editor::needs_reimport() const
 		current.max_resolution != editing.max_resolution;
 }
 
-void texture_editor::apply()
+void texture_editor_window::apply()
 {
 	if (!target || !texture_importer::is_valid())
 		return;
@@ -243,13 +243,13 @@ void texture_editor::apply()
 	revert();
 }
 
-void texture_editor::retire_current_texture()
+void texture_editor_window::retire_current_texture()
 {
 	if (target && target->get_texture())
 		retired_textures.emplace_back(target->get_texture());
 }
 
-void texture_editor::revert()
+void texture_editor_window::revert()
 {
 	if (!target)
 		return;

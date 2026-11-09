@@ -15,6 +15,7 @@
 #include "Renderer/scene_renderer_postprocess.h"
 #include "Renderer/scene_renderer_display.h"
 #include "Renderer/ui_renderer.h"
+#include "Renderer/ui_world_renderer.h"
 #include "Renderer/occlusion_culling_renderer.h"
 
 #include "Object/object_manager.h"
@@ -423,50 +424,7 @@ void world_renderer::collect(world& target)
 	target.get_effects().get_container(render_data->effect_container, render_data->decal_container, render_origin);
 
 	//	UIオブジェクトコンテナ収集
-	{
-		render_data->sprite_container.sprite_datas.clear();
-
-		int sort_key = 0;
-		auto ui_object_list = target.get_objects().search_objects<ui_object>();
-		for (auto& ui_object : ui_object_list)
-		{
-			if (!ui_object->is_active())
-				continue;
-
-			sprite_datas sprite_data;
-			sprite_data.sort_key = sort_key;
-			sprite_data.sort_order = ui_object->get_sort_order();
-			sprite_data.sprite = &ui_object->get_sprite();
-			render_data->sprite_container.sprite_datas.emplace_back(sprite_data);
-			++sort_key;
-		}
-
-		auto ui_objects_list = target.get_objects().search_objects<ui_objects>();
-		for (auto& ui_object : ui_objects_list)
-		{
-			if (!ui_object->is_active())
-				continue;
-
-			for (auto& sprite : ui_object->get_sprites())
-			{
-				sprite_datas sprite_data;
-				sprite_data.sort_key = sort_key;
-				sprite_data.sort_order = ui_object->get_sort_order();
-				sprite_data.sprite = &sprite;
-				render_data->sprite_container.sprite_datas.emplace_back(sprite_data);
-			}
-			++sort_key;
-		}
-
-		//	ソート
-		std::sort(render_data->sprite_container.sprite_datas.begin(), render_data->sprite_container.sprite_datas.end(),
-			[](const sprite_datas& l, const sprite_datas& r)
-			{
-				if (l.sort_order < r.sort_order)
-					return l.sort_key != r.sort_key;
-				return false;
-			});
-	}
+	ui_world_renderer::collect_sprites(target, render_data->sprite_container);
 
 	//	パーティクルの描画振り分け
 	build_particle_render_lists(*render_data, *particle_indices);

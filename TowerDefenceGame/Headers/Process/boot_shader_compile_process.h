@@ -2,8 +2,8 @@
 
 #include "Process/framework_process.h"
 
-//	起動プロセス
-class boot_process : public framework_process
+//	起動時に最低限必要なシェーダーコンパイルのプロセス
+class boot_shader_compile_process : public framework_process
 {
 public:
 	using framework_process::framework_process;

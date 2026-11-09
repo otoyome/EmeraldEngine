@@ -147,7 +147,7 @@ public:
 	void begin_gpu_scope();
 	void end_gpu_scope(std::string_view owner, std::string_view name);
 
-	void imgui_render();
+	void imgui_render(bool& open);
 
 	//	•\¦—p‚ÌŒ^–¼‚ğæ“¾("class "/"struct "‚ğœ‹)
 	static std::string get_display_type_name(const std::type_info& type);

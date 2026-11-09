@@ -4,6 +4,7 @@
 #include "Graphics/shader.h"
 
 #include <d3d11shader.h>
+#include <mutex>
 
 class material_resource;
 class material_instance;
@@ -340,4 +341,5 @@ private:
 
 private:
 	graphics_pipeline_state_ptr_map	graphics_pipeline_state_map;
+	std::mutex mutex;
 };

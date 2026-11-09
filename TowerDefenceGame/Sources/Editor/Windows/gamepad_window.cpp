@@ -1,29 +1,12 @@
-#include "framework.h"
+#include "Editor/Windows/gamepad_window.h"
 
 #if defined(USE_IMGUI)
 #include "imgui.h"
 #include "imgui_internal.h"
 
-#include "System/console_manager.h"
-
 namespace
 {
-	//	ゲームパッド確認ウィンドウの状態
-	console_variable<bool> gamepad_window_variable("editor.window.gamepad", true, "ゲームパッド確認ウィンドウの表示", console_flags::persist);
-
-	constexpr size_t gamepad_key_count = magic_enum::enum_count<gamepad::key_states>();
 	constexpr size_t gamepad_axis_count = magic_enum::enum_count<gamepad::axis_states>();
-
-	//	down/release は1フレームで見逃しやすいので回数を数える
-	struct gamepad_counter
-	{
-		uint32_t down[gamepad_key_count] = {};
-		uint32_t release[gamepad_key_count] = {};
-	};
-	gamepad_counter gamepad_counters[gamepad::max_count];
-
-	//	振動の確認用
-	float gamepad_vibrations[gamepad::max_count][2] = {};
 
 	ImVec4 state_color(input::state state)
 	{
@@ -95,94 +78,102 @@ namespace
 			ImGui::EndTable();
 		}
 	}
-
-	void gamepad_keys(size_t pad_index, const gamepad::states& state)
-	{
-		gamepad_counter& counter = gamepad_counters[pad_index];
-		if (ImGui::SmallButton("reset counts"))
-			counter = gamepad_counter();
-
-		constexpr ImGuiTableFlags table_flags = ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingFixedFit;
-		if (!ImGui::BeginTable("keys", 4, table_flags))
-			return;
-
-		ImGui::TableSetupColumn("key");
-		ImGui::TableSetupColumn("state");
-		ImGui::TableSetupColumn("down");
-		ImGui::TableSetupColumn("release");
-		ImGui::TableHeadersRow();
-		for (size_t index = 0; index < gamepad_key_count; ++index)
-		{
-			const auto key = static_cast<gamepad::key_states>(index);
-			const input::state key_state = state.is_key_state(key);
-			ImGui::TableNextRow();
-			ImGui::TableNextColumn();
-			ImGui::TextUnformatted(magic_enum::enum_name(key).data());
-			ImGui::TableNextColumn();
-			ImGui::TextColored(state_color(key_state), "%s", magic_enum::enum_name(key_state).data());
-			ImGui::TableNextColumn();
-			ImGui::Text("%u", counter.down[index]);
-			ImGui::TableNextColumn();
-			ImGui::Text("%u", counter.release[index]);
-		}
-		ImGui::EndTable();
-	}
-
-	void gamepad_vibration(size_t pad_index)
-	{
-		float* vibration = gamepad_vibrations[pad_index];
-		ImGui::SetNextItemWidth(160.0f);
-		bool changed = ImGui::SliderFloat("low frequency", &vibration[0], 0.0f, 1.0f);
-		ImGui::SameLine();
-		ImGui::SetNextItemWidth(160.0f);
-		changed = ImGui::SliderFloat("high frequency", &vibration[1], 0.0f, 1.0f) || changed;
-		ImGui::SameLine();
-		if (ImGui::Button("stop"))
-		{
-			vibration[0] = 0.0f;
-			vibration[1] = 0.0f;
-			changed = true;
-		}
-		if (changed)
-			gamepad::instance()->set_vibration(pad_index, vibration[0], vibration[1]);
-	}
 }
 
-void framework::imgui_gamepad_window()
+void gamepad_window::update()
 {
 	if (!gamepad::is_valid())
 		return;
 
-	//	表示していない間も回数は数える
 	auto* pad = gamepad::instance();
 	for (size_t pad_index = 0; pad_index < gamepad::max_count; ++pad_index)
 	{
 		const gamepad::states& state = pad->get_state(pad_index);
-		for (size_t index = 0; index < gamepad_key_count; ++index)
+		for (size_t index = 0; index < key_count; ++index)
 		{
 			const input::state key_state = state.key_state[index];
-			gamepad_counters[pad_index].down[index] += key_state == input::state::down ? 1 : 0;
-			gamepad_counters[pad_index].release[index] += key_state == input::state::release ? 1 : 0;
+			counters[pad_index].down[index] += key_state == input::state::down ? 1 : 0;
+			counters[pad_index].release[index] += key_state == input::state::release ? 1 : 0;
 		}
 	}
+}
 
-	if (!gamepad_window_variable.get())
-	{
-		//	閉じたら振動を止める
-		for (size_t pad_index = 0; pad_index < gamepad::max_count; ++pad_index)
-		{
-			float* vibration = gamepad_vibrations[pad_index];
-			if (vibration[0] == 0.0f && vibration[1] == 0.0f)
-				continue;
-			vibration[0] = 0.0f;
-			vibration[1] = 0.0f;
-			pad->set_vibration(pad_index, 0.0f, 0.0f);
-		}
+void gamepad_window::on_closed()
+{
+	if (!gamepad::is_valid())
 		return;
-	}
 
+	auto* pad = gamepad::instance();
+	for (size_t pad_index = 0; pad_index < gamepad::max_count; ++pad_index)
+	{
+		float* vibration = vibrations[pad_index];
+		if (vibration[0] == 0.0f && vibration[1] == 0.0f)
+			continue;
+		vibration[0] = 0.0f;
+		vibration[1] = 0.0f;
+		pad->set_vibration(pad_index, 0.0f, 0.0f);
+	}
+}
+
+void gamepad_window::imgui_render_keys(size_t pad_index, const gamepad::states& state)
+{
+	counter& target = counters[pad_index];
+	if (ImGui::SmallButton("reset counts"))
+		target = counter();
+
+	constexpr ImGuiTableFlags table_flags = ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingFixedFit;
+	if (!ImGui::BeginTable("keys", 4, table_flags))
+		return;
+
+	ImGui::TableSetupColumn("key");
+	ImGui::TableSetupColumn("state");
+	ImGui::TableSetupColumn("down");
+	ImGui::TableSetupColumn("release");
+	ImGui::TableHeadersRow();
+	for (size_t index = 0; index < key_count; ++index)
+	{
+		const auto key = static_cast<gamepad::key_states>(index);
+		const input::state key_state = state.is_key_state(key);
+		ImGui::TableNextRow();
+		ImGui::TableNextColumn();
+		ImGui::TextUnformatted(magic_enum::enum_name(key).data());
+		ImGui::TableNextColumn();
+		ImGui::TextColored(state_color(key_state), "%s", magic_enum::enum_name(key_state).data());
+		ImGui::TableNextColumn();
+		ImGui::Text("%u", target.down[index]);
+		ImGui::TableNextColumn();
+		ImGui::Text("%u", target.release[index]);
+	}
+	ImGui::EndTable();
+}
+
+void gamepad_window::imgui_render_vibration(size_t pad_index)
+{
+	float* vibration = vibrations[pad_index];
+	ImGui::SetNextItemWidth(160.0f);
+	bool changed = ImGui::SliderFloat("low frequency", &vibration[0], 0.0f, 1.0f);
+	ImGui::SameLine();
+	ImGui::SetNextItemWidth(160.0f);
+	changed = ImGui::SliderFloat("high frequency", &vibration[1], 0.0f, 1.0f) || changed;
+	ImGui::SameLine();
+	if (ImGui::Button("stop"))
+	{
+		vibration[0] = 0.0f;
+		vibration[1] = 0.0f;
+		changed = true;
+	}
+	if (changed)
+		gamepad::instance()->set_vibration(pad_index, vibration[0], vibration[1]);
+}
+
+void gamepad_window::render_window(std::shared_ptr<editor_items::context>& /*context*/, bool& open)
+{
+	if (!gamepad::is_valid())
+		return;
+
+	auto* pad = gamepad::instance();
 	ImGui::SetNextWindowSize(ImVec2(560.0f, 640.0f), ImGuiCond_FirstUseEver);
-	if (ImGui::Begin("gamepad", &gamepad_window_variable.ref()))
+	if (ImGui::Begin("gamepad", &open))
 	{
 		if (ImGui::BeginTabBar("pads"))
 		{
@@ -204,13 +195,13 @@ void framework::imgui_gamepad_window()
 					ImGui::TextUnformatted(name.c_str());
 				}
 				ImGui::BeginDisabled(!state.connected);
-				gamepad_vibration(pad_index);
+				imgui_render_vibration(pad_index);
 				ImGui::EndDisabled();
 
 				if (ImGui::CollapsingHeader("axes", ImGuiTreeNodeFlags_DefaultOpen))
 					gamepad_axes(state);
 				if (ImGui::CollapsingHeader("keys", ImGuiTreeNodeFlags_DefaultOpen))
-					gamepad_keys(pad_index, state);
+					imgui_render_keys(pad_index, state);
 				ImGui::PopID();
 				ImGui::EndTabItem();
 			}
@@ -219,5 +210,4 @@ void framework::imgui_gamepad_window()
 	}
 	ImGui::End();
 }
-
 #endif	//	defined(USE_IMGUI)

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <chrono>
+#include <mutex>
 #include <vector>
 
 enum class shader_load_type
@@ -322,7 +323,8 @@ private:
 	bool load_shader(shader_type type, shader_ptr& out_shader, load_shader_file data);
 
 private:
-	shader_map	shaderes;
+	shader_map shaderes;
+	std::mutex shaderes_mutex;
 #if defined(USE_IMGUI)
 	std::chrono::steady_clock::time_point last_check_time{};
 	std::vector<std::weak_ptr<shader_base>> check_snapshot;
