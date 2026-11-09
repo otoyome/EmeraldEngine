@@ -112,7 +112,7 @@ public:
 	std::uint32_t get_version() const { return version; }
 
 #if defined(USE_IMGUI)
-	//	Shaders/Materials 以下のマテリアルシェーダーの一覧
+	//	Assets/GameShader・Engine/EngineShader/Materials 以下のマテリアルシェーダーの一覧
 	std::vector<std::string> collect_shader_paths(domains domain) const;
 
 	//	元のマテリアルシェーダーを写してドメインのフォルダに新しく作る。作ったパスを返す(失敗したら空)

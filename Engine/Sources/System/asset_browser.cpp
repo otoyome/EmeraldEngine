@@ -25,9 +25,6 @@ namespace
 	//	ドラッグ&ドロップの種類名
 	constexpr const char* move_payload_type = asset_browser::drag_payload_type;
 
-	//	一覧に出さないフォルダ
-	constexpr std::string_view excluded_directories[] = { "Assets/CSO" };
-
 	//	サムネイルを読み込む拡張子
 	constexpr std::string_view thumbnail_extensions[] = { ".png", ".dds", ".tga", ".bmp", ".jpg", ".jpeg", ".hdr" };
 
@@ -254,8 +251,6 @@ void asset_browser::build_directory_tree(directory_node& node)
 
 		cache_string name(it->path().filename().native());
 		cache_string path = node.path.str() + "/" + name.str();
-		if (contains(excluded_directories, path.view()))
-			continue;
 
 		auto& child = node.children.emplace_back();
 		child.name = std::move(name);
@@ -360,8 +355,6 @@ void asset_browser::scan_entries()
 		target.name = it->path().filename().native();
 		target.path = current_directory.str() + "/" + target.name.str();
 		target.is_directory = is_directory;
-		if (is_directory && contains(excluded_directories, target.path.view()))
-			continue;
 		if (!is_directory)
 		{
 			target.extension = std::string(target.name.get<extension_cache>());
