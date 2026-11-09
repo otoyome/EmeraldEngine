@@ -121,9 +121,9 @@ void scene_manager::remove_all_scene()
 	scenes.clear();
 }
 
-std::vector<std::string_view> scene_manager::get_valid_scene_names() const
+std::vector<std::string> scene_manager::get_valid_scene_names() const
 {
-	std::vector<std::string_view> texts;
+	std::vector<std::string> texts;
 	for (auto& scene : scenes)
 	{
 		texts.emplace_back(scene.first);
@@ -145,7 +145,7 @@ bool scene_manager::remove_scene(std::string_view scene_name)
 		return true;
 	}
 
-	if (scenes.find(scene_name) == scenes.end())
+	if (scenes.find(std::string(scene_name)) == scenes.end())
 		return false;
 
 	remove_scenes.emplace_back(scene_name);
@@ -158,12 +158,21 @@ bool scene_manager::valid_scene(std::string_view scene_name)
 					 [&](add_scene_data& data) {return data.name == scene_name; }) != add_scenes.end())
 		return true;
 
-	return scenes.find(scene_name) != scenes.end();
+	return scenes.find(std::string(scene_name)) != scenes.end();
 }
 
 #if defined(USE_IMGUI)
 void scene_manager::imgui_render()
 {
+#if defined(USE_IMGUI)
+	if (context.is_embedded())
+	{
+		for (auto& scene : scenes)
+			scene.second->imgui_render();
+		return;
+	}
+#endif	//	defined(USE_IMGUI)
+
 	if (ImGui::Begin(context.make_window_name("scenes").c_str()))
 	{
 		for (auto& scene : scenes)

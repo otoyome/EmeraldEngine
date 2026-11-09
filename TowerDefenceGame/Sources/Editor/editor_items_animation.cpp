@@ -244,7 +244,7 @@ namespace
 				cached_end_time = animation_data->end_time;
 			}
 
-			if (ImGui::Begin("Animation Timeline", nullptr, timeline_window_flags))
+			if (editor_items::begin_window(context, "Animation Timeline", nullptr, timeline_window_flags))
 			{
 				render_toolbar();
 
@@ -626,7 +626,7 @@ namespace
 
 		void render_inspector(std::shared_ptr<editor_items::context>& context)
 		{
-			if (ImGui::Begin("Animation Inspector"))
+			if (editor_items::begin_window(context, "Animation Inspector"))
 			{
 				for (const auto& key : selected)
 				{

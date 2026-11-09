@@ -48,6 +48,12 @@ public:		//	ImGui用
 
 	//	ImGui の窓の名前
 	std::string make_window_name(std::string_view name) const { return std::string(name) + window_id; }
+
+	//	ImGui の窓を開く
+	bool begin_window(std::string_view name, bool* open = nullptr, int flags = 0);
+
+	//	シーンの窓をドッキングする先
+	void set_dock_id(unsigned int value) { dock_id = value; }
 	void set_window_id(std::string value) { window_id = std::move(value); }
 
 	//	シーンに開いてもらうファイル
@@ -59,6 +65,7 @@ private:
 	bool viewport_hovered = false;
 	math::float4 viewport_rect = { 0.0f, 0.0f, 0.0f, 0.0f };
 	std::string window_id;
+	unsigned int dock_id = 0;
 	std::string open_file;
 #endif	//	defined(USE_IMGUI)
 };

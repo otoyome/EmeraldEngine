@@ -73,6 +73,9 @@ public:
 
 	LRESULT window_proccess(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
+	//	@tool メイン以外の自プロセスの窓で回したホイールの量を足す(その窓のメッセージはここに届かないため)
+	void add_sub_window_wheel(int value);
+
 private:
 	HWND hwnd;
 	bool window_center_lock;

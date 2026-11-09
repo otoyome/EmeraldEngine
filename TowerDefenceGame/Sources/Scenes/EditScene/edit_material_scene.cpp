@@ -133,6 +133,7 @@ bool edit_material_scene::initialize_core()
 	//	エディターアイテム用コンテキスト生成
 	{
 		editor_context = editor_items::generate_context();
+		editor_context->set_window_opener([this](std::string_view name, bool* open, int flags) { return get_context().begin_window(name, open, flags); });
 	}
 
 	//	床
@@ -192,7 +193,7 @@ void edit_material_scene::update_core(float elapsed_time)
 void edit_material_scene::imgui_render_core()
 {
 	ImGui::SetNextWindowSize(ImVec2(820.0f, 640.0f), ImGuiCond_FirstUseEver);
-	if (ImGui::Begin(get_context().make_window_name("Material Editor").c_str()))
+	if (get_context().begin_window("Material Editor"))
 	{
 		imgui_render_source();
 		ImGui::Separator();
@@ -529,13 +530,6 @@ void edit_material_scene::clear_preview_effect()
 
 void edit_material_scene::imgui_render_source()
 {
-	if (ImGui::Button("Load"))
-	{
-		std::string file_path;
-		if (editor_items::open_file_dialog(SourceFileDialogFilter, file_path))
-			open_source(file_path, false);
-	}
-
 	if (!get_source_file_path().empty())
 	{
 		ImGui::SameLine();

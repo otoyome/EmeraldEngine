@@ -406,7 +406,7 @@ bool editor_items::edit_effect_animation(std::shared_ptr<context>& context, effe
 	auto& animations = effect_resource->get_animations_for_editor();
 
 	//	アニメーション編集
-	if (ImGui::Begin("Effect Animation Window"))
+	if (editor_items::begin_window(context, "Effect Animation Window"))
 	{
 		//	アニメーションは基本的に一つしかない物とする
 		auto& animation_data = animations.back();

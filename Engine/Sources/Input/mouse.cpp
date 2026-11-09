@@ -142,7 +142,8 @@ void mouse::update_state()
 		UINT screen_width = rc.right - rc.left;
 		UINT screen_height = rc.bottom - rc.top;
 		bool input_key_state[magic_enum::enum_count<key_states>()];
-		if (::GetForegroundWindow() == hwnd)
+		//	自プロセスの窓が前面なら受け付ける
+		if (input::is_process_foreground())
 		{
 			//	入力状況
 			for (size_t index = 0; index < magic_enum::enum_count<key_states>(); ++index)
@@ -231,6 +232,13 @@ void mouse::update_state()
 		const bool pressed = std::abs(get_axis(static_cast<axis_states>(index))) >= input::pressed_threshold;
 		axis_key_state[index] = input::next_state(axis_key_state[index], pressed);
 	}
+}
+
+void mouse::add_sub_window_wheel(int value)
+{
+	//	@tool メインの窓が前面の時はメッセージで受け取っているので足さない
+	if (::GetForegroundWindow() != hwnd)
+		wheel_value += value;
 }
 
 LRESULT mouse::window_proccess(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)

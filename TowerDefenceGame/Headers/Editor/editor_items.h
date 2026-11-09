@@ -1,6 +1,8 @@
 #pragma once
 
 #if defined(USE_IMGUI)
+#include <functional>
+#include <string_view>
 #include "Material/material_resource.h"
 #include "Animation/animation_resource.h"
 #include "Animation/ik_resource.h"
@@ -48,6 +50,10 @@ public:
 
 		int get_item_id() {return inner_item_id++;}
 
+		//	@tool 窓を開く処理(窓に映すシーンは、ワールドごとの名前とドッキングを付ける物を設定する。空なら ImGui::Begin)
+		using window_opener = std::function<bool(std::string_view name, bool* open, int flags)>;
+		void set_window_opener(window_opener opener) { window_open = std::move(opener); }
+
 	private:
 		int inner_item_id; // 内部でItemIdで使っているだけの白物
 		int reset_item_id; // 内部でItemIdで使っているだけの白物
@@ -57,6 +63,7 @@ public:
 		std::unordered_map<std::string, bool> flag_maps; // フラグ管理
 		cache_string down_allow = "↓";
 		cache_string right_allow = "→";
+		window_opener window_open;	//	@tool 窓を開く処理
 		char new_shader_name[128] = {}; // マテリアルシェーダー新規作成の名前
 
 	private:	//	アニメーション関係
@@ -148,6 +155,9 @@ public:
 	static void terminate();
 
 	static std::shared_ptr<context> generate_context();
+
+	//	@tool 窓を開く(コンテキストに窓を開く処理があればそれを使う。ImGui::Begin と同じく必ず ImGui::End を呼ぶ)
+	static bool begin_window(std::shared_ptr<context>& context, std::string_view name, bool* open = nullptr, int flags = 0);
 	static void begin_contexts();
 
 public:	//	@tool 編集用ウィンドウ

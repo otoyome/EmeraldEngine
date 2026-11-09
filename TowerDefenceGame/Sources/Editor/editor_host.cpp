@@ -1,4 +1,5 @@
 #include "Editor/editor_host.h"
+#include "Input/mouse.h"
 
 #if defined(USE_IMGUI)
 #include "Graphics/render_data.h"
@@ -198,6 +199,11 @@ void editor_host::begin_frame()
 	ImGui_ImplDX11_NewFrame();
 	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();
+
+	//	@tool ImGui が別の窓に出した窓で回したホイールをマウスへ渡す(EndFrame で消えるので NewFrame の直後に読む)
+	if (mouse::is_valid())
+		mouse::instance()->add_sub_window_wheel(static_cast<int>(ImGui::GetIO().MouseWheel * WHEEL_DELTA));
+
 	editor_items::begin_contexts();
 	frame_begun = true;
 }
@@ -321,13 +327,11 @@ void editor_host::imgui_scene_change(scene_manager& scenes)
 {
 	if (ImGui::Begin("Scene Change Window"))
 	{
-		change_scene<edit_model_scene>(scenes);
 		change_scene<dummy_scene>(scenes);
 		change_scene<collision_test_scene>(scenes);
 		change_scene<clustered_lighting_test_scene>(scenes);
 		change_scene<light_shadow_test_scene>(scenes);
 		change_scene<network_sandbox_scene>(scenes);
-		change_scene<edit_material_scene>(scenes);
 		change_scene<edit_timeline_scene>(scenes);
 		change_scene<setup_scene>(scenes);
 	}

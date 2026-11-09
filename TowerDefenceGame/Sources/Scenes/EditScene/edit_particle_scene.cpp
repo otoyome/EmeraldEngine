@@ -195,6 +195,7 @@ bool edit_particle_scene::initialize_core()
 	//	エディターアイテム用コンテキスト生成
 	{
 		editor_context = editor_items::generate_context();
+		editor_context->set_window_opener([this](std::string_view name, bool* open, int flags) { return get_context().begin_window(name, open, flags); });
 	}
 
 	//	新規パーティクル生成
@@ -248,18 +249,8 @@ void edit_particle_scene::open_effect(const std::string& file_path)
 void edit_particle_scene::imgui_render_core()
 {
 	//	パーティクル読込み関係
+	if (get_context().begin_window("Effect"))
 	{
-		ImGui::Text("Effect ");
-		ImGui::SameLine();
-		if (ImGui::Button("Load"))
-		{
-			std::string file_path;
-			if (editor_items::open_file_dialog(EffectFileDialogFilter, file_path))
-			{
-				open_effect(file_path);
-			}
-		}
-
 		//	保存
 		if (edit_instance)
 		{
@@ -285,9 +276,10 @@ void edit_particle_scene::imgui_render_core()
 			}
 		}
 	}
+	ImGui::End();
 
 	//	cubic_sdf読込み関係
-	if (ImGui::Begin(get_context().make_window_name("SDF").c_str()))
+	if (get_context().begin_window("SDF"))
 	{
 		imgui_render_sdf();
 	}
@@ -297,7 +289,7 @@ void edit_particle_scene::imgui_render_core()
 	if (edit_resource)
 	{
 		//	エフェクト編集
-		if (ImGui::Begin(get_context().make_window_name("Edit Effect").c_str()))
+		if (get_context().begin_window("Edit Effect"))
 		{
 			bool edit = editor_items::edit_effect_noeds(editor_context, get_context(), edit_instance);
 			if (editor_items::edit_effect_animation(editor_context, edit_instance) || edit)

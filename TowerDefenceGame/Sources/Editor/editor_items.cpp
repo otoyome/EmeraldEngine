@@ -353,6 +353,13 @@ void editor_items::terminate()
 	instance.reset();
 }
 
+bool editor_items::begin_window(std::shared_ptr<context>& context, std::string_view name, bool* open, int flags)
+{
+	if (context && context->window_open)
+		return context->window_open(name, open, flags);
+	return ImGui::Begin(std::string(name).c_str(), open, flags);
+}
+
 std::shared_ptr<editor_items::context> editor_items::generate_context()
 {
 	std::random_device rd{};

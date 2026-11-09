@@ -89,8 +89,8 @@ public:
 		auto created = std::make_unique<scene_type>();
 		scene_base::constructing_context = nullptr;
 
-		scenes.insert_or_assign(scene_type::type_name(), std::move(created));
-		auto& scene = scenes.find(scene_type::type_name())->second;
+		scenes.insert_or_assign(std::string(scene_type::type_name()), std::move(created));
+		auto& scene = scenes.find(std::string(scene_type::type_name()))->second;
 		scene->initialize(context);
 	}
 
@@ -100,10 +100,10 @@ public:
 	{
 		for (auto& scene : scenes)
 		{
-			if (std::find(remove_scenes.begin(), remove_scenes.end(), scene.second->get_type_name()) != remove_scenes.end())
+			if (std::find(remove_scenes.begin(), remove_scenes.end(), scene.first) != remove_scenes.end())
 				continue;
 
-			remove_scenes.emplace_back(scene.second->get_type_name());
+			remove_scenes.emplace_back(scene.first);
 		}
 
 		add_scene<scene_type>();
@@ -114,7 +114,7 @@ public:
 	template<typename scene_type>
 	bool add_scene()
 	{
-		if (scenes.find(scene_type::type_name()) != scenes.end())
+		if (scenes.find(std::string(scene_type::type_name())) != scenes.end())
 		{
 			return false;
 		}
@@ -150,7 +150,7 @@ public:
 public:
 	bool remove_scene(std::string_view scene_name);
 	bool valid_scene(std::string_view scene_name);
-	std::vector<std::string_view> get_valid_scene_names() const;
+	std::vector<std::string> get_valid_scene_names() const;
 
 public:
 #if defined(USE_IMGUI)
@@ -162,10 +162,10 @@ public:
 	{
 		for (auto& scene : scenes)
 		{
-			if (std::find(remove_scenes.begin(), remove_scenes.end(), scene.second->get_type_name()) != remove_scenes.end())
+			if (std::find(remove_scenes.begin(), remove_scenes.end(), scene.first) != remove_scenes.end())
 				continue;
 
-			remove_scenes.emplace_back(scene.second->get_type_name());
+			remove_scenes.emplace_back(scene.first);
 		}
 		updates(0);
 
@@ -178,7 +178,7 @@ public:
 private:
 	struct add_scene_data
 	{
-		std::string_view name;
+		std::string name;
 		int order;
 		std::function<void()> func;
 		add_scene_data(std::string_view name, int order, std::function<void()> func)
@@ -193,8 +193,8 @@ private:
 	signals::contactor contactor;
 
 	std::vector<add_scene_data> add_scenes;
-	std::vector<std::string_view> remove_scenes;
-	std::unordered_map<std::string_view, std::unique_ptr<scene_base>> scenes;
+	std::vector<std::string> remove_scenes;
+	std::unordered_map<std::string, std::unique_ptr<scene_base>> scenes;
 };
 
 #define	__SCENE_DECRLEAR_INNER__(ABSTRACT_TYPE, BASE_TYPE)	\
