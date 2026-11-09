@@ -1,4 +1,5 @@
 #include "scenes/editscene/edit_particle_scene.h"
+#include "Object/engine_context.h"
 #include "Texture/texture_resource_utility.h"
 #include "System/asset_browser.h"
 #include "Resource/resource_manager.h"
@@ -224,7 +225,7 @@ void edit_particle_scene::update_core(float elapsed_time)
 {
 	{
 		std::string file_path;
-		if (asset_browser::is_valid() && asset_browser::instance()->take_open_request(type_name(), file_path))
+		if (get_context().take_open_file(file_path))
 			open_effect(file_path);
 	}
 
@@ -233,8 +234,8 @@ void edit_particle_scene::update_core(float elapsed_time)
 
 void edit_particle_scene::open_effect(const std::string& file_path)
 {
-	effect_resource_ptr resource;
-	if (!effect_resource_manager::instance()->load(resource, file_path))
+	effect_resource_ptr resource = resource_manager::instance()->load_uncached<effect_resource>(file_path);
+	if (!resource)
 		return;
 
 	if (edit_instance)
@@ -286,7 +287,7 @@ void edit_particle_scene::imgui_render_core()
 	}
 
 	//	cubic_sdf読込み関係
-	if (ImGui::Begin("SDF"))
+	if (ImGui::Begin(get_context().make_window_name("SDF").c_str()))
 	{
 		imgui_render_sdf();
 	}
@@ -296,7 +297,7 @@ void edit_particle_scene::imgui_render_core()
 	if (edit_resource)
 	{
 		//	エフェクト編集
-		if (ImGui::Begin("Edit Effect"))
+		if (ImGui::Begin(get_context().make_window_name("Edit Effect").c_str()))
 		{
 			bool edit = editor_items::edit_effect_noeds(editor_context, get_context(), edit_instance);
 			if (editor_items::edit_effect_animation(editor_context, edit_instance) || edit)

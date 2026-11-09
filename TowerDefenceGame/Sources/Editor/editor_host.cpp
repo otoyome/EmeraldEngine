@@ -296,7 +296,6 @@ void editor_host::imgui_initialize()
 
 void editor_host::register_asset_open_handlers(scene_manager& scenes)
 {
-	register_asset_open_handler<edit_particle_scene>(scenes, "Particle Editor", { ".eme" });
 	register_asset_open_handler<edit_timeline_scene>(scenes, "Timeline Editor", { ".etl" });
 }
 
@@ -328,7 +327,6 @@ void editor_host::imgui_scene_change(scene_manager& scenes)
 		change_scene<clustered_lighting_test_scene>(scenes);
 		change_scene<light_shadow_test_scene>(scenes);
 		change_scene<network_sandbox_scene>(scenes);
-		change_scene<edit_particle_scene>(scenes);
 		change_scene<edit_material_scene>(scenes);
 		change_scene<edit_timeline_scene>(scenes);
 		change_scene<setup_scene>(scenes);

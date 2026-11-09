@@ -2,6 +2,7 @@
 #include "Process/asset_preview_process.h"
 #include "scenes/editscene/edit_material_scene.h"
 #include "scenes/editscene/edit_model_scene.h"
+#include "scenes/editscene/edit_particle_scene.h"
 #include "framework.h"
 #include "Texture/texture_factory.h"
 #include "Graphics/render_data.h"
@@ -132,6 +133,22 @@ bool game_process::enter()
 				if (!self.has_process(asset_preview_process::make_key("model_editor", file_path)))
 					self.request_process(std::make_unique<asset_preview_process>(self, file_path, "model_editor",
 						[](scene_manager& scenes) { scenes.change_scene<edit_model_scene>(); }));
+			};
+			asset_browser::instance()->register_open_handler(std::move(handler));
+		}
+
+		//	パーティクルエディター
+		if (asset_browser::is_valid())
+		{
+			asset_browser::open_handler handler;
+			handler.name = "particle_editor_window";
+			handler.label = "Particle Editor (Window)";
+			handler.extensions = { ".eme" };
+			handler.open_file = [&self](const cache_string& file_path)
+			{
+				if (!self.has_process(asset_preview_process::make_key("particle_editor", file_path)))
+					self.request_process(std::make_unique<asset_preview_process>(self, file_path, "particle_editor",
+						[](scene_manager& scenes) { scenes.change_scene<edit_particle_scene>(); }));
 			};
 			asset_browser::instance()->register_open_handler(std::move(handler));
 		}

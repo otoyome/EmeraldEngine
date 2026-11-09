@@ -4,10 +4,12 @@
 #include "cereal/archives/json.hpp"
 #include "cereal/types/vector.hpp"
 
+#include <filesystem>
+
 namespace
 {
 	//	ミニゲームの記録保存先
-	static constexpr std::string_view file_path = "minigame_record.json";
+	static constexpr std::string_view file_path = "Saves/minigame_record.json";
 }
 
 template<class Archive>
@@ -59,6 +61,9 @@ minigame_record_data::~minigame_record_data()
 
 void minigame_record_data::save()
 {
+	std::error_code error;
+	std::filesystem::create_directories(std::filesystem::path(file_path).parent_path(), error);
+
 	std::ofstream ostream(file_path.data());
 	if (ostream.is_open())
 	{
