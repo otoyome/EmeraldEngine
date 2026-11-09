@@ -295,7 +295,7 @@ void collision_object::update()
 	world_bounds_valid = false;
 }
 
-void collision_object::debug_draw()
+void collision_object::debug_draw(engine_context& engine)
 {
 #if defined(USE_IMGUI)
 	if (!bounding_object || !is_flag(flags::draw_line))
@@ -308,19 +308,19 @@ void collision_object::debug_draw()
 		case collision::bounding_object::types::sphere:
 		{
 			auto object = std::static_pointer_cast<collision::bounding_sphere>(bounding_object);
-			QUEUE_DEBUG_PRIMITIVE_SPHERE(object->get_position().to_double3(), static_cast<float>(object->get_radius()), draw_color, true);
+			QUEUE_DEBUG_PRIMITIVE_SPHERE(engine, object->get_position().to_double3(), static_cast<float>(object->get_radius()), draw_color, true);
 			break;
 		}
 		case collision::bounding_object::types::capsule:
 		{
 			auto object = std::static_pointer_cast<collision::bounding_capsule>(bounding_object);
-			QUEUE_DEBUG_PRIMITIVE_CAPSULE(object->get_position().to_double3(), object->get_rotation().to_float4(), static_cast<float>(object->get_radius()), static_cast<float>(object->get_length()), draw_color, true);
+			QUEUE_DEBUG_PRIMITIVE_CAPSULE(engine, object->get_position().to_double3(), object->get_rotation().to_float4(), static_cast<float>(object->get_radius()), static_cast<float>(object->get_length()), draw_color, true);
 			break;
 		}
 		case collision::bounding_object::types::box:
 		{
 			auto object = std::static_pointer_cast<collision::bounding_box>(bounding_object);
-			QUEUE_DEBUG_PRIMITIVE_BOX(object->get_position().to_double3(), object->get_rotation().to_float4(), math::float3(object->get_local_scale()), draw_color, true);
+			QUEUE_DEBUG_PRIMITIVE_BOX(engine, object->get_position().to_double3(), object->get_rotation().to_float4(), math::float3(object->get_local_scale()), draw_color, true);
 			break;
 		}
 		case collision::bounding_object::types::mesh:
@@ -363,7 +363,7 @@ void collision_object::debug_draw()
 				math::float4 draw_color = is_selected ? draw_hit_color : draw_normal_color;
 				math::float3 center = { (node.min.x + node.max.x) * 0.5f, (node.min.y + node.max.y) * 0.5f, (node.min.z + node.max.z) * 0.5f };
 				math::float3 extent = { (node.max.x - node.min.x) * 0.5f, (node.max.y - node.min.y) * 0.5f, (node.max.z - node.min.z) * 0.5f };
-				QUEUE_DEBUG_PRIMITIVE_BOX(center, rotation, extent, draw_color, true);
+				QUEUE_DEBUG_PRIMITIVE_BOX(engine, center, rotation, extent, draw_color, true);
 				if (!node.is_leaf())
 					continue;
 
@@ -374,9 +374,9 @@ void collision_object::debug_draw()
 					auto a = (positions + triangle->a)->to_double3();
 					auto b = (positions + triangle->b)->to_double3();
 					auto c = (positions + triangle->c)->to_double3();
-					QUEUE_DEBUG_PRIMITIVE_LINE(a, b, draw_color, true);
-					QUEUE_DEBUG_PRIMITIVE_LINE(c, b, draw_color, true);
-					QUEUE_DEBUG_PRIMITIVE_LINE(a, c, draw_color, true);
+					QUEUE_DEBUG_PRIMITIVE_LINE(engine, a, b, draw_color, true);
+					QUEUE_DEBUG_PRIMITIVE_LINE(engine, c, b, draw_color, true);
+					QUEUE_DEBUG_PRIMITIVE_LINE(engine, a, c, draw_color, true);
 				}
 			}
 			break;

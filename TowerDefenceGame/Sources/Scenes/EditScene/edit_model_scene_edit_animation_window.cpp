@@ -192,7 +192,7 @@ void edit_model_scene::imgui_render_animation()
 		//	編集モデルのボーン表示
 		if (ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows) && display_bone)
 		{
-			editor_items::render_model_bones(*edit_model->get_model_instance(), selected_bones);
+			editor_items::render_model_bones(get_context(), *edit_model->get_model_instance(), selected_bones);
 		}
 	}
 	ImGui::End();
@@ -235,7 +235,7 @@ void edit_model_scene::imgui_render_ik()
 			//	IK情報ウィンドウ
 			auto model_instance = edit_model->get_model_instance();
 			auto ik_resource = edit_model->get_ik_resource();
-			editor_items::edit_ik(editor_context, model_instance, ik_resource);
+			editor_items::edit_ik(editor_context, get_context(), model_instance, ik_resource);
 		}
 	}
 	ImGui::End();
@@ -330,7 +330,7 @@ void edit_model_scene::imgui_retarget_window()
 		//	編集モデルのボーン表示
 		if (ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows))
 		{
-			editor_items::render_model_bones(*edit_model->get_model_instance(), selected_bones);
+			editor_items::render_model_bones(get_context(), *edit_model->get_model_instance(), selected_bones);
 		}
 	}
 	ImGui::End();

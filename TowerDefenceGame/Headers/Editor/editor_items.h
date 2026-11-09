@@ -11,6 +11,8 @@
 #include "ImGuizmo/ImSequencer.h"
 #include "im-neo-sequencer/imgui_neo_sequencer.h"
 
+class engine_context;
+
 template<class T>
 class console_variable;
 
@@ -188,13 +190,13 @@ private:
 	static void render_window_close_popup(std::shared_ptr<context>& context);
 
 public:	//	表示系
-	static void render_model_bones(const model_instance& model_instance, const std::vector<std::string_view>& selected_bones);
-	static void render_model_bones(const model_instance& model_instance, const std::vector<std::string>& selected_bones);
-	static void render_model_bones(const model_instance& model_instance, const char** selected_bones, std::size_t selected_bone_size);
+	static void render_model_bones(engine_context& engine, const model_instance& model_instance, const std::vector<std::string_view>& selected_bones);
+	static void render_model_bones(engine_context& engine, const model_instance& model_instance, const std::vector<std::string>& selected_bones);
+	static void render_model_bones(engine_context& engine, const model_instance& model_instance, const char** selected_bones, std::size_t selected_bone_size);
 
-	static void render_model_select_bones(const model_instance& model_instance, const std::vector<std::string_view>& selected_bones);
-	static void render_model_select_bones(const model_instance& model_instance, const std::vector<std::string>& selected_bones);
-	static void render_model_select_bones(const model_instance& model_instance, const char** selected_bones, std::size_t selected_bone_size);
+	static void render_model_select_bones(engine_context& engine, const model_instance& model_instance, const std::vector<std::string_view>& selected_bones);
+	static void render_model_select_bones(engine_context& engine, const model_instance& model_instance, const std::vector<std::string>& selected_bones);
+	static void render_model_select_bones(engine_context& engine, const model_instance& model_instance, const char** selected_bones, std::size_t selected_bone_size);
 
 public:	//	編集アイテム系
 	static bool edit_material(std::shared_ptr<context>& context, material_resource& material);
@@ -212,10 +214,10 @@ public:	//	編集アイテム系
 	//	アニメーション
 	static bool edit_animation_data(std::shared_ptr<context>& context, animation::data& animation_data);
 	static bool edit_animation_data_timeline(std::shared_ptr<context>& context, animation::data& animation_data);
-	static bool edit_ik(std::shared_ptr<context>& context, model_instance_ptr& model_instance, ik_resource_ptr& ik_resource);
+	static bool edit_ik(std::shared_ptr<context>& context, engine_context& engine, model_instance_ptr& model_instance, ik_resource_ptr& ik_resource);
 
 	//	エフェクト
-	static bool edit_effect_noeds(std::shared_ptr<context>& context, effect_instance_ptr& effect_instance);
+	static bool edit_effect_noeds(std::shared_ptr<context>& context, engine_context& engine, effect_instance_ptr& effect_instance);
 	static bool edit_effect_animation(std::shared_ptr<context>& context, effect_instance_ptr& effect_instance);
 
 private:	//	内部編集用関数

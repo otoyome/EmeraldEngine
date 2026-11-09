@@ -20,3 +20,10 @@ effect_manager& engine_context::get_effects() const
 {
 	return owner.get_effects();
 }
+
+#if defined(USE_IMGUI)
+debug_primitive_collector& engine_context::get_debug_primitives() const
+{
+	return owner.get_debug_primitives();
+}
+#endif	//	defined(USE_IMGUI)

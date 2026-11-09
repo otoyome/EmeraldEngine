@@ -15,7 +15,7 @@ class render_job_executor
 	{
 		std::string name;
 		std::string owner_name;
-		UINT sort_order;
+		std::uint64_t sort_key = 0;
 		Microsoft::WRL::ComPtr<ID3D11CommandList> command_list;
 		std::function<void()> task;
 	};
@@ -26,15 +26,18 @@ public:
 
 	void execute(std::function<render_job_function> task, std::string_view name, renderer_context& context, UINT sort_order, bool use_immediate_context = false, std::string_view owner_name = "framework");
 
-	void begin();
-	void render();
-	void end();
+	void set_process_order(UINT order) { process_order = order; }
 
 	//	全描画コマンド実行後に実行する関数
 	void register_post_rendering(std::function<void()> function)
 	{
 		post_render_function = function;
 	}
+
+public:
+	void begin();
+	void render();
+	void end();
 
 private:
 	void run(UINT context_index);
@@ -53,6 +56,9 @@ private:
 	std::function<void()> post_render_function;
 
 	std::vector<render_command_data> render_command_list;
+
+	UINT process_order = 0;
+	std::uint64_t sequence_counter = 0;
 };
 
 class render_job_registrar

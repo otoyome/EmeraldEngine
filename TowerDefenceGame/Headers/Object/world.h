@@ -12,6 +12,7 @@
 class object_manager;
 class scene_manager;
 class effect_manager;
+class debug_primitive_collector;
 
 //	ワールド
 class world
@@ -30,6 +31,9 @@ public:
 	scene_manager& get_scenes() { return *scenes; }
 	effect_manager& get_effects() { return *effects; }
 	engine_context& get_context() { return context; }
+#if defined(USE_IMGUI)
+	debug_primitive_collector& get_debug_primitives() { return *debug_primitives; }
+#endif	//	defined(USE_IMGUI)
 
 public:	//	描画用の情報収集
 	//	視点にするゲームカメラの検索
@@ -48,6 +52,9 @@ private:
 	std::unique_ptr<effect_manager> effects;
 	std::unique_ptr<object_manager> objects;
 	std::unique_ptr<scene_manager> scenes;
+#if defined(USE_IMGUI)
+	std::unique_ptr<debug_primitive_collector> debug_primitives;
+#endif	//	defined(USE_IMGUI)
 
 	light_collector lights_collector;
 	mesh_collector meshes_collector;

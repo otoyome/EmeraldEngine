@@ -1,29 +1,30 @@
 #include "Editor/editor_items.h"
+#include "Object/engine_context.h"
 
 #if defined(USE_IMGUI)
 #include <commdlg.h>
 #include <random>
 #include <set>
 
-void editor_items::render_model_bones(const model_instance& model_instance, const std::vector<std::string_view>& selected_bones)
+void editor_items::render_model_bones(engine_context& engine, const model_instance& model_instance, const std::vector<std::string_view>& selected_bones)
 {
 	std::vector<const char*> list;
 	for (auto& selected_bone : selected_bones)
 	{
 		list.push_back(selected_bone.data());
 	}
-	editor_items::render_model_bones(model_instance, list.data(), list.size());
+	editor_items::render_model_bones(engine, model_instance, list.data(), list.size());
 }
-void editor_items::render_model_bones(const model_instance& model_instance, const std::vector<std::string>& selected_bones)
+void editor_items::render_model_bones(engine_context& engine, const model_instance& model_instance, const std::vector<std::string>& selected_bones)
 {
 	std::vector<const char*> list;
 	for (auto& selected_bone : selected_bones)
 	{
 		list.push_back(selected_bone.data());
 	}
-	editor_items::render_model_bones(model_instance, list.data(), list.size());
+	editor_items::render_model_bones(engine, model_instance, list.data(), list.size());
 }
-void editor_items::render_model_bones(const model_instance& model_instance, const char** selected_bones, std::size_t selected_bone_size)
+void editor_items::render_model_bones(engine_context& engine, const model_instance& model_instance, const char** selected_bones, std::size_t selected_bone_size)
 {
 	auto& nodes = model_instance.get_nodes();
 	auto& meshes = model_instance.get_meshes();
@@ -104,15 +105,15 @@ void editor_items::render_model_bones(const model_instance& model_instance, cons
 			end[2].x = start.x + front.x * joint_length;
 			end[2].y = start.y + front.y * joint_length;
 			end[2].z = start.z + front.z * joint_length;
-			QUEUE_DEBUG_PRIMITIVE_LINE(start, end[0], math::float4(1.0f, 0.0f, 0.0f, 1.0f), false);
-			QUEUE_DEBUG_PRIMITIVE_LINE(start, end[1], math::float4(0.0f, 1.0f, 0.0f, 1.0f), false);
-			QUEUE_DEBUG_PRIMITIVE_LINE(start, end[2], math::float4(0.0f, 0.0f, 1.0f, 1.0f), false);
+			QUEUE_DEBUG_PRIMITIVE_LINE(engine, start, end[0], math::float4(1.0f, 0.0f, 0.0f, 1.0f), false);
+			QUEUE_DEBUG_PRIMITIVE_LINE(engine, start, end[1], math::float4(0.0f, 1.0f, 0.0f, 1.0f), false);
+			QUEUE_DEBUG_PRIMITIVE_LINE(engine, start, end[2], math::float4(0.0f, 0.0f, 1.0f, 1.0f), false);
 		}
 
 		//	Žq‹Ÿ‚È‚µ‚ÌŽž
 		if (children.empty())
 		{
-			QUEUE_DEBUG_PRIMITIVE_SPHERE(start, 0.1f, color, false);
+			QUEUE_DEBUG_PRIMITIVE_SPHERE(engine, start, 0.1f, color, false);
 			continue;
 		}
 
@@ -129,7 +130,7 @@ void editor_items::render_model_bones(const model_instance& model_instance, cons
 			float length = Vector.length();
 			if (length <= 0.000001f)
 			{
-				QUEUE_DEBUG_PRIMITIVE_SPHERE(start, 0.1f, color, false);
+				QUEUE_DEBUG_PRIMITIVE_SPHERE(engine, start, 0.1f, color, false);
 				continue;
 			}
 
@@ -167,41 +168,41 @@ void editor_items::render_model_bones(const model_instance& model_instance, cons
 			cmxpy.y = center.y - right.y * bone_length - up.y * bone_length;
 			cmxpy.z = center.z - right.z * bone_length - up.z * bone_length;
 
-			QUEUE_DEBUG_PRIMITIVE_LINE(start, cpxpy, color, false);
-			QUEUE_DEBUG_PRIMITIVE_LINE(start, cpxmy, color, false);
-			QUEUE_DEBUG_PRIMITIVE_LINE(start, cmxpy, color, false);
-			QUEUE_DEBUG_PRIMITIVE_LINE(start, cmxmy, color, false);
-			QUEUE_DEBUG_PRIMITIVE_LINE(cpxpy, cpxmy, color, false);
-			QUEUE_DEBUG_PRIMITIVE_LINE(cpxmy, cmxpy, color, false);
-			QUEUE_DEBUG_PRIMITIVE_LINE(cmxpy, cmxmy, color, false);
-			QUEUE_DEBUG_PRIMITIVE_LINE(cmxmy, cpxpy, color, false);
-			QUEUE_DEBUG_PRIMITIVE_LINE(cpxpy, end, color, false);
-			QUEUE_DEBUG_PRIMITIVE_LINE(cpxmy, end, color, false);
-			QUEUE_DEBUG_PRIMITIVE_LINE(cmxpy, end, color, false);
-			QUEUE_DEBUG_PRIMITIVE_LINE(cmxmy, end, color, false);
+			QUEUE_DEBUG_PRIMITIVE_LINE(engine, start, cpxpy, color, false);
+			QUEUE_DEBUG_PRIMITIVE_LINE(engine, start, cpxmy, color, false);
+			QUEUE_DEBUG_PRIMITIVE_LINE(engine, start, cmxpy, color, false);
+			QUEUE_DEBUG_PRIMITIVE_LINE(engine, start, cmxmy, color, false);
+			QUEUE_DEBUG_PRIMITIVE_LINE(engine, cpxpy, cpxmy, color, false);
+			QUEUE_DEBUG_PRIMITIVE_LINE(engine, cpxmy, cmxpy, color, false);
+			QUEUE_DEBUG_PRIMITIVE_LINE(engine, cmxpy, cmxmy, color, false);
+			QUEUE_DEBUG_PRIMITIVE_LINE(engine, cmxmy, cpxpy, color, false);
+			QUEUE_DEBUG_PRIMITIVE_LINE(engine, cpxpy, end, color, false);
+			QUEUE_DEBUG_PRIMITIVE_LINE(engine, cpxmy, end, color, false);
+			QUEUE_DEBUG_PRIMITIVE_LINE(engine, cmxpy, end, color, false);
+			QUEUE_DEBUG_PRIMITIVE_LINE(engine, cmxmy, end, color, false);
 		}
 	}
 }
 
-void editor_items::render_model_select_bones(const model_instance& model_instance, const std::vector<std::string_view>& selected_bones)
+void editor_items::render_model_select_bones(engine_context& engine, const model_instance& model_instance, const std::vector<std::string_view>& selected_bones)
 {
 	std::vector<const char*> list;
 	for (auto& selected_bone : selected_bones)
 	{
 		list.push_back(selected_bone.data());
 	}
-	editor_items::render_model_select_bones(model_instance, list.data(), list.size());
+	editor_items::render_model_select_bones(engine, model_instance, list.data(), list.size());
 }
-void editor_items::render_model_select_bones(const model_instance& model_instance, const std::vector<std::string>& selected_bones)
+void editor_items::render_model_select_bones(engine_context& engine, const model_instance& model_instance, const std::vector<std::string>& selected_bones)
 {
 	std::vector<const char*> list;
 	for (auto& selected_bone : selected_bones)
 	{
 		list.push_back(selected_bone.data());
 	}
-	editor_items::render_model_select_bones(model_instance, list.data(), list.size());
+	editor_items::render_model_select_bones(engine, model_instance, list.data(), list.size());
 }
-void editor_items::render_model_select_bones(const model_instance& model_instance, const char** selected_bones, std::size_t selected_bone_size)
+void editor_items::render_model_select_bones(engine_context& engine, const model_instance& model_instance, const char** selected_bones, std::size_t selected_bone_size)
 {
 	auto& nodes = model_instance.get_nodes();
 	auto& meshes = model_instance.get_meshes();
@@ -265,15 +266,15 @@ void editor_items::render_model_select_bones(const model_instance& model_instanc
 			end[2].x = start.x + front.x * joint_length;
 			end[2].y = start.y + front.y * joint_length;
 			end[2].z = start.z + front.z * joint_length;
-			QUEUE_DEBUG_PRIMITIVE_LINE(start, end[0], math::float4(1.0f, 0.0f, 0.0f, 1.0f), false);
-			QUEUE_DEBUG_PRIMITIVE_LINE(start, end[1], math::float4(0.0f, 1.0f, 0.0f, 1.0f), false);
-			QUEUE_DEBUG_PRIMITIVE_LINE(start, end[2], math::float4(0.0f, 0.0f, 1.0f, 1.0f), false);
+			QUEUE_DEBUG_PRIMITIVE_LINE(engine, start, end[0], math::float4(1.0f, 0.0f, 0.0f, 1.0f), false);
+			QUEUE_DEBUG_PRIMITIVE_LINE(engine, start, end[1], math::float4(0.0f, 1.0f, 0.0f, 1.0f), false);
+			QUEUE_DEBUG_PRIMITIVE_LINE(engine, start, end[2], math::float4(0.0f, 0.0f, 1.0f, 1.0f), false);
 		}
 
 		//	Žq‹Ÿ‚È‚µ‚ÌŽž
 		if (children.empty())
 		{
-			QUEUE_DEBUG_PRIMITIVE_SPHERE(start, 0.1f, color, false);
+			QUEUE_DEBUG_PRIMITIVE_SPHERE(engine, start, 0.1f, color, false);
 			continue;
 		}
 
@@ -290,7 +291,7 @@ void editor_items::render_model_select_bones(const model_instance& model_instanc
 			float length = Vector.length();
 			if (length <= 0.000001f)
 			{
-				QUEUE_DEBUG_PRIMITIVE_SPHERE(start, 0.1f, color, false);
+				QUEUE_DEBUG_PRIMITIVE_SPHERE(engine, start, 0.1f, color, false);
 				continue;
 			}
 
@@ -328,18 +329,18 @@ void editor_items::render_model_select_bones(const model_instance& model_instanc
 			cmxpy.y = center.y - right.y * bone_length - up.y * bone_length;
 			cmxpy.z = center.z - right.z * bone_length - up.z * bone_length;
 
-			QUEUE_DEBUG_PRIMITIVE_LINE(start, cpxpy, color, false);
-			QUEUE_DEBUG_PRIMITIVE_LINE(start, cpxmy, color, false);
-			QUEUE_DEBUG_PRIMITIVE_LINE(start, cmxpy, color, false);
-			QUEUE_DEBUG_PRIMITIVE_LINE(start, cmxmy, color, false);
-			QUEUE_DEBUG_PRIMITIVE_LINE(cpxpy, cpxmy, color, false);
-			QUEUE_DEBUG_PRIMITIVE_LINE(cpxmy, cmxpy, color, false);
-			QUEUE_DEBUG_PRIMITIVE_LINE(cmxpy, cmxmy, color, false);
-			QUEUE_DEBUG_PRIMITIVE_LINE(cmxmy, cpxpy, color, false);
-			QUEUE_DEBUG_PRIMITIVE_LINE(cpxpy, end, color, false);
-			QUEUE_DEBUG_PRIMITIVE_LINE(cpxmy, end, color, false);
-			QUEUE_DEBUG_PRIMITIVE_LINE(cmxpy, end, color, false);
-			QUEUE_DEBUG_PRIMITIVE_LINE(cmxmy, end, color, false);
+			QUEUE_DEBUG_PRIMITIVE_LINE(engine, start, cpxpy, color, false);
+			QUEUE_DEBUG_PRIMITIVE_LINE(engine, start, cpxmy, color, false);
+			QUEUE_DEBUG_PRIMITIVE_LINE(engine, start, cmxpy, color, false);
+			QUEUE_DEBUG_PRIMITIVE_LINE(engine, start, cmxmy, color, false);
+			QUEUE_DEBUG_PRIMITIVE_LINE(engine, cpxpy, cpxmy, color, false);
+			QUEUE_DEBUG_PRIMITIVE_LINE(engine, cpxmy, cmxpy, color, false);
+			QUEUE_DEBUG_PRIMITIVE_LINE(engine, cmxpy, cmxmy, color, false);
+			QUEUE_DEBUG_PRIMITIVE_LINE(engine, cmxmy, cpxpy, color, false);
+			QUEUE_DEBUG_PRIMITIVE_LINE(engine, cpxpy, end, color, false);
+			QUEUE_DEBUG_PRIMITIVE_LINE(engine, cpxmy, end, color, false);
+			QUEUE_DEBUG_PRIMITIVE_LINE(engine, cmxpy, end, color, false);
+			QUEUE_DEBUG_PRIMITIVE_LINE(engine, cmxmy, end, color, false);
 		}
 	}
 }

@@ -482,7 +482,7 @@ void world_renderer::collect(world& target)
 	if (builder)
 	{
 		builder(*render_data);
-		debug_primitive_manager::instance()->get_container(render_data->debug_draw_container, render_data->render_origin);
+		target.get_debug_primitives().get_container(render_data->debug_draw_container, render_data->render_origin);
 	}
 #endif // defined(USE_IMGUI)
 }

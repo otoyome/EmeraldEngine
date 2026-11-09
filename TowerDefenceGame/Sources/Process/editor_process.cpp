@@ -17,7 +17,6 @@ bool editor_process::enter()
 	{
 		editor_config_data::create_instance();
 		detail_profiler::create_instance();
-		debug_primitive_manager::create_instance();
 		editor_items::initialize();
 	}
 
@@ -43,7 +42,6 @@ void editor_process::exit()
 	//	エディター/デバッグ関係
 	{
 		editor_items::terminate();
-		debug_primitive_manager::delete_instance();
 		editor_config_data::delete_instance();
 		detail_profiler::delete_instance();
 	}

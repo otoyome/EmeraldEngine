@@ -6,6 +6,7 @@
 #include <mutex>
 
 //	当たり判定オブジェクト
+class engine_context;
 class collision_object : public std::enable_shared_from_this<collision_object>
 {
 public:
@@ -96,7 +97,7 @@ public:
 	void set_collision_stay(on_collision_stay collision_stay);
 	void set_collision_end(on_collision_end collision_end);
 
-	void debug_draw();
+	void debug_draw(engine_context& engine);
 
 #if defined(USE_IMGUI)
 	void imgui_render();

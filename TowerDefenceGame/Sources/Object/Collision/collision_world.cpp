@@ -319,12 +319,12 @@ void collision_world::step(float elapsed_time, int max_substep, float fixed_time
 }
 
 #if defined(USE_IMGUI)
-void collision_world::debug_primitive_draw()
+void collision_world::debug_primitive_draw(engine_context& engine)
 {
 	//	デバッグライン描画
 	for (auto& object : collision_objects)
 	{
-		object->debug_draw();
+		object->debug_draw(engine);
 	}
 }
 

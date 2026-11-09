@@ -10,6 +10,7 @@
 using collision_object_ptr = std::shared_ptr<collision_object>;
 
 //	Õ“Ë”»’èƒ[ƒ‹ƒh
+class engine_context;
 class collision_world
 {
 public:
@@ -43,7 +44,7 @@ public:
 	void finalize();
 
 #if defined(USE_IMGUI)
-	void debug_primitive_draw();
+	void debug_primitive_draw(engine_context& engine);
 	void imgui_render();
 #endif // defined(USE_IMGUI)
 

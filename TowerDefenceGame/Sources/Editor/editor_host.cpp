@@ -341,10 +341,14 @@ void editor_host::imgui_scene_change(scene_manager& scenes)
 
 void editor_host::build_debug_primitives(world* target, const render_data_context& render_data)
 {
+	if (!target)
+		return;
+	engine_context& engine = target->get_context();
+
 	//	衝突判定のデバッグ表示
 	if (draw_collision_variable.get() && target)
 	{
-		target->get_objects().get_world().debug_primitive_draw();
+		target->get_objects().get_world().debug_primitive_draw(engine);
 	}
 
 	//	モデルAABBのデバッグ表示
@@ -356,7 +360,7 @@ void editor_host::build_debug_primitives(world* target, const render_data_contex
 		{
 			math::float3 scale((buffer_data.bounds_max.x - buffer_data.bounds_min.x) * 0.5f, (buffer_data.bounds_max.y - buffer_data.bounds_min.y) * 0.5f, (buffer_data.bounds_max.z - buffer_data.bounds_min.z) * 0.5f);
 			math::float3 center(buffer_data.bounds_min.x + scale.x, buffer_data.bounds_min.y + scale.y, buffer_data.bounds_min.z + scale.z);
-			QUEUE_DEBUG_PRIMITIVE_BOX(center, rotation, scale, color, true);
+			QUEUE_DEBUG_PRIMITIVE_BOX(engine, center, rotation, scale, color, true);
 		}
 	}
 
@@ -374,20 +378,20 @@ void editor_host::build_debug_primitives(world* target, const render_data_contex
 		if (display_grid_xz)
 		{
 			math::float4 line_color = math::float4(1.0f, 0.0f, 1.0f, 1);
-			QUEUE_DEBUG_PRIMITIVE_LINE(math::float3(len, 0.0f, -grid_length), math::float3(len, 0.0f, +grid_length), line_color, true);
-			QUEUE_DEBUG_PRIMITIVE_LINE(math::float3(-grid_length, 0.0f, len), math::float3(+grid_length, 0.0f, len), line_color, true);
+			QUEUE_DEBUG_PRIMITIVE_LINE(engine, math::float3(len, 0.0f, -grid_length), math::float3(len, 0.0f, +grid_length), line_color, true);
+			QUEUE_DEBUG_PRIMITIVE_LINE(engine, math::float3(-grid_length, 0.0f, len), math::float3(+grid_length, 0.0f, len), line_color, true);
 		}
 		if (display_grid_xy)
 		{
 			math::float4 line_color = math::float4(1.0f, 1.0f, 0.0f, 1);
-			QUEUE_DEBUG_PRIMITIVE_LINE(math::float3(len, -grid_length, 0.0f), math::float3(len, +grid_length, 0.0f), line_color, true);
-			QUEUE_DEBUG_PRIMITIVE_LINE(math::float3(-grid_length, len, 0.0f), math::float3(+grid_length, len, 0.0f), line_color, true);
+			QUEUE_DEBUG_PRIMITIVE_LINE(engine, math::float3(len, -grid_length, 0.0f), math::float3(len, +grid_length, 0.0f), line_color, true);
+			QUEUE_DEBUG_PRIMITIVE_LINE(engine, math::float3(-grid_length, len, 0.0f), math::float3(+grid_length, len, 0.0f), line_color, true);
 		}
 		if (display_grid_yz)
 		{
 			math::float4 line_color = math::float4(0.0f, 1.0f, 1.0f, 1);
-			QUEUE_DEBUG_PRIMITIVE_LINE(math::float3(0.0f, len, -grid_length), math::float3(0.0f, len, +grid_length), line_color, true);
-			QUEUE_DEBUG_PRIMITIVE_LINE(math::float3(0.0f, -grid_length, len), math::float3(0.0f, +grid_length, len), line_color, true);
+			QUEUE_DEBUG_PRIMITIVE_LINE(engine, math::float3(0.0f, len, -grid_length), math::float3(0.0f, len, +grid_length), line_color, true);
+			QUEUE_DEBUG_PRIMITIVE_LINE(engine, math::float3(0.0f, -grid_length, len), math::float3(0.0f, +grid_length, len), line_color, true);
 		}
 	}
 }

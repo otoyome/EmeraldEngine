@@ -4,8 +4,20 @@
 #include "collision/box.h"
 
 
-debug_primitive_manager::debug_primitive_manager()
+debug_primitive_collector::debug_primitive_collector()
 {
+}
+
+debug_primitive_collector::~debug_primitive_collector()
+{
+}
+
+void debug_primitive_collector::create_buffers()
+{
+	if (buffers_created)
+		return;
+	buffers_created = true;
+
 	HRESULT hr;
 	auto device = render_data::instance()->get_device();
 
@@ -38,11 +50,7 @@ debug_primitive_manager::debug_primitive_manager()
 	}
 }
 
-debug_primitive_manager::~debug_primitive_manager()
-{
-}
-
-void debug_primitive_manager::get_container(debug_draw_primitive_container& container, const math::vector3d& render_origin)
+void debug_primitive_collector::get_container(debug_draw_primitive_container& container, const math::vector3d& render_origin)
 {
 	auto& upload_list = render_data::instance()->get_upload_list();
 
@@ -54,6 +62,7 @@ void debug_primitive_manager::get_container(debug_draw_primitive_container& cont
 		if (vertices[index].empty())
 			continue;
 
+		create_buffers();
 		auto& main_mesh = container.line_buffer_datas[index].color_meshs.emplace_back();
 		auto& view = vertex_buffer_views[index].begin()->second;
 
@@ -80,7 +89,7 @@ void debug_primitive_manager::get_container(debug_draw_primitive_container& cont
 	}
 }
 
-void debug_primitive_manager::queue_line(const math::double3 start, const math::double3 end, const math::float4 color, bool depth_write)
+void debug_primitive_collector::queue_line(const math::double3 start, const math::double3 end, const math::float4 color, bool depth_write)
 {
 	int index = depth_write ? 0 : 1;
 	if (vertices[index].size() + 2 >= VertexCount)
@@ -95,7 +104,7 @@ void debug_primitive_manager::queue_line(const math::double3 start, const math::
 	vertices[index].emplace_back(vertex);
 }
 
-void debug_primitive_manager::queue_sphere(const math::double3 center, float radius, const math::float4 color, bool depth_write)
+void debug_primitive_collector::queue_sphere(const math::double3 center, float radius, const math::float4 color, bool depth_write)
 {
 	//	ãÖÇÃå`èÛÇìoò^
 	std::vector<math::double3> vertices;
@@ -157,7 +166,7 @@ void debug_primitive_manager::queue_sphere(const math::double3 center, float rad
 	}
 }
 
-void debug_primitive_manager::queue_capsule(const math::double3 center, const math::float4 rotation, float radius, float length, const math::float4& color, bool depth_write)
+void debug_primitive_collector::queue_capsule(const math::double3 center, const math::float4 rotation, float radius, float length, const math::float4& color, bool depth_write)
 {
 	//	ÉJÉvÉZÉãå`èÛÇìoò^
 	const math::quaternionf quaternion = math::quaternionf(rotation).normalized();
@@ -211,7 +220,7 @@ void debug_primitive_manager::queue_capsule(const math::double3 center, const ma
 	queue_line(position, position2, color, depth_write);
 }
 
-void debug_primitive_manager::queue_box(const math::double3 position, const math::float4 rotation, const math::float3 scale, const math::float4& color, bool depth_write)
+void debug_primitive_collector::queue_box(const math::double3 position, const math::float4 rotation, const math::float3 scale, const math::float4& color, bool depth_write)
 {
 	collision::bounding_box box{math::double3(scale), math::double4(rotation), position};
 	math::double3 vertices[8];
@@ -234,22 +243,22 @@ void debug_primitive_manager::queue_box(const math::double3 position, const math
 }
 
 
-void debug_primitive_manager::queue_line(const math::float3 start, const math::float3 end, const math::float4 color, bool depth_write)
+void debug_primitive_collector::queue_line(const math::float3 start, const math::float3 end, const math::float4 color, bool depth_write)
 {
 	queue_line(math::double3(start), math::double3(end), color, depth_write);
 }
 
-void debug_primitive_manager::queue_sphere(const math::float3 center, float radius, const math::float4 color, bool depth_write)
+void debug_primitive_collector::queue_sphere(const math::float3 center, float radius, const math::float4 color, bool depth_write)
 {
 	queue_sphere(math::double3(center), radius, color, depth_write);
 }
 
-void debug_primitive_manager::queue_capsule(const math::float3 center, const math::float4 rotation, float radius, float length, const math::float4& color, bool depth_write)
+void debug_primitive_collector::queue_capsule(const math::float3 center, const math::float4 rotation, float radius, float length, const math::float4& color, bool depth_write)
 {
 	queue_capsule(math::double3(center), rotation, radius, length, color, depth_write);
 }
 
-void debug_primitive_manager::queue_box(const math::float3 position, const math::float4 rotation, const math::float3 scale, const math::float4& color, bool depth_write)
+void debug_primitive_collector::queue_box(const math::float3 position, const math::float4 rotation, const math::float3 scale, const math::float4& color, bool depth_write)
 {
 	queue_box(math::double3(position), rotation, scale, color, depth_write);
 }

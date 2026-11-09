@@ -185,8 +185,12 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 
 	//	描画コマンド実行
 	renderer->begin_frame();
-	for (process_entry& entry : processes)
-		entry.process->submit_render_jobs(elapsed_time);
+	for (std::size_t index = 0; index < processes.size(); ++index)
+	{
+		renderer->set_process_order(static_cast<UINT>(index));
+		processes[index].process->submit_render_jobs(elapsed_time);
+	}
+	renderer->set_process_order(0);
 	renderer->end_frame();
 
 	//	描画後処理

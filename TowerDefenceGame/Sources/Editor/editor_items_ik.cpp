@@ -1,4 +1,5 @@
 #include "Editor/editor_items.h"
+#include "Object/engine_context.h"
 
 #if defined(USE_IMGUI)
 #include <commdlg.h>
@@ -25,8 +26,10 @@ namespace
 		{
 		}
 
-		void set_data(model_instance_ptr model_instance, ik_resource_ptr ik_resource)
+		void set_data(engine_context& engine, model_instance_ptr model_instance, ik_resource_ptr ik_resource)
 		{
+			this->engine = &engine;
+
 			if (this->model_instance == model_instance && this->ik_resource == ik_resource)
 				return;
 
@@ -150,7 +153,7 @@ namespace
 			if (display_bone)
 			{
 				selected_bone_names.clear();
-				editor_items::render_model_bones(*model_instance, selected_bone_names);
+				editor_items::render_model_bones(*engine, *model_instance, selected_bone_names);
 			}
 		}
 
@@ -686,14 +689,14 @@ namespace
 					{
 						auto& middle_node = model_instance->get_nodes()[index];
 						const math::vector3f global_position = math::vector3f::transform_coord(ik_data.pole_offset, middle_node.global_transform);
-						QUEUE_DEBUG_PRIMITIVE_SPHERE(global_position.to_float3(), 0.1f, math::float4(1, 1, 1, 1), true);
+						QUEUE_DEBUG_PRIMITIVE_SPHERE(*engine, global_position.to_float3(), 0.1f, math::float4(1, 1, 1, 1), true);
 					}
 				}
 
 				ik_solver->solve(index, test_ik.position);
 
 				//	ポイント座標表示
-				QUEUE_DEBUG_PRIMITIVE_SPHERE(test_ik.position, 0.1f, math::float4(1, 1, 1, 1), true);
+				QUEUE_DEBUG_PRIMITIVE_SPHERE(*engine, test_ik.position, 0.1f, math::float4(1, 1, 1, 1), true);
 			}
 		}
 
@@ -797,7 +800,7 @@ namespace
 							}
 						}
 
-						QUEUE_DEBUG_PRIMITIVE_BOX(t, q, s, math::float4(1, 1, 1, 1), true);
+						QUEUE_DEBUG_PRIMITIVE_BOX(*engine, t, q, s, math::float4(1, 1, 1, 1), true);
 						break;
 					}
 					case ::ik_resource::behavior_mode::lookat:
@@ -806,7 +809,7 @@ namespace
 						{
 							ik_solver->solve(solve_id, test_ik.position);
 						}
-						QUEUE_DEBUG_PRIMITIVE_SPHERE(test_ik.position, 0.1f, math::float4(1, 1, 1, 1), true);
+						QUEUE_DEBUG_PRIMITIVE_SPHERE(*engine, test_ik.position, 0.1f, math::float4(1, 1, 1, 1), true);
 						break;
 					}
 				}
@@ -815,6 +818,7 @@ namespace
 
 	private:
 		model_instance_ptr model_instance;
+		engine_context* engine = nullptr;
 		bool display_bone = true;
 		ik_resource_ptr ik_resource;
 		ik_solver_ptr ik_solver;
@@ -834,14 +838,14 @@ namespace
 	};
 }
 
-bool editor_items::edit_ik(std::shared_ptr<context>& context, model_instance_ptr& model_instance, ik_resource_ptr& ik_resource)
+bool editor_items::edit_ik(std::shared_ptr<context>& context, engine_context& engine, model_instance_ptr& model_instance, ik_resource_ptr& ik_resource)
 {
 	{
 		if (!context->ik_editor)
 			context->ik_editor = std::make_unique<ik_resource_editor>();
 
 		ik_resource_editor* editor = static_cast<ik_resource_editor*>(context->ik_editor.get());
-		editor->set_data(model_instance, ik_resource);
+		editor->set_data(engine, model_instance, ik_resource);
 		editor->render(context);
 	}
 	return true;

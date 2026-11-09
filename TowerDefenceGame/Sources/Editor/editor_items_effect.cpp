@@ -1,4 +1,5 @@
 #include "Editor/editor_items.h"
+#include "Object/engine_context.h"
 #include "Texture/texture_importer.h"
 
 #if defined(USE_IMGUI)
@@ -66,7 +67,7 @@ namespace
     }
 }
 
-bool editor_items::edit_effect_noeds(std::shared_ptr<context>& context, effect_instance_ptr& effect_instance)
+bool editor_items::edit_effect_noeds(std::shared_ptr<context>& context, engine_context& engine, effect_instance_ptr& effect_instance)
 {
 	bool edit_flag = false;
 
@@ -151,7 +152,7 @@ bool editor_items::edit_effect_noeds(std::shared_ptr<context>& context, effect_i
 					math::vector3f s, t;
 					math::quaternionf r;
 					math::matrixf(effect_instance->get_nodes()[node_index].global_transform).decompose(s, r, t);
-					QUEUE_DEBUG_PRIMITIVE_SPHERE(t.to_float3(), 1.0f, draw_color, true);
+					QUEUE_DEBUG_PRIMITIVE_SPHERE(engine, t.to_float3(), 1.0f, draw_color, true);
 				}
 
 				//	ƒ‚ƒfƒ‹
@@ -257,7 +258,7 @@ bool editor_items::edit_effect_noeds(std::shared_ptr<context>& context, effect_i
 								math::vector3f s, t;
 								math::quaternionf r;
 								math::matrixf(effect_instance->get_nodes()[node_index].global_transform).decompose(s, r, t);
-								QUEUE_DEBUG_PRIMITIVE_BOX(t.to_float3(), r.to_float4(), s.to_float3(), draw_color, true);
+								QUEUE_DEBUG_PRIMITIVE_BOX(engine, t.to_float3(), r.to_float4(), s.to_float3(), draw_color, true);
 							}
 							ImGui::Unindent();
 						}

@@ -22,8 +22,11 @@ public:
 
 	const std::shared_ptr<render_job_executor>& get_executor() const { return executor; }
 
-	//	
+	//	描画最後に上書きしたいものがあれば
 	void set_overlay(overlay_function overlay);
+
+	//	プロセスの位置設定
+	void set_process_order(UINT order) { executor->set_process_order(order); }
 
 	void begin_frame();
 	void end_frame();

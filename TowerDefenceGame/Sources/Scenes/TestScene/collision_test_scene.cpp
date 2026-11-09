@@ -135,7 +135,7 @@ namespace
 
 #if defined(USE_IMGUI)
 	//	形状描画
-	void draw_shape(const collision::bounding_object& object, const math::float4& color, const math::float3& offset = { 0.0f, 0.0f, 0.0f })
+	void draw_shape(engine_context& engine, const collision::bounding_object& object, const math::float4& color, const math::float3& offset = { 0.0f, 0.0f, 0.0f })
 	{
 		math::float3 position = add3(object.get_position().to_float3(), offset);
 		switch (object.get_type())
@@ -143,18 +143,18 @@ namespace
 			case collision::bounding_object::types::sphere:
 			{
 				auto& sphere = static_cast<const collision::bounding_sphere&>(object);
-				QUEUE_DEBUG_PRIMITIVE_SPHERE(position, static_cast<float>(sphere.get_radius()), color, true);
+				QUEUE_DEBUG_PRIMITIVE_SPHERE(engine, position, static_cast<float>(sphere.get_radius()), color, true);
 				break;
 			}
 			case collision::bounding_object::types::capsule:
 			{
 				auto& capsule = static_cast<const collision::bounding_capsule&>(object);
-				QUEUE_DEBUG_PRIMITIVE_CAPSULE(position, capsule.get_rotation().to_float4(), static_cast<float>(capsule.get_radius()), static_cast<float>(capsule.get_length()), color, true);
+				QUEUE_DEBUG_PRIMITIVE_CAPSULE(engine, position, capsule.get_rotation().to_float4(), static_cast<float>(capsule.get_radius()), static_cast<float>(capsule.get_length()), color, true);
 				break;
 			}
 			case collision::bounding_object::types::box:
 			{
-				QUEUE_DEBUG_PRIMITIVE_BOX(position, object.get_rotation().to_float4(), math::float3(object.get_local_scale()), color, true);
+				QUEUE_DEBUG_PRIMITIVE_BOX(engine, position, object.get_rotation().to_float4(), math::float3(object.get_local_scale()), color, true);
 				break;
 			}
 			case collision::bounding_object::types::mesh:
@@ -169,9 +169,9 @@ namespace
 					const UINT indices[3] = { triangle.a, triangle.b, triangle.c };
 					for (int index = 0; index < 3; ++index)
 						points[index] = ((math::vector3f::transform_coord(math::vector3f(positions[indices[index]]), Transform)) + Offset).to_float3();
-					QUEUE_DEBUG_PRIMITIVE_LINE(points[0], points[1], color, true);
-					QUEUE_DEBUG_PRIMITIVE_LINE(points[1], points[2], color, true);
-					QUEUE_DEBUG_PRIMITIVE_LINE(points[2], points[0], color, true);
+					QUEUE_DEBUG_PRIMITIVE_LINE(engine, points[0], points[1], color, true);
+					QUEUE_DEBUG_PRIMITIVE_LINE(engine, points[1], points[2], color, true);
+					QUEUE_DEBUG_PRIMITIVE_LINE(engine, points[2], points[0], color, true);
 				}
 				break;
 			}
@@ -179,10 +179,10 @@ namespace
 	}
 
 	//	点と法線の描画
-	void draw_point_normal(const math::float3& point, const math::float3& normal, float length, const math::float4& color)
+	void draw_point_normal(engine_context& engine, const math::float3& point, const math::float3& normal, float length, const math::float4& color)
 	{
-		QUEUE_DEBUG_PRIMITIVE_SPHERE(point, 0.03f * unit, color, false);
-		QUEUE_DEBUG_PRIMITIVE_LINE(point, add3(point, scale3(normal, length)), color, false);
+		QUEUE_DEBUG_PRIMITIVE_SPHERE(engine, point, 0.03f * unit, color, false);
+		QUEUE_DEBUG_PRIMITIVE_LINE(engine, point, add3(point, scale3(normal, length)), color, false);
 	}
 
 	//	形状設定の編集
@@ -435,18 +435,18 @@ void collision_test_scene::update_pair_test()
 #if defined(USE_IMGUI)
 	const math::float4 normal_color = { 1.0f, 1.0f, 1.0f, 1.0f };
 	const math::float4 hit_color = { 1.0f, 0.2f, 0.2f, 1.0f };
-	draw_shape(*a, hit_ab ? hit_color : math::float4{ 0.4f, 0.8f, 1.0f, 1.0f });
-	draw_shape(*b, hit_ba ? hit_color : normal_color);
+	draw_shape(get_context(), *a, hit_ab ? hit_color : math::float4{ 0.4f, 0.8f, 1.0f, 1.0f });
+	draw_shape(get_context(), *b, hit_ba ? hit_color : normal_color);
 
 	//	A基準の接触(黄)、B基準の接触(水色)
 	for (size_t index = 0; index < intersect_ab.size(); ++index)
-		draw_point_normal(to_float_info(intersect_ab[index]).point, to_float_info(intersect_ab[index]).normal, std::max(to_float_info(intersect_ab[index]).length, 0.3f * unit), { 1.0f, 1.0f, 0.0f, 1.0f });
+		draw_point_normal(get_context(), to_float_info(intersect_ab[index]).point, to_float_info(intersect_ab[index]).normal, std::max(to_float_info(intersect_ab[index]).length, 0.3f * unit), { 1.0f, 1.0f, 0.0f, 1.0f });
 	for (size_t index = 0; index < intersect_ba.size(); ++index)
-		draw_point_normal(to_float_info(intersect_ba[index]).point, to_float_info(intersect_ba[index]).normal, std::max(to_float_info(intersect_ba[index]).length, 0.3f * unit), { 0.0f, 1.0f, 1.0f, 1.0f });
+		draw_point_normal(get_context(), to_float_info(intersect_ba[index]).point, to_float_info(intersect_ba[index]).normal, std::max(to_float_info(intersect_ba[index]).length, 0.3f * unit), { 0.0f, 1.0f, 1.0f, 1.0f });
 
 	//	押し出し後のAを緑で表示
 	if (draw_ghost && hit_ab && intersect_ab.size() > 0)
-		draw_shape(*a, { 0.2f, 1.0f, 0.2f, 1.0f }, scale3(to_float_info(intersect_ab[0]).normal, to_float_info(intersect_ab[0]).length));
+		draw_shape(get_context(), *a, { 0.2f, 1.0f, 0.2f, 1.0f }, scale3(to_float_info(intersect_ab[0]).normal, to_float_info(intersect_ab[0]).length));
 #endif	//	defined(USE_IMGUI)
 }
 
@@ -461,8 +461,8 @@ void collision_test_scene::update_cast_test()
 	cast_hit = execute_cast(desc, *target, &cast_intersect);
 
 #if defined(USE_IMGUI)
-	draw_shape(*target, cast_hit ? math::float4{ 1.0f, 0.2f, 0.2f, 1.0f } : math::float4{ 1.0f, 1.0f, 1.0f, 1.0f });
-	QUEUE_DEBUG_PRIMITIVE_LINE(desc.start, desc.end, math::float4(1.0f, 1.0f, 0.0f, 1.0f), false);
+	draw_shape(get_context(), *target, cast_hit ? math::float4{ 1.0f, 0.2f, 0.2f, 1.0f } : math::float4{ 1.0f, 1.0f, 1.0f, 1.0f });
+	QUEUE_DEBUG_PRIMITIVE_LINE(get_context(), desc.start, desc.end, math::float4(1.0f, 1.0f, 0.0f, 1.0f), false);
 
 	//	始点(灰)・終点(暗灰)・接触時(橙)
 	auto draw_caster = [&](const math::float3& center, const math::float4& color)
@@ -470,13 +470,13 @@ void collision_test_scene::update_cast_test()
 		switch (desc.type)
 		{
 			case cast_types::segment:
-				QUEUE_DEBUG_PRIMITIVE_SPHERE(center, 0.03f * unit, color, false);
+				QUEUE_DEBUG_PRIMITIVE_SPHERE(get_context(), center, 0.03f * unit, color, false);
 				break;
 			case cast_types::sphere:
-				QUEUE_DEBUG_PRIMITIVE_SPHERE(center, desc.radius, color, true);
+				QUEUE_DEBUG_PRIMITIVE_SPHERE(get_context(), center, desc.radius, color, true);
 				break;
 			case cast_types::capsule:
-				QUEUE_DEBUG_PRIMITIVE_CAPSULE(center, to_quaternion(desc.rotation), desc.radius, desc.length, color, true);
+				QUEUE_DEBUG_PRIMITIVE_CAPSULE(get_context(), center, to_quaternion(desc.rotation), desc.radius, desc.length, color, true);
 				break;
 		}
 	};
@@ -487,7 +487,7 @@ void collision_test_scene::update_cast_test()
 		const auto info = to_float_info(cast_intersect[0]);
 		draw_caster(info.point, { 1.0f, 0.6f, 0.0f, 1.0f });
 		math::float3 contact = desc.type == cast_types::segment ? info.point : info.point2;
-		draw_point_normal(contact, info.normal, 0.5f * unit, { 0.0f, 1.0f, 1.0f, 1.0f });
+		draw_point_normal(get_context(), contact, info.normal, 0.5f * unit, { 0.0f, 1.0f, 1.0f, 1.0f });
 	}
 #endif	//	defined(USE_IMGUI)
 }

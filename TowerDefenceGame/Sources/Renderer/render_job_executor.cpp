@@ -11,6 +11,16 @@
 #include "imgui/imgui_impl_win32.h"
 #endif // defined(USE_IMGUI)
 
+namespace
+{
+	std::uint64_t make_sort_key(UINT process_order, UINT sort_order, std::uint64_t sequence)
+	{
+		_ASSERT_EXPR(process_order < (1u << 8), L"process_order overflow");
+		_ASSERT_EXPR(sort_order < (1u << 24), L"sort_order overflow");
+		return (static_cast<std::uint64_t>(process_order) << 56) | (static_cast<std::uint64_t>(sort_order) << 32) | (sequence & 0xFFFFFFFFull);
+	}
+}
+
 render_job_executor::render_job_executor(UINT num_threads)
 : running(true)
 {
@@ -57,7 +67,7 @@ void render_job_executor::execute(std::function<render_job_function> task, std::
 		render_command_data command_data;
 		command_data.name = name_text;
 		command_data.owner_name = owner_text;
-		command_data.sort_order = sort_order;
+		command_data.sort_key = make_sort_key(process_order, sort_order, sequence_counter++);
 		command_data.task = std::function<void()>(
 			[task, name_text, owner_text, context]()
 			{
@@ -81,8 +91,9 @@ void render_job_executor::execute(std::function<render_job_function> task, std::
 	else
 	{
 		std::lock_guard<std::mutex> lock_guard(mutex);
+		const std::uint64_t command_sort_key = make_sort_key(process_order, sort_order, sequence_counter++);
 		auto task_function = std::make_shared<std::function<void(ID3D11DeviceContext*)>>(
-			[task, name_text, owner_text, context, sort_order, this](ID3D11DeviceContext* deferred_context)
+			[task, name_text, owner_text, context, command_sort_key, this](ID3D11DeviceContext* deferred_context)
 			{
 				//	描画コマンド積み込み
 				graphics_context g_context;
@@ -102,7 +113,7 @@ void render_job_executor::execute(std::function<render_job_function> task, std::
 				render_command_data command_data;
 				command_data.name = name_text;
 				command_data.owner_name = owner_text;
-				command_data.sort_order = sort_order;
+				command_data.sort_key = command_sort_key;
 				deferred_context->FinishCommandList(false, command_data.command_list.GetAddressOf());
 				this->register_command(command_data);
 			} );
@@ -120,6 +131,9 @@ void render_job_executor::execute(std::function<render_job_function> task, std::
 
 void render_job_executor::begin()
 {
+	//	積んだ順はフレームごとに数え直す
+	sequence_counter = 0;
+
 	//	常駐GPUスコープ計測フレーム開始
 	DETAIL_PROFILE_GPU_BEGIN_FRAME();
 
@@ -149,7 +163,8 @@ void render_job_executor::render()
 	std::sort(local_command_list.begin(), local_command_list.end(),
 		[](const render_command_data& l, const render_command_data& r)
 		{
-			return l.sort_order < r.sort_order;
+			//	プロセスごとにまとめ、同じ順番の物は積んだ順にする
+			return l.sort_key < r.sort_key;
 		}
 	);
 

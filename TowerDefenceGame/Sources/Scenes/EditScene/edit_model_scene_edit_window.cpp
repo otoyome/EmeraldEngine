@@ -525,7 +525,7 @@ void edit_model_scene::update_vertex_color_edit()
 	//	頂点編集時の座標表示
 	if (brush_data.on)
 	{
-		QUEUE_DEBUG_PRIMITIVE_SPHERE(brush_data.position, brush_data.radius, math::float4(1, 1, 1, 1), true);
+		QUEUE_DEBUG_PRIMITIVE_SPHERE(get_context(), brush_data.position, brush_data.radius, math::float4(1, 1, 1, 1), true);
 	}
 }
 

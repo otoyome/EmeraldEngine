@@ -4,10 +4,6 @@
 #include "Material/material_instance.h"
 #include "collision/box.h"
 
-#if defined(USE_IMGUI)
-#include "Graphics/debug_primitive_collector.h"
-#endif	//	defined(USE_IMGUI)
-
 bloom_data::bloom_data()
 {
 	image_kernel = texture_resource_utility::load_texture("Assets/Resources/Textures/comvolution_bloom_default_kernel.etx");
@@ -300,27 +296,5 @@ void post_process_volume_collector::collect(post_process_volume_container& conta
 		container.selected_volume = result;
 	}
 
-#if defined(USE_IMGUI)
-	//	”ÍˆÍ•\Ž¦
-	{
-		for (const auto& instance : volumes)
-		{
-			if (!instance)
-				continue;
-
-			if (instance->is_flag(post_process_volume::flags::unbind) ||
-				(!instance->is_flag(post_process_volume::flags::active) &&
-				 !instance->is_flag(post_process_volume::flags::debug_draw)))
-			{
-				continue;
-			}
-
-			math::float4 rotation = { 0.0f, 0.0f, 0.0f, 1.0f };
-			math::float4 color = { 0.0f, 1.0f, 0.0f, 1.0f };
-			QUEUE_DEBUG_PRIMITIVE_BOX(instance->get_position().to_double3(), rotation, instance->get_outer_range(), color, true);
-			QUEUE_DEBUG_PRIMITIVE_BOX(instance->get_position().to_double3(), rotation, instance->get_inner_range(), color, true);
-		}
-	}
-#endif	//	defined(USE_IMGUI)
 }
 

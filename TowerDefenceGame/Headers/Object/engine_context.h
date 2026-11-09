@@ -4,6 +4,7 @@ class world;
 class object_manager;
 class scene_manager;
 class effect_manager;
+class debug_primitive_collector;
 
 //	エンジンコンテキスト
 class engine_context
@@ -22,6 +23,9 @@ public:
 	object_manager& get_objects() const;
 	scene_manager& get_scenes() const;
 	effect_manager& get_effects() const;
+#if defined(USE_IMGUI)
+	debug_primitive_collector& get_debug_primitives() const;
+#endif	//	defined(USE_IMGUI)
 
 private:
 	world& owner;

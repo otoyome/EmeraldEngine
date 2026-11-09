@@ -298,7 +298,7 @@ void edit_particle_scene::imgui_render_core()
 		//	エフェクト編集
 		if (ImGui::Begin("Edit Effect"))
 		{
-			bool edit = editor_items::edit_effect_noeds(editor_context, edit_instance);
+			bool edit = editor_items::edit_effect_noeds(editor_context, get_context(), edit_instance);
 			if (editor_items::edit_effect_animation(editor_context, edit_instance) || edit)
 			{
 				if (edit_instance)
@@ -660,7 +660,7 @@ void edit_particle_scene::draw_sdf_debug_primitives()
 		};
 		math::float4 rotation = { 0.0f, 0.0f, 0.0f, 1.0f };
 		math::float4 color = { 0.0f, 1.0f, 1.0f, 1.0f };
-		QUEUE_DEBUG_PRIMITIVE_BOX(center, rotation, half_extent, color, true);
+		QUEUE_DEBUG_PRIMITIVE_BOX(get_context(), center, rotation, half_extent, color, true);
 
 		//	表面付近のボクセルを小さい十字マークで表示
 		//	赤 = 内側/負、緑 = 外側/表面付近
@@ -675,15 +675,15 @@ void edit_particle_scene::draw_sdf_debug_primitives()
 					? math::float4(1.0f, 0.2f, 0.2f, 1.0f)
 					: math::float4(0.2f, 1.0f, 0.2f, 1.0f);
 
-				QUEUE_DEBUG_PRIMITIVE_LINE(
+				QUEUE_DEBUG_PRIMITIVE_LINE(get_context(), 
 					math::float3(p.x - half_cross, p.y, p.z),
 					math::float3(p.x + half_cross, p.y, p.z),
 					point_color, true);
-				QUEUE_DEBUG_PRIMITIVE_LINE(
+				QUEUE_DEBUG_PRIMITIVE_LINE(get_context(), 
 					math::float3(p.x, p.y - half_cross, p.z),
 					math::float3(p.x, p.y + half_cross, p.z),
 					point_color, true);
-				QUEUE_DEBUG_PRIMITIVE_LINE(
+				QUEUE_DEBUG_PRIMITIVE_LINE(get_context(), 
 					math::float3(p.x, p.y, p.z - half_cross),
 					math::float3(p.x, p.y, p.z + half_cross),
 					point_color, true);

@@ -6,12 +6,16 @@
 #include "Object/post_process_volume_object.h"
 #include "Scenes/scene_base.h"
 #include "Effect/effect_instance.h"
+#include "Graphics/debug_primitive_collector.h"
 
 world::world()
 : context(*this)
 , effects(std::make_unique<effect_manager>())
 , objects(std::make_unique<object_manager>(context))
 , scenes(std::make_unique<scene_manager>(context))
+#if defined(USE_IMGUI)
+, debug_primitives(std::make_unique<debug_primitive_collector>())
+#endif	//	defined(USE_IMGUI)
 {
 }
 

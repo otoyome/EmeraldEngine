@@ -2,6 +2,11 @@
 
 #include "implot/implot.h"
 
+#if defined(USE_IMGUI)
+#include "Graphics/debug_primitive_collector.h"
+#include "Object/engine_context.h"
+#endif	//	defined(USE_IMGUI)
+
 void post_process_volume_object::sync_to_volume()
 {
 	if (!instance)
@@ -33,6 +38,19 @@ post_process_volume_object::~post_process_volume_object()
 void post_process_volume_object::post_update(float elapsed_time)
 {
 	sync_to_volume();
+
+#if defined(USE_IMGUI)
+	//	”ÍˆÍ•\Ž¦
+	if (!instance->is_flag(post_process_volume::flags::unbind) &&
+		(instance->is_flag(post_process_volume::flags::active) ||
+		 instance->is_flag(post_process_volume::flags::debug_draw)))
+	{
+		math::float4 rotation = { 0.0f, 0.0f, 0.0f, 1.0f };
+		math::float4 color = { 0.0f, 1.0f, 0.0f, 1.0f };
+		QUEUE_DEBUG_PRIMITIVE_BOX(get_context(), instance->get_position().to_double3(), rotation, instance->get_outer_range(), color, true);
+		QUEUE_DEBUG_PRIMITIVE_BOX(get_context(), instance->get_position().to_double3(), rotation, instance->get_inner_range(), color, true);
+	}
+#endif	//	defined(USE_IMGUI)
 }
 
 void post_process_volume_object::post_render()
