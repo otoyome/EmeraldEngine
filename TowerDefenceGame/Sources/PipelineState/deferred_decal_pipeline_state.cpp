@@ -1,7 +1,11 @@
 #include "PipelineState/deferred_decal_pipeline_state.h"
+#include "Graphics/global_shader.h"
 
 namespace
 {
+	//	グローバルシェーダー
+	global_shader<vertex_shader> global_gbuffer_decal_primitive_vs("Engine/EngineShader/DeferredDecal/gbuffer_decal_primitive_vs.hlsl");
+
 	//	定数バッファインデックス
 	static constexpr UINT TransformBufferIndex = 1;
 	static constexpr UINT GBufferDecalBufferIndex = 2;
@@ -22,9 +26,7 @@ namespace
 deferred_decal_stencil_write_pipeline_state::deferred_decal_stencil_write_pipeline_state()
 : graphics_pipeline_state()
 {
-	load_shader_file vs_desc{};
-	vs_desc.file_path = "Engine/EngineShader/DeferredDecal/gbuffer_decal_primitive_vs.hlsl";
-	shader_manager::instance()->load_shader<vertex_shader>(vs, vs_desc);
+	vs = global_gbuffer_decal_primitive_vs.get();
 
 	//	深度ステンシルステート
 	{

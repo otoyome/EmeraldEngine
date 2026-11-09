@@ -4,9 +4,6 @@
 
 #include "Framework/app_window.h"
 #include "Renderer/render_system.h"
-#include "Renderer/world_renderer.h"
-#include "Renderer/ui_world_renderer.h"
-#include "Object/world.h"
 
 #include "Process/core_process.h"
 #include "Process/graphics_process.h"
@@ -14,7 +11,7 @@
 #include "Process/audio_process.h"
 #include "Process/asset_watch_process.h"
 #include "Process/editor_process.h"
-#include "Process/boot_shader_compile_process.h"
+#include "Process/shader_compile_process.h"
 
 #if defined(USE_IMGUI)
 #include "Editor/editor_host.h"
@@ -118,7 +115,7 @@ bool framework::initialize()
 #endif	//	defined(USE_IMGUI)
 
 	//	起動プロセス
-	if (!add_process(std::make_unique<boot_shader_compile_process>(*this)))
+	if (!add_process(std::make_unique<shader_compile_process>(*this)))
 		return false;
 
 	return advance_process();
@@ -163,7 +160,7 @@ void framework::update(float elapsed_time/*Elapsed seconds from last frame*/)
 
 #if defined(USE_IMGUI)
 	//	各プロセスの窓
-	if (editor)
+	if (editor && editor->is_frame_begun())
 	{
 		//	ImGuiウィンドウ構築の計測
 		DETAIL_PROFILE_CPU_SCOPE("update.imgui");

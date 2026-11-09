@@ -1,4 +1,5 @@
 #include "Renderer/scene_renderer.h"
+#include "Graphics/global_shader.h"
 
 #include "Model/model_instance.h"
 
@@ -9,6 +10,19 @@
 #include "PipelineState/post_process_pipeline_state.h"
 
 #include "graphics/clustered_lighting_system.h"
+
+namespace
+{
+	//	グローバルシェーダー
+	global_shader<vertex_shader> global_fullscreen_quad_vs("Engine/EngineShader/FullscreenQuad/fullscreen_quad_vs.hlsl");
+	global_shader<pixel_shader> global_deferred_rendering_ps[] =
+	{
+		{ "Engine/EngineShader/DeferredRendering/deferred_rendering_indirect_ps.hlsl" },
+		{ "Engine/EngineShader/DeferredRendering/deferred_rendering_directional_ps.hlsl" },
+		{ "Engine/EngineShader/DeferredRendering/deferred_rendering_point_ps.hlsl" },
+		{ "Engine/EngineShader/DeferredRendering/deferred_rendering_spot_ps.hlsl" },
+	};
+}
 
 #if defined(USE_IMGUI)
 #include "imgui.h"
@@ -547,20 +561,6 @@ deffered_lighting_renderer::deffered_lighting_renderer(render_job_registrar job_
 		deferred_lighting_material->set_flag(material_resource::flags::two_sided, true);
 		deferred_lighting_material->set_blend_mode(material_resource::blend_modes::addative);	//	加算合成
 
-		static constexpr std::string_view vs_path_list[] =
-		{
-			"Engine/EngineShader/FullscreenQuad/fullscreen_quad_vs.hlsl",
-			"Engine/EngineShader/FullscreenQuad/fullscreen_quad_vs.hlsl",
-			"Engine/EngineShader/FullscreenQuad/fullscreen_quad_vs.hlsl",
-			"Engine/EngineShader/FullscreenQuad/fullscreen_quad_vs.hlsl",
-		};
-		static constexpr std::string_view ps_path_list[] =
-		{
-			"Engine/EngineShader/DeferredRendering/deferred_rendering_indirect_ps.hlsl",
-			"Engine/EngineShader/DeferredRendering/deferred_rendering_directional_ps.hlsl",
-			"Engine/EngineShader/DeferredRendering/deferred_rendering_point_ps.hlsl",
-			"Engine/EngineShader/DeferredRendering/deferred_rendering_spot_ps.hlsl",
-		};
 		static constexpr material_resource::system_paths system_paths_list[] =
 		{
 			material_resource::system_paths::deferred_indirect,
@@ -577,31 +577,9 @@ deffered_lighting_renderer::deffered_lighting_renderer(render_job_registrar job_
 			pso->set_domain(pipeline_state_base::domains::system);
 			pso->set_flag(pipeline_state_base::flags::hidden, false);
 			//	頂点シェーダー読み込み
-			{
-				load_shader_file desc;
-				desc.file_path = vs_path_list[index];
-#if defined(_DEBUG)
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
-#endif	//	defined(_DEBUG)
-
-				std::shared_ptr<vertex_shader> shader;
-				shader_manager::instance()->load_shader<vertex_shader>(shader, desc);
-				pso->set_shader(shader);
-			}
+			pso->set_shader(global_fullscreen_quad_vs.get());
 			//	ピクセルシェーダー読み込み
-			{
-				load_shader_file desc;
-				desc.file_path = ps_path_list[index];
-#if defined(_DEBUG)
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
-				system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
-#endif	//	defined(_DEBUG)
-
-				std::shared_ptr<pixel_shader> shader;
-				shader_manager::instance()->load_shader<pixel_shader>(shader, desc);
-				pso->set_shader(shader);
-			}
+			pso->set_shader(global_deferred_rendering_ps[index].get());
 			deferred_lighting_material->set_pipeline_state(system_paths_list[index], shader_names[index]);
 		}
 

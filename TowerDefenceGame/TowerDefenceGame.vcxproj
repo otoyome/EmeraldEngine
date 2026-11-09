@@ -587,6 +587,7 @@ xcopy "$(SolutionDir)External\SDL3\lib\SDL3.dll" "$(OutDir)" /y</Command>
     <ClCompile Include="Sources\Editor\Windows\gamepad_window.cpp" />
     <ClCompile Include="Sources\Editor\Windows\sound_bank_editor_window.cpp" />
     <ClCompile Include="Sources\Framework\app_window.cpp" />
+    <ClCompile Include="Sources\Framework\splash_window.cpp" />
     <ClCompile Include="Sources\Framework\asset_watcher.cpp" />
     <ClCompile Include="Sources\Editor\editor_host.cpp" />
     <ClCompile Include="Sources\Renderer\render_system.cpp" />
@@ -597,7 +598,6 @@ xcopy "$(SolutionDir)External\SDL3\lib\SDL3.dll" "$(OutDir)" /y</Command>
     <ClCompile Include="Sources\Process\asset_watch_process.cpp" />
     <ClCompile Include="Sources\Process\editor_process.cpp" />
     <ClCompile Include="Sources\Process\game_process.cpp" />
-    <ClCompile Include="Sources\Process\boot_shader_compile_process.cpp" />
     <ClCompile Include="Sources\Process\shader_compile_process.cpp" />
     <ClCompile Include="Sources\main.cpp" />
     <ClCompile Include="Sources\Object\camera_object.cpp" />
@@ -646,7 +646,6 @@ xcopy "$(SolutionDir)External\SDL3\lib\SDL3.dll" "$(OutDir)" /y</Command>
     <ClCompile Include="Sources\Renderer\render_job_executor.cpp" />
     <ClCompile Include="Sources\Renderer\occlusion_culling_renderer.cpp" />
     <ClCompile Include="Sources\Renderer\ui_renderer.cpp" />
-    <ClCompile Include="Sources\Renderer\ui_world_renderer.cpp" />
     <ClCompile Include="Sources\Renderer\scene_renderer.cpp" />
     <ClCompile Include="Sources\Renderer\scene_renderer_common.cpp" />
     <ClCompile Include="Sources\Renderer\scene_renderer_forward.cpp" />
@@ -730,6 +729,7 @@ xcopy "$(SolutionDir)External\SDL3\lib\SDL3.dll" "$(OutDir)" /y</Command>
     <ClInclude Include="Headers\framework.h" />
     <ClInclude Include="Headers\Process\framework_process.h" />
     <ClInclude Include="Headers\Framework\app_window.h" />
+    <ClInclude Include="Headers\Framework\splash_window.h" />
     <ClInclude Include="Headers\Framework\asset_watcher.h" />
     <ClInclude Include="Headers\Editor\editor_host.h" />
     <ClInclude Include="Headers\Renderer\render_system.h" />
@@ -740,7 +740,6 @@ xcopy "$(SolutionDir)External\SDL3\lib\SDL3.dll" "$(OutDir)" /y</Command>
     <ClInclude Include="Headers\Process\asset_watch_process.h" />
     <ClInclude Include="Headers\Process\editor_process.h" />
     <ClInclude Include="Headers\Process\game_process.h" />
-    <ClInclude Include="Headers\Process\boot_shader_compile_process.h" />
     <ClInclude Include="Headers\Process\shader_compile_process.h" />
     <ClInclude Include="Headers\Object\camera_object.h" />
     <ClInclude Include="Headers\Object\Collision\collision_filter.h" />
@@ -797,7 +796,6 @@ xcopy "$(SolutionDir)External\SDL3\lib\SDL3.dll" "$(OutDir)" /y</Command>
     <ClInclude Include="Headers\Renderer\renderer.h" />
     <ClInclude Include="Headers\Renderer\occlusion_culling_renderer.h" />
     <ClInclude Include="Headers\Renderer\ui_renderer.h" />
-    <ClInclude Include="Headers\Renderer\ui_world_renderer.h" />
     <ClInclude Include="Headers\Renderer\scene_renderer.h" />
     <ClInclude Include="Headers\Scenes\DummyScene\dummy_scene.h" />
     <ClInclude Include="Headers\Scenes\NetworkScene\network_sandbox_scene.h" />

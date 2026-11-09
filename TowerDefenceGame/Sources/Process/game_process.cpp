@@ -37,6 +37,7 @@
 #include "Renderer/scene_renderer_display.h"
 #include "Renderer/ui_renderer.h"
 #include "Renderer/render_system.h"
+#include "Renderer/render_output.h"
 #include "Renderer/world_renderer.h"
 
 #include "Object/object_manager.h"
@@ -81,18 +82,23 @@ bool game_process::enter()
 		return false;
 
 	//	メインワールド登録
-	self.main_world = std::make_unique<world>();
+	main_world = std::make_unique<world>();
+
+	//	メインのワールドの描画
+	main_renderer = std::make_unique<world_renderer>(self.renderer->get_executor(), render_output::create_back_buffer());
+	if (!main_renderer->initialize())
+		return false;
 
 	//	シーン関係
 	{
 #if defined(USE_IMGUI)
 		//	ゲーム進行のデバッグコマンド
 		pause_command = std::make_unique<console_command>("game.pause", "一時停止を切り替える（game.pause [0|1]）",
-			[&self](const console_command::arguments& args)
+			[this](const console_command::arguments& args)
 			{
-				if (!self.main_world)
+				if (!main_world)
 					return;
-				object_manager& objects = self.main_world->get_objects();
+				object_manager& objects = main_world->get_objects();
 				bool pause = !objects.get_pause();
 				if (!args.empty())
 					console_detail::from_string(args[0], pause);
@@ -100,40 +106,39 @@ bool game_process::enter()
 				console_manager::instance().print(pause ? "pause : 1" : "pause : 0");
 			});
 		step_command = std::make_unique<console_command>("game.step", "一時停止中に1フレーム進める",
-			[&self](const console_command::arguments&)
+			[this](const console_command::arguments&)
 			{
-				if (self.main_world)
-					self.main_world->get_objects().called_step();
+				if (main_world)
+					main_world->get_objects().called_step();
 			});
 
 		//	アセットブラウザの開き先
 		if (self.editor)
-			self.editor->register_asset_open_handlers(self.main_world->get_scenes());
+			self.editor->register_asset_open_handlers(main_world->get_scenes());
 
 		//	デバッグ表示の収集
-		self.main_renderer->set_debug_builder([&self](const render_data_context& data)
+		main_renderer->set_debug_builder([this, &self](const render_data_context& data)
 			{
 				if (self.editor)
-					self.editor->build_debug_primitives(self.main_world.get(), data);
+					self.editor->build_debug_primitives(main_world.get(), data);
 			});
 #endif	//	defined(USE_IMGUI)
 	}
 
 	//	初回シーン登録
-	self.main_world->get_scenes().change_scene<setup_scene>();
+	main_world->get_scenes().change_scene<setup_scene>();
 	return true;
 }
 
 void game_process::exit()
 {
-	framework& self = get_owner();
 #if defined(USE_IMGUI)
 	pause_command.reset();
 	step_command.reset();
 #endif	//	defined(USE_IMGUI)
-	self.main_world.reset();
+	main_world.reset();
 
-	self.main_renderer.reset();
+	main_renderer.reset();
 
 	//	シーン関係
 	collision_filter_manager::delete_instance();
@@ -141,47 +146,43 @@ void game_process::exit()
 
 void game_process::update(float elapsed_time)
 {
-	framework& self = get_owner();
-
-	if (input::action_system::is_valid() && self.main_world)
+	if (input::action_system::is_valid() && main_world)
 	{
-		input::action_system::instance()->update(self.main_world->get_scenes().get_broadcaster());
+		input::action_system::instance()->update(main_world->get_scenes().get_broadcaster());
 	}
 
 	//	シーン内の更新
-	if (self.main_world)
+	if (main_world)
 	{
 		DETAIL_PROFILE_CPU_SCOPE("update.scene_manager");
-		self.main_world->get_scenes().updates(elapsed_time);
+		main_world->get_scenes().updates(elapsed_time);
 	}
 
 	//	オブジェクト更新
-	if (self.main_world)
+	if (main_world)
 	{
 		DETAIL_PROFILE_CPU_SCOPE("update.object_manager");
-		self.main_world->get_objects().updates(elapsed_time);
+		main_world->get_objects().updates(elapsed_time);
 	}
 
 	//	エフェクト関係更新
-	if (self.main_world)
+	if (main_world)
 	{
 		DETAIL_PROFILE_CPU_SCOPE("update.effect_manager");
-		self.main_world->get_effects().update(elapsed_time);
+		main_world->get_effects().update(elapsed_time);
 	}
 }
 
 void game_process::render(float elapsed_time)
 {
-	framework& self = get_owner();
-
 	//	描画前処理
-	if (self.main_world)
+	if (main_world)
 	{
-		self.main_world->get_objects().pre_render();
+		main_world->get_objects().pre_render();
 	}
 
 	//	描画用の情報収集
-	self.main_renderer->collect(*self.main_world);
+	main_renderer->collect(*main_world);
 
 	{
 		DETAIL_PROFILE_CPU_SCOPE("render.rebuild_pipeline_bindings");
@@ -192,20 +193,16 @@ void game_process::render(float elapsed_time)
 
 void game_process::submit_render_jobs(float elapsed_time)
 {
-	framework& self = get_owner();
-
 	//	ワールドごとの描画
-	self.main_renderer->submit_render_jobs(*self.main_world, elapsed_time);
+	main_renderer->submit_render_jobs(*main_world, elapsed_time);
 }
 
 void game_process::post_render()
 {
-	framework& self = get_owner();
-
 	//	描画後処理
-	if (self.main_world)
+	if (main_world)
 	{
-		self.main_world->get_objects().post_render();
+		main_world->get_objects().post_render();
 	}
 }
 
@@ -215,17 +212,17 @@ void game_process::imgui_render()
 	framework& self = get_owner();
 
 	//	シーン情報表示
-	if (self.main_world)
+	if (main_world)
 	{
-		self.main_world->get_scenes().imgui_render();
+		main_world->get_scenes().imgui_render();
 	}
 
 	//	オブジェクト情報表示
-	self.main_world->get_objects().imgui_render();
+	main_world->get_objects().imgui_render();
 
 	//	シーン変更
 	if (self.editor)
-		self.editor->imgui_scene_change(self.main_world->get_scenes());
+		self.editor->imgui_scene_change(main_world->get_scenes());
 }
 #endif	//	defined(USE_IMGUI)
 

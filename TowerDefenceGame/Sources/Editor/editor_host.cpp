@@ -199,6 +199,7 @@ void editor_host::begin_frame()
 	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();
 	editor_items::begin_contexts();
+	frame_begun = true;
 }
 
 void editor_host::render_windows()
@@ -209,6 +210,10 @@ void editor_host::render_windows()
 
 void editor_host::render_overlay()
 {
+	if (!frame_begun)
+		return;
+	frame_begun = false;
+
 	//	ImGui•`‰æ
 	imgui_rendering_pass.activate(render_data::instance()->get_immediate_context().Get());
 	render_data::instance()->get_immediate_context()->RSSetViewports(1, &imgui_viewport);

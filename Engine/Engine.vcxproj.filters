@@ -333,6 +333,9 @@
     <ClInclude Include="Headers\Graphics\shader.h">
       <Filter>Headers\Graphics</Filter>
     </ClInclude>
+    <ClInclude Include="Headers\Graphics\global_shader.h">
+      <Filter>Headers\Graphics</Filter>
+    </ClInclude>
     <ClInclude Include="Headers\Graphics\shadow_atlas.h">
       <Filter>Headers\Graphics</Filter>
     </ClInclude>
@@ -696,6 +699,9 @@
       <Filter>Sources\Graphics</Filter>
     </ClCompile>
     <ClCompile Include="Sources\Graphics\shader.cpp">
+      <Filter>Sources\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Graphics\global_shader.cpp">
       <Filter>Sources\Graphics</Filter>
     </ClCompile>
     <ClCompile Include="Sources\Graphics\shadow_atlas.cpp">

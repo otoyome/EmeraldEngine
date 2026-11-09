@@ -1,27 +1,20 @@
 #include "graphics/hiz_buffer.h"
+#include "Graphics/global_shader.h"
 
 #include "Graphics/render_data.h"
 
 namespace
 {
+	//	グローバルシェーダー
+	global_shader<compute_shader> global_hiz_copy_cs("Engine/EngineShader/Culling/hiz_copy_cs.hlsl");
+	global_shader<compute_shader> global_hiz_downsample_cs("Engine/EngineShader/Culling/hiz_downsample_cs.hlsl");
+
 	struct hiz_constants
 	{
 		math::uint2 dst_size;
 		math::uint2 src_size;
 	};
 
-	std::shared_ptr<compute_shader> load_cs(std::string_view path)
-	{
-		load_shader_file desc;
-		desc.file_path = path;
-#if defined(_DEBUG)
-		system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
-		system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
-#endif	//	defined(_DEBUG)
-		std::shared_ptr<compute_shader> shader;
-		shader_manager::instance()->load_shader<compute_shader>(shader, desc);
-		return shader;
-	}
 }
 
 hiz_buffer::hiz_buffer()
@@ -33,8 +26,8 @@ hiz_buffer::hiz_buffer()
 	HRESULT hr = render_data::instance()->get_device()->CreateBuffer(&bd, nullptr, hiz_constant_buffer.GetAddressOf());
 	_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
 
-	hiz_copy_cs = load_cs("Engine/EngineShader/Culling/hiz_copy_cs.hlsl");
-	hiz_downsample_cs = load_cs("Engine/EngineShader/Culling/hiz_downsample_cs.hlsl");
+	hiz_copy_cs = global_hiz_copy_cs.get();
+	hiz_downsample_cs = global_hiz_downsample_cs.get();
 }
 
 hiz_buffer::~hiz_buffer()

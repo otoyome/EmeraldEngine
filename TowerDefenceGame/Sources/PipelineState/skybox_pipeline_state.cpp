@@ -1,4 +1,12 @@
 #include "PipelineState/skybox_pipeline_state.h"
+#include "Graphics/global_shader.h"
+
+namespace
+{
+	//	グローバルシェーダー
+	global_shader<vertex_shader> global_sky_box_vs("Engine/EngineShader/SkyBox/sky_box_vs.hlsl");
+	global_shader<pixel_shader> global_sky_box_gbuffer_ps("Engine/EngineShader/SkyBox/sky_box_gbuffer_ps.hlsl");
+}
 
 skybox_pipeline_state::skybox_pipeline_state()
 : graphics_pipeline_state()
@@ -6,13 +14,9 @@ skybox_pipeline_state::skybox_pipeline_state()
 	set_domain(pipeline_state_base::domains::system);
 	HRESULT hr{ S_OK };
 
-	load_shader_file vs_desc{};
-	vs_desc.file_path = "Engine/EngineShader/SkyBox/sky_box_vs.hlsl";
-	shader_manager::instance()->load_shader<vertex_shader>(vs, vs_desc);
+	vs = global_sky_box_vs.get();
 
-	load_shader_file ps_desc{};
-	ps_desc.file_path = "Engine/EngineShader/SkyBox/sky_box_gbuffer_ps.hlsl";
-	shader_manager::instance()->load_shader<pixel_shader>(ps, ps_desc);
+	ps = global_sky_box_gbuffer_ps.get();
 
 	//	定数バッファの生成
 	{

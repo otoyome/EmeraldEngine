@@ -122,6 +122,7 @@
     <ClInclude Include="Headers\System\cache_string.h" />
     <ClInclude Include="Headers\Animation\timeline_resource.h" />
     <ClInclude Include="Headers\Graphics\shader.h" />
+    <ClInclude Include="Headers\Graphics\global_shader.h" />
     <ClInclude Include="Headers\Graphics\sprite.h" />
     <ClInclude Include="Headers\stdafx_engine.h" />
     <ClInclude Include="Headers\System\BehaviorTree\action_interface.h" />
@@ -244,6 +245,7 @@
     <ClCompile Include="Sources\System\universally_unique_identifier.cpp" />
     <ClCompile Include="Sources\Animation\timeline_resource.cpp" />
     <ClCompile Include="Sources\Graphics\shader.cpp" />
+    <ClCompile Include="Sources\Graphics\global_shader.cpp" />
     <ClCompile Include="Sources\Graphics\sprite.cpp" />
     <ClCompile Include="Sources\stdafx_engine.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>

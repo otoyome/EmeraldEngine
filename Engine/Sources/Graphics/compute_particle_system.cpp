@@ -1,4 +1,5 @@
 #include "Graphics/compute_particle_system.h"
+#include "Graphics/global_shader.h"
 
 #include "Graphics/custom_pipeline_state.h"
 #include "graphics/cubic_sdf_buffer_pool.h"
@@ -108,31 +109,31 @@ namespace
 	};
 
 	//	コンピュートシェーダー
-	static constexpr std::string_view compute_shader_path[] =
+	global_shader<compute_shader> global_compute_shaders[] =
 	{
-		"Engine/EngineShader/ComputeParticle/System/compute_particle_clear_system_cs.hlsl",
-		"Engine/EngineShader/ComputeParticle/System/compute_particle_clear_particles_cs.hlsl",
+		{ "Engine/EngineShader/ComputeParticle/System/compute_particle_clear_system_cs.hlsl" },
+		{ "Engine/EngineShader/ComputeParticle/System/compute_particle_clear_particles_cs.hlsl" },
 
-		"Engine/EngineShader/ComputeParticle/System/compute_particle_begin_update_cs.hlsl",
-		"Engine/EngineShader/ComputeParticle/System/compute_particle_fill_unused_index_cs.hlsl",
-		"Engine/EngineShader/ComputeParticle/System/compute_particle_spawn_particles_cs.hlsl",
-		"Engine/EngineShader/ComputeParticle/System/compute_particle_initialize_particles_cs.hlsl",
-		"Engine/EngineShader/ComputeParticle/System/compute_particle_spawn_from_events_cs.hlsl",
+		{ "Engine/EngineShader/ComputeParticle/System/compute_particle_begin_update_cs.hlsl" },
+		{ "Engine/EngineShader/ComputeParticle/System/compute_particle_fill_unused_index_cs.hlsl" },
+		{ "Engine/EngineShader/ComputeParticle/System/compute_particle_spawn_particles_cs.hlsl" },
+		{ "Engine/EngineShader/ComputeParticle/System/compute_particle_initialize_particles_cs.hlsl" },
+		{ "Engine/EngineShader/ComputeParticle/System/compute_particle_spawn_from_events_cs.hlsl" },
 
-		"Engine/EngineShader/ComputeParticle/System/compute_particle_update_particles_cs.hlsl",
+		{ "Engine/EngineShader/ComputeParticle/System/compute_particle_update_particles_cs.hlsl" },
 
-		"Engine/EngineShader/ComputeParticle/System/compute_particle_bitonic_sort_b2_cs.hlsl",
-		"Engine/EngineShader/ComputeParticle/System/compute_particle_bitonic_sort_c2_cs.hlsl",
+		{ "Engine/EngineShader/ComputeParticle/System/compute_particle_bitonic_sort_b2_cs.hlsl" },
+		{ "Engine/EngineShader/ComputeParticle/System/compute_particle_bitonic_sort_c2_cs.hlsl" },
 
-		"Engine/EngineShader/ComputeParticle/System/compute_particle_range_particles_cs.hlsl",
-		"Engine/EngineShader/ComputeParticle/System/compute_particle_terminate_particles_cs.hlsl",
-		"Engine/EngineShader/ComputeParticle/System/compute_particle_build_emitter_draw_arguments_cs.hlsl",
+		{ "Engine/EngineShader/ComputeParticle/System/compute_particle_range_particles_cs.hlsl" },
+		{ "Engine/EngineShader/ComputeParticle/System/compute_particle_terminate_particles_cs.hlsl" },
+		{ "Engine/EngineShader/ComputeParticle/System/compute_particle_build_emitter_draw_arguments_cs.hlsl" },
 
-		"Engine/EngineShader/ComputeParticle/System/compute_particle_end_update_cs.hlsl",
+		{ "Engine/EngineShader/ComputeParticle/System/compute_particle_end_update_cs.hlsl" },
 
-		"Engine/EngineShader/ComputeParticle/System/compute_particle_build_primitive_cs.hlsl",
+		{ "Engine/EngineShader/ComputeParticle/System/compute_particle_build_primitive_cs.hlsl" },
 
-		"Engine/EngineShader/ComputeParticle/System/compute_particle_rebase_particles_cs.hlsl",
+		{ "Engine/EngineShader/ComputeParticle/System/compute_particle_rebase_particles_cs.hlsl" },
 	};
 }
 
@@ -467,13 +468,8 @@ compute_particle_system::compute_particle_system(ID3D11Device* device,
 	//	コンピュートシェーダー読み込み
 	for (int index = 0; index < static_cast<int>(magic_enum::enum_count<dispatch_shaderes>()); ++index)
 	{
-		load_shader_file desc;
-		desc.file_path = compute_shader_path[index];
-#if defined(_DEBUG)
-		system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
-		system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
-#endif	//	defined(_DEBUG)
-		if (!shader_manager::instance()->load_shader<compute_shader>(compute_shaderes[index], desc))
+		compute_shaderes[index] = global_compute_shaders[index].get();
+		if (!compute_shaderes[index])
 		{
 			assert(!L"not found compute_particle system shader.");
 			return;

@@ -3,6 +3,7 @@
 #include "Graphics/render_data.h"
 
 #include "Graphics/shader.h"
+#include "Graphics/global_shader.h"
 #include "Material/material_shader_map.h"
 #include "Texture/texture_defaults.h"
 #include "Texture/texture_importer.h"
@@ -48,7 +49,7 @@ bool graphics_process::enter()
 	//	エフェクト関係
 	effect_resource_manager::create_instance();
 
-	self.renderer = std::make_unique<render_system>();
+	self.renderer = std::make_unique<render_system>(self.hwnd);
 	return true;
 }
 
@@ -57,6 +58,7 @@ void graphics_process::exit()
 	framework& self = get_owner();
 
 	self.renderer.reset();
+	global_shader_base::release_all();
 
 	if (render_data::is_valid())
 	{

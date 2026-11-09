@@ -1,16 +1,20 @@
 #include "PipelineState/debug_draw_line_pipeline_state.h"
+#include "Graphics/global_shader.h"
+
+namespace
+{
+	//	グローバルシェーダー
+	global_shader<vertex_shader> global_debug_draw_line_vs("Engine/EngineShader/GeometricPrimitive/debug_draw_line_vs.hlsl");
+	global_shader<pixel_shader> global_debug_draw_line_ps("Engine/EngineShader/GeometricPrimitive/debug_draw_line_ps.hlsl");
+}
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 debug_draw_line_pipeline_state::debug_draw_line_pipeline_state(bool depth_test)
 : graphics_pipeline_state()
 {
-	load_shader_file vs_desc{};
-	vs_desc.file_path = "Engine/EngineShader/GeometricPrimitive/debug_draw_line_vs.hlsl";
-	shader_manager::instance()->load_shader<vertex_shader>(vs, vs_desc);
+	vs = global_debug_draw_line_vs.get();
 
-	load_shader_file ps_desc{};
-	ps_desc.file_path = "Engine/EngineShader/GeometricPrimitive/debug_draw_line_ps.hlsl";
-	shader_manager::instance()->load_shader<pixel_shader>(ps, ps_desc);
+	ps = global_debug_draw_line_ps.get();
 
 	//	深度ステンシルステート
 	{

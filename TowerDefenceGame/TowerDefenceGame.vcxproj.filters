@@ -209,6 +209,9 @@
     <ClCompile Include="Sources\Framework\app_window.cpp">
       <Filter>Sources\Framework</Filter>
     </ClCompile>
+    <ClCompile Include="Sources\Framework\splash_window.cpp">
+      <Filter>Sources\Framework</Filter>
+    </ClCompile>
     <ClCompile Include="Sources\Framework\asset_watcher.cpp">
       <Filter>Sources\Framework</Filter>
     </ClCompile>
@@ -239,9 +242,6 @@
     <ClCompile Include="Sources\Process\game_process.cpp">
       <Filter>Sources\Process</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Process\boot_shader_compile_process.cpp">
-      <Filter>Sources\Process</Filter>
-    </ClCompile>
     <ClCompile Include="Sources\Process\shader_compile_process.cpp">
       <Filter>Sources\Process</Filter>
     </ClCompile>
@@ -249,9 +249,6 @@
       <Filter>Sources\Renderer</Filter>
     </ClCompile>
     <ClCompile Include="Sources\Renderer\ui_renderer.cpp">
-      <Filter>Sources\Renderer</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Renderer\ui_world_renderer.cpp">
       <Filter>Sources\Renderer</Filter>
     </ClCompile>
     <ClCompile Include="Sources\Renderer\scene_renderer.cpp">
@@ -589,6 +586,9 @@
     <ClInclude Include="Headers\Framework\app_window.h">
       <Filter>Headers\Framework</Filter>
     </ClInclude>
+    <ClInclude Include="Headers\Framework\splash_window.h">
+      <Filter>Headers\Framework</Filter>
+    </ClInclude>
     <ClInclude Include="Headers\Framework\asset_watcher.h">
       <Filter>Headers\Framework</Filter>
     </ClInclude>
@@ -617,9 +617,6 @@
       <Filter>Headers\Process</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Process\game_process.h">
-      <Filter>Headers\Process</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Process\boot_shader_compile_process.h">
       <Filter>Headers\Process</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Process\shader_compile_process.h">
@@ -863,9 +860,6 @@
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Renderer\ui_renderer.h">
-      <Filter>Headers\Renderer</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Renderer\ui_world_renderer.h">
       <Filter>Headers\Renderer</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Object\GameObjects\MiniGame\roomba_object.h">

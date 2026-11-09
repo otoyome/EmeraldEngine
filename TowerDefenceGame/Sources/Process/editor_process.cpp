@@ -51,11 +51,14 @@ void editor_process::exit()
 
 void editor_process::update(float elapsed_time)
 {
-	get_owner().editor->begin_frame();
+	framework& self = get_owner();
+	if (IsWindowVisible(self.hwnd))
+		self.editor->begin_frame();
 }
 
 void editor_process::imgui_render()
 {
-	get_owner().editor->render_windows();
+	if (get_owner().editor->is_frame_begun())
+		get_owner().editor->render_windows();
 }
 #endif	//	defined(USE_IMGUI)

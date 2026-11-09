@@ -1,4 +1,5 @@
 #include "Graphics/shader.h"
+#include "Graphics/global_shader.h"
 #include "Texture/texture_factory.h"
 #include "Graphics/fast_fourier_transform.h"
 
@@ -12,66 +13,30 @@ namespace
 		1024,
 	};
 	int texture_counter = 0;
+
+	//	グローバルシェーダー
+	global_shader<compute_shader> global_fft_512_forward_row_cs(shader_path, "main", { shader_define("LENGTH", "512"), shader_define("ROW_PASS", "1") });
+	global_shader<compute_shader> global_fft_512_forward_col_cs(shader_path, "main", { shader_define("LENGTH", "512"), shader_define("COL_PASS", "1") });
+	global_shader<compute_shader> global_fft_512_inverse_row_cs(shader_path, "main", { shader_define("LENGTH", "512"), shader_define("TRANSFORM_INVERSE", "1"), shader_define("ROW_PASS", "1") });
+	global_shader<compute_shader> global_fft_512_inverse_col_cs(shader_path, "main", { shader_define("LENGTH", "512"), shader_define("TRANSFORM_INVERSE", "1"), shader_define("COL_PASS", "1") });
+	global_shader<compute_shader> global_fft_1024_forward_row_cs(shader_path, "main", { shader_define("LENGTH", "1024"), shader_define("ROW_PASS", "1") });
+	global_shader<compute_shader> global_fft_1024_forward_col_cs(shader_path, "main", { shader_define("LENGTH", "1024"), shader_define("COL_PASS", "1") });
+	global_shader<compute_shader> global_fft_1024_inverse_row_cs(shader_path, "main", { shader_define("LENGTH", "1024"), shader_define("TRANSFORM_INVERSE", "1"), shader_define("ROW_PASS", "1") });
+	global_shader<compute_shader> global_fft_1024_inverse_col_cs(shader_path, "main", { shader_define("LENGTH", "1024"), shader_define("TRANSFORM_INVERSE", "1"), shader_define("COL_PASS", "1") });
 }
 
 fast_fourier_transform::fast_fourier_transform(sizes size)
 : texture_size(size)
 {
 	//	コンピュートシェーダー生成関数
-	if (shader_manager* instance = shader_manager::instance())
 	{
-		load_shader_file basis_desc;
-		basis_desc.file_path = shader_path;
-		basis_desc.entry_point = "main";
-#if defined(USE_IMGUI)
-		system_utility::set_bitflag(basis_desc.compile_flags, shader_compile_flags::disable_optimize, true);
-		system_utility::set_bitflag(basis_desc.compile_flags, shader_compile_flags::debug, true);
-#endif	//	defined(USE_IMGUI)
-		basis_desc.defines.emplace_back("LENGTH", (size == sizes::_512) ? "512" : "1024");
-		//	順
-		{
-			load_shader_file desc = basis_desc;
-			desc.defines.emplace_back("ROW_PASS", "1");
-			auto& bcs = cs[static_cast<int>(modes::forward)][static_cast<int>(directions::row)];
-			if (!instance->load_shader<compute_shader>(bcs, desc))
-			{
-				_ASSERT_EXPR(!"Failed Load Shader", "fast_fourier_transform_cs");
-				return;
-			}
-		}
-		{
-			load_shader_file desc = basis_desc;
-			desc.defines.emplace_back("COL_PASS", "1");
-			auto& bcs = cs[static_cast<int>(modes::forward)][static_cast<int>(directions::col)];
-			if (!instance->load_shader<compute_shader>(bcs, desc))
-			{
-				_ASSERT_EXPR(!"Failed Load Shader", "fast_fourier_transform_cs");
-				return;
-			}
-		}
-		//	逆
-		{
-			load_shader_file desc = basis_desc;
-			desc.defines.emplace_back("TRANSFORM_INVERSE", "1");
-			desc.defines.emplace_back("ROW_PASS", "1");
-			auto& bcs = cs[static_cast<int>(modes::inverse)][static_cast<int>(directions::row)];
-			if (!instance->load_shader<compute_shader>(bcs, desc))
-			{
-				_ASSERT_EXPR(!"Failed Load Shader", "fast_fourier_transform_cs");
-				return;
-			}
-		}
-		{
-			load_shader_file desc = basis_desc;
-			desc.defines.emplace_back("TRANSFORM_INVERSE", "1");
-			desc.defines.emplace_back("COL_PASS", "1");
-			auto& bcs = cs[static_cast<int>(modes::inverse)][static_cast<int>(directions::col)];
-			if (!instance->load_shader<compute_shader>(bcs, desc))
-			{
-				_ASSERT_EXPR(!"Failed Load Shader", "fast_fourier_transform_cs");
-				return;
-			}
-		}
+		const bool large = size != sizes::_512;
+		auto& forward = cs[static_cast<int>(modes::forward)];
+		auto& inverse = cs[static_cast<int>(modes::inverse)];
+		forward[static_cast<int>(directions::row)] = (large ? global_fft_1024_forward_row_cs : global_fft_512_forward_row_cs).get();
+		forward[static_cast<int>(directions::col)] = (large ? global_fft_1024_forward_col_cs : global_fft_512_forward_col_cs).get();
+		inverse[static_cast<int>(directions::row)] = (large ? global_fft_1024_inverse_row_cs : global_fft_512_inverse_row_cs).get();
+		inverse[static_cast<int>(directions::col)] = (large ? global_fft_1024_inverse_col_cs : global_fft_512_inverse_col_cs).get();
 	}
 
 	// テクスチャ準備

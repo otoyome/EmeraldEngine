@@ -88,8 +88,7 @@ int WINAPI WinMain(_In_ HINSTANCE instance, _In_opt_  HINSTANCE prev_instance, _
 	//	エンジンの設定ファイル読込
 	load_engine_config_data(hwnd);
 
-	//	ウィンドウ表示
-	ShowWindow(hwnd, cmd_show);
+	//	@tool ウィンドウはシェーダーのコンパイルが済んでから出す(shader_compile_process)
 
 	framework framework(window);
 	bool return_value = framework.run();

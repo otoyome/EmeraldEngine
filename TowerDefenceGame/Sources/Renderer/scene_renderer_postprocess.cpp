@@ -1,4 +1,5 @@
 #include "Renderer/scene_renderer_postprocess.h"
+#include "Graphics/global_shader.h"
 #include "Texture/texture_factory.h"
 
 #include "Model/model_instance.h"
@@ -14,6 +15,22 @@
 
 namespace
 {
+	//	グローバルシェーダー
+	global_shader<compute_shader> global_screen_space_reflection_denoise_cs("Engine/EngineShader/Postprocess/ScreenSpaceReflection/screen_space_reflection_denoise_cs.hlsl");
+	global_shader<compute_shader> global_screen_space_reflection_temporal_filtering_cs("Engine/EngineShader/Postprocess/ScreenSpaceReflection/screen_space_reflection_temporal_filtering_cs.hlsl");
+	global_shader<compute_shader> global_dof_filter_setup_cs("Engine/EngineShader/Postprocess/DepthOfField/dof_filter_setup_cs.hlsl");
+	global_shader<compute_shader> global_dof_vertical_integrate_cs("Engine/EngineShader/Postprocess/DepthOfField/dof_vertical_integrate_cs.hlsl");
+	global_shader<compute_shader> global_dof_apply_cs("Engine/EngineShader/Postprocess/DepthOfField/dof_apply_cs.hlsl");
+	global_shader<compute_shader> global_reconstract_velocity_cs("Engine/EngineShader/Postprocess/MotionBlur/reconstract_velocity_cs.hlsl");
+	global_shader<compute_shader> global_motion_blur_cs("Engine/EngineShader/Postprocess/MotionBlur/motion_blur_cs.hlsl");
+	global_shader<compute_shader> global_fast_fourier_transform_gaussian_filter_cs("Engine/EngineShader/Postprocess/System/fast_fourier_transform_gaussian_filter_cs.hlsl");
+	global_shader<compute_shader> global_fast_fourier_transform_complex_multiply_cs("Engine/EngineShader/Postprocess/System/fast_fourier_transform_complex_multiply_cs.hlsl");
+	global_shader<compute_shader> global_resize_copy_cs("Engine/EngineShader/Postprocess/System/resize_copy_cs.hlsl");
+	global_shader<compute_shader> global_bloom_additional_half_cs("Engine/EngineShader/Postprocess/Bloom/bloom_additional_half_cs.hlsl");
+	global_shader<compute_shader> global_luminance_extract_cs("Engine/EngineShader/Postprocess/Bloom/luminance_extract_cs.hlsl");
+	global_shader<compute_shader> global_generate_ghost_cs("Engine/EngineShader/Postprocess/Bloom/generate_ghost_cs.hlsl");
+
+	//	描画処理
 	void draw(const graphics_context& context,
 			  graphics_pipeline_state_ptr pipeline_state,
 			  UINT vertex_count,
@@ -235,14 +252,8 @@ screen_space_reflection_renderer::screen_space_reflection_renderer(render_job_re
 	}
 
 	//	デノイズ系シェーダー準備
-	if (shader_manager* instance = shader_manager::instance())
-	{
-		load_shader_file desc{};
-		desc.file_path = "Engine/EngineShader/Postprocess/ScreenSpaceReflection/screen_space_reflection_denoise_cs.hlsl";
-		instance->load_shader<compute_shader>(denoise, desc);
-		desc.file_path = "Engine/EngineShader/Postprocess/ScreenSpaceReflection/screen_space_reflection_temporal_filtering_cs.hlsl";
-		instance->load_shader<compute_shader>(temporal_filter, desc);
-	}
+	denoise = global_screen_space_reflection_denoise_cs.get();
+	temporal_filter = global_screen_space_reflection_temporal_filtering_cs.get();
 
 	//	SSR系合成シェーダー準備
 	{
@@ -609,16 +620,9 @@ depth_of_field_post_process_renderer::depth_of_field_post_process_renderer(rende
 	}
 
 	//	コンピュートシェーダー生成関数
-	if (shader_manager* instance = shader_manager::instance())
-	{
-		load_shader_file desc{};
-		desc.file_path = "Engine/EngineShader/Postprocess/DepthOfField/dof_filter_setup_cs.hlsl";
-		instance->load_shader<compute_shader>(dof_filter_setup, desc);
-		desc.file_path = "Engine/EngineShader/Postprocess/DepthOfField/dof_vertical_integrate_cs.hlsl";
-		instance->load_shader<compute_shader>(dof_vertical_integrate, desc);
-		desc.file_path = "Engine/EngineShader/Postprocess/DepthOfField/dof_apply_cs.hlsl";
-		instance->load_shader<compute_shader>(dof_apply, desc);
-	}
+	dof_filter_setup = global_dof_filter_setup_cs.get();
+	dof_vertical_integrate = global_dof_vertical_integrate_cs.get();
+	dof_apply = global_dof_apply_cs.get();
 
 	//	定数バッファの生成
 	{
@@ -835,14 +839,8 @@ motion_blur_post_process_renderer::motion_blur_post_process_renderer(render_job_
 	}
 
 	//	コンピュートシェーダー生成関数
-	if (shader_manager* instance = shader_manager::instance())
-	{
-		load_shader_file desc{};
-		desc.file_path = "Engine/EngineShader/Postprocess/MotionBlur/reconstract_velocity_cs.hlsl";
-		instance->load_shader<compute_shader>(reconstract_velocity, desc);
-		desc.file_path = "Engine/EngineShader/Postprocess/MotionBlur/motion_blur_cs.hlsl";
-		instance->load_shader<compute_shader>(motion_blur, desc);
-	}
+	reconstract_velocity = global_reconstract_velocity_cs.get();
+	motion_blur = global_motion_blur_cs.get();
 
 	//	定数バッファの生成
 	{
@@ -1069,25 +1067,15 @@ bloom_post_process_renderer::bloom_post_process_renderer(render_job_registrar jo
 	lens_ghost_kernel_fft = std::make_unique<fast_fourier_transform>(FFT_TEXTURE_SIZE);
 
 	//	コンピュートシェーダー生成関数
-	if (shader_manager* instance = shader_manager::instance())
-	{
-		load_shader_file desc{};
-		desc.file_path = "Engine/EngineShader/Postprocess/System/fast_fourier_transform_gaussian_filter_cs.hlsl";
-		instance->load_shader<compute_shader>(fft_gaussian_filter, desc);
-		desc.file_path = "Engine/EngineShader/Postprocess/System/fast_fourier_transform_complex_multiply_cs.hlsl";
-		instance->load_shader<compute_shader>(fft_multiply, desc);
+	fft_gaussian_filter = global_fast_fourier_transform_gaussian_filter_cs.get();
+	fft_multiply = global_fast_fourier_transform_complex_multiply_cs.get();
 
-		desc.file_path = "Engine/EngineShader/Postprocess/System/resize_copy_cs.hlsl";
-		instance->load_shader<compute_shader>(copy_texture, desc);
-		desc.file_path = "Engine/EngineShader/Postprocess/Bloom/bloom_additional_half_cs.hlsl";
-		instance->load_shader<compute_shader>(scene_additive, desc);
+	copy_texture = global_resize_copy_cs.get();
+	scene_additive = global_bloom_additional_half_cs.get();
 
-		desc.file_path = "Engine/EngineShader/Postprocess/Bloom/luminance_extract_cs.hlsl";
-		instance->load_shader<compute_shader>(luminance_extract, desc);
+	luminance_extract = global_luminance_extract_cs.get();
 
-		desc.file_path = "Engine/EngineShader/Postprocess/Bloom/generate_ghost_cs.hlsl";
-		instance->load_shader<compute_shader>(generate_ghost, desc);
-	}
+	generate_ghost = global_generate_ghost_cs.get();
 
 	//	定数バッファの生成
 	if (auto device = render_data::instance()->get_device())

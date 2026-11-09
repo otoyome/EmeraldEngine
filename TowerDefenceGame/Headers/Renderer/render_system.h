@@ -12,7 +12,7 @@ public:
 	using overlay_function = std::function<void()>;
 
 public:
-	render_system();
+	explicit render_system(HWND hwnd);
 	~render_system();
 
 	render_system(const render_system&) = delete;
@@ -29,6 +29,7 @@ public:
 	void end_frame();
 
 private:
+	CONST HWND hwnd;
 	std::shared_ptr<render_job_executor> executor;
 	overlay_function overlay;
 };

@@ -1,8 +1,22 @@
 #include "PipelineState/anti_alias_pipeline_state.h"
+#include "Graphics/global_shader.h"
 #include "Texture/texture_factory.h"
 
 #include "subpixel_morphological_anti_aliasing/textures/AreaTex.h"
 #include "subpixel_morphological_anti_aliasing/textures/SearchTex.h"
+
+namespace
+{
+	//	グローバルシェーダー
+	global_shader<vertex_shader> global_fullscreen_quad_vs("Engine/EngineShader/FullscreenQuad/fullscreen_quad_vs.hlsl");
+	global_shader<pixel_shader> global_fast_approximate_anti_aliasing_ps("Engine/EngineShader/Postprocess/Antialias/fast_approximate_anti_aliasing_ps.hlsl");
+	global_shader<vertex_shader> global_smaa_edge_detection_vs("Engine/EngineShader/Postprocess/Antialias/smaa_edge_detection_vs.hlsl", "main", {}, { "External" });
+	global_shader<pixel_shader> global_smaa_edge_detection_ps("Engine/EngineShader/Postprocess/Antialias/smaa_edge_detection_ps.hlsl", "main", {}, { "External" });
+	global_shader<vertex_shader> global_smaa_blending_weight_calculation_vs("Engine/EngineShader/Postprocess/Antialias/smaa_blending_weight_calculation_vs.hlsl", "main", {}, { "External" });
+	global_shader<pixel_shader> global_smaa_blending_weight_calculation_ps("Engine/EngineShader/Postprocess/Antialias/smaa_blending_weight_calculation_ps.hlsl", "main", {}, { "External" });
+	global_shader<vertex_shader> global_smaa_neighborhood_blending_vs("Engine/EngineShader/Postprocess/Antialias/smaa_neighborhood_blending_vs.hlsl", "main", {}, { "External" });
+	global_shader<pixel_shader> global_smaa_neighborhood_blending_ps("Engine/EngineShader/Postprocess/Antialias/smaa_neighborhood_blending_ps.hlsl", "main", {}, { "External" });
+}
 
 namespace smaa
 {
@@ -25,13 +39,9 @@ fxaa_pipeline_state::fxaa_pipeline_state()
 {
 	set_domain(pipeline_state_base::domains::system);
 
-	load_shader_file vs_desc{};
-	vs_desc.file_path = "Engine/EngineShader/FullscreenQuad/fullscreen_quad_vs.hlsl";
-	shader_manager::instance()->load_shader<vertex_shader>(vs, vs_desc);
+	vs = global_fullscreen_quad_vs.get();
 
-	load_shader_file ps_desc{};
-	ps_desc.file_path = "Engine/EngineShader/Postprocess/Antialias/fast_approximate_anti_aliasing_ps.hlsl";
-	shader_manager::instance()->load_shader<pixel_shader>(ps, ps_desc);
+	ps = global_fast_approximate_anti_aliasing_ps.get();
 
 	// ブレンドステートの生成
 	{
@@ -109,15 +119,9 @@ smaa_edge_detection_pipeline_state::smaa_edge_detection_pipeline_state()
 {
 	set_domain(pipeline_state_base::domains::system);
 
-	load_shader_file vs_desc{};
-	vs_desc.file_path = "Engine/EngineShader/Postprocess/Antialias/smaa_edge_detection_vs.hlsl";
-	vs_desc.include_directries.emplace_back("External");
-	shader_manager::instance()->load_shader<vertex_shader>(vs, vs_desc);
+	vs = global_smaa_edge_detection_vs.get();
 
-	load_shader_file ps_desc{};
-	ps_desc.file_path = "Engine/EngineShader/Postprocess/Antialias/smaa_edge_detection_ps.hlsl";
-	ps_desc.include_directries.emplace_back("External");
-	shader_manager::instance()->load_shader<pixel_shader>(ps, ps_desc);
+	ps = global_smaa_edge_detection_ps.get();
 
 	// ブレンドステートの生成
 	{
@@ -195,15 +199,9 @@ smaa_blending_weight_calculation_pipeline_state::smaa_blending_weight_calculatio
 {
 	set_domain(pipeline_state_base::domains::system);
 
-	load_shader_file vs_desc{};
-	vs_desc.file_path = "Engine/EngineShader/Postprocess/Antialias/smaa_blending_weight_calculation_vs.hlsl";
-	vs_desc.include_directries.emplace_back("External");
-	shader_manager::instance()->load_shader<vertex_shader>(vs, vs_desc);
+	vs = global_smaa_blending_weight_calculation_vs.get();
 
-	load_shader_file ps_desc{};
-	ps_desc.file_path = "Engine/EngineShader/Postprocess/Antialias/smaa_blending_weight_calculation_ps.hlsl";
-	ps_desc.include_directries.emplace_back("External");
-	shader_manager::instance()->load_shader<pixel_shader>(ps, ps_desc);
+	ps = global_smaa_blending_weight_calculation_ps.get();
 
 	//	パラメーターテクスチャ生成
 	{
@@ -320,15 +318,9 @@ smaa_neighborhood_blending_pipeline_state::smaa_neighborhood_blending_pipeline_s
 {
 	set_domain(pipeline_state_base::domains::system);
 
-	load_shader_file vs_desc{};
-	vs_desc.file_path = "Engine/EngineShader/Postprocess/Antialias/smaa_neighborhood_blending_vs.hlsl";
-	vs_desc.include_directries.emplace_back("External");
-	shader_manager::instance()->load_shader<vertex_shader>(vs, vs_desc);
+	vs = global_smaa_neighborhood_blending_vs.get();
 
-	load_shader_file ps_desc{};
-	ps_desc.file_path = "Engine/EngineShader/Postprocess/Antialias/smaa_neighborhood_blending_ps.hlsl";
-	ps_desc.include_directries.emplace_back("External");
-	shader_manager::instance()->load_shader<pixel_shader>(ps, ps_desc);
+	ps = global_smaa_neighborhood_blending_ps.get();
 
 	// ブレンドステートの生成
 	{

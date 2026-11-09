@@ -1,10 +1,14 @@
 #include "PipelineState/fullscreen_quad_pipeline_state.h"
+#include "Graphics/global_shader.h"
 
 namespace
 {
-	static constexpr UINT SceneColorMapIndex = 0;
+	//	グローバルシェーダー
+	global_shader<vertex_shader> global_fullscreen_quad_vs("Engine/EngineShader/FullscreenQuad/fullscreen_quad_vs.hlsl");
+	global_shader<pixel_shader> global_display_mapping_ps("Engine/EngineShader/Postprocess/DisplayMapping/display_mapping_ps.hlsl");
+	global_shader<pixel_shader> global_convert_srgb_to_linear_ps("Engine/EngineShader/DeferredRendering/convert_srgb_to_linear_ps.hlsl");
 
-	//	サンプラステート
+	static constexpr UINT SceneColorMapIndex = 0;
 	static constexpr UINT SceneSamplerIndex = 0;
 }
 
@@ -14,13 +18,9 @@ display_mapping_pipeline_state::display_mapping_pipeline_state()
 {
 	set_domain(pipeline_state_base::domains::system);
 
-	load_shader_file vs_desc{};
-	vs_desc.file_path = "Engine/EngineShader/FullscreenQuad/fullscreen_quad_vs.hlsl";
-	shader_manager::instance()->load_shader<vertex_shader>(vs, vs_desc);
+	vs = global_fullscreen_quad_vs.get();
 
-	load_shader_file ps_desc{};
-	ps_desc.file_path = "Engine/EngineShader/Postprocess/DisplayMapping/display_mapping_ps.hlsl";
-	shader_manager::instance()->load_shader<pixel_shader>(ps, ps_desc);
+	ps = global_display_mapping_ps.get();
 
 	//	深度ステンシルステート
 	{
@@ -107,13 +107,9 @@ convert_srgb_to_linear_pipeline_state::convert_srgb_to_linear_pipeline_state()
 {
 	set_domain(pipeline_state_base::domains::system);
 
-	load_shader_file vs_desc{};
-	vs_desc.file_path = "Engine/EngineShader/FullscreenQuad/fullscreen_quad_vs.hlsl";
-	shader_manager::instance()->load_shader<vertex_shader>(vs, vs_desc);
+	vs = global_fullscreen_quad_vs.get();
 
-	load_shader_file ps_desc{};
-	ps_desc.file_path = "Engine/EngineShader/DeferredRendering/convert_srgb_to_linear_ps.hlsl";
-	shader_manager::instance()->load_shader<pixel_shader>(ps, ps_desc);
+	ps = global_convert_srgb_to_linear_ps.get();
 
 	//	深度ステンシルステート
 	{

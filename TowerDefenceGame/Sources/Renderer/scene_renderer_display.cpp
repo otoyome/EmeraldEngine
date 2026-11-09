@@ -1,4 +1,5 @@
 #include "Renderer/scene_renderer_display.h"
+#include "Graphics/global_shader.h"
 
 #include "PipelineState/fullscreen_quad_pipeline_state.h"
 #include "Graphics/color_space.h"
@@ -8,6 +9,11 @@
 
 namespace
 {
+	//	グローバルシェーダー
+	global_shader<compute_shader> global_average_luminance_cs("Engine/EngineShader/Postprocess/Exposure/average_luminance_cs.hlsl");
+	global_shader<compute_shader> global_exposure_adjust_cs("Engine/EngineShader/Postprocess/Exposure/exposure_adjust_cs.hlsl");
+	global_shader<compute_shader> global_tone_mapping_cs("Engine/EngineShader/Postprocess/ToneMapping/tone_mapping_cs.hlsl");
+
 	//	露出用の定数
 	struct exposure_constants
 	{
@@ -80,14 +86,8 @@ exposure_renderer::exposure_renderer(render_job_registrar job_executor, std::sha
 : renderer(job_executor)
 , render_targets(render_targets)
 {
-	if (shader_manager* instance = shader_manager::instance())
-	{
-		load_shader_file desc{};
-		desc.file_path = "Engine/EngineShader/Postprocess/Exposure/average_luminance_cs.hlsl";
-		instance->load_shader<compute_shader>(average_luminance, desc);
-		desc.file_path = "Engine/EngineShader/Postprocess/Exposure/exposure_adjust_cs.hlsl";
-		instance->load_shader<compute_shader>(exposure_adjust, desc);
-	}
+	average_luminance = global_average_luminance_cs.get();
+	exposure_adjust = global_exposure_adjust_cs.get();
 
 	constant_buffer = create_constant_buffer(sizeof(exposure_constants));
 
@@ -179,12 +179,7 @@ tone_mapping_renderer::tone_mapping_renderer(render_job_registrar job_executor, 
 : renderer(job_executor)
 , render_targets(render_targets)
 {
-	if (shader_manager* instance = shader_manager::instance())
-	{
-		load_shader_file desc{};
-		desc.file_path = "Engine/EngineShader/Postprocess/ToneMapping/tone_mapping_cs.hlsl";
-		instance->load_shader<compute_shader>(tone_mapping, desc);
-	}
+	tone_mapping = global_tone_mapping_cs.get();
 	constant_buffer = create_constant_buffer(sizeof(tone_mapping_constants));
 }
 

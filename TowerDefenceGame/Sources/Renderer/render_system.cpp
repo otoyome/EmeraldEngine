@@ -4,7 +4,8 @@
 #include "System/engine_config_data.h"
 #include "Editor/detail_profiler.h"
 
-render_system::render_system()
+render_system::render_system(HWND hwnd)
+: hwnd(hwnd)
 {
 	//	描画ジョブの実行者
 	executor = std::make_shared<render_job_executor>(4);
@@ -16,6 +17,10 @@ render_system::render_system()
 			//	オーバーレイしたい場合
 			if (overlay)
 				overlay();
+
+			//	ウィンドウが隠れている間(起動中)は表示しない
+			if (!IsWindowVisible(this->hwnd))
+				return;
 
 			//	プレゼント
 			UINT sync_interval{ engine_config_data::instance()->windows.vertical_sync };

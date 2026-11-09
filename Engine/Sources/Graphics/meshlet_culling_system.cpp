@@ -1,28 +1,20 @@
 #include "graphics/meshlet_culling_system.h"
+#include "Graphics/global_shader.h"
 
 #include "Graphics/render_data.h"
 #include "Math/math_all.h"
 
 namespace
 {
+	//	グローバルシェーダー
+	global_shader<compute_shader> global_meshlet_culling_cs("Engine/EngineShader/Culling/meshlet_culling_cs.hlsl");
+
 	static constexpr UINT ThreadCount = 64;
-	std::shared_ptr<compute_shader> load_cs(std::string_view path)
-	{
-		load_shader_file desc;
-		desc.file_path = path;
-#if defined(_DEBUG)
-		system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
-		system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
-#endif	//	defined(_DEBUG)
-		std::shared_ptr<compute_shader> shader;
-		shader_manager::instance()->load_shader<compute_shader>(shader, desc);
-		return shader;
-	}
 }
 
 meshlet_culling_system::meshlet_culling_system()
 {
-	meshlet_culling_cs = load_cs("Engine/EngineShader/Culling/meshlet_culling_cs.hlsl");
+	meshlet_culling_cs = global_meshlet_culling_cs.get();
 
 	D3D11_BUFFER_DESC bd{};
 	bd.Usage = D3D11_USAGE_DEFAULT;

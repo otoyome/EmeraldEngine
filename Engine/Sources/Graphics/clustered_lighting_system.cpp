@@ -1,4 +1,5 @@
 #include "graphics/clustered_lighting_system.h"
+#include "Graphics/global_shader.h"
 
 #include "Graphics/render_data.h"
 #include "Graphics/light.h"
@@ -10,6 +11,16 @@
 
 namespace
 {
+	//	グローバルシェーダー
+	global_shader<compute_shader> global_clustered_lighting_bounds_cs("Engine/EngineShader/ClusteredLighting/clustered_lighting_bounds_cs.hlsl");
+	global_shader<compute_shader> global_clustered_lighting_assign_cs("Engine/EngineShader/ClusteredLighting/clustered_lighting_assign_cs.hlsl");
+	global_shader<compute_shader> global_clustered_lighting_assign_cs_fill("Engine/EngineShader/ClusteredLighting/clustered_lighting_assign_cs.hlsl", "main", { shader_define("CLUSTERED_FILL", "1") });
+	global_shader<compute_shader> global_clustered_lighting_scan_cs("Engine/EngineShader/ClusteredLighting/clustered_lighting_scan_cs.hlsl");
+	global_shader<compute_shader> global_clustered_lighting_depth_cs("Engine/EngineShader/ClusteredLighting/clustered_lighting_depth_cs.hlsl");
+	global_shader<pixel_shader> global_deferred_rendering_clustered_ps("Engine/EngineShader/ClusteredLighting/deferred_rendering_clustered_ps.hlsl");
+	global_shader<pixel_shader> global_deferred_rendering_clustered_ps_visualize("Engine/EngineShader/ClusteredLighting/deferred_rendering_clustered_ps.hlsl", "main", { shader_define("CLUSTERED_VISUALIZE", "1") });
+	global_shader<vertex_shader> global_fullscreen_quad_vs("Engine/EngineShader/FullscreenQuad/fullscreen_quad_vs.hlsl");
+
 	//	コンソール変数
 	console_variable<bool> enable_variable("r.clustered.enable", true, "影無しの点光源/スポットライトをクラスタードライティングで描画する", console_flags::user_setting);
 	console_variable<float> far_variable("r.clustered.far", system_units::convert_m_to_unit(500.0f), "クラスターの奥行き分割を行う最大距離（以降は最後の分割にまとめる）", console_flags::user_setting);
@@ -58,35 +69,6 @@ namespace
 		float dummy1;
 	};
 
-	std::shared_ptr<compute_shader> load_cs(std::string_view path, bool fill)
-	{
-		load_shader_file desc{};
-		desc.file_path = path;
-		if (fill)
-			desc.defines.emplace_back("CLUSTERED_FILL", "1");
-#if defined(_DEBUG)
-		system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
-		system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
-#endif	//	defined(_DEBUG)
-		std::shared_ptr<compute_shader> shader;
-		shader_manager::instance()->load_shader<compute_shader>(shader, desc);
-		return shader;
-	}
-
-	std::shared_ptr<pixel_shader> load_ps(std::string_view path, bool visualize)
-	{
-		load_shader_file desc{};
-		desc.file_path = path;
-		if (visualize)
-			desc.defines.emplace_back("CLUSTERED_VISUALIZE", "1");
-#if defined(_DEBUG)
-		system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
-		system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
-#endif	//	defined(_DEBUG)
-		std::shared_ptr<pixel_shader> shader;
-		shader_manager::instance()->load_shader<pixel_shader>(shader, desc);
-		return shader;
-	}
 
 	//	バッファ生成
 	void create_structured_buffer(UINT stride, UINT count, UINT bind_flags,
@@ -143,18 +125,14 @@ clustered_lighting_system::clustered_lighting_system()
 	auto device = render_data::instance()->get_device();
 	HRESULT hr;
 
-	bounds_cs = load_cs("Engine/EngineShader/ClusteredLighting/clustered_lighting_bounds_cs.hlsl", false);
-	count_cs = load_cs("Engine/EngineShader/ClusteredLighting/clustered_lighting_assign_cs.hlsl", false);
-	fill_cs = load_cs("Engine/EngineShader/ClusteredLighting/clustered_lighting_assign_cs.hlsl", true);
-	scan_cs = load_cs("Engine/EngineShader/ClusteredLighting/clustered_lighting_scan_cs.hlsl", false);
-	depth_cs = load_cs("Engine/EngineShader/ClusteredLighting/clustered_lighting_depth_cs.hlsl", false);
-	{
-		load_shader_file desc{};
-		desc.file_path = "Engine/EngineShader/FullscreenQuad/fullscreen_quad_vs.hlsl";
-		shader_manager::instance()->load_shader<vertex_shader>(fullscreen_vs, desc);
-	}
-	lighting_ps = load_ps("Engine/EngineShader/ClusteredLighting/deferred_rendering_clustered_ps.hlsl", false);
-	visualize_ps = load_ps("Engine/EngineShader/ClusteredLighting/deferred_rendering_clustered_ps.hlsl", true);
+	bounds_cs = global_clustered_lighting_bounds_cs.get();
+	count_cs = global_clustered_lighting_assign_cs.get();
+	fill_cs = global_clustered_lighting_assign_cs_fill.get();
+	scan_cs = global_clustered_lighting_scan_cs.get();
+	depth_cs = global_clustered_lighting_depth_cs.get();
+	fullscreen_vs = global_fullscreen_quad_vs.get();
+	lighting_ps = global_deferred_rendering_clustered_ps.get();
+	visualize_ps = global_deferred_rendering_clustered_ps_visualize.get();
 
 	//	定数バッファ
 	{

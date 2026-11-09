@@ -34,6 +34,8 @@ public:
 	void imgui_terminate();
 
 	void begin_frame();
+	//	ImGui ‚ÌƒtƒŒ[ƒ€‚ğn‚ß‚½‚©
+	bool is_frame_begun() const { return frame_begun; }
 	void render_windows();
 	void render_overlay();
 
@@ -55,5 +57,7 @@ private:
 	render_pass imgui_rendering_pass;
 	D3D11_VIEWPORT imgui_viewport;
 	std::shared_ptr<editor_items::context> editor_context;
+
+	bool frame_begun = false;
 };
 #endif	//	defined(USE_IMGUI)

@@ -5,6 +5,8 @@
 #include "Process/framework_process.h"
 
 class console_command;
+class world;
+class world_renderer;
 
 //	ゲームのプロセス
 class game_process : public framework_process
@@ -25,6 +27,10 @@ public:
 
 private:
 	bool create_collision_filters();
+
+private:
+	std::unique_ptr<world> main_world;	//	メインのワールド
+	std::unique_ptr<world_renderer> main_renderer;	//	メインのワールドの描画
 
 #if defined(USE_IMGUI)
 private:
