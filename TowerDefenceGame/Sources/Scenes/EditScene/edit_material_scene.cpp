@@ -46,6 +46,14 @@ namespace
 	{
 		return system_utility::to_lower(std::filesystem::path(file_path).extension().string()) == extension;
 	}
+
+	//	編集用の複製を作る
+	material_resource_ptr make_working_copy(const material_resource_ptr& original)
+	{
+		auto working = std::make_shared<material_resource>();
+		original->duplicate(*working);
+		return working;
+	}
 }
 
 edit_material_scene::edit_material_scene()
@@ -164,8 +172,12 @@ bool edit_material_scene::uninitialize_core()
 void edit_material_scene::update_core(float elapsed_time)
 {
 	{
+		//	窓に映しているワールドではアセットプレビューから渡されたファイルを開く
 		std::string file_path;
-		if (asset_browser::is_valid() && asset_browser::instance()->take_open_request(type_name(), file_path))
+		const bool requested = get_context().is_embedded()
+			? get_context().take_open_file(file_path)
+			: asset_browser::is_valid() && asset_browser::instance()->take_open_request(type_name(), file_path);
+		if (requested)
 			open_source(file_path, false);
 	}
 
@@ -183,7 +195,7 @@ void edit_material_scene::update_core(float elapsed_time)
 void edit_material_scene::imgui_render_core()
 {
 	ImGui::SetNextWindowSize(ImVec2(820.0f, 640.0f), ImGuiCond_FirstUseEver);
-	if (ImGui::Begin("Material Editor"))
+	if (ImGui::Begin(get_context().make_window_name("Material Editor").c_str()))
 	{
 		imgui_render_source();
 		ImGui::Separator();
@@ -263,6 +275,15 @@ void edit_material_scene::open_source(const std::string& file_path, bool force_l
 
 void edit_material_scene::save_source()
 {
+	if (source_material || source_model || source_effect)
+	{
+		for (auto& entry : materials)
+		{
+			if (entry.original && entry.material)
+				entry.material->duplicate(*entry.original);
+		}
+	}
+
 	const std::string source_file_path = get_source_file_path();
 	bool saved = false;
 	if (source_material)
@@ -296,22 +317,10 @@ std::string edit_material_scene::get_source_file_path() const
 
 void edit_material_scene::revert_source()
 {
-	//	.emr のマテリアルはファイルから読み直す
-	bool reload_source = false;
 	for (auto& entry : materials)
 	{
-		if (!entry.material || entry.material->is_missing())
-			continue;
-		if (entry.material->get_file_path().empty())
-			reload_source = true;
-		else
-			resource_manager::instance()->revert(*entry.material);
-	}
-
-	if (reload_source && !source_material)
-	{
-		open_source(get_source_file_path(), true);
-		return;
+		if (entry.original && entry.material)
+			entry.original->duplicate(*entry.material);
 	}
 	dirty = false;
 	message = "reverted: " + to_display(get_source_file_path());
@@ -323,7 +332,7 @@ void edit_material_scene::collect_materials()
 
 	if (source_material)
 	{
-		materials.push_back({ system_utility::convert_utf8(source_material->get_name()), source_material });
+		materials.push_back({ system_utility::convert_utf8(source_material->get_name()), make_working_copy(source_material), source_material });
 		return;
 	}
 
@@ -340,7 +349,7 @@ void edit_material_scene::collect_materials()
 			auto& material = resource_materials[index];
 			if (!material)
 				continue;
-			materials.push_back({ "preview [" + std::to_string(index) + "] " + system_utility::convert_utf8(material->get_name()), material });
+			materials.push_back({ "preview [" + std::to_string(index) + "] " + system_utility::convert_utf8(material->get_name()), make_working_copy(material), material });
 		}
 		return;
 	}
@@ -353,7 +362,7 @@ void edit_material_scene::collect_materials()
 			auto& material = resource_materials[index];
 			if (!material)
 				continue;
-			materials.push_back({ "[" + std::to_string(index) + "] " + system_utility::convert_utf8(material->get_name()), material });
+			materials.push_back({ "[" + std::to_string(index) + "] " + system_utility::convert_utf8(material->get_name()), make_working_copy(material), material });
 		}
 	}
 
@@ -365,7 +374,7 @@ void edit_material_scene::collect_materials()
 			auto& material = decals[index].material;
 			if (!material)
 				continue;
-			materials.push_back({ "decal[" + std::to_string(index) + "] " + system_utility::convert_utf8(material->get_name()), material });
+			materials.push_back({ "decal[" + std::to_string(index) + "] " + system_utility::convert_utf8(material->get_name()), make_working_copy(material), material });
 		}
 
 		auto& particles = source_effect->get_particles_for_editor();
@@ -374,7 +383,7 @@ void edit_material_scene::collect_materials()
 			auto* renderer = particles[index].particle.get_item<::particle::item::renderer>();
 			if (!renderer || !renderer->material)
 				continue;
-			materials.push_back({ "particle[" + std::to_string(index) + "] " + system_utility::convert_utf8(renderer->material->get_name()), renderer->material });
+			materials.push_back({ "particle[" + std::to_string(index) + "] " + system_utility::convert_utf8(renderer->material->get_name()), make_working_copy(renderer->material), renderer->material });
 		}
 	}
 }
@@ -483,11 +492,22 @@ void edit_material_scene::apply_preview_materials()
 	material_resource_ptr selected = get_selected_material();
 	const bool use_selected = override_preview_slots && selected && selected->get_domain() == material_resource::domains::surface;
 
+	//	元のマテリアルの代わりに編集用の複製を当てる
+	auto working_of = [this](const material_resource_ptr& original) -> material_resource_ptr
+	{
+		for (const auto& entry : materials)
+		{
+			if (entry.original == original)
+				return entry.material;
+		}
+		return original;
+	};
+
 	auto& slots = instance->get_materials();
 	const auto& resource_materials = resource->get_materials();
 	for (size_t index = 0; index < slots.size() && index < resource_materials.size(); ++index)
 	{
-		slots[index].set_resource(use_selected ? selected : resource_materials[index]);
+		slots[index].set_resource(use_selected ? selected : working_of(resource_materials[index]));
 	}
 }
 

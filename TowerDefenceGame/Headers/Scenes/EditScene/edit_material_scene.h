@@ -36,7 +36,8 @@ private:
 	struct material_entry
 	{
 		std::string label;
-		material_resource_ptr material;
+		material_resource_ptr material;	//	編集用の複製
+		material_resource_ptr original;	//	元のマテリアル
 	};
 
 private:

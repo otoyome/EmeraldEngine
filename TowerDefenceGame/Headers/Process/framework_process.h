@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <string_view>
 
 class framework;
 
@@ -29,6 +30,9 @@ public:
 
 public:
 	virtual orders get_order() const { return orders::phase; }
+	virtual std::string_view get_key() const { return {}; }
+
+	virtual bool is_closed() const { return false; }
 
 	virtual bool enter() { return true; }
 	virtual void exit() {}

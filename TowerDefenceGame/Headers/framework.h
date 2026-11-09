@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <string_view>
 #include <vector>
 
 class app_window;
@@ -20,6 +21,7 @@ class framework
 	friend class editor_process;
 	friend class shader_compile_process;
 	friend class game_process;
+	friend class asset_preview_process;
 
 public:
 	static constexpr const TCHAR* APPLICATION_NAME = _T("Sample Engine");
@@ -45,6 +47,11 @@ private:
 	bool add_process(std::unique_ptr<framework_process> process);
 	bool advance_process();
 
+	//	プロセスリクエスト
+	void request_process(std::unique_ptr<framework_process> process);
+	//	同じキーのプロセスがあるか?
+	bool has_process(std::string_view key) const;
+
 private:
 	//	プロセス
 	struct process_entry
@@ -56,9 +63,10 @@ private:
 private:
 	app_window& window;
 	CONST HWND hwnd;
-	std::unique_ptr<render_system> renderer;	//	1フレームの描画の流れ
-	std::vector<process_entry> processes;	//	積んだプロセス
+	std::unique_ptr<render_system> renderer;	//	描画システム
+	std::vector<process_entry> processes;	//	プロセスリスト
 	std::uint64_t entered_count = 0;	//	積んだ回数
+	std::vector<std::unique_ptr<framework_process>> requested_processes;	//	プロセスリクエスト
 
 
 #if defined(USE_IMGUI)

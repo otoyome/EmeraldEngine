@@ -242,6 +242,9 @@
     <ClCompile Include="Sources\Process\game_process.cpp">
       <Filter>Sources\Process</Filter>
     </ClCompile>
+    <ClCompile Include="Sources\Process\asset_preview_process.cpp">
+      <Filter>Sources\Process</Filter>
+    </ClCompile>
     <ClCompile Include="Sources\Process\shader_compile_process.cpp">
       <Filter>Sources\Process</Filter>
     </ClCompile>
@@ -617,6 +620,9 @@
       <Filter>Headers\Process</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Process\game_process.h">
+      <Filter>Headers\Process</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Process\asset_preview_process.h">
       <Filter>Headers\Process</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Process\shader_compile_process.h">

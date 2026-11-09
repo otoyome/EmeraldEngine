@@ -1,4 +1,6 @@
 #include "Process/game_process.h"
+#include "Process/asset_preview_process.h"
+#include "scenes/editscene/edit_material_scene.h"
 #include "framework.h"
 #include "Texture/texture_factory.h"
 #include "Graphics/render_data.h"
@@ -115,6 +117,23 @@ bool game_process::enter()
 		//	アセットブラウザの開き先
 		if (self.editor)
 			self.editor->register_asset_open_handlers(main_world->get_scenes());
+
+
+		//	@tool マテリアルを別の窓で編集する(アセットプレビューにマテリアル編集のシーンを載せる。右クリックの開き先から選ぶ)
+		if (asset_browser::is_valid())
+		{
+			asset_browser::open_handler handler;
+			handler.name = "material_editor_window";
+			handler.label = "Material Editor (Window)";
+			handler.extensions = { ".emr", ".emo", ".eme" };
+			handler.open_file = [&self](const cache_string& file_path)
+			{
+				if (!self.has_process(asset_preview_process::make_key("material_editor", file_path)))
+					self.request_process(std::make_unique<asset_preview_process>(self, file_path, "material_editor",
+						[](scene_manager& scenes) { scenes.change_scene<edit_material_scene>(); }));
+			};
+			asset_browser::instance()->register_open_handler(std::move(handler));
+		}
 
 		//	デバッグ表示の収集
 		main_renderer->set_debug_builder([this, &self](const render_data_context& data)

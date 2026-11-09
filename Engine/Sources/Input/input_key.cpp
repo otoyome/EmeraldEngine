@@ -2,6 +2,11 @@
 
 namespace
 {
+#if defined(USE_IMGUI)
+	//	@tool マウスを渡すと決めた ImGui のフレーム番号
+	int mouse_pass_through_frame = -2;
+#endif	//	defined(USE_IMGUI)
+
 	bool is_keyboard_blocked()
 	{
 #if defined(USE_IMGUI)
@@ -14,7 +19,7 @@ namespace
 	bool is_mouse_blocked()
 	{
 #if defined(USE_IMGUI)
-		return ImGui::GetCurrentContext() && ImGui::GetIO().WantCaptureMouse;
+		return ImGui::GetCurrentContext() && ImGui::GetIO().WantCaptureMouse && mouse_pass_through_frame < ImGui::GetFrameCount() - 1;
 #else
 		return false;
 #endif
@@ -30,6 +35,14 @@ namespace
 
 namespace input
 {
+#if defined(USE_IMGUI)
+	void pass_mouse_through_ui()
+	{
+		if (ImGui::GetCurrentContext())
+			mouse_pass_through_frame = ImGui::GetFrameCount();
+	}
+#endif	//	defined(USE_IMGUI)
+
 	state get_key_state(key k, size_t pad_index)
 	{
 		switch (k.device)

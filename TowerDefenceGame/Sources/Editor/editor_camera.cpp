@@ -1,4 +1,5 @@
 #include "Editor/editor_camera.h"
+#include "Object/engine_context.h"
 
 #if	defined(USE_IMGUI)
 #include "Object/object_manager.h"
@@ -68,7 +69,9 @@ void editor_camera_object::apply_view(const view_parameters* base)
 
 void editor_camera_object::debug_update(float elapsed_time)
 {
-	const bool accepts_input = !ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow);
+	//	ImGui ‚Ì‘‹‚É‰f‚µ‚Ä‚¢‚éã‚Å‚¾‚¯“ü—Í‚ğó‚¯•t‚¯‚é
+	const engine_context& context = get_context();
+	const bool accepts_input = context.is_embedded() ? context.is_viewport_hovered() : !ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow);
 	if (accepts_input)
 		handle_input(elapsed_time);
 

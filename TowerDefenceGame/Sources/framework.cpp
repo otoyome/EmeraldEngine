@@ -132,8 +132,60 @@ bool framework::add_process(std::unique_ptr<framework_process> process)
 	return position->process->enter();
 }
 
+void framework::request_process(std::unique_ptr<framework_process> process)
+{
+	if (process)
+		requested_processes.emplace_back(std::move(process));
+}
+
+bool framework::has_process(std::string_view key) const
+{
+	if (key.empty())
+		return false;
+	for (const process_entry& entry : processes)
+	{
+		if (entry.process->get_key() == key)
+			return true;
+	}
+	for (const auto& process : requested_processes)
+	{
+		if (process->get_key() == key)
+			return true;
+	}
+	return false;
+}
+
 bool framework::advance_process()
 {
+	//	プロセス終了処理
+	for (auto it = processes.begin(); it != processes.end(); )
+	{
+		if (it->process->is_closed())
+		{
+			it->process->exit();
+			it = processes.erase(it);
+		}
+		else
+		{
+			++it;
+		}
+	}
+
+	//	リクエストプロセスを追加
+	std::vector<std::unique_ptr<framework_process>> requests = std::move(requested_processes);
+	requested_processes.clear();
+	for (auto& request : requests)
+	{
+		if (add_process(std::move(request)))
+			continue;
+		auto failed = std::find_if(processes.begin(), processes.end(), [this](const process_entry& entry) { return entry.entered_index == entered_count; });
+		if (failed != processes.end())
+		{
+			failed->process->exit();
+			processes.erase(failed);
+		}
+	}
+
 	for (process_entry& entry : processes)
 	{
 		while (std::unique_ptr<framework_process> next = entry.process->next_process())
