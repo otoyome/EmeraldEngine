@@ -25,7 +25,6 @@ private:
 
 private:
 	std::shared_ptr<scene_render_targets> render_targets;
-	render_pass rendering_pass;
 	D3D11_VIEWPORT viewport;
 
 	buffer_view vertex_buffer_views[3];

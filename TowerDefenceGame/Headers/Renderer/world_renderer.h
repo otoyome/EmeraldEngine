@@ -12,7 +12,6 @@
 #include "graphics/scene_view_state.h"
 #include "Renderer/renderer.h"
 #include "Renderer/scene_render_targets.h"
-#include "Renderer/render_output.h"
 
 namespace collision { class frustum_culling; }
 struct render_data_context;
@@ -25,12 +24,12 @@ public:
 	using debug_builder = std::function<void(const render_data_context&)>;
 	
 public:
-	const std::shared_ptr<render_output>& get_output() const { return output; }
+	const std::shared_ptr<const render_pass>& get_output() const { return output; }
 
 	void set_debug_builder(debug_builder builder) { this->builder = std::move(builder); }
 
 public:
-	world_renderer(std::shared_ptr<render_job_executor> render_executor, std::shared_ptr<render_output> output);
+	world_renderer(std::shared_ptr<render_job_executor> render_executor, std::shared_ptr<const render_pass> output);
 	~world_renderer();
 
 	world_renderer(const world_renderer&) = delete;
@@ -54,6 +53,8 @@ private:
 
 	//	出力先が作り直されていたら描画先一式を合わせる
 	bool sync_output();
+	//	@tool 出力先の最初の描画先の識別子（作り直しの判定に使う）
+	std::uint64_t get_output_id() const;
 
 	void prepare_renderer_context(
 		renderer_context& context,
@@ -78,8 +79,9 @@ private:
 
 private:
 	std::shared_ptr<render_job_executor> render_executor;
-	std::shared_ptr<render_output> output;
-	uint32_t output_generation = 0;
+	std::shared_ptr<const render_pass> output;
+	//	@tool 前に合わせたときの出力先の識別子（変わっていたら作り直す）
+	std::uint64_t output_id = 0;
 
 	std::shared_ptr<scene_render_targets> render_targets;
 	std::vector<std::unique_ptr<renderer>> scene_renderers;

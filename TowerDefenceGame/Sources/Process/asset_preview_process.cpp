@@ -10,8 +10,9 @@
 #include "Object/world.h"
 #include "Object/object_manager.h"
 #include "Renderer/world_renderer.h"
-#include "Renderer/render_output.h"
 #include "Renderer/render_system.h"
+#include "Graphics/render_pass.h"
+#include "Texture/texture_factory.h"
 #include "System/imgui_texture_keeper.h"
 #include "Scenes/scene_base.h"
 #include "Object/engine_context.h"
@@ -57,7 +58,9 @@ bool asset_preview_process::enter()
 	open_scene(preview_world->get_scenes());
 
 	//	描画
-	output = render_output::create_texture(default_width, default_height);
+	output = std::make_shared<render_pass>();
+	if (!resize_output(default_width, default_height))
+		return false;
 	renderer = std::make_unique<world_renderer>(self.renderer->get_executor(), output);
 	if (!renderer->initialize())
 		return false;
@@ -69,7 +72,42 @@ void asset_preview_process::exit()
 {
 	renderer.reset();
 	output.reset();
+	output_texture.reset();
 	preview_world.reset();
+}
+
+bool asset_preview_process::resize_output(int width, int height)
+{
+	if (width <= 0 || height <= 0)
+		return false;
+
+	//	スワップチェーンと同じ形式で作る
+	DXGI_SWAP_CHAIN_DESC1 swap_chain_desc{};
+	render_data::instance()->get_swap_chain()->GetDesc1(&swap_chain_desc);
+
+	D3D11_TEXTURE2D_DESC texture2d_desc{};
+	texture2d_desc.Width = static_cast<UINT>(width);
+	texture2d_desc.Height = static_cast<UINT>(height);
+	texture2d_desc.MipLevels = 1;
+	texture2d_desc.ArraySize = 1;
+	texture2d_desc.Format = swap_chain_desc.Format;
+	texture2d_desc.SampleDesc.Count = 1;
+	texture2d_desc.SampleDesc.Quality = 0;
+	texture2d_desc.Usage = D3D11_USAGE_DEFAULT;
+	texture2d_desc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+	texture2d_desc.CPUAccessFlags = 0;
+	texture2d_desc.MiscFlags = 0;
+
+	texture_ptr created;
+	if (!texture_factory::create_texture2d(created, "asset_preview_output", texture2d_desc))
+		return false;
+
+	//	同じ描画パスの描画先を差し替える
+	output_texture = created;
+	output->render_targets.clear();
+	output->render_targets.emplace_back(output_texture);
+	output->render_targets.back().clear_color = false;
+	return true;
 }
 
 void asset_preview_process::update(float elapsed_time)
@@ -126,12 +164,12 @@ void asset_preview_process::imgui_render()
 		const ImVec2 available = ImGui::GetContentRegionAvail();
 		const int width = std::max(static_cast<int>(available.x), 1);
 		const int height = std::max(static_cast<int>(available.y), 1);
-		if (width != output->get_width() || height != output->get_height())
-			output->resize(width, height);
+		if (output->get_size() != math::uint2(static_cast<std::uint32_t>(width), static_cast<std::uint32_t>(height)))
+			resize_output(width, height);
 
 		const ImVec2 image_position = ImGui::GetCursorScreenPos();
 		const ImVec2 image_size(static_cast<float>(width), static_cast<float>(height));
-		ImGui::Image(imgui_texture_keeper::instance()->keep(output->get_texture()), image_size);
+		ImGui::Image(imgui_texture_keeper::instance()->keep(output_texture), image_size);
 
 		//	画像の上にカーソルがあるかを調べる
 		ImGui::SetCursorScreenPos(image_position);

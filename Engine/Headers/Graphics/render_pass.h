@@ -1,5 +1,8 @@
 #pragma once
 
+#include <atomic>
+#include <cstdint>
+
 #include "Texture/texture.h"
 #include "Graphics/common_pipeline_states.h"
 
@@ -8,18 +11,16 @@ struct render_target_view
 	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> view;
 	bool clear_color{true};
 	FLOAT clear_color_value[4]{0.0f, 0.0f, 0.0f, 0.0f};
-	//	@tool true のときは view を持たず、使うたびに render_data のバックバッファの描画先を使う
-	bool back_buffer{false};
+	math::uint2 size{ 0, 0 };
+	std::uint64_t id{ 0 };
 
 	render_target_view(){};
+	render_target_view(Microsoft::WRL::ComPtr<IDXGISwapChain> swap_chain);
 	render_target_view(texture_ptr& texture, D3D11_RENDER_TARGET_VIEW_DESC* desc = nullptr);
 	~render_target_view() {};
 
-	//	@tool バックバッファを描画先にする
-	static render_target_view from_back_buffer();
-
-	//	@tool 実際に設定する描画先
-	ID3D11RenderTargetView* get_view() const;
+private:
+	static std::atomic<std::uint64_t> next_id;
 };
 
 struct depth_stencil_view
@@ -43,6 +44,7 @@ struct render_pass
 	render_pass();
 	~render_pass();
 
-	void activate(ID3D11DeviceContext* context);
-	void deactivate(ID3D11DeviceContext* context);
+	void activate(ID3D11DeviceContext* context) const;
+	void deactivate(ID3D11DeviceContext* context) const;
+	math::uint2 get_size() const;
 };

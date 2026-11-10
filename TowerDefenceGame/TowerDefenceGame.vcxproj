@@ -652,7 +652,6 @@ xcopy "$(SolutionDir)External\SDL3\lib\SDL3.dll" "$(OutDir)" /y</Command>
     <ClCompile Include="Sources\Renderer\scene_renderer_forward.cpp" />
     <ClCompile Include="Sources\Renderer\scene_renderer_postprocess.cpp" />
     <ClCompile Include="Sources\Renderer\scene_renderer_display.cpp" />
-    <ClCompile Include="Sources\Renderer\render_output.cpp" />
     <ClCompile Include="Sources\Renderer\world_renderer.cpp" />
     <ClCompile Include="Sources\Scenes\DummyScene\dummy_scene.cpp" />
     <ClCompile Include="Sources\Scenes\NetworkScene\network_sandbox_scene.cpp" />
@@ -792,7 +791,6 @@ xcopy "$(SolutionDir)External\SDL3\lib\SDL3.dll" "$(OutDir)" /y</Command>
     <ClInclude Include="Headers\Renderer\scene_renderer_forward.h" />
     <ClInclude Include="Headers\Renderer\scene_renderer_postprocess.h" />
     <ClInclude Include="Headers\Renderer\scene_renderer_display.h" />
-    <ClInclude Include="Headers\Renderer\render_output.h" />
     <ClInclude Include="Headers\Renderer\world_renderer.h" />
     <ClInclude Include="Headers\Renderer\scene_render_targets.h" />
     <ClInclude Include="Headers\Renderer\renderer.h" />

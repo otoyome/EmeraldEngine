@@ -1,7 +1,8 @@
 #pragma once
 
+#include <memory>
+
 #include "Graphics/render_pass.h"
-#include "Renderer/render_output.h"
 
 //	レンダーターゲット集
 //	☆ﾃｷﾄｰ('ω')ｰﾄｷﾃ☆
@@ -21,5 +22,5 @@ struct scene_render_targets
 	texture_ptr ssr_counter_textures[2];
 
 	//	@tool 最終的な出力先（バックバッファ、またはテクスチャ）
-	std::shared_ptr<render_output> output;
+	std::shared_ptr<const render_pass> output;
 };

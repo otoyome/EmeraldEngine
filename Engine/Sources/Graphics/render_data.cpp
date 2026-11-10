@@ -1,5 +1,6 @@
 
 #include "Graphics/render_data.h"
+#include "Graphics/render_pass.h"
 
 #include <d3d11_1.h>
 #include <dxgi1_5.h>
@@ -79,11 +80,9 @@ render_data::render_data(CONST HWND hwnd)
 
 	//	バックバッファの描画先
 	{
-		Microsoft::WRL::ComPtr<ID3D11Texture2D> back_buffer;
-		hr = swap_chain->GetBuffer(0, IID_PPV_ARGS(back_buffer.GetAddressOf()));
-		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
-		hr = device->CreateRenderTargetView(back_buffer.Get(), nullptr, back_buffer_view.GetAddressOf());
-		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+		back_buffer_pass = std::make_shared<render_pass>();
+		back_buffer_pass->render_targets.emplace_back(swap_chain);
+		back_buffer_pass->render_targets.back().clear_color = false;
 	}
 
 	state_cache.initialize(device.Get());

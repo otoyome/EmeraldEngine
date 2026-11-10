@@ -245,7 +245,7 @@ void display_mapping_renderer::render(renderer_context& renderer_context)
 		constants.output_curve = static_cast<UINT>(output_curves::srgb);
 		context.device_context->UpdateSubresource(constant_buffer.Get(), 0, nullptr, &constants, 0, 0);
 
-		rendering_pass.activate(context.device_context);
+		render_targets->output->activate(context.device_context);
 		context.device_context->RSSetViewports(1, &viewport);
 		context.scene_color_texture = render_targets->scene_color_texture;
 
@@ -254,19 +254,16 @@ void display_mapping_renderer::render(renderer_context& renderer_context)
 		draw(context, 4);
 		display_mapping_pipeline_states->end(context);
 
-		rendering_pass.deactivate(context.device_context);
+		render_targets->output->deactivate(context.device_context);
 	}, "display_mapping_pass", renderer_context, get_render_basis_sort_order());
 }
 
 void display_mapping_renderer::resize_buffer(int width, int height)
 {
-	rendering_pass.render_targets.clear();
-	rendering_pass.render_targets.emplace_back(render_targets->output->make_render_target_view());
-
 	viewport.TopLeftX = 0.0f;
 	viewport.TopLeftY = 0.0f;
-	viewport.Width = static_cast<float>(render_targets->output->get_width());
-	viewport.Height = static_cast<float>(render_targets->output->get_height());
+	viewport.Width = static_cast<float>(render_targets->output->get_size().x);
+	viewport.Height = static_cast<float>(render_targets->output->get_size().y);
 	viewport.MinDepth = 0.0f;
 	viewport.MaxDepth = 1.0f;
 }

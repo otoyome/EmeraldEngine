@@ -87,7 +87,6 @@ public:
 
 private:
 	std::shared_ptr<scene_render_targets> render_targets;
-	render_pass rendering_pass;
 	D3D11_VIEWPORT viewport;
 
 	graphics_pipeline_state_ptr display_mapping_pipeline_states;

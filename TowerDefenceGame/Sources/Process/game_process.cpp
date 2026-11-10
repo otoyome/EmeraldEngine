@@ -41,7 +41,6 @@
 #include "Renderer/scene_renderer_display.h"
 #include "Renderer/ui_renderer.h"
 #include "Renderer/render_system.h"
-#include "Renderer/render_output.h"
 #include "Renderer/world_renderer.h"
 
 #include "Object/object_manager.h"
@@ -89,7 +88,7 @@ bool game_process::enter()
 	main_world = std::make_unique<world>();
 
 	//	ƒƒCƒ“‚Ìƒ[ƒ‹ƒh‚Ì•`‰æ
-	main_renderer = std::make_unique<world_renderer>(self.renderer->get_executor(), render_output::create_back_buffer());
+	main_renderer = std::make_unique<world_renderer>(self.renderer->get_executor(), render_data::instance()->get_back_buffer_pass());
 	if (!main_renderer->initialize())
 		return false;
 

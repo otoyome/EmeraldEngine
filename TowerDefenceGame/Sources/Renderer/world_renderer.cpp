@@ -72,7 +72,7 @@ namespace
 #endif	//	defined(USE_IMGUI)
 }
 
-world_renderer::world_renderer(std::shared_ptr<render_job_executor> render_executor, std::shared_ptr<render_output> output)
+world_renderer::world_renderer(std::shared_ptr<render_job_executor> render_executor, std::shared_ptr<const render_pass> output)
 : render_executor(std::move(render_executor))
 , output(std::move(output))
 {
@@ -85,27 +85,36 @@ world_renderer::~world_renderer()
 bool world_renderer::initialize()
 {
 	render_targets = std::make_shared<scene_render_targets>();
-	output_generation = output->get_generation();
-	if (!create_targets(output->get_width(), output->get_height()))
+	output_id = get_output_id();
+	if (!create_targets(static_cast<int>(output->get_size().x), static_cast<int>(output->get_size().y)))
 		return false;
 
 	create_renderers();
 	return true;
 }
 
+std::uint64_t world_renderer::get_output_id() const
+{
+	if (output->render_targets.empty())
+		return 0;
+	return output->render_targets.front().id;
+}
+
 bool world_renderer::sync_output()
 {
-	if (output->get_generation() == output_generation)
+	if (get_output_id() == output_id)
 		return true;
 
-	output_generation = output->get_generation();
-	if (!create_targets(output->get_width(), output->get_height()))
+	output_id = get_output_id();
+	const int width = static_cast<int>(output->get_size().x);
+	const int height = static_cast<int>(output->get_size().y);
+	if (!create_targets(width, height))
 		return false;
 
 	for (auto& render : scene_renderers)
-		render->resize_buffer(output->get_width(), output->get_height());
+		render->resize_buffer(width, height);
 	for (auto& render : ui_renderers)
-		render->resize_buffer(output->get_width(), output->get_height());
+		render->resize_buffer(width, height);
 	return true;
 }
 
@@ -117,10 +126,10 @@ bool world_renderer::create_targets(int scene_width, int scene_height)
 
 	//	出力先のクリア用
 	{
-		output_clear_rendering_pass.render_targets.clear();
-		output_clear_rendering_pass.render_targets.emplace_back(output->make_render_target_view());
+		output_clear_rendering_pass.render_targets = output->render_targets;
+		for (auto& render_target : output_clear_rendering_pass.render_targets)
+			render_target.clear_color = true;
 	}
-
 
 	//	UI描画用のシーン定数バッファ生成(viewport_rectのみ使用するため他の項目は未使用)
 	{

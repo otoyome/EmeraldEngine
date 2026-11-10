@@ -1434,9 +1434,9 @@ void debug_draw_pass_renderer::render(renderer_context& context)
 
 void debug_draw_pass_renderer::resize_buffer(int width, int height)
 {
-	rendering_pass.render_targets.clear();
-	rendering_pass.render_targets.emplace_back(render_targets->output->make_render_target_view());
-	rendering_pass.render_targets.back().clear_color = false;
+	rendering_pass.render_targets = render_targets->output->render_targets;
+	for (auto& render_target : rendering_pass.render_targets)
+		render_target.clear_color = false;
 	D3D11_DEPTH_STENCIL_VIEW_DESC depth_stencil_view_desc{};
 	depth_stencil_view_desc.Format = common_pipeline_states::scene_depth_stencil_view_format;
 	depth_stencil_view_desc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
@@ -1447,8 +1447,8 @@ void debug_draw_pass_renderer::resize_buffer(int width, int height)
 	// ビューポートの設定
 	viewport.TopLeftX = 0.0f;
 	viewport.TopLeftY = 0.0f;
-	viewport.Width = static_cast<float>(render_targets->output->get_width());
-	viewport.Height = static_cast<float>(render_targets->output->get_height());
+	viewport.Width = static_cast<float>(render_targets->output->get_size().x);
+	viewport.Height = static_cast<float>(render_targets->output->get_size().y);
 	viewport.MinDepth = 0.0f;
 	viewport.MaxDepth = 1.0f;
 }

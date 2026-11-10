@@ -54,8 +54,6 @@ public:
 
 private:
 	CONST HWND hwnd;
-	render_pass imgui_rendering_pass;
-	D3D11_VIEWPORT imgui_viewport;
 	std::shared_ptr<editor_items::context> editor_context;
 
 	bool frame_begun = false;

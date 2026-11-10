@@ -13,6 +13,8 @@ CONST LONG SCREEN_WIDTH{ 1280 };
 CONST LONG SCREEN_HEIGHT{ 720 };
 CONST BOOL FULLSCREEN{ FALSE };
 
+struct render_pass;
+
 class render_data
 {
 	SINGLETON_DECREATE(render_data)
@@ -31,7 +33,8 @@ public:
 	Microsoft::WRL::ComPtr<ID3D11Device> get_device() const { return device; }
 	Microsoft::WRL::ComPtr<ID3D11DeviceContext> get_immediate_context() const { return immediate_context; }
 	Microsoft::WRL::ComPtr<IDXGISwapChain1> get_swap_chain() const { return swap_chain; }
-	ID3D11RenderTargetView* get_back_buffer_view() const { return back_buffer_view.Get(); }
+	std::shared_ptr<const render_pass> get_back_buffer_pass() const { return back_buffer_pass; }
+
 	render_state_cache& get_state_cache() { return state_cache; }
 	gpu_upload_list& get_upload_list() { return upload_list; }
 	gpu_readback_queue& get_readback_queue() { return readback_queue; }
@@ -54,7 +57,7 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11Device> device;
 	Microsoft::WRL::ComPtr<ID3D11DeviceContext> immediate_context;
 	Microsoft::WRL::ComPtr<IDXGISwapChain1> swap_chain;
-	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> back_buffer_view;
+	std::shared_ptr<render_pass> back_buffer_pass;
 
 	UINT swap_chain_flags = 0;
 	bool supported_device = false;

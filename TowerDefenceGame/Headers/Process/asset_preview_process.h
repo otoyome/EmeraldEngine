@@ -7,10 +7,11 @@
 
 #include "Process/framework_process.h"
 #include "System/cache_string.h"
+#include "Texture/texture.h"
 
 class world;
 class world_renderer;
-class render_output;
+struct render_pass;
 class scene_manager;
 
 //	アセットプレビュープロセス
@@ -38,14 +39,18 @@ public:
 	void imgui_render() override;
 
 private:
+	bool resize_output(int width, int height);
+
+private:
 	cache_string file_path;		//	開いたファイル
 	bool open = true;			//	窓が開いているか
 	std::string window_kind;	//	窓の種類
 	std::string key;			//	二重に開かないためのキー
 	scene_opener open_scene;	//	自分のワールドにシーンを登録する処理
 
-	std::unique_ptr<world> preview_world;			//	プレビューのワールド
-	std::shared_ptr<render_output> output;			//	描画先のテクスチャ
-	std::unique_ptr<world_renderer> renderer;		//	プレビューのワールドの描画
+	std::unique_ptr<world> preview_world;		//	プレビューのワールド
+	texture_ptr output_texture;					//	描画先のテクスチャ（ImGui で表示する）
+	std::shared_ptr<render_pass> output;		//	描画先のテクスチャへ描く描画パス
+	std::unique_ptr<world_renderer> renderer;	//	プレビューのワールドの描画
 };
 #endif	//	defined(USE_IMGUI)
