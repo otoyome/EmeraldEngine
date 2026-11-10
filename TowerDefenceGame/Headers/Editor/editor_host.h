@@ -13,9 +13,7 @@ extern ImWchar glyphRangesJapanese[];
 #include "Graphics/render_pass.h"
 #include "Editor/editor_items.h"
 
-struct render_data_context;
 class scene_manager;
-class world;
 
 //	エディター機能
 class editor_host
@@ -50,9 +48,6 @@ public:
 
 	//	シーン切り替えの窓
 	void imgui_scene_change(scene_manager& scenes);
-
-	//	デバッグ表示を積む
-	void build_debug_primitives(world* target, const render_data_context& render_data);
 
 public:
 	//	メインのウィンドウのメッセージを ImGui へ渡す(ImGui が処理したら true)

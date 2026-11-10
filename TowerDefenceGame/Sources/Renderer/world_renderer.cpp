@@ -472,16 +472,75 @@ void world_renderer::collect(world& target)
 
 	//	マテリアルの定数バッファをGPUへ転送
 	upload_material_constant_buffers(*render_data);
+}
 
 #if defined(USE_IMGUI)
+void world_renderer::collect_debug_primitives(world& target, const debug_view_settings& debug_settings)
+{
 	//	デバッグ情報取得
-	if (builder)
-	{
-		builder(*render_data);
-		target.get_debug_primitives().get_container(render_data->debug_draw_container, render_data->render_origin);
-	}
-#endif // defined(USE_IMGUI)
+	build_debug_primitives(target, *render_data, debug_settings);
+	target.get_debug_primitives().get_container(render_data->debug_draw_container, render_data->render_origin);
 }
+
+void world_renderer::build_debug_primitives(world& target, const render_data_context& render_data, const debug_view_settings& debug_settings)
+{
+	engine_context& engine = target.get_context();
+
+	//	衝突判定のデバッグ表示
+	if (debug_settings.collision)
+	{
+		target.get_objects().get_world().debug_primitive_draw(engine);
+	}
+
+	//	モデルAABBのデバッグ表示
+	if (debug_settings.mesh_aabb)
+	{
+		math::float4 rotation = {0.0f, 0.0f, 0.0f, 1.0f};
+		math::float4 color = {1.0f, 0.0f, 0.0f, 1.0f};
+		const math::double3 render_origin = render_data.render_origin.to_double3();
+		for (auto& buffer_data : render_data.mesh_container.buffer_datas)
+		{
+			math::float3 scale((buffer_data.bounds_max.x - buffer_data.bounds_min.x) * 0.5f, (buffer_data.bounds_max.y - buffer_data.bounds_min.y) * 0.5f, (buffer_data.bounds_max.z - buffer_data.bounds_min.z) * 0.5f);
+			math::float3 center(buffer_data.bounds_min.x + scale.x, buffer_data.bounds_min.y + scale.y, buffer_data.bounds_min.z + scale.z);
+
+			//	AABB は描画原点からの相対座標
+			const math::double3 world_center(render_origin.x + center.x, render_origin.y + center.y, render_origin.z + center.z);
+			QUEUE_DEBUG_PRIMITIVE_BOX(engine, world_center, rotation, scale, color, true);
+		}
+	}
+
+	const bool display_grid_xz = debug_settings.grid_xz;
+	const bool display_grid_xy = debug_settings.grid_xy;
+	const bool display_grid_yz = debug_settings.grid_yz;
+	const int display_grid_length = debug_settings.grid_length;
+	if (!display_grid_xz && !display_grid_xy && !display_grid_yz)
+		return;
+
+	float grid_length = system_units::convert_m_to_unit(static_cast<float>(display_grid_length));
+	for (int index = -display_grid_length; index <= display_grid_length; ++index)
+	{
+		float len = system_units::convert_m_to_unit(static_cast<float>(index));
+		if (display_grid_xz)
+		{
+			math::float4 line_color = math::float4(1.0f, 0.0f, 1.0f, 1);
+			QUEUE_DEBUG_PRIMITIVE_LINE(engine, math::float3(len, 0.0f, -grid_length), math::float3(len, 0.0f, +grid_length), line_color, true);
+			QUEUE_DEBUG_PRIMITIVE_LINE(engine, math::float3(-grid_length, 0.0f, len), math::float3(+grid_length, 0.0f, len), line_color, true);
+		}
+		if (display_grid_xy)
+		{
+			math::float4 line_color = math::float4(1.0f, 1.0f, 0.0f, 1);
+			QUEUE_DEBUG_PRIMITIVE_LINE(engine, math::float3(len, -grid_length, 0.0f), math::float3(len, +grid_length, 0.0f), line_color, true);
+			QUEUE_DEBUG_PRIMITIVE_LINE(engine, math::float3(-grid_length, len, 0.0f), math::float3(+grid_length, len, 0.0f), line_color, true);
+		}
+		if (display_grid_yz)
+		{
+			math::float4 line_color = math::float4(0.0f, 1.0f, 1.0f, 1);
+			QUEUE_DEBUG_PRIMITIVE_LINE(engine, math::float3(0.0f, len, -grid_length), math::float3(0.0f, len, +grid_length), line_color, true);
+			QUEUE_DEBUG_PRIMITIVE_LINE(engine, math::float3(0.0f, -grid_length, len), math::float3(0.0f, +grid_length, len), line_color, true);
+		}
+	}
+}
+#endif	//	defined(USE_IMGUI)
 
 void world_renderer::submit_render_jobs(world& target, float elapsed_time)
 {

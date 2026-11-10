@@ -12,6 +12,7 @@
 #include "graphics/scene_view_state.h"
 #include "Renderer/renderer.h"
 #include "Renderer/scene_render_targets.h"
+#include "Renderer/debug_view_settings.h"
 
 namespace collision { class frustum_culling; }
 struct render_data_context;
@@ -20,12 +21,6 @@ class world;
 //	ワールドレンダラー
 class world_renderer
 {
-public:
-	using debug_builder = std::function<void(const render_data_context&)>;
-	
-public:
-	void set_debug_builder(debug_builder builder) { this->builder = std::move(builder); }
-
 public:
 	explicit world_renderer(std::shared_ptr<render_job_executor> render_executor);
 	~world_renderer();
@@ -40,6 +35,11 @@ public:
 
 	//	ワールドから描画情報収集
 	void collect(world& target);
+
+#if defined(USE_IMGUI)
+	//	デバッグ表示の情報収集
+	void collect_debug_primitives(world& target, const debug_view_settings& debug_settings);
+#endif	//	defined(USE_IMGUI)
 
 	//	集めた情報で描画ジョブを積む
 	void submit_render_jobs(world& target, float elapsed_time);
@@ -75,13 +75,16 @@ private:
 		const render_data_context& render_data,
 		render_particle_indices& particle_indices);
 
+#if defined(USE_IMGUI)
+	void build_debug_primitives(world& target, const render_data_context& render_data, const debug_view_settings& debug_settings);
+#endif	//	defined(USE_IMGUI)
+
 private:
 	std::shared_ptr<render_job_executor> render_executor;
 
 	std::shared_ptr<scene_render_targets> render_targets;
 	std::vector<std::unique_ptr<renderer>> scene_renderers;
 	std::vector<std::unique_ptr<renderer>> ui_renderers;
-	debug_builder builder;
 
 private:
 	//	視点情報

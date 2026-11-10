@@ -167,13 +167,6 @@ bool game_process::enter()
 			};
 			asset_browser::instance()->register_open_handler(std::move(handler));
 		}
-
-		//	デバッグ表示の収集
-		main_renderer->set_debug_builder([this, &self](const render_data_context& data)
-			{
-				if (self.editor)
-					self.editor->build_debug_primitives(main_world.get(), data);
-			});
 #endif	//	defined(USE_IMGUI)
 	}
 
@@ -250,6 +243,9 @@ void game_process::render(float elapsed_time)
 
 	//	描画用の情報収集
 	main_renderer->collect(*main_world);
+#if defined(USE_IMGUI)
+	main_renderer->collect_debug_primitives(*main_world, debug_settings);
+#endif	//	defined(USE_IMGUI)
 
 	{
 		DETAIL_PROFILE_CPU_SCOPE("render.rebuild_pipeline_bindings");
@@ -277,6 +273,13 @@ void game_process::post_render()
 void game_process::imgui_render()
 {
 	framework& self = get_owner();
+
+	//	メインの画面のツールバー
+	if (ImGui::BeginMainMenuBar())
+	{
+		debug_settings.imgui_menu();
+		ImGui::EndMainMenuBar();
+	}
 
 	//	シーン情報表示
 	if (main_world)

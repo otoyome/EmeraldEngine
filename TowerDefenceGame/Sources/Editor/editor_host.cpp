@@ -144,14 +144,6 @@ namespace
 		asset_browser::instance()->register_create_handler(std::move(handler));
 	}
 
-	//	デバッグ表示の設定
-	console_variable<bool> grid_xz_variable("debug.grid.xz", true, "XZ平面のグリッド表示", console_flags::persist);
-	console_variable<bool> grid_xy_variable("debug.grid.xy", false, "XY平面のグリッド表示", console_flags::persist);
-	console_variable<bool> grid_yz_variable("debug.grid.yz", false, "YZ平面のグリッド表示", console_flags::persist);
-	console_variable<int> grid_length_variable("debug.grid.length", 100, "グリッドの半径（メートル）", console_flags::persist);
-	console_variable<bool> draw_mesh_aabb_variable("debug.draw.mesh_aabb", false, "モデルAABBの表示", console_flags::persist);
-	console_variable<bool> draw_collision_variable("debug.draw.collision", false, "衝突判定の表示", console_flags::persist);
-
 	//	ツール窓の表示状態
 	console_variable<bool> log_window_variable("editor.window.log", true, "ログウィンドウの表示", console_flags::persist);
 	console_variable<bool> engine_config_window_variable("editor.window.engine_config", true, "エンジン設定ウィンドウの表示", console_flags::persist);
@@ -338,64 +330,6 @@ void editor_host::imgui_scene_change(scene_manager& scenes)
 		change_scene<setup_scene>(scenes);
 	}
 	ImGui::End();
-}
-
-
-void editor_host::build_debug_primitives(world* target, const render_data_context& render_data)
-{
-	if (!target)
-		return;
-	engine_context& engine = target->get_context();
-
-	//	衝突判定のデバッグ表示
-	if (draw_collision_variable.get() && target)
-	{
-		target->get_objects().get_world().debug_primitive_draw(engine);
-	}
-
-	//	モデルAABBのデバッグ表示
-	if (draw_mesh_aabb_variable.get())
-	{
-		math::float4 rotation = {0.0f, 0.0f, 0.0f, 1.0f};
-		math::float4 color = {1.0f, 0.0f, 0.0f, 1.0f};
-		for (auto& buffer_data : render_data.mesh_container.buffer_datas)
-		{
-			math::float3 scale((buffer_data.bounds_max.x - buffer_data.bounds_min.x) * 0.5f, (buffer_data.bounds_max.y - buffer_data.bounds_min.y) * 0.5f, (buffer_data.bounds_max.z - buffer_data.bounds_min.z) * 0.5f);
-			math::float3 center(buffer_data.bounds_min.x + scale.x, buffer_data.bounds_min.y + scale.y, buffer_data.bounds_min.z + scale.z);
-			QUEUE_DEBUG_PRIMITIVE_BOX(engine, center, rotation, scale, color, true);
-		}
-	}
-
-	const bool display_grid_xz = grid_xz_variable.get();
-	const bool display_grid_xy = grid_xy_variable.get();
-	const bool display_grid_yz = grid_yz_variable.get();
-	const int display_grid_length = grid_length_variable.get();
-	if (!display_grid_xz && !display_grid_xy && !display_grid_yz)
-		return;
-
-	float grid_length = system_units::convert_m_to_unit(static_cast<float>(display_grid_length));
-	for (int index = -display_grid_length; index <= display_grid_length; ++index)
-	{
-		float len = system_units::convert_m_to_unit(static_cast<float>(index));
-		if (display_grid_xz)
-		{
-			math::float4 line_color = math::float4(1.0f, 0.0f, 1.0f, 1);
-			QUEUE_DEBUG_PRIMITIVE_LINE(engine, math::float3(len, 0.0f, -grid_length), math::float3(len, 0.0f, +grid_length), line_color, true);
-			QUEUE_DEBUG_PRIMITIVE_LINE(engine, math::float3(-grid_length, 0.0f, len), math::float3(+grid_length, 0.0f, len), line_color, true);
-		}
-		if (display_grid_xy)
-		{
-			math::float4 line_color = math::float4(1.0f, 1.0f, 0.0f, 1);
-			QUEUE_DEBUG_PRIMITIVE_LINE(engine, math::float3(len, -grid_length, 0.0f), math::float3(len, +grid_length, 0.0f), line_color, true);
-			QUEUE_DEBUG_PRIMITIVE_LINE(engine, math::float3(-grid_length, len, 0.0f), math::float3(+grid_length, len, 0.0f), line_color, true);
-		}
-		if (display_grid_yz)
-		{
-			math::float4 line_color = math::float4(0.0f, 1.0f, 1.0f, 1);
-			QUEUE_DEBUG_PRIMITIVE_LINE(engine, math::float3(0.0f, len, -grid_length), math::float3(0.0f, len, +grid_length), line_color, true);
-			QUEUE_DEBUG_PRIMITIVE_LINE(engine, math::float3(0.0f, -grid_length, len), math::float3(0.0f, +grid_length, len), line_color, true);
-		}
-	}
 }
 
 #endif // defined(USE_IMGUI)

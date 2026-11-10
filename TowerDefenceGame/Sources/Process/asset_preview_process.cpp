@@ -124,6 +124,7 @@ void asset_preview_process::render(float elapsed_time)
 
 	preview_world->get_objects().pre_render();
 	renderer->collect(*preview_world);
+	renderer->collect_debug_primitives(*preview_world, debug_settings);
 	pipeline_state_manager::instance()->rebuild_pipeline_bindings();
 }
 
@@ -155,8 +156,15 @@ void asset_preview_process::imgui_render()
 	bool hovered = false;
 	//	アセットウィンドウ
 	ImGui::SetNextWindowSize(ImVec2(host_width, host_height), ImGuiCond_FirstUseEver);
-	if (ImGui::Begin(title.c_str(), &open, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse))
+	if (ImGui::Begin(title.c_str(), &open, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_MenuBar))
 	{
+		//	ツールバー
+		if (ImGui::BeginMenuBar())
+		{
+			debug_settings.imgui_menu();
+			ImGui::EndMenuBar();
+		}
+
 		//	窓の大きさに描画先を合わせる
 		const ImVec2 available = ImGui::GetContentRegionAvail();
 		const int width = std::max(static_cast<int>(available.x), 1);

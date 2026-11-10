@@ -8,6 +8,7 @@
 #include "Process/framework_process.h"
 #include "System/cache_string.h"
 #include "Texture/texture.h"
+#include "Renderer/debug_view_settings.h"
 
 class world;
 class world_renderer;
@@ -48,8 +49,9 @@ private:
 	std::string key;			//	二重に開かないためのキー
 	scene_opener open_scene;	//	自分のワールドにシーンを登録する処理
 
-	std::unique_ptr<world> preview_world;		//	プレビューのワールド
+	std::unique_ptr<world> preview_world;		//	ワールド
 	texture_ptr output_texture;					//	描画先のテクスチャ（ImGui で表示する）
-	std::unique_ptr<world_renderer> renderer;	//	プレビューのワールドの描画
+	std::unique_ptr<world_renderer> renderer;	//	ワールドレンダラー
+	debug_view_settings debug_settings;			//	ワールドのデバッグ表示設定
 };
 #endif	//	defined(USE_IMGUI)

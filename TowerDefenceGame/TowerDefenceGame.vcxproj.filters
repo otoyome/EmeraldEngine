@@ -335,6 +335,9 @@
     <ClCompile Include="Sources\Renderer\world_renderer.cpp">
       <Filter>Sources\Renderer</Filter>
     </ClCompile>
+    <ClCompile Include="Sources\Renderer\debug_view_settings.cpp">
+      <Filter>Sources\Renderer</Filter>
+    </ClCompile>
     <ClCompile Include="Sources\Renderer\scene_renderer_display.cpp">
       <Filter>Sources\Renderer</Filter>
     </ClCompile>
@@ -716,6 +719,9 @@
       <Filter>Headers\PipelineState</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Renderer\world_renderer.h">
+      <Filter>Headers\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Renderer\debug_view_settings.h">
       <Filter>Headers\Renderer</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Renderer\scene_renderer_display.h">
