@@ -960,14 +960,28 @@ void deffered_lighting_renderer::render_directional_shadow_map(const light_rende
 			split_distance[index]	= far_clip;
 		}
 
+		//	カスケード境界をブレンド
+		std::vector<float> blend_begin;
+		blend_begin.resize(directional_shadow_map_count);
+		for (UINT index = 0; index < directional_shadow_map_count; ++index)
+		{
+			const float cascade_length = split_distance[index + 1] - split_distance[index + 0];
+			const bool has_next = (index + 1 < directional_shadow_map_count);
+			blend_begin[index] = split_distance[index + 1] - (has_next ? cascade_length * directional_shadow_blend_ratio : 0.0f);
+		}
+
 		//	視錐台を距離で分割してライトビュープロジェクション行列を生成
 		for (UINT index = 0; index < directional_shadow_map_count; ++index)
 		{
+			//	前のカスケードとの重なりも含めた範囲
+			const float cascade_near = (index > 0) ? blend_begin[index - 1] : split_distance[index + 0];
+			const float cascade_far = split_distance[index + 1];
+
 			//	AABBを囲む球体を算出
 			math::vector3f Center;
 			float radius;
-			compute_frustum_bounding_sphere(scene_renderer_commons::convert_view_depth_to_projection_depth(split_distance[index + 0], near_clip, camera_far_clip),
-											scene_renderer_commons::convert_view_depth_to_projection_depth(split_distance[index + 1], near_clip, camera_far_clip),
+			compute_frustum_bounding_sphere(scene_renderer_commons::convert_view_depth_to_projection_depth(cascade_near, near_clip, camera_far_clip),
+											scene_renderer_commons::convert_view_depth_to_projection_depth(cascade_far, near_clip, camera_far_clip),
 											InverseViewProjectionTransform, Center, radius);
 			radius *= 1.0001f;
 
@@ -1013,12 +1027,14 @@ void deffered_lighting_renderer::render_directional_shadow_map(const light_rende
 			}
 
 			{
-				float split_near_clip = split_distance[index + 0];
-				float split_far_clip = split_distance[index + 1];
-				shadow_map_constant.shadow_split_distance[index].x = split_near_clip;
-				shadow_map_constant.shadow_split_distance[index].y = split_near_clip;
-				shadow_map_constant.shadow_split_distance[index].z = split_far_clip;
-				shadow_map_constant.shadow_split_distance[index].w = split_far_clip;
+				//	x : 開始
+				//	y : 前のカスケードとのブレンド終了
+				//	z : 次のカスケードとのブレンド開始
+				//	w : 終了
+				shadow_map_constant.shadow_split_distance[index].x = cascade_near;
+				shadow_map_constant.shadow_split_distance[index].y = split_distance[index + 0];
+				shadow_map_constant.shadow_split_distance[index].z = blend_begin[index];
+				shadow_map_constant.shadow_split_distance[index].w = cascade_far;
 
 				//	バイアス納入
 				auto& bias_data = light.get_shadow_bias(index);

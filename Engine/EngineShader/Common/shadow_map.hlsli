@@ -72,6 +72,25 @@ float3 shadowmap_fetch_pcf(int index, float3 texcoord, float2x2 rotation_matrix,
     return lerp(shadow_attenuation, float3(1.0f, 1.0f, 1.0f), attenuation / poisson_disk_size);
 }
 
+//	カスケード1枚分のシャドウサンプル
+bool shadowmap_sample_cascade(uint index, float3 world_position, float2x2 rot, out float3 light_attenuation)
+{
+    light_attenuation = float3(1.0f, 1.0f, 1.0f);
+
+    //	シャドウ座標
+    float4 shadow_position = mul(float4(world_position, 1.0f), light_view_projection_transform[index]);
+    shadow_position /= shadow_position.w;
+
+    //	境界クリップ
+    float3 texcoord = float3(shadow_position.xy * float2(0.5f, -0.5f) + (float2)0.5f, shadow_position.z);
+    if (!(all(texcoord >= (float3)0.0f) * all(texcoord <= (float3)1.0f)))
+        return false;
+
+    //light_attenuation = shadowmap_fetch(index, texcoord);
+    light_attenuation = shadowmap_fetch_pcf(index, texcoord, rot, shadow_bias[index].w);
+    return true;
+}
+
 //	シャドウサンプル
 float4 shadowing_process(float3 world_position, float4x4 view_matrix)
 {
@@ -92,18 +111,22 @@ float4 shadowing_process(float3 world_position, float4x4 view_matrix)
         if (!(shadow_split_distance[index].x <= view_depth && view_depth <= shadow_split_distance[index].w))
             continue;
 
-        //	シャドウ座標
-        float4 shadow_position = mul(float4(world_position, 1.0f), light_view_projection_transform[index]);
-        shadow_position /= shadow_position.w;
-
-        //	境界クリップ
-        float3 texcoord = float3(shadow_position.xy * float2(0.5f, -0.5f) + (float2)0.5f, shadow_position.z);
-        if (!(all(texcoord >= (float3)0.0f) * all(texcoord <= (float3)1.0f)))
+        if (!shadowmap_sample_cascade(index, world_position, rot, light_attenuation))
             continue;
-
-        //light_attenuation = shadowmap_fetch(index, texcoord);
-        light_attenuation = shadowmap_fetch_pcf(index, texcoord, rot, shadow_bias[index].w);
         sm_index = index;
+
+        //	次のカスケードと重なる区間ではブレンド
+        uint next_index = index + 1;
+        if (next_index < shadow_map_count && shadow_split_distance[index].z < view_depth)
+        {
+            float3 next_attenuation;
+            if (shadowmap_sample_cascade(next_index, world_position, rot, next_attenuation))
+            {
+                float blend_length = max(shadow_split_distance[index].w - shadow_split_distance[index].z, 1e-5f);
+                float blend = saturate((view_depth - shadow_split_distance[index].z) / blend_length);
+                light_attenuation = lerp(light_attenuation, next_attenuation, blend);
+            }
+        }
         break;
     }
 
@@ -122,13 +145,13 @@ uint select_point_shadow_face(float3 L)
         return (L.z > 0.0f) ? 4 : 5;
 }
 
-//	@tool 点光源/スポットライトの面選択(シャドウマップが6面ならキューブマップの面、それ以外は面0)
+//	点光源/スポットライトの面選択
 uint select_local_shadow_face(float3 L)
 {
     return (shadow_map_count >= 6) ? select_point_shadow_face(L) : 0;
 }
 
-//	@tool 点光源/スポットライト用シャドウサンプル
+//	点光源/スポットライト用シャドウサンプル
 float4 shadowing_process_local(float3 world_position, float3 world_normal, float3 light_position)
 {
     //	PCFで周囲のテクセルを参照しても自己遮蔽しないよう、法線方向へずらす
