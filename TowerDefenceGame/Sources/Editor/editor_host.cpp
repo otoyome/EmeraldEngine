@@ -28,6 +28,7 @@ extern ImWchar glyphRangesJapanese[];
 #include "Editor/Windows/texture_editor_window.h"
 #include "Object/world.h"
 #include "Editor/editor_camera.h"
+#include "Renderer/debug_view_settings.h"
 #include "System/console_manager.h"
 #include "System/asset_browser.h"
 #include "System/imgui_texture_keeper.h"
@@ -251,9 +252,14 @@ void editor_host::imgui_initialize()
 		style.Colors[ImGuiCol_WindowBg].w = 1.0f;
 	}
 
-	//	アセットブラウザの開き先
+	//	ImGui用のテクスチャキーパー生成
 	imgui_texture_keeper::create_instance();
+
+	//	アセットブラウザの開き先
 	asset_browser::create_instance();
+
+	//	ウィンドウ毎のデバッグ表示の設定
+	debug_view_settings_manager::create_instance();
 
 	//	編集用ウィンドウはエディター用コンテキストで開く
 	editor_context = editor_items::generate_context();
@@ -314,6 +320,9 @@ void editor_host::imgui_terminate()
 	ImGui_ImplWin32_Shutdown();
 	ImPlot::DestroyContext();
 	ImGui::DestroyContext();
+
+	//	終了時の imgui.ini の保存で使うので、コンテキストを破棄した後に消す
+	debug_view_settings_manager::delete_instance();
 }
 
 

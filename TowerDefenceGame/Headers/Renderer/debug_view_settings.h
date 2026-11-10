@@ -1,6 +1,12 @@
 #pragma once
 
 #if defined(USE_IMGUI)
+#include <map>
+#include <string>
+#include <string_view>
+
+#include "System/singleton.h"
+
 //	デバッグ表示の設定
 struct debug_view_settings
 {
@@ -13,5 +19,23 @@ struct debug_view_settings
 
 	//	メニューバーに「View」メニューを描く
 	void imgui_menu();
+};
+
+//	ウィンドウ毎のデバッグ表示マネージャー
+class debug_view_settings_manager
+{
+	SINGLETON(debug_view_settings_manager)
+
+public:
+	debug_view_settings& get(std::string_view key);
+
+private:
+	debug_view_settings_manager();
+	~debug_view_settings_manager() = default;
+
+	void register_settings_handler();
+
+private:
+	std::map<std::string, debug_view_settings, std::less<>> settings;
 };
 #endif	//	defined(USE_IMGUI)

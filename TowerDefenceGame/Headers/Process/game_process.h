@@ -38,7 +38,6 @@ private:
 
 #if defined(USE_IMGUI)
 private:
-	debug_view_settings debug_settings;
 	std::unique_ptr<console_command> pause_command;
 	std::unique_ptr<console_command> step_command;
 #endif	//	defined(USE_IMGUI)

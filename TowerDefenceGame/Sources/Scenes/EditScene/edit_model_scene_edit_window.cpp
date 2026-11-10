@@ -242,9 +242,11 @@ void edit_model_scene::imgui_render_material_window()
 				if (editor_items::edit_material_slot(editor_context, material, material_resource::domains::surface) &&
 					index < model_instance.get_materials().size())
 				{
-					model_instance.get_materials()[index].set_resource(material);
+					model_instance.get_materials()[index].set_resource(get_working_material(material));
 				}
-				editor_items::edit_material(editor_context, *material);
+				//	編集するのは複製
+				if (auto working = get_working_material(material))
+					editor_items::edit_material(editor_context, *working);
 				ImGui::TreePop();
 			}
 			ImGui::PopID();
@@ -669,6 +671,15 @@ void edit_model_scene::on_model_setup()
 
 	edit_model->set_active(true);
 	get_context().get_objects().register_object(edit_model);
+
+	//	表示するモデルには編集用の複製マテリアルを当てる
+	{
+		auto instance = edit_model->get_model_instance();
+		const auto& resource_materials = instance->get_resource()->get_materials();
+		auto& slots = instance->get_materials();
+		for (size_t index = 0; index < slots.size() && index < resource_materials.size(); ++index)
+			slots[index].set_resource(get_working_material(resource_materials[index]));
+	}
 
 	//	モデルのファイルパスを取得
 	std::string file_path = std::string(edit_model->get_model_instance()->get_resource()->get_file_path());

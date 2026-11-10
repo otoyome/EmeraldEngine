@@ -256,6 +256,7 @@ void edit_material_scene::open_source(const std::string& file_path, bool force_l
 
 	collect_materials();
 	selected_material = materials.empty() ? -1 : 0;
+	make_preview_effect_resource();
 
 	//	モデルを開いたらそのモデルで、エフェクトを開いたらそのエフェクトを再生してプレビューする
 	if (source_model)
@@ -491,22 +492,54 @@ void edit_material_scene::apply_preview_materials()
 	const bool use_selected = override_preview_slots && selected && selected->get_domain() == material_resource::domains::surface;
 
 	//	元のマテリアルの代わりに編集用の複製を当てる
-	auto working_of = [this](const material_resource_ptr& original) -> material_resource_ptr
-	{
-		for (const auto& entry : materials)
-		{
-			if (entry.original == original)
-				return entry.material;
-		}
-		return original;
-	};
-
 	auto& slots = instance->get_materials();
 	const auto& resource_materials = resource->get_materials();
 	for (size_t index = 0; index < slots.size() && index < resource_materials.size(); ++index)
 	{
-		slots[index].set_resource(use_selected ? selected : working_of(resource_materials[index]));
+		slots[index].set_resource(use_selected ? selected : find_working_material(resource_materials[index]));
 	}
+}
+
+material_resource_ptr edit_material_scene::find_working_material(const material_resource_ptr& original) const
+{
+	for (const auto& entry : materials)
+	{
+		if (entry.original == original)
+			return entry.material;
+	}
+	return original;
+}
+
+void edit_material_scene::make_preview_effect_resource()
+{
+	preview_effect_resource.reset();
+	if (!source_effect)
+		return;
+
+	//	編集用のマテリアルを当てて再生する
+	auto resource = resource_manager::instance()->load_uncached<effect_resource>(get_source_file_path());
+	if (!resource)
+		return;
+
+	auto& source_decals = source_effect->get_decals_for_editor();
+	auto& decals = resource->get_decals_for_editor();
+	for (size_t index = 0; index < decals.size() && index < source_decals.size(); ++index)
+	{
+		if (source_decals[index].material)
+			decals[index].material = find_working_material(source_decals[index].material);
+	}
+
+	auto& source_particles = source_effect->get_particles_for_editor();
+	auto& particles = resource->get_particles_for_editor();
+	for (size_t index = 0; index < particles.size() && index < source_particles.size(); ++index)
+	{
+		auto* source_renderer = source_particles[index].particle.get_item<::particle::item::renderer>();
+		auto* renderer = particles[index].particle.get_item<::particle::item::renderer>();
+		if (source_renderer && renderer && source_renderer->material)
+			renderer->material = find_working_material(source_renderer->material);
+	}
+
+	preview_effect_resource = resource;
 }
 
 void edit_material_scene::restart_preview_effect()
@@ -515,7 +548,7 @@ void edit_material_scene::restart_preview_effect()
 	if (!source_effect)
 		return;
 
-	preview_effect = std::make_shared<effect_instance>(source_effect);
+	preview_effect = std::make_shared<effect_instance>(preview_effect_resource ? preview_effect_resource : source_effect);
 	get_context().get_effects().register_instance(preview_effect);
 }
 

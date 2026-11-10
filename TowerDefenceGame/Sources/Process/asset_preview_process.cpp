@@ -124,7 +124,7 @@ void asset_preview_process::render(float elapsed_time)
 
 	preview_world->get_objects().pre_render();
 	renderer->collect(*preview_world);
-	renderer->collect_debug_primitives(*preview_world, debug_settings);
+	renderer->collect_debug_primitives(*preview_world, debug_view_settings_manager::instance()->get(window_kind));
 	pipeline_state_manager::instance()->rebuild_pipeline_bindings();
 }
 
@@ -161,7 +161,7 @@ void asset_preview_process::imgui_render()
 		//	ツールバー
 		if (ImGui::BeginMenuBar())
 		{
-			debug_settings.imgui_menu();
+			debug_view_settings_manager::instance()->get(window_kind).imgui_menu();
 			ImGui::EndMenuBar();
 		}
 

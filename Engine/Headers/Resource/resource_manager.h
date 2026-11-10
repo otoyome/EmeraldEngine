@@ -164,6 +164,23 @@ public:
 		return value;
 	}
 
+	//	キャッシュに載せずに保存する
+	template<class Type, class Saver = resource::saver<Type>>
+	bool save_uncached(const std::shared_ptr<Type>& value, std::string_view file_path)
+	{
+		static_assert(std::is_base_of_v<resource::resource_base, Type>, "Type must derive from resource::resource_base");
+		if (!value || file_path.empty())
+			return false;
+
+		const std::string path(file_path);
+		Saver saver;
+		if (!saver.save(*value, std::string_view(path)))
+			return false;
+
+		assign_file_path<Type>(value.get(), path);
+		return true;
+	}
+
 public:
 	//	読込済みリソースの検索
 	template<class Type>

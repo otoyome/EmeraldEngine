@@ -244,7 +244,7 @@ void game_process::render(float elapsed_time)
 	//	描画用の情報収集
 	main_renderer->collect(*main_world);
 #if defined(USE_IMGUI)
-	main_renderer->collect_debug_primitives(*main_world, debug_settings);
+	main_renderer->collect_debug_primitives(*main_world, debug_view_settings_manager::instance()->get("game"));
 #endif	//	defined(USE_IMGUI)
 
 	{
@@ -277,7 +277,7 @@ void game_process::imgui_render()
 	//	メインの画面のツールバー
 	if (ImGui::BeginMainMenuBar())
 	{
-		debug_settings.imgui_menu();
+		debug_view_settings_manager::instance()->get("game").imgui_menu();
 		ImGui::EndMainMenuBar();
 	}
 

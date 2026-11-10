@@ -181,6 +181,7 @@ void edit_model_scene::update_core(float elapsed_time)
 		{
 			on_model_release();
 		}
+		material_copies.clear();
 
 		//	モデルデータ生成
 		{
@@ -263,8 +264,37 @@ void edit_model_scene::save_model()
 	//	EMO形式で吐き出す
 	auto resource = edit_model->get_model_instance()->get_resource_for_editor();
 
+	//	マテリアルの編集を元へ写して保存する
+	for (const material_resource_ptr& material : resource->get_materials())
+	{
+		for (const auto& copy : material_copies)
+		{
+			if (copy.original != material)
+				continue;
+			copy.working->duplicate(*copy.original);
+			if (!copy.original->get_file_path().empty())
+				resource_manager::instance()->save(copy.original);
+		}
+	}
+
 	//	保存
-	resource_manager::instance()->save(resource);
+	resource_manager::instance()->save_uncached(resource, resource->get_file_path());
+}
+
+material_resource_ptr edit_model_scene::get_working_material(const material_resource_ptr& original)
+{
+	if (!original)
+		return nullptr;
+	for (const auto& copy : material_copies)
+	{
+		if (copy.original == original)
+			return copy.working;
+	}
+
+	auto working = std::make_shared<material_resource>();
+	original->duplicate(*working);
+	material_copies.push_back({ original, working });
+	return working;
 }
 
 void edit_model_scene::generate_lod()

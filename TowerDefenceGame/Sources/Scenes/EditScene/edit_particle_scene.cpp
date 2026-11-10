@@ -257,11 +257,11 @@ void edit_particle_scene::imgui_render_core()
 			ImGui::SameLine();
 			if (ImGui::Button("Save"))
 			{
-				std::string file_path;
+				std::string file_path = std::string(edit_resource->get_file_path());
 				const std::wstring default_extension = L"." + system_utility::convert_shift_jis_to_utf16(effect_resource::extension);
 				if (editor_items::save_file_dialog(EffectFileDialogFilter, file_path, default_extension.c_str()))
 				{
-					resource_manager::instance()->save(edit_resource, file_path);
+					resource_manager::instance()->save_uncached(edit_resource, file_path);
 				}
 			}
 		}

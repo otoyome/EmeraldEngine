@@ -86,6 +86,9 @@ private:
 	void on_model_setup();
 	void on_model_release();
 
+	//	編集用の複製マテリアルを取得(無ければ生成)
+	material_resource_ptr get_working_material(const material_resource_ptr& original);
+
 private:
 	std::shared_ptr<camera_object> main_camera;
 	std::shared_ptr<editor_camera_object> editor_camera;
@@ -93,6 +96,14 @@ private:
 
 private:
 	std::shared_ptr<model_object> edit_model;
+
+	//	編集用の複製マテリアル
+	struct material_copy
+	{
+		material_resource_ptr original;
+		material_resource_ptr working;
+	};
+	std::vector<material_copy> material_copies;
 
 	//	LOD生成レベル
 	int generate_lod_level = 4;

@@ -45,7 +45,12 @@ private:
 	void save_source();
 	void revert_source();
 	void collect_materials();
+
+	//	選択中のマテリアル取得
 	material_resource_ptr get_selected_material() const;
+
+	//	元のマテリアルに対応する編集用の複製
+	material_resource_ptr find_working_material(const material_resource_ptr& original) const;
 
 	//	開いているリソースの今のパス
 	std::string get_source_file_path() const;
@@ -56,6 +61,7 @@ private:
 	void set_preview_resource(const model_resource_ptr& resource, double lift);
 	std::string get_preview_label() const;
 	void apply_preview_materials();
+	void make_preview_effect_resource();
 	void restart_preview_effect();
 	void clear_preview_effect();
 
@@ -98,6 +104,7 @@ private:
 	std::shared_ptr<model_object> preview_model;
 	bool override_preview_slots = true;
 
+	effect_resource_ptr preview_effect_resource;
 	effect_instance_ptr preview_effect;
 	bool loop_preview_effect = true;
 };
