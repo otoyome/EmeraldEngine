@@ -587,6 +587,7 @@ xcopy "$(SolutionDir)External\SDL3\lib\SDL3.dll" "$(OutDir)" /y</Command>
     <ClCompile Include="Sources\Editor\Windows\gamepad_window.cpp" />
     <ClCompile Include="Sources\Editor\Windows\sound_bank_editor_window.cpp" />
     <ClCompile Include="Sources\Framework\app_window.cpp" />
+    <ClCompile Include="Sources\Framework\display_settings.cpp" />
     <ClCompile Include="Sources\Framework\splash_window.cpp" />
     <ClCompile Include="Sources\Framework\asset_watcher.cpp" />
     <ClCompile Include="Sources\Editor\editor_host.cpp" />
@@ -729,6 +730,7 @@ xcopy "$(SolutionDir)External\SDL3\lib\SDL3.dll" "$(OutDir)" /y</Command>
     <ClInclude Include="Headers\framework.h" />
     <ClInclude Include="Headers\Process\framework_process.h" />
     <ClInclude Include="Headers\Framework\app_window.h" />
+    <ClInclude Include="Headers\Framework\display_settings.h" />
     <ClInclude Include="Headers\Framework\splash_window.h" />
     <ClInclude Include="Headers\Framework\asset_watcher.h" />
     <ClInclude Include="Headers\Editor\editor_host.h" />

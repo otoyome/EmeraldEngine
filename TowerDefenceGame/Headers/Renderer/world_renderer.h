@@ -25,6 +25,7 @@ public:
 	
 public:
 	const std::shared_ptr<const render_pass>& get_output() const { return output; }
+	std::uint64_t get_output_id() const;
 
 	void set_debug_builder(debug_builder builder) { this->builder = std::move(builder); }
 
@@ -53,8 +54,6 @@ private:
 
 	//	出力先が作り直されていたら描画先一式を合わせる
 	bool sync_output();
-	//	@tool 出力先の最初の描画先の識別子（作り直しの判定に使う）
-	std::uint64_t get_output_id() const;
 
 	void prepare_renderer_context(
 		renderer_context& context,
@@ -80,7 +79,6 @@ private:
 private:
 	std::shared_ptr<render_job_executor> render_executor;
 	std::shared_ptr<const render_pass> output;
-	//	@tool 前に合わせたときの出力先の識別子（変わっていたら作り直す）
 	std::uint64_t output_id = 0;
 
 	std::shared_ptr<scene_render_targets> render_targets;

@@ -149,5 +149,7 @@ private:
 	D3D11_VIEWPORT viewport;
 
 	graphics_pipeline_state_ptr debug_draw_line_pipeline_states[magic_enum::enum_count<debug_draw_primitive_container::line_buffer_id>()];
+
+	Microsoft::WRL::ComPtr<ID3D11Buffer> color_constant_buffer;
 };
 #endif // defined(USE_IMGUI)

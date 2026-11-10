@@ -209,6 +209,9 @@
     <ClCompile Include="Sources\Framework\app_window.cpp">
       <Filter>Sources\Framework</Filter>
     </ClCompile>
+    <ClCompile Include="Sources\Framework\display_settings.cpp">
+      <Filter>Sources\Framework</Filter>
+    </ClCompile>
     <ClCompile Include="Sources\Framework\splash_window.cpp">
       <Filter>Sources\Framework</Filter>
     </ClCompile>
@@ -584,6 +587,9 @@
       <Filter>Headers\Process</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Framework\app_window.h">
+      <Filter>Headers\Framework</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Framework\display_settings.h">
       <Filter>Headers\Framework</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Framework\splash_window.h">

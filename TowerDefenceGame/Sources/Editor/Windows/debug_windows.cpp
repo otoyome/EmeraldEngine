@@ -4,6 +4,7 @@
 #include "imgui.h"
 
 #include "System/engine_config_data.h"
+#include "Framework/display_settings.h"
 #include "Model/model_buffer_pool.h"
 #include "System/memory_allocator.h"
 
@@ -98,6 +99,9 @@ void engine_config_window::render_window(std::shared_ptr<editor_items::context>&
 			ImGui::TreePop();
 		}
 
+		//	解像度と表示の方法
+		render_display();
+
 		//	垂直同期
 		ImGui::Checkbox("vertical_sync", &engine_config_data::instance()->windows.vertical_sync);
 
@@ -126,6 +130,57 @@ void engine_config_window::render_window(std::shared_ptr<editor_items::context>&
 		}
 	}
 	ImGui::End();
+}
+
+void engine_config_window::render_display()
+{
+	if (!display_settings::is_valid())
+		return;
+	if (!ImGui::TreeNode("display"))
+		return;
+
+	display_settings& settings = *display_settings::instance();
+	const std::vector<display_settings::resolution>& resolutions = settings.get_resolutions();
+	const display_settings::resolution& current = settings.get_current_resolution();
+
+	//	未選択なら今の値を選んでおく
+	if (display_resolution_index < 0 || display_resolution_index >= static_cast<int>(resolutions.size()))
+	{
+		const auto it = std::find(resolutions.begin(), resolutions.end(), current);
+		display_resolution_index = it != resolutions.end() ? static_cast<int>(it - resolutions.begin()) : 0;
+	}
+	if (display_window_mode < 0)
+		display_window_mode = static_cast<int>(settings.get_window_mode());
+
+	//	解像度
+	std::vector<std::string> labels;
+	labels.reserve(resolutions.size());
+	for (const display_settings::resolution& resolution : resolutions)
+		labels.emplace_back(std::to_string(resolution.width) + " x " + std::to_string(resolution.height));
+	std::vector<const char*> label_texts;
+	for (const std::string& label : labels)
+		label_texts.emplace_back(label.c_str());
+	ImGui::Combo("resolution", &display_resolution_index, label_texts.data(), static_cast<int>(label_texts.size()));
+
+	//	表示の方法
+	std::vector<const char*> mode_texts;
+	for (auto& name : magic_enum::enum_names<display_settings::window_modes>())
+		mode_texts.emplace_back(name.data());
+	ImGui::Combo("window_mode", &display_window_mode, mode_texts.data(), static_cast<int>(mode_texts.size()));
+
+	const display_settings::resolution selected = resolutions.empty() ? current : resolutions[display_resolution_index];
+	const display_settings::window_modes selected_mode = static_cast<display_settings::window_modes>(display_window_mode);
+	const bool changed = selected != current || selected_mode != settings.get_window_mode();
+
+	ImGui::BeginDisabled(!changed || settings.is_changing());
+	if (ImGui::Button("apply"))
+		settings.request_change(selected, selected_mode);
+	ImGui::EndDisabled();
+
+	ImGui::SameLine();
+	ImGui::TextDisabled("current : %u x %u (%s)", current.width, current.height, magic_enum::enum_name(settings.get_window_mode()).data());
+
+	ImGui::TreePop();
 }
 
 void model_buffer_pool_window::render_window(std::shared_ptr<editor_items::context>& /*context*/, bool& open)

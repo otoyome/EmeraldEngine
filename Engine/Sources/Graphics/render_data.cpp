@@ -104,6 +104,10 @@ void render_data::present(UINT sync_interval)
 	if (!swap_chain)
 		return;
 
+	//	作り直し中は表示しない
+	if (back_buffer_pass->render_targets.empty())
+		return;
+
 	//	ティアリング許可は垂直同期なし・ウィンドウ表示のときだけ使える
 	UINT flags = 0;
 	if (sync_interval == 0 && tearing_supported)
@@ -114,6 +118,31 @@ void render_data::present(UINT sync_interval)
 			flags |= DXGI_PRESENT_ALLOW_TEARING;
 	}
 	swap_chain->Present(sync_interval, flags);
+}
+
+void render_data::release_back_buffer()
+{
+	back_buffer_pass->render_targets.clear();
+}
+
+bool render_data::resize_back_buffer(UINT width, UINT height)
+{
+	if (!swap_chain)
+		return false;
+
+	//	ResizeBuffers はバックバッファへの参照が残っていると失敗するので、
+	//	描画先を外して破棄を済ませる
+	release_back_buffer();
+	immediate_context->OMSetRenderTargets(0, nullptr, nullptr);
+	immediate_context->Flush();
+
+	HRESULT hr = swap_chain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, swap_chain_flags);
+	if (FAILED(hr))
+		DEBUG_LOG_CATEGORY(logger::categorys::system, "ResizeBuffers Failed [%u x %u] hr=0x%08X", width, height, static_cast<unsigned int>(hr));
+
+	back_buffer_pass->render_targets.emplace_back(swap_chain);
+	back_buffer_pass->render_targets.back().clear_color = false;
+	return SUCCEEDED(hr);
 }
 
 void render_data::upload_gpu_data()

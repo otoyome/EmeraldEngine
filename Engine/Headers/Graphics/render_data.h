@@ -41,8 +41,6 @@ public:
 
 	bool is_supported_device() const { return supported_device; }
 
-	void present(UINT sync_interval);
-
 private:
 	render_data(CONST HWND hwnd);
 	~render_data();
@@ -50,6 +48,11 @@ private:
 public:
 	void upload_gpu_data();
 	void polling_gpu_readback();
+
+	void present(UINT sync_interval);
+
+	void release_back_buffer();
+	bool resize_back_buffer(UINT width, UINT height);
 
 private:
 	CONST HWND hwnd;

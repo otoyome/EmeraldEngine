@@ -24,10 +24,18 @@ public:
 	//	ウィンドウズ関係の情報
 	struct windows_data
 	{
-		LONG window_left = 0;
-		LONG window_top = 0;
-		//	スクリーンサイズは決めない
+		//	表示の方法
+		enum class window_modes
+		{
+			windowed,	//	ウィンドウ
+			borderless,	//	枠なしでモニター全体を覆う（バックバッファは画面の大きさに引き伸ばす）
+		};
 
+		LONG window_left = 0;		//	ウィンドウの左位置
+		LONG window_top = 0;		//	ウィンドウの上位置
+		UINT screen_width = 1280;	//	バックバッファの幅
+		UINT screen_height = 720;	//	バックバッファの高さ
+		window_modes window_mode = window_modes::windowed;
 		bool vertical_sync = false;	//	垂直同期
 
 		template<class Archive>

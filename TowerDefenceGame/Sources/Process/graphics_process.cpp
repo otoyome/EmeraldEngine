@@ -15,6 +15,7 @@
 #include "Effect/effect_resource.h"
 #include "Animation/ik_resource.h"
 #include "Renderer/render_system.h"
+#include "Framework/display_settings.h"
 #include "Editor/detail_profiler.h"
 
 bool graphics_process::enter()
@@ -50,6 +51,9 @@ bool graphics_process::enter()
 	effect_resource_manager::create_instance();
 
 	self.renderer = std::make_unique<render_system>(self.hwnd);
+
+	//	@tool 解像度と表示の方法（保存されている設定があればここで切り替える）
+	display_settings::create_instance(self.window);
 	return true;
 }
 
@@ -57,18 +61,9 @@ void graphics_process::exit()
 {
 	framework& self = get_owner();
 
+	display_settings::delete_instance();
 	self.renderer.reset();
 	global_shader_base::release_all();
-
-	if (render_data::is_valid())
-	{
-		BOOL fullscreen{};
-		render_data::instance()->get_swap_chain()->GetFullscreenState(&fullscreen, 0);
-		if (fullscreen)
-		{
-			render_data::instance()->get_swap_chain()->SetFullscreenState(FALSE, 0);
-		}
-	}
 
 	//	描画関係
 	{
@@ -95,6 +90,10 @@ void graphics_process::exit()
 
 void graphics_process::update(float elapsed_time)
 {
+	//	@tool 解像度と表示の方法の変更（前のフレームの描画が終わった区切りで行う）
+	if (display_settings::is_valid())
+		display_settings::instance()->update();
+
 	//	リソースの構築と読込完了の通知
 	if (resource_manager::is_valid())
 	{

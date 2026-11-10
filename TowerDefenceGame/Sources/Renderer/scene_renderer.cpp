@@ -31,6 +31,10 @@ namespace
 #endif // defined(USE_IMGUI)
 
 #include "Renderer/scene_renderer_common.h"
+#include "Renderer/scene_renderer_display.h"
+#include "Graphics/color_space.h"
+#include "Graphics/light_utility.h"
+#include "System/engine_config_data.h"
 
 #include <cmath>
 #include <cstdint>
@@ -1375,6 +1379,15 @@ void deffered_lighting_renderer::resize_shadow_buffer(int width, int height)
 
 #if defined(USE_IMGUI)
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+namespace
+{
+	struct debug_draw_color_constants
+	{
+		math::float4 srgb_to_scene[3];
+	};
+	constexpr UINT debug_draw_color_cbv_index = 1;
+}
+
 debug_draw_pass_renderer::debug_draw_pass_renderer(render_job_registrar job_executor, std::shared_ptr<scene_render_targets> render_targets)
 : renderer(job_executor)
 , render_targets(render_targets)
@@ -1398,6 +1411,16 @@ debug_draw_pass_renderer::debug_draw_pass_renderer(render_job_registrar job_exec
 		psm->generate_pipeline_state<debug_draw_line_disable_depth_test_pipeline_state>(pso_names[index], &debug_draw_line_pipeline_states[index]);
 		debug_draw_line_pipeline_states[index]->set_domain(pipeline_state_base::domains::system);
 	}
+
+	//	線の色の変換定数
+	{
+		D3D11_BUFFER_DESC buffer_desc{};
+		buffer_desc.Usage = D3D11_USAGE_DEFAULT;
+		buffer_desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+		buffer_desc.ByteWidth = sizeof(debug_draw_color_constants);
+		HRESULT hr = render_data::instance()->get_device()->CreateBuffer(&buffer_desc, nullptr, color_constant_buffer.GetAddressOf());
+		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+	}
 }
 
 debug_draw_pass_renderer::~debug_draw_pass_renderer()
@@ -1408,6 +1431,16 @@ void debug_draw_pass_renderer::render(renderer_context& context)
 {
 	job_executor.execute([this](graphics_context& context)
 	{
+		//	線の色を、display_mapping の逆変換でシーンの色の値にする
+		{
+			const math::float3x3 matrix = color_space::get_gamut_matrix(color_space::gamuts::rec709, engine_config_data::instance()->get_active_rendering_gamut());
+			const float scale = sdr_reference_white_nits / static_cast<float>(light_utility::luminous_efficacy);
+			debug_draw_color_constants constants{};
+			for (int row = 0; row < 3; ++row)
+				constants.srgb_to_scene[row] = { matrix.m[row][0] * scale, matrix.m[row][1] * scale, matrix.m[row][2] * scale, 0.0f };
+			context.device_context->UpdateSubresource(color_constant_buffer.Get(), 0, nullptr, &constants, 0, 0);
+		}
+
 		//	描画先設定
 		rendering_pass.activate(context.device_context);
 
@@ -1418,6 +1451,7 @@ void debug_draw_pass_renderer::render(renderer_context& context)
 		for (UINT index = 0; index < magic_enum::enum_count<debug_draw_primitive_container::line_buffer_id>(); ++index)
 		{
 			debug_draw_line_pipeline_states[index]->begin(context);
+			context.device_context->PSSetConstantBuffers(debug_draw_color_cbv_index, 1, color_constant_buffer.GetAddressOf());
 			if (!context.render_data->debug_draw_container.line_buffer_datas[index].color_meshs.empty())
 			{
 				auto& mesh = context.render_data->debug_draw_container.line_buffer_datas[index].color_meshs[0];
@@ -1434,9 +1468,10 @@ void debug_draw_pass_renderer::render(renderer_context& context)
 
 void debug_draw_pass_renderer::resize_buffer(int width, int height)
 {
-	rendering_pass.render_targets = render_targets->output->render_targets;
-	for (auto& render_target : rendering_pass.render_targets)
-		render_target.clear_color = false;
+	//	シーンの色とシーンの深度に描く
+	rendering_pass.render_targets.clear();
+	rendering_pass.render_targets.emplace_back(render_targets->scene_color_texture);
+	rendering_pass.render_targets.back().clear_color = false;
 	D3D11_DEPTH_STENCIL_VIEW_DESC depth_stencil_view_desc{};
 	depth_stencil_view_desc.Format = common_pipeline_states::scene_depth_stencil_view_format;
 	depth_stencil_view_desc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
@@ -1447,8 +1482,8 @@ void debug_draw_pass_renderer::resize_buffer(int width, int height)
 	// ビューポートの設定
 	viewport.TopLeftX = 0.0f;
 	viewport.TopLeftY = 0.0f;
-	viewport.Width = static_cast<float>(render_targets->output->get_size().x);
-	viewport.Height = static_cast<float>(render_targets->output->get_size().y);
+	viewport.Width = static_cast<float>(rendering_pass.get_size().x);
+	viewport.Height = static_cast<float>(rendering_pass.get_size().y);
 	viewport.MinDepth = 0.0f;
 	viewport.MaxDepth = 1.0f;
 }

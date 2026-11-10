@@ -32,12 +32,12 @@ bool app_window::create(HINSTANCE instance, const wchar_t* class_name, int clien
 	wcex.hIconSm = 0;
 	RegisterClassExW(&wcex);
 
-	//	道具用のウィンドウは大きさを変えられ、位置はシステムに任せる
-	const DWORD style = kind == kinds::main ? (WS_OVERLAPPEDWINDOW ^ WS_MAXIMIZEBOX ^ WS_THICKFRAME) : WS_OVERLAPPEDWINDOW;
+	const DWORD style = get_windowed_style();
 	const int position = kind == kinds::main ? 0 : CW_USEDEFAULT;
 
 	RECT rc{ 0, 0, client_width, client_height };
-	AdjustWindowRect(&rc, WS_OVERLAPPEDWINDOW, FALSE);
+	//	実際のスタイルで枠の大きさを計算
+	AdjustWindowRect(&rc, style, FALSE);
 	hwnd = CreateWindowExW(0,
 		class_name,
 		title ? title : L"",
@@ -81,6 +81,45 @@ bool app_window::get_client_size(int& width, int& height) const
 	width = rc.right - rc.left;
 	height = rc.bottom - rc.top;
 	return true;
+}
+
+DWORD app_window::get_windowed_style() const
+{
+	return kind == kinds::main ? (WS_OVERLAPPEDWINDOW ^ WS_MAXIMIZEBOX ^ WS_THICKFRAME) : WS_OVERLAPPEDWINDOW;
+}
+
+void app_window::apply_window_mode(engine_config_data::windows_data::window_modes mode, int client_width, int client_height)
+{
+	if (!hwnd)
+		return;
+
+	const DWORD visible = IsWindowVisible(hwnd) ? WS_VISIBLE : 0;
+	if (mode == engine_config_data::windows_data::window_modes::borderless)
+	{
+		//	ウィンドウがあるモニター全体を覆う
+		MONITORINFO monitor_info{};
+		monitor_info.cbSize = sizeof(monitor_info);
+		GetMonitorInfoW(MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST), &monitor_info);
+		const RECT& rc = monitor_info.rcMonitor;
+
+		borderless = true;
+		SetWindowLongPtrW(hwnd, GWL_STYLE, WS_POPUP | visible);
+		SetWindowPos(hwnd, HWND_TOP, rc.left, rc.top, rc.right - rc.left, rc.bottom - rc.top, SWP_FRAMECHANGED | SWP_NOACTIVATE);
+		return;
+	}
+
+	//	枠ありに戻し、保存しておいた位置に描画領域がちょうど指定の大きさになるよう置く
+	const DWORD style = get_windowed_style();
+	RECT rc{ 0, 0, client_width, client_height };
+	AdjustWindowRect(&rc, style, FALSE);
+
+	borderless = false;
+	SetWindowLongPtrW(hwnd, GWL_STYLE, style | visible);
+	SetWindowPos(hwnd, nullptr,
+		engine_config_data::instance()->windows.window_left,
+		engine_config_data::instance()->windows.window_top,
+		rc.right - rc.left, rc.bottom - rc.top,
+		SWP_FRAMECHANGED | SWP_NOZORDER | SWP_NOACTIVATE);
 }
 
 LRESULT CALLBACK app_window::window_procedure(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
@@ -141,7 +180,7 @@ LRESULT app_window::handle_message(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lp
 	case WM_MOVE:
 	{
 		//	位置を設定に保存するのはアプリケーションウィンドウのみ
-		if (kind != kinds::main)
+		if (kind != kinds::main || borderless)
 			return DefWindowProc(hwnd, msg, wparam, lparam);
 		engine_config_data::instance()->windows.window_left = (int)(short)LOWORD(lparam);
 		engine_config_data::instance()->windows.window_top = (int)(short)HIWORD(lparam);
@@ -149,7 +188,7 @@ LRESULT app_window::handle_message(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lp
 	}
 	case WM_WINDOWPOSCHANGED:
 	{
-		if (kind != kinds::main)
+		if (kind != kinds::main || borderless)
 			return DefWindowProc(hwnd, msg, wparam, lparam);
 		WINDOWPOS* pos = (WINDOWPOS*)lparam;
 		engine_config_data::instance()->windows.window_left = pos->x;

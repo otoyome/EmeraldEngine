@@ -45,12 +45,13 @@ enum class renderer_domain
 
 	//	最終パス
 	anti_alias_post_process_pass,
-	display_mapping_pass,
 
 #if defined(USE_IMGUI)
 	//	デバッグ描画
 	debug_draw,
 #endif // defined(USE_IMGUI)
+
+	display_mapping_pass,
 
 	//	UIレンダリング
 	ui_rendering,

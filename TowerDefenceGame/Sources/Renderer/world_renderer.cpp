@@ -103,9 +103,18 @@ std::uint64_t world_renderer::get_output_id() const
 bool world_renderer::sync_output()
 {
 	if (get_output_id() == output_id)
-		return true;
+		return output_id != 0;
 
 	output_id = get_output_id();
+
+	//	出力先が空になったので、描画先のコピーを手放して描画しない
+	if (output_id == 0)
+	{
+		output_clear_rendering_pass.render_targets.clear();
+		render_data.reset();
+		return false;
+	}
+
 	const int width = static_cast<int>(output->get_size().x);
 	const int height = static_cast<int>(output->get_size().y);
 	if (!create_targets(width, height))

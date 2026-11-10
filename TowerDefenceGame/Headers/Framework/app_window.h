@@ -3,6 +3,8 @@
 #include <functional>
 #include <vector>
 
+#include "System/engine_config_data.h"
+
 //	アプリケーションのウィンドウ
 class app_window
 {
@@ -43,13 +45,20 @@ public:
 	//	描画領域の大きさ
 	bool get_client_size(int& width, int& height) const;
 
+	//	表示の方法を切り替える
+	void apply_window_mode(engine_config_data::windows_data::window_modes mode, int client_width, int client_height);
+
 private:
+	//	ウィンドウスタイル取得
+	DWORD get_windowed_style() const;
+
 	static LRESULT CALLBACK window_procedure(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam);
 	LRESULT handle_message(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam);
 
 private:
 	HWND hwnd = nullptr;
 	kinds kind = kinds::main;
+	bool borderless = false;
 	std::vector<message_hook> message_hooks;
 	std::function<void()> close_handler;
 	float wheel{ 0 };
