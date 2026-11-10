@@ -250,7 +250,7 @@ void meshlet_culling_system::cull_material_group(graphics_context& context, mate
 
 	ID3D11ShaderResourceView* srvs[3] = { resource.meshlet_instance_srv.Get(), submesh_transform_srv.Get(), hiz.get_srv() };
 	dc->CSSetShaderResources(0, 3, srvs);
-	dc->CSSetSamplers(0, 1, render_data::instance()->get_sampler_states(render_data::SAMPLER_STATE::POINT_CLAMP).GetAddressOf());
+	dc->CSSetSamplers(0, 1, render_data::instance()->get_state_cache().get_sampler_state(render_state_cache::SAMPLER_STATE::POINT_CLAMP).GetAddressOf());
 
 	//	ƒJƒŠƒ“ƒOˆ—
 	UINT initial_count = 0;

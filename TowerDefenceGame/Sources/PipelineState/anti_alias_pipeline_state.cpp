@@ -99,7 +99,7 @@ void fxaa_pipeline_state::begin(const graphics_context& context)
 	context.device_context->VSSetConstantBuffers(common_pipeline_states::scene_cbv_index, 1, context.scene_constant_buffer.GetAddressOf());
 	context.device_context->PSSetConstantBuffers(common_pipeline_states::scene_cbv_index, 1, context.scene_constant_buffer.GetAddressOf());
 	context.device_context->PSSetShaderResources(0, 1, context.scene_color_texture->get_shader_resource_view().GetAddressOf());
-	context.device_context->PSSetSamplers(0, 1, render_data::instance()->get_sampler_states(render_data::SAMPLER_STATE::LINEAR).GetAddressOf());
+	context.device_context->PSSetSamplers(0, 1, render_data::instance()->get_state_cache().get_sampler_state(render_state_cache::SAMPLER_STATE::LINEAR).GetAddressOf());
 }
 
 void fxaa_pipeline_state::end(const graphics_context& context)
@@ -179,8 +179,8 @@ void smaa_edge_detection_pipeline_state::begin(const graphics_context& context)
 	context.device_context->VSSetConstantBuffers(common_pipeline_states::scene_cbv_index, 1, context.scene_constant_buffer.GetAddressOf());
 	context.device_context->PSSetConstantBuffers(common_pipeline_states::scene_cbv_index, 1, context.scene_constant_buffer.GetAddressOf());
 	context.device_context->PSSetShaderResources(0, 1, context.scene_color_texture->get_shader_resource_view().GetAddressOf());
-	context.device_context->PSSetSamplers(0, 1, render_data::instance()->get_sampler_states(render_data::SAMPLER_STATE::POINT).GetAddressOf());
-	context.device_context->PSSetSamplers(1, 1, render_data::instance()->get_sampler_states(render_data::SAMPLER_STATE::LINEAR).GetAddressOf());
+	context.device_context->PSSetSamplers(0, 1, render_data::instance()->get_state_cache().get_sampler_state(render_state_cache::SAMPLER_STATE::POINT).GetAddressOf());
+	context.device_context->PSSetSamplers(1, 1, render_data::instance()->get_state_cache().get_sampler_state(render_state_cache::SAMPLER_STATE::LINEAR).GetAddressOf());
 }
 
 void smaa_edge_detection_pipeline_state::end(const graphics_context& context)
@@ -298,8 +298,8 @@ void smaa_blending_weight_calculation_pipeline_state::begin(const graphics_conte
 	context.device_context->PSSetShaderResources(0, 1, context.scene_color_texture->get_shader_resource_view().GetAddressOf());
 	context.device_context->PSSetShaderResources(1, 1, area_texture->get_shader_resource_view().GetAddressOf());
 	context.device_context->PSSetShaderResources(2, 1, search_texture->get_shader_resource_view().GetAddressOf());
-	context.device_context->PSSetSamplers(0, 1, render_data::instance()->get_sampler_states(render_data::SAMPLER_STATE::POINT).GetAddressOf());
-	context.device_context->PSSetSamplers(1, 1, render_data::instance()->get_sampler_states(render_data::SAMPLER_STATE::LINEAR).GetAddressOf());
+	context.device_context->PSSetSamplers(0, 1, render_data::instance()->get_state_cache().get_sampler_state(render_state_cache::SAMPLER_STATE::POINT).GetAddressOf());
+	context.device_context->PSSetSamplers(1, 1, render_data::instance()->get_state_cache().get_sampler_state(render_state_cache::SAMPLER_STATE::LINEAR).GetAddressOf());
 }
 
 void smaa_blending_weight_calculation_pipeline_state::end(const graphics_context& context)
@@ -380,8 +380,8 @@ void smaa_neighborhood_blending_pipeline_state::begin(const graphics_context& co
 	context.device_context->PSSetShaderResources(0, 1, context.scene_color_texture->get_shader_resource_view().GetAddressOf());
 	context.device_context->PSSetShaderResources(1, 1, context.work_texture[0]->get_shader_resource_view().GetAddressOf());
 	context.device_context->PSSetShaderResources(2, 1, context.work_texture[1]->get_shader_resource_view().GetAddressOf());
-	context.device_context->PSSetSamplers(0, 1, render_data::instance()->get_sampler_states(render_data::SAMPLER_STATE::POINT).GetAddressOf());
-	context.device_context->PSSetSamplers(1, 1, render_data::instance()->get_sampler_states(render_data::SAMPLER_STATE::LINEAR).GetAddressOf());
+	context.device_context->PSSetSamplers(0, 1, render_data::instance()->get_state_cache().get_sampler_state(render_state_cache::SAMPLER_STATE::POINT).GetAddressOf());
+	context.device_context->PSSetSamplers(1, 1, render_data::instance()->get_state_cache().get_sampler_state(render_state_cache::SAMPLER_STATE::LINEAR).GetAddressOf());
 }
 
 void smaa_neighborhood_blending_pipeline_state::end(const graphics_context& context)

@@ -6,7 +6,7 @@
 #include <mutex>
 #include <cstdint>
 
-//	•`‰æ‘¤‚ªŽg‚¤ GPU Ž‘Œ¹‚Ö‚Ì“]‘—ˆê——
+//	GPU“]‘—ƒŠƒXƒg
 class gpu_upload_list
 {
 public:

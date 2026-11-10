@@ -24,7 +24,7 @@ render_system::render_system(HWND hwnd)
 
 			//	ƒvƒŒƒ[ƒ“ƒg
 			UINT sync_interval{ engine_config_data::instance()->windows.vertical_sync };
-			render_data::instance()->get_swap_chain()->Present(sync_interval, 0);
+			render_data::instance()->present(sync_interval);
 		});
 }
 

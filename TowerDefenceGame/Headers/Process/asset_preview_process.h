@@ -43,8 +43,6 @@ private:
 	std::string window_kind;	//	窓の種類
 	std::string key;			//	二重に開かないためのキー
 	scene_opener open_scene;	//	自分のワールドにシーンを登録する処理
-	unsigned int scene_dock_id = 0;	//	シーンの窓をドッキングする先
-	unsigned int viewport_dock_id = 0;	//	Viewport の窓をドッキングする先
 
 	std::unique_ptr<world> preview_world;			//	プレビューのワールド
 	std::shared_ptr<render_output> output;			//	描画先のテクスチャ

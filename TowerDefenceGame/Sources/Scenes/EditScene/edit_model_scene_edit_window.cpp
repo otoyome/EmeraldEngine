@@ -36,7 +36,7 @@ bool edit_model_scene::initialize_edit_core()
 	//	エディターアイテム用コンテキスト生成
 	{
 		editor_context = editor_items::generate_context();
-		editor_context->set_window_opener([this](std::string_view name, bool* open, int flags) { return get_context().begin_window(name, open, flags); });
+		editor_context->set_window_id(get_context().get_window_id());
 	}
 
 	if (!initialize_vertex_color_edit())
@@ -97,7 +97,7 @@ void edit_model_scene::imgui_render_edit_core()
 
 void edit_model_scene::imgui_render_mesh_list()
 {
-	if (get_context().begin_window("Mesh List Window"))
+	if (ImGui::Begin(get_context().make_window_name("Mesh List Window").c_str()))
 	{
 		int push_id = 0xF0D37cfc;
 		for (auto& mesh : edit_model_meshes)
@@ -125,7 +125,7 @@ void edit_model_scene::imgui_render_morph()
 	if (!edit_model)
 		return;
 
-	if (get_context().begin_window("Morph Window"))
+	if (ImGui::Begin(get_context().make_window_name("Morph Window").c_str()))
 	{
 		int edeit_id = 0x0FF1F38F;
 		auto& morphs = edit_model->get_model_instance()->get_resource()->get_morphes_for_editor();
@@ -228,7 +228,7 @@ void edit_model_scene::imgui_render_morph()
 
 void edit_model_scene::imgui_render_material_window()
 {
-	if (get_context().begin_window("Material Window"))
+	if (ImGui::Begin(get_context().make_window_name("Material Window").c_str()))
 	{
 		auto& model_instance = *edit_model->get_model_instance();
 		auto& materials = model_instance.get_resource_for_editor()->get_materials_for_editor();
@@ -269,7 +269,7 @@ void edit_model_scene::imgui_model_loader_window()
 		else if (extension == std::filesystem::path(".gltf") || extension == std::filesystem::path(".glb"))
 		{
 			bool show_flag = !load_model_path.empty();
-			if (get_context().begin_window("Convert Gltf Data", &show_flag))
+			if (ImGui::Begin(get_context().make_window_name("Convert Gltf Data").c_str(), &show_flag))
 			{
 				ImGui::Checkbox("compute_tangent", &convert_option_data.gltf.is_compute_tangent);
 				ImGui::Checkbox("populate_vertex_color", &convert_option_data.gltf.is_populate_vertex_color);
@@ -520,7 +520,7 @@ void edit_model_scene::update_vertex_color_edit()
 
 void edit_model_scene::imgui_render_vertex_color_edit()
 {
-	if (get_context().begin_window("Edit Vertex Color Window"))
+	if (ImGui::Begin(get_context().make_window_name("Edit Vertex Color Window").c_str()))
 	{
 		if (ImGui::Button("Edit Vertex Color Mode"))
 		{

@@ -103,10 +103,25 @@ mouse::mouse(HWND hwnd)
 	GetClientRect(hwnd, &rc);
 	viewport_size.x = rc.right - rc.left;
 	viewport_size.y = rc.bottom - rc.top;
+
+	//	ホイールは Raw Input で受け取る
+	//	INPUTSINK は前面でなくても届くので、受け取る時に自プロセスの窓が前面かを調べる
+	RAWINPUTDEVICE device = {};
+	device.usUsagePage = 0x01;	//	Generic Desktop
+	device.usUsage = 0x02;		//	マウス
+	device.dwFlags = RIDEV_INPUTSINK;
+	device.hwndTarget = hwnd;
+	::RegisterRawInputDevices(&device, 1, sizeof(device));
 }
 
 mouse::~mouse()
 {
+	RAWINPUTDEVICE device = {};
+	device.usUsagePage = 0x01;
+	device.usUsage = 0x02;
+	device.dwFlags = RIDEV_REMOVE;
+	device.hwndTarget = nullptr;
+	::RegisterRawInputDevices(&device, 1, sizeof(device));
 }
 
 void mouse::set_viewport_size(const math::int2& size)
@@ -234,20 +249,18 @@ void mouse::update_state()
 	}
 }
 
-void mouse::add_sub_window_wheel(int value)
-{
-	//	@tool メインの窓が前面の時はメッセージで受け取っているので足さない
-	if (::GetForegroundWindow() != hwnd)
-		wheel_value += value;
-}
-
 LRESULT mouse::window_proccess(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
 	switch (msg)
 	{
-		case WM_MOUSEWHEEL:
+		case WM_INPUT:
 		{
-			wheel_value += GET_WHEEL_DELTA_WPARAM(wParam);
+			//	ホイールの量を足す
+			RAWINPUT raw = {};
+			UINT size = sizeof(raw);
+			if (::GetRawInputData(reinterpret_cast<HRAWINPUT>(lParam), RID_INPUT, &raw, &size, sizeof(RAWINPUTHEADER)) != static_cast<UINT>(-1)
+				&& raw.header.dwType == RIM_TYPEMOUSE && (raw.data.mouse.usButtonFlags & RI_MOUSE_WHEEL) && input::is_process_foreground())
+				wheel_value += static_cast<SHORT>(raw.data.mouse.usButtonData);
 			return 0;
 		}
 #if 0

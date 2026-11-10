@@ -143,129 +143,6 @@ namespace
 graphics_custom_pipeline_state::graphics_custom_pipeline_state()
 : graphics_pipeline_state()
 {
-	render_state_cache& state_cache = render_data::instance()->get_state_cache();
-
-	// 深度ステンシルステートの生成
-	{
-		D3D11_DEPTH_STENCIL_DESC depth_stencil_desc{};
-		depth_stencil_desc.DepthEnable = TRUE;
-		depth_stencil_desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
-		depth_stencil_desc.DepthFunc = common_pipeline_states::depth_comparison_func;
-		depth_stencil_states[static_cast<size_t>(depth_stencil_state::depth_test_and_write)] = state_cache.get_depth_stencil_state(depth_stencil_desc);
-		depth_stencil_desc.DepthEnable = TRUE;
-		depth_stencil_desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
-		depth_stencil_desc.DepthFunc = common_pipeline_states::depth_comparison_func;
-		depth_stencil_states[static_cast<size_t>(depth_stencil_state::depth_test_only)] = state_cache.get_depth_stencil_state(depth_stencil_desc);
-		depth_stencil_desc.DepthEnable = FALSE;
-		depth_stencil_desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
-		depth_stencil_desc.DepthFunc = common_pipeline_states::depth_comparison_func;
-		depth_stencil_states[static_cast<size_t>(depth_stencil_state::depth_write_only)] = state_cache.get_depth_stencil_state(depth_stencil_desc);
-		depth_stencil_desc.DepthEnable = FALSE;
-		depth_stencil_desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
-		depth_stencil_desc.DepthFunc = common_pipeline_states::depth_comparison_func;
-		depth_stencil_states[static_cast<size_t>(depth_stencil_state::depth_off)] = state_cache.get_depth_stencil_state(depth_stencil_desc);
-
-		//	デカール用
-		{
-			D3D11_DEPTH_STENCIL_DESC depth_stencil_desc{};
-			depth_stencil_desc.DepthEnable = TRUE;
-			depth_stencil_desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
-			depth_stencil_desc.DepthFunc = common_pipeline_states::depth_comparison_func;
-			depth_stencil_desc.StencilEnable = TRUE;
-			depth_stencil_desc.StencilReadMask = 0xFF;
-			depth_stencil_desc.StencilWriteMask = 0xFF;
-			depth_stencil_desc.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
-			depth_stencil_desc.BackFace.StencilPassOp = D3D11_STENCIL_OP_REPLACE;
-			depth_stencil_desc.BackFace.StencilFailOp = D3D11_STENCIL_OP_ZERO;
-			depth_stencil_desc.BackFace.StencilDepthFailOp = D3D11_STENCIL_OP_ZERO;
-			depth_stencil_desc.FrontFace.StencilFunc = D3D11_COMPARISON_EQUAL;
-			depth_stencil_desc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_ZERO;
-			depth_stencil_desc.FrontFace.StencilFailOp = D3D11_STENCIL_OP_ZERO;
-			depth_stencil_desc.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_ZERO;
-			depth_stencil_states[static_cast<size_t>(depth_stencil_state::decal)] = state_cache.get_depth_stencil_state(depth_stencil_desc);
-		}
-	}
-
-	// ブレンドステートの生成
-	{
-		D3D11_BLEND_DESC blend_desc{};
-		blend_desc.AlphaToCoverageEnable = FALSE;
-		blend_desc.IndependentBlendEnable = FALSE;
-		blend_desc.RenderTarget[0].BlendEnable = FALSE;
-		blend_desc.RenderTarget[0].SrcBlend = D3D11_BLEND_ONE;
-		blend_desc.RenderTarget[0].DestBlend = D3D11_BLEND_ZERO;
-		blend_desc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
-		blend_desc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
-		blend_desc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
-		blend_desc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
-		blend_desc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-		blend_states[static_cast<size_t>(blend_state::opaque)] = state_cache.get_blend_state(blend_desc);
-
-		blend_desc.AlphaToCoverageEnable = FALSE;
-		blend_desc.IndependentBlendEnable = FALSE;
-		blend_desc.RenderTarget[0].BlendEnable = TRUE;
-		blend_desc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
-		blend_desc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
-		blend_desc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
-		blend_desc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
-		blend_desc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_INV_SRC_ALPHA;
-		blend_desc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
-		blend_desc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-		blend_states[static_cast<size_t>(blend_state::translucent)] = state_cache.get_blend_state(blend_desc);
-
-		blend_desc.AlphaToCoverageEnable = FALSE;
-		blend_desc.IndependentBlendEnable = FALSE;
-		blend_desc.RenderTarget[0].BlendEnable = TRUE;
-		blend_desc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA; //D3D11_BLEND_ONE D3D11_BLEND_SRC_ALPHA
-		blend_desc.RenderTarget[0].DestBlend = D3D11_BLEND_ONE;
-		blend_desc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
-		blend_desc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ZERO;
-		blend_desc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ONE;
-		blend_desc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
-		blend_desc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-		blend_states[static_cast<size_t>(blend_state::addative)] = state_cache.get_blend_state(blend_desc);
-
-		blend_desc.AlphaToCoverageEnable = FALSE;
-		blend_desc.IndependentBlendEnable = FALSE;
-		blend_desc.RenderTarget[0].BlendEnable = TRUE;
-		blend_desc.RenderTarget[0].SrcBlend = D3D11_BLEND_ZERO; //D3D11_BLEND_DEST_COLOR
-		blend_desc.RenderTarget[0].DestBlend = D3D11_BLEND_SRC_COLOR; //D3D11_BLEND_SRC_COLOR
-		blend_desc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
-		blend_desc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_DEST_ALPHA;
-		blend_desc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
-		blend_desc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
-		blend_desc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-		blend_states[static_cast<size_t>(blend_state::multiply)] = state_cache.get_blend_state(blend_desc);
-	}
-
-	// ラスタライザーステートの生成
-	{
-		D3D11_RASTERIZER_DESC rasterizer_desc{};
-		rasterizer_desc.FrontCounterClockwise = TRUE;
-		rasterizer_desc.DepthBias = 0;
-		rasterizer_desc.DepthBiasClamp = 0;
-		rasterizer_desc.SlopeScaledDepthBias = 0;
-		rasterizer_desc.DepthClipEnable = TRUE;
-		rasterizer_desc.ScissorEnable = FALSE;
-		rasterizer_desc.MultisampleEnable = FALSE;
-		rasterizer_desc.AntialiasedLineEnable = FALSE;
-
-		rasterizer_desc.FillMode = D3D11_FILL_SOLID;
-		rasterizer_desc.CullMode = D3D11_CULL_BACK;
-		rasterizer_states[static_cast<int>(raster_state::solid)] = state_cache.get_rasterizer_state(rasterizer_desc);
-
-		rasterizer_desc.FillMode = D3D11_FILL_SOLID;
-		rasterizer_desc.CullMode = D3D11_CULL_NONE;
-		rasterizer_states[static_cast<int>(raster_state::two_sided)] = state_cache.get_rasterizer_state(rasterizer_desc);
-
-		rasterizer_desc.FillMode = D3D11_FILL_WIREFRAME;
-		rasterizer_desc.CullMode = D3D11_CULL_BACK;
-		rasterizer_states[static_cast<int>(raster_state::wire)] = state_cache.get_rasterizer_state(rasterizer_desc);
-
-		rasterizer_desc.FillMode = D3D11_FILL_WIREFRAME;
-		rasterizer_desc.CullMode = D3D11_CULL_NONE;
-		rasterizer_states[static_cast<int>(raster_state::wire_two_sided)] = state_cache.get_rasterizer_state(rasterizer_desc);
-	}
 }
 
 graphics_custom_pipeline_state::~graphics_custom_pipeline_state()
@@ -338,6 +215,8 @@ void graphics_custom_pipeline_state::begin(const graphics_context& context)
 
 void graphics_custom_pipeline_state::update_parameters(const graphics_context& context, const material_instance& material, const buffer_datas* buffer_data)
 {
+	const render_state_cache& state_cache = render_data::instance()->get_state_cache();
+
 	//	ラスタライザーステート設定
 	{
 		bool is_two_sided = material.is_flag(material_resource::flags::two_sided);
@@ -352,36 +231,36 @@ void graphics_custom_pipeline_state::update_parameters(const graphics_context& c
 			is_wire = true;
 		}
 
-		raster_state rs;
+		render_state_cache::raster_state rs;
 		if (is_wire)
 		{
-			rs = is_two_sided ? raster_state::wire_two_sided : raster_state::wire;
+			rs = is_two_sided ? render_state_cache::raster_state::wire_two_sided : render_state_cache::raster_state::wire;
 		}
 		else
 		{
-			rs = is_two_sided ? raster_state::two_sided : raster_state::solid;
+			rs = is_two_sided ? render_state_cache::raster_state::two_sided : render_state_cache::raster_state::solid;
 		}
-		context.set_rasterizer_state(rasterizer_states[static_cast<int>(rs)].Get());
+		context.set_rasterizer_state(state_cache.get_rasterizer_state(rs).Get());
 	}
 
 	//	ブレンドステート&深度ステンシルステート設定
 	{
-		auto depth_stencil_state = depth_stencil_state::depth_test_and_write;
-		auto blend_state = blend_state::opaque;
+		auto depth_stencil_state = render_state_cache::depth_stencil_state::depth_test_and_write;
+		auto blend_state = render_state_cache::blend_state::opaque;
 		auto stencil_ref_value = stencil_ref;
 
 		if (context.is_shadow_rendering)
 		{
 			//	シャドウマップ生成時
-			depth_stencil_state = depth_stencil_state::depth_test_and_write;
-			blend_state = blend_state::opaque;
+			depth_stencil_state = render_state_cache::depth_stencil_state::depth_test_and_write;
+			blend_state = render_state_cache::blend_state::opaque;
 			stencil_ref_value = 0;
 		}
 		else if (material.get_domain() == material_resource::domains::deferred_decal)
 		{
 			//	デカール処理
-			depth_stencil_state = depth_stencil_state::decal;
-			blend_state = blend_state::opaque;
+			depth_stencil_state = render_state_cache::depth_stencil_state::decal;
+			blend_state = render_state_cache::blend_state::opaque;
 			stencil_ref_value = 0;
 		}
 		else
@@ -395,14 +274,14 @@ void graphics_custom_pipeline_state::update_parameters(const graphics_context& c
 				}
 				case material_resource::blend_modes::translucent:
 				{
-					blend_state = blend_state::translucent;
-					depth_stencil_state = material.is_flag(material_resource::flags::disable_depth_test) ? depth_stencil_state::depth_off : depth_stencil_state::depth_test_only;
+					blend_state = render_state_cache::blend_state::translucent;
+					depth_stencil_state = material.is_flag(material_resource::flags::disable_depth_test) ? render_state_cache::depth_stencil_state::depth_off : render_state_cache::depth_stencil_state::depth_test_only;
 					break;
 				}
 				case material_resource::blend_modes::addative:
 				{
-					blend_state = blend_state::addative;
-					depth_stencil_state = material.is_flag(material_resource::flags::disable_depth_test) ? depth_stencil_state::depth_off : depth_stencil_state::depth_test_only;
+					blend_state = render_state_cache::blend_state::addative;
+					depth_stencil_state = material.is_flag(material_resource::flags::disable_depth_test) ? render_state_cache::depth_stencil_state::depth_off : render_state_cache::depth_stencil_state::depth_test_only;
 					break;
 				}
 				//case material_resource::blend_modes::modulate:
@@ -412,8 +291,8 @@ void graphics_custom_pipeline_state::update_parameters(const graphics_context& c
 				//}
 			}
 		}
-		context.set_depth_stencil_state(depth_stencil_states[static_cast<int>(depth_stencil_state)].Get(), stencil_ref_value);
-		context.set_blend_state(blend_states[static_cast<int>(blend_state)].Get());
+		context.set_depth_stencil_state(state_cache.get_depth_stencil_state(depth_stencil_state).Get(), stencil_ref_value);
+		context.set_blend_state(state_cache.get_blend_state(blend_state).Get());
 	}
 
 	bool parameter_buffer_used[magic_enum::enum_count<arrangement>()] = {};
@@ -511,7 +390,7 @@ void graphics_custom_pipeline_state::update_parameters(const graphics_context& c
 		}
 
 		//	サンプラステート登録
-		ID3D11SamplerState* sampler_state = render_data::instance()->get_sampler_states(render_data::SAMPLER_STATE::LINEAR).Get();
+		ID3D11SamplerState* sampler_state = render_data::instance()->get_state_cache().get_sampler_state(render_state_cache::SAMPLER_STATE::LINEAR).Get();
 		for (auto& sampler : index_map.sampler)
 		{
 			for (UINT index = 0; index < magic_enum::enum_count<arrangement>(); ++index)
@@ -541,7 +420,7 @@ void graphics_custom_pipeline_state::update_parameters(const graphics_context& c
 					Microsoft::WRL::ComPtr<ID3D11SamplerState> texture_sampler_state;
 					if (paired_sampler_index >= 0)
 					{
-						texture_sampler_state = render_data::instance()->get_sampler_state(srv_ptr->get_sampler_desc().to_d3d11_desc());
+						texture_sampler_state = render_data::instance()->get_state_cache().get_sampler_state(srv_ptr->get_sampler_desc().to_d3d11_desc());
 					}
 					ID3D11SamplerState* texture_sampler = texture_sampler_state.Get();
 

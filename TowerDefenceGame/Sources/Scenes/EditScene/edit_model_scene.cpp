@@ -247,7 +247,7 @@ void edit_model_scene::update_core(float elapsed_time)
 void edit_model_scene::imgui_render_core()
 {
 	//	ロードウィンドウ
-	if (get_context().begin_window("Model"))
+	if (ImGui::Begin(get_context().make_window_name("Model").c_str()))
 		imgui_model_loader_window();
 	ImGui::End();
 

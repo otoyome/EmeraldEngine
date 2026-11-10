@@ -34,7 +34,7 @@ render_output::render_output(kinds kind)
 render_target_view render_output::make_render_target_view()
 {
 	if (kind == kinds::back_buffer)
-		return render_target_view(render_data::instance()->get_swap_chain());
+		return render_target_view::from_back_buffer();
 	return render_target_view(texture);
 }
 

@@ -77,7 +77,7 @@ void write_back_pipeline_state::begin(const graphics_context& context)
 	context.device_context->RSSetState(rasterizer_states.Get());
 
 	context.device_context->PSSetShaderResources(0, 1, context.scene_color_texture->get_shader_resource_view().GetAddressOf());
-	context.device_context->PSSetSamplers(0, 1, render_data::instance()->get_sampler_states(render_data::SAMPLER_STATE::POINT).GetAddressOf());
+	context.device_context->PSSetSamplers(0, 1, render_data::instance()->get_state_cache().get_sampler_state(render_state_cache::SAMPLER_STATE::POINT).GetAddressOf());
 }
 
 void write_back_pipeline_state::end(const graphics_context& context)
@@ -154,7 +154,7 @@ void compress_rgb_to_log_pipeline_state::begin(const graphics_context& context)
 	context.device_context->RSSetState(rasterizer_states.Get());
 
 	context.device_context->PSSetShaderResources(0, 1, context.scene_color_texture->get_shader_resource_view().GetAddressOf());
-	context.device_context->PSSetSamplers(0, 1, render_data::instance()->get_sampler_states(render_data::SAMPLER_STATE::POINT).GetAddressOf());
+	context.device_context->PSSetSamplers(0, 1, render_data::instance()->get_state_cache().get_sampler_state(render_state_cache::SAMPLER_STATE::POINT).GetAddressOf());
 }
 
 void compress_rgb_to_log_pipeline_state::end(const graphics_context& context)
@@ -231,7 +231,7 @@ void decompress_rgb_to_log_pipeline_state::begin(const graphics_context& context
 	context.device_context->RSSetState(rasterizer_states.Get());
 
 	context.device_context->PSSetShaderResources(0, 1, context.scene_color_texture->get_shader_resource_view().GetAddressOf());
-	context.device_context->PSSetSamplers(0, 1, render_data::instance()->get_sampler_states(render_data::SAMPLER_STATE::POINT).GetAddressOf());
+	context.device_context->PSSetSamplers(0, 1, render_data::instance()->get_state_cache().get_sampler_state(render_state_cache::SAMPLER_STATE::POINT).GetAddressOf());
 }
 
 void decompress_rgb_to_log_pipeline_state::end(const graphics_context& context)
@@ -353,7 +353,7 @@ void screen_space_reflection_uv_pipeline_state::begin(const graphics_context& co
 		g_buffer_srvs[index] = context.g_buffer_textures[index]->get_shader_resource_view().Get();
 	}
 	context.device_context->PSSetShaderResources(ssr::gbuffer_srv_start, ARRAYSIZE(g_buffer_srvs), g_buffer_srvs);
-	context.device_context->PSSetSamplers(ssr::gbuffer_srv_start, 1, render_data::instance()->get_sampler_states(render_data::SAMPLER_STATE::POINT).GetAddressOf());
+	context.device_context->PSSetSamplers(ssr::gbuffer_srv_start, 1, render_data::instance()->get_state_cache().get_sampler_state(render_state_cache::SAMPLER_STATE::POINT).GetAddressOf());
 
 	//	定数バッファ設定
 	context.device_context->PSSetConstantBuffers(common_pipeline_states::scene_cbv_index, 1, context.scene_constant_buffer.GetAddressOf());
@@ -462,11 +462,11 @@ void screen_space_reflection_color_pipeline_state::begin(const graphics_context&
 		g_buffer_srvs[index] = context.g_buffer_textures[index]->get_shader_resource_view().Get();
 	}
 	context.device_context->PSSetShaderResources(ssr::gbuffer_srv_start, ARRAYSIZE(g_buffer_srvs), g_buffer_srvs);
-	context.device_context->PSSetSamplers(ssr::gbuffer_srv_start, 1, render_data::instance()->get_sampler_states(render_data::SAMPLER_STATE::POINT).GetAddressOf());
+	context.device_context->PSSetSamplers(ssr::gbuffer_srv_start, 1, render_data::instance()->get_state_cache().get_sampler_state(render_state_cache::SAMPLER_STATE::POINT).GetAddressOf());
 	
 	context.device_context->PSSetShaderResources(ssr::ssr_uv_srv_index, 1, context.work_texture[0]->get_shader_resource_view().GetAddressOf());
-	context.device_context->PSSetSamplers(ssr::ssr_uv_srv_index, 1, render_data::instance()->get_sampler_states(render_data::SAMPLER_STATE::LINEAR).GetAddressOf());
-	context.device_context->PSSetSamplers(ssr::linear_boarder_black_index, 1, render_data::instance()->get_sampler_states(render_data::SAMPLER_STATE::LINEAR_BORDER_BLACK).GetAddressOf());
+	context.device_context->PSSetSamplers(ssr::ssr_uv_srv_index, 1, render_data::instance()->get_state_cache().get_sampler_state(render_state_cache::SAMPLER_STATE::LINEAR).GetAddressOf());
+	context.device_context->PSSetSamplers(ssr::linear_boarder_black_index, 1, render_data::instance()->get_state_cache().get_sampler_state(render_state_cache::SAMPLER_STATE::LINEAR_BORDER_BLACK).GetAddressOf());
 
 	//	定数バッファ設定
 	context.device_context->PSSetConstantBuffers(common_pipeline_states::scene_cbv_index, 1, context.scene_constant_buffer.GetAddressOf());
@@ -561,8 +561,8 @@ void screen_space_reflection_composite_pipeline_state::begin(const graphics_cont
 	}
 	context.device_context->PSSetShaderResources(ssr::gbuffer_srv_start, ARRAYSIZE(g_buffer_srvs), g_buffer_srvs);
 	context.device_context->PSSetShaderResources(ssr::ssr_merge_color_srv_index, 1, context.work_texture[0]->get_shader_resource_view().GetAddressOf());
-	context.device_context->PSSetSamplers(ssr::gbuffer_srv_start, 1, render_data::instance()->get_sampler_states(render_data::SAMPLER_STATE::POINT).GetAddressOf());
-	context.device_context->PSSetSamplers(ssr::ssr_merge_bokeh_sampler_index, 1, render_data::instance()->get_sampler_states(render_data::SAMPLER_STATE::LINEAR_CLAMP).GetAddressOf());
+	context.device_context->PSSetSamplers(ssr::gbuffer_srv_start, 1, render_data::instance()->get_state_cache().get_sampler_state(render_state_cache::SAMPLER_STATE::POINT).GetAddressOf());
+	context.device_context->PSSetSamplers(ssr::ssr_merge_bokeh_sampler_index, 1, render_data::instance()->get_state_cache().get_sampler_state(render_state_cache::SAMPLER_STATE::LINEAR_CLAMP).GetAddressOf());
 
 	context.device_context->PSSetConstantBuffers(common_pipeline_states::scene_cbv_index, 1, context.scene_constant_buffer.GetAddressOf());
 }

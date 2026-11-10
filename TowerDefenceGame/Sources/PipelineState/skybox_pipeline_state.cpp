@@ -104,7 +104,7 @@ void skybox_pipeline_state::begin(const graphics_context& context)
 	static constexpr UINT SkyboxSamplerIndex = 0;
 	if (context.specluar_ibl_texture)
 		context.device_context->PSSetShaderResources(SkyboxIndex, 1, context.specluar_ibl_texture->get_shader_resource_view().GetAddressOf());
-	context.device_context->PSSetSamplers(SkyboxSamplerIndex, 1, render_data::instance()->get_sampler_states(render_data::SAMPLER_STATE::LINEAR).GetAddressOf());
+	context.device_context->PSSetSamplers(SkyboxSamplerIndex, 1, render_data::instance()->get_state_cache().get_sampler_state(render_state_cache::SAMPLER_STATE::LINEAR).GetAddressOf());
 
 	//	ƒ‰ƒCƒgî•ñÝ’è
 	context.device_context->UpdateSubresource(lcbv.Get(), 0, 0, &context.deferred_light_probe_constant, 0, 0);

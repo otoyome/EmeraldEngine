@@ -169,7 +169,7 @@ editor_host::editor_host(HWND hwnd)
 {
 	//	ImGui
 	{
-		imgui_rendering_pass.render_targets.emplace_back(render_data::instance()->get_swap_chain());
+		imgui_rendering_pass.render_targets.emplace_back(render_target_view::from_back_buffer());
 		imgui_rendering_pass.render_targets.back().clear_color = false;
 
 		DXGI_SWAP_CHAIN_DESC desc;
@@ -199,11 +199,6 @@ void editor_host::begin_frame()
 	ImGui_ImplDX11_NewFrame();
 	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();
-
-	//	@tool ImGui が別の窓に出した窓で回したホイールをマウスへ渡す(EndFrame で消えるので NewFrame の直後に読む)
-	if (mouse::is_valid())
-		mouse::instance()->add_sub_window_wheel(static_cast<int>(ImGui::GetIO().MouseWheel * WHEEL_DELTA));
-
 	editor_items::begin_contexts();
 	frame_begun = true;
 }

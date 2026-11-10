@@ -450,7 +450,7 @@ void clustered_lighting_system::render(graphics_context& context)
 		g_buffer_srvs[index] = context.g_buffer_textures[index]->get_shader_resource_view().Get();
 	}
 	dc->PSSetShaderResources(gbuffer_srv_index, ARRAYSIZE(g_buffer_srvs), g_buffer_srvs);
-	dc->PSSetSamplers(gbuffer_srv_index, 1, render_data::instance()->get_sampler_states(render_data::SAMPLER_STATE::LINEAR).GetAddressOf());
+	dc->PSSetSamplers(gbuffer_srv_index, 1, render_data::instance()->get_state_cache().get_sampler_state(render_state_cache::SAMPLER_STATE::LINEAR).GetAddressOf());
 
 	ID3D11ShaderResourceView* cluster_srvs[] = { light_srv.Get(), count_srv.Get(), offset_srv.Get(), index_srv.Get() };
 	dc->PSSetShaderResources(clustered_srv_index, ARRAYSIZE(cluster_srvs), cluster_srvs);

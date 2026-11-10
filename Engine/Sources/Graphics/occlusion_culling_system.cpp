@@ -155,7 +155,7 @@ void occlusion_culling_system::update(graphics_context& context, hiz_buffer& hiz
 
 		ID3D11ShaderResourceView* srvs[2] = { instance_srv.Get(), hiz.get_srv() };
 		dc->CSSetShaderResources(0, 2, srvs);
-		ID3D11SamplerState* sampler = render_data::instance()->get_sampler_states(render_data::SAMPLER_STATE::POINT_CLAMP).Get();
+		ID3D11SamplerState* sampler = render_data::instance()->get_state_cache().get_sampler_state(render_state_cache::SAMPLER_STATE::POINT_CLAMP).Get();
 		dc->CSSetSamplers(0, 1, &sampler);
 		dc->CSSetUnorderedAccessViews(0, 1, visibility_uav.GetAddressOf(), nullptr);
 		dc->Dispatch((count + 63u) / 64u, 1, 1);

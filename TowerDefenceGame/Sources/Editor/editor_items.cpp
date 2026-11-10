@@ -355,9 +355,8 @@ void editor_items::terminate()
 
 bool editor_items::begin_window(std::shared_ptr<context>& context, std::string_view name, bool* open, int flags)
 {
-	if (context && context->window_open)
-		return context->window_open(name, open, flags);
-	return ImGui::Begin(std::string(name).c_str(), open, flags);
+	const std::string window_name = context ? std::string(name) + context->window_id : std::string(name);
+	return ImGui::Begin(window_name.c_str(), open, flags);
 }
 
 std::shared_ptr<editor_items::context> editor_items::generate_context()

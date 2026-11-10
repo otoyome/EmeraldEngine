@@ -6,7 +6,7 @@
 #include <mutex>
 #include <functional>
 
-//	GPU ‚©‚ç‚Ì“Ç‚İ–ß‚µ
+//	GPU ‚©‚ç‚Ì“Ç‚İ–ß‚µƒLƒ…[
 class gpu_readback_queue
 {
 public:

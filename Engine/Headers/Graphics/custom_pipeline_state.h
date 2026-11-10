@@ -13,32 +13,6 @@ class graphics_custom_pipeline_state : public graphics_pipeline_state
 	template<> const std::shared_ptr<geometry_shader>& get_internal_shader<geometry_shader>() const {return gs;}
 	template<> const std::shared_ptr<pixel_shader>& get_internal_shader<pixel_shader>() const {return ps;}
 
-	enum class depth_stencil_state
-	{
-		depth_test_and_write,
-		depth_test_only,
-		depth_write_only,
-		depth_off,
-
-		decal,
-	};
-
-	enum class blend_state
-	{
-		opaque,			//	•s“§–¾
-		translucent,	//	”¼“§–¾
-		addative,		//	‰ÁZ
-		multiply,		//	æZ
-	};
-
-	enum class raster_state
-	{
-		solid,
-		two_sided,
-		wire,
-		wire_two_sided,
-	};
-
 	enum class arrangement
 	{
 		vertex,
@@ -122,10 +96,6 @@ private:
 
 	index_map index_map;
 	std::vector<input_resource_desc> input_resource_desces;
-
-	Microsoft::WRL::ComPtr<ID3D11DepthStencilState> depth_stencil_states[magic_enum::enum_count<depth_stencil_state>()];
-	Microsoft::WRL::ComPtr<ID3D11BlendState> blend_states[magic_enum::enum_count<blend_state>()];
-	Microsoft::WRL::ComPtr<ID3D11RasterizerState> rasterizer_states[magic_enum::enum_count<raster_state>()];
 
 	struct constant_buffer_data
 	{

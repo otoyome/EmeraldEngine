@@ -8,11 +8,18 @@ struct render_target_view
 	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> view;
 	bool clear_color{true};
 	FLOAT clear_color_value[4]{0.0f, 0.0f, 0.0f, 0.0f};
+	//	@tool true のときは view を持たず、使うたびに render_data のバックバッファの描画先を使う
+	bool back_buffer{false};
 
 	render_target_view(){};
-	render_target_view(Microsoft::WRL::ComPtr<IDXGISwapChain> swap_chain);
 	render_target_view(texture_ptr& texture, D3D11_RENDER_TARGET_VIEW_DESC* desc = nullptr);
 	~render_target_view() {};
+
+	//	@tool バックバッファを描画先にする
+	static render_target_view from_back_buffer();
+
+	//	@tool 実際に設定する描画先
+	ID3D11RenderTargetView* get_view() const;
 };
 
 struct depth_stencil_view

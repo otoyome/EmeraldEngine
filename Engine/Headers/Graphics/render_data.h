@@ -3,6 +3,8 @@
 #include <map>
 #include <mutex>
 
+#include <dxgi1_2.h>
+
 #include "Graphics/gpu_upload_list.h"
 #include "Graphics/gpu_readback_queue.h"
 #include "Graphics/render_state_cache.h"
@@ -16,18 +18,6 @@ class render_data
 	SINGLETON_DECREATE(render_data)
 
 public:
-	enum class SAMPLER_STATE
-	{
-		POINT,
-		LINEAR,
-		ANISOTROPIC,
-		POINT_CLAMP,
-		LINEAR_CLAMP,
-		ANISOTROPIC_CLAMP,
-		LINEAR_BORDER_BLACK,
-		LINEAR_BORDER_WHITE
-	};
-public:
 	static	inline	void	create_instance(CONST HWND hwnd)
 	{
 		if(!instance_ptr)
@@ -40,18 +30,15 @@ public:
 	CONST HWND get_hwnd() const { return hwnd; }
 	Microsoft::WRL::ComPtr<ID3D11Device> get_device() const { return device; }
 	Microsoft::WRL::ComPtr<ID3D11DeviceContext> get_immediate_context() const { return immediate_context; }
-	Microsoft::WRL::ComPtr<IDXGISwapChain> get_swap_chain() const { return swap_chain; }
-
-	//	このエンジンの描画に必要な機能を GPU が持っているか
-	bool is_supported_device() const { return supported_device; }
-
-	Microsoft::WRL::ComPtr<ID3D11SamplerState> get_sampler_states(SAMPLER_STATE index) const { return sampler_states[static_cast<int>(index)]; }
-	Microsoft::WRL::ComPtr<ID3D11SamplerState> get_sampler_state(const D3D11_SAMPLER_DESC& desc) { return state_cache.get_sampler_state(desc); }
-
+	Microsoft::WRL::ComPtr<IDXGISwapChain1> get_swap_chain() const { return swap_chain; }
+	ID3D11RenderTargetView* get_back_buffer_view() const { return back_buffer_view.Get(); }
 	render_state_cache& get_state_cache() { return state_cache; }
-
 	gpu_upload_list& get_upload_list() { return upload_list; }
 	gpu_readback_queue& get_readback_queue() { return readback_queue; }
+
+	bool is_supported_device() const { return supported_device; }
+
+	void present(UINT sync_interval);
 
 private:
 	render_data(CONST HWND hwnd);
@@ -66,13 +53,14 @@ private:
 	math::uint2 screen_size;
 	Microsoft::WRL::ComPtr<ID3D11Device> device;
 	Microsoft::WRL::ComPtr<ID3D11DeviceContext> immediate_context;
-	Microsoft::WRL::ComPtr<IDXGISwapChain> swap_chain;
+	Microsoft::WRL::ComPtr<IDXGISwapChain1> swap_chain;
+	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> back_buffer_view;
+
+	UINT swap_chain_flags = 0;
 	bool supported_device = false;
+	bool tearing_supported = false;
 
-	Microsoft::WRL::ComPtr<ID3D11SamplerState> sampler_states[8];
-
-	render_state_cache state_cache;
-
-	gpu_upload_list upload_list;
-	gpu_readback_queue readback_queue;
+	render_state_cache state_cache;		//	各種レンダーステートキャッシュ
+	gpu_upload_list upload_list;		//	GPU転送情報を纏めて処理する
+	gpu_readback_queue readback_queue;	//	GPUから情報を取得する
 };

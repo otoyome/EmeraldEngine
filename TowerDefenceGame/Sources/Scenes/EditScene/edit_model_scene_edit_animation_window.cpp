@@ -54,7 +54,7 @@ void edit_model_scene::imgui_render_animation()
 	if (!edit_model)
 		return;
 
-	if (get_context().begin_window("Edit Animation Window"))
+	if (ImGui::Begin(get_context().make_window_name("Edit Animation Window").c_str()))
 	{
 		bool is_delete = false;
 		//	アニメーションプレイヤー
@@ -201,7 +201,7 @@ void edit_model_scene::imgui_render_animation()
 
 void edit_model_scene::imgui_render_ik()
 {
-	if (get_context().begin_window("Edit IK Window"))
+	if (ImGui::Begin(get_context().make_window_name("Edit IK Window").c_str()))
 	{
 		//	IKリソース生成ボタン
 		if (!edit_model->get_ik_resource())
@@ -247,7 +247,7 @@ void edit_model_scene::imgui_retarget_window()
 	if (!edit_model)
 		return;
 
-	if (get_context().begin_window("Retarget Window"))
+	if (ImGui::Begin(get_context().make_window_name("Retarget Window").c_str()))
 	{
 		std::string file_name = std::string(edit_model->get_model_instance()->get_resource()->get_file_path());
 		auto it = retarget_data.profiles.find(file_name);
