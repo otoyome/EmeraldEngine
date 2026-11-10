@@ -703,8 +703,7 @@
     <None Include="EngineShader\DeferredRendering\convert_srgb_to_linear_ps.hlsl" />
     <None Include="EngineShader\DeferredRendering\deferred_rendering_directional_ps.hlsl" />
     <None Include="EngineShader\DeferredRendering\deferred_rendering_indirect_ps.hlsl" />
-    <None Include="EngineShader\DeferredRendering\deferred_rendering_point_ps.hlsl" />
-    <None Include="EngineShader\DeferredRendering\deferred_rendering_spot_ps.hlsl" />
+    <None Include="EngineShader\DeferredRendering\deferred_rendering_local_ps.hlsl" />
     <None Include="EngineShader\FullscreenQuad\compress_rgb_to_log_ps.hlsl" />
     <None Include="EngineShader\FullscreenQuad\decompress_rgb_to_log_ps.hlsl" />
     <None Include="EngineShader\FullscreenQuad\fullscreen_quad_ps.hlsl" />

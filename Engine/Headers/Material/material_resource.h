@@ -70,8 +70,7 @@ public:
 		//	遅延ライティング
 		deferred_indirect,		//	間接光
 		deferred_directional,	//	平行光源
-		deferred_point,			//	点光源
-		deferred_spot,			//	スポットライト
+		deferred_local,			//	点光源/スポットライト
 	};
 
 	//	surface 用計算モード

@@ -122,25 +122,34 @@ uint select_point_shadow_face(float3 L)
         return (L.z > 0.0f) ? 4 : 5;
 }
 
-//	ポイントライト用シャドウサンプル
-float4 shadowing_process_point(float3 world_position, float3 world_normal, float3 light_position)
+//	@tool 点光源/スポットライトの面選択(シャドウマップが6面ならキューブマップの面、それ以外は面0)
+uint select_local_shadow_face(float3 L)
 {
-    //	法線オフセット：PCFで周囲のテクセルを参照しても自己遮蔽しないよう、受け手を法線方向へずらす
-    //	ずらす量は1テクセルのワールドサイズ(90度FOVなので 2×面の深度÷解像度)×(PCF半径+1)
+    return (shadow_map_count >= 6) ? select_point_shadow_face(L) : 0;
+}
+
+//	@tool 点光源/スポットライト用シャドウサンプル
+float4 shadowing_process_local(float3 world_position, float3 world_normal, float3 light_position)
+{
+    //	PCFで周囲のテクセルを参照しても自己遮蔽しないよう、法線方向へずらす
     {
-        float3 L = world_position - light_position;
-        uint face = select_point_shadow_face(L);
-        float3 absL = abs(L);
-        float face_depth = max(absL.x, max(absL.y, absL.z));
+        uint face = select_local_shadow_face(world_position - light_position);
+        float4x4 transform = light_view_projection_transform[face];
+        float face_depth = mul(float4(world_position, 1.0f), transform).w;  //  ビュー空間深度取得
+        float projection_scale = length(float3(transform._11, transform._21, transform._31));
 
         float3 tex_size;
         shadow_maps.GetDimensions(tex_size.x, tex_size.y, tex_size.z);
-        float texel_world_size = 2.0f * face_depth / tex_size.x;
+
+        //	depthでの視錐台の幅は 2 x depth / 拡大率。それを解像度で割ると1テクセルの幅
+        float texel_world_size = 2.0f * face_depth / (projection_scale * tex_size.x);
+
+        //	テクセル数 + (PCFの半径 + 1)分、法線方向へずらす
         world_position += world_normal * texel_world_size * (shadow_bias[face].w + 1.0f);
     }
 
     //	ずらした位置で面を選び直す(面の境目で範囲外にならないように)
-    uint index = select_point_shadow_face(world_position - light_position);
+    uint index = select_local_shadow_face(world_position - light_position);
 
     float angle = frac(sin(dot(world_position.xy, float2(12.9898f, 78.233f))) * 43758.5453f) * 3.14159265f * 2;
     float2x2 rot = { cos(angle), -sin(angle), sin(angle), cos(angle) };

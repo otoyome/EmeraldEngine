@@ -19,8 +19,7 @@ namespace
 	{
 		{ "Engine/EngineShader/DeferredRendering/deferred_rendering_indirect_ps.hlsl" },
 		{ "Engine/EngineShader/DeferredRendering/deferred_rendering_directional_ps.hlsl" },
-		{ "Engine/EngineShader/DeferredRendering/deferred_rendering_point_ps.hlsl" },
-		{ "Engine/EngineShader/DeferredRendering/deferred_rendering_spot_ps.hlsl" },
+		{ "Engine/EngineShader/DeferredRendering/deferred_rendering_local_ps.hlsl" },
 	};
 }
 
@@ -556,8 +555,7 @@ deffered_lighting_renderer::deffered_lighting_renderer(render_job_registrar job_
 		{
 			"deferred_indirect_lighting",
 			"deferred_directional_lighting",
-			"deferred_point_lighting",
-			"deferred_spot_lighting",
+			"deferred_local_lighting",
 		};
 		//	
 		deferred_lighting_material = std::make_shared<material_resource>();
@@ -569,8 +567,7 @@ deffered_lighting_renderer::deffered_lighting_renderer(render_job_registrar job_
 		{
 			material_resource::system_paths::deferred_indirect,
 			material_resource::system_paths::deferred_directional,
-			material_resource::system_paths::deferred_point,
-			material_resource::system_paths::deferred_spot,
+			material_resource::system_paths::deferred_local,
 		};
 			
 		//	deferred_indirect_lighting
@@ -676,21 +673,6 @@ void deffered_lighting_renderer::render(renderer_context& context)
 				break;
 			}
 			case light_type::point:
-			{
-				//	シャドウマップ生成
-				common_pipeline_states::shadow_map_constants shadow_map_constant{};
-				const auto atlas_it = atlas_slots.find(&light);
-				const int atlas_slice = (atlas_it != atlas_slots.end()) ? static_cast<int>(atlas_it->second.first_slice) : -1;
-				const bool render_shadow = (atlas_it == atlas_slots.end()) || atlas_it->second.needs_render;
-				if (light.is_flag(light::flags::use_shadow))
-				{
-					render_point_shadow_map(light, shadow_map_constant, context, atlas_slice, render_shadow);
-				}
-
-				//	ライティング処理
-				render_point(light, shadow_map_constant, context, atlas_slice >= 0);
-				break;
-			}
 			case light_type::spot:
 			{
 				//	シャドウマップ生成
@@ -700,11 +682,14 @@ void deffered_lighting_renderer::render(renderer_context& context)
 				const bool render_shadow = (atlas_it == atlas_slots.end()) || atlas_it->second.needs_render;
 				if (light.is_flag(light::flags::use_shadow))
 				{
-					render_spot_shadow_map(light, shadow_map_constant, context, atlas_slice, render_shadow);
+					if (light.type == light_type::point)
+						render_point_shadow_map(light, shadow_map_constant, context, atlas_slice, render_shadow);
+					else
+						render_spot_shadow_map(light, shadow_map_constant, context, atlas_slice, render_shadow);
 				}
 
 				//	ライティング処理
-				render_spot(light, shadow_map_constant, context, atlas_slice >= 0);
+				render_local(light, shadow_map_constant, context, atlas_slice >= 0);
 				break;
 			}
 		}
@@ -1075,7 +1060,7 @@ void deffered_lighting_renderer::render_directional_shadow_map(const light_rende
 	}, "render_directional_shadow_map_pass", context, get_render_basis_sort_order() + register_index++, true);
 }
 
-void deffered_lighting_renderer::render_point(const light_render_data& light, common_pipeline_states::shadow_map_constants& shadow_map_constant, renderer_context& context, bool use_atlas)
+void deffered_lighting_renderer::render_local(const light_render_data& light, common_pipeline_states::shadow_map_constants& shadow_map_constant, renderer_context& context, bool use_atlas)
 {
 	//	シャドウマップアトラスに描いた場合はアトラスを参照する
 	const texture_ptr shadow_texture = use_atlas ? atlas.get_texture() : render_targets->shadowmap_depth_texture;
@@ -1098,7 +1083,7 @@ void deffered_lighting_renderer::render_point(const light_render_data& light, co
 		context.device_context->RSSetViewports(1, &lighting_pass_viewport);
 		{
 			auto pipeline_state =
-				deferred_lighting_material_instance.get_pipeline_state(material_resource::system_paths::deferred_point);
+				deferred_lighting_material_instance.get_pipeline_state(material_resource::system_paths::deferred_local);
 
 			pipeline_state->begin(context);
 			pipeline_state->update_parameters(context, deferred_lighting_material_instance, nullptr);
@@ -1106,7 +1091,7 @@ void deffered_lighting_renderer::render_point(const light_render_data& light, co
 			pipeline_state->end(context);
 		}
 		lighting_pass.deactivate(context.device_context);
-	}, "render_point_pass", context, get_render_basis_sort_order() + register_index++);
+	}, "render_local_pass", context, get_render_basis_sort_order() + register_index++);
 }
 
 void deffered_lighting_renderer::begin_shadow_target(graphics_context& context, ID3D11DepthStencilView* atlas_depth_stencil_view)
@@ -1170,12 +1155,6 @@ void deffered_lighting_renderer::render_point_shadow_map(const light_render_data
 		const math::matrixf ViewMatrix = math::matrixf::look_at(position_vector, position_vector + direction_vector, up_vector);
 		shadow_map_constant.light_view_projection_transform[face] = (ViewMatrix * ProjectionMatrix).to_float4x4();
 
-		//	面選択はワールド方向で行うため、カスケード用の深度バンドは常に真になる値にしておく
-		shadow_map_constant.shadow_split_distance[face].x = -1.0f;
-		shadow_map_constant.shadow_split_distance[face].y = -1.0f;
-		shadow_map_constant.shadow_split_distance[face].z = FLT_MAX;
-		shadow_map_constant.shadow_split_distance[face].w = FLT_MAX;
-
 		//	バイアス処理
 		auto& bias_data = light.get_shadow_bias(face);
 		float depth_bias, slope_depth_bias;
@@ -1214,40 +1193,6 @@ void deffered_lighting_renderer::render_point_shadow_map(const light_render_data
 
 
 
-void deffered_lighting_renderer::render_spot(const light_render_data& light, common_pipeline_states::shadow_map_constants& shadow_map_constant, renderer_context& context, bool use_atlas)
-{
-	//	シャドウマップアトラスに描いた場合はアトラスを参照する
-	const texture_ptr shadow_texture = use_atlas ? atlas.get_texture() : render_targets->shadowmap_depth_texture;
-	job_executor.execute([this, light, shadow_map_constant, shadow_texture](graphics_context& context)
-	{
-		//	描画先設定
-		lighting_pass.activate(context.device_context);
-
-		context.deferred_light_constant.light_data = light.data;
-		context.shadow_map_texture = shadow_texture;
-		context.shadow_map_constant = shadow_map_constant;
-
-		//	G-Bufferテクスチャ設定
-		for (UINT index = 0; index < magic_enum::enum_count<common_pipeline_states::gbuffer_id>(); ++index)
-		{
-			context.g_buffer_textures[index] = render_targets->g_buffer_textures[index];
-		}
-
-		//	ビューポートの設定
-		context.device_context->RSSetViewports(1, &lighting_pass_viewport);
-		{
-			auto pipeline_state =
-				deferred_lighting_material_instance.get_pipeline_state(material_resource::system_paths::deferred_spot);
-
-			pipeline_state->begin(context);
-			pipeline_state->update_parameters(context, deferred_lighting_material_instance, nullptr);
-			scene_renderer_commons::draw(context, pipeline_state, 4);
-			pipeline_state->end(context);
-		}
-		lighting_pass.deactivate(context.device_context);
-	}, "render_spot_pass", context, get_render_basis_sort_order() + register_index++);
-}
-
 void deffered_lighting_renderer::render_spot_shadow_map(const light_render_data& light, common_pipeline_states::shadow_map_constants& shadow_map_constant, renderer_context& context, int atlas_slice, bool render_shadow)
 {
 	auto reserve_scene_constant = context.scene_constant;
@@ -1263,10 +1208,6 @@ void deffered_lighting_renderer::render_spot_shadow_map(const light_render_data&
 	//	定数バッファ情報設定
 	shadow_map_constant.shadow_map_count = 1;
 	shadow_map_constant.shadow_attenuation = light.shadow_attenuation;
-	shadow_map_constant.shadow_split_distance[0].x = -1.0f;
-	shadow_map_constant.shadow_split_distance[0].y = -1.0f;
-	shadow_map_constant.shadow_split_distance[0].z = FLT_MAX;
-	shadow_map_constant.shadow_split_distance[0].w = FLT_MAX;
 
 	//	バイアス納入
 	{

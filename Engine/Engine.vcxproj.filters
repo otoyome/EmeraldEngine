@@ -1114,10 +1114,7 @@
     <None Include="EngineShader\DeferredRendering\deferred_rendering_indirect_ps.hlsl">
       <Filter>EngineShader\DeferredRendering</Filter>
     </None>
-    <None Include="EngineShader\DeferredRendering\deferred_rendering_point_ps.hlsl">
-      <Filter>EngineShader\DeferredRendering</Filter>
-    </None>
-    <None Include="EngineShader\DeferredRendering\deferred_rendering_spot_ps.hlsl">
+    <None Include="EngineShader\DeferredRendering\deferred_rendering_local_ps.hlsl">
       <Filter>EngineShader\DeferredRendering</Filter>
     </None>
     <None Include="EngineShader\DeferredRendering\gbuffer.hlsli">
