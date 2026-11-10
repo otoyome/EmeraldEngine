@@ -85,7 +85,6 @@ world_renderer::~world_renderer()
 bool world_renderer::initialize()
 {
 	render_targets = std::make_shared<scene_render_targets>();
-	output_id = get_output_id();
 	if (!create_targets(static_cast<int>(output->get_size().x), static_cast<int>(output->get_size().y)))
 		return false;
 
@@ -93,28 +92,13 @@ bool world_renderer::initialize()
 	return true;
 }
 
-std::uint64_t world_renderer::get_output_id() const
+void world_renderer::release_output()
 {
-	if (output->render_targets.empty())
-		return 0;
-	return output->render_targets.front().id;
+	output_clear_rendering_pass.render_targets.clear();
 }
 
-bool world_renderer::sync_output()
+bool world_renderer::rebuild_output()
 {
-	if (get_output_id() == output_id)
-		return output_id != 0;
-
-	output_id = get_output_id();
-
-	//	出力先が空になったので、描画先のコピーを手放して描画しない
-	if (output_id == 0)
-	{
-		output_clear_rendering_pass.render_targets.clear();
-		render_data.reset();
-		return false;
-	}
-
 	const int width = static_cast<int>(output->get_size().x);
 	const int height = static_cast<int>(output->get_size().y);
 	if (!create_targets(width, height))
@@ -398,9 +382,6 @@ void world_renderer::create_renderers()
 
 void world_renderer::collect(world& target)
 {
-	if (!sync_output())
-		return;
-
 	render_data = std::make_shared<render_data_context>();
 	particle_indices = std::make_shared<render_particle_indices>();
 

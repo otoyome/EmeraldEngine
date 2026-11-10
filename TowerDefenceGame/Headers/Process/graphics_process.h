@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Process/framework_process.h"
+#include "Framework/display_settings.h"
 
 //	•`‰æŠÖŒWƒvƒƒZƒX
 class graphics_process : public framework_process
@@ -13,4 +14,7 @@ public:
 	bool enter() override;
 	void exit() override;
 	void update(float elapsed_time) override;
+
+private:
+	bool apply_display(const display_settings::change_request& request);
 };

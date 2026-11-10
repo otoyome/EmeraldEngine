@@ -16,6 +16,7 @@
 #include "Animation/ik_resource.h"
 #include "Renderer/render_system.h"
 #include "Framework/display_settings.h"
+#include "Framework/app_window.h"
 #include "Editor/detail_profiler.h"
 
 bool graphics_process::enter()
@@ -53,7 +54,9 @@ bool graphics_process::enter()
 	self.renderer = std::make_unique<render_system>(self.hwnd);
 
 	//	@tool 解像度と表示の方法（保存されている設定があればここで切り替える）
-	display_settings::create_instance(self.window);
+	display_settings::create_instance();
+	if (const std::optional<display_settings::change_request> saved = display_settings::instance()->get_saved_request())
+		apply_display(*saved);
 	return true;
 }
 
@@ -90,9 +93,12 @@ void graphics_process::exit()
 
 void graphics_process::update(float elapsed_time)
 {
-	//	@tool 解像度と表示の方法の変更（前のフレームの描画が終わった区切りで行う）
+	//	解像度と表示の方法の変更
 	if (display_settings::is_valid())
-		display_settings::instance()->update();
+	{
+		if (const std::optional<display_settings::change_request> request = display_settings::instance()->take_request())
+			apply_display(*request);
+	}
 
 	//	リソースの構築と読込完了の通知
 	if (resource_manager::is_valid())
@@ -100,4 +106,24 @@ void graphics_process::update(float elapsed_time)
 		DETAIL_PROFILE_CPU_SCOPE("update.resource_manager");
 		resource_manager::instance()->update();
 	}
+}
+
+bool graphics_process::apply_display(const display_settings::change_request& request)
+{
+	framework& self = get_owner();
+	display_settings& settings = *display_settings::instance();
+
+	//	ウィンドウモードを変更
+	self.window.apply_window_mode(request.mode, static_cast<int>(request.size.width), static_cast<int>(request.size.height));
+
+	//	バックバッファと登録された描画一式をまとめて作り直す
+	if (!self.renderer->resize_back_buffer(request.size.width, request.size.height))
+	{
+		const display_settings::resolution& current = settings.get_current_resolution();
+		self.window.apply_window_mode(settings.get_window_mode(), static_cast<int>(current.width), static_cast<int>(current.height));
+		return false;
+	}
+
+	settings.set_current(request.size, request.mode);
+	return true;
 }

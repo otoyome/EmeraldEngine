@@ -104,10 +104,6 @@ void render_data::present(UINT sync_interval)
 	if (!swap_chain)
 		return;
 
-	//	作り直し中は表示しない
-	if (back_buffer_pass->render_targets.empty())
-		return;
-
 	//	ティアリング許可は垂直同期なし・ウィンドウ表示のときだけ使える
 	UINT flags = 0;
 	if (sync_interval == 0 && tearing_supported)
@@ -120,11 +116,6 @@ void render_data::present(UINT sync_interval)
 	swap_chain->Present(sync_interval, flags);
 }
 
-void render_data::release_back_buffer()
-{
-	back_buffer_pass->render_targets.clear();
-}
-
 bool render_data::resize_back_buffer(UINT width, UINT height)
 {
 	if (!swap_chain)
@@ -132,7 +123,7 @@ bool render_data::resize_back_buffer(UINT width, UINT height)
 
 	//	ResizeBuffers はバックバッファへの参照が残っていると失敗するので、
 	//	描画先を外して破棄を済ませる
-	release_back_buffer();
+	back_buffer_pass->render_targets.clear();
 	immediate_context->OMSetRenderTargets(0, nullptr, nullptr);
 	immediate_context->Flush();
 

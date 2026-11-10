@@ -25,7 +25,6 @@ public:
 	
 public:
 	const std::shared_ptr<const render_pass>& get_output() const { return output; }
-	std::uint64_t get_output_id() const;
 
 	void set_debug_builder(debug_builder builder) { this->builder = std::move(builder); }
 
@@ -47,13 +46,14 @@ public:
 	//	集めた情報で描画ジョブを積む
 	void submit_render_jobs(world& target, float elapsed_time);
 
+	//	出力先の解放
+	void release_output();
+	//	出力先の作成
+	bool rebuild_output();
+
 private:
-	//	出力先の大きさで描画先一式を作る
 	bool create_targets(int scene_width, int scene_height);
 	void create_renderers();
-
-	//	出力先が作り直されていたら描画先一式を合わせる
-	bool sync_output();
 
 	void prepare_renderer_context(
 		renderer_context& context,
@@ -78,19 +78,13 @@ private:
 
 private:
 	std::shared_ptr<render_job_executor> render_executor;
+	render_pass output_clear_rendering_pass;
 	std::shared_ptr<const render_pass> output;
-	std::uint64_t output_id = 0;
 
 	std::shared_ptr<scene_render_targets> render_targets;
 	std::vector<std::unique_ptr<renderer>> scene_renderers;
 	std::vector<std::unique_ptr<renderer>> ui_renderers;
 	debug_builder builder;
-
-	//	出力先のクリア用
-	render_pass output_clear_rendering_pass;
-
-	//	UI描画用のシーン定数バッファ(viewport_rectのみ使用)
-	Microsoft::WRL::ComPtr<ID3D11Buffer> ui_scene_constant_buffer;
 
 private:
 	//	視点情報
@@ -98,6 +92,7 @@ private:
 	view_parameters current_view_parameters;
 	bool camera_cut = false;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> scene_constant_buffer;
+	Microsoft::WRL::ComPtr<ID3D11Buffer> ui_scene_constant_buffer;
 
 	scene_view_state_cache view_states;
 	uint64_t render_frame_index = 0;

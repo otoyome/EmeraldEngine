@@ -92,6 +92,9 @@ bool game_process::enter()
 	if (!main_renderer->initialize())
 		return false;
 
+	//	バックバッファを作り直すときに、render_system からまとめて作り直してもらう
+	self.renderer->add_back_buffer_renderer(main_renderer.get());
+
 	//	シーン関係
 	{
 #if defined(USE_IMGUI)
@@ -190,6 +193,9 @@ void game_process::exit()
 #endif	//	defined(USE_IMGUI)
 	main_world.reset();
 
+	framework& self = get_owner();
+	if (self.renderer)
+		self.renderer->remove_back_buffer_renderer(main_renderer.get());
 	main_renderer.reset();
 
 	//	シーン関係

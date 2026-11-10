@@ -1,5 +1,8 @@
 #include "Renderer/render_system.h"
+#include "Renderer/world_renderer.h"
 #include "Graphics/render_data.h"
+
+#include <algorithm>
 
 #include "System/engine_config_data.h"
 #include "Editor/detail_profiler.h"
@@ -56,4 +59,29 @@ void render_system::end_frame()
 		DETAIL_PROFILE_CPU_SCOPE("render.imgui_and_present");
 		executor->end();
 	}
+}
+
+void render_system::add_back_buffer_renderer(world_renderer* renderer)
+{
+	if (renderer && std::find(back_buffer_renderers.begin(), back_buffer_renderers.end(), renderer) == back_buffer_renderers.end())
+		back_buffer_renderers.emplace_back(renderer);
+}
+
+void render_system::remove_back_buffer_renderer(world_renderer* renderer)
+{
+	back_buffer_renderers.erase(std::remove(back_buffer_renderers.begin(), back_buffer_renderers.end(), renderer), back_buffer_renderers.end());
+}
+
+bool render_system::resize_back_buffer(UINT width, UINT height)
+{
+	//	バックバッファの描画先のコピーを手放させる
+	for (world_renderer* renderer : back_buffer_renderers)
+		renderer->release_output();
+
+	const bool succeeded = render_data::instance()->resize_back_buffer(width, height);
+
+	//	失敗しても元の大きさで描画先は作り直されているので、どちらでも作り直させる
+	for (world_renderer* renderer : back_buffer_renderers)
+		renderer->rebuild_output();
+	return succeeded;
 }

@@ -51,7 +51,6 @@ public:
 
 	void present(UINT sync_interval);
 
-	void release_back_buffer();
 	bool resize_back_buffer(UINT width, UINT height);
 
 private:

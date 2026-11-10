@@ -1,8 +1,5 @@
 #pragma once
 
-#include <atomic>
-#include <cstdint>
-
 #include "Texture/texture.h"
 #include "Graphics/common_pipeline_states.h"
 
@@ -12,15 +9,11 @@ struct render_target_view
 	bool clear_color{true};
 	FLOAT clear_color_value[4]{0.0f, 0.0f, 0.0f, 0.0f};
 	math::uint2 size{ 0, 0 };
-	std::uint64_t id{ 0 };
 
 	render_target_view(){};
 	render_target_view(Microsoft::WRL::ComPtr<IDXGISwapChain> swap_chain);
 	render_target_view(texture_ptr& texture, D3D11_RENDER_TARGET_VIEW_DESC* desc = nullptr);
 	~render_target_view() {};
-
-private:
-	static std::atomic<std::uint64_t> next_id;
 };
 
 struct depth_stencil_view

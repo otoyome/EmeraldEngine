@@ -102,11 +102,13 @@ bool asset_preview_process::resize_output(int width, int height)
 	if (!texture_factory::create_texture2d(created, "asset_preview_output", texture2d_desc))
 		return false;
 
-	//	“¯‚¶•`‰æƒpƒX‚Ì•`‰ææ‚ğ·‚µ‘Ö‚¦‚é
 	output_texture = created;
 	output->render_targets.clear();
 	output->render_targets.emplace_back(output_texture);
 	output->render_targets.back().clear_color = false;
+
+	if (renderer)
+		return renderer->rebuild_output();
 	return true;
 }
 

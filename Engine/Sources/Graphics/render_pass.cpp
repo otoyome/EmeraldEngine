@@ -15,10 +15,7 @@ namespace
 	}
 }
 
-std::atomic<std::uint64_t> render_target_view::next_id{ 1 };
-
 render_target_view::render_target_view(Microsoft::WRL::ComPtr<IDXGISwapChain> swap_chain)
-: id(next_id.fetch_add(1))
 {
 	HRESULT hr;
 	Microsoft::WRL::ComPtr<ID3D11Texture2D> back_buffer{};
@@ -36,7 +33,6 @@ render_target_view::render_target_view(Microsoft::WRL::ComPtr<IDXGISwapChain> sw
 }
 
 render_target_view::render_target_view(texture_ptr& texture, D3D11_RENDER_TARGET_VIEW_DESC* desc)
-: id(next_id.fetch_add(1))
 {
 	HRESULT hr;
 	Microsoft::WRL::ComPtr<ID3D11Resource>	resource;
