@@ -72,9 +72,8 @@ namespace
 #endif	//	defined(USE_IMGUI)
 }
 
-world_renderer::world_renderer(std::shared_ptr<render_job_executor> render_executor, std::shared_ptr<const render_pass> output)
+world_renderer::world_renderer(std::shared_ptr<render_job_executor> render_executor)
 : render_executor(std::move(render_executor))
-, output(std::move(output))
 {
 }
 
@@ -82,28 +81,31 @@ world_renderer::~world_renderer()
 {
 }
 
-bool world_renderer::initialize()
+bool world_renderer::initialize(render_target_view output_target)
 {
 	render_targets = std::make_shared<scene_render_targets>();
-	if (!create_targets(static_cast<int>(output->get_size().x), static_cast<int>(output->get_size().y)))
+	if (!create_targets(std::move(output_target)))
 		return false;
 
 	create_renderers();
 	return true;
 }
 
-void world_renderer::release_output()
+bool world_renderer::create_targets(render_target_view output_target)
 {
-	output_clear_rendering_pass.render_targets.clear();
-}
+	//	中身を作り直す
+	*render_targets = scene_render_targets{};
 
-bool world_renderer::rebuild_output()
-{
-	const int width = static_cast<int>(output->get_size().x);
-	const int height = static_cast<int>(output->get_size().y);
-	if (!create_targets(width, height))
+	//	出力先
+	output_target.clear_color = false;
+	render_targets->output.render_targets.emplace_back(std::move(output_target));
+
+	const int width = static_cast<int>(render_targets->output.get_size().x);
+	const int height = static_cast<int>(render_targets->output.get_size().y);
+	if (!create_scene_targets(width, height))
 		return false;
 
+	//	各レンダラーの対応
 	for (auto& render : scene_renderers)
 		render->resize_buffer(width, height);
 	for (auto& render : ui_renderers)
@@ -111,19 +113,14 @@ bool world_renderer::rebuild_output()
 	return true;
 }
 
-bool world_renderer::create_targets(int scene_width, int scene_height)
+void world_renderer::release_targets()
 {
-	//	中身を作り直す
-	*render_targets = scene_render_targets{};
-	render_targets->output = output;
+	if (render_targets)
+		*render_targets = scene_render_targets{};
+}
 
-	//	出力先のクリア用
-	{
-		output_clear_rendering_pass.render_targets = output->render_targets;
-		for (auto& render_target : output_clear_rendering_pass.render_targets)
-			render_target.clear_color = true;
-	}
-
+bool world_renderer::create_scene_targets(int scene_width, int scene_height)
+{
 	//	UI描画用のシーン定数バッファ生成(viewport_rectのみ使用するため他の項目は未使用)
 	{
 		HRESULT hr;
@@ -490,19 +487,6 @@ void world_renderer::submit_render_jobs(world& target, float elapsed_time)
 {
 	if (!render_data)
 		return;
-
-	//	描画準備
-	{
-		renderer_context context = {};
-		context.render_data = render_data;
-		render_executor->execute([this, context](graphics_context& context)
-		{
-			//	画面クリア
-			output_clear_rendering_pass.activate(context.device_context);
-
-			output_clear_rendering_pass.deactivate(context.device_context);
-		}, "begin_draw_pass", context, static_cast<UINT>(renderer_domain::begin_pass));
-	}
 
 	//	メイン視点で描画
 	{

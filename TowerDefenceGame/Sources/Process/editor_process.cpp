@@ -59,4 +59,19 @@ void editor_process::imgui_render()
 	if (get_owner().editor->is_frame_begun())
 		get_owner().editor->render_windows();
 }
+
+void editor_process::release_display_resources()
+{
+	framework& self = get_owner();
+	if (self.editor)
+		self.editor->release_display_resources();
+}
+
+bool editor_process::create_display_resources()
+{
+	framework& self = get_owner();
+	if (self.editor)
+		self.editor->create_display_resources();
+	return true;
+}
 #endif	//	defined(USE_IMGUI)

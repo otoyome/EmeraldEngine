@@ -24,12 +24,10 @@ public:
 	using debug_builder = std::function<void(const render_data_context&)>;
 	
 public:
-	const std::shared_ptr<const render_pass>& get_output() const { return output; }
-
 	void set_debug_builder(debug_builder builder) { this->builder = std::move(builder); }
 
 public:
-	world_renderer(std::shared_ptr<render_job_executor> render_executor, std::shared_ptr<const render_pass> output);
+	explicit world_renderer(std::shared_ptr<render_job_executor> render_executor);
 	~world_renderer();
 
 	world_renderer(const world_renderer&) = delete;
@@ -38,7 +36,7 @@ public:
 	world_renderer& operator=(world_renderer&&) noexcept = delete;
 
 	//	‰Šú‰»
-	bool initialize();
+	bool initialize(render_target_view output_target);
 
 	//	ƒ[ƒ‹ƒh‚©‚ç•`‰æî•ñûW
 	void collect(world& target);
@@ -46,13 +44,14 @@ public:
 	//	W‚ß‚½î•ñ‚Å•`‰æƒWƒ‡ƒu‚ğÏ‚Ş
 	void submit_render_jobs(world& target, float elapsed_time);
 
-	//	o—Íæ‚Ì‰ğ•ú
-	void release_output();
-	//	o—Íæ‚Ìì¬
-	bool rebuild_output();
+	//	•`‰æî•ñ¶¬
+	bool create_targets(render_target_view output_target);
+
+	//	•`‰æî•ñ”jŠü
+	void release_targets();
 
 private:
-	bool create_targets(int scene_width, int scene_height);
+	bool create_scene_targets(int scene_width, int scene_height);
 	void create_renderers();
 
 	void prepare_renderer_context(
@@ -78,8 +77,6 @@ private:
 
 private:
 	std::shared_ptr<render_job_executor> render_executor;
-	render_pass output_clear_rendering_pass;
-	std::shared_ptr<const render_pass> output;
 
 	std::shared_ptr<scene_render_targets> render_targets;
 	std::vector<std::unique_ptr<renderer>> scene_renderers;

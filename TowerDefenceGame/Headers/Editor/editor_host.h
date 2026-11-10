@@ -39,6 +39,12 @@ public:
 	void render_windows();
 	void render_overlay();
 
+	//	ディスプレイリソース生成
+	void create_display_resources();
+
+	//	ディスプレイリソース破棄
+	void release_display_resources();
+
 	//	アセットブラウザの開き先を登録
 	void register_asset_open_handlers(scene_manager& scenes);
 
@@ -54,6 +60,7 @@ public:
 
 private:
 	CONST HWND hwnd;
+	render_pass imgui_rendering_pass;
 	std::shared_ptr<editor_items::context> editor_context;
 
 	bool frame_begun = false;

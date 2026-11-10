@@ -88,12 +88,9 @@ bool game_process::enter()
 	main_world = std::make_unique<world>();
 
 	//	メインのワールドの描画
-	main_renderer = std::make_unique<world_renderer>(self.renderer->get_executor(), render_data::instance()->get_back_buffer_pass());
-	if (!main_renderer->initialize())
+	main_renderer = std::make_unique<world_renderer>(self.renderer->get_executor());
+	if (!main_renderer->initialize(render_target_view(render_data::instance()->get_swap_chain())))
 		return false;
-
-	//	バックバッファを作り直すときに、render_system からまとめて作り直してもらう
-	self.renderer->add_back_buffer_renderer(main_renderer.get());
 
 	//	シーン関係
 	{
@@ -193,13 +190,25 @@ void game_process::exit()
 #endif	//	defined(USE_IMGUI)
 	main_world.reset();
 
-	framework& self = get_owner();
-	if (self.renderer)
-		self.renderer->remove_back_buffer_renderer(main_renderer.get());
 	main_renderer.reset();
 
 	//	シーン関係
 	collision_filter_manager::delete_instance();
+}
+
+bool game_process::create_display_resources()
+{
+	//	描画情報生成
+	if (!main_renderer)
+		return true;
+	return main_renderer->create_targets(render_target_view(render_data::instance()->get_swap_chain()));
+}
+
+void game_process::release_display_resources()
+{
+	//	描画情報解放
+	if (main_renderer)
+		main_renderer->release_targets();
 }
 
 void game_process::update(float elapsed_time)

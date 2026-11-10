@@ -1,6 +1,5 @@
 
 #include "Graphics/render_data.h"
-#include "Graphics/render_pass.h"
 
 #include <d3d11_1.h>
 #include <dxgi1_5.h>
@@ -78,13 +77,6 @@ render_data::render_data(CONST HWND hwnd)
 	if (!swap_chain)
 		return;
 
-	//	バックバッファの描画先
-	{
-		back_buffer_pass = std::make_shared<render_pass>();
-		back_buffer_pass->render_targets.emplace_back(swap_chain);
-		back_buffer_pass->render_targets.back().clear_color = false;
-	}
-
 	state_cache.initialize(device.Get());
 
 	//	VS から描き込み先の配列番号を出力できるかチェック
@@ -121,18 +113,12 @@ bool render_data::resize_back_buffer(UINT width, UINT height)
 	if (!swap_chain)
 		return false;
 
-	//	ResizeBuffers はバックバッファへの参照が残っていると失敗するので、
-	//	描画先を外して破棄を済ませる
-	back_buffer_pass->render_targets.clear();
 	immediate_context->OMSetRenderTargets(0, nullptr, nullptr);
 	immediate_context->Flush();
 
 	HRESULT hr = swap_chain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, swap_chain_flags);
 	if (FAILED(hr))
 		DEBUG_LOG_CATEGORY(logger::categorys::system, "ResizeBuffers Failed [%u x %u] hr=0x%08X", width, height, static_cast<unsigned int>(hr));
-
-	back_buffer_pass->render_targets.emplace_back(swap_chain);
-	back_buffer_pass->render_targets.back().clear_color = false;
 	return SUCCEEDED(hr);
 }
 

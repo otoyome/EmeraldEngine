@@ -40,9 +40,14 @@ public:
 	virtual void render(float elapsed_time) {}
 	virtual void submit_render_jobs(float elapsed_time) {}
 	virtual void post_render() {}
+
 #if defined(USE_IMGUI)
 	virtual void imgui_render() {}
 #endif	//	defined(USE_IMGUI)
+
+public:
+	virtual bool create_display_resources() { return true; }
+	virtual void release_display_resources() {}
 	virtual std::unique_ptr<framework_process> next_process() { return nullptr; }
 
 protected:

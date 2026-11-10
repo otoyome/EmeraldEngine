@@ -50,7 +50,6 @@ private:
 
 	std::unique_ptr<world> preview_world;		//	プレビューのワールド
 	texture_ptr output_texture;					//	描画先のテクスチャ（ImGui で表示する）
-	std::shared_ptr<render_pass> output;		//	描画先のテクスチャへ描く描画パス
 	std::unique_ptr<world_renderer> renderer;	//	プレビューのワールドの描画
 };
 #endif	//	defined(USE_IMGUI)

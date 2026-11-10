@@ -167,6 +167,19 @@ namespace
 editor_host::editor_host(HWND hwnd)
 : hwnd(hwnd)
 {
+	create_display_resources();
+}
+
+void editor_host::release_display_resources()
+{
+	imgui_rendering_pass.render_targets.clear();
+}
+
+void editor_host::create_display_resources()
+{
+	imgui_rendering_pass.render_targets.clear();
+	imgui_rendering_pass.render_targets.emplace_back(render_data::instance()->get_swap_chain());
+	imgui_rendering_pass.render_targets.back().clear_color = false;
 }
 
 editor_host::~editor_host()
@@ -201,22 +214,21 @@ void editor_host::render_overlay()
 
 	//	ImGui描画
 	ID3D11DeviceContext* immediate_context = render_data::instance()->get_immediate_context().Get();
-	const std::shared_ptr<const render_pass> back_buffer_pass = render_data::instance()->get_back_buffer_pass();
-	back_buffer_pass->activate(immediate_context);
+	imgui_rendering_pass.activate(immediate_context);
 
 	// ビューポートの設定
 	D3D11_VIEWPORT imgui_viewport{};
 	imgui_viewport.TopLeftX = 0.0f;
 	imgui_viewport.TopLeftY = 0.0f;
-	imgui_viewport.Width = static_cast<float>(back_buffer_pass->get_size().x);
-	imgui_viewport.Height = static_cast<float>(back_buffer_pass->get_size().y);
+	imgui_viewport.Width = static_cast<float>(imgui_rendering_pass.get_size().x);
+	imgui_viewport.Height = static_cast<float>(imgui_rendering_pass.get_size().y);
 	imgui_viewport.MinDepth = 0.0f;
 	imgui_viewport.MaxDepth = 1.0f;
 	immediate_context->RSSetViewports(1, &imgui_viewport);
 
 	ImGui::Render();
 	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
-	back_buffer_pass->deactivate(immediate_context);
+	imgui_rendering_pass.deactivate(immediate_context);
 
 	if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
 	{

@@ -58,11 +58,8 @@ bool asset_preview_process::enter()
 	open_scene(preview_world->get_scenes());
 
 	//	•`‰æ
-	output = std::make_shared<render_pass>();
+	renderer = std::make_unique<world_renderer>(self.renderer->get_executor());
 	if (!resize_output(default_width, default_height))
-		return false;
-	renderer = std::make_unique<world_renderer>(self.renderer->get_executor(), output);
-	if (!renderer->initialize())
 		return false;
 
 	return true;
@@ -71,7 +68,6 @@ bool asset_preview_process::enter()
 void asset_preview_process::exit()
 {
 	renderer.reset();
-	output.reset();
 	output_texture.reset();
 	preview_world.reset();
 }
@@ -102,14 +98,13 @@ bool asset_preview_process::resize_output(int width, int height)
 	if (!texture_factory::create_texture2d(created, "asset_preview_output", texture2d_desc))
 		return false;
 
+	//	•`‰æî•ñ‰ð•ú
+	const bool initialized = output_texture != nullptr;
+	renderer->release_targets();
 	output_texture = created;
-	output->render_targets.clear();
-	output->render_targets.emplace_back(output_texture);
-	output->render_targets.back().clear_color = false;
-
-	if (renderer)
-		return renderer->rebuild_output();
-	return true;
+	if (!initialized)
+		return renderer->initialize(render_target_view(output_texture));
+	return renderer->create_targets(render_target_view(output_texture));
 }
 
 void asset_preview_process::update(float elapsed_time)
@@ -150,7 +145,7 @@ void asset_preview_process::post_render()
 
 void asset_preview_process::imgui_render()
 {
-	if (!output)
+	if (!output_texture)
 		return;
 
 	const cache_string file_name = std::filesystem::path(file_path.str()).filename().string();
@@ -166,7 +161,7 @@ void asset_preview_process::imgui_render()
 		const ImVec2 available = ImGui::GetContentRegionAvail();
 		const int width = std::max(static_cast<int>(available.x), 1);
 		const int height = std::max(static_cast<int>(available.y), 1);
-		if (output->get_size() != math::uint2(static_cast<std::uint32_t>(width), static_cast<std::uint32_t>(height)))
+		if (output_texture->get_width() != width || output_texture->get_height() != height)
 			resize_output(width, height);
 
 		const ImVec2 image_position = ImGui::GetCursorScreenPos();

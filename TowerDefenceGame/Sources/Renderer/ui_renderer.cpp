@@ -99,7 +99,7 @@ void ui_renderer::render(renderer_context& context)
 		context.debug_begin_event(L"ui_rendering");
 
 		//	描画先設定
-		render_targets->output->activate(context.device_context);
+		render_targets->output.activate(context.device_context);
 
 		//	ビューポートの設定
 		context.device_context->RSSetViewports(1, &viewport);
@@ -174,7 +174,7 @@ void ui_renderer::render(renderer_context& context)
 		//	描画
 		sprite_render(context, ibvs);
 
-		render_targets->output->deactivate(context.device_context);
+		render_targets->output.deactivate(context.device_context);
 
 		context.debug_end_event();
 	}, "ui_rendering_pass", context, get_render_basis_sort_order());
@@ -239,8 +239,8 @@ void ui_renderer::resize_buffer(int width, int height)
 	//	ビューポートの設定
 	viewport.TopLeftX = 0.0f;
 	viewport.TopLeftY = 0.0f;
-	viewport.Width = static_cast<float>(render_targets->output->get_size().x);
-	viewport.Height = static_cast<float>(render_targets->output->get_size().y);
+	viewport.Width = static_cast<float>(render_targets->output.get_size().x);
+	viewport.Height = static_cast<float>(render_targets->output.get_size().y);
 	viewport.MinDepth = 0.0f;
 	viewport.MaxDepth = 1.0f;
 }

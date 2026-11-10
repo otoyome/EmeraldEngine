@@ -25,12 +25,12 @@ public:
 	void render_window(std::shared_ptr<editor_items::context>& context, bool& open) override;
 
 private:
-	//	@tool 解像度と表示の方法の選択欄
+	//	解像度と表示の方法の選択欄
 	void render_display();
 
 private:
-	int display_resolution_index = -1;	//	@tool 選んでいる解像度（-1 は今の解像度）
-	int display_window_mode = -1;		//	@tool 選んでいる表示の方法（-1 は今の方法）
+	int display_resolution_index = -1;	//	選んでいる解像度
+	int display_window_mode = -1;		//	選んでいる表示の方法
 };
 
 //	モデル頂点/インデックスバッファプールの使用量

@@ -15,5 +15,7 @@ public:
 	void exit() override;
 	void update(float elapsed_time) override;
 	void imgui_render() override;
+	void release_display_resources() override;
+	bool create_display_resources() override;
 };
 #endif	//	defined(USE_IMGUI)

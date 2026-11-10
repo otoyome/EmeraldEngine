@@ -53,7 +53,6 @@ bool graphics_process::enter()
 
 	self.renderer = std::make_unique<render_system>(self.hwnd);
 
-	//	@tool 解像度と表示の方法（保存されている設定があればここで切り替える）
 	display_settings::create_instance();
 	if (const std::optional<display_settings::change_request> saved = display_settings::instance()->get_saved_request())
 		apply_display(*saved);
@@ -113,17 +112,29 @@ bool graphics_process::apply_display(const display_settings::change_request& req
 	framework& self = get_owner();
 	display_settings& settings = *display_settings::instance();
 
+	//	全プロセスの描画情報解放
+	for (framework::process_entry& entry : self.processes)
+		entry.process->release_display_resources();
+
 	//	ウィンドウモードを変更
 	self.window.apply_window_mode(request.mode, static_cast<int>(request.size.width), static_cast<int>(request.size.height));
 
-	//	バックバッファと登録された描画一式をまとめて作り直す
-	if (!self.renderer->resize_back_buffer(request.size.width, request.size.height))
+	//	バックバッファリサイズ
+	const bool succeeded = render_data::instance()->resize_back_buffer(request.size.width, request.size.height);
+	if (!succeeded)
 	{
 		const display_settings::resolution& current = settings.get_current_resolution();
 		self.window.apply_window_mode(settings.get_window_mode(), static_cast<int>(current.width), static_cast<int>(current.height));
-		return false;
 	}
 
-	settings.set_current(request.size, request.mode);
-	return true;
+	//	全プロセスの描画情報生成
+	for (framework::process_entry& entry : self.processes)
+	{
+		if (!entry.process->create_display_resources())
+			DEBUG_LOG_CATEGORY(logger::categorys::system, "create_display_resources Failed");
+	}
+
+	if (succeeded)
+		settings.set_current(request.size, request.mode);
+	return succeeded;
 }

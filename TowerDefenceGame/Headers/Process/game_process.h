@@ -25,6 +25,9 @@ public:
 	void imgui_render() override;
 #endif	//	defined(USE_IMGUI)
 
+	bool create_display_resources() override;
+	void release_display_resources() override;
+
 private:
 	bool create_collision_filters();
 
