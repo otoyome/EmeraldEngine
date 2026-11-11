@@ -1,0 +1,125 @@
+#include "Scenes/scene_resource.h"
+
+#include <filesystem>
+#include <sstream>
+
+#include "cereal/cereal.hpp"
+#include "cereal/archives/json.hpp"
+#include "cereal/types/string.hpp"
+
+#include "Resource/asset_file_header.h"
+#include "Object/game_object_serializer.h"
+
+bool scene_resource::create_objects(std::vector<game_object_ptr>& out_objects) const
+{
+	std::istringstream stream(body);
+	return game_object_serializer::load(stream, out_objects);
+}
+
+bool scene_resource::set_contents(const std::vector<resource::asset_handle<scene_resource>>& scenes, const std::vector<game_object_ptr>& objects)
+{
+	std::ostringstream stream;
+	{
+		cereal::JSONOutputArchive archive(stream);
+		try
+		{
+			//	サブシーンは { "uuid", "path" } の配列で保存する
+			archive.setNextName("sub_scenes");
+			archive.startNode();
+			archive.makeArray();
+			for (const auto& scene : scenes)
+			{
+				const resource::asset_reference<scene_resource> reference = scene.get_reference();
+				game_object_serializer::save_asset_reference(archive, reference.uuid, reference.path);
+			}
+			archive.finishNode();
+		}
+		catch (const cereal::Exception& exception)
+		{
+			_ASSERT_EXPR(false, exception.what());
+			return false;
+		}
+
+		if (!game_object_serializer::save(archive, objects))
+			return false;
+	}
+
+	body = stream.str();
+	sub_scenes = scenes;
+	return true;
+}
+
+bool scene_resource::save_file(std::string_view file_path)
+{
+	return resource::write_asset_file(*this, resource::asset_types::scene, file_path, body);
+}
+
+bool scene_resource::load_file(std::string_view file_path)
+{
+	resource::asset_file_header header;
+	std::vector<char> data;
+	if (!resource::read_asset_file(file_path, resource::asset_types::scene, header, data))
+		return false;
+
+	body.assign(data.begin(), data.end());
+	if (!read_sub_scenes())
+	{
+		DEBUG_ERROR_CATEGORY(logger::categorys::system, "scene_resource deserialize failed[%s]", std::string(file_path).c_str());
+		return false;
+	}
+
+	inherit_uuid(header.uuid);
+	set_file_path(file_path);
+	return true;
+}
+
+bool scene_resource::read_sub_scenes()
+{
+	sub_scenes.clear();
+	try
+	{
+		std::istringstream stream(body);
+		cereal::JSONInputArchive archive(stream);
+
+		archive.setNextName("sub_scenes");
+		archive.startNode();
+		cereal::size_type count = 0;
+		archive.loadSize(count);
+		for (cereal::size_type index = 0; index < count; ++index)
+		{
+			resource::asset_reference<scene_resource> reference;
+			game_object_serializer::load_asset_reference(archive, reference.uuid, reference.path);
+			sub_scenes.emplace_back().set_reference(std::move(reference));
+		}
+		archive.finishNode();
+	}
+	catch (const cereal::Exception&)
+	{
+		sub_scenes.clear();
+		return false;
+	}
+	return true;
+}
+
+namespace resource
+{
+	operation_state loader<scene_resource>::load(std::string_view file_path)
+	{
+		std::error_code error;
+		if (!std::filesystem::exists(std::filesystem::path(std::string(file_path)), error))
+		{
+			set_error_message("file not found");
+			return operation_state::not_found;
+		}
+
+		resource = std::make_shared<scene_resource>();
+		if (!resource->load_file(file_path))
+			return operation_state::deserialize_failed;
+		return operation_state::success;
+	}
+
+	bool saver<scene_resource>::save(scene_resource& resource, std::string_view file_path)
+	{
+		return resource.save_file(file_path);
+	}
+}	//	namespace resource

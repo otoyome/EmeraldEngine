@@ -26,6 +26,12 @@ namespace
 
 bool game_object_serializer::save(std::ostream& stream, const std::vector<game_object_ptr>& objects)
 {
+	cereal::JSONOutputArchive archive(stream);
+	return save(archive, objects);
+}
+
+bool game_object_serializer::save(cereal::JSONOutputArchive& archive, const std::vector<game_object_ptr>& objects)
+{
 	const game_object_registry* registry = game_object_registry::instance();
 	assert(registry && "game_object_registry ‚ªì‚ç‚ê‚Ä‚¢‚È‚¢");
 	if (!registry)
@@ -49,8 +55,6 @@ bool game_object_serializer::save(std::ostream& stream, const std::vector<game_o
 
 	try
 	{
-		cereal::JSONOutputArchive archive(stream);
-
 		std::uint32_t version = current_version;
 		archive(CEREAL_NVP(version));
 
@@ -205,18 +209,28 @@ game_object_ptr game_object_serializer::find_object(cereal::JSONInputArchive& ar
 
 void game_object_serializer::save_asset_reference(cereal::JSONOutputArchive& archive, const char* name, const universally_unique_identifier& uuid, std::string_view path)
 {
+	archive.setNextName(name);
+	save_asset_reference(archive, uuid, path);
+}
+
+void game_object_serializer::load_asset_reference(cereal::JSONInputArchive& archive, const char* name, universally_unique_identifier& out_uuid, std::string& out_path)
+{
+	archive.setNextName(name);
+	load_asset_reference(archive, out_uuid, out_path);
+}
+
+void game_object_serializer::save_asset_reference(cereal::JSONOutputArchive& archive, const universally_unique_identifier& uuid, std::string_view path)
+{
 	std::string uuid_text = uuid.is_empty() ? std::string() : uuid.to_string();
 	std::string path_text(path);
-	archive.setNextName(name);
 	archive.startNode();
 	archive(cereal::make_nvp("uuid", uuid_text), cereal::make_nvp("path", path_text));
 	archive.finishNode();
 }
 
-void game_object_serializer::load_asset_reference(cereal::JSONInputArchive& archive, const char* name, universally_unique_identifier& out_uuid, std::string& out_path)
+void game_object_serializer::load_asset_reference(cereal::JSONInputArchive& archive, universally_unique_identifier& out_uuid, std::string& out_path)
 {
 	std::string uuid_text;
-	archive.setNextName(name);
 	archive.startNode();
 	archive(cereal::make_nvp("uuid", uuid_text), cereal::make_nvp("path", out_path));
 	archive.finishNode();

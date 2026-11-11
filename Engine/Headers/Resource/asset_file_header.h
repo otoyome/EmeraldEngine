@@ -21,6 +21,7 @@ namespace resource
 		material,	//	.emr
 		effect,		//	.eme
 		texture,	//	.etx
+		scene,		//	.escene
 	};
 
 	//	ファイルヘッダー

@@ -113,6 +113,8 @@ namespace resource
 			return asset_types::effect;
 		if (lower == ".etx")
 			return asset_types::texture;
+		if (lower == ".escene")
+			return asset_types::scene;
 		return asset_types::unknown;
 	}
 

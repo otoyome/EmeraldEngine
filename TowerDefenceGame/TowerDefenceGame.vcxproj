@@ -677,6 +677,7 @@ xcopy "$(SolutionDir)External\SDL3\lib\SDL3.dll" "$(OutDir)" /y</Command>
     <ClCompile Include="Sources\Scenes\MiniGameScene\minigame_title_sound.cpp" />
     <ClCompile Include="Sources\Scenes\MiniGameScene\minigame_ui_scene.cpp" />
     <ClCompile Include="Sources\Scenes\scene_base.cpp" />
+    <ClCompile Include="Sources\Scenes\scene_resource.cpp" />
     <ClCompile Include="Sources\Scenes\setup_scene.cpp" />
     <ClCompile Include="Sources\Scenes\stationed_scene.cpp" />
     <ClCompile Include="Sources\Scenes\StageScene\stage_00_scene.cpp" />
@@ -825,6 +826,7 @@ xcopy "$(SolutionDir)External\SDL3\lib\SDL3.dll" "$(OutDir)" /y</Command>
     <ClInclude Include="Headers\Scenes\MiniGameScene\minigame_title_topics.h" />
     <ClInclude Include="Headers\Scenes\MiniGameScene\minigame_ui_scene.h" />
     <ClInclude Include="Headers\Scenes\scene_base.h" />
+    <ClInclude Include="Headers\Scenes\scene_resource.h" />
     <ClInclude Include="Headers\Scenes\setup_scene.h" />
     <ClInclude Include="Headers\Scenes\stationed_scene.h" />
     <ClInclude Include="Headers\Scenes\StageScene\stage_00_scene.h" />

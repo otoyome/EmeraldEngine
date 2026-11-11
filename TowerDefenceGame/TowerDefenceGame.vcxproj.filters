@@ -200,6 +200,9 @@
     <ClCompile Include="Sources\Scenes\scene_base.cpp">
       <Filter>Sources\Scenes</Filter>
     </ClCompile>
+    <ClCompile Include="Sources\Scenes\scene_resource.cpp">
+      <Filter>Sources\Scenes</Filter>
+    </ClCompile>
     <ClCompile Include="Sources\main.cpp">
       <Filter>Sources</Filter>
     </ClCompile>
@@ -587,6 +590,9 @@
       <Filter>External\imgui</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Scenes\scene_base.h">
+      <Filter>Headers\Scenes</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Scenes\scene_resource.h">
       <Filter>Headers\Scenes</Filter>
     </ClInclude>
     <ClInclude Include="Headers\framework.h">

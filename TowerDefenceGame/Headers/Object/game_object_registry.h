@@ -43,13 +43,12 @@ private:
 	game_object_registry();
 	~game_object_registry();
 
-	//	@tool registrar ‚ªW‚ß‚½Œ^‚Ìˆê——
+private:
 	static std::vector<std::pair<std::string, create_function>>& get_static_list();
 
 private:
 	std::unordered_map<std::string, create_function> functions;
 };
 
-//	•Û‘¶E“Ç‚Å‚«‚éŒ^‚Æ‚µ‚Ä“o˜^‚·‚é
-//	Œ^‚Ìcpp‚É‚ÄéŒ¾
+//	•Û‘¶E“Ç‚Å‚«‚éŒ^‚Æ‚µ‚ÄŒ^‚Ìcpp‚É‚ÄéŒ¾‚µ‚Ä“o˜^
 #define GAME_OBJECT_REGISTER(TYPE) static const game_object_registry::registrar<TYPE> TYPE##_registrar
