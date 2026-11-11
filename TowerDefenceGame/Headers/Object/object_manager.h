@@ -50,16 +50,17 @@ public:
 	template<typename type>
 	std::shared_ptr<type> search_object()
 	{
+		static_assert(type::type_name() == NAMEOF_SHORT_TYPE(type), "GAME_OBJECT_DECRLEAR ‚ª–³‚¢");
 		for (auto& object : game_objects)
 		{
-			if (object->check_type(NAMEOF_TYPE(type)))
+			if (object->check_type(type::type_name()))
 			{
 				return std::static_pointer_cast<type>(object);
 			}
 		}
 		for (auto& object : game_object_add)
 		{
-			if (object->check_type(NAMEOF_TYPE(type)))
+			if (object->check_type(type::type_name()))
 			{
 				return std::static_pointer_cast<type>(object);
 			}
@@ -70,9 +71,10 @@ public:
 	template<typename type>
 	std::shared_ptr<type> search_object(std::string_view name)
 	{
+		static_assert(type::type_name() == NAMEOF_SHORT_TYPE(type), "GAME_OBJECT_DECRLEAR ‚ª–³‚¢");
 		for (auto& object : game_objects)
 		{
-			if (object->check_type(NAMEOF_TYPE(type)))
+			if (object->check_type(type::type_name()))
 			{
 				if (object->get_name() == name)
 				{
@@ -82,7 +84,7 @@ public:
 		}
 		for (auto& object : game_object_add)
 		{
-			if (object->check_type(NAMEOF_TYPE(type)))
+			if (object->check_type(type::type_name()))
 			{
 				if (object->get_name() == name)
 				{
@@ -96,17 +98,18 @@ public:
 	template<typename type>
 	std::vector<std::shared_ptr<type>> search_objects()
 	{
+		static_assert(type::type_name() == NAMEOF_SHORT_TYPE(type), "GAME_OBJECT_DECRLEAR ‚ª–³‚¢");
 		std::vector<std::shared_ptr<type>> datas;
 		for (auto& object : game_objects)
 		{
-			if (object->check_type(NAMEOF_TYPE(type)))
+			if (object->check_type(type::type_name()))
 			{
 				datas.emplace_back(std::static_pointer_cast<type>(object));
 			}
 		}
 		for (auto& object : game_object_add)
 		{
-			if (object->check_type(NAMEOF_TYPE(type)))
+			if (object->check_type(type::type_name()))
 			{
 				datas.emplace_back(std::static_pointer_cast<type>(object));
 			}
@@ -117,17 +120,18 @@ public:
 	template<typename type>
 	std::vector<std::shared_ptr<game_object>> search_game_objects()
 	{
+		static_assert(type::type_name() == NAMEOF_SHORT_TYPE(type), "GAME_OBJECT_DECRLEAR ‚ª–³‚¢");
 		std::vector<std::shared_ptr<game_object>> datas;
 		for (auto& object : game_objects)
 		{
-			if (object->check_type(NAMEOF_TYPE(type)))
+			if (object->check_type(type::type_name()))
 			{
 				datas.emplace_back(object);
 			}
 		}
 		for (auto& object : game_object_add)
 		{
-			if (object->check_type(NAMEOF_TYPE(type)))
+			if (object->check_type(type::type_name()))
 			{
 				datas.emplace_back(object);
 			}

@@ -20,7 +20,7 @@ public:
 	static constexpr size_t invalid_id = 0;
 
 public:
-	static constexpr std::string_view type_name() {return NAMEOF_TYPE(game_object);}
+	static constexpr std::string_view type_name() {return NAMEOF_SHORT_TYPE(game_object);}
 	virtual std::string_view get_type_name() const {return type_name();}
 	virtual bool check_type(std::string_view text) const {return type_name() == text;}
 
@@ -91,7 +91,7 @@ private:
 #define	GAME_OBJECT_DECRLEAR(ABSTRACT_TYPE, BASE_TYPE)	\
 public:	\
 using base = BASE_TYPE;	\
-	static constexpr std::string_view type_name() {return NAMEOF_TYPE(ABSTRACT_TYPE);}	\
+	static constexpr std::string_view type_name() {return NAMEOF_SHORT_TYPE(ABSTRACT_TYPE);}	\
 	std::string_view get_type_name() const override {return type_name();}	\
 	bool check_type(std::string_view text) const override {return type_name() == text ? true : BASE_TYPE::check_type(text);}	\
 private:
