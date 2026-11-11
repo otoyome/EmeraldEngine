@@ -1,4 +1,5 @@
 #include "Object/game_object.h"
+#include "Object/game_object_registry.h"
 
 #include "cereal/cereal.hpp"
 #include "cereal/archives/json.hpp"
@@ -154,3 +155,5 @@ void game_object::on_active()
 void game_object::on_deactive()
 {
 }
+
+GAME_OBJECT_REGISTER(game_object);

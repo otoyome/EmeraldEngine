@@ -1,4 +1,5 @@
 #include "Object/model_object.h"
+#include "Object/game_object_registry.h"
 #include "Object/game_object_serializer.h"
 
 #include "cereal/cereal.hpp"
@@ -894,3 +895,5 @@ void model_object::deserialize(cereal::JSONInputArchive& archive)
 		model_instance->set_flag(model_instance::flags::use_capsule_shadow, use_capsule_shadow);
 	}
 }
+
+GAME_OBJECT_REGISTER(model_object);

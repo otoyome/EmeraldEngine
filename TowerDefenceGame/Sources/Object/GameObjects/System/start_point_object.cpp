@@ -1,4 +1,5 @@
 #include "object/gameobjects/system/start_point_object.h"
+#include "Object/game_object_registry.h"
 
 #include "cereal/cereal.hpp"
 #include "cereal/archives/json.hpp"
@@ -53,3 +54,5 @@ void start_point_object::imgui_render_core()
 	ImGui::InputTextUtf8("tag", tag);
 }
 #endif	//	defined(USE_IMGUI)
+
+GAME_OBJECT_REGISTER(start_point_object);

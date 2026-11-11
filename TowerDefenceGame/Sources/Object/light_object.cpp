@@ -1,4 +1,5 @@
 #include "Object/light_object.h"
+#include "Object/game_object_registry.h"
 
 #include <algorithm>
 
@@ -756,3 +757,9 @@ void area_light_probe_object::deserialize(cereal::JSONInputArchive& archive)
 	set_inner_range(inner_range);
 	set_outer_range(outer_range);
 }
+
+GAME_OBJECT_REGISTER(directional_light_object);
+GAME_OBJECT_REGISTER(point_light_object);
+GAME_OBJECT_REGISTER(spot_light_object);
+GAME_OBJECT_REGISTER(sky_light_object);
+GAME_OBJECT_REGISTER(area_light_probe_object);

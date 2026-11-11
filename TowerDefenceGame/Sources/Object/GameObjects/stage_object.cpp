@@ -1,4 +1,5 @@
 #include "object/gameobjects/stage_object.h"
+#include "Object/game_object_registry.h"
 #include "Object/game_object_serializer.h"
 
 #include "cereal/cereal.hpp"
@@ -132,3 +133,5 @@ void stage_object::update_transform()
 
 	model->update_transform();
 }
+
+GAME_OBJECT_REGISTER(stage_object);
