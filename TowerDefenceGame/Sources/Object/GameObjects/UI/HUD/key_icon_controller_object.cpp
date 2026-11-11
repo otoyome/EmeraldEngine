@@ -39,7 +39,10 @@ void key_icon_object::set_alpha(float alpha)
 void key_icon_object::set_key_icon_type(key_icon_type type)
 {
 	if (icon)
-		icon->set_texture(texture_resource_utility::load_texture(key_icon_texture_path[static_cast<int>(type)]));
+	{
+		const texture_resource_ptr texture = texture_resource_utility::load_texture_resource(key_icon_texture_path[static_cast<int>(type)]);
+		icon->set_texture(texture ? texture->get_texture() : nullptr);
+	}
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////

@@ -1,4 +1,8 @@
 #include "object/gameobjects/stage_object.h"
+#include "Object/game_object_serializer.h"
+
+#include "cereal/cereal.hpp"
+#include "cereal/archives/json.hpp"
 
 std::shared_ptr<model_object> stage_object::get_model_object() const
 {
@@ -10,6 +14,11 @@ void stage_object::set_model_object(std::shared_ptr<model_object> model)
 	this->model = model;
 }
 
+stage_object::stage_object(std::string_view name)
+: game_object(name)
+{
+}
+
 stage_object::stage_object(std::string_view name, std::shared_ptr<model_object> model)
 : game_object(name)
 , model(model)
@@ -18,6 +27,18 @@ stage_object::stage_object(std::string_view name, std::shared_ptr<model_object> 
 
 stage_object::~stage_object()
 {
+}
+
+void stage_object::serialize(cereal::JSONOutputArchive& archive) const
+{
+	base::serialize(archive);
+	game_object_serializer::save_object_reference(archive, "model", model);
+}
+
+void stage_object::deserialize(cereal::JSONInputArchive& archive)
+{
+	base::deserialize(archive);
+	game_object_serializer::load_object_reference(archive, "model", model);
 }
 
 #if defined(USE_IMGUI)

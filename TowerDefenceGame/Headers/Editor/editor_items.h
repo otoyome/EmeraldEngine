@@ -57,7 +57,7 @@ public:
 		int inner_item_id; // 内部でItemIdで使っているだけの白物
 		int reset_item_id; // 内部でItemIdで使っているだけの白物
 		texture_ptr blank_texture; // 空テクスチャ
-		texture_ptr cross_texture; // ×テクスチャ
+		texture_resource_ptr cross_texture; // ×テクスチャ
 		model_resource_ptr reserve_model_resource; // 内部で一時的に保持しておきたい
 		std::unordered_map<std::string, bool> flag_maps; // フラグ管理
 		cache_string down_allow = "↓";
@@ -215,7 +215,8 @@ public:	//	編集アイテム系
 
 	//	アセットブラウザからマテリアル欄にマテリアルリソースをドロップ処理
 	static bool edit_material_slot(std::shared_ptr<context>& context, material_resource_ptr& material, material_resource::domains domain);
-	static bool edit_texture_item(std::shared_ptr<context>& context, texture_ptr& resource, bool* selected_file = nullptr);
+	static bool edit_material_slot(std::shared_ptr<context>& context, resource::asset_handle<material_resource>& material, material_resource::domains domain);
+	static bool edit_texture_item(std::shared_ptr<context>& context, resource::asset_handle<texture_resource>& resource, bool* selected_file = nullptr);
 	//	マテリアルのテクスチャ欄にテクスチャリソースをドロップ処理
 	static bool edit_material_texture_slot(std::shared_ptr<context>& context, material_resource::shader_resource::resource& slot);
 	static bool edit_model_resource_item(std::shared_ptr<context>& context, model_resource_ptr& resource, std::string* selected_file_path = nullptr);

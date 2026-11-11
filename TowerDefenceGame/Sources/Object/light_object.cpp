@@ -4,6 +4,24 @@
 
 #include "Graphics/color_space.h"
 #include "Graphics/light_utility.h"
+#include "Texture/texture_resource_utility.h"
+#include "Object/game_object_serializer.h"
+
+#include "cereal/cereal.hpp"
+#include "cereal/archives/json.hpp"
+#include "cereal/types/common.hpp"
+#include "cereal/types/vector.hpp"
+
+template<class Archive>
+void serialize(Archive& archive, light::shadow_map_bias_data& value)
+{
+	archive(cereal::make_nvp("depth_bias", value.depth_bias),
+		cereal::make_nvp("slope_depth_bias_scale", value.slope_depth_bias_scale),
+		cereal::make_nvp("max_depth_bias", value.max_depth_bias),
+		cereal::make_nvp("slope_depth_bias", value.slope_depth_bias),
+		cereal::make_nvp("max_slope_depth_bias", value.max_slope_depth_bias),
+		cereal::make_nvp("sigma_factor", value.sigma_factor));
+}
 
 light_ptr light_object::get_light() const
 {
@@ -391,34 +409,37 @@ const math::float3& light_probe_object::get_color() const
 	return light_probe->get_color();
 }
 
-void light_probe_object::set_diffuse_ibl_texture(texture_ptr texture)
+void light_probe_object::set_diffuse_ibl_texture(texture_resource_ptr texture)
 {
-	light_probe->set_diffuse_ibl_texture(texture);
+	diffuse_ibl_texture = texture;
+	light_probe->set_diffuse_ibl_texture(texture ? texture->get_texture() : nullptr);
 }
 
-texture_ptr light_probe_object::get_diffuse_ibl_texture() const
+const texture_resource_ptr& light_probe_object::get_diffuse_ibl_texture() const
 {
-	return light_probe->get_diffuse_ibl_texture();
+	return diffuse_ibl_texture.get();
 }
 
-void light_probe_object::set_specular_ibl_texture(texture_ptr texture)
+void light_probe_object::set_specular_ibl_texture(texture_resource_ptr texture)
 {
-	light_probe->set_specular_ibl_texture(texture);
+	specular_ibl_texture = texture;
+	light_probe->set_specular_ibl_texture(texture ? texture->get_texture() : nullptr);
 }
 
-texture_ptr light_probe_object::get_specular_ibl_texture() const
+const texture_resource_ptr& light_probe_object::get_specular_ibl_texture() const
 {
-	return light_probe->get_specular_ibl_texture();
+	return specular_ibl_texture.get();
 }
 
-void light_probe_object::set_lut_ggx_texture(texture_ptr texture)
+void light_probe_object::set_lut_ggx_texture(texture_resource_ptr texture)
 {
-	light_probe->set_lut_ggx_texture(texture);
+	lut_ggx_texture = texture;
+	light_probe->set_lut_ggx_texture(texture ? texture->get_texture() : nullptr);
 }
 
-texture_ptr light_probe_object::get_lut_ggx_texture() const
+const texture_resource_ptr& light_probe_object::get_lut_ggx_texture() const
 {
-	return light_probe->get_lut_ggx_texture();
+	return lut_ggx_texture.get();
 }
 
 light_probe_object::light_probe_object(std::string_view name)
@@ -544,3 +565,194 @@ void area_light_probe_object::imgui_tree_inner_render()
 	set_outer_range(outer_range);
 }
 #endif	//	defined(USE_IMGUI)
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+void light_object::serialize(cereal::JSONOutputArchive& archive) const
+{
+	base::serialize(archive);
+
+	bool use_shadow = light->is_flag(light::flags::use_shadow);
+	bool contact_shadow = light->is_flag(light::flags::contact_shadow);
+	light::unit_modes unit_mode = light->get_unit_mode();
+	float intensity = light->get_intensity();
+	light::color_modes color_mode = light->get_color_mode();
+	math::float3 color = light->get_color();
+	int kelvin = light->get_kelvin();
+	float max_draw_distance = light->get_max_draw_distance();
+	std::vector<light::shadow_map_bias_data> shadow_biases;
+	for (int index = 0; index < static_cast<int>(common_pipeline_states::shadow_map_max); ++index)
+		shadow_biases.emplace_back(light->get_shadow_bias(index));
+
+	archive(CEREAL_NVP(use_shadow),
+		CEREAL_NVP(contact_shadow),
+		CEREAL_NVP(unit_mode),
+		CEREAL_NVP(intensity),
+		CEREAL_NVP(color_mode),
+		CEREAL_NVP(color),
+		CEREAL_NVP(kelvin),
+		CEREAL_NVP(max_draw_distance),
+		CEREAL_NVP(shadow_biases));
+}
+
+void light_object::deserialize(cereal::JSONInputArchive& archive)
+{
+	base::deserialize(archive);
+
+	bool use_shadow = false;
+	bool contact_shadow = false;
+	light::unit_modes unit_mode = light->get_unit_mode();
+	float intensity = 0.0f;
+	light::color_modes color_mode = light->get_color_mode();
+	math::float3 color;
+	int kelvin = 0;
+	float max_draw_distance = 0.0f;
+	std::vector<light::shadow_map_bias_data> shadow_biases;
+
+	archive(CEREAL_NVP(use_shadow),
+		CEREAL_NVP(contact_shadow),
+		CEREAL_NVP(unit_mode),
+		CEREAL_NVP(intensity),
+		CEREAL_NVP(color_mode),
+		CEREAL_NVP(color),
+		CEREAL_NVP(kelvin),
+		CEREAL_NVP(max_draw_distance),
+		CEREAL_NVP(shadow_biases));
+
+	light->set_flag(light::flags::use_shadow, use_shadow);
+	light->set_flag(light::flags::contact_shadow, contact_shadow);
+	light->set_unit_mode(unit_mode);
+	light->set_intensity(intensity);
+	light->set_color_mode(color_mode);
+	light->set_color(color);
+	light->set_kelvin(kelvin);
+	light->set_max_draw_distance(max_draw_distance);
+	const size_t bias_count = (std::min)(shadow_biases.size(), static_cast<size_t>(common_pipeline_states::shadow_map_max));
+	for (size_t index = 0; index < bias_count; ++index)
+		light->set_shadow_bias(static_cast<int>(index), shadow_biases[index]);
+}
+
+void directional_light_object::serialize(cereal::JSONOutputArchive& archive) const
+{
+	base::serialize(archive);
+
+	float csm_distance = light->get_csm_distance();
+	float pssm_split_weight = light->get_pssm_split_weight();
+	math::float3 shadow_attenuation = light->get_shadow_attenuation();
+	archive(CEREAL_NVP(csm_distance), CEREAL_NVP(pssm_split_weight), CEREAL_NVP(shadow_attenuation));
+}
+
+void directional_light_object::deserialize(cereal::JSONInputArchive& archive)
+{
+	base::deserialize(archive);
+
+	float csm_distance = 0.0f;
+	float pssm_split_weight = 0.0f;
+	math::float3 shadow_attenuation;
+	archive(CEREAL_NVP(csm_distance), CEREAL_NVP(pssm_split_weight), CEREAL_NVP(shadow_attenuation));
+
+	light->set_csm_distance(csm_distance);
+	light->set_pssm_split_weight(pssm_split_weight);
+	light->set_shadow_attenuation(shadow_attenuation);
+}
+
+void point_light_object::serialize(cereal::JSONOutputArchive& archive) const
+{
+	base::serialize(archive);
+
+	float range = get_range();
+	archive(CEREAL_NVP(range));
+}
+
+void point_light_object::deserialize(cereal::JSONInputArchive& archive)
+{
+	base::deserialize(archive);
+
+	float range = 0.0f;
+	archive(CEREAL_NVP(range));
+	set_range(range);
+}
+
+void spot_light_object::serialize(cereal::JSONOutputArchive& archive) const
+{
+	base::serialize(archive);
+
+	float range = get_range();
+	float inner_cone = get_inner_cone();
+	float outer_cone = get_outer_cone();
+	archive(CEREAL_NVP(range), CEREAL_NVP(inner_cone), CEREAL_NVP(outer_cone));
+}
+
+void spot_light_object::deserialize(cereal::JSONInputArchive& archive)
+{
+	base::deserialize(archive);
+
+	float range = 0.0f;
+	float inner_cone = 0.0f;
+	float outer_cone = 0.0f;
+	archive(CEREAL_NVP(range), CEREAL_NVP(inner_cone), CEREAL_NVP(outer_cone));
+	set_range(range);
+	set_inner_cone(inner_cone);
+	set_outer_cone(outer_cone);
+}
+
+void light_probe_object::serialize(cereal::JSONOutputArchive& archive) const
+{
+	base::serialize(archive);
+
+	float intensity = get_intensity();
+	math::float3 color = get_color();
+	archive(CEREAL_NVP(intensity), CEREAL_NVP(color));
+
+	auto save_texture = [&](const char* name, const resource::asset_handle<texture_resource>& texture)
+	{
+		const resource::asset_reference<texture_resource> reference = texture.get_reference();
+		game_object_serializer::save_asset_reference(archive, name, reference.uuid, reference.path);
+	};
+	save_texture("diffuse_ibl_texture", diffuse_ibl_texture);
+	save_texture("specular_ibl_texture", specular_ibl_texture);
+	save_texture("lut_ggx_texture", lut_ggx_texture);
+}
+
+void light_probe_object::deserialize(cereal::JSONInputArchive& archive)
+{
+	base::deserialize(archive);
+
+	float intensity = 0.0f;
+	math::float3 color;
+	archive(CEREAL_NVP(intensity), CEREAL_NVP(color));
+	set_intensity(intensity);
+	set_color(color);
+
+	auto load_texture = [&](const char* name) -> texture_resource_ptr
+	{
+		universally_unique_identifier uuid;
+		std::string path;
+		game_object_serializer::load_asset_reference(archive, name, uuid, path);
+		if (uuid.is_empty() && path.empty())
+			return nullptr;
+		return texture_resource_utility::load_texture_resource(game_object_serializer::resolve_asset_path(uuid, path));
+	};
+	set_diffuse_ibl_texture(load_texture("diffuse_ibl_texture"));
+	set_specular_ibl_texture(load_texture("specular_ibl_texture"));
+	set_lut_ggx_texture(load_texture("lut_ggx_texture"));
+}
+
+void area_light_probe_object::serialize(cereal::JSONOutputArchive& archive) const
+{
+	base::serialize(archive);
+
+	math::float3 inner_range = get_inner_range();
+	math::float3 outer_range = get_outer_range();
+	archive(CEREAL_NVP(inner_range), CEREAL_NVP(outer_range));
+}
+
+void area_light_probe_object::deserialize(cereal::JSONInputArchive& archive)
+{
+	base::deserialize(archive);
+
+	math::float3 inner_range;
+	math::float3 outer_range;
+	archive(CEREAL_NVP(inner_range), CEREAL_NVP(outer_range));
+	set_inner_range(inner_range);
+	set_outer_range(outer_range);
+}

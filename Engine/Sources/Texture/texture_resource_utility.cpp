@@ -43,13 +43,12 @@ bool texture_resource_utility::read_image(std::string_view file_path, DirectX::S
 	return texture_factory::decode_memory(dds.data(), dds.size(), out_image);
 }
 
-texture_ptr texture_resource_utility::load_texture(std::string_view file_path)
+texture_resource_ptr texture_resource_utility::load_texture_resource(std::string_view file_path)
 {
-	if (!resource_manager::is_valid())
+	if (!resource_manager::is_valid() || file_path.empty())
 		return nullptr;
 
 	auto operation = resource_manager::instance()->load<texture_resource>(file_path);
 	const resource::asset_reference<texture_resource> reference{ {}, std::string(file_path) };
-	auto loaded = resource_manager::instance()->resolve(operation, reference);
-	return loaded ? loaded->get_texture() : nullptr;
+	return resource_manager::instance()->resolve(operation, reference);
 }

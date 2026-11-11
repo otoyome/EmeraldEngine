@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Texture/texture.h"
+#include "Texture/texture_resource.h"
 
 //	ƒtƒHƒ“ƒgî•ñ
 class font_data
@@ -32,7 +33,7 @@ public:
 	float get_font_height() const { return font_height; }
 	int get_texture_count() const { return texture_count; }
 	int get_character_count() const { return character_count; }
-	const std::vector<texture_ptr>& get_textures() const;
+	const std::vector<texture_resource_ptr>& get_textures() const;
 	const std::vector<character_info>& get_character_infos() const;
 	const std::vector<WORD>& get_character_indices() const;
 
@@ -45,7 +46,7 @@ private:
 	float font_height;
 	int texture_count;
 	int character_count;
-	std::vector<texture_ptr> textures;
+	std::vector<texture_resource_ptr> textures;
 	std::vector<character_info> character_infos;
 	std::vector<WORD> character_indices;
 };

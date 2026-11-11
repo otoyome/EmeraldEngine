@@ -366,7 +366,7 @@ std::shared_ptr<editor_items::context> editor_items::generate_context()
 	context_ptr->reset_item_id = rd();
 	context_ptr->inner_item_id = context_ptr->reset_item_id;
 	context_ptr->blank_texture = texture_defaults::instance()->get_black();
-	context_ptr->cross_texture = texture_resource_utility::load_texture("Assets/Resources/Textures/editor/cross.etx");
+	context_ptr->cross_texture = texture_resource_utility::load_texture_resource("Assets/Resources/Textures/editor/cross.etx");
 	instance->context_ptrs.emplace_back(context_ptr);
 	return context_ptr;
 }
@@ -736,6 +736,15 @@ bool editor_items::edit_shared_material(std::shared_ptr<context>& context, const
 	return edit_flag;
 }
 
+bool editor_items::edit_material_slot(std::shared_ptr<context>& context, resource::asset_handle<material_resource>& material, material_resource::domains domain)
+{
+	material_resource_ptr slot_material = material;
+	if (!edit_material_slot(context, slot_material, domain))
+		return false;
+	material = slot_material;
+	return true;
+}
+
 bool editor_items::edit_material_slot(std::shared_ptr<context>& context, material_resource_ptr& material, material_resource::domains domain)
 {
 	bool edit_flag = false;
@@ -835,7 +844,7 @@ bool editor_items::edit_material_texture_slot(std::shared_ptr<context>& context,
 	{
 		ImGui::SameLine();
 		ImGui::PushID("clear");
-		if (ImGui::ImageButton("", imgui_texture_keeper::instance()->keep(context->cross_texture), icon_size_srv))
+		if (ImGui::ImageButton("", imgui_texture_keeper::instance()->keep(context->cross_texture->get_texture()), icon_size_srv))
 		{
 			slot.asset = nullptr;
 			edit_flag = true;
@@ -845,14 +854,16 @@ bool editor_items::edit_material_texture_slot(std::shared_ptr<context>& context,
 	return edit_flag;
 }
 
-bool editor_items::edit_texture_item(std::shared_ptr<context>& context, texture_ptr& resource, bool* selected_file)
+bool editor_items::edit_texture_item(std::shared_ptr<context>& context, resource::asset_handle<texture_resource>& resource, bool* selected_file)
 {
 	bool edit_flag = false;
 	if (selected_file)
 		*selected_file = false;
 
+	const texture_ptr texture = resource && resource->get_texture() ? resource->get_texture() : context->blank_texture;
+
 	//	通常
-	ImGui::Image(imgui_texture_keeper::instance()->keep(resource ? resource : context->blank_texture), icon_size_srv);
+	ImGui::Image(imgui_texture_keeper::instance()->keep(texture), icon_size_srv);
 
 	//	アセットブラウザからテクスチャリソースをドロップして選ぶ
 	if (ImGui::BeginDragDropTarget())
@@ -863,7 +874,7 @@ bool editor_items::edit_texture_item(std::shared_ptr<context>& context, texture_
 			const std::string extension = std::filesystem::path(file_path).extension().string();
 			if (resource::get_asset_type_from_extension(extension) == resource::asset_types::texture)
 			{
-				if (auto selected_texture = texture_resource_utility::load_texture(file_path))
+				if (auto selected_texture = texture_resource_utility::load_texture_resource(file_path))
 				{
 					resource = selected_texture;
 					if (selected_file)
@@ -880,14 +891,14 @@ bool editor_items::edit_texture_item(std::shared_ptr<context>& context, texture_
 	ImGui::SameLine();
 	//	ファイル名
 	{
-		ImGui::Text((resource ? resource : context->blank_texture)->get_debug_name().data());
+		ImGui::Text(texture->get_debug_name().data());
 	}
 	//	空選択
 	if (resource)
 	{
 		ImGui::PushID(context->get_item_id());
 		ImGui::SameLine();
-		if (ImGui::ImageButton("", imgui_texture_keeper::instance()->keep(context->cross_texture), icon_size_srv))
+		if (ImGui::ImageButton("", imgui_texture_keeper::instance()->keep(context->cross_texture->get_texture()), icon_size_srv))
 		{
 			resource = nullptr;	//	context->blank_texture;
 			edit_flag = true;
@@ -935,7 +946,7 @@ bool editor_items::edit_model_resource_item(std::shared_ptr<context>& context, m
 	{
 		ImGui::PushID(context->get_item_id());
 		ImGui::SameLine();
-		if (ImGui::ImageButton("", imgui_texture_keeper::instance()->keep(context->cross_texture), icon_size_srv))
+		if (ImGui::ImageButton("", imgui_texture_keeper::instance()->keep(context->cross_texture->get_texture()), icon_size_srv))
 		{
 			context->reserve_model_resource = resource;
 			resource = nullptr;

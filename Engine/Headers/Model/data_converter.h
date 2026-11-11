@@ -23,6 +23,7 @@ namespace data_converter
 
 	//	マテリアル名割当
 	void assign_material_paths(const std::vector<material_resource_ptr>& materials, std::string_view owner_file_path);
+	void assign_material_paths(const std::vector<resource::asset_handle<material_resource>>& materials, std::string_view owner_file_path);
 
 	//	変換先にモデルリソースが既にあれば、モデルのUUIDと同じ名前のマテリアルを引き継ぐ
 	void inherit_existing_model(model_resource& resource);

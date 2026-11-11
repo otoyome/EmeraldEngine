@@ -1230,9 +1230,10 @@ void bloom_post_process_renderer::bloom_pass(graphics_context& context, post_pro
 		case bloom_data::modes::convolution:
 		{
 			//	カーネルをスペクトル変換
-			if (bloom_image_kernel_texture != bloom_constant.image_kernel)
+			const texture_ptr image_kernel = bloom_constant.image_kernel ? bloom_constant.image_kernel->get_texture() : nullptr;
+			if (bloom_image_kernel_texture != image_kernel)
 			{
-				bloom_image_kernel_texture = bloom_constant.image_kernel;
+				bloom_image_kernel_texture = image_kernel;
 				bloom_kernel_fft->clear_uavs(context.device_context);
 
 				context.device_context->CSSetUnorderedAccessViews(0, 1, bloom_kernel_fft->get_complex_real()->get_unordered_access_view().GetAddressOf(), nullptr);
@@ -1309,9 +1310,10 @@ void bloom_post_process_renderer::lens_ghost_pass(graphics_context& context, pos
 	}
 
 	//	カーネルをスペクトル変換
-	if (lens_ghost_image_kernel_texture != ghosts_constant.image_kernel)
+	const texture_ptr image_kernel = ghosts_constant.image_kernel ? ghosts_constant.image_kernel->get_texture() : nullptr;
+	if (lens_ghost_image_kernel_texture != image_kernel)
 	{
-		lens_ghost_image_kernel_texture = ghosts_constant.image_kernel;
+		lens_ghost_image_kernel_texture = image_kernel;
 		lens_ghost_kernel_fft->clear_uavs(context.device_context);
 
 		context.device_context->CSSetUnorderedAccessViews(0, 1, lens_ghost_kernel_fft->get_complex_real()->get_unordered_access_view().GetAddressOf(), nullptr);
@@ -1331,7 +1333,7 @@ void bloom_post_process_renderer::lens_ghost_pass(graphics_context& context, pos
 	{
 		context.device_context->CSSetConstantBuffers(bloom::lens_ghost_cbv_index, 1, lens_ghost_constant_buffer.GetAddressOf());
 		context.device_context->CSSetShader(generate_ghost->get_shader().Get(), nullptr, 0);
-		context.device_context->CSSetShaderResources(1, 1, ghosts_constant.ghost_color_lut->get_shader_resource_view().GetAddressOf());
+		context.device_context->CSSetShaderResources(1, 1, ghosts_constant.ghost_color_lut->get_texture()->get_shader_resource_view().GetAddressOf());
 
 		UINT x = (scene_fft->get_complex_real()->get_width() + bloom::thread_count.x - 1) / bloom::thread_count.x;
 		UINT y = (scene_fft->get_complex_real()->get_height() + bloom::thread_count.y - 1) / bloom::thread_count.y;
@@ -1352,14 +1354,14 @@ void bloom_post_process_renderer::lens_ghost_pass(graphics_context& context, pos
 
 			context.device_context->CSSetUnorderedAccessViews(0, 1, scene_fft->get_complex_imaginary()->get_unordered_access_view().GetAddressOf(), nullptr);
 			context.device_context->CSSetShaderResources(0, 1, scene_fft->get_complex_real()->get_shader_resource_view().GetAddressOf());
-			context.device_context->CSSetShaderResources(1, 1, ghosts_constant.ghost_color_lut->get_shader_resource_view().GetAddressOf());
+			context.device_context->CSSetShaderResources(1, 1, ghosts_constant.ghost_color_lut->get_texture()->get_shader_resource_view().GetAddressOf());
 			context.device_context->Dispatch(x, y, 1);
 			context.clear_shader_resorce_views();
 			context.clear_unordered_access_views();
 
 			context.device_context->CSSetUnorderedAccessViews(0, 1, scene_fft->get_complex_real()->get_unordered_access_view().GetAddressOf(), nullptr);
 			context.device_context->CSSetShaderResources(0, 1, scene_fft->get_complex_imaginary()->get_shader_resource_view().GetAddressOf());
-			context.device_context->CSSetShaderResources(1, 1, ghosts_constant.ghost_color_lut->get_shader_resource_view().GetAddressOf());
+			context.device_context->CSSetShaderResources(1, 1, ghosts_constant.ghost_color_lut->get_texture()->get_shader_resource_view().GetAddressOf());
 			context.device_context->Dispatch(x, y, 1);
 			context.clear_shader_resorce_views();
 			context.clear_unordered_access_views();

@@ -98,12 +98,12 @@ bool stage_00_scene::initialize_core()
 	//	間接光生成
 	{
 		auto sky_light = std::make_shared<sky_light_object>("スカイライト");
-		texture_ptr ibl_texture;
-		ibl_texture = texture_resource_utility::load_texture("Assets/Resources/Textures/hilly_terrain_01_puresky_4k/diffuse_iem.etx");
+		texture_resource_ptr ibl_texture;
+		ibl_texture = texture_resource_utility::load_texture_resource("Assets/Resources/Textures/hilly_terrain_01_puresky_4k/diffuse_iem.etx");
 		sky_light->set_diffuse_ibl_texture(ibl_texture);
-		ibl_texture = texture_resource_utility::load_texture("Assets/Resources/Textures/hilly_terrain_01_puresky_4k/specular_pmrem.etx");
+		ibl_texture = texture_resource_utility::load_texture_resource("Assets/Resources/Textures/hilly_terrain_01_puresky_4k/specular_pmrem.etx");
 		sky_light->set_specular_ibl_texture(ibl_texture);
-		ibl_texture = texture_resource_utility::load_texture("Assets/Resources/Textures/lut_ggx.etx");
+		ibl_texture = texture_resource_utility::load_texture_resource("Assets/Resources/Textures/lut_ggx.etx");
 		sky_light->set_lut_ggx_texture(ibl_texture);
 		register_object(sky_light);
 	}

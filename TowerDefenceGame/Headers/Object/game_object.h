@@ -13,6 +13,7 @@ namespace cereal
 	class JSONInputArchive;
 }
 
+
 //	ゲーム用オブジェクト
 class game_object : public std::enable_shared_from_this<game_object>
 {

@@ -273,18 +273,13 @@ size_t model_resource::get_mesh_index_from_name(std::string_view name) const
 
 bool model_resource::save_file(std::string_view file_path)
 {
-	std::vector<resource::asset_reference<material_resource>> material_references;
-	material_references.reserve(materials.size());
-	for (auto& material : materials)
-		material_references.emplace_back(resource::asset_reference<material_resource>::from(material));
-
 	std::ostringstream buffer_stream(std::ios::binary);
 	{
 		cereal::BinaryOutputArchive archive(buffer_stream);
 
 		try
 		{
-			archive(CEREAL_NVP(material_references),
+			archive(cereal::make_nvp("material_references", materials),
 					CEREAL_NVP(nodes),
 					CEREAL_NVP(meshes),
 					CEREAL_NVP(morphes),
@@ -305,7 +300,7 @@ bool model_resource::save_file(std::string_view file_path)
 	return true;
 }
 
-bool model_resource::load_file(std::string_view file_path, std::vector<resource::asset_reference<material_resource>>& out_material_references)
+bool model_resource::load_file(std::string_view file_path)
 {
 	resource::asset_file_header header;
 	std::vector<char> body;
@@ -318,8 +313,8 @@ bool model_resource::load_file(std::string_view file_path, std::vector<resource:
 
 	try
 	{
-		out_material_references.clear();
-		archive(CEREAL_NVP(out_material_references),
+		materials.clear();
+		archive(cereal::make_nvp("material_references", materials),
 				CEREAL_NVP(nodes),
 				CEREAL_NVP(meshes),
 				CEREAL_NVP(morphes),
@@ -332,8 +327,6 @@ bool model_resource::load_file(std::string_view file_path, std::vector<resource:
 		return false;
 	}
 
-	materials.clear();
-	materials.resize(out_material_references.size());
 	inherit_uuid(header.uuid);
 	set_file_path(file_path);
 	DEBUG_LOG_CATEGORY(logger::categorys::model, "model_resource deserialize successed[%s]", file_path.data());
@@ -427,14 +420,14 @@ namespace resource
 		}
 
 		resource = std::make_shared<model_resource>();
-		if (!resource->load_file(file_path, material_references))
+		if (!resource->load_file(file_path))
 			return operation_state::deserialize_failed;
 
 		//	参照するマテリアルを依存リソースとして読み込む
-		material_operations.resize(material_references.size());
-		for (size_t index = 0; index < material_references.size(); ++index)
+		material_operations.resize(resource->materials.size());
+		for (size_t index = 0; index < resource->materials.size(); ++index)
 		{
-			material_operations[index] = resource_manager::instance()->load_async(material_references[index], load_priority::high);
+			material_operations[index] = resource_manager::instance()->load_async(resource->materials[index].get_reference(), load_priority::high);
 			add_dependency(material_operations[index]);
 		}
 		return operation_state::success;
@@ -442,10 +435,11 @@ namespace resource
 
 	operation_state loader<model_resource>::build()
 	{
-		for (size_t index = 0; index < material_references.size(); ++index)
+		for (size_t index = 0; index < resource->materials.size(); ++index)
 		{
-			if (!material_references[index].is_empty())
-				resource->materials[index] = resource_manager::instance()->resolve(material_operations[index], material_references[index], material_resource::domains::surface);
+			auto& material = resource->materials[index];
+			if (!material.is_empty())
+				material = resource_manager::instance()->resolve(material_operations[index], material.get_reference(), material_resource::domains::surface);
 		}
 		material_operations.clear();
 
@@ -460,7 +454,7 @@ namespace resource
 #endif	//	defined(USE_IMGUI)
 		for (auto& material : resource.materials)
 		{
-			if (material && !material->is_missing() && !resource_manager::instance()->save(material))
+			if (material && !material->is_missing() && !resource_manager::instance()->save(material.get()))
 			{
 				DEBUG_LOG_CATEGORY(logger::categorys::model, "model_resource material save failed[%s][%s]", file_path.data(), material->get_name().data());
 				return false;

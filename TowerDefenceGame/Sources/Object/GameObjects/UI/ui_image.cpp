@@ -118,7 +118,8 @@ texture_ptr ui_image::get_texture() const
 
 void ui_image::set_texture(std::string_view texture_path)
 {
-	get_sprite().get_material().set_texture(sprite::base_texture_name, texture_resource_utility::load_texture(texture_path));
+	const texture_resource_ptr texture = texture_resource_utility::load_texture_resource(texture_path);
+	get_sprite().get_material().set_texture(sprite::base_texture_name, texture ? texture->get_texture() : nullptr);
 }
 
 void ui_image::set_texture(texture_ptr texture)

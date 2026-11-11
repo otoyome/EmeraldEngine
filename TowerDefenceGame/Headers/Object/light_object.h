@@ -2,6 +2,8 @@
 
 #include "collision/collision.h"
 #include "object/spatial_object.h"
+#include "Resource/asset_handle.h"
+#include "Texture/texture_resource.h"
 
 //	ライトオブジェクト
 class light_object : public spatial_object
@@ -24,6 +26,9 @@ public:
 	~light_object() override;
 
 	void post_update(float elapsed_time) override;
+
+	void serialize(cereal::JSONOutputArchive& archive) const override;
+	void deserialize(cereal::JSONInputArchive& archive) override;
 
 #if defined(USE_IMGUI)
 	void imgui_render_core() override;
@@ -56,6 +61,9 @@ public:
 	directional_light_object(std::string_view name);
 	~directional_light_object() override;
 
+	void serialize(cereal::JSONOutputArchive& archive) const override;
+	void deserialize(cereal::JSONInputArchive& archive) override;
+
 #if defined(USE_IMGUI)
 	void imgui_tree_inner_render() override;
 #endif	//	defined(USE_IMGUI)
@@ -73,6 +81,9 @@ public:
 public:
 	point_light_object(std::string_view name);
 	~point_light_object() override;
+
+	void serialize(cereal::JSONOutputArchive& archive) const override;
+	void deserialize(cereal::JSONInputArchive& archive) override;
 
 #if defined(USE_IMGUI)
 	void imgui_tree_inner_render() override;
@@ -98,6 +109,9 @@ public:
 	spot_light_object(std::string_view name);
 	~spot_light_object() override;
 
+	void serialize(cereal::JSONOutputArchive& archive) const override;
+	void deserialize(cereal::JSONInputArchive& archive) override;
+
 #if defined(USE_IMGUI)
 	void imgui_tree_inner_render() override;
 #endif	//	defined(USE_IMGUI)
@@ -119,14 +133,14 @@ public:
 	void set_color(const math::float3& color);
 	const math::float3& get_color() const;
 
-	void set_diffuse_ibl_texture(texture_ptr texture);
-	texture_ptr get_diffuse_ibl_texture() const;
+	void set_diffuse_ibl_texture(texture_resource_ptr texture);
+	const texture_resource_ptr& get_diffuse_ibl_texture() const;
 
-	void set_specular_ibl_texture(texture_ptr texture);
-	texture_ptr get_specular_ibl_texture() const;
+	void set_specular_ibl_texture(texture_resource_ptr texture);
+	const texture_resource_ptr& get_specular_ibl_texture() const;
 
-	void set_lut_ggx_texture(texture_ptr texture);
-	texture_ptr get_lut_ggx_texture() const;
+	void set_lut_ggx_texture(texture_resource_ptr texture);
+	const texture_resource_ptr& get_lut_ggx_texture() const;
 
 
 public:
@@ -134,6 +148,9 @@ public:
 	~light_probe_object() override;
 
 	void post_update(float elapsed_time) override;
+
+	void serialize(cereal::JSONOutputArchive& archive) const override;
+	void deserialize(cereal::JSONInputArchive& archive) override;
 
 #if defined(USE_IMGUI)
 	void imgui_render_core() override;
@@ -151,6 +168,10 @@ protected:
 
 private:
 	std::uint32_t applied_spatial_version = UINT32_MAX;
+
+	resource::asset_handle<texture_resource> diffuse_ibl_texture;
+	resource::asset_handle<texture_resource> specular_ibl_texture;
+	resource::asset_handle<texture_resource> lut_ggx_texture;
 };
 
 //	スカイライトオブジェクト
@@ -182,6 +203,9 @@ public:
 public:
 	area_light_probe_object(std::string_view name);
 	~area_light_probe_object() override;
+
+	void serialize(cereal::JSONOutputArchive& archive) const override;
+	void deserialize(cereal::JSONInputArchive& archive) override;
 
 #if defined(USE_IMGUI)
 	void imgui_tree_inner_render() override;

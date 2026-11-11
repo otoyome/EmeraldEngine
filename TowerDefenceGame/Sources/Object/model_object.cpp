@@ -1,4 +1,8 @@
 #include "Object/model_object.h"
+#include "Object/game_object_serializer.h"
+
+#include "cereal/cereal.hpp"
+#include "cereal/archives/json.hpp"
 
 model_instance_ptr model_object::get_model_instance()
 {
@@ -32,38 +36,18 @@ void model_object::set_apply_root_animation_transform(bool flag)
 	apply_root_animation_transform = flag;
 }
 
-model_object::model_object(std::string_view name, std::string_view file_path)
+model_object::model_object(std::string_view name)
 : spatial_object(name)
 {
-	//	モデルファイルが存在するかチェック
-	std::filesystem::path path(file_path);
-	if (std::filesystem::exists(path))
-	{
-		model_resource_ptr resource;
-		if (model_resource_manager::instance()->load(resource, file_path))
-		{
-			model_instance = std::make_shared<::model_instance>(resource);
-			model_instance->update_transform(math::transformd::identity());
-		}
-	}
-
-	//	IK情報チェック
-	if (model_instance)
-	{
-		path.replace_extension(ik_resource::extension);
-		if (std::filesystem::exists(path))
-		{
-			ik_resource_ptr resource;
-			if (ik_resource_manager::instance()->load(resource, path.string()))
-			{
-				set_ik_resource(resource);
-			}
-		}
-	}
-
 #if defined(USE_IMGUI)
 	editor_context = editor_items::generate_context();
 #endif	//	defined(USE_IMGUI)
+}
+
+model_object::model_object(std::string_view name, std::string_view file_path)
+: model_object(name)
+{
+	load_model(file_path);
 }
 
 model_object::model_object(std::string_view name, model_resource_ptr resource)
@@ -831,3 +815,82 @@ void model_object::imgui_render_core()
 #undef CHECK_BOX
 #endif	//	defined(USE_IMGUI)
 
+void model_object::load_model(std::string_view file_path)
+{
+	//	モデルファイルが存在するかチェック
+	std::filesystem::path path(file_path);
+	if (std::filesystem::exists(path))
+	{
+		model_resource_ptr resource;
+		if (model_resource_manager::instance()->load(resource, file_path))
+		{
+			model_instance = std::make_shared<::model_instance>(resource);
+			model_instance->update_transform(math::transformd::identity());
+		}
+	}
+
+	//	IK情報チェック
+	if (model_instance)
+	{
+		path.replace_extension(ik_resource::extension);
+		if (std::filesystem::exists(path))
+		{
+			ik_resource_ptr resource;
+			if (ik_resource_manager::instance()->load(resource, path.string()))
+			{
+				set_ik_resource(resource);
+			}
+		}
+	}
+}
+
+void model_object::serialize(cereal::JSONOutputArchive& archive) const
+{
+	base::serialize(archive);
+
+	const model_resource_ptr resource = model_instance ? model_instance->get_resource() : nullptr;
+	const resource::asset_reference<model_resource> reference = resource::asset_reference<model_resource>::from(resource);
+	game_object_serializer::save_asset_reference(archive, "model", reference.uuid, reference.path);
+
+	bool color_render = model_instance && model_instance->is_flag(model_instance::flags::color_render);
+	bool shadow_caster = model_instance && model_instance->is_flag(model_instance::flags::shadow_caster);
+	bool culling = model_instance && model_instance->is_flag(model_instance::flags::culling);
+	bool self_shadow_off = model_instance && model_instance->is_flag(model_instance::flags::self_shadow_off);
+	bool use_capsule_shadow = model_instance && model_instance->is_flag(model_instance::flags::use_capsule_shadow);
+	archive(CEREAL_NVP(color_render),
+		CEREAL_NVP(shadow_caster),
+		CEREAL_NVP(culling),
+		CEREAL_NVP(self_shadow_off),
+		CEREAL_NVP(use_capsule_shadow));
+}
+
+void model_object::deserialize(cereal::JSONInputArchive& archive)
+{
+	base::deserialize(archive);
+
+	universally_unique_identifier uuid;
+	std::string path;
+	game_object_serializer::load_asset_reference(archive, "model", uuid, path);
+	if (!uuid.is_empty() || !path.empty())
+		load_model(game_object_serializer::resolve_asset_path(uuid, path));
+
+	bool color_render = false;
+	bool shadow_caster = false;
+	bool culling = false;
+	bool self_shadow_off = false;
+	bool use_capsule_shadow = false;
+	archive(CEREAL_NVP(color_render),
+		CEREAL_NVP(shadow_caster),
+		CEREAL_NVP(culling),
+		CEREAL_NVP(self_shadow_off),
+		CEREAL_NVP(use_capsule_shadow));
+
+	if (model_instance)
+	{
+		model_instance->set_flag(model_instance::flags::color_render, color_render);
+		model_instance->set_flag(model_instance::flags::shadow_caster, shadow_caster);
+		model_instance->set_flag(model_instance::flags::culling, culling);
+		model_instance->set_flag(model_instance::flags::self_shadow_off, self_shadow_off);
+		model_instance->set_flag(model_instance::flags::use_capsule_shadow, use_capsule_shadow);
+	}
+}

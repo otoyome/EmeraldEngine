@@ -4,7 +4,7 @@
 #include "Texture/texture_resource_utility.h"
 #include "System/project_path.h"
 
-const std::vector<texture_ptr>& font_data::get_textures() const
+const std::vector<texture_resource_ptr>& font_data::get_textures() const
 {
 	return textures;
 }
@@ -147,7 +147,7 @@ font_data::font_data(std::string_view file_name)
 			// テクスチャ読み込み
 			std::filesystem::path texture_path(fname);
 			texture_path.replace_extension(texture_resource::extension);
-			textures[i] = texture_resource_utility::load_texture(project_path::normalize(texture_path.string()));
+			textures[i] = texture_resource_utility::load_texture_resource(project_path::normalize(texture_path.string()));
 		}
 
 		// chars

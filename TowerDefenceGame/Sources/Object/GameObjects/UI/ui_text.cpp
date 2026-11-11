@@ -34,7 +34,8 @@ ui_text::ui_text(std::string_view name, font_data_ptr font_data)
 	int texture_index = 0;
 	for (auto& sprite : get_sprites())
 	{
-		sprite.get_material().set_texture(sprite::base_texture_name, font_data->get_textures().at(texture_index++));
+		const texture_resource_ptr& texture = font_data->get_textures().at(texture_index++);
+		sprite.get_material().set_texture(sprite::base_texture_name, texture ? texture->get_texture() : nullptr);
 	}
 }
 

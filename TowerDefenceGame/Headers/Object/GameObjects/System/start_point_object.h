@@ -14,8 +14,12 @@ public:
 	void set_tag(std::string_view tag);
 
 public:
+	start_point_object(std::string_view name);
 	start_point_object(std::string_view name, std::string_view tag);
 	~start_point_object() override;
+
+	void serialize(cereal::JSONOutputArchive& archive) const override;
+	void deserialize(cereal::JSONInputArchive& archive) override;
 
 #if defined(USE_IMGUI)
 	void debug_update(float elapsed_time) override;

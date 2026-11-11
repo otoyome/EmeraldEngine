@@ -14,8 +14,12 @@ public:
 	void set_model_object(std::shared_ptr<model_object> model);
 
 public:
+	stage_object(std::string_view name);
 	stage_object(std::string_view name, std::shared_ptr<model_object> model);
 	~stage_object() override;
+
+	void serialize(cereal::JSONOutputArchive& archive) const override;
+	void deserialize(cereal::JSONInputArchive& archive) override;
 
 #if defined(USE_IMGUI)
 	void imgui_render_core() override;

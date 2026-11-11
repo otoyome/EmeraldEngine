@@ -14,7 +14,7 @@
 #include "Resource/resource_base.h"
 #include "Resource/resource_loader.h"
 #include "Resource/resource_saver.h"
-#include "Resource/asset_reference.h"
+#include "Resource/asset_handle.h"
 
 class model_resource;
 
@@ -171,7 +171,7 @@ public:
 	};
 
 public:
-	inline const std::vector<material_resource_ptr>& get_materials() const {return materials;}
+	inline const std::vector<resource::asset_handle<material_resource>>& get_materials() const {return materials;}
 	inline const std::vector<node>& get_nodes() const {return nodes;}
 	inline const std::vector<mesh>& get_meshes() const {return  meshes;}
 	inline const std::vector<morph>& get_morphes() { return morphes; }
@@ -179,7 +179,7 @@ public:
 	inline const std::vector<capsule_shadow>& get_capsule_shadows() const {return capsule_shadows;}
 
 #if defined(USE_IMGUI)
-	inline std::vector<material_resource_ptr>& get_materials_for_editor() { return materials; }
+	inline std::vector<resource::asset_handle<material_resource>>& get_materials_for_editor() { return materials; }
 	inline std::vector<node>& get_nodes_for_editor() { return nodes; }
 	inline std::vector<mesh>& get_meshes_for_editor() { return meshes; }
 	inline std::vector<morph>& get_morphes_for_editor() { return morphes; }
@@ -204,12 +204,12 @@ public:
 
 private:
 	bool save_file(std::string_view file_path);
-	bool load_file(std::string_view file_path, std::vector<resource::asset_reference<material_resource>>& out_material_references);
+	bool load_file(std::string_view file_path);
 
 	void build_model();
 
 private:
-	std::vector<material_resource_ptr> materials;
+	std::vector<resource::asset_handle<material_resource>> materials;
 	std::vector<node> nodes;
 	std::vector<mesh> meshes;
 	std::vector<morph> morphes;
@@ -231,7 +231,6 @@ namespace resource
 
 	private:
 		model_resource_ptr resource;
-		std::vector<asset_reference<material_resource>> material_references;
 		std::vector<load_operation_ptr<material_resource>> material_operations;
 	};
 

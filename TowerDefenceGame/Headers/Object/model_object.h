@@ -46,9 +46,13 @@ public:
 	void set_apply_root_animation_transform(bool flag);
 
 public:
+	model_object(std::string_view name);
 	model_object(std::string_view name, std::string_view file_path);
 	model_object(std::string_view name, model_resource_ptr resource);
 	~model_object() override;
+
+	void serialize(cereal::JSONOutputArchive& archive) const override;
+	void deserialize(cereal::JSONInputArchive& archive) override;
 
 	void fixed_update(float elapsed_time) override;
 	void pre_render() override;
@@ -100,6 +104,8 @@ private:
 	void update_node_animation(const animation::data& animation_data, float current_time, float previous_time);
 	void update_morph_animation(const animation::data& animation_data, float current_time, float previous_time);
 	void update_ik();
+
+	void load_model(std::string_view file_path);
 
 private:
 	model_instance_ptr model_instance;

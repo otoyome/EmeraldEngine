@@ -49,6 +49,15 @@ void data_converter::assign_material_paths(const std::vector<material_resource_p
 	}
 }
 
+void data_converter::assign_material_paths(const std::vector<resource::asset_handle<material_resource>>& materials, std::string_view owner_file_path)
+{
+	std::vector<material_resource_ptr> resources;
+	resources.reserve(materials.size());
+	for (auto& material : materials)
+		resources.emplace_back(material.get());
+	assign_material_paths(resources, owner_file_path);
+}
+
 void data_converter::inherit_existing_model(model_resource& resource)
 {
 	const std::string file_path(resource.get_file_path());
@@ -68,7 +77,7 @@ void data_converter::inherit_existing_model(model_resource& resource)
 		if (!material)
 			continue;
 
-		for (auto& existing_material : operation->get_resource()->get_materials())
+		for (const material_resource_ptr& existing_material : operation->get_resource()->get_materials())
 		{
 			if (!existing_material || existing_material->is_missing() || used_materials.contains(existing_material.get()))
 				continue;

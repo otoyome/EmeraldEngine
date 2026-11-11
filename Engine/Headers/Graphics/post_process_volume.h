@@ -1,6 +1,8 @@
 #pragma once
 
 #include "Texture/texture.h"
+#include "Texture/texture_resource.h"
+#include "Resource/asset_handle.h"
 #include "Graphics/exposure_controller.h"
 
 class material_resource;
@@ -28,7 +30,7 @@ public:
 	float deviation = 50.0f;
 
 	//	convolution
-	texture_ptr image_kernel;
+	resource::asset_handle<texture_resource> image_kernel;
 
 public:
 	bloom_data();
@@ -55,8 +57,8 @@ public:
 	int iteration = 4;
 	float ghost_bokeh = 2.0f;
 
-	texture_ptr image_kernel;
-	texture_ptr ghost_color_lut;
+	resource::asset_handle<texture_resource> image_kernel;
+	resource::asset_handle<texture_resource> ghost_color_lut;
 
 public:
 	lens_ghosts_data();

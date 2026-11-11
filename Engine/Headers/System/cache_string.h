@@ -147,15 +147,15 @@ public:
 
 public:
 	template<class Archive>
-	std::string save_minimal(Archive const&) const
+	friend std::string save_minimal(Archive const&, const cache_string& target)
 	{
-		return value;
+		return target.value;
 	}
 
 	template<class Archive>
-	void load_minimal(Archive const&, const std::string& value)
+	friend void load_minimal(Archive const&, cache_string& target, const std::string& value)
 	{
-		assign(value);
+		target.assign(value);
 	}
 
 private:
