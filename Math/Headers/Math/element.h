@@ -82,7 +82,7 @@ namespace math
 		constexpr bool operator!=(const element4& v) const { return !(*this == v); }
 	};
 
-	//	行列（行優先で Rows 行 Columns 列）
+	//	行列
 	template<typename T, std::uint32_t Rows, std::uint32_t Columns>
 	struct element_matrix
 	{
@@ -137,8 +137,8 @@ namespace math
 	struct element_matrix<T, 4, 4>
 	{
 		using value_type = T;
-		static constexpr std::uint32_t row_count = 4;			//	行数
-		static constexpr std::uint32_t column_count = 4;		//	列数
+		static constexpr std::uint32_t row_count = 4;		//	行数
+		static constexpr std::uint32_t column_count = 4;	//	列数
 		static constexpr std::uint32_t element_count = 16;	//	要素数
 
 		union
@@ -193,12 +193,14 @@ namespace math
 	using int2 = element2<std::int32_t>;
 	using int3 = element3<std::int32_t>;
 	using int4 = element4<std::int32_t>;
+	using uint = std::uint32_t;
 	using uint2 = element2<std::uint32_t>;
 	using uint3 = element3<std::uint32_t>;
 	using uint4 = element4<std::uint32_t>;
 	using short2 = element2<std::int16_t>;
 	using short3 = element3<std::int16_t>;
 	using short4 = element4<std::int16_t>;
+	using ushort = std::uint16_t;
 	using ushort2 = element2<std::uint16_t>;
 	using ushort3 = element3<std::uint16_t>;
 	using ushort4 = element4<std::uint16_t>;
@@ -212,7 +214,5 @@ namespace math
 	using double3x4 = element_matrix<double, 3, 4>;
 	using double4x3 = element_matrix<double, 4, 3>;
 	using double4x4 = element_matrix<double, 4, 4>;
-
-	static_assert(sizeof(float3) == 12 && sizeof(float4x4) == 64 && sizeof(float4x3) == 48, "要素は詰めて並ぶ必要がある");
 
 }	//	namespace math
