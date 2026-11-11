@@ -1,0 +1,70 @@
+111 equal=1 count=3
+child world=11,2,3 parent_ok=1 plain_active=0 uuid_same=1
+{
+    "version": 1,
+    "objects": [
+        {
+            "type": "class spatial_object",
+            "parent": "",
+            "uuid": "41d52eed-f633-40cd-bcd6-8c806d6e986b",
+            "name": "root",
+            "active": true,
+            "spatial": {
+                "cereal_class_version": 1,
+                "local": {
+                    "cereal_class_version": 1,
+                    "scale": {
+                        "x": 1.0,
+                        "y": 1.0,
+                        "z": 1.0
+                    },
+                    "rotation": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0,
+                        "w": 1.0
+                    },
+                    "translation": {
+                        "x": 1.0,
+                        "y": 2.0,
+                        "z": 3.0
+                    }
+                }
+            }
+        },
+        {
+            "type": "class spatial_object",
+            "parent": "41d52eed-f633-40cd-bcd6-8c806d6e986b",
+            "uuid": "869aabc6-b148-45a2-bab2-12f5538eaf17",
+            "name": "child",
+            "active": true,
+            "spatial": {
+                "local": {
+                    "scale": {
+                        "x": 1.0,
+                        "y": 1.0,
+                        "z": 1.0
+                    },
+                    "rotation": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0,
+                        "w": 1.0
+                    },
+                    "translation": {
+                        "x": 10.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    }
+                }
+            }
+        },
+        {
+            "type": "class game_object",
+            "parent": "",
+            "uuid": "8596ca3e-5457-4bbd-975b-dac7ebaf223f",
+            "name": "plain",
+            "active": false
+        }
+    ]
+}

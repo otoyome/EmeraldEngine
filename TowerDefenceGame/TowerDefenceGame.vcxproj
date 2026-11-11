@@ -638,6 +638,8 @@ xcopy "$(SolutionDir)External\SDL3\lib\SDL3.dll" "$(OutDir)" /y</Command>
     <ClCompile Include="Sources\Object\engine_context.cpp" />
     <ClCompile Include="Sources\Object\post_process_volume_object.cpp" />
     <ClCompile Include="Sources\Object\spatial_object.cpp" />
+    <ClCompile Include="Sources\Object\game_object_registry.cpp" />
+    <ClCompile Include="Sources\Object\game_object_serializer.cpp" />
     <ClCompile Include="Sources\PipelineState\anti_alias_pipeline_state.cpp" />
     <ClCompile Include="Sources\PipelineState\debug_draw_line_pipeline_state.cpp" />
     <ClCompile Include="Sources\PipelineState\deferred_decal_pipeline_state.cpp" />
@@ -781,6 +783,8 @@ xcopy "$(SolutionDir)External\SDL3\lib\SDL3.dll" "$(OutDir)" /y</Command>
     <ClInclude Include="Headers\Object\engine_context.h" />
     <ClInclude Include="Headers\Object\post_process_volume_object.h" />
     <ClInclude Include="Headers\Object\spatial_object.h" />
+    <ClInclude Include="Headers\Object\game_object_registry.h" />
+    <ClInclude Include="Headers\Object\game_object_serializer.h" />
     <ClInclude Include="Headers\PipelineState\anti_alias_pipeline_state.h" />
     <ClInclude Include="Headers\PipelineState\debug_draw_line_pipeline_state.h" />
     <ClInclude Include="Headers\PipelineState\deferred_decal_pipeline_state.h" />

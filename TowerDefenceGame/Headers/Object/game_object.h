@@ -3,7 +3,15 @@
 #include <mutex>
 #include <functional>
 
+#include "System/universally_unique_identifier.h"
+
 class engine_context;
+
+namespace cereal
+{
+	class JSONOutputArchive;
+	class JSONInputArchive;
+}
 
 //	ゲーム用オブジェクト
 class game_object : public std::enable_shared_from_this<game_object>
@@ -24,6 +32,9 @@ public:
 
 	bool is_active() const;
 	void set_active(bool active);
+
+	const universally_unique_identifier& get_uuid() const { return uuid; }
+	void set_uuid(const universally_unique_identifier& value) { uuid = value; }
 
 	bool has_context() const { return context != nullptr; }
 	engine_context& get_context() const;
@@ -56,6 +67,10 @@ public:
 	virtual void on_initialize();
 	virtual void on_finalize();
 
+	//	保存・読込
+	virtual void serialize(cereal::JSONOutputArchive& archive) const;
+	virtual void deserialize(cereal::JSONInputArchive& archive);
+
 protected:
 	virtual void on_active();
 	virtual void on_deactive();
@@ -68,6 +83,7 @@ private:
 	bool display_inspector = true;
 #endif	//	defined(USE_IMGUI)
 	cache_string name;
+	universally_unique_identifier uuid;
 
 	inline static std::atomic<size_t> id_counter;
 };

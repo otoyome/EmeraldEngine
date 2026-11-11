@@ -128,7 +128,7 @@ bool app_window::set_icon(const wchar_t* path)
 	if (!hwnd || !path || !*path)
 		return false;
 
-	//	@tool .ico の中から各サイズに合う画像を選んで読み込む
+	//	.ico の中から各サイズに合う画像を選んで読み込む
 	HICON loaded_big = static_cast<HICON>(LoadImageW(nullptr, path, IMAGE_ICON, GetSystemMetrics(SM_CXICON), GetSystemMetrics(SM_CYICON), LR_LOADFROMFILE));
 	HICON loaded_small = static_cast<HICON>(LoadImageW(nullptr, path, IMAGE_ICON, GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON), LR_LOADFROMFILE));
 	if (!loaded_big || !loaded_small)
@@ -143,7 +143,7 @@ bool app_window::set_icon(const wchar_t* path)
 	SendMessageW(hwnd, WM_SETICON, ICON_BIG, reinterpret_cast<LPARAM>(loaded_big));
 	SendMessageW(hwnd, WM_SETICON, ICON_SMALL, reinterpret_cast<LPARAM>(loaded_small));
 
-	//	@tool 前のアイコンは差し替えた後に解放
+	//	前のアイコンは差し替えた後に解放
 	destroy_icons();
 	icon_big = loaded_big;
 	icon_small = loaded_small;

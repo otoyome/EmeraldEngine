@@ -221,10 +221,7 @@ namespace math
 	template<class Archive>
 	void rigid_transform<T>::serialize(Archive& archive, int version)
 	{
-		archive(
-			cereal::make_nvp("rotation", rotation),
-			cereal::make_nvp("translation", translation)
-		);
+		archive(CEREAL_NVP(rotation), CEREAL_NVP(translation));
 	}
 
 	template class rigid_transform<float>;

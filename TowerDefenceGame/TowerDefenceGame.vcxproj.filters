@@ -542,6 +542,12 @@
     <ClCompile Include="Sources\Object\spatial_object.cpp">
       <Filter>Sources\Object</Filter>
     </ClCompile>
+    <ClCompile Include="Sources\Object\game_object_registry.cpp">
+      <Filter>Sources\Object</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Object\game_object_serializer.cpp">
+      <Filter>Sources\Object</Filter>
+    </ClCompile>
     <ClCompile Include="Sources\Object\GameObjects\System\start_point_object.cpp">
       <Filter>Sources\Object\System</Filter>
     </ClCompile>
@@ -935,6 +941,12 @@
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Object\spatial_object.h">
+      <Filter>Headers\Object</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Object\game_object_registry.h">
+      <Filter>Headers\Object</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Object\game_object_serializer.h">
       <Filter>Headers\Object</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Object\GameObjects\System\start_point_object.h">

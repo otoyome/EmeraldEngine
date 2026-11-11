@@ -3,6 +3,7 @@
 
 #include "System/game_config_data.h"
 #include "System/project_path.h"
+#include "Object/game_object_registry.h"
 
 bool core_process::enter()
 {
@@ -29,11 +30,17 @@ bool core_process::enter()
 		//	@remainder	内部でコンソールマネージャーに情報を受け渡しているだけ。
 		game_config_data::create_instance();
 	}
+
+	//	オブジェクトの型登録表
+	game_object_registry::create_instance();
 	return true;
 }
 
 void core_process::exit()
 {
+	//	オブジェクトの型登録表解除
+	game_object_registry::delete_instance();
+
 	//	ゲームコンフィグ終了
 	{
 		game_config_data::delete_instance();

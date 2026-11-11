@@ -1,5 +1,8 @@
 #include "Object/spatial_object.h"
 
+#include "cereal/cereal.hpp"
+#include "cereal/archives/json.hpp"
+
 const std::shared_ptr<::spatial>& spatial_object::get_spatial() const
 {
 	return spatial;
@@ -101,6 +104,18 @@ bool spatial_object::attach(const std::shared_ptr<spatial_object>& parent, attac
 void spatial_object::detach(attach_rule rule)
 {
 	spatial->detach(rule);
+}
+
+void spatial_object::serialize(cereal::JSONOutputArchive& archive) const
+{
+	base::serialize(archive);
+	archive(cereal::make_nvp("spatial", *spatial));
+}
+
+void spatial_object::deserialize(cereal::JSONInputArchive& archive)
+{
+	base::deserialize(archive);
+	archive(cereal::make_nvp("spatial", *spatial));
 }
 
 spatial_object::spatial_object(std::string_view name)

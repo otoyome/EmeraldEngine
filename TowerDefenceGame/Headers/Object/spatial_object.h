@@ -45,6 +45,9 @@ public:
 	bool attach(const std::shared_ptr<spatial_object>& parent, attach_rule rule = attach_rule::keep_world);
 	void detach(attach_rule rule = attach_rule::keep_world);
 
+	void serialize(cereal::JSONOutputArchive& archive) const override;
+	void deserialize(cereal::JSONInputArchive& archive) override;
+
 #if defined(USE_IMGUI)
 	void imgui_render_core() override;
 #endif	//	defined(USE_IMGUI)

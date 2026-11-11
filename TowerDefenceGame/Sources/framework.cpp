@@ -68,7 +68,7 @@ int framework::run()
 	//	ウィンドウ名設定
 	SetWindowTextW(hwnd, engine_config_data::instance()->application.name.get<utf16_cache>().c_str());
 
-	//	@tool アイコン設定
+	//	アイコン設定
 	const cache_string& icon_path = engine_config_data::instance()->application.icon_path;
 	if (!window.set_icon(icon_path.get<utf16_cache>().c_str()))
 		DEBUG_LOG_CATEGORY(logger::categorys::system, "Load Failed Icon[%s]", icon_path.c_str());

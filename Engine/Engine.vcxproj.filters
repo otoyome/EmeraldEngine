@@ -570,6 +570,9 @@
     <ClInclude Include="Headers\stdafx_engine.h">
       <Filter>Headers</Filter>
     </ClInclude>
+    <ClInclude Include="Headers\Graphics\ui_draw_data.h">
+      <Filter>Headers\Graphics</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Sources\Animation\animation_resource.cpp">

@@ -266,7 +266,7 @@ void spatial::update_world() const
 template<class Archive>
 void spatial::serialize(Archive& archive, int version)
 {
-	archive(cereal::make_nvp("local", local));
+	archive(CEREAL_NVP(local));
 
 	if constexpr (Archive::is_loading::value)
 	{
