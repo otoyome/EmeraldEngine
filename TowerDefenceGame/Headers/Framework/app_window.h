@@ -48,9 +48,15 @@ public:
 	//	表示の方法を切り替える
 	void apply_window_mode(engine_config_data::windows_data::window_modes mode, int client_width, int client_height);
 
+	//	@tool アイコンを .ico ファイルから設定
+	bool set_icon(const wchar_t* path);
+
 private:
 	//	ウィンドウスタイル取得
 	DWORD get_windowed_style() const;
+
+	//	@tool 読み込んだアイコンを解放
+	void destroy_icons();
 
 	static LRESULT CALLBACK window_procedure(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam);
 	LRESULT handle_message(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam);
@@ -62,4 +68,6 @@ private:
 	std::vector<message_hook> message_hooks;
 	std::function<void()> close_handler;
 	float wheel{ 0 };
+	HICON icon_big = nullptr;	//	@tool タイトルバー・タスクバー用のアイコン
+	HICON icon_small = nullptr;	//	@tool 小さいアイコン
 };

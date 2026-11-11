@@ -11,6 +11,7 @@ app_window::~app_window()
 		DestroyWindow(hwnd);
 	}
 	hwnd = nullptr;
+	destroy_icons();
 }
 
 bool app_window::create(HINSTANCE instance, const wchar_t* class_name, int client_width, int client_height, kinds kind, const wchar_t* title)
@@ -120,6 +121,43 @@ void app_window::apply_window_mode(engine_config_data::windows_data::window_mode
 		engine_config_data::instance()->windows.window_top,
 		rc.right - rc.left, rc.bottom - rc.top,
 		SWP_FRAMECHANGED | SWP_NOZORDER | SWP_NOACTIVATE);
+}
+
+bool app_window::set_icon(const wchar_t* path)
+{
+	if (!hwnd || !path || !*path)
+		return false;
+
+	//	@tool .ico の中から各サイズに合う画像を選んで読み込む
+	HICON loaded_big = static_cast<HICON>(LoadImageW(nullptr, path, IMAGE_ICON, GetSystemMetrics(SM_CXICON), GetSystemMetrics(SM_CYICON), LR_LOADFROMFILE));
+	HICON loaded_small = static_cast<HICON>(LoadImageW(nullptr, path, IMAGE_ICON, GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON), LR_LOADFROMFILE));
+	if (!loaded_big || !loaded_small)
+	{
+		if (loaded_big)
+			DestroyIcon(loaded_big);
+		if (loaded_small)
+			DestroyIcon(loaded_small);
+		return false;
+	}
+
+	SendMessageW(hwnd, WM_SETICON, ICON_BIG, reinterpret_cast<LPARAM>(loaded_big));
+	SendMessageW(hwnd, WM_SETICON, ICON_SMALL, reinterpret_cast<LPARAM>(loaded_small));
+
+	//	@tool 前のアイコンは差し替えた後に解放
+	destroy_icons();
+	icon_big = loaded_big;
+	icon_small = loaded_small;
+	return true;
+}
+
+void app_window::destroy_icons()
+{
+	if (icon_big)
+		DestroyIcon(icon_big);
+	if (icon_small)
+		DestroyIcon(icon_small);
+	icon_big = nullptr;
+	icon_small = nullptr;
 }
 
 LRESULT CALLBACK app_window::window_procedure(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)

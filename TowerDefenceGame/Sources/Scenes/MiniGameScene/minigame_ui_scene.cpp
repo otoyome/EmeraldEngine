@@ -212,7 +212,7 @@ minigame_ui_scene::minigame_ui_scene()
 
 		desc.start_image = std::make_shared<ui_image>("ルンバUI：カウントダウン表示：スタート画像");
 		desc.start_image->set_texture("Assets/Resources/Textures/hud/Start.etx");
-		desc.start_image->set_screen_rect({ 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT });
+		desc.start_image->set_screen_rect({ 0, 0, ui::virtual_screen_width, ui::virtual_screen_height });
 		desc.start_image->set_draw_mode(ui_image::draw_modes::single);
 		desc.start_image->set_color({ 1, 1, 1, 0 });
 		desc.start_image->set_sort_order(200);
@@ -220,7 +220,7 @@ minigame_ui_scene::minigame_ui_scene()
 
 		desc.finish_image = std::make_shared<ui_image>("ルンバUI：カウントダウン表示：フィニッシュ画像");
 		desc.finish_image->set_texture("Assets/Resources/Textures/hud/Finish.etx");
-		desc.finish_image->set_screen_rect({ 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT });
+		desc.finish_image->set_screen_rect({ 0, 0, ui::virtual_screen_width, ui::virtual_screen_height });
 		desc.finish_image->set_draw_mode(ui_image::draw_modes::single);
 		desc.finish_image->set_color({ 1, 1, 1, 0 });
 		desc.finish_image->set_sort_order(200);

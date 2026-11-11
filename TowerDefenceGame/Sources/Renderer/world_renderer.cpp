@@ -388,11 +388,19 @@ void world_renderer::collect(world& target)
 	view_selection selection;
 	camera_cut = false;
 	const camera_ptr game_camera = target.find_view_camera();
+
+	//	@tool 画面の矩形は出力先の大きさに合わせる（カメラにも書き戻し、ピッキングなどの投影と一致させる）
+	const math::uint2 output_size = render_targets->output.get_size();
+	const math::float4 screen_rect = { 0.0f, 0.0f, static_cast<float>((std::max)(output_size.x, 1u)), static_cast<float>((std::max)(output_size.y, 1u)) };
+	if (game_camera)
+		game_camera->get_parameters().screen_rect = screen_rect;
+
 	if (selector.select(game_camera.get(), selection))
 	{
 		current_view_parameters = selection.parameters;
 		camera_cut = selection.camera_cut;
 	}
+	current_view_parameters.screen_rect = screen_rect;
 
 	//	相対描画用の描画原点
 	const math::vector3d render_origin = scene_view::compute_render_origin(current_view_parameters, engine_config_data::instance()->rendering.camera_relative_rendering);

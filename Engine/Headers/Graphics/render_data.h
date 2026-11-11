@@ -9,8 +9,6 @@
 #include "Graphics/gpu_readback_queue.h"
 #include "Graphics/render_state_cache.h"
 
-CONST LONG SCREEN_WIDTH{ 1280 };
-CONST LONG SCREEN_HEIGHT{ 720 };
 CONST BOOL FULLSCREEN{ FALSE };
 
 class render_data

@@ -96,13 +96,13 @@ mouse::mouse(HWND hwnd)
 , window_center_lock(false)
 , cursol_hide(false)
 , wheel_value(0)
-, viewport_size()
+, client_size()
 , position_state()
 {
 	RECT rc;
 	GetClientRect(hwnd, &rc);
-	viewport_size.x = rc.right - rc.left;
-	viewport_size.y = rc.bottom - rc.top;
+	client_size.x = rc.right - rc.left;
+	client_size.y = rc.bottom - rc.top;
 
 	//	ホイールは Raw Input で受け取る
 	//	INPUTSINK は前面でなくても届くので、受け取る時に自プロセスの窓が前面かを調べる
@@ -124,9 +124,9 @@ mouse::~mouse()
 	::RegisterRawInputDevices(&device, 1, sizeof(device));
 }
 
-void mouse::set_viewport_size(const math::int2& size)
+math::int2 mouse::get_client_size() const
 {
-	viewport_size = size;
+	return client_size;
 }
 
 void mouse::update_state()
@@ -156,6 +156,7 @@ void mouse::update_state()
 		GetClientRect(hwnd, &rc);
 		UINT screen_width = rc.right - rc.left;
 		UINT screen_height = rc.bottom - rc.top;
+		client_size = { static_cast<int>(screen_width), static_cast<int>(screen_height) };
 		bool input_key_state[magic_enum::enum_count<key_states>()];
 		//	自プロセスの窓が前面なら受け付ける
 		if (input::is_process_foreground())
@@ -186,8 +187,8 @@ void mouse::update_state()
 
 			//	座標算出
 			::ScreenToClient(hwnd, &cursor);
-			new_position_state.position.x = rc.left + static_cast<LONG>(cursor.x / static_cast<float>(viewport_size.x) * static_cast<float>(screen_width));
-			new_position_state.position.y = rc.top + static_cast<LONG>(cursor.y / static_cast<float>(viewport_size.y) * static_cast<float>(screen_height));
+			new_position_state.position.x = cursor.x;
+			new_position_state.position.y = cursor.y;
 			if (!window_center_lock)
 			{
 				move_vector.x = new_position_state.position.x - position_state.position.x;
@@ -211,8 +212,8 @@ void mouse::update_state()
 
 			//	座標算出
 			::ScreenToClient(hwnd, &cursor);
-			new_position_state.position.x = static_cast<LONG>(cursor.x / static_cast<float>(viewport_size.x) * static_cast<float>(screen_width));
-			new_position_state.position.y = static_cast<LONG>(cursor.y / static_cast<float>(viewport_size.y) * static_cast<float>(screen_height));
+			new_position_state.position.x = cursor.x;
+			new_position_state.position.y = cursor.y;
 
 			//	カーソル表示化
 			current_cursol_hide = false;

@@ -40,7 +40,7 @@ const math::float2& ui_object_base::get_pivot() const
 	return pivot;
 }
 
-void ui_object_base::set_pivot(const math::float2& position)
+void ui_object_base::set_pivot(const math::float2& pivot)
 {
 	this->pivot = pivot;
 	set_dirty();
@@ -97,7 +97,7 @@ ui_object_base::ui_object_base(std::string_view name)
 , sort_order(0)
 , rotation(0)
 , pivot(0.5f, 0.5f)
-, screen_rect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT)
+, screen_rect(0, 0, ui::virtual_screen_width, ui::virtual_screen_height)
 , uv_rect(0, 0, 1, 1)
 , color(1, 1, 1, 1)
 {

@@ -163,7 +163,7 @@ void ui_image::build_primitive_sliced(std::vector<sprite::vertex>& vertices, std
 	//	テクスチャ空間での境界を算出
 	texture_ptr texture;
 	get_sprite().get_material().get_texture(sprite::base_texture_name, texture);
-	math::float2 texture_size = { SCREEN_WIDTH, SCREEN_HEIGHT };
+	math::float2 texture_size = { ui::virtual_screen_width, ui::virtual_screen_height };
 	if (texture2d_ptr texture_2d = std::static_pointer_cast<texture2d>(texture))
 	{
 		texture_size.x = static_cast<float>(texture_2d->get_width());

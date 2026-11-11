@@ -95,6 +95,7 @@ void engine_config_window::render_window(std::shared_ptr<editor_items::context>&
 		{
 			ImGui::InputTextUtf8("name", engine_config_data::instance()->application.name);
 			ImGui::InputTextUtf8("splash_image_path", engine_config_data::instance()->application.splash_image_path);
+			ImGui::InputTextUtf8("icon_path", engine_config_data::instance()->application.icon_path);
 			ImGui::TextDisabled("restart to apply");
 			ImGui::TreePop();
 		}

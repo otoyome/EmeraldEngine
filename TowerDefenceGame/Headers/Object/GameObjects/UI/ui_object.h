@@ -5,19 +5,23 @@
 
 namespace ui
 {
+	//	UI ‚Ì‰¼‘z‰æ–Ê‚Ì‘å‚«‚³
+	constexpr float virtual_screen_width = 1280.0f;
+	constexpr float virtual_screen_height = 720.0f;
+
 	constexpr math::float2 get_pixel_size()
 	{
-		return { 1.0f / SCREEN_WIDTH, 1.0f / SCREEN_HEIGHT };
+		return { 1.0f / virtual_screen_width, 1.0f / virtual_screen_height };
 	}
 	constexpr math::float4 calculate_screen_rect_rate(math::float4 rect)
 	{
 		//return rect;
-		return { rect.x / SCREEN_WIDTH, rect.y / SCREEN_HEIGHT, rect.z / SCREEN_WIDTH, rect.w / SCREEN_HEIGHT };
+		return { rect.x / virtual_screen_width, rect.y / virtual_screen_height, rect.z / virtual_screen_width, rect.w / virtual_screen_height };
 	}
 	constexpr math::float4 calculate_screen_rect(math::float4 rect_rate)
 	{
 		//return rect;
-		return { rect_rate.x * SCREEN_WIDTH, rect_rate.y * SCREEN_HEIGHT, rect_rate.z * SCREEN_WIDTH, rect_rate.w * SCREEN_HEIGHT };
+		return { rect_rate.x * virtual_screen_width, rect_rate.y * virtual_screen_height, rect_rate.z * virtual_screen_width, rect_rate.w * virtual_screen_height };
 	}
 }	//	namespace ui
 
@@ -37,7 +41,7 @@ public:
 	void set_screen_rect(const math::float4& screen_rect);
 
 	const math::float2& get_pivot() const;
-	void set_pivot(const math::float2& position);
+	void set_pivot(const math::float2& pivot);
 
 	const math::float4& get_uv_rect() const;
 	void set_uv_rect(const math::float4& uv_rect);

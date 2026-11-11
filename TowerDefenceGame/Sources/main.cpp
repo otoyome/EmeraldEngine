@@ -80,8 +80,10 @@ int WINAPI WinMain(_In_ HINSTANCE instance, _In_opt_  HINSTANCE prev_instance, _
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 #endif
 
+	//	設定の読込はウィンドウ作成後なので、既定の大きさで作る（保存されている解像度は graphics_process が適用する）
+	const engine_config_data::windows_data default_windows;
 	app_window window;
-	if (!window.create(instance, framework::APPLICATION_NAME, SCREEN_WIDTH, SCREEN_HEIGHT))
+	if (!window.create(instance, framework::APPLICATION_NAME, static_cast<int>(default_windows.screen_width), static_cast<int>(default_windows.screen_height)))
 		return 0;
 	HWND hwnd = window.get_handle();
 

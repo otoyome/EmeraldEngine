@@ -101,6 +101,10 @@ void editor_camera_object::debug_update(float elapsed_time)
 			auto mouse_state = mouse::instance()->get_state();
 			data.position.x = static_cast<float>(mouse_state.position.position.x);
 			data.position.y = static_cast<float>(mouse_state.position.position.y);
+
+			//	マウス座標はクライアント座標なので、クライアント領域の大きさを基準にする
+			const math::int2 client_size = mouse::instance()->get_client_size();
+			data.viewport_size = { static_cast<float>((std::max)(client_size.x, 1)), static_cast<float>((std::max)(client_size.y, 1)) };
 		}
 		messenger& target = get_context().get_objects().get_messenger();
 		if (input::get_key_state(mouse::key_states::left) == input::state::down)

@@ -19,7 +19,7 @@ namespace
 
 	//	スタート案内アイコン配置位置
 	static constexpr math::float2 start_icon_size = { 120, 120 };
-	static constexpr math::float2 start_icon_position = { (640 - start_icon_size.x) / 2, SCREEN_HEIGHT - 100 };
+	static constexpr math::float2 start_icon_position = { (640 - start_icon_size.x) / 2, ui::virtual_screen_height - 100 };
 }
 
 minigame_title_scene::minigame_title_scene()

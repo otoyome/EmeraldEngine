@@ -12,7 +12,7 @@ render_data::render_data(CONST HWND hwnd)
 	// デバイス＆スワップチェーン生成
 	{
 		UINT create_device_flags{ 0 };
-#ifdef	defined(_DEBUG)
+#if	defined(_DEBUG)
 		create_device_flags |= D3D11_CREATE_DEVICE_DEBUG;
 #endif	//	defined(_DEBUG)
 
@@ -50,8 +50,8 @@ render_data::render_data(CONST HWND hwnd)
 
 		//	フリップモデル
 		DXGI_SWAP_CHAIN_DESC1 swap_chain_desc{};
-		swap_chain_desc.Width = SCREEN_WIDTH;
-		swap_chain_desc.Height = SCREEN_HEIGHT;
+		swap_chain_desc.Width = 0;	//	0指定だとクライアント領域
+		swap_chain_desc.Height = 0;	//	0指定だとクライアント領域
 		swap_chain_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 		swap_chain_desc.Stereo = FALSE;
 		swap_chain_desc.SampleDesc.Count = 1;
@@ -96,15 +96,10 @@ void render_data::present(UINT sync_interval)
 	if (!swap_chain)
 		return;
 
-	//	ティアリング許可は垂直同期なし・ウィンドウ表示のときだけ使える
+	//	ティアリング許可は垂直同期なしのときだけ使う
 	UINT flags = 0;
 	if (sync_interval == 0 && tearing_supported)
-	{
-		BOOL fullscreen = FALSE;
-		swap_chain->GetFullscreenState(&fullscreen, nullptr);
-		if (!fullscreen)
-			flags |= DXGI_PRESENT_ALLOW_TEARING;
-	}
+		flags |= DXGI_PRESENT_ALLOW_TEARING;
 	swap_chain->Present(sync_interval, flags);
 }
 

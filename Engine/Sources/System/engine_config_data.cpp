@@ -6,12 +6,19 @@
 #include "cereal/types/string.hpp"
 #include "cereal/types/vector.hpp"
 #include "cereal/types/unordered_map.hpp"
-#include "cereal/types/unordered_map.hpp"
+
+CEREAL_CLASS_VERSION(engine_config_data::application_data, 2)
+CEREAL_CLASS_VERSION(engine_config_data::windows_data, 1)
+CEREAL_CLASS_VERSION(engine_config_data::antialias_data, 1)
+CEREAL_CLASS_VERSION(engine_config_data::rendering_data, 1)
 
 namespace
 {
 	//	エンジン設定情報
 	static constexpr std::string_view file_path = "engine_config.ini";
+
+	//	ファイル全体のバージョン
+	static constexpr std::uint32_t file_version = 1;
 }
 
 template<class Archive>
@@ -28,44 +35,75 @@ void serialize(Archive& archive, RECT& v)
 template<class Archive>
 void engine_config_data::application_data::serialize(Archive& archive, int version)
 {
-	archive(CEREAL_NVP(name), CEREAL_NVP(splash_image_path));
+	switch (version)
+	{
+		case 0:
+		case 1:
+		{
+			archive(CEREAL_NVP(name), CEREAL_NVP(splash_image_path));
+			break;
+		}
+		case 2:
+		{
+			archive(CEREAL_NVP(name), CEREAL_NVP(splash_image_path), CEREAL_NVP(icon_path));
+			break;
+		}
+	}
 }
 
 template<class Archive>
 void engine_config_data::windows_data::serialize(Archive& archive, int version)
 {
-	archive(CEREAL_NVP(window_left), CEREAL_NVP(window_top), CEREAL_NVP(vertical_sync));
+	switch (version)
+	{
+		case 0:
+		{
+			archive(CEREAL_NVP(window_left), CEREAL_NVP(window_top), CEREAL_NVP(vertical_sync));
 
-	try
-	{
-		archive(CEREAL_NVP(window_mode), CEREAL_NVP(screen_width), CEREAL_NVP(screen_height));
-	}
-	catch (...)
-	{
+			break;
+		}
+		case 1:
+		{
+			archive(CEREAL_NVP(window_left), CEREAL_NVP(window_top), CEREAL_NVP(vertical_sync),
+					CEREAL_NVP(window_mode), CEREAL_NVP(screen_width), CEREAL_NVP(screen_height));
+			break;
+		}
 	}
 }
 
 template<class Archive>
 void engine_config_data::antialias_data::serialize(Archive& archive, int version)
 {
-	archive(CEREAL_NVP(mode));
+	switch (version)
+	{
+		case 0:
+		case 1:
+		{
+			archive(CEREAL_NVP(mode));
+			break;
+		}
+	}
 }
 
 template<class Archive>
 void engine_config_data::rendering_data::serialize(Archive& archive, int version)
 {
-	archive(CEREAL_NVP(camera_relative_rendering));
-
-	try
+	switch (version)
 	{
-		archive(CEREAL_NVP(rendering_gamut));
-	}
-	catch (...)
-	{
+		case 0:
+		{
+			archive(CEREAL_NVP(camera_relative_rendering));
+			break;
+		}
+		case 1:
+		{
+			archive(CEREAL_NVP(camera_relative_rendering), CEREAL_NVP(rendering_gamut));
+			break;
+		}
 	}
 }
 
-engine_config_data::engine_config_data() 
+engine_config_data::engine_config_data()
 {
 	std::ifstream istream(file_path.data());
 	if (istream.is_open())
@@ -74,14 +112,35 @@ engine_config_data::engine_config_data()
 
 		try
 		{
-			archive(CEREAL_NVP(windows), CEREAL_NVP(antialias), CEREAL_NVP(rendering));
-
+			//	"version" が無いファイルは旧形式
+			std::uint32_t version = 0;
 			try
 			{
-				archive(CEREAL_NVP(application));
+				archive(CEREAL_NVP(version));
 			}
 			catch (...)
 			{
+				version = 0;
+			}
+
+			switch (version)
+			{
+				case 0:
+				{
+					archive(CEREAL_NVP(windows), CEREAL_NVP(antialias), CEREAL_NVP(rendering));
+					break;
+				}
+				case 1:
+				{
+					archive(CEREAL_NVP(application), CEREAL_NVP(windows), CEREAL_NVP(antialias), CEREAL_NVP(rendering));
+					break;
+				}
+				default:
+				{
+					DEBUG_LOG_CATEGORY(logger::categorys::system, "Unknown Version EngineConfig[%s] version[%u]", file_path.data(), version);
+					active_rendering_gamut = rendering.rendering_gamut;
+					return;
+				}
 			}
 		}
 		catch (...)
@@ -107,7 +166,8 @@ engine_config_data::~engine_config_data()
 
 		try
 		{
-			archive(CEREAL_NVP(application), CEREAL_NVP(windows), CEREAL_NVP(antialias), CEREAL_NVP(rendering));
+			std::uint32_t version = file_version;
+			archive(CEREAL_NVP(version), CEREAL_NVP(application), CEREAL_NVP(windows), CEREAL_NVP(antialias), CEREAL_NVP(rendering));
 		}
 		catch (...)
 		{

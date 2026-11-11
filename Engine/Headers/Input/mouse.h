@@ -54,9 +54,7 @@ public:
 	void set_cursol_hide(bool hide);
 	bool get_cursol_hide() const;
 
-private:
-	mouse(HWND hwnd);
-	~mouse();
+	math::int2 get_client_size() const;
 
 public:
 	static	inline	void	create_instance(HWND hwnd)
@@ -67,8 +65,11 @@ public:
 		}
 	}
 
-	void set_viewport_size(const math::int2& size);
+private:
+	mouse(HWND hwnd);
+	~mouse();
 
+public:
 	void update_state();
 
 	LRESULT window_proccess(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -78,7 +79,7 @@ private:
 	bool window_center_lock;
 	bool cursol_hide;
 	int wheel_value;
-	math::int2 viewport_size;
+	math::int2 client_size;
 	math::int2 move_vector;
 	position_states position_state;
 	input::state key_state[magic_enum::enum_count<key_states>()];

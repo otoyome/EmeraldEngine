@@ -15,15 +15,15 @@ namespace
 
 	//	リザルト背景配置位置
 	static constexpr math::float2 result_back_position = { 0, 0 };
-	static constexpr math::float2 result_back_size = { SCREEN_WIDTH, SCREEN_HEIGHT };
+	static constexpr math::float2 result_back_size = { ui::virtual_screen_width, ui::virtual_screen_height };
 
 	//	プレイ終了メッセージ配置位置
 	static constexpr math::float2 thanks_message_size = { 600, 258 };
-	static constexpr math::float2 thanks_message_position = { (SCREEN_WIDTH - thanks_message_size.x) / 2, 220 };
+	static constexpr math::float2 thanks_message_position = { (ui::virtual_screen_width - thanks_message_size.x) / 2, 220 };
 
 	//	タイトルへ戻る案内アイコン配置位置
 	static constexpr math::float2 continue_icon_size = { 120, 60 };
-	static constexpr math::float2 continue_icon_position = { (SCREEN_WIDTH - continue_icon_size.x) / 2, SCREEN_HEIGHT - 100 };
+	static constexpr math::float2 continue_icon_position = { (ui::virtual_screen_width - continue_icon_size.x) / 2, ui::virtual_screen_height - 100 };
 
 	//	リザルト成績表示配置位置
 	static constexpr math::float2 result_stats_position = { thanks_message_position.x, thanks_message_position.y + thanks_message_size.y + 20 };

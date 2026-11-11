@@ -4,7 +4,6 @@ camera_object::camera_object(std::string_view name)
 : spatial_object(name)
 {
 	camera = std::make_shared<::camera>();
-	camera->get_parameters().screen_rect = {0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT};
 
 	view_order = view_order_counter.fetch_add(1);
 }
