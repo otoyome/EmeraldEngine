@@ -218,7 +218,7 @@ void ui_renderer::sprite_render(graphics_context& context, const std::vector<buf
 		math::float4x4 transform_matrix = sprite->get_transform_matrix();
 		context.device_context->UpdateSubresource(primitive_constant_buffer.Get(), 0, nullptr, &transform_matrix, 0, 0);
 
-		buffer_datas buffer_data{};
+		mesh_draw_item buffer_data{};
 		buffer_data.primitive_buffer = primitive_constant_buffer;
 		current_pipeline_state->update_parameters(context, sprite->get_material(), &buffer_data);
 

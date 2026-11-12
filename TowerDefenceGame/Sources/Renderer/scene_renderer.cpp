@@ -120,7 +120,7 @@ namespace
 		for (auto draw_index : mesh_container.shadow_datas)
 		{
 			const auto& draw_data = mesh_container.draw_datas[draw_index];
-			const auto& buffer_data = mesh_container.buffer_datas[draw_data.buffer_index];
+			const auto& buffer_data = mesh_container.draw_items[draw_data.buffer_index];
 
 			const float dx = (std::max)((std::max)(buffer_data.bounds_min.x - light.position.x, light.position.x - buffer_data.bounds_max.x), 0.0f);
 			const float dy = (std::max)((std::max)(buffer_data.bounds_min.y - light.position.y, light.position.y - buffer_data.bounds_max.y), 0.0f);
@@ -128,7 +128,7 @@ namespace
 			if (dx * dx + dy * dy + dz * dz > range_square)
 				continue;
 
-			if (!system_utility::is_bitflag(buffer_data.system_flags, buffer_datas::flags::static_mesh))
+			if (!system_utility::is_bitflag(buffer_data.system_flags, mesh_draw_item::flags::static_mesh))
 				out_dynamic = true;
 
 			mix(buffer_data.unique_id);
@@ -414,7 +414,7 @@ void gbuffer_decal_renderer::render(renderer_context& renderer_context)
 				auto& decal = context.render_data->decal_container.decal_datas[decal_index];
 
 				//	バッファ情報生成
-				buffer_datas buffer_data;
+				mesh_draw_item buffer_data;
 				{
 					const math::matrixf W = math::matrixf::scaling(decal.scale.x, decal.scale.y, decal.scale.z)
 										* math::matrixf::rotation_quaternion(decal.rotation.to_quaternion())
@@ -853,7 +853,7 @@ void deffered_lighting_renderer::render_directional_shadow_map(const light_rende
 	math::float3 scene_min = {FLT_MAX, FLT_MAX, FLT_MAX}, scene_max = {-FLT_MAX, -FLT_MAX, -FLT_MAX};
 	{
 		auto draw_data_ptr = context.render_data->mesh_container.draw_datas.data();
-		auto buffer_data_ptr = context.render_data->mesh_container.buffer_datas.data();
+		auto buffer_data_ptr = context.render_data->mesh_container.draw_items.data();
 		for (auto& draw_index : context.render_data->mesh_container.shadow_datas)
 		{
 			auto draw_data = draw_data_ptr + draw_index;
@@ -1409,9 +1409,9 @@ void debug_draw_pass_renderer::render(renderer_context& context)
 		{
 			debug_draw_line_pipeline_states[index]->begin(context);
 			context.device_context->PSSetConstantBuffers(debug_draw_color_cbv_index, 1, color_constant_buffer.GetAddressOf());
-			if (!context.render_data->debug_draw_container.line_buffer_datas[index].color_meshs.empty())
+			if (!context.render_data->debug_draw_container.line_draw_items[index].color_meshs.empty())
 			{
-				auto& mesh = context.render_data->debug_draw_container.line_buffer_datas[index].color_meshs[0];
+				auto& mesh = context.render_data->debug_draw_container.line_draw_items[index].color_meshs[0];
 				auto it = mesh.vertex_buffer_views->begin();
 				context.set_vertex_streams(1, it->second.srv.GetAddressOf());
 

@@ -3,6 +3,7 @@
 #include "Graphics/light.h"
 #include "Texture/texture.h"
 #include "Graphics/buffer_view.h"
+#include "Graphics/mesh_draw_item.h"
 #include "collision/capsule.h"
 #include "collision/box.h"
 
@@ -105,7 +106,7 @@ struct mesh_container
 	{
 		collision::bounding_capsule capsule;
 	};
-	std::vector<buffer_datas> buffer_datas;
+	std::vector<mesh_draw_item> draw_items;
 	std::vector<material_datas> material_datas;
 	std::vector<capsule_shadow_datas> capsule_shadow_datas;
 	//	•`‰æî•ñ
@@ -214,7 +215,7 @@ struct debug_draw_primitive_container
 		normal,
 		disable_depth_test,
 	};
-	buffer_datas line_buffer_datas[magic_enum::enum_count<line_buffer_id>()];
+	mesh_draw_item line_draw_items[magic_enum::enum_count<line_buffer_id>()];
 };
 #endif // defined(USE_IMGUI)
 

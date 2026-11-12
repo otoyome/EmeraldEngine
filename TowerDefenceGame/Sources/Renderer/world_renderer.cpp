@@ -507,7 +507,7 @@ void world_renderer::build_debug_primitives(world& target, const render_data_con
 		math::float4 rotation = {0.0f, 0.0f, 0.0f, 1.0f};
 		math::float4 color = {1.0f, 0.0f, 0.0f, 1.0f};
 		const math::double3 render_origin = render_data.render_origin.to_double3();
-		for (auto& buffer_data : render_data.mesh_container.buffer_datas)
+		for (auto& buffer_data : render_data.mesh_container.draw_items)
 		{
 			math::float3 scale((buffer_data.bounds_max.x - buffer_data.bounds_min.x) * 0.5f, (buffer_data.bounds_max.y - buffer_data.bounds_min.y) * 0.5f, (buffer_data.bounds_max.z - buffer_data.bounds_min.z) * 0.5f);
 			math::float3 center(buffer_data.bounds_min.x + scale.x, buffer_data.bounds_min.y + scale.y, buffer_data.bounds_min.z + scale.z);
@@ -711,14 +711,14 @@ void world_renderer::build_render_lists(
 	const auto& mesh_container = render_data.mesh_container;
 	const auto* draw_data_ptr = mesh_container.draw_datas.data();
 	const auto* material_data_ptr = mesh_container.material_datas.data();
-	const auto* buffer_data_ptr = mesh_container.buffer_datas.data();
+	const auto* buffer_data_ptr = mesh_container.draw_items.data();
 	const auto& color_datas = mesh_container.color_datas;
 	const std::size_t count = color_datas.size();
 
 	//	ソート情報
 	auto& lengths = mesh_indices.lengths;
-	lengths.assign(mesh_container.buffer_datas.size(), 0.0f);
-	sort_pipeline_keys.assign(mesh_container.buffer_datas.size(), std::uintptr_t(0));
+	lengths.assign(mesh_container.draw_items.size(), 0.0f);
+	sort_pipeline_keys.assign(mesh_container.draw_items.size(), std::uintptr_t(0));
 	const auto& near_plane = frustum_culling.get_plane(collision::frustum_culling::surface_near);
 
 	//	描画判定
@@ -730,7 +730,7 @@ void world_renderer::build_render_lists(
 		const auto* buffer_data = buffer_data_ptr + draw_data->buffer_index;
 
 		//	カリング処理
-		if (system_utility::is_bitflag(buffer_data->system_flags, buffer_datas::flags::culling))
+		if (system_utility::is_bitflag(buffer_data->system_flags, mesh_draw_item::flags::culling))
 		{
 			//	フラスタムカリング
 			bool visible = frustum_culling.to_aabb(buffer_data->bounds_min, buffer_data->bounds_max);

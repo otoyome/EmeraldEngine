@@ -1,5 +1,6 @@
 #include "Renderer/scene_renderer_common.h"
 #include "Model/model_buffer_pool.h"
+#include "Model/model_resource.h"
 #include "Material/material_instance.h"
 
 namespace
@@ -174,12 +175,12 @@ void scene_renderer_commons::draw(const graphics_context& context,
 
 void scene_renderer_commons::draw_indexed(const graphics_context& context,
 					float mesh_length,
-					const buffer_datas& buffer_data,
+					const mesh_draw_item& buffer_data,
 					UINT primitive_index,
 					graphics_pipeline_state_ptr pipeline_state,
 					const collision::frustum_culling* meshlet_frustum_culling)
 {
-	const buffer_datas::sub_mesh* draw_mesh = nullptr;
+	const mesh_draw_item::sub_mesh* draw_mesh = nullptr;
 	ID3D11ShaderResourceView* morph_positions[common_pipeline_states::morph_max] = {};
 	ID3D11ShaderResourceView* morph_normals[common_pipeline_states::morph_max] = {};
 	if (context.is_shadow_rendering)
@@ -234,7 +235,7 @@ void scene_renderer_commons::draw_indexed(const graphics_context& context,
 	auto pool = model_buffer_pool_manager::instance();
 
 	bool apply_meshlet_frustum_culling = meshlet_frustum_culling != nullptr &&
-		system_utility::is_bitflag(buffer_data.system_flags, buffer_datas::flags::culling);
+		system_utility::is_bitflag(buffer_data.system_flags, mesh_draw_item::flags::culling);
 
 	std::vector<common_pipeline_states::meshlet_instance_record> instance_records;
 	instance_records.reserve(draw_mesh->meshlets->size());
@@ -298,7 +299,7 @@ void scene_renderer_commons::model_render(graphics_context& context,
 {
 	auto draw_data_ptr = context.render_data->mesh_container.draw_datas.data();
 	auto material_data_ptr = context.render_data->mesh_container.material_datas.data();
-	auto buffer_data_ptr = context.render_data->mesh_container.buffer_datas.data();
+	auto buffer_data_ptr = context.render_data->mesh_container.draw_items.data();
 
 	//	モデル類描画
 	graphics_pipeline_state_ptr current_pipeline_state;
@@ -336,7 +337,7 @@ void scene_renderer_commons::model_render_indirect(graphics_context& context,
 {
 	auto draw_data_ptr = context.render_data->mesh_container.draw_datas.data();
 	auto material_data_ptr = context.render_data->mesh_container.material_datas.data();
-	auto buffer_data_ptr = context.render_data->mesh_container.buffer_datas.data();
+	auto buffer_data_ptr = context.render_data->mesh_container.draw_items.data();
 
 	//	メッシュレットの描画の場合は使わない
 	context.set_vertex_buffers(0, 0, nullptr, nullptr, nullptr);
@@ -400,7 +401,7 @@ void scene_renderer_commons::model_render(graphics_context& context,
 {
 	auto draw_data_ptr = context.render_data->mesh_container.draw_datas.data();
 	auto material_data_ptr = context.render_data->mesh_container.material_datas.data();
-	auto buffer_data_ptr = context.render_data->mesh_container.buffer_datas.data();
+	auto buffer_data_ptr = context.render_data->mesh_container.draw_items.data();
 
 	//	モデル類描画
 	graphics_pipeline_state_ptr current_pipeline_state;
@@ -447,7 +448,7 @@ void scene_renderer_commons::model_render_shadow_batched(graphics_context& conte
 {
 	auto draw_data_ptr = context.render_data->mesh_container.draw_datas.data();
 	auto material_data_ptr = context.render_data->mesh_container.material_datas.data();
-	auto buffer_data_ptr = context.render_data->mesh_container.buffer_datas.data();
+	auto buffer_data_ptr = context.render_data->mesh_container.draw_items.data();
 
 	struct material_batch
 	{
@@ -474,7 +475,7 @@ void scene_renderer_commons::model_render_shadow_batched(graphics_context& conte
 			continue;
 
 		//	影メッシュが無ければ対象外
-		const buffer_datas::sub_mesh& draw_mesh = buffer_data->shadow_mesh;
+		const mesh_draw_item::sub_mesh& draw_mesh = buffer_data->shadow_mesh;
 		if (!draw_mesh.meshlets || draw_mesh.meshlets->empty())
 			continue;
 
@@ -486,7 +487,7 @@ void scene_renderer_commons::model_render_shadow_batched(graphics_context& conte
 		}
 
 		//	メッシュレット単位のフラスタムカリングと収集
-		bool apply_meshlet_frustum_culling = system_utility::is_bitflag(buffer_data->system_flags, buffer_datas::flags::culling);
+		bool apply_meshlet_frustum_culling = system_utility::is_bitflag(buffer_data->system_flags, mesh_draw_item::flags::culling);
 		auto& batch = batches[mat];
 		batch.pipeline_state = pipeline_state;
 		for (auto& meshlet : *draw_mesh.meshlets)
@@ -557,7 +558,7 @@ void scene_renderer_commons::model_render_shadow_batched(graphics_context& conte
 {
 	auto draw_data_ptr = context.render_data->mesh_container.draw_datas.data();
 	auto material_data_ptr = context.render_data->mesh_container.material_datas.data();
-	auto buffer_data_ptr = context.render_data->mesh_container.buffer_datas.data();
+	auto buffer_data_ptr = context.render_data->mesh_container.draw_items.data();
 
 	struct material_batch
 	{
@@ -584,7 +585,7 @@ void scene_renderer_commons::model_render_shadow_batched(graphics_context& conte
 			continue;
 
 		//	影メッシュが無ければ対象外
-		const buffer_datas::sub_mesh& draw_mesh = buffer_data->shadow_mesh;
+		const mesh_draw_item::sub_mesh& draw_mesh = buffer_data->shadow_mesh;
 		if (!draw_mesh.meshlets || draw_mesh.meshlets->empty())
 			continue;
 
@@ -596,7 +597,7 @@ void scene_renderer_commons::model_render_shadow_batched(graphics_context& conte
 		}
 
 		//	メッシュレット単位の球カリングと収集
-		bool apply_meshlet_culling = system_utility::is_bitflag(buffer_data->system_flags, buffer_datas::flags::culling);
+		bool apply_meshlet_culling = system_utility::is_bitflag(buffer_data->system_flags, mesh_draw_item::flags::culling);
 		auto& batch = batches[mat];
 		batch.pipeline_state = pipeline_state;
 		for (auto& meshlet : *draw_mesh.meshlets)

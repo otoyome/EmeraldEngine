@@ -13,7 +13,7 @@ public:
 	~debug_draw_line_pipeline_state() override;
 
 	void begin(const graphics_context& context) override;
-	void update_parameters(const graphics_context& context, const material_instance& material, const buffer_datas* buffer_data) override;
+	void update_parameters(const graphics_context& context, const material_instance& material, const mesh_draw_item* buffer_data) override;
 	void end(const graphics_context& context) override;
 
 private:

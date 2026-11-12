@@ -111,7 +111,7 @@ void skybox_pipeline_state::begin(const graphics_context& context)
 	context.device_context->PSSetConstantBuffers(common_pipeline_states::light_probe_cbv_index, 1, lcbv.GetAddressOf());
 }
 
-void skybox_pipeline_state::update_parameters(const graphics_context& context, const material_instance& material, const buffer_datas* buffer_data)
+void skybox_pipeline_state::update_parameters(const graphics_context& context, const material_instance& material, const mesh_draw_item* buffer_data)
 {
 }
 

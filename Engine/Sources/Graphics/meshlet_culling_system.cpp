@@ -2,6 +2,7 @@
 #include "Graphics/global_shader.h"
 
 #include "Graphics/render_data.h"
+#include "Model/model_resource.h"
 #include "Math/math_all.h"
 
 namespace
@@ -145,7 +146,7 @@ void meshlet_culling_system::build_and_cull(graphics_context& context, const std
 
 	auto& mesh_container = context.render_data->mesh_container;
 	auto draw_data_ptr = mesh_container.draw_datas.data();
-	auto buffer_data_ptr = mesh_container.buffer_datas.data();
+	auto buffer_data_ptr = mesh_container.draw_items.data();
 	auto material_data_ptr = mesh_container.material_datas.data();
 
 	//	マテリアルごとにメッシュレットをグルーピング
@@ -173,7 +174,7 @@ void meshlet_culling_system::build_and_cull(graphics_context& context, const std
 		submesh_transform_scratch.emplace_back(buffer_data.world_transform);
 
 		//	カリング判定
-		UINT no_cull = system_utility::is_bitflag(buffer_data.system_flags, buffer_datas::flags::culling) ? 0 : 1;
+		UINT no_cull = system_utility::is_bitflag(buffer_data.system_flags, mesh_draw_item::flags::culling) ? 0 : 1;
 
 		//	メッシュレット分登録
 		UINT primitive_index = draw_data->buffer_index;

@@ -234,6 +234,9 @@
     <ClInclude Include="Headers\Graphics\buffer_view.h">
       <Filter>Headers\Graphics</Filter>
     </ClInclude>
+    <ClInclude Include="Headers\Graphics\mesh_draw_item.h">
+      <Filter>Headers\Graphics</Filter>
+    </ClInclude>
     <ClInclude Include="Headers\Graphics\camera.h">
       <Filter>Headers\Graphics</Filter>
     </ClInclude>

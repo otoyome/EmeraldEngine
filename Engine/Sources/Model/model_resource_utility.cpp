@@ -738,7 +738,7 @@ void model_resource_utility::generate_lod_meshs(model_resource& resource, int ma
 			//	d•¡’¸“_Å“K‰»
 			for (auto& old_lod_mesh : mesh.lod_meshs)
 			{
-				if (!old_lod_mesh.meshlet_draw_infos.empty())
+				if (!old_lod_mesh.pooled_meshlets.empty())
 				{
 					model_buffer_pool_manager::instance()->free_meshlet_data(
 						old_lod_mesh.meshlet_vertex_base, static_cast<UINT>(old_lod_mesh.meshlet_vertices.size()),
@@ -790,7 +790,7 @@ void model_resource_utility::clear_lod_meshs(model_resource& resource)
 	{
 		for (auto& lod_mesh : mesh.lod_meshs)
 		{
-			if (!lod_mesh.meshlet_draw_infos.empty())
+			if (!lod_mesh.pooled_meshlets.empty())
 			{
 				model_buffer_pool_manager::instance()->free_meshlet_data(
 					lod_mesh.meshlet_vertex_base, static_cast<UINT>(lod_mesh.meshlet_vertices.size()),
@@ -805,7 +805,7 @@ void model_resource_utility::clear_shadow_meshes(model_resource& resource)
 {
 	for (auto& mesh : resource.get_meshes_for_editor())
 	{
-		if (!mesh.shadow_mesh.meshlet_draw_infos.empty())
+		if (!mesh.shadow_mesh.pooled_meshlets.empty())
 		{
 			model_buffer_pool_manager::instance()->free_meshlet_data(
 				mesh.shadow_mesh.meshlet_vertex_base, static_cast<UINT>(mesh.shadow_mesh.meshlet_vertices.size()),
@@ -821,7 +821,7 @@ void model_resource_utility::optimize_meshs(model_resource& resource)
 	{
 		model_buffer_pool_manager::instance()->free_vertex_buffers(mesh.vertex_buffer_views);
 
-		if (!mesh.meshlet_draw_infos.empty())
+		if (!mesh.pooled_meshlets.empty())
 		{
 			model_buffer_pool_manager::instance()->free_meshlet_data(
 				mesh.meshlet_vertex_base, static_cast<UINT>(mesh.meshlet_vertices.size()),
@@ -830,7 +830,7 @@ void model_resource_utility::optimize_meshs(model_resource& resource)
 		mesh.meshlets.clear();
 		mesh.meshlet_vertices.clear();
 		mesh.meshlet_triangles.clear();
-		mesh.meshlet_draw_infos.clear();
+		mesh.pooled_meshlets.clear();
 	}
 
 	optimized_meshs(resource);

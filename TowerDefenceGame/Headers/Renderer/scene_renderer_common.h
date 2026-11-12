@@ -22,7 +22,7 @@ namespace scene_renderer_commons
 
 	void draw_indexed(const graphics_context& context,
 					  float mesh_length,
-					  const buffer_datas& buffer_data,
+					  const mesh_draw_item& buffer_data,
 					  UINT primitive_index,
 					  graphics_pipeline_state_ptr pipeline_state,
 					  const collision::frustum_culling* meshlet_frustum_culling = nullptr);

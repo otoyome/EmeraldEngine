@@ -87,7 +87,7 @@ void display_mapping_pipeline_state::begin(const graphics_context& context)
 	context.device_context->PSSetSamplers(SceneSamplerIndex, 1, render_data::instance()->get_state_cache().get_sampler_state(render_state_cache::SAMPLER_STATE::LINEAR).GetAddressOf());
 }
 
-void display_mapping_pipeline_state::update_parameters(const graphics_context& context, const material_instance& material, const buffer_datas* buffer_data)
+void display_mapping_pipeline_state::update_parameters(const graphics_context& context, const material_instance& material, const mesh_draw_item* buffer_data)
 {
 }
 
@@ -176,7 +176,7 @@ void convert_srgb_to_linear_pipeline_state::begin(const graphics_context& contex
 	context.device_context->PSSetSamplers(SceneSamplerIndex, 1, render_data::instance()->get_state_cache().get_sampler_state(render_state_cache::SAMPLER_STATE::LINEAR).GetAddressOf());
 }
 
-void convert_srgb_to_linear_pipeline_state::update_parameters(const graphics_context& context, const material_instance& material, const buffer_datas* buffer_data)
+void convert_srgb_to_linear_pipeline_state::update_parameters(const graphics_context& context, const material_instance& material, const mesh_draw_item* buffer_data)
 {
 }
 

@@ -263,7 +263,7 @@ public:
 	virtual ~graphics_pipeline_state() {}
 
 	virtual	void begin(const graphics_context& context) = 0;
-	virtual	void update_parameters(const graphics_context& context, const material_instance& material, const buffer_datas* buffer_data)
+	virtual	void update_parameters(const graphics_context& context, const material_instance& material, const mesh_draw_item* buffer_data)
 	{
 		assert(!"not compatible set_parameters");
 	}

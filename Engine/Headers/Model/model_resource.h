@@ -27,6 +27,16 @@ namespace resource
 	class saver<model_resource>;
 }	//	namespace resource
 
+//	メッシュレット情報
+struct pooled_meshlet
+{
+	UINT vertex_offset = 0;
+	UINT triangle_offset = 0;
+	UINT triangle_count = 0;
+	math::float3 bounds_center = { 0, 0, 0 };
+	float bounds_radius = 0.0f;
+};
+
 //	モデルリソース
 class model_resource : public resource::resource_base
 {
@@ -94,7 +104,7 @@ public:
 			//	以下、シリアライズ対象外データ
 			UINT meshlet_vertex_base = 0;
 			UINT meshlet_triangle_base = 0;
-			std::vector<meshlet_draw_data> meshlet_draw_infos;
+			std::vector<pooled_meshlet> pooled_meshlets;
 
 			bool is_valid() const
 			{
@@ -139,7 +149,7 @@ public:
 		//	以下、シリアライズ対象外データ
 		UINT meshlet_vertex_base = 0;
 		UINT meshlet_triangle_base = 0;
-		std::vector<meshlet_draw_data> meshlet_draw_infos;
+		std::vector<pooled_meshlet> pooled_meshlets;
 
 		template<class Archive>
 		void serialize(Archive& archive, int version);

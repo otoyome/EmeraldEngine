@@ -37,7 +37,7 @@ namespace
 			  D3D_PRIMITIVE_TOPOLOGY primitive_topology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP,
 			  UINT vertex_offset = 0)
 	{
-		buffer_datas buffer_data;
+		mesh_draw_item buffer_data;
 		buffer_data.vertex_count = vertex_count;
 		context.set_index_buffer(nullptr, DXGI_FORMAT_UNKNOWN, 0);
 		context.device_context->IASetPrimitiveTopology(primitive_topology);

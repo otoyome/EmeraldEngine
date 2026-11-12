@@ -33,7 +33,7 @@ namespace
 		texture_ptr specluar_ibl_texture;
 		texture_ptr lut_ggx_texture;
 	};
-	forward_light_data search_neighborhood_light(const graphics_context& context, const buffer_datas& buffer_data)
+	forward_light_data search_neighborhood_light(const graphics_context& context, const mesh_draw_item& buffer_data)
 	{
 		forward_light_data light_data = {};
 		//	テキトーに近くのライトを詰める
@@ -213,7 +213,7 @@ void graphics_custom_pipeline_state::begin(const graphics_context& context)
 	}
 }
 
-void graphics_custom_pipeline_state::update_parameters(const graphics_context& context, const material_instance& material, const buffer_datas* buffer_data)
+void graphics_custom_pipeline_state::update_parameters(const graphics_context& context, const material_instance& material, const mesh_draw_item* buffer_data)
 {
 	const render_state_cache& state_cache = render_data::instance()->get_state_cache();
 

@@ -58,12 +58,12 @@ void debug_primitive_collector::get_container(debug_draw_primitive_container& co
 	HRESULT hr{ S_OK };
 	for (UINT index = 0; index < magic_enum::enum_count<debug_draw_primitive_container::line_buffer_id>(); ++index)
 	{
-		container.line_buffer_datas[index].color_meshs.clear();
+		container.line_draw_items[index].color_meshs.clear();
 		if (vertices[index].empty())
 			continue;
 
 		create_buffers();
-		auto& main_mesh = container.line_buffer_datas[index].color_meshs.emplace_back();
+		auto& main_mesh = container.line_draw_items[index].color_meshs.emplace_back();
 		auto& view = vertex_buffer_views[index].begin()->second;
 
 		//	•`‰æŒ´“_‚©‚ç‚Ì‘Š‘ÎÀ•W‚É•ÏŠ·‚µ‚Ä“]‘—

@@ -99,8 +99,8 @@ void occlusion_culling_system::generate_instance_buffers(UINT count)
 
 void occlusion_culling_system::update(graphics_context& context, hiz_buffer& hiz)
 {
-	auto& buffer_datas = context.render_data->mesh_container.buffer_datas;
-	UINT count = static_cast<UINT>(buffer_datas.size());
+	auto& draw_items = context.render_data->mesh_container.draw_items;
+	UINT count = static_cast<UINT>(draw_items.size());
 
 	//	判定ごとに番号を振り、読み戻しが前後しても新しい結果を残す
 	const uint64_t serial = ++readback_serial;
@@ -117,12 +117,12 @@ void occlusion_culling_system::update(graphics_context& context, hiz_buffer& hiz
 	std::vector<UINT> unique_ids;
 	aabbs.reserve(count);
 	unique_ids.reserve(count);
-	for (auto& bd : buffer_datas)
+	for (auto& bd : draw_items)
 	{
 		instance_aabb_cpu a{};
 		a.bmin = bd.bounds_min;
 		a.bmax = bd.bounds_max;
-		a.testable = system_utility::is_bitflag(bd.system_flags, buffer_datas::flags::culling) ? 1.0f : 0.0f;
+		a.testable = system_utility::is_bitflag(bd.system_flags, mesh_draw_item::flags::culling) ? 1.0f : 0.0f;
 		aabbs.emplace_back(a);
 		unique_ids.emplace_back(bd.unique_id);
 	}

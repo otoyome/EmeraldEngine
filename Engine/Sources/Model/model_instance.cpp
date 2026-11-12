@@ -184,8 +184,8 @@ void mesh_collector::collect(mesh_container& container, const std::vector<model_
 	PreviousNodeWorldTransforms.resize(common_pipeline_states::mesh_bone_max);
 
 	//	バッファ/マテリアルの配列生成
-	container.buffer_datas.clear();
-	container.buffer_datas.reserve(256);
+	container.draw_items.clear();
+	container.draw_items.reserve(256);
 	container.material_datas.clear();
 	container.material_datas.reserve(256);
 
@@ -280,15 +280,15 @@ void mesh_collector::collect(mesh_container& container, const std::vector<model_
 			}
 
 			//	バッファ情報構築
-			auto& buffer_data = container.buffer_datas.emplace_back();
-			UINT buffer_index = static_cast<UINT>(container.buffer_datas.size() - 1);
+			auto& buffer_data = container.draw_items.emplace_back();
+			UINT buffer_index = static_cast<UINT>(container.draw_items.size() - 1);
 			buffer_data.lod_distance_range = instance->get_lod_distance_range();
 			buffer_data.bounds_min = bounds_min;
 			buffer_data.bounds_max = bounds_max;
 			buffer_data.world_transform = (NodeWorldTransforms[mesh.node_index]).to_float4x4();
 			buffer_data.system_flags = 0;
-			system_utility::set_bitflag(buffer_data.system_flags, buffer_datas::flags::culling, instance->is_flag(model_instance::flags::culling));
-			system_utility::set_bitflag(buffer_data.system_flags, buffer_datas::flags::static_mesh, mesh.bones.empty());
+			system_utility::set_bitflag(buffer_data.system_flags, mesh_draw_item::flags::culling, instance->is_flag(model_instance::flags::culling));
+			system_utility::set_bitflag(buffer_data.system_flags, mesh_draw_item::flags::static_mesh, mesh.bones.empty());
 			{
 				UINT combined = instance->get_unique_id();
 				combined ^= current_submesh_index + 0x9e3779b9u + (combined << 6) + (combined >> 2);
@@ -303,7 +303,7 @@ void mesh_collector::collect(mesh_container& container, const std::vector<model_
 				auto& main_mesh = buffer_data.color_meshs.emplace_back();
 				main_mesh.vertex_buffer_views = &mesh.vertex_buffer_views;
 				main_mesh.primitive_topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-				main_mesh.meshlets = &mesh.meshlet_draw_infos;
+				main_mesh.meshlets = &mesh.pooled_meshlets;
 
 				//	モーフバッファ登録
 				if (!instance->get_morphes().empty() && !mesh.morph_indices.empty())
@@ -343,7 +343,7 @@ void mesh_collector::collect(mesh_container& container, const std::vector<model_
 					{
 						sub_mesh.vertex_buffer_views = &mesh.vertex_buffer_views;
 					}
-					sub_mesh.meshlets = lod_mesh.meshlet_draw_infos.empty() ? &mesh.meshlet_draw_infos : &lod_mesh.meshlet_draw_infos;
+					sub_mesh.meshlets = lod_mesh.pooled_meshlets.empty() ? &mesh.pooled_meshlets : &lod_mesh.pooled_meshlets;
 					sub_mesh.primitive_topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 				}
 			}
@@ -356,7 +356,7 @@ void mesh_collector::collect(mesh_container& container, const std::vector<model_
 				{
 					sub_mesh.vertex_buffer_views = &mesh.lod_meshs[index].vertex_buffer_views;
 				}
-				sub_mesh.meshlets = mesh.lod_meshs[index].meshlet_draw_infos.empty() ? &mesh.meshlet_draw_infos : &mesh.lod_meshs[index].meshlet_draw_infos;
+				sub_mesh.meshlets = mesh.lod_meshs[index].pooled_meshlets.empty() ? &mesh.pooled_meshlets : &mesh.lod_meshs[index].pooled_meshlets;
 			}
 
 			//	変換行列・プリミティブヘッダを登録
@@ -442,7 +442,7 @@ void mesh_collector::collect(mesh_container& container, const std::vector<model_
 				{
 					buffer_data.shadow_mesh.vertex_buffer_views = &mesh.vertex_buffer_views;
 				}
-				buffer_data.shadow_mesh.meshlets = mesh.shadow_mesh.meshlet_draw_infos.empty() ? &mesh.meshlet_draw_infos : &mesh.shadow_mesh.meshlet_draw_infos;
+				buffer_data.shadow_mesh.meshlets = mesh.shadow_mesh.pooled_meshlets.empty() ? &mesh.pooled_meshlets : &mesh.shadow_mesh.pooled_meshlets;
 				buffer_data.shadow_mesh.primitive_topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 
 				container.shadow_datas.emplace_back(container.draw_datas.size() - 1);
