@@ -548,6 +548,15 @@
     <ClCompile Include="Sources\SceneSystems\Test\clustered_lighting_test_system.cpp">
       <Filter>Sources\SceneSystems\Test</Filter>
     </ClCompile>
+    <ClCompile Include="Sources\Object\collision_placement_object.cpp">
+      <Filter>Sources\Object</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Object\collision_shape_object.cpp">
+      <Filter>Sources\Object</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Object\model_collision_object.cpp">
+      <Filter>Sources\Object</Filter>
+    </ClCompile>
     <ClCompile Include="Sources\Object\game_object_serializer.cpp">
       <Filter>Sources\Object</Filter>
     </ClCompile>
@@ -924,6 +933,15 @@
     </ClInclude>
     <ClInclude Include="Headers\SceneSystems\Test\clustered_lighting_test_system.h">
       <Filter>Headers\SceneSystems\Test</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Object\collision_placement_object.h">
+      <Filter>Headers\Object</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Object\collision_shape_object.h">
+      <Filter>Headers\Object</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Object\model_collision_object.h">
+      <Filter>Headers\Object</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Object\game_object_serializer.h">
       <Filter>Headers\Object</Filter>

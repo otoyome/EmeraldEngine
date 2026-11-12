@@ -89,10 +89,10 @@ private:
 	//	編集シーン破棄
 	void release_edited_scene(edited_scene& scene);
 
-	//	@tool シーンのシステムを付け替える（type が空なら無し。設定値は新しいシステムの既定値になる）
+	//	シーンのシステムを付け替え
 	void set_system(edited_scene& scene, std::string_view type);
 
-	//	@tool scenes 窓の edit で開くシーンの編集窓
+	//	シーンリソースの編集窓
 	void imgui_render_edit_window();
 
 	//	シーン開始処理

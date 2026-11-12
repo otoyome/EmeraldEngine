@@ -84,8 +84,6 @@ bool game_object_serializer::save(std::ostream& stream, const std::vector<game_o
 		if (write_extra)
 			write_extra(archive);
 
-		std::uint32_t version = current_version;
-		archive(CEREAL_NVP(version));
 
 		//	先にオブジェクトの型とUUIDを保存し、読込時はこれで全て生成してから中身を読む
 		archive.setNextName("entities");
@@ -146,10 +144,6 @@ bool game_object_serializer::load(std::istream& stream, std::vector<game_object_
 	{
 		input_archive archive(stream);
 
-		std::uint32_t version = 0;
-		archive(CEREAL_NVP(version));
-		if (version > current_version)
-			return false;
 
 		//	全オブジェクトを先に生成する
 		archive.setNextName("entities");
@@ -239,44 +233,34 @@ game_object_ptr game_object_serializer::find_object(cereal::JSONInputArchive& ar
 	return it != loading->table.end() ? it->second : nullptr;
 }
 
-void game_object_serializer::save_asset_reference(cereal::JSONOutputArchive& archive, const char* name, const universally_unique_identifier& uuid, std::string_view path)
+void game_object_serializer::save_asset_reference(cereal::JSONOutputArchive& archive, const char* name, const universally_unique_identifier& uuid)
 {
 	archive.setNextName(name);
-	save_asset_reference(archive, uuid, path);
+	save_asset_reference(archive, uuid);
 }
 
-void game_object_serializer::load_asset_reference(cereal::JSONInputArchive& archive, const char* name, universally_unique_identifier& out_uuid, std::string& out_path)
+universally_unique_identifier game_object_serializer::load_asset_reference(cereal::JSONInputArchive& archive, const char* name)
 {
 	archive.setNextName(name);
-	load_asset_reference(archive, out_uuid, out_path);
+	return load_asset_reference(archive);
 }
 
-void game_object_serializer::save_asset_reference(cereal::JSONOutputArchive& archive, const universally_unique_identifier& uuid, std::string_view path)
+void game_object_serializer::save_asset_reference(cereal::JSONOutputArchive& archive, const universally_unique_identifier& uuid)
 {
 	std::string uuid_text = uuid.is_empty() ? std::string() : uuid.to_string();
-	std::string path_text(path);
-	archive.startNode();
-	archive(cereal::make_nvp("uuid", uuid_text), cereal::make_nvp("path", path_text));
-	archive.finishNode();
+	archive(uuid_text);
 }
 
-void game_object_serializer::load_asset_reference(cereal::JSONInputArchive& archive, universally_unique_identifier& out_uuid, std::string& out_path)
+universally_unique_identifier game_object_serializer::load_asset_reference(cereal::JSONInputArchive& archive)
 {
 	std::string uuid_text;
-	archive.startNode();
-	archive(cereal::make_nvp("uuid", uuid_text), cereal::make_nvp("path", out_path));
-	archive.finishNode();
-
-	out_uuid.clear();
-	if (!uuid_text.empty())
-		universally_unique_identifier::from_string(uuid_text, out_uuid);
+	archive(uuid_text);
+	return from_text(uuid_text);
 }
 
-std::string game_object_serializer::resolve_asset_path(const universally_unique_identifier& uuid, std::string_view path)
+std::string game_object_serializer::resolve_asset_path(const universally_unique_identifier& uuid)
 {
-	if (asset_registry::is_valid())
-		return asset_registry::instance()->resolve_path(uuid, path);
-	return std::string(path);
+	return asset_registry::is_valid() ? asset_registry::instance()->find_path(uuid) : std::string();
 }
 
 void game_object_serializer::save_object(cereal::JSONOutputArchive& archive, const char* name, const game_object_ptr& object)

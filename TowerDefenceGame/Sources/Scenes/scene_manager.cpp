@@ -164,7 +164,6 @@ bool scene_manager::can_add_scene(std::string_view name) const
 #if defined(USE_IMGUI)
 void scene_manager::imgui_render()
 {
-	//	@tool 窓に映すワールド（プレビュー窓）は scenes 窓が無いので、システムの表示をそのまま呼ぶ
 	if (context.is_embedded())
 	{
 		for (auto& scene : scenes)
@@ -178,7 +177,7 @@ void scene_manager::imgui_render()
 		return;
 	}
 
-	//	@tool 生きているシーンの一覧（サブシーンは字下げ）。システムの窓はボタンで開く
+	//	生きているシーンの一覧。システムの窓はボタンで開く
 	if (ImGui::Begin(context.make_window_name("scenes").c_str()))
 	{
 		for (auto& scene : scenes)

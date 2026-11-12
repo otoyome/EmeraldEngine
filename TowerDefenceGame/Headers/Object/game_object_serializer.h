@@ -11,8 +11,6 @@
 class game_object_serializer
 {
 public:
-	static constexpr std::uint32_t current_version = 1;
-
 	//	オブジェクト以外の項目を同じ JSON に書くための関数
 	using write_function = std::function<void(cereal::JSONOutputArchive&)>;
 
@@ -27,14 +25,42 @@ public:
 	static bool load(std::istream& stream, std::vector<game_object_ptr>& out_objects, const read_function& read_extra = {});
 
 public:
-	//	アセットへの参照を { "uuid", "path" } として読み書きする
-	static void save_asset_reference(cereal::JSONOutputArchive& archive, const char* name, const universally_unique_identifier& uuid, std::string_view path);
-	static void load_asset_reference(cereal::JSONInputArchive& archive, const char* name, universally_unique_identifier& out_uuid, std::string& out_path);
-	static void save_asset_reference(cereal::JSONOutputArchive& archive, const universally_unique_identifier& uuid, std::string_view path);
-	static void load_asset_reference(cereal::JSONInputArchive& archive, universally_unique_identifier& out_uuid, std::string& out_path);
+	//	アセットへの参照を UUID 文字列として読み書きする
+	static void save_asset_reference(cereal::JSONOutputArchive& archive, const char* name, const universally_unique_identifier& uuid);
+	static universally_unique_identifier load_asset_reference(cereal::JSONInputArchive& archive, const char* name);
+	static void save_asset_reference(cereal::JSONOutputArchive& archive, const universally_unique_identifier& uuid);
+	static universally_unique_identifier load_asset_reference(cereal::JSONInputArchive& archive);
 
 	//	UUID からパスを引く
-	static std::string resolve_asset_path(const universally_unique_identifier& uuid, std::string_view path);
+	static std::string resolve_asset_path(const universally_unique_identifier& uuid);
+
+	//	アセットへの参照シリアライズ
+	static void serialize_asset_reference(cereal::JSONOutputArchive& archive, const char* name, universally_unique_identifier& uuid) { save_asset_reference(archive, name, uuid); }
+	static void serialize_asset_reference(cereal::JSONInputArchive& archive, const char* name, universally_unique_identifier& uuid) { uuid = load_asset_reference(archive, name); }
+
+	//	クラスの保存項目を name の下に { "version", 項目... } として読み書きする
+	template<class Archive, class Owner>
+	static void save_fields(Archive& archive, const char* name, const Owner& owner)
+	{
+		std::uint32_t version = Owner::serialize_version;
+		archive.setNextName(name);
+		archive.startNode();
+		archive.setNextName("version");
+		archive(version);
+		const_cast<Owner&>(owner).serialize_fields(archive, version);
+		archive.finishNode();
+	}
+	template<class Archive, class Owner>
+	static void load_fields(Archive& archive, const char* name, Owner& owner)
+	{
+		std::uint32_t version = 0;
+		archive.setNextName(name);
+		archive.startNode();
+		archive.setNextName("version");
+		archive(version);
+		owner.serialize_fields(archive, version);
+		archive.finishNode();
+	}
 
 	//	同じファイル内の参照を UUID 文字列として保存
 	template<class Type>

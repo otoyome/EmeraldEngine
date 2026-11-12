@@ -94,6 +94,16 @@ public:
 		std::function<bool(std::string_view file_path)> create;	//	ファイル作成
 	};
 
+	//	エンジンアセット変換の登録情報
+	struct convert_handler
+	{
+		cache_string label;						//	メニューの表示名
+		std::vector<cache_string> extensions;	//	対象の拡張子
+		std::function<cache_string(const cache_string& file_path)> output_path;		//	変換先のパス
+		std::function<void(const cache_string& file_path)> imgui_render_options;	//	ポップアップ内の設定表示
+		std::function<bool(const cache_string& file_path)> convert;					//	変換
+	};
+
 private:
 	//	作成処理の番号でフォルダを表す値
 	static constexpr std::size_t folder_handler_index = static_cast<std::size_t>(-1);
@@ -109,6 +119,9 @@ public:
 
 	//	新規作成を登録
 	void register_create_handler(create_handler handler);
+
+	//	変換を登録
+	void register_convert_handler(convert_handler handler);
 
 	//	削除の可否を調べる処理を登録
 	void register_delete_validator(delete_validator validator);
@@ -166,10 +179,12 @@ private:	//	IMGUI系
 	void imgui_render_create_menu(const cache_string& directory);
 	void imgui_render_create_popup();
 	void imgui_render_delete_popup();
+	void imgui_render_convert_popup();
 
 private:
 	std::vector<open_handler> handlers;
 	std::vector<create_handler> create_handlers;
+	std::vector<convert_handler> convert_handlers;
 	std::vector<delete_validator> delete_validators;
 	std::vector<path_listener> path_listeners;
 
@@ -182,20 +197,24 @@ private:
 	cache_string selected_path;
 	bool reveal_current_directory = true;
 
+public:	//	サムネイル
 	std::chrono::steady_clock::time_point thumbnail_load_deadline{};
 	asset_thumbnail_cache thumbnail_cache;
 
+public:	//	移動・更新・履歴操作の要求
 	cache_string pending_directory;
 	bool pending_refresh = false;
 	bool pending_back = false;
 	bool pending_forward = false;
 	std::optional<move_request> pending_move;
 
+public:	//	名前変更ポップアップ
 	cache_string rename_source_path;
 	cache_string rename_name;
 	bool open_rename_popup = false;
 	bool rename_invalid = false;
 
+public:	//	作成・複製ポップアップ
 	std::optional<create_request> pending_create;
 	std::optional<cache_string> pending_duplicate;
 	cache_string create_directory;
@@ -204,10 +223,17 @@ private:
 	bool open_create_popup = false;
 	bool create_invalid = false;
 
+public:	//	削除ポップアップ
 	std::optional<cache_string> pending_delete;
 	cache_string delete_path;
 	std::vector<std::string> delete_reasons;
 	bool open_delete_popup = false;
+
+public:	//	変換ポップアップ
+	bool pending_convert = false;
+	cache_string convert_path;
+	std::size_t convert_handler_index = 0;
+	bool open_convert_popup = false;
 
 	ImGuiTextFilter filter;
 };

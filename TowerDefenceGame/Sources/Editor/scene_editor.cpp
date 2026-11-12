@@ -19,6 +19,7 @@ scene_editor::scene_editor()
 : edit_world(create_world())
 {
 	edit_world->get_objects().set_pause(true);
+	edit_world->get_context().set_editing(true);
 }
 
 scene_editor::~scene_editor()
@@ -361,12 +362,12 @@ void scene_editor::imgui_render_edit_window()
 	edited_scene& scene = *it;
 	const bool is_root = (it == edited_scenes.begin());
 
-	//	@tool シーンの編集窓（システムの付け替え・サブシーンの登録・システムの設定をまとめる）
+	//	シーンの編集窓
 	const cache_string path(scene.resource->get_file_path());
 	const std::string title = std::string(path.get<utf8_cache>()) + " (editing)###scene_editor_edit_window";
 	if (ImGui::Begin(title.c_str(), &edit_window_opened))
 	{
-		//	@tool システムの付け替え（型を選ぶと既定の設定値で作り直す）
+		//	システムの付け替え
 		ImGui::SeparatorText("system");
 		const std::string current = scene.system ? std::string(scene.system->get_type_name()) : std::string("(none)");
 		if (ImGui::BeginCombo("type", current.c_str()))
@@ -384,7 +385,7 @@ void scene_editor::imgui_render_edit_window()
 			ImGui::EndCombo();
 		}
 
-		//	@tool サブシーンは開いたシーンにだけ登録できる（入れ子は1段）
+		//	サブシーンの登録
 		if (is_root)
 		{
 			ImGui::SeparatorText("sub scenes");
@@ -417,7 +418,7 @@ void scene_editor::imgui_render_edit_window()
 			if (remove_target)
 				remove_sub_scene(remove_target);
 
-			//	.escene をアセットブラウザからドロップするか、一覧から選んで追加する
+			//	シーンリソースをアセットブラウザからドロップするか、一覧から選んで追加する
 			ImGui::Button("drop .escene here to add");
 			if (ImGui::BeginDragDropTarget())
 			{
@@ -444,8 +445,7 @@ void scene_editor::imgui_render_edit_window()
 			}
 		}
 
-		//	@tool システムの設定（システムの imgui_render）
-		//	@tool 付け替えやサブシーンの削除で scene が無くなっていることがあるので探し直す
+		//	システムの設定
 		auto current_it = std::find_if(edited_scenes.begin(), edited_scenes.end(), [&](const edited_scene& edited) { return edited.resource == edit_target; });
 		if (current_it != edited_scenes.end() && current_it->system)
 		{

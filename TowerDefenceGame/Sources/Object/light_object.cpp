@@ -719,7 +719,7 @@ void light_probe_object::serialize(cereal::JSONOutputArchive& archive) const
 	auto save_texture = [&](const char* name, const resource::asset_handle<texture_resource>& texture)
 	{
 		const resource::asset_reference<texture_resource> reference = texture.get_reference();
-		game_object_serializer::save_asset_reference(archive, name, reference.uuid, reference.path);
+		game_object_serializer::save_asset_reference(archive, name, reference.uuid);
 	};
 	save_texture("diffuse_ibl_texture", diffuse_ibl_texture);
 	save_texture("specular_ibl_texture", specular_ibl_texture);
@@ -738,12 +738,10 @@ void light_probe_object::deserialize(cereal::JSONInputArchive& archive)
 
 	auto load_texture = [&](const char* name) -> texture_resource_ptr
 	{
-		universally_unique_identifier uuid;
-		std::string path;
-		game_object_serializer::load_asset_reference(archive, name, uuid, path);
-		if (uuid.is_empty() && path.empty())
+		const universally_unique_identifier uuid = game_object_serializer::load_asset_reference(archive, name);
+		if (uuid.is_empty())
 			return nullptr;
-		return texture_resource_utility::load_texture_resource(game_object_serializer::resolve_asset_path(uuid, path));
+		return texture_resource_utility::load_texture_resource(game_object_serializer::resolve_asset_path(uuid));
 	};
 	set_diffuse_ibl_texture(load_texture("diffuse_ibl_texture"));
 	set_specular_ibl_texture(load_texture("specular_ibl_texture"));

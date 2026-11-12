@@ -15,7 +15,7 @@ namespace resource
 	class resource_base;
 }	//	namespace resource
 
-//	UUID とアセットファイルの対応表
+//	アセットレジスター
 class asset_registry
 {
 	SINGLETON(asset_registry)
@@ -25,9 +25,18 @@ public:
 	static constexpr std::string_view root_directory = "Assets";
 	//	エンジン・エディター用のアセット
 	static constexpr std::string_view engine_root_directory = "EngineAssets";
-	//	@tool 前回の対応表（重複した UUID のどちらを残すかに使う。手元だけの情報なので Intermediate に置く）
+	//	前回の対応表
 	static constexpr std::string_view previous_table_path = "Intermediate/asset_registry.txt";
 
+	//	スキャン時に見つかったアセット
+	struct found_asset
+	{
+		universally_unique_identifier uuid;
+		resource::asset_types type = resource::asset_types::unknown;
+		std::string path;
+	};
+
+	//	アセット
 	struct entry
 	{
 		resource::asset_types type = resource::asset_types::unknown;
@@ -64,7 +73,7 @@ public:
 	//	アセット数取得
 	size_t get_count() const;
 
-	//	@tool 対応表を previous_table_path に保存する（走査の後と終了時に呼ぶ）
+	//	対応表を previous_table_path に保存
 	void save_table() const;
 
 #if defined(USE_IMGUI)
@@ -72,13 +81,6 @@ public:
 #endif	//	defined(USE_IMGUI)
 
 private:
-	//	@tool 走査で見つけたアセット
-	struct found_asset
-	{
-		universally_unique_identifier uuid;
-		resource::asset_types type = resource::asset_types::unknown;
-		std::string path;
-	};
 
 	static void collect_assets(std::string_view directory, std::vector<found_asset>& out_assets);
 	static std::unordered_map<universally_unique_identifier, std::wstring> load_previous_table();

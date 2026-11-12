@@ -31,14 +31,13 @@ bool scene_resource::set_contents(const std::vector<resource::asset_handle<scene
 	std::ostringstream stream;
 	const bool result = game_object_serializer::save(stream, objects, [&](cereal::JSONOutputArchive& archive)
 	{
-		//	サブシーンは { "uuid", "path" } の配列で保存する
+		//	サブシーンは UUID 文字列の配列で保存する
 		archive.setNextName("sub_scenes");
 		archive.startNode();
 		archive.makeArray();
 		for (const auto& scene : scenes)
 		{
-			const resource::asset_reference<scene_resource> reference = scene.get_reference();
-			game_object_serializer::save_asset_reference(archive, reference.uuid, reference.path);
+			game_object_serializer::save_asset_reference(archive, scene.get_reference().uuid);
 		}
 		archive.finishNode();
 
@@ -91,7 +90,7 @@ bool scene_resource::read_sub_scenes()
 		for (cereal::size_type index = 0; index < count; ++index)
 		{
 			resource::asset_reference<scene_resource> reference;
-			game_object_serializer::load_asset_reference(archive, reference.uuid, reference.path);
+			reference.uuid = game_object_serializer::load_asset_reference(archive);
 			sub_scenes.emplace_back().set_reference(std::move(reference));
 		}
 		archive.finishNode();

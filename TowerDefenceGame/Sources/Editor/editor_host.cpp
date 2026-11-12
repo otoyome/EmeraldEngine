@@ -31,6 +31,7 @@ extern ImWchar glyphRangesJapanese[];
 #include "Renderer/debug_view_settings.h"
 #include "System/console_manager.h"
 #include "System/asset_browser.h"
+#include "System/asset_converter.h"
 #include "System/imgui_texture_keeper.h"
 #include "Resource/resource_manager.h"
 #include "Material/material_resource.h"
@@ -254,6 +255,9 @@ void editor_host::imgui_initialize()
 
 	//	テクスチャリソースは別窓で編集する
 	texture_editor_window::register_open_handler(editor_context);
+
+	//	元データの変換を登録
+	asset_converter::register_handlers();
 
 	//	サウンドバンクはファイルごとの窓で編集する
 	sound_bank_editor_window::register_asset_handlers(editor_context);

@@ -851,7 +851,7 @@ void model_object::serialize(cereal::JSONOutputArchive& archive) const
 
 	const model_resource_ptr resource = model_instance ? model_instance->get_resource() : nullptr;
 	const resource::asset_reference<model_resource> reference = resource::asset_reference<model_resource>::from(resource);
-	game_object_serializer::save_asset_reference(archive, "model", reference.uuid, reference.path);
+	game_object_serializer::save_asset_reference(archive, "model", reference.uuid);
 
 	bool color_render = model_instance && model_instance->is_flag(model_instance::flags::color_render);
 	bool shadow_caster = model_instance && model_instance->is_flag(model_instance::flags::shadow_caster);
@@ -869,11 +869,9 @@ void model_object::deserialize(cereal::JSONInputArchive& archive)
 {
 	base::deserialize(archive);
 
-	universally_unique_identifier uuid;
-	std::string path;
-	game_object_serializer::load_asset_reference(archive, "model", uuid, path);
-	if (!uuid.is_empty() || !path.empty())
-		load_model(game_object_serializer::resolve_asset_path(uuid, path));
+	const universally_unique_identifier uuid = game_object_serializer::load_asset_reference(archive, "model");
+	if (!uuid.is_empty())
+		load_model(game_object_serializer::resolve_asset_path(uuid));
 
 	bool color_render = false;
 	bool shadow_caster = false;

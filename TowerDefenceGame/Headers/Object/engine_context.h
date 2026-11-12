@@ -32,6 +32,10 @@ private:
 
 #if defined(USE_IMGUI)
 public:		//	ImGui用
+	//	シーンエディターの編集用のワールドか
+	bool is_editing() const { return editing; }
+	void set_editing(bool value) { editing = value; }
+
 	debug_primitive_collector& get_debug_primitives() const;
 
 	//	窓に映しているワールドか
@@ -56,6 +60,7 @@ public:		//	ImGui用
 	bool take_open_file(std::string& file_path) { if (open_file.empty()) return false; file_path = std::move(open_file); open_file.clear(); return true; }
 
 private:
+	bool editing = false;
 	bool embedded = false;
 	bool viewport_hovered = false;
 	math::float4 viewport_rect = { 0.0f, 0.0f, 0.0f, 0.0f };

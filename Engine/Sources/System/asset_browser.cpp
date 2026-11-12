@@ -159,6 +159,13 @@ void asset_browser::register_create_handler(create_handler handler)
 	create_handlers.emplace_back(std::move(handler));
 }
 
+void asset_browser::register_convert_handler(convert_handler handler)
+{
+	for (auto& extension : handler.extensions)
+		extension = std::string(extension.get<lower_cache>());
+	convert_handlers.emplace_back(std::move(handler));
+}
+
 void asset_browser::register_delete_validator(delete_validator validator)
 {
 	delete_validators.emplace_back(std::move(validator));
@@ -437,6 +444,7 @@ void asset_browser::imgui_render(bool& open)
 		imgui_render_rename_popup();
 		imgui_render_create_popup();
 		imgui_render_delete_popup();
+		imgui_render_convert_popup();
 	}
 	ImGui::End();
 
@@ -462,6 +470,18 @@ void asset_browser::imgui_render(bool& open)
 	{
 		delete_entry(*pending_delete);
 		pending_delete.reset();
+	}
+
+	//	変換は描画の後
+	if (pending_convert)
+	{
+		pending_convert = false;
+		if (convert_handler_index < convert_handlers.size() && convert_handlers[convert_handler_index].convert)
+		{
+			if (!convert_handlers[convert_handler_index].convert(convert_path))
+				DEBUG_ERROR_CATEGORY(logger::categorys::system, "asset_browser convert failed[%s]", std::string(convert_path.view()).c_str());
+		}
+		pending_refresh = true;
 	}
 
 	if (pending_refresh)
@@ -750,6 +770,24 @@ void asset_browser::imgui_render_entry_context_menu(const entry& target)
 		}
 		if (found)
 			ImGui::Separator();
+
+		//	拡張子に合う変換をすべて出す
+		found = false;
+		for (std::size_t index = 0; index < convert_handlers.size(); ++index)
+		{
+			if (!contains(convert_handlers[index].extensions, target.extension))
+				continue;
+
+			found = true;
+			if (ImGui::MenuItem(convert_handlers[index].label.get<utf8_cache>().c_str()))
+			{
+				convert_path = target.path;
+				convert_handler_index = index;
+				open_convert_popup = true;
+			}
+		}
+		if (found)
+			ImGui::Separator();
 	}
 
 	//	UUID を持つアセットだけ複製できる
@@ -954,6 +992,56 @@ void asset_browser::imgui_render_delete_popup()
 		ImGui::CloseCurrentPopup();
 	}
 	ImGui::EndDisabled();
+	ImGui::SameLine();
+	if (ImGui::Button("Cancel") || ImGui::IsKeyPressed(ImGuiKey_Escape))
+		ImGui::CloseCurrentPopup();
+
+	ImGui::EndPopup();
+}
+
+void asset_browser::imgui_render_convert_popup()
+{
+	constexpr const char* popup_name = "Convert##asset_browser";
+	if (open_convert_popup)
+	{
+		ImGui::OpenPopup(popup_name);
+		open_convert_popup = false;
+	}
+
+	if (!ImGui::BeginPopupModal(popup_name, nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+		return;
+
+	if (convert_handler_index >= convert_handlers.size())
+	{
+		ImGui::CloseCurrentPopup();
+		ImGui::EndPopup();
+		return;
+	}
+	const convert_handler& handler = convert_handlers[convert_handler_index];
+
+	ImGui::TextUnformatted(handler.label.get<utf8_cache>().c_str());
+	ImGui::TextDisabled("source : %s", convert_path.get<utf8_cache>().c_str());
+
+	//	変換先が既にあれば上書きになることを告知
+	if (handler.output_path)
+	{
+		const cache_string output_path = handler.output_path(convert_path);
+		ImGui::TextDisabled("output : %s", output_path.get<utf8_cache>().c_str());
+		std::error_code error;
+		if (std::filesystem::exists(to_filesystem_path(output_path), error))
+			ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.3f, 1.0f), "Output already exists. It will be overwritten (UUID is kept).");
+	}
+
+	ImGui::Separator();
+	if (handler.imgui_render_options)
+		handler.imgui_render_options(convert_path);
+	ImGui::Separator();
+
+	if (ImGui::Button("Convert"))
+	{
+		pending_convert = true;
+		ImGui::CloseCurrentPopup();
+	}
 	ImGui::SameLine();
 	if (ImGui::Button("Cancel") || ImGui::IsKeyPressed(ImGuiKey_Escape))
 		ImGui::CloseCurrentPopup();

@@ -468,6 +468,9 @@
     <ClInclude Include="Headers\System\asset_browser.h">
       <Filter>Headers\System</Filter>
     </ClInclude>
+    <ClInclude Include="Headers\System\asset_converter.h">
+      <Filter>Headers\System</Filter>
+    </ClInclude>
     <ClInclude Include="Headers\System\asset_thumbnail_cache.h">
       <Filter>Headers\System</Filter>
     </ClInclude>
@@ -804,6 +807,9 @@
       <Filter>Sources\System\BehaviorTree</Filter>
     </ClCompile>
     <ClCompile Include="Sources\System\asset_browser.cpp">
+      <Filter>Sources\System</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\System\asset_converter.cpp">
       <Filter>Sources\System</Filter>
     </ClCompile>
     <ClCompile Include="Sources\System\asset_thumbnail_cache.cpp">

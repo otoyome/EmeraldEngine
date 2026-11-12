@@ -43,6 +43,7 @@ public:
 	//	JSON•¶š—ñæ“¾
 	const std::string& get_body() const { return body; }
 
+
 	//	•Û‘¶E•ÒW‚µ‚½Œ‹‰Ê‚ğİ’è
 	bool set_contents(const std::vector<resource::asset_handle<scene_resource>>& scenes, const std::vector<game_object_ptr>& objects,
 					  const scene_system* system = nullptr);

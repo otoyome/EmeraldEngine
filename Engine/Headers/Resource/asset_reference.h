@@ -9,6 +9,7 @@
 
 namespace resource
 {
+
 	//	UUID とパスを持つアセットのリソース型
 	template<class Type>
 	concept asset_resource = requires(const Type& value)
@@ -34,9 +35,16 @@ namespace resource
 		}
 
 		template<class Archive>
-		void serialize(Archive& archive)
+		void save(Archive& archive) const
 		{
-			archive(uuid, path);
+			archive(uuid);
+		}
+
+		template<class Archive>
+		void load(Archive& archive)
+		{
+			path.clear();
+			archive(uuid);
 		}
 	};
 }	//	namespace resource

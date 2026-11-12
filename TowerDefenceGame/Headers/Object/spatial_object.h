@@ -12,8 +12,20 @@ class spatial_object : public game_object
 public:
 	using attach_rule = ::spatial::attach_rule;
 
+	static constexpr std::uint32_t serialize_version = 1;
+
+	//	動くかどうかを決める物。movableの子にfixedは設定できない
+	enum class mobilities : std::uint8_t
+	{
+		fixed,
+		movable,
+	};
+
 public:
 	const std::shared_ptr<::spatial>& get_spatial() const;
+
+	mobilities get_mobility() const { return mobility; }
+	bool set_mobility(mobilities value);
 
 	//	ローカル姿勢
 	const math::transformd& get_local() const;
@@ -48,10 +60,26 @@ public:
 	void serialize(cereal::JSONOutputArchive& archive) const override;
 	void deserialize(cereal::JSONInputArchive& archive) override;
 
+private:
+	friend class game_object_serializer;
+	template<class Archive>
+	void serialize_fields(Archive& archive, std::uint32_t version);
+
+public:
+
 #if defined(USE_IMGUI)
 	void imgui_render_core() override;
 #endif	//	defined(USE_IMGUI)
 
+protected:
+	bool can_move() const;
+
+private:
+	void detach_record();
+
 private:
 	std::shared_ptr<spatial> spatial;
+	mobilities mobility = mobilities::movable;
+	std::weak_ptr<spatial_object> parent_object;
+	std::vector<std::weak_ptr<spatial_object>> child_objects;
 };

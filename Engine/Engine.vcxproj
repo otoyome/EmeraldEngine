@@ -137,6 +137,7 @@
     <ClInclude Include="Headers\System\console_manager.h" />
     <ClInclude Include="Headers\System\editor_config_data.h" />
     <ClInclude Include="Headers\System\asset_browser.h" />
+    <ClInclude Include="Headers\System\asset_converter.h" />
     <ClInclude Include="Headers\System\imgui_texture_keeper.h" />
     <ClInclude Include="Headers\System\asset_thumbnail_cache.h" />
     <ClInclude Include="Headers\System\project_path.h" />
@@ -279,6 +280,7 @@
     <ClCompile Include="Sources\System\console_manager.cpp" />
     <ClCompile Include="Sources\System\editor_config_data.cpp" />
     <ClCompile Include="Sources\System\asset_browser.cpp" />
+    <ClCompile Include="Sources\System\asset_converter.cpp" />
     <ClCompile Include="Sources\System\imgui_texture_keeper.cpp" />
     <ClCompile Include="Sources\System\asset_thumbnail_cache.cpp" />
     <ClCompile Include="Sources\System\project_path.cpp" />

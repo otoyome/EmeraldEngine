@@ -363,7 +363,6 @@ void game_process::imgui_render()
 		return;
 
 	//	シーン情報表示
-	//	@tool 編集中は scene_editor が scenes 窓を出す
 	if (!scene_edit || scene_edit->is_playing())
 		active_world->get_scenes().imgui_render();
 

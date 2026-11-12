@@ -30,12 +30,12 @@ void asset_registry::scan(const std::vector<std::string_view>& directories)
 	entries.clear();
 	path_to_uuid.clear();
 
-	//	@tool 先に全てのヘッダーを集める
+	//	ヘッダー収集
 	std::vector<found_asset> assets;
 	for (std::string_view directory : directories)
 		collect_assets(directory, assets);
 
-	//	@tool 同じ UUID が複数あれば、前回の表と同じパスのものを残す（無ければ先に見つかったもの）
+	//	同じ UUID が複数あれば、前回の表と同じパスのものを残す
 	const std::unordered_map<universally_unique_identifier, std::wstring> previous = load_previous_table();
 	std::unordered_map<universally_unique_identifier, size_t> keepers;
 	for (size_t index = 0; index < assets.size(); ++index)
@@ -48,6 +48,7 @@ void asset_registry::scan(const std::vector<std::string_view>& directories)
 			it->second = index;
 	}
 
+	//	登録処理
 	size_t duplicated_count = 0;
 	size_t moved_count = 0;
 	for (size_t index = 0; index < assets.size(); ++index)
@@ -55,7 +56,7 @@ void asset_registry::scan(const std::vector<std::string_view>& directories)
 		found_asset& asset = assets[index];
 		if (keepers[asset.uuid] == index)
 		{
-			//	@tool 前回と違う場所にあれば外で移動された
+			//	前回と違う場所にあれば外で移動された
 			auto previous_it = previous.find(asset.uuid);
 			if (previous_it != previous.end() && previous_it->second != resource_manager::make_path_key(asset.path))
 			{
@@ -66,7 +67,7 @@ void asset_registry::scan(const std::vector<std::string_view>& directories)
 			continue;
 		}
 
-		//	@tool 残さなかった方は別のアセット（外でのコピーなど）なので UUID を振り直す
+		//	UUID を振り直す
 		const universally_unique_identifier new_uuid = universally_unique_identifier::generate();
 		if (!resource::rewrite_asset_header_uuid(std::filesystem::path(asset.path), new_uuid))
 		{
@@ -111,7 +112,7 @@ void asset_registry::collect_assets(std::string_view directory, std::vector<foun
 
 std::unordered_map<universally_unique_identifier, std::wstring> asset_registry::load_previous_table()
 {
-	//	@tool 1行に「UUID<TAB>パス」
+	//	1行に「UUID<TAB>パス」の形式で保存
 	std::unordered_map<universally_unique_identifier, std::wstring> table;
 	std::ifstream stream(std::string(previous_table_path), std::ios::binary);
 	std::string line;

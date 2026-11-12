@@ -29,9 +29,10 @@ namespace resource
 	{
 		static constexpr std::uint32_t signature = 0x54455341;	//	'ASET'
 		static constexpr std::size_t size = 28;					//	ファイル上の大きさ(バイト)
+		static constexpr std::uint32_t current_version = 2;
 
 		asset_types type = asset_types::unknown;
-		std::uint32_t version = 1;
+		std::uint32_t version = current_version;
 		universally_unique_identifier uuid;
 	};
 
