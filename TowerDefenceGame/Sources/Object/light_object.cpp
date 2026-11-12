@@ -118,6 +118,12 @@ void light_object::post_update(float elapsed_time)
 	sync_to_light();
 }
 
+void light_object::pre_render()
+{
+	base::pre_render();
+	sync_to_light();
+}
+
 void light_object::sync_to_light()
 {
 	if (!light)
@@ -455,6 +461,12 @@ light_probe_object::~light_probe_object()
 void light_probe_object::post_update(float elapsed_time)
 {
 	base::post_update(elapsed_time);
+	sync_to_light_probe();
+}
+
+void light_probe_object::pre_render()
+{
+	base::pre_render();
 	sync_to_light_probe();
 }
 

@@ -14,7 +14,7 @@
 #include "Graphics/render_pass.h"
 #include "Texture/texture_factory.h"
 #include "System/imgui_texture_keeper.h"
-#include "Scenes/scene_base.h"
+#include "Scenes/scene_manager.h"
 #include "Object/engine_context.h"
 #include "Input/input_key.h"
 
@@ -114,6 +114,7 @@ void asset_preview_process::update(float elapsed_time)
 
 	preview_world->get_scenes().updates(elapsed_time);
 	preview_world->get_objects().updates(elapsed_time);
+	preview_world->get_scenes().post_updates(elapsed_time);
 	preview_world->get_effects().update(elapsed_time);
 }
 

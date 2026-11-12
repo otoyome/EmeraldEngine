@@ -1,7 +1,9 @@
 #pragma once
 
 #if defined(USE_IMGUI)
+#include <functional>
 #include <memory>
+#include <string_view>
 
 #include "imgui/imgui_impl_dx11.h"
 #include "imgui/imgui_impl_win32.h"
@@ -13,11 +15,16 @@ extern ImWchar glyphRangesJapanese[];
 #include "Graphics/render_pass.h"
 #include "Editor/editor_items.h"
 
-class scene_manager;
 
 //	エディター機能
 class editor_host
 {
+public:
+	//	シーンファイルを受け取る処理
+	using scene_function = std::function<void(std::string_view file_path)>;
+	//	再生するシーンと、そのシーンに開いてもらうファイルを受け取る処理
+	using play_function = std::function<void(std::string_view scene_path, std::string_view open_file)>;
+
 public:
 	explicit editor_host(HWND hwnd);
 	~editor_host();
@@ -44,10 +51,7 @@ public:
 	void release_display_resources();
 
 	//	アセットブラウザの開き先を登録
-	void register_asset_open_handlers(scene_manager& scenes);
-
-	//	シーン切り替えの窓
-	void imgui_scene_change(scene_manager& scenes);
+	void register_asset_open_handlers(scene_function edit_scene, play_function play_scene);
 
 public:
 	//	メインのウィンドウのメッセージを ImGui へ渡す(ImGui が処理したら true)

@@ -1,9 +1,6 @@
 #pragma once
 
-#include "scenes/scene_base.h"
-
-#if defined(USE_IMGUI)
-#include "Editor/editor_camera.h"
+#include "Scenes/scene_system.h"
 #include "Graphics/light.h"
 
 #include <vector>
@@ -13,9 +10,9 @@ class directional_light_object;
 class model_object;
 
 //	クラスタードライティング確認シーン
-class clustered_lighting_test_scene : public scene_base
+class clustered_lighting_test_system : public scene_system
 {
-	SCENE_DECRLEAR(clustered_lighting_test_scene, scene_base);
+	SCENE_SYSTEM_DECRLEAR(clustered_lighting_test_system, scene_system)
 
 public:
 	//	ライト配置設定
@@ -26,7 +23,7 @@ public:
 		float area_size = 60.0f;		//	配置範囲（一辺）
 		float height = 2.0f;			//	配置する高さ
 		float range = 6.0f;				//	影響範囲
-		float intensity = 5000.0f;			//	強さ
+		float intensity = 5000.0f;		//	強さ
 		float spot_inner_cone = 20.0f;	//	スポットライトの内側角
 		float spot_outer_cone = 35.0f;	//	スポットライトの外側角
 		float shadow_ratio = 0.0f;		//	影を落とすライトの割合
@@ -43,39 +40,50 @@ public:
 	};
 
 public:
-	clustered_lighting_test_scene();
-	clustered_lighting_test_scene(const clustered_lighting_test_scene&) = delete;
-	clustered_lighting_test_scene(clustered_lighting_test_scene&&) = delete;
-	~clustered_lighting_test_scene() override;
+	clustered_lighting_test_system();
+	~clustered_lighting_test_system() override;
 
-protected:
-	bool initialize_core() override;
-	bool uninitialize_core() override;
-	void update_core(float elapsed_time) override;
-	void imgui_render_core() override;
+	void on_begin() override;
+	void on_end() override;
+	void pre_update(float elapsed_time) override;
+
+	void serialize(cereal::JSONOutputArchive& archive) const override;
+	void deserialize(cereal::JSONInputArchive& archive) override;
+
+#if defined(USE_IMGUI)
+	void imgui_render() override;
+#endif	//	defined(USE_IMGUI)
+
+	//	平行光源（.escene に置いたもの）
+	void set_directional_light(std::shared_ptr<directional_light_object> light) { directional_light = std::move(light); }
 
 private:
-	void clear_lights();
-	void rebuild_lights();
-	void update_light_positions();
-
-private:
-	//	生成したライト
+	//	動かすライト
 	struct light_entry
 	{
 		std::shared_ptr<light_object> object;
 		math::vector3d base_position;	//	円運動の中心
 		float phase = 0.0f;				//	円運動の初期位相
+		bool active = true;				//	シーンに置いたときの有効フラグ
 	};
 
+	void collect_scene_lights();
+	void restore_scene_lights();
+	void set_scene_lights_active(bool active);
+
+	void regenerate_lights();
+	void clear_generated_lights();
+
+	void update_light_positions();
+
+	std::vector<light_entry>& get_current_lights();
+
+private:
 	light_settings settings;
 	animation_settings animation;
-	std::vector<light_entry> lights;
+	std::vector<light_entry> scene_lights;
+	std::vector<light_entry> generated_lights;
 	float animation_time = 0.0f;
 
 	std::shared_ptr<directional_light_object> directional_light;
-	float directional_intensity = 50.0f;	//	平行光源の強さ
-
-	std::shared_ptr<editor_camera_object> editor_camera;
 };
-#endif	//	defined(USE_IMGUI)

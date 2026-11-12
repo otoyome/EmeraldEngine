@@ -25,7 +25,6 @@ texture_editor_window::~texture_editor_window()
 void texture_editor_window::register_open_handler(std::shared_ptr<editor_items::context> context)
 {
 	asset_browser::open_handler handler;
-	handler.name = "texture_editor";
 	handler.label = "Texture Editor";
 	handler.extensions = { std::string(".") + std::string(texture_resource::extension) };
 	handler.open_file = [context](const cache_string& file_path) mutable

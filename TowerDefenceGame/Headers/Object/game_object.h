@@ -18,25 +18,28 @@ namespace cereal
 class game_object : public std::enable_shared_from_this<game_object>
 {
 public:
-	static constexpr size_t invalid_id = 0;
-
-public:
 	static constexpr std::string_view type_name() {return NAMEOF_SHORT_TYPE(game_object);}
 	virtual std::string_view get_type_name() const {return type_name();}
 	virtual bool check_type(std::string_view text) const {return type_name() == text;}
 
 public:
-	size_t get_id() const;
-
+	//	名前取得
 	std::string_view get_name() const;
 	void set_name(std::string_view name);
 
+	//	アクティブフラグ取得
 	bool is_active() const;
 	void set_active(bool active);
 
+	//	一時オブジェクトフラグ取得
+	bool is_transient() const { return transient; }
+	void set_transient(bool value) { transient = value; }
+
+	//	UUID取得
 	const universally_unique_identifier& get_uuid() const { return uuid; }
 	void set_uuid(const universally_unique_identifier& value) { uuid = value; }
 
+	//	エンジンコンテキスト取得
 	bool has_context() const { return context != nullptr; }
 	engine_context& get_context() const;
 	void set_context(engine_context& context) { this->context = &context; }
@@ -60,7 +63,6 @@ public:
 	bool is_display_inspector() { return display_inspector; }
 	void set_display_inspector(bool flag) { display_inspector = flag; }
 
-	//	render_children は自身のツリーノード内で子を描画する
 	void imgui_render(const std::function<void()>& render_children = nullptr);
 	virtual void imgui_render_core();
 #endif	//	defined(USE_IMGUI)
@@ -68,6 +70,7 @@ public:
 	virtual void on_initialize();
 	virtual void on_finalize();
 
+public:
 	//	保存・読込
 	virtual void serialize(cereal::JSONOutputArchive& archive) const;
 	virtual void deserialize(cereal::JSONInputArchive& archive);
@@ -77,16 +80,14 @@ protected:
 	virtual void on_deactive();
 
 private:
-	size_t id;
+	cache_string name;
+	universally_unique_identifier uuid;
 	bool active;
+	bool transient = false;
 	engine_context* context = nullptr;
 #if defined(USE_IMGUI)
 	bool display_inspector = true;
 #endif	//	defined(USE_IMGUI)
-	cache_string name;
-	universally_unique_identifier uuid;
-
-	inline static std::atomic<size_t> id_counter;
 };
 
 #define	GAME_OBJECT_DECRLEAR(ABSTRACT_TYPE, BASE_TYPE)	\

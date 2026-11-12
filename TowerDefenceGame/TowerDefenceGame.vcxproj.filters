@@ -27,6 +27,24 @@
     <Filter Include="Headers\Sound">
       <UniqueIdentifier>{6f1d3c2a-8b4e-4a7f-9c15-2e8d7b3a9f41}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Headers\SceneSystems">
+      <UniqueIdentifier>{70a8179f-debc-447f-9e6f-298fa58223d2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Headers\SceneSystems\Editor">
+      <UniqueIdentifier>{63ae8b15-4ad2-477a-ae32-947a98783b9c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Headers\SceneSystems\Test">
+      <UniqueIdentifier>{67989c4c-9a8e-429c-a15c-ed22943f2cf1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Sources\SceneSystems">
+      <UniqueIdentifier>{673af772-c6b7-4f0d-8b8b-56b7ab8b7618}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Sources\SceneSystems\Editor">
+      <UniqueIdentifier>{4b914249-9ee0-40e3-9776-fc2e99c3265f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Sources\SceneSystems\Test">
+      <UniqueIdentifier>{f55f9d78-466d-4d69-bf12-377380c16420}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Headers\Scenes">
       <UniqueIdentifier>{c2845836-93a2-447c-8c3d-ae32aa15c5d7}</UniqueIdentifier>
     </Filter>
@@ -197,12 +215,6 @@
     <ClCompile Include="..\External\imgui\imgui_widgets.cpp">
       <Filter>External\imgui</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Scenes\scene_base.cpp">
-      <Filter>Sources\Scenes</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Scenes\scene_resource.cpp">
-      <Filter>Sources\Scenes</Filter>
-    </ClCompile>
     <ClCompile Include="Sources\main.cpp">
       <Filter>Sources</Filter>
     </ClCompile>
@@ -220,6 +232,9 @@
     </ClCompile>
     <ClCompile Include="Sources\Framework\asset_watcher.cpp">
       <Filter>Sources\Framework</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Editor\scene_editor.cpp">
+      <Filter>Sources\Editor</Filter>
     </ClCompile>
     <ClCompile Include="Sources\Editor\editor_host.cpp">
       <Filter>Sources\Editor</Filter>
@@ -299,9 +314,6 @@
     <ClCompile Include="Sources\Object\camera_object.cpp">
       <Filter>Sources\Object</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Scenes\EditScene\edit_model_scene.cpp">
-      <Filter>Sources\Scenes\EditScene</Filter>
-    </ClCompile>
     <ClCompile Include="Sources\PipelineState\post_process_pipeline_state.cpp">
       <Filter>Sources\PipelineState</Filter>
     </ClCompile>
@@ -365,9 +377,6 @@
     <ClCompile Include="Sources\Object\messenger.cpp">
       <Filter>Sources\Object</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Scenes\EditScene\edit_model_scene_edit_window.cpp">
-      <Filter>Sources\Scenes\EditScene</Filter>
-    </ClCompile>
     <ClCompile Include="..\External\ImGuizmo\ImGradient.cpp">
       <Filter>External\imguizmo</Filter>
     </ClCompile>
@@ -401,29 +410,11 @@
     <ClCompile Include="Sources\Editor\editor_items_display.cpp">
       <Filter>Sources\Editor</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Scenes\EditScene\edit_model_scene_edit_animation_window.cpp">
-      <Filter>Sources\Scenes\EditScene</Filter>
-    </ClCompile>
     <ClCompile Include="Sources\Editor\editor_items_ik.cpp">
       <Filter>Sources\Editor</Filter>
     </ClCompile>
     <ClCompile Include="Sources\Editor\editor_items_window.cpp">
       <Filter>Sources\Editor</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Scenes\DummyScene\dummy_scene.cpp">
-      <Filter>Sources\Scenes\DummyScene</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Scenes\NetworkScene\network_sandbox_scene.cpp">
-      <Filter>Sources\Scenes\NetworkScene</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Scenes\TestScene\collision_test_scene.cpp">
-      <Filter>Sources\Scenes\TestScene</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Scenes\TestScene\clustered_lighting_test_scene.cpp">
-      <Filter>Sources\Scenes\TestScene</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Scenes\TestScene\light_shadow_test_scene.cpp">
-      <Filter>Sources\Scenes\TestScene</Filter>
     </ClCompile>
     <ClCompile Include="Sources\Object\Collision\collision_filter.cpp">
       <Filter>Sources\Object\Collision</Filter>
@@ -437,9 +428,6 @@
     <ClCompile Include="Sources\Object\Collision\collision_octree.cpp">
       <Filter>Sources\Object\Collision</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Scenes\StageScene\stage_00_scene.cpp">
-      <Filter>Sources\Scenes\StageScene</Filter>
-    </ClCompile>
     <ClCompile Include="Sources\Object\GameObjects\stage_object.cpp">
       <Filter>Sources\Object\GameObjects</Filter>
     </ClCompile>
@@ -448,15 +436,6 @@
     </ClCompile>
     <ClCompile Include="Sources\Editor\editor_items_effect.cpp">
       <Filter>Sources\Editor</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Scenes\EditScene\edit_particle_scene.cpp">
-      <Filter>Sources\Scenes\EditScene</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Scenes\EditScene\edit_material_scene.cpp">
-      <Filter>Sources\Scenes\EditScene</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Scenes\EditScene\edit_timeline_scene.cpp">
-      <Filter>Sources\Scenes\EditScene</Filter>
     </ClCompile>
     <ClCompile Include="Sources\PipelineState\deferred_decal_pipeline_state.cpp">
       <Filter>Sources\PipelineState</Filter>
@@ -512,27 +491,6 @@
     <ClCompile Include="Sources\Object\GameObjects\MiniGame\minigame_record_data.cpp">
       <Filter>Sources\Object\GameObjects\MiniGame</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Scenes\MiniGameScene\minigame_result_scene.cpp">
-      <Filter>Sources\Scenes\MiniGameScene</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Scenes\MiniGameScene\minigame_scene.cpp">
-      <Filter>Sources\Scenes\MiniGameScene</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Scenes\MiniGameScene\minigame_title_sound.cpp">
-      <Filter>Sources\Scenes\MiniGameScene</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Scenes\MiniGameScene\minigame_title_scene.cpp">
-      <Filter>Sources\Scenes\MiniGameScene</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Scenes\MiniGameScene\minigame_ui_scene.cpp">
-      <Filter>Sources\Scenes\MiniGameScene</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Scenes\setup_scene.cpp">
-      <Filter>Sources\Scenes</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Scenes\stationed_scene.cpp">
-      <Filter>Sources\Scenes</Filter>
-    </ClCompile>
     <ClCompile Include="Sources\Object\GameObjects\UI\HUD\countdown_controller_object.cpp">
       <Filter>Sources\Object\GameObjects\UI\HUD</Filter>
     </ClCompile>
@@ -548,20 +506,50 @@
     <ClCompile Include="Sources\Object\game_object_registry.cpp">
       <Filter>Sources\Object</Filter>
     </ClCompile>
+    <ClCompile Include="Sources\Scenes\scene_resource_utility.cpp">
+      <Filter>Sources\Scenes</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Scenes\scene_resource.cpp">
+      <Filter>Sources\Scenes</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Scenes\scene_instance.cpp">
+      <Filter>Sources\Scenes</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Scenes\scene_manager.cpp">
+      <Filter>Sources\Scenes</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Scenes\scene_system.cpp">
+      <Filter>Sources\Scenes</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\SceneSystems\Editor\edit_model_system.cpp">
+      <Filter>Sources\SceneSystems\Editor</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\SceneSystems\Editor\edit_model_system_edit_window.cpp">
+      <Filter>Sources\SceneSystems\Editor</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\SceneSystems\Editor\edit_model_system_edit_animation_window.cpp">
+      <Filter>Sources\SceneSystems\Editor</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\SceneSystems\Editor\edit_material_system.cpp">
+      <Filter>Sources\SceneSystems\Editor</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\SceneSystems\Editor\edit_particle_system.cpp">
+      <Filter>Sources\SceneSystems\Editor</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\SceneSystems\Editor\edit_timeline_system.cpp">
+      <Filter>Sources\SceneSystems\Editor</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\SceneSystems\Test\light_shadow_test_system.cpp">
+      <Filter>Sources\SceneSystems\Test</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\SceneSystems\Test\clustered_lighting_test_system.cpp">
+      <Filter>Sources\SceneSystems\Test</Filter>
+    </ClCompile>
     <ClCompile Include="Sources\Object\game_object_serializer.cpp">
       <Filter>Sources\Object</Filter>
     </ClCompile>
     <ClCompile Include="Sources\Object\GameObjects\System\start_point_object.cpp">
       <Filter>Sources\Object\System</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Scenes\StageScene\stage_01_scene.cpp">
-      <Filter>Sources\Scenes\StageScene</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Scenes\MiniGameScene\minigame_stage_01_scene.cpp">
-      <Filter>Sources\Scenes\MiniGameScene</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Scenes\MiniGameScene\minigame_stage_00_scene.cpp">
-      <Filter>Sources\Scenes\MiniGameScene</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -588,12 +576,6 @@
     </ClInclude>
     <ClInclude Include="..\External\imgui\imconfig.h">
       <Filter>External\imgui</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Scenes\scene_base.h">
-      <Filter>Headers\Scenes</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Scenes\scene_resource.h">
-      <Filter>Headers\Scenes</Filter>
     </ClInclude>
     <ClInclude Include="Headers\framework.h">
       <Filter>Headers</Filter>
@@ -661,6 +643,9 @@
     <ClInclude Include="Headers\PipelineState\debug_draw_line_pipeline_state.h">
       <Filter>Headers\PipelineState</Filter>
     </ClInclude>
+    <ClInclude Include="Headers\Editor\scene_editor.h">
+      <Filter>Headers\Editor</Filter>
+    </ClInclude>
     <ClInclude Include="Headers\Editor\editor_camera.h">
       <Filter>Headers\Editor</Filter>
     </ClInclude>
@@ -684,9 +669,6 @@
     </ClInclude>
     <ClInclude Include="Headers\Object\camera_object.h">
       <Filter>Headers\Object</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Scenes\EditScene\edit_model_scene.h">
-      <Filter>Headers\Scenes\EditScene</Filter>
     </ClInclude>
     <ClInclude Include="Headers\PipelineState\post_process_pipeline_state.h">
       <Filter>Headers\PipelineState</Filter>
@@ -805,21 +787,6 @@
     <ClInclude Include="..\External\ImGuiExternal\statefull_menu_type.hxx">
       <Filter>External\ImGuiExternal</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Scenes\DummyScene\dummy_scene.h">
-      <Filter>Headers\Scenes\DummyScene</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Scenes\NetworkScene\network_sandbox_scene.h">
-      <Filter>Headers\Scenes\NetworkScene</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Scenes\TestScene\collision_test_scene.h">
-      <Filter>Headers\Scenes\TestScene</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Scenes\TestScene\clustered_lighting_test_scene.h">
-      <Filter>Headers\Scenes\TestScene</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Scenes\TestScene\light_shadow_test_scene.h">
-      <Filter>Headers\Scenes\TestScene</Filter>
-    </ClInclude>
     <ClInclude Include="Headers\Object\Collision\collision_filter.h">
       <Filter>Headers\Object\Collision</Filter>
     </ClInclude>
@@ -832,23 +799,11 @@
     <ClInclude Include="Headers\Object\Collision\collision_octree.h">
       <Filter>Headers\Object\Collision</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Scenes\StageScene\stage_00_scene.h">
-      <Filter>Headers\Scenes\StageScene</Filter>
-    </ClInclude>
     <ClInclude Include="Headers\Object\GameObjects\stage_object.h">
       <Filter>Headers\Object\GameObjects</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Renderer\scene_renderer_common.h">
       <Filter>Headers\Renderer</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Scenes\EditScene\edit_particle_scene.h">
-      <Filter>Headers\Scenes\EditScene</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Scenes\EditScene\edit_material_scene.h">
-      <Filter>Headers\Scenes\EditScene</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Scenes\EditScene\edit_timeline_scene.h">
-      <Filter>Headers\Scenes\EditScene</Filter>
     </ClInclude>
     <ClInclude Include="Headers\PipelineState\deferred_decal_pipeline_state.h">
       <Filter>Headers\PipelineState</Filter>
@@ -907,32 +862,8 @@
     <ClInclude Include="Headers\Object\GameObjects\MiniGame\roomba_gauge_controller_object.h">
       <Filter>Headers\Object\GameObjects\MiniGame</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Scenes\MiniGameScene\minigame_result_scene.h">
-      <Filter>Headers\Scenes\MiniGameScene</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Scenes\MiniGameScene\minigame_scene.h">
-      <Filter>Headers\Scenes\MiniGameScene</Filter>
-    </ClInclude>
     <ClInclude Include="Headers\Sound\common_sounds.h">
       <Filter>Headers\Sound</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Scenes\MiniGameScene\minigame_title_sound.h">
-      <Filter>Headers\Scenes\MiniGameScene</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Scenes\MiniGameScene\minigame_title_topics.h">
-      <Filter>Headers\Scenes\MiniGameScene</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Scenes\MiniGameScene\minigame_title_scene.h">
-      <Filter>Headers\Scenes\MiniGameScene</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Scenes\MiniGameScene\minigame_ui_scene.h">
-      <Filter>Headers\Scenes\MiniGameScene</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Scenes\setup_scene.h">
-      <Filter>Headers\Scenes</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Scenes\stationed_scene.h">
-      <Filter>Headers\Scenes</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Object\GameObjects\UI\HUD\countdown_controller_object.h">
       <Filter>Headers\Object\GameObjects\UI\HUD</Filter>
@@ -952,20 +883,47 @@
     <ClInclude Include="Headers\Object\game_object_registry.h">
       <Filter>Headers\Object</Filter>
     </ClInclude>
+    <ClInclude Include="Headers\Scenes\scene_resource_utility.h">
+      <Filter>Headers\Scenes</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Scenes\scene_resource.h">
+      <Filter>Headers\Scenes</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Scenes\scene_instance.h">
+      <Filter>Headers\Scenes</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Scenes\scene_manager.h">
+      <Filter>Headers\Scenes</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Scenes\scene_system.h">
+      <Filter>Headers\Scenes</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Scenes\scene_paths.h">
+      <Filter>Headers\Scenes</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\SceneSystems\Editor\edit_model_system.h">
+      <Filter>Headers\SceneSystems\Editor</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\SceneSystems\Editor\edit_material_system.h">
+      <Filter>Headers\SceneSystems\Editor</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\SceneSystems\Editor\edit_particle_system.h">
+      <Filter>Headers\SceneSystems\Editor</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\SceneSystems\Editor\edit_timeline_system.h">
+      <Filter>Headers\SceneSystems\Editor</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\SceneSystems\Test\light_shadow_test_system.h">
+      <Filter>Headers\SceneSystems\Test</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\SceneSystems\Test\clustered_lighting_test_system.h">
+      <Filter>Headers\SceneSystems\Test</Filter>
+    </ClInclude>
     <ClInclude Include="Headers\Object\game_object_serializer.h">
       <Filter>Headers\Object</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Object\GameObjects\System\start_point_object.h">
       <Filter>Headers\Object\GameObjects\System</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Scenes\StageScene\stage_01_scene.h">
-      <Filter>Headers\Scenes\StageScene</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Scenes\MiniGameScene\minigame_stage_00_scene.h">
-      <Filter>Headers\Scenes\MiniGameScene</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Scenes\MiniGameScene\minigame_stage_01_scene.h">
-      <Filter>Headers\Scenes\MiniGameScene</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

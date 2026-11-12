@@ -34,6 +34,7 @@ enum class object_profile_function
 #if defined(USE_IMGUI)
 #include "System/cpu_timer.h"
 #include "Graphics/gpu_timer.h"
+#include "System/universally_unique_identifier.h"
 
 class game_object;
 
@@ -110,7 +111,7 @@ private:
 
 	struct object_thread_buffer
 	{
-		std::unordered_map<size_t, object_frame_value> values;
+		std::unordered_map<universally_unique_identifier, object_frame_value> values;
 	};
 
 	struct gpu_scope_frame
@@ -182,7 +183,7 @@ private:
 	std::array<bool, magic_enum::enum_count<category>()> frame_submitted{};
 	std::array<std::map<std::string, flat_entry>, magic_enum::enum_count<category>()> entries;
 
-	std::unordered_map<size_t, object_frame_value> object_frame_values;
+	std::unordered_map<universally_unique_identifier, object_frame_value> object_frame_values;
 	std::map<std::string, object_entry> object_entries;
 	std::map<std::string, object_entry> object_type_entries;
 

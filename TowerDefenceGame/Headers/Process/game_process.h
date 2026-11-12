@@ -8,6 +8,7 @@
 class console_command;
 class world;
 class world_renderer;
+class scene_editor;
 
 //	ゲームのプロセス
 class game_process : public framework_process
@@ -32,12 +33,16 @@ public:
 private:
 	bool create_collision_filters();
 
+	//	ワールド取得
+	world* get_active_world();
+
 private:
 	std::unique_ptr<world> main_world;				//	ワールド
 	std::unique_ptr<world_renderer> main_renderer;	//	ワールドレンダラー
 
 #if defined(USE_IMGUI)
 private:
+	std::unique_ptr<scene_editor> scene_edit;		//	シーンエディター
 	std::unique_ptr<console_command> pause_command;
 	std::unique_ptr<console_command> step_command;
 #endif	//	defined(USE_IMGUI)

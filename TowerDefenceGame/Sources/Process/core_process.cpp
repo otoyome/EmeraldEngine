@@ -4,6 +4,7 @@
 #include "System/game_config_data.h"
 #include "System/project_path.h"
 #include "Object/game_object_registry.h"
+#include "Scenes/scene_system.h"
 
 bool core_process::enter()
 {
@@ -33,12 +34,15 @@ bool core_process::enter()
 
 	//	オブジェクトの型登録表
 	game_object_registry::create_instance();
+	//	シーンシステムの型登録表
+	scene_system_registry::create_instance();
 	return true;
 }
 
 void core_process::exit()
 {
 	//	オブジェクトの型登録表解除
+	scene_system_registry::delete_instance();
 	game_object_registry::delete_instance();
 
 	//	ゲームコンフィグ終了

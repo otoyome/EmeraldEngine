@@ -1,4 +1,4 @@
-#include "scenes/editscene/edit_model_scene.h"
+#include "SceneSystems/Editor/edit_model_system.h"
 #include "Object/engine_context.h"
 
 #include "Model/model_instance.h"
@@ -22,7 +22,7 @@ namespace
 		すべてのファイル (*.*)\0*.*\0";
 }
 
-bool edit_model_scene::initialize_edit_core()
+bool edit_model_system::initialize_edit_core()
 {
 	//	エディターカメラ生成
 	{
@@ -48,7 +48,7 @@ bool edit_model_scene::initialize_edit_core()
 	return true;
 }
 
-bool edit_model_scene::uninitialize_edit_core()
+bool edit_model_system::uninitialize_edit_core()
 {
 	if (!uninitialize_vertex_color_edit())
 		return false;
@@ -61,14 +61,14 @@ bool edit_model_scene::uninitialize_edit_core()
 	return true;
 }
 
-void edit_model_scene::update_edit_core(float elapsed_time)
+void edit_model_system::update_edit_core(float elapsed_time)
 {
 	update_vertex_color_edit();
 
 	update_animation();
 }
 
-void edit_model_scene::imgui_render_edit_core()
+void edit_model_system::imgui_render_edit_core()
 {
 	if (!edit_model)
 		return;
@@ -95,7 +95,7 @@ void edit_model_scene::imgui_render_edit_core()
 	imgui_render_ik();
 }
 
-void edit_model_scene::imgui_render_mesh_list()
+void edit_model_system::imgui_render_mesh_list()
 {
 	if (ImGui::Begin(get_context().make_window_name("Mesh List Window").c_str()))
 	{
@@ -120,7 +120,7 @@ void edit_model_scene::imgui_render_mesh_list()
 	ImGui::End();
 }
 
-void edit_model_scene::imgui_render_morph()
+void edit_model_system::imgui_render_morph()
 {
 	if (!edit_model)
 		return;
@@ -226,7 +226,7 @@ void edit_model_scene::imgui_render_morph()
 	ImGui::End();
 }
 
-void edit_model_scene::imgui_render_material_window()
+void edit_model_system::imgui_render_material_window()
 {
 	if (ImGui::Begin(get_context().make_window_name("Material Window").c_str()))
 	{
@@ -256,7 +256,7 @@ void edit_model_scene::imgui_render_material_window()
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
-void edit_model_scene::imgui_model_loader_window()
+void edit_model_system::imgui_model_loader_window()
 {
 #pragma region 読込みウィンドウ
 	if (!load_model_path.empty())
@@ -460,7 +460,7 @@ void edit_model_scene::imgui_model_loader_window()
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 //	頂点カラー編集系
-bool edit_model_scene::initialize_vertex_color_edit()
+bool edit_model_system::initialize_vertex_color_edit()
 {
 	//	頂点表示マテリアル
 	if (pipeline_state_manager* instance = pipeline_state_manager::instance())
@@ -499,7 +499,7 @@ bool edit_model_scene::initialize_vertex_color_edit()
 	return true;
 }
 
-bool edit_model_scene::uninitialize_vertex_color_edit()
+bool edit_model_system::uninitialize_vertex_color_edit()
 {
 	//	左クリック登録解除
 	{
@@ -511,7 +511,7 @@ bool edit_model_scene::uninitialize_vertex_color_edit()
 	return true;
 }
 
-void edit_model_scene::update_vertex_color_edit()
+void edit_model_system::update_vertex_color_edit()
 {
 	//	頂点編集時の座標表示
 	if (brush_data.on)
@@ -520,7 +520,7 @@ void edit_model_scene::update_vertex_color_edit()
 	}
 }
 
-void edit_model_scene::imgui_render_vertex_color_edit()
+void edit_model_system::imgui_render_vertex_color_edit()
 {
 	if (ImGui::Begin(get_context().make_window_name("Edit Vertex Color Window").c_str()))
 	{
@@ -546,7 +546,7 @@ void edit_model_scene::imgui_render_vertex_color_edit()
 	ImGui::End();
 }
 
-void edit_model_scene::on_mouse_left_down_and_hold(void* data_ptr)
+void edit_model_system::on_mouse_left_down_and_hold(void* data_ptr)
 {
 	if (!edit_model || !is_edit_vertex_color)
 		return;
@@ -639,12 +639,12 @@ void edit_model_scene::on_mouse_left_down_and_hold(void* data_ptr)
 	}
 }
 
-void edit_model_scene::on_mouse_left_release(void* data_ptr)
+void edit_model_system::on_mouse_left_release(void* data_ptr)
 {
 	brush_data.on = false;
 }
 
-void edit_model_scene::on_model_release()
+void edit_model_system::on_model_release()
 {
 	selected_bones.clear();
 	model_bone_names.clear();
@@ -664,7 +664,7 @@ void edit_model_scene::on_model_release()
 	}
 }
 
-void edit_model_scene::on_model_setup()
+void edit_model_system::on_model_setup()
 {
 	if (!edit_model)
 		return;

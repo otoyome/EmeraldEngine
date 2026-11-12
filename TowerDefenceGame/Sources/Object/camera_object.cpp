@@ -1,4 +1,8 @@
 #include "object/camera_object.h"
+#include "Object/game_object_registry.h"
+
+#include "cereal/cereal.hpp"
+#include "cereal/archives/json.hpp"
 
 camera_object::camera_object(std::string_view name)
 : spatial_object(name)
@@ -26,8 +30,6 @@ void camera_object::on_deactive()
 
 void camera_object::post_update(float elapsed_time)
 {
-	sync_from_spatial();
-
 	auto& parameters = camera->get_parameters();
 	parameters.rotation = get_spatial()->get_parent()
 		? math::rotatorf(get_world().get_euler())
@@ -35,15 +37,10 @@ void camera_object::post_update(float elapsed_time)
 	parameters.position = get_world().get_translation();
 }
 
-void camera_object::sync_from_spatial()
-{
-}
-
 #if defined(USE_IMGUI)
 void camera_object::imgui_render_core()
 {
 	base::imgui_render_core();
-	sync_from_spatial();
 
 	auto& parameters = camera->get_parameters();
 
@@ -61,3 +58,28 @@ void camera_object::imgui_render_core()
 	ImGui::DragFloat2("clip_distance", &parameters.clip_distance.x, 0.01f);
 }
 #endif	//	defined(USE_IMGUI)
+
+void camera_object::serialize(cereal::JSONOutputArchive& archive) const
+{
+	base::serialize(archive);
+
+	const view_parameters& parameters = camera->get_parameters();
+	float fov_y = parameters.fov_y;
+	math::float2 clip_distance = parameters.clip_distance;
+	bool hybrid_projection = parameters.hybrid_projection;
+	float hybrid_rate = parameters.hybrid_rate;
+	archive(CEREAL_NVP(fov_y), CEREAL_NVP(clip_distance), CEREAL_NVP(hybrid_projection), CEREAL_NVP(hybrid_rate));
+}
+
+void camera_object::deserialize(cereal::JSONInputArchive& archive)
+{
+	base::deserialize(archive);
+
+	view_parameters& parameters = camera->get_parameters();
+	archive(cereal::make_nvp("fov_y", parameters.fov_y),
+		cereal::make_nvp("clip_distance", parameters.clip_distance),
+		cereal::make_nvp("hybrid_projection", parameters.hybrid_projection),
+		cereal::make_nvp("hybrid_rate", parameters.hybrid_rate));
+}
+
+GAME_OBJECT_REGISTER(camera_object);

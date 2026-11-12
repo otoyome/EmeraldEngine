@@ -26,6 +26,7 @@ public:
 	~light_object() override;
 
 	void post_update(float elapsed_time) override;
+	void pre_render() override;
 
 	void serialize(cereal::JSONOutputArchive& archive) const override;
 	void deserialize(cereal::JSONInputArchive& archive) override;
@@ -148,6 +149,7 @@ public:
 	~light_probe_object() override;
 
 	void post_update(float elapsed_time) override;
+	void pre_render() override;
 
 	void serialize(cereal::JSONOutputArchive& archive) const override;
 	void deserialize(cereal::JSONInputArchive& archive) override;

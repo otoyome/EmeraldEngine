@@ -57,12 +57,6 @@ class asset_browser
 		cache_string path;	//	相対パス
 	};
 
-	//	ファイルオープンリクエスト
-	struct open_request
-	{
-		universally_unique_identifier uuid;
-		std::string file_path;
-	};
 	//	新規作成
 	struct create_request
 	{
@@ -76,10 +70,8 @@ public:
 	//	開き先の登録情報
 	struct open_handler
 	{
-		cache_string name;						//	開き先の名前
 		cache_string label;						//	メニューの表示名
 		std::vector<cache_string> extensions;	//	対象の拡張子
-		std::function<void()> activate;			//	開く(@remainder 現状はシーンを変えているが、その内別ウィンドウを開くように対応)
 		std::function<void(const cache_string& file_path)> open_file;	//	ファイルを直接開く
 	};
 
@@ -124,8 +116,6 @@ public:
 	//	移動・削除の通知先を登録
 	void register_path_listener(path_listener listener);
 
-	//	開く要求を受け取る
-	bool take_open_request(std::string_view name, std::string& out_file_path);
 
 	//	アセットエディターを開く
 	bool open_asset(const universally_unique_identifier& uuid);
@@ -182,7 +172,6 @@ private:
 	std::vector<create_handler> create_handlers;
 	std::vector<delete_validator> delete_validators;
 	std::vector<path_listener> path_listeners;
-	std::map<std::string, open_request, std::less<>> open_requests;
 
 	directory_node root;
 	cache_string current_directory;

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "scenes/scene_base.h"
+#include "Scenes/scene_system.h"
 
 #if defined(USE_IMGUI)
 #include "Model/model_resource.h"
@@ -15,21 +15,26 @@
 #include "Editor/editor_camera.h"
 
 //	マテリアル編集シーン
-class edit_material_scene : public scene_base
+class edit_material_system : public scene_system
 {
-	SCENE_DECRLEAR(edit_material_scene, scene_base);
+	SCENE_SYSTEM_DECRLEAR(edit_material_system, scene_system)
 
 public:
-	edit_material_scene();
-	edit_material_scene(const edit_material_scene&) = delete;
-	edit_material_scene(edit_material_scene&&) = delete;
-	~edit_material_scene() override;
+	edit_material_system();
+	edit_material_system(const edit_material_system&) = delete;
+	edit_material_system(edit_material_system&&) = delete;
+	~edit_material_system() override;
 
 protected:
-	bool initialize_core() override;
-	bool uninitialize_core() override;
-	void update_core(float elapsed_time) override;
-	void imgui_render_core() override;
+	void on_begin() override { initialize_core(); }
+	void on_end() override { uninitialize_core(); }
+	void pre_update(float elapsed_time) override { update_core(elapsed_time); }
+	void imgui_render() override { imgui_render_core(); }
+
+	bool initialize_core();
+	bool uninitialize_core();
+	void update_core(float elapsed_time);
+	void imgui_render_core();
 
 private:
 	//	編集対象のマテリアル

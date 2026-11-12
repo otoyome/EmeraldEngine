@@ -68,7 +68,6 @@ void sound_bank_editor_window::register_asset_handlers(std::shared_ptr<editor_it
 
 	//	ダブルクリックでファイルごとの窓を開く
 	asset_browser::open_handler open;
-	open.name = "sound_bank_editor";
 	open.label = "Sound Bank Editor";
 	open.extensions = { extension };
 	open.open_file = [context](const cache_string& file_path) mutable

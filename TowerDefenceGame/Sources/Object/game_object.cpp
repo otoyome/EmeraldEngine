@@ -5,10 +5,6 @@
 #include "cereal/archives/json.hpp"
 #include "cereal/types/string.hpp"
 
-size_t game_object::get_id() const
-{
-	return id;
-}
 
 std::string_view game_object::get_name() const
 {
@@ -48,8 +44,6 @@ game_object::game_object(std::string_view name)
 , active(true)
 , uuid(universally_unique_identifier::generate())
 {
-	id = ++id_counter;
-	assert(id != invalid_id);
 }
 
 game_object::~game_object()
@@ -114,8 +108,14 @@ void game_object::imgui_render(const std::function<void()>& render_children)
 		return;
 	}
 
-	ImGui::PushID(0x10203040 + static_cast<int>(id));
-	if (ImGui::TreeNode(name.get<utf8_cache>().data()))
+	ImGui::PushID(static_cast<int>(std::hash<universally_unique_identifier>()(uuid)));
+	//	一時オブジェクトは名前の後ろに印を付けて薄く表示する
+	if (transient)
+		ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
+	const bool opened = ImGui::TreeNode("##object", "%s%s", name.get<utf8_cache>().data(), transient ? " (transient)" : "");
+	if (transient)
+		ImGui::PopStyleColor();
+	if (opened)
 	{
 		if (ImGui::Checkbox("active", &active))
 		{

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "scenes/scene_base.h"
+#include "Scenes/scene_system.h"
 
 #include "Model/model_instance.h"
 
@@ -19,21 +19,26 @@
 
 #include "Editor/editor_camera.h"
 
-class edit_model_scene : public scene_base
+class edit_model_system : public scene_system
 {
-	SCENE_DECRLEAR(edit_model_scene, scene_base);
+	SCENE_SYSTEM_DECRLEAR(edit_model_system, scene_system)
 
 public:
-	edit_model_scene();
-	edit_model_scene(const edit_model_scene&) = delete;
-	edit_model_scene(edit_model_scene&&) = delete;
-	~edit_model_scene() override;
+	edit_model_system();
+	edit_model_system(const edit_model_system&) = delete;
+	edit_model_system(edit_model_system&&) = delete;
+	~edit_model_system() override;
 
 protected:
-	bool initialize_core() override;
-	bool uninitialize_core() override;
-	void update_core(float elapsed_time) override;
-	void imgui_render_core() override;
+	void on_begin() override { initialize_core(); }
+	void on_end() override { uninitialize_core(); }
+	void pre_update(float elapsed_time) override { update_core(elapsed_time); }
+	void imgui_render() override { imgui_render_core(); }
+
+	bool initialize_core();
+	bool uninitialize_core();
+	void update_core(float elapsed_time);
+	void imgui_render_core();
 
 private:
 	void save_model();

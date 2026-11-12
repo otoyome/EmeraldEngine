@@ -4,7 +4,7 @@
 #include "Object/light_object.h"
 #include "Object/model_object.h"
 #include "Object/post_process_volume_object.h"
-#include "Scenes/scene_base.h"
+#include "Scenes/scene_manager.h"
 #include "Effect/effect_instance.h"
 #include "Graphics/debug_primitive_collector.h"
 
@@ -57,6 +57,8 @@ void world::collect_lights(light_container& container, const math::vector3d& ren
 	collected_lights.clear();
 	for (const auto& object : objects->search_objects<light_object>())
 	{
+		if (!object->is_active())
+			continue;
 		if (light_ptr source = object->get_light())
 			collected_lights.emplace_back(std::move(source));
 	}
@@ -64,6 +66,8 @@ void world::collect_lights(light_container& container, const math::vector3d& ren
 	collected_light_probes.clear();
 	for (const auto& object : objects->search_objects<light_probe_object>())
 	{
+		if (!object->is_active())
+			continue;
 		if (light_probe_ptr source = object->get_light_probe())
 			collected_light_probes.emplace_back(std::move(source));
 	}

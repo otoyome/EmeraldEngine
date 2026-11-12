@@ -53,6 +53,7 @@ private:
 
 	float rotation_speed = 0.0f;
 	float move_speed = 0.0f;
+	std::weak_ptr<camera_object> synced_game_camera;
 };
 
 #endif	//	defined(USE_IMGUI)

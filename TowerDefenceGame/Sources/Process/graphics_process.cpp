@@ -41,7 +41,7 @@ bool graphics_process::enter()
 		material_shader_map::create_instance();
 		model_buffer_pool_manager::create_instance();
 		asset_registry::create_instance();
-		asset_registry::instance()->scan();
+		asset_registry::instance()->scan({ asset_registry::root_directory, asset_registry::engine_root_directory });
 		resource_manager::create_instance();
 		model_resource_manager::create_instance();
 		ik_resource_manager::create_instance();	//	@remainder	‚±‚ê‚Í•s—v‚Å‚ÍH

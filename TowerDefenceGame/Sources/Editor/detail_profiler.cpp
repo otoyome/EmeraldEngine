@@ -195,13 +195,13 @@ void detail_profiler::add_object_time(object_profile_function function, const ga
 		return;
 
 	auto& values = get_object_thread_buffer().values;
-	auto it = values.find(object->get_id());
+	auto it = values.find(object->get_uuid());
 	if (it == values.end())
 	{
 		object_frame_value value;
-		value.label = std::string(object->get_name()) + "#" + std::to_string(object->get_id());
+		value.label = std::string(object->get_name()) + "#" + object->get_uuid().to_string();
 		value.type = std::string(object->get_type_name());
-		it = values.emplace(object->get_id(), std::move(value)).first;
+		it = values.emplace(object->get_uuid(), std::move(value)).first;
 	}
 	it->second.times[static_cast<size_t>(function)] += time;
 }

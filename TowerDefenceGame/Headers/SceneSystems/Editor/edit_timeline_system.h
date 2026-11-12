@@ -1,6 +1,6 @@
 #pragma once
 
-#include "scenes/scene_base.h"
+#include "Scenes/scene_system.h"
 
 #if defined(USE_IMGUI)
 #include <unordered_map>
@@ -20,21 +20,26 @@
 #include "ImGuizmo/ImSequencer.h"
 
 //	タイムライン編集シーン
-class edit_timeline_scene : public scene_base
+class edit_timeline_system : public scene_system
 {
-	SCENE_DECRLEAR(edit_timeline_scene, scene_base);
+	SCENE_SYSTEM_DECRLEAR(edit_timeline_system, scene_system)
 
 public:
-	edit_timeline_scene();
-	edit_timeline_scene(const edit_timeline_scene&) = delete;
-	edit_timeline_scene(edit_timeline_scene&&) = delete;
-	~edit_timeline_scene() override;
+	edit_timeline_system();
+	edit_timeline_system(const edit_timeline_system&) = delete;
+	edit_timeline_system(edit_timeline_system&&) = delete;
+	~edit_timeline_system() override;
 
 protected:
-	bool initialize_core() override;
-	bool uninitialize_core() override;
-	void update_core(float elapsed_time) override;
-	void imgui_render_core() override;
+	void on_begin() override { initialize_core(); }
+	void on_end() override { uninitialize_core(); }
+	void pre_update(float elapsed_time) override { update_core(elapsed_time); }
+	void imgui_render() override { imgui_render_core(); }
+
+	bool initialize_core();
+	bool uninitialize_core();
+	void update_core(float elapsed_time);
+	void imgui_render_core();
 
 private:
 	void add_object();
@@ -63,7 +68,7 @@ private:
 private:
 	struct sequence_interface : public ImSequencer::SequenceInterface
 	{
-		edit_timeline_scene* owner = nullptr;
+		edit_timeline_system* owner = nullptr;
 		mutable std::string label_cache;
 		mutable std::string type_name_cache;
 

@@ -1,17 +1,16 @@
-#include "scenes/TestScene/clustered_lighting_test_scene.h"
+#include "SceneSystems/Test/clustered_lighting_test_system.h"
 
-#if defined(USE_IMGUI)
 #include "Graphics/camera.h"
 #include "Model/model_instance.h"
-
 #include "object/light_object.h"
-#include "object/camera_object.h"
-#include "object/model_object.h"
 #include "object/object_manager.h"
 #include "object/world.h"
-
+#include "Object/game_object_serializer.h"
 #include "System/console_manager.h"
 #include "graphics/shadow_atlas.h"
+
+#include "cereal/cereal.hpp"
+#include "cereal/archives/json.hpp"
 
 #include <cmath>
 #include <algorithm>
@@ -21,9 +20,6 @@
 
 namespace
 {
-	//	地面にするモデル
-	constexpr std::string_view ground_model_path = "Assets/Resources/Models/バーダス・コロシアム/バーダス・コロシアム.emo";
-
 	//	色相から色を作る
 	math::float3 hue_to_color(float hue)
 	{
@@ -34,78 +30,48 @@ namespace
 		return { math::saturate(r), math::saturate(g), math::saturate(b) };
 	}
 
+	//	UUID から乱数値を生成
+	float make_phase(const universally_unique_identifier& uuid)
+	{
+		const size_t hash = std::hash<universally_unique_identifier>()(uuid);
+		return static_cast<float>(hash % 10000) / 10000.0f * math::constants<float>::pi * 2.0f;
+	}
+
+#if defined(USE_IMGUI)
 	//	コンソール変数の取得
 	template<class T>
 	console_variable<T>* find_variable(std::string_view name)
 	{
 		return dynamic_cast<console_variable<T>*>(console_manager::instance().find_variable(name));
 	}
+#endif	//	defined(USE_IMGUI)
 }
 
-clustered_lighting_test_scene::clustered_lighting_test_scene()
-: scene_base()
+clustered_lighting_test_system::clustered_lighting_test_system()
 {
 }
 
-clustered_lighting_test_scene::~clustered_lighting_test_scene()
+clustered_lighting_test_system::~clustered_lighting_test_system()
 {
 }
 
-bool clustered_lighting_test_scene::initialize_core()
+void clustered_lighting_test_system::on_begin()
 {
-	//	メインカメラ生成
-	{
-		auto main_camera = std::make_shared<camera_object>("メインカメラ");
-		main_camera->get_camera()->get_parameters().fov_y = math::angle::to_radian(45.0f);
-		main_camera->set_world_translation(system_units::convert_m_to_unit(math::double3(0.0, 15.0, 45.0)));
-		main_camera->set_world_euler(math::rotatord(0.35, math::constants<double>::pi, 0.0));
-		register_object(main_camera);
-		mouse::instance()->set_center_lock(false);
-		mouse::instance()->set_cursol_hide(false);
-	}
+	mouse::instance()->set_center_lock(false);
+	mouse::instance()->set_cursol_hide(false);
 
-	//	エディターカメラ生成
-	{
-		editor_camera = std::make_shared<editor_camera_object>("エディターカメラ",
-			system_units::convert_m_to_unit(math::vector3d(0.0, 15.0, 45.0)),
-			math::rotatorf(0.35f, math::constants<float>::pi, 0),
-			0.25f);
-		register_object(editor_camera);
-	}
-
-	//	平行光源生成
-	//	点光源を見やすくするため暗め、影無し
-	{
-		directional_light = std::make_shared<directional_light_object>("平行光源");
-		directional_light->set_intensity(directional_intensity);
-		directional_light->set_flag(light::flags::use_shadow, false);
-		register_object(directional_light);
-	}
-
-	//	地面
-	{
-		model_resource_ptr resource;
-		if (model_resource_manager::instance()->load(resource, ground_model_path))
-		{
-			auto ground = std::make_shared<model_object>("地面", resource);
-			ground->get_model_instance()->set_flag(model_instance::flags::culling, true);
-			register_object(ground);
-		}
-	}
-
-	rebuild_lights();
-	return true;
+	collect_scene_lights();
+	update_light_positions();
 }
 
-bool clustered_lighting_test_scene::uninitialize_core()
+void clustered_lighting_test_system::on_end()
 {
-	//	ライトは参照を外すとライト管理からも外れる
-	clear_lights();
-	editor_camera.reset();
-	return true;
+	clear_generated_lights();
+	restore_scene_lights();
+	scene_lights.clear();
 }
 
-void clustered_lighting_test_scene::update_core(float elapsed_time)
+void clustered_lighting_test_system::pre_update(float elapsed_time)
 {
 	if (animation.enable)
 	{
@@ -114,16 +80,79 @@ void clustered_lighting_test_scene::update_core(float elapsed_time)
 	}
 }
 
-void clustered_lighting_test_scene::clear_lights()
+void clustered_lighting_test_system::serialize(cereal::JSONOutputArchive& archive) const
 {
-	for (auto& entry : lights)
-		get_context().get_objects().unregister_object(entry.object);
-	lights.clear();
+	archive(cereal::make_nvp("light_count", settings.light_count),
+		cereal::make_nvp("spot_ratio", settings.spot_ratio),
+		cereal::make_nvp("area_size", settings.area_size),
+		cereal::make_nvp("height", settings.height),
+		cereal::make_nvp("range", settings.range),
+		cereal::make_nvp("intensity", settings.intensity),
+		cereal::make_nvp("spot_inner_cone", settings.spot_inner_cone),
+		cereal::make_nvp("spot_outer_cone", settings.spot_outer_cone),
+		cereal::make_nvp("shadow_ratio", settings.shadow_ratio),
+		cereal::make_nvp("stratified", settings.stratified),
+		cereal::make_nvp("seed", settings.seed),
+		cereal::make_nvp("animation_enable", animation.enable),
+		cereal::make_nvp("animation_speed", animation.speed),
+		cereal::make_nvp("animation_radius", animation.radius));
+	game_object_serializer::save_object_reference(archive, "directional_light", directional_light);
 }
 
-void clustered_lighting_test_scene::rebuild_lights()
+void clustered_lighting_test_system::deserialize(cereal::JSONInputArchive& archive)
 {
-	clear_lights();
+	archive(cereal::make_nvp("light_count", settings.light_count),
+		cereal::make_nvp("spot_ratio", settings.spot_ratio),
+		cereal::make_nvp("area_size", settings.area_size),
+		cereal::make_nvp("height", settings.height),
+		cereal::make_nvp("range", settings.range),
+		cereal::make_nvp("intensity", settings.intensity),
+		cereal::make_nvp("spot_inner_cone", settings.spot_inner_cone),
+		cereal::make_nvp("spot_outer_cone", settings.spot_outer_cone),
+		cereal::make_nvp("shadow_ratio", settings.shadow_ratio),
+		cereal::make_nvp("stratified", settings.stratified),
+		cereal::make_nvp("seed", settings.seed),
+		cereal::make_nvp("animation_enable", animation.enable),
+		cereal::make_nvp("animation_speed", animation.speed),
+		cereal::make_nvp("animation_radius", animation.radius));
+	game_object_serializer::load_object_reference(archive, "directional_light", directional_light);
+}
+
+void clustered_lighting_test_system::collect_scene_lights()
+{
+	scene_lights.clear();
+	for (const game_object_ptr& object : get_scene_objects())
+	{
+		if (!object->check_type(point_light_object::type_name()) && !object->check_type(spot_light_object::type_name()))
+			continue;
+
+		light_entry& entry = scene_lights.emplace_back();
+		entry.object = std::static_pointer_cast<light_object>(object);
+		entry.base_position = entry.object->get_local().get_translation();
+		entry.active = entry.object->is_active();
+		entry.phase = make_phase(entry.object->get_uuid());
+	}
+}
+
+void clustered_lighting_test_system::restore_scene_lights()
+{
+	for (light_entry& entry : scene_lights)
+	{
+		entry.object->set_local_translation(entry.base_position);
+		entry.object->set_active(entry.active);
+	}
+}
+
+void clustered_lighting_test_system::set_scene_lights_active(bool active)
+{
+	for (light_entry& entry : scene_lights)
+		entry.object->set_active(entry.active && active);
+}
+
+void clustered_lighting_test_system::regenerate_lights()
+{
+	clear_generated_lights();
+	set_scene_lights_active(false);
 
 	std::seed_seq seed_sequence{ static_cast<std::uint32_t>(settings.seed), 0x9e3779b9u, 0x85ebca6bu, 0xc2b2ae35u };
 	std::mt19937 random(seed_sequence);
@@ -138,7 +167,7 @@ void clustered_lighting_test_scene::rebuild_lights()
 		cell_order[static_cast<size_t>(index)] = index;
 	std::shuffle(cell_order.begin(), cell_order.end(), random);
 
-	lights.reserve(static_cast<size_t>(count));
+	generated_lights.reserve(static_cast<size_t>(count));
 	for (int index = 0; index < count; ++index)
 	{
 		const bool spot = random_01(random) < settings.spot_ratio;
@@ -166,8 +195,8 @@ void clustered_lighting_test_scene::rebuild_lights()
 		entry.phase = static_cast<float>(random_01(random)) * math::constants<float>::pi * 2.0f;
 
 		const math::float3 color = hue_to_color(static_cast<float>(random_01(random)));
-		const light_ptr target = entry.object->get_light();
 
+		const light_ptr target = entry.object->get_light();
 		if (!spot)
 		{
 			const ::light defaults(light_type::point);
@@ -187,18 +216,36 @@ void clustered_lighting_test_scene::rebuild_lights()
 			target->set_inner_cone(math::angle::to_radian(settings.spot_inner_cone));
 			target->set_outer_cone(math::angle::to_radian(settings.spot_outer_cone));
 		}
+
 		register_object(entry.object);
-		lights.emplace_back(std::move(entry));
+		generated_lights.emplace_back(std::move(entry));
 	}
 
 	update_light_positions();
 }
 
-void clustered_lighting_test_scene::update_light_positions()
+void clustered_lighting_test_system::clear_generated_lights()
+{
+	if (generated_lights.empty())
+		return;
+
+	//	ライトは参照を外すとライト管理からも外れる
+	for (auto& entry : generated_lights)
+		unregister_object(entry.object);
+	generated_lights.clear();
+	set_scene_lights_active(true);
+}
+
+std::vector<clustered_lighting_test_system::light_entry>& clustered_lighting_test_system::get_current_lights()
+{
+	return generated_lights.empty() ? scene_lights : generated_lights;
+}
+
+void clustered_lighting_test_system::update_light_positions()
 {
 	const double radius = system_units::convert_m_to_unit(static_cast<double>(animation.radius));
 	const float angle_base = animation_time * animation.speed * math::constants<float>::pi * 2.0f;
-	for (auto& entry : lights)
+	for (auto& entry : get_current_lights())
 	{
 		const double angle = static_cast<double>(angle_base + entry.phase);
 		const math::vector3d offset(std::cos(angle) * radius, 0.0, std::sin(angle) * radius);
@@ -206,7 +253,8 @@ void clustered_lighting_test_scene::update_light_positions()
 	}
 }
 
-void clustered_lighting_test_scene::imgui_render_core()
+#if defined(USE_IMGUI)
+void clustered_lighting_test_system::imgui_render()
 {
 	if (!ImGui::CollapsingHeader("clustered lighting test", ImGuiTreeNodeFlags_DefaultOpen))
 		return;
@@ -311,14 +359,19 @@ void clustered_lighting_test_scene::imgui_render_core()
 
 	//	平行光源
 	ImGui::Separator();
-	if (ImGui::SliderFloat("directional intensity (lx)", &directional_intensity, 0.0f, 150000.0f, "%.0f") && directional_light)
+	if (directional_light)
 	{
-		directional_light->set_intensity(directional_intensity);
+		float directional_intensity = directional_light->get_intensity();
+		if (ImGui::SliderFloat("directional intensity (lx)", &directional_intensity, 0.0f, 150000.0f, "%.0f"))
+			directional_light->set_intensity(directional_intensity);
 	}
 
 	//	ライト配置
 	ImGui::Separator();
-	ImGui::Text("lights : %d", static_cast<int>(lights.size()));
+	if (generated_lights.empty())
+		ImGui::Text("lights : %d (scene)", static_cast<int>(scene_lights.size()));
+	else
+		ImGui::Text("lights : %d (generated)", static_cast<int>(generated_lights.size()));
 	bool changed = false;
 	changed |= ImGui::DragInt("light count", &settings.light_count, 4.0f, 0, 65536);
 	changed |= ImGui::SliderFloat("spot ratio", &settings.spot_ratio, 0.0f, 1.0f);
@@ -333,7 +386,17 @@ void clustered_lighting_test_scene::imgui_render_core()
 	changed |= ImGui::DragInt("seed", &settings.seed);
 	settings.spot_inner_cone = (std::min)(settings.spot_inner_cone, settings.spot_outer_cone);
 	if (changed)
-		rebuild_lights();
+		regenerate_lights();
+	if (ImGui::Button("regenerate"))
+		regenerate_lights();
+	ImGui::SameLine();
+	ImGui::BeginDisabled(generated_lights.empty());
+	if (ImGui::Button("use scene lights"))
+	{
+		clear_generated_lights();
+		update_light_positions();
+	}
+	ImGui::EndDisabled();
 
 	//	ライトの動き
 	ImGui::Separator();
@@ -343,3 +406,5 @@ void clustered_lighting_test_scene::imgui_render_core()
 		update_light_positions();
 }
 #endif	//	defined(USE_IMGUI)
+
+SCENE_SYSTEM_REGISTER(clustered_lighting_test_system);

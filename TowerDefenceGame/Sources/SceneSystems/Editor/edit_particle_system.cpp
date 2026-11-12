@@ -1,4 +1,4 @@
-#include "scenes/editscene/edit_particle_scene.h"
+#include "SceneSystems/Editor/edit_particle_system.h"
 #include "Object/engine_context.h"
 #include "Texture/texture_resource_utility.h"
 #include "System/asset_browser.h"
@@ -96,17 +96,17 @@ namespace
 	}
 }
 
-edit_particle_scene::edit_particle_scene()
-: scene_base()
+edit_particle_system::edit_particle_system()
+: scene_system()
 {
 	generate_default_effect();
 }
 
-edit_particle_scene::~edit_particle_scene()
+edit_particle_system::~edit_particle_system()
 {
 }
 
-bool edit_particle_scene::initialize_core()
+bool edit_particle_system::initialize_core()
 {
 	//	メインカメラ生成
 	{
@@ -205,7 +205,7 @@ bool edit_particle_scene::initialize_core()
 	return true;
 }
 
-bool edit_particle_scene::uninitialize_core()
+bool edit_particle_system::uninitialize_core()
 {
 	if (edit_instance)
 		get_context().get_effects().unregister_instance(edit_instance);
@@ -222,7 +222,7 @@ bool edit_particle_scene::uninitialize_core()
 	return true;
 }
 
-void edit_particle_scene::update_core(float elapsed_time)
+void edit_particle_system::update_core(float elapsed_time)
 {
 	{
 		std::string file_path;
@@ -233,7 +233,7 @@ void edit_particle_scene::update_core(float elapsed_time)
 	draw_sdf_debug_primitives();
 }
 
-void edit_particle_scene::open_effect(const std::string& file_path)
+void edit_particle_system::open_effect(const std::string& file_path)
 {
 	effect_resource_ptr resource = resource_manager::instance()->load_uncached<effect_resource>(file_path);
 	if (!resource)
@@ -246,7 +246,7 @@ void edit_particle_scene::open_effect(const std::string& file_path)
 	get_context().get_effects().register_instance(edit_instance);
 }
 
-void edit_particle_scene::imgui_render_core()
+void edit_particle_system::imgui_render_core()
 {
 	//	パーティクル読込み関係
 	if (ImGui::Begin(get_context().make_window_name("Effect").c_str()))
@@ -304,7 +304,7 @@ void edit_particle_scene::imgui_render_core()
 	}
 }
 
-void edit_particle_scene::on_new()
+void edit_particle_system::on_new()
 {
 	if (edit_instance)
 		get_context().get_effects().unregister_instance(edit_instance);
@@ -314,7 +314,7 @@ void edit_particle_scene::on_new()
 	get_context().get_effects().register_instance(edit_instance);
 }
 
-void edit_particle_scene::generate_default_effect()
+void edit_particle_system::generate_default_effect()
 {
 	//	テスト用にスプライトパーティクルエミッター登録
 	{
@@ -544,7 +544,7 @@ void edit_particle_scene::generate_default_effect()
 	}
 }
 
-void edit_particle_scene::imgui_render_sdf()
+void edit_particle_system::imgui_render_sdf()
 {
 	ImGui::Text("Cubic SDF ");
 	ImGui::SameLine();
@@ -635,7 +635,7 @@ void edit_particle_scene::imgui_render_sdf()
 	}
 }
 
-void edit_particle_scene::draw_sdf_debug_primitives()
+void edit_particle_system::draw_sdf_debug_primitives()
 {
 	for (auto& sdf : edit_sdfs)
 	{
@@ -684,5 +684,7 @@ void edit_particle_scene::draw_sdf_debug_primitives()
 		}
 	}
 }
+
+SCENE_SYSTEM_REGISTER(edit_particle_system);
 
 #endif	//	defined(USE_IMGUI)

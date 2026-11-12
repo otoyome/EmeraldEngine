@@ -36,16 +36,10 @@ extern ImWchar glyphRangesJapanese[];
 #include "Material/material_resource.h"
 
 
-#include "scenes/editscene/edit_model_scene.h"
-#include "scenes/editscene/edit_particle_scene.h"
-#include "scenes/editscene/edit_material_scene.h"
-#include "scenes/editscene/edit_timeline_scene.h"
-#include "scenes/DummyScene/dummy_scene.h"
-#include "scenes/TestScene/collision_test_scene.h"
-#include "scenes/TestScene/clustered_lighting_test_scene.h"
-#include "scenes/TestScene/light_shadow_test_scene.h"
-#include "scenes/NetworkScene/network_sandbox_scene.h"
-#include "Scenes/setup_scene.h"
+#include "Scenes/scene_manager.h"
+#include "Scenes/scene_instance.h"
+#include "Scenes/scene_paths.h"
+#include "Resource/asset_registry.h"
 
 #include "imPlot/imPlot.h"
 #include "imtimeline/ImTimeline.h"
@@ -104,27 +98,15 @@ namespace
 			console_manager::instance().print("asset.resave_effects : saved " + std::to_string(saved_count) + " / failed " + std::to_string(failed_count));
 		});
 
-	template<typename Type>
-	void change_scene(scene_manager& scenes)
-	{
-		if (ImGui::Button(Type::type_name().data()))
-		{
-			scenes.change_scene_for_imgui<Type>();
-		}
-	}
-
 	//	アセットブラウザでダブルクリックしたファイルを、シーンを切り替えて開く
-	template<typename Type>
-	void register_asset_open_handler(scene_manager& scenes, std::string_view label, std::vector<cache_string> extensions)
+	void register_asset_open_handler(const editor_host::play_function& play_scene, std::string_view label, std::vector<cache_string> extensions, std::string_view scene_path)
 	{
 		asset_browser::open_handler handler;
-		handler.name = Type::type_name();
 		handler.label = label;
 		handler.extensions = std::move(extensions);
-		handler.activate = [&scenes]()
+		handler.open_file = [play_scene, scene_path](const cache_string& file_path)
 		{
-			if (!scenes.valid_scene<Type>())
-				scenes.change_scene_for_imgui<Type>();
+			play_scene(scene_path, file_path.view());
 		};
 		asset_browser::instance()->register_open_handler(std::move(handler));
 	}
@@ -300,9 +282,20 @@ void editor_host::imgui_initialize()
 	editor_items::register_tool_window(editor_context, std::make_unique<gamepad_window>(), gamepad_window_variable);
 }
 
-void editor_host::register_asset_open_handlers(scene_manager& scenes)
+void editor_host::register_asset_open_handlers(scene_function edit_scene, play_function play_scene)
 {
-	register_asset_open_handler<edit_timeline_scene>(scenes, "Timeline Editor", { ".etl" });
+	register_asset_open_handler(play_scene, "Timeline Editor", { ".etl" }, scene_paths::timeline_editor);
+
+	{
+		asset_browser::open_handler handler;
+		handler.label = "Open Scene";
+		handler.extensions = { ".escene" };
+		handler.open_file = [edit_scene](const cache_string& file_path)
+		{
+			edit_scene(file_path.view());
+		};
+		asset_browser::instance()->register_open_handler(std::move(handler));
+	}
 }
 
 void editor_host::imgui_terminate()
@@ -323,22 +316,6 @@ void editor_host::imgui_terminate()
 
 	//	終了時の imgui.ini の保存で使うので、コンテキストを破棄した後に消す
 	debug_view_settings_manager::delete_instance();
-}
-
-
-void editor_host::imgui_scene_change(scene_manager& scenes)
-{
-	if (ImGui::Begin("Scene Change Window"))
-	{
-		change_scene<dummy_scene>(scenes);
-		change_scene<collision_test_scene>(scenes);
-		change_scene<clustered_lighting_test_scene>(scenes);
-		change_scene<light_shadow_test_scene>(scenes);
-		change_scene<network_sandbox_scene>(scenes);
-		change_scene<edit_timeline_scene>(scenes);
-		change_scene<setup_scene>(scenes);
-	}
-	ImGui::End();
 }
 
 #endif // defined(USE_IMGUI)

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 #include <memory>
 #include <string>
 #include <string_view>
@@ -11,6 +12,8 @@
 #include "Resource/asset_handle.h"
 
 class scene_resource;
+class scene_system;
+using scene_resource_ptr = std::shared_ptr<scene_resource>;
 
 namespace resource
 {
@@ -37,11 +40,12 @@ public:
 	//	サブシーンリスト
 	const std::vector<resource::asset_handle<scene_resource>>& get_sub_scenes() const { return sub_scenes; }
 
-	//	オブジェクト生成
-	bool create_objects(std::vector<game_object_ptr>& out_objects) const;
+	//	JSON文字列取得
+	const std::string& get_body() const { return body; }
 
-	//	サブシーンの一覧と配置を置き換える
-	bool set_contents(const std::vector<resource::asset_handle<scene_resource>>& scenes, const std::vector<game_object_ptr>& objects);
+	//	保存・編集した結果を設定
+	bool set_contents(const std::vector<resource::asset_handle<scene_resource>>& scenes, const std::vector<game_object_ptr>& objects,
+					  const scene_system* system = nullptr);
 
 private:
 	bool save_file(std::string_view file_path);
@@ -52,8 +56,6 @@ private:
 	std::string body;
 	std::vector<resource::asset_handle<scene_resource>> sub_scenes;
 };
-
-using scene_resource_ptr = std::shared_ptr<scene_resource>;
 
 namespace resource
 {

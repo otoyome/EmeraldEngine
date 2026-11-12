@@ -1,8 +1,11 @@
 #include "Object/game_object_serializer.h"
 
 #include <istream>
+#include <iterator>
 #include <ostream>
+#include <sstream>
 #include <unordered_map>
+#include <unordered_set>
 
 #include "cereal/cereal.hpp"
 #include "cereal/archives/json.hpp"
@@ -14,23 +17,42 @@
 
 namespace
 {
+	using object_table = std::unordered_map<universally_unique_identifier, game_object_ptr>;
+
 	//	読込中のファイルで生成したオブジェクトの表を持つアーカイブ
 	class input_archive : public cereal::JSONInputArchive
 	{
 	public:
-		explicit input_archive(std::istream& stream) : cereal::JSONInputArchive(stream) {}
+		explicit input_archive(std::istream& stream)
+		: cereal::JSONInputArchive(stream)
+		{
+		}
 
-		std::unordered_map<universally_unique_identifier, game_object_ptr> objects;
+		object_table table;
 	};
+
+	//	保存対象のオブジェクトを持つアーカイブ
+	class output_archive : public cereal::JSONOutputArchive
+	{
+	public:
+		explicit output_archive(std::ostream& stream)
+		: cereal::JSONOutputArchive(stream)
+		{
+		}
+
+		std::unordered_set<const game_object*> members;
+	};
+
+	universally_unique_identifier from_text(const std::string& text)
+	{
+		universally_unique_identifier uuid;
+		if (!text.empty())
+			universally_unique_identifier::from_string(text, uuid);
+		return uuid;
+	}
 }
 
-bool game_object_serializer::save(std::ostream& stream, const std::vector<game_object_ptr>& objects)
-{
-	cereal::JSONOutputArchive archive(stream);
-	return save(archive, objects);
-}
-
-bool game_object_serializer::save(cereal::JSONOutputArchive& archive, const std::vector<game_object_ptr>& objects)
+bool game_object_serializer::save(std::ostream& stream, const std::vector<game_object_ptr>& objects, const write_function& write_extra)
 {
 	const game_object_registry* registry = game_object_registry::instance();
 	assert(registry && "game_object_registry が作られていない");
@@ -41,7 +63,7 @@ bool game_object_serializer::save(cereal::JSONOutputArchive& archive, const std:
 	std::vector<game_object_ptr> targets;
 	for (const game_object_ptr& object : objects)
 	{
-		if (object && registry->contains(object->get_type_name()))
+		if (object && !object->is_transient() && registry->contains(object->get_type_name()))
 			targets.emplace_back(object);
 	}
 
@@ -55,6 +77,13 @@ bool game_object_serializer::save(cereal::JSONOutputArchive& archive, const std:
 
 	try
 	{
+		output_archive archive(stream);
+		for (const game_object_ptr& object : targets)
+			archive.members.insert(object.get());
+
+		if (write_extra)
+			write_extra(archive);
+
 		std::uint32_t version = current_version;
 		archive(CEREAL_NVP(version));
 
@@ -105,7 +134,7 @@ bool game_object_serializer::save(cereal::JSONOutputArchive& archive, const std:
 	return true;
 }
 
-bool game_object_serializer::load(std::istream& stream, std::vector<game_object_ptr>& out_objects)
+bool game_object_serializer::load(std::istream& stream, std::vector<game_object_ptr>& out_objects, const read_function& read_extra)
 {
 	const game_object_registry* registry = game_object_registry::instance();
 	assert(registry && "game_object_registry が作られていない");
@@ -113,7 +142,6 @@ bool game_object_serializer::load(std::istream& stream, std::vector<game_object_
 		return false;
 
 	std::vector<game_object_ptr> objects;
-
 	try
 	{
 		input_archive archive(stream);
@@ -142,7 +170,7 @@ bool game_object_serializer::load(std::istream& stream, std::vector<game_object_
 			if (object && universally_unique_identifier::from_string(uuid_text, uuid))
 			{
 				object->set_uuid(uuid);
-				archive.objects.insert_or_assign(uuid, object);
+				archive.table.insert_or_assign(uuid, object);
 				created[index] = std::move(object);
 			}
 
@@ -155,7 +183,7 @@ bool game_object_serializer::load(std::istream& stream, std::vector<game_object_
 		archive.startNode();
 		cereal::size_type object_count = 0;
 		archive.loadSize(object_count);
-		if (object_count != entity_count)
+		if (object_count != created.size())
 			return false;
 		for (cereal::size_type index = 0; index < object_count; ++index)
 		{
@@ -167,8 +195,9 @@ bool game_object_serializer::load(std::istream& stream, std::vector<game_object_
 				archive(CEREAL_NVP(parent));
 				object->deserialize(archive);
 
-				universally_unique_identifier parent_uuid;
-				if (!parent.empty() && universally_unique_identifier::from_string(parent, parent_uuid))
+				//	親は同じファイル内から引く
+				const universally_unique_identifier parent_uuid = from_text(parent);
+				if (!parent_uuid.is_empty())
 				{
 					auto child = std::dynamic_pointer_cast<spatial_object>(object);
 					auto parent_object = std::dynamic_pointer_cast<spatial_object>(find_object(archive, parent_uuid));
@@ -182,6 +211,9 @@ bool game_object_serializer::load(std::istream& stream, std::vector<game_object_
 			archive.finishNode();
 		}
 		archive.finishNode();
+
+		if (read_extra)
+			read_extra(archive);
 	}
 	catch (const cereal::Exception& exception)
 	{
@@ -203,8 +235,8 @@ game_object_ptr game_object_serializer::find_object(cereal::JSONInputArchive& ar
 	if (!loading)
 		return nullptr;
 
-	auto it = loading->objects.find(uuid);
-	return it != loading->objects.end() ? it->second : nullptr;
+	auto it = loading->table.find(uuid);
+	return it != loading->table.end() ? it->second : nullptr;
 }
 
 void game_object_serializer::save_asset_reference(cereal::JSONOutputArchive& archive, const char* name, const universally_unique_identifier& uuid, std::string_view path)
@@ -247,18 +279,25 @@ std::string game_object_serializer::resolve_asset_path(const universally_unique_
 	return std::string(path);
 }
 
-void game_object_serializer::save_object_uuid(cereal::JSONOutputArchive& archive, const char* name, const universally_unique_identifier& uuid)
+void game_object_serializer::save_object(cereal::JSONOutputArchive& archive, const char* name, const game_object_ptr& object)
 {
-	std::string uuid_text = uuid.is_empty() ? std::string() : uuid.to_string();
-	archive(cereal::make_nvp(name, uuid_text));
+	//	保存対象に無いオブジェクトは参照しない
+	std::string uuid;
+	if (object)
+	{
+		const output_archive* saving = dynamic_cast<const output_archive*>(&archive);
+		assert(saving && "game_object_serializer::save 以外から保存している");
+		if (saving && saving->members.contains(object.get()))
+			uuid = object->get_uuid().to_string();
+		else
+			DEBUG_WARNING_CATEGORY(logger::categorys::system, "game_object_serializer reference outside the file is not saved[%s]", name);
+	}
+	archive(cereal::make_nvp(name, uuid));
 }
 
-void game_object_serializer::load_object_uuid(cereal::JSONInputArchive& archive, const char* name, universally_unique_identifier& out_uuid)
+game_object_ptr game_object_serializer::load_object(cereal::JSONInputArchive& archive, const char* name)
 {
-	std::string uuid_text;
-	archive(cereal::make_nvp(name, uuid_text));
-
-	out_uuid.clear();
-	if (!uuid_text.empty())
-		universally_unique_identifier::from_string(uuid_text, out_uuid);
+	std::string uuid;
+	archive(cereal::make_nvp(name, uuid));
+	return find_object(archive, from_text(uuid));
 }

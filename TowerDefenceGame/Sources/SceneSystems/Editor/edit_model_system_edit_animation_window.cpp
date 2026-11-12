@@ -1,4 +1,4 @@
-#include "scenes/editscene/edit_model_scene.h"
+#include "SceneSystems/Editor/edit_model_system.h"
 #include "Object/engine_context.h"
 
 #include "Model/model_instance.h"
@@ -29,7 +29,7 @@ namespace
 
 }
 
-bool edit_model_scene::initialize_animation()
+bool edit_model_system::initialize_animation()
 {
 	//	リターゲティング用情報読込
 	retarget_data.deserialize(RetargetFilePath);
@@ -37,7 +37,7 @@ bool edit_model_scene::initialize_animation()
 	return true;
 }
 
-bool edit_model_scene::uninitialize_animation()
+bool edit_model_system::uninitialize_animation()
 {
 	//	リターゲティング用情報読込
 	retarget_data.serialize(RetargetFilePath);
@@ -45,11 +45,11 @@ bool edit_model_scene::uninitialize_animation()
 	return true;
 }
 
-void edit_model_scene::update_animation()
+void edit_model_system::update_animation()
 {
 }
 
-void edit_model_scene::imgui_render_animation()
+void edit_model_system::imgui_render_animation()
 {
 	if (!edit_model)
 		return;
@@ -199,7 +199,7 @@ void edit_model_scene::imgui_render_animation()
 	ImGui::End();
 }
 
-void edit_model_scene::imgui_render_ik()
+void edit_model_system::imgui_render_ik()
 {
 	if (ImGui::Begin(get_context().make_window_name("Edit IK Window").c_str()))
 	{
@@ -242,7 +242,7 @@ void edit_model_scene::imgui_render_ik()
 	ImGui::End();
 }
 
-void edit_model_scene::imgui_retarget_window()
+void edit_model_system::imgui_retarget_window()
 {
 	if (!edit_model)
 		return;

@@ -1,5 +1,6 @@
 #include "Resource/asset_registry.h"
 
+#include <algorithm>
 #include <filesystem>
 #include <mutex>
 #include <vector>
@@ -18,29 +19,44 @@ asset_registry::~asset_registry()
 
 void asset_registry::scan(std::string_view directory)
 {
+	scan(std::vector<std::string_view>{ directory });
+}
+
+void asset_registry::scan(const std::vector<std::string_view>& directories)
+{
 	std::unique_lock lock(mutex);
 	entries.clear();
 	path_to_uuid.clear();
 
+	size_t duplicated_count = 0;
+	for (std::string_view directory : directories)
+		scan_asset(directory, duplicated_count);
+}
+
+void asset_registry::scan_asset(std::string_view directory, size_t& duplicated_count)
+{
 	std::error_code error;
 	const std::filesystem::path root{ std::string(directory) };
 	if (!std::filesystem::is_directory(root, error))
 		return;
 
-	size_t duplicated_count = 0;
 	for (std::filesystem::recursive_directory_iterator it(root, std::filesystem::directory_options::skip_permission_denied, error), end; it != end; it.increment(error))
 	{
 		if (error)
 			break;
 		if (!it->is_regular_file(error))
 			continue;
+
+		//	リソースが管轄している物か判断
 		if (resource::get_asset_type_from_extension(it->path().extension().string()) == resource::asset_types::unknown)
 			continue;
 
+		//	ヘッダーを読み込む
 		resource::asset_file_header header;
 		if (!resource::read_asset_header(it->path(), header) || header.uuid.is_empty())
 			continue;
 
+		//	UUIDとパスを保存
 		const std::string path = it->path().generic_string();
 		if (entries.contains(header.uuid))
 		{
@@ -54,7 +70,9 @@ void asset_registry::scan(std::string_view directory)
 			header.uuid = new_uuid;
 			++duplicated_count;
 		}
-		register_locked(header.uuid, header.type, path);
+
+		//	アセット登録
+		register_asset_core(header.uuid, header.type, path);
 	}
 
 	DEBUG_LOG_CATEGORY(logger::categorys::system, "asset_registry scan[%s] assets:%zu duplicated:%zu", root.generic_string().c_str(), entries.size(), duplicated_count);
@@ -66,13 +84,13 @@ void asset_registry::register_asset(const universally_unique_identifier& uuid, r
 		return;
 
 	std::unique_lock lock(mutex);
-	register_locked(uuid, type, path);
+	register_asset_core(uuid, type, path);
 }
 
 void asset_registry::unregister_path(std::string_view path)
 {
 	std::unique_lock lock(mutex);
-	unregister_locked(resource_manager::make_path_key(path));
+	unregister_asset(resource_manager::make_path_key(path));
 }
 
 void asset_registry::move_path(std::string_view old_path, std::string_view new_path)
@@ -87,7 +105,7 @@ void asset_registry::move_path(std::string_view old_path, std::string_view new_p
 			moved_entries.emplace_back(uuid, std::move(moved_path));
 	}
 	for (const auto& [uuid, moved_path] : moved_entries)
-		register_locked(uuid, entries[uuid].type, moved_path);
+		register_asset_core(uuid, entries[uuid].type, moved_path);
 }
 
 universally_unique_identifier asset_registry::find_uuid(std::string_view path) const
@@ -131,19 +149,34 @@ void asset_registry::prepare_save(resource::resource_base& target, std::string_v
 	target.regenerate_uuid();
 }
 
+std::vector<std::string> asset_registry::find_paths(resource::asset_types type) const
+{
+	std::vector<std::string> paths;
+	{
+		std::shared_lock lock(mutex);
+		for (const auto& [uuid, value] : entries)
+		{
+			if (value.type == type)
+				paths.emplace_back(value.path);
+		}
+	}
+	std::sort(paths.begin(), paths.end());
+	return paths;
+}
+
 size_t asset_registry::get_count() const
 {
 	std::shared_lock lock(mutex);
 	return entries.size();
 }
 
-void asset_registry::register_locked(const universally_unique_identifier& uuid, resource::asset_types type, std::string_view path)
+void asset_registry::register_asset_core(const universally_unique_identifier& uuid, resource::asset_types type, std::string_view path)
 {
 	const std::wstring key = resource_manager::make_path_key(path);
 
 	//	同じパスに別の UUID が載っていれば(別のアセットで上書きされた)外す
 	if (const auto path_it = path_to_uuid.find(key); path_it != path_to_uuid.end() && path_it->second != uuid)
-		unregister_locked(key);
+		unregister_asset(key);
 
 	//	同じ UUID が別のパスに載っていれば(移動)古いパスを外す
 	if (const auto entry_it = entries.find(uuid); entry_it != entries.end())
@@ -157,7 +190,7 @@ void asset_registry::register_locked(const universally_unique_identifier& uuid, 
 	path_to_uuid.insert_or_assign(key, uuid);
 }
 
-void asset_registry::unregister_locked(const std::wstring& key)
+void asset_registry::unregister_asset(const std::wstring& key)
 {
 	const auto it = path_to_uuid.find(key);
 	if (it == path_to_uuid.end())

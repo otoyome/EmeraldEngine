@@ -21,16 +21,21 @@ public:
 
 	void post_update(float elapsed_time) override;
 
+	//	描画に使うカメラの優先順を一番にする
+	void bring_to_front() { view_order = view_order_counter.fetch_add(1); }
+
 #if defined(USE_IMGUI)
 	void imgui_render_core() override;
 #endif	//	defined(USE_IMGUI)
 
+public:
+	//	シリアライズ
+	void serialize(cereal::JSONOutputArchive& archive) const override;
+	void deserialize(cereal::JSONInputArchive& archive) override;
+
 protected:
 	void on_active() override;
 	void on_deactive() override;
-
-private:
-	void sync_from_spatial();
 
 private:
 	camera_ptr camera;

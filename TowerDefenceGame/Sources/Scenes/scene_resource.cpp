@@ -9,40 +9,43 @@
 
 #include "Resource/asset_file_header.h"
 #include "Object/game_object_serializer.h"
+#include "Scenes/scene_system.h"
 
-bool scene_resource::create_objects(std::vector<game_object_ptr>& out_objects) const
+namespace
 {
-	std::istringstream stream(body);
-	return game_object_serializer::load(stream, out_objects);
+	void write_system(cereal::JSONOutputArchive& archive, const scene_system* system)
+	{
+		std::string type = system ? std::string(system->get_type_name()) : std::string();
+		archive.setNextName("system");
+		archive.startNode();
+		archive(CEREAL_NVP(type));
+		if (system)
+			system->serialize(archive);
+		archive.finishNode();
+	}
 }
 
-bool scene_resource::set_contents(const std::vector<resource::asset_handle<scene_resource>>& scenes, const std::vector<game_object_ptr>& objects)
+bool scene_resource::set_contents(const std::vector<resource::asset_handle<scene_resource>>& scenes, const std::vector<game_object_ptr>& objects,
+								  const scene_system* system)
 {
 	std::ostringstream stream;
+	const bool result = game_object_serializer::save(stream, objects, [&](cereal::JSONOutputArchive& archive)
 	{
-		cereal::JSONOutputArchive archive(stream);
-		try
+		//	サブシーンは { "uuid", "path" } の配列で保存する
+		archive.setNextName("sub_scenes");
+		archive.startNode();
+		archive.makeArray();
+		for (const auto& scene : scenes)
 		{
-			//	サブシーンは { "uuid", "path" } の配列で保存する
-			archive.setNextName("sub_scenes");
-			archive.startNode();
-			archive.makeArray();
-			for (const auto& scene : scenes)
-			{
-				const resource::asset_reference<scene_resource> reference = scene.get_reference();
-				game_object_serializer::save_asset_reference(archive, reference.uuid, reference.path);
-			}
-			archive.finishNode();
+			const resource::asset_reference<scene_resource> reference = scene.get_reference();
+			game_object_serializer::save_asset_reference(archive, reference.uuid, reference.path);
 		}
-		catch (const cereal::Exception& exception)
-		{
-			_ASSERT_EXPR(false, exception.what());
-			return false;
-		}
+		archive.finishNode();
 
-		if (!game_object_serializer::save(archive, objects))
-			return false;
-	}
+		write_system(archive, system);
+	});
+	if (!result)
+		return false;
 
 	body = stream.str();
 	sub_scenes = scenes;

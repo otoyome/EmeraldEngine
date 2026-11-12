@@ -39,6 +39,7 @@ void editor_camera_object::on_active()
 		const view_parameters& parameters = game_camera->get_camera()->get_parameters();
 		position = parameters.position;
 		rotation = parameters.rotation;
+		synced_game_camera = game_camera;
 	}
 }
 
@@ -81,6 +82,19 @@ void editor_camera_object::debug_update(float elapsed_time)
 	}
 
 	auto game_camera = find_game_camera();
+
+	//	シーンの切り替えなどで新しいゲームカメラが現れたら、姿勢を合わせる
+	if (game_camera && game_camera != synced_game_camera.lock())
+	{
+		synced_game_camera = game_camera;
+		position = game_camera->get_world().get_translation();
+		rotation = math::rotatorf(game_camera->get_world().get_euler());
+	}
+
+	//	エディターカメラが有効な間は、後から追加されたゲームカメラより優先して映す
+	if (game_camera && game_camera->get_view_order() > get_view_order())
+		bring_to_front();
+
 	apply_view(game_camera ? &game_camera->get_camera()->get_parameters() : nullptr);
 
 	if (accepts_input && input::get_key_state(mouse::key_states::left) != input::state::none)

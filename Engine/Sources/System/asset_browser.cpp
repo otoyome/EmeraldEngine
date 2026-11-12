@@ -169,18 +169,6 @@ void asset_browser::register_path_listener(path_listener listener)
 	path_listeners.emplace_back(std::move(listener));
 }
 
-bool asset_browser::take_open_request(std::string_view name, std::string& out_file_path)
-{
-	auto it = open_requests.find(name);
-	if (it == open_requests.end())
-		return false;
-
-	//	要求してから受け取るまでに移動されていても、UUID から今のパスを引く
-	const open_request request = std::move(it->second);
-	open_requests.erase(it);
-	out_file_path = asset_registry::is_valid() ? asset_registry::instance()->resolve_path(request.uuid, request.file_path) : request.file_path;
-	return true;
-}
 
 bool asset_browser::open_asset(const universally_unique_identifier& uuid)
 {
@@ -202,15 +190,7 @@ bool asset_browser::open_asset(const universally_unique_identifier& uuid)
 void asset_browser::request_open(const open_handler& handler, const cache_string& file_path)
 {
 	if (handler.open_file)
-	{
 		handler.open_file(file_path);
-		return;
-	}
-
-	const universally_unique_identifier uuid = asset_registry::is_valid() ? asset_registry::instance()->find_uuid(file_path.view()) : universally_unique_identifier{};
-	open_requests.insert_or_assign(handler.name.str(), open_request{ uuid, file_path.str() });
-	if (handler.activate)
-		handler.activate();
 }
 
 const asset_browser::open_handler* asset_browser::find_default_handler(std::string_view extension) const

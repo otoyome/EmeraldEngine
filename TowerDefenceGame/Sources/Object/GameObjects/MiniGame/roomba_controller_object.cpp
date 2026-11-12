@@ -2,7 +2,7 @@
 
 #include "object/game_constant.h"
 #include "Input/input_action.h"
-#include "scenes/scene_base.h"
+#include "Scenes/scene_manager.h"
 
 namespace
 {

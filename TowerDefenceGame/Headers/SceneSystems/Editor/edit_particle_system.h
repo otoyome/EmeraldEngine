@@ -1,6 +1,6 @@
 #pragma once
 
-#include "scenes/scene_base.h"
+#include "Scenes/scene_system.h"
 
 #if defined(USE_IMGUI)
 #include "Effect/effect_resource.h"
@@ -10,21 +10,26 @@
 #include "object/post_process_volume_object.h"
 #include "Editor/editor_camera.h"
 
-class edit_particle_scene : public scene_base
+class edit_particle_system : public scene_system
 {
-	SCENE_DECRLEAR(edit_particle_scene, scene_base);
+	SCENE_SYSTEM_DECRLEAR(edit_particle_system, scene_system)
 
 public:
-	edit_particle_scene();
-	edit_particle_scene(const edit_particle_scene&) = delete;
-	edit_particle_scene(edit_particle_scene&&) = delete;
-	~edit_particle_scene() override;
+	edit_particle_system();
+	edit_particle_system(const edit_particle_system&) = delete;
+	edit_particle_system(edit_particle_system&&) = delete;
+	~edit_particle_system() override;
 
 protected:
-	bool initialize_core() override;
-	bool uninitialize_core() override;
-	void update_core(float elapsed_time) override;
-	void imgui_render_core() override;
+	void on_begin() override { initialize_core(); }
+	void on_end() override { uninitialize_core(); }
+	void pre_update(float elapsed_time) override { update_core(elapsed_time); }
+	void imgui_render() override { imgui_render_core(); }
+
+	bool initialize_core();
+	bool uninitialize_core();
+	void update_core(float elapsed_time);
+	void imgui_render_core();
 
 private:
 	void on_new();

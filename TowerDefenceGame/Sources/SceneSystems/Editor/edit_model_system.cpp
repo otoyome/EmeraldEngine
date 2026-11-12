@@ -1,4 +1,4 @@
-#include "scenes/editscene/edit_model_scene.h"
+#include "SceneSystems/Editor/edit_model_system.h"
 #include "Object/engine_context.h"
 #include "Texture/texture_resource_utility.h"
 #include "System/asset_browser.h"
@@ -32,16 +32,16 @@
 
 #if defined(USE_IMGUI)
 
-edit_model_scene::edit_model_scene()
-: scene_base()
+edit_model_system::edit_model_system()
+: scene_system()
 {
 }
 
-edit_model_scene::~edit_model_scene()
+edit_model_system::~edit_model_system()
 {
 }
 
-bool edit_model_scene::initialize_core()
+bool edit_model_system::initialize_core()
 {
 	//	メインカメラ生成
 	{
@@ -152,14 +152,14 @@ bool edit_model_scene::initialize_core()
 	return initialize_edit_core();
 }
 
-bool edit_model_scene::uninitialize_core()
+bool edit_model_system::uninitialize_core()
 {
 	get_context().get_objects().unregister_object(edit_model);
 	get_context().get_objects().unregister_object(post_process_volume);
 	return uninitialize_edit_core();
 }
 
-void edit_model_scene::update_core(float elapsed_time)
+void edit_model_system::update_core(float elapsed_time)
 {
 	if (load_model_path.empty())
 	{
@@ -245,7 +245,7 @@ void edit_model_scene::update_core(float elapsed_time)
 	update_edit_core(elapsed_time);
 }
 
-void edit_model_scene::imgui_render_core()
+void edit_model_system::imgui_render_core()
 {
 	//	ロードウィンドウ
 	if (ImGui::Begin(get_context().make_window_name("Model").c_str()))
@@ -256,7 +256,7 @@ void edit_model_scene::imgui_render_core()
 	imgui_render_edit_core();
 }
 
-void edit_model_scene::save_model()
+void edit_model_system::save_model()
 {
 	if (!edit_model)
 		return;
@@ -281,7 +281,7 @@ void edit_model_scene::save_model()
 	resource_manager::instance()->save_uncached(resource, resource->get_file_path());
 }
 
-material_resource_ptr edit_model_scene::get_working_material(const material_resource_ptr& original)
+material_resource_ptr edit_model_system::get_working_material(const material_resource_ptr& original)
 {
 	if (!original)
 		return nullptr;
@@ -297,7 +297,7 @@ material_resource_ptr edit_model_scene::get_working_material(const material_reso
 	return working;
 }
 
-void edit_model_scene::generate_lod()
+void edit_model_system::generate_lod()
 {
 	if (!edit_model)
 		return;
@@ -311,7 +311,7 @@ void edit_model_scene::generate_lod()
 	edit_model->get_model_instance()->set_lod_index(0);
 }
 
-void edit_model_scene::generate_bounding_mesh_asset()
+void edit_model_system::generate_bounding_mesh_asset()
 {
 	if (!edit_model)
 		return;
@@ -410,7 +410,7 @@ void edit_model_scene::generate_bounding_mesh_asset()
 	info.serialize(collision::combined_mesh::make_info_path(model_path).string());
 }
 
-void edit_model_scene::generate_cubic_sdf_asset()
+void edit_model_system::generate_cubic_sdf_asset()
 {
 	if (!edit_model)
 		return;
@@ -438,7 +438,7 @@ void edit_model_scene::generate_cubic_sdf_asset()
 	}
 }
 
-void edit_model_scene::limit_texture_resolution_asset()
+void edit_model_system::limit_texture_resolution_asset()
 {
 	if (!edit_model)
 		return;
@@ -485,7 +485,7 @@ void edit_model_scene::limit_texture_resolution_asset()
 					   max_size, textures.size(), changed_count, failed_count);
 }
 
-void edit_model_scene::generate_shadow_mesh_asset()
+void edit_model_system::generate_shadow_mesh_asset()
 {
 	if (!edit_model)
 		return;
@@ -497,7 +497,7 @@ void edit_model_scene::generate_shadow_mesh_asset()
 	model_resource_utility::generate_shadow_meshes(*resource);
 }
 
-void edit_model_scene::discard_lod()
+void edit_model_system::discard_lod()
 {
 	if (!edit_model)
 		return;
@@ -510,7 +510,7 @@ void edit_model_scene::discard_lod()
 	edit_model->get_model_instance()->set_lod_index(0);
 }
 
-void edit_model_scene::discard_shadow_mesh()
+void edit_model_system::discard_shadow_mesh()
 {
 	if (!edit_model)
 		return;
@@ -522,7 +522,7 @@ void edit_model_scene::discard_shadow_mesh()
 	model_resource_utility::clear_shadow_meshes(*resource);
 }
 
-void edit_model_scene::optimize_mesh_asset()
+void edit_model_system::optimize_mesh_asset()
 {
 	if (!edit_model)
 		return;
@@ -534,7 +534,7 @@ void edit_model_scene::optimize_mesh_asset()
 	model_resource_utility::optimize_meshs(*resource);
 }
 
-void edit_model_scene::generate_meshlet_asset()
+void edit_model_system::generate_meshlet_asset()
 {
 	if (!edit_model)
 		return;
@@ -546,7 +546,7 @@ void edit_model_scene::generate_meshlet_asset()
 	model_resource_utility::generate_meshlets(*resource);
 }
 
-void edit_model_scene::strip_white_vertex_color_asset()
+void edit_model_system::strip_white_vertex_color_asset()
 {
 	if (!edit_model)
 		return;
@@ -603,7 +603,7 @@ void edit_model_scene::strip_white_vertex_color_asset()
 	DEBUG_LOG_CATEGORY(logger::categorys::model, "Strip White Vertex Color stripped=%zu kept=%zu", stripped_count, kept_count);
 }
 
-void edit_model_scene::combine_meshes()
+void edit_model_system::combine_meshes()
 {
 	if (!edit_model)
 		return;
@@ -632,7 +632,7 @@ void edit_model_scene::combine_meshes()
 	on_model_setup();
 }
 
-void edit_model_scene::clear_combined_meshes()
+void edit_model_system::clear_combined_meshes()
 {
 	if (!edit_model || !has_combine_backup)
 		return;
@@ -652,5 +652,7 @@ void edit_model_scene::clear_combined_meshes()
 	edit_model = std::make_shared<model_object>(path, resource);
 	on_model_setup();
 }
+
+SCENE_SYSTEM_REGISTER(edit_model_system);
 
 #endif	//	defined(USE_IMGUI)

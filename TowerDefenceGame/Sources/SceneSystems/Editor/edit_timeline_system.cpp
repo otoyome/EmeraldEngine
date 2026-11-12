@@ -1,4 +1,4 @@
-#include "scenes/editscene/edit_timeline_scene.h"
+#include "SceneSystems/Editor/edit_timeline_system.h"
 #include "Texture/texture_resource_utility.h"
 #include "System/asset_browser.h"
 
@@ -91,7 +91,7 @@ namespace
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
-std::size_t edit_timeline_scene::sequence_interface::total_animation_count() const
+std::size_t edit_timeline_system::sequence_interface::total_animation_count() const
 {
 	std::size_t total = 0;
 	for (auto& entry : owner->timeline.objects)
@@ -102,7 +102,7 @@ std::size_t edit_timeline_scene::sequence_interface::total_animation_count() con
 	return total;
 }
 
-bool edit_timeline_scene::sequence_interface::resolve_animation(int flat_index, std::size_t& out_object_index, std::size_t& out_entry_index) const
+bool edit_timeline_system::sequence_interface::resolve_animation(int flat_index, std::size_t& out_object_index, std::size_t& out_entry_index) const
 {
 	if (flat_index < 0)
 		return false;
@@ -124,7 +124,7 @@ bool edit_timeline_scene::sequence_interface::resolve_animation(int flat_index, 
 	return false;
 }
 
-std::size_t edit_timeline_scene::sequence_interface::total_transform_count() const
+std::size_t edit_timeline_system::sequence_interface::total_transform_count() const
 {
 	std::size_t total = 0;
 	for (auto& entry : owner->timeline.objects)
@@ -135,7 +135,7 @@ std::size_t edit_timeline_scene::sequence_interface::total_transform_count() con
 	return total;
 }
 
-bool edit_timeline_scene::sequence_interface::resolve_transform(int flat_index, std::size_t& out_object_index, std::size_t& out_entry_index) const
+bool edit_timeline_system::sequence_interface::resolve_transform(int flat_index, std::size_t& out_object_index, std::size_t& out_entry_index) const
 {
 	const std::size_t animation_total = total_animation_count();
 	if (flat_index < 0 || static_cast<std::size_t>(flat_index) < animation_total)
@@ -158,7 +158,7 @@ bool edit_timeline_scene::sequence_interface::resolve_transform(int flat_index, 
 	return false;
 }
 
-std::size_t edit_timeline_scene::sequence_interface::total_camera_count() const
+std::size_t edit_timeline_system::sequence_interface::total_camera_count() const
 {
 	std::size_t total = 0;
 	for (auto& entry : owner->timeline.objects)
@@ -169,7 +169,7 @@ std::size_t edit_timeline_scene::sequence_interface::total_camera_count() const
 	return total;
 }
 
-bool edit_timeline_scene::sequence_interface::resolve_camera(int flat_index, std::size_t& out_object_index) const
+bool edit_timeline_system::sequence_interface::resolve_camera(int flat_index, std::size_t& out_object_index) const
 {
 	const std::size_t entry_total = total_animation_count() + total_transform_count();
 	if (flat_index < 0 || static_cast<std::size_t>(flat_index) < entry_total)
@@ -190,7 +190,7 @@ bool edit_timeline_scene::sequence_interface::resolve_camera(int flat_index, std
 	return false;
 }
 
-std::size_t edit_timeline_scene::sequence_interface::total_effect_count() const
+std::size_t edit_timeline_system::sequence_interface::total_effect_count() const
 {
 	std::size_t total = 0;
 	for (auto& entry : owner->timeline.objects)
@@ -201,7 +201,7 @@ std::size_t edit_timeline_scene::sequence_interface::total_effect_count() const
 	return total;
 }
 
-bool edit_timeline_scene::sequence_interface::resolve_effect(int flat_index, std::size_t& out_object_index) const
+bool edit_timeline_system::sequence_interface::resolve_effect(int flat_index, std::size_t& out_object_index) const
 {
 	const std::size_t entry_total = total_animation_count() + total_transform_count() + total_camera_count();
 	if (flat_index < 0 || static_cast<std::size_t>(flat_index) < entry_total)
@@ -222,7 +222,7 @@ bool edit_timeline_scene::sequence_interface::resolve_effect(int flat_index, std
 	return false;
 }
 
-std::size_t edit_timeline_scene::sequence_interface::total_event_count() const
+std::size_t edit_timeline_system::sequence_interface::total_event_count() const
 {
 	std::size_t total = 0;
 	for (auto& entry : owner->timeline.objects)
@@ -233,7 +233,7 @@ std::size_t edit_timeline_scene::sequence_interface::total_event_count() const
 	return total;
 }
 
-bool edit_timeline_scene::sequence_interface::resolve_event(int flat_index, std::size_t& out_object_index) const
+bool edit_timeline_system::sequence_interface::resolve_event(int flat_index, std::size_t& out_object_index) const
 {
 	const std::size_t entry_total = total_animation_count() + total_transform_count() + total_camera_count() + total_effect_count();
 	if (flat_index < 0 || static_cast<std::size_t>(flat_index) < entry_total)
@@ -254,7 +254,7 @@ bool edit_timeline_scene::sequence_interface::resolve_event(int flat_index, std:
 	return false;
 }
 
-void edit_timeline_scene::sequence_interface::sync_from_entries()
+void edit_timeline_system::sequence_interface::sync_from_entries()
 {
 	const float fps = sequencer_units_per_second;
 	const int item_count = GetItemCount();
@@ -306,7 +306,7 @@ void edit_timeline_scene::sequence_interface::sync_from_entries()
 	}
 }
 
-void edit_timeline_scene::sequence_interface::sync_to_entries()
+void edit_timeline_system::sequence_interface::sync_to_entries()
 {
 	const float fps = sequencer_units_per_second;
 	const int item_count = std::min(static_cast<int>(frame_cache.size()), GetItemCount());
@@ -355,28 +355,28 @@ void edit_timeline_scene::sequence_interface::sync_to_entries()
 	}
 }
 
-int edit_timeline_scene::sequence_interface::GetFrameMin() const
+int edit_timeline_system::sequence_interface::GetFrameMin() const
 {
 	return 0;
 }
 
-int edit_timeline_scene::sequence_interface::GetFrameMax() const
+int edit_timeline_system::sequence_interface::GetFrameMax() const
 {
 	const float fps = sequencer_units_per_second;
 	return static_cast<int>(std::lround(owner->timeline.total_time * fps));
 }
 
-int edit_timeline_scene::sequence_interface::GetItemCount() const
+int edit_timeline_system::sequence_interface::GetItemCount() const
 {
 	return static_cast<int>(total_animation_count() + total_transform_count() + total_camera_count() + total_effect_count() + total_event_count());
 }
 
-int edit_timeline_scene::sequence_interface::GetItemTypeCount() const
+int edit_timeline_system::sequence_interface::GetItemTypeCount() const
 {
 	return static_cast<int>(owner->timeline.objects.size()) * 5;
 }
 
-const char* edit_timeline_scene::sequence_interface::GetItemTypeName(int type_index) const
+const char* edit_timeline_system::sequence_interface::GetItemTypeName(int type_index) const
 {
 	const int object_count = static_cast<int>(owner->timeline.objects.size());
 	if (type_index < object_count)
@@ -403,7 +403,7 @@ const char* edit_timeline_scene::sequence_interface::GetItemTypeName(int type_in
 	return type_name_cache.c_str();
 }
 
-const char* edit_timeline_scene::sequence_interface::GetItemLabel(int index) const
+const char* edit_timeline_system::sequence_interface::GetItemLabel(int index) const
 {
 	std::size_t object_index, entry_index;
 	if (resolve_animation(index, object_index, entry_index))
@@ -441,7 +441,7 @@ const char* edit_timeline_scene::sequence_interface::GetItemLabel(int index) con
 	return label_cache.c_str();
 }
 
-void edit_timeline_scene::sequence_interface::Get(int index, int** start, int** end, int* type, unsigned int* color)
+void edit_timeline_system::sequence_interface::Get(int index, int** start, int** end, int* type, unsigned int* color)
 {
 	if (static_cast<std::size_t>(index) >= frame_cache.size())
 		frame_cache.resize(index + 1, { 0, 0 });
@@ -483,7 +483,7 @@ void edit_timeline_scene::sequence_interface::Get(int index, int** start, int** 
 	}
 }
 
-void edit_timeline_scene::sequence_interface::Add(int type)
+void edit_timeline_system::sequence_interface::Add(int type)
 {
 	const int object_count = static_cast<int>(owner->timeline.objects.size());
 	constexpr float default_length = 1.0f;
@@ -524,7 +524,7 @@ void edit_timeline_scene::sequence_interface::Add(int type)
 	}
 }
 
-void edit_timeline_scene::sequence_interface::Del(int index)
+void edit_timeline_system::sequence_interface::Del(int index)
 {
 	std::size_t object_index, entry_index;
 	if (resolve_animation(index, object_index, entry_index))
@@ -543,7 +543,7 @@ void edit_timeline_scene::sequence_interface::Del(int index)
 	}
 }
 
-void edit_timeline_scene::sequence_interface::Duplicate(int index)
+void edit_timeline_system::sequence_interface::Duplicate(int index)
 {
 	std::size_t object_index, entry_index;
 	if (resolve_animation(index, object_index, entry_index))
@@ -560,19 +560,19 @@ void edit_timeline_scene::sequence_interface::Duplicate(int index)
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
-//	edit_timeline_scene
+//	edit_timeline_system
 
-edit_timeline_scene::edit_timeline_scene()
-: scene_base()
+edit_timeline_system::edit_timeline_system()
+: scene_system()
 {
 	sequencer_interface.owner = this;
 }
 
-edit_timeline_scene::~edit_timeline_scene()
+edit_timeline_system::~edit_timeline_system()
 {
 }
 
-const view_parameters* edit_timeline_scene::find_current_view_parameters() const
+const view_parameters* edit_timeline_system::find_current_view_parameters() const
 {
 	if (editor_camera && editor_camera->is_active())
 		return &editor_camera->get_camera()->get_parameters();
@@ -581,7 +581,7 @@ const view_parameters* edit_timeline_scene::find_current_view_parameters() const
 	return nullptr;
 }
 
-bool edit_timeline_scene::initialize_core()
+bool edit_timeline_system::initialize_core()
 {
 	//	メインカメラ生成
 	{
@@ -641,11 +641,19 @@ bool edit_timeline_scene::initialize_core()
 
 	//	エディターカメラ生成
 	{
-		editor_camera = std::make_shared<editor_camera_object>("エディターカメラ",
-			system_units::convert_m_to_unit(math::vector3d(0.0, 1.0, 8.0)),
-			math::rotatorf(0, math::constants<float>::pi, 0),
-			0.25f);
-		register_object(editor_camera);
+		for (const auto& object : get_context().get_objects().search_objects<editor_camera_object>())
+		{
+			editor_camera = object;
+			break;
+		}
+		if (!editor_camera)
+		{
+			editor_camera = std::make_shared<editor_camera_object>("エディターカメラ",
+				system_units::convert_m_to_unit(math::vector3d(0.0, 1.0, 8.0)),
+				math::rotatorf(0, math::constants<float>::pi, 0),
+				0.25f);
+			register_object(editor_camera);
+		}
 	}
 
 	//	エディターアイテム用コンテキスト生成
@@ -658,7 +666,7 @@ bool edit_timeline_scene::initialize_core()
 	return true;
 }
 
-bool edit_timeline_scene::uninitialize_core()
+bool edit_timeline_system::uninitialize_core()
 {
 	clear_active_effects();
 	clear_object_models();
@@ -666,11 +674,11 @@ bool edit_timeline_scene::uninitialize_core()
 	return true;
 }
 
-void edit_timeline_scene::update_core(float elapsed_time)
+void edit_timeline_system::update_core(float elapsed_time)
 {
 	{
 		std::string file_path;
-		if (asset_browser::is_valid() && asset_browser::instance()->take_open_request(type_name(), file_path))
+		if (get_context().take_open_file(file_path))
 			open_timeline(file_path);
 	}
 
@@ -678,7 +686,7 @@ void edit_timeline_scene::update_core(float elapsed_time)
 	apply_timeline_state();
 }
 
-void edit_timeline_scene::imgui_render_core()
+void edit_timeline_system::imgui_render_core()
 {
 	if (ImGui::Begin("Timeline"))
 	{
@@ -715,7 +723,7 @@ void edit_timeline_scene::imgui_render_core()
 	apply_timeline_state();
 }
 
-void edit_timeline_scene::add_object()
+void edit_timeline_system::add_object()
 {
 	timeline_resource::object_entry entry;
 	entry.name = "Object " + std::to_string(timeline.objects.size());
@@ -725,7 +733,7 @@ void edit_timeline_scene::add_object()
 	last_active_animation_per_object.push_back(-1);
 }
 
-void edit_timeline_scene::remove_object(std::size_t object_index)
+void edit_timeline_system::remove_object(std::size_t object_index)
 {
 	if (object_index >= timeline.objects.size())
 		return;
@@ -760,7 +768,7 @@ void edit_timeline_scene::remove_object(std::size_t object_index)
 	selected_entry = -1;
 }
 
-void edit_timeline_scene::on_object_kind_changed(std::size_t object_index, timeline_resource::object_entry::kind previous_kind)
+void edit_timeline_system::on_object_kind_changed(std::size_t object_index, timeline_resource::object_entry::kind previous_kind)
 {
 	if (previous_kind == timeline_resource::object_entry::kind::actor &&
 		object_index < object_models.size() && object_models[object_index])
@@ -784,7 +792,7 @@ void edit_timeline_scene::on_object_kind_changed(std::size_t object_index, timel
 	selected_entry = -1;
 }
 
-void edit_timeline_scene::rebuild_object_models()
+void edit_timeline_system::rebuild_object_models()
 {
 	clear_object_models();
 
@@ -811,7 +819,7 @@ void edit_timeline_scene::rebuild_object_models()
 	}
 }
 
-void edit_timeline_scene::clear_object_models()
+void edit_timeline_system::clear_object_models()
 {
 	for (auto& model : object_models)
 	{
@@ -822,7 +830,7 @@ void edit_timeline_scene::clear_object_models()
 	last_active_animation_per_object.clear();
 }
 
-void edit_timeline_scene::new_timeline()
+void edit_timeline_system::new_timeline()
 {
 	clear_active_effects();
 	clear_object_models();
@@ -834,7 +842,7 @@ void edit_timeline_scene::new_timeline()
 	selected_entry = -1;
 }
 
-void edit_timeline_scene::load_timeline()
+void edit_timeline_system::load_timeline()
 {
 	std::string file_path;
 	if (!editor_items::open_file_dialog(TimelineFileDialogFilter, file_path))
@@ -843,7 +851,7 @@ void edit_timeline_scene::load_timeline()
 	open_timeline(file_path);
 }
 
-void edit_timeline_scene::open_timeline(const std::string& file_path)
+void edit_timeline_system::open_timeline(const std::string& file_path)
 {
 	timeline_resource loaded;
 	if (!loaded.deserialize(file_path))
@@ -859,7 +867,7 @@ void edit_timeline_scene::open_timeline(const std::string& file_path)
 	rebuild_object_models();
 }
 
-void edit_timeline_scene::save_timeline()
+void edit_timeline_system::save_timeline()
 {
 	std::string file_path;
 	const std::wstring default_extension = L"." + system_utility::convert_shift_jis_to_utf16(timeline_resource::extension);
@@ -869,7 +877,7 @@ void edit_timeline_scene::save_timeline()
 	timeline.serialize(file_path);
 }
 
-void edit_timeline_scene::advance_playback(float elapsed_time)
+void edit_timeline_system::advance_playback(float elapsed_time)
 {
 	previous_time = current_time;
 
@@ -891,7 +899,7 @@ void edit_timeline_scene::advance_playback(float elapsed_time)
 	}
 }
 
-void edit_timeline_scene::apply_timeline_state()
+void edit_timeline_system::apply_timeline_state()
 {
 	for (std::size_t object_index = 0; object_index < timeline.objects.size(); ++object_index)
 	{
@@ -1067,14 +1075,14 @@ void edit_timeline_scene::apply_timeline_state()
 	previous_time = current_time;
 }
 
-void edit_timeline_scene::clear_active_effects()
+void edit_timeline_system::clear_active_effects()
 {
 	for (auto& pair : active_effects)
 		get_context().get_effects().unregister_instance(pair.second);
 	active_effects.clear();
 }
 
-void edit_timeline_scene::imgui_render_objects()
+void edit_timeline_system::imgui_render_objects()
 {
 	ImGui::Text("Objects");
 	ImGui::SameLine();
@@ -1162,7 +1170,7 @@ void edit_timeline_scene::imgui_render_objects()
 		remove_object(static_cast<std::size_t>(remove_index));
 }
 
-void edit_timeline_scene::add_entry_and_select(int type)
+void edit_timeline_system::add_entry_and_select(int type)
 {
 	sequencer_interface.Add(type);
 
@@ -1193,7 +1201,7 @@ void edit_timeline_scene::add_entry_and_select(int type)
 	selected_entry = flat_index;
 }
 
-void edit_timeline_scene::imgui_render_transport()
+void edit_timeline_system::imgui_render_transport()
 {
 	if (ImGui::Button(is_playing ? "Pause" : "Play"))
 		is_playing = !is_playing;
@@ -1214,7 +1222,7 @@ void edit_timeline_scene::imgui_render_transport()
 	ImGui::SliderFloat("time(sec)", &current_time, 0.0f, timeline.total_time);
 }
 
-void edit_timeline_scene::imgui_render_sequencer()
+void edit_timeline_system::imgui_render_sequencer()
 {
 	const float fps = sequencer_units_per_second;
 	current_frame = static_cast<int>(std::lround(current_time * fps));
@@ -1229,7 +1237,7 @@ void edit_timeline_scene::imgui_render_sequencer()
 	current_time = static_cast<float>(current_frame) / fps;
 }
 
-void edit_timeline_scene::imgui_render_selected_entry()
+void edit_timeline_system::imgui_render_selected_entry()
 {
 	if (selected_entry < 0)
 	{
@@ -1406,4 +1414,6 @@ void edit_timeline_scene::imgui_render_selected_entry()
 		--remaining;
 	}
 }
+SCENE_SYSTEM_REGISTER(edit_timeline_system);
+
 #endif	//	defined(USE_IMGUI)

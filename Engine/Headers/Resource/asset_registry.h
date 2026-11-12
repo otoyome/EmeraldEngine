@@ -4,6 +4,7 @@
 #include <string>
 #include <string_view>
 #include <unordered_map>
+#include <vector>
 
 #include "system/singleton.h"
 
@@ -20,12 +21,15 @@ class asset_registry
 	SINGLETON(asset_registry)
 
 public:
+	//	アプリケーション用のアセット
 	static constexpr std::string_view root_directory = "Assets";
+	//	エンジン・エディター用のアセット
+	static constexpr std::string_view engine_root_directory = "EngineAssets";
 
 	struct entry
 	{
 		resource::asset_types type = resource::asset_types::unknown;
-		std::string path;	//	「/」区切りの相対パス(Shift-JIS)
+		std::string path;	//	相対パス
 	};
 
 private:
@@ -35,8 +39,9 @@ private:
 	asset_registry(asset_registry&&) = delete;
 
 public:
-	//	フォルダ以下のヘッダーを読んで対応表を作り直す
+	//	フォルダ以下のアセットをスキャン
 	void scan(std::string_view directory = root_directory);
+	void scan(const std::vector<std::string_view>& directories);
 
 	//	アセット登録
 	void register_asset(const universally_unique_identifier& uuid, resource::asset_types type, std::string_view path);
@@ -46,12 +51,15 @@ public:
 	//	検索
 	universally_unique_identifier find_uuid(std::string_view path) const;
 	std::string find_path(const universally_unique_identifier& uuid) const;
+	std::vector<std::string> find_paths(resource::asset_types type) const;
 
+	//	UUIDから検索して見つからないならヒントパスを渡す
 	std::string resolve_path(const universally_unique_identifier& uuid, std::string_view hint_path) const;
 
 	//	保存の前に呼ぶ
 	void prepare_save(resource::resource_base& target, std::string_view path) const;
 
+	//	アセット数取得
 	size_t get_count() const;
 
 #if defined(USE_IMGUI)
@@ -59,8 +67,9 @@ public:
 #endif	//	defined(USE_IMGUI)
 
 private:
-	void register_locked(const universally_unique_identifier& uuid, resource::asset_types type, std::string_view path);
-	void unregister_locked(const std::wstring& key);
+	void scan_asset(std::string_view directory, size_t& duplicated_count);
+	void register_asset_core(const universally_unique_identifier& uuid, resource::asset_types type, std::string_view path);
+	void unregister_asset(const std::wstring& key);
 
 private:
 	mutable std::shared_mutex mutex;

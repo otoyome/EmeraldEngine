@@ -1,4 +1,4 @@
-#include "scenes/editscene/edit_material_scene.h"
+#include "SceneSystems/Editor/edit_material_system.h"
 #include "Texture/texture_resource_utility.h"
 #include "System/asset_browser.h"
 
@@ -56,16 +56,16 @@ namespace
 	}
 }
 
-edit_material_scene::edit_material_scene()
-: scene_base()
+edit_material_system::edit_material_system()
+: scene_system()
 {
 }
 
-edit_material_scene::~edit_material_scene()
+edit_material_system::~edit_material_system()
 {
 }
 
-bool edit_material_scene::initialize_core()
+bool edit_material_system::initialize_core()
 {
 	//	メインカメラ生成
 	{
@@ -153,7 +153,7 @@ bool edit_material_scene::initialize_core()
 	return true;
 }
 
-bool edit_material_scene::uninitialize_core()
+bool edit_material_system::uninitialize_core()
 {
 	clear_preview_effect();
 
@@ -170,7 +170,7 @@ bool edit_material_scene::uninitialize_core()
 	return true;
 }
 
-void edit_material_scene::update_core(float elapsed_time)
+void edit_material_system::update_core(float elapsed_time)
 {
 	{
 		//	窓に映しているワールドではアセットプレビューから渡されたファイルを開く
@@ -190,7 +190,7 @@ void edit_material_scene::update_core(float elapsed_time)
 	}
 }
 
-void edit_material_scene::imgui_render_core()
+void edit_material_system::imgui_render_core()
 {
 	ImGui::SetNextWindowSize(ImVec2(820.0f, 640.0f), ImGuiCond_FirstUseEver);
 	if (ImGui::Begin(get_context().make_window_name("Material Editor").c_str()))
@@ -211,7 +211,7 @@ void edit_material_scene::imgui_render_core()
 	ImGui::End();
 }
 
-void edit_material_scene::open_source(const std::string& file_path, bool force_load)
+void edit_material_system::open_source(const std::string& file_path, bool force_load)
 {
 	model_resource_ptr model;
 	effect_resource_ptr effect;
@@ -272,7 +272,7 @@ void edit_material_scene::open_source(const std::string& file_path, bool force_l
 	apply_preview_materials();
 }
 
-void edit_material_scene::save_source()
+void edit_material_system::save_source()
 {
 	if (source_material || source_model || source_effect)
 	{
@@ -303,7 +303,7 @@ void edit_material_scene::save_source()
 	message = "saved: " + to_display(source_file_path);
 }
 
-std::string edit_material_scene::get_source_file_path() const
+std::string edit_material_system::get_source_file_path() const
 {
 	if (source_material)
 		return std::string(source_material->get_file_path());
@@ -314,7 +314,7 @@ std::string edit_material_scene::get_source_file_path() const
 	return {};
 }
 
-void edit_material_scene::revert_source()
+void edit_material_system::revert_source()
 {
 	for (auto& entry : materials)
 	{
@@ -325,7 +325,7 @@ void edit_material_scene::revert_source()
 	message = "reverted: " + to_display(get_source_file_path());
 }
 
-void edit_material_scene::collect_materials()
+void edit_material_system::collect_materials()
 {
 	materials.clear();
 
@@ -387,14 +387,14 @@ void edit_material_scene::collect_materials()
 	}
 }
 
-material_resource_ptr edit_material_scene::get_selected_material() const
+material_resource_ptr edit_material_system::get_selected_material() const
 {
 	if (selected_material < 0 || selected_material >= static_cast<int>(materials.size()))
 		return nullptr;
 	return materials[selected_material].material;
 }
 
-void edit_material_scene::scan_preview_models()
+void edit_material_system::scan_preview_models()
 {
 	preview_model_files.clear();
 
@@ -414,7 +414,7 @@ void edit_material_scene::scan_preview_models()
 		preview_model_files.insert(preview_model_files.begin(), get_source_file_path());
 }
 
-void edit_material_scene::change_preview_model(const std::string& file_path)
+void edit_material_system::change_preview_model(const std::string& file_path)
 {
 	if (file_path.empty())
 		return;
@@ -437,7 +437,7 @@ void edit_material_scene::change_preview_model(const std::string& file_path)
 	set_preview_resource(resource, 0.0);
 }
 
-void edit_material_scene::change_preview_shape(model_resource_utility::primitive_shapes shape)
+void edit_material_system::change_preview_shape(model_resource_utility::primitive_shapes shape)
 {
 	auto& resource = shape_resources[static_cast<size_t>(shape)];
 	if (!resource)
@@ -451,7 +451,7 @@ void edit_material_scene::change_preview_shape(model_resource_utility::primitive
 	set_preview_resource(resource, shape == model_resource_utility::primitive_shapes::plane ? plane_lift : 0.0);
 }
 
-void edit_material_scene::set_preview_resource(const model_resource_ptr& resource, double lift)
+void edit_material_system::set_preview_resource(const model_resource_ptr& resource, double lift)
 {
 	if (preview_model)
 		get_context().get_objects().unregister_object(preview_model);
@@ -470,14 +470,14 @@ void edit_material_scene::set_preview_resource(const model_resource_ptr& resourc
 	apply_preview_materials();
 }
 
-std::string edit_material_scene::get_preview_label() const
+std::string edit_material_system::get_preview_label() const
 {
 	if (preview_kind == preview_kinds::shape)
 		return std::string(magic_enum::enum_name(preview_shape)) + " (built-in)";
 	return preview_model_path.empty() ? std::string("(none)") : to_display(preview_model_path);
 }
 
-void edit_material_scene::apply_preview_materials()
+void edit_material_system::apply_preview_materials()
 {
 	if (!preview_model)
 		return;
@@ -500,7 +500,7 @@ void edit_material_scene::apply_preview_materials()
 	}
 }
 
-material_resource_ptr edit_material_scene::find_working_material(const material_resource_ptr& original) const
+material_resource_ptr edit_material_system::find_working_material(const material_resource_ptr& original) const
 {
 	for (const auto& entry : materials)
 	{
@@ -510,7 +510,7 @@ material_resource_ptr edit_material_scene::find_working_material(const material_
 	return original;
 }
 
-void edit_material_scene::make_preview_effect_resource()
+void edit_material_system::make_preview_effect_resource()
 {
 	preview_effect_resource.reset();
 	if (!source_effect)
@@ -542,7 +542,7 @@ void edit_material_scene::make_preview_effect_resource()
 	preview_effect_resource = resource;
 }
 
-void edit_material_scene::restart_preview_effect()
+void edit_material_system::restart_preview_effect()
 {
 	clear_preview_effect();
 	if (!source_effect)
@@ -552,7 +552,7 @@ void edit_material_scene::restart_preview_effect()
 	get_context().get_effects().register_instance(preview_effect);
 }
 
-void edit_material_scene::clear_preview_effect()
+void edit_material_system::clear_preview_effect()
 {
 	if (!preview_effect)
 		return;
@@ -561,7 +561,7 @@ void edit_material_scene::clear_preview_effect()
 	preview_effect.reset();
 }
 
-void edit_material_scene::imgui_render_source()
+void edit_material_system::imgui_render_source()
 {
 	if (!get_source_file_path().empty())
 	{
@@ -588,7 +588,7 @@ void edit_material_scene::imgui_render_source()
 		ImGui::TextUnformatted(message.c_str());
 }
 
-void edit_material_scene::imgui_render_preview()
+void edit_material_system::imgui_render_preview()
 {
 	if (ImGui::BeginCombo("preview model", get_preview_label().c_str()))
 	{
@@ -634,7 +634,7 @@ void edit_material_scene::imgui_render_preview()
 	}
 }
 
-void edit_material_scene::imgui_render_material_list()
+void edit_material_system::imgui_render_material_list()
 {
 	if (materials.empty())
 	{
@@ -651,7 +651,7 @@ void edit_material_scene::imgui_render_material_list()
 	}
 }
 
-void edit_material_scene::imgui_render_material_detail()
+void edit_material_system::imgui_render_material_detail()
 {
 	material_resource_ptr material = get_selected_material();
 	if (!material)
@@ -670,4 +670,6 @@ void edit_material_scene::imgui_render_material_detail()
 	if (editor_items::edit_shared_material(editor_context, material))
 		dirty = true;
 }
+SCENE_SYSTEM_REGISTER(edit_material_system);
+
 #endif // defined(USE_IMGUI)
