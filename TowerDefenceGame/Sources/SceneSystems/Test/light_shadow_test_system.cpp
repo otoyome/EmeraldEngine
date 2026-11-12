@@ -344,8 +344,11 @@ void light_shadow_test_system::imgui_render()
 	changed |= ImGui::SliderFloat("spot inner cone [deg]", &settings.spot_inner_cone, 0.0f, 89.0f);
 	changed |= ImGui::SliderFloat("spot outer cone [deg]", &settings.spot_outer_cone, 0.0f, 89.0f);
 	settings.spot_inner_cone = (std::min)(settings.spot_inner_cone, settings.spot_outer_cone);
-	if (changed)
+
+	//	ì‚è’¼‚µ‚ÍÄ¶’†‚¾‚¯
+	if (changed && !is_editing())
 		regenerate_lights();
+	ImGui::BeginDisabled(is_editing());
 	if (ImGui::Button("regenerate"))
 		regenerate_lights();
 	ImGui::SameLine();
@@ -356,6 +359,7 @@ void light_shadow_test_system::imgui_render()
 		update_lights();
 	}
 	ImGui::EndDisabled();
+	ImGui::EndDisabled();
 
 	//	“®‚«
 	ImGui::Separator();
@@ -363,7 +367,7 @@ void light_shadow_test_system::imgui_render()
 	ImGui::DragFloat("light speed [rev/s]", &motion.light_speed, 0.01f, -10.0f, 10.0f);
 	ImGui::Checkbox("move character", &motion.move_character);
 	ImGui::DragFloat("character speed [rev/s]", &motion.character_speed, 0.01f, -10.0f, 10.0f);
-	if (ImGui::DragFloat("character radius [m]", &motion.character_radius, 0.1f, 0.0f, 100.0f))
+	if (ImGui::DragFloat("character radius [m]", &motion.character_radius, 0.1f, 0.0f, 100.0f) && !is_editing())
 		update_character();
 	ImGui::Checkbox("animate character", &motion.animate_character);
 }

@@ -47,7 +47,20 @@ public:
 	virtual void post_update(float elapsed_time) {}
 
 #if defined(USE_IMGUI)
+	//	ImGui描画
 	virtual void imgui_render() {}
+
+	//	シーンエディターで編集中だけ呼ばれる関数群
+	virtual void editor_update(float elapsed_time) {}
+
+public:
+	//	シーンエディターで編集中か
+	bool is_editing() const { return owner == nullptr; }
+
+	//	シーンシステムウィンドウからImGui描画を行う
+	void imgui_render_window(std::string_view scene_path);
+
+	void open_window() { window_opened = true; }
 #endif	//	defined(USE_IMGUI)
 
 public:	//	シリアライズ
@@ -72,7 +85,12 @@ protected:
 
 private:
 	friend class scene_instance;
+	friend class scene_editor;
 	scene_instance* owner = nullptr;
+	engine_context* context = nullptr;
+#if defined(USE_IMGUI)
+	bool window_opened = false;
+#endif	//	defined(USE_IMGUI)
 };
 
 #define	SCENE_SYSTEM_DECRLEAR(ABSTRACT_TYPE, BASE_TYPE)	\

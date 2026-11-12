@@ -37,7 +37,10 @@ bool scene_instance::initialize()
 		scene.resource = resources[index];
 		scene.system = std::move(created[index].system);
 		if (scene.system)
+		{
 			scene.system->owner = this;
+			scene.system->context = &context;
+		}
 		for (const game_object_ptr& object : created[index].objects)
 		{
 			scene.objects.emplace_back(object);
@@ -115,7 +118,7 @@ void scene_instance::imgui_render()
 	for (loaded_scene& scene : loaded_scenes)
 	{
 		if (scene.system)
-			scene.system->imgui_render();
+			scene.system->imgui_render_window(scene.resource->get_file_path());
 	}
 }
 #endif	//	defined(USE_IMGUI)

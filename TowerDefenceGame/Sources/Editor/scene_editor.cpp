@@ -228,6 +228,8 @@ bool scene_editor::create_edited_scenes(const std::vector<scene_resource_ptr>& r
 		edited_scene& scene = edited_scenes.emplace_back();
 		scene.resource = resources[index];
 		scene.system = std::move(created[index].system);
+		if (scene.system)
+			scene.system->context = &edit_world->get_context();
 		for (const game_object_ptr& object : created[index].objects)
 		{
 			scene.objects.emplace_back(object);
@@ -301,69 +303,188 @@ void scene_editor::remove_sub_scene(const scene_resource_ptr& resource)
 
 void scene_editor::imgui_render()
 {
-	if (!is_editing())
+	if (!is_editing() || is_playing())
 		return;
 
-	if (ImGui::Begin("scene editor"))
+	//	編集中は scenes 窓に編集中のシーン（親とサブシーン）を出す（再生中は再生用のワールドの scenes 窓）
+	if (ImGui::Begin(edit_world->get_context().make_window_name("scenes").c_str()))
 	{
-		const cache_string root_path(edited_scenes.front().resource->get_file_path());
-		ImGui::Text("scene : %s", root_path.get<utf8_cache>().data());
-
-		ImGui::BeginDisabled(is_playing());
-		ImGui::SeparatorText("sub scenes");
-
-		//	サブシーンリスト
-		scene_resource_ptr remove_target;
-		for (size_t index = 0; index < sub_scenes.size(); ++index)
+		for (size_t index = 0; index < edited_scenes.size(); ++index)
 		{
-			const resource::asset_reference<scene_resource> reference = sub_scenes[index].get_reference();
-			const cache_string path(reference.path);
-			ImGui::PushID(static_cast<int>(index));
-			if (ImGui::SmallButton("remove"))
-			{
-				for (const edited_scene& scene : edited_scenes)
-				{
-					if (scene.resource->get_uuid() == reference.uuid)
-						remove_target = scene.resource;
-				}
-				if (!remove_target)
-					sub_scenes.erase(sub_scenes.begin() + static_cast<std::ptrdiff_t>(index));
-			}
-			ImGui::SameLine();
+			edited_scene& scene = edited_scenes[index];
+			ImGui::PushID(scene.resource.get());
+			if (index > 0)
+				ImGui::Indent();
+			const cache_string path(scene.resource->get_file_path());
 			ImGui::TextUnformatted(path.get<utf8_cache>().data());
+			ImGui::SameLine();
+			if (ImGui::SmallButton("edit"))
+			{
+				edit_target = scene.resource;
+				edit_window_opened = true;
+			}
+			if (index > 0)
+				ImGui::Unindent();
 			ImGui::PopID();
 		}
-		if (remove_target)
-			remove_sub_scene(remove_target);
 
-		//	.escene をアセットブラウザからドロップするか、一覧から選んで追加する
-		ImGui::Button("drop .escene here to add");
-		if (ImGui::BeginDragDropTarget())
+		//	読み込めなかったサブシーンはパスだけ出す
+		for (const auto& sub_scene : sub_scenes)
 		{
-			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(asset_browser::drag_payload_type))
-			{
-				const std::string file_path(static_cast<const char*>(payload->Data));
-				if (std::filesystem::path(file_path).extension().string() == "." + std::string(scene_resource::extension))
-					add_sub_scene(file_path);
-			}
-			ImGui::EndDragDropTarget();
+			const resource::asset_reference<scene_resource> reference = sub_scene.get_reference();
+			const bool loaded = std::any_of(edited_scenes.begin(), edited_scenes.end(), [&](const edited_scene& scene) { return scene.resource->get_uuid() == reference.uuid; });
+			if (loaded)
+				continue;
+			const cache_string path(reference.path);
+			ImGui::Indent();
+			ImGui::TextDisabled("%s (not loaded)", path.get<utf8_cache>().data());
+			ImGui::Unindent();
 		}
-		if (asset_registry::is_valid() && ImGui::BeginCombo("add sub scene", nullptr, ImGuiComboFlags_NoPreview))
+	}
+	ImGui::End();
+
+	imgui_render_edit_window();
+}
+
+void scene_editor::imgui_render_edit_window()
+{
+	if (!edit_window_opened)
+		return;
+
+	auto it = std::find_if(edited_scenes.begin(), edited_scenes.end(), [&](const edited_scene& scene) { return scene.resource == edit_target; });
+	if (it == edited_scenes.end())
+	{
+		edit_window_opened = false;
+		edit_target.reset();
+		return;
+	}
+	edited_scene& scene = *it;
+	const bool is_root = (it == edited_scenes.begin());
+
+	//	@tool シーンの編集窓（システムの付け替え・サブシーンの登録・システムの設定をまとめる）
+	const cache_string path(scene.resource->get_file_path());
+	const std::string title = std::string(path.get<utf8_cache>()) + " (editing)###scene_editor_edit_window";
+	if (ImGui::Begin(title.c_str(), &edit_window_opened))
+	{
+		//	@tool システムの付け替え（型を選ぶと既定の設定値で作り直す）
+		ImGui::SeparatorText("system");
+		const std::string current = scene.system ? std::string(scene.system->get_type_name()) : std::string("(none)");
+		if (ImGui::BeginCombo("type", current.c_str()))
 		{
-			for (const std::string& path : asset_registry::instance()->find_paths(resource::asset_types::scene))
+			if (ImGui::Selectable("(none)", !scene.system))
+				set_system(scene, {});
+			if (scene_system_registry::is_valid())
 			{
-				const bool loaded = std::any_of(edited_scenes.begin(), edited_scenes.end(), [&](const edited_scene& scene) { return scene.resource->get_file_path() == path; });
-				if (loaded)
-					continue;
-				const cache_string label(path);
-				if (ImGui::Selectable(label.get<utf8_cache>().data()))
-					add_sub_scene(path);
+				for (const std::string& type : scene_system_registry::instance()->get_type_names())
+				{
+					if (ImGui::Selectable(type.c_str(), type == current))
+						set_system(scene, type);
+				}
 			}
 			ImGui::EndCombo();
 		}
-		ImGui::EndDisabled();
+
+		//	@tool サブシーンは開いたシーンにだけ登録できる（入れ子は1段）
+		if (is_root)
+		{
+			ImGui::SeparatorText("sub scenes");
+
+			//	サブシーンリスト
+			scene_resource_ptr remove_target;
+			for (size_t index = 0; index < sub_scenes.size(); ++index)
+			{
+				const resource::asset_reference<scene_resource> reference = sub_scenes[index].get_reference();
+				const cache_string sub_path(reference.path);
+				ImGui::PushID(static_cast<int>(index));
+				if (ImGui::SmallButton("remove"))
+				{
+					for (const edited_scene& edited : edited_scenes)
+					{
+						if (edited.resource->get_uuid() == reference.uuid)
+							remove_target = edited.resource;
+					}
+					if (!remove_target)
+					{
+						sub_scenes.erase(sub_scenes.begin() + static_cast<std::ptrdiff_t>(index));
+						ImGui::PopID();
+						break;
+					}
+				}
+				ImGui::SameLine();
+				ImGui::TextUnformatted(sub_path.get<utf8_cache>().data());
+				ImGui::PopID();
+			}
+			if (remove_target)
+				remove_sub_scene(remove_target);
+
+			//	.escene をアセットブラウザからドロップするか、一覧から選んで追加する
+			ImGui::Button("drop .escene here to add");
+			if (ImGui::BeginDragDropTarget())
+			{
+				if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(asset_browser::drag_payload_type))
+				{
+					const std::string file_path(static_cast<const char*>(payload->Data));
+					if (std::filesystem::path(file_path).extension().string() == "." + std::string(scene_resource::extension))
+						add_sub_scene(file_path);
+				}
+				ImGui::EndDragDropTarget();
+			}
+			if (asset_registry::is_valid() && ImGui::BeginCombo("add sub scene", nullptr, ImGuiComboFlags_NoPreview))
+			{
+				for (const std::string& scene_path : asset_registry::instance()->find_paths(resource::asset_types::scene))
+				{
+					const bool loaded = std::any_of(edited_scenes.begin(), edited_scenes.end(), [&](const edited_scene& edited) { return edited.resource->get_file_path() == scene_path; });
+					if (loaded)
+						continue;
+					const cache_string label(scene_path);
+					if (ImGui::Selectable(label.get<utf8_cache>().data()))
+						add_sub_scene(scene_path);
+				}
+				ImGui::EndCombo();
+			}
+		}
+
+		//	@tool システムの設定（システムの imgui_render）
+		//	@tool 付け替えやサブシーンの削除で scene が無くなっていることがあるので探し直す
+		auto current_it = std::find_if(edited_scenes.begin(), edited_scenes.end(), [&](const edited_scene& edited) { return edited.resource == edit_target; });
+		if (current_it != edited_scenes.end() && current_it->system)
+		{
+			ImGui::SeparatorText("settings");
+			current_it->system->imgui_render();
+		}
 	}
 	ImGui::End();
+}
+
+void scene_editor::set_system(edited_scene& scene, std::string_view type)
+{
+	if (is_playing())
+		return;
+
+	std::unique_ptr<scene_system> system;
+	if (!type.empty())
+	{
+		system = scene_system_registry::is_valid() ? scene_system_registry::instance()->create(type) : nullptr;
+		if (!system)
+		{
+			DEBUG_WARNING_CATEGORY(logger::categorys::system, "scene_editor unknown system type[%s]", std::string(type).c_str());
+			return;
+		}
+		system->context = &edit_world->get_context();
+	}
+	scene.system = std::move(system);
+}
+
+void scene_editor::editor_update(float elapsed_time)
+{
+	if (is_playing())
+		return;
+
+	for (edited_scene& scene : edited_scenes)
+	{
+		if (scene.system)
+			scene.system->editor_update(elapsed_time);
+	}
 }
 
 void scene_editor::start_play(const scene_resource_ptr& resource)

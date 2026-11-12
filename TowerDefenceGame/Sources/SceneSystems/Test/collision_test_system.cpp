@@ -1,5 +1,8 @@
-#include "scenes/TestScene/collision_test_scene.h"
+#include "SceneSystems/Test/collision_test_system.h"
 #include "Graphics/camera.h"
+
+#include "cereal/cereal.hpp"
+#include "cereal/archives/json.hpp"
 
 #include <cstdarg>
 #include <cmath>
@@ -11,9 +14,6 @@
 #include "collision/capsule.h"
 #include "collision/box.h"
 #include "collision/mesh.h"
-
-#if defined(USE_IMGUI)
-#include "Editor/editor_camera.h"
 
 namespace
 {
@@ -186,29 +186,29 @@ namespace
 	}
 
 	//	形状設定の編集
-	void edit_shape(const char* label, collision_test_scene::shape_desc& desc)
+	void edit_shape(const char* label, collision_test_system::shape_desc& desc)
 	{
 		ImGui::PushID(label);
 		ImGui::Text("%s", label);
 		static const char* type_names[] = { "sphere", "capsule", "box", "mesh(floor)" };
 		int type = static_cast<int>(desc.type);
 		if (ImGui::Combo("type", &type, type_names, IM_ARRAYSIZE(type_names)))
-			desc.type = static_cast<collision_test_scene::shape_types>(type);
+			desc.type = static_cast<collision_test_system::shape_types>(type);
 		ImGui::DragFloat3("position(m)", &desc.position.x, 0.01f);
 		ImGui::DragFloat3("rotation(deg)", &desc.rotation.x, 0.5f);
 		switch (desc.type)
 		{
-			case collision_test_scene::shape_types::sphere:
+			case collision_test_system::shape_types::sphere:
 				ImGui::DragFloat("radius(m)", &desc.radius, 0.01f, 0.01f, 100.0f);
 				break;
-			case collision_test_scene::shape_types::capsule:
+			case collision_test_system::shape_types::capsule:
 				ImGui::DragFloat("radius(m)", &desc.radius, 0.01f, 0.01f, 100.0f);
 				ImGui::DragFloat("length(m)", &desc.length, 0.01f, 0.0f, 100.0f);
 				break;
-			case collision_test_scene::shape_types::box:
+			case collision_test_system::shape_types::box:
 				ImGui::DragFloat3("half extent(m)", &desc.extent.x, 0.01f, 0.01f, 100.0f);
 				break;
-			case collision_test_scene::shape_types::mesh:
+			case collision_test_system::shape_types::mesh:
 				ImGui::DragFloat2("half size xz(m)", &desc.extent.x, 0.01f, 0.01f, 100.0f);
 				break;
 		}
@@ -234,8 +234,8 @@ namespace
 	struct overlap_case
 	{
 		const char* name;
-		collision_test_scene::shape_desc a;
-		collision_test_scene::shape_desc b;
+		collision_test_system::shape_desc a;
+		collision_test_system::shape_desc b;
 		bool expect_hit;
 		bool check_normal;
 		math::float3 normal;	//	Aを押し出す向き
@@ -247,27 +247,27 @@ namespace
 	struct cast_case
 	{
 		const char* name;
-		collision_test_scene::cast_desc cast;
-		collision_test_scene::shape_desc target;
+		collision_test_system::cast_desc cast;
+		collision_test_system::shape_desc target;
 		bool expect_hit;
 		float length;				//	負なら確認しない
 		bool check_normal;
 		math::float3 normal;
 	};
 
-	collision_test_scene::shape_desc make_sphere(math::float3 position, float radius)
+	collision_test_system::shape_desc make_sphere(math::float3 position, float radius)
 	{
-		collision_test_scene::shape_desc desc;
-		desc.type = collision_test_scene::shape_types::sphere;
+		collision_test_system::shape_desc desc;
+		desc.type = collision_test_system::shape_types::sphere;
 		desc.position = position;
 		desc.radius = radius;
 		return desc;
 	}
 
-	collision_test_scene::shape_desc make_capsule(math::float3 position, math::float3 rotation, float radius, float length)
+	collision_test_system::shape_desc make_capsule(math::float3 position, math::float3 rotation, float radius, float length)
 	{
-		collision_test_scene::shape_desc desc;
-		desc.type = collision_test_scene::shape_types::capsule;
+		collision_test_system::shape_desc desc;
+		desc.type = collision_test_system::shape_types::capsule;
 		desc.position = position;
 		desc.rotation = rotation;
 		desc.radius = radius;
@@ -275,29 +275,29 @@ namespace
 		return desc;
 	}
 
-	collision_test_scene::shape_desc make_box(math::float3 position, math::float3 rotation, math::float3 extent)
+	collision_test_system::shape_desc make_box(math::float3 position, math::float3 rotation, math::float3 extent)
 	{
-		collision_test_scene::shape_desc desc;
-		desc.type = collision_test_scene::shape_types::box;
+		collision_test_system::shape_desc desc;
+		desc.type = collision_test_system::shape_types::box;
 		desc.position = position;
 		desc.rotation = rotation;
 		desc.extent = extent;
 		return desc;
 	}
 
-	collision_test_scene::shape_desc make_floor(math::float3 position = { 0, 0, 0 }, math::float3 rotation = { 0, 0, 0 }, float half = 5.0f)
+	collision_test_system::shape_desc make_floor(math::float3 position = { 0, 0, 0 }, math::float3 rotation = { 0, 0, 0 }, float half = 5.0f)
 	{
-		collision_test_scene::shape_desc desc;
-		desc.type = collision_test_scene::shape_types::mesh;
+		collision_test_system::shape_desc desc;
+		desc.type = collision_test_system::shape_types::mesh;
 		desc.position = position;
 		desc.rotation = rotation;
 		desc.extent = { half, half, half };
 		return desc;
 	}
 
-	collision_test_scene::cast_desc make_cast(collision_test_scene::cast_types type, math::float3 start, math::float3 end, float radius = 0.5f, float length = 2.0f, math::float3 rotation = { 0, 0, 0 })
+	collision_test_system::cast_desc make_cast(collision_test_system::cast_types type, math::float3 start, math::float3 end, float radius = 0.5f, float length = 2.0f, math::float3 rotation = { 0, 0, 0 })
 	{
-		collision_test_scene::cast_desc desc;
+		collision_test_system::cast_desc desc;
 		desc.type = type;
 		desc.start = start;
 		desc.end = end;
@@ -308,53 +308,23 @@ namespace
 	}
 }
 
-collision_test_scene::collision_test_scene()
-: scene_base()
+collision_test_system::collision_test_system()
 {
 	shape_descs[0] = make_capsule({ 0.0f, 1.3f, 0.0f }, { 0.0f, 0.0f, 0.0f }, 0.5f, 2.0f);
 	shape_descs[1] = make_floor();
 }
 
-collision_test_scene::~collision_test_scene()
+collision_test_system::~collision_test_system()
 {
 }
 
-bool collision_test_scene::initialize_core()
+void collision_test_system::on_begin()
 {
-	//	メインカメラ生成
-	std::shared_ptr<camera_object> main_camera;
-	{
-		main_camera = std::make_shared<camera_object>("メインカメラ");
-		main_camera->get_camera()->get_parameters().fov_y = math::angle::to_radian(45.0f);
-		main_camera->set_world_translation(system_units::convert_m_to_unit(math::double3(0.0, 3.0, 10.0)));
-		main_camera->set_world_euler(math::rotatord(0.2, math::constants<double>::pi, 0.0));
-		register_object(main_camera);
-		mouse::instance()->set_center_lock(false);
-		mouse::instance()->set_cursol_hide(false);
-	}
-
-#if defined(USE_IMGUI)
-	//	エディターカメラ生成
-	{
-		editor_camera = std::make_shared<editor_camera_object>("エディターカメラ",
-			system_units::convert_m_to_unit(math::vector3d(0.0, 3.0, 10.0)),
-			math::rotatorf(0.2f, math::constants<float>::pi, 0),
-			0.25f);
-		register_object(editor_camera);
-	}
-#endif // defined(USE_IMGUI)
-
-	//	平行光源生成
-	{
-		auto light = std::make_shared<directional_light_object>("平行光源");
-		light->set_flag(light::flags::use_shadow, false);
-		register_object(light);
-	}
-
-	return true;
+	mouse::instance()->set_center_lock(false);
+	mouse::instance()->set_cursol_hide(false);
 }
 
-void collision_test_scene::update_core(float elapsed_time)
+void collision_test_system::pre_update(float elapsed_time)
 {
 	if (mode == 0)
 		update_pair_test();
@@ -362,7 +332,84 @@ void collision_test_scene::update_core(float elapsed_time)
 		update_cast_test();
 }
 
-collision_test_scene::shape_desc collision_test_scene::to_unit(const shape_desc& desc)
+namespace
+{
+	void save_shape(cereal::JSONOutputArchive& archive, const char* name, const collision_test_system::shape_desc& desc)
+	{
+		int type = static_cast<int>(desc.type);
+		archive.setNextName(name);
+		archive.startNode();
+		archive(CEREAL_NVP(type),
+			cereal::make_nvp("position", desc.position),
+			cereal::make_nvp("rotation", desc.rotation),
+			cereal::make_nvp("radius", desc.radius),
+			cereal::make_nvp("length", desc.length),
+			cereal::make_nvp("extent", desc.extent));
+		archive.finishNode();
+	}
+
+	void load_shape(cereal::JSONInputArchive& archive, const char* name, collision_test_system::shape_desc& desc)
+	{
+		int type = static_cast<int>(desc.type);
+		archive.setNextName(name);
+		archive.startNode();
+		archive(CEREAL_NVP(type),
+			cereal::make_nvp("position", desc.position),
+			cereal::make_nvp("rotation", desc.rotation),
+			cereal::make_nvp("radius", desc.radius),
+			cereal::make_nvp("length", desc.length),
+			cereal::make_nvp("extent", desc.extent));
+		archive.finishNode();
+		desc.type = static_cast<collision_test_system::shape_types>(type);
+	}
+
+	void save_cast(cereal::JSONOutputArchive& archive, const char* name, const collision_test_system::cast_desc& desc)
+	{
+		int type = static_cast<int>(desc.type);
+		archive.setNextName(name);
+		archive.startNode();
+		archive(CEREAL_NVP(type),
+			cereal::make_nvp("start", desc.start),
+			cereal::make_nvp("end", desc.end),
+			cereal::make_nvp("rotation", desc.rotation),
+			cereal::make_nvp("radius", desc.radius),
+			cereal::make_nvp("length", desc.length));
+		archive.finishNode();
+	}
+
+	void load_cast(cereal::JSONInputArchive& archive, const char* name, collision_test_system::cast_desc& desc)
+	{
+		int type = static_cast<int>(desc.type);
+		archive.setNextName(name);
+		archive.startNode();
+		archive(CEREAL_NVP(type),
+			cereal::make_nvp("start", desc.start),
+			cereal::make_nvp("end", desc.end),
+			cereal::make_nvp("rotation", desc.rotation),
+			cereal::make_nvp("radius", desc.radius),
+			cereal::make_nvp("length", desc.length));
+		archive.finishNode();
+		desc.type = static_cast<collision_test_system::cast_types>(type);
+	}
+}
+
+void collision_test_system::serialize(cereal::JSONOutputArchive& archive) const
+{
+	archive(CEREAL_NVP(mode), CEREAL_NVP(draw_ghost));
+	save_shape(archive, "shape_a", shape_descs[0]);
+	save_shape(archive, "shape_b", shape_descs[1]);
+	save_cast(archive, "cast", cast);
+}
+
+void collision_test_system::deserialize(cereal::JSONInputArchive& archive)
+{
+	archive(CEREAL_NVP(mode), CEREAL_NVP(draw_ghost));
+	load_shape(archive, "shape_a", shape_descs[0]);
+	load_shape(archive, "shape_b", shape_descs[1]);
+	load_cast(archive, "cast", cast);
+}
+
+collision_test_system::shape_desc collision_test_system::to_unit(const shape_desc& desc)
 {
 	shape_desc result = desc;
 	result.position = scale3(desc.position, unit);
@@ -372,7 +419,7 @@ collision_test_scene::shape_desc collision_test_scene::to_unit(const shape_desc&
 	return result;
 }
 
-collision_test_scene::cast_desc collision_test_scene::to_unit(const cast_desc& desc)
+collision_test_system::cast_desc collision_test_system::to_unit(const cast_desc& desc)
 {
 	cast_desc result = desc;
 	result.start = scale3(desc.start, unit);
@@ -382,7 +429,7 @@ collision_test_scene::cast_desc collision_test_scene::to_unit(const cast_desc& d
 	return result;
 }
 
-std::shared_ptr<collision::bounding_object> collision_test_scene::create_shape(const shape_desc& desc)
+std::shared_ptr<collision::bounding_object> collision_test_system::create_shape(const shape_desc& desc)
 {
 	math::float4 rotation = to_quaternion(desc.rotation);
 	switch (desc.type)
@@ -404,7 +451,7 @@ std::shared_ptr<collision::bounding_object> collision_test_scene::create_shape(c
 	return nullptr;
 }
 
-bool collision_test_scene::execute_cast(const cast_desc& desc, const collision::bounding_object& target, collision::intersect_data* intersect)
+bool collision_test_system::execute_cast(const cast_desc& desc, const collision::bounding_object& target, collision::intersect_data* intersect)
 {
 	switch (desc.type)
 	{
@@ -418,7 +465,7 @@ bool collision_test_scene::execute_cast(const cast_desc& desc, const collision::
 	return false;
 }
 
-void collision_test_scene::update_pair_test()
+void collision_test_system::update_pair_test()
 {
 	auto a = create_shape(to_unit(shape_descs[0]));
 	auto b = create_shape(to_unit(shape_descs[1]));
@@ -450,7 +497,7 @@ void collision_test_scene::update_pair_test()
 #endif	//	defined(USE_IMGUI)
 }
 
-void collision_test_scene::update_cast_test()
+void collision_test_system::update_cast_test()
 {
 	auto target = create_shape(to_unit(shape_descs[1]));
 	if (!target)
@@ -492,7 +539,7 @@ void collision_test_scene::update_cast_test()
 #endif	//	defined(USE_IMGUI)
 }
 
-void collision_test_scene::run_self_tests()
+void collision_test_system::run_self_tests()
 {
 	test_results.clear();
 	test_passed_count = 0;
@@ -682,7 +729,8 @@ void collision_test_scene::run_self_tests()
 	}
 }
 
-void collision_test_scene::imgui_render_core()
+#if defined(USE_IMGUI)
+void collision_test_system::imgui_render()
 {
 	if (!ImGui::CollapsingHeader("collision test", ImGuiTreeNodeFlags_DefaultOpen))
 		return;
@@ -754,3 +802,5 @@ void collision_test_scene::imgui_render_core()
 	}
 }
 #endif	//	defined(USE_IMGUI)
+
+SCENE_SYSTEM_REGISTER(collision_test_system);

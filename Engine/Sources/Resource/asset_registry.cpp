@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <filesystem>
+#include <fstream>
 #include <mutex>
 #include <vector>
 
@@ -15,6 +16,7 @@ asset_registry::asset_registry()
 
 asset_registry::~asset_registry()
 {
+	save_table();
 }
 
 void asset_registry::scan(std::string_view directory)
@@ -28,12 +30,59 @@ void asset_registry::scan(const std::vector<std::string_view>& directories)
 	entries.clear();
 	path_to_uuid.clear();
 
-	size_t duplicated_count = 0;
+	//	@tool 先に全てのヘッダーを集める
+	std::vector<found_asset> assets;
 	for (std::string_view directory : directories)
-		scan_asset(directory, duplicated_count);
+		collect_assets(directory, assets);
+
+	//	@tool 同じ UUID が複数あれば、前回の表と同じパスのものを残す（無ければ先に見つかったもの）
+	const std::unordered_map<universally_unique_identifier, std::wstring> previous = load_previous_table();
+	std::unordered_map<universally_unique_identifier, size_t> keepers;
+	for (size_t index = 0; index < assets.size(); ++index)
+	{
+		auto [it, inserted] = keepers.try_emplace(assets[index].uuid, index);
+		if (inserted)
+			continue;
+		auto previous_it = previous.find(assets[index].uuid);
+		if (previous_it != previous.end() && previous_it->second == resource_manager::make_path_key(assets[index].path))
+			it->second = index;
+	}
+
+	size_t duplicated_count = 0;
+	size_t moved_count = 0;
+	for (size_t index = 0; index < assets.size(); ++index)
+	{
+		found_asset& asset = assets[index];
+		if (keepers[asset.uuid] == index)
+		{
+			//	@tool 前回と違う場所にあれば外で移動された
+			auto previous_it = previous.find(asset.uuid);
+			if (previous_it != previous.end() && previous_it->second != resource_manager::make_path_key(asset.path))
+			{
+				DEBUG_LOG_CATEGORY(logger::categorys::system, "asset_registry moved[%s]", asset.path.c_str());
+				++moved_count;
+			}
+			register_asset_core(asset.uuid, asset.type, asset.path);
+			continue;
+		}
+
+		//	@tool 残さなかった方は別のアセット（外でのコピーなど）なので UUID を振り直す
+		const universally_unique_identifier new_uuid = universally_unique_identifier::generate();
+		if (!resource::rewrite_asset_header_uuid(std::filesystem::path(asset.path), new_uuid))
+		{
+			DEBUG_ERROR_CATEGORY(logger::categorys::system, "asset_registry uuid rewrite failed[%s]", asset.path.c_str());
+			continue;
+		}
+		DEBUG_WARNING_CATEGORY(logger::categorys::system, "asset_registry duplicated uuid[%s] -> %s", asset.path.c_str(), new_uuid.to_string().c_str());
+		register_asset_core(new_uuid, asset.type, asset.path);
+		++duplicated_count;
+	}
+
+	DEBUG_LOG_CATEGORY(logger::categorys::system, "asset_registry scan assets:%zu duplicated:%zu moved:%zu", entries.size(), duplicated_count, moved_count);
+	save_table_locked();
 }
 
-void asset_registry::scan_asset(std::string_view directory, size_t& duplicated_count)
+void asset_registry::collect_assets(std::string_view directory, std::vector<found_asset>& out_assets)
 {
 	std::error_code error;
 	const std::filesystem::path root{ std::string(directory) };
@@ -56,26 +105,59 @@ void asset_registry::scan_asset(std::string_view directory, size_t& duplicated_c
 		if (!resource::read_asset_header(it->path(), header) || header.uuid.is_empty())
 			continue;
 
-		//	UUIDとパスを保存
-		const std::string path = it->path().generic_string();
-		if (entries.contains(header.uuid))
-		{
-			const universally_unique_identifier new_uuid = universally_unique_identifier::generate();
-			if (!resource::rewrite_asset_header_uuid(it->path(), new_uuid))
-			{
-				DEBUG_ERROR_CATEGORY(logger::categorys::system, "asset_registry uuid rewrite failed[%s]", path.c_str());
-				continue;
-			}
-			DEBUG_WARNING_CATEGORY(logger::categorys::system, "asset_registry duplicated uuid[%s] -> %s", path.c_str(), new_uuid.to_string().c_str());
-			header.uuid = new_uuid;
-			++duplicated_count;
-		}
-
-		//	アセット登録
-		register_asset_core(header.uuid, header.type, path);
+		out_assets.push_back({ header.uuid, header.type, it->path().generic_string() });
 	}
+}
 
-	DEBUG_LOG_CATEGORY(logger::categorys::system, "asset_registry scan[%s] assets:%zu duplicated:%zu", root.generic_string().c_str(), entries.size(), duplicated_count);
+std::unordered_map<universally_unique_identifier, std::wstring> asset_registry::load_previous_table()
+{
+	//	@tool 1行に「UUID<TAB>パス」
+	std::unordered_map<universally_unique_identifier, std::wstring> table;
+	std::ifstream stream(std::string(previous_table_path), std::ios::binary);
+	std::string line;
+	while (std::getline(stream, line))
+	{
+		if (!line.empty() && line.back() == '\r')
+			line.pop_back();
+		const size_t tab = line.find('\t');
+		if (tab == std::string::npos)
+			continue;
+		universally_unique_identifier uuid;
+		if (!universally_unique_identifier::from_string(line.substr(0, tab), uuid))
+			continue;
+		table.insert_or_assign(uuid, resource_manager::make_path_key(std::string_view(line).substr(tab + 1)));
+	}
+	return table;
+}
+
+void asset_registry::save_table() const
+{
+	std::shared_lock lock(mutex);
+	save_table_locked();
+}
+
+void asset_registry::save_table_locked() const
+{
+	if (entries.empty())
+		return;
+
+	std::error_code error;
+	std::filesystem::create_directories(std::filesystem::path(std::string(previous_table_path)).parent_path(), error);
+
+	std::vector<std::pair<std::string, std::string>> lines;
+	lines.reserve(entries.size());
+	for (const auto& [uuid, value] : entries)
+		lines.emplace_back(value.path, uuid.to_string());
+	std::sort(lines.begin(), lines.end());
+
+	std::ofstream stream(std::string(previous_table_path), std::ios::binary | std::ios::trunc);
+	if (!stream)
+	{
+		DEBUG_WARNING_CATEGORY(logger::categorys::system, "asset_registry table save failed[%s]", std::string(previous_table_path).c_str());
+		return;
+	}
+	for (const auto& [path, uuid] : lines)
+		stream << uuid << '\t' << path << "\r\n";
 }
 
 void asset_registry::register_asset(const universally_unique_identifier& uuid, resource::asset_types type, std::string_view path)

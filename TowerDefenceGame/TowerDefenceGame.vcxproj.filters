@@ -542,6 +542,9 @@
     <ClCompile Include="Sources\SceneSystems\Test\light_shadow_test_system.cpp">
       <Filter>Sources\SceneSystems\Test</Filter>
     </ClCompile>
+    <ClCompile Include="Sources\SceneSystems\Test\collision_test_system.cpp">
+      <Filter>Sources\SceneSystems\Test</Filter>
+    </ClCompile>
     <ClCompile Include="Sources\SceneSystems\Test\clustered_lighting_test_system.cpp">
       <Filter>Sources\SceneSystems\Test</Filter>
     </ClCompile>
@@ -914,6 +917,9 @@
       <Filter>Headers\SceneSystems\Editor</Filter>
     </ClInclude>
     <ClInclude Include="Headers\SceneSystems\Test\light_shadow_test_system.h">
+      <Filter>Headers\SceneSystems\Test</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\SceneSystems\Test\collision_test_system.h">
       <Filter>Headers\SceneSystems\Test</Filter>
     </ClInclude>
     <ClInclude Include="Headers\SceneSystems\Test\clustered_lighting_test_system.h">

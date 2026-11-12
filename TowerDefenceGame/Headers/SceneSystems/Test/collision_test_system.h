@@ -1,15 +1,15 @@
 #pragma once
 
-#include "scenes/scene_base.h"
+#include "Scenes/scene_system.h"
 #include "collision/collision.h"
 
-#if defined(USE_IMGUI)
-#include "Editor/editor_camera.h"
+#include <string>
+#include <vector>
 
 //	当たり判定確認シーン
-class collision_test_scene : public scene_base
+class collision_test_system : public scene_system
 {
-	SCENE_DECRLEAR(collision_test_scene, scene_base);
+	SCENE_SYSTEM_DECRLEAR(collision_test_system, scene_system)
 
 public:
 	//	形状の種類
@@ -60,16 +60,19 @@ public:
 	};
 
 public:
-	collision_test_scene();
-	collision_test_scene(const collision_test_scene&) = delete;
-	collision_test_scene(collision_test_scene&&) = delete;
-	~collision_test_scene() override;
+	collision_test_system();
+	~collision_test_system() override;
 
-protected:
-	bool initialize_core() override;
-	void update_core(float elapsed_time) override;
+	void on_begin() override;
+	void pre_update(float elapsed_time) override;
+
+	void serialize(cereal::JSONOutputArchive& archive) const override;
+	void deserialize(cereal::JSONInputArchive& archive) override;
+
 #if defined(USE_IMGUI)
-	void imgui_render_core() override;
+	void imgui_render() override;
+
+	void editor_update(float elapsed_time) override { pre_update(elapsed_time); }
 #endif	//	defined(USE_IMGUI)
 
 public:
@@ -92,8 +95,6 @@ private:
 	cast_desc cast;
 	bool draw_ghost = true;
 
-	std::shared_ptr<editor_camera_object> editor_camera;
-
 	//	表示用の判定結果
 	bool hit_ab = false;
 	bool hit_ab_without_data = false;
@@ -107,4 +108,3 @@ private:
 	std::vector<test_result> test_results;
 	size_t test_passed_count = 0;
 };
-#endif	//	defined(USE_IMGUI)

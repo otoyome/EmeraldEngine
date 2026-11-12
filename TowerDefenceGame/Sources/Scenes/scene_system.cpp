@@ -14,8 +14,24 @@ scene_instance& scene_system::get_scene() const
 
 engine_context& scene_system::get_context() const
 {
-	return get_scene().get_context();
+	assert(context && "ワールドに登録されていないシーンシステム");
+	return *context;
 }
+
+#if defined(USE_IMGUI)
+void scene_system::imgui_render_window(std::string_view scene_path)
+{
+	if (!window_opened)
+		return;
+
+	const cache_string path(scene_path);
+	const std::string title = std::string(get_type_name()) + " - " + std::string(path.get<utf8_cache>()) + (is_editing() ? " (editing)" : "")
+		+ "###scene_system" + std::to_string(reinterpret_cast<std::uintptr_t>(this));
+	if (ImGui::Begin(title.c_str(), &window_opened))
+		imgui_render();
+	ImGui::End();
+}
+#endif	//	defined(USE_IMGUI)
 
 std::vector<game_object_ptr> scene_system::get_scene_objects() const
 {

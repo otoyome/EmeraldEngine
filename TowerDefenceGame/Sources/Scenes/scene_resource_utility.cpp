@@ -45,7 +45,6 @@ namespace scene_resource_utility
 {
 	bool create(const std::vector<scene_resource_ptr>& scenes, std::vector<created_scene>& out_scenes)
 	{
-		//	@tool シーンごとに読む（参照は同じファイル内だけ）
 		std::vector<created_scene> created(scenes.size());
 		for (size_t index = 0; index < scenes.size(); ++index)
 		{

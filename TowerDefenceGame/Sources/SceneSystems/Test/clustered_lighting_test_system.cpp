@@ -385,8 +385,11 @@ void clustered_lighting_test_system::imgui_render()
 	changed |= ImGui::SliderFloat("spot outer cone [deg]", &settings.spot_outer_cone, 0.0f, 89.0f);
 	changed |= ImGui::DragInt("seed", &settings.seed);
 	settings.spot_inner_cone = (std::min)(settings.spot_inner_cone, settings.spot_outer_cone);
-	if (changed)
+
+	//	ì‚è’¼‚µ‚ÍÄ¶’†‚¾‚¯
+	if (changed && !is_editing())
 		regenerate_lights();
+	ImGui::BeginDisabled(is_editing());
 	if (ImGui::Button("regenerate"))
 		regenerate_lights();
 	ImGui::SameLine();
@@ -397,12 +400,13 @@ void clustered_lighting_test_system::imgui_render()
 		update_light_positions();
 	}
 	ImGui::EndDisabled();
+	ImGui::EndDisabled();
 
 	//	ƒ‰ƒCƒg‚Ì“®‚«
 	ImGui::Separator();
 	ImGui::Checkbox("animate", &animation.enable);
 	ImGui::DragFloat("animate speed [rev/s]", &animation.speed, 0.01f, -10.0f, 10.0f);
-	if (ImGui::DragFloat("animate radius [m]", &animation.radius, 0.1f, 0.0f, 100.0f))
+	if (ImGui::DragFloat("animate radius [m]", &animation.radius, 0.1f, 0.0f, 100.0f) && !is_editing())
 		update_light_positions();
 }
 #endif	//	defined(USE_IMGUI)

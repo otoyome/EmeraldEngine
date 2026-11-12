@@ -164,21 +164,49 @@ bool scene_manager::can_add_scene(std::string_view name) const
 #if defined(USE_IMGUI)
 void scene_manager::imgui_render()
 {
+	//	@tool 窓に映すワールド（プレビュー窓）は scenes 窓が無いので、システムの表示をそのまま呼ぶ
 	if (context.is_embedded())
 	{
 		for (auto& scene : scenes)
-			scene.second->imgui_render();
+		{
+			for (const auto& loaded : scene.second->get_loaded_scenes())
+			{
+				if (loaded.system)
+					loaded.system->imgui_render();
+			}
+		}
 		return;
 	}
 
+	//	@tool 生きているシーンの一覧（サブシーンは字下げ）。システムの窓はボタンで開く
 	if (ImGui::Begin(context.make_window_name("scenes").c_str()))
 	{
 		for (auto& scene : scenes)
 		{
-			ImGui::TextUnformatted(std::string(scene.second->get_resource()->get_file_path()).c_str());
-			scene.second->imgui_render();
+			const auto& loaded_scenes = scene.second->get_loaded_scenes();
+			for (size_t index = 0; index < loaded_scenes.size(); ++index)
+			{
+				const scene_instance::loaded_scene& loaded = loaded_scenes[index];
+				ImGui::PushID(&loaded);
+				if (index > 0)
+					ImGui::Indent();
+				const cache_string path(loaded.resource->get_file_path());
+				ImGui::TextUnformatted(path.get<utf8_cache>().data());
+				if (loaded.system)
+				{
+					ImGui::SameLine();
+					if (ImGui::SmallButton("system"))
+						loaded.system->open_window();
+				}
+				if (index > 0)
+					ImGui::Unindent();
+				ImGui::PopID();
+			}
 		}
 	}
 	ImGui::End();
+
+	for (auto& scene : scenes)
+		scene.second->imgui_render();
 }
 #endif	//	defined(USE_IMGUI)

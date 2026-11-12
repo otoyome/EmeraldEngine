@@ -290,6 +290,15 @@ void game_process::update(float elapsed_time)
 		active_world->get_scenes().post_updates(elapsed_time);
 	}
 
+#if defined(USE_IMGUI)
+	//	編集中のシステムの更新
+	{
+		DETAIL_PROFILE_CPU_SCOPE("update.scene_edit.editor_update");
+		if (scene_edit)
+			scene_edit->editor_update(elapsed_time);
+	}
+#endif	//	defined(USE_IMGUI)
+
 	//	エフェクト関係更新
 	{
 		DETAIL_PROFILE_CPU_SCOPE("update.effect_manager");
@@ -354,7 +363,9 @@ void game_process::imgui_render()
 		return;
 
 	//	シーン情報表示
-	active_world->get_scenes().imgui_render();
+	//	@tool 編集中は scene_editor が scenes 窓を出す
+	if (!scene_edit || scene_edit->is_playing())
+		active_world->get_scenes().imgui_render();
 
 	//	オブジェクト情報表示
 	active_world->get_objects().imgui_render();

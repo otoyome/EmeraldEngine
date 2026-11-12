@@ -68,6 +68,9 @@ public:
 	//	編集描画
 	void imgui_render();
 
+	//	編集中のみの更新
+	void editor_update(float elapsed_time);
+
 	//	サブシーンの追加・削除
 	bool add_sub_scene(std::string_view file_path);
 	void remove_sub_scene(const scene_resource_ptr& resource);
@@ -76,14 +79,26 @@ private:
 	//	編集中のオブジェクトとシステムの設定をシーンリソースへ反映する
 	bool apply_contents();
 
+	//	シーンオープン/クローズ
 	bool open(std::string_view file_path);
 	void close();
 
-	//	@tool シーンリソースからオブジェクトとシステムを作り、編集用のワールドに登録する
+	//	編集シーン生成
 	bool create_edited_scenes(const std::vector<scene_resource_ptr>& resources);
+
+	//	編集シーン破棄
 	void release_edited_scene(edited_scene& scene);
 
+	//	@tool シーンのシステムを付け替える（type が空なら無し。設定値は新しいシステムの既定値になる）
+	void set_system(edited_scene& scene, std::string_view type);
+
+	//	@tool scenes 窓の edit で開くシーンの編集窓
+	void imgui_render_edit_window();
+
+	//	シーン開始処理
 	void start_play(const scene_resource_ptr& resource);
+
+	//	シーン停止処理
 	void stop_play();
 
 	static std::unique_ptr<world> create_world();
@@ -93,6 +108,8 @@ private:
 	std::unique_ptr<world> play_world;			//	再生ワールド
 	std::vector<edited_scene> edited_scenes;	//	編集中のシーン
 	std::vector<resource::asset_handle<scene_resource>> sub_scenes;	//	サブシーン
+	scene_resource_ptr edit_target;				//	編集窓に出すシーン
+	bool edit_window_opened = false;
 
 	std::string edit_request;
 	std::string play_file_request;
