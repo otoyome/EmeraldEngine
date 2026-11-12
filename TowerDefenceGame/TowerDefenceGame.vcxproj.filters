@@ -45,6 +45,12 @@
     <Filter Include="Sources\SceneSystems\Test">
       <UniqueIdentifier>{f55f9d78-466d-4d69-bf12-377380c16420}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Headers\SceneSystems\Network">
+      <UniqueIdentifier>{b9fef19d-c5fa-4842-aa5e-1bd628674562}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Sources\SceneSystems\Network">
+      <UniqueIdentifier>{5baae88d-21e9-4fb9-89a5-1d03c1c7733c}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Headers\Scenes">
       <UniqueIdentifier>{c2845836-93a2-447c-8c3d-ae32aa15c5d7}</UniqueIdentifier>
     </Filter>
@@ -107,18 +113,6 @@
     </Filter>
     <Filter Include="External\ImGuiExternal">
       <UniqueIdentifier>{bc84b3e6-3d4a-46f1-9323-ae47996c32df}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Headers\Scenes\DummyScene">
-      <UniqueIdentifier>{3eb95a1a-bfa8-4bb1-919f-2197d3bc772c}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Sources\Scenes\DummyScene">
-      <UniqueIdentifier>{001086ae-2f26-4314-ae17-a3b4b60670de}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Headers\Scenes\NetworkScene">
-      <UniqueIdentifier>{d761f6f2-0cd1-4d02-b15c-44f0e033d006}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Sources\Scenes\NetworkScene">
-      <UniqueIdentifier>{9fca50b0-be09-4a89-b18a-d583576a8e2e}</UniqueIdentifier>
     </Filter>
     <Filter Include="Headers\Scenes\TestScene">
       <UniqueIdentifier>{3e1a91eb-ec24-4c9d-a6fe-7b32d76b8513}</UniqueIdentifier>
@@ -545,6 +539,9 @@
     <ClCompile Include="Sources\SceneSystems\Test\collision_test_system.cpp">
       <Filter>Sources\SceneSystems\Test</Filter>
     </ClCompile>
+    <ClCompile Include="Sources\SceneSystems\Network\network_sandbox_system.cpp">
+      <Filter>Sources\SceneSystems\Network</Filter>
+    </ClCompile>
     <ClCompile Include="Sources\SceneSystems\Test\clustered_lighting_test_system.cpp">
       <Filter>Sources\SceneSystems\Test</Filter>
     </ClCompile>
@@ -930,6 +927,9 @@
     </ClInclude>
     <ClInclude Include="Headers\SceneSystems\Test\collision_test_system.h">
       <Filter>Headers\SceneSystems\Test</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\SceneSystems\Network\network_sandbox_system.h">
+      <Filter>Headers\SceneSystems\Network</Filter>
     </ClInclude>
     <ClInclude Include="Headers\SceneSystems\Test\clustered_lighting_test_system.h">
       <Filter>Headers\SceneSystems\Test</Filter>

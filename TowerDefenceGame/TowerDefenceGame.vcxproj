@@ -655,6 +655,7 @@ xcopy "$(SolutionDir)External\SDL3\lib\SDL3.dll" "$(OutDir)" /y</Command>
     <ClCompile Include="Sources\SceneSystems\Editor\edit_material_system.cpp" />
     <ClCompile Include="Sources\SceneSystems\Editor\edit_particle_system.cpp" />
     <ClCompile Include="Sources\SceneSystems\Editor\edit_timeline_system.cpp" />
+    <ClCompile Include="Sources\SceneSystems\Network\network_sandbox_system.cpp" />
     <ClCompile Include="Sources\SceneSystems\Test\clustered_lighting_test_system.cpp" />
     <ClCompile Include="Sources\SceneSystems\Test\collision_test_system.cpp" />
     <ClCompile Include="Sources\SceneSystems\Test\light_shadow_test_system.cpp" />
@@ -794,6 +795,7 @@ xcopy "$(SolutionDir)External\SDL3\lib\SDL3.dll" "$(OutDir)" /y</Command>
     <ClInclude Include="Headers\SceneSystems\Editor\edit_material_system.h" />
     <ClInclude Include="Headers\SceneSystems\Editor\edit_particle_system.h" />
     <ClInclude Include="Headers\SceneSystems\Editor\edit_timeline_system.h" />
+    <ClInclude Include="Headers\SceneSystems\Network\network_sandbox_system.h" />
     <ClInclude Include="Headers\SceneSystems\Test\clustered_lighting_test_system.h" />
     <ClInclude Include="Headers\SceneSystems\Test\collision_test_system.h" />
     <ClInclude Include="Headers\SceneSystems\Test\light_shadow_test_system.h" />
