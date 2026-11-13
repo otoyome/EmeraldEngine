@@ -75,13 +75,6 @@ public:
 		inline static const std::string EditAnimationHideRootMotion = "__EditAnimationHideRootMotion__";
 		inline static const std::string EditAnimationHideIK = "__EditAnimationHideIK__";
 		inline static const std::string EditAnimationHideCurve = "__EditAnimationHideCurve__";
-		struct node_ui_flags {
-			bool node = false;
-			bool model = false;
-			bool particle = false;
-			bool decal = false;
-		};
-		std::unordered_map<std::string, node_ui_flags> animation_ui_flag_maps; // フラグ管理
 
 	private:	//	@tool 編集用ウィンドウ
 		//	@tool 常にあり、表示状態で開閉するウィンドウ
@@ -224,10 +217,17 @@ public:	//	編集アイテム系
 	//	アニメーション
 	static bool edit_animation_data(std::shared_ptr<context>& context, animation::data& animation_data);
 	static bool edit_animation_data_timeline(std::shared_ptr<context>& context, animation::data& animation_data);
+	//	@tool 窓を作らず、今の領域にタイムラインを描く
+	static bool edit_animation_data_timeline_embedded(std::shared_ptr<context>& context, animation::data& animation_data);
+	//	@tool 窓を作らず、今の領域にタイムラインで選んだキーの詳細を描く
+	static void edit_animation_timeline_inspector(std::shared_ptr<context>& context);
 	static bool edit_ik(std::shared_ptr<context>& context, engine_context& engine, model_instance_ptr& model_instance, ik_resource_ptr& ik_resource);
 
 	//	エフェクト
-	static bool edit_effect_noeds(std::shared_ptr<context>& context, engine_context& engine, effect_instance_ptr& effect_instance);
+	//	@tool ノードのツリー。選んだノードの番号を selected_node_index に入れる
+	static bool edit_effect_node_tree(std::shared_ptr<context>& context, engine_context& engine, effect_instance_ptr& effect_instance, size_t& selected_node_index);
+	//	@tool 選んだノードの詳細（名前・変形・モデル・パーティクル・デカール）
+	static bool edit_effect_node_detail(std::shared_ptr<context>& context, engine_context& engine, effect_instance_ptr& effect_instance, size_t selected_node_index);
 	static bool edit_effect_animation(std::shared_ptr<context>& context, effect_instance_ptr& effect_instance);
 
 private:	//	内部編集用関数

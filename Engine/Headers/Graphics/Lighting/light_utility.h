@@ -3,7 +3,7 @@
 //	ライト関数群
 namespace light_utility
 {
-	//	最大視感効率 [lm/W](555nm)
+	//	最大視感効率 [lm/W]
 	constexpr double luminous_efficacy = 683.0;
 
 	//	色温度の範囲と太陽光の値
@@ -19,7 +19,7 @@ namespace light_utility
 	double convert_lumen_to_lux(double lumen, double illuminated_area);
 	double convert_lux_to_lumen(double lux, double illuminated_area);
 
-	//	照度[lx] = 光度[cd] / 距離[m]^2(光源に正対する面での逆二乗則)
+	//	照度[lx] = 光度[cd] / 距離[m]^2
 	double convert_candela_to_lux(double candela, double distance);
 	double convert_lux_to_candela(double lux, double distance);
 
@@ -31,7 +31,7 @@ namespace light_utility
 	double convert_point_light_lumen_to_candela(double lumen);
 	double convert_point_light_candela_to_lumen(double candela);
 
-	//	スポットライトの光束と光度(cos_half_angle は光軸から外側コーンの縁までの半頂角の cos、立体角は 2π(1 - cos))
+	//	スポットライトの光束と光度
 	double calculate_spot_light_solid_angle(double cos_half_angle);
 	double convert_spot_light_lumen_to_candela(double lumen, double cos_half_angle);
 	double convert_spot_light_candela_to_lumen(double candela, double cos_half_angle);

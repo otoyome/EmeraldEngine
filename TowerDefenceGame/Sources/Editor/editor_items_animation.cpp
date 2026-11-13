@@ -225,6 +225,8 @@ namespace
 			if (animation_data == nullptr)
 				return;
 
+			compact_toolbar = false;
+
 			bool mouse_down_in_sequencer = false;
 			if (sequencer_rect_valid && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
 			{
@@ -245,67 +247,99 @@ namespace
 			}
 
 			if (editor_items::begin_window(context, "Animation Timeline", nullptr, timeline_window_flags))
-			{
-				render_toolbar();
-
-				ImGui::Separator();
-
-				//	今回描画するシーケンサー領域を記録しておく（次フレームの予測判定に使う）
-				const ImVec2 sequencer_pos = ImGui::GetCursorScreenPos();
-				const float sequencer_width = ImGui::GetContentRegionAvail().x;
-
-				const int end_frame_before = end_frame;
-				if (ImGui::BeginNeoSequencer(sequencer_name.data(), &current_frame, &start_frame, &end_frame, { 0, 0 },
-					ImGuiNeoSequencerFlags_AllowLengthChanging | ImGuiNeoSequencerFlags_EnableSelection |
-					ImGuiNeoSequencerFlags_AlwaysShowHeader | ImGuiNeoSequencerFlags_Selection_EnableDragging |
-					ImGuiNeoSequencerFlags_Selection_EnableDeletion))
-				{
-					//	シーケンサーのメモリリーク対策で ID を控えておく
-					//	@remainder	選択中にモーションを差し替えるとリークする（時間のある時に修正）
-					ImGuiWindow* window = ImGui::GetCurrentWindow();
-					sequencer_id = window->IDStack[window->IDStack.size() - 1];
-
-					//	選択情報は毎フレーム ImGui 側の状態から作り直す
-					const bool had_selection = !selected.empty();
-					selected.clear();
-					render_event_timeline(context);
-					render_node_timelines(context);
-
-					// キーフレーム選択が開始したフレームだけラインの選択を外す
-					if (!selected.empty() && !had_selection)
-						clear_active_timeline();
-
-					const bool dragging = ImGui::NeoIsDraggingSelection();
-					selection_dragging = dragging;	//	次フレームの Begin で NoMove 判定に使う
-					ImGui::EndNeoSequencer();
-
-					//	タイムラインで変えた長さを end time へ反映
-					if (end_frame != end_frame_before)
-					{
-						animation_data->end_time = calculate_second(end_frame);
-						cached_end_time = animation_data->end_time;
-					}
-
-					//	キーフレームのドラッグ移動が終わったら時間順に並べ直す
-					if (keyframe_move_pending && !dragging)
-					{
-						sort_animation_data();
-						clear_selection();
-						keyframe_move_pending = false;
-					}
-
-					sequencer_rect_min = sequencer_pos;
-					sequencer_rect_max = ImVec2(sequencer_pos.x + sequencer_width, ImGui::GetCursorScreenPos().y);
-					sequencer_rect_valid = true;
-				}
-				else
-				{
-					sequencer_rect_valid = false;
-				}
-			}
+				render_timeline_body(context);
 			ImGui::End();
 
 			render_inspector(context);
+		}
+
+		//	窓を作らず、今の領域にタイムラインを描く
+		void render_embedded(std::shared_ptr<editor_items::context>& context)
+		{
+			if (animation_data == nullptr)
+				return;
+
+			//	end time の変更をタイムラインへ反映
+			if (animation_data->end_time != cached_end_time)
+			{
+				end_frame = calculate_frame_index(animation_data->end_time);
+				cached_end_time = animation_data->end_time;
+			}
+
+			compact_toolbar = true;
+			render_timeline_body(context);
+		}
+
+		//	窓を作らず、今の領域に選んだキーの詳細を描く
+		void render_inspector_embedded(std::shared_ptr<editor_items::context>& context)
+		{
+			if (animation_data != nullptr)
+				render_inspector_body(context);
+		}
+
+	private:
+		//	ツールバーとシーケンサー
+		void render_timeline_body(std::shared_ptr<editor_items::context>& context)
+		{
+			if (compact_toolbar)
+				render_compact_toolbar();
+			else
+				render_toolbar();
+
+			ImGui::Separator();
+
+			//	今回描画するシーケンサー領域を記録しておく（次フレームの予測判定に使う）
+			const ImVec2 sequencer_pos = ImGui::GetCursorScreenPos();
+			const float sequencer_width = ImGui::GetContentRegionAvail().x;
+
+			const int end_frame_before = end_frame;
+			if (ImGui::BeginNeoSequencer(sequencer_name.data(), &current_frame, &start_frame, &end_frame, { 0, 0 },
+				ImGuiNeoSequencerFlags_AllowLengthChanging | ImGuiNeoSequencerFlags_EnableSelection |
+				ImGuiNeoSequencerFlags_AlwaysShowHeader | ImGuiNeoSequencerFlags_Selection_EnableDragging |
+				ImGuiNeoSequencerFlags_Selection_EnableDeletion))
+			{
+				//	シーケンサーのメモリリーク対策で ID を控えておく
+				//	@remainder	選択中にモーションを差し替えるとリークする（時間のある時に修正）
+				ImGuiWindow* window = ImGui::GetCurrentWindow();
+				sequencer_id = window->IDStack[window->IDStack.size() - 1];
+
+				//	選択情報は毎フレーム ImGui 側の状態から作り直す
+				const bool had_selection = !selected.empty();
+				selected.clear();
+				render_event_timeline(context);
+				render_node_timelines(context);
+
+				// キーフレーム選択が開始したフレームだけラインの選択を外す
+				if (!selected.empty() && !had_selection)
+					clear_active_timeline();
+
+				const bool dragging = ImGui::NeoIsDraggingSelection();
+				selection_dragging = dragging;	//	次フレームの Begin で NoMove 判定に使う
+				ImGui::EndNeoSequencer();
+
+				//	タイムラインで変えた長さを end time へ反映
+				if (end_frame != end_frame_before)
+				{
+					animation_data->end_time = calculate_second(end_frame);
+					cached_end_time = animation_data->end_time;
+				}
+
+				//	キーフレームのドラッグ移動が終わったら時間順に並べ直す
+				if (keyframe_move_pending && !dragging)
+				{
+					sort_animation_data();
+					clear_selection();
+					keyframe_move_pending = false;
+				}
+
+				sequencer_rect_min = sequencer_pos;
+				sequencer_rect_max = ImVec2(sequencer_pos.x + sequencer_width, ImGui::GetCursorScreenPos().y);
+				sequencer_rect_valid = true;
+			}
+			else
+			{
+				sequencer_rect_valid = false;
+			}
 		}
 
 	private:
@@ -441,8 +475,25 @@ namespace
 		{
 			render_fps_controls();
 			ImGui::Separator();
+			render_key_buttons();
+		}
 
+		//	1行にまとめたツールバー（終端時間・サンプリングレート・キーの追加と削除）
+		void render_compact_toolbar()
+		{
+			ImGui::SetNextItemWidth(100.0f);
+			ImGui::DragFloat("end time", &animation_data->end_time, system_units::convert_fps_to_sec(1.0f), system_units::convert_fps_to_sec(1.0f), FLT_MAX);
+			ImGui::SameLine();
+			render_fps_controls();
+			ImGui::SameLine();
+			render_key_buttons();
+		}
+
+		//	キーの追加と削除
+		void render_key_buttons()
+		{
 			const bool node_selected =
+
 				active_timeline == timeline_category::node &&
 				selected_node_index < animation_data->nodes.size();
 			const bool can_add_event = active_timeline == timeline_category::event;
@@ -627,34 +678,37 @@ namespace
 		void render_inspector(std::shared_ptr<editor_items::context>& context)
 		{
 			if (editor_items::begin_window(context, "Animation Inspector"))
-			{
-				for (const auto& key : selected)
-				{
-					ImGui::PushID(context->get_item_id());
-					switch (key.category)
-					{
-						case timeline_category::event:
-						{
-							ImGui::Text("Event[%d]", key.track_index);
-							edit_event_inspector(animation_data->events[key.track_index]);
-							break;
-						}
-						case timeline_category::node:
-						{
-							auto& track = animation_data->nodes[key.track_index];
-							auto& label = track.node_name.get<utf8_cache>();
-							ImGui::Text("%s[%d]", label.data(), key.key_index);
-							edit_node_inspector(track.nodes[key.key_index]);
-							break;
-						}
-						case timeline_category::none:
-							break;
-					}
-					ImGui::PopID();
-					ImGui::Separator();
-				}
-			}
+				render_inspector_body(context);
 			ImGui::End();
+		}
+
+		void render_inspector_body(std::shared_ptr<editor_items::context>& context)
+		{
+			for (const auto& key : selected)
+			{
+				ImGui::PushID(context->get_item_id());
+				switch (key.category)
+				{
+					case timeline_category::event:
+					{
+						ImGui::Text("Event[%d]", key.track_index);
+						edit_event_inspector(animation_data->events[key.track_index]);
+						break;
+					}
+					case timeline_category::node:
+					{
+						auto& track = animation_data->nodes[key.track_index];
+						auto& label = track.node_name.get<utf8_cache>();
+						ImGui::Text("%s[%d]", label.data(), key.key_index);
+						edit_node_inspector(track.nodes[key.key_index]);
+						break;
+					}
+					case timeline_category::none:
+						break;
+				}
+				ImGui::PopID();
+				ImGui::Separator();
+			}
 		}
 
 	private:
@@ -668,6 +722,7 @@ namespace
 		bool sequencer_rect_valid = false;
 
 		float fps = 60.0f;
+		bool compact_toolbar = false;
 		float fps_input = fps;
 
 		int32_t current_frame = 0;
@@ -745,6 +800,22 @@ bool editor_items::edit_animation_data_timeline(std::shared_ptr<context>& contex
 	editor.render(context);
 
 	return true;
+}
+
+bool editor_items::edit_animation_data_timeline_embedded(std::shared_ptr<context>& context, animation::data& animation_data)
+{
+	//	タイムラインエディター
+	auto& editor = acquire_editor<animation_timeline_editor>(context->timeline_editor);
+	editor.set_data(&animation_data);
+	editor.render_embedded(context);
+
+	return true;
+}
+
+void editor_items::edit_animation_timeline_inspector(std::shared_ptr<context>& context)
+{
+	auto& editor = acquire_editor<animation_timeline_editor>(context->timeline_editor);
+	editor.render_inspector_embedded(context);
 }
 
 #endif	//	defined(USE_IMGUI)

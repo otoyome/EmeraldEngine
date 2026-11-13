@@ -24,15 +24,17 @@ protected:
 	void on_begin() override { initialize_core(); }
 	void on_end() override { uninitialize_core(); }
 	void pre_update(float elapsed_time) override { update_core(elapsed_time); }
-	void imgui_render() override { imgui_render_core(); }
+	bool has_panel(panel_regions region) const override;
+	void imgui_render_panel(panel_regions region) override;
 
 	bool initialize_core();
 	bool uninitialize_core();
 	void update_core(float elapsed_time);
-	void imgui_render_core();
 
 private:
 	void on_new();
+	void rebuild_edit_instance();
+	void imgui_render_menu_bar();
 	void generate_default_effect();
 	void open_effect(const std::string& file_path);
 
@@ -46,6 +48,7 @@ private:
 
 	effect_resource_ptr edit_resource;
 	effect_instance_ptr edit_instance;
+	size_t selected_node_index = 0;	//	詳細を出すノードの番号
 
 private:
 	//	エディター上で読み込み・登録しているcubic_sdf
@@ -62,6 +65,7 @@ private:
 	};
 	std::vector<edit_sdf_data> edit_sdfs;
 
+	void load_sdf_files();
 	void imgui_render_sdf();
 	void draw_sdf_debug_primitives();
 };

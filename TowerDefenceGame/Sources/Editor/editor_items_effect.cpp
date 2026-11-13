@@ -65,9 +65,42 @@ namespace
                 decal.node_index = old_to_new[decal.node_index];
         }
     }
+
+	//	ノードの名前変更と追加を、アニメーションのノード情報へ反映
+	void update_animation_nodes(effect_resource_ptr& effect_resource, const std::vector<std::pair<std::string, std::string>>& renamed_nodes)
+	{
+		auto& nodes = effect_resource->get_nodes_for_editor();
+		auto& animations = effect_resource->get_animations_for_editor();
+		if (animations.empty())
+			return;
+
+		//	アニメーションノードの編集
+		auto& animation_nodes = animations.back().nodes;
+
+		for (auto& renamed_node : renamed_nodes)
+		{
+			auto it = std::find_if(animation_nodes.begin(),
+					 animation_nodes.end(),
+					 [&](animation::node_data& n) {return n.node_name == renamed_node.first;});
+			if (it != animation_nodes.end())
+				it->node_name = renamed_node.second;
+		}
+
+		for (auto& node : nodes)
+		{
+			auto it = std::find_if(animation_nodes.begin(),
+						 animation_nodes.end(),
+						 [&](animation::node_data& n) {return n.node_name == node.name;});
+			if (it == animation_nodes.end())
+			{
+				auto& animation_node = animation_nodes.emplace_back();
+				animation_node.node_name = node.name;
+			}
+		}
+	}
 }
 
-bool editor_items::edit_effect_noeds(std::shared_ptr<context>& context, engine_context& engine, effect_instance_ptr& effect_instance)
+bool editor_items::edit_effect_node_tree(std::shared_ptr<context>& context, engine_context& engine, effect_instance_ptr& effect_instance, size_t& selected_node_index)
 {
 	bool edit_flag = false;
 
@@ -76,324 +109,295 @@ bool editor_items::edit_effect_noeds(std::shared_ptr<context>& context, engine_c
 	auto& models = effect_resource->get_models_for_editor();
 	auto& particles = effect_resource->get_particles_for_editor();
 	auto& decals = effect_resource->get_decals_for_editor();
-	auto& animations = effect_resource->get_animations_for_editor();
 
-	//	ノード編集
+	size_t add_node_index = effect_resource::invalid_id;
+	size_t delete_node_index = effect_resource::invalid_id;
+
+	//	選んだノードへの操作
+	const bool has_selection = selected_node_index < nodes.size();
+	ImGui::BeginDisabled(!has_selection);
+	//	ノード追加
+	if (ImGui::Button("Add Child"))
+		add_node_index = selected_node_index;
+	ImGui::SameLine();
+	if (ImGui::Button("Delete"))
+		delete_node_index = selected_node_index;
+	ImGui::EndDisabled();
+	ImGui::Separator();
+
+	//	持っている物を名前の後ろに付ける
+	auto make_label = [&](size_t node_index)
 	{
-		size_t add_node_index = effect_resource::invalid_id;
-		size_t delete_node_index = effect_resource::invalid_id;
-		std::vector<std::pair<std::string, std::string>> renamed_nodes;
-
-		//	高速化のために番号対応
-		constexpr size_t none = static_cast<size_t>(-1);
-		std::vector<size_t> model_index_by_node(nodes.size(), none);
-		std::vector<size_t> particle_index_by_node(nodes.size(), none);
-		std::vector<size_t> decal_index_by_node(nodes.size(), none);
-		for (UINT index = 0; index < models.size(); ++index)
+		std::string label = nodes[node_index].name.get<utf8_cache>();
+		auto has = [node_index](const auto& list)
 		{
-			auto n = models[index].node_index;
-			if (n < nodes.size() && model_index_by_node[n] == none)
-				model_index_by_node[n] = index;
-		}
-		for (UINT index = 0; index < particles.size(); ++index)
-		{
-			auto n = particles[index].node_index;
-			if (n < nodes.size() && particle_index_by_node[n] == none)
-				particle_index_by_node[n] = index;
-		}
-		for (UINT index = 0; index < decals.size(); ++index)
-		{
-			auto n = decals[index].node_index;
-			if (n < nodes.size() && decal_index_by_node[n] == none)
-				decal_index_by_node[n] = index;
-		}
+			return std::any_of(list.begin(), list.end(), [node_index](const auto& data) { return data.node_index == node_index; });
+		};
+		if (has(models))
+			label += "  [model]";
+		if (has(particles))
+			label += "  [particle]";
+		if (has(decals))
+			label += "  [decal]";
+		return label;
+	};
 
-		std::function<bool(effect_resource::node&, size_t)> node_func = [&](effect_resource::node& node, size_t node_index)
+	std::function<void(size_t)> node_func = [&](size_t node_index)
+	{
+		bool has_children = false;
+		for (auto& node : nodes)
 		{
-			ImGui::PushID(context->get_item_id());
-			bool edit_flag = false;
-
-			//	ノード
-			auto& flag_data = context->animation_ui_flag_maps[node.name];
-
-			if (ImGui::Button((flag_data.node ? context->down_allow : context->right_allow).get<utf8_cache>().c_str()))
-				flag_data.node = !flag_data.node;
-			ImGui::SameLine();
-			std::string old_node_name = node.name.get<utf8_cache>();
-			std::string node_name = old_node_name;
-			ImGui::InputText("name", node_name);
-			if (ImGui::IsItemDeactivatedAfterEdit() && node_name != old_node_name)
+			if (node.parent_index == node_index)
 			{
-				node.name = system_utility::convert_shift_jis(node_name);
-				renamed_nodes.emplace_back(old_node_name, node.name);
-				edit_flag = true;
+				has_children = true;
+				break;
 			}
-			ImGui::SameLine();
+		}
+
+		ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_SpanAvailWidth;
+		if (!has_children)
+			flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
+		if (selected_node_index == node_index)
+			flags |= ImGuiTreeNodeFlags_Selected;
+
+		const std::string label = make_label(node_index);
+		const bool open = ImGui::TreeNodeEx(reinterpret_cast<void*>(static_cast<intptr_t>(node_index)), flags, "%s", label.c_str());
+		if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
+			selected_node_index = node_index;
+
+		//	子ノードを処理していく
+		if (open && has_children)
+		{
+			for (size_t index = 0; index < nodes.size(); ++index)
+			{
+				if (nodes[index].parent_index == node_index)
+					node_func(index);
+			}
+			ImGui::TreePop();
+		}
+	};
+
+	//	親から順に処理していく
+	ImGui::PushID(context->get_item_id());
+	for (size_t index = 0; index < nodes.size(); ++index)
+	{
+		if (nodes[index].parent_index == effect_resource::invalid_id)
+			node_func(index);
+	}
+	ImGui::PopID();
+
+	if (add_node_index != effect_resource::invalid_id)
+	{
+		auto& node = nodes.emplace_back();
+		node.name = std::string("default node") + std::to_string(add_node_index + rand());
+		node.parent_index = add_node_index;
+		const cache_string added_name = node.name;
+		sort_nodes(effect_resource);
+
+		//	追加したノードを選ぶ
+		auto it = std::find_if(nodes.begin(), nodes.end(), [&](const effect_resource::node& n) { return n.name == added_name; });
+		selected_node_index = it != nodes.end() ? static_cast<size_t>(std::distance(nodes.begin(), it)) : effect_resource::invalid_id;
+		edit_flag = true;
+	}
+
+	if (delete_node_index != effect_resource::invalid_id)
+	{
+		nodes.erase(nodes.begin() + delete_node_index);
+		auto it_model = models.begin();
+		while (it_model != models.end())
+		{
+			if (it_model->node_index == delete_node_index)
+			{
+				models.erase(it_model);
+				break;
+			}
+			++it_model;
+		}
+		auto it_particle = particles.begin();
+		while (it_particle != particles.end())
+		{
+			if (it_particle->node_index == delete_node_index)
+			{
+				particles.erase(it_particle);
+				break;
+			}
+			++it_particle;
+		}
+		auto it_decal = decals.begin();
+		while (it_decal != decals.end())
+		{
+			if (it_decal->node_index == delete_node_index)
+			{
+				decals.erase(it_decal);
+				break;
+			}
+			++it_decal;
+		}
+		sort_nodes(effect_resource);
+		selected_node_index = effect_resource::invalid_id;
+		edit_flag = true;
+	}
+
+	if (edit_flag)
+		update_animation_nodes(effect_resource, {});
+
+	return edit_flag;
+}
+
+bool editor_items::edit_effect_node_detail(std::shared_ptr<context>& context, engine_context& engine, effect_instance_ptr& effect_instance, size_t selected_node_index)
+{
+	bool edit_flag = false;
+
+	auto effect_resource = effect_instance->get_resource_for_editor();
+	auto& nodes = effect_resource->get_nodes_for_editor();
+	auto& models = effect_resource->get_models_for_editor();
+	auto& particles = effect_resource->get_particles_for_editor();
+	auto& decals = effect_resource->get_decals_for_editor();
+	if (selected_node_index >= nodes.size())
+		return false;
+
+	const size_t node_index = selected_node_index;
+	auto& node = nodes[node_index];
+	std::vector<std::pair<std::string, std::string>> renamed_nodes;
+
+	//	表示中のインスタンスにまだ無いノードは図形を出さない
+	const bool has_instance_node = node_index < effect_instance->get_nodes().size();
+
+	ImGui::PushID(static_cast<int>(node_index));
+
+	//	ノード
+	std::string old_node_name = node.name.get<utf8_cache>();
+	std::string node_name = old_node_name;
+	ImGui::InputText("name", node_name);
+	if (ImGui::IsItemDeactivatedAfterEdit() && node_name != old_node_name)
+	{
+		node.name = system_utility::convert_shift_jis(node_name);
+		renamed_nodes.emplace_back(old_node_name, node.name);
+		edit_flag = true;
+	}
+
+	//	ノード処理
+	if (ImGui::DragFloat3("scale", &node.scale.x, 0.01f, 0.0f, 100.0f))
+		edit_flag = true;
+	if (ImGui::DragFloat3("rotation", &node.rotation.x, 0.01f))
+		edit_flag = true;
+	if (ImGui::DragFloat3("position", &node.position.x, 0.01f))
+		edit_flag = true;
+
+	//	図形表示
+	if (has_instance_node)
+	{
+		math::float4 draw_color = {1, 1, 1, 1};
+		math::vector3f s, t;
+		math::quaternionf r;
+		math::matrixf(effect_instance->get_nodes()[node_index].global_transform).decompose(s, r, t);
+		QUEUE_DEBUG_PRIMITIVE_SPHERE(engine, t.to_float3(), 1.0f, draw_color, true);
+	}
+
+	//	ノードに付いている物の番号
+	auto find_index = [node_index](const auto& list)
+	{
+		for (size_t index = 0; index < list.size(); ++index)
+		{
+			if (list[index].node_index == node_index)
+				return index;
+		}
+		return effect_resource::invalid_id;
+	};
+
+	//	モデル
+	if (ImGui::CollapsingHeader("model", ImGuiTreeNodeFlags_DefaultOpen))
+	{
+		const size_t data_index = find_index(models);
+		ImGui::PushID("model");
+		if (data_index != effect_resource::invalid_id)
+		{
 			if (ImGui::Button("Delete"))
 			{
-				delete_node_index = node_index;
+				models.erase(models.begin() + data_index);
 				edit_flag = true;
 			}
-
-			//	ノード処理
-			if (flag_data.node)
+			else if (edit_effect_model(context, effect_resource, models[data_index]))
 			{
-				ImGui::Indent();
-				if (ImGui::DragFloat3("scale", &node.scale.x, 0.01f, 0.0f, 100.0f))
-					edit_flag = true;
-				if (ImGui::DragFloat3("rotation", &node.rotation.x, 0.01f))
-					edit_flag = true;
-				if (ImGui::DragFloat3("position", &node.position.x, 0.01f))
+				edit_flag = true;
+			}
+		}
+		else if (ImGui::Button("Add"))
+		{
+			auto& model = models.emplace_back();
+			model.node_index = node_index;
+			edit_flag = true;
+		}
+		ImGui::PopID();
+	}
+
+	//	パーティクル
+	if (ImGui::CollapsingHeader("particle", ImGuiTreeNodeFlags_DefaultOpen))
+	{
+		const size_t data_index = find_index(particles);
+		ImGui::PushID("particle");
+		if (data_index != effect_resource::invalid_id)
+		{
+			if (ImGui::Button("Delete"))
+			{
+				particles.erase(particles.begin() + data_index);
+				edit_flag = true;
+			}
+			else if (edit_effect_particle(context, effect_resource, particles[data_index]))
+			{
+				edit_flag = true;
+			}
+		}
+		else if (ImGui::Button("Add"))
+		{
+			auto& particle = particles.emplace_back();
+			particle.node_index = node_index;
+			edit_flag = true;
+		}
+		ImGui::PopID();
+	}
+
+	//	デカール
+	if (ImGui::CollapsingHeader("decal", ImGuiTreeNodeFlags_DefaultOpen))
+	{
+		const size_t data_index = find_index(decals);
+		ImGui::PushID("decal");
+		if (data_index != effect_resource::invalid_id)
+		{
+			if (ImGui::Button("Delete"))
+			{
+				decals.erase(decals.begin() + data_index);
+				edit_flag = true;
+			}
+			else
+			{
+				if (edit_effect_decal(context, effect_resource, decals[data_index]))
 					edit_flag = true;
 
 				//	図形表示
+				if (has_instance_node)
 				{
 					math::float4 draw_color = {1, 1, 1, 1};
 					math::vector3f s, t;
 					math::quaternionf r;
 					math::matrixf(effect_instance->get_nodes()[node_index].global_transform).decompose(s, r, t);
-					QUEUE_DEBUG_PRIMITIVE_SPHERE(engine, t.to_float3(), 1.0f, draw_color, true);
+					QUEUE_DEBUG_PRIMITIVE_BOX(engine, t.to_float3(), r.to_float4(), s.to_float3(), draw_color, true);
 				}
-
-				//	モデル
-				{
-					size_t data_index = model_index_by_node[node_index];
-
-					ImGui::PushID(context->get_item_id());
-					if (ImGui::Button((flag_data.model ? context->down_allow : context->right_allow).get<utf8_cache>().c_str()))
-						flag_data.model = !flag_data.model;
-					ImGui::SameLine();
-					ImGui::Text("model");
-					ImGui::SameLine();
-					if (data_index != none)
-					{
-						if (ImGui::Button("Delete"))
-						{
-							models.erase(models.begin() + data_index);
-							edit_flag = true;
-						}
-						else if (flag_data.model)
-						{
-							ImGui::Indent();
-							if (edit_effect_model(context, effect_resource, models[data_index]))
-								edit_flag = true;
-							ImGui::Unindent();
-						}
-					}
-					else
-					{
-						if (ImGui::Button("Add"))
-						{
-							auto& model = models.emplace_back();
-							model.node_index = node_index;
-							edit_flag = true;
-						}
-					}
-					ImGui::PopID();
-				}
-
-				//	パーティクル
-				{
-					size_t data_index = particle_index_by_node[node_index];
-
-					ImGui::PushID(context->get_item_id());
-					if (ImGui::Button((flag_data.particle ? context->down_allow : context->right_allow).get<utf8_cache>().c_str()))
-						flag_data.particle = !flag_data.particle;
-					ImGui::SameLine();
-					ImGui::Text("particle");
-					ImGui::SameLine();
-					if (data_index != none)
-					{
-						if (ImGui::Button("Delete"))
-						{
-							particles.erase(particles.begin() + data_index);
-							edit_flag = true;
-						}
-						else if (flag_data.particle)
-						{
-							ImGui::Indent();
-							if (edit_effect_particle(context, effect_resource, particles[data_index]))
-								edit_flag = true;
-							ImGui::Unindent();
-						}
-					}
-					else
-					{
-						if (ImGui::Button("Add"))
-						{
-							auto& particle = particles.emplace_back();
-							particle.node_index = node_index;
-							edit_flag = true;
-						}
-					}
-					ImGui::PopID();
-				}
-
-				//	デカール
-				{
-					size_t data_index = decal_index_by_node[node_index];
-
-					ImGui::PushID(context->get_item_id());
-					if (ImGui::Button((flag_data.decal ? context->down_allow : context->right_allow).get<utf8_cache>().c_str()))
-						flag_data.decal = !flag_data.decal;
-					ImGui::SameLine();
-					ImGui::Text("decal");
-					ImGui::SameLine();
-					if (data_index != none)
-					{
-						if (ImGui::Button("Delete"))
-						{
-							decals.erase(decals.begin() + data_index);
-							edit_flag = true;
-						}
-						else if (flag_data.decal)
-						{
-							ImGui::Indent();
-							if (edit_effect_decal(context, effect_resource, decals[data_index]))
-								edit_flag = true;
-
-							//	図形表示
-							{
-								math::float4 draw_color = {1, 1, 1, 1};
-								math::vector3f s, t;
-								math::quaternionf r;
-								math::matrixf(effect_instance->get_nodes()[node_index].global_transform).decompose(s, r, t);
-								QUEUE_DEBUG_PRIMITIVE_BOX(engine, t.to_float3(), r.to_float4(), s.to_float3(), draw_color, true);
-							}
-							ImGui::Unindent();
-						}
-					}
-					else
-					{
-						if (ImGui::Button("Add"))
-						{
-							auto& decal = decals.emplace_back();
-							decal.node_index = node_index;
-							edit_flag = true;
-						}
-					}
-					ImGui::PopID();
-				}
-
-				//	ノード追加
-				if (ImGui::Button("Add Child"))
-				{
-					add_node_index = node_index;
-					edit_flag = true;
-				}
-
-				//	子ノードを処理していく
-				for (size_t index = 0; index < nodes.size(); ++index)
-				{
-					auto& child_node = nodes[index];
-					if (child_node.parent_index != node_index)
-						continue;
-
-					if (node_func(child_node, index))
-						edit_flag = true;
-				}
-				ImGui::Unindent();
 			}
-
-			ImGui::PopID();
-			return edit_flag;
-		};
-
-		//	親から順に処理していく
-		ImGui::PushID(context->get_item_id());
-		for (size_t index = 0; index < nodes.size(); ++index)
+		}
+		else if (ImGui::Button("Add"))
 		{
-			auto& child_node = nodes[index];
-			if (child_node.parent_index != effect_resource::invalid_id)
-				continue;
-
-			if (node_func(child_node, index))
-				edit_flag = true;
+			auto& decal = decals.emplace_back();
+			decal.node_index = node_index;
+			edit_flag = true;
 		}
 		ImGui::PopID();
-
-		if (add_node_index != effect_resource::invalid_id)
-		{
-			auto& node = nodes.emplace_back();
-			node.name = std::string("default node") + std::to_string(add_node_index + rand());
-			node.parent_index = add_node_index;
-			sort_nodes(effect_resource);
-		}
-
-		if (delete_node_index != effect_resource::invalid_id)
-		{
-			nodes.erase(nodes.begin() + delete_node_index);
-			auto it_model = models.begin();
-			while (it_model != models.end())
-			{
-				if (it_model->node_index == delete_node_index)
-				{
-					models.erase(it_model);
-					break;
-				}
-				++it_model;
-			}
-			auto it_particle = particles.begin();
-			while (it_particle != particles.end())
-			{
-				if (it_particle->node_index == delete_node_index)
-				{
-					particles.erase(it_particle);
-					break;
-				}
-				++it_particle;
-			}
-			auto it_decal = decals.begin();
-			while (it_decal != decals.end())
-			{
-				if (it_decal->node_index == delete_node_index)
-				{
-					decals.erase(it_decal);
-					break;
-				}
-				++it_decal;
-			}
-			sort_nodes(effect_resource);
-		}
-
-		if (edit_flag)
-		{
-			//	アニメーションノードの編集
-			auto& animation_nodes = animations.back().nodes;
-
-			for (auto& renamed_node : renamed_nodes)
-			{
-				auto it = std::find_if(animation_nodes.begin(),
-						 animation_nodes.end(),
-						 [&](animation::node_data& n) {return n.node_name == renamed_node.first;});
-				if (it != animation_nodes.end())
-				{
-					//	古いキーを破棄
-					auto it_flags = context->animation_ui_flag_maps.find(it->node_name);
-					if (it_flags != context->animation_ui_flag_maps.end())
-					{
-						auto flag_data = it_flags->second;
-						context->animation_ui_flag_maps.erase(it_flags);
-						context->animation_ui_flag_maps[renamed_node.second] = flag_data;
-					}
-
-					it->node_name = renamed_node.second;
-				}
-			}
-
-			for (auto& node : nodes)
-			{
-				auto it = std::find_if(animation_nodes.begin(),
-							 animation_nodes.end(),
-							 [&](animation::node_data& n) {return n.node_name == node.name;});
-				if (it == animation_nodes.end())
-				{
-					auto& animation_node = animation_nodes.emplace_back();
-					animation_node.node_name = node.name;
-				}
-			}
-		}
 	}
+
+	ImGui::PopID();
+
+	if (edit_flag)
+		update_animation_nodes(effect_resource, renamed_nodes);
 
 	return edit_flag;
 }
@@ -406,52 +410,43 @@ bool editor_items::edit_effect_animation(std::shared_ptr<context>& context, effe
 	auto& animations = effect_resource->get_animations_for_editor();
 
 	//	アニメーション編集
-	if (editor_items::begin_window(context, "Effect Animation Window"))
+	//	アニメーションは基本的に一つしかない物とする
+	auto& animation_data = animations.back();
+
+	//	アニメーションプレイヤー
 	{
-		//	アニメーションは基本的に一つしかない物とする
-		auto& animation_data = animations.back();
+		float animation_end_time = animation_data.end_time;
+		float animation_time = effect_instance->get_animation_time();
 
-		//	アニメーションプレイヤー
+		//	開始時の状態へ戻す
+		if (animation_time <= 1e-6f)
 		{
-			float animation_end_time = animation_data.end_time;
-			float animation_time = effect_instance->get_animation_time();
-
-			//	開始時の状態へ戻す
-			if (animation_time <= 1e-6f)
-			{
-				effect_instance->reset_to_initial_state();
-			}
-
-			//	操作系
-			auto& loop_flag = context->flag_maps["__Effect_Animation_Player_Loop_Flag__"];
-			auto& pause_flag = context->flag_maps["__Effect_Animation_Player_Pause_Flag__"];
-			ImGui::Checkbox("loop", &loop_flag);
-			ImGui::SameLine();
-			if (ImGui::Button(pause_flag ? "play" : "stop"))
-			{
-				pause_flag = !pause_flag;
-			}
-
-			ImGui::SliderFloat("animation time", &animation_time, 0.0f, animation_end_time + 0.001f, "%.6f");
-			if (animation_time >= animation_end_time)
-				animation_time = loop_flag ? 0.0f : animation_end_time;
-
-			effect_instance->set_animation_time(animation_time);
-			effect_instance->set_animation_speed(pause_flag ? 0.0f : 1.0f);
-			ImGui::Separator();
+			effect_instance->reset_to_initial_state();
 		}
 
-		//	アニメーション情報編集
-		context->flag_maps[context::EditAnimationHideName] = true;
-		context->flag_maps[context::EditAnimationHideRootMotion] = true;
-		context->flag_maps[context::EditAnimationHideIK] = true;
-		context->flag_maps[context::EditAnimationHideCurve] = true;
-		editor_items::edit_animation_data(context, animation_data);
+		//	操作系
+		auto& loop_flag = context->flag_maps["__Effect_Animation_Player_Loop_Flag__"];
+		auto& pause_flag = context->flag_maps["__Effect_Animation_Player_Pause_Flag__"];
+		ImGui::Checkbox("loop", &loop_flag);
+		ImGui::SameLine();
+		if (ImGui::Button(pause_flag ? "play" : "stop"))
+		{
+			pause_flag = !pause_flag;
+		}
 
-		//	アニメーションタイムライン情報編集
-		editor_items::edit_animation_data_timeline(context, animation_data);
+		//	再生ボタンの後ろに残りの幅いっぱいで置く
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(-(ImGui::CalcTextSize("animation time").x + ImGui::GetStyle().ItemInnerSpacing.x));
+		ImGui::SliderFloat("animation time", &animation_time, 0.0f, animation_end_time + 0.001f, "%.6f");
+		if (animation_time >= animation_end_time)
+			animation_time = loop_flag ? 0.0f : animation_end_time;
+
+		effect_instance->set_animation_time(animation_time);
+		effect_instance->set_animation_speed(pause_flag ? 0.0f : 1.0f);
 	}
-	ImGui::End();
+
+	//	アニメーションタイムライン情報編集
+	editor_items::edit_animation_data_timeline_embedded(context, animation_data);
 	return edit_flag;
 }
 

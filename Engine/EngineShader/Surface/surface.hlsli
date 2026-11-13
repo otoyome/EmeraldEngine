@@ -27,6 +27,23 @@ struct SurfaceData
     float4 ilm_color; //  トゥーン用：イルミネーション色
 };
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+//  @tool 自己発光の単位(ライティングサンプルと同じ扱い)
+//  @tool マテリアルの自己発光色 1.0 を emissive_reference_nits の輝度とし、描画で使う放射量へ変換してシーンに足す
+
+//  @tool 自己発光色 1.0 に対応する輝度[nit]。glTF は自己発光に物理単位を定めていないので SDR の基準白相当にする
+//  @tool シーンの輝度なので、ディスプレイの基準白(sdr_reference_white_nits)とは別の値として扱い、ディスプレイの設定で変えない
+static const float emissive_reference_nits = 100.0f;
+
+//  @tool 最大視感効率[lm/W](light_utility::luminous_efficacy と同じ値)
+static const float emissive_luminous_efficacy = 683.0f;
+
+//  @tool マテリアルの自己発光色を放射量へ変換する
+float3 convert_emissive_to_radiance(float3 emissive_color)
+{
+    return emissive_color * (emissive_reference_nits / emissive_luminous_efficacy);
+}
+
 GBufferData convert_g_buffer_data(in SurfaceData surface_data)
 {
     GBufferData g_buffer_data = (GBufferData)0;

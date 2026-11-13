@@ -203,47 +203,43 @@ void edit_model_system::imgui_render_animation()
 
 void edit_model_system::imgui_render_ik()
 {
-	if (ImGui::Begin(get_context().make_window_name("Edit IK Window").c_str()))
+	//	IKリソース生成ボタン
+	if (!edit_model->get_ik_resource())
 	{
-		//	IKリソース生成ボタン
-		if (!edit_model->get_ik_resource())
+		if (ImGui::Button("Generate"))
 		{
-			if (ImGui::Button("Generate"))
-			{
-				auto ik_resource = std::make_shared<::ik_resource>();
-				auto file_path = edit_model->get_model_instance()->get_resource()->get_file_path();
-				std::filesystem::path path = file_path;
-				path.replace_extension(ik_resource::extension);
-				resource_manager::instance()->save(ik_resource, path.string());
-				edit_model->set_ik_resource(ik_resource);
-			}
-		}
-		else
-		{
-			if (ImGui::Button("Save"))
-			{
-				resource_manager::instance()->save(edit_model->get_ik_resource());
-			}
-			ImGui::SameLine();
-			if (ImGui::Button("Load"))
-			{
-				auto file_path = edit_model->get_model_instance()->get_resource()->get_file_path();
-				std::filesystem::path path = file_path;
-				path.replace_extension(ik_resource::extension);
-				auto operation = resource_manager::instance()->load<ik_resource>(path.string(), true);
-				if (operation->is_succeeded())
-				{
-					edit_model->set_ik_resource(operation->get_resource());
-				}
-			}
-
-			//	IK情報ウィンドウ
-			auto model_instance = edit_model->get_model_instance();
-			auto ik_resource = edit_model->get_ik_resource();
-			editor_items::edit_ik(editor_context, get_context(), model_instance, ik_resource);
+			auto ik_resource = std::make_shared<::ik_resource>();
+			auto file_path = edit_model->get_model_instance()->get_resource()->get_file_path();
+			std::filesystem::path path = file_path;
+			path.replace_extension(ik_resource::extension);
+			resource_manager::instance()->save(ik_resource, path.string());
+			edit_model->set_ik_resource(ik_resource);
 		}
 	}
-	ImGui::End();
+	else
+	{
+		if (ImGui::Button("Save"))
+		{
+			resource_manager::instance()->save(edit_model->get_ik_resource());
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Load"))
+		{
+			auto file_path = edit_model->get_model_instance()->get_resource()->get_file_path();
+			std::filesystem::path path = file_path;
+			path.replace_extension(ik_resource::extension);
+			auto operation = resource_manager::instance()->load<ik_resource>(path.string(), true);
+			if (operation->is_succeeded())
+			{
+				edit_model->set_ik_resource(operation->get_resource());
+			}
+		}
+
+		//	IK情報ウィンドウ
+		auto model_instance = edit_model->get_model_instance();
+		auto ik_resource = edit_model->get_ik_resource();
+		editor_items::edit_ik(editor_context, get_context(), model_instance, ik_resource);
+	}
 }
 
 void edit_model_system::imgui_retarget_window()

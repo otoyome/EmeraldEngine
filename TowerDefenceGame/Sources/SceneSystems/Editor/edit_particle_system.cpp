@@ -108,6 +108,9 @@ edit_particle_system::~edit_particle_system()
 
 bool edit_particle_system::initialize_core()
 {
+	//	平行光源の向き
+	math::rotatorf light_rotation;
+
 	//	メインカメラ生成
 	{
 		main_camera = std::make_shared<camera_object>("メインカメラ");
@@ -126,6 +129,7 @@ bool edit_particle_system::initialize_core()
 			auto light = std::make_shared<directional_light_object>("平行光源");
 			light->set_flag(light::flags::use_shadow, false);
 			register_object(light);
+			light_rotation = math::rotatorf(light->get_world().get_euler());
 		}
 
 		//	間接光生成
@@ -185,9 +189,21 @@ bool edit_particle_system::initialize_core()
 
 	//	エディターカメラ生成
 	{
+		//	原点を見て、平行光源の向きの反対へ約10m離れた位置から映す
+		const math::float3 light_front = light_rotation.front().to_float3();
+		const double distance = system_units::convert_m_to_unit(10.0f);
+		const math::vector3d camera_position(-light_front.x * distance, -light_front.y * distance, -light_front.z * distance);
+		const math::rotatorf camera_rotation = math::rotatorf::from_direction(math::vector3f(light_front.x, light_front.y, light_front.z));
+
+		//	エディターカメラは始めにメインカメラの姿勢へ合わせるので、メインカメラも同じ姿勢にしておく
+		main_camera->set_world_translation(camera_position);
+		main_camera->set_world_euler(math::rotatord(camera_rotation));
+		main_camera->get_camera()->get_parameters().position = camera_position;
+		main_camera->get_camera()->get_parameters().rotation = camera_rotation;
+
 		editor_camera = std::make_shared<editor_camera_object>("エディターカメラ",
-			system_units::convert_m_to_unit(math::vector3d(0.0, 1.0, 8.0)),
-			math::rotatorf(0, math::constants<float>::pi, 0),
+			camera_position,
+			camera_rotation,
 			0.25f);
 		register_object(editor_camera);
 	}
@@ -246,62 +262,117 @@ void edit_particle_system::open_effect(const std::string& file_path)
 	get_context().get_effects().register_instance(edit_instance);
 }
 
-void edit_particle_system::imgui_render_core()
+bool edit_particle_system::has_panel(panel_regions region) const
+{
+	switch (region)
+	{
+		case panel_regions::menu_bar:
+		case panel_regions::left:
+		{
+			return true;
+		}
+		case panel_regions::right:
+		case panel_regions::bottom:
+		{
+			return edit_resource != nullptr;
+		}
+	}
+	return false;
+}
+
+void edit_particle_system::imgui_render_panel(panel_regions region)
+{
+	switch (region)
+	{
+		case panel_regions::menu_bar:
+		{
+			imgui_render_menu_bar();
+			break;
+		}
+		case panel_regions::left:
+		{
+			//	一覧をタブで切り替える
+			if (ImGui::BeginTabBar("##particle_left_tabs"))
+			{
+				//	ノードのツリー。詳細は右に出す
+				if (ImGui::BeginTabItem("Node"))
+				{
+					if (edit_resource && editor_items::edit_effect_node_tree(editor_context, get_context(), edit_instance, selected_node_index))
+						rebuild_edit_instance();
+					ImGui::EndTabItem();
+				}
+				//	cubic_sdf読込み関係
+				if (ImGui::BeginTabItem("SDF"))
+				{
+					imgui_render_sdf();
+					ImGui::EndTabItem();
+				}
+				ImGui::EndTabBar();
+			}
+			break;
+		}
+		case panel_regions::right:
+		{
+			if (editor_items::edit_effect_node_detail(editor_context, get_context(), edit_instance, selected_node_index))
+				rebuild_edit_instance();
+			break;
+		}
+		case panel_regions::bottom:
+		{
+			//	エフェクト編集
+			if (edit_resource && ImGui::BeginTable("##particle_bottom", 2, ImGuiTableFlags_Resizable | ImGuiTableFlags_BordersInnerV))
+			{
+				ImGui::TableSetupColumn("##timeline", ImGuiTableColumnFlags_WidthStretch);
+				ImGui::TableSetupColumn("##inspector", ImGuiTableColumnFlags_WidthFixed, 320.0f);
+				ImGui::TableNextRow();
+
+				//	ドラッグで選ぶ時に窓が動かないようにする
+				ImGui::TableSetColumnIndex(0);
+				if (ImGui::BeginChild("##timeline", ImVec2(0.0f, 0.0f), ImGuiChildFlags_None, ImGuiWindowFlags_NoMove))
+				{
+					if (editor_items::edit_effect_animation(editor_context, edit_instance))
+						rebuild_edit_instance();
+				}
+				ImGui::EndChild();
+
+				ImGui::TableSetColumnIndex(1);
+				if (ImGui::BeginChild("##inspector", ImVec2(0.0f, 0.0f), ImGuiChildFlags_None, ImGuiWindowFlags_NoMove))
+					editor_items::edit_animation_timeline_inspector(editor_context);
+				ImGui::EndChild();
+
+				ImGui::EndTable();
+			}
+			break;
+		}
+	}
+}
+
+void edit_particle_system::imgui_render_menu_bar()
 {
 	//	パーティクル読込み関係
-	if (ImGui::Begin(get_context().make_window_name("Effect").c_str()))
+	if (ImGui::BeginMenu("File"))
 	{
 		//	保存
-		if (edit_instance)
-		{
-			ImGui::SameLine();
-			if (ImGui::Button("Save"))
-			{
-				std::string file_path = std::string(edit_resource->get_file_path());
-				const std::wstring default_extension = L"." + system_utility::convert_shift_jis_to_utf16(effect_resource::extension);
-				if (editor_items::save_file_dialog(EffectFileDialogFilter, file_path, default_extension.c_str()))
-				{
-					resource_manager::instance()->save_uncached(edit_resource, file_path);
-				}
-			}
-		}
-
-		//	新規作成
-		if (edit_instance)
-		{
-			ImGui::SameLine();
-			if (ImGui::Button("New"))
-			{
-				on_new();
-			}
-		}
+		if (ImGui::MenuItem("Save", nullptr, false, edit_resource && !edit_resource->get_file_path().empty()))
+			resource_manager::instance()->save_uncached(edit_resource, edit_resource->get_file_path());
+		ImGui::EndMenu();
 	}
-	ImGui::End();
 
 	//	cubic_sdf読込み関係
-	if (ImGui::Begin(get_context().make_window_name("SDF").c_str()))
+	if (ImGui::BeginMenu("SDF"))
 	{
-		imgui_render_sdf();
+		if (ImGui::MenuItem("Load SDF"))
+			load_sdf_files();
+		ImGui::EndMenu();
 	}
-	ImGui::End();
+}
 
-	//	エフェクト編集
-	if (edit_resource)
-	{
-		//	エフェクト編集
-		if (ImGui::Begin(get_context().make_window_name("Edit Effect").c_str()))
-		{
-			bool edit = editor_items::edit_effect_noeds(editor_context, get_context(), edit_instance);
-			if (editor_items::edit_effect_animation(editor_context, edit_instance) || edit)
-			{
-				if (edit_instance)
-					get_context().get_effects().unregister_instance(edit_instance);
-				edit_instance = std::make_shared<effect_instance>(edit_resource);
-				get_context().get_effects().register_instance(edit_instance);
-			}
-		}
-		ImGui::End();
-	}
+void edit_particle_system::rebuild_edit_instance()
+{
+	if (edit_instance)
+		get_context().get_effects().unregister_instance(edit_instance);
+	edit_instance = std::make_shared<effect_instance>(edit_resource);
+	get_context().get_effects().register_instance(edit_instance);
 }
 
 void edit_particle_system::on_new()
@@ -544,75 +615,78 @@ void edit_particle_system::generate_default_effect()
 	}
 }
 
+void edit_particle_system::load_sdf_files()
+{
+	std::vector<std::string> file_paths;
+	if (!editor_items::open_file_dialog_multi(SdfFileDialogFilter, file_paths))
+		return;
+
+	for (auto& file_path : file_paths)
+	{
+		collision::cubic_sdf sdf;
+		if (!sdf.deserialize(file_path))
+			continue;
+
+		uint32_t sdf_id = get_context().get_effects().add_cubic_sdf(sdf);
+		if (sdf_id != 0xFFFFFFFF)
+		{
+			edit_sdf_data data;
+			data.file_path = file_path;
+			data.sdf_id = sdf_id;
+			data.bounds_min = sdf.bounds_min;
+			data.bounds_max = sdf.bounds_max;
+			data.resolution = sdf.resolution;
+
+			//	ボクセル可視化用に表面付近のボクセルだけ抽出
+			{
+				constexpr size_t max_points = 4000;
+				const float voxel_size = sdf.voxel_size();
+				const float threshold = voxel_size * 0.75f;
+
+				std::vector<math::float4> candidates;
+				for (uint32_t z = 0; z < sdf.resolution; ++z)
+				{
+					for (uint32_t y = 0; y < sdf.resolution; ++y)
+					{
+						for (uint32_t x = 0; x < sdf.resolution; ++x)
+						{
+							float distance = sdf.voxels[sdf.index_of(x, y, z)];
+							if (fabsf(distance) <= threshold)
+							{
+								auto voxel_center = sdf.voxel_center(x, y, z);
+								candidates.emplace_back(voxel_center.x, voxel_center.y, voxel_center.z, distance);
+							}
+						}
+					}
+				}
+
+				if (candidates.size() <= max_points)
+				{
+					data.voxel_points = std::move(candidates);
+				}
+				else
+				{
+					//	数が多い場合は等間隔に間引く
+					data.voxel_points.reserve(max_points);
+					const float stride = static_cast<float>(candidates.size()) / static_cast<float>(max_points);
+					for (size_t i = 0; i < max_points; ++i)
+					{
+						data.voxel_points.emplace_back(candidates[static_cast<size_t>(i * stride)]);
+					}
+				}
+			}
+
+			edit_sdfs.emplace_back(data);
+		}
+	}
+}
+
 void edit_particle_system::imgui_render_sdf()
 {
 	ImGui::Text("Cubic SDF ");
 	ImGui::SameLine();
 	if (ImGui::Button("Load SDF"))
-	{
-		std::vector<std::string> file_paths;
-		if (editor_items::open_file_dialog_multi(SdfFileDialogFilter, file_paths))
-		{
-			for (auto& file_path : file_paths)
-			{
-				collision::cubic_sdf sdf;
-				if (!sdf.deserialize(file_path))
-					continue;
-
-				uint32_t sdf_id = get_context().get_effects().add_cubic_sdf(sdf);
-				if (sdf_id != 0xFFFFFFFF)
-				{
-					edit_sdf_data data;
-					data.file_path = file_path;
-					data.sdf_id = sdf_id;
-					data.bounds_min = sdf.bounds_min;
-					data.bounds_max = sdf.bounds_max;
-					data.resolution = sdf.resolution;
-
-					//	ボクセル可視化用に表面付近のボクセルだけ抽出
-					{
-						constexpr size_t max_points = 4000;
-						const float voxel_size = sdf.voxel_size();
-						const float threshold = voxel_size * 0.75f;
-
-						std::vector<math::float4> candidates;
-						for (uint32_t z = 0; z < sdf.resolution; ++z)
-						{
-							for (uint32_t y = 0; y < sdf.resolution; ++y)
-							{
-								for (uint32_t x = 0; x < sdf.resolution; ++x)
-								{
-									float distance = sdf.voxels[sdf.index_of(x, y, z)];
-									if (fabsf(distance) <= threshold)
-									{
-										auto voxel_center = sdf.voxel_center(x, y, z);
-										candidates.emplace_back(voxel_center.x, voxel_center.y, voxel_center.z, distance);
-									}
-								}
-							}
-						}
-
-						if (candidates.size() <= max_points)
-						{
-							data.voxel_points = std::move(candidates);
-						}
-						else
-						{
-							//	数が多い場合は等間隔に間引く
-							data.voxel_points.reserve(max_points);
-							const float stride = static_cast<float>(candidates.size()) / static_cast<float>(max_points);
-							for (size_t i = 0; i < max_points; ++i)
-							{
-								data.voxel_points.emplace_back(candidates[static_cast<size_t>(i * stride)]);
-							}
-						}
-					}
-
-					edit_sdfs.emplace_back(data);
-				}
-			}
-		}
-	}
+		load_sdf_files();
 
 	//	登録済みリスト
 	for (size_t index = 0; index < edit_sdfs.size(); )

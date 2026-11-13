@@ -158,7 +158,7 @@ bool game_process::enter()
 		{
 			asset_browser::open_handler handler;
 			handler.label = "Model Editor (Window)";
-			handler.extensions = { ".emo", ".pmx", ".gltf", ".glb" };
+			handler.extensions = { ".emo" };
 			handler.open_file = [&self](const cache_string& file_path)
 			{
 				if (!self.has_process(asset_preview_process::make_key("model_editor", file_path)))

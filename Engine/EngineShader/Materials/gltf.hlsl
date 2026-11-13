@@ -55,6 +55,8 @@ SurfaceData surface(VS_OUT pin, bool is_front_face)
     {
         data.emissive_color *= data.base_color;
     }
+    //  @tool ©ŒÈ”­ŒõF‚ğ•úË—Ê‚Ö•ÏŠ·
+    data.emissive_color = convert_emissive_to_radiance(data.emissive_color);
 
     //	–@ü/]–@ü/Úü
     float3 N = normalize(pin.w_normal.xyz);

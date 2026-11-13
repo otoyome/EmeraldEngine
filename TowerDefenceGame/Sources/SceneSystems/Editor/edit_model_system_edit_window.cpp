@@ -78,9 +78,6 @@ void edit_model_system::imgui_render_edit_core()
 
 	//	リターゲッティング編集系ウィンドウ
 	imgui_retarget_window();
-
-	//	IK編集系ウィンドウ
-	imgui_render_ik();
 }
 
 bool edit_model_system::has_panel(panel_regions region) const
@@ -134,6 +131,12 @@ void edit_model_system::imgui_render_panel(panel_regions region)
 				if (ImGui::BeginTabItem("Morph"))
 				{
 					imgui_render_morph();
+					ImGui::EndTabItem();
+				}
+				//	IK編集系ウィンドウ
+				if (ImGui::BeginTabItem("IK"))
+				{
+					imgui_render_ik();
 					ImGui::EndTabItem();
 				}
 				ImGui::EndTabBar();
