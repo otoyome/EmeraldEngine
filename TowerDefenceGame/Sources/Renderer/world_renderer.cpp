@@ -199,8 +199,8 @@ bool world_renderer::create_scene_targets(int scene_width, int scene_height)
 				DXGI_FORMAT_R32G32B32A32_FLOAT,		//	Velocity
 				DXGI_FORMAT_R32G32B32A32_UINT,		//	UniqueData
 
-				DXGI_FORMAT_R8G8B8A8_UNORM,			//	[エンジン改造:G-Buffer]
-				DXGI_FORMAT_R8G8B8A8_UNORM,			//	[エンジン改造:G-Buffer]
+				DXGI_FORMAT_R8G8B8A8_UNORM,			//	ShadeColor
+				DXGI_FORMAT_R8G8B8A8_UNORM,			//	IlmColor
 			};
 			for (int index = 0; index < static_cast<int>(magic_enum::enum_count<common_pipeline_states::gbuffer_id>()); ++index)
 			{

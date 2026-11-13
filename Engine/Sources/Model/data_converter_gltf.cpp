@@ -20,7 +20,6 @@
 
 namespace
 {
-	//	[エンジン改造:接線に再計算法線を含める対応]
 	//	再計算用クラス
 	constexpr float epsilon = 0.001f;
 	struct Vec3Key
@@ -57,7 +56,6 @@ namespace
 			return h1 ^ (h2 << 1) ^ (h3 << 2);
 		}
 	};
-	//	[エンジン改造:接線に再計算法線を含める対応]
 
 	//	ノードの並びをソート
 	struct sorted_node
@@ -192,7 +190,7 @@ namespace
 			loader.populate_vertex_data(gltf_meshes, semantic("COLOR", 0), data);
 		}
 
-		//	[エンジン改造:接線に再計算法線を含める対応]
+		//	接線に再計算法線を含める対応
 		if (convert_data.is_recomputed_normal)
 		{
 			//	法線再算出
@@ -272,7 +270,6 @@ namespace
 				}
 			}
 		}
-		//	[エンジン改造:接線に再計算法線を含める対応]
 
 		//	アニメーション読込
 		loader.load_animations(gltf_animations, gltf_nodes);

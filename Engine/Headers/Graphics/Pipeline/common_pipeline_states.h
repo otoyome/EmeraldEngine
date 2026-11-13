@@ -303,10 +303,6 @@ namespace common_pipeline_states
 	constexpr UINT material_attribute_shadow_receiver = 1 << 1;	//	影適応
 	constexpr UINT material_attribute_decal_off = 1 << 2;	//	デカールを適応させない
 
-	//	[エンジン改造]
-	constexpr UINT material_attribute_ligting_xz_plane = 1 << 31;	//	[エンジン改造:ライティング計算時にXZ平面で適応]
-	//	[エンジン改造]
-
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////
 	//	デカール用定数バッファ構造体
 	constexpr std::string_view decal_primitive_constant_buffer_name = "DECAL_PRIMITIVE_CONSTANT_BUFFER";
@@ -330,8 +326,8 @@ namespace common_pipeline_states
 	constexpr std::string_view gbuffer_parameter = "gbuffer_parameter";
 	constexpr std::string_view gbuffer_velocity = "gbuffer_velocity";
 	constexpr std::string_view gbuffer_unique_data = "gbuffer_unique_data";
-	constexpr std::string_view gbuffer_shade_color = "gbuffer_shade_color";	//	[エンジン改造:G-Buffer]
-	constexpr std::string_view gbuffer_ilm_color = "gbuffer_ilm_color";	//	[エンジン改造:G-Buffer]
+	constexpr std::string_view gbuffer_shade_color = "gbuffer_shade_color";
+	constexpr std::string_view gbuffer_ilm_color = "gbuffer_ilm_color";
 	constexpr std::string_view gbuffer_names[] =
 	{
 		gbuffer_base_color,
@@ -340,8 +336,8 @@ namespace common_pipeline_states
 		gbuffer_velocity,
 		gbuffer_unique_data,
 
-		gbuffer_shade_color,	//	[エンジン改造:G-Buffer]
-		gbuffer_ilm_color,	//	[エンジン改造:G-Buffer]
+		gbuffer_shade_color,
+		gbuffer_ilm_color,
 	};
 	constexpr system_utility::hash_key gbuffer_hash_keys[] =
 	{
@@ -351,8 +347,8 @@ namespace common_pipeline_states
 		system_utility::generate_hash(gbuffer_velocity),
 		system_utility::generate_hash(gbuffer_unique_data),
 
-		system_utility::generate_hash(gbuffer_shade_color),	//	[エンジン改造:G-Buffer]
-		system_utility::generate_hash(gbuffer_ilm_color),	//	[エンジン改造:G-Buffer]
+		system_utility::generate_hash(gbuffer_shade_color),
+		system_utility::generate_hash(gbuffer_ilm_color),
 	};
 	//	G-Buffer識別子
 	enum class gbuffer_id
@@ -362,8 +358,8 @@ namespace common_pipeline_states
 		parameters,
 		velocity,
 		unique_data,
-		shade_color,	//	[エンジン改造:G-Buffer]
-		ilm_color,		//	[エンジン改造:G-Buffer]
+		shade_color,
+		ilm_color,
 
 		start = base_color,
 	};
@@ -452,8 +448,8 @@ namespace common_pipeline_states
 		gbuffer_parameter,
 		gbuffer_velocity,
 		gbuffer_unique_data,
-		gbuffer_shade_color,	//	[エンジン改造:G-Buffer]
-		gbuffer_ilm_color,	//	[エンジン改造:G-Buffer]
+		gbuffer_shade_color,
+		gbuffer_ilm_color,
 	};
 }	//	namespace common_pipeline_states
 

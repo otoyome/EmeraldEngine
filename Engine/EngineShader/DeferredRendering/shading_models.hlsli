@@ -53,13 +53,9 @@ DirectLighting integrate_bxdf(in GBufferData gbuffer_data, in LightingData light
             result.specular = lerp(result.specular, result.specular * gbuffer_data.occlusion_factor, gbuffer_data.occlusion_strength);
             break;
         }
-//	[エンジン改造:シェーディング]
-        case shading_model_ggst_lit:
+        case shading_model_pmx_lit:
         {
-            //  固定値だけ残しておく
-            float specular_power = 10.0f;
-            float specular_size = 0.2f;
-
+            //  PMXは現在何もしていない
             result.diffuse  = gbuffer_data.base_color;
 
             break;
@@ -151,10 +147,8 @@ float4 get_shading_model_color(in GBufferData gbuffer_data)
     {
         case shading_model_unlit:       return float4(0.0f, 0.0f, 0.0f, 1);
         case shading_model_default_lit: return float4(0.5f, 0.5f, 0.5f, 1);
-//	[エンジン改造:シェーディング]
-        case shading_model_ggst_lit:    return float4(0.5f, 0.5f, 1.0f, 1);
+        case shading_model_pmx_lit:     return float4(0.5f, 0.5f, 1.0f, 1);
         case shading_model_toon_lit:    return float4(0.5f, 1.0f, 0.5f, 1);
-//	[エンジン改造:シェーディング]
     }
 
     return result;

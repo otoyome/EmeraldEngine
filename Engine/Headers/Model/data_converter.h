@@ -40,7 +40,6 @@ namespace data_converter
 			bool is_change_coordinate_system_indices = false;	//	座標系変換時にインデックスを反転
 			bool is_normalize_weight = true;					//	影響度の正規化
 
-			//	[エンジン改造:接線に再計算法線を含める対応]
 			bool is_recomputed_normal = false;					//	法線を再計算するか
 			bool is_recomputed_normal_to_copy_tangent = true;	//	再計算した法線を接線情報としてコピーするか
 		};
@@ -70,7 +69,6 @@ namespace data_converter
 			bool is_change_coordinate_system_indices = false;	//	座標系変換時にインデックスを反転
 			bool is_normalize_weight = true;					//	影響度の正規化
 
-			//	[エンジン改造:接線に再計算法線を含める対応]
 			bool is_recomputed_normal = true;					//	法線を再計算するか
 			bool is_recomputed_normal_to_copy_tangent = true;	//	再計算した法線を接線情報としてコピーするか
 		};

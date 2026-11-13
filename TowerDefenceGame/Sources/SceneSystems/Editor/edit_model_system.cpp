@@ -249,9 +249,6 @@ void edit_model_system::imgui_render_core()
 {
 	//	ロードウィンドウ
 	imgui_model_loader_window();
-
-	//	エディターウィンドウ関連
-	imgui_render_edit_core();
 }
 
 void edit_model_system::save_model()

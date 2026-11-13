@@ -41,14 +41,18 @@ float4 main(VS_OUT pin) : SV_TARGET
                 total_specular += SpecularIBL(N, V, data.roughness, F0, lut_ggx, specular_pmrem, ibl_sampler_state) * color_adjust;
                 break;
             }
-//	[エンジン改造:シェーディング]
-            case shading_model_toon_lit:
-            case shading_model_ggst_lit:
+            case shading_model_pmx_lit:
             {
-                //光源計算時に集約させるのでここでは何もしない
+                //	一旦普通に出す
+                total_diffuse += DiffuseIBL(N, V, data.roughness, diffuse_reflectance, F0, diffuse_iem, ibl_sampler_state) * color_adjust;
+                total_specular += SpecularIBL(N, V, data.roughness, F0, lut_ggx, specular_pmrem, ibl_sampler_state) * color_adjust;
                 break;
             }
-//	[エンジン改造:シェーディング]
+            case shading_model_toon_lit:
+            {
+                //	フェイク環境光を使うので計算しない
+                break;
+            }
         }
 
 	    //	自己遮蔽

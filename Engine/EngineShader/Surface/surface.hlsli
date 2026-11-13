@@ -22,7 +22,6 @@ struct SurfaceData
     uint3 unique_data; //  シェーディングモデル毎に変わる変数(32ビット符号なし整数)
     float2 unique_parameter; //  シェーディングモデル毎に変わる変数(32ビット浮動小数点)
 
-    //  [エンジン改造:G-Buffer]
     float3 shade_color; //  トゥーン用：陰色
     float4 ilm_color; //  トゥーン用：イルミネーション色
 };
@@ -60,10 +59,8 @@ GBufferData convert_g_buffer_data(in SurfaceData surface_data)
     g_buffer_data.unique_parameter = surface_data.unique_parameter;
     g_buffer_data.unique_data = surface_data.unique_data;
 
-    //  [エンジン改造:G-Buffer]
     g_buffer_data.shade_color = surface_data.shade_color;
     g_buffer_data.ilm_color = surface_data.ilm_color;
-    //  [エンジン改造:G-Buffer]
 
     return g_buffer_data;
 }

@@ -354,10 +354,8 @@ float4 posterize(float4 value, float step_count)
     return float4(posterize(value.x, step_count), posterize(value.y, step_count), posterize(value.z, step_count), posterize(value.w, step_count));
 }
 
-//	[エンジン改造:シェーディング]
 //--------------------------------------------
 //	ライトの影響を与える関数
-//	GGシェーダー用に追加
 //--------------------------------------------
 float3 apply_light_modifications(float3 color, float3 light_intensity, float3 color_tint = 1.0f, float saturation = 1.0f)
 {
@@ -366,6 +364,5 @@ float3 apply_light_modifications(float3 color, float3 light_intensity, float3 co
 	float3 hsv = convert_rgb_to_hsv(color);
 	return	convert_hsv_to_rgb(hsv * float3(1.0f, saturation, 1.0f));
 }
-//	[エンジン改造:シェーディング]
 
 #endif	//	__SHADING_FUNCTIONS_HLSLI__

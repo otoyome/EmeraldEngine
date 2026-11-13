@@ -136,14 +136,18 @@ float4 main(VS_OUT pin, bool is_front_face : SV_IsFrontFace) : SV_TARGET
                 specular += SpecularIBL(N, V, data.roughness, F0, forward_only_lut_ggx, forward_only_specular_pmrem, forward_only_ibl_sampler_state) * color_adjust;
                 break;
              }
-//	[エンジン改造:シェーディング]
-            case shading_model_ggst_lit:
+            case shading_model_pmx_lit:
+            {
+                //	一旦普通に出す
+                diffuse += DiffuseIBL(N, V, data.roughness, diffuse_reflectance, F0, forward_only_diffuse_iem, forward_only_ibl_sampler_state) * color_adjust;
+                specular += SpecularIBL(N, V, data.roughness, F0, forward_only_lut_ggx, forward_only_specular_pmrem, forward_only_ibl_sampler_state) * color_adjust;
+                break;
+            }
             case shading_model_toon_lit:
             {
                 // ココでは何もしない
                 break;
             }
-//	[エンジン改造:シェーディング]
         }
 
 	    //	自己遮蔽

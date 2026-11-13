@@ -9,8 +9,8 @@ Texture2D<float4> gbuffer_normal_depth : register(t1);
 Texture2D<float4> gbuffer_parameter : register(t2);
 Texture2D<float4> gbuffer_velocity : register(t3);
 Texture2D<uint4> gbuffer_unique_data : register(t4);
-Texture2D<float4> gbuffer_shade_color : register(t5); //  [エンジン改造:G-Buffer]
-Texture2D<float4> gbuffer_ilm_color : register(t6); //  [エンジン改造:G-Buffer]
+Texture2D<float4> gbuffer_shade_color : register(t5);
+Texture2D<float4> gbuffer_ilm_color : register(t6);
 
 SamplerState sampler_states : register(s0);
 
@@ -22,8 +22,8 @@ GBufferTextures get_gbuffer_textures()
     gbuffer_textures.parameter = gbuffer_parameter;
     gbuffer_textures.velocity = gbuffer_velocity;
     gbuffer_textures.unique_data = gbuffer_unique_data;
-    gbuffer_textures.shade_color = gbuffer_shade_color; //  [エンジン改造:G-Buffer]
-    gbuffer_textures.ilm_color = gbuffer_ilm_color; //  [エンジン改造:G-Buffer]
+    gbuffer_textures.shade_color = gbuffer_shade_color;
+    gbuffer_textures.ilm_color = gbuffer_ilm_color;
     gbuffer_textures.state = sampler_states;
     return gbuffer_textures;
 }

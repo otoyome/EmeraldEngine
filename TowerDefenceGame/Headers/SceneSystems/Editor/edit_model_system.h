@@ -62,7 +62,6 @@ private:	//	編集ウィンドウ纏め系
 	bool initialize_edit_core();
 	bool uninitialize_edit_core();
 	void update_edit_core(float elapsed_time);
-	void imgui_render_edit_core();
 	void imgui_model_loader_window();
 	void imgui_render_menu_bar();
 	void imgui_render_mesh_list();
@@ -82,6 +81,8 @@ private:	//	アニメーション編集系
 	bool uninitialize_animation();
 	void update_animation();
 	void imgui_render_animation();
+	void imgui_render_animation_timeline();
+	bool has_editable_animation() const;
 
 	void imgui_render_morph();
 

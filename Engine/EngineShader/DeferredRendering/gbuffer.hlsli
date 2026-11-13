@@ -6,10 +6,8 @@
 //  シェーディングモデル定数
 static const uint shading_model_unlit       = 0;    //  シェーディング計算：ライティング無し
 static const uint shading_model_default_lit = 1;    //  シェーディング計算：基本計算
-//	[エンジン改造:シェーディング]
-static const uint shading_model_ggst_lit    = 2;    //  シェーディング計算：トゥーン計算
+static const uint shading_model_pmx_lit     = 2;    //  シェーディング計算：PMX計算
 static const uint shading_model_toon_lit    = 3;    //  シェーディング計算：トゥーン計算
-//	[エンジン改造:シェーディング]
 
 //  マテリアルステンシル
 static const uint material_attribute_indirect_lighting_off  = 1 <<  0;  //  間接光の処理を適応させない
@@ -38,10 +36,8 @@ struct GBufferData
 
     float2 unique_parameter;    //  シェーディングモデル毎に変わる変数(32ビット浮動小数点)
 
-    //  [エンジン改造:G-Buffer]
     float3 shade_color;         //  トゥーン用：陰色
     float4 ilm_color;           //  トゥーン用：イルミネーション
-    //  [エンジン改造:G-Buffer]
 };
 
 //  GBufferテクスチャ受け渡し用構造体
@@ -54,10 +50,8 @@ struct GBufferTextures
     Texture2D<float4> velocity;
     Texture2D<uint4> unique_data;
 
-    //  [エンジン改造:G-Buffer]
     Texture2D<float4> shade_color;
     Texture2D<float4> ilm_color;
-    //  [エンジン改造:G-Buffer]
 };
 
 //  ピクセルシェーダーへの出力用構造体
@@ -69,10 +63,8 @@ struct encode_g_buffer_data
     float4 velocity;
     uint4 unique_data;
 
-    //  [エンジン改造:G-Buffer]
     float4 shade_color;
     float4 ilm_color;
-    //  [エンジン改造:G-Buffer]
 };
 
 //  圧縮
@@ -176,7 +168,6 @@ encode_g_buffer_data encode_g_buffer(in GBufferData data, matrix view_projection
     ret.unique_data.x = data.stencil;
     ret.unique_data.yzw = data.unique_data.xyz;
 
-    //  [エンジン改造:G-Buffer]
     ret.shade_color.xyz = data.shade_color.rgb;
     ret.ilm_color = data.ilm_color;
 
@@ -196,7 +187,6 @@ GBufferData DecodeGBuffer(GBufferTextures textures, float2 uv, matrix inverse_vi
     float4 velocity = textures.velocity.SampleLevel(textures.state, uv, 0);
     uint4 unique_data = textures.unique_data.Load(uint3((uint2) (uv * texture_size), 0));
 
-    //  [エンジン改造:G-Buffer]
     float4 shade_color = textures.shade_color.SampleLevel(textures.state, uv, 0);
     float4 ilm_color = textures.ilm_color.SampleLevel(textures.state, uv, 0);
 
@@ -220,7 +210,6 @@ GBufferData DecodeGBuffer(GBufferTextures textures, float2 uv, matrix inverse_vi
     position = mul(position, inverse_view_projection_transform);
     data.w_position = position.xyz / position.w;
 
-    //  [エンジン改造:G-Buffer]
     data.shade_color.rgb = shade_color.xyz;
     data.ilm_color = ilm_color;
 

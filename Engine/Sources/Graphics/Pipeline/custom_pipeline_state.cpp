@@ -11,9 +11,6 @@ namespace
 		{material_resource::flags::indirect_lighting_off, common_pipeline_states::material_attribute_indirect_lighting_off},
 		{material_resource::flags::shadow_receiver, common_pipeline_states::material_attribute_shadow_receiver},
 		{material_resource::flags::decal_off, common_pipeline_states::material_attribute_decal_off},
-		//	[エンジン改造]
-		{material_resource::flags::ligting_xz_plane, common_pipeline_states::material_attribute_ligting_xz_plane},
-		//	[エンジン改造]
 	};
 
 	//  テクスチャフラグの対応表

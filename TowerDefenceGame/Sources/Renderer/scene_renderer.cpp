@@ -289,8 +289,8 @@ void gbuffer_renderer::resize_buffer(int width, int height)
 			{ 0.0f, 0.0f, 0.0f, 0.0f },		//	parameter
 			{ 0.0f, 0.0f, 0.0f, 0.0f },		//	velocity
 			{ 0.0f, 0.0f, 0.0f, 0.0f },		//	unique_data
-			{ 0.0f, 0.0f, 0.0f, 0.0f },		//	shade_color [エンジン改造:G-Buffer]
-			{ 0.0f, 0.0f, 0.0f, 0.0f },		//	ilm_color [エンジン改造:G-Buffer]
+			{ 0.0f, 0.0f, 0.0f, 0.0f },		//	shade_color
+			{ 0.0f, 0.0f, 0.0f, 0.0f },		//	ilm_color
 		};
 		rendering_pass.render_targets.clear();
 		for (int i = 0; i < static_cast<int>(magic_enum::enum_count<common_pipeline_states::gbuffer_id>()); ++i)

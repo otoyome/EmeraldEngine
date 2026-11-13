@@ -31,13 +31,12 @@ float4 main(VS_OUT pin) : SV_TARGET
                 }
             }
 
-//	[エンジン改造:シェーディング]
-            if (data.shading_model == shading_model_toon_lit)
+            //  NPRでもローカルライティングはデフォルトでシェーディングさせる
+            if (data.shading_model == shading_model_pmx_lit ||
+                data.shading_model == shading_model_toon_lit)
             {
-                //  トゥーンリットの場合はデフォルトでシェーディングさせる
                 data.shading_model = shading_model_default_lit;
             }
-//	[エンジン改造:シェーディング]
 
             LightingData lighting_data;
             lighting_data.shading_attenuation = shading_attenuation;

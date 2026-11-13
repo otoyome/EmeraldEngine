@@ -31,8 +31,8 @@ PS_GBUFFER_OUT main(VS_OUT pin)
     pout.parameter = encode_data.parameter;
     pout.velocity = encode_data.velocity;
     pout.unique_data = encode_data.unique_data;
-    pout.shade_color = encode_data.shade_color; //  [エンジン改造:G-Buffer]
-    pout.ilm_color = encode_data.ilm_color; //  [エンジン改造:G-Buffer]
+    pout.shade_color = encode_data.shade_color;
+    pout.ilm_color = encode_data.ilm_color;
     pout.scene_color = float4(base_color.rgb, 1); //  自己発光は直接シーンに書き込む
     return pout;
 }

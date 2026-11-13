@@ -68,18 +68,6 @@ void edit_model_system::update_edit_core(float elapsed_time)
 	update_animation();
 }
 
-void edit_model_system::imgui_render_edit_core()
-{
-	if (!edit_model)
-		return;
-
-	//	アニメーション編集系ウィンドウ
-	imgui_render_animation();
-
-	//	リターゲッティング編集系ウィンドウ
-	imgui_retarget_window();
-}
-
 bool edit_model_system::has_panel(panel_regions region) const
 {
 	switch (region)
@@ -95,7 +83,7 @@ bool edit_model_system::has_panel(panel_regions region) const
 		}
 		case panel_regions::bottom:
 		{
-			break;
+			return has_editable_animation();
 		}
 	}
 	return false;
@@ -133,10 +121,23 @@ void edit_model_system::imgui_render_panel(panel_regions region)
 					imgui_render_morph();
 					ImGui::EndTabItem();
 				}
+				//	アニメーション編集系ウィンドウ
+				//	@tool タイムラインは下に出す
+				if (ImGui::BeginTabItem("Animation"))
+				{
+					imgui_render_animation();
+					ImGui::EndTabItem();
+				}
 				//	IK編集系ウィンドウ
 				if (ImGui::BeginTabItem("IK"))
 				{
 					imgui_render_ik();
+					ImGui::EndTabItem();
+				}
+				//	リターゲッティング編集系ウィンドウ
+				if (ImGui::BeginTabItem("Retarget"))
+				{
+					imgui_retarget_window();
 					ImGui::EndTabItem();
 				}
 				ImGui::EndTabBar();
@@ -154,6 +155,7 @@ void edit_model_system::imgui_render_panel(panel_regions region)
 		}
 		case panel_regions::bottom:
 		{
+			imgui_render_animation_timeline();
 			break;
 		}
 	}
@@ -471,11 +473,9 @@ void edit_model_system::imgui_model_loader_window()
 				ImGui::Checkbox("change_coordinate_system", &convert_option_data.gltf.is_change_coordinate_system);
 				ImGui::Checkbox("change_coordinate_system_indices", &convert_option_data.gltf.is_change_coordinate_system_indices);
 
-				//	[エンジン改造:接線に再計算法線を含める対応]
 				ImGui::Separator();
 				ImGui::Checkbox("recomputed_normal", &convert_option_data.gltf.is_recomputed_normal);
 				ImGui::Checkbox("recomputed_normal_to_copy_tangent", &convert_option_data.gltf.is_recomputed_normal_to_copy_tangent);
-				//	[エンジン改造:接線に再計算法線を含める対応]
 
 				if (ImGui::Button("Convert"))
 				{
