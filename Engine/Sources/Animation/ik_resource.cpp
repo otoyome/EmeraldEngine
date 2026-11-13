@@ -10,6 +10,10 @@
 #include "cereal/types/array.hpp"
 
 #include <filesystem>
+#include <sstream>
+
+#include "Resource/asset_file_header.h"
+#include "Resource/data_compression.h"
 
 // CEREALバージョン定義
 CEREAL_CLASS_VERSION(ik_resource::foot_data, 4)
@@ -172,10 +176,9 @@ std::size_t ik_resource::search_index_by_name(std::string_view data_name)
 
 bool ik_resource::save_file(std::string_view file_path)
 {
-	std::ofstream ostream(file_path.data(), std::ios::binary);
-	if(ostream.is_open())
+	std::ostringstream buffer_stream(std::ios::binary);
 	{
-		cereal::BinaryOutputArchive archive(ostream);
+		cereal::BinaryOutputArchive archive(buffer_stream);
 
 		try
 		{
@@ -188,43 +191,43 @@ bool ik_resource::save_file(std::string_view file_path)
 			DEBUG_LOG_CATEGORY(logger::categorys::model, "ik_resource serialize failed[%s]", file_path.data());
 			return false;
 		}
-
-		DEBUG_LOG_CATEGORY(logger::categorys::model, "ik_resource serialize successed[%s]", file_path.data());
-		return true;
 	}
 
-	DEBUG_LOG_CATEGORY(logger::categorys::model, "ik_resource open failed[%s]", file_path.data());
-	return false;
+	if (!resource::write_asset_file(*this, resource::asset_types::ik, file_path, buffer_stream.str()))
+		return false;
+
+	DEBUG_LOG_CATEGORY(logger::categorys::model, "ik_resource serialize successed[%s]", file_path.data());
+	return true;
 }
 
 bool ik_resource::load_file(std::string_view file_path)
 {
-	std::ifstream istream(file_path.data(), std::ios::binary);
-	if(istream.is_open())
+	resource::asset_file_header header;
+	std::vector<char> body;
+	if (!resource::read_asset_file(file_path, resource::asset_types::ik, header, body))
+		return false;
+
+	resource::memory_streambuf stream_buffer(body.data(), body.size());
+	std::istream istream(&stream_buffer);
+	cereal::BinaryInputArchive archive(istream);
+
+	try
 	{
-		cereal::BinaryInputArchive archive(istream);
-
-		try
-		{
-			archive(CEREAL_NVP(nodes),
-					CEREAL_NVP(datas),
-					CEREAL_NVP(behavior_datas));
-		}
-		catch (...)
-		{
-			DEBUG_ERROR_CATEGORY(logger::categorys::model, "ik_resource deserialize failed[%s]", file_path.data());
-			return false;
-		}
-
-		set_file_path(file_path);
-		DEBUG_LOG_CATEGORY(logger::categorys::model, "ik_resource deserialize successed[%s]", file_path.data());
-		return true;
+		archive(CEREAL_NVP(nodes),
+				CEREAL_NVP(datas),
+				CEREAL_NVP(behavior_datas));
+	}
+	catch (...)
+	{
+		DEBUG_ERROR_CATEGORY(logger::categorys::model, "ik_resource deserialize failed[%s]", file_path.data());
+		return false;
 	}
 
-	DEBUG_ERROR_CATEGORY(logger::categorys::model, "ik_resource open failed[%s]", file_path.data());
-	return false;
+	inherit_uuid(header.uuid);
+	set_file_path(file_path);
+	DEBUG_LOG_CATEGORY(logger::categorys::model, "ik_resource deserialize successed[%s]", file_path.data());
+	return true;
 }
-
 namespace resource
 {
 	operation_state loader<ik_resource>::load(std::string_view file_path)

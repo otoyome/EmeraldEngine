@@ -22,6 +22,7 @@ namespace resource
 		effect,		//	.eme
 		texture,	//	.etx
 		scene,		//	.escene
+		ik,			//	.eik
 	};
 
 	//	ファイルヘッダー
