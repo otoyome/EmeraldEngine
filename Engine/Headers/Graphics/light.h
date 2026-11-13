@@ -26,7 +26,7 @@ public:
 		debug_visualize_ailiasing_error_flag = 21,
 	};
 
-	//	強さの単位(平行光源は lx 固定、点光源/スポットは lm か cd)
+	//	強さの単位
 	enum class unit_modes : std::uint8_t
 	{
 		lumen,		//	光源から放射される光束[lm]
@@ -37,8 +37,8 @@ public:
 	//	色の指定方法
 	enum class color_modes : std::uint8_t
 	{
-		color,					//	色を直接指定(色味だけを使い、輝度 1 に正規化する)
-		filter_and_temperature,	//	色温度×フィルター(炎・太陽光・電球など。LED は色温度で指定しない)
+		color,					//	色を直接指定
+		filter_and_temperature,	//	色温度xフィルター
 	};
 
 	struct	shadow_map_bias_data
@@ -128,7 +128,7 @@ private:
 	float intensity = 0.0f;
 	color_modes color_mode = color_modes::filter_and_temperature;
 	math::float3 color{ 1.0f, 1.0f, 1.0f };
-	int kelvin = 5500;
+	int kelvin = 6000;
 	math::float3 parameter;
 
 	//	影関係

@@ -57,6 +57,7 @@
     <ClInclude Include="Headers\Graphics\mesh_draw_item.h" />
     <ClInclude Include="Headers\Graphics\camera.h" />
     <ClInclude Include="Headers\Graphics\ui_draw_data.h" />
+    <ClInclude Include="Headers\Graphics\ui_material_cache.h" />
     <ClInclude Include="Headers\Graphics\view_parameters.h" />
     <ClInclude Include="Headers\Graphics\common_pipeline_states.h" />
     <ClInclude Include="Headers\CoordinateSystem\hierarchy.h" />

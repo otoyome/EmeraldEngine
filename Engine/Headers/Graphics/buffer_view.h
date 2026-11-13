@@ -81,7 +81,6 @@ private:
 	system_utility::hash_key hash = -1;
 };
 
-
 namespace std
 {
     template <>
