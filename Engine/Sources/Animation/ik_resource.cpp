@@ -9,6 +9,8 @@
 #include "cereal/types/variant.hpp"
 #include "cereal/types/array.hpp"
 
+#include <filesystem>
+
 // CEREALバージョン定義
 CEREAL_CLASS_VERSION(ik_resource::foot_data, 4)
 CEREAL_CLASS_VERSION(ik_resource::hand_data, 1)
@@ -168,7 +170,7 @@ std::size_t ik_resource::search_index_by_name(std::string_view data_name)
 	return std::distance(datas.begin(), it);
 }
 
-bool ik_resource::serialize(std::string_view file_path)
+bool ik_resource::save_file(std::string_view file_path)
 {
 	std::ofstream ostream(file_path.data(), std::ios::binary);
 	if(ostream.is_open())
@@ -195,7 +197,7 @@ bool ik_resource::serialize(std::string_view file_path)
 	return false;
 }
 
-bool ik_resource::deserialize(std::string_view file_path)
+bool ik_resource::load_file(std::string_view file_path)
 {
 	std::ifstream istream(file_path.data(), std::ios::binary);
 	if(istream.is_open())
@@ -214,7 +216,7 @@ bool ik_resource::deserialize(std::string_view file_path)
 			return false;
 		}
 
-		this->file_path = file_path;
+		set_file_path(file_path);
 		DEBUG_LOG_CATEGORY(logger::categorys::model, "ik_resource deserialize successed[%s]", file_path.data());
 		return true;
 	}
@@ -223,17 +225,26 @@ bool ik_resource::deserialize(std::string_view file_path)
 	return false;
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
-ik_resource_manager::ik_resource_manager()
+namespace resource
 {
-}
+	operation_state loader<ik_resource>::load(std::string_view file_path)
+	{
+		std::error_code error;
+		if (!std::filesystem::exists(std::filesystem::path(std::string(file_path)), error))
+		{
+			set_error_message("file not found");
+			return operation_state::not_found;
+		}
 
-ik_resource_manager::~ik_resource_manager()
-{
-}
+		resource = std::make_shared<ik_resource>();
+		if (!resource->load_file(file_path))
+			return operation_state::deserialize_failed;
 
-bool ik_resource_manager::load(ik_resource_ptr& resource, std::string_view file_path)
-{
-	resource = std::make_shared<ik_resource>();
-	return resource->deserialize(file_path);
-}
+		return operation_state::success;
+	}
+
+	bool saver<ik_resource>::save(ik_resource& resource, std::string_view file_path)
+	{
+		return resource.save_file(file_path);
+	}
+}	//	namespace resource

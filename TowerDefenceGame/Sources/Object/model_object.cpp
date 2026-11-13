@@ -2,6 +2,8 @@
 #include "Object/game_object_registry.h"
 #include "Object/game_object_serializer.h"
 
+#include "Resource/resource_manager.h"
+
 #include "cereal/cereal.hpp"
 #include "cereal/archives/json.hpp"
 
@@ -66,10 +68,10 @@ model_object::model_object(std::string_view name, model_resource_ptr resource)
 		path.replace_extension(ik_resource::extension);
 		if (std::filesystem::exists(path))
 		{
-			ik_resource_ptr resource;
-			if (ik_resource_manager::instance()->load(resource, path.string()))
+			auto operation = resource_manager::instance()->load<ik_resource>(path.string());
+			if (operation->is_succeeded())
 			{
-				set_ik_resource(resource);
+				set_ik_resource(operation->get_resource());
 			}
 		}
 	}
@@ -836,10 +838,10 @@ void model_object::load_model(std::string_view file_path)
 		path.replace_extension(ik_resource::extension);
 		if (std::filesystem::exists(path))
 		{
-			ik_resource_ptr resource;
-			if (ik_resource_manager::instance()->load(resource, path.string()))
+			auto operation = resource_manager::instance()->load<ik_resource>(path.string());
+			if (operation->is_succeeded())
 			{
-				set_ik_resource(resource);
+				set_ik_resource(operation->get_resource());
 			}
 		}
 	}

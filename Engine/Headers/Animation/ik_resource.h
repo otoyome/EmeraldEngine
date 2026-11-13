@@ -2,8 +2,26 @@
 
 #include <variant>
 
-class ik_resource
+#include "Resource/resource_base.h"
+#include "Resource/resource_loader.h"
+#include "Resource/resource_saver.h"
+
+class ik_resource;
+
+namespace resource
 {
+	template<>
+	class loader<ik_resource>;
+
+	template<>
+	class saver<ik_resource>;
+}	//	namespace resource
+
+class ik_resource : public resource::resource_base
+{
+	friend class resource::loader<ik_resource>;
+	friend class resource::saver<ik_resource>;
+
 public:
 	static constexpr std::string_view extension = "eik";
 	static constexpr std::size_t invalid_id = -1;
@@ -124,8 +142,6 @@ public:
 	};
 
 public:
-	inline void set_file_path(std::string_view path) { file_path = path; }
-	inline std::string_view get_file_path() const {return file_path;}
 	const std::vector<node>& get_node_list() const { return nodes; }
 	const std::vector<solve_data>& get_solve_data_list() const { return datas; }
 	const std::vector<behavior_data>& get_behavior_data_list() const { return behavior_datas; }
@@ -142,13 +158,11 @@ public:
 
 	std::size_t search_index_by_name(std::string_view data_name);
 
-public:
-	bool serialize(std::string_view file_path);
-	bool deserialize(std::string_view file_path);
+private:
+	bool save_file(std::string_view file_path);
+	bool load_file(std::string_view file_path);
 
 private:
-	std::string file_path;
-
 	std::vector<node> nodes;
 	std::vector<solve_data> datas;
 	std::vector<behavior_data> behavior_datas;
@@ -156,14 +170,23 @@ private:
 
 using ik_resource_ptr = std::shared_ptr<ik_resource>;
 
-class ik_resource_manager
+namespace resource
 {
-	SINGLETON(ik_resource_manager)
+	template<>
+	class loader<ik_resource> : public loader_base
+	{
+	public:
+		operation_state load(std::string_view file_path) override;
+		std::shared_ptr<void> get_resource() const override { return resource; }
 
-private:
-	ik_resource_manager();
-	~ik_resource_manager();
+	private:
+		ik_resource_ptr resource;
+	};
 
-public:
-	bool load(ik_resource_ptr& resource, std::string_view file_path);
-};
+	template<>
+	class saver<ik_resource>
+	{
+	public:
+		bool save(ik_resource& resource, std::string_view file_path);
+	};
+}	//	namespace resource

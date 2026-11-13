@@ -10,6 +10,8 @@
 
 #include "Graphics/Pipeline/custom_pipeline_state.h"
 
+#include "Resource/resource_manager.h"
+
 #if defined(USE_IMGUI)
 #include "Editor/editor_camera.h"
 
@@ -212,7 +214,7 @@ void edit_model_system::imgui_render_ik()
 				auto file_path = edit_model->get_model_instance()->get_resource()->get_file_path();
 				std::filesystem::path path = file_path;
 				path.replace_extension(ik_resource::extension);
-				ik_resource->serialize(path.string());
+				resource_manager::instance()->save(ik_resource, path.string());
 				edit_model->set_ik_resource(ik_resource);
 			}
 		}
@@ -220,17 +222,19 @@ void edit_model_system::imgui_render_ik()
 		{
 			if (ImGui::Button("Save"))
 			{
-				edit_model->get_ik_resource()->serialize(edit_model->get_ik_resource()->get_file_path());
+				resource_manager::instance()->save(edit_model->get_ik_resource());
 			}
 			ImGui::SameLine();
 			if (ImGui::Button("Load"))
 			{
-				auto ik_resource = std::make_shared<::ik_resource>();
 				auto file_path = edit_model->get_model_instance()->get_resource()->get_file_path();
 				std::filesystem::path path = file_path;
 				path.replace_extension(ik_resource::extension);
-				ik_resource->deserialize(path.string());
-				edit_model->set_ik_resource(ik_resource);
+				auto operation = resource_manager::instance()->load<ik_resource>(path.string(), true);
+				if (operation->is_succeeded())
+				{
+					edit_model->set_ik_resource(operation->get_resource());
+				}
 			}
 
 			//	IK情報ウィンドウ

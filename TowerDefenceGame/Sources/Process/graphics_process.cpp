@@ -13,7 +13,6 @@
 #include "Model/model_resource.h"
 #include "Model/model_buffer_pool.h"
 #include "Effect/effect_resource.h"
-#include "Animation/ik_resource.h"
 #include "Renderer/render_system.h"
 #include "Framework/display_settings.h"
 #include "Framework/app_window.h"
@@ -44,7 +43,6 @@ bool graphics_process::enter()
 		asset_registry::instance()->scan({ asset_registry::root_directory, asset_registry::engine_root_directory });
 		resource_manager::create_instance();
 		model_resource_manager::create_instance();
-		ik_resource_manager::create_instance();	//	@remainder	‚±‚ê‚Í•s—v‚Å‚ÍH
 		font_data_manager::create_instance();
 	}
 
@@ -70,7 +68,6 @@ void graphics_process::exit()
 	//	•`‰æŠÖŒW
 	{
 		font_data_manager::delete_instance();
-		ik_resource_manager::delete_instance();
 		effect_resource_manager::delete_instance();
 		resource_manager::delete_instance();
 		asset_registry::delete_instance();
