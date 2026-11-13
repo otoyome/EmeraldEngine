@@ -208,4 +208,29 @@ void scene_manager::imgui_render()
 	for (auto& scene : scenes)
 		scene.second->imgui_render();
 }
+
+bool scene_manager::has_panel(scene_system::panel_regions region) const
+{
+	for (const auto& scene : scenes)
+	{
+		for (const auto& loaded : scene.second->get_loaded_scenes())
+		{
+			if (loaded.system && loaded.system->has_panel(region))
+				return true;
+		}
+	}
+	return false;
+}
+
+void scene_manager::imgui_render_panel(scene_system::panel_regions region)
+{
+	for (auto& scene : scenes)
+	{
+		for (const auto& loaded : scene.second->get_loaded_scenes())
+		{
+			if (loaded.system && loaded.system->has_panel(region))
+				loaded.system->imgui_render_panel(region);
+		}
+	}
+}
 #endif	//	defined(USE_IMGUI)

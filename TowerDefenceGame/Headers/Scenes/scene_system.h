@@ -50,6 +50,21 @@ public:
 	//	ImGui描画
 	virtual void imgui_render() {}
 
+	//	パネル領域
+	enum class panel_regions
+	{
+		menu_bar,	//	メニューバー
+		left,		//	左
+		right,		//	右
+		bottom,		//	下
+	};
+
+	//	パネルの指定の領域に描画するか
+	virtual bool has_panel(panel_regions region) const { return false; }
+
+	//	パネルの指定の領域へImGui描画
+	virtual void imgui_render_panel(panel_regions region) {}
+
 	//	シーンエディターで編集中だけ呼ばれる関数群
 	virtual void editor_update(float elapsed_time) {}
 

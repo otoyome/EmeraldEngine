@@ -8,6 +8,7 @@
 
 #include "System/signals.h"
 #include "Scenes/scene_resource.h"
+#include "Scenes/scene_system.h"
 
 class engine_context;
 class scene_instance;
@@ -47,6 +48,12 @@ public:
 
 #if defined(USE_IMGUI)
 	void imgui_render();
+
+	//	パネルの指定の領域を使うか
+	bool has_panel(scene_system::panel_regions region) const;
+
+	//	パネルの指定の領域へ描画
+	void imgui_render_panel(scene_system::panel_regions region);
 #endif	//	defined(USE_IMGUI)
 
 public:

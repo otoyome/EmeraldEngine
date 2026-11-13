@@ -5,7 +5,7 @@
 
 #include "Math/math_all.h"
 #include "Texture/texture.h"
-#include "buffer_view.h"
+#include "Graphics/Core/buffer_view.h"
 
 class material_instance;
 

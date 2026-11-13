@@ -34,6 +34,8 @@ protected:
 	void on_end() override { uninitialize_core(); }
 	void pre_update(float elapsed_time) override { update_core(elapsed_time); }
 	void imgui_render() override { imgui_render_core(); }
+	bool has_panel(panel_regions region) const override;
+	void imgui_render_panel(panel_regions region) override;
 
 	bool initialize_core();
 	bool uninitialize_core();
@@ -62,8 +64,10 @@ private:	//	編集ウィンドウ纏め系
 	void update_edit_core(float elapsed_time);
 	void imgui_render_edit_core();
 	void imgui_model_loader_window();
+	void imgui_render_menu_bar();
 	void imgui_render_mesh_list();
-	void imgui_render_material_window();
+	void imgui_render_material_list();
+	void imgui_render_material_detail();
 
 private:	//	頂点カラー編集系
 	bool initialize_vertex_color_edit();
@@ -91,6 +95,9 @@ private:
 	void on_model_setup();
 	void on_model_release();
 
+	//	モデル全体が映る位置へエディターカメラを置く
+	void focus_camera_on_model();
+
 	//	編集用の複製マテリアルを取得(無ければ生成)
 	material_resource_ptr get_working_material(const material_resource_ptr& original);
 
@@ -109,6 +116,9 @@ private:
 		material_resource_ptr working;
 	};
 	std::vector<material_copy> material_copies;
+
+	//	右に表示するマテリアルの番号
+	std::size_t selected_material_index = 0;
 
 	//	LOD生成レベル
 	int generate_lod_level = 4;

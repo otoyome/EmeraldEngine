@@ -73,20 +73,8 @@ void edit_model_system::imgui_render_edit_core()
 	if (!edit_model)
 		return;
 
-	//	メッシュごとに表示を切り替えたいとき用ウィンドウ
-	imgui_render_mesh_list();
-
-	//	マテリアル編集系ウィンドウ
-	imgui_render_material_window();
-
-	//	頂点カラー編集系ウィンドウ
-	imgui_render_vertex_color_edit();
-
 	//	アニメーション編集系ウィンドウ
 	imgui_render_animation();
-
-	//	モーフィング編集系ウィンドウ
-	imgui_render_morph();
 
 	//	リターゲッティング編集系ウィンドウ
 	imgui_retarget_window();
@@ -95,29 +83,98 @@ void edit_model_system::imgui_render_edit_core()
 	imgui_render_ik();
 }
 
-void edit_model_system::imgui_render_mesh_list()
+bool edit_model_system::has_panel(panel_regions region) const
 {
-	if (ImGui::Begin(get_context().make_window_name("Mesh List Window").c_str()))
+	switch (region)
 	{
-		int push_id = 0xF0D37cfc;
-		for (auto& mesh : edit_model_meshes)
+		case panel_regions::menu_bar:
 		{
-			auto& node = edit_model->get_model_instance()->get_nodes()[mesh.node_index];
-			std::string id = node.name + std::to_string(push_id++);
-			ImGui::PushID(id.data());
-			if (ImGui::Checkbox("", &mesh.visible))
-			{
-				for (auto& md : mesh.meshes)
-				{
-					md->visible = mesh.visible;
-				}
-			}
-			ImGui::SameLine();
-			ImGui::Text(node.name.data());
-			ImGui::PopID();
+			return true;
+		}
+		case panel_regions::left:
+		case panel_regions::right:
+		{
+			return edit_model != nullptr;
+		}
+		case panel_regions::bottom:
+		{
+			break;
 		}
 	}
-	ImGui::End();
+	return false;
+}
+
+void edit_model_system::imgui_render_panel(panel_regions region)
+{
+	switch (region)
+	{
+		case panel_regions::menu_bar:
+		{
+			imgui_render_menu_bar();
+			break;
+		}
+		case panel_regions::left:
+		{
+			//	一覧をタブで切り替える
+			if (ImGui::BeginTabBar("##model_left_tabs"))
+			{
+				//	メッシュごとに表示を切り替えたいとき用ウィンドウ
+				if (ImGui::BeginTabItem("Mesh"))
+				{
+					imgui_render_mesh_list();
+					ImGui::EndTabItem();
+				}
+				//	マテリアル編集系ウィンドウ
+				if (ImGui::BeginTabItem("Material"))
+				{
+					imgui_render_material_list();
+					ImGui::EndTabItem();
+				}
+				//	モーフィング編集系ウィンドウ
+				if (ImGui::BeginTabItem("Morph"))
+				{
+					imgui_render_morph();
+					ImGui::EndTabItem();
+				}
+				ImGui::EndTabBar();
+			}
+			break;
+		}
+		case panel_regions::right:
+		{
+			//	頂点カラー編集系ウィンドウ
+			if (is_edit_vertex_color)
+				imgui_render_vertex_color_edit();
+			else
+				imgui_render_material_detail();
+			break;
+		}
+		case panel_regions::bottom:
+		{
+			break;
+		}
+	}
+}
+
+void edit_model_system::imgui_render_mesh_list()
+{
+	int push_id = 0xF0D37cfc;
+	for (auto& mesh : edit_model_meshes)
+	{
+		auto& node = edit_model->get_model_instance()->get_nodes()[mesh.node_index];
+		std::string id = node.name + std::to_string(push_id++);
+		ImGui::PushID(id.data());
+		if (ImGui::Checkbox("", &mesh.visible))
+		{
+			for (auto& md : mesh.meshes)
+			{
+				md->visible = mesh.visible;
+			}
+		}
+		ImGui::SameLine();
+		ImGui::Text(node.name.data());
+		ImGui::PopID();
+	}
 }
 
 void edit_model_system::imgui_render_morph()
@@ -125,137 +182,263 @@ void edit_model_system::imgui_render_morph()
 	if (!edit_model)
 		return;
 
-	if (ImGui::Begin(get_context().make_window_name("Morph Window").c_str()))
-	{
-		int edeit_id = 0x0FF1F38F;
-		auto& morphs = edit_model->get_model_instance()->get_resource()->get_morphes_for_editor();
+	int edeit_id = 0x0FF1F38F;
+	auto& morphs = edit_model->get_model_instance()->get_resource()->get_morphes_for_editor();
 
-		//	リスト調整
-		bool edit = false;
-		int morph_list_size = static_cast<int>(morphs.size());
-		ImGui::DragInt("List Size", &morph_list_size, 1);
-		if (morph_list_size != morphs.size())
+	//	リスト調整
+	bool edit = false;
+	int morph_list_size = static_cast<int>(morphs.size());
+	ImGui::DragInt("List Size", &morph_list_size, 1);
+	if (morph_list_size != morphs.size())
+	{
+		morphs.resize(morph_list_size);
+		morphs.shrink_to_fit();
+		edit = true;
+	}
+	ImGui::Separator();
+
+	//	モーフ名リスト生成
+	std::vector<std::string> mesh_names;
+	for (auto& mesh : edit_model_meshes)
+	{
+		if (mesh.morphs.empty())
+			continue;
+
+		auto& node = edit_model->get_model_instance()->get_nodes()[mesh.node_index];
+		for (auto& m : mesh.meshes)
 		{
-			morphs.resize(morph_list_size);
-			morphs.shrink_to_fit();
-			edit = true;
+			for (auto& morph : m->mesh->morph_indices)
+			{
+				auto it = std::find_if(mesh_names.begin(),
+									   mesh_names.end(),
+									   [&](std::string& a){ return a == morph.first; });
+				if (it != mesh_names.end())
+					continue;
+
+				mesh_names.emplace_back(morph.first);
+			}
+		}
+	}
+
+	for (auto& morph : morphs)
+	{
+		ImGui::PushID(edeit_id++);
+		//if (ImGui::TreeNode(morph.name.c_str()))
+		{
+			ImGui::InputText("Name", morph.name);
+			{
+				auto& morphes = edit_model->get_model_instance()->get_morphes();
+				auto it = std::find_if(morphes.begin(), morphes.end(),
+					[&](model_instance::morph& m){ return m.morph->name == morph.name; });
+				if (it != morphes.end())
+				{
+					ImGui::SliderFloat("weight", &it->weight, 0, 1);
+				}
+				else
+				{
+					ImGui::BeginDisabled();
+					static float a = 0;
+					ImGui::SliderFloat("weight", &a, 0, 1);
+					ImGui::EndDisabled();
+				}
+			}
+
+			//	リスト調整
+			int list_size = static_cast<int>(morph.parts.size());
+			ImGui::DragInt("List Size", &list_size, 1);
+			if (list_size != morph.parts.size())
+			{
+				morph.parts.resize(list_size);
+				morph.parts.shrink_to_fit();
+				edit = true;
+			}
+
+			for (auto& morph_mesh : morph.parts)
+			{
+				ImGui::PushID(edeit_id++);
+				ImGui::Separator();
+				if (ImGui::Combo("Select Morph Mesh", morph_mesh.mesh_name, mesh_names))
+					edit = true;
+				ImGui::PopID();
+			}
+			ImGui::Separator();
+		}
+		ImGui::PopID();
+	}
+
+	if (edit)
+	{
+		auto& morphes = edit_model->get_model_instance()->get_morphes();
+		morphes.clear();
+		for (UINT index = 0; index < static_cast<UINT>(edit_model->get_model_instance()->get_resource()->get_morphes().size()); ++index)
+		{
+			auto& morph = morphes.emplace_back();
+			morph.morph = &edit_model->get_model_instance()->get_resource()->get_morphes()[index];
+			morph.weight = 0;
+		}
+	}
+}
+
+void edit_model_system::imgui_render_material_list()
+{
+	auto& materials = edit_model->get_model_instance()->get_resource_for_editor()->get_materials_for_editor();
+	for (std::size_t index = 0; index < materials.size(); ++index)
+	{
+		ImGui::PushID(static_cast<int>(index));
+		if (ImGui::Selectable(system_utility::convert_utf8(materials[index]->get_name()).data(), selected_material_index == index))
+			selected_material_index = index;
+		ImGui::PopID();
+	}
+}
+
+void edit_model_system::imgui_render_material_detail()
+{
+	auto& model_instance = *edit_model->get_model_instance();
+	auto& materials = model_instance.get_resource_for_editor()->get_materials_for_editor();
+	if (selected_material_index >= materials.size())
+		return;
+
+	const std::size_t index = selected_material_index;
+	auto& material = materials[index];
+	ImGui::PushID(static_cast<int>(index));
+	ImGui::TextUnformatted(system_utility::convert_utf8(material->get_name()).data());
+	ImGui::Separator();
+	//	別のマテリアルリソースに差し替えたら、表示中のインスタンスも差し替える
+	if (editor_items::edit_material_slot(editor_context, material, material_resource::domains::surface) &&
+		index < model_instance.get_materials().size())
+	{
+		model_instance.get_materials()[index].set_resource(get_working_material(material));
+	}
+	//	編集するのは複製
+	if (auto working = get_working_material(material))
+		editor_items::edit_material(editor_context, *working);
+	ImGui::PopID();
+}
+
+void edit_model_system::imgui_render_menu_bar()
+{
+	const bool has_model = edit_model != nullptr;
+
+	if (ImGui::BeginMenu("File"))
+	{
+		//	モデル保存
+		if (ImGui::MenuItem("Save", nullptr, false, has_model && load_model_path.empty()))
+			save_model();
+		ImGui::EndMenu();
+	}
+
+	if (ImGui::BeginMenu("Mesh", has_model))
+	{
+		//	LOD 生成
+		if (ImGui::BeginMenu("LOD"))
+		{
+			ImGui::SliderInt("lod_level", &generate_lod_level, 1, 8);
+			if (ImGui::MenuItem("Generate LOD"))
+				generate_lod();
+			if (ImGui::MenuItem("Discard LOD"))
+				discard_lod();
+			ImGui::EndMenu();
+		}
+
+		if (ImGui::BeginMenu("Shadow Mesh"))
+		{
+			if (ImGui::MenuItem("Generate Shadow Mesh"))
+				generate_shadow_mesh_asset();
+			if (ImGui::MenuItem("Discard Shadow Mesh"))
+				discard_shadow_mesh();
+			ImGui::EndMenu();
+		}
+
+		ImGui::Separator();
+		if (ImGui::MenuItem("Optimize Mesh"))
+			optimize_mesh_asset();
+		if (ImGui::MenuItem("Generate Meshlets"))
+			generate_meshlet_asset();
+		//	全頂点が白の頂点カラーを削除
+		if (ImGui::MenuItem("Strip White Vertex Color"))
+			strip_white_vertex_color_asset();
+
+		ImGui::Separator();
+		//	スキンなしメッシュの空間グリッド結合
+		if (ImGui::BeginMenu("Combine Meshes"))
+		{
+			ImGui::DragInt3("grid_divisions", &combine_grid_divisions.x, 0.1f, 1, 256);
+			combine_grid_divisions.x = std::max(1, combine_grid_divisions.x);
+			combine_grid_divisions.y = std::max(1, combine_grid_divisions.y);
+			combine_grid_divisions.z = std::max(1, combine_grid_divisions.z);
+			if (ImGui::MenuItem("Combine Meshes"))
+				combine_meshes();
+			if (ImGui::MenuItem("Clear Combine", nullptr, false, has_combine_backup))
+				clear_combined_meshes();
+			ImGui::EndMenu();
+		}
+		ImGui::EndMenu();
+	}
+
+	if (ImGui::BeginMenu("Generate", has_model))
+	{
+		//	当たり判定メッシュ生成
+		if (ImGui::BeginMenu("Bounding Mesh"))
+		{
+			ImGui::Checkbox("cull_reverse_flag", &bounding_mesh_option.reverse_flag);
+			ImGui::Checkbox("use_lod", &bounding_mesh_option.use_lod);
+			if (bounding_mesh_option.use_lod)
+			{
+				int lod_max = edit_model->get_model_instance()->get_lod_max();
+				ImGui::BeginDisabled(lod_max <= 0);
+				ImGui::SliderInt("bm_lod_level", &bounding_mesh_option.lod_level, 0, lod_max > 0 ? lod_max - 1 : 0);
+				ImGui::EndDisabled();
+			}
+			ImGui::DragInt3("bm_combine_grid_divisions", &bounding_mesh_option.combine_grid_divisions.x, 0.1f, 1, 64);
+			if (ImGui::MenuItem("Generate Bounding Mesh"))
+				generate_bounding_mesh_asset();
+			ImGui::EndMenu();
+		}
+
+		//	cubic SDF生成
+		if (ImGui::BeginMenu("Cubic SDF"))
+		{
+			ImGui::SliderInt("sdf_resolution", &cubic_sdf_option.resolution, 4, 128);
+			ImGui::SliderFloat("sdf_bounds_padding_rate", &cubic_sdf_option.bounds_padding_rate, 0.0f, 1.0f);
+			if (ImGui::MenuItem("Generate Cubic SDF"))
+				generate_cubic_sdf_asset();
+			ImGui::EndMenu();
+		}
+
+		//	テクスチャの最大解像度制限
+		if (ImGui::BeginMenu("Texture Resolution"))
+		{
+			ImGui::DragInt("texture_max_resolution", &texture_max_resolution, 16.0f, 4, 16384);
+			if (ImGui::MenuItem("Limit Texture Resolution"))
+				limit_texture_resolution_asset();
+			ImGui::EndMenu();
+		}
+		ImGui::EndMenu();
+	}
+
+	//	表示設定の「View」に追加する
+	if (ImGui::BeginMenu("View"))
+	{
+		int lod_max = has_model ? edit_model->get_model_instance()->get_lod_max() : 0;
+		ImGui::BeginDisabled(lod_max <= 0);
+		int lod_index = has_model ? edit_model->get_model_instance()->get_lod_index() : 0;
+		if (ImGui::SliderInt("preview_lod", &lod_index, 0, lod_max) && has_model)
+		{
+			edit_model->get_model_instance()->set_lod_index(lod_index);
+		}
+		ImGui::EndDisabled();
+
+		if (ImGui::MenuItem("Edit Vertex Color Mode", nullptr, is_edit_vertex_color, has_model))
+		{
+			is_edit_vertex_color = !is_edit_vertex_color;
+			if (vertex_color_edit_model)
+				vertex_color_edit_model->set_active(is_edit_vertex_color);
 		}
 		ImGui::Separator();
-
-		//	モーフ名リスト生成
-		std::vector<std::string> mesh_names;
-		for (auto& mesh : edit_model_meshes)
-		{
-			if (mesh.morphs.empty())
-				continue;
-
-			auto& node = edit_model->get_model_instance()->get_nodes()[mesh.node_index];
-			for (auto& m : mesh.meshes)
-			{
-				for (auto& morph : m->mesh->morph_indices)
-				{
-					auto it = std::find_if(mesh_names.begin(),
-										   mesh_names.end(),
-										   [&](std::string& a){ return a == morph.first; });
-					if (it != mesh_names.end())
-						continue;
-
-					mesh_names.emplace_back(morph.first);
-				}
-			}
-		}
-
-		for (auto& morph : morphs)
-		{
-			ImGui::PushID(edeit_id++);
-			//if (ImGui::TreeNode(morph.name.c_str()))
-			{
-				ImGui::InputText("Name", morph.name);
-				{
-					auto& morphes = edit_model->get_model_instance()->get_morphes();
-					auto it = std::find_if(morphes.begin(), morphes.end(),
-						[&](model_instance::morph& m){ return m.morph->name == morph.name; });
-					if (it != morphes.end())
-					{
-						ImGui::SliderFloat("weight", &it->weight, 0, 1);
-					}
-					else
-					{
-						ImGui::BeginDisabled();
-						static float a = 0;
-						ImGui::SliderFloat("weight", &a, 0, 1);
-						ImGui::EndDisabled();
-					}
-				}
-
-				//	リスト調整
-				int list_size = static_cast<int>(morph.parts.size());
-				ImGui::DragInt("List Size", &list_size, 1);
-				if (list_size != morph.parts.size())
-				{
-					morph.parts.resize(list_size);
-					morph.parts.shrink_to_fit();
-					edit = true;
-				}
-
-				for (auto& morph_mesh : morph.parts)
-				{
-					ImGui::PushID(edeit_id++);
-					ImGui::Separator();
-					if (ImGui::Combo("Select Morph Mesh", morph_mesh.mesh_name, mesh_names))
-						edit = true;
-					ImGui::PopID();
-				}
-				ImGui::Separator();
-			}
-			ImGui::PopID();
-		}
-
-		if (edit)
-		{
-			auto& morphes = edit_model->get_model_instance()->get_morphes();
-			morphes.clear();
-			for (UINT index = 0; index < static_cast<UINT>(edit_model->get_model_instance()->get_resource()->get_morphes().size()); ++index)
-			{
-				auto& morph = morphes.emplace_back();
-				morph.morph = &edit_model->get_model_instance()->get_resource()->get_morphes()[index];
-				morph.weight = 0;
-			}
-		}
+		ImGui::EndMenu();
 	}
-	ImGui::End();
 }
 
-void edit_model_system::imgui_render_material_window()
-{
-	if (ImGui::Begin(get_context().make_window_name("Material Window").c_str()))
-	{
-		auto& model_instance = *edit_model->get_model_instance();
-		auto& materials = model_instance.get_resource_for_editor()->get_materials_for_editor();
-		for (std::size_t index = 0; index < materials.size(); ++index)
-		{
-			auto& material = materials[index];
-			ImGui::PushID(static_cast<int>(index));
-			if (ImGui::TreeNode(system_utility::convert_utf8(material->get_name()).data()))
-			{
-				//	別のマテリアルリソースに差し替えたら、表示中のインスタンスも差し替える
-				if (editor_items::edit_material_slot(editor_context, material, material_resource::domains::surface) &&
-					index < model_instance.get_materials().size())
-				{
-					model_instance.get_materials()[index].set_resource(get_working_material(material));
-				}
-				//	編集するのは複製
-				if (auto working = get_working_material(material))
-					editor_items::edit_material(editor_context, *working);
-				ImGui::TreePop();
-			}
-			ImGui::PopID();
-		}
-	}
-	ImGui::End();
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////////
 void edit_model_system::imgui_model_loader_window()
 {
 #pragma region 読込みウィンドウ
@@ -270,8 +453,13 @@ void edit_model_system::imgui_model_loader_window()
 		}
 		else if (extension == std::filesystem::path(".gltf") || extension == std::filesystem::path(".glb"))
 		{
+			//	変換の設定はモーダルで聞く
+			const std::string popup_name = get_context().make_window_name("Convert Gltf Data");
+			if (convert_option_data.kind == convert_option_data::kinds::none && !ImGui::IsPopupOpen(popup_name.c_str()))
+				ImGui::OpenPopup(popup_name.c_str());
+
 			bool show_flag = !load_model_path.empty();
-			if (ImGui::Begin(get_context().make_window_name("Convert Gltf Data").c_str(), &show_flag))
+			if (ImGui::BeginPopupModal(popup_name.c_str(), &show_flag, ImGuiWindowFlags_AlwaysAutoResize))
 			{
 				ImGui::Checkbox("compute_tangent", &convert_option_data.gltf.is_compute_tangent);
 				ImGui::Checkbox("populate_vertex_color", &convert_option_data.gltf.is_populate_vertex_color);
@@ -289,9 +477,10 @@ void edit_model_system::imgui_model_loader_window()
 				if (ImGui::Button("Convert"))
 				{
 					convert_option_data.kind = convert_option_data::kinds::gltf;
+					ImGui::CloseCurrentPopup();
 				}
+				ImGui::EndPopup();
 			}
-			ImGui::End();
 			//	閉じられたらクリアしておく
 			if (!show_flag)
 			{
@@ -309,153 +498,6 @@ void edit_model_system::imgui_model_loader_window()
 		}
 	}
 #pragma endregion // 読込みウィンドウ
-
-	//	モデル読込み関係
-	{
-		ImGui::BeginDisabled(!load_model_path.empty());
-
-		//	モデル保存
-		if (edit_model)
-		{
-			ImGui::SameLine();
-			if (ImGui::Button("Save"))
-			{
-				save_model();
-			}
-		}
-
-		ImGui::EndDisabled();
-
-		//	LOD 生成
-		if (edit_model)
-		{
-			ImGui::Separator();
-			ImGui::Text("LOD");
-			ImGui::SliderInt("lod_level", &generate_lod_level, 1, 8);
-			if (ImGui::Button("Generate LOD"))
-			{
-				generate_lod();
-			}
-			ImGui::SameLine();
-			if (ImGui::Button("Discard LOD"))
-			{
-				discard_lod();
-			}
-
-			int lod_max = edit_model->get_model_instance()->get_lod_max();
-			if (lod_max > 0)
-			{
-				int lod_index = edit_model->get_model_instance()->get_lod_index();
-				if (ImGui::SliderInt("preview_lod", &lod_index, 0, lod_max))
-				{
-					edit_model->get_model_instance()->set_lod_index(lod_index);
-				}
-			}
-		}
-
-		if (edit_model)
-		{
-			ImGui::Separator();
-			ImGui::Text("Shadow Mesh");
-			if (ImGui::Button("Generate Shadow Mesh"))
-			{
-				generate_shadow_mesh_asset();
-			}
-			ImGui::SameLine();
-			if (ImGui::Button("Discard Shadow Mesh"))
-			{
-				discard_shadow_mesh();
-			}
-		}
-
-		if (edit_model)
-		{
-			ImGui::Separator();
-			ImGui::Text("Mesh");
-			if (ImGui::Button("Optimize Mesh"))
-			{
-				optimize_mesh_asset();
-			}
-			ImGui::SameLine();
-			if (ImGui::Button("Generate Meshlets"))
-			{
-				generate_meshlet_asset();
-			}
-			//	全頂点が白の頂点カラーを削除
-			if (ImGui::Button("Strip White Vertex Color"))
-			{
-				strip_white_vertex_color_asset();
-			}
-		}
-
-		//	スキンなしメッシュの空間グリッド結合
-		if (edit_model)
-		{
-			ImGui::Separator();
-			ImGui::Text("Combine Meshes");
-			ImGui::DragInt3("grid_divisions", &combine_grid_divisions.x, 0.1f, 1, 256);
-			combine_grid_divisions.x = std::max(1, combine_grid_divisions.x);
-			combine_grid_divisions.y = std::max(1, combine_grid_divisions.y);
-			combine_grid_divisions.z = std::max(1, combine_grid_divisions.z);
-			if (ImGui::Button("Combine Meshes"))
-			{
-				combine_meshes();
-			}
-			ImGui::SameLine();
-			ImGui::BeginDisabled(!has_combine_backup);
-			if (ImGui::Button("Clear Combine"))
-			{
-				clear_combined_meshes();
-			}
-			ImGui::EndDisabled();
-		}
-
-		//	当たり判定メッシュ生成
-		if (edit_model)
-		{
-			ImGui::Separator();
-			ImGui::Text("Bounding Mesh");
-			ImGui::Checkbox("cull_reverse_flag", &bounding_mesh_option.reverse_flag);
-			ImGui::Checkbox("use_lod", &bounding_mesh_option.use_lod);
-			if (bounding_mesh_option.use_lod)
-			{
-				int lod_max = edit_model->get_model_instance()->get_lod_max();
-				ImGui::BeginDisabled(lod_max <= 0);
-				ImGui::SliderInt("bm_lod_level", &bounding_mesh_option.lod_level, 0, lod_max > 0 ? lod_max - 1 : 0);
-				ImGui::EndDisabled();
-			}
-			ImGui::DragInt3("bm_combine_grid_divisions", &bounding_mesh_option.combine_grid_divisions.x, 0.1f, 1, 64);
-			if (ImGui::Button("Generate Bounding Mesh"))
-			{
-				generate_bounding_mesh_asset();
-			}
-		}
-
-		//	テクスチャの最大解像度制限
-		if (edit_model)
-		{
-			ImGui::Separator();
-			ImGui::Text("Texture Resolution");
-			ImGui::DragInt("texture_max_resolution", &texture_max_resolution, 16.0f, 4, 16384);
-			if (ImGui::Button("Limit Texture Resolution"))
-			{
-				limit_texture_resolution_asset();
-			}
-		}
-
-		//	cubic SDF生成
-		if (edit_model)
-		{
-			ImGui::Separator();
-			ImGui::Text("Cubic SDF");
-			ImGui::SliderInt("sdf_resolution", &cubic_sdf_option.resolution, 4, 128);
-			ImGui::SliderFloat("sdf_bounds_padding_rate", &cubic_sdf_option.bounds_padding_rate, 0.0f, 1.0f);
-			if (ImGui::Button("Generate Cubic SDF"))
-			{
-				generate_cubic_sdf_asset();
-			}
-		}
-	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -522,28 +564,24 @@ void edit_model_system::update_vertex_color_edit()
 
 void edit_model_system::imgui_render_vertex_color_edit()
 {
-	if (ImGui::Begin(get_context().make_window_name("Edit Vertex Color Window").c_str()))
+	if (ImGui::Button("Edit Vertex Color Mode"))
 	{
-		if (ImGui::Button("Edit Vertex Color Mode"))
-		{
-			is_edit_vertex_color = !is_edit_vertex_color;
-			if (vertex_color_edit_model)
-				vertex_color_edit_model->set_active(is_edit_vertex_color);
-		}
-		ImGui::SliderFloat("radius", &brush_data.radius, 0.01f, 10.0f);
-		ImGui::PushID("## vertex edit colors");
-		ImGui::Checkbox("shading threshold offset", reinterpret_cast<bool*>(&brush_data.color_flags.x));
-		ImGui::Checkbox("outline depth expansion factor", reinterpret_cast<bool*>(&brush_data.color_flags.y));
-		ImGui::Checkbox("outline depth offet", reinterpret_cast<bool*>(&brush_data.color_flags.z));
-		ImGui::Checkbox("outline scale factor", reinterpret_cast<bool*>(&brush_data.color_flags.w));
-		ImGui::PopID();
-
-		ImGui::SliderFloat("shading threshold offset", &brush_data.color.x, 0.0f, 1.0f);
-		ImGui::SliderFloat("outline depth expansion factor", &brush_data.color.y, 0.0f, 1.0f);
-		ImGui::SliderFloat("outline depth offet", &brush_data.color.z, 0.0f, 1.0f);
-		ImGui::SliderFloat("outline scale factor", &brush_data.color.w, 0.0f, 1.0f);
+		is_edit_vertex_color = !is_edit_vertex_color;
+		if (vertex_color_edit_model)
+			vertex_color_edit_model->set_active(is_edit_vertex_color);
 	}
-	ImGui::End();
+	ImGui::SliderFloat("radius", &brush_data.radius, 0.01f, 10.0f);
+	ImGui::PushID("## vertex edit colors");
+	ImGui::Checkbox("shading threshold offset", reinterpret_cast<bool*>(&brush_data.color_flags.x));
+	ImGui::Checkbox("outline depth expansion factor", reinterpret_cast<bool*>(&brush_data.color_flags.y));
+	ImGui::Checkbox("outline depth offet", reinterpret_cast<bool*>(&brush_data.color_flags.z));
+	ImGui::Checkbox("outline scale factor", reinterpret_cast<bool*>(&brush_data.color_flags.w));
+	ImGui::PopID();
+
+	ImGui::SliderFloat("shading threshold offset", &brush_data.color.x, 0.0f, 1.0f);
+	ImGui::SliderFloat("outline depth expansion factor", &brush_data.color.y, 0.0f, 1.0f);
+	ImGui::SliderFloat("outline depth offet", &brush_data.color.z, 0.0f, 1.0f);
+	ImGui::SliderFloat("outline scale factor", &brush_data.color.w, 0.0f, 1.0f);
 }
 
 void edit_model_system::on_mouse_left_down_and_hold(void* data_ptr)
@@ -791,6 +829,58 @@ void edit_model_system::on_model_setup()
 		vector.push_back(profile);
 		retarget_data.profiles.insert(std::make_pair(file_path, vector));
 	}
+
+	//	最初はモデル全体が映るようにする
+	focus_camera_on_model();
+}
+
+void edit_model_system::focus_camera_on_model()
+{
+	if (!edit_model || !editor_camera)
+		return;
+
+	//	各メッシュの境界の角をノードの姿勢で動かして、モデル全体の範囲を求める
+	auto instance = edit_model->get_model_instance();
+	const auto& nodes = instance->get_nodes();
+	math::float3 bounds_min = { +FLT_MAX, +FLT_MAX, +FLT_MAX };
+	math::float3 bounds_max = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
+	for (auto& instance_mesh : instance->get_meshes())
+	{
+		const auto& mesh = *instance_mesh.mesh;
+		if (mesh.node_index >= nodes.size())
+			continue;
+
+		const math::matrixf transform(nodes[mesh.node_index].global_transform);
+		for (int corner = 0; corner < 8; ++corner)
+		{
+			const math::float3 local(
+				(corner & 1) ? mesh.bounds_max.x : mesh.bounds_min.x,
+				(corner & 2) ? mesh.bounds_max.y : mesh.bounds_min.y,
+				(corner & 4) ? mesh.bounds_max.z : mesh.bounds_min.z);
+			const math::float3 point = math::vector3f::transform_coord(local, transform).to_float3();
+			bounds_min = { std::min(bounds_min.x, point.x), std::min(bounds_min.y, point.y), std::min(bounds_min.z, point.z) };
+			bounds_max = { std::max(bounds_max.x, point.x), std::max(bounds_max.y, point.y), std::max(bounds_max.z, point.z) };
+		}
+	}
+	if (bounds_min.x > bounds_max.x)
+		return;
+
+	const math::float3 center = { (bounds_min.x + bounds_max.x) * 0.5f, (bounds_min.y + bounds_max.y) * 0.5f, (bounds_min.z + bounds_max.z) * 0.5f };
+	const math::float3 extent = { bounds_max.x - bounds_min.x, bounds_max.y - bounds_min.y, bounds_max.z - bounds_min.z };
+	const float radius = std::max(0.5f * std::sqrt(extent.x * extent.x + extent.y * extent.y + extent.z * extent.z), 1.0f);
+
+	//	範囲を囲む球が縦横どちらの画角にも収まる距離
+	const float fov_y = main_camera ? main_camera->get_camera()->get_parameters().fov_y : math::angle::to_radian(30.0f);
+	const math::float4& viewport_rect = get_context().get_viewport_rect();
+	const float aspect = (viewport_rect.z > 0.0f && viewport_rect.w > 0.0f) ? viewport_rect.z / viewport_rect.w : 16.0f / 9.0f;
+	const float fov_x = 2.0f * std::atan(std::tan(fov_y * 0.5f) * aspect);
+	const float distance = radius / std::sin(std::min(fov_y, fov_x) * 0.5f);
+
+	//	正面(+Z 側)から原点向きに見る
+	const math::rotatorf rotation(0, math::constants<float>::pi, 0);
+	const math::float3 front = rotation.front().to_float3();
+	editor_camera->set_rotation(rotation);
+	editor_camera->set_position(math::vector3d(center.x - front.x * distance, center.y - front.y * distance, center.z - front.z * distance));
 }
 
 #endif	//	defined(USE_IMGUI)

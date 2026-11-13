@@ -248,9 +248,7 @@ void edit_model_system::update_core(float elapsed_time)
 void edit_model_system::imgui_render_core()
 {
 	//	ロードウィンドウ
-	if (ImGui::Begin(get_context().make_window_name("Model").c_str()))
-		imgui_model_loader_window();
-	ImGui::End();
+	imgui_model_loader_window();
 
 	//	エディターウィンドウ関連
 	imgui_render_edit_core();

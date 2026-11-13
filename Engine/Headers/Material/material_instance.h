@@ -49,7 +49,10 @@ public:
 	material_instance(material_instance&& other);
 	~material_instance();
 
+	//	リソースと同期
 	void sync_from_resource();
+
+	//	定数バッファを転送リストに積む
 	void flush_constant_buffers(gpu_upload_list& upload_list);
 
 	//	インスタンス側で情報を上書きしたか
@@ -60,9 +63,13 @@ public:
 	void reset_texture(std::string_view key_name);
 	void clear_overrides();
 
+	//	定数バッファ検索
 	const material_resource::constant_buffer* find_constant_buffer(const std::string& name) const;
 
+	//	テクスチャ数取得
 	std::size_t get_texture_count(const std::string& name) const;
+
+	//	テクスチャ検索
 	texture_ptr find_texture(const std::string& name, std::size_t index) const;
 
 public:

@@ -184,6 +184,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Sources\Animation\animation_resource.cpp" />
+    <ClCompile Include="Sources\Graphics\UI\ui_material_cache.cpp" />
     <ClCompile Include="Sources\Graphics\View\camera.cpp" />
     <ClCompile Include="Sources\CoordinateSystem\hierarchy.cpp" />
     <ClCompile Include="Sources\CoordinateSystem\spatial.cpp" />

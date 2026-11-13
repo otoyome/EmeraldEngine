@@ -965,6 +965,9 @@
     <ClCompile Include="Sources\stdafx_engine.cpp">
       <Filter>Sources</Filter>
     </ClCompile>
+    <ClCompile Include="Sources\Graphics\UI\ui_material_cache.cpp">
+      <Filter>Sources\Graphics\UI</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="EngineShader\ClusteredLighting\clustered_lighting_assign_cs.hlsl">
