@@ -4,7 +4,7 @@
 #include "editor/editor_camera.h"
 
 #include "Model/model_instance.h"
-#include "Graphics/camera.h"
+#include "Graphics/View/camera.h"
 #include "Effect/effect_instance.h"
 
 #include "Collision/cubic_sdf.h"

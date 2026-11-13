@@ -1,5 +1,5 @@
 #include "SceneSystems/Test/collision_test_system.h"
-#include "Graphics/camera.h"
+#include "Graphics/View/camera.h"
 
 #include "cereal/cereal.hpp"
 #include "cereal/archives/json.hpp"

@@ -4,7 +4,7 @@
 
 #if defined(USE_IMGUI)
 #include "Editor/editor_camera.h"
-#include "Graphics/light.h"
+#include "Graphics/Lighting/light.h"
 
 #include <vector>
 

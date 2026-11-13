@@ -8,7 +8,7 @@
 
 #include "Model/model_instance.h"
 #include "Resource/resource_manager.h"
-#include "Graphics/camera.h"
+#include "Graphics/View/camera.h"
 
 #include "object/light_object.h"
 

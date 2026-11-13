@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Graphics/common_pipeline_states.h"
+#include "Graphics/Pipeline/common_pipeline_states.h"
 
 //	ディスプレイマッピング(描画色域の放射輝度 > ディスプレイの信号)
 class display_mapping_pipeline_state : public graphics_pipeline_state

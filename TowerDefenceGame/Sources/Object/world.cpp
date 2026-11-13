@@ -6,7 +6,7 @@
 #include "Object/post_process_volume_object.h"
 #include "Scenes/scene_manager.h"
 #include "Effect/effect_instance.h"
-#include "Graphics/debug_primitive_collector.h"
+#include "Graphics/Debug/debug_primitive_collector.h"
 
 world::world()
 : context(*this)

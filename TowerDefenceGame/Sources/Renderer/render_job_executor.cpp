@@ -3,7 +3,7 @@
 
 #include "Editor/detail_profiler.h"
 #include "Renderer/renderer_context.h"
-#include "graphics/clustered_lighting_system.h"
+#include "Graphics/Lighting/clustered_lighting_system.h"
 
 #if defined(USE_IMGUI)
 #include "imgui.h"

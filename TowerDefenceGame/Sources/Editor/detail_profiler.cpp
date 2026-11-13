@@ -3,7 +3,7 @@
 #if defined(USE_IMGUI)
 #include "Object/game_object.h"
 #include "Texture/texture_tracker.h"
-#include "Graphics/graphics_utility.h"
+#include "Graphics/Core/graphics_utility.h"
 #include "System/imgui_texture_keeper.h"
 
 namespace

@@ -12,7 +12,7 @@ extern ImWchar glyphRangesJapanese[];
 
 #include "imtimeline/ImTimeline.h"
 
-#include "Graphics/render_pass.h"
+#include "Graphics/Core/render_pass.h"
 #include "Editor/editor_items.h"
 
 

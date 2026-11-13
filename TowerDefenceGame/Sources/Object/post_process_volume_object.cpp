@@ -3,7 +3,7 @@
 #include "implot/implot.h"
 
 #if defined(USE_IMGUI)
-#include "Graphics/debug_primitive_collector.h"
+#include "Graphics/Debug/debug_primitive_collector.h"
 #include "Object/engine_context.h"
 #endif	//	defined(USE_IMGUI)
 

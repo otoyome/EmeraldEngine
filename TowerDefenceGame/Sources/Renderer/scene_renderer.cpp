@@ -1,15 +1,15 @@
 #include "Renderer/scene_renderer.h"
-#include "Graphics/global_shader.h"
+#include "Graphics/Pipeline/global_shader.h"
 
 #include "Model/model_instance.h"
 
-#include "Graphics/custom_pipeline_state.h"
+#include "Graphics/Pipeline/custom_pipeline_state.h"
 #include "PipelineState/skybox_pipeline_state.h"
 #include "PipelineState/fullscreen_quad_pipeline_state.h"
 #include "PipelineState/debug_draw_line_pipeline_state.h"
 #include "PipelineState/post_process_pipeline_state.h"
 
-#include "graphics/clustered_lighting_system.h"
+#include "Graphics/Lighting/clustered_lighting_system.h"
 
 namespace
 {
@@ -31,8 +31,8 @@ namespace
 
 #include "Renderer/scene_renderer_common.h"
 #include "Renderer/scene_renderer_display.h"
-#include "Graphics/color_space.h"
-#include "Graphics/light_utility.h"
+#include "Graphics/Core/color_space.h"
+#include "Graphics/Lighting/light_utility.h"
 #include "System/engine_config_data.h"
 
 #include <cmath>

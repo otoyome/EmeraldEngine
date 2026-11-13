@@ -33,7 +33,7 @@ enum class object_profile_function
 
 #if defined(USE_IMGUI)
 #include "System/cpu_timer.h"
-#include "Graphics/gpu_timer.h"
+#include "Graphics/Debug/gpu_timer.h"
 #include "System/universally_unique_identifier.h"
 
 class game_object;

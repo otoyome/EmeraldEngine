@@ -1,6 +1,6 @@
 #include "Model/model_buffer_pool.h"
-#include "Graphics/render_data.h"
-#include "Graphics/common_pipeline_states.h"
+#include "Graphics/Core/render_data.h"
+#include "Graphics/Pipeline/common_pipeline_states.h"
 
 #include <iterator>
 

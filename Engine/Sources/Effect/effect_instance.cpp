@@ -4,7 +4,7 @@
 #include <unordered_map>
 
 #if defined(USE_IMGUI)
-#include "Graphics/debug_primitive_collector.h"
+#include "Graphics/Debug/debug_primitive_collector.h"
 #endif	//	defined(USE_IMGUI)
 
 namespace

@@ -1,8 +1,8 @@
 #include <cmath>
 
 #include "Effect/effect_resource.h"
-#include "Graphics/graphics_utility.h"
-#include "Graphics/render_data.h"
+#include "Graphics/Core/graphics_utility.h"
+#include "Graphics/Core/render_data.h"
 #include "Texture/texture.h"
 
 #include "cereal/cereal.hpp"

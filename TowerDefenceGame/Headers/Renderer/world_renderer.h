@@ -6,10 +6,10 @@
 #include <vector>
 
 #include "system/parallel_for_executor.h"
-#include "Graphics/render_pass.h"
-#include "Graphics/camera.h"
-#include "graphics/scene_view.h"
-#include "graphics/scene_view_state.h"
+#include "Graphics/Core/render_pass.h"
+#include "Graphics/View/camera.h"
+#include "Graphics/View/scene_view.h"
+#include "Graphics/View/scene_view_state.h"
 #include "Renderer/renderer.h"
 #include "Renderer/scene_render_targets.h"
 #include "Renderer/debug_view_settings.h"

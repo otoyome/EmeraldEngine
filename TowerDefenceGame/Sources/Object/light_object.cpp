@@ -3,8 +3,8 @@
 
 #include <algorithm>
 
-#include "Graphics/color_space.h"
-#include "Graphics/light_utility.h"
+#include "Graphics/Core/color_space.h"
+#include "Graphics/Lighting/light_utility.h"
 #include "Texture/texture_resource_utility.h"
 #include "Object/game_object_serializer.h"
 

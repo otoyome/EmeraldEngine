@@ -6,7 +6,7 @@
 #include <magic_enum.hpp>
 
 #include "system/cache_string.h"
-#include "Graphics/color_space.h"
+#include "Graphics/Core/color_space.h"
 
 namespace ImGui
 {

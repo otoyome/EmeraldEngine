@@ -6,7 +6,7 @@
 #include "Editor/editor_host.h"
 #include "Editor/editor_items.h"
 #include "Editor/detail_profiler.h"
-#include "Graphics/debug_primitive_collector.h"
+#include "Graphics/Debug/debug_primitive_collector.h"
 #include "System/editor_config_data.h"
 
 bool editor_process::enter()

@@ -1,7 +1,7 @@
 #include "Model/data_converter.h"
 
-#include "Graphics/graphics_utility.h"
-#include "Graphics/render_data.h"
+#include "Graphics/Core/graphics_utility.h"
+#include "Graphics/Core/render_data.h"
 #include "Texture/texture.h"
 
 #include "Animation/animation_data_version.h"

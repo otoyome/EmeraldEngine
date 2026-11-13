@@ -1,14 +1,14 @@
 #include "Renderer/world_renderer.h"
 #include "Texture/texture_factory.h"
-#include "Graphics/render_data.h"
+#include "Graphics/Core/render_data.h"
 
 #include <algorithm>
 
 #include "Model/model_buffer_pool.h"
 #include "Model/model_instance.h"
 #include "Effect/effect_instance.h"
-#include "graphics/occlusion_culling_system.h"
-#include "graphics/clustered_lighting_system.h"
+#include "Graphics/Culling/occlusion_culling_system.h"
+#include "Graphics/Lighting/clustered_lighting_system.h"
 
 #include "Renderer/scene_renderer.h"
 #include "Renderer/scene_renderer_forward.h"
@@ -26,7 +26,7 @@
 #include "Editor/detail_profiler.h"
 
 #if defined(USE_IMGUI)
-#include "Graphics/debug_primitive_collector.h"
+#include "Graphics/Debug/debug_primitive_collector.h"
 #endif // defined(USE_IMGUI)
 
 namespace

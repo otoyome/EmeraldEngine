@@ -8,14 +8,14 @@
 #include <filesystem>
 
 #include "Model/model_instance.h"
-#include "Graphics/camera.h"
+#include "Graphics/View/camera.h"
 
 #include "object/light_object.h"
 #include "object/model_object.h"
 #include "object/post_process_volume_object.h"
 #include "object/object_manager.h"
 
-#include "Graphics/custom_pipeline_state.h"
+#include "Graphics/Pipeline/custom_pipeline_state.h"
 
 #include "Editor/editor_camera.h"
 

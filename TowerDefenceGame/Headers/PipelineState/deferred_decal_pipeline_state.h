@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Graphics/common_pipeline_states.h"
+#include "Graphics/Pipeline/common_pipeline_states.h"
 
 namespace decal_material_parameter_name
 {

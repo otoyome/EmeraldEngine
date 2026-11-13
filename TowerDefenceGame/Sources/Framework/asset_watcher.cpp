@@ -1,6 +1,6 @@
 #include "Framework/asset_watcher.h"
 
-#include "Graphics/shader.h"
+#include "Graphics/Pipeline/shader.h"
 #include "Editor/detail_profiler.h"
 
 asset_watcher::asset_watcher()

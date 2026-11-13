@@ -1,7 +1,7 @@
 #pragma once
 
 #include "object/gameobjects/ui/ui_object.h"
-#include "Graphics/font_data.h"
+#include "Graphics/UI/font_data.h"
 
 //	UI制御用オブジェクト
 class ui_text : public ui_objects

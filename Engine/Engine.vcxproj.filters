@@ -124,6 +124,66 @@
     <Filter Include="Headers\Graphics">
       <UniqueIdentifier>{9eaa5a3c-3c5b-4da9-b65b-384a6f4bb771}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Headers\Graphics\Core">
+      <UniqueIdentifier>{c2deb968-34e6-4fad-9184-5957b7256207}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Headers\Graphics\Pipeline">
+      <UniqueIdentifier>{c629b087-ba3b-4b61-8c31-8a9b1f31c935}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Headers\Graphics\View">
+      <UniqueIdentifier>{094ad582-ad08-4d2f-b840-9f16927ebc89}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Headers\Graphics\Lighting">
+      <UniqueIdentifier>{6e5fb2fe-3e1f-43dc-8249-2d808d7e85c5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Headers\Graphics\Geometry">
+      <UniqueIdentifier>{e5e01373-8c4a-4ada-a60a-522af2afb480}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Headers\Graphics\Culling">
+      <UniqueIdentifier>{8d216071-c24d-4c57-8aea-3b65ffc20027}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Headers\Graphics\Particle">
+      <UniqueIdentifier>{90017fb8-1659-457a-9e8c-72fae92f05d2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Headers\Graphics\UI">
+      <UniqueIdentifier>{ab0b8065-2206-44cd-b3f8-e6494f0a0043}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Headers\Graphics\Debug">
+      <UniqueIdentifier>{85db7f2b-e5e3-4bba-aa88-5a44beb5f9c0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Headers\Graphics\Compute">
+      <UniqueIdentifier>{3332456b-3e63-43d5-8334-6a9624fecd46}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Sources\Graphics\Core">
+      <UniqueIdentifier>{1d2da94e-927f-4cf9-8493-d07bfabdebbb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Sources\Graphics\Pipeline">
+      <UniqueIdentifier>{82c7f30e-60c5-4f4b-ba35-4de6e40232de}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Sources\Graphics\View">
+      <UniqueIdentifier>{5e6ce5da-5840-420c-a542-306e44f7d621}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Sources\Graphics\Lighting">
+      <UniqueIdentifier>{f0840a88-51d6-475e-85eb-87b8afba4a2b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Sources\Graphics\Geometry">
+      <UniqueIdentifier>{49691021-9a37-4c63-ae67-1edbaefcd9cb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Sources\Graphics\Culling">
+      <UniqueIdentifier>{1c488b2d-4b22-4b83-8e9f-42f7e529df8a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Sources\Graphics\Particle">
+      <UniqueIdentifier>{32f4000f-a16f-4aae-b001-a49a01f16737}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Sources\Graphics\UI">
+      <UniqueIdentifier>{391be878-85f9-4274-88c4-8410e8c2b6d8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Sources\Graphics\Debug">
+      <UniqueIdentifier>{da32819a-dd1a-48b6-b5d3-7dee9dc8d17a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Sources\Graphics\Compute">
+      <UniqueIdentifier>{b6ef4b13-89e0-450f-bb3f-7237d86ed022}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Headers\Input">
       <UniqueIdentifier>{cdce47c4-dae5-4060-b42a-5fadccabf110}</UniqueIdentifier>
     </Filter>
@@ -231,122 +291,122 @@
     <ClInclude Include="Headers\Effect\effect_resource.h">
       <Filter>Headers\Effect</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Graphics\buffer_view.h">
-      <Filter>Headers\Graphics</Filter>
+    <ClInclude Include="Headers\Graphics\Core\buffer_view.h">
+      <Filter>Headers\Graphics\Core</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Graphics\mesh_draw_item.h">
-      <Filter>Headers\Graphics</Filter>
+    <ClInclude Include="Headers\Graphics\Geometry\mesh_draw_item.h">
+      <Filter>Headers\Graphics\Geometry</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Graphics\camera.h">
-      <Filter>Headers\Graphics</Filter>
+    <ClInclude Include="Headers\Graphics\View\camera.h">
+      <Filter>Headers\Graphics\View</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Graphics\clustered_lighting_system.h">
-      <Filter>Headers\Graphics</Filter>
+    <ClInclude Include="Headers\Graphics\Lighting\clustered_lighting_system.h">
+      <Filter>Headers\Graphics\Lighting</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Graphics\color_space.h">
-      <Filter>Headers\Graphics</Filter>
+    <ClInclude Include="Headers\Graphics\Core\color_space.h">
+      <Filter>Headers\Graphics\Core</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Graphics\common_pipeline_states.h">
-      <Filter>Headers\Graphics</Filter>
+    <ClInclude Include="Headers\Graphics\Pipeline\common_pipeline_states.h">
+      <Filter>Headers\Graphics\Pipeline</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Graphics\compute_particle_system.h">
-      <Filter>Headers\Graphics</Filter>
+    <ClInclude Include="Headers\Graphics\Particle\compute_particle_system.h">
+      <Filter>Headers\Graphics\Particle</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Graphics\cubic_sdf_buffer_pool.h">
-      <Filter>Headers\Graphics</Filter>
+    <ClInclude Include="Headers\Graphics\Geometry\cubic_sdf_buffer_pool.h">
+      <Filter>Headers\Graphics\Geometry</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Graphics\custom_pipeline_state.h">
-      <Filter>Headers\Graphics</Filter>
+    <ClInclude Include="Headers\Graphics\Pipeline\custom_pipeline_state.h">
+      <Filter>Headers\Graphics\Pipeline</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Graphics\debug_primitive_collector.h">
-      <Filter>Headers\Graphics</Filter>
+    <ClInclude Include="Headers\Graphics\Debug\debug_primitive_collector.h">
+      <Filter>Headers\Graphics\Debug</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Graphics\direct_x_helper.h">
-      <Filter>Headers\Graphics</Filter>
+    <ClInclude Include="Headers\Graphics\Core\direct_x_helper.h">
+      <Filter>Headers\Graphics\Core</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Graphics\exposure_controller.h">
-      <Filter>Headers\Graphics</Filter>
+    <ClInclude Include="Headers\Graphics\View\exposure_controller.h">
+      <Filter>Headers\Graphics\View</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Graphics\fast_fourier_transform.h">
-      <Filter>Headers\Graphics</Filter>
+    <ClInclude Include="Headers\Graphics\Compute\fast_fourier_transform.h">
+      <Filter>Headers\Graphics\Compute</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Graphics\font_data.h">
-      <Filter>Headers\Graphics</Filter>
+    <ClInclude Include="Headers\Graphics\UI\font_data.h">
+      <Filter>Headers\Graphics\UI</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Graphics\geometric_primitive.h">
-      <Filter>Headers\Graphics</Filter>
+    <ClInclude Include="Headers\Graphics\Geometry\geometric_primitive.h">
+      <Filter>Headers\Graphics\Geometry</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Graphics\gpu_readback_queue.h">
-      <Filter>Headers\Graphics</Filter>
+    <ClInclude Include="Headers\Graphics\Core\gpu_readback_queue.h">
+      <Filter>Headers\Graphics\Core</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Graphics\gpu_timer.h">
-      <Filter>Headers\Graphics</Filter>
+    <ClInclude Include="Headers\Graphics\Debug\gpu_timer.h">
+      <Filter>Headers\Graphics\Debug</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Graphics\gpu_upload_list.h">
-      <Filter>Headers\Graphics</Filter>
+    <ClInclude Include="Headers\Graphics\Core\gpu_upload_list.h">
+      <Filter>Headers\Graphics\Core</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Graphics\graphics_context.h">
-      <Filter>Headers\Graphics</Filter>
+    <ClInclude Include="Headers\Graphics\Core\graphics_context.h">
+      <Filter>Headers\Graphics\Core</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Graphics\graphics_utility.h">
-      <Filter>Headers\Graphics</Filter>
+    <ClInclude Include="Headers\Graphics\Core\graphics_utility.h">
+      <Filter>Headers\Graphics\Core</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Graphics\hiz_buffer.h">
-      <Filter>Headers\Graphics</Filter>
+    <ClInclude Include="Headers\Graphics\Culling\hiz_buffer.h">
+      <Filter>Headers\Graphics\Culling</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Graphics\light.h">
-      <Filter>Headers\Graphics</Filter>
+    <ClInclude Include="Headers\Graphics\Lighting\light.h">
+      <Filter>Headers\Graphics\Lighting</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Graphics\light_data.h">
-      <Filter>Headers\Graphics</Filter>
+    <ClInclude Include="Headers\Graphics\Lighting\light_data.h">
+      <Filter>Headers\Graphics\Lighting</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Graphics\light_utility.h">
-      <Filter>Headers\Graphics</Filter>
+    <ClInclude Include="Headers\Graphics\Lighting\light_utility.h">
+      <Filter>Headers\Graphics\Lighting</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Graphics\meshlet_culling_system.h">
-      <Filter>Headers\Graphics</Filter>
+    <ClInclude Include="Headers\Graphics\Culling\meshlet_culling_system.h">
+      <Filter>Headers\Graphics\Culling</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Graphics\occlusion_culling_system.h">
-      <Filter>Headers\Graphics</Filter>
+    <ClInclude Include="Headers\Graphics\Culling\occlusion_culling_system.h">
+      <Filter>Headers\Graphics\Culling</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Graphics\particle_resource.h">
-      <Filter>Headers\Graphics</Filter>
+    <ClInclude Include="Headers\Graphics\Particle\particle_resource.h">
+      <Filter>Headers\Graphics\Particle</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Graphics\pipeline_state.h">
-      <Filter>Headers\Graphics</Filter>
+    <ClInclude Include="Headers\Graphics\Pipeline\pipeline_state.h">
+      <Filter>Headers\Graphics\Pipeline</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Graphics\post_process_volume.h">
-      <Filter>Headers\Graphics</Filter>
+    <ClInclude Include="Headers\Graphics\View\post_process_volume.h">
+      <Filter>Headers\Graphics\View</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Graphics\render_data.h">
-      <Filter>Headers\Graphics</Filter>
+    <ClInclude Include="Headers\Graphics\Core\render_data.h">
+      <Filter>Headers\Graphics\Core</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Graphics\render_pass.h">
-      <Filter>Headers\Graphics</Filter>
+    <ClInclude Include="Headers\Graphics\Core\render_pass.h">
+      <Filter>Headers\Graphics\Core</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Graphics\render_state_cache.h">
-      <Filter>Headers\Graphics</Filter>
+    <ClInclude Include="Headers\Graphics\Core\render_state_cache.h">
+      <Filter>Headers\Graphics\Core</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Graphics\scene_view.h">
-      <Filter>Headers\Graphics</Filter>
+    <ClInclude Include="Headers\Graphics\View\scene_view.h">
+      <Filter>Headers\Graphics\View</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Graphics\scene_view_state.h">
-      <Filter>Headers\Graphics</Filter>
+    <ClInclude Include="Headers\Graphics\View\scene_view_state.h">
+      <Filter>Headers\Graphics\View</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Graphics\shader.h">
-      <Filter>Headers\Graphics</Filter>
+    <ClInclude Include="Headers\Graphics\Pipeline\shader.h">
+      <Filter>Headers\Graphics\Pipeline</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Graphics\global_shader.h">
-      <Filter>Headers\Graphics</Filter>
+    <ClInclude Include="Headers\Graphics\Pipeline\global_shader.h">
+      <Filter>Headers\Graphics\Pipeline</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Graphics\shadow_atlas.h">
-      <Filter>Headers\Graphics</Filter>
+    <ClInclude Include="Headers\Graphics\Lighting\shadow_atlas.h">
+      <Filter>Headers\Graphics\Lighting</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Graphics\sprite.h">
-      <Filter>Headers\Graphics</Filter>
+    <ClInclude Include="Headers\Graphics\UI\sprite.h">
+      <Filter>Headers\Graphics\UI</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Graphics\view_parameters.h">
-      <Filter>Headers\Graphics</Filter>
+    <ClInclude Include="Headers\Graphics\View\view_parameters.h">
+      <Filter>Headers\Graphics\View</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Input\gamepad.h">
       <Filter>Headers\Input</Filter>
@@ -576,11 +636,11 @@
     <ClInclude Include="Headers\stdafx_engine.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Graphics\ui_draw_data.h">
-      <Filter>Headers\Graphics</Filter>
+    <ClInclude Include="Headers\Graphics\UI\ui_draw_data.h">
+      <Filter>Headers\Graphics\UI</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Graphics\ui_material_cache.h">
-      <Filter>Headers\Graphics</Filter>
+    <ClInclude Include="Headers\Graphics\UI\ui_material_cache.h">
+      <Filter>Headers\Graphics\UI</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -623,104 +683,104 @@
     <ClCompile Include="Sources\Effect\effect_resource.cpp">
       <Filter>Sources\Effect</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Graphics\camera.cpp">
-      <Filter>Sources\Graphics</Filter>
+    <ClCompile Include="Sources\Graphics\View\camera.cpp">
+      <Filter>Sources\Graphics\View</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Graphics\clustered_lighting_system.cpp">
-      <Filter>Sources\Graphics</Filter>
+    <ClCompile Include="Sources\Graphics\Lighting\clustered_lighting_system.cpp">
+      <Filter>Sources\Graphics\Lighting</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Graphics\color_space.cpp">
-      <Filter>Sources\Graphics</Filter>
+    <ClCompile Include="Sources\Graphics\Core\color_space.cpp">
+      <Filter>Sources\Graphics\Core</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Graphics\compute_particle_system.cpp">
-      <Filter>Sources\Graphics</Filter>
+    <ClCompile Include="Sources\Graphics\Particle\compute_particle_system.cpp">
+      <Filter>Sources\Graphics\Particle</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Graphics\cubic_sdf_buffer_pool.cpp">
-      <Filter>Sources\Graphics</Filter>
+    <ClCompile Include="Sources\Graphics\Geometry\cubic_sdf_buffer_pool.cpp">
+      <Filter>Sources\Graphics\Geometry</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Graphics\custom_pipeline_state.cpp">
-      <Filter>Sources\Graphics</Filter>
+    <ClCompile Include="Sources\Graphics\Pipeline\custom_pipeline_state.cpp">
+      <Filter>Sources\Graphics\Pipeline</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Graphics\debug_primitive_collector.cpp">
-      <Filter>Sources\Graphics</Filter>
+    <ClCompile Include="Sources\Graphics\Debug\debug_primitive_collector.cpp">
+      <Filter>Sources\Graphics\Debug</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Graphics\exposure_controller.cpp">
-      <Filter>Sources\Graphics</Filter>
+    <ClCompile Include="Sources\Graphics\View\exposure_controller.cpp">
+      <Filter>Sources\Graphics\View</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Graphics\fast_fourier_transform.cpp">
-      <Filter>Sources\Graphics</Filter>
+    <ClCompile Include="Sources\Graphics\Compute\fast_fourier_transform.cpp">
+      <Filter>Sources\Graphics\Compute</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Graphics\font_data.cpp">
-      <Filter>Sources\Graphics</Filter>
+    <ClCompile Include="Sources\Graphics\UI\font_data.cpp">
+      <Filter>Sources\Graphics\UI</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Graphics\geometric_primitive.cpp">
-      <Filter>Sources\Graphics</Filter>
+    <ClCompile Include="Sources\Graphics\Geometry\geometric_primitive.cpp">
+      <Filter>Sources\Graphics\Geometry</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Graphics\gpu_readback_queue.cpp">
-      <Filter>Sources\Graphics</Filter>
+    <ClCompile Include="Sources\Graphics\Core\gpu_readback_queue.cpp">
+      <Filter>Sources\Graphics\Core</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Graphics\gpu_timer.cpp">
-      <Filter>Sources\Graphics</Filter>
+    <ClCompile Include="Sources\Graphics\Debug\gpu_timer.cpp">
+      <Filter>Sources\Graphics\Debug</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Graphics\gpu_upload_list.cpp">
-      <Filter>Sources\Graphics</Filter>
+    <ClCompile Include="Sources\Graphics\Core\gpu_upload_list.cpp">
+      <Filter>Sources\Graphics\Core</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Graphics\graphics_context.cpp">
-      <Filter>Sources\Graphics</Filter>
+    <ClCompile Include="Sources\Graphics\Core\graphics_context.cpp">
+      <Filter>Sources\Graphics\Core</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Graphics\hiz_buffer.cpp">
-      <Filter>Sources\Graphics</Filter>
+    <ClCompile Include="Sources\Graphics\Culling\hiz_buffer.cpp">
+      <Filter>Sources\Graphics\Culling</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Graphics\light.cpp">
-      <Filter>Sources\Graphics</Filter>
+    <ClCompile Include="Sources\Graphics\Lighting\light.cpp">
+      <Filter>Sources\Graphics\Lighting</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Graphics\light_data.cpp">
-      <Filter>Sources\Graphics</Filter>
+    <ClCompile Include="Sources\Graphics\Lighting\light_data.cpp">
+      <Filter>Sources\Graphics\Lighting</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Graphics\light_utility.cpp">
-      <Filter>Sources\Graphics</Filter>
+    <ClCompile Include="Sources\Graphics\Lighting\light_utility.cpp">
+      <Filter>Sources\Graphics\Lighting</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Graphics\meshlet_culling_system.cpp">
-      <Filter>Sources\Graphics</Filter>
+    <ClCompile Include="Sources\Graphics\Culling\meshlet_culling_system.cpp">
+      <Filter>Sources\Graphics\Culling</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Graphics\occlusion_culling_system.cpp">
-      <Filter>Sources\Graphics</Filter>
+    <ClCompile Include="Sources\Graphics\Culling\occlusion_culling_system.cpp">
+      <Filter>Sources\Graphics\Culling</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Graphics\particle_resource.cpp">
-      <Filter>Sources\Graphics</Filter>
+    <ClCompile Include="Sources\Graphics\Particle\particle_resource.cpp">
+      <Filter>Sources\Graphics\Particle</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Graphics\pipeline_state.cpp">
-      <Filter>Sources\Graphics</Filter>
+    <ClCompile Include="Sources\Graphics\Pipeline\pipeline_state.cpp">
+      <Filter>Sources\Graphics\Pipeline</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Graphics\post_process_volume.cpp">
-      <Filter>Sources\Graphics</Filter>
+    <ClCompile Include="Sources\Graphics\View\post_process_volume.cpp">
+      <Filter>Sources\Graphics\View</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Graphics\render_data.cpp">
-      <Filter>Sources\Graphics</Filter>
+    <ClCompile Include="Sources\Graphics\Core\render_data.cpp">
+      <Filter>Sources\Graphics\Core</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Graphics\render_pass.cpp">
-      <Filter>Sources\Graphics</Filter>
+    <ClCompile Include="Sources\Graphics\Core\render_pass.cpp">
+      <Filter>Sources\Graphics\Core</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Graphics\render_state_cache.cpp">
-      <Filter>Sources\Graphics</Filter>
+    <ClCompile Include="Sources\Graphics\Core\render_state_cache.cpp">
+      <Filter>Sources\Graphics\Core</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Graphics\scene_view.cpp">
-      <Filter>Sources\Graphics</Filter>
+    <ClCompile Include="Sources\Graphics\View\scene_view.cpp">
+      <Filter>Sources\Graphics\View</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Graphics\scene_view_state.cpp">
-      <Filter>Sources\Graphics</Filter>
+    <ClCompile Include="Sources\Graphics\View\scene_view_state.cpp">
+      <Filter>Sources\Graphics\View</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Graphics\shader.cpp">
-      <Filter>Sources\Graphics</Filter>
+    <ClCompile Include="Sources\Graphics\Pipeline\shader.cpp">
+      <Filter>Sources\Graphics\Pipeline</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Graphics\global_shader.cpp">
-      <Filter>Sources\Graphics</Filter>
+    <ClCompile Include="Sources\Graphics\Pipeline\global_shader.cpp">
+      <Filter>Sources\Graphics\Pipeline</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Graphics\shadow_atlas.cpp">
-      <Filter>Sources\Graphics</Filter>
+    <ClCompile Include="Sources\Graphics\Lighting\shadow_atlas.cpp">
+      <Filter>Sources\Graphics\Lighting</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Graphics\sprite.cpp">
-      <Filter>Sources\Graphics</Filter>
+    <ClCompile Include="Sources\Graphics\UI\sprite.cpp">
+      <Filter>Sources\Graphics\UI</Filter>
     </ClCompile>
     <ClCompile Include="Sources\Input\gamepad.cpp">
       <Filter>Sources\Input</Filter>

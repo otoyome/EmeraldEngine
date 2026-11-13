@@ -7,16 +7,16 @@
 #include "Texture/texture_importer.h"
 
 #include "Model/model_instance.h"
-#include "Graphics/camera.h"
+#include "Graphics/View/camera.h"
 
 #include "object/light_object.h"
 #include "object/model_object.h"
 #include "object/post_process_volume_object.h"
 
-#include "Graphics/custom_pipeline_state.h"
+#include "Graphics/Pipeline/custom_pipeline_state.h"
 
 #include "Effect/effect_instance.h"
-#include "Graphics/debug_primitive_collector.h"
+#include "Graphics/Debug/debug_primitive_collector.h"
 
 #if defined(USE_IMGUI)
 #include "Editor/editor_camera.h"

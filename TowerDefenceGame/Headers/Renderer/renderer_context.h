@@ -1,10 +1,10 @@
 #pragma once
 
-#include "graphics/occlusion_culling_system.h"
-#include "graphics/hiz_buffer.h"
-#include "graphics/meshlet_culling_system.h"
-#include "graphics/scene_view.h"
-#include "graphics/scene_view_state.h"
+#include "Graphics/Culling/occlusion_culling_system.h"
+#include "Graphics/Culling/hiz_buffer.h"
+#include "Graphics/Culling/meshlet_culling_system.h"
+#include "Graphics/View/scene_view.h"
+#include "Graphics/View/scene_view_state.h"
 
 //	メッシュ描画順序リスト
 struct render_mesh_indices

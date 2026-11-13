@@ -6,8 +6,8 @@
 #include <string>
 #include <mutex>
 
-#include "Graphics/buffer_view.h"
-#include "Graphics/common_pipeline_states.h"
+#include "Graphics/Core/buffer_view.h"
+#include "Graphics/Pipeline/common_pipeline_states.h"
 #include "System/variable_position_allocator.h"
 
 //	GPUバッファの実体とアップロードキューだけを持つクラス

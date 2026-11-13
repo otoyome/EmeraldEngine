@@ -13,7 +13,7 @@
 
 #include "Model/model_instance.h"
 #include "Model/model_collision_builder.h"
-#include "Graphics/camera.h"
+#include "Graphics/View/camera.h"
 
 #include "object/light_object.h"
 
@@ -26,7 +26,7 @@
 #include "Model/model_resource_utility.h"
 #include "Model/model_buffer_pool.h"
 
-#include "Graphics/custom_pipeline_state.h"
+#include "Graphics/Pipeline/custom_pipeline_state.h"
 
 #include "Effect/effect_instance.h"
 

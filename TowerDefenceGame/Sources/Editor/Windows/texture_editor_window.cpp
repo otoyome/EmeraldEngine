@@ -5,7 +5,7 @@
 #include <filesystem>
 
 #include "Texture/texture_importer.h"
-#include "Graphics/graphics_utility.h"
+#include "Graphics/Core/graphics_utility.h"
 #include "Resource/resource_manager.h"
 #include "System/asset_browser.h"
 #include "System/imgui_texture_keeper.h"

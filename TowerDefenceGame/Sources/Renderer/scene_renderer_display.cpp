@@ -1,11 +1,11 @@
 #include "Renderer/scene_renderer_display.h"
-#include "Graphics/global_shader.h"
+#include "Graphics/Pipeline/global_shader.h"
 
 #include "PipelineState/fullscreen_quad_pipeline_state.h"
-#include "Graphics/color_space.h"
-#include "Graphics/light_utility.h"
+#include "Graphics/Core/color_space.h"
+#include "Graphics/Lighting/light_utility.h"
 #include "System/engine_config_data.h"
-#include "Graphics/post_process_volume.h"
+#include "Graphics/View/post_process_volume.h"
 
 namespace
 {

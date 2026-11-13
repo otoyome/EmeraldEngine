@@ -3,7 +3,7 @@
 #include "Effect/effect_resource.h"
 #include "Model/model_instance.h"
 
-#include "graphics/cubic_sdf_buffer_pool.h"
+#include "Graphics/Geometry/cubic_sdf_buffer_pool.h"
 #include <unordered_map>
 
 //	エフェクトインスタンス

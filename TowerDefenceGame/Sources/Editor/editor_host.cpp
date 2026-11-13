@@ -2,8 +2,8 @@
 #include "Input/mouse.h"
 
 #if defined(USE_IMGUI)
-#include "Graphics/render_data.h"
-#include "Graphics/debug_primitive_collector.h"
+#include "Graphics/Core/render_data.h"
+#include "Graphics/Debug/debug_primitive_collector.h"
 #include "Model/model_resource.h"
 #include "Effect/effect_resource.h"
 #include "Material/material_resource_factory.h"

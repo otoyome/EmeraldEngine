@@ -1,13 +1,13 @@
 #pragma once
 
 #include "renderer.h"
-#include "Graphics/render_pass.h"
+#include "Graphics/Core/render_pass.h"
 #include "scene_render_targets.h"
-#include "Graphics/geometric_primitive.h"
+#include "Graphics/Geometry/geometric_primitive.h"
 
 #include "collision/frustum_culling.h"
 
-#include "graphics/fast_fourier_transform.h"
+#include "Graphics/Compute/fast_fourier_transform.h"
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 //	ポストプロセスベース

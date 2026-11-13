@@ -1,6 +1,6 @@
 #include "Material/material_instance.h"
 
-#include "Graphics/gpu_upload_list.h"
+#include "Graphics/Core/gpu_upload_list.h"
 
 namespace
 {

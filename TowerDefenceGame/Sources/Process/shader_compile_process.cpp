@@ -4,7 +4,7 @@
 
 #include <algorithm>
 
-#include "Graphics/global_shader.h"
+#include "Graphics/Pipeline/global_shader.h"
 #include "Material/material_shader_map.h"
 #include "System/engine_config_data.h"
 

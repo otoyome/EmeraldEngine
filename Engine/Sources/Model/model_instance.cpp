@@ -3,7 +3,7 @@
 #include "Model/model_buffer_pool.h"
 
 #if defined(USE_IMGUI)
-#include "Graphics/debug_primitive_collector.h"
+#include "Graphics/Debug/debug_primitive_collector.h"
 #endif	//	defined(USE_IMGUI)
 
 model_instance::model_instance()

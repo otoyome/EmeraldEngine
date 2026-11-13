@@ -3,10 +3,10 @@
 #include <atomic>
 
 #include "renderer.h"
-#include "Graphics/render_pass.h"
+#include "Graphics/Core/render_pass.h"
 #include "scene_render_targets.h"
 
-#include "Graphics/exposure_controller.h"
+#include "Graphics/View/exposure_controller.h"
 
 //	@tool 露出・トーンマッピング・ディスプレイマッピング(ライティングサンプルと同じ流れ)
 //	@tool 描画は放射量で行い、露出でセンサーの飽和をディスプレイの最大輝度に対応させ、トーンマップしてディスプレイの信号にする

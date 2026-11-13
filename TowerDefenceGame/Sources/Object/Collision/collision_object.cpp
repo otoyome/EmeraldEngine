@@ -6,7 +6,7 @@
 #include "Collision/mesh.h"
 
 #if defined(_DEBUG)
-#include "Graphics/debug_primitive_collector.h"
+#include "Graphics/Debug/debug_primitive_collector.h"
 #endif	//	defined(_DEBUG)
 
 const collision_filter_ptr& collision_object::get_filter() const

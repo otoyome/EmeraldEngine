@@ -7,7 +7,7 @@
 
 #include "Model/model_resource.h"
 #include "Animation/animation_resource.h"
-#include "graphics/particle_resource.h"
+#include "Graphics/Particle/particle_resource.h"
 
 #include "collision/capsule.h"
 #include "collision/box.h"

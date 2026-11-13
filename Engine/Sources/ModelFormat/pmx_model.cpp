@@ -6,7 +6,7 @@
 #include <functional>
 
 #include "Texture/texture.h"
-#include "Graphics/shader.h"
+#include "Graphics/Pipeline/shader.h"
 
 #include <stdio.h>
 #include <tchar.h>

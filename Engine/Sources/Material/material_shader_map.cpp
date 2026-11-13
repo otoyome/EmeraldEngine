@@ -6,7 +6,7 @@
 
 #include <d3dcompiler.h>
 
-#include "Graphics/custom_pipeline_state.h"
+#include "Graphics/Pipeline/custom_pipeline_state.h"
 
 namespace
 {

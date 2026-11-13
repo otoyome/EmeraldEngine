@@ -1,5 +1,5 @@
 #include "Renderer/render_system.h"
-#include "Graphics/render_data.h"
+#include "Graphics/Core/render_data.h"
 
 #include "System/engine_config_data.h"
 #include "Editor/detail_profiler.h"

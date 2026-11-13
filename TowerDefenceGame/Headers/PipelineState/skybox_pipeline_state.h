@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Graphics/common_pipeline_states.h"
+#include "Graphics/Pipeline/common_pipeline_states.h"
 
 //	スカイボックスパス
 class skybox_pipeline_state : public graphics_pipeline_state

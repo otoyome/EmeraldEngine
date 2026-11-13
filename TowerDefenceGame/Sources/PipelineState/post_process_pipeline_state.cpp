@@ -1,5 +1,5 @@
 #include "PipelineState/post_process_pipeline_state.h"
-#include "Graphics/global_shader.h"
+#include "Graphics/Pipeline/global_shader.h"
 
 namespace
 {

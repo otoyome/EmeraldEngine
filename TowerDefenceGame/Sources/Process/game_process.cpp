@@ -4,23 +4,23 @@
 #include "Scenes/scene_paths.h"
 #include "framework.h"
 #include "Texture/texture_factory.h"
-#include "Graphics/render_data.h"
+#include "Graphics/Core/render_data.h"
 
 #include <algorithm>
 #include <filesystem>
 #include <future>
 #include <thread>
 
-#include "Graphics/shader.h"
+#include "Graphics/Pipeline/shader.h"
 #include "Material/material_shader_map.h"
 #include "Texture/texture.h"
 #include "Texture/texture_defaults.h"
 #include "Texture/texture_importer.h"
 #include "Texture/texture_tracker.h"
-#include "Graphics/font_data.h"
-#include "Graphics/camera.h"
-#include "graphics/occlusion_culling_system.h"
-#include "graphics/clustered_lighting_system.h"
+#include "Graphics/UI/font_data.h"
+#include "Graphics/View/camera.h"
+#include "Graphics/Culling/occlusion_culling_system.h"
+#include "Graphics/Lighting/clustered_lighting_system.h"
 #include "Resource/resource_manager.h"
 #include "Model/model_resource.h"
 #include "Model/model_buffer_pool.h"
@@ -51,7 +51,7 @@
 
 #if defined(USE_IMGUI)
 #include "System/editor_config_data.h"
-#include "Graphics/debug_primitive_collector.h"
+#include "Graphics/Debug/debug_primitive_collector.h"
 #include "Editor/editor_items.h"
 #include "Editor/editor_camera.h"
 #include "Editor/editor_host.h"

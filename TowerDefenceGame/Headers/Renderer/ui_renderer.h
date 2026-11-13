@@ -1,7 +1,7 @@
 #pragma once
 
 #include "renderer.h"
-#include "Graphics/render_pass.h"
+#include "Graphics/Core/render_pass.h"
 #include "scene_render_targets.h"
 
 //	UIƒpƒX

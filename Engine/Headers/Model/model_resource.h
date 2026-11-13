@@ -7,7 +7,7 @@
 #include "Animation/animation_resource.h"
 #include "collision/capsule.h"
 #include "collision/box.h"
-#include "Graphics/buffer_view.h"
+#include "Graphics/Core/buffer_view.h"
 
 #include "Animation/retarget_profile.h"
 

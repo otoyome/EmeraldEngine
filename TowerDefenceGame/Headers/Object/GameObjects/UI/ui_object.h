@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Graphics/sprite.h"
+#include "Graphics/UI/sprite.h"
 #include "object/game_object.h"
 
 namespace ui

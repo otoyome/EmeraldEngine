@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Graphics/sprite.h"
+#include "Graphics/UI/sprite.h"
 #include "object/gameobjects/ui/ui_object.h"
 
 //	UI制御用オブジェクト

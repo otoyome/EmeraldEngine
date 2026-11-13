@@ -4,7 +4,7 @@
 
 #include "Texture/texture.h"
 #include "Texture/texture_resource.h"
-#include "Graphics/pipeline_state.h"
+#include "Graphics/Pipeline/pipeline_state.h"
 
 #include "Resource/resource_base.h"
 #include "Resource/resource_loader.h"

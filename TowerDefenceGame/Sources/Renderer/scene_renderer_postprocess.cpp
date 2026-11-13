@@ -1,16 +1,16 @@
 #include "Renderer/scene_renderer_postprocess.h"
-#include "Graphics/global_shader.h"
+#include "Graphics/Pipeline/global_shader.h"
 #include "Texture/texture_factory.h"
 
 #include "Model/model_instance.h"
 
-#include "Graphics/custom_pipeline_state.h"
+#include "Graphics/Pipeline/custom_pipeline_state.h"
 #include "PipelineState/fullscreen_quad_pipeline_state.h"
 #include "PipelineState/post_process_pipeline_state.h"
 #include "PipelineState/anti_alias_pipeline_state.h"
 
 #include "System/engine_config_data.h"
-#include "Graphics/light_utility.h"
+#include "Graphics/Lighting/light_utility.h"
 #include "Renderer/scene_renderer_display.h"
 
 namespace

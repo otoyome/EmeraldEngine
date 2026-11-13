@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Graphics/camera.h"
+#include "Graphics/View/camera.h"
 #include "object/camera_object.h"
 
 #if	defined(USE_IMGUI)

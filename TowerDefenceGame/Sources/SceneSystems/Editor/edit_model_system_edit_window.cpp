@@ -2,14 +2,14 @@
 #include "Object/engine_context.h"
 
 #include "Model/model_instance.h"
-#include "Graphics/camera.h"
-#include "graphics/scene_view.h"
+#include "Graphics/View/camera.h"
+#include "Graphics/View/scene_view.h"
 
 #include "object/light_object.h"
 
 #include "object/model_object.h"
 
-#include "Graphics/custom_pipeline_state.h"
+#include "Graphics/Pipeline/custom_pipeline_state.h"
 
 #if defined(USE_IMGUI)
 #include "Editor/editor_camera.h"

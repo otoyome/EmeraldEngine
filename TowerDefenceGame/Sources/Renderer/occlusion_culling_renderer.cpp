@@ -1,10 +1,10 @@
 #include "Renderer/occlusion_culling_renderer.h"
 
-#include "graphics/occlusion_culling_system.h"
-#include "graphics/hiz_buffer.h"
-#include "graphics/meshlet_culling_system.h"
-#include "Graphics/camera.h"
-#include "Graphics/render_data.h"
+#include "Graphics/Culling/occlusion_culling_system.h"
+#include "Graphics/Culling/hiz_buffer.h"
+#include "Graphics/Culling/meshlet_culling_system.h"
+#include "Graphics/View/camera.h"
+#include "Graphics/Core/render_data.h"
 
 occlusion_culling_renderer::occlusion_culling_renderer(render_job_registrar job_executor, std::shared_ptr<scene_render_targets> render_targets)
 : renderer(job_executor)

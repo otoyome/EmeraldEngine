@@ -5,13 +5,13 @@
 #include <algorithm>
 #include <filesystem>
 
-#include "Graphics/render_data.h"
+#include "Graphics/Core/render_data.h"
 #include "Effect/effect_instance.h"
 #include "Object/world.h"
 #include "Object/object_manager.h"
 #include "Renderer/world_renderer.h"
 #include "Renderer/render_system.h"
-#include "Graphics/render_pass.h"
+#include "Graphics/Core/render_pass.h"
 #include "Texture/texture_factory.h"
 #include "System/imgui_texture_keeper.h"
 #include "Scenes/scene_manager.h"

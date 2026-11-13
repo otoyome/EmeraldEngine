@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#include "Graphics/render_data.h"
+#include "Graphics/Core/render_data.h"
 #include "Texture/texture_resource.h"
 #include "Texture/texture_tracker.h"
 #include "DirectXTex.h"

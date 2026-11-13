@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Graphics/sprite.h"
+#include "Graphics/UI/sprite.h"
 #include "object/gameobjects/ui/ui_image.h"
 
 //	ボタン制御用オブジェクト

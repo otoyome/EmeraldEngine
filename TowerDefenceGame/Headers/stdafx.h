@@ -29,9 +29,9 @@
 
 #include "nameof.hpp"
 #include "magic_enum.hpp"
-#include "Graphics/render_data.h"
-#include "Graphics/shader.h"
-#include "Graphics/graphics_utility.h"
+#include "Graphics/Core/render_data.h"
+#include "Graphics/Pipeline/shader.h"
+#include "Graphics/Core/graphics_utility.h"
 
 #include "Material/material_resource.h"
 
@@ -40,7 +40,7 @@
 #include "input/gamepad.h"
 #include "input/input_key.h"
 
-#include "Graphics/direct_x_helper.h"
+#include "Graphics/Core/direct_x_helper.h"
 
 #if	defined( USE_IMGUI )
 #define	IMGUI_DEFINE_MATH_OPERATORS
@@ -49,7 +49,7 @@
 #include "ImGuiExternal/imgui_external.h"
 #endif	//	defined( USE_IMGUI )
 
-#include "Graphics/debug_primitive_collector.h"
+#include "Graphics/Debug/debug_primitive_collector.h"
 
 #include "object/object_manager.h"
 #include "object/engine_context.h"

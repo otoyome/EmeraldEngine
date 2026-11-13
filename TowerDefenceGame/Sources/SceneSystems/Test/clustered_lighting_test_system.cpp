@@ -1,13 +1,13 @@
 #include "SceneSystems/Test/clustered_lighting_test_system.h"
 
-#include "Graphics/camera.h"
+#include "Graphics/View/camera.h"
 #include "Model/model_instance.h"
 #include "object/light_object.h"
 #include "object/object_manager.h"
 #include "object/world.h"
 #include "Object/game_object_serializer.h"
 #include "System/console_manager.h"
-#include "graphics/shadow_atlas.h"
+#include "Graphics/Lighting/shadow_atlas.h"
 
 #include "cereal/cereal.hpp"
 #include "cereal/archives/json.hpp"

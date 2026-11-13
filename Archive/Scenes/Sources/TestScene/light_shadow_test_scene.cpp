@@ -1,7 +1,7 @@
 #include "scenes/TestScene/light_shadow_test_scene.h"
 
 #if defined(USE_IMGUI)
-#include "Graphics/camera.h"
+#include "Graphics/View/camera.h"
 #include "Model/model_instance.h"
 
 #include "object/light_object.h"
@@ -10,7 +10,7 @@
 #include "object/object_manager.h"
 
 #include "System/console_manager.h"
-#include "graphics/shadow_atlas.h"
+#include "Graphics/Lighting/shadow_atlas.h"
 
 #include <cmath>
 

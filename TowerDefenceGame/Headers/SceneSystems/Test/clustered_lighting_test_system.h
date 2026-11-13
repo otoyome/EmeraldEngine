@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Scenes/scene_system.h"
-#include "Graphics/light.h"
+#include "Graphics/Lighting/light.h"
 
 #include <vector>
 

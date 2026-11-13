@@ -8,9 +8,9 @@
 #include <functional>
 #include <algorithm>
 
-#include "Graphics/graphics_utility.h"
-#include "Graphics/render_data.h"
-#include "Graphics/common_pipeline_states.h"
+#include "Graphics/Core/graphics_utility.h"
+#include "Graphics/Core/render_data.h"
+#include "Graphics/Pipeline/common_pipeline_states.h"
 
 #include "meshoptimizer/meshoptimizer.h"
 
