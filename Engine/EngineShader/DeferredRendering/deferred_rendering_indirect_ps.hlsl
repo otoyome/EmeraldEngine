@@ -56,8 +56,8 @@ float4 main(VS_OUT pin) : SV_TARGET
         }
 
 	    //	Ž©ŒÈŽÕ•Á
-        total_diffuse = lerp(total_diffuse, total_diffuse * data.occlusion_factor, data.occlusion_strength);
-        total_specular = lerp(total_specular, total_specular * data.occlusion_factor, data.occlusion_strength);
+        total_diffuse *= data.occlusion;
+        total_specular *= data.occlusion;
     }
 
     return float4(total_diffuse + total_specular, 1);

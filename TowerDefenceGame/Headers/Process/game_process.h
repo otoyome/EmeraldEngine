@@ -9,6 +9,7 @@ class console_command;
 class world;
 class world_renderer;
 class scene_editor;
+class editor_viewport;
 
 //	ゲームのプロセス
 class game_process : public framework_process
@@ -43,6 +44,7 @@ private:
 #if defined(USE_IMGUI)
 private:
 	std::unique_ptr<scene_editor> scene_edit;		//	シーンエディター
+	std::unique_ptr<editor_viewport> viewport;		//	エディターのメインのビューポート
 	std::unique_ptr<console_command> pause_command;
 	std::unique_ptr<console_command> step_command;
 #endif	//	defined(USE_IMGUI)

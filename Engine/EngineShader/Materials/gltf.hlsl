@@ -28,6 +28,7 @@ cbuffer GLTF_MATERIAL_CONSTANT_BUFFER
 	float roughness_factor;			//	‘e‚³
 	float metallic_factor;			//	‹à‘®¿
 	float occlusion_strength;		//	Œõ‚ÌÕ•Á‹­“x
+	float specular;					//	‹¾–Ê”½Ë—¦‚Ì’²®’l(0.5 ‚Å F0 = 0.04)
 };
 
 #if defined(MATERIAL_SURFACE)
@@ -80,6 +81,8 @@ SurfaceData surface(VS_OUT pin, bool is_front_face)
         N = normalize((normal_factor.x * T) + (normal_factor.y * B) + (normal_factor.z * N));
     }
     data.w_normal = N.xyz;
+    data.w_tangent = T;
+    data.bitangent_sign = is_front_face ? sigma : -sigma;
 
 	//	‹à‘®¿/‘e‚³‚ğæ“¾
     data.roughness = saturate(roughness_factor);
@@ -92,20 +95,21 @@ SurfaceData surface(VS_OUT pin, bool is_front_face)
     }
 
 	//	Œõ‚ÌÕ•Á’l‚ğæ“¾
-    data.occlusion_factor = 1.0f;
+    float occlusion_factor = 1.0f;
     if (HAS_RESOURCE(OcclusionMap))
     {
         float4 sampled = TEXTURE2D_SAMPLE(OcclusionMap, pin.texcoord[BaseTexcoord]);
-        data.occlusion_factor *= sampled.r;
+        occlusion_factor *= sampled.r;
     }
-    data.occlusion_strength = occlusion_strength;
+
+    //  Õ•Á‹­“x‚ğ“K‰‚µ‚Ä‚©‚çŠi”[‚·‚é
+    data.occlusion = lerp(1.0f, occlusion_factor, occlusion_strength);
+    data.specular = saturate(specular);
 
     data.w_position = pin.w_position.xyz;
     data.velocity = calculate_uvspace_velocity(pin.current_clip_position, pin.previous_clip_position);
     data.shading_model = material_shading_model;
     data.stencil = material_flags;
-    data.unique_data = 0;
-    data.unique_parameter = 0;
     return data;
 }
 #endif	//	defined(MATERIAL_SURFACE)

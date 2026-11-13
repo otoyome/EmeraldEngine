@@ -42,15 +42,15 @@ DirectLighting integrate_bxdf(in GBufferData gbuffer_data, in LightingData light
             float3 normal = normalize(gbuffer_data.w_normal);
             float3 view_vector = normalize(gbuffer_data.w_position.xyz - lighting_data.camera_position.xyz);
             float3 diffuse_reflectance = lerp(albedo.rgb, 0.0f, gbuffer_data.metalness);
-            float3 fresnel0 = lerp(0.04f, albedo.rgb, gbuffer_data.metalness);
+            float3 fresnel0 = lerp(0.08f * gbuffer_data.specular, albedo.rgb, gbuffer_data.metalness);
             DirectBDRF(diffuse_reflectance, fresnel0, normal, view_vector, lighting_data.direction,
                        lighting_data.color, gbuffer_data.roughness, result.diffuse, result.specular);
             result.diffuse *= lighting_data.shadowing_attenuation * lighting_data.shading_attenuation;
             result.specular *= lighting_data.shadowing_attenuation * lighting_data.shading_attenuation;
 
 	        //	自己遮蔽
-            result.diffuse = lerp(result.diffuse, result.diffuse * gbuffer_data.occlusion_factor, gbuffer_data.occlusion_strength);
-            result.specular = lerp(result.specular, result.specular * gbuffer_data.occlusion_factor, gbuffer_data.occlusion_strength);
+            result.diffuse *= gbuffer_data.occlusion;
+            result.specular *= gbuffer_data.occlusion;
             break;
         }
         case shading_model_pmx_lit:
@@ -63,8 +63,11 @@ DirectLighting integrate_bxdf(in GBufferData gbuffer_data, in LightingData light
         case shading_model_toon_lit:
         {
             float3 base_color = gbuffer_data.base_color;
-            float3 shade_color = gbuffer_data.shade_color;
-            float4 ilm_color = gbuffer_data.ilm_color;
+            //  custom_data0 : rgb = 陰色, a = 頂点カラーR
+            //  custom_data1 : rgb = ILM, a = 陰影閾値
+            //  custom_data2 : r = 陰影オフセット
+            float3 shade_color = gbuffer_data.custom_data0.rgb;
+            float3 ilm_color = gbuffer_data.custom_data1.rgb;
             float3 normal = normalize(gbuffer_data.w_normal);
             float3 lighting_direction = -normalize(lighting_data.direction);
             float3 view_vector = -normalize(gbuffer_data.w_position.xyz - lighting_data.camera_position.xyz);
@@ -72,11 +75,10 @@ DirectLighting integrate_bxdf(in GBufferData gbuffer_data, in LightingData light
             float3 half_vector = normalize(lighting_direction + view_vector);
 
             //  r : 陰影判定の閾値に対するオフセット 1が標準で0だと必ず影になる
-            float vertex_r  = asfloat(gbuffer_data.unique_data.x);
+            float vertex_r  = gbuffer_data.custom_data0.a;
 
-            float2 shading_threshold_and_offset = UnpackFloatToFloat2(gbuffer_data.unique_parameter.x);
-            float shading_threshold = shading_threshold_and_offset.x;
-            float shading_offset = shading_threshold_and_offset.y;
+            float shading_threshold = gbuffer_data.custom_data1.a;
+            float shading_offset = gbuffer_data.custom_data2.r;
 
             //  各種係数算出
             float n_dot_l   = saturate(dot(normal, lighting_direction));

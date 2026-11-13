@@ -544,6 +544,7 @@ namespace
 			if (auto texture = import_texture(gltf_material.normal_texture_path, normal_settings))
 				material.set_texture("NormalMap", texture);
 			material.set_float("occlusion_strength", gltf_material.occlusion_strength);
+			material.set_float("specular", 0.5f);	//	‹¾–Ê”½Ë—¦‚Ì’²®’l
 			if (auto texture = import_texture(gltf_material.occlusion_texture_path, linear_settings))
 				material.set_texture("OcclusionMap", texture);
 		}

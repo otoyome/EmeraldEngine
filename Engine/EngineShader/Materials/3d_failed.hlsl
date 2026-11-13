@@ -19,6 +19,8 @@ SurfaceData surface(VS_OUT pin, bool is_front_face)
 
     data.base_color = float4(0.5f, 0, 0.5f, 1);
     data.roughness = 1;
+    data.occlusion = 1.0f;
+    data.specular = 0.5f;
     data.w_normal = normalize(pin.w_normal.xyz) * (is_front_face ? +1 : -1);
     data.w_position = pin.w_position.xyz;
     data.velocity = calculate_uvspace_velocity(pin.current_clip_position, pin.previous_clip_position);

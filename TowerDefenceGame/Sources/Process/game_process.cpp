@@ -56,6 +56,7 @@
 #include "Editor/editor_camera.h"
 #include "Editor/editor_host.h"
 #include "Editor/scene_editor.h"
+#include "Editor/editor_viewport.h"
 #endif // defined(USE_IMGUI)
 #include "System/asset_browser.h"
 #include "System/imgui_texture_keeper.h"
@@ -106,19 +107,35 @@ bool game_process::enter()
 	if (!create_collision_filters())
 		return false;
 
-	//	メインワールド登録
 #if defined(USE_IMGUI)
 	//	エディターでは編集用と再生用のワールドを scene_editor が持つ
 	if (self.editor)
+	{
 		scene_edit = std::make_unique<scene_editor>();
+	}
 	else
 #endif	//	defined(USE_IMGUI)
+	{
+		//	メインワールド登録
 		main_world = std::make_unique<world>();
+	}
 
-	//	メインのワールドの描画
-	main_renderer = std::make_unique<world_renderer>(self.renderer->get_executor());
-	if (!main_renderer->initialize(render_target_view(render_data::instance()->get_swap_chain())))
-		return false;
+#if defined(USE_IMGUI)
+	//	エディターではウィンドウに直接描かず、ビューポートの窓に映す
+	if (scene_edit)
+	{
+		viewport = std::make_unique<editor_viewport>(self.renderer->get_executor());
+		if (!viewport->initialize(1280, 720))
+			return false;
+	}
+	else
+#endif	//	defined(USE_IMGUI)
+	{
+		//	メインのワールドの描画
+		main_renderer = std::make_unique<world_renderer>(self.renderer->get_executor());
+		if (!main_renderer->initialize(render_target_view(render_data::instance()->get_swap_chain())))
+			return false;
+	}
 
 	//	シーン関係
 	{
@@ -230,6 +247,7 @@ void game_process::exit()
 #if defined(USE_IMGUI)
 	pause_command.reset();
 	step_command.reset();
+	viewport.reset();
 	scene_edit.reset();
 #endif	//	defined(USE_IMGUI)
 	main_world.reset();
@@ -316,9 +334,16 @@ void game_process::render(float elapsed_time)
 	active_world->get_objects().pre_render();
 
 	//	描画用の情報収集
-	main_renderer->collect(*active_world);
 #if defined(USE_IMGUI)
-	main_renderer->collect_debug_primitives(*active_world, debug_view_settings_manager::instance()->get("game"));
+	if (viewport)
+		viewport->collect(*active_world, debug_view_settings_manager::instance()->get("game"));
+	if (main_renderer)
+	{
+		main_renderer->collect(*active_world);
+		main_renderer->collect_debug_primitives(*active_world, debug_view_settings_manager::instance()->get("game"));
+	}
+#else	//	defined(USE_IMGUI)
+	main_renderer->collect(*active_world);
 #endif	//	defined(USE_IMGUI)
 
 	{
@@ -331,7 +356,14 @@ void game_process::render(float elapsed_time)
 void game_process::submit_render_jobs(float elapsed_time)
 {
 	//	ワールドごとの描画
-	if (world* active_world = get_active_world())
+	world* active_world = get_active_world();
+	if (!active_world)
+		return;
+#if defined(USE_IMGUI)
+	if (viewport)
+		viewport->submit_render_jobs(*active_world, elapsed_time);
+#endif	//	defined(USE_IMGUI)
+	if (main_renderer)
 		main_renderer->submit_render_jobs(*active_world, elapsed_time);
 }
 
@@ -361,6 +393,23 @@ void game_process::imgui_render()
 	world* active_world = get_active_world();
 	if (!active_world)
 		return;
+
+	//	メインのウィンドウ全体をドッキングの場所にし、ビューポートの窓に編集・再生中のワールドを映す
+	if (viewport)
+	{
+		const ImGuiID dockspace_id = ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport());
+
+		engine_context& context = active_world->get_context();
+		bool hovered = false;
+		//	初めて開いた時はドッキングの場所に入れる
+		ImGui::SetNextWindowDockID(dockspace_id, ImGuiCond_FirstUseEver);
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+		if (ImGui::Begin("viewport", nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse))
+			hovered = viewport->imgui_render(context, ImGui::GetCursorScreenPos(), ImGui::GetContentRegionAvail());
+		ImGui::End();
+		ImGui::PopStyleVar();
+		context.set_viewport_hovered(hovered);
+	}
 
 	//	シーン情報表示
 	if (!scene_edit || scene_edit->is_playing())

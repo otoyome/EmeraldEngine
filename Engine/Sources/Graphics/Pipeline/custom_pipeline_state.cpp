@@ -512,6 +512,10 @@ void graphics_custom_pipeline_state::update_parameters(const graphics_context& c
 					{
 						register_function(context.scene_color_texture);
 					}
+					else if (srv_key == common_pipeline_states::gbuffer_depth_hash_key)
+					{
+						register_function(context.scene_depth_texture);
+					}
 					else if (srv_key == common_pipeline_states::scene_depth_map_hash_key)
 					{
 						register_function(context.scene_depth_texture);

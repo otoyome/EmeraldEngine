@@ -13,6 +13,7 @@ struct scene_render_targets
 
 	texture_ptr work_buffer_scene_textures[2];
 	texture_ptr work_buffer_rgba32float_texture;
+	texture_ptr work_buffer_gbuffer_normal_tangent_texture;
 	texture_ptr work_buffer_half_scene_textures[2];
 
 	//	SSRデノイズ用

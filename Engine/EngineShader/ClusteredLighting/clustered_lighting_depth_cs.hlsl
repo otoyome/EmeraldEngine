@@ -1,6 +1,8 @@
 #include "clustered_lighting.hlsli"
+#include "scene_constant_buffer.hlsli"
+#include "gbuffer.hlsli"
 
-Texture2D<float4> gbuffer_normal_depth : register(t0);
+Texture2D<float> gbuffer_depth : register(t0);
 RWStructuredBuffer<uint> tile_max_slices : register(u0);
 
 static const uint depth_thread_size = 16;
@@ -12,7 +14,7 @@ groupshared uint shared_max_slice;
 void main(uint3 dispatch_id : SV_DispatchThreadID, uint group_index : SV_GroupIndex)
 {
     uint width, height;
-    gbuffer_normal_depth.GetDimensions(width, height);
+    gbuffer_depth.GetDimensions(width, height);
 
     //  ピクセルが属するクラスターのタイルと奥行き分割
     bool inside = dispatch_id.x < width && dispatch_id.y < height;
@@ -20,7 +22,7 @@ void main(uint3 dispatch_id : SV_DispatchThreadID, uint group_index : SV_GroupIn
     uint3 cluster = uint3(0, 0, 0);
     if (inside)
     {
-        float linear_depth = gbuffer_normal_depth.Load(int3(dispatch_id.xy, 0)).a;
+        float linear_depth = convert_projection_depth_to_linear_depth(gbuffer_depth.Load(int3(dispatch_id.xy, 0)), z_buffer_parameteres);
         cluster = get_cluster(texcoord, linear_depth);
     }
     uint tile_index = get_cluster_tile_index(cluster.xy);

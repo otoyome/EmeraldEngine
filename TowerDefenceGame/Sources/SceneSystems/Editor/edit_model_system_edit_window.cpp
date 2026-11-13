@@ -122,7 +122,6 @@ void edit_model_system::imgui_render_panel(panel_regions region)
 					ImGui::EndTabItem();
 				}
 				//	アニメーション編集系ウィンドウ
-				//	@tool タイムラインは下に出す
 				if (ImGui::BeginTabItem("Animation"))
 				{
 					imgui_render_animation();

@@ -285,12 +285,12 @@ void gbuffer_renderer::resize_buffer(int width, int height)
 		FLOAT clear_color[][4] =
 		{
 			{ 0.0f, 0.0f, 0.0f, 0.0f },		//	base_color
-			{ 0.0f, 0.0f, 0.0f, common_pipeline_states::gbuffer_max_linear_depth },	//	normal_depth
+			{ 0.0f, 0.0f, 0.0f, 0.0f },		//	normal_tangent
 			{ 0.0f, 0.0f, 0.0f, 0.0f },		//	parameter
 			{ 0.0f, 0.0f, 0.0f, 0.0f },		//	velocity
-			{ 0.0f, 0.0f, 0.0f, 0.0f },		//	unique_data
-			{ 0.0f, 0.0f, 0.0f, 0.0f },		//	shade_color
-			{ 0.0f, 0.0f, 0.0f, 0.0f },		//	ilm_color
+			{ 0.0f, 0.0f, 0.0f, 0.0f },		//	custom_data0
+			{ 0.0f, 0.0f, 0.0f, 0.0f },		//	custom_data1
+			{ 0.0f, 0.0f, 0.0f, 0.0f },		//	custom_data2
 		};
 		rendering_pass.render_targets.clear();
 		for (int i = 0; i < static_cast<int>(magic_enum::enum_count<common_pipeline_states::gbuffer_id>()); ++i)
@@ -379,8 +379,8 @@ void gbuffer_decal_renderer::render(renderer_context& renderer_context)
 		//	法線/深度コピー
 		{
 			Microsoft::WRL::ComPtr<ID3D11Resource> destination, source;
-			render_targets->work_buffer_rgba32float_texture->get_shader_resource_view()->GetResource(destination.ReleaseAndGetAddressOf());
-			render_targets->g_buffer_textures[static_cast<UINT>(common_pipeline_states::gbuffer_id::normal_depth)]->get_shader_resource_view()->GetResource(source.ReleaseAndGetAddressOf());
+			render_targets->work_buffer_gbuffer_normal_tangent_texture->get_shader_resource_view()->GetResource(destination.ReleaseAndGetAddressOf());
+			render_targets->g_buffer_textures[static_cast<UINT>(common_pipeline_states::gbuffer_id::normal_tangent)]->get_shader_resource_view()->GetResource(source.ReleaseAndGetAddressOf());
 			context.device_context->CopyResource(destination.Get(), source.Get());
 		}
 
@@ -404,8 +404,8 @@ void gbuffer_decal_renderer::render(renderer_context& renderer_context)
 
 			//	必要なテクスチャを設定
 			{
-				context.g_buffer_textures[static_cast<UINT>(common_pipeline_states::gbuffer_id::normal_depth)] = render_targets->work_buffer_rgba32float_texture;
-				context.g_buffer_textures[static_cast<UINT>(common_pipeline_states::gbuffer_id::unique_data)] = render_targets->g_buffer_textures[static_cast<UINT>(common_pipeline_states::gbuffer_id::unique_data)];
+				context.g_buffer_textures[static_cast<UINT>(common_pipeline_states::gbuffer_id::normal_tangent)] = render_targets->work_buffer_gbuffer_normal_tangent_texture;
+				context.scene_depth_texture = render_targets->scene_depth_stencil_texture;
 			}
 
 			//	デカール描画
@@ -468,7 +468,7 @@ void gbuffer_decal_renderer::render(renderer_context& renderer_context)
 			rendering_pass.deactivate(context.device_context);
 		}
 
-		context.g_buffer_textures[static_cast<UINT>(common_pipeline_states::gbuffer_id::normal_depth)] = render_targets->g_buffer_textures[static_cast<UINT>(common_pipeline_states::gbuffer_id::normal_depth)];
+		context.g_buffer_textures[static_cast<UINT>(common_pipeline_states::gbuffer_id::normal_tangent)] = render_targets->g_buffer_textures[static_cast<UINT>(common_pipeline_states::gbuffer_id::normal_tangent)];
 	}, "gbuffer_decal_pass", renderer_context, get_render_basis_sort_order());
 }
 
@@ -480,37 +480,18 @@ void gbuffer_decal_renderer::resize_buffer(int width, int height)
 	//	GBufferパス生成
 	{
 		rendering_pass.render_targets.clear();
-#if 01
 		{
 			rendering_pass.render_targets.emplace_back(render_targets->g_buffer_textures[static_cast<int>(common_pipeline_states::gbuffer_id::base_color)]);
 			auto& rtv = rendering_pass.render_targets.back();
 			rtv.clear_color = false;
 		}
 		{
-			rendering_pass.render_targets.emplace_back(render_targets->g_buffer_textures[static_cast<int>(common_pipeline_states::gbuffer_id::normal_depth)]);
+			rendering_pass.render_targets.emplace_back(render_targets->g_buffer_textures[static_cast<int>(common_pipeline_states::gbuffer_id::normal_tangent)]);
 			auto& rtv = rendering_pass.render_targets.back();
 			rtv.clear_color = false;
 		}
-#else
-		FLOAT clear_color[][4] =
-		{
-			{ 0.0f, 0.0f, 0.0f, 0.0f },
-			{ 0.0f, 0.0f, 0.0f, 0.0f },
-			{ 0.0f, 0.0f, 0.0f, 1.0f },
-			{ 0.0f, 0.0f, 0.0f, 0.0f },
-			{ 0.0f, 0.0f, 0.0f, 0.0f },
-			{ 0.0f, 0.0f, 0.0f, 0.0f },
-
-			{ 0.0f, 0.0f, 0.0f, 0.0f },
-		};
-		for (int i = 0; i < static_cast<int>(magic_enum::enum_count<common_pipeline_states::gbuffer_id>()); ++i)
-		{
-			rendering_pass.render_targets.emplace_back(render_targets->g_buffer_textures[i]);
-			auto& rtv = rendering_pass.render_targets.back();
-			rtv.clear_color = false;
-		}
-#endif
 		D3D11_DEPTH_STENCIL_VIEW_DESC depth_stencil_view_desc{};
+		depth_stencil_view_desc.Flags = D3D11_DSV_READ_ONLY_DEPTH;	//	深度を SRV で読むため、深度は読み取り専用にする(ステンシルは書き込む)
 		depth_stencil_view_desc.Format = common_pipeline_states::scene_depth_stencil_view_format;
 		depth_stencil_view_desc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
 		depth_stencil_view_desc.Texture2D.MipSlice = 0;
@@ -718,6 +699,7 @@ void deffered_lighting_renderer::render_clustered(renderer_context& context)
 		{
 			context.g_buffer_textures[index] = render_targets->g_buffer_textures[index];
 		}
+		context.scene_depth_texture = render_targets->scene_depth_stencil_texture;
 
 		//	クラスター構築
 		clustered_lighting->build(context);
@@ -746,6 +728,7 @@ void deffered_lighting_renderer::render_indirect(renderer_context& context)
 		{
 			context.g_buffer_textures[index] = render_targets->g_buffer_textures[index];
 		}
+		context.scene_depth_texture = render_targets->scene_depth_stencil_texture;
 
 		//	AOバッファ生成
 		{
@@ -811,6 +794,7 @@ void deffered_lighting_renderer::render_directional(const light_render_data& lig
 		{
 			context.g_buffer_textures[index] = render_targets->g_buffer_textures[index];
 		}
+		context.scene_depth_texture = render_targets->scene_depth_stencil_texture;
 
 		//	ビューポートの設定
 		context.device_context->RSSetViewports(1, &lighting_pass_viewport);
@@ -1063,6 +1047,7 @@ void deffered_lighting_renderer::render_directional_shadow_map(const light_rende
 		{
 			context.g_buffer_textures[index] = render_targets->g_buffer_textures[index];
 		}
+		context.scene_depth_texture = render_targets->scene_depth_stencil_texture;
 
 		//	ビューポートの設定
 		context.device_context->RSSetViewports(1, &shadow_map_pass_viewport);
@@ -1094,6 +1079,7 @@ void deffered_lighting_renderer::render_local(const light_render_data& light, co
 		{
 			context.g_buffer_textures[index] = render_targets->g_buffer_textures[index];
 		}
+		context.scene_depth_texture = render_targets->scene_depth_stencil_texture;
 
 		//	ビューポートの設定
 		context.device_context->RSSetViewports(1, &lighting_pass_viewport);

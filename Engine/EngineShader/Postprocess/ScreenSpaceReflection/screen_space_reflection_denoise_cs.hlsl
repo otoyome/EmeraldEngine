@@ -39,7 +39,8 @@ static	const	int2 block_left_top = int2(0, 0);
 static	const	int2 block_right_bottom = int2(THREAD_X + adjust_range * 2 - 1, THREAD_Y + adjust_range * 2 - 1);
 
 Texture2D<float4> source_color_map : register(t0);
-Texture2D<float4> source_normal_depth_map : register(t1);
+Texture2D<float4> source_normal_tangent_map : register(t1);    //  G-Buffer の法線/接線
+Texture2D<float> source_depth_map : register(t2);               //  シーンの深度バッファ
 RWTexture2D<float4> destination_color_map : register(u0);
 
 float rand(float seed)
@@ -50,21 +51,21 @@ float rand(float seed)
 [numthreads(THREAD_X, THREAD_Y, 1)]
 void main(int3 group_id : SV_GroupID, int3 group_thread_id : SV_GroupThreadID, int3 dispatch_thread_id : SV_DispatchThreadID, uint group_index : SV_GROUPINDEX)
 {
-	int2 left_top_position = (int2)0;
-	int2 right_bottom_position = texture_size - 1;
+    int2 left_top_position = (int2)0;
+    int2 right_bottom_position = texture_size - 1;
     
     int offset_count = min(2 * pow(2, iteration) + 0.1f, adjust_range);
     float denoise_step_scale = pow(2.0f, +iteration);
     float denoise_sigma_scale = pow(2.0f, -iteration);
 
-	//	色情報キャッシュ
-	{
+    //	色情報キャッシュ
+    {
         int2 x_range = (group_thread_id.x == 0) ? int2(-offset_count, 1) : (group_thread_id.x == THREAD_X - 1) ? int2(THREAD_X - 1, THREAD_X + offset_count) : int2(group_thread_id.x, group_thread_id.x + 1);
         int2 y_range = (group_thread_id.y == 0) ? int2(-offset_count, 1) : (group_thread_id.y == THREAD_Y - 1) ? int2(THREAD_Y - 1, THREAD_Y + offset_count) : int2(group_thread_id.y, group_thread_id.y + 1);
         
-		for (int x = x_range.x; x < x_range.y; ++x)
-		{
-			for (int y = y_range.x; y < y_range.y; ++y)
+        for (int x = x_range.x; x < x_range.y; ++x)
+        {
+            for (int y = y_range.x; y < y_range.y; ++y)
             {
                 //  ブロック座標を算出
                 int x_position = x + offset_count;
@@ -73,12 +74,15 @@ void main(int3 group_id : SV_GroupID, int3 group_thread_id : SV_GroupThreadID, i
 
                 //  テクスチャ座標を算出
                 int2 position = group_id.xy * int2(THREAD_X, THREAD_Y) + int2(x, y);
-				position = clamp(position, left_top_position, right_bottom_position);
-				int3 texture_position = uint3(position.xy, 0);
+                position = clamp(position, left_top_position, right_bottom_position);
+                int3 texture_position = uint3(position.xy, 0);
 
                 //  情報キャッシュ
-				block_colors[block_position.y][block_position.x] = source_color_map.Load(texture_position);
-                block_normal_depths[block_position.y][block_position.x] = source_normal_depth_map.Load(texture_position);
+                block_colors[block_position.y][block_position.x] = source_color_map.Load(texture_position);
+                //  法線と線形深度に展開してキャッシュする
+                float3 normal = DecodeOctahedronNormal(source_normal_tangent_map.Load(texture_position).xy);
+                float linear_depth = convert_projection_depth_to_linear_depth(source_depth_map.Load(texture_position), z_buffer_parameteres);
+                block_normal_depths[block_position.y][block_position.x] = float4(normal, linear_depth);
             }
         }
     }
@@ -87,8 +91,8 @@ void main(int3 group_id : SV_GroupID, int3 group_thread_id : SV_GroupThreadID, i
 
     int3 center_texture_position = int3(group_thread_id.xy + int2(offset_count, offset_count), 0);
     float4 final_color;
-	{
-	    //	中心色取得
+    {
+        //	中心色取得
         float4 center_color = block_colors[center_texture_position.y][center_texture_position.x];
         float4 center_normal_depth = block_normal_depths[center_texture_position.y][center_texture_position.x];
         float center_luminance = convert_rgb_to_luminance(center_color.rgb);

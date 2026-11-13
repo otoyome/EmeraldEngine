@@ -213,7 +213,7 @@ void edit_model_system::imgui_render_animation_timeline()
 	if (current_animation_id >= animation_datas.size())
 		return;
 
-	//	@tool 左にタイムライン、右に選んだキーの詳細
+	//	左にタイムライン、右に選んだキーの詳細
 	if (ImGui::BeginTable("##model_bottom", 2, ImGuiTableFlags_Resizable | ImGuiTableFlags_BordersInnerV))
 	{
 		ImGui::TableSetupColumn("##timeline", ImGuiTableColumnFlags_WidthStretch);
@@ -221,7 +221,7 @@ void edit_model_system::imgui_render_animation_timeline()
 		ImGui::TableNextRow();
 
 		//	アニメーションタイムライン情報編集
-		//	@tool ドラッグで選ぶ時に窓が動かないようにする
+		//	ドラッグで選ぶ時に窓が動かないようにする
 		ImGui::TableSetColumnIndex(0);
 		if (ImGui::BeginChild("##timeline", ImVec2(0.0f, 0.0f), ImGuiChildFlags_None, ImGuiWindowFlags_NoMove))
 			editor_items::edit_animation_data_timeline_embedded(editor_context, animation_datas[current_animation_id]);

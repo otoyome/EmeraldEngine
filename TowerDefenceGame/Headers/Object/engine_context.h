@@ -42,6 +42,10 @@ public:		//	ImGui用
 	bool is_embedded() const { return embedded; }
 	void set_embedded(bool value) { embedded = value; }
 
+	//	アセットの窓のワールドか
+	bool is_asset_preview() const { return asset_preview; }
+	void set_asset_preview(bool value) { asset_preview = value; }
+
 	//	ImGui表示窓の上にカーソルがあるか
 	bool is_viewport_hovered() const { return viewport_hovered; }
 	void set_viewport_hovered(bool value) { viewport_hovered = value; }
@@ -62,6 +66,7 @@ public:		//	ImGui用
 private:
 	bool editing = false;
 	bool embedded = false;
+	bool asset_preview = false;
 	bool viewport_hovered = false;
 	math::float4 viewport_rect = { 0.0f, 0.0f, 0.0f, 0.0f };
 	std::string window_id;

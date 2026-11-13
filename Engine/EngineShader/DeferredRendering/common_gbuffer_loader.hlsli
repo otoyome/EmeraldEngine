@@ -5,12 +5,13 @@
 #include "scene_constant_buffer.hlsli"
 
 Texture2D<float4> gbuffer_base_color : register(t0);
-Texture2D<float4> gbuffer_normal_depth : register(t1);
+Texture2D<float4> gbuffer_normal_tangent : register(t1);
 Texture2D<float4> gbuffer_parameter : register(t2);
-Texture2D<float4> gbuffer_velocity : register(t3);
-Texture2D<uint4> gbuffer_unique_data : register(t4);
-Texture2D<float4> gbuffer_shade_color : register(t5);
-Texture2D<float4> gbuffer_ilm_color : register(t6);
+Texture2D<float2> gbuffer_velocity : register(t3);
+Texture2D<float4> gbuffer_custom_data0 : register(t4);
+Texture2D<float4> gbuffer_custom_data1 : register(t5);
+Texture2D<float4> gbuffer_custom_data2 : register(t6);
+Texture2D<float> gbuffer_depth : register(t7);
 
 SamplerState sampler_states : register(s0);
 
@@ -18,13 +19,13 @@ GBufferTextures get_gbuffer_textures()
 {
     GBufferTextures gbuffer_textures;
     gbuffer_textures.base_color = gbuffer_base_color;
-    gbuffer_textures.normal_depth = gbuffer_normal_depth;
+    gbuffer_textures.normal_tangent = gbuffer_normal_tangent;
     gbuffer_textures.parameter = gbuffer_parameter;
     gbuffer_textures.velocity = gbuffer_velocity;
-    gbuffer_textures.unique_data = gbuffer_unique_data;
-    gbuffer_textures.shade_color = gbuffer_shade_color;
-    gbuffer_textures.ilm_color = gbuffer_ilm_color;
-    gbuffer_textures.state = sampler_states;
+    gbuffer_textures.custom_data0 = gbuffer_custom_data0;
+    gbuffer_textures.custom_data1 = gbuffer_custom_data1;
+    gbuffer_textures.custom_data2 = gbuffer_custom_data2;
+    gbuffer_textures.depth = gbuffer_depth;
     return gbuffer_textures;
 }
 

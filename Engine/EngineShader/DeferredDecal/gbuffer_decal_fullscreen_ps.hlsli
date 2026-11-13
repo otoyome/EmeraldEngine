@@ -1,5 +1,5 @@
-Texture2D<float4> gbuffer_normal_depth;
-Texture2D<uint4> gbuffer_unique_data;
+Texture2D<float4> gbuffer_normal_tangent;
+Texture2D<float> gbuffer_depth;
 
 PSDecalOut main(VS_OUT pin)
 {
@@ -7,21 +7,21 @@ PSDecalOut main(VS_OUT pin)
     float2 screen_size = float2(viewport_rect.z - viewport_rect.x, viewport_rect.w - viewport_rect.y);
     float2 gbuffer_texcoord = pin.position.xy / screen_size;
 
-    float4 normal_depth;
-    uint stencil;
+    float4 normal_tangent;
+    float projection_depth;
     {
         uint2 texture_size;
-        gbuffer_normal_depth.GetDimensions(texture_size.x, texture_size.y);
+        gbuffer_normal_tangent.GetDimensions(texture_size.x, texture_size.y);
         uint3 tex = uint3((uint2) (gbuffer_texcoord * texture_size), 0);
-        normal_depth = gbuffer_normal_depth.Load(tex);
-        stencil = gbuffer_unique_data.Load(tex).x;
+        normal_tangent = gbuffer_normal_tangent.Load(tex);
+        projection_depth = gbuffer_depth.Load(tex);
     }
 
     //  デカール適応外はクリップ
-    clip(IsGBufferFlags(stencil, material_attribute_decal_off) ? -1.0f : 1.0f);
+    clip(IsGBufferFlags(DecodeGBufferStencil(normal_tangent), material_attribute_decal_off) ? -1.0f : 1.0f);
 
     //  デカール適応結果を取得
-    DecalIn din = convert_decal_in(normal_depth, gbuffer_texcoord.xy);
+    DecalIn din = convert_decal_in(normal_tangent, projection_depth, gbuffer_texcoord.xy);
     DecalData data = decal_ps(din);
 
     //	マスク処理
@@ -33,5 +33,5 @@ PSDecalOut main(VS_OUT pin)
     }
 
     //  出力
-    return convert_decal_out(data);
+    return convert_decal_out(data, din);
 }

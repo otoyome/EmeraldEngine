@@ -501,6 +501,8 @@ void scene_editor::stop_play()
 std::unique_ptr<world> scene_editor::create_world()
 {
 	auto result = std::make_unique<world>();
+	//	エディターのビューポートの窓に映す
+	result->get_context().set_embedded(true);
 	auto editor_camera = std::make_shared<editor_camera_object>("エディターカメラ", math::vector3d(0.0, 0.0, 0.0), math::rotatorf(0.0f, 0.0f, 0.0f), 0.25f);
 	editor_camera->set_transient(true);
 	result->get_objects().register_object(editor_camera);

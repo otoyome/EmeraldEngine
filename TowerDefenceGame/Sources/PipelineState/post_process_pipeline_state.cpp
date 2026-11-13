@@ -353,6 +353,10 @@ void screen_space_reflection_uv_pipeline_state::begin(const graphics_context& co
 		g_buffer_srvs[index] = context.g_buffer_textures[index]->get_shader_resource_view().Get();
 	}
 	context.device_context->PSSetShaderResources(ssr::gbuffer_srv_start, ARRAYSIZE(g_buffer_srvs), g_buffer_srvs);
+	{
+		ID3D11ShaderResourceView* gbuffer_depth_srv = context.scene_depth_texture ? context.scene_depth_texture->get_shader_resource_view().Get() : nullptr;
+		context.device_context->PSSetShaderResources(ssr::gbuffer_srv_start + ARRAYSIZE(g_buffer_srvs), 1, &gbuffer_depth_srv);
+	}
 	context.device_context->PSSetSamplers(ssr::gbuffer_srv_start, 1, render_data::instance()->get_state_cache().get_sampler_state(render_state_cache::SAMPLER_STATE::POINT).GetAddressOf());
 
 	//	定数バッファ設定
@@ -462,6 +466,10 @@ void screen_space_reflection_color_pipeline_state::begin(const graphics_context&
 		g_buffer_srvs[index] = context.g_buffer_textures[index]->get_shader_resource_view().Get();
 	}
 	context.device_context->PSSetShaderResources(ssr::gbuffer_srv_start, ARRAYSIZE(g_buffer_srvs), g_buffer_srvs);
+	{
+		ID3D11ShaderResourceView* gbuffer_depth_srv = context.scene_depth_texture ? context.scene_depth_texture->get_shader_resource_view().Get() : nullptr;
+		context.device_context->PSSetShaderResources(ssr::gbuffer_srv_start + ARRAYSIZE(g_buffer_srvs), 1, &gbuffer_depth_srv);
+	}
 	context.device_context->PSSetSamplers(ssr::gbuffer_srv_start, 1, render_data::instance()->get_state_cache().get_sampler_state(render_state_cache::SAMPLER_STATE::POINT).GetAddressOf());
 	
 	context.device_context->PSSetShaderResources(ssr::ssr_uv_srv_index, 1, context.work_texture[0]->get_shader_resource_view().GetAddressOf());
@@ -560,6 +568,10 @@ void screen_space_reflection_composite_pipeline_state::begin(const graphics_cont
 		g_buffer_srvs[index] = context.g_buffer_textures[index]->get_shader_resource_view().Get();
 	}
 	context.device_context->PSSetShaderResources(ssr::gbuffer_srv_start, ARRAYSIZE(g_buffer_srvs), g_buffer_srvs);
+	{
+		ID3D11ShaderResourceView* gbuffer_depth_srv = context.scene_depth_texture ? context.scene_depth_texture->get_shader_resource_view().Get() : nullptr;
+		context.device_context->PSSetShaderResources(ssr::gbuffer_srv_start + ARRAYSIZE(g_buffer_srvs), 1, &gbuffer_depth_srv);
+	}
 	context.device_context->PSSetShaderResources(ssr::ssr_merge_color_srv_index, 1, context.work_texture[0]->get_shader_resource_view().GetAddressOf());
 	context.device_context->PSSetSamplers(ssr::gbuffer_srv_start, 1, render_data::instance()->get_state_cache().get_sampler_state(render_state_cache::SAMPLER_STATE::POINT).GetAddressOf());
 	context.device_context->PSSetSamplers(ssr::ssr_merge_bokeh_sampler_index, 1, render_data::instance()->get_state_cache().get_sampler_state(render_state_cache::SAMPLER_STATE::LINEAR_CLAMP).GetAddressOf());

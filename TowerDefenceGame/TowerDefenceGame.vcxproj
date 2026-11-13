@@ -592,6 +592,7 @@ xcopy "$(SolutionDir)External\SDL3\lib\SDL3.dll" "$(OutDir)" /y</Command>
     <ClCompile Include="Sources\Framework\asset_watcher.cpp" />
     <ClCompile Include="Sources\Editor\editor_host.cpp" />
     <ClCompile Include="Sources\Editor\scene_editor.cpp" />
+    <ClCompile Include="Sources\Editor\editor_viewport.cpp" />
     <ClCompile Include="Sources\Renderer\render_system.cpp" />
     <ClCompile Include="Sources\Process\core_process.cpp" />
     <ClCompile Include="Sources\Process\graphics_process.cpp" />
@@ -720,6 +721,7 @@ xcopy "$(SolutionDir)External\SDL3\lib\SDL3.dll" "$(OutDir)" /y</Command>
     <ClInclude Include="..\External\subpixel_morphological_anti_aliasing\textures\SearchTex.h" />
     <ClInclude Include="Headers\Editor\editor_camera.h" />
     <ClInclude Include="Headers\Editor\scene_editor.h" />
+    <ClInclude Include="Headers\Editor\editor_viewport.h" />
     <ClInclude Include="Headers\Editor\editor_items.h" />
     <ClInclude Include="Headers\Editor\detail_profiler.h" />
     <ClInclude Include="Headers\Editor\Windows\texture_editor_window.h" />

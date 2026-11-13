@@ -99,13 +99,11 @@ SurfaceData surface(VS_OUT pin, bool is_front_face)
     bool is_outline_pixel = pin.w_normal.w > 0.5f;
 
     data.base_color = float4(0, 0, 0, 1);
-    data.shade_color = 0;
     data.emissive_color = 0;
     data.roughness = 0.8f;
     data.metalness = 0;
-    data.occlusion_factor = 0;
-    data.occlusion_strength = 0;
-    data.unique_parameter = 0;
+    data.occlusion = 1.0f;
+    data.specular = 0.0f;
     data.w_normal = normalize(pin.w_normal.xyz) * (is_front_face ? +1 : -1);
     data.w_position = pin.w_position.xyz;
     data.velocity = calculate_uvspace_velocity(pin.current_clip_position, pin.previous_clip_position);
@@ -128,24 +126,24 @@ SurfaceData surface(VS_OUT pin, bool is_front_face)
         //  SSSカラー
         //  RGB : 陰色
         //  A : 空き
-        data.shade_color = sss_color.rgb;
+        data.custom_data0.rgb = sss_color.rgb;
         if (HAS_RESOURCE(SssMap))
         {
-            data.shade_color *= TEXTURE2D_SAMPLE(SssMap, pin.texcoord[SssTexcoord]);
+            data.custom_data0.rgb *= TEXTURE2D_SAMPLE(SssMap, pin.texcoord[SssTexcoord]).rgb;
         }
         //  環境光の色は陰部にのみ適応
         //data.shade_color.rgb = apply_light_modifications(data.shade_color.rgb, fake_ambient_color.rgb);
-        data.shade_color.rgb *= fake_ambient_color.rgb;
+        data.custom_data0.rgb *= fake_ambient_color.rgb;
 
         //  ILMカラー
         //  R : ハイライト強度
         //  G : テクスチャベースでの焼き込み影
         //  B : ハイライトの入りやすさ
         //  A :
-        data.ilm_color = float4(0, 1, 0, 0);
+        data.custom_data1.rgb = float3(0, 1, 0);
         if (HAS_RESOURCE(IlmMap))
         {
-            data.ilm_color = TEXTURE2D_SAMPLE(IlmMap, pin.texcoord[IlmTexcoord]);
+            data.custom_data1.rgb = TEXTURE2D_SAMPLE(IlmMap, pin.texcoord[IlmTexcoord]).rgb;
         }
 
         data.roughness = roughness;
@@ -156,16 +154,13 @@ SurfaceData surface(VS_OUT pin, bool is_front_face)
         {
             float4 detail_color = TEXTURE2D_SAMPLE(DetailMap, pin.texcoord[DetailTexcoord]);
             data.base_color.rgb *= detail_color.rgb;
-            data.shade_color.rgb *= detail_color.rgb;
+            data.custom_data0.rgb *= detail_color.rgb;
         }
 
         //  シェーディングモデル側にパラメーター引き渡し
-        float2 shading_threshold_and_offset;
-        shading_threshold_and_offset.x = saturate(shade_threshold);
-        shading_threshold_and_offset.y = saturate(shade_offset);
-        data.unique_parameter.x = PackFloat2ToFloat(shading_threshold_and_offset);
-        data.unique_parameter.y = 0;
-        data.unique_data.x = asuint(pin.color[0].r); // 赤色がシェーディング補正値なので格納
+        data.custom_data1.a = saturate(shade_threshold);
+        data.custom_data2.r = saturate(shade_offset);
+        data.custom_data0.a = saturate(pin.color[0].r); // 赤色がシェーディング補正値なので格納
     }
 
     data.shading_model = is_outline_pixel ? shading_model_unlit : material_shading_model;

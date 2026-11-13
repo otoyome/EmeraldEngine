@@ -34,13 +34,11 @@ SurfaceData surface(VS_OUT pin, bool is_front_face)
     //  パーティクルはマップを持たないので既定値
     data.roughness = 1.0f;
     data.metalness = 0.0f;
-    data.occlusion_factor = 1.0f;
-    data.occlusion_strength = 0.0f;
+    data.occlusion = 1.0f;
+    data.specular = 0.5f;
 
     data.shading_model = material_shading_model;
     data.stencil = material_flags;
-    data.unique_data = 0;
-    data.unique_parameter = 0;
     return data;
 }
 

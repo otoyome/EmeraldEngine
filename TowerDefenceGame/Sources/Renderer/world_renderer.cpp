@@ -194,13 +194,13 @@ bool world_renderer::create_scene_targets(int scene_width, int scene_height)
 			DXGI_FORMAT formats[] =
 			{
 				DXGI_FORMAT_R8G8B8A8_UNORM,			//	BaseColor
-				DXGI_FORMAT_R32G32B32A32_FLOAT,		//	Normal_Depth
+				DXGI_FORMAT_R16G16B16A16_UNORM,		//	NormalTangent
 				DXGI_FORMAT_R8G8B8A8_UNORM,			//	Parameters
-				DXGI_FORMAT_R32G32B32A32_FLOAT,		//	Velocity
-				DXGI_FORMAT_R32G32B32A32_UINT,		//	UniqueData
+				DXGI_FORMAT_R16G16_FLOAT,			//	Velocity
+				DXGI_FORMAT_R8G8B8A8_UNORM,			//	CustomData0
 
-				DXGI_FORMAT_R8G8B8A8_UNORM,			//	ShadeColor
-				DXGI_FORMAT_R8G8B8A8_UNORM,			//	IlmColor
+				DXGI_FORMAT_R8G8B8A8_UNORM,			//	CustomData1
+				DXGI_FORMAT_R8G8B8A8_UNORM,			//	CustomData2
 			};
 			for (int index = 0; index < static_cast<int>(magic_enum::enum_count<common_pipeline_states::gbuffer_id>()); ++index)
 			{
@@ -276,6 +276,14 @@ bool world_renderer::create_scene_targets(int scene_width, int scene_height)
 		static constexpr std::string_view WorkRGBA32FloatName = "Work RGBA32 Float";
 		texture2d_desc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
 		if (!texture_factory::create_texture2d(render_targets->work_buffer_rgba32float_texture, WorkRGBA32FloatName, texture2d_desc))
+		{
+			return false;
+		}
+
+		//	デカールで G-Buffer の法線/接線を読むためのコピー先
+		static constexpr std::string_view WorkNormalTangentName = "Work GBuffer Normal Tangent";
+		texture2d_desc.Format = DXGI_FORMAT_R16G16B16A16_UNORM;
+		if (!texture_factory::create_texture2d(render_targets->work_buffer_gbuffer_normal_tangent_texture, WorkNormalTangentName, texture2d_desc))
 		{
 			return false;
 		}

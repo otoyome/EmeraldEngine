@@ -227,6 +227,9 @@
     <ClCompile Include="Sources\Framework\asset_watcher.cpp">
       <Filter>Sources\Framework</Filter>
     </ClCompile>
+    <ClCompile Include="Sources\Editor\editor_viewport.cpp">
+      <Filter>Sources\Editor</Filter>
+    </ClCompile>
     <ClCompile Include="Sources\Editor\scene_editor.cpp">
       <Filter>Sources\Editor</Filter>
     </ClCompile>
@@ -651,6 +654,9 @@
     </ClInclude>
     <ClInclude Include="Headers\PipelineState\debug_draw_line_pipeline_state.h">
       <Filter>Headers\PipelineState</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Editor\editor_viewport.h">
+      <Filter>Headers\Editor</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Editor\scene_editor.h">
       <Filter>Headers\Editor</Filter>

@@ -339,6 +339,7 @@ void screen_space_reflection_renderer::render_reflection(graphics_context& conte
 		{
 			context.g_buffer_textures[index] = render_targets->g_buffer_textures[index];
 		}
+		context.scene_depth_texture = render_targets->scene_depth_stencil_texture;
 		context.g_buffer_textures[static_cast<UINT>(common_pipeline_states::gbuffer_id::base_color)] = render_targets->scene_color_texture;
 
 		ssr_uv_pipeline_state->begin(context);
@@ -361,6 +362,7 @@ void screen_space_reflection_renderer::render_reflection(graphics_context& conte
 		{
 			context.g_buffer_textures[index] = render_targets->g_buffer_textures[index];
 		}
+		context.scene_depth_texture = render_targets->scene_depth_stencil_texture;
 		context.g_buffer_textures[static_cast<UINT>(common_pipeline_states::gbuffer_id::base_color)] = render_targets->scene_color_texture;
 		context.work_texture[0] = render_targets->work_buffer_half_scene_textures[0];
 
@@ -406,12 +408,14 @@ void screen_space_reflection_renderer::render_denoise(graphics_context& context,
 	//	ƒfƒmƒCƒYˆ—
 	{
 		auto src_srv = render_targets->work_buffer_scene_textures[1]->get_shader_resource_view().Get();
-		auto nd_srv = render_targets->g_buffer_textures[static_cast<int>(common_pipeline_states::gbuffer_id::normal_depth)]->get_shader_resource_view().Get();
+		auto nd_srv = render_targets->g_buffer_textures[static_cast<int>(common_pipeline_states::gbuffer_id::normal_tangent)]->get_shader_resource_view().Get();
 		auto dest_uav = render_targets->work_buffer_scene_textures[0]->get_unordered_access_view().Get();
 		auto accumlate_uav = render_targets->ssr_accumlate_textures[accumlate_flip_flag ? 0 : 1]->get_unordered_access_view().Get();
 
 		context.device_context->CSSetShaderResources(0, 1, &src_srv);
 		context.device_context->CSSetShaderResources(1, 1, &nd_srv);
+		auto depth_srv = render_targets->scene_depth_stencil_texture->get_shader_resource_view().Get();
+		context.device_context->CSSetShaderResources(2, 1, &depth_srv);
 
 		context.device_context->CSSetUnorderedAccessViews(0, 1, &dest_uav, nullptr);
 		context.device_context->CSSetUnorderedAccessViews(1, 1, &accumlate_uav, nullptr);
@@ -471,6 +475,7 @@ void screen_space_reflection_renderer::render_composite(graphics_context& contex
 		{
 			context.g_buffer_textures[index] = render_targets->g_buffer_textures[index];
 		}
+		context.scene_depth_texture = render_targets->scene_depth_stencil_texture;
 		context.g_buffer_textures[static_cast<UINT>(common_pipeline_states::gbuffer_id::base_color)] = render_targets->scene_color_texture;
 		context.work_texture[0] = render_targets->work_buffer_scene_textures[1];
 		context.work_texture[1] = render_targets->work_buffer_scene_textures[1];

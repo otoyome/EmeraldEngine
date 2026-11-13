@@ -341,16 +341,16 @@ void clustered_lighting_system::build(graphics_context& context)
 	//	タイルごとの最も奥の奥行き分割を G-Buffer の深度から求める
 	if (constants.flags & clustered_flag_depth_culling)
 	{
-		const texture_ptr& normal_depth = context.g_buffer_textures[static_cast<UINT>(common_pipeline_states::gbuffer_id::normal_depth)];
-		if (normal_depth)
+		const texture_ptr& scene_depth = context.scene_depth_texture;
+		if (scene_depth)
 		{
 			const UINT zero[4] = {};
 			dc->ClearUnorderedAccessViewUint(tile_depth_uav.Get(), zero);
 
-			const UINT width = static_cast<UINT>(normal_depth->get_width());
-			const UINT height = static_cast<UINT>(normal_depth->get_height());
+			const UINT width = static_cast<UINT>(scene_depth->get_width());
+			const UINT height = static_cast<UINT>(scene_depth->get_height());
 			dc->CSSetShader(depth_cs->get_shader().Get(), nullptr, 0);
-			dc->CSSetShaderResources(0, 1, normal_depth->get_shader_resource_view().GetAddressOf());
+			dc->CSSetShaderResources(0, 1, scene_depth->get_shader_resource_view().GetAddressOf());
 			dc->CSSetUnorderedAccessViews(0, 1, tile_depth_uav.GetAddressOf(), nullptr);
 			dc->Dispatch((width + depth_thread_size - 1) / depth_thread_size, (height + depth_thread_size - 1) / depth_thread_size, 1);
 			context.clear_unordered_access_views();
@@ -450,6 +450,10 @@ void clustered_lighting_system::render(graphics_context& context)
 		g_buffer_srvs[index] = context.g_buffer_textures[index]->get_shader_resource_view().Get();
 	}
 	dc->PSSetShaderResources(gbuffer_srv_index, ARRAYSIZE(g_buffer_srvs), g_buffer_srvs);
+	{
+		ID3D11ShaderResourceView* gbuffer_depth_srv = context.scene_depth_texture ? context.scene_depth_texture->get_shader_resource_view().Get() : nullptr;
+		dc->PSSetShaderResources(gbuffer_srv_index + ARRAYSIZE(g_buffer_srvs), 1, &gbuffer_depth_srv);
+	}
 	dc->PSSetSamplers(gbuffer_srv_index, 1, render_data::instance()->get_state_cache().get_sampler_state(render_state_cache::SAMPLER_STATE::LINEAR).GetAddressOf());
 
 	ID3D11ShaderResourceView* cluster_srvs[] = { light_srv.Get(), count_srv.Get(), offset_srv.Get(), index_srv.Get() };

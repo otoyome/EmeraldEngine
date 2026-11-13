@@ -18,56 +18,60 @@ static const uint material_attribute_decal_off              = 1 <<  2;  //  デカ
 
 //static const uint material_attribute_ = 1 << 31;
 
+//  G-Buffer ステンシルのビット数(RT1.a の下位 15bit)
+static const uint gbuffer_stencil_bit_count = 15;
+static const uint gbuffer_stencil_mask = (1u << gbuffer_stencil_bit_count) - 1u;
+//  従法線の符号ビット(RT1.a のステンシルの次のビット)
+static const uint gbuffer_bitangent_sign_bit = 1u << gbuffer_stencil_bit_count;
+
 //  GBuffer情報構造体
 struct GBufferData
 {
     float3 base_color;          //  ベースカラー
     uint shading_model;         //  シェーディング方式
     float3 w_normal;            //  ワールド法線
+    float3 w_tangent;           //  ワールド接線
+    float bitangent_sign;       //  従法線の向き
     float3 w_position;          //  ワールド座標
     float2 velocity;            //  速度
     float linear_depth;         //  線形深度(Decode時のみ)
     float roughness;            //  粗さ
     float metalness;            //  金属質
-    float occlusion_factor;     //  遮蔽値
-    float occlusion_strength;   //  遮蔽強度
-    uint stencil;               //  ビットフラグ(4バイト=32フラグ)
-    uint3 unique_data;          //  シェーディングモデル毎に変わる変数(32ビット符号なし整数)
+    float occlusion;            //  遮蔽値
+    float specular;             //  鏡面反射率の調整値
+    uint stencil;               //  ビットフラグ(下位 15bit のみ有効)
 
-    float2 unique_parameter;    //  シェーディングモデル毎に変わる変数(32ビット浮動小数点)
-
-    float3 shade_color;         //  トゥーン用：陰色
-    float4 ilm_color;           //  トゥーン用：イルミネーション
+    float4 custom_data0;
+    float4 custom_data1;
+    float4 custom_data2;
 };
 
 //  GBufferテクスチャ受け渡し用構造体
 struct GBufferTextures
 {
-    SamplerState state;
     Texture2D<float4> base_color;
-    Texture2D<float4> normal_depth;
+    Texture2D<float4> normal_tangent;
     Texture2D<float4> parameter;
-    Texture2D<float4> velocity;
-    Texture2D<uint4> unique_data;
-
-    Texture2D<float4> shade_color;
-    Texture2D<float4> ilm_color;
+    Texture2D<float2> velocity;
+    Texture2D<float4> custom_data0;
+    Texture2D<float4> custom_data1;
+    Texture2D<float4> custom_data2;
+    Texture2D<float> depth;
 };
 
 //  ピクセルシェーダーへの出力用構造体
 struct encode_g_buffer_data
 {
     float4 base_color;
-    float4 normal_depth;
+    float4 normal_tangent;
     float4 parameter;
-    float4 velocity;
-    uint4 unique_data;
-
-    float4 shade_color;
-    float4 ilm_color;
+    float2 velocity;
+    float4 custom_data0;
+    float4 custom_data1;
+    float4 custom_data2;
 };
 
-//  圧縮
+//  float2 <> uint
 uint PackFloat2ToUInt(float2 value)
 {
     uint a16 = f32tof16(value.x);
@@ -75,24 +79,6 @@ uint PackFloat2ToUInt(float2 value)
     uint abPacked = (a16 << 16) | b16;
     return abPacked;
 }
-
-float PackFloat2ToFloat(float2 value)
-{
-    return asfloat(PackFloat2ToUInt(value));
-}
-
-uint PackNormal(float3 n)
-{
-    //  Octahedral Encoding
-    //  https://liamtyler.github.io/posts/octahedral_analysis/
-    n /= (abs(n.x) + abs(n.y) + abs(n.z));
-    float2 p = (n.z >= 0.0) ? n.xy : (1.0 - abs(n.yx)) * sign(n.xy);
-    uint x = (uint)((p.x * 0.5 + 0.5) * 65535.0);
-    uint y = (uint)((p.y * 0.5 + 0.5) * 65535.0);
-    return (x << 16) | y;
-}
-
-//  解凍
 float2 UnpackUIntToFloat2(uint packedValue)
 {
     float2 result;
@@ -101,11 +87,29 @@ float2 UnpackUIntToFloat2(uint packedValue)
     return result;
 }
 
+//	float2 <> float
+float PackFloat2ToFloat(float2 value)
+{
+    return asfloat(PackFloat2ToUInt(value));
+}
+
 float2 UnpackFloatToFloat2(float packedValue)
 {
     return UnpackUIntToFloat2(asuint(packedValue));
 }
 
+//  Octahedral 法線エンコード
+//  https://liamtyler.github.io/posts/octahedral_analysis/
+uint PackNormal(float3 n)
+{
+    n /= (abs(n.x) + abs(n.y) + abs(n.z));
+    float2 p = (n.z >= 0.0) ? n.xy : (1.0 - abs(n.yx)) * sign(n.xy);
+    uint x = (uint)((p.x * 0.5 + 0.5) * 65535.0);
+    uint y = (uint)((p.y * 0.5 + 0.5) * 65535.0);
+    return (x << 16) | y;
+}
+
+//  Octahedral 法線デコード
 float3 UnpackNormal(uint p)
 {
     float2 f;
@@ -115,6 +119,160 @@ float3 UnpackNormal(uint p)
     float t = saturate(-n.z);
     n.xy += (n.xy >= 0.0 ? -t : t);
     return normalize(n);
+}
+
+//  Signed Octahedron 法線エンコード
+float3 EncodeSignedOctahedronNormal(float3 n)
+{
+    n /= (abs(n.x) + abs(n.y) + abs(n.z));
+    float3 encoded;
+    encoded.x = ( n.x + n.y) * 0.5f + 0.5f;
+    encoded.y = (-n.x + n.y) * 0.5f + 0.5f;
+    encoded.z = (n.z >= 0.0f) ? 1.0f : 0.0f;
+    return encoded;
+}
+
+//  Signed Octahedron 法線デコード
+float3 DecodeSignedOctahedronNormal(float3 encoded)
+{
+    float3 n;
+    n.x = encoded.x - encoded.y;
+    n.y = encoded.x + encoded.y - 1.0f;
+
+    //  量子化で符号が 0/1 からずれても判定できるよう 0.5 で切り分ける
+    float z_sign = (encoded.z >= 0.5f) ? 1.0f : -1.0f;
+    n.z = z_sign * (1.0f - abs(n.x) - abs(n.y));
+    return normalize(n);
+}
+
+//  八面体法線エンコード
+float2 EncodeOctahedronNormal(float3 n)
+{
+    n /= max(abs(n.x) + abs(n.y) + abs(n.z), 1.0e-20f);
+    float2 p = n.xy;
+    if (n.z < 0.0f)
+    {
+        p = (1.0f - abs(n.yx)) * float2(n.x >= 0.0f ? 1.0f : -1.0f, n.y >= 0.0f ? 1.0f : -1.0f);
+    }
+    return saturate(p * 0.5f + 0.5f);
+}
+
+//  八面体法線デコード
+float3 DecodeOctahedronNormal(float2 encoded)
+{
+    float2 f = encoded * 2.0f - 1.0f;
+    float3 n = float3(f.x, f.y, 1.0f - abs(f.x) - abs(f.y));
+    float t = saturate(-n.z);
+    n.x += (n.x >= 0.0f) ? -t : t;
+    n.y += (n.y >= 0.0f) ? -t : t;
+    return normalize(n);
+}
+
+//  法線から一意に決まる正規直交基底を作る
+void BuildOrthonormalBasis(float3 n, out float3 b1, out float3 b2)
+{
+    float s = (n.z >= 0.0f) ? 1.0f : -1.0f;
+    float a = -1.0f / (s + n.z);
+    float b = n.x * n.y * a;
+    b1 = float3(1.0f + s * n.x * n.x * a, s * b, -s * n.x);
+    b2 = float3(b, s + n.y * n.y * a, -n.y);
+}
+
+//  ダイヤモンドエンコード
+float EncodeDiamond(float2 p)
+{
+    float x = p.x / max(abs(p.x) + abs(p.y), 1.0e-20f);
+    float y_sign = (p.y >= 0.0f) ? 1.0f : -1.0f;
+    return -y_sign * 0.25f * x + 0.5f + y_sign * 0.25f;
+}
+
+//  ダイヤモンドデコード
+float2 DecodeDiamond(float p)
+{
+    float p_sign = (p >= 0.5f) ? 1.0f : -1.0f;
+    float2 v;
+    v.x = -p_sign * 4.0f * p + 1.0f + p_sign * 2.0f;
+    v.y = p_sign * (1.0f - abs(v.x));
+    return normalize(v);
+}
+
+//  16bit UNORM <> float
+float EncodeUIntToUNorm16(uint value)
+{
+    return (float) (value & 0xFFFFu) / 65535.0f;
+}
+
+uint DecodeUNorm16ToUInt(float value)
+{
+    return (uint) (saturate(value) * 65535.0f + 0.5f);
+}
+
+//  8bit UNORM <> float
+float EncodeUIntToUNorm8(uint value)
+{
+    return (float) (value & 0xFFu) / 255.0f;
+}
+
+uint DecodeUNorm8ToUInt(float value)
+{
+    return (uint) (saturate(value) * 255.0f + 0.5f);
+}
+
+//  法線/接線/従法線の符号/ステンシルをエンコード
+float4 EncodeNormalTangent(float3 w_normal, float3 w_tangent, float bitangent_sign, uint stencil)
+{
+    float4 encoded;
+
+    //  法線
+    encoded.xy = round(EncodeOctahedronNormal(w_normal) * 65535.0f) / 65535.0f;
+    float3 n = DecodeOctahedronNormal(encoded.xy);
+
+    //  接線
+    float3 b1, b2;
+    BuildOrthonormalBasis(n, b1, b2);
+    float2 t = float2(dot(w_tangent, b1), dot(w_tangent, b2));
+    if (dot(t, t) < 1.0e-12f)
+    {
+        t = float2(1.0f, 0.0f);
+    }
+    encoded.z = EncodeDiamond(t);
+
+    //  G-Bufferステンシル(15bit) + 法線の符号(1bit)
+    uint flags = (stencil & gbuffer_stencil_mask) | ((bitangent_sign < 0.0f) ? gbuffer_bitangent_sign_bit : 0u);
+    encoded.w = EncodeUIntToUNorm16(flags);
+    return encoded;
+}
+
+//  法線/接線/従法線の符号/ステンシルをデコード
+void DecodeNormalTangent(float4 encoded, out float3 w_normal, out float3 w_tangent, out float bitangent_sign, out uint stencil)
+{
+    w_normal = DecodeOctahedronNormal(encoded.xy);
+
+    float3 b1, b2;
+    BuildOrthonormalBasis(w_normal, b1, b2);
+    float2 t = DecodeDiamond(encoded.z);
+    w_tangent = normalize(t.x * b1 + t.y * b2);
+
+    uint flags = DecodeUNorm16ToUInt(encoded.w);
+    stencil = flags & gbuffer_stencil_mask;
+    bitangent_sign = (flags & gbuffer_bitangent_sign_bit) ? -1.0f : 1.0f;
+}
+
+//  ステンシルだけを取り出す
+uint DecodeGBufferStencil(float4 encoded_normal_tangent)
+{
+    return DecodeUNorm16ToUInt(encoded_normal_tangent.w) & gbuffer_stencil_mask;
+}
+
+//  シェーディングモデルをエンコード/デコードする
+float EncodeShadingModel(uint shading_model)
+{
+    return EncodeUIntToUNorm8(shading_model);
+}
+
+uint DecodeShadingModel(float encoded)
+{
+    return DecodeUNorm8ToUInt(encoded);
 }
 
 //  UV空間上の速度計算用関数
@@ -150,26 +308,20 @@ encode_g_buffer_data encode_g_buffer(in GBufferData data, matrix view_projection
 {
     encode_g_buffer_data ret = (encode_g_buffer_data) 0;
     ret.base_color.rgb = data.base_color.rgb;
-    ret.base_color.a = data.shading_model / 32.0f;
+    ret.base_color.a = EncodeShadingModel(data.shading_model);
 
-    ret.normal_depth.rgb = data.w_normal;
-    float4 position = mul(float4(data.w_position, 1.0f), view_projection_matrix);
-    ret.normal_depth.a = convert_projection_depth_to_linear_depth(position.z / position.w, z_buffer_parameteres);
+    ret.normal_tangent = EncodeNormalTangent(data.w_normal, data.w_tangent, data.bitangent_sign, data.stencil);
 
-    ret.parameter.r = data.occlusion_factor;
+    ret.parameter.r = data.occlusion;
     ret.parameter.g = data.roughness;
     ret.parameter.b = data.metalness;
-    ret.parameter.a = data.occlusion_strength;
-    
-    ret.velocity.rg = data.velocity;
-    ret.velocity.b = data.unique_parameter.x;
-    ret.velocity.a = data.unique_parameter.y;
-    
-    ret.unique_data.x = data.stencil;
-    ret.unique_data.yzw = data.unique_data.xyz;
+    ret.parameter.a = data.specular;
 
-    ret.shade_color.xyz = data.shade_color.rgb;
-    ret.ilm_color = data.ilm_color;
+    ret.velocity = data.velocity;
+
+    ret.custom_data0 = data.custom_data0;
+    ret.custom_data1 = data.custom_data1;
+    ret.custom_data2 = data.custom_data2;
 
     return ret;
 };
@@ -178,40 +330,36 @@ encode_g_buffer_data encode_g_buffer(in GBufferData data, matrix view_projection
 GBufferData DecodeGBuffer(GBufferTextures textures, float2 uv, matrix inverse_view_projection_transform, float4 z_buffer_parameteres)
 {
     uint2 texture_size;
-    textures.unique_data.GetDimensions(texture_size.x, texture_size.y);
+    textures.base_color.GetDimensions(texture_size.x, texture_size.y);
+
+    //  エンコードした値を補間しない
+    int3 texel = int3(min((uint2) (uv * texture_size), texture_size - 1), 0);
 
     //  各テクスチャから情報を取得
-    float4 base_color = textures.base_color.SampleLevel(textures.state, uv, 0);
-    float4 normal_depth = textures.normal_depth.SampleLevel(textures.state, uv, 0);
-    float4 parameter = textures.parameter.SampleLevel(textures.state, uv, 0);
-    float4 velocity = textures.velocity.SampleLevel(textures.state, uv, 0);
-    uint4 unique_data = textures.unique_data.Load(uint3((uint2) (uv * texture_size), 0));
-
-    float4 shade_color = textures.shade_color.SampleLevel(textures.state, uv, 0);
-    float4 ilm_color = textures.ilm_color.SampleLevel(textures.state, uv, 0);
+    float4 base_color = textures.base_color.Load(texel);
+    float4 normal_tangent = textures.normal_tangent.Load(texel);
+    float4 parameter = textures.parameter.Load(texel);
+    float2 velocity = textures.velocity.Load(texel);
+    float projection_depth = textures.depth.Load(texel);
 
     GBufferData data = (GBufferData) 0;
     data.base_color = base_color.rgb;
-    data.shading_model = (int) (base_color.a * 32.0f + 0.5f);
-    data.w_normal = normal_depth.rgb;
-    data.linear_depth = normal_depth.a;
-    data.occlusion_factor = parameter.r;
+    data.shading_model = DecodeShadingModel(base_color.a);
+    DecodeNormalTangent(normal_tangent, data.w_normal, data.w_tangent, data.bitangent_sign, data.stencil);
+    data.linear_depth = convert_projection_depth_to_linear_depth(projection_depth, z_buffer_parameteres);
+    data.occlusion = parameter.r;
     data.roughness = parameter.g;
     data.metalness = parameter.b;
-    data.occlusion_strength = parameter.a;
-    data.velocity = velocity.rg;
-    data.unique_parameter.x = velocity.b;
-    data.unique_parameter.y = velocity.a;
-    
-    data.stencil = unique_data.x;
-    data.unique_data.xyz = unique_data.yzw;
+    data.specular = parameter.a;
+    data.velocity = velocity;
+
+    data.custom_data0 = textures.custom_data0.Load(texel);
+    data.custom_data1 = textures.custom_data1.Load(texel);
+    data.custom_data2 = textures.custom_data2.Load(texel);
 
     float4 position = float4(uv.xy * float2(2.0f, -2.0f) + float2(-1.0f, 1.0f), convert_linear_depth_to_projection_depth(data.linear_depth, z_buffer_parameteres), 1);
     position = mul(position, inverse_view_projection_transform);
     data.w_position = position.xyz / position.w;
-
-    data.shade_color.rgb = shade_color.xyz;
-    data.ilm_color = ilm_color;
 
     return data;
 }

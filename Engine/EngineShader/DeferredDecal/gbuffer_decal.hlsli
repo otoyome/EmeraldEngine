@@ -25,7 +25,7 @@ struct VS_OUT
 struct PSDecalOut
 {
     float4 base_color : SV_TARGET0;
-    float4 normal_depth : SV_TARGET1;
+    float4 normal_tangent : SV_TARGET1;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -40,6 +40,11 @@ struct DecalIn
 #endif  //  defined(HAS_NORMAL_MAP)
     float linear_depth;
     float2 texcoord;
+
+    //  デカールを書き込む前の G-Buffer の情報
+    float3 surface_tangent;
+    float surface_bitangent_sign;
+    uint stencil;
 };
 
 struct DecalData
@@ -49,11 +54,11 @@ struct DecalData
     float linear_depth;
 };
 
-DecalIn convert_decal_in(float4 normal_depth, float2 texcoord)
+DecalIn convert_decal_in(float4 normal_tangent, float projection_depth, float2 texcoord)
 {
     DecalIn din;
-    din.w_normal = normalize(normal_depth.rgb);
-    din.linear_depth = normal_depth.a;
+    DecodeNormalTangent(normal_tangent, din.w_normal, din.surface_tangent, din.surface_bitangent_sign, din.stencil);
+    din.linear_depth = convert_projection_depth_to_linear_depth(projection_depth, z_buffer_parameteres);
 
     //  法線と向きから適応させるかどうかを決める
     clip(dot(decal_direction.xyz, din.w_normal) >= normal_angle ? -1 : 1);
@@ -99,14 +104,13 @@ DecalIn convert_decal_in(float4 normal_depth, float2 texcoord)
     return din;
 }
 
-PSDecalOut convert_decal_out(in DecalData decal_data)
+PSDecalOut convert_decal_out(in DecalData decal_data, in DecalIn din)
 {
     //  GBufferDataに出力情報をまとめる
     PSDecalOut pout = (PSDecalOut) 0;
     pout.base_color.rgb = decal_data.base_color.rgb;
-    pout.base_color.a = material_shading_model;
-    pout.normal_depth.xyz = normalize(decal_data.w_normal.xyz);
-    pout.normal_depth.a = decal_data.linear_depth;
+    pout.base_color.a = EncodeShadingModel(material_shading_model);
+    pout.normal_tangent = EncodeNormalTangent(normalize(decal_data.w_normal.xyz), din.surface_tangent, din.surface_bitangent_sign, din.stencil);
     return pout;
 }
 #endif // __GBUFFER_DECAL_HLSLI__

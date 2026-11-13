@@ -322,44 +322,47 @@ namespace common_pipeline_states
 	constexpr system_utility::hash_key scene_depth_map_hash_key = system_utility::generate_hash(scene_depth_map_name);
 	//	G-Buffer関連
 	constexpr std::string_view gbuffer_base_color = "gbuffer_base_color";
-	constexpr std::string_view gbuffer_normal_depth = "gbuffer_normal_depth";
+	constexpr std::string_view gbuffer_normal_tangent = "gbuffer_normal_tangent";
 	constexpr std::string_view gbuffer_parameter = "gbuffer_parameter";
 	constexpr std::string_view gbuffer_velocity = "gbuffer_velocity";
-	constexpr std::string_view gbuffer_unique_data = "gbuffer_unique_data";
-	constexpr std::string_view gbuffer_shade_color = "gbuffer_shade_color";
-	constexpr std::string_view gbuffer_ilm_color = "gbuffer_ilm_color";
+	constexpr std::string_view gbuffer_custom_data0 = "gbuffer_custom_data0";
+	constexpr std::string_view gbuffer_custom_data1 = "gbuffer_custom_data1";
+	constexpr std::string_view gbuffer_custom_data2 = "gbuffer_custom_data2";
+	//	G-Buffer として読むシーンの深度バッファ
+	constexpr std::string_view gbuffer_depth = "gbuffer_depth";
+	constexpr system_utility::hash_key gbuffer_depth_hash_key = system_utility::generate_hash(gbuffer_depth);
 	constexpr std::string_view gbuffer_names[] =
 	{
 		gbuffer_base_color,
-		gbuffer_normal_depth,
+		gbuffer_normal_tangent,
 		gbuffer_parameter,
 		gbuffer_velocity,
-		gbuffer_unique_data,
+		gbuffer_custom_data0,
 
-		gbuffer_shade_color,
-		gbuffer_ilm_color,
+		gbuffer_custom_data1,
+		gbuffer_custom_data2,
 	};
 	constexpr system_utility::hash_key gbuffer_hash_keys[] =
 	{
 		system_utility::generate_hash(gbuffer_base_color),
-		system_utility::generate_hash(gbuffer_normal_depth),
+		system_utility::generate_hash(gbuffer_normal_tangent),
 		system_utility::generate_hash(gbuffer_parameter),
 		system_utility::generate_hash(gbuffer_velocity),
-		system_utility::generate_hash(gbuffer_unique_data),
+		system_utility::generate_hash(gbuffer_custom_data0),
 
-		system_utility::generate_hash(gbuffer_shade_color),
-		system_utility::generate_hash(gbuffer_ilm_color),
+		system_utility::generate_hash(gbuffer_custom_data1),
+		system_utility::generate_hash(gbuffer_custom_data2),
 	};
 	//	G-Buffer識別子
 	enum class gbuffer_id
 	{
 		base_color = 0,
-		normal_depth,
+		normal_tangent,
 		parameters,
 		velocity,
-		unique_data,
-		shade_color,
-		ilm_color,
+		custom_data0,
+		custom_data1,
+		custom_data2,
 
 		start = base_color,
 	};
@@ -442,14 +445,15 @@ namespace common_pipeline_states
 
 		scene_color_map_name,
 		scene_depth_map_name,
+		gbuffer_depth,
 
 		gbuffer_base_color,
-		gbuffer_normal_depth,
+		gbuffer_normal_tangent,
 		gbuffer_parameter,
 		gbuffer_velocity,
-		gbuffer_unique_data,
-		gbuffer_shade_color,
-		gbuffer_ilm_color,
+		gbuffer_custom_data0,
+		gbuffer_custom_data1,
+		gbuffer_custom_data2,
 	};
 }	//	namespace common_pipeline_states
 

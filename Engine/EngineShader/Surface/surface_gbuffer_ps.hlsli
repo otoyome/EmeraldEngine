@@ -32,12 +32,12 @@ PS_GBUFFER_OUT main(VS_OUT pin, bool is_front_face : SV_IsFrontFace)
     
     PS_GBUFFER_OUT pout;
     pout.base_color = encode_data.base_color;
-    pout.normal_depth = encode_data.normal_depth;
+    pout.normal_tangent = encode_data.normal_tangent;
     pout.parameter = encode_data.parameter;
     pout.velocity = encode_data.velocity;
-    pout.unique_data = encode_data.unique_data;
-    pout.shade_color = encode_data.shade_color;
-    pout.ilm_color = encode_data.ilm_color;
+    pout.custom_data0 = encode_data.custom_data0;
+    pout.custom_data1 = encode_data.custom_data1;
+    pout.custom_data2 = encode_data.custom_data2;
     pout.scene_color = float4(surface_data.emissive_color, 1);  //  ©ŒÈ”­Œõ‚Í’¼ÚƒV[ƒ“‚É‘‚«‚Ş
     return pout;
 }

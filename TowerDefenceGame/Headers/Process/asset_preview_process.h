@@ -13,8 +13,7 @@
 #include "Scenes/scene_system.h"
 
 class world;
-class world_renderer;
-struct render_pass;
+class editor_viewport;
 class scene_manager;
 class engine_context;
 
@@ -50,8 +49,6 @@ public:
 	void imgui_render() override;
 
 private:
-	bool resize_output(int width, int height);
-
 	//	レイアウト描画
 	bool imgui_render_layout(engine_context& context);
 
@@ -74,8 +71,7 @@ private:
 	scene_opener open_scene;	//	自分のワールドにシーンを登録する処理
 
 	std::unique_ptr<world> preview_world;		//	ワールド
-	texture_ptr output_texture;					//	描画先のテクスチャ（ImGui で表示する）
-	std::unique_ptr<world_renderer> renderer;	//	ワールドレンダラー
+	std::unique_ptr<editor_viewport> viewport;	//	ワールドを映すビューポート
 
 private:
 	static std::unordered_map<std::string, panel_layout> panel_layouts;	//	レイアウトパネルリスト
