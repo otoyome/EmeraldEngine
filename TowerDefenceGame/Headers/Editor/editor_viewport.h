@@ -1,6 +1,7 @@
 #pragma once
 
 #if defined(USE_IMGUI)
+#include <functional>
 #include <memory>
 
 #include "Texture/texture.h"
@@ -35,7 +36,8 @@ public:
 	void collect(world& target, const debug_view_settings& debug_settings);
 	void submit_render_jobs(world& target, float elapsed_time);
 
-	bool imgui_render(engine_context& context, const ImVec2& position, const ImVec2& size);
+	//	ImGui•`‰æ
+	bool imgui_render(engine_context& context, const ImVec2& position, const ImVec2& size, const std::function<bool(const ImVec2& image_position, const ImVec2& image_size)>& overlay = nullptr);
 
 	//	‰æ–Ê”ä—¦‚ğ•Û‘¶‚·‚é•Ï”
 	void set_aspect_variable(console_variable<int>* variable) { aspect_variable = variable; }

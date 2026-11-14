@@ -171,7 +171,7 @@ SurfaceData surface(VS_OUT pin, bool is_front_face)
 #if defined(MATERIAL_SURFACE_OPACITY)
 #include "gbuffer.hlsli"
 
-//	不透明度(depth_write / shadow_write パスのマスク処理用)
+//	不透明度
 float surface_opacity(VS_OUT pin, bool is_front_face)
 {
     //  ベースカラー
@@ -189,7 +189,7 @@ float surface_opacity(VS_OUT pin, bool is_front_face)
 //	ジオメトリシェーダーの最大出力頂点数(表面 3 + 輪郭線 3)
 #define MATERIAL_GEOMETRY_MAX_VERTEX_COUNT	6
 
-//	背面法の輪郭線を追加する(depth_write / g_buffer パスで使用)
+//	背面法の輪郭線を追加する
 void material_geometry(VS_OUT input[3], inout TriangleStream<VS_OUT> output)
 {
     int i;

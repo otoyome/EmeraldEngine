@@ -11,7 +11,7 @@
 #include "Process/audio_process.h"
 #include "Process/asset_watch_process.h"
 #include "Process/editor_process.h"
-#include "Process/shader_compile_process.h"
+#include "Process/boot_process.h"
 
 #if defined(USE_IMGUI)
 #include "Editor/editor_host.h"
@@ -121,7 +121,7 @@ bool framework::initialize()
 #endif	//	defined(USE_IMGUI)
 
 	//	起動プロセス
-	if (!add_process(std::make_unique<shader_compile_process>(*this)))
+	if (!add_process(std::make_unique<boot_process>(*this)))
 		return false;
 
 	return advance_process();

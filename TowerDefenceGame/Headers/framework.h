@@ -19,7 +19,7 @@ class framework
 	friend class audio_process;
 	friend class asset_watch_process;
 	friend class editor_process;
-	friend class shader_compile_process;
+	friend class boot_process;
 	friend class game_process;
 	friend class scene_editor_process;
 	friend class asset_preview_process;

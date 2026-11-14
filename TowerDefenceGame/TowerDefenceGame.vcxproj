@@ -593,6 +593,7 @@ xcopy "$(SolutionDir)External\SDL3\lib\SDL3.dll" "$(OutDir)" /y</Command>
     <ClCompile Include="Sources\Editor\editor_host.cpp" />
     <ClCompile Include="Sources\Editor\scene_editor.cpp" />
     <ClCompile Include="Sources\Editor\editor_viewport.cpp" />
+    <ClCompile Include="Sources\Editor\editor_gizmo.cpp" />
     <ClCompile Include="Sources\Renderer\render_system.cpp" />
     <ClCompile Include="Sources\Process\core_process.cpp" />
     <ClCompile Include="Sources\Process\graphics_process.cpp" />
@@ -603,7 +604,7 @@ xcopy "$(SolutionDir)External\SDL3\lib\SDL3.dll" "$(OutDir)" /y</Command>
     <ClCompile Include="Sources\Process\game_process.cpp" />
     <ClCompile Include="Sources\Process\scene_editor_process.cpp" />
     <ClCompile Include="Sources\Process\asset_preview_process.cpp" />
-    <ClCompile Include="Sources\Process\shader_compile_process.cpp" />
+    <ClCompile Include="Sources\Process\boot_process.cpp" />
     <ClCompile Include="Sources\main.cpp" />
     <ClCompile Include="Sources\Object\camera_object.cpp" />
     <ClCompile Include="Sources\Object\Collision\collision_filter.cpp" />
@@ -723,6 +724,7 @@ xcopy "$(SolutionDir)External\SDL3\lib\SDL3.dll" "$(OutDir)" /y</Command>
     <ClInclude Include="Headers\Editor\editor_camera.h" />
     <ClInclude Include="Headers\Editor\scene_editor.h" />
     <ClInclude Include="Headers\Editor\editor_viewport.h" />
+    <ClInclude Include="Headers\Editor\editor_gizmo.h" />
     <ClInclude Include="Headers\Editor\editor_items.h" />
     <ClInclude Include="Headers\Editor\detail_profiler.h" />
     <ClInclude Include="Headers\Editor\Windows\texture_editor_window.h" />
@@ -747,7 +749,7 @@ xcopy "$(SolutionDir)External\SDL3\lib\SDL3.dll" "$(OutDir)" /y</Command>
     <ClInclude Include="Headers\Process\game_process.h" />
     <ClInclude Include="Headers\Process\scene_editor_process.h" />
     <ClInclude Include="Headers\Process\asset_preview_process.h" />
-    <ClInclude Include="Headers\Process\shader_compile_process.h" />
+    <ClInclude Include="Headers\Process\boot_process.h" />
     <ClInclude Include="Headers\Object\camera_object.h" />
     <ClInclude Include="Headers\Object\Collision\collision_filter.h" />
     <ClInclude Include="Headers\Object\Collision\collision_world.h" />

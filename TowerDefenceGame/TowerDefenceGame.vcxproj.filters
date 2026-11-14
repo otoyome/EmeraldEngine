@@ -227,6 +227,9 @@
     <ClCompile Include="Sources\Framework\asset_watcher.cpp">
       <Filter>Sources\Framework</Filter>
     </ClCompile>
+    <ClCompile Include="Sources\Editor\editor_gizmo.cpp">
+      <Filter>Sources\Editor</Filter>
+    </ClCompile>
     <ClCompile Include="Sources\Editor\editor_viewport.cpp">
       <Filter>Sources\Editor</Filter>
     </ClCompile>
@@ -266,7 +269,7 @@
     <ClCompile Include="Sources\Process\asset_preview_process.cpp">
       <Filter>Sources\Process</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Process\shader_compile_process.cpp">
+    <ClCompile Include="Sources\Process\boot_process.cpp">
       <Filter>Sources\Process</Filter>
     </ClCompile>
     <ClCompile Include="Sources\Renderer\occlusion_culling_renderer.cpp">
@@ -643,7 +646,7 @@
     <ClInclude Include="Headers\Process\asset_preview_process.h">
       <Filter>Headers\Process</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Process\shader_compile_process.h">
+    <ClInclude Include="Headers\Process\boot_process.h">
       <Filter>Headers\Process</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Renderer\scene_renderer.h">
@@ -660,6 +663,9 @@
     </ClInclude>
     <ClInclude Include="Headers\PipelineState\debug_draw_line_pipeline_state.h">
       <Filter>Headers\PipelineState</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Editor\editor_gizmo.h">
+      <Filter>Headers\Editor</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Editor\editor_viewport.h">
       <Filter>Headers\Editor</Filter>

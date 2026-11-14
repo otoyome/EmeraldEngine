@@ -5,7 +5,9 @@ class object_manager;
 class scene_manager;
 class effect_manager;
 class debug_primitive_collector;
+class game_object;
 
+#include <memory>
 #include <string>
 #include <string_view>
 
@@ -63,6 +65,10 @@ public:		//	ImGui用
 	void set_open_file(std::string file_path) { open_file = std::move(file_path); }
 	bool take_open_file(std::string& file_path) { if (open_file.empty()) return false; file_path = std::move(open_file); open_file.clear(); return true; }
 
+	//	選んでいるオブジェクト
+	std::shared_ptr<game_object> get_selected_object() const { return selected_object.lock(); }
+	void set_selected_object(const std::shared_ptr<game_object>& object) { selected_object = object; }
+
 private:
 	bool editing = false;
 	bool embedded = false;
@@ -71,5 +77,6 @@ private:
 	math::float4 viewport_rect = { 0.0f, 0.0f, 0.0f, 0.0f };
 	std::string window_id;
 	std::string open_file;
+	std::weak_ptr<game_object> selected_object;
 #endif	//	defined(USE_IMGUI)
 };

@@ -1,5 +1,6 @@
 #include "Object/game_object.h"
 #include "Object/game_object_registry.h"
+#include "Object/engine_context.h"
 
 #include "cereal/cereal.hpp"
 #include "cereal/archives/json.hpp"
@@ -112,7 +113,11 @@ void game_object::imgui_render(const std::function<void()>& render_children)
 	//	一時オブジェクトは名前の後ろに印を付けて薄く表示する
 	if (transient)
 		ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
-	const bool opened = ImGui::TreeNode("##object", "%s%s", name.get<utf8_cache>().data(), transient ? " (transient)" : "");
+	//	@tool 選んでいるオブジェクトは強調し、名前をクリックしたら選ぶ（ギズモで動かす対象）
+	const bool selected = context && context->get_selected_object().get() == this;
+	const bool opened = ImGui::TreeNodeEx("##object", selected ? ImGuiTreeNodeFlags_Selected : ImGuiTreeNodeFlags_None, "%s%s", name.get<utf8_cache>().data(), transient ? " (transient)" : "");
+	if (context && ImGui::IsItemClicked())
+		context->set_selected_object(shared_from_this());
 	if (transient)
 		ImGui::PopStyleColor();
 	if (opened)

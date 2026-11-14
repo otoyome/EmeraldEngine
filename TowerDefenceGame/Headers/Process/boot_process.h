@@ -7,12 +7,12 @@
 #include "Process/framework_process.h"
 #include "Framework/splash_window.h"
 
-//	シェーダーコンパイルプロセス
-class shader_compile_process : public framework_process
+//	起動プロセス
+class boot_process : public framework_process
 {
 public:
 	using framework_process::framework_process;
-	~shader_compile_process() override;
+	~boot_process() override;
 
 	bool enter() override;
 	void exit() override;
@@ -20,6 +20,18 @@ public:
 
 private:
 	void build();
+
+	//	アセットスキャン
+	void scan_assets();
+
+	//	グローバルシェーダーコンパイル
+	bool compile_global_shaders();
+
+	//	マテリアルpipeline準備
+	void prepare_material_pipelines();
+
+	//	スプラッシュの進捗
+	void set_progress_after_scan(float rate);
 
 private:
 	std::thread worker;

@@ -319,9 +319,15 @@ void scene_editor_process::imgui_render()
 			if (ImGui::BeginMenuBar())
 			{
 				viewport->imgui_menu();
+				gizmo.imgui_menu();
 				ImGui::EndMenuBar();
 			}
-			hovered = viewport->imgui_render(context, ImGui::GetCursorScreenPos(), ImGui::GetContentRegionAvail());
+			//	@tool 編集中だけギズモを重ねる（再生中は編集用のワールドの objects 窓を出さないので選べない）
+			hovered = viewport->imgui_render(context, ImGui::GetCursorScreenPos(), ImGui::GetContentRegionAvail(),
+				[this, &context](const ImVec2& image_position, const ImVec2& image_size)
+				{
+					return !scene_edit->is_playing() && gizmo.manipulate(context, image_position, image_size);
+				});
 		}
 		ImGui::End();
 		ImGui::PopStyleVar();

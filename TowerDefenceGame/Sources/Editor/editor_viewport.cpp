@@ -109,7 +109,7 @@ void editor_viewport::submit_render_jobs(world& target, float elapsed_time)
 	renderer->submit_render_jobs(target, elapsed_time);
 }
 
-bool editor_viewport::imgui_render(engine_context& context, const ImVec2& position, const ImVec2& size)
+bool editor_viewport::imgui_render(engine_context& context, const ImVec2& position, const ImVec2& size, const std::function<bool(const ImVec2& image_position, const ImVec2& image_size)>& overlay)
 {
 	if (!output_texture)
 		return false;
@@ -143,10 +143,13 @@ bool editor_viewport::imgui_render(engine_context& context, const ImVec2& positi
 	ImGui::SetCursorScreenPos(image_position);
 	ImGui::Image(imgui_texture_keeper::instance()->keep(output_texture), image_size);
 
+	//	マウスを使っている間はワールドに渡さない
+	const bool overlay_uses_mouse = overlay && overlay(image_position, image_size);
+
 	//	画像の上にカーソルがあるかを調べる
 	ImGui::SetCursorScreenPos(image_position);
 	ImGui::InvisibleButton("##view", image_size, ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonRight);
-	const bool hovered = ImGui::IsItemHovered() || ImGui::IsItemActive();
+	const bool hovered = (ImGui::IsItemHovered() || ImGui::IsItemActive()) && !overlay_uses_mouse;
 	context.set_viewport_rect({ image_position.x, image_position.y, image_size.x, image_size.y });
 	if (hovered)
 		input::pass_mouse_through_ui();

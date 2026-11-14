@@ -7,6 +7,7 @@
 
 #include "Process/framework_process.h"
 #include "Scenes/scene_resource.h"
+#include "Editor/editor_gizmo.h"
 
 class scene_editor;
 class editor_viewport;
@@ -47,6 +48,7 @@ private:
 private:
 	std::unique_ptr<scene_editor> scene_edit;		//	シーンエディター
 	std::unique_ptr<editor_viewport> viewport;		//	編集用のワールドを映すビューポート
+	editor_gizmo gizmo;								//	選んでいるオブジェクトを動かすギズモ
 	std::shared_ptr<play_session> session;			//	再生の状態
 	bool owns_collision_filters = false;			//	当たり判定フィルターをこのプロセスで作ったか
 	bool exit_requested = false;					//	Exit を選んだ
