@@ -24,7 +24,8 @@ scene_editor::scene_editor()
 
 scene_editor::~scene_editor()
 {
-	play_world.reset();
+	handlers = {};
+	playing_scene.reset();
 	close();
 	edit_world.reset();
 }
@@ -77,7 +78,7 @@ void scene_editor::apply_requests()
 		{
 			stop_play();
 			apply_contents();
-			start_play(edited_scenes.front().resource);
+			start_play(edited_scenes.front().resource, {});
 		}
 	}
 
@@ -89,19 +90,14 @@ void scene_editor::apply_requests()
 		play_open_file_request.clear();
 
 		//	同じシーンを再生中なら何もしない
-		bool playing_same = false;
-		if (play_world)
-		{
-			for (const auto& scene : play_world->get_scenes().get_scenes())
-				playing_same |= scene.second->get_resource()->get_file_path() == file_path;
-		}
+		const bool playing_same = playing_scene && playing_scene->get_file_path() == file_path;
 		if (!playing_same)
 		{
 			auto operation = resource_manager::instance()->load<scene_resource>(file_path);
 			if (operation && operation->is_succeeded())
 			{
 				stop_play();
-				start_play(operation->get_resource());
+				start_play(operation->get_resource(), open_file);
 			}
 			else
 			{
@@ -110,8 +106,8 @@ void scene_editor::apply_requests()
 		}
 
 		//	開いてもらうファイルは再生中のワールドに渡す
-		if (play_world && !open_file.empty())
-			play_world->get_context().set_open_file(std::move(open_file));
+		else if (!open_file.empty() && handlers.open_file)
+			handlers.open_file(open_file);
 	}
 }
 
@@ -155,10 +151,6 @@ bool scene_editor::save()
 	return result;
 }
 
-world& scene_editor::get_active_world()
-{
-	return play_world ? *play_world : *edit_world;
-}
 
 scene_resource_ptr scene_editor::get_edit_resource() const
 {
@@ -487,15 +479,20 @@ void scene_editor::editor_update(float elapsed_time)
 	}
 }
 
-void scene_editor::start_play(const scene_resource_ptr& resource)
+void scene_editor::start_play(const scene_resource_ptr& resource, std::string_view open_file)
 {
-	play_world = create_world();
-	play_world->get_scenes().add_scene(resource);
+	playing_scene = resource;
+	if (handlers.start)
+		handlers.start(resource, open_file);
 }
 
 void scene_editor::stop_play()
 {
-	play_world.reset();
+	if (!playing_scene)
+		return;
+	playing_scene.reset();
+	if (handlers.stop)
+		handlers.stop();
 }
 
 std::unique_ptr<world> scene_editor::create_world()

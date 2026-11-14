@@ -74,6 +74,16 @@ void app_window::set_close_handler(std::function<void()> handler)
 	close_handler = std::move(handler);
 }
 
+void app_window::set_visible(bool visible)
+{
+	if (!hwnd)
+		return;
+
+	ShowWindow(hwnd, visible ? SW_SHOW : SW_HIDE);
+	if (visible)
+		SetForegroundWindow(hwnd);
+}
+
 bool app_window::get_client_size(int& width, int& height) const
 {
 	RECT rc{};

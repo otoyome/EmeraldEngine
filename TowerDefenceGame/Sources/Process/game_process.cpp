@@ -1,8 +1,8 @@
 #include "Process/game_process.h"
-#include "Process/asset_preview_process.h"
 #include "Scenes/scene_manager.h"
 #include "Scenes/scene_paths.h"
 #include "framework.h"
+#include "Framework/app_window.h"
 #include "Texture/texture_factory.h"
 #include "Graphics/Core/render_data.h"
 
@@ -52,11 +52,6 @@
 #if defined(USE_IMGUI)
 #include "System/editor_config_data.h"
 #include "Graphics/Debug/debug_primitive_collector.h"
-#include "Editor/editor_items.h"
-#include "Editor/editor_camera.h"
-#include "Editor/editor_host.h"
-#include "Editor/scene_editor.h"
-#include "Editor/editor_viewport.h"
 #endif // defined(USE_IMGUI)
 #include "System/asset_browser.h"
 #include "System/imgui_texture_keeper.h"
@@ -70,18 +65,11 @@
 namespace
 {
 	//	起動時に読むシーン
-#if defined(USE_IMGUI)
-	console_variable<std::string> editor_startup_scene_variable("editor.startup_scene", "", "エディターで起動時に読むシーン", console_flags::persist);
-#endif	//	defined(USE_IMGUI)
 	console_variable<std::string> game_startup_scene_variable("game.startup_scene", "", "ゲームで起動時に読むシーン", console_flags::user_setting);
 
 	std::string get_startup_scene_path()
 	{
-#if defined(USE_IMGUI)
-		std::string path = editor_startup_scene_variable.get();
-#else	//	defined(USE_IMGUI)
 		std::string path = game_startup_scene_variable.get();
-#endif	//	defined(USE_IMGUI)
 		std::error_code error;
 		if (path.empty() || !std::filesystem::exists(std::filesystem::path(path), error))
 			path = std::string(scene_paths::default_scene);
@@ -94,8 +82,26 @@ game_process::game_process(framework& owner)
 {
 }
 
+#if defined(USE_IMGUI)
+game_process::game_process(framework& owner, std::shared_ptr<play_session> session)
+: framework_process(owner)
+, session(std::move(session))
+{
+}
+#endif	//	defined(USE_IMGUI)
+
 game_process::~game_process()
 {
+}
+
+bool game_process::is_closed() const
+{
+#if defined(USE_IMGUI)
+	//	エディターの再生は停止の依頼で終わる
+	if (session && session->stop_requested)
+		return true;
+#endif	//	defined(USE_IMGUI)
+	return false;
 }
 
 bool game_process::enter()
@@ -103,39 +109,29 @@ bool game_process::enter()
 	framework& self = get_owner();
 
 	//	当たり判定フィルター生成
-	collision_filter_manager::create_instance();
-	if (!create_collision_filters())
-		return false;
-
-#if defined(USE_IMGUI)
-	//	エディターでは編集用と再生用のワールドを scene_editor が持つ
-	if (self.editor)
+	if (!collision_filter_manager::is_valid())
 	{
-		scene_edit = std::make_unique<scene_editor>();
-	}
-	else
-#endif	//	defined(USE_IMGUI)
-	{
-		//	メインワールド登録
-		main_world = std::make_unique<world>();
-	}
-
-#if defined(USE_IMGUI)
-	//	エディターではウィンドウに直接描かず、ビューポートの窓に映す
-	if (scene_edit)
-	{
-		viewport = std::make_unique<editor_viewport>(self.renderer->get_executor());
-		if (!viewport->initialize(1280, 720))
+		collision_filter_manager::create_instance();
+		owns_collision_filters = true;
+		if (!create_collision_filters())
 			return false;
 	}
-	else
-#endif	//	defined(USE_IMGUI)
+
+	//	メインワールド登録
+	main_world = std::make_unique<world>();
+
 	{
 		//	メインのワールドの描画
 		main_renderer = std::make_unique<world_renderer>(self.renderer->get_executor());
 		if (!main_renderer->initialize(render_target_view(render_data::instance()->get_swap_chain())))
 			return false;
 	}
+
+#if defined(USE_IMGUI)
+	//	エディターの再生中だけ Windows のウィンドウを表示する（終わったら exit で隠す）
+	if (session)
+		self.window.set_visible(true);
+#endif	//	defined(USE_IMGUI)
 
 	//	シーン関係
 	{
@@ -144,10 +140,9 @@ bool game_process::enter()
 		pause_command = std::make_unique<console_command>("game.pause", "一時停止を切り替える（game.pause [0|1]）",
 			[this](const console_command::arguments& args)
 			{
-				world* target = get_active_world();
-				if (!target)
+				if (!main_world)
 					return;
-				object_manager& objects = target->get_objects();
+				object_manager& objects = main_world->get_objects();
 				bool pause = !objects.get_pause();
 				if (!args.empty())
 					console_detail::from_string(args[0], pause);
@@ -157,71 +152,17 @@ bool game_process::enter()
 		step_command = std::make_unique<console_command>("game.step", "一時停止中に1フレーム進める",
 			[this](const console_command::arguments&)
 			{
-				if (world* target = get_active_world())
-					target->get_objects().called_step();
+				if (main_world)
+					main_world->get_objects().called_step();
 			});
-
-		//	アセットブラウザの開き先
-		if (self.editor)
-		{
-			self.editor->register_asset_open_handlers(
-				[this](std::string_view file_path) { scene_edit->request_edit(file_path); },
-				[this](std::string_view scene_path, std::string_view open_file) { scene_edit->request_play(scene_path, open_file); });
-		}
-
-
-		//	モデルエディター
-		if (asset_browser::is_valid())
-		{
-			asset_browser::open_handler handler;
-			handler.label = "Model Editor (Window)";
-			handler.extensions = { ".emo" };
-			handler.open_file = [&self](const cache_string& file_path)
-			{
-				if (!self.has_process(asset_preview_process::make_key("model_editor", file_path)))
-					self.request_process(std::make_unique<asset_preview_process>(self, file_path, "model_editor",
-						[](scene_manager& scenes) { scenes.add_scene(scene_paths::model_editor); }));
-			};
-			asset_browser::instance()->register_open_handler(std::move(handler));
-		}
-
-		//	パーティクルエディター
-		if (asset_browser::is_valid())
-		{
-			asset_browser::open_handler handler;
-			handler.label = "Particle Editor (Window)";
-			handler.extensions = { ".eme" };
-			handler.open_file = [&self](const cache_string& file_path)
-			{
-				if (!self.has_process(asset_preview_process::make_key("particle_editor", file_path)))
-					self.request_process(std::make_unique<asset_preview_process>(self, file_path, "particle_editor",
-						[](scene_manager& scenes) { scenes.add_scene(scene_paths::particle_editor); }));
-			};
-			asset_browser::instance()->register_open_handler(std::move(handler));
-		}
-
-		//	マテリアルエディター
-		if (asset_browser::is_valid())
-		{
-			asset_browser::open_handler handler;
-			handler.label = "Material Editor (Window)";
-			handler.extensions = { ".emr", ".emo", ".eme" };
-			handler.open_file = [&self](const cache_string& file_path)
-			{
-				if (!self.has_process(asset_preview_process::make_key("material_editor", file_path)))
-					self.request_process(std::make_unique<asset_preview_process>(self, file_path, "material_editor",
-						[](scene_manager& scenes) { scenes.add_scene(scene_paths::material_editor); }));
-			};
-			asset_browser::instance()->register_open_handler(std::move(handler));
-		}
 #endif	//	defined(USE_IMGUI)
 	}
 
 #if defined(USE_IMGUI)
-	//	エディターでは編集用に開く
-	if (scene_edit)
+	//	エディターの再生では渡されたシーンから始める
+	if (session)
 	{
-		scene_edit->request_edit(get_startup_scene_path());
+		main_world->get_scenes().add_scene(session->scene);
 	}
 	else
 #endif	//	defined(USE_IMGUI)
@@ -232,30 +173,31 @@ bool game_process::enter()
 	return true;
 }
 
-world* game_process::get_active_world()
-{
-#if defined(USE_IMGUI)
-	//	シーン編集中はシーンエディター側の物を渡す
-	if (scene_edit)
-		return &scene_edit->get_active_world();
-#endif	//	defined(USE_IMGUI)
-	return main_world.get();
-}
-
 void game_process::exit()
 {
 #if defined(USE_IMGUI)
 	pause_command.reset();
 	step_command.reset();
-	viewport.reset();
-	scene_edit.reset();
 #endif	//	defined(USE_IMGUI)
 	main_world.reset();
 
 	main_renderer.reset();
 
 	//	シーン関係
-	collision_filter_manager::delete_instance();
+	if (owns_collision_filters)
+	{
+		collision_filter_manager::delete_instance();
+		owns_collision_filters = false;
+	}
+
+#if defined(USE_IMGUI)
+	//	エディターの再生が終わったら Windows のウィンドウを隠し、編集用のプロセスに知らせる
+	if (session)
+	{
+		get_owner().window.set_visible(false);
+		session->finished = true;
+	}
+#endif	//	defined(USE_IMGUI)
 }
 
 bool game_process::create_display_resources()
@@ -275,152 +217,93 @@ void game_process::release_display_resources()
 
 void game_process::update(float elapsed_time)
 {
-#if defined(USE_IMGUI)
-	//	シーンエディターのリクエストを対応
-	if (scene_edit)
-		scene_edit->apply_requests();
-#endif	//	defined(USE_IMGUI)
-
-	world* active_world = get_active_world();
-	if (!active_world)
+	if (!main_world)
 		return;
+
+#if defined(USE_IMGUI)
+	//	エディターから届いた「開いてもらうファイル」を再生中のワールドに渡す
+	if (session && !session->open_file.empty())
+	{
+		main_world->get_context().set_open_file(std::move(session->open_file));
+		session->open_file.clear();
+	}
+#endif	//	defined(USE_IMGUI)
 
 	if (input::action_system::is_valid())
 	{
-		input::action_system::instance()->update(active_world->get_scenes().get_broadcaster());
+		input::action_system::instance()->update(main_world->get_scenes().get_broadcaster());
 	}
 
 	//	シーンの更新
 	{
 		DETAIL_PROFILE_CPU_SCOPE("update.scene_manager");
-		active_world->get_scenes().updates(elapsed_time);
+		main_world->get_scenes().updates(elapsed_time);
 	}
 
 	//	オブジェクト更新
 	{
 		DETAIL_PROFILE_CPU_SCOPE("update.object_manager");
-		active_world->get_objects().updates(elapsed_time);
+		main_world->get_objects().updates(elapsed_time);
 	}
 
 	//	シーンの更新
 	{
 		DETAIL_PROFILE_CPU_SCOPE("update.scene_manager.post");
-		active_world->get_scenes().post_updates(elapsed_time);
+		main_world->get_scenes().post_updates(elapsed_time);
 	}
-
-#if defined(USE_IMGUI)
-	//	編集中のシステムの更新
-	{
-		DETAIL_PROFILE_CPU_SCOPE("update.scene_edit.editor_update");
-		if (scene_edit)
-			scene_edit->editor_update(elapsed_time);
-	}
-#endif	//	defined(USE_IMGUI)
 
 	//	エフェクト関係更新
 	{
 		DETAIL_PROFILE_CPU_SCOPE("update.effect_manager");
-		active_world->get_effects().update(elapsed_time);
+		main_world->get_effects().update(elapsed_time);
 	}
 }
 
 void game_process::render(float elapsed_time)
 {
-	world* active_world = get_active_world();
-	if (!active_world)
+	if (!main_world)
 		return;
 
 	//	描画前処理
-	active_world->get_objects().pre_render();
+	main_world->get_objects().pre_render();
 
 	//	描画用の情報収集
+	main_renderer->collect(*main_world);
 #if defined(USE_IMGUI)
-	if (viewport)
-		viewport->collect(*active_world, debug_view_settings_manager::instance()->get("game"));
-	if (main_renderer)
-	{
-		main_renderer->collect(*active_world);
-		main_renderer->collect_debug_primitives(*active_world, debug_view_settings_manager::instance()->get("game"));
-	}
-#else	//	defined(USE_IMGUI)
-	main_renderer->collect(*active_world);
+	main_renderer->collect_debug_primitives(*main_world, debug_view_settings_manager::instance()->get("game"));
 #endif	//	defined(USE_IMGUI)
 
 	{
 		DETAIL_PROFILE_CPU_SCOPE("render.rebuild_pipeline_bindings");
 		pipeline_state_manager::instance()->rebuild_pipeline_bindings();
 	}
-
 }
 
 void game_process::submit_render_jobs(float elapsed_time)
 {
 	//	ワールドごとの描画
-	world* active_world = get_active_world();
-	if (!active_world)
-		return;
-#if defined(USE_IMGUI)
-	if (viewport)
-		viewport->submit_render_jobs(*active_world, elapsed_time);
-#endif	//	defined(USE_IMGUI)
-	if (main_renderer)
-		main_renderer->submit_render_jobs(*active_world, elapsed_time);
+	if (main_world)
+		main_renderer->submit_render_jobs(*main_world, elapsed_time);
 }
 
 void game_process::post_render()
 {
 	//	描画後処理
-	if (world* active_world = get_active_world())
-	{
-		active_world->get_objects().post_render();
-	}
+	if (main_world)
+		main_world->get_objects().post_render();
 }
 
 #if defined(USE_IMGUI)
 void game_process::imgui_render()
 {
-	framework& self = get_owner();
-
-	//	メインの画面のツールバー
-	if (ImGui::BeginMainMenuBar())
-	{
-		debug_view_settings_manager::instance()->get("game").imgui_menu();
-		if (scene_edit)
-			scene_edit->imgui_menu();
-		ImGui::EndMainMenuBar();
-	}
-
-	world* active_world = get_active_world();
-	if (!active_world)
+	if (!main_world)
 		return;
 
-	//	メインのウィンドウ全体をドッキングの場所にし、ビューポートの窓に編集・再生中のワールドを映す
-	if (viewport)
-	{
-		const ImGuiID dockspace_id = ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport());
-
-		engine_context& context = active_world->get_context();
-		bool hovered = false;
-		//	初めて開いた時はドッキングの場所に入れる
-		ImGui::SetNextWindowDockID(dockspace_id, ImGuiCond_FirstUseEver);
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-		if (ImGui::Begin("viewport", nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse))
-			hovered = viewport->imgui_render(context, ImGui::GetCursorScreenPos(), ImGui::GetContentRegionAvail());
-		ImGui::End();
-		ImGui::PopStyleVar();
-		context.set_viewport_hovered(hovered);
-	}
-
 	//	シーン情報表示
-	if (!scene_edit || scene_edit->is_playing())
-		active_world->get_scenes().imgui_render();
+	main_world->get_scenes().imgui_render();
 
 	//	オブジェクト情報表示
-	active_world->get_objects().imgui_render();
-
-	//	編集中のシーンの窓
-	if (scene_edit)
-		scene_edit->imgui_render();
+	main_world->get_objects().imgui_render();
 }
 #endif	//	defined(USE_IMGUI)
 

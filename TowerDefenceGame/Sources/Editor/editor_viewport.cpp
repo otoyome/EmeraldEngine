@@ -10,6 +10,31 @@
 #include "System/imgui_texture_keeper.h"
 #include "Object/engine_context.h"
 #include "Input/input_key.h"
+#include "System/console_manager.h"
+#include "System/engine_config_data.h"
+
+#include <cmath>
+#include <iterator>
+#include <string>
+
+namespace
+{
+	//	選べる画面比率
+	struct aspect_item
+	{
+		const char* label;
+		float ratio;
+	};
+	constexpr aspect_item aspect_items[] =
+	{
+		{ "Game Resolution",	-1.0f },
+		{ "16:9",				16.0f / 9.0f },
+		{ "16:10",				16.0f / 10.0f },
+		{ "4:3",				4.0f / 3.0f },
+		{ "21:9",				21.0f / 9.0f },
+		{ "Free",				0.0f },
+	};
+}
 
 editor_viewport::editor_viewport(std::shared_ptr<render_job_executor> render_executor)
 : renderer(std::make_unique<world_renderer>(std::move(render_executor)))
@@ -89,23 +114,81 @@ bool editor_viewport::imgui_render(engine_context& context, const ImVec2& positi
 	if (!output_texture)
 		return false;
 
+	constexpr float min_size = 16.0f;
+	if (size.x < min_size || size.y < min_size)
+		return false;
+
+	//	選んだ比率で窓に入る一番大きな範囲を求める
+	float fit_width = size.x;
+	float fit_height = size.y;
+	const float aspect = get_aspect_ratio();
+	if (aspect > 0.0f)
+	{
+		if (fit_width / fit_height > aspect)
+			fit_width = fit_height * aspect;
+		else
+			fit_height = fit_width / aspect;
+	}
+
 	//	窓の大きさに描画先を合わせる
-	const int width = std::max(static_cast<int>(size.x), 1);
-	const int height = std::max(static_cast<int>(size.y), 1);
+	const int width = std::max(static_cast<int>(fit_width), 2);
+	const int height = std::max(static_cast<int>(fit_height), 2);
 	if (output_texture->get_width() != width || output_texture->get_height() != height)
 		resize(width, height);
 
+	//	レターボックス・ピラーボックス
 	const ImVec2 image_size(static_cast<float>(width), static_cast<float>(height));
-	ImGui::SetCursorScreenPos(position);
+	const ImVec2 image_position(std::floor(position.x + (size.x - image_size.x) * 0.5f), std::floor(position.y + (size.y - image_size.y) * 0.5f));
+	ImGui::GetWindowDrawList()->AddRectFilled(position, ImVec2(position.x + size.x, position.y + size.y), IM_COL32(0, 0, 0, 255));
+	ImGui::SetCursorScreenPos(image_position);
 	ImGui::Image(imgui_texture_keeper::instance()->keep(output_texture), image_size);
 
 	//	画像の上にカーソルがあるかを調べる
-	ImGui::SetCursorScreenPos(position);
+	ImGui::SetCursorScreenPos(image_position);
 	ImGui::InvisibleButton("##view", image_size, ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonRight);
 	const bool hovered = ImGui::IsItemHovered() || ImGui::IsItemActive();
-	context.set_viewport_rect({ position.x, position.y, image_size.x, image_size.y });
+	context.set_viewport_rect({ image_position.x, image_position.y, image_size.x, image_size.y });
 	if (hovered)
 		input::pass_mouse_through_ui();
 	return hovered;
+}
+
+void editor_viewport::imgui_menu()
+{
+	if (!aspect_variable)
+		return;
+
+	if (!ImGui::BeginMenu("Aspect"))
+		return;
+
+	const int current = aspect_variable->get();
+	for (int index = 0; index < static_cast<int>(std::size(aspect_items)); ++index)
+	{
+		std::string label = aspect_items[index].label;
+		if (aspect_items[index].ratio < 0.0f)
+		{
+			const engine_config_data::windows_data& windows = engine_config_data::instance()->windows;
+			label += " (" + std::to_string(windows.screen_width) + "x" + std::to_string(windows.screen_height) + ")";
+		}
+		if (ImGui::MenuItem(label.c_str(), nullptr, current == index))
+			aspect_variable->set(index);
+	}
+	ImGui::EndMenu();
+}
+
+float editor_viewport::get_aspect_ratio() const
+{
+	if (!aspect_variable)
+		return 0.0f;
+
+	const int index = std::clamp(aspect_variable->get(), 0, static_cast<int>(std::size(aspect_items)) - 1);
+	if (aspect_items[index].ratio >= 0.0f)
+		return aspect_items[index].ratio;
+
+	//	ゲームの解像度の比率
+	const engine_config_data::windows_data& windows = engine_config_data::instance()->windows;
+	if (windows.screen_width == 0 || windows.screen_height == 0)
+		return 0.0f;
+	return static_cast<float>(windows.screen_width) / static_cast<float>(windows.screen_height);
 }
 #endif	//	defined(USE_IMGUI)

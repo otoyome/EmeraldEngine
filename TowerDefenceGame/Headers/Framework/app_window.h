@@ -45,7 +45,10 @@ public:
 	//	描画領域の大きさ
 	bool get_client_size(int& width, int& height) const;
 
-	//	表示の方法を切り替える
+	//	表示切り替え
+	void set_visible(bool visible);
+
+	//	表示方法を切り替える
 	void apply_window_mode(engine_config_data::windows_data::window_modes mode, int client_width, int client_height);
 
 	//	アイコンを .ico ファイルから設定

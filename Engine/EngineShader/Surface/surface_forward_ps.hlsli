@@ -124,7 +124,7 @@ float4 main(VS_OUT pin, bool is_front_face : SV_IsFrontFace) : SV_TARGET
         float3 diffuse_reflectance = lerp(albedo.rgb, 0.0f, data.metalness);
 
 	    //	‚’¼”½Ë‚ÌƒtƒŒƒlƒ‹”½Ë—¦
-        float3 F0 = lerp(0.0f, albedo.rgb, data.metalness);
+        float3 F0 = lerp(0.08f * data.specular, albedo.rgb, data.metalness);
         float3 color_adjust = forward_only_light_probe_data.color.rgb * forward_only_light_probe_data.color.a;
 
         float3 diffuse = 0, specular = 0;
@@ -152,7 +152,8 @@ float4 main(VS_OUT pin, bool is_front_face : SV_IsFrontFace) : SV_TARGET
 
 	    //	©ŒÈÕ•Á
 	    total_diffuse += diffuse * data.occlusion;
-	    total_specular += specular * data.occlusion;
+	    //  ‹¾–Ê”½Ë
+	    total_specular += specular * CalcSpecularOcclusion(saturate(dot(N, -V)), data.occlusion, data.roughness);
     }
 
     //  F•Ô‹p

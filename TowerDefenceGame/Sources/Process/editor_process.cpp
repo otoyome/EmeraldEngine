@@ -50,7 +50,7 @@ void editor_process::exit()
 void editor_process::update(float elapsed_time)
 {
 	framework& self = get_owner();
-	if (IsWindowVisible(self.hwnd))
+	if (self.startup_finished)
 		self.editor->begin_frame();
 }
 

@@ -47,10 +47,6 @@ DirectLighting integrate_bxdf(in GBufferData gbuffer_data, in LightingData light
                        lighting_data.color, gbuffer_data.roughness, result.diffuse, result.specular);
             result.diffuse *= lighting_data.shadowing_attenuation * lighting_data.shading_attenuation;
             result.specular *= lighting_data.shadowing_attenuation * lighting_data.shading_attenuation;
-
-	        //	自己遮蔽
-            result.diffuse *= gbuffer_data.occlusion;
-            result.specular *= gbuffer_data.occlusion;
             break;
         }
         case shading_model_pmx_lit:
@@ -136,7 +132,6 @@ DirectLighting integrate_bxdf(in GBufferData gbuffer_data, in LightingData light
             result.diffuse = lerp(shade_color, base_and_specular_color, shadow_factor * lighting_data.shading_attenuation);
             break;
         }
-//	[エンジン改造:シェーディング]
     }
 
     return result;

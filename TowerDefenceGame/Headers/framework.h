@@ -21,6 +21,7 @@ class framework
 	friend class editor_process;
 	friend class shader_compile_process;
 	friend class game_process;
+	friend class scene_editor_process;
 	friend class asset_preview_process;
 
 public:
@@ -71,6 +72,7 @@ private:
 
 #if defined(USE_IMGUI)
 	std::unique_ptr<editor_host> editor;	//	エディター機能
+	bool startup_finished = false;	//	起動が終わったか
 #endif	//	defined(USE_IMGUI)
 
 private:	//	その他

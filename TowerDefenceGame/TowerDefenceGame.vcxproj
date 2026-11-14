@@ -601,6 +601,7 @@ xcopy "$(SolutionDir)External\SDL3\lib\SDL3.dll" "$(OutDir)" /y</Command>
     <ClCompile Include="Sources\Process\asset_watch_process.cpp" />
     <ClCompile Include="Sources\Process\editor_process.cpp" />
     <ClCompile Include="Sources\Process\game_process.cpp" />
+    <ClCompile Include="Sources\Process\scene_editor_process.cpp" />
     <ClCompile Include="Sources\Process\asset_preview_process.cpp" />
     <ClCompile Include="Sources\Process\shader_compile_process.cpp" />
     <ClCompile Include="Sources\main.cpp" />
@@ -744,6 +745,7 @@ xcopy "$(SolutionDir)External\SDL3\lib\SDL3.dll" "$(OutDir)" /y</Command>
     <ClInclude Include="Headers\Process\asset_watch_process.h" />
     <ClInclude Include="Headers\Process\editor_process.h" />
     <ClInclude Include="Headers\Process\game_process.h" />
+    <ClInclude Include="Headers\Process\scene_editor_process.h" />
     <ClInclude Include="Headers\Process\asset_preview_process.h" />
     <ClInclude Include="Headers\Process\shader_compile_process.h" />
     <ClInclude Include="Headers\Object\camera_object.h" />

@@ -257,6 +257,9 @@
     <ClCompile Include="Sources\Process\editor_process.cpp">
       <Filter>Sources\Process</Filter>
     </ClCompile>
+    <ClCompile Include="Sources\Process\scene_editor_process.cpp">
+      <Filter>Sources\Process</Filter>
+    </ClCompile>
     <ClCompile Include="Sources\Process\game_process.cpp">
       <Filter>Sources\Process</Filter>
     </ClCompile>
@@ -629,6 +632,9 @@
       <Filter>Headers\Process</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Process\editor_process.h">
+      <Filter>Headers\Process</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Process\scene_editor_process.h">
       <Filter>Headers\Process</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Process\game_process.h">

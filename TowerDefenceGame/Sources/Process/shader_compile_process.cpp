@@ -1,5 +1,6 @@
 #include "Process/shader_compile_process.h"
 #include "Process/game_process.h"
+#include "Process/scene_editor_process.h"
 #include "framework.h"
 
 #include <algorithm>
@@ -111,6 +112,13 @@ std::unique_ptr<framework_process> shader_compile_process::next_process()
 	framework& self = get_owner();
 	ShowWindow(self.hwnd, SW_SHOW);
 	SetForegroundWindow(self.hwnd);
+#if defined(USE_IMGUI)
+	self.startup_finished = true;
+
+	//	エディターでは編集用のプロセスから始める
+	if (self.editor)
+		return std::make_unique<scene_editor_process>(self);
+#endif	//	defined(USE_IMGUI)
 
 	return std::make_unique<game_process>(get_owner());
 }

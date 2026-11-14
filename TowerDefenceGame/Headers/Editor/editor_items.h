@@ -50,7 +50,6 @@ public:
 
 		int get_item_id() {return inner_item_id++;}
 
-		//	@tool 窓の名前に付ける ID(窓に映すシーンはワールドごとの ID を設定する。別のワールドの同じ名前の窓と1つにまとまらないように)
 		void set_window_id(std::string value) { window_id = std::move(value); }
 
 	private:
@@ -62,7 +61,7 @@ public:
 		std::unordered_map<std::string, bool> flag_maps; // フラグ管理
 		cache_string down_allow = "↓";
 		cache_string right_allow = "→";
-		std::string window_id;	//	@tool 窓の名前に付ける ID
+		std::string window_id;	//	窓の名前に付ける ID
 		char new_shader_name[128] = {}; // マテリアルシェーダー新規作成の名前
 
 	private:	//	アニメーション関係
@@ -76,25 +75,25 @@ public:
 		inline static const std::string EditAnimationHideIK = "__EditAnimationHideIK__";
 		inline static const std::string EditAnimationHideCurve = "__EditAnimationHideCurve__";
 
-	private:	//	@tool 編集用ウィンドウ
-		//	@tool 常にあり、表示状態で開閉するウィンドウ
+	private:	//	編集用ウィンドウ
+		//	ツールウィンドウ
 		struct tool_window
 		{
 			std::unique_ptr<ibase_editor> editor;
-			console_variable<bool>* visible = nullptr;	//	@tool 表示状態
+			console_variable<bool>* visible = nullptr;
 			bool was_visible = false;
 		};
-		//	@tool キー（ファイルのパスなど）ごとに開くウィンドウ
+		//	キーごとに開くウィンドウ
 		struct opened_window
 		{
-			std::string key;	//	@tool 開いている対象（ファイルなら Shift-JIS、「/」区切り）
+			std::string key;
 			std::unique_ptr<ibase_editor> editor;
 			bool open = true;
 			bool focus = true;
 		};
 		std::vector<tool_window> tool_windows;
 		std::vector<opened_window> opened_windows;
-		std::string closing_window_key;	//	@tool 閉じる確認中のウィンドウ
+		std::string closing_window_key;	//	閉じる確認中のウィンドウ
 		bool open_close_popup = false;
 	};
 
@@ -105,27 +104,19 @@ public:
 		ibase_editor() {}
 		virtual ~ibase_editor() {}
 
-		//	@tool 編集用ウィンドウとして開く物は render_window を使うので、こちらは空でもよい
 		virtual void render(std::shared_ptr<context>& /*context*/) {}
 
-	public:	//	@tool 編集用ウィンドウとして開いた時に使う
-		//	@tool メニューに出す名前（UTF-8）
+	public:	//	編集用ウィンドウとして開いた時に使う
 		virtual std::string get_label() const { return {}; }
-		//	@tool ウィンドウを描く。閉じるボタンが押されると open が false になる
 		virtual void render_window(std::shared_ptr<context>& context, bool& /*open*/) { render(context); }
-		//	@tool 表示していない間も毎フレーム呼ぶ
 		virtual void update() {}
-		//	@tool ウィンドウを閉じた
 		virtual void on_closed() {}
-		//	@tool 未保存の変更があるか
 		virtual bool is_dirty() const { return false; }
-		//	@tool 保存する
 		virtual bool save() { return true; }
-		//	@tool 開いているファイルが移動・名前変更された
 		virtual void on_file_moved(std::string_view /*new_file_path*/) {}
 	};
 
-	//	@tool 関数で描く編集用ウィンドウ（シングルトンが持つウィンドウを登録する時に使う）
+	//	関数で描く編集用ウィンドウ
 	class function_window : public ibase_editor
 	{
 	public:
@@ -148,16 +139,14 @@ public:
 
 	static std::shared_ptr<context> generate_context();
 
-	//	@tool 窓を開く(名前にコンテキストの ID を付ける。ImGui::Begin と同じく必ず ImGui::End を呼ぶ)
+	//	窓を開く
 	static bool begin_window(std::shared_ptr<context>& context, std::string_view name, bool* open = nullptr, int flags = 0);
 	static void begin_contexts();
 
-public:	//	@tool 編集用ウィンドウ
-	//	@tool 常にあり、表示状態で開閉するウィンドウを登録する（メニューの Window に並ぶ）
+public:	//	編集用ウィンドウ
 	static void register_tool_window(std::shared_ptr<context>& context, std::unique_ptr<ibase_editor> editor, console_variable<bool>& visible);
 
-	//	@tool キー（ファイルのパスなど）ごとにウィンドウを開く。Editor は (key, args...) で作る
-	//	@tool 同じキーのウィンドウが開いていれば前面に出して、それを返す
+	//	キーごとにウィンドウを開く
 	template<class Editor, class... Args>
 	static Editor* open_window(std::shared_ptr<context>& context, std::string_view key, Args&&... args)
 	{
@@ -175,20 +164,31 @@ public:	//	@tool 編集用ウィンドウ
 	static ibase_editor* find_window(const std::shared_ptr<context>& context, std::string_view key);
 	static void focus_window(std::shared_ptr<context>& context, std::string_view key);
 
-	//	@tool パス（フォルダなら中のパスも）のウィンドウを保存せずに閉じる
+	//	パスのウィンドウを保存せずに閉じる
 	static void discard_windows(std::shared_ptr<context>& context, std::string_view path);
-	//	@tool パス（フォルダなら中のパスも）の移動にウィンドウを合わせる
+	//	パスの移動にウィンドウを合わせる
 	static void move_windows(std::shared_ptr<context>& context, std::string_view old_path, std::string_view new_path);
-	//	@tool 全てのウィンドウを破棄する
+	//	全てのウィンドウを破棄する
 	static void close_all_windows(std::shared_ptr<context>& context);
 
-	//	@tool メニューバーと開いているウィンドウを描く（毎フレーム）
+	//	メニューバーと開いているウィンドウを描く（毎フレーム）
 	static void render_windows(std::shared_ptr<context>& context);
 
 private:
 	static void add_window(std::shared_ptr<context>& context, std::string_view key, std::unique_ptr<ibase_editor> editor);
 	static context::opened_window* find_opened_window(const std::shared_ptr<context>& context, std::string_view key);
 	static void render_window_menu_bar(std::shared_ptr<context>& context);
+
+public:
+	//	エディターのメニューバー（メインのウィンドウは隠すので「editor」窓に出す。同じフレームで何度呼んでも続けて足される）
+	static bool begin_editor_menu_bar();
+	static void end_editor_menu_bar();
+	//	「editor」窓の右上の閉じるボタンが押されたか
+	static bool consume_editor_close_request();
+	//	「editor」窓の中のドッキングの場所
+	static void editor_dock_space(const char* default_window);
+
+private:
 	static void render_window_close_popup(std::shared_ptr<context>& context);
 
 public:	//	表示系
@@ -217,16 +217,16 @@ public:	//	編集アイテム系
 	//	アニメーション
 	static bool edit_animation_data(std::shared_ptr<context>& context, animation::data& animation_data);
 	static bool edit_animation_data_timeline(std::shared_ptr<context>& context, animation::data& animation_data);
-	//	@tool 窓を作らず、今の領域にタイムラインを描く
+	//	窓を作らず、今の領域にタイムラインを描く
 	static bool edit_animation_data_timeline_embedded(std::shared_ptr<context>& context, animation::data& animation_data);
-	//	@tool 窓を作らず、今の領域にタイムラインで選んだキーの詳細を描く
+	//	窓を作らず、今の領域にタイムラインで選んだキーの詳細を描く
 	static void edit_animation_timeline_inspector(std::shared_ptr<context>& context);
 	static bool edit_ik(std::shared_ptr<context>& context, engine_context& engine, model_instance_ptr& model_instance, ik_resource_ptr& ik_resource);
 
 	//	エフェクト
-	//	@tool ノードのツリー。選んだノードの番号を selected_node_index に入れる
+	//	ノードのツリー。選んだノードの番号を selected_node_index に入れる
 	static bool edit_effect_node_tree(std::shared_ptr<context>& context, engine_context& engine, effect_instance_ptr& effect_instance, size_t& selected_node_index);
-	//	@tool 選んだノードの詳細（名前・変形・モデル・パーティクル・デカール）
+	//	選んだノードの詳細（名前・変形・モデル・パーティクル・デカール）
 	static bool edit_effect_node_detail(std::shared_ptr<context>& context, engine_context& engine, effect_instance_ptr& effect_instance, size_t selected_node_index);
 	static bool edit_effect_animation(std::shared_ptr<context>& context, effect_instance_ptr& effect_instance);
 
@@ -243,6 +243,7 @@ public:	//	汎用
 
 private:
 	inline static std::unique_ptr<editor_items> instance;
+	inline static bool editor_window_open = true;
 	std::vector<std::weak_ptr<context>> context_ptrs;
 };
 

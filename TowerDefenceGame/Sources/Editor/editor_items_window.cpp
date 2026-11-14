@@ -5,6 +5,7 @@
 
 #include "System/console_manager.h"
 #include "Resource/resource_manager.h"
+#include "imgui_internal.h"
 
 void editor_items::register_tool_window(std::shared_ptr<context>& context, std::unique_ptr<ibase_editor> editor, console_variable<bool>& visible)
 {
@@ -140,9 +141,54 @@ void editor_items::render_windows(std::shared_ptr<context>& context)
 	std::erase_if(context->opened_windows, [](const context::opened_window& window) { return !window.open; });
 }
 
+bool editor_items::begin_editor_menu_bar()
+{
+	ImGui::SetNextWindowSize(ImVec2(720.0f, 80.0f), ImGuiCond_FirstUseEver);
+	const bool visible = ImGui::Begin("editor", &editor_window_open, ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoCollapse);
+	if (visible && ImGui::BeginMenuBar())
+		return true;
+	ImGui::End();
+	return false;
+}
+
+void editor_items::end_editor_menu_bar()
+{
+	ImGui::EndMenuBar();
+	ImGui::End();
+}
+
+bool editor_items::consume_editor_close_request()
+{
+	const bool requested = !editor_window_open;
+	editor_window_open = true;
+	return requested;
+}
+
+void editor_items::editor_dock_space(const char* default_window)
+{
+	ImGui::SetNextWindowSize(ImVec2(720.0f, 80.0f), ImGuiCond_FirstUseEver);
+	const bool visible = ImGui::Begin("editor", &editor_window_open, ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoCollapse);
+	const ImGuiID dock_space_id = ImGui::GetID("editor_dock_space");
+
+	//	配置がまだ無い時は、窓を広げて default_window を入れる
+	if (!ImGui::DockBuilderGetNode(dock_space_id))
+	{
+		const ImVec2 dock_size(1280.0f, 720.0f);
+		ImGui::SetWindowSize(ImVec2(dock_size.x, dock_size.y + ImGui::GetFrameHeight() * 2.0f + ImGui::GetStyle().WindowPadding.y * 2.0f));
+		ImGui::DockBuilderAddNode(dock_space_id, ImGuiDockNodeFlags_DockSpace);
+		ImGui::DockBuilderSetNodeSize(dock_space_id, dock_size);
+		ImGui::DockBuilderDockWindow(default_window, dock_space_id);
+		ImGui::DockBuilderFinish(dock_space_id);
+	}
+
+	//	窓が見えない時も、入っている窓が外れないように場所だけは残す
+	ImGui::DockSpace(dock_space_id, ImVec2(0.0f, 0.0f), visible ? ImGuiDockNodeFlags_None : ImGuiDockNodeFlags_KeepAliveOnly);
+	ImGui::End();
+}
+
 void editor_items::render_window_menu_bar(std::shared_ptr<context>& context)
 {
-	if (!ImGui::BeginMainMenuBar())
+	if (!begin_editor_menu_bar())
 		return;
 
 	if (ImGui::BeginMenu("Window"))
@@ -167,7 +213,7 @@ void editor_items::render_window_menu_bar(std::shared_ptr<context>& context)
 		ImGui::EndMenu();
 	}
 
-	ImGui::EndMainMenuBar();
+	end_editor_menu_bar();
 }
 
 void editor_items::render_window_close_popup(std::shared_ptr<context>& context)

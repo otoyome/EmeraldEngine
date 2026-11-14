@@ -125,6 +125,9 @@ static const float GammaFactor = 2.2f;
 //	円周率
 static const float PI = 3.141592654f;
 
+//  直接光で使う粗さの下限
+static const float direct_lighting_minimum_roughness = 0.045f;
+
 //--------------------------------------------
 //	拡散反射BRDF(正規化ランバートの拡散反射)
 //--------------------------------------------
@@ -151,9 +154,10 @@ float3 CalcFresnel(float3 F0, float VdotH)
 //roughness : 粗さ
 float CalcNormalDistributionFunction(float NdotH, float roughness)
 {
-    float a = roughness * roughness;
-    float b = (NdotH * NdotH) * (a - 1.0f) + 1.0f;
-    return a / (PI * b * b);
+    float alpha = roughness * roughness;
+    float alpha2 = alpha * alpha;
+    float b = (NdotH * NdotH) * (alpha2 - 1.0f) + 1.0f;
+    return alpha2 / (PI * b * b);
 }
 
 //--------------------------------------------
@@ -190,6 +194,44 @@ float3 SpecularBRDF(float NdotV, float NdotL, float NdotH, float3 F, float rough
 }
 
 //--------------------------------------------
+//  環境BRDFの近似（Karis の解析近似）
+//--------------------------------------------
+//NdotV		: 法線ベクトルと視線へのベクトルとの内積
+//roughness	: 粗さ
+float2 CalcEnvironmentBRDFApprox(float NdotV, float roughness)
+{
+    const float4 c0 = float4(-1.0f, -0.0275f, -0.572f, 0.022f);
+    const float4 c1 = float4(1.0f, 0.0425f, 1.04f, -0.04f);
+    float4 r = roughness * c0 + c1;
+    float a004 = min(r.x * r.x, exp2(-9.28f * NdotV)) * r.x + r.y;
+    //  x = F0 の係数, y = バイアス
+    return float2(-1.04f, 1.04f) * a004 + r.zw;
+}
+
+//--------------------------------------------
+//  多重散乱のエネルギー補償
+//--------------------------------------------
+//F0			: 垂直入射時のフレネル反射色
+//environment_brdf	: 環境BRDF（x = F0 の係数, y = バイアス）
+float3 CalcMultipleScatteringCompensation(float3 F0, float2 environment_brdf)
+{
+    float energy = max(environment_brdf.x + environment_brdf.y, 0.0001f);
+    return 1.0f + F0 * (1.0f / energy - 1.0f);
+}
+
+//--------------------------------------------
+//  スペキュラオクルージョン（Lagarde の近似）
+//--------------------------------------------
+//NdotV		: 法線ベクトルと視線へのベクトルとの内積
+//occlusion	: アンビエントオクルージョン
+//roughness	: 粗さ
+float CalcSpecularOcclusion(float NdotV, float occlusion, float roughness)
+{
+    //  AO から鏡面反射の遮蔽を求める
+    return saturate(pow(abs(NdotV + occlusion), exp2(-16.0f * roughness - 1.0f)) - 1.0f + occlusion);
+}
+
+//--------------------------------------------
 //	直接光の物理ベースライティング
 //--------------------------------------------
 //diffuseReflectance	: 入射光のうち拡散反射になる割合
@@ -214,6 +256,8 @@ void DirectBDRF(float3 diffuseReflectance,
     float3 V = -eyeVector;
     float3 H = normalize(L + V);
 
+    roughness = max(roughness, direct_lighting_minimum_roughness);
+
     float NdotV = max(0.000001f, dot(N, V));
     float NdotL = max(0.000001f, dot(N, L));
     float NdotH = max(0.000001f, dot(N, H));
@@ -229,6 +273,7 @@ void DirectBDRF(float3 diffuseReflectance,
 
 	//	鏡面反射BRDF
     outSpecular = SpecularBRDF(NdotV, NdotL, NdotH, F, roughness) * irradiance;
+    outSpecular *= CalcMultipleScatteringCompensation(F0, CalcEnvironmentBRDFApprox(NdotV, roughness));
 }
 
 //--------------------------------------------
@@ -324,7 +369,7 @@ float3 SpecularIBL(float3 normal, float3 eye_vector, float roughness, float3 f0,
 
     float2 brdf_sample_point = saturate(float2(NdotV, roughness));
     float2 env_brdf = SampleLutGGX(brdf_sample_point, lut_ggx_map, state).rg;
-    return specular_light * (f0 * env_brdf.x + env_brdf.y);
+    return specular_light * (f0 * env_brdf.x + env_brdf.y) * CalcMultipleScatteringCompensation(f0, env_brdf);
 }
 
 //--------------------------------------------

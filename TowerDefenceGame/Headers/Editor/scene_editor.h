@@ -1,6 +1,7 @@
 #pragma once
 
 #if defined(USE_IMGUI)
+#include <functional>
 #include <memory>
 #include <string>
 #include <string_view>
@@ -28,12 +29,9 @@ public:
 	bool is_editing() const { return !edited_scenes.empty(); }
 
 	//	再生中か
-	bool is_playing() const { return play_world != nullptr; }
+	bool is_playing() const { return playing_scene != nullptr; }
 
-	//	メインウィンドウに映すワールド
-	world& get_active_world();
 	world& get_edit_world() { return *edit_world; }
-	world* get_play_world() { return play_world.get(); }
 
 	//	編集中のシーンリソース取得
 	scene_resource_ptr get_edit_resource() const;
@@ -55,6 +53,18 @@ public:
 
 	//	停止リクエスト
 	void request_stop();
+
+	//	再生の開始・停止を任せる先
+	struct play_handlers
+	{
+		std::function<void(const scene_resource_ptr& resource, std::string_view open_file)> start;	//	再生を始める
+		std::function<void()> stop;																	//	再生を止める
+		std::function<void(std::string_view open_file)> open_file;									//	再生中のワールドにファイルを開いてもらう
+	};
+	void set_play_handlers(play_handlers value) { handlers = std::move(value); }
+
+	//	再生が外で終わった（ゲームのプロセスが自分で終わった）ことを知らせる
+	void notify_play_finished() { playing_scene.reset(); }
 
 	//	リクエストの処理
 	void apply_requests();
@@ -96,7 +106,7 @@ private:
 	void imgui_render_edit_window();
 
 	//	シーン開始処理
-	void start_play(const scene_resource_ptr& resource);
+	void start_play(const scene_resource_ptr& resource, std::string_view open_file);
 
 	//	シーン停止処理
 	void stop_play();
@@ -105,7 +115,8 @@ private:
 
 private:
 	std::unique_ptr<world> edit_world;			//	編集ワールド
-	std::unique_ptr<world> play_world;			//	再生ワールド
+	scene_resource_ptr playing_scene;			//	再生中のシーン
+	play_handlers handlers;						//	再生の開始・停止を任せる先
 	std::vector<edited_scene> edited_scenes;	//	編集中のシーン
 	std::vector<resource::asset_handle<scene_resource>> sub_scenes;	//	サブシーン
 	scene_resource_ptr edit_target;				//	編集窓に出すシーン

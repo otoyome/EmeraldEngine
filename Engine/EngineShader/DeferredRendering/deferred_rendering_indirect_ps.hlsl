@@ -27,7 +27,7 @@ float4 main(VS_OUT pin) : SV_TARGET
         float3 diffuse_reflectance = lerp(albedo.rgb, 0.0f, data.metalness);
 
         //	垂直反射時のフレネル反射率
-        float3 F0 = lerp(0.0f, albedo.rgb, data.metalness);
+        float3 F0 = lerp(0.08f * data.specular, albedo.rgb, data.metalness);
 
         //  ライトプローブ
         light_probes light_probe = light_probe_data;
@@ -57,7 +57,8 @@ float4 main(VS_OUT pin) : SV_TARGET
 
 	    //	自己遮蔽
         total_diffuse *= data.occlusion;
-        total_specular *= data.occlusion;
+        //  鏡面反射
+        total_specular *= CalcSpecularOcclusion(saturate(dot(N, -V)), data.occlusion, data.roughness);
     }
 
     return float4(total_diffuse + total_specular, 1);
