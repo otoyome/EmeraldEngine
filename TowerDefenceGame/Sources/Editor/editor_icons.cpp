@@ -22,13 +22,13 @@
 
 namespace
 {
-	//	@tool アイコンの画像を置くフォルダ
+	//	アイコンの画像を置くフォルダ
 	constexpr std::string_view icon_folder = "Assets/Editor/Icons/";
 
-	//	@tool 画面上のアイコンの大きさ（ピクセル）
+	//	画面上のアイコンの大きさ（ピクセル）
 	constexpr float icon_size = 32.0f;
 
-	//	@tool 型ごとのアイコン（上から順に調べ、派生した型にも当てる）
+	//	型ごとのアイコン
 	struct icon_type
 	{
 		std::string_view type;
@@ -44,11 +44,12 @@ namespace
 		{ camera_object::type_name(), "camera" },
 		{ start_point_object::type_name(), "start_point" },
 	};
-	//	@tool 表に無い形の無いオブジェクトのアイコン
+
+	//	表に無い形の無いオブジェクトのアイコン
 	constexpr std::string_view default_icon_file = "object";
 	constexpr size_t default_icon_index = std::size(icon_types);
 
-	//	@tool 選んでいる物の形の色
+	//	選んでいる物の形の色
 	const math::float4 shape_color(1.0f, 0.85f, 0.3f, 1.0f);
 	const math::float4 inner_shape_color(1.0f, 0.85f, 0.3f, 0.5f);
 
@@ -57,7 +58,7 @@ namespace
 		return math::double3(base.x + direction.x * length, base.y + direction.y * length, base.z + direction.z * length);
 	}
 
-	//	@tool center のまわりの円（right・up が作る面の上）
+	//	center のまわりの円
 	void queue_circle(debug_primitive_collector& lines, const math::vector3d& center, const math::vector3f& right, const math::vector3f& up, double radius, const math::float4& color)
 	{
 		constexpr int segment_count = 32;
@@ -86,7 +87,7 @@ void editor_icons::load_textures()
 		const std::string etx_path = base + ".etx";
 		const std::string png_path = base + ".png";
 
-		//	@tool .etx が無ければ .png から取り込む（色は変換せず、そのままの値で ImGui に出す）
+		//	.etx が無ければ .png から取り込む
 		std::error_code error;
 		if (!std::filesystem::exists(etx_path, error) && std::filesystem::exists(png_path, error) && texture_importer::is_valid())
 		{
@@ -123,7 +124,7 @@ std::vector<editor_icons::placed_icon> editor_icons::collect(engine_context& con
 	if (image_size.x <= 0.0f || image_size.y <= 0.0f)
 		return result;
 
-	//	@tool ビューポートを映しているエディターカメラの視点（editor_picker のレイと同じ求め方）
+	//	ビューポートを映しているエディターカメラの視点（editor_picker のレイと同じ求め方）
 	object_manager& objects = context.get_objects();
 	const std::shared_ptr<editor_camera_object> camera = objects.search_object<editor_camera_object>();
 	if (!camera || !camera->get_camera())
@@ -137,7 +138,7 @@ std::vector<editor_icons::placed_icon> editor_icons::collect(engine_context& con
 
 	for (const std::shared_ptr<game_object>& object : objects.search_game_objects<spatial_object>())
 	{
-		//	@tool 形のあるモデルと一時オブジェクト（エディターカメラなど）には出さない
+		//	形のあるモデルと一時オブジェクト（エディターカメラなど）には出さない
 		if (!object || object->is_transient() || object->check_type(model_object::type_name()))
 			continue;
 
@@ -172,7 +173,7 @@ void editor_icons::draw(engine_context& context, const ImVec2& image_position, c
 	ImDrawList* draw_list = ImGui::GetWindowDrawList();
 	draw_list->PushClipRect(image_position, ImVec2(image_position.x + image_size.x, image_position.y + image_size.y), true);
 
-	//	@tool 選んでいる物は色を付け、非アクティブな物は薄く出す
+	//	選んでいる物は色を付け、非アクティブな物は薄く出す
 	const std::shared_ptr<game_object> selected = context.get_selected_object();
 	const float half = icon_size * 0.5f;
 	for (const placed_icon& icon : collect(context, image_size))
@@ -188,7 +189,7 @@ void editor_icons::draw(engine_context& context, const ImVec2& image_position, c
 		if (texture && texture->get_texture())
 			draw_list->AddImage(imgui_texture_keeper::instance()->keep(texture->get_texture()), ImVec2(center.x - half, center.y - half), ImVec2(center.x + half, center.y + half), ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f), color);
 		else
-			draw_list->AddCircleFilled(center, half * 0.4f, color);	//	@tool 画像が読めない時は丸を出す
+			draw_list->AddCircleFilled(center, half * 0.4f, color);	//	画像が読めない時は丸を出す
 	}
 
 	draw_list->PopClipRect();
@@ -196,7 +197,7 @@ void editor_icons::draw(engine_context& context, const ImVec2& image_position, c
 
 std::shared_ptr<game_object> editor_icons::pick(engine_context& context, const ImVec2& position, const ImVec2& image_size)
 {
-	//	@tool 上に描かれている（カメラに近い）物から調べる
+	//	上に描かれている（カメラに近い）物から調べる
 	const std::vector<placed_icon> icons = collect(context, image_size);
 	const float half = icon_size * 0.5f;
 	for (auto it = icons.rbegin(); it != icons.rend(); ++it)
@@ -221,7 +222,7 @@ void editor_icons::queue_selected_shape(engine_context& context)
 	const math::vector3f up = rotation.up();
 	const math::vector3f front = rotation.front();
 
-	//	@tool 点光源：届く範囲の球
+	//	点光源：届く範囲の球
 	if (selected->check_type(point_light_object::type_name()))
 	{
 		const light_ptr light = static_cast<light_object*>(selected.get())->get_light();
@@ -230,7 +231,7 @@ void editor_icons::queue_selected_shape(engine_context& context)
 		return;
 	}
 
-	//	@tool スポットライト：外側の円錐（内側の円錐は薄く円だけ）
+	//	スポットライト：外側の円錐（内側の円錐は薄く円だけ）
 	if (selected->check_type(spot_light_object::type_name()))
 	{
 		const light_ptr light = static_cast<light_object*>(selected.get())->get_light();
@@ -253,7 +254,7 @@ void editor_icons::queue_selected_shape(engine_context& context)
 		return;
 	}
 
-	//	@tool 平行光源：向きの矢印
+	//	平行光源：向きの矢印
 	if (selected->check_type(directional_light_object::type_name()))
 	{
 		constexpr double length = 30.0;
@@ -268,7 +269,7 @@ void editor_icons::queue_selected_shape(engine_context& context)
 		return;
 	}
 
-	//	@tool 範囲付きのライトプローブ：内側と外側の箱
+	//	範囲付きのライトプローブ：内側と外側の箱
 	if (selected->check_type(area_light_probe_object::type_name()))
 	{
 		const area_light_probe_object& probe = *static_cast<area_light_probe_object*>(selected.get());
@@ -278,7 +279,7 @@ void editor_icons::queue_selected_shape(engine_context& context)
 		return;
 	}
 
-	//	@tool カメラ：視錐台（長さは固定、縦横比は 16:9）
+	//	カメラ：視錐台
 	if (selected->check_type(camera_object::type_name()))
 	{
 		const camera_ptr camera = static_cast<camera_object*>(selected.get())->get_camera();

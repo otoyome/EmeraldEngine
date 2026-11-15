@@ -113,7 +113,8 @@ void game_object::imgui_render_outliner(const std::function<void()>& render_chil
 	//	一時オブジェクトは名前の後ろに印を付けて薄く表示する
 	if (transient)
 		ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
-	//	@tool 選んでいるオブジェクトは強調し、名前をクリックしたら選ぶ（開閉は矢印かダブルクリック。子が無ければ矢印を出さない）
+
+	//	選んでいるオブジェクトは強調
 	const bool selected = context && context->get_selected_object().get() == this;
 	ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanAvailWidth;
 	if (selected)
@@ -123,7 +124,8 @@ void game_object::imgui_render_outliner(const std::function<void()>& render_chil
 	const bool opened = ImGui::TreeNodeEx("##object", flags, "%s%s", name.get<utf8_cache>().data(), transient ? " (transient)" : "");
 	if (context && ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
 		context->set_selected_object(shared_from_this());
-	//	@tool 行をドラッグして別の行に落とすと、落とした先を親にする
+
+	//	行をドラッグして別の行に落とすと、落とした先を親にする
 	if (on_drop)
 	{
 		if (ImGui::BeginDragDropSource())

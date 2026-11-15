@@ -13,10 +13,10 @@
 
 void place_objects_window::imgui_render(scene_editor& editor)
 {
-	//	@tool 型の一覧。ビューポートへドラッグすると落とした位置に置き、ダブルクリックするとエディターカメラの前方に置く
+	//	型の一覧。ビューポートへドラッグすると落とした位置に置き、ダブルクリックするとエディターカメラの前方に置く
 	if (ImGui::Begin(editor.get_edit_world().get_context().make_window_name("place objects").c_str()))
 	{
-		//	@tool 置く先のシーン（scenes 窓で選ぶ）
+		//	置く先のシーン
 		const cache_string current_path(editor.get_current_scene_resource()->get_file_path());
 		ImGui::Text("scene : %s", scene_resource_utility::make_display_name(current_path.get<utf8_cache>()).c_str());
 		if (ImGui::IsItemHovered())
@@ -25,7 +25,7 @@ void place_objects_window::imgui_render(scene_editor& editor)
 		ImGui::SetNextItemWidth(-FLT_MIN);
 		ImGui::InputTextWithHint("##filter", "search", filter, sizeof(filter));
 
-		//	@tool 検索は大文字・小文字を区別しない
+		//	検索は大文字・小文字を区別しない
 		auto to_lower = [](std::string text)
 		{
 			std::transform(text.begin(), text.end(), text.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });

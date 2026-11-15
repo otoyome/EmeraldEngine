@@ -52,9 +52,9 @@ private:
 	std::unique_ptr<scene_editor> scene_edit;		//	シーンエディター
 	std::unique_ptr<editor_viewport> viewport;		//	編集用のワールドを映すビューポート
 	editor_gizmo gizmo;								//	選んでいるオブジェクトを動かすギズモ
-	editor_icons icons;								//	@tool ライトなど形の無いオブジェクトのアイコンと、選んでいる物の形
-	place_objects_window place_window;				//	@tool 置くオブジェクトの一覧の窓
-	scenes_window scene_list_window;				//	@tool 編集中のシーンの一覧の窓
+	editor_icons icons;								//	ライトなど形の無いオブジェクトのアイコンと、選んでいる物の形
+	place_objects_window place_window;				//	置くオブジェクトの一覧の窓
+	scenes_window scene_list_window;				//	編集中のシーンの一覧の窓
 	std::shared_ptr<play_session> session;			//	再生の状態
 	bool owns_collision_filters = false;			//	当たり判定フィルターをこのプロセスで作ったか
 	bool exit_requested = false;					//	Exit を選んだ

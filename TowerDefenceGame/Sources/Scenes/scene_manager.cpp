@@ -190,7 +190,8 @@ void scene_manager::imgui_render()
 				ImGui::PushID(&loaded);
 				if (index > 0)
 					ImGui::Indent();
-				//	@tool シーン名だけを出し、パスはカーソルを乗せた時に出す
+
+				//	シーン名だけを出し、パスはカーソルを乗せた時に出す
 				const cache_string path(loaded.resource->get_file_path());
 				ImGui::TextUnformatted(scene_resource_utility::make_display_name(path.get<utf8_cache>()).c_str());
 				if (ImGui::IsItemHovered())

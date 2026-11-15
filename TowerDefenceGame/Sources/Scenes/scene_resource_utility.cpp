@@ -89,7 +89,6 @@ namespace scene_resource_utility
 
 std::string scene_resource_utility::make_display_name(std::string_view path)
 {
-	//	@tool 区切りと拡張子の記号は ASCII なので、UTF-8 のままバイト単位で探してよい
 	const size_t separator = path.find_last_of("/\\");
 	std::string_view name = (separator == std::string_view::npos) ? path : path.substr(separator + 1);
 	const size_t dot = name.find_last_of('.');

@@ -38,7 +38,6 @@ public:
 
 	game_object_ptr create(std::string_view type) const;
 	bool contains(std::string_view type) const;
-	//	@tool “o˜^‚³‚ê‚Ä‚¢‚éŒ^–¼i–¼‘O‡j
 	std::vector<std::string> get_type_names() const;
 
 private:

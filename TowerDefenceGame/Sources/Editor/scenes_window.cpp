@@ -22,7 +22,7 @@ void scenes_window::imgui_render(scene_editor& editor)
 			ImGui::PushID(scene.get());
 			if (index > 0)
 				ImGui::Indent();
-			//	@tool シーン名だけを出し、パスはカーソルを乗せた時に出す。クリックするとオブジェクトを置く先のシーンにする
+			//	シーン名だけを出し、パスはカーソルを乗せた時に出す。クリックするとオブジェクトを置く先のシーンにする
 			const cache_string path(scene->get_file_path());
 			const std::string display_name = scene_resource_utility::make_display_name(path.get<utf8_cache>());
 			const bool current = (scene == current_scene);

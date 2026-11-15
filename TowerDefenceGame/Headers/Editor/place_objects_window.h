@@ -7,13 +7,13 @@ class scene_editor;
 class place_objects_window
 {
 public:
-	//	@tool place objects 窓からビューポートへドラッグする時の型名の受け渡し名
+	//	place objects 窓からビューポートへドラッグする時の型名の受け渡し名
 	static constexpr const char* payload_type = "SCENE_EDITOR_PLACE_OBJECT";
 
-	//	@tool 窓を描く（選んだ型は editor の開いているシーンに置く）
+	//	窓を描く
 	void imgui_render(scene_editor& editor);
 
 private:
-	char filter[64] = {};					//	place objects 窓の検索文字
+	char filter[64] = {};
 };
 #endif	//	defined(USE_IMGUI)

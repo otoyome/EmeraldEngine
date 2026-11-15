@@ -24,7 +24,6 @@ scene_editor::scene_editor()
 {
 	edit_world->get_objects().set_pause(true);
 	edit_world->get_context().set_editing(true);
-	//	@tool アウトライナーでの親子の付け替えは、シーンのオブジェクトの持ち方も合わせて直す
 	edit_world->get_context().set_attach_handler([this](const std::shared_ptr<game_object>& child, const std::shared_ptr<game_object>& parent)
 	{
 		return attach_object(child, parent);
@@ -181,7 +180,7 @@ void scene_editor::imgui_menu()
 	if (ImGui::MenuItem("Save", nullptr, false, is_editing() && !is_playing()))
 		save();
 
-	//	@tool 選んでいるオブジェクトの削除（Delete キーでも消せる）
+	//	選んでいるオブジェクトの削除
 	const std::shared_ptr<game_object> selected = edit_world->get_context().get_selected_object();
 	if (ImGui::MenuItem("Delete", "Del", false, can_remove_object(selected)))
 		remove_object(selected);
@@ -189,7 +188,7 @@ void scene_editor::imgui_menu()
 	if (const scene_resource_ptr resource = get_edit_resource())
 	{
 		const cache_string file_path(resource->get_file_path());
-		//	@tool シーン名だけを出し、パスはカーソルを乗せた時に出す
+		//	シーン名だけを出し、パスはカーソルを乗せた時に出す
 		ImGui::TextDisabled("%s%s", scene_resource_utility::make_display_name(file_path.get<utf8_cache>()).c_str(), is_playing() ? " (playing)" : "");
 		if (ImGui::IsItemHovered())
 			ImGui::SetTooltip("%s", file_path.get<utf8_cache>().data());
@@ -532,13 +531,13 @@ bool scene_editor::remove_object(const std::shared_ptr<game_object>& target)
 	if (!can_remove_object(target))
 		return false;
 
-	//	@tool 子孫のオブジェクトも一緒に消す
+	//	子孫のオブジェクトも一緒に消す
 	const std::vector<game_object_ptr> remove_objects = collect_object_tree(target);
 	std::unordered_set<const game_object*> removes;
 	for (const game_object_ptr& object : remove_objects)
 		removes.insert(object.get());
 
-	//	@tool ワールドから外し、シーンのオブジェクトからも外す（保存されなくなる）
+	//	ワールドから外し、シーンのオブジェクトからも外す
 	object_manager& objects = edit_world->get_objects();
 	for (const game_object_ptr& object : remove_objects)
 		objects.unregister_object(object);
@@ -575,7 +574,7 @@ bool scene_editor::attach_object(const std::shared_ptr<game_object>& child, cons
 	if (!spatial_object::attach_object(child, parent))
 		return false;
 
-	//	@tool 親子は同じシーンのファイルの中でしか保存されないので、親が別のシーンなら子孫ごと親のシーンへ移す
+	//	親子は同じシーンのファイルの中でしか保存されないので、親が別のシーンなら子孫ごと親のシーンへ移す
 	if (parent_scene != child_scene)
 	{
 		const std::vector<game_object_ptr> moves = collect_object_tree(child);
@@ -613,7 +612,7 @@ scene_editor::edited_scene* scene_editor::find_edited_scene(const std::shared_pt
 
 std::vector<std::shared_ptr<game_object>> scene_editor::collect_object_tree(const std::shared_ptr<game_object>& target) const
 {
-	//	@tool 空間の親子をたどって、子孫のオブジェクトも集める
+	//	空間の親子をたどって、子孫のオブジェクトも集める
 	std::unordered_map<const hierarchy*, game_object_ptr> owners;
 	for (const game_object_ptr& object : edit_world->get_objects().search_game_objects<spatial_object>())
 		owners.emplace(static_cast<spatial_object*>(object.get())->get_spatial().get(), object);
@@ -655,8 +654,8 @@ std::string scene_editor::make_unique_object_name(std::string_view base) const
 
 math::vector3d scene_editor::get_placement_position() const
 {
-	//	@tool エディターカメラの前方 5m（無ければ原点）
-	constexpr double placement_distance = 50.0;
+	//	エディターカメラの前方 5m（無ければ原点）
+	constexpr double placement_distance = system_units::convert_m_to_unit(5.0);
 	const std::shared_ptr<editor_camera_object> camera = edit_world->get_objects().search_object<editor_camera_object>();
 	if (!camera)
 		return math::vector3d(0.0, 0.0, 0.0);
