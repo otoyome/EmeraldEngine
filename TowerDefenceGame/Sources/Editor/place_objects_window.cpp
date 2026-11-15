@@ -37,6 +37,8 @@ void place_objects_window::imgui_render(scene_editor& editor)
 		{
 			for (const std::string& type : game_object_registry::instance()->get_type_names())
 			{
+				if (type == game_object::type_name())
+					continue;
 				if (!lower_filter.empty() && to_lower(type).find(lower_filter) == std::string::npos)
 					continue;
 

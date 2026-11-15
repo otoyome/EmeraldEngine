@@ -11,7 +11,7 @@
 
 void scenes_window::imgui_render(scene_editor& editor)
 {
-	//	編集中は scenes 窓に編集中のシーン（親とサブシーン）を出す（再生中は再生用のワールドの scenes 窓）
+	//	編集中は scenes 窓に編集中のシーンを出す
 	if (ImGui::Begin(editor.get_edit_world().get_context().make_window_name("scenes").c_str()))
 	{
 		const std::vector<scene_resource_ptr> scenes = editor.get_edited_scenes();
