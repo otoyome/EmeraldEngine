@@ -41,51 +41,48 @@ namespace
 	}
 }
 
-namespace scene_resource_utility
+bool scene_resource_utility::create(const std::vector<scene_resource_ptr>& scenes, std::vector<created_scene>& out_scenes)
 {
-	bool create(const std::vector<scene_resource_ptr>& scenes, std::vector<created_scene>& out_scenes)
+	std::vector<created_scene> created(scenes.size());
+	for (size_t index = 0; index < scenes.size(); ++index)
 	{
-		std::vector<created_scene> created(scenes.size());
-		for (size_t index = 0; index < scenes.size(); ++index)
-		{
-			std::unique_ptr<scene_system>& system = created[index].system;
-			std::istringstream stream(scenes[index]->get_body());
-			if (!game_object_serializer::load(stream, created[index].objects, [&system](cereal::JSONInputArchive& archive) { system = read_system(archive); }))
-				return false;
-		}
-		out_scenes = std::move(created);
-		return true;
+		std::unique_ptr<scene_system>& system = created[index].system;
+		std::istringstream stream(scenes[index]->get_body());
+		if (!game_object_serializer::load(stream, created[index].objects, [&system](cereal::JSONInputArchive& archive) { system = read_system(archive); }))
+			return false;
 	}
+	out_scenes = std::move(created);
+	return true;
+}
 
-	void collect_scenes(const scene_resource_ptr& root, std::vector<scene_resource_ptr>& out_scenes)
+void scene_resource_utility::collect_scenes(const scene_resource_ptr& root, std::vector<scene_resource_ptr>& out_scenes)
+{
+	out_scenes.clear();
+	if (!root)
+		return;
+
+	out_scenes.emplace_back(root);
+	for (const auto& sub_scene : root->get_sub_scenes())
 	{
-		out_scenes.clear();
-		if (!root)
-			return;
+		const resource::asset_reference<scene_resource> reference = sub_scene.get_reference();
+		if (reference.is_empty())
+			continue;
 
-		out_scenes.emplace_back(root);
-		for (const auto& sub_scene : root->get_sub_scenes())
+		auto operation = resource_manager::instance()->load_async(reference, resource::load_priority::high);
+		if (!operation || !resource_manager::instance()->wait(*operation) || !operation->is_succeeded())
 		{
-			const resource::asset_reference<scene_resource> reference = sub_scene.get_reference();
-			if (reference.is_empty())
-				continue;
-
-			auto operation = resource_manager::instance()->load_async(reference, resource::load_priority::high);
-			if (!operation || !resource_manager::instance()->wait(*operation) || !operation->is_succeeded())
-			{
-				DEBUG_ERROR_CATEGORY(logger::categorys::system, "scene_resource sub scene load failed[%s]", reference.path.c_str());
-				continue;
-			}
-
-			scene_resource_ptr child = operation->get_resource();
-			if (std::find(out_scenes.begin(), out_scenes.end(), child) != out_scenes.end())
-				continue;
-			if (!child->get_sub_scenes().empty())
-				DEBUG_WARNING_CATEGORY(logger::categorys::system, "scene_resource nested sub scenes are ignored[%s]", reference.path.c_str());
-			out_scenes.emplace_back(std::move(child));
+			DEBUG_ERROR_CATEGORY(logger::categorys::system, "scene_resource sub scene load failed[%s]", reference.path.c_str());
+			continue;
 		}
+
+		scene_resource_ptr child = operation->get_resource();
+		if (std::find(out_scenes.begin(), out_scenes.end(), child) != out_scenes.end())
+			continue;
+		if (!child->get_sub_scenes().empty())
+			DEBUG_WARNING_CATEGORY(logger::categorys::system, "scene_resource nested sub scenes are ignored[%s]", reference.path.c_str());
+		out_scenes.emplace_back(std::move(child));
 	}
-}	//	namespace scene_resource_utility
+}
 
 std::string scene_resource_utility::make_display_name(std::string_view path)
 {
