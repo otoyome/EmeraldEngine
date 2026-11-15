@@ -48,9 +48,6 @@ public:
 	bool create_display_resources() override;
 	void release_display_resources() override;
 
-public:
-	//	当たり判定フィルターを登録する
-	static bool create_collision_filters();
 
 private:
 	std::unique_ptr<world> main_world;				//	ワールド

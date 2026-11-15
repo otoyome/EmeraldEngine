@@ -2,6 +2,7 @@
 
 #include <chrono>
 #include <string>
+#include <vector>
 
 #include "Graphics/Core/color_space.h"
 
@@ -71,8 +72,59 @@ public:
 		void serialize(Archive& archive, int version);
 	} rendering;
 
+	//	当たり判定の設定
+	struct collision_data
+	{
+		//	応答方式
+		enum class responses
+		{
+			ignore,		//	当たらない
+			overlap,	//	押し返さず、重なったことだけ知らせる
+			block,		//	押し返す
+		};
+
+		//	チャンネルの最大数
+		static constexpr size_t max_channels = 32;
+
+		//	チャンネル情報
+		struct channel_data
+		{
+			std::string name;
+
+			template<class Archive>
+			void serialize(Archive& archive, int version);
+		};
+
+		//	応答情報
+		struct response_data
+		{
+			std::string channel;
+			responses response = responses::block;
+
+			template<class Archive>
+			void serialize(Archive& archive, int version);
+		};
+
+		//	プロファイル情報
+		struct profile_data
+		{
+			std::string name;
+			std::string object_type;						//	所属するチャンネル
+			std::vector<response_data> channel_responses;	//	既定から変えたチャンネルの応答
+
+			template<class Archive>
+			void serialize(Archive& archive, int version);
+		};
+
+		std::vector<channel_data> channels;
+		std::vector<profile_data> profiles;
+
+		template<class Archive>
+		void serialize(Archive& archive, int version);
+	} collision;
+
 public:
-	//	起動時に読み込んだ描画色域(実行中は変わらない)
+	//	描画色域
 	color_space::gamuts get_active_rendering_gamut() const { return active_rendering_gamut; }
 
 private:

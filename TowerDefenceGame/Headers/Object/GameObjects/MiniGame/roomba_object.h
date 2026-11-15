@@ -51,30 +51,7 @@ public:
 		dead,
 	};
 
-	//	判定形状情報
-	struct bounding_descs
-	{
-		collision::bounding_object::types type = collision::bounding_object::types::box;
-		bool is_follow_self = true;
-		math::float3 local_scale;
-		math::rotatorf local_rotator;
-		math::float3 local_offset;
-	};
-	struct bounding_datas
-	{
-		bounding_descs desc;
-
-		math::rotatorf rotator;
-		math::float3 position;
-	};
-
 private:
-	struct bounding_inner_datas
-	{
-		bool is_follow_self = false;
-		collision_object_ptr object;
-	};
-
 	//	ステート変更時呼び出し
 	using call_back_change_state = std::function<void(roomba_object*)>;
 	using call_back_change_state_inner_map = std::unordered_map<std::string, call_back_change_state>;
@@ -236,8 +213,6 @@ private:	//	姿勢制御
 	bool calculate_position(math::float3 velocity, float elapsed_time, math::vector3d& out_position, math::float3& out_normal, float* out_friction = nullptr);
 
 private:
-	void generate_box_data(std::vector<bounding_inner_datas>& datas, const bounding_datas& bounding_data);
-
 	virtual void on_push_box_enter(collision_object::data data);
 	virtual void on_push_box_stay(collision_object::data data);
 

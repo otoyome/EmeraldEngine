@@ -54,13 +54,6 @@ void collision_placement_object::set_filter_name(std::string_view name)
 		collision->set_filter(filter_name);
 }
 
-void collision_placement_object::set_detect_only(bool value)
-{
-	detect_only = value;
-	for (auto& collision : collisions)
-		collision->set_flag(collision_object::flags::detect_only, detect_only);
-}
-
 void collision_placement_object::rebuild_collisions()
 {
 	if (!has_context())
@@ -79,7 +72,6 @@ void collision_placement_object::build_collisions()
 	{
 		collision->set_filter(filter_name);
 		collision->set_flag(collision_object::flags::static_object, true);
-		collision->set_flag(collision_object::flags::detect_only, detect_only);
 		objects.register_object(collision);
 		collisions.emplace_back(std::move(collision));
 	}
@@ -108,7 +100,21 @@ void collision_placement_object::sync_transform()
 template<class Archive>
 void collision_placement_object::serialize_fields(Archive& archive, std::uint32_t version)
 {
-	archive(CEREAL_NVP(filter_name), CEREAL_NVP(detect_only));
+	switch (version)
+	{
+		case 0:
+		case 1:
+		{
+			bool detect_only = false;
+			archive(CEREAL_NVP(filter_name), CEREAL_NVP(detect_only));
+			break;
+		}
+		case 2:
+		{ 
+			archive(CEREAL_NVP(filter_name));
+			break;
+		}
+	}
 }
 
 void collision_placement_object::serialize(cereal::JSONOutputArchive& archive) const
@@ -132,9 +138,6 @@ void collision_placement_object::imgui_render_core()
 	filter_name.copy(buffer, sizeof(buffer) - 1);
 	if (ImGui::InputText("filter", buffer, sizeof(buffer), ImGuiInputTextFlags_EnterReturnsTrue))
 		set_filter_name(buffer);
-	bool value = detect_only;
-	if (ImGui::Checkbox("detect only", &value))
-		set_detect_only(value);
 	ImGui::Text("collisions : %d", static_cast<int>(collisions.size()));
 }
 #endif	//	defined(USE_IMGUI)

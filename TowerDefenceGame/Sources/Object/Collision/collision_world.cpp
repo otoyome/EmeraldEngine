@@ -146,10 +146,13 @@ void collision_world::inner_step_simulation(float elapsed_time)
 					raw2->is_flag(collision_object::flags::static_object))
 					continue;
 
-				//	カテゴリーチェック
-				if (!raw1->get_filter()->is_flag(raw2->get_filter()->get_category()) &&
-					!raw2->get_filter()->is_flag(raw1->get_filter()->get_category()))
+				//	応答チェック
+				const collision_response response = collision_filter::get_response(*raw1->get_filter(), *raw2->get_filter());
+				if (response == collision_response::ignore)
+				{
+					//	互いの応答の弱い方を使い ignore なら当たらない
 					continue;
+				}
 
 				auto bounding1 = raw1->get_bounding_object();
 				auto bounding2 = raw2->get_bounding_object();
@@ -172,7 +175,7 @@ void collision_world::inner_step_simulation(float elapsed_time)
 				narrow_contacts[index].clear();
 				//	形状に合わせて判定処理
 				if (bounding1->intersection(bounding2.get(), &narrow_contacts[index]))
-					narrow_hits[index] = 1;
+					narrow_hits[index] = (response == collision_response::block) ? 2 : 1;	//	1 は重なりだけ（overlap）、2 は押し返す（block）
 			}
 		};
 		narrow_phase_executor.parallel_for(pair_count, narrow_phase_parallel_min, narrow_test);
@@ -202,8 +205,7 @@ void collision_world::inner_step_simulation(float elapsed_time)
 			data2.clear();
 
 			//	押し合い
-			bool is_push = !object1->is_flag(collision_object::flags::detect_only) &&
-							!object2->is_flag(collision_object::flags::detect_only);
+			bool is_push = narrow_hits[index] == 2;
 			if (is_push && !is_static_object)
 			{
 				//	押し戻し量の配分を決定
@@ -395,12 +397,11 @@ bool collision_world::ray_cast(const ray_cast_descs& desc, collision::intersect_
 	collision::intersect_data data;
 	for (auto& object : collision_objects)
 	{
-		if (!object->is_flag(collision_object::flags::active) ||
-			object->is_flag(collision_object::flags::detect_only))
+		if (!object->is_flag(collision_object::flags::active))
 			continue;
 
-		//	カテゴリーチェック
-		if (!desc.filter->is_flag(object->get_filter()->get_category()))
+		//	応答チェック
+		if (collision_filter::get_response(*desc.filter, *object->get_filter()) != collision_response::block)
 			continue;
 
 		//	AABBが重ならなければ詳細判定しない
@@ -444,12 +445,11 @@ bool collision_world::sphere_cast(const sphere_cast_descs& desc, collision::inte
 	collision::intersect_data data;
 	for (auto& object : collision_objects)
 	{
-		if (!object->is_flag(collision_object::flags::active) ||
-			object->is_flag(collision_object::flags::detect_only))
+		if (!object->is_flag(collision_object::flags::active))
 			continue;
 
-		//	カテゴリーチェック
-		if (!desc.filter->is_flag(object->get_filter()->get_category()))
+		//	応答チェック
+		if (collision_filter::get_response(*desc.filter, *object->get_filter()) != collision_response::block)
 			continue;
 
 		//	AABBが重ならなければ詳細判定しない
@@ -488,12 +488,11 @@ bool collision_world::capsule_cast(const capsule_cast_descs& desc, collision::in
 	collision::intersect_data data;
 	for (auto& object : collision_objects)
 	{
-		if (!object->is_flag(collision_object::flags::active) ||
-			object->is_flag(collision_object::flags::detect_only))
+		if (!object->is_flag(collision_object::flags::active))
 			continue;
 
-		//	カテゴリーチェック
-		if (!desc.filter->is_flag(object->get_filter()->get_category()))
+		//	応答チェック
+		if (collision_filter::get_response(*desc.filter, *object->get_filter()) != collision_response::block)
 			continue;
 
 		//	AABBが重ならなければ詳細判定しない

@@ -16,7 +16,6 @@ public:
 	enum class flags
 	{
 		active,
-		detect_only,	// 検知のみフラグ
 		static_object,	// 衝突検知後、押し合いする時に動かないオブジェクトフラグ
 
 		dirty,

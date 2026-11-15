@@ -494,52 +494,14 @@ float roomba_object::calculate_frontal_area() const
 	return vertical_area * cos_theta + horizontal_area * sin_theta;
 }
 
-void roomba_object::generate_box_data(std::vector<bounding_inner_datas>& datas, const bounding_datas& bounding_data)
-{
-	datas.emplace_back();
-	auto& data = datas.back();
-	data.is_follow_self = bounding_data.desc.is_follow_self;
-
-	data.object = std::make_shared<collision_object>();
-	switch (bounding_data.desc.type)
-	{
-		case collision::bounding_object::types::box:
-		{
-			data.object->set_bounding_object(std::make_shared<collision::bounding_box>());
-			break;
-		}
-		case collision::bounding_object::types::capsule:
-		{
-			data.object->set_bounding_object(std::make_shared<collision::bounding_capsule>());
-			break;
-		}
-		case collision::bounding_object::types::sphere:
-		{
-			data.object->set_bounding_object(std::make_shared<collision::bounding_sphere>());
-			break;
-		}
-	}
-
-#if defined(USE_IMGUI)
-	data.object->set_name(get_name());
-#endif	//	defined(USE_IMGUI)
-	data.object->set_filter(collision_filter_name);
-	data.object->set_local_scale(bounding_data.desc.local_scale);
-	data.object->set_local_transform(math::rigid_transformd(math::quaterniond(bounding_data.desc.local_rotator.to_quaternion()), math::vector3d(bounding_data.desc.local_offset)));
-	data.object->set_transform(math::rigid_transformd(math::quaterniond(bounding_data.rotator.to_quaternion()), math::vector3d(bounding_data.position)));
-	data.object->set_flag(collision_object::flags::detect_only, true);
-}
-
 void roomba_object::on_push_box_enter(collision_object::data data)
 {
 	//	À•WŒn‚ðÄÝ’è
-	if (!data.from->is_flag(collision_object::flags::detect_only))
-		set_position(push_box->get_transform().get_translation().to_float3());
+	set_position(push_box->get_transform().get_translation().to_float3());
 }
 
 void roomba_object::on_push_box_stay(collision_object::data data)
 {
 	//	À•WŒn‚ðÄÝ’è
-	if (!data.from->is_flag(collision_object::flags::detect_only))
-		set_position(push_box->get_transform().get_translation().to_float3());
+	set_position(push_box->get_transform().get_translation().to_float3());
 }

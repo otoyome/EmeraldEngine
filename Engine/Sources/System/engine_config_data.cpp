@@ -11,6 +11,10 @@ CEREAL_CLASS_VERSION(engine_config_data::application_data, 2)
 CEREAL_CLASS_VERSION(engine_config_data::windows_data, 1)
 CEREAL_CLASS_VERSION(engine_config_data::antialias_data, 1)
 CEREAL_CLASS_VERSION(engine_config_data::rendering_data, 1)
+CEREAL_CLASS_VERSION(engine_config_data::collision_data, 1)
+CEREAL_CLASS_VERSION(engine_config_data::collision_data::channel_data, 1)
+CEREAL_CLASS_VERSION(engine_config_data::collision_data::response_data, 1)
+CEREAL_CLASS_VERSION(engine_config_data::collision_data::profile_data, 1)
 
 namespace
 {
@@ -18,7 +22,7 @@ namespace
 	static constexpr std::string_view file_path = "engine_config.ini";
 
 	//	ファイル全体のバージョン
-	static constexpr std::uint32_t file_version = 1;
+	static constexpr std::uint32_t file_version = 2;
 }
 
 template<class Archive>
@@ -103,6 +107,62 @@ void engine_config_data::rendering_data::serialize(Archive& archive, int version
 	}
 }
 
+template<class Archive>
+void engine_config_data::collision_data::channel_data::serialize(Archive& archive, int version)
+{
+	switch (version)
+	{
+		case 0:
+		case 1:
+		{
+			archive(CEREAL_NVP(name));
+			break;
+		}
+	}
+}
+
+template<class Archive>
+void engine_config_data::collision_data::response_data::serialize(Archive& archive, int version)
+{
+	switch (version)
+	{
+		case 0:
+		case 1:
+		{
+			archive(CEREAL_NVP(channel), CEREAL_NVP(response));
+			break;
+		}
+	}
+}
+
+template<class Archive>
+void engine_config_data::collision_data::profile_data::serialize(Archive& archive, int version)
+{
+	switch (version)
+	{
+		case 0:
+		case 1:
+		{
+			archive(CEREAL_NVP(name), CEREAL_NVP(object_type), CEREAL_NVP(channel_responses));
+			break;
+		}
+	}
+}
+
+template<class Archive>
+void engine_config_data::collision_data::serialize(Archive& archive, int version)
+{
+	switch (version)
+	{
+		case 0:
+		case 1:
+		{
+			archive(CEREAL_NVP(channels), CEREAL_NVP(profiles));
+			break;
+		}
+	}
+}
+
 engine_config_data::engine_config_data()
 {
 	std::ifstream istream(file_path.data());
@@ -133,6 +193,11 @@ engine_config_data::engine_config_data()
 				case 1:
 				{
 					archive(CEREAL_NVP(application), CEREAL_NVP(windows), CEREAL_NVP(antialias), CEREAL_NVP(rendering));
+					break;
+				}
+				case 2:
+				{
+					archive(CEREAL_NVP(application), CEREAL_NVP(windows), CEREAL_NVP(antialias), CEREAL_NVP(rendering), CEREAL_NVP(collision));
 					break;
 				}
 				default:
@@ -167,7 +232,7 @@ engine_config_data::~engine_config_data()
 		try
 		{
 			std::uint32_t version = file_version;
-			archive(CEREAL_NVP(version), CEREAL_NVP(application), CEREAL_NVP(windows), CEREAL_NVP(antialias), CEREAL_NVP(rendering));
+			archive(CEREAL_NVP(version), CEREAL_NVP(application), CEREAL_NVP(windows), CEREAL_NVP(antialias), CEREAL_NVP(rendering), CEREAL_NVP(collision));
 		}
 		catch (...)
 		{

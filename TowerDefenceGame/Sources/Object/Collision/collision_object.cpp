@@ -162,7 +162,6 @@ collision_object::collision_object()
 	}
 	set_filter("default");
 	set_flag(flags::active, true);
-	set_flag(flags::detect_only, false);
 	set_flag(flags::dirty, true);
 	set_flag(flags::draw_line, true);
 }
@@ -183,9 +182,6 @@ void collision_object::pre_intersect()
 
 void collision_object::solve_pushing_objects(collision::intersect_data& intersect_data)
 {
-	if (is_flag(flags::detect_only))
-		return;
-
 	for (int index = 0; index < intersect_data.size(); ++index)
 	{
 		auto& info = intersect_data[index];

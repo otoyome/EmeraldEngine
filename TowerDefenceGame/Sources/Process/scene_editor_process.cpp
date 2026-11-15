@@ -63,8 +63,6 @@ bool scene_editor_process::enter()
 	{
 		collision_filter_manager::create_instance();
 		owns_collision_filters = true;
-		if (!game_process::create_collision_filters())
-			return false;
 	}
 
 	//	編集用のワールドは scene_editor が持つ

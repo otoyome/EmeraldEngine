@@ -11,16 +11,13 @@ class collision_placement_object : public spatial_object
 {
 	GAME_OBJECT_DECRLEAR(collision_placement_object, spatial_object)
 
-	static constexpr std::uint32_t serialize_version = 1;
+	static constexpr std::uint32_t serialize_version = 2;
 
 public:
 	size_t get_collision_count() const { return collisions.size(); }
 
 	const std::string& get_filter_name() const { return filter_name; }
 	void set_filter_name(std::string_view name);
-
-	bool is_detect_only() const { return detect_only; }
-	void set_detect_only(bool value);
 
 public:
 	collision_placement_object(std::string_view name);
@@ -62,5 +59,4 @@ private:
 private:
 	std::vector<collision_object_ptr> collisions;
 	std::string filter_name = "default";
-	bool detect_only = false;
 };
