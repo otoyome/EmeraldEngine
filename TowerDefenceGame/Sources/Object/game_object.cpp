@@ -100,7 +100,7 @@ void game_object::post_render()
 }
 
 #if defined(USE_IMGUI)
-void game_object::imgui_render(const std::function<void()>& render_children)
+void game_object::imgui_render_outliner(const std::function<void()>& render_children, bool has_children, const std::function<void(game_object& child)>& on_drop)
 {
 	if (!display_inspector)
 	{
@@ -113,30 +113,69 @@ void game_object::imgui_render(const std::function<void()>& render_children)
 	//	一時オブジェクトは名前の後ろに印を付けて薄く表示する
 	if (transient)
 		ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
-	//	@tool 選んでいるオブジェクトは強調し、名前をクリックしたら選ぶ（ギズモで動かす対象）
+	//	@tool 選んでいるオブジェクトは強調し、名前をクリックしたら選ぶ（開閉は矢印かダブルクリック。子が無ければ矢印を出さない）
 	const bool selected = context && context->get_selected_object().get() == this;
-	const bool opened = ImGui::TreeNodeEx("##object", selected ? ImGuiTreeNodeFlags_Selected : ImGuiTreeNodeFlags_None, "%s%s", name.get<utf8_cache>().data(), transient ? " (transient)" : "");
-	if (context && ImGui::IsItemClicked())
+	ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanAvailWidth;
+	if (selected)
+		flags |= ImGuiTreeNodeFlags_Selected;
+	if (!has_children)
+		flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
+	const bool opened = ImGui::TreeNodeEx("##object", flags, "%s%s", name.get<utf8_cache>().data(), transient ? " (transient)" : "");
+	if (context && ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
 		context->set_selected_object(shared_from_this());
+	//	@tool 行をドラッグして別の行に落とすと、落とした先を親にする
+	if (on_drop)
+	{
+		if (ImGui::BeginDragDropSource())
+		{
+			game_object* self = this;
+			ImGui::SetDragDropPayload(outliner_payload_type, &self, sizeof(self));
+			ImGui::TextUnformatted(name.get<utf8_cache>().data());
+			ImGui::EndDragDropSource();
+		}
+		if (ImGui::BeginDragDropTarget())
+		{
+			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(outliner_payload_type))
+			{
+				game_object* child = *static_cast<game_object* const*>(payload->Data);
+				if (child && child != this)
+					on_drop(*child);
+			}
+			ImGui::EndDragDropTarget();
+		}
+	}
 	if (transient)
 		ImGui::PopStyleColor();
-	if (opened)
+	if (opened && has_children)
 	{
-		if (ImGui::Checkbox("active", &active))
-		{
-			if (active)
-				on_active();
-			else
-				on_deactive();
-		}
-
-		imgui_render_core();
-
 		if (render_children)
 			render_children();
 
 		ImGui::TreePop();
 	}
+	ImGui::PopID();
+}
+
+void game_object::imgui_render_inspector()
+{
+	ImGui::PushID(static_cast<int>(std::hash<universally_unique_identifier>()(uuid)));
+	ImGui::TextUnformatted(name.get<utf8_cache>().data());
+	if (transient)
+	{
+		ImGui::SameLine();
+		ImGui::TextDisabled("(transient)");
+	}
+	ImGui::Separator();
+
+	if (ImGui::Checkbox("active", &active))
+	{
+		if (active)
+			on_active();
+		else
+			on_deactive();
+	}
+
+	imgui_render_core();
 	ImGui::PopID();
 }
 

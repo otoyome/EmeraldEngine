@@ -24,6 +24,8 @@
 #include "Editor/editor_items.h"
 #include "Editor/scene_editor.h"
 #include "Editor/editor_viewport.h"
+#include "Editor/editor_picker.h"
+#include "imgui_internal.h"
 #include "Editor/detail_profiler.h"
 
 namespace
@@ -253,6 +255,9 @@ void scene_editor_process::update(float elapsed_time)
 		scene_edit->editor_update(elapsed_time);
 	}
 
+	//	@tool 選んでいるオブジェクトの形（ライトの範囲など）を線で出す
+	icons.queue_selected_shape(edit_world.get_context());
+
 	//	エフェクト関係更新
 	{
 		DETAIL_PROFILE_CPU_SCOPE("update.edit.effect_manager");
@@ -326,7 +331,45 @@ void scene_editor_process::imgui_render()
 			hovered = viewport->imgui_render(context, ImGui::GetCursorScreenPos(), ImGui::GetContentRegionAvail(),
 				[this, &context](const ImVec2& image_position, const ImVec2& image_size)
 				{
-					return !scene_edit->is_playing() && gizmo.manipulate(context, image_position, image_size);
+					if (scene_edit->is_playing())
+						return false;
+
+					//	@tool place objects 窓からドロップされた型を、落とした位置の物の表面に置く（何も無ければカメラの前方）
+					if (ImGui::BeginDragDropTargetCustom(ImRect(image_position, ImVec2(image_position.x + image_size.x, image_position.y + image_size.y)), ImGui::GetID("##place_drop")))
+					{
+						if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(place_objects_window::payload_type))
+						{
+							const ImVec2 mouse(ImGui::GetMousePos().x - image_position.x, ImGui::GetMousePos().y - image_position.y);
+							std::shared_ptr<game_object> hit_object;
+							math::vector3d hit_position;
+							if (editor_picker::raycast(context, mouse, image_size, false, hit_object, hit_position))
+								scene_edit->place_object(static_cast<const char*>(payload->Data), hit_position);
+							else
+								scene_edit->place_object(static_cast<const char*>(payload->Data));
+						}
+						ImGui::EndDragDropTarget();
+					}
+
+					//	@tool ライトなど形の無いオブジェクトのアイコン（ギズモより下に描く）
+					icons.draw(context, image_position, image_size);
+
+					if (gizmo.manipulate(context, image_position, image_size))
+						return true;
+
+					//	@tool ギズモを触っていない時に左クリックしたら、その位置のオブジェクトを選ぶ（何も無ければ選択を外す）
+					if (ImGui::IsWindowHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+					{
+						const ImVec2 mouse(ImGui::GetMousePos().x - image_position.x, ImGui::GetMousePos().y - image_position.y);
+						if (mouse.x >= 0.0f && mouse.y >= 0.0f && mouse.x < image_size.x && mouse.y < image_size.y)
+						{
+							//	@tool アイコンを先に調べ、無ければモデルを調べる
+							std::shared_ptr<game_object> picked = icons.pick(context, mouse, image_size);
+							if (!picked)
+								picked = editor_picker::pick(context, mouse, image_size);
+							context.set_selected_object(picked);
+						}
+					}
+					return false;
 				});
 		}
 		ImGui::End();
@@ -340,5 +383,9 @@ void scene_editor_process::imgui_render()
 
 	//	編集中のシーンの窓
 	scene_edit->imgui_render();
+
+	//	@tool 置くオブジェクトの一覧の窓（編集中だけ）
+	if (scene_edit->is_editing() && !scene_edit->is_playing())
+		place_window.imgui_render(*scene_edit);
 }
 #endif	//	defined(USE_IMGUI)

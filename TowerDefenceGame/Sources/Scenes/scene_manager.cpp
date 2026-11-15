@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #include "Scenes/scene_instance.h"
+#include "Scenes/scene_resource_utility.h"
 #include "Object/engine_context.h"
 #include "Resource/resource_manager.h"
 
@@ -189,8 +190,11 @@ void scene_manager::imgui_render()
 				ImGui::PushID(&loaded);
 				if (index > 0)
 					ImGui::Indent();
+				//	@tool シーン名だけを出し、パスはカーソルを乗せた時に出す
 				const cache_string path(loaded.resource->get_file_path());
-				ImGui::TextUnformatted(path.get<utf8_cache>().data());
+				ImGui::TextUnformatted(scene_resource_utility::make_display_name(path.get<utf8_cache>()).c_str());
+				if (ImGui::IsItemHovered())
+					ImGui::SetTooltip("%s", path.get<utf8_cache>().data());
 				if (loaded.system)
 				{
 					ImGui::SameLine();

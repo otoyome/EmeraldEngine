@@ -176,6 +176,21 @@ void spatial_object::detach(attach_rule rule)
 	detach_record();
 }
 
+bool spatial_object::attach_object(const std::shared_ptr<game_object>& child, const std::shared_ptr<game_object>& parent)
+{
+	const std::shared_ptr<spatial_object> child_object = std::dynamic_pointer_cast<spatial_object>(child);
+	if (!child_object)
+		return false;
+	if (!parent)
+	{
+		child_object->detach();
+		return true;
+	}
+
+	const std::shared_ptr<spatial_object> parent_object = std::dynamic_pointer_cast<spatial_object>(parent);
+	return parent_object && child_object->attach(parent_object);
+}
+
 void spatial_object::detach_record()
 {
 	if (auto parent = parent_object.lock())

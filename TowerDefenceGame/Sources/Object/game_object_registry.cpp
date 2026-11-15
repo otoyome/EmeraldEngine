@@ -1,5 +1,7 @@
 #include "Object/game_object_registry.h"
 
+#include <algorithm>
+
 game_object_registry::game_object_registry()
 {
 	for (auto& [type, function] : get_static_list())
@@ -34,4 +36,14 @@ game_object_ptr game_object_registry::create(std::string_view type) const
 bool game_object_registry::contains(std::string_view type) const
 {
 	return functions.find(std::string(type)) != functions.end();
+}
+
+std::vector<std::string> game_object_registry::get_type_names() const
+{
+	std::vector<std::string> names;
+	names.reserve(functions.size());
+	for (auto& [type, function] : functions)
+		names.emplace_back(type);
+	std::sort(names.begin(), names.end());
+	return names;
 }

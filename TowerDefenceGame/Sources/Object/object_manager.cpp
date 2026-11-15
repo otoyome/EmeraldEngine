@@ -1,5 +1,8 @@
 #include "Object/object_manager.h"
 #include "Object/spatial_object.h"
+#include "Object/engine_context.h"
+
+#include <algorithm>
 
 namespace
 {
@@ -250,8 +253,27 @@ void object_manager::finalize()
 #if defined(USE_IMGUI)
 void object_manager::imgui_render()
 {
-	if (ImGui::Begin("objects"))
+	//	@tool アウトライナー：オブジェクトを親子の木で並べ、クリックで選ぶ
+	if (ImGui::Begin("outliner"))
 	{
+		//	@tool ドラッグ＆ドロップで決まった親子の付け替え（parent が空なら親から外す）
+		game_object* pending_child = nullptr;
+		game_object* pending_parent = nullptr;
+		bool pending = false;
+
+		//	@tool 一時オブジェクトでない spatial_object だけ、ドラッグして親子を付け替えられる
+		auto make_drop = [&](game_object* object) -> std::function<void(game_object&)>
+		{
+			if (object->is_transient() || !object->check_type(spatial_object::type_name()))
+				return nullptr;
+			return [&pending_child, &pending_parent, &pending, object](game_object& child)
+			{
+				pending_child = &child;
+				pending_parent = object;
+				pending = true;
+			};
+		};
+
 		std::unordered_map<const hierarchy*, game_object*> owners;
 		std::unordered_map<const game_object*, const hierarchy*> nodes;
 		for (auto& object : game_objects)
@@ -263,6 +285,17 @@ void object_manager::imgui_render()
 			nodes.emplace(object.get(), node);
 		}
 
+		//	@tool 子孫にオブジェクトを持つか（途中のオブジェクトでない節は飛ばして調べる）
+		std::function<bool(const hierarchy*)> has_object_children = [&](const hierarchy* node)
+		{
+			for (auto& child : node->get_children())
+			{
+				if (owners.find(child.get()) != owners.end() || has_object_children(child.get()))
+					return true;
+			}
+			return false;
+		};
+
 		//	子孫のうち最も近いオブジェクトを描画
 		std::function<void(const hierarchy*)> render_children;
 		auto render_object = [&](game_object* object)
@@ -270,11 +303,11 @@ void object_manager::imgui_render()
 			auto it = nodes.find(object);
 			if (it == nodes.end())
 			{
-				object->imgui_render();
+				object->imgui_render_outliner(nullptr, false, make_drop(object));
 				return;
 			}
 			const hierarchy* node = it->second;
-			object->imgui_render([&render_children, node]() { render_children(node); });
+			object->imgui_render_outliner([&render_children, node]() { render_children(node); }, has_object_children(node), make_drop(object));
 		};
 		render_children = [&](const hierarchy* node)
 		{
@@ -307,6 +340,51 @@ void object_manager::imgui_render()
 			if (is_root)
 				render_object(object.get());
 		}
+
+		//	@tool 一覧の下の空いている所に落とすと、親から外す
+		const ImVec2 rest_size(std::max(ImGui::GetContentRegionAvail().x, 1.0f), std::max(ImGui::GetContentRegionAvail().y, ImGui::GetFrameHeight()));
+		ImGui::InvisibleButton("##outliner_root", rest_size);
+		if (ImGui::BeginDragDropTarget())
+		{
+			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(game_object::outliner_payload_type))
+			{
+				pending_child = *static_cast<game_object* const*>(payload->Data);
+				pending_parent = nullptr;
+				pending = true;
+			}
+			ImGui::EndDragDropTarget();
+		}
+
+		//	@tool 木を並べ終えてから付け替える（並べている途中で子の一覧が変わらないように）
+		if (pending)
+		{
+			auto find_object = [&](const game_object* target) -> game_object_ptr
+			{
+				auto it = std::find_if(game_objects.begin(), game_objects.end(), [target](const game_object_ptr& object) { return object.get() == target; });
+				return it != game_objects.end() ? *it : nullptr;
+			};
+			const game_object_ptr child = find_object(pending_child);
+			const game_object_ptr parent = pending_parent ? find_object(pending_parent) : nullptr;
+			if (child && (parent || !pending_parent))
+			{
+				if (const engine_context::attach_handler& handler = context.get_attach_handler())
+					handler(child, parent);
+				else
+					spatial_object::attach_object(child, parent);
+			}
+		}
+	}
+	ImGui::End();
+
+	//	@tool インスペクター：選んでいるオブジェクトの設定（このワールドのオブジェクトだけ）
+	if (ImGui::Begin("inspector"))
+	{
+		const std::shared_ptr<game_object> selected = context.get_selected_object();
+		const bool owned = selected && std::find(game_objects.begin(), game_objects.end(), selected) != game_objects.end();
+		if (owned)
+			selected->imgui_render_inspector();
+		else
+			ImGui::TextDisabled("(no selection)");
 	}
 	ImGui::End();
 }

@@ -147,9 +147,13 @@ bool editor_viewport::imgui_render(engine_context& context, const ImVec2& positi
 	const bool overlay_uses_mouse = overlay && overlay(image_position, image_size);
 
 	//	‰æ‘œ‚Ìã‚ÉƒJ[ƒ\ƒ‹‚ª‚ ‚é‚©‚ğ’²‚×‚é
-	ImGui::SetCursorScreenPos(image_position);
-	ImGui::InvisibleButton("##view", image_size, ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonRight);
-	const bool hovered = (ImGui::IsItemHovered() || ImGui::IsItemActive()) && !overlay_uses_mouse;
+	bool hovered = false;
+	if (!overlay_uses_mouse)
+	{
+		ImGui::SetCursorScreenPos(image_position);
+		ImGui::InvisibleButton("##view", image_size, ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonRight);
+		hovered = ImGui::IsItemHovered() || ImGui::IsItemActive();
+	}
 	context.set_viewport_rect({ image_position.x, image_position.y, image_size.x, image_size.y });
 	if (hovered)
 		input::pass_mouse_through_ui();

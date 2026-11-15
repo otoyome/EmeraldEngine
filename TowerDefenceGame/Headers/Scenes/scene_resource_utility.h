@@ -1,6 +1,8 @@
 #pragma once
 
 #include <memory>
+#include <string>
+#include <string_view>
 #include <vector>
 
 #include "Scenes/scene_resource.h"
@@ -21,4 +23,7 @@ namespace scene_resource_utility
 
 	//	親と、親に登録されたサブシーンを読んで並べる
 	void collect_scenes(const scene_resource_ptr& root, std::vector<scene_resource_ptr>& out_scenes);
+
+	//	@tool 表示用のシーン名（パスからフォルダと拡張子を除いた名前。UTF-8 のまま扱う）
+	std::string make_display_name(std::string_view path);
 }	//	namespace scene_resource_utility

@@ -225,6 +225,10 @@ void editor_host::imgui_initialize()
 	ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 	ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 	ImGui::GetIO().ConfigViewportsNoAutoMerge = true;
+	//	@tool 窓をメインのウィンドウの子（持ち主付き）にしない。子にすると常にメインのウィンドウより上に出て、再生中のウィンドウが窓の下に隠れる
+	ImGui::GetIO().ConfigViewportsNoDefaultParent = true;
+	//	@tool 窓はタイトルバーでだけ動かす（ビューポートのギズモをドラッグした時に窓ごと動かないように）
+	ImGui::GetIO().ConfigWindowsMoveFromTitleBarOnly = true;
 	ImGui_ImplWin32_Init(hwnd);
 	ImGui_ImplDX11_Init(render_data::instance()->get_device().Get(), render_data::instance()->get_immediate_context().Get());
 	ImGui::StyleColorsDark();

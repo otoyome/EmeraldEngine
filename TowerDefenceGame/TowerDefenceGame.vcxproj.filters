@@ -227,6 +227,15 @@
     <ClCompile Include="Sources\Framework\asset_watcher.cpp">
       <Filter>Sources\Framework</Filter>
     </ClCompile>
+    <ClCompile Include="Sources\Editor\editor_picker.cpp">
+      <Filter>Sources\Editor</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Editor\editor_icons.cpp">
+      <Filter>Sources\Editor</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Editor\place_objects_window.cpp">
+      <Filter>Sources\Editor</Filter>
+    </ClCompile>
     <ClCompile Include="Sources\Editor\editor_gizmo.cpp">
       <Filter>Sources\Editor</Filter>
     </ClCompile>
@@ -663,6 +672,15 @@
     </ClInclude>
     <ClInclude Include="Headers\PipelineState\debug_draw_line_pipeline_state.h">
       <Filter>Headers\PipelineState</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Editor\editor_picker.h">
+      <Filter>Headers\Editor</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Editor\editor_icons.h">
+      <Filter>Headers\Editor</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Editor\place_objects_window.h">
+      <Filter>Headers\Editor</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Editor\editor_gizmo.h">
       <Filter>Headers\Editor</Filter>

@@ -14,12 +14,21 @@
 #include "Scenes/scene_resource_utility.h"
 #include "Scenes/scene_instance.h"
 #include "Scenes/scene_system.h"
+#include "Object/game_object_registry.h"
+#include "Object/spatial_object.h"
+
+#include <unordered_set>
 
 scene_editor::scene_editor()
 : edit_world(create_world())
 {
 	edit_world->get_objects().set_pause(true);
 	edit_world->get_context().set_editing(true);
+	//	@tool アウトライナーでの親子の付け替えは、シーンのオブジェクトの持ち方も合わせて直す
+	edit_world->get_context().set_attach_handler([this](const std::shared_ptr<game_object>& child, const std::shared_ptr<game_object>& parent)
+	{
+		return attach_object(child, parent);
+	});
 }
 
 scene_editor::~scene_editor()
@@ -172,10 +181,18 @@ void scene_editor::imgui_menu()
 	if (ImGui::MenuItem("Save", nullptr, false, is_editing() && !is_playing()))
 		save();
 
+	//	@tool 選んでいるオブジェクトの削除（Delete キーでも消せる）
+	const std::shared_ptr<game_object> selected = edit_world->get_context().get_selected_object();
+	if (ImGui::MenuItem("Delete", "Del", false, can_remove_object(selected)))
+		remove_object(selected);
+
 	if (const scene_resource_ptr resource = get_edit_resource())
 	{
 		const cache_string file_path(resource->get_file_path());
-		ImGui::TextDisabled("%s%s", file_path.get<utf8_cache>().data(), is_playing() ? " (playing)" : "");
+		//	@tool シーン名だけを出し、パスはカーソルを乗せた時に出す
+		ImGui::TextDisabled("%s%s", scene_resource_utility::make_display_name(file_path.get<utf8_cache>()).c_str(), is_playing() ? " (playing)" : "");
+		if (ImGui::IsItemHovered())
+			ImGui::SetTooltip("%s", file_path.get<utf8_cache>().data());
 	}
 }
 
@@ -207,6 +224,7 @@ void scene_editor::close()
 		release_edited_scene(scene);
 	edited_scenes.clear();
 	sub_scenes.clear();
+	current_scene.reset();
 }
 
 bool scene_editor::create_edited_scenes(const std::vector<scene_resource_ptr>& resources)
@@ -286,6 +304,8 @@ void scene_editor::remove_sub_scene(const scene_resource_ptr& resource)
 			continue;
 		release_edited_scene(*it);
 		edited_scenes.erase(it);
+		if (current_scene == resource)
+			current_scene.reset();
 		break;
 	}
 	std::erase_if(sub_scenes, [&](const resource::asset_handle<scene_resource>& handle)
@@ -299,6 +319,10 @@ void scene_editor::imgui_render()
 	if (!is_editing() || is_playing())
 		return;
 
+	//	@tool Delete キーで選んでいるオブジェクトを削除する（文字の入力中は除く）
+	if (!ImGui::GetIO().WantTextInput && ImGui::IsKeyPressed(ImGuiKey_Delete, false))
+		remove_object(edit_world->get_context().get_selected_object());
+
 	//	編集中は scenes 窓に編集中のシーン（親とサブシーン）を出す（再生中は再生用のワールドの scenes 窓）
 	if (ImGui::Begin(edit_world->get_context().make_window_name("scenes").c_str()))
 	{
@@ -308,8 +332,14 @@ void scene_editor::imgui_render()
 			ImGui::PushID(scene.resource.get());
 			if (index > 0)
 				ImGui::Indent();
+			//	@tool シーン名だけを出し、パスはカーソルを乗せた時に出す。クリックするとオブジェクトを置く先のシーンにする
 			const cache_string path(scene.resource->get_file_path());
-			ImGui::TextUnformatted(path.get<utf8_cache>().data());
+			const std::string display_name = scene_resource_utility::make_display_name(path.get<utf8_cache>());
+			const bool current = &scene == &get_current_scene();
+			if (ImGui::Selectable(display_name.c_str(), current, ImGuiSelectableFlags_None, ImVec2(ImGui::CalcTextSize(display_name.c_str()).x, 0.0f)))
+				current_scene = scene.resource;
+			if (ImGui::IsItemHovered())
+				ImGui::SetTooltip("%s", path.get<utf8_cache>().data());
 			ImGui::SameLine();
 			if (ImGui::SmallButton("edit"))
 			{
@@ -330,7 +360,9 @@ void scene_editor::imgui_render()
 				continue;
 			const cache_string path(reference.path);
 			ImGui::Indent();
-			ImGui::TextDisabled("%s (not loaded)", path.get<utf8_cache>().data());
+			ImGui::TextDisabled("%s (not loaded)", scene_resource_utility::make_display_name(path.get<utf8_cache>()).c_str());
+			if (ImGui::IsItemHovered())
+				ImGui::SetTooltip("%s", path.get<utf8_cache>().data());
 			ImGui::Unindent();
 		}
 	}
@@ -356,7 +388,7 @@ void scene_editor::imgui_render_edit_window()
 
 	//	シーンの編集窓
 	const cache_string path(scene.resource->get_file_path());
-	const std::string title = std::string(path.get<utf8_cache>()) + " (editing)###scene_editor_edit_window";
+	const std::string title = scene_resource_utility::make_display_name(path.get<utf8_cache>()) + " (editing)###scene_editor_edit_window";
 	if (ImGui::Begin(title.c_str(), &edit_window_opened))
 	{
 		//	システムの付け替え
@@ -465,6 +497,199 @@ void scene_editor::set_system(edited_scene& scene, std::string_view type)
 		system->context = &edit_world->get_context();
 	}
 	scene.system = std::move(system);
+}
+
+std::shared_ptr<game_object> scene_editor::place_object(std::string_view type, const std::optional<math::vector3d>& position)
+{
+	if (!is_editing())
+		return nullptr;
+	return add_object(get_current_scene(), type, position ? *position : get_placement_position());
+}
+
+scene_editor::edited_scene& scene_editor::get_current_scene()
+{
+	for (edited_scene& scene : edited_scenes)
+	{
+		if (scene.resource == current_scene)
+			return scene;
+	}
+	return edited_scenes.front();
+}
+
+std::shared_ptr<game_object> scene_editor::add_object(edited_scene& scene, std::string_view type, const math::vector3d& position)
+{
+	if (is_playing() || !game_object_registry::is_valid())
+		return nullptr;
+
+	game_object_ptr object = game_object_registry::instance()->create(type);
+	if (!object)
+	{
+		DEBUG_ERROR_CATEGORY(logger::categorys::system, "scene_editor add object failed[%s]", std::string(type).c_str());
+		return nullptr;
+	}
+
+	object->set_name(make_unique_object_name(type));
+	if (object->check_type(spatial_object::type_name()))
+		static_cast<spatial_object*>(object.get())->set_world_translation(position);
+
+	scene.objects.emplace_back(object);
+	edit_world->get_objects().register_object(object);
+	edit_world->get_context().set_selected_object(object);
+	return object;
+}
+
+bool scene_editor::can_remove_object(const std::shared_ptr<game_object>& target) const
+{
+	if (is_playing() || !target || target->is_transient())
+		return false;
+
+	for (const edited_scene& scene : edited_scenes)
+	{
+		for (const auto& weak_object : scene.objects)
+		{
+			if (weak_object.lock() == target)
+				return true;
+		}
+	}
+	return false;
+}
+
+bool scene_editor::remove_object(const std::shared_ptr<game_object>& target)
+{
+	if (!can_remove_object(target))
+		return false;
+
+	//	@tool 子孫のオブジェクトも一緒に消す
+	const std::vector<game_object_ptr> remove_objects = collect_object_tree(target);
+	std::unordered_set<const game_object*> removes;
+	for (const game_object_ptr& object : remove_objects)
+		removes.insert(object.get());
+
+	//	@tool ワールドから外し、シーンのオブジェクトからも外す（保存されなくなる）
+	object_manager& objects = edit_world->get_objects();
+	for (const game_object_ptr& object : remove_objects)
+		objects.unregister_object(object);
+	for (edited_scene& scene : edited_scenes)
+	{
+		std::erase_if(scene.objects, [&](const std::weak_ptr<game_object>& weak_object)
+		{
+			const game_object_ptr object = weak_object.lock();
+			return object && removes.find(object.get()) != removes.end();
+		});
+	}
+
+	edit_world->get_context().set_selected_object(nullptr);
+	return true;
+}
+
+bool scene_editor::attach_object(const std::shared_ptr<game_object>& child, const std::shared_ptr<game_object>& parent)
+{
+	if (is_playing() || !child || child->is_transient())
+		return false;
+	edited_scene* child_scene = find_edited_scene(child);
+	if (!child_scene)
+		return false;
+	edited_scene* parent_scene = child_scene;
+	if (parent)
+	{
+		if (parent->is_transient())
+			return false;
+		parent_scene = find_edited_scene(parent);
+		if (!parent_scene)
+			return false;
+	}
+
+	if (!spatial_object::attach_object(child, parent))
+		return false;
+
+	//	@tool 親子は同じシーンのファイルの中でしか保存されないので、親が別のシーンなら子孫ごと親のシーンへ移す
+	if (parent_scene != child_scene)
+	{
+		const std::vector<game_object_ptr> moves = collect_object_tree(child);
+		std::unordered_set<const game_object*> move_set;
+		for (const game_object_ptr& object : moves)
+			move_set.insert(object.get());
+		for (edited_scene& scene : edited_scenes)
+		{
+			std::erase_if(scene.objects, [&](const std::weak_ptr<game_object>& weak_object)
+			{
+				const game_object_ptr object = weak_object.lock();
+				return object && move_set.find(object.get()) != move_set.end();
+			});
+		}
+		for (const game_object_ptr& object : moves)
+			parent_scene->objects.emplace_back(object);
+	}
+	return true;
+}
+
+scene_editor::edited_scene* scene_editor::find_edited_scene(const std::shared_ptr<game_object>& object)
+{
+	if (!object)
+		return nullptr;
+	for (edited_scene& scene : edited_scenes)
+	{
+		for (const auto& weak_object : scene.objects)
+		{
+			if (weak_object.lock() == object)
+				return &scene;
+		}
+	}
+	return nullptr;
+}
+
+std::vector<std::shared_ptr<game_object>> scene_editor::collect_object_tree(const std::shared_ptr<game_object>& target) const
+{
+	//	@tool 空間の親子をたどって、子孫のオブジェクトも集める
+	std::unordered_map<const hierarchy*, game_object_ptr> owners;
+	for (const game_object_ptr& object : edit_world->get_objects().search_game_objects<spatial_object>())
+		owners.emplace(static_cast<spatial_object*>(object.get())->get_spatial().get(), object);
+
+	std::unordered_set<const game_object*> visited;
+	std::vector<game_object_ptr> result;
+	auto add_object = [&](const game_object_ptr& object)
+	{
+		if (object && !object->is_transient() && visited.insert(object.get()).second)
+			result.emplace_back(object);
+	};
+	std::function<void(const hierarchy*)> collect_children = [&](const hierarchy* node)
+	{
+		for (const auto& child : node->get_children())
+		{
+			auto it = owners.find(child.get());
+			if (it != owners.end())
+				add_object(it->second);
+			collect_children(child.get());
+		}
+	};
+	add_object(target);
+	if (target && target->check_type(spatial_object::type_name()))
+		collect_children(static_cast<spatial_object*>(target.get())->get_spatial().get());
+	return result;
+}
+
+std::string scene_editor::make_unique_object_name(std::string_view base) const
+{
+	std::unordered_set<std::string> names;
+	for (const game_object_ptr& object : edit_world->get_objects().search_game_objects<game_object>())
+		names.emplace(object->get_name());
+
+	std::string name(base);
+	for (int number = 1; names.find(name) != names.end(); ++number)
+		name = std::string(base) + "_" + std::to_string(number);
+	return name;
+}
+
+math::vector3d scene_editor::get_placement_position() const
+{
+	//	@tool エディターカメラの前方 5m（無ければ原点）
+	constexpr double placement_distance = 50.0;
+	const std::shared_ptr<editor_camera_object> camera = edit_world->get_objects().search_object<editor_camera_object>();
+	if (!camera)
+		return math::vector3d(0.0, 0.0, 0.0);
+
+	const math::vector3f front = camera->get_rotation().front();
+	return camera->get_position() + math::vector3d(front.x * placement_distance, front.y * placement_distance, front.z * placement_distance);
 }
 
 void scene_editor::editor_update(float elapsed_time)

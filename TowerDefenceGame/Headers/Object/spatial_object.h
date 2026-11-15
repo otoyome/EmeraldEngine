@@ -56,6 +56,8 @@ public:
 	//	親子関係の付け替え
 	bool attach(const std::shared_ptr<spatial_object>& parent, attach_rule rule = attach_rule::keep_world);
 	void detach(attach_rule rule = attach_rule::keep_world);
+	//	@tool child を parent の子にする（parent が空なら親から外す）。ワールド姿勢は保つ。どちらかが spatial_object でなければ失敗
+	static bool attach_object(const std::shared_ptr<game_object>& child, const std::shared_ptr<game_object>& parent);
 
 	void serialize(cereal::JSONOutputArchive& archive) const override;
 	void deserialize(cereal::JSONInputArchive& archive) override;
