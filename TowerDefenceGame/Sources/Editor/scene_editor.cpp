@@ -319,56 +319,29 @@ void scene_editor::imgui_render()
 	if (!is_editing() || is_playing())
 		return;
 
-	//	@tool Delete キーで選んでいるオブジェクトを削除する（文字の入力中は除く）
-	if (!ImGui::GetIO().WantTextInput && ImGui::IsKeyPressed(ImGuiKey_Delete, false))
-		remove_object(edit_world->get_context().get_selected_object());
-
-	//	編集中は scenes 窓に編集中のシーン（親とサブシーン）を出す（再生中は再生用のワールドの scenes 窓）
-	if (ImGui::Begin(edit_world->get_context().make_window_name("scenes").c_str()))
-	{
-		for (size_t index = 0; index < edited_scenes.size(); ++index)
-		{
-			edited_scene& scene = edited_scenes[index];
-			ImGui::PushID(scene.resource.get());
-			if (index > 0)
-				ImGui::Indent();
-			//	@tool シーン名だけを出し、パスはカーソルを乗せた時に出す。クリックするとオブジェクトを置く先のシーンにする
-			const cache_string path(scene.resource->get_file_path());
-			const std::string display_name = scene_resource_utility::make_display_name(path.get<utf8_cache>());
-			const bool current = &scene == &get_current_scene();
-			if (ImGui::Selectable(display_name.c_str(), current, ImGuiSelectableFlags_None, ImVec2(ImGui::CalcTextSize(display_name.c_str()).x, 0.0f)))
-				current_scene = scene.resource;
-			if (ImGui::IsItemHovered())
-				ImGui::SetTooltip("%s", path.get<utf8_cache>().data());
-			ImGui::SameLine();
-			if (ImGui::SmallButton("edit"))
-			{
-				edit_target = scene.resource;
-				edit_window_opened = true;
-			}
-			if (index > 0)
-				ImGui::Unindent();
-			ImGui::PopID();
-		}
-
-		//	読み込めなかったサブシーンはパスだけ出す
-		for (const auto& sub_scene : sub_scenes)
-		{
-			const resource::asset_reference<scene_resource> reference = sub_scene.get_reference();
-			const bool loaded = std::any_of(edited_scenes.begin(), edited_scenes.end(), [&](const edited_scene& scene) { return scene.resource->get_uuid() == reference.uuid; });
-			if (loaded)
-				continue;
-			const cache_string path(reference.path);
-			ImGui::Indent();
-			ImGui::TextDisabled("%s (not loaded)", scene_resource_utility::make_display_name(path.get<utf8_cache>()).c_str());
-			if (ImGui::IsItemHovered())
-				ImGui::SetTooltip("%s", path.get<utf8_cache>().data());
-			ImGui::Unindent();
-		}
-	}
-	ImGui::End();
-
 	imgui_render_edit_window();
+}
+
+std::vector<scene_resource_ptr> scene_editor::get_edited_scenes() const
+{
+	std::vector<scene_resource_ptr> result;
+	result.reserve(edited_scenes.size());
+	for (const edited_scene& scene : edited_scenes)
+		result.emplace_back(scene.resource);
+	return result;
+}
+
+std::vector<std::string> scene_editor::get_unloaded_sub_scenes() const
+{
+	std::vector<std::string> result;
+	for (const auto& sub_scene : sub_scenes)
+	{
+		const resource::asset_reference<scene_resource> reference = sub_scene.get_reference();
+		const bool loaded = std::any_of(edited_scenes.begin(), edited_scenes.end(), [&](const edited_scene& scene) { return scene.resource->get_uuid() == reference.uuid; });
+		if (!loaded)
+			result.emplace_back(reference.path);
+	}
+	return result;
 }
 
 void scene_editor::imgui_render_edit_window()

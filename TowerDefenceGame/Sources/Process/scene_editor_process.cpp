@@ -255,7 +255,7 @@ void scene_editor_process::update(float elapsed_time)
 		scene_edit->editor_update(elapsed_time);
 	}
 
-	//	@tool 選んでいるオブジェクトの形（ライトの範囲など）を線で出す
+	//	選んでいるオブジェクトの形を線で出す
 	icons.queue_selected_shape(edit_world.get_context());
 
 	//	エフェクト関係更新
@@ -327,14 +327,14 @@ void scene_editor_process::imgui_render()
 				gizmo.imgui_menu();
 				ImGui::EndMenuBar();
 			}
-			//	@tool 編集中だけギズモを重ねる（再生中は編集用のワールドの objects 窓を出さないので選べない）
+			//	編集中だけギズモを重ねる
 			hovered = viewport->imgui_render(context, ImGui::GetCursorScreenPos(), ImGui::GetContentRegionAvail(),
 				[this, &context](const ImVec2& image_position, const ImVec2& image_size)
 				{
 					if (scene_edit->is_playing())
 						return false;
 
-					//	@tool place objects 窓からドロップされた型を、落とした位置の物の表面に置く（何も無ければカメラの前方）
+					//	objects_windowからドロップされた型を、落とした位置の物の表面に置く
 					if (ImGui::BeginDragDropTargetCustom(ImRect(image_position, ImVec2(image_position.x + image_size.x, image_position.y + image_size.y)), ImGui::GetID("##place_drop")))
 					{
 						if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(place_objects_window::payload_type))
@@ -350,19 +350,19 @@ void scene_editor_process::imgui_render()
 						ImGui::EndDragDropTarget();
 					}
 
-					//	@tool ライトなど形の無いオブジェクトのアイコン（ギズモより下に描く）
+					//	ライトなど形の無いオブジェクトのアイコン
 					icons.draw(context, image_position, image_size);
 
 					if (gizmo.manipulate(context, image_position, image_size))
 						return true;
 
-					//	@tool ギズモを触っていない時に左クリックしたら、その位置のオブジェクトを選ぶ（何も無ければ選択を外す）
+					//	ギズモを触っていない時に左クリックしたら、その位置のオブジェクトを選ぶ
 					if (ImGui::IsWindowHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
 					{
 						const ImVec2 mouse(ImGui::GetMousePos().x - image_position.x, ImGui::GetMousePos().y - image_position.y);
 						if (mouse.x >= 0.0f && mouse.y >= 0.0f && mouse.x < image_size.x && mouse.y < image_size.y)
 						{
-							//	@tool アイコンを先に調べ、無ければモデルを調べる
+							//	アイコンを先に調べ、無ければモデルを調べる
 							std::shared_ptr<game_object> picked = icons.pick(context, mouse, image_size);
 							if (!picked)
 								picked = editor_picker::pick(context, mouse, image_size);
@@ -384,8 +384,15 @@ void scene_editor_process::imgui_render()
 	//	編集中のシーンの窓
 	scene_edit->imgui_render();
 
-	//	@tool 置くオブジェクトの一覧の窓（編集中だけ）
+	//	シーンの一覧と置くオブジェクトの一覧の窓
 	if (scene_edit->is_editing() && !scene_edit->is_playing())
+	{
+		//	Delete キーで選んでいるオブジェクトを削除
+		if (!ImGui::GetIO().WantTextInput && ImGui::IsKeyPressed(ImGuiKey_Delete, false))
+			scene_edit->remove_object(scene_edit->get_edit_world().get_context().get_selected_object());
+
+		scene_list_window.imgui_render(*scene_edit);
 		place_window.imgui_render(*scene_edit);
+	}
 }
 #endif	//	defined(USE_IMGUI)

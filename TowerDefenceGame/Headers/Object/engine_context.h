@@ -70,7 +70,7 @@ public:		//	ImGui用
 	std::shared_ptr<game_object> get_selected_object() const { return selected_object.lock(); }
 	void set_selected_object(const std::shared_ptr<game_object>& object) { selected_object = object; }
 
-	//	@tool アウトライナーで親子を付け替える時に任せる先（parent が空なら親から外す）。無ければそのまま付け替える
+	//	アウトライナーで親子を付け替える時に任せる先。無ければそのまま付け替える
 	using attach_handler = std::function<bool(const std::shared_ptr<game_object>& child, const std::shared_ptr<game_object>& parent)>;
 	const attach_handler& get_attach_handler() const { return attach_object_handler; }
 	void set_attach_handler(attach_handler value) { attach_object_handler = std::move(value); }

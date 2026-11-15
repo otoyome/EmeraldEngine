@@ -253,15 +253,15 @@ void object_manager::finalize()
 #if defined(USE_IMGUI)
 void object_manager::imgui_render()
 {
-	//	@tool アウトライナー：オブジェクトを親子の木で並べ、クリックで選ぶ
+	//	アウトライナー
 	if (ImGui::Begin("outliner"))
 	{
-		//	@tool ドラッグ＆ドロップで決まった親子の付け替え（parent が空なら親から外す）
+		//	ドラッグ＆ドロップで決まった親子の付け替え（parent が空なら親から外す）
 		game_object* pending_child = nullptr;
 		game_object* pending_parent = nullptr;
 		bool pending = false;
 
-		//	@tool 一時オブジェクトでない spatial_object だけ、ドラッグして親子を付け替えられる
+		//	一時オブジェクトでない spatial_object だけ、ドラッグして親子を付け替えられる
 		auto make_drop = [&](game_object* object) -> std::function<void(game_object&)>
 		{
 			if (object->is_transient() || !object->check_type(spatial_object::type_name()))
@@ -285,7 +285,7 @@ void object_manager::imgui_render()
 			nodes.emplace(object.get(), node);
 		}
 
-		//	@tool 子孫にオブジェクトを持つか（途中のオブジェクトでない節は飛ばして調べる）
+		//	子孫にオブジェクトを持つか
 		std::function<bool(const hierarchy*)> has_object_children = [&](const hierarchy* node)
 		{
 			for (auto& child : node->get_children())
@@ -341,7 +341,7 @@ void object_manager::imgui_render()
 				render_object(object.get());
 		}
 
-		//	@tool 一覧の下の空いている所に落とすと、親から外す
+		//	一覧の下の空いている所に落とすと、親から外す
 		const ImVec2 rest_size(std::max(ImGui::GetContentRegionAvail().x, 1.0f), std::max(ImGui::GetContentRegionAvail().y, ImGui::GetFrameHeight()));
 		ImGui::InvisibleButton("##outliner_root", rest_size);
 		if (ImGui::BeginDragDropTarget())
@@ -355,7 +355,7 @@ void object_manager::imgui_render()
 			ImGui::EndDragDropTarget();
 		}
 
-		//	@tool 木を並べ終えてから付け替える（並べている途中で子の一覧が変わらないように）
+		//	木を並べ終えてから付け替える
 		if (pending)
 		{
 			auto find_object = [&](const game_object* target) -> game_object_ptr
@@ -376,7 +376,7 @@ void object_manager::imgui_render()
 	}
 	ImGui::End();
 
-	//	@tool インスペクター：選んでいるオブジェクトの設定（このワールドのオブジェクトだけ）
+	//	インスペクター：選んでいるオブジェクトの設定（このワールドのオブジェクトだけ）
 	if (ImGui::Begin("inspector"))
 	{
 		const std::shared_ptr<game_object> selected = context.get_selected_object();

@@ -21,7 +21,10 @@ extern ImWchar glyphRangesJapanese[];
 
 #include "Editor/editor_items.h"
 #include "Editor/detail_profiler.h"
-#include "Editor/Windows/debug_windows.h"
+#include "Editor/Windows/log_window.h"
+#include "Editor/Windows/engine_config_window.h"
+#include "Editor/Windows/model_buffer_pool_window.h"
+#include "Editor/Windows/memory_allocator_window.h"
 #include "Editor/Windows/console_windows.h"
 #include "Editor/Windows/gamepad_window.h"
 #include "Editor/Windows/sound_bank_editor_window.h"

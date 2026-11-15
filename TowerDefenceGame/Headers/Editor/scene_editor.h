@@ -55,10 +55,20 @@ public:
 	//	停止リクエスト
 	void request_stop();
 
-	//	@tool オブジェクトを置く先のシーン（scenes 窓で選んだシーン。選んでいなければ開いているシーン）
+	//	オブジェクトを置く先のシーン
 	const scene_resource_ptr& get_current_scene_resource() { return get_current_scene().resource; }
+	//	オブジェクトを置く先のシーンを選ぶ
+	void set_current_scene(const scene_resource_ptr& resource) { current_scene = resource; }
 
-	//	@tool オブジェクトを型から作って、開いているシーン（親のシーン）に置く（position が無ければエディターカメラの前方。作った物を選ぶ）
+	//	編集中のシーン
+	std::vector<scene_resource_ptr> get_edited_scenes() const;
+	//	読み込めなかったサブシーンのパス
+	std::vector<std::string> get_unloaded_sub_scenes() const;
+
+	//	シーンリソースの編集窓で開く
+	void open_edit_window(const scene_resource_ptr& resource) { edit_target = resource; edit_window_opened = true; }
+
+	//	オブジェクトを型から作って、開いているシーン（親のシーン）に置く（position が無ければエディターカメラの前方。作った物を選ぶ）
 	std::shared_ptr<game_object> place_object(std::string_view type, const std::optional<math::vector3d>& position = std::nullopt);
 
 	//	再生の開始・停止を任せる先
@@ -92,12 +102,12 @@ public:
 	bool add_sub_scene(std::string_view file_path);
 	void remove_sub_scene(const scene_resource_ptr& resource);
 
-	//	@tool オブジェクトを子孫ごと削除する（編集中のシーンのオブジェクトだけ。一時オブジェクトは消さない）
+	//	オブジェクトを子毎削除する
 	bool remove_object(const std::shared_ptr<game_object>& target);
-	//	@tool 削除できるオブジェクトか
+	//	削除できるオブジェクトか
 	bool can_remove_object(const std::shared_ptr<game_object>& target) const;
 
-	//	@tool child を parent の子にする（parent が空なら親から外す）。親が別のシーンなら子孫ごと親のシーンへ移す
+	//	子供を親の子にする。親が別のシーンなら子孫ごと親のシーンへ移す
 	bool attach_object(const std::shared_ptr<game_object>& child, const std::shared_ptr<game_object>& parent);
 
 private:
@@ -117,19 +127,19 @@ private:
 	//	シーンのシステムを付け替え
 	void set_system(edited_scene& scene, std::string_view type);
 
-	//	@tool オブジェクトを型から作って編集用のワールドに登録し、scene のオブジェクトにする（作った物を選ぶ）
+	//	オブジェクトを型から作って編集用のワールドに登録
 	std::shared_ptr<game_object> add_object(edited_scene& scene, std::string_view type, const math::vector3d& position);
 
-	//	@tool オブジェクトを置く先のシーン（scenes 窓で選んだシーン。選んでいなければ開いているシーン）
+	//	オブジェクトを置く先のシーン
 	edited_scene& get_current_scene();
-	//	@tool 編集用のワールドで重ならない名前（重なれば後ろに _番号 を付ける）
+	//	編集用のワールドで重ならない名前生成
 	std::string make_unique_object_name(std::string_view base) const;
-	//	@tool 追加したオブジェクトを置く位置（エディターカメラの前方）
+	//	追加したオブジェクトを置く位置
 	math::vector3d get_placement_position() const;
 
-	//	@tool オブジェクトが入っている編集中のシーン（無ければ空）
+	//	オブジェクトが入っている編集中のシーン
 	edited_scene* find_edited_scene(const std::shared_ptr<game_object>& object);
-	//	@tool target と、空間の親子でつながった子孫のオブジェクト（一時オブジェクトは除く）
+	//	targetと空間の親子でつながった子孫のオブジェクト
 	std::vector<std::shared_ptr<game_object>> collect_object_tree(const std::shared_ptr<game_object>& target) const;
 
 	//	シーンリソースの編集窓

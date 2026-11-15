@@ -3,7 +3,7 @@
 #if defined(USE_IMGUI)
 class scene_editor;
 
-//	@tool 置くオブジェクトの一覧の窓（UE の Place Actors と同じ）
+//	置くオブジェクトの一覧の窓
 class place_objects_window
 {
 public:

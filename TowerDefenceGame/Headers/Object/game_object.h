@@ -63,15 +63,17 @@ public:
 	bool is_display_inspector() { return display_inspector; }
 	void set_display_inspector(bool flag) { display_inspector = flag; }
 
-	//	@tool アウトライナーで行をドラッグする時の受け渡し名（中身は game_object*）
+	virtual void imgui_render_core();
+
+	//	アウトライナーで行をドラッグする時の受け渡し名
 	static constexpr const char* outliner_payload_type = "OUTLINER_OBJECT";
 
-	//	@tool アウトライナーの行（名前。クリックで選ぶ）。has_children の時は開いた中に render_children で子を並べる
-	//	@tool on_drop がある時は行をドラッグでき、別の行がこの行に落とされたら on_drop(落とされた行) を呼ぶ
+	//	アウトライナー
 	void imgui_render_outliner(const std::function<void()>& render_children = nullptr, bool has_children = false, const std::function<void(game_object& child)>& on_drop = nullptr);
-	//	@tool インスペクターの中身（選んでいるオブジェクトの設定）
+
+	//	インスペクター
 	void imgui_render_inspector();
-	virtual void imgui_render_core();
+
 #endif	//	defined(USE_IMGUI)
 
 	virtual void on_initialize();

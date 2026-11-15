@@ -10,6 +10,7 @@
 #include "Editor/editor_gizmo.h"
 #include "Editor/editor_icons.h"
 #include "Editor/place_objects_window.h"
+#include "Editor/scenes_window.h"
 
 class scene_editor;
 class editor_viewport;
@@ -53,6 +54,7 @@ private:
 	editor_gizmo gizmo;								//	選んでいるオブジェクトを動かすギズモ
 	editor_icons icons;								//	@tool ライトなど形の無いオブジェクトのアイコンと、選んでいる物の形
 	place_objects_window place_window;				//	@tool 置くオブジェクトの一覧の窓
+	scenes_window scene_list_window;				//	@tool 編集中のシーンの一覧の窓
 	std::shared_ptr<play_session> session;			//	再生の状態
 	bool owns_collision_filters = false;			//	当たり判定フィルターをこのプロセスで作ったか
 	bool exit_requested = false;					//	Exit を選んだ
