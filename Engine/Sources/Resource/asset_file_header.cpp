@@ -117,6 +117,8 @@ namespace resource
 			return asset_types::scene;
 		if (lower == ".eik")
 			return asset_types::ik;
+		if (lower == ".esceneset")
+			return asset_types::scene_set;
 		return asset_types::unknown;
 	}
 

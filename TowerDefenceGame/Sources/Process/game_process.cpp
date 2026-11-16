@@ -1,6 +1,7 @@
 #include "Process/game_process.h"
 #include "Scenes/scene_manager.h"
 #include "Scenes/scene_paths.h"
+#include "Scenes/scene_set_resource.h"
 #include "framework.h"
 #include "Framework/app_window.h"
 #include "Texture/texture_factory.h"
@@ -75,6 +76,26 @@ namespace
 			path = std::string(scene_paths::default_scene);
 		return path;
 	}
+
+	//	起動時に読むシーンセット
+	console_variable<std::string> game_startup_scene_set_variable("game.startup_scene_set", "", "ゲームで起動時に読むシーンセット（指定があれば game.startup_scene より優先）", console_flags::user_setting);
+
+	//	起動シーンセットの中のシーン
+	std::vector<std::string> get_startup_scene_set_paths()
+	{
+		const std::string& path = game_startup_scene_set_variable.get();
+		std::error_code error;
+		if (path.empty() || !std::filesystem::exists(std::filesystem::path(path), error))
+			return {};
+
+		auto operation = resource_manager::instance()->load<scene_set_resource>(path);
+		if (!operation || !operation->is_succeeded())
+		{
+			DEBUG_ERROR_CATEGORY(logger::categorys::system, "game_process startup scene set load failed[%s]", path.c_str());
+			return {};
+		}
+		return operation->get_resource()->get_scene_paths();
+	}
 }
 
 game_process::game_process(framework& owner)
@@ -139,8 +160,18 @@ bool game_process::enter()
 	}
 	else
 	{
-		//	初回シーン登録
-		main_world->get_scenes().add_scene(get_startup_scene_path());
+		//	@tool 起動シーンセットの指定があれば、その中のシーンを全部読む
+		const std::vector<std::string> set_scenes = get_startup_scene_set_paths();
+		if (!set_scenes.empty())
+		{
+			for (const std::string& path : set_scenes)
+				main_world->get_scenes().add_scene(path);
+		}
+		else
+		{
+			//	初回シーン登録
+			main_world->get_scenes().add_scene(get_startup_scene_path());
+		}
 	}
 	return true;
 }

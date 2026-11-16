@@ -17,6 +17,8 @@
 #include "Object/Collision/collision_filter.h"
 #include "Scenes/scene_manager.h"
 #include "Scenes/scene_paths.h"
+#include "Scenes/scene_set_resource.h"
+#include "Resource/resource_manager.h"
 #include "Input/input_action_system.h"
 #include "Effect/effect_instance.h"
 #include "System/asset_browser.h"
@@ -156,6 +158,20 @@ void scene_editor_process::register_open_handlers()
 			[this](std::string_view scene_path, std::string_view open_file) { scene_edit->request_play(scene_path, open_file); });
 	}
 
+
+	//	シーンセットの新規作成
+	if (asset_browser::is_valid())
+	{
+		asset_browser::create_handler handler;
+		handler.label = "Scene Set";
+		handler.default_name = "NewSceneSet";
+		handler.extension = std::string(".") + std::string(scene_set_resource::extension);
+		handler.create = [](std::string_view file_path)
+		{
+			return resource_manager::instance()->save(std::make_shared<scene_set_resource>(), file_path);
+		};
+		asset_browser::instance()->register_create_handler(std::move(handler));
+	}
 
 	//	モデルエディター
 	if (asset_browser::is_valid())

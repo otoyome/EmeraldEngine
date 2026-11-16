@@ -23,6 +23,7 @@ namespace resource
 		texture,	//	.etx
 		scene,		//	.escene
 		ik,			//	.eik
+		scene_set,	//	.esceneset
 	};
 
 	//	ファイルヘッダー

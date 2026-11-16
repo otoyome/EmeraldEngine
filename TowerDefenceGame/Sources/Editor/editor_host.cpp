@@ -43,6 +43,7 @@ extern ImWchar glyphRangesJapanese[];
 #include "Scenes/scene_manager.h"
 #include "Scenes/scene_instance.h"
 #include "Scenes/scene_paths.h"
+#include "Scenes/scene_set_resource.h"
 #include "Resource/asset_registry.h"
 
 #include "imPlot/imPlot.h"
@@ -296,10 +297,23 @@ void editor_host::register_asset_open_handlers(scene_function edit_scene, play_f
 {
 	register_asset_open_handler(play_scene, "Timeline Editor", { ".etl" }, scene_paths::timeline_editor);
 
+	//	シーンを開く
 	{
 		asset_browser::open_handler handler;
 		handler.label = "Open Scene";
 		handler.extensions = { ".escene" };
+		handler.open_file = [edit_scene](const cache_string& file_path)
+		{
+			edit_scene(file_path.view());
+		};
+		asset_browser::instance()->register_open_handler(std::move(handler));
+	}
+
+	//	シーンセットは中のシーンを全部開く
+	{
+		asset_browser::open_handler handler;
+		handler.label = "Open Scene Set";
+		handler.extensions = { std::string(".") + std::string(scene_set_resource::extension) };
 		handler.open_file = [edit_scene](const cache_string& file_path)
 		{
 			edit_scene(file_path.view());

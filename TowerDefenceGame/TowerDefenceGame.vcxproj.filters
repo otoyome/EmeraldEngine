@@ -539,6 +539,9 @@
     <ClCompile Include="Sources\Scenes\scene_resource.cpp">
       <Filter>Sources\Scenes</Filter>
     </ClCompile>
+    <ClCompile Include="Sources\Scenes\scene_set_resource.cpp">
+      <Filter>Sources\Scenes</Filter>
+    </ClCompile>
     <ClCompile Include="Sources\Scenes\scene_instance.cpp">
       <Filter>Sources\Scenes</Filter>
     </ClCompile>
@@ -962,6 +965,9 @@
       <Filter>Headers\Scenes</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Scenes\scene_resource.h">
+      <Filter>Headers\Scenes</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Scenes\scene_set_resource.h">
       <Filter>Headers\Scenes</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Scenes\scene_instance.h">

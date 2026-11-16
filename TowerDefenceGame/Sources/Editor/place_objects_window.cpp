@@ -22,20 +22,6 @@ void place_objects_window::imgui_render(scene_editor& editor)
 	//	型の一覧
 	if (ImGui::Begin(editor.get_edit_world().get_context().make_window_name("place objects").c_str()))
 	{
-		//	置く先のシーン
-		const cache_string current_path(editor.get_current_scene_resource()->get_file_path());
-		ImGui::Text("scene : %s", scene_resource_utility::make_display_name(current_path.get<utf8_cache>()).c_str());
-		if (ImGui::IsItemHovered())
-			ImGui::SetTooltip("%s", current_path.get<utf8_cache>().data());
-
-		//	オブジェクトを選んでいれば、ダブルクリックで置いた時はその子にする
-		const std::shared_ptr<game_object> selected = editor.get_edit_world().get_context().get_selected_object();
-		if (editor.find_object_scene(selected) && selected->check_type(spatial_object::type_name()))
-		{
-			const cache_string parent_name(selected->get_name());
-			ImGui::Text("parent : %s", parent_name.get<utf8_cache>().data());
-		}
-
 		ImGui::SetNextItemWidth(-FLT_MIN);
 		ImGui::InputTextWithHint("##filter", "search", filter, sizeof(filter));
 

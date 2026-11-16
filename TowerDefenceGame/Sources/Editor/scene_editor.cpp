@@ -12,6 +12,7 @@
 #include "Resource/resource_manager.h"
 #include "Scenes/scene_manager.h"
 #include "Scenes/scene_resource_utility.h"
+#include "Scenes/scene_set_resource.h"
 #include "Scenes/scene_instance.h"
 #include "Scenes/scene_system.h"
 #include "Object/game_object_registry.h"
@@ -36,8 +37,29 @@ scene_editor::~scene_editor()
 
 void scene_editor::request_edit(std::string_view file_path)
 {
-	edit_request = file_path;
+	edit_request.clear();
 	add_requests.clear();
+
+	//	シーンセットなら中のシーンを全部開く
+	if (scene_set_resource::is_scene_set_path(file_path))
+	{
+		auto operation = resource_manager::instance()->load<scene_set_resource>(file_path);
+		if (!operation || !operation->is_succeeded())
+		{
+			DEBUG_ERROR_CATEGORY(logger::categorys::system, "scene_editor scene set load failed[%s]", std::string(file_path).c_str());
+			return;
+		}
+		const std::vector<std::string> paths = operation->get_resource()->get_scene_paths();
+		if (paths.empty())
+		{
+			DEBUG_WARNING_CATEGORY(logger::categorys::system, "scene_editor scene set is empty[%s]", std::string(file_path).c_str());
+			return;
+		}
+		edit_request = paths.front();
+		add_requests.assign(std::next(paths.begin()), paths.end());
+		return;
+	}
+	edit_request = file_path;
 }
 
 void scene_editor::request_add(std::string_view file_path)

@@ -37,7 +37,7 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11Buffer> average_luminance_buffer;
 	Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> average_luminance_view;
 
-	//	露出制御(物理カメラの代わり)
+	//	露出制御
 	exposure_controller controller;
 	bool initialized = false;
 
@@ -66,13 +66,13 @@ private:
 };
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
-//	ディスプレイマッピングパス(バックバッファへ描き戻す)
+//	ディスプレイマッピングパス
 class display_mapping_renderer : public renderer
 {
 public:
 	renderer_domain get_domain() const override { return renderer_domain::display_mapping_pass; }
 
-	//	出力の伝達関数(シェーダーと同じ値)
+	//	出力の伝達関数
 	enum class output_curves : UINT
 	{
 		srgb,

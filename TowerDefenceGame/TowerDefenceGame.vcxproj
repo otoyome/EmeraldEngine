@@ -656,6 +656,7 @@ xcopy "$(SolutionDir)External\SDL3\lib\SDL3.dll" "$(OutDir)" /y</Command>
     <ClCompile Include="Sources\Object\collision_shape_object.cpp" />
     <ClCompile Include="Sources\Object\model_collision_object.cpp" />
     <ClCompile Include="Sources\Scenes\scene_resource.cpp" />
+    <ClCompile Include="Sources\Scenes\scene_set_resource.cpp" />
     <ClCompile Include="Sources\Scenes\scene_resource_utility.cpp" />
     <ClCompile Include="Sources\Scenes\scene_instance.cpp" />
     <ClCompile Include="Sources\Scenes\scene_manager.cpp" />
@@ -808,6 +809,7 @@ xcopy "$(SolutionDir)External\SDL3\lib\SDL3.dll" "$(OutDir)" /y</Command>
     <ClInclude Include="Headers\Object\collision_shape_object.h" />
     <ClInclude Include="Headers\Object\model_collision_object.h" />
     <ClInclude Include="Headers\Scenes\scene_resource.h" />
+    <ClInclude Include="Headers\Scenes\scene_set_resource.h" />
     <ClInclude Include="Headers\Scenes\scene_resource_utility.h" />
     <ClInclude Include="Headers\Scenes\scene_instance.h" />
     <ClInclude Include="Headers\Scenes\scene_manager.h" />

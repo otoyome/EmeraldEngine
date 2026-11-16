@@ -54,6 +54,7 @@ void outliner_window::render_window(world& target, const std::vector<scene_row>&
 		pending = nullptr;
 		collect_objects(scenes);
 
+
 		for (const scene_row& scene : scenes)
 			render_scene(scene);
 		render_transient_objects(target);
