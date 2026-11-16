@@ -56,7 +56,6 @@ private:
 	place_objects_window place_window;				//	置くオブジェクトの一覧の窓
 	scenes_window scene_list_window;				//	編集中のシーンの一覧の窓
 	std::shared_ptr<play_session> session;			//	再生の状態
-	bool owns_collision_filters = false;			//	当たり判定フィルターをこのプロセスで作ったか
 	bool exit_requested = false;					//	Exit を選んだ
 };
 #endif	//	defined(USE_IMGUI)

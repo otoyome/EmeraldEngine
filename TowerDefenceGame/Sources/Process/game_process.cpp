@@ -108,13 +108,6 @@ bool game_process::enter()
 {
 	framework& self = get_owner();
 
-	//	当たり判定フィルター生成
-	if (!collision_filter_manager::is_valid())
-	{
-		collision_filter_manager::create_instance();
-		owns_collision_filters = true;
-	}
-
 	//	メインワールド登録
 	main_world = std::make_unique<world>();
 
@@ -182,11 +175,6 @@ void game_process::exit()
 	main_renderer.reset();
 
 	//	シーン関係
-	if (owns_collision_filters)
-	{
-		collision_filter_manager::delete_instance();
-		owns_collision_filters = false;
-	}
 
 #if defined(USE_IMGUI)
 	//	エディターの再生が終わったら Windows のウィンドウを隠し、編集用のプロセスに知らせる

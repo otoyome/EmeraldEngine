@@ -58,13 +58,6 @@ bool scene_editor_process::enter()
 {
 	framework& self = get_owner();
 
-	//	当たり判定フィルター生成
-	if (!collision_filter_manager::is_valid())
-	{
-		collision_filter_manager::create_instance();
-		owns_collision_filters = true;
-	}
-
 	//	編集用のワールドは scene_editor が持つ
 	scene_edit = std::make_unique<scene_editor>();
 
@@ -175,11 +168,6 @@ void scene_editor_process::exit()
 	viewport.reset();
 	scene_edit.reset();
 
-	if (owns_collision_filters)
-	{
-		collision_filter_manager::delete_instance();
-		owns_collision_filters = false;
-	}
 }
 
 void scene_editor_process::start_play(const scene_resource_ptr& resource, std::string_view open_file)

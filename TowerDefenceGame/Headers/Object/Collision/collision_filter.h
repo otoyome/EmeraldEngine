@@ -53,9 +53,6 @@ private:
 	~collision_filter_manager();
 
 public:
-	bool register_filter(collision_filter_ptr& filter);
-	bool unregister_filter(collision_filter_ptr& filter);
-	bool unregister_filter(std::string_view name);
 	collision_filter_ptr search_filter(std::string_view name);
 	void rebuild_filters();
 

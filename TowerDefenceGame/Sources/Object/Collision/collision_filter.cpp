@@ -49,7 +49,6 @@ collision_filter::~collision_filter()
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 collision_filter_manager::collision_filter_manager()
 {
-	//	@tool エンジン設定からフィルターを作る
 	rebuild_filters();
 }
 
@@ -57,32 +56,6 @@ collision_filter_manager::~collision_filter_manager()
 {
 }
 
-bool collision_filter_manager::register_filter(collision_filter_ptr& filter)
-{
-	std::string filter_name = std::string(filter->get_name());
-	auto it = filters.find(filter_name);
-	if (it != filters.end())
-		return false;
-
-	filters.insert_or_assign(filter_name, filter);
-	return true;
-}
-
-bool collision_filter_manager::unregister_filter(collision_filter_ptr& filter)
-{
-	return unregister_filter(filter->get_name());
-}
-
-bool collision_filter_manager::unregister_filter(std::string_view name)
-{
-	std::string filter_name = std::string(name);
-	auto it = filters.find(filter_name);
-	if (it == filters.end())
-		return false;
-
-	filters.erase(it);
-	return true;
-}
 
 collision_filter_ptr collision_filter_manager::search_filter(std::string_view name)
 {
@@ -90,7 +63,6 @@ collision_filter_ptr collision_filter_manager::search_filter(std::string_view na
 	auto it = filters.find(filter_name);
 	if (it == filters.end())
 	{
-		//	@tool 名前が見つからない時は default を使い、警告を名前ごとに1回だけ出す
 		{
 			std::lock_guard<std::mutex> lock(missing_mutex);
 			if (missing_names.emplace(filter_name).second)

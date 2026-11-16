@@ -5,6 +5,7 @@
 #include "System/project_path.h"
 #include "Object/game_object_registry.h"
 #include "Scenes/scene_system.h"
+#include "Object/Collision/collision_filter.h"
 
 bool core_process::enter()
 {
@@ -36,11 +37,17 @@ bool core_process::enter()
 	game_object_registry::create_instance();
 	//	シーンシステムの型登録表
 	scene_system_registry::create_instance();
+
+	//	当たり判定フィルター
+	collision_filter_manager::create_instance();
 	return true;
 }
 
 void core_process::exit()
 {
+	//	当たり判定フィルター破棄
+	collision_filter_manager::delete_instance();
+
 	//	オブジェクトの型登録表解除
 	scene_system_registry::delete_instance();
 	game_object_registry::delete_instance();

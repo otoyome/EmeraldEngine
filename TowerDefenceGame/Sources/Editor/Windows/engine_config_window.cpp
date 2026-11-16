@@ -54,7 +54,7 @@ void engine_config_window::render_window(std::shared_ptr<editor_items::context>&
 			ImGui::TreePop();
 		}
 
-		//	@tool “–‚½‚è”»’è
+		//	“–‚½‚è”»’è
 		render_collision();
 	}
 	ImGui::End();

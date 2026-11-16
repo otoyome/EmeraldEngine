@@ -52,7 +52,6 @@ public:
 private:
 	std::unique_ptr<world> main_world;				//	ワールド
 	std::unique_ptr<world_renderer> main_renderer;	//	ワールドレンダラー
-	bool owns_collision_filters = false;			//	当たり判定フィルターをこのプロセスで作ったか
 
 #if defined(USE_IMGUI)
 private:
