@@ -12,19 +12,11 @@ class engine_context;
 class scene_instance
 {
 public:
-	//	読み込んだシーンリソースごとのオブジェクトとシステム
-	struct loaded_scene
-	{
-		scene_resource_ptr resource;
-		std::vector<std::weak_ptr<game_object>> objects;
-		std::unique_ptr<scene_system> system;
-	};
-
-public:
 	//	エンジンコンテキスト取得
 	engine_context& get_context() const { return context; }
 	const scene_resource_ptr& get_resource() const { return resource; }
-	const std::vector<loaded_scene>& get_loaded_scenes() const { return loaded_scenes; }
+	const std::vector<std::weak_ptr<game_object>>& get_objects() const { return objects; }
+	scene_system* get_system() const { return system.get(); }
 
 public:
 	scene_instance(engine_context& context, scene_resource_ptr resource);
@@ -47,12 +39,7 @@ public:
 	template<class Type>
 	Type* find_system() const
 	{
-		for (const loaded_scene& scene : loaded_scenes)
-		{
-			if (auto system = dynamic_cast<Type*>(scene.system.get()))
-				return system;
-		}
-		return nullptr;
+		return dynamic_cast<Type*>(system.get());
 	}
 
 public:
@@ -66,7 +53,8 @@ private:
 	scene_resource_ptr resource;
 	bool initialized = false;
 
-	std::vector<loaded_scene> loaded_scenes;
+	std::vector<std::weak_ptr<game_object>> objects;
+	std::unique_ptr<scene_system> system;
 	std::vector<std::weak_ptr<game_object>> transient_objects;
 	std::vector<std::weak_ptr<collision_object>> collision_objects;
 };

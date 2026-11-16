@@ -4,13 +4,15 @@
 #include <memory>
 #include <string>
 #include <string_view>
+#include <vector>
 
 #include "Process/framework_process.h"
 #include "Scenes/scene_resource.h"
 #include "Editor/editor_gizmo.h"
 #include "Editor/editor_icons.h"
 #include "Editor/place_objects_window.h"
-#include "Editor/scenes_window.h"
+#include "Editor/outliner_window.h"
+#include "Editor/inspector_window.h"
 
 class scene_editor;
 class editor_viewport;
@@ -38,7 +40,7 @@ private:
 	void register_open_handlers();
 
 	//	再生
-	void start_play(const scene_resource_ptr& resource, std::string_view open_file);
+	void start_play(const std::vector<scene_resource_ptr>& resources, std::string_view open_file);
 	//	再生停止
 	void stop_play();
 
@@ -47,6 +49,10 @@ private:
 
 	//	起動時に開くシーン
 	static std::string get_startup_scene_path();
+	//	前回開いていたシーン
+	static std::vector<std::string> get_open_scene_paths();
+	//	開いているシーンを覚えておく
+	void remember_open_scenes();
 
 private:
 	std::unique_ptr<scene_editor> scene_edit;		//	シーンエディター
@@ -54,7 +60,8 @@ private:
 	editor_gizmo gizmo;								//	選んでいるオブジェクトを動かすギズモ
 	editor_icons icons;								//	ライトなど形の無いオブジェクトのアイコンと、選んでいる物の形
 	place_objects_window place_window;				//	置くオブジェクトの一覧の窓
-	scenes_window scene_list_window;				//	編集中のシーンの一覧の窓
+	outliner_window outliner;						//	シーンとオブジェクトの木の窓
+	inspector_window inspector;						//	選んでいるオブジェクトの設定の窓
 	std::shared_ptr<play_session> session;			//	再生の状態
 	bool exit_requested = false;					//	Exit を選んだ
 };

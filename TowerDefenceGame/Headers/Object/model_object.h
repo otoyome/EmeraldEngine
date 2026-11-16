@@ -106,6 +106,7 @@ private:
 	void update_ik();
 
 	void load_model(std::string_view file_path);
+	void change_model(std::string_view file_path);
 
 private:
 	model_instance_ptr model_instance;

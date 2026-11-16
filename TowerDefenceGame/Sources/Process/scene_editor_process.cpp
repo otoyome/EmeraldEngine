@@ -1,6 +1,7 @@
 #include "Process/scene_editor_process.h"
 
 #if defined(USE_IMGUI)
+#include <algorithm>
 #include <filesystem>
 
 #include "framework.h"
@@ -32,6 +33,8 @@ namespace
 {
 	//	起動時に読むシーン
 	console_variable<std::string> editor_startup_scene_variable("editor.startup_scene", "", "エディターで起動時に読むシーン", console_flags::persist);
+	//	前回エディターで開いていたシーン
+	console_variable<std::string> editor_open_scenes_variable("editor.open_scenes", "", "エディターで開いていたシーン（; 区切り）", console_flags::persist);
 	//	エディターのビューポートの画面比率
 	console_variable<int> editor_viewport_aspect_variable("editor.viewport.aspect", 0, "エディターのビューポートの画面比率（0:ゲームの解像度 1:16:9 2:16:10 3:4:3 4:21:9 5:固定しない）", console_flags::persist);
 }
@@ -54,6 +57,39 @@ std::string scene_editor_process::get_startup_scene_path()
 	return path;
 }
 
+std::vector<std::string> scene_editor_process::get_open_scene_paths()
+{
+	std::vector<std::string> result;
+	const std::string& text = editor_open_scenes_variable.get();
+	size_t begin = 0;
+	while (begin <= text.size())
+	{
+		const size_t end = std::min(text.find(';', begin), text.size());
+		const std::string path = text.substr(begin, end - begin);
+		std::error_code error;
+		if (!path.empty() && std::filesystem::exists(std::filesystem::path(path), error))
+			result.emplace_back(path);
+		begin = end + 1;
+	}
+	return result;
+}
+
+void scene_editor_process::remember_open_scenes()
+{
+	if (!scene_edit->is_editing())
+		return;
+
+	std::string text;
+	for (const scene_resource_ptr& scene : scene_edit->get_edited_scenes())
+	{
+		if (!text.empty())
+			text += ';';
+		text += scene->get_file_path();
+	}
+	if (text != editor_open_scenes_variable.get())
+		editor_open_scenes_variable.set(text);
+}
+
 bool scene_editor_process::enter()
 {
 	framework& self = get_owner();
@@ -64,7 +100,7 @@ bool scene_editor_process::enter()
 	//	再生の開始・停止はこのプロセスが受け持つ
 	{
 		scene_editor::play_handlers handlers;
-		handlers.start = [this](const scene_resource_ptr& resource, std::string_view open_file) { start_play(resource, open_file); };
+		handlers.start = [this](const std::vector<scene_resource_ptr>& resources, std::string_view open_file) { start_play(resources, open_file); };
 		handlers.stop = [this]() { stop_play(); };
 		handlers.open_file = [this](std::string_view open_file)
 		{
@@ -96,7 +132,15 @@ bool scene_editor_process::enter()
 	register_open_handlers();
 
 	//	エディターでは編集用に開く
-	scene_edit->request_edit(get_startup_scene_path());
+	const std::vector<std::string> open_scenes = get_open_scene_paths();
+	if (open_scenes.empty())
+		scene_edit->request_edit(get_startup_scene_path());
+	else
+	{
+		scene_edit->request_edit(open_scenes.front());
+		for (size_t index = 1; index < open_scenes.size(); ++index)
+			scene_edit->request_add(open_scenes[index]);
+	}
 	return true;
 }
 
@@ -170,13 +214,13 @@ void scene_editor_process::exit()
 
 }
 
-void scene_editor_process::start_play(const scene_resource_ptr& resource, std::string_view open_file)
+void scene_editor_process::start_play(const std::vector<scene_resource_ptr>& resources, std::string_view open_file)
 {
 	framework& self = get_owner();
 
 	//	ゲームのプロセスは次のフレームの頭で足される（止めたプロセスが外れた後）
 	session = std::make_shared<play_session>();
-	session->scene = resource;
+	session->scenes = resources;
 	session->open_file = std::string(open_file);
 	self.request_process(std::make_unique<game_process>(self, session));
 }
@@ -199,6 +243,7 @@ void scene_editor_process::update(float elapsed_time)
 {
 	//	シーンエディターのリクエストを対応
 	scene_edit->apply_requests();
+	remember_open_scenes();
 
 	//	ゲームのプロセスが自分で終わった時（始められなかった時など）は再生をやめる
 	if (session && session->finished)
@@ -365,7 +410,14 @@ void scene_editor_process::imgui_render()
 
 	//	オブジェクト情報表示
 	if (!scene_edit->is_playing())
-		scene_edit->get_edit_world().get_objects().imgui_render();
+	{
+		//	編集中はシーンの下にオブジェクトを並べるアウトライナーを出す
+		if (scene_edit->is_editing())
+			outliner.imgui_render(*scene_edit);
+		else
+			outliner.imgui_render(scene_edit->get_edit_world());
+		inspector.imgui_render(scene_edit->get_edit_world());
+	}
 
 	//	編集中のシーンの窓
 	scene_edit->imgui_render();
@@ -377,7 +429,6 @@ void scene_editor_process::imgui_render()
 		if (!ImGui::GetIO().WantTextInput && ImGui::IsKeyPressed(ImGuiKey_Delete, false))
 			scene_edit->remove_object(scene_edit->get_edit_world().get_context().get_selected_object());
 
-		scene_list_window.imgui_render(*scene_edit);
 		place_window.imgui_render(*scene_edit);
 	}
 }

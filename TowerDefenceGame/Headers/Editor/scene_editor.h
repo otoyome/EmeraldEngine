@@ -30,12 +30,9 @@ public:
 	bool is_editing() const { return !edited_scenes.empty(); }
 
 	//	再生中か
-	bool is_playing() const { return playing_scene != nullptr; }
+	bool is_playing() const { return !playing_scenes.empty(); }
 
 	world& get_edit_world() { return *edit_world; }
-
-	//	編集中のシーンリソース取得
-	scene_resource_ptr get_edit_resource() const;
 
 public:
 	scene_editor();
@@ -47,6 +44,8 @@ public:
 public:
 	//	編集リクエスト
 	void request_edit(std::string_view file_path);
+	//	編集中のシーンに足すリクエスト
+	void request_add(std::string_view file_path);
 
 	//	再生リクエスト
 	void request_play();
@@ -58,30 +57,38 @@ public:
 	//	オブジェクトを置く先のシーン
 	const scene_resource_ptr& get_current_scene_resource() { return get_current_scene().resource; }
 	//	オブジェクトを置く先のシーンを選ぶ
-	void set_current_scene(const scene_resource_ptr& resource) { current_scene = resource; }
+	void set_current_scene(const scene_resource_ptr& resource);
 
 	//	編集中のシーン
 	std::vector<scene_resource_ptr> get_edited_scenes() const;
-	//	読み込めなかったサブシーンのパス
-	std::vector<std::string> get_unloaded_sub_scenes() const;
+	//	編集中のシーンに足せるシーンのパス
+	std::vector<std::string> get_addable_scenes() const;
+	//	編集中のシーンのオブジェクト（一時オブジェクトを除く）
+	std::vector<std::shared_ptr<game_object>> get_scene_objects(const scene_resource_ptr& resource) const;
+	//	オブジェクトが入っている編集中のシーン（無ければ空）
+	scene_resource_ptr find_object_scene(const std::shared_ptr<game_object>& object);
 
 	//	シーンリソースの編集窓で開く
 	void open_edit_window(const scene_resource_ptr& resource) { edit_target = resource; edit_window_opened = true; }
 
-	//	オブジェクトを型から作って、開いているシーン（親のシーン）に置く（position が無ければエディターカメラの前方。作った物を選ぶ）
+	//	オブジェクトを型から作って置く（position が無ければ選んでいるオブジェクトの子にしてエディターカメラの前方、あれば置く先のシーンの一番上。作った物を選ぶ）
 	std::shared_ptr<game_object> place_object(std::string_view type, const std::optional<math::vector3d>& position = std::nullopt);
+	//	オブジェクトを型から作ってシーンの一番上に置く
+	std::shared_ptr<game_object> place_object_in_scene(std::string_view type, const scene_resource_ptr& resource, const std::optional<math::vector3d>& position = std::nullopt);
+	//	オブジェクトを型から作って parent の子にする（子を持てない型なら parent のシーンの一番上に置く）
+	std::shared_ptr<game_object> place_object_as_child(std::string_view type, const std::shared_ptr<game_object>& parent);
 
 	//	再生の開始・停止を任せる先
 	struct play_handlers
 	{
-		std::function<void(const scene_resource_ptr& resource, std::string_view open_file)> start;	//	再生を始める
+		std::function<void(const std::vector<scene_resource_ptr>& resources, std::string_view open_file)> start;	//	再生を始める
 		std::function<void()> stop;																	//	再生を止める
 		std::function<void(std::string_view open_file)> open_file;									//	再生中のワールドにファイルを開いてもらう
 	};
 	void set_play_handlers(play_handlers value) { handlers = std::move(value); }
 
 	//	再生が外で終わった（ゲームのプロセスが自分で終わった）ことを知らせる
-	void notify_play_finished() { playing_scene.reset(); }
+	void notify_play_finished() { playing_scenes.clear(); }
 
 	//	リクエストの処理
 	void apply_requests();
@@ -98,9 +105,10 @@ public:
 	//	編集中のみの更新
 	void editor_update(float elapsed_time);
 
-	//	サブシーンの追加・削除
-	bool add_sub_scene(std::string_view file_path);
-	void remove_sub_scene(const scene_resource_ptr& resource);
+	//	編集中のシーンの追加・削除
+	bool add_scene(std::string_view file_path);
+	void remove_scene(const scene_resource_ptr& resource);
+	bool can_remove_scene() const { return !is_playing() && edited_scenes.size() > 1; }
 
 	//	オブジェクトを子毎削除する
 	bool remove_object(const std::shared_ptr<game_object>& target);
@@ -109,6 +117,8 @@ public:
 
 	//	子供を親の子にする。親が別のシーンなら子孫ごと親のシーンへ移す
 	bool attach_object(const std::shared_ptr<game_object>& child, const std::shared_ptr<game_object>& parent);
+	//	オブジェクトを親から外し、子孫ごと別のシーンへ移す
+	bool move_object_to_scene(const std::shared_ptr<game_object>& object, const scene_resource_ptr& resource);
 
 private:
 	//	編集中のオブジェクトとシステムの設定をシーンリソースへ反映する
@@ -141,12 +151,14 @@ private:
 	edited_scene* find_edited_scene(const std::shared_ptr<game_object>& object);
 	//	targetと空間の親子でつながった子孫のオブジェクト
 	std::vector<std::shared_ptr<game_object>> collect_object_tree(const std::shared_ptr<game_object>& target) const;
+	//	targetと子孫を別のシーンへ移す
+	void move_object_tree(const std::shared_ptr<game_object>& target, edited_scene& scene);
 
 	//	シーンリソースの編集窓
 	void imgui_render_edit_window();
 
 	//	シーン開始処理
-	void start_play(const scene_resource_ptr& resource, std::string_view open_file);
+	void start_play(const std::vector<scene_resource_ptr>& resources, std::string_view open_file);
 
 	//	シーン停止処理
 	void stop_play();
@@ -155,15 +167,16 @@ private:
 
 private:
 	std::unique_ptr<world> edit_world;			//	編集ワールド
-	scene_resource_ptr playing_scene;			//	再生中のシーン
+	std::vector<scene_resource_ptr> playing_scenes;	//	再生中のシーン
 	play_handlers handlers;						//	再生の開始・停止を任せる先
 	std::vector<edited_scene> edited_scenes;	//	編集中のシーン
-	std::vector<resource::asset_handle<scene_resource>> sub_scenes;	//	サブシーン
+
 	scene_resource_ptr edit_target;				//	編集窓に出すシーン
 	bool edit_window_opened = false;
 	scene_resource_ptr current_scene;			//	オブジェクトを置く先に選んだシーン
 
 	std::string edit_request;
+	std::vector<std::string> add_requests;
 	std::string play_file_request;
 	std::string play_open_file_request;
 	bool play_request = false;

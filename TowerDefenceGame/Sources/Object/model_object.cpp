@@ -4,6 +4,11 @@
 
 #include "Resource/resource_manager.h"
 
+#if defined(USE_IMGUI)
+#include "Resource/asset_registry.h"
+#include "System/asset_browser.h"
+#endif	//	defined(USE_IMGUI)
+
 #include "cereal/cereal.hpp"
 #include "cereal/archives/json.hpp"
 
@@ -718,6 +723,32 @@ void model_object::imgui_render_core()
 {
 	base::imgui_render_core();
 
+	const model_resource_ptr current = model_instance ? model_instance->get_resource() : nullptr;
+	const cache_string current_path(current ? current->get_file_path() : std::string_view{});
+	if (ImGui::BeginCombo("model", current ? current_path.get<utf8_cache>().data() : "(none)"))
+	{
+		if (asset_registry::is_valid())
+		{
+			for (const std::string& model_path : asset_registry::instance()->find_paths(resource::asset_types::model))
+			{
+				const cache_string label(model_path);
+				if (ImGui::Selectable(label.get<utf8_cache>().data(), current && current->get_file_path() == model_path))
+					change_model(model_path);
+			}
+		}
+		ImGui::EndCombo();
+	}
+	if (ImGui::BeginDragDropTarget())
+	{
+		if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(asset_browser::drag_payload_type))
+		{
+			const std::string file_path(static_cast<const char*>(payload->Data));
+			if (resource::get_asset_type_from_extension(std::filesystem::path(file_path).extension().string()) == resource::asset_types::model)
+				change_model(file_path);
+		}
+		ImGui::EndDragDropTarget();
+	}
+
 	if (!model_instance)
 		return;
 
@@ -845,6 +876,23 @@ void model_object::load_model(std::string_view file_path)
 			}
 		}
 	}
+}
+
+void model_object::change_model(std::string_view file_path)
+{
+	model_instance.reset();
+	ik_solver.reset();
+	ik_datas.clear();
+	current_node_animations.clear();
+	previous_node_animations.clear();
+	current_morph_animations.clear();
+	animation_index = 0;
+	animation_time = 0.0f;
+	load_model(file_path);
+	if (model_instance)
+		model_instance->set_flag(model_instance::flags::active, is_active());
+	dirty = true;
+	applied_spatial_version = UINT32_MAX;
 }
 
 void model_object::serialize(cereal::JSONOutputArchive& archive) const

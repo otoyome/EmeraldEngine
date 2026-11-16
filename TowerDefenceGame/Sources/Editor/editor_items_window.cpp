@@ -198,21 +198,6 @@ void editor_items::render_window_menu_bar(std::shared_ptr<context>& context)
 		ImGui::EndMenu();
 	}
 
-	if (ImGui::BeginMenu("Documents", !context->opened_windows.empty()))
-	{
-		for (std::size_t index = 0; index < context->opened_windows.size(); ++index)
-		{
-			context::opened_window& window = context->opened_windows[index];
-			ImGui::PushID(static_cast<int>(index));
-			if (ImGui::MenuItem(window.editor->get_label().c_str()))
-				window.focus = true;
-			if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal))
-				ImGui::SetTooltip("%s", system_utility::convert_shift_jis_to_utf8(window.key).c_str());
-			ImGui::PopID();
-		}
-		ImGui::EndMenu();
-	}
-
 	end_editor_menu_bar();
 }
 

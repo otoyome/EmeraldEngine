@@ -236,7 +236,10 @@
     <ClCompile Include="Sources\Editor\place_objects_window.cpp">
       <Filter>Sources\Editor</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Editor\scenes_window.cpp">
+    <ClCompile Include="Sources\Editor\outliner_window.cpp">
+      <Filter>Sources\Editor</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Editor\inspector_window.cpp">
       <Filter>Sources\Editor</Filter>
     </ClCompile>
     <ClCompile Include="Sources\Editor\editor_gizmo.cpp">
@@ -694,7 +697,10 @@
     <ClInclude Include="Headers\Editor\place_objects_window.h">
       <Filter>Headers\Editor</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Editor\scenes_window.h">
+    <ClInclude Include="Headers\Editor\outliner_window.h">
+      <Filter>Headers\Editor</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Editor\inspector_window.h">
       <Filter>Headers\Editor</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Editor\editor_gizmo.h">

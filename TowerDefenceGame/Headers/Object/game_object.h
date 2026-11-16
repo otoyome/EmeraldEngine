@@ -65,12 +65,6 @@ public:
 
 	virtual void imgui_render_core();
 
-	//	アウトライナーで行をドラッグする時の受け渡し名
-	static constexpr const char* outliner_payload_type = "OUTLINER_OBJECT";
-
-	//	アウトライナー
-	void imgui_render_outliner(const std::function<void()>& render_children = nullptr, bool has_children = false, const std::function<void(game_object& child)>& on_drop = nullptr);
-
 	//	インスペクター
 	void imgui_render_inspector();
 

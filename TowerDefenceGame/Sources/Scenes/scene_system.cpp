@@ -36,15 +36,10 @@ void scene_system::imgui_render_window(std::string_view scene_path)
 std::vector<game_object_ptr> scene_system::get_scene_objects() const
 {
 	std::vector<game_object_ptr> objects;
-	for (const scene_instance::loaded_scene& scene : get_scene().get_loaded_scenes())
+	for (const auto& weak_object : get_scene().get_objects())
 	{
-		if (scene.system.get() != this)
-			continue;
-		for (const auto& weak_object : scene.objects)
-		{
-			if (auto object = weak_object.lock())
-				objects.emplace_back(std::move(object));
-		}
+		if (auto object = weak_object.lock())
+			objects.emplace_back(std::move(object));
 	}
 	return objects;
 }

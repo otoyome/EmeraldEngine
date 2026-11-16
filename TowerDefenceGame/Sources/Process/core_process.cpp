@@ -28,10 +28,7 @@ bool core_process::enter()
 	project_path::initialize();
 
 	//	ゲームコンフィグ初期化
-	{
-		//	@remainder	内部でコンソールマネージャーに情報を受け渡しているだけ。
-		game_config_data::create_instance();
-	}
+	game_config_data::create_instance();
 
 	//	オブジェクトの型登録表
 	game_object_registry::create_instance();

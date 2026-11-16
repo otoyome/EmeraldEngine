@@ -24,16 +24,12 @@ scene_editor::scene_editor()
 {
 	edit_world->get_objects().set_pause(true);
 	edit_world->get_context().set_editing(true);
-	edit_world->get_context().set_attach_handler([this](const std::shared_ptr<game_object>& child, const std::shared_ptr<game_object>& parent)
-	{
-		return attach_object(child, parent);
-	});
 }
 
 scene_editor::~scene_editor()
 {
 	handlers = {};
-	playing_scene.reset();
+	playing_scenes.clear();
 	close();
 	edit_world.reset();
 }
@@ -41,6 +37,12 @@ scene_editor::~scene_editor()
 void scene_editor::request_edit(std::string_view file_path)
 {
 	edit_request = file_path;
+	add_requests.clear();
+}
+
+void scene_editor::request_add(std::string_view file_path)
+{
+	add_requests.emplace_back(file_path);
 }
 
 void scene_editor::request_play()
@@ -79,6 +81,15 @@ void scene_editor::apply_requests()
 		open(file_path);
 	}
 
+	//	足すシーンは開いた後に読む
+	if (!add_requests.empty())
+	{
+		const std::vector<std::string> paths = std::move(add_requests);
+		add_requests.clear();
+		for (const std::string& path : paths)
+			add_scene(path);
+	}
+
 	if (play_request)
 	{
 		play_request = false;
@@ -86,7 +97,7 @@ void scene_editor::apply_requests()
 		{
 			stop_play();
 			apply_contents();
-			start_play(edited_scenes.front().resource, {});
+			start_play(get_edited_scenes(), {});
 		}
 	}
 
@@ -98,14 +109,14 @@ void scene_editor::apply_requests()
 		play_open_file_request.clear();
 
 		//	同じシーンを再生中なら何もしない
-		const bool playing_same = playing_scene && playing_scene->get_file_path() == file_path;
+		const bool playing_same = playing_scenes.size() == 1 && playing_scenes.front()->get_file_path() == file_path;
 		if (!playing_same)
 		{
 			auto operation = resource_manager::instance()->load<scene_resource>(file_path);
 			if (operation && operation->is_succeeded())
 			{
 				stop_play();
-				start_play(operation->get_resource(), open_file);
+				start_play({ operation->get_resource() }, open_file);
 			}
 			else
 			{
@@ -131,9 +142,7 @@ bool scene_editor::apply_contents()
 				objects.emplace_back(std::move(object));
 		}
 
-		//	開いたシーンは編集中のサブシーンリストで保存する
-		const auto& scene_list = (&scene == &edited_scenes.front()) ? sub_scenes : scene.resource->get_sub_scenes();
-		if (!scene.resource->set_contents(scene_list, objects, scene.system.get()))
+		if (!scene.resource->set_contents(objects, scene.system.get()))
 		{
 			DEBUG_ERROR_CATEGORY(logger::categorys::system, "scene_editor apply failed[%s]", std::string(scene.resource->get_file_path()).c_str());
 			result = false;
@@ -159,12 +168,6 @@ bool scene_editor::save()
 	return result;
 }
 
-
-scene_resource_ptr scene_editor::get_edit_resource() const
-{
-	return is_editing() ? edited_scenes.front().resource : nullptr;
-}
-
 void scene_editor::imgui_menu()
 {
 	if (is_playing())
@@ -179,20 +182,6 @@ void scene_editor::imgui_menu()
 	}
 	if (ImGui::MenuItem("Save", nullptr, false, is_editing() && !is_playing()))
 		save();
-
-	//	選んでいるオブジェクトの削除
-	const std::shared_ptr<game_object> selected = edit_world->get_context().get_selected_object();
-	if (ImGui::MenuItem("Delete", "Del", false, can_remove_object(selected)))
-		remove_object(selected);
-
-	if (const scene_resource_ptr resource = get_edit_resource())
-	{
-		const cache_string file_path(resource->get_file_path());
-		//	シーン名だけを出し、パスはカーソルを乗せた時に出す
-		ImGui::TextDisabled("%s%s", scene_resource_utility::make_display_name(file_path.get<utf8_cache>()).c_str(), is_playing() ? " (playing)" : "");
-		if (ImGui::IsItemHovered())
-			ImGui::SetTooltip("%s", file_path.get<utf8_cache>().data());
-	}
 }
 
 bool scene_editor::open(std::string_view file_path)
@@ -206,14 +195,11 @@ bool scene_editor::open(std::string_view file_path)
 		return false;
 	}
 
-	std::vector<scene_resource_ptr> resources;
-	scene_resource_utility::collect_scenes(operation->get_resource(), resources);
-	if (!create_edited_scenes(resources))
+	if (!create_edited_scenes({ operation->get_resource() }))
 	{
 		DEBUG_ERROR_CATEGORY(logger::categorys::system, "scene_editor create failed[%s]", std::string(file_path).c_str());
 		return false;
 	}
-	sub_scenes = operation->get_resource()->get_sub_scenes();
 	return true;
 }
 
@@ -222,7 +208,6 @@ void scene_editor::close()
 	for (edited_scene& scene : edited_scenes)
 		release_edited_scene(scene);
 	edited_scenes.clear();
-	sub_scenes.clear();
 	current_scene.reset();
 }
 
@@ -260,7 +245,7 @@ void scene_editor::release_edited_scene(edited_scene& scene)
 	scene.objects.clear();
 }
 
-bool scene_editor::add_sub_scene(std::string_view file_path)
+bool scene_editor::add_scene(std::string_view file_path)
 {
 	if (!is_editing() || is_playing())
 		return false;
@@ -268,55 +253,48 @@ bool scene_editor::add_sub_scene(std::string_view file_path)
 	auto operation = resource_manager::instance()->load<scene_resource>(file_path);
 	if (!operation || !operation->is_succeeded())
 	{
-		DEBUG_ERROR_CATEGORY(logger::categorys::system, "scene_editor sub scene load failed[%s]", std::string(file_path).c_str());
+		DEBUG_ERROR_CATEGORY(logger::categorys::system, "scene_editor add scene load failed[%s]", std::string(file_path).c_str());
 		return false;
 	}
 
-	//	開いたシーン自身と、既に読み込んでいるシーンは追加しない
+	//	既に開いているシーンは追加しない
 	const scene_resource_ptr resource = operation->get_resource();
 	for (const edited_scene& scene : edited_scenes)
 	{
 		if (scene.resource == resource)
 			return false;
 	}
-	if (!resource->get_sub_scenes().empty())
-		DEBUG_WARNING_CATEGORY(logger::categorys::system, "scene_editor nested sub scenes are ignored[%s]", std::string(file_path).c_str());
 
 	if (!create_edited_scenes({ resource }))
 	{
 		DEBUG_ERROR_CATEGORY(logger::categorys::system, "scene_editor create failed[%s]", std::string(file_path).c_str());
 		return false;
 	}
-	sub_scenes.emplace_back(resource);
 	return true;
 }
 
-void scene_editor::remove_sub_scene(const scene_resource_ptr& resource)
+void scene_editor::remove_scene(const scene_resource_ptr& resource)
 {
-	if (!is_editing() || is_playing() || !resource)
+	if (!can_remove_scene() || !resource)
 		return;
 
-	//	開いたシーンは外さない
-	for (auto it = std::next(edited_scenes.begin()); it != edited_scenes.end(); ++it)
-	{
-		if (it->resource != resource)
-			continue;
-		release_edited_scene(*it);
-		edited_scenes.erase(it);
-		if (current_scene == resource)
-			current_scene.reset();
-		break;
-	}
-	std::erase_if(sub_scenes, [&](const resource::asset_handle<scene_resource>& handle)
-	{
-		return handle.get() == resource || handle.get_reference().uuid == resource->get_uuid();
-	});
+	auto it = std::find_if(edited_scenes.begin(), edited_scenes.end(), [&](const edited_scene& scene) { return scene.resource == resource; });
+	if (it == edited_scenes.end())
+		return;
+	release_edited_scene(*it);
+	edited_scenes.erase(it);
+	if (current_scene == resource)
+		current_scene.reset();
 }
 
 void scene_editor::imgui_render()
 {
 	if (!is_editing() || is_playing())
 		return;
+
+	//	オブジェクトを選んでいる間は、そのシーンを置く先のシーンにしておく
+	if (const edited_scene* scene = find_edited_scene(edit_world->get_context().get_selected_object()))
+		current_scene = scene->resource;
 
 	imgui_render_edit_window();
 }
@@ -330,17 +308,47 @@ std::vector<scene_resource_ptr> scene_editor::get_edited_scenes() const
 	return result;
 }
 
-std::vector<std::string> scene_editor::get_unloaded_sub_scenes() const
+void scene_editor::set_current_scene(const scene_resource_ptr& resource)
+{
+	//	シーンを選んだら、オブジェクトの選択は外す
+	current_scene = resource;
+	edit_world->get_context().set_selected_object(nullptr);
+}
+
+std::vector<std::string> scene_editor::get_addable_scenes() const
 {
 	std::vector<std::string> result;
-	for (const auto& sub_scene : sub_scenes)
+	if (!asset_registry::is_valid())
+		return result;
+	for (const std::string& scene_path : asset_registry::instance()->find_paths(resource::asset_types::scene))
 	{
-		const resource::asset_reference<scene_resource> reference = sub_scene.get_reference();
-		const bool loaded = std::any_of(edited_scenes.begin(), edited_scenes.end(), [&](const edited_scene& scene) { return scene.resource->get_uuid() == reference.uuid; });
+		const bool loaded = std::any_of(edited_scenes.begin(), edited_scenes.end(), [&](const edited_scene& edited) { return edited.resource->get_file_path() == scene_path; });
 		if (!loaded)
-			result.emplace_back(reference.path);
+			result.emplace_back(scene_path);
 	}
 	return result;
+}
+
+std::vector<std::shared_ptr<game_object>> scene_editor::get_scene_objects(const scene_resource_ptr& resource) const
+{
+	std::vector<game_object_ptr> result;
+	for (const edited_scene& scene : edited_scenes)
+	{
+		if (scene.resource != resource)
+			continue;
+		for (const auto& weak_object : scene.objects)
+		{
+			if (auto object = weak_object.lock(); object && !object->is_transient())
+				result.emplace_back(std::move(object));
+		}
+	}
+	return result;
+}
+
+scene_resource_ptr scene_editor::find_object_scene(const std::shared_ptr<game_object>& object)
+{
+	const edited_scene* scene = find_edited_scene(object);
+	return scene ? scene->resource : nullptr;
 }
 
 void scene_editor::imgui_render_edit_window()
@@ -356,7 +364,6 @@ void scene_editor::imgui_render_edit_window()
 		return;
 	}
 	edited_scene& scene = *it;
-	const bool is_root = (it == edited_scenes.begin());
 
 	//	シーンの編集窓
 	const cache_string path(scene.resource->get_file_path());
@@ -379,66 +386,6 @@ void scene_editor::imgui_render_edit_window()
 				}
 			}
 			ImGui::EndCombo();
-		}
-
-		//	サブシーンの登録
-		if (is_root)
-		{
-			ImGui::SeparatorText("sub scenes");
-
-			//	サブシーンリスト
-			scene_resource_ptr remove_target;
-			for (size_t index = 0; index < sub_scenes.size(); ++index)
-			{
-				const resource::asset_reference<scene_resource> reference = sub_scenes[index].get_reference();
-				const cache_string sub_path(reference.path);
-				ImGui::PushID(static_cast<int>(index));
-				if (ImGui::SmallButton("remove"))
-				{
-					for (const edited_scene& edited : edited_scenes)
-					{
-						if (edited.resource->get_uuid() == reference.uuid)
-							remove_target = edited.resource;
-					}
-					if (!remove_target)
-					{
-						sub_scenes.erase(sub_scenes.begin() + static_cast<std::ptrdiff_t>(index));
-						ImGui::PopID();
-						break;
-					}
-				}
-				ImGui::SameLine();
-				ImGui::TextUnformatted(sub_path.get<utf8_cache>().data());
-				ImGui::PopID();
-			}
-			if (remove_target)
-				remove_sub_scene(remove_target);
-
-			//	シーンリソースをアセットブラウザからドロップするか、一覧から選んで追加する
-			ImGui::Button("drop .escene here to add");
-			if (ImGui::BeginDragDropTarget())
-			{
-				if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(asset_browser::drag_payload_type))
-				{
-					const std::string file_path(static_cast<const char*>(payload->Data));
-					if (std::filesystem::path(file_path).extension().string() == "." + std::string(scene_resource::extension))
-						add_sub_scene(file_path);
-				}
-				ImGui::EndDragDropTarget();
-			}
-			if (asset_registry::is_valid() && ImGui::BeginCombo("add sub scene", nullptr, ImGuiComboFlags_NoPreview))
-			{
-				for (const std::string& scene_path : asset_registry::instance()->find_paths(resource::asset_types::scene))
-				{
-					const bool loaded = std::any_of(edited_scenes.begin(), edited_scenes.end(), [&](const edited_scene& edited) { return edited.resource->get_file_path() == scene_path; });
-					if (loaded)
-						continue;
-					const cache_string label(scene_path);
-					if (ImGui::Selectable(label.get<utf8_cache>().data()))
-						add_sub_scene(scene_path);
-				}
-				ImGui::EndCombo();
-			}
 		}
 
 		//	システムの設定
@@ -475,11 +422,42 @@ std::shared_ptr<game_object> scene_editor::place_object(std::string_view type, c
 {
 	if (!is_editing())
 		return nullptr;
+
+	const std::shared_ptr<game_object> selected = edit_world->get_context().get_selected_object();
+	if (!position && find_edited_scene(selected))
+		return place_object_as_child(type, selected);
 	return add_object(get_current_scene(), type, position ? *position : get_placement_position());
+}
+
+std::shared_ptr<game_object> scene_editor::place_object_in_scene(std::string_view type, const scene_resource_ptr& resource, const std::optional<math::vector3d>& position)
+{
+	for (edited_scene& scene : edited_scenes)
+	{
+		if (scene.resource == resource)
+			return add_object(scene, type, position ? *position : get_placement_position());
+	}
+	return nullptr;
+}
+
+std::shared_ptr<game_object> scene_editor::place_object_as_child(std::string_view type, const std::shared_ptr<game_object>& parent)
+{
+	edited_scene* scene = find_edited_scene(parent);
+	if (!scene || parent->is_transient())
+		return nullptr;
+
+	//	置いた位置のまま親に付ける
+	const game_object_ptr object = add_object(*scene, type, get_placement_position());
+	if (object && parent->check_type(spatial_object::type_name()))
+		spatial_object::attach_object(object, parent);
+	return object;
 }
 
 scene_editor::edited_scene& scene_editor::get_current_scene()
 {
+	//	オブジェクトを選んでいる時は、そのオブジェクトのシーン
+	if (edited_scene* scene = find_edited_scene(edit_world->get_context().get_selected_object()))
+		return *scene;
+
 	for (edited_scene& scene : edited_scenes)
 	{
 		if (scene.resource == current_scene)
@@ -576,23 +554,45 @@ bool scene_editor::attach_object(const std::shared_ptr<game_object>& child, cons
 
 	//	親子は同じシーンのファイルの中でしか保存されないので、親が別のシーンなら子孫ごと親のシーンへ移す
 	if (parent_scene != child_scene)
-	{
-		const std::vector<game_object_ptr> moves = collect_object_tree(child);
-		std::unordered_set<const game_object*> move_set;
-		for (const game_object_ptr& object : moves)
-			move_set.insert(object.get());
-		for (edited_scene& scene : edited_scenes)
-		{
-			std::erase_if(scene.objects, [&](const std::weak_ptr<game_object>& weak_object)
-			{
-				const game_object_ptr object = weak_object.lock();
-				return object && move_set.find(object.get()) != move_set.end();
-			});
-		}
-		for (const game_object_ptr& object : moves)
-			parent_scene->objects.emplace_back(object);
-	}
+		move_object_tree(child, *parent_scene);
 	return true;
+}
+
+bool scene_editor::move_object_to_scene(const std::shared_ptr<game_object>& object, const scene_resource_ptr& resource)
+{
+	if (is_playing() || !object || object->is_transient())
+		return false;
+	edited_scene* from_scene = find_edited_scene(object);
+	if (!from_scene)
+		return false;
+	auto it = std::find_if(edited_scenes.begin(), edited_scenes.end(), [&](const edited_scene& scene) { return scene.resource == resource; });
+	if (it == edited_scenes.end())
+		return false;
+
+	//	親は別のシーンに残るので外してから移す
+	if (object->check_type(spatial_object::type_name()))
+		spatial_object::attach_object(object, nullptr);
+	if (&*it != from_scene)
+		move_object_tree(object, *it);
+	return true;
+}
+
+void scene_editor::move_object_tree(const std::shared_ptr<game_object>& target, edited_scene& scene)
+{
+	const std::vector<game_object_ptr> moves = collect_object_tree(target);
+	std::unordered_set<const game_object*> move_set;
+	for (const game_object_ptr& object : moves)
+		move_set.insert(object.get());
+	for (edited_scene& edited : edited_scenes)
+	{
+		std::erase_if(edited.objects, [&](const std::weak_ptr<game_object>& weak_object)
+		{
+			const game_object_ptr object = weak_object.lock();
+			return object && move_set.find(object.get()) != move_set.end();
+		});
+	}
+	for (const game_object_ptr& object : moves)
+		scene.objects.emplace_back(object);
 }
 
 scene_editor::edited_scene* scene_editor::find_edited_scene(const std::shared_ptr<game_object>& object)
@@ -676,18 +676,18 @@ void scene_editor::editor_update(float elapsed_time)
 	}
 }
 
-void scene_editor::start_play(const scene_resource_ptr& resource, std::string_view open_file)
+void scene_editor::start_play(const std::vector<scene_resource_ptr>& resources, std::string_view open_file)
 {
-	playing_scene = resource;
+	playing_scenes = resources;
 	if (handlers.start)
-		handlers.start(resource, open_file);
+		handlers.start(resources, open_file);
 }
 
 void scene_editor::stop_play()
 {
-	if (!playing_scene)
+	if (playing_scenes.empty())
 		return;
-	playing_scene.reset();
+	playing_scenes.clear();
 	if (handlers.stop)
 		handlers.stop();
 }

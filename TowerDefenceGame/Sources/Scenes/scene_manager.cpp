@@ -169,47 +169,13 @@ void scene_manager::imgui_render()
 	{
 		for (auto& scene : scenes)
 		{
-			for (const auto& loaded : scene.second->get_loaded_scenes())
-			{
-				if (loaded.system)
-					loaded.system->imgui_render();
-			}
+			if (scene_system* system = scene.second->get_system())
+				system->imgui_render();
 		}
 		return;
 	}
 
-	//	生きているシーンの一覧。システムの窓はボタンで開く
-	if (ImGui::Begin(context.make_window_name("scenes").c_str()))
-	{
-		for (auto& scene : scenes)
-		{
-			const auto& loaded_scenes = scene.second->get_loaded_scenes();
-			for (size_t index = 0; index < loaded_scenes.size(); ++index)
-			{
-				const scene_instance::loaded_scene& loaded = loaded_scenes[index];
-				ImGui::PushID(&loaded);
-				if (index > 0)
-					ImGui::Indent();
-
-				//	シーン名だけを出し、パスはカーソルを乗せた時に出す
-				const cache_string path(loaded.resource->get_file_path());
-				ImGui::TextUnformatted(scene_resource_utility::make_display_name(path.get<utf8_cache>()).c_str());
-				if (ImGui::IsItemHovered())
-					ImGui::SetTooltip("%s", path.get<utf8_cache>().data());
-				if (loaded.system)
-				{
-					ImGui::SameLine();
-					if (ImGui::SmallButton("system"))
-						loaded.system->open_window();
-				}
-				if (index > 0)
-					ImGui::Unindent();
-				ImGui::PopID();
-			}
-		}
-	}
-	ImGui::End();
-
+	//	シーンの一覧はアウトライナーに出す。システムの窓はアウトライナーの右クリックで開く
 	for (auto& scene : scenes)
 		scene.second->imgui_render();
 }
@@ -218,11 +184,9 @@ bool scene_manager::has_panel(scene_system::panel_regions region) const
 {
 	for (const auto& scene : scenes)
 	{
-		for (const auto& loaded : scene.second->get_loaded_scenes())
-		{
-			if (loaded.system && loaded.system->has_panel(region))
-				return true;
-		}
+		scene_system* system = scene.second->get_system();
+		if (system && system->has_panel(region))
+			return true;
 	}
 	return false;
 }
@@ -231,11 +195,9 @@ void scene_manager::imgui_render_panel(scene_system::panel_regions region)
 {
 	for (auto& scene : scenes)
 	{
-		for (const auto& loaded : scene.second->get_loaded_scenes())
-		{
-			if (loaded.system && loaded.system->has_panel(region))
-				loaded.system->imgui_render_panel(region);
-		}
+		scene_system* system = scene.second->get_system();
+		if (system && system->has_panel(region))
+			system->imgui_render_panel(region);
 	}
 }
 #endif	//	defined(USE_IMGUI)

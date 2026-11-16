@@ -31,8 +31,6 @@ public:
 	collision_world& get_world() {return world;}
 
 #if defined(USE_IMGUI)
-	void imgui_render();
-
 	bool get_fixed_update_count() const;
 
 	bool get_pause() const;

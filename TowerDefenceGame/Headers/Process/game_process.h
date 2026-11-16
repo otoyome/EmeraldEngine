@@ -2,10 +2,16 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "Process/framework_process.h"
 #include "Renderer/debug_view_settings.h"
 #include "Scenes/scene_resource.h"
+
+#if defined(USE_IMGUI)
+#include "Editor/outliner_window.h"
+#include "Editor/inspector_window.h"
+#endif	//	defined(USE_IMGUI)
 
 class console_command;
 class world;
@@ -15,7 +21,7 @@ class world_renderer;
 //	エディターから始めた再生の状態
 struct play_session
 {
-	scene_resource_ptr scene;		//	再生するシーン
+	std::vector<scene_resource_ptr> scenes;	//	再生するシーン
 	std::string open_file;			//	再生中のワールドに開いてもらうファイル
 	bool stop_requested = false;	//	停止の依頼
 	bool finished = false;			//	ゲームのプロセスが終わった
@@ -58,5 +64,7 @@ private:
 	std::shared_ptr<play_session> session;		//	エディターの再生の状態（エディターの再生でなければ空）
 	std::unique_ptr<console_command> pause_command;
 	std::unique_ptr<console_command> step_command;
+	outliner_window outliner;					//	シーンとオブジェクトの木の窓
+	inspector_window inspector;					//	選んでいるオブジェクトの設定の窓
 #endif	//	defined(USE_IMGUI)
 };

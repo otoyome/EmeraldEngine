@@ -153,7 +153,8 @@ bool game_process::enter()
 	//	エディターの再生では渡されたシーンから始める
 	if (session)
 	{
-		main_world->get_scenes().add_scene(session->scene);
+		for (const scene_resource_ptr& scene : session->scenes)
+			main_world->get_scenes().add_scene(scene);
 	}
 	else
 #endif	//	defined(USE_IMGUI)
@@ -289,6 +290,7 @@ void game_process::imgui_render()
 	main_world->get_scenes().imgui_render();
 
 	//	オブジェクト情報表示
-	main_world->get_objects().imgui_render();
+	outliner.imgui_render(*main_world);
+	inspector.imgui_render(*main_world);
 }
 #endif	//	defined(USE_IMGUI)

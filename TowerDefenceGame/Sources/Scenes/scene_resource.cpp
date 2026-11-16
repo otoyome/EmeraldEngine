@@ -25,29 +25,17 @@ namespace
 	}
 }
 
-bool scene_resource::set_contents(const std::vector<resource::asset_handle<scene_resource>>& scenes, const std::vector<game_object_ptr>& objects,
-								  const scene_system* system)
+bool scene_resource::set_contents(const std::vector<game_object_ptr>& objects, const scene_system* system)
 {
 	std::ostringstream stream;
 	const bool result = game_object_serializer::save(stream, objects, [&](cereal::JSONOutputArchive& archive)
 	{
-		//	サブシーンは UUID 文字列の配列で保存する
-		archive.setNextName("sub_scenes");
-		archive.startNode();
-		archive.makeArray();
-		for (const auto& scene : scenes)
-		{
-			game_object_serializer::save_asset_reference(archive, scene.get_reference().uuid);
-		}
-		archive.finishNode();
-
 		write_system(archive, system);
 	});
 	if (!result)
 		return false;
 
 	body = stream.str();
-	sub_scenes = scenes;
 	return true;
 }
 
@@ -64,42 +52,8 @@ bool scene_resource::load_file(std::string_view file_path)
 		return false;
 
 	body.assign(data.begin(), data.end());
-	if (!read_sub_scenes())
-	{
-		DEBUG_ERROR_CATEGORY(logger::categorys::system, "scene_resource deserialize failed[%s]", std::string(file_path).c_str());
-		return false;
-	}
-
 	inherit_uuid(header.uuid);
 	set_file_path(file_path);
-	return true;
-}
-
-bool scene_resource::read_sub_scenes()
-{
-	sub_scenes.clear();
-	try
-	{
-		std::istringstream stream(body);
-		cereal::JSONInputArchive archive(stream);
-
-		archive.setNextName("sub_scenes");
-		archive.startNode();
-		cereal::size_type count = 0;
-		archive.loadSize(count);
-		for (cereal::size_type index = 0; index < count; ++index)
-		{
-			resource::asset_reference<scene_resource> reference;
-			reference.uuid = game_object_serializer::load_asset_reference(archive);
-			sub_scenes.emplace_back().set_reference(std::move(reference));
-		}
-		archive.finishNode();
-	}
-	catch (const cereal::Exception&)
-	{
-		sub_scenes.clear();
-		return false;
-	}
 	return true;
 }
 

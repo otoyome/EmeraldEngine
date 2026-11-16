@@ -37,25 +37,19 @@ public:
 	scene_resource() = default;
 	~scene_resource() override = default;
 
-	//	サブシーンリスト
-	const std::vector<resource::asset_handle<scene_resource>>& get_sub_scenes() const { return sub_scenes; }
-
 	//	JSON文字列取得
 	const std::string& get_body() const { return body; }
 
 
 	//	保存・編集した結果を設定
-	bool set_contents(const std::vector<resource::asset_handle<scene_resource>>& scenes, const std::vector<game_object_ptr>& objects,
-					  const scene_system* system = nullptr);
+	bool set_contents(const std::vector<game_object_ptr>& objects, const scene_system* system = nullptr);
 
 private:
 	bool save_file(std::string_view file_path);
 	bool load_file(std::string_view file_path);
-	bool read_sub_scenes();
 
 private:
 	std::string body;
-	std::vector<resource::asset_handle<scene_resource>> sub_scenes;
 };
 
 namespace resource

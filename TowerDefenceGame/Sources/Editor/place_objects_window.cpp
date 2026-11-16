@@ -9,11 +9,17 @@
 #include "Editor/scene_editor.h"
 #include "Object/world.h"
 #include "Object/game_object_registry.h"
+#include "Object/spatial_object.h"
 #include "Scenes/scene_resource_utility.h"
+
+bool place_objects_window::is_placeable_type(std::string_view type)
+{
+	return type != game_object::type_name();
+}
 
 void place_objects_window::imgui_render(scene_editor& editor)
 {
-	//	型の一覧。ビューポートへドラッグすると落とした位置に置き、ダブルクリックするとエディターカメラの前方に置く
+	//	型の一覧
 	if (ImGui::Begin(editor.get_edit_world().get_context().make_window_name("place objects").c_str()))
 	{
 		//	置く先のシーン
@@ -21,6 +27,14 @@ void place_objects_window::imgui_render(scene_editor& editor)
 		ImGui::Text("scene : %s", scene_resource_utility::make_display_name(current_path.get<utf8_cache>()).c_str());
 		if (ImGui::IsItemHovered())
 			ImGui::SetTooltip("%s", current_path.get<utf8_cache>().data());
+
+		//	オブジェクトを選んでいれば、ダブルクリックで置いた時はその子にする
+		const std::shared_ptr<game_object> selected = editor.get_edit_world().get_context().get_selected_object();
+		if (editor.find_object_scene(selected) && selected->check_type(spatial_object::type_name()))
+		{
+			const cache_string parent_name(selected->get_name());
+			ImGui::Text("parent : %s", parent_name.get<utf8_cache>().data());
+		}
 
 		ImGui::SetNextItemWidth(-FLT_MIN);
 		ImGui::InputTextWithHint("##filter", "search", filter, sizeof(filter));
@@ -37,7 +51,7 @@ void place_objects_window::imgui_render(scene_editor& editor)
 		{
 			for (const std::string& type : game_object_registry::instance()->get_type_names())
 			{
-				if (type == game_object::type_name())
+				if (!is_placeable_type(type))
 					continue;
 				if (!lower_filter.empty() && to_lower(type).find(lower_filter) == std::string::npos)
 					continue;
