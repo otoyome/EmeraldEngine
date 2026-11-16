@@ -90,5 +90,4 @@ private:
 	D3D11_VIEWPORT viewport;
 
 	graphics_pipeline_state_ptr display_mapping_pipeline_states;
-	Microsoft::WRL::ComPtr<ID3D11Buffer> constant_buffer;
 };

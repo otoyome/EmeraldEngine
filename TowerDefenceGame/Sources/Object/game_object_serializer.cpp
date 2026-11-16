@@ -125,7 +125,8 @@ bool game_object_serializer::save(std::ostream& stream, const std::vector<game_o
 	}
 	catch (const cereal::Exception& exception)
 	{
-		_ASSERT_EXPR(false, exception.what());
+		DEBUG_ERROR_CATEGORY(logger::categorys::system, "game_object_serializer save failed[%s]", exception.what());
+		_ASSERT_EXPR(false, L"game_object_serializer save failed");
 		return false;
 	}
 
@@ -211,7 +212,8 @@ bool game_object_serializer::load(std::istream& stream, std::vector<game_object_
 	}
 	catch (const cereal::Exception& exception)
 	{
-		_ASSERT_EXPR(false, exception.what());
+		DEBUG_ERROR_CATEGORY(logger::categorys::system, "game_object_serializer load failed[%s]", exception.what());
+		_ASSERT_EXPR(false, L"game_object_serializer load failed");
 		return false;
 	}
 

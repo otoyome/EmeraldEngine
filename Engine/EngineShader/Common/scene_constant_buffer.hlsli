@@ -19,6 +19,12 @@ cbuffer SCENE_CONSTANT_BUFFER : register(b0)
     row_major float4x4 inverse_view_projection_transform;
 
     row_major float4x4 previous_view_projection_transform;
+
+    //  ディスプレイマッピング情報
+    uint rendering_gamut;       //  描画色域(color_space::gamuts と同じ値)
+    uint output_curve;          //  出力の伝達関数(display_mapping_renderer::output_curves と同じ値)
+    float peak_nits;            //  ディスプレイの最大輝度[nit]
+    float display_mapping_dummy;
 };
 
 inline float4 get_viewport_size()

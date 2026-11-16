@@ -1,9 +1,10 @@
-cbuffer TONE_MAPPING_CONSTANT_BUFFER : register(b0)
+#include "lights.hlsli"
+#include "scene_constant_buffer.hlsli"
+
+cbuffer TONE_MAPPING_CONSTANT_BUFFER : register(b1)
 {
     uint2 buffer_size;              //  バッファサイズ
-    float peak_nits;                //  ディスプレイの最大輝度[nit]
-    float luminous_efficacy;        //  最大視感効率[lm/W]
-    float4 luminance_coefficients;  //  描画色域の輝度係数(xyz)
+    float2 tone_mapping_dummy;
 };
 
 RWTexture2D<float4> scene_color_map : register(u0);
@@ -21,7 +22,7 @@ float reinhard(float x)
 float3 reinhard_tone_mapping(float3 exposed_radiance)
 {
     //  放射輝度から輝度に変換
-    float exposed_luminance = max(dot(exposed_radiance * luminous_efficacy, luminance_coefficients.xyz), 1e-5f);
+    float exposed_luminance = max(convert_rcs_to_luminance(exposed_radiance * luminous_efficacy, rendering_gamut), 1e-5f);
 
     //  ディスプレイの最大輝度で正規化した輝度をトーンマッピングし、表示する絶対輝度に戻す
     float tone_mapped_luminance = reinhard(exposed_luminance / peak_nits);

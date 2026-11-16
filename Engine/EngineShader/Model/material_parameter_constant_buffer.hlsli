@@ -2,10 +2,13 @@
 #define __MATERIAL_PARAMETER_CONSTANT_BUFFER_HLSLI__
 
 #include "common.hlsli"
+#include "scene_constant_buffer.hlsli"
 
 static const int shader_resource_view_max = 128;
 
-static const uint srv_flag_srgb = 1 << 0;  //  sRGB色空間シェーダーリソースビュー
+static const uint srv_flag_srgb = 1 << 0;               //  sRGB色空間シェーダーリソースビュー
+static const uint srv_flag_gamut_rec709 = 1 << 2;       //  テクスチャの色域 Rec.709
+static const uint srv_flag_gamut_rec2020 = 1 << 3;      //  テクスチャの色域 Rec.2020
 
 static const uint material_blend_mode_opaque = 0;		//	不透明描画
 static const uint material_blend_mode_mask = 1;			//	不透明描画+透過マスク
@@ -34,6 +37,17 @@ bool is_convert_srgb(uint resource_id)
     return shader_resource_view_flags[resource_id / 4][resource_id % 4] & srv_flag_srgb;
 }
 
+//  テクスチャの色域から描画色域へ変換
+float3 convert_texture_gamut_to_rcs(uint resource_id, float3 color)
+{
+    uint flags = shader_resource_view_flags[resource_id / 4][resource_id % 4];
+    if (flags & srv_flag_gamut_rec709)
+        return convert_linear_rec709_to_rcs(color, rendering_gamut);
+    if (flags & srv_flag_gamut_rec2020)
+        return convert_linear_rec2020_to_rcs(color, rendering_gamut);
+    return color;
+}
+
 float4 TextureSample(Texture1D srv, uint resource_id, SamplerState samp, float texcoord)
 {
     float4 color = srv.Sample(samp, texcoord);
@@ -48,6 +62,7 @@ float4 Texture2dSample(Texture2D srv, uint resource_id, SamplerState samp, float
     float4 color = srv.Sample(samp, texcoord);
     if (is_convert_srgb(resource_id))
         color.rgb = degamma(color.rgb);
+    color.rgb = convert_texture_gamut_to_rcs(resource_id, color.rgb);
 
     return color;
 }
@@ -57,6 +72,7 @@ float4 Texture2dSample(Texture3D srv, uint resource_id, SamplerState samp, float
     float4 color = srv.Sample(samp, texcoord);
     if (is_convert_srgb(resource_id))
         color.rgb = degamma(color.rgb);
+    color.rgb = convert_texture_gamut_to_rcs(resource_id, color.rgb);
 
     return color;
 }
@@ -66,6 +82,7 @@ float4 TextureCubeSample(TextureCube srv, uint resource_id, SamplerState samp, f
     float4 color = srv.Sample(samp, texcoord);
     if (is_convert_srgb(resource_id))
         color.rgb = degamma(color.rgb);
+    color.rgb = convert_texture_gamut_to_rcs(resource_id, color.rgb);
 
     return color;
 }

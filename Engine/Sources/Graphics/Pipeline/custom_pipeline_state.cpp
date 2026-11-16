@@ -18,6 +18,8 @@ namespace
 	{
 		{texture::flags::srgb, common_pipeline_states::shader_resource_view_flags_srgb},
 		{texture::flags::cube_map, common_pipeline_states::shader_resource_view_flags_cube_map},
+		{texture::flags::gamut_rec709, common_pipeline_states::shader_resource_view_flags_gamut_rec709},
+		{texture::flags::gamut_rec2020, common_pipeline_states::shader_resource_view_flags_gamut_rec2020},
 	};
 
 	//	‹ß‹——£‚Ìƒ‰ƒCƒg‚ğŒŸõ

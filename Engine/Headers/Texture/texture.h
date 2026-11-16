@@ -49,7 +49,10 @@ class texture
 public:
 	enum class flags
 	{
-		srgb,		//	SRGB対応済み
+		srgb,			//	SRGB
+
+		gamut_rec709,	//	Rec.709
+		gamut_rec2020,	//	Rec.2020
 
 		cube_map,	//	キューブマップ
 	};

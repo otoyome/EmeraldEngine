@@ -25,7 +25,7 @@ float3 CalcLambert(float3 N, float3 L, float3 C, float3 K)
 // E:視線ベクトル(正規化済み)
 // C:入射光(色・強さ)
 // K:反射率
-float3 CalcPhongSpecular(float3 N, float3 L, float3 E, float3 C, float3 K, float Power = 128)
+float3 CalcPhongSpecular(float3 N, float3 L, float3 E, float3 C, float3 K, float Power=128)
 {
 	float3 R = reflect(L, N);
 	float power = max(dot(-E, R), 0);
@@ -125,9 +125,6 @@ static const float GammaFactor = 2.2f;
 //	円周率
 static const float PI = 3.141592654f;
 
-//  直接光で使う粗さの下限
-static const float direct_lighting_minimum_roughness = 0.045f;
-
 //--------------------------------------------
 //	拡散反射BRDF(正規化ランバートの拡散反射)
 //--------------------------------------------
@@ -151,7 +148,8 @@ float3 CalcFresnel(float3 F0, float VdotH)
 //	法線分布関数
 //--------------------------------------------
 //NdotH		: 法線ベクトルとハーフベクトル（光源へのベクトルと視点へのベクトルの中間ベクトル）の内積
-//roughness : 粗さ
+//roughness : 粗さ(知覚的な粗さ。GGX の α = roughness^2 とする)
+//  ※幾何減衰項・IBL の事前フィルタリングと同じ α の定義に揃えること
 float CalcNormalDistributionFunction(float NdotH, float roughness)
 {
     float alpha = roughness * roughness;
@@ -168,7 +166,25 @@ float CalcNormalDistributionFunction(float NdotH, float roughness)
 //roughness : 粗さ
 float CalcGeometryFunction(float NdotL, float NdotV, float roughness)
 {
-    float k = (roughness + 1.0f) * (roughness + 1.0f) / 8.0f;
+    float r = (roughness + 1.0f);
+    float k = (r * r) / 8.0f;
+
+    float shadowing = NdotL / (NdotL * (1.0 - k) + k);
+    float masking = NdotV / (NdotV * (1.0 - k) + k);
+    return shadowing * masking;
+}
+
+//--------------------------------------------
+//	幾何減衰項の算出
+//--------------------------------------------
+//NdotL		: 法線ベクトルと光源へのベクトルとの内積
+//NdotV		: 法線ベクトルと視線へのベクトルとの内積
+//roughness : 粗さ
+float CalcGeometryFunctionIBL(float NdotL, float NdotV, float roughness)
+{
+    float r = roughness;
+    float k = (roughness * roughness) * 0.5f;
+
     float shadowing = NdotL / (NdotL * (1.0f - k) + k);
     float masking = NdotV / (NdotV * (1.0f - k) + k);
     return shadowing * masking;
@@ -194,32 +210,6 @@ float3 SpecularBRDF(float NdotV, float NdotL, float NdotH, float3 F, float rough
 }
 
 //--------------------------------------------
-//  環境BRDFの近似（Karis の解析近似）
-//--------------------------------------------
-//NdotV		: 法線ベクトルと視線へのベクトルとの内積
-//roughness	: 粗さ
-float2 CalcEnvironmentBRDFApprox(float NdotV, float roughness)
-{
-    const float4 c0 = float4(-1.0f, -0.0275f, -0.572f, 0.022f);
-    const float4 c1 = float4(1.0f, 0.0425f, 1.04f, -0.04f);
-    float4 r = roughness * c0 + c1;
-    float a004 = min(r.x * r.x, exp2(-9.28f * NdotV)) * r.x + r.y;
-    //  x = F0 の係数, y = バイアス
-    return float2(-1.04f, 1.04f) * a004 + r.zw;
-}
-
-//--------------------------------------------
-//  多重散乱のエネルギー補償
-//--------------------------------------------
-//F0			: 垂直入射時のフレネル反射色
-//environment_brdf	: 環境BRDF（x = F0 の係数, y = バイアス）
-float3 CalcMultipleScatteringCompensation(float3 F0, float2 environment_brdf)
-{
-    float energy = max(environment_brdf.x + environment_brdf.y, 0.0001f);
-    return 1.0f + F0 * (1.0f / energy - 1.0f);
-}
-
-//--------------------------------------------
 //  スペキュラオクルージョン（Lagarde の近似）
 //--------------------------------------------
 //NdotV		: 法線ベクトルと視線へのベクトルとの内積
@@ -241,7 +231,7 @@ float CalcSpecularOcclusion(float NdotV, float occlusion, float roughness)
 //lightVector			: 光源に向かうベクトル(正規化済み)
 //lightColor			: ライトカラー
 //roughness				: 粗さ
-void DirectBDRF(float3 diffuseReflectance,
+void DirectBRDF(float3 diffuseReflectance,
 				float3 F0,
 				float3 normal,
 				float3 eyeVector,
@@ -256,14 +246,13 @@ void DirectBDRF(float3 diffuseReflectance,
     float3 V = -eyeVector;
     float3 H = normalize(L + V);
 
-    roughness = max(roughness, direct_lighting_minimum_roughness);
+    float NdotV = max(0.0001f, dot(N, V));
+    float NdotL = max(0.0001f, dot(N, L));
+    float NdotH = max(0.0001f, dot(N, H));
+    float VdotH = max(0.0001f, dot(V, H));
 
-    float NdotV = max(0.000001f, dot(N, V));
-    float NdotL = max(0.000001f, dot(N, L));
-    float NdotH = max(0.000001f, dot(N, H));
-    float VdotH = max(0.000001f, dot(V, H));
-
-    float3 irradiance = lightColor * NdotL;
+    //  裏面には光が当たらないようにする(0除算回避用のクランプ値は照度計算に使わない)
+    float3 irradiance = lightColor * saturate(dot(N, L));
     
 	//	F項(フレネル反射)
     float3 F = CalcFresnel(F0, VdotH);
@@ -273,7 +262,6 @@ void DirectBDRF(float3 diffuseReflectance,
 
 	//	鏡面反射BRDF
     outSpecular = SpecularBRDF(NdotV, NdotL, NdotH, F, roughness) * irradiance;
-    outSpecular *= CalcMultipleScatteringCompensation(F0, CalcEnvironmentBRDFApprox(NdotV, roughness));
 }
 
 //--------------------------------------------
@@ -282,9 +270,25 @@ void DirectBDRF(float3 diffuseReflectance,
 //brdf_sample_point	: サンプリングポイント
 //lut_ggx_map       : GGXルックアップテーブル
 //state             : 参照時のサンプラーステート
-float4 SampleLutGGX(float2 brdf_sample_point, Texture2D lut_ggx_map, SamplerState state)
+//  LUT生成時のパラメーター範囲(generate_brdf_lut_cs.hlsl と一致させること)
+static const float lut_ggx_minimum_NdotV = 0.001f;
+static const float lut_ggx_minimum_roughness = 0.04f;
+
+float4 SampleLutGGX(float2 brdf_sample_point, Texture2D lut_ggx_map)
 {
-    return lut_ggx_map.Sample(state, brdf_sample_point);
+    //  ピクセルがなんかずれるのでフィルター無しにしておく
+    int2 texture_size;
+    lut_ggx_map.GetDimensions(texture_size.x, texture_size.y);
+
+    //  生成時に NdotV / roughness を底上げしているので、その逆変換をしてからテクセルを求める
+    float2 t;
+    t.x = saturate((brdf_sample_point.x - lut_ggx_minimum_NdotV) / (1.0f - lut_ggx_minimum_NdotV));
+    t.y = saturate((brdf_sample_point.y - lut_ggx_minimum_roughness) / (1.0f - lut_ggx_minimum_roughness));
+
+    //  生成時はテクセル index / size の位置で計算しているので、それに合わせて丸める
+    //  (1.0 で範囲外を読まないようにクランプする)
+    int2 texel = clamp(int2(t * texture_size + 0.5f), int2(0, 0), texture_size - 1);
+    return lut_ggx_map.Load(int3(texel, 0));
 }
 
 //--------------------------------------------
@@ -344,8 +348,10 @@ float3 DiffuseIBL(float3 normal, float3 eye_vector, float roughness, float3 diff
     float NdotV = max(0.0001f, dot(N, V));
     float3 kD = 1.0f - CalcFresnelRoughness(f0, NdotV, roughness);
 
+    //  拡散反射IBLマップには放射照度 E が格納されている(generate_irradiance_map_cs.hlsl)
+    //  ランバート反射の放射輝度 = albedo / π * E
     float3 irradiance = SampleDiffuseIEM(normal, diffuse_iem_cube_map, state).rgb;
-    return diffuse_reflectance * irradiance * kD;
+    return diffuse_reflectance * irradiance * kD * (1.0f / PI);
 }
 
 //--------------------------------------------
@@ -368,8 +374,8 @@ float3 SpecularIBL(float3 normal, float3 eye_vector, float roughness, float3 f0,
     float3 specular_light = SampleSpecularPMREM(R, roughness, specular_pmrem_cube_map, state).rgb;
 
     float2 brdf_sample_point = saturate(float2(NdotV, roughness));
-    float2 env_brdf = SampleLutGGX(brdf_sample_point, lut_ggx_map, state).rg;
-    return specular_light * (f0 * env_brdf.x + env_brdf.y) * CalcMultipleScatteringCompensation(f0, env_brdf);
+    float2 env_brdf = SampleLutGGX(brdf_sample_point, lut_ggx_map).rg;
+    return specular_light * (f0 * env_brdf.x + env_brdf.y);
 }
 
 //--------------------------------------------

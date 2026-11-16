@@ -58,7 +58,14 @@ namespace
 			return true;
 
 		DirectX::ScratchImage result;
-		if (FAILED(DirectX::Convert(image.GetImages(), image.GetImageCount(), image.GetMetadata(), format, DirectX::TEX_FILTER_DEFAULT, DirectX::TEX_THRESHOLD_DEFAULT, result)))
+		if (SUCCEEDED(DirectX::Convert(image.GetImages(), image.GetImageCount(), image.GetMetadata(), format, DirectX::TEX_FILTER_DEFAULT, DirectX::TEX_THRESHOLD_DEFAULT, result)))
+		{
+			image = std::move(result);
+			return true;
+		}
+
+		//	WIC ‚Í 2GB ‚ð’´‚¦‚é‰æ‘œ‚ð•ÏŠ·‚Å‚«‚È‚¢
+		if (FAILED(DirectX::Convert(image.GetImages(), image.GetImageCount(), image.GetMetadata(), format, DirectX::TEX_FILTER_FORCE_NON_WIC, DirectX::TEX_THRESHOLD_DEFAULT, result)))
 			return false;
 		image = std::move(result);
 		return true;
@@ -274,7 +281,11 @@ bool texture_importer::resize(DirectX::ScratchImage& image, const texture_import
 
 	DirectX::ScratchImage resized;
 	if (FAILED(DirectX::Resize(*image.GetImage(0, 0, 0), width, height, to_tex_filter(settings.filter), resized)))
-		return false;
+	{
+		//	WIC ‚Í 2GB ‚ð’´‚¦‚é‰æ‘œ‚ðˆµ‚¦‚È‚¢
+		if (FAILED(DirectX::Resize(*image.GetImage(0, 0, 0), width, height, to_tex_filter(settings.filter) | DirectX::TEX_FILTER_FORCE_NON_WIC, resized)))
+			return false;
+	}
 	image = std::move(resized);
 	return true;
 }

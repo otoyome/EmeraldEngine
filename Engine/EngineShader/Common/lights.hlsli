@@ -3,6 +3,9 @@
 
 #include "common.hlsli"
 
+//	Å‘å‹Š´Œø—¦
+static const float luminous_efficacy = 683.0f;
+
 //	ƒ‰ƒCƒgî•ñ
 struct light_data
 {

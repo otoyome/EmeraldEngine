@@ -5,6 +5,10 @@
 #include "Resource/asset_handle.h"
 #include "Texture/texture_resource.h"
 
+#if defined(USE_IMGUI)
+#include "Editor/editor_items.h"
+#endif	//	defined(USE_IMGUI)
+
 //	ライトオブジェクト
 class light_object : public spatial_object
 {
@@ -124,6 +128,15 @@ class light_probe_object : public spatial_object
 	GAME_OBJECT_DECRLEAR(light_probe_object, spatial_object)
 
 public:
+	static constexpr std::uint32_t serialize_version = 1;
+
+	enum class source_types : std::uint8_t
+	{
+		captured,			//	キャプチャしたもの
+		specified_texture,	//	指定した IBL テクスチャ
+	};
+
+public:
 	light_probe_ptr get_light_probe() const;
 
 	void set_flag(light_probe::flags flag, bool value);
@@ -134,6 +147,9 @@ public:
 	void set_color(const math::float3& color);
 	const math::float3& get_color() const;
 
+	void set_source_type(source_types type);
+	source_types get_source_type() const { return source_type; }
+
 	void set_diffuse_ibl_texture(texture_resource_ptr texture);
 	const texture_resource_ptr& get_diffuse_ibl_texture() const;
 
@@ -142,7 +158,6 @@ public:
 
 	void set_lut_ggx_texture(texture_resource_ptr texture);
 	const texture_resource_ptr& get_lut_ggx_texture() const;
-
 
 public:
 	light_probe_object(std::string_view name);
@@ -165,15 +180,26 @@ protected:
 
 	void sync_to_light_probe();
 
+	void apply_ibl_textures();
+
 protected:
 	light_probe_ptr light_probe;
 
 private:
+	friend class game_object_serializer;
+	template<class Archive>
+	void serialize_fields(Archive& archive, std::uint32_t version);
+
 	std::uint32_t applied_spatial_version = UINT32_MAX;
 
 	resource::asset_handle<texture_resource> diffuse_ibl_texture;
 	resource::asset_handle<texture_resource> specular_ibl_texture;
 	resource::asset_handle<texture_resource> lut_ggx_texture;
+	source_types source_type = source_types::specified_texture;
+
+#if defined(USE_IMGUI)
+	std::shared_ptr<editor_items::context> editor_context;
+#endif	//	defined(USE_IMGUI)
 };
 
 //	スカイライトオブジェクト

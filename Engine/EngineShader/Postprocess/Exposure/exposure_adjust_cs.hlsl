@@ -11,7 +11,7 @@ void main(uint3 dispatch_thread_id : SV_DispatchThreadID)
         return;
 
     float4 color = scene_color_map[dispatch_thread_id.xy];
-    color.rgb *= exposure_scale;
+    color.rgb *= exposure_scale * peak_nits;
 
 
     scene_color_map[dispatch_thread_id.xy] = color;

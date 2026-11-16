@@ -2,7 +2,6 @@
 #include "Object/engine_context.h"
 
 scene_base::scene_base()
-: context(constructing_context)
 {
 }
 

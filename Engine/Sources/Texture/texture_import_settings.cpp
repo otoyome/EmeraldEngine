@@ -27,6 +27,14 @@ texture_import_settings texture_import_settings::make_preset(presets preset)
 			settings.format = gpu_formats::uncompressed;
 			settings.generate_mipmaps = false;
 			break;
+		case presets::hdr:
+		{
+			settings.transfer_function = transfer_functions::linear;
+			settings.gamut = color_gamuts::rec709;
+			settings.format = gpu_formats::bc6h;
+			settings.generate_mipmaps = true;
+			break;
+		}
 	}
 	return settings;
 }

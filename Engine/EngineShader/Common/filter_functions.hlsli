@@ -4,65 +4,6 @@
 #include "common.hlsli"
 
 //--------------------------------------------
-//	RGB色空間の数値からHSV色空間の数値への変換関数
-//--------------------------------------------
-//rgb:RGB色空間の数値
-float3 convert_rgb_to_hsv( float3 rgb )
-{
-    float4 K = float4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);
-    float4 p = (rgb.g < rgb.b) ? float4(rgb.bg, K.wz) : float4(rgb.gb, K.xy);
-    float4 q = (rgb.r < p.x) ? float4(p.xyw, rgb.r) : float4(rgb.r, p.yzx);
-    float d = q.x - min(q.w, q.y);
-    float eps = 1.0e-10;
-    return float3(abs(q.z + (q.w - q.y) / (6.0 * d + eps)), d / (q.x + eps), q.x);
-}
-
-//--------------------------------------------
-//	HSV色空間の数値からRGB色空間の数値への変換関数
-//--------------------------------------------
-//hsv:HSV色空間の数値
-float3	convert_hsv_to_rgb( float3 hsv )
-{
-    float4 K = float4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
-    float3 p = abs(frac(hsv.xxx + K.xyz) * 6.0 - K.www);
-    return hsv.z * lerp(K.xxx, clamp(p - K.xxx, 0.0, 1.0), clamp(hsv.y, 0.0, 1.0));
-}
-
-//--------------------------------------------
-//	RGB色から輝度への変換関数
-//--------------------------------------------
-float convert_rgb_to_luminance(float3 rgb)
-{
-    static const float3 luminanceValue = float3(0.299f, 0.587f, 0.114f);
-    return dot(luminanceValue, rgb);
-}
-
-//--------------------------------------------
-//	RGB色を対数圧縮関数
-//--------------------------------------------
-float3 compress_rgb_to_log(float3 color)
-{
-	return log2(color.rgb + 1.0f);
-}
-float4 compress_rgba_to_log(float4 color)
-{
-	return log2(color + 1.0f);
-}
-
-//--------------------------------------------
-//	RGB色を対数圧縮関数
-//--------------------------------------------
-float3 decompress_rgb_to_log(float3 color)
-{
-	return exp2(color.rgb) - 1.0f;
-}
-
-float4 decompress_rgba_to_log(float4 color)
-{
-	return exp2(color) - 1.0f;
-}
-
-//--------------------------------------------
 //	覆い焼きブレンド
 //--------------------------------------------
 #define	blend_burn(A, B)					(1.0f - (1.0f - (A)) / (B))

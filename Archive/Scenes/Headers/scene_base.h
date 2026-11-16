@@ -63,9 +63,6 @@ protected:
 private:
 	friend class scene_manager;
 
-	//	@tool scene_manager がシーンを作る間だけ入る（コンストラクタからワールドを使えるようにする）
-	inline static engine_context* constructing_context = nullptr;
-
 	engine_context* context = nullptr;
 	std::vector<std::weak_ptr<game_object>> game_objects;
 	std::vector<std::weak_ptr<collision_object>> collision_objects;
@@ -85,9 +82,7 @@ public:
 	template<typename scene_type>
 	void create_scene_function()
 	{
-		scene_base::constructing_context = &context;
 		auto created = std::make_unique<scene_type>();
-		scene_base::constructing_context = nullptr;
 
 		scenes.insert_or_assign(std::string(scene_type::type_name()), std::move(created));
 		auto& scene = scenes.find(std::string(scene_type::type_name()))->second;

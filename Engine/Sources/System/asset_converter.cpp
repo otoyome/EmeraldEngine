@@ -128,6 +128,7 @@ void asset_converter::imgui_render_texture_options()
 		{ texture_import_settings::presets::color, "color" },
 		{ texture_import_settings::presets::normal, "normal" },
 		{ texture_import_settings::presets::data, "data" },
+		{ texture_import_settings::presets::hdr, "hdr" },
 	};
 	for (const auto& [preset, name] : presets)
 	{

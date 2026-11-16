@@ -18,7 +18,7 @@ struct texture_import_settings
 	//	色域
 	enum class color_gamuts : std::uint8_t
 	{
-		none,		//	データ(色空間の変換をしない)
+		none,		//	データ
 		rec709,		//	Rec.709
 		rec2020,	//	Rec.2020
 	};
@@ -51,6 +51,7 @@ struct texture_import_settings
 		color,
 		normal,
 		data,
+		hdr,
 	};
 
 	std::string source_path;

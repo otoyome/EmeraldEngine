@@ -419,7 +419,7 @@ const math::float3& light_probe_object::get_color() const
 void light_probe_object::set_diffuse_ibl_texture(texture_resource_ptr texture)
 {
 	diffuse_ibl_texture = texture;
-	light_probe->set_diffuse_ibl_texture(texture ? texture->get_texture() : nullptr);
+	apply_ibl_textures();
 }
 
 const texture_resource_ptr& light_probe_object::get_diffuse_ibl_texture() const
@@ -430,7 +430,7 @@ const texture_resource_ptr& light_probe_object::get_diffuse_ibl_texture() const
 void light_probe_object::set_specular_ibl_texture(texture_resource_ptr texture)
 {
 	specular_ibl_texture = texture;
-	light_probe->set_specular_ibl_texture(texture ? texture->get_texture() : nullptr);
+	apply_ibl_textures();
 }
 
 const texture_resource_ptr& light_probe_object::get_specular_ibl_texture() const
@@ -441,7 +441,7 @@ const texture_resource_ptr& light_probe_object::get_specular_ibl_texture() const
 void light_probe_object::set_lut_ggx_texture(texture_resource_ptr texture)
 {
 	lut_ggx_texture = texture;
-	light_probe->set_lut_ggx_texture(texture ? texture->get_texture() : nullptr);
+	apply_ibl_textures();
 }
 
 const texture_resource_ptr& light_probe_object::get_lut_ggx_texture() const
@@ -449,9 +449,33 @@ const texture_resource_ptr& light_probe_object::get_lut_ggx_texture() const
 	return lut_ggx_texture.get();
 }
 
+void light_probe_object::set_source_type(source_types type)
+{
+	source_type = type;
+	apply_ibl_textures();
+}
+
+void light_probe_object::apply_ibl_textures()
+{
+	if (!light_probe)
+		return;
+
+	const bool use_texture = source_type == source_types::specified_texture;
+	auto get_texture = [use_texture](const resource::asset_handle<texture_resource>& handle) -> texture_ptr
+	{
+		return use_texture && handle.get() ? handle.get()->get_texture() : nullptr;
+	};
+	light_probe->set_diffuse_ibl_texture(get_texture(diffuse_ibl_texture));
+	light_probe->set_specular_ibl_texture(get_texture(specular_ibl_texture));
+	light_probe->set_lut_ggx_texture(get_texture(lut_ggx_texture));
+}
+
 light_probe_object::light_probe_object(std::string_view name)
 : spatial_object(name)
 {
+#if defined(USE_IMGUI)
+	editor_context = editor_items::generate_context();
+#endif	//	defined(USE_IMGUI)
 }
 
 light_probe_object::~light_probe_object()
@@ -496,6 +520,35 @@ void light_probe_object::imgui_render_core()
 	math::float3 color = get_color();
 	if (ImGui::ColorEditGamut3("color", &color.x, color_space::gamuts::rec2020, ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR))
 		set_color(color);
+
+	//	IBLテクスチャ
+	auto edit_ibl_texture = [&](const char* label, const resource::asset_handle<texture_resource>& current, void (light_probe_object::*setter)(texture_resource_ptr))
+	{
+		resource::asset_handle<texture_resource> handle = current;
+		ImGui::PushID(label);
+		ImGui::Text(label);
+		ImGui::SameLine();
+		if (editor_items::edit_texture_item(editor_context, handle))
+			(this->*setter)(handle.get());
+		ImGui::PopID();
+	};
+
+	//	IBL の取得元
+	static constexpr const char* source_type_names[] = { "captured", "specified_texture" };
+	int source_type_index = static_cast<int>(source_type);
+	if (ImGui::Combo("source", &source_type_index, source_type_names, IM_ARRAYSIZE(source_type_names)))
+		set_source_type(static_cast<source_types>(source_type_index));
+
+	if (source_type == source_types::specified_texture)
+	{
+		edit_ibl_texture("diffuse_ibl", diffuse_ibl_texture, &light_probe_object::set_diffuse_ibl_texture);
+		edit_ibl_texture("specular_ibl", specular_ibl_texture, &light_probe_object::set_specular_ibl_texture);
+		edit_ibl_texture("lut_ggx", lut_ggx_texture, &light_probe_object::set_lut_ggx_texture);
+	}
+	else
+	{
+		ImGui::TextDisabled("capture is not implemented");
+	}
 
 	imgui_tree_inner_render();
 }
@@ -708,44 +761,59 @@ void spot_light_object::deserialize(cereal::JSONInputArchive& archive)
 	set_outer_cone(outer_cone);
 }
 
-void light_probe_object::serialize(cereal::JSONOutputArchive& archive) const
+template<class Archive>
+void light_probe_object::serialize_fields(Archive& archive, std::uint32_t version)
 {
-	base::serialize(archive);
-
 	float intensity = get_intensity();
 	math::float3 color = get_color();
 	archive(CEREAL_NVP(intensity), CEREAL_NVP(color));
-
-	auto save_texture = [&](const char* name, const resource::asset_handle<texture_resource>& texture)
+	switch (version)
 	{
-		const resource::asset_reference<texture_resource> reference = texture.get_reference();
-		game_object_serializer::save_asset_reference(archive, name, reference.uuid);
-	};
-	save_texture("diffuse_ibl_texture", diffuse_ibl_texture);
-	save_texture("specular_ibl_texture", specular_ibl_texture);
-	save_texture("lut_ggx_texture", lut_ggx_texture);
+		case 0:
+		{
+			source_type = source_types::specified_texture;
+			break;
+		}
+		case 1:
+		{
+			archive(CEREAL_NVP(source_type));
+			break;
+		}
+	}
+
+	universally_unique_identifier diffuse_ibl_texture_uuid = diffuse_ibl_texture.get_reference().uuid;
+	universally_unique_identifier specular_ibl_texture_uuid = specular_ibl_texture.get_reference().uuid;
+	universally_unique_identifier lut_ggx_texture_uuid = lut_ggx_texture.get_reference().uuid;
+	game_object_serializer::serialize_asset_reference(archive, "diffuse_ibl_texture", diffuse_ibl_texture_uuid);
+	game_object_serializer::serialize_asset_reference(archive, "specular_ibl_texture", specular_ibl_texture_uuid);
+	game_object_serializer::serialize_asset_reference(archive, "lut_ggx_texture", lut_ggx_texture_uuid);
+
+	if constexpr (Archive::is_loading::value)
+	{
+		auto load_texture = [](const universally_unique_identifier& uuid) -> texture_resource_ptr
+		{
+			if (uuid.is_empty())
+				return nullptr;
+			return texture_resource_utility::load_texture_resource(game_object_serializer::resolve_asset_path(uuid));
+		};
+		set_intensity(intensity);
+		set_color(color);
+		set_diffuse_ibl_texture(load_texture(diffuse_ibl_texture_uuid));
+		set_specular_ibl_texture(load_texture(specular_ibl_texture_uuid));
+		set_lut_ggx_texture(load_texture(lut_ggx_texture_uuid));
+	}
+}
+
+void light_probe_object::serialize(cereal::JSONOutputArchive& archive) const
+{
+	base::serialize(archive);
+	game_object_serializer::save_fields(archive, "light_probe_object", *this);
 }
 
 void light_probe_object::deserialize(cereal::JSONInputArchive& archive)
 {
 	base::deserialize(archive);
-
-	float intensity = 0.0f;
-	math::float3 color;
-	archive(CEREAL_NVP(intensity), CEREAL_NVP(color));
-	set_intensity(intensity);
-	set_color(color);
-
-	auto load_texture = [&](const char* name) -> texture_resource_ptr
-	{
-		const universally_unique_identifier uuid = game_object_serializer::load_asset_reference(archive, name);
-		if (uuid.is_empty())
-			return nullptr;
-		return texture_resource_utility::load_texture_resource(game_object_serializer::resolve_asset_path(uuid));
-	};
-	set_diffuse_ibl_texture(load_texture("diffuse_ibl_texture"));
-	set_specular_ibl_texture(load_texture("specular_ibl_texture"));
-	set_lut_ggx_texture(load_texture("lut_ggx_texture"));
+	game_object_serializer::load_fields(archive, "light_probe_object", *this);
 }
 
 void area_light_probe_object::serialize(cereal::JSONOutputArchive& archive) const

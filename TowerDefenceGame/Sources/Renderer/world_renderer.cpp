@@ -699,6 +699,11 @@ void world_renderer::prepare_renderer_context(
 #endif	//	defined(USE_IMGUI)
 
 		target_view->fill_scene_constants(context.scene_constant, target_state.get());
+
+		//	ディスプレイマッピング情報
+		context.scene_constant.rendering_gamut = static_cast<UINT>(engine_config_data::instance()->get_active_rendering_gamut());
+		context.scene_constant.output_curve = static_cast<UINT>(display_mapping_renderer::output_curves::srgb);
+		context.scene_constant.peak_nits = sdr_reference_white_nits;
 	}
 
 	//	描画視点情報と描画制御情報設定

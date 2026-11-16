@@ -48,7 +48,7 @@ void main(uint3 group_thread_id : SV_GroupThreadID, uint group_index : SV_GroupI
             float weight = (center_weighted && dot(offset, offset) <= circle_radius * circle_radius) ? inner_weight : 1.0f;
 
             float3 color = source_texture[position].rgb;
-            total_value += dot(color, luminance_coefficients.xyz) * weight;
+            total_value += convert_rcs_to_luminance(color, rendering_gamut) * weight;
             total_weight += weight;
         }
     }

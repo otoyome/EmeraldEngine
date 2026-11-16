@@ -53,6 +53,13 @@ public:
 	template<class Archive, class Owner>
 	static void load_fields(Archive& archive, const char* name, Owner& owner)
 	{
+		const char* next_name = archive.getNodeName();
+		if (!next_name || std::string_view(next_name) != name)
+		{
+			owner.serialize_fields(archive, 0);
+			return;
+		}
+
 		std::uint32_t version = 0;
 		archive.setNextName(name);
 		archive.startNode();

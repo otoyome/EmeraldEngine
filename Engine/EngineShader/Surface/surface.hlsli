@@ -3,6 +3,7 @@
 
 //  サーフェイス計算結果と、それを GBufferData へ変換するヘルパー
 #include "gbuffer.hlsli"
+#include "lights.hlsli"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 //  サーフェイス計算結果格納情報
@@ -36,13 +37,10 @@ struct SurfaceData
 //  @tool シーンの輝度なので、ディスプレイの基準白(sdr_reference_white_nits)とは別の値として扱い、ディスプレイの設定で変えない
 static const float emissive_reference_nits = 100.0f;
 
-//  @tool 最大視感効率[lm/W](light_utility::luminous_efficacy と同じ値)
-static const float emissive_luminous_efficacy = 683.0f;
-
 //  @tool マテリアルの自己発光色を放射量へ変換する
 float3 convert_emissive_to_radiance(float3 emissive_color)
 {
-    return emissive_color * (emissive_reference_nits / emissive_luminous_efficacy);
+    return emissive_color * (emissive_reference_nits / luminous_efficacy);
 }
 
 GBufferData convert_g_buffer_data(in SurfaceData surface_data)

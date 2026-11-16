@@ -1,15 +1,7 @@
 #ifndef __COMMON_HLSLI__
 #define __COMMON_HLSLI__
 
-float3 gamma(float3 x)
-{
-    return pow(x, 1.0f / 2.2f);
-}
-
-float3 degamma(float3 x)
-{
-    return pow(x, 2.2);
-}
+#include "color_space.hlsli"
 
 #define	alignment( s, a )		( ( s + ( a - 1 ) ) & ~( a - 1 ) )
 

@@ -160,7 +160,7 @@ bool game_process::enter()
 	}
 	else
 	{
-		//	@tool 起動シーンセットの指定があれば、その中のシーンを全部読む
+		//	起動シーンセットの指定があれば、その中のシーンを全部読む
 		const std::vector<std::string> set_scenes = get_startup_scene_set_paths();
 		if (!set_scenes.empty())
 		{

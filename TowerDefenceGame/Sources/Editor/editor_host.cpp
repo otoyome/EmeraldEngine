@@ -276,6 +276,19 @@ void editor_host::imgui_initialize()
 	register_material_create_handler("Material (Post Process)", material_resource::domains::post_process);
 	register_material_create_handler("Material (User Interface)", material_resource::domains::user_interface);
 
+	//	シーンセットの新規作成
+	{
+		asset_browser::create_handler handler;
+		handler.label = "Scene Set";
+		handler.default_name = "NewSceneSet";
+		handler.extension = std::string(".") + std::string(scene_set_resource::extension);
+		handler.create = [](std::string_view file_path)
+		{
+			return resource_manager::instance()->save(std::make_shared<scene_set_resource>(), file_path);
+		};
+		asset_browser::instance()->register_create_handler(std::move(handler));
+	}
+
 	//	ツール窓
 	editor_items::register_tool_window(editor_context, std::make_unique<editor_items::function_window>("Asset Browser", [](bool& open) { asset_browser::instance()->imgui_render(open); }), asset_browser_window_variable);
 	editor_items::register_tool_window(editor_context, std::make_unique<log_window>(), log_window_variable);

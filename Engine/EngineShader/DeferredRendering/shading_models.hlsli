@@ -43,10 +43,14 @@ DirectLighting integrate_bxdf(in GBufferData gbuffer_data, in LightingData light
             float3 view_vector = normalize(gbuffer_data.w_position.xyz - lighting_data.camera_position.xyz);
             float3 diffuse_reflectance = lerp(albedo.rgb, 0.0f, gbuffer_data.metalness);
             float3 fresnel0 = lerp(0.08f * gbuffer_data.specular, albedo.rgb, gbuffer_data.metalness);
-            DirectBDRF(diffuse_reflectance, fresnel0, normal, view_vector, lighting_data.direction,
+            DirectBRDF(diffuse_reflectance, fresnel0, normal, view_vector, lighting_data.direction,
                        lighting_data.color, gbuffer_data.roughness, result.diffuse, result.specular);
             result.diffuse *= lighting_data.shadowing_attenuation * lighting_data.shading_attenuation;
             result.specular *= lighting_data.shadowing_attenuation * lighting_data.shading_attenuation;
+
+	        //	Ž©ŒÈŽÕ•Á
+            result.diffuse *= gbuffer_data.occlusion;
+            result.specular *= gbuffer_data.occlusion;
             break;
         }
         case shading_model_pmx_lit:

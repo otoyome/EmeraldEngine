@@ -14,6 +14,15 @@
 #include "cereal/archives/binary.hpp"
 #include "cereal/types/vector.hpp"
 
+namespace
+{
+	void apply_gamut_flags(texture& target, texture_import_settings::color_gamuts gamut)
+	{
+		target.set_flag(texture::flags::gamut_rec709, gamut == texture_import_settings::color_gamuts::rec709);
+		target.set_flag(texture::flags::gamut_rec2020, gamut == texture_import_settings::color_gamuts::rec2020);
+	}
+}
+
 bool texture_resource::load_file(std::string_view file_path)
 {
 	resource::asset_file_header header;
@@ -35,6 +44,7 @@ bool texture_resource::load_file(std::string_view file_path)
 		return false;
 	}
 	created->set_sampler_desc(settings.sampler);
+	apply_gamut_flags(*created, settings.gamut);
 #if defined(USE_IMGUI)
 	created->set_debug_name(file_path);
 #endif	//	defined(USE_IMGUI)
@@ -70,7 +80,10 @@ bool texture_resource::save_file(std::string_view file_path, std::string_view dd
 		return false;
 
 	if (value)
+	{
 		value->set_sampler_desc(settings.sampler);
+		apply_gamut_flags(*value, settings.gamut);
+	}
 	set_missing(false);
 	return true;
 }

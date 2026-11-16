@@ -70,6 +70,12 @@ namespace common_pipeline_states
 		math::float4x4 inverse_projection_transform;
 		math::float4x4 inverse_view_projection_transform;
 		math::float4x4 previous_view_projection_transform;
+
+		//	ディスプレイマッピング情報
+		UINT rendering_gamut;		//	描画色域(color_space::gamuts)
+		UINT output_curve;			//	出力の伝達関数(display_mapping_renderer::output_curves)
+		float peak_nits;			//	ディスプレイの最大輝度[nit]
+		float display_mapping_dummy;
 	};
 
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -296,6 +302,8 @@ namespace common_pipeline_states
 	};
 	//	シェーダーリソースフラグ
 	constexpr UINT shader_resource_view_flags_srgb = 1 << 0;  //  sRGB色空間の情報フラグ
+	constexpr UINT shader_resource_view_flags_gamut_rec709 = 1 << 2;	//	テクスチャの色域 Rec.709
+	constexpr UINT shader_resource_view_flags_gamut_rec2020 = 1 << 3;	//	テクスチャの色域 Rec.2020
 	constexpr UINT shader_resource_view_flags_cube_map = 1 << 1;  //  キューブマップフラグ
 
 	//  マテリアルアトリビュート
