@@ -17,30 +17,25 @@ class console_command;
 class world;
 class world_renderer;
 
-#if defined(USE_IMGUI)
-//	エディターから始めた再生の状態
-struct play_session
-{
-	std::vector<scene_resource_ptr> scenes;	//	再生するシーン
-	std::string open_file;			//	再生中のワールドに開いてもらうファイル
-	bool stop_requested = false;	//	停止の依頼
-	bool finished = false;			//	ゲームのプロセスが終わった
-};
-#endif	//	defined(USE_IMGUI)
-
 //	ゲームのプロセス
 class game_process : public framework_process
 {
 public:
-	explicit game_process(framework& owner);
+	//	プロセスキー
+	static constexpr std::string_view process_key = "game";
 
-#if defined(USE_IMGUI)
-	//	エディターの再生用
-	game_process(framework& owner, std::shared_ptr<play_session> session);
-#endif	//	defined(USE_IMGUI)
+public:
+	//	キー取得
+	std::string_view get_key() const override { return process_key; }
+
+	//	ワールド取得
+	world* get_world() { return main_world.get(); }
+
+public:
+	explicit game_process(framework& owner);
+	game_process(framework& owner, std::vector<scene_resource_ptr> start_scenes);
 	~game_process() override;
 
-	bool is_closed() const override;
 	bool enter() override;
 	void exit() override;
 	void update(float elapsed_time) override;
@@ -58,10 +53,10 @@ public:
 private:
 	std::unique_ptr<world> main_world;				//	ワールド
 	std::unique_ptr<world_renderer> main_renderer;	//	ワールドレンダラー
+	std::vector<scene_resource_ptr> start_scenes;	//	起動シーン
 
 #if defined(USE_IMGUI)
 private:
-	std::shared_ptr<play_session> session;		//	エディターの再生の状態（エディターの再生でなければ空）
 	std::unique_ptr<console_command> pause_command;
 	std::unique_ptr<console_command> step_command;
 	outliner_window outliner;					//	シーンとオブジェクトの木の窓

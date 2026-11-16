@@ -160,12 +160,29 @@ bool framework::has_process(std::string_view key) const
 	return false;
 }
 
+framework_process* framework::find_process(std::string_view key) const
+{
+	if (key.empty())
+		return nullptr;
+	for (const process_entry& entry : processes)
+	{
+		if (entry.process->get_key() == key && !entry.process->is_close_requested())
+			return entry.process.get();
+	}
+	for (const auto& process : requested_processes)
+	{
+		if (process->get_key() == key && !process->is_close_requested())
+			return process.get();
+	}
+	return nullptr;
+}
+
 bool framework::advance_process()
 {
 	//	プロセス終了処理
 	for (auto it = processes.begin(); it != processes.end(); )
 	{
-		if (it->process->is_closed())
+		if (it->process->is_closed() || it->process->is_close_requested())
 		{
 			it->process->exit();
 			it = processes.erase(it);

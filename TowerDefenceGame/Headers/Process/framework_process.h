@@ -22,6 +22,19 @@ public:
 	};
 
 public:
+	virtual orders get_order() const { return orders::phase; }
+	virtual std::string_view get_key() const { return {}; }
+
+	//	閉じているか？
+	virtual bool is_closed() const { return false; }
+
+	//	終了リクエストは済んでるか？
+	bool is_close_requested() const { return close_requested; }
+
+protected:
+	framework& get_owner() { return owner; }
+
+public:
 	explicit framework_process(framework& owner) : owner(owner) {}
 	virtual ~framework_process() = default;
 
@@ -29,11 +42,6 @@ public:
 	framework_process& operator=(const framework_process&) = delete;
 
 public:
-	virtual orders get_order() const { return orders::phase; }
-	virtual std::string_view get_key() const { return {}; }
-
-	virtual bool is_closed() const { return false; }
-
 	virtual bool enter() { return true; }
 	virtual void exit() {}
 	virtual void update(float elapsed_time) {}
@@ -45,14 +53,15 @@ public:
 	virtual void imgui_render() {}
 #endif	//	defined(USE_IMGUI)
 
+	//	終了リクエスト
+	void request_close() { close_requested = true; }
+
 public:
 	virtual bool create_display_resources() { return true; }
 	virtual void release_display_resources() {}
 	virtual std::unique_ptr<framework_process> next_process() { return nullptr; }
 
-protected:
-	framework& get_owner() { return owner; }
-
 private:
 	framework& owner;
+	bool close_requested = false;
 };

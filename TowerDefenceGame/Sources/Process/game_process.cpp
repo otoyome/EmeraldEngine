@@ -82,26 +82,14 @@ game_process::game_process(framework& owner)
 {
 }
 
-#if defined(USE_IMGUI)
-game_process::game_process(framework& owner, std::shared_ptr<play_session> session)
+game_process::game_process(framework& owner, std::vector<scene_resource_ptr> start_scenes)
 : framework_process(owner)
-, session(std::move(session))
+, start_scenes(std::move(start_scenes))
 {
 }
-#endif	//	defined(USE_IMGUI)
 
 game_process::~game_process()
 {
-}
-
-bool game_process::is_closed() const
-{
-#if defined(USE_IMGUI)
-	//	エディターの再生は停止の依頼で終わる
-	if (session && session->stop_requested)
-		return true;
-#endif	//	defined(USE_IMGUI)
-	return false;
 }
 
 bool game_process::enter()
@@ -117,12 +105,6 @@ bool game_process::enter()
 		if (!main_renderer->initialize(render_target_view(render_data::instance()->get_swap_chain())))
 			return false;
 	}
-
-#if defined(USE_IMGUI)
-	//	エディターの再生中だけ Windows のウィンドウを表示する（終わったら exit で隠す）
-	if (session)
-		self.window.set_visible(true);
-#endif	//	defined(USE_IMGUI)
 
 	//	シーン関係
 	{
@@ -149,15 +131,13 @@ bool game_process::enter()
 #endif	//	defined(USE_IMGUI)
 	}
 
-#if defined(USE_IMGUI)
-	//	エディターの再生では渡されたシーンから始める
-	if (session)
+	//	始めるシーンの指定があれば、そこから始める
+	if (!start_scenes.empty())
 	{
-		for (const scene_resource_ptr& scene : session->scenes)
+		for (const scene_resource_ptr& scene : start_scenes)
 			main_world->get_scenes().add_scene(scene);
 	}
 	else
-#endif	//	defined(USE_IMGUI)
 	{
 		//	初回シーン登録
 		main_world->get_scenes().add_scene(get_startup_scene_path());
@@ -176,15 +156,6 @@ void game_process::exit()
 	main_renderer.reset();
 
 	//	シーン関係
-
-#if defined(USE_IMGUI)
-	//	エディターの再生が終わったら Windows のウィンドウを隠し、編集用のプロセスに知らせる
-	if (session)
-	{
-		get_owner().window.set_visible(false);
-		session->finished = true;
-	}
-#endif	//	defined(USE_IMGUI)
 }
 
 bool game_process::create_display_resources()
@@ -206,15 +177,6 @@ void game_process::update(float elapsed_time)
 {
 	if (!main_world)
 		return;
-
-#if defined(USE_IMGUI)
-	//	エディターから届いた「開いてもらうファイル」を再生中のワールドに渡す
-	if (session && !session->open_file.empty())
-	{
-		main_world->get_context().set_open_file(std::move(session->open_file));
-		session->open_file.clear();
-	}
-#endif	//	defined(USE_IMGUI)
 
 	if (input::action_system::is_valid())
 	{

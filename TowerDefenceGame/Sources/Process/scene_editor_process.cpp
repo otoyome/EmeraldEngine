@@ -104,8 +104,8 @@ bool scene_editor_process::enter()
 		handlers.stop = [this]() { stop_play(); };
 		handlers.open_file = [this](std::string_view open_file)
 		{
-			if (session)
-				session->open_file = std::string(open_file);
+			if (playing)
+				play_open_file = std::string(open_file);
 		};
 		scene_edit->set_play_handlers(std::move(handlers));
 	}
@@ -218,19 +218,31 @@ void scene_editor_process::start_play(const std::vector<scene_resource_ptr>& res
 {
 	framework& self = get_owner();
 
-	//	ゲームのプロセスは次のフレームの頭で足される（止めたプロセスが外れた後）
-	session = std::make_shared<play_session>();
-	session->scenes = resources;
-	session->open_file = std::string(open_file);
-	self.request_process(std::make_unique<game_process>(self, session));
+	playing = true;
+	play_open_file = std::string(open_file);
+	self.request_process(std::make_unique<game_process>(self, resources));
+	self.window.set_visible(true);
 }
 
 void scene_editor_process::stop_play()
 {
-	//	ゲームのプロセスは次のフレームの頭で外れる
-	if (session)
-		session->stop_requested = true;
-	session.reset();
+	if (game_process* game = find_game_process())
+		game->request_close();
+	finish_play();
+}
+
+void scene_editor_process::finish_play()
+{
+	if (!playing)
+		return;
+	playing = false;
+	play_open_file.clear();
+	get_owner().window.set_visible(false);
+}
+
+game_process* scene_editor_process::find_game_process()
+{
+	return static_cast<game_process*>(get_owner().find_process(game_process::process_key));
 }
 
 void scene_editor_process::request_exit()
@@ -245,11 +257,22 @@ void scene_editor_process::update(float elapsed_time)
 	scene_edit->apply_requests();
 	remember_open_scenes();
 
-	//	ゲームのプロセスが自分で終わった時（始められなかった時など）は再生をやめる
-	if (session && session->finished)
+	//	ゲームのプロセスが自分で終わった時は再生をやめる
+	if (playing && !get_owner().has_process(game_process::process_key))
 	{
-		session.reset();
+		finish_play();
 		scene_edit->notify_play_finished();
+	}
+
+	//	開いてもらうファイルは、ゲームのワールドができてから渡す
+	if (!play_open_file.empty())
+	{
+		game_process* game = find_game_process();
+		if (game && game->get_world())
+		{
+			game->get_world()->get_context().set_open_file(std::move(play_open_file));
+			play_open_file.clear();
+		}
 	}
 
 	//	再生中は編集用のワールドを進めない（描画は続ける）

@@ -50,8 +50,12 @@ private:
 
 	//	プロセスリクエスト
 	void request_process(std::unique_ptr<framework_process> process);
+
 	//	同じキーのプロセスがあるか?
 	bool has_process(std::string_view key) const;
+
+	//	同じキーのプロセスを探す
+	framework_process* find_process(std::string_view key) const;
 
 private:
 	//	プロセス

@@ -16,7 +16,7 @@
 
 class scene_editor;
 class editor_viewport;
-struct play_session;
+class game_process;
 
 //	エディターの編集用のプロセス
 class scene_editor_process : public framework_process
@@ -43,6 +43,10 @@ private:
 	void start_play(const std::vector<scene_resource_ptr>& resources, std::string_view open_file);
 	//	再生停止
 	void stop_play();
+	//	再生の後始末
+	void finish_play();
+	//	再生中のゲームのプロセス
+	game_process* find_game_process();
 
 	//	アプリを終了する
 	void request_exit();
@@ -62,7 +66,8 @@ private:
 	place_objects_window place_window;				//	置くオブジェクトの一覧の窓
 	outliner_window outliner;						//	シーンとオブジェクトの木の窓
 	inspector_window inspector;						//	選んでいるオブジェクトの設定の窓
-	std::shared_ptr<play_session> session;			//	再生の状態
+	bool playing = false;							//	ゲームのプロセスを始めた
+	std::string play_open_file;						//	再生中のワールドにまだ渡していないファイル
 	bool exit_requested = false;					//	Exit を選んだ
 };
 #endif	//	defined(USE_IMGUI)
