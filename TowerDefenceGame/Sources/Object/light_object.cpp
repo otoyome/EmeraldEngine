@@ -836,8 +836,8 @@ void area_light_probe_object::deserialize(cereal::JSONInputArchive& archive)
 	set_outer_range(outer_range);
 }
 
-GAME_OBJECT_REGISTER(directional_light_object);
-GAME_OBJECT_REGISTER(point_light_object);
-GAME_OBJECT_REGISTER(spot_light_object);
-GAME_OBJECT_REGISTER(sky_light_object);
-GAME_OBJECT_REGISTER(area_light_probe_object);
+GAME_OBJECT_REGISTER(directional_light_object, "Light");
+GAME_OBJECT_REGISTER(point_light_object, "Light");
+GAME_OBJECT_REGISTER(spot_light_object, "Light");
+GAME_OBJECT_REGISTER(sky_light_object, "Light/Probe");
+GAME_OBJECT_REGISTER(area_light_probe_object, "Light/Probe");

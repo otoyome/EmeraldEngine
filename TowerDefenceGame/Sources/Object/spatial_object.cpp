@@ -283,4 +283,4 @@ void spatial_object::imgui_render_core()
 }
 #endif	//	defined(USE_IMGUI)
 
-GAME_OBJECT_REGISTER(spatial_object);
+GAME_OBJECT_REGISTER(spatial_object, "");

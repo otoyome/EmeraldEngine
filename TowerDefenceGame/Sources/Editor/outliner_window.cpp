@@ -311,13 +311,14 @@ void outliner_window::render_transient_objects(world& target)
 
 void outliner_window::render_type_menu(const std::function<void(const std::string& type)>& on_select)
 {
-	if (!game_object_registry::is_valid())
-		return;
-	for (const std::string& type : game_object_registry::instance()->get_type_names())
-	{
-		if (place_objects_window::is_placeable_type(type) && ImGui::MenuItem(type.c_str()))
-			on_select(type);
-	}
+	place_objects_window::render_placeable_types({},
+		[](const char* category) { return ImGui::BeginMenu(category); },
+		[]() { ImGui::EndMenu(); },
+		[&on_select](const std::string& type)
+		{
+			if (ImGui::MenuItem(type.c_str()))
+				on_select(type);
+		});
 }
 
 void outliner_window::collect_objects(const std::vector<scene_row>& scenes)

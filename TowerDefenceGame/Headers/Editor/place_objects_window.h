@@ -1,6 +1,8 @@
 #pragma once
 
 #if defined(USE_IMGUI)
+#include <functional>
+#include <string>
 #include <string_view>
 
 class scene_editor;
@@ -13,7 +15,10 @@ public:
 	static constexpr const char* payload_type = "SCENE_EDITOR_PLACE_OBJECT";
 
 public:
-	static bool is_placeable_type(std::string_view type);
+	static void render_placeable_types(std::string_view filter,
+		const std::function<bool(const char* category)>& begin_category,
+		const std::function<void()>& end_category,
+		const std::function<void(const std::string& type)>& render_type);
 
 public:
 	void imgui_render(scene_editor& editor);

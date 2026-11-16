@@ -162,4 +162,4 @@ void model_collision_object::imgui_render_core()
 }
 #endif	//	defined(USE_IMGUI)
 
-GAME_OBJECT_REGISTER(model_collision_object);
+GAME_OBJECT_REGISTER(model_collision_object, "Collision");

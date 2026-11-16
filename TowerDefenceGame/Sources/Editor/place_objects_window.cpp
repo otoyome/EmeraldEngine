@@ -12,9 +12,70 @@
 #include "Object/spatial_object.h"
 #include "Scenes/scene_resource_utility.h"
 
-bool place_objects_window::is_placeable_type(std::string_view type)
+void place_objects_window::render_placeable_types(std::string_view filter,
+	const std::function<bool(const char* category)>& begin_category,
+	const std::function<void()>& end_category,
+	const std::function<void(const std::string& type)>& render_type)
 {
-	return type != game_object::type_name();
+	if (!game_object_registry::is_valid())
+		return;
+
+	//	ŒŸõ‚Í‘å•¶šE¬•¶š‚ğ‹æ•Ê‚µ‚È‚¢
+	auto to_lower = [](std::string text)
+	{
+		std::transform(text.begin(), text.end(), text.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+		return text;
+	};
+	const std::string lower_filter = to_lower(std::string(filter));
+
+	//	¡ŠJ‚¢‚Ä‚¢‚éƒJƒeƒSƒŠ[‚ÌŠK‘w
+	struct opened_category
+	{
+		std::string name;
+		bool open = false;
+	};
+	std::vector<opened_category> path;
+	auto close_to = [&](size_t depth)
+	{
+		while (path.size() > depth)
+		{
+			if (path.back().open)
+				end_category();
+			path.pop_back();
+		}
+	};
+
+	for (const game_object_registry::type_entry& entry : game_object_registry::instance()->get_placeable_types())
+	{
+		if (!lower_filter.empty() && to_lower(entry.name).find(lower_filter) == std::string::npos)
+			continue;
+
+		//	ƒJƒeƒSƒŠ[‚ğ / ‚ÅŠK‘w‚É•ª‚¯‚é
+		std::vector<std::string> names;
+		for (size_t begin = 0; begin <= entry.category.size();)
+		{
+			size_t end = entry.category.find('/', begin);
+			if (end == std::string::npos)
+				end = entry.category.size();
+			names.emplace_back(entry.category.substr(begin, end - begin));
+			begin = end + 1;
+		}
+
+		//	‘O‚ÌŒ^‚Æ“¯‚¶ŠK‘w‚ÍŠJ‚¢‚½‚Ü‚Üg‚¢Aˆá‚¤Š‚©‚ç•Â‚¶‚ÄŠJ‚«’¼‚·
+		size_t common = 0;
+		while (common < path.size() && common < names.size() && path[common].name == names[common])
+			++common;
+		close_to(common);
+		for (size_t i = common; i < names.size(); ++i)
+		{
+			const bool parent_open = path.empty() || path.back().open;
+			path.push_back({ names[i], parent_open && begin_category(names[i].c_str()) });
+		}
+
+		if (path.empty() || path.back().open)
+			render_type(entry.name);
+	}
+	close_to(0);
 }
 
 void place_objects_window::imgui_render(scene_editor& editor)
@@ -25,23 +86,17 @@ void place_objects_window::imgui_render(scene_editor& editor)
 		ImGui::SetNextItemWidth(-FLT_MIN);
 		ImGui::InputTextWithHint("##filter", "search", filter, sizeof(filter));
 
-		//	ŒŸõ‚Í‘å•¶šE¬•¶š‚ğ‹æ•Ê‚µ‚È‚¢
-		auto to_lower = [](std::string text)
-		{
-			std::transform(text.begin(), text.end(), text.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
-			return text;
-		};
-		const std::string lower_filter = to_lower(filter);
-
-		if (game_object_registry::is_valid())
-		{
-			for (const std::string& type : game_object_registry::instance()->get_type_names())
+		const bool filtering = filter[0] != '\0';
+		render_placeable_types(filter,
+			[filtering](const char* category)
 			{
-				if (!is_placeable_type(type))
-					continue;
-				if (!lower_filter.empty() && to_lower(type).find(lower_filter) == std::string::npos)
-					continue;
-
+				if (filtering)
+					ImGui::SetNextItemOpen(true);
+				return ImGui::TreeNodeEx(category, ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_SpanAvailWidth);
+			},
+			[]() { ImGui::TreePop(); },
+			[&editor](const std::string& type)
+			{
 				ImGui::Selectable(type.c_str(), false, ImGuiSelectableFlags_AllowDoubleClick);
 				if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
 					editor.place_object(type);
@@ -51,8 +106,7 @@ void place_objects_window::imgui_render(scene_editor& editor)
 					ImGui::TextUnformatted(type.c_str());
 					ImGui::EndDragDropSource();
 				}
-			}
-		}
+			});
 	}
 	ImGui::End();
 }

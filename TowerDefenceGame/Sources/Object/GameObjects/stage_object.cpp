@@ -134,4 +134,4 @@ void stage_object::update_transform()
 	model->update_transform();
 }
 
-GAME_OBJECT_REGISTER(stage_object);
+GAME_OBJECT_REGISTER(stage_object, "Game");
