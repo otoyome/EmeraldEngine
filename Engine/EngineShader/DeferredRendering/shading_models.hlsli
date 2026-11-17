@@ -55,8 +55,7 @@ DirectLighting integrate_bxdf(in GBufferData gbuffer_data, in LightingData light
         }
         case shading_model_pmx_lit:
         {
-            //  PMXÇÕåªç›âΩÇ‡ÇµÇƒÇ¢Ç»Ç¢
-            result.diffuse  = gbuffer_data.base_color;
+            result.diffuse  = gbuffer_data.base_color * lighting_data.shadowing_attenuation;
 
             break;
         }

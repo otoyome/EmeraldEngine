@@ -37,7 +37,7 @@ struct SurfaceData
 //  @tool シーンの輝度なので、ディスプレイの白の輝度(sdr_white_nits)とは別の値として扱い、ディスプレイの設定で変えない
 static const float emissive_reference_nits = 100.0f;
 
-//  @tool マテリアルの自己発光色を放射量へ変換する
+//  マテリアルの自己発光色を放射量へ変換する
 float3 convert_emissive_to_radiance(float3 emissive_color)
 {
     return emissive_color * (emissive_reference_nits / luminous_efficacy);
