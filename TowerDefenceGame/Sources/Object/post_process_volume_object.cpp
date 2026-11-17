@@ -35,7 +35,6 @@ post_process_volume_object::post_process_volume_object(std::string_view name)
 {
 	instance = std::make_shared<post_process_volume>();
 
-	//	@tool 拡大縮小が箱の大きさになるので、最初は 10m 四方にしておく
 	set_local_scale(math::vector3d(10.0, 10.0, 10.0));
 	sync_to_volume();
 
@@ -559,7 +558,6 @@ void post_process_volume_object::imgui_tone_mapping()
 template<class Archive>
 void post_process_volume_object::serialize_fields(Archive& archive, std::uint32_t version)
 {
-	//	@tool 名前のノードの中で items を読み書きする
 	auto section = [&archive](const char* name, auto&& items)
 	{
 		archive.setNextName(name);
@@ -568,7 +566,6 @@ void post_process_volume_object::serialize_fields(Archive& archive, std::uint32_
 		archive.finishNode();
 	};
 
-	//	@tool テクスチャは UUID で持ち、読込時は参照があるときだけ差し替える（無ければ既定のまま）
 	auto texture = [&archive](const char* name, resource::asset_handle<texture_resource>& handle)
 	{
 		universally_unique_identifier uuid = handle.get_reference().uuid;
@@ -640,7 +637,6 @@ void post_process_volume_object::serialize_fields(Archive& archive, std::uint32_
 			cereal::make_nvp("f_number", exposure.f_number), cereal::make_nvp("shutter_speed", exposure.shutter_speed), cereal::make_nvp("iso_speed", exposure.iso_speed));
 	});
 
-	//	@tool 読込時だけ、読んだ値をボリュームに反映する
 	if constexpr (Archive::is_loading::value)
 	{
 		instance->set_flag(post_process_volume::flags::unbind, unbind);

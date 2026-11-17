@@ -23,7 +23,6 @@ public:
 	bool is_flag(post_process_volume::flags flag) const;
 	void set_flag(post_process_volume::flags flag, bool value);
 
-	//	@tool 箱はワールドのトランスフォームで決まる（拡大縮小が箱の大きさ）
 	const math::float4& get_color() const;
 	void set_color(const math::float4& color);
 

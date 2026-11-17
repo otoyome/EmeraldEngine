@@ -92,33 +92,6 @@ float3 CalcSphereEnvironment(Texture2D tex, SamplerState samp, in float3 color, 
 	return	lerp(color.rgb, tex.Sample(samp, texcoord).rgb, value);
 }
 
-//--------------------------------------------
-// 半球ライティング
-//--------------------------------------------
-// normal:法線(正規化済み)
-// up:上方向（片方）
-// sky_color:空(上)色
-// ground_color:地面(下)色
-// hemisphere_weight:重み
-float3 CalcHemiSphereLight(float3 normal, float3 up, float3 sky_color, float3 ground_color, float4 hemisphere_weight)
-{
-	float factor = dot(normal, up) * 0.5f + 0.5f;
-	return lerp(ground_color, sky_color, factor) * hemisphere_weight.x;
-}
-
-//--------------------------------------------
-//	フォグ
-//--------------------------------------------
-//color:現在のピクセル色
-//fog_color:フォグの色
-//fog_range:フォグの範囲情報
-//eye_length:視点からの距離
-float4 CalcFog(in float4 color, float4 fog_color, float2 fog_range, float eye_length)
-{
-	float fogAlpha	= saturate((eye_length - fog_range.x) / (fog_range.y - fog_range.x));
-	return lerp(color, fog_color, fogAlpha);
-}
-
 //	ガンマ係数
 static const float GammaFactor = 2.2f;
 

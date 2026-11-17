@@ -700,18 +700,30 @@ bool editor_items::edit_effect_particle(std::shared_ptr<context>& context, effec
 
 					if (checked)
 					{
-						if (ImGui::ColorEdit4("color_min", &renderer->color.color_min.x))
+						if (ImGui::ColorEditGamut3("color_min", &renderer->color.color_min.x))
 						{
 							edit_flag = true;
 						}
-						if (ImGui::ColorEdit4("color_max", &renderer->color.color_max.x))
+						if (ImGui::DragFloat("color_min alpha", &renderer->color.color_min.w, 0.01f, 0.0f, 1.0f))
+						{
+							edit_flag = true;
+						}
+						if (ImGui::ColorEditGamut3("color_max", &renderer->color.color_max.x))
+						{
+							edit_flag = true;
+						}
+						if (ImGui::DragFloat("color_max alpha", &renderer->color.color_max.w, 0.01f, 0.0f, 1.0f))
 						{
 							edit_flag = true;
 						}
 					}
 					else
 					{
-						if (ImGui::ColorEdit4("color", &renderer->color.color_min.x))
+						if (ImGui::ColorEditGamut3("color", &renderer->color.color_min.x))
+						{
+							edit_flag = true;
+						}
+						if (ImGui::DragFloat("alpha", &renderer->color.color_min.w, 0.01f, 0.0f, 1.0f))
 						{
 							edit_flag = true;
 						}

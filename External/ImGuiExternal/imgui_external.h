@@ -79,7 +79,7 @@ namespace ImGui
     bool DragUInt4(const char* label, UINT v[4], float v_speed = 1.0f, UINT v_min = 0, UINT v_max = 0, ImGuiSliderFlags flags = 0);
 
     //  色域を指定して色を編集する
-    bool ColorEditGamut3(const char* label, float color[3], color_space::gamuts value_gamut, ImGuiColorEditFlags flags = 0);
+    bool ColorEditGamut3(const char* label, float color[3], ImGuiColorEditFlags flags = 0);
 
     template<class StatesEnum, class T>
     bool EditFlags(T& obj)

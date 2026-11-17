@@ -82,7 +82,7 @@ void light_object::imgui_render_light_parameters()
 
 	math::float3 color = light->get_color();
 	const char* color_label = color_mode == light::color_modes::filter_and_temperature ? "filter" : "color";
-	if (ImGui::ColorEditGamut3(color_label, &color.x, color_space::gamuts::rec2020, ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR))
+	if (ImGui::ColorEditGamut3(color_label, &color.x, ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR))
 		light->set_color(color);
 
 	if (color_mode == light::color_modes::filter_and_temperature)
@@ -518,7 +518,7 @@ void light_probe_object::imgui_render_core()
 	if (ImGui::DragFloat("intensity (nit)", &intensity, 10.0f, 0.0f, FLT_MAX, "%.1f"))
 		set_intensity((std::max)(intensity, 0.0f));
 	math::float3 color = get_color();
-	if (ImGui::ColorEditGamut3("color", &color.x, color_space::gamuts::rec2020, ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR))
+	if (ImGui::ColorEditGamut3("color", &color.x, ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR))
 		set_color(color);
 
 	//	IBLテクスチャ

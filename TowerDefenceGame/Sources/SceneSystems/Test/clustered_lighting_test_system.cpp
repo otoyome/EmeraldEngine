@@ -204,8 +204,8 @@ void clustered_lighting_test_system::regenerate_lights()
 				target->set_shadow_bias(static_cast<int>(bias_index), defaults.get_shadow_bias(static_cast<int>(bias_index)));
 		}
 		target->set_color_mode(light::color_modes::color);
-		const math::vector3f rec2020 = color_space::convert_gamut(math::vector3f(color.x, color.y, color.z), color_space::gamuts::rec709, color_space::gamuts::rec2020);
-		target->set_color({ rec2020[0], rec2020[1], rec2020[2] });
+		const math::vector3f rendering_color = color_space::convert_gamut(math::vector3f(color.x, color.y, color.z), color_space::gamuts::rec709, color_space::rendering_gamut);
+		target->set_color({ rendering_color[0], rendering_color[1], rendering_color[2] });
 		target->set_intensity(settings.intensity);
 		target->set_range(system_units::convert_m_to_unit(settings.range));
 		target->set_flag(light::flags::use_shadow, shadow);

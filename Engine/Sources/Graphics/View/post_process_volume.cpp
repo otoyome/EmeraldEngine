@@ -286,7 +286,6 @@ void post_process_volume_collector::collect(post_process_volume_container& conta
 			}
 
 			//	” ‚Æ‚Ì‹——£‚ğZo‚µ‚ÄÅ‚à‹ß‚¢‚Ì‚ğ‚Æ‚è‚ ‚¦‚¸“ü‚ê‚Ä‚¨‚­
-			//	@tool ” ‚ÌŠO‚É‚¢‚ê‚ÎŒø‚©‚È‚¢
 			const float box_to_length = static_cast<float>(volume->calculate_distance(camera_world));
 			if (box_to_length > 0.0f)
 				continue;
