@@ -81,17 +81,17 @@ world_renderer::~world_renderer()
 {
 }
 
-bool world_renderer::initialize(render_target_view output_target)
+bool world_renderer::initialize(render_target_view output_target, render_target_view ui_target)
 {
 	render_targets = std::make_shared<scene_render_targets>();
-	if (!create_targets(std::move(output_target)))
+	if (!create_targets(std::move(output_target), std::move(ui_target)))
 		return false;
 
 	create_renderers();
 	return true;
 }
 
-bool world_renderer::create_targets(render_target_view output_target)
+bool world_renderer::create_targets(render_target_view output_target, render_target_view ui_target)
 {
 	//	中身を作り直す
 	*render_targets = scene_render_targets{};
@@ -99,6 +99,8 @@ bool world_renderer::create_targets(render_target_view output_target)
 	//	出力先
 	output_target.clear_color = false;
 	render_targets->output.render_targets.emplace_back(std::move(output_target));
+	ui_target.clear_color = false;
+	render_targets->ui_output.render_targets.emplace_back(std::move(ui_target));
 
 	const int width = static_cast<int>(render_targets->output.get_size().x);
 	const int height = static_cast<int>(render_targets->output.get_size().y);
@@ -353,7 +355,7 @@ void world_renderer::create_renderers()
 
 		scene_renderers.emplace_back(std::make_unique<before_bloom_post_process_renderer>(render_executor, render_targets));
 		scene_renderers.emplace_back(std::make_unique<exposure_renderer>(render_executor, render_targets));
-		//	@tool ブルーム・レンズゴーストは作り直すまで実行しない
+		//	@remainder	ブルーム・レンズゴーストは作り直すまで実行しない
 		//scene_renderers.emplace_back(std::make_unique<bloom_post_process_renderer>(render_executor, render_targets));
 		scene_renderers.emplace_back(std::make_unique<tone_mapping_renderer>(render_executor, render_targets));
 		scene_renderers.emplace_back(std::make_unique<after_tone_mapping_post_process_renderer>(render_executor, render_targets));
@@ -696,13 +698,28 @@ void world_renderer::prepare_renderer_context(
 		context.scene_constant.time_data.y = previous_time;
 #if defined(USE_IMGUI)
 		context.scene_constant.time_data.z = target_state->is_debug_visualize_meshlets() ? 1.0f : 0.0f;
+		context.scene_constant.time_data.w = 0.0f;
 #endif	//	defined(USE_IMGUI)
 
 		target_view->fill_scene_constants(context.scene_constant, target_state.get());
 
 		//	ディスプレイマッピング情報
-		context.scene_constant.output_curve = static_cast<UINT>(display_mapping_renderer::output_curves::srgb);
-		context.scene_constant.peak_nits = sdr_reference_white_nits;
+		if (follow_display && ::render_data::instance()->is_hdr_output())
+		{
+			//	バックバッファへ出すときはモニターに合わせる
+			const auto& display = ::render_data::instance()->get_display_color_space_data();
+			context.scene_constant.output_curve = static_cast<UINT>(display_mapping_renderer::output_curves::st2084);
+			context.scene_constant.peak_nits = display.peak_nits;
+			context.scene_constant.sdr_white_nits = display.sdr_white_nits;
+		}
+		else
+		{
+			//	SDR のディスプレイ情報は既定値をそのまま使う
+			const ::render_data::display_color_space_datas display{};
+			context.scene_constant.output_curve = static_cast<UINT>(display_mapping_renderer::output_curves::srgb);
+			context.scene_constant.peak_nits = display.peak_nits;
+			context.scene_constant.sdr_white_nits = display.sdr_white_nits;
+		}
 	}
 
 	//	描画視点情報と描画制御情報設定

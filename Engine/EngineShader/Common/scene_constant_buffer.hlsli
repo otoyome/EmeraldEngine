@@ -3,7 +3,7 @@
 
 cbuffer SCENE_CONSTANT_BUFFER : register(b0)
 {
-	float4 time_data;	//	x : 現在時間, y : 前時間, zw : 空き
+	float4 time_data;	//	x : 現在時間, y : 前時間, zw : デバッグ情報
     float4 z_buffer_parameteres; //	非線形深度から線形深度へ変換するためのパラメーター
     float4 camera_position; //  xyz : 座標, w : fovY
     float4 camera_right; //  xyz : 方向, w : tan(fovY)
@@ -23,7 +23,8 @@ cbuffer SCENE_CONSTANT_BUFFER : register(b0)
     //  ディスプレイマッピング情報
     uint output_curve;          //  出力の伝達関数(display_mapping_renderer::output_curves と同じ値)
     float peak_nits;            //  ディスプレイの最大輝度[nit]
-    float2 display_mapping_dummy;
+    float sdr_white_nits;       //  SDR の白の輝度[nit]
+    float display_mapping_dummy;
 };
 
 inline float4 get_viewport_size()

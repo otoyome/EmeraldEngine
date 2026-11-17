@@ -88,8 +88,8 @@ bool editor_viewport::resize(int width, int height)
 	renderer->release_targets();
 	output_texture = created;
 	if (!initialized)
-		return renderer->initialize(render_target_view(output_texture));
-	return renderer->create_targets(render_target_view(output_texture));
+		return renderer->initialize(render_target_view(output_texture), render_target_view(output_texture));
+	return renderer->create_targets(render_target_view(output_texture), render_target_view(output_texture));
 }
 
 void editor_viewport::collect(world& target, const debug_view_settings& debug_settings)

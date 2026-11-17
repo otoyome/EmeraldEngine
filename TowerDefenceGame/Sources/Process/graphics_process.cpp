@@ -16,6 +16,7 @@
 #include "Renderer/render_system.h"
 #include "Framework/display_settings.h"
 #include "Framework/app_window.h"
+#include "System/engine_config_data.h"
 #include "Editor/detail_profiler.h"
 
 bool graphics_process::enter()
@@ -95,6 +96,10 @@ void graphics_process::update(float elapsed_time)
 			apply_display(*request);
 	}
 
+	//	モニターの色空間が変わったらスワップチェーンを合わせる
+	if (render_data::instance()->check_display_color_space(engine_config_data::instance()->windows.enable_hdr))
+		apply_display_color_space();
+
 	//	リソースの構築と読込完了の通知
 	if (resource_manager::is_valid())
 	{
@@ -132,5 +137,25 @@ bool graphics_process::apply_display(const display_settings::change_request& req
 
 	if (succeeded)
 		settings.set_current(request.size, request.mode);
+	return succeeded;
+}
+
+bool graphics_process::apply_display_color_space()
+{
+	framework& self = get_owner();
+
+	//	全プロセスの描画情報解放
+	for (framework::process_entry& entry : self.processes)
+		entry.process->release_display_resources();
+
+	//	スワップチェーンの形式と色空間を変更
+	const bool succeeded = render_data::instance()->change_display_color_space();
+
+	//	全プロセスの描画情報生成
+	for (framework::process_entry& entry : self.processes)
+	{
+		if (!entry.process->create_display_resources())
+			DEBUG_LOG_CATEGORY(logger::categorys::system, "create_display_resources Failed");
+	}
 	return succeeded;
 }

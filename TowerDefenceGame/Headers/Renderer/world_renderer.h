@@ -31,7 +31,10 @@ public:
 	world_renderer& operator=(world_renderer&&) noexcept = delete;
 
 	//	初期化
-	bool initialize(render_target_view output_target);
+	bool initialize(render_target_view output_target, render_target_view ui_target);
+
+	//	表示をモニターに合わせるか
+	void set_follow_display(bool value) { follow_display = value; }
 
 	//	ワールドから描画情報収集
 	void collect(world& target);
@@ -45,7 +48,7 @@ public:
 	void submit_render_jobs(world& target, float elapsed_time);
 
 	//	描画情報生成
-	bool create_targets(render_target_view output_target);
+	bool create_targets(render_target_view output_target, render_target_view ui_target);
 
 	//	描画情報破棄
 	void release_targets();
@@ -85,6 +88,8 @@ private:
 	std::shared_ptr<scene_render_targets> render_targets;
 	std::vector<std::unique_ptr<renderer>> scene_renderers;
 	std::vector<std::unique_ptr<renderer>> ui_renderers;
+
+	bool follow_display = false;
 
 private:
 	//	視点情報

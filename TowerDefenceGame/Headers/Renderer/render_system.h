@@ -4,6 +4,7 @@
 #include <memory>
 
 #include "Renderer/render_job_executor.h"
+#include "Renderer/display_ui_compositor.h"
 
 //	•`‰æƒVƒXƒeƒ€
 class render_system
@@ -35,4 +36,5 @@ private:
 	CONST HWND hwnd;
 	std::shared_ptr<render_job_executor> executor;
 	overlay_function overlay;
+	std::unique_ptr<display_ui_compositor> ui_compositor;
 };

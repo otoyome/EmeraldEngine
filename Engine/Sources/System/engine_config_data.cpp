@@ -8,7 +8,7 @@
 #include "cereal/types/unordered_map.hpp"
 
 CEREAL_CLASS_VERSION(engine_config_data::application_data, 2)
-CEREAL_CLASS_VERSION(engine_config_data::windows_data, 1)
+CEREAL_CLASS_VERSION(engine_config_data::windows_data, 2)
 CEREAL_CLASS_VERSION(engine_config_data::antialias_data, 1)
 CEREAL_CLASS_VERSION(engine_config_data::rendering_data, 2)
 CEREAL_CLASS_VERSION(engine_config_data::collision_data, 1)
@@ -70,6 +70,12 @@ void engine_config_data::windows_data::serialize(Archive& archive, int version)
 		{
 			archive(CEREAL_NVP(window_left), CEREAL_NVP(window_top), CEREAL_NVP(vertical_sync),
 					CEREAL_NVP(window_mode), CEREAL_NVP(screen_width), CEREAL_NVP(screen_height));
+			break;
+		}
+		case 2:
+		{
+			archive(CEREAL_NVP(window_left), CEREAL_NVP(window_top), CEREAL_NVP(vertical_sync),
+					CEREAL_NVP(window_mode), CEREAL_NVP(screen_width), CEREAL_NVP(screen_height), CEREAL_NVP(enable_hdr));
 			break;
 		}
 	}

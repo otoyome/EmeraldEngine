@@ -603,6 +603,7 @@ xcopy "$(SolutionDir)External\SDL3\lib\SDL3.dll" "$(OutDir)" /y</Command>
     <ClCompile Include="Sources\Editor\outliner_window.cpp" />
     <ClCompile Include="Sources\Editor\inspector_window.cpp" />
     <ClCompile Include="Sources\Renderer\render_system.cpp" />
+    <ClCompile Include="Sources\Renderer\display_ui_compositor.cpp" />
     <ClCompile Include="Sources\Process\core_process.cpp" />
     <ClCompile Include="Sources\Process\graphics_process.cpp" />
     <ClCompile Include="Sources\Process\input_process.cpp" />
@@ -757,6 +758,7 @@ xcopy "$(SolutionDir)External\SDL3\lib\SDL3.dll" "$(OutDir)" /y</Command>
     <ClInclude Include="Headers\Framework\asset_watcher.h" />
     <ClInclude Include="Headers\Editor\editor_host.h" />
     <ClInclude Include="Headers\Renderer\render_system.h" />
+    <ClInclude Include="Headers\Renderer\display_ui_compositor.h" />
     <ClInclude Include="Headers\Process\core_process.h" />
     <ClInclude Include="Headers\Process\graphics_process.h" />
     <ClInclude Include="Headers\Process\input_process.h" />

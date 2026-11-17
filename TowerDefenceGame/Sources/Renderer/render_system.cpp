@@ -10,6 +10,9 @@ render_system::render_system(HWND hwnd)
 	//	描画ジョブの実行者
 	executor = std::make_shared<render_job_executor>(4);
 
+	//	UI合成
+	ui_compositor = std::make_unique<display_ui_compositor>();
+
 	//	全描画コマンド処理後に呼び出される関数登録
 	executor->register_post_rendering(
 		[this]
@@ -18,7 +21,10 @@ render_system::render_system(HWND hwnd)
 			if (overlay)
 				overlay();
 
-			//	ウィンドウが隠れている間(起動中)は表示しない
+			//	UI と ImGui をバックバッファへ合成する
+			ui_compositor->composite();
+
+			//	ウィンドウが隠れている間は表示しない
 			if (!IsWindowVisible(this->hwnd))
 				return;
 

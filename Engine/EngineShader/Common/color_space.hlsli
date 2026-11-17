@@ -11,6 +11,7 @@ static const float2 d65_white_point = float2(0.3127, 0.3290);
 
 //  o—Í‚Ì“`’BŠÖ”
 static const uint output_curve_srgb = 0;
+static const uint output_curve_st2084 = 1;
 
 //  ì‹ÆF‹óŠÔ
 static const uint rendering_gamut = gamut_rec2020;

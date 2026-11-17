@@ -734,6 +734,7 @@
     <None Include="EngineShader\Postprocess\Exposure\exposure_adjust_cs.hlsl" />
     <None Include="EngineShader\Postprocess\ToneMapping\tone_mapping_cs.hlsl" />
     <None Include="EngineShader\Postprocess\DisplayMapping\display_mapping_ps.hlsl" />
+    <None Include="EngineShader\Postprocess\DisplayMapping\ui_composite_ps.hlsl" />
     <None Include="EngineShader\Postprocess\DepthOfField\dof_filter_setup_cs.hlsl" />
     <None Include="EngineShader\Postprocess\DepthOfField\dof_apply_cs.hlsl" />
     <None Include="EngineShader\Postprocess\DepthOfField\dof_vertical_integrate_cs.hlsl" />

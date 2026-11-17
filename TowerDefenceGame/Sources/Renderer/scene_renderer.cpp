@@ -1372,12 +1372,14 @@ debug_draw_pass_renderer::~debug_draw_pass_renderer()
 
 void debug_draw_pass_renderer::render(renderer_context& context)
 {
-	job_executor.execute([this](graphics_context& context)
+	//	線の白は SDR の白の輝度にする
+	const float white_nits = context.scene_constant.sdr_white_nits;
+	job_executor.execute([this, white_nits](graphics_context& context)
 	{
-		//	線の色を、display_mapping の逆変換でシーンの色の値にする
+		//	線の色を display_mapping の逆変換でシーンの色の値にする
 		{
 			const math::float3x3 matrix = color_space::get_gamut_matrix(color_space::gamuts::rec709, color_space::rendering_gamut);
-			const float scale = sdr_reference_white_nits / static_cast<float>(light_utility::luminous_efficacy);
+			const float scale = white_nits / static_cast<float>(light_utility::luminous_efficacy);
 			debug_draw_color_constants constants{};
 			for (int row = 0; row < 3; ++row)
 				constants.srgb_to_scene[row] = { matrix.m[row][0] * scale, matrix.m[row][1] * scale, matrix.m[row][2] * scale, 0.0f };

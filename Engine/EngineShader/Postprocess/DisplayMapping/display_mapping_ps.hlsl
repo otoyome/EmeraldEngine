@@ -24,6 +24,18 @@ float4 main(VS_OUT pin) : SV_TARGET
             color.rgb = convert_rcs_to_srgb(color.rgb);
             break;
         }
+        case output_curve_st2084:
+        {
+            //  Rec2020線形色空間に変換
+            color.rgb = convert_rcs_to_linear_rec2020(color.rgb);
+
+            //  ST2084の基準輝度(10000nits)で正規化
+            color.rgb /= st2084_max_luminance;
+
+            //  ディスプレイの色空間に移動
+            color.rgb = apply_st2084_curve(color.rgb);
+            break;
+        }
     }
     return float4(color.rgb, 1.0f);
 }

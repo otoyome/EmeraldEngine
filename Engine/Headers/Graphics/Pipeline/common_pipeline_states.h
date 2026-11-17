@@ -55,7 +55,7 @@ namespace common_pipeline_states
 	constexpr system_utility::hash_key scene_constant_buffer_hash_key = system_utility::generate_hash(scene_constant_buffer_name);
 	struct scene_constants
 	{
-		math::float4 time_data;	//	x : 現在時間, y : 前時間, zw : 空き
+		math::float4 time_data;	//	x : 現在時間, y : 前時間, zw : デバッグ情報
 		math::float4 z_buffer_parameteres;
 		math::float4 camera_position; //  xyz : 座標, w : fovY
 		math::float4 camera_right; //  xyz : 方向, w : tan(fovY)
@@ -74,7 +74,8 @@ namespace common_pipeline_states
 		//	ディスプレイマッピング情報
 		UINT output_curve;			//	出力の伝達関数(display_mapping_renderer::output_curves)
 		float peak_nits;			//	ディスプレイの最大輝度[nit]
-		math::float2 display_mapping_dummy;
+		float sdr_white_nits;		//	SDR の白の輝度[nit]
+		float display_mapping_dummy;
 	};
 
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////

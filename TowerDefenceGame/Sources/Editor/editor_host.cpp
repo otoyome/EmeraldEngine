@@ -159,7 +159,7 @@ void editor_host::release_display_resources()
 void editor_host::create_display_resources()
 {
 	imgui_rendering_pass.render_targets.clear();
-	imgui_rendering_pass.render_targets.emplace_back(render_data::instance()->get_swap_chain());
+	imgui_rendering_pass.render_targets.emplace_back(render_data::instance()->get_ui_render_target_view());
 	imgui_rendering_pass.render_targets.back().clear_color = false;
 }
 

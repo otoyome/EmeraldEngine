@@ -39,6 +39,7 @@ public:
 		UINT screen_height = 720;	//	バックバッファの高さ
 		window_modes window_mode = window_modes::windowed;
 		bool vertical_sync = false;	//	垂直同期
+		bool enable_hdr = true;		//	HDR出力許可
 
 		template<class Archive>
 		void serialize(Archive& archive, int version);

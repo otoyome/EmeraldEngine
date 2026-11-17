@@ -6,6 +6,7 @@
 #include "System/engine_config_data.h"
 #include "Framework/display_settings.h"
 #include "Object/Collision/collision_filter.h"
+#include "Graphics/Core/render_data.h"
 
 #include <algorithm>
 #include <optional>
@@ -102,6 +103,15 @@ void engine_config_window::render_display()
 
 	ImGui::SameLine();
 	ImGui::TextDisabled("current : %u x %u (%s)", current.width, current.height, magic_enum::enum_name(settings.get_window_mode()).data());
+
+	//	HDRÝ’è
+	ImGui::Checkbox("hdr", &engine_config_data::instance()->windows.enable_hdr);
+	ImGui::SameLine();
+	const render_data& data = *render_data::instance();
+	if (data.is_hdr_output())
+		ImGui::TextDisabled("output : HDR (peak %.0f nits / sdr white %.0f nits)", data.get_display_color_space_data().peak_nits, data.get_display_color_space_data().sdr_white_nits);
+	else
+		ImGui::TextDisabled("output : SDR");
 
 	ImGui::TreePop();
 }

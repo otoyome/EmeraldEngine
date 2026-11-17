@@ -1138,11 +1138,12 @@ void bloom_post_process_renderer::render(renderer_context& renderer_context)
 	auto& lens_ghosts_data = inner_volume->get_lens_ghosts_constant();
 
 	int sort_order = get_render_basis_sort_order();
+	const float peak_nits = renderer_context.scene_constant.peak_nits;
 
 	//	輝度値算出
 	if (bloom_constant.is_active() || lens_ghosts_data.is_active())
 	{
-		job_executor.execute([this, inner_volume](graphics_context& context)
+		job_executor.execute([this, inner_volume, peak_nits](graphics_context& context)
 		{
 			context.clear_shader_resorce_views();
 			context.clear_unordered_access_views();
@@ -1158,7 +1159,7 @@ void bloom_post_process_renderer::render(renderer_context& renderer_context)
 			constant.lens_ghost_intensity = lens_ghosts_data.is_active() ? lens_ghosts_data.intensity : -1.0f;
 
 			//	しきい値はセンサーの飽和(ディスプレイの最大輝度)を 1 とした輝度で比べる
-			constant.luminance_scale = static_cast<float>(light_utility::luminous_efficacy) / sdr_reference_white_nits;
+			constant.luminance_scale = static_cast<float>(light_utility::luminous_efficacy) / peak_nits;
 			context.device_context->UpdateSubresource(luminance_extract_constant_buffer.Get(), 0, 0, &constant, 0, 0);
 			context.device_context->CSSetConstantBuffers(luminance_extract::cbv_index, 1, luminance_extract_constant_buffer.GetAddressOf());
 

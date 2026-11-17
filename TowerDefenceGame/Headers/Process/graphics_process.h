@@ -17,4 +17,7 @@ public:
 
 private:
 	bool apply_display(const display_settings::change_request& request);
+
+	//	モニターの色空間にスワップチェーンを合わせる
+	bool apply_display_color_space();
 };

@@ -8,12 +8,6 @@
 
 #include "Graphics/View/exposure_controller.h"
 
-//	@tool 露出・トーンマッピング・ディスプレイマッピング(ライティングサンプルと同じ流れ)
-//	@tool 描画は放射量で行い、露出でセンサーの飽和をディスプレイの最大輝度に対応させ、トーンマップしてディスプレイの信号にする
-
-//	@tool SDR のディスプレイの最大輝度(基準白)[nit]。HDR10 対応時にディスプレイの情報から取る
-constexpr float sdr_reference_white_nits = 100.0f;
-
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 //	露出パス
 class exposure_renderer : public renderer
@@ -75,7 +69,8 @@ public:
 	//	出力の伝達関数
 	enum class output_curves : UINT
 	{
-		srgb,
+		srgb,	//	sRGB
+		st2084,	//	BT.2100 PQ
 	};
 
 public:

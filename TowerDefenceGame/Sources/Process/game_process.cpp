@@ -123,7 +123,8 @@ bool game_process::enter()
 	{
 		//	ƒƒCƒ“‚Ìƒ[ƒ‹ƒh‚Ì•`‰æ
 		main_renderer = std::make_unique<world_renderer>(self.renderer->get_executor());
-		if (!main_renderer->initialize(render_target_view(render_data::instance()->get_swap_chain())))
+		main_renderer->set_follow_display(true);
+		if (!main_renderer->initialize(render_target_view(render_data::instance()->get_swap_chain()), render_data::instance()->get_ui_render_target_view()))
 			return false;
 	}
 
@@ -194,7 +195,7 @@ bool game_process::create_display_resources()
 	//	•`‰æî•ñ¶¬
 	if (!main_renderer)
 		return true;
-	return main_renderer->create_targets(render_target_view(render_data::instance()->get_swap_chain()));
+	return main_renderer->create_targets(render_target_view(render_data::instance()->get_swap_chain()), render_data::instance()->get_ui_render_target_view());
 }
 
 void game_process::release_display_resources()

@@ -22,4 +22,7 @@ struct scene_render_targets
 
 	//	@tool 最終的な出力先（バックバッファ、またはテクスチャ）
 	render_pass output;
+
+	//	@tool UI の描画先（HDR 出力では SDR のテクスチャ、それ以外は output と同じ）
+	render_pass ui_output;
 };
