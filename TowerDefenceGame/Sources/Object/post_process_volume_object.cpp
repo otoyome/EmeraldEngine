@@ -2,12 +2,16 @@
 #include "Object/game_object_registry.h"
 #include "Object/game_object_serializer.h"
 #include "Texture/texture_resource_utility.h"
+#include "Material/material_instance.h"
+#include "Resource/resource_manager.h"
 
 #include "cereal/cereal.hpp"
 #include "cereal/archives/json.hpp"
 #include "cereal/types/common.hpp"
 
 #include "implot/implot.h"
+
+#include <optional>
 
 #if defined(USE_IMGUI)
 #include "Graphics/Debug/debug_primitive_collector.h"
@@ -140,13 +144,36 @@ void post_process_volume_object::imgui_render_core()
 	imgui_tone_mapping();
 
 	//	マテリアル
-	for (auto& material : instance->get_materials())
+	if (ImGui::TreeNode("materials"))
 	{
-		if (ImGui::TreeNode(system_utility::convert_utf8(material->get_name()).data()))
+		//	スロットへアセットをドロップすると差し替え、x で外す。最後の空きスロットへドロップすると足す
+		std::optional<std::size_t> remove_index;
+		const auto& materials = instance->get_materials();
+		for (std::size_t index = 0; index < materials.size(); ++index)
 		{
-			editor_items::edit_shared_material(editor_context, material->get_resource());
-			ImGui::TreePop();
+			ImGui::PushID(static_cast<int>(index));
+			if (ImGui::Button("x"))
+				remove_index = index;
+			ImGui::SameLine();
+			material_resource_ptr slot_material = materials[index]->get_resource();
+			if (editor_items::edit_material_slot(editor_context, slot_material, material_resource::domains::post_process))
+				instance->set_postprocess_material(index, slot_material);
+
+			if (ImGui::TreeNode(system_utility::convert_utf8(materials[index]->get_name()).data()))
+			{
+				editor_items::edit_shared_material(editor_context, materials[index]->get_resource());
+				ImGui::TreePop();
+			}
+			ImGui::PopID();
 		}
+
+		material_resource_ptr new_material;
+		if (editor_items::edit_material_slot(editor_context, new_material, material_resource::domains::post_process))
+			instance->register_postprocess_materials(new_material);
+
+		if (remove_index)
+			instance->unregister_postprocess_material(*remove_index);
+		ImGui::TreePop();
 	}
 }
 
@@ -636,6 +663,43 @@ void post_process_volume_object::serialize_fields(Archive& archive, std::uint32_
 			cereal::make_nvp("exposure_compensation", exposure.exposure_compensation), cereal::make_nvp("adaptation_time", exposure.adaptation_time),
 			cereal::make_nvp("f_number", exposure.f_number), cereal::make_nvp("shutter_speed", exposure.shutter_speed), cereal::make_nvp("iso_speed", exposure.iso_speed));
 	});
+
+	switch (version)
+	{
+		case 2:
+		{
+			archive.setNextName("materials");
+			archive.startNode();
+			if constexpr (Archive::is_saving::value)
+			{
+				archive.makeArray();
+				for (const auto& material : instance->get_materials())
+				{
+					const material_resource_ptr& resource = material->get_resource();
+					if (resource && !resource->get_file_path().empty())
+						game_object_serializer::save_asset_reference(archive, resource->get_uuid());
+				}
+			}
+			else
+			{
+				cereal::size_type count = 0;
+				archive.loadSize(count);
+				for (cereal::size_type index = 0; index < count; ++index)
+				{
+					const universally_unique_identifier uuid = game_object_serializer::load_asset_reference(archive);
+					auto operation = resource_manager::instance()->load<material_resource>(game_object_serializer::resolve_asset_path(uuid));
+					if (operation->is_succeeded())
+						instance->register_postprocess_materials(operation->get_resource());
+				}
+			}
+			archive.finishNode();
+			break;
+		}
+		default:
+		{
+			break;
+		}
+	}
 
 	if constexpr (Archive::is_loading::value)
 	{

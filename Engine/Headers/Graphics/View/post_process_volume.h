@@ -187,6 +187,8 @@ public:
 
 	const std::vector<std::shared_ptr<material_instance>>& get_materials() const;
 	bool register_postprocess_materials(std::shared_ptr<material_resource> material_ptr);
+	bool set_postprocess_material(std::size_t index, std::shared_ptr<material_resource> material_ptr);
+	void unregister_postprocess_material(std::size_t index);
 
 private:
 	UINT system_flags;

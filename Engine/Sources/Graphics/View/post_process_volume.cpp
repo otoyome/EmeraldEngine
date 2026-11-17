@@ -254,6 +254,23 @@ bool post_process_volume::register_postprocess_materials(std::shared_ptr<materia
 	return true;
 }
 
+bool post_process_volume::set_postprocess_material(std::size_t index, std::shared_ptr<material_resource> material_ptr)
+{
+	assert(index < postprocess_materials.size());
+	if (index >= postprocess_materials.size() || !material_ptr || material_ptr->get_domain() != material_resource::domains::post_process)
+		return false;
+
+	postprocess_materials[index] = std::make_shared<material_instance>(material_ptr);
+	return true;
+}
+
+void post_process_volume::unregister_postprocess_material(std::size_t index)
+{
+	assert(index < postprocess_materials.size());
+	if (index < postprocess_materials.size())
+		postprocess_materials.erase(postprocess_materials.begin() + index);
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////
 void post_process_volume_collector::collect(post_process_volume_container& container, const std::vector<post_process_volume_ptr>& volumes, const math::vector3d& view_position)
 {

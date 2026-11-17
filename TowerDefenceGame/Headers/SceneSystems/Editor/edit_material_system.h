@@ -11,6 +11,7 @@
 #include "object/model_object.h"
 #include "object/camera_object.h"
 #include "object/post_process_volume_object.h"
+#include "Object/GameObjects/UI/ui_image.h"
 #include "Editor/editor_items.h"
 #include "Editor/editor_camera.h"
 
@@ -70,6 +71,13 @@ private:
 	void restart_preview_effect();
 	void clear_preview_effect();
 
+	//	サーフェス以外のマテリアルを確かめる仮の表示
+	void update_domain_preview();
+	void make_domain_preview(const material_resource_ptr& material);
+	void clear_domain_preview();
+	effect_resource_ptr make_domain_preview_effect(const material_resource_ptr& material) const;
+	void attach_preview_post_process(const material_resource_ptr& material);
+
 	void imgui_render_source();
 	void imgui_render_preview();
 	void imgui_render_material_list();
@@ -112,5 +120,12 @@ private:
 	effect_resource_ptr preview_effect_resource;
 	effect_instance_ptr preview_effect;
 	bool loop_preview_effect = true;
+
+	//	仮の表示に使っているマテリアルと、表示しているもの
+	material_resource_ptr domain_preview_material;
+	effect_instance_ptr domain_preview_effect;
+	std::shared_ptr<ui_image> preview_ui;
+	std::shared_ptr<post_process_volume_object> preview_volume;			//	マテリアルを足したボリューム
+	std::shared_ptr<post_process_volume_object> own_preview_volume;		//	シーンにボリュームが無い時に作った仮のボリューム
 };
 #endif // defined(USE_IMGUI)

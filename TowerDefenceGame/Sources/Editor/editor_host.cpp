@@ -43,6 +43,7 @@ extern ImWchar glyphRangesJapanese[];
 #include "Scenes/scene_manager.h"
 #include "Scenes/scene_instance.h"
 #include "Scenes/scene_paths.h"
+#include "Scenes/scene_resource.h"
 #include "Scenes/scene_set_resource.h"
 #include "Resource/asset_registry.h"
 
@@ -275,6 +276,22 @@ void editor_host::imgui_initialize()
 	register_material_create_handler("Material (Deferred Decal)", material_resource::domains::deferred_decal);
 	register_material_create_handler("Material (Post Process)", material_resource::domains::post_process);
 	register_material_create_handler("Material (User Interface)", material_resource::domains::user_interface);
+
+	//	シーンの新規作成
+	{
+		asset_browser::create_handler handler;
+		handler.label = "Scene";
+		handler.default_name = "NewScene";
+		handler.extension = std::string(".") + std::string(scene_resource::extension);
+		handler.create = [](std::string_view file_path)
+		{
+			auto scene = std::make_shared<scene_resource>();
+			if (!scene->set_contents({}))
+				return false;
+			return resource_manager::instance()->save(scene, file_path);
+		};
+		asset_browser::instance()->register_create_handler(std::move(handler));
+	}
 
 	//	シーンセットの新規作成
 	{

@@ -55,39 +55,6 @@ namespace
 
 	//	Objects パネルの種類コンボ用
 	constexpr const char* object_kind_names[] = { "Actor", "Camera", "Effect", "Event" };
-
-	//	ポストプロセスマテリアル
-	constexpr material_resource::blendable_locations postprocess_material_path_list[] =
-	{
-		material_resource::blendable_locations::before_dof,
-		material_resource::blendable_locations::after_dof,
-		material_resource::blendable_locations::after_dof_translucency,
-		material_resource::blendable_locations::before_bloom,
-		material_resource::blendable_locations::after_tone_mapping,
-	};
-	constexpr std::string_view postprocess_material_texts_list[ARRAYSIZE(postprocess_material_path_list)][2] =
-	{
-		{
-			"Assets/GameShader/PostProcess/color_filter_before_dof.hlsl",
-			"被写界深度前ポストプロセスマテリアル",
-		},
-		{
-			"Assets/GameShader/PostProcess/color_filter_after_dof.hlsl",
-			"被写界深度後ポストプロセスマテリアル",
-		},
-		{
-			"Assets/GameShader/PostProcess/color_filter_after_dof_translucency.hlsl",
-			"被写界深度後半透明描画ポストプロセスマテリアル",
-		},
-		{
-			"Assets/GameShader/PostProcess/color_filter_before_bloom.hlsl",
-			"ブルーム前ポストプロセスマテリアル",
-		},
-		{
-			"Engine/EngineShader/Materials/PostProcess/color_filter_after_tone_mapping.hlsl",
-			"トーンマッピング後ポストプロセスマテリアル",
-		}
-	};
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -614,28 +581,6 @@ bool edit_timeline_system::initialize_core()
 			sky_light->set_lut_ggx_texture(ibl_texture);
 
 			register_object(sky_light);
-		}
-	}
-
-	//	ポストプロセス生成
-	if (pipeline_state_manager* instance = pipeline_state_manager::instance())
-	{
-		auto post_process_volume_object_ptr = std::make_shared<post_process_volume_object>("ポストプロセスボリューム");
-		post_process_volume_object_ptr->set_flag(post_process_volume::flags::unbind, true);
-		register_object(post_process_volume_object_ptr);
-		post_process_volume = post_process_volume_object_ptr;
-
-		for (UINT index = 0; index < ARRAYSIZE(postprocess_material_path_list); ++index)
-		{
-			std::shared_ptr<material_resource> post_process_material = std::make_shared<material_resource>();
-			post_process_material->set_name(postprocess_material_texts_list[index][1]);
-			post_process_material->set_domain(material_resource::domains::post_process);
-			post_process_material->set_flag(material_resource::flags::two_sided, true);
-			post_process_material->set_blend_mode(material_resource::blend_modes::opaque);
-			post_process_material->set_blendable_location(postprocess_material_path_list[index]);
-			post_process_material->set_shader_path(postprocess_material_texts_list[index][0]);
-
-			post_process_volume_object_ptr->get_volume()->register_postprocess_materials(post_process_material);
 		}
 	}
 

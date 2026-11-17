@@ -15,7 +15,7 @@ class post_process_volume_object : public spatial_object
 	GAME_OBJECT_DECRLEAR(post_process_volume_object, spatial_object)
 
 public:
-	static constexpr std::uint32_t serialize_version = 1;
+	static constexpr std::uint32_t serialize_version = 2;
 
 public:
 	post_process_volume_ptr get_volume() const {return instance;}

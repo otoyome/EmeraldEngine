@@ -36,6 +36,13 @@ namespace
 	//	平面を床と重ならないよう浮かせる高さ
 	const double plane_lift = system_units::convert_m_to_unit(0.01);
 
+	//	仮のエフェクトを作り直すまでの時間
+	constexpr float domain_preview_effect_time = 10.0f;
+
+	//	プレビューモデルを正面から見るカメラの位置と向き
+	const math::vector3d preview_camera_position = system_units::convert_m_to_unit(math::vector3d(0.0, 0.5, 4.0));
+	const math::rotatord preview_camera_rotation(0.0, math::constants<double>::pi, 0.0);
+
 	//	ファイルパスを ImGui 表示用の UTF-8 にする
 	std::string to_display(std::string_view text)
 	{
@@ -71,6 +78,11 @@ bool edit_material_system::initialize_core()
 	{
 		main_camera = std::make_shared<camera_object>("メインカメラ");
 		main_camera->get_camera()->get_parameters().fov_y = math::angle::to_radian(30.0f);
+		//	エディターカメラは有効になった時にメインカメラの視点を引き継ぐので、メインカメラをプレビューモデルに向けておく
+		main_camera->set_local_translation(preview_camera_position);
+		main_camera->set_local_euler(preview_camera_rotation);
+		main_camera->get_camera()->get_parameters().position = preview_camera_position;
+		main_camera->get_camera()->get_parameters().rotation = math::rotatorf(preview_camera_rotation);
 		register_object(main_camera);
 		mouse::instance()->set_center_lock(false);
 		mouse::instance()->set_cursol_hide(false);
@@ -100,32 +112,11 @@ bool edit_material_system::initialize_core()
 		}
 	}
 
-	//	ポストプロセス生成
-	{
-		auto post_process_volume = std::make_shared<post_process_volume_object>("ポストプロセスボリューム");
-		post_process_volume->set_flag(post_process_volume::flags::unbind, true);
-		{
-			auto bloom_constant = post_process_volume->get_volume()->get_bloom_constant();
-			auto lens_ghosts_constant = post_process_volume->get_volume()->get_lens_ghosts_constant();
-			auto depth_of_field_constant = post_process_volume->get_volume()->get_depth_of_field_constant();
-			auto motion_blur_constant = post_process_volume->get_volume()->get_motion_blur_constant();
-			bloom_constant.set_active(false);
-			lens_ghosts_constant.set_active(false);
-			depth_of_field_constant.set_active(false);
-			motion_blur_constant.set_active(false);
-			post_process_volume->get_volume()->set_bloom_constant(bloom_constant);
-			post_process_volume->get_volume()->set_lens_ghosts_constant(lens_ghosts_constant);
-			post_process_volume->get_volume()->set_depth_of_field_constant(depth_of_field_constant);
-			post_process_volume->get_volume()->set_motion_blur_constant(motion_blur_constant);
-		}
-		register_object(post_process_volume);
-	}
-
 	//	エディターカメラ生成
 	{
 		editor_camera = std::make_shared<editor_camera_object>("エディターカメラ",
-			system_units::convert_m_to_unit(math::vector3d(0.0, 1.0, 8.0)),
-			math::rotatorf(0, math::constants<float>::pi, 0),
+			preview_camera_position,
+			math::rotatorf(preview_camera_rotation),
 			0.25f);
 		register_object(editor_camera);
 	}
@@ -156,6 +147,7 @@ bool edit_material_system::initialize_core()
 bool edit_material_system::uninitialize_core()
 {
 	clear_preview_effect();
+	clear_domain_preview();
 
 	if (preview_model)
 	{
@@ -180,6 +172,7 @@ void edit_material_system::update_core(float elapsed_time)
 	}
 
 	apply_preview_materials();
+	update_domain_preview();
 
 	//	エフェクトは最後まで再生したら最初から流し直す
 	if (preview_effect && loop_preview_effect)
@@ -559,6 +552,179 @@ void edit_material_system::clear_preview_effect()
 
 	get_context().get_effects().unregister_instance(preview_effect);
 	preview_effect.reset();
+}
+
+void edit_material_system::update_domain_preview()
+{
+	//	サーフェスはプレビューモデルに当て、エフェクトを開いている時はそのエフェクトで確かめるので、仮の表示は要らない
+	material_resource_ptr selected = get_selected_material();
+	if (selected && (source_effect || selected->get_domain() == material_resource::domains::surface))
+		selected = nullptr;
+
+	if (selected != domain_preview_material)
+	{
+		clear_domain_preview();
+		if (selected)
+			make_domain_preview(selected);
+	}
+
+	//	仮のエフェクトは最後まで再生したら作り直す
+	if (domain_preview_effect)
+	{
+		const float end_time = domain_preview_effect->get_animation_end_time();
+		if (end_time > 0.0f && domain_preview_effect->get_animation_time() >= end_time)
+		{
+			const effect_resource_ptr resource = domain_preview_effect->get_resource();
+			get_context().get_effects().unregister_instance(domain_preview_effect);
+			domain_preview_effect = std::make_shared<effect_instance>(resource);
+			get_context().get_effects().register_instance(domain_preview_effect);
+		}
+	}
+}
+
+void edit_material_system::make_domain_preview(const material_resource_ptr& material)
+{
+	domain_preview_material = material;
+	switch (material->get_domain())
+	{
+		case material_resource::domains::particle:
+		case material_resource::domains::deferred_decal:
+		{
+			domain_preview_effect = std::make_shared<effect_instance>(make_domain_preview_effect(material));
+			get_context().get_effects().register_instance(domain_preview_effect);
+			break;
+		}
+		case material_resource::domains::post_process:
+		{
+			attach_preview_post_process(material);
+			break;
+		}
+		case material_resource::domains::user_interface:
+		{
+			//	画面の真ん中に四角を出す
+			preview_ui = std::make_shared<ui_image>("プレビューUI");
+			preview_ui->set_transient(true);
+			preview_ui->set_screen_rect({ ui::virtual_screen_width * 0.5f - 180.0f, ui::virtual_screen_height * 0.5f - 180.0f, 360.0f, 360.0f });
+			preview_ui->get_sprite().get_material().set_resource(material);
+			get_context().get_objects().register_object(preview_ui);
+			break;
+		}
+		default:
+		{
+			break;
+		}
+	}
+}
+
+void edit_material_system::clear_domain_preview()
+{
+	if (domain_preview_effect)
+	{
+		get_context().get_effects().unregister_instance(domain_preview_effect);
+		domain_preview_effect.reset();
+	}
+
+	if (preview_ui)
+	{
+		get_context().get_objects().unregister_object(preview_ui);
+		preview_ui.reset();
+	}
+
+	//	足したマテリアルだけをボリュームから外す
+	if (preview_volume)
+	{
+		const post_process_volume_ptr volume = preview_volume->get_volume();
+		const auto& volume_materials = volume->get_materials();
+		for (std::size_t index = 0; index < volume_materials.size(); ++index)
+		{
+			if (volume_materials[index]->get_resource() == domain_preview_material)
+			{
+				volume->unregister_postprocess_material(index);
+				break;
+			}
+		}
+		preview_volume.reset();
+	}
+
+	if (own_preview_volume)
+	{
+		get_context().get_objects().unregister_object(own_preview_volume);
+		own_preview_volume.reset();
+	}
+
+	domain_preview_material.reset();
+}
+
+effect_resource_ptr edit_material_system::make_domain_preview_effect(const material_resource_ptr& material) const
+{
+	auto resource = std::make_shared<effect_resource>();
+	auto& nodes = resource->get_nodes_for_editor();
+	auto& animations = resource->get_animations_for_editor();
+
+	//	ルートノードとアニメーション
+	nodes.emplace_back().name = "root";
+	{
+		auto& animation_data = animations.emplace_back();
+		animation_data.name = "default";
+		animation_data.end_time = domain_preview_effect_time;
+		animation_data.nodes.emplace_back().node_name = nodes.back().name;
+	}
+
+	auto& node = nodes.emplace_back();
+	node.name = "preview";
+	node.parent_index = 0;
+	const size_t node_index = nodes.size() - 1;
+
+	if (material->get_domain() == material_resource::domains::particle)
+	{
+		//	プレビューモデルの周りに出し続ける
+		auto& particle_data = resource->get_particles_for_editor().emplace_back();
+		particle_data.node_index = node_index;
+
+		auto renderer = particle_data.particle.register_item<::particle::item::renderer>();
+		renderer->type = ::particle::item::renderer::types::sprite;
+		renderer->total_particle_count = 1024;
+		renderer->material = material;
+
+		auto spawn = particle_data.particle.register_item<::particle::item::spawn>();
+		spawn->life_time_range = { 1.0f, 2.0f };
+		spawn->scale_range = { 2.0f, 4.0f };
+		spawn->area_min = system_units::convert_m_to_unit(math::float3(-1.0f, 0.0f, -1.0f));
+		spawn->area_max = system_units::convert_m_to_unit(math::float3(1.0f, 2.0f, 1.0f));
+		spawn->range = { 1, 1 };
+	}
+	else
+	{
+		//	床とプレビューモデルに掛かる箱
+		node.scale = system_units::convert_m_to_unit(math::float3(2.0f, 2.0f, 2.0f));
+
+		auto& decal = resource->get_decals_for_editor().emplace_back();
+		decal.node_index = node_index;
+		decal.material = material;
+	}
+	return resource;
+}
+
+void edit_material_system::attach_preview_post_process(const material_resource_ptr& material)
+{
+	//	シーンにある境界無しのボリュームに足す。無ければ仮のボリュームを作る
+	for (const auto& volume_object : get_context().get_objects().search_objects<post_process_volume_object>())
+	{
+		if (volume_object->is_flag(post_process_volume::flags::unbind))
+		{
+			preview_volume = volume_object;
+			break;
+		}
+	}
+	if (!preview_volume)
+	{
+		own_preview_volume = std::make_shared<post_process_volume_object>("プレビューポストプロセスボリューム");
+		own_preview_volume->set_transient(true);
+		own_preview_volume->set_flag(post_process_volume::flags::unbind, true);
+		get_context().get_objects().register_object(own_preview_volume);
+		preview_volume = own_preview_volume;
+	}
+	preview_volume->get_volume()->register_postprocess_materials(material);
 }
 
 void edit_material_system::imgui_render_source()

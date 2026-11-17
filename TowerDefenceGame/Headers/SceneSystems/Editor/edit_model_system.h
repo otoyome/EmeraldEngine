@@ -105,7 +105,6 @@ private:
 private:
 	std::shared_ptr<camera_object> main_camera;
 	std::shared_ptr<editor_camera_object> editor_camera;
-	std::shared_ptr<post_process_volume_object> post_process_volume;
 
 private:
 	std::shared_ptr<model_object> edit_model;

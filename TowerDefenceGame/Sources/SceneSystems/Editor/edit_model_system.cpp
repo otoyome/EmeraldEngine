@@ -78,84 +78,12 @@ bool edit_model_system::initialize_core()
 		}
 	}
 
-	//	デフォルトでポストプロセスを適応する
-	if (pipeline_state_manager* instance = pipeline_state_manager::instance())
-	{
-		post_process_volume = std::make_shared<post_process_volume_object>("ポストプロセスボリューム");
-		post_process_volume->set_flag(post_process_volume::flags::unbind, true);
-		{
-			auto bloom_constant = post_process_volume->get_volume()->get_bloom_constant();
-			auto lens_ghosts_constant = post_process_volume->get_volume()->get_lens_ghosts_constant();
-			auto depth_of_field_constant = post_process_volume->get_volume()->get_depth_of_field_constant();
-			auto screen_space_reflection_constant = post_process_volume->get_volume()->get_screen_space_reflection_constant();
-			auto motion_blur_constant = post_process_volume->get_volume()->get_motion_blur_constant();
-			bloom_constant.set_active(false);
-			lens_ghosts_constant.set_active(false);
-			depth_of_field_constant.set_active(false);
-			screen_space_reflection_constant.set_active(false);
-			motion_blur_constant.set_active(false);
-			post_process_volume->get_volume()->set_bloom_constant(bloom_constant);
-			post_process_volume->get_volume()->set_lens_ghosts_constant(lens_ghosts_constant);
-			post_process_volume->get_volume()->set_depth_of_field_constant(depth_of_field_constant);
-			post_process_volume->get_volume()->set_screen_space_reflection_constant(screen_space_reflection_constant);
-			post_process_volume->get_volume()->set_motion_blur_constant(motion_blur_constant);
-		}
-		register_object(post_process_volume);
-
-		//	マテリアル登録
-		static constexpr std::string_view texts_list[][2] =
-		{
-			{
-				"Assets/GameShader/PostProcess/color_filter_before_dof.hlsl",
-				"被写界深度前ポストプロセスマテリアル",
-			},
-			{
-				"Assets/GameShader/PostProcess/color_filter_after_dof.hlsl",
-				"被写界深度後ポストプロセスマテリアル",
-			},
-			{
-				"Assets/GameShader/PostProcess/color_filter_after_dof_translucency.hlsl",
-				"被写界深度後半透明描画ポストプロセスマテリアル",
-			},
-			{
-				"Assets/GameShader/PostProcess/color_filter_before_bloom.hlsl",
-				"ブルーム前ポストプロセスマテリアル",
-			},
-			{
-				"Engine/EngineShader/Materials/PostProcess/color_filter_after_tone_mapping.hlsl",
-				"トーンマッピング後ポストプロセスマテリアル",
-			}
-		};
-		material_resource::blendable_locations path_list[] =
-		{
-			material_resource::blendable_locations::before_dof,
-			material_resource::blendable_locations::after_dof,
-			material_resource::blendable_locations::after_dof_translucency,
-			material_resource::blendable_locations::before_bloom,
-			material_resource::blendable_locations::after_tone_mapping,
-		};
-		for (UINT index = 0; index < ARRAYSIZE(path_list); ++index)
-		{
-			std::shared_ptr<material_resource> post_process_material = std::make_shared<material_resource>();
-			post_process_material->set_name(texts_list[index][1]);
-			post_process_material->set_domain(material_resource::domains::post_process);
-			post_process_material->set_flag(material_resource::flags::two_sided, true);
-			post_process_material->set_blend_mode(material_resource::blend_modes::opaque);
-			post_process_material->set_blendable_location(path_list[index]);
-			post_process_material->set_shader_path(texts_list[index][0]);
-
-			//	マテリアル登録
-			post_process_volume->get_volume()->register_postprocess_materials(post_process_material);
-		}
-	}
-
 	return initialize_edit_core();
 }
 
 bool edit_model_system::uninitialize_core()
 {
 	get_context().get_objects().unregister_object(edit_model);
-	get_context().get_objects().unregister_object(post_process_volume);
 	return uninitialize_edit_core();
 }
 
