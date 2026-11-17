@@ -1376,7 +1376,7 @@ void debug_draw_pass_renderer::render(renderer_context& context)
 	{
 		//	線の色を、display_mapping の逆変換でシーンの色の値にする
 		{
-			const math::float3x3 matrix = color_space::get_gamut_matrix(color_space::gamuts::rec709, engine_config_data::instance()->get_active_rendering_gamut());
+			const math::float3x3 matrix = color_space::get_gamut_matrix(color_space::gamuts::rec709, color_space::rendering_gamut);
 			const float scale = sdr_reference_white_nits / static_cast<float>(light_utility::luminous_efficacy);
 			debug_draw_color_constants constants{};
 			for (int row = 0; row < 3; ++row)

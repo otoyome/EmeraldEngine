@@ -72,10 +72,9 @@ namespace common_pipeline_states
 		math::float4x4 previous_view_projection_transform;
 
 		//	ディスプレイマッピング情報
-		UINT rendering_gamut;		//	描画色域(color_space::gamuts)
 		UINT output_curve;			//	出力の伝達関数(display_mapping_renderer::output_curves)
 		float peak_nits;			//	ディスプレイの最大輝度[nit]
-		float display_mapping_dummy;
+		math::float2 display_mapping_dummy;
 	};
 
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -269,7 +268,7 @@ namespace common_pipeline_states
 	constexpr std::string_view visible_meshlet_instances_name = "visible_meshlet_instances";
 	constexpr system_utility::hash_key visible_meshlet_instances_hash_key = system_utility::generate_hash(visible_meshlet_instances_name);
 
-	//	モデル以外の頂点ストリーム
+	//	モデル以外の頂点ストリーム(UI等)
 	//	Engine/EngineShader/Common/vertex_stream.hlsli と合わせる
 	constexpr UINT vertex_stream_srv_index = 96;	//	先頭の SRV 番号
 	constexpr UINT vertex_stream_max = 3;			//	ストリーム数

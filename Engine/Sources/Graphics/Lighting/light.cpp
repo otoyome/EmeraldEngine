@@ -66,7 +66,7 @@ namespace
 		ret.position = (source.get_position() - render_origin).to_float3();
 		ret.rotation = source.get_rotation();
 		ret.direction = source.get_rotation().front().to_float3();
-		const math::float3 radiometric_color = source.calculate_radiometric_color(engine_config_data::instance()->get_active_rendering_gamut());
+		const math::float3 radiometric_color = source.calculate_radiometric_color();
 		ret.color = { radiometric_color.x * fade, radiometric_color.y * fade, radiometric_color.z * fade };
 		ret.range = source.get_range();
 		ret.inner_cone = source.get_inner_cone();
@@ -98,7 +98,7 @@ namespace
 		ret.data.outer_area.x = outer_range.x;
 		ret.data.outer_area.y = outer_range.y;
 		ret.data.outer_area.z = outer_range.z;
-		const math::float3 radiometric_color = source.calculate_radiometric_color(engine_config_data::instance()->get_active_rendering_gamut());
+		const math::float3 radiometric_color = source.calculate_radiometric_color();
 		ret.data.color = { radiometric_color.x, radiometric_color.y, radiometric_color.z, 1.0f };
 
 		ret.diffuse_ibl_texture = source.get_diffuse_ibl_texture();
@@ -236,12 +236,11 @@ void light::set_unit_mode(unit_modes mode)
 	unit_mode = mode;
 }
 
-math::float3 light::calculate_radiometric_color(color_space::gamuts rendering_gamut) const
+math::float3 light::calculate_radiometric_color() const
 {
-	//	F‰·“x‚ÌF‚Í‹P“x 1 ‚É³‹K‰»Ï‚İ‚ÅAƒtƒBƒ‹ƒ^[‚ÍŒõ‚ğ‹zû‚·‚é(‹P“x‚ğ‰º‚°‚é)‚à‚Ì‚Æ‚µ‚ÄŠ|‚¯‚é
 	math::vector3f rgb(color.x, color.y, color.z);
 	if (color_mode == color_modes::filter_and_temperature)
-		rgb = rgb * light_utility::get_temperature_color(kelvin);
+		rgb *= light_utility::get_temperature_color(kelvin);
 	else
 		rgb = light_utility::normalize_luminance_rec2020(rgb);
 
@@ -255,9 +254,11 @@ math::float3 light::calculate_radiometric_color(color_space::gamuts rendering_ga
 			work_intensity = static_cast<float>(light_utility::convert_point_light_lumen_to_candela(intensity));
 	}
 
-	//	‘ªŒõ—Ê‚©‚ç•úË—Ê‚ÖARec.2020 ‚©‚ç•`‰æFˆæ‚Ö
+	//	‘ªŒõ—Ê‚©‚ç•úË—Ê‚Ö
 	const float radiometric_value = static_cast<float>(light_utility::convert_photometric_to_radiometric(work_intensity));
-	const math::vector3f result = color_space::convert_gamut(rgb * radiometric_value, color_space::gamuts::rec2020, rendering_gamut);
+
+	//	Rec.2020 ‚©‚ç•`‰æFˆæ‚Ö
+	const math::vector3f result = color_space::convert_gamut(rgb * radiometric_value, color_space::gamuts::rec2020, color_space::rendering_gamut);
 	return { result[0], result[1], result[2] };
 }
 
@@ -411,11 +412,13 @@ void light_probe::set_outer_range(const math::float3& outer_range)
 	this->outer_range = outer_range;
 }
 
-math::float3 light_probe::calculate_radiometric_color(color_space::gamuts rendering_gamut) const
+math::float3 light_probe::calculate_radiometric_color() const
 {
-	//	‹P“x[nit]‚ğ•úË‹P“x‚É‚µARec.2020 ‚©‚ç•`‰æFˆæ‚Ö
+	//	‹P“x‚ğ•úË‹P“x‚Ö
 	const float radiometric_value = static_cast<float>(light_utility::convert_photometric_to_radiometric(intensity));
-	const math::vector3f result = color_space::convert_gamut(math::vector3f(color.x, color.y, color.z) * radiometric_value, color_space::gamuts::rec2020, rendering_gamut);
+
+	//	Rec.2020 ‚©‚ç•`‰æFˆæ‚Ö
+	const math::vector3f result = color_space::convert_gamut(math::vector3f(color.x, color.y, color.z) * radiometric_value, color_space::gamuts::rec2020, color_space::rendering_gamut);
 	return { result[0], result[1], result[2] };
 }
 

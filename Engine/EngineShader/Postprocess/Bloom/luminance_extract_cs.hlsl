@@ -41,7 +41,7 @@ void main(int3 dispatch_thread_id : SV_DispatchThreadID)
 
 		float3 color = (source_texture[uv00] + source_texture[uv10] + source_texture[uv01] + source_texture[uv11]) * 0.25f;
 
-		float scene_luminance = convert_rgb_to_luminance(color) * luminance_scale;
+		float scene_luminance = convert_rcs_to_luminance(color) * luminance_scale;
 
 		//	ƒuƒ‹[ƒ€
 		if (bloom_intensity >= 0.0f)

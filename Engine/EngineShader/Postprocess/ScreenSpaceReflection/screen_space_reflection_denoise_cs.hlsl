@@ -95,9 +95,9 @@ void main(int3 group_id : SV_GroupID, int3 group_thread_id : SV_GroupThreadID, i
         //	中心色取得
         float4 center_color = block_colors[center_texture_position.y][center_texture_position.x];
         float4 center_normal_depth = block_normal_depths[center_texture_position.y][center_texture_position.x];
-        float center_luminance = convert_rgb_to_luminance(center_color.rgb);
+        float center_luminance = convert_rcs_to_luminance(center_color.rgb);
 
-        float ang = 2.0f * 3.1415926535f * rand(251.12860182f * group_thread_id.x + 729.9126812 * group_thread_id.y + 5.1839513 * time_data.x);
+        float ang = 2.0f * 3.1415926f * rand(251.12860182f * group_thread_id.x + 729.9126812 * group_thread_id.y + 5.1839513 * time_data.x);
         float2x2 rotation_matrix = float2x2(cos(ang), sin(ang), -sin(ang), cos(ang));
     
         //  フィルタリング
@@ -112,7 +112,7 @@ void main(int3 group_id : SV_GroupID, int3 group_thread_id : SV_GroupThreadID, i
             float4 normal_depth = block_normal_depths[texture_position.y][texture_position.x];
 
             //  輝度の重み
-            float luminance = convert_rgb_to_luminance(color.rgb);
+            float luminance = convert_rcs_to_luminance(color.rgb);
             float luminance_dist = center_luminance - luminance;
             float weight_color = min(exp(-luminance_dist / (denoise_color_sigma * denoise_sigma_scale)), 1.0f);
 

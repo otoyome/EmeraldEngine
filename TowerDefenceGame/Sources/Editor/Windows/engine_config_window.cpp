@@ -33,11 +33,6 @@ void engine_config_window::render_window(std::shared_ptr<editor_items::context>&
 		//	相対座標描画フラグ
 		ImGui::Checkbox("camera_relative_rendering", &engine_config_data::instance()->rendering.camera_relative_rendering);
 
-		//	描画色域
-		ImGui::Combo("rendering_gamut", engine_config_data::instance()->rendering.rendering_gamut);
-		if (engine_config_data::instance()->rendering.rendering_gamut != engine_config_data::instance()->get_active_rendering_gamut())
-			ImGui::TextDisabled("restart to apply (current : %s)", magic_enum::enum_name(engine_config_data::instance()->get_active_rendering_gamut()).data());
-
 		//	アンチエイリアス
 		if (ImGui::TreeNode("antialias"))
 		{

@@ -74,6 +74,29 @@ void mesh_container::build_transform_buffers()
 		static_cast<UINT>(bone_matrix_scratch.size() * sizeof(math::float4x4)));
 }
 
+void mesh_container::clear()
+{
+	draw_datas.clear();
+	shadow_datas.clear();
+	color_datas.clear();
+	primitive_header_scratch.clear();
+	bone_matrix_scratch.clear();
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+void effect_container::clear()
+{
+	sprite_trail_draw_datas.clear();
+	sprite_trail_color_datas.clear();
+	sprite_trail_shadow_datas.clear();
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+void decal_container::clear()
+{
+	decal_datas.clear();
+}
+
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void graphics_context::set_rasterizer_state(ID3D11RasterizerState* state) const
 {

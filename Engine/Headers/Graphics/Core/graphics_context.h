@@ -129,15 +129,7 @@ struct mesh_container
 	std::vector<math::float4x4> bone_matrix_scratch;
 
 	void build_transform_buffers();
-
-	void clear()
-	{
-		draw_datas.clear();
-		shadow_datas.clear();
-		color_datas.clear();
-		primitive_header_scratch.clear();
-		bone_matrix_scratch.clear();
-	}
+	void clear();
 };
 
 //	スプライト情報コンテナ
@@ -179,12 +171,7 @@ struct effect_container
 	std::vector<std::size_t> sprite_trail_color_datas;
 	std::vector<std::size_t> sprite_trail_shadow_datas;
 
-	void clear()
-	{
-		sprite_trail_draw_datas.clear();
-		sprite_trail_color_datas.clear();
-		sprite_trail_shadow_datas.clear();
-	}
+	void clear();
 };
 
 //	デカール情報
@@ -200,10 +187,7 @@ struct decal_datas
 struct decal_container
 {
 	std::vector<decal_datas> decal_datas;
-	void clear()
-	{
-		decal_datas.clear();
-	}
+	void clear();
 };
 
 #if defined(USE_IMGUI)

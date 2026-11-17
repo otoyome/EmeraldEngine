@@ -1,9 +1,36 @@
 #ifndef __COLOR_SPACE_HLSLI__
 #define __COLOR_SPACE_HLSLI__
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//	色域と伝達関数の変換(行列は Engine/Headers/Graphics/color_space.h と同じ値を使う)
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//  色域
+static const uint gamut_rec709 = 0;
+static const uint gamut_rec2020 = 1;
+
+//  白色座標
+static const float2 d60_white_point = float2(0.32168, 0.33767);
+static const float2 d65_white_point = float2(0.3127, 0.3290);
+
+//  出力の伝達関数
+static const uint output_curve_srgb = 0;
+
+//  作業色空間
+static const uint rendering_gamut = gamut_rec2020;
+
+//  メモ
+//  〇XYZ (CIE1931)
+//    目に見える色をすべて 0 以上で表せる基準の色空間。RGB 色空間どうしの変換はここを経由する
+//  　Yが明るさになるように作られています。視感度と同じ形
+//  〇xyY (CIE 1931)
+//    XYZ を色味(x, y)と明るさ(Y)に分けて書き直したもの。
+//    x = X / (X + Y + Z)
+//    y = Y / (X + Y + Z)
+//  〇D65 : 0.3127, 0.3290
+//    昼光(約6504K)の標準の光。Rec.709・Rec.2020・sRGB の白
+//  〇Rec.709 (ITU-R BT.709)
+//    HDTV の規格。白(D65)、目に見える色の約35%を覆う
+//  〇Rec.2020 (ITU-R BT.2020)
+//     UHDTV(4K/8K)・HDR の規格。白(D65)、目に見える色の約75%を覆う
+//  〇sRGB(IEC 61966-2-1:1999)
+//    PC・Web の標準。原色と白は Rec.709 と同じで、違うのは伝達関数(ガンマ約2.2の区分関数)だけ
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //	sRGB 曲線(IEC 61966-2-1)
@@ -21,27 +48,27 @@ float3 convert_linear_to_srgb(float3 x)
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //	Rec.709 リニア <> Rec.2020 リニア
-static const float3x3 rec709_to_rec2020_matrix =
-{
-    0.627402, 0.329292, 0.043306,
-    0.069095, 0.919544, 0.011360,
-    0.016394, 0.088028, 0.895578
-};
-
-static const float3x3 rec2020_to_rec709_matrix =
-{
-    +1.660496, -0.587656, -0.072840,
-    -0.124547, +1.132895, -0.008348,
-    -0.018154, -0.100597, +1.118751
-};
-
 float3 convert_linear_rec709_to_linear_rec2020(float3 rgb709)
 {
+    static const float3x3 rec709_to_rec2020_matrix =
+    {
+        0.627402, 0.329292, 0.043306,
+        0.069095, 0.919544, 0.011360,
+        0.016394, 0.088028, 0.895578
+    };
+
     return mul(rec709_to_rec2020_matrix, rgb709);
 }
 
 float3 convert_linear_rec2020_to_linear_rec709(float3 rgb2020)
 {
+    static const float3x3 rec2020_to_rec709_matrix =
+    {
+        +1.660496, -0.587656, -0.072840,
+        -0.124547, +1.132895, -0.008348,
+        -0.018154, -0.100597, +1.118751
+    };
+
     return mul(rec2020_to_rec709_matrix, rgb2020);
 }
 
@@ -94,6 +121,26 @@ float3 convert_xyz_to_linear_rec2020(float3 xyz)
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//	xyY <> XYZ 変換
+float3 convert_xyY_to_xyz(float3 xyY)
+{
+    if (xyY.y <= 0.0f)
+        return float3(0, 0, 0);
+
+    float scale = xyY.z / xyY.y;
+    return float3(scale * xyY.x, xyY.z, scale * (1.0f - xyY.x - xyY.y));
+}
+
+float3 convert_xyz_to_xyY(float3 xyz, float2 white_point)
+{
+    float sum = xyz.x + xyz.y + xyz.z;
+    if (sum <= 0.0f)
+        return float3(white_point.xy, 0.0f);
+
+    return float3(xyz.x / sum, xyz.y / sum, xyz.y);
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //	輝度(Y)
 float convert_linear_rec709_to_luminance(float3 rgb709)
 {
@@ -105,6 +152,7 @@ float convert_linear_rec2020_to_luminance(float3 rgb2020)
     return dot(float3(0.2627, 0.6780, 0.0593), rgb2020);
 }
 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //	Rec709色空間情報<>線形色空間情報への変換関数
 //  ITU-R BT.709勧告 規格準拠
 float3 convert_linear_to_rec709(float3 x)
@@ -145,20 +193,7 @@ float3 remove_st2084_curve(float3 N)
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
-float3 gamma(float3 x)
-{
-    return pow(x, 1.0f / 2.2f);
-}
-
-float3 degamma(float3 x)
-{
-    return pow(x, 2.2);
-}
-
-//--------------------------------------------
 //	RGB色空間の数値からHSV色空間の数値への変換関数
-//--------------------------------------------
-//rgb:RGB色空間の数値
 float3 convert_rgb_to_hsv( float3 rgb )
 {
     float4 K = float4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);
@@ -169,10 +204,6 @@ float3 convert_rgb_to_hsv( float3 rgb )
     return float3(abs(q.z + (q.w - q.y) / (6.0 * d + eps)), d / (q.x + eps), q.x);
 }
 
-//--------------------------------------------
-//	HSV色空間の数値からRGB色空間の数値への変換関数
-//--------------------------------------------
-//hsv:HSV色空間の数値
 float3	convert_hsv_to_rgb( float3 hsv )
 {
     float4 K = float4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
@@ -180,18 +211,8 @@ float3	convert_hsv_to_rgb( float3 hsv )
     return hsv.z * lerp(K.xxx, clamp(p - K.xxx, 0.0, 1.0), clamp(hsv.y, 0.0, 1.0));
 }
 
-//--------------------------------------------
-//	RGB色から輝度への変換関数
-//--------------------------------------------
-float convert_rgb_to_luminance(float3 rgb)
-{
-    static const float3 luminanceValue = float3(0.299f, 0.587f, 0.114f);
-    return dot(luminanceValue, rgb);
-}
-
-//--------------------------------------------
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //	RGB色を対数圧縮関数
-//--------------------------------------------
 float3 compress_rgb_to_log(float3 color)
 {
 	return log2(color.rgb + 1.0f);
@@ -201,9 +222,6 @@ float4 compress_rgba_to_log(float4 color)
 	return log2(color + 1.0f);
 }
 
-//--------------------------------------------
-//	RGB色を対数圧縮関数
-//--------------------------------------------
 float3 decompress_rgb_to_log(float3 color)
 {
 	return exp2(color.rgb) - 1.0f;
@@ -215,78 +233,113 @@ float4 decompress_rgba_to_log(float4 color)
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//  色域
-static const uint gamut_rec709 = 0;
-static const uint gamut_rec2020 = 1;
+//  レンダリング色空間に合わせた対応
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-//  出力の伝達関数
-static const uint output_curve_srgb = 0;
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//  レンダリング色空間の白色点を取得
+float2 get_rcs_white_point()
+{
+    if (rendering_gamut == gamut_rec709 || rendering_gamut == gamut_rec2020)
+        return d65_white_point;
 
+    //  @remainder  将来ACESを対応するときにでも・・・
+    return d60_white_point;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //  レンダリング色空間<>sRGB色空間変換
-float3 convert_srgb_to_rcs(float3 x, uint gamut)
+float3 convert_srgb_to_rcs(float3 x)
 {
     x = convert_srgb_to_linear(x);
-    if (gamut == gamut_rec2020)
+    if (rendering_gamut == gamut_rec2020)
         x = convert_linear_rec709_to_linear_rec2020(x);
     return x;
 }
 
-float3 convert_rcs_to_srgb(float3 x, uint gamut)
+float3 convert_rcs_to_srgb(float3 x)
 {
-    if (gamut == gamut_rec2020)
+    if (rendering_gamut == gamut_rec2020)
         x = convert_linear_rec2020_to_linear_rec709(x);
     return convert_linear_to_srgb(x);
 }
 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //  レンダリング色空間<>Rec709 Linear色空間変換
-float3 convert_linear_rec709_to_rcs(float3 x, uint gamut)
+float3 convert_linear_rec709_to_rcs(float3 x)
 {
-    if (gamut == gamut_rec2020)
+    if (rendering_gamut == gamut_rec2020)
         return convert_linear_rec709_to_linear_rec2020(x);
 
     return x;
 }
 
-float3 convert_rcs_to_linear_rec709(float3 x, uint gamut)
+float3 convert_rcs_to_linear_rec709(float3 x)
 {
-    if (gamut == gamut_rec2020)
+    if (rendering_gamut == gamut_rec2020)
         return convert_linear_rec2020_to_linear_rec709(x);
 
     return x;
 }
 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //  レンダリング色空間<>Rec2020 Linear色空間変換
-float3 convert_linear_rec2020_to_rcs(float3 x, uint gamut)
+float3 convert_linear_rec2020_to_rcs(float3 x)
 {
-    if (gamut == gamut_rec709)
+    if (rendering_gamut == gamut_rec709)
         return convert_linear_rec2020_to_linear_rec709(x);
 
     return x;
 }
 
-float3 convert_rcs_to_linear_rec2020(float3 x, uint gamut)
+float3 convert_rcs_to_linear_rec2020(float3 x)
 {
-    if (gamut == gamut_rec709)
+    if (rendering_gamut == gamut_rec709)
         return convert_linear_rec709_to_linear_rec2020(x);
 
     return x;
 }
 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //  レンダリング色空間 > 輝度変換
-float convert_rcs_to_luminance(float3 x, uint gamut)
+float convert_rcs_to_luminance(float3 x)
 {
-    if (gamut == gamut_rec2020)
+    if (rendering_gamut == gamut_rec2020)
         return convert_linear_rec2020_to_luminance(x);
 
     return convert_linear_rec709_to_luminance(x);
 }
 
-float3 convert_rcs_to_xyz(float3 x, uint gamut)
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//  レンダリング色空間<>XYZ色空間変換
+float3 convert_rcs_to_xyz(float3 x)
 {
-    if (gamut == gamut_rec2020)
+    if (rendering_gamut == gamut_rec2020)
         return convert_linear_rec2020_to_xyz(x);
 
     return convert_linear_rec709_to_xyz(x);
+}
+
+float3 convert_xyz_to_rcs(float3 x)
+{
+    if (rendering_gamut == gamut_rec2020)
+        return convert_xyz_to_linear_rec2020(x);
+
+    return convert_xyz_to_linear_rec709(x);
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//  レンダリング色空間<>xyY色空間変換
+float3 convert_rcs_to_xyY(float3 x)
+{
+    float3 xyz = convert_rcs_to_xyz(x);
+    return convert_xyz_to_xyY(xyz, get_rcs_white_point());
+}
+
+float3 convert_xyY_to_rcs(float3 x)
+{
+    float3 xyz = convert_xyY_to_xyz(x);
+    return convert_xyz_to_rcs(xyz);
 }
 
 #endif  //  __COLOR_SPACE_HLSLI__

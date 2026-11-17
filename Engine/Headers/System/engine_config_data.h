@@ -62,11 +62,8 @@ public:
 	//	描画関係の情報
 	struct rendering_data
 	{
-		//	カメラ相対描画（描画原点をカメラ位置にする）を有効にするか
+		//	カメラ相対描画を有効にするか
 		bool camera_relative_rendering = false;
-
-		//	描画色域
-		color_space::gamuts rendering_gamut = color_space::gamuts::rec2020;
 
 		template<class Archive>
 		void serialize(Archive& archive, int version);
@@ -122,13 +119,6 @@ public:
 		template<class Archive>
 		void serialize(Archive& archive, int version);
 	} collision;
-
-public:
-	//	描画色域
-	color_space::gamuts get_active_rendering_gamut() const { return active_rendering_gamut; }
-
-private:
-	color_space::gamuts active_rendering_gamut = color_space::gamuts::rec709;
 
 private:
 	engine_config_data();

@@ -42,9 +42,9 @@ float3 convert_texture_gamut_to_rcs(uint resource_id, float3 color)
 {
     uint flags = shader_resource_view_flags[resource_id / 4][resource_id % 4];
     if (flags & srv_flag_gamut_rec709)
-        return convert_linear_rec709_to_rcs(color, rendering_gamut);
+        return convert_linear_rec709_to_rcs(color);
     if (flags & srv_flag_gamut_rec2020)
-        return convert_linear_rec2020_to_rcs(color, rendering_gamut);
+        return convert_linear_rec2020_to_rcs(color);
     return color;
 }
 
@@ -52,7 +52,7 @@ float4 TextureSample(Texture1D srv, uint resource_id, SamplerState samp, float t
 {
     float4 color = srv.Sample(samp, texcoord);
     if (is_convert_srgb(resource_id))
-        color.rgb = degamma(color.rgb);
+        color.rgb = convert_srgb_to_linear(color.rgb);
 
     return color;
 }
@@ -61,7 +61,7 @@ float4 Texture2dSample(Texture2D srv, uint resource_id, SamplerState samp, float
 {
     float4 color = srv.Sample(samp, texcoord);
     if (is_convert_srgb(resource_id))
-        color.rgb = degamma(color.rgb);
+        color.rgb = convert_srgb_to_linear(color.rgb);
     color.rgb = convert_texture_gamut_to_rcs(resource_id, color.rgb);
 
     return color;
@@ -71,7 +71,7 @@ float4 Texture2dSample(Texture3D srv, uint resource_id, SamplerState samp, float
 {
     float4 color = srv.Sample(samp, texcoord);
     if (is_convert_srgb(resource_id))
-        color.rgb = degamma(color.rgb);
+        color.rgb = convert_srgb_to_linear(color.rgb);
     color.rgb = convert_texture_gamut_to_rcs(resource_id, color.rgb);
 
     return color;
@@ -81,7 +81,7 @@ float4 TextureCubeSample(TextureCube srv, uint resource_id, SamplerState samp, f
 {
     float4 color = srv.Sample(samp, texcoord);
     if (is_convert_srgb(resource_id))
-        color.rgb = degamma(color.rgb);
+        color.rgb = convert_srgb_to_linear(color.rgb);
     color.rgb = convert_texture_gamut_to_rcs(resource_id, color.rgb);
 
     return color;

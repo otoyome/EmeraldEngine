@@ -15,15 +15,15 @@ class post_process_volume_object : public spatial_object
 	GAME_OBJECT_DECRLEAR(post_process_volume_object, spatial_object)
 
 public:
+	static constexpr std::uint32_t serialize_version = 1;
+
+public:
 	post_process_volume_ptr get_volume() const {return instance;}
 
 	bool is_flag(post_process_volume::flags flag) const;
 	void set_flag(post_process_volume::flags flag, bool value);
 
-	math::float3 get_inner_range() const;
-	void set_inner_range(const math::float3& inner_range);
-	math::float3 get_outer_range() const;
-	void set_outer_range(const math::float3& outer_range);
+	//	@tool 箱はワールドのトランスフォームで決まる（拡大縮小が箱の大きさ）
 	const math::float4& get_color() const;
 	void set_color(const math::float4& color);
 
@@ -33,6 +33,9 @@ public:
 
 	void post_update(float elapsed_time) override;
 	void post_render() override;
+
+	void serialize(cereal::JSONOutputArchive& archive) const override;
+	void deserialize(cereal::JSONInputArchive& archive) override;
 
 #if defined(USE_IMGUI)
 	void imgui_render_core() override;
@@ -51,6 +54,10 @@ private:
 	void on_deactive() override;
 
 	void sync_to_volume();
+
+	friend class game_object_serializer;
+	template<class Archive>
+	void serialize_fields(Archive& archive, std::uint32_t version);
 
 private:
 	post_process_volume_ptr instance;

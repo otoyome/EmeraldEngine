@@ -7,7 +7,7 @@ SamplerState sampler_states : register(s0);
 float4 main(VS_OUT pin) : SV_TARGET
 {
     float4 color = color_map.Sample(sampler_states, pin.texcoord);
-    color.rgb = pow(color.rgb, GammaFactor);
+    color.rgb = convert_srgb_to_rcs(color.rgb);
     return color;
 }
 

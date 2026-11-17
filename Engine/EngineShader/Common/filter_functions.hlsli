@@ -89,11 +89,11 @@ float3 fxaa(Texture2D color_texture, SamplerState samp, float2 texcoord, float2 
     float3 sampled_m = color_texture.Sample(samp, texcoord.xy).xyz;
 
     //  ÇªÇÍÇºÇÍÇÃãPìxÇéZèo
-    float luma_nw = convert_rgb_to_luminance(sampled_nw);
-    float luma_ne = convert_rgb_to_luminance(sampled_ne);
-    float luma_sw = convert_rgb_to_luminance(sampled_sw);
-    float luma_se = convert_rgb_to_luminance(sampled_se);
-    float luma_m = convert_rgb_to_luminance(sampled_m);
+    float luma_nw = convert_rcs_to_luminance(sampled_nw);
+    float luma_ne = convert_rcs_to_luminance(sampled_ne);
+    float luma_sw = convert_rcs_to_luminance(sampled_sw);
+    float luma_se = convert_rcs_to_luminance(sampled_se);
+    float luma_m = convert_rcs_to_luminance(sampled_m);
 
     //  ãPìxç∑ÇÃç≈è¨ç≈ëÂÇéÊìæ
     float luma_min = min(luma_m, min(min(luma_nw, luma_ne), min(luma_sw, luma_se)));
@@ -116,7 +116,7 @@ float3 fxaa(Texture2D color_texture, SamplerState samp, float2 texcoord, float2 
     float3 rgb_b = rgb_a * (1.0f / 2.0f)
                  + (1.0f / 4.0f) * (color_texture.Sample(samp, texcoord.xy + dir * (0.0f / 3.0f - 0.5f)).xyz +
 		                            color_texture.Sample(samp, texcoord.xy + dir * (3.0f / 3.0f - 0.5f)).xyz);
-    float luma_b = convert_rgb_to_luminance(rgb_b);
+    float luma_b = convert_rcs_to_luminance(rgb_b);
     return ((luma_b < luma_min) || (luma_b > luma_max)) ? rgb_a : rgb_b;
 }
 

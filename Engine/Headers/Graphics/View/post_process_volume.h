@@ -156,10 +156,14 @@ public:
 
 	const math::vector3d& get_position() const;
 	void set_position(const math::vector3d& position);
-	math::float3 get_inner_range() const;
-	void set_inner_range(const math::float3& inner_range);
-	math::float3 get_outer_range() const;
-	void set_outer_range(const math::float3& outer_range);
+
+	const math::quaterniond& get_rotation() const;
+	void set_rotation(const math::quaterniond& rotation);
+
+	const math::double3& get_extents() const;
+	void set_extents(const math::double3& extents);
+
+	double calculate_distance(const math::double3& point) const;
 	const math::float4& get_color() const;
 	void set_color(const math::float4& color);
 
@@ -186,17 +190,17 @@ public:
 
 private:
 	UINT system_flags;
-	bloom_data bloom_constant;
-	lens_ghosts_data lens_ghosts_constant;
-	depth_of_field_data depth_of_field_constant;
-	screen_space_reflection_data screen_space_reflection_constant;
-	motion_blur_data motion_blur_constant;
-	exposure_settings exposure_constant;
-	std::vector<std::shared_ptr<material_instance>> postprocess_materials;
+	bloom_data bloom_constant;	//	ブルーム
+	lens_ghosts_data lens_ghosts_constant;	//	レンズゴースト
+	depth_of_field_data depth_of_field_constant;	//	被写界深度
+	screen_space_reflection_data screen_space_reflection_constant;	//	SSR
+	motion_blur_data motion_blur_constant;	//	モーションブラー
+	exposure_settings exposure_constant;	//	露出補正
+	std::vector<std::shared_ptr<material_instance>> postprocess_materials;	//	ポストプロセスマテリアル
 
 	math::vector3d position;
-	math::float3 inner_range;
-	math::float3 outer_range;
+	math::quaterniond rotation;
+	math::double3 extents;
 	math::float4 color;
 };
 ENUM_ATTR_BITFLAG(post_process_volume::flags);

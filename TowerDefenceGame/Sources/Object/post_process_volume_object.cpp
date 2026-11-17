@@ -1,4 +1,11 @@
 #include "object/post_process_volume_object.h"
+#include "Object/game_object_registry.h"
+#include "Object/game_object_serializer.h"
+#include "Texture/texture_resource_utility.h"
+
+#include "cereal/cereal.hpp"
+#include "cereal/archives/json.hpp"
+#include "cereal/types/common.hpp"
 
 #include "implot/implot.h"
 
@@ -18,12 +25,18 @@ void post_process_volume_object::sync_to_volume()
 
 	applied_spatial_version = spatial_version;
 	instance->set_position(get_world_translation());
+	instance->set_rotation(get_world_rotation());
+	const math::vector3d scale = get_world_scale();
+	instance->set_extents(math::double3(scale.x * 0.5, scale.y * 0.5, scale.z * 0.5));
 }
 
 post_process_volume_object::post_process_volume_object(std::string_view name)
 : spatial_object(name)
 {
 	instance = std::make_shared<post_process_volume>();
+
+	//	@tool 拡大縮小が箱の大きさになるので、最初は 10m 四方にしておく
+	set_local_scale(math::vector3d(10.0, 10.0, 10.0));
 	sync_to_volume();
 
 #if defined(USE_IMGUI)
@@ -45,10 +58,11 @@ void post_process_volume_object::post_update(float elapsed_time)
 		(instance->is_flag(post_process_volume::flags::active) ||
 		 instance->is_flag(post_process_volume::flags::debug_draw)))
 	{
-		math::float4 rotation = { 0.0f, 0.0f, 0.0f, 1.0f };
-		math::float4 color = { 0.0f, 1.0f, 0.0f, 1.0f };
-		QUEUE_DEBUG_PRIMITIVE_BOX(get_context(), instance->get_position().to_double3(), rotation, instance->get_outer_range(), color, true);
-		QUEUE_DEBUG_PRIMITIVE_BOX(get_context(), instance->get_position().to_double3(), rotation, instance->get_inner_range(), color, true);
+		const math::float4 rotation = instance->get_rotation().to_float4();
+		const math::float4 color = { 0.0f, 1.0f, 0.0f, 1.0f };
+		const math::double3& extents = instance->get_extents();
+		const math::float3 box_extents(static_cast<float>(extents.x), static_cast<float>(extents.y), static_cast<float>(extents.z));
+		QUEUE_DEBUG_PRIMITIVE_BOX(get_context(), instance->get_position().to_double3(), rotation, box_extents, color, true);
 	}
 #endif	//	defined(USE_IMGUI)
 }
@@ -80,26 +94,6 @@ void post_process_volume_object::set_flag(post_process_volume::flags flag, bool 
 	instance->set_flag(flag, value);
 }
 
-math::float3 post_process_volume_object::get_inner_range() const
-{
-	return instance->get_inner_range();
-}
-
-void post_process_volume_object::set_inner_range(const math::float3& inner_range)
-{
-	instance->set_inner_range(inner_range);
-}
-
-math::float3 post_process_volume_object::get_outer_range() const
-{
-	return instance->get_outer_range();
-}
-
-void post_process_volume_object::set_outer_range(const math::float3& outer_range)
-{
-	instance->set_outer_range(outer_range);
-}
-
 const math::float4& post_process_volume_object::get_color() const
 {
 	return instance->get_color();
@@ -124,16 +118,6 @@ void post_process_volume_object::imgui_render_core()
 	sync_to_volume();
 
 	CHECK_BOX(unbind);
-	auto inner_range = instance->get_inner_range();
-	auto outer_range = instance->get_outer_range();
-	if (ImGui::DragFloat3("inner_range", &inner_range.x, 0.01f))
-	{
-		instance->set_inner_range(inner_range);
-	}
-	if (ImGui::DragFloat3("outer_range", &outer_range.x, 0.01f))
-	{
-		instance->set_outer_range(outer_range);
-	}
 
 	//	ブルーム
 	imgui_bloom();
@@ -571,3 +555,120 @@ void post_process_volume_object::imgui_tone_mapping()
 
 #undef CHECK_BOX
 #endif	//	defined(USE_IMGUI)
+
+template<class Archive>
+void post_process_volume_object::serialize_fields(Archive& archive, std::uint32_t version)
+{
+	//	@tool 名前のノードの中で items を読み書きする
+	auto section = [&archive](const char* name, auto&& items)
+	{
+		archive.setNextName(name);
+		archive.startNode();
+		items();
+		archive.finishNode();
+	};
+
+	//	@tool テクスチャは UUID で持ち、読込時は参照があるときだけ差し替える（無ければ既定のまま）
+	auto texture = [&archive](const char* name, resource::asset_handle<texture_resource>& handle)
+	{
+		universally_unique_identifier uuid = handle.get_reference().uuid;
+		game_object_serializer::serialize_asset_reference(archive, name, uuid);
+		if constexpr (Archive::is_loading::value)
+		{
+			if (!uuid.is_empty())
+				handle = texture_resource_utility::load_texture_resource(game_object_serializer::resolve_asset_path(uuid));
+		}
+	};
+
+	bool unbind = instance->is_flag(post_process_volume::flags::unbind);
+	archive(CEREAL_NVP(unbind));
+
+	bloom_data bloom = instance->get_bloom_constant();
+	bool bloom_active = bloom.is_active();
+	section("bloom", [&]()
+	{
+		archive(cereal::make_nvp("active", bloom_active), cereal::make_nvp("threshold", bloom.threshold), cereal::make_nvp("intensity", bloom.intensity),
+			cereal::make_nvp("mode", bloom.mode), cereal::make_nvp("deviation", bloom.deviation));
+		texture("image_kernel", bloom.image_kernel);
+	});
+
+	lens_ghosts_data lens_ghosts = instance->get_lens_ghosts_constant();
+	bool lens_ghosts_active = lens_ghosts.is_active();
+	section("lens_ghosts", [&]()
+	{
+		archive(cereal::make_nvp("active", lens_ghosts_active), cereal::make_nvp("threshold", lens_ghosts.threshold), cereal::make_nvp("intensity", lens_ghosts.intensity),
+			cereal::make_nvp("dispersion_scale", lens_ghosts.dispersion_scale), cereal::make_nvp("dispersion_offset", lens_ghosts.dispersion_offset),
+			cereal::make_nvp("ghost_mask_radius", lens_ghosts.ghost_mask_radius), cereal::make_nvp("ghost_mask_fade", lens_ghosts.ghost_mask_fade),
+			cereal::make_nvp("iteration", lens_ghosts.iteration), cereal::make_nvp("ghost_bokeh", lens_ghosts.ghost_bokeh));
+		texture("image_kernel", lens_ghosts.image_kernel);
+		texture("ghost_color_lut", lens_ghosts.ghost_color_lut);
+	});
+
+	depth_of_field_data depth_of_field = instance->get_depth_of_field_constant();
+	bool depth_of_field_active = depth_of_field.is_active();
+	section("depth_of_field", [&]()
+	{
+		archive(cereal::make_nvp("active", depth_of_field_active), cereal::make_nvp("focal_length", depth_of_field.focal_length),
+			cereal::make_nvp("focus_distance", depth_of_field.focus_distance), cereal::make_nvp("circle_of_confusion", depth_of_field.circle_of_confusion),
+			cereal::make_nvp("apeture", depth_of_field.apeture), cereal::make_nvp("blur_size", depth_of_field.blur_size),
+			cereal::make_nvp("adjust_length", depth_of_field.adjust_length), cereal::make_nvp("precision_scale_factor", depth_of_field.precision_scale_factor));
+	});
+
+	screen_space_reflection_data screen_space_reflection = instance->get_screen_space_reflection_constant();
+	bool screen_space_reflection_active = screen_space_reflection.is_active();
+	section("screen_space_reflection", [&]()
+	{
+		archive(cereal::make_nvp("active", screen_space_reflection_active), cereal::make_nvp("ray_max_distance", screen_space_reflection.ray_max_distance),
+			cereal::make_nvp("ray_resolution", screen_space_reflection.ray_resolution), cereal::make_nvp("ray_tickness", screen_space_reflection.ray_tickness),
+			cereal::make_nvp("ray_substep_iteration_max", screen_space_reflection.ray_substep_iteration_max), cereal::make_nvp("ray_flags", screen_space_reflection.ray_flags),
+			cereal::make_nvp("velocity_reset_threshold", screen_space_reflection.velocity_reset_threshold));
+	});
+
+	motion_blur_data motion_blur = instance->get_motion_blur_constant();
+	bool motion_blur_active = motion_blur.is_active();
+	section("motion_blur", [&]()
+	{
+		archive(cereal::make_nvp("active", motion_blur_active), cereal::make_nvp("iteration", motion_blur.iteration),
+			cereal::make_nvp("jitter_noise_value", motion_blur.jitter_noise_value), cereal::make_nvp("velocity_multiplyer", motion_blur.velocity_multiplyer));
+	});
+
+	exposure_settings exposure = instance->get_exposure_settings();
+	section("exposure", [&]()
+	{
+		archive(cereal::make_nvp("auto_exposure_mode", exposure.auto_exposure_mode), cereal::make_nvp("metering_mode", exposure.metering_mode),
+			cereal::make_nvp("exposure_compensation", exposure.exposure_compensation), cereal::make_nvp("adaptation_time", exposure.adaptation_time),
+			cereal::make_nvp("f_number", exposure.f_number), cereal::make_nvp("shutter_speed", exposure.shutter_speed), cereal::make_nvp("iso_speed", exposure.iso_speed));
+	});
+
+	//	@tool 読込時だけ、読んだ値をボリュームに反映する
+	if constexpr (Archive::is_loading::value)
+	{
+		instance->set_flag(post_process_volume::flags::unbind, unbind);
+		bloom.set_active(bloom_active);
+		instance->set_bloom_constant(bloom);
+		lens_ghosts.set_active(lens_ghosts_active);
+		instance->set_lens_ghosts_constant(lens_ghosts);
+		depth_of_field.set_active(depth_of_field_active);
+		instance->set_depth_of_field_constant(depth_of_field);
+		screen_space_reflection.set_active(screen_space_reflection_active);
+		screen_space_reflection.accumalate_reset = true;
+		instance->set_screen_space_reflection_constant(screen_space_reflection);
+		motion_blur.set_active(motion_blur_active);
+		instance->set_motion_blur_constant(motion_blur);
+		instance->set_exposure_settings(exposure);
+	}
+}
+
+void post_process_volume_object::serialize(cereal::JSONOutputArchive& archive) const
+{
+	base::serialize(archive);
+	game_object_serializer::save_fields(archive, "post_process_volume_object", *this);
+}
+
+void post_process_volume_object::deserialize(cereal::JSONInputArchive& archive)
+{
+	base::deserialize(archive);
+	game_object_serializer::load_fields(archive, "post_process_volume_object", *this);
+}
+
+GAME_OBJECT_REGISTER(post_process_volume_object, "Rendering");

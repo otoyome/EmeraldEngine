@@ -82,7 +82,7 @@ public:
 	void set_kelvin(int kelvin) { this->kelvin = kelvin; }
 
 	//	放射量の色
-	math::float3 calculate_radiometric_color(color_space::gamuts rendering_gamut) const;
+	math::float3 calculate_radiometric_color() const;
 
 	float get_range() const;
 	void set_range(float range);
@@ -176,8 +176,8 @@ public:
 	float get_intensity() const { return intensity; }
 	void set_intensity(float intensity) { this->intensity = intensity; }
 
-	//	シェーダーへ渡す IBL の倍率(描画色域の放射量)
-	math::float3 calculate_radiometric_color(color_space::gamuts rendering_gamut) const;
+	//	シェーダーへ渡す IBL の倍率
+	math::float3 calculate_radiometric_color() const;
 
 private:
 	UINT system_flags;

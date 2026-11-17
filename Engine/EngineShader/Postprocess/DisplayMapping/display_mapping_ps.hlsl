@@ -21,7 +21,7 @@ float4 main(VS_OUT pin) : SV_TARGET
             color.rgb /= peak_nits;
 
             //  ディスプレイの色空間に移動
-            color.rgb = convert_rcs_to_srgb(color.rgb, rendering_gamut);
+            color.rgb = convert_rcs_to_srgb(color.rgb);
             break;
         }
     }

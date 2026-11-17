@@ -10,7 +10,7 @@
 CEREAL_CLASS_VERSION(engine_config_data::application_data, 2)
 CEREAL_CLASS_VERSION(engine_config_data::windows_data, 1)
 CEREAL_CLASS_VERSION(engine_config_data::antialias_data, 1)
-CEREAL_CLASS_VERSION(engine_config_data::rendering_data, 1)
+CEREAL_CLASS_VERSION(engine_config_data::rendering_data, 2)
 CEREAL_CLASS_VERSION(engine_config_data::collision_data, 1)
 CEREAL_CLASS_VERSION(engine_config_data::collision_data::channel_data, 1)
 CEREAL_CLASS_VERSION(engine_config_data::collision_data::response_data, 1)
@@ -95,12 +95,14 @@ void engine_config_data::rendering_data::serialize(Archive& archive, int version
 	switch (version)
 	{
 		case 0:
+		case 2:
 		{
 			archive(CEREAL_NVP(camera_relative_rendering));
 			break;
 		}
 		case 1:
 		{
+			UINT rendering_gamut;
 			archive(CEREAL_NVP(camera_relative_rendering), CEREAL_NVP(rendering_gamut));
 			break;
 		}
@@ -203,7 +205,6 @@ engine_config_data::engine_config_data()
 				default:
 				{
 					DEBUG_LOG_CATEGORY(logger::categorys::system, "Unknown Version EngineConfig[%s] version[%u]", file_path.data(), version);
-					active_rendering_gamut = rendering.rendering_gamut;
 					return;
 				}
 			}
@@ -211,15 +212,12 @@ engine_config_data::engine_config_data()
 		catch (...)
 		{
 			DEBUG_LOG_CATEGORY(logger::categorys::system, "Load Failed EngineConfig[%s]", file_path.data());
-			active_rendering_gamut = rendering.rendering_gamut;
 			return;
 		}
 		DEBUG_LOG_CATEGORY(logger::categorys::system, "Load Succeeded EngineConfig[%s]", file_path.data());
-		active_rendering_gamut = rendering.rendering_gamut;
 		return;
 	}
 	DEBUG_LOG_CATEGORY(logger::categorys::system, "Open Failed EngineConfig[%s]", file_path.data());
-	active_rendering_gamut = rendering.rendering_gamut;
 }
 
 engine_config_data::~engine_config_data()

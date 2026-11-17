@@ -122,8 +122,8 @@ post_process_volume::post_process_volume()
 : system_flags(0)
 
 , position(math::vector3d::zero())
-, inner_range(50.0f, 50.0f, 50.0f)
-, outer_range(100.0f, 100.0f, 100.0f)
+, rotation(math::quaterniond::identity())
+, extents(5.0, 5.0, 5.0)
 , color(1, 1, 1, 1)
 {
 	set_flag(flags::active, true);
@@ -143,24 +143,30 @@ void post_process_volume::set_position(const math::vector3d& position)
 	this->position = position;
 }
 
-math::float3 post_process_volume::get_inner_range() const
+const math::quaterniond& post_process_volume::get_rotation() const
 {
-	return inner_range;
+	return rotation;
 }
 
-void post_process_volume::set_inner_range(const math::float3& inner_range)
+void post_process_volume::set_rotation(const math::quaterniond& rotation)
 {
-	this->inner_range = inner_range;
+	this->rotation = rotation;
 }
 
-math::float3 post_process_volume::get_outer_range() const
+const math::double3& post_process_volume::get_extents() const
 {
-	return outer_range;
+	return extents;
 }
 
-void post_process_volume::set_outer_range(const math::float3& outer_range)
+void post_process_volume::set_extents(const math::double3& extents)
 {
-	this->outer_range = outer_range;
+	this->extents = extents;
+}
+
+double post_process_volume::calculate_distance(const math::double3& point) const
+{
+	const collision::bounding_box box(extents, rotation.to_double4(), position.to_double3());
+	return box.calculate_point_to_length(point);
 }
 
 const math::float4& post_process_volume::get_color() const
@@ -280,8 +286,10 @@ void post_process_volume_collector::collect(post_process_volume_container& conta
 			}
 
 			//	” ‚Æ‚Ì‹——£‚ðŽZo‚µ‚ÄÅ‚à‹ß‚¢‚Ì‚ð‚Æ‚è‚ ‚¦‚¸“ü‚ê‚Ä‚¨‚­
-			auto box = collision::inner::axis_aligned_bounding_box(math::double3(volume->get_outer_range()), volume->get_position().to_double3());
-			float box_to_length = static_cast<float>(box.calculate_point_to_length(camera_world));
+			//	@tool ” ‚ÌŠO‚É‚¢‚ê‚ÎŒø‚©‚È‚¢
+			const float box_to_length = static_cast<float>(volume->calculate_distance(camera_world));
+			if (box_to_length > 0.0f)
+				continue;
 			if (box_to_length < length)
 			{
 				length = box_to_length;
