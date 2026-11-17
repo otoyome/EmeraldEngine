@@ -63,7 +63,7 @@ DirectLighting integrate_bxdf(in GBufferData gbuffer_data, in LightingData light
         {
             float3 bright_color = gbuffer_data.base_color;
             float3 shade_color  = gbuffer_data.custom_data0.rgb;
-            float  threshold    = gbuffer_data.custom_data0.a;
+            float  threshold    = 0.5f + gbuffer_data.custom_data0.a;
             float3 spec_color   = gbuffer_data.custom_data1.rgb;
             float  spec_power   = max(gbuffer_data.custom_data1.a * 256.0f, 1.0f);
 
