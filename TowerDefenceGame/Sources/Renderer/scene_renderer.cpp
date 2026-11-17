@@ -1272,9 +1272,6 @@ void deffered_lighting_renderer::render_spot_shadow_map(const light_render_data&
 
 void deffered_lighting_renderer::resize_buffer(int width, int height)
 {
-	if (lighting_pass_viewport.Width == static_cast<float>(width) && lighting_pass_viewport.Height == static_cast<float>(height))
-		return;
-
 	//	ライティングパス生成
 	{
 		lighting_pass.render_targets.clear();
@@ -1293,13 +1290,16 @@ void deffered_lighting_renderer::resize_buffer(int width, int height)
 		lighting_pass_viewport.MinDepth = 0.0f;
 		lighting_pass_viewport.MaxDepth = 1.0f;
 	}
+
+	//	シャドウパス生成
+	if (texture2d_ptr texture = std::static_pointer_cast<texture2d>(render_targets->shadowmap_depth_texture))
+	{
+		resize_shadow_buffer(texture->get_desc().Width, texture->get_desc().Height);
+	}
 }
 
 void deffered_lighting_renderer::resize_shadow_buffer(int width, int height)
 {
-	if (shadow_map_pass_viewport.Width == static_cast<float>(width) && shadow_map_pass_viewport.Height == static_cast<float>(height))
-		return;
-
 	D3D11_SHADER_RESOURCE_VIEW_DESC srv_desc;
 	render_targets->shadowmap_depth_texture->get_shader_resource_view()->GetDesc(&srv_desc);
 	//	シャドウマップパス生成

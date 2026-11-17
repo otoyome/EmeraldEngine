@@ -23,19 +23,10 @@ float4 main(VS_OUT pin) : SV_TARGET
             }
 
             float3 shadowing_attenuation = 1;
-            if (IsGBufferFlags(data, material_attribute_shadow_receiver))
+            if (IsGBufferFlags(data, material_attribute_shadow_receiver) &&
+                local_light.attribute & light_flag_use_shadow)
             {
-                if (local_light.attribute & light_flag_use_shadow)
-                {
-                    shadowing_attenuation = shadowing_process_local(data.w_position, normalize(data.w_normal), local_light.position.xyz).rgb;
-                }
-            }
-
-            //  NPRでもローカルライティングはデフォルトでシェーディングさせる
-            if (data.shading_model == shading_model_pmx_lit ||
-                data.shading_model == shading_model_toon_lit)
-            {
-                data.shading_model = shading_model_default_lit;
+                shadowing_attenuation = shadowing_process_local(data.w_position, normalize(data.w_normal), local_light.position.xyz).rgb;
             }
 
             LightingData lighting_data;
@@ -44,6 +35,7 @@ float4 main(VS_OUT pin) : SV_TARGET
             lighting_data.direction = L;
             lighting_data.color = local_light.color;
             lighting_data.camera_position = camera_position.xyz;
+            lighting_data.local_light = true;
             DirectLighting result = integrate_bxdf(data, lighting_data);
             total_diffuse += result.diffuse;
             total_specular += result.specular;

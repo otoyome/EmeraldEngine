@@ -4,6 +4,13 @@
 #include "common.hlsli"
 #include "filter_functions.hlsli"
 
+//	‰~ü—¦
+static const float PI = 3.141592654f;
+static const float PI2 = PI * 2.0f;
+
+//  ”ñ‹à‘®‚Ì‹¾–Ê”½Ë—¦‚Ì’²®’l‚ğF0‚É•ÏŠ·‚·‚éŒW”
+static const float DielectricSpecularToF0 = 0.08f;
+
 //--------------------------------------------
 //	ƒ‰ƒ“ƒo[ƒgŠgU”½ËŒvZŠÖ”
 //--------------------------------------------
@@ -92,12 +99,6 @@ float3 CalcSphereEnvironment(Texture2D tex, SamplerState samp, in float3 color, 
 	return	lerp(color.rgb, tex.Sample(samp, texcoord).rgb, value);
 }
 
-//	ƒKƒ“ƒ}ŒW”
-static const float GammaFactor = 2.2f;
-
-//	‰~ü—¦
-static const float PI = 3.141592654f;
-
 //--------------------------------------------
 //	ŠgU”½ËBRDF(³‹K‰»ƒ‰ƒ“ƒo[ƒg‚ÌŠgU”½Ë)
 //--------------------------------------------
@@ -117,6 +118,13 @@ float3 CalcFresnel(float3 F0, float VdotH)
     return F0 + (1.0f - F0) * pow(clamp(1.0f - VdotH, 0.0f, 1.0f), 5.0f);
 }
 
+//--------------------------------------------
+//	‚’¼”½Ë‚ÌƒtƒŒƒlƒ‹”½Ë—¦
+//--------------------------------------------
+float3 CalcF0(float specular, float3 base_color, float metalness)
+{
+    return lerp(DielectricSpecularToF0 * specular, base_color, metalness);
+}
 //--------------------------------------------
 //	–@ü•ª•zŠÖ”
 //--------------------------------------------

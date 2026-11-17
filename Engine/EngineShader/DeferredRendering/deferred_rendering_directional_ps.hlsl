@@ -15,12 +15,10 @@ float4 main(VS_OUT pin) : SV_TARGET
         float4 shadowing_attenuation = 1.0f;
         
         //  âeèàóù
-        if (IsGBufferFlags(data, material_attribute_shadow_receiver))
+        if (IsGBufferFlags(data, material_attribute_shadow_receiver) &&
+            deferred_light_data.attribute & light_flag_use_shadow)
         {
-            if (deferred_light_data.attribute & light_flag_use_shadow)
-            {
-                shadowing_attenuation = shadowing_process(data.w_position, view_transform);
-            }
+            shadowing_attenuation = shadowing_process(data.w_position, view_transform);
         }
 
         LightingData lighting_data;
@@ -29,6 +27,7 @@ float4 main(VS_OUT pin) : SV_TARGET
         lighting_data.direction = L;
         lighting_data.color = directional_light.color;
         lighting_data.camera_position = camera_position.xyz;
+        lighting_data.local_light = false;
         DirectLighting result = integrate_bxdf(data, lighting_data);
         total_diffuse += result.diffuse;
         total_specular += result.specular;

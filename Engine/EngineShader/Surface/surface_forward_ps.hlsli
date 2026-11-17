@@ -49,6 +49,7 @@ float4 main(VS_OUT pin, bool is_front_face : SV_IsFrontFace) : SV_TARGET
         lighting_data.direction = L;
         lighting_data.color = directional_light.color;
         lighting_data.camera_position = camera_position.xyz;
+        lighting_data.local_light = false;
         DirectLighting result = integrate_bxdf(data, lighting_data);
         total_diffuse += result.diffuse;
         total_specular += result.specular;
@@ -77,6 +78,7 @@ float4 main(VS_OUT pin, bool is_front_face : SV_IsFrontFace) : SV_TARGET
         lighting_data.direction = L;
         lighting_data.color = point_light.color;
         lighting_data.camera_position = camera_position.xyz;
+        lighting_data.local_light = true;
         DirectLighting result = integrate_bxdf(data, lighting_data);
         total_diffuse += result.diffuse;
         total_specular += result.specular;
@@ -105,6 +107,7 @@ float4 main(VS_OUT pin, bool is_front_face : SV_IsFrontFace) : SV_TARGET
         lighting_data.direction = L;
         lighting_data.color = spot_light.color;
         lighting_data.camera_position = camera_position.xyz;
+        lighting_data.local_light = true;
         DirectLighting result = integrate_bxdf(data, lighting_data);
         total_diffuse += result.diffuse;
         total_specular += result.specular;
@@ -116,44 +119,17 @@ float4 main(VS_OUT pin, bool is_front_face : SV_IsFrontFace) : SV_TARGET
     //  IBL
     if (!IsGBufferFlags(data, material_attribute_indirect_lighting_off))
     {
-        float3 albedo = data.base_color.rgb;
-        float3 N = normalize(data.w_normal);
-        float3 V = normalize(data.w_position.xyz - camera_position.xyz);
+        IndirectLightingData lighting_data;
+        lighting_data.diffuse_iem = forward_only_diffuse_iem;
+        lighting_data.specular_pmrem = forward_only_specular_pmrem;
+        lighting_data.lut_ggx = forward_only_lut_ggx;
+        lighting_data.ibl_sampler = forward_only_ibl_sampler_state;
+        lighting_data.color_adjust = forward_only_light_probe_data.color.rgb * forward_only_light_probe_data.color.a;
+        lighting_data.camera_position = camera_position.xyz;
+        IndirectLighting result = integrate_indirect_bxdf(data, lighting_data);
 
-	    //	ì¸éÀåıÇÃÇ§ÇøägéUîΩéÀÇ…Ç»ÇÈäÑçá
-        float3 diffuse_reflectance = lerp(albedo.rgb, 0.0f, data.metalness);
-
-	    //	êÇíºîΩéÀéûÇÃÉtÉåÉlÉãîΩéÀó¶
-        float3 F0 = lerp(0.08f * data.specular, albedo.rgb, data.metalness);
-        float3 color_adjust = forward_only_light_probe_data.color.rgb * forward_only_light_probe_data.color.a;
-
-        float3 diffuse = 0, specular = 0;
-        switch (data.shading_model)
-        {
-            case shading_model_default_lit:
-            {
-                diffuse += DiffuseIBL(N, V, data.roughness, diffuse_reflectance, F0, forward_only_diffuse_iem, forward_only_ibl_sampler_state) * color_adjust;
-                specular += SpecularIBL(N, V, data.roughness, F0, forward_only_lut_ggx, forward_only_specular_pmrem, forward_only_ibl_sampler_state) * color_adjust;
-                break;
-             }
-            case shading_model_pmx_lit:
-            {
-                //	àÍíUïÅí Ç…èoÇ∑
-                diffuse += DiffuseIBL(N, V, data.roughness, diffuse_reflectance, F0, forward_only_diffuse_iem, forward_only_ibl_sampler_state) * color_adjust;
-                specular += SpecularIBL(N, V, data.roughness, F0, forward_only_lut_ggx, forward_only_specular_pmrem, forward_only_ibl_sampler_state) * color_adjust;
-                break;
-            }
-            case shading_model_toon_lit:
-            {
-                // ÉRÉRÇ≈ÇÕâΩÇ‡ÇµÇ»Ç¢
-                break;
-            }
-        }
-
-	    //	é©å»é’ï¡
-	    total_diffuse += diffuse * data.occlusion;
-	    //  ãæñ îΩéÀ
-	    total_specular += specular * CalcSpecularOcclusion(saturate(dot(N, -V)), data.occlusion, data.roughness);
+        total_diffuse += result.diffuse;
+        total_specular += result.specular;
     }
 
     //  êFï‘ãp

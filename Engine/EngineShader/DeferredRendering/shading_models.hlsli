@@ -10,12 +10,6 @@ struct DirectLighting
     float3 specular;
 };
 
-struct OcclusionResult
-{
-    float3 diffuse;
-    float3 specular;
-};
-
 struct LightingData
 {
     float3 direction;               //  ライト方向
@@ -23,7 +17,23 @@ struct LightingData
     float3 color;                   //  ライトカラー
     float3 shadowing_attenuation;   //  シャドウイングによる減衰値
     float3 camera_position;         //  視点
-    float dummy;
+    bool local_light;               //  ローカルライトか判定
+};
+
+struct IndirectLighting
+{
+    float3 diffuse;
+    float3 specular;
+};
+
+struct IndirectLightingData
+{
+    TextureCube diffuse_iem;        //  拡散反射用 IBL
+    TextureCube specular_pmrem;     //  鏡面反射用 IBL
+    Texture2D lut_ggx;              //  GGX のルックアップテーブル
+    SamplerState ibl_sampler;       //  IBL 参照時のサンプラーステート
+    float3 color_adjust;            //  ライトプローブの色 x 強さ
+    float3 camera_position;         //  視点
 };
 
 DirectLighting integrate_bxdf(in GBufferData gbuffer_data, in LightingData lighting_data)
@@ -42,21 +52,67 @@ DirectLighting integrate_bxdf(in GBufferData gbuffer_data, in LightingData light
             float3 normal = normalize(gbuffer_data.w_normal);
             float3 view_vector = normalize(gbuffer_data.w_position.xyz - lighting_data.camera_position.xyz);
             float3 diffuse_reflectance = lerp(albedo.rgb, 0.0f, gbuffer_data.metalness);
-            float3 fresnel0 = lerp(0.08f * gbuffer_data.specular, albedo.rgb, gbuffer_data.metalness);
+            float3 fresnel0 = CalcF0(gbuffer_data.specular, albedo.rgb, gbuffer_data.metalness);
             DirectBRDF(diffuse_reflectance, fresnel0, normal, view_vector, lighting_data.direction,
                        lighting_data.color, gbuffer_data.roughness, result.diffuse, result.specular);
             result.diffuse *= lighting_data.shadowing_attenuation * lighting_data.shading_attenuation;
             result.specular *= lighting_data.shadowing_attenuation * lighting_data.shading_attenuation;
-
-	        //	自己遮蔽
-            result.diffuse *= gbuffer_data.occlusion;
-            result.specular *= gbuffer_data.occlusion;
             break;
         }
         case shading_model_pmx_lit:
         {
-            result.diffuse  = gbuffer_data.base_color * lighting_data.shadowing_attenuation;
+            float3 bright_color = gbuffer_data.base_color;
+            float3 shade_color  = gbuffer_data.custom_data0.rgb;
+            float  threshold    = gbuffer_data.custom_data0.a;
+            float3 spec_color   = gbuffer_data.custom_data1.rgb;
+            float  spec_power   = max(gbuffer_data.custom_data1.a * 256.0f, 1.0f);
 
+            float3 N = normalize(gbuffer_data.w_normal);
+            float3 L = -normalize(lighting_data.direction);
+            float3 V = -normalize(gbuffer_data.w_position - lighting_data.camera_position);
+            float3 H = normalize(L + V);
+
+            //  シェーディング
+            if (lighting_data.local_light)
+            {
+                //  ローカルライトの時は陰色にのみ影響を強く与える
+                float  n_dot_l = dot(N, L) * 0.5f + 0.5f;
+                float  lit     = step(threshold, n_dot_l * lighting_data.shading_attenuation);
+                float3 shade   = lerp(shade_color, 1.0f, lit * lighting_data.shadowing_attenuation);
+                float3 shadow  = lighting_data.shadowing_attenuation;
+
+                //  default_lit と同じ明るさの基準（Lambert の 1/π）にして露出と合わせる
+                float irradiance = lighting_data.color * rcp(PI);
+                result.diffuse = bright_color * irradiance * shade * shadow;
+
+                result.diffuse = lighting_data.shadowing_attenuation;
+                //  正規化 Blinn-Phong
+                float n_dot_h = saturate(dot(N, H));
+                float norm    = (spec_power + 8.0f) / (8.0f * PI);
+                result.specular = spec_color * norm * pow(n_dot_h, spec_power)
+                                * lighting_data.color * saturate(dot(N, L))
+                                * lighting_data.shadowing_attenuation * lighting_data.shading_attenuation;
+                                result.specular = 0;
+            }
+            else
+            {
+                //  平行光源がベースの色を作成
+                float  n_dot_l = dot(N, L) * 0.5f + 0.5f;
+                float  lit     = step(threshold, n_dot_l);
+                float  shadow  = lighting_data.shadowing_attenuation;
+                float3 shade   = lerp(shade_color, 1.0f, lit * shadow);
+
+                //  default_lit と同じ明るさの基準にして露出と合わせる
+                result.diffuse = bright_color * rcp(PI) * lighting_data.color * shade;
+
+                //  正規化 Blinn-Phong
+                float n_dot_h = saturate(dot(N, H));
+                float norm    = (spec_power + 8.0f) / (8.0f * PI);
+                result.specular = spec_color * norm * pow(n_dot_h, spec_power)
+                                * lighting_data.color * saturate(dot(N, L))
+                                * lighting_data.shadowing_attenuation * lighting_data.shading_attenuation;
+                                result.specular = 0;
+            }
             break;
         }
         case shading_model_toon_lit:
@@ -133,6 +189,64 @@ DirectLighting integrate_bxdf(in GBufferData gbuffer_data, in LightingData light
 
             //  拡散反射光
             result.diffuse = lerp(shade_color, base_and_specular_color, shadow_factor * lighting_data.shading_attenuation);
+            break;
+        }
+    }
+
+    return result;
+}
+
+IndirectLighting integrate_indirect_bxdf(in GBufferData gbuffer_data, in IndirectLightingData lighting_data)
+{
+    IndirectLighting result = (IndirectLighting) 0;
+
+    float3 albedo = gbuffer_data.base_color.rgb;
+    float3 N = normalize(gbuffer_data.w_normal);
+    float3 V = normalize(gbuffer_data.w_position.xyz - lighting_data.camera_position.xyz);
+
+    switch (gbuffer_data.shading_model)
+    {
+        case shading_model_unlit:
+        {
+            //  ライティングは行わないので何もしない
+            break;
+        }
+        case shading_model_default_lit:
+        {
+            //  入射光のうち拡散反射になる割合
+            float3 diffuse_reflectance = lerp(albedo.rgb, 0.0f, gbuffer_data.metalness);
+
+            //  垂直反射時のフレネル反射率
+            float3 F0 = CalcF0(gbuffer_data.specular, albedo.rgb, gbuffer_data.metalness);
+
+            result.diffuse = DiffuseIBL(N, V, gbuffer_data.roughness, diffuse_reflectance, F0, lighting_data.diffuse_iem, lighting_data.ibl_sampler) * lighting_data.color_adjust;
+            result.specular = SpecularIBL(N, V, gbuffer_data.roughness, F0, lighting_data.lut_ggx, lighting_data.specular_pmrem, lighting_data.ibl_sampler) * lighting_data.color_adjust;
+
+            //  遮蔽
+            result.diffuse *= gbuffer_data.occlusion;
+            result.specular *= CalcSpecularOcclusion(saturate(dot(N, -V)), gbuffer_data.occlusion, gbuffer_data.roughness);
+            break;
+        }
+        case shading_model_pmx_lit:
+        {
+            //  6軸の平均
+            float3 irradiance = 0.0f;
+            irradiance += lighting_data.diffuse_iem.Sample(lighting_data.ibl_sampler, float3(+1, 0, 0)).rgb;
+            irradiance += lighting_data.diffuse_iem.Sample(lighting_data.ibl_sampler, float3(-1, 0, 0)).rgb;
+            irradiance += lighting_data.diffuse_iem.Sample(lighting_data.ibl_sampler, float3(0, +1, 0)).rgb;
+            irradiance += lighting_data.diffuse_iem.Sample(lighting_data.ibl_sampler, float3(0, -1, 0)).rgb;
+            irradiance += lighting_data.diffuse_iem.Sample(lighting_data.ibl_sampler, float3(0, 0, +1)).rgb;
+            irradiance += lighting_data.diffuse_iem.Sample(lighting_data.ibl_sampler, float3(0, 0, -1)).rgb;
+            irradiance *= 1.0f / 6.0f;
+            irradiance /= PI;
+
+            result.diffuse = albedo.rgb * irradiance * lighting_data.color_adjust;
+            result.specular = 0.0f; //  スフィアマップに任せる
+            break;
+        }
+        case shading_model_toon_lit:
+        {
+            //  フェイク環境光を使うので計算しない
             break;
         }
     }

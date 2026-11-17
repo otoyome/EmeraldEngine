@@ -30,16 +30,12 @@ struct SurfaceData
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-//  @tool 自己発光の単位(ライティングサンプルと同じ扱い)
-//  @tool マテリアルの自己発光色 1.0 を emissive_reference_nits の輝度とし、描画で使う放射量へ変換してシーンに足す
-
-//  @tool 自己発光色 1.0 に対応する輝度[nit]。glTF は自己発光に物理単位を定めていないので SDR の基準白相当にする
-//  @tool シーンの輝度なので、ディスプレイの白の輝度(sdr_white_nits)とは別の値として扱い、ディスプレイの設定で変えない
-static const float emissive_reference_nits = 100.0f;
-
-//  マテリアルの自己発光色を放射量へ変換する
+//  マテリアルの自己発光色を放射量へ変換
 float3 convert_emissive_to_radiance(float3 emissive_color)
 {
+    //  マテリアルの自己発光色 1.0 を emissive_reference_nits の輝度として放射量へ変換
+    //  @remainder  コレで良いのかな？
+    static const float emissive_reference_nits = 100.0f;
     return emissive_color * (emissive_reference_nits / luminous_efficacy);
 }
 

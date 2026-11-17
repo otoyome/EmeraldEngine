@@ -30,6 +30,8 @@ cbuffer TOON_MATERIAL_CONSTANT_BUFFER
     float   metalness;          //  金属質(未使用)
     float   threshold_offset;   //  閾値
 
+    uint sphere_mode;           //  スフィアマップ使用モード
+    uint3 dummy;
 };
 
 #if defined(MATERIAL_SURFACE)
@@ -59,6 +61,7 @@ SurfaceData surface(VS_OUT pin, bool is_front_face)
     {
         data.base_color.rgb = edge_color.rgb;
         data.roughness = 1.0f;
+        data.shading_model = shading_model_unlit;	//	エッジカラーを直接出すため
     }
     else
     {
@@ -68,24 +71,40 @@ SurfaceData surface(VS_OUT pin, bool is_front_face)
         {
             base_color *= TEXTURE2D_SAMPLE(BaseMap, pin.texcoord[BaseTexcoord]);
         }
-        data.base_color = base_color;
 
-        //  平行光源を一つだけ処理してライティング
-        if (1 >= forward_only_light_counts.x)
+        // スフィアマップ
+        if (HAS_RESOURCE(SphereMap))
         {
-            light_data directional_light = forward_only_directional_light_data[0];
-            float3 L = directional_light.direction.xyz;
-            L = normalize(L);
-            float2 ramp_texcoord = float2(0.5f, saturate(dot(L, data.w_normal.xyz) * 0.5f + threshold_offset));
-            float3 ramp_color = 1.0f;
-            if (HAS_RESOURCE(RampMap))
-            {
-                ramp_color = TEXTURE2D_SAMPLE(RampMap, ramp_texcoord).rgb;
-            }
-            data.base_color.rgb *= ramp_color;
+            float3 v_normal = normalize(mul(data.w_normal, (float3x3) view_transform));
+            float2 sphere_uv = v_normal.xy * float2(0.5f, -0.5f) + 0.5f;
+            float3 sphere = TEXTURE2D_SAMPLE(SphereMap, sphere_uv).rgb;
+
+            //  ベースカラーに適応
+            base_color.rgb = (sphere_mode == 1) ? base_color.rgb * sphere    //  乗算
+                           : (sphere_mode == 2) ? base_color.rgb + sphere    //  加算
+                           : base_color.rgb;
         }
+        
+        //  ランプを明/暗色の2色に置き換える(良くはないが・・・)
+        float3 ramp_bright = 1.0f, ramp_dark = 1.0f;
+        if (HAS_RESOURCE(RampMap))
+        {
+            ramp_bright = TEXTURE2D_SAMPLE(RampMap, float2(0.5f, 0.01f)).rgb;
+            ramp_dark   = TEXTURE2D_SAMPLE(RampMap, float2(0.5f, 0.99f)).rgb;
+        }
+
+        //  data.base_color : rgb = 基本色x明色, a = 透明度
+        data.base_color = float4(base_color.rgb * ramp_bright, base_color.a);
+
+        //  data.custom_data0 : rgb = 基本色x暗色, a = 陰影の閾値
+        data.custom_data0 = float4(base_color.rgb * ramp_dark, saturate(threshold_offset));
+
+        //  data.custom_data1 : rgb = スペキュラ色, a = 光沢度 / 256
+        data.custom_data1 = float4(data.base_color * specular_color.rgb, saturate(specular_color.a / 256.0f));
+
+        data.base_color = base_color;
+        data.shading_model = material_shading_model;
     }
-    data.shading_model = material_shading_model;
     return data;
 }
 #endif	//	defined(MATERIAL_SURFACE)

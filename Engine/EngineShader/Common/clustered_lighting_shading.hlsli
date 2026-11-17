@@ -62,6 +62,7 @@ void accumulate_clustered_lights(GBufferData data, float2 texcoord, float view_z
         lighting_data.direction = L;
         lighting_data.color = light.color;
         lighting_data.camera_position = camera_position.xyz;
+        lighting_data.local_light = true;
         DirectLighting result = integrate_bxdf(data, lighting_data);
         total_diffuse += result.diffuse;
         total_specular += result.specular;
