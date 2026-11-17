@@ -27,6 +27,10 @@
 
 #if defined(USE_IMGUI)
 #include "Graphics/Debug/debug_primitive_collector.h"
+#include "Editor/editor_icons.h"
+#include "Object/spatial_object.h"
+#include "Object/light_object.h"
+#include "Object/post_process_volume_object.h"
 #endif // defined(USE_IMGUI)
 
 namespace
@@ -509,6 +513,24 @@ void world_renderer::build_debug_primitives(world& target, const render_data_con
 	if (debug_settings.collision)
 	{
 		target.get_objects().get_world().debug_primitive_draw(engine);
+	}
+
+	//	ライトとポストプロセスボリュームの範囲表示
+	if (debug_settings.light_range || debug_settings.post_process_volume)
+	{
+		const math::float4 light_color(1.0f, 0.85f, 0.3f, 1.0f);
+		const math::float4 light_inner_color(1.0f, 0.85f, 0.3f, 0.5f);
+		const math::float4 volume_color(0.0f, 1.0f, 0.0f, 1.0f);
+		debug_primitive_collector& lines = engine.get_debug_primitives();
+		for (const std::shared_ptr<game_object>& object : engine.get_objects().search_game_objects<spatial_object>())
+		{
+			if (!object || !object->is_active())
+				continue;
+			if (debug_settings.light_range && (object->check_type(point_light_object::type_name()) || object->check_type(spot_light_object::type_name())))
+				editor_icons::queue_shape(lines, *object, light_color, light_inner_color);
+			else if (debug_settings.post_process_volume && object->check_type(post_process_volume_object::type_name()))
+				editor_icons::queue_shape(lines, *object, volume_color, volume_color);
+		}
 	}
 
 	//	モデルAABBのデバッグ表示

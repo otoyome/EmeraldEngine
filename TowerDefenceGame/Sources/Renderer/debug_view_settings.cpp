@@ -23,6 +23,8 @@ void debug_view_settings::imgui_menu()
 		ImGui::Separator();
 		changed |= ImGui::MenuItem("Mesh AABB", nullptr, &mesh_aabb);
 		changed |= ImGui::MenuItem("Collision", nullptr, &collision);
+		changed |= ImGui::MenuItem("Light Range", nullptr, &light_range);
+		changed |= ImGui::MenuItem("Post Process Volume", nullptr, &post_process_volume);
 		ImGui::EndMenu();
 
 		if (changed)
@@ -68,6 +70,8 @@ void debug_view_settings_manager::register_settings_handler()
 		else if (sscanf_s(line, "GridLength=%d", &value) == 1)	target.grid_length = value < 1 ? 1 : value;
 		else if (sscanf_s(line, "MeshAABB=%d", &value) == 1)		target.mesh_aabb = value != 0;
 		else if (sscanf_s(line, "Collision=%d", &value) == 1)	target.collision = value != 0;
+		else if (sscanf_s(line, "LightRange=%d", &value) == 1)	target.light_range = value != 0;
+		else if (sscanf_s(line, "PostProcessVolume=%d", &value) == 1)	target.post_process_volume = value != 0;
 	};
 
 	//	‚·‚×‚Ä‚ÌƒL[‚ð‘‚«o‚·
@@ -83,6 +87,8 @@ void debug_view_settings_manager::register_settings_handler()
 			buffer->appendf("GridLength=%d\n", value.grid_length);
 			buffer->appendf("MeshAABB=%d\n", value.mesh_aabb ? 1 : 0);
 			buffer->appendf("Collision=%d\n", value.collision ? 1 : 0);
+			buffer->appendf("LightRange=%d\n", value.light_range ? 1 : 0);
+			buffer->appendf("PostProcessVolume=%d\n", value.post_process_volume ? 1 : 0);
 			buffer->append("\n");
 		}
 	};

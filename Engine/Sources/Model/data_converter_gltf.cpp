@@ -534,6 +534,7 @@ namespace
 			if (auto texture = import_texture(gltf_material.base_texture_path, color_settings))
 				material.set_texture("BaseColorMap", texture);
 			material.set_float3("emissive_color_factor", gltf_material.emissive_color);
+			material.set_float("emissive_strength", gltf_material.emissive_intensity);
 			if (auto texture = import_texture(gltf_material.emissive_texture_path, color_settings))
 				material.set_texture("EmissiveMap", texture);
 			material.set_float("roughness_factor", gltf_material.roughness);

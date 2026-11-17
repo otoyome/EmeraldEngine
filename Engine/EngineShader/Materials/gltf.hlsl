@@ -29,6 +29,9 @@ cbuffer GLTF_MATERIAL_CONSTANT_BUFFER
 	float metallic_factor;			//	金属質
 	float occlusion_strength;		//	光の遮蔽強度
 	float specular;					//	鏡面反射率の調整値(0.5 で F0 = 0.04)
+
+	float emissive_strength;		//	自己発光の強さ
+	float3 gltf_material_dummy;
 };
 
 #if defined(MATERIAL_SURFACE)
@@ -56,8 +59,9 @@ SurfaceData surface(VS_OUT pin, bool is_front_face)
     {
         data.emissive_color *= data.base_color;
     }
-    //  @tool 自己発光色を放射量へ変換
-    data.emissive_color = convert_emissive_to_radiance(data.emissive_color);
+
+    //  自己発光色を放射量へ変換
+    data.emissive_color = convert_emissive_to_radiance(data.emissive_color * emissive_strength);
 
     //	法線/従法線/接線
     float3 N = normalize(pin.w_normal.xyz);

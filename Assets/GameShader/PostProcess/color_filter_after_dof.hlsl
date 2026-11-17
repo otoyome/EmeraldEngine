@@ -261,7 +261,7 @@ float4 post_process(VS_OUT pin)
 	//	‹P“x‚ÅF‚ð•ªŠ„
 	if (sc_intensity > 0.0f)
 	{
-		float luma = convert_rgb_to_luminance(color.rgb);
+		float luma = convert_rcs_to_luminance(color.rgb);
 		float3 mix_color = lerp(sc_color_min, sc_color_max, step(sc_threshold, luma));
 		color.rgb = lerp(color.rgb, mix_color, sc_intensity);
 	}

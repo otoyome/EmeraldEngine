@@ -1152,6 +1152,7 @@ void model_resource_utility::generate_primitive_model(model_resource& resource, 
 		material.set_float4("base_color_factor", { 0.8f, 0.8f, 0.8f, 1.0f });
 		material.set_float("roughness_factor", 0.5f);
 		material.set_float("metallic_factor", 0.0f);
+		material.set_float("emissive_strength", 1.0f);
 	}
 
 	//	ƒƒbƒVƒ…

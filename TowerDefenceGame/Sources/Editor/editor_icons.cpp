@@ -14,6 +14,7 @@
 #include "Object/model_object.h"
 #include "Object/light_object.h"
 #include "Object/camera_object.h"
+#include "Object/post_process_volume_object.h"
 #include "Object/GameObjects/System/start_point_object.h"
 #include "Graphics/Debug/debug_primitive_collector.h"
 #include "System/imgui_texture_keeper.h"
@@ -211,11 +212,18 @@ std::shared_ptr<game_object> editor_icons::pick(engine_context& context, const I
 void editor_icons::queue_selected_shape(engine_context& context)
 {
 	const std::shared_ptr<game_object> selected = context.get_selected_object();
-	if (!selected || selected->is_transient() || !selected->check_type(spatial_object::type_name()))
+	if (!selected || selected->is_transient())
 		return;
 
-	debug_primitive_collector& lines = context.get_debug_primitives();
-	const spatial_object& spatial = *static_cast<spatial_object*>(selected.get());
+	queue_shape(context.get_debug_primitives(), *selected, shape_color, inner_shape_color);
+}
+
+void editor_icons::queue_shape(debug_primitive_collector& lines, game_object& object, const math::float4& color, const math::float4& inner_color)
+{
+	if (!object.check_type(spatial_object::type_name()))
+		return;
+
+	const spatial_object& spatial = *static_cast<spatial_object*>(&object);
 	const math::vector3d position = spatial.get_world_translation();
 	const math::rotatorf rotation(spatial.get_world_euler());
 	const math::vector3f right = rotation.right();
@@ -223,18 +231,18 @@ void editor_icons::queue_selected_shape(engine_context& context)
 	const math::vector3f front = rotation.front();
 
 	//	点光源：届く範囲の球
-	if (selected->check_type(point_light_object::type_name()))
+	if (object.check_type(point_light_object::type_name()))
 	{
-		const light_ptr light = static_cast<light_object*>(selected.get())->get_light();
+		const light_ptr light = static_cast<light_object*>(&object)->get_light();
 		if (light)
-			lines.queue_sphere(position.to_double3(), light->get_range(), shape_color);
+			lines.queue_sphere(position.to_double3(), light->get_range(), color);
 		return;
 	}
 
 	//	スポットライト：外側の円錐（内側の円錐は薄く円だけ）
-	if (selected->check_type(spot_light_object::type_name()))
+	if (object.check_type(spot_light_object::type_name()))
 	{
-		const light_ptr light = static_cast<light_object*>(selected.get())->get_light();
+		const light_ptr light = static_cast<light_object*>(&object)->get_light();
 		if (!light)
 			return;
 		const double range = light->get_range();
@@ -249,40 +257,52 @@ void editor_icons::queue_selected_shape(engine_context& context)
 			for (const math::vector3f& direction : directions)
 				lines.queue_line(position.to_double3(), offset_point(center, direction, radius), color);
 		};
-		queue_cone(light->get_outer_cone(), shape_color, true);
-		queue_cone(light->get_inner_cone(), inner_shape_color, false);
+		queue_cone(light->get_outer_cone(), color, true);
+		queue_cone(light->get_inner_cone(), inner_color, false);
 		return;
 	}
 
 	//	平行光源：向きの矢印
-	if (selected->check_type(directional_light_object::type_name()))
+	if (object.check_type(directional_light_object::type_name()))
 	{
 		constexpr double length = 30.0;
 		constexpr double head_length = 6.0;
 		constexpr double head_width = 3.0;
 		const math::double3 tip = offset_point(position, front, length);
-		lines.queue_line(position.to_double3(), tip, shape_color);
+		lines.queue_line(position.to_double3(), tip, color);
 		const math::vector3d head_base(offset_point(position, front, length - head_length));
 		const math::vector3f directions[] = { right, right * -1.0f, up, up * -1.0f };
 		for (const math::vector3f& direction : directions)
-			lines.queue_line(tip, offset_point(head_base, direction, head_width), shape_color);
+			lines.queue_line(tip, offset_point(head_base, direction, head_width), color);
 		return;
 	}
 
 	//	範囲付きのライトプローブ：内側と外側の箱
-	if (selected->check_type(area_light_probe_object::type_name()))
+	if (object.check_type(area_light_probe_object::type_name()))
 	{
-		const area_light_probe_object& probe = *static_cast<area_light_probe_object*>(selected.get());
+		const area_light_probe_object& probe = *static_cast<area_light_probe_object*>(&object);
 		const math::float4 quaternion = rotation.to_quaternion().to_float4();
-		lines.queue_box(position.to_double3(), quaternion, probe.get_outer_range(), shape_color);
-		lines.queue_box(position.to_double3(), quaternion, probe.get_inner_range(), inner_shape_color);
+		lines.queue_box(position.to_double3(), quaternion, probe.get_outer_range(), color);
+		lines.queue_box(position.to_double3(), quaternion, probe.get_inner_range(), inner_color);
+		return;
+	}
+
+	//	ポストプロセスボリューム：範囲の箱
+	if (object.check_type(post_process_volume_object::type_name()))
+	{
+		const post_process_volume_ptr volume = static_cast<post_process_volume_object*>(&object)->get_volume();
+		if (!volume || volume->is_flag(post_process_volume::flags::unbind))
+			return;
+		const math::double3& extents = volume->get_extents();
+		const math::float3 box_extents(static_cast<float>(extents.x), static_cast<float>(extents.y), static_cast<float>(extents.z));
+		lines.queue_box(volume->get_position().to_double3(), volume->get_rotation().to_float4(), box_extents, color);
 		return;
 	}
 
 	//	カメラ：視錐台
-	if (selected->check_type(camera_object::type_name()))
+	if (object.check_type(camera_object::type_name()))
 	{
-		const camera_ptr camera = static_cast<camera_object*>(selected.get())->get_camera();
+		const camera_ptr camera = static_cast<camera_object*>(&object)->get_camera();
 		if (!camera)
 			return;
 		constexpr double length = 20.0;
@@ -300,8 +320,8 @@ void editor_icons::queue_selected_shape(engine_context& context)
 		}
 		for (int index = 0; index < 4; ++index)
 		{
-			lines.queue_line(position.to_double3(), corners[index], shape_color);
-			lines.queue_line(corners[index], corners[(index + 1) % 4], shape_color);
+			lines.queue_line(position.to_double3(), corners[index], color);
+			lines.queue_line(corners[index], corners[(index + 1) % 4], color);
 		}
 		return;
 	}

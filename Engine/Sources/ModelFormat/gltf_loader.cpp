@@ -1883,6 +1883,11 @@ void gltf_loader::load_materials(std::vector<material_data>& materials)
 		material.occlusion_texture_path = load_texture(gltf_material.occlusionTexture.index);
 		material.roughness_metalness_texture_path = load_texture(gltf_material.pbrMetallicRoughness.metallicRoughnessTexture.index);
 
+		//	©ŒÈ”­Œõ‚Ì‹­‚³
+		auto emissive_strength_it = gltf_material.extensions.find("KHR_materials_emissive_strength");
+		if (emissive_strength_it != gltf_material.extensions.end() && emissive_strength_it->second.Has("emissiveStrength"))
+			material.emissive_intensity = static_cast<float>(emissive_strength_it->second.Get("emissiveStrength").GetNumberAsDouble());
+
 		//	ˆÙ•û«
 		auto it = gltf_material.extensions.find("KHR_materials_anisotropy");
 		if (it != gltf_material.extensions.end())

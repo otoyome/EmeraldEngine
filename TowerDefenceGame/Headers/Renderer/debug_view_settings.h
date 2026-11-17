@@ -16,6 +16,8 @@ struct debug_view_settings
 	int grid_length = 100;		//	グリッドの半径（メートル）
 	bool mesh_aabb = false;		//	モデルAABBの表示
 	bool collision = false;		//	衝突判定の表示
+	bool light_range = false;			//	点光源・スポットライトの範囲表示
+	bool post_process_volume = false;	//	ポストプロセスボリュームの範囲表示
 
 	//	メニューバーに「View」メニューを描く
 	void imgui_menu();

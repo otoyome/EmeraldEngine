@@ -9,6 +9,7 @@
 
 class engine_context;
 class game_object;
+class debug_primitive_collector;
 
 //	エディター用アイコン
 class editor_icons
@@ -22,6 +23,9 @@ public:
 
 	//	選んでいるオブジェクトの形を線で出す
 	void queue_selected_shape(engine_context& context);
+
+	//	ライトの範囲やボリュームの箱を線で出す
+	static void queue_shape(debug_primitive_collector& lines, game_object& object, const math::float4& color, const math::float4& inner_color);
 
 private:
 	//	配置アイコン

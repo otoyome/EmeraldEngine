@@ -54,20 +54,6 @@ post_process_volume_object::~post_process_volume_object()
 void post_process_volume_object::post_update(float elapsed_time)
 {
 	sync_to_volume();
-
-#if defined(USE_IMGUI)
-	//	”ÍˆÍ•\Ž¦
-	if (!instance->is_flag(post_process_volume::flags::unbind) &&
-		(instance->is_flag(post_process_volume::flags::active) ||
-		 instance->is_flag(post_process_volume::flags::debug_draw)))
-	{
-		const math::float4 rotation = instance->get_rotation().to_float4();
-		const math::float4 color = { 0.0f, 1.0f, 0.0f, 1.0f };
-		const math::double3& extents = instance->get_extents();
-		const math::float3 box_extents(static_cast<float>(extents.x), static_cast<float>(extents.y), static_cast<float>(extents.z));
-		QUEUE_DEBUG_PRIMITIVE_BOX(get_context(), instance->get_position().to_double3(), rotation, box_extents, color, true);
-	}
-#endif	//	defined(USE_IMGUI)
 }
 
 void post_process_volume_object::post_render()
