@@ -86,19 +86,29 @@ DirectLighting integrate_bxdf(in GBufferData gbuffer_data, in LightingData light
             float3 H = normalize(L + V);
 
             //  ƒVƒF[ƒfƒBƒ“ƒO
+            //  ŠgŽU”½ŽËŒõŽZo
             float n_dot_l = dot(N, L) * 0.5f + 0.5f;
-            float n_dot_h = saturate(dot(N, H));
             if (lighting_data.local_light)
             {
-                //  ŠgŽU”½ŽËŒõŽZo
+                //  ƒ[ƒJƒ‹ƒ‰ƒCƒg‚Í­‚µŽã‚ß‚É
                 float  lit     = step(threshold, n_dot_l * lighting_data.shading_attenuation);
-                float3 shade   = lerp(shade_color, bright_color, n_dot_l);
-                float irradiance = lighting_data.color * rcp(PI)
-                                 * lighting_data.shading_attenuation
-                                 * lighting_data.shadowing_attenuation;
-                result.diffuse = irradiance * shade;
+                float3 base_color = bright_color * lighting_data.color * rcp(PI);
+                result.diffuse = lerp(shade_color, base_color, n_dot_l)
+                               * lighting_data.shading_attenuation
+                               * lighting_data.shadowing_attenuation;
 
-                //  ‹¾–Ê”½ŽËŒõŽZo
+            }
+            else
+            {
+                float  lit     = step(threshold, n_dot_l);
+                float  shadow  = lighting_data.shadowing_attenuation;
+                float3 shade   = lerp(shade_color, 1.0f, lit * shadow);
+                result.diffuse = bright_color * rcp(PI) * lighting_data.color * shade;
+            }
+
+            //  ‹¾–Ê”½ŽËŒõŽZo
+            float n_dot_h = saturate(dot(N, H));
+            {
                 float3 specular_color;
                 {
                     //  –¾‚é‚¢F‚ð’²®‚µ‚ÄŒ³‚ÌFŒ©‚É‹ß‚¢F‚ð¶¬
@@ -110,25 +120,6 @@ DirectLighting integrate_bxdf(in GBufferData gbuffer_data, in LightingData light
                 result.specular = specular_color * factor
                                 * lighting_data.shadowing_attenuation
                                 * lighting_data.shading_attenuation;
-            }
-            else
-            {
-                //  ŠgŽU”½ŽËŒõŽZo
-                float  lit     = step(threshold, n_dot_l);
-                float  shadow  = lighting_data.shadowing_attenuation;
-                float3 shade   = lerp(shade_color, 1.0f, lit * shadow);
-                result.diffuse = bright_color * rcp(PI) * lighting_data.color * shade;
-
-                //  ‹¾–Ê”½ŽËŒõŽZo
-                float3 specular_color;
-                {
-                    //  –¾‚é‚¢F‚ð’²®‚µ‚ÄŒ³‚ÌFŒ©‚É‹ß‚¢F‚ð¶¬
-                    float3  base  = lerp((float3)1.0f, min(bright_color.rgb, 1.0f), 0.9f) * 0.5f;
-                    specular_color = base * lighting_data.color * spec_color * spec_power;
-                }
-                float modified_n_dot_h = saturate_mediump((1.0f - (1.0f - n_dot_h) / 0.5f));
-                float factor = (modified_n_dot_h >= saturate(1.0f - specular_size));
-                result.specular = specular_color * factor;
             }
             break;
         }
