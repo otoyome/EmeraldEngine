@@ -416,6 +416,22 @@ void scene_editor_process::imgui_render()
 							else
 								scene_edit->place_object(static_cast<const char*>(payload->Data));
 						}
+
+						//	アセットブラウザからプレハブを落とすと、落とした位置の物の表面に中身を複製して置く
+						if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(asset_browser::drag_payload_type))
+						{
+							const std::string file_path(static_cast<const char*>(payload->Data));
+							if (std::filesystem::path(file_path).extension().string() == "." + std::string(prefab_resource::extension))
+							{
+								const ImVec2 mouse(ImGui::GetMousePos().x - image_position.x, ImGui::GetMousePos().y - image_position.y);
+								std::shared_ptr<game_object> hit_object;
+								math::vector3d hit_position;
+								if (editor_picker::raycast(context, mouse, image_size, false, hit_object, hit_position))
+									scene_edit->place_prefab(file_path, hit_position);
+								else
+									scene_edit->place_prefab(file_path);
+							}
+						}
 						ImGui::EndDragDropTarget();
 					}
 

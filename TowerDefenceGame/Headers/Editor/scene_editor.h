@@ -65,9 +65,9 @@ public:
 	std::vector<scene_resource_ptr> get_edited_scenes() const;
 	//	編集中のシーンに足せるシーンのパス
 	std::vector<std::string> get_addable_scenes() const;
-	//	編集中のシーンのオブジェクト（一時オブジェクトを除く）
+	//	編集中のシーンのオブジェクト
 	std::vector<std::shared_ptr<game_object>> get_scene_objects(const scene_resource_ptr& resource) const;
-	//	オブジェクトが入っている編集中のシーン（無ければ空）
+	//	オブジェクトが入っている編集中のシーン
 	scene_resource_ptr find_object_scene(const std::shared_ptr<game_object>& object);
 
 	//	シーンリソースの編集窓で開く
@@ -76,23 +76,25 @@ public:
 	//	シーンの編集項目を描く
 	void imgui_render_scene_settings(const scene_resource_ptr& resource);
 
-	//	オブジェクトを型から作って置く（position が無ければ選んでいるオブジェクトの子にしてエディターカメラの前方、あれば置く先のシーンの一番上。作った物を選ぶ）
+	//	オブジェクトを型から作って置く
 	std::shared_ptr<game_object> place_object(std::string_view type, const std::optional<math::vector3d>& position = std::nullopt) override;
 	//	オブジェクトを型から作ってシーンの一番上に置く
 	std::shared_ptr<game_object> place_object_in_scene(std::string_view type, const scene_resource_ptr& resource, const std::optional<math::vector3d>& position = std::nullopt);
-	//	オブジェクトを型から作って parent の子にする（子を持てない型なら parent のシーンの一番上に置く）
+	//	オブジェクトを型から作って parent の子にする
 	std::shared_ptr<game_object> place_object_as_child(std::string_view type, const std::shared_ptr<game_object>& parent) override;
+	//	プレハブの中身を複製して置く先のシーンに置く
+	std::shared_ptr<game_object> place_prefab(std::string_view file_path, const std::optional<math::vector3d>& position = std::nullopt);
 
 	//	再生の開始・停止を任せる先
 	struct play_handlers
 	{
 		std::function<void(const std::vector<scene_resource_ptr>& resources, std::string_view open_file)> start;	//	再生を始める
-		std::function<void()> stop;																	//	再生を止める
-		std::function<void(std::string_view open_file)> open_file;									//	再生中のワールドにファイルを開いてもらう
+		std::function<void()> stop;																					//	再生を止める
+		std::function<void(std::string_view open_file)> open_file;													//	再生中のワールドにファイルを開いてもらう
 	};
 	void set_play_handlers(play_handlers value) { handlers = std::move(value); }
 
-	//	再生が外で終わった（ゲームのプロセスが自分で終わった）ことを知らせる
+	//	再生が外で終わったことを知らせる
 	void notify_play_finished() { playing_scenes.clear(); }
 
 	//	リクエストの処理

@@ -17,6 +17,7 @@
 #include "Scenes/scene_system.h"
 #include "Object/game_object_registry.h"
 #include "Object/spatial_object.h"
+#include "Object/prefab_resource.h"
 
 #include <unordered_set>
 
@@ -487,6 +488,41 @@ std::shared_ptr<game_object> scene_editor::place_object_as_child(std::string_vie
 	if (object && parent->check_type(spatial_object::type_name()))
 		spatial_object::attach_object(object, parent);
 	return object;
+}
+
+std::shared_ptr<game_object> scene_editor::place_prefab(std::string_view file_path, const std::optional<math::vector3d>& position)
+{
+	if (!is_editing() || is_playing())
+		return nullptr;
+
+	auto operation = resource_manager::instance()->load<prefab_resource>(file_path);
+	if (!operation || !operation->is_succeeded())
+	{
+		DEBUG_ERROR_CATEGORY(logger::categorys::system, "scene_editor prefab load failed[%s]", std::string(file_path).c_str());
+		return nullptr;
+	}
+
+	//	UUID ‚ðU‚è’¼‚µ‚½•¡»‚ðì‚é
+	prefab_resource::instance created;
+	if (!operation->get_resource()->instantiate(created) || created.objects.empty())
+	{
+		DEBUG_ERROR_CATEGORY(logger::categorys::system, "scene_editor prefab instantiate failed[%s]", std::string(file_path).c_str());
+		return nullptr;
+	}
+
+	const game_object_ptr root = created.root ? created.root : created.objects.front();
+	root->set_name(make_unique_object_name(root->get_name()));
+	if (root->check_type(spatial_object::type_name()))
+		static_cast<spatial_object*>(root.get())->set_world_translation(position ? *position : get_placement_position());
+
+	edited_scene& scene = get_current_scene();
+	for (const game_object_ptr& object : created.objects)
+	{
+		scene.objects.emplace_back(object);
+		edit_world->get_objects().register_object(object);
+	}
+	edit_world->get_context().set_selected_object(root);
+	return root;
 }
 
 scene_editor::edited_scene& scene_editor::get_current_scene()

@@ -9,6 +9,7 @@
 #include "imgui.h"
 #include "Editor/scene_editor.h"
 #include "Editor/object_edit_operations.h"
+#include "Object/prefab_resource.h"
 #include "Editor/place_objects_window.h"
 #include "Object/world.h"
 #include "Object/object_manager.h"
@@ -107,7 +108,13 @@ void outliner_window::render_contents(engine_context& target, const std::vector<
 				{
 					const std::string file_path(static_cast<const char*>(payload->Data));
 					if (std::filesystem::path(file_path).extension().string() == "." + std::string(scene_resource::extension))
+					{
 						pending = [target_editor, file_path]() { target_editor->add_scene(file_path); };
+					}
+					else if (std::filesystem::path(file_path).extension().string() == "." + std::string(prefab_resource::extension))
+					{
+						pending = [target_editor, file_path]() { target_editor->place_prefab(file_path); };
+					}
 				}
 			}
 			ImGui::EndDragDropTarget();
