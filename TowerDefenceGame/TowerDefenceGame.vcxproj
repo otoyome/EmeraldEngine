@@ -603,6 +603,7 @@ xcopy "$(SolutionDir)External\SDL3\lib\SDL3.dll" "$(OutDir)" /y</Command>
     <ClCompile Include="Sources\Editor\place_objects_window.cpp" />
     <ClCompile Include="Sources\Editor\outliner_window.cpp" />
     <ClCompile Include="Sources\Editor\inspector_window.cpp" />
+    <ClCompile Include="Sources\Object\GameObjects\MiniGame\minigame000_roomba_movement.cpp" />
     <ClCompile Include="Sources\Renderer\render_system.cpp" />
     <ClCompile Include="Sources\Renderer\display_ui_compositor.cpp" />
     <ClCompile Include="Sources\Process\core_process.cpp" />
@@ -757,6 +758,7 @@ xcopy "$(SolutionDir)External\SDL3\lib\SDL3.dll" "$(OutDir)" /y</Command>
     <ClInclude Include="Headers\Editor\Windows\sound_bank_editor_window.h" />
     <ClInclude Include="Headers\Editor\Windows\scene_set_editor_window.h" />
     <ClInclude Include="Headers\framework.h" />
+    <ClInclude Include="Headers\Object\GameObjects\MiniGame\minigame000_roomba_movement.h" />
     <ClInclude Include="Headers\Process\framework_process.h" />
     <ClInclude Include="Headers\Framework\app_window.h" />
     <ClInclude Include="Headers\Framework\display_settings.h" />
