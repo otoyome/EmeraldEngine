@@ -44,49 +44,7 @@ cbuffer TOON_MATERIAL_CONSTANT_BUFFER
 //	基底の範囲で0～1を算出する関数
 #define linear_step(a, b, d) saturate((d - a) / (b - a))
 
-//  輪郭線算出関数
-float3 calculate_outline_position(float3 w_position, float3 w_normal, float4 vertex_color)
-{
-    // r : 陰影判定の閾値に対するオフセット 1が標準で0だと必ず影になる
-    // g : カメラからの輪郭線の距離に応じてどの程度膨張させるかの係数
-    // b : 輪郭線のZオフセット値
-    // a : 輪郭線の太さ係数。 0.5:標準、0で無し
-
-    // 距離による基準サイズ算出
-    float base_thickness = 0.0f;
-    {
-        // カメラからの距離に応じた膨張係数を算出
-        float camera_to_vertex = distance(w_position, camera_position.xyz);
-#if 01
-        camera_to_vertex *= get_tan_fov_y();   // 視野角補正
-        camera_to_vertex *= 1.0f + vertex_color.g;    // 頂点色補正
-        base_thickness = outline_thickness * camera_to_vertex;
-#else   // 一応下記のような方法もある
-        float2  outline_thickness;              //  輪郭線の厚み
-        float2  outline_scaling_range;          //  輪郭線のサイズを変異させる範囲
-        float camera_factor = linear_step(outline_scaling_range.x, outline_scaling_range.y, camera_to_vertex);
-        camera_factor *= get_tan_fov_y();   // 視野角補正
-        camera_factor *= vertex_color.g;    // 頂点色補正
-        base_thickness = lerp(outline_thickness.x, outline_thickness.y, camera_factor);
-#endif
-    }
-
-    // 厚み算出
-    float thickness = convert_cm_to_unit(base_thickness);
-    {
-        thickness *= (vertex_color.a * 2.0f);   // 頂点色補正
-    }
-
-    // 位置調整
-    w_position += normalize(w_normal) * thickness;
-
-    // Zオフセット
-    float depth_offset = convert_cm_to_unit(outline_depth_offset_distance) * vertex_color.b;
-    w_position += normalize(w_position - camera_position.xyz) * depth_offset;
-
-    return w_position;
-}
-
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
 #if defined(MATERIAL_SURFACE)
 #include "gbuffer.hlsli"
 #include "shading_functions.hlsli"
@@ -168,6 +126,7 @@ SurfaceData surface(VS_OUT pin, bool is_front_face)
 }
 #endif	//	defined(MATERIAL_SURFACE)
 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
 #if defined(MATERIAL_SURFACE_OPACITY)
 #include "gbuffer.hlsli"
 
@@ -184,10 +143,54 @@ float surface_opacity(VS_OUT pin, bool is_front_face)
 }
 #endif	//	defined(MATERIAL_SURFACE_OPACITY)
 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
 //	深度と G-Buffer のパスだけで GS を使う
 #if defined(MATERIAL_GEOMETRY) && (defined(SURFACE_PASS_DEPTH_WRITE) || defined(SURFACE_PASS_G_BUFFER))
 //	ジオメトリシェーダーの最大出力頂点数(表面 3 + 輪郭線 3)
 #define MATERIAL_GEOMETRY_MAX_VERTEX_COUNT	6
+
+//  輪郭線算出関数
+float3 calculate_outline_position(float3 w_position, float3 w_normal, float4 vertex_color)
+{
+    // r : 陰影判定の閾値に対するオフセット 1が標準で0だと必ず影になる
+    // g : カメラからの輪郭線の距離に応じてどの程度膨張させるかの係数
+    // b : 輪郭線のZオフセット値
+    // a : 輪郭線の太さ係数。 0.5:標準、0で無し
+
+    // 距離による基準サイズ算出
+    float base_thickness = 0.0f;
+    {
+        // カメラからの距離に応じた膨張係数を算出
+        float camera_to_vertex = distance(w_position, camera_position.xyz);
+#if 01
+        camera_to_vertex *= get_tan_fov_y();   // 視野角補正
+        camera_to_vertex *= 1.0f + vertex_color.g;    // 頂点色補正
+        base_thickness = outline_thickness * camera_to_vertex;
+#else   // 一応下記のような方法もある
+        float2  outline_thickness;              //  輪郭線の厚み
+        float2  outline_scaling_range;          //  輪郭線のサイズを変異させる範囲
+        float camera_factor = linear_step(outline_scaling_range.x, outline_scaling_range.y, camera_to_vertex);
+        camera_factor *= get_tan_fov_y();   // 視野角補正
+        camera_factor *= vertex_color.g;    // 頂点色補正
+        base_thickness = lerp(outline_thickness.x, outline_thickness.y, camera_factor);
+#endif
+    }
+
+    // 厚み算出
+    float thickness = convert_cm_to_unit(base_thickness);
+    {
+        thickness *= (vertex_color.a * 2.0f);   // 頂点色補正
+    }
+
+    // 位置調整
+    w_position += normalize(w_normal) * thickness;
+
+    // Zオフセット
+    float depth_offset = convert_cm_to_unit(outline_depth_offset_distance) * vertex_color.b;
+    w_position += normalize(w_position - camera_position.xyz) * depth_offset;
+
+    return w_position;
+}
 
 //	背面法の輪郭線を追加する
 void material_geometry(VS_OUT input[3], inout TriangleStream<VS_OUT> output)

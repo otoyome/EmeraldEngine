@@ -4,9 +4,13 @@
 #include "common.hlsli"
 #include "filter_functions.hlsli"
 
-//	‰~ü—¦
+//  ‰~ü—¦
 static const float PI = 3.141592654f;
 static const float PI2 = PI * 2.0f;
+
+//  •ÏŠ·ŒW”
+static const float DegreeToRadian = PI / 180.0f;
+static const float RadianToDegree = 180.0f / PI;
 
 //  ”ñ‹à‘®‚Ì‹¾–Ê”½Ë—¦‚Ì’²®’l‚ğF0‚É•ÏŠ·‚·‚éŒW”
 static const float DielectricSpecularToF0 = 0.08f;
@@ -397,4 +401,20 @@ float3 apply_light_modifications(float3 color, float3 light_intensity, float3 co
 	return	convert_hsv_to_rgb(hsv * float3(1.0f, saturation, 1.0f));
 }
 
+//--------------------------------------------
+//	ƒxƒNƒgƒ‹‚Ì‹ÂŠp‚ğ}ãŒÀ‚É—}‚¦‚éŠÖ”
+//--------------------------------------------
+float3 ClampLightElevation(float3 normal, float3 view, float max_elevation_sin)
+{
+    float y = clamp(normal.y, -max_elevation_sin, max_elevation_sin);
+    float2 horizontal = normal.xz;
+    float horizontal_length = length(horizontal);
+    if (horizontal_length < 1.0e-4f)
+    {
+        horizontal = view.xz;
+        horizontal_length = max(length(horizontal), 1.0e-4f);
+    }
+    horizontal *= sqrt(1.0f - y * y) / horizontal_length;
+    return float3(horizontal.x, y, horizontal.y);
+}
 #endif	//	__SHADING_FUNCTIONS_HLSLI__

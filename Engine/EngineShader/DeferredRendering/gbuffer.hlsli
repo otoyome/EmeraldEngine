@@ -13,10 +13,18 @@ static const uint shading_model_toon_lit    = 3;    //  シェーディング計算：トゥ
 static const uint material_attribute_indirect_lighting_off  = 1 <<  0;  //  間接光の処理を適応させない
 static const uint material_attribute_shadow_receiver        = 1 <<  1;  //  影適応
 static const uint material_attribute_decal_off              = 1 <<  2;  //  デカールを適応させない
-
-//  空き
-
-//static const uint material_attribute_ = 1 << 31;
+static const uint material_attribute_dummy_3                = 1 <<  3;
+static const uint material_attribute_dummy_4                = 1 <<  4;
+static const uint material_attribute_dummy_5                = 1 <<  5;
+static const uint material_attribute_dummy_6                = 1 <<  6;
+static const uint material_attribute_dummy_7                = 1 <<  7;
+static const uint material_attribute_dummy_8                = 1 <<  8;
+static const uint material_attribute_dummy_9                = 1 <<  9;
+static const uint material_attribute_dummy_10               = 1 << 10;
+static const uint material_attribute_dummy_11               = 1 << 11;
+static const uint material_attribute_dummy_12               = 1 << 12;
+static const uint material_attribute_dummy_13               = 1 << 13;
+static const uint material_attribute_dummy_14               = 1 << 14;
 
 //  G-Buffer ステンシルのビット数(RT1.a の下位 15bit)
 static const uint gbuffer_stencil_bit_count = 15;
@@ -41,22 +49,22 @@ struct GBufferData
     float specular;             //  鏡面反射率の調整値
     uint stencil;               //  ビットフラグ(下位 15bit のみ有効)
 
-    float4 custom_data0;
-    float4 custom_data1;
-    float4 custom_data2;
+    float4 custom_data0;        //  ユーザー任意の情報
+    float4 custom_data1;        //  ユーザー任意の情報
+    float4 custom_data2;        //  ユーザー任意の情報
 };
 
 //  GBufferテクスチャ受け渡し用構造体
 struct GBufferTextures
 {
-    Texture2D<float4> base_color;
-    Texture2D<float4> normal_tangent;
-    Texture2D<float4> parameter;
-    Texture2D<float2> velocity;
-    Texture2D<float4> custom_data0;
-    Texture2D<float4> custom_data1;
-    Texture2D<float4> custom_data2;
-    Texture2D<float> depth;
+    Texture2D<float4> base_color;       //  DXGI_FORMAT_R8G8B8A8_UNORM
+    Texture2D<float4> normal_tangent;   //  DXGI_FORMAT_R16G16B16A16_UNORM
+    Texture2D<float4> parameter;        //  DXGI_FORMAT_R8G8B8A8_UNORM
+    Texture2D<float2> velocity;         //  DXGI_FORMAT_R16G16_FLOAT
+    Texture2D<float4> custom_data0;     //  DXGI_FORMAT_R8G8B8A8_UNORM
+    Texture2D<float4> custom_data1;     //  DXGI_FORMAT_R8G8B8A8_UNORM
+    Texture2D<float4> custom_data2;     //  DXGI_FORMAT_R8G8B8A8_UNORM
+    Texture2D<float>  depth;
 };
 
 //  ピクセルシェーダーへの出力用構造体
@@ -96,6 +104,55 @@ float PackFloat2ToFloat(float2 value)
 float2 UnpackFloatToFloat2(float packedValue)
 {
     return UnpackUIntToFloat2(asuint(packedValue));
+}
+
+//  16bit UNORM <> float
+float EncodeUIntToUNorm16(uint value)
+{
+    return (float) (value & 0xFFFFu) / 65535.0f;
+}
+
+uint DecodeUNorm16ToUInt(float value)
+{
+    return (uint) (saturate(value) * 65535.0f + 0.5f);
+}
+
+//  8bit UNORM <> float
+float EncodeUIntToUNorm8(uint value)
+{
+    return (float) (value & 0xFFu) / 255.0f;
+}
+
+uint DecodeUNorm8ToUInt(float value)
+{
+    return (uint) (saturate(value) * 255.0f + 0.5f);
+}
+
+// float と bool <> 32bit float
+float PackFloatAndBoolToFloat(float value, bool flag)
+{
+    return asfloat((asuint(value) & ~1u) | (flag ? 1u : 0u));
+}
+
+float UnpackFloatToFloatAndBool(float packed, out bool flag)
+{
+    uint bits = asuint(packed);
+    flag = (bits & 1u) != 0;
+    return asfloat(bits & ~1u);
+}
+
+// float と bool <> 8bit UNORM
+float PackFloatAndBoolToUnorm8(float value, bool flag)
+{
+    uint v = (uint)(saturate(value) * 127.0f + 0.5f);
+    return EncodeUIntToUNorm8((v << 1) | (flag ? 1u : 0u));
+}
+
+float UnpackUnorm8ToFloatAndBool(float packed, out bool flag)
+{
+    uint bits = DecodeUNorm8ToUInt(packed);
+    flag = (bits & 1u) != 0;
+    return (float)(bits >> 1) / 127.0f;
 }
 
 //  Octahedral 法線エンコード
@@ -194,28 +251,6 @@ float2 DecodeDiamond(float p)
     v.x = -p_sign * 4.0f * p + 1.0f + p_sign * 2.0f;
     v.y = p_sign * (1.0f - abs(v.x));
     return normalize(v);
-}
-
-//  16bit UNORM <> float
-float EncodeUIntToUNorm16(uint value)
-{
-    return (float) (value & 0xFFFFu) / 65535.0f;
-}
-
-uint DecodeUNorm16ToUInt(float value)
-{
-    return (uint) (saturate(value) * 65535.0f + 0.5f);
-}
-
-//  8bit UNORM <> float
-float EncodeUIntToUNorm8(uint value)
-{
-    return (float) (value & 0xFFu) / 255.0f;
-}
-
-uint DecodeUNorm8ToUInt(float value)
-{
-    return (uint) (saturate(value) * 255.0f + 0.5f);
 }
 
 //  法線/接線/従法線の符号/ステンシルをエンコード

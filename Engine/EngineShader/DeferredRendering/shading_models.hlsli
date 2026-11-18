@@ -62,14 +62,26 @@ DirectLighting integrate_bxdf(in GBufferData gbuffer_data, in LightingData light
         case shading_model_pmx_lit:
         {
             float3 bright_color = gbuffer_data.base_color;
-            float3 shade_color  = gbuffer_data.custom_data0.rgb;
-            float  threshold    = 0.5f + gbuffer_data.custom_data0.a;
-            float3 spec_color   = gbuffer_data.custom_data1.rgb;
-            float  spec_power   = max(gbuffer_data.custom_data1.a * 256.0f, 1.0f);
+            float3 shade_color = gbuffer_data.custom_data0.rgb;
+            float  threshold = 0.5f + gbuffer_data.custom_data0.a;
+            float3 spec_color = gbuffer_data.custom_data1.rgb;
+            float  spec_power = max(gbuffer_data.custom_data1.a * 256.0f, 1.0f);
+            float  clamp_lighting = gbuffer_data.custom_data2.x;
+            float  clamp_lighting_sin = gbuffer_data.custom_data2.y;
 
-            float3 N = normalize(gbuffer_data.w_normal);
-            float3 L = -normalize(lighting_data.direction);
+            float3 N = gbuffer_data.w_normal;
+            float3 L = -lighting_data.direction;
             float3 V = -normalize(gbuffer_data.w_position - lighting_data.camera_position);
+
+            //  法線&ライトの補正
+            if (clamp_lighting > 0.5f)
+            {
+                N = ClampLightElevation(normalize(N), V, clamp_lighting_sin);
+                L = ClampLightElevation(normalize(L), V, clamp_lighting_sin);
+            }
+            N = normalize(N);
+            L = normalize(L);
+
             float3 H = normalize(L + V);
 
             //  シェーディング
@@ -85,7 +97,6 @@ DirectLighting integrate_bxdf(in GBufferData gbuffer_data, in LightingData light
                 float irradiance = lighting_data.color * rcp(PI);
                 result.diffuse = bright_color * irradiance * shade * shadow;
 
-                result.diffuse = lighting_data.shadowing_attenuation;
                 //  正規化 Blinn-Phong
                 float n_dot_h = saturate(dot(N, H));
                 float norm    = (spec_power + 8.0f) / (8.0f * PI);
@@ -96,7 +107,7 @@ DirectLighting integrate_bxdf(in GBufferData gbuffer_data, in LightingData light
             }
             else
             {
-                //  平行光源がベースの色を作成
+                //  平行光源
                 float  n_dot_l = dot(N, L) * 0.5f + 0.5f;
                 float  lit     = step(threshold, n_dot_l);
                 float  shadow  = lighting_data.shadowing_attenuation;

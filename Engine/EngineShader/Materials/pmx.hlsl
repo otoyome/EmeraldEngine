@@ -26,12 +26,14 @@ cbuffer TOON_MATERIAL_CONSTANT_BUFFER
     float4  edge_color;         //  輪郭線色
 
     float   outline_size;       //  輪郭線サイズ
-    float   roughness;          //  粗さ(未使用)
-    float   metalness;          //  金属質(未使用)
-    float   threshold_offset;   //  閾値
+    float   roughness;          //  粗さ
+    float   metalness;          //  金属質
+    float   threshold_offset;   //  影の閾値オフセット
 
     uint sphere_mode;           //  スフィアマップ使用モード
-    uint3 dummy;
+    bool clamp_lighting;        //  ライティング仰角制限使用
+    float clamp_lighting_angle; //  ライティング仰角度
+    uint dummy;
 };
 
 #if defined(MATERIAL_SURFACE)
@@ -47,24 +49,26 @@ SurfaceData surface(VS_OUT pin, bool is_front_face)
     data.base_color = float4(0, 0, 0, 1);
     data.emissive_color = 0;
     data.occlusion = 1.0f;
-    data.specular = 0.0f;
     data.w_normal = normalize(pin.w_normal.xyz) * (is_front_face ? +1 : -1);
     data.w_position = pin.w_position.xyz;
     data.velocity = calculate_uvspace_velocity(pin.current_clip_position, pin.previous_clip_position);
     data.stencil = material_flags;
 
-    data.roughness = roughness;
-    data.metalness = metalness;
-
     bool is_outline_pixel = pin.w_normal.w > 0.5f;
     if (is_outline_pixel)
     {
         data.base_color.rgb = edge_color.rgb;
+        data.specular = 0.0f;
         data.roughness = 1.0f;
-        data.shading_model = shading_model_unlit;	//	エッジカラーを直接出すため
+        data.metalness = 0.0f;
+        data.shading_model = shading_model_unlit;   //  エッジカラーを直接出すため
     }
     else
     {
+        data.specular = 0.0f;
+        data.roughness = roughness;
+        data.metalness = metalness;
+
         //  ベースカラー
         float4 base_color = base_color_factor;
         if (HAS_RESOURCE(BaseMap))
@@ -84,7 +88,7 @@ SurfaceData surface(VS_OUT pin, bool is_front_face)
                            : (sphere_mode == 2) ? base_color.rgb + sphere    //  加算
                            : base_color.rgb;
         }
-        
+
         //  ランプを明/暗色の2色に置き換える(良くはないが・・・)
         float3 ramp_bright = 1.0f, ramp_dark = 1.0f;
         if (HAS_RESOURCE(RampMap))
@@ -93,14 +97,18 @@ SurfaceData surface(VS_OUT pin, bool is_front_face)
             ramp_dark   = TEXTURE2D_SAMPLE(RampMap, float2(0.5f, 0.99f)).rgb;
         }
 
-        //  data.base_color : rgb = 基本色x明色, a = 透明度
+        //  rgb = 基本色x明色, a = 透明度
         data.base_color = float4(base_color.rgb * ramp_bright, base_color.a);
 
         //  data.custom_data0 : rgb = 基本色x暗色, a = 陰影の閾値
         data.custom_data0 = float4(base_color.rgb * ramp_dark, saturate(threshold_offset));
 
-        //  data.custom_data1 : rgb = スペキュラ色, a = 光沢度 / 256
+        //  rgb = スペキュラ色, a = 光沢度 / 256
         data.custom_data1 = float4(data.base_color * specular_color.rgb, saturate(specular_color.a / 256.0f));
+        
+        //  r : ライティングの平面定数
+        data.custom_data2.x = clamp_lighting ? 1.0f : 0.0f;
+        data.custom_data2.y = sin(clamp_lighting_angle * DegreeToRadian);
 
         data.base_color = base_color;
         data.shading_model = material_shading_model;
@@ -135,7 +143,21 @@ float surface_opacity(VS_OUT pin, bool is_front_face)
 //  輪郭線算出関数
 float3 calculate_outline_position(float3 w_position, float3 w_normal)
 {
-    return w_position + w_normal * outline_size;
+    //  視線方向にずらす
+    //  距離に応じた膨張係数を算出
+    float camera_to_vertex = distance(w_position, camera_position.xyz);
+    camera_to_vertex = min(camera_to_vertex, convert_m_to_unit(10));
+    camera_to_vertex *= get_tan_fov_y();   // 視野角補正
+    float base_thickness = outline_size * camera_to_vertex;
+    float thickness = convert_cm_to_unit(base_thickness);
+
+    //  位置調整
+    w_position += w_normal * thickness;
+
+    //  Zオフセット
+    float depth_offset = camera_to_vertex * 0.05f;
+    w_position += normalize(w_position - camera_position.xyz) * depth_offset;
+    return w_position;
 }
 
 //	法線方向に押し出した背面法の輪郭線を追加する
