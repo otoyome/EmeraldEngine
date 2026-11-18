@@ -52,6 +52,8 @@ public:
 	bool register_object(collision_object_ptr object);
 	bool unregister_object(collision_object_ptr object);
 
+	void apply_pending_objects();
+
 private:
 	void inner_step_simulation(float elapsed_time);
 	void add_objects();

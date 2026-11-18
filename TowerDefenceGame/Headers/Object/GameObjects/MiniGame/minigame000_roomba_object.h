@@ -2,6 +2,7 @@
 
 #include "object/collision/collision_object.h"
 #include "object/model_object.h"
+#include "Object/collision_shape_object.h"
 
 class game_object_serializer;
 
@@ -13,7 +14,7 @@ namespace minigame000
 		GAME_OBJECT_DECRLEAR(roomba_object, spatial_object)
 
 		friend class ::game_object_serializer;
-		static constexpr std::uint32_t serialize_version = 1;
+		static constexpr std::uint32_t serialize_version = 2;
 
 	public:
 		//	移動段階
@@ -64,7 +65,7 @@ namespace minigame000
 
 		float get_max_speed(move_modes mode) const;
 		const std::shared_ptr<model_object>& get_model_object() const { return model; }
-		const collision_object_ptr& get_push_box() const { return push_box; }
+		const std::shared_ptr<collision_shape_object>& get_capsule() const { return capsule; }
 
 	private:
 		//	姿勢・速度・移動
@@ -77,19 +78,15 @@ namespace minigame000
 		float calculate_frontal_area() const;
 		float get_accelaration_force(move_modes mode) const;
 
-		void on_push_box_contact(collision_object::data data);
-
 	private:	//	シリアライズ
 		template<class Archive>
 		void serialize_fields(Archive& archive, std::uint32_t version);
 
 	private:	//	設定
 		std::shared_ptr<model_object> model;	//	見た目のモデル
-		std::string collision_filter_name;		//	コリジョンフィルター名
+		std::shared_ptr<collision_shape_object> capsule;	//	当たり判定のカプセル
 
 		float mass;					//	重さ
-		float capsule_radius;		//	押し合い判定の半径
-		float capsule_length;		//	押し合い判定の長さ
 		float diameter;				//	直径（空気抵抗用）
 		float height;				//	高さ（空気抵抗用）
 		float drag_coefficient;		//	抗力係数
@@ -105,7 +102,6 @@ namespace minigame000
 		float gravity_scale;		//	重力スケール
 
 	private:	//	実行時の状態
-		collision_object_ptr push_box;		//	押し合い判定
 		action_datas action_data;			//	今の入力
 		math::float2 move_vector;			//	移動方向
 		math::float2 turn_vector;			//	向く方向

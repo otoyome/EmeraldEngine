@@ -11,13 +11,17 @@ class collision_placement_object : public spatial_object
 {
 	GAME_OBJECT_DECRLEAR(collision_placement_object, spatial_object)
 
-	static constexpr std::uint32_t serialize_version = 2;
+	static constexpr std::uint32_t serialize_version = 3;
 
 public:
 	size_t get_collision_count() const { return collisions.size(); }
+	const std::vector<collision_object_ptr>& get_collisions() const { return collisions; }
 
 	const std::string& get_filter_name() const { return filter_name; }
 	void set_filter_name(std::string_view name);
+
+	collision_object::body_types get_body_type() const { return body_type; }
+	void set_body_type(collision_object::body_types value);
 
 public:
 	collision_placement_object(std::string_view name);
@@ -59,4 +63,5 @@ private:
 private:
 	std::vector<collision_object_ptr> collisions;
 	std::string filter_name = "default";
+	collision_object::body_types body_type = collision_object::body_types::static_body;
 };

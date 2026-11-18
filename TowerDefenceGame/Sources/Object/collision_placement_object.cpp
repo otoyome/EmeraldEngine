@@ -33,7 +33,7 @@ void collision_placement_object::fixed_update(float elapsed_time)
 {
 	base::fixed_update(elapsed_time);
 
-	if (get_mobility() == mobilities::movable)
+	if (get_mobility() == mobilities::movable || body_type != collision_object::body_types::static_body)
 		sync_transform();
 }
 
@@ -54,6 +54,13 @@ void collision_placement_object::set_filter_name(std::string_view name)
 		collision->set_filter(filter_name);
 }
 
+void collision_placement_object::set_body_type(collision_object::body_types value)
+{
+	body_type = value;
+	for (auto& collision : collisions)
+		collision->set_body_type(body_type);
+}
+
 void collision_placement_object::rebuild_collisions()
 {
 	if (!has_context())
@@ -71,7 +78,7 @@ void collision_placement_object::build_collisions()
 	for (auto& collision : created)
 	{
 		collision->set_filter(filter_name);
-		collision->set_body_type(collision_object::body_types::static_body);
+		collision->set_body_type(body_type);
 		objects.register_object(collision);
 		collisions.emplace_back(std::move(collision));
 	}
@@ -114,6 +121,11 @@ void collision_placement_object::serialize_fields(Archive& archive, std::uint32_
 			archive(CEREAL_NVP(filter_name));
 			break;
 		}
+		case 3:
+		{
+			archive(CEREAL_NVP(filter_name), CEREAL_NVP(body_type));
+			break;
+		}
 	}
 }
 
@@ -138,6 +150,10 @@ void collision_placement_object::imgui_render_core()
 	filter_name.copy(buffer, sizeof(buffer) - 1);
 	if (ImGui::InputText("filter", buffer, sizeof(buffer), ImGuiInputTextFlags_EnterReturnsTrue))
 		set_filter_name(buffer);
+	static const char* body_type_names[] = { "static", "kinematic", "dynamic" };
+	int body_type_index = static_cast<int>(body_type);
+	if (ImGui::Combo("body type", &body_type_index, body_type_names, IM_ARRAYSIZE(body_type_names)))
+		set_body_type(static_cast<collision_object::body_types>(body_type_index));
 	ImGui::Text("collisions : %d", static_cast<int>(collisions.size()));
 }
 #endif	//	defined(USE_IMGUI)

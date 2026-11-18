@@ -7,6 +7,7 @@
 #include "Object/game_object_registry.h"
 #include "Object/game_object_serializer.h"
 #include "Object/Collision/collision_filter.h"
+#include "Object/Collision/collision_world.h"
 #if defined(USE_IMGUI)
 #include "Object/object_reference_field.h"
 #endif	//	defined(USE_IMGUI)
@@ -66,11 +67,9 @@ namespace
 minigame000::roomba_object::roomba_object(std::string_view name)
 : spatial_object(name)
 , model()
-, collision_filter_name("player")
+, capsule()
 
 , mass(system_units::convert_kg_to_unit(4.0f))
-, capsule_radius(system_units::convert_m_to_unit(0.4f))
-, capsule_length(system_units::convert_m_to_unit(0.1f))
 , diameter(system_units::convert_m_to_unit(0.34f))
 , height(system_units::convert_m_to_unit(0.092f))
 , drag_coefficient(0.45f)
@@ -85,7 +84,6 @@ minigame000::roomba_object::roomba_object(std::string_view name)
 , rotation_speed(math::angle::to_radian(1440.0f))
 , gravity_scale(1.0f)
 
-, push_box()
 , action_data()
 , move_vector(0.0f, 0.0f)
 , turn_vector(0.0f, 0.0f)
@@ -109,21 +107,6 @@ void minigame000::roomba_object::on_initialize()
 {
 	base::on_initialize();
 
-	//	押し合い判定の登録
-	push_box = std::make_shared<collision_object>();
-	push_box->set_body_type(collision_object::body_types::dynamic_body);
-	push_box->set_filter(collision_filter_name);
-	push_box->set_bounding_object(std::make_shared<collision::bounding_capsule>());
-	push_box->set_local_scale({ capsule_radius, capsule_length, 0.0f });
-	push_box->set_local_offset(math::vector3d(0.0, capsule_length + capsule_radius, 0.0));
-	push_box->set_physical_data({ base_friction });
-	push_box->set_mass(mass);
-	push_box->set_draw_normal_color({ 0.0f, 1.0f, 0.0f, 1.0f });
-	push_box->set_collision_enter([this](collision_object::data data) { on_push_box_contact(data); });
-	push_box->set_collision_stay([this](collision_object::data data) { on_push_box_contact(data); });
-	push_box->set_transform(get_world().to_rigid());
-	get_context().get_objects().register_object(push_box);
-
 	//	モデルの向きを本体に合わせる
 	set_rotation(get_rotation());
 }
@@ -131,30 +114,57 @@ void minigame000::roomba_object::on_initialize()
 void minigame000::roomba_object::on_finalize()
 {
 	//	モデルは同じシーン（プレハブ）のオブジェクトなので、ここでは外さない
-	get_context().get_objects().unregister_object(push_box);
-	push_box.reset();
 	base::on_finalize();
 }
 
 template<class Archive>
 void minigame000::roomba_object::serialize_fields(Archive& archive, std::uint32_t version)
 {
-	game_object_serializer::serialize_object_reference(archive, "model", model);
-	archive(CEREAL_NVP(collision_filter_name),
-			CEREAL_NVP(mass),
-			CEREAL_NVP(capsule_radius),
-			CEREAL_NVP(capsule_length),
-			CEREAL_NVP(diameter),
-			CEREAL_NVP(height),
-			CEREAL_NVP(drag_coefficient),
-			CEREAL_NVP(walk_accelaration),
-			CEREAL_NVP(walk_max_speed),
-			CEREAL_NVP(dash_accelaration),
-			CEREAL_NVP(dash_max_speed),
-			CEREAL_NVP(braking_deceleration),
-			CEREAL_NVP(base_friction),
-			CEREAL_NVP(rotation_speed),
-			CEREAL_NVP(gravity_scale));
+	switch (version)
+	{
+		case 0:
+		case 1:
+		{
+			std::string collision_filter_name;
+			float capsule_radius = 0.0f;
+			float capsule_length = 0.0f;
+			game_object_serializer::serialize_object_reference(archive, "model", model);
+			archive(CEREAL_NVP(collision_filter_name),
+					CEREAL_NVP(mass),
+					CEREAL_NVP(capsule_radius),
+					CEREAL_NVP(capsule_length),
+					CEREAL_NVP(diameter),
+					CEREAL_NVP(height),
+					CEREAL_NVP(drag_coefficient),
+					CEREAL_NVP(walk_accelaration),
+					CEREAL_NVP(walk_max_speed),
+					CEREAL_NVP(dash_accelaration),
+					CEREAL_NVP(dash_max_speed),
+					CEREAL_NVP(braking_deceleration),
+					CEREAL_NVP(base_friction),
+					CEREAL_NVP(rotation_speed),
+					CEREAL_NVP(gravity_scale));
+			break;
+		}
+		case 2:
+		{
+			game_object_serializer::serialize_object_reference(archive, "model", model);
+			game_object_serializer::serialize_object_reference(archive, "capsule", capsule);
+			archive(CEREAL_NVP(mass),
+					CEREAL_NVP(diameter),
+					CEREAL_NVP(height),
+					CEREAL_NVP(drag_coefficient),
+					CEREAL_NVP(walk_accelaration),
+					CEREAL_NVP(walk_max_speed),
+					CEREAL_NVP(dash_accelaration),
+					CEREAL_NVP(dash_max_speed),
+					CEREAL_NVP(braking_deceleration),
+					CEREAL_NVP(base_friction),
+					CEREAL_NVP(rotation_speed),
+					CEREAL_NVP(gravity_scale));
+			break;
+		}
+	}
 }
 
 void minigame000::roomba_object::serialize(cereal::JSONOutputArchive& archive) const
@@ -175,17 +185,10 @@ void minigame000::roomba_object::imgui_render_core()
 	base::imgui_render_core();
 
 	object_reference_field::imgui_combo("model", get_context(), model);
-	{
-		char filter_name[64] = {};
-		strncpy_s(filter_name, collision_filter_name.c_str(), _TRUNCATE);
-		if (ImGui::InputText("collision_filter_name", filter_name, sizeof(filter_name)))
-			collision_filter_name = filter_name;
-	}
+	object_reference_field::imgui_combo("capsule", get_context(), capsule);
 
 	ImGui::SeparatorText("body");
 	ImGui::DragFloat("mass", &mass, 0.01f);
-	ImGui::DragFloat("capsule_radius", &capsule_radius, 0.01f);
-	ImGui::DragFloat("capsule_length", &capsule_length, 0.01f);
 	ImGui::DragFloat("diameter", &diameter, 0.01f);
 	ImGui::DragFloat("height", &height, 0.01f);
 	ImGui::DragFloat("drag_coefficient", &drag_coefficient, 0.01f);
@@ -240,8 +243,6 @@ void minigame000::roomba_object::set_rotation(math::rotatorf rotator)
 		model_rotator.y += math::constants<float>::pi_half;
 		model->set_world_euler(math::rotatord(model_rotator));
 	}
-	if (push_box)
-		push_box->set_transform(get_world().to_rigid());
 }
 
 math::vector3d minigame000::roomba_object::get_position() const
@@ -252,8 +253,6 @@ math::vector3d minigame000::roomba_object::get_position() const
 void minigame000::roomba_object::set_position(const math::vector3d& position)
 {
 	set_world_translation(position);
-	if (push_box)
-		push_box->set_transform(get_world().to_rigid());
 }
 
 float minigame000::roomba_object::get_max_speed(move_modes mode) const
@@ -274,7 +273,8 @@ float minigame000::roomba_object::get_accelaration_force(move_modes mode) const
 
 void minigame000::roomba_object::fixed_update(float elapsed_time)
 {
-	if (!push_box)
+	//	当たり判定のカプセルが無ければ動かさない
+	if (!capsule || !capsule->get_collision())
 		return;
 
 	//	傾き破棄
@@ -463,19 +463,18 @@ void minigame000::roomba_object::update_tilt(float elapsed_time)
 
 bool minigame000::roomba_object::calculate_position(const math::float3& move_velocity, float elapsed_time, math::vector3d& out_position, math::float3& out_normal, float& out_friction)
 {
-	auto bounding_object = std::static_pointer_cast<collision::bounding_capsule>(push_box->get_bounding_object());
+	const math::float3& shape_scale = capsule->get_shape_scale();
 
 	const math::vector3d base_position = get_world_translation();
 	math::float3 relative_position = { 0.0f, 0.0f, 0.0f };
 
-	float offset_height = static_cast<float>(bounding_object->get_radius() + bounding_object->get_length() * 0.5);
-	math::vector3f Offset(0.0f, offset_height, 0.0f);
+	math::vector3f Offset(capsule->get_spatial()->get_local().get_translation());
 
 	collision_world::capsule_cast_descs desc;
-	desc.radius = static_cast<float>(bounding_object->get_radius());
-	desc.length = static_cast<float>(bounding_object->get_length());
-	desc.filter = collision_filter_manager::instance()->search_filter(collision_filter_name);
-	desc.exclude_objects.emplace_back(push_box);
+	desc.radius = shape_scale.x;
+	desc.length = shape_scale.y;
+	desc.filter = collision_filter_manager::instance()->search_filter(capsule->get_filter_name());
+	desc.exclude_objects.emplace_back(capsule->get_collision());
 
 	static constexpr float StopFactor = system_units::convert_cm_to_unit(0.01f);
 	static constexpr float SkinStep = system_units::convert_cm_to_unit(0.1f);
@@ -553,12 +552,6 @@ float minigame000::roomba_object::calculate_frontal_area() const
 	float cos_theta = fabsf(math::vector3f::dot(VelocityDirection, UpDirection));
 	float sin_theta = sqrtf(std::max(1.0f - cos_theta * cos_theta, 0.0f));
 	return vertical_area * cos_theta + horizontal_area * sin_theta;
-}
-
-void minigame000::roomba_object::on_push_box_contact(collision_object::data data)
-{
-	//	押し合いで動かされた位置を本体に反映
-	set_position(push_box->get_transform().get_translation());
 }
 
 namespace minigame000

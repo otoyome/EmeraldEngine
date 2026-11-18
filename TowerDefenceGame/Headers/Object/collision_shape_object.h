@@ -24,12 +24,10 @@ public:
 	shapes get_shape() const { return shape; }
 	void set_shape(shapes value);
 
-	//	形状の大きさ
-	//	球 {半径}
-	//	カプセル {半径, 長さ}
-	//	箱 {半分の大きさ xyz}
 	const math::float3& get_shape_scale() const { return shape_scale; }
 	void set_shape_scale(const math::float3& value);
+
+	collision_object_ptr get_collision() const { return get_collisions().empty() ? nullptr : get_collisions().front(); }
 
 	void serialize(cereal::JSONOutputArchive& archive) const override;
 	void deserialize(cereal::JSONInputArchive& archive) override;

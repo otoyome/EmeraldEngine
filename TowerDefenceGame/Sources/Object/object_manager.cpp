@@ -48,6 +48,9 @@ void object_manager::updates(float elapsed_time)
 		}
 		else
 		{
+			//	ˆê’â~’†‚à“–‚½‚è”»’è‚Ì“o˜^E‰ğœ‚Í”½‰f‚·‚é
+			world.apply_pending_objects();
+
 			debug_updates(elapsed_time);
 			return;
 		}

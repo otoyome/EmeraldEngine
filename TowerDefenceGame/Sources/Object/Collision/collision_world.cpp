@@ -525,6 +525,12 @@ bool collision_world::capsule_cast(const capsule_cast_descs& desc, collision::in
 	return intersect_data.size() > 0;
 }
 
+void collision_world::apply_pending_objects()
+{
+	remove_objects();
+	add_objects();
+}
+
 void collision_world::add_objects()
 {
 	for (auto& object : collision_objects_add)
