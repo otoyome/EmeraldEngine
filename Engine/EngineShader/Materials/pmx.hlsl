@@ -21,19 +21,19 @@ static const uint BaseTexcoord = 0;
 //  マテリアル情報
 cbuffer TOON_MATERIAL_CONSTANT_BUFFER
 {
-    float4  base_color_factor;  //  ベースカラー
-    float4  specular_color;     //  スペキュラカラー
-    float4  edge_color;         //  輪郭線色
+    float4  base_color_factor;      //  ベースカラー
+    float4  specular_color;         //  スペキュラカラー
+    float4  edge_color;             //  輪郭線色
 
-    float   outline_size;       //  輪郭線サイズ
-    float   roughness;          //  粗さ
-    float   metalness;          //  金属質
-    float   threshold_offset;   //  影の閾値オフセット
+    float   outline_size;           //  輪郭線サイズ
+    float   roughness;              //  粗さ
+    float   metalness;              //  金属質
+    float   threshold_offset;       //  影の閾値オフセット
 
-    uint sphere_mode;           //  スフィアマップ使用モード
-    bool clamp_lighting;        //  ライティング仰角制限使用
-    float clamp_lighting_angle; //  ライティング仰角度
-    uint dummy;
+    uint    sphere_mode;            //  スフィアマップ使用モード
+    bool    clamp_lighting;         //  ライティング仰角制限使用
+    float   clamp_lighting_angle;   //  ライティング仰角度
+    float   specular_size;          //  スペキュラサイズ
 };
 
 #if defined(MATERIAL_SURFACE)
@@ -109,8 +109,8 @@ SurfaceData surface(VS_OUT pin, bool is_front_face)
         //  r : ライティングの平面定数
         data.custom_data2.x = clamp_lighting ? 1.0f : 0.0f;
         data.custom_data2.y = sin(clamp_lighting_angle * DegreeToRadian);
+        data.custom_data2.z = specular_size;
 
-        data.base_color = base_color;
         data.shading_model = material_shading_model;
     }
     return data;

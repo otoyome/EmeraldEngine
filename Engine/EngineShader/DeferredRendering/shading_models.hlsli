@@ -68,6 +68,7 @@ DirectLighting integrate_bxdf(in GBufferData gbuffer_data, in LightingData light
             float  spec_power = max(gbuffer_data.custom_data1.a * 256.0f, 1.0f);
             float  clamp_lighting = gbuffer_data.custom_data2.x;
             float  clamp_lighting_sin = gbuffer_data.custom_data2.y;
+            float  specular_size = gbuffer_data.custom_data2.z;
 
             float3 N = gbuffer_data.w_normal;
             float3 L = -lighting_data.direction;
@@ -85,42 +86,49 @@ DirectLighting integrate_bxdf(in GBufferData gbuffer_data, in LightingData light
             float3 H = normalize(L + V);
 
             //  ƒVƒF[ƒfƒBƒ“ƒO
-            float  n_dot_l = dot(N, L) * 0.5f + 0.5f;
+            float n_dot_l = dot(N, L) * 0.5f + 0.5f;
+            float n_dot_h = saturate(dot(N, H));
             if (lighting_data.local_light)
             {
-                //  ƒ[ƒJƒ‹ƒ‰ƒCƒg
+                //  ŠgŽU”½ŽËŒõŽZo
                 float  lit     = step(threshold, n_dot_l * lighting_data.shading_attenuation);
                 float3 shade   = lerp(shade_color, bright_color, n_dot_l);
-
-                //  default_lit ‚Æ“¯‚¶–¾‚é‚³‚ÌŠî€iLambert ‚Ì 1/ƒÎj‚É‚µ‚Ä˜Io‚Æ‡‚í‚¹‚é
                 float irradiance = lighting_data.color * rcp(PI)
                                  * lighting_data.shading_attenuation
                                  * lighting_data.shadowing_attenuation;
                 result.diffuse = irradiance * shade;
 
-                //  ³‹K‰» Blinn-Phong
-                float n_dot_h = saturate(dot(N, H));
-                float norm    = (spec_power + 8.0f) / (8.0f * PI);
-                result.specular = spec_color * norm * pow(n_dot_h, spec_power)
-                                * lighting_data.color * saturate(dot(N, L))
-                                * lighting_data.shadowing_attenuation * lighting_data.shading_attenuation;
+                //  ‹¾–Ê”½ŽËŒõŽZo
+                float3 specular_color;
+                {
+                    //  –¾‚é‚¢F‚ð’²®‚µ‚ÄŒ³‚ÌFŒ©‚É‹ß‚¢F‚ð¶¬
+                    float3  base  = lerp((float3)1.0f, min(bright_color.rgb, 1.0f), 0.9f) * 0.5f;
+                    specular_color = base * lighting_data.color * spec_color * spec_power;
+                }
+                n_dot_h = saturate_mediump((1.0f - (1.0f - n_dot_h) / 0.5f));
+                float factor = (n_dot_h >= saturate(1.0f - specular_size));
+                result.specular = specular_color * factor
+                                * lighting_data.shadowing_attenuation
+                                * lighting_data.shading_attenuation;
             }
             else
             {
-                //  •½sŒõŒ¹
+                //  ŠgŽU”½ŽËŒõŽZo
                 float  lit     = step(threshold, n_dot_l);
                 float  shadow  = lighting_data.shadowing_attenuation;
                 float3 shade   = lerp(shade_color, 1.0f, lit * shadow);
-
-                //  default_lit ‚Æ“¯‚¶–¾‚é‚³‚ÌŠî€‚É‚µ‚Ä˜Io‚Æ‡‚í‚¹‚é
                 result.diffuse = bright_color * rcp(PI) * lighting_data.color * shade;
 
-                //  ³‹K‰» Blinn-Phong
-                float n_dot_h = saturate(dot(N, H));
-                float norm    = (spec_power + 8.0f) / (8.0f * PI);
-                result.specular = spec_color * norm * pow(n_dot_h, spec_power)
-                                * lighting_data.color * saturate(dot(N, L))
-                                * lighting_data.shadowing_attenuation * lighting_data.shading_attenuation;
+                //  ‹¾–Ê”½ŽËŒõŽZo
+                float3 specular_color;
+                {
+                    //  –¾‚é‚¢F‚ð’²®‚µ‚ÄŒ³‚ÌFŒ©‚É‹ß‚¢F‚ð¶¬
+                    float3  base  = lerp((float3)1.0f, min(bright_color.rgb, 1.0f), 0.9f) * 0.5f;
+                    specular_color = base * lighting_data.color * spec_color * spec_power;
+                }
+                float modified_n_dot_h = saturate_mediump((1.0f - (1.0f - n_dot_h) / 0.5f));
+                float factor = (modified_n_dot_h >= saturate(1.0f - specular_size));
+                result.specular = specular_color * factor;
             }
             break;
         }
