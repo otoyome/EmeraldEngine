@@ -500,6 +500,9 @@
     <ClCompile Include="Sources\Object\GameObjects\UI\ui_text.cpp">
       <Filter>Sources\Object\GameObjects\UI</Filter>
     </ClCompile>
+    <ClCompile Include="Sources\Object\GameObjects\MiniGame\minigame000_roomba_object.cpp">
+      <Filter>Sources\Object\GameObjects\MiniGame</Filter>
+    </ClCompile>
     <ClCompile Include="Sources\Object\GameObjects\MiniGame\roomba_object.cpp">
       <Filter>Sources\Object\GameObjects\MiniGame</Filter>
     </ClCompile>
@@ -940,6 +943,9 @@
     <ClInclude Include="Headers\Renderer\ui_renderer.h">
       <Filter>Headers\Renderer</Filter>
     </ClInclude>
+    <ClInclude Include="Headers\Object\GameObjects\MiniGame\minigame000_roomba_object.h">
+      <Filter>Headers\Object\GameObjects\MiniGame</Filter>
+    </ClInclude>
     <ClInclude Include="Headers\Object\GameObjects\MiniGame\roomba_object.h">
       <Filter>Headers\Object\GameObjects\MiniGame</Filter>
     </ClInclude>
@@ -1040,6 +1046,9 @@
       <Filter>Headers\Object</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Object\prefab_resource.h">
+      <Filter>Headers\Object</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Object\object_reference_field.h">
       <Filter>Headers\Object</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Object\game_object_serializer.h">

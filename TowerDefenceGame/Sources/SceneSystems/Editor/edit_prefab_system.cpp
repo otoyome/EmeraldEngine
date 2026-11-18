@@ -45,6 +45,9 @@ edit_prefab_system::~edit_prefab_system()
 
 void edit_prefab_system::on_begin()
 {
+	get_context().get_objects().set_pause(true);
+	get_context().set_editing(true);
+
 	//	メインカメラ生成
 	{
 		main_camera = std::make_shared<camera_object>("メインカメラ");

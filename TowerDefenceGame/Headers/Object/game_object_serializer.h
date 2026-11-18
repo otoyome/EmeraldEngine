@@ -81,6 +81,12 @@ public:
 		out_object = std::dynamic_pointer_cast<Type>(load_object(archive, name));
 	}
 
+	//	同じファイル内の参照シリアライズ
+	template<class Type>
+	static void serialize_object_reference(cereal::JSONOutputArchive& archive, const char* name, std::shared_ptr<Type>& object) { save_object_reference(archive, name, object); }
+	template<class Type>
+	static void serialize_object_reference(cereal::JSONInputArchive& archive, const char* name, std::shared_ptr<Type>& object) { load_object_reference(archive, name, object); }
+
 private:
 	static void save_object(cereal::JSONOutputArchive& archive, const char* name, const game_object_ptr& object);
 	static game_object_ptr load_object(cereal::JSONInputArchive& archive, const char* name);
