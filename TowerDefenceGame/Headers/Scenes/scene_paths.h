@@ -13,4 +13,5 @@ namespace scene_paths
 	constexpr std::string_view material_editor = "EngineAssets/Scenes/Editor/MaterialEditor.escene";
 	constexpr std::string_view particle_editor = "EngineAssets/Scenes/Editor/ParticleEditor.escene";
 	constexpr std::string_view timeline_editor = "EngineAssets/Scenes/Editor/TimelineEditor.escene";
+	constexpr std::string_view prefab_editor = "EngineAssets/Scenes/Editor/PrefabEditor.escene";
 }

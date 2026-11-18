@@ -200,4 +200,26 @@ void scene_manager::imgui_render_panel(scene_system::panel_regions region)
 			system->imgui_render_panel(region);
 	}
 }
+
+bool scene_manager::imgui_render_viewport_overlay(const ImVec2& image_position, const ImVec2& image_size)
+{
+	bool used = false;
+	for (auto& scene : scenes)
+	{
+		if (scene_system* system = scene.second->get_system())
+			used = system->imgui_render_viewport_overlay(image_position, image_size) || used;
+	}
+	return used;
+}
+
+bool scene_manager::request_close()
+{
+	bool result = true;
+	for (auto& scene : scenes)
+	{
+		if (scene_system* system = scene.second->get_system())
+			result = system->request_close() && result;
+	}
+	return result;
+}
 #endif	//	defined(USE_IMGUI)

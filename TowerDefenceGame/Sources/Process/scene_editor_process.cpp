@@ -17,6 +17,7 @@
 #include "Object/Collision/collision_filter.h"
 #include "Scenes/scene_manager.h"
 #include "Scenes/scene_paths.h"
+#include "Object/prefab_resource.h"
 #include "Input/input_action_system.h"
 #include "Effect/effect_instance.h"
 #include "System/asset_browser.h"
@@ -197,6 +198,21 @@ void scene_editor_process::register_open_handlers()
 			if (!self.has_process(asset_preview_process::make_key("material_editor", file_path)))
 				self.request_process(std::make_unique<asset_preview_process>(self, file_path, "material_editor",
 					[](scene_manager& scenes) { scenes.add_scene(scene_paths::material_editor); }));
+		};
+		asset_browser::instance()->register_open_handler(std::move(handler));
+	}
+
+	//	プレハブエディター
+	if (asset_browser::is_valid())
+	{
+		asset_browser::open_handler handler;
+		handler.label = "Prefab Editor (Window)";
+		handler.extensions = { std::string(".") + std::string(prefab_resource::extension) };
+		handler.open_file = [&self](const cache_string& file_path)
+		{
+			if (!self.has_process(asset_preview_process::make_key("prefab_editor", file_path)))
+				self.request_process(std::make_unique<asset_preview_process>(self, file_path, "prefab_editor",
+					[](scene_manager& scenes) { scenes.add_scene(scene_paths::prefab_editor); }));
 		};
 		asset_browser::instance()->register_open_handler(std::move(handler));
 	}

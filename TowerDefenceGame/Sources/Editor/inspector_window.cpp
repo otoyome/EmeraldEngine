@@ -43,9 +43,20 @@ void inspector_window::imgui_render(scene_editor& editor)
 	ImGui::End();
 }
 
+void inspector_window::imgui_render_contents(engine_context& target)
+{
+	if (!render_selected_object(target))
+		ImGui::TextDisabled("(no selection)");
+}
+
 bool inspector_window::render_selected_object(world& target)
 {
-	const std::shared_ptr<game_object> selected = target.get_context().get_selected_object();
+	return render_selected_object(target.get_context());
+}
+
+bool inspector_window::render_selected_object(engine_context& target)
+{
+	const std::shared_ptr<game_object> selected = target.get_selected_object();
 	const std::vector<std::shared_ptr<game_object>> world_objects = target.get_objects().search_game_objects<game_object>();
 	if (!selected || std::find(world_objects.begin(), world_objects.end(), selected) == world_objects.end())
 		return false;

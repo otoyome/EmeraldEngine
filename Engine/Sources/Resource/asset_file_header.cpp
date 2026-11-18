@@ -119,6 +119,8 @@ namespace resource
 			return asset_types::ik;
 		if (lower == ".esceneset")
 			return asset_types::scene_set;
+		if (lower == ".eprefab")
+			return asset_types::prefab;
 		return asset_types::unknown;
 	}
 

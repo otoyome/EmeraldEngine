@@ -65,6 +65,12 @@ public:
 	//	パネルの指定の領域へImGui描画
 	virtual void imgui_render_panel(panel_regions region) {}
 
+	//	ビューポートの画像の上に重ねて描く
+	virtual bool imgui_render_viewport_overlay(const ImVec2& image_position, const ImVec2& image_size) { return false; }
+
+	//	窓を閉じてよいか
+	virtual bool request_close() { return true; }
+
 	//	シーンエディターで編集中だけ呼ばれる関数群
 	virtual void editor_update(float elapsed_time) {}
 

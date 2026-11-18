@@ -8,6 +8,7 @@
 
 #include "imgui.h"
 #include "Editor/scene_editor.h"
+#include "Editor/object_edit_operations.h"
 #include "Editor/place_objects_window.h"
 #include "Object/world.h"
 #include "Object/object_manager.h"
@@ -25,8 +26,17 @@ void outliner_window::imgui_render(scene_editor& target_editor)
 		scenes.push_back({ resource, target_editor.get_scene_objects(resource), nullptr });
 
 	editor = &target_editor;
+	operations = &target_editor;
 	render_window(target_editor.get_edit_world(), scenes);
+	operations = nullptr;
 	editor = nullptr;
+}
+
+void outliner_window::imgui_render_contents(object_edit_operations& target_operations, const std::vector<std::shared_ptr<game_object>>& loose_objects)
+{
+	operations = &target_operations;
+	render_contents(target_operations.get_edit_context(), {}, &loose_objects);
+	operations = nullptr;
 }
 
 void outliner_window::imgui_render(world& target)
@@ -48,54 +58,90 @@ void outliner_window::imgui_render(world& target)
 
 void outliner_window::render_window(world& target, const std::vector<scene_row>& scenes)
 {
-	context = &target.get_context();
 	if (ImGui::Begin("outliner"))
+		render_contents(target.get_context(), scenes, nullptr);
+	ImGui::End();
+}
+
+void outliner_window::render_contents(engine_context& target, const std::vector<scene_row>& scenes, const std::vector<std::shared_ptr<game_object>>* loose_objects)
+{
+	context = &target;
+	pending = nullptr;
+	collect_objects(scenes, loose_objects);
+
+
+	for (const scene_row& scene : scenes)
+		render_scene(scene);
+
+	//	シーンを持たないオブジェクトは、祖先にオブジェクトを持たないものを一番上に並べる
+	if (loose_objects)
 	{
-		pending = nullptr;
-		collect_objects(scenes);
-
-
-		for (const scene_row& scene : scenes)
-			render_scene(scene);
-		render_transient_objects(target);
-
-		//	一覧の下の空いている所。クリックすると選択を外す
-		const ImVec2 rest_size(std::max(ImGui::GetContentRegionAvail().x, 1.0f), std::max(ImGui::GetContentRegionAvail().y, ImGui::GetFrameHeight()));
-		ImGui::InvisibleButton("##outliner_root", rest_size);
-		if (ImGui::IsItemClicked())
-			context->set_selected_object(nullptr);
-		if (editor)
+		for (const std::shared_ptr<game_object>& object : *loose_objects)
 		{
-			//	オブジェクトを落とすと親から外し、アセットブラウザからシーンを落とすと編集中のシーンに足す
-			if (ImGui::BeginDragDropTarget())
+			if (object && !has_object_parent(find_node(object)))
+				render_object(object);
+		}
+	}
+	render_transient_objects(target);
+
+	//	一覧の下の空いている所。クリックすると選択を外す
+	const ImVec2 rest_size(std::max(ImGui::GetContentRegionAvail().x, 1.0f), std::max(ImGui::GetContentRegionAvail().y, ImGui::GetFrameHeight()));
+	ImGui::InvisibleButton("##outliner_root", rest_size);
+	if (ImGui::IsItemClicked())
+		context->set_selected_object(nullptr);
+	if (operations)
+	{
+		//	オブジェクトを落とすと親から外し、アセットブラウザからシーンを落とすと編集中のシーンに足す
+		if (ImGui::BeginDragDropTarget())
+		{
+			object_edit_operations* target_operations = operations;
+			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(payload_type))
+			{
+				if (const std::shared_ptr<game_object> child = find_payload_object(payload->Data))
+					pending = [target_operations, child]() { target_operations->attach_object(child, nullptr); };
+			}
+			if (editor)
 			{
 				scene_editor* target_editor = editor;
-				if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(payload_type))
-				{
-					if (const std::shared_ptr<game_object> child = find_payload_object(payload->Data))
-						pending = [target_editor, child]() { target_editor->attach_object(child, nullptr); };
-				}
 				if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(asset_browser::drag_payload_type))
 				{
 					const std::string file_path(static_cast<const char*>(payload->Data));
 					if (std::filesystem::path(file_path).extension().string() == "." + std::string(scene_resource::extension))
 						pending = [target_editor, file_path]() { target_editor->add_scene(file_path); };
 				}
-				ImGui::EndDragDropTarget();
 			}
-			if (ImGui::BeginPopupContextItem("outliner_menu"))
+			ImGui::EndDragDropTarget();
+		}
+		if (ImGui::BeginPopupContextItem("outliner_menu"))
+		{
+			if (editor)
 			{
 				render_add_scene_menu();
-				ImGui::EndPopup();
 			}
+			//	一番上にオブジェクトを足す
+			else if (ImGui::BeginMenu("add object"))
+			{
+				object_edit_operations* target_operations = operations;
+				engine_context* target_context = context;
+				render_type_menu([&](const std::string& type)
+				{
+					pending = [target_operations, target_context, type]()
+					{
+						target_context->set_selected_object(nullptr);
+						target_operations->place_object(type);
+					};
+				});
+				ImGui::EndMenu();
+			}
+			ImGui::EndPopup();
 		}
-
-		//	木を並べ終えてから付け替える
-		if (pending)
-			pending();
-		pending = nullptr;
 	}
-	ImGui::End();
+
+	//	木を並べ終えてから付け替える
+	if (pending)
+		pending();
+	pending = nullptr;
+
 	owners.clear();
 	objects.clear();
 	context = nullptr;
@@ -218,9 +264,9 @@ void outliner_window::render_object(const std::shared_ptr<game_object>& object)
 	if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
 		context->set_selected_object(object);
 
-	if (editor)
+	if (operations)
 	{
-		scene_editor* target_editor = editor;
+		object_edit_operations* target_editor = operations;
 
 		//	行をドラッグして別の行に落とすと、落とした先を親にする
 		if (ImGui::BeginDragDropSource())
@@ -281,7 +327,7 @@ void outliner_window::render_children(const hierarchy* node)
 	}
 }
 
-void outliner_window::render_transient_objects(world& target)
+void outliner_window::render_transient_objects(engine_context& target)
 {
 	std::vector<std::shared_ptr<game_object>> transients;
 	for (const std::shared_ptr<game_object>& object : target.get_objects().search_game_objects<game_object>())
@@ -321,18 +367,27 @@ void outliner_window::render_type_menu(const std::function<void(const std::strin
 		});
 }
 
-void outliner_window::collect_objects(const std::vector<scene_row>& scenes)
+void outliner_window::collect_objects(const std::vector<scene_row>& scenes, const std::vector<std::shared_ptr<game_object>>* loose_objects)
 {
 	owners.clear();
 	objects.clear();
+	auto add_object = [this](const std::shared_ptr<game_object>& object)
+	{
+		if (!object)
+			return;
+		objects.emplace(object.get(), object);
+		if (const hierarchy* node = find_node(object))
+			owners.emplace(node, object);
+	};
 	for (const scene_row& scene : scenes)
 	{
 		for (const std::shared_ptr<game_object>& object : scene.objects)
-		{
-			objects.emplace(object.get(), object);
-			if (const hierarchy* node = find_node(object))
-				owners.emplace(node, object);
-		}
+			add_object(object);
+	}
+	if (loose_objects)
+	{
+		for (const std::shared_ptr<game_object>& object : *loose_objects)
+			add_object(object);
 	}
 }
 

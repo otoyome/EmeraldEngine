@@ -5,7 +5,7 @@
 #include <string>
 #include <string_view>
 
-class scene_editor;
+class object_edit_operations;
 
 //	置くオブジェクトの一覧の窓
 class place_objects_window
@@ -21,7 +21,10 @@ public:
 		const std::function<void(const std::string& type)>& render_type);
 
 public:
-	void imgui_render(scene_editor& editor);
+	void imgui_render(object_edit_operations& editor);
+
+	//	プレハブエディターのパネル用
+	void imgui_render_contents(object_edit_operations& editor);
 
 private:
 	char filter[64] = {};

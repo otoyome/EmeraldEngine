@@ -28,6 +28,7 @@ extern ImWchar glyphRangesJapanese[];
 #include "Editor/Windows/console_windows.h"
 #include "Editor/Windows/gamepad_window.h"
 #include "Editor/Windows/sound_bank_editor_window.h"
+#include "Editor/Windows/scene_set_editor_window.h"
 #include "Editor/Windows/texture_editor_window.h"
 #include "Object/world.h"
 #include "Editor/editor_camera.h"
@@ -46,6 +47,9 @@ extern ImWchar glyphRangesJapanese[];
 #include "Scenes/scene_resource.h"
 #include "Scenes/scene_set_resource.h"
 #include "Resource/asset_registry.h"
+#include "Object/prefab_resource.h"
+#include "Object/game_object_registry.h"
+#include "Object/spatial_object.h"
 
 #include "imPlot/imPlot.h"
 #include "imtimeline/ImTimeline.h"
@@ -293,6 +297,29 @@ void editor_host::imgui_initialize()
 		asset_browser::instance()->register_create_handler(std::move(handler));
 	}
 
+	//	プレハブの新規作成
+	{
+		asset_browser::create_handler handler;
+		handler.label = "Prefab";
+		handler.default_name = "NewPrefab";
+		handler.extension = std::string(".") + std::string(prefab_resource::extension);
+		handler.create = [](std::string_view file_path)
+		{
+			if (!game_object_registry::is_valid())
+				return false;
+			game_object_ptr root = game_object_registry::instance()->create(spatial_object::type_name());
+			if (!root)
+				return false;
+			root->set_name(std::filesystem::path(std::string(file_path)).stem().string());
+
+			auto prefab = std::make_shared<prefab_resource>();
+			if (!prefab->set_contents({ root }))
+				return false;
+			return resource_manager::instance()->save(prefab, file_path);
+		};
+		asset_browser::instance()->register_create_handler(std::move(handler));
+	}
+
 	//	シーンセットの新規作成
 	{
 		asset_browser::create_handler handler;
@@ -350,6 +377,9 @@ void editor_host::register_asset_open_handlers(scene_function edit_scene, play_f
 		};
 		asset_browser::instance()->register_open_handler(std::move(handler));
 	}
+
+	//	シーンセットの中身はファイルごとの窓で編集する
+	scene_set_editor_window::register_asset_handlers(editor_context, [edit_scene](std::string_view file_path) { edit_scene(file_path); });
 }
 
 void editor_host::imgui_terminate()

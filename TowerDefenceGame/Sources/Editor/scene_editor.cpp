@@ -35,6 +35,11 @@ scene_editor::~scene_editor()
 	edit_world.reset();
 }
 
+engine_context& scene_editor::get_edit_context()
+{
+	return edit_world->get_context();
+}
+
 void scene_editor::request_edit(std::string_view file_path)
 {
 	edit_request.clear();

@@ -54,6 +54,10 @@ public:
 
 	//	パネルの指定の領域へ描画
 	void imgui_render_panel(scene_system::panel_regions region);
+	//	ビューポートの画像の上に重ねて描く
+	bool imgui_render_viewport_overlay(const ImVec2& image_position, const ImVec2& image_size);
+	//	窓を閉じてよいか
+	bool request_close();
 #endif	//	defined(USE_IMGUI)
 
 public:

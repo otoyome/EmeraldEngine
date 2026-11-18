@@ -24,6 +24,7 @@ namespace resource
 		scene,		//	.escene
 		ik,			//	.eik
 		scene_set,	//	.esceneset
+		prefab,		//	.eprefab
 	};
 
 	//	ファイルヘッダー

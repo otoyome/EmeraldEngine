@@ -374,6 +374,9 @@
     <ClCompile Include="Sources\Editor\Windows\sound_bank_editor_window.cpp">
       <Filter>Sources\Editor</Filter>
     </ClCompile>
+    <ClCompile Include="Sources\Editor\Windows\scene_set_editor_window.cpp">
+      <Filter>Sources\Editor</Filter>
+    </ClCompile>
     <ClCompile Include="Sources\Renderer\scene_renderer_forward.cpp">
       <Filter>Sources\Renderer</Filter>
     </ClCompile>
@@ -563,6 +566,9 @@
     <ClCompile Include="Sources\SceneSystems\Editor\edit_model_system_edit_animation_window.cpp">
       <Filter>Sources\SceneSystems\Editor</Filter>
     </ClCompile>
+    <ClCompile Include="Sources\SceneSystems\Editor\edit_prefab_system.cpp">
+      <Filter>Sources\SceneSystems\Editor</Filter>
+    </ClCompile>
     <ClCompile Include="Sources\SceneSystems\Editor\edit_material_system.cpp">
       <Filter>Sources\SceneSystems\Editor</Filter>
     </ClCompile>
@@ -591,6 +597,9 @@
       <Filter>Sources\Object</Filter>
     </ClCompile>
     <ClCompile Include="Sources\Object\model_collision_object.cpp">
+      <Filter>Sources\Object</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Object\prefab_resource.cpp">
       <Filter>Sources\Object</Filter>
     </ClCompile>
     <ClCompile Include="Sources\Object\game_object_serializer.cpp">
@@ -706,6 +715,9 @@
     <ClInclude Include="Headers\Editor\place_objects_window.h">
       <Filter>Headers\Editor</Filter>
     </ClInclude>
+    <ClInclude Include="Headers\Editor\object_edit_operations.h">
+      <Filter>Headers\Editor</Filter>
+    </ClInclude>
     <ClInclude Include="Headers\Editor\outliner_window.h">
       <Filter>Headers\Editor</Filter>
     </ClInclude>
@@ -785,6 +797,9 @@
       <Filter>Headers\Editor</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Editor\Windows\sound_bank_editor_window.h">
+      <Filter>Headers\Editor</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Editor\Windows\scene_set_editor_window.h">
       <Filter>Headers\Editor</Filter>
     </ClInclude>
     <ClInclude Include="..\External\subpixel_morphological_anti_aliasing\textures\AreaTex.h">
@@ -991,6 +1006,9 @@
     <ClInclude Include="Headers\SceneSystems\Editor\edit_model_system.h">
       <Filter>Headers\SceneSystems\Editor</Filter>
     </ClInclude>
+    <ClInclude Include="Headers\SceneSystems\Editor\edit_prefab_system.h">
+      <Filter>Headers\SceneSystems\Editor</Filter>
+    </ClInclude>
     <ClInclude Include="Headers\SceneSystems\Editor\edit_material_system.h">
       <Filter>Headers\SceneSystems\Editor</Filter>
     </ClInclude>
@@ -1019,6 +1037,9 @@
       <Filter>Headers\Object</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Object\model_collision_object.h">
+      <Filter>Headers\Object</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Object\prefab_resource.h">
       <Filter>Headers\Object</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Object\game_object_serializer.h">

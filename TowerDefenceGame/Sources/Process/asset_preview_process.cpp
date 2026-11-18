@@ -142,6 +142,13 @@ void asset_preview_process::imgui_render()
 	ImGui::End();
 	context.set_viewport_hovered(hovered);
 
+	//	閉じる
+	if (!open && !scenes.request_close())
+		open = true;
+	//	閉じ確認
+	if (context.take_close_window_request())
+		open = false;
+
 	scenes.imgui_render();
 }
 
@@ -195,7 +202,11 @@ bool asset_preview_process::imgui_render_layout(engine_context& context)
 	//	ビューはパネルを除いた残り
 	const ImVec2 view_position(origin.x + left_width, origin.y);
 	const ImVec2 view_size(std::max(available.x - left_width - right_width, 1.0f), upper_height);
-	return viewport->imgui_render(context, view_position, view_size);
+	return viewport->imgui_render(context, view_position, view_size,
+		[&scenes](const ImVec2& image_position, const ImVec2& image_size)
+		{
+			return scenes.imgui_render_viewport_overlay(image_position, image_size);
+		});
 }
 
 void asset_preview_process::imgui_render_panel(scene_system::panel_regions region, const char* id, const ImVec2& position, const ImVec2& size)

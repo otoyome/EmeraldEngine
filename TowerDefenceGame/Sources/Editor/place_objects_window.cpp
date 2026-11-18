@@ -6,7 +6,8 @@
 #include <string>
 
 #include "imgui.h"
-#include "Editor/scene_editor.h"
+#include "Editor/object_edit_operations.h"
+#include "Object/engine_context.h"
 #include "Object/world.h"
 #include "Object/game_object_registry.h"
 #include "Object/spatial_object.h"
@@ -78,36 +79,39 @@ void place_objects_window::render_placeable_types(std::string_view filter,
 	close_to(0);
 }
 
-void place_objects_window::imgui_render(scene_editor& editor)
+void place_objects_window::imgui_render(object_edit_operations& editor)
 {
 	//	Œ^‚Ìˆê——
-	if (ImGui::Begin(editor.get_edit_world().get_context().make_window_name("place objects").c_str()))
-	{
-		ImGui::SetNextItemWidth(-FLT_MIN);
-		ImGui::InputTextWithHint("##filter", "search", filter, sizeof(filter));
-
-		const bool filtering = filter[0] != '\0';
-		render_placeable_types(filter,
-			[filtering](const char* category)
-			{
-				if (filtering)
-					ImGui::SetNextItemOpen(true);
-				return ImGui::TreeNodeEx(category, ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_SpanAvailWidth);
-			},
-			[]() { ImGui::TreePop(); },
-			[&editor](const std::string& type)
-			{
-				ImGui::Selectable(type.c_str(), false, ImGuiSelectableFlags_AllowDoubleClick);
-				if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
-					editor.place_object(type);
-				if (ImGui::BeginDragDropSource())
-				{
-					ImGui::SetDragDropPayload(payload_type, type.c_str(), type.size() + 1);
-					ImGui::TextUnformatted(type.c_str());
-					ImGui::EndDragDropSource();
-				}
-			});
-	}
+	if (ImGui::Begin(editor.get_edit_context().make_window_name("place objects").c_str()))
+		imgui_render_contents(editor);
 	ImGui::End();
+}
+
+void place_objects_window::imgui_render_contents(object_edit_operations& editor)
+{
+	ImGui::SetNextItemWidth(-FLT_MIN);
+	ImGui::InputTextWithHint("##filter", "search", filter, sizeof(filter));
+
+	const bool filtering = filter[0] != '\0';
+	render_placeable_types(filter,
+		[filtering](const char* category)
+		{
+			if (filtering)
+				ImGui::SetNextItemOpen(true);
+			return ImGui::TreeNodeEx(category, ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_SpanAvailWidth);
+		},
+		[]() { ImGui::TreePop(); },
+		[&editor](const std::string& type)
+		{
+			ImGui::Selectable(type.c_str(), false, ImGuiSelectableFlags_AllowDoubleClick);
+			if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+				editor.place_object(type);
+			if (ImGui::BeginDragDropSource())
+			{
+				ImGui::SetDragDropPayload(payload_type, type.c_str(), type.size() + 1);
+				ImGui::TextUnformatted(type.c_str());
+				ImGui::EndDragDropSource();
+			}
+		});
 }
 #endif	//	defined(USE_IMGUI)

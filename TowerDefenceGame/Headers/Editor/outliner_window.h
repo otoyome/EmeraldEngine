@@ -10,6 +10,7 @@
 #include "Scenes/scene_resource.h"
 
 class scene_editor;
+class object_edit_operations;
 class scene_system;
 class world;
 class engine_context;
@@ -26,6 +27,9 @@ public:
 	void imgui_render(scene_editor& editor);
 	void imgui_render(world& target);
 
+	//	プレハブエディターのパネル用
+	void imgui_render_contents(object_edit_operations& operations, const std::vector<std::shared_ptr<game_object>>& objects);
+
 private:
 	//	並べるシーン
 	struct scene_row
@@ -37,6 +41,8 @@ private:
 
 	//	窓を描く
 	void render_window(world& target, const std::vector<scene_row>& scenes);
+	//	窓の中身を描く
+	void render_contents(engine_context& target, const std::vector<scene_row>& scenes, const std::vector<std::shared_ptr<game_object>>* loose_objects);
 	//	シーンの行と、その下のオブジェクトを描く
 	void render_scene(const scene_row& scene);
 	//	シーンの右クリックのメニュー
@@ -48,12 +54,12 @@ private:
 	//	子孫のうち最も近いオブジェクトを描く
 	void render_children(const hierarchy* node);
 	//	シーンに入っていない一時オブジェクトを描く
-	void render_transient_objects(world& target);
+	void render_transient_objects(engine_context& target);
 	//	置けるオブジェクトの型をメニューに並べる
 	void render_type_menu(const std::function<void(const std::string& type)>& on_select);
 
 	//	並べるシーンのオブジェクトを集める
-	void collect_objects(const std::vector<scene_row>& scenes);
+	void collect_objects(const std::vector<scene_row>& scenes, const std::vector<std::shared_ptr<game_object>>* loose_objects);
 	//	オブジェクトの空間の節（spatial_object でなければ空）
 	static const hierarchy* find_node(const std::shared_ptr<game_object>& object);
 	//	子孫にオブジェクトを持つか
@@ -64,9 +70,10 @@ private:
 	std::shared_ptr<game_object> find_payload_object(const void* data) const;
 
 private:
-	scene_editor* editor = nullptr;		//	編集中のシーンを描いている間だけ持つ
-	engine_context* context = nullptr;	//	描いている間だけ持つ
-	std::unordered_map<const hierarchy*, std::shared_ptr<game_object>> owners;		//	空間の節を持つオブジェクト
+	scene_editor* editor = nullptr;		//	編集シーン
+	object_edit_operations* operations = nullptr;	//	オブジェクト編集操作機能
+	engine_context* context = nullptr;	//	エンジンコンテキスト
+	std::unordered_map<const hierarchy*, std::shared_ptr<game_object>> owners;		//	親オブジェクト
 	std::unordered_map<const game_object*, std::shared_ptr<game_object>> objects;	//	並べるシーンのオブジェクト
 	std::function<void()> pending;													//	木を並べ終えてから行う操作
 };

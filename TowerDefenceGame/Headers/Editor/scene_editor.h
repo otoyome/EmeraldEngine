@@ -9,13 +9,14 @@
 #include <vector>
 
 #include "Scenes/scene_resource.h"
+#include "Editor/object_edit_operations.h"
 
 class world;
 class game_object;
 class scene_system;
 
 //	シーンエディター
-class scene_editor
+class scene_editor : public object_edit_operations
 {
 	//	編集中のシーンリソース
 	struct edited_scene
@@ -33,6 +34,7 @@ public:
 	bool is_playing() const { return !playing_scenes.empty(); }
 
 	world& get_edit_world() { return *edit_world; }
+	engine_context& get_edit_context() override;
 
 public:
 	scene_editor();
@@ -75,11 +77,11 @@ public:
 	void imgui_render_scene_settings(const scene_resource_ptr& resource);
 
 	//	オブジェクトを型から作って置く（position が無ければ選んでいるオブジェクトの子にしてエディターカメラの前方、あれば置く先のシーンの一番上。作った物を選ぶ）
-	std::shared_ptr<game_object> place_object(std::string_view type, const std::optional<math::vector3d>& position = std::nullopt);
+	std::shared_ptr<game_object> place_object(std::string_view type, const std::optional<math::vector3d>& position = std::nullopt) override;
 	//	オブジェクトを型から作ってシーンの一番上に置く
 	std::shared_ptr<game_object> place_object_in_scene(std::string_view type, const scene_resource_ptr& resource, const std::optional<math::vector3d>& position = std::nullopt);
 	//	オブジェクトを型から作って parent の子にする（子を持てない型なら parent のシーンの一番上に置く）
-	std::shared_ptr<game_object> place_object_as_child(std::string_view type, const std::shared_ptr<game_object>& parent);
+	std::shared_ptr<game_object> place_object_as_child(std::string_view type, const std::shared_ptr<game_object>& parent) override;
 
 	//	再生の開始・停止を任せる先
 	struct play_handlers
@@ -114,12 +116,12 @@ public:
 	bool can_remove_scene() const { return !is_playing() && edited_scenes.size() > 1; }
 
 	//	オブジェクトを子毎削除する
-	bool remove_object(const std::shared_ptr<game_object>& target);
+	bool remove_object(const std::shared_ptr<game_object>& target) override;
 	//	削除できるオブジェクトか
-	bool can_remove_object(const std::shared_ptr<game_object>& target) const;
+	bool can_remove_object(const std::shared_ptr<game_object>& target) const override;
 
 	//	子供を親の子にする。親が別のシーンなら子孫ごと親のシーンへ移す
-	bool attach_object(const std::shared_ptr<game_object>& child, const std::shared_ptr<game_object>& parent);
+	bool attach_object(const std::shared_ptr<game_object>& child, const std::shared_ptr<game_object>& parent) override;
 	//	オブジェクトを親から外し、子孫ごと別のシーンへ移す
 	bool move_object_to_scene(const std::shared_ptr<game_object>& object, const scene_resource_ptr& resource);
 

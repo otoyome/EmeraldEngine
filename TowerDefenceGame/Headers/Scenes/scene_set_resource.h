@@ -37,6 +37,8 @@ public:
 	const std::vector<resource::asset_reference<scene_resource>>& get_scenes() const { return scenes; }
 	//	シーンの一覧を設定
 	void set_scenes(const std::vector<scene_resource_ptr>& resources);
+	//	シーンの参照の一覧を設定
+	void set_scene_references(std::vector<resource::asset_reference<scene_resource>> references) { scenes = std::move(references); }
 
 	//	シーンのファイルパスの一覧
 	std::vector<std::string> get_scene_paths() const;

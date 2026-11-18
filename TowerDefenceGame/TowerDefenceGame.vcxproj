@@ -589,6 +589,7 @@ xcopy "$(SolutionDir)External\SDL3\lib\SDL3.dll" "$(OutDir)" /y</Command>
     <ClCompile Include="Sources\Editor\Windows\console_windows.cpp" />
     <ClCompile Include="Sources\Editor\Windows\gamepad_window.cpp" />
     <ClCompile Include="Sources\Editor\Windows\sound_bank_editor_window.cpp" />
+    <ClCompile Include="Sources\Editor\Windows\scene_set_editor_window.cpp" />
     <ClCompile Include="Sources\Framework\app_window.cpp" />
     <ClCompile Include="Sources\Framework\display_settings.cpp" />
     <ClCompile Include="Sources\Framework\splash_window.cpp" />
@@ -653,6 +654,7 @@ xcopy "$(SolutionDir)External\SDL3\lib\SDL3.dll" "$(OutDir)" /y</Command>
     <ClCompile Include="Sources\Object\spatial_object.cpp" />
     <ClCompile Include="Sources\Object\game_object_registry.cpp" />
     <ClCompile Include="Sources\Object\game_object_serializer.cpp" />
+    <ClCompile Include="Sources\Object\prefab_resource.cpp" />
     <ClCompile Include="Sources\Object\collision_placement_object.cpp" />
     <ClCompile Include="Sources\Object\collision_shape_object.cpp" />
     <ClCompile Include="Sources\Object\model_collision_object.cpp" />
@@ -666,6 +668,7 @@ xcopy "$(SolutionDir)External\SDL3\lib\SDL3.dll" "$(OutDir)" /y</Command>
     <ClCompile Include="Sources\SceneSystems\Editor\edit_model_system_edit_window.cpp" />
     <ClCompile Include="Sources\SceneSystems\Editor\edit_model_system_edit_animation_window.cpp" />
     <ClCompile Include="Sources\SceneSystems\Editor\edit_material_system.cpp" />
+    <ClCompile Include="Sources\SceneSystems\Editor\edit_prefab_system.cpp" />
     <ClCompile Include="Sources\SceneSystems\Editor\edit_particle_system.cpp" />
     <ClCompile Include="Sources\SceneSystems\Editor\edit_timeline_system.cpp" />
     <ClCompile Include="Sources\SceneSystems\Network\network_sandbox_system.cpp" />
@@ -739,6 +742,7 @@ xcopy "$(SolutionDir)External\SDL3\lib\SDL3.dll" "$(OutDir)" /y</Command>
     <ClInclude Include="Headers\Editor\editor_icons.h" />
     <ClInclude Include="Headers\Editor\place_objects_window.h" />
     <ClInclude Include="Headers\Editor\outliner_window.h" />
+    <ClInclude Include="Headers\Editor\object_edit_operations.h" />
     <ClInclude Include="Headers\Editor\inspector_window.h" />
     <ClInclude Include="Headers\Editor\editor_items.h" />
     <ClInclude Include="Headers\Editor\detail_profiler.h" />
@@ -750,6 +754,7 @@ xcopy "$(SolutionDir)External\SDL3\lib\SDL3.dll" "$(OutDir)" /y</Command>
     <ClInclude Include="Headers\Editor\Windows\console_windows.h" />
     <ClInclude Include="Headers\Editor\Windows\gamepad_window.h" />
     <ClInclude Include="Headers\Editor\Windows\sound_bank_editor_window.h" />
+    <ClInclude Include="Headers\Editor\Windows\scene_set_editor_window.h" />
     <ClInclude Include="Headers\framework.h" />
     <ClInclude Include="Headers\Process\framework_process.h" />
     <ClInclude Include="Headers\Framework\app_window.h" />
@@ -807,6 +812,7 @@ xcopy "$(SolutionDir)External\SDL3\lib\SDL3.dll" "$(OutDir)" /y</Command>
     <ClInclude Include="Headers\Object\spatial_object.h" />
     <ClInclude Include="Headers\Object\game_object_registry.h" />
     <ClInclude Include="Headers\Object\game_object_serializer.h" />
+    <ClInclude Include="Headers\Object\prefab_resource.h" />
     <ClInclude Include="Headers\Object\collision_placement_object.h" />
     <ClInclude Include="Headers\Object\collision_shape_object.h" />
     <ClInclude Include="Headers\Object\model_collision_object.h" />
@@ -819,6 +825,7 @@ xcopy "$(SolutionDir)External\SDL3\lib\SDL3.dll" "$(OutDir)" /y</Command>
     <ClInclude Include="Headers\Scenes\scene_paths.h" />
     <ClInclude Include="Headers\SceneSystems\Editor\edit_model_system.h" />
     <ClInclude Include="Headers\SceneSystems\Editor\edit_material_system.h" />
+    <ClInclude Include="Headers\SceneSystems\Editor\edit_prefab_system.h" />
     <ClInclude Include="Headers\SceneSystems\Editor\edit_particle_system.h" />
     <ClInclude Include="Headers\SceneSystems\Editor\edit_timeline_system.h" />
     <ClInclude Include="Headers\SceneSystems\Network\network_sandbox_system.h" />
