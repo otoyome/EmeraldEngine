@@ -13,10 +13,17 @@ public:
 	static constexpr size_t invalid_id = 0;
 
 public:
+	//	判定種類
+	enum class body_types : std::uint8_t
+	{
+		static_body,	//	動かない。押し合いで押し戻されず、static 同士は判定しない
+		kinematic_body,	//	持ち主が動かす
+		dynamic_body,	//	押し合いで押し戻される。押し戻された位置は当たり判定の中だけで変わる
+	};
+
 	enum class flags
 	{
 		active,
-		static_object,	// 衝突検知後、押し合いする時に動かないオブジェクトフラグ
 
 		dirty,
 		frame_hit,		// 1フレーム内に1回当たったかどうかを判定
@@ -42,6 +49,32 @@ public:
 		collision::intersect_data intersect_data; // 交差情報
 	};
 
+	//	ヒットオブジェクト情報
+	struct hit_object
+	{
+		enum class flags
+		{
+			added,
+			aleady,
+		};
+
+		UINT flag_data = true;
+		std::weak_ptr<collision_object> to;
+		collision::intersect_data intersect_data;
+
+		hit_object(std::weak_ptr<collision_object> to)
+		: flag_data(0)
+		, to(to)
+		, intersect_data()
+		{
+			set_flag(flags::added, true);
+			set_flag(flags::aleady, false);
+		}
+
+		bool is_flag(flags flag) const { return system_utility::is_bitflag(flag_data, 1 << static_cast<UINT>(flag)); }
+		void set_flag(flags flag, bool value) { system_utility::set_bitflag(flag_data, 1 << static_cast<UINT>(flag), value); }
+	};
+
 	using on_collision_enter = std::function<void(const data& data)>;
 	using on_collision_stay = std::function<void(const data& data)>;
 	using on_collision_end = std::function<void(const data& data)>;
@@ -52,6 +85,9 @@ public:
 
 	bool is_flag(flags flag) const { return system_utility::is_bitflag(flag_data, 1 << static_cast<UINT>(flag)); }
 	void set_flag(flags flag, bool value) { system_utility::set_bitflag(flag_data, 1 << static_cast<UINT>(flag), value); }
+
+	body_types get_body_type() const { return body_type; }
+	void set_body_type(body_types value) { body_type = value; }
 
 	const user_datas& get_user_data() const;
 	void set_user_data(const user_datas& user_data);
@@ -122,51 +158,25 @@ private:
 	size_t id;
 	collision_filter_ptr filter;
 	int flag_data;
+	body_types body_type = body_types::static_body;	//	当たり判定の種類
 	user_datas user_data;
 	float mass; // 本体の質量
 	material_resource::physical_datas physical_data; // 物理マテリアル
 	math::float3 local_scale; // ローカルスケール情報
 	math::rigid_transformd local_transform;	//	ローカル姿勢
-
 	math::rigid_transformd transform;	//	ワールド姿勢
+	std::shared_ptr<collision::bounding_object> bounding_object;	//	形状
+
+	on_collision_enter collision_enter;
+	on_collision_stay collision_stay;
+	on_collision_end collision_end;
+	std::vector<hit_object> hit_objects;
 
 	math::float4 draw_normal_color;
 	math::float4 draw_hit_color;
-
-	std::shared_ptr<collision::bounding_object> bounding_object;
 
 	//	ワールドAABBのキャッシュ
 	math::double3 world_bounds_min;
 	math::double3 world_bounds_max;
 	bool world_bounds_valid;
-
-	on_collision_enter collision_enter;
-	on_collision_stay collision_stay;
-	on_collision_end collision_end;
-
-	struct hit_object
-	{
-		enum class flags
-		{
-			added,
-			aleady,
-		};
-
-		UINT flag_data = true;
-		std::weak_ptr<collision_object> to;
-		collision::intersect_data intersect_data;
-
-		hit_object(std::weak_ptr<collision_object> to)
-		: flag_data(0)
-		, to(to)
-		, intersect_data()
-		{
-			set_flag(flags::added, true);
-			set_flag(flags::aleady, false);
-		}
-
-		bool is_flag(flags flag) const { return system_utility::is_bitflag(flag_data, 1 << static_cast<UINT>(flag)); }
-		void set_flag(flags flag, bool value) { system_utility::set_bitflag(flag_data, 1 << static_cast<UINT>(flag), value); }
-	};
-	std::vector<hit_object> hit_objects;
 };

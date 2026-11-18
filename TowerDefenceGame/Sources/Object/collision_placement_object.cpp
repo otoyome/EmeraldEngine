@@ -71,7 +71,7 @@ void collision_placement_object::build_collisions()
 	for (auto& collision : created)
 	{
 		collision->set_filter(filter_name);
-		collision->set_flag(collision_object::flags::static_object, true);
+		collision->set_body_type(collision_object::body_types::static_body);
 		objects.register_object(collision);
 		collisions.emplace_back(std::move(collision));
 	}

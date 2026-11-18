@@ -81,6 +81,7 @@ roomba_object::roomba_object(engine_context& context, std::string_view name, std
 
 	//	“–‚½‚è”»’è‚Ì“o˜^
 	push_box = std::make_shared<collision_object>();
+	push_box->set_body_type(collision_object::body_types::dynamic_body);
 	push_box->set_filter(collision_filter_name);
 	push_box->set_bounding_object(std::make_shared<collision::bounding_capsule>());
 	push_box->set_local_scale({setup_data::capsule_push_radius, setup_data::capsule_length, 0.0f});

@@ -142,8 +142,8 @@ void collision_world::inner_step_simulation(float elapsed_time)
 				collision_object* raw2 = candidate_pairs[index].second;
 
 				//	両方staticなら対象外
-				if (raw1->is_flag(collision_object::flags::static_object) &&
-					raw2->is_flag(collision_object::flags::static_object))
+				if (raw1->get_body_type() == collision_object::body_types::static_body &&
+					raw2->get_body_type() == collision_object::body_types::static_body)
 					continue;
 
 				//	応答チェック
@@ -196,8 +196,9 @@ void collision_world::inner_step_simulation(float elapsed_time)
 			//	collision_object::intersect と同じく呼び出し側にヒットフラグを立てる
 			raw1->set_flag(collision_object::flags::frame_hit, true);
 
-			bool is_static_object = object1->is_flag(collision_object::flags::static_object) &&
-									object2->is_flag(collision_object::flags::static_object);
+			//	押し戻されるのは dynamic だけ。どちらかが dynamic の時だけ押し合う
+			bool can_push = object1->get_body_type() == collision_object::body_types::dynamic_body ||
+							object2->get_body_type() == collision_object::body_types::dynamic_body;
 
 			collision::intersect_data& data1 = push_scratch1;
 			collision::intersect_data& data2 = push_scratch2;
@@ -206,15 +207,15 @@ void collision_world::inner_step_simulation(float elapsed_time)
 
 			//	押し合い
 			bool is_push = narrow_hits[index] == 2;
-			if (is_push && !is_static_object)
+			if (is_push && can_push)
 			{
 				//	押し戻し量の配分を決定
 				float rate1 = 0, rate2 = 0;
-				if (object1->is_flag(collision_object::flags::static_object))
+				if (object1->get_body_type() != collision_object::body_types::dynamic_body)
 				{
 					rate2 = 1;
 				}
-				else if (object2->is_flag(collision_object::flags::static_object))
+				else if (object2->get_body_type() != collision_object::body_types::dynamic_body)
 				{
 					rate1 = 1;
 				}
