@@ -20,9 +20,6 @@ struct scene_render_targets
 	texture_ptr ssr_accumlate_textures[2];
 	texture_ptr ssr_counter_textures[2];
 
-	//	@tool 最終的な出力先（バックバッファ、またはテクスチャ）
-	render_pass output;
-
-	//	@tool UI の描画先（HDR 出力では SDR のテクスチャ、それ以外は output と同じ）
-	render_pass ui_output;
+	render_pass output;	//	最終的な出力先
+	render_pass ui_output;	//	UI の描画先
 };

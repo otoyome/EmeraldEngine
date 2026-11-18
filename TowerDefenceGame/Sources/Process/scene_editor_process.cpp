@@ -438,7 +438,10 @@ void scene_editor_process::imgui_render()
 			outliner.imgui_render(*scene_edit);
 		else
 			outliner.imgui_render(scene_edit->get_edit_world());
-		inspector.imgui_render(scene_edit->get_edit_world());
+		if (scene_edit->is_editing())
+			inspector.imgui_render(*scene_edit);
+		else
+			inspector.imgui_render(scene_edit->get_edit_world());
 	}
 
 	//	•ÒW’†‚ÌƒV[ƒ“‚Ì‘‹

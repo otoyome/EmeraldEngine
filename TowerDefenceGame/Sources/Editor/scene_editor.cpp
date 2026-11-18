@@ -391,6 +391,17 @@ void scene_editor::imgui_render_edit_window()
 	const cache_string path(scene.resource->get_file_path());
 	const std::string title = scene_resource_utility::make_display_name(path.get<utf8_cache>()) + " (editing)###scene_editor_edit_window";
 	if (ImGui::Begin(title.c_str(), &edit_window_opened))
+		imgui_render_scene_settings(scene.resource);
+	ImGui::End();
+}
+
+void scene_editor::imgui_render_scene_settings(const scene_resource_ptr& resource)
+{
+	auto it = std::find_if(edited_scenes.begin(), edited_scenes.end(), [&](const edited_scene& edited) { return edited.resource == resource; });
+	if (it == edited_scenes.end())
+		return;
+	edited_scene& scene = *it;
+
 	{
 		//	システムの付け替え
 		ImGui::SeparatorText("system");
@@ -411,14 +422,13 @@ void scene_editor::imgui_render_edit_window()
 		}
 
 		//	システムの設定
-		auto current_it = std::find_if(edited_scenes.begin(), edited_scenes.end(), [&](const edited_scene& edited) { return edited.resource == edit_target; });
+		auto current_it = std::find_if(edited_scenes.begin(), edited_scenes.end(), [&](const edited_scene& edited) { return edited.resource == resource; });
 		if (current_it != edited_scenes.end() && current_it->system)
 		{
 			ImGui::SeparatorText("settings");
 			current_it->system->imgui_render();
 		}
 	}
-	ImGui::End();
 }
 
 void scene_editor::set_system(edited_scene& scene, std::string_view type)

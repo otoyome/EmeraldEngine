@@ -71,6 +71,9 @@ public:
 	//	シーンリソースの編集窓で開く
 	void open_edit_window(const scene_resource_ptr& resource) { edit_target = resource; edit_window_opened = true; }
 
+	//	シーンの編集項目を描く
+	void imgui_render_scene_settings(const scene_resource_ptr& resource);
+
 	//	オブジェクトを型から作って置く（position が無ければ選んでいるオブジェクトの子にしてエディターカメラの前方、あれば置く先のシーンの一番上。作った物を選ぶ）
 	std::shared_ptr<game_object> place_object(std::string_view type, const std::optional<math::vector3d>& position = std::nullopt);
 	//	オブジェクトを型から作ってシーンの一番上に置く
