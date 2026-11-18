@@ -85,17 +85,18 @@ DirectLighting integrate_bxdf(in GBufferData gbuffer_data, in LightingData light
             float3 H = normalize(L + V);
 
             //  シェーディング
+            float  n_dot_l = dot(N, L) * 0.5f + 0.5f;
             if (lighting_data.local_light)
             {
-                //  ローカルライトの時は陰色にのみ影響を強く与える
-                float  n_dot_l = dot(N, L) * 0.5f + 0.5f;
+                //  ローカルライト
                 float  lit     = step(threshold, n_dot_l * lighting_data.shading_attenuation);
-                float3 shade   = lerp(shade_color, 1.0f, lit * lighting_data.shadowing_attenuation);
-                float3 shadow  = lighting_data.shadowing_attenuation;
+                float3 shade   = lerp(shade_color, bright_color, n_dot_l);
 
                 //  default_lit と同じ明るさの基準（Lambert の 1/π）にして露出と合わせる
-                float irradiance = lighting_data.color * rcp(PI);
-                result.diffuse = bright_color * irradiance * shade * shadow;
+                float irradiance = lighting_data.color * rcp(PI)
+                                 * lighting_data.shading_attenuation
+                                 * lighting_data.shadowing_attenuation;
+                result.diffuse = irradiance * shade;
 
                 //  正規化 Blinn-Phong
                 float n_dot_h = saturate(dot(N, H));
@@ -103,12 +104,10 @@ DirectLighting integrate_bxdf(in GBufferData gbuffer_data, in LightingData light
                 result.specular = spec_color * norm * pow(n_dot_h, spec_power)
                                 * lighting_data.color * saturate(dot(N, L))
                                 * lighting_data.shadowing_attenuation * lighting_data.shading_attenuation;
-                                result.specular = 0;
             }
             else
             {
                 //  平行光源
-                float  n_dot_l = dot(N, L) * 0.5f + 0.5f;
                 float  lit     = step(threshold, n_dot_l);
                 float  shadow  = lighting_data.shadowing_attenuation;
                 float3 shade   = lerp(shade_color, 1.0f, lit * shadow);
@@ -122,7 +121,6 @@ DirectLighting integrate_bxdf(in GBufferData gbuffer_data, in LightingData light
                 result.specular = spec_color * norm * pow(n_dot_h, spec_power)
                                 * lighting_data.color * saturate(dot(N, L))
                                 * lighting_data.shadowing_attenuation * lighting_data.shading_attenuation;
-                                result.specular = 0;
             }
             break;
         }
