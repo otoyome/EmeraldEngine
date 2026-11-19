@@ -80,11 +80,15 @@
   <ImportGroup Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="..\Emerald.Common.props" />
-    <Import Project="..\Emerald.Application.props" />
   </ImportGroup>
-  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Label="UserMacros">
+    <EmeraldLibraryDirectories>$(SolutionDir)EmeraldEngine\Bin\x64\$(Configuration);$(SolutionDir)Engine\Bin\x64\$(Configuration);$(SolutionDir)Math\Bin\x64\$(Configuration);$(SolutionDir)Collision\Bin\x64\$(Configuration);$(SolutionDir)External\DirectXTex\lib\$(Configuration);$(SolutionDir)External\meshoptimizer\lib\$(Configuration);$(SolutionDir)External\icu\lib64;$(SolutionDir)External\SDL3\lib</EmeraldLibraryDirectories>
+    <EmeraldLibraries>EmeraldEngine.lib;Engine.lib;Collision.lib;Math.lib;DirectXTex.lib;d3d11.lib;dxgi.lib;dxguid.lib;dxcompiler.lib;d3dcompiler.lib;meshoptimizer.lib</EmeraldLibraries>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Platform)'=='x64'">
     <IncludePath>$(ProjectDir)Headers;$(SolutionDir)EmeraldEngine\Headers;$(SolutionDir)External;$(SolutionDir)External\imgui;$(IncludePath)</IncludePath>
+    <LocalDebuggerWorkingDirectory>$(SolutionDir)</LocalDebuggerWorkingDirectory>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)'=='Debug' Or '$(Configuration)'=='DebugEditor' Or '$(Configuration)'=='Develop' Or '$(Configuration)'=='DevelopEditor'">
     <LinkIncremental>true</LinkIncremental>
@@ -99,6 +103,34 @@
       <ForcedIncludeFiles>stdafx_application.h</ForcedIncludeFiles>
       <AdditionalIncludeDirectories>$(ProjectDir)Headers;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>$(EmeraldLibraryDirectories);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+    </Link>
+    <PostBuildEvent>
+      <Command>xcopy "$(SolutionDir)External\DirectXShaderCompiler\bin\x64\dxcompiler.dll" "$(OutDir)" /y
+xcopy "$(SolutionDir)External\DirectXShaderCompiler\bin\x64\dxil.dll" "$(OutDir)" /y
+xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y
+xcopy "$(SolutionDir)External\SDL3\lib\SDL3.dll" "$(OutDir)" /y</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Platform)'=='x64' And ('$(Configuration)'=='Debug' Or '$(Configuration)'=='DebugEditor')">
+    <Link>
+      <AdditionalDependencies>$(EmeraldLibraries);icudt.lib;icuind.lib;icuiod.lib;icutud.lib;icuucd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Platform)'=='x64' And ('$(Configuration)'=='Develop' Or '$(Configuration)'=='DevelopEditor')">
+    <Link>
+      <AdditionalDependencies>$(EmeraldLibraries);icudt.lib;icuin.lib;icuio.lib;icutu.lib;icuuc.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Platform)'=='x64' And ('$(Configuration)'=='Release' Or '$(Configuration)'=='ReleaseEditor')">
+    <Link>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalDependencies>$(EmeraldLibraries);icudt.lib;icuin.lib;icuio.lib;icutu.lib;icuuc.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Sources\Object\GameObjects\MiniGame\minigame000_roomba_input_source.cpp" />
