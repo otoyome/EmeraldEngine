@@ -1,6 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- @tool EmeraldEngine(lib) と Application(exe) で必ず一致させるコンパイル設定 -->
-<!-- @tool USE_IMGUI やランタイムライブラリがずれると ODR 違反や LNK2038 になるので、ここだけで管理する -->
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup Label="UserMacros">
     <EmeraldIncludeDirectories>$(SolutionDir)Engine\Headers;$(SolutionDir)Math\Headers;$(SolutionDir)Collision\Headers;$(SolutionDir)External;$(SolutionDir)External\tinygltf-master;$(SolutionDir)External\imgui;$(SolutionDir)External\stb;$(SolutionDir)External\nameof\include;$(SolutionDir)External\magic_enum\include\magic_enum;$(SolutionDir)External\cereal\include;$(SolutionDir)External\meshoptimizer;$(SolutionDir)External\uchardet\src;$(SolutionDir)External\icu\include;$(SolutionDir)EmeraldEngine\Headers</EmeraldIncludeDirectories>

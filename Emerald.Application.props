@@ -1,9 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- @tool アプリケーション(exe)側のリンク設定。静的libは外部ライブラリを抱えないので exe 側でまとめて指定する -->
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup Label="UserMacros">
     <EmeraldLibraryDirectories>$(SolutionDir)EmeraldEngine\Bin\x64\$(Configuration);$(SolutionDir)Engine\Bin\x64\$(Configuration);$(SolutionDir)Math\Bin\x64\$(Configuration);$(SolutionDir)Collision\Bin\x64\$(Configuration);$(SolutionDir)External\DirectXTex\lib\$(Configuration);$(SolutionDir)External\meshoptimizer\lib\$(Configuration);$(SolutionDir)External\icu\lib64;$(SolutionDir)External\SDL3\lib</EmeraldLibraryDirectories>
     <EmeraldLibraries>EmeraldEngine.lib;Engine.lib;Collision.lib;Math.lib;DirectXTex.lib;d3d11.lib;dxgi.lib;dxguid.lib;dxcompiler.lib;d3dcompiler.lib;meshoptimizer.lib</EmeraldLibraries>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Platform)'=='x64'">
+    <LocalDebuggerWorkingDirectory>$(SolutionDir)</LocalDebuggerWorkingDirectory>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Platform)'=='x64'">
     <Link>
@@ -18,7 +21,6 @@ xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y
 xcopy "$(SolutionDir)External\SDL3\lib\SDL3.dll" "$(OutDir)" /y</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
-  <!-- @tool Debug系はデバッグ版のicu -->
   <ItemDefinitionGroup Condition="'$(Platform)'=='x64' And ('$(Configuration)'=='Debug' Or '$(Configuration)'=='DebugEditor')">
     <Link>
       <AdditionalDependencies>$(EmeraldLibraries);icudt.lib;icuind.lib;icuiod.lib;icutud.lib;icuucd.lib;%(AdditionalDependencies)</AdditionalDependencies>

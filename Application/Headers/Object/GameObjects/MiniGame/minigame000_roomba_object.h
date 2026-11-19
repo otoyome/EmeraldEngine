@@ -5,6 +5,7 @@
 #include "Object/collision_shape_object.h"
 
 #include "minigame000_roomba_movement.h"
+#include "minigame000_roomba_input_source.h"
 
 class game_object_serializer;
 
@@ -26,22 +27,16 @@ namespace minigame000
 			dash,	//	爆速ルンバ
 		};
 
-		//	入力情報
-		struct action_datas
-		{
-			math::float3 move = { 0.0f, 0.0f, 0.0f };	//	移動方向
-			bool dash = false;							//	ダッシュ
-			bool brake = false;							//	ブレーキ
-		};
-
 	public:
 		const std::shared_ptr<model_object>& get_model_object() const { return model; }
 		const std::shared_ptr<collision_shape_object>& get_collision_object() const { return collision; }
 		const roomba_movement& get_movement() const { return movement; }
 		const roomba_movement_state& get_movement_state() const { return movement_state; }
-
 		void set_movement_environment(const roomba_movement_environment& value) { movement_environment = value; }
 		const roomba_movement_environment& get_movement_environment() const { return movement_environment; }
+
+		void set_input_source(const std::shared_ptr<roomba_input_source>& source) { input_source = source; }
+		std::shared_ptr<roomba_input_source> get_input_source() const { return input_source.lock(); }
 
 		math::rotatorf get_rotation() const;
 		void set_rotation(math::rotatorf rotator);
@@ -71,9 +66,6 @@ namespace minigame000
 	#endif	//	defined(USE_IMGUI)
 
 	public:
-		//	入力を渡す
-		void input_action_data(const action_datas& data);
-
 		//	移動の状態を本体とモデルへ反映
 		//	@remainder	通信でホストの状態を受け取ったときもここを通す
 		void apply_movement_state();
@@ -86,9 +78,10 @@ namespace minigame000
 		std::shared_ptr<model_object> model;				//	モデル
 		std::shared_ptr<collision_shape_object> collision;	//	当たり判定
 		roomba_movement movement;							//	ルンバムーブメント
-
 		roomba_movement_environment movement_environment;	//	環境情報(ここはステージの位置関係で良く変わる可能性が高い)
 		roomba_movement_state movement_state;				//	ムーブステート
+
+		std::weak_ptr<roomba_input_source> input_source;	//	入力元
 		roomba_input_command input_command;					//	入力コマンド
 		std::uint32_t next_tick = 0;						//	ネットワーク用処理順
 	};

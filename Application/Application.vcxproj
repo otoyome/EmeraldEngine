@@ -101,6 +101,7 @@
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Sources\Object\GameObjects\MiniGame\minigame000_roomba_input_source.cpp" />
     <ClCompile Include="Sources\stdafx_application.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
@@ -124,6 +125,7 @@
     <ClCompile Include="Sources\Object\GameObjects\stage_object.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Headers\Object\GameObjects\MiniGame\minigame000_roomba_input_source.h" />
     <ClInclude Include="Headers\stdafx_application.h" />
     <ClInclude Include="Headers\Object\GameObjects\MiniGame\minigame000_roomba_movement.h" />
     <ClInclude Include="Headers\Object\GameObjects\MiniGame\minigame000_roomba_object.h" />

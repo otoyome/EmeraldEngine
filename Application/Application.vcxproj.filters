@@ -105,6 +105,9 @@
     <ClCompile Include="Sources\Object\GameObjects\MiniGame\minigame000_roomba_movement.cpp">
       <Filter>Sources\Object\GameObjects\MiniGame</Filter>
     </ClCompile>
+    <ClCompile Include="Sources\Object\GameObjects\MiniGame\minigame000_roomba_input_source.cpp">
+      <Filter>Sources\Object\GameObjects\MiniGame</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Headers\stdafx_application.h">
@@ -159,6 +162,9 @@
       <Filter>Headers\Object\GameObjects\MiniGame</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Object\GameObjects\MiniGame\minigame000_roomba_movement.h">
+      <Filter>Headers\Object\GameObjects\MiniGame</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Object\GameObjects\MiniGame\minigame000_roomba_input_source.h">
       <Filter>Headers\Object\GameObjects\MiniGame</Filter>
     </ClInclude>
   </ItemGroup>

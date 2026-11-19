@@ -68,10 +68,12 @@ minigame000::roomba_object::roomba_object(std::string_view name)
 : base(name)
 , model()
 , collision()
-, movement()
 
+, movement()
 , movement_environment()
 , movement_state()
+
+, input_source()
 , input_command()
 , next_tick(0)
 {
@@ -212,13 +214,6 @@ void minigame000::roomba_object::imgui_render_core()
 	ImGui::Text("velocity : %.2f %.2f %.2f", movement_state.velocity.x, movement_state.velocity.y, movement_state.velocity.z);
 }
 #endif	//	defined(USE_IMGUI)
-
-void minigame000::roomba_object::input_action_data(const action_datas& data)
-{
-	input_command.move = data.move;
-	input_command.dash = data.dash;
-	input_command.brake = data.brake;
-}
 
 math::rotatorf minigame000::roomba_object::get_rotation() const
 {
