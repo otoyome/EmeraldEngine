@@ -104,4 +104,3 @@ void collision_shape_object::imgui_render_core()
 }
 #endif	//	defined(USE_IMGUI)
 
-GAME_OBJECT_REGISTER(collision_shape_object, "Collision");

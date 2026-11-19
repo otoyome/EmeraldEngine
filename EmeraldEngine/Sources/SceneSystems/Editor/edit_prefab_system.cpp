@@ -470,5 +470,4 @@ void edit_prefab_system::imgui_render_close_popup()
 	ImGui::EndPopup();
 }
 
-SCENE_SYSTEM_REGISTER(edit_prefab_system);
 #endif	//	defined(USE_IMGUI)

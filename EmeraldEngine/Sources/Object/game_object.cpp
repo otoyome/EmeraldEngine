@@ -145,4 +145,3 @@ void game_object::on_deactive()
 {
 }
 
-GAME_OBJECT_REGISTER(game_object, "");

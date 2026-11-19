@@ -411,4 +411,3 @@ void clustered_lighting_test_system::imgui_render()
 }
 #endif	//	defined(USE_IMGUI)
 
-SCENE_SYSTEM_REGISTER(clustered_lighting_test_system);

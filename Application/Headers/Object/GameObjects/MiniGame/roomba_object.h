@@ -5,7 +5,6 @@
 #include "object/model_object.h"
 #include "object/camera_object.h"
 
-#include "object/game_constant.h"
 
 #include "system/finite_state_machine.h"
 

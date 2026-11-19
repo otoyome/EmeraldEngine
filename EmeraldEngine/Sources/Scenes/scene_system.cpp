@@ -89,6 +89,12 @@ std::vector<std::pair<std::string, scene_system_registry::create_function>>& sce
 	return list;
 }
 
+void scene_system_registry::add(std::string_view type, create_function function)
+{
+	assert(!functions.contains(std::string(type)) && "同じ型名のシーンシステムを二重に登録した");
+	functions.insert_or_assign(std::string(type), std::move(function));
+}
+
 std::unique_ptr<scene_system> scene_system_registry::create(std::string_view type) const
 {
 	auto it = functions.find(std::string(type));

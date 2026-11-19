@@ -24,9 +24,6 @@
     <Filter Include="Sources\Scenes">
       <UniqueIdentifier>{6d50cf44-5ce5-4d61-9d00-bce772a8bf3d}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Headers\Sound">
-      <UniqueIdentifier>{6f1d3c2a-8b4e-4a7f-9c15-2e8d7b3a9f41}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Headers\SceneSystems">
       <UniqueIdentifier>{70a8179f-debc-447f-9e6f-298fa58223d2}</UniqueIdentifier>
     </Filter>
@@ -153,26 +150,14 @@
     <Filter Include="Headers\Object\GameObjects\UI\Common">
       <UniqueIdentifier>{1897ba30-1090-44da-95a9-2561cad9a309}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Headers\Object\GameObjects\UI\HUD">
-      <UniqueIdentifier>{be64279e-d83f-4344-a861-308f9cf34825}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Sources\Object\GameObjects\Cinematics">
       <UniqueIdentifier>{35302188-f99f-458b-9dfe-64ebc2e330dc}</UniqueIdentifier>
     </Filter>
     <Filter Include="Sources\Object\GameObjects\UI">
       <UniqueIdentifier>{9fed639c-254a-4e70-8dd9-8016dfbf2916}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Sources\Object\GameObjects\UI\HUD">
-      <UniqueIdentifier>{8556d3c0-b7cc-4b25-93a4-2f8efd11a619}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Sources\Object\GameObjects\UI\Common">
       <UniqueIdentifier>{451c5df4-4744-4a50-aae3-663fdd716827}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Sources\Object\GameObjects\MiniGame">
-      <UniqueIdentifier>{517a80ff-57e0-4bf8-b7d8-aef6c4c7b4c0}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Headers\Object\GameObjects\MiniGame">
-      <UniqueIdentifier>{c0fd6346-569e-4ca2-91fa-1c756fea5db6}</UniqueIdentifier>
     </Filter>
     <Filter Include="Sources\Scenes\MiniGameScene">
       <UniqueIdentifier>{79721896-297e-4148-97c9-38b1fb6c9cca}</UniqueIdentifier>
@@ -209,9 +194,6 @@
     <ClCompile Include="..\External\imgui\imgui_widgets.cpp">
       <Filter>External\imgui</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\main.cpp">
-      <Filter>Sources</Filter>
-    </ClCompile>
     <ClCompile Include="Sources\framework.cpp">
       <Filter>Sources</Filter>
     </ClCompile>
@@ -222,6 +204,9 @@
       <Filter>Sources\Framework</Filter>
     </ClCompile>
     <ClCompile Include="Sources\Framework\splash_window.cpp">
+      <Filter>Sources\Framework</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Framework\application_runner.cpp">
       <Filter>Sources\Framework</Filter>
     </ClCompile>
     <ClCompile Include="Sources\Framework\asset_watcher.cpp">
@@ -461,9 +446,6 @@
     <ClCompile Include="Sources\Object\Collision\collision_octree.cpp">
       <Filter>Sources\Object\Collision</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Object\GameObjects\stage_object.cpp">
-      <Filter>Sources\Object\GameObjects</Filter>
-    </ClCompile>
     <ClCompile Include="Sources\Renderer\scene_renderer_common.cpp">
       <Filter>Sources\Renderer</Filter>
     </ClCompile>
@@ -476,17 +458,8 @@
     <ClCompile Include="Sources\Object\GameObjects\UI\Common\fade_controller_object.cpp">
       <Filter>Sources\Object\GameObjects\UI\Common</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Object\GameObjects\UI\Common\result_hud_controller.cpp">
-      <Filter>Sources\Object\GameObjects\UI\Common</Filter>
-    </ClCompile>
     <ClCompile Include="Sources\Object\GameObjects\UI\Common\transition_fade_controller.cpp">
       <Filter>Sources\Object\GameObjects\UI\Common</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Object\GameObjects\UI\HUD\key_icon_controller_object.cpp">
-      <Filter>Sources\Object\GameObjects\UI\HUD</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Object\GameObjects\UI\HUD\timer_controller_object.cpp">
-      <Filter>Sources\Object\GameObjects\UI\HUD</Filter>
     </ClCompile>
     <ClCompile Include="Sources\Object\GameObjects\UI\ui_button.cpp">
       <Filter>Sources\Object\GameObjects\UI</Filter>
@@ -500,46 +473,13 @@
     <ClCompile Include="Sources\Object\GameObjects\UI\ui_text.cpp">
       <Filter>Sources\Object\GameObjects\UI</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Object\GameObjects\MiniGame\minigame000_roomba_object.cpp">
-      <Filter>Sources\Object\GameObjects\MiniGame</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Object\GameObjects\MiniGame\roomba_object.cpp">
-      <Filter>Sources\Object\GameObjects\MiniGame</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Object\GameObjects\MiniGame\roomba_controller_object.cpp">
-      <Filter>Sources\Object\GameObjects\MiniGame</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Object\GameObjects\MiniGame\roomba_camera_controller_object.cpp">
-      <Filter>Sources\Object\GameObjects\MiniGame</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Object\GameObjects\MiniGame\roomba_object_management.cpp">
-      <Filter>Sources\Object\GameObjects\MiniGame</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Object\GameObjects\MiniGame\roomba_hud_controller_object.cpp">
-      <Filter>Sources\Object\GameObjects\MiniGame</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Object\GameObjects\MiniGame\roomba_gauge_controller_object.cpp">
-      <Filter>Sources\Object\GameObjects\MiniGame</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Object\GameObjects\MiniGame\roomba_speed_controller_object.cpp">
-      <Filter>Sources\Object\GameObjects\MiniGame</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Object\GameObjects\MiniGame\minigame_record_data.cpp">
-      <Filter>Sources\Object\GameObjects\MiniGame</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Object\GameObjects\UI\HUD\countdown_controller_object.cpp">
-      <Filter>Sources\Object\GameObjects\UI\HUD</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Object\GameObjects\MiniGame\roomba_trash_controller_object.cpp">
-      <Filter>Sources\Object\GameObjects\MiniGame</Filter>
-    </ClCompile>
-    <ClCompile Include="Sources\Object\GameObjects\MiniGame\roomba_tutorial_controller_object.cpp">
-      <Filter>Sources\Object\GameObjects\MiniGame</Filter>
-    </ClCompile>
     <ClCompile Include="Sources\Object\spatial_object.cpp">
       <Filter>Sources\Object</Filter>
     </ClCompile>
     <ClCompile Include="Sources\Object\game_object_registry.cpp">
+      <Filter>Sources\Object</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Object\builtin_types.cpp">
       <Filter>Sources\Object</Filter>
     </ClCompile>
     <ClCompile Include="Sources\Scenes\scene_resource_utility.cpp">
@@ -611,9 +551,6 @@
     <ClCompile Include="Sources\Object\GameObjects\System\start_point_object.cpp">
       <Filter>Sources\Object\System</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Object\GameObjects\MiniGame\minigame000_roomba_movement.cpp">
-      <Filter>Sources\Object\GameObjects\MiniGame</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\External\imgui\imgui.h">
@@ -653,6 +590,9 @@
       <Filter>Headers\Framework</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Framework\splash_window.h">
+      <Filter>Headers\Framework</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Framework\application_desc.h">
       <Filter>Headers\Framework</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Framework\asset_watcher.h">
@@ -765,9 +705,6 @@
     </ClInclude>
     <ClInclude Include="Headers\PipelineState\post_process_pipeline_state.h">
       <Filter>Headers\PipelineState</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Object\game_constant.h">
-      <Filter>Headers\Object</Filter>
     </ClInclude>
     <ClInclude Include="Headers\PipelineState\fullscreen_quad_pipeline_state.h">
       <Filter>Headers\PipelineState</Filter>
@@ -904,9 +841,6 @@
     <ClInclude Include="Headers\Object\Collision\collision_octree.h">
       <Filter>Headers\Object\Collision</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Object\GameObjects\stage_object.h">
-      <Filter>Headers\Object\GameObjects</Filter>
-    </ClInclude>
     <ClInclude Include="Headers\Renderer\scene_renderer_common.h">
       <Filter>Headers\Renderer</Filter>
     </ClInclude>
@@ -925,16 +859,7 @@
     <ClInclude Include="Headers\Object\GameObjects\UI\ui_button.h">
       <Filter>Headers\Object\GameObjects\UI</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Object\GameObjects\UI\HUD\timer_controller_object.h">
-      <Filter>Headers\Object\GameObjects\UI\HUD</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Object\GameObjects\UI\HUD\key_icon_controller_object.h">
-      <Filter>Headers\Object\GameObjects\UI\HUD</Filter>
-    </ClInclude>
     <ClInclude Include="Headers\Object\GameObjects\UI\Common\fade_controller_object.h">
-      <Filter>Headers\Object\GameObjects\UI\Common</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Object\GameObjects\UI\Common\result_hud_controller.h">
       <Filter>Headers\Object\GameObjects\UI\Common</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Object\GameObjects\UI\Common\transition_fade_controller.h">
@@ -946,42 +871,6 @@
     <ClInclude Include="Headers\Renderer\ui_renderer.h">
       <Filter>Headers\Renderer</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Object\GameObjects\MiniGame\minigame000_roomba_object.h">
-      <Filter>Headers\Object\GameObjects\MiniGame</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Object\GameObjects\MiniGame\roomba_object.h">
-      <Filter>Headers\Object\GameObjects\MiniGame</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Object\GameObjects\MiniGame\roomba_controller_object.h">
-      <Filter>Headers\Object\GameObjects\MiniGame</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Object\GameObjects\MiniGame\roomba_camera_controller_object.h">
-      <Filter>Headers\Object\GameObjects\MiniGame</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Object\GameObjects\MiniGame\roomba_hud_controller_object.h">
-      <Filter>Headers\Object\GameObjects\MiniGame</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Object\GameObjects\MiniGame\roomba_speed_controller_object.h">
-      <Filter>Headers\Object\GameObjects\MiniGame</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Object\GameObjects\MiniGame\minigame_record_data.h">
-      <Filter>Headers\Object\GameObjects\MiniGame</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Object\GameObjects\MiniGame\roomba_gauge_controller_object.h">
-      <Filter>Headers\Object\GameObjects\MiniGame</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Sound\common_sounds.h">
-      <Filter>Headers\Sound</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Object\GameObjects\UI\HUD\countdown_controller_object.h">
-      <Filter>Headers\Object\GameObjects\UI\HUD</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Object\GameObjects\MiniGame\roomba_trash_controller_object.h">
-      <Filter>Headers\Object\GameObjects\MiniGame</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Object\GameObjects\MiniGame\roomba_tutorial_controller_object.h">
-      <Filter>Headers\Object\GameObjects\MiniGame</Filter>
-    </ClInclude>
     <ClInclude Include="Headers\stdafx.h">
       <Filter>Headers</Filter>
     </ClInclude>
@@ -989,6 +878,9 @@
       <Filter>Headers\Object</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Object\game_object_registry.h">
+      <Filter>Headers\Object</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Object\builtin_types.h">
       <Filter>Headers\Object</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Scenes\scene_resource_utility.h">
@@ -1059,9 +951,6 @@
     </ClInclude>
     <ClInclude Include="Headers\Object\GameObjects\System\start_point_object.h">
       <Filter>Headers\Object\GameObjects\System</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Object\GameObjects\MiniGame\minigame000_roomba_movement.h">
-      <Filter>Headers\Object\GameObjects\MiniGame</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

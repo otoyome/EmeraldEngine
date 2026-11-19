@@ -717,4 +717,3 @@ void post_process_volume_object::deserialize(cereal::JSONInputArchive& archive)
 	game_object_serializer::load_fields(archive, "post_process_volume_object", *this);
 }
 
-GAME_OBJECT_REGISTER(post_process_volume_object, "Rendering");

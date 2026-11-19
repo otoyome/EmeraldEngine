@@ -9,6 +9,7 @@ class app_window;
 class render_system;
 class editor_host;
 class framework_process;
+struct application_desc;
 
 //	フレームワーク
 class framework
@@ -25,10 +26,7 @@ class framework
 	friend class asset_preview_process;
 
 public:
-	static constexpr const TCHAR* APPLICATION_NAME = _T("Sample Engine");
-
-public:
-	explicit framework(app_window& window);
+	framework(app_window& window, const application_desc& desc);
 	~framework();
 
 	framework(const framework&) = delete;
@@ -66,13 +64,16 @@ private:
 	};
 
 private:
-	app_window& window;
 	CONST HWND hwnd;
-	std::unique_ptr<render_system> renderer;	//	描画システム
-	std::vector<process_entry> processes;	//	プロセスリスト
-	std::uint64_t entered_count = 0;	//	積んだ回数
-	std::vector<std::unique_ptr<framework_process>> requested_processes;	//	プロセスリクエスト
 
+	const application_desc& desc;	//	アプリケーション起動情報
+	app_window& window;	//	アプリケーションウィンドウ
+
+	std::unique_ptr<render_system> renderer;	//	描画システム
+
+	std::vector<process_entry> processes;	//	プロセスリスト
+	std::uint64_t entered_count = 0;	//	プロセスを積んだ回数
+	std::vector<std::unique_ptr<framework_process>> requested_processes;	//	プロセスリクエスト
 
 #if defined(USE_IMGUI)
 	std::unique_ptr<editor_host> editor;	//	エディター機能

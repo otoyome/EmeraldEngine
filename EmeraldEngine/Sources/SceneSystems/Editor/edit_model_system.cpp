@@ -576,6 +576,5 @@ void edit_model_system::clear_combined_meshes()
 	on_model_setup();
 }
 
-SCENE_SYSTEM_REGISTER(edit_model_system);
 
 #endif	//	defined(USE_IMGUI)

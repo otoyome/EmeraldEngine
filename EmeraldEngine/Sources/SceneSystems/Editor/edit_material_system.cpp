@@ -27,7 +27,6 @@ namespace
 
 	//	プレビューモデルを探すディレクトリと、最初に表示するモデル
 	constexpr std::string_view preview_model_directory = "Assets/Resources/Models";
-	constexpr std::string_view default_preview_model_path = "Assets/Resources/Models/Roomba/roomba.emo";
 
 	//	内蔵の形の大きさ(直径・一辺)と床の大きさ
 	const float preview_shape_size = system_units::convert_m_to_unit(1.0f);
@@ -836,6 +835,5 @@ void edit_material_system::imgui_render_material_detail()
 	if (editor_items::edit_shared_material(editor_context, material))
 		dirty = true;
 }
-SCENE_SYSTEM_REGISTER(edit_material_system);
 
 #endif // defined(USE_IMGUI)

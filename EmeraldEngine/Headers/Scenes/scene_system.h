@@ -142,6 +142,15 @@ public:
 	};
 
 public:
+	//	起動時に明示的に登録する(静的ライブラリ側の型用)
+	template<typename Type>
+	void add()
+	{
+		static_assert(std::is_base_of_v<scene_system, Type>);
+		add(Type::type_name(), [](){ return std::make_unique<Type>(); });
+	}
+	void add(std::string_view type, create_function function);
+
 	std::unique_ptr<scene_system> create(std::string_view type) const;
 	bool contains(std::string_view type) const;
 	std::vector<std::string> get_type_names() const;

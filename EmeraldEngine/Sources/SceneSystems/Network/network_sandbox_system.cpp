@@ -24,4 +24,3 @@ void network_sandbox_system::imgui_render()
 }
 #endif	//	defined(USE_IMGUI)
 
-SCENE_SYSTEM_REGISTER(network_sandbox_system);

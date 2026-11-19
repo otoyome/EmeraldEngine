@@ -19,8 +19,9 @@
 #include "Editor/detail_profiler.h"
 #include "System/engine_config_data.h"
 
-framework::framework(app_window& window)
+framework::framework(app_window& window, const application_desc& desc)
 : window(window)
+, desc(desc)
 , hwnd(window.get_handle())
 {
 	logger::create_instance();

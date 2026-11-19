@@ -944,4 +944,3 @@ void model_object::deserialize(cereal::JSONInputArchive& archive)
 	}
 }
 
-GAME_OBJECT_REGISTER(model_object, "Model");

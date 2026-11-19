@@ -6,6 +6,8 @@
 #include "Object/game_object_registry.h"
 #include "Scenes/scene_system.h"
 #include "Object/Collision/collision_filter.h"
+#include "Object/builtin_types.h"
+#include "Framework/application_desc.h"
 
 bool core_process::enter()
 {
@@ -34,6 +36,11 @@ bool core_process::enter()
 	game_object_registry::create_instance();
 	//	シーンシステムの型登録表
 	scene_system_registry::create_instance();
+
+	//	組み込み型を登録してからアプリケーション側の型を登録
+	register_builtin_types();
+	if (get_owner().desc.register_types)
+		get_owner().desc.register_types();
 
 	//	当たり判定フィルター
 	collision_filter_manager::create_instance();

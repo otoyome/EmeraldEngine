@@ -1,6 +1,5 @@
 #include "object/gameobjects/MiniGame/roomba_controller_object.h"
 
-#include "object/game_constant.h"
 #include "Input/input_action.h"
 #include "Scenes/scene_manager.h"
 

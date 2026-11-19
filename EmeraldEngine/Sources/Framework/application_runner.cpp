@@ -2,6 +2,7 @@
 
 #include "framework.h"
 #include "Framework/app_window.h"
+#include "Framework/application_desc.h"
 
 #include "System/engine_config_data.h"
 
@@ -72,7 +73,8 @@ namespace
 	}
 }
 
-int WINAPI WinMain(_In_ HINSTANCE instance, _In_opt_  HINSTANCE prev_instance, _In_ LPSTR cmd_line, _In_ int cmd_show)
+//	旧 WinMain
+int run_application(HINSTANCE instance, const application_desc& desc)
 {
 	srand(static_cast<unsigned int>(time(nullptr)));
 
@@ -80,10 +82,9 @@ int WINAPI WinMain(_In_ HINSTANCE instance, _In_opt_  HINSTANCE prev_instance, _
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 #endif
 
-	//	設定の読込はウィンドウ作成後なので、既定の大きさで作る（保存されている解像度は graphics_process が適用する）
 	const engine_config_data::windows_data default_windows;
 	app_window window;
-	if (!window.create(instance, framework::APPLICATION_NAME, static_cast<int>(default_windows.screen_width), static_cast<int>(default_windows.screen_height)))
+	if (!window.create(instance, desc.window_title, static_cast<int>(default_windows.screen_width), static_cast<int>(default_windows.screen_height)))
 		return 0;
 	HWND hwnd = window.get_handle();
 
@@ -91,7 +92,7 @@ int WINAPI WinMain(_In_ HINSTANCE instance, _In_opt_  HINSTANCE prev_instance, _
 	load_engine_config_data(hwnd);
 
 	//	フレームワーク起動
-	framework framework(window);
+	framework framework(window, desc);
 	bool return_value = framework.run();
 
 	//	エンジンの設定ファイル保存

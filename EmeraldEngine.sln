@@ -3,6 +3,14 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.9.34622.214
 MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Application", "Application\Application.vcxproj", "{EA97DC9A-8A22-43C3-B602-4B6066003914}"
+	ProjectSection(ProjectDependencies) = postProject
+		{0DDBE550-8551-4506-9A5A-4DD100C00C48} = {0DDBE550-8551-4506-9A5A-4DD100C00C48}
+		{3574562A-1F5E-4328-AC9A-30054E53EF0E} = {3574562A-1F5E-4328-AC9A-30054E53EF0E}
+		{A7AB94D7-730B-45B7-8000-E0EBE4D2C878} = {A7AB94D7-730B-45B7-8000-E0EBE4D2C878}
+		{51FA7ACE-7279-433A-995A-9D8668006662} = {51FA7ACE-7279-433A-995A-9D8668006662}
+	EndProjectSection
+EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "EmeraldEngine", "EmeraldEngine\EmeraldEngine.vcxproj", "{0DDBE550-8551-4506-9A5A-4DD100C00C48}"
 	ProjectSection(ProjectDependencies) = postProject
 		{3574562A-1F5E-4328-AC9A-30054E53EF0E} = {3574562A-1F5E-4328-AC9A-30054E53EF0E}
@@ -37,6 +45,24 @@ Global
 		ReleaseEditor|x86 = ReleaseEditor|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{EA97DC9A-8A22-43C3-B602-4B6066003914}.Debug|x64.ActiveCfg = Debug|x64
+		{EA97DC9A-8A22-43C3-B602-4B6066003914}.Debug|x64.Build.0 = Debug|x64
+		{EA97DC9A-8A22-43C3-B602-4B6066003914}.Debug|x86.ActiveCfg = Debug|x64
+		{EA97DC9A-8A22-43C3-B602-4B6066003914}.DebugEditor|x64.ActiveCfg = DebugEditor|x64
+		{EA97DC9A-8A22-43C3-B602-4B6066003914}.DebugEditor|x64.Build.0 = DebugEditor|x64
+		{EA97DC9A-8A22-43C3-B602-4B6066003914}.DebugEditor|x86.ActiveCfg = DebugEditor|x64
+		{EA97DC9A-8A22-43C3-B602-4B6066003914}.Develop|x64.ActiveCfg = Develop|x64
+		{EA97DC9A-8A22-43C3-B602-4B6066003914}.Develop|x64.Build.0 = Develop|x64
+		{EA97DC9A-8A22-43C3-B602-4B6066003914}.Develop|x86.ActiveCfg = Develop|x64
+		{EA97DC9A-8A22-43C3-B602-4B6066003914}.DevelopEditor|x64.ActiveCfg = DevelopEditor|x64
+		{EA97DC9A-8A22-43C3-B602-4B6066003914}.DevelopEditor|x64.Build.0 = DevelopEditor|x64
+		{EA97DC9A-8A22-43C3-B602-4B6066003914}.DevelopEditor|x86.ActiveCfg = DevelopEditor|x64
+		{EA97DC9A-8A22-43C3-B602-4B6066003914}.Release|x64.ActiveCfg = Release|x64
+		{EA97DC9A-8A22-43C3-B602-4B6066003914}.Release|x64.Build.0 = Release|x64
+		{EA97DC9A-8A22-43C3-B602-4B6066003914}.Release|x86.ActiveCfg = Release|x64
+		{EA97DC9A-8A22-43C3-B602-4B6066003914}.ReleaseEditor|x64.ActiveCfg = ReleaseEditor|x64
+		{EA97DC9A-8A22-43C3-B602-4B6066003914}.ReleaseEditor|x64.Build.0 = ReleaseEditor|x64
+		{EA97DC9A-8A22-43C3-B602-4B6066003914}.ReleaseEditor|x86.ActiveCfg = ReleaseEditor|x64
 		{0DDBE550-8551-4506-9A5A-4DD100C00C48}.Debug|x64.ActiveCfg = Debug|x64
 		{0DDBE550-8551-4506-9A5A-4DD100C00C48}.Debug|x64.Build.0 = Debug|x64
 		{0DDBE550-8551-4506-9A5A-4DD100C00C48}.Debug|x86.ActiveCfg = Debug|Win32

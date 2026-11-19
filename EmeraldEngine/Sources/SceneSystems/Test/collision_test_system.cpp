@@ -803,4 +803,3 @@ void collision_test_system::imgui_render()
 }
 #endif	//	defined(USE_IMGUI)
 
-SCENE_SYSTEM_REGISTER(collision_test_system);

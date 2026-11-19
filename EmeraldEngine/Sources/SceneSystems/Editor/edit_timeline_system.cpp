@@ -1359,6 +1359,5 @@ void edit_timeline_system::imgui_render_selected_entry()
 		--remaining;
 	}
 }
-SCENE_SYSTEM_REGISTER(edit_timeline_system);
 
 #endif	//	defined(USE_IMGUI)

@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Headers\Sound">
+      <UniqueIdentifier>{fcb737e3-61a4-4e10-92fb-8f60ddd75df2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Sources\Object\GameObjects\UI\HUD">
+      <UniqueIdentifier>{e09b0785-3bbf-4129-a994-a8e3612a136c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Sources\Object\GameObjects\MiniGame">
+      <UniqueIdentifier>{954cdf98-57f4-486c-896b-47161ba7dee5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Headers\Object\GameObjects">
+      <UniqueIdentifier>{3c93530c-7dc8-44b8-9527-cf2b0d5214e9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Headers\Object\GameObjects\UI\HUD">
+      <UniqueIdentifier>{30a6653c-fcfb-4cbd-9d7e-a27ac09e933a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Sources\Object\GameObjects\UI\Common">
+      <UniqueIdentifier>{dfc3f39b-d6ae-447f-8446-892bf02f02fc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Headers\Object">
+      <UniqueIdentifier>{ccec8a5a-2533-4e5b-bbee-29111e03e530}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Headers\Object\GameObjects\UI">
+      <UniqueIdentifier>{a64f5a60-1c3b-452b-8340-b3514d8f38df}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Sources">
+      <UniqueIdentifier>{c265f3e7-8f0b-477b-b776-57f52c78f10f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Sources\Object\GameObjects">
+      <UniqueIdentifier>{6a1b4732-ec29-41ef-a4ac-74c22bdb5759}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Headers\Object\GameObjects\UI\Common">
+      <UniqueIdentifier>{9a68db4f-f5df-4395-b7d5-ab0c1b90832a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Headers">
+      <UniqueIdentifier>{0b28a2b2-c2db-4ce5-b3eb-c2ffa1b5f060}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Sources\Object\GameObjects\UI">
+      <UniqueIdentifier>{cf81487f-6a98-49e7-bb9a-383cce0759a3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Headers\Object\GameObjects\MiniGame">
+      <UniqueIdentifier>{0d9e96ac-5222-471f-a77d-edc45f5d6ae4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Sources\Object">
+      <UniqueIdentifier>{bd8214b4-008f-4843-9df1-382fdae95fd1}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Sources\stdafx_application.cpp">
+      <Filter>Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\main.cpp">
+      <Filter>Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Object\GameObjects\stage_object.cpp">
+      <Filter>Sources\Object\GameObjects</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Object\GameObjects\UI\Common\result_hud_controller.cpp">
+      <Filter>Sources\Object\GameObjects\UI\Common</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Object\GameObjects\UI\HUD\key_icon_controller_object.cpp">
+      <Filter>Sources\Object\GameObjects\UI\HUD</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Object\GameObjects\UI\HUD\timer_controller_object.cpp">
+      <Filter>Sources\Object\GameObjects\UI\HUD</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Object\GameObjects\MiniGame\minigame000_roomba_object.cpp">
+      <Filter>Sources\Object\GameObjects\MiniGame</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Object\GameObjects\MiniGame\roomba_object.cpp">
+      <Filter>Sources\Object\GameObjects\MiniGame</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Object\GameObjects\MiniGame\roomba_controller_object.cpp">
+      <Filter>Sources\Object\GameObjects\MiniGame</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Object\GameObjects\MiniGame\roomba_camera_controller_object.cpp">
+      <Filter>Sources\Object\GameObjects\MiniGame</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Object\GameObjects\MiniGame\roomba_object_management.cpp">
+      <Filter>Sources\Object\GameObjects\MiniGame</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Object\GameObjects\MiniGame\roomba_hud_controller_object.cpp">
+      <Filter>Sources\Object\GameObjects\MiniGame</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Object\GameObjects\MiniGame\roomba_gauge_controller_object.cpp">
+      <Filter>Sources\Object\GameObjects\MiniGame</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Object\GameObjects\MiniGame\roomba_speed_controller_object.cpp">
+      <Filter>Sources\Object\GameObjects\MiniGame</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Object\GameObjects\MiniGame\minigame_record_data.cpp">
+      <Filter>Sources\Object\GameObjects\MiniGame</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Object\GameObjects\UI\HUD\countdown_controller_object.cpp">
+      <Filter>Sources\Object\GameObjects\UI\HUD</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Object\GameObjects\MiniGame\roomba_trash_controller_object.cpp">
+      <Filter>Sources\Object\GameObjects\MiniGame</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Object\GameObjects\MiniGame\roomba_tutorial_controller_object.cpp">
+      <Filter>Sources\Object\GameObjects\MiniGame</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Object\GameObjects\MiniGame\minigame000_roomba_movement.cpp">
+      <Filter>Sources\Object\GameObjects\MiniGame</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Headers\stdafx_application.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Object\GameObjects\stage_object.h">
+      <Filter>Headers\Object\GameObjects</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Object\GameObjects\UI\HUD\timer_controller_object.h">
+      <Filter>Headers\Object\GameObjects\UI\HUD</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Object\GameObjects\UI\HUD\key_icon_controller_object.h">
+      <Filter>Headers\Object\GameObjects\UI\HUD</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Object\GameObjects\UI\Common\result_hud_controller.h">
+      <Filter>Headers\Object\GameObjects\UI\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Object\GameObjects\MiniGame\minigame000_roomba_object.h">
+      <Filter>Headers\Object\GameObjects\MiniGame</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Object\GameObjects\MiniGame\roomba_object.h">
+      <Filter>Headers\Object\GameObjects\MiniGame</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Object\GameObjects\MiniGame\roomba_controller_object.h">
+      <Filter>Headers\Object\GameObjects\MiniGame</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Object\GameObjects\MiniGame\roomba_camera_controller_object.h">
+      <Filter>Headers\Object\GameObjects\MiniGame</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Object\GameObjects\MiniGame\roomba_hud_controller_object.h">
+      <Filter>Headers\Object\GameObjects\MiniGame</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Object\GameObjects\MiniGame\roomba_speed_controller_object.h">
+      <Filter>Headers\Object\GameObjects\MiniGame</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Object\GameObjects\MiniGame\minigame_record_data.h">
+      <Filter>Headers\Object\GameObjects\MiniGame</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Object\GameObjects\MiniGame\roomba_gauge_controller_object.h">
+      <Filter>Headers\Object\GameObjects\MiniGame</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Sound\common_sounds.h">
+      <Filter>Headers\Sound</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Object\GameObjects\UI\HUD\countdown_controller_object.h">
+      <Filter>Headers\Object\GameObjects\UI\HUD</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Object\GameObjects\MiniGame\roomba_trash_controller_object.h">
+      <Filter>Headers\Object\GameObjects\MiniGame</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Object\GameObjects\MiniGame\roomba_tutorial_controller_object.h">
+      <Filter>Headers\Object\GameObjects\MiniGame</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Object\GameObjects\MiniGame\minigame000_roomba_movement.h">
+      <Filter>Headers\Object\GameObjects\MiniGame</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

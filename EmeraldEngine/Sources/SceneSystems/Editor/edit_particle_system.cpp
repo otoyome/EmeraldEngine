@@ -687,6 +687,5 @@ void edit_particle_system::draw_sdf_debug_primitives()
 	}
 }
 
-SCENE_SYSTEM_REGISTER(edit_particle_system);
 
 #endif	//	defined(USE_IMGUI)

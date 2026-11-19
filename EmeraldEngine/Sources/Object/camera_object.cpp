@@ -82,4 +82,3 @@ void camera_object::deserialize(cereal::JSONInputArchive& archive)
 		cereal::make_nvp("hybrid_rate", parameters.hybrid_rate));
 }
 
-GAME_OBJECT_REGISTER(camera_object, "Camera");

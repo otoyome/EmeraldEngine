@@ -59,76 +59,76 @@
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugEditor|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Develop|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DevelopEditor|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseEditor|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugEditor|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Develop|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DevelopEditor|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseEditor|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -175,6 +175,9 @@
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseEditor|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
+  <ImportGroup Label="PropertySheets">
+    <Import Project="..\Emerald.Common.props" />
+  </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
@@ -197,18 +200,22 @@
     <LibraryPath>$(WindowsSDK_LibraryPath_x86);$(NETFXKitsDir)Lib\um\x86</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <OutDir>$(ProjectDir)Bin\$(Platform)\$(Configuration)\</OutDir>
     <LinkIncremental>true</LinkIncremental>
     <IncludePath>$(ProjectDir)Headers;$(SolutionDir)External;$(SolutionDir)External\imgui;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugEditor|x64'">
+    <OutDir>$(ProjectDir)Bin\$(Platform)\$(Configuration)\</OutDir>
     <LinkIncremental>true</LinkIncremental>
     <IncludePath>$(ProjectDir)Headers;$(SolutionDir)External;$(SolutionDir)External\imgui;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">
+    <OutDir>$(ProjectDir)Bin\$(Platform)\$(Configuration)\</OutDir>
     <LinkIncremental>true</LinkIncremental>
     <IncludePath>$(ProjectDir)Headers;$(SolutionDir)External;$(SolutionDir)External\imgui;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DevelopEditor|x64'">
+    <OutDir>$(ProjectDir)Bin\$(Platform)\$(Configuration)\</OutDir>
     <LinkIncremental>true</LinkIncremental>
     <IncludePath>$(ProjectDir)Headers;$(SolutionDir)External;$(SolutionDir)External\imgui;$(IncludePath)</IncludePath>
   </PropertyGroup>
@@ -219,10 +226,12 @@
     <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <OutDir>$(ProjectDir)Bin\$(Platform)\$(Configuration)\</OutDir>
     <LinkIncremental>false</LinkIncremental>
     <IncludePath>$(ProjectDir)Headers;$(SolutionDir)External;$(SolutionDir)External\imgui;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseEditor|x64'">
+    <OutDir>$(ProjectDir)Bin\$(Platform)\$(Configuration)\</OutDir>
     <LinkIncremental>false</LinkIncremental>
     <IncludePath>$(ProjectDir)Headers;$(SolutionDir)External;$(SolutionDir)External\imgui;$(IncludePath)</IncludePath>
   </PropertyGroup>
@@ -325,120 +334,30 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <PrecompiledHeader>Use</PrecompiledHeader>
-      <WarningLevel>Level3</WarningLevel>
-      <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>$(SolutionDir)Engine\Headers;$(SolutionDir)Math\Headers;$(SolutionDir)Collision\Headers;$(SolutionDir)External;$(SolutionDir)External\tinygltf-master;$(SolutionDir)External\imgui;$(SolutionDir)External\stb;$(SolutionDir)External\nameof\include;$(SolutionDir)External\magic_enum\include\magic_enum;$(SolutionDir)External\cereal\include;$(SolutionDir)External\meshoptimizer;$(SolutionDir)External\uchardet\src;$(SolutionDir)External\icu\include;$(ProjectDir)Headers</AdditionalIncludeDirectories>
-      <LanguageStandard>stdcpp20</LanguageStandard>
-      <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
       <PrecompiledHeaderFile>stdafx.h</PrecompiledHeaderFile>
       <ForcedIncludeFiles>stdafx.h</ForcedIncludeFiles>
-      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
-      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
     </ClCompile>
-    <Link>
-      <SubSystem>Windows</SubSystem>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories);$(SolutionDir)DirectXTK-master\Bin\Desktop_2019\x64\$(Configuration);$(SolutionDir)Engine\Bin\x64\$(Configuration);$(SolutionDir)Math\Bin\x64\$(Configuration);$(SolutionDir)Collision\Bin\x64\$(Configuration);$(SolutionDir)External\Effekseer170\Lib\x64\$(Configuration);$(SolutionDir)External\Effekseer170\lib;$(SolutionDir)External\DirectXTex\lib\$(Configuration);$(SolutionDir)External\meshoptimizer\lib\$(Configuration);$(SolutionDir)External\icu\lib64;$(SolutionDir)External\SDL3\lib;%(AdditionalDependencies)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>DirectXTex.lib;d3d11.lib;dxgi.lib;Engine.lib;Collision.lib;Math.lib;dxguid.lib;dxcompiler.lib;d3dcompiler.lib;meshoptimizer.lib;icudt.lib;icuind.lib;icuiod.lib;icutud.lib;icuucd.lib;%(AdditionalDependencies)</AdditionalDependencies>
-    </Link>
-    <PostBuildEvent>
-      <Command>xcopy "$(SolutionDir)External\DirectXShaderCompiler\bin\x64\dxcompiler.dll" "$(OutDir)" /y
-xcopy "$(SolutionDir)External\DirectXShaderCompiler\bin\x64\dxil.dll" "$(OutDir)" /y
-xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y
-xcopy "$(SolutionDir)External\SDL3\lib\SDL3.dll" "$(OutDir)" /y</Command>
-    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugEditor|x64'">
     <ClCompile>
       <PrecompiledHeader>Use</PrecompiledHeader>
-      <WarningLevel>Level3</WarningLevel>
-      <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>USE_IMGUI;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>$(SolutionDir)Engine\Headers;$(SolutionDir)Math\Headers;$(SolutionDir)Collision\Headers;$(SolutionDir)External;$(SolutionDir)External\tinygltf-master;$(SolutionDir)External\imgui;$(SolutionDir)External\stb;$(SolutionDir)External\nameof\include;$(SolutionDir)External\magic_enum\include\magic_enum;$(SolutionDir)External\cereal\include;$(SolutionDir)External\meshoptimizer;$(SolutionDir)External\uchardet\src;$(SolutionDir)External\icu\include;$(ProjectDir)Headers</AdditionalIncludeDirectories>
-      <LanguageStandard>stdcpp20</LanguageStandard>
-      <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
       <PrecompiledHeaderFile>stdafx.h</PrecompiledHeaderFile>
       <ForcedIncludeFiles>stdafx.h</ForcedIncludeFiles>
-      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
-      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
     </ClCompile>
-    <Link>
-      <SubSystem>Windows</SubSystem>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories);$(SolutionDir)DirectXTK-master\Bin\Desktop_2019\x64\$(Configuration);$(SolutionDir)Engine\Bin\x64\$(Configuration);$(SolutionDir)Math\Bin\x64\$(Configuration);$(SolutionDir)Collision\Bin\x64\$(Configuration);$(SolutionDir)External\Effekseer170\Lib\x64\$(Configuration);$(SolutionDir)External\Effekseer170\lib;$(SolutionDir)External\DirectXTex\lib\$(Configuration);$(SolutionDir)External\meshoptimizer\lib\$(Configuration);$(SolutionDir)External\icu\lib64;$(SolutionDir)External\SDL3\lib;%(AdditionalDependencies)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>DirectXTex.lib;d3d11.lib;dxgi.lib;Engine.lib;Collision.lib;Math.lib;dxguid.lib;dxcompiler.lib;d3dcompiler.lib;meshoptimizer.lib;icudt.lib;icuind.lib;icuiod.lib;icutud.lib;icuucd.lib;%(AdditionalDependencies)</AdditionalDependencies>
-    </Link>
-    <PostBuildEvent>
-      <Command>xcopy "$(SolutionDir)External\DirectXShaderCompiler\bin\x64\dxcompiler.dll" "$(OutDir)" /y
-xcopy "$(SolutionDir)External\DirectXShaderCompiler\bin\x64\dxil.dll" "$(OutDir)" /y
-xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y
-xcopy "$(SolutionDir)External\SDL3\lib\SDL3.dll" "$(OutDir)" /y</Command>
-    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">
     <ClCompile>
       <PrecompiledHeader>Use</PrecompiledHeader>
-      <WarningLevel>Level3</WarningLevel>
-      <Optimization>Full</Optimization>
-      <PreprocessorDefinitions>NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>$(SolutionDir)Engine\Headers;$(SolutionDir)Math\Headers;$(SolutionDir)Collision\Headers;$(SolutionDir)External;$(SolutionDir)External\tinygltf-master;$(SolutionDir)External\imgui;$(SolutionDir)External\stb;$(SolutionDir)External\nameof\include;$(SolutionDir)External\magic_enum\include\magic_enum;$(SolutionDir)External\cereal\include;$(SolutionDir)External\meshoptimizer;$(SolutionDir)External\uchardet\src;$(SolutionDir)External\icu\include;$(ProjectDir)Headers</AdditionalIncludeDirectories>
-      <LanguageStandard>stdcpp20</LanguageStandard>
-      <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
-      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
-      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <PrecompiledHeaderFile>stdafx.h</PrecompiledHeaderFile>
       <ForcedIncludeFiles>stdafx.h</ForcedIncludeFiles>
-      <WholeProgramOptimization>false</WholeProgramOptimization>
-      <FavorSizeOrSpeed>Neither</FavorSizeOrSpeed>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
     </ClCompile>
-    <Link>
-      <SubSystem>Windows</SubSystem>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)DirectXTK-master\Bin\Desktop_2019\x64\$(Configuration);$(SolutionDir)Engine\Bin\x64\$(Configuration);$(SolutionDir)Math\Bin\x64\$(Configuration);$(SolutionDir)Collision\Bin\x64\$(Configuration);$(SolutionDir)External\Effekseer170\Lib\x64\$(Configuration);$(SolutionDir)External\Effekseer170\lib;$(SolutionDir)External\DirectXTex\lib\$(Configuration);$(SolutionDir)External\meshoptimizer\lib\$(Configuration);$(SolutionDir)External\uchardet\lib\$(Configuration);$(SolutionDir)External\icu\lib64;$(SolutionDir)External\SDL3\lib;%(AdditionalDependencies);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>DirectXTex.lib;d3d11.lib;dxgi.lib;Engine.lib;Collision.lib;Math.lib;dxguid.lib;dxcompiler.lib;d3dcompiler.lib;meshoptimizer.lib;icudt.lib;icuin.lib;icuio.lib;icutu.lib;icuuc.lib;%(AdditionalDependencies)</AdditionalDependencies>
-    </Link>
-    <PostBuildEvent>
-      <Command>xcopy "$(SolutionDir)External\DirectXShaderCompiler\bin\x64\dxcompiler.dll" "$(OutDir)" /y
-xcopy "$(SolutionDir)External\DirectXShaderCompiler\bin\x64\dxil.dll" "$(OutDir)" /y
-xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y
-xcopy "$(SolutionDir)External\SDL3\lib\SDL3.dll" "$(OutDir)" /y</Command>
-    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DevelopEditor|x64'">
     <ClCompile>
       <PrecompiledHeader>Use</PrecompiledHeader>
-      <WarningLevel>Level3</WarningLevel>
-      <Optimization>Full</Optimization>
-      <PreprocessorDefinitions>NDEBUG;USE_IMGUI;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>$(SolutionDir)Engine\Headers;$(SolutionDir)Math\Headers;$(SolutionDir)Collision\Headers;$(SolutionDir)External;$(SolutionDir)External\tinygltf-master;$(SolutionDir)External\imgui;$(SolutionDir)External\stb;$(SolutionDir)External\nameof\include;$(SolutionDir)External\magic_enum\include\magic_enum;$(SolutionDir)External\cereal\include;$(SolutionDir)External\meshoptimizer;$(SolutionDir)External\uchardet\src;$(SolutionDir)External\icu\include;$(ProjectDir)Headers</AdditionalIncludeDirectories>
-      <LanguageStandard>stdcpp20</LanguageStandard>
-      <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
-      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
-      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <PrecompiledHeaderFile>stdafx.h</PrecompiledHeaderFile>
       <ForcedIncludeFiles>stdafx.h</ForcedIncludeFiles>
-      <WholeProgramOptimization>false</WholeProgramOptimization>
-      <FavorSizeOrSpeed>Neither</FavorSizeOrSpeed>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
     </ClCompile>
-    <Link>
-      <SubSystem>Windows</SubSystem>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)DirectXTK-master\Bin\Desktop_2019\x64\$(Configuration);$(SolutionDir)Engine\Bin\x64\$(Configuration);$(SolutionDir)Math\Bin\x64\$(Configuration);$(SolutionDir)Collision\Bin\x64\$(Configuration);$(SolutionDir)External\Effekseer170\Lib\x64\$(Configuration);$(SolutionDir)External\Effekseer170\lib;$(SolutionDir)External\DirectXTex\lib\$(Configuration);$(SolutionDir)External\meshoptimizer\lib\$(Configuration);$(SolutionDir)External\uchardet\lib\$(Configuration);$(SolutionDir)External\icu\lib64;$(SolutionDir)External\SDL3\lib;%(AdditionalDependencies);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>DirectXTex.lib;d3d11.lib;dxgi.lib;Engine.lib;Collision.lib;Math.lib;dxguid.lib;dxcompiler.lib;d3dcompiler.lib;meshoptimizer.lib;icudt.lib;icuin.lib;icuio.lib;icutu.lib;icuuc.lib;%(AdditionalDependencies)</AdditionalDependencies>
-    </Link>
-    <PostBuildEvent>
-      <Command>xcopy "$(SolutionDir)External\DirectXShaderCompiler\bin\x64\dxcompiler.dll" "$(OutDir)" /y
-xcopy "$(SolutionDir)External\DirectXShaderCompiler\bin\x64\dxil.dll" "$(OutDir)" /y
-xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y
-xcopy "$(SolutionDir)External\SDL3\lib\SDL3.dll" "$(OutDir)" /y</Command>
-    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -490,67 +409,17 @@ xcopy "$(SolutionDir)External\SDL3\lib\SDL3.dll" "$(OutDir)" /y</Command>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
       <PrecompiledHeader>Use</PrecompiledHeader>
-      <Optimization>MaxSpeed</Optimization>
-      <FunctionLevelLinking>true</FunctionLevelLinking>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>$(SolutionDir)Engine\Headers;$(SolutionDir)Math\Headers;$(SolutionDir)Collision\Headers;$(SolutionDir)External;$(SolutionDir)External\tinygltf-master;$(SolutionDir)External\imgui;$(SolutionDir)External\stb;$(SolutionDir)External\nameof\include;$(SolutionDir)External\magic_enum\include\magic_enum;$(SolutionDir)External\cereal\include;$(SolutionDir)External\meshoptimizer;$(SolutionDir)External\uchardet\src;$(SolutionDir)External\icu\include;$(ProjectDir)Headers</AdditionalIncludeDirectories>
-      <LanguageStandard>stdcpp20</LanguageStandard>
-      <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
       <PrecompiledHeaderFile>stdafx.h</PrecompiledHeaderFile>
       <ForcedIncludeFiles>stdafx.h</ForcedIncludeFiles>
-      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
-      <DebugInformationFormat>None</DebugInformationFormat>
     </ClCompile>
-    <Link>
-      <SubSystem>Windows</SubSystem>
-      <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <OptimizeReferences>true</OptimizeReferences>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>DirectXTex.lib;d3d11.lib;dxgi.lib;Engine.lib;Collision.lib;Math.lib;dxguid.lib;dxcompiler.lib;d3dcompiler.lib;meshoptimizer.lib;icudt.lib;icuin.lib;icuio.lib;icutu.lib;icuuc.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories);$(SolutionDir)DirectXTK-master\Bin\Desktop_2019\x64\$(Configuration);$(SolutionDir)Engine\Bin\x64\$(Configuration);$(SolutionDir)Math\Bin\x64\$(Configuration);$(SolutionDir)Collision\Bin\x64\$(Configuration);$(SolutionDir)External\Effekseer170\Lib\x64\$(Configuration);$(SolutionDir)External\Effekseer170\lib;$(SolutionDir)External\DirectXTex\lib\$(Configuration);$(SolutionDir)External\meshoptimizer\lib\$(Configuration);$(SolutionDir)External\icu\lib64;$(SolutionDir)External\SDL3\lib;%(AdditionalDependencies)</AdditionalLibraryDirectories>
-    </Link>
-    <PostBuildEvent>
-      <Command>xcopy "$(SolutionDir)External\DirectXShaderCompiler\bin\x64\dxcompiler.dll" "$(OutDir)" /y
-xcopy "$(SolutionDir)External\DirectXShaderCompiler\bin\x64\dxil.dll" "$(OutDir)" /y
-xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y
-xcopy "$(SolutionDir)External\SDL3\lib\SDL3.dll" "$(OutDir)" /y</Command>
-    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseEditor|x64'">
     <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
       <PrecompiledHeader>Use</PrecompiledHeader>
-      <Optimization>MaxSpeed</Optimization>
-      <FunctionLevelLinking>true</FunctionLevelLinking>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>NDEBUG;USE_IMGUI;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>$(SolutionDir)Engine\Headers;$(SolutionDir)Math\Headers;$(SolutionDir)Collision\Headers;$(SolutionDir)External;$(SolutionDir)External\tinygltf-master;$(SolutionDir)External\imgui;$(SolutionDir)External\stb;$(SolutionDir)External\nameof\include;$(SolutionDir)External\magic_enum\include\magic_enum;$(SolutionDir)External\cereal\include;$(SolutionDir)External\meshoptimizer;$(SolutionDir)External\uchardet\src;$(SolutionDir)External\icu\include;$(ProjectDir)Headers</AdditionalIncludeDirectories>
-      <LanguageStandard>stdcpp20</LanguageStandard>
-      <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
       <PrecompiledHeaderFile>stdafx.h</PrecompiledHeaderFile>
       <ForcedIncludeFiles>stdafx.h</ForcedIncludeFiles>
-      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
-      <DebugInformationFormat>None</DebugInformationFormat>
     </ClCompile>
-    <Link>
-      <SubSystem>Windows</SubSystem>
-      <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <OptimizeReferences>true</OptimizeReferences>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>DirectXTex.lib;d3d11.lib;dxgi.lib;Engine.lib;Collision.lib;Math.lib;dxguid.lib;dxcompiler.lib;d3dcompiler.lib;meshoptimizer.lib;icudt.lib;icuin.lib;icuio.lib;icutu.lib;icuuc.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories);$(SolutionDir)DirectXTK-master\Bin\Desktop_2019\x64\$(Configuration);$(SolutionDir)Engine\Bin\x64\$(Configuration);$(SolutionDir)Math\Bin\x64\$(Configuration);$(SolutionDir)Collision\Bin\x64\$(Configuration);$(SolutionDir)External\Effekseer170\Lib\x64\$(Configuration);$(SolutionDir)External\Effekseer170\lib;$(SolutionDir)External\DirectXTex\lib\$(Configuration);$(SolutionDir)External\meshoptimizer\lib\$(Configuration);$(SolutionDir)External\icu\lib64;$(SolutionDir)External\SDL3\lib;%(AdditionalDependencies)</AdditionalLibraryDirectories>
-    </Link>
-    <PostBuildEvent>
-      <Command>xcopy "$(SolutionDir)External\DirectXShaderCompiler\bin\x64\dxcompiler.dll" "$(OutDir)" /y
-xcopy "$(SolutionDir)External\DirectXShaderCompiler\bin\x64\dxil.dll" "$(OutDir)" /y
-xcopy "$(SolutionDir)External\icu\bin64\*.dll" "$(OutDir)" /y
-xcopy "$(SolutionDir)External\SDL3\lib\SDL3.dll" "$(OutDir)" /y</Command>
-    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\External\im-neo-sequencer\imgui_neo_internal.cpp" />
@@ -593,6 +462,7 @@ xcopy "$(SolutionDir)External\SDL3\lib\SDL3.dll" "$(OutDir)" /y</Command>
     <ClCompile Include="Sources\Framework\app_window.cpp" />
     <ClCompile Include="Sources\Framework\display_settings.cpp" />
     <ClCompile Include="Sources\Framework\splash_window.cpp" />
+    <ClCompile Include="Sources\Framework\application_runner.cpp" />
     <ClCompile Include="Sources\Framework\asset_watcher.cpp" />
     <ClCompile Include="Sources\Editor\editor_host.cpp" />
     <ClCompile Include="Sources\Editor\scene_editor.cpp" />
@@ -603,7 +473,6 @@ xcopy "$(SolutionDir)External\SDL3\lib\SDL3.dll" "$(OutDir)" /y</Command>
     <ClCompile Include="Sources\Editor\place_objects_window.cpp" />
     <ClCompile Include="Sources\Editor\outliner_window.cpp" />
     <ClCompile Include="Sources\Editor\inspector_window.cpp" />
-    <ClCompile Include="Sources\Object\GameObjects\MiniGame\minigame000_roomba_movement.cpp" />
     <ClCompile Include="Sources\Renderer\render_system.cpp" />
     <ClCompile Include="Sources\Renderer\display_ui_compositor.cpp" />
     <ClCompile Include="Sources\Process\core_process.cpp" />
@@ -616,31 +485,14 @@ xcopy "$(SolutionDir)External\SDL3\lib\SDL3.dll" "$(OutDir)" /y</Command>
     <ClCompile Include="Sources\Process\scene_editor_process.cpp" />
     <ClCompile Include="Sources\Process\asset_preview_process.cpp" />
     <ClCompile Include="Sources\Process\boot_process.cpp" />
-    <ClCompile Include="Sources\main.cpp" />
     <ClCompile Include="Sources\Object\camera_object.cpp" />
     <ClCompile Include="Sources\Object\Collision\collision_filter.cpp" />
     <ClCompile Include="Sources\Object\Collision\collision_world.cpp" />
     <ClCompile Include="Sources\Object\Collision\collision_object.cpp" />
     <ClCompile Include="Sources\Object\Collision\collision_octree.cpp" />
-    <ClCompile Include="Sources\Object\GameObjects\MiniGame\roomba_camera_controller_object.cpp" />
-    <ClCompile Include="Sources\Object\GameObjects\MiniGame\roomba_controller_object.cpp" />
-    <ClCompile Include="Sources\Object\GameObjects\MiniGame\roomba_gauge_controller_object.cpp" />
-    <ClCompile Include="Sources\Object\GameObjects\MiniGame\roomba_object_management.cpp" />
-    <ClCompile Include="Sources\Object\GameObjects\MiniGame\roomba_object.cpp" />
-    <ClCompile Include="Sources\Object\GameObjects\MiniGame\minigame000_roomba_object.cpp" />
-    <ClCompile Include="Sources\Object\GameObjects\MiniGame\minigame_record_data.cpp" />
-    <ClCompile Include="Sources\Object\GameObjects\MiniGame\roomba_hud_controller_object.cpp" />
-    <ClCompile Include="Sources\Object\GameObjects\MiniGame\roomba_speed_controller_object.cpp" />
-    <ClCompile Include="Sources\Object\GameObjects\MiniGame\roomba_trash_controller_object.cpp" />
-    <ClCompile Include="Sources\Object\GameObjects\MiniGame\roomba_tutorial_controller_object.cpp" />
-    <ClCompile Include="Sources\Object\GameObjects\stage_object.cpp" />
     <ClCompile Include="Sources\Object\GameObjects\System\start_point_object.cpp" />
     <ClCompile Include="Sources\Object\GameObjects\UI\Common\fade_controller_object.cpp" />
-    <ClCompile Include="Sources\Object\GameObjects\UI\Common\result_hud_controller.cpp" />
     <ClCompile Include="Sources\Object\GameObjects\UI\Common\transition_fade_controller.cpp" />
-    <ClCompile Include="Sources\Object\GameObjects\UI\HUD\countdown_controller_object.cpp" />
-    <ClCompile Include="Sources\Object\GameObjects\UI\HUD\key_icon_controller_object.cpp" />
-    <ClCompile Include="Sources\Object\GameObjects\UI\HUD\timer_controller_object.cpp" />
     <ClCompile Include="Sources\Object\GameObjects\UI\ui_button.cpp" />
     <ClCompile Include="Sources\Object\GameObjects\UI\ui_image.cpp" />
     <ClCompile Include="Sources\Object\GameObjects\UI\ui_object.cpp" />
@@ -655,6 +507,7 @@ xcopy "$(SolutionDir)External\SDL3\lib\SDL3.dll" "$(OutDir)" /y</Command>
     <ClCompile Include="Sources\Object\post_process_volume_object.cpp" />
     <ClCompile Include="Sources\Object\spatial_object.cpp" />
     <ClCompile Include="Sources\Object\game_object_registry.cpp" />
+    <ClCompile Include="Sources\Object\builtin_types.cpp" />
     <ClCompile Include="Sources\Object\game_object_serializer.cpp" />
     <ClCompile Include="Sources\Object\prefab_resource.cpp" />
     <ClCompile Include="Sources\Object\collision_placement_object.cpp" />
@@ -758,11 +611,11 @@ xcopy "$(SolutionDir)External\SDL3\lib\SDL3.dll" "$(OutDir)" /y</Command>
     <ClInclude Include="Headers\Editor\Windows\sound_bank_editor_window.h" />
     <ClInclude Include="Headers\Editor\Windows\scene_set_editor_window.h" />
     <ClInclude Include="Headers\framework.h" />
-    <ClInclude Include="Headers\Object\GameObjects\MiniGame\minigame000_roomba_movement.h" />
     <ClInclude Include="Headers\Process\framework_process.h" />
     <ClInclude Include="Headers\Framework\app_window.h" />
     <ClInclude Include="Headers\Framework\display_settings.h" />
     <ClInclude Include="Headers\Framework\splash_window.h" />
+    <ClInclude Include="Headers\Framework\application_desc.h" />
     <ClInclude Include="Headers\Framework\asset_watcher.h" />
     <ClInclude Include="Headers\Editor\editor_host.h" />
     <ClInclude Include="Headers\Renderer\render_system.h" />
@@ -782,29 +635,13 @@ xcopy "$(SolutionDir)External\SDL3\lib\SDL3.dll" "$(OutDir)" /y</Command>
     <ClInclude Include="Headers\Object\Collision\collision_world.h" />
     <ClInclude Include="Headers\Object\Collision\collision_object.h" />
     <ClInclude Include="Headers\Object\Collision\collision_octree.h" />
-    <ClInclude Include="Headers\Object\GameObjects\MiniGame\roomba_camera_controller_object.h" />
-    <ClInclude Include="Headers\Object\GameObjects\MiniGame\roomba_controller_object.h" />
-    <ClInclude Include="Headers\Object\GameObjects\MiniGame\roomba_gauge_controller_object.h" />
-    <ClInclude Include="Headers\Object\GameObjects\MiniGame\roomba_object.h" />
-    <ClInclude Include="Headers\Object\GameObjects\MiniGame\minigame000_roomba_object.h" />
-    <ClInclude Include="Headers\Object\GameObjects\MiniGame\minigame_record_data.h" />
-    <ClInclude Include="Headers\Object\GameObjects\MiniGame\roomba_hud_controller_object.h" />
-    <ClInclude Include="Headers\Object\GameObjects\MiniGame\roomba_speed_controller_object.h" />
-    <ClInclude Include="Headers\Object\GameObjects\MiniGame\roomba_trash_controller_object.h" />
-    <ClInclude Include="Headers\Object\GameObjects\MiniGame\roomba_tutorial_controller_object.h" />
-    <ClInclude Include="Headers\Object\GameObjects\stage_object.h" />
     <ClInclude Include="Headers\Object\GameObjects\System\start_point_object.h" />
     <ClInclude Include="Headers\Object\GameObjects\UI\Common\fade_controller_object.h" />
-    <ClInclude Include="Headers\Object\GameObjects\UI\Common\result_hud_controller.h" />
     <ClInclude Include="Headers\Object\GameObjects\UI\Common\transition_fade_controller.h" />
-    <ClInclude Include="Headers\Object\GameObjects\UI\HUD\countdown_controller_object.h" />
-    <ClInclude Include="Headers\Object\GameObjects\UI\HUD\key_icon_controller_object.h" />
-    <ClInclude Include="Headers\Object\GameObjects\UI\HUD\timer_controller_object.h" />
     <ClInclude Include="Headers\Object\GameObjects\UI\ui_button.h" />
     <ClInclude Include="Headers\Object\GameObjects\UI\ui_image.h" />
     <ClInclude Include="Headers\Object\GameObjects\UI\ui_object.h" />
     <ClInclude Include="Headers\Object\GameObjects\UI\ui_text.h" />
-    <ClInclude Include="Headers\Object\game_constant.h" />
     <ClInclude Include="Headers\Object\messenger.h" />
     <ClInclude Include="Headers\Object\model_object.h" />
     <ClInclude Include="Headers\Object\game_object.h" />
@@ -815,6 +652,7 @@ xcopy "$(SolutionDir)External\SDL3\lib\SDL3.dll" "$(OutDir)" /y</Command>
     <ClInclude Include="Headers\Object\post_process_volume_object.h" />
     <ClInclude Include="Headers\Object\spatial_object.h" />
     <ClInclude Include="Headers\Object\game_object_registry.h" />
+    <ClInclude Include="Headers\Object\builtin_types.h" />
     <ClInclude Include="Headers\Object\game_object_serializer.h" />
     <ClInclude Include="Headers\Object\object_reference_field.h" />
     <ClInclude Include="Headers\Object\prefab_resource.h" />
@@ -857,7 +695,6 @@ xcopy "$(SolutionDir)External\SDL3\lib\SDL3.dll" "$(OutDir)" /y</Command>
     <ClInclude Include="Headers\Renderer\occlusion_culling_renderer.h" />
     <ClInclude Include="Headers\Renderer\ui_renderer.h" />
     <ClInclude Include="Headers\Renderer\scene_renderer.h" />
-    <ClInclude Include="Headers\Sound\common_sounds.h" />
     <ClInclude Include="Headers\stdafx.h" />
   </ItemGroup>
   <ItemGroup>

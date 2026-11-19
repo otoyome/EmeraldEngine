@@ -373,4 +373,3 @@ void light_shadow_test_system::imgui_render()
 }
 #endif	//	defined(USE_IMGUI)
 
-SCENE_SYSTEM_REGISTER(light_shadow_test_system);

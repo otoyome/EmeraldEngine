@@ -596,7 +596,6 @@ void material_resource::set_flag(flags flag, bool value)
 
 void material_resource::set_shader_path(std::string_view path)
 {
-	//	@tool	区切りを「/」に揃えて保持する(空ならシェーダー未設定)
 	std::string value = project_path::normalize(path);
 	if (shader_path == value)
 		return;

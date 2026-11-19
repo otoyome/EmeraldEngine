@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="DebugEditor|x64">
+      <Configuration>DebugEditor</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Develop|x64">
+      <Configuration>Develop</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="DevelopEditor|x64">
+      <Configuration>DevelopEditor</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="ReleaseEditor|x64">
+      <Configuration>ReleaseEditor</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{EA97DC9A-8A22-43C3-B602-4B6066003914}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>Application</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <ProjectName>Application</ProjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugEditor|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Develop|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DevelopEditor|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseEditor|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\Emerald.Common.props" />
+    <Import Project="..\Emerald.Application.props" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Platform)'=='x64'">
+    <IncludePath>$(ProjectDir)Headers;$(SolutionDir)EmeraldEngine\Headers;$(SolutionDir)External;$(SolutionDir)External\imgui;$(IncludePath)</IncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)'=='Debug' Or '$(Configuration)'=='DebugEditor' Or '$(Configuration)'=='Develop' Or '$(Configuration)'=='DevelopEditor'">
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)'=='Release' Or '$(Configuration)'=='ReleaseEditor'">
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Platform)'=='x64'">
+    <ClCompile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>stdafx_application.h</PrecompiledHeaderFile>
+      <ForcedIncludeFiles>stdafx_application.h</ForcedIncludeFiles>
+      <AdditionalIncludeDirectories>$(ProjectDir)Headers;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="Sources\stdafx_application.cpp">
+      <PrecompiledHeader>Create</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="Sources\main.cpp" />
+    <ClCompile Include="Sources\Object\GameObjects\MiniGame\minigame000_roomba_movement.cpp" />
+    <ClCompile Include="Sources\Object\GameObjects\MiniGame\minigame000_roomba_object.cpp" />
+    <ClCompile Include="Sources\Object\GameObjects\MiniGame\minigame_record_data.cpp" />
+    <ClCompile Include="Sources\Object\GameObjects\MiniGame\roomba_camera_controller_object.cpp" />
+    <ClCompile Include="Sources\Object\GameObjects\MiniGame\roomba_controller_object.cpp" />
+    <ClCompile Include="Sources\Object\GameObjects\MiniGame\roomba_gauge_controller_object.cpp" />
+    <ClCompile Include="Sources\Object\GameObjects\MiniGame\roomba_hud_controller_object.cpp" />
+    <ClCompile Include="Sources\Object\GameObjects\MiniGame\roomba_object.cpp" />
+    <ClCompile Include="Sources\Object\GameObjects\MiniGame\roomba_object_management.cpp" />
+    <ClCompile Include="Sources\Object\GameObjects\MiniGame\roomba_speed_controller_object.cpp" />
+    <ClCompile Include="Sources\Object\GameObjects\MiniGame\roomba_trash_controller_object.cpp" />
+    <ClCompile Include="Sources\Object\GameObjects\MiniGame\roomba_tutorial_controller_object.cpp" />
+    <ClCompile Include="Sources\Object\GameObjects\UI\HUD\countdown_controller_object.cpp" />
+    <ClCompile Include="Sources\Object\GameObjects\UI\HUD\key_icon_controller_object.cpp" />
+    <ClCompile Include="Sources\Object\GameObjects\UI\HUD\timer_controller_object.cpp" />
+    <ClCompile Include="Sources\Object\GameObjects\UI\Common\result_hud_controller.cpp" />
+    <ClCompile Include="Sources\Object\GameObjects\stage_object.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Headers\stdafx_application.h" />
+    <ClInclude Include="Headers\Object\GameObjects\MiniGame\minigame000_roomba_movement.h" />
+    <ClInclude Include="Headers\Object\GameObjects\MiniGame\minigame000_roomba_object.h" />
+    <ClInclude Include="Headers\Object\GameObjects\MiniGame\minigame_record_data.h" />
+    <ClInclude Include="Headers\Object\GameObjects\MiniGame\roomba_camera_controller_object.h" />
+    <ClInclude Include="Headers\Object\GameObjects\MiniGame\roomba_controller_object.h" />
+    <ClInclude Include="Headers\Object\GameObjects\MiniGame\roomba_gauge_controller_object.h" />
+    <ClInclude Include="Headers\Object\GameObjects\MiniGame\roomba_hud_controller_object.h" />
+    <ClInclude Include="Headers\Object\GameObjects\MiniGame\roomba_object.h" />
+    <ClInclude Include="Headers\Object\GameObjects\MiniGame\roomba_speed_controller_object.h" />
+    <ClInclude Include="Headers\Object\GameObjects\MiniGame\roomba_trash_controller_object.h" />
+    <ClInclude Include="Headers\Object\GameObjects\MiniGame\roomba_tutorial_controller_object.h" />
+    <ClInclude Include="Headers\Object\GameObjects\UI\HUD\countdown_controller_object.h" />
+    <ClInclude Include="Headers\Object\GameObjects\UI\HUD\key_icon_controller_object.h" />
+    <ClInclude Include="Headers\Object\GameObjects\UI\HUD\timer_controller_object.h" />
+    <ClInclude Include="Headers\Object\GameObjects\UI\Common\result_hud_controller.h" />
+    <ClInclude Include="Headers\Object\GameObjects\stage_object.h" />
+    <ClInclude Include="Headers\Sound\common_sounds.h" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
