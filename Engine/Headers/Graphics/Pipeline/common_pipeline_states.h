@@ -270,7 +270,7 @@ namespace common_pipeline_states
 	constexpr system_utility::hash_key visible_meshlet_instances_hash_key = system_utility::generate_hash(visible_meshlet_instances_name);
 
 	//	モデル以外の頂点ストリーム(UI等)
-	//	Engine/EngineShader/Common/vertex_stream.hlsli と合わせる
+	//	EngineAssets/EngineShader/Common/vertex_stream.hlsli と合わせる
 	constexpr UINT vertex_stream_srv_index = 96;	//	先頭の SRV 番号
 	constexpr UINT vertex_stream_max = 3;			//	ストリーム数
 	constexpr std::string_view vertex_stream0_name = "vertex_stream0";

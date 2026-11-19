@@ -12,14 +12,14 @@
 namespace
 {
 	//	グローバルシェーダー
-	global_shader<compute_shader> global_clustered_lighting_bounds_cs("Engine/EngineShader/ClusteredLighting/clustered_lighting_bounds_cs.hlsl");
-	global_shader<compute_shader> global_clustered_lighting_assign_cs("Engine/EngineShader/ClusteredLighting/clustered_lighting_assign_cs.hlsl");
-	global_shader<compute_shader> global_clustered_lighting_assign_cs_fill("Engine/EngineShader/ClusteredLighting/clustered_lighting_assign_cs.hlsl", "main", { shader_define("CLUSTERED_FILL", "1") });
-	global_shader<compute_shader> global_clustered_lighting_scan_cs("Engine/EngineShader/ClusteredLighting/clustered_lighting_scan_cs.hlsl");
-	global_shader<compute_shader> global_clustered_lighting_depth_cs("Engine/EngineShader/ClusteredLighting/clustered_lighting_depth_cs.hlsl");
-	global_shader<pixel_shader> global_deferred_rendering_clustered_ps("Engine/EngineShader/ClusteredLighting/deferred_rendering_clustered_ps.hlsl");
-	global_shader<pixel_shader> global_deferred_rendering_clustered_ps_visualize("Engine/EngineShader/ClusteredLighting/deferred_rendering_clustered_ps.hlsl", "main", { shader_define("CLUSTERED_VISUALIZE", "1") });
-	global_shader<vertex_shader> global_fullscreen_quad_vs("Engine/EngineShader/FullscreenQuad/fullscreen_quad_vs.hlsl");
+	global_shader<compute_shader> global_clustered_lighting_bounds_cs(ENGINE_SHADER_PATH("ClusteredLighting/clustered_lighting_bounds_cs.hlsl"));
+	global_shader<compute_shader> global_clustered_lighting_assign_cs(ENGINE_SHADER_PATH("ClusteredLighting/clustered_lighting_assign_cs.hlsl"));
+	global_shader<compute_shader> global_clustered_lighting_assign_cs_fill(ENGINE_SHADER_PATH("ClusteredLighting/clustered_lighting_assign_cs.hlsl"), "main", { shader_define("CLUSTERED_FILL", "1") });
+	global_shader<compute_shader> global_clustered_lighting_scan_cs(ENGINE_SHADER_PATH("ClusteredLighting/clustered_lighting_scan_cs.hlsl"));
+	global_shader<compute_shader> global_clustered_lighting_depth_cs(ENGINE_SHADER_PATH("ClusteredLighting/clustered_lighting_depth_cs.hlsl"));
+	global_shader<pixel_shader> global_deferred_rendering_clustered_ps(ENGINE_SHADER_PATH("ClusteredLighting/deferred_rendering_clustered_ps.hlsl"));
+	global_shader<pixel_shader> global_deferred_rendering_clustered_ps_visualize(ENGINE_SHADER_PATH("ClusteredLighting/deferred_rendering_clustered_ps.hlsl"), "main", { shader_define("CLUSTERED_VISUALIZE", "1") });
+	global_shader<vertex_shader> global_fullscreen_quad_vs(ENGINE_SHADER_PATH("FullscreenQuad/fullscreen_quad_vs.hlsl"));
 
 	//	コンソール変数
 	console_variable<bool> enable_variable("r.clustered.enable", true, "影無しの点光源/スポットライトをクラスタードライティングで描画する", console_flags::user_setting);

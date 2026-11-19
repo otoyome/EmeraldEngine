@@ -21,6 +21,7 @@
 #include "system/system_utility.h"
 #include "Math/math_all.h"
 #include "system/simple_helper.h"
+#include "system/engine_asset_path.h"
 
 #include <d3d11.h>
 #include <d3d11_1.h>

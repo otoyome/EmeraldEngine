@@ -11,9 +11,9 @@
 namespace
 {
 	//	グローバルシェーダー
-	global_shader<compute_shader> global_average_luminance_cs("Engine/EngineShader/Postprocess/Exposure/average_luminance_cs.hlsl");
-	global_shader<compute_shader> global_exposure_adjust_cs("Engine/EngineShader/Postprocess/Exposure/exposure_adjust_cs.hlsl");
-	global_shader<compute_shader> global_tone_mapping_cs("Engine/EngineShader/Postprocess/ToneMapping/tone_mapping_cs.hlsl");
+	global_shader<compute_shader> global_average_luminance_cs(ENGINE_SHADER_PATH("Postprocess/Exposure/average_luminance_cs.hlsl"));
+	global_shader<compute_shader> global_exposure_adjust_cs(ENGINE_SHADER_PATH("Postprocess/Exposure/exposure_adjust_cs.hlsl"));
+	global_shader<compute_shader> global_tone_mapping_cs(ENGINE_SHADER_PATH("Postprocess/ToneMapping/tone_mapping_cs.hlsl"));
 
 	//	露出用の定数
 	struct exposure_constants

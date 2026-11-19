@@ -8,14 +8,14 @@
 namespace
 {
 	//	グローバルシェーダー
-	global_shader<vertex_shader> global_fullscreen_quad_vs("Engine/EngineShader/FullscreenQuad/fullscreen_quad_vs.hlsl");
-	global_shader<pixel_shader> global_fast_approximate_anti_aliasing_ps("Engine/EngineShader/Postprocess/Antialias/fast_approximate_anti_aliasing_ps.hlsl");
-	global_shader<vertex_shader> global_smaa_edge_detection_vs("Engine/EngineShader/Postprocess/Antialias/smaa_edge_detection_vs.hlsl", "main", {}, { "External" });
-	global_shader<pixel_shader> global_smaa_edge_detection_ps("Engine/EngineShader/Postprocess/Antialias/smaa_edge_detection_ps.hlsl", "main", {}, { "External" });
-	global_shader<vertex_shader> global_smaa_blending_weight_calculation_vs("Engine/EngineShader/Postprocess/Antialias/smaa_blending_weight_calculation_vs.hlsl", "main", {}, { "External" });
-	global_shader<pixel_shader> global_smaa_blending_weight_calculation_ps("Engine/EngineShader/Postprocess/Antialias/smaa_blending_weight_calculation_ps.hlsl", "main", {}, { "External" });
-	global_shader<vertex_shader> global_smaa_neighborhood_blending_vs("Engine/EngineShader/Postprocess/Antialias/smaa_neighborhood_blending_vs.hlsl", "main", {}, { "External" });
-	global_shader<pixel_shader> global_smaa_neighborhood_blending_ps("Engine/EngineShader/Postprocess/Antialias/smaa_neighborhood_blending_ps.hlsl", "main", {}, { "External" });
+	global_shader<vertex_shader> global_fullscreen_quad_vs(ENGINE_SHADER_PATH("FullscreenQuad/fullscreen_quad_vs.hlsl"));
+	global_shader<pixel_shader> global_fast_approximate_anti_aliasing_ps(ENGINE_SHADER_PATH("Postprocess/Antialias/fast_approximate_anti_aliasing_ps.hlsl"));
+	global_shader<vertex_shader> global_smaa_edge_detection_vs(ENGINE_SHADER_PATH("Postprocess/Antialias/smaa_edge_detection_vs.hlsl"));
+	global_shader<pixel_shader> global_smaa_edge_detection_ps(ENGINE_SHADER_PATH("Postprocess/Antialias/smaa_edge_detection_ps.hlsl"));
+	global_shader<vertex_shader> global_smaa_blending_weight_calculation_vs(ENGINE_SHADER_PATH("Postprocess/Antialias/smaa_blending_weight_calculation_vs.hlsl"));
+	global_shader<pixel_shader> global_smaa_blending_weight_calculation_ps(ENGINE_SHADER_PATH("Postprocess/Antialias/smaa_blending_weight_calculation_ps.hlsl"));
+	global_shader<vertex_shader> global_smaa_neighborhood_blending_vs(ENGINE_SHADER_PATH("Postprocess/Antialias/smaa_neighborhood_blending_vs.hlsl"));
+	global_shader<pixel_shader> global_smaa_neighborhood_blending_ps(ENGINE_SHADER_PATH("Postprocess/Antialias/smaa_neighborhood_blending_ps.hlsl"));
 }
 
 namespace smaa

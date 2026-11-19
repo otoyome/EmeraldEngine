@@ -6,8 +6,8 @@
 namespace
 {
 	//	グローバルシェーダー
-	global_shader<vertex_shader> global_fullscreen_quad_vs("Engine/EngineShader/FullscreenQuad/fullscreen_quad_vs.hlsl");
-	global_shader<pixel_shader> global_ui_composite_ps("Engine/EngineShader/Postprocess/DisplayMapping/ui_composite_ps.hlsl");
+	global_shader<vertex_shader> global_fullscreen_quad_vs(ENGINE_SHADER_PATH("FullscreenQuad/fullscreen_quad_vs.hlsl"));
+	global_shader<pixel_shader> global_ui_composite_ps(ENGINE_SHADER_PATH("Postprocess/DisplayMapping/ui_composite_ps.hlsl"));
 
 	//	定数バッファ
 	struct ui_composite_constants

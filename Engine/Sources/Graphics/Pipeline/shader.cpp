@@ -19,7 +19,7 @@ namespace
 {
 	constexpr std::string_view	compiled_directory = "Intermediate/ShaderCache/";
 	constexpr std::string_view	compiled_extension = ".cso";
-	constexpr std::string_view	shader_root_directory = "Engine/EngineShader";
+	constexpr std::string_view	shader_root_directory = ENGINE_SHADER_DIRECTORY;
 	constexpr std::wstring_view	shader_types[magic_enum::enum_count<shader_type>()]	=
 	{
 		L"vs",	//  Vertex Shader

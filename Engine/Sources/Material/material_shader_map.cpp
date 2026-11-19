@@ -24,17 +24,17 @@ namespace
 	constexpr std::string_view material_shader_directory = "Assets/GameShader";
 
 	//	エンジンの既定のマテリアルシェーダー
-	constexpr std::string_view engine_material_shader_directory = "Engine/EngineShader/Materials";
+	constexpr std::string_view engine_material_shader_directory = ENGINE_SHADER_PATH("Materials");
 
 	//	候補を探すフォルダ
 	constexpr std::string_view material_shader_directories[] = { engine_material_shader_directory, material_shader_directory };
 
 	//	ドメインごとの既定のマテリアルシェーダー
-	constexpr std::string_view default_particle_shader_path = "Engine/EngineShader/Materials/Particle/particle_default.hlsl";
-	constexpr std::string_view default_decal_shader_path = "Engine/EngineShader/Materials/DeferredDecal/decal_default.hlsl";
-	constexpr std::string_view default_user_interface_shader_path = "Engine/EngineShader/Materials/UserInterface/sprite_default.hlsl";
-	constexpr std::string_view default_surface_shader_path = "Engine/EngineShader/Materials/gltf.hlsl";
-	constexpr std::string_view default_post_process_shader_path = "Engine/EngineShader/Materials/PostProcess/color_filter_after_tone_mapping.hlsl";
+	constexpr std::string_view default_particle_shader_path = ENGINE_SHADER_PATH("Materials/Particle/particle_default.hlsl");
+	constexpr std::string_view default_decal_shader_path = ENGINE_SHADER_PATH("Materials/DeferredDecal/decal_default.hlsl");
+	constexpr std::string_view default_user_interface_shader_path = ENGINE_SHADER_PATH("Materials/UserInterface/sprite_default.hlsl");
+	constexpr std::string_view default_surface_shader_path = ENGINE_SHADER_PATH("Materials/gltf.hlsl");
+	constexpr std::string_view default_post_process_shader_path = ENGINE_SHADER_PATH("Materials/PostProcess/color_filter_after_tone_mapping.hlsl");
 
 	//	ドメインのパスごとの設定
 	struct pass_template
@@ -107,31 +107,31 @@ namespace
 	{
 		{
 			material_shader_map::domains::surface, "",
-			"surface_pass.hlsli", "Engine/EngineShader/Passes/surface_pass.hlsli", "model.hlsli",
+			"surface_pass.hlsli", ENGINE_SHADER_PATH("Passes/surface_pass.hlsli"), "model.hlsli",
 			"SURFACE_STAGE_VERTEX", "SURFACE_STAGE_GEOMETRY", "SURFACE_STAGE_PIXEL",
 			true, surface_pass_templates, static_cast<UINT>(std::size(surface_pass_templates)),
 		},
 		{
 			material_shader_map::domains::particle, "Particle",
-			"particle_pass.hlsli", "Engine/EngineShader/Passes/particle_pass.hlsli", "compute_particle_renderer.hlsli",
+			"particle_pass.hlsli", ENGINE_SHADER_PATH("Passes/particle_pass.hlsli"), "compute_particle_renderer.hlsli",
 			"PARTICLE_STAGE_VERTEX", "PARTICLE_STAGE_GEOMETRY", "PARTICLE_STAGE_PIXEL",
 			false, particle_pass_templates, static_cast<UINT>(std::size(particle_pass_templates)),
 		},
 		{
 			material_shader_map::domains::deferred_decal, "DeferredDecal",
-			"deferred_decal_pass.hlsli", "Engine/EngineShader/Passes/deferred_decal_pass.hlsli", "",
+			"deferred_decal_pass.hlsli", ENGINE_SHADER_PATH("Passes/deferred_decal_pass.hlsli"), "",
 			"DECAL_STAGE_VERTEX", "DECAL_STAGE_GEOMETRY", "DECAL_STAGE_PIXEL",
 			false, decal_pass_templates, static_cast<UINT>(std::size(decal_pass_templates)),
 		},
 		{
 			material_shader_map::domains::post_process, "PostProcess",
-			"post_process_pass.hlsli", "Engine/EngineShader/Passes/post_process_pass.hlsli", "fullscreen_quad.hlsli",
+			"post_process_pass.hlsli", ENGINE_SHADER_PATH("Passes/post_process_pass.hlsli"), "fullscreen_quad.hlsli",
 			"POST_PROCESS_STAGE_VERTEX", "POST_PROCESS_STAGE_GEOMETRY", "POST_PROCESS_STAGE_PIXEL",
 			false, post_process_pass_templates, static_cast<UINT>(std::size(post_process_pass_templates)),
 		},
 		{
 			material_shader_map::domains::user_interface, "UserInterface",
-			"user_interface_pass.hlsli", "Engine/EngineShader/Passes/user_interface_pass.hlsli", "sprite.hlsli",
+			"user_interface_pass.hlsli", ENGINE_SHADER_PATH("Passes/user_interface_pass.hlsli"), "sprite.hlsli",
 			"USER_INTERFACE_STAGE_VERTEX", "USER_INTERFACE_STAGE_GEOMETRY", "USER_INTERFACE_STAGE_PIXEL",
 			false, user_interface_pass_templates, static_cast<UINT>(std::size(user_interface_pass_templates)),
 		},
@@ -320,49 +320,13 @@ std::string_view material_shader_map::get_failed_shader_path(domains domain)
 {
 	switch (domain)
 	{
-		case domains::surface: return "Engine/EngineShader/Materials/3d_failed.hlsl";
+		case domains::surface: return ENGINE_SHADER_PATH("Materials/3d_failed.hlsl");
 		case domains::particle: return default_particle_shader_path;
-		case domains::deferred_decal: return "Engine/EngineShader/Materials/DeferredDecal/decal_failed.hlsl";
-		case domains::post_process: return "Engine/EngineShader/Materials/PostProcess/post_process_failed.hlsl";
+		case domains::deferred_decal: return ENGINE_SHADER_PATH("Materials/DeferredDecal/decal_failed.hlsl");
+		case domains::post_process: return ENGINE_SHADER_PATH("Materials/PostProcess/post_process_failed.hlsl");
 		case domains::user_interface: return default_user_interface_shader_path;
 		default: return "";
 	}
-}
-
-std::string material_shader_map::convert_legacy_shader_path(std::string_view shader_path)
-{
-	constexpr std::string_view legacy_directory = "Shaders/Materials/";
-
-	std::string path(shader_path);
-	std::replace(path.begin(), path.end(), '\\', '/');
-	if (path.starts_with(legacy_directory))
-		return std::string(material_shader_directory) + "/" + path.substr(legacy_directory.size());
-
-	//	前の置き場所(Assets/Resources/Shaders)のパスは今の置き場所に読み替える
-	constexpr std::string_view previous_directory = "Assets/Resources/Shaders/";
-	constexpr std::string_view engine_shader_names[] =
-	{
-		"3d_failed.hlsl",
-		"gltf.hlsl",
-		"pmx.hlsl",
-		"DeferredDecal/decal_default.hlsl",
-		"DeferredDecal/decal_failed.hlsl",
-		"Particle/particle_default.hlsl",
-		"PostProcess/post_process_failed.hlsl",
-		"PostProcess/color_filter_after_tone_mapping.hlsl",
-		"UserInterface/sprite_default.hlsl",
-	};
-	if (path.starts_with(previous_directory))
-	{
-		const std::string_view name = std::string_view(path).substr(previous_directory.size());
-		for (const auto& engine_shader_name : engine_shader_names)
-		{
-			if (name == engine_shader_name)
-				return std::string(engine_material_shader_directory) + "/" + std::string(name);
-		}
-		return std::string(material_shader_directory) + "/" + std::string(name);
-	}
-	return path;
 }
 
 material_shader_map::entry* material_shader_map::find_entry(std::string_view shader_path, domains domain)

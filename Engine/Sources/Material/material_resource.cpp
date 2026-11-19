@@ -11,6 +11,7 @@
 #include "Resource/resource_manager.h"
 #include "Resource/data_compression.h"
 #include "Resource/asset_file_header.h"
+#include "System/project_path.h"
 
 #include "cereal/archives/binary.hpp"
 #include "cereal/archives/json.hpp"
@@ -211,9 +212,6 @@ void material_resource::serialize(Archive& archive, int version)
 			CEREAL_NVP(constant_buffers),
 			CEREAL_NVP(shader_path),
 			CEREAL_NVP(static_switches));
-
-	if constexpr (Archive::is_loading::value)
-		shader_path = material_shader_map::convert_legacy_shader_path(shader_path);
 }
 
 //	モデル・エフェクトのファイルはバイナリで読み書きする
@@ -598,8 +596,8 @@ void material_resource::set_flag(flags flag, bool value)
 
 void material_resource::set_shader_path(std::string_view path)
 {
-	std::string value = material_shader_map::convert_legacy_shader_path(path);
-	std::replace(value.begin(), value.end(), '\\', '/');
+	//	@tool	区切りを「/」に揃えて保持する(空ならシェーダー未設定)
+	std::string value = project_path::normalize(path);
 	if (shader_path == value)
 		return;
 
@@ -1059,7 +1057,6 @@ void material_resource::deserialize_stream(std::stringstream& istream)
 		DEBUG_LOG_CATEGORY(logger::categorys::model, "material deserialize_stream failed[%s]", name.data());
 		return;
 	}
-	shader_path = material_shader_map::convert_legacy_shader_path(shader_path);
 	DEBUG_LOG_CATEGORY(logger::categorys::model, "material deserialize_stream succeeded[%s]", name.data());
 }
 

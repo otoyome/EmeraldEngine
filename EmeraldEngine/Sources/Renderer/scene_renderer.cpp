@@ -14,12 +14,12 @@
 namespace
 {
 	//	グローバルシェーダー
-	global_shader<vertex_shader> global_fullscreen_quad_vs("Engine/EngineShader/FullscreenQuad/fullscreen_quad_vs.hlsl");
+	global_shader<vertex_shader> global_fullscreen_quad_vs(ENGINE_SHADER_PATH("FullscreenQuad/fullscreen_quad_vs.hlsl"));
 	global_shader<pixel_shader> global_deferred_rendering_ps[] =
 	{
-		{ "Engine/EngineShader/DeferredRendering/deferred_rendering_indirect_ps.hlsl" },
-		{ "Engine/EngineShader/DeferredRendering/deferred_rendering_directional_ps.hlsl" },
-		{ "Engine/EngineShader/DeferredRendering/deferred_rendering_local_ps.hlsl" },
+		{ ENGINE_SHADER_PATH("DeferredRendering/deferred_rendering_indirect_ps.hlsl") },
+		{ ENGINE_SHADER_PATH("DeferredRendering/deferred_rendering_directional_ps.hlsl") },
+		{ ENGINE_SHADER_PATH("DeferredRendering/deferred_rendering_local_ps.hlsl") },
 	};
 }
 

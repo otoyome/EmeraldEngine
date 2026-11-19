@@ -4,7 +4,7 @@
 namespace
 {
 	//	グローバルシェーダー
-	global_shader<vertex_shader> global_gbuffer_decal_primitive_vs("Engine/EngineShader/DeferredDecal/gbuffer_decal_primitive_vs.hlsl");
+	global_shader<vertex_shader> global_gbuffer_decal_primitive_vs(ENGINE_SHADER_PATH("DeferredDecal/gbuffer_decal_primitive_vs.hlsl"));
 
 	//	定数バッファインデックス
 	static constexpr UINT TransformBufferIndex = 1;

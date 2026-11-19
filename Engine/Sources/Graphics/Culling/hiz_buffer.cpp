@@ -6,8 +6,8 @@
 namespace
 {
 	//	グローバルシェーダー
-	global_shader<compute_shader> global_hiz_copy_cs("Engine/EngineShader/Culling/hiz_copy_cs.hlsl");
-	global_shader<compute_shader> global_hiz_downsample_cs("Engine/EngineShader/Culling/hiz_downsample_cs.hlsl");
+	global_shader<compute_shader> global_hiz_copy_cs(ENGINE_SHADER_PATH("Culling/hiz_copy_cs.hlsl"));
+	global_shader<compute_shader> global_hiz_downsample_cs(ENGINE_SHADER_PATH("Culling/hiz_downsample_cs.hlsl"));
 
 	struct hiz_constants
 	{

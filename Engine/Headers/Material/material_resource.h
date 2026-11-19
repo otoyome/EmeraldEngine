@@ -279,7 +279,7 @@ public:
 	inline const physical_datas& get_physical_data() const { return physical_data; }
 	void set_physical_data(const physical_datas& value) { physical_data = value; }
 
-	//	マテリアルシェーダー(Assets/GameShader・Engine/EngineShader/Materials 以下)の取得/設定
+	//	マテリアルシェーダー(Assets/GameShader・EngineAssets/EngineShader/Materials 以下)の取得/設定
 	//	設定するとパイプラインステートはシェーダーパス・静的パラメーターから自動で決まる
 	void set_shader_path(std::string_view shader_path);
 	std::string_view get_shader_path() const { return shader_path; }

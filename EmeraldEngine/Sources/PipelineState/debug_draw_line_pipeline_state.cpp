@@ -4,8 +4,8 @@
 namespace
 {
 	//	グローバルシェーダー
-	global_shader<vertex_shader> global_debug_draw_line_vs("Engine/EngineShader/GeometricPrimitive/debug_draw_line_vs.hlsl");
-	global_shader<pixel_shader> global_debug_draw_line_ps("Engine/EngineShader/GeometricPrimitive/debug_draw_line_ps.hlsl");
+	global_shader<vertex_shader> global_debug_draw_line_vs(ENGINE_SHADER_PATH("GeometricPrimitive/debug_draw_line_vs.hlsl"));
+	global_shader<pixel_shader> global_debug_draw_line_ps(ENGINE_SHADER_PATH("GeometricPrimitive/debug_draw_line_ps.hlsl"));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////

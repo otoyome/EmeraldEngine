@@ -4,8 +4,8 @@
 namespace
 {
 	//	グローバルシェーダー
-	global_shader<vertex_shader> global_sky_box_vs("Engine/EngineShader/SkyBox/sky_box_vs.hlsl");
-	global_shader<pixel_shader> global_sky_box_gbuffer_ps("Engine/EngineShader/SkyBox/sky_box_gbuffer_ps.hlsl");
+	global_shader<vertex_shader> global_sky_box_vs(ENGINE_SHADER_PATH("SkyBox/sky_box_vs.hlsl"));
+	global_shader<pixel_shader> global_sky_box_gbuffer_ps(ENGINE_SHADER_PATH("SkyBox/sky_box_gbuffer_ps.hlsl"));
 }
 
 skybox_pipeline_state::skybox_pipeline_state()

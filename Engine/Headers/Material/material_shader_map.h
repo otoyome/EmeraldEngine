@@ -112,7 +112,7 @@ public:
 	std::uint32_t get_version() const { return version; }
 
 #if defined(USE_IMGUI)
-	//	Assets/GameShader・Engine/EngineShader/Materials 以下のマテリアルシェーダーの一覧
+	//	Assets/GameShader・EngineAssets/EngineShader/Materials 以下のマテリアルシェーダーの一覧
 	std::vector<std::string> collect_shader_paths(domains domain) const;
 
 	//	元のマテリアルシェーダーを写してドメインのフォルダに新しく作る。作ったパスを返す(失敗したら空)
@@ -131,9 +131,6 @@ public:
 
 	//	エラーマテリアルシェーダーパス取得
 	static std::string_view get_failed_shader_path(domains domain);
-
-	//	旧置き場所(Shaders/Materials)のパスを今の置き場所のパスに読み替える
-	static std::string convert_legacy_shader_path(std::string_view shader_path);
 
 private:
 	entry* find_entry(std::string_view shader_path, domains domain);

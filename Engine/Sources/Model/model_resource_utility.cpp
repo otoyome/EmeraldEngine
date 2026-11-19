@@ -1148,7 +1148,7 @@ void model_resource_utility::generate_primitive_model(model_resource& resource, 
 		material.set_blend_mode(material_resource::blend_modes::opaque);
 		material.set_flag(material_resource::flags::shadow_caster, true);
 		material.set_flag(material_resource::flags::shadow_receiver, true);
-		material.set_shader_path("Engine/EngineShader/Materials/gltf.hlsl");
+		material.set_shader_path(ENGINE_SHADER_PATH("Materials/gltf.hlsl"));
 		material.set_float4("base_color_factor", { 0.8f, 0.8f, 0.8f, 1.0f });
 		material.set_float("roughness_factor", 0.5f);
 		material.set_float("metallic_factor", 0.0f);

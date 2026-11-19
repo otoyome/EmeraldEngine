@@ -6,7 +6,7 @@
 namespace
 {
 	//	グローバルシェーダー
-	global_shader<compute_shader> global_occlusion_culling_cs("Engine/EngineShader/Culling/occlusion_culling_cs.hlsl");
+	global_shader<compute_shader> global_occlusion_culling_cs(ENGINE_SHADER_PATH("Culling/occlusion_culling_cs.hlsl"));
 
 	struct instance_aabb_cpu
 	{

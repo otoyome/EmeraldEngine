@@ -1065,7 +1065,7 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\External\subpixel_morphological_anti_aliasing\SMAA.hlsli">
+    <None Include="..\EngineAssets\EngineShader\ThirdParty\subpixel_morphological_anti_aliasing\SMAA.hlsli">
       <Filter>External\subpixel_morphological_anti_aliasing</Filter>
     </None>
   </ItemGroup>

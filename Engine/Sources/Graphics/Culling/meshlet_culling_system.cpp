@@ -8,7 +8,7 @@
 namespace
 {
 	//	グローバルシェーダー
-	global_shader<compute_shader> global_meshlet_culling_cs("Engine/EngineShader/Culling/meshlet_culling_cs.hlsl");
+	global_shader<compute_shader> global_meshlet_culling_cs(ENGINE_SHADER_PATH("Culling/meshlet_culling_cs.hlsl"));
 
 	static constexpr UINT ThreadCount = 64;
 }

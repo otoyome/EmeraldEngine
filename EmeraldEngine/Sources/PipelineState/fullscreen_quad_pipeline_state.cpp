@@ -4,9 +4,9 @@
 namespace
 {
 	//	グローバルシェーダー
-	global_shader<vertex_shader> global_fullscreen_quad_vs("Engine/EngineShader/FullscreenQuad/fullscreen_quad_vs.hlsl");
-	global_shader<pixel_shader> global_display_mapping_ps("Engine/EngineShader/Postprocess/DisplayMapping/display_mapping_ps.hlsl");
-	global_shader<pixel_shader> global_convert_srgb_to_linear_ps("Engine/EngineShader/DeferredRendering/convert_srgb_to_linear_ps.hlsl");
+	global_shader<vertex_shader> global_fullscreen_quad_vs(ENGINE_SHADER_PATH("FullscreenQuad/fullscreen_quad_vs.hlsl"));
+	global_shader<pixel_shader> global_display_mapping_ps(ENGINE_SHADER_PATH("Postprocess/DisplayMapping/display_mapping_ps.hlsl"));
+	global_shader<pixel_shader> global_convert_srgb_to_linear_ps(ENGINE_SHADER_PATH("DeferredRendering/convert_srgb_to_linear_ps.hlsl"));
 
 	static constexpr UINT SceneColorMapIndex = 0;
 	static constexpr UINT SceneSamplerIndex = 0;

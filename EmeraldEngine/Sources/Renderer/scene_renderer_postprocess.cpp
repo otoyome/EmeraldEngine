@@ -16,19 +16,19 @@
 namespace
 {
 	//	グローバルシェーダー
-	global_shader<compute_shader> global_screen_space_reflection_denoise_cs("Engine/EngineShader/Postprocess/ScreenSpaceReflection/screen_space_reflection_denoise_cs.hlsl");
-	global_shader<compute_shader> global_screen_space_reflection_temporal_filtering_cs("Engine/EngineShader/Postprocess/ScreenSpaceReflection/screen_space_reflection_temporal_filtering_cs.hlsl");
-	global_shader<compute_shader> global_dof_filter_setup_cs("Engine/EngineShader/Postprocess/DepthOfField/dof_filter_setup_cs.hlsl");
-	global_shader<compute_shader> global_dof_vertical_integrate_cs("Engine/EngineShader/Postprocess/DepthOfField/dof_vertical_integrate_cs.hlsl");
-	global_shader<compute_shader> global_dof_apply_cs("Engine/EngineShader/Postprocess/DepthOfField/dof_apply_cs.hlsl");
-	global_shader<compute_shader> global_reconstract_velocity_cs("Engine/EngineShader/Postprocess/MotionBlur/reconstract_velocity_cs.hlsl");
-	global_shader<compute_shader> global_motion_blur_cs("Engine/EngineShader/Postprocess/MotionBlur/motion_blur_cs.hlsl");
-	global_shader<compute_shader> global_fast_fourier_transform_gaussian_filter_cs("Engine/EngineShader/Postprocess/System/fast_fourier_transform_gaussian_filter_cs.hlsl");
-	global_shader<compute_shader> global_fast_fourier_transform_complex_multiply_cs("Engine/EngineShader/Postprocess/System/fast_fourier_transform_complex_multiply_cs.hlsl");
-	global_shader<compute_shader> global_resize_copy_cs("Engine/EngineShader/Postprocess/System/resize_copy_cs.hlsl");
-	global_shader<compute_shader> global_bloom_additional_half_cs("Engine/EngineShader/Postprocess/Bloom/bloom_additional_half_cs.hlsl");
-	global_shader<compute_shader> global_luminance_extract_cs("Engine/EngineShader/Postprocess/Bloom/luminance_extract_cs.hlsl");
-	global_shader<compute_shader> global_generate_ghost_cs("Engine/EngineShader/Postprocess/Bloom/generate_ghost_cs.hlsl");
+	global_shader<compute_shader> global_screen_space_reflection_denoise_cs(ENGINE_SHADER_PATH("Postprocess/ScreenSpaceReflection/screen_space_reflection_denoise_cs.hlsl"));
+	global_shader<compute_shader> global_screen_space_reflection_temporal_filtering_cs(ENGINE_SHADER_PATH("Postprocess/ScreenSpaceReflection/screen_space_reflection_temporal_filtering_cs.hlsl"));
+	global_shader<compute_shader> global_dof_filter_setup_cs(ENGINE_SHADER_PATH("Postprocess/DepthOfField/dof_filter_setup_cs.hlsl"));
+	global_shader<compute_shader> global_dof_vertical_integrate_cs(ENGINE_SHADER_PATH("Postprocess/DepthOfField/dof_vertical_integrate_cs.hlsl"));
+	global_shader<compute_shader> global_dof_apply_cs(ENGINE_SHADER_PATH("Postprocess/DepthOfField/dof_apply_cs.hlsl"));
+	global_shader<compute_shader> global_reconstract_velocity_cs(ENGINE_SHADER_PATH("Postprocess/MotionBlur/reconstract_velocity_cs.hlsl"));
+	global_shader<compute_shader> global_motion_blur_cs(ENGINE_SHADER_PATH("Postprocess/MotionBlur/motion_blur_cs.hlsl"));
+	global_shader<compute_shader> global_fast_fourier_transform_gaussian_filter_cs(ENGINE_SHADER_PATH("Postprocess/System/fast_fourier_transform_gaussian_filter_cs.hlsl"));
+	global_shader<compute_shader> global_fast_fourier_transform_complex_multiply_cs(ENGINE_SHADER_PATH("Postprocess/System/fast_fourier_transform_complex_multiply_cs.hlsl"));
+	global_shader<compute_shader> global_resize_copy_cs(ENGINE_SHADER_PATH("Postprocess/System/resize_copy_cs.hlsl"));
+	global_shader<compute_shader> global_bloom_additional_half_cs(ENGINE_SHADER_PATH("Postprocess/Bloom/bloom_additional_half_cs.hlsl"));
+	global_shader<compute_shader> global_luminance_extract_cs(ENGINE_SHADER_PATH("Postprocess/Bloom/luminance_extract_cs.hlsl"));
+	global_shader<compute_shader> global_generate_ghost_cs(ENGINE_SHADER_PATH("Postprocess/Bloom/generate_ghost_cs.hlsl"));
 
 	//	描画処理
 	void draw(const graphics_context& context,

@@ -4,13 +4,13 @@
 namespace
 {
 	//	グローバルシェーダー
-	global_shader<vertex_shader> global_fullscreen_quad_vs("Engine/EngineShader/FullscreenQuad/fullscreen_quad_vs.hlsl");
-	global_shader<pixel_shader> global_fullscreen_quad_ps("Engine/EngineShader/FullscreenQuad/fullscreen_quad_ps.hlsl");
-	global_shader<pixel_shader> global_compress_rgb_to_log_ps("Engine/EngineShader/FullscreenQuad/compress_rgb_to_log_ps.hlsl");
-	global_shader<pixel_shader> global_decompress_rgb_to_log_ps("Engine/EngineShader/FullscreenQuad/decompress_rgb_to_log_ps.hlsl");
-	global_shader<pixel_shader> global_screen_space_reflection_uv_ps("Engine/EngineShader/Postprocess/ScreenSpaceReflection/screen_space_reflection_uv_ps.hlsl");
-	global_shader<pixel_shader> global_screen_space_reflection_color_ps("Engine/EngineShader/Postprocess/ScreenSpaceReflection/screen_space_reflection_color_ps.hlsl");
-	global_shader<pixel_shader> global_screen_space_reflection_composite_ps("Engine/EngineShader/Postprocess/ScreenSpaceReflection/screen_space_reflection_composite_ps.hlsl");
+	global_shader<vertex_shader> global_fullscreen_quad_vs(ENGINE_SHADER_PATH("FullscreenQuad/fullscreen_quad_vs.hlsl"));
+	global_shader<pixel_shader> global_fullscreen_quad_ps(ENGINE_SHADER_PATH("FullscreenQuad/fullscreen_quad_ps.hlsl"));
+	global_shader<pixel_shader> global_compress_rgb_to_log_ps(ENGINE_SHADER_PATH("FullscreenQuad/compress_rgb_to_log_ps.hlsl"));
+	global_shader<pixel_shader> global_decompress_rgb_to_log_ps(ENGINE_SHADER_PATH("FullscreenQuad/decompress_rgb_to_log_ps.hlsl"));
+	global_shader<pixel_shader> global_screen_space_reflection_uv_ps(ENGINE_SHADER_PATH("Postprocess/ScreenSpaceReflection/screen_space_reflection_uv_ps.hlsl"));
+	global_shader<pixel_shader> global_screen_space_reflection_color_ps(ENGINE_SHADER_PATH("Postprocess/ScreenSpaceReflection/screen_space_reflection_color_ps.hlsl"));
+	global_shader<pixel_shader> global_screen_space_reflection_composite_ps(ENGINE_SHADER_PATH("Postprocess/ScreenSpaceReflection/screen_space_reflection_composite_ps.hlsl"));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
