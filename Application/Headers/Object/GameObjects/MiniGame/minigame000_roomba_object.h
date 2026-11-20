@@ -56,6 +56,9 @@ namespace minigame000
 		math::vector3d get_position() const;
 		void set_position(const math::vector3d& position);
 
+		//	’‹“_æ“¾
+		math::vector3d get_focus_point() const;
+
 		math::float3 get_velocity() const { return movement_state.velocity; }
 		void set_velocity(const math::float3& value) { movement_state.velocity = value; }
 

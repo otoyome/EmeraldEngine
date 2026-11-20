@@ -14,6 +14,7 @@
 #include "object/gameobjects/system/start_point_object.h"
 #include "object/gameobjects/MiniGame/minigame000_roomba_object.h"
 #include "object/gameobjects/MiniGame/minigame000_roomba_player_controller_object.h"
+#include "object/gameobjects/MiniGame/minigame000_roomba_camera_controller_object.h"
 
 namespace
 {
@@ -341,13 +342,19 @@ std::shared_ptr<minigame000::roomba_object> minigame000_system::spawn_roomba(con
 
 void minigame000_system::possess_player(const std::shared_ptr<minigame000::roomba_object>& roomba)
 {
-	auto controller = std::make_shared<minigame000::roomba_player_controller_object>("roomba_player_controller");
-	controller->set_camera(find_view_camera(get_scene_objects()));
+	const std::shared_ptr<camera_object> view_camera = find_view_camera(get_scene_objects());
 
-	//	オブジェクト登録
+	auto controller = std::make_shared<minigame000::roomba_player_controller_object>("roomba_player_controller");
+	controller->set_camera(view_camera);
 	register_object(controller);
 	roomba->set_input_source(controller);
 	controllers.emplace_back(std::move(controller));
+
+	auto camera_controller = std::make_shared<minigame000::roomba_camera_controller_object>("roomba_camera_controller");
+	camera_controller->set_camera(view_camera);
+	camera_controller->set_target(roomba);
+	register_object(camera_controller);
+	camera_controllers.emplace_back(std::move(camera_controller));
 }
 
 SCENE_SYSTEM_REGISTER(minigame000_system);

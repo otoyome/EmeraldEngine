@@ -109,7 +109,7 @@ public:
 		if (reference.is_empty())
 			return nullptr;
 
-		const std::string file_path = asset_registry::is_valid() ? asset_registry::instance()->resolve_path(reference.uuid, reference.path) : reference.path;
+		const std::string file_path = asset_registry::is_valid() ? asset_registry::instance()->find_path(reference) : std::string();
 		return load_async<Type, Loader>(std::string_view(file_path), priority, force_load);
 	}
 

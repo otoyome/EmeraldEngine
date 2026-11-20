@@ -9,6 +9,7 @@
 #include "system/singleton.h"
 
 #include "Resource/asset_file_header.h"
+#include "Resource/asset_reference.h"
 
 namespace resource
 {
@@ -62,10 +63,11 @@ public:
 	//	検索
 	universally_unique_identifier find_uuid(std::string_view path) const;
 	std::string find_path(const universally_unique_identifier& uuid) const;
-	std::vector<std::string> find_paths(resource::asset_types type) const;
 
-	//	UUIDから検索して見つからないならヒントパスを渡す
-	std::string resolve_path(const universally_unique_identifier& uuid, std::string_view hint_path) const;
+	//	UUIDからパスを検索
+	template<class Type>
+	std::string find_path(const resource::asset_reference<Type>& reference) const { return find_path(reference.uuid); }
+	std::vector<std::string> find_paths(resource::asset_types type) const;
 
 	//	保存の前に呼ぶ
 	void prepare_save(resource::resource_base& target, std::string_view path) const;

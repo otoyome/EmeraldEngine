@@ -1,4 +1,5 @@
 #include "Editor/editor_items.h"
+#include "Resource/asset_registry.h"
 #include "Texture/texture_defaults.h"
 #include "Texture/texture_resource_utility.h"
 
@@ -808,7 +809,7 @@ bool editor_items::edit_material_texture_slot(std::shared_ptr<context>& context,
 	if (slot.asset && slot.asset->get_file_path().empty())
 		label = "(runtime, not saved)";
 	else if (!slot.asset.is_empty())
-		label = system_utility::convert_utf8(slot.asset.get_reference().path);
+		label = system_utility::convert_utf8(asset_registry::is_valid() ? asset_registry::instance()->find_path(slot.asset.get_reference()) : std::string());	//	ŽQÆ‚ÍUUID‚¾‚¯‚È‚Ì‚Å‘Î‰ž•\‚©‚çˆø‚­
 	if (slot.asset && slot.asset->is_missing())
 		label = "missing : " + label;
 	ImGui::Button(label.c_str(), ImVec2(-icon_size_srv.x - ImGui::GetStyle().ItemSpacing.x, 0.0f));

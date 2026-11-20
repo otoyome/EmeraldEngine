@@ -61,8 +61,8 @@ std::string scene_set_editor_window::get_label() const
 std::string scene_set_editor_window::resolve_path(const resource::asset_reference<scene_resource>& reference)
 {
 	if (!asset_registry::is_valid())
-		return reference.path;
-	return asset_registry::instance()->resolve_path(reference.uuid, reference.path);
+		return std::string();
+	return asset_registry::instance()->find_path(reference);
 }
 
 bool scene_set_editor_window::load()
@@ -75,8 +75,6 @@ bool scene_set_editor_window::load()
 		return false;
 	}
 	scenes = resource->get_scenes();
-	for (resource::asset_reference<scene_resource>& reference : scenes)
-		reference.path = resolve_path(reference);
 	dirty = false;
 	loaded = true;
 	message.clear();
@@ -116,12 +114,11 @@ bool scene_set_editor_window::add_scene(std::string_view scene_path)
 		return false;
 
 	resource::asset_reference<scene_resource> reference;
-	reference.path = std::string(scene_path);
 	if (asset_registry::is_valid())
 		reference.uuid = asset_registry::instance()->find_uuid(scene_path);
 	if (reference.uuid.is_empty())
 	{
-		message = "scene not registered: " + system_utility::convert_shift_jis_to_utf8(reference.path);
+		message = "scene not registered: " + system_utility::convert_shift_jis_to_utf8(scene_path);
 		return false;
 	}
 
@@ -185,16 +182,16 @@ void scene_set_editor_window::imgui_render_scene_list()
 			remove_index = index;
 		ImGui::SameLine();
 
-		const resource::asset_reference<scene_resource>& reference = scenes[index];
-		if (reference.path.empty())
+		const std::string reference_path = resolve_path(scenes[index]);
+		if (reference_path.empty())
 		{
 			ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.4f, 1.0f), "(missing)");
 		}
 		else
 		{
-			ImGui::TextUnformatted(make_label(reference.path).c_str());
+			ImGui::TextUnformatted(make_label(reference_path).c_str());
 			if (ImGui::IsItemHovered())
-				ImGui::SetTooltip("%s", system_utility::convert_shift_jis_to_utf8(reference.path).c_str());
+				ImGui::SetTooltip("%s", system_utility::convert_shift_jis_to_utf8(reference_path).c_str());
 		}
 		ImGui::PopID();
 	}

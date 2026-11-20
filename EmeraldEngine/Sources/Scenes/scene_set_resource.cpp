@@ -31,7 +31,7 @@ std::vector<std::string> scene_set_resource::get_scene_paths() const
 	std::vector<std::string> result;
 	for (const resource::asset_reference<scene_resource>& reference : scenes)
 	{
-		std::string path = asset_registry::is_valid() ? asset_registry::instance()->resolve_path(reference.uuid, reference.path) : reference.path;
+		std::string path = asset_registry::is_valid() ? asset_registry::instance()->find_path(reference) : std::string();
 		if (path.empty())
 		{
 			DEBUG_WARNING_CATEGORY(logger::categorys::system, "scene_set_resource scene not found[%s]", std::string(get_file_path()).c_str());

@@ -22,16 +22,15 @@ namespace resource
 	struct asset_reference
 	{
 		universally_unique_identifier uuid;
-		std::string path;
 
-		bool is_empty() const { return uuid.is_empty() && path.empty(); }
+		bool is_empty() const { return uuid.is_empty(); }
 
 		static asset_reference from(const std::shared_ptr<Type>& value)
 		{
 			static_assert(asset_resource<Type>);
 			if (!value)
 				return {};
-			return { value->get_uuid(), std::string(value->get_file_path()) };
+			return { value->get_uuid() };
 		}
 
 		template<class Archive>
@@ -43,7 +42,6 @@ namespace resource
 		template<class Archive>
 		void load(Archive& archive)
 		{
-			path.clear();
 			archive(uuid);
 		}
 	};

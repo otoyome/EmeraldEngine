@@ -210,14 +210,6 @@ std::string asset_registry::find_path(const universally_unique_identifier& uuid)
 	return it != entries.end() ? it->second.path : std::string{};
 }
 
-std::string asset_registry::resolve_path(const universally_unique_identifier& uuid, std::string_view hint_path) const
-{
-	std::string path = find_path(uuid);
-	if (path.empty())
-		path = hint_path;
-	return path;
-}
-
 void asset_registry::prepare_save(resource::resource_base& target, std::string_view path) const
 {
 	const std::string registered_path = find_path(target.get_uuid());

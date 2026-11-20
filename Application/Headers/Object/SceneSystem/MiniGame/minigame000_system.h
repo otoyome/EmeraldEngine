@@ -13,6 +13,7 @@ namespace minigame000
 {
 	class roomba_object;
 	class roomba_player_controller_object;
+	class roomba_camera_controller_object;
 }	//	namespace minigame000
 
 //	ミニゲームのシーンシステム
@@ -85,4 +86,5 @@ private:	//	実行時
 
 	std::vector<std::weak_ptr<minigame000::roomba_object>> roombas;							//	生成したルンバ
 	std::vector<std::shared_ptr<minigame000::roomba_player_controller_object>> controllers;	//	生成したコントローラー
+	std::vector<std::shared_ptr<minigame000::roomba_camera_controller_object>> camera_controllers;
 };

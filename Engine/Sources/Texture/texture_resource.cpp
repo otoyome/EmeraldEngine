@@ -7,6 +7,7 @@
 #include "Texture/texture_factory.h"
 #include "Texture/texture_resource_utility.h"
 #include "Resource/asset_file_header.h"
+#include "Resource/asset_registry.h"
 #include "Resource/data_compression.h"
 #include "system/logger.h"
 #include "DirectXTex.h"
@@ -107,12 +108,13 @@ namespace resource
 
 	texture_resource_ptr loader<texture_resource>::create_fallback(const asset_reference<texture_resource>& reference)
 	{
-		DEBUG_ERROR_CATEGORY(logger::categorys::system, "texture_resource missing[%s]", reference.path.c_str());
+		const std::string path = asset_registry::is_valid() ? asset_registry::instance()->find_path(reference) : std::string();
+		DEBUG_ERROR_CATEGORY(logger::categorys::system, "texture_resource missing[%s][%s]", path.c_str(), reference.uuid.to_string().c_str());
 
 		auto fallback = std::make_shared<texture_resource>();
 		if (texture_defaults::is_valid())
 			fallback->value = texture_defaults::instance()->get_missing();
-		fallback->set_file_path(reference.path);
+		fallback->set_file_path(path);
 		fallback->inherit_uuid(reference.uuid);
 		fallback->set_missing(true);
 		return fallback;

@@ -3,6 +3,7 @@
 #include <filesystem>
 
 #include "Material/material_shader_map.h"
+#include "Resource/asset_registry.h"
 
 material_resource_ptr material_resource_factory::create_new(std::string_view name, material_resource::domains domain)
 {
@@ -38,12 +39,13 @@ material_resource_ptr material_resource_factory::create_new(std::string_view nam
 
 material_resource_ptr material_resource_factory::create_missing(const resource::asset_reference<material_resource>& reference, material_resource::domains domain)
 {
-	DEBUG_ERROR_CATEGORY(logger::categorys::model, "material_resource missing[%s][%s]", reference.path.c_str(), reference.uuid.to_string().c_str());
+	const std::string path = asset_registry::is_valid() ? asset_registry::instance()->find_path(reference) : std::string();
+	DEBUG_ERROR_CATEGORY(logger::categorys::model, "material_resource missing[%s][%s]", path.c_str(), reference.uuid.to_string().c_str());
 
-	auto material = std::make_shared<material_resource>(std::filesystem::path(reference.path).stem().string());
+	auto material = std::make_shared<material_resource>(path.empty() ? reference.uuid.to_string() : std::filesystem::path(path).stem().string());
 	material->set_domain(domain);
 	material->set_shader_path(material_shader_map::get_failed_shader_path(domain));
-	material->set_file_path(reference.path);
+	material->set_file_path(path);
 	material->inherit_uuid(reference.uuid);
 	material->set_missing(true);
 	material->build();

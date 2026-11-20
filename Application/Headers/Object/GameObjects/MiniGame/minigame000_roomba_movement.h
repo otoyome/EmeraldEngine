@@ -46,7 +46,7 @@ namespace minigame000
 		float walk_accelaration = system_units::convert_m_to_unit(14.0f);		//	歩きの加速度
 		float walk_max_speed = system_units::convert_m_to_unit(0.75f);			//	歩きの最高速度
 		float dash_accelaration = system_units::convert_m_to_unit(18.0f);		//	ダッシュの加速度
-		float dash_max_speed = system_units::convert_m_to_unit(16.67f);			//	ダッシュの最高速度	@remainder	仕組みとして使っていないのでコレは定数で良いと思う
+		float dash_max_speed = system_units::convert_m_to_unit(10.0f);			//	ダッシュの最高速度	@remainder	仕組みとして使っていないのでコレは定数で良いと思う
 		float braking_deceleration = system_units::convert_m_to_unit(15.0f);	//	ブレーキの減速度
 		float base_friction = 2.5f;												//	摩擦係数
 

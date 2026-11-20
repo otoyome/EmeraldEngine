@@ -722,10 +722,9 @@ void model_object::imgui_render_core()
 {
 	base::imgui_render_core();
 
-	//	@tool	選択とドロップは共通のアセット参照欄で行い、変わったらモデルを差し替える
 	resource::asset_reference<model_resource> model_reference = resource::asset_reference<model_resource>::from(model_instance ? model_instance->get_resource() : nullptr);
 	if (asset_reference_field::imgui_combo("model", model_reference, resource::asset_types::model))
-		change_model(model_reference.path);
+		change_model(asset_registry::instance()->find_path(model_reference));
 
 	if (!model_instance)
 		return;

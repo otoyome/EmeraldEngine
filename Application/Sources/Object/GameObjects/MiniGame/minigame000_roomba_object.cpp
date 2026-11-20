@@ -246,6 +246,13 @@ void minigame000::roomba_object::set_position(const math::vector3d& position)
 	set_world_translation(position);
 }
 
+math::vector3d minigame000::roomba_object::get_focus_point() const
+{
+	if (collision)
+		return collision->get_world_translation();
+	return get_position();
+}
+
 void minigame000::roomba_object::fixed_update(float elapsed_time)
 {
 	//	“–‚½‚è”»’è‚ª–³‚¯‚ê‚Î“®‚©‚³‚È‚¢

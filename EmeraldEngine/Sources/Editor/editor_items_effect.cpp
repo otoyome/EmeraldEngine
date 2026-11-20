@@ -1,4 +1,5 @@
 #include "Editor/editor_items.h"
+#include "Resource/asset_registry.h"
 #include "Object/engine_context.h"
 #include "Texture/texture_importer.h"
 
@@ -454,7 +455,7 @@ bool editor_items::edit_effect_model(std::shared_ptr<context>& context, effect_r
 {
 	bool edit_flag = false;
 	model_resource_ptr resource = model.resource;
-	std::string file_path = model.resource.get_reference().path;
+	std::string file_path = asset_registry::is_valid() ? asset_registry::instance()->find_path(model.resource.get_reference()) : std::string();	//	QÆ‚ÍUUID‚¾‚¯‚È‚Ì‚Å‘Î‰•\‚©‚çˆø‚­
 	if (edit_model_resource_item(context, resource, &file_path))
 	{
 		model.resource = resource;

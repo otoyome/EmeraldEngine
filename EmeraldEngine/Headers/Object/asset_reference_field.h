@@ -20,7 +20,7 @@ public:
 	static bool imgui_combo(const char* label, resource::asset_reference<Type>& reference, resource::asset_types type)
 	{
 		bool changed = false;
-		const std::string current_path = reference.is_empty() || !asset_registry::is_valid() ? std::string() : asset_registry::instance()->resolve_path(reference.uuid, reference.path);
+		const std::string current_path = reference.is_empty() || !asset_registry::is_valid() ? std::string() : asset_registry::instance()->find_path(reference);
 		const std::string current_label = current_path.empty() ? std::string("(none)") : system_utility::convert_shift_jis_to_utf8(current_path);
 		if (ImGui::BeginCombo(label, current_label.c_str()))
 		{
@@ -66,10 +66,9 @@ private:
 	static bool set_path(resource::asset_reference<Type>& reference, const std::string& path)
 	{
 		const universally_unique_identifier uuid = asset_registry::is_valid() ? asset_registry::instance()->find_uuid(path) : universally_unique_identifier();
-		if (uuid == reference.uuid && path == reference.path)
+		if (uuid.is_empty() || uuid == reference.uuid)
 			return false;
 		reference.uuid = uuid;
-		reference.path = path;
 		return true;
 	}
 };
