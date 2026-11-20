@@ -60,3 +60,5 @@ struct std::hash<universally_unique_identifier>
 		return high_hash ^ (std::hash<std::uint64_t>()(value.get_low()) + 0x9e3779b97f4a7c15ull + (high_hash << 6) + (high_hash >> 2));
 	}
 };
+
+using euuid = universally_unique_identifier;

@@ -275,6 +275,7 @@ void effect_instance::set_animation_speed(float animation_speed)
 
 effect_instance::effect_instance()
 : system_flags(0)
+, uuid(universally_unique_identifier::generate())
 , resource()
 {
 	animation_time = 0.0f;
@@ -495,6 +496,9 @@ effect_manager::effect_manager()
 			emitter_data_size,
 			particle_max,
 			particle_data_size);
+
+		//	エミッターIDの所有者テーブル
+		emitter_owners.resize(emitter_max);
 	}
 
 	//	衝突判定用GPUリソース初期化
@@ -526,6 +530,9 @@ void effect_manager::update(float elapsed_time)
 {
 	remove_instances();
 	add_instances();
+
+	//	前回のGPU更新で取得したイベントを所有インスタンスへ配布
+	dispatch_particle_events();
 
 	//	更新
 	for (auto& item : items)
@@ -656,10 +663,29 @@ void effect_manager::update_gpu(graphics_context& context, float elapsed_time)
 
 		particle_system->update(context, any_update ? fixed_step : 0.0f);
 
-		//	イベントを取得しておく
+		//	イベントを取得
 		particle_system->fetch_events(context, work_particle_events);
 		if (!work_particle_events.empty())
 		{
+			//	所有者毎にイベントを振り分け
+			const math::vector3d& simulation_origin = particle_system->get_simulation_origin();
+			for (auto& ev : work_particle_events)
+			{
+				if (ev.source_emitter_id >= emitter_owners.size())
+					continue;
+
+				//	所有者がいないイベントは捨てる
+				auto& owner = emitter_owners[ev.source_emitter_id];
+				if (owner.uuid.is_empty())
+					continue;
+
+				auto& pending = pending_particle_events.emplace_back();
+				pending.uuid = owner.uuid;
+				pending.info.position = simulation_origin + math::vector3d(math::vector3f(ev.position));
+				pending.info.particle_index = owner.particle_index;
+				pending.info.target_emitter_id = ev.target_emitter_id;
+			}
+
 			particle_events.reserve(particle_events.size() + work_particle_events.size());
 			particle_events.insert(particle_events.end(), work_particle_events.begin(), work_particle_events.end());
 			work_particle_events.clear();
@@ -816,11 +842,14 @@ void effect_manager::add_instances()
 	{
 		auto& item = items.emplace_back();
 		item.effect_instance = instance;
+		instance_table.insert_or_assign(instance->get_uuid(), instance.get());	//	イベント配布用
 
 		//	パーティクル情報生成
 		item.emitter_items.reserve(item.effect_instance->get_particles().size());
-		for (auto& particle_data : item.effect_instance->get_particles())
+		auto& particles = item.effect_instance->get_particles();
+		for (size_t particle_index = 0; particle_index < particles.size(); ++particle_index)	//	所有者記録用に番号付きで回す
 		{
+			auto& particle_data = particles[particle_index];
 			if (!particle_data.particle.is_valid())
 				continue;
 
@@ -835,6 +864,14 @@ void effect_manager::add_instances()
 			auto& emitter_item = item.emitter_items.emplace_back();
 			emitter_item.system_index = particle_system->register_emitter(render_data::instance()->get_device().Get(),
 																		  emitter_resource);
+
+			//	イベント通知用に所有者を記録
+			if (emitter_item.system_index < emitter_owners.size())
+			{
+				auto& owner = emitter_owners[emitter_item.system_index];
+				owner.uuid = item.effect_instance->get_uuid();
+				owner.particle_index = particle_index;
+			}
 		}
 	}
 	system_utility::std_vector_swap_clear(instances_add);
@@ -850,6 +887,14 @@ void effect_manager::remove_instances()
 		if (it != items.end())
 		{
 			auto& item = *it;
+
+			//	イベント通知用の所有者情報を解除
+			for (auto& emitter_item : item.emitter_items)
+			{
+				if (emitter_item.system_index < emitter_owners.size())
+					emitter_owners[emitter_item.system_index] = {};
+			}
+			instance_table.erase(item.effect_instance->get_uuid());
 
 			//	モデル登録解除
 			//	@remainer	自動破棄される
@@ -870,4 +915,25 @@ void effect_manager::remove_instances()
 		}
 	}
 	system_utility::std_vector_swap_clear(instances_removes);
+}
+
+void effect_manager::dispatch_particle_events()
+{
+	//	前回分をクリア
+	for (auto& item : items)
+	{
+		if (item.effect_instance)
+			item.effect_instance->particle_events.clear();
+	}
+
+	for (auto& pending : pending_particle_events)
+	{
+		//	配布前に破棄されたインスタンス宛ては捨てる
+		auto it = instance_table.find(pending.uuid);
+		if (it == instance_table.end())
+			continue;
+
+		it->second->particle_events.emplace_back(pending.info);
+	}
+	pending_particle_events.clear();
 }

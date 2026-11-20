@@ -9,6 +9,7 @@
 
 struct emitter_context
 {
+    uint emitter_id; //	処理中のエミッターID
     uint active_items; // アクティブアイテムフラグ
     x_or_shift_128_state random_seed; // random関数の乱数種
     float elapsed_time; // 経過時間

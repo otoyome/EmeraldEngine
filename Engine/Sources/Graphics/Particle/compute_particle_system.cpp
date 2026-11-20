@@ -679,7 +679,8 @@ void compute_particle_system::update(graphics_context& context, float elapsed_ti
 			D3D11_BOX box = { sizeof(emitter_data) * remove_emitter_id, 0, 0, sizeof(emitter_data) * (remove_emitter_id + 1), 1, 1 };
 			context.device_context->UpdateSubresource(emitter_data_buffer.Get(), 0, &box, &em_data, sizeof(em_data), 0);
 
-			emitter_id_stack.push(remove_emitter_id);
+			//	遅延して届くイベントが別エミッターに化けないよう、受け渡し完了まで再利用を保留
+			retired_emitter_ids.push_back({ remove_emitter_id, particle_event_write_sequence });
 		}
 
 		//	断片化対策として、残っているIdをパーティクルバイナリーサイズの降順でソート
@@ -894,6 +895,11 @@ void compute_particle_system::update(graphics_context& context, float elapsed_ti
 		//	未読イベント破棄
 		particle_event_staging_pending = 0;
 		particle_event_overflow.clear();
+
+		//	未読イベントが無くなったので保留IDも全て解放
+		particle_event_overflow_slot_count = 0;
+		particle_event_delivered_sequence = particle_event_write_sequence;
+		release_retired_emitter_ids();
 
 		//	システム情報クリア
 		{
@@ -1131,6 +1137,7 @@ void compute_particle_system::update(graphics_context& context, float elapsed_ti
 			read_particle_event_staging(context.device_context, particle_event_staging_head, true, particle_event_overflow);
 			particle_event_staging_head = (particle_event_staging_head + 1) % particle_event_staging_count;
 			--particle_event_staging_pending;
+			++particle_event_overflow_slot_count;
 		}
 		UINT staging_index = (particle_event_staging_head + particle_event_staging_pending) % particle_event_staging_count;
 
@@ -1139,6 +1146,7 @@ void compute_particle_system::update(graphics_context& context, float elapsed_ti
 		context.device_context->CopyStructureCount(particle_event_count_buffer.Get(), 0, particle_event_append_uav.Get());
 		context.device_context->CopyResource(particle_event_staging[staging_index].Get(), particle_event_buffer.Get());
 		++particle_event_staging_pending;
+		++particle_event_write_sequence;
 	}
 
 	//	ソート処理
@@ -1297,6 +1305,10 @@ void compute_particle_system::fetch_events(graphics_context& context, std::vecto
 	out_events.clear();
 	out_events.swap(particle_event_overflow);
 
+	//	同期読み出し済みの分はここで受け渡し完了
+	particle_event_delivered_sequence += particle_event_overflow_slot_count;
+	particle_event_overflow_slot_count = 0;
+
 	//	完了済みのみ読み出し
 	while (particle_event_staging_pending > 0)
 	{
@@ -1305,6 +1317,27 @@ void compute_particle_system::fetch_events(graphics_context& context, std::vecto
 
 		particle_event_staging_head = (particle_event_staging_head + 1) % particle_event_staging_count;
 		--particle_event_staging_pending;
+		++particle_event_delivered_sequence;
+	}
+
+	//	受け渡しが追いついたIDを再利用可能に戻す
+	release_retired_emitter_ids();
+}
+
+void compute_particle_system::release_retired_emitter_ids()
+{
+	auto it = retired_emitter_ids.begin();
+	while (it != retired_emitter_ids.end())
+	{
+		if (particle_event_delivered_sequence >= it->release_sequence)
+		{
+			emitter_id_stack.push(it->emitter_id);
+			it = retired_emitter_ids.erase(it);
+		}
+		else
+		{
+			++it;
+		}
 	}
 }
 

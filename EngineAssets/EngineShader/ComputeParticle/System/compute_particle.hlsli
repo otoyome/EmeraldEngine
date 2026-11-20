@@ -78,8 +78,9 @@ static const uint tag_particle_index_bit_mask = 0x001FFFFF;
 //  パーティクルイベント通知用構造体
 struct particle_event
 {
-    float3 position;
-    uint target_emitter_id;
+    float3 position; // 呼び出し座標
+    uint target_emitter_id;	// 呼び出しエミッターID
+    uint source_emitter_id; // 発生させたエミッターID
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////

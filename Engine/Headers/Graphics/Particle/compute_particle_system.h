@@ -341,12 +341,21 @@ public:
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> shader_resource_view;
 	};
 
+	//	再利用保留エミッターID
+	struct retired_emitter_id
+	{
+		UINT emitter_id;			//	エミッターID
+		UINT64 release_sequence;	//	再利用可能受け渡し番号
+	};
+
 	//	パーティクルイベント情報
 	struct particle_event
 	{
-		math::float3 position;
-		UINT target_emitter_id;
+		math::float3 position;	//	呼び出し座標
+		UINT target_emitter_id;	//	呼び出しエミッターID
+		UINT source_emitter_id;	//	発生させたエミッターID
 	};
+	static constexpr UINT particle_event_staging_count = 8;	//	読み出し用リング数
 
 public:
 	compute_particle_system(ID3D11Device* device,
@@ -384,7 +393,11 @@ public:
 	void update_simulation_origin(const math::vector3d& render_origin);
 
 private:
+	//	パーティクルイベント読み出し
 	bool read_particle_event_staging(ID3D11DeviceContext* device_context, UINT slot, bool wait, std::vector<particle_event>& out_events);
+
+	//	イベント受け渡し済みの保留IDを再利用可能に戻す
+	void release_retired_emitter_ids();
 
 private:
 	UINT total_emitter_count;
@@ -409,6 +422,8 @@ private:
 	std::vector<UINT> reset_emitter_ids; // 現フレームリセットエミッターIDリスト
 	std::vector<UINT> remove_emitter_ids; // 現フレーム破棄エミッターIDリスト
 	std::vector<UINT> garbage_correct_emitter_ids; // ガベージコレクション対応エミッターIDリスト
+	std::vector<retired_emitter_id> retired_emitter_ids; // 再利用待機中エミッターID
+
 	std::vector<emitter_header> emitter_headers; // エミッターヘッダーリスト
 	std::vector<update_emitter_data> update_emitter_datas; // エミッター更新アイテムリスト
 	std::vector<inner_emitter_resource> emitter_resources; // エミッターリソース
@@ -456,12 +471,14 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11Buffer> particle_event_buffer;
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> particle_event_shader_resource_view;
 	Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> particle_event_append_uav;
-	static constexpr UINT particle_event_staging_count = 8;	//	読み出し用リング数
 	Microsoft::WRL::ComPtr<ID3D11Buffer> particle_event_staging[particle_event_staging_count];
 	Microsoft::WRL::ComPtr<ID3D11Buffer> particle_event_count_staging[particle_event_staging_count];
 	UINT particle_event_staging_head = 0;	//	読み出し待ち先頭
 	UINT particle_event_staging_pending = 0;	//	読み出し待ち数
 	std::vector<particle_event> particle_event_overflow;	//	同期読み出し済みイベント
+	UINT64 particle_event_write_sequence = 0;		//	ステージングへコピーした回数
+	UINT64 particle_event_delivered_sequence = 0;	//	fetch_events で渡し終えたスロット数
+	UINT particle_event_overflow_slot_count = 0;	//	同期読み出し済みで未受け渡しのスロット数
 	Microsoft::WRL::ComPtr<ID3D11Buffer> particle_event_count_buffer;
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> particle_event_count_shader_resource_view;
 

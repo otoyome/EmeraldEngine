@@ -4,13 +4,24 @@
 #include "Model/model_instance.h"
 
 #include "Graphics/Geometry/cubic_sdf_buffer_pool.h"
+#include "System/universally_unique_identifier.h"
 #include <unordered_map>
 
 //	エフェクトインスタンス
 class effect_instance
 {
+	friend class effect_manager;
+
 public:
 	static constexpr size_t invalid_id = -1;
+
+	//	パーティクルイベント
+	struct particle_event_info
+	{
+		math::vector3d position;	//	発生位置
+		size_t particle_index = invalid_id;	//	発生元パーティクル
+		UINT target_emitter_id = invalid_emitter_id;	//	生成先エミッターID
+	};
 
 	enum class flags
 	{
@@ -99,6 +110,8 @@ public:
 	inline std::vector<model>& get_models() { return models; }
 	inline std::vector<particle>& get_particles() { return particles; }
 	inline std::vector<decal>& get_decals() { return decals; }
+	inline const universally_unique_identifier& get_uuid() const { return uuid; }
+	inline const std::vector<particle_event_info>& get_particle_events() const { return particle_events; }
 
 	inline const math::float4x4& get_previous_world_transform() const { return previous_world_transform; }
 	inline void set_previous_world_transform(const math::float4x4& transform){ previous_world_transform = transform; }
@@ -127,6 +140,7 @@ private:
 	std::string name;
 	UINT system_flags;
 	effect_resource_ptr resource;
+	universally_unique_identifier uuid;
 
 	std::vector<node> nodes;
 	std::vector<model> models;
@@ -153,6 +167,9 @@ private:
 
 	float particle_simulation_time = 0.0f;
 	UINT particle_simulation_step = 0;
+
+	//	届いたパーティクルイベント
+	std::vector<particle_event_info> particle_events;
 };
 
 using effect_instance_ptr = std::shared_ptr<effect_instance>;
@@ -172,6 +189,20 @@ class effect_manager
 
 		effect_instance_ptr effect_instance;
 		std::vector<emitter_item> emitter_items;
+	};
+
+	//	エミッターIDの所有者情報
+	struct emitter_owner
+	{
+		euuid uuid;	//	所有者識別子
+		size_t particle_index = effect_instance::invalid_id;	//	所有インスタンス内のパーティクル番号
+	};
+
+	//	配布待ちイベント
+	struct pending_particle_event
+	{
+		euuid uuid;
+		effect_instance::particle_event_info info;
 	};
 
 public:
@@ -203,6 +234,7 @@ public:
 private:
 	void add_instances();
 	void remove_instances();
+	void dispatch_particle_events();
 
 private:
 	std::shared_ptr<compute_particle_system> particle_system;
@@ -211,6 +243,9 @@ private:
 	std::vector<item> items;
 	std::vector<effect_instance_ptr> instances_add;
 	std::vector<effect_instance_ptr> instances_removes;
+	std::vector<emitter_owner> emitter_owners;
+	std::unordered_map<euuid, effect_instance*> instance_table;
+	std::vector<pending_particle_event> pending_particle_events;
 
 	std::shared_ptr<cubic_sdf_buffer_pool> cubic_sdf_resource;
 };

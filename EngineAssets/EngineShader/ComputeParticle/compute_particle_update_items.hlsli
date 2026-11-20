@@ -27,6 +27,7 @@ StructuredBuffer<float> cubic_sdf_voxel_buffer : register(t3);
 emitter_context build_emitter_context(inout uint emitter_binary_offset, uint emitter_id, uint3 dispatch_thread_id)
 {
     emitter_context em_context;
+    em_context.emitter_id = emitter_id; //	イベント発生元通知用
 
     em_common_item em_common;
     stream_common_item(rw_read_only, emitter_binary_offset, em_common);
@@ -350,6 +351,7 @@ void update_event_item(inout emitter_context em_context, inout pt_common_item pt
                     //  イベントバッファに登録
                     particle_event ev;
                     ev.target_emitter_id = em_event.target_emitter_id;
+                    ev.source_emitter_id = em_context.emitter_id;
                     ev.position = hit_position;
                     particle_event_buffer.Append(ev);
 
