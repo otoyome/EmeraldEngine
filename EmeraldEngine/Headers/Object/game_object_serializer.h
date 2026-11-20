@@ -50,6 +50,7 @@ public:
 		const_cast<Owner&>(owner).serialize_fields(archive, version);
 		archive.finishNode();
 	}
+
 	template<class Archive, class Owner>
 	static void load_fields(Archive& archive, const char* name, Owner& owner)
 	{

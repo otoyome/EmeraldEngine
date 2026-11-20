@@ -655,6 +655,7 @@
     <ClInclude Include="Headers\Object\builtin_types.h" />
     <ClInclude Include="Headers\Object\game_object_serializer.h" />
     <ClInclude Include="Headers\Object\object_reference_field.h" />
+    <ClInclude Include="Headers\Object\asset_reference_field.h" />
     <ClInclude Include="Headers\Object\prefab_resource.h" />
     <ClInclude Include="Headers\Object\collision_placement_object.h" />
     <ClInclude Include="Headers\Object\collision_shape_object.h" />

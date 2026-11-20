@@ -28,19 +28,31 @@ namespace minigame000
 		};
 
 	public:
+		//	モデル取得
 		const std::shared_ptr<model_object>& get_model_object() const { return model; }
+
+		//	当たり判定取得
 		const std::shared_ptr<collision_shape_object>& get_collision_object() const { return collision; }
+
+		//	移動制御取得
 		const roomba_movement& get_movement() const { return movement; }
+
+		//	移動情報取得
 		const roomba_movement_state& get_movement_state() const { return movement_state; }
+
+		//	移動環境情報設定/取得
 		void set_movement_environment(const roomba_movement_environment& value) { movement_environment = value; }
 		const roomba_movement_environment& get_movement_environment() const { return movement_environment; }
 
+		//	入力元設定/取得
 		void set_input_source(const std::shared_ptr<roomba_input_source>& source) { input_source = source; }
 		std::shared_ptr<roomba_input_source> get_input_source() const { return input_source.lock(); }
 
+		//	回転取得
 		math::rotatorf get_rotation() const;
 		void set_rotation(math::rotatorf rotator);
 
+		//	座標取得
 		math::vector3d get_position() const;
 		void set_position(const math::vector3d& position);
 
@@ -82,7 +94,6 @@ namespace minigame000
 		roomba_movement_state movement_state;				//	ムーブステート
 
 		std::weak_ptr<roomba_input_source> input_source;	//	入力元
-		roomba_input_command input_command;					//	入力コマンド
 		std::uint32_t next_tick = 0;						//	ネットワーク用処理順
 	};
 }	//	namespace minigame000

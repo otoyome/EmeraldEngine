@@ -5,8 +5,7 @@
 #include "Resource/resource_manager.h"
 
 #if defined(USE_IMGUI)
-#include "Resource/asset_registry.h"
-#include "System/asset_browser.h"
+#include "Object/asset_reference_field.h"
 #endif	//	defined(USE_IMGUI)
 
 #include "cereal/cereal.hpp"
@@ -723,31 +722,10 @@ void model_object::imgui_render_core()
 {
 	base::imgui_render_core();
 
-	const model_resource_ptr current = model_instance ? model_instance->get_resource() : nullptr;
-	const cache_string current_path(current ? current->get_file_path() : std::string_view{});
-	if (ImGui::BeginCombo("model", current ? current_path.get<utf8_cache>().data() : "(none)"))
-	{
-		if (asset_registry::is_valid())
-		{
-			for (const std::string& model_path : asset_registry::instance()->find_paths(resource::asset_types::model))
-			{
-				const cache_string label(model_path);
-				if (ImGui::Selectable(label.get<utf8_cache>().data(), current && current->get_file_path() == model_path))
-					change_model(model_path);
-			}
-		}
-		ImGui::EndCombo();
-	}
-	if (ImGui::BeginDragDropTarget())
-	{
-		if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(asset_browser::drag_payload_type))
-		{
-			const std::string file_path(static_cast<const char*>(payload->Data));
-			if (resource::get_asset_type_from_extension(std::filesystem::path(file_path).extension().string()) == resource::asset_types::model)
-				change_model(file_path);
-		}
-		ImGui::EndDragDropTarget();
-	}
+	//	@tool	選択とドロップは共通のアセット参照欄で行い、変わったらモデルを差し替える
+	resource::asset_reference<model_resource> model_reference = resource::asset_reference<model_resource>::from(model_instance ? model_instance->get_resource() : nullptr);
+	if (asset_reference_field::imgui_combo("model", model_reference, resource::asset_types::model))
+		change_model(model_reference.path);
 
 	if (!model_instance)
 		return;

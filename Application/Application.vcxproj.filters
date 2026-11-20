@@ -46,6 +46,18 @@
     <Filter Include="Sources\Object">
       <UniqueIdentifier>{bd8214b4-008f-4843-9df1-382fdae95fd1}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Sources\Object\SceneSystem">
+      <UniqueIdentifier>{ffd98d03-edbf-4988-b127-8227f47d4868}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Sources\Object\SceneSystem\MiniGame">
+      <UniqueIdentifier>{2f158117-d55a-47d3-b404-1be9ab93b34d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Headers\Object\SceneSystem">
+      <UniqueIdentifier>{c1b9fafc-b148-463e-bd74-affa608149cc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Headers\Object\SceneSystem\MiniGame">
+      <UniqueIdentifier>{63d2a8af-42b7-450d-b3ff-989886b364f5}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Sources\stdafx_application.cpp">
@@ -108,6 +120,12 @@
     <ClCompile Include="Sources\Object\GameObjects\MiniGame\minigame000_roomba_input_source.cpp">
       <Filter>Sources\Object\GameObjects\MiniGame</Filter>
     </ClCompile>
+    <ClCompile Include="Sources\Object\GameObjects\MiniGame\minigame000_roomba_player_controller_object.cpp">
+      <Filter>Sources\Object\GameObjects\MiniGame</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Object\SceneSystem\MiniGame\minigame000_system.cpp">
+      <Filter>Sources\Object\SceneSystem\MiniGame</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Headers\stdafx_application.h">
@@ -166,6 +184,12 @@
     </ClInclude>
     <ClInclude Include="Headers\Object\GameObjects\MiniGame\minigame000_roomba_input_source.h">
       <Filter>Headers\Object\GameObjects\MiniGame</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Object\GameObjects\MiniGame\minigame000_roomba_player_controller_object.h">
+      <Filter>Headers\Object\GameObjects\MiniGame</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Object\SceneSystem\MiniGame\minigame000_system.h">
+      <Filter>Headers\Object\SceneSystem\MiniGame</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

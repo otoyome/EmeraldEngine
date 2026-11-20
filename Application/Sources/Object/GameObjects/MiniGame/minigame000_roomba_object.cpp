@@ -74,7 +74,6 @@ minigame000::roomba_object::roomba_object(std::string_view name)
 , movement_state()
 
 , input_source()
-, input_command()
 , next_tick(0)
 {
 }
@@ -249,11 +248,11 @@ void minigame000::roomba_object::set_position(const math::vector3d& position)
 
 void minigame000::roomba_object::fixed_update(float elapsed_time)
 {
-	//	当たり判定ルが無ければ動かさない
+	//	当たり判定が無ければ動かさない
 	if (!collision || !collision->get_collision())
 		return;
 
-	//	ルンバの当たり判定形状を伝達
+	//	判定形状
 	roomba_movement::shape_descs shape;
 	shape.radius = collision->get_shape_scale().x;
 	shape.length = collision->get_shape_scale().y;
@@ -261,12 +260,18 @@ void minigame000::roomba_object::fixed_update(float elapsed_time)
 	shape.filter = collision_filter_manager::instance()->search_filter(collision->get_filter_name());
 	shape.exclude = collision->get_collision();
 
-	input_command.tick = ++next_tick;
+	//	入力取得
+	const std::uint32_t tick = ++next_tick;
+	roomba_input_command command;
+	if (const std::shared_ptr<roomba_input_source> source = input_source.lock())
+	{
+		if (!source->make_command(tick, command))
+			command = {};
+	}
+	command.tick = tick;
 
 	//	移動処理
-	movement.simulate(movement_state, input_command, elapsed_time, movement_environment, get_context().get_objects().get_world(), shape);
-
-	input_command = {};
+	movement.simulate(movement_state, command, elapsed_time, movement_environment, get_context().get_objects().get_world(), shape);
 
 	//	移動情報適応
 	apply_movement_state();

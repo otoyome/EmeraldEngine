@@ -946,6 +946,9 @@
     <ClInclude Include="Headers\Object\object_reference_field.h">
       <Filter>Headers\Object</Filter>
     </ClInclude>
+    <ClInclude Include="Headers\Object\asset_reference_field.h">
+      <Filter>Headers\Object</Filter>
+    </ClInclude>
     <ClInclude Include="Headers\Object\game_object_serializer.h">
       <Filter>Headers\Object</Filter>
     </ClInclude>
