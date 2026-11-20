@@ -9,16 +9,17 @@ class spatial_object : public game_object
 {
 	GAME_OBJECT_DECRLEAR(spatial_object, game_object)
 
+	friend class game_object_serializer;
+	static constexpr std::uint32_t serialize_version = 1;
+
 public:
 	using attach_rule = ::spatial::attach_rule;
 
-	static constexpr std::uint32_t serialize_version = 1;
-
-	//	動くかどうかを決める物。movableの子にfixedは設定できない
+	//	動く物体か
 	enum class mobilities : std::uint8_t
 	{
-		fixed,
-		movable,
+		fixed,		//	固定
+		movable,	//	動体
 	};
 
 public:
@@ -26,6 +27,13 @@ public:
 
 	mobilities get_mobility() const { return mobility; }
 	bool set_mobility(mobilities value);
+
+	//	親子関係の取得
+	std::shared_ptr<spatial_object> get_parent() const { return parent_object.lock(); }
+	std::shared_ptr<spatial_object> get_root() const;
+	std::vector<std::shared_ptr<spatial_object>> get_children() const;
+	std::vector<std::shared_ptr<spatial_object>> get_siblings() const;
+	std::vector<std::shared_ptr<spatial_object>> get_descendants() const;
 
 	//	ローカル姿勢
 	const math::transformd& get_local() const;
@@ -53,30 +61,91 @@ public:
 	spatial_object(std::string_view name, const math::transformd& local);
 	virtual ~spatial_object();
 
+#if defined(USE_IMGUI)
+	void imgui_render_core() override;
+#endif	//	defined(USE_IMGUI
+
+public:
 	//	親子関係の付け替え
 	bool attach(const std::shared_ptr<spatial_object>& parent, attach_rule rule = attach_rule::keep_world);
 	void detach(attach_rule rule = attach_rule::keep_world);
 	static bool attach_object(const std::shared_ptr<game_object>& child, const std::shared_ptr<game_object>& parent);
 
+	//	自分が指定オブジェクトの祖先か
+	bool is_ancestor_of(const spatial_object& object) const;
+
+	//	名前で子を検索
+	std::shared_ptr<spatial_object> find_child(std::string_view name, bool recursive = false) const;
+
+	//	型で子を検索
+	template<class Type>
+	std::shared_ptr<Type> find_child(bool recursive = false) const
+	{
+		for (const std::weak_ptr<spatial_object>& weak_child : child_objects)
+		{
+			const std::shared_ptr<spatial_object> child = weak_child.lock();
+			if (!child)
+				continue;
+			if (std::shared_ptr<Type> result = std::dynamic_pointer_cast<Type>(child))
+				return result;
+			if (recursive)
+			{
+				if (std::shared_ptr<Type> result = child->find_child<Type>(true))
+					return result;
+			}
+		}
+		return nullptr;
+	}
+
+	//	型で子を全て検索
+	template<class Type>
+	std::vector<std::shared_ptr<Type>> find_children(bool recursive = false) const
+	{
+		std::vector<std::shared_ptr<Type>> results;
+		collect_children<Type>(results, recursive);
+		return results;
+	}
+
+	//	型で親をさかのぼって検索
+	template<class Type>
+	std::shared_ptr<Type> find_parent() const
+	{
+		for (std::shared_ptr<spatial_object> parent = parent_object.lock(); parent; parent = parent->parent_object.lock())
+		{
+			if (std::shared_ptr<Type> result = std::dynamic_pointer_cast<Type>(parent))
+				return result;
+		}
+		return nullptr;
+	}
+
+public:
 	void serialize(cereal::JSONOutputArchive& archive) const override;
 	void deserialize(cereal::JSONInputArchive& archive) override;
 
 private:
-	friend class game_object_serializer;
 	template<class Archive>
 	void serialize_fields(Archive& archive, std::uint32_t version);
-
-public:
-
-#if defined(USE_IMGUI)
-	void imgui_render_core() override;
-#endif	//	defined(USE_IMGUI)
 
 protected:
 	bool can_move() const;
 
 private:
 	void detach_record();
+
+	template<class Type>
+	void collect_children(std::vector<std::shared_ptr<Type>>& results, bool recursive) const
+	{
+		for (const std::weak_ptr<spatial_object>& weak_child : child_objects)
+		{
+			const std::shared_ptr<spatial_object> child = weak_child.lock();
+			if (!child)
+				continue;
+			if (std::shared_ptr<Type> result = std::dynamic_pointer_cast<Type>(child))
+				results.emplace_back(std::move(result));
+			if (recursive)
+				child->collect_children<Type>(results, true);
+		}
+	};
 
 private:
 	std::shared_ptr<spatial> spatial;

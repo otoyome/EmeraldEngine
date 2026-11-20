@@ -66,6 +66,7 @@ public:
 	//	自分以下の再計算が必要なワールド姿勢をまとめて計算する
 	void update_descendants() const;
 
+public:
 	template<class Archive>
 	void serialize(Archive& archive, int version);
 
@@ -77,8 +78,8 @@ private:
 	mutable UINT system_flags;			//	フラグ類
 	std::uint32_t version;				//	変更回数
 
-	math::transformd local;					//	ローカル姿勢
-	mutable math::transformd world;			//	ワールド姿勢
+	math::transformd local;				//	ローカル姿勢
+	mutable math::transformd world;		//	ワールド姿勢
 	math::rotatord local_euler_hint;	//	最後に設定されたローカル回転のオイラー角
 };
 

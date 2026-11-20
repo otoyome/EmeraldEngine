@@ -11,6 +11,79 @@ const std::shared_ptr<::spatial>& spatial_object::get_spatial() const
 	return spatial;
 }
 
+std::shared_ptr<spatial_object> spatial_object::get_root() const
+{
+	std::shared_ptr<spatial_object> root = std::const_pointer_cast<spatial_object>(std::dynamic_pointer_cast<const spatial_object>(weak_from_this().lock()));
+	for (std::shared_ptr<spatial_object> parent = parent_object.lock(); parent; parent = parent->parent_object.lock())
+	{
+		root = parent;
+	}
+	return root;
+}
+
+std::vector<std::shared_ptr<spatial_object>> spatial_object::get_children() const
+{
+	std::vector<std::shared_ptr<spatial_object>> children;
+	children.reserve(child_objects.size());
+	for (const std::weak_ptr<spatial_object>& weak_child : child_objects)
+	{
+		if (std::shared_ptr<spatial_object> child = weak_child.lock())
+			children.emplace_back(std::move(child));
+	}
+	return children;
+}
+
+std::vector<std::shared_ptr<spatial_object>> spatial_object::get_siblings() const
+{
+	std::vector<std::shared_ptr<spatial_object>> siblings;
+	const std::shared_ptr<spatial_object> parent = parent_object.lock();
+	if (!parent)
+		return siblings;
+
+	for (const std::weak_ptr<spatial_object>& weak_child : parent->child_objects)
+	{
+		std::shared_ptr<spatial_object> child = weak_child.lock();
+		if (child && child.get() != this)
+			siblings.emplace_back(std::move(child));
+	}
+	return siblings;
+}
+
+std::vector<std::shared_ptr<spatial_object>> spatial_object::get_descendants() const
+{
+	std::vector<std::shared_ptr<spatial_object>> descendants;
+	collect_children<spatial_object>(descendants, true);
+	return descendants;
+}
+
+bool spatial_object::is_ancestor_of(const spatial_object& object) const
+{
+	for (std::shared_ptr<spatial_object> parent = object.parent_object.lock(); parent; parent = parent->parent_object.lock())
+	{
+		if (parent.get() == this)
+			return true;
+	}
+	return false;
+}
+
+std::shared_ptr<spatial_object> spatial_object::find_child(std::string_view name, bool recursive) const
+{
+	for (const std::weak_ptr<spatial_object>& weak_child : child_objects)
+	{
+		const std::shared_ptr<spatial_object> child = weak_child.lock();
+		if (!child)
+			continue;
+		if (child->get_name() == name)
+			return child;
+		if (recursive)
+		{
+			if (std::shared_ptr<spatial_object> result = child->find_child(name, true))
+				return result;
+		}
+	}
+	return nullptr;
+}
+
 const math::transformd& spatial_object::get_local() const
 {
 	return spatial->get_local();
@@ -134,6 +207,62 @@ bool spatial_object::set_mobility(mobilities value)
 	return true;
 }
 
+spatial_object::spatial_object(std::string_view name)
+: game_object(name)
+, spatial(std::make_shared<::spatial>())
+{
+}
+
+spatial_object::spatial_object(std::string_view name, const math::transformd& local)
+: game_object(name)
+, spatial(std::make_shared<::spatial>(local))
+{
+}
+
+spatial_object::~spatial_object()
+{
+	if (spatial)
+	{
+		spatial->detach();
+	}
+	detach_record();
+}
+
+#if defined(USE_IMGUI)
+void spatial_object::imgui_render_core()
+{
+	base::imgui_render_core();
+
+	//	ローカル姿勢の編集
+	{
+		//	動き方
+		static const char* mobility_names[] = { "fixed", "movable" };
+		int mobility_index = static_cast<int>(mobility);
+		if (ImGui::Combo("mobility", &mobility_index, mobility_names, IM_ARRAYSIZE(mobility_names)))
+			set_mobility(static_cast<mobilities>(mobility_index));
+
+		const math::transformd& local = spatial->get_local();
+
+		math::vector3d translation = local.get_translation();
+		if (ImGui::DragScalarN("translation", ImGuiDataType_Double, &translation.x, 3, 0.1f))
+			set_local_translation(translation);
+
+		const math::rotatord euler = spatial->get_local_euler();
+		double degrees[3] = { math::angle::to_degree(euler.x), math::angle::to_degree(euler.y), math::angle::to_degree(euler.z) };
+		if (ImGui::DragScalarN("rotation", ImGuiDataType_Double, degrees, 3, 0.5f))
+		{
+			const math::rotatord edited(math::angle::to_radian(degrees[0]), math::angle::to_radian(degrees[1]), math::angle::to_radian(degrees[2]));
+			set_local_euler(edited);
+		}
+
+		math::vector3d scale = local.get_scale();
+		if (ImGui::DragScalarN("scale", ImGuiDataType_Double, &scale.x, 3, 0.01f))
+			set_local_scale(scale);
+	}
+}
+#endif	//	defined(USE_IMGUI)
+
+
 bool spatial_object::can_move() const
 {
 	//	fixed でも登録前と編集中は動かせる
@@ -221,65 +350,3 @@ void spatial_object::deserialize(cereal::JSONInputArchive& archive)
 	base::deserialize(archive);
 	game_object_serializer::load_fields(archive, "spatial_object", *this);
 }
-
-spatial_object::spatial_object(std::string_view name)
-: game_object(name)
-, spatial(std::make_shared<::spatial>())
-{
-}
-
-spatial_object::spatial_object(std::string_view name, const math::transformd& local)
-: game_object(name)
-, spatial(std::make_shared<::spatial>(local))
-{
-}
-
-spatial_object::~spatial_object()
-{
-	if (spatial)
-	{
-		spatial->detach();
-	}
-	detach_record();
-}
-
-#if defined(USE_IMGUI)
-void spatial_object::imgui_render_core()
-{
-	base::imgui_render_core();
-
-	//	ローカル姿勢の編集
-	//if (ImGui::TreeNode("spatial"))
-	{
-		//	動き方
-		static const char* mobility_names[] = { "fixed", "movable" };
-		int mobility_index = static_cast<int>(mobility);
-		if (ImGui::Combo("mobility", &mobility_index, mobility_names, IM_ARRAYSIZE(mobility_names)))
-			set_mobility(static_cast<mobilities>(mobility_index));
-
-		const math::transformd& local = spatial->get_local();
-
-		math::vector3d translation = local.get_translation();
-		if (ImGui::DragScalarN("translation", ImGuiDataType_Double, &translation.x, 3, 0.1f))
-			set_local_translation(translation);
-
-		const math::rotatord euler = spatial->get_local_euler();
-		double degrees[3] = { math::angle::to_degree(euler.x), math::angle::to_degree(euler.y), math::angle::to_degree(euler.z) };
-		if (ImGui::DragScalarN("rotation", ImGuiDataType_Double, degrees, 3, 0.5f))
-		{
-			const math::rotatord edited(math::angle::to_radian(degrees[0]), math::angle::to_radian(degrees[1]), math::angle::to_radian(degrees[2]));
-			set_local_euler(edited);
-		}
-
-		math::vector3d scale = local.get_scale();
-		if (ImGui::DragScalarN("scale", ImGuiDataType_Double, &scale.x, 3, 0.01f))
-			set_local_scale(scale);
-
-	//	const math::vector3d world_translation = spatial->get_world().get_translation();
-	//	ImGui::Text("world : %.3f, %.3f, %.3f", world_translation.x, world_translation.y, world_translation.z);
-	//
-	//	ImGui::TreePop();
-	}
-}
-#endif	//	defined(USE_IMGUI)
-
