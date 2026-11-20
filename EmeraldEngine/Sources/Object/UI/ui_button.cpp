@@ -1,4 +1,4 @@
-#include "object/gameobjects/ui/ui_button.h"
+#include "object/ui/ui_button.h"
 
 math::float4 ui_button::get_color(color_type type) const
 {

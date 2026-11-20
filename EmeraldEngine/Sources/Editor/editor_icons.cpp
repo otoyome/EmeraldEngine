@@ -15,7 +15,7 @@
 #include "Object/light_object.h"
 #include "Object/camera_object.h"
 #include "Object/post_process_volume_object.h"
-#include "Object/GameObjects/System/start_point_object.h"
+#include "Object/System/start_point_object.h"
 #include "Graphics/Debug/debug_primitive_collector.h"
 #include "System/imgui_texture_keeper.h"
 #include "Texture/texture_importer.h"

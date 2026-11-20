@@ -1,7 +1,7 @@
 #pragma once
 
-#include "object/gameobjects/ui/ui_image.h"
-#include "object/gameobjects/ui/ui_text.h"
+#include "object/ui/ui_image.h"
+#include "object/ui/ui_text.h"
 
 //	ルンバ：チュートリアル表示用オブジェクト
 class roomba_tutorial_controller_object : public game_object

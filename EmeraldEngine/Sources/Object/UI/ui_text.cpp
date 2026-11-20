@@ -1,4 +1,4 @@
-#include "object/gameobjects/ui/ui_text.h"
+#include "object/ui/ui_text.h"
 
 std::string_view ui_text::get_texts() const
 {

@@ -19,7 +19,7 @@
 
 #include "Object/object_manager.h"
 #include "Object/world.h"
-#include "Object/GameObjects/UI/ui_object.h"
+#include "Object/UI/ui_object.h"
 
 #include "System/engine_config_data.h"
 #include "System/console_manager.h"

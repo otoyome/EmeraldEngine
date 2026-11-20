@@ -135,28 +135,16 @@
     <Filter Include="Headers\Scenes\StageScene">
       <UniqueIdentifier>{4a46b9bc-6dc6-47cb-9a95-ee9c21e5848f}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Headers\Object\GameObjects">
-      <UniqueIdentifier>{68ee2833-96da-46a3-97b9-3a0ed50be403}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Sources\Object\GameObjects">
-      <UniqueIdentifier>{1bf887b8-cc7e-4f33-b9b3-767bfef94ecb}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Sources\Object\GameObjects\Character">
-      <UniqueIdentifier>{eabd3e71-6217-4562-8589-f1b4f77735ff}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Headers\Object\GameObjects\UI">
+    <Filter Include="Headers\Object\UI">
       <UniqueIdentifier>{af0e756c-0ee5-4ab0-8389-b9ddf2bc0784}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Headers\Object\GameObjects\UI\Common">
+    <Filter Include="Headers\Object\UI\Common">
       <UniqueIdentifier>{1897ba30-1090-44da-95a9-2561cad9a309}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Sources\Object\GameObjects\Cinematics">
-      <UniqueIdentifier>{35302188-f99f-458b-9dfe-64ebc2e330dc}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Sources\Object\GameObjects\UI">
+    <Filter Include="Sources\Object\UI">
       <UniqueIdentifier>{9fed639c-254a-4e70-8dd9-8016dfbf2916}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Sources\Object\GameObjects\UI\Common">
+    <Filter Include="Sources\Object\UI\Common">
       <UniqueIdentifier>{451c5df4-4744-4a50-aae3-663fdd716827}</UniqueIdentifier>
     </Filter>
     <Filter Include="Sources\Scenes\MiniGameScene">
@@ -168,7 +156,7 @@
     <Filter Include="Sources\Object\System">
       <UniqueIdentifier>{97f4cb40-8157-4750-ab6b-d63463e2d2b6}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Headers\Object\GameObjects\System">
+    <Filter Include="Headers\Object\System">
       <UniqueIdentifier>{4b8848de-8c61-4d5a-b1a5-2585bcde5296}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
@@ -455,23 +443,23 @@
     <ClCompile Include="Sources\PipelineState\deferred_decal_pipeline_state.cpp">
       <Filter>Sources\PipelineState</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Object\GameObjects\UI\Common\fade_controller_object.cpp">
-      <Filter>Sources\Object\GameObjects\UI\Common</Filter>
+    <ClCompile Include="Sources\Object\UI\Common\fade_controller_object.cpp">
+      <Filter>Sources\Object\UI\Common</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Object\GameObjects\UI\Common\transition_fade_controller.cpp">
-      <Filter>Sources\Object\GameObjects\UI\Common</Filter>
+    <ClCompile Include="Sources\Object\UI\Common\transition_fade_controller.cpp">
+      <Filter>Sources\Object\UI\Common</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Object\GameObjects\UI\ui_button.cpp">
-      <Filter>Sources\Object\GameObjects\UI</Filter>
+    <ClCompile Include="Sources\Object\UI\ui_button.cpp">
+      <Filter>Sources\Object\UI</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Object\GameObjects\UI\ui_image.cpp">
-      <Filter>Sources\Object\GameObjects\UI</Filter>
+    <ClCompile Include="Sources\Object\UI\ui_image.cpp">
+      <Filter>Sources\Object\UI</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Object\GameObjects\UI\ui_object.cpp">
-      <Filter>Sources\Object\GameObjects\UI</Filter>
+    <ClCompile Include="Sources\Object\UI\ui_object.cpp">
+      <Filter>Sources\Object\UI</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Object\GameObjects\UI\ui_text.cpp">
-      <Filter>Sources\Object\GameObjects\UI</Filter>
+    <ClCompile Include="Sources\Object\UI\ui_text.cpp">
+      <Filter>Sources\Object\UI</Filter>
     </ClCompile>
     <ClCompile Include="Sources\Object\spatial_object.cpp">
       <Filter>Sources\Object</Filter>
@@ -548,7 +536,7 @@
     <ClCompile Include="Sources\Object\game_object_serializer.cpp">
       <Filter>Sources\Object</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Object\GameObjects\System\start_point_object.cpp">
+    <ClCompile Include="Sources\Object\System\start_point_object.cpp">
       <Filter>Sources\Object\System</Filter>
     </ClCompile>
   </ItemGroup>
@@ -847,23 +835,23 @@
     <ClInclude Include="Headers\PipelineState\deferred_decal_pipeline_state.h">
       <Filter>Headers\PipelineState</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Object\GameObjects\UI\ui_image.h">
-      <Filter>Headers\Object\GameObjects\UI</Filter>
+    <ClInclude Include="Headers\Object\UI\ui_image.h">
+      <Filter>Headers\Object\UI</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Object\GameObjects\UI\ui_object.h">
-      <Filter>Headers\Object\GameObjects\UI</Filter>
+    <ClInclude Include="Headers\Object\UI\ui_object.h">
+      <Filter>Headers\Object\UI</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Object\GameObjects\UI\ui_text.h">
-      <Filter>Headers\Object\GameObjects\UI</Filter>
+    <ClInclude Include="Headers\Object\UI\ui_text.h">
+      <Filter>Headers\Object\UI</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Object\GameObjects\UI\ui_button.h">
-      <Filter>Headers\Object\GameObjects\UI</Filter>
+    <ClInclude Include="Headers\Object\UI\ui_button.h">
+      <Filter>Headers\Object\UI</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Object\GameObjects\UI\Common\fade_controller_object.h">
-      <Filter>Headers\Object\GameObjects\UI\Common</Filter>
+    <ClInclude Include="Headers\Object\UI\Common\fade_controller_object.h">
+      <Filter>Headers\Object\UI\Common</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Object\GameObjects\UI\Common\transition_fade_controller.h">
-      <Filter>Headers\Object\GameObjects\UI\Common</Filter>
+    <ClInclude Include="Headers\Object\UI\Common\transition_fade_controller.h">
+      <Filter>Headers\Object\UI\Common</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Renderer\occlusion_culling_renderer.h">
       <Filter>Headers</Filter>
@@ -952,8 +940,8 @@
     <ClInclude Include="Headers\Object\game_object_serializer.h">
       <Filter>Headers\Object</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Object\GameObjects\System\start_point_object.h">
-      <Filter>Headers\Object\GameObjects\System</Filter>
+    <ClInclude Include="Headers\Object\System\start_point_object.h">
+      <Filter>Headers\Object\System</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

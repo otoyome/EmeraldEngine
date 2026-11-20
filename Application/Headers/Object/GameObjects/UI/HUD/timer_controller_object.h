@@ -1,9 +1,9 @@
 #pragma once
 
-#include "object/gameobjects/ui/ui_object.h"
-#include "object/gameobjects/ui/ui_image.h"
+#include "object/ui/ui_object.h"
+#include "object/ui/ui_image.h"
 
-#include "object/gameobjects/ui/common/fade_controller_object.h"
+#include "object/ui/common/fade_controller_object.h"
 #include "object/gameobjects/ui/hud/key_icon_controller_object.h"
 
 //	タイマーUI制御用オブジェクト

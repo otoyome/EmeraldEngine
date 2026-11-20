@@ -1,4 +1,4 @@
-#include "object/gameobjects/ui/common/transition_fade_controller.h"
+#include "object/ui/common/transition_fade_controller.h"
 
 void transition_fade_controller::set_fade_object(std::weak_ptr<fade_controller_object> object)
 {

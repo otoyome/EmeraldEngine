@@ -11,7 +11,7 @@
 
 #include "Object/game_object_serializer.h"
 #include "object/camera_object.h"
-#include "object/gameobjects/system/start_point_object.h"
+#include "object/system/start_point_object.h"
 #include "object/gameobjects/MiniGame/minigame000_roomba_object.h"
 #include "object/gameobjects/MiniGame/minigame000_roomba_player_controller_object.h"
 #include "object/gameobjects/MiniGame/minigame000_roomba_camera_controller_object.h"

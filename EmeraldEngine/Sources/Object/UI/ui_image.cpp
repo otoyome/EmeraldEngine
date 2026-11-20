@@ -1,4 +1,4 @@
-#include "object/gameobjects/ui/ui_image.h"
+#include "object/ui/ui_image.h"
 #include "Texture/texture_resource_utility.h"
 
 namespace

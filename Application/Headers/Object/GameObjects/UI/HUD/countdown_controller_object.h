@@ -1,7 +1,7 @@
 #pragma once
 
-#include "object/gameobjects/ui/ui_text.h"
-#include "object/gameobjects/ui/ui_image.h"
+#include "object/ui/ui_text.h"
+#include "object/ui/ui_image.h"
 
 //	カウントダウンUI制御用オブジェクト
 class countdown_controller_object : public game_object

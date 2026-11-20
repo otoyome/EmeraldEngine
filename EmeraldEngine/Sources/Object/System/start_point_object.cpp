@@ -1,4 +1,4 @@
-#include "object/gameobjects/system/start_point_object.h"
+#include "object/system/start_point_object.h"
 #include "Object/game_object_registry.h"
 
 #include "cereal/cereal.hpp"

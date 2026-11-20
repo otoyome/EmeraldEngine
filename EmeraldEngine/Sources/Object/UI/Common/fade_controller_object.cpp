@@ -1,4 +1,4 @@
-#include "object/gameobjects/ui/common/fade_controller_object.h"
+#include "object/ui/common/fade_controller_object.h"
 
 bool fade_controller_object::is_processing()
 {

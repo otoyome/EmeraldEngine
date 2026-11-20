@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Object/GameObjects/UI/Common/fade_controller_object.h"
-#include "object/gameobjects/ui/ui_text.h"
+#include "Object/UI/Common/fade_controller_object.h"
+#include "object/ui/ui_text.h"
 
 //	リザルト用フェード制御用オブジェクト
 class result_controller_object : public game_object

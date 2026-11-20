@@ -1,6 +1,6 @@
 #pragma once
 
-#include "object/gameobjects/ui/ui_image.h"
+#include "object/ui/ui_image.h"
 
 namespace fade
 {

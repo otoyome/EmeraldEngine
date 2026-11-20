@@ -1,9 +1,9 @@
 #pragma once
 
-#include "object/gameobjects/ui/ui_object.h"
-#include "object/gameobjects/ui/ui_image.h"
-#include "object/gameobjects/ui/ui_text.h"
-#include "object/gameobjects/ui/ui_button.h"
+#include "object/ui/ui_object.h"
+#include "object/ui/ui_image.h"
+#include "object/ui/ui_text.h"
+#include "object/ui/ui_button.h"
 
 //	キーアイコンオブジェクト
 class key_icon_object : public game_object

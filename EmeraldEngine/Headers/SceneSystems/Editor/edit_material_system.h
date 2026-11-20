@@ -11,7 +11,7 @@
 #include "object/model_object.h"
 #include "object/camera_object.h"
 #include "object/post_process_volume_object.h"
-#include "Object/GameObjects/UI/ui_image.h"
+#include "Object/UI/ui_image.h"
 #include "Editor/editor_items.h"
 #include "Editor/editor_camera.h"
 

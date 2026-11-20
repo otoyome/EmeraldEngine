@@ -1,8 +1,8 @@
 #pragma once
 
-#include "object/gameobjects/ui/ui_object.h"
-#include "object/gameobjects/ui/ui_image.h"
-#include "object/gameobjects/ui/ui_text.h"
+#include "object/ui/ui_object.h"
+#include "object/ui/ui_image.h"
+#include "object/ui/ui_text.h"
 
 //	ルンバ：ゲージ用オブジェクト
 class roomba_gauge_controller_object : public game_object

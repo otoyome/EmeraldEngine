@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Graphics/UI/sprite.h"
-#include "object/gameobjects/ui/ui_object.h"
+#include "object/ui/ui_object.h"
 
 //	UI制御用オブジェクト
 class ui_image : public ui_object

@@ -1,4 +1,4 @@
-#include "object/gameobjects/ui/ui_object.h"
+#include "object/ui/ui_object.h"
 
 int ui_object_base::get_sort_order() const
 {

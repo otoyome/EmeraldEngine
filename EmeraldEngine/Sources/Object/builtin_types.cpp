@@ -10,7 +10,7 @@
 #include "Object/model_collision_object.h"
 #include "Object/collision_shape_object.h"
 #include "Object/post_process_volume_object.h"
-#include "Object/GameObjects/System/start_point_object.h"
+#include "Object/System/start_point_object.h"
 
 #include "SceneSystems/Editor/edit_material_system.h"
 #include "SceneSystems/Editor/edit_model_system.h"
