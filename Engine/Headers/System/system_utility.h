@@ -46,6 +46,10 @@ namespace	system_utility
 	{
 		return	fnv1a_hash(text.length(), text.data());
 	}
+	inline hash_key generate_hash(const void* data, std::size_t size)
+	{
+		return	fnv1a_hash(size, static_cast<const char*>(data));
+	}
 
 	template<typename	LeftType, typename	RightType>
 	inline	bool	equals( const std::weak_ptr<LeftType>& left, const std::weak_ptr<RightType>& right )

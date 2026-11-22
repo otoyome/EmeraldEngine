@@ -32,6 +32,8 @@ namespace
 	constexpr std::chrono::milliseconds thumbnail_load_budget(4);
 
 	console_variable<float> thumbnail_size_variable("editor.asset_browser.thumbnail_size", 128.0f, "アセットブラウザのサムネイルの大きさ", console_flags::persist);
+	//	前回開いていたフォルダ
+	console_variable<std::string> last_directory_variable("editor.asset_browser.last_directory", "", "アセットブラウザで最後に開いていたフォルダ", console_flags::persist);
 
 	template<typename List>
 	bool contains(const List& list, std::string_view value)
@@ -139,11 +141,19 @@ namespace
 asset_browser::asset_browser()
 {
 	current_directory = root_directory;
+
+	//	前回のフォルダが Assets 配下ならそこから開く
+	const std::string& last_directory = last_directory_variable.get();
+	if (is_ancestor(root_directory, last_directory))
+		current_directory = last_directory;
+
 	refresh();
 }
 
 asset_browser::~asset_browser()
 {
+	//	開いていたフォルダを保存
+	last_directory_variable.set(current_directory.str());
 }
 
 void asset_browser::register_open_handler(open_handler handler)
