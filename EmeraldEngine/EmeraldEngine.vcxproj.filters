@@ -159,6 +159,12 @@
     <Filter Include="Headers\Object\System">
       <UniqueIdentifier>{4b8848de-8c61-4d5a-b1a5-2585bcde5296}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Sources\Object\Graphics">
+      <UniqueIdentifier>{d0266a6e-9693-475e-b531-667a9c916c66}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Headers\Object\Graphics">
+      <UniqueIdentifier>{be25a9d0-2253-42ad-a0b6-c655d26074d0}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\External\imgui\imgui.cpp">
@@ -299,14 +305,17 @@
     <ClCompile Include="Sources\Object\object_manager.cpp">
       <Filter>Sources\Object</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Object\model_object.cpp">
-      <Filter>Sources\Object</Filter>
+    <ClCompile Include="Sources\Object\Graphics\model_object.cpp">
+      <Filter>Sources\Object\Graphics</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Object\light_object.cpp">
-      <Filter>Sources\Object</Filter>
+    <ClCompile Include="Sources\Object\Graphics\light_object.cpp">
+      <Filter>Sources\Object\Graphics</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Object\camera_object.cpp">
-      <Filter>Sources\Object</Filter>
+    <ClCompile Include="Sources\Object\Graphics\light_probe_object.cpp">
+      <Filter>Sources\Object\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Object\Graphics\camera_object.cpp">
+      <Filter>Sources\Object\Graphics</Filter>
     </ClCompile>
     <ClCompile Include="Sources\PipelineState\post_process_pipeline_state.cpp">
       <Filter>Sources\PipelineState</Filter>
@@ -314,8 +323,8 @@
     <ClCompile Include="Sources\PipelineState\fullscreen_quad_pipeline_state.cpp">
       <Filter>Sources\PipelineState</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Object\post_process_volume_object.cpp">
-      <Filter>Sources\Object</Filter>
+    <ClCompile Include="Sources\Object\Graphics\post_process_volume_object.cpp">
+      <Filter>Sources\Object\Graphics</Filter>
     </ClCompile>
     <ClCompile Include="Sources\Editor\editor_items.cpp">
       <Filter>Sources\Editor</Filter>
@@ -527,8 +536,8 @@
     <ClCompile Include="Sources\Object\collision_shape_object.cpp">
       <Filter>Sources\Object</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Object\model_collision_object.cpp">
-      <Filter>Sources\Object</Filter>
+    <ClCompile Include="Sources\Object\Collision\model_collision_object.cpp">
+      <Filter>Sources\Object\Collision</Filter>
     </ClCompile>
     <ClCompile Include="Sources\Object\prefab_resource.cpp">
       <Filter>Sources\Object</Filter>
@@ -682,14 +691,17 @@
     <ClInclude Include="Headers\Object\object_manager.h">
       <Filter>Headers\Object</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Object\light_object.h">
-      <Filter>Headers\Object</Filter>
+    <ClInclude Include="Headers\Object\Graphics\light_object.h">
+      <Filter>Headers\Object\Graphics</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Object\model_object.h">
-      <Filter>Headers\Object</Filter>
+    <ClInclude Include="Headers\Object\Graphics\light_probe_object.h">
+      <Filter>Headers\Object\Graphics</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Object\camera_object.h">
-      <Filter>Headers\Object</Filter>
+    <ClInclude Include="Headers\Object\Graphics\model_object.h">
+      <Filter>Headers\Object\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Object\Graphics\camera_object.h">
+      <Filter>Headers\Object\Graphics</Filter>
     </ClInclude>
     <ClInclude Include="Headers\PipelineState\post_process_pipeline_state.h">
       <Filter>Headers\PipelineState</Filter>
@@ -697,8 +709,8 @@
     <ClInclude Include="Headers\PipelineState\fullscreen_quad_pipeline_state.h">
       <Filter>Headers\PipelineState</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Object\post_process_volume_object.h">
-      <Filter>Headers\Object</Filter>
+    <ClInclude Include="Headers\Object\Graphics\post_process_volume_object.h">
+      <Filter>Headers\Object\Graphics</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Editor\editor_items.h">
       <Filter>Headers\Editor</Filter>
@@ -925,8 +937,8 @@
     <ClInclude Include="Headers\Object\collision_shape_object.h">
       <Filter>Headers\Object</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Object\model_collision_object.h">
-      <Filter>Headers\Object</Filter>
+    <ClInclude Include="Headers\Object\Collision\model_collision_object.h">
+      <Filter>Headers\Object\Collision</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Object\prefab_resource.h">
       <Filter>Headers\Object</Filter>

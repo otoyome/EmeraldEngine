@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 
-#include "object/camera_object.h"
+#include "Object/Graphics/camera_object.h"
 #include "Object/prefab_resource.h"
 #include "Editor/editor_camera.h"
 #include "Editor/editor_gizmo.h"

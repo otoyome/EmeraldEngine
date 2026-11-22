@@ -1,7 +1,7 @@
 #include "object/gameobjects/MiniGame/minigame000_roomba_camera_controller_object.h"
 
 #include "Graphics/View/camera.h"
-#include "object/camera_object.h"
+#include "Object/Graphics/camera_object.h"
 #include "object/gameobjects/MiniGame/minigame000_roomba_object.h"
 
 namespace

@@ -7,8 +7,8 @@
 #include <cstdarg>
 #include <cmath>
 
-#include "object/light_object.h"
-#include "object/camera_object.h"
+#include "Object/Graphics/light_object.h"
+#include "Object/Graphics/camera_object.h"
 
 #include "collision/sphere.h"
 #include "collision/capsule.h"

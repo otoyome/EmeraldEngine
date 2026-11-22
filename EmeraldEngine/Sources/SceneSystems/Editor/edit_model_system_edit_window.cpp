@@ -5,9 +5,9 @@
 #include "Graphics/View/camera.h"
 #include "Graphics/View/scene_view.h"
 
-#include "object/light_object.h"
+#include "Object/Graphics/light_object.h"
 
-#include "object/model_object.h"
+#include "Object/Graphics/model_object.h"
 
 #include "Graphics/Pipeline/custom_pipeline_state.h"
 

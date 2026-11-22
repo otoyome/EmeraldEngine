@@ -10,7 +10,8 @@
 #include "Resource/resource_manager.h"
 #include "Graphics/View/camera.h"
 
-#include "object/light_object.h"
+#include "Object/Graphics/light_object.h"
+#include "Object/Graphics/light_probe_object.h"
 
 #if defined(USE_IMGUI)
 #include "imgui.h"

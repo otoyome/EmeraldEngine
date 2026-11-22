@@ -8,7 +8,7 @@
 #include "Object/engine_context.h"
 #include "Object/object_manager.h"
 #include "Object/spatial_object.h"
-#include "Object/model_object.h"
+#include "Object/Graphics/model_object.h"
 
 namespace
 {

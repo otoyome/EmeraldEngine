@@ -1,4 +1,4 @@
-#include "object/camera_object.h"
+#include "Object/Graphics/camera_object.h"
 #include "Object/game_object_registry.h"
 
 #include "cereal/cereal.hpp"

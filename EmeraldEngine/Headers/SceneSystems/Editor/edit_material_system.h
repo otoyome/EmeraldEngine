@@ -8,9 +8,9 @@
 #include "Effect/effect_resource.h"
 #include "Effect/effect_instance.h"
 
-#include "object/model_object.h"
-#include "object/camera_object.h"
-#include "object/post_process_volume_object.h"
+#include "Object/Graphics/model_object.h"
+#include "Object/Graphics/camera_object.h"
+#include "Object/Graphics/post_process_volume_object.h"
 #include "Object/UI/ui_image.h"
 #include "Editor/editor_items.h"
 #include "Editor/editor_camera.h"

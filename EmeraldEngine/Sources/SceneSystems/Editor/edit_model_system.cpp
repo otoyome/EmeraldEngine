@@ -15,9 +15,10 @@
 #include "Model/model_collision_builder.h"
 #include "Graphics/View/camera.h"
 
-#include "object/light_object.h"
+#include "Object/Graphics/light_object.h"
+#include "Object/Graphics/light_probe_object.h"
 
-#include "object/model_object.h"
+#include "Object/Graphics/model_object.h"
 
 #include "collision/mesh.h"
 

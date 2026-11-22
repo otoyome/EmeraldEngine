@@ -1,6 +1,6 @@
 #pragma once
 
-#include "object/model_object.h"
+#include "Object/Graphics/model_object.h"
 
 #include "collision/mesh.h"
 

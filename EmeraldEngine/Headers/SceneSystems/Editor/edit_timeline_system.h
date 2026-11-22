@@ -7,9 +7,9 @@
 
 #include "Animation/timeline_resource.h"
 
-#include "object/model_object.h"
-#include "object/camera_object.h"
-#include "object/post_process_volume_object.h"
+#include "Object/Graphics/model_object.h"
+#include "Object/Graphics/camera_object.h"
+#include "Object/Graphics/post_process_volume_object.h"
 
 #include "Effect/effect_resource.h"
 #include "Effect/effect_instance.h"

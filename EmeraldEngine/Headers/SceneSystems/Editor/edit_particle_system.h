@@ -6,8 +6,8 @@
 #include "Effect/effect_resource.h"
 #include "Effect/effect_instance.h"
 
-#include "object/camera_object.h"
-#include "object/post_process_volume_object.h"
+#include "Object/Graphics/camera_object.h"
+#include "Object/Graphics/post_process_volume_object.h"
 #include "Editor/editor_camera.h"
 
 class edit_particle_system : public scene_system

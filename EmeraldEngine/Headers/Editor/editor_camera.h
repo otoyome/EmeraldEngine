@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Graphics/View/camera.h"
-#include "object/camera_object.h"
+#include "Object/Graphics/camera_object.h"
 
 #if	defined(USE_IMGUI)
 //	エディターカメラ

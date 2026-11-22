@@ -1,6 +1,6 @@
 #include "object/gameobjects/MiniGame/minigame000_roomba_player_controller_object.h"
 
-#include "object/camera_object.h"
+#include "Object/Graphics/camera_object.h"
 #include "Scenes/scene_manager.h"
 
 minigame000::roomba_player_controller_object::roomba_player_controller_object(std::string_view name)

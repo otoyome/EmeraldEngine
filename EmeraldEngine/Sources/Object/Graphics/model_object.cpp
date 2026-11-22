@@ -1,4 +1,4 @@
-#include "Object/model_object.h"
+#include "Object/Graphics/model_object.h"
 #include "Object/game_object_registry.h"
 #include "Object/game_object_serializer.h"
 

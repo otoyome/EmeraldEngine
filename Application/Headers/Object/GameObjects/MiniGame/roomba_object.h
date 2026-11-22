@@ -2,8 +2,8 @@
 
 #include "object/collision/collision_object.h"
 
-#include "object/model_object.h"
-#include "object/camera_object.h"
+#include "Object/Graphics/model_object.h"
+#include "Object/Graphics/camera_object.h"
 
 
 #include "system/finite_state_machine.h"

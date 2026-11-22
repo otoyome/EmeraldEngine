@@ -1,12 +1,8 @@
 #pragma once
 
-#include <atomic>
-
 #include "renderer.h"
 #include "Graphics/Core/render_pass.h"
 #include "scene_render_targets.h"
-
-#include "Graphics/View/exposure_controller.h"
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 //	˜IoƒpƒX

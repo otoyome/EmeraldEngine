@@ -1,7 +1,7 @@
 #pragma once
 
 #include "object/collision/collision_object.h"
-#include "object/model_object.h"
+#include "Object/Graphics/model_object.h"
 #include "Object/collision_shape_object.h"
 
 class game_object_serializer;

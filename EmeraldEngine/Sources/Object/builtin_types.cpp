@@ -4,12 +4,13 @@
 
 #include "Object/game_object.h"
 #include "Object/spatial_object.h"
-#include "Object/camera_object.h"
-#include "Object/light_object.h"
-#include "Object/model_object.h"
-#include "Object/model_collision_object.h"
+#include "Object/Graphics/camera_object.h"
+#include "Object/Graphics/light_object.h"
+#include "Object/Graphics/light_probe_object.h"
+#include "Object/Graphics/model_object.h"
+#include "Object/Collision/model_collision_object.h"
 #include "Object/collision_shape_object.h"
-#include "Object/post_process_volume_object.h"
+#include "Object/Graphics/post_process_volume_object.h"
 #include "Object/System/start_point_object.h"
 
 #include "SceneSystems/Editor/edit_material_system.h"

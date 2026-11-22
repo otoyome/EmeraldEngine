@@ -18,7 +18,8 @@
 #include "Texture/texture_resource_utility.h"
 #include "Graphics/View/camera.h"
 #include "Editor/editor_picker.h"
-#include "object/light_object.h"
+#include "Object/Graphics/light_object.h"
+#include "Object/Graphics/light_probe_object.h"
 
 namespace
 {

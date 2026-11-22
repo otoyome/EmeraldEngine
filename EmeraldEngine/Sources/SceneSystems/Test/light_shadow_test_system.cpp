@@ -2,8 +2,8 @@
 
 #include "Graphics/View/camera.h"
 #include "Model/model_instance.h"
-#include "object/light_object.h"
-#include "object/model_object.h"
+#include "Object/Graphics/light_object.h"
+#include "Object/Graphics/model_object.h"
 #include "object/object_manager.h"
 #include "Object/game_object_serializer.h"
 #include "System/console_manager.h"

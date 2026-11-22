@@ -29,8 +29,8 @@
 #include "Graphics/Debug/debug_primitive_collector.h"
 #include "Editor/editor_icons.h"
 #include "Object/spatial_object.h"
-#include "Object/light_object.h"
-#include "Object/post_process_volume_object.h"
+#include "Object/Graphics/light_object.h"
+#include "Object/Graphics/post_process_volume_object.h"
 #endif // defined(USE_IMGUI)
 
 namespace

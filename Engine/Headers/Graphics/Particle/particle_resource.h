@@ -80,7 +80,6 @@ namespace particle
 			{
 				enum class states
 				{
-					dummy = 1 << 0,	//	空き
 					color_by_length = 1 << 1,	//	軌跡の長さ方向で色を変化
 					alpha_by_length = 1 << 2,	//	軌跡の長さ方向でアルファを変化
 					width_by_length = 1 << 3,	//	軌跡の長さ方向で太さを変化
@@ -129,7 +128,6 @@ namespace particle
 				enum class states
 				{
 					random = 1 << 0,		//	ランダム設定
-					dummy = 1 << 1,			//	空き
 					color_by_life = 1 << 2,	//	色を寿命カーブで乗算してコントロール
 					alpha_by_life = 1 << 3,	//	アルファを寿命カーブで乗算してコントロール
 				};

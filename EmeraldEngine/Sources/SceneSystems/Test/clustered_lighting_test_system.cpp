@@ -2,7 +2,7 @@
 
 #include "Graphics/View/camera.h"
 #include "Model/model_instance.h"
-#include "object/light_object.h"
+#include "Object/Graphics/light_object.h"
 #include "object/object_manager.h"
 #include "object/world.h"
 #include "Object/game_object_serializer.h"

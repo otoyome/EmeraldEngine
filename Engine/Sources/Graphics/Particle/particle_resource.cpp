@@ -33,50 +33,6 @@ CEREAL_CLASS_VERSION(particle::item::gradient, 1)
 
 CEREAL_CLASS_VERSION(particle::data, 1);
 
-namespace
-{
-	//	@tool	旧データのフェードのビット(現在は使わない)
-	constexpr UINT legacy_trail_use_fade = 1 << 0;
-	constexpr UINT legacy_color_use_fade = 1 << 1;
-	constexpr UINT legacy_spawn_scale_by_life = 1 << 2;
-
-	//	キーを追加
-	void push_curve_key(particle::item::curve& curve, float x, float y)
-	{
-		if (!curve.keys.empty() && curve.keys.back().x >= x)
-		{
-			curve.keys.back().y = y;
-			return;
-		}
-		curve.keys.push_back({ x, y });
-	}
-
-	//	@tool	旧フェード(smoothstep のフェードイン・フェードアウト)を、同じ形の寿命アルファカーブに変換
-	particle::item::curve convert_legacy_fade(math::float2 fade_range)
-	{
-		const float fade_in = std::clamp(fade_range.x, 0.0f, 1.0f);
-		const float fade_out = std::clamp(fade_range.y, fade_in, 1.0f);
-
-		particle::item::curve result;
-		result.type = particle::item::curve::types::smooth;
-		result.keys.clear();
-		push_curve_key(result, 0.0f, fade_in > 0.0f ? 0.0f : 1.0f);
-		push_curve_key(result, fade_in, 1.0f);
-		push_curve_key(result, fade_out, 1.0f);
-		push_curve_key(result, 1.0f, fade_out < 1.0f ? 0.0f : 1.0f);
-		return result;
-	}
-
-	//	@tool	旧軌跡フェード(先頭1 → 末尾0 の直線)を、長さ方向のアルファカーブに変換
-	particle::item::curve convert_legacy_trail_fade()
-	{
-		particle::item::curve result;
-		result.type = particle::item::curve::types::linear;
-		result.keys = { { 0.0f, 1.0f }, { 1.0f, 0.0f } };
-		return result;
-	}
-}
-
 bool particle::item::renderer::trails::is_state(states flag) const
 {
 	return system_utility::is_bitflag(state, flag);
@@ -88,18 +44,7 @@ void particle::item::renderer::trails::set_state(states flag, bool value)
 template<class Archive>
 void particle::item::renderer::trails::serialize(Archive& archive, int version)
 {
-	archive(state, max);
-	if (version >= 2)
-	{
-		archive(color_by_length, alpha_by_length, width_by_length);	//	長さ方向のカーブ
-	}
-	else if (state & legacy_trail_use_fade)
-	{
-		//	@tool	旧 use_fade を長さ方向のアルファカーブに変換
-		state &= ~legacy_trail_use_fade;
-		alpha_by_length = convert_legacy_trail_fade();
-		set_state(states::alpha_by_length, true);
-	}
+	archive(state, max, color_by_length, alpha_by_length, width_by_length);
 }
 
 bool particle::item::renderer::texcoords::is_state(states flag) const
@@ -127,28 +72,7 @@ void particle::item::renderer::colors::set_state(states flag, bool value)
 template<class Archive>
 void particle::item::renderer::colors::serialize(Archive& archive, int version)
 {
-	if (version >= 3)
-	{
-		archive(state, color_min, color_max, color_by_life, alpha_by_life);
-		return;
-	}
-
-	//	@tool	旧データ(フェードあり)の読み込み
-	math::float2 fade_range = { 0.1f, 0.9f };
-	archive(state, color_min, color_max, fade_range);
-	if (version >= 2)
-		archive(color_by_life, alpha_by_life);
-
-	//	@tool	旧 use_fade を寿命アルファカーブに変換(既に寿命アルファカーブがある場合はそちらを優先)
-	if (state & legacy_color_use_fade)
-	{
-		state &= ~legacy_color_use_fade;
-		if (!is_state(states::alpha_by_life))
-		{
-			alpha_by_life = convert_legacy_fade(fade_range);
-			set_state(states::alpha_by_life, true);
-		}
-	}
+	archive(state, color_min, color_max, color_by_life, alpha_by_life);
 }
 
 bool particle::item::renderer::is_state(states flag) const
@@ -162,20 +86,7 @@ void particle::item::renderer::set_state(states flag, bool value)
 template<class Archive>
 void particle::item::renderer::serialize(Archive& archive, int version)
 {
-	switch (version)
-	{
-		case 1:
-		{
-			archive(state, type, total_particle_count, material, trail, uv, color);
-			break;
-		}
-		case 2:
-		default:
-		{
-			archive(state, type, total_particle_count, material, trail, uv, color, scale_by_life);
-			break;
-		}
-	}
+	archive(state, type, total_particle_count, material, trail, uv, color, scale_by_life);
 }
 
 bool particle::item::spawn::is_state(states flag) const
@@ -203,28 +114,11 @@ void particle::item::velocity::set_state(states flag, bool value)
 template<class Archive>
 void particle::item::velocity::serialize(Archive& archive, int version)
 {
-	switch (version)
-	{
-		case 1:
-		{
-			archive(state,
-					direction, angle_range, power_range,
-					acceleration_min, acceleration_max,
-					damping_min, damping_max,
-					gravity_scale);
-			break;
-		}
-		case 2:
-		default:
-		{
-			archive(state,
-					direction, angle_range, power_range,
-					acceleration_min, acceleration_max,
-					damping_min, damping_max,
-					gravity_scale, speed_by_life);
-			break;
-		}
-	}
+	archive(state,
+			direction, angle_range, power_range,
+			acceleration_min, acceleration_max,
+			damping_min, damping_max,
+			gravity_scale, speed_by_life);
 }
 
 template<class Archive>
