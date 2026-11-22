@@ -1,5 +1,8 @@
 #include "Graphics/View/scene_view.h"
 #include "Graphics/View/scene_view_state.h"
+#include "Graphics/Lighting/light_utility.h"
+
+#include <algorithm>
 
 namespace
 {
@@ -87,4 +90,8 @@ void scene_view::fill_scene_constants(common_pipeline_states::scene_constants& c
 	constants.inverse_view_projection_transform = math::matrixf(view_projection_matrix).inverted().to_float4x4();
 
 	constants.previous_view_projection_transform = state ? state->get_previous_view_projection_matrix() : view_projection_matrix;
+
+	//	˜Io‚Å‰æ–Ê‚Ì”’‚É‚È‚é•úŽË‹P“x‚ð”[“ü
+	const float exposure_scale = (state && state->get_exposure()) ? state->get_exposure()->exposure_scale.load() : exposure_controller{}.calculate_exposure_scale();
+	constants.exposure_white_radiance = 1.0f / (std::max)(exposure_scale * static_cast<float>(light_utility::luminous_efficacy), 1.0e-6f);
 }

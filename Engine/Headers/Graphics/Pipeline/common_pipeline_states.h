@@ -72,10 +72,10 @@ namespace common_pipeline_states
 		math::float4x4 previous_view_projection_transform;
 
 		//	ディスプレイマッピング情報
-		UINT output_curve;			//	出力の伝達関数(display_mapping_renderer::output_curves)
-		float peak_nits;			//	ディスプレイの最大輝度[nit]
-		float sdr_white_nits;		//	SDR の白の輝度[nit]
-		float display_mapping_dummy;
+		UINT output_curve;				//	出力の伝達関数(display_mapping_renderer::output_curves)
+		float peak_nits;				//	ディスプレイの最大輝度[nit]
+		float sdr_white_nits;			//	SDR の白の輝度[nit]
+		float exposure_white_radiance;	//	前フレームの露出で画面の白になる放射輝度
 	};
 
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////

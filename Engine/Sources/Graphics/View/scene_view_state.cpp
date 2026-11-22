@@ -8,6 +8,7 @@ scene_view_state::scene_view_state()
 , hiz(std::make_shared<hiz_buffer>())
 , meshlet_culling(std::make_shared<meshlet_culling_system>())
 , clustered_lighting(std::make_shared<clustered_lighting_system>())
+, exposure(std::make_shared<exposure_state>())
 {
 }
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <atomic>
 
 //	露出の設定
 struct exposure_settings
@@ -80,4 +81,17 @@ private:
 	float f_number = 8.0f;					//	F値
 	float shutter_speed = 1.0f / 125.0f;	//	秒
 	float iso_speed = 100.0f;				//	ISO感度
+};
+
+//	視点ごとの露出の状態
+struct exposure_state
+{
+	exposure_controller controller;
+	bool initialized = false;
+
+	//	GPU から読み戻した前のフレームの平均輝度
+	std::atomic<float> measured_luminance{ 0.0f };
+
+	//	最後に計算した露光倍率
+	std::atomic<float> exposure_scale{ exposure_controller{}.calculate_exposure_scale() };
 };

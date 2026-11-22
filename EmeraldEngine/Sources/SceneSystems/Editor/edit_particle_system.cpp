@@ -277,14 +277,9 @@ void edit_particle_system::imgui_render_panel(panel_regions region)
 
 void edit_particle_system::imgui_render_menu_bar()
 {
-	//	パーティクル読込み関係
-	if (ImGui::BeginMenu("File"))
-	{
-		//	保存
-		if (ImGui::MenuItem("Save", nullptr, false, edit_resource && !edit_resource->get_file_path().empty()))
-			resource_manager::instance()->save_uncached(edit_resource, edit_resource->get_file_path());
-		ImGui::EndMenu();
-	}
+	//	保存
+	if (ImGui::MenuItem("Save", nullptr, false, edit_resource && !edit_resource->get_file_path().empty()))
+		resource_manager::instance()->save_uncached(edit_resource, edit_resource->get_file_path());
 
 	//	cubic_sdf読込み関係
 	if (ImGui::BeginMenu("SDF"))

@@ -97,23 +97,29 @@ exposure_renderer::~exposure_renderer()
 void exposure_renderer::render(renderer_context& renderer_context)
 {
 	const exposure_settings settings = get_exposure_settings(renderer_context);
-	job_executor.execute([this, settings](graphics_context& context)
+
+	std::shared_ptr<exposure_state> exposure = renderer_context.current_view_state ? renderer_context.current_view_state->get_exposure() : nullptr;
+	if (!exposure)
+		return;
+
+	job_executor.execute([this, settings, exposure](graphics_context& context)
 	{
 		//	前のフレームの測光結果で自動露出を進める
-		if (!initialized)
+		if (!exposure->initialized)
 		{
-			controller.reset(settings);
-			initialized = true;
+			exposure->controller.reset(settings);
+			exposure->initialized = true;
 		}
 		const float elapsed_time = context.scene_constant.time_data.x - context.scene_constant.time_data.y;
-		controller.update(settings, measured_luminance.load(), elapsed_time);
+		exposure->controller.update(settings, exposure->measured_luminance.load(), elapsed_time);
 
 		const UINT width = static_cast<UINT>(render_targets->scene_color_texture->get_width());
 		const UINT height = static_cast<UINT>(render_targets->scene_color_texture->get_height());
 
 		exposure_constants constants{};
 		constants.buffer_size = { width, height };
-		constants.exposure_scale = controller.calculate_exposure_scale();
+		constants.exposure_scale = exposure->controller.calculate_exposure_scale();
+		exposure->exposure_scale.store(constants.exposure_scale);
 		constants.metering_mode = static_cast<UINT>(settings.metering_mode);
 		context.device_context->UpdateSubresource(constant_buffer.Get(), 0, nullptr, &constants, 0, 0);
 
@@ -132,10 +138,10 @@ void exposure_renderer::render(renderer_context& renderer_context)
 		context.clear_unordered_access_views();
 
 		render_data::instance()->get_readback_queue().read_back(context.device_context, average_luminance_buffer.Get(), sizeof(float),
-			[this](const void* data, UINT size_in_bytes)
+			[exposure](const void* data, UINT size_in_bytes)
 			{
 				if (size_in_bytes >= sizeof(float))
-					measured_luminance.store(*static_cast<const float*>(data));
+					exposure->measured_luminance.store(*static_cast<const float*>(data));
 			});
 
 		//	露光補正

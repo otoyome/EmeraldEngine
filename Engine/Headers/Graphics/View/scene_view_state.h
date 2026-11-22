@@ -2,6 +2,7 @@
 
 #include "Graphics/Culling/hiz_buffer.h"
 #include "Graphics/Culling/occlusion_culling_system.h"
+#include "Graphics/View/exposure_controller.h"
 
 #include <memory>
 #include <mutex>
@@ -38,6 +39,9 @@ public:
 	//	クラスタードライティングシステム
 	const std::shared_ptr<clustered_lighting_system>& get_clustered_lighting() const { return clustered_lighting; }
 
+	//	シーンの露出
+	const std::shared_ptr<exposure_state>& get_exposure() const { return exposure; }
+
 #if defined(USE_IMGUI)
 	//	デバッグ用にカリング結果を固定する
 	bool is_freeze_culling() const { return freeze_culling; }
@@ -65,6 +69,7 @@ private:
 	std::shared_ptr<hiz_buffer> hiz;
 	std::shared_ptr<meshlet_culling_system> meshlet_culling;
 	std::shared_ptr<clustered_lighting_system> clustered_lighting;
+	std::shared_ptr<exposure_state> exposure;
 
 	uint64_t last_used_frame = 0;
 

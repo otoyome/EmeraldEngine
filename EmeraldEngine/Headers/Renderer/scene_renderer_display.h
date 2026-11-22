@@ -30,13 +30,6 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11Buffer> constant_buffer;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> average_luminance_buffer;
 	Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> average_luminance_view;
-
-	//	露出制御
-	exposure_controller controller;
-	bool initialized = false;
-
-	//	GPU から読み戻した前のフレームの平均輝度[cd/m^2]
-	std::atomic<float> measured_luminance{ 0.0f };
 };
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////

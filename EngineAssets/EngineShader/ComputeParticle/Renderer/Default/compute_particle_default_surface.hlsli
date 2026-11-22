@@ -26,6 +26,9 @@ SurfaceData surface(VS_OUT pin, bool is_front_face)
         data.base_color.rgb = (float3) 0;
     }
 
+    //	自己発光は露出に合わせて放射量へ変換
+    data.emissive_color = convert_particle_emission_to_radiance(data.emissive_color);
+
     //  ビルボードなので法線はカメラ方向を向ける
     data.w_normal = normalize(camera_position.xyz - pin.w_position.xyz);
     data.w_position = pin.w_position.xyz;

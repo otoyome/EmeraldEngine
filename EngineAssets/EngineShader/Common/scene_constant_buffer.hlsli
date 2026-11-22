@@ -21,10 +21,10 @@ cbuffer SCENE_CONSTANT_BUFFER : register(b0)
     row_major float4x4 previous_view_projection_transform;
 
     //  ディスプレイマッピング情報
-    uint output_curve;          //  出力の伝達関数(display_mapping_renderer::output_curves と同じ値)
-    float peak_nits;            //  ディスプレイの最大輝度[nit]
-    float sdr_white_nits;       //  SDR の白の輝度[nit]
-    float display_mapping_dummy;
+    uint output_curve;              //  出力の伝達関数(display_mapping_renderer::output_curves と同じ値)
+    float peak_nits;                //  ディスプレイの最大輝度[nit]
+    float sdr_white_nits;           //  SDR の白の輝度[nit]
+    float exposure_white_radiance;  //  画面の白になる放射輝度
 };
 
 inline float4 get_viewport_size()

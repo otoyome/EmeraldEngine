@@ -337,7 +337,8 @@ void main(uint3 dispatch_thread_id : SV_DispatchThreadID)
             read_offset = particle_binary_offset + next_next_index * pt_trail_body_size_of_bytes;
             stream_trail_body(rw_read_only, read_offset, trail_body[1]);
 
-            float rate[2] = { saturate((float) (index + 0) / em_trail.max), saturate((float) (index + 1) / em_trail.max) };
+            //  Š„‡‚ÍŒ»İ‚Ì‹OÕ”‚ğŠî€
+            float rate[2] = { saturate((float) (index + 0) / trail_counter), saturate((float) (index + 1) / trail_counter) };
 
             //  À•WŒvZ
             float3 x_axis = calculate_trail_axis(trail_body[0].translation, trail_body[1].translation, trail_face_dir);
