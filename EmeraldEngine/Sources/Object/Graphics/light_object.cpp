@@ -14,7 +14,6 @@
 template<class Archive>
 void serialize(Archive& archive, light::shadow_map_bias_data& value)
 {
-	//	@tool	CEREAL_NVP を使うため、メンバーを同名の参照で受ける (キー名は従来と同じ)
 	float& depth_bias = value.depth_bias;
 	float& slope_depth_bias_scale = value.slope_depth_bias_scale;
 	float& max_depth_bias = value.max_depth_bias;
