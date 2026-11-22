@@ -17,6 +17,8 @@ struct emitter_context
     float4 rotation; // 回転情報
     float3 translation; // 移動情報
     bool reverse_depth; // 逆深度フラグ
+    uint curve_head; // 寿命カーブの先頭
+    uint curve_flags; // 寿命カーブの有効フラグ
 };
 
 //////////////////////////////////////////////////////////////////////////

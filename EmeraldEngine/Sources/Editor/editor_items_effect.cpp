@@ -99,6 +99,28 @@ namespace
 			}
 		}
 	}
+
+	//	寿命カーブの編集
+	bool edit_life_curve(const char* label, particle::item::curve& curve, const ImGui::CurveEditSettings& settings)
+	{
+		bool modified = false;
+		ImGui::PushID(label);
+
+		if (ImGui::CurveEdit(label, curve.keys, [&curve](float rate) { return curve.evaluate(rate); }, settings))
+			modified = true;
+
+		const char* type_names[] = { "discrete", "linear", "smooth" };
+		int type_index = std::clamp(static_cast<int>(curve.type) - 1, 0, 2);
+		ImGui::SetNextItemWidth(ImGui::GetTextLineHeight() * 8.0f);
+		if (ImGui::Combo("interpolation", &type_index, type_names, IM_ARRAYSIZE(type_names)))
+		{
+			curve.type = static_cast<particle::item::curve::types>(type_index + 1);
+			modified = true;
+		}
+
+		ImGui::PopID();
+		return modified;
+	}
 }
 
 bool editor_items::edit_effect_node_tree(std::shared_ptr<context>& context, engine_context& engine, effect_instance_ptr& effect_instance, size_t& selected_node_index)
@@ -593,6 +615,34 @@ bool editor_items::edit_effect_particle(std::shared_ptr<context>& context, effec
 							edit_flag = true;
 						if (ImGui::EditFlags<particle::item::renderer::trails::states>(renderer->trail.state))
 							edit_flag = true;
+
+						//	軌跡の長さ方向で変化する色・アルファ・太さ
+						{
+							using trail_states = particle::item::renderer::trails::states;
+							auto& trail = renderer->trail;
+							ImGui::CurveEditSettings settings;
+							settings.x_label = "trail (head -> tail)";
+							if (trail.is_state(trail_states::color_by_length))
+							{
+								auto& gradient = trail.color_by_length;
+								if (ImGui::GradientEdit("color by length (color)", gradient.keys, [&gradient](float rate) { return gradient.evaluate(rate); }))
+									edit_flag = true;
+							}
+							if (trail.is_state(trail_states::alpha_by_length))
+							{
+								settings.y_label = "alpha";
+								settings.auto_range = false;
+								if (edit_life_curve("alpha by length (alpha)", trail.alpha_by_length, settings))
+									edit_flag = true;
+							}
+							if (trail.is_state(trail_states::width_by_length))
+							{
+								settings.y_label = "width";
+								settings.auto_range = true;
+								if (edit_life_curve("width by length (width)", trail.width_by_length, settings))
+									edit_flag = true;
+							}
+						}
 						break;
 					}
 					default:
@@ -730,22 +780,46 @@ bool editor_items::edit_effect_particle(std::shared_ptr<context>& context, effec
 						}
 					}
 
-					//	フェード設定
-					checked = renderer->color.is_state(particle::item::renderer::colors::states::use_fade);
-					if (ImGui::Checkbox("use_fade", &checked))
+					//	寿命カーブ
+					using colors_states = particle::item::renderer::colors::states;
+					checked = renderer->color.is_state(colors_states::color_by_life);
+					if (ImGui::Checkbox("color by life", &checked))
 					{
-						renderer->color.set_state(particle::item::renderer::colors::states::use_fade, checked);
+						renderer->color.set_state(colors_states::color_by_life, checked);
 						edit_flag = true;
 					}
 					if (checked)
 					{
-						if (ImGui::SliderFloat2("fade_range", &renderer->color.fade_range.x, 0.0f, 1.0f))
-						{
+						auto& gradient = renderer->color.color_by_life;
+						if (ImGui::GradientEdit("color (base color)", gradient.keys, [&gradient](float rate) { return gradient.evaluate(rate); }))
 							edit_flag = true;
-						}
+					}
+
+					checked = renderer->color.is_state(colors_states::alpha_by_life);
+					if (ImGui::Checkbox("alpha by life", &checked))
+					{
+						renderer->color.set_state(colors_states::alpha_by_life, checked);
+						edit_flag = true;
+					}
+					if (checked)
+					{
+						ImGui::CurveEditSettings settings;
+						settings.y_label = "alpha";
+						if (edit_life_curve("alpha (base alpha)", renderer->color.alpha_by_life, settings))
+							edit_flag = true;
 					}
 
 					ImGui::TreePop();
+				}
+
+				//	寿命カーブ
+				if (renderer->is_state(particle::item::renderer::states::scale_by_life))
+				{
+					ImGui::CurveEditSettings settings;
+					settings.y_label = "scale";
+					settings.auto_range = true;
+					if (edit_life_curve("scale by life (spawned scale)", renderer->scale_by_life, settings))
+						edit_flag = true;
 				}
 			}
 
@@ -837,6 +911,16 @@ bool editor_items::edit_effect_particle(std::shared_ptr<context>& context, effec
 					edit_flag = true;
 				if (ImGui::DragFloat3("gravity_scale", &velocity->gravity_scale.x, 0.01f, 0.0f, 1000.0f))
 					edit_flag = true;
+
+				//	寿命カーブ
+				if (velocity->is_state(particle::item::velocity::states::speed_by_life))
+				{
+					ImGui::CurveEditSettings settings;
+					settings.y_label = "x speed";
+					settings.auto_range = true;
+					if (edit_life_curve("speed by life (x velocity movement)", velocity->speed_by_life, settings))
+						edit_flag = true;
+				}
 			}
 			ImGui::TreePop();
 		}

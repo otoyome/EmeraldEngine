@@ -10,11 +10,24 @@ ByteAddressBuffer emitter_binary_buffer : register(t2);
 StructuredBuffer<particle_header> particle_header_buffer : register(t3);
 ByteAddressBuffer particle_binary_buffer : register(t4);
 
+//	共有カーブバッファ
+StructuredBuffer<float4> curve_buffer : register(t5);
+
 #define SRV emitter_binary_buffer
 #include "compute_particle_system_item_emitter.hlsli"
 
 #define SRV particle_binary_buffer
 #include "compute_particle_system_item_particle.hlsli"
+
+//	寿命カーブサンプリング
+float4 sample_life_curve(uint curve_head, uint row, float life_rate)
+{
+    float x = saturate(life_rate) * (em_curve_sample_count - 1);
+    uint index0 = (uint) x;
+    uint index1 = min(index0 + 1, em_curve_sample_count - 1);
+    uint base = curve_head + row * em_curve_sample_count;
+    return lerp(curve_buffer[base + index0], curve_buffer[base + index1], frac(x));
+}
 
 cbuffer BUILD_PRIMITIVE_CONSTANTS : register(b11)
 {
@@ -138,13 +151,27 @@ float3 calculate_trail_axis(float3 pos0, float3 pos1, float3 face_dir)
     return axis;
 }
 
-//  経過時間によるフェードイン・フェードアウト係数を求める
-float calculate_life_fade(float life_time, float life_time_max, float2 time_fade_rate)
+//	軌跡の長さ方向(先頭0～末尾1)の色・アルファの倍率を求める
+float4 sample_trail_color(em_common_item em_common, float rate)
 {
-    float time_rate = saturate(life_time / life_time_max);
-    float fade_in = smoothstep(0.0f, time_fade_rate.x, time_rate);
-    float fade_out = 1.0f - smoothstep(time_fade_rate.y, 1.0f, time_rate);
-    return fade_in * fade_out;
+    float4 result = float4(1.0f, 1.0f, 1.0f, 1.0f);
+    if ((em_common.curve_flags & (em_curve_flag_trail_color | em_curve_flag_trail_alpha)) == 0)
+        return result;
+
+    float4 curve_color = sample_life_curve(em_common.curve_head, em_curve_row_trail_color, rate);
+    if (has_flag(em_common.curve_flags, em_curve_flag_trail_color))
+        result.rgb = curve_color.rgb;
+    if (has_flag(em_common.curve_flags, em_curve_flag_trail_alpha))
+        result.a = curve_color.a;
+    return result;
+}
+
+//	軌跡の長さ方向(先頭0～末尾1)の太さの倍率を求める
+float sample_trail_width(em_common_item em_common, float rate)
+{
+    if (!has_flag(em_common.curve_flags, em_curve_flag_trail_width))
+        return 1.0f;
+    return sample_life_curve(em_common.curve_head, em_curve_row_trail_misc, rate).x;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -240,11 +267,24 @@ void main(uint3 dispatch_thread_id : SV_DispatchThreadID)
         //  以降は不要
     }
 
-    //  色アイテムの生存時間比率(0～1)によるフェード係数
-    float color_fade = 1.0f;
-    if (has_flag(em_common.active_items, emitter_active_color_item_bit_flag) && has_flag(em_color.state, emitter_color_item_state_use_fade))
+    //	寿命カーブを適用
+    float life_scale = 1.0f;
+    if (em_common.curve_flags != 0)
     {
-        color_fade = calculate_life_fade(pt_common.life_time, pt_common.life_time_max, em_color.fade_range);
+        float life_rate = pt_common.life_time / max(pt_common.life_time_max, 1.0e-6f);
+        if (em_common.curve_flags & (em_curve_flag_color | em_curve_flag_alpha))
+        {
+            float4 curve_color = sample_life_curve(em_common.curve_head, em_curve_row_color, life_rate);
+            if (has_flag(em_common.curve_flags, em_curve_flag_color))
+                pt_common.color.rgb *= curve_color.rgb;
+            if (has_flag(em_common.curve_flags, em_curve_flag_alpha))
+                pt_common.color.a *= curve_color.a;
+        }
+        if (has_flag(em_common.curve_flags, em_curve_flag_scale))
+        {
+            life_scale = sample_life_curve(em_common.curve_head, em_curve_row_misc, life_rate).x;
+            pt_common.scale *= life_scale;
+        }
     }
 
     //  軌跡形状アイテムを取得しているか判定
@@ -270,8 +310,9 @@ void main(uint3 dispatch_thread_id : SV_DispatchThreadID)
             stream_trail_body(rw_read_only, read_offset, trail_body[1]);
 
             float3 x_axis = calculate_trail_axis(trail_body[0].translation, trail_body[1].translation, trail_face_dir);
-            vertex_positions[2] = float4(trail_body[0].translation + x_axis * trail_body[0].scale, 1);
-            vertex_positions[3] = float4(trail_body[0].translation - x_axis * trail_body[0].scale, 1);
+            float width = trail_body[0].scale * life_scale * sample_trail_width(em_common, 0.0f);
+            vertex_positions[2] = float4(trail_body[0].translation + x_axis * width, 1);
+            vertex_positions[3] = float4(trail_body[0].translation - x_axis * width, 1);
         }
         
         //  UV矩形
@@ -296,32 +337,24 @@ void main(uint3 dispatch_thread_id : SV_DispatchThreadID)
             read_offset = particle_binary_offset + next_next_index * pt_trail_body_size_of_bytes;
             stream_trail_body(rw_read_only, read_offset, trail_body[1]);
 
+            float rate[2] = { saturate((float) (index + 0) / em_trail.max), saturate((float) (index + 1) / em_trail.max) };
+
             //  座標計算
             float3 x_axis = calculate_trail_axis(trail_body[0].translation, trail_body[1].translation, trail_face_dir);
-            vertex_positions[2] = float4(trail_body[0].translation + x_axis * trail_body[0].scale, 1);
-            vertex_positions[3] = float4(trail_body[0].translation - x_axis * trail_body[0].scale, 1);
+            float width = trail_body[0].scale * life_scale * sample_trail_width(em_common, rate[1]);
+            vertex_positions[2] = float4(trail_body[0].translation + x_axis * width, 1);
+            vertex_positions[3] = float4(trail_body[0].translation - x_axis * width, 1);
             vertex_positions[2] = (vertex_positions[0] + vertex_positions[2]) * 0.5f;
             vertex_positions[3] = (vertex_positions[1] + vertex_positions[3]) * 0.5f;
 
             {
-                float rate[2] = { saturate((float) (index + 0) / em_trail.max), saturate((float) (index + 1) / em_trail.max) };
-                vertex_color[0] = pt_common.color;
-                vertex_color[1] = pt_common.color;
-                vertex_color[2] = pt_common.color;
-                vertex_color[3] = pt_common.color;
-                vertex_color[0].a *= color_fade;
-                vertex_color[1].a *= color_fade;
-                vertex_color[2].a *= color_fade;
-                vertex_color[3].a *= color_fade;
+                //	長さ方向の色・アルファ
+                float4 trail_color[2] = { sample_trail_color(em_common, rate[0]), sample_trail_color(em_common, rate[1]) };
+                vertex_color[0] = pt_common.color * trail_color[0];
+                vertex_color[1] = pt_common.color * trail_color[0];
+                vertex_color[2] = pt_common.color * trail_color[1];
+                vertex_color[3] = pt_common.color * trail_color[1];
 
-                //  末尾に行くほどフェード
-                if (em_trail.state & em_trail_item_state_use_fade)
-                {
-                    vertex_color[0].a *= 1.0f - rate[0];
-                    vertex_color[1].a *= 1.0f - rate[0];
-                    vertex_color[2].a *= 1.0f - rate[1];
-                    vertex_color[3].a *= 1.0f - rate[1];
-                }
                 vertex_texcoord[0] = uv_rect.xy + uv_rect.zw * float2(0, rate[0]);
                 vertex_texcoord[1] = uv_rect.xy + uv_rect.zw * float2(1, rate[0]);
                 vertex_texcoord[2] = uv_rect.xy + uv_rect.zw * float2(0, rate[1]);
@@ -379,10 +412,6 @@ void main(uint3 dispatch_thread_id : SV_DispatchThreadID)
             vertex_color[1] = pt_common.color;
             vertex_color[2] = pt_common.color;
             vertex_color[3] = pt_common.color;
-            vertex_color[0].a *= color_fade;
-            vertex_color[1].a *= color_fade;
-            vertex_color[2].a *= color_fade;
-            vertex_color[3].a *= color_fade;
             float4 uv_rect = float4(0, 0, 1, 1);
             if (em_common.active_items & emitter_active_uv_item_bit_flag)
             {

@@ -10,11 +10,51 @@
 #include "Graphics/Particle/compute_particle_system.h"
 
 #include <variant>
+#include <optional>
 
 namespace particle
 {
 	namespace item
 	{
+		//	カーブ
+		struct curve
+		{
+			//	補間タイプ
+			enum class types
+			{
+				discrete = 1,
+				linear = 2,
+				smooth = 3,
+			};
+
+			types type = types::linear;
+
+			//	x : 0 ～ 1, y : 値
+			std::vector<math::float2> keys = { {0.0f, 1.0f}, {1.0f, 1.0f} };
+
+			float evaluate(float rate) const;
+			template<class Archive>
+			void serialize(Archive& archive, int version);
+		};
+
+		//	グラデーション
+		struct gradient
+		{
+			struct key
+			{
+				float rate = 0.0f;	//	寿命の割合
+				math::float3 color = { 1.0f, 1.0f, 1.0f };
+
+				template<class Archive>
+				void serialize(Archive& archive, int version);
+			};
+			std::vector<key> keys = { { 0.0f, { 1.0f, 1.0f, 1.0f } }, { 1.0f, { 1.0f, 1.0f, 1.0f } } };
+
+			math::float3 evaluate(float rate) const;
+			template<class Archive>
+			void serialize(Archive& archive, int version);
+		};
+
 		//	レンダラー情報
 		struct renderer
 		{
@@ -24,6 +64,7 @@ namespace particle
 				animation = 1 << 0,				//	アニメーション
 				billboard_off = 1 << 1,			//	ビルボード無し
 				reverse_depth_sort = 1 << 2,	//	逆深度ソート
+				scale_by_life = 1 << 3,			//	大きさを寿命カーブでコントロール
 			};
 
 			//	形状指定
@@ -39,11 +80,17 @@ namespace particle
 			{
 				enum class states
 				{
-					use_fade = 1 << 0,	//	軌跡終端フェード
+					dummy = 1 << 0,	//	空き
+					color_by_length = 1 << 1,	//	軌跡の長さ方向で色を変化
+					alpha_by_length = 1 << 2,	//	軌跡の長さ方向でアルファを変化
+					width_by_length = 1 << 3,	//	軌跡の長さ方向で太さを変化
 				};
 
 				UINT state = 0;
 				UINT max = 30; // 軌跡総数
+				gradient color_by_length;	//	長さ方向の色
+				curve alpha_by_length;	//	長さ方向のアルファ
+				curve width_by_length;	//	長さ方向の太さ
 
 				bool is_state(states flag) const;
 				void set_state(states flag, bool value);
@@ -82,13 +129,16 @@ namespace particle
 				enum class states
 				{
 					random = 1 << 0,		//	ランダム設定
-					use_fade = 1 << 1,		//	フェード有効化
+					dummy = 1 << 1,			//	空き
+					color_by_life = 1 << 2,	//	色を寿命カーブで乗算してコントロール
+					alpha_by_life = 1 << 3,	//	アルファを寿命カーブで乗算してコントロール
 				};
 
 				UINT state = 0; // ステート
 				math::float4 color_min = {1, 1, 1, 1};		//	色の最小
 				math::float4 color_max = {1, 1, 1, 1};		//	色の最大
-				math::float2 fade_range = {0.1f, 0.9f};	//	フェード範囲(x:フェードイン終了 y:フェードアウト開始)
+				gradient color_by_life;	//	寿命カラー
+				curve alpha_by_life;	//	寿命アルファ
 
 				bool is_state(states flag) const;
 				void set_state(states flag, bool value);
@@ -104,6 +154,7 @@ namespace particle
 			trails trail;	//	軌跡
 			texcoords uv;	//	UV
 			colors color;	//	色情報
+			curve scale_by_life;	//	寿命カーブ情報
 
 			bool is_state(states flag) const;
 			void set_state(states flag, bool value);
@@ -142,6 +193,7 @@ namespace particle
 				random_power = 1 << 1,			//	power_rangeの範囲でランダムに変更
 				random_acceleration = 1 << 2,	//	加速をランダムに変更
 				random_damping = 1 << 3,	//	減衰係数をランダムに変更
+				speed_by_life = 1 << 4,	//	適応量を寿命カーブでコントロール
 			};
 
 			UINT state = 0;
@@ -157,6 +209,7 @@ namespace particle
 			float damping_max = 0.0f; // 最大減衰係数(1/s)
 
 			math::float3 gravity_scale = {1, 1, 1}; //	重力係数
+			curve speed_by_life;	//	寿命カーブ情報
 
 			bool is_state(states flag) const;
 			void set_state(states flag, bool value);
@@ -196,8 +249,8 @@ namespace particle
 			void serialize(Archive& archive, int version);
 		};
 
-		//	保存型
-		using variant = std::variant<renderer, spawn, velocity, attract, event>; 
+		//	保存型(既存データとの互換のため、追加は必ず末尾に行う)
+		using variant = std::variant<renderer, spawn, velocity, attract, event>;
 
 		//	判断用
 		template<class Type, class Variant>

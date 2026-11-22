@@ -158,6 +158,7 @@ asset_browser::~asset_browser()
 
 void asset_browser::register_open_handler(open_handler handler)
 {
+	//	
 	for (auto& extension : handler.extensions)
 		extension = std::string(extension.get<lower_cache>());
 	handlers.emplace_back(std::move(handler));

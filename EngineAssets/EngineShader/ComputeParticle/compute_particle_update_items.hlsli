@@ -11,16 +11,29 @@ AppendStructuredBuffer<particle_event> particle_event_buffer : register(u2);
 StructuredBuffer<emitter_header> emitter_header_buffer : register(t0);
 ByteAddressBuffer emitter_binary_buffer : register(t1);
 
+//	SDF衝突判定用バッファ
+#include "cubic_sdf_collision.hlsli"
+StructuredBuffer<sdf_header> cubic_sdf_header_buffer : register(t2);
+StructuredBuffer<float> cubic_sdf_voxel_buffer : register(t3);
+
+//	共有カーブバッファ
+StructuredBuffer<float4> curve_buffer : register(t4);
+
 #define SRV emitter_binary_buffer
 #include "compute_particle_system_item_emitter.hlsli"
 
 #define UAV particle_binary_buffer
 #include "compute_particle_system_item_particle.hlsli"
 
-//	SDF衝突判定用バッファ
-#include "cubic_sdf_collision.hlsli"
-StructuredBuffer<sdf_header> cubic_sdf_header_buffer : register(t2);
-StructuredBuffer<float> cubic_sdf_voxel_buffer : register(t3);
+//	割合でカーブの行を読む
+float4 sample_life_curve(uint curve_head, uint row, float life_rate)
+{
+    float x = saturate(life_rate) * (em_curve_sample_count - 1);
+    uint index0 = (uint) x;
+    uint index1 = min(index0 + 1, em_curve_sample_count - 1);
+    uint base = curve_head + row * em_curve_sample_count;
+    return lerp(curve_buffer[base + index0], curve_buffer[base + index1], frac(x));
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 //  エミッターコンテキスト構築
@@ -38,8 +51,21 @@ emitter_context build_emitter_context(inout uint emitter_binary_offset, uint emi
     em_context.rotation = em_common.rotation;
     em_context.translation = em_common.translation;
     em_context.reverse_depth = has_flag(em_common.emitter_state, em_common_item_state_reverse_depth_sort);
+    em_context.curve_head = em_common.curve_head;
+    em_context.curve_flags = em_common.curve_flags;
 
     return em_context;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+//	寿命カーブの速度の倍率を取得
+float sample_life_curve_speed(emitter_context em_context, pt_common_item pt_common)
+{
+    if (!has_flag(em_context.curve_flags, em_curve_flag_speed))
+        return 1.0f;
+
+    float life_rate = pt_common.life_time / max(pt_common.life_time_max, 1.0e-6f);
+    return sample_life_curve(em_context.curve_head, em_curve_row_misc, life_rate).y;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -215,7 +241,8 @@ void update_velocity_item(inout emitter_context em_context, inout pt_common_item
                 pt_velocity.velocity *= exp(-damping * em_context.elapsed_time);
 
                 //  移動
-                pt_common.translation += pt_velocity.velocity * em_context.elapsed_time;
+                float speed_scale = sample_life_curve_speed(em_context, pt_common); // 寿命カーブ
+                pt_common.translation += pt_velocity.velocity * speed_scale * em_context.elapsed_time;
             }
         }
         stream_velocity_item(rw_write, write_offset, pt_velocity);

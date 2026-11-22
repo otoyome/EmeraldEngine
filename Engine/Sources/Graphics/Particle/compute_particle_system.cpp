@@ -3,6 +3,7 @@
 
 #include "Graphics/Pipeline/custom_pipeline_state.h"
 #include "Graphics/Geometry/cubic_sdf_buffer_pool.h"
+#include "System/logger.h"
 
 namespace
 {
@@ -18,6 +19,10 @@ namespace
 
 	//	シミュレーション原点を移す距離
 	static constexpr float simulation_rebase_distance = system_units::convert_m_to_unit(1024.0f);
+
+	//	カーブバッファの要素数
+	static constexpr UINT curve_buffer_element_count = 64 * 1024;
+	static constexpr UINT curve_buffer_max_element_count = 1024 * 1024;
 
 	//	その他定数
 	static constexpr UINT number_of_vertices_per_particle = 6;	//	triangle_listで描画するので
@@ -465,6 +470,13 @@ compute_particle_system::compute_particle_system(ID3D11Device* device,
 			_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
 		}
 	}
+
+	//	カーブバッファ
+	{
+		bool initialized = curve_pool.initialize(device, curve_buffer_element_count, curve_buffer_max_element_count);
+		_ASSERT_EXPR(initialized, L"curve buffer initialize failed");
+	}
+
 	//	コンピュートシェーダー読み込み
 	for (int index = 0; index < static_cast<int>(magic_enum::enum_count<dispatch_shaderes>()); ++index)
 	{
@@ -529,6 +541,22 @@ UINT compute_particle_system::register_emitter(ID3D11Device* device, const parti
 	auto& em_resource = emitter_resources[emitter_id];
 	auto& em_header = emitter_headers[emitter_id];
 	em_resource.resource = emitter_resource;
+
+	//	寿命カーブをカーブバッファへ登録
+	em_resource.curve = {};
+	em_resource.curve_flags = 0;
+	if (!emitter_resource.curve_samples.empty())
+	{
+		em_resource.curve = curve_pool.acquire(emitter_resource.curve_samples);
+		if (em_resource.curve.is_valid())
+			em_resource.curve_flags = emitter_resource.curve_flags;
+		else
+			DEBUG_WARNING_CATEGORY(logger::categorys::system, "compute_particle_system: curve buffer allocation failed (%u elements)", static_cast<UINT>(emitter_resource.curve_samples.size()));
+
+		//	内容は共有側が持つので、こちらの複製は捨てる
+		em_resource.resource.curve_samples.clear();
+		em_resource.resource.curve_samples.shrink_to_fit();
+	}
 
 	//	頂点バッファ確保
 	{
@@ -670,6 +698,9 @@ void compute_particle_system::update(graphics_context& context, float elapsed_ti
 				[remove_emitter_id](UINT a) {return a == remove_emitter_id; });
 			emitter_id_table.erase(it_table);
 
+			//	共有カーブの参照を外す
+			curve_pool.release(emitter_resources[remove_emitter_id].curve);
+
 			//	データ初期化
 			emitter_resources[remove_emitter_id] = {};
 			emitter_headers[remove_emitter_id] = {};
@@ -802,6 +833,10 @@ void compute_particle_system::update(graphics_context& context, float elapsed_ti
 
 		//	スポーン数
 		update_emitter_data.common.spawn_offset = total_spawn_cpu_particle_count;
+
+		//	寿命カーブの位置はシステム側で書き込む
+		update_emitter_data.common.curve_head = emitter_resource.curve.head;
+		update_emitter_data.common.curve_flags = emitter_resource.curve_flags;
 
 		//	アイテム情報をバイナリに書き込む
 		std::vector<char> data_buffer;
@@ -977,6 +1012,9 @@ void compute_particle_system::update(graphics_context& context, float elapsed_ti
 		pending_rebase_offset = { 0.0f, 0.0f, 0.0f };
 	}
 
+	//	カーブの転送
+	curve_pool.upload_buffer(context.device_context);
+
 	//	更新開始処理
 	{
 		context.device_context->CSSetUnorderedAccessViews(0, 1, indirect_data_unordered_access_view.GetAddressOf(), nullptr);
@@ -1127,6 +1165,9 @@ void compute_particle_system::update(graphics_context& context, float elapsed_ti
 			context.device_context->CSSetShaderResources(3, 1, &cubic_sdf_voxel_srv);
 		}
 
+		//	共有カーブバッファ
+		context.device_context->CSSetShaderResources(4, 1, curve_pool.get_address_of_shader_resource_view());
+
 		context.device_context->CSSetShader(compute_shaderes[static_cast<int>(dispatch_shaderes::update_particles)]->get_shader().Get(), nullptr, 0);
 		context.device_context->DispatchIndirect(indirect_data_buffer.Get(), UpdateParticleDispatchIndirect);
 		clear_resources(context.device_context);
@@ -1259,6 +1300,7 @@ void compute_particle_system::build_primitives(graphics_context& context)
 		context.device_context->CSSetShaderResources(2, 1, emitter_binary_shader_resource_view[current_buffer_index].GetAddressOf());
 		context.device_context->CSSetShaderResources(3, 1, particle_header_shader_resource_view.GetAddressOf());
 		context.device_context->CSSetShaderResources(4, 1, particle_binary_shader_resource_view[current_buffer_index].GetAddressOf());
+		context.device_context->CSSetShaderResources(5, 1, curve_pool.get_address_of_shader_resource_view());
 		context.device_context->CSSetShader(compute_shaderes[static_cast<int>(dispatch_shaderes::build_primitive)]->get_shader().Get(), nullptr, 0);
 
 		//	頂点バッファの登録ごとに処理
@@ -1345,6 +1387,7 @@ bool compute_particle_system::read_particle_event_staging(ID3D11DeviceContext* d
 {
 	UINT map_flags = wait ? 0 : D3D11_MAP_FLAG_DO_NOT_WAIT;
 
+	//	ステージングバッファからイベント数取得
 	UINT event_count = 0;
 	{
 		D3D11_MAPPED_SUBRESOURCE mapped = {};
@@ -1361,6 +1404,7 @@ bool compute_particle_system::read_particle_event_staging(ID3D11DeviceContext* d
 	if (event_count == 0)
 		return true;
 
+	//	ステージングバッファからイベント情報取得
 	D3D11_MAPPED_SUBRESOURCE mapped = {};
 	HRESULT hr = device_context->Map(particle_event_staging[slot].Get(), 0, D3D11_MAP_READ, map_flags, &mapped);
 	if (hr == DXGI_ERROR_WAS_STILL_DRAWING)
@@ -1373,3 +1417,4 @@ bool compute_particle_system::read_particle_event_staging(ID3D11DeviceContext* d
 	}
 	return true;
 }
+

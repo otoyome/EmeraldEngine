@@ -29,6 +29,10 @@ struct em_common_item
     float3 translation; // 移動情報
     float elapsed_time; // シミュレーション経過時間
     uint random_seed; // 乱数シード
+
+    //	寿命カーブ情報
+    uint curve_head; // カーブバッファ上の先頭
+    uint curve_flags; // 有効なカーブのフラグ
 };
 
 static const uint em_common_item_state_billboard_off = 1 << 1;      //	ビルボード無し
@@ -51,7 +55,25 @@ void stream_common_item(uint rw, inout uint offset, inout em_common_item value)
     em_stream_ptr(rw, offset, value.translation);
     em_stream_ptr(rw, offset, value.elapsed_time);
     em_stream_ptr(rw, offset, value.random_seed);
+
+    em_stream_ptr(rw, offset, value.curve_head);
+    em_stream_ptr(rw, offset, value.curve_flags);
 }
+
+//	寿命カーブ情報
+static const uint em_curve_sample_count = 64; // カーブサンプルサイズ
+static const uint em_curve_row_color = 0; // R, G, B, A
+static const uint em_curve_row_misc = 1; // 大きさ, 速度, 未使用, 未使用
+static const uint em_curve_row_trail_color = 2; // 軌跡の長さ方向 (R, G, B, A)
+static const uint em_curve_row_trail_misc = 3; // 軌跡の長さ方向 (太さ, 未使用, 未使用, 未使用)
+
+static const uint em_curve_flag_color = 1 << 0;
+static const uint em_curve_flag_alpha = 1 << 1;
+static const uint em_curve_flag_scale = 1 << 2;
+static const uint em_curve_flag_speed = 1 << 3;
+static const uint em_curve_flag_trail_color = 1 << 4; // 軌跡の長さ方向の色
+static const uint em_curve_flag_trail_alpha = 1 << 5; // 軌跡の長さ方向のアルファ
+static const uint em_curve_flag_trail_width = 1 << 6; // 軌跡の長さ方向の太さ
 
 //////////////////////////////////////////////////////////////////////////
 //  軌跡アイテム
@@ -62,8 +84,6 @@ struct em_trail_item
 };
 
 static const uint emitter_active_trail_item_bit_flag = 1 << 0;
-
-static const uint em_trail_item_state_use_fade = 1 << 0; //	軌跡描画時にフェードさせる
 
 //  軌跡アイテム読み込み
 void stream_trail_item(uint rw, inout uint offset, inout em_trail_item value)
@@ -110,13 +130,11 @@ struct em_color_item
     uint state; //  ステート
     float4 color_min; // 色の範囲
     float4 color_max; // 色の範囲
-    float2 fade_range; // フェード範囲(x:フェードイン終了 y:フェードアウト開始)
 };
 
 static const uint emitter_active_color_item_bit_flag = 1 << 2;
 
 static const uint emitter_color_item_state_random = 1 << 0; //	ランダム設定
-static const uint emitter_color_item_state_use_fade = 1 << 1; // フェード有効化
 
 //  色アイテム読み込み
 void stream_color_item(uint rw, inout uint offset, inout em_color_item value)
@@ -124,7 +142,6 @@ void stream_color_item(uint rw, inout uint offset, inout em_color_item value)
     em_stream_ptr(rw, offset, value.state);
     em_stream_ptr(rw, offset, value.color_min);
     em_stream_ptr(rw, offset, value.color_max);
-    em_stream_ptr(rw, offset, value.fade_range);
 }
 
 //////////////////////////////////////////////////////////////////////////

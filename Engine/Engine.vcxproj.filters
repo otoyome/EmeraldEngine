@@ -351,6 +351,9 @@
     <ClInclude Include="Headers\Graphics\Core\graphics_utility.h">
       <Filter>Headers\Graphics\Core</Filter>
     </ClInclude>
+    <ClInclude Include="Headers\Graphics\Core\shared_structured_buffer.h">
+      <Filter>Headers\Graphics\Core</Filter>
+    </ClInclude>
     <ClInclude Include="Headers\Graphics\Culling\hiz_buffer.h">
       <Filter>Headers\Graphics\Culling</Filter>
     </ClInclude>
@@ -607,6 +610,9 @@
       <Filter>Headers\System</Filter>
     </ClInclude>
     <ClInclude Include="Headers\System\universally_unique_identifier.h">
+      <Filter>Headers\System</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\System\shared_block_allocator.h">
       <Filter>Headers\System</Filter>
     </ClInclude>
     <ClInclude Include="Headers\System\variable_position_allocator.h">

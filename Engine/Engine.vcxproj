@@ -89,6 +89,7 @@
     <ClInclude Include="Headers\Graphics\Particle\particle_resource.h" />
     <ClInclude Include="Headers\Graphics\Core\graphics_context.h" />
     <ClInclude Include="Headers\Graphics\Core\graphics_utility.h" />
+    <ClInclude Include="Headers\Graphics\Core\shared_structured_buffer.h" />
     <ClInclude Include="Headers\Animation\ik_resource.h" />
     <ClInclude Include="Headers\Animation\ik_solver.h" />
     <ClInclude Include="Headers\Input\input.h" />
@@ -170,6 +171,7 @@
     <ClInclude Include="Headers\System\universally_unique_identifier.h" />
     <ClInclude Include="Headers\System\signals.h" />
     <ClInclude Include="Headers\System\system_utility.h" />
+    <ClInclude Include="Headers\System\shared_block_allocator.h" />
     <ClInclude Include="Headers\System\variable_position_allocator.h" />
     <ClInclude Include="Headers\Texture\texture.h" />
     <ClInclude Include="Headers\Texture\texture_defaults.h" />

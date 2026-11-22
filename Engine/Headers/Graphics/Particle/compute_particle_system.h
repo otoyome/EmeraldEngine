@@ -11,6 +11,7 @@
 #include "Texture/texture.h"
 #include "Graphics/Pipeline/shader.h"
 #include "system/variable_position_allocator.h"
+#include "Graphics/Core/shared_structured_buffer.h"
 
 #include "Graphics/Geometry/cubic_sdf_buffer_pool.h"
 
@@ -111,17 +112,16 @@ namespace particle_system_item
 			math::float3 translation; // 移動情報
 			float elapsed_time = 0.0f; // 経過時間
 			UINT random_seed = 0; // 乱数種
+
+			//	寿命カーブ情報
+			UINT curve_head = 0; // 共有カーブバッファ上の先頭
+			UINT curve_flags = 0; // カーブフラグ(particle_system_item::curve_flags)
 		};
 
 		//	軌跡アイテム
 		struct trail
 		{
 			static constexpr UINT data_id = 0;
-
-			enum class states
-			{
-				use_fade = 1 << 0,	//	軌跡終端フェード
-			};
 
 			UINT state = 0;
 			UINT max = 0; // 軌跡総数
@@ -154,13 +154,11 @@ namespace particle_system_item
 			enum class states
 			{
 				random = 1 << 0,	//	ランダム設定
-				use_fade = 1 << 1,	//	フェード有効化
 			};
 
 			UINT state = 0;
 			math::float4 color_min; // 色の範囲
 			math::float4 color_max; // 色の範囲
-			math::float2 fade_range = {0.1f, 0.9f};	// フェード範囲(x:フェードイン終了 y:フェードアウト開始)
 		};
 
 		//	速度アイテム
@@ -237,11 +235,31 @@ namespace particle_system_item
 		UINT trail_count = 0;	//	軌跡数
 	};
 
+	//	寿命カーブのサンプル数と行数
+	static constexpr UINT curve_sample_count = 64;
+	static constexpr UINT curve_row_count = 4;	//	寿命2行 + 軌跡の長さ方向2行
+
+	//	寿命カーブの有効フラグ
+	enum class curve_flags : UINT
+	{
+		color = 1 << 0,
+		alpha = 1 << 1,
+		scale = 1 << 2,
+		speed = 1 << 3,
+		trail_color = 1 << 4,	//	軌跡の長さ方向の色
+		trail_alpha = 1 << 5,	//	軌跡の長さ方向のアルファ
+		trail_width = 1 << 6,	//	軌跡の長さ方向の太さ
+	};
+
 	//	エミッターリソース
 	struct emitter_resource
 	{
 		emitter_system_resource system;
 		emitter_render_resource render;
+
+		//	寿命カーブ(curve_row_count × curve_sample_count)
+		UINT curve_flags = 0;
+		std::vector<math::float4> curve_samples;
 	};
 
 }	//	namespace particle_system_item
@@ -339,6 +357,9 @@ public:
 		Microsoft::WRL::ComPtr<ID3D11Buffer> buffer;
 		Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> unordered_access_view;
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> shader_resource_view;
+
+		shared_structured_buffer<math::float4>::handle curve;
+		UINT curve_flags = 0;
 	};
 
 	//	再利用保留エミッターID
@@ -356,6 +377,34 @@ public:
 		UINT source_emitter_id;	//	発生させたエミッターID
 	};
 	static constexpr UINT particle_event_staging_count = 8;	//	読み出し用リング数
+
+	//	各種シェーダー
+	enum class dispatch_shaderes
+	{
+		clear_system_shader,
+		clear_particles,
+
+		begin_update,
+		fill_unused_index,
+		spawn_particles,
+		initialize_particles,
+		spawn_from_events,
+
+		update_particles,	//	@remainder	複数カメラを考えると深度ソートを別に移動させるほうが良いか？
+
+		sort_b2,
+		sort_c2,
+
+		range_particles,
+		terminate_particles,
+		build_emitter_draw_arguments,
+
+		end_update,
+
+		build_primitive,
+
+		rebase_particles,
+	};
 
 public:
 	compute_particle_system(ID3D11Device* device,
@@ -384,15 +433,17 @@ public:
 	//	登録エミッター更新
 	void update_emitter(UINT emitter_id, const update_emitter_data& data);
 
+	//	衝突判定用SDF登録
 	void set_cubic_sdf_gpu_resource(std::shared_ptr<cubic_sdf_buffer_pool> resource);
 
+public:	//	相対レンダリング
 	//	シミュレーション空間の原点
 	const math::vector3d& get_simulation_origin() const { return simulation_origin; }
 
 	//	描画原点から一定以上離れていたらシミュレーション原点を描画原点へ移す
 	void update_simulation_origin(const math::vector3d& render_origin);
 
-private:
+private:	//	パーティクルイベント
 	//	パーティクルイベント読み出し
 	bool read_particle_event_staging(ID3D11DeviceContext* device_context, UINT slot, bool wait, std::vector<particle_event>& out_events);
 
@@ -414,6 +465,7 @@ private:
 	variable_position_allocator emitter_binary_allocator;
 	variable_position_allocator particle_binary_allocator;
 	variable_position_allocator particle_index_allocator;
+	std::shared_ptr<compute_shader> compute_shaderes[magic_enum::enum_count<dispatch_shaderes>()];
 
 	//	エミッター管理関係
 	std::stack<UINT> emitter_id_stack; // 空きエミッター番号リスト
@@ -485,32 +537,6 @@ private:
 	//	SDFリソース
 	std::shared_ptr<cubic_sdf_buffer_pool> sdf_buffer_pool;
 
-	//	各種シェーダー
-	enum class dispatch_shaderes
-	{
-		clear_system_shader,
-		clear_particles,
-
-		begin_update,
-		fill_unused_index,
-		spawn_particles,
-		initialize_particles,
-		spawn_from_events,
-
-		update_particles,	//	@remainder	複数カメラを考えると深度ソートを別に移動させるほうが良いか？
-
-		sort_b2,
-		sort_c2,
-
-		range_particles,
-		terminate_particles,
-		build_emitter_draw_arguments,
-
-		end_update,
-
-		build_primitive,
-
-		rebase_particles,
-	};
-	std::shared_ptr<compute_shader> compute_shaderes[magic_enum::enum_count<dispatch_shaderes>()];
+	//	カーブバッファ
+	shared_structured_buffer<math::float4> curve_pool;
 };

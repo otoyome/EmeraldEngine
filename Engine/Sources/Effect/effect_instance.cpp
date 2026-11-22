@@ -118,7 +118,6 @@ namespace
 			color_item.state = renderer->color.state;
 			color_item.color_min = renderer->color.color_min;
 			color_item.color_max = renderer->color.color_max;
-			color_item.fade_range = renderer->color.fade_range;
 			append(&color_item, sizeof(color_item));
 			common_data.active_items |= 1 << particle_system_item::emitter::color::data_id;
 		}
