@@ -154,7 +154,7 @@ bool editor_viewport::imgui_render(engine_context& context, const ImVec2& positi
 		ImGui::InvisibleButton("##view", image_size, ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonRight);
 		hovered = ImGui::IsItemHovered() || ImGui::IsItemActive();
 	}
-	context.set_viewport_rect({ image_position.x, image_position.y, image_size.x, image_size.y });
+	context.get_editor().set_viewport_rect({ image_position.x, image_position.y, image_size.x, image_size.y });
 	if (hovered)
 		input::pass_mouse_through_ui();
 	return hovered;

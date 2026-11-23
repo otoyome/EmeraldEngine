@@ -62,6 +62,6 @@ private:
 	post_process_volume_ptr instance;
 	std::uint32_t applied_spatial_version = UINT32_MAX;
 #if defined(USE_IMGUI)
-	std::shared_ptr<editor_items::context> editor_context;
+	std::shared_ptr<editor_items::context> items_context;
 #endif	//	defined(USE_IMGUI)
 };

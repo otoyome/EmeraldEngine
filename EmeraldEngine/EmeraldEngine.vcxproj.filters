@@ -545,7 +545,7 @@
     <ClCompile Include="Sources\Object\game_object_serializer.cpp">
       <Filter>Sources\Object</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Object\System\start_point_object.cpp">
+    <ClCompile Include="Sources\Object\System\locator_object.cpp">
       <Filter>Sources\Object\System</Filter>
     </ClCompile>
     <ClCompile Include="Sources\Object\Graphics\effect_object.cpp">
@@ -683,6 +683,9 @@
       <Filter>Headers\Editor</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Object\game_object.h">
+      <Filter>Headers\Object</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Object\editor_context.h">
       <Filter>Headers\Object</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Object\engine_context.h">
@@ -955,7 +958,7 @@
     <ClInclude Include="Headers\Object\game_object_serializer.h">
       <Filter>Headers\Object</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Object\System\start_point_object.h">
+    <ClInclude Include="Headers\Object\System\locator_object.h">
       <Filter>Headers\Object\System</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Object\Graphics\effect_object.h">

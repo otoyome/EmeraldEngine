@@ -6,7 +6,7 @@
 #include "Resource/resource_manager.h"
 #include "Object/prefab_resource.h"
 
-class start_point_object;
+class locator_object;
 class game_object_serializer;
 
 namespace minigame000
@@ -62,11 +62,11 @@ private:
 	bool is_stage_ready() const;
 
 	//	開始位置収集
-	std::vector<std::shared_ptr<start_point_object>> collect_start_points() const;
+	std::vector<std::shared_ptr<locator_object>> collect_start_points() const;
 
 	//	ルンバ生成
 	void spawn_roombas();
-	std::shared_ptr<minigame000::roomba_object> spawn_roomba(const prefab_resource& prefab, const std::shared_ptr<start_point_object>& start_point);
+	std::shared_ptr<minigame000::roomba_object> spawn_roomba(const prefab_resource& prefab, const std::shared_ptr<locator_object>& start_point);
 
 	//	プレイヤー操作を割り当てる
 	void possess_player(const std::shared_ptr<minigame000::roomba_object>& roomba);

@@ -110,7 +110,7 @@ private:
 private:
 	std::shared_ptr<camera_object> main_camera;
 	std::shared_ptr<editor_camera_object> editor_camera;
-	std::shared_ptr<editor_items::context> editor_context;
+	std::shared_ptr<editor_items::context> items_context;
 
 	std::vector<std::shared_ptr<model_object>> object_models;
 	std::vector<int> last_active_animation_per_object;

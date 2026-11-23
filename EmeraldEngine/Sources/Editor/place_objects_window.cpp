@@ -82,7 +82,7 @@ void place_objects_window::render_placeable_types(std::string_view filter,
 void place_objects_window::imgui_render(object_edit_operations& editor)
 {
 	//	Œ^‚Ìˆê——
-	if (ImGui::Begin(editor.get_edit_context().make_window_name("place objects").c_str()))
+	if (ImGui::Begin(editor.get_edit_context().get_editor().make_window_name("place objects").c_str()))
 		imgui_render_contents(editor);
 	ImGui::End();
 }

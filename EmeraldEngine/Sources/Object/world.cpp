@@ -9,15 +9,16 @@
 #include "Effect/effect_instance.h"
 #include "Graphics/Debug/debug_primitive_collector.h"
 
-world::world()
+world::world(const world_settings& settings)
 : context(*this)
-, effects(std::make_unique<effect_manager>())
+, effects(std::make_unique<effect_manager>(settings.effects))
 , objects(std::make_unique<object_manager>(context))
 , scenes(std::make_unique<scene_manager>(context))
-#if defined(USE_IMGUI)
-, debug_primitives(std::make_unique<debug_primitive_collector>())
-#endif	//	defined(USE_IMGUI)
 {
+#if defined(USE_IMGUI)
+	debug_primitives = std::make_unique<debug_primitive_collector>();
+	context.get_editor().set_embedded(settings.embedded);
+#endif	//	defined(USE_IMGUI)
 }
 
 world::~world()

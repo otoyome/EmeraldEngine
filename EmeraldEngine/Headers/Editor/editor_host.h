@@ -60,7 +60,7 @@ public:
 private:
 	CONST HWND hwnd;
 	render_pass imgui_rendering_pass;
-	std::shared_ptr<editor_items::context> editor_context;
+	std::shared_ptr<editor_items::context> items_context;
 
 	bool frame_begun = false;
 };

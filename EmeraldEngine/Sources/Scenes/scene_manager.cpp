@@ -165,7 +165,7 @@ bool scene_manager::can_add_scene(std::string_view name) const
 #if defined(USE_IMGUI)
 void scene_manager::imgui_render()
 {
-	if (context.is_asset_preview())
+	if (context.get_editor().is_asset_preview())
 	{
 		for (auto& scene : scenes)
 		{

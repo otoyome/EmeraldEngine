@@ -123,8 +123,8 @@ bool edit_material_system::initialize_core()
 
 	//	エディターアイテム用コンテキスト生成
 	{
-		editor_context = editor_items::generate_context();
-		editor_context->set_window_id(get_context().get_window_id());
+		items_context = editor_items::generate_context();
+		items_context->set_window_id(get_context().get_editor().get_window_id());
 	}
 
 	//	床
@@ -167,7 +167,7 @@ void edit_material_system::update_core(float elapsed_time)
 	{
 		//	窓に映しているワールドではアセットプレビューから渡されたファイルを開く
 		std::string file_path;
-		if (get_context().take_open_file(file_path))
+		if (get_context().get_editor().take_open_file(file_path))
 			open_source(file_path, false);
 	}
 
@@ -186,7 +186,7 @@ void edit_material_system::update_core(float elapsed_time)
 void edit_material_system::imgui_render_core()
 {
 	ImGui::SetNextWindowSize(ImVec2(820.0f, 640.0f), ImGuiCond_FirstUseEver);
-	if (ImGui::Begin(get_context().make_window_name("Material Editor").c_str()))
+	if (ImGui::Begin(get_context().get_editor().make_window_name("Material Editor").c_str()))
 	{
 		imgui_render_source();
 		ImGui::Separator();
@@ -833,7 +833,7 @@ void edit_material_system::imgui_render_material_detail()
 		ImGui::TextDisabled("preview material: changes are not saved (Load a .emr / .emo / .eme to save)");
 
 	//	リソースを直接編集するので、同じマテリアルを使う全てのインスタンスへバージョン番号で伝わる
-	if (editor_items::edit_shared_material(editor_context, material))
+	if (editor_items::edit_shared_material(items_context, material))
 		dirty = true;
 }
 

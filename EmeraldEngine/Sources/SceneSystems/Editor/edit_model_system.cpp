@@ -93,7 +93,7 @@ void edit_model_system::update_core(float elapsed_time)
 	if (load_model_path.empty())
 	{
 		std::string file_path;
-		if (get_context().take_open_file(file_path))
+		if (get_context().get_editor().take_open_file(file_path))
 		{
 			load_model_path = file_path;
 			is_edit_vertex_color = false;

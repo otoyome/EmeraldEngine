@@ -16,7 +16,7 @@
 #include "Object/Graphics/light_probe_object.h"
 #include "Object/Graphics/camera_object.h"
 #include "Object/Graphics/post_process_volume_object.h"
-#include "Object/System/start_point_object.h"
+#include "Object/System/locator_object.h"
 #include "Graphics/Debug/debug_primitive_collector.h"
 #include "System/imgui_texture_keeper.h"
 #include "Texture/texture_importer.h"
@@ -44,7 +44,7 @@ namespace
 		{ sky_light_object::type_name(), "sky_light" },
 		{ light_probe_object::type_name(), "light_probe" },
 		{ camera_object::type_name(), "camera" },
-		{ start_point_object::type_name(), "start_point" },
+		{ locator_object::type_name(), "locator" },
 	};
 
 	//	表に無い形の無いオブジェクトのアイコン
@@ -176,7 +176,7 @@ void editor_icons::draw(engine_context& context, const ImVec2& image_position, c
 	draw_list->PushClipRect(image_position, ImVec2(image_position.x + image_size.x, image_position.y + image_size.y), true);
 
 	//	選んでいる物は色を付け、非アクティブな物は薄く出す
-	const std::shared_ptr<game_object> selected = context.get_selected_object();
+	const std::shared_ptr<game_object> selected = context.get_editor().get_selected_object();
 	const float half = icon_size * 0.5f;
 	for (const placed_icon& icon : collect(context, image_size))
 	{
@@ -212,7 +212,7 @@ std::shared_ptr<game_object> editor_icons::pick(engine_context& context, const I
 
 void editor_icons::queue_selected_shape(engine_context& context)
 {
-	const std::shared_ptr<game_object> selected = context.get_selected_object();
+	const std::shared_ptr<game_object> selected = context.get_editor().get_selected_object();
 	if (!selected || selected->is_transient())
 		return;
 

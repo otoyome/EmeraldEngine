@@ -89,7 +89,7 @@ void outliner_window::render_contents(engine_context& target, const std::vector<
 	const ImVec2 rest_size(std::max(ImGui::GetContentRegionAvail().x, 1.0f), std::max(ImGui::GetContentRegionAvail().y, ImGui::GetFrameHeight()));
 	ImGui::InvisibleButton("##outliner_root", rest_size);
 	if (ImGui::IsItemClicked())
-		context->set_selected_object(nullptr);
+		context->get_editor().set_selected_object(nullptr);
 	if (operations)
 	{
 		//	オブジェクトを落とすと親から外し、アセットブラウザからシーンを落とすと編集中のシーンに足す
@@ -134,7 +134,7 @@ void outliner_window::render_contents(engine_context& target, const std::vector<
 				{
 					pending = [target_operations, target_context, type]()
 					{
-						target_context->set_selected_object(nullptr);
+						target_context->get_editor().set_selected_object(nullptr);
 						target_operations->place_object(type);
 					};
 				});
@@ -162,7 +162,7 @@ void outliner_window::render_scene(const scene_row& scene)
 	const core::cache_string path(scene.resource->get_file_path());
 	const std::string display_name = scene_resource_utility::make_display_name(path.get<core::utf8_cache>());
 	ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_DefaultOpen;
-	if (editor && !context->get_selected_object() && scene.resource == editor->get_current_scene_resource())
+	if (editor && !context->get_editor().get_selected_object() && scene.resource == editor->get_current_scene_resource())
 		flags |= ImGuiTreeNodeFlags_Selected;
 	const bool opened = ImGui::TreeNodeEx("##scene", flags, "%s", display_name.c_str());
 	if (editor && ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
@@ -262,14 +262,14 @@ void outliner_window::render_object(const std::shared_ptr<game_object>& object)
 	const bool is_spatial = node != nullptr;
 	const bool has_children = node && has_object_children(node);
 	ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanAvailWidth;
-	if (context->get_selected_object() == object)
+	if (context->get_editor().get_selected_object() == object)
 		flags |= ImGuiTreeNodeFlags_Selected;
 	if (!has_children)
 		flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
 	const core::cache_string name(object->get_name());
 	const bool opened = ImGui::TreeNodeEx("##object", flags, "%s", name.get<core::utf8_cache>().data());
 	if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
-		context->set_selected_object(object);
+		context->get_editor().set_selected_object(object);
 
 	if (operations)
 	{
@@ -353,8 +353,8 @@ void outliner_window::render_transient_objects(engine_context& target)
 		{
 			ImGui::PushID(object.get());
 			const core::cache_string name(object->get_name());
-			if (ImGui::Selectable(name.get<core::utf8_cache>().data(), context->get_selected_object() == object))
-				context->set_selected_object(object);
+			if (ImGui::Selectable(name.get<core::utf8_cache>().data(), context->get_editor().get_selected_object() == object))
+				context->get_editor().set_selected_object(object);
 			ImGui::PopID();
 		}
 		ImGui::TreePop();

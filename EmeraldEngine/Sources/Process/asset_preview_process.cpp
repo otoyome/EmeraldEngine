@@ -32,12 +32,13 @@ namespace
 
 std::unordered_map<std::string, asset_preview_process::panel_layout> asset_preview_process::panel_layouts;
 
-asset_preview_process::asset_preview_process(framework& owner, const core::cache_string& file_path, std::string_view window_kind, scene_opener open_scene)
+asset_preview_process::asset_preview_process(framework& owner, const core::cache_string& file_path, std::string_view window_kind, const world_settings& settings, scene_opener open_scene)
 : framework_process(owner)
 , file_path(file_path)
 , window_kind(window_kind)
 , key(make_key(window_kind, file_path))
 , open_scene(std::move(open_scene))
+, settings(settings)
 {
 }
 
@@ -54,12 +55,11 @@ bool asset_preview_process::enter()
 {
 	framework& self = get_owner();
 
-	preview_world = std::make_unique<world>();
+	preview_world = std::make_unique<world>(settings);
 	engine_context& context = preview_world->get_context();
-	context.set_embedded(true);
-	context.set_asset_preview(true);
-	context.set_window_id("##" + window_kind + ":" + std::string(file_path.get<core::utf8_cache>()));
-	context.set_open_file(file_path.str());
+	context.get_editor().set_asset_preview(true);
+	context.get_editor().set_window_id("##" + window_kind + ":" + std::string(file_path.get<core::utf8_cache>()));
+	context.get_editor().set_open_file(file_path.str());
 	open_scene(preview_world->get_scenes());
 
 	//	•`‰æ
@@ -140,13 +140,13 @@ void asset_preview_process::imgui_render()
 		hovered = imgui_render_layout(context);
 	}
 	ImGui::End();
-	context.set_viewport_hovered(hovered);
+	context.get_editor().set_viewport_hovered(hovered);
 
 	//	•Â‚¶‚é
 	if (!open && !scenes.request_close())
 		open = true;
 	//	•Â‚¶Šm”F
-	if (context.take_close_window_request())
+	if (context.get_editor().take_close_window_request())
 		open = false;
 
 	scenes.imgui_render();

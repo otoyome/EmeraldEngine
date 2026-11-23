@@ -72,7 +72,7 @@ void editor_camera_object::debug_update(float elapsed_time)
 {
 	//	ImGui ‚Ì‘‹‚É‰f‚µ‚Ä‚¢‚éã‚Å‚¾‚¯“ü—Í‚ğó‚¯•t‚¯‚é
 	const engine_context& context = get_context();
-	const bool accepts_input = context.is_embedded() ? context.is_viewport_hovered() : !ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow);
+	const bool accepts_input = context.get_editor().is_embedded() ? context.get_editor().is_viewport_hovered() : !ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow);
 	if (accepts_input)
 		handle_input(elapsed_time);
 
@@ -101,10 +101,10 @@ void editor_camera_object::debug_update(float elapsed_time)
 	{
 		//	À•Wî•ñ‚ğ‘—‚é
 		mouse_position_data data;
-		if (context.is_embedded())
+		if (context.get_editor().is_embedded())
 		{
 			//	‰f‚µ‚Ä‚¢‚é‰æ‘œ‚Ì’†‚ÌÀ•W‚É‚·‚é
-			const math::float4& rect = context.get_viewport_rect();
+			const math::float4& rect = context.get_editor().get_viewport_rect();
 			const ImVec2 mouse_position = ImGui::GetIO().MousePos;
 			data.position.x = mouse_position.x - rect.x;
 			data.position.y = mouse_position.y - rect.y;

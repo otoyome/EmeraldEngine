@@ -44,7 +44,7 @@ private:
 	std::shared_ptr<editor_camera_object> editor_camera;
 
 private:
-	std::shared_ptr<editor_items::context> editor_context;
+	std::shared_ptr<editor_items::context> items_context;
 
 	effect_resource_ptr edit_resource;
 	effect_instance_ptr edit_instance;

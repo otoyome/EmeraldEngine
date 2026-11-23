@@ -491,7 +491,7 @@
     <ClCompile Include="Sources\Object\Collision\collision_world.cpp" />
     <ClCompile Include="Sources\Object\Collision\collision_object.cpp" />
     <ClCompile Include="Sources\Object\Collision\collision_octree.cpp" />
-    <ClCompile Include="Sources\Object\System\start_point_object.cpp" />
+    <ClCompile Include="Sources\Object\System\locator_object.cpp" />
     <ClCompile Include="Sources\Object\UI\Common\fade_controller_object.cpp" />
     <ClCompile Include="Sources\Object\UI\Common\transition_fade_controller.cpp" />
     <ClCompile Include="Sources\Object\UI\ui_button.cpp" />
@@ -638,7 +638,7 @@
     <ClInclude Include="Headers\Object\Collision\collision_world.h" />
     <ClInclude Include="Headers\Object\Collision\collision_object.h" />
     <ClInclude Include="Headers\Object\Collision\collision_octree.h" />
-    <ClInclude Include="Headers\Object\System\start_point_object.h" />
+    <ClInclude Include="Headers\Object\System\locator_object.h" />
     <ClInclude Include="Headers\Object\UI\Common\fade_controller_object.h" />
     <ClInclude Include="Headers\Object\UI\Common\transition_fade_controller.h" />
     <ClInclude Include="Headers\Object\UI\ui_button.h" />
@@ -652,6 +652,7 @@
     <ClInclude Include="Headers\Object\Graphics\light_probe_object.h" />
     <ClInclude Include="Headers\Object\object_manager.h" />
     <ClInclude Include="Headers\Object\world.h" />
+    <ClInclude Include="Headers\Object\editor_context.h" />
     <ClInclude Include="Headers\Object\engine_context.h" />
     <ClInclude Include="Headers\Object\Graphics\post_process_volume_object.h" />
     <ClInclude Include="Headers\Object\spatial_object.h" />

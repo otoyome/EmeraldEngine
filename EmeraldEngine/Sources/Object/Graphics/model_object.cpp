@@ -47,7 +47,7 @@ model_object::model_object(std::string_view name)
 : spatial_object(name)
 {
 #if defined(USE_IMGUI)
-	editor_context = editor_items::generate_context();
+	items_context = editor_items::generate_context();
 #endif	//	defined(USE_IMGUI)
 }
 
@@ -81,7 +81,7 @@ model_object::model_object(std::string_view name, model_resource_ptr resource)
 	}
 
 #if defined(USE_IMGUI)
-	editor_context = editor_items::generate_context();
+	items_context = editor_items::generate_context();
 #endif	//	defined(USE_IMGUI)
 }
 
@@ -763,7 +763,7 @@ void model_object::imgui_render_core()
 		{
 			if (ImGui::TreeNode(core::convert_utf8(material.get_name()).data()))
 			{
-				editor_items::edit_shared_material(editor_context, material.get_resource());
+				editor_items::edit_shared_material(items_context, material.get_resource());
 				ImGui::TreePop();
 			}
 		}
@@ -776,7 +776,7 @@ void model_object::imgui_render_core()
 		ImGui::BeginDisabled();
 		for (auto& node : model_instance->get_nodes())
 		{
-			ImGui::PushID(editor_context->get_item_id());
+			ImGui::PushID(items_context->get_item_id());
 			ImGui::Text(core::convert_utf8(node.name).data());
 			if (node.parent_index != model_resource::invalid_id)
 				ImGui::InputText("Parent", model_instance->get_nodes()[node.parent_index].name);

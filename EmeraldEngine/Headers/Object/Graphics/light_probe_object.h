@@ -85,7 +85,7 @@ private:
 	source_types source_type = source_types::specified_texture;
 
 #if defined(USE_IMGUI)
-	std::shared_ptr<editor_items::context> editor_context;
+	std::shared_ptr<editor_items::context> items_context;
 #endif	//	defined(USE_IMGUI)
 };
 

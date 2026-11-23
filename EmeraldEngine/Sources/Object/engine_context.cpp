@@ -3,6 +3,9 @@
 
 engine_context::engine_context(world& owner)
 : owner(owner)
+#if defined(USE_IMGUI)
+, editor(std::make_unique<editor_context>())
+#endif	//	defined(USE_IMGUI)
 {
 }
 

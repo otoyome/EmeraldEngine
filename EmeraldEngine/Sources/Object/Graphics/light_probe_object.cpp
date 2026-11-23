@@ -103,7 +103,7 @@ light_probe_object::light_probe_object(std::string_view name)
 : spatial_object(name)
 {
 #if defined(USE_IMGUI)
-	editor_context = editor_items::generate_context();
+	items_context = editor_items::generate_context();
 #endif	//	defined(USE_IMGUI)
 }
 
@@ -157,7 +157,7 @@ void light_probe_object::imgui_render_core()
 		ImGui::PushID(label);
 		ImGui::Text(label);
 		ImGui::SameLine();
-		if (editor_items::edit_texture_item(editor_context, handle))
+		if (editor_items::edit_texture_item(items_context, handle))
 			(this->*setter)(handle.get());
 		ImGui::PopID();
 	};

@@ -43,7 +43,7 @@ post_process_volume_object::post_process_volume_object(std::string_view name)
 	sync_to_volume();
 
 #if defined(USE_IMGUI)
-	editor_context = editor_items::generate_context();
+	items_context = editor_items::generate_context();
 #endif	//	defined(USE_IMGUI)
 }
 
@@ -142,19 +142,19 @@ void post_process_volume_object::imgui_render_core()
 				remove_index = index;
 			ImGui::SameLine();
 			material_resource_ptr slot_material = materials[index]->get_resource();
-			if (editor_items::edit_material_slot(editor_context, slot_material, material_resource::domains::post_process))
+			if (editor_items::edit_material_slot(items_context, slot_material, material_resource::domains::post_process))
 				instance->set_postprocess_material(index, slot_material);
 
 			if (ImGui::TreeNode(core::convert_utf8(materials[index]->get_name()).data()))
 			{
-				editor_items::edit_shared_material(editor_context, materials[index]->get_resource());
+				editor_items::edit_shared_material(items_context, materials[index]->get_resource());
 				ImGui::TreePop();
 			}
 			ImGui::PopID();
 		}
 
 		material_resource_ptr new_material;
-		if (editor_items::edit_material_slot(editor_context, new_material, material_resource::domains::post_process))
+		if (editor_items::edit_material_slot(items_context, new_material, material_resource::domains::post_process))
 			instance->register_postprocess_materials(new_material);
 
 		if (remove_index)
@@ -218,10 +218,10 @@ void post_process_volume_object::imgui_bloom()
 			}
 			case bloom_data::modes::convolution:
 			{
-				ImGui::PushID(editor_context->get_item_id());
+				ImGui::PushID(items_context->get_item_id());
 				ImGui::Text("image_kernel");
 				ImGui::SameLine();
-				if (editor_items::edit_texture_item(editor_context, bloom_constant.image_kernel))
+				if (editor_items::edit_texture_item(items_context, bloom_constant.image_kernel))
 				{
 					is_change = true;
 				}
@@ -292,10 +292,10 @@ void post_process_volume_object::imgui_lens_ghost()
 		}
 
 		{
-			ImGui::PushID(editor_context->get_item_id());
+			ImGui::PushID(items_context->get_item_id());
 			ImGui::Text("image_kernel");
 			ImGui::SameLine();
-			if (editor_items::edit_texture_item(editor_context, lens_ghosts_constant.image_kernel))
+			if (editor_items::edit_texture_item(items_context, lens_ghosts_constant.image_kernel))
 			{
 				is_change = true;
 			}
@@ -303,10 +303,10 @@ void post_process_volume_object::imgui_lens_ghost()
 		}
 
 		{
-			ImGui::PushID(editor_context->get_item_id());
+			ImGui::PushID(items_context->get_item_id());
 			ImGui::Text("ghost_color_lut");
 			ImGui::SameLine();
-			if (editor_items::edit_texture_item(editor_context, lens_ghosts_constant.ghost_color_lut))
+			if (editor_items::edit_texture_item(items_context, lens_ghosts_constant.ghost_color_lut))
 			{
 				is_change = true;
 			}

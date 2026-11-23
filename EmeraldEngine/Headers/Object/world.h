@@ -8,17 +8,27 @@
 #include "Model/model_instance.h"
 #include "Graphics/View/post_process_volume.h"
 #include "Object/engine_context.h"
+#include "Effect/effect_instance.h"
 
 class object_manager;
 class scene_manager;
 class effect_manager;
 class debug_primitive_collector;
 
+//	ワールド生成時の設定
+struct world_settings
+{
+	effect_manager::effect_capacity effects;	//	エフェクトの容量
+#if defined(USE_IMGUI)
+	bool embedded = false;		//	エディターのビューポートに埋め込んで表示するか
+#endif	//	defined(USE_IMGUI)
+};
+
 //	ワールド
 class world
 {
 public:
-	world();
+	explicit world(const world_settings& settings);
 	~world();
 
 	world(const world&) = delete;

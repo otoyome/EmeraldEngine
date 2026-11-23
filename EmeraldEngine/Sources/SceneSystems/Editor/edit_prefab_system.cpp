@@ -47,7 +47,7 @@ edit_prefab_system::~edit_prefab_system()
 void edit_prefab_system::on_begin()
 {
 	get_context().get_objects().set_pause(true);
-	get_context().set_editing(true);
+	get_context().get_editor().set_editing(true);
 
 	//	メインカメラ生成
 	{
@@ -95,7 +95,7 @@ void edit_prefab_system::pre_update(float elapsed_time)
 {
 	//	窓に映しているワールドではアセットプレビューから渡されたファイルを開く
 	std::string file_path;
-	if (get_context().take_open_file(file_path))
+	if (get_context().get_editor().take_open_file(file_path))
 		open_prefab(file_path);
 
 	//	選んでいるオブジェクトの形を線で出す
@@ -128,7 +128,7 @@ void edit_prefab_system::clear_objects()
 	for (const std::shared_ptr<game_object>& object : objects)
 		manager.unregister_object(object);
 	objects.clear();
-	get_context().set_selected_object(nullptr);
+	get_context().get_editor().set_selected_object(nullptr);
 }
 
 bool edit_prefab_system::load_objects()
@@ -197,7 +197,7 @@ std::shared_ptr<game_object> edit_prefab_system::place_object(std::string_view t
 		return nullptr;
 
 	//	位置の指定が無く、プレハブのオブジェクトを選んでいればその子にする
-	const std::shared_ptr<game_object> selected = get_context().get_selected_object();
+	const std::shared_ptr<game_object> selected = get_context().get_editor().get_selected_object();
 	if (!position && is_prefab_object(selected))
 		return place_object_as_child(type, selected);
 
@@ -238,7 +238,7 @@ std::shared_ptr<game_object> edit_prefab_system::add_object(std::string_view typ
 
 	objects.emplace_back(object);
 	get_context().get_objects().register_object(object);
-	get_context().set_selected_object(object);
+	get_context().get_editor().set_selected_object(object);
 	return object;
 }
 
@@ -263,7 +263,7 @@ bool edit_prefab_system::remove_object(const std::shared_ptr<game_object>& targe
 		manager.unregister_object(object);
 	std::erase_if(objects, [&](const game_object_ptr& object) { return removes.find(object.get()) != removes.end(); });
 
-	get_context().set_selected_object(nullptr);
+	get_context().get_editor().set_selected_object(nullptr);
 	return true;
 }
 
@@ -354,7 +354,7 @@ void edit_prefab_system::imgui_render_panel(panel_regions region)
 
 			//	この窓を選んでいる時は Delete キーで選んでいるオブジェクトを削除
 			if (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) && !ImGui::GetIO().WantTextInput && ImGui::IsKeyPressed(ImGuiKey_Delete, false))
-				remove_object(get_context().get_selected_object());
+				remove_object(get_context().get_editor().get_selected_object());
 			break;
 		}
 	case panel_regions::right:
@@ -418,7 +418,7 @@ bool edit_prefab_system::imgui_render_viewport_overlay(const ImVec2& image_posit
 			std::shared_ptr<game_object> picked = icons.pick(context, mouse, image_size);
 			if (!picked)
 				picked = editor_picker::pick(context, mouse, image_size);
-			context.set_selected_object(picked);
+			context.get_editor().set_selected_object(picked);
 		}
 	}
 	return false;
@@ -439,7 +439,7 @@ void edit_prefab_system::imgui_render()
 
 void edit_prefab_system::imgui_render_close_popup()
 {
-	const std::string popup_name = get_context().make_window_name("Unsaved Prefab");
+	const std::string popup_name = get_context().get_editor().make_window_name("Unsaved Prefab");
 	if (open_close_popup)
 	{
 		ImGui::OpenPopup(popup_name.c_str());
@@ -456,13 +456,13 @@ void edit_prefab_system::imgui_render_close_popup()
 	if (ImGui::Button("Save"))
 	{
 		if (save_prefab())
-			get_context().request_close_window();
+			get_context().get_editor().request_close_window();
 		ImGui::CloseCurrentPopup();
 	}
 	ImGui::SameLine();
 	if (ImGui::Button("Discard"))
 	{
-		get_context().request_close_window();
+		get_context().get_editor().request_close_window();
 		ImGui::CloseCurrentPopup();
 	}
 	ImGui::SameLine();

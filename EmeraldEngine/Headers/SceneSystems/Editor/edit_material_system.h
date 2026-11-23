@@ -86,7 +86,7 @@ private:
 private:
 	std::shared_ptr<camera_object> main_camera;
 	std::shared_ptr<editor_camera_object> editor_camera;
-	std::shared_ptr<editor_items::context> editor_context;
+	std::shared_ptr<editor_items::context> items_context;
 
 private:
 	model_resource_ptr source_model;

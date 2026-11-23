@@ -15,7 +15,7 @@ namespace core
 	template<typename	LeftType, typename	RightType>
 	inline	bool	equals( const std::weak_ptr<LeftType>& left, const std::shared_ptr<RightType>& right )
 	{
-		return !left.owner_before( left ) && !right.owner_before( left );
+		return	!left.owner_before( right ) && !right.owner_before( left );
 	}
 
 	//	‘¦ŽžƒNƒŠƒA‚µ‚½‚¢‚Æ‚«—p

@@ -68,6 +68,10 @@ namespace
 	//	起動時に読むシーン
 	console_variable<std::string> game_startup_scene_variable("game.startup_scene", "", "ゲームで起動時に読むシーン", console_flags::user_setting);
 
+	//	ゲームのワールドのエフェクトの容量
+	console_variable<int> effect_emitter_max_variable("r.effect.emitter_max", 128, "同時に登録できるパーティクルエミッターの最大数(ワールド生成時に反映)", console_flags::user_setting);
+	console_variable<int> effect_particle_max_variable("r.effect.particle_max", 200000, "同時に存在できるパーティクルの最大数(ワールド生成時に反映)", console_flags::user_setting);
+
 	std::string get_startup_scene_path()
 	{
 		std::string path = game_startup_scene_variable.get();
@@ -118,7 +122,10 @@ bool game_process::enter()
 	framework& self = get_owner();
 
 	//	メインワールド登録
-	main_world = std::make_unique<world>();
+	world_settings settings;
+	settings.effects.emitter_max = static_cast<UINT>((std::max)(effect_emitter_max_variable.get(), 1));
+	settings.effects.particle_max = static_cast<UINT>((std::max)(effect_particle_max_variable.get(), 1));
+	main_world = std::make_unique<world>(settings);
 
 	{
 		//	メインのワールドの描画

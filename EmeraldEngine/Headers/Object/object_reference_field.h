@@ -40,5 +40,16 @@ public:
 		}
 		return changed;
 	}
+
+	//	ワールドにある Type のオブジェクトから参照先を選ぶ
+	template<class Type>
+	static bool imgui_combo(const char* label, engine_context& context, std::weak_ptr<Type>& target)
+	{
+		std::shared_ptr<Type> locked = target.lock();
+		if (!imgui_combo(label, context, locked))
+			return false;
+		target = locked;
+		return true;
+	}
 };
 #endif	//	defined(USE_IMGUI)

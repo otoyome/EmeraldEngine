@@ -170,7 +170,7 @@ private:
 		data_converter::gltf::convert_model_data gltf;
 	} convert_option_data;
 
-	std::shared_ptr<editor_items::context> editor_context;
+	std::shared_ptr<editor_items::context> items_context;
 
 private:	//	ƒ{[ƒ“•\¦Œn
 	bool display_bone = false;

@@ -72,7 +72,7 @@ bool editor_gizmo::manipulate(engine_context& context, const ImVec2& position, c
 	handle_shortcuts();
 
 	//	選んでいるオブジェクト
-	const std::shared_ptr<game_object> object = context.get_selected_object();
+	const std::shared_ptr<game_object> object = context.get_editor().get_selected_object();
 	if (!object || object->is_transient() || !object->check_type(spatial_object::type_name()))
 		return false;
 	spatial_object* target = static_cast<spatial_object*>(object.get());

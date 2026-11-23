@@ -5,6 +5,7 @@
 
 #include "Graphics/Geometry/cubic_sdf_buffer_pool.h"
 #include <unordered_map>
+#include <mutex>
 
 //	エフェクトインスタンス
 class effect_instance
@@ -204,6 +205,14 @@ class effect_manager
 	};
 
 public:
+	//	パーティクルシステムの容量
+	struct effect_capacity
+	{
+		UINT emitter_max = 128;		//	同時に登録できるエミッターの最大数
+		UINT particle_max = 200000;	//	同時に存在できるパーティクルの最大数
+	};
+
+public:
 	//	軌跡最大数
 	static constexpr UINT trail_body_max = 64;
 
@@ -213,7 +222,7 @@ public:
 	inline const std::vector<compute_particle_system::particle_event>& get_particle_events() const { return particle_events; }
 
 public:
-	effect_manager();
+	explicit effect_manager(const effect_capacity& capacity);
 	~effect_manager();
 
 public:
@@ -235,13 +244,18 @@ private:
 	void remove_instances();
 	void dispatch_particle_events();
 
+	compute_particle_system& ensure_particle_system();
+	const std::shared_ptr<cubic_sdf_buffer_pool>& ensure_cubic_sdf_resource();
+
 private:
+	effect_capacity capacity;
 	std::shared_ptr<compute_particle_system> particle_system;
 	std::vector<compute_particle_system::particle_event> particle_events, work_particle_events;
 
 	std::vector<item> items;
 	std::vector<effect_instance_ptr> instances_add;
 	std::vector<effect_instance_ptr> instances_removes;
+	std::mutex instance_mutex;
 	std::vector<emitter_owner> emitter_owners;
 	std::unordered_map<core::uuid, effect_instance*> instance_table;
 	std::vector<pending_particle_event> pending_particle_events;

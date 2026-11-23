@@ -188,7 +188,7 @@ void editor_host::begin_frame()
 void editor_host::render_windows()
 {
 	//	ツール窓とファイルごとの編集用ウィンドウ
-	editor_items::render_windows(editor_context);
+	editor_items::render_windows(items_context);
 }
 
 void editor_host::render_overlay()
@@ -257,22 +257,22 @@ void editor_host::imgui_initialize()
 	debug_view_settings_manager::create_instance();
 
 	//	編集用ウィンドウはエディター用コンテキストで開く
-	editor_context = editor_items::generate_context();
+	items_context = editor_items::generate_context();
 
 	//	移動・削除されたファイルの編集用ウィンドウを合わせる
 	asset_browser::path_listener listener;
-	listener.moved = [context = editor_context](std::string_view old_path, std::string_view new_path) mutable { editor_items::move_windows(context, old_path, new_path); };
-	listener.deleted = [context = editor_context](std::string_view path) mutable { editor_items::discard_windows(context, path); };
+	listener.moved = [context = items_context](std::string_view old_path, std::string_view new_path) mutable { editor_items::move_windows(context, old_path, new_path); };
+	listener.deleted = [context = items_context](std::string_view path) mutable { editor_items::discard_windows(context, path); };
 	asset_browser::instance()->register_path_listener(std::move(listener));
 
 	//	テクスチャリソースは別窓で編集する
-	texture_editor_window::register_open_handler(editor_context);
+	texture_editor_window::register_open_handler(items_context);
 
 	//	元データの変換を登録
 	asset_converter::register_handlers();
 
 	//	サウンドバンクはファイルごとの窓で編集する
-	sound_bank_editor_window::register_asset_handlers(editor_context);
+	sound_bank_editor_window::register_asset_handlers(items_context);
 
 	//	アセットブラウザの新規作成
 	register_material_create_handler("Material (Surface)", material_resource::domains::surface);
@@ -334,20 +334,20 @@ void editor_host::imgui_initialize()
 	}
 
 	//	ツール窓
-	editor_items::register_tool_window(editor_context, std::make_unique<editor_items::function_window>("Asset Browser", [](bool& open) { asset_browser::instance()->imgui_render(open); }), asset_browser_window_variable);
-	editor_items::register_tool_window(editor_context, std::make_unique<log_window>(), log_window_variable);
-	editor_items::register_tool_window(editor_context, std::make_unique<console_window>(console_window_variable), console_window_variable);
-	editor_items::register_tool_window(editor_context, std::make_unique<console_commands_window>(), console_commands_window_variable);
-	editor_items::register_tool_window(editor_context, std::make_unique<engine_config_window>(), engine_config_window_variable);
-	editor_items::register_tool_window(editor_context, std::make_unique<editor_items::function_window>("detail_profiler",
+	editor_items::register_tool_window(items_context, std::make_unique<editor_items::function_window>("Asset Browser", [](bool& open) { asset_browser::instance()->imgui_render(open); }), asset_browser_window_variable);
+	editor_items::register_tool_window(items_context, std::make_unique<log_window>(), log_window_variable);
+	editor_items::register_tool_window(items_context, std::make_unique<console_window>(console_window_variable), console_window_variable);
+	editor_items::register_tool_window(items_context, std::make_unique<console_commands_window>(), console_commands_window_variable);
+	editor_items::register_tool_window(items_context, std::make_unique<engine_config_window>(), engine_config_window_variable);
+	editor_items::register_tool_window(items_context, std::make_unique<editor_items::function_window>("detail_profiler",
 		[](bool& open)
 		{
 			if (detail_profiler::is_valid())
 				detail_profiler::instance()->imgui_render(open);
 		}), profiler_window_variable);
-	editor_items::register_tool_window(editor_context, std::make_unique<model_buffer_pool_window>(), model_buffer_pool_window_variable);
-	editor_items::register_tool_window(editor_context, std::make_unique<memory_allocator_window>(), memory_allocator_window_variable);
-	editor_items::register_tool_window(editor_context, std::make_unique<gamepad_window>(), gamepad_window_variable);
+	editor_items::register_tool_window(items_context, std::make_unique<model_buffer_pool_window>(), model_buffer_pool_window_variable);
+	editor_items::register_tool_window(items_context, std::make_unique<memory_allocator_window>(), memory_allocator_window_variable);
+	editor_items::register_tool_window(items_context, std::make_unique<gamepad_window>(), gamepad_window_variable);
 }
 
 void editor_host::register_asset_open_handlers(scene_function edit_scene, play_function play_scene)
@@ -379,15 +379,15 @@ void editor_host::register_asset_open_handlers(scene_function edit_scene, play_f
 	}
 
 	//	シーンセットの中身はファイルごとの窓で編集する
-	scene_set_editor_window::register_asset_handlers(editor_context, [edit_scene](std::string_view file_path) { edit_scene(file_path); });
+	scene_set_editor_window::register_asset_handlers(items_context, [edit_scene](std::string_view file_path) { edit_scene(file_path); });
 }
 
 void editor_host::imgui_terminate()
 {
 	//	編集用ウィンドウが持つ試し再生などを先に止める
-	if (editor_context)
-		editor_items::close_all_windows(editor_context);
-	editor_context.reset();
+	if (items_context)
+		editor_items::close_all_windows(items_context);
+	items_context.reset();
 	asset_browser::delete_instance();
 	imgui_texture_keeper::delete_instance();
 

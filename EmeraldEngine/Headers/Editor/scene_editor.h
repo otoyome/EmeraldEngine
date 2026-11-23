@@ -12,6 +12,7 @@
 #include "Editor/object_edit_operations.h"
 
 class world;
+struct world_settings;
 class game_object;
 class scene_system;
 
@@ -37,7 +38,7 @@ public:
 	engine_context& get_edit_context() override;
 
 public:
-	scene_editor();
+	explicit scene_editor(const world_settings& settings);
 	~scene_editor();
 
 	scene_editor(const scene_editor&) = delete;
@@ -170,7 +171,7 @@ private:
 	//	シーン停止処理
 	void stop_play();
 
-	static std::unique_ptr<world> create_world();
+	static std::unique_ptr<world> create_world(const world_settings& settings);
 
 private:
 	std::unique_ptr<world> edit_world;			//	編集ワールド

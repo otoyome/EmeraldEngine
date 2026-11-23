@@ -176,7 +176,7 @@ void edit_model_system::imgui_render_animation()
 		auto& animation_datas = edit_model->get_model_instance()->get_resource()->get_animations_for_editor();
 
 		//	アニメーション情報編集
-		editor_items::edit_animation_data(editor_context, animation_datas[current_animation_id]);
+		editor_items::edit_animation_data(items_context, animation_datas[current_animation_id]);
 	}
 
 	if (is_delete)
@@ -224,12 +224,12 @@ void edit_model_system::imgui_render_animation_timeline()
 		//	ドラッグで選ぶ時に窓が動かないようにする
 		ImGui::TableSetColumnIndex(0);
 		if (ImGui::BeginChild("##timeline", ImVec2(0.0f, 0.0f), ImGuiChildFlags_None, ImGuiWindowFlags_NoMove))
-			editor_items::edit_animation_data_timeline_embedded(editor_context, animation_datas[current_animation_id]);
+			editor_items::edit_animation_data_timeline_embedded(items_context, animation_datas[current_animation_id]);
 		ImGui::EndChild();
 
 		ImGui::TableSetColumnIndex(1);
 		if (ImGui::BeginChild("##inspector", ImVec2(0.0f, 0.0f), ImGuiChildFlags_None, ImGuiWindowFlags_NoMove))
-			editor_items::edit_animation_timeline_inspector(editor_context);
+			editor_items::edit_animation_timeline_inspector(items_context);
 		ImGui::EndChild();
 
 		ImGui::EndTable();
@@ -273,7 +273,7 @@ void edit_model_system::imgui_render_ik()
 		//	IK情報ウィンドウ
 		auto model_instance = edit_model->get_model_instance();
 		auto ik_resource = edit_model->get_ik_resource();
-		editor_items::edit_ik(editor_context, get_context(), model_instance, ik_resource);
+		editor_items::edit_ik(items_context, get_context(), model_instance, ik_resource);
 	}
 }
 

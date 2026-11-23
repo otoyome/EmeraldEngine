@@ -604,7 +604,7 @@ bool edit_timeline_system::initialize_core()
 
 	//	エディターアイテム用コンテキスト生成
 	{
-		editor_context = editor_items::generate_context();
+		items_context = editor_items::generate_context();
 	}
 
 	new_timeline();
@@ -624,7 +624,7 @@ void edit_timeline_system::update_core(float elapsed_time)
 {
 	{
 		std::string file_path;
-		if (get_context().take_open_file(file_path))
+		if (get_context().get_editor().take_open_file(file_path))
 			open_timeline(file_path);
 	}
 

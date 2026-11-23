@@ -56,7 +56,7 @@ bool inspector_window::render_selected_object(world& target)
 
 bool inspector_window::render_selected_object(engine_context& target)
 {
-	const std::shared_ptr<game_object> selected = target.get_selected_object();
+	const std::shared_ptr<game_object> selected = target.get_editor().get_selected_object();
 	const std::vector<std::shared_ptr<game_object>> world_objects = target.get_objects().search_game_objects<game_object>();
 	if (!selected || std::find(world_objects.begin(), world_objects.end(), selected) == world_objects.end())
 		return false;

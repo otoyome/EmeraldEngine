@@ -1,6 +1,5 @@
 #include "Effect/effect_instance.h"
 #include "Texture/texture.h"
-#include "System/console_manager.h"
 
 #include <unordered_map>
 #include <algorithm>
@@ -11,10 +10,6 @@
 
 namespace
 {
-	//	パーティクルシステムの容量
-	console_variable<int> emitter_max_variable("r.effect.emitter_max", 128, "同時に登録できるパーティクルエミッターの最大数(ワールド生成時に反映)", console_flags::user_setting);
-	console_variable<int> particle_max_variable("r.effect.particle_max", 200000, "同時に存在できるパーティクルの最大数(ワールド生成時に反映)", console_flags::user_setting);
-
 	float random01(UINT seed)
 	{
 		seed ^= seed >> 16; seed *= 0x7feb352dU;
@@ -473,12 +468,16 @@ void effect_instance::build()
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-effect_manager::effect_manager()
+effect_manager::effect_manager(const effect_capacity& capacity)
+: capacity(capacity)
 {
-	//	コンピュートパーティクルシステム生成
+	emitter_owners.resize(capacity.emitter_max);	//	エミッターIDの所有者テーブル
+}
+
+compute_particle_system& effect_manager::ensure_particle_system()
+{
+	if (!particle_system)
 	{
-		UINT emitter_max = static_cast<UINT>((std::max)(emitter_max_variable.get(), 1));
-		UINT particle_max = static_cast<UINT>((std::max)(particle_max_variable.get(), 1));
 		UINT emitter_data_size = sizeof(particle_system_item::emitter::common)
 								+ sizeof(particle_system_item::emitter::trail)
 								+ sizeof(particle_system_item::emitter::uv)
@@ -494,23 +493,25 @@ effect_manager::effect_manager()
 								+ sizeof(particle_system_item::particle::velocity)
 								+ sizeof(particle_system_item::particle::attract)
 								+ sizeof(particle_system_item::particle::event);
-		particle_system = std::make_unique<compute_particle_system>(render_data::instance()->get_device().Get(),
-			emitter_max,
+		particle_system = std::make_shared<compute_particle_system>(render_data::instance()->get_device().Get(),
+			capacity.emitter_max,
 			emitter_data_size,
-			particle_max,
+			capacity.particle_max,
 			particle_data_size);
-
-		//	エミッターIDの所有者テーブル
-		emitter_owners.resize(emitter_max);
+		particle_system->set_cubic_sdf_gpu_resource(ensure_cubic_sdf_resource());
 	}
+	return *particle_system;
+}
 
-	//	衝突判定用GPUリソース初期化
+const std::shared_ptr<cubic_sdf_buffer_pool>& effect_manager::ensure_cubic_sdf_resource()
+{
+	if (!cubic_sdf_resource)
 	{
 		constexpr UINT voxel_pool_size = 16 * 1024 * 1024;
 		constexpr UINT header_capacity = 64;
 		cubic_sdf_resource = std::make_shared<cubic_sdf_buffer_pool>(render_data::instance()->get_device().Get(), voxel_pool_size, header_capacity);
-		particle_system->set_cubic_sdf_gpu_resource(cubic_sdf_resource);
 	}
+	return cubic_sdf_resource;
 }
 
 effect_manager::~effect_manager()
@@ -520,7 +521,7 @@ effect_manager::~effect_manager()
 
 uint32_t effect_manager::add_cubic_sdf(collision::cubic_sdf& sdf)
 {
-	return cubic_sdf_resource->register_sdf(render_data::instance()->get_upload_list(), sdf);
+	return ensure_cubic_sdf_resource()->register_sdf(render_data::instance()->get_upload_list(), sdf);
 }
 
 void effect_manager::remove_cubic_sdf(uint32_t sdf_id)
@@ -794,18 +795,24 @@ bool effect_manager::register_instance(effect_instance_ptr instance)
 {
 	if (!instance)
 		return false;
+
+	std::lock_guard<std::mutex> lock(instance_mutex);
 	if (std::find(instances_add.begin(), instances_add.end(), instance) != instances_add.end())
 		return false;
+
+	//	解除予約中なら予約を取り消す
+	auto it = std::find(instances_removes.begin(), instances_removes.end(), instance);
+	if (it != instances_removes.end())
+	{
+		instances_removes.erase(it);
+		return true;
+	}
+
 	if (std::find_if(items.begin(),
 					 items.end(),
 					 [&](const item& i){return i.effect_instance == instance;}) != items.end())
 		return false;
 
-	auto it = std::find(instances_removes.begin(), instances_removes.end(), instance);
-	if (it != instances_removes.end())
-	{
-		instances_removes.erase(it);
-	}
 	instances_add.emplace_back(instance);
 	return true;
 }
@@ -814,6 +821,17 @@ bool effect_manager::unregister_instance(effect_instance_ptr instance)
 {
 	if (!instance)
 		return false;
+
+	std::lock_guard<std::mutex> lock(instance_mutex);
+
+	//	まだ追加前なら追加解除
+	auto it = std::find(instances_add.begin(), instances_add.end(), instance);
+	if (it != instances_add.end())
+	{
+		instances_add.erase(it);
+		return true;
+	}
+
 	if (std::find(instances_removes.begin(), instances_removes.end(), instance) != instances_removes.end())
 		return false;
 	if (std::find_if(items.begin(),
@@ -821,11 +839,6 @@ bool effect_manager::unregister_instance(effect_instance_ptr instance)
 					 [&](const item& i){return i.effect_instance == instance;}) == items.end())
 		return false;
 
-	auto it = std::find(instances_add.begin(), instances_add.end(), instance);
-	if (it != instances_add.end())
-	{
-		instances_add.erase(it);
-	}
 	instances_removes.emplace_back(instance);
 	return true;
 }
@@ -844,7 +857,13 @@ void effect_manager::collect_model_instances(std::vector<model_instance_ptr>& ou
 
 void effect_manager::add_instances()
 {
-	for (auto& instance : instances_add)
+	std::vector<effect_instance_ptr> adds;
+	{
+		std::lock_guard<std::mutex> lock(instance_mutex);
+		adds.swap(instances_add);
+	}
+
+	for (auto& instance : adds)
 	{
 		auto& item = items.emplace_back();
 		item.uuid = core::uuid::generate();
@@ -869,8 +888,8 @@ void effect_manager::add_instances()
 
 			auto emitter_resource = particle_data.particle.constract_system_resource();
 			auto& emitter_item = item.emitter_items[particle_index];
-			emitter_item.system_index = particle_system->register_emitter(render_data::instance()->get_device().Get(),
-																		  emitter_resource);
+			emitter_item.system_index = ensure_particle_system().register_emitter(render_data::instance()->get_device().Get(),
+																						emitter_resource);
 
 			//	イベント通知用に所有者を記録
 			if (emitter_item.system_index < emitter_owners.size())
@@ -881,12 +900,17 @@ void effect_manager::add_instances()
 			}
 		}
 	}
-	core::std_vector_swap_clear(instances_add);
 }
 
 void effect_manager::remove_instances()
 {
-	for (auto& instance : instances_removes)
+	std::vector<effect_instance_ptr> removes;
+	{
+		std::lock_guard<std::mutex> lock(instance_mutex);
+		removes.swap(instances_removes);
+	}
+
+	for (auto& instance : removes)
 	{
 		auto it = std::find_if(items.begin(),
 						       items.end(),
@@ -909,7 +933,7 @@ void effect_manager::remove_instances()
 			//	パーティクル情報解除
 			for (auto& emitter_item : item.emitter_items)
 			{
-				if (emitter_item.system_index == invalid_emitter_id)
+				if (emitter_item.system_index == invalid_emitter_id || !particle_system)
 					continue;
 
 				particle_system->unregister_emitter(emitter_item.system_index);
@@ -918,7 +942,6 @@ void effect_manager::remove_instances()
 			items.erase(it);
 		}
 	}
-	core::std_vector_swap_clear(instances_removes);
 }
 
 void effect_manager::dispatch_particle_events()

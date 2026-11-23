@@ -21,11 +21,11 @@
 
 #include <unordered_set>
 
-scene_editor::scene_editor()
-: edit_world(create_world())
+scene_editor::scene_editor(const world_settings& settings)
+: edit_world(create_world(settings))
 {
 	edit_world->get_objects().set_pause(true);
-	edit_world->get_context().set_editing(true);
+	edit_world->get_context().get_editor().set_editing(true);
 }
 
 scene_editor::~scene_editor()
@@ -321,7 +321,7 @@ void scene_editor::imgui_render()
 		return;
 
 	//	オブジェクトを選んでいる間は、そのシーンを置く先のシーンにしておく
-	if (const edited_scene* scene = find_edited_scene(edit_world->get_context().get_selected_object()))
+	if (const edited_scene* scene = find_edited_scene(edit_world->get_context().get_editor().get_selected_object()))
 		current_scene = scene->resource;
 
 	imgui_render_edit_window();
@@ -340,7 +340,7 @@ void scene_editor::set_current_scene(const scene_resource_ptr& resource)
 {
 	//	シーンを選んだら、オブジェクトの選択は外す
 	current_scene = resource;
-	edit_world->get_context().set_selected_object(nullptr);
+	edit_world->get_context().get_editor().set_selected_object(nullptr);
 }
 
 std::vector<std::string> scene_editor::get_addable_scenes() const
@@ -461,7 +461,7 @@ std::shared_ptr<game_object> scene_editor::place_object(std::string_view type, c
 	if (!is_editing())
 		return nullptr;
 
-	const std::shared_ptr<game_object> selected = edit_world->get_context().get_selected_object();
+	const std::shared_ptr<game_object> selected = edit_world->get_context().get_editor().get_selected_object();
 	if (!position && find_edited_scene(selected))
 		return place_object_as_child(type, selected);
 	return add_object(get_current_scene(), type, position ? *position : get_placement_position());
@@ -521,14 +521,14 @@ std::shared_ptr<game_object> scene_editor::place_prefab(std::string_view file_pa
 		scene.objects.emplace_back(object);
 		edit_world->get_objects().register_object(object);
 	}
-	edit_world->get_context().set_selected_object(root);
+	edit_world->get_context().get_editor().set_selected_object(root);
 	return root;
 }
 
 scene_editor::edited_scene& scene_editor::get_current_scene()
 {
 	//	オブジェクトを選んでいる時は、そのオブジェクトのシーン
-	if (edited_scene* scene = find_edited_scene(edit_world->get_context().get_selected_object()))
+	if (edited_scene* scene = find_edited_scene(edit_world->get_context().get_editor().get_selected_object()))
 		return *scene;
 
 	for (edited_scene& scene : edited_scenes)
@@ -557,7 +557,7 @@ std::shared_ptr<game_object> scene_editor::add_object(edited_scene& scene, std::
 
 	scene.objects.emplace_back(object);
 	edit_world->get_objects().register_object(object);
-	edit_world->get_context().set_selected_object(object);
+	edit_world->get_context().get_editor().set_selected_object(object);
 	return object;
 }
 
@@ -601,7 +601,7 @@ bool scene_editor::remove_object(const std::shared_ptr<game_object>& target)
 		});
 	}
 
-	edit_world->get_context().set_selected_object(nullptr);
+	edit_world->get_context().get_editor().set_selected_object(nullptr);
 	return true;
 }
 
@@ -765,11 +765,9 @@ void scene_editor::stop_play()
 		handlers.stop();
 }
 
-std::unique_ptr<world> scene_editor::create_world()
+std::unique_ptr<world> scene_editor::create_world(const world_settings& settings)
 {
-	auto result = std::make_unique<world>();
-	//	エディターのビューポートの窓に映す
-	result->get_context().set_embedded(true);
+	auto result = std::make_unique<world>(settings);
 	auto editor_camera = std::make_shared<editor_camera_object>("エディターカメラ", math::vector3d(0.0, 0.0, 0.0), math::rotatorf(0.0f, 0.0f, 0.0f), 0.25f);
 	editor_camera->set_transient(true);
 	result->get_objects().register_object(editor_camera);

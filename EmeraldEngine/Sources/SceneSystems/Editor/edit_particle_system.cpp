@@ -139,8 +139,8 @@ bool edit_particle_system::initialize_core()
 
 	//	エディターアイテム用コンテキスト生成
 	{
-		editor_context = editor_items::generate_context();
-		editor_context->set_window_id(get_context().get_window_id());
+		items_context = editor_items::generate_context();
+		items_context->set_window_id(get_context().get_editor().get_window_id());
 	}
 
 	//	新規パーティクル生成
@@ -171,7 +171,7 @@ void edit_particle_system::update_core(float elapsed_time)
 {
 	{
 		std::string file_path;
-		if (get_context().take_open_file(file_path))
+		if (get_context().get_editor().take_open_file(file_path))
 			open_effect(file_path);
 	}
 
@@ -226,7 +226,7 @@ void edit_particle_system::imgui_render_panel(panel_regions region)
 				//	ノードのツリー。詳細は右に出す
 				if (ImGui::BeginTabItem("Node"))
 				{
-					if (edit_resource && editor_items::edit_effect_node_tree(editor_context, get_context(), edit_instance, selected_node_index))
+					if (edit_resource && editor_items::edit_effect_node_tree(items_context, get_context(), edit_instance, selected_node_index))
 						rebuild_edit_instance();
 					ImGui::EndTabItem();
 				}
@@ -242,7 +242,7 @@ void edit_particle_system::imgui_render_panel(panel_regions region)
 		}
 		case panel_regions::right:
 		{
-			if (editor_items::edit_effect_node_detail(editor_context, get_context(), edit_instance, selected_node_index))
+			if (editor_items::edit_effect_node_detail(items_context, get_context(), edit_instance, selected_node_index))
 				rebuild_edit_instance();
 			break;
 		}
@@ -259,14 +259,14 @@ void edit_particle_system::imgui_render_panel(panel_regions region)
 				ImGui::TableSetColumnIndex(0);
 				if (ImGui::BeginChild("##timeline", ImVec2(0.0f, 0.0f), ImGuiChildFlags_None, ImGuiWindowFlags_NoMove))
 				{
-					if (editor_items::edit_effect_animation(editor_context, edit_instance))
+					if (editor_items::edit_effect_animation(items_context, edit_instance))
 						rebuild_edit_instance();
 				}
 				ImGui::EndChild();
 
 				ImGui::TableSetColumnIndex(1);
 				if (ImGui::BeginChild("##inspector", ImVec2(0.0f, 0.0f), ImGuiChildFlags_None, ImGuiWindowFlags_NoMove))
-					editor_items::edit_animation_timeline_inspector(editor_context);
+					editor_items::edit_animation_timeline_inspector(items_context);
 				ImGui::EndChild();
 
 				ImGui::EndTable();

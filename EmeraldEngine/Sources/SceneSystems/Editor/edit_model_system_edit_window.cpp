@@ -35,8 +35,8 @@ bool edit_model_system::initialize_edit_core()
 
 	//	エディターアイテム用コンテキスト生成
 	{
-		editor_context = editor_items::generate_context();
-		editor_context->set_window_id(get_context().get_window_id());
+		items_context = editor_items::generate_context();
+		items_context->set_window_id(get_context().get_editor().get_window_id());
 	}
 
 	if (!initialize_vertex_color_edit())
@@ -308,14 +308,14 @@ void edit_model_system::imgui_render_material_detail()
 	ImGui::TextUnformatted(core::convert_utf8(material->get_name()).data());
 	ImGui::Separator();
 	//	別のマテリアルリソースに差し替えたら、表示中のインスタンスも差し替える
-	if (editor_items::edit_material_slot(editor_context, material, material_resource::domains::surface) &&
+	if (editor_items::edit_material_slot(items_context, material, material_resource::domains::surface) &&
 		index < model_instance.get_materials().size())
 	{
 		model_instance.get_materials()[index].set_resource(get_working_material(material));
 	}
 	//	編集するのは複製
 	if (auto working = get_working_material(material))
-		editor_items::edit_material(editor_context, *working);
+		editor_items::edit_material(items_context, *working);
 	ImGui::PopID();
 }
 
@@ -458,7 +458,7 @@ void edit_model_system::imgui_model_loader_window()
 		else if (extension == std::filesystem::path(".gltf") || extension == std::filesystem::path(".glb"))
 		{
 			//	変換の設定はモーダルで聞く
-			const std::string popup_name = get_context().make_window_name("Convert Gltf Data");
+			const std::string popup_name = get_context().get_editor().make_window_name("Convert Gltf Data");
 			if (convert_option_data.kind == convert_option_data::kinds::none && !ImGui::IsPopupOpen(popup_name.c_str()))
 				ImGui::OpenPopup(popup_name.c_str());
 
@@ -873,7 +873,7 @@ void edit_model_system::focus_camera_on_model()
 
 	//	範囲を囲む球が縦横どちらの画角にも収まる距離
 	const float fov_y = main_camera ? main_camera->get_camera()->get_parameters().fov_y : math::angle::to_radian(30.0f);
-	const math::float4& viewport_rect = get_context().get_viewport_rect();
+	const math::float4& viewport_rect = get_context().get_editor().get_viewport_rect();
 	const float aspect = (viewport_rect.z > 0.0f && viewport_rect.w > 0.0f) ? viewport_rect.z / viewport_rect.w : 16.0f / 9.0f;
 	const float fov_x = 2.0f * std::atan(std::tan(fov_y * 0.5f) * aspect);
 	const float distance = radius / std::sin(std::min(fov_y, fov_x) * 0.5f);

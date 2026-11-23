@@ -11,6 +11,7 @@
 #include "Texture/texture.h"
 #include "Renderer/debug_view_settings.h"
 #include "Scenes/scene_system.h"
+#include "Object/world.h"
 
 class world;
 class editor_viewport;
@@ -33,7 +34,7 @@ public:
 	};
 
 public:
-	asset_preview_process(framework& owner, const core::cache_string& file_path, std::string_view window_kind, scene_opener open_scene);
+	asset_preview_process(framework& owner, const core::cache_string& file_path, std::string_view window_kind, const world_settings& settings, scene_opener open_scene);
 	~asset_preview_process() override;
 
 	std::string_view get_key() const override { return key; }
@@ -64,12 +65,13 @@ private:
 	static void imgui_splitter(const char* id, const ImVec2& position, const ImVec2& size, bool vertical, float sign, float& value);
 
 private:
-	core::cache_string file_path;		//	開いたファイル
-	bool open = true;			//	窓が開いているか
-	std::string window_kind;	//	窓の種類
-	std::string key;			//	二重に開かないためのキー
-	scene_opener open_scene;	//	自分のワールドにシーンを登録する処理
+	core::cache_string file_path;				//	開いたファイル
+	bool open = true;							//	窓が開いているか
+	std::string window_kind;					//	窓の種類
+	std::string key;							//	二重に開かないためのキー
+	scene_opener open_scene;					//	自分のワールドにシーンを登録する処理
 
+	world_settings settings;					//	プレビューのワールドの設定
 	std::unique_ptr<world> preview_world;		//	ワールド
 	std::unique_ptr<editor_viewport> viewport;	//	ワールドを映すビューポート
 

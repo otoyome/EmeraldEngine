@@ -11,7 +11,7 @@
 
 #include "Object/game_object_serializer.h"
 #include "Object/Graphics/camera_object.h"
-#include "object/system/start_point_object.h"
+#include "Object/System/locator_object.h"
 #include "object/gameobjects/MiniGame/minigame000_roomba_object.h"
 #include "object/gameobjects/MiniGame/minigame000_roomba_player_controller_object.h"
 #include "object/gameobjects/MiniGame/minigame000_roomba_camera_controller_object.h"
@@ -246,37 +246,28 @@ void minigame000_system::update_prefab_loading()
 	roomba_prefab_resource = operation->get_resource();
 }
 
-std::vector<std::shared_ptr<start_point_object>> minigame000_system::collect_start_points() const
+std::vector<std::shared_ptr<locator_object>> minigame000_system::collect_start_points() const
 {
 	//	ステージの全シーンから集める
-	std::vector<game_object_ptr> objects;
+	std::vector<const scene_instance*> stages;
 	for (const std::string& name : stage_scene_names)
 	{
-		const scene_instance* stage = get_context().get_scenes().find_scene(name);
-		if (!stage)
-			continue;
-		for (const std::weak_ptr<game_object>& weak_object : stage->get_objects())
-		{
-			if (game_object_ptr object = weak_object.lock())
-				objects.emplace_back(std::move(object));
-		}
+		if (const scene_instance* stage = get_context().get_scenes().find_scene(name))
+			stages.emplace_back(stage);
 	}
 
 	//	一致する開始点を取得
-	std::vector<std::shared_ptr<start_point_object>> tagged_points;
-	std::vector<std::shared_ptr<start_point_object>> all_points;
-	for (const game_object_ptr& object : objects)
-	{
-		if (!object->check_type(start_point_object::type_name()))
-			continue;
+	std::vector<std::shared_ptr<locator_object>> start_points;
+	for (const scene_instance* stage : stages)
+		locator_object::collect(*stage, start_point_tag, start_points);
+	if (!start_points.empty())
+		return start_points;
 
-		std::shared_ptr<start_point_object> start_point = std::static_pointer_cast<start_point_object>(object);
-		if (start_point->get_tag() == start_point_tag)
-			tagged_points.emplace_back(start_point);
-		all_points.emplace_back(std::move(start_point));
-	}
-
-	return tagged_points.empty() ? all_points : tagged_points;
+	//	一致する物が無ければ全てのロケーターを使う
+	DEBUG_WARNING_CATEGORY(core::logger::categorys::system, "minigame000_system locator not found[%s]. use all locators\n", start_point_tag.c_str());
+	for (const scene_instance* stage : stages)
+		locator_object::collect(*stage, "", start_points);
+	return start_points;
 }
 
 void minigame000_system::spawn_roombas()
@@ -288,9 +279,9 @@ void minigame000_system::spawn_roombas()
 		return;
 	}
 
-	const std::vector<std::shared_ptr<start_point_object>> start_points = collect_start_points();
-	const std::shared_ptr<start_point_object> start_point = start_points.empty() ? nullptr : start_points.front();
-	DEBUG_CHECK_ERROR_CATEGORY(!start_point, core::logger::categorys::system, "minigame000_system start_point_object not found[%s]", start_point_tag.c_str());
+	const std::vector<std::shared_ptr<locator_object>> start_points = collect_start_points();
+	const std::shared_ptr<locator_object> start_point = start_points.empty() ? nullptr : start_points.front();
+	DEBUG_CHECK_ERROR_CATEGORY(!start_point, core::logger::categorys::system, "minigame000_system locator_object not found[%s]", start_point_tag.c_str());
 
 	//	生成して最初のルンバをプレイヤー操作に割当
 	//	@remainder	AI/通信の割り当ては残りの開始位置を使ってここで分岐させる予定
@@ -298,7 +289,7 @@ void minigame000_system::spawn_roombas()
 		possess_player(roomba);
 }
 
-std::shared_ptr<minigame000::roomba_object> minigame000_system::spawn_roomba(const prefab_resource& prefab, const std::shared_ptr<start_point_object>& start_point)
+std::shared_ptr<minigame000::roomba_object> minigame000_system::spawn_roomba(const prefab_resource& prefab, const std::shared_ptr<locator_object>& start_point)
 {
 	prefab_resource::instance created;
 	if (!prefab.instantiate(created) || created.objects.empty())

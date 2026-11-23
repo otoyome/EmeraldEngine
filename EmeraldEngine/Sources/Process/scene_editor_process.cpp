@@ -38,6 +38,20 @@ namespace
 	console_variable<std::string> editor_open_scenes_variable("editor.open_scenes", "", "エディターで開いていたシーン（; 区切り）", console_flags::persist);
 	//	エディターのビューポートの画面比率
 	console_variable<int> editor_viewport_aspect_variable("editor.viewport.aspect", 0, "エディターのビューポートの画面比率（0:ゲームの解像度 1:16:9 2:16:10 3:4:3 4:21:9 5:固定しない）", console_flags::persist);
+
+	//	エディターのワールドのエフェクトの容量
+	console_variable<int> editor_effect_emitter_max_variable("r.effect.editor.emitter_max", 32, "エディター(シーン編集・アセットプレビュー)のワールドで登録できるパーティクルエミッターの最大数(ワールド生成時に反映)", console_flags::persist);
+	console_variable<int> editor_effect_particle_max_variable("r.effect.editor.particle_max", 20000, "エディター(シーン編集・アセットプレビュー)のワールドで存在できるパーティクルの最大数(ワールド生成時に反映)", console_flags::persist);
+
+	//	エディターのワールドの設定
+	world_settings make_editor_world_settings()
+	{
+		world_settings result;
+		result.effects.emitter_max = static_cast<UINT>((std::max)(editor_effect_emitter_max_variable.get(), 1));
+		result.effects.particle_max = static_cast<UINT>((std::max)(editor_effect_particle_max_variable.get(), 1));
+		result.embedded = true;	//	エディターのビューポートに映す
+		return result;
+	}
 }
 
 scene_editor_process::scene_editor_process(framework& owner)
@@ -96,7 +110,7 @@ bool scene_editor_process::enter()
 	framework& self = get_owner();
 
 	//	編集用のワールドは scene_editor が持つ
-	scene_edit = std::make_unique<scene_editor>();
+	scene_edit = std::make_unique<scene_editor>(make_editor_world_settings());
 
 	//	再生の開始・停止はこのプロセスが受け持つ
 	{
@@ -166,7 +180,7 @@ void scene_editor_process::register_open_handlers()
 		handler.open_file = [&self](const core::cache_string& file_path)
 		{
 			if (!self.has_process(asset_preview_process::make_key("model_editor", file_path)))
-				self.request_process(std::make_unique<asset_preview_process>(self, file_path, "model_editor",
+				self.request_process(std::make_unique<asset_preview_process>(self, file_path, "model_editor", make_editor_world_settings(),
 					[](scene_manager& scenes) { scenes.add_scene(scene_paths::model_editor); }));
 		};
 		asset_browser::instance()->register_open_handler(std::move(handler));
@@ -181,7 +195,7 @@ void scene_editor_process::register_open_handlers()
 		handler.open_file = [&self](const core::cache_string& file_path)
 		{
 			if (!self.has_process(asset_preview_process::make_key("particle_editor", file_path)))
-				self.request_process(std::make_unique<asset_preview_process>(self, file_path, "particle_editor",
+				self.request_process(std::make_unique<asset_preview_process>(self, file_path, "particle_editor", make_editor_world_settings(),
 					[](scene_manager& scenes) { scenes.add_scene(scene_paths::particle_editor); }));
 		};
 		asset_browser::instance()->register_open_handler(std::move(handler));
@@ -196,7 +210,7 @@ void scene_editor_process::register_open_handlers()
 		handler.open_file = [&self](const core::cache_string& file_path)
 		{
 			if (!self.has_process(asset_preview_process::make_key("material_editor", file_path)))
-				self.request_process(std::make_unique<asset_preview_process>(self, file_path, "material_editor",
+				self.request_process(std::make_unique<asset_preview_process>(self, file_path, "material_editor", make_editor_world_settings(),
 					[](scene_manager& scenes) { scenes.add_scene(scene_paths::material_editor); }));
 		};
 		asset_browser::instance()->register_open_handler(std::move(handler));
@@ -211,7 +225,7 @@ void scene_editor_process::register_open_handlers()
 		handler.open_file = [&self](const core::cache_string& file_path)
 		{
 			if (!self.has_process(asset_preview_process::make_key("prefab_editor", file_path)))
-				self.request_process(std::make_unique<asset_preview_process>(self, file_path, "prefab_editor",
+				self.request_process(std::make_unique<asset_preview_process>(self, file_path, "prefab_editor", make_editor_world_settings(),
 					[](scene_manager& scenes) { scenes.add_scene(scene_paths::prefab_editor); }));
 		};
 		asset_browser::instance()->register_open_handler(std::move(handler));
@@ -285,7 +299,7 @@ void scene_editor_process::update(float elapsed_time)
 		game_process* game = find_game_process();
 		if (game && game->get_world())
 		{
-			game->get_world()->get_context().set_open_file(std::move(play_open_file));
+			game->get_world()->get_context().get_editor().set_open_file(std::move(play_open_file));
 			play_open_file.clear();
 		}
 	}
@@ -451,7 +465,7 @@ void scene_editor_process::imgui_render()
 							std::shared_ptr<game_object> picked = icons.pick(context, mouse, image_size);
 							if (!picked)
 								picked = editor_picker::pick(context, mouse, image_size);
-							context.set_selected_object(picked);
+							context.get_editor().set_selected_object(picked);
 						}
 					}
 					return false;
@@ -459,7 +473,7 @@ void scene_editor_process::imgui_render()
 		}
 		ImGui::End();
 		ImGui::PopStyleVar();
-		context.set_viewport_hovered(hovered);
+		context.get_editor().set_viewport_hovered(hovered);
 	}
 
 	//	オブジェクト情報表示
@@ -484,7 +498,7 @@ void scene_editor_process::imgui_render()
 	{
 		//	Delete キーで選んでいるオブジェクトを削除
 		if (!ImGui::GetIO().WantTextInput && ImGui::IsKeyPressed(ImGuiKey_Delete, false))
-			scene_edit->remove_object(scene_edit->get_edit_world().get_context().get_selected_object());
+			scene_edit->remove_object(scene_edit->get_edit_world().get_context().get_editor().get_selected_object());
 
 		place_window.imgui_render(*scene_edit);
 	}
