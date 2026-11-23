@@ -189,7 +189,7 @@ void graphics_custom_pipeline_state::begin(const graphics_context& context)
 				context.render_data->mesh_container.primitive_header_srv.Get(),
 				context.render_data->mesh_container.bone_matrix_srv.Get(),
 			};
-			const system_utility::hash_key transform_keys[2] =
+			const core::hash_key transform_keys[2] =
 			{
 				common_pipeline_states::primitive_headers_hash_key,
 				common_pipeline_states::bone_matrices_hash_key,
@@ -308,7 +308,7 @@ void graphics_custom_pipeline_state::update_parameters(const graphics_context& c
 		forward_light_data forward_light_data;
 		for (auto& cbv : index_map.cbv)
 		{
-			system_utility::hash_key cbv_key = cbv.second.hash;
+			core::hash_key cbv_key = cbv.second.hash;
 			if (cbv_key == common_pipeline_states::parameter_constant_buffer_hash_key)
 			{
 				//	“Á’è‚ÌƒAƒCƒeƒ€‚Ícontext‚©‚ç
@@ -407,7 +407,7 @@ void graphics_custom_pipeline_state::update_parameters(const graphics_context& c
 		{
 			for (auto& srv : index_map.srv)
 			{
-				system_utility::hash_key srv_key = srv.second.hash;
+				core::hash_key srv_key = srv.second.hash;
 				const int paired_sampler_index = index_map.srv_sampler_indices[static_cast<size_t>(&srv - index_map.srv.data())];
 
 				//	“o˜^—pŠÖ”
@@ -783,7 +783,7 @@ void graphics_custom_pipeline_state::update_register_datas()
 				}
 
 				it->second.ids[index] = cbv.register_index;
-				it->second.hash = system_utility::generate_hash(cbv.name);
+				it->second.hash = core::generate_hash(cbv.name);
 			}
 			for (auto& rv : input_resource_desces[index].rvs)
 			{
@@ -801,7 +801,7 @@ void graphics_custom_pipeline_state::update_register_datas()
 						it = std::find_if(index_map.srv.begin(), index_map.srv.end(), search_func);
 					}
 					it->second.ids[index] = rv.register_index;
-					it->second.hash = system_utility::generate_hash(rv.name);
+					it->second.hash = core::generate_hash(rv.name);
 				}
 				else if (rv.is_sampler())
 				{
@@ -845,7 +845,7 @@ void graphics_custom_pipeline_state::update_register_datas()
 
 			for (auto& cbv : index_map.cbv)
 			{
-				system_utility::hash_key cbv_key = system_utility::generate_hash(cbv.first);
+				core::hash_key cbv_key = core::generate_hash(cbv.first);
 
 				switch (cbv_key)
 				{

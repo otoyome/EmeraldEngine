@@ -281,16 +281,16 @@ void light_probe_object::serialize_fields(Archive& archive, std::uint32_t versio
 		}
 	}
 
-	universally_unique_identifier diffuse_ibl_texture_uuid = diffuse_ibl_texture.get_reference().uuid;
-	universally_unique_identifier specular_ibl_texture_uuid = specular_ibl_texture.get_reference().uuid;
-	universally_unique_identifier lut_ggx_texture_uuid = lut_ggx_texture.get_reference().uuid;
+	core::uuid diffuse_ibl_texture_uuid = diffuse_ibl_texture.get_reference().uuid;
+	core::uuid specular_ibl_texture_uuid = specular_ibl_texture.get_reference().uuid;
+	core::uuid lut_ggx_texture_uuid = lut_ggx_texture.get_reference().uuid;
 	game_object_serializer::serialize_asset_reference(archive, "diffuse_ibl_texture", diffuse_ibl_texture_uuid);
 	game_object_serializer::serialize_asset_reference(archive, "specular_ibl_texture", specular_ibl_texture_uuid);
 	game_object_serializer::serialize_asset_reference(archive, "lut_ggx_texture", lut_ggx_texture_uuid);
 
 	if constexpr (Archive::is_loading::value)
 	{
-		auto load_texture = [](const universally_unique_identifier& uuid) -> texture_resource_ptr
+		auto load_texture = [](const core::uuid& uuid) -> texture_resource_ptr
 		{
 			if (uuid.is_empty())
 				return nullptr;

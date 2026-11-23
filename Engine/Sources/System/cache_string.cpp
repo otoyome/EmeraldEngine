@@ -149,7 +149,7 @@ void cache_string::invalidate()
 
 void cache_string::update_hash()
 {
-	cache_hash = value.empty() ? 0 : static_cast<std::size_t>(system_utility::generate_hash(value));
+	cache_hash = value.empty() ? 0 : static_cast<std::size_t>(core::generate_hash(value));
 }
 
 void cache_string::reset_moved()

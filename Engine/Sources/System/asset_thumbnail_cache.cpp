@@ -32,7 +32,7 @@ std::shared_ptr<texture> asset_thumbnail_cache::load(const cache_string& asset_p
 	if (!is_supported(asset_path))
 		return nullptr;
 
-	const universally_unique_identifier uuid = find_uuid(asset_path);
+	const core::uuid uuid = find_uuid(asset_path);
 	if (uuid.is_empty())
 		return nullptr;
 
@@ -70,11 +70,11 @@ bool asset_thumbnail_cache::is_supported(const cache_string& asset_path)
 	return resource::get_asset_type_from_extension(asset_path.get<extension_cache>()) == resource::asset_types::texture;
 }
 
-universally_unique_identifier asset_thumbnail_cache::find_uuid(const cache_string& asset_path)
+core::uuid asset_thumbnail_cache::find_uuid(const cache_string& asset_path)
 {
 	if (asset_registry::is_valid())
 	{
-		const universally_unique_identifier uuid = asset_registry::instance()->find_uuid(asset_path.view());
+		const core::uuid uuid = asset_registry::instance()->find_uuid(asset_path.view());
 		if (!uuid.is_empty())
 			return uuid;
 	}
@@ -85,7 +85,7 @@ universally_unique_identifier asset_thumbnail_cache::find_uuid(const cache_strin
 	return {};
 }
 
-std::filesystem::path asset_thumbnail_cache::make_cache_path(const universally_unique_identifier& uuid)
+std::filesystem::path asset_thumbnail_cache::make_cache_path(const core::uuid& uuid)
 {
 	return std::filesystem::path(cache_directory) / (uuid.to_string() + ".dds");
 }

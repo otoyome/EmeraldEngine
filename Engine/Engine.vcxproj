@@ -168,7 +168,8 @@
     <ClInclude Include="Headers\System\simple_helper.h" />
     <ClInclude Include="Headers\System\singleton.h" />
     <ClInclude Include="Headers\System\system_units.h" />
-    <ClInclude Include="Headers\System\universally_unique_identifier.h" />
+    <ClInclude Include="Headers\Core\uuid.h" />
+    <ClInclude Include="Headers\Core\hash.h" />
     <ClInclude Include="Headers\System\signals.h" />
     <ClInclude Include="Headers\System\system_utility.h" />
     <ClInclude Include="Headers\System\shared_block_allocator.h" />
@@ -250,7 +251,7 @@
     <ClCompile Include="Sources\Graphics\Core\render_pass.cpp" />
     <ClCompile Include="Sources\Animation\retarget_profile.cpp" />
     <ClCompile Include="Sources\System\cache_string.cpp" />
-    <ClCompile Include="Sources\System\universally_unique_identifier.cpp" />
+    <ClCompile Include="Sources\Core\uuid.cpp" />
     <ClCompile Include="Sources\Animation\timeline_resource.cpp" />
     <ClCompile Include="Sources\Graphics\Pipeline\shader.cpp" />
     <ClCompile Include="Sources\Graphics\Pipeline\global_shader.cpp" />

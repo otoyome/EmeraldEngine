@@ -7,7 +7,7 @@
 #include <string_view>
 #include <vector>
 
-#include "System/universally_unique_identifier.h"
+#include "Core/uuid.h"
 
 namespace resource
 {
@@ -36,7 +36,7 @@ namespace resource
 
 		asset_types type = asset_types::unknown;
 		std::uint32_t version = current_version;
-		universally_unique_identifier uuid;
+		core::uuid uuid;
 	};
 
 	//	ヘッダーの書き込み
@@ -50,7 +50,7 @@ namespace resource
 	bool read_asset_header(const std::filesystem::path& path, asset_file_header& out_header);
 
 	//	ファイル先頭のヘッダーの UUID だけを書き換える
-	bool rewrite_asset_header_uuid(const std::filesystem::path& path, const universally_unique_identifier& uuid);
+	bool rewrite_asset_header_uuid(const std::filesystem::path& path, const core::uuid& uuid);
 
 	//	拡張子からアセットの種類を求める(「.」付き、大文字小文字は問わない)
 	asset_types get_asset_type_from_extension(std::string_view extension);

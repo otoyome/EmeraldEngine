@@ -548,6 +548,9 @@
     <ClCompile Include="Sources\Object\System\start_point_object.cpp">
       <Filter>Sources\Object\System</Filter>
     </ClCompile>
+    <ClCompile Include="Sources\Object\Graphics\effect_object.cpp">
+      <Filter>Sources\Object\Graphics</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\External\imgui\imgui.h">
@@ -954,6 +957,9 @@
     </ClInclude>
     <ClInclude Include="Headers\Object\System\start_point_object.h">
       <Filter>Headers\Object\System</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Object\Graphics\effect_object.h">
+      <Filter>Headers\Object\Graphics</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

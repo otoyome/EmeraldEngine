@@ -3,7 +3,7 @@
 #include "System/logger.h"
 
 //////////////////////////////////////////////////////////////////////////
-audio::sound_bank_handle::sound_bank_handle(system_utility::hash_key key)
+audio::sound_bank_handle::sound_bank_handle(core::hash_key key)
 : key(key)
 {
 }
@@ -99,7 +99,7 @@ audio::sound_player::~sound_player()
 
 audio::sound_bank_handle audio::sound_player::load_bank(std::string_view file_path)
 {
-	const system_utility::hash_key key = system_utility::generate_hash(file_path);
+	const core::hash_key key = core::generate_hash(file_path);
 	if (auto it = banks.find(key); it != banks.end())
 	{
 		++it->second.references;
@@ -120,7 +120,7 @@ audio::sound_bank_handle audio::sound_player::load_bank(std::string_view file_pa
 
 bool audio::sound_player::reload_bank(std::string_view file_path)
 {
-	auto it = banks.find(system_utility::generate_hash(file_path));
+	auto it = banks.find(core::generate_hash(file_path));
 	if (it == banks.end())
 		return false;
 
@@ -142,7 +142,7 @@ bool audio::sound_player::reload_bank(std::string_view file_path)
 
 bool audio::sound_player::is_bank_loaded(std::string_view file_path) const
 {
-	return banks.contains(system_utility::generate_hash(file_path));
+	return banks.contains(core::generate_hash(file_path));
 }
 
 void audio::sound_player::play(const sound_cue& cue)
@@ -175,7 +175,7 @@ audio::sound_instance audio::sound_player::preview(const sound_cue_desc& cue)
 	return sound_instance(handle, copied);
 }
 
-void audio::sound_player::release_bank(system_utility::hash_key key)
+void audio::sound_player::release_bank(core::hash_key key)
 {
 	auto it = banks.find(key);
 	if (it == banks.end() || --it->second.references > 0)
@@ -194,7 +194,7 @@ void audio::sound_player::add_cues(bank_entry& entry, sound_bank_desc&& desc)
 	for (auto& cue_desc : desc.cues)
 	{
 		auto cue = std::make_shared<const sound_cue_desc>(std::move(cue_desc));
-		const auto [it, added] = cues.try_emplace(system_utility::generate_hash(cue->name), cue);
+		const auto [it, added] = cues.try_emplace(core::generate_hash(cue->name), cue);
 		DEBUG_CHECK_WARNING(!added, "Sound Cue Duplicated[%s][%s]", cue->name.c_str(), entry.file_path.c_str());
 		add_file_references(*cue);
 		entry.cues.push_back(std::move(cue));
@@ -206,7 +206,7 @@ void audio::sound_player::remove_cues(const std::vector<std::shared_ptr<const so
 	for (const auto& cue : targets)
 	{
 		//	“¯‚¶–¼‘O‚Å•Ê‚Ìƒoƒ“ƒN‚ª“o˜^‚µ‚½‚à‚Ì‚ÍÁ‚³‚È‚¢
-		auto it = cues.find(system_utility::generate_hash(cue->name));
+		auto it = cues.find(core::generate_hash(cue->name));
 		if (it != cues.end() && it->second == cue)
 			cues.erase(it);
 	}

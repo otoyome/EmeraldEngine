@@ -12,7 +12,7 @@ class scene_view;
 class meshlet_culling_system;
 class clustered_lighting_system;
 
-using scene_view_state_key = system_utility::hash_key;
+using scene_view_state_key = core::hash_key;
 
 //	描画制御情報
 class scene_view_state
@@ -98,7 +98,7 @@ public:
 
 public:
 	//	ハッシュキー生成
-	static constexpr scene_view_state_key make_key(std::string_view name) { return system_utility::generate_hash(name); }
+	static constexpr scene_view_state_key make_key(std::string_view name) { return core::generate_hash(name); }
 
 private:
 	std::unordered_map<scene_view_state_key, scene_view_state_ptr> states;

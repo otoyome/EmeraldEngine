@@ -581,7 +581,7 @@ void post_process_volume_object::serialize_fields(Archive& archive, std::uint32_
 
 	auto texture = [&archive](const char* name, resource::asset_handle<texture_resource>& handle)
 	{
-		universally_unique_identifier uuid = handle.get_reference().uuid;
+		core::uuid uuid = handle.get_reference().uuid;
 		game_object_serializer::serialize_asset_reference(archive, name, uuid);
 		if constexpr (Archive::is_loading::value)
 		{
@@ -672,7 +672,7 @@ void post_process_volume_object::serialize_fields(Archive& archive, std::uint32_
 				archive.loadSize(count);
 				for (cereal::size_type index = 0; index < count; ++index)
 				{
-					const universally_unique_identifier uuid = game_object_serializer::load_asset_reference(archive);
+					const core::uuid uuid = game_object_serializer::load_asset_reference(archive);
 					auto operation = resource_manager::instance()->load<material_resource>(game_object_serializer::resolve_asset_path(uuid));
 					if (operation->is_succeeded())
 						instance->register_postprocess_materials(operation->get_resource());

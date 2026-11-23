@@ -26,7 +26,7 @@ model_collision_object::~model_collision_object()
 {
 }
 
-void model_collision_object::set_model(const universally_unique_identifier& value)
+void model_collision_object::set_model(const core::uuid& value)
 {
 	model = value;
 	rebuild_collisions();
@@ -148,7 +148,7 @@ void model_collision_object::imgui_render_core()
 			const std::string file_path(static_cast<const char*>(payload->Data));
 			if (asset_registry::is_valid())
 			{
-				const universally_unique_identifier uuid = asset_registry::instance()->find_uuid(file_path);
+				const core::uuid uuid = asset_registry::instance()->find_uuid(file_path);
 				if (!uuid.is_empty())
 					set_model(uuid);
 			}

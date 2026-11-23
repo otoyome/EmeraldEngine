@@ -65,7 +65,7 @@ namespace resource
 		out_header.type = read_value<asset_types>(data, type_offset);
 		out_header.version = read_value<std::uint32_t>(data, version_offset);
 		//	上位・下位の順は GUID のバイト列と同じ並び
-		out_header.uuid = universally_unique_identifier(read_value<GUID>(data, uuid_offset));
+		out_header.uuid = core::uuid(read_value<GUID>(data, uuid_offset));
 		return true;
 	}
 
@@ -84,7 +84,7 @@ namespace resource
 		return stream.is_open() && read_asset_header(stream, out_header);
 	}
 
-	bool rewrite_asset_header_uuid(const std::filesystem::path& path, const universally_unique_identifier& uuid)
+	bool rewrite_asset_header_uuid(const std::filesystem::path& path, const core::uuid& uuid)
 	{
 		asset_file_header header;
 		if (!read_asset_header(path, header))

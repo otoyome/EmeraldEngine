@@ -17,7 +17,7 @@
 namespace signals
 {
 	//	宛先型
-	using address = system_utility::hash_key;
+	using address = core::hash_key;
 
 	namespace detail
 	{
@@ -159,7 +159,7 @@ namespace signals
 		static_assert(std::is_void_v<Payload> || (std::is_class_v<Payload> && std::is_copy_constructible_v<Payload>),
 			"topic に載せるのはコピーできる構造体 1 つ");
 
-		constexpr explicit topic(std::string_view name) : name(name), target(system_utility::generate_hash(name)) {}
+		constexpr explicit topic(std::string_view name) : name(name), target(core::generate_hash(name)) {}
 
 		std::string_view name;
 		address target;
@@ -255,7 +255,7 @@ namespace signals
 		static_assert(!(std::is_same_v<Policy, all_of> || std::is_same_v<Policy, any_of>) || std::is_same_v<Result, bool>,
 			"all_of / any_of は答えが bool");
 
-		constexpr explicit inquiry(std::string_view name) : name(name), target(system_utility::generate_hash(name)) {}
+		constexpr explicit inquiry(std::string_view name) : name(name), target(core::generate_hash(name)) {}
 
 		std::string_view name;
 		address target;

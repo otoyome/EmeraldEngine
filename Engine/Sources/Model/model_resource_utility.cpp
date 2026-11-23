@@ -229,7 +229,7 @@ void model_resource_utility::combine_unskinned_meshes(model_resource& resource, 
 	//	頂点レイアウトの集合をハッシュ化
 	auto layout_signature = [](const model_resource::mesh& m)
 	{
-		std::vector<std::pair<system_utility::hash_key, int>> parts;
+		std::vector<std::pair<core::hash_key, int>> parts;
 		for (auto& vbv : m.vertex_buffer_views)
 			parts.emplace_back(vbv.first.get_hash_key(), static_cast<int>(vbv.second.format));
 		std::sort(parts.begin(), parts.end());

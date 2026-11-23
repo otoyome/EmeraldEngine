@@ -26,17 +26,17 @@ public:
 
 public:
 	//	アセットへの参照を UUID 文字列として読み書きする
-	static void save_asset_reference(cereal::JSONOutputArchive& archive, const char* name, const universally_unique_identifier& uuid);
-	static universally_unique_identifier load_asset_reference(cereal::JSONInputArchive& archive, const char* name);
-	static void save_asset_reference(cereal::JSONOutputArchive& archive, const universally_unique_identifier& uuid);
-	static universally_unique_identifier load_asset_reference(cereal::JSONInputArchive& archive);
+	static void save_asset_reference(cereal::JSONOutputArchive& archive, const char* name, const core::uuid& uuid);
+	static core::uuid load_asset_reference(cereal::JSONInputArchive& archive, const char* name);
+	static void save_asset_reference(cereal::JSONOutputArchive& archive, const core::uuid& uuid);
+	static core::uuid load_asset_reference(cereal::JSONInputArchive& archive);
 
 	//	UUID からパスを引く
-	static std::string resolve_asset_path(const universally_unique_identifier& uuid);
+	static std::string resolve_asset_path(const core::uuid& uuid);
 
 	//	アセットへの参照シリアライズ
-	static void serialize_asset_reference(cereal::JSONOutputArchive& archive, const char* name, universally_unique_identifier& uuid) { save_asset_reference(archive, name, uuid); }
-	static void serialize_asset_reference(cereal::JSONInputArchive& archive, const char* name, universally_unique_identifier& uuid) { uuid = load_asset_reference(archive, name); }
+	static void serialize_asset_reference(cereal::JSONOutputArchive& archive, const char* name, core::uuid& uuid) { save_asset_reference(archive, name, uuid); }
+	static void serialize_asset_reference(cereal::JSONInputArchive& archive, const char* name, core::uuid& uuid) { uuid = load_asset_reference(archive, name); }
 
 	//	クラスの保存項目を name の下に { "version", 項目... } として読み書きする
 	template<class Archive, class Owner>
@@ -91,5 +91,5 @@ public:
 private:
 	static void save_object(cereal::JSONOutputArchive& archive, const char* name, const game_object_ptr& object);
 	static game_object_ptr load_object(cereal::JSONInputArchive& archive, const char* name);
-	static game_object_ptr find_object(cereal::JSONInputArchive& archive, const universally_unique_identifier& uuid);
+	static game_object_ptr find_object(cereal::JSONInputArchive& archive, const core::uuid& uuid);
 };

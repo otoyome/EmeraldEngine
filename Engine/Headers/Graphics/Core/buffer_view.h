@@ -63,10 +63,10 @@ public:
 			return;
 
 		dirty = false;
-		hash = system_utility::generate_hash(name) + index;
+		hash = core::generate_hash(name) + index;
 	}
 
-	system_utility::hash_key get_hash_key() const
+	core::hash_key get_hash_key() const
 	{
 		assert(hash != -1);
 		return hash;
@@ -78,7 +78,7 @@ private:
 	bool dirty = true;
 	std::string name;
 	UINT index;
-	system_utility::hash_key hash = -1;
+	core::hash_key hash = -1;
 };
 
 namespace std

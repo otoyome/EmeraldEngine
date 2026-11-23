@@ -20,7 +20,7 @@ public:
 	//	取得ブロック
 	struct handle
 	{
-		system_utility::hash_key key = 0;	//	キー情報
+		core::hash_key key = 0;	//	キー情報
 		UINT head = 0;						//	先頭位置
 		UINT size = 0;						//	要素数
 
@@ -64,7 +64,7 @@ public:
 		if (elements.empty())
 			return {};
 
-		system_utility::hash_key key = calculate_key(elements);
+		core::hash_key key = calculate_key(elements);
 		for (;;)
 		{
 			auto it = entries.find(key);
@@ -128,7 +128,7 @@ public:
 	template<class Function>
 	void consume_pending(Function&& function)
 	{
-		for (system_utility::hash_key key : pending)
+		for (core::hash_key key : pending)
 		{
 			auto it = entries.find(key);
 			if (it == entries.end())
@@ -149,9 +149,9 @@ public:
 
 private:
 	//	内容からキーを作る
-	static system_utility::hash_key calculate_key(std::span<const Element> elements)
+	static core::hash_key calculate_key(std::span<const Element> elements)
 	{
-		const system_utility::hash_key key = system_utility::generate_hash(elements.data(), elements.size_bytes());
+		const core::hash_key key = core::generate_hash(elements.data(), elements.size_bytes());
 		return key == 0 ? 1 : key;
 	}
 
@@ -163,6 +163,6 @@ private:
 
 private:
 	variable_position_allocator allocator;
-	std::unordered_map<system_utility::hash_key, entry> entries;
-	std::vector<system_utility::hash_key> pending;
+	std::unordered_map<core::hash_key, entry> entries;
+	std::vector<core::hash_key> pending;
 };

@@ -36,8 +36,8 @@ void asset_registry::scan(const std::vector<std::string_view>& directories)
 		collect_assets(directory, assets);
 
 	//	同じ UUID が複数あれば、前回の表と同じパスのものを残す
-	const std::unordered_map<universally_unique_identifier, std::wstring> previous = load_previous_table();
-	std::unordered_map<universally_unique_identifier, size_t> keepers;
+	const std::unordered_map<core::uuid, std::wstring> previous = load_previous_table();
+	std::unordered_map<core::uuid, size_t> keepers;
 	for (size_t index = 0; index < assets.size(); ++index)
 	{
 		auto [it, inserted] = keepers.try_emplace(assets[index].uuid, index);
@@ -68,7 +68,7 @@ void asset_registry::scan(const std::vector<std::string_view>& directories)
 		}
 
 		//	UUID を振り直す
-		const universally_unique_identifier new_uuid = universally_unique_identifier::generate();
+		const core::uuid new_uuid = core::uuid::generate();
 		if (!resource::rewrite_asset_header_uuid(std::filesystem::path(asset.path), new_uuid))
 		{
 			DEBUG_ERROR_CATEGORY(logger::categorys::system, "asset_registry uuid rewrite failed[%s]", asset.path.c_str());
@@ -110,10 +110,10 @@ void asset_registry::collect_assets(std::string_view directory, std::vector<foun
 	}
 }
 
-std::unordered_map<universally_unique_identifier, std::wstring> asset_registry::load_previous_table()
+std::unordered_map<core::uuid, std::wstring> asset_registry::load_previous_table()
 {
 	//	1行に「UUID<TAB>パス」の形式で保存
-	std::unordered_map<universally_unique_identifier, std::wstring> table;
+	std::unordered_map<core::uuid, std::wstring> table;
 	std::ifstream stream(std::string(previous_table_path), std::ios::binary);
 	std::string line;
 	while (std::getline(stream, line))
@@ -123,8 +123,8 @@ std::unordered_map<universally_unique_identifier, std::wstring> asset_registry::
 		const size_t tab = line.find('\t');
 		if (tab == std::string::npos)
 			continue;
-		universally_unique_identifier uuid;
-		if (!universally_unique_identifier::from_string(line.substr(0, tab), uuid))
+		core::uuid uuid;
+		if (!core::uuid::from_string(line.substr(0, tab), uuid))
 			continue;
 		table.insert_or_assign(uuid, resource_manager::make_path_key(std::string_view(line).substr(tab + 1)));
 	}
@@ -161,7 +161,7 @@ void asset_registry::save_table_locked() const
 		stream << uuid << '\t' << path << "\r\n";
 }
 
-void asset_registry::register_asset(const universally_unique_identifier& uuid, resource::asset_types type, std::string_view path)
+void asset_registry::register_asset(const core::uuid& uuid, resource::asset_types type, std::string_view path)
 {
 	if (uuid.is_empty() || path.empty())
 		return;
@@ -180,7 +180,7 @@ void asset_registry::move_path(std::string_view old_path, std::string_view new_p
 {
 	std::unique_lock lock(mutex);
 
-	std::vector<std::pair<universally_unique_identifier, std::string>> moved_entries;
+	std::vector<std::pair<core::uuid, std::string>> moved_entries;
 	for (const auto& [uuid, value] : entries)
 	{
 		std::string moved_path;
@@ -191,16 +191,16 @@ void asset_registry::move_path(std::string_view old_path, std::string_view new_p
 		register_asset_core(uuid, entries[uuid].type, moved_path);
 }
 
-universally_unique_identifier asset_registry::find_uuid(std::string_view path) const
+core::uuid asset_registry::find_uuid(std::string_view path) const
 {
 	const std::wstring key = resource_manager::make_path_key(path);
 
 	std::shared_lock lock(mutex);
 	const auto it = path_to_uuid.find(key);
-	return it != path_to_uuid.end() ? it->second : universally_unique_identifier{};
+	return it != path_to_uuid.end() ? it->second : core::uuid{};
 }
 
-std::string asset_registry::find_path(const universally_unique_identifier& uuid) const
+std::string asset_registry::find_path(const core::uuid& uuid) const
 {
 	if (uuid.is_empty())
 		return {};
@@ -245,7 +245,7 @@ size_t asset_registry::get_count() const
 	return entries.size();
 }
 
-void asset_registry::register_asset_core(const universally_unique_identifier& uuid, resource::asset_types type, std::string_view path)
+void asset_registry::register_asset_core(const core::uuid& uuid, resource::asset_types type, std::string_view path)
 {
 	const std::wstring key = resource_manager::make_path_key(path);
 

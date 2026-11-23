@@ -188,7 +188,7 @@ void asset_browser::register_path_listener(path_listener listener)
 }
 
 
-bool asset_browser::open_asset(const universally_unique_identifier& uuid)
+bool asset_browser::open_asset(const core::uuid& uuid)
 {
 	const cache_string file_path = asset_registry::is_valid() ? asset_registry::instance()->find_path(uuid) : std::string{};
 	if (file_path.empty())
@@ -1181,7 +1181,7 @@ bool asset_browser::duplicate_entry(const cache_string& source_path)
 	}
 
 	//	複製は別のアセットなので UUID を振り直して対応表に載せる
-	const universally_unique_identifier uuid = universally_unique_identifier::generate();
+	const core::uuid uuid = core::uuid::generate();
 	if (!resource::rewrite_asset_header_uuid(destination, uuid))
 	{
 		DEBUG_ERROR_CATEGORY(logger::categorys::system, "asset_browser duplicate header rewrite failed[%s]", destination_path.c_str());

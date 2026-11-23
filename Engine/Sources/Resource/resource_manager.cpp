@@ -158,7 +158,7 @@ std::wstring resource_manager::make_key(std::string_view file_path)
 	//	UUID が引けるアセットは UUID をキーにする(移動・名前変更しても同じリソースになる)
 	if (asset_registry::is_valid())
 	{
-		const universally_unique_identifier uuid = asset_registry::instance()->find_uuid(file_path);
+		const core::uuid uuid = asset_registry::instance()->find_uuid(file_path);
 		if (!uuid.is_empty())
 		{
 			const std::string text = uuid.to_string();

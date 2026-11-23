@@ -221,7 +221,7 @@ void scene_set_editor_window::imgui_render_add_scene()
 	std::string selected;
 	for (const std::string& candidate : candidates)
 	{
-		const universally_unique_identifier uuid = asset_registry::instance()->find_uuid(candidate);
+		const core::uuid uuid = asset_registry::instance()->find_uuid(candidate);
 		const bool contained = std::any_of(scenes.begin(), scenes.end(), [&](const resource::asset_reference<scene_resource>& scene) { return scene.uuid == uuid; });
 		if (contained)
 			continue;

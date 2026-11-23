@@ -65,7 +65,7 @@ private:
 	template<class Type>
 	static bool set_path(resource::asset_reference<Type>& reference, const std::string& path)
 	{
-		const universally_unique_identifier uuid = asset_registry::is_valid() ? asset_registry::instance()->find_uuid(path) : universally_unique_identifier();
+		const core::uuid uuid = asset_registry::is_valid() ? asset_registry::instance()->find_uuid(path) : core::uuid();
 		if (uuid.is_empty() || uuid == reference.uuid)
 			return false;
 		reference.uuid = uuid;

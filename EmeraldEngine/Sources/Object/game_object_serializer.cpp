@@ -17,7 +17,7 @@
 
 namespace
 {
-	using object_table = std::unordered_map<universally_unique_identifier, game_object_ptr>;
+	using object_table = std::unordered_map<core::uuid, game_object_ptr>;
 
 	//	読込中のファイルで生成したオブジェクトの表を持つアーカイブ
 	class input_archive : public cereal::JSONInputArchive
@@ -43,11 +43,11 @@ namespace
 		std::unordered_set<const game_object*> members;
 	};
 
-	universally_unique_identifier from_text(const std::string& text)
+	core::uuid from_text(const std::string& text)
 	{
-		universally_unique_identifier uuid;
+		core::uuid uuid;
 		if (!text.empty())
-			universally_unique_identifier::from_string(text, uuid);
+			core::uuid::from_string(text, uuid);
 		return uuid;
 	}
 }
@@ -68,7 +68,7 @@ bool game_object_serializer::save(std::ostream& stream, const std::vector<game_o
 	}
 
 	//	親の特定用に持ち主のUUIDを取得
-	std::unordered_map<const spatial*, universally_unique_identifier> spatial_owners;
+	std::unordered_map<const spatial*, core::uuid> spatial_owners;
 	for (const game_object_ptr& object : targets)
 	{
 		if (auto spatial_target = std::dynamic_pointer_cast<spatial_object>(object))
@@ -160,9 +160,9 @@ bool game_object_serializer::load(std::istream& stream, std::vector<game_object_
 			std::string uuid_text;
 			archive(cereal::make_nvp("type", type), cereal::make_nvp("uuid", uuid_text));
 
-			universally_unique_identifier uuid;
+			core::uuid uuid;
 			game_object_ptr object = registry->create(type);
-			if (object && universally_unique_identifier::from_string(uuid_text, uuid))
+			if (object && core::uuid::from_string(uuid_text, uuid))
 			{
 				object->set_uuid(uuid);
 				archive.table.insert_or_assign(uuid, object);
@@ -191,7 +191,7 @@ bool game_object_serializer::load(std::istream& stream, std::vector<game_object_
 				object->deserialize(archive);
 
 				//	親は同じファイル内から引く
-				const universally_unique_identifier parent_uuid = from_text(parent);
+				const core::uuid parent_uuid = from_text(parent);
 				if (!parent_uuid.is_empty())
 				{
 					auto child = std::dynamic_pointer_cast<spatial_object>(object);
@@ -221,7 +221,7 @@ bool game_object_serializer::load(std::istream& stream, std::vector<game_object_
 	return true;
 }
 
-game_object_ptr game_object_serializer::find_object(cereal::JSONInputArchive& archive, const universally_unique_identifier& uuid)
+game_object_ptr game_object_serializer::find_object(cereal::JSONInputArchive& archive, const core::uuid& uuid)
 {
 	if (uuid.is_empty())
 		return nullptr;
@@ -235,32 +235,32 @@ game_object_ptr game_object_serializer::find_object(cereal::JSONInputArchive& ar
 	return it != loading->table.end() ? it->second : nullptr;
 }
 
-void game_object_serializer::save_asset_reference(cereal::JSONOutputArchive& archive, const char* name, const universally_unique_identifier& uuid)
+void game_object_serializer::save_asset_reference(cereal::JSONOutputArchive& archive, const char* name, const core::uuid& uuid)
 {
 	archive.setNextName(name);
 	save_asset_reference(archive, uuid);
 }
 
-universally_unique_identifier game_object_serializer::load_asset_reference(cereal::JSONInputArchive& archive, const char* name)
+core::uuid game_object_serializer::load_asset_reference(cereal::JSONInputArchive& archive, const char* name)
 {
 	archive.setNextName(name);
 	return load_asset_reference(archive);
 }
 
-void game_object_serializer::save_asset_reference(cereal::JSONOutputArchive& archive, const universally_unique_identifier& uuid)
+void game_object_serializer::save_asset_reference(cereal::JSONOutputArchive& archive, const core::uuid& uuid)
 {
 	std::string uuid_text = uuid.is_empty() ? std::string() : uuid.to_string();
 	archive(uuid_text);
 }
 
-universally_unique_identifier game_object_serializer::load_asset_reference(cereal::JSONInputArchive& archive)
+core::uuid game_object_serializer::load_asset_reference(cereal::JSONInputArchive& archive)
 {
 	std::string uuid_text;
 	archive(uuid_text);
 	return from_text(uuid_text);
 }
 
-std::string game_object_serializer::resolve_asset_path(const universally_unique_identifier& uuid)
+std::string game_object_serializer::resolve_asset_path(const core::uuid& uuid)
 {
 	return asset_registry::is_valid() ? asset_registry::instance()->find_path(uuid) : std::string();
 }

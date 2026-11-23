@@ -43,7 +43,7 @@ void game_object::set_active(bool active)
 game_object::game_object(std::string_view name)
 : name(name)
 , active(true)
-, uuid(universally_unique_identifier::generate())
+, uuid(core::uuid::generate())
 {
 }
 
@@ -70,8 +70,8 @@ void game_object::deserialize(cereal::JSONInputArchive& archive)
 		cereal::make_nvp("name", name_text),
 		cereal::make_nvp("active", active_value));
 
-	universally_unique_identifier value;
-	if (universally_unique_identifier::from_string(uuid_text, value))
+	core::uuid value;
+	if (core::uuid::from_string(uuid_text, value))
 		uuid = value;
 	set_name(name_text);
 
@@ -103,7 +103,7 @@ void game_object::post_render()
 
 void game_object::imgui_render_inspector()
 {
-	ImGui::PushID(static_cast<int>(std::hash<universally_unique_identifier>()(uuid)));
+	ImGui::PushID(static_cast<int>(std::hash<core::uuid>()(uuid)));
 	ImGui::TextUnformatted(name.get<utf8_cache>().data());
 	if (transient)
 	{

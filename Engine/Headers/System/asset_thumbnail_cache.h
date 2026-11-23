@@ -6,7 +6,7 @@
 #include <memory>
 
 #include "System/cache_string.h"
-#include "System/universally_unique_identifier.h"
+#include "Core/uuid.h"
 
 class texture;
 
@@ -33,8 +33,8 @@ public:
 	static bool is_supported(const cache_string& asset_path);
 
 private:
-	static universally_unique_identifier find_uuid(const cache_string& asset_path);
-	static std::filesystem::path make_cache_path(const universally_unique_identifier& uuid);
+	static core::uuid find_uuid(const cache_string& asset_path);
+	static std::filesystem::path make_cache_path(const core::uuid& uuid);
 
 	static bool read_source(const cache_string& asset_path, DirectX::ScratchImage& out_image);
 	static bool make_thumbnail(const DirectX::ScratchImage& source, DirectX::ScratchImage& out_image);

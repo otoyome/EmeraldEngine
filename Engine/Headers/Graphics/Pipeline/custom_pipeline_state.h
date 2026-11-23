@@ -27,7 +27,7 @@ class graphics_custom_pipeline_state : public graphics_pipeline_state
 		struct indices
 		{
 			UINT ids[magic_enum::enum_count<arrangement>()];
-			system_utility::hash_key hash = -1;
+			core::hash_key hash = -1;
 			indices()
 			{
 				for (auto& index : ids)

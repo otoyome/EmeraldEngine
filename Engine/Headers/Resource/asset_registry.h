@@ -32,7 +32,7 @@ public:
 	//	スキャン時に見つかったアセット
 	struct found_asset
 	{
-		universally_unique_identifier uuid;
+		core::uuid uuid;
 		resource::asset_types type = resource::asset_types::unknown;
 		std::string path;
 	};
@@ -56,13 +56,13 @@ public:
 	void scan(const std::vector<std::string_view>& directories);
 
 	//	アセット登録
-	void register_asset(const universally_unique_identifier& uuid, resource::asset_types type, std::string_view path);
+	void register_asset(const core::uuid& uuid, resource::asset_types type, std::string_view path);
 	void unregister_path(std::string_view path);
 	void move_path(std::string_view old_path, std::string_view new_path);
 
 	//	検索
-	universally_unique_identifier find_uuid(std::string_view path) const;
-	std::string find_path(const universally_unique_identifier& uuid) const;
+	core::uuid find_uuid(std::string_view path) const;
+	std::string find_path(const core::uuid& uuid) const;
 
 	//	UUIDからパスを検索
 	template<class Type>
@@ -85,15 +85,15 @@ public:
 private:
 
 	static void collect_assets(std::string_view directory, std::vector<found_asset>& out_assets);
-	static std::unordered_map<universally_unique_identifier, std::wstring> load_previous_table();
+	static std::unordered_map<core::uuid, std::wstring> load_previous_table();
 	void save_table_locked() const;
-	void register_asset_core(const universally_unique_identifier& uuid, resource::asset_types type, std::string_view path);
+	void register_asset_core(const core::uuid& uuid, resource::asset_types type, std::string_view path);
 	void unregister_asset(const std::wstring& key);
 
 private:
 	mutable std::shared_mutex mutex;
-	std::unordered_map<universally_unique_identifier, entry> entries;
-	std::unordered_map<std::wstring, universally_unique_identifier> path_to_uuid;	//	キーは resource_manager::make_path_key
+	std::unordered_map<core::uuid, entry> entries;
+	std::unordered_map<std::wstring, core::uuid> path_to_uuid;	//	キーは resource_manager::make_path_key
 
 #if defined(USE_IMGUI)
 	ImGuiTextFilter filter;

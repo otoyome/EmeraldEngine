@@ -14,8 +14,8 @@ public:
 	~model_collision_object() override;
 
 	//	“–‚½‚è”»’è‚ğì‚éƒ‚ƒfƒ‹
-	const universally_unique_identifier& get_model() const { return model; }
-	void set_model(const universally_unique_identifier& value);
+	const core::uuid& get_model() const { return model; }
+	void set_model(const core::uuid& value);
 
 	//	sdf‚ª‚ ‚ê‚Îg—p‚·‚é
 	void set_register_sdf(bool value);
@@ -39,7 +39,7 @@ protected:
 	void release_resources() override;
 
 private:
-	universally_unique_identifier model;
+	core::uuid model;
 	bool register_sdf = true;
 	std::vector<uint32_t> sdf_ids;
 };

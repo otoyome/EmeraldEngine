@@ -118,6 +118,9 @@
     <Filter Include="Headers\CoordinateSystem">
       <UniqueIdentifier>{3a63e2af-2a83-416f-a65d-abf5babd5c51}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Headers\Core">
+      <UniqueIdentifier>{3b8e2f6a-7c41-4d9e-a5f2-1e6c9d0b4a73}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Headers\Effect">
       <UniqueIdentifier>{81a9ba36-bfac-4fd8-a4e3-113235d923ab}</UniqueIdentifier>
     </Filter>
@@ -219,6 +222,9 @@
     </Filter>
     <Filter Include="Sources\CoordinateSystem">
       <UniqueIdentifier>{7a655dec-6419-4294-9d5d-b5f25c6b6a3c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Sources\Core">
+      <UniqueIdentifier>{8d4c1a9e-2f63-4b7d-9e05-6a3f8c2d1b94}</UniqueIdentifier>
     </Filter>
     <Filter Include="Sources\Effect">
       <UniqueIdentifier>{7c0f86d3-04b8-4866-ae8a-72f8da08ef0c}</UniqueIdentifier>
@@ -609,8 +615,11 @@
     <ClInclude Include="Headers\System\system_utility.h">
       <Filter>Headers\System</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\System\universally_unique_identifier.h">
-      <Filter>Headers\System</Filter>
+    <ClInclude Include="Headers\Core\uuid.h">
+      <Filter>Headers\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Core\hash.h">
+      <Filter>Headers\Core</Filter>
     </ClInclude>
     <ClInclude Include="Headers\System\shared_block_allocator.h">
       <Filter>Headers\System</Filter>
@@ -941,8 +950,8 @@
     <ClCompile Include="Sources\System\system_utility.cpp">
       <Filter>Sources\System</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\System\universally_unique_identifier.cpp">
-      <Filter>Sources\System</Filter>
+    <ClCompile Include="Sources\Core\uuid.cpp">
+      <Filter>Sources\Core</Filter>
     </ClCompile>
     <ClCompile Include="Sources\System\variable_position_allocator.cpp">
       <Filter>Sources\System</Filter>

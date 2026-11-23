@@ -896,7 +896,7 @@ void model_object::deserialize(cereal::JSONInputArchive& archive)
 {
 	base::deserialize(archive);
 
-	const universally_unique_identifier uuid = game_object_serializer::load_asset_reference(archive, "model");
+	const core::uuid uuid = game_object_serializer::load_asset_reference(archive, "model");
 	if (!uuid.is_empty())
 		load_model(game_object_serializer::resolve_asset_path(uuid));
 

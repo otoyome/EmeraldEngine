@@ -26,7 +26,7 @@ bool prefab_resource::instantiate(instance& out_instance) const
 
 	//	UUID ‚¾‚¯U‚è’¼‚·
 	for (const game_object_ptr& object : objects)
-		object->set_uuid(universally_unique_identifier::generate());
+		object->set_uuid(core::uuid::generate());
 
 	//	ƒ‹[ƒgæ“¾
 	game_object_ptr root;

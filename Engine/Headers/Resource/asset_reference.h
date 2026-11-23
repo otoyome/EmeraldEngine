@@ -5,7 +5,7 @@
 #include <string>
 #include <string_view>
 
-#include "System/universally_unique_identifier.h"
+#include "Core/uuid.h"
 
 namespace resource
 {
@@ -14,14 +14,14 @@ namespace resource
 	template<class Type>
 	concept asset_resource = requires(const Type& value)
 	{
-		{ value.get_uuid() } -> std::convertible_to<const universally_unique_identifier&>;
+		{ value.get_uuid() } -> std::convertible_to<const core::uuid&>;
 		{ value.get_file_path() } -> std::convertible_to<std::string_view>;
 	};
 
 	template<class Type>
 	struct asset_reference
 	{
-		universally_unique_identifier uuid;
+		core::uuid uuid;
 
 		bool is_empty() const { return uuid.is_empty(); }
 

@@ -3,7 +3,7 @@
 #include <mutex>
 #include <functional>
 
-#include "System/universally_unique_identifier.h"
+#include "Core/uuid.h"
 
 class engine_context;
 
@@ -36,8 +36,8 @@ public:
 	void set_transient(bool value) { transient = value; }
 
 	//	UUID取得
-	const universally_unique_identifier& get_uuid() const { return uuid; }
-	void set_uuid(const universally_unique_identifier& value) { uuid = value; }
+	const core::uuid& get_uuid() const { return uuid; }
+	void set_uuid(const core::uuid& value) { uuid = value; }
 
 	//	エンジンコンテキスト取得
 	bool has_context() const { return context != nullptr; }
@@ -84,7 +84,7 @@ protected:
 
 private:
 	cache_string name;
-	universally_unique_identifier uuid;
+	core::uuid uuid;
 	bool active;
 	bool transient = false;
 	engine_context* context = nullptr;

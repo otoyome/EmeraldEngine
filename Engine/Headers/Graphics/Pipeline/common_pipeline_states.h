@@ -52,7 +52,7 @@ namespace common_pipeline_states
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////
 	//	シーン情報
 	constexpr std::string_view scene_constant_buffer_name = "SCENE_CONSTANT_BUFFER";
-	constexpr system_utility::hash_key scene_constant_buffer_hash_key = system_utility::generate_hash(scene_constant_buffer_name);
+	constexpr core::hash_key scene_constant_buffer_hash_key = core::generate_hash(scene_constant_buffer_name);
 	struct scene_constants
 	{
 		math::float4 time_data;	//	x : 現在時間, y : 前時間, zw : デバッグ情報
@@ -81,7 +81,7 @@ namespace common_pipeline_states
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////
 	//	ライト定数バッファ構造体
 	constexpr std::string_view deferred_light_constant_buffer_name = "DEFERREDLIGHT_CONSTANT_BUFFER";
-	constexpr system_utility::hash_key deferred_light_constant_buffer_hash_key = system_utility::generate_hash(deferred_light_constant_buffer_name);
+	constexpr core::hash_key deferred_light_constant_buffer_hash_key = core::generate_hash(deferred_light_constant_buffer_name);
 	struct deferred_light_constants
 	{
 		light_data light_data;
@@ -89,7 +89,7 @@ namespace common_pipeline_states
 
 	//	ライトプローブ定数バッファ構造体
 	constexpr std::string_view deferred_light_probe_constant_buffer_name = "DEFERRED_LIGHT_PROBE_CONSTANT_BUFFER";
-	constexpr system_utility::hash_key deferred_light_probe_constant_buffer_hash_key = system_utility::generate_hash(deferred_light_probe_constant_buffer_name);
+	constexpr core::hash_key deferred_light_probe_constant_buffer_hash_key = core::generate_hash(deferred_light_probe_constant_buffer_name);
 	struct deferred_light_probe_constants
 	{
 		light_probes light_probe_data;
@@ -102,7 +102,7 @@ namespace common_pipeline_states
 	constexpr UINT point_light_count = 8;
 	constexpr UINT spot_light_count = 8;
 	constexpr std::string_view forward_light_constant_buffer_name = "FORWARD_LIGHTS_CONSTANT_BUFFER";
-	constexpr system_utility::hash_key forward_light_constant_buffer_hash_key = system_utility::generate_hash(forward_light_constant_buffer_name);
+	constexpr core::hash_key forward_light_constant_buffer_hash_key = core::generate_hash(forward_light_constant_buffer_name);
 	struct forward_light_constants
 	{
 		math::uint4 light_counts;
@@ -113,11 +113,11 @@ namespace common_pipeline_states
 	};
 
 	constexpr std::string_view forward_only_diffuse_iem_name = "forward_only_diffuse_iem";
-	constexpr system_utility::hash_key forward_only_diffuse_iem_hash_key = system_utility::generate_hash(forward_only_diffuse_iem_name);
+	constexpr core::hash_key forward_only_diffuse_iem_hash_key = core::generate_hash(forward_only_diffuse_iem_name);
 	constexpr std::string_view forward_only_specular_pmrem_name = "forward_only_specular_pmrem";
-	constexpr system_utility::hash_key forward_only_specular_pmrem_hash_key = system_utility::generate_hash(forward_only_specular_pmrem_name);
+	constexpr core::hash_key forward_only_specular_pmrem_hash_key = core::generate_hash(forward_only_specular_pmrem_name);
 	constexpr std::string_view forward_only_lut_ggx_name = "forward_only_lut_ggx";
-	constexpr system_utility::hash_key forward_only_lut_ggx_hash_key = system_utility::generate_hash(forward_only_lut_ggx_name);
+	constexpr core::hash_key forward_only_lut_ggx_hash_key = core::generate_hash(forward_only_lut_ggx_name);
 
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////
 	//	影カテゴリー
@@ -136,7 +136,7 @@ namespace common_pipeline_states
 	//	シャドウマップ情報
 	constexpr UINT shadow_map_max = 6;
 	constexpr std::string_view shadow_map_constant_buffer_name = "SHADOW_MAP_CONSTANT_BUFFER";
-	constexpr system_utility::hash_key shadow_map_constant_buffer_hash_key = system_utility::generate_hash(shadow_map_constant_buffer_name);
+	constexpr core::hash_key shadow_map_constant_buffer_hash_key = core::generate_hash(shadow_map_constant_buffer_name);
 	struct shadow_map_constants
 	{
 		UINT shadow_map_count = 0;
@@ -149,29 +149,29 @@ namespace common_pipeline_states
 		math::float2 shadow_dummy;
 	};
 	constexpr std::string_view shadow_maps_name = "shadow_maps";
-	constexpr system_utility::hash_key shadow_maps_hash_key = system_utility::generate_hash(shadow_maps_name);
+	constexpr core::hash_key shadow_maps_hash_key = core::generate_hash(shadow_maps_name);
 	constexpr std::string_view shadow_maps_sampler_state_name = "shadow_maps_sampler_state";
-	constexpr system_utility::hash_key shadow_maps_sampler_state_hash_key = system_utility::generate_hash(shadow_maps_sampler_state_name);
+	constexpr core::hash_key shadow_maps_sampler_state_hash_key = core::generate_hash(shadow_maps_sampler_state_name);
 
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////
 	//	クラスタードライティング情報
 	constexpr std::string_view clustered_lighting_constant_buffer_name = "CLUSTERED_LIGHTING_CONSTANT_BUFFER";
-	constexpr system_utility::hash_key clustered_lighting_constant_buffer_hash_key = system_utility::generate_hash(clustered_lighting_constant_buffer_name);
+	constexpr core::hash_key clustered_lighting_constant_buffer_hash_key = core::generate_hash(clustered_lighting_constant_buffer_name);
 	constexpr std::string_view clustered_lights_name = "clustered_lights";
-	constexpr system_utility::hash_key clustered_lights_hash_key = system_utility::generate_hash(clustered_lights_name);
+	constexpr core::hash_key clustered_lights_hash_key = core::generate_hash(clustered_lights_name);
 	constexpr std::string_view cluster_counts_name = "cluster_counts";
-	constexpr system_utility::hash_key cluster_counts_hash_key = system_utility::generate_hash(cluster_counts_name);
+	constexpr core::hash_key cluster_counts_hash_key = core::generate_hash(cluster_counts_name);
 	constexpr std::string_view cluster_offsets_name = "cluster_offsets";
-	constexpr system_utility::hash_key cluster_offsets_hash_key = system_utility::generate_hash(cluster_offsets_name);
+	constexpr core::hash_key cluster_offsets_hash_key = core::generate_hash(cluster_offsets_name);
 	constexpr std::string_view cluster_light_indices_name = "cluster_light_indices";
-	constexpr system_utility::hash_key cluster_light_indices_hash_key = system_utility::generate_hash(cluster_light_indices_name);
+	constexpr core::hash_key cluster_light_indices_hash_key = core::generate_hash(cluster_light_indices_name);
 
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////
 	//	プリミティブ定数バッファ構造体
 	constexpr UINT mesh_bone_max = 500;	//	1メッシュ500本あれば大丈夫かな？
 	constexpr UINT morph_max = 8;
 	constexpr std::string_view primitive_constant_buffer_name = "PRIMITIVE_CONSTANT_BUFFER";
-	constexpr system_utility::hash_key primitive_constant_buffer_hash_key = system_utility::generate_hash(primitive_constant_buffer_name);
+	constexpr core::hash_key primitive_constant_buffer_hash_key = core::generate_hash(primitive_constant_buffer_name);
 	//	頂点属性の番号
 	enum class vertex_elements : UINT
 	{
@@ -227,47 +227,47 @@ namespace common_pipeline_states
 	constexpr UINT morph_srv_position_index = 80;	//	モーフィング用座標
 	constexpr UINT morph_srv_normal_index = morph_srv_position_index + morph_max * 1;		//	モーフィング用法線
 	constexpr std::string_view morph_positions_name = "morph_positions";
-	constexpr system_utility::hash_key morph_positions_hash_key = system_utility::generate_hash(morph_positions_name);
+	constexpr core::hash_key morph_positions_hash_key = core::generate_hash(morph_positions_name);
 	constexpr std::string_view morph_normals_name = "morph_normals";
-	constexpr system_utility::hash_key morph_normals_hash_key = system_utility::generate_hash(morph_normals_name);
+	constexpr core::hash_key morph_normals_hash_key = core::generate_hash(morph_normals_name);
 	constexpr std::string_view primitive_headers_name = "primitive_headers";
-	constexpr system_utility::hash_key primitive_headers_hash_key = system_utility::generate_hash(primitive_headers_name);
+	constexpr core::hash_key primitive_headers_hash_key = core::generate_hash(primitive_headers_name);
 	constexpr std::string_view bone_matrices_name = "bone_matrices";
-	constexpr system_utility::hash_key bone_matrices_hash_key = system_utility::generate_hash(bone_matrices_name);
+	constexpr core::hash_key bone_matrices_hash_key = core::generate_hash(bone_matrices_name);
 	constexpr std::string_view meshlet_positions_name = "meshlet_positions";
-	constexpr system_utility::hash_key meshlet_positions_hash_key = system_utility::generate_hash(meshlet_positions_name);
+	constexpr core::hash_key meshlet_positions_hash_key = core::generate_hash(meshlet_positions_name);
 	constexpr std::string_view meshlet_normals_name = "meshlet_normals";
-	constexpr system_utility::hash_key meshlet_normals_hash_key = system_utility::generate_hash(meshlet_normals_name);
+	constexpr core::hash_key meshlet_normals_hash_key = core::generate_hash(meshlet_normals_name);
 	constexpr std::string_view meshlet_tangents_name = "meshlet_tangents";
-	constexpr system_utility::hash_key meshlet_tangents_hash_key = system_utility::generate_hash(meshlet_tangents_name);
+	constexpr core::hash_key meshlet_tangents_hash_key = core::generate_hash(meshlet_tangents_name);
 	constexpr std::string_view meshlet_colors0_name = "meshlet_colors0";
-	constexpr system_utility::hash_key meshlet_colors0_hash_key = system_utility::generate_hash(meshlet_colors0_name);
+	constexpr core::hash_key meshlet_colors0_hash_key = core::generate_hash(meshlet_colors0_name);
 	constexpr std::string_view meshlet_texcoords0_name = "meshlet_texcoords0";
-	constexpr system_utility::hash_key meshlet_texcoords0_hash_key = system_utility::generate_hash(meshlet_texcoords0_name);
+	constexpr core::hash_key meshlet_texcoords0_hash_key = core::generate_hash(meshlet_texcoords0_name);
 	constexpr std::string_view meshlet_texcoords1_name = "meshlet_texcoords1";
-	constexpr system_utility::hash_key meshlet_texcoords1_hash_key = system_utility::generate_hash(meshlet_texcoords1_name);
+	constexpr core::hash_key meshlet_texcoords1_hash_key = core::generate_hash(meshlet_texcoords1_name);
 	constexpr std::string_view meshlet_joints0_name = "meshlet_joints0";
-	constexpr system_utility::hash_key meshlet_joints0_hash_key = system_utility::generate_hash(meshlet_joints0_name);
+	constexpr core::hash_key meshlet_joints0_hash_key = core::generate_hash(meshlet_joints0_name);
 	constexpr std::string_view meshlet_joints1_name = "meshlet_joints1";
-	constexpr system_utility::hash_key meshlet_joints1_hash_key = system_utility::generate_hash(meshlet_joints1_name);
+	constexpr core::hash_key meshlet_joints1_hash_key = core::generate_hash(meshlet_joints1_name);
 	constexpr std::string_view meshlet_joints2_name = "meshlet_joints2";
-	constexpr system_utility::hash_key meshlet_joints2_hash_key = system_utility::generate_hash(meshlet_joints2_name);
+	constexpr core::hash_key meshlet_joints2_hash_key = core::generate_hash(meshlet_joints2_name);
 	constexpr std::string_view meshlet_joints3_name = "meshlet_joints3";
-	constexpr system_utility::hash_key meshlet_joints3_hash_key = system_utility::generate_hash(meshlet_joints3_name);
+	constexpr core::hash_key meshlet_joints3_hash_key = core::generate_hash(meshlet_joints3_name);
 	constexpr std::string_view meshlet_weights0_name = "meshlet_weights0";
-	constexpr system_utility::hash_key meshlet_weights0_hash_key = system_utility::generate_hash(meshlet_weights0_name);
+	constexpr core::hash_key meshlet_weights0_hash_key = core::generate_hash(meshlet_weights0_name);
 	constexpr std::string_view meshlet_weights1_name = "meshlet_weights1";
-	constexpr system_utility::hash_key meshlet_weights1_hash_key = system_utility::generate_hash(meshlet_weights1_name);
+	constexpr core::hash_key meshlet_weights1_hash_key = core::generate_hash(meshlet_weights1_name);
 	constexpr std::string_view meshlet_weights2_name = "meshlet_weights2";
-	constexpr system_utility::hash_key meshlet_weights2_hash_key = system_utility::generate_hash(meshlet_weights2_name);
+	constexpr core::hash_key meshlet_weights2_hash_key = core::generate_hash(meshlet_weights2_name);
 	constexpr std::string_view meshlet_weights3_name = "meshlet_weights3";
-	constexpr system_utility::hash_key meshlet_weights3_hash_key = system_utility::generate_hash(meshlet_weights3_name);
+	constexpr core::hash_key meshlet_weights3_hash_key = core::generate_hash(meshlet_weights3_name);
 	constexpr std::string_view meshlet_vertex_indices_name = "meshlet_vertex_indices";
-	constexpr system_utility::hash_key meshlet_vertex_indices_hash_key = system_utility::generate_hash(meshlet_vertex_indices_name);
+	constexpr core::hash_key meshlet_vertex_indices_hash_key = core::generate_hash(meshlet_vertex_indices_name);
 	constexpr std::string_view meshlet_triangle_indices_name = "meshlet_triangle_indices";
-	constexpr system_utility::hash_key meshlet_triangle_indices_hash_key = system_utility::generate_hash(meshlet_triangle_indices_name);
+	constexpr core::hash_key meshlet_triangle_indices_hash_key = core::generate_hash(meshlet_triangle_indices_name);
 	constexpr std::string_view visible_meshlet_instances_name = "visible_meshlet_instances";
-	constexpr system_utility::hash_key visible_meshlet_instances_hash_key = system_utility::generate_hash(visible_meshlet_instances_name);
+	constexpr core::hash_key visible_meshlet_instances_hash_key = core::generate_hash(visible_meshlet_instances_name);
 
 	//	モデル以外の頂点ストリーム(UI等)
 	//	EngineAssets/EngineShader/Common/vertex_stream.hlsli と合わせる
@@ -279,7 +279,7 @@ namespace common_pipeline_states
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////
 	//	パラメーター定数バッファ構造体
 	constexpr std::string_view parameter_constant_buffer_name = "PARAMETER_CONSTANT_BUFFER";
-	constexpr system_utility::hash_key parameter_constant_buffer_hash_key = system_utility::generate_hash(parameter_constant_buffer_name);
+	constexpr core::hash_key parameter_constant_buffer_hash_key = core::generate_hash(parameter_constant_buffer_name);
 	struct parameter_constants
 	{
 		math::int4 shader_resource_view_index[shader_resource_view_max / 4]; // SRV使用フラグ
@@ -314,7 +314,7 @@ namespace common_pipeline_states
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////
 	//	デカール用定数バッファ構造体
 	constexpr std::string_view decal_primitive_constant_buffer_name = "DECAL_PRIMITIVE_CONSTANT_BUFFER";
-	constexpr system_utility::hash_key decal_primitive_constant_buffer_hash_key = system_utility::generate_hash(decal_primitive_constant_buffer_name);
+	constexpr core::hash_key decal_primitive_constant_buffer_hash_key = core::generate_hash(decal_primitive_constant_buffer_name);
 	struct decal_primitive_constants
 	{
 		math::float4x4 decal_transform;
@@ -326,8 +326,8 @@ namespace common_pipeline_states
 	//	シーン関係
 	constexpr std::string_view scene_color_map_name = "scene_color_map";
 	constexpr std::string_view scene_depth_map_name = "scene_depth_map";
-	constexpr system_utility::hash_key scene_color_map_hash_key = system_utility::generate_hash(scene_color_map_name);
-	constexpr system_utility::hash_key scene_depth_map_hash_key = system_utility::generate_hash(scene_depth_map_name);
+	constexpr core::hash_key scene_color_map_hash_key = core::generate_hash(scene_color_map_name);
+	constexpr core::hash_key scene_depth_map_hash_key = core::generate_hash(scene_depth_map_name);
 	//	G-Buffer関連
 	constexpr std::string_view gbuffer_base_color = "gbuffer_base_color";
 	constexpr std::string_view gbuffer_normal_tangent = "gbuffer_normal_tangent";
@@ -338,7 +338,7 @@ namespace common_pipeline_states
 	constexpr std::string_view gbuffer_custom_data2 = "gbuffer_custom_data2";
 	//	G-Buffer として読むシーンの深度バッファ
 	constexpr std::string_view gbuffer_depth = "gbuffer_depth";
-	constexpr system_utility::hash_key gbuffer_depth_hash_key = system_utility::generate_hash(gbuffer_depth);
+	constexpr core::hash_key gbuffer_depth_hash_key = core::generate_hash(gbuffer_depth);
 	constexpr std::string_view gbuffer_names[] =
 	{
 		gbuffer_base_color,
@@ -350,16 +350,16 @@ namespace common_pipeline_states
 		gbuffer_custom_data1,
 		gbuffer_custom_data2,
 	};
-	constexpr system_utility::hash_key gbuffer_hash_keys[] =
+	constexpr core::hash_key gbuffer_hash_keys[] =
 	{
-		system_utility::generate_hash(gbuffer_base_color),
-		system_utility::generate_hash(gbuffer_normal_tangent),
-		system_utility::generate_hash(gbuffer_parameter),
-		system_utility::generate_hash(gbuffer_velocity),
-		system_utility::generate_hash(gbuffer_custom_data0),
+		core::generate_hash(gbuffer_base_color),
+		core::generate_hash(gbuffer_normal_tangent),
+		core::generate_hash(gbuffer_parameter),
+		core::generate_hash(gbuffer_velocity),
+		core::generate_hash(gbuffer_custom_data0),
 
-		system_utility::generate_hash(gbuffer_custom_data1),
-		system_utility::generate_hash(gbuffer_custom_data2),
+		core::generate_hash(gbuffer_custom_data1),
+		core::generate_hash(gbuffer_custom_data2),
 	};
 	//	G-Buffer識別子
 	enum class gbuffer_id

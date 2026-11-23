@@ -45,8 +45,8 @@ namespace audio
 	struct sound_cue
 	{
 		std::string_view name;
-		system_utility::hash_key id;
+		core::hash_key id;
 
-		constexpr explicit sound_cue(std::string_view name) : name(name), id(system_utility::generate_hash(name)) {}
+		constexpr explicit sound_cue(std::string_view name) : name(name), id(core::generate_hash(name)) {}
 	};
 }

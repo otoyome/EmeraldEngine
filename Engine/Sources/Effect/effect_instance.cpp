@@ -1,7 +1,9 @@
 #include "Effect/effect_instance.h"
 #include "Texture/texture.h"
+#include "System/console_manager.h"
 
 #include <unordered_map>
+#include <algorithm>
 
 #if defined(USE_IMGUI)
 #include "Graphics/Debug/debug_primitive_collector.h"
@@ -9,6 +11,10 @@
 
 namespace
 {
+	//	パーティクルシステムの容量
+	console_variable<int> emitter_max_variable("r.effect.emitter_max", 128, "同時に登録できるパーティクルエミッターの最大数(ワールド生成時に反映)", console_flags::user_setting);
+	console_variable<int> particle_max_variable("r.effect.particle_max", 200000, "同時に存在できるパーティクルの最大数(ワールド生成時に反映)", console_flags::user_setting);
+
 	float random01(UINT seed)
 	{
 		seed ^= seed >> 16; seed *= 0x7feb352dU;
@@ -274,7 +280,6 @@ void effect_instance::set_animation_speed(float animation_speed)
 
 effect_instance::effect_instance()
 : system_flags(0)
-, uuid(universally_unique_identifier::generate())
 , resource()
 {
 	animation_time = 0.0f;
@@ -402,11 +407,11 @@ void effect_instance::reset_particle_simulation_step()
 
 std::size_t effect_instance::search_node_index_by_name(std::string_view data_name)
 {
-	auto hash_key = system_utility::generate_hash(data_name);
+	auto hash_key = core::generate_hash(data_name);
 	std::size_t node_index = 0;
 	for (auto& node : nodes)
 	{
-		if (hash_key != system_utility::generate_hash(node.name))
+		if (hash_key != core::generate_hash(node.name))
 		{
 			++node_index;
 			continue;
@@ -469,12 +474,11 @@ void effect_instance::build()
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 effect_manager::effect_manager()
-: particle_system(particle_system)
 {
 	//	コンピュートパーティクルシステム生成
 	{
-		UINT emitter_max = 128;	//	512;
-		UINT particle_max = 200000;	//	1000000;
+		UINT emitter_max = static_cast<UINT>((std::max)(emitter_max_variable.get(), 1));
+		UINT particle_max = static_cast<UINT>((std::max)(particle_max_variable.get(), 1));
 		UINT emitter_data_size = sizeof(particle_system_item::emitter::common)
 								+ sizeof(particle_system_item::emitter::trail)
 								+ sizeof(particle_system_item::emitter::uv)
@@ -635,6 +639,9 @@ void effect_manager::update_gpu(graphics_context& context, float elapsed_time)
 			for (UINT index = 0; index < instance->get_particles().size(); ++index)
 			{
 				auto& emitter_item = target_item.emitter_items[index];
+				if (emitter_item.system_index == invalid_emitter_id)
+					continue;
+
 				auto& particle_data = instance->get_particles()[index];
 				auto& node_data = instance->get_nodes()[particle_data.node_index];
 
@@ -840,12 +847,13 @@ void effect_manager::add_instances()
 	for (auto& instance : instances_add)
 	{
 		auto& item = items.emplace_back();
+		item.uuid = core::uuid::generate();
 		item.effect_instance = instance;
-		instance_table.insert_or_assign(instance->get_uuid(), instance.get());	//	イベント配布用
+		instance_table.insert_or_assign(item.uuid, instance.get());	//	イベント配布用
 
 		//	パーティクル情報生成
-		item.emitter_items.reserve(item.effect_instance->get_particles().size());
 		auto& particles = item.effect_instance->get_particles();
+		item.emitter_items.resize(particles.size());
 		for (size_t particle_index = 0; particle_index < particles.size(); ++particle_index)	//	所有者記録用に番号付きで回す
 		{
 			auto& particle_data = particles[particle_index];
@@ -860,7 +868,7 @@ void effect_manager::add_instances()
 				continue;
 
 			auto emitter_resource = particle_data.particle.constract_system_resource();
-			auto& emitter_item = item.emitter_items.emplace_back();
+			auto& emitter_item = item.emitter_items[particle_index];
 			emitter_item.system_index = particle_system->register_emitter(render_data::instance()->get_device().Get(),
 																		  emitter_resource);
 
@@ -868,7 +876,7 @@ void effect_manager::add_instances()
 			if (emitter_item.system_index < emitter_owners.size())
 			{
 				auto& owner = emitter_owners[emitter_item.system_index];
-				owner.uuid = item.effect_instance->get_uuid();
+				owner.uuid = item.uuid;
 				owner.particle_index = particle_index;
 			}
 		}
@@ -893,21 +901,18 @@ void effect_manager::remove_instances()
 				if (emitter_item.system_index < emitter_owners.size())
 					emitter_owners[emitter_item.system_index] = {};
 			}
-			instance_table.erase(item.effect_instance->get_uuid());
+			instance_table.erase(item.uuid);
 
 			//	モデル登録解除
 			//	@remainer	自動破棄される
 
 			//	パーティクル情報解除
-			for (auto& particle_data : item.effect_instance->get_particles())
+			for (auto& emitter_item : item.emitter_items)
 			{
-				if (!particle_data.particle.is_valid())
+				if (emitter_item.system_index == invalid_emitter_id)
 					continue;
 
-				for (auto& emitter_item : item.emitter_items)
-				{
-					particle_system->unregister_emitter(emitter_item.system_index);
-				}
+				particle_system->unregister_emitter(emitter_item.system_index);
 			}
 
 			items.erase(it);

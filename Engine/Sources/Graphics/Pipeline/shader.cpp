@@ -214,41 +214,41 @@ namespace
 	};
 
 	//	ハッシュキー生成
-	system_utility::hash_key generate_hash_key(const load_shader_cso& input_data)
+	core::hash_key generate_hash_key(const load_shader_cso& input_data)
 	{
-		return system_utility::generate_hash(input_data.file_path);
+		return core::generate_hash(input_data.file_path);
 	}
-	system_utility::hash_key generate_hash_key(const load_shader_file& input_data)
+	core::hash_key generate_hash_key(const load_shader_file& input_data)
 	{
-		auto key_hash = system_utility::generate_hash(input_data.file_path);
-		key_hash += system_utility::generate_hash(input_data.entry_point);
+		auto key_hash = core::generate_hash(input_data.file_path);
+		key_hash += core::generate_hash(input_data.entry_point);
 		if (!input_data.source_text.empty())
-			key_hash += system_utility::generate_hash(input_data.source_text);
+			key_hash += core::generate_hash(input_data.source_text);
 		for (auto& define : input_data.defines)
 		{
-			key_hash += system_utility::generate_hash(define.name);
-			key_hash += system_utility::generate_hash(define.value);
+			key_hash += core::generate_hash(define.name);
+			key_hash += core::generate_hash(define.value);
 		}
 		for (auto& include : input_data.include_directries)
 		{
-			key_hash += system_utility::generate_hash(include);
+			key_hash += core::generate_hash(include);
 		}
 		return key_hash;
 	}
-	system_utility::hash_key generate_hash_key(const compile_input_file& input_data)
+	core::hash_key generate_hash_key(const compile_input_file& input_data)
 	{
-		auto key_hash = system_utility::generate_hash(input_data.file_path);
-		key_hash += system_utility::generate_hash(input_data.entry_point);
+		auto key_hash = core::generate_hash(input_data.file_path);
+		key_hash += core::generate_hash(input_data.entry_point);
 		if (!input_data.source_text.empty())
-			key_hash += system_utility::generate_hash(input_data.source_text);
+			key_hash += core::generate_hash(input_data.source_text);
 		for (auto& define : input_data.defines)
 		{
-			key_hash += system_utility::generate_hash(define.name);
-			key_hash += system_utility::generate_hash(define.value);
+			key_hash += core::generate_hash(define.name);
+			key_hash += core::generate_hash(define.value);
 		}
 		for (auto& include : input_data.include_directries)
 		{
-			key_hash += system_utility::generate_hash(include);
+			key_hash += core::generate_hash(include);
 		}
 		return key_hash;
 	}

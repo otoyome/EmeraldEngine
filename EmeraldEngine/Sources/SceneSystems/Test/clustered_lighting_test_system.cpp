@@ -31,9 +31,9 @@ namespace
 	}
 
 	//	UUID ‚©‚ç—”’l‚ğ¶¬
-	float make_phase(const universally_unique_identifier& uuid)
+	float make_phase(const core::uuid& uuid)
 	{
-		const size_t hash = std::hash<universally_unique_identifier>()(uuid);
+		const size_t hash = std::hash<core::uuid>()(uuid);
 		return static_cast<float>(hash % 10000) / 10000.0f * math::constants<float>::pi * 2.0f;
 	}
 

@@ -12,7 +12,7 @@
 #include <vector>
 
 #include "System/cache_string.h"
-#include "System/universally_unique_identifier.h"
+#include "Core/uuid.h"
 #include "System/asset_thumbnail_cache.h"
 
 class texture;
@@ -131,7 +131,7 @@ public:
 
 
 	//	アセットエディターを開く
-	bool open_asset(const universally_unique_identifier& uuid);
+	bool open_asset(const core::uuid& uuid);
 
 	void imgui_render(bool& open);
 

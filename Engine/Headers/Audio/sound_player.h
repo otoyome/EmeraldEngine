@@ -17,7 +17,7 @@ namespace audio
 	{
 	public:
 		sound_bank_handle() = default;
-		explicit sound_bank_handle(system_utility::hash_key key);
+		explicit sound_bank_handle(core::hash_key key);
 		sound_bank_handle(const sound_bank_handle&) = delete;
 		sound_bank_handle& operator=(const sound_bank_handle&) = delete;
 		sound_bank_handle(sound_bank_handle&& other) noexcept;
@@ -28,7 +28,7 @@ namespace audio
 		bool is_valid() const { return key != 0; }
 
 	private:
-		system_utility::hash_key key = 0;
+		core::hash_key key = 0;
 	};
 
 	//	サウンドインスタンス
@@ -94,7 +94,7 @@ namespace audio
 		[[nodiscard]] sound_instance preview(const sound_cue_desc& cue);
 
 	private:
-		void release_bank(system_utility::hash_key key);
+		void release_bank(core::hash_key key);
 		void add_cues(bank_entry& entry, sound_bank_desc&& desc);
 		void remove_cues(const std::vector<std::shared_ptr<const sound_cue_desc>>& targets);
 		void add_file_references(const sound_cue_desc& cue);
@@ -103,8 +103,8 @@ namespace audio
 		sound_handle start_core(const std::shared_ptr<const sound_cue_desc>& cue);
 
 	private:
-		std::unordered_map<system_utility::hash_key, bank_entry> banks;
-		std::unordered_map<system_utility::hash_key, std::shared_ptr<const sound_cue_desc>> cues;
+		std::unordered_map<core::hash_key, bank_entry> banks;
+		std::unordered_map<core::hash_key, std::shared_ptr<const sound_cue_desc>> cues;
 		std::unordered_map<std::string, uint32_t> file_references;
 		std::shared_ptr<const sound_cue_desc> bgm_cue;
 		std::mt19937 random;

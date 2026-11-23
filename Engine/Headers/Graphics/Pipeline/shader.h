@@ -285,7 +285,7 @@ using shader_ptr = std::shared_ptr<shader_base>;
 
 class shader_manager
 {
-	using shader_map = std::unordered_map<system_utility::hash_key, std::weak_ptr<shader_base>>;
+	using shader_map = std::unordered_map<core::hash_key, std::weak_ptr<shader_base>>;
 	SINGLETON(shader_manager)
 
 private:

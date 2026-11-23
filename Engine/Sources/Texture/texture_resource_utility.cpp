@@ -49,6 +49,6 @@ texture_resource_ptr texture_resource_utility::load_texture_resource(std::string
 		return nullptr;
 
 	auto operation = resource_manager::instance()->load<texture_resource>(file_path);
-	const resource::asset_reference<texture_resource> reference{ asset_registry::is_valid() ? asset_registry::instance()->find_uuid(file_path) : universally_unique_identifier() };
+	const resource::asset_reference<texture_resource> reference{ asset_registry::is_valid() ? asset_registry::instance()->find_uuid(file_path) : core::uuid() };
 	return resource_manager::instance()->resolve(operation, reference);
 }
