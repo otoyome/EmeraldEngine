@@ -42,7 +42,7 @@ public:
 
 	struct node
 	{
-		cache_string name;
+		core::cache_string name;
 		size_t parent_index = invalid_id;
 
 		math::float3 scale = {1, 1, 1};

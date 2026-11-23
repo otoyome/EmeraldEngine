@@ -1283,13 +1283,13 @@ gltf_loader::gltf_loader()
 bool gltf_loader::Load(std::string_view filepath)
 {
 	file_path = std::string(filepath);
-	const std::string extension = system_utility::to_lower(file_path.extension().string());	// è¨ï∂éöâª
+	const std::string extension = core::to_lower(file_path.extension().string());	// è¨ï∂éöâª
 
 	tinygltf::TinyGLTF gltf = {};
 	gltf.SetImageLoader(load_image_function, this);
 
 	// GLTFModelì«Ç›çûÇ›
-	std::string path_str = system_utility::convert_shift_jis_to_utf8(file_path.string());
+	std::string path_str = core::convert_shift_jis_to_utf8(file_path.string());
 	std::string error, warning;
 	bool result = false;
 	if (extension == ".glb")
@@ -1310,11 +1310,11 @@ bool gltf_loader::Load(std::string_view filepath)
 
 	if (!warning.empty())
 	{
-		DEBUG_WARNING_CATEGORY(logger::categorys::model, warning.c_str());
+		DEBUG_WARNING_CATEGORY(core::logger::categorys::model, warning.c_str());
 	}
 	if (!result)
 	{
-		DEBUG_ERROR_CATEGORY(logger::categorys::model, error.c_str());
+		DEBUG_ERROR_CATEGORY(core::logger::categorys::model, error.c_str());
 		_ASSERT_EXPR_A(result, error.c_str());
 		return false;
 	}
@@ -1633,7 +1633,7 @@ void gltf_loader::load_meshes(std::vector<mesh_data>& meshes, const std::vector<
 						if (it != object.end())
 						{
 							auto& names = it->second.Get<tinygltf::Value::Array>();
-							morph_name = system_utility::convert_shift_jis(names[target_index].Get<std::string>());
+							morph_name = core::convert_shift_jis(names[target_index].Get<std::string>());
 						}
 					}
 					mesh.morph_datas.insert_or_assign(morph_name, morph);
@@ -1850,7 +1850,7 @@ void gltf_loader::load_materials(std::vector<material_data>& materials)
 		}
 		else
 		{
-			material.name = system_utility::convert_utf8_to_shift_jis(gltf_material.name);
+			material.name = core::convert_utf8_to_shift_jis(gltf_material.name);
 		}
 		material.base_color.x = static_cast<float>(gltf_material.pbrMetallicRoughness.baseColorFactor.at(0));
 		material.base_color.y = static_cast<float>(gltf_material.pbrMetallicRoughness.baseColorFactor.at(1));
@@ -1951,7 +1951,7 @@ void gltf_loader::load_animations(std::vector<animation_data>& animations, const
 	for (const tinygltf::Animation& gltf_animation : gltf_model.animations)
 	{
 		animation_data& animation = animations.emplace_back();
-		animation.name = system_utility::convert_utf8_to_shift_jis(gltf_animation.name);
+		animation.name = core::convert_utf8_to_shift_jis(gltf_animation.name);
 		auto it = std::find_if(animations.begin(),
 								animations.end(),
 								[&](const animation_data& data) { return data.name == animation.name; });

@@ -1,8 +1,8 @@
-#include "System/signals.h"
+#include "Core/signals.h"
 
 #include <algorithm>
 
-#include "System/logger.h"
+#include "Core/logger.h"
 
 namespace
 {
@@ -11,21 +11,21 @@ namespace
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-signals::connection::connection(std::weak_ptr<detail::registry> owner, address target, uint64_t key)
+core::signals::connection::connection(std::weak_ptr<detail::registry> owner, address target, uint64_t key)
 : owner(std::move(owner))
 , target(target)
 , key(key)
 {
 }
 
-signals::connection::connection(connection&& other) noexcept
+core::signals::connection::connection(connection&& other) noexcept
 : owner(std::move(other.owner))
 , target(other.target)
 , key(std::exchange(other.key, 0))
 {
 }
 
-signals::connection& signals::connection::operator=(connection&& other) noexcept
+core::signals::connection& core::signals::connection::operator=(connection&& other) noexcept
 {
 	if (this != &other)
 	{
@@ -37,12 +37,12 @@ signals::connection& signals::connection::operator=(connection&& other) noexcept
 	return *this;
 }
 
-signals::connection::~connection()
+core::signals::connection::~connection()
 {
 	disconnect();
 }
 
-void signals::connection::disconnect()
+void core::signals::connection::disconnect()
 {
 	if (key != 0)
 	{
@@ -53,13 +53,13 @@ void signals::connection::disconnect()
 	key = 0;
 }
 
-bool signals::connection::is_connected() const
+bool core::signals::connection::is_connected() const
 {
 	return key != 0 && !owner.expired();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-signals::detail::registry::depth_guard::depth_guard()
+core::signals::detail::registry::depth_guard::depth_guard()
 : entered(t_depth < max_depth)
 {
 	_ASSERT_EXPR_A(entered, "signals: 通知の入れ子が深すぎます");
@@ -67,15 +67,15 @@ signals::detail::registry::depth_guard::depth_guard()
 		++t_depth;
 }
 
-signals::detail::registry::depth_guard::~depth_guard()
+core::signals::detail::registry::depth_guard::~depth_guard()
 {
 	if (entered)
 		--t_depth;
 }
 
-signals::detail::registry::registry() = default;
+core::signals::detail::registry::registry() = default;
 
-signals::detail::slot* signals::detail::registry::find_or_add_locked(address target, std::string_view name, type_id type)
+core::signals::detail::slot* core::signals::detail::registry::find_or_add_locked(address target, std::string_view name, type_id type)
 {
 	auto [it, added] = slots.try_emplace(target);
 	slot& found = it->second;
@@ -91,7 +91,7 @@ signals::detail::slot* signals::detail::registry::find_or_add_locked(address tar
 	return found.type == type ? &found : nullptr;
 }
 
-bool signals::detail::registry::snapshot(address target, std::string_view name, type_id type, std::vector<std::shared_ptr<entry>>& out)
+bool core::signals::detail::registry::snapshot(address target, std::string_view name, type_id type, std::vector<std::shared_ptr<entry>>& out)
 {
 	std::lock_guard<std::mutex> lock(mutex);
 	const slot* found = find_or_add_locked(target, name, type);
@@ -101,7 +101,7 @@ bool signals::detail::registry::snapshot(address target, std::string_view name, 
 	return true;
 }
 
-void signals::detail::registry::remove(address target, uint64_t key)
+void core::signals::detail::registry::remove(address target, uint64_t key)
 {
 	std::shared_ptr<entry> removed;
 	{
@@ -124,7 +124,7 @@ void signals::detail::registry::remove(address target, uint64_t key)
 	removed->retire();
 }
 
-signals::connection signals::detail::registry::connect(const std::shared_ptr<registry>& self, address target, std::string_view name, type_id type,
+core::signals::connection core::signals::detail::registry::connect(const std::shared_ptr<registry>& self, address target, std::string_view name, type_id type,
 	std::function<void(const void*, void*)> invoke, std::source_location location, bool exclusive)
 {
 	auto value = std::make_shared<entry>();
@@ -146,20 +146,20 @@ signals::connection signals::detail::registry::connect(const std::shared_ptr<reg
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-signals::broadcaster::broadcaster()
+core::signals::broadcaster::broadcaster()
 : core(std::make_shared<detail::registry>())
 {
 }
 
-signals::broadcaster::~broadcaster() = default;
+core::signals::broadcaster::~broadcaster() = default;
 
-void signals::broadcaster::push_posted(std::function<void()> item)
+void core::signals::broadcaster::push_posted(std::function<void()> item)
 {
 	std::lock_guard<std::mutex> lock(posted_mutex);
 	posted.push_back(std::move(item));
 }
 
-void signals::broadcaster::dispatch_posted()
+void core::signals::broadcaster::dispatch_posted()
 {
 	//	予約配信
 	for (uint32_t round = 0; round < max_post_rounds; ++round)
@@ -185,7 +185,7 @@ void signals::broadcaster::dispatch_posted()
 	DEBUG_CHECK_WARNING(remaining, "signals: 後で配る通知が連鎖しすぎたため、残りは次のフレームに回します\n");
 }
 
-void signals::broadcaster::dispatch(address target, std::string_view name, detail::type_id type, const void* payload)
+void core::signals::broadcaster::dispatch(address target, std::string_view name, detail::type_id type, const void* payload)
 {
 	const std::shared_ptr<detail::registry> keep_alive = core;	//	受け手が broadcaster を消しても中身を残す
 
@@ -204,7 +204,7 @@ void signals::broadcaster::dispatch(address target, std::string_view name, detai
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-signals::contactor::contactor()
+core::signals::contactor::contactor()
 : core(std::make_shared<detail::registry>())
 {
 }

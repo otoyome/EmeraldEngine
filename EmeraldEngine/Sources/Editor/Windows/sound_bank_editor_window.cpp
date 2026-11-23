@@ -70,7 +70,7 @@ void sound_bank_editor_window::register_asset_handlers(std::shared_ptr<editor_it
 	asset_browser::open_handler open;
 	open.label = "Sound Bank Editor";
 	open.extensions = { extension };
-	open.open_file = [context](const cache_string& file_path) mutable
+	open.open_file = [context](const core::cache_string& file_path) mutable
 	{
 		editor_items::open_window<sound_bank_editor_window>(context, file_path.view());
 	};
@@ -100,7 +100,7 @@ void sound_bank_editor_window::register_asset_handlers(std::shared_ptr<editor_it
 std::string sound_bank_editor_window::get_label() const
 {
 	const std::string name = std::filesystem::path(file_path).filename().string();
-	return "Sound Bank : " + system_utility::convert_shift_jis_to_utf8(name) + (dirty ? " *" : "");
+	return "Sound Bank : " + core::convert_shift_jis_to_utf8(name) + (dirty ? " *" : "");
 }
 
 void sound_bank_editor_window::scan_sound_files()
@@ -113,7 +113,7 @@ bool sound_bank_editor_window::load()
 	audio::sound_bank_desc loaded_bank;
 	if (!loaded_bank.load_file(file_path))
 	{
-		message = "load failed: " + system_utility::convert_shift_jis_to_utf8(file_path);
+		message = "load failed: " + core::convert_shift_jis_to_utf8(file_path);
 		return false;
 	}
 	preview = {};
@@ -127,7 +127,7 @@ bool sound_bank_editor_window::load()
 
 bool sound_bank_editor_window::save()
 {
-	const std::string file_path_utf8 = system_utility::convert_shift_jis_to_utf8(file_path);
+	const std::string file_path_utf8 = core::convert_shift_jis_to_utf8(file_path);
 	if (!bank.save_file(file_path))
 	{
 		message = "save failed: " + file_path_utf8;
@@ -306,7 +306,7 @@ void sound_bank_editor_window::imgui_render_cue_detail(audio::sound_cue_desc& cu
 
 void sound_bank_editor_window::render_window(std::shared_ptr<editor_items::context>& /*context*/, bool& open)
 {
-	const std::string title = get_label() + "###sound_bank:" + system_utility::convert_shift_jis_to_utf8(file_path);
+	const std::string title = get_label() + "###sound_bank:" + core::convert_shift_jis_to_utf8(file_path);
 	ImGui::SetNextWindowSize(ImVec2(760.0f, 480.0f), ImGuiCond_FirstUseEver);
 	if (ImGui::Begin(title.c_str(), &open))
 	{

@@ -400,12 +400,12 @@ void edit_model_system::limit_texture_resolution_asset()
 		if (!texture_importer::instance()->import(settings.source_path, settings))
 		{
 			++failed_count;
-			DEBUG_LOG_CATEGORY(logger::categorys::model, "Limit Texture Resolution Failed[%s]", file_path.c_str());
+			DEBUG_LOG_CATEGORY(core::logger::categorys::model, "Limit Texture Resolution Failed[%s]", file_path.c_str());
 			continue;
 		}
 		++changed_count;
 	}
-	DEBUG_LOG_CATEGORY(logger::categorys::model, "Limit Texture Resolution[max=%u] textures=%zu changed=%zu failed=%zu",
+	DEBUG_LOG_CATEGORY(core::logger::categorys::model, "Limit Texture Resolution[max=%u] textures=%zu changed=%zu failed=%zu",
 					   max_size, textures.size(), changed_count, failed_count);
 }
 
@@ -524,7 +524,7 @@ void edit_model_system::strip_white_vertex_color_asset()
 		for (auto& lod_mesh : mesh.lod_meshs)
 			strip(lod_mesh.vertex_buffer_views);
 	}
-	DEBUG_LOG_CATEGORY(logger::categorys::model, "Strip White Vertex Color stripped=%zu kept=%zu", stripped_count, kept_count);
+	DEBUG_LOG_CATEGORY(core::logger::categorys::model, "Strip White Vertex Color stripped=%zu kept=%zu", stripped_count, kept_count);
 }
 
 void edit_model_system::combine_meshes()

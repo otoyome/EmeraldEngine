@@ -7,7 +7,7 @@
 #include <filesystem>
 #include <objbase.h>
 
-#include "system/logger.h"
+#include "Core/logger.h"
 
 namespace
 {
@@ -162,7 +162,7 @@ std::wstring resource_manager::make_key(std::string_view file_path)
 		if (!uuid.is_empty())
 		{
 			const std::string text = uuid.to_string();
-			return L"uuid:" + system_utility::convert_shift_jis_to_utf16(text);
+			return L"uuid:" + core::convert_shift_jis_to_utf16(text);
 		}
 	}
 	return make_path_key(file_path);
@@ -172,7 +172,7 @@ std::wstring resource_manager::make_path_key(std::string_view file_path)
 {
 	//	区切り文字/相対表記/大文字小文字の違いを吸収する
 	//	SJISの2バイト目に'\\'等が含まれるため、バイト単位ではなくワイド文字に変換してから正規化する
-	std::wstring key = system_utility::convert_shift_jis_to_utf16(file_path);
+	std::wstring key = core::convert_shift_jis_to_utf16(file_path);
 	try
 	{
 		key = std::filesystem::path(key).lexically_normal().generic_wstring();
@@ -181,7 +181,7 @@ std::wstring resource_manager::make_path_key(std::string_view file_path)
 	{
 	}
 
-	return system_utility::to_lower(std::wstring_view(key));
+	return core::to_lower(std::wstring_view(key));
 }
 
 size_t resource_manager::to_index(resource::load_priority priority)
@@ -263,7 +263,7 @@ void resource_manager::request_load(const std::shared_ptr<resource::load_operati
 
 	if (immediate_state == resource::operation_state::type_mismatch)
 	{
-		DEBUG_WARNING_CATEGORY(logger::categorys::system, "resource_manager type mismatch[%s]", std::string(operation->get_file_path()).c_str());
+		DEBUG_WARNING_CATEGORY(core::logger::categorys::system, "resource_manager type mismatch[%s]", std::string(operation->get_file_path()).c_str());
 	}
 	operation->complete(std::move(cached), immediate_state, immediate_state == resource::operation_state::type_mismatch ? "type mismatch" : "");
 }
@@ -329,7 +329,7 @@ void resource_manager::move_path(std::string_view old_path, std::string_view new
 	for (auto& moved : moved_resources)
 		moved.assign_path(moved.resource.get(), moved.file_path);
 
-	DEBUG_LOG_CATEGORY(logger::categorys::system, "resource_manager move_path[%s] -> [%s] resources:%zu", std::string(old_path).c_str(), std::string(new_path).c_str(), moved_resources.size());
+	DEBUG_LOG_CATEGORY(core::logger::categorys::system, "resource_manager move_path[%s] -> [%s] resources:%zu", std::string(old_path).c_str(), std::string(new_path).c_str(), moved_resources.size());
 }
 
 bool resource_manager::replace_base_path(std::string_view path, std::string_view base_path, std::string_view new_base_path, std::string& out_path)
@@ -586,7 +586,7 @@ void resource_manager::finalize(const request_ptr& target)
 
 	if (result != resource::operation_state::success && result != resource::operation_state::canceled)
 	{
-		DEBUG_ERROR_CATEGORY(logger::categorys::system, "resource_manager load failed[%s][%s] %s", current.file_path.c_str(), resource::to_string(result), message.c_str());
+		DEBUG_ERROR_CATEGORY(core::logger::categorys::system, "resource_manager load failed[%s][%s] %s", current.file_path.c_str(), resource::to_string(result), message.c_str());
 	}
 
 	for (auto& operation : waiters)
@@ -698,7 +698,7 @@ void resource_manager::imgui_render()
 			const long use_count = cache.second.resource.use_count();
 			if (use_count <= 0)
 				continue;
-			ImGui::Text("%s [%s] (use:%ld)", system_utility::convert_utf8(cache.second.file_path).data(), cache.second.type.name(), use_count);
+			ImGui::Text("%s [%s] (use:%ld)", core::convert_utf8(cache.second.file_path).data(), cache.second.type.name(), use_count);
 		}
 		ImGui::TreePop();
 	}
@@ -709,7 +709,7 @@ void resource_manager::imgui_render()
 		{
 			auto& target = *processing.second;
 			const char* phase_name = target.phase == request_phases::pending ? "pending" : target.phase == request_phases::loading ? "loading" : "loaded";
-			ImGui::Text("%s [%s][%s] waiters:%zu", system_utility::convert_utf8(target.file_path).data(), phase_name, resource::to_string(target.priority), target.waiters.size());
+			ImGui::Text("%s [%s][%s] waiters:%zu", core::convert_utf8(target.file_path).data(), phase_name, resource::to_string(target.priority), target.waiters.size());
 		}
 		ImGui::TreePop();
 	}

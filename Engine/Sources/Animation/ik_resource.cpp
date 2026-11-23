@@ -188,7 +188,7 @@ bool ik_resource::save_file(std::string_view file_path)
 		}
 		catch (...)
 		{
-			DEBUG_LOG_CATEGORY(logger::categorys::model, "ik_resource serialize failed[%s]", file_path.data());
+			DEBUG_LOG_CATEGORY(core::logger::categorys::model, "ik_resource serialize failed[%s]", file_path.data());
 			return false;
 		}
 	}
@@ -196,7 +196,7 @@ bool ik_resource::save_file(std::string_view file_path)
 	if (!resource::write_asset_file(*this, resource::asset_types::ik, file_path, buffer_stream.str()))
 		return false;
 
-	DEBUG_LOG_CATEGORY(logger::categorys::model, "ik_resource serialize successed[%s]", file_path.data());
+	DEBUG_LOG_CATEGORY(core::logger::categorys::model, "ik_resource serialize successed[%s]", file_path.data());
 	return true;
 }
 
@@ -219,13 +219,13 @@ bool ik_resource::load_file(std::string_view file_path)
 	}
 	catch (...)
 	{
-		DEBUG_ERROR_CATEGORY(logger::categorys::model, "ik_resource deserialize failed[%s]", file_path.data());
+		DEBUG_ERROR_CATEGORY(core::logger::categorys::model, "ik_resource deserialize failed[%s]", file_path.data());
 		return false;
 	}
 
 	inherit_uuid(header.uuid);
 	set_file_path(file_path);
-	DEBUG_LOG_CATEGORY(logger::categorys::model, "ik_resource deserialize successed[%s]", file_path.data());
+	DEBUG_LOG_CATEGORY(core::logger::categorys::model, "ik_resource deserialize successed[%s]", file_path.data());
 	return true;
 }
 namespace resource

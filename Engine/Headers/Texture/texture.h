@@ -69,8 +69,8 @@ public:
 
 	UINT get_system_flags() const { return system_flags; }
 	void set_system_flags(UINT flags) { system_flags = flags; }
-	bool is_flag(flags flag) const { return system_utility::is_bitflag(system_flags, 1 << static_cast<UINT>(flag)); }
-	void set_flag(flags flag, bool value) { system_utility::set_bitflag(system_flags, 1 << static_cast<UINT>(flag), value); }
+	bool is_flag(flags flag) const { return core::is_bitflag(system_flags, 1 << static_cast<UINT>(flag)); }
+	void set_flag(flags flag, bool value) { core::set_bitflag(system_flags, 1 << static_cast<UINT>(flag), value); }
 
 	//	サンプラー設定
 	const texture_sampler_desc& get_sampler_desc() const { return sampler_desc; }
@@ -108,7 +108,7 @@ public:
 	int get_depth_or_array_size() const override { return desc.ArraySize; }
 
 	//	キューブマップ判定
-	inline bool is_cube() const { return system_utility::is_bitflag(desc.MiscFlags, D3D11_RESOURCE_MISC_TEXTURECUBE); }
+	inline bool is_cube() const { return core::is_bitflag(desc.MiscFlags, D3D11_RESOURCE_MISC_TEXTURECUBE); }
 
 public:
 	texture2d(Microsoft::WRL::ComPtr<ID3D11Texture2D> texture, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> shader_resource_view, Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> unordered_access_view = nullptr);

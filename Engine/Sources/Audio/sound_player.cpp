@@ -1,6 +1,6 @@
 #include "Audio/sound_player.h"
 
-#include "System/logger.h"
+#include "Core/logger.h"
 
 //////////////////////////////////////////////////////////////////////////
 audio::sound_bank_handle::sound_bank_handle(core::hash_key key)
@@ -114,7 +114,7 @@ audio::sound_bank_handle audio::sound_player::load_bank(std::string_view file_pa
 	entry.file_path = std::string(file_path);
 	entry.references = 1;
 	add_cues(entry, std::move(desc));
-	DEBUG_LOG_CATEGORY(logger::categorys::system, "Load SoundBank[%s][%zu cues]", entry.file_path.c_str(), entry.cues.size());
+	DEBUG_LOG_CATEGORY(core::logger::categorys::system, "Load SoundBank[%s][%zu cues]", entry.file_path.c_str(), entry.cues.size());
 	return sound_bank_handle(key);
 }
 
@@ -136,7 +136,7 @@ bool audio::sound_player::reload_bank(std::string_view file_path)
 	add_cues(entry, std::move(desc));
 	for (const auto& cue : old_cues)
 		remove_file_references(*cue);
-	DEBUG_LOG_CATEGORY(logger::categorys::system, "Reload SoundBank[%s][%zu cues]", entry.file_path.c_str(), entry.cues.size());
+	DEBUG_LOG_CATEGORY(core::logger::categorys::system, "Reload SoundBank[%s][%zu cues]", entry.file_path.c_str(), entry.cues.size());
 	return true;
 }
 
@@ -185,7 +185,7 @@ void audio::sound_player::release_bank(core::hash_key key)
 	remove_cues(entry.cues);
 	for (const auto& cue : entry.cues)
 		remove_file_references(*cue);
-	DEBUG_LOG_CATEGORY(logger::categorys::system, "Release SoundBank[%s]", entry.file_path.c_str());
+	DEBUG_LOG_CATEGORY(core::logger::categorys::system, "Release SoundBank[%s]", entry.file_path.c_str());
 	banks.erase(it);
 }
 
@@ -246,7 +246,7 @@ std::shared_ptr<const audio::sound_cue_desc> audio::sound_player::find_cue(const
 	auto it = cues.find(cue.id);
 	if (it == cues.end() || it->second->name != cue.name)
 	{
-		DEBUG_WARNING_CATEGORY(logger::categorys::system, "Sound Cue Not Found[%s]", std::string(cue.name).c_str());
+		DEBUG_WARNING_CATEGORY(core::logger::categorys::system, "Sound Cue Not Found[%s]", std::string(cue.name).c_str());
 		return nullptr;
 	}
 	return it->second;

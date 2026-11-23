@@ -159,8 +159,8 @@ void outliner_window::render_scene(const scene_row& scene)
 	ImGui::PushID(scene.resource.get());
 
 	//	シーン名だけを出し、パスはカーソルを乗せた時に出す。オブジェクトを選んでいない時は、置く先のシーンを強調する
-	const cache_string path(scene.resource->get_file_path());
-	const std::string display_name = scene_resource_utility::make_display_name(path.get<utf8_cache>());
+	const core::cache_string path(scene.resource->get_file_path());
+	const std::string display_name = scene_resource_utility::make_display_name(path.get<core::utf8_cache>());
 	ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_DefaultOpen;
 	if (editor && !context->get_selected_object() && scene.resource == editor->get_current_scene_resource())
 		flags |= ImGuiTreeNodeFlags_Selected;
@@ -168,7 +168,7 @@ void outliner_window::render_scene(const scene_row& scene)
 	if (editor && ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
 		editor->set_current_scene(scene.resource);
 	if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal))
-		ImGui::SetTooltip("%s", path.get<utf8_cache>().data());
+		ImGui::SetTooltip("%s", path.get<core::utf8_cache>().data());
 
 	//	オブジェクトを落とすと、親から外してこのシーンへ移す
 	if (editor && ImGui::BeginDragDropTarget())
@@ -240,8 +240,8 @@ void outliner_window::render_add_scene_menu()
 	scene_editor* target_editor = editor;
 	for (const std::string& scene_path : target_editor->get_addable_scenes())
 	{
-		const cache_string label(scene_path);
-		if (ImGui::MenuItem(label.get<utf8_cache>().data()))
+		const core::cache_string label(scene_path);
+		if (ImGui::MenuItem(label.get<core::utf8_cache>().data()))
 			pending = [target_editor, scene_path]() { target_editor->add_scene(scene_path); };
 	}
 	ImGui::EndMenu();
@@ -266,8 +266,8 @@ void outliner_window::render_object(const std::shared_ptr<game_object>& object)
 		flags |= ImGuiTreeNodeFlags_Selected;
 	if (!has_children)
 		flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
-	const cache_string name(object->get_name());
-	const bool opened = ImGui::TreeNodeEx("##object", flags, "%s", name.get<utf8_cache>().data());
+	const core::cache_string name(object->get_name());
+	const bool opened = ImGui::TreeNodeEx("##object", flags, "%s", name.get<core::utf8_cache>().data());
 	if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
 		context->set_selected_object(object);
 
@@ -280,7 +280,7 @@ void outliner_window::render_object(const std::shared_ptr<game_object>& object)
 		{
 			const game_object* self = object.get();
 			ImGui::SetDragDropPayload(payload_type, &self, sizeof(self));
-			ImGui::TextUnformatted(name.get<utf8_cache>().data());
+			ImGui::TextUnformatted(name.get<core::utf8_cache>().data());
 			ImGui::EndDragDropSource();
 		}
 		if (is_spatial && ImGui::BeginDragDropTarget())
@@ -352,8 +352,8 @@ void outliner_window::render_transient_objects(engine_context& target)
 		for (const std::shared_ptr<game_object>& object : transients)
 		{
 			ImGui::PushID(object.get());
-			const cache_string name(object->get_name());
-			if (ImGui::Selectable(name.get<utf8_cache>().data(), context->get_selected_object() == object))
+			const core::cache_string name(object->get_name());
+			if (ImGui::Selectable(name.get<core::utf8_cache>().data(), context->get_selected_object() == object))
 				context->set_selected_object(object);
 			ImGui::PopID();
 		}

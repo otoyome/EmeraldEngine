@@ -30,8 +30,8 @@ namespace
 	//	ファイルパスを ImGui 表示用の UTF-8 にする
 	std::string to_display(std::string_view text)
 	{
-		const cache_string path(text);
-		return std::string(path.get<utf8_cache>());
+		const core::cache_string path(text);
+		return std::string(path.get<core::utf8_cache>());
 	}
 }
 

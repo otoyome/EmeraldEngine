@@ -47,7 +47,7 @@ void model_collision_object::create_collisions(std::vector<collision_object_ptr>
 	model_resource_ptr resource;
 	if (!model_resource_manager::instance()->load(resource, file_path) || !resource)
 	{
-		DEBUG_WARNING_CATEGORY(logger::categorys::model, "model_collision_object model load failed[%s]", file_path.c_str());
+		DEBUG_WARNING_CATEGORY(core::logger::categorys::model, "model_collision_object model load failed[%s]", file_path.c_str());
 		return;
 	}
 
@@ -56,7 +56,7 @@ void model_collision_object::create_collisions(std::vector<collision_object_ptr>
 	collision::combined_mesh info;
 	if (!std::filesystem::exists(info_path) || !info.deserialize(info_path.string()))
 	{
-		DEBUG_LOG_CATEGORY(logger::categorys::model, "Load Failed CombinedMesh[%s]", info_path.string().c_str());
+		DEBUG_LOG_CATEGORY(core::logger::categorys::model, "Load Failed CombinedMesh[%s]", info_path.string().c_str());
 	}
 	else
 	{
@@ -139,8 +139,8 @@ void model_collision_object::imgui_render_core()
 	base::imgui_render_core();
 
 	//	ÉhÉçÉbÉv
-	const cache_string path(game_object_serializer::resolve_asset_path(model));
-	ImGui::Text("model : %s", model.is_empty() ? "(none)" : path.get<utf8_cache>().data());
+	const core::cache_string path(game_object_serializer::resolve_asset_path(model));
+	ImGui::Text("model : %s", model.is_empty() ? "(none)" : path.get<core::utf8_cache>().data());
 	if (ImGui::BeginDragDropTarget())
 	{
 		if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(asset_browser::drag_payload_type))

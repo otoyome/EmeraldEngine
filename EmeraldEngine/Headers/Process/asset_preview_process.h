@@ -7,7 +7,7 @@
 #include <unordered_map>
 
 #include "Process/framework_process.h"
-#include "System/cache_string.h"
+#include "Core/cache_string.h"
 #include "Texture/texture.h"
 #include "Renderer/debug_view_settings.h"
 #include "Scenes/scene_system.h"
@@ -33,7 +33,7 @@ public:
 	};
 
 public:
-	asset_preview_process(framework& owner, const cache_string& file_path, std::string_view window_kind, scene_opener open_scene);
+	asset_preview_process(framework& owner, const core::cache_string& file_path, std::string_view window_kind, scene_opener open_scene);
 	~asset_preview_process() override;
 
 	std::string_view get_key() const override { return key; }
@@ -57,14 +57,14 @@ private:
 
 public:
 	//	キー生成
-	static std::string make_key(std::string_view window_kind, const cache_string& file_path);
+	static std::string make_key(std::string_view window_kind, const core::cache_string& file_path);
 
 private:
 	//	境目のドラッグで大きさを変える
 	static void imgui_splitter(const char* id, const ImVec2& position, const ImVec2& size, bool vertical, float sign, float& value);
 
 private:
-	cache_string file_path;		//	開いたファイル
+	core::cache_string file_path;		//	開いたファイル
 	bool open = true;			//	窓が開いているか
 	std::string window_kind;	//	窓の種類
 	std::string key;			//	二重に開かないためのキー

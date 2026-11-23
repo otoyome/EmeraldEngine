@@ -8,8 +8,7 @@
 #include "Resource/asset_registry.h"
 #include "Resource/data_compression.h"
 #include "Resource/resource_base.h"
-#include "system/logger.h"
-#include "System/system_utility.h"
+#include "Core/logger.h"
 
 namespace
 {
@@ -103,7 +102,7 @@ namespace resource
 
 	asset_types get_asset_type_from_extension(std::string_view extension)
 	{
-		const std::string lower = system_utility::to_lower(extension);
+		const std::string lower = core::to_lower(extension);
 
 		if (lower == ".emo")
 			return asset_types::model;
@@ -132,7 +131,7 @@ namespace resource
 		std::vector<char> compressed_body;
 		if (!compress(body.data(), body.size(), compressed_body))
 		{
-			DEBUG_ERROR_CATEGORY(logger::categorys::system, "asset file compress failed[%s]", std::string(file_path).c_str());
+			DEBUG_ERROR_CATEGORY(core::logger::categorys::system, "asset file compress failed[%s]", std::string(file_path).c_str());
 			return false;
 		}
 
@@ -146,7 +145,7 @@ namespace resource
 		std::ofstream stream(path, std::ios::binary);
 		if (!stream.is_open())
 		{
-			DEBUG_ERROR_CATEGORY(logger::categorys::system, "asset file open failed[%s]", std::string(file_path).c_str());
+			DEBUG_ERROR_CATEGORY(core::logger::categorys::system, "asset file open failed[%s]", std::string(file_path).c_str());
 			return false;
 		}
 
@@ -157,7 +156,7 @@ namespace resource
 		stream.write(compressed_body.data(), static_cast<std::streamsize>(compressed_body.size()));
 		if (!stream.good())
 		{
-			DEBUG_ERROR_CATEGORY(logger::categorys::system, "asset file write failed[%s]", std::string(file_path).c_str());
+			DEBUG_ERROR_CATEGORY(core::logger::categorys::system, "asset file write failed[%s]", std::string(file_path).c_str());
 			return false;
 		}
 
@@ -172,20 +171,20 @@ namespace resource
 		std::ifstream stream(std::filesystem::path(std::string(file_path)), std::ios::binary);
 		if (!stream.is_open())
 		{
-			DEBUG_ERROR_CATEGORY(logger::categorys::system, "asset file open failed[%s]", std::string(file_path).c_str());
+			DEBUG_ERROR_CATEGORY(core::logger::categorys::system, "asset file open failed[%s]", std::string(file_path).c_str());
 			return false;
 		}
 		const std::vector<char> file_data((std::istreambuf_iterator<char>(stream)), std::istreambuf_iterator<char>());
 
 		if (!read_asset_header(file_data.data(), file_data.size(), out_header) || out_header.type != type)
 		{
-			DEBUG_ERROR_CATEGORY(logger::categorys::system, "asset file invalid header[%s]", std::string(file_path).c_str());
+			DEBUG_ERROR_CATEGORY(core::logger::categorys::system, "asset file invalid header[%s]", std::string(file_path).c_str());
 			return false;
 		}
 
 		if (!decompress(file_data.data() + asset_file_header::size, file_data.size() - asset_file_header::size, out_body))
 		{
-			DEBUG_ERROR_CATEGORY(logger::categorys::system, "asset file decompress failed[%s]", std::string(file_path).c_str());
+			DEBUG_ERROR_CATEGORY(core::logger::categorys::system, "asset file decompress failed[%s]", std::string(file_path).c_str());
 			return false;
 		}
 		return true;

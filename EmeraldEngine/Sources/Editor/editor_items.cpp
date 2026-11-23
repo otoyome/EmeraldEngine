@@ -457,7 +457,7 @@ bool editor_items::edit_material(std::shared_ptr<context>& context, material_res
 				const std::string_view source_path = material.get_shader_path().empty()
 					? material_shader_map::get_default_shader_path(material.get_domain())
 					: material.get_shader_path();
-				const std::string name = system_utility::convert_utf8_to_shift_jis(context->new_shader_name);
+				const std::string name = core::convert_utf8_to_shift_jis(context->new_shader_name);
 				const std::string path = material_shader_map::instance()->create_shader_file(material.get_domain(), name, source_path);
 				if (!path.empty())
 				{
@@ -703,7 +703,7 @@ bool editor_items::edit_shared_material(std::shared_ptr<context>& context, const
 	bool edit_flag = false;
 	ImGui::PushID(context->get_item_id());
 
-	const std::string file_path = system_utility::convert_utf8(material->get_file_path());
+	const std::string file_path = core::convert_utf8(material->get_file_path());
 	if (material->is_missing())
 	{
 		ImGui::TextColored(ImVec4(1.0f, 0.3f, 0.3f, 1.0f), "missing : %s", file_path.c_str());
@@ -756,8 +756,8 @@ bool editor_items::edit_material_slot(std::shared_ptr<context>& context, materia
 	if (material)
 	{
 		label = material->get_file_path().empty()
-			? "(not saved) " + system_utility::convert_utf8(material->get_name())
-			: system_utility::convert_utf8(material->get_file_path());
+			? "(not saved) " + core::convert_utf8(material->get_name())
+			: core::convert_utf8(material->get_file_path());
 	}
 	ImGui::Button(label.c_str(), ImVec2(-FLT_MIN, 0.0f));
 	if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal))
@@ -775,12 +775,12 @@ bool editor_items::edit_material_slot(std::shared_ptr<context>& context, materia
 				material_resource_ptr loaded = operation && operation->is_succeeded() ? operation->get_resource() : nullptr;
 				if (!loaded)
 				{
-					DEBUG_ERROR_CATEGORY(logger::categorys::model, "material slot load failed[%s]", file_path.c_str());
+					DEBUG_ERROR_CATEGORY(core::logger::categorys::model, "material slot load failed[%s]", file_path.c_str());
 				}
 				else if (loaded->get_domain() != domain)
 				{
 					//	ドメインが違うマテリアルはその場所で描けないので受け付けない
-					DEBUG_WARNING_CATEGORY(logger::categorys::model, "material slot domain mismatch[%s] %s != %s", file_path.c_str(),
+					DEBUG_WARNING_CATEGORY(core::logger::categorys::model, "material slot domain mismatch[%s] %s != %s", file_path.c_str(),
 						magic_enum::enum_name(loaded->get_domain()).data(), magic_enum::enum_name(domain).data());
 				}
 				else if (loaded != material)
@@ -809,7 +809,7 @@ bool editor_items::edit_material_texture_slot(std::shared_ptr<context>& context,
 	if (slot.asset && slot.asset->get_file_path().empty())
 		label = "(runtime, not saved)";
 	else if (!slot.asset.is_empty())
-		label = system_utility::convert_utf8(asset_registry::is_valid() ? asset_registry::instance()->find_path(slot.asset.get_reference()) : std::string());	//	参照はUUIDだけなので対応表から引く
+		label = core::convert_utf8(asset_registry::is_valid() ? asset_registry::instance()->find_path(slot.asset.get_reference()) : std::string());	//	参照はUUIDだけなので対応表から引く
 	if (slot.asset && slot.asset->is_missing())
 		label = "missing : " + label;
 	ImGui::Button(label.c_str(), ImVec2(-icon_size_srv.x - ImGui::GetStyle().ItemSpacing.x, 0.0f));
@@ -828,7 +828,7 @@ bool editor_items::edit_material_texture_slot(std::shared_ptr<context>& context,
 				texture_resource_ptr loaded = operation && operation->is_succeeded() ? operation->get_resource() : nullptr;
 				if (!loaded)
 				{
-					DEBUG_ERROR_CATEGORY(logger::categorys::model, "material texture slot load failed[%s]", file_path.c_str());
+					DEBUG_ERROR_CATEGORY(core::logger::categorys::model, "material texture slot load failed[%s]", file_path.c_str());
 				}
 				else if (loaded != slot.asset.get())
 				{
@@ -975,8 +975,8 @@ bool editor_items::open_file_dialog(const TCHAR* text, std::string& out_selected
 	bool opened = false;
 	if (GetOpenFileName(&open_file_name))
 	{
-		std::string file_path = system_utility::convert_shift_jis(selected_file_path);
-		out_selected_file_path = system_utility::convert_to_relative_path(file_path);
+		std::string file_path = core::convert_shift_jis(selected_file_path);
+		out_selected_file_path = core::convert_to_relative_path(file_path);
 		opened = true;
 	}
 	return opened;
@@ -1007,8 +1007,8 @@ bool editor_items::open_file_dialog_multi(const TCHAR* text, std::vector<std::st
 
 	if (*ptr == 0)
 	{
-		std::string file_path = system_utility::convert_shift_jis(directory);
-		out_selected_file_paths.emplace_back(system_utility::convert_to_relative_path(file_path));
+		std::string file_path = core::convert_shift_jis(directory);
+		out_selected_file_paths.emplace_back(core::convert_to_relative_path(file_path));
 	}
 	else
 	{
@@ -1018,8 +1018,8 @@ bool editor_items::open_file_dialog_multi(const TCHAR* text, std::vector<std::st
 			ptr += file_name.size() + 1;
 
 			std::filesystem::path full_path = std::filesystem::path(directory) / file_name;
-			std::string file_path = system_utility::convert_shift_jis(full_path.wstring());
-			out_selected_file_paths.emplace_back(system_utility::convert_to_relative_path(file_path));
+			std::string file_path = core::convert_shift_jis(full_path.wstring());
+			out_selected_file_paths.emplace_back(core::convert_to_relative_path(file_path));
 		}
 	}
 
@@ -1043,8 +1043,8 @@ bool editor_items::save_file_dialog(const TCHAR* text, std::string& out_selected
 	bool opened = false;
 	if (GetSaveFileName(&open_file_name))
 	{
-		std::string file_path = system_utility::convert_shift_jis(selected_file_path);
-		out_selected_file_path = system_utility::convert_to_relative_path(file_path);
+		std::string file_path = core::convert_shift_jis(selected_file_path);
+		out_selected_file_path = core::convert_to_relative_path(file_path);
 		opened = true;
 	}
 	return opened;

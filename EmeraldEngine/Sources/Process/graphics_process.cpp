@@ -132,7 +132,7 @@ bool graphics_process::apply_display(const display_settings::change_request& req
 	for (framework::process_entry& entry : self.processes)
 	{
 		if (!entry.process->create_display_resources())
-			DEBUG_LOG_CATEGORY(logger::categorys::system, "create_display_resources Failed");
+			DEBUG_LOG_CATEGORY(core::logger::categorys::system, "create_display_resources Failed");
 	}
 
 	if (succeeded)
@@ -155,7 +155,7 @@ bool graphics_process::apply_display_color_space()
 	for (framework::process_entry& entry : self.processes)
 	{
 		if (!entry.process->create_display_resources())
-			DEBUG_LOG_CATEGORY(logger::categorys::system, "create_display_resources Failed");
+			DEBUG_LOG_CATEGORY(core::logger::categorys::system, "create_display_resources Failed");
 	}
 	return succeeded;
 }

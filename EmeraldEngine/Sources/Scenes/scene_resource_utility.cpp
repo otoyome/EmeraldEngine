@@ -29,13 +29,13 @@ namespace
 				if (system)
 					system->deserialize(archive);
 				else
-					DEBUG_WARNING_CATEGORY(logger::categorys::system, "scene_resource unknown system type[%s]", type.c_str());
+					DEBUG_WARNING_CATEGORY(core::logger::categorys::system, "scene_resource unknown system type[%s]", type.c_str());
 			}
 			archive.finishNode();
 		}
 		catch (const cereal::Exception& exception)
 		{
-			DEBUG_WARNING_CATEGORY(logger::categorys::system, "scene_resource system load failed[%s]", exception.what());
+			DEBUG_WARNING_CATEGORY(core::logger::categorys::system, "scene_resource system load failed[%s]", exception.what());
 		}
 		return system;
 	}

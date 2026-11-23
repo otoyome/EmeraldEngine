@@ -12,9 +12,8 @@
 #include <unordered_map>
 #include <vector>
 
-#include "System/system_utility.h"
 
-namespace signals
+namespace core::signals
 {
 	//	ˆ¶æŒ^
 	using address = core::hash_key;
@@ -375,4 +374,4 @@ namespace signals
 	private:
 		std::shared_ptr<detail::registry> core;	//	\’zŒã‚Í•Ï‚í‚ç‚È‚¢
 	};
-}
+}	//	namespace core::signals

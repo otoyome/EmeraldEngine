@@ -54,8 +54,8 @@ public:
 	using morph_animation = animation::morph;
 
 public:
-	bool is_flag(flags flag) const { return system_utility::is_bitflag(system_flags, 1 << static_cast<UINT>(flag)); }
-	void set_flag(flags flag, bool value) { system_utility::set_bitflag(system_flags, 1 << static_cast<UINT>(flag), value); }
+	bool is_flag(flags flag) const { return core::is_bitflag(system_flags, 1 << static_cast<UINT>(flag)); }
+	void set_flag(flags flag, bool value) { core::set_bitflag(system_flags, 1 << static_cast<UINT>(flag), value); }
 
 	int get_lod_index() const {return lod_index;}
 	UINT get_unique_id() const { return unique_id; }

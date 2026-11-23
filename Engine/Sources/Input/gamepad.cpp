@@ -111,7 +111,7 @@ gamepad::gamepad()
 	initialized = SDL_InitSubSystem(SDL_INIT_GAMEPAD);
 	if (!initialized)
 	{
-		DEBUG_LOG_CATEGORY(logger::categorys::system, "SDL_InitSubSystem(SDL_INIT_GAMEPAD) failed: %s", SDL_GetError());
+		DEBUG_LOG_CATEGORY(core::logger::categorys::system, "SDL_InitSubSystem(SDL_INIT_GAMEPAD) failed: %s", SDL_GetError());
 		return;
 	}
 	SDL_SetGamepadEventsEnabled(false);

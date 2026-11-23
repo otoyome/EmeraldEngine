@@ -37,7 +37,7 @@ void scene_manager::updates(float elapsed_time)
 		auto scene = std::make_unique<scene_instance>(context, data.resource);
 		if (!scene->initialize())
 		{
-			DEBUG_ERROR_CATEGORY(logger::categorys::system, "scene_manager add scene failed[%s]", std::string(data.resource->get_file_path()).c_str());
+			DEBUG_ERROR_CATEGORY(core::logger::categorys::system, "scene_manager add scene failed[%s]", std::string(data.resource->get_file_path()).c_str());
 			continue;
 		}
 		scenes.emplace_back(data.name, std::move(scene));
@@ -146,7 +146,7 @@ scene_resource_ptr scene_manager::load_resource(std::string_view file_path)
 	auto operation = resource_manager::instance()->load<scene_resource>(file_path);
 	if (!operation || !operation->is_succeeded())
 	{
-		DEBUG_ERROR_CATEGORY(logger::categorys::system, "scene_manager load failed[%s]", std::string(file_path).c_str());
+		DEBUG_ERROR_CATEGORY(core::logger::categorys::system, "scene_manager load failed[%s]", std::string(file_path).c_str());
 		return nullptr;
 	}
 	return operation->get_resource();

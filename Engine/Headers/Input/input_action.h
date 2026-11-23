@@ -2,7 +2,7 @@
 
 #include "input_key.h"
 #include "input_layer.h"
-#include "System/signals.h"
+#include "Core/signals.h"
 
 namespace input
 {
@@ -46,7 +46,7 @@ namespace input
 		std::string_view get_name() const;
 		const std::vector<key>& get_keys() const;
 
-		[[nodiscard]] signals::connection subscribe(signals::broadcaster& target, std::function<void(const action_event&)> function,
+		[[nodiscard]] core::signals::connection subscribe(core::signals::broadcaster& target, std::function<void(const action_event&)> function,
 			std::source_location location = std::source_location::current()) const;
 
 	private:
@@ -56,7 +56,7 @@ namespace input
 
 		std::string_view name;
 		std::vector<key> keys;
-		signals::topic<action_event> topic;
+		core::signals::topic<action_event> topic;
 		const layer* owner = nullptr;
 	};
 
@@ -82,7 +82,7 @@ namespace input
 		std::string_view get_name() const;
 		const std::vector<mapping>& get_mappings() const;
 
-		[[nodiscard]] signals::connection subscribe(signals::broadcaster& target, std::function<void(const axis_event&)> function,
+		[[nodiscard]] core::signals::connection subscribe(core::signals::broadcaster& target, std::function<void(const axis_event&)> function,
 			std::source_location location = std::source_location::current()) const;
 
 	private:
@@ -92,7 +92,7 @@ namespace input
 
 		std::string_view name;
 		std::vector<mapping> mappings;
-		signals::topic<axis_event> topic;
+		core::signals::topic<axis_event> topic;
 		const layer* owner = nullptr;
 	};
 }

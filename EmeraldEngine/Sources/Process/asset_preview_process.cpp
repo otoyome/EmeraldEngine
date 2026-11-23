@@ -32,7 +32,7 @@ namespace
 
 std::unordered_map<std::string, asset_preview_process::panel_layout> asset_preview_process::panel_layouts;
 
-asset_preview_process::asset_preview_process(framework& owner, const cache_string& file_path, std::string_view window_kind, scene_opener open_scene)
+asset_preview_process::asset_preview_process(framework& owner, const core::cache_string& file_path, std::string_view window_kind, scene_opener open_scene)
 : framework_process(owner)
 , file_path(file_path)
 , window_kind(window_kind)
@@ -41,7 +41,7 @@ asset_preview_process::asset_preview_process(framework& owner, const cache_strin
 {
 }
 
-std::string asset_preview_process::make_key(std::string_view window_kind, const cache_string& file_path)
+std::string asset_preview_process::make_key(std::string_view window_kind, const core::cache_string& file_path)
 {
 	return std::string(window_kind) + ":" + file_path.str();
 }
@@ -58,7 +58,7 @@ bool asset_preview_process::enter()
 	engine_context& context = preview_world->get_context();
 	context.set_embedded(true);
 	context.set_asset_preview(true);
-	context.set_window_id("##" + window_kind + ":" + std::string(file_path.get<utf8_cache>()));
+	context.set_window_id("##" + window_kind + ":" + std::string(file_path.get<core::utf8_cache>()));
 	context.set_open_file(file_path.str());
 	open_scene(preview_world->get_scenes());
 
@@ -119,8 +119,8 @@ void asset_preview_process::imgui_render()
 	if (!viewport || !viewport->get_output_texture())
 		return;
 
-	const cache_string file_name = std::filesystem::path(file_path.str()).filename().string();
-	const std::string title = std::string(file_name.get<utf8_cache>()) + "###" + window_kind + ":" + std::string(file_path.get<utf8_cache>());
+	const core::cache_string file_name = std::filesystem::path(file_path.str()).filename().string();
+	const std::string title = std::string(file_name.get<core::utf8_cache>()) + "###" + window_kind + ":" + std::string(file_path.get<core::utf8_cache>());
 	engine_context& context = preview_world->get_context();
 	scene_manager& scenes = preview_world->get_scenes();
 

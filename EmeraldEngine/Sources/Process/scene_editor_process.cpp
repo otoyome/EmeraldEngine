@@ -163,7 +163,7 @@ void scene_editor_process::register_open_handlers()
 		asset_browser::open_handler handler;
 		handler.label = "Model Editor (Window)";
 		handler.extensions = { ".emo" };
-		handler.open_file = [&self](const cache_string& file_path)
+		handler.open_file = [&self](const core::cache_string& file_path)
 		{
 			if (!self.has_process(asset_preview_process::make_key("model_editor", file_path)))
 				self.request_process(std::make_unique<asset_preview_process>(self, file_path, "model_editor",
@@ -178,7 +178,7 @@ void scene_editor_process::register_open_handlers()
 		asset_browser::open_handler handler;
 		handler.label = "Particle Editor (Window)";
 		handler.extensions = { ".eme" };
-		handler.open_file = [&self](const cache_string& file_path)
+		handler.open_file = [&self](const core::cache_string& file_path)
 		{
 			if (!self.has_process(asset_preview_process::make_key("particle_editor", file_path)))
 				self.request_process(std::make_unique<asset_preview_process>(self, file_path, "particle_editor",
@@ -193,7 +193,7 @@ void scene_editor_process::register_open_handlers()
 		asset_browser::open_handler handler;
 		handler.label = "Material Editor (Window)";
 		handler.extensions = { ".emr", ".emo", ".eme" };
-		handler.open_file = [&self](const cache_string& file_path)
+		handler.open_file = [&self](const core::cache_string& file_path)
 		{
 			if (!self.has_process(asset_preview_process::make_key("material_editor", file_path)))
 				self.request_process(std::make_unique<asset_preview_process>(self, file_path, "material_editor",
@@ -208,7 +208,7 @@ void scene_editor_process::register_open_handlers()
 		asset_browser::open_handler handler;
 		handler.label = "Prefab Editor (Window)";
 		handler.extensions = { std::string(".") + std::string(prefab_resource::extension) };
-		handler.open_file = [&self](const cache_string& file_path)
+		handler.open_file = [&self](const core::cache_string& file_path)
 		{
 			if (!self.has_process(asset_preview_process::make_key("prefab_editor", file_path)))
 				self.request_process(std::make_unique<asset_preview_process>(self, file_path, "prefab_editor",

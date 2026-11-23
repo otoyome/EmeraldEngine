@@ -84,7 +84,7 @@ void result_controller_object::set_display_time(float time)
 {
 	if (time_text)
 	{
-		time_text->set_texts(system_utility::to_display_time_string(time));
+		time_text->set_texts(core::to_display_time_string(time));
 	}
 }
 

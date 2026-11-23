@@ -1,4 +1,4 @@
-#include "System/system_utility.h"
+#include "Core/charset.h"
 
 #include	<regex>
 
@@ -55,7 +55,7 @@ namespace
 				udata_setCommonData(sjis_buffer.data(), &status);
 				if (U_FAILURE(status))
 				{
-					DEBUG_ERROR_CATEGORY(logger::categorys::system, "charset converter Shift-JIS.dat not found");
+					DEBUG_ERROR_CATEGORY(core::logger::categorys::system, "charset converter Shift-JIS.dat not found");
 				}
 			}
 		}
@@ -437,83 +437,83 @@ namespace
 			return result;
 		}
 
-		const std::wstring utf16 = system_utility::convert_shift_jis_to_utf16(shift_jis);
-		if (system_utility::convert_utf16_to_shift_jis(utf16) != shift_jis)
+		const std::wstring utf16 = core::convert_shift_jis_to_utf16(shift_jis);
+		if (core::convert_utf16_to_shift_jis(utf16) != shift_jis)
 			return std::string(shift_jis);
 
 		const std::wstring mapped = convert_utf16_case(utf16, mapping);
 
 		//	•ÏŠ·Œã‚Ì•¶Žš‚ª Shift-JIS ‚É–³‚¯‚ê‚Î•ÏŠ·‚¹‚¸‚É•Ô‚·
-		std::string result = system_utility::convert_utf16_to_shift_jis(mapped);
-		if (system_utility::convert_shift_jis_to_utf16(result) != mapped)
+		std::string result = core::convert_utf16_to_shift_jis(mapped);
+		if (core::convert_shift_jis_to_utf16(result) != mapped)
 			return std::string(shift_jis);
 		return result;
 	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
-void system_utility::initialize_charset_converter()
+void core::initialize_charset_converter()
 {
 	if (!sjis_dat_setter)
 		sjis_dat_setter = std::make_unique<icu_sjis_dat_setter>("Assets/Resources/Systems/icudt79l.dat");
 }
 
-void system_utility::uninitialize_charset_converter()
+void core::uninitialize_charset_converter()
 {
 	sjis_dat_setter.reset();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
-bool system_utility::is_valid_utf16(std::wstring_view text)
+bool core::is_valid_utf16(std::wstring_view text)
 {
 	return get_converter_container()->is_valid_charcodes(text, charset::utf_16, charset::utf_16le, charset::utf_16be);
 }
 
-bool system_utility::is_valid_utf8(std::string_view text)
+bool core::is_valid_utf8(std::string_view text)
 {
 	return get_converter_container()->is_valid_charcodes(text, charset::utf_8);
 }
 
-bool system_utility::is_valid_sjis(std::string_view text)
+bool core::is_valid_sjis(std::string_view text)
 {
 	return get_converter_container()->is_valid_charcodes(text, charset::ansii, charset::shift_jis);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
-std::string system_utility::convert_shift_jis_to_utf8(std::string_view sjis)
+std::string core::convert_shift_jis_to_utf8(std::string_view sjis)
 {
 	return get_converter_container()->convert_shift_jis_to_utf8(sjis);
 }
 
-std::wstring system_utility::convert_shift_jis_to_utf16(std::string_view sjis)
+std::wstring core::convert_shift_jis_to_utf16(std::string_view sjis)
 {
 	return get_converter_container()->convert_shift_jis_to_utf16(sjis);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
-std::string system_utility::convert_utf8_to_shift_jis(std::string_view utf8)
+std::string core::convert_utf8_to_shift_jis(std::string_view utf8)
 {
 	return get_converter_container()->convert_utf8_to_shift_jis(utf8);
 }
 
-std::wstring system_utility::convert_utf8_to_utf16(std::string_view utf8)
+std::wstring core::convert_utf8_to_utf16(std::string_view utf8)
 {
 	return get_converter_container()->convert_utf8_to_utf16(utf8);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
-std::string system_utility::convert_utf16_to_shift_jis(std::wstring_view utf16)
+std::string core::convert_utf16_to_shift_jis(std::wstring_view utf16)
 {
 	return get_converter_container()->convert_utf16_to_shift_jis(utf16);
 }
 
-std::string system_utility::convert_utf16_to_utf8(std::wstring_view utf16)
+std::string core::convert_utf16_to_utf8(std::wstring_view utf16)
 {
 	return get_converter_container()->convert_utf16_to_utf8(utf16);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
-std::wstring system_utility::convert_utf16(std::string_view text)
+std::wstring core::convert_utf16(std::string_view text)
 {
 	if (is_valid_utf8(text))
 		return convert_utf8_to_utf16(text);
@@ -523,7 +523,7 @@ std::wstring system_utility::convert_utf16(std::string_view text)
 	return std::wstring();
 }
 
-std::wstring system_utility::convert_utf16(std::wstring_view text)
+std::wstring core::convert_utf16(std::wstring_view text)
 {
 	if (is_valid_utf16(text))
 		return std::wstring(text);
@@ -531,7 +531,7 @@ std::wstring system_utility::convert_utf16(std::wstring_view text)
 	return std::wstring(text);
 }
 
-std::string system_utility::convert_shift_jis(std::string_view text)
+std::string core::convert_shift_jis(std::string_view text)
 {
 	if (is_valid_utf8(text))
 		return convert_utf8_to_shift_jis(text);
@@ -539,7 +539,7 @@ std::string system_utility::convert_shift_jis(std::string_view text)
 	return std::string(text);
 }
 
-std::string system_utility::convert_shift_jis(std::wstring_view text)
+std::string core::convert_shift_jis(std::wstring_view text)
 {
 	if (is_valid_utf16(text))
 		return convert_utf16_to_shift_jis(text);
@@ -547,7 +547,7 @@ std::string system_utility::convert_shift_jis(std::wstring_view text)
 	return std::string();
 }
 
-std::string system_utility::convert_utf8(std::string_view text)
+std::string core::convert_utf8(std::string_view text)
 {
 	if (is_valid_utf8(text))
 		return std::string(text);
@@ -557,7 +557,7 @@ std::string system_utility::convert_utf8(std::string_view text)
 	return std::string(text);
 }
 
-std::string system_utility::convert_utf8(std::wstring_view text)
+std::string core::convert_utf8(std::wstring_view text)
 {
 	if (is_valid_utf16(text))
 		return convert_utf16_to_utf8(text);
@@ -566,90 +566,22 @@ std::string system_utility::convert_utf8(std::wstring_view text)
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
-std::string system_utility::to_lower(std::string_view shift_jis)
+std::string core::to_lower(std::string_view shift_jis)
 {
 	return convert_shift_jis_case(shift_jis, &u_tolower);
 }
 
-std::string system_utility::to_upper(std::string_view shift_jis)
+std::string core::to_upper(std::string_view shift_jis)
 {
 	return convert_shift_jis_case(shift_jis, &u_toupper);
 }
 
-std::wstring system_utility::to_lower(std::wstring_view utf16)
+std::wstring core::to_lower(std::wstring_view utf16)
 {
 	return convert_utf16_case(utf16, &u_tolower);
 }
 
-std::wstring system_utility::to_upper(std::wstring_view utf16)
+std::wstring core::to_upper(std::wstring_view utf16)
 {
 	return convert_utf16_case(utf16, &u_toupper);
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////
-std::string system_utility::convert_to_absolute_path(std::string_view relative_path)
-{
-	char absolute_path[MAX_PATH];
-	if (_fullpath(absolute_path, relative_path.data(), MAX_PATH) != nullptr)
-	{
-		return absolute_path;
-	}
-	return "";
-}
-
-std::string system_utility::convert_to_relative_path(std::string_view absolute_path)
-{
-	std::string path = system_utility::replace(absolute_path, "\\\\", "/");
-
-	char current_directry[MAX_PATH];
-	GetCurrentDirectoryA(MAX_PATH, current_directry);
-
-	std::filesystem::path relative_path = std::filesystem::relative(path, current_directry);
-	return system_utility::replace(relative_path.string(), "\\\\", "/");
-}
-
-void system_utility::fit_string_to_null_terminated(std::string& str)
-{
-	const auto pos = str.find('\0');
-	if (pos != std::string::npos)
-	{
-		str.resize(pos);
-	}
-};
-
-std::string	system_utility::replace(std::string_view text, std::string_view target_text, std::string_view replace_text)
-{
-	return	std::regex_replace(text.data(), std::regex(target_text.data()), replace_text.data());
-}
-
-std::string	system_utility::preferred_path(std::string_view path)
-{
-	return	system_utility::replace(path, "\\\\", "/");
-}
-
-std::string system_utility::to_display_time_string(float time)
-{
-	int minits = static_cast<int>(time / 60);
-	int second = static_cast<int>(fmodf(time, 60));
-	int micro = static_cast<int>((time - minits * 60 - second) * 100);
-	if (minits >= 100)
-	{
-		minits = 99;
-		second = 59;
-		micro = 99;
-	}
-
-	std::string t;
-	if (minits < 10)
-		t += "0";
-	t += std::to_string(minits);
-	t += ":";
-	if (second < 10)
-		t += "0";
-	t += std::to_string(second);
-	t += ":";
-	if (micro < 10)
-		t += "0";
-	t += std::to_string(micro);
-	return t;
 }

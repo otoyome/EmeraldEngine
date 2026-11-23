@@ -3,7 +3,6 @@
 #include	<iostream>
 #include	<cstdio>
 
-#include	"System/system_utility.h"
 
 namespace
 {
@@ -420,10 +419,10 @@ void	pmx_loader::read_string( char* string, size_t string_length )
 	switch (index_data.encoding)
 	{
 		case	0:	//	UTF16
-			converted = system_utility::convert_utf16_to_shift_jis(std::wstring_view(reinterpret_cast<const wchar_t*>(source), read_size / sizeof(wchar_t)));
+			converted = core::convert_utf16_to_shift_jis(std::wstring_view(reinterpret_cast<const wchar_t*>(source), read_size / sizeof(wchar_t)));
 			break;
 		default:	//	UTF8
-			converted = system_utility::convert_utf8_to_shift_jis(std::string_view(source, read_size));
+			converted = core::convert_utf8_to_shift_jis(std::string_view(source, read_size));
 			break;
 	}
 	strncpy_s(string, string_length, converted.c_str(), _TRUNCATE);

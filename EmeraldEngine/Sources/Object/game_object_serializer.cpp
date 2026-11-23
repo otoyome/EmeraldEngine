@@ -125,7 +125,7 @@ bool game_object_serializer::save(std::ostream& stream, const std::vector<game_o
 	}
 	catch (const cereal::Exception& exception)
 	{
-		DEBUG_ERROR_CATEGORY(logger::categorys::system, "game_object_serializer save failed[%s]", exception.what());
+		DEBUG_ERROR_CATEGORY(core::logger::categorys::system, "game_object_serializer save failed[%s]", exception.what());
 		_ASSERT_EXPR(false, L"game_object_serializer save failed");
 		return false;
 	}
@@ -212,7 +212,7 @@ bool game_object_serializer::load(std::istream& stream, std::vector<game_object_
 	}
 	catch (const cereal::Exception& exception)
 	{
-		DEBUG_ERROR_CATEGORY(logger::categorys::system, "game_object_serializer load failed[%s]", exception.what());
+		DEBUG_ERROR_CATEGORY(core::logger::categorys::system, "game_object_serializer load failed[%s]", exception.what());
 		_ASSERT_EXPR(false, L"game_object_serializer load failed");
 		return false;
 	}
@@ -276,7 +276,7 @@ void game_object_serializer::save_object(cereal::JSONOutputArchive& archive, con
 		if (saving && saving->members.contains(object.get()))
 			uuid = object->get_uuid().to_string();
 		else
-			DEBUG_WARNING_CATEGORY(logger::categorys::system, "game_object_serializer reference outside the file is not saved[%s]", name);
+			DEBUG_WARNING_CATEGORY(core::logger::categorys::system, "game_object_serializer reference outside the file is not saved[%s]", name);
 	}
 	archive(cereal::make_nvp(name, uuid));
 }

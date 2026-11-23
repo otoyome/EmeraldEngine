@@ -11,7 +11,7 @@
 class engine_context;
 class scene_instance;
 
-namespace signals
+namespace core::signals
 {
 	class broadcaster;
 	class contactor;
@@ -101,8 +101,8 @@ protected:
 	void register_object(collision_object_ptr object);
 	void unregister_object(const game_object_ptr& object);
 
-	signals::broadcaster& get_broadcaster() const;
-	signals::contactor& get_contactor() const;
+	core::signals::broadcaster& get_broadcaster() const;
+	core::signals::contactor& get_contactor() const;
 
 private:
 	friend class scene_instance;

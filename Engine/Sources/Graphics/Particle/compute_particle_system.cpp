@@ -3,7 +3,7 @@
 
 #include "Graphics/Pipeline/custom_pipeline_state.h"
 #include "Graphics/Geometry/cubic_sdf_buffer_pool.h"
-#include "System/logger.h"
+#include "Core/logger.h"
 
 namespace
 {
@@ -520,9 +520,9 @@ UINT compute_particle_system::register_emitter(ID3D11Device* device, const parti
 	UINT emitter_binary_position = emitter_binary_allocator.allocate(data.emitter_binary_size);
 	UINT particle_binary_position = particle_binary_allocator.allocate(data.particle_binary_size);
 	UINT total_particle_position = particle_index_allocator.allocate(data.total_particle_count);
-	if (emitter_binary_position == variable_position_allocator::allocate_failed_code ||
-		particle_binary_position == variable_position_allocator::allocate_failed_code ||
-		total_particle_position == variable_position_allocator::allocate_failed_code)
+	if (emitter_binary_position == core::variable_position_allocator::allocate_failed_code ||
+		particle_binary_position == core::variable_position_allocator::allocate_failed_code ||
+		total_particle_position == core::variable_position_allocator::allocate_failed_code)
 	{
 		//	確保失敗したので破棄
 		emitter_binary_allocator.deallocate(emitter_binary_position);
@@ -551,7 +551,7 @@ UINT compute_particle_system::register_emitter(ID3D11Device* device, const parti
 		if (em_resource.curve.is_valid())
 			em_resource.curve_flags = emitter_resource.curve_flags;
 		else
-			DEBUG_WARNING_CATEGORY(logger::categorys::system, "compute_particle_system: curve buffer allocation failed (%u elements)", static_cast<UINT>(emitter_resource.curve_samples.size()));
+			DEBUG_WARNING_CATEGORY(core::logger::categorys::system, "compute_particle_system: curve buffer allocation failed (%u elements)", static_cast<UINT>(emitter_resource.curve_samples.size()));
 
 		//	内容は共有側が持つので、こちらの複製は捨てる
 		em_resource.resource.curve_samples.clear();

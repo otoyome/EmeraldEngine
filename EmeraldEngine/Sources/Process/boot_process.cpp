@@ -38,7 +38,7 @@ bool boot_process::enter()
 	start_time = std::chrono::steady_clock::now();
 
 	//	スプラッシュウィンドウ
-	const std::wstring& splash_image_path = engine_config_data::instance()->application.splash_image_path.get<utf16_cache>();
+	const std::wstring& splash_image_path = engine_config_data::instance()->application.splash_image_path.get<core::utf16_cache>();
 	splash.show(GetModuleHandleW(nullptr), splash_image_path.c_str());
 	splash.set_text(L"シェーダーをコンパイルしています");
 
@@ -126,11 +126,11 @@ std::unique_ptr<framework_process> boot_process::next_process()
 	const std::chrono::duration<double> elapsed = std::chrono::steady_clock::now() - start_time;
 	if (!succeeded)
 	{
-		DEBUG_ERROR_CATEGORY(logger::categorys::shader, "boot process failed. [%.2f sec]", elapsed.count());
+		DEBUG_ERROR_CATEGORY(core::logger::categorys::shader, "boot process failed. [%.2f sec]", elapsed.count());
 		PostQuitMessage(0);
 		return nullptr;
 	}
-	DEBUG_LOG_CATEGORY(logger::categorys::shader, "boot process finished. [%zu shaders, %.2f sec]", global_shader_base::get_list().size(), elapsed.count());
+	DEBUG_LOG_CATEGORY(core::logger::categorys::shader, "boot process finished. [%zu shaders, %.2f sec]", global_shader_base::get_list().size(), elapsed.count());
 
 	//	スプラッシュウィンドウを閉じて、メインのウィンドウを出す
 	splash.close();

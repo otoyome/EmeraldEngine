@@ -96,8 +96,8 @@ public:
 
 	const math::float3& get_footstep_position() const;
 
-	bool is_flag(flags flag) const { return system_utility::is_bitflag(flag_data, 1 << static_cast<UINT>(flag)); }
-	void set_flag(flags flag, bool value) { system_utility::set_bitflag(flag_data, 1 << static_cast<UINT>(flag), value); }
+	bool is_flag(flags flag) const { return core::is_bitflag(flag_data, 1 << static_cast<UINT>(flag)); }
+	void set_flag(flags flag, bool value) { core::set_bitflag(flag_data, 1 << static_cast<UINT>(flag), value); }
 
 	math::float3 get_velocity() const;
 	void set_velocity(math::float3 velocity);

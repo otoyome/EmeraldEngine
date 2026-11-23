@@ -171,7 +171,7 @@ bool render_data::resize_back_buffer(UINT width, UINT height)
 
 	HRESULT hr = swap_chain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, swap_chain_flags);
 	if (FAILED(hr))
-		DEBUG_LOG_CATEGORY(logger::categorys::system, "ResizeBuffers Failed [%u x %u] hr=0x%08X", width, height, static_cast<unsigned int>(hr));
+		DEBUG_LOG_CATEGORY(core::logger::categorys::system, "ResizeBuffers Failed [%u x %u] hr=0x%08X", width, height, static_cast<unsigned int>(hr));
 	create_display_targets();
 	return SUCCEEDED(hr);
 }
@@ -306,7 +306,7 @@ bool render_data::change_display_color_space()
 		HRESULT hr = swap_chain->ResizeBuffers(0, desc.Width, desc.Height, format, swap_chain_flags);
 		if (FAILED(hr))
 		{
-			DEBUG_LOG_CATEGORY(logger::categorys::system, "ResizeBuffers Failed [format %d] hr=0x%08X", static_cast<int>(format), static_cast<unsigned int>(hr));
+			DEBUG_LOG_CATEGORY(core::logger::categorys::system, "ResizeBuffers Failed [format %d] hr=0x%08X", static_cast<int>(format), static_cast<unsigned int>(hr));
 			return false;
 		}
 
@@ -319,7 +319,7 @@ bool render_data::change_display_color_space()
 	if (!succeeded && color_space != display_color_spaces::srgb)
 	{
 		//	HDR ‚É‚Å‚«‚È‚¯‚ê‚Î SDR ‚É–ß‚·
-		DEBUG_LOG_CATEGORY(logger::categorys::system, "HDR output is not supported");
+		DEBUG_LOG_CATEGORY(core::logger::categorys::system, "HDR output is not supported");
 		color_space = display_color_spaces::srgb;
 		data.peak_nits = sdr_reference_white_nits;
 		data.full_frame_nits = sdr_reference_white_nits;

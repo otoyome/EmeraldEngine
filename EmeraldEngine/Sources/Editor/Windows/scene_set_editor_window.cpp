@@ -24,8 +24,8 @@ namespace
 	//	一覧に出す名前
 	std::string make_label(std::string_view file_path)
 	{
-		const cache_string path(file_path);
-		return scene_resource_utility::make_display_name(path.get<utf8_cache>());
+		const core::cache_string path(file_path);
+		return scene_resource_utility::make_display_name(path.get<core::utf8_cache>());
 	}
 }
 
@@ -45,7 +45,7 @@ void scene_set_editor_window::register_asset_handlers(std::shared_ptr<editor_ite
 	asset_browser::open_handler open;
 	open.label = "Scene Set Editor";
 	open.extensions = { std::string(".") + std::string(scene_set_resource::extension) };
-	open.open_file = [context, open_scenes](const cache_string& file_path) mutable
+	open.open_file = [context, open_scenes](const core::cache_string& file_path) mutable
 	{
 		editor_items::open_window<scene_set_editor_window>(context, file_path.view(), open_scenes);
 	};
@@ -55,7 +55,7 @@ void scene_set_editor_window::register_asset_handlers(std::shared_ptr<editor_ite
 std::string scene_set_editor_window::get_label() const
 {
 	const std::string name = std::filesystem::path(file_path).filename().string();
-	return "Scene Set : " + system_utility::convert_shift_jis_to_utf8(name) + (dirty ? " *" : "");
+	return "Scene Set : " + core::convert_shift_jis_to_utf8(name) + (dirty ? " *" : "");
 }
 
 std::string scene_set_editor_window::resolve_path(const resource::asset_reference<scene_resource>& reference)
@@ -71,7 +71,7 @@ bool scene_set_editor_window::load()
 	const scene_set_resource_ptr resource = resource_manager::instance()->load_uncached<scene_set_resource>(file_path);
 	if (!resource)
 	{
-		message = "load failed: " + system_utility::convert_shift_jis_to_utf8(file_path);
+		message = "load failed: " + core::convert_shift_jis_to_utf8(file_path);
 		return false;
 	}
 	scenes = resource->get_scenes();
@@ -83,7 +83,7 @@ bool scene_set_editor_window::load()
 
 bool scene_set_editor_window::save()
 {
-	const std::string file_path_utf8 = system_utility::convert_shift_jis_to_utf8(file_path);
+	const std::string file_path_utf8 = core::convert_shift_jis_to_utf8(file_path);
 
 	//	UUID を引き継ぐためファイルから読み直し、シーンの一覧だけ差し替えて保存する
 	const scene_set_resource_ptr resource = resource_manager::instance()->load_uncached<scene_set_resource>(file_path);
@@ -118,7 +118,7 @@ bool scene_set_editor_window::add_scene(std::string_view scene_path)
 		reference.uuid = asset_registry::instance()->find_uuid(scene_path);
 	if (reference.uuid.is_empty())
 	{
-		message = "scene not registered: " + system_utility::convert_shift_jis_to_utf8(scene_path);
+		message = "scene not registered: " + core::convert_shift_jis_to_utf8(scene_path);
 		return false;
 	}
 
@@ -191,7 +191,7 @@ void scene_set_editor_window::imgui_render_scene_list()
 		{
 			ImGui::TextUnformatted(make_label(reference_path).c_str());
 			if (ImGui::IsItemHovered())
-				ImGui::SetTooltip("%s", system_utility::convert_shift_jis_to_utf8(reference_path).c_str());
+				ImGui::SetTooltip("%s", core::convert_shift_jis_to_utf8(reference_path).c_str());
 		}
 		ImGui::PopID();
 	}
@@ -225,7 +225,7 @@ void scene_set_editor_window::imgui_render_add_scene()
 		const bool contained = std::any_of(scenes.begin(), scenes.end(), [&](const resource::asset_reference<scene_resource>& scene) { return scene.uuid == uuid; });
 		if (contained)
 			continue;
-		if (ImGui::Selectable(system_utility::convert_shift_jis_to_utf8(candidate).c_str()))
+		if (ImGui::Selectable(core::convert_shift_jis_to_utf8(candidate).c_str()))
 			selected = candidate;
 	}
 	ImGui::EndCombo();
@@ -236,7 +236,7 @@ void scene_set_editor_window::imgui_render_add_scene()
 
 void scene_set_editor_window::render_window(std::shared_ptr<editor_items::context>& /*context*/, bool& open)
 {
-	const std::string title = get_label() + "###scene_set:" + system_utility::convert_shift_jis_to_utf8(file_path);
+	const std::string title = get_label() + "###scene_set:" + core::convert_shift_jis_to_utf8(file_path);
 	ImGui::SetNextWindowSize(ImVec2(520.0f, 360.0f), ImGuiCond_FirstUseEver);
 	if (ImGui::Begin(title.c_str(), &open))
 	{

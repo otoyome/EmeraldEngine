@@ -4,7 +4,6 @@
 #include "Model/model_instance.h"
 
 #include "Graphics/Geometry/cubic_sdf_buffer_pool.h"
-#include "Core/uuid.h"
 #include <unordered_map>
 
 //	エフェクトインスタンス
@@ -71,8 +70,8 @@ public:
 	};
 
 public:
-	bool is_flag(flags flag) const { return system_utility::is_bitflag(system_flags, 1 << static_cast<UINT>(flag)); }
-	void set_flag(flags flag, bool value) { system_utility::set_bitflag(system_flags, 1 << static_cast<UINT>(flag), value); }
+	bool is_flag(flags flag) const { return core::is_bitflag(system_flags, 1 << static_cast<UINT>(flag)); }
+	void set_flag(flags flag, bool value) { core::set_bitflag(system_flags, 1 << static_cast<UINT>(flag), value); }
 
 	std::string_view get_name() const;
 	void set_name(std::string_view name);

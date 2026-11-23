@@ -109,7 +109,7 @@ namespace
 			//	作業ディレクトリからの相対パス(生成した入口が書くマテリアルシェーダーのパス)を先に探す
 			std::vector<std::wstring> search_paths;
 			if (std::string_view(pFileName).find_first_of("/\\") != std::string_view::npos)
-				search_paths.emplace_back(system_utility::convert_shift_jis_to_utf16(pFileName));
+				search_paths.emplace_back(core::convert_shift_jis_to_utf16(pFileName));
 			for (auto& include_directry : include_directries)
 				search_paths.emplace_back(include_directry + L"\\" + std::wstring(pFileName, pFileName + strlen(pFileName)));
 
@@ -134,8 +134,8 @@ namespace
 				//	インクルードファイル登録
 				{
 					bool find = false;
-					std::string file_path = system_utility::convert_utf16_to_shift_jis(fullPath);
-					file_path = system_utility::preferred_path(file_path);
+					std::string file_path = core::convert_utf16_to_shift_jis(fullPath);
+					file_path = core::preferred_path(file_path);
 					for (auto& path : include_files)
 					{
 						if (file_path == path)
@@ -292,7 +292,7 @@ namespace
 				output_data.error_message	= std::string("Shader Create Blob Failed [")
 											+ std::string(file_path)
 											+ std::string("]\n");
-				DEBUG_ERROR_CATEGORY(logger::categorys::shader, output_data.error_message.data());
+				DEBUG_ERROR_CATEGORY(core::logger::categorys::shader, output_data.error_message.data());
 				return false;
 			}
 			memcpy_s(blob->GetBufferPointer(), size, buffer.get(), size);
@@ -318,7 +318,7 @@ namespace
 				output_data.error_message	= std::string("Not Found DXC Library [")
 											+ std::string(file_path)
 											+ std::string("]\n");
-				DEBUG_ERROR_CATEGORY(logger::categorys::shader, output_data.error_message.data());
+				DEBUG_ERROR_CATEGORY(core::logger::categorys::shader, output_data.error_message.data());
 				return false;
 			}
 
@@ -329,7 +329,7 @@ namespace
 				output_data.error_message	= std::string("Shader Create Blob Failed [")
 											+ std::string(file_path)
 											+ std::string("]\n");
-				DEBUG_ERROR_CATEGORY(logger::categorys::shader, output_data.error_message.data());
+				DEBUG_ERROR_CATEGORY(core::logger::categorys::shader, output_data.error_message.data());
 				return false;
 			}
 
@@ -344,7 +344,7 @@ namespace
 		output_data.error_message	= std::string("Not Shader File [")
 									+ std::string(file_path)
 									+ std::string("]\n");
-		DEBUG_ERROR_CATEGORY(logger::categorys::shader, output_data.error_message.data());
+		DEBUG_ERROR_CATEGORY(core::logger::categorys::shader, output_data.error_message.data());
 		return false;
 	}
 
@@ -356,22 +356,22 @@ namespace
 		std::vector<std::wstring> include_paths = fxc_include_handler::build_directry_pass();
 		for (auto& include_directry : input_data.include_directries)
 		{
-			include_paths.emplace_back(system_utility::convert_shift_jis_to_utf16(include_directry));
+			include_paths.emplace_back(core::convert_shift_jis_to_utf16(include_directry));
 		}
 
 		std::vector<std::wstring> convert_texts;
 		convert_texts.reserve(input_data.defines.size() + include_paths.size() + 50);
 
 		//	ファイルパス変換
-		std::wstring file_path = system_utility::convert_shift_jis_to_utf16(input_data.file_path);
+		std::wstring file_path = core::convert_shift_jis_to_utf16(input_data.file_path);
 
 		UINT compile_flags = D3DCOMPILE_ENABLE_STRICTNESS;
 		//	最適化OFF
-		system_utility::set_bitflag(compile_flags, D3DCOMPILE_SKIP_OPTIMIZATION,
-			system_utility::is_bitflag(input_data.compile_flags, shader_compile_flags::disable_optimize));
+		core::set_bitflag(compile_flags, D3DCOMPILE_SKIP_OPTIMIZATION,
+			core::is_bitflag(input_data.compile_flags, shader_compile_flags::disable_optimize));
 		//	デバッグ情報を含める
-		system_utility::set_bitflag(compile_flags, D3DCOMPILE_DEBUG,
-			system_utility::is_bitflag(input_data.compile_flags, shader_compile_flags::debug));
+		core::set_bitflag(compile_flags, D3DCOMPILE_DEBUG,
+			core::is_bitflag(input_data.compile_flags, shader_compile_flags::debug));
 
 		//	マクロ
 		std::vector<D3D_SHADER_MACRO> defines;
@@ -391,8 +391,8 @@ namespace
 		//	ターゲット設定
 		std::string target;
 		{
-			std::string shader_type = system_utility::convert_utf16_to_shift_jis(shader_types[static_cast<UINT>(input_data.type)]);
-			std::string shader_model = system_utility::convert_utf16_to_shift_jis(shader_models[static_cast<UINT>(input_data.model)]);
+			std::string shader_type = core::convert_utf16_to_shift_jis(shader_types[static_cast<UINT>(input_data.type)]);
+			std::string shader_model = core::convert_utf16_to_shift_jis(shader_models[static_cast<UINT>(input_data.model)]);
 			target = shader_type.data();
 			target += "_";
 			target += shader_model.data();
@@ -408,7 +408,7 @@ namespace
 				output_data.error_message = std::string("Shader Create Blob Failed [")
 					+ std::string(input_data.file_path)
 					+ std::string("]\n");
-				DEBUG_ERROR_CATEGORY(logger::categorys::shader, output_data.error_message.data());
+				DEBUG_ERROR_CATEGORY(core::logger::categorys::shader, output_data.error_message.data());
 				return false;
 			}
 			memcpy_s(blob->GetBufferPointer(), blob->GetBufferSize(), input_data.source_text.data(), input_data.source_text.size());
@@ -434,7 +434,7 @@ namespace
 				output_data.error_message = std::string("Shader Create Blob Failed [")
 					+ std::string(input_data.file_path)
 					+ std::string("]\n");
-				DEBUG_ERROR_CATEGORY(logger::categorys::shader, output_data.error_message.data());
+				DEBUG_ERROR_CATEGORY(core::logger::categorys::shader, output_data.error_message.data());
 				return false;
 			}
 			memcpy_s(blob->GetBufferPointer(), size, buffer.get(), size);
@@ -482,7 +482,7 @@ namespace
 										+ std::string(input_data.file_path)
 										+ std::string("]\n")
 										+ output_data.error_message;
-			DEBUG_ERROR_CATEGORY(logger::categorys::shader, output_data.error_message.data());
+			DEBUG_ERROR_CATEGORY(core::logger::categorys::shader, output_data.error_message.data());
 			return	false;
 		}
 
@@ -538,7 +538,7 @@ namespace
 		convert_texts.reserve(input_data.defines.size() + input_data.include_directries.size() + include_paths.size() + 50);
 
 		//	ファイルパス変換
-		std::wstring file_path = system_utility::convert_shift_jis_to_utf16(input_data.file_path);
+		std::wstring file_path = core::convert_shift_jis_to_utf16(input_data.file_path);
 
 		//	DXC API準備
 		Microsoft::WRL::ComPtr<IDxcLibrary> library_handle;
@@ -565,13 +565,13 @@ namespace
 		std::vector<LPCWSTR> arguments;
 		{
 			arguments.push_back(DXC_ARG_ENABLE_STRICTNESS);
-			if (system_utility::is_bitflag(input_data.compile_flags, shader_compile_flags::disable_optimize))
+			if (core::is_bitflag(input_data.compile_flags, shader_compile_flags::disable_optimize))
 			{
 				//	最適化OFF
 				arguments.push_back(DXC_ARG_SKIP_OPTIMIZATIONS);
 			}
 
-			if (system_utility::is_bitflag(input_data.compile_flags, shader_compile_flags::debug))
+			if (core::is_bitflag(input_data.compile_flags, shader_compile_flags::debug))
 			{
 				//	デバッグ情報を埋め込む
 				arguments.push_back(DXC_ARG_DEBUG);
@@ -592,9 +592,9 @@ namespace
 			{
 				arguments.push_back(L"-D");
 				convert_texts.emplace_back();
-				convert_texts.back() = system_utility::convert_shift_jis_to_utf16(input_data.defines[index].name);
+				convert_texts.back() = core::convert_shift_jis_to_utf16(input_data.defines[index].name);
 				convert_texts.back() += L"=";
-				convert_texts.back() += system_utility::convert_shift_jis_to_utf16(input_data.defines[index].value);
+				convert_texts.back() += core::convert_shift_jis_to_utf16(input_data.defines[index].value);
 				arguments.push_back(convert_texts.back().data());
 			}
 
@@ -607,13 +607,13 @@ namespace
 			for (std::size_t index = 0; index < input_data.include_directries.size(); ++index)
 			{
 				arguments.push_back(L"-I");
-				convert_texts.push_back(system_utility::convert_shift_jis_to_utf16(input_data.include_directries[index].data()));
+				convert_texts.push_back(core::convert_shift_jis_to_utf16(input_data.include_directries[index].data()));
 				arguments.push_back(convert_texts.back().data());
 			}
 
 			//	行列優先指定
 			//	ここで定義する事で、シェーダー側で row_major の設定をする必要がなくなる。
-			if (system_utility::is_bitflag(input_data.compile_flags, shader_compile_flags::pack_matrix_row_major))
+			if (core::is_bitflag(input_data.compile_flags, shader_compile_flags::pack_matrix_row_major))
 			{
 				//	デバッグ情報を埋め込む
 				arguments.push_back(DXC_ARG_PACK_MATRIX_ROW_MAJOR);
@@ -621,7 +621,7 @@ namespace
 
 			//	エントリーポイント
 			arguments.push_back(L"-E");
-			convert_texts.push_back(system_utility::convert_shift_jis_to_utf16(input_data.entry_point.data()));
+			convert_texts.push_back(core::convert_shift_jis_to_utf16(input_data.entry_point.data()));
 			arguments.push_back(convert_texts.back().data());
 
 			//	ファイルパス
@@ -666,7 +666,7 @@ namespace
 			output_data.include_files.clear();
 			for (auto& w : include_handler->List())
 			{
-				output_data.include_files.push_back(system_utility::convert_utf16_to_shift_jis(w));
+				output_data.include_files.push_back(core::convert_utf16_to_shift_jis(w));
 			}
 		}
 
@@ -856,14 +856,14 @@ bool shader_meta_data::serialize(std::string_view file_path)
 		}
 		catch (...)
 		{
-			DEBUG_LOG_CATEGORY(logger::categorys::shader, "shader_meta_data serialize failed[%s]", file_path.data());
+			DEBUG_LOG_CATEGORY(core::logger::categorys::shader, "shader_meta_data serialize failed[%s]", file_path.data());
 			return false;
 		}
 
-		DEBUG_LOG_CATEGORY(logger::categorys::shader, "shader_meta_data serialize successed[%s]", file_path.data());
+		DEBUG_LOG_CATEGORY(core::logger::categorys::shader, "shader_meta_data serialize successed[%s]", file_path.data());
 		return true;
 	}
-	DEBUG_LOG_CATEGORY(logger::categorys::shader, "shader_meta_data open failed[%s]", file_path.data());
+	DEBUG_LOG_CATEGORY(core::logger::categorys::shader, "shader_meta_data open failed[%s]", file_path.data());
 	return false;
 }
 
@@ -880,14 +880,14 @@ bool shader_meta_data::deserialize(std::string_view file_path)
 		}
 		catch (...)
 		{
-			DEBUG_LOG_CATEGORY(logger::categorys::shader, "shader_meta_data deserialize failed[%s]", file_path.data());
+			DEBUG_LOG_CATEGORY(core::logger::categorys::shader, "shader_meta_data deserialize failed[%s]", file_path.data());
 			return false;
 		}
 
-		DEBUG_LOG_CATEGORY(logger::categorys::shader, "shader_meta_data deserialize successed[%s]", file_path.data());
+		DEBUG_LOG_CATEGORY(core::logger::categorys::shader, "shader_meta_data deserialize successed[%s]", file_path.data());
 		return true;
 	}
-	DEBUG_LOG_CATEGORY(logger::categorys::shader, "shader_meta_data open failed[%s]", file_path.data());
+	DEBUG_LOG_CATEGORY(core::logger::categorys::shader, "shader_meta_data open failed[%s]", file_path.data());
 	return false;
 }
 
@@ -1080,7 +1080,7 @@ bool vertex_shader::load_from_cso(load_shader_cso cso_data)
 								+ std::string(cso_data.file_path)
 								+ std::string("]\n")
 								+ compile_data.error_message;
-	DEBUG_LOG_CATEGORY(logger::categorys::shader, text.data());
+	DEBUG_LOG_CATEGORY(core::logger::categorys::shader, text.data());
 #endif	//	defined(USE_IMGUI)
 
 	return true;
@@ -1144,7 +1144,7 @@ bool vertex_shader::load_from_file(load_shader_file file_data)
 								+ std::string(input_data.file_path)
 								+ std::string("]\n")
 								+ compile_data.error_message;
-	DEBUG_LOG_CATEGORY(logger::categorys::shader, text.data());
+	DEBUG_LOG_CATEGORY(core::logger::categorys::shader, text.data());
 #endif	//	defined(USE_IMGUI)
 
 	return true;
@@ -1202,7 +1202,7 @@ bool hull_shader::load_from_cso(load_shader_cso cso_data)
 								+ std::string(cso_data.file_path)
 								+ std::string("]\n")
 								+ compile_data.error_message;
-	DEBUG_LOG_CATEGORY(logger::categorys::shader, text.data());
+	DEBUG_LOG_CATEGORY(core::logger::categorys::shader, text.data());
 #endif	//	defined(USE_IMGUI)
 
 	return true;
@@ -1265,7 +1265,7 @@ bool hull_shader::load_from_file(load_shader_file file_data)
 								+ std::string(input_data.file_path)
 								+ std::string("]\n")
 								+ compile_data.error_message;
-	DEBUG_LOG_CATEGORY(logger::categorys::shader, text.data());
+	DEBUG_LOG_CATEGORY(core::logger::categorys::shader, text.data());
 #endif	//	defined(USE_IMGUI)
 
 	return true;
@@ -1322,7 +1322,7 @@ bool domain_shader::load_from_cso(load_shader_cso cso_data)
 								+ std::string(cso_data.file_path)
 								+ std::string("]\n")
 								+ compile_data.error_message;
-	DEBUG_LOG_CATEGORY(logger::categorys::shader, text.data());
+	DEBUG_LOG_CATEGORY(core::logger::categorys::shader, text.data());
 #endif	//	defined(USE_IMGUI)
 
 	return true;
@@ -1385,7 +1385,7 @@ bool domain_shader::load_from_file(load_shader_file file_data)
 								+ std::string(input_data.file_path)
 								+ std::string("]\n")
 								+ compile_data.error_message;
-	DEBUG_LOG_CATEGORY(logger::categorys::shader, text.data());
+	DEBUG_LOG_CATEGORY(core::logger::categorys::shader, text.data());
 #endif	//	defined(USE_IMGUI)
 
 	return true;
@@ -1442,7 +1442,7 @@ bool geometry_shader::load_from_cso(load_shader_cso cso_data)
 								+ std::string(cso_data.file_path)
 								+ std::string("]\n")
 								+ compile_data.error_message;
-	DEBUG_LOG_CATEGORY(logger::categorys::shader, text.data());
+	DEBUG_LOG_CATEGORY(core::logger::categorys::shader, text.data());
 #endif	//	defined(USE_IMGUI)
 
 	return true;
@@ -1505,7 +1505,7 @@ bool geometry_shader::load_from_file(load_shader_file file_data)
 								+ std::string(input_data.file_path)
 								+ std::string("]\n")
 								+ compile_data.error_message;
-	DEBUG_LOG_CATEGORY(logger::categorys::shader, text.data());
+	DEBUG_LOG_CATEGORY(core::logger::categorys::shader, text.data());
 #endif	//	defined(USE_IMGUI)
 
 	return true;
@@ -1585,7 +1585,7 @@ bool pixel_shader::load_from_cso(load_shader_cso cso_data)
 								+ std::string(cso_data.file_path)
 								+ std::string("]\n")
 								+ compile_data.error_message;
-	DEBUG_LOG_CATEGORY(logger::categorys::shader, text.data());
+	DEBUG_LOG_CATEGORY(core::logger::categorys::shader, text.data());
 #endif	//	defined(USE_IMGUI)
 
 	return true;
@@ -1648,7 +1648,7 @@ bool pixel_shader::load_from_file(load_shader_file file_data)
 		+ std::string(input_data.file_path)
 		+ std::string("]\n")
 		+ compile_data.error_message;
-	DEBUG_LOG_CATEGORY(logger::categorys::shader, text.data());
+	DEBUG_LOG_CATEGORY(core::logger::categorys::shader, text.data());
 #endif	//	defined(USE_IMGUI)
 
 	return true;
@@ -1706,7 +1706,7 @@ bool compute_shader::load_from_cso(load_shader_cso cso_data)
 								+ std::string(cso_data.file_path)
 								+ std::string("]\n")
 								+ compile_data.error_message;
-	DEBUG_LOG_CATEGORY(logger::categorys::shader, text.data());
+	DEBUG_LOG_CATEGORY(core::logger::categorys::shader, text.data());
 #endif	//	defined(USE_IMGUI)
 
 	return true;
@@ -1769,7 +1769,7 @@ bool compute_shader::load_from_file(load_shader_file file_data)
 								+ std::string(input_data.file_path)
 								+ std::string("]\n")
 								+ compile_data.error_message;
-	DEBUG_LOG_CATEGORY(logger::categorys::shader, text.data());
+	DEBUG_LOG_CATEGORY(core::logger::categorys::shader, text.data());
 #endif	//	defined(USE_IMGUI)
 
 	return true;

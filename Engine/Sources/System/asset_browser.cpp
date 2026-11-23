@@ -15,7 +15,7 @@
 #include "Resource/resource_manager.h"
 #include "Resource/asset_registry.h"
 #include "Resource/asset_file_header.h"
-#include "system/logger.h"
+#include "Core/logger.h"
 
 namespace
 {
@@ -41,15 +41,15 @@ namespace
 		return std::find_if(std::begin(list), std::end(list), [&](const auto& item) { return std::string_view(item) == value; }) != std::end(list);
 	}
 
-	std::filesystem::path to_filesystem_path(const cache_string& path)
+	std::filesystem::path to_filesystem_path(const core::cache_string& path)
 	{
-		return std::filesystem::path(path.get<utf16_cache>());
+		return std::filesystem::path(path.get<core::utf16_cache>());
 	}
 
 	//	名前順の比較（大文字・小文字は区別しない）
-	bool less_name(const cache_string& l, const cache_string& r)
+	bool less_name(const core::cache_string& l, const core::cache_string& r)
 	{
-		return l.get<lower_cache>() < r.get<lower_cache>();
+		return l.get<core::lower_cache>() < r.get<core::lower_cache>();
 	}
 
 	//	「/」区切りのパスの親フォルダ
@@ -65,9 +65,9 @@ namespace
 	}
 
 	//	UTF-8 で編集して Shift-JIS で持つ入力欄
-	bool input_text_utf8(const char* label, cache_string& value, ImGuiInputTextFlags flags)
+	bool input_text_utf8(const char* label, core::cache_string& value, ImGuiInputTextFlags flags)
 	{
-		std::string text = value.get<utf8_cache>();
+		std::string text = value.get<core::utf8_cache>();
 		const bool result = ImGui::InputText(label, text.data(), text.capacity() + 1, flags | ImGuiInputTextFlags_CallbackResize,
 			[](ImGuiInputTextCallbackData* data)
 			{
@@ -82,8 +82,8 @@ namespace
 
 		//	短くなった時は長さが戻らないので終端までに合わせる
 		text.resize(std::strlen(text.c_str()));
-		if (text != value.get<utf8_cache>())
-			value = system_utility::convert_utf8_to_shift_jis(text);
+		if (text != value.get<core::utf8_cache>())
+			value = core::convert_utf8_to_shift_jis(text);
 		return result;
 	}
 
@@ -130,9 +130,9 @@ namespace
 	}
 
 	//	ファイル名に使える名前か(区切り文字などファイル名に使えない文字は受け付けない)
-	bool is_valid_file_name(const cache_string& value)
+	bool is_valid_file_name(const core::cache_string& value)
 	{
-		const std::wstring& name = value.get<utf16_cache>();
+		const std::wstring& name = value.get<core::utf16_cache>();
 		return !(name.empty() || name == L"." || name == L".." ||
 			std::any_of(name.begin(), name.end(), [](wchar_t c) { return c < 0x20 || std::wstring_view(L"\\/:*?\"<>|").find(c) != std::wstring_view::npos; }));
 	}
@@ -160,20 +160,20 @@ void asset_browser::register_open_handler(open_handler handler)
 {
 	//	
 	for (auto& extension : handler.extensions)
-		extension = std::string(extension.get<lower_cache>());
+		extension = std::string(extension.get<core::lower_cache>());
 	handlers.emplace_back(std::move(handler));
 }
 
 void asset_browser::register_create_handler(create_handler handler)
 {
-	handler.extension = std::string(handler.extension.get<lower_cache>());
+	handler.extension = std::string(handler.extension.get<core::lower_cache>());
 	create_handlers.emplace_back(std::move(handler));
 }
 
 void asset_browser::register_convert_handler(convert_handler handler)
 {
 	for (auto& extension : handler.extensions)
-		extension = std::string(extension.get<lower_cache>());
+		extension = std::string(extension.get<core::lower_cache>());
 	convert_handlers.emplace_back(std::move(handler));
 }
 
@@ -190,14 +190,14 @@ void asset_browser::register_path_listener(path_listener listener)
 
 bool asset_browser::open_asset(const core::uuid& uuid)
 {
-	const cache_string file_path = asset_registry::is_valid() ? asset_registry::instance()->find_path(uuid) : std::string{};
+	const core::cache_string file_path = asset_registry::is_valid() ? asset_registry::instance()->find_path(uuid) : std::string{};
 	if (file_path.empty())
 	{
-		DEBUG_WARNING_CATEGORY(logger::categorys::system, "asset_browser asset not found[%s]", uuid.to_string().c_str());
+		DEBUG_WARNING_CATEGORY(core::logger::categorys::system, "asset_browser asset not found[%s]", uuid.to_string().c_str());
 		return false;
 	}
 
-	const auto handler = find_default_handler(file_path.get<extension_cache>());
+	const auto handler = find_default_handler(file_path.get<core::extension_cache>());
 	if (!handler)
 		return false;
 
@@ -205,7 +205,7 @@ bool asset_browser::open_asset(const core::uuid& uuid)
 	return true;
 }
 
-void asset_browser::request_open(const open_handler& handler, const cache_string& file_path)
+void asset_browser::request_open(const open_handler& handler, const core::cache_string& file_path)
 {
 	if (handler.open_file)
 		handler.open_file(file_path);
@@ -247,8 +247,8 @@ void asset_browser::build_directory_tree(directory_node& node)
 		if (!it->is_directory(type_error))
 			continue;
 
-		cache_string name(it->path().filename().native());
-		cache_string path = node.path.str() + "/" + name.str();
+		core::cache_string name(it->path().filename().native());
+		core::cache_string path = node.path.str() + "/" + name.str();
 
 		auto& child = node.children.emplace_back();
 		child.name = std::move(name);
@@ -265,7 +265,7 @@ void asset_browser::build_directory_tree(directory_node& node)
 		build_directory_tree(child);
 }
 
-void asset_browser::change_directory(const cache_string& path)
+void asset_browser::change_directory(const core::cache_string& path)
 {
 	if (path == current_directory)
 		return;
@@ -279,7 +279,7 @@ void asset_browser::go_back()
 {
 	while (!back_history.empty())
 	{
-		const cache_string path = std::move(back_history.back());
+		const core::cache_string path = std::move(back_history.back());
 		back_history.pop_back();
 
 		std::error_code error;
@@ -296,7 +296,7 @@ void asset_browser::go_forward()
 {
 	while (!forward_history.empty())
 	{
-		const cache_string path = std::move(forward_history.back());
+		const core::cache_string path = std::move(forward_history.back());
 		forward_history.pop_back();
 
 		std::error_code error;
@@ -309,7 +309,7 @@ void asset_browser::go_forward()
 	}
 }
 
-void asset_browser::apply_directory(const cache_string& path)
+void asset_browser::apply_directory(const core::cache_string& path)
 {
 	current_directory = path;
 	selected_path.clear();
@@ -355,7 +355,7 @@ void asset_browser::scan_entries()
 		target.is_directory = is_directory;
 		if (!is_directory)
 		{
-			target.extension = std::string(target.name.get<extension_cache>());
+			target.extension = std::string(target.name.get<core::extension_cache>());
 
 			std::error_code size_error;
 			target.file_size = it->file_size(size_error);
@@ -490,7 +490,7 @@ void asset_browser::imgui_render(bool& open)
 		if (convert_handler_index < convert_handlers.size() && convert_handlers[convert_handler_index].convert)
 		{
 			if (!convert_handlers[convert_handler_index].convert(convert_path))
-				DEBUG_ERROR_CATEGORY(logger::categorys::system, "asset_browser convert failed[%s]", std::string(convert_path.view()).c_str());
+				DEBUG_ERROR_CATEGORY(core::logger::categorys::system, "asset_browser convert failed[%s]", std::string(convert_path.view()).c_str());
 		}
 		pending_refresh = true;
 	}
@@ -540,7 +540,7 @@ void asset_browser::imgui_render_toolbar()
 			ImGui::SameLine();
 		}
 		ImGui::PushID(static_cast<int>(index));
-		if (ImGui::SmallButton(breadcrumbs[index].name.get<utf8_cache>().c_str()))
+		if (ImGui::SmallButton(breadcrumbs[index].name.get<core::utf8_cache>().c_str()))
 			pending_directory = breadcrumbs[index].path;
 		ImGui::PopID();
 	}
@@ -577,7 +577,7 @@ void asset_browser::imgui_render_directory_tree(const directory_node& node)
 	if (reveal_current_directory && is_ancestor(node.path.view(), current_directory.view()))
 		ImGui::SetNextItemOpen(true);
 
-	const bool opened = ImGui::TreeNodeEx(node.path.c_str(), flags, "%s", node.name.get<utf8_cache>().c_str());
+	const bool opened = ImGui::TreeNodeEx(node.path.c_str(), flags, "%s", node.name.get<core::utf8_cache>().c_str());
 	if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
 		pending_directory = node.path;
 	accept_move_drop(node.path);
@@ -595,7 +595,7 @@ void asset_browser::imgui_render_entries()
 	std::vector<entry*> visible_entries;
 	for (auto& target : entries)
 	{
-		if (filter.PassFilter(target.name.get<utf8_cache>().c_str()))
+		if (filter.PassFilter(target.name.get<core::utf8_cache>().c_str()))
 			visible_entries.emplace_back(&target);
 	}
 	if (visible_entries.empty())
@@ -669,7 +669,7 @@ void asset_browser::imgui_render_entry(entry& target, float cell_width, float ce
 	if (ImGui::BeginDragDropSource())
 	{
 		ImGui::SetDragDropPayload(move_payload_type, target.path.c_str(), target.path.str().size() + 1);
-		ImGui::TextUnformatted(target.name.get<utf8_cache>().c_str());
+		ImGui::TextUnformatted(target.name.get<core::utf8_cache>().c_str());
 		ImGui::EndDragDropSource();
 	}
 	if (target.is_directory)
@@ -677,7 +677,7 @@ void asset_browser::imgui_render_entry(entry& target, float cell_width, float ce
 
 	if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal) && ImGui::BeginTooltip())
 	{
-		ImGui::TextUnformatted(target.name.get<utf8_cache>().c_str());
+		ImGui::TextUnformatted(target.name.get<core::utf8_cache>().c_str());
 		if (!target.is_directory)
 		{
 			ImGui::TextDisabled("%s", format_size(target.file_size).c_str());
@@ -687,7 +687,7 @@ void asset_browser::imgui_render_entry(entry& target, float cell_width, float ce
 				ImGui::TextDisabled("%u x %u", desc.Width, desc.Height);
 			}
 			if (auto handler = find_default_handler(target.extension))
-				ImGui::TextDisabled("Double-click : %s", handler->label.get<utf8_cache>().c_str());
+				ImGui::TextDisabled("Double-click : %s", handler->label.get<core::utf8_cache>().c_str());
 		}
 		ImGui::EndTooltip();
 	}
@@ -736,7 +736,7 @@ void asset_browser::imgui_render_entry(entry& target, float cell_width, float ce
 			draw_list->AddRectFilled(icon_min, icon_max, extension_color(target.extension), size * 0.04f);
 
 			//	拡張子を大文字で真ん中に書く
-			const char* label = target.extension.empty() ? "FILE" : target.extension.get<upper_cache>().c_str() + 1;
+			const char* label = target.extension.empty() ? "FILE" : target.extension.get<core::upper_cache>().c_str() + 1;
 			const ImVec2 label_size = ImGui::CalcTextSize(label);
 			draw_list->AddText(
 				ImVec2((icon_min.x + icon_max.x - label_size.x) * 0.5f, (icon_min.y + icon_max.y - label_size.y) * 0.5f),
@@ -746,7 +746,7 @@ void asset_browser::imgui_render_entry(entry& target, float cell_width, float ce
 		//	名前は2行まで折り返して、はみ出た分は切る
 		const ImVec2 text_min(image_min.x, image_max.y + style.FramePadding.y);
 		const ImVec4 clip_rect(text_min.x, text_min.y, cell_max.x - style.FramePadding.x, cell_max.y);
-		draw_list->AddText(nullptr, 0.0f, text_min, ImGui::GetColorU32(ImGuiCol_Text), target.name.get<utf8_cache>().c_str(), nullptr, size, &clip_rect);
+		draw_list->AddText(nullptr, 0.0f, text_min, ImGui::GetColorU32(ImGuiCol_Text), target.name.get<core::utf8_cache>().c_str(), nullptr, size, &clip_rect);
 	}
 
 	ImGui::PopID();
@@ -776,7 +776,7 @@ void asset_browser::imgui_render_entry_context_menu(const entry& target)
 				continue;
 
 			found = true;
-			if (ImGui::MenuItem(handler.label.get<utf8_cache>().c_str()))
+			if (ImGui::MenuItem(handler.label.get<core::utf8_cache>().c_str()))
 				request_open(handler, target.path);
 		}
 		if (found)
@@ -790,7 +790,7 @@ void asset_browser::imgui_render_entry_context_menu(const entry& target)
 				continue;
 
 			found = true;
-			if (ImGui::MenuItem(convert_handlers[index].label.get<utf8_cache>().c_str()))
+			if (ImGui::MenuItem(convert_handlers[index].label.get<core::utf8_cache>().c_str()))
 			{
 				convert_path = target.path;
 				convert_handler_index = index;
@@ -821,20 +821,20 @@ void asset_browser::imgui_render_entry_context_menu(const entry& target)
 		//	確認の前に削除できるかを調べておく
 		delete_path = target.path;
 		delete_reasons.clear();
-		for (const cache_string& file_path : collect_delete_files(target.path))
+		for (const core::cache_string& file_path : collect_delete_files(target.path))
 		{
 			for (auto& validator : delete_validators)
 			{
 				std::string reason;
 				if (!validator(file_path.view(), reason))
-					delete_reasons.emplace_back(file_path.get<utf8_cache>() + " : " + reason);
+					delete_reasons.emplace_back(file_path.get<core::utf8_cache>() + " : " + reason);
 			}
 		}
 		open_delete_popup = true;
 	}
 
 	if (ImGui::MenuItem("Copy Path"))
-		ImGui::SetClipboardText(target.path.get<utf8_cache>().c_str());
+		ImGui::SetClipboardText(target.path.get<core::utf8_cache>().c_str());
 
 	if (ImGui::MenuItem("Show in Explorer"))
 	{
@@ -887,7 +887,7 @@ void asset_browser::imgui_render_rename_popup()
 	ImGui::EndPopup();
 }
 
-void asset_browser::imgui_render_create_menu(const cache_string& directory)
+void asset_browser::imgui_render_create_menu(const core::cache_string& directory)
 {
 	if (!ImGui::BeginMenu("Create"))
 		return;
@@ -906,7 +906,7 @@ void asset_browser::imgui_render_create_menu(const cache_string& directory)
 	for (std::size_t index = 0; index < create_handlers.size(); ++index)
 	{
 		const create_handler& handler = create_handlers[index];
-		if (ImGui::MenuItem(handler.label.get<utf8_cache>().c_str()))
+		if (ImGui::MenuItem(handler.label.get<core::utf8_cache>().c_str()))
 		{
 			create_directory = directory;
 			create_name = handler.default_name;
@@ -931,20 +931,20 @@ void asset_browser::imgui_render_create_popup()
 		return;
 
 	const bool is_folder = create_handler_index == folder_handler_index;
-	const cache_string& label = is_folder ? cache_string("Folder") : create_handlers[create_handler_index].label;
-	const cache_string& extension = is_folder ? cache_string() : create_handlers[create_handler_index].extension;
-	ImGui::TextUnformatted(label.get<utf8_cache>().c_str());
-	ImGui::TextDisabled("%s", create_directory.get<utf8_cache>().c_str());
+	const core::cache_string& label = is_folder ? core::cache_string("Folder") : create_handlers[create_handler_index].label;
+	const core::cache_string& extension = is_folder ? core::cache_string() : create_handlers[create_handler_index].extension;
+	ImGui::TextUnformatted(label.get<core::utf8_cache>().c_str());
+	ImGui::TextDisabled("%s", create_directory.get<core::utf8_cache>().c_str());
 
 	if (ImGui::IsWindowAppearing())
 		ImGui::SetKeyboardFocusHere();
 	ImGui::SetNextItemWidth(320.0f);
 	bool accepted = input_text_utf8("##name", create_name, ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_AutoSelectAll);
 	ImGui::SameLine();
-	ImGui::TextUnformatted(extension.get<utf8_cache>().c_str());
+	ImGui::TextUnformatted(extension.get<core::utf8_cache>().c_str());
 
 	//	同じ名前のファイルがあれば作らない
-	const cache_string file_path = create_directory.str() + "/" + create_name.str() + extension.str();
+	const core::cache_string file_path = create_directory.str() + "/" + create_name.str() + extension.str();
 	std::error_code error;
 	const bool exists = std::filesystem::exists(to_filesystem_path(file_path), error);
 	if (create_invalid)
@@ -984,7 +984,7 @@ void asset_browser::imgui_render_delete_popup()
 	if (!ImGui::BeginPopupModal(popup_name, nullptr, ImGuiWindowFlags_AlwaysAutoResize))
 		return;
 
-	ImGui::TextUnformatted(delete_path.get<utf8_cache>().c_str());
+	ImGui::TextUnformatted(delete_path.get<core::utf8_cache>().c_str());
 	if (delete_reasons.empty())
 	{
 		ImGui::TextUnformatted("Move to the Recycle Bin?");
@@ -1030,14 +1030,14 @@ void asset_browser::imgui_render_convert_popup()
 	}
 	const convert_handler& handler = convert_handlers[convert_handler_index];
 
-	ImGui::TextUnformatted(handler.label.get<utf8_cache>().c_str());
-	ImGui::TextDisabled("source : %s", convert_path.get<utf8_cache>().c_str());
+	ImGui::TextUnformatted(handler.label.get<core::utf8_cache>().c_str());
+	ImGui::TextDisabled("source : %s", convert_path.get<core::utf8_cache>().c_str());
 
 	//	変換先が既にあれば上書きになることを告知
 	if (handler.output_path)
 	{
-		const cache_string output_path = handler.output_path(convert_path);
-		ImGui::TextDisabled("output : %s", output_path.get<utf8_cache>().c_str());
+		const core::cache_string output_path = handler.output_path(convert_path);
+		ImGui::TextDisabled("output : %s", output_path.get<core::utf8_cache>().c_str());
 		std::error_code error;
 		if (std::filesystem::exists(to_filesystem_path(output_path), error))
 			ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.3f, 1.0f), "Output already exists. It will be overwritten (UUID is kept).");
@@ -1060,20 +1060,20 @@ void asset_browser::imgui_render_convert_popup()
 	ImGui::EndPopup();
 }
 
-void asset_browser::accept_move_drop(const cache_string& directory)
+void asset_browser::accept_move_drop(const core::cache_string& directory)
 {
 	if (!ImGui::BeginDragDropTarget())
 		return;
 
 	if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(move_payload_type))
 	{
-		const cache_string source_path(static_cast<const char*>(payload->Data));
+		const core::cache_string source_path(static_cast<const char*>(payload->Data));
 		pending_move = move_request{ source_path, directory.str() + "/" + std::string(file_name(source_path.view())) };
 	}
 	ImGui::EndDragDropTarget();
 }
 
-bool asset_browser::move_entry(const cache_string& source_path, const cache_string& destination_path)
+bool asset_browser::move_entry(const core::cache_string& source_path, const core::cache_string& destination_path)
 {
 	if (resource_manager::make_path_key(source_path) == resource_manager::make_path_key(destination_path))
 		return false;
@@ -1082,7 +1082,7 @@ bool asset_browser::move_entry(const cache_string& source_path, const cache_stri
 	std::string unused;
 	if (resource_manager::replace_base_path(destination_path, source_path, source_path, unused))
 	{
-		DEBUG_WARNING_CATEGORY(logger::categorys::system, "asset_browser cannot move into itself[%s] -> [%s]", source_path.c_str(), destination_path.c_str());
+		DEBUG_WARNING_CATEGORY(core::logger::categorys::system, "asset_browser cannot move into itself[%s] -> [%s]", source_path.c_str(), destination_path.c_str());
 		return false;
 	}
 
@@ -1091,14 +1091,14 @@ bool asset_browser::move_entry(const cache_string& source_path, const cache_stri
 	std::error_code error;
 	if (std::filesystem::exists(destination, error))
 	{
-		DEBUG_WARNING_CATEGORY(logger::categorys::system, "asset_browser destination already exists[%s]", destination_path.c_str());
+		DEBUG_WARNING_CATEGORY(core::logger::categorys::system, "asset_browser destination already exists[%s]", destination_path.c_str());
 		return false;
 	}
 
 	std::filesystem::rename(source, destination, error);
 	if (error)
 	{
-		DEBUG_ERROR_CATEGORY(logger::categorys::system, "asset_browser move failed[%s] -> [%s] %s", source_path.c_str(), destination_path.c_str(), error.message().c_str());
+		DEBUG_ERROR_CATEGORY(core::logger::categorys::system, "asset_browser move failed[%s] -> [%s] %s", source_path.c_str(), destination_path.c_str(), error.message().c_str());
 		return false;
 	}
 
@@ -1113,7 +1113,7 @@ bool asset_browser::move_entry(const cache_string& source_path, const cache_stri
 			listener.moved(source_path.view(), destination_path.view());
 	}
 
-	DEBUG_LOG_CATEGORY(logger::categorys::system, "asset_browser moved[%s] -> [%s]", source_path.c_str(), destination_path.c_str());
+	DEBUG_LOG_CATEGORY(core::logger::categorys::system, "asset_browser moved[%s] -> [%s]", source_path.c_str(), destination_path.c_str());
 
 	if (resource_manager::make_path_key(selected_path.view()) == resource_manager::make_path_key(source_path))
 		selected_path = destination_path;
@@ -1130,7 +1130,7 @@ bool asset_browser::create_entry(const create_request& request)
 	std::error_code error;
 	if (std::filesystem::exists(to_filesystem_path(request.file_path), error))
 	{
-		DEBUG_WARNING_CATEGORY(logger::categorys::system, "asset_browser create target already exists[%s]", request.file_path.c_str());
+		DEBUG_WARNING_CATEGORY(core::logger::categorys::system, "asset_browser create target already exists[%s]", request.file_path.c_str());
 		return false;
 	}
 
@@ -1139,17 +1139,17 @@ bool asset_browser::create_entry(const create_request& request)
 		: create_handlers[request.handler_index].create(request.file_path.view());
 	if (!created)
 	{
-		DEBUG_ERROR_CATEGORY(logger::categorys::system, "asset_browser create failed[%s]", request.file_path.c_str());
+		DEBUG_ERROR_CATEGORY(core::logger::categorys::system, "asset_browser create failed[%s]", request.file_path.c_str());
 		return false;
 	}
 
-	DEBUG_LOG_CATEGORY(logger::categorys::system, "asset_browser created[%s]", request.file_path.c_str());
+	DEBUG_LOG_CATEGORY(core::logger::categorys::system, "asset_browser created[%s]", request.file_path.c_str());
 	selected_path = request.file_path;
 	pending_refresh = true;
 	return true;
 }
 
-bool asset_browser::duplicate_entry(const cache_string& source_path)
+bool asset_browser::duplicate_entry(const core::cache_string& source_path)
 {
 	const std::string_view name = file_name(source_path.view());
 	const std::size_t dot = name.rfind('.');
@@ -1163,11 +1163,11 @@ bool asset_browser::duplicate_entry(const cache_string& source_path)
 
 	//	「名前_番号」で空いている名前を探す
 	const std::string base_path = std::string(parent_path(source_path.view())) + "/" + std::string(name.substr(0, dot)) + "_";
-	cache_string destination_path;
+	core::cache_string destination_path;
 	std::error_code error;
 	for (int number = 1; destination_path.empty(); ++number)
 	{
-		cache_string candidate = base_path + std::to_string(number) + std::string(extension);
+		core::cache_string candidate = base_path + std::to_string(number) + std::string(extension);
 		if (!std::filesystem::exists(to_filesystem_path(candidate), error))
 			destination_path = std::move(candidate);
 	}
@@ -1176,7 +1176,7 @@ bool asset_browser::duplicate_entry(const cache_string& source_path)
 	std::filesystem::copy_file(to_filesystem_path(source_path), destination, error);
 	if (error)
 	{
-		DEBUG_ERROR_CATEGORY(logger::categorys::system, "asset_browser duplicate failed[%s] -> [%s] %s", source_path.c_str(), destination_path.c_str(), error.message().c_str());
+		DEBUG_ERROR_CATEGORY(core::logger::categorys::system, "asset_browser duplicate failed[%s] -> [%s] %s", source_path.c_str(), destination_path.c_str(), error.message().c_str());
 		return false;
 	}
 
@@ -1184,22 +1184,22 @@ bool asset_browser::duplicate_entry(const cache_string& source_path)
 	const core::uuid uuid = core::uuid::generate();
 	if (!resource::rewrite_asset_header_uuid(destination, uuid))
 	{
-		DEBUG_ERROR_CATEGORY(logger::categorys::system, "asset_browser duplicate header rewrite failed[%s]", destination_path.c_str());
+		DEBUG_ERROR_CATEGORY(core::logger::categorys::system, "asset_browser duplicate header rewrite failed[%s]", destination_path.c_str());
 		std::filesystem::remove(destination, error);
 		return false;
 	}
 	if (asset_registry::is_valid())
 		asset_registry::instance()->register_asset(uuid, type, destination_path.view());
 
-	DEBUG_LOG_CATEGORY(logger::categorys::system, "asset_browser duplicated[%s] -> [%s]", source_path.c_str(), destination_path.c_str());
+	DEBUG_LOG_CATEGORY(core::logger::categorys::system, "asset_browser duplicated[%s] -> [%s]", source_path.c_str(), destination_path.c_str());
 	selected_path = destination_path;
 	pending_refresh = true;
 	return true;
 }
 
-std::vector<cache_string> asset_browser::collect_delete_files(const cache_string& path) const
+std::vector<core::cache_string> asset_browser::collect_delete_files(const core::cache_string& path) const
 {
-	std::vector<cache_string> files;
+	std::vector<core::cache_string> files;
 	const std::filesystem::path base = to_filesystem_path(path);
 	std::error_code error;
 	if (!std::filesystem::is_directory(base, error))
@@ -1215,15 +1215,15 @@ std::vector<cache_string> asset_browser::collect_delete_files(const cache_string
 		if (!it->is_regular_file(type_error))
 			continue;
 
-		const cache_string relative(it->path().lexically_relative(base).generic_wstring());
+		const core::cache_string relative(it->path().lexically_relative(base).generic_wstring());
 		files.emplace_back(path.str() + "/" + relative.str());
 	}
 	return files;
 }
 
-bool asset_browser::delete_entry(const cache_string& path)
+bool asset_browser::delete_entry(const core::cache_string& path)
 {
-	const std::vector<cache_string> files = collect_delete_files(path);
+	const std::vector<core::cache_string> files = collect_delete_files(path);
 
 	//	ごみ箱へ移す
 	std::error_code error;
@@ -1236,14 +1236,14 @@ bool asset_browser::delete_entry(const cache_string& path)
 	operation.fFlags = FOF_ALLOWUNDO | FOF_NOCONFIRMATION | FOF_SILENT | FOF_NOERRORUI;
 	if (SHFileOperationW(&operation) != 0 || operation.fAnyOperationsAborted)
 	{
-		DEBUG_ERROR_CATEGORY(logger::categorys::system, "asset_browser delete failed[%s]", path.c_str());
+		DEBUG_ERROR_CATEGORY(core::logger::categorys::system, "asset_browser delete failed[%s]", path.c_str());
 		pending_refresh = true;
 		return false;
 	}
 
 	if (asset_registry::is_valid())
 	{
-		for (const cache_string& file_path : files)
+		for (const core::cache_string& file_path : files)
 			asset_registry::instance()->unregister_path(file_path.view());
 	}
 	for (auto& listener : path_listeners)
@@ -1252,7 +1252,7 @@ bool asset_browser::delete_entry(const cache_string& path)
 			listener.deleted(path.view());
 	}
 
-	DEBUG_LOG_CATEGORY(logger::categorys::system, "asset_browser deleted[%s]", path.c_str());
+	DEBUG_LOG_CATEGORY(core::logger::categorys::system, "asset_browser deleted[%s]", path.c_str());
 	selected_path.clear();
 	pending_refresh = true;
 	return true;

@@ -26,7 +26,7 @@ timer_controller_object::~timer_controller_object()
 
 void timer_controller_object::set_time(float time)
 {
-	text->set_texts(system_utility::to_display_time_string(time));
+	text->set_texts(core::to_display_time_string(time));
 }
 
 void timer_controller_object::set_alpha(float alpha)

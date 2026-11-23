@@ -46,12 +46,12 @@ namespace
 	//	ファイルパスを ImGui 表示用の UTF-8 にする
 	std::string to_display(std::string_view text)
 	{
-		return system_utility::convert_utf8(text);
+		return core::convert_utf8(text);
 	}
 
 	bool has_extension(const std::string& file_path, std::string_view extension)
 	{
-		return system_utility::to_lower(std::filesystem::path(file_path).extension().string()) == extension;
+		return core::to_lower(std::filesystem::path(file_path).extension().string()) == extension;
 	}
 
 	//	編集用の複製を作る
@@ -324,7 +324,7 @@ void edit_material_system::collect_materials()
 
 	if (source_material)
 	{
-		materials.push_back({ system_utility::convert_utf8(source_material->get_name()), make_working_copy(source_material), source_material });
+		materials.push_back({ core::convert_utf8(source_material->get_name()), make_working_copy(source_material), source_material });
 		return;
 	}
 
@@ -341,7 +341,7 @@ void edit_material_system::collect_materials()
 			auto& material = resource_materials[index];
 			if (!material)
 				continue;
-			materials.push_back({ "preview [" + std::to_string(index) + "] " + system_utility::convert_utf8(material->get_name()), make_working_copy(material), material });
+			materials.push_back({ "preview [" + std::to_string(index) + "] " + core::convert_utf8(material->get_name()), make_working_copy(material), material });
 		}
 		return;
 	}
@@ -354,7 +354,7 @@ void edit_material_system::collect_materials()
 			auto& material = resource_materials[index];
 			if (!material)
 				continue;
-			materials.push_back({ "[" + std::to_string(index) + "] " + system_utility::convert_utf8(material->get_name()), make_working_copy(material), material });
+			materials.push_back({ "[" + std::to_string(index) + "] " + core::convert_utf8(material->get_name()), make_working_copy(material), material });
 		}
 	}
 
@@ -366,7 +366,7 @@ void edit_material_system::collect_materials()
 			auto& material = decals[index].material;
 			if (!material)
 				continue;
-			materials.push_back({ "decal[" + std::to_string(index) + "] " + system_utility::convert_utf8(material->get_name()), make_working_copy(material), material });
+			materials.push_back({ "decal[" + std::to_string(index) + "] " + core::convert_utf8(material->get_name()), make_working_copy(material), material });
 		}
 
 		auto& particles = source_effect->get_particles_for_editor();
@@ -375,7 +375,7 @@ void edit_material_system::collect_materials()
 			auto* renderer = particles[index].particle.get_item<::particle::item::renderer>();
 			if (!renderer || !renderer->material)
 				continue;
-			materials.push_back({ "particle[" + std::to_string(index) + "] " + system_utility::convert_utf8(renderer->material->get_name()), make_working_copy(renderer->material), renderer->material });
+			materials.push_back({ "particle[" + std::to_string(index) + "] " + core::convert_utf8(renderer->material->get_name()), make_working_copy(renderer->material), renderer->material });
 		}
 	}
 }

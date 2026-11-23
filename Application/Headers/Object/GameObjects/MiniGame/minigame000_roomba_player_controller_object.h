@@ -1,7 +1,7 @@
 #pragma once
 
 #include "object/game_object.h"
-#include "System/signals.h"
+#include "Core/signals.h"
 #include "Input/input_action.h"
 
 #include "minigame000_roomba_input_source.h"
@@ -56,6 +56,6 @@ namespace minigame000
 		bool brake_pressed;
 		float move_x;
 		float move_y;
-		signals::connection_list connections;	//	購読リスト
+		core::signals::connection_list connections;	//	購読リスト
 	};
 }	//	namespace minigame000

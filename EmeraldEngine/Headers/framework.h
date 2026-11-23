@@ -81,5 +81,5 @@ private:
 #endif	//	defined(USE_IMGUI)
 
 private:	//	‚»‚Ì‘¼
-	high_resolution_timer tictoc;
+	core::high_resolution_timer tictoc;
 };

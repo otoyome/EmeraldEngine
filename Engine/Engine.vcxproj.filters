@@ -549,14 +549,14 @@
     <ClInclude Include="Headers\System\behavior_tree.h">
       <Filter>Headers\System</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\System\cache_string.h">
-      <Filter>Headers\System</Filter>
+    <ClInclude Include="Headers\Core\cache_string.h">
+      <Filter>Headers\Core</Filter>
     </ClInclude>
     <ClInclude Include="Headers\System\console_manager.h">
       <Filter>Headers\System</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\System\cpu_timer.h">
-      <Filter>Headers\System</Filter>
+    <ClInclude Include="Headers\Core\cpu_timer.h">
+      <Filter>Headers\Core</Filter>
     </ClInclude>
     <ClInclude Include="Headers\System\editor_config_data.h">
       <Filter>Headers\System</Filter>
@@ -570,29 +570,29 @@
     <ClInclude Include="Headers\System\finite_state_machine.h">
       <Filter>Headers\System</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\System\fixed_size_pool.h">
-      <Filter>Headers\System</Filter>
+    <ClInclude Include="Headers\Core\fixed_size_pool.h">
+      <Filter>Headers\Core</Filter>
     </ClInclude>
     <ClInclude Include="Headers\System\game_config_data.h">
       <Filter>Headers\System</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\System\high_resolution_timer.h">
-      <Filter>Headers\System</Filter>
+    <ClInclude Include="Headers\Core\high_resolution_timer.h">
+      <Filter>Headers\Core</Filter>
     </ClInclude>
     <ClInclude Include="Headers\System\imgui_texture_keeper.h">
       <Filter>Headers\System</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\System\logger.h">
-      <Filter>Headers\System</Filter>
+    <ClInclude Include="Headers\Core\logger.h">
+      <Filter>Headers\Core</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\System\memory_allocator.h">
-      <Filter>Headers\System</Filter>
+    <ClInclude Include="Headers\Core\memory_allocator.h">
+      <Filter>Headers\Core</Filter>
     </ClInclude>
     <ClInclude Include="Headers\System\misc.h">
       <Filter>Headers\System</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\System\parallel_for_executor.h">
-      <Filter>Headers\System</Filter>
+    <ClInclude Include="Headers\Core\parallel_for_executor.h">
+      <Filter>Headers\Core</Filter>
     </ClInclude>
     <ClInclude Include="Headers\System\project_path.h">
       <Filter>Headers\System</Filter>
@@ -600,8 +600,8 @@
     <ClInclude Include="Headers\System\engine_asset_path.h">
       <Filter>Headers\System</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\System\signals.h">
-      <Filter>Headers\System</Filter>
+    <ClInclude Include="Headers\Core\signals.h">
+      <Filter>Headers\Core</Filter>
     </ClInclude>
     <ClInclude Include="Headers\System\simple_helper.h">
       <Filter>Headers\System</Filter>
@@ -612,8 +612,20 @@
     <ClInclude Include="Headers\System\system_units.h">
       <Filter>Headers\System</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\System\system_utility.h">
-      <Filter>Headers\System</Filter>
+    <ClInclude Include="Headers\Core\charset.h">
+      <Filter>Headers\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Core\string_utility.h">
+      <Filter>Headers\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Core\path_utility.h">
+      <Filter>Headers\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Core\bit_flag.h">
+      <Filter>Headers\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Core\container_utility.h">
+      <Filter>Headers\Core</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Core\uuid.h">
       <Filter>Headers\Core</Filter>
@@ -621,11 +633,11 @@
     <ClInclude Include="Headers\Core\hash.h">
       <Filter>Headers\Core</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\System\shared_block_allocator.h">
-      <Filter>Headers\System</Filter>
+    <ClInclude Include="Headers\Core\shared_block_allocator.h">
+      <Filter>Headers\Core</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\System\variable_position_allocator.h">
-      <Filter>Headers\System</Filter>
+    <ClInclude Include="Headers\Core\variable_position_allocator.h">
+      <Filter>Headers\Core</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Texture\texture.h">
       <Filter>Headers\Texture</Filter>
@@ -902,14 +914,14 @@
     <ClCompile Include="Sources\System\behavior_tree.cpp">
       <Filter>Sources\System</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\System\cache_string.cpp">
-      <Filter>Sources\System</Filter>
+    <ClCompile Include="Sources\Core\cache_string.cpp">
+      <Filter>Sources\Core</Filter>
     </ClCompile>
     <ClCompile Include="Sources\System\console_manager.cpp">
       <Filter>Sources\System</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\System\cpu_timer.cpp">
-      <Filter>Sources\System</Filter>
+    <ClCompile Include="Sources\Core\cpu_timer.cpp">
+      <Filter>Sources\Core</Filter>
     </ClCompile>
     <ClCompile Include="Sources\System\editor_config_data.cpp">
       <Filter>Sources\System</Filter>
@@ -920,8 +932,8 @@
     <ClCompile Include="Sources\System\finite_state_machine.cpp">
       <Filter>Sources\System</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\System\fixed_size_pool.cpp">
-      <Filter>Sources\System</Filter>
+    <ClCompile Include="Sources\Core\fixed_size_pool.cpp">
+      <Filter>Sources\Core</Filter>
     </ClCompile>
     <ClCompile Include="Sources\System\game_config_data.cpp">
       <Filter>Sources\System</Filter>
@@ -929,17 +941,17 @@
     <ClCompile Include="Sources\System\imgui_texture_keeper.cpp">
       <Filter>Sources\System</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\System\logger.cpp">
-      <Filter>Sources\System</Filter>
+    <ClCompile Include="Sources\Core\logger.cpp">
+      <Filter>Sources\Core</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\System\memory_allocator.cpp">
-      <Filter>Sources\System</Filter>
+    <ClCompile Include="Sources\Core\memory_allocator.cpp">
+      <Filter>Sources\Core</Filter>
     </ClCompile>
     <ClCompile Include="Sources\System\project_path.cpp">
       <Filter>Sources\System</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\System\signals.cpp">
-      <Filter>Sources\System</Filter>
+    <ClCompile Include="Sources\Core\signals.cpp">
+      <Filter>Sources\Core</Filter>
     </ClCompile>
     <ClCompile Include="Sources\System\simple_helper.cpp">
       <Filter>Sources\System</Filter>
@@ -947,14 +959,20 @@
     <ClCompile Include="Sources\System\system_units.cpp">
       <Filter>Sources\System</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\System\system_utility.cpp">
-      <Filter>Sources\System</Filter>
+    <ClCompile Include="Sources\Core\charset.cpp">
+      <Filter>Sources\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Core\string_utility.cpp">
+      <Filter>Sources\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Sources\Core\path_utility.cpp">
+      <Filter>Sources\Core</Filter>
     </ClCompile>
     <ClCompile Include="Sources\Core\uuid.cpp">
       <Filter>Sources\Core</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\System\variable_position_allocator.cpp">
-      <Filter>Sources\System</Filter>
+    <ClCompile Include="Sources\Core\variable_position_allocator.cpp">
+      <Filter>Sources\Core</Filter>
     </ClCompile>
     <ClCompile Include="Sources\Texture\texture.cpp">
       <Filter>Sources\Texture</Filter>

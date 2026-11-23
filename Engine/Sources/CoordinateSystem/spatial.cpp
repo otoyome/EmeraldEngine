@@ -32,12 +32,12 @@ spatial::~spatial()
 
 bool spatial::is_flag(flags flag) const
 {
-	return system_utility::is_bitflag(system_flags, 1 << static_cast<int>(flag));
+	return core::is_bitflag(system_flags, 1 << static_cast<int>(flag));
 }
 
 void spatial::set_flag(flags flag, bool value)
 {
-	system_utility::set_bitflag(system_flags, 1 << static_cast<int>(flag), value);
+	core::set_bitflag(system_flags, 1 << static_cast<int>(flag), value);
 }
 
 const math::transformd& spatial::get_local() const
@@ -260,7 +260,7 @@ void spatial::update_world() const
 	const std::shared_ptr<spatial> parent = get_parent();
 	world = parent ? local * parent->get_world() : local;
 
-	system_utility::set_bitflag(system_flags, 1 << static_cast<int>(flags::dirty), false);
+	core::set_bitflag(system_flags, 1 << static_cast<int>(flags::dirty), false);
 }
 
 template<class Archive>

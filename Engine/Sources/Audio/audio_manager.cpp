@@ -1,8 +1,7 @@
 #include "Audio/audio_manager.h"
 
 #include "System/console_manager.h"
-#include "System/logger.h"
-#include "System/system_utility.h"
+#include "Core/logger.h"
 
 #include <algorithm>
 #include <array>
@@ -113,7 +112,7 @@ audio_manager::audio_manager()
 	ma_result result = ma_engine_init(&config, &impl->engine);
 	if (result != MA_SUCCESS)
 	{
-		DEBUG_WARNING_CATEGORY(logger::categorys::system, "Audio Engine Init Failed[%s]", ma_result_description(result));
+		DEBUG_WARNING_CATEGORY(core::logger::categorys::system, "Audio Engine Init Failed[%s]", ma_result_description(result));
 		return;
 	}
 
@@ -122,7 +121,7 @@ audio_manager::audio_manager()
 		result = ma_sound_group_init(&impl->engine, 0, nullptr, &impl->groups[i]);
 		if (result != MA_SUCCESS)
 		{
-			DEBUG_WARNING_CATEGORY(logger::categorys::system, "Audio Group Init Failed[%s]", ma_result_description(result));
+			DEBUG_WARNING_CATEGORY(core::logger::categorys::system, "Audio Group Init Failed[%s]", ma_result_description(result));
 			for (size_t j = 0; j < i; ++j)
 				ma_sound_group_uninit(&impl->groups[j]);
 			ma_engine_uninit(&impl->engine);
@@ -138,7 +137,7 @@ audio_manager::audio_manager()
 
 	apply_volumes();
 
-	DEBUG_LOG_CATEGORY(logger::categorys::system, "Audio Engine Initialized[%u Hz, %u ch]", ma_engine_get_sample_rate(&impl->engine), ma_engine_get_channels(&impl->engine));
+	DEBUG_LOG_CATEGORY(core::logger::categorys::system, "Audio Engine Initialized[%u Hz, %u ch]", ma_engine_get_sample_rate(&impl->engine), ma_engine_get_channels(&impl->engine));
 }
 
 audio_manager::~audio_manager()
@@ -410,7 +409,7 @@ audio::sound_handle audio_manager::allocate_voice(std::string_view file_path, co
 
 	if (free_indices.empty())
 	{
-		DEBUG_WARNING_CATEGORY(logger::categorys::system, "Audio Voice Limit[%s]", std::string(file_path).c_str());
+		DEBUG_WARNING_CATEGORY(core::logger::categorys::system, "Audio Voice Limit[%s]", std::string(file_path).c_str());
 		return {};
 	}
 
@@ -506,7 +505,7 @@ void audio_manager::execute_command(command& item)
 		case command::types::release:
 		{
 			//	再生中の音は miniaudio 側の参照で残るので、鳴り終わるまで使える
-			const std::wstring path = system_utility::convert_utf16(item.file_path);
+			const std::wstring path = core::convert_utf16(item.file_path);
 			if (cached_files.erase(path) > 0)
 				ma_resource_manager_unregister_file_w(ma_engine_get_resource_manager(&impl->engine), path.c_str());
 			break;
@@ -521,7 +520,7 @@ void audio_manager::execute_play(command& item)
 	const std::string& file_path = item.file_path;
 	const audio::play_parameters& parameters = item.parameters;
 	const size_t bus_index = static_cast<size_t>(parameters.target_bus);
-	const std::wstring path = system_utility::convert_utf16(file_path);
+	const std::wstring path = core::convert_utf16(file_path);
 
 	//	生成に失敗したら枠を返す
 	auto fail = [this, &item]()
@@ -553,7 +552,7 @@ void audio_manager::execute_play(command& item)
 	ma_result result = ma_sound_init_from_file_w(&impl->engine, path.c_str(), flags, &impl->groups[bus_index], nullptr, sound.get());
 	if (result != MA_SUCCESS)
 	{
-		DEBUG_WARNING_CATEGORY(logger::categorys::system, "Audio Load Failed[%s][%s]", file_path.c_str(), ma_result_description(result));
+		DEBUG_WARNING_CATEGORY(core::logger::categorys::system, "Audio Load Failed[%s][%s]", file_path.c_str(), ma_result_description(result));
 		fail();
 		return;
 	}
@@ -567,7 +566,7 @@ void audio_manager::execute_play(command& item)
 	result = ma_sound_start(sound.get());
 	if (result != MA_SUCCESS)
 	{
-		DEBUG_WARNING_CATEGORY(logger::categorys::system, "Audio Start Failed[%s][%s]", file_path.c_str(), ma_result_description(result));
+		DEBUG_WARNING_CATEGORY(core::logger::categorys::system, "Audio Start Failed[%s][%s]", file_path.c_str(), ma_result_description(result));
 		ma_sound_uninit(sound.get());
 		fail();
 		return;
@@ -582,14 +581,14 @@ void audio_manager::execute_play(command& item)
 
 bool audio_manager::cache_file(const std::string& file_path)
 {
-	const std::wstring path = system_utility::convert_utf16(file_path);
+	const std::wstring path = core::convert_utf16(file_path);
 	if (cached_files.contains(path))
 		return true;
 
 	ma_result result = ma_resource_manager_register_file_w(ma_engine_get_resource_manager(&impl->engine), path.c_str(), MA_RESOURCE_MANAGER_DATA_SOURCE_FLAG_DECODE);
 	if (result != MA_SUCCESS)
 	{
-		DEBUG_WARNING_CATEGORY(logger::categorys::system, "Audio Load Failed[%s][%s]", file_path.c_str(), ma_result_description(result));
+		DEBUG_WARNING_CATEGORY(core::logger::categorys::system, "Audio Load Failed[%s][%s]", file_path.c_str(), ma_result_description(result));
 		return false;
 	}
 	cached_files.insert(path);

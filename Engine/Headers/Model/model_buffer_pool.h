@@ -8,7 +8,7 @@
 
 #include "Graphics/Core/buffer_view.h"
 #include "Graphics/Pipeline/common_pipeline_states.h"
-#include "System/variable_position_allocator.h"
+#include "Core/variable_position_allocator.h"
 
 //	GPUバッファの実体とアップロードキューだけを持つクラス
 class model_gpu_buffer
@@ -54,7 +54,7 @@ class model_buffer_pool_manager
 	struct vertex_pool
 	{
 		std::unique_ptr<model_gpu_buffer> buffer;
-		variable_position_allocator allocator;
+		core::variable_position_allocator allocator;
 		UINT capacity = 0;
 	};
 
@@ -110,12 +110,12 @@ private:
 	std::unordered_map<semantic, vertex_pool> vertex_buffers;
 
 	//	メッシュレットバッファ
-	variable_position_allocator meshlet_vertex_allocator;
+	core::variable_position_allocator meshlet_vertex_allocator;
 	std::unique_ptr<model_gpu_buffer> meshlet_vertex_buffer;
 	UINT meshlet_vertex_capacity_current = 0;
 
 	//	三角形バッファ
-	variable_position_allocator meshlet_triangle_allocator;
+	core::variable_position_allocator meshlet_triangle_allocator;
 	std::unique_ptr<model_gpu_buffer> meshlet_triangle_buffer;
 	UINT meshlet_triangle_capacity_current = 0;
 

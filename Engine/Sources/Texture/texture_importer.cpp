@@ -12,7 +12,7 @@
 #include "Resource/asset_file_header.h"
 #include "Resource/resource_manager.h"
 #include "System/project_path.h"
-#include "system/logger.h"
+#include "Core/logger.h"
 #include "DirectXTex.h"
 
 namespace
@@ -120,7 +120,7 @@ texture_resource_ptr texture_importer::import(std::string_view source_path, cons
 	if (!resource::saver<texture_resource>().save(*imported, output_path, dds))
 		return nullptr;
 
-	DEBUG_LOG_CATEGORY(logger::categorys::system, "texture_importer imported[%s]->[%s]", std::string(source_path).c_str(), output_path.c_str());
+	DEBUG_LOG_CATEGORY(core::logger::categorys::system, "texture_importer imported[%s]->[%s]", std::string(source_path).c_str(), output_path.c_str());
 	if (!resource_manager::is_valid())
 		return imported;
 
@@ -139,13 +139,13 @@ bool texture_importer::convert_source(std::string_view source_path, const textur
 	DirectX::ScratchImage image;
 	if (!texture_factory::decode_file(source_path, image))
 	{
-		DEBUG_ERROR_CATEGORY(logger::categorys::system, "texture_importer decode failed[%s]", std::string(source_path).c_str());
+		DEBUG_ERROR_CATEGORY(core::logger::categorys::system, "texture_importer decode failed[%s]", std::string(source_path).c_str());
 		return false;
 	}
 
 	if (!prepare_source(image, settings) || !resize(image, settings))
 	{
-		DEBUG_ERROR_CATEGORY(logger::categorys::system, "texture_importer prepare failed[%s]", std::string(source_path).c_str());
+		DEBUG_ERROR_CATEGORY(core::logger::categorys::system, "texture_importer prepare failed[%s]", std::string(source_path).c_str());
 		return false;
 	}
 
@@ -155,7 +155,7 @@ bool texture_importer::convert_source(std::string_view source_path, const textur
 		DirectX::ScratchImage mip_chain;
 		if (FAILED(DirectX::GenerateMipMaps(*image.GetImage(0, 0, 0), to_tex_filter(settings.filter), 0, mip_chain)))
 		{
-			DEBUG_ERROR_CATEGORY(logger::categorys::system, "texture_importer mipmap failed[%s]", std::string(source_path).c_str());
+			DEBUG_ERROR_CATEGORY(core::logger::categorys::system, "texture_importer mipmap failed[%s]", std::string(source_path).c_str());
 			return false;
 		}
 		image = std::move(mip_chain);
@@ -163,14 +163,14 @@ bool texture_importer::convert_source(std::string_view source_path, const textur
 
 	if (!encode(image, settings))
 	{
-		DEBUG_ERROR_CATEGORY(logger::categorys::system, "texture_importer encode failed[%s]", std::string(source_path).c_str());
+		DEBUG_ERROR_CATEGORY(core::logger::categorys::system, "texture_importer encode failed[%s]", std::string(source_path).c_str());
 		return false;
 	}
 
 	DirectX::Blob blob;
 	if (FAILED(DirectX::SaveToDDSMemory(image.GetImages(), image.GetImageCount(), image.GetMetadata(), DirectX::DDS_FLAGS_NONE, blob)))
 	{
-		DEBUG_ERROR_CATEGORY(logger::categorys::system, "texture_importer save dds failed[%s]", std::string(source_path).c_str());
+		DEBUG_ERROR_CATEGORY(core::logger::categorys::system, "texture_importer save dds failed[%s]", std::string(source_path).c_str());
 		return false;
 	}
 	const char* blob_data = reinterpret_cast<const char*>(blob.GetBufferPointer());
@@ -183,7 +183,7 @@ bool texture_importer::read_source_dds(std::string_view source_path, std::vector
 	std::ifstream stream(std::filesystem::path(std::string(source_path)), std::ios::binary);
 	if (!stream.is_open())
 	{
-		DEBUG_ERROR_CATEGORY(logger::categorys::system, "texture_importer open failed[%s]", std::string(source_path).c_str());
+		DEBUG_ERROR_CATEGORY(core::logger::categorys::system, "texture_importer open failed[%s]", std::string(source_path).c_str());
 		return false;
 	}
 	out_dds.assign(std::istreambuf_iterator<char>(stream), std::istreambuf_iterator<char>());
@@ -191,7 +191,7 @@ bool texture_importer::read_source_dds(std::string_view source_path, std::vector
 	DirectX::TexMetadata meta_data;
 	if (FAILED(DirectX::GetMetadataFromDDSMemory(reinterpret_cast<const std::uint8_t*>(out_dds.data()), out_dds.size(), DirectX::DDS_FLAGS_NONE, meta_data)))
 	{
-		DEBUG_ERROR_CATEGORY(logger::categorys::system, "texture_importer source is not dds[%s]", std::string(source_path).c_str());
+		DEBUG_ERROR_CATEGORY(core::logger::categorys::system, "texture_importer source is not dds[%s]", std::string(source_path).c_str());
 		return false;
 	}
 	return true;
@@ -218,7 +218,7 @@ bool texture_importer::reimport(std::string_view etx_path)
 	std::error_code error;
 	if (current.settings.source_path.empty() || !std::filesystem::exists(std::filesystem::path(current.settings.source_path), error))
 	{
-		DEBUG_WARNING_CATEGORY(logger::categorys::system, "texture_importer source not found[%s][%s]", std::string(etx_path).c_str(), current.settings.source_path.c_str());
+		DEBUG_WARNING_CATEGORY(core::logger::categorys::system, "texture_importer source not found[%s][%s]", std::string(etx_path).c_str(), current.settings.source_path.c_str());
 		return false;
 	}
 	return import(current.settings.source_path, current.settings) != nullptr;
@@ -356,7 +356,7 @@ ID3D11Device* texture_importer::get_compress_device()
 		if (FAILED(hr))
 		{
 			compress_device_failed = true;
-			DEBUG_WARNING_CATEGORY(logger::categorys::system, "texture_importer compress device create failed");
+			DEBUG_WARNING_CATEGORY(core::logger::categorys::system, "texture_importer compress device create failed");
 		}
 	}
 	return compress_device.Get();

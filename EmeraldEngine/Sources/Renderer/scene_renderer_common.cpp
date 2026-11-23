@@ -235,7 +235,7 @@ void scene_renderer_commons::draw_indexed(const graphics_context& context,
 	auto pool = model_buffer_pool_manager::instance();
 
 	bool apply_meshlet_frustum_culling = meshlet_frustum_culling != nullptr &&
-		system_utility::is_bitflag(buffer_data.system_flags, mesh_draw_item::flags::culling);
+		core::is_bitflag(buffer_data.system_flags, mesh_draw_item::flags::culling);
 
 	std::vector<common_pipeline_states::meshlet_instance_record> instance_records;
 	instance_records.reserve(draw_mesh->meshlets->size());
@@ -487,7 +487,7 @@ void scene_renderer_commons::model_render_shadow_batched(graphics_context& conte
 		}
 
 		//	メッシュレット単位のフラスタムカリングと収集
-		bool apply_meshlet_frustum_culling = system_utility::is_bitflag(buffer_data->system_flags, mesh_draw_item::flags::culling);
+		bool apply_meshlet_frustum_culling = core::is_bitflag(buffer_data->system_flags, mesh_draw_item::flags::culling);
 		auto& batch = batches[mat];
 		batch.pipeline_state = pipeline_state;
 		for (auto& meshlet : *draw_mesh.meshlets)
@@ -597,7 +597,7 @@ void scene_renderer_commons::model_render_shadow_batched(graphics_context& conte
 		}
 
 		//	メッシュレット単位の球カリングと収集
-		bool apply_meshlet_culling = system_utility::is_bitflag(buffer_data->system_flags, mesh_draw_item::flags::culling);
+		bool apply_meshlet_culling = core::is_bitflag(buffer_data->system_flags, mesh_draw_item::flags::culling);
 		auto& batch = batches[mat];
 		batch.pipeline_state = pipeline_state;
 		for (auto& meshlet : *draw_mesh.meshlets)

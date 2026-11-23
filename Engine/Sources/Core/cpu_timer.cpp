@@ -1,14 +1,14 @@
-#include "System/cpu_timer.h"
+#include "Core/cpu_timer.h"
 
-cpu_timer::cpu_timer()
+core::cpu_timer::cpu_timer()
 {
 }
 
-cpu_timer::~cpu_timer()
+core::cpu_timer::~cpu_timer()
 {
 }
 
-void cpu_timer::begin()
+void core::cpu_timer::begin()
 {
 	if (!end_called)
 		return;
@@ -17,7 +17,7 @@ void cpu_timer::begin()
 	end_called = false;
 }
 
-void cpu_timer::end()
+void core::cpu_timer::end()
 {
 	if (end_called)
 		return;
@@ -28,7 +28,7 @@ void cpu_timer::end()
 	end_called = true;
 }
 
-float cpu_timer::get_result()
+float core::cpu_timer::get_result()
 {
 	return time_delta;
 }

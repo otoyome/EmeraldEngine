@@ -34,7 +34,7 @@ std::vector<std::string> scene_set_resource::get_scene_paths() const
 		std::string path = asset_registry::is_valid() ? asset_registry::instance()->find_path(reference) : std::string();
 		if (path.empty())
 		{
-			DEBUG_WARNING_CATEGORY(logger::categorys::system, "scene_set_resource scene not found[%s]", std::string(get_file_path()).c_str());
+			DEBUG_WARNING_CATEGORY(core::logger::categorys::system, "scene_set_resource scene not found[%s]", std::string(get_file_path()).c_str());
 			continue;
 		}
 		result.emplace_back(std::move(path));
@@ -85,7 +85,7 @@ bool scene_set_resource::load_file(std::string_view file_path)
 	}
 	catch (const cereal::Exception&)
 	{
-		DEBUG_ERROR_CATEGORY(logger::categorys::system, "scene_set_resource deserialize failed[%s]", std::string(file_path).c_str());
+		DEBUG_ERROR_CATEGORY(core::logger::categorys::system, "scene_set_resource deserialize failed[%s]", std::string(file_path).c_str());
 		scenes.clear();
 		return false;
 	}

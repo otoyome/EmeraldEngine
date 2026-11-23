@@ -4,6 +4,6 @@
 #include "Effect/effect_instance.h"
 #include "Resource/asset_reference.h"
 #include "Resource/resource_operation.h"
-#include "System/cache_string.h"
+#include "Core/cache_string.h"
 
 //	エフェクトオブジェクト

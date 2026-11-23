@@ -6,15 +6,15 @@
 #include <algorithm>
 #include <span>
 
-#include "System/shared_block_allocator.h"
-#include "System/logger.h"
+#include "Core/shared_block_allocator.h"
+#include "Core/logger.h"
 
 //	共有 StructuredBuffer
 template<class Element>
 class shared_structured_buffer
 {
 public:
-	using handle = typename shared_block_allocator<Element>::handle;
+	using handle = typename core::shared_block_allocator<Element>::handle;
 
 public:
 	//	シェーダーリソースビュー取得
@@ -134,7 +134,7 @@ private:
 		const UINT new_capacity = allocator.get_capacity();
 		if (!create_buffer(device.Get(), new_capacity))
 		{
-			DEBUG_WARNING_CATEGORY(logger::categorys::system, "shared_structured_buffer: resize failed (%u -> %u elements)", old_capacity, new_capacity);
+			DEBUG_WARNING_CATEGORY(core::logger::categorys::system, "shared_structured_buffer: resize failed (%u -> %u elements)", old_capacity, new_capacity);
 			return;
 		}
 
@@ -152,7 +152,7 @@ private:
 	}
 
 private:
-	shared_block_allocator<Element> allocator;
+	core::shared_block_allocator<Element> allocator;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> buffer;
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> shader_resource_view;
 	UINT buffer_capacity = 0;	//	GPU 側の容量(要素数)

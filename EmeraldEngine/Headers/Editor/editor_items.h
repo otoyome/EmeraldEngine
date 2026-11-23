@@ -59,8 +59,8 @@ public:
 		texture_resource_ptr cross_texture; // ×テクスチャ
 		model_resource_ptr reserve_model_resource; // 内部で一時的に保持しておきたい
 		std::unordered_map<std::string, bool> flag_maps; // フラグ管理
-		cache_string down_allow = "↓";
-		cache_string right_allow = "→";
+		core::cache_string down_allow = "↓";
+		core::cache_string right_allow = "→";
 		std::string window_id;	//	窓の名前に付ける ID
 		char new_shader_name[128] = {}; // マテリアルシェーダー新規作成の名前
 

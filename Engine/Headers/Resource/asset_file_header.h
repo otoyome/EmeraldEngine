@@ -7,7 +7,6 @@
 #include <string_view>
 #include <vector>
 
-#include "Core/uuid.h"
 
 namespace resource
 {

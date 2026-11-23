@@ -54,7 +54,7 @@ private:
 	//	エディター上で読み込み・登録しているcubic_sdf
 	struct edit_sdf_data
 	{
-		cache_string file_path;
+		core::cache_string file_path;
 		uint32_t sdf_id = 0xFFFFFFFF;
 		math::float3 bounds_min = { 0, 0, 0 };
 		math::float3 bounds_max = { 0, 0, 0 };

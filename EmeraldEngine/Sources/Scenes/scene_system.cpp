@@ -24,8 +24,8 @@ void scene_system::imgui_render_window(std::string_view scene_path)
 	if (!window_opened)
 		return;
 
-	const cache_string path(scene_path);
-	const std::string title = std::string(get_type_name()) + " - " + std::string(path.get<utf8_cache>()) + (is_editing() ? " (editing)" : "")
+	const core::cache_string path(scene_path);
+	const std::string title = std::string(get_type_name()) + " - " + std::string(path.get<core::utf8_cache>()) + (is_editing() ? " (editing)" : "")
 		+ "###scene_system" + std::to_string(reinterpret_cast<std::uintptr_t>(this));
 	if (ImGui::Begin(title.c_str(), &window_opened))
 		imgui_render();
@@ -59,12 +59,12 @@ void scene_system::unregister_object(const game_object_ptr& object)
 	get_scene().unregister_transient_object(object);
 }
 
-signals::broadcaster& scene_system::get_broadcaster() const
+core::signals::broadcaster& scene_system::get_broadcaster() const
 {
 	return get_context().get_scenes().get_broadcaster();
 }
 
-signals::contactor& scene_system::get_contactor() const
+core::signals::contactor& scene_system::get_contactor() const
 {
 	return get_context().get_scenes().get_contactor();
 }

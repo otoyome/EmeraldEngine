@@ -23,7 +23,7 @@ namespace animation
 
 	struct node_data
 	{
-		cache_string node_name;
+		core::cache_string node_name;
 		std::vector<node> nodes;
 		template<class Archive>
 		void serialize(Archive& archive, int version);

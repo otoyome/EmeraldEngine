@@ -761,7 +761,7 @@ void model_object::imgui_render_core()
 	{
 		for (auto& material : model_instance->get_materials())
 		{
-			if (ImGui::TreeNode(system_utility::convert_utf8(material.get_name()).data()))
+			if (ImGui::TreeNode(core::convert_utf8(material.get_name()).data()))
 			{
 				editor_items::edit_shared_material(editor_context, material.get_resource());
 				ImGui::TreePop();
@@ -777,7 +777,7 @@ void model_object::imgui_render_core()
 		for (auto& node : model_instance->get_nodes())
 		{
 			ImGui::PushID(editor_context->get_item_id());
-			ImGui::Text(system_utility::convert_utf8(node.name).data());
+			ImGui::Text(core::convert_utf8(node.name).data());
 			if (node.parent_index != model_resource::invalid_id)
 				ImGui::InputText("Parent", model_instance->get_nodes()[node.parent_index].name);
 			math::vector3f local_scale, local_translation, global_scale, global_translation;
@@ -811,7 +811,7 @@ void model_object::imgui_render_core()
 		auto& datas = ik_solver->get_resource()->get_behavior_data_list();
 		for (auto& ik_data : ik_datas)
 		{
-			if (!ImGui::TreeNode(system_utility::convert_utf8(ik_solver->get_resource()->get_behavior_data_list()[ik_node_index++].name).data()))
+			if (!ImGui::TreeNode(core::convert_utf8(ik_solver->get_resource()->get_behavior_data_list()[ik_node_index++].name).data()))
 				continue;
 
 			ImGui::Checkbox("visible", &ik_data.visible);

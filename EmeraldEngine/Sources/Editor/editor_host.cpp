@@ -109,12 +109,12 @@ namespace
 		});
 
 	//	アセットブラウザでダブルクリックしたファイルを、シーンを切り替えて開く
-	void register_asset_open_handler(const editor_host::play_function& play_scene, std::string_view label, std::vector<cache_string> extensions, std::string_view scene_path)
+	void register_asset_open_handler(const editor_host::play_function& play_scene, std::string_view label, std::vector<core::cache_string> extensions, std::string_view scene_path)
 	{
 		asset_browser::open_handler handler;
 		handler.label = label;
 		handler.extensions = std::move(extensions);
-		handler.open_file = [play_scene, scene_path](const cache_string& file_path)
+		handler.open_file = [play_scene, scene_path](const core::cache_string& file_path)
 		{
 			play_scene(scene_path, file_path.view());
 		};
@@ -359,7 +359,7 @@ void editor_host::register_asset_open_handlers(scene_function edit_scene, play_f
 		asset_browser::open_handler handler;
 		handler.label = "Open Scene";
 		handler.extensions = { ".escene" };
-		handler.open_file = [edit_scene](const cache_string& file_path)
+		handler.open_file = [edit_scene](const core::cache_string& file_path)
 		{
 			edit_scene(file_path.view());
 		};
@@ -371,7 +371,7 @@ void editor_host::register_asset_open_handlers(scene_function edit_scene, play_f
 		asset_browser::open_handler handler;
 		handler.label = "Open Scene Set";
 		handler.extensions = { std::string(".") + std::string(scene_set_resource::extension) };
-		handler.open_file = [edit_scene](const cache_string& file_path)
+		handler.open_file = [edit_scene](const core::cache_string& file_path)
 		{
 			edit_scene(file_path.view());
 		};

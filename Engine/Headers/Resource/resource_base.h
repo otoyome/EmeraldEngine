@@ -3,7 +3,6 @@
 #include <string>
 #include <string_view>
 
-#include "Core/uuid.h"
 
 namespace resource
 {

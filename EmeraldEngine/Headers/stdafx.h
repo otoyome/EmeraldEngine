@@ -13,12 +13,29 @@
 #include <memory>
 #include <filesystem>
 
+#include "Core/hash.h"
+#include "Core/uuid.h"
+
 #include "system/misc.h"
-#include "system/high_resolution_timer.h"
+#include "Core/high_resolution_timer.h"
 #include "system/enum_class_attribute.h"
 #include "system/singleton.h"
 #include "system/system_units.h"
-#include "system/system_utility.h"
+#include <fstream>
+#include <d3d11.h>
+#include <wrl.h>
+#include <cassert>
+#include "cereal/cereal.hpp"
+#include "magic_enum/include/magic_enum/magic_enum.hpp"
+#include "Core/logger.h"
+#include "Core/cache_string.h"
+#include "Core/charset.h"
+#include "Core/string_utility.h"
+#include "Core/path_utility.h"
+#include "Core/bit_flag.h"
+#include "Core/container_utility.h"
+#include "Math/math_all.h"
+#include "Math/math_serialize.h"
 #include "Math/math_all.h"
 #include "system/simple_helper.h"
 #include "system/engine_asset_path.h"

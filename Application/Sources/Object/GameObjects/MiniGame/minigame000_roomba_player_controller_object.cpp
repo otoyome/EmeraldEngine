@@ -36,7 +36,7 @@ void minigame000::roomba_player_controller_object::on_initialize()
 	base::on_initialize();
 
 	//	ì¸óÕçwì«
-	signals::broadcaster& broadcaster = get_context().get_scenes().get_broadcaster();
+	core::signals::broadcaster& broadcaster = get_context().get_scenes().get_broadcaster();
 	connections += dash_action.subscribe(broadcaster, [this](const input::action_event& event)
 	{
 		dash_pressed = event.phase == input::action_phases::pressed;
@@ -76,8 +76,8 @@ void minigame000::roomba_player_controller_object::imgui_render_core()
 	ImGui::Text("brake : %s", brake_pressed ? "true" : "false");
 
 	const std::shared_ptr<camera_object> target = camera.lock();
-	const cache_string camera_name(target ? target->get_name() : std::string_view("(none)"));
-	ImGui::Text("camera : %s", camera_name.get<utf8_cache>().data());
+	const core::cache_string camera_name(target ? target->get_name() : std::string_view("(none)"));
+	ImGui::Text("camera : %s", camera_name.get<core::utf8_cache>().data());
 }
 #endif	//	defined(USE_IMGUI)
 

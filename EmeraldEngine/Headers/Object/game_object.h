@@ -3,7 +3,6 @@
 #include <mutex>
 #include <functional>
 
-#include "Core/uuid.h"
 
 class engine_context;
 
@@ -83,7 +82,7 @@ protected:
 	virtual void on_deactive();
 
 private:
-	cache_string name;
+	core::cache_string name;
 	core::uuid uuid;
 	bool active;
 	bool transient = false;

@@ -6,7 +6,7 @@ cubic_sdf_buffer_pool::cubic_sdf_buffer_pool(ID3D11Device* device, UINT voxel_po
 	HRESULT hr;
 	if (!voxel_allocator.initialize(voxel_pool_size * sizeof(float)))
 	{
-		DEBUG_ERROR_CATEGORY(logger::categorys::model, "cubic_sdf_gpu_resource initialize failed : voxel_allocator initialize failed");
+		DEBUG_ERROR_CATEGORY(core::logger::categorys::model, "cubic_sdf_gpu_resource initialize failed : voxel_allocator initialize failed");
 		return;
 	}
 
@@ -66,20 +66,20 @@ uint32_t cubic_sdf_buffer_pool::register_sdf(gpu_upload_list& upload_list, const
 {
 	if (!sdf.is_valid())
 	{
-		DEBUG_ERROR_CATEGORY(logger::categorys::model, "cubic_sdf_gpu_resource::register_sdf failed : sdf is not valid");
+		DEBUG_ERROR_CATEGORY(core::logger::categorys::model, "cubic_sdf_gpu_resource::register_sdf failed : sdf is not valid");
 		return invalid_id;
 	}
 	if (free_header_ids.empty())
 	{
-		DEBUG_ERROR_CATEGORY(logger::categorys::model, "cubic_sdf_gpu_resource::register_sdf failed : header pool is full");
+		DEBUG_ERROR_CATEGORY(core::logger::categorys::model, "cubic_sdf_gpu_resource::register_sdf failed : header pool is full");
 		return invalid_id;
 	}
 
 	const UINT voxel_byte_size = static_cast<UINT>(sdf.voxels.size() * sizeof(float));
 	const UINT voxel_byte_offset = voxel_allocator.allocate(voxel_byte_size);
-	if (voxel_byte_offset == variable_position_allocator::allocate_failed_code)
+	if (voxel_byte_offset == core::variable_position_allocator::allocate_failed_code)
 	{
-		DEBUG_ERROR_CATEGORY(logger::categorys::model, "cubic_sdf_gpu_resource::register_sdf failed : voxel pool is full");
+		DEBUG_ERROR_CATEGORY(core::logger::categorys::model, "cubic_sdf_gpu_resource::register_sdf failed : voxel pool is full");
 		return invalid_id;
 	}
 

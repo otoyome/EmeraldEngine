@@ -68,7 +68,7 @@ void ui_text::pre_render()
 		float line_height = font_data->get_font_height() * y_scale;
 		int line_count = 1;
 
-		std::wstring utf16_texts = system_utility::convert_shift_jis_to_utf16(texts.data());
+		std::wstring utf16_texts = core::convert_shift_jis_to_utf16(texts.data());
 		for (size_t index = 0; index < utf16_texts.size(); ++index)
 		{
 			// •¶Žš’l‚ª•¶Žš—ñ‚ÉŠi”[‚³‚ê‚Ä‚¢‚éƒR[ƒh‚ðŽæ“¾

@@ -781,7 +781,7 @@ void world_renderer::build_render_lists(
 		const auto* buffer_data = buffer_data_ptr + draw_data->buffer_index;
 
 		//	カリング処理
-		if (system_utility::is_bitflag(buffer_data->system_flags, mesh_draw_item::flags::culling))
+		if (core::is_bitflag(buffer_data->system_flags, mesh_draw_item::flags::culling))
 		{
 			//	フラスタムカリング
 			bool visible = frustum_culling.to_aabb(buffer_data->bounds_min, buffer_data->bounds_max);

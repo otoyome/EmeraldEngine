@@ -35,11 +35,11 @@ CEREAL_CLASS_VERSION(particle::data, 1);
 
 bool particle::item::renderer::trails::is_state(states flag) const
 {
-	return system_utility::is_bitflag(state, flag);
+	return core::is_bitflag(state, flag);
 }
 void particle::item::renderer::trails::set_state(states flag, bool value)
 {
-	system_utility::set_bitflag(state, flag, value);
+	core::set_bitflag(state, flag, value);
 }
 template<class Archive>
 void particle::item::renderer::trails::serialize(Archive& archive, int version)
@@ -49,11 +49,11 @@ void particle::item::renderer::trails::serialize(Archive& archive, int version)
 
 bool particle::item::renderer::texcoords::is_state(states flag) const
 {
-	return system_utility::is_bitflag(state, flag);
+	return core::is_bitflag(state, flag);
 }
 void particle::item::renderer::texcoords::set_state(states flag, bool value)
 {
-	system_utility::set_bitflag(state, flag, value);
+	core::set_bitflag(state, flag, value);
 }
 template<class Archive>
 void particle::item::renderer::texcoords::serialize(Archive& archive, int version)
@@ -63,11 +63,11 @@ void particle::item::renderer::texcoords::serialize(Archive& archive, int versio
 
 bool particle::item::renderer::colors::is_state(states flag) const
 {
-	return system_utility::is_bitflag(state, flag);
+	return core::is_bitflag(state, flag);
 }
 void particle::item::renderer::colors::set_state(states flag, bool value)
 {
-	system_utility::set_bitflag(state, flag, value);
+	core::set_bitflag(state, flag, value);
 }
 template<class Archive>
 void particle::item::renderer::colors::serialize(Archive& archive, int version)
@@ -77,11 +77,11 @@ void particle::item::renderer::colors::serialize(Archive& archive, int version)
 
 bool particle::item::renderer::is_state(states flag) const
 {
-	return system_utility::is_bitflag(state, flag);
+	return core::is_bitflag(state, flag);
 }
 void particle::item::renderer::set_state(states flag, bool value)
 {
-	system_utility::set_bitflag(state, flag, value);
+	core::set_bitflag(state, flag, value);
 }
 template<class Archive>
 void particle::item::renderer::serialize(Archive& archive, int version)
@@ -91,11 +91,11 @@ void particle::item::renderer::serialize(Archive& archive, int version)
 
 bool particle::item::spawn::is_state(states flag) const
 {
-	return system_utility::is_bitflag(state, flag);
+	return core::is_bitflag(state, flag);
 }
 void particle::item::spawn::set_state(states flag, bool value)
 {
-	system_utility::set_bitflag(state, flag, value);
+	core::set_bitflag(state, flag, value);
 }
 template<class Archive>
 void particle::item::spawn::serialize(Archive& archive, int version)
@@ -105,11 +105,11 @@ void particle::item::spawn::serialize(Archive& archive, int version)
 
 bool particle::item::velocity::is_state(states flag) const
 {
-	return system_utility::is_bitflag(state, flag);
+	return core::is_bitflag(state, flag);
 }
 void particle::item::velocity::set_state(states flag, bool value)
 {
-	system_utility::set_bitflag(state, flag, value);
+	core::set_bitflag(state, flag, value);
 }
 template<class Archive>
 void particle::item::velocity::serialize(Archive& archive, int version)
@@ -133,11 +133,11 @@ void particle::item::attract::serialize(Archive& archive, int version)
 
 bool particle::item::event::is_state(states flag) const
 {
-	return system_utility::is_bitflag(state, flag);
+	return core::is_bitflag(state, flag);
 }
 void particle::item::event::set_state(states flag, bool value)
 {
-	system_utility::set_bitflag(state, flag, value);
+	core::set_bitflag(state, flag, value);
 }
 template<class Archive>
 void particle::item::event::serialize(Archive& archive, int version)

@@ -59,7 +59,7 @@ roomba_controller_object::roomba_controller_object(engine_context& context, std:
 {
 	//	“ü—Íw“Ç
 	set_context(context);
-	signals::broadcaster& broadcaster = get_context().get_scenes().get_broadcaster();
+	core::signals::broadcaster& broadcaster = get_context().get_scenes().get_broadcaster();
 	connections += dash_action.subscribe(broadcaster, [this](const input::action_event& event)
 	{
 		dash_pressed = event.phase == input::action_phases::pressed;

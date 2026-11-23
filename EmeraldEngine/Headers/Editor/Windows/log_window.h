@@ -12,8 +12,8 @@ public:
 
 private:
 	//	ÉçÉOån
-	logger::categorys display_log_category = logger::categorys::max;
-	UINT display_log_flags = (1 << static_cast<UINT>(logger::levels::error)) | (1 << static_cast<UINT>(logger::levels::warning));
+	core::logger::categorys display_log_category = core::logger::categorys::max;
+	UINT display_log_flags = (1 << static_cast<UINT>(core::logger::levels::error)) | (1 << static_cast<UINT>(core::logger::levels::warning));
 	bool is_log_descending_order = false;
 };
 #endif	//	defined(USE_IMGUI)

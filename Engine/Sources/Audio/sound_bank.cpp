@@ -2,7 +2,7 @@
 
 #include <fstream>
 
-#include "System/logger.h"
+#include "Core/logger.h"
 
 #include "cereal/cereal.hpp"
 #include "cereal/archives/json.hpp"
@@ -54,7 +54,7 @@ namespace audio
 		std::ifstream istream{ std::string(file_path) };
 		if (!istream.is_open())
 		{
-			DEBUG_WARNING_CATEGORY(logger::categorys::system, "Open Failed SoundBank[%s]", std::string(file_path).c_str());
+			DEBUG_WARNING_CATEGORY(core::logger::categorys::system, "Open Failed SoundBank[%s]", std::string(file_path).c_str());
 			return false;
 		}
 
@@ -65,7 +65,7 @@ namespace audio
 		}
 		catch (...)
 		{
-			DEBUG_WARNING_CATEGORY(logger::categorys::system, "Load Failed SoundBank[%s]", std::string(file_path).c_str());
+			DEBUG_WARNING_CATEGORY(core::logger::categorys::system, "Load Failed SoundBank[%s]", std::string(file_path).c_str());
 			return false;
 		}
 		return true;
@@ -76,7 +76,7 @@ namespace audio
 		std::ofstream ostream{ std::string(file_path) };
 		if (!ostream.is_open())
 		{
-			DEBUG_WARNING_CATEGORY(logger::categorys::system, "Open Failed SoundBank[%s]", std::string(file_path).c_str());
+			DEBUG_WARNING_CATEGORY(core::logger::categorys::system, "Open Failed SoundBank[%s]", std::string(file_path).c_str());
 			return false;
 		}
 
@@ -87,7 +87,7 @@ namespace audio
 		}
 		catch (...)
 		{
-			DEBUG_WARNING_CATEGORY(logger::categorys::system, "Save Failed SoundBank[%s]", std::string(file_path).c_str());
+			DEBUG_WARNING_CATEGORY(core::logger::categorys::system, "Save Failed SoundBank[%s]", std::string(file_path).c_str());
 			return false;
 		}
 		return true;

@@ -71,8 +71,8 @@ public:
 			set_flag(flags::aleady, false);
 		}
 
-		bool is_flag(flags flag) const { return system_utility::is_bitflag(flag_data, 1 << static_cast<UINT>(flag)); }
-		void set_flag(flags flag, bool value) { system_utility::set_bitflag(flag_data, 1 << static_cast<UINT>(flag), value); }
+		bool is_flag(flags flag) const { return core::is_bitflag(flag_data, 1 << static_cast<UINT>(flag)); }
+		void set_flag(flags flag, bool value) { core::set_bitflag(flag_data, 1 << static_cast<UINT>(flag), value); }
 	};
 
 	using on_collision_enter = std::function<void(const data& data)>;
@@ -83,8 +83,8 @@ public:
 	const collision_filter_ptr& get_filter() const;
 	void set_filter(std::string_view name);
 
-	bool is_flag(flags flag) const { return system_utility::is_bitflag(flag_data, 1 << static_cast<UINT>(flag)); }
-	void set_flag(flags flag, bool value) { system_utility::set_bitflag(flag_data, 1 << static_cast<UINT>(flag), value); }
+	bool is_flag(flags flag) const { return core::is_bitflag(flag_data, 1 << static_cast<UINT>(flag)); }
+	void set_flag(flags flag, bool value) { core::set_bitflag(flag_data, 1 << static_cast<UINT>(flag), value); }
 
 	body_types get_body_type() const { return body_type; }
 	void set_body_type(body_types value) { body_type = value; }

@@ -128,7 +128,7 @@ namespace
 			if (dx * dx + dy * dy + dz * dz > range_square)
 				continue;
 
-			if (!system_utility::is_bitflag(buffer_data.system_flags, mesh_draw_item::flags::static_mesh))
+			if (!core::is_bitflag(buffer_data.system_flags, mesh_draw_item::flags::static_mesh))
 				out_dynamic = true;
 
 			mix(buffer_data.unique_id);

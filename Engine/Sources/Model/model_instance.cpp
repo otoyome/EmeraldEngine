@@ -287,8 +287,8 @@ void mesh_collector::collect(mesh_container& container, const std::vector<model_
 			buffer_data.bounds_max = bounds_max;
 			buffer_data.world_transform = (NodeWorldTransforms[mesh.node_index]).to_float4x4();
 			buffer_data.system_flags = 0;
-			system_utility::set_bitflag(buffer_data.system_flags, mesh_draw_item::flags::culling, instance->is_flag(model_instance::flags::culling));
-			system_utility::set_bitflag(buffer_data.system_flags, mesh_draw_item::flags::static_mesh, mesh.bones.empty());
+			core::set_bitflag(buffer_data.system_flags, mesh_draw_item::flags::culling, instance->is_flag(model_instance::flags::culling));
+			core::set_bitflag(buffer_data.system_flags, mesh_draw_item::flags::static_mesh, mesh.bones.empty());
 			{
 				UINT combined = instance->get_unique_id();
 				combined ^= current_submesh_index + 0x9e3779b9u + (combined << 6) + (combined >> 2);

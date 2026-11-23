@@ -1,7 +1,7 @@
 #pragma once
 
 #include "object/gameobjects/MiniGame/roomba_object.h"
-#include "System/signals.h"
+#include "Core/signals.h"
 #include "Input/input_action.h"
 
 //	ルンバ用コントローラーオブジェクト
@@ -52,5 +52,5 @@ private:
 	bool brake_pressed;
 	float move_x;
 	float move_y;
-	signals::connection_list connections;
+	core::signals::connection_list connections;
 };

@@ -5,7 +5,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "system/parallel_for_executor.h"
+#include "Core/parallel_for_executor.h"
 #include "Graphics/Core/render_pass.h"
 #include "Graphics/View/camera.h"
 #include "Graphics/View/scene_view.h"
@@ -123,5 +123,5 @@ private:	//	•`‰æî•ñU‚è•ª‚¯
 	};
 	std::vector<cull_bucket> cull_buckets;
 	std::vector<std::uintptr_t> sort_pipeline_keys;
-	parallel_for_executor parallel_executor;
+	core::parallel_for_executor parallel_executor;
 };

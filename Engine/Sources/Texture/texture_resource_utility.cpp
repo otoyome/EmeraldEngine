@@ -6,7 +6,7 @@
 #include "Texture/texture_resource.h"
 #include "Resource/resource_manager.h"
 #include "Resource/data_compression.h"
-#include "system/logger.h"
+#include "Core/logger.h"
 #include "DirectXTex.h"
 
 #include "cereal/archives/binary.hpp"
@@ -27,7 +27,7 @@ bool texture_resource_utility::read_file(std::string_view file_path, resource::a
 	}
 	catch (...)
 	{
-		DEBUG_ERROR_CATEGORY(logger::categorys::system, "texture_resource deserialize failed[%s]", std::string(file_path).c_str());
+		DEBUG_ERROR_CATEGORY(core::logger::categorys::system, "texture_resource deserialize failed[%s]", std::string(file_path).c_str());
 		return false;
 	}
 	return true;

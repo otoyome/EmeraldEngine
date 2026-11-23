@@ -1,4 +1,4 @@
-#include "system/variable_position_allocator.h"
+#include "Core/variable_position_allocator.h"
 
 namespace
 {
@@ -22,7 +22,7 @@ namespace
 }
 
 //	pool_size = 2,147,483,647ƒoƒCƒg‚Ü‚Å
-bool variable_position_allocator::initialize(UINT pool_size)
+bool core::variable_position_allocator::initialize(UINT pool_size)
 {
 	if (pool_size >= alive_flag)
 		return false;
@@ -34,7 +34,7 @@ bool variable_position_allocator::initialize(UINT pool_size)
 	return true;
 }
 
-UINT variable_position_allocator::allocate(UINT size)
+UINT core::variable_position_allocator::allocate(UINT size)
 {
 	for (size_t index = 0; index < nodes.size(); ++index)
 	{
@@ -61,7 +61,7 @@ UINT variable_position_allocator::allocate(UINT size)
 	return allocate_failed_code;
 }
 
-bool variable_position_allocator::deallocate(UINT deallocate_position)
+bool core::variable_position_allocator::deallocate(UINT deallocate_position)
 {
 	if (deallocate_position == allocate_failed_code)
 		return false;
@@ -92,7 +92,7 @@ bool variable_position_allocator::deallocate(UINT deallocate_position)
 	return false;
 }
 
-bool variable_position_allocator::grow(UINT additional_size)
+bool core::variable_position_allocator::grow(UINT additional_size)
 {
 	if (additional_size == 0)
 		return true;

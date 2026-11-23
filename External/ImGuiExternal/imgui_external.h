@@ -8,7 +8,7 @@
 #include <functional>
 #include <vector>
 
-#include "system/cache_string.h"
+#include "Core/cache_string.h"
 #include "Graphics/Core/color_space.h"
 
 namespace ImGui
@@ -62,7 +62,7 @@ namespace ImGui
 
     //  SJIS>UTF8‚É“à•”‚Å•ÏŠ·‚·‚éƒ^ƒCƒv
     bool InputTextUtf8(const char* label, std::string& str, ImGuiInputTextFlags flags = 0);
-    bool InputTextUtf8(const char* label, cache_string& str, ImGuiInputTextFlags flags = 0);
+    bool InputTextUtf8(const char* label, core::cache_string& str, ImGuiInputTextFlags flags = 0);
 
     bool TreeNodeUtf8(const char* label);
 
@@ -143,11 +143,11 @@ namespace ImGui
         bool edited_flag = false;
         for (auto flag : magic_enum::enum_values<StatesEnum>())
         {
-            bool checked = system_utility::is_bitflag(obj, flag);
+            bool checked = core::is_bitflag(obj, flag);
             std::string label(magic_enum::enum_name(flag));
             if (Checkbox(label.c_str(), &checked))
             {
-	            system_utility::set_bitflag(obj, flag, checked);
+	            core::set_bitflag(obj, flag, checked);
                 edited_flag = true;
             }
         }

@@ -52,13 +52,13 @@ void scene_editor::request_edit(std::string_view file_path)
 		auto operation = resource_manager::instance()->load<scene_set_resource>(file_path);
 		if (!operation || !operation->is_succeeded())
 		{
-			DEBUG_ERROR_CATEGORY(logger::categorys::system, "scene_editor scene set load failed[%s]", std::string(file_path).c_str());
+			DEBUG_ERROR_CATEGORY(core::logger::categorys::system, "scene_editor scene set load failed[%s]", std::string(file_path).c_str());
 			return;
 		}
 		const std::vector<std::string> paths = operation->get_resource()->get_scene_paths();
 		if (paths.empty())
 		{
-			DEBUG_WARNING_CATEGORY(logger::categorys::system, "scene_editor scene set is empty[%s]", std::string(file_path).c_str());
+			DEBUG_WARNING_CATEGORY(core::logger::categorys::system, "scene_editor scene set is empty[%s]", std::string(file_path).c_str());
 			return;
 		}
 		edit_request = paths.front();
@@ -148,7 +148,7 @@ void scene_editor::apply_requests()
 			}
 			else
 			{
-				DEBUG_ERROR_CATEGORY(logger::categorys::system, "scene_editor load failed[%s]", file_path.c_str());
+				DEBUG_ERROR_CATEGORY(core::logger::categorys::system, "scene_editor load failed[%s]", file_path.c_str());
 			}
 		}
 
@@ -172,7 +172,7 @@ bool scene_editor::apply_contents()
 
 		if (!scene.resource->set_contents(objects, scene.system.get()))
 		{
-			DEBUG_ERROR_CATEGORY(logger::categorys::system, "scene_editor apply failed[%s]", std::string(scene.resource->get_file_path()).c_str());
+			DEBUG_ERROR_CATEGORY(core::logger::categorys::system, "scene_editor apply failed[%s]", std::string(scene.resource->get_file_path()).c_str());
 			result = false;
 		}
 	}
@@ -189,7 +189,7 @@ bool scene_editor::save()
 	{
 		if (!resource_manager::instance()->save(scene.resource))
 		{
-			DEBUG_ERROR_CATEGORY(logger::categorys::system, "scene_editor save failed[%s]", std::string(scene.resource->get_file_path()).c_str());
+			DEBUG_ERROR_CATEGORY(core::logger::categorys::system, "scene_editor save failed[%s]", std::string(scene.resource->get_file_path()).c_str());
 			result = false;
 		}
 	}
@@ -219,13 +219,13 @@ bool scene_editor::open(std::string_view file_path)
 	auto operation = resource_manager::instance()->load<scene_resource>(file_path);
 	if (!operation || !operation->is_succeeded())
 	{
-		DEBUG_ERROR_CATEGORY(logger::categorys::system, "scene_editor load failed[%s]", std::string(file_path).c_str());
+		DEBUG_ERROR_CATEGORY(core::logger::categorys::system, "scene_editor load failed[%s]", std::string(file_path).c_str());
 		return false;
 	}
 
 	if (!create_edited_scenes({ operation->get_resource() }))
 	{
-		DEBUG_ERROR_CATEGORY(logger::categorys::system, "scene_editor create failed[%s]", std::string(file_path).c_str());
+		DEBUG_ERROR_CATEGORY(core::logger::categorys::system, "scene_editor create failed[%s]", std::string(file_path).c_str());
 		return false;
 	}
 	return true;
@@ -281,7 +281,7 @@ bool scene_editor::add_scene(std::string_view file_path)
 	auto operation = resource_manager::instance()->load<scene_resource>(file_path);
 	if (!operation || !operation->is_succeeded())
 	{
-		DEBUG_ERROR_CATEGORY(logger::categorys::system, "scene_editor add scene load failed[%s]", std::string(file_path).c_str());
+		DEBUG_ERROR_CATEGORY(core::logger::categorys::system, "scene_editor add scene load failed[%s]", std::string(file_path).c_str());
 		return false;
 	}
 
@@ -295,7 +295,7 @@ bool scene_editor::add_scene(std::string_view file_path)
 
 	if (!create_edited_scenes({ resource }))
 	{
-		DEBUG_ERROR_CATEGORY(logger::categorys::system, "scene_editor create failed[%s]", std::string(file_path).c_str());
+		DEBUG_ERROR_CATEGORY(core::logger::categorys::system, "scene_editor create failed[%s]", std::string(file_path).c_str());
 		return false;
 	}
 	return true;
@@ -394,8 +394,8 @@ void scene_editor::imgui_render_edit_window()
 	edited_scene& scene = *it;
 
 	//	ƒV[ƒ“‚Ì•ÒW‘‹
-	const cache_string path(scene.resource->get_file_path());
-	const std::string title = scene_resource_utility::make_display_name(path.get<utf8_cache>()) + " (editing)###scene_editor_edit_window";
+	const core::cache_string path(scene.resource->get_file_path());
+	const std::string title = scene_resource_utility::make_display_name(path.get<core::utf8_cache>()) + " (editing)###scene_editor_edit_window";
 	if (ImGui::Begin(title.c_str(), &edit_window_opened))
 		imgui_render_scene_settings(scene.resource);
 	ImGui::End();
@@ -448,7 +448,7 @@ void scene_editor::set_system(edited_scene& scene, std::string_view type)
 		system = scene_system_registry::is_valid() ? scene_system_registry::instance()->create(type) : nullptr;
 		if (!system)
 		{
-			DEBUG_WARNING_CATEGORY(logger::categorys::system, "scene_editor unknown system type[%s]", std::string(type).c_str());
+			DEBUG_WARNING_CATEGORY(core::logger::categorys::system, "scene_editor unknown system type[%s]", std::string(type).c_str());
 			return;
 		}
 		system->context = &edit_world->get_context();
@@ -498,7 +498,7 @@ std::shared_ptr<game_object> scene_editor::place_prefab(std::string_view file_pa
 	auto operation = resource_manager::instance()->load<prefab_resource>(file_path);
 	if (!operation || !operation->is_succeeded())
 	{
-		DEBUG_ERROR_CATEGORY(logger::categorys::system, "scene_editor prefab load failed[%s]", std::string(file_path).c_str());
+		DEBUG_ERROR_CATEGORY(core::logger::categorys::system, "scene_editor prefab load failed[%s]", std::string(file_path).c_str());
 		return nullptr;
 	}
 
@@ -506,7 +506,7 @@ std::shared_ptr<game_object> scene_editor::place_prefab(std::string_view file_pa
 	prefab_resource::instance created;
 	if (!operation->get_resource()->instantiate(created) || created.objects.empty())
 	{
-		DEBUG_ERROR_CATEGORY(logger::categorys::system, "scene_editor prefab instantiate failed[%s]", std::string(file_path).c_str());
+		DEBUG_ERROR_CATEGORY(core::logger::categorys::system, "scene_editor prefab instantiate failed[%s]", std::string(file_path).c_str());
 		return nullptr;
 	}
 
@@ -547,7 +547,7 @@ std::shared_ptr<game_object> scene_editor::add_object(edited_scene& scene, std::
 	game_object_ptr object = game_object_registry::instance()->create(type);
 	if (!object)
 	{
-		DEBUG_ERROR_CATEGORY(logger::categorys::system, "scene_editor add object failed[%s]", std::string(type).c_str());
+		DEBUG_ERROR_CATEGORY(core::logger::categorys::system, "scene_editor add object failed[%s]", std::string(type).c_str());
 		return nullptr;
 	}
 

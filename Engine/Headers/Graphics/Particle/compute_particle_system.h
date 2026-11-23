@@ -10,7 +10,7 @@
 
 #include "Texture/texture.h"
 #include "Graphics/Pipeline/shader.h"
-#include "system/variable_position_allocator.h"
+#include "Core/variable_position_allocator.h"
 #include "Graphics/Core/shared_structured_buffer.h"
 
 #include "Graphics/Geometry/cubic_sdf_buffer_pool.h"
@@ -462,9 +462,9 @@ private:
 	math::float3 pending_rebase_offset = { 0.0f, 0.0f, 0.0f };
 	bool pending_rebase = false;
 	UINT current_buffer_index = 0;
-	variable_position_allocator emitter_binary_allocator;
-	variable_position_allocator particle_binary_allocator;
-	variable_position_allocator particle_index_allocator;
+	core::variable_position_allocator emitter_binary_allocator;
+	core::variable_position_allocator particle_binary_allocator;
+	core::variable_position_allocator particle_index_allocator;
 	std::shared_ptr<compute_shader> compute_shaderes[magic_enum::enum_count<dispatch_shaderes>()];
 
 	//	エミッター管理関係

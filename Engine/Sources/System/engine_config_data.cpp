@@ -210,20 +210,20 @@ engine_config_data::engine_config_data()
 				}
 				default:
 				{
-					DEBUG_LOG_CATEGORY(logger::categorys::system, "Unknown Version EngineConfig[%s] version[%u]", file_path.data(), version);
+					DEBUG_LOG_CATEGORY(core::logger::categorys::system, "Unknown Version EngineConfig[%s] version[%u]", file_path.data(), version);
 					return;
 				}
 			}
 		}
 		catch (...)
 		{
-			DEBUG_LOG_CATEGORY(logger::categorys::system, "Load Failed EngineConfig[%s]", file_path.data());
+			DEBUG_LOG_CATEGORY(core::logger::categorys::system, "Load Failed EngineConfig[%s]", file_path.data());
 			return;
 		}
-		DEBUG_LOG_CATEGORY(logger::categorys::system, "Load Succeeded EngineConfig[%s]", file_path.data());
+		DEBUG_LOG_CATEGORY(core::logger::categorys::system, "Load Succeeded EngineConfig[%s]", file_path.data());
 		return;
 	}
-	DEBUG_LOG_CATEGORY(logger::categorys::system, "Open Failed EngineConfig[%s]", file_path.data());
+	DEBUG_LOG_CATEGORY(core::logger::categorys::system, "Open Failed EngineConfig[%s]", file_path.data());
 }
 
 engine_config_data::~engine_config_data()
@@ -240,11 +240,11 @@ engine_config_data::~engine_config_data()
 		}
 		catch (...)
 		{
-			DEBUG_LOG_CATEGORY(logger::categorys::system, "Save Failed EngineConfig[%s]", file_path.data());
+			DEBUG_LOG_CATEGORY(core::logger::categorys::system, "Save Failed EngineConfig[%s]", file_path.data());
 			return;
 		}
-		DEBUG_LOG_CATEGORY(logger::categorys::system, "Save Succeeded EngineConfig[%s]", file_path.data());
+		DEBUG_LOG_CATEGORY(core::logger::categorys::system, "Save Succeeded EngineConfig[%s]", file_path.data());
 		return;
 	}
-	DEBUG_LOG_CATEGORY(logger::categorys::system, "Open Failed EngineConfig[%s]", file_path.data());
+	DEBUG_LOG_CATEGORY(core::logger::categorys::system, "Open Failed EngineConfig[%s]", file_path.data());
 }

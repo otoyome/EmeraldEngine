@@ -10,7 +10,7 @@
 #include "System/asset_browser.h"
 #include "System/imgui_texture_keeper.h"
 
-#include "system/logger.h"
+#include "Core/logger.h"
 
 texture_editor_window::texture_editor_window(std::string_view file_path)
 	: file_path(file_path)
@@ -27,7 +27,7 @@ void texture_editor_window::register_open_handler(std::shared_ptr<editor_items::
 	asset_browser::open_handler handler;
 	handler.label = "Texture Editor";
 	handler.extensions = { std::string(".") + std::string(texture_resource::extension) };
-	handler.open_file = [context](const cache_string& file_path) mutable
+	handler.open_file = [context](const core::cache_string& file_path) mutable
 	{
 		editor_items::open_window<texture_editor_window>(context, file_path.view());
 	};
@@ -37,7 +37,7 @@ void texture_editor_window::register_open_handler(std::shared_ptr<editor_items::
 std::string texture_editor_window::get_label() const
 {
 	const std::string name = std::filesystem::path(file_path).filename().string();
-	return "Texture : " + system_utility::convert_shift_jis_to_utf8(name);
+	return "Texture : " + core::convert_shift_jis_to_utf8(name);
 }
 
 void texture_editor_window::on_file_moved(std::string_view new_file_path)
@@ -50,7 +50,7 @@ bool texture_editor_window::load()
 	auto operation = resource_manager::instance()->load<texture_resource>(file_path);
 	if (!operation || !operation->is_succeeded())
 	{
-		DEBUG_ERROR_CATEGORY(logger::categorys::system, "texture_editor open failed[%s]", file_path.c_str());
+		DEBUG_ERROR_CATEGORY(core::logger::categorys::system, "texture_editor open failed[%s]", file_path.c_str());
 		return false;
 	}
 
@@ -63,17 +63,17 @@ void texture_editor_window::render_window(std::shared_ptr<editor_items::context>
 {
 	retired_textures.clear();
 
-	const std::string title = get_label() + "###texture_editor:" + system_utility::convert_shift_jis_to_utf8(file_path);
+	const std::string title = get_label() + "###texture_editor:" + core::convert_shift_jis_to_utf8(file_path);
 	ImGui::SetNextWindowSize(ImVec2(720.0f, 820.0f), ImGuiCond_FirstUseEver);
 	if (ImGui::Begin(title.c_str(), &open))
 	{
 		if (!target)
 		{
-			ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.4f, 1.0f), "open failed : %s", system_utility::convert_shift_jis_to_utf8(file_path).c_str());
+			ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.4f, 1.0f), "open failed : %s", core::convert_shift_jis_to_utf8(file_path).c_str());
 		}
 		else
 		{
-			ImGui::TextUnformatted(system_utility::convert_utf8(target->get_file_path()).c_str());
+			ImGui::TextUnformatted(core::convert_utf8(target->get_file_path()).c_str());
 			ImGui::TextDisabled("uuid : %s", target->get_uuid().to_string().c_str());
 			ImGui::Separator();
 
@@ -117,7 +117,7 @@ void texture_editor_window::imgui_render_settings()
 
 	{
 		if (ImGui::InputText("source", source_path_utf8))
-			editing.source_path = system_utility::convert_utf8_to_shift_jis(source_path_utf8);
+			editing.source_path = core::convert_utf8_to_shift_jis(source_path_utf8);
 		std::error_code error;
 		if (editing.source_path.empty() || !std::filesystem::exists(std::filesystem::path(editing.source_path), error))
 			ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.4f, 1.0f), "source not found (only sampler can be applied)");
@@ -229,14 +229,14 @@ void texture_editor_window::apply()
 		auto reimported = texture_importer::instance()->import(editing.source_path, editing);
 		if (!reimported)
 		{
-			DEBUG_ERROR_CATEGORY(logger::categorys::system, "texture_editor reimport failed[%s]", std::string(target->get_file_path()).c_str());
+			DEBUG_ERROR_CATEGORY(core::logger::categorys::system, "texture_editor reimport failed[%s]", std::string(target->get_file_path()).c_str());
 			return;
 		}
 		target = reimported;
 	}
 	else if (!texture_importer::instance()->update_sampler(*target, editing.sampler))
 	{
-		DEBUG_ERROR_CATEGORY(logger::categorys::system, "texture_editor save failed[%s]", std::string(target->get_file_path()).c_str());
+		DEBUG_ERROR_CATEGORY(core::logger::categorys::system, "texture_editor save failed[%s]", std::string(target->get_file_path()).c_str());
 		return;
 	}
 	revert();
@@ -253,6 +253,6 @@ void texture_editor_window::revert()
 	if (!target)
 		return;
 	editing = target->get_settings();
-	source_path_utf8 = system_utility::convert_utf8(editing.source_path);
+	source_path_utf8 = core::convert_utf8(editing.source_path);
 }
 #endif	//	defined(USE_IMGUI)

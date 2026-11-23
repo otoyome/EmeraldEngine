@@ -66,7 +66,7 @@ collision_filter_ptr collision_filter_manager::search_filter(std::string_view na
 		{
 			std::lock_guard<std::mutex> lock(missing_mutex);
 			if (missing_names.emplace(filter_name).second)
-				DEBUG_LOG_CATEGORY(logger::categorys::system, "Collision Filter Not Found[%s]", filter_name.c_str());
+				DEBUG_LOG_CATEGORY(core::logger::categorys::system, "Collision Filter Not Found[%s]", filter_name.c_str());
 		}
 		it = filters.find("default");
 	}
@@ -93,7 +93,7 @@ void collision_filter_manager::rebuild_filters()
 			channel = find_channel(profile->object_type);
 			if (channel >= collision_filter::max_channels)
 			{
-				DEBUG_LOG_CATEGORY(logger::categorys::system, "Collision Channel Not Found[%s] Profile[%s]", profile->object_type.c_str(), profile->name.c_str());
+				DEBUG_LOG_CATEGORY(core::logger::categorys::system, "Collision Channel Not Found[%s] Profile[%s]", profile->object_type.c_str(), profile->name.c_str());
 				channel = 0;
 			}
 		}
@@ -119,7 +119,7 @@ void collision_filter_manager::rebuild_filters()
 	{
 		if (profile.name.empty() || rebuilt.find(profile.name) != rebuilt.end())
 		{
-			DEBUG_LOG_CATEGORY(logger::categorys::system, "Collision Profile Skipped[%s]", profile.name.c_str());
+			DEBUG_LOG_CATEGORY(core::logger::categorys::system, "Collision Profile Skipped[%s]", profile.name.c_str());
 			continue;
 		}
 		rebuilt.emplace(profile.name, apply_profile(&profile, profile.name));

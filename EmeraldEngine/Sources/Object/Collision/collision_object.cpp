@@ -208,7 +208,7 @@ void collision_object::update_hit_objects(collision::intersect_data& intersect_d
 {
 	//	ヒットオブジェクトを記録
 	auto it = std::find_if(hit_objects.begin(), hit_objects.end(),
-						   [to](hit_object& value) {return system_utility::equals(value.to, to);});
+						   [to](hit_object& value) {return core::equals(value.to, to);});
 	if (it != hit_objects.end())
 	{
 		it->set_flag(hit_object::flags::added, true);
@@ -418,7 +418,7 @@ void collision_object::imgui_render()
 	std::string name_node = name;
 	name_node += " : ";
 	name_node += NAMEOF_ENUM(bounding_object->get_type());
-	if (ImGui::TreeNode(system_utility::convert_shift_jis_to_utf8(name_node.data()).data()))
+	if (ImGui::TreeNode(core::convert_shift_jis_to_utf8(name_node.data()).data()))
 	{
 		ImGui::DragFloat("mass", &mass, 0.01f);
 		ImGui::DragFloat("friction", &physical_data.friction, 0.01f);

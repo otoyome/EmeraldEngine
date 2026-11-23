@@ -1,4 +1,4 @@
-#include "System/fixed_size_pool.h"
+#include "Core/fixed_size_pool.h"
 #include "System/misc.h"
 
 #include <cstdlib>
@@ -6,7 +6,7 @@
 
 //	排他制御クラス
 //	std::mutexはMSVC環境だと初回ロック時に内部でヒープ確保が行われることがあるため自作
-struct fixed_size_pool::srw_exclusive_lock
+struct core::fixed_size_pool::srw_exclusive_lock
 {
 	explicit srw_exclusive_lock(SRWLOCK& target) : target(target) { AcquireSRWLockExclusive(&target); }
 	~srw_exclusive_lock() { ReleaseSRWLockExclusive(&target); }
@@ -17,7 +17,7 @@ private:
 };
 
 //	1ピース分のヘッダー
-struct fixed_size_pool::piece_header
+struct core::fixed_size_pool::piece_header
 {
 	arena* owner_arena;
 	uint32_t state;		//	0 = 空き, 1 = 使用中
@@ -29,7 +29,7 @@ struct fixed_size_pool::piece_header
 };
 
 //	固定長プールの1スラブ
-struct fixed_size_pool::arena
+struct core::fixed_size_pool::arena
 {
 	arena* next_arena;
 	arena* prev_arena;
@@ -43,23 +43,23 @@ struct fixed_size_pool::arena
 	arena* prev_available;
 };
 
-const size_t fixed_size_pool::arena_slab_bytes = 64 * 1024;
-const size_t fixed_size_pool::piece_header_size = sizeof(piece_header);
+const size_t core::fixed_size_pool::arena_slab_bytes = 64 * 1024;
+const size_t core::fixed_size_pool::piece_header_size = sizeof(piece_header);
 #if defined(_DEBUG)
-const uint32_t fixed_size_pool::canary_pattern = 0xCDCDCDCDu;
+const uint32_t core::fixed_size_pool::canary_pattern = 0xCDCDCDCDu;
 #endif // defined(_DEBUG)
 
-fixed_size_pool::~fixed_size_pool()
+core::fixed_size_pool::~fixed_size_pool()
 {
 }
 
-void fixed_size_pool::initialize(uint32_t new_class_index, size_t new_piece_size)
+void core::fixed_size_pool::initialize(uint32_t new_class_index, size_t new_piece_size)
 {
 	class_index = new_class_index;
 	piece_size = new_piece_size;
 }
 
-fixed_size_pool::arena* fixed_size_pool::create_arena()
+core::fixed_size_pool::arena* core::fixed_size_pool::create_arena()
 {
 	//	ピース列の先頭を16バイト境界に揃える
 	static_assert(sizeof(arena) % 16 == 0, "fixed_size_pool::arena must be a multiple of 16 bytes");
@@ -108,7 +108,7 @@ fixed_size_pool::arena* fixed_size_pool::create_arena()
 	return new_arena;
 }
 
-void* fixed_size_pool::allocate_from_arena(arena* target)
+void* core::fixed_size_pool::allocate_from_arena(arena* target)
 {
 	if (!target->free_list_head)
 		return nullptr;
@@ -131,7 +131,7 @@ void* fixed_size_pool::allocate_from_arena(arena* target)
 	return payload;
 }
 
-void* fixed_size_pool::allocate(size_t alignment)
+void* core::fixed_size_pool::allocate(size_t alignment)
 {
 	_ASSERT_EXPR(alignment <= 16 && (16 % alignment) == 0,
 		L"fixed_size_pool: this pool only guarantees 16-byte alignment");
@@ -167,7 +167,7 @@ void* fixed_size_pool::allocate(size_t alignment)
 	return payload;
 }
 
-void fixed_size_pool::link_available(arena* target)
+void core::fixed_size_pool::link_available(arena* target)
 {
 	target->prev_available = nullptr;
 	target->next_available = available_head;
@@ -176,7 +176,7 @@ void fixed_size_pool::link_available(arena* target)
 	available_head = target;
 }
 
-void fixed_size_pool::unlink_available(arena* target)
+void core::fixed_size_pool::unlink_available(arena* target)
 {
 	if (target->prev_available)
 		target->prev_available->next_available = target->next_available;
@@ -189,7 +189,7 @@ void fixed_size_pool::unlink_available(arena* target)
 	target->prev_available = nullptr;
 }
 
-void fixed_size_pool::release_arena_if_redundant(arena* target)
+void core::fixed_size_pool::release_arena_if_redundant(arena* target)
 {
 	if (target->used_count != 0)
 		return;
@@ -213,7 +213,7 @@ void fixed_size_pool::release_arena_if_redundant(arena* target)
 	VirtualFree(target, 0, MEM_RELEASE);
 }
 
-void fixed_size_pool::deallocate(void* payload)
+void core::fixed_size_pool::deallocate(void* payload)
 {
 	uint8_t* piece = static_cast<uint8_t*>(payload) - piece_header_size;
 	piece_header* header = reinterpret_cast<piece_header*>(piece);
@@ -249,7 +249,7 @@ void fixed_size_pool::deallocate(void* payload)
 	release_arena_if_redundant(target);
 }
 
-bool fixed_size_pool::validate_placement(void* payload, size_t size) const
+bool core::fixed_size_pool::validate_placement(void* payload, size_t size) const
 {
 	const uint8_t* piece = static_cast<const uint8_t*>(payload) - piece_header_size;
 	const piece_header* header = reinterpret_cast<const piece_header*>(piece);
@@ -270,7 +270,7 @@ bool fixed_size_pool::validate_placement(void* payload, size_t size) const
 	return target->stride - piece_header_size >= size;
 }
 
-fixed_size_pool::usage fixed_size_pool::get_usage() const
+core::fixed_size_pool::usage core::fixed_size_pool::get_usage() const
 {
 	srw_exclusive_lock scoped_lock(lock);
 

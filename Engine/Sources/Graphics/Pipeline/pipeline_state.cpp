@@ -244,12 +244,12 @@ pipeline_state_base::~pipeline_state_base()
 
 bool pipeline_state_base::is_flag(flags flag) const
 {
-	return system_utility::is_bitflag(system_flags, 1 << static_cast<UINT>(flag));
+	return core::is_bitflag(system_flags, 1 << static_cast<UINT>(flag));
 }
 
 void pipeline_state_base::set_flag(flags flag, bool value)
 {
-	system_utility::set_bitflag(system_flags, 1 << static_cast<UINT>(flag), value);
+	core::set_bitflag(system_flags, 1 << static_cast<UINT>(flag), value);
 }
 
 void pipeline_state_base::set_name(std::string_view name)
@@ -324,13 +324,13 @@ void pipeline_state_base::generate_input_resource_desc(input_resource_desc& out_
 				cbv_desc.total_size = sb_desc.Size;
 
 				//	ÉtÉâÉOóﬁê›íË
-				system_utility::set_bitflag(cbv_desc.flags, view_flags::packing, system_utility::is_bitflag(input_bind_desc.uFlags, D3D_SIF_USERPACKED));
-				system_utility::set_bitflag(cbv_desc.flags, view_flags::comparison_sampler, system_utility::is_bitflag(input_bind_desc.uFlags, D3D_SIF_COMPARISON_SAMPLER));
-				system_utility::set_bitflag(cbv_desc.flags, view_flags::texture_component_0, system_utility::is_bitflag(input_bind_desc.uFlags, D3D_SIF_TEXTURE_COMPONENT_0));
-				system_utility::set_bitflag(cbv_desc.flags, view_flags::texture_component_1, system_utility::is_bitflag(input_bind_desc.uFlags, D3D_SIF_TEXTURE_COMPONENT_1));
-				system_utility::set_bitflag(cbv_desc.flags, view_flags::texture_components, system_utility::is_bitflag(input_bind_desc.uFlags, D3D_SIF_TEXTURE_COMPONENTS));
+				core::set_bitflag(cbv_desc.flags, view_flags::packing, core::is_bitflag(input_bind_desc.uFlags, D3D_SIF_USERPACKED));
+				core::set_bitflag(cbv_desc.flags, view_flags::comparison_sampler, core::is_bitflag(input_bind_desc.uFlags, D3D_SIF_COMPARISON_SAMPLER));
+				core::set_bitflag(cbv_desc.flags, view_flags::texture_component_0, core::is_bitflag(input_bind_desc.uFlags, D3D_SIF_TEXTURE_COMPONENT_0));
+				core::set_bitflag(cbv_desc.flags, view_flags::texture_component_1, core::is_bitflag(input_bind_desc.uFlags, D3D_SIF_TEXTURE_COMPONENT_1));
+				core::set_bitflag(cbv_desc.flags, view_flags::texture_components, core::is_bitflag(input_bind_desc.uFlags, D3D_SIF_TEXTURE_COMPONENTS));
 
-				system_utility::set_bitflag(cbv_desc.cbv_flags, cbv_flags::user_packed, system_utility::is_bitflag(sb_desc.uFlags, D3D_CBF_USERPACKED));
+				core::set_bitflag(cbv_desc.cbv_flags, cbv_flags::user_packed, core::is_bitflag(sb_desc.uFlags, D3D_CBF_USERPACKED));
 
 				//	ÉÅÉìÉoïœêîéÊìæ
 				for (UINT variable_index = 0; variable_index < sb_desc.Variables; ++variable_index)
@@ -436,11 +436,11 @@ void pipeline_state_base::generate_input_resource_desc(input_resource_desc& out_
 					rv_desc.name = name;
 					rv_desc.register_index = input_bind_desc.BindPoint;
 					rv_desc.array_size = input_bind_desc.BindCount;
-					system_utility::set_bitflag(rv_desc.flags, view_flags::packing, system_utility::is_bitflag(input_bind_desc.uFlags, D3D_SIF_USERPACKED));
-					system_utility::set_bitflag(rv_desc.flags, view_flags::comparison_sampler, system_utility::is_bitflag(input_bind_desc.uFlags, D3D_SIF_COMPARISON_SAMPLER));
-					system_utility::set_bitflag(rv_desc.flags, view_flags::texture_component_0, system_utility::is_bitflag(input_bind_desc.uFlags, D3D_SIF_TEXTURE_COMPONENT_0));
-					system_utility::set_bitflag(rv_desc.flags, view_flags::texture_component_1, system_utility::is_bitflag(input_bind_desc.uFlags, D3D_SIF_TEXTURE_COMPONENT_1));
-					system_utility::set_bitflag(rv_desc.flags, view_flags::texture_components, system_utility::is_bitflag(input_bind_desc.uFlags, D3D_SIF_TEXTURE_COMPONENTS));
+					core::set_bitflag(rv_desc.flags, view_flags::packing, core::is_bitflag(input_bind_desc.uFlags, D3D_SIF_USERPACKED));
+					core::set_bitflag(rv_desc.flags, view_flags::comparison_sampler, core::is_bitflag(input_bind_desc.uFlags, D3D_SIF_COMPARISON_SAMPLER));
+					core::set_bitflag(rv_desc.flags, view_flags::texture_component_0, core::is_bitflag(input_bind_desc.uFlags, D3D_SIF_TEXTURE_COMPONENT_0));
+					core::set_bitflag(rv_desc.flags, view_flags::texture_component_1, core::is_bitflag(input_bind_desc.uFlags, D3D_SIF_TEXTURE_COMPONENT_1));
+					core::set_bitflag(rv_desc.flags, view_flags::texture_components, core::is_bitflag(input_bind_desc.uFlags, D3D_SIF_TEXTURE_COMPONENTS));
 					rv_desc.type = convert_variable_type_from_shader_input_bind_desc(input_bind_desc);
 					out_data.rvs.emplace_back(rv_desc);
 				}

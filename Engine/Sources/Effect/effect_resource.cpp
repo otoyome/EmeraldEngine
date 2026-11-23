@@ -171,7 +171,7 @@ bool effect_resource::save_file(std::string_view file_path)
 		}
 		catch (...)
 		{
-			DEBUG_LOG_CATEGORY(logger::categorys::model, "effect_resource serialize failed[%s]", file_path.data());
+			DEBUG_LOG_CATEGORY(core::logger::categorys::model, "effect_resource serialize failed[%s]", file_path.data());
 			return false;
 		}
 	}
@@ -179,7 +179,7 @@ bool effect_resource::save_file(std::string_view file_path)
 	if (!resource::write_asset_file(*this, resource::asset_types::effect, file_path, buffer_stream.str()))
 		return false;
 
-	DEBUG_LOG_CATEGORY(logger::categorys::model, "effect_resource serialize successed[%s]", file_path.data());
+	DEBUG_LOG_CATEGORY(core::logger::categorys::model, "effect_resource serialize successed[%s]", file_path.data());
 	return true;
 }
 
@@ -204,13 +204,13 @@ bool effect_resource::load_file(std::string_view file_path)
 	}
 	catch (...)
 	{
-		DEBUG_ERROR_CATEGORY(logger::categorys::model, "effect_resource deserialize failed[%s]", file_path.data());
+		DEBUG_ERROR_CATEGORY(core::logger::categorys::model, "effect_resource deserialize failed[%s]", file_path.data());
 		return false;
 	}
 
 	inherit_uuid(header.uuid);
 	set_file_path(file_path);
-	DEBUG_LOG_CATEGORY(logger::categorys::model, "effect_resource deserialize successed[%s]", file_path.data());
+	DEBUG_LOG_CATEGORY(core::logger::categorys::model, "effect_resource deserialize successed[%s]", file_path.data());
 	return true;
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -323,7 +323,7 @@ namespace resource
 		{
 			if (!material->is_missing() && !resource_manager::instance()->save(material))
 			{
-				DEBUG_LOG_CATEGORY(logger::categorys::model, "effect_resource material save failed[%s][%s]", file_path.data(), material->get_name().data());
+				DEBUG_LOG_CATEGORY(core::logger::categorys::model, "effect_resource material save failed[%s][%s]", file_path.data(), material->get_name().data());
 				return false;
 			}
 		}

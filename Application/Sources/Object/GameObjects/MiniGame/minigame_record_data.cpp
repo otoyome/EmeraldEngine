@@ -46,13 +46,13 @@ minigame_record_data::minigame_record_data()
 		}
 		catch (...)
 		{
-			DEBUG_LOG_CATEGORY(logger::categorys::system, "Load Failed MinigameRecord[%s]", file_path.data());
+			DEBUG_LOG_CATEGORY(core::logger::categorys::system, "Load Failed MinigameRecord[%s]", file_path.data());
 			return;
 		}
-		DEBUG_LOG_CATEGORY(logger::categorys::system, "Load Succeeded MinigameRecord[%s]", file_path.data());
+		DEBUG_LOG_CATEGORY(core::logger::categorys::system, "Load Succeeded MinigameRecord[%s]", file_path.data());
 		return;
 	}
-	DEBUG_LOG_CATEGORY(logger::categorys::system, "Open Failed MinigameRecord[%s]", file_path.data());
+	DEBUG_LOG_CATEGORY(core::logger::categorys::system, "Open Failed MinigameRecord[%s]", file_path.data());
 }
 
 minigame_record_data::~minigame_record_data()
@@ -75,11 +75,11 @@ void minigame_record_data::save()
 		}
 		catch (...)
 		{
-			DEBUG_LOG_CATEGORY(logger::categorys::system, "Save Failed MinigameRecord[%s]", file_path.data());
+			DEBUG_LOG_CATEGORY(core::logger::categorys::system, "Save Failed MinigameRecord[%s]", file_path.data());
 			return;
 		}
-		DEBUG_LOG_CATEGORY(logger::categorys::system, "Save Succeeded MinigameRecord[%s]", file_path.data());
+		DEBUG_LOG_CATEGORY(core::logger::categorys::system, "Save Succeeded MinigameRecord[%s]", file_path.data());
 		return;
 	}
-	DEBUG_LOG_CATEGORY(logger::categorys::system, "Open Failed MinigameRecord[%s]", file_path.data());
+	DEBUG_LOG_CATEGORY(core::logger::categorys::system, "Open Failed MinigameRecord[%s]", file_path.data());
 }

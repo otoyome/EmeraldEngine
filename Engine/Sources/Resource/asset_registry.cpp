@@ -8,7 +8,7 @@
 
 #include "Resource/resource_base.h"
 #include "Resource/resource_manager.h"
-#include "system/logger.h"
+#include "Core/logger.h"
 
 asset_registry::asset_registry()
 {
@@ -60,7 +60,7 @@ void asset_registry::scan(const std::vector<std::string_view>& directories)
 			auto previous_it = previous.find(asset.uuid);
 			if (previous_it != previous.end() && previous_it->second != resource_manager::make_path_key(asset.path))
 			{
-				DEBUG_LOG_CATEGORY(logger::categorys::system, "asset_registry moved[%s]", asset.path.c_str());
+				DEBUG_LOG_CATEGORY(core::logger::categorys::system, "asset_registry moved[%s]", asset.path.c_str());
 				++moved_count;
 			}
 			register_asset_core(asset.uuid, asset.type, asset.path);
@@ -71,15 +71,15 @@ void asset_registry::scan(const std::vector<std::string_view>& directories)
 		const core::uuid new_uuid = core::uuid::generate();
 		if (!resource::rewrite_asset_header_uuid(std::filesystem::path(asset.path), new_uuid))
 		{
-			DEBUG_ERROR_CATEGORY(logger::categorys::system, "asset_registry uuid rewrite failed[%s]", asset.path.c_str());
+			DEBUG_ERROR_CATEGORY(core::logger::categorys::system, "asset_registry uuid rewrite failed[%s]", asset.path.c_str());
 			continue;
 		}
-		DEBUG_WARNING_CATEGORY(logger::categorys::system, "asset_registry duplicated uuid[%s] -> %s", asset.path.c_str(), new_uuid.to_string().c_str());
+		DEBUG_WARNING_CATEGORY(core::logger::categorys::system, "asset_registry duplicated uuid[%s] -> %s", asset.path.c_str(), new_uuid.to_string().c_str());
 		register_asset_core(new_uuid, asset.type, asset.path);
 		++duplicated_count;
 	}
 
-	DEBUG_LOG_CATEGORY(logger::categorys::system, "asset_registry scan assets:%zu duplicated:%zu moved:%zu", entries.size(), duplicated_count, moved_count);
+	DEBUG_LOG_CATEGORY(core::logger::categorys::system, "asset_registry scan assets:%zu duplicated:%zu moved:%zu", entries.size(), duplicated_count, moved_count);
 	save_table_locked();
 }
 
@@ -154,7 +154,7 @@ void asset_registry::save_table_locked() const
 	std::ofstream stream(std::string(previous_table_path), std::ios::binary | std::ios::trunc);
 	if (!stream)
 	{
-		DEBUG_WARNING_CATEGORY(logger::categorys::system, "asset_registry table save failed[%s]", std::string(previous_table_path).c_str());
+		DEBUG_WARNING_CATEGORY(core::logger::categorys::system, "asset_registry table save failed[%s]", std::string(previous_table_path).c_str());
 		return;
 	}
 	for (const auto& [path, uuid] : lines)
@@ -284,7 +284,7 @@ void asset_registry::imgui_render()
 	ImGui::Text("assets : %zu", entries.size());
 	for (const auto& [uuid, value] : entries)
 	{
-		const std::string utf8_path(system_utility::convert_utf8(value.path));
+		const std::string utf8_path(core::convert_utf8(value.path));
 		if (!filter.PassFilter(utf8_path.c_str()))
 			continue;
 		ImGui::Text("%s  %s  %s", uuid.to_string().c_str(), magic_enum::enum_name(value.type).data(), utf8_path.c_str());

@@ -122,7 +122,7 @@ void occlusion_culling_system::update(graphics_context& context, hiz_buffer& hiz
 		instance_aabb_cpu a{};
 		a.bmin = bd.bounds_min;
 		a.bmax = bd.bounds_max;
-		a.testable = system_utility::is_bitflag(bd.system_flags, mesh_draw_item::flags::culling) ? 1.0f : 0.0f;
+		a.testable = core::is_bitflag(bd.system_flags, mesh_draw_item::flags::culling) ? 1.0f : 0.0f;
 		aabbs.emplace_back(a);
 		unique_ids.emplace_back(bd.unique_id);
 	}

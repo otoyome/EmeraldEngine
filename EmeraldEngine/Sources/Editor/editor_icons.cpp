@@ -97,7 +97,7 @@ void editor_icons::load_textures()
 			settings.format = texture_import_settings::gpu_formats::uncompressed;
 			settings.generate_mipmaps = true;
 			if (!texture_importer::instance()->import(png_path, settings))
-				DEBUG_ERROR_CATEGORY(logger::categorys::system, "editor_icons import failed[%s]", png_path.c_str());
+				DEBUG_ERROR_CATEGORY(core::logger::categorys::system, "editor_icons import failed[%s]", png_path.c_str());
 		}
 		if (!std::filesystem::exists(etx_path, error))
 			return nullptr;

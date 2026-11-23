@@ -195,8 +195,8 @@ namespace
 		desc.compile_flags = 0;
 		desc.source_text = std::move(source_text);
 #if defined(_DEBUG)
-		system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
-		system_utility::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
+		core::set_bitflag(desc.compile_flags, shader_compile_flags::disable_optimize, true);
+		core::set_bitflag(desc.compile_flags, shader_compile_flags::debug, true);
 #endif	//	defined(_DEBUG)
 		desc.defines.emplace_back(pass_template.pass_define, "1");
 		desc.defines.emplace_back(stage_define, "1");
@@ -346,7 +346,7 @@ material_shader_map::entry* material_shader_map::find_entry(std::string_view sha
 		//	1つのマテリアルシェーダーは1つのドメインでしか使えない
 		if (it->second->domain != domain)
 		{
-			DEBUG_ERROR_CATEGORY(logger::categorys::shader, "material_shader_map domain mismatch [%s]", key.data());
+			DEBUG_ERROR_CATEGORY(core::logger::categorys::shader, "material_shader_map domain mismatch [%s]", key.data());
 			return nullptr;
 		}
 
@@ -376,7 +376,7 @@ material_shader_map::entry* material_shader_map::find_entry(std::string_view sha
 
 	if (error)
 	{
-		DEBUG_ERROR_CATEGORY(logger::categorys::shader, "material_shader_map file not found [%s]", key.data());
+		DEBUG_ERROR_CATEGORY(core::logger::categorys::shader, "material_shader_map file not found [%s]", key.data());
 		return nullptr;
 	}
 
@@ -396,7 +396,7 @@ void material_shader_map::parse_declaration(const std::string& shader_path, doma
 	if (!stream)
 	{
 		out.error = "file not found";
-		DEBUG_ERROR_CATEGORY(logger::categorys::shader, "material_shader_map file not found [%s]", shader_path.data());
+		DEBUG_ERROR_CATEGORY(core::logger::categorys::shader, "material_shader_map file not found [%s]", shader_path.data());
 		return;
 	}
 	const std::string source_text((std::istreambuf_iterator<char>(stream)), std::istreambuf_iterator<char>());
@@ -447,7 +447,7 @@ void material_shader_map::parse_declaration(const std::string& shader_path, doma
 
 	if (!out.error.empty())
 	{
-		DEBUG_ERROR_CATEGORY(logger::categorys::shader, "material_shader_map declaration error [%s]\n%s", shader_path.data(), out.error.data());
+		DEBUG_ERROR_CATEGORY(core::logger::categorys::shader, "material_shader_map declaration error [%s]\n%s", shader_path.data(), out.error.data());
 	}
 }
 
@@ -515,7 +515,7 @@ graphics_pipeline_state_ptr material_shader_map::get_pipeline_state(const reques
 	pipeline_state->set_domain(request.domain);
 	pipeline_state->set_flag(pipeline_state_base::flags::hidden, true);
 
-	const bool use_hook_geometry = system_utility::is_bitflag(shader_declaration.geometry_passes, to_bit(pass_index));
+	const bool use_hook_geometry = core::is_bitflag(shader_declaration.geometry_passes, to_bit(pass_index));
 
 	bool result = true;
 
@@ -537,7 +537,7 @@ graphics_pipeline_state_ptr material_shader_map::get_pipeline_state(const reques
 
 	if (!result)
 	{
-		DEBUG_ERROR_CATEGORY(logger::categorys::shader, "material_shader_map compile failed [%s]", name.data());
+		DEBUG_ERROR_CATEGORY(core::logger::categorys::shader, "material_shader_map compile failed [%s]", name.data());
 	}
 
 	target->pipeline_states.emplace(key, pipeline_state);
@@ -638,20 +638,20 @@ std::string material_shader_map::create_shader_file(domains domain, std::string_
 	std::error_code error;
 	if (std::filesystem::exists(destination, error))
 	{
-		DEBUG_WARNING_CATEGORY(logger::categorys::shader, "material_shader_map create shader already exists[%s]", destination.string().c_str());
+		DEBUG_WARNING_CATEGORY(core::logger::categorys::shader, "material_shader_map create shader already exists[%s]", destination.string().c_str());
 		return {};
 	}
 
 	std::filesystem::copy_file(std::filesystem::path(std::string(source_path)), destination, error);
 	if (error)
 	{
-		DEBUG_ERROR_CATEGORY(logger::categorys::shader, "material_shader_map create shader failed[%s] -> [%s] %s", std::string(source_path).c_str(), destination.string().c_str(), error.message().c_str());
+		DEBUG_ERROR_CATEGORY(core::logger::categorys::shader, "material_shader_map create shader failed[%s] -> [%s] %s", std::string(source_path).c_str(), destination.string().c_str(), error.message().c_str());
 		return {};
 	}
 
 	std::string path = destination.string();
 	std::replace(path.begin(), path.end(), '\\', '/');
-	DEBUG_LOG_CATEGORY(logger::categorys::shader, "material_shader_map created shader[%s]", path.c_str());
+	DEBUG_LOG_CATEGORY(core::logger::categorys::shader, "material_shader_map created shader[%s]", path.c_str());
 	return path;
 }
 #endif	//	defined(USE_IMGUI)

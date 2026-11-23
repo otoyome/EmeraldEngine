@@ -9,7 +9,7 @@
 #include "Texture/texture_resource_utility.h"
 #include "Resource/asset_file_header.h"
 #include "Resource/asset_registry.h"
-#include "system/logger.h"
+#include "Core/logger.h"
 #include "DirectXTex.h"
 
 namespace
@@ -27,7 +27,7 @@ namespace
 	}
 }
 
-std::shared_ptr<texture> asset_thumbnail_cache::load(const cache_string& asset_path)
+std::shared_ptr<texture> asset_thumbnail_cache::load(const core::cache_string& asset_path)
 {
 	if (!is_supported(asset_path))
 		return nullptr;
@@ -38,7 +38,7 @@ std::shared_ptr<texture> asset_thumbnail_cache::load(const cache_string& asset_p
 
 	const std::filesystem::path cache_path = make_cache_path(uuid);
 	std::error_code error;
-	const auto asset_time = std::filesystem::last_write_time(std::filesystem::path(asset_path.get<utf16_cache>()), error);
+	const auto asset_time = std::filesystem::last_write_time(std::filesystem::path(asset_path.get<core::utf16_cache>()), error);
 	if (error)
 		return nullptr;
 
@@ -54,23 +54,23 @@ std::shared_ptr<texture> asset_thumbnail_cache::load(const cache_string& asset_p
 	DirectX::ScratchImage thumbnail;
 	if (!read_source(asset_path, source) || !make_thumbnail(source, thumbnail))
 	{
-		DEBUG_WARNING_CATEGORY(logger::categorys::system, "asset_thumbnail_cache create failed[%s]", asset_path.c_str());
+		DEBUG_WARNING_CATEGORY(core::logger::categorys::system, "asset_thumbnail_cache create failed[%s]", asset_path.c_str());
 		return nullptr;
 	}
 
 	std::filesystem::create_directories(cache_path.parent_path(), error);
 	if (FAILED(DirectX::SaveToDDSFile(*thumbnail.GetImage(0, 0, 0), DirectX::DDS_FLAGS_NONE, cache_path.c_str())))
-		DEBUG_WARNING_CATEGORY(logger::categorys::system, "asset_thumbnail_cache save failed[%s]", asset_path.c_str());
+		DEBUG_WARNING_CATEGORY(core::logger::categorys::system, "asset_thumbnail_cache save failed[%s]", asset_path.c_str());
 
 	return texture_factory::create_from_image(thumbnail);
 }
 
-bool asset_thumbnail_cache::is_supported(const cache_string& asset_path)
+bool asset_thumbnail_cache::is_supported(const core::cache_string& asset_path)
 {
-	return resource::get_asset_type_from_extension(asset_path.get<extension_cache>()) == resource::asset_types::texture;
+	return resource::get_asset_type_from_extension(asset_path.get<core::extension_cache>()) == resource::asset_types::texture;
 }
 
-core::uuid asset_thumbnail_cache::find_uuid(const cache_string& asset_path)
+core::uuid asset_thumbnail_cache::find_uuid(const core::cache_string& asset_path)
 {
 	if (asset_registry::is_valid())
 	{
@@ -80,7 +80,7 @@ core::uuid asset_thumbnail_cache::find_uuid(const cache_string& asset_path)
 	}
 
 	resource::asset_file_header header;
-	if (resource::read_asset_header(std::filesystem::path(asset_path.get<utf16_cache>()), header))
+	if (resource::read_asset_header(std::filesystem::path(asset_path.get<core::utf16_cache>()), header))
 		return header.uuid;
 	return {};
 }
@@ -90,9 +90,9 @@ std::filesystem::path asset_thumbnail_cache::make_cache_path(const core::uuid& u
 	return std::filesystem::path(cache_directory) / (uuid.to_string() + ".dds");
 }
 
-bool asset_thumbnail_cache::read_source(const cache_string& asset_path, DirectX::ScratchImage& out_image)
+bool asset_thumbnail_cache::read_source(const core::cache_string& asset_path, DirectX::ScratchImage& out_image)
 {
-	switch (resource::get_asset_type_from_extension(asset_path.get<extension_cache>()))
+	switch (resource::get_asset_type_from_extension(asset_path.get<core::extension_cache>()))
 	{
 		case resource::asset_types::texture:
 			return texture_resource_utility::read_image(asset_path.view(), out_image);

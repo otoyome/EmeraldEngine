@@ -105,9 +105,9 @@ collision_world::collision_world()
 
 collision_world::~collision_world()
 {
-	system_utility::std_vector_swap_clear(collision_objects);
-	system_utility::std_vector_swap_clear(collision_objects_add);
-	system_utility::std_vector_swap_clear(collision_objects_remove);
+	core::std_vector_swap_clear(collision_objects);
+	core::std_vector_swap_clear(collision_objects_add);
+	core::std_vector_swap_clear(collision_objects_remove);
 }
 
 void collision_world::inner_step_simulation(float elapsed_time)
@@ -537,7 +537,7 @@ void collision_world::add_objects()
 	{
 		collision_objects.emplace_back(object);
 	}
-	system_utility::std_vector_swap_clear(collision_objects_add);
+	core::std_vector_swap_clear(collision_objects_add);
 }
 
 void collision_world::remove_objects()
@@ -550,5 +550,5 @@ void collision_world::remove_objects()
 			collision_objects.erase(it);
 		}
 	}
-	system_utility::std_vector_swap_clear(collision_objects_remove);
+	core::std_vector_swap_clear(collision_objects_remove);
 }

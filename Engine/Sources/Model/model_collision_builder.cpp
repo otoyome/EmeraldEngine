@@ -179,23 +179,23 @@ bool collision::create_cubic_sdf(cubic_sdf& out_sdf, model_resource_ptr resource
 {
 	if (!resource)
 	{
-		DEBUG_ERROR_CATEGORY(logger::categorys::model, "create_cubic_sdf failed : resource is null");
+		DEBUG_ERROR_CATEGORY(core::logger::categorys::model, "create_cubic_sdf failed : resource is null");
 		return false;
 	}
 
 	bounding_mesh mesh;
 	if (!generate_bounding_mesh(mesh, resource, index, mesh_data))
 	{
-		DEBUG_ERROR_CATEGORY(logger::categorys::model, "create_cubic_sdf failed : generate_bounding_mesh failed");
+		DEBUG_ERROR_CATEGORY(core::logger::categorys::model, "create_cubic_sdf failed : generate_bounding_mesh failed");
 		return false;
 	}
 
 	if (!create_cubic_sdf(out_sdf, mesh, resolution, bounds_padding_rate))
 	{
-		DEBUG_ERROR_CATEGORY(logger::categorys::model, "create_cubic_sdf failed : mesh empty or resolution is 0");
+		DEBUG_ERROR_CATEGORY(core::logger::categorys::model, "create_cubic_sdf failed : mesh empty or resolution is 0");
 		return false;
 	}
-	DEBUG_LOG_CATEGORY(logger::categorys::model, "create_cubic_sdf successed[resolution=%u, triangle_count=%zu]",
+	DEBUG_LOG_CATEGORY(core::logger::categorys::model, "create_cubic_sdf successed[resolution=%u, triangle_count=%zu]",
 		resolution, mesh.get_triangles().size());
 	return true;
 }

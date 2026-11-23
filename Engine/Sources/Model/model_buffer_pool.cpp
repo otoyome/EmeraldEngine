@@ -160,32 +160,32 @@ model_buffer_pool_manager::vertex_pool& model_buffer_pool_manager::get_vertex_po
 UINT model_buffer_pool_manager::allocate_vertices(vertex_pool& pool, UINT vertex_count)
 {
 	UINT base_vertex = pool.allocator.allocate(vertex_count);
-	if (base_vertex == variable_position_allocator::allocate_failed_code)
+	if (base_vertex == core::variable_position_allocator::allocate_failed_code)
 	{
 		UINT growth = pool.capacity > vertex_count ? pool.capacity : vertex_count;
 		if (!pool.allocator.grow(growth))
 		{
 			_ASSERT_EXPR(false, L"model_buffer_pool_manager: failed to grow vertex pool allocator");
-			return variable_position_allocator::allocate_failed_code;
+			return core::variable_position_allocator::allocate_failed_code;
 		}
 		pool.capacity += growth;
 		pool.buffer->grow(pool.capacity * pool.buffer->get_stride_in_bytes());
 		base_vertex = pool.allocator.allocate(vertex_count);
 	}
-	_ASSERT_EXPR(base_vertex != variable_position_allocator::allocate_failed_code, L"model_buffer_pool_manager allocate failed");
+	_ASSERT_EXPR(base_vertex != core::variable_position_allocator::allocate_failed_code, L"model_buffer_pool_manager allocate failed");
 	return base_vertex;
 }
 
 UINT model_buffer_pool_manager::allocate_meshlet_vertices(UINT count)
 {
 	UINT base = meshlet_vertex_allocator.allocate(count);
-	if (base == variable_position_allocator::allocate_failed_code)
+	if (base == core::variable_position_allocator::allocate_failed_code)
 	{
 		UINT growth = meshlet_vertex_capacity_current > count ? meshlet_vertex_capacity_current : count;
 		grow_meshlet_vertex_capacity(growth);
 		base = meshlet_vertex_allocator.allocate(count);
 	}
-	_ASSERT_EXPR(base != variable_position_allocator::allocate_failed_code, L"model_buffer_pool_manager allocate failed");
+	_ASSERT_EXPR(base != core::variable_position_allocator::allocate_failed_code, L"model_buffer_pool_manager allocate failed");
 	return base;
 }
 
@@ -197,13 +197,13 @@ void model_buffer_pool_manager::free_meshlet_vertices(UINT base)
 UINT model_buffer_pool_manager::allocate_meshlet_triangles(UINT count)
 {
 	UINT base = meshlet_triangle_allocator.allocate(count);
-	if (base == variable_position_allocator::allocate_failed_code)
+	if (base == core::variable_position_allocator::allocate_failed_code)
 	{
 		UINT growth = meshlet_triangle_capacity_current > count ? meshlet_triangle_capacity_current : count;
 		grow_meshlet_triangle_capacity(growth);
 		base = meshlet_triangle_allocator.allocate(count);
 	}
-	_ASSERT_EXPR(base != variable_position_allocator::allocate_failed_code, L"model_buffer_pool_manager allocate failed");
+	_ASSERT_EXPR(base != core::variable_position_allocator::allocate_failed_code, L"model_buffer_pool_manager allocate failed");
 	return base;
 }
 
@@ -248,7 +248,7 @@ void model_buffer_pool_manager::build_vertex_buffers(std::unordered_map<semantic
 		_ASSERT_EXPR(pool.buffer->get_stride_in_bytes() == stride_in_bytes, L"model_buffer_pool_manager: stride mismatch in the same semantic");
 
 		UINT base_vertex = allocate_vertices(pool, static_cast<UINT>(view.second.count()));
-		if (base_vertex == variable_position_allocator::allocate_failed_code)
+		if (base_vertex == core::variable_position_allocator::allocate_failed_code)
 			continue;
 
 		view.second.offset_in_bytes = static_cast<size_t>(base_vertex) * stride_in_bytes;

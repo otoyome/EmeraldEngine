@@ -27,9 +27,9 @@ namespace
 		}
 		else if (auto value = dynamic_cast<console_variable<std::string>*>(&variable))
 		{
-			std::string utf8 = system_utility::convert_shift_jis_to_utf8(value->get());
+			std::string utf8 = core::convert_shift_jis_to_utf8(value->get());
 			if (ImGui::InputText("##value", utf8, ImGuiInputTextFlags_EnterReturnsTrue))
-				value->set(system_utility::convert_utf8_to_shift_jis(utf8));
+				value->set(core::convert_utf8_to_shift_jis(utf8));
 		}
 		else
 		{
@@ -211,7 +211,7 @@ void console_window::render_window(std::shared_ptr<editor_items::context>& /*con
 			{
 				for (int index = clipper.DisplayStart; index < clipper.DisplayEnd; ++index)
 				{
-					const std::string utf8 = system_utility::convert_shift_jis_to_utf8(output[index]);
+					const std::string utf8 = core::convert_shift_jis_to_utf8(output[index]);
 					ImGui::TextUnformatted(utf8.c_str());
 				}
 			}
@@ -244,7 +244,7 @@ void console_window::render_window(std::shared_ptr<editor_items::context>& /*con
 				{
 					if (history.empty() || history.back() != input)
 						history.emplace_back(input);
-					manager.execute(system_utility::convert_utf8_to_shift_jis(input));
+					manager.execute(core::convert_utf8_to_shift_jis(input));
 				}
 				input.clear();
 				history_index = -1;
@@ -295,7 +295,7 @@ void console_window::imgui_render_suggestions(const ImVec2& input_position, floa
 				ImGui::SameLine();
 				const std::string detail = object->is_variable()
 					? static_cast<const console_variable_base*>(object)->to_string()
-					: system_utility::convert_shift_jis_to_utf8(object->get_help());
+					: core::convert_shift_jis_to_utf8(object->get_help());
 				ImGui::TextDisabled("%s", detail.c_str());
 			}
 			ImGui::PopID();
@@ -408,7 +408,7 @@ void console_commands_window::render_window(std::shared_ptr<editor_items::contex
 				ImGui::SetNextItemWidth(-FLT_MIN);
 				const bool entered = ImGui::InputTextWithHint("##args", "args", arguments, ImGuiInputTextFlags_EnterReturnsTrue);
 				if (run || entered)
-					manager.execute(name + " " + system_utility::convert_utf8_to_shift_jis(arguments));
+					manager.execute(name + " " + core::convert_utf8_to_shift_jis(arguments));
 			}
 
 			//	Š„‚è“–‚ÄƒL[
@@ -418,7 +418,7 @@ void console_commands_window::render_window(std::shared_ptr<editor_items::contex
 
 			//	à–¾
 			ImGui::TableSetColumnIndex(3);
-			const std::string help = system_utility::convert_shift_jis_to_utf8(object->get_help());
+			const std::string help = core::convert_shift_jis_to_utf8(object->get_help());
 			ImGui::TextWrapped("%s", help.c_str());
 
 			ImGui::PopID();

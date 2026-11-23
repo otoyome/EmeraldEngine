@@ -1,19 +1,19 @@
-#include "System/logger.h"
+#include "Core/logger.h"
 
 #include <crtdbg.h>
 #include <stdarg.h>
 #include <stdio.h>
 
-logger::logger()
+core::logger::logger()
 : log_max(1024 * 2)
 {
 }
 
-logger::~logger()
+core::logger::~logger()
 {
 }
 
-void logger::print(categorys category, const char* format, ...)
+void core::logger::print(categorys category, const char* format, ...)
 {
 	char message[1024];
 	va_list args;
@@ -28,7 +28,7 @@ void logger::print(categorys category, const char* format, ...)
 	OutputDebugStringA(m.c_str());
 }
 
-void logger::warning(categorys category, const char* format, ...)
+void core::logger::warning(categorys category, const char* format, ...)
 {
 	char message[1024];
 	va_list args;
@@ -43,7 +43,7 @@ void logger::warning(categorys category, const char* format, ...)
 	OutputDebugStringA(m.c_str());
 }
 
-void logger::error(categorys category, const char* format, ...)
+void core::logger::error(categorys category, const char* format, ...)
 {
 	char message[1024];
 	va_list args;
@@ -57,7 +57,7 @@ void logger::error(categorys category, const char* format, ...)
 	OutputDebugStringA(m.c_str());
 }
 
-std::vector<const char*> logger::get_category_texts()
+std::vector<const char*> core::logger::get_category_texts()
 {
 	std::vector<const char*> texts;
 	for (auto category : magic_enum::enum_values<categorys>())
@@ -70,7 +70,7 @@ std::vector<const char*> logger::get_category_texts()
 	return texts;
 }
 
-std::vector<const char*> logger::get_levels_texts()
+std::vector<const char*> core::logger::get_levels_texts()
 {
 	std::vector<const char*> texts;
 	for (auto level : magic_enum::enum_values<levels>())
@@ -83,13 +83,13 @@ std::vector<const char*> logger::get_levels_texts()
 	return texts;
 }
 
-void logger::clear()
+void core::logger::clear()
 {
 	std::lock_guard<std::mutex> lock(critical_section);
 	logs.clear();
 }
 
-void logger::register_log(categorys category, levels level, const char* text)
+void core::logger::register_log(categorys category, levels level, const char* text)
 {
 	std::lock_guard<std::mutex> lock(critical_section);
 	logs.emplace_back(category, level, text);

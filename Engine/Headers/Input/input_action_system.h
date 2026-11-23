@@ -1,7 +1,7 @@
 #pragma once
 
 #include "input_layer.h"
-#include "System/signals.h"
+#include "Core/signals.h"
 
 namespace input
 {
@@ -36,7 +36,7 @@ namespace input
 		~action_system();
 
 	public:
-		void update(signals::broadcaster& target);
+		void update(core::signals::broadcaster& target);
 
 		void push_layer(const layer& target);
 		void pop_layer(const layer& target);

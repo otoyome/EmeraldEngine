@@ -616,7 +616,7 @@ void edit_particle_system::imgui_render_sdf()
 	for (size_t index = 0; index < edit_sdfs.size(); )
 	{
 		ImGui::PushID(static_cast<int>(index));
-		ImGui::Text(edit_sdfs[index].file_path.get<utf8_cache>().data());
+		ImGui::Text(edit_sdfs[index].file_path.get<core::utf8_cache>().data());
 		ImGui::SameLine();
 		ImGui::Checkbox("Voxels", &edit_sdfs[index].show_voxels);
 		ImGui::SameLine();

@@ -91,7 +91,7 @@ namespace
 		auto operation = resource_manager::instance()->load<scene_set_resource>(path);
 		if (!operation || !operation->is_succeeded())
 		{
-			DEBUG_ERROR_CATEGORY(logger::categorys::system, "game_process startup scene set load failed[%s]", path.c_str());
+			DEBUG_ERROR_CATEGORY(core::logger::categorys::system, "game_process startup scene set load failed[%s]", path.c_str());
 			return {};
 		}
 		return operation->get_resource()->get_scene_paths();

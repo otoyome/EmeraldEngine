@@ -67,7 +67,7 @@ struct light_render_data
 	float pssm_split_weight = 0.0f;
 	light::shadow_map_bias_data bias_data[common_pipeline_states::shadow_map_max];
 
-	bool is_flag(light::flags flag) const { return system_utility::is_bitflag(attribute, 1 << static_cast<UINT>(flag)); }
+	bool is_flag(light::flags flag) const { return core::is_bitflag(attribute, 1 << static_cast<UINT>(flag)); }
 	const light::shadow_map_bias_data& get_shadow_bias(int index) const { return bias_data[math::clamp(index, 0, static_cast<int>(common_pipeline_states::shadow_map_max) - 1)]; }
 };
 
@@ -80,7 +80,7 @@ struct light_probe_render_data
 	texture_ptr specular_ibl_texture;
 	texture_ptr lut_ggx_texture;
 
-	bool is_flag(light_probe::flags flag) const { return system_utility::is_bitflag(attribute, 1 << static_cast<UINT>(flag)); }
+	bool is_flag(light_probe::flags flag) const { return core::is_bitflag(attribute, 1 << static_cast<UINT>(flag)); }
 };
 
 //	ライトコンテナ

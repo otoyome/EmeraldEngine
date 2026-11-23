@@ -9,7 +9,7 @@
 #include "Resource/asset_file_header.h"
 #include "Resource/asset_registry.h"
 #include "Resource/data_compression.h"
-#include "system/logger.h"
+#include "Core/logger.h"
 #include "DirectXTex.h"
 
 #include "cereal/archives/binary.hpp"
@@ -34,14 +34,14 @@ bool texture_resource::load_file(std::string_view file_path)
 	DirectX::ScratchImage image;
 	if (!texture_factory::decode_memory(dds.data(), dds.size(), image))
 	{
-		DEBUG_ERROR_CATEGORY(logger::categorys::system, "texture_resource decode failed[%s]", std::string(file_path).c_str());
+		DEBUG_ERROR_CATEGORY(core::logger::categorys::system, "texture_resource decode failed[%s]", std::string(file_path).c_str());
 		return false;
 	}
 
 	auto created = texture_factory::create_from_image(image);
 	if (!created)
 	{
-		DEBUG_ERROR_CATEGORY(logger::categorys::system, "texture_resource create failed[%s]", std::string(file_path).c_str());
+		DEBUG_ERROR_CATEGORY(core::logger::categorys::system, "texture_resource create failed[%s]", std::string(file_path).c_str());
 		return false;
 	}
 	created->set_sampler_desc(settings.sampler);
@@ -61,7 +61,7 @@ bool texture_resource::save_file(std::string_view file_path, std::string_view dd
 {
 	if (dds.empty())
 	{
-		DEBUG_ERROR_CATEGORY(logger::categorys::system, "texture_resource has no image data[%s]", std::string(file_path).c_str());
+		DEBUG_ERROR_CATEGORY(core::logger::categorys::system, "texture_resource has no image data[%s]", std::string(file_path).c_str());
 		return false;
 	}
 
@@ -73,7 +73,7 @@ bool texture_resource::save_file(std::string_view file_path, std::string_view dd
 	}
 	catch (...)
 	{
-		DEBUG_ERROR_CATEGORY(logger::categorys::system, "texture_resource serialize failed[%s]", std::string(file_path).c_str());
+		DEBUG_ERROR_CATEGORY(core::logger::categorys::system, "texture_resource serialize failed[%s]", std::string(file_path).c_str());
 		return false;
 	}
 
@@ -109,7 +109,7 @@ namespace resource
 	texture_resource_ptr loader<texture_resource>::create_fallback(const asset_reference<texture_resource>& reference)
 	{
 		const std::string path = asset_registry::is_valid() ? asset_registry::instance()->find_path(reference) : std::string();
-		DEBUG_ERROR_CATEGORY(logger::categorys::system, "texture_resource missing[%s][%s]", path.c_str(), reference.uuid.to_string().c_str());
+		DEBUG_ERROR_CATEGORY(core::logger::categorys::system, "texture_resource missing[%s][%s]", path.c_str(), reference.uuid.to_string().c_str());
 
 		auto fallback = std::make_shared<texture_resource>();
 		if (texture_defaults::is_valid())

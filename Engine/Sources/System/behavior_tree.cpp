@@ -1,6 +1,5 @@
 #include "system/behavior_tree.h"
 #include "system/misc.h"
-#include "system/system_utility.h"
 
 #include "system/behaviortree/judgment_interface.h"
 #include "system/behaviortree/action_interface.h"

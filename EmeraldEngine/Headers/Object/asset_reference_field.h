@@ -10,7 +10,6 @@
 #include "Resource/asset_registry.h"
 #include "Resource/asset_file_header.h"
 #include "System/asset_browser.h"
-#include "System/system_utility.h"
 
 //	アセットへの参照をインスペクターで選ぶ
 class asset_reference_field
@@ -21,7 +20,7 @@ public:
 	{
 		bool changed = false;
 		const std::string current_path = reference.is_empty() || !asset_registry::is_valid() ? std::string() : asset_registry::instance()->find_path(reference);
-		const std::string current_label = current_path.empty() ? std::string("(none)") : system_utility::convert_shift_jis_to_utf8(current_path);
+		const std::string current_label = current_path.empty() ? std::string("(none)") : core::convert_shift_jis_to_utf8(current_path);
 		if (ImGui::BeginCombo(label, current_label.c_str()))
 		{
 			if (ImGui::Selectable("(none)", reference.is_empty()))
@@ -33,7 +32,7 @@ public:
 			for (const std::string& path : paths)
 			{
 				const bool selected = path == current_path;
-				if (ImGui::Selectable(system_utility::convert_shift_jis_to_utf8(path).c_str(), selected))
+				if (ImGui::Selectable(core::convert_shift_jis_to_utf8(path).c_str(), selected))
 				{
 					if (set_path(reference, path))
 						changed = true;

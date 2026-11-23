@@ -5,7 +5,7 @@
 #include "Collision/collision.h"
 #include "collision_object.h"
 #include "collision_octree.h"
-#include "system/parallel_for_executor.h"
+#include "Core/parallel_for_executor.h"
 
 using collision_object_ptr = std::shared_ptr<collision_object>;
 
@@ -70,7 +70,7 @@ private:
 	std::vector<collision_object_ptr> collision_objects_add;
 	std::vector<collision_object_ptr> collision_objects_remove;
 	collision_octree broadphase;
-	parallel_for_executor narrow_phase_executor;
+	core::parallel_for_executor narrow_phase_executor;
 
 private:
 	std::vector<std::pair<collision_object*, collision_octree::aabb>> broadphase_entries;

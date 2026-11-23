@@ -27,5 +27,5 @@ public:
 #endif	//	defined(USE_IMGUI)
 
 private:
-	cache_string tag;
+	core::cache_string tag;
 };

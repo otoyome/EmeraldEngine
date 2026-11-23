@@ -1,6 +1,5 @@
 #include "system/finite_state_machine.h"
 #include "system/misc.h"
-#include "system/system_utility.h"
 
 function_finite_state_node::function_finite_state_node(std::string_view name, std::function<void()> on_enter, std::function<void(float)> on_update, std::function<void()> on_exit)
 : finite_state_node_base(name)

@@ -507,14 +507,14 @@ bool animation_resource::serialize(std::string_view file_path)
 		}
 		catch (...)
 		{
-			DEBUG_ERROR_CATEGORY(logger::categorys::animation, "animation_resource serialize failed[%s]", file_path.data());
+			DEBUG_ERROR_CATEGORY(core::logger::categorys::animation, "animation_resource serialize failed[%s]", file_path.data());
 			return false;
 		}
 
-		DEBUG_LOG_CATEGORY(logger::categorys::animation, "animation_resource serialize successed[%s]", file_path.data());
+		DEBUG_LOG_CATEGORY(core::logger::categorys::animation, "animation_resource serialize successed[%s]", file_path.data());
 		return true;
 	}
-	DEBUG_ERROR_CATEGORY(logger::categorys::animation, "animation_resource open failed[%s]", file_path.data());
+	DEBUG_ERROR_CATEGORY(core::logger::categorys::animation, "animation_resource open failed[%s]", file_path.data());
 	return false;
 }
 
@@ -531,15 +531,15 @@ bool animation_resource::deserialize(std::string_view file_path)
 		}
 		catch (...)
 		{
-			DEBUG_ERROR_CATEGORY(logger::categorys::animation, "animation_resource deserialize failed[%s]", file_path.data());
+			DEBUG_ERROR_CATEGORY(core::logger::categorys::animation, "animation_resource deserialize failed[%s]", file_path.data());
 			return false;
 		}
 
 		this->file_path = file_path;
-		DEBUG_LOG_CATEGORY(logger::categorys::animation, "animation_resource deserialize successed[%s]", file_path.data());
+		DEBUG_LOG_CATEGORY(core::logger::categorys::animation, "animation_resource deserialize successed[%s]", file_path.data());
 		return true;
 	}
-	DEBUG_ERROR_CATEGORY(logger::categorys::animation, "animation_resource open failed[%s]", file_path.data());
+	DEBUG_ERROR_CATEGORY(core::logger::categorys::animation, "animation_resource open failed[%s]", file_path.data());
 	return false;
 }
 

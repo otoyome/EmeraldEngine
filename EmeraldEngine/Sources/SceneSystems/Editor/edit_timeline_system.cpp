@@ -816,7 +816,7 @@ void edit_timeline_system::open_timeline(const std::string& file_path)
 void edit_timeline_system::save_timeline()
 {
 	std::string file_path;
-	const std::wstring default_extension = L"." + system_utility::convert_shift_jis_to_utf16(timeline_resource::extension);
+	const std::wstring default_extension = L"." + core::convert_shift_jis_to_utf16(timeline_resource::extension);
 	if (!editor_items::save_file_dialog(TimelineFileDialogFilter, file_path, default_extension.c_str()))
 		return;
 

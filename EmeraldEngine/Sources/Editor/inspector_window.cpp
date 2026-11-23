@@ -30,8 +30,8 @@ void inspector_window::imgui_render(scene_editor& editor)
 			const scene_resource_ptr& resource = editor.get_current_scene_resource();
 			if (resource)
 			{
-				const cache_string path(resource->get_file_path());
-				ImGui::TextUnformatted(scene_resource_utility::make_display_name(path.get<utf8_cache>()).c_str());
+				const core::cache_string path(resource->get_file_path());
+				ImGui::TextUnformatted(scene_resource_utility::make_display_name(path.get<core::utf8_cache>()).c_str());
 				editor.imgui_render_scene_settings(resource);
 			}
 			else

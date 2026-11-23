@@ -32,9 +32,8 @@ enum class object_profile_function
 //	DETAIL_PROFILE_SET_RENDERER_NAME(renderer)						: レンダラーへ表示名(型名)を設定
 
 #if defined(USE_IMGUI)
-#include "System/cpu_timer.h"
+#include "Core/cpu_timer.h"
 #include "Graphics/Debug/gpu_timer.h"
-#include "Core/uuid.h"
 
 class game_object;
 
@@ -174,7 +173,7 @@ private:
 	display_value value_mode = display_value::average;
 	ImGuiTextFilter filter;
 
-	cpu_timer frame_interval_timer;
+	core::cpu_timer frame_interval_timer;
 	bool frame_interval_started = false;
 	history frame_interval;
 
@@ -211,7 +210,7 @@ private:
 	bool active;
 	detail_profiler::category kind;
 	std::string_view name;
-	cpu_timer timer;
+	core::cpu_timer timer;
 };
 
 //	オブジェクト関数計測
@@ -228,7 +227,7 @@ private:
 	bool active;
 	object_profile_function function;
 	const game_object* object;
-	cpu_timer timer;
+	core::cpu_timer timer;
 };
 
 //	描画ジョブ計測
@@ -245,7 +244,7 @@ private:
 	bool active;
 	std::string_view owner;
 	std::string_view name;
-	cpu_timer timer;
+	core::cpu_timer timer;
 };
 
 #define	DETAIL_PROFILE_CONCAT_INNER(a, b)				a##b

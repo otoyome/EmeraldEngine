@@ -24,7 +24,7 @@ framework::framework(app_window& window, const application_desc& desc)
 , desc(desc)
 , hwnd(window.get_handle())
 {
-	logger::create_instance();
+	core::logger::create_instance();
 
 	window.add_message_hook([this](HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 	{
@@ -54,7 +54,7 @@ framework::framework(app_window& window, const application_desc& desc)
 framework::~framework()
 {
 	window.clear_message_hooks();
-	logger::delete_instance();
+	core::logger::delete_instance();
 }
 
 int framework::run()
@@ -67,12 +67,12 @@ int framework::run()
 	}
 
 	//	ウィンドウ名設定
-	SetWindowTextW(hwnd, engine_config_data::instance()->application.name.get<utf16_cache>().c_str());
+	SetWindowTextW(hwnd, engine_config_data::instance()->application.name.get<core::utf16_cache>().c_str());
 
 	//	アイコン設定
-	const cache_string& icon_path = engine_config_data::instance()->application.icon_path;
-	if (!window.set_icon(icon_path.get<utf16_cache>().c_str()))
-		DEBUG_LOG_CATEGORY(logger::categorys::system, "Load Failed Icon[%s]", icon_path.c_str());
+	const core::cache_string& icon_path = engine_config_data::instance()->application.icon_path;
+	if (!window.set_icon(icon_path.get<core::utf16_cache>().c_str()))
+		DEBUG_LOG_CATEGORY(core::logger::categorys::system, "Load Failed Icon[%s]", icon_path.c_str());
 
 	while (WM_QUIT != msg.message)
 	{

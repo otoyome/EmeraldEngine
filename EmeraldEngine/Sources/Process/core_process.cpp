@@ -24,7 +24,7 @@ bool core_process::enter()
 	}
 
 	//	文字コード変換器所持
-	system_utility::initialize_charset_converter();
+	core::initialize_charset_converter();
 
 	//	プロジェクトのルートディレクトリを控える
 	project_path::initialize();
@@ -62,7 +62,7 @@ void core_process::exit()
 	}
 
 	//	文字コード変換器破棄
-	system_utility::uninitialize_charset_converter();
+	core::uninitialize_charset_converter();
 
 	//	COMオブジェクト破棄
 	CoUninitialize();

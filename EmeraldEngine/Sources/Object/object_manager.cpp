@@ -240,17 +240,17 @@ void object_manager::finalize()
 	{
 		object->on_finalize();
 	}
-	system_utility::std_vector_swap_clear(game_objects);
+	core::std_vector_swap_clear(game_objects);
 	for (auto& object : game_object_add)
 	{
 		object->on_finalize();
 	}
-	system_utility::std_vector_swap_clear(game_object_add);
+	core::std_vector_swap_clear(game_object_add);
 	for (auto& object : game_object_removes)
 	{
 		object->on_finalize();
 	}
-	system_utility::std_vector_swap_clear(game_object_removes);
+	core::std_vector_swap_clear(game_object_removes);
 }
 
 #if defined(USE_IMGUI)

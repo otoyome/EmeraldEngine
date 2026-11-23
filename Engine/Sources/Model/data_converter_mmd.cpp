@@ -376,11 +376,11 @@ namespace
 			material.set_alpha_clip_threshold(0.5f);
 			material.set_shading_model(material_resource::shading_models::pmx_lit);
 			material.set_shader_path(ENGINE_SHADER_PATH("Materials/pmx.hlsl"));
-			material.set_flag(material_resource::flags::two_sided, system_utility::is_bitflag(pmx_material.draw_flag, pmx_material_draw_bitflag::cull_both));
-			material.set_flag(material_resource::flags::shadow_caster, system_utility::is_bitflag(pmx_material.draw_flag, pmx_material_draw_bitflag::use_shadow));
-			material.set_flag(material_resource::flags::shadow_receiver, system_utility::is_bitflag(pmx_material.draw_flag, pmx_material_draw_bitflag::use_shadow));
+			material.set_flag(material_resource::flags::two_sided, core::is_bitflag(pmx_material.draw_flag, pmx_material_draw_bitflag::cull_both));
+			material.set_flag(material_resource::flags::shadow_caster, core::is_bitflag(pmx_material.draw_flag, pmx_material_draw_bitflag::use_shadow));
+			material.set_flag(material_resource::flags::shadow_receiver, core::is_bitflag(pmx_material.draw_flag, pmx_material_draw_bitflag::use_shadow));
 
-			if (system_utility::is_bitflag(pmx_material.draw_flag, pmx_material_draw_bitflag::use_edge_line))
+			if (core::is_bitflag(pmx_material.draw_flag, pmx_material_draw_bitflag::use_edge_line))
 			{
 				material.set_float("outline_size", pmx_material.def.edge_size * ScaleFactorForMMDtoEMO);
 			}
@@ -576,7 +576,7 @@ bool data_converter::mmd::convert(animation_resource& resource, const convert_an
 {
 	if (!convert_data.retarget_resource)
 	{
-		DEBUG_LOG_CATEGORY(logger::categorys::animation, "PMX Load NotFound Model");
+		DEBUG_LOG_CATEGORY(core::logger::categorys::animation, "PMX Load NotFound Model");
 		return false;
 	}
 

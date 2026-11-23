@@ -151,7 +151,7 @@ bool editor_items::edit_effect_node_tree(std::shared_ptr<context>& context, engi
 	//	持っている物を名前の後ろに付ける
 	auto make_label = [&](size_t node_index)
 	{
-		std::string label = nodes[node_index].name.get<utf8_cache>();
+		std::string label = nodes[node_index].name.get<core::utf8_cache>();
 		auto has = [node_index](const auto& list)
 		{
 			return std::any_of(list.begin(), list.end(), [node_index](const auto& data) { return data.node_index == node_index; });
@@ -214,7 +214,7 @@ bool editor_items::edit_effect_node_tree(std::shared_ptr<context>& context, engi
 		auto& node = nodes.emplace_back();
 		node.name = std::string("default node") + std::to_string(add_node_index + rand());
 		node.parent_index = add_node_index;
-		const cache_string added_name = node.name;
+		const core::cache_string added_name = node.name;
 		sort_nodes(effect_resource);
 
 		//	追加したノードを選ぶ
@@ -289,12 +289,12 @@ bool editor_items::edit_effect_node_detail(std::shared_ptr<context>& context, en
 	ImGui::PushID(static_cast<int>(node_index));
 
 	//	ノード
-	std::string old_node_name = node.name.get<utf8_cache>();
+	std::string old_node_name = node.name.get<core::utf8_cache>();
 	std::string node_name = old_node_name;
 	ImGui::InputText("name", node_name);
 	if (ImGui::IsItemDeactivatedAfterEdit() && node_name != old_node_name)
 	{
-		node.name = system_utility::convert_shift_jis(node_name);
+		node.name = core::convert_shift_jis(node_name);
 		renamed_nodes.emplace_back(old_node_name, node.name);
 		edit_flag = true;
 	}

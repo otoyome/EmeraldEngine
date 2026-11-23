@@ -187,7 +187,7 @@ bool spatial_object::set_mobility(mobilities value)
 		auto parent = parent_object.lock();
 		if (parent && parent->get_mobility() == mobilities::movable)
 		{
-			DEBUG_WARNING_CATEGORY(logger::categorys::system, "spatial_object fixed object cannot be a child of movable object[%s]", std::string(get_name()).c_str());
+			DEBUG_WARNING_CATEGORY(core::logger::categorys::system, "spatial_object fixed object cannot be a child of movable object[%s]", std::string(get_name()).c_str());
 			return false;
 		}
 	}
@@ -198,7 +198,7 @@ bool spatial_object::set_mobility(mobilities value)
 			auto child = weak_child.lock();
 			if (child && child->get_mobility() == mobilities::fixed)
 			{
-				DEBUG_WARNING_CATEGORY(logger::categorys::system, "spatial_object movable object cannot have fixed children[%s]", std::string(get_name()).c_str());
+				DEBUG_WARNING_CATEGORY(core::logger::categorys::system, "spatial_object movable object cannot have fixed children[%s]", std::string(get_name()).c_str());
 				return false;
 			}
 		}
@@ -273,7 +273,7 @@ bool spatial_object::can_move() const
 		return true;
 #endif	//	defined(USE_IMGUI)
 
-	DEBUG_WARNING_CATEGORY(logger::categorys::system, "spatial_object fixed object cannot move[%s]", std::string(get_name()).c_str());
+	DEBUG_WARNING_CATEGORY(core::logger::categorys::system, "spatial_object fixed object cannot move[%s]", std::string(get_name()).c_str());
 	return false;
 }
 
@@ -285,7 +285,7 @@ bool spatial_object::attach(const std::shared_ptr<spatial_object>& parent, attac
 	//	movable ‚Ìe‚É fixed ‚ÌŽq‚Í•t‚¯‚ç‚ê‚È‚¢
 	if (mobility == mobilities::fixed && parent->get_mobility() == mobilities::movable)
 	{
-		DEBUG_WARNING_CATEGORY(logger::categorys::system, "spatial_object fixed object cannot be attached to movable object[%s] -> [%s]", std::string(get_name()).c_str(), std::string(parent->get_name()).c_str());
+		DEBUG_WARNING_CATEGORY(core::logger::categorys::system, "spatial_object fixed object cannot be attached to movable object[%s] -> [%s]", std::string(get_name()).c_str(), std::string(parent->get_name()).c_str());
 		return false;
 	}
 

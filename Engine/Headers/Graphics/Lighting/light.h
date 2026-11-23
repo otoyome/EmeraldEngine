@@ -57,8 +57,8 @@ public:
 	~light();
 
 	UINT get_attribute() const { return system_flags; }
-	bool is_flag(flags flag) const { return system_utility::is_bitflag(system_flags, 1 << static_cast<UINT>(flag)); }
-	void set_flag(flags flag, bool value){ system_utility::set_bitflag(system_flags, 1 << static_cast<UINT>(flag), value); }
+	bool is_flag(flags flag) const { return core::is_bitflag(system_flags, 1 << static_cast<UINT>(flag)); }
+	void set_flag(flags flag, bool value){ core::set_bitflag(system_flags, 1 << static_cast<UINT>(flag), value); }
 
 	light_type get_light_type() const;
 
@@ -154,8 +154,8 @@ public:
 	~light_probe();
 
 	UINT get_attribute() const { return system_flags; }
-	bool is_flag(flags flag) const { return system_utility::is_bitflag(system_flags, 1 << static_cast<UINT>(flag)); }
-	void set_flag(flags flag, bool value){ system_utility::set_bitflag(system_flags, 1 << static_cast<UINT>(flag), value); }
+	bool is_flag(flags flag) const { return core::is_bitflag(system_flags, 1 << static_cast<UINT>(flag)); }
+	void set_flag(flags flag, bool value){ core::set_bitflag(system_flags, 1 << static_cast<UINT>(flag), value); }
 	texture_ptr get_diffuse_ibl_texture() const;
 	texture_ptr get_specular_ibl_texture() const;
 	texture_ptr get_lut_ggx_texture() const;

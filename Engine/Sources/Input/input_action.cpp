@@ -67,7 +67,7 @@ namespace input
 		return keys;
 	}
 
-	signals::connection action::subscribe(signals::broadcaster& target, std::function<void(const action_event&)> function,
+	core::signals::connection action::subscribe(core::signals::broadcaster& target, std::function<void(const action_event&)> function,
 		std::source_location location) const
 	{
 		return target.subscribe(topic, std::move(function), location);
@@ -127,7 +127,7 @@ namespace input
 		return mappings;
 	}
 
-	signals::connection axis_action::subscribe(signals::broadcaster& target, std::function<void(const axis_event&)> function,
+	core::signals::connection axis_action::subscribe(core::signals::broadcaster& target, std::function<void(const axis_event&)> function,
 		std::source_location location) const
 	{
 		return target.subscribe(topic, std::move(function), location);

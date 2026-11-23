@@ -77,7 +77,7 @@ namespace
 			//	Edit / Reset / クランプで datas 側が変化しているのでキャッシュを追従させる
 			reload_points();
 
-			static cache_string animation_time = "    アニメーション時間";
+			static core::cache_string animation_time = "    アニメーション時間";
 			ImGui::Text(animation_time.c_str());
 		}
 
@@ -587,7 +587,7 @@ namespace
 				UINT track_index = 0;
 				for (auto& track : animation_data->nodes)
 				{
-					auto& label = track.node_name.get<utf8_cache>();
+					auto& label = track.node_name.get<core::utf8_cache>();
 					if (ImGui::BeginNeoTimelineEx(label.data()))
 					{
 						UINT key_index = 0;
@@ -698,7 +698,7 @@ namespace
 					case timeline_category::node:
 					{
 						auto& track = animation_data->nodes[key.track_index];
-						auto& label = track.node_name.get<utf8_cache>();
+						auto& label = track.node_name.get<core::utf8_cache>();
 						ImGui::Text("%s[%d]", label.data(), key.key_index);
 						edit_node_inspector(track.nodes[key.key_index]);
 						break;

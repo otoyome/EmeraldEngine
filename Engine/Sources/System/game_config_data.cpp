@@ -23,7 +23,7 @@ game_config_data::game_config_data()
 	std::ifstream istream(file_path.data());
 	if (!istream.is_open())
 	{
-		DEBUG_LOG_CATEGORY(logger::categorys::system, "Open Failed GameConfig[%s]", file_path.data());
+		DEBUG_LOG_CATEGORY(core::logger::categorys::system, "Open Failed GameConfig[%s]", file_path.data());
 		return;
 	}
 
@@ -34,10 +34,10 @@ game_config_data::game_config_data()
 	}
 	catch (...)
 	{
-		DEBUG_LOG_CATEGORY(logger::categorys::system, "Load Failed GameConfig[%s]", file_path.data());
+		DEBUG_LOG_CATEGORY(core::logger::categorys::system, "Load Failed GameConfig[%s]", file_path.data());
 		return;
 	}
-	DEBUG_LOG_CATEGORY(logger::categorys::system, "Load Succeeded GameConfig[%s]", file_path.data());
+	DEBUG_LOG_CATEGORY(core::logger::categorys::system, "Load Succeeded GameConfig[%s]", file_path.data());
 
 	//	ï€ë∂Ç≥ÇÍÇƒÇ¢ÇÈïœêîílÇîΩâf
 	auto& manager = console_manager::instance();
@@ -63,7 +63,7 @@ game_config_data::~game_config_data()
 	std::ofstream ostream(file_path.data());
 	if (!ostream.is_open())
 	{
-		DEBUG_LOG_CATEGORY(logger::categorys::system, "Open Failed GameConfig[%s]", file_path.data());
+		DEBUG_LOG_CATEGORY(core::logger::categorys::system, "Open Failed GameConfig[%s]", file_path.data());
 		return;
 	}
 
@@ -74,8 +74,8 @@ game_config_data::~game_config_data()
 	}
 	catch (...)
 	{
-		DEBUG_LOG_CATEGORY(logger::categorys::system, "Save Failed GameConfig[%s]", file_path.data());
+		DEBUG_LOG_CATEGORY(core::logger::categorys::system, "Save Failed GameConfig[%s]", file_path.data());
 		return;
 	}
-	DEBUG_LOG_CATEGORY(logger::categorys::system, "Save Succeeded GameConfig[%s]", file_path.data());
+	DEBUG_LOG_CATEGORY(core::logger::categorys::system, "Save Succeeded GameConfig[%s]", file_path.data());
 }

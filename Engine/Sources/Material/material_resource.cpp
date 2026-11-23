@@ -587,7 +587,7 @@ void material_resource::set_blend_mode(blend_modes blend_mode)
 void material_resource::set_flag(flags flag, bool value)
 {
 	const bool changed = is_flag(flag) != value;
-	system_utility::set_bitflag(system_flags, 1 << static_cast<UINT>(flag), value);
+	core::set_bitflag(system_flags, 1 << static_cast<UINT>(flag), value);
 
 	//	‰e‚ð—Ž‚Æ‚·‚©‚Å‰e‚ÌƒpƒX‚ðŽg‚¤‚©‚ª•Ï‚í‚é
 	if (changed && flag == flags::shadow_caster)
@@ -1023,10 +1023,10 @@ void material_resource::serialize_stream(std::stringstream& ostream) const
 	}
 	catch (...)
 	{
-		DEBUG_LOG_CATEGORY(logger::categorys::model, "material serialize_stream failed[%s]", name.data());
+		DEBUG_LOG_CATEGORY(core::logger::categorys::model, "material serialize_stream failed[%s]", name.data());
 		return;
 	}
-	DEBUG_LOG_CATEGORY(logger::categorys::model, "material serialize_stream succeeded[%s]", name.data());
+	DEBUG_LOG_CATEGORY(core::logger::categorys::model, "material serialize_stream succeeded[%s]", name.data());
 }
 
 void material_resource::deserialize_stream(std::stringstream& istream)
@@ -1053,10 +1053,10 @@ void material_resource::deserialize_stream(std::stringstream& istream)
 	}
 	catch (...)
 	{
-		DEBUG_LOG_CATEGORY(logger::categorys::model, "material deserialize_stream failed[%s]", name.data());
+		DEBUG_LOG_CATEGORY(core::logger::categorys::model, "material deserialize_stream failed[%s]", name.data());
 		return;
 	}
-	DEBUG_LOG_CATEGORY(logger::categorys::model, "material deserialize_stream succeeded[%s]", name.data());
+	DEBUG_LOG_CATEGORY(core::logger::categorys::model, "material deserialize_stream succeeded[%s]", name.data());
 }
 
 #if defined(USE_IMGUI)
@@ -1115,7 +1115,7 @@ bool material_resource::load_file(std::string_view file_path)
 	}
 	catch (...)
 	{
-		DEBUG_ERROR_CATEGORY(logger::categorys::model, "material_resource deserialize failed[%s]", std::string(file_path).c_str());
+		DEBUG_ERROR_CATEGORY(core::logger::categorys::model, "material_resource deserialize failed[%s]", std::string(file_path).c_str());
 		return false;
 	}
 
@@ -1135,7 +1135,7 @@ bool material_resource::save_file(std::string_view file_path)
 	}
 	catch (...)
 	{
-		DEBUG_ERROR_CATEGORY(logger::categorys::model, "material_resource serialize failed[%s]", std::string(file_path).c_str());
+		DEBUG_ERROR_CATEGORY(core::logger::categorys::model, "material_resource serialize failed[%s]", std::string(file_path).c_str());
 		return false;
 	}
 
@@ -1143,7 +1143,7 @@ bool material_resource::save_file(std::string_view file_path)
 		return false;
 
 	set_missing(false);
-	DEBUG_LOG_CATEGORY(logger::categorys::model, "material_resource serialize successed[%s]", std::string(file_path).c_str());
+	DEBUG_LOG_CATEGORY(core::logger::categorys::model, "material_resource serialize successed[%s]", std::string(file_path).c_str());
 	return true;
 }
 

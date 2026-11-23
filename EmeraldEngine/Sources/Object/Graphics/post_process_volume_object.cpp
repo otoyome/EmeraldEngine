@@ -145,7 +145,7 @@ void post_process_volume_object::imgui_render_core()
 			if (editor_items::edit_material_slot(editor_context, slot_material, material_resource::domains::post_process))
 				instance->set_postprocess_material(index, slot_material);
 
-			if (ImGui::TreeNode(system_utility::convert_utf8(materials[index]->get_name()).data()))
+			if (ImGui::TreeNode(core::convert_utf8(materials[index]->get_name()).data()))
 			{
 				editor_items::edit_shared_material(editor_context, materials[index]->get_resource());
 				ImGui::TreePop();

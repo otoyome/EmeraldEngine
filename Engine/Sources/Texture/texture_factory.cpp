@@ -143,7 +143,7 @@ bool texture_factory::create_texture2d_core(texture_ptr& out_texture, std::strin
 
 	//	シェーダーリソースビュー生成
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> shader_resource_view;
-	if (system_utility::is_bitflag(desc.BindFlags, D3D11_BIND_SHADER_RESOURCE))
+	if (core::is_bitflag(desc.BindFlags, D3D11_BIND_SHADER_RESOURCE))
 	{
 		D3D11_SHADER_RESOURCE_VIEW_DESC srvdesc{};
 		if (srv_desc)
@@ -164,7 +164,7 @@ bool texture_factory::create_texture2d_core(texture_ptr& out_texture, std::strin
 
 	//	アンオーダードアクセスビュー生成
 	Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> unordered_access_view;
-	if (system_utility::is_bitflag(desc.BindFlags, D3D11_BIND_UNORDERED_ACCESS))
+	if (core::is_bitflag(desc.BindFlags, D3D11_BIND_UNORDERED_ACCESS))
 	{
 		D3D11_UNORDERED_ACCESS_VIEW_DESC uavdesc{};
 		if (uav_desc)

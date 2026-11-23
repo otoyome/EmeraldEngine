@@ -1,4 +1,4 @@
-#include "System/memory_allocator.h"
+#include "Core/memory_allocator.h"
 #include "System/misc.h"
 
 #include <cstdlib>
@@ -7,24 +7,24 @@
 #include <new>
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-memory_allocator::srw_exclusive_lock::srw_exclusive_lock(SRWLOCK& target)
+core::memory_allocator::srw_exclusive_lock::srw_exclusive_lock(SRWLOCK& target)
 : target(target)
 {
 	AcquireSRWLockExclusive(&target);
 }
 
-memory_allocator::srw_exclusive_lock::~srw_exclusive_lock()
+core::memory_allocator::srw_exclusive_lock::~srw_exclusive_lock()
 {
 	ReleaseSRWLockExclusive(&target);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-size_t memory_allocator::align_up(size_t value, size_t alignment)
+size_t core::memory_allocator::align_up(size_t value, size_t alignment)
 {
 	return (value + alignment - 1) & ~(alignment - 1);
 }
 
-void memory_allocator::init_variable_node_tail(variable_node* node)
+void core::memory_allocator::init_variable_node_tail(variable_node* node)
 {
 	node->used = 0;
 #if defined(_DEBUG)
@@ -33,7 +33,7 @@ void memory_allocator::init_variable_node_tail(variable_node* node)
 	node->large_pool_tag_value = large_pool_tag;
 }
 
-memory_allocator::variable_segment* memory_allocator::create_variable_segment(size_t min_bytes)
+core::memory_allocator::variable_segment* core::memory_allocator::create_variable_segment(size_t min_bytes)
 {
 	size_t segment_bytes = min_bytes > large_pool_default_segment_bytes ? min_bytes : large_pool_default_segment_bytes;
 	size_t total_bytes = sizeof(variable_segment) + segment_bytes;
@@ -58,7 +58,7 @@ memory_allocator::variable_segment* memory_allocator::create_variable_segment(si
 	return segment;
 }
 
-void memory_allocator::split_variable_node_exact(variable_node* node, size_t exact_size)
+void core::memory_allocator::split_variable_node_exact(variable_node* node, size_t exact_size)
 {
 	variable_node* remainder = reinterpret_cast<variable_node*>(
 		reinterpret_cast<uint8_t*>(node + 1) + exact_size);
@@ -74,7 +74,7 @@ void memory_allocator::split_variable_node_exact(variable_node* node, size_t exa
 	node->next = remainder;
 }
 
-void memory_allocator::split_variable_node(variable_node* node, size_t requested_size)
+void core::memory_allocator::split_variable_node(variable_node* node, size_t requested_size)
 {
 	size_t remaining = node->size - requested_size;
 	if (remaining < sizeof(variable_node) + variable_node_min_split_payload)
@@ -83,7 +83,7 @@ void memory_allocator::split_variable_node(variable_node* node, size_t requested
 	split_variable_node_exact(node, requested_size);
 }
 
-void* memory_allocator::try_allocate_from_node(variable_node** io_node, size_t requested_size, size_t alignment)
+void* core::memory_allocator::try_allocate_from_node(variable_node** io_node, size_t requested_size, size_t alignment)
 {
 	variable_node* node = *io_node;
 	uint8_t* payload = reinterpret_cast<uint8_t*>(node + 1);
@@ -111,7 +111,7 @@ void* memory_allocator::try_allocate_from_node(variable_node** io_node, size_t r
 	return node + 1;
 }
 
-void* memory_allocator::large_pool_allocate(large_pool_state& state, size_t size, size_t alignment)
+void* core::memory_allocator::large_pool_allocate(large_pool_state& state, size_t size, size_t alignment)
 {
 	size_t requested = align_up(size, 16);
 
@@ -149,7 +149,7 @@ void* memory_allocator::large_pool_allocate(large_pool_state& state, size_t size
 	return payload;
 }
 
-void memory_allocator::large_pool_deallocate(large_pool_state& state, void* payload)
+void core::memory_allocator::large_pool_deallocate(large_pool_state& state, void* payload)
 {
 	variable_node* node = reinterpret_cast<variable_node*>(payload) - 1;
 #if defined(_DEBUG)
@@ -183,7 +183,7 @@ void memory_allocator::large_pool_deallocate(large_pool_state& state, void* payl
 	}
 }
 
-bool memory_allocator::large_pool_validate_placement(const void* payload, size_t size)
+bool core::memory_allocator::large_pool_validate_placement(const void* payload, size_t size)
 {
 	const variable_node* node = reinterpret_cast<const variable_node*>(payload) - 1;
 #if defined(_DEBUG)
@@ -197,19 +197,19 @@ bool memory_allocator::large_pool_validate_placement(const void* payload, size_t
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-memory_allocator::allocator_state::allocator_state()
+core::memory_allocator::allocator_state::allocator_state()
 {
 	for (uint32_t index = 0; index < size_class_count; ++index)
 		classes[index].initialize(index, size_classes[index]);
 }
 
-memory_allocator::allocator_state& memory_allocator::get_state()
+core::memory_allocator::allocator_state& core::memory_allocator::get_state()
 {
 	static allocator_state state;
 	return state;
 }
 
-uint32_t memory_allocator::find_size_class_index(size_t size)
+uint32_t core::memory_allocator::find_size_class_index(size_t size)
 {
 	//	サイズが16から始まる2の累乗の並びである前提で求める
 	static_assert([] {
@@ -232,12 +232,12 @@ uint32_t memory_allocator::find_size_class_index(size_t size)
 	return static_cast<uint32_t>(highest_bit + 1 - 4);
 }
 
-uint32_t memory_allocator::read_tag(void* payload)
+uint32_t core::memory_allocator::read_tag(void* payload)
 {
 	return *(reinterpret_cast<uint32_t*>(payload) - 1);
 }
 
-void* memory_allocator::allocate(size_t requested_size, size_t alignment)
+void* core::memory_allocator::allocate(size_t requested_size, size_t alignment)
 {
 	size_t actual_size = requested_size == 0 ? 1 : requested_size;
 	allocator_state& state = get_state();
@@ -262,7 +262,7 @@ void* memory_allocator::allocate(size_t requested_size, size_t alignment)
 	return payload;
 }
 
-void memory_allocator::deallocate(void* payload_ptr)
+void core::memory_allocator::deallocate(void* payload_ptr)
 {
 	if (!payload_ptr)
 		return;
@@ -280,7 +280,7 @@ void memory_allocator::deallocate(void* payload_ptr)
 	large_pool_deallocate(state.large_pool, payload_ptr);
 }
 
-void* memory_allocator::validate_placement(void* target, size_t size)
+void* core::memory_allocator::validate_placement(void* target, size_t size)
 {
 	if (!target)
 		return nullptr;
@@ -298,7 +298,7 @@ void* memory_allocator::validate_placement(void* target, size_t size)
 	return large_pool_validate_placement(target, size) ? target : nullptr;
 }
 
-std::vector<memory_allocator::size_class_usage> memory_allocator::get_size_class_usages()
+std::vector<core::memory_allocator::size_class_usage> core::memory_allocator::get_size_class_usages()
 {
 	allocator_state& state = get_state();
 
@@ -306,7 +306,7 @@ std::vector<memory_allocator::size_class_usage> memory_allocator::get_size_class
 	usages.reserve(size_class_count);
 	for (uint32_t class_index = 0; class_index < size_class_count; ++class_index)
 	{
-		fixed_size_pool::usage pool_usage = state.classes[class_index].get_usage();
+		core::fixed_size_pool::usage pool_usage = state.classes[class_index].get_usage();
 
 		size_class_usage usage;
 		usage.block_size_in_bytes = pool_usage.block_size_in_bytes;
@@ -317,7 +317,7 @@ std::vector<memory_allocator::size_class_usage> memory_allocator::get_size_class
 	return usages;
 }
 
-memory_allocator::large_pool_usage memory_allocator::get_large_pool_usage()
+core::memory_allocator::large_pool_usage core::memory_allocator::get_large_pool_usage()
 {
 	allocator_state& state = get_state();
 	srw_exclusive_lock lock(state.large_pool.lock);
@@ -333,7 +333,7 @@ memory_allocator::large_pool_usage memory_allocator::get_large_pool_usage()
 void* operator new(size_t size)
 {
 #if defined(USE_CUSTOM_ALLOCATOR)
-	void* ptr = memory_allocator::allocate(size);
+	void* ptr = core::memory_allocator::allocate(size);
 #else	//	defined(USE_CUSTOM_ALLOCATOR)
 	void* ptr = std::malloc(size);
 #endif	//	defined(USE_CUSTOM_ALLOCATOR)
@@ -352,7 +352,7 @@ void operator delete(void* ptr) noexcept
 	if (!ptr)
 		return;
 #if defined(USE_CUSTOM_ALLOCATOR)
-	memory_allocator::deallocate(ptr);
+	core::memory_allocator::deallocate(ptr);
 #else	//	defined(USE_CUSTOM_ALLOCATOR)
 	std::free(ptr);
 #endif	//	defined(USE_CUSTOM_ALLOCATOR)

@@ -28,16 +28,16 @@ editor_config_data::editor_config_data()
 			cereal::JSONInputArchive archive(istream);
 			archive(CEREAL_NVP(variables), CEREAL_NVP(bindings));
 			loaded = true;
-			DEBUG_LOG_CATEGORY(logger::categorys::system, "Load Succeeded EditorConfig[%s]", file_path.data());
+			DEBUG_LOG_CATEGORY(core::logger::categorys::system, "Load Succeeded EditorConfig[%s]", file_path.data());
 		}
 		catch (...)
 		{
-			DEBUG_LOG_CATEGORY(logger::categorys::system, "Load Failed EditorConfig[%s]", file_path.data());
+			DEBUG_LOG_CATEGORY(core::logger::categorys::system, "Load Failed EditorConfig[%s]", file_path.data());
 		}
 	}
 	else
 	{
-		DEBUG_LOG_CATEGORY(logger::categorys::system, "Open Failed EditorConfig[%s]", file_path.data());
+		DEBUG_LOG_CATEGORY(core::logger::categorys::system, "Open Failed EditorConfig[%s]", file_path.data());
 	}
 
 	auto& manager = console_manager::instance();
@@ -78,7 +78,7 @@ editor_config_data::~editor_config_data()
 	std::ofstream ostream(file_path.data());
 	if (!ostream.is_open())
 	{
-		DEBUG_LOG_CATEGORY(logger::categorys::system, "Open Failed EditorConfig[%s]", file_path.data());
+		DEBUG_LOG_CATEGORY(core::logger::categorys::system, "Open Failed EditorConfig[%s]", file_path.data());
 		return;
 	}
 
@@ -89,10 +89,10 @@ editor_config_data::~editor_config_data()
 	}
 	catch (...)
 	{
-		DEBUG_LOG_CATEGORY(logger::categorys::system, "Save Failed EditorConfig[%s]", file_path.data());
+		DEBUG_LOG_CATEGORY(core::logger::categorys::system, "Save Failed EditorConfig[%s]", file_path.data());
 		return;
 	}
-	DEBUG_LOG_CATEGORY(logger::categorys::system, "Save Succeeded EditorConfig[%s]", file_path.data());
+	DEBUG_LOG_CATEGORY(core::logger::categorys::system, "Save Succeeded EditorConfig[%s]", file_path.data());
 }
 
 void editor_config_data::apply_default_bindings()

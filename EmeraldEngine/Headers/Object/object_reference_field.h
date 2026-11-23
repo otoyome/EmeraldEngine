@@ -17,8 +17,8 @@ public:
 	static bool imgui_combo(const char* label, engine_context& context, std::shared_ptr<Type>& target)
 	{
 		bool changed = false;
-		const cache_string current_name(target ? target->get_name() : std::string_view("(none)"));
-		if (ImGui::BeginCombo(label, current_name.get<utf8_cache>().data()))
+		const core::cache_string current_name(target ? target->get_name() : std::string_view("(none)"));
+		if (ImGui::BeginCombo(label, current_name.get<core::utf8_cache>().data()))
 		{
 			if (ImGui::Selectable("(none)", !target))
 			{
@@ -28,8 +28,8 @@ public:
 			for (const std::shared_ptr<Type>& object : context.get_objects().search_objects<Type>())
 			{
 				ImGui::PushID(object.get());
-				const cache_string name(object->get_name());
-				if (ImGui::Selectable(name.get<utf8_cache>().data(), object == target))
+				const core::cache_string name(object->get_name());
+				if (ImGui::Selectable(name.get<core::utf8_cache>().data(), object == target))
 				{
 					target = object;
 					changed = true;

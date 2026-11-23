@@ -44,10 +44,10 @@ namespace
 
 			if (renderer)
 			{
-				system_utility::set_bitflag(common_data.emitter_state,
+				core::set_bitflag(common_data.emitter_state,
 					particle_system_item::emitter::common::state::billboard_off,
 					renderer->is_state(::particle::item::renderer::states::billboard_off));
-				system_utility::set_bitflag(common_data.emitter_state,
+				core::set_bitflag(common_data.emitter_state,
 					particle_system_item::emitter::common::state::reverse_depth_sort,
 					renderer->is_state(::particle::item::renderer::states::reverse_depth_sort));
 			}
@@ -881,7 +881,7 @@ void effect_manager::add_instances()
 			}
 		}
 	}
-	system_utility::std_vector_swap_clear(instances_add);
+	core::std_vector_swap_clear(instances_add);
 }
 
 void effect_manager::remove_instances()
@@ -918,7 +918,7 @@ void effect_manager::remove_instances()
 			items.erase(it);
 		}
 	}
-	system_utility::std_vector_swap_clear(instances_removes);
+	core::std_vector_swap_clear(instances_removes);
 }
 
 void effect_manager::dispatch_particle_events()

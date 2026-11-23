@@ -426,7 +426,7 @@ void graphics_custom_pipeline_state::update_parameters(const graphics_context& c
 					UINT srv_flag = 0;
 					for (auto& flag : convert_texture_flags)
 					{
-						system_utility::set_bitflag(srv_flag, flag.second, srv_ptr->is_flag(flag.first));
+						core::set_bitflag(srv_flag, flag.second, srv_ptr->is_flag(flag.first));
 					}
 
 					ID3D11ShaderResourceView* shader_resource_view = srv_ptr ? srv_ptr->get_shader_resource_view().Get() : nullptr;
@@ -544,7 +544,7 @@ void graphics_custom_pipeline_state::update_parameters(const graphics_context& c
 			UINT material_flag = 0;
 			for (auto& flag : convert_material_flags)
 			{
-				system_utility::set_bitflag(material_flag, flag.second, material.is_flag(flag.first));
+				core::set_bitflag(material_flag, flag.second, material.is_flag(flag.first));
 			}
 			for (UINT index = 0; index < magic_enum::enum_count<arrangement>(); ++index)
 			{

@@ -15,9 +15,9 @@ public:
 	//	アプリケーションの情報
 	struct application_data
 	{
-		cache_string name = "Sample Engine";	//	アプリケーションの名前
-		cache_string splash_image_path = "Assets/Resources/Textures/splash_window/splash.png";	//	起動時のスプラッシュ画像
-		cache_string icon_path = "Assets/Resources/Textures/app_icon/app_icon.ico";	//	ウィンドウのアイコン
+		core::cache_string name = "Sample Engine";	//	アプリケーションの名前
+		core::cache_string splash_image_path = "Assets/Resources/Textures/splash_window/splash.png";	//	起動時のスプラッシュ画像
+		core::cache_string icon_path = "Assets/Resources/Textures/app_icon/app_icon.ico";	//	ウィンドウのアイコン
 
 		template<class Archive>
 		void serialize(Archive& archive, int version);

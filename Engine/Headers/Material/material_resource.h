@@ -268,7 +268,7 @@ public:
 	void set_translucency_path(translucency_paths pass);
 
 	//	システムフラグ類設定
-	bool is_flag(flags flag) const { return system_utility::is_bitflag(system_flags, 1 << static_cast<UINT>(flag)); }
+	bool is_flag(flags flag) const { return core::is_bitflag(system_flags, 1 << static_cast<UINT>(flag)); }
 	void set_flag(flags flag, bool value);
 
 	//	アルファクリップの閾値取得/設定

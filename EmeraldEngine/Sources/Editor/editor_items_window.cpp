@@ -222,7 +222,7 @@ void editor_items::render_window_close_popup(std::shared_ptr<context>& context)
 	}
 
 	ImGui::TextUnformatted(window->editor->get_label().c_str());
-	ImGui::TextDisabled("%s", system_utility::convert_shift_jis_to_utf8(window->key).c_str());
+	ImGui::TextDisabled("%s", core::convert_shift_jis_to_utf8(window->key).c_str());
 	ImGui::TextUnformatted("has unsaved changes.");
 	ImGui::Separator();
 

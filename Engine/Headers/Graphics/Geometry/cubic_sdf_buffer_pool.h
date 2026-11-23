@@ -5,7 +5,7 @@
 #include <vector>
 #include <cstdint>
 
-#include "System/variable_position_allocator.h"
+#include "Core/variable_position_allocator.h"
 #include "Collision/cubic_sdf.h"
 
 class gpu_upload_list;
@@ -39,7 +39,7 @@ public:
 private:
 	Microsoft::WRL::ComPtr<ID3D11Buffer> voxel_buffer;
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> voxel_shader_resource_view;
-	variable_position_allocator voxel_allocator;
+	core::variable_position_allocator voxel_allocator;
 
 	Microsoft::WRL::ComPtr<ID3D11Buffer> header_buffer;
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> header_shader_resource_view;

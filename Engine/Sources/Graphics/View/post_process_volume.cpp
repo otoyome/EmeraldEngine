@@ -72,12 +72,12 @@ screen_space_reflection_data::screen_space_reflection_data()
 
 bool screen_space_reflection_data::is_flag(UINT ssr_flag) const
 {
-	return system_utility::is_bitflag(ray_flags, 1 << ssr_flag);
+	return core::is_bitflag(ray_flags, 1 << ssr_flag);
 }
 
 void screen_space_reflection_data::set_flag(UINT ssr_flag, bool value)
 {
-	system_utility::set_bitflag(ray_flags, 1 << ssr_flag, value);
+	core::set_bitflag(ray_flags, 1 << ssr_flag, value);
 
 	//	乱数を適応する場合はデノイズするので蓄積をリセットしておく
 	if (ssr_flag == common_pipeline_states::screen_space_reflection_flags_step_random && is_flag(ssr_flag))

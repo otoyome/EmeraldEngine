@@ -20,8 +20,8 @@ global_shader_base::global_shader_base(std::string_view file_path, std::string_v
 	file.model = model;
 	file.compile_flags = 0;
 #if defined(_DEBUG)
-	system_utility::set_bitflag(file.compile_flags, shader_compile_flags::disable_optimize, true);
-	system_utility::set_bitflag(file.compile_flags, shader_compile_flags::debug, true);
+	core::set_bitflag(file.compile_flags, shader_compile_flags::disable_optimize, true);
+	core::set_bitflag(file.compile_flags, shader_compile_flags::debug, true);
 #endif	//	defined(_DEBUG)
 	get_list().push_back(this);
 }
@@ -88,7 +88,7 @@ const shader_ptr& global_shader_base::acquire() const
 {
 	if (!shader)
 	{
-		DEBUG_LOG_CATEGORY(logger::categorys::shader, "global shader is not compiled yet[%s]", file.file_path.data());
+		DEBUG_LOG_CATEGORY(core::logger::categorys::shader, "global shader is not compiled yet[%s]", file.file_path.data());
 		shader = load();
 	}
 	return shader;

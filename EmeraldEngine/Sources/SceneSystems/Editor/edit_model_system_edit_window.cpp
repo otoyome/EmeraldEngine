@@ -289,7 +289,7 @@ void edit_model_system::imgui_render_material_list()
 	for (std::size_t index = 0; index < materials.size(); ++index)
 	{
 		ImGui::PushID(static_cast<int>(index));
-		if (ImGui::Selectable(system_utility::convert_utf8(materials[index]->get_name()).data(), selected_material_index == index))
+		if (ImGui::Selectable(core::convert_utf8(materials[index]->get_name()).data(), selected_material_index == index))
 			selected_material_index = index;
 		ImGui::PopID();
 	}
@@ -305,7 +305,7 @@ void edit_model_system::imgui_render_material_detail()
 	const std::size_t index = selected_material_index;
 	auto& material = materials[index];
 	ImGui::PushID(static_cast<int>(index));
-	ImGui::TextUnformatted(system_utility::convert_utf8(material->get_name()).data());
+	ImGui::TextUnformatted(core::convert_utf8(material->get_name()).data());
 	ImGui::Separator();
 	//	別のマテリアルリソースに差し替えたら、表示中のインスタンスも差し替える
 	if (editor_items::edit_material_slot(editor_context, material, material_resource::domains::surface) &&

@@ -84,12 +84,12 @@ bool ImGui::Combo(const char* label, std::string& current_item, const std::vecto
 {
 	bool changed = false;
 
-	if (ImGui::BeginCombo(label, system_utility::convert_utf8(current_item).c_str()))
+	if (ImGui::BeginCombo(label, core::convert_utf8(current_item).c_str()))
 	{
 		for (int n = 0; n < items.size(); n++)
 		{
 			bool is_selected = (current_item == items[n]);	
-			if (ImGui::Selectable(system_utility::convert_utf8(items[n]).c_str(), is_selected))
+			if (ImGui::Selectable(core::convert_utf8(items[n]).c_str(), is_selected))
 			{
 				current_item = items[n];
 				changed = true;
@@ -153,12 +153,12 @@ bool ImGui::Combo(const char* label, std::string& current_item, const std::vecto
 {
 	bool changed = false;
 
-	if (ImGui::BeginCombo(label, system_utility::convert_utf8(current_item).data()))
+	if (ImGui::BeginCombo(label, core::convert_utf8(current_item).data()))
 	{
 		for (int n = 0; n < items.size(); n++)
 		{
 			bool is_selected = (current_item == items[n]);
-			if (ImGui::Selectable(system_utility::convert_utf8(items[n]).data(), is_selected))
+			if (ImGui::Selectable(core::convert_utf8(items[n]).data(), is_selected))
 			{
 				current_item = items[n];
 				changed = true;
@@ -213,23 +213,23 @@ bool ImGui::InputTextUtf8(const char* label, std::string& str, ImGuiInputTextFla
 {
 	flags |= ImGuiInputTextFlags_CallbackResize;
 
-	std::string text = system_utility::convert_utf8(str);
+	std::string text = core::convert_utf8(str);
 	if (ImGui::InputText(label, text.data(), text.capacity() + 1, flags, input_text_callback, &text))
 	{
-		str = system_utility::convert_shift_jis(text);
+		str = core::convert_shift_jis(text);
 		return true;
 	}
 	return false;
 }
 
-bool ImGui::InputTextUtf8(const char* label, cache_string& str, ImGuiInputTextFlags flags)
+bool ImGui::InputTextUtf8(const char* label, core::cache_string& str, ImGuiInputTextFlags flags)
 {
 	flags |= ImGuiInputTextFlags_CallbackResize;
 
-	std::string text = str.get<utf8_cache>();
+	std::string text = str.get<core::utf8_cache>();
 	if (ImGui::InputText(label, text.data(), text.capacity() + 1, flags, input_text_callback, &text))
 	{
-		str = system_utility::convert_shift_jis(text);
+		str = core::convert_shift_jis(text);
 		return true;
 	}
 	return false;
@@ -237,7 +237,7 @@ bool ImGui::InputTextUtf8(const char* label, cache_string& str, ImGuiInputTextFl
 
 bool ImGui::TreeNodeUtf8(const char* label)
 {
-	return ImGui::TreeNode(system_utility::convert_utf8(label).data());
+	return ImGui::TreeNode(core::convert_utf8(label).data());
 }
 
 //bool ImGui::SliderAngle(const char* label, float* radian, float v_min, float v_max, const char* format, ImGuiSliderFlags flags)

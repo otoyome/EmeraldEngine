@@ -6,7 +6,6 @@
 #include <vector>
 
 #include "Audio/audio_manager.h"
-#include "System/system_utility.h"
 
 namespace audio
 {

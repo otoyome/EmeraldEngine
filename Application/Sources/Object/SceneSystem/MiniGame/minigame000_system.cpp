@@ -58,7 +58,7 @@ void minigame000_system::on_begin()
 	//	非同期読み込み開始
 	stage_scene_operation = resource_manager::instance()->load_async(stage_scene);
 	roomba_prefab_operation = resource_manager::instance()->load_async(roomba_prefab);
-	DEBUG_CHECK_ERROR_CATEGORY(!stage_scene_operation || !roomba_prefab_operation, logger::categorys::system, "minigame000_system roomba prefab is empty");
+	DEBUG_CHECK_ERROR_CATEGORY(!stage_scene_operation || !roomba_prefab_operation, core::logger::categorys::system, "minigame000_system roomba prefab is empty");
 }
 
 void minigame000_system::on_end()
@@ -176,7 +176,7 @@ void minigame000_system::update_stage_loading()
 
 		if (!operation->is_succeeded() || !operation->get_resource())
 		{
-			DEBUG_ERROR_CATEGORY(logger::categorys::system, "minigame000_system stage scene load failed[%s] %s",
+			DEBUG_ERROR_CATEGORY(core::logger::categorys::system, "minigame000_system stage scene load failed[%s] %s",
 				std::string(operation->get_file_path()).c_str(), operation->get_error_message().c_str());
 		}
 		else
@@ -200,7 +200,7 @@ void minigame000_system::update_stage_loading()
 
 		if (!operation->is_succeeded() || !operation->get_resource())
 		{
-			DEBUG_ERROR_CATEGORY(logger::categorys::system, "minigame000_system stage scene load failed[%s] %s",
+			DEBUG_ERROR_CATEGORY(core::logger::categorys::system, "minigame000_system stage scene load failed[%s] %s",
 				std::string(operation->get_file_path()).c_str(), operation->get_error_message().c_str());
 		}
 		else
@@ -209,7 +209,7 @@ void minigame000_system::update_stage_loading()
 			if (get_context().get_scenes().add_scene(resource))
 				stage_scene_names.emplace_back(scene_manager::make_scene_name(resource));
 			else
-				DEBUG_ERROR_CATEGORY(logger::categorys::system, "minigame000_system stage scene add failed[%s]", std::string(operation->get_file_path()).c_str());
+				DEBUG_ERROR_CATEGORY(core::logger::categorys::system, "minigame000_system stage scene add failed[%s]", std::string(operation->get_file_path()).c_str());
 		}
 		it = stage_scene_operations.erase(it);
 	}
@@ -238,7 +238,7 @@ void minigame000_system::update_prefab_loading()
 
 	if (!operation->is_succeeded() || !operation->get_resource())
 	{
-		DEBUG_ERROR_CATEGORY(logger::categorys::system, "minigame000_system roomba prefab load failed[%s] %s",
+		DEBUG_ERROR_CATEGORY(core::logger::categorys::system, "minigame000_system roomba prefab load failed[%s] %s",
 			std::string(operation->get_file_path()).c_str(), operation->get_error_message().c_str());
 		return;
 	}
@@ -284,13 +284,13 @@ void minigame000_system::spawn_roombas()
 	//	プレハブの読込に失敗していたら生成しない
 	if (!roomba_prefab_resource)
 	{
-		DEBUG_ERROR_CATEGORY(logger::categorys::system, "minigame000_system roomba prefab not loaded");
+		DEBUG_ERROR_CATEGORY(core::logger::categorys::system, "minigame000_system roomba prefab not loaded");
 		return;
 	}
 
 	const std::vector<std::shared_ptr<start_point_object>> start_points = collect_start_points();
 	const std::shared_ptr<start_point_object> start_point = start_points.empty() ? nullptr : start_points.front();
-	DEBUG_CHECK_ERROR_CATEGORY(!start_point, logger::categorys::system, "minigame000_system start_point_object not found[%s]", start_point_tag.c_str());
+	DEBUG_CHECK_ERROR_CATEGORY(!start_point, core::logger::categorys::system, "minigame000_system start_point_object not found[%s]", start_point_tag.c_str());
 
 	//	生成して最初のルンバをプレイヤー操作に割当
 	//	@remainder	AI/通信の割り当ては残りの開始位置を使ってここで分岐させる予定
@@ -303,7 +303,7 @@ std::shared_ptr<minigame000::roomba_object> minigame000_system::spawn_roomba(con
 	prefab_resource::instance created;
 	if (!prefab.instantiate(created) || created.objects.empty())
 	{
-		DEBUG_ERROR_CATEGORY(logger::categorys::system, "minigame000_system roomba prefab instantiate failed");
+		DEBUG_ERROR_CATEGORY(core::logger::categorys::system, "minigame000_system roomba prefab instantiate failed");
 		return nullptr;
 	}
 
@@ -319,7 +319,7 @@ std::shared_ptr<minigame000::roomba_object> minigame000_system::spawn_roomba(con
 	}
 	if (!roomba)
 	{
-		DEBUG_ERROR_CATEGORY(logger::categorys::system, "minigame000_system roomba_object not found in prefab");
+		DEBUG_ERROR_CATEGORY(core::logger::categorys::system, "minigame000_system roomba_object not found in prefab");
 		return nullptr;
 	}
 

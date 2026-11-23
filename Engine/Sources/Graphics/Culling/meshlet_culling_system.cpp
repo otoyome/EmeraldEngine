@@ -174,7 +174,7 @@ void meshlet_culling_system::build_and_cull(graphics_context& context, const std
 		submesh_transform_scratch.emplace_back(buffer_data.world_transform);
 
 		//	カリング判定
-		UINT no_cull = system_utility::is_bitflag(buffer_data.system_flags, mesh_draw_item::flags::culling) ? 0 : 1;
+		UINT no_cull = core::is_bitflag(buffer_data.system_flags, mesh_draw_item::flags::culling) ? 0 : 1;
 
 		//	メッシュレット分登録
 		UINT primitive_index = draw_data->buffer_index;
