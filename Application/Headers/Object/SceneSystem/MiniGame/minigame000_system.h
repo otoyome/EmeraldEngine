@@ -7,6 +7,7 @@
 #include "Object/prefab_resource.h"
 
 class locator_object;
+class effect_object;
 class game_object_serializer;
 
 namespace minigame000
@@ -74,6 +75,12 @@ private:
 	//	プレイヤー操作を割り当てる
 	void possess_player(const std::shared_ptr<minigame000::roomba_object>& roomba);
 
+	//	ステージのエフェクトの吸引/イベント座標をルンバへ追従させる
+	void bind_stage_effects(const std::shared_ptr<minigame000::roomba_object>& roomba);
+
+	//	ステージのエフェクトの吸引範囲をルンバの速度に合わせる
+	void update_stage_effects();
+
 private:	//	設定
 	std::vector<resource::asset_reference<scene_set_resource>> stage_scenes;				//	ステージシーン候補(開始時にランダムで1つ選ぶ)
 	resource::asset_reference<prefab_resource> roomba_prefab;								//	ルンバのプレハブ
@@ -89,6 +96,8 @@ private:	//	実行時
 	prefab_resource_ptr roomba_prefab_resource;												//	読み込んだプレハブ
 
 	std::vector<std::weak_ptr<minigame000::roomba_object>> roombas;							//	生成したルンバ
+	std::weak_ptr<minigame000::roomba_object> attract_roomba;								//	エフェクトを吸い込むルンバ
+	std::vector<std::weak_ptr<effect_object>> stage_effects;								//	ステージのエフェクト
 	std::vector<std::shared_ptr<minigame000::roomba_player_controller_object>> controllers;	//	生成したコントローラー
 	std::vector<std::shared_ptr<minigame000::roomba_camera_controller_object>> camera_controllers;
 };

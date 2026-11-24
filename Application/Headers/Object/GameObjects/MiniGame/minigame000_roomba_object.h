@@ -71,14 +71,14 @@ namespace minigame000
 		math::float3 get_velocity() const { return movement_snapshot.velocity; }
 		void set_velocity(const math::float3& value) { movement_snapshot.velocity = value; }
 
+		//	‹zˆø”ÍˆÍ
+		float get_attract_range() const;
+
 		//	Ú’n”»’è
 		bool is_on_ground() const { return movement_snapshot.on_ground; }
 
 		//	€–S‚µ‚Ä‚¢‚é‚©
 		bool is_dead() const { return status_snapshot.dead; }
-
-		//	”G‚ç‚·
-		void add_wet(float value) { pending_wet_value += value; }
 
 	public:
 		roomba_object(std::string_view name);
@@ -97,6 +97,9 @@ namespace minigame000
 	#endif	//	defined(USE_IMGUI)
 
 	public:
+		//	”G‚ç‚·
+		void add_wet(float value) { pending_wet_value += value; }
+
 		//	ˆÚ“®‚Ìó‘Ô‚ğ–{‘Ì‚Æƒ‚ƒfƒ‹‚Ö”½‰f
 		void apply_movement_snapshot();
 

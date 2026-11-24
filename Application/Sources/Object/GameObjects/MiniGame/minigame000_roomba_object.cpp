@@ -31,6 +31,9 @@ namespace
 	//	死亡時に加える速度
 	constexpr math::float3 dead_impulse = system_units::convert_m_to_unit(math::float3(0.0f, 10.0f, 0.0f));
 
+	//	吸引範囲(停止時～ダッシュ最高速時)
+	constexpr math::float2 attract_radius_range = { system_units::convert_m_to_unit(1.0f), system_units::convert_m_to_unit(10.0f) };
+
 	//	エフェクト関連
 	constexpr float effect_spawn_rate = 0.5f;		//	この割合以上でスパーク/煙を出す
 	constexpr float effect_scale_rate = 1.5f;		//	割合からスケールへの倍率
@@ -206,6 +209,19 @@ math::vector3d minigame000::roomba_object::get_focus_point() const
 	if (collision)
 		return collision->get_world_translation();
 	return get_position();
+}
+
+float minigame000::roomba_object::get_attract_range() const
+{
+	//	死亡中は吸い込まない
+	if (status_snapshot.dead)
+		return 0.0f;
+
+	//	ダッシュ最高速に対する速度の割合で補間
+	float max_speed = movement.get_max_speed(roomba_movement::move_modes::dash);
+	float speed = math::vector3f(movement_snapshot.velocity).length();
+	float speed_rate = (max_speed > FLT_EPSILON) ? math::saturate(speed / max_speed) : 0.0f;
+	return math::lerp(attract_radius_range.x, attract_radius_range.y, speed_rate);
 }
 
 void minigame000::roomba_object::fixed_update(float elapsed_time)

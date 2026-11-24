@@ -15,6 +15,7 @@
 #include "Object/game_object_serializer.h"
 #include "Object/Graphics/camera_object.h"
 #include "Object/System/locator_object.h"
+#include "Object/Graphics/effect_object.h"
 #include "object/gameobjects/MiniGame/minigame000_roomba_object.h"
 #include "object/gameobjects/MiniGame/minigame000_roomba_player_controller_object.h"
 #include "object/gameobjects/MiniGame/minigame000_roomba_camera_controller_object.h"
@@ -92,6 +93,8 @@ void minigame000_system::on_end()
 
 	roombas.clear();
 	controllers.clear();
+	attract_roomba.reset();
+	stage_effects.clear();
 
 	//	ステージ内シーンの読込中断と、追加したシーンの削除
 	for (const resource::load_operation_ptr<scene_resource>& operation : stage_scene_operations)
@@ -122,6 +125,11 @@ void minigame000_system::pre_update(float elapsed_time)
 				spawn_roombas();
 				state = states::game;
 			}
+			break;
+		}
+		case states::game:
+		{
+			update_stage_effects();
 			break;
 		}
 	}
@@ -157,6 +165,7 @@ void minigame000_system::imgui_render()
 	ImGui::Text("stage scenes : %zu", stage_scene_names.size());
 	ImGui::Text("prefab loading : %s", roomba_prefab_operation ? "true" : "false");
 	ImGui::Text("roombas : %zu", roombas.size());
+	ImGui::Text("stage effects : %zu", stage_effects.size());
 	ImGui::Text("controllers : %zu", controllers.size());
 }
 #endif	//	defined(USE_IMGUI)
@@ -338,7 +347,10 @@ void minigame000_system::spawn_roombas()
 	//	生成して最初のルンバをプレイヤー操作に割当
 	//	@remainder	AI/通信の割り当ては残りの開始位置を使ってここで分岐させる予定
 	if (const std::shared_ptr<minigame000::roomba_object> roomba = spawn_roomba(*roomba_prefab_resource, start_point))
+	{
 		possess_player(roomba);
+		bind_stage_effects(roomba);
+	}
 }
 
 std::shared_ptr<minigame000::roomba_object> minigame000_system::spawn_roomba(const prefab_resource& prefab, const std::shared_ptr<locator_object>& start_point)
@@ -398,6 +410,54 @@ void minigame000_system::possess_player(const std::shared_ptr<minigame000::roomb
 	camera_controller->set_target(roomba);
 	register_object(camera_controller);
 	camera_controllers.emplace_back(std::move(camera_controller));
+}
+
+void minigame000_system::bind_stage_effects(const std::shared_ptr<minigame000::roomba_object>& roomba)
+{
+	//	@remainder	エフェクト1つにつき座標は1つなので、複数台で吸い込む場合は別の仕組みが必要
+	attract_roomba = roomba;
+	stage_effects.clear();
+
+	//	追従先はルンバの当たり判定
+	std::shared_ptr<spatial_object> target = roomba->get_collision_object();
+	if (!target)
+		target = roomba;
+
+	//	ステージの全シーンからエフェクトを集めて追従先を設定
+	for (const std::string& name : stage_scene_names)
+	{
+		const scene_instance* stage = get_context().get_scenes().find_scene(name);
+		if (!stage)
+			continue;
+
+		for (const std::weak_ptr<game_object>& weak_object : stage->get_objects())
+		{
+			game_object_ptr object = weak_object.lock();
+			if (!object || !object->check_type(effect_object::type_name()))
+				continue;
+
+			std::shared_ptr<effect_object> effect = std::static_pointer_cast<effect_object>(object);
+			effect->set_attract_target(target);
+			effect->set_event_target(target);
+			stage_effects.emplace_back(std::move(effect));
+		}
+	}
+}
+
+void minigame000_system::update_stage_effects()
+{
+	const std::shared_ptr<minigame000::roomba_object> roomba = attract_roomba.lock();
+	if (!roomba)
+		return;
+
+	//	吸引アイテムを持つパーティクルの範囲を書き換える
+	const float radius = roomba->get_attract_range();
+	for (const std::weak_ptr<effect_object>& weak_effect : stage_effects)
+	{
+		const std::shared_ptr<effect_object> effect = weak_effect.lock();
+		if (effect && effect->get_instance())
+			effect->get_instance()->set_attract_radius(radius);
+	}
 }
 
 SCENE_SYSTEM_REGISTER(minigame000_system);

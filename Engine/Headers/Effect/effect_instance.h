@@ -94,13 +94,17 @@ public:
 	const math::vector3d& get_event_position() const;
 	void set_event_position(const math::vector3d& position);
 
+	//	吸引アイテムの吸引範囲を設定
+	void set_attract_radius(float radius);
+
+	//	アニメーション時間関係取得/設定
 	float get_animation_time() const;
 	void set_animation_time(float animation_time);
-
 	float get_animation_speed() const;
 	float get_animation_end_time() const;
 	void set_animation_speed(float animation_speed);
 
+	//	パーティクルのシミュレーション時間
 	float get_particle_simulation_time() const;
 	void set_particle_simulation_time(float time);
 	UINT get_particle_simulation_step() const;

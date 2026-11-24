@@ -244,6 +244,15 @@ void effect_instance::set_event_position(const math::vector3d& position)
 	this->event_position = position;
 }
 
+void effect_instance::set_attract_radius(float radius)
+{
+	for (particle& particle : particles)
+	{
+		if (::particle::item::attract* attract = particle.particle.get_item<::particle::item::attract>())
+			attract->radius = radius;
+	}
+}
+
 float effect_instance::get_animation_time() const
 {
 	return animation_time;
