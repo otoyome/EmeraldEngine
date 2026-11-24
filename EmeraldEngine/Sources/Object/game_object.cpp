@@ -104,7 +104,7 @@ void game_object::post_render()
 void game_object::imgui_render_inspector()
 {
 	ImGui::PushID(static_cast<int>(std::hash<core::uuid>()(uuid)));
-	ImGui::TextUnformatted(name.get<core::utf8_cache>().data());
+	ImGui::InputTextUtf8("name", name);
 	if (transient)
 	{
 		ImGui::SameLine();

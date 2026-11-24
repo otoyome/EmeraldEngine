@@ -2,6 +2,7 @@
 
 #include "object/collision/collision_object.h"
 #include "Object/Graphics/model_object.h"
+#include "Object/Graphics/effect_object.h"
 #include "Object/collision_shape_object.h"
 
 #include "minigame000_roomba_movement.h"
@@ -18,7 +19,7 @@ namespace minigame000
 		GAME_OBJECT_DECRLEAR(roomba_object, spatial_object)
 
 		friend class ::game_object_serializer;
-		static constexpr std::uint32_t serialize_version = 5;
+		static constexpr std::uint32_t serialize_version = 6;
 
 	public:
 		//	移動段階
@@ -97,8 +98,10 @@ namespace minigame000
 
 	public:
 		//	移動の状態を本体とモデルへ反映
-		//	@remainder	通信でホストの状態を受け取ったときもここを通す
 		void apply_movement_snapshot();
+
+		//	ステータス状態をエフェクトへ反映
+		void apply_status_snapshot();
 
 	private:	//	シリアライズ
 		template<class Archive>
@@ -110,13 +113,23 @@ namespace minigame000
 		roomba_status status;								//	ルンバステータス
 		roomba_movement movement;							//	ルンバムーブメント
 
+		//	入力系
+		std::weak_ptr<roomba_input_source> input_source;	//	入力元
+		std::uint32_t next_tick = 0;						//	ネットワーク用処理順
+
+		//	更新情報
 		roomba_movement_snapshot movement_snapshot;			//	ムーブステート
 		roomba_status_snapshot status_snapshot;				//	ステータスステート
 
+		//	ステータスや環境関係
 		roomba_movement_environment movement_environment;	//	環境情報
 		float pending_wet_value = 0.0f;						//	次の固定更新で反映する濡れ量
 
-		std::weak_ptr<roomba_input_source> input_source;	//	入力元
-		std::uint32_t next_tick = 0;						//	ネットワーク用処理順
+		//	エフェクト系
+		bool effect_dead;									//	死亡フラグ
+		math::transformd dead_transform;					//	死亡時の姿勢
+		std::shared_ptr<effect_object> dead_effect;			//	死亡エフェクト
+		std::shared_ptr<effect_object> spark_effect;		//	漏電スパークエフェクト
+		std::shared_ptr<effect_object> smoke_effect;		//	熱による煙エフェクト
 	};
 }	//	namespace minigame000

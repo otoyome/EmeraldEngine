@@ -542,6 +542,9 @@
     <ClCompile Include="Sources\Object\game_object_serializer.cpp">
       <Filter>Sources\Object</Filter>
     </ClCompile>
+    <ClCompile Include="Sources\Object\System\group_object.cpp">
+      <Filter>Sources\Object\System</Filter>
+    </ClCompile>
     <ClCompile Include="Sources\Object\System\locator_object.cpp">
       <Filter>Sources\Object\System</Filter>
     </ClCompile>
@@ -951,6 +954,9 @@
     </ClInclude>
     <ClInclude Include="Headers\Object\game_object_serializer.h">
       <Filter>Headers\Object</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Object\System\group_object.h">
+      <Filter>Headers\Object\System</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Object\System\locator_object.h">
       <Filter>Headers\Object\System</Filter>

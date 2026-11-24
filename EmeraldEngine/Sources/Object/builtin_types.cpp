@@ -13,6 +13,7 @@
 #include "Object/collision_shape_object.h"
 #include "Object/Graphics/post_process_volume_object.h"
 #include "Object/System/locator_object.h"
+#include "Object/System/group_object.h"
 
 #include "SceneSystems/Editor/edit_material_system.h"
 #include "SceneSystems/Editor/edit_model_system.h"
@@ -42,6 +43,7 @@ void register_builtin_types()
 	objects->add<collision_shape_object>("Collision");
 	objects->add<post_process_volume_object>("Rendering");
 	objects->add<locator_object>("Game/System");
+	objects->add<group_object>("Basic");
 
 	//	シーンシステム
 	scene_system_registry* systems = scene_system_registry::instance();

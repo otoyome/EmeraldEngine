@@ -275,7 +275,7 @@ void outliner_window::render_object(const std::shared_ptr<game_object>& object)
 	{
 		object_edit_operations* target_editor = operations;
 
-		//	行をドラッグして別の行に落とすと、落とした先を親にする
+		//	落とした先を親にする
 		if (ImGui::BeginDragDropSource())
 		{
 			const game_object* self = object.get();

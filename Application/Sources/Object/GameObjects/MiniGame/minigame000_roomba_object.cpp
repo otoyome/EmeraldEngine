@@ -28,8 +28,12 @@ namespace
 	constexpr float velocity_roll_max = math::angle::to_radian(+20.0f);
 	constexpr float velocity_pitch_max = math::angle::to_radian(20.0f);
 
-	//	@tool	死亡時に加える速度
+	//	死亡時に加える速度
 	constexpr math::float3 dead_impulse = system_units::convert_m_to_unit(math::float3(0.0f, 10.0f, 0.0f));
+
+	//	エフェクト関連
+	constexpr float effect_spawn_rate = 0.5f;		//	この割合以上でスパーク/煙を出す
+	constexpr float effect_scale_rate = 1.5f;		//	割合からスケールへの倍率
 
 	//	地面の傾きを角度で算出
 	math::float3 calculate_ground_tilt(const math::float3& euler, const math::float3& normal)
@@ -81,6 +85,11 @@ minigame000::roomba_object::roomba_object(std::string_view name)
 
 , input_source()
 , next_tick(0)
+
+, effect_dead(false)
+, dead_effect()
+, spark_effect()
+, smoke_effect()
 {
 }
 
@@ -98,121 +107,15 @@ void minigame000::roomba_object::on_initialize()
 
 	//	モデルの向きを本体に合わせる
 	set_rotation(get_rotation());
+
+	//	ステータス毎のエフェクトの初期状態を設定
+	effect_dead = false;
+	apply_status_snapshot();
 }
 
 void minigame000::roomba_object::on_finalize()
 {
 	base::on_finalize();
-}
-
-template<class Archive>
-void minigame000::roomba_object::serialize_fields(Archive& archive, std::uint32_t version)
-{
-	roomba_movement_settings& settings = movement.get_settings();
-	roomba_status_settings& status_settings = status.get_settings();
-
-	float& mass = settings.mass;
-	float& diameter = settings.diameter;
-	float& height = settings.height;
-	float& drag_coefficient = settings.drag_coefficient;
-	float& walk_accelaration = settings.walk_accelaration;
-	float& walk_max_speed = settings.walk_max_speed;
-	float& dash_accelaration = settings.dash_accelaration;
-	float& dash_max_speed = settings.dash_max_speed;
-	float& braking_deceleration = settings.braking_deceleration;
-	float& base_friction = settings.base_friction;
-	float& rotation_speed = settings.rotation_speed;
-
-	switch (version)
-	{
-		case 0:
-		case 1:
-		{
-			std::string collision_filter_name;
-			float capsule_radius = 0.0f;
-			float capsule_length = 0.0f;
-			float gravity_scale = 0.0f;
-			game_object_serializer::serialize_object_reference(archive, "model", model);
-			archive(CEREAL_NVP(collision_filter_name),
-					CEREAL_NVP(mass),
-					CEREAL_NVP(capsule_radius),
-					CEREAL_NVP(capsule_length),
-					CEREAL_NVP(diameter),
-					CEREAL_NVP(height),
-					CEREAL_NVP(drag_coefficient),
-					CEREAL_NVP(walk_accelaration),
-					CEREAL_NVP(walk_max_speed),
-					CEREAL_NVP(dash_accelaration),
-					CEREAL_NVP(dash_max_speed),
-					CEREAL_NVP(braking_deceleration),
-					CEREAL_NVP(base_friction),
-					CEREAL_NVP(rotation_speed),
-					CEREAL_NVP(gravity_scale));
-			break;
-		}
-		case 2:
-		{
-			float gravity_scale = 0.0f;
-			game_object_serializer::serialize_object_reference(archive, "model", model);
-			game_object_serializer::serialize_object_reference(archive, "capsule", collision);
-			archive(CEREAL_NVP(mass),
-					CEREAL_NVP(diameter),
-					CEREAL_NVP(height),
-					CEREAL_NVP(drag_coefficient),
-					CEREAL_NVP(walk_accelaration),
-					CEREAL_NVP(walk_max_speed),
-					CEREAL_NVP(dash_accelaration),
-					CEREAL_NVP(dash_max_speed),
-					CEREAL_NVP(braking_deceleration),
-					CEREAL_NVP(base_friction),
-					CEREAL_NVP(rotation_speed),
-					CEREAL_NVP(gravity_scale));
-			break;
-		}
-		case 3:
-		{
-			game_object_serializer::serialize_object_reference(archive, "model", model);
-			game_object_serializer::serialize_object_reference(archive, "collision", collision);
-			archive(CEREAL_NVP(mass),
-					CEREAL_NVP(diameter),
-					CEREAL_NVP(height),
-					CEREAL_NVP(drag_coefficient),
-					CEREAL_NVP(walk_accelaration),
-					CEREAL_NVP(walk_max_speed),
-					CEREAL_NVP(dash_accelaration),
-					CEREAL_NVP(dash_max_speed),
-					CEREAL_NVP(braking_deceleration),
-					CEREAL_NVP(base_friction),
-					CEREAL_NVP(rotation_speed));
-			break;
-		}
-		case 4:
-		{
-			game_object_serializer::serialize_object_reference(archive, "model", model);
-			game_object_serializer::serialize_object_reference(archive, "collision", collision);
-			archive(CEREAL_NVP(settings));
-			break;
-		}
-		case 5:
-		{
-			game_object_serializer::serialize_object_reference(archive, "model", model);
-			game_object_serializer::serialize_object_reference(archive, "collision", collision);
-			archive(CEREAL_NVP(settings),
-					CEREAL_NVP(status_settings));
-			break;
-		}
-	}
-}
-void minigame000::roomba_object::serialize(cereal::JSONOutputArchive& archive) const
-{
-	base::serialize(archive);
-	game_object_serializer::save_fields(archive, "roomba_object", *this);
-}
-
-void minigame000::roomba_object::deserialize(cereal::JSONInputArchive& archive)
-{
-	base::deserialize(archive);
-	game_object_serializer::load_fields(archive, "roomba_object", *this);
 }
 
 #if defined(USE_IMGUI)
@@ -249,6 +152,11 @@ void minigame000::roomba_object::imgui_render_core()
 	ImGui::DragFloat("max_heat_value", &status_settings.max_heat_value, 1.0f);
 	ImGui::DragFloat("base_wet_value", &status_settings.base_wet_value, 0.1f);
 	ImGui::DragFloat("base_heat_value", &status_settings.base_heat_value, 0.1f);
+
+	ImGui::SeparatorText("effect");
+	object_reference_field::imgui_combo("dead_effect", get_context(), dead_effect);
+	object_reference_field::imgui_combo("spark_effect", get_context(), spark_effect);
+	object_reference_field::imgui_combo("smoke_effect", get_context(), smoke_effect);
 
 	ImGui::SeparatorText("state");
 	ImGui::Text("on_ground : %s", movement_snapshot.on_ground ? "true" : "false");
@@ -349,12 +257,176 @@ void minigame000::roomba_object::fixed_update(float elapsed_time)
 
 	//	移動情報適応
 	apply_movement_snapshot();
+
+	//	ステータス情報適応
+	apply_status_snapshot();
 }
 
 void minigame000::roomba_object::apply_movement_snapshot()
 {
 	set_position(movement_snapshot.position);
 	set_rotation(movement_snapshot.rotation);
+}
+
+void minigame000::roomba_object::apply_status_snapshot()
+{
+	const float wet_rate = status.get_wet_rate(status_snapshot);
+	const float heat_rate = status.get_heat_rate(status_snapshot);
+
+	//	漏電によるスパーク
+	if (spark_effect)
+	{
+		spark_effect->set_spawn_stop(wet_rate < effect_spawn_rate);
+		const double scale = wet_rate * effect_scale_rate;
+		spark_effect->set_local_scale(math::vector3d(scale, scale, scale));
+	}
+
+	//	熱による煙
+	if (smoke_effect)
+	{
+		smoke_effect->set_spawn_stop(heat_rate < effect_spawn_rate);
+		const double scale = heat_rate * effect_scale_rate;
+		smoke_effect->set_local_scale(math::vector3d(scale, scale, scale));
+	}
+
+	//	死亡状態が変わった瞬間に再生/停止
+	if (effect_dead != status_snapshot.dead)
+	{
+		effect_dead = status_snapshot.dead;
+		dead_transform = get_world();
+		if (dead_effect)
+		{
+			if (status_snapshot.dead)
+			{
+				dead_effect->play();
+			}
+			else
+			{
+				dead_effect->stop();
+			}
+		}
+	}
+	dead_effect->set_world(dead_transform);
+}
+
+template<class Archive>
+void minigame000::roomba_object::serialize_fields(Archive& archive, std::uint32_t version)
+{
+	roomba_movement_settings& settings = movement.get_settings();
+	roomba_status_settings& status_settings = status.get_settings();
+
+	float& mass = settings.mass;
+	float& diameter = settings.diameter;
+	float& height = settings.height;
+	float& drag_coefficient = settings.drag_coefficient;
+	float& walk_accelaration = settings.walk_accelaration;
+	float& walk_max_speed = settings.walk_max_speed;
+	float& dash_accelaration = settings.dash_accelaration;
+	float& dash_max_speed = settings.dash_max_speed;
+	float& braking_deceleration = settings.braking_deceleration;
+	float& base_friction = settings.base_friction;
+	float& rotation_speed = settings.rotation_speed;
+
+	switch (version)
+	{
+		case 0:
+		case 1:
+		{
+			std::string collision_filter_name;
+			float capsule_radius = 0.0f;
+			float capsule_length = 0.0f;
+			float gravity_scale = 0.0f;
+			game_object_serializer::serialize_object_reference(archive, "model", model);
+			archive(CEREAL_NVP(collision_filter_name),
+					CEREAL_NVP(mass),
+					CEREAL_NVP(capsule_radius),
+					CEREAL_NVP(capsule_length),
+					CEREAL_NVP(diameter),
+					CEREAL_NVP(height),
+					CEREAL_NVP(drag_coefficient),
+					CEREAL_NVP(walk_accelaration),
+					CEREAL_NVP(walk_max_speed),
+					CEREAL_NVP(dash_accelaration),
+					CEREAL_NVP(dash_max_speed),
+					CEREAL_NVP(braking_deceleration),
+					CEREAL_NVP(base_friction),
+					CEREAL_NVP(rotation_speed),
+					CEREAL_NVP(gravity_scale));
+			break;
+		}
+		case 2:
+		{
+			float gravity_scale = 0.0f;
+			game_object_serializer::serialize_object_reference(archive, "model", model);
+			game_object_serializer::serialize_object_reference(archive, "capsule", collision);
+			archive(CEREAL_NVP(mass),
+					CEREAL_NVP(diameter),
+					CEREAL_NVP(height),
+					CEREAL_NVP(drag_coefficient),
+					CEREAL_NVP(walk_accelaration),
+					CEREAL_NVP(walk_max_speed),
+					CEREAL_NVP(dash_accelaration),
+					CEREAL_NVP(dash_max_speed),
+					CEREAL_NVP(braking_deceleration),
+					CEREAL_NVP(base_friction),
+					CEREAL_NVP(rotation_speed),
+					CEREAL_NVP(gravity_scale));
+			break;
+		}
+		case 3:
+		{
+			game_object_serializer::serialize_object_reference(archive, "model", model);
+			game_object_serializer::serialize_object_reference(archive, "collision", collision);
+			archive(CEREAL_NVP(mass),
+					CEREAL_NVP(diameter),
+					CEREAL_NVP(height),
+					CEREAL_NVP(drag_coefficient),
+					CEREAL_NVP(walk_accelaration),
+					CEREAL_NVP(walk_max_speed),
+					CEREAL_NVP(dash_accelaration),
+					CEREAL_NVP(dash_max_speed),
+					CEREAL_NVP(braking_deceleration),
+					CEREAL_NVP(base_friction),
+					CEREAL_NVP(rotation_speed));
+			break;
+		}
+		case 4:
+		{
+			game_object_serializer::serialize_object_reference(archive, "model", model);
+			game_object_serializer::serialize_object_reference(archive, "collision", collision);
+			archive(CEREAL_NVP(settings));
+			break;
+		}
+		case 5:
+		{
+			game_object_serializer::serialize_object_reference(archive, "model", model);
+			game_object_serializer::serialize_object_reference(archive, "collision", collision);
+			archive(CEREAL_NVP(settings),
+					CEREAL_NVP(status_settings));
+			break;
+		}
+		case 6:
+		{
+			game_object_serializer::serialize_object_reference(archive, "model", model);
+			game_object_serializer::serialize_object_reference(archive, "collision", collision);
+			game_object_serializer::serialize_object_reference(archive, "dead_effect", dead_effect);
+			game_object_serializer::serialize_object_reference(archive, "spark_effect", spark_effect);
+			game_object_serializer::serialize_object_reference(archive, "smoke_effect", smoke_effect);
+			archive(CEREAL_NVP(settings), CEREAL_NVP(status_settings));
+			break;
+		}
+	}
+}
+void minigame000::roomba_object::serialize(cereal::JSONOutputArchive& archive) const
+{
+	base::serialize(archive);
+	game_object_serializer::save_fields(archive, "roomba_object", *this);
+}
+
+void minigame000::roomba_object::deserialize(cereal::JSONInputArchive& archive)
+{
+	base::deserialize(archive);
+	game_object_serializer::load_fields(archive, "roomba_object", *this);
 }
 
 namespace minigame000
