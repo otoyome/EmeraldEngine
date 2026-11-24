@@ -1,11 +1,16 @@
 #include "input/mouse.h"
 
 #if defined(USE_IMGUI)
+#include "System/console_manager.h"
 #include "Input/keyboard.h"
 #endif	//	defined(USE_IMGUI)
 
 namespace
 {
+#if defined(USE_IMGUI)
+	console_variable<bool> mouse_lock_variable("input.mouse_lock", true, "マウス固定(カーソル非表示+中央固定)を許可する(0で強制解除、F1で切替)");
+#endif	//	defined(USE_IMGUI)
+
 	static const int KeyMap[] =
 	{
 		VK_LBUTTON,
@@ -131,18 +136,20 @@ math::int2 mouse::get_client_size() const
 
 void mouse::update_state()
 {
-#if defined(USE_IMGUI)
+	//	ゲーム側の要求
 	bool window_center_lock = this->window_center_lock;
 	bool cursol_hide = this->cursol_hide;
 
-	//	F1入力時に解除
+#if defined(USE_IMGUI)
+	//	F1入力時にマウス固定の許可を切替
 	auto keyboard_state = keyboard::instance()->get_state();
-	static bool force_unlock = false;
 	if (keyboard_state.is_key_state(keyboard::key_states::f1) == input::state::down)
 	{
-		force_unlock = !force_unlock;
+		mouse_lock_variable.set(!mouse_lock_variable.get());
 	}
-	if (force_unlock)
+
+	//	許可されていなければ解除
+	if (!mouse_lock_variable.get())
 	{
 		window_center_lock = false;
 		cursol_hide = false;

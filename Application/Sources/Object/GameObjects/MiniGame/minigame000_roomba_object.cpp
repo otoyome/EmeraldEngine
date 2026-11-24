@@ -38,6 +38,9 @@ namespace
 	constexpr float effect_spawn_rate = 0.5f;		//	この割合以上でスパーク/煙を出す
 	constexpr float effect_scale_rate = 1.5f;		//	割合からスケールへの倍率
 
+	//	ダッシュエフェクト
+	constexpr math::float2 dash_effect_scale_range = { 0.5f, 1.5f };
+
 	//	地面の傾きを角度で算出
 	math::float3 calculate_ground_tilt(const math::float3& euler, const math::float3& normal)
 	{
@@ -93,6 +96,8 @@ minigame000::roomba_object::roomba_object(std::string_view name)
 , dead_effect()
 , spark_effect()
 , smoke_effect()
+, dash_effect_left()
+, dash_effect_right()
 {
 }
 
@@ -160,6 +165,8 @@ void minigame000::roomba_object::imgui_render_core()
 	object_reference_field::imgui_combo("dead_effect", get_context(), dead_effect);
 	object_reference_field::imgui_combo("spark_effect", get_context(), spark_effect);
 	object_reference_field::imgui_combo("smoke_effect", get_context(), smoke_effect);
+	object_reference_field::imgui_combo("dash_effect_left", get_context(), dash_effect_left);
+	object_reference_field::imgui_combo("dash_effect_right", get_context(), dash_effect_right);
 
 	ImGui::SeparatorText("state");
 	ImGui::Text("on_ground : %s", movement_snapshot.on_ground ? "true" : "false");
@@ -282,6 +289,24 @@ void minigame000::roomba_object::apply_movement_snapshot()
 {
 	set_position(movement_snapshot.position);
 	set_rotation(movement_snapshot.rotation);
+
+	//	ダッシュエフェクト
+	auto dash_func = [this](effect_object* dash_effect)
+	{
+		if (!dash_effect)
+			return;
+		const math::float3& velocity = movement_snapshot.velocity;
+		const float speed = math::vector3f(velocity.x, 0.0f, velocity.z).length();
+		const bool driving = movement_snapshot.driving && !status_snapshot.dead;
+		dash_effect->set_spawn_stop(!driving);
+
+		const float max_speed = movement.get_max_speed(roomba_movement::move_modes::dash);
+		const float speed_rate = (max_speed > FLT_EPSILON) ? math::saturate(speed / max_speed) : 0.0f;
+		const double scale = math::lerp(dash_effect_scale_range.x, dash_effect_scale_range.y, speed_rate);
+		dash_effect->set_local_scale(math::vector3d(scale, scale, scale));
+	};
+	dash_func(dash_effect_left.get());
+	dash_func(dash_effect_right.get());
 }
 
 void minigame000::roomba_object::apply_status_snapshot()
@@ -306,12 +331,12 @@ void minigame000::roomba_object::apply_status_snapshot()
 	}
 
 	//	死亡状態が変わった瞬間に再生/停止
-	if (effect_dead != status_snapshot.dead)
+	if (dead_effect)
 	{
-		effect_dead = status_snapshot.dead;
-		dead_transform = get_world();
-		if (dead_effect)
+		if (effect_dead != status_snapshot.dead)
 		{
+			effect_dead = status_snapshot.dead;
+			dead_transform = get_world();
 			if (status_snapshot.dead)
 			{
 				dead_effect->play();
@@ -321,8 +346,8 @@ void minigame000::roomba_object::apply_status_snapshot()
 				dead_effect->stop();
 			}
 		}
+		dead_effect->set_world(dead_transform);
 	}
-	dead_effect->set_world(dead_transform);
 }
 
 template<class Archive>
@@ -428,6 +453,18 @@ void minigame000::roomba_object::serialize_fields(Archive& archive, std::uint32_
 			game_object_serializer::serialize_object_reference(archive, "dead_effect", dead_effect);
 			game_object_serializer::serialize_object_reference(archive, "spark_effect", spark_effect);
 			game_object_serializer::serialize_object_reference(archive, "smoke_effect", smoke_effect);
+			archive(CEREAL_NVP(settings), CEREAL_NVP(status_settings));
+			break;
+		}
+		case 7:
+		{
+			game_object_serializer::serialize_object_reference(archive, "model", model);
+			game_object_serializer::serialize_object_reference(archive, "collision", collision);
+			game_object_serializer::serialize_object_reference(archive, "dead_effect", dead_effect);
+			game_object_serializer::serialize_object_reference(archive, "spark_effect", spark_effect);
+			game_object_serializer::serialize_object_reference(archive, "smoke_effect", smoke_effect);
+			game_object_serializer::serialize_object_reference(archive, "dash_effect_left", dash_effect_left);
+			game_object_serializer::serialize_object_reference(archive, "dash_effect_right", dash_effect_right);
 			archive(CEREAL_NVP(settings), CEREAL_NVP(status_settings));
 			break;
 		}

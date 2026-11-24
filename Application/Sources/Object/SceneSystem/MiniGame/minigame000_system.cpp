@@ -11,6 +11,7 @@
 #include "Object/asset_reference_field.h"
 #include "Scenes/scene_manager.h"
 #include "Scenes/scene_instance.h"
+#include "Input/mouse.h"
 
 #include "Object/game_object_serializer.h"
 #include "Object/Graphics/camera_object.h"
@@ -26,6 +27,16 @@ namespace
 	//	1回当たった時の濡れ量
 	constexpr float trash_wet_value = 1.0f;
 	constexpr float bubble_wet_value = 400.0f;
+
+	//	マウス固定の反映
+	void apply_mouse_lock(bool lock)
+	{
+		if (!mouse::is_valid())
+			return;
+
+		mouse::instance()->set_center_lock(lock);
+		mouse::instance()->set_cursol_hide(lock);
+	}
 
 	//	シーンカメラ検索
 	std::shared_ptr<camera_object> find_view_camera(const std::vector<game_object_ptr>& objects)
@@ -116,6 +127,9 @@ void minigame000_system::on_end()
 	}
 	stage_scene_names.clear();
 	selected_stage_index = -1;
+
+	//	マウス固定を解除
+	apply_mouse_lock(false);
 }
 
 void minigame000_system::pre_update(float elapsed_time)
@@ -141,6 +155,9 @@ void minigame000_system::pre_update(float elapsed_time)
 			if (is_stage_completed())
 			{
 				spawn_roombas();
+
+				//	ゲーム中はマウス固定
+				apply_mouse_lock(true);
 				state = states::game;
 			}
 			break;

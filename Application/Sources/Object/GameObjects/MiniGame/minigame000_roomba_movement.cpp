@@ -107,6 +107,12 @@ void minigame000::roomba_movement::simulate(roomba_movement_snapshot& snapshot, 
 	update_velocity(snapshot, step, environment, elapsed_time);
 	update_move(snapshot, elapsed_time, world, shape);
 
+	//	ダッシュ中か
+	{
+		const math::float2& move = step.move_vector;
+		snapshot.driving = snapshot.on_ground && command.dash && (move.x * move.x + move.y * move.y) > move_input_dead_zone_sq;
+	}
+
 	//	傾き適応
 	update_tilt(snapshot, step, elapsed_time);
 

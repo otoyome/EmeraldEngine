@@ -26,7 +26,8 @@ namespace minigame000
 		math::vector3d position = { 0.0, 0.0, 0.0 };		//	位置
 		math::rotatorf rotation;							//	回転
 		math::float3 velocity = { 0.0f, 0.0f, 0.0f };		//	速度
-		bool on_ground = true;								//	接地しているか
+		bool on_ground = true;								//	接地中
+		bool driving = false;								//	ダッシュ走行中
 		math::float3 ground_normal = { 0.0f, 1.0f, 0.0f };	//	地面の法線
 		float ground_friction = 1.0f;						//	地面の摩擦係数
 		float velocity_tilt_pitch = 0.0f;					//	速度ピッチ

@@ -19,7 +19,7 @@ namespace minigame000
 		GAME_OBJECT_DECRLEAR(roomba_object, spatial_object)
 
 		friend class ::game_object_serializer;
-		static constexpr std::uint32_t serialize_version = 6;
+		static constexpr std::uint32_t serialize_version = 7;
 
 	public:
 		//	移動段階
@@ -134,5 +134,7 @@ namespace minigame000
 		std::shared_ptr<effect_object> dead_effect;			//	死亡エフェクト
 		std::shared_ptr<effect_object> spark_effect;		//	漏電スパークエフェクト
 		std::shared_ptr<effect_object> smoke_effect;		//	熱による煙エフェクト
+		std::shared_ptr<effect_object> dash_effect_left;	//	ダッシュエフェクト
+		std::shared_ptr<effect_object> dash_effect_right;	//	ダッシュエフェクト
 	};
 }	//	namespace minigame000
