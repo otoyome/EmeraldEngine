@@ -83,7 +83,7 @@ void editor_camera_object::debug_update(float elapsed_time)
 
 	auto game_camera = find_game_camera();
 
-	//	シーンの切り替えなどで新しいゲームカメラが現れたら、姿勢を合わせる
+	//	シーンの切り替えなどで新しいゲームカメラが現れたら姿勢を合わせる
 	if (game_camera && game_camera != synced_game_camera.lock())
 	{
 		synced_game_camera = game_camera;
@@ -120,13 +120,14 @@ void editor_camera_object::debug_update(float elapsed_time)
 			const math::int2 client_size = mouse::instance()->get_client_size();
 			data.viewport_size = { static_cast<float>((std::max)(client_size.x, 1)), static_cast<float>((std::max)(client_size.y, 1)) };
 		}
-		messenger& target = get_context().get_objects().get_messenger();
+		//	通知
+		core::signals::broadcaster& target = get_context().get_broadcaster();
 		if (input::get_key_state(mouse::key_states::left) == input::state::down)
-			target.send_data(left_click_down_identifier, &data);
+			target.publish(left_click_down_topic, data);
 		else if (input::get_key_state(mouse::key_states::left) == input::state::hold)
-			target.send_data(left_click_hold_identifier, &data);
+			target.publish(left_click_hold_topic, data);
 		else if (input::get_key_state(mouse::key_states::left) == input::state::release)
-			target.send_data(left_click_release_identifier, &data);
+			target.publish(left_click_release_topic, data);
 	}
 }
 

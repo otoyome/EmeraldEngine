@@ -41,7 +41,6 @@ namespace core::signals
 			std::atomic<bool> alive{ true };
 			std::recursive_mutex call_mutex;
 
-			//	生きていれば呼ぶ。呼んだら true
 			bool call(const void* argument, void* result)
 			{
 				std::lock_guard<std::recursive_mutex> lock(call_mutex);
@@ -51,7 +50,6 @@ namespace core::signals
 				return true;
 			}
 
-			//	以後は呼ばれないようにして、実行中の呼び出しがあれば終わるのを待つ
 			void retire()
 			{
 				alive.store(false);
@@ -62,7 +60,7 @@ namespace core::signals
 		//	スロット
 		struct slot
 		{
-			std::string_view name;	//	文字列リテラルを指す
+			std::string_view name;
 			type_id type = nullptr;
 			std::vector<std::shared_ptr<entry>> entries;	//	登録した順に呼ぶ
 		};
@@ -108,13 +106,13 @@ namespace core::signals
 
 	namespace detail
 	{
-		//	宛先と受け手の表。broadcaster と contactor の共通の土台
+		//	レジストリ
 		class registry
 		{
 		public:
 			static constexpr uint32_t max_depth = 16;
 
-			//	入れ子の深さを数える（スレッドごと）
+			//	入れ子の深さを数える
 			class depth_guard
 			{
 			public:
@@ -131,7 +129,6 @@ namespace core::signals
 		public:
 			registry();
 
-			//	受け手の写しを取る。型の違う同名の宛先なら false
 			bool snapshot(address target, std::string_view name, type_id type, std::vector<std::shared_ptr<entry>>& out);
 			void remove(address target, uint64_t key);
 
@@ -139,7 +136,6 @@ namespace core::signals
 				std::function<void(const void*, void*)> invoke, std::source_location location, bool exclusive);
 
 		private:
-			//	mutex を持った状態で呼ぶこと
 			slot* find_or_add_locked(address target, std::string_view name, type_id type);
 
 		private:
@@ -177,7 +173,7 @@ namespace core::signals
 		broadcaster(const broadcaster&) = delete;
 		broadcaster& operator=(const broadcaster&) = delete;
 
-		//	予約配信（どのスレッドからでも積める）
+		//	予約配信
 		template<typename Payload>
 		void post(const topic<Payload>& target, const std::type_identity_t<Payload>& payload)
 		{
@@ -199,7 +195,7 @@ namespace core::signals
 			dispatch(target.target, target.name, detail::type_of<detail::type_list<void>>(), nullptr);
 		}
 
-		//	予約配信処理（呼んだスレッドの上で配る）
+		//	予約配信処理
 		void dispatch_posted();
 
 		//	配信購読
@@ -230,9 +226,9 @@ namespace core::signals
 		void push_posted(std::function<void()> item);
 
 	private:
-		std::shared_ptr<detail::registry> core;	//	構築後は変わらない
+		std::shared_ptr<detail::registry> core;
 		std::mutex posted_mutex;
-		std::vector<std::function<void()>> posted;	//	posted_mutex で保護
+		std::vector<std::function<void()>> posted;
 	};
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -372,6 +368,6 @@ namespace core::signals
 		}
 
 	private:
-		std::shared_ptr<detail::registry> core;	//	構築後は変わらない
+		std::shared_ptr<detail::registry> core;
 	};
 }	//	namespace core::signals

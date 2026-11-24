@@ -4,7 +4,6 @@
 #include <functional>
 
 #include "game_object.h"
-#include "object/messenger.h"
 #include "Collision/collision_world.h"
 #include "Core/parallel_for_executor.h"
 #include "Editor/detail_profiler.h"
@@ -27,7 +26,6 @@ public:
 
 	void finalize();
 
-	messenger& get_messenger() {return messenger;}
 	collision_world& get_world() {return world;}
 
 #if defined(USE_IMGUI)
@@ -156,7 +154,6 @@ private:
 	std::vector<game_object_ptr> game_object_removes;
 	core::parallel_for_executor object_update_executor;
 
-	messenger messenger;
 	collision_world world;
 
 	float total_time;

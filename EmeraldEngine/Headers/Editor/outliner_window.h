@@ -21,7 +21,7 @@ class hierarchy;
 class outliner_window
 {
 public:
-	//	行をドラッグする時の受け渡し名
+	//	ドラッグする時の受け渡し名
 	static constexpr const char* payload_type = "OUTLINER_OBJECT";
 
 	void imgui_render(scene_editor& editor);

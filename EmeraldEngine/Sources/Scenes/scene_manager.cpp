@@ -44,7 +44,7 @@ void scene_manager::updates(float elapsed_time)
 	}
 
 	//	—\–ñ”zMˆ—
-	broadcaster.dispatch_posted();
+	context.get_broadcaster().dispatch_posted();
 
 	for (auto& scene : scenes)
 		scene.second->pre_update(elapsed_time);

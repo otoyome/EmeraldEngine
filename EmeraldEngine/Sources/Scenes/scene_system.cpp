@@ -61,12 +61,12 @@ void scene_system::unregister_object(const game_object_ptr& object)
 
 core::signals::broadcaster& scene_system::get_broadcaster() const
 {
-	return get_context().get_scenes().get_broadcaster();
+	return get_context().get_broadcaster();
 }
 
 core::signals::contactor& scene_system::get_contactor() const
 {
-	return get_context().get_scenes().get_contactor();
+	return get_context().get_contactor();
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////

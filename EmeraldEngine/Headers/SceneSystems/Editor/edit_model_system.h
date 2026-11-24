@@ -23,6 +23,40 @@ class edit_model_system : public scene_system
 {
 	SCENE_SYSTEM_DECRLEAR(edit_model_system, scene_system)
 
+	//	メッシュ情報リスト
+	struct edit_model_mesh_data
+	{
+		size_t node_index;
+		bool visible = true;
+		std::vector<model_instance::mesh*> meshes;
+		std::vector<std::string> morphs;
+	};
+
+	//	ブラシ情報
+	struct brush_data
+	{
+		bool on = false;					//	処理
+		math::float3 position;				//	座標
+		float radius = 0.1f;				//	範囲
+		math::float4 color{1, 1, 1, 0.5f};	//	色
+		math::int4 color_flags{1, 1, 1, 1};	//	色適応フラグ
+	};
+
+	//	変換情報
+	struct convert_option_data
+	{
+		enum class kinds
+		{
+			none,
+			mmd,
+			gltf,
+			emo,
+		};
+		kinds kind = kinds::none;
+		data_converter::mmd::convert_model_data mmd;
+		data_converter::gltf::convert_model_data gltf;
+	};
+
 public:
 	edit_model_system();
 	edit_model_system(const edit_model_system&) = delete;
@@ -73,8 +107,8 @@ private:	//	頂点カラー編集系
 	bool uninitialize_vertex_color_edit();
 	void update_vertex_color_edit();
 	void imgui_render_vertex_color_edit();
-	void on_mouse_left_down_and_hold(void* data_ptr);
-	void on_mouse_left_release(void* data_ptr);
+	void on_mouse_left_down_and_hold(const editor_camera_object::mouse_position_data& data);
+	void on_mouse_left_release();
 
 private:	//	アニメーション編集系
 	bool initialize_animation();
@@ -156,19 +190,7 @@ private:
 
 	//	変換情報
 	std::string load_model_path;
-	struct convert_option_data
-	{
-		enum class kinds
-		{
-			none,
-			mmd,
-			gltf,
-			emo,
-		};
-		kinds kind = kinds::none;
-		data_converter::mmd::convert_model_data mmd;
-		data_converter::gltf::convert_model_data gltf;
-	} convert_option_data;
+	convert_option_data convert_option_data;
 
 	std::shared_ptr<editor_items::context> items_context;
 
@@ -177,14 +199,7 @@ private:	//	ボーン表示系
 	std::vector<std::string> selected_bones;
 	std::vector<std::string> model_bone_names;
 
-private:	//	メッシュ情報リスト
-	struct edit_model_mesh_data
-	{
-		size_t node_index;
-		bool visible = true;
-		std::vector<model_instance::mesh*> meshes;
-		std::vector<std::string> morphs;
-	};
+private:
 	std::vector<edit_model_mesh_data> edit_model_meshes;
 
 private:
@@ -197,18 +212,9 @@ private:	//	頂点カラー編集系
 	std::shared_ptr<model_object> vertex_color_edit_model;
 	std::shared_ptr<material_resource> vertex_color_edit_material;
 
-	//	ブラシ情報
-	struct brush_data
-	{
-		bool on = false;							//	処理
-		math::float3 position;					//	座標
-		float radius = 0.1f;						//	範囲
-		math::float4 color{1, 1, 1, 0.5f};		//	色
-		math::int4 color_flags{1, 1, 1, 1};	//	色適応フラグ
-	};
 	brush_data brush_data;
 
 	//	左クリック
-	uint64_t left_click_data_identifier[3] = { messenger::invalid_key, messenger::invalid_key, messenger::invalid_key };
+	core::signals::connection_list left_click_connections;	//	通知購読リスト
 };
 #endif // defined(USE_IMGUI)

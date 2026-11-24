@@ -389,9 +389,6 @@
     <ClCompile Include="Sources\Renderer\render_job_executor.cpp">
       <Filter>Sources\Renderer</Filter>
     </ClCompile>
-    <ClCompile Include="Sources\Object\messenger.cpp">
-      <Filter>Sources\Object</Filter>
-    </ClCompile>
     <ClCompile Include="..\External\ImGuizmo\ImGradient.cpp">
       <Filter>External\imguizmo</Filter>
     </ClCompile>
@@ -792,9 +789,6 @@
     </ClInclude>
     <ClInclude Include="Headers\Renderer\render_job_executor.h">
       <Filter>Headers\Renderer</Filter>
-    </ClInclude>
-    <ClInclude Include="Headers\Object\messenger.h">
-      <Filter>Headers\Object</Filter>
     </ClInclude>
     <ClInclude Include="..\External\ImGuizmo\ImGradient.h">
       <Filter>External\imguizmo</Filter>

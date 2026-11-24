@@ -524,21 +524,13 @@ bool edit_model_system::initialize_vertex_color_edit()
 
 	//	É}ÉEÉXçwì«
 	{
-		static constexpr std::string_view keys[] =
-		{
-			editor_camera_object::left_click_down_identifier,
-			editor_camera_object::left_click_hold_identifier,
-		};
-		for (int index = 0; index < ARRAYSIZE(keys); ++index)
-		{
-			left_click_data_identifier[index] = get_context().get_objects().get_messenger().add_receiver(
-				keys[index],
-				[this](void* data_ptr) { on_mouse_left_down_and_hold(data_ptr); });
-		}
-
-		left_click_data_identifier[2] = get_context().get_objects().get_messenger().add_receiver(
-			editor_camera_object::left_click_release_identifier,
-			[this](void* data_ptr) { on_mouse_left_release(data_ptr); });
+		core::signals::broadcaster& broadcaster = get_broadcaster();
+		left_click_connections += broadcaster.subscribe(editor_camera_object::left_click_down_topic,
+			[this](const editor_camera_object::mouse_position_data& data) { on_mouse_left_down_and_hold(data); });
+		left_click_connections += broadcaster.subscribe(editor_camera_object::left_click_hold_topic,
+			[this](const editor_camera_object::mouse_position_data& data) { on_mouse_left_down_and_hold(data); });
+		left_click_connections += broadcaster.subscribe(editor_camera_object::left_click_release_topic,
+			[this](const editor_camera_object::mouse_position_data&) { on_mouse_left_release(); });
 	}
 	return true;
 }
@@ -546,12 +538,7 @@ bool edit_model_system::initialize_vertex_color_edit()
 bool edit_model_system::uninitialize_vertex_color_edit()
 {
 	//	ç∂ÉNÉäÉbÉNìoò^âèú
-	{
-		for (auto& id : left_click_data_identifier)
-		{
-			get_context().get_objects().get_messenger().remove_receiver(id);
-		}
-	}
+	left_click_connections.disconnect_all();
 	return true;
 }
 
@@ -586,12 +573,10 @@ void edit_model_system::imgui_render_vertex_color_edit()
 	ImGui::SliderFloat("outline scale factor", &brush_data.color.w, 0.0f, 1.0f);
 }
 
-void edit_model_system::on_mouse_left_down_and_hold(void* data_ptr)
+void edit_model_system::on_mouse_left_down_and_hold(const editor_camera_object::mouse_position_data& data)
 {
 	if (!edit_model || !is_edit_vertex_color)
 		return;
-
-	auto data = static_cast<editor_camera_object::mouse_position_data*>(data_ptr);
 
 	if (!editor_camera)
 		return;
@@ -601,10 +586,10 @@ void edit_model_system::on_mouse_left_down_and_hold(void* data_ptr)
 	const scene_view picking_view = scene_view::from_parameters(parameters, math::vector3d::zero());
 	const math::matrixf view(picking_view.get_view_matrix());
 	const math::matrixf projection(picking_view.get_projection_matrix());
-	const math::matrixf viewport = math::matrixf::viewport(0, data->viewport_size.x, 0, data->viewport_size.y, 0, 1);
+	const math::matrixf viewport = math::matrixf::viewport(0, data.viewport_size.x, 0, data.viewport_size.y, 0, 1);
 
-	const math::float3 start_position = math::vector3f::calc_screen_to_world(data->position.x, data->position.y, 0, view, projection, viewport).to_float3();
-	const math::float3 end_position = math::vector3f::calc_screen_to_world(data->position.x, data->position.y, 1, view, projection, viewport).to_float3();
+	const math::float3 start_position = math::vector3f::calc_screen_to_world(data.position.x, data.position.y, 0, view, projection, viewport).to_float3();
+	const math::float3 end_position = math::vector3f::calc_screen_to_world(data.position.x, data.position.y, 1, view, projection, viewport).to_float3();
 
 	//	ÉqÉbÉgà íuéZèo
 	float vertex_hit_length = FLT_MAX;
@@ -679,7 +664,7 @@ void edit_model_system::on_mouse_left_down_and_hold(void* data_ptr)
 	}
 }
 
-void edit_model_system::on_mouse_left_release(void* data_ptr)
+void edit_model_system::on_mouse_left_release()
 {
 	brush_data.on = false;
 }

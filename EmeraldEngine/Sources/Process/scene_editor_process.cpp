@@ -311,7 +311,7 @@ void scene_editor_process::update(float elapsed_time)
 	world& edit_world = scene_edit->get_edit_world();
 	if (input::action_system::is_valid())
 	{
-		input::action_system::instance()->update(edit_world.get_scenes().get_broadcaster());
+		input::action_system::instance()->update(edit_world.get_context().get_broadcaster());
 	}
 
 	//	シーンの更新

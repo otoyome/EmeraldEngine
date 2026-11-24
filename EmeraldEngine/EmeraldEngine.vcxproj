@@ -498,7 +498,6 @@
     <ClCompile Include="Sources\Object\UI\ui_image.cpp" />
     <ClCompile Include="Sources\Object\UI\ui_object.cpp" />
     <ClCompile Include="Sources\Object\UI\ui_text.cpp" />
-    <ClCompile Include="Sources\Object\messenger.cpp" />
     <ClCompile Include="Sources\Object\Graphics\model_object.cpp" />
     <ClCompile Include="Sources\Object\game_object.cpp" />
     <ClCompile Include="Sources\Object\Graphics\light_object.cpp" />
@@ -645,7 +644,6 @@
     <ClInclude Include="Headers\Object\UI\ui_image.h" />
     <ClInclude Include="Headers\Object\UI\ui_object.h" />
     <ClInclude Include="Headers\Object\UI\ui_text.h" />
-    <ClInclude Include="Headers\Object\messenger.h" />
     <ClInclude Include="Headers\Object\Graphics\model_object.h" />
     <ClInclude Include="Headers\Object\game_object.h" />
     <ClInclude Include="Headers\Object\Graphics\light_object.h" />

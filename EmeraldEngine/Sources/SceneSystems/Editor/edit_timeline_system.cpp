@@ -997,8 +997,7 @@ void edit_timeline_system::apply_timeline_state()
 	}
 	else if (editor_camera && !editor_camera->is_active())
 	{
-		//	タイムライン区間から抜けたら、現在のカメラ姿勢を引き継いでフリーカメラへ戻す
-		//	再開時にエディターカメラ側が直前のゲーム視点（メインカメラ）を引き継ぐ
+		//	タイムライン区間から抜けたらエディターカメラに戻す
 		editor_camera->set_active(true);
 	}
 
@@ -1014,7 +1013,12 @@ void edit_timeline_system::apply_timeline_state()
 				? (event->time > previous_time && event->time <= current_time)
 				: (event->time > previous_time || event->time <= current_time);
 			if (crossed)
-				get_context().get_objects().get_messenger().send_data(event->identifier, nullptr);
+			{
+				//	通知
+				timeline_resource::event_notice notice;
+				notice.identifier = event->identifier;
+				get_broadcaster().publish(timeline_resource::event_topic, notice);
+			}
 		}
 	}
 

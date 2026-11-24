@@ -14,7 +14,6 @@ object_manager::object_manager(engine_context& context)
 , game_objects()
 , game_object_add()
 , game_object_removes()
-, messenger()
 , world()
 
 , total_time(0)

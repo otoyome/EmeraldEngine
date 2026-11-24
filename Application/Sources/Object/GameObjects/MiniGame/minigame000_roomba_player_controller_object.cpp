@@ -36,7 +36,7 @@ void minigame000::roomba_player_controller_object::on_initialize()
 	base::on_initialize();
 
 	//	“ü—Íw“Ç
-	core::signals::broadcaster& broadcaster = get_context().get_scenes().get_broadcaster();
+	core::signals::broadcaster& broadcaster = get_context().get_broadcaster();
 	connections += dash_action.subscribe(broadcaster, [this](const input::action_event& event)
 	{
 		dash_pressed = event.phase == input::action_phases::pressed;

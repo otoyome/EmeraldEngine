@@ -6,7 +6,6 @@
 #include <utility>
 #include <vector>
 
-#include "Core/signals.h"
 #include "Scenes/scene_resource.h"
 #include "Scenes/scene_system.h"
 
@@ -29,10 +28,6 @@ public:
 
 	//	シーンリスト取得
 	const std::vector<std::pair<std::string, std::unique_ptr<scene_instance>>>& get_scenes() const { return scenes; }
-
-	//	シーン全体で共有する通知と問い合わせ
-	core::signals::broadcaster& get_broadcaster() { return broadcaster; }
-	core::signals::contactor& get_contactor() { return contactor; }
 
 public:
 	explicit scene_manager(engine_context& context);
@@ -92,9 +87,6 @@ private:
 
 private:
 	engine_context& context;
-
-	core::signals::broadcaster broadcaster;
-	core::signals::contactor contactor;
 
 	std::vector<add_scene_data> add_scenes;
 	std::vector<std::string> remove_scenes;

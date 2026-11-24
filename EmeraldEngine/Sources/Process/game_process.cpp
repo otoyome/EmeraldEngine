@@ -219,7 +219,7 @@ void game_process::update(float elapsed_time)
 
 	if (input::action_system::is_valid())
 	{
-		input::action_system::instance()->update(main_world->get_scenes().get_broadcaster());
+		input::action_system::instance()->update(main_world->get_context().get_broadcaster());
 	}
 
 	//	シーンの更新

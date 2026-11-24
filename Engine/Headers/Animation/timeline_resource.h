@@ -5,11 +5,23 @@
 #include <variant>
 #include <vector>
 
+#include "Core/signals.h"
 
 struct timeline_resource
 {
 public:
+	//	イベント通知
+	struct event_notice
+	{
+		std::string identifier;	//	イベント名
+	};
+
+public:
+	//	拡張子
 	static constexpr std::string_view extension = "etl";
+
+	//	イベント通知
+	static constexpr core::signals::topic<event_notice> event_topic{ "timeline.event" };
 
 public:
 	//	アニメーション
