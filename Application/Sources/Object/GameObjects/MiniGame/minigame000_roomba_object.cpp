@@ -28,6 +28,9 @@ namespace
 	constexpr float velocity_roll_max = math::angle::to_radian(+20.0f);
 	constexpr float velocity_pitch_max = math::angle::to_radian(20.0f);
 
+	//	@tool	éÄñSéûÇ…â¡Ç¶ÇÈë¨ìx
+	constexpr math::float3 dead_impulse = system_units::convert_m_to_unit(math::float3(0.0f, 10.0f, 0.0f));
+
 	//	ínñ ÇÃåXÇ´ÇäpìxÇ≈éZèo
 	math::float3 calculate_ground_tilt(const math::float3& euler, const math::float3& normal)
 	{
@@ -71,7 +74,10 @@ minigame000::roomba_object::roomba_object(std::string_view name)
 
 , movement()
 , movement_environment()
-, movement_state()
+, movement_snapshot()
+, status()
+, status_snapshot()
+, pending_wet_value(0.0f)
 
 , input_source()
 , next_tick(0)
@@ -87,8 +93,8 @@ void minigame000::roomba_object::on_initialize()
 	base::on_initialize();
 
 	//	íuÇ©ÇÍÇΩà íuÇ∆å¸Ç´Ç©ÇÁèÛë‘ÇénÇﬂÇÈ
-	movement_state.position = get_world_translation();
-	movement_state.rotation = get_rotation();
+	movement_snapshot.position = get_world_translation();
+	movement_snapshot.rotation = get_rotation();
 
 	//	ÉÇÉfÉãÇÃå¸Ç´Çñ{ëÃÇ…çáÇÌÇπÇÈ
 	set_rotation(get_rotation());
@@ -103,6 +109,19 @@ template<class Archive>
 void minigame000::roomba_object::serialize_fields(Archive& archive, std::uint32_t version)
 {
 	roomba_movement_settings& settings = movement.get_settings();
+	roomba_status_settings& status_settings = status.get_settings();
+
+	float& mass = settings.mass;
+	float& diameter = settings.diameter;
+	float& height = settings.height;
+	float& drag_coefficient = settings.drag_coefficient;
+	float& walk_accelaration = settings.walk_accelaration;
+	float& walk_max_speed = settings.walk_max_speed;
+	float& dash_accelaration = settings.dash_accelaration;
+	float& dash_max_speed = settings.dash_max_speed;
+	float& braking_deceleration = settings.braking_deceleration;
+	float& base_friction = settings.base_friction;
+	float& rotation_speed = settings.rotation_speed;
 
 	switch (version)
 	{
@@ -115,19 +134,19 @@ void minigame000::roomba_object::serialize_fields(Archive& archive, std::uint32_
 			float gravity_scale = 0.0f;
 			game_object_serializer::serialize_object_reference(archive, "model", model);
 			archive(CEREAL_NVP(collision_filter_name),
-					cereal::make_nvp("mass", settings.mass),
+					CEREAL_NVP(mass),
 					CEREAL_NVP(capsule_radius),
 					CEREAL_NVP(capsule_length),
-					cereal::make_nvp("diameter", settings.diameter),
-					cereal::make_nvp("height", settings.height),
-					cereal::make_nvp("drag_coefficient", settings.drag_coefficient),
-					cereal::make_nvp("walk_accelaration", settings.walk_accelaration),
-					cereal::make_nvp("walk_max_speed", settings.walk_max_speed),
-					cereal::make_nvp("dash_accelaration", settings.dash_accelaration),
-					cereal::make_nvp("dash_max_speed", settings.dash_max_speed),
-					cereal::make_nvp("braking_deceleration", settings.braking_deceleration),
-					cereal::make_nvp("base_friction", settings.base_friction),
-					cereal::make_nvp("rotation_speed", settings.rotation_speed),
+					CEREAL_NVP(diameter),
+					CEREAL_NVP(height),
+					CEREAL_NVP(drag_coefficient),
+					CEREAL_NVP(walk_accelaration),
+					CEREAL_NVP(walk_max_speed),
+					CEREAL_NVP(dash_accelaration),
+					CEREAL_NVP(dash_max_speed),
+					CEREAL_NVP(braking_deceleration),
+					CEREAL_NVP(base_friction),
+					CEREAL_NVP(rotation_speed),
 					CEREAL_NVP(gravity_scale));
 			break;
 		}
@@ -136,17 +155,17 @@ void minigame000::roomba_object::serialize_fields(Archive& archive, std::uint32_
 			float gravity_scale = 0.0f;
 			game_object_serializer::serialize_object_reference(archive, "model", model);
 			game_object_serializer::serialize_object_reference(archive, "capsule", collision);
-			archive(cereal::make_nvp("mass", settings.mass),
-					cereal::make_nvp("diameter", settings.diameter),
-					cereal::make_nvp("height", settings.height),
-					cereal::make_nvp("drag_coefficient", settings.drag_coefficient),
-					cereal::make_nvp("walk_accelaration", settings.walk_accelaration),
-					cereal::make_nvp("walk_max_speed", settings.walk_max_speed),
-					cereal::make_nvp("dash_accelaration", settings.dash_accelaration),
-					cereal::make_nvp("dash_max_speed", settings.dash_max_speed),
-					cereal::make_nvp("braking_deceleration", settings.braking_deceleration),
-					cereal::make_nvp("base_friction", settings.base_friction),
-					cereal::make_nvp("rotation_speed", settings.rotation_speed),
+			archive(CEREAL_NVP(mass),
+					CEREAL_NVP(diameter),
+					CEREAL_NVP(height),
+					CEREAL_NVP(drag_coefficient),
+					CEREAL_NVP(walk_accelaration),
+					CEREAL_NVP(walk_max_speed),
+					CEREAL_NVP(dash_accelaration),
+					CEREAL_NVP(dash_max_speed),
+					CEREAL_NVP(braking_deceleration),
+					CEREAL_NVP(base_friction),
+					CEREAL_NVP(rotation_speed),
 					CEREAL_NVP(gravity_scale));
 			break;
 		}
@@ -154,17 +173,32 @@ void minigame000::roomba_object::serialize_fields(Archive& archive, std::uint32_
 		{
 			game_object_serializer::serialize_object_reference(archive, "model", model);
 			game_object_serializer::serialize_object_reference(archive, "collision", collision);
-			archive(cereal::make_nvp("mass", settings.mass),
-					cereal::make_nvp("diameter", settings.diameter),
-					cereal::make_nvp("height", settings.height),
-					cereal::make_nvp("drag_coefficient", settings.drag_coefficient),
-					cereal::make_nvp("walk_accelaration", settings.walk_accelaration),
-					cereal::make_nvp("walk_max_speed", settings.walk_max_speed),
-					cereal::make_nvp("dash_accelaration", settings.dash_accelaration),
-					cereal::make_nvp("dash_max_speed", settings.dash_max_speed),
-					cereal::make_nvp("braking_deceleration", settings.braking_deceleration),
-					cereal::make_nvp("base_friction", settings.base_friction),
-					cereal::make_nvp("rotation_speed", settings.rotation_speed));
+			archive(CEREAL_NVP(mass),
+					CEREAL_NVP(diameter),
+					CEREAL_NVP(height),
+					CEREAL_NVP(drag_coefficient),
+					CEREAL_NVP(walk_accelaration),
+					CEREAL_NVP(walk_max_speed),
+					CEREAL_NVP(dash_accelaration),
+					CEREAL_NVP(dash_max_speed),
+					CEREAL_NVP(braking_deceleration),
+					CEREAL_NVP(base_friction),
+					CEREAL_NVP(rotation_speed));
+			break;
+		}
+		case 4:
+		{
+			game_object_serializer::serialize_object_reference(archive, "model", model);
+			game_object_serializer::serialize_object_reference(archive, "collision", collision);
+			archive(CEREAL_NVP(settings));
+			break;
+		}
+		case 5:
+		{
+			game_object_serializer::serialize_object_reference(archive, "model", model);
+			game_object_serializer::serialize_object_reference(archive, "collision", collision);
+			archive(CEREAL_NVP(settings),
+					CEREAL_NVP(status_settings));
 			break;
 		}
 	}
@@ -208,9 +242,22 @@ void minigame000::roomba_object::imgui_render_core()
 	if (ImGui::DragFloat("rotation_speed", &degrees, 1.0f))
 		settings.rotation_speed = math::angle::to_radian(degrees);
 
+	roomba_status_settings& status_settings = status.get_settings();
+
+	ImGui::SeparatorText("status");
+	ImGui::DragFloat("max_wet_value", &status_settings.max_wet_value, 1.0f);
+	ImGui::DragFloat("max_heat_value", &status_settings.max_heat_value, 1.0f);
+	ImGui::DragFloat("base_wet_value", &status_settings.base_wet_value, 0.1f);
+	ImGui::DragFloat("base_heat_value", &status_settings.base_heat_value, 0.1f);
+
 	ImGui::SeparatorText("state");
-	ImGui::Text("on_ground : %s", movement_state.on_ground ? "true" : "false");
-	ImGui::Text("velocity : %.2f %.2f %.2f", movement_state.velocity.x, movement_state.velocity.y, movement_state.velocity.z);
+	ImGui::Text("on_ground : %s", movement_snapshot.on_ground ? "true" : "false");
+	ImGui::Text("velocity : %.2f %.2f %.2f", movement_snapshot.velocity.x, movement_snapshot.velocity.y, movement_snapshot.velocity.z);
+	ImGui::Text("wet : %.1f (%.2f)", status_snapshot.wet_value, status.get_wet_rate(status_snapshot));
+	ImGui::Text("heat : %.1f (%.2f)", status_snapshot.heat_value, status.get_heat_rate(status_snapshot));
+	ImGui::Text("dead : %s", status_snapshot.dead ? "true" : "false");
+	if (ImGui::Button("reset status"))
+		status_snapshot = {};
 }
 #endif	//	defined(USE_IMGUI)
 
@@ -221,7 +268,7 @@ math::rotatorf minigame000::roomba_object::get_rotation() const
 
 void minigame000::roomba_object::set_rotation(math::rotatorf rotator)
 {
-	movement_state.rotation = rotator;
+	movement_snapshot.rotation = rotator;
 
 	set_world_euler(math::rotatord(rotator));
 
@@ -241,7 +288,7 @@ math::vector3d minigame000::roomba_object::get_position() const
 
 void minigame000::roomba_object::set_position(const math::vector3d& position)
 {
-	movement_state.position = position;
+	movement_snapshot.position = position;
 
 	set_world_translation(position);
 }
@@ -277,17 +324,37 @@ void minigame000::roomba_object::fixed_update(float elapsed_time)
 	}
 	command.tick = tick;
 
+	//	éÄñSíÜÇÕëÄçÏÇéÛÇØïtÇØÇ»Ç¢
+	if (status_snapshot.dead)
+	{
+		command = {};
+		command.tick = tick;
+	}
+
 	//	à⁄ìÆèàóù
-	movement.simulate(movement_state, command, elapsed_time, movement_environment, get_context().get_objects().get_world(), shape);
+	movement.simulate(movement_snapshot, command, elapsed_time, movement_environment, get_context().get_objects().get_world(), shape);
+
+	//	èÛë‘èàóù
+	const bool was_dead = status_snapshot.dead;
+	status.simulate(status_snapshot, command, pending_wet_value, movement_snapshot, movement, elapsed_time);
+	pending_wet_value = 0.0f;
+
+	//	éÄñSÇµÇΩèuä‘Ç…êÅÇ´îÚÇŒÇ∑
+	if (!was_dead && status_snapshot.dead)
+	{
+		movement_snapshot.velocity.x += dead_impulse.x;
+		movement_snapshot.velocity.y += dead_impulse.y;
+		movement_snapshot.velocity.z += dead_impulse.z;
+	}
 
 	//	à⁄ìÆèÓïÒìKâû
-	apply_movement_state();
+	apply_movement_snapshot();
 }
 
-void minigame000::roomba_object::apply_movement_state()
+void minigame000::roomba_object::apply_movement_snapshot()
 {
-	set_position(movement_state.position);
-	set_rotation(movement_state.rotation);
+	set_position(movement_snapshot.position);
+	set_rotation(movement_snapshot.rotation);
 }
 
 namespace minigame000

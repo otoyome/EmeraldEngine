@@ -142,6 +142,7 @@ xcopy "$(SolutionDir)External\SDL3\lib\SDL3.dll" "$(OutDir)" /y</Command>
     </ClCompile>
     <ClCompile Include="Sources\main.cpp" />
     <ClCompile Include="Sources\Object\GameObjects\MiniGame\minigame000_roomba_movement.cpp" />
+    <ClCompile Include="Sources\Object\GameObjects\MiniGame\minigame000_roomba_status.cpp" />
     <ClCompile Include="Sources\Object\GameObjects\MiniGame\minigame000_roomba_object.cpp" />
     <ClCompile Include="Sources\Object\GameObjects\MiniGame\minigame_record_data.cpp" />
     <ClCompile Include="Sources\Object\GameObjects\MiniGame\roomba_camera_controller_object.cpp" />
@@ -166,6 +167,7 @@ xcopy "$(SolutionDir)External\SDL3\lib\SDL3.dll" "$(OutDir)" /y</Command>
     <ClInclude Include="Headers\Object\SceneSystem\MiniGame\minigame000_system.h" />
     <ClInclude Include="Headers\stdafx_application.h" />
     <ClInclude Include="Headers\Object\GameObjects\MiniGame\minigame000_roomba_movement.h" />
+    <ClInclude Include="Headers\Object\GameObjects\MiniGame\minigame000_roomba_status.h" />
     <ClInclude Include="Headers\Object\GameObjects\MiniGame\minigame000_roomba_object.h" />
     <ClInclude Include="Headers\Object\GameObjects\MiniGame\minigame_record_data.h" />
     <ClInclude Include="Headers\Object\GameObjects\MiniGame\roomba_camera_controller_object.h" />

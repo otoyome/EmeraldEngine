@@ -1,5 +1,7 @@
 #include "object/gameobjects/MiniGame/minigame000_roomba_movement.h"
 
+#include "cereal/archives/json.hpp"
+
 #include "Object/Collision/collision_world.h"
 
 namespace
@@ -53,7 +55,26 @@ namespace
 	}
 }
 
-void minigame000::roomba_movement::simulate(roomba_movement_state& state, const roomba_input_command& command, float elapsed_time, const roomba_movement_environment& environment, collision_world& world, const shape_descs& shape) const
+template<class Archive>
+void minigame000::roomba_movement_settings::serialize(Archive& archive, std::uint32_t version)
+{
+	archive(CEREAL_NVP(mass),
+			CEREAL_NVP(diameter),
+			CEREAL_NVP(height),
+			CEREAL_NVP(drag_coefficient),
+			CEREAL_NVP(walk_accelaration),
+			CEREAL_NVP(walk_max_speed),
+			CEREAL_NVP(dash_accelaration),
+			CEREAL_NVP(dash_max_speed),
+			CEREAL_NVP(braking_deceleration),
+			CEREAL_NVP(base_friction),
+			CEREAL_NVP(rotation_speed));
+}
+
+template void minigame000::roomba_movement_settings::serialize<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive, std::uint32_t version);
+template void minigame000::roomba_movement_settings::serialize<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive, std::uint32_t version);
+
+void minigame000::roomba_movement::simulate(roomba_movement_snapshot& snapshot, const roomba_input_command& command, float elapsed_time, const roomba_movement_environment& environment, collision_world& world, const shape_descs& shape) const
 {
 	step_datas step;
 
@@ -71,7 +92,7 @@ void minigame000::roomba_movement::simulate(roomba_movement_state& state, const 
 	}
 
 	//	ŒX‚«”jŠü
-	state.rotation = { state.rotation.x, state.rotation.y, 0 };
+	snapshot.rotation = { snapshot.rotation.x, snapshot.rotation.y, 0 };
 
 	{
 		math::float2 move = math::float2(step.command.move.x, step.command.move.z);
@@ -82,14 +103,14 @@ void minigame000::roomba_movement::simulate(roomba_movement_state& state, const 
 	}
 
 	//	‘¬“xXV
-	update_rotation(state, step, elapsed_time);
-	update_velocity(state, step, environment, elapsed_time);
-	update_move(state, elapsed_time, world, shape);
+	update_rotation(snapshot, step, elapsed_time);
+	update_velocity(snapshot, step, environment, elapsed_time);
+	update_move(snapshot, elapsed_time, world, shape);
 
 	//	ŒX‚«“K‰
-	update_tilt(state, step, elapsed_time);
+	update_tilt(snapshot, step, elapsed_time);
 
-	state.tick = command.tick;
+	snapshot.tick = command.tick;
 }
 
 float minigame000::roomba_movement::get_max_speed(move_modes mode) const
@@ -113,13 +134,13 @@ float minigame000::roomba_movement::get_accelaration_force(move_modes mode) cons
 	return settings.mass * accelaration;
 }
 
-void minigame000::roomba_movement::add_force(roomba_movement_state& state, math::float3 force) const
+void minigame000::roomba_movement::add_force(roomba_movement_snapshot& snapshot, math::float3 force) const
 {
 	//	ŠÔ‚ÅÏ•ªÏ‚İ‚Ì—Í‚ğ‰Á‘¬“x‚Ö
 	auto mass = settings.mass;
-	state.velocity.x += force.x / mass;
-	state.velocity.y += force.y / mass;
-	state.velocity.z += force.z / mass;
+	snapshot.velocity.x += force.x / mass;
+	snapshot.velocity.y += force.y / mass;
+	snapshot.velocity.z += force.z / mass;
 }
 
 float minigame000::roomba_movement::get_current_accelaration_force(const step_datas& step) const
@@ -151,10 +172,10 @@ float minigame000::roomba_movement::calculate_drag_coefficient() const
 	return base_drag_coefficient;
 }
 
-float minigame000::roomba_movement::calculate_frontal_area(const roomba_movement_state& state) const
+float minigame000::roomba_movement::calculate_frontal_area(const roomba_movement_snapshot& snapshot) const
 {
 	//	p¨Y•ûŒü‚Æ‘¬“x•ûŒü‚Ì‚È‚·Šp‚©‚çA‰~’Œ‚Æ‚µ‚Ä‚Ì“Š‰e–ÊÏ‚ğZo
-	math::vector3f Velocity(state.velocity);
+	math::vector3f Velocity(snapshot.velocity);
 	float speed_sq = Velocity.square_length();
 
 	//	…•½–Ê
@@ -169,7 +190,7 @@ float minigame000::roomba_movement::calculate_frontal_area(const roomba_movement
 
 	//	”¼ŒarE‚‚³h‚Ì‰~’Œ‚ğ²‚©‚çŠp“xƒÆŒX‚¢‚½•ûŒü‚©‚çŒ©‚½‚Æ‚«‚Ì“Š‰e–ÊÏ‚ğ‹‚ß‚é
 	math::vector3f VelocityDirection = Velocity.normalized();
-	math::float3 up = state.rotation.up().to_float3();
+	math::float3 up = snapshot.rotation.up().to_float3();
 	math::vector3f UpDir(up);
 
 	float cos_theta = fabsf(math::vector3f::dot(VelocityDirection, UpDir));
@@ -179,7 +200,7 @@ float minigame000::roomba_movement::calculate_frontal_area(const roomba_movement
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void minigame000::roomba_movement::update_rotation(roomba_movement_state& state, const step_datas& step, float elapsed_time) const
+void minigame000::roomba_movement::update_rotation(roomba_movement_snapshot& snapshot, const step_datas& step, float elapsed_time) const
 {
 	math::float2 vector = {step.turn_front_vector.x, step.turn_front_vector.y};
 	float length = (vector.x * vector.x + vector.y * vector.y);
@@ -191,7 +212,7 @@ void minigame000::roomba_movement::update_rotation(roomba_movement_state& state,
 	vector.y /= length;
 
 	//	‘OƒxƒNƒgƒ‹Zo
-	math::rotatorf rotator = state.rotation;
+	math::rotatorf rotator = snapshot.rotation;
 	math::float2 front = math::float2(sinf(rotator.y), cosf(rotator.y));
 
 	//	‰ñ“]—ÊZo
@@ -203,20 +224,20 @@ void minigame000::roomba_movement::update_rotation(roomba_movement_state& state,
 		rotation = speed;
 
 	rotator.y += ( cross < 0.0f ) ? rotation : -rotation;
-	state.rotation = rotator;
+	snapshot.rotation = rotator;
 }
 
-void minigame000::roomba_movement::update_velocity(roomba_movement_state& state, const step_datas& step, const roomba_movement_environment& environment, float elapsed_time) const
+void minigame000::roomba_movement::update_velocity(roomba_movement_snapshot& snapshot, const step_datas& step, const roomba_movement_environment& environment, float elapsed_time) const
 {
 	const math::float2& move_vector = step.move_vector;
 	const roomba_input_command& command = step.command;
 
-	math::vector3f Velocity(state.velocity);
+	math::vector3f Velocity(snapshot.velocity);
 	float speed_sq = Velocity.square_length();
 
 	//	‰Á‘¬ˆ—
 	math::float3 drive_force = {0.0f, 0.0f, 0.0f};
-	if (state.on_ground)
+	if (snapshot.on_ground)
 	{
 		//	‰Á‘¬‚Í…•½•ûŒü‚Ì‚İ‚Ål‚¦‚é
 		float move_length = move_vector.x * move_vector.x + move_vector.y * move_vector.y;
@@ -257,9 +278,9 @@ void minigame000::roomba_movement::update_velocity(roomba_movement_state& state,
 	math::vector3f DriveForce(drive_force);
 
 	//	–€Cˆ—
-	if (state.on_ground && speed_sq > FLT_MIN)
+	if (snapshot.on_ground && speed_sq > FLT_MIN)
 	{
-		math::vector3f Normal(state.ground_normal);
+		math::vector3f Normal(snapshot.ground_normal);
 
 		//	‘¬“x‚ğ–Ê‚É‰ˆ‚¤¬•ª‚Æ–@ü¬•ª‚É•ª‰ğ
 		math::vector3f NormalVelocity = Normal * (math::vector3f::dot(Velocity, Normal));
@@ -275,7 +296,7 @@ void minigame000::roomba_movement::update_velocity(roomba_movement_state& state,
 			float normal_force = gravity_along_normal * settings.mass;
 
 			//	‡¬–€CŒW”
-			float total_friction = (state.ground_friction + get_current_friction()) * 0.5f;
+			float total_friction = (snapshot.ground_friction + get_current_friction()) * 0.5f;
 
 			//	“®–€C—Í
 			float kinetic_friction_force = normal_force * total_friction;
@@ -303,7 +324,7 @@ void minigame000::roomba_movement::update_velocity(roomba_movement_state& state,
 		float air_density = environment.world_air_density;
 
 		//	‘O–Ê“Š‰e–ÊÏ(m^2)
-		float frontal_area = calculate_frontal_area(state);
+		float frontal_area = calculate_frontal_area(snapshot);
 
 		//	R—ÍŒW”
 		float drag_coefficient = calculate_drag_coefficient();
@@ -322,40 +343,40 @@ void minigame000::roomba_movement::update_velocity(roomba_movement_state& state,
 
 	//	—Í’Ç‰Á
 	drive_force = DriveForce.to_float3();
-	add_force(state, drive_force);
+	add_force(snapshot, drive_force);
 }
 
-void minigame000::roomba_movement::update_move(roomba_movement_state& state, float elapsed_time, collision_world& world, const shape_descs& shape) const
+void minigame000::roomba_movement::update_move(roomba_movement_snapshot& snapshot, float elapsed_time, collision_world& world, const shape_descs& shape) const
 {
-	const math::vector3d start_position = state.position;
+	const math::vector3d start_position = snapshot.position;
 
-	state.ground_friction = 1.0f;
-	state.ground_normal = {};
-	state.on_ground = false;
+	snapshot.ground_friction = 1.0f;
+	snapshot.ground_normal = {};
+	snapshot.on_ground = false;
 
 	math::vector3d resolved_position;
 	math::float3 hit_normal;
 	float friction = 0.0f;
-	if (calculate_position(state, state.velocity, elapsed_time, world, shape, resolved_position, hit_normal, &friction))
+	if (calculate_position(snapshot, snapshot.velocity, elapsed_time, world, shape, resolved_position, hit_normal, &friction))
 	{
-		state.on_ground = true;
-		state.ground_normal = hit_normal;
-		state.ground_friction = friction;
+		snapshot.on_ground = true;
+		snapshot.ground_normal = hit_normal;
+		snapshot.ground_friction = friction;
 	}
 
-	state.position = resolved_position;
+	snapshot.position = resolved_position;
 
 	//	ÀÛ‚Éi‚ß‚½•ÏˆÊ‚©‚ç‘¬“x‚ğÄZo
 	if (elapsed_time > FLT_EPSILON)
 	{
 		const math::float3 displacement = (resolved_position - start_position).to_float3();
-		state.velocity.x = displacement.x / elapsed_time;
-		state.velocity.y = displacement.y / elapsed_time;
-		state.velocity.z = displacement.z / elapsed_time;
+		snapshot.velocity.x = displacement.x / elapsed_time;
+		snapshot.velocity.y = displacement.y / elapsed_time;
+		snapshot.velocity.z = displacement.z / elapsed_time;
 	}
 }
 
-void minigame000::roomba_movement::update_tilt(roomba_movement_state& state, const step_datas& step, float elapsed_time) const
+void minigame000::roomba_movement::update_tilt(roomba_movement_snapshot& snapshot, const step_datas& step, float elapsed_time) const
 {
 	const math::float2& move_vector = step.move_vector;
 
@@ -363,32 +384,32 @@ void minigame000::roomba_movement::update_tilt(roomba_movement_state& state, con
 	{
 		auto max_speed = get_max_speed(move_modes::dash);
 		bool flip_flag = move_vector.x * move_vector.x + move_vector.y * move_vector.y <= 0.0001f;
-		math::float2 velocity_tilt_target = calculate_velocity_tilt(state.rotation.y, state.velocity, max_speed, flip_flag);
+		math::float2 velocity_tilt_target = calculate_velocity_tilt(snapshot.rotation.y, snapshot.velocity, max_speed, flip_flag);
 
 		float velocity_tilt_alpha = 1.0f - expf(-velocity_tilt_follow_rate * elapsed_time);
-		state.velocity_tilt_pitch += (velocity_tilt_target.x - state.velocity_tilt_pitch) * velocity_tilt_alpha;
-		state.velocity_tilt_roll  += (velocity_tilt_target.y - state.velocity_tilt_roll) * velocity_tilt_alpha;
+		snapshot.velocity_tilt_pitch += (velocity_tilt_target.x - snapshot.velocity_tilt_pitch) * velocity_tilt_alpha;
+		snapshot.velocity_tilt_roll  += (velocity_tilt_target.y - snapshot.velocity_tilt_roll) * velocity_tilt_alpha;
 	}
 
 	//	’n–Ê‚Ì–@ü‚©‚çŒX‚«Zo
 	{
-		math::float3 ground_tilt = calculate_ground_tilt(state.rotation.to_vector3().to_float3(), state.ground_normal);
+		math::float3 ground_tilt = calculate_ground_tilt(snapshot.rotation.to_vector3().to_float3(), snapshot.ground_normal);
 
 		float ground_tilt_alpha = 1.0f - expf(-ground_tilt_follow_rate * elapsed_time);
-		state.ground_tilt_pitch += (ground_tilt.x - state.ground_tilt_pitch) * ground_tilt_alpha;
-		state.ground_tilt_roll  += (ground_tilt.z - state.ground_tilt_roll) * ground_tilt_alpha;
+		snapshot.ground_tilt_pitch += (ground_tilt.x - snapshot.ground_tilt_pitch) * ground_tilt_alpha;
+		snapshot.ground_tilt_roll  += (ground_tilt.z - snapshot.ground_tilt_roll) * ground_tilt_alpha;
 	}
 
-	math::rotatorf rot = state.rotation;
+	math::rotatorf rot = snapshot.rotation;
 	//	@remainder	ƒ‚ƒfƒ‹‚Ì–â‘è‚Åİ’è‚ğ•Ï‚¦‚Ä‚¢‚é
-	rot.x = state.ground_tilt_roll + state.velocity_tilt_roll;
-	rot.z = state.ground_tilt_pitch + state.velocity_tilt_pitch;
-	state.rotation = rot;
+	rot.x = snapshot.ground_tilt_roll + snapshot.velocity_tilt_roll;
+	rot.z = snapshot.ground_tilt_pitch + snapshot.velocity_tilt_pitch;
+	snapshot.rotation = rot;
 }
 
-bool minigame000::roomba_movement::calculate_position(const roomba_movement_state& state, math::float3 velocity, float elapsed_time, collision_world& world, const shape_descs& shape, math::vector3d& out_position, math::float3& out_normal, float* out_friction) const
+bool minigame000::roomba_movement::calculate_position(const roomba_movement_snapshot& snapshot, math::float3 velocity, float elapsed_time, collision_world& world, const shape_descs& shape, math::vector3d& out_position, math::float3& out_normal, float* out_friction) const
 {
-	const math::vector3d base_position = state.position;
+	const math::vector3d base_position = snapshot.position;
 	math::float3 relative_position = { 0.0f, 0.0f, 0.0f };
 
 	math::vector3f Offset(shape.offset);

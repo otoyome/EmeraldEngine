@@ -20,7 +20,7 @@ namespace minigame000
 
 	//	移動情報
 	//	通信ではこれをホストが配る
-	struct roomba_movement_state
+	struct roomba_movement_snapshot
 	{
 		std::uint32_t tick = 0;								//	最後に処理したinput_command
 		math::vector3d position = { 0.0, 0.0, 0.0 };		//	位置
@@ -51,6 +51,9 @@ namespace minigame000
 		float base_friction = 2.5f;												//	摩擦係数
 
 		float rotation_speed = math::angle::to_radian(1440.0f);					//	旋回速度
+
+		template<class Archive>
+		void serialize(Archive& archive, std::uint32_t version);
 	};
 
 	//	環境情報h
@@ -97,28 +100,31 @@ namespace minigame000
 
 	public:
 		//	シミュレート
-		void simulate(roomba_movement_state& state, const roomba_input_command& command, float elapsed_time, const roomba_movement_environment& environment, collision_world& world, const shape_descs& shape) const;
+		void simulate(roomba_movement_snapshot& snapshot, const roomba_input_command& command, float elapsed_time, const roomba_movement_environment& environment, collision_world& world, const shape_descs& shape) const;
 
 	private:	//	速度系
-		void add_force(roomba_movement_state& state, math::float3 force) const;
+		void add_force(roomba_movement_snapshot& snapshot, math::float3 force) const;
 
 		float get_current_accelaration_force(const step_datas& step) const;
 		float get_current_braking_force() const;
 		float get_current_friction() const;
 
 		float calculate_drag_coefficient() const;
-		float calculate_frontal_area(const roomba_movement_state& state) const;
+		float calculate_frontal_area(const roomba_movement_snapshot& snapshot) const;
 
 	private:	//	姿勢制御
-		void update_rotation(roomba_movement_state& state, const step_datas& step, float elapsed_time) const;
-		void update_velocity(roomba_movement_state& state, const step_datas& step, const roomba_movement_environment& environment, float elapsed_time) const;
-		void update_move(roomba_movement_state& state, float elapsed_time, collision_world& world, const shape_descs& shape) const;
-		void update_tilt(roomba_movement_state& state, const step_datas& step, float elapsed_time) const;
+		void update_rotation(roomba_movement_snapshot& snapshot, const step_datas& step, float elapsed_time) const;
+		void update_velocity(roomba_movement_snapshot& snapshot, const step_datas& step, const roomba_movement_environment& environment, float elapsed_time) const;
+		void update_move(roomba_movement_snapshot& snapshot, float elapsed_time, collision_world& world, const shape_descs& shape) const;
+		void update_tilt(roomba_movement_snapshot& snapshot, const step_datas& step, float elapsed_time) const;
 
-		bool calculate_position(const roomba_movement_state& state, math::float3 velocity, float elapsed_time, collision_world& world, const shape_descs& shape, math::vector3d& out_position, math::float3& out_normal, float* out_friction) const;
+		bool calculate_position(const roomba_movement_snapshot& snapshot, math::float3 velocity, float elapsed_time, collision_world& world, const shape_descs& shape, math::vector3d& out_position, math::float3& out_normal, float* out_friction) const;
 
 	private:
 		roomba_movement_settings settings;	//	移動設定
 		float gravity_scale = 1.0f;			//	重力スケール
 	};
 }	//	namespace minigame000
+
+//	CEREALバージョン定義
+CEREAL_CLASS_VERSION(minigame000::roomba_movement_settings, 1)
