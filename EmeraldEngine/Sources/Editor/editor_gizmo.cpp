@@ -25,6 +25,15 @@ namespace
 			source[8], source[9], source[10], source[11],
 			source[12], source[13], source[14], source[15]);
 	}
+
+	//	クリップ座標算出
+	float compute_clip_w(const float* view, const float* projection, const float* model)
+	{
+		float view_position[4];
+		for (std::int32_t column = 0; column < 4; ++column)
+			view_position[column] = model[12] * view[column] + model[13] * view[4 + column] + model[14] * view[8 + column] + view[12 + column];
+		return view_position[0] * projection[3] + view_position[1] * projection[7] + view_position[2] * projection[11] + view_position[3] * projection[15];
+	}
 }
 
 void editor_gizmo::imgui_menu()
@@ -93,6 +102,10 @@ bool editor_gizmo::manipulate(engine_context& context, const ImVec2& position, c
 	to_array(math::matrixf::inverse_rigid_transformation(parameters.rotation.to_quaternion(), math::vector3f(0.0f, 0.0f, 0.0f)), view);
 	to_array(parameters.make_projection_matrix(), projection);
 	to_array(target->get_world().to_relative_matrix(parameters.position), model);
+
+	//	裏側に行ってたら非表示
+	if (!ImGuizmo::IsUsing() && compute_clip_w(view, projection, model) < parameters.clip_distance.x)
+		return false;
 
 	//	毎フレームの初期化
 	ImGui::SetNextWindowViewport(ImGui::GetWindowViewport()->ID);

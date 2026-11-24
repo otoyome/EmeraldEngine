@@ -51,23 +51,23 @@ private:
 	//	アプリを終了する
 	void request_exit();
 
-	//	起動時に開くシーン
+	//	起動シーン
 	static std::string get_startup_scene_path();
-	//	前回開いていたシーン
+	//	前回シーン
 	static std::vector<std::string> get_open_scene_paths();
-	//	開いているシーンを覚えておく
+	//	シーンを覚えておく
 	void remember_open_scenes();
 
 private:
 	std::unique_ptr<scene_editor> scene_edit;		//	シーンエディター
-	std::unique_ptr<editor_viewport> viewport;		//	編集用のワールドを映すビューポート
-	editor_gizmo gizmo;								//	選んでいるオブジェクトを動かすギズモ
-	editor_icons icons;								//	ライトなど形の無いオブジェクトのアイコンと、選んでいる物の形
-	place_objects_window place_window;				//	置くオブジェクトの一覧の窓
-	outliner_window outliner;						//	シーンとオブジェクトの木の窓
-	inspector_window inspector;						//	選んでいるオブジェクトの設定の窓
-	bool playing = false;							//	ゲームのプロセスを始めた
-	std::string play_open_file;						//	再生中のワールドにまだ渡していないファイル
-	bool exit_requested = false;					//	Exit を選んだ
+	std::unique_ptr<editor_viewport> viewport;		//	ビューポート
+	editor_gizmo gizmo;								//	ギズモ
+	editor_icons icons;								//	アイコン
+	place_objects_window place_window;				//	配置するオブジェクト一覧
+	outliner_window outliner;						//	アウトライナー
+	inspector_window inspector;						//	インスペクター
+	bool playing = false;							//	ゲームプロセス中か？
+	std::string play_open_file;						//	開くシーン
+	bool exit_requested = false;					//	Exit を選んだか？
 };
 #endif	//	defined(USE_IMGUI)
