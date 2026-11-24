@@ -90,94 +90,60 @@ bool edit_model_system::uninitialize_core()
 
 void edit_model_system::update_core(float elapsed_time)
 {
-	if (load_model_path.empty())
+	std::string file_path;
+	if (get_context().get_editor().take_open_file(file_path))
 	{
-		std::string file_path;
-		if (get_context().get_editor().take_open_file(file_path))
-		{
-			load_model_path = file_path;
-			is_edit_vertex_color = false;
-		}
-	}
-
-	if (convert_option_data.kind != convert_option_data::kinds::none)
-	{
-		combine_backup_meshes.clear();
-		combine_backup_nodes.clear();
-		has_combine_backup = false;
-
-		if (edit_model)
-		{
-			on_model_release();
-		}
-		material_copies.clear();
-
-		//	モデルデータ生成
-		{
-			bool is_load = false;
-			std::shared_ptr<model_resource> resource = std::make_shared<model_resource>();
-			switch (convert_option_data.kind)
-			{
-				case convert_option_data::kinds::mmd:
-				{
-					data_converter::mmd::convert_model_data data;
-					convert_option_data.mmd.file_path = load_model_path;
-					is_load = data_converter::mmd::convert(*resource, convert_option_data.mmd);
-					break;
-				}
-				case convert_option_data::kinds::gltf:
-				{
-					convert_option_data.gltf.file_path = load_model_path;
-					is_load = data_converter::gltf::convert(*resource, convert_option_data.gltf);
-					break;
-				}
-				case convert_option_data::kinds::emo:
-				{
-					resource = resource_manager::instance()->load_uncached<model_resource>(load_model_path);
-					is_load = resource != nullptr;
-					break;
-				}
-			}
-			if (is_load && resource)
-			{
-				//	メッシュレット生成判定
-				bool has_meshlets = false;
-				if (convert_option_data.kind == convert_option_data::kinds::emo)
-				{
-					for (auto& mesh : resource->get_meshes())
-					{
-						if (!mesh.meshlets.empty())
-						{
-							has_meshlets = true;
-							break;
-						}
-					}
-				}
-				if (!has_meshlets)
-				{
-					model_resource_utility::optimize_meshs(*resource);
-					model_resource_utility::generate_meshlets(*resource);
-				}
-
-				//	モデル生成
-				edit_model = std::make_shared<model_object>(load_model_path, resource);
-			}
-		}
-
-		if (edit_model)
-			on_model_setup();
-
-		convert_option_data.kind = convert_option_data::kinds::none;
-		load_model_path.clear();
+		is_edit_vertex_color = false;
+		load_model(file_path);
 	}
 
 	update_edit_core(elapsed_time);
 }
 
-void edit_model_system::imgui_render_core()
+void edit_model_system::load_model(const std::string& file_path)
 {
-	//	ロードウィンドウ
-	imgui_model_loader_window();
+	if (std::filesystem::path(file_path).extension() != std::filesystem::path("." + std::string(model_resource::extension)))
+	{
+		DEBUG_ERROR_CATEGORY(core::logger::categorys::model, "edit_model_system unsupported file[%s]", file_path.c_str());
+		return;
+	}
+
+	combine_backup_meshes.clear();
+	combine_backup_nodes.clear();
+	has_combine_backup = false;
+
+	if (edit_model)
+	{
+		on_model_release();
+	}
+	material_copies.clear();
+
+	//	モデルデータ生成
+	std::shared_ptr<model_resource> resource = resource_manager::instance()->load_uncached<model_resource>(file_path);
+	if (resource)
+	{
+		//	メッシュレット生成判定
+		bool has_meshlets = false;
+		for (auto& mesh : resource->get_meshes())
+		{
+			if (!mesh.meshlets.empty())
+			{
+				has_meshlets = true;
+				break;
+			}
+		}
+		if (!has_meshlets)
+		{
+			model_resource_utility::optimize_meshs(*resource);
+			model_resource_utility::generate_meshlets(*resource);
+		}
+
+		//	モデル生成
+		edit_model = std::make_shared<model_object>(file_path, resource);
+	}
+
+	if (edit_model)
+		on_model_setup();
 }
 
 void edit_model_system::save_model()

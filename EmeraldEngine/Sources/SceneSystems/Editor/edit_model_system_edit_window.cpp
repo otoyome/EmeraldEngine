@@ -326,7 +326,7 @@ void edit_model_system::imgui_render_menu_bar()
 	if (ImGui::BeginMenu("File"))
 	{
 		//	モデル保存
-		if (ImGui::MenuItem("Save", nullptr, false, has_model && load_model_path.empty()))
+		if (ImGui::MenuItem("Save", nullptr, false, has_model))
 			save_model();
 		ImGui::EndMenu();
 	}
@@ -441,65 +441,6 @@ void edit_model_system::imgui_render_menu_bar()
 		ImGui::Separator();
 		ImGui::EndMenu();
 	}
-}
-
-void edit_model_system::imgui_model_loader_window()
-{
-#pragma region 読込みウィンドウ
-	if (!load_model_path.empty())
-	{
-		std::filesystem::path path(load_model_path);
-		std::filesystem::path extension = path.extension();
-
-		if (extension == std::filesystem::path(".pmx"))
-		{
-			convert_option_data.kind = convert_option_data::kinds::mmd;
-		}
-		else if (extension == std::filesystem::path(".gltf") || extension == std::filesystem::path(".glb"))
-		{
-			//	変換の設定はモーダルで聞く
-			const std::string popup_name = get_context().get_editor().make_window_name("Convert Gltf Data");
-			if (convert_option_data.kind == convert_option_data::kinds::none && !ImGui::IsPopupOpen(popup_name.c_str()))
-				ImGui::OpenPopup(popup_name.c_str());
-
-			bool show_flag = !load_model_path.empty();
-			if (ImGui::BeginPopupModal(popup_name.c_str(), &show_flag, ImGuiWindowFlags_AlwaysAutoResize))
-			{
-				ImGui::Checkbox("compute_tangent", &convert_option_data.gltf.is_compute_tangent);
-				ImGui::Checkbox("populate_vertex_color", &convert_option_data.gltf.is_populate_vertex_color);
-				ImGui::Checkbox("normalize_weight", &convert_option_data.gltf.is_normalize_weight);
-
-				ImGui::Checkbox("change_coordinate_system", &convert_option_data.gltf.is_change_coordinate_system);
-				ImGui::Checkbox("change_coordinate_system_indices", &convert_option_data.gltf.is_change_coordinate_system_indices);
-
-				ImGui::Separator();
-				ImGui::Checkbox("recomputed_normal", &convert_option_data.gltf.is_recomputed_normal);
-				ImGui::Checkbox("recomputed_normal_to_copy_tangent", &convert_option_data.gltf.is_recomputed_normal_to_copy_tangent);
-
-				if (ImGui::Button("Convert"))
-				{
-					convert_option_data.kind = convert_option_data::kinds::gltf;
-					ImGui::CloseCurrentPopup();
-				}
-				ImGui::EndPopup();
-			}
-			//	閉じられたらクリアしておく
-			if (!show_flag)
-			{
-				load_model_path.clear();
-			}
-		}
-		else if (extension == std::filesystem::path("." + std::string(model_resource::extension)))
-		{
-			convert_option_data.kind = convert_option_data::kinds::emo;
-		}
-		else
-		{
-			assert(!L"Compatible Format Model.");
-			load_model_path.clear();
-		}
-	}
-#pragma endregion // 読込みウィンドウ
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////

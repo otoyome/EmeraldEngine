@@ -14,6 +14,7 @@
 
 #if defined(USE_IMGUI)
 #include "Editor/editor_camera.h"
+#include "Model/data_converter.h"
 
 namespace
 {
@@ -111,7 +112,6 @@ void edit_model_system::imgui_render_animation()
 				else
 				{
 					assert(!L"Compatible Format Model.");
-					load_model_path.clear();
 				}
 				//	アニメーション登録
 				//	同名アニメーションは上書き

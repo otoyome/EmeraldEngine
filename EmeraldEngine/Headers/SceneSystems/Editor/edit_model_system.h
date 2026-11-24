@@ -9,8 +9,7 @@
 #include "Object/Graphics/post_process_volume_object.h"
 
 #if defined(USE_IMGUI)
-#include "Model/data_converter.h"
-
+#include "Animation/retarget_profile.h"
 #include "Animation/ik_solver.h"
 
 #include "Editor/editor_items.h"
@@ -42,21 +41,6 @@ class edit_model_system : public scene_system
 		math::int4 color_flags{1, 1, 1, 1};	//	色適応フラグ
 	};
 
-	//	変換情報
-	struct convert_option_data
-	{
-		enum class kinds
-		{
-			none,
-			mmd,
-			gltf,
-			emo,
-		};
-		kinds kind = kinds::none;
-		data_converter::mmd::convert_model_data mmd;
-		data_converter::gltf::convert_model_data gltf;
-	};
-
 public:
 	edit_model_system();
 	edit_model_system(const edit_model_system&) = delete;
@@ -67,16 +51,15 @@ protected:
 	void on_begin() override { initialize_core(); }
 	void on_end() override { uninitialize_core(); }
 	void pre_update(float elapsed_time) override { update_core(elapsed_time); }
-	void imgui_render() override { imgui_render_core(); }
 	bool has_panel(panel_regions region) const override;
 	void imgui_render_panel(panel_regions region) override;
 
 	bool initialize_core();
 	bool uninitialize_core();
 	void update_core(float elapsed_time);
-	void imgui_render_core();
 
 private:
+	void load_model(const std::string& file_path);
 	void save_model();
 	void generate_lod();
 	void generate_bounding_mesh_asset();
@@ -96,7 +79,6 @@ private:	//	編集ウィンドウ纏め系
 	bool initialize_edit_core();
 	bool uninitialize_edit_core();
 	void update_edit_core(float elapsed_time);
-	void imgui_model_loader_window();
 	void imgui_render_menu_bar();
 	void imgui_render_mesh_list();
 	void imgui_render_material_list();
@@ -187,10 +169,6 @@ private:
 
 	//	テクスチャの最大解像度
 	int texture_max_resolution = 2048;
-
-	//	変換情報
-	std::string load_model_path;
-	convert_option_data convert_option_data;
 
 	std::shared_ptr<editor_items::context> items_context;
 
