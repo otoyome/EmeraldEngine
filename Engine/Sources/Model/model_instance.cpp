@@ -289,11 +289,7 @@ void mesh_collector::collect(mesh_container& container, const std::vector<model_
 			buffer_data.system_flags = 0;
 			core::set_bitflag(buffer_data.system_flags, mesh_draw_item::flags::culling, instance->is_flag(model_instance::flags::culling));
 			core::set_bitflag(buffer_data.system_flags, mesh_draw_item::flags::static_mesh, mesh.bones.empty());
-			{
-				UINT combined = instance->get_unique_id();
-				combined ^= current_submesh_index + 0x9e3779b9u + (combined << 6) + (combined >> 2);
-				buffer_data.unique_id = combined;
-			}
+			buffer_data.unique_id = core::hash_combine<UINT>(instance->get_unique_id(), current_submesh_index);
 			buffer_data.color_meshs.clear();
 			buffer_data.shadow_mesh.vertex_buffer_views = nullptr;
 			buffer_data.shadow_mesh.morph_meshes.clear();

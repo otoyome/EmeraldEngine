@@ -34,6 +34,7 @@ effect_object::effect_object(std::string_view name)
 , event_position()
 , spawn_stop(false)
 , play_requested(false)
+, loaded(false)
 , load_operation()
 , loaded_resource()
 , instance()
@@ -182,6 +183,7 @@ void effect_object::on_finalize()
 
 	release_instance();
 	play_requested = false;
+	loaded = false;
 	loaded_resource.reset();
 
 	base::on_finalize();
@@ -293,10 +295,12 @@ void effect_object::request_load()
 	}
 	loaded_resource.reset();
 
-	if (effect.is_empty())
+	loaded = effect.is_empty();
+	if (loaded)
 		return;
 
 	load_operation = resource_manager::instance()->load_async(effect);
+	loaded = !load_operation;
 }
 
 void effect_object::update_loading()
@@ -306,6 +310,7 @@ void effect_object::update_loading()
 
 	const resource::load_operation_ptr<effect_resource> operation = std::move(load_operation);
 	load_operation.reset();
+	loaded = true;
 
 	if (!operation->is_succeeded() || !operation->get_resource())
 	{

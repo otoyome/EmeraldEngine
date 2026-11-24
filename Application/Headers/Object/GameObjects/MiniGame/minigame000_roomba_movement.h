@@ -56,7 +56,7 @@ namespace minigame000
 		void serialize(Archive& archive, std::uint32_t version);
 	};
 
-	//	ŠÂ‹«î•ñh
+	//	ŠÂ‹«î•ñ
 	struct roomba_movement_environment
 	{
 		math::float3 world_gravity = math::float3(0.0f, system_units::convert_m_to_unit(-9.8f), 0.0f);	//	ƒ[ƒ‹ƒhd—Í(m/s2)

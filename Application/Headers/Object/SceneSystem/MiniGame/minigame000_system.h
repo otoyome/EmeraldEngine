@@ -15,6 +15,7 @@ namespace minigame000
 	class roomba_object;
 	class roomba_player_controller_object;
 	class roomba_camera_controller_object;
+	class minigame_stage_object;
 }	//	namespace minigame000
 
 //	ミニゲームのシーンシステム
@@ -30,6 +31,7 @@ public:
 	enum class states
 	{
 		load_wait,
+		stage_wait,
 		game,
 	};
 
@@ -81,6 +83,15 @@ private:
 	//	ステージのエフェクトの吸引範囲をルンバの速度に合わせる
 	void update_stage_effects();
 
+	//	ステージコントローラーを探して、ステージのエフェクトを渡す
+	void setup_stage();
+
+	//	ステージの準備が終わっているか(ステージコントローラーが無ければ終わり扱い)
+	bool is_stage_completed() const;
+
+	//	エフェクトイベントを処理
+	void process_stage_effect_events();
+
 private:	//	設定
 	std::vector<resource::asset_reference<scene_set_resource>> stage_scenes;				//	ステージシーン候補(開始時にランダムで1つ選ぶ)
 	resource::asset_reference<prefab_resource> roomba_prefab;								//	ルンバのプレハブ
@@ -97,7 +108,9 @@ private:	//	実行時
 
 	std::vector<std::weak_ptr<minigame000::roomba_object>> roombas;							//	生成したルンバ
 	std::weak_ptr<minigame000::roomba_object> attract_roomba;								//	エフェクトを吸い込むルンバ
-	std::vector<std::weak_ptr<effect_object>> stage_effects;								//	ステージのエフェクト
+	std::weak_ptr<minigame000::minigame_stage_object> stage;								//	ステージコントローラー
+	int trash_count = 0;																	//	拾ったゴミの数
+	int bubble_count = 0;																	//	当たった泡の数
 	std::vector<std::shared_ptr<minigame000::roomba_player_controller_object>> controllers;	//	生成したコントローラー
 	std::vector<std::shared_ptr<minigame000::roomba_camera_controller_object>> camera_controllers;
 };

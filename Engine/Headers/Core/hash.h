@@ -1,7 +1,9 @@
 #pragma once
 
 #include <cstddef>
+#include <cstdint>
 #include <string_view>
+#include <type_traits>
 
 namespace core
 {
@@ -26,6 +28,15 @@ namespace core
 	inline hash_key generate_hash(const void* data, std::size_t size)
 	{
 		return	fnv1a_hash(size, static_cast<const char*>(data));
+	}
+
+	//	ƒnƒbƒVƒ…‡¬
+	template<class T>
+	constexpr T hash_combine(T seed, T value)
+	{
+		static_assert(std::is_unsigned_v<T> && (sizeof(T) == 4 || sizeof(T) == 8), "hash_combine : 32bit/64bit ‚Ì•„†‚È‚µ®”‚Ì‚İ‘Î‰");
+		constexpr T golden_ratio = (sizeof(T) == 8) ? static_cast<T>(0x9e3779b97f4a7c15ull) : static_cast<T>(0x9e3779b9u);
+		return	seed ^ (value + golden_ratio + (seed << 6) + (seed >> 2));
 	}
 
 }	//	namespace core

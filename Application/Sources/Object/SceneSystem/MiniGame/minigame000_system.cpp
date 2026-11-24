@@ -19,9 +19,14 @@
 #include "object/gameobjects/MiniGame/minigame000_roomba_object.h"
 #include "object/gameobjects/MiniGame/minigame000_roomba_player_controller_object.h"
 #include "object/gameobjects/MiniGame/minigame000_roomba_camera_controller_object.h"
+#include "object/gameobjects/MiniGame/minigame000_stage_object.h"
 
 namespace
 {
+	//	1回当たった時の濡れ量
+	constexpr float trash_wet_value = 1.0f;
+	constexpr float bubble_wet_value = 400.0f;
+
 	//	シーンカメラ検索
 	std::shared_ptr<camera_object> find_view_camera(const std::vector<game_object_ptr>& objects)
 	{
@@ -94,7 +99,10 @@ void minigame000_system::on_end()
 	roombas.clear();
 	controllers.clear();
 	attract_roomba.reset();
-	stage_effects.clear();
+	stage.reset();
+	trash_count = 0;
+	bubble_count = 0;
+	state = states::load_wait;
 
 	//	ステージ内シーンの読込中断と、追加したシーンの削除
 	for (const resource::load_operation_ptr<scene_resource>& operation : stage_scene_operations)
@@ -119,8 +127,18 @@ void minigame000_system::pre_update(float elapsed_time)
 			update_stage_loading();
 			update_prefab_loading();
 
-			//	プレハブ読込済み、かつステージの全シーンが追加済みなら生成に移る
+			//	プレハブ読込済み、かつステージの全シーンが追加済みならステージの準備に移る
 			if (!roomba_prefab_operation && is_stage_ready())
+			{
+				setup_stage();
+				state = states::stage_wait;
+			}
+			break;
+		}
+		case states::stage_wait:
+		{
+			//	ステージ側の準備(エフェクトの読込/振り分け/ゴミの最大数)が整ったら生成に移る
+			if (is_stage_completed())
 			{
 				spawn_roombas();
 				state = states::game;
@@ -129,6 +147,7 @@ void minigame000_system::pre_update(float elapsed_time)
 		}
 		case states::game:
 		{
+			process_stage_effect_events();
 			update_stage_effects();
 			break;
 		}
@@ -165,7 +184,10 @@ void minigame000_system::imgui_render()
 	ImGui::Text("stage scenes : %zu", stage_scene_names.size());
 	ImGui::Text("prefab loading : %s", roomba_prefab_operation ? "true" : "false");
 	ImGui::Text("roombas : %zu", roombas.size());
-	ImGui::Text("stage effects : %zu", stage_effects.size());
+	const std::shared_ptr<minigame000::minigame_stage_object> current_stage = stage.lock();
+	ImGui::Text("stage completed : %s", current_stage ? (current_stage->is_completed() ? "true" : "false") : "(none)");
+	ImGui::Text("trash : %d / %d", trash_count, current_stage ? current_stage->get_trash_max() : 0);
+	ImGui::Text("bubble count : %d", bubble_count);
 	ImGui::Text("controllers : %zu", controllers.size());
 }
 #endif	//	defined(USE_IMGUI)
@@ -385,6 +407,16 @@ std::shared_ptr<minigame000::roomba_object> minigame000_system::spawn_roomba(con
 		roomba->set_world_rotation(start_point->get_world_rotation());
 	}
 
+	//	ステージの環境情報を渡す
+	if (const std::shared_ptr<minigame000::minigame_stage_object> current = stage.lock())
+	{
+		const minigame000::stage_settings& settings = current->get_setting();
+		minigame000::roomba_movement_environment environment;
+		environment.world_gravity = settings.world_gravity;
+		environment.world_air_density = settings.world_air_density;
+		roomba->set_movement_environment(environment);
+	}
+
 	//	オブジェクト登録
 	for (const game_object_ptr& object : created.objects)
 	{
@@ -412,34 +444,70 @@ void minigame000_system::possess_player(const std::shared_ptr<minigame000::roomb
 	camera_controllers.emplace_back(std::move(camera_controller));
 }
 
+void minigame000_system::setup_stage()
+{
+	std::shared_ptr<minigame000::minigame_stage_object> found_stage;
+	for (const std::string& name : stage_scene_names)
+	{
+		const scene_instance* scene = get_context().get_scenes().find_scene(name);
+		if (!scene)
+			continue;
+
+		for (const std::weak_ptr<game_object>& weak_object : scene->get_objects())
+		{
+			game_object_ptr object = weak_object.lock();
+			if (object && object->check_type(minigame000::minigame_stage_object::type_name()))
+			{
+				found_stage = std::static_pointer_cast<minigame000::minigame_stage_object>(object);
+				break;
+			}
+		}
+		if (found_stage)
+			break;
+	}
+
+	DEBUG_CHECK_ERROR_CATEGORY(!found_stage, core::logger::categorys::system, "minigame000_system stage_object not found");
+
+	if (found_stage)
+		found_stage->begin_setup();
+	stage = found_stage;
+}
+
+bool minigame000_system::is_stage_completed() const
+{
+	const std::shared_ptr<minigame000::minigame_stage_object> current = stage.lock();
+	return !current || current->is_completed();
+}
+
 void minigame000_system::bind_stage_effects(const std::shared_ptr<minigame000::roomba_object>& roomba)
 {
 	//	@remainder	エフェクト1つにつき座標は1つなので、複数台で吸い込む場合は別の仕組みが必要
 	attract_roomba = roomba;
-	stage_effects.clear();
+
+	const std::shared_ptr<minigame000::minigame_stage_object> current = stage.lock();
+	if (!current)
+		return;
 
 	//	追従先はルンバの当たり判定
 	std::shared_ptr<spatial_object> target = roomba->get_collision_object();
 	if (!target)
 		target = roomba;
 
-	//	ステージの全シーンからエフェクトを集めて追従先を設定
-	for (const std::string& name : stage_scene_names)
+	//	ゴミ/泡のエフェクトの追従先を設定
+	for (auto weak_effect : current->get_trash_effects())
 	{
-		const scene_instance* stage = get_context().get_scenes().find_scene(name);
-		if (!stage)
-			continue;
-
-		for (const std::weak_ptr<game_object>& weak_object : stage->get_objects())
+		if (const std::shared_ptr<effect_object> effect = weak_effect.lock())
 		{
-			game_object_ptr object = weak_object.lock();
-			if (!object || !object->check_type(effect_object::type_name()))
-				continue;
-
-			std::shared_ptr<effect_object> effect = std::static_pointer_cast<effect_object>(object);
 			effect->set_attract_target(target);
 			effect->set_event_target(target);
-			stage_effects.emplace_back(std::move(effect));
+		}
+	}
+	for (auto weak_effect : current->get_bubble_effects())
+	{
+		if (const std::shared_ptr<effect_object> effect = weak_effect.lock())
+		{
+			effect->set_attract_target(target);
+			effect->set_event_target(target);
 		}
 	}
 }
@@ -447,17 +515,50 @@ void minigame000_system::bind_stage_effects(const std::shared_ptr<minigame000::r
 void minigame000_system::update_stage_effects()
 {
 	const std::shared_ptr<minigame000::roomba_object> roomba = attract_roomba.lock();
-	if (!roomba)
+	const std::shared_ptr<minigame000::minigame_stage_object> current = stage.lock();
+	if (!roomba || !current)
 		return;
 
 	//	吸引アイテムを持つパーティクルの範囲を書き換える
 	const float radius = roomba->get_attract_range();
-	for (const std::weak_ptr<effect_object>& weak_effect : stage_effects)
+	for (const std::vector<std::weak_ptr<effect_object>>* list : { &current->get_trash_effects(), &current->get_bubble_effects() })
 	{
-		const std::shared_ptr<effect_object> effect = weak_effect.lock();
-		if (effect && effect->get_instance())
-			effect->get_instance()->set_attract_radius(radius);
+		for (const std::weak_ptr<effect_object>& weak_effect : *list)
+		{
+			const std::shared_ptr<effect_object> effect = weak_effect.lock();
+			if (effect && effect->get_instance())
+				effect->get_instance()->set_attract_radius(radius);
+		}
 	}
+}
+
+void minigame000_system::process_stage_effect_events()
+{
+	const std::shared_ptr<minigame000::roomba_object> roomba = attract_roomba.lock();
+	const std::shared_ptr<minigame000::minigame_stage_object> current = stage.lock();
+	if (!roomba || !current)
+		return;
+
+	//	ステージが振り分けたエフェクトに届いたイベント数を数える
+	const auto count_events = [](const std::vector<std::weak_ptr<effect_object>>& list)
+	{
+		int count = 0;
+		for (const std::weak_ptr<effect_object>& weak_effect : list)
+		{
+			if (const std::shared_ptr<effect_object> effect = weak_effect.lock())
+				count += static_cast<int>(effect->get_particle_events().size());
+		}
+		return count;
+	};
+
+	const int trash_hits = count_events(current->get_trash_effects());
+	const int bubble_hits = count_events(current->get_bubble_effects());
+	trash_count += trash_hits;
+	bubble_count += bubble_hits;
+
+	const float wet_value = trash_wet_value * static_cast<float>(trash_hits) + bubble_wet_value * static_cast<float>(bubble_hits);
+	if (wet_value > 0.0f)
+		roomba->add_wet(wet_value);
 }
 
 SCENE_SYSTEM_REGISTER(minigame000_system);

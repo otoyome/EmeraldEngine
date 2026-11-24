@@ -426,8 +426,8 @@ math::float3 light_probe::calculate_radiometric_color() const
 size_t light_collector::cell_key_hash::operator()(const cell_key& key) const
 {
 	size_t hash = std::hash<std::int64_t>()(key.x);
-	hash ^= std::hash<std::int64_t>()(key.y) + 0x9e3779b97f4a7c15ull + (hash << 6) + (hash >> 2);
-	hash ^= std::hash<std::int64_t>()(key.z) + 0x9e3779b97f4a7c15ull + (hash << 6) + (hash >> 2);
+	hash = core::hash_combine<size_t>(hash, std::hash<std::int64_t>()(key.y));
+	hash = core::hash_combine<size_t>(hash, std::hash<std::int64_t>()(key.z));
 	return hash;
 }
 

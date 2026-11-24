@@ -8,6 +8,8 @@
 
 #include <guiddef.h>
 
+#include "Core/hash.h"
+
 namespace core
 {
 	//	UUID ƒNƒ‰ƒX
@@ -61,6 +63,6 @@ struct std::hash<core::uuid>
 	size_t operator()(const core::uuid& value) const noexcept
 	{
 		const size_t high_hash = std::hash<std::uint64_t>()(value.get_high());
-		return high_hash ^ (std::hash<std::uint64_t>()(value.get_low()) + 0x9e3779b97f4a7c15ull + (high_hash << 6) + (high_hash >> 2));
+		return core::hash_combine<size_t>(high_hash, std::hash<std::uint64_t>()(value.get_low()));
 	}
 };

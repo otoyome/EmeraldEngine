@@ -84,7 +84,7 @@ namespace
 	std::uint64_t compute_shadow_signature(const light_render_data& light, const render_data_context& render_data, bool& out_dynamic)
 	{
 		std::uint64_t hash = 1469598103934665603ull;
-		auto mix = [&hash](std::uint64_t value) { hash ^= value + 0x9e3779b97f4a7c15ull + (hash << 6) + (hash >> 2); };
+		auto mix = [&hash](std::uint64_t value) { hash = core::hash_combine<std::uint64_t>(hash, value); };
 		auto mix_quantized = [&mix](double value, double scale) { mix(static_cast<std::uint64_t>(std::llround(value * scale))); };
 		auto mix_float = [&mix](float value)
 		{

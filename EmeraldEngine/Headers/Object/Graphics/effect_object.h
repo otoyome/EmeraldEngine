@@ -34,8 +34,14 @@ public:
 	bool get_loop() const { return loop; }
 	void set_loop(bool value);
 
-	//	再生中か(読込待ちも含む)
+	//	再生中か
 	bool is_playing() const { return instance != nullptr || play_requested; }
+
+	//	読込が終わっているか
+	bool is_loaded() const { return loaded; }
+
+	//	読み込んだエフェクト
+	const effect_resource_ptr& get_loaded_resource() const { return loaded_resource; }
 
 	//	パーティクル生成停止
 	bool get_spawn_stop() const { return spawn_stop; }
@@ -128,6 +134,7 @@ private:	//	設定
 private:	//	実行時
 	bool spawn_stop;												//	パーティクル生成停止
 	bool play_requested;											//	読み終わったら再生するか
+	bool loaded;													//	読込が終わっているか
 	resource::load_operation_ptr<effect_resource> load_operation;	//	読込操作
 	effect_resource_ptr loaded_resource;							//	読み込んだエフェクト
 	effect_instance_ptr instance;									//	再生中のインスタンス

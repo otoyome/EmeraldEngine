@@ -120,6 +120,9 @@
     <ClCompile Include="Sources\Object\GameObjects\MiniGame\minigame000_roomba_status.cpp">
       <Filter>Sources\Object\GameObjects\MiniGame</Filter>
     </ClCompile>
+    <ClCompile Include="Sources\Object\GameObjects\MiniGame\minigame000_stage_object.cpp">
+      <Filter>Sources\Object\GameObjects\MiniGame</Filter>
+    </ClCompile>
     <ClCompile Include="Sources\Object\GameObjects\MiniGame\minigame000_roomba_input_source.cpp">
       <Filter>Sources\Object\GameObjects\MiniGame</Filter>
     </ClCompile>
@@ -189,6 +192,9 @@
       <Filter>Headers\Object\GameObjects\MiniGame</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Object\GameObjects\MiniGame\minigame000_roomba_status.h">
+      <Filter>Headers\Object\GameObjects\MiniGame</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Object\GameObjects\MiniGame\minigame000_stage_object.h">
       <Filter>Headers\Object\GameObjects\MiniGame</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Object\GameObjects\MiniGame\minigame000_roomba_input_source.h">

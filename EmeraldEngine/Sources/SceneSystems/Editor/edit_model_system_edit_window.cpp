@@ -817,11 +817,22 @@ void edit_model_system::focus_camera_on_model()
 	const float fov_x = 2.0f * std::atan(std::tan(fov_y * 0.5f) * aspect);
 	const float distance = radius / std::sin(std::min(fov_y, fov_x) * 0.5f);
 
-	//	³–Ê(+Z ‘¤)‚©‚çŒ´“_Œü‚«‚ÉŒ©‚é
+	//	Œ´“_Œü‚«‚ÉŒ©‚é
 	const math::rotatorf rotation(0, math::constants<float>::pi, 0);
-	const math::float3 front = rotation.front().to_float3();
+	const math::vector3d front(rotation.front() * distance);
+	const math::vector3d position = math::vector3d(center) + front;
 	editor_camera->set_rotation(rotation);
-	editor_camera->set_position(math::vector3d(center.x - front.x * distance, center.y - front.y * distance, center.z - front.z * distance));
+	editor_camera->set_position(position);
+
+	if (main_camera)
+	{
+		main_camera->set_world_euler(math::rotatord(rotation));
+		main_camera->set_world_translation(position);
+
+		auto& parameters = main_camera->get_camera()->get_parameters();
+		parameters.rotation = rotation;
+		parameters.position = position;
+	}
 }
 
 #endif	//	defined(USE_IMGUI)
