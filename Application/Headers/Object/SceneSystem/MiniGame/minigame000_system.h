@@ -22,7 +22,7 @@ class minigame000_system : public scene_system
 	SCENE_SYSTEM_DECRLEAR(minigame000_system, scene_system)
 
 	friend class ::game_object_serializer;
-	static constexpr std::uint32_t serialize_version = 2;	//	シリアライズのバージョン
+	static constexpr std::uint32_t serialize_version = 3;	//	シリアライズのバージョン
 
 public:
 	//	遷移
@@ -54,6 +54,9 @@ private:	//	シリアライズ
 	void serialize_fields(Archive& archive, std::uint32_t version);
 
 private:
+	//	ステージ候補からランダムに1つ選ぶ
+	int select_stage_index() const;
+
 	//	読込の進行
 	void update_stage_loading();
 	void update_prefab_loading();
@@ -72,12 +75,13 @@ private:
 	void possess_player(const std::shared_ptr<minigame000::roomba_object>& roomba);
 
 private:	//	設定
-	resource::asset_reference<scene_set_resource> stage_scene;								//	ステージシーン
+	std::vector<resource::asset_reference<scene_set_resource>> stage_scenes;				//	ステージシーン候補(開始時にランダムで1つ選ぶ)
 	resource::asset_reference<prefab_resource> roomba_prefab;								//	ルンバのプレハブ
 	std::string start_point_tag;															//	使う開始位置のタグ
 
 private:	//	実行時
 	states state = states::load_wait;														//	ステート
+	int selected_stage_index = -1;															//	選んだステージ候補の番号
 	resource::load_operation_ptr<scene_set_resource> stage_scene_operation;					//	ステージシーンセットのロードオペレーター
 	std::vector<resource::load_operation_ptr<scene_resource>> stage_scene_operations;		//	ステージ内の各シーンのロードオペレーター
 	resource::load_operation_ptr<prefab_resource> roomba_prefab_operation;					//	プレハブのロードオペレーター

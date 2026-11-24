@@ -3,6 +3,9 @@
 #include "cereal/cereal.hpp"
 #include "cereal/archives/json.hpp"
 #include "cereal/types/string.hpp"
+#include "cereal/types/vector.hpp"
+
+#include <random>
 
 #include "Resource/asset_registry.h"
 #include "Object/asset_reference_field.h"
@@ -36,7 +39,7 @@ namespace
 }
 
 minigame000_system::minigame000_system()
-: stage_scene()
+: stage_scenes()
 , roomba_prefab()
 , start_point_tag("roomba")
 , stage_scene_operation()
@@ -55,8 +58,13 @@ minigame000_system::~minigame000_system()
 
 void minigame000_system::on_begin()
 {
+	//	ステージ候補からランダムに選ぶ
+	selected_stage_index = select_stage_index();
+	DEBUG_CHECK_ERROR_CATEGORY(selected_stage_index < 0, core::logger::categorys::system, "minigame000_system stage scene is empty");
+
 	//	非同期読み込み開始
-	stage_scene_operation = resource_manager::instance()->load_async(stage_scene);
+	if (selected_stage_index >= 0)
+		stage_scene_operation = resource_manager::instance()->load_async(stage_scenes[selected_stage_index]);
 	roomba_prefab_operation = resource_manager::instance()->load_async(roomba_prefab);
 	DEBUG_CHECK_ERROR_CATEGORY(!stage_scene_operation || !roomba_prefab_operation, core::logger::categorys::system, "minigame000_system roomba prefab is empty");
 }
@@ -96,6 +104,7 @@ void minigame000_system::on_end()
 		get_context().get_scenes().remove_scene(name);
 	}
 	stage_scene_names.clear();
+	selected_stage_index = -1;
 }
 
 void minigame000_system::pre_update(float elapsed_time)
@@ -121,11 +130,28 @@ void minigame000_system::pre_update(float elapsed_time)
 #if defined(USE_IMGUI)
 void minigame000_system::imgui_render()
 {
-	asset_reference_field::imgui_combo("stage_scene", stage_scene, resource::asset_types::scene_set);
+	ImGui::SeparatorText("stage_scenes");
+	int remove_index = -1;
+	for (int index = 0; index < static_cast<int>(stage_scenes.size()); ++index)
+	{
+		ImGui::PushID(index);
+		if (ImGui::SmallButton("remove"))
+			remove_index = index;
+		ImGui::SameLine();
+		asset_reference_field::imgui_combo("##stage_scene", stage_scenes[index], resource::asset_types::scene_set);
+		ImGui::PopID();
+	}
+	if (remove_index >= 0)
+		stage_scenes.erase(stage_scenes.begin() + remove_index);
+	if (ImGui::Button("add stage scene"))
+		stage_scenes.emplace_back();
+
+	ImGui::Separator();
 	asset_reference_field::imgui_combo("roomba_prefab", roomba_prefab, resource::asset_types::prefab);
 	ImGui::InputTextUtf8("start_point_tag", start_point_tag);
 
 	ImGui::SeparatorText("state");
+	ImGui::Text("selected stage : %d", selected_stage_index);
 	ImGui::Text("stage loading : %s", stage_scene_operation ? "true" : "false");
 	ImGui::Text("stage scene loading : %zu", stage_scene_operations.size());
 	ImGui::Text("stage scenes : %zu", stage_scene_names.size());
@@ -148,7 +174,16 @@ void minigame000_system::serialize_fields(Archive& archive, std::uint32_t versio
 		}
 		case 2:
 		{
+			resource::asset_reference<scene_set_resource> stage_scene;
 			archive(CEREAL_NVP(stage_scene),
+					CEREAL_NVP(roomba_prefab),
+					CEREAL_NVP(start_point_tag));
+			stage_scenes = { stage_scene };
+			break;
+		}
+		case 3:
+		{
+			archive(CEREAL_NVP(stage_scenes),
 					CEREAL_NVP(roomba_prefab),
 					CEREAL_NVP(start_point_tag));
 			break;
@@ -164,6 +199,23 @@ void minigame000_system::serialize(cereal::JSONOutputArchive& archive) const
 void minigame000_system::deserialize(cereal::JSONInputArchive& archive)
 {
 	game_object_serializer::load_fields(archive, "minigame000_system", *this);
+}
+
+int minigame000_system::select_stage_index() const
+{
+	//	@remainder	通信ではホストが選んだ番号を配る
+	std::vector<int> candidates;
+	for (int index = 0; index < static_cast<int>(stage_scenes.size()); ++index)
+	{
+		if (!stage_scenes[index].is_empty())
+			candidates.emplace_back(index);
+	}
+	if (candidates.empty())
+		return -1;
+
+	std::mt19937 random(std::random_device{}());
+	std::uniform_int_distribution<std::size_t> distribution(0, candidates.size() - 1);
+	return candidates[distribution(random)];
 }
 
 void minigame000_system::update_stage_loading()

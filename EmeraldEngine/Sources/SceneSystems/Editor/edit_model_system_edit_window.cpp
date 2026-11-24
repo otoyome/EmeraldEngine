@@ -1,6 +1,7 @@
 #include "SceneSystems/Editor/edit_model_system.h"
 #include "Object/engine_context.h"
 
+#include "Model/model_buffer_pool.h"
 #include "Model/model_instance.h"
 #include "Graphics/View/camera.h"
 #include "Graphics/View/scene_view.h"
@@ -12,6 +13,7 @@
 #include "Graphics/Pipeline/custom_pipeline_state.h"
 
 #if defined(USE_IMGUI)
+
 #include "Editor/editor_camera.h"
 
 namespace
@@ -578,10 +580,17 @@ void edit_model_system::on_mouse_left_down_and_hold(const editor_camera_object::
 			if (position_view == mesh.vertex_buffer_views.end() || color_view == mesh.vertex_buffer_views.end())
 				continue;
 
+			auto& position_buffer = position_view->second;
+			auto& color_buffer = color_view->second;
+			//	float4 以外の頂点色は書き換えられないので除外
+			if (color_buffer.format != DXGI_FORMAT_R32G32B32A32_FLOAT || color_buffer.stride_in_bytes != sizeof(math::float4))
+				continue;
+
 			bool is_change = false;
-			auto positions = reinterpret_cast<math::float3*>(position_view->second.row_data.data());
-			auto colors = reinterpret_cast<math::float4*>(color_view->second.row_data.data());
-			for (size_t index = position_view->second.offset(); index < position_view->second.count(); ++index)
+			auto positions = reinterpret_cast<math::float3*>(position_buffer.row_data.data());
+			auto colors = reinterpret_cast<math::float4*>(color_buffer.row_data.data());
+			const size_t vertex_count = (std::min)(position_buffer.count(), color_buffer.count());
+			for (size_t index = 0; index < vertex_count; ++index)
 			{
 				auto p = positions + index;
 				math::float3 d;
@@ -597,9 +606,13 @@ void edit_model_system::on_mouse_left_down_and_hold(const editor_camera_object::
 					is_change = true;
 				}
 			}
-			if (is_change)
+
+			//	更新
+			if (is_change && model_buffer_pool_manager::find_vertex_element(color_view->first) != common_pipeline_states::vertex_elements::max)
 			{
-				render_data::instance()->get_upload_list().update_whole(color_view->second.buffer.Get(), colors, static_cast<UINT>(color_view->second.row_data.size()));
+				ID3D11Buffer* pool_buffer = model_buffer_pool_manager::instance()->get_vertex_buffer(color_view->first);
+				render_data::instance()->get_upload_list().update_buffer(pool_buffer,
+					static_cast<UINT>(color_buffer.offset_in_bytes), colors, static_cast<UINT>(color_buffer.size_in_bytes));
 			}
 		}
 	}
