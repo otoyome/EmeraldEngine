@@ -132,6 +132,9 @@
     <ClCompile Include="Sources\Object\SceneSystem\MiniGame\minigame000_system.cpp">
       <Filter>Sources\Object\SceneSystem\MiniGame</Filter>
     </ClCompile>
+    <ClCompile Include="Sources\Object\SceneSystem\MiniGame\minigame000_title_system.cpp">
+      <Filter>Sources\Object\SceneSystem\MiniGame</Filter>
+    </ClCompile>
     <ClCompile Include="Sources\Object\GameObjects\MiniGame\minigame000_roomba_camera_controller_object.cpp">
       <Filter>Sources\Object\GameObjects\MiniGame</Filter>
     </ClCompile>
@@ -204,6 +207,9 @@
       <Filter>Headers\Object\GameObjects\MiniGame</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Object\SceneSystem\MiniGame\minigame000_system.h">
+      <Filter>Headers\Object\SceneSystem\MiniGame</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Object\SceneSystem\MiniGame\minigame000_title_system.h">
       <Filter>Headers\Object\SceneSystem\MiniGame</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Object\GameObjects\MiniGame\minigame000_roomba_camera_controller_object.h">

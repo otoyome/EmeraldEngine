@@ -137,6 +137,7 @@ xcopy "$(SolutionDir)External\SDL3\lib\SDL3.dll" "$(OutDir)" /y</Command>
     <ClCompile Include="Sources\Object\GameObjects\MiniGame\minigame000_roomba_input_source.cpp" />
     <ClCompile Include="Sources\Object\GameObjects\MiniGame\minigame000_roomba_player_controller_object.cpp" />
     <ClCompile Include="Sources\Object\SceneSystem\MiniGame\minigame000_system.cpp" />
+    <ClCompile Include="Sources\Object\SceneSystem\MiniGame\minigame000_title_system.cpp" />
     <ClCompile Include="Sources\stdafx_application.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
@@ -166,6 +167,7 @@ xcopy "$(SolutionDir)External\SDL3\lib\SDL3.dll" "$(OutDir)" /y</Command>
     <ClInclude Include="Headers\Object\GameObjects\MiniGame\minigame000_roomba_input_source.h" />
     <ClInclude Include="Headers\Object\GameObjects\MiniGame\minigame000_roomba_player_controller_object.h" />
     <ClInclude Include="Headers\Object\SceneSystem\MiniGame\minigame000_system.h" />
+    <ClInclude Include="Headers\Object\SceneSystem\MiniGame\minigame000_title_system.h" />
     <ClInclude Include="Headers\stdafx_application.h" />
     <ClInclude Include="Headers\Object\GameObjects\MiniGame\minigame000_roomba_movement.h" />
     <ClInclude Include="Headers\Object\GameObjects\MiniGame\minigame000_roomba_status.h" />
