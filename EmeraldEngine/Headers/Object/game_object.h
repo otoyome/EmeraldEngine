@@ -77,6 +77,9 @@ public:
 	virtual void serialize(cereal::JSONOutputArchive& archive) const;
 	virtual void deserialize(cereal::JSONInputArchive& archive);
 
+	//	ƒŠƒ[ƒhˆ—
+	void reload(cereal::JSONInputArchive& archive);
+
 protected:
 	virtual void on_active();
 	virtual void on_deactive();

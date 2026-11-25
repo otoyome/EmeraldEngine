@@ -18,8 +18,23 @@
 #include "Object/game_object_registry.h"
 #include "Object/spatial_object.h"
 #include "Object/prefab_resource.h"
+#include "Object/game_object_serializer.h"
+#include "ImGuizmo/ImGuizmo.h"
 
+#include <sstream>
 #include <unordered_set>
+
+namespace
+{
+	//	@tool	履歴のメニューに出す名前
+	std::string make_command_label(std::string_view action, const std::shared_ptr<game_object>& object)
+	{
+		if (!object)
+			return std::string(action);
+		const core::cache_string name(object->get_name());
+		return std::string(action) + " " + name.get<core::utf8_cache>().data();
+	}
+}
 
 scene_editor::scene_editor(const world_settings& settings)
 : edit_world(create_world(settings))
@@ -193,6 +208,8 @@ bool scene_editor::save()
 			result = false;
 		}
 	}
+	if (result)
+		history.mark_saved();
 	return result;
 }
 
@@ -210,6 +227,14 @@ void scene_editor::imgui_menu()
 	}
 	if (ImGui::MenuItem("Save", nullptr, false, is_editing() && !is_playing()))
 		save();
+
+	//	@tool	元に戻す・やり直す(名前が変わっても同じ項目になるよう ### で ID を固定)
+	const std::string undo_label = can_undo() ? "Undo (" + std::string(history.get_undo_label()) + ")###scene_editor_undo" : std::string("Undo###scene_editor_undo");
+	if (ImGui::MenuItem(undo_label.c_str(), "Ctrl+Z", false, can_undo()))
+		undo();
+	const std::string redo_label = can_redo() ? "Redo (" + std::string(history.get_redo_label()) + ")###scene_editor_redo" : std::string("Redo###scene_editor_redo");
+	if (ImGui::MenuItem(redo_label.c_str(), "Ctrl+Y", false, can_redo()))
+		redo();
 }
 
 bool scene_editor::open(std::string_view file_path)
@@ -237,6 +262,10 @@ void scene_editor::close()
 		release_edited_scene(scene);
 	edited_scenes.clear();
 	current_scene.reset();
+
+	//	@tool	別のシーンの操作は戻せないので捨てる
+	history.clear();
+	edit_tracking = {};
 }
 
 bool scene_editor::create_edited_scenes(const std::vector<scene_resource_ptr>& resources)
@@ -313,6 +342,10 @@ void scene_editor::remove_scene(const scene_resource_ptr& resource)
 	edited_scenes.erase(it);
 	if (current_scene == resource)
 		current_scene.reset();
+
+	//	@tool	外したシーンのオブジェクトを含む操作は戻せないので捨てる
+	history.clear();
+	edit_tracking = {};
 }
 
 void scene_editor::imgui_render()
@@ -464,7 +497,9 @@ std::shared_ptr<game_object> scene_editor::place_object(std::string_view type, c
 	const std::shared_ptr<game_object> selected = edit_world->get_context().get_editor().get_selected_object();
 	if (!position && find_edited_scene(selected))
 		return place_object_as_child(type, selected);
-	return add_object(get_current_scene(), type, position ? *position : get_placement_position());
+	const game_object_ptr object = add_object(get_current_scene(), type, position ? *position : get_placement_position());
+	push_place_command("Place", object, {});
+	return object;
 }
 
 std::shared_ptr<game_object> scene_editor::place_object_in_scene(std::string_view type, const scene_resource_ptr& resource, const std::optional<math::vector3d>& position)
@@ -472,7 +507,11 @@ std::shared_ptr<game_object> scene_editor::place_object_in_scene(std::string_vie
 	for (edited_scene& scene : edited_scenes)
 	{
 		if (scene.resource == resource)
-			return add_object(scene, type, position ? *position : get_placement_position());
+		{
+			const game_object_ptr object = add_object(scene, type, position ? *position : get_placement_position());
+			push_place_command("Place", object, {});
+			return object;
+		}
 	}
 	return nullptr;
 }
@@ -487,6 +526,7 @@ std::shared_ptr<game_object> scene_editor::place_object_as_child(std::string_vie
 	const game_object_ptr object = add_object(*scene, type, get_placement_position());
 	if (object && parent->check_type(spatial_object::type_name()))
 		spatial_object::attach_object(object, parent);
+	push_place_command("Place", object, {});
 	return object;
 }
 
@@ -522,6 +562,7 @@ std::shared_ptr<game_object> scene_editor::place_prefab(std::string_view file_pa
 		edit_world->get_objects().register_object(object);
 	}
 	edit_world->get_context().get_editor().set_selected_object(root);
+	push_place_command("Place Prefab", root, created.objects);
 	return root;
 }
 
@@ -583,29 +624,51 @@ bool scene_editor::remove_object(const std::shared_ptr<game_object>& target)
 		return false;
 
 	//	子孫のオブジェクトも一緒に消す
-	const std::vector<game_object_ptr> remove_objects = collect_object_tree(target);
-	std::unordered_set<const game_object*> removes;
-	for (const game_object_ptr& object : remove_objects)
-		removes.insert(object.get());
-
-	//	ワールドから外し、シーンのオブジェクトからも外す
-	object_manager& objects = edit_world->get_objects();
-	for (const game_object_ptr& object : remove_objects)
-		objects.unregister_object(object);
-	for (edited_scene& scene : edited_scenes)
-	{
-		std::erase_if(scene.objects, [&](const std::weak_ptr<game_object>& weak_object)
-		{
-			const game_object_ptr object = weak_object.lock();
-			return object && removes.find(object.get()) != removes.end();
-		});
-	}
-
+	//	@tool	元に戻せるよう、消したオブジェクトは履歴が持っておき、戻す時は同じ物を登録し直す
+	const std::shared_ptr<object_tree_state> state = std::make_shared<object_tree_state>(capture_object_tree(target, {}));
+	detach_object_tree(*state);
 	edit_world->get_context().get_editor().set_selected_object(nullptr);
+
+	history.push(make_command_label("Delete", target),
+		[this, state]()
+		{
+			if (!attach_object_tree(*state))
+				return false;
+			edit_world->get_context().get_editor().set_selected_object(state->objects.front());
+			return true;
+		},
+		[this, state]()
+		{
+			detach_object_tree(*state);
+			edit_world->get_context().get_editor().set_selected_object(nullptr);
+			return true;
+		});
 	return true;
 }
 
 bool scene_editor::attach_object(const std::shared_ptr<game_object>& child, const std::shared_ptr<game_object>& parent)
+{
+	//	@tool	元に戻せるよう、付け替える前の親とシーンを覚えておく
+	const game_object_ptr before_parent = get_parent_object(child);
+	const scene_resource_ptr before_resource = find_object_scene(child);
+	if (!attach_object_core(child, parent))
+		return false;
+	push_object_place_command(make_command_label("Attach", child), child, before_parent, before_resource);
+	return true;
+}
+
+bool scene_editor::move_object_to_scene(const std::shared_ptr<game_object>& object, const scene_resource_ptr& resource)
+{
+	//	@tool	元に戻せるよう、移す前の親とシーンを覚えておく
+	const game_object_ptr before_parent = get_parent_object(object);
+	const scene_resource_ptr before_resource = find_object_scene(object);
+	if (!move_object_to_scene_core(object, resource))
+		return false;
+	push_object_place_command(make_command_label("Move To Scene", object), object, before_parent, before_resource);
+	return true;
+}
+
+bool scene_editor::attach_object_core(const std::shared_ptr<game_object>& child, const std::shared_ptr<game_object>& parent)
 {
 	if (is_playing() || !child || child->is_transient())
 		return false;
@@ -631,7 +694,7 @@ bool scene_editor::attach_object(const std::shared_ptr<game_object>& child, cons
 	return true;
 }
 
-bool scene_editor::move_object_to_scene(const std::shared_ptr<game_object>& object, const scene_resource_ptr& resource)
+bool scene_editor::move_object_to_scene_core(const std::shared_ptr<game_object>& object, const scene_resource_ptr& resource)
 {
 	if (is_playing() || !object || object->is_transient())
 		return false;
@@ -648,6 +711,256 @@ bool scene_editor::move_object_to_scene(const std::shared_ptr<game_object>& obje
 	if (&*it != from_scene)
 		move_object_tree(object, *it);
 	return true;
+}
+
+bool scene_editor::restore_object_place(const std::shared_ptr<game_object>& object, const std::shared_ptr<game_object>& parent, const scene_resource_ptr& resource)
+{
+	if (parent)
+		return attach_object_core(object, parent);
+	return move_object_to_scene_core(object, resource);
+}
+
+void scene_editor::push_object_place_command(std::string label, const std::shared_ptr<game_object>& object, const std::shared_ptr<game_object>& before_parent, const scene_resource_ptr& before_resource)
+{
+	const game_object_ptr after_parent = get_parent_object(object);
+	const scene_resource_ptr after_resource = find_object_scene(object);
+	if (before_parent == after_parent && before_resource == after_resource)
+		return;
+
+	history.push(std::move(label),
+		[this, object, before_parent, before_resource]() { return restore_object_place(object, before_parent, before_resource); },
+		[this, object, after_parent, after_resource]() { return restore_object_place(object, after_parent, after_resource); });
+
+	//	付け替えで姿勢が変わっても、インスペクターの編集として積まないようにする
+	resync_object_edit_tracking();
+}
+
+scene_editor::object_tree_state scene_editor::capture_object_tree(const std::shared_ptr<game_object>& root, std::vector<std::shared_ptr<game_object>> objects)
+{
+	object_tree_state state;
+	state.objects = objects.empty() ? collect_object_tree(root) : std::move(objects);
+
+	//	根を先頭にしておく
+	auto it = std::find(state.objects.begin(), state.objects.end(), root);
+	if (it != state.objects.end())
+		std::rotate(state.objects.begin(), it, std::next(it));
+	else
+		state.objects.insert(state.objects.begin(), root);
+
+	state.parent = get_parent_object(root);
+	state.resource = find_object_scene(root);
+	return state;
+}
+
+void scene_editor::detach_object_tree(const object_tree_state& state)
+{
+	std::unordered_set<const game_object*> removes;
+	for (const game_object_ptr& object : state.objects)
+		removes.insert(object.get());
+
+	//	ワールドから外し、シーンのオブジェクトからも外す
+	object_manager& objects = edit_world->get_objects();
+	for (const game_object_ptr& object : state.objects)
+		objects.unregister_object(object);
+	for (edited_scene& scene : edited_scenes)
+	{
+		std::erase_if(scene.objects, [&](const std::weak_ptr<game_object>& weak_object)
+		{
+			const game_object_ptr object = weak_object.lock();
+			return object && removes.find(object.get()) != removes.end();
+		});
+	}
+
+	//	履歴が持っている間も親の子として残らないよう、根を親から外す
+	if (state.parent && !state.objects.empty())
+		spatial_object::attach_object(state.objects.front(), nullptr);
+
+	//	外したオブジェクトを選んでいたら選択を外す
+	const game_object_ptr selected = edit_world->get_context().get_editor().get_selected_object();
+	if (selected && removes.find(selected.get()) != removes.end())
+		edit_world->get_context().get_editor().set_selected_object(nullptr);
+}
+
+bool scene_editor::attach_object_tree(const object_tree_state& state)
+{
+	if (state.objects.empty())
+		return false;
+	auto it = std::find_if(edited_scenes.begin(), edited_scenes.end(), [&](const edited_scene& scene) { return scene.resource == state.resource; });
+	if (it == edited_scenes.end())
+		return false;
+
+	object_manager& objects = edit_world->get_objects();
+	for (const game_object_ptr& object : state.objects)
+	{
+		it->objects.emplace_back(object);
+		objects.register_object(object);
+	}
+
+	//	根を元の親に付け直す(外す時にワールド姿勢を維持しているので元の位置に戻る)
+	if (state.parent)
+		spatial_object::attach_object(state.objects.front(), state.parent);
+	return true;
+}
+
+void scene_editor::push_place_command(std::string label, const std::shared_ptr<game_object>& root, std::vector<std::shared_ptr<game_object>> objects)
+{
+	if (!root)
+		return;
+
+	const std::shared_ptr<object_tree_state> state = std::make_shared<object_tree_state>(capture_object_tree(root, std::move(objects)));
+	history.push(make_command_label(label, root),
+		[this, state]()
+		{
+			detach_object_tree(*state);
+			return true;
+		},
+		[this, state]()
+		{
+			if (!attach_object_tree(*state))
+				return false;
+			edit_world->get_context().get_editor().set_selected_object(state->objects.front());
+			return true;
+		});
+	resync_object_edit_tracking();
+}
+
+std::shared_ptr<game_object> scene_editor::get_parent_object(const std::shared_ptr<game_object>& object)
+{
+	if (!object || !object->check_type(spatial_object::type_name()))
+		return nullptr;
+	return static_cast<spatial_object*>(object.get())->get_parent();
+}
+
+std::string scene_editor::make_snapshot(const game_object& object) const
+{
+	std::ostringstream stream;
+	if (!game_object_serializer::save_snapshot(stream, object))
+		return {};
+	return stream.str();
+}
+
+bool scene_editor::apply_snapshot(const std::shared_ptr<game_object>& object, const std::string& snapshot)
+{
+	if (!object || snapshot.empty())
+		return false;
+	std::istringstream stream(snapshot);
+	return game_object_serializer::load_snapshot(stream, *object, [this](const core::uuid& uuid) { return find_world_object(uuid); });
+}
+
+std::shared_ptr<game_object> scene_editor::find_world_object(const core::uuid& uuid) const
+{
+	if (uuid.is_empty())
+		return nullptr;
+	for (const game_object_ptr& object : edit_world->get_objects().search_game_objects<game_object>())
+	{
+		if (object->get_uuid() == uuid)
+			return object;
+	}
+	return nullptr;
+}
+
+void scene_editor::undo()
+{
+	if (!can_undo())
+		return;
+	history.undo();
+
+	//	戻した変更をインスペクターの編集として積まないようにする
+	resync_object_edit_tracking();
+}
+
+void scene_editor::redo()
+{
+	if (!can_redo())
+		return;
+	history.redo();
+	resync_object_edit_tracking();
+}
+
+void scene_editor::handle_undo_shortcuts()
+{
+	if (!is_editing() || is_playing())
+		return;
+
+	//	文字入力中は入力欄の元に戻すを優先し、スライダーやギズモの操作中は積む途中なので受け付けない
+	const ImGuiIO& io = ImGui::GetIO();
+	if (io.WantTextInput || !io.KeyCtrl || ImGui::IsAnyItemActive() || ImGuizmo::IsUsing())
+		return;
+
+	if (ImGui::IsKeyPressed(ImGuiKey_Z, true))
+	{
+		if (io.KeyShift)
+			redo();
+		else
+			undo();
+	}
+	else if (ImGui::IsKeyPressed(ImGuiKey_Y, true))
+	{
+		redo();
+	}
+}
+
+void scene_editor::begin_object_edit_tracking()
+{
+	if (!is_editing() || is_playing())
+	{
+		edit_tracking = {};
+		return;
+	}
+
+	//	操作中は編集前の中身を持ったままにする
+	if (edit_tracking.interacting)
+		return;
+
+	//	インスペクターやギズモが書き換える前に、選んでいるオブジェクトの中身を取っておく
+	const game_object_ptr selected = edit_world->get_context().get_editor().get_selected_object();
+	if (!selected || selected->is_transient() || !find_edited_scene(selected))
+	{
+		edit_tracking.object.reset();
+		edit_tracking.snapshot.clear();
+		return;
+	}
+	edit_tracking.object = selected;
+	edit_tracking.snapshot = make_snapshot(*selected);
+}
+
+void scene_editor::end_object_edit_tracking()
+{
+	if (!is_editing() || is_playing())
+	{
+		edit_tracking = {};
+		return;
+	}
+
+	//	操作が終わったフレームか、1フレームで終わる操作(クリック・決定キー)があったフレームで比べる
+	const bool interacting = ImGui::IsAnyItemActive() || ImGuizmo::IsUsing();
+	const bool finished = !interacting && (edit_tracking.interacting
+		|| ImGui::IsMouseReleased(ImGuiMouseButton_Left)
+		|| ImGui::IsKeyReleased(ImGuiKey_Enter)
+		|| ImGui::IsKeyReleased(ImGuiKey_KeypadEnter)
+		|| ImGui::IsKeyReleased(ImGuiKey_Space));
+	edit_tracking.interacting = interacting;
+	if (!finished)
+		return;
+
+	const game_object_ptr object = edit_tracking.object.lock();
+	if (!object || edit_tracking.snapshot.empty() || !find_edited_scene(object))
+		return;
+	std::string after = make_snapshot(*object);
+	if (after.empty() || after == edit_tracking.snapshot)
+		return;
+
+	std::string before = std::move(edit_tracking.snapshot);
+	edit_tracking.snapshot = after;
+	history.push(make_command_label("Edit", object),
+		[this, object, before]() { return apply_snapshot(object, before); },
+		[this, object, after]() { return apply_snapshot(object, after); });
+}
+
+void scene_editor::resync_object_edit_tracking()
+{
+	if (const game_object_ptr object = edit_tracking.object.lock())
+		edit_tracking.snapshot = make_snapshot(*object);
 }
 
 void scene_editor::move_object_tree(const std::shared_ptr<game_object>& target, edited_scene& scene)

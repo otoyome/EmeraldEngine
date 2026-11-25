@@ -897,8 +897,7 @@ void model_object::deserialize(cereal::JSONInputArchive& archive)
 	base::deserialize(archive);
 
 	const core::uuid uuid = game_object_serializer::load_asset_reference(archive, "model");
-	if (!uuid.is_empty())
-		load_model(game_object_serializer::resolve_asset_path(uuid));
+	change_model(uuid.is_empty() ? std::string() : game_object_serializer::resolve_asset_path(uuid));
 
 	bool color_render = false;
 	bool shadow_caster = false;

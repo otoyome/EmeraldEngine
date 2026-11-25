@@ -79,6 +79,22 @@ void game_object::deserialize(cereal::JSONInputArchive& archive)
 	active = active_value;
 }
 
+void game_object::reload(cereal::JSONInputArchive& archive)
+{
+	const bool previous_active = active;
+	on_finalize();
+	deserialize(archive);
+	on_initialize();
+
+	if (previous_active != active)
+	{
+		if (active)
+			on_active();
+		else
+			on_deactive();
+	}
+}
+
 void game_object::fixed_update(float elapsed_time)
 {
 }

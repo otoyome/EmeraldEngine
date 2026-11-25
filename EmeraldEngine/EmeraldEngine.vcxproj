@@ -466,6 +466,7 @@
     <ClCompile Include="Sources\Framework\asset_watcher.cpp" />
     <ClCompile Include="Sources\Editor\editor_host.cpp" />
     <ClCompile Include="Sources\Editor\scene_editor.cpp" />
+    <ClCompile Include="Sources\Editor\editor_transaction.cpp" />
     <ClCompile Include="Sources\Editor\editor_viewport.cpp" />
     <ClCompile Include="Sources\Editor\editor_gizmo.cpp" />
     <ClCompile Include="Sources\Editor\editor_picker.cpp" />
@@ -593,6 +594,7 @@
     <ClInclude Include="..\External\subpixel_morphological_anti_aliasing\textures\SearchTex.h" />
     <ClInclude Include="Headers\Editor\editor_camera.h" />
     <ClInclude Include="Headers\Editor\scene_editor.h" />
+    <ClInclude Include="Headers\Editor\editor_transaction.h" />
     <ClInclude Include="Headers\Editor\editor_viewport.h" />
     <ClInclude Include="Headers\Editor\editor_gizmo.h" />
     <ClInclude Include="Headers\Editor\editor_picker.h" />

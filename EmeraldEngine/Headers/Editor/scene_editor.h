@@ -10,6 +10,7 @@
 
 #include "Scenes/scene_resource.h"
 #include "Editor/object_edit_operations.h"
+#include "Editor/editor_transaction.h"
 
 class world;
 struct world_settings;
@@ -26,7 +27,23 @@ class scene_editor : public object_edit_operations
 		std::vector<std::weak_ptr<game_object>> objects;
 		std::unique_ptr<scene_system> system;
 	};
-	
+
+	//	まとめて消したり戻したりするオブジェクト
+	struct object_tree_state
+	{
+		std::vector<std::shared_ptr<game_object>> objects;	//	先頭がルート
+		std::shared_ptr<game_object> parent;				//	ルートの親
+		scene_resource_ptr resource;						//	入っていたシーン
+	};
+
+	//	選んでいるオブジェクトの編集を履歴に積むための追跡
+	struct object_edit_tracking
+	{
+		std::weak_ptr<game_object> object;	//	追跡しているオブジェクト
+		std::string snapshot;				//	編集前の中身
+		bool interacting = false;			//	前のフレームで操作中だったか
+	};
+
 public:
 	//	編集中か
 	bool is_editing() const { return !edited_scenes.empty(); }
@@ -34,8 +51,25 @@ public:
 	//	再生中か
 	bool is_playing() const { return !playing_scenes.empty(); }
 
+	//	編集ワールド取得
 	world& get_edit_world() { return *edit_world; }
+
+	//	編集中のエンジンコンテキスト取得
 	engine_context& get_edit_context() override;
+
+	//	編集中のシーン
+	std::vector<scene_resource_ptr> get_edited_scenes() const;
+
+	//	編集中のシーンに足せるシーンのパス
+	std::vector<std::string> get_addable_scenes() const;
+
+	//	編集中のシーンのオブジェクト
+	std::vector<std::shared_ptr<game_object>> get_scene_objects(const scene_resource_ptr& resource) const;
+
+	//	現在のシーン取得
+	edited_scene& get_current_scene();
+	void set_current_scene(const scene_resource_ptr& resource);
+	const scene_resource_ptr& get_current_scene_resource() { return get_current_scene().resource; }
 
 public:
 	explicit scene_editor(const world_settings& settings);
@@ -57,17 +91,6 @@ public:
 	//	停止リクエスト
 	void request_stop();
 
-	//	オブジェクトを置く先のシーン
-	const scene_resource_ptr& get_current_scene_resource() { return get_current_scene().resource; }
-	//	オブジェクトを置く先のシーンを選ぶ
-	void set_current_scene(const scene_resource_ptr& resource);
-
-	//	編集中のシーン
-	std::vector<scene_resource_ptr> get_edited_scenes() const;
-	//	編集中のシーンに足せるシーンのパス
-	std::vector<std::string> get_addable_scenes() const;
-	//	編集中のシーンのオブジェクト
-	std::vector<std::shared_ptr<game_object>> get_scene_objects(const scene_resource_ptr& resource) const;
 	//	オブジェクトが入っている編集中のシーン
 	scene_resource_ptr find_object_scene(const std::shared_ptr<game_object>& object);
 
@@ -128,6 +151,50 @@ public:
 	//	オブジェクトを親から外し、子孫ごと別のシーンへ移す
 	bool move_object_to_scene(const std::shared_ptr<game_object>& object, const scene_resource_ptr& resource);
 
+public:	//	リドゥ/アンドゥ処理
+	bool can_redo() const { return !is_playing() && history.can_redo(); }
+	bool can_undo() const { return !is_playing() && history.can_undo(); }
+	void redo();
+	void undo();
+
+	//	Ctrl+Z / Ctrl+Y(Ctrl+Shift+Z)
+	void handle_undo_shortcuts();
+
+	//	選んでいるオブジェクトの編集を履歴に積む
+	void begin_object_edit_tracking();
+	void end_object_edit_tracking();
+
+	//	オブジェクトの中身の保存・読み直し
+	std::string make_snapshot(const game_object& object) const;
+	bool apply_snapshot(const std::shared_ptr<game_object>& object, const std::string& snapshot);
+
+	//	編集用のワールドのオブジェクトを UUID から引く
+	std::shared_ptr<game_object> find_world_object(const core::uuid& uuid) const;
+
+	//	履歴に積まない親子付け替え・シーン移動
+	bool attach_object_core(const std::shared_ptr<game_object>& child, const std::shared_ptr<game_object>& parent);
+	bool move_object_to_scene_core(const std::shared_ptr<game_object>& object, const scene_resource_ptr& resource);
+
+	//	親かシーンを戻す
+	bool restore_object_place(const std::shared_ptr<game_object>& object, const std::shared_ptr<game_object>& parent, const scene_resource_ptr& resource);
+
+	//	親子付け替え・シーン移動を履歴に積む
+	void push_object_place_command(std::string label, const std::shared_ptr<game_object>& object, const std::shared_ptr<game_object>& before_parent, const scene_resource_ptr& before_resource);
+
+	//	オブジェクトのまとまりを取得・ワールドから外す・ワールドに戻す
+	object_tree_state capture_object_tree(const std::shared_ptr<game_object>& root, std::vector<std::shared_ptr<game_object>> objects);
+	void detach_object_tree(const object_tree_state& state);
+	bool attach_object_tree(const object_tree_state& state);
+
+	//	置いたオブジェクトを履歴に積む
+	void push_place_command(std::string label, const std::shared_ptr<game_object>& root, std::vector<std::shared_ptr<game_object>> objects);
+
+	//	追跡中のオブジェクトの編集前の中身を今の中身にする(履歴に積まずに変えた時に呼ぶ)
+	void resync_object_edit_tracking();
+
+	//	指定のオブジェクトの親を取得
+	static std::shared_ptr<game_object> get_parent_object(const std::shared_ptr<game_object>& object);
+
 private:
 	//	編集中のオブジェクトとシステムの設定をシーンリソースへ反映する
 	bool apply_contents();
@@ -148,8 +215,6 @@ private:
 	//	オブジェクトを型から作って編集用のワールドに登録
 	std::shared_ptr<game_object> add_object(edited_scene& scene, std::string_view type, const math::vector3d& position);
 
-	//	オブジェクトを置く先のシーン
-	edited_scene& get_current_scene();
 	//	編集用のワールドで重ならない名前生成
 	std::string make_unique_object_name(std::string_view base) const;
 	//	追加したオブジェクトを置く位置
@@ -171,17 +236,18 @@ private:
 	//	シーン停止処理
 	void stop_play();
 
+	//	ワールド生成
 	static std::unique_ptr<world> create_world(const world_settings& settings);
 
 private:
-	std::unique_ptr<world> edit_world;			//	編集ワールド
+	std::unique_ptr<world> edit_world;				//	編集ワールド
 	std::vector<scene_resource_ptr> playing_scenes;	//	再生中のシーン
-	play_handlers handlers;						//	再生の開始・停止を任せる先
-	std::vector<edited_scene> edited_scenes;	//	編集中のシーン
+	play_handlers handlers;							//	再生の開始・停止を任せる先
+	std::vector<edited_scene> edited_scenes;		//	編集中のシーン
 
-	scene_resource_ptr edit_target;				//	編集窓に出すシーン
+	scene_resource_ptr edit_target;					//	編集窓に出すシーン
 	bool edit_window_opened = false;
-	scene_resource_ptr current_scene;			//	オブジェクトを置く先に選んだシーン
+	scene_resource_ptr current_scene;				//	オブジェクトを置く先に選んだシーン
 
 	std::string edit_request;
 	std::vector<std::string> add_requests;
@@ -189,5 +255,8 @@ private:
 	std::string play_open_file_request;
 	bool play_request = false;
 	bool stop_request = false;
+
+	editor_transaction_history history;				//	元に戻す・やり直すの履歴
+	object_edit_tracking edit_tracking;				//	選んでいるオブジェクトの編集の追跡
 };
 #endif	//	defined(USE_IMGUI)

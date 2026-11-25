@@ -373,6 +373,9 @@ void scene_editor_process::post_render()
 
 void scene_editor_process::imgui_render()
 {
+	//	インスペクターやギズモが書き換える前に、選んでいるオブジェクトの中身を取っておく
+	scene_edit->begin_object_edit_tracking();
+
 	//	メインの画面のツールバー
 	if (editor_items::begin_editor_menu_bar())
 	{
@@ -500,7 +503,13 @@ void scene_editor_process::imgui_render()
 		if (!ImGui::GetIO().WantTextInput && ImGui::IsKeyPressed(ImGuiKey_Delete, false))
 			scene_edit->remove_object(scene_edit->get_edit_world().get_context().get_editor().get_selected_object());
 
+		//	Ctrl+Z / Ctrl+Y で元に戻す・やり直す
+		scene_edit->handle_undo_shortcuts();
+
 		place_window.imgui_render(*scene_edit);
 	}
+
+	//	操作が終わっていたら、選んでいるオブジェクトの変更を履歴に積む
+	scene_edit->end_object_edit_tracking();
 }
 #endif	//	defined(USE_IMGUI)

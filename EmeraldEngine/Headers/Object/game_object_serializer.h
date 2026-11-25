@@ -17,12 +17,21 @@ public:
 	//	オブジェクト以外の項目を同じ JSON から読むための関数（そのファイルのオブジェクトを読んだ後に呼ぶ）
 	using read_function = std::function<void(cereal::JSONInputArchive&)>;
 
+	//	ファイルの外のオブジェクトを UUID から引く関数
+	using find_function = std::function<game_object_ptr(const core::uuid&)>;
+
 public:
 	//	保存
 	static bool save(std::ostream& stream, const std::vector<game_object_ptr>& objects, const write_function& write_extra = {});
 
 	//	読込
 	static bool load(std::istream& stream, std::vector<game_object_ptr>& out_objects, const read_function& read_extra = {});
+
+	//	オブジェクトの中身を保存する
+	static bool save_snapshot(std::ostream& stream, const game_object& object);
+
+	//	登録済みのオブジェクトに save_snapshot の中身を読み直す
+	static bool load_snapshot(std::istream& stream, game_object& object, const find_function& find);
 
 public:
 	//	アセットへの参照を UUID 文字列として読み書きする

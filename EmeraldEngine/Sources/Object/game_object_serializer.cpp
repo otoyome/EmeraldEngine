@@ -29,6 +29,7 @@ namespace
 		}
 
 		object_table table;
+		game_object_serializer::find_function find;	//	スナップショット用 : table に無い時に引く先
 	};
 
 	//	保存対象のオブジェクトを持つアーカイブ
@@ -41,6 +42,7 @@ namespace
 		}
 
 		std::unordered_set<const game_object*> members;
+		bool keep_outside_references = false;	//	スナップショット用 : members に無い参照も保存するか
 	};
 
 	core::uuid from_text(const std::string& text)
@@ -232,7 +234,41 @@ game_object_ptr game_object_serializer::find_object(cereal::JSONInputArchive& ar
 		return nullptr;
 
 	auto it = loading->table.find(uuid);
-	return it != loading->table.end() ? it->second : nullptr;
+	if (it != loading->table.end())
+		return it->second;
+	return loading->find ? loading->find(uuid) : nullptr;
+}
+
+bool game_object_serializer::save_snapshot(std::ostream& stream, const game_object& object)
+{
+	try
+	{
+		output_archive archive(stream);
+		archive.keep_outside_references = true;
+		object.serialize(archive);
+	}
+	catch (const cereal::Exception& exception)
+	{
+		DEBUG_ERROR_CATEGORY(core::logger::categorys::system, "game_object_serializer save snapshot failed[%s]", exception.what());
+		return false;
+	}
+	return true;
+}
+
+bool game_object_serializer::load_snapshot(std::istream& stream, game_object& object, const find_function& find)
+{
+	try
+	{
+		input_archive archive(stream);
+		archive.find = find;
+		object.reload(archive);
+	}
+	catch (const cereal::Exception& exception)
+	{
+		DEBUG_ERROR_CATEGORY(core::logger::categorys::system, "game_object_serializer load snapshot failed[%s]", exception.what());
+		return false;
+	}
+	return true;
 }
 
 void game_object_serializer::save_asset_reference(cereal::JSONOutputArchive& archive, const char* name, const core::uuid& uuid)
@@ -273,7 +309,7 @@ void game_object_serializer::save_object(cereal::JSONOutputArchive& archive, con
 	{
 		const output_archive* saving = dynamic_cast<const output_archive*>(&archive);
 		assert(saving && "game_object_serializer::save 以外から保存している");
-		if (saving && saving->members.contains(object.get()))
+		if (saving && (saving->keep_outside_references || saving->members.contains(object.get())))
 			uuid = object->get_uuid().to_string();
 		else
 			DEBUG_WARNING_CATEGORY(core::logger::categorys::system, "game_object_serializer reference outside the file is not saved[%s]", name);
