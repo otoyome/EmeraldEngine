@@ -472,10 +472,6 @@ void edit_prefab_system::imgui_render_panel(panel_regions region)
 	case panel_regions::left:
 		{
 			outliner.imgui_render_contents(*this, objects);
-
-			//	この窓を選んでいる時は Delete キーで選んでいるオブジェクトを削除
-			if (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) && !ImGui::GetIO().WantTextInput && ImGui::IsKeyPressed(ImGuiKey_Delete, false))
-				remove_object(get_context().get_editor().get_selected_object());
 			break;
 		}
 	case panel_regions::right:
@@ -520,6 +516,10 @@ void edit_prefab_system::imgui_render_menu_bar()
 			break;
 		}
 	}
+
+	//	Delete キーで選んでいるオブジェクトを削除
+	if (ImGui::Shortcut(ImGuiKey_Delete, ImGuiInputFlags_RouteFocused) && !ImGui::GetIO().WantTextInput)
+		remove_object(get_context().get_editor().get_selected_object());
 
 	const bool dirty = is_dirty();
 	if (ImGui::MenuItem("Save", nullptr, false, prefab && dirty))
