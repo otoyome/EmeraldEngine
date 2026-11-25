@@ -33,6 +33,8 @@ protected:
 	void on_end() override { uninitialize_core(); }
 	void pre_update(float elapsed_time) override { update_core(elapsed_time); }
 	void imgui_render() override { imgui_render_core(); }
+	bool has_panel(panel_regions region) const override;
+	void imgui_render_panel(panel_regions region) override;
 
 	bool initialize_core();
 	bool uninitialize_core();
@@ -84,7 +86,7 @@ private:
 	void redo();
 	void undo();
 
-	void imgui_render_source();
+	void imgui_render_menu_bar();
 	void imgui_render_preview();
 	void imgui_render_material_list();
 	void imgui_render_material_detail();

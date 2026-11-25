@@ -185,51 +185,53 @@ void edit_material_system::update_core(float elapsed_time)
 
 void edit_material_system::imgui_render_core()
 {
-	//	編集する UI を描く前に、選んでいるマテリアルを追跡する物にする
-	if (const material_resource_ptr material = get_selected_material())
-		change_tracker.set_target("Edit Material " + materials[selected_material].label, editor_change_tracker::make_material_target(material, [this]() { dirty = true; }));
-	else
-		change_tracker.reset();
-
-	ImGui::SetNextWindowSize(ImVec2(820.0f, 640.0f), ImGuiCond_FirstUseEver);
-	if (ImGui::Begin(get_context().get_editor().make_window_name("Material Editor").c_str()))
-	{
-		//	Ctrl+Z / Ctrl+Y はこの窓がフォーカスしている時だけ受ける
-		switch (editor_edit_tracker::check_shortcuts(ImGuiInputFlags_RouteFocused))
-		{
-			case editor_edit_tracker::shortcuts::undo:
-			{
-				undo();
-				break;
-			}
-			case editor_edit_tracker::shortcuts::redo:
-			{
-				redo();
-				break;
-			}
-			default:
-			{
-				break;
-			}
-		}
-
-		imgui_render_source();
-		ImGui::Separator();
-		imgui_render_preview();
-		ImGui::Separator();
-
-		if (ImGui::BeginChild("materials", ImVec2(260.0f, 0.0f), ImGuiChildFlags_Borders | ImGuiChildFlags_ResizeX))
-			imgui_render_material_list();
-		ImGui::EndChild();
-		ImGui::SameLine();
-		if (ImGui::BeginChild("detail", ImVec2(0.0f, 0.0f), ImGuiChildFlags_Borders))
-			imgui_render_material_detail();
-		ImGui::EndChild();
-	}
-	ImGui::End();
-
-	//	操作が終わっていて変更があれば履歴に積む
+	//	パネルの描画が全部終わった後なので、操作が終わっていて変更があれば履歴に積む
 	change_tracker.end(history);
+}
+
+bool edit_material_system::has_panel(panel_regions region) const
+{
+	switch (region)
+	{
+		case panel_regions::menu_bar:
+		case panel_regions::left:
+		case panel_regions::right:
+		{
+			return true;
+		}
+		case panel_regions::bottom:
+		{
+			return false;
+		}
+	}
+	return false;
+}
+
+void edit_material_system::imgui_render_panel(panel_regions region)
+{
+	switch (region)
+	{
+		case panel_regions::menu_bar:
+		{
+			imgui_render_menu_bar();
+			break;
+		}
+		case panel_regions::left:
+		{
+			//	マテリアルの一覧。詳細は右に出す
+			imgui_render_material_list();
+			break;
+		}
+		case panel_regions::right:
+		{
+			imgui_render_material_detail();
+			break;
+		}
+		case panel_regions::bottom:
+		{
+			break;
+		}
+	}
 }
 
 void edit_material_system::undo()
@@ -781,46 +783,62 @@ void edit_material_system::attach_preview_post_process(const material_resource_p
 	preview_volume->get_volume()->register_postprocess_materials(material);
 }
 
-void edit_material_system::imgui_render_source()
+void edit_material_system::imgui_render_menu_bar()
 {
-	//	元に戻す・やり直す
-	ImGui::BeginDisabled(!history.can_undo());
-	if (ImGui::Button("Undo"))
-		undo();
-	ImGui::EndDisabled();
-	if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled) && history.can_undo())
-		ImGui::SetTooltip("%s", std::string(history.get_undo_label()).c_str());
-	ImGui::SameLine();
-	ImGui::BeginDisabled(!history.can_redo());
-	if (ImGui::Button("Redo"))
-		redo();
-	ImGui::EndDisabled();
-	if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled) && history.can_redo())
-		ImGui::SetTooltip("%s", std::string(history.get_redo_label()).c_str());
-
-	if (!get_source_file_path().empty())
-	{
-		ImGui::SameLine();
-		ImGui::BeginDisabled(!dirty);
-		if (ImGui::Button("Save"))
-			save_source();
-		ImGui::SameLine();
-		//	ファイルから読み直して編集を捨てる
-		if (ImGui::Button("Revert"))
-			revert_source();
-		ImGui::EndDisabled();
-
-		ImGui::SameLine();
-		ImGui::Text("%s%s", to_display(get_source_file_path()).c_str(), dirty ? " *" : "");
-	}
+	//	メニューバーはこの窓で最初に描かれるので、編集する UI を描く前にここで選んでいるマテリアルを追跡する物にする(前と違うマテリアルなら変更前を取り直す)
+	if (const material_resource_ptr material = get_selected_material())
+		change_tracker.set_target("Edit Material " + materials[selected_material].label, editor_change_tracker::make_material_target(material, [this]() { dirty = true; }));
 	else
+		change_tracker.reset();
+
+	//	Ctrl+Z / Ctrl+Y はこの窓がフォーカスしている時だけ受ける
+	switch (editor_edit_tracker::check_shortcuts(ImGuiInputFlags_RouteFocused))
 	{
-		ImGui::SameLine();
-		ImGui::TextDisabled("load a .emr / .emo / .eme file");
+		case editor_edit_tracker::shortcuts::undo:
+		{
+			undo();
+			break;
+		}
+		case editor_edit_tracker::shortcuts::redo:
+		{
+			redo();
+			break;
+		}
+		default:
+		{
+			break;
+		}
 	}
 
+	//	保存・ファイルから読み直して編集を捨てる
+	const bool has_source = !get_source_file_path().empty();
+	if (ImGui::MenuItem("Save", nullptr, false, has_source && dirty))
+		save_source();
+	if (ImGui::MenuItem("Revert", nullptr, false, has_source && dirty))
+		revert_source();
+
+	//	元に戻す・やり直す(名前が変わっても同じ項目になるよう ### で ID を固定)
+	const std::string undo_label = history.can_undo() ? "Undo (" + std::string(history.get_undo_label()) + ")###material_undo" : std::string("Undo###material_undo");
+	if (ImGui::MenuItem(undo_label.c_str(), "Ctrl+Z", false, history.can_undo()))
+		undo();
+	const std::string redo_label = history.can_redo() ? "Redo (" + std::string(history.get_redo_label()) + ")###material_redo" : std::string("Redo###material_redo");
+	if (ImGui::MenuItem(redo_label.c_str(), "Ctrl+Y", false, history.can_redo()))
+		redo();
+
+	//	プレビューの設定
+	if (ImGui::BeginMenu("Preview"))
+	{
+		imgui_render_preview();
+		ImGui::EndMenu();
+	}
+
+	//	開いているファイルと結果のメッセージ
+	if (has_source)
+		ImGui::TextDisabled("%s%s", to_display(get_source_file_path()).c_str(), dirty ? " *" : "");
+	else
+		ImGui::TextDisabled("load a .emr / .emo / .eme file");
 	if (!message.empty())
-		ImGui::TextUnformatted(message.c_str());
+		ImGui::TextDisabled("%s", message.c_str());
 }
 
 void edit_material_system::imgui_render_preview()
