@@ -16,11 +16,20 @@
 #include "Editor/outliner_window.h"
 #include "Editor/inspector_window.h"
 #include "Editor/place_objects_window.h"
+#include "Editor/editor_transaction.h"
+#include "Editor/editor_edit_tracker.h"
 
 //	プレハブ編集シーン
 class edit_prefab_system : public scene_system, public object_edit_operations
 {
 	SCENE_SYSTEM_DECRLEAR(edit_prefab_system, scene_system)
+
+	//	まとめて消したり戻したりするオブジェクト
+	struct object_tree_state
+	{
+		std::vector<std::shared_ptr<game_object>> objects;	//	先頭がルート
+		std::shared_ptr<game_object> parent;				//	ルートの親
+	};
 
 public:
 	edit_prefab_system();
@@ -70,6 +79,18 @@ private:
 	//	重ならない名前生成
 	std::string make_unique_object_name(std::string_view base) const;
 
+	//	リドゥ/アンドゥ
+	void redo();
+	void undo();
+
+	//	オブジェクトのまとまりを取得・ワールドから外す・ワールドに戻す
+	object_tree_state capture_object_tree(const std::shared_ptr<game_object>& root);
+	void detach_object_tree(const object_tree_state& state);
+	void attach_object_tree(const object_tree_state& state);
+
+	//	置いたオブジェクトを履歴に積む
+	void push_place_command(const std::shared_ptr<game_object>& root);
+
 	void imgui_render_menu_bar();
 	void imgui_render_close_popup();
 
@@ -89,5 +110,8 @@ private:
 	place_objects_window place_window;
 	editor_gizmo gizmo;
 	editor_icons icons;
+
+	editor_transaction_history history;	//	元に戻す・やり直すの履歴
+	editor_edit_tracker edit_tracker;	//	選んでいるオブジェクトの編集の追跡
 };
 #endif	//	defined(USE_IMGUI)

@@ -13,7 +13,6 @@ void editor_transaction_history::push(std::unique_ptr<editor_transaction> transa
 	transactions.emplace_back(std::move(transaction));
 	++position;
 
-	//	@tool	ãŒÀ‚ð’´‚¦‚½‚çŒÃ‚¢•¨‚©‚çŽÌ‚Ä‚é
 	if (transactions.size() > limit)
 	{
 		const std::size_t over = transactions.size() - limit;

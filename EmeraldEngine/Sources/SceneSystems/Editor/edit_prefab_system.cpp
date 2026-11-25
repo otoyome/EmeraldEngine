@@ -33,6 +33,14 @@ namespace
 		const core::cache_string path(text);
 		return std::string(path.get<core::utf8_cache>());
 	}
+
+	//	空間の親子の親
+	std::shared_ptr<game_object> get_parent_object(const std::shared_ptr<game_object>& object)
+	{
+		if (!object || !object->check_type(spatial_object::type_name()))
+			return nullptr;
+		return static_cast<spatial_object*>(object.get())->get_parent();
+	}
 }
 
 edit_prefab_system::edit_prefab_system()
@@ -129,6 +137,10 @@ void edit_prefab_system::clear_objects()
 		manager.unregister_object(object);
 	objects.clear();
 	get_context().get_editor().set_selected_object(nullptr);
+
+	//	別の中身の操作は戻せないので捨てる
+	history.clear();
+	edit_tracker.reset();
 }
 
 bool edit_prefab_system::load_objects()
@@ -202,7 +214,9 @@ std::shared_ptr<game_object> edit_prefab_system::place_object(std::string_view t
 		return place_object_as_child(type, selected);
 
 	//	プレハブは原点を基準に作るので、位置の指定が無ければ原点に置く
-	return add_object(type, position ? *position : math::vector3d(0.0, 0.0, 0.0));
+	const game_object_ptr object = add_object(type, position ? *position : math::vector3d(0.0, 0.0, 0.0));
+	push_place_command(object);
+	return object;
 }
 
 std::shared_ptr<game_object> edit_prefab_system::place_object_as_child(std::string_view type, const std::shared_ptr<game_object>& parent)
@@ -217,6 +231,7 @@ std::shared_ptr<game_object> edit_prefab_system::place_object_as_child(std::stri
 	const game_object_ptr object = add_object(type, position);
 	if (object && parent->check_type(spatial_object::type_name()))
 		spatial_object::attach_object(object, parent);
+	push_place_command(object);
 	return object;
 }
 
@@ -253,17 +268,26 @@ bool edit_prefab_system::remove_object(const std::shared_ptr<game_object>& targe
 		return false;
 
 	//	子孫も一緒に消す
-	const std::vector<game_object_ptr> remove_objects = collect_object_tree(target);
-	std::unordered_set<const game_object*> removes;
-	for (const game_object_ptr& object : remove_objects)
-		removes.insert(object.get());
-
-	object_manager& manager = get_context().get_objects();
-	for (const game_object_ptr& object : remove_objects)
-		manager.unregister_object(object);
-	std::erase_if(objects, [&](const game_object_ptr& object) { return removes.find(object.get()) != removes.end(); });
-
+	const std::shared_ptr<object_tree_state> state = std::make_shared<object_tree_state>(capture_object_tree(target));
+	detach_object_tree(*state);
 	get_context().get_editor().set_selected_object(nullptr);
+
+	history.push(editor_edit_tracker::make_label("Delete", target),
+		[this, state]()
+		{
+			attach_object_tree(*state);
+			get_context().get_editor().set_selected_object(state->objects.front());
+			return true;
+		},
+		[this, state]()
+		{
+			detach_object_tree(*state);
+			get_context().get_editor().set_selected_object(nullptr);
+			return true;
+		});
+
+	//	親から外して姿勢が変わっても、インスペクターの編集として積まないようにする
+	edit_tracker.resync();
 	return true;
 }
 
@@ -271,7 +295,104 @@ bool edit_prefab_system::attach_object(const std::shared_ptr<game_object>& child
 {
 	if (!is_prefab_object(child) || (parent && !is_prefab_object(parent)))
 		return false;
-	return spatial_object::attach_object(child, parent);
+
+	//	元に戻せるよう、付け替える前の親を覚えておく
+	const game_object_ptr before_parent = get_parent_object(child);
+	if (!spatial_object::attach_object(child, parent))
+		return false;
+	const game_object_ptr after_parent = get_parent_object(child);
+	if (before_parent != after_parent)
+	{
+		history.push(editor_edit_tracker::make_label("Attach", child),
+			[child, before_parent]() { return spatial_object::attach_object(child, before_parent); },
+			[child, after_parent]() { return spatial_object::attach_object(child, after_parent); });
+
+		//	付け替えで姿勢が変わっても、インスペクターの編集として積まないようにする
+		edit_tracker.resync();
+	}
+	return true;
+}
+
+edit_prefab_system::object_tree_state edit_prefab_system::capture_object_tree(const std::shared_ptr<game_object>& root)
+{
+	object_tree_state state;
+	state.objects = collect_object_tree(root);
+	state.parent = get_parent_object(root);
+	return state;
+}
+
+void edit_prefab_system::detach_object_tree(const object_tree_state& state)
+{
+	std::unordered_set<const game_object*> removes;
+	for (const game_object_ptr& object : state.objects)
+		removes.insert(object.get());
+
+	object_manager& manager = get_context().get_objects();
+	for (const game_object_ptr& object : state.objects)
+		manager.unregister_object(object);
+	std::erase_if(objects, [&](const game_object_ptr& object) { return removes.find(object.get()) != removes.end(); });
+
+	//	履歴が持っている間も親の子として残らないよう、ルートを親から外す
+	if (state.parent && !state.objects.empty())
+		spatial_object::attach_object(state.objects.front(), nullptr);
+
+	//	外したオブジェクトを選んでいたら選択を外す
+	const game_object_ptr selected = get_context().get_editor().get_selected_object();
+	if (selected && removes.find(selected.get()) != removes.end())
+		get_context().get_editor().set_selected_object(nullptr);
+}
+
+void edit_prefab_system::attach_object_tree(const object_tree_state& state)
+{
+	object_manager& manager = get_context().get_objects();
+	for (const game_object_ptr& object : state.objects)
+	{
+		objects.emplace_back(object);
+		manager.register_object(object);
+	}
+
+	//	ルートを元の親に付け直す(外す時にワールド姿勢を維持しているので元の位置に戻る)
+	if (state.parent && !state.objects.empty())
+		spatial_object::attach_object(state.objects.front(), state.parent);
+}
+
+void edit_prefab_system::push_place_command(const std::shared_ptr<game_object>& root)
+{
+	if (!root)
+		return;
+
+	const std::shared_ptr<object_tree_state> state = std::make_shared<object_tree_state>(capture_object_tree(root));
+	history.push(editor_edit_tracker::make_label("Place", root),
+		[this, state]()
+		{
+			detach_object_tree(*state);
+			return true;
+		},
+		[this, state]()
+		{
+			attach_object_tree(*state);
+			get_context().get_editor().set_selected_object(state->objects.front());
+			return true;
+		});
+	edit_tracker.resync();
+}
+
+void edit_prefab_system::undo()
+{
+	if (!history.can_undo())
+		return;
+	history.undo();
+
+	//	戻した変更をインスペクターの編集として積まないようにする
+	edit_tracker.resync();
+}
+
+void edit_prefab_system::redo()
+{
+	if (!history.can_redo())
+		return;
+	history.redo();
+	edit_tracker.resync();
 }
 
 bool edit_prefab_system::is_prefab_object(const std::shared_ptr<game_object>& object) const
@@ -372,11 +493,47 @@ void edit_prefab_system::imgui_render_panel(panel_regions region)
 
 void edit_prefab_system::imgui_render_menu_bar()
 {
+	//	メニューバーはこの窓で最初に描かれるので、インスペクターやギズモが書き換える前にここで中身を取っておく
+	{
+		std::vector<editor_edit_tracker::target> targets;
+		const game_object_ptr selected = get_context().get_editor().get_selected_object();
+		if (is_prefab_object(selected))
+			targets.emplace_back(editor_edit_tracker::make_object_target(get_context(), selected));
+		edit_tracker.begin(std::move(targets));
+	}
+
+	//	Ctrl+Z / Ctrl+Y はこの窓がフォーカスしている時だけ受ける
+	switch (editor_edit_tracker::check_shortcuts(ImGuiInputFlags_RouteFocused))
+	{
+		case editor_edit_tracker::shortcuts::undo:
+		{
+			undo();
+			break;
+		}
+		case editor_edit_tracker::shortcuts::redo:
+		{
+			redo();
+			break;
+		}
+		default:
+		{
+			break;
+		}
+	}
+
 	const bool dirty = is_dirty();
 	if (ImGui::MenuItem("Save", nullptr, false, prefab && dirty))
 		save_prefab();
 	if (ImGui::MenuItem("Revert", nullptr, false, prefab && dirty))
 		revert_prefab();
+
+	//	元に戻す・やり直す(名前が変わっても同じ項目になるよう ### で ID を固定)
+	const std::string undo_label = history.can_undo() ? "Undo (" + std::string(history.get_undo_label()) + ")###prefab_undo" : std::string("Undo###prefab_undo");
+	if (ImGui::MenuItem(undo_label.c_str(), "Ctrl+Z", false, history.can_undo()))
+		undo();
+	const std::string redo_label = history.can_redo() ? "Redo (" + std::string(history.get_redo_label()) + ")###prefab_redo" : std::string("Redo###prefab_redo");
+	if (ImGui::MenuItem(redo_label.c_str(), "Ctrl+Y", false, history.can_redo()))
+		redo();
 	if (dirty)
 		ImGui::TextDisabled("*");
 	if (!message.empty())
@@ -435,6 +592,9 @@ bool edit_prefab_system::request_close()
 void edit_prefab_system::imgui_render()
 {
 	imgui_render_close_popup();
+
+	//	この窓の描画が全部終わった後なので、操作が終わっていたら選んでいるオブジェクトの変更を履歴に積む
+	edit_tracker.end(history);
 }
 
 void edit_prefab_system::imgui_render_close_popup()

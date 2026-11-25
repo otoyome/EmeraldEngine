@@ -11,6 +11,7 @@
 #include "Scenes/scene_resource.h"
 #include "Editor/object_edit_operations.h"
 #include "Editor/editor_transaction.h"
+#include "Editor/editor_edit_tracker.h"
 
 class world;
 struct world_settings;
@@ -34,14 +35,6 @@ class scene_editor : public object_edit_operations
 		std::vector<std::shared_ptr<game_object>> objects;	//	先頭がルート
 		std::shared_ptr<game_object> parent;				//	ルートの親
 		scene_resource_ptr resource;						//	入っていたシーン
-	};
-
-	//	選んでいるオブジェクトの編集を履歴に積むための追跡
-	struct object_edit_tracking
-	{
-		std::weak_ptr<game_object> object;	//	追跡しているオブジェクト
-		std::string snapshot;				//	編集前の中身
-		bool interacting = false;			//	前のフレームで操作中だったか
 	};
 
 public:
@@ -160,16 +153,13 @@ public:	//	リドゥ/アンドゥ処理
 	//	Ctrl+Z / Ctrl+Y(Ctrl+Shift+Z)
 	void handle_undo_shortcuts();
 
-	//	選んでいるオブジェクトの編集を履歴に積む
-	void begin_object_edit_tracking();
-	void end_object_edit_tracking();
+	//	選んでいるオブジェクトとシーンシステムの設定の編集を履歴に積む(インスペクター・ギズモの描画の前後で呼ぶ)
+	void begin_edit_tracking();
+	void end_edit_tracking();
 
-	//	オブジェクトの中身の保存・読み直し
-	std::string make_snapshot(const game_object& object) const;
-	bool apply_snapshot(const std::shared_ptr<game_object>& object, const std::string& snapshot);
-
-	//	編集用のワールドのオブジェクトを UUID から引く
-	std::shared_ptr<game_object> find_world_object(const core::uuid& uuid) const;
+	//	シーンシステムの種類と中身を文字列にする・戻す(シーンが無ければ空)
+	std::string capture_system_state(const scene_resource_ptr& resource) const;
+	bool apply_system_state(const scene_resource_ptr& resource, const std::string& state);
 
 	//	履歴に積まない親子付け替え・シーン移動
 	bool attach_object_core(const std::shared_ptr<game_object>& child, const std::shared_ptr<game_object>& parent);
@@ -188,9 +178,6 @@ public:	//	リドゥ/アンドゥ処理
 
 	//	置いたオブジェクトを履歴に積む
 	void push_place_command(std::string label, const std::shared_ptr<game_object>& root, std::vector<std::shared_ptr<game_object>> objects);
-
-	//	追跡中のオブジェクトの編集前の中身を今の中身にする(履歴に積まずに変えた時に呼ぶ)
-	void resync_object_edit_tracking();
 
 	//	指定のオブジェクトの親を取得
 	static std::shared_ptr<game_object> get_parent_object(const std::shared_ptr<game_object>& object);
@@ -257,6 +244,6 @@ private:
 	bool stop_request = false;
 
 	editor_transaction_history history;				//	元に戻す・やり直すの履歴
-	object_edit_tracking edit_tracking;				//	選んでいるオブジェクトの編集の追跡
+	editor_edit_tracker edit_tracker;				//	選んでいるオブジェクトとシーンシステムの設定の編集の追跡
 };
 #endif	//	defined(USE_IMGUI)

@@ -14,6 +14,7 @@
 #include "Object/game_object_registry.h"
 #include "Object/spatial_object.h"
 #include "Resource/asset_registry.h"
+#include "Scenes/scene_system.h"
 
 namespace
 {
@@ -266,6 +267,38 @@ bool game_object_serializer::load_snapshot(std::istream& stream, game_object& ob
 	catch (const cereal::Exception& exception)
 	{
 		DEBUG_ERROR_CATEGORY(core::logger::categorys::system, "game_object_serializer load snapshot failed[%s]", exception.what());
+		return false;
+	}
+	return true;
+}
+
+bool game_object_serializer::save_snapshot(std::ostream& stream, const scene_system& system)
+{
+	try
+	{
+		output_archive archive(stream);
+		archive.keep_outside_references = true;
+		system.serialize(archive);
+	}
+	catch (const cereal::Exception& exception)
+	{
+		DEBUG_ERROR_CATEGORY(core::logger::categorys::system, "game_object_serializer save system snapshot failed[%s]", exception.what());
+		return false;
+	}
+	return true;
+}
+
+bool game_object_serializer::load_snapshot(std::istream& stream, scene_system& system, const find_function& find)
+{
+	try
+	{
+		input_archive archive(stream);
+		archive.find = find;
+		system.deserialize(archive);
+	}
+	catch (const cereal::Exception& exception)
+	{
+		DEBUG_ERROR_CATEGORY(core::logger::categorys::system, "game_object_serializer load system snapshot failed[%s]", exception.what());
 		return false;
 	}
 	return true;

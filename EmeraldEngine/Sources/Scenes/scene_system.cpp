@@ -18,6 +18,27 @@ engine_context& scene_system::get_context() const
 	return *context;
 }
 
+std::vector<game_object_ptr> scene_system::get_scene_objects() const
+{
+	std::vector<game_object_ptr> objects;
+	for (const auto& weak_object : get_scene().get_objects())
+	{
+		if (auto object = weak_object.lock())
+			objects.emplace_back(std::move(object));
+	}
+	return objects;
+}
+
+core::signals::broadcaster& scene_system::get_broadcaster() const
+{
+	return get_context().get_broadcaster();
+}
+
+core::signals::contactor& scene_system::get_contactor() const
+{
+	return get_context().get_contactor();
+}
+
 #if defined(USE_IMGUI)
 void scene_system::imgui_render_window(std::string_view scene_path)
 {
@@ -32,17 +53,6 @@ void scene_system::imgui_render_window(std::string_view scene_path)
 	ImGui::End();
 }
 #endif	//	defined(USE_IMGUI)
-
-std::vector<game_object_ptr> scene_system::get_scene_objects() const
-{
-	std::vector<game_object_ptr> objects;
-	for (const auto& weak_object : get_scene().get_objects())
-	{
-		if (auto object = weak_object.lock())
-			objects.emplace_back(std::move(object));
-	}
-	return objects;
-}
 
 void scene_system::register_object(game_object_ptr object)
 {
@@ -59,14 +69,17 @@ void scene_system::unregister_object(const game_object_ptr& object)
 	get_scene().unregister_transient_object(object);
 }
 
-core::signals::broadcaster& scene_system::get_broadcaster() const
+bool scene_system::change_scene(const scene_resource_ptr& next) const
 {
-	return get_context().get_broadcaster();
-}
+	if (!next)
+		return false;
 
-core::signals::contactor& scene_system::get_contactor() const
-{
-	return get_context().get_contactor();
+	scene_manager& scenes = get_context().get_scenes();
+	if (!scenes.add_scene(next))
+		return false;
+
+	scenes.remove_scene(get_scene().get_resource());
+	return true;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////

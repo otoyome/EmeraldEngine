@@ -227,6 +227,9 @@
     <ClCompile Include="Sources\Editor\editor_viewport.cpp">
       <Filter>Sources\Editor</Filter>
     </ClCompile>
+    <ClCompile Include="Sources\Editor\editor_edit_tracker.cpp">
+      <Filter>Sources\Editor</Filter>
+    </ClCompile>
     <ClCompile Include="Sources\Editor\editor_transaction.cpp">
       <Filter>Sources\Editor</Filter>
     </ClCompile>
@@ -671,6 +674,9 @@
       <Filter>Headers\Editor</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Editor\inspector_window.h">
+      <Filter>Headers\Editor</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Editor\editor_edit_tracker.h">
       <Filter>Headers\Editor</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Editor\editor_transaction.h">

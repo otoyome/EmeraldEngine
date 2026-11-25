@@ -78,6 +78,7 @@ public:
 public:
 	//	積む
 	void push(std::unique_ptr<editor_transaction> transaction);
+
 	//	関数型トランザクション用
 	void push(std::string label, editor_function_transaction::function undo_function, editor_function_transaction::function redo_function);
 

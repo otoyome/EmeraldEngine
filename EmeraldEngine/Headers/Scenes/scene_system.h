@@ -10,6 +10,8 @@
 
 class engine_context;
 class scene_instance;
+class scene_resource;
+using scene_resource_ptr = std::shared_ptr<scene_resource>;
 
 namespace core::signals
 {
@@ -29,6 +31,21 @@ class scene_system
 public:
 	static constexpr std::string_view type_name() { return NAMEOF_SHORT_TYPE(scene_system); }
 	virtual std::string_view get_type_name() const { return type_name(); }
+
+	//	オーナーシーン取得
+	scene_instance& get_scene() const;
+
+	//	エンジンコンテキスト取得
+	engine_context& get_context() const;
+
+	//	システムで生成したオブジェクトを取得
+	std::vector<game_object_ptr> get_scene_objects() const;
+
+	//	配信者取得
+	core::signals::broadcaster& get_broadcaster() const;
+
+	//	問い合わせと回答者取得
+	core::signals::contactor& get_contactor() const;
 
 public:
 	scene_system() = default;
@@ -88,21 +105,14 @@ public:	//	シリアライズ
 	virtual void serialize(cereal::JSONOutputArchive& archive) const {}
 	virtual void deserialize(cereal::JSONInputArchive& archive) {}
 
-public:
-	scene_instance& get_scene() const;
-	engine_context& get_context() const;
-
 protected:
-	//	システムで生成したオブジェクトを取得
-	std::vector<game_object_ptr> get_scene_objects() const;
-
 	//	実行時だけのオブジェクトとしてシーンに登録する
 	void register_object(game_object_ptr object);
 	void register_object(collision_object_ptr object);
 	void unregister_object(const game_object_ptr& object);
 
-	core::signals::broadcaster& get_broadcaster() const;
-	core::signals::contactor& get_contactor() const;
+	//	シーン切り替え
+	bool change_scene(const scene_resource_ptr& next) const;
 
 private:
 	friend class scene_instance;
@@ -142,7 +152,7 @@ public:
 	};
 
 public:
-	//	起動時に明示的に登録する(静的ライブラリ側の型用)
+	//	起動時に明示的に登録する
 	template<typename Type>
 	void add()
 	{

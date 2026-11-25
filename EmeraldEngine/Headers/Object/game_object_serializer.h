@@ -7,6 +7,8 @@
 #include <string_view>
 #include <vector>
 
+class scene_system;
+
 //	game_objectのシリアライザー
 class game_object_serializer
 {
@@ -32,6 +34,12 @@ public:
 
 	//	登録済みのオブジェクトに save_snapshot の中身を読み直す
 	static bool load_snapshot(std::istream& stream, game_object& object, const find_function& find);
+
+	//	シーンシステムの中身を保存する
+	static bool save_snapshot(std::ostream& stream, const scene_system& system);
+
+	//	シーンシステムに save_snapshot の中身を読み直す
+	static bool load_snapshot(std::istream& stream, scene_system& system, const find_function& find);
 
 public:
 	//	アセットへの参照を UUID 文字列として読み書きする
