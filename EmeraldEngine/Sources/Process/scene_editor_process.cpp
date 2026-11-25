@@ -373,7 +373,7 @@ void scene_editor_process::post_render()
 
 void scene_editor_process::imgui_render()
 {
-	//	@tool	インスペクターやギズモが書き換える前に、選んでいるオブジェクトとシーンシステムの設定の中身を取っておく
+	//	インスペクターやギズモが書き換える前に、選んでいるオブジェクトとシーンシステムの設定の中身を取っておく
 	scene_edit->begin_edit_tracking();
 
 	//	メインの画面のツールバー
@@ -499,8 +499,7 @@ void scene_editor_process::imgui_render()
 	//	シーンの一覧と置くオブジェクトの一覧の窓
 	if (scene_edit->is_editing() && !scene_edit->is_playing())
 	{
-		//	@tool	Delete キーで選んでいるオブジェクトを削除
-		//	@tool	どこでも受けるが、アセットの窓など他の窓がフォーカス中に受けている時はそちらに譲る(受け先の登録のため Shortcut は毎フレーム呼ぶ)
+		//	Delete キーで選んでいるオブジェクトを削除
 		if (ImGui::Shortcut(ImGuiKey_Delete, ImGuiInputFlags_RouteGlobal) && !ImGui::GetIO().WantTextInput)
 			scene_edit->remove_object(scene_edit->get_edit_world().get_context().get_editor().get_selected_object());
 
@@ -510,7 +509,7 @@ void scene_editor_process::imgui_render()
 		place_window.imgui_render(*scene_edit);
 	}
 
-	//	@tool	操作が終わっていたら、選んでいるオブジェクトとシーンシステムの設定の変更を履歴に積む
+	//	操作が終わっていたら、選んでいるオブジェクトとシーンシステムの設定の変更を履歴に積む
 	scene_edit->end_edit_tracking();
 }
 #endif	//	defined(USE_IMGUI)

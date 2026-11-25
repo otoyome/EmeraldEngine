@@ -9,6 +9,8 @@
 #include "Object/Graphics/camera_object.h"
 #include "Object/Graphics/post_process_volume_object.h"
 #include "Editor/editor_camera.h"
+#include "Editor/editor_transaction.h"
+#include "Editor/editor_edit_tracker.h"
 
 class edit_particle_system : public scene_system
 {
@@ -26,6 +28,7 @@ protected:
 	void pre_update(float elapsed_time) override { update_core(elapsed_time); }
 	bool has_panel(panel_regions region) const override;
 	void imgui_render_panel(panel_regions region) override;
+	void imgui_render() override;
 
 	bool initialize_core();
 	bool uninitialize_core();
@@ -38,6 +41,13 @@ private:
 	void generate_default_effect();
 	void open_effect(const std::string& file_path);
 
+	//	元に戻す・やり直す
+	void redo();
+	void undo();
+
+	//	エフェクトを編集する UI が変更ありを返した時(作り直してから履歴に積む準備をする)
+	void on_effect_edited();
+
 private:
 	std::shared_ptr<camera_object> main_camera;
 	std::shared_ptr<post_process_volume_object> post_process_volume;
@@ -49,6 +59,9 @@ private:
 	effect_resource_ptr edit_resource;
 	effect_instance_ptr edit_instance;
 	size_t selected_node_index = 0;	//	詳細を出すノードの番号
+
+	editor_transaction_history history;		//	元に戻す・やり直すの履歴
+	editor_change_tracker change_tracker;	//	編集中のエフェクトの変更の追跡
 
 private:
 	//	エディター上で読み込み・登録しているcubic_sdf

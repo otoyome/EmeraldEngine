@@ -62,6 +62,80 @@ namespace
 			animation_data.nodes.emplace_back().node_name = node_datas.back().name;
 		}
 	}
+
+	//	エフェクトを記録する物(ノード・モデル・パーティクル・デカール・アニメーションと、使っているマテリアルの中身を取る)
+	editor_transaction_target make_effect_target(const effect_resource_ptr& resource, std::function<void()> on_restored)
+	{
+		editor_transaction_target result;
+		if (!resource)
+			return result;
+
+		result.key = resource.get();
+		const std::weak_ptr<effect_resource> weak_resource = resource;
+		result.capture = [weak_resource, on_restored]() -> editor_restore_function
+		{
+			const effect_resource_ptr locked = weak_resource.lock();
+			if (!locked)
+				return {};
+
+			//	取った時点のエフェクトの中身
+			struct effect_state
+			{
+				std::vector<effect_resource::node> nodes;
+				std::vector<effect_resource::model> models;
+				std::vector<effect_resource::particle> particles;
+				std::vector<effect_resource::decal> decals;
+				std::vector<animation::data> animations;
+				std::vector<std::pair<material_resource_ptr, material_resource_ptr>> materials;	//	マテリアルと、その中身の複製
+			};
+			auto state = std::make_shared<effect_state>();
+			state->nodes = locked->get_nodes_for_editor();
+			state->models = locked->get_models_for_editor();
+			state->particles = locked->get_particles_for_editor();
+			state->decals = locked->get_decals_for_editor();
+			state->animations = locked->get_animations_for_editor();
+
+			//	マテリアルは共有しているので、中身を複製しておく
+			auto add_material = [&state](const material_resource_ptr& material)
+			{
+				if (!material)
+					return;
+				for (const auto& pair : state->materials)
+				{
+					if (pair.first == material)
+						return;
+				}
+				auto copy = std::make_shared<material_resource>();
+				material->duplicate(*copy);
+				state->materials.emplace_back(material, copy);
+			};
+			for (const auto& decal : state->decals)
+				add_material(decal.material.get());
+			for (auto& particle : state->particles)
+			{
+				if (auto* renderer = particle.particle.get_item<::particle::item::renderer>())
+					add_material(renderer->material);
+			}
+
+			return [weak_resource, state, on_restored]()
+			{
+				const effect_resource_ptr target = weak_resource.lock();
+				if (!target)
+					return false;
+				target->get_nodes_for_editor() = state->nodes;
+				target->get_models_for_editor() = state->models;
+				target->get_particles_for_editor() = state->particles;
+				target->get_decals_for_editor() = state->decals;
+				target->get_animations_for_editor() = state->animations;
+				for (const auto& pair : state->materials)
+					pair.second->duplicate(*pair.first);
+				if (on_restored)
+					on_restored();
+				return true;
+			};
+		};
+		return result;
+	}
 }
 
 edit_particle_system::edit_particle_system()
@@ -189,6 +263,10 @@ void edit_particle_system::open_effect(const std::string& file_path)
 	edit_resource = resource;
 	edit_instance = std::make_shared<effect_instance>(edit_resource);
 	get_context().get_effects().register_instance(edit_instance);
+
+	//	別のエフェクトの操作は戻せないので捨てる
+	history.clear();
+	change_tracker.reset();
 }
 
 bool edit_particle_system::has_panel(panel_regions region) const
@@ -227,7 +305,7 @@ void edit_particle_system::imgui_render_panel(panel_regions region)
 				if (ImGui::BeginTabItem("Node"))
 				{
 					if (edit_resource && editor_items::edit_effect_node_tree(items_context, get_context(), edit_instance, selected_node_index))
-						rebuild_edit_instance();
+						on_effect_edited();
 					ImGui::EndTabItem();
 				}
 				//	cubic_sdf読込み関係
@@ -243,7 +321,7 @@ void edit_particle_system::imgui_render_panel(panel_regions region)
 		case panel_regions::right:
 		{
 			if (editor_items::edit_effect_node_detail(items_context, get_context(), edit_instance, selected_node_index))
-				rebuild_edit_instance();
+				on_effect_edited();
 			break;
 		}
 		case panel_regions::bottom:
@@ -260,7 +338,7 @@ void edit_particle_system::imgui_render_panel(panel_regions region)
 				if (ImGui::BeginChild("##timeline", ImVec2(0.0f, 0.0f), ImGuiChildFlags_None, ImGuiWindowFlags_NoMove))
 				{
 					if (editor_items::edit_effect_animation(items_context, edit_instance))
-						rebuild_edit_instance();
+						on_effect_edited();
 				}
 				ImGui::EndChild();
 
@@ -278,9 +356,45 @@ void edit_particle_system::imgui_render_panel(panel_regions region)
 
 void edit_particle_system::imgui_render_menu_bar()
 {
+	//	メニューバーはこの窓で最初に描かれるので、編集する UI を描く前にここで編集中のエフェクトを追跡する物にする
+	change_tracker.set_target("Edit Effect", make_effect_target(edit_resource, [this]()
+	{
+		//	ノードが減っていたら選択を戻し、インスタンスを作り直す
+		if (edit_resource && selected_node_index >= edit_resource->get_nodes_for_editor().size())
+			selected_node_index = 0;
+		rebuild_edit_instance();
+	}));
+
+	//	Ctrl+Z / Ctrl+Y はこの窓がフォーカスしている時だけ受ける
+	switch (editor_edit_tracker::check_shortcuts(ImGuiInputFlags_RouteFocused))
+	{
+		case editor_edit_tracker::shortcuts::undo:
+		{
+			undo();
+			break;
+		}
+		case editor_edit_tracker::shortcuts::redo:
+		{
+			redo();
+			break;
+		}
+		default:
+		{
+			break;
+		}
+	}
+
 	//	保存
 	if (ImGui::MenuItem("Save", nullptr, false, edit_resource && !edit_resource->get_file_path().empty()))
 		resource_manager::instance()->save_uncached(edit_resource, edit_resource->get_file_path());
+
+	//	元に戻す・やり直す(名前が変わっても同じ項目になるよう ### で ID を固定)
+	const std::string undo_label = history.can_undo() ? "Undo (" + std::string(history.get_undo_label()) + ")###particle_undo" : std::string("Undo###particle_undo");
+	if (ImGui::MenuItem(undo_label.c_str(), "Ctrl+Z", false, history.can_undo()))
+		undo();
+	const std::string redo_label = history.can_redo() ? "Redo (" + std::string(history.get_redo_label()) + ")###particle_redo" : std::string("Redo###particle_redo");
+	if (ImGui::MenuItem(redo_label.c_str(), "Ctrl+Y", false, history.can_redo()))
+		redo();
 
 	//	cubic_sdf読込み関係
 	if (ImGui::BeginMenu("SDF"))
@@ -289,6 +403,36 @@ void edit_particle_system::imgui_render_menu_bar()
 			load_sdf_files();
 		ImGui::EndMenu();
 	}
+}
+
+void edit_particle_system::imgui_render()
+{
+	//	この窓の描画が全部終わった後なので、操作が終わっていて変更があれば履歴に積む
+	change_tracker.end(history);
+}
+
+void edit_particle_system::on_effect_edited()
+{
+	rebuild_edit_instance();
+	change_tracker.notify_changed();
+}
+
+void edit_particle_system::undo()
+{
+	if (!history.can_undo())
+		return;
+	history.undo();
+
+	//	戻した中身を次の変更の変更前にする
+	change_tracker.resync();
+}
+
+void edit_particle_system::redo()
+{
+	if (!history.can_redo())
+		return;
+	history.redo();
+	change_tracker.resync();
 }
 
 void edit_particle_system::rebuild_edit_instance()
@@ -307,6 +451,10 @@ void edit_particle_system::on_new()
 	new_effect(edit_resource);
 	edit_instance = std::make_shared<effect_instance>(edit_resource);
 	get_context().get_effects().register_instance(edit_instance);
+
+	//	別のエフェクトの操作は戻せないので捨てる
+	history.clear();
+	change_tracker.reset();
 }
 
 void edit_particle_system::generate_default_effect()

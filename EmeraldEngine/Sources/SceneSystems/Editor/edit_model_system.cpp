@@ -118,6 +118,10 @@ void edit_model_system::load_model(const std::string& file_path)
 	}
 	material_copies.clear();
 
+	//	別のモデルの操作は戻せないので捨てる
+	history.clear();
+	change_tracker.reset();
+
 	//	モデルデータ生成
 	std::shared_ptr<model_resource> resource = resource_manager::instance()->load_uncached<model_resource>(file_path);
 	if (resource)

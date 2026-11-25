@@ -72,4 +72,36 @@ private:
 	std::vector<tracked_target> tracked_targets;	//	追跡中の物
 	bool interacting = false;						//	前のフレームで操作中だったか
 };
+
+class material_resource;
+
+//	変更をトランザクションに積む
+class editor_change_tracker
+{
+public:
+	//	フレームの最初(編集する UI を描く前)に、追跡する物を決める。前と違う物なら変更前を取り直す
+	void set_target(std::string label, editor_transaction_target target);
+
+	//	変更があったことを知らせる(編集する UI が変更ありを返した時に呼ぶ)
+	void notify_changed() { changed = true; }
+
+	//	フレームの最後に、操作が終わっていて変更があれば history に積む
+	void end(editor_transaction_history& history);
+
+	//	変更前を今の中身で取り直す(元に戻した時など、履歴に積まずに変えた時に呼ぶ)
+	void resync();
+
+	//	追跡をやめる
+	void reset();
+
+public:
+	//	マテリアルを記録する物(戻した時は on_restored を呼ぶ)
+	static editor_transaction_target make_material_target(const std::shared_ptr<material_resource>& material, std::function<void()> on_restored = {});
+
+private:
+	std::string label;						//	履歴に出す名前
+	editor_transaction_target target;		//	追跡している物
+	editor_restore_function checkpoint;		//	変更前に戻す関数
+	bool changed = false;					//	変更を知らされたか
+};
 #endif	//	defined(USE_IMGUI)

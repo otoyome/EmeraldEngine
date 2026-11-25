@@ -63,6 +63,95 @@ void editor_transaction_history::clear()
 	transactions.clear();
 	position = 0;
 	saved_position = 0;
+
+	transaction_label.clear();
+	recorded_targets.clear();
+	transaction_depth = 0;
+}
+
+void editor_transaction_history::begin_transaction(std::string label)
+{
+	if (transaction_depth++ == 0)
+	{
+		transaction_label = std::move(label);
+		recorded_targets.clear();
+	}
+}
+
+void editor_transaction_history::record(const editor_transaction_target& target, editor_restore_function before)
+{
+	if (transaction_depth <= 0 || !target.capture || applying)
+		return;
+
+	//	同じ物は最初に記録した変更前を使う
+	if (target.key)
+	{
+		for (const recorded_target& recorded : recorded_targets)
+		{
+			if (recorded.key == target.key)
+				return;
+		}
+	}
+
+	if (!before)
+		before = target.capture();
+	if (!before)
+		return;
+	recorded_targets.push_back({ target.key, target.capture, std::move(before) });
+}
+
+void editor_transaction_history::commit_transaction()
+{
+	if (transaction_depth <= 0)
+		return;
+	if (--transaction_depth > 0)
+		return;
+
+	std::vector<recorded_target> records = std::move(recorded_targets);
+	recorded_targets.clear();
+	if (records.empty())
+		return;
+
+	//	変更後を取る
+	std::vector<editor_restore_function> befores;
+	std::vector<editor_restore_function> afters;
+	for (recorded_target& recorded : records)
+	{
+		editor_restore_function after = recorded.capture();
+		if (!after)
+			continue;
+		befores.emplace_back(std::move(recorded.before));
+		afters.emplace_back(std::move(after));
+	}
+	if (befores.empty())
+		return;
+
+	//	元に戻す時は記録と逆の順、やり直す時は記録した順に戻す
+	push(std::move(transaction_label),
+		[befores]()
+		{
+			bool result = true;
+			for (auto it = befores.rbegin(); it != befores.rend(); ++it)
+				result = (*it)() && result;
+			return result;
+		},
+		[afters]()
+		{
+			bool result = true;
+			for (const editor_restore_function& after : afters)
+				result = after() && result;
+			return result;
+		});
+	transaction_label.clear();
+}
+
+void editor_transaction_history::cancel_transaction()
+{
+	for (auto it = recorded_targets.rbegin(); it != recorded_targets.rend(); ++it)
+		it->before();
+	recorded_targets.clear();
+	transaction_label.clear();
+	transaction_depth = 0;
 }
 
 void editor_transaction_history::discard_after(std::size_t index)

@@ -17,6 +17,8 @@
 #include "Effect/effect_instance.h"
 
 #include "Editor/editor_camera.h"
+#include "Editor/editor_transaction.h"
+#include "Editor/editor_edit_tracker.h"
 
 class edit_model_system : public scene_system
 {
@@ -53,6 +55,7 @@ protected:
 	void pre_update(float elapsed_time) override { update_core(elapsed_time); }
 	bool has_panel(panel_regions region) const override;
 	void imgui_render_panel(panel_regions region) override;
+	void imgui_render() override;
 
 	bool initialize_core();
 	bool uninitialize_core();
@@ -118,6 +121,13 @@ private:
 	//	編集用の複製マテリアルを取得(無ければ生成)
 	material_resource_ptr get_working_material(const material_resource_ptr& original);
 
+	//	元に戻す・やり直す
+	void redo();
+	void undo();
+
+	//	マテリアルの差し替え(表示中のインスタンスも差し替える)
+	bool set_material_slot(std::size_t index, const material_resource_ptr& material);
+
 private:
 	std::shared_ptr<camera_object> main_camera;
 	std::shared_ptr<editor_camera_object> editor_camera;
@@ -135,6 +145,9 @@ private:
 
 	//	右に表示するマテリアルの番号
 	std::size_t selected_material_index = 0;
+
+	editor_transaction_history history;		//	元に戻す・やり直すの履歴
+	editor_change_tracker change_tracker;	//	選んでいるマテリアルの変更の追跡
 
 	//	LOD生成レベル
 	int generate_lod_level = 4;

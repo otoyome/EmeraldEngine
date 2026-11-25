@@ -14,6 +14,8 @@
 #include "Object/UI/ui_image.h"
 #include "Editor/editor_items.h"
 #include "Editor/editor_camera.h"
+#include "Editor/editor_transaction.h"
+#include "Editor/editor_edit_tracker.h"
 
 //	マテリアル編集シーン
 class edit_material_system : public scene_system
@@ -78,6 +80,10 @@ private:
 	effect_resource_ptr make_domain_preview_effect(const material_resource_ptr& material) const;
 	void attach_preview_post_process(const material_resource_ptr& material);
 
+	//	元に戻す・やり直す
+	void redo();
+	void undo();
+
 	void imgui_render_source();
 	void imgui_render_preview();
 	void imgui_render_material_list();
@@ -97,6 +103,9 @@ private:
 	int selected_material = -1;
 	bool dirty = false;
 	std::string message;
+
+	editor_transaction_history history;		//	元に戻す・やり直すの履歴
+	editor_change_tracker change_tracker;	//	選んでいるマテリアルの変更の追跡
 
 private:
 	enum class preview_kinds

@@ -306,30 +306,117 @@ void edit_model_system::imgui_render_material_detail()
 
 	const std::size_t index = selected_material_index;
 	auto& material = materials[index];
+
+	//	編集する UI を描く前に、編集する複製を追跡する物にする(前と違う複製なら変更前を取り直す)
+	change_tracker.set_target("Edit Material " + core::convert_utf8(material->get_name()), editor_change_tracker::make_material_target(get_working_material(material)));
+
 	ImGui::PushID(static_cast<int>(index));
 	ImGui::TextUnformatted(core::convert_utf8(material->get_name()).data());
 	ImGui::Separator();
 	//	別のマテリアルリソースに差し替えたら、表示中のインスタンスも差し替える
+	const material_resource_ptr before_material = material;
 	if (editor_items::edit_material_slot(items_context, material, material_resource::domains::surface) &&
 		index < model_instance.get_materials().size())
 	{
 		model_instance.get_materials()[index].set_resource(get_working_material(material));
+
+		//	差し替えを履歴に積む
+		const material_resource_ptr after_material = material;
+		if (before_material != after_material)
+		{
+			history.push("Replace Material " + core::convert_utf8(after_material ? after_material->get_name() : std::string_view("(none)")),
+				[this, index, before_material]() { return set_material_slot(index, before_material); },
+				[this, index, after_material]() { return set_material_slot(index, after_material); });
+		}
 	}
 	//	編集するのは複製
 	if (auto working = get_working_material(material))
-		editor_items::edit_material(items_context, *working);
+	{
+		if (editor_items::edit_material(items_context, *working))
+			change_tracker.notify_changed();
+	}
 	ImGui::PopID();
+}
+
+bool edit_model_system::set_material_slot(std::size_t index, const material_resource_ptr& material)
+{
+	if (!edit_model)
+		return false;
+	auto& model_instance = *edit_model->get_model_instance();
+	auto& materials = model_instance.get_resource_for_editor()->get_materials_for_editor();
+	if (index >= materials.size())
+		return false;
+
+	materials[index] = material;
+	if (index < model_instance.get_materials().size())
+		model_instance.get_materials()[index].set_resource(get_working_material(material));
+	return true;
+}
+
+void edit_model_system::imgui_render()
+{
+	//	この窓の描画が全部終わった後なので、操作が終わっていて変更があれば履歴に積む
+	change_tracker.end(history);
+}
+
+void edit_model_system::undo()
+{
+	if (!history.can_undo())
+		return;
+	history.undo();
+
+	//	戻した中身を次の変更の変更前にする
+	change_tracker.resync();
+}
+
+void edit_model_system::redo()
+{
+	if (!history.can_redo())
+		return;
+	history.redo();
+	change_tracker.resync();
 }
 
 void edit_model_system::imgui_render_menu_bar()
 {
 	const bool has_model = edit_model != nullptr;
 
+	//	Ctrl+Z / Ctrl+Y はこの窓がフォーカスしている時だけ受ける
+	switch (editor_edit_tracker::check_shortcuts(ImGuiInputFlags_RouteFocused))
+	{
+		case editor_edit_tracker::shortcuts::undo:
+		{
+			undo();
+			break;
+		}
+		case editor_edit_tracker::shortcuts::redo:
+		{
+			redo();
+			break;
+		}
+		default:
+		{
+			break;
+		}
+	}
+
 	if (ImGui::BeginMenu("File"))
 	{
 		//	モデル保存
 		if (ImGui::MenuItem("Save", nullptr, false, has_model))
 			save_model();
+		ImGui::EndMenu();
+	}
+
+	//	元に戻す・やり直す(対象はマテリアルの差し替えと編集)
+	if (ImGui::BeginMenu("Edit"))
+	{
+		const std::string undo_label = history.can_undo() ? "Undo (" + std::string(history.get_undo_label()) + ")###model_undo" : std::string("Undo###model_undo");
+		if (ImGui::MenuItem(undo_label.c_str(), "Ctrl+Z", false, history.can_undo()))
+			undo();
+		const std::string redo_label = history.can_redo() ? "Redo (" + std::string(history.get_redo_label()) + ")###model_redo" : std::string("Redo###model_redo");
+		if (ImGui::MenuItem(redo_label.c_str(), "Ctrl+Y", false, history.can_redo()))
+			redo();
 		ImGui::EndMenu();
 	}
 

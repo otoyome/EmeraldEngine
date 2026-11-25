@@ -8,6 +8,7 @@
 #include "Object/object_manager.h"
 #include "Object/game_object_serializer.h"
 #include "Scenes/scene_system.h"
+#include "Material/material_resource.h"
 
 namespace
 {
@@ -154,5 +155,87 @@ editor_edit_tracker::shortcuts editor_edit_tracker::check_shortcuts(ImGuiInputFl
 	if (undo)
 		return shortcuts::undo;
 	return shortcuts::none;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+void editor_change_tracker::set_target(std::string label, editor_transaction_target target)
+{
+	if (!target.capture)
+	{
+		reset();
+		return;
+	}
+
+	this->label = std::move(label);
+	if (target.key && target.key == this->target.key)
+		return;
+
+	//	別の物になったら、変更前を取り直す
+	this->target = std::move(target);
+	checkpoint = this->target.capture();
+	changed = false;
+}
+
+void editor_change_tracker::end(editor_transaction_history& history)
+{
+	//	操作中(ドラッグ中など)は続きの変更があるので、操作が終わってから積む
+	if (!changed || ImGui::IsAnyItemActive() || ImGuizmo::IsUsing())
+		return;
+	changed = false;
+	if (!target.capture || !checkpoint)
+		return;
+
+	//	先に取っておいた変更前を使って、明示的なトランザクションとして積む
+	history.begin_transaction(label);
+	history.record(target, checkpoint);
+	history.commit_transaction();
+
+	//	次の変更の変更前は今の中身
+	checkpoint = target.capture();
+}
+
+void editor_change_tracker::resync()
+{
+	changed = false;
+	checkpoint = target.capture ? target.capture() : editor_restore_function();
+}
+
+void editor_change_tracker::reset()
+{
+	label.clear();
+	target = {};
+	checkpoint = {};
+	changed = false;
+}
+
+editor_transaction_target editor_change_tracker::make_material_target(const std::shared_ptr<material_resource>& material, std::function<void()> on_restored)
+{
+	editor_transaction_target result;
+	if (!material)
+		return result;
+
+	result.key = material.get();
+	const std::weak_ptr<material_resource> weak_material = material;
+	result.capture = [weak_material, on_restored]() -> editor_restore_function
+	{
+		const std::shared_ptr<material_resource> locked = weak_material.lock();
+		if (!locked)
+			return {};
+
+		//	今の中身を複製しておき、戻す時はその複製から書き戻す
+		auto copy = std::make_shared<material_resource>();
+		locked->duplicate(*copy);
+		return [weak_material, copy, on_restored]()
+		{
+			const std::shared_ptr<material_resource> target = weak_material.lock();
+			if (!target)
+				return false;
+			copy->duplicate(*target);
+			if (on_restored)
+				on_restored();
+			return true;
+		};
+	};
+	return result;
 }
 #endif	//	defined(USE_IMGUI)

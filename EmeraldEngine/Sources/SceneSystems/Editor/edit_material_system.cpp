@@ -185,9 +185,34 @@ void edit_material_system::update_core(float elapsed_time)
 
 void edit_material_system::imgui_render_core()
 {
+	//	編集する UI を描く前に、選んでいるマテリアルを追跡する物にする
+	if (const material_resource_ptr material = get_selected_material())
+		change_tracker.set_target("Edit Material " + materials[selected_material].label, editor_change_tracker::make_material_target(material, [this]() { dirty = true; }));
+	else
+		change_tracker.reset();
+
 	ImGui::SetNextWindowSize(ImVec2(820.0f, 640.0f), ImGuiCond_FirstUseEver);
 	if (ImGui::Begin(get_context().get_editor().make_window_name("Material Editor").c_str()))
 	{
+		//	Ctrl+Z / Ctrl+Y はこの窓がフォーカスしている時だけ受ける
+		switch (editor_edit_tracker::check_shortcuts(ImGuiInputFlags_RouteFocused))
+		{
+			case editor_edit_tracker::shortcuts::undo:
+			{
+				undo();
+				break;
+			}
+			case editor_edit_tracker::shortcuts::redo:
+			{
+				redo();
+				break;
+			}
+			default:
+			{
+				break;
+			}
+		}
+
 		imgui_render_source();
 		ImGui::Separator();
 		imgui_render_preview();
@@ -202,6 +227,27 @@ void edit_material_system::imgui_render_core()
 		ImGui::EndChild();
 	}
 	ImGui::End();
+
+	//	操作が終わっていて変更があれば履歴に積む
+	change_tracker.end(history);
+}
+
+void edit_material_system::undo()
+{
+	if (!history.can_undo())
+		return;
+	history.undo();
+
+	//	戻した中身を次の変更の変更前にする
+	change_tracker.resync();
+}
+
+void edit_material_system::redo()
+{
+	if (!history.can_redo())
+		return;
+	history.redo();
+	change_tracker.resync();
 }
 
 void edit_material_system::open_source(const std::string& file_path, bool force_load)
@@ -316,11 +362,19 @@ void edit_material_system::revert_source()
 	}
 	dirty = false;
 	message = "reverted: " + to_display(get_source_file_path());
+
+	//	ファイルの中身に戻したので、それまでの操作は捨てる
+	history.clear();
+	change_tracker.reset();
 }
 
 void edit_material_system::collect_materials()
 {
 	materials.clear();
+
+	//	編集用の複製を作り直すので、前の複製を指す操作は捨てる
+	history.clear();
+	change_tracker.reset();
 
 	if (source_material)
 	{
@@ -729,6 +783,21 @@ void edit_material_system::attach_preview_post_process(const material_resource_p
 
 void edit_material_system::imgui_render_source()
 {
+	//	元に戻す・やり直す
+	ImGui::BeginDisabled(!history.can_undo());
+	if (ImGui::Button("Undo"))
+		undo();
+	ImGui::EndDisabled();
+	if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled) && history.can_undo())
+		ImGui::SetTooltip("%s", std::string(history.get_undo_label()).c_str());
+	ImGui::SameLine();
+	ImGui::BeginDisabled(!history.can_redo());
+	if (ImGui::Button("Redo"))
+		redo();
+	ImGui::EndDisabled();
+	if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled) && history.can_redo())
+		ImGui::SetTooltip("%s", std::string(history.get_redo_label()).c_str());
+
 	if (!get_source_file_path().empty())
 	{
 		ImGui::SameLine();
@@ -834,7 +903,10 @@ void edit_material_system::imgui_render_material_detail()
 
 	//	リソースを直接編集するので、同じマテリアルを使う全てのインスタンスへバージョン番号で伝わる
 	if (editor_items::edit_shared_material(items_context, material))
+	{
 		dirty = true;
+		change_tracker.notify_changed();
+	}
 }
 
 #endif // defined(USE_IMGUI)
