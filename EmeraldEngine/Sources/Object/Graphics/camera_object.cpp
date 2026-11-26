@@ -28,7 +28,7 @@ void camera_object::on_deactive()
 	base::on_deactive();
 }
 
-void camera_object::post_update(float elapsed_time)
+void camera_object::pre_render()
 {
 	auto& parameters = camera->get_parameters();
 	parameters.rotation = get_spatial()->get_parent()

@@ -291,6 +291,7 @@ public:
 	template<std::floating_point T> static constexpr T convert_unit_to_g(T value) { return value * mass_factor<T>(mass_units::unit, mass_units::gram); }
 	template<std::floating_point T> static constexpr T convert_unit_to_kg(T value) { return value * mass_factor<T>(mass_units::unit, mass_units::kilogram); }
 
+public:
 	//	•b <> ƒ~ƒŠ•b•ÏŠ·
 	template<std::floating_point T> static constexpr T convert_sec_to_millisec(T value) { return value * static_cast<T>(1000); }
 	template<std::floating_point T> static constexpr T convert_millisec_to_sec(T value) { return value / static_cast<T>(1000); }
@@ -301,7 +302,10 @@ public:
 	template<std::floating_point T> static constexpr T convert_sec_to_hour(T value) { return value / static_cast<T>(3600); }
 	template<std::floating_point T> static constexpr T convert_hour_to_sec(T value) { return value * static_cast<T>(3600); }
 
-	//	ƒtƒŒ[ƒ€ <> •b
+	//	•b <> ƒtƒŒ[ƒ€
 	template<std::floating_point T> static constexpr T convert_sec_to_fps(T value) { return value * static_cast<T>(frame_per_sec); }
 	template<std::floating_point T> static constexpr T convert_fps_to_sec(T value) { return value / static_cast<T>(frame_per_sec); }
+
+	//	•âŠÔŒW”‚ÌŒo‰ßŠÔ•â³
+	static float convert_rate(float rate, float elapsed_time);
 };

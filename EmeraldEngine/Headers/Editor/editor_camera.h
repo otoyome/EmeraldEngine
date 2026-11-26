@@ -37,7 +37,7 @@ public:
 	editor_camera_object(std::string_view name, const math::vector3d& position, const math::rotatorf& rotation, float speed_scale = 1.0f);
 	~editor_camera_object() override;
 
-	void post_update(float elapsed_time) override;
+	void pre_render() override;
 	void debug_update(float elapsed_time) override;
 
 protected:

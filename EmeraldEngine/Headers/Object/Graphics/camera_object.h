@@ -19,7 +19,7 @@ public:
 	camera_object(std::string_view name);
 	~camera_object() override;
 
-	void post_update(float elapsed_time) override;
+	void pre_render() override;
 
 	//	•`‰æ‚Ég‚¤ƒJƒƒ‰‚Ì—Dæ‡‚ğˆê”Ô‚É‚·‚é
 	void bring_to_front() { view_order = view_order_counter.fetch_add(1); }

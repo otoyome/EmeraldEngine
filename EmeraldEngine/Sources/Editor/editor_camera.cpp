@@ -26,7 +26,7 @@ editor_camera_object::~editor_camera_object()
 {
 }
 
-void editor_camera_object::post_update(float elapsed_time)
+void editor_camera_object::pre_render()
 {
 }
 
